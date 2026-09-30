@@ -269,7 +269,7 @@ function DispatchView({ appts, jobs, techs, store, leadStore, onMenuOpen, onOpen
             </div>
           ) : allGroups.map((g) => (
             <div key={g.day} style={{ marginBottom: 18 }}>
-              <div style={{ fontSize: 11, fontWeight: 800, letterSpacing: ".05em", textTransform: "uppercase", color: "var(--text-3)", marginBottom: 9 }}>{g.day === "ไม่ระบุวัน" ? g.day : thDate(g.day, true)} ({g.items.length})</div>
+              <div style={{ fontSize: 11, fontWeight: 800, color: "var(--text-3)", marginBottom: 9 }}>{g.day === "ไม่ระบุวัน" ? g.day : thDate(g.day, true)} ({g.items.length})</div>
               <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
                 {g.items.map((a) => {
                   const stt = APPT_STATUS_BY[a.status] || APPT_STATUS_BY.scheduled;
@@ -392,7 +392,7 @@ function SurveyApptModal({ initial, jobs, techs, appts, leads, blankLead, onClos
     onSave(out, lead);
   };
 
-  const lbl = { fontSize: 10.5, fontWeight: 700, letterSpacing: ".05em", textTransform: "uppercase", color: "var(--text-3)" };
+  const lbl = { fontSize: 10.5, fontWeight: 700, color: "var(--text-3)" };
   return (
     <div {...bdClose} style={{ position: "fixed", inset: 0, background: "rgba(8,20,14,.45)", backdropFilter: "blur(3px)", zIndex: 118, display: "grid", placeItems: isMobile ? "end center" : "center", padding: isMobile ? 0 : 20 }}>
       <div onClick={(e) => e.stopPropagation()} style={{ background: "var(--bg)", borderRadius: isMobile ? "20px 20px 0 0" : 18, width: isMobile ? "100%" : "min(520px,100%)", maxHeight: isMobile ? "94dvh" : "90vh", display: "flex", flexDirection: "column", overflow: "hidden", boxShadow: "0 30px 80px rgba(8,20,14,.3)" }}>
@@ -737,7 +737,7 @@ function MyScheduleView({ appts, jobs, leads, me, onMenuOpen, onStatus, onOpenSu
           </div>
         ) : groups.map((g) => (
           <div key={g.key} style={{ marginBottom: 18 }}>
-            <div style={{ fontSize: 11, fontWeight: 800, letterSpacing: ".05em", textTransform: "uppercase", color: "var(--text-3)", marginBottom: 9 }}>{g.th} ({g.items.length})</div>
+            <div style={{ fontSize: 11, fontWeight: 800, color: "var(--text-3)", marginBottom: 9 }}>{g.th} ({g.items.length})</div>
             <div style={{ display: "flex", flexDirection: "column", gap: 11 }}>
               {g.items.map(renderCard)}
             </div>

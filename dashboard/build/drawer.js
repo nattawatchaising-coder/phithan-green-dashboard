@@ -589,8 +589,6 @@ function StockShopModal({
     style: {
       fontSize: 11,
       fontWeight: 700,
-      letterSpacing: ".05em",
-      textTransform: "uppercase",
       color: "var(--text-3)",
       padding: "12px 8px 6px",
       display: "flex",

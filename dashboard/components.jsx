@@ -377,7 +377,7 @@ function Dropdown({ value, onChange, options, disabled, placeholder, style, adda
               const active = String(o.value) === String(value);
               // หัวข้อหมวด (เฉพาะตอนดู "ทั้งหมด") — ขึ้นเมื่อ group เปลี่ยน
               const head = (hasGroups && !cat && o.group && o.group !== (shown[idx - 1] || {}).group)
-                ? <div key={"h-" + o.group} style={{ fontSize: 10.5, fontWeight: 800, letterSpacing: ".04em", color: "var(--text-3)", textTransform: "uppercase", padding: "8px 11px 3px" }}>{o.group}</div>
+                ? <div key={"h-" + o.group} style={{ fontSize: 10.5, fontWeight: 800, letterSpacing: ".04em", color: "var(--text-3)", padding: "8px 11px 3px" }}>{o.group}</div>
                 : null;
               return (
                 <React.Fragment key={String(o.value)}>

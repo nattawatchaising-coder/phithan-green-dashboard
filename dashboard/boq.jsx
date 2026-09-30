@@ -332,7 +332,7 @@ function Meas3DModal({ list, targets, defaultTarget, onApply, onClose }) {
         width: isMobile ? "100%" : "min(620px,100%)", maxHeight: isMobile ? "92dvh" : "88vh", display: "flex", flexDirection: "column",
         overflow: "hidden", boxShadow: "0 30px 80px rgba(0,0,0,.45)" }}>
         <div style={{ padding: "16px 20px", borderBottom: "1px solid var(--border)", background: "var(--surface)", flexShrink: 0 }}>
-          <div style={{ fontSize: 10.5, fontWeight: 800, letterSpacing: ".05em", textTransform: "uppercase", color: "var(--text-3)" }}>ระยะจากแบบ 3D</div>
+          <div style={{ fontSize: 10.5, fontWeight: 800, color: "var(--text-3)" }}>ระยะจากแบบ 3D</div>
           <div style={{ fontSize: 14.5, fontWeight: 700, color: "var(--text-1)", marginTop: 3 }}>เลือกว่าแต่ละระยะจะลงช่องไหน</div>
         </div>
         <div style={{ padding: 16, overflowY: "auto", display: "flex", flexDirection: "column", gap: 10 }}>
@@ -1471,7 +1471,7 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
     return (
       <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
         <div style={{ display: "grid", gridTemplateColumns: isMobile ? "minmax(0,1fr) 62px 36px" : "minmax(0,1fr) 84px 62px 96px 36px", gap: 8,
-          fontSize: 9.5, fontWeight: 800, letterSpacing: ".05em", color: "var(--text-3)", textTransform: "uppercase", padding: "0 2px" }}>
+          fontSize: 9.5, fontWeight: 800, letterSpacing: ".05em", color: "var(--text-3)", padding: "0 2px" }}>
           <span>รายการ</span>{!isMobile && <span style={{ textAlign: "right" }}>{qtyLabel}</span>}
           {!isMobile && <span style={{ textAlign: "right" }}>หน่วย</span>}
           <span style={{ textAlign: "right" }}>ราคา/หน่วย</span><span />
@@ -1539,7 +1539,7 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
       </div>
       {(extraItems && extraItems.length > 0) && (
         <div style={{ marginTop: 10, paddingTop: 10, borderTop: "1px solid var(--border)", display: "flex", flexDirection: "column", gap: 6 }}>
-          <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: ".04em", textTransform: "uppercase", color: "var(--text-3)" }}>วัสดุเพิ่ม (นอกระบบ)</span>
+          <span style={{ fontSize: 10, fontWeight: 700, color: "var(--text-3)" }}>วัสดุเพิ่ม (นอกระบบ)</span>
           {extraItems.map((x, i) => (
             <div key={i} style={{ display: "grid", gridTemplateColumns: "minmax(0,1fr) 64px 52px 36px", gap: 6, alignItems: "center" }}>
               <input value={x.name || ""} onChange={(e) => onExtraChange(i, "name", e.target.value)} placeholder="ชื่อวัสดุ" style={inputStyle} />
@@ -2141,7 +2141,7 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
               )}
 
               {/* สเปคจากคลัง — ตัวเลขทุกตัวที่ใช้คิด BOQ อยู่ตรงนี้หมด ช่องส้ม = ยังไม่กรอกในคลัง */}
-              <div style={{ marginTop: 16, marginBottom: 8, fontSize: 10.5, fontWeight: 800, letterSpacing: ".05em", textTransform: "uppercase", color: "var(--text-3)" }}>
+              <div style={{ marginTop: 16, marginBottom: 8, fontSize: 10.5, fontWeight: 800, color: "var(--text-3)" }}>
                 สเปคจากคลังสินค้า · {selInv.model}
               </div>
               <div className="bq-spec">
@@ -2201,7 +2201,7 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
               {/* สเปครุ่นที่สอง — เฉพาะค่าต่อตัวกับยอดรวมของรุ่นนี้ ส่วนยอดทั้งงาน (MAX PV รวม · AC รวม · DC/AC) อยู่ในกรอบตัวที่ 1 */}
               {(
                 <React.Fragment>
-                  <div style={{ marginTop: 16, marginBottom: 8, fontSize: 10.5, fontWeight: 800, letterSpacing: ".05em", textTransform: "uppercase", color: "var(--text-3)" }}>
+                  <div style={{ marginTop: 16, marginBottom: 8, fontSize: 10.5, fontWeight: 800, color: "var(--text-3)" }}>
                     สเปคจากคลังสินค้า · {selInv2.model} · {inv2Count} ตัว
                   </div>
                   <div className="bq-spec">
@@ -2280,7 +2280,7 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
                   {/* ── แผนสตริง — ลงสตริงละกี่แผง แล้วได้กี่สตริง ต่อเข้าอินเวอร์เตอร์พอไหม ── */}
                   {plan && (
                     <div>
-                      <div style={{ marginBottom: 8, fontSize: 10.5, fontWeight: 800, letterSpacing: ".05em", textTransform: "uppercase", color: "var(--text-3)" }}>
+                      <div style={{ marginBottom: 8, fontSize: 10.5, fontWeight: 800, color: "var(--text-3)" }}>
                         แผนสตริง · {plan.panels} แผง ÷ {plan.series} แผง/สตริง
                       </div>
                       <div className="bq-spec">
@@ -2388,7 +2388,7 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
             {/* หัวคอลัมน์ — เดิมไม่มีเลย ต้องเดาเอาว่าช่องไหนคืออะไร */}
             {!isMobile && (
               <div style={{ display: "grid", gridTemplateColumns: CAB_COLS, gap: 8, padding: "0 2px 6px",
-                fontSize: 9.5, fontWeight: 800, letterSpacing: ".05em", textTransform: "uppercase", color: "var(--text-3)" }}>
+                fontSize: 9.5, fontWeight: 800, color: "var(--text-3)" }}>
                 <span>จุดเดินสาย</span><span>ชนิดสายไฟ</span><span style={{ textAlign: "right" }}>ความยาว</span><span />
               </div>
             )}
@@ -2429,7 +2429,7 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
                     : { borderTop: i === 0 ? "none" : "1px solid var(--border)" })}>
                   {isMobile && (
                     <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
-                      <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: ".05em", textTransform: "uppercase", color: "var(--text-3)" }}>จุดเดินสาย</span>
+                      <span style={{ fontSize: 10, fontWeight: 700, color: "var(--text-3)" }}>จุดเดินสาย</span>
                       <Dropdown value={c.name || ""} onChange={(v) => setCab(i, "name", v)} options={cablePtOptions} placeholder="— เลือกจุด —" addable onAdd={addCablePt} />
                     </div>
                   )}
@@ -2632,7 +2632,7 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
                         { title: "กลุ่มการติดตั้ง", items: (window.BOQ.AMP_GROUPS || []).map((g) => ({ key: g.key, art: g.art, name: g.th, note: g.sub, on: calcGroup === g.key, pick: () => setWcalc("group", g.key), tip: g.desc })) },
                       ].map((sec) => (
                         <div key={sec.title}>
-                          <div style={{ fontSize: 9.5, fontWeight: 800, letterSpacing: ".07em", color: "var(--text-3)", textTransform: "uppercase", marginBottom: 6 }}>{sec.title}</div>
+                          <div style={{ fontSize: 9.5, fontWeight: 800, letterSpacing: ".07em", color: "var(--text-3)", marginBottom: 6 }}>{sec.title}</div>
                           <div style={{ display: "grid", gridTemplateColumns: isMobile ? "repeat(2, minmax(0,1fr))" : "repeat(4, minmax(0,1fr))", gap: 7 }}>
                             {sec.items.map((it) => (
                               <button key={it.key} type="button" onClick={it.pick} title={it.tip || it.name}
@@ -2681,7 +2681,7 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
                   {calcRows.map((r, i) => {
                     const metric = (label, val, sub, hi) => (
                       <div style={{ flex: 1, minWidth: 0 }}>
-                        <div style={{ fontSize: 9.5, fontWeight: 700, letterSpacing: ".02em", color: "var(--text-3)", textTransform: "uppercase" }}>{label}</div>
+                        <div style={{ fontSize: 9.5, fontWeight: 700, letterSpacing: ".02em", color: "var(--text-3)" }}>{label}</div>
                         <div style={{ fontFamily: "var(--mono)", fontSize: 13.5, fontWeight: 700, color: hi ? "var(--primary-dark)" : "var(--text-1)" }}>{val}</div>
                         {sub && <div style={{ fontSize: 9.5, color: "var(--text-3)" }}>{sub}</div>}
                       </div>
@@ -2710,7 +2710,7 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
               <div style={{ overflowX: "auto" }}>
                 <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12.5, minWidth: 540 }}>
                   <thead>
-                    <tr style={{ color: "var(--text-3)", fontSize: 11, textTransform: "uppercase", letterSpacing: ".04em" }}>
+                    <tr style={{ color: "var(--text-3)", fontSize: 11 }}>
                       <th style={{ textAlign: "left", padding: "8px 14px", fontWeight: 700 }}>ชุดคำนวณ</th>
                       <th style={{ textAlign: "right", padding: "8px 10px", fontWeight: 700 }}>กำลัง (W)</th>
                       <th style={{ textAlign: "right", padding: "8px 10px", fontWeight: 700 }}>กระแสรวม (A)</th>
@@ -2943,7 +2943,7 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
                             {numBox({ key: bd.key, name: bd.name, unit: bd.unit })}
                             {(bd.items || []).length > 0 && (
                               <div style={{ display: "flex", flexDirection: "column", gap: 8, paddingTop: 8, borderTop: "1px dashed var(--border-strong)" }}>
-                                <span style={{ fontSize: 9.5, fontWeight: 800, letterSpacing: ".05em", textTransform: "uppercase", color: "var(--text-3)" }}>อุปกรณ์ในตู้นี้</span>
+                                <span style={{ fontSize: 9.5, fontWeight: 800, color: "var(--text-3)" }}>อุปกรณ์ในตู้นี้</span>
                                 {bd.items.map((it) => numBox(it))}
                               </div>
                             )}
@@ -2976,9 +2976,9 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
             <div style={{ fontSize: 11.5, color: "var(--text-3)", lineHeight: 1.5, marginBottom: 12 }}>
               ค่าขนของขึ้นไซต์และค่าอยู่หน้างาน — กรอกเฉพาะที่งานนี้มีจริง บรรทัดที่ไม่ใช้ลบทิ้งได้
             </div>
-            <div style={{ fontSize: 11, fontWeight: 800, letterSpacing: ".05em", textTransform: "uppercase", color: "var(--text-3)", marginBottom: 8 }}>ขนส่ง & เครื่องจักร</div>
+            <div style={{ fontSize: 11, fontWeight: 800, color: "var(--text-3)", marginBottom: 8 }}>ขนส่ง & เครื่องจักร</div>
             {SvcTable({ sKey: "transport", preset: window.BOQ.TRANSPORT_PRESET, qtyLabel: "จำนวน" })}
-            <div style={{ fontSize: 11, fontWeight: 800, letterSpacing: ".05em", textTransform: "uppercase", color: "var(--text-3)", margin: "18px 0 8px" }}>บริหารจัดการ</div>
+            <div style={{ fontSize: 11, fontWeight: 800, color: "var(--text-3)", margin: "18px 0 8px" }}>บริหารจัดการ</div>
             {SvcTable({ sKey: "manage", preset: window.BOQ.MANAGE_PRESET, qtyLabel: "จำนวน" })}
           </BoqSection>
           )}
@@ -3172,7 +3172,7 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
             {/* ── สรุปต้นทุนต่อ kW ── ตัวเลขที่ใช้เทียบข้ามงานได้จริง ── */}
             {priced.grandTotal > 0 && (
               <div style={{ marginBottom: 14 }}>
-                <div style={{ marginBottom: 8, fontSize: 10.5, fontWeight: 800, letterSpacing: ".05em", textTransform: "uppercase", color: "var(--text-3)" }}>
+                <div style={{ marginBottom: 8, fontSize: 10.5, fontWeight: 800, color: "var(--text-3)" }}>
                   ต้นทุนต่อวัตต์ · {Math.round(result.meta.kw * 1000).toLocaleString()} W ({result.meta.kw.toLocaleString()} kW)
                 </div>
                 <div className="bq-spec">
@@ -3587,14 +3587,14 @@ function MatVariantModal({ item, stock, priceMap, matOptions, picked, onPick, re
         width: isMobile ? "100%" : "min(520px,100%)", maxHeight: isMobile ? "92dvh" : "88vh", display: "flex", flexDirection: "column",
         overflow: "hidden", boxShadow: "0 30px 80px rgba(0,0,0,.45)" }}>
         <div style={{ padding: "16px 20px", borderBottom: "1px solid var(--border)", background: "var(--surface)", flexShrink: 0 }}>
-          <div style={{ fontSize: 10.5, fontWeight: 800, letterSpacing: ".05em", textTransform: "uppercase", color: "var(--text-3)" }}>ยี่ห้อ · รุ่น · ราคา</div>
+          <div style={{ fontSize: 10.5, fontWeight: 800, color: "var(--text-3)" }}>ยี่ห้อ · รุ่น · ราคา</div>
           <div style={{ fontSize: 14.5, fontWeight: 700, color: "var(--text-1)", marginTop: 3 }}>{item.name}</div>
         </div>
         <div style={{ padding: 20, overflowY: "auto", display: "flex", flexDirection: "column", gap: 14 }}>
           {/* ── ชื่อรายการ ── เลือกของจากคลังมาทับได้เลย ราคาจะตามของที่เลือกทันที ── */}
           {onRename && (
             <div style={{ display: "flex", flexDirection: "column", gap: 7 }}>
-              <span style={{ fontSize: 10.5, fontWeight: 800, letterSpacing: ".05em", textTransform: "uppercase", color: "var(--text-3)" }}>ชื่อรายการในใบถอดของ</span>
+              <span style={{ fontSize: 10.5, fontWeight: 800, color: "var(--text-3)" }}>ชื่อรายการในใบถอดของ</span>
               <Dropdown value={item.name} onChange={(v) => onRename(v === (item.nameAuto || item.name) ? "" : v)}
                 options={(matOptions || []).some((o) => o.value === item.name) ? matOptions : [{ value: item.name, label: item.name, group: "ชื่อปัจจุบัน" }].concat(matOptions || [])}
                 addable onAdd={(v) => onRename(v)} placeholder="เลือกวัสดุจากคลัง" />
@@ -3652,7 +3652,7 @@ function MatVariantModal({ item, stock, priceMap, matOptions, picked, onPick, re
           )}
           {variants.length > 1 && (
             <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-              <span style={{ fontSize: 10.5, fontWeight: 800, letterSpacing: ".05em", textTransform: "uppercase", color: "var(--text-3)" }}>งานนี้ใช้ตัวไหน</span>
+              <span style={{ fontSize: 10.5, fontWeight: 800, color: "var(--text-3)" }}>งานนี้ใช้ตัวไหน</span>
               {variants.map((v) => {
                 const on = cur && v.sku === cur.sku;
                 return (
@@ -3675,7 +3675,7 @@ function MatVariantModal({ item, stock, priceMap, matOptions, picked, onPick, re
           )}
           <div style={{ display: "flex", flexDirection: "column", gap: 9, paddingTop: variants.length > 1 ? 12 : 0,
             borderTop: variants.length > 1 ? "1px solid var(--border)" : "none" }}>
-            <span style={{ fontSize: 10.5, fontWeight: 800, letterSpacing: ".05em", textTransform: "uppercase", color: "var(--text-3)" }}>
+            <span style={{ fontSize: 10.5, fontWeight: 800, color: "var(--text-3)" }}>
               {f.isNew ? "เพิ่มยี่ห้อ/รุ่นใหม่ของของชิ้นนี้" : "แก้รายละเอียด (บันทึกลงคลังสินค้า)"}
             </span>
             {/* ชื่อบนใบกับของที่คิดราคาเป็นคนละตัว ต้องบอกให้ชัดว่ากำลังแก้ของตัวไหนในคลัง */}

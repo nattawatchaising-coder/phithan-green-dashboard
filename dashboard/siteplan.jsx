@@ -1898,7 +1898,7 @@ function SitePlanEditor({ job, onClose, currentUser }) {
                 )}
                 {summary.anyPaired && (
                   <div style={{ background: "var(--surface2)", border: "1px solid var(--border)", borderRadius: 12, padding: "10px 12px", marginBottom: 12 }}>
-                    <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: ".05em", textTransform: "uppercase", color: "var(--text-3)", marginBottom: 8 }}>จับคู่แผง ↔ ไมโคร</div>
+                    <div style={{ fontSize: 11, fontWeight: 700, color: "var(--text-3)", marginBottom: 8 }}>จับคู่แผง ↔ ไมโคร</div>
                     <div style={{ display: "flex", flexWrap: "wrap", gap: 7 }}>
                       {summary.pairedMicros.filter((pm) => pm.modules > 0).map((pm, i) => {
                         const idx = summary.pairedMicros.indexOf(pm);
@@ -1919,7 +1919,7 @@ function SitePlanEditor({ job, onClose, currentUser }) {
                   <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
                     {summary.cable.length > 0 && (
                       <div>
-                        <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: ".05em", textTransform: "uppercase", color: "var(--text-3)", marginBottom: 6 }}>ระยะสาย / ท่อ (รวมเผื่อ){summary.pageCount > 1 ? " · รวมทุกหน้า (" + summary.pageCount + " รูป)" : ""}</div>
+                        <div style={{ fontSize: 11, fontWeight: 700, color: "var(--text-3)", marginBottom: 6 }}>ระยะสาย / ท่อ (รวมเผื่อ){summary.pageCount > 1 ? " · รวมทุกหน้า (" + summary.pageCount + " รูป)" : ""}</div>
                         <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
                           {summary.cable.map((c) => (
                             <div key={c.kind.key} style={{ display: "flex", alignItems: "center", gap: 9, fontSize: 12.5 }}>
@@ -1935,7 +1935,7 @@ function SitePlanEditor({ job, onClose, currentUser }) {
                     )}
                     {summary.cable.some((c) => c.kind.key === "dc") && (
                       <div style={{ borderTop: "1px dashed var(--border)", paddingTop: 11 }}>
-                        <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: ".05em", textTransform: "uppercase", color: "var(--text-3)", marginBottom: 8, display: "flex", alignItems: "center", gap: 5 }}>
+                        <div style={{ fontSize: 11, fontWeight: 700, color: "var(--text-3)", marginBottom: 8, display: "flex", alignItems: "center", gap: 5 }}>
                           <Icon name="panel" size={13} color="#EF4444" /> คำนวณสาย DC (PV) · PV1-F (พิกัด วสท.)
                         </div>
                         <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: 8, fontSize: 12.5 }}>
@@ -1956,7 +1956,7 @@ function SitePlanEditor({ job, onClose, currentUser }) {
                     )}
                     {summary.cable.some((c) => c.kind.key === "ac") && (
                       <div style={{ borderTop: "1px dashed var(--border)", paddingTop: 11 }}>
-                        <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: ".05em", textTransform: "uppercase", color: "var(--text-3)", marginBottom: 8, display: "flex", alignItems: "center", gap: 5 }}>
+                        <div style={{ fontSize: 11, fontWeight: 700, color: "var(--text-3)", marginBottom: 8, display: "flex", alignItems: "center", gap: 5 }}>
                           <Icon name="bolt" size={13} color="#3B82F6" /> คำนวณสาย AC เมน · CV-FD (พิกัด วสท.)
                         </div>
                         <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: 8, fontSize: 12.5 }}>
@@ -1992,7 +1992,7 @@ function SitePlanEditor({ job, onClose, currentUser }) {
                     )}
                     {(summary.equip.length > 0 || summary.panelTotal > 0) && (
                       <div>
-                        <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: ".05em", textTransform: "uppercase", color: "var(--text-3)", marginBottom: 6 }}>จุดอุปกรณ์</div>
+                        <div style={{ fontSize: 11, fontWeight: 700, color: "var(--text-3)", marginBottom: 6 }}>จุดอุปกรณ์</div>
                         <div style={{ display: "flex", flexWrap: "wrap", gap: 7 }}>
                           {summary.panelTotal > 0 && (
                             <span style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "5px 11px", borderRadius: 99, background: PLAN_PANEL_COLOR + "16", color: PLAN_PANEL_COLOR, fontSize: 12, fontWeight: 700 }}>
@@ -2009,7 +2009,7 @@ function SitePlanEditor({ job, onClose, currentUser }) {
                     )}
                     {summary.junctions.length > 0 && (
                       <div>
-                        <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: ".05em", textTransform: "uppercase", color: "var(--text-3)", marginBottom: 6 }}>จุดต่อรูป</div>
+                        <div style={{ fontSize: 11, fontWeight: 700, color: "var(--text-3)", marginBottom: 6 }}>จุดต่อรูป</div>
                         <div style={{ display: "flex", flexWrap: "wrap", gap: 7 }}>
                           {summary.junctions.map((j) => (
                             <span key={j.jid} style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "5px 11px", borderRadius: 99, background: PLAN_XPAGE_COLOR + "16", color: PLAN_XPAGE_COLOR, fontSize: 12, fontWeight: 700 }}>
@@ -2026,7 +2026,7 @@ function SitePlanEditor({ job, onClose, currentUser }) {
                       <div style={{ borderTop: "2px solid var(--border)", paddingTop: 13 }}>
                         {takeoff.kwp > 0 && (
                           <div style={{ background: "linear-gradient(135deg,#0EA5E9,#1D4ED8)", borderRadius: 12, padding: "13px 15px", color: "#fff", marginBottom: 13 }}>
-                            <div style={{ fontSize: 10.5, opacity: 0.85, fontWeight: 700, letterSpacing: ".08em", textTransform: "uppercase" }}>สรุปสำหรับนำเสนอลูกค้า</div>
+                            <div style={{ fontSize: 10.5, opacity: 0.85, fontWeight: 700 }}>สรุปสำหรับนำเสนอลูกค้า</div>
                             <div style={{ display: "flex", flexWrap: "wrap", alignItems: "baseline", gap: "2px 16px", marginTop: 5 }}>
                               <span style={{ fontSize: 23, fontWeight: 800 }}>{takeoff.kwp}<span style={{ fontSize: 13, fontWeight: 700, marginLeft: 3 }}>kWp</span></span>
                               <span style={{ fontSize: 17, fontWeight: 800, color: "var(--tint-amber-bd)" }}>≈ {takeoff.estKwh.toLocaleString()}<span style={{ fontSize: 11.5, fontWeight: 700, marginLeft: 3 }}>kWh/ปี</span></span>
@@ -2040,7 +2040,7 @@ function SitePlanEditor({ job, onClose, currentUser }) {
                           </div>
                         )}
                         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8, marginBottom: 8 }}>
-                          <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: ".05em", textTransform: "uppercase", color: "var(--text-3)", display: "flex", alignItems: "center", gap: 5 }}>
+                          <div style={{ fontSize: 11, fontWeight: 700, color: "var(--text-3)", display: "flex", alignItems: "center", gap: 5 }}>
                             <Icon name="box" size={13} color="var(--primary-dark)" /> ถอดวัสดุจากผัง (BOQ)
                           </div>
                           <button onClick={doCopyTakeoff}
@@ -2076,7 +2076,7 @@ function SitePlanEditor({ job, onClose, currentUser }) {
                         )}
                         {takeoff.conduit.length > 0 && (
                           <div style={{ marginTop: 11 }}>
-                            <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: ".05em", textTransform: "uppercase", color: "var(--text-3)", marginBottom: 6, display: "flex", alignItems: "center", gap: 5 }}>🧵 ท่อร้อยสาย (แยกชนิด/ขนาด)</div>
+                            <div style={{ fontSize: 11, fontWeight: 700, color: "var(--text-3)", marginBottom: 6, display: "flex", alignItems: "center", gap: 5 }}>🧵 ท่อร้อยสาย (แยกชนิด/ขนาด)</div>
                             {takeoff.conduit.map((c, i) => (
                               <div key={i} style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 12.5, padding: "5px 0", borderBottom: "1px dashed var(--border)" }}>
                                 <span style={{ display: "inline-flex", alignItems: "center", gap: 5, flex: 1, minWidth: 0 }}>
@@ -2098,7 +2098,7 @@ function SitePlanEditor({ job, onClose, currentUser }) {
               {/* ── รายการเส้น (แก้ระยะเอง / ลบ) ── */}
               {lines.length > 0 && (
                 <div style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 14, padding: 12 }}>
-                  <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: ".05em", textTransform: "uppercase", color: "var(--text-3)", marginBottom: 8 }}>เส้นทั้งหมด ({lines.length})</div>
+                  <div style={{ fontSize: 11, fontWeight: 700, color: "var(--text-3)", marginBottom: 8 }}>เส้นทั้งหมด ({lines.length})</div>
                   <div style={{ display: "flex", flexDirection: "column", gap: 7 }}>
                     {lines.map((ln, i) => {
                       const kc = PLAN_LINE_BY[ln.kind] || {};

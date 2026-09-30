@@ -443,7 +443,7 @@ function InspectionFormModal({ job, rec, currentUser, onSave, onClose }) {
     setTimeout(() => setSaved(false), 2200);
   };
 
-  const lbl = { fontSize: 10.5, fontWeight: 700, letterSpacing: ".05em", textTransform: "uppercase", color: "var(--text-3)" };
+  const lbl = { fontSize: 10.5, fontWeight: 700, color: "var(--text-3)" };
   const sub = { fontSize: 10.5, color: "var(--text-3)", fontWeight: 500, textTransform: "none", letterSpacing: 0 };
   /* inputStyle เป็น const ระดับบนสุดของ form.jsx — สคริปต์ทุกไฟล์ใช้ขอบเขตร่วมกัน จึงเรียกตรงได้ */
   const inp = Object.assign({}, inputStyle, { padding: "9px 11px", fontSize: 13 });

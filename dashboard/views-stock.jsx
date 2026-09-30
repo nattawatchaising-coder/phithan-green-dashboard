@@ -60,7 +60,7 @@ function StockKpi({ label, value, unit, icon, accent, sub, active, onClick }) {
   return (
     <div onClick={onClick} onMouseEnter={() => setHov(true)} onMouseLeave={() => setHov(false)}
       style={{ background: active ? accent + "0e" : "var(--surface)",
-        border: "1px solid " + (active || hov ? accent : "var(--border)"),
+        border: "1px solid " + (active || hov ? accent : "transparent"),
         borderRadius: mob ? 14 : 16, padding: mob ? 14 : 18,
         boxShadow: active ? "0 0 0 3px " + accent + "22" : hov ? "0 4px 12px rgba(0,0,0,.08)" : "var(--shadow-sm)",
         position: "relative", overflow: "hidden", cursor: onClick ? "pointer" : "default",
@@ -259,8 +259,8 @@ function StockView({ stock, onResetAll, onMenuOpen, currentUser, jobs, priceStor
             )}
             {!isMobile && !isAmp && !isCond && (
               <button onClick={toggleCat} title={catOpen ? "ซ่อนตัวกรองหมวด" : "แสดงตัวกรองหมวด"}
-                style={{ marginLeft: "auto", display: "inline-flex", alignItems: "center", gap: 6, padding: "6px 13px", borderRadius: 99,
-                  border: "1px solid var(--border-strong)", background: "var(--surface)", color: "var(--text-2)",
+                style={{ marginLeft: "auto", display: "inline-flex", alignItems: "center", gap: 6, padding: "6px 13px", borderRadius: "var(--r-pill)",
+                  background: "var(--surface2)", color: "var(--text-2)",
                   fontSize: 12.5, fontWeight: 600, cursor: "pointer", fontFamily: "inherit", whiteSpace: "nowrap" }}>
                 <Icon name="filter" size={14} color="var(--text-2)" />
                 หมวดหมู่{isPrices
@@ -347,7 +347,7 @@ function StockView({ stock, onResetAll, onMenuOpen, currentUser, jobs, priceStor
                 {!isMobile && (
                   <button className="btn-add" onClick={() => setView((v) => (v === "grid" ? "table" : "grid"))}
                     title={view === "grid" ? "สลับเป็นมุมมองตาราง" : "สลับเป็นมุมมองการ์ด (มีรูป)"}
-                    style={{ background: "var(--surface2)", color: "var(--text-2)", border: "1px solid var(--border-strong)" }}>
+                    style={{ background: "var(--surface2)", color: "var(--text-2)", border: "none" }}>
                     <Icon name={view === "grid" ? "menu" : "grid"} size={16} color="var(--text-2)" />
                     <span>{view === "grid" ? "ตาราง" : "การ์ด"}</span>
                   </button>
@@ -355,7 +355,7 @@ function StockView({ stock, onResetAll, onMenuOpen, currentUser, jobs, priceStor
                 {/* เติมยี่ห้อ/รุ่นจากชื่อ — ของเดิมส่วนใหญ่เขียนยี่ห้อกับรุ่นไว้ในชื่ออยู่แล้ว
                     ให้ดูรายการที่จะเติมก่อน แล้วค่อยกดยืนยัน ไม่เขียนทับของที่กรอกไว้เอง */}
                 <button className="btn-add" onClick={() => setFillOpen(true)}
-                  style={{ background: "var(--surface2)", color: "var(--text-2)", border: "1px solid var(--border-strong)" }}>
+                  style={{ background: "var(--surface2)", color: "var(--text-2)", border: "none" }}>
                   <Icon name="sparkle" size={16} color="var(--text-2)" /><span>เติมยี่ห้อ/รุ่น</span>
                 </button>
                 <button className="btn-add" onClick={() => setItemForm({ item: stock.blankItem(), isNew: true })}>
@@ -409,7 +409,7 @@ function StockView({ stock, onResetAll, onMenuOpen, currentUser, jobs, priceStor
                 options={[{ value: "all", label: "ทุกยี่ห้อ" }].concat(brandList.map((b) => ({ value: b, label: b + " (" + brandCount[b] + ")" })))} />
             ) : (
               <div className="cat-chip-row" style={{ display: "flex", gap: 7, flexWrap: "nowrap", alignItems: "center", overflowX: "auto", paddingBottom: 2 }}>
-                  <span style={{ fontSize: 10, fontWeight: 800, letterSpacing: ".05em", textTransform: "uppercase", color: "var(--text-3)", whiteSpace: "nowrap", paddingRight: 2 }}>ยี่ห้อ</span>
+                  <span style={{ fontSize: 10, fontWeight: 800, color: "var(--text-3)", whiteSpace: "nowrap", paddingRight: 2 }}>ยี่ห้อ</span>
                   <CatChip active={brand === "all"} onClick={() => setBrand("all")} label="ทุกยี่ห้อ" color="var(--text-2)" />
                 {brandList.map((b) => <CatChip key={b} active={brand === b} onClick={() => setBrand(b)} label={b} color="#0EA5E9" count={brandCount[b]} />)}
               </div>
@@ -422,7 +422,7 @@ function StockView({ stock, onResetAll, onMenuOpen, currentUser, jobs, priceStor
           {!isPrices && !isAmp && !showCatHome && !showSubHome && (
             <div style={{ display: "flex", alignItems: "center", gap: 9, marginBottom: 12, flexWrap: "wrap" }}>
               <button onClick={goBack} title="ย้อนกลับ"
-                style={{ display: "flex", alignItems: "center", gap: 4, padding: "6px 11px", borderRadius: 9, border: "1px solid var(--border-strong)",
+                style={{ display: "flex", alignItems: "center", gap: 4, padding: "6px 11px", borderRadius: "var(--r-chip)", boxShadow: "var(--shadow-sm)",
                   background: "var(--surface2)", color: "var(--text-2)", fontFamily: "inherit", fontSize: 12.5, fontWeight: 700, cursor: "pointer" }}>
                 <Icon name="chevronDown" size={14} color="var(--text-3)" style={{ transform: "rotate(90deg)" }} />ย้อนกลับ
               </button>
@@ -472,7 +472,7 @@ function StockView({ stock, onResetAll, onMenuOpen, currentUser, jobs, priceStor
             <StockGrid rows={rowsOf(filtered)} imgs={imgs} lowState={lowState} onOpen={setDetailItem}
               onEdit={(it) => setItemForm({ item: it, isNew: false })} onRemove={stock.removeItem} />
           ) : (
-          <div style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 18, overflow: "hidden", boxShadow: "var(--shadow-sm)" }}>
+          <div style={{ background: "var(--surface)", borderRadius: "var(--r-card)", overflow: "hidden", boxShadow: "var(--shadow-sm)" }}>
             <div style={{ overflowX: "auto" }}>
               <table style={{ width: "100%", borderCollapse: "collapse", minWidth: 640 }}>
                 <thead>
@@ -480,7 +480,7 @@ function StockView({ stock, onResetAll, onMenuOpen, currentUser, jobs, priceStor
                     {/* ไม่มีคอลัมน์ "หมวด" แล้ว เพราะกรองหมวดจากชิปด้านบนได้อยู่แล้ว
                         เอาที่ว่างมาใส่ราคาที่ต้องดูบ่อยกว่าแทน */}
                     {["รายการอุปกรณ์", "ราคา/หน่วย", "คงเหลือ", "ขั้นต่ำ", "ที่จัดเก็บ", "จัดการ"].map((h, i) => (
-                      <th key={h} style={{ padding: "12px 12px", fontSize: 10.5, fontWeight: 700, letterSpacing: ".04em", textTransform: "uppercase",
+                      <th key={h} style={{ padding: "12px 12px", fontSize: 10.5, fontWeight: 700,
                         color: "var(--text-3)", textAlign: i === 1 ? "right" : (i >= 2 && i <= 3 ? "center" : "left"), whiteSpace: "nowrap", background: "var(--surface2)" }}>{h}</th>
                     ))}
                   </tr>
@@ -521,8 +521,8 @@ function StockView({ stock, onResetAll, onMenuOpen, currentUser, jobs, priceStor
                         <td style={{ padding: "11px 12px", fontSize: 12.5, color: "var(--text-2)", whiteSpace: "nowrap" }}>{it.loc}</td>
                         {/* เหลือแค่ แก้ไข/ลบ — รับ/เบิก/คืน ย้ายไปอยู่ในหน้ารายละเอียด */}
                         <td style={{ padding: "11px 12px", whiteSpace: "nowrap" }} onClick={(e) => e.stopPropagation()}>
-                          <button onClick={() => setItemForm({ item: it, isNew: false })} title="แก้ไข" style={{ background: "#3B82F614", border: "none", color: "#3B82F6", width: 28, height: 28, borderRadius: 7, cursor: "pointer", verticalAlign: "middle" }}><Icon name="settings" size={14} /></button>
-                          <button onClick={() => { askConfirm({ title: "ลบ “" + it.name + "” ออกจากคลัง?" }).then((ok) => { if (ok) stock.removeItem(it.id); }); }} title="ลบ" style={{ background: "#EF444414", border: "none", color: "#EF4444", width: 28, height: 28, borderRadius: 7, cursor: "pointer", marginLeft: 4, verticalAlign: "middle" }}><Icon name="x" size={14} /></button>
+                          <button onClick={() => setItemForm({ item: it, isNew: false })} title="แก้ไข" style={{ background: "#3B82F614", border: "none", color: "#3B82F6", width: 28, height: 28, borderRadius: "var(--r-chip)", cursor: "pointer", verticalAlign: "middle" }}><Icon name="settings" size={14} /></button>
+                          <button onClick={() => { askConfirm({ title: "ลบ “" + it.name + "” ออกจากคลัง?" }).then((ok) => { if (ok) stock.removeItem(it.id); }); }} title="ลบ" style={{ background: "#EF444414", border: "none", color: "#EF4444", width: 28, height: 28, borderRadius: "var(--r-chip)", cursor: "pointer", marginLeft: 4, verticalAlign: "middle" }}><Icon name="x" size={14} /></button>
                         </td>
                       </tr>
                     );
@@ -581,7 +581,7 @@ function MovesModal({ moves, items, jobs, onClose }) {
                 <div style={{ fontSize: 11.5, color: "var(--text-3)", marginTop: 1 }}>รับเข้า / เบิกออก / คืนของ · ทั้งหมด {all.length} รายการ</div>
               </div>
             </div>
-            <button onClick={onClose} style={{ width: 32, height: 32, borderRadius: 9, border: "1px solid var(--border)", background: "var(--surface)", cursor: "pointer", display: "grid", placeItems: "center", color: "var(--text-2)", flexShrink: 0 }}><Icon name="x" size={16} /></button>
+            <button onClick={onClose} style={{ width: 32, height: 32, borderRadius: "var(--r-chip)", background: "var(--surface2)", cursor: "pointer", display: "grid", placeItems: "center", color: "var(--text-2)", flexShrink: 0 }}><Icon name="x" size={16} /></button>
           </div>
           <div className="search-box" style={{ marginTop: 12 }}>
             <Icon name="search" size={15} color="var(--text-3)" />
@@ -595,8 +595,8 @@ function MovesModal({ moves, items, jobs, onClose }) {
             const mt = MOVE_TYPES[m.type] || MOVE_TYPES.out;
             const job = m.jobId && (jobs || []).find((j) => j.id === m.jobId);
             return (
-              <div key={m.id} style={{ display: "flex", gap: 11, padding: "10px 11px", border: "1px solid var(--border)", borderRadius: 11 }}>
-                <span style={{ width: 30, height: 30, borderRadius: 8, flexShrink: 0, display: "grid", placeItems: "center", background: mt.bg, color: mt.color, fontWeight: 800, fontSize: 15 }}>{mt.sym}</span>
+              <div key={m.id} style={{ display: "flex", gap: 11, padding: "10px 11px", background: "var(--surface2)", borderRadius: "var(--r-tile)" }}>
+                <span style={{ width: 30, height: 30, borderRadius: "var(--r-chip)", flexShrink: 0, display: "grid", placeItems: "center", background: mt.bg, color: mt.color, fontWeight: 800, fontSize: 15 }}>{mt.sym}</span>
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{ fontSize: 12.5, fontWeight: 600, color: "var(--text-1)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{it ? it.name : m.itemId}</div>
                   <div style={{ fontSize: 11, color: "var(--text-3)", marginTop: 2 }}>
@@ -618,12 +618,12 @@ function MovesModal({ moves, items, jobs, onClose }) {
 function CatChip({ active, onClick, label, color, count }) {
   const mob = window.matchMedia("(max-width: 860px)").matches;
   return (
-    <button onClick={onClick} style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: mob ? "5px 11px" : "6px 13px", borderRadius: 99,
-      border: "1px solid " + (active ? color : "var(--border-strong)"), background: active ? color + "16" : "var(--surface)",
+    <button onClick={onClick} style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: mob ? "5px 11px" : "6px 13px", borderRadius: "var(--r-pill)",
+      border: "1px solid " + (active ? color : "transparent"), background: active ? color + "16" : "var(--surface)", boxShadow: active ? "none" : "var(--shadow-sm)",
       color: active ? color : "var(--text-2)", fontSize: mob ? 11.5 : 12.5, fontWeight: 600, cursor: "pointer", fontFamily: "inherit", whiteSpace: "nowrap", flexShrink: 0 }}>
       {label}
       {count != null && <span style={{ fontSize: mob ? 10 : 10.5, fontWeight: 700, lineHeight: 1.5, color: active ? color : "var(--text-3)",
-        background: active ? color + "22" : "var(--surface3)", borderRadius: 99, padding: "0 6px", minWidth: 17, textAlign: "center" }}>{count}</span>}
+        background: active ? color + "22" : "var(--surface3)", borderRadius: "var(--r-pill)", padding: "0 6px", minWidth: 17, textAlign: "center" }}>{count}</span>}
     </button>
   );
 }
@@ -643,7 +643,7 @@ function StockCardList({ rows, imgs, onOpen, onEdit, onRemove }) {
         const st = g ? g.st : lowState(it);
         return (
           <div key={it.id} style={{ background: st === "out" ? "rgba(239,68,68,.07)" : "var(--surface)",
-            border: "1px solid " + (st === "out" ? "rgba(239,68,68,.22)" : "var(--border)"), borderRadius: 14, padding: 13,
+            border: "1px solid " + (st === "out" ? "rgba(239,68,68,.22)" : "transparent"), borderRadius: "var(--r-tile)", padding: 13,
             borderLeft: "3px solid " + STOCK_COLORS[st], boxShadow: "var(--shadow-sm)" }}>
             {/* หัว: ชื่อ + SKU + หมวด */}
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 8 }}>
@@ -654,8 +654,8 @@ function StockCardList({ rows, imgs, onOpen, onEdit, onRemove }) {
                 <div style={{ fontFamily: "var(--mono)", fontSize: 11, color: "var(--text-3)", marginTop: 2 }}>{g ? g.sizes.join(" · ") : (it.sku || "—")}</div>
               </div>
               <span style={{ display: "inline-flex", alignItems: "center", gap: 5, fontSize: 11, fontWeight: 600, color: c.color,
-                background: c.color + "16", padding: "3px 9px", borderRadius: 99, whiteSpace: "nowrap", flexShrink: 0 }}>
-                <span style={{ width: 7, height: 7, borderRadius: 99, background: c.color }} />{c.th}
+                background: c.color + "16", padding: "3px 9px", borderRadius: "var(--r-pill)", whiteSpace: "nowrap", flexShrink: 0 }}>
+                <span style={{ width: 7, height: 7, borderRadius: "var(--r-pill)", background: c.color }} />{c.th}
               </span>
             </div>
 
@@ -676,13 +676,13 @@ function StockCardList({ rows, imgs, onOpen, onEdit, onRemove }) {
             <div style={{ marginTop: 12, paddingTop: 11, borderTop: "1px solid var(--border)", display: "flex", alignItems: "center", gap: 7 }}>
               <button onClick={() => onOpen(it)}
                 style={{ flex: 1, display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 5, background: "var(--primary-soft)",
-                  border: "none", color: "var(--primary-dark)", fontWeight: 700, fontSize: 12.5, padding: "9px 6px", borderRadius: 9,
+                  border: "none", color: "var(--primary-dark)", fontWeight: 700, fontSize: 12.5, padding: "9px 6px", borderRadius: "var(--r-chip)",
                   cursor: "pointer", fontFamily: "inherit" }}>{g ? "เลือกขนาด · " + g.n + " ขนาด" : "ดูรายละเอียด · รับ/เบิก/คืน"}</button>
               {/* การ์ดรวมขนาดยังไม่รู้ว่าจะแก้/ลบตัวไหน — เข้าไปเลือกขนาดก่อน */}
               {!g && <button onClick={() => onEdit(it)} title="แก้ไข" aria-label="แก้ไข"
-                style={{ flexShrink: 0, background: "#3B82F614", border: "none", color: "#3B82F6", width: 44, height: 36, borderRadius: 9, cursor: "pointer", display: "grid", placeItems: "center" }}><Icon name="settings" size={16} /></button>}
+                style={{ flexShrink: 0, background: "#3B82F614", border: "none", color: "#3B82F6", width: 44, height: 36, borderRadius: "var(--r-chip)", cursor: "pointer", display: "grid", placeItems: "center" }}><Icon name="settings" size={16} /></button>}
               {!g && <button onClick={() => { askConfirm({ title: "ลบ “" + it.name + "” ออกจากคลัง?" }).then((ok) => { if (ok) onRemove(it.id); }); }} title="ลบ" aria-label="ลบ"
-                style={{ flexShrink: 0, background: "#EF444414", border: "none", color: "#EF4444", width: 44, height: 36, borderRadius: 9, cursor: "pointer", display: "grid", placeItems: "center" }}><Icon name="x" size={16} /></button>}
+                style={{ flexShrink: 0, background: "#EF444414", border: "none", color: "#EF4444", width: 44, height: 36, borderRadius: "var(--r-chip)", cursor: "pointer", display: "grid", placeItems: "center" }}><Icon name="x" size={16} /></button>}
             </div>
           </div>
         );
@@ -702,28 +702,28 @@ function CatDropdown({ cat, setCat, items, cats }) {
     <div style={{ position: "relative", width: "100%" }}>
       <button onClick={() => setOpen((v) => !v)}
         style={{ width: "100%", display: "flex", alignItems: "center", gap: 9, fontFamily: "inherit", fontSize: 13.5, fontWeight: 600,
-          color: "var(--text-1)", background: "var(--surface)", border: "1px solid " + (open ? "var(--primary)" : "var(--border-strong)"),
-          borderRadius: 10, padding: "10px 13px", outline: "none", cursor: "pointer" }}>
-        <span style={{ width: 9, height: 9, borderRadius: 99, background: cur.color, flexShrink: 0 }} />
+          color: "var(--text-1)", background: "var(--surface)", border: "1px solid " + (open ? "var(--primary)" : "transparent"), boxShadow: open ? "none" : "var(--shadow-sm)",
+          borderRadius: "var(--r-tile)", padding: "10px 13px", outline: "none", cursor: "pointer" }}>
+        <span style={{ width: 9, height: 9, borderRadius: "var(--r-pill)", background: cur.color, flexShrink: 0 }} />
         <span>{cur.th}</span>
-        <span style={{ fontFamily: "var(--mono)", fontSize: 11.5, fontWeight: 700, color: "var(--text-3)", background: "var(--surface3)", padding: "1px 7px", borderRadius: 99 }}>{countOf(cur.key)}</span>
+        <span style={{ fontFamily: "var(--mono)", fontSize: 11.5, fontWeight: 700, color: "var(--text-3)", background: "var(--surface3)", padding: "1px 7px", borderRadius: "var(--r-pill)" }}>{countOf(cur.key)}</span>
         <Icon name="chevronDown" size={16} color="var(--text-3)" style={{ marginLeft: "auto", transform: open ? "rotate(180deg)" : "none", transition: "transform .18s" }} />
       </button>
       {open && (
         <React.Fragment>
           <div onClick={() => setOpen(false)} style={{ position: "fixed", inset: 0, zIndex: 60 }} />
           <div style={{ position: "absolute", top: "calc(100% + 6px)", left: 0, right: 0, zIndex: 61, background: "var(--bg)",
-            border: "1px solid var(--border)", borderRadius: 12, boxShadow: "0 14px 40px rgba(8,20,14,.2)", maxHeight: "58dvh", overflowY: "auto", padding: 6 }}>
+            borderRadius: "var(--r-tile)", boxShadow: "0 14px 40px rgba(8,20,14,.2)", maxHeight: "58dvh", overflowY: "auto", padding: 6 }}>
             {list.map((c) => {
               const active = c.key === cat;
               return (
                 <button key={c.key} onClick={() => { setCat(c.key); setOpen(false); }}
-                  style={{ width: "100%", display: "flex", alignItems: "center", gap: 10, padding: "11px 11px", borderRadius: 9, border: "none",
+                  style={{ width: "100%", display: "flex", alignItems: "center", gap: 10, padding: "11px 11px", borderRadius: "var(--r-chip)", border: "none",
                     background: active ? "var(--primary-soft)" : "transparent", cursor: "pointer", fontFamily: "inherit", textAlign: "left" }}>
-                  <span style={{ width: 9, height: 9, borderRadius: 99, background: c.color, flexShrink: 0 }} />
+                  <span style={{ width: 9, height: 9, borderRadius: "var(--r-pill)", background: c.color, flexShrink: 0 }} />
                   <span style={{ flex: 1, fontSize: 13.5, fontWeight: active ? 700 : 500, color: active ? "var(--primary-dark)" : "var(--text-1)" }}>{c.th}</span>
                   <span style={{ fontFamily: "var(--mono)", fontSize: 11.5, fontWeight: 700, color: active ? "var(--primary-dark)" : "var(--text-3)",
-                    background: active ? "var(--surface)" : "var(--surface3)", padding: "1px 7px", borderRadius: 99 }}>{countOf(c.key)}</span>
+                    background: active ? "var(--surface)" : "var(--surface3)", padding: "1px 7px", borderRadius: "var(--r-pill)" }}>{countOf(c.key)}</span>
                   {active && <Icon name="check" size={15} color="var(--primary)" sw={2.6} />}
                 </button>
               );
@@ -783,7 +783,7 @@ function MoveModal({ info, onSave, onClose, byName, jobs, lockedJob, maxQty }) {
           {linkJob ? (
             <Field label={info.type === "return" ? "งานที่คืนของ" : "งานที่นำไปใช้"}>
               {lockedJob ? (
-                <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "10px 12px", background: "var(--surface2)", border: "1px solid var(--border)", borderRadius: 10, fontSize: 13.5, color: "var(--text-1)" }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "10px 12px", background: "var(--surface2)", boxShadow: "var(--shadow-sm)", borderRadius: "var(--r-tile)", fontSize: 13.5, color: "var(--text-1)" }}>
                   <Icon name="wrench" size={14} color={accent} />
                   <span style={{ fontFamily: "var(--mono)", fontWeight: 700, color: accent }}>{lockedJob.code}</span>
                   <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{lockedJob.name}</span>
@@ -800,15 +800,15 @@ function MoveModal({ info, onSave, onClose, byName, jobs, lockedJob, maxQty }) {
           <Field label="หมายเหตุ">
             <input value={note} onChange={(e) => setNote(e.target.value)} style={inputStyle} />
           </Field>
-          <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "10px 12px", background: "var(--surface2)", border: "1px dashed var(--border-strong)", borderRadius: 10, fontSize: 12.5, color: "var(--text-2)" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "10px 12px", background: "var(--surface2)", border: "1px dashed var(--border-strong)", borderRadius: "var(--r-tile)", fontSize: 12.5, color: "var(--text-2)" }}>
             <Icon name="user" size={14} color="var(--text-3)" />
             ผู้ทำรายการ: <strong style={{ color: "var(--text-1)" }}>{byName || "-"}</strong>
           </div>
         </div>
         <div style={{ padding: "14px 22px", paddingBottom: isMobile ? "calc(14px + env(safe-area-inset-bottom, 0px))" : 14, borderTop: "1px solid var(--border)", background: "var(--surface)", display: "flex", justifyContent: "flex-end", gap: 10, flexShrink: 0 }}>
-          <button onClick={onClose} style={{ flex: isMobile ? "0 0 auto" : "none", padding: "11px 18px", borderRadius: 11, border: "1px solid var(--border-strong)", background: "var(--surface)", color: "var(--text-2)", fontWeight: 600, fontFamily: "inherit", fontSize: 13.5, cursor: "pointer" }}>ยกเลิก</button>
+          <button onClick={onClose} style={{ flex: isMobile ? "0 0 auto" : "none", padding: "11px 18px", borderRadius: "var(--r-tile)", background: "var(--surface2)", color: "var(--text-2)", fontWeight: 600, fontFamily: "inherit", fontSize: 13.5, cursor: "pointer" }}>ยกเลิก</button>
           <button onClick={submit}
-            style={{ flex: isMobile ? 1 : "none", padding: "11px 22px", borderRadius: 11, border: "none", background: accent, color: "#fff", fontWeight: 700, fontFamily: "inherit", fontSize: 13.5, cursor: "pointer" }}>
+            style={{ flex: isMobile ? 1 : "none", padding: "11px 22px", borderRadius: "var(--r-tile)", border: "none", background: accent, color: "#fff", fontWeight: 700, fontFamily: "inherit", fontSize: 13.5, cursor: "pointer" }}>
             {mt.sym} {mt.label}
           </button>
         </div>
@@ -833,8 +833,8 @@ function StkOptPairs({ pairs, invNames, onChange, isMobile }) {
       <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap", marginBottom: 8 }}>
         <span style={{ fontSize: 11.5, fontWeight: 700, color: "var(--text-2)" }}>ใช้คู่กับอินเวอร์เตอร์รุ่นไหนได้บ้าง</span>
         <span style={{ fontSize: 11, color: "var(--text-3)" }}>ความยาวสตริงตามคู่มือ · แต่ละรุ่นไม่เท่ากัน</span>
-        <button type="button" onClick={add} style={{ marginLeft: "auto", padding: "6px 11px", borderRadius: 9,
-          border: "1px solid var(--border-strong)", background: "var(--surface)", color: "var(--primary-dark)",
+        <button type="button" onClick={add} style={{ marginLeft: "auto", padding: "6px 11px", borderRadius: "var(--r-chip)",
+          background: "var(--surface2)", color: "var(--primary-dark)",
           fontFamily: "inherit", fontSize: 11.5, fontWeight: 700, cursor: "pointer" }}>+ เพิ่มรุ่น</button>
       </div>
       {!list.length ? (
@@ -852,7 +852,7 @@ function StkOptPairs({ pairs, invNames, onChange, isMobile }) {
           <input type="number" style={cell} value={r.max || ""} placeholder="สูงสุด" onChange={(e) => setRow(i, { max: parseInt(e.target.value) || 0 })} />
           <input type="number" style={cell} value={r.maxW || ""} placeholder="W/สตริง" onChange={(e) => setRow(i, { maxW: parseInt(e.target.value) || 0 })} />
           <button type="button" onClick={() => del(i)} title="ลบแถวนี้"
-            style={{ width: 32, height: 32, borderRadius: 9, border: "1px solid var(--border-strong)", background: "var(--surface)",
+            style={{ width: 32, height: 32, borderRadius: "var(--r-chip)", background: "var(--surface2)",
               cursor: "pointer", display: "grid", placeItems: "center" }}>
             <Icon name="trash" size={13} color="#EF4444" />
           </button>
@@ -905,7 +905,7 @@ function ItemModal({ initial, isNew, items, onSave, onClose, onAddCat, onRemoveC
       <div onClick={(e) => e.stopPropagation()} style={{ background: "var(--bg)", borderRadius: isMobile ? "20px 20px 0 0" : 18, width: isMobile ? "100%" : "min(560px,100%)", maxHeight: isMobile ? "94dvh" : "90vh", display: "flex", flexDirection: "column", overflow: "hidden", boxShadow: "0 30px 80px rgba(8,20,14,.3)" }}>
         <div style={{ padding: "18px 22px", borderBottom: "1px solid var(--border)", background: "var(--surface)", display: "flex", justifyContent: "space-between", alignItems: "center", flexShrink: 0 }}>
           <h2 style={{ fontSize: 17, fontWeight: 700, color: "var(--text-1)", margin: 0 }}>{isNew ? "เพิ่มรายการอุปกรณ์" : "แก้ไขรายการ"}</h2>
-          <button onClick={onClose} style={{ width: 32, height: 32, borderRadius: 9, border: "1px solid var(--border)", background: "var(--surface)", cursor: "pointer", display: "grid", placeItems: "center", color: "var(--text-2)" }}><Icon name="x" size={16} /></button>
+          <button onClick={onClose} style={{ width: 32, height: 32, borderRadius: "var(--r-chip)", background: "var(--surface2)", cursor: "pointer", display: "grid", placeItems: "center", color: "var(--text-2)" }}><Icon name="x" size={16} /></button>
         </div>
         <div style={{ padding: 22, display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr", gap: 14, overflowY: "auto" }}>
           {/* รูปสินค้า — บันทึกทันทีเมื่อเลือก (เก็บคนละโหนดกับตัวรายการ) */}
@@ -925,7 +925,7 @@ function ItemModal({ initial, isNew, items, onSave, onClose, onAddCat, onRemoveC
             <div style={{ display: "flex", gap: 6 }}>
               <input style={Object.assign({}, inputStyle, { flex: 1 })} value={f.sku} onChange={(e) => set("sku", e.target.value)} placeholder={suggestCode + " (อัตโนมัติ)"} />
               <button type="button" onClick={() => set("sku", suggestCode)} title="สร้างรหัสอัตโนมัติตามหมวด"
-                style={{ flexShrink: 0, padding: "0 12px", borderRadius: 10, border: "1px solid var(--border-strong)", background: "var(--surface2)", color: "var(--primary-dark)", fontFamily: "inherit", fontSize: 12, fontWeight: 700, cursor: "pointer", whiteSpace: "nowrap" }}>auto</button>
+                style={{ flexShrink: 0, padding: "0 12px", borderRadius: "var(--r-tile)", boxShadow: "var(--shadow-sm)", background: "var(--surface2)", color: "var(--primary-dark)", fontFamily: "inherit", fontSize: 12, fontWeight: 700, cursor: "pointer", whiteSpace: "nowrap" }}>auto</button>
             </div>
           </Field>
           {/* หมวดหลัก / หมวดย่อย — เก็บลง f.cat คีย์เดียว (หมวดย่อยถ้าเลือก ไม่งั้นหมวดหลัก)
@@ -958,9 +958,9 @@ function ItemModal({ initial, isNew, items, onSave, onClose, onAddCat, onRemoveC
                 onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); commitCat(); } if (e.key === "Escape") { setAdding(null); setNewCat(""); } }}
                 placeholder={adding === "main" ? "ชื่อหมวดหลักใหม่" : 'ชื่อหมวดย่อยใหม่ (อยู่ใต้ "' + ((SF.STOCK_CAT_BY[mainCat] || {}).th || "") + '")'} />
               <button type="button" onClick={commitCat}
-                style={{ flexShrink: 0, padding: "0 14px", height: 38, borderRadius: 10, border: "none", background: "var(--primary)", color: "#fff", fontFamily: "inherit", fontSize: 13, fontWeight: 700, cursor: "pointer" }}>เพิ่ม</button>
+                style={{ flexShrink: 0, padding: "0 14px", height: 38, borderRadius: "var(--r-tile)", border: "none", background: "var(--primary)", color: "#fff", fontFamily: "inherit", fontSize: 13, fontWeight: 700, cursor: "pointer" }}>เพิ่ม</button>
               <button type="button" onClick={() => { setAdding(null); setNewCat(""); }}
-                style={{ flexShrink: 0, padding: "0 12px", height: 38, borderRadius: 10, border: "1px solid var(--border-strong)", background: "var(--surface2)", color: "var(--text-2)", fontFamily: "inherit", fontSize: 13, cursor: "pointer" }}>ยกเลิก</button>
+                style={{ flexShrink: 0, padding: "0 12px", height: 38, borderRadius: "var(--r-tile)", boxShadow: "var(--shadow-sm)", background: "var(--surface2)", color: "var(--text-2)", fontFamily: "inherit", fontSize: 13, cursor: "pointer" }}>ยกเลิก</button>
             </div>
           )}
           {isCustomCat && onRemoveCat && !adding && (
@@ -1002,7 +1002,7 @@ function ItemModal({ initial, isNew, items, onSave, onClose, onAddCat, onRemoveC
             </Field>
           </div>
           {mainCat === "panel" && (
-            <div style={{ gridColumn: "1 / -1", marginTop: 2, padding: 14, background: "var(--surface2)", border: "1px dashed var(--border-strong)", borderRadius: 12 }}>
+            <div style={{ gridColumn: "1 / -1", marginTop: 2, padding: 14, background: "var(--surface2)", border: "1px dashed var(--border-strong)", borderRadius: "var(--r-tile)" }}>
               <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 11.5, fontWeight: 700, color: "var(--text-2)", marginBottom: 10 }}>
                 <Icon name="panel" size={14} color="var(--primary-dark)" /> สเปคแผง (ใช้ช่วยถอด BOQ)
               </div>
@@ -1049,7 +1049,7 @@ function ItemModal({ initial, isNew, items, onSave, onClose, onAddCat, onRemoveC
               สเปคฝั่งเข้าไว้ตรวจว่าครอบแผงที่ใช้ไหม · ฝั่งออกไว้คิดว่าต่อได้กี่ตัวต่อสตริง
               แรงดันตอนปิดคือตัวเลขความปลอดภัยที่ลูกค้าโรงงานมักถามถึง จึงต้องเก็บไว้ด้วย */}
           {SF.isOptimizerCat(f.cat) && (
-            <div style={{ gridColumn: "1 / -1", marginTop: 2, padding: 14, background: "var(--surface2)", border: "1px dashed var(--border-strong)", borderRadius: 12 }}>
+            <div style={{ gridColumn: "1 / -1", marginTop: 2, padding: 14, background: "var(--surface2)", border: "1px dashed var(--border-strong)", borderRadius: "var(--r-tile)" }}>
               <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 11.5, fontWeight: 700, color: "var(--text-2)", marginBottom: 10 }}>
                 <Icon name="bolt" size={14} color="#0891B2" /> สเปคตัวคุมแผง (กรอกจากดาต้าชีต)
               </div>
@@ -1080,7 +1080,7 @@ function ItemModal({ initial, isNew, items, onSave, onClose, onAddCat, onRemoveC
             </div>
           )}
           {mainCat === "inverter" && (
-            <div style={{ gridColumn: "1 / -1", marginTop: 2, padding: 14, background: "var(--surface2)", border: "1px dashed var(--border-strong)", borderRadius: 12 }}>
+            <div style={{ gridColumn: "1 / -1", marginTop: 2, padding: 14, background: "var(--surface2)", border: "1px dashed var(--border-strong)", borderRadius: "var(--r-tile)" }}>
               <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 11.5, fontWeight: 700, color: "var(--text-2)", marginBottom: 10 }}>
                 <Icon name="bolt" size={14} color="var(--primary-dark)" /> สเปคอินเวอร์เตอร์ (ใช้ช่วยถอด BOQ)
               </div>
@@ -1136,7 +1136,7 @@ function ItemModal({ initial, isNew, items, onSave, onClose, onAddCat, onRemoveC
             </div>
           )}
           {mainCat === "electrical" && (
-            <div style={{ gridColumn: "1 / -1", marginTop: 2, padding: 14, background: "var(--surface2)", border: "1px dashed var(--border-strong)", borderRadius: 12 }}>
+            <div style={{ gridColumn: "1 / -1", marginTop: 2, padding: 14, background: "var(--surface2)", border: "1px dashed var(--border-strong)", borderRadius: "var(--r-tile)" }}>
               <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 11.5, fontWeight: 700, color: "var(--text-2)", marginBottom: 10 }}>
                 <Icon name="bolt" size={14} color="#4F46E5" /> สเปคอุปกรณ์ไฟฟ้า (เบรกเกอร์ / ป้องกัน)
               </div>
@@ -1172,7 +1172,7 @@ function ItemModal({ initial, isNew, items, onSave, onClose, onAddCat, onRemoveC
             </div>
           )}
           {mainCat === "wiring" && (
-            <div style={{ gridColumn: "1 / -1", marginTop: 2, padding: 14, background: "var(--surface2)", border: "1px dashed var(--border-strong)", borderRadius: 12 }}>
+            <div style={{ gridColumn: "1 / -1", marginTop: 2, padding: 14, background: "var(--surface2)", border: "1px dashed var(--border-strong)", borderRadius: "var(--r-tile)" }}>
               <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 11.5, fontWeight: 700, color: "var(--text-2)", marginBottom: 10 }}>
                 <Icon name="power" size={14} color="var(--primary-dark)" /> หมวดสาย (ใช้จัดกลุ่มใน dropdown ถอด BOQ)
               </div>
@@ -1191,9 +1191,9 @@ function ItemModal({ initial, isNew, items, onSave, onClose, onAddCat, onRemoveC
           )}
         </div>
         <div style={{ padding: "14px 22px", paddingBottom: isMobile ? "calc(14px + env(safe-area-inset-bottom, 0px))" : 14, borderTop: "1px solid var(--border)", background: "var(--surface)", display: "flex", justifyContent: "flex-end", gap: 10, flexShrink: 0 }}>
-          <button onClick={onClose} style={{ flex: isMobile ? "0 0 auto" : "none", padding: "11px 18px", borderRadius: 11, border: "1px solid var(--border-strong)", background: "var(--surface)", color: "var(--text-2)", fontWeight: 600, fontFamily: "inherit", fontSize: 13.5, cursor: "pointer" }}>ยกเลิก</button>
+          <button onClick={onClose} style={{ flex: isMobile ? "0 0 auto" : "none", padding: "11px 18px", borderRadius: "var(--r-tile)", background: "var(--surface2)", color: "var(--text-2)", fontWeight: 600, fontFamily: "inherit", fontSize: 13.5, cursor: "pointer" }}>ยกเลิก</button>
           <button onClick={submitItem}
-            style={{ flex: isMobile ? 1 : "none", padding: "11px 22px", borderRadius: 11, border: "none", background: "var(--primary)", color: "#fff", fontWeight: 700, fontFamily: "inherit", fontSize: 13.5, cursor: "pointer" }}>บันทึก</button>
+            style={{ flex: isMobile ? 1 : "none", padding: "11px 22px", borderRadius: "var(--r-tile)", border: "none", background: "var(--primary)", color: "#fff", fontWeight: 700, fontFamily: "inherit", fontSize: 13.5, cursor: "pointer" }}>บันทึก</button>
         </div>
       </div>
     </div>
@@ -1269,11 +1269,11 @@ function ConduitDefaultsEditor({ condStore }) {
   const nEdited = COND_DEF_ROWS.filter((r) => (saved.per || {})[r.key] != null || (saved.spare || {})[r.key] != null).length
     + RULE_ROWS.filter((r) => (saved.rule || {})[r.key] != null && (saved.rule || {})[r.key] !== "").length;
   const cell = { padding: "7px 9px", borderBottom: "1px solid var(--border)", fontSize: 12.5 };
-  const numBase = { background: "var(--surface2)", border: "1px solid var(--border-strong)", color: "var(--text-1)",
-    fontFamily: "inherit", fontSize: 13, padding: "7px 9px", borderRadius: 9, outline: "none", width: "100%", textAlign: "right" };
+  const numBase = { background: "var(--surface2)", boxShadow: "var(--shadow-sm)", color: "var(--text-1)",
+    fontFamily: "inherit", fontSize: 13, padding: "7px 9px", borderRadius: "var(--r-chip)", outline: "none", width: "100%", textAlign: "right" };
   /* ตอนยังไม่กดแก้ไข ช่องกรอกต้องดูเหมือน "ค่าที่ตั้งไว้" ไม่ใช่ช่องที่กดแล้วไม่มีอะไรเกิดขึ้น */
   const num = edit ? numBase : Object.assign({}, numBase, { background: "transparent", borderColor: "transparent", color: "var(--text-2)" });
-  const btn = (on) => ({ padding: "7px 14px", borderRadius: 10, fontFamily: "inherit", fontSize: 12.5, fontWeight: 700, cursor: "pointer",
+  const btn = (on) => ({ padding: "7px 14px", borderRadius: "var(--r-tile)", fontFamily: "inherit", fontSize: 12.5, fontWeight: 700, cursor: "pointer",
     border: on ? "none" : "1px solid var(--border-strong)", background: on ? "var(--primary)" : "var(--surface)", color: on ? "#fff" : "var(--text-2)" });
   const bar = (
     <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
@@ -1318,7 +1318,7 @@ function ConduitDefaultsEditor({ condStore }) {
   const accSpan = {};
   RULE_ROWS.forEach((r) => { accSpan[r.acc] = (accSpan[r.acc] || 0) + 1; });
   const ruleTable = (
-    <div style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 12, overflow: "hidden" }}>
+    <div style={{ background: "var(--surface)", boxShadow: "var(--shadow-sm)", borderRadius: "var(--r-tile)", overflow: "hidden" }}>
       <div style={{ padding: "9px 11px", fontSize: 12.5, fontWeight: 700, background: "var(--surface2)" }}>
         กฎคิดจำนวนอุปกรณ์ ท่อ IMC
         <span style={{ fontWeight: 500, color: "var(--text-3)", marginLeft: 6 }}>
@@ -1362,7 +1362,7 @@ function ConduitDefaultsEditor({ condStore }) {
   );
 
   const table = (grp) => (
-    <div style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 12, overflow: "hidden" }}>
+    <div style={{ background: "var(--surface)", boxShadow: "var(--shadow-sm)", borderRadius: "var(--r-tile)", overflow: "hidden" }}>
       <div style={{ padding: "9px 11px", fontSize: 12.5, fontWeight: 700, background: "var(--surface2)" }}>ท่อ {grp}</div>
       <table style={{ width: "100%", borderCollapse: "collapse" }}>
         <thead>
@@ -1388,7 +1388,7 @@ function ConduitDefaultsEditor({ condStore }) {
           window.askConfirm({ title: "คืนค่าตั้งต้นอุปกรณ์ท่อร้อยสาย?", body: "ค่าที่ตั้งไว้ " + nEdited + " รายการ จะกลับไปใช้กฎ ค่าอัตโนมัติ และ % เผื่อเดิมของระบบ", ok: "คืนค่าตั้งต้น" })
             .then((ok) => { if (ok && condStore) condStore.reset(); });
         }} disabled={!nEdited || edit}
-          style={{ padding: "8px 14px", borderRadius: 10, border: "1px solid var(--border-strong)", background: "var(--surface)",
+          style={{ padding: "8px 14px", borderRadius: "var(--r-tile)", background: "var(--surface2)",
             color: nEdited ? "var(--text-2)" : "var(--text-3)", fontSize: 12.5, fontWeight: 600, cursor: nEdited ? "pointer" : "default", fontFamily: "inherit" }}>
           คืนค่าตั้งต้นทั้งหมด{nEdited ? " (" + nEdited + ")" : ""}
         </button>
@@ -1437,12 +1437,12 @@ function AmpacityEditor({ ampStore }) {
   const groupCores = (g) => (BOQ.ampCoresFor ? BOQ.ampCoresFor(g.key) : cores);
   const leaf = [];
   groups.forEach((g) => { const cs = groupCores(g); nconds.forEach((n, ni) => cs.forEach((c, ci) => leaf.push({ g: g.key, n: n.key, c: c.key, cTh: c.th, first: ni === 0 && ci === 0 }))); });
-  const cellStyle = { width: 58, height: 32, padding: "0 4px", textAlign: "center", borderRadius: 8, border: "1px solid var(--border-strong)", background: "var(--surface)", color: "var(--text-1)", fontFamily: "var(--mono)", fontSize: 12 };
+  const cellStyle = { width: 58, height: 32, padding: "0 4px", textAlign: "center", borderRadius: "var(--r-chip)", boxShadow: "var(--shadow-sm)", background: "var(--surface)", color: "var(--text-1)", fontFamily: "var(--mono)", fontSize: 12 };
   const thBase = { fontSize: 10.5, fontWeight: 700, color: "var(--text-2)", textAlign: "center", whiteSpace: "nowrap", background: "var(--surface2)", borderBottom: "1px solid var(--border)" };
 
   return (
     <div>
-      <div style={{ display: "flex", alignItems: "flex-start", gap: 9, padding: "12px 14px", background: "var(--tint-amber-bg)", border: "1px solid var(--tint-amber-bd)", borderRadius: 12, marginBottom: 14 }}>
+      <div style={{ display: "flex", alignItems: "flex-start", gap: 9, padding: "12px 14px", background: "var(--tint-amber-bg)", border: "1px solid var(--tint-amber-bd)", borderRadius: "var(--r-tile)", marginBottom: 14 }}>
         <Icon name="alert" size={16} color="var(--tint-amber-tx)" style={{ flexShrink: 0, marginTop: 1 }} />
         <div style={{ fontSize: 12, color: "#92500C", lineHeight: 1.55 }}>
           ตารางพิกัดกระแส <strong>มาตรฐาน วสท.</strong> (ตัวนำทองแดง 0.6/1 kV) — แยกตาม <strong>กลุ่มการติดตั้ง × จำนวนตัวนำมีกระแส × แกนย่อย</strong>
@@ -1453,7 +1453,7 @@ function AmpacityEditor({ ampStore }) {
 
       {/* บอกที่มาของตัวเลขจางในตาราง — ยืมมาจากวิธีอื่น หรือยังไม่มีเลย */}
       {borrowed ? (
-        <div style={{ display: "flex", alignItems: "flex-start", gap: 9, padding: "11px 14px", background: "var(--tint-ok-bg)", border: "1px solid var(--tint-ok-bd)", borderRadius: 12, marginBottom: 14 }}>
+        <div style={{ display: "flex", alignItems: "flex-start", gap: 9, padding: "11px 14px", background: "var(--tint-ok-bg)", border: "1px solid var(--tint-ok-bd)", borderRadius: "var(--r-tile)", marginBottom: 14 }}>
           <Icon name="check" size={16} color="#1B9B75" style={{ flexShrink: 0, marginTop: 1 }} />
           <div style={{ fontSize: 12, color: "var(--tint-ok-tx)", lineHeight: 1.55 }}>
             ตัวเลขจางในตารางนี้ <strong>ยืมมาจาก "{methodTh(baseKey)}"</strong> — {methodMeta.baseWhy || "วสท. ให้สองวิธีนี้ใช้ตารางพิกัดชุดเดียวกัน"}
@@ -1461,7 +1461,7 @@ function AmpacityEditor({ ampStore }) {
           </div>
         </div>
       ) : noTable && (
-        <div style={{ display: "flex", alignItems: "flex-start", gap: 9, padding: "11px 14px", background: "var(--tint-red-bg)", border: "1px solid var(--tint-red-bd2)", borderRadius: 12, marginBottom: 14 }}>
+        <div style={{ display: "flex", alignItems: "flex-start", gap: 9, padding: "11px 14px", background: "var(--tint-red-bg)", border: "1px solid var(--tint-red-bd2)", borderRadius: "var(--r-tile)", marginBottom: 14 }}>
           <Icon name="alert" size={16} color="#EF4444" style={{ flexShrink: 0, marginTop: 1 }} />
           <div style={{ fontSize: 12, color: "var(--tint-red-tx)", lineHeight: 1.55 }}>
             <strong>ยังไม่มีตารางของ "{methodMeta.th || methodKey}"</strong> — ช่อง "สายแนะนำ" ในหน้า BOQ จะขึ้น "—" จนกว่าจะกรอก
@@ -1486,18 +1486,18 @@ function AmpacityEditor({ ampStore }) {
         })()}
         {editedCount > 0 && (
           <button onClick={() => { askConfirm({ title: "คืนค่าพิกัดกระแสที่แก้ไว้ทั้งหมด?", body: "ค่าที่แก้เองไว้ " + editedCount + " ช่อง จะกลับไปเป็นค่าตั้งต้น", ok: "คืนค่าตั้งต้น" }).then((ok) => { if (ok) ampStore.reset(); }); }}
-            style={{ marginLeft: "auto", display: "inline-flex", alignItems: "center", gap: 5, padding: "6px 12px", borderRadius: 99, border: "1px solid var(--tint-red-bd2)", background: "var(--tint-red-bg)", color: "var(--tint-red-tx)", fontSize: 12, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>
+            style={{ marginLeft: "auto", display: "inline-flex", alignItems: "center", gap: 5, padding: "6px 12px", borderRadius: "var(--r-pill)", border: "1px solid var(--tint-red-bd2)", background: "var(--tint-red-bg)", color: "var(--tint-red-tx)", fontSize: 12, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>
             <Icon name="x" size={13} color="var(--tint-red-tx)" /> คืนค่าที่แก้ ({editedCount})
           </button>
         )}
       </div>
 
-      <div style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 18, overflow: "hidden", boxShadow: "var(--shadow-sm)" }}>
+      <div style={{ background: "var(--surface)", borderRadius: "var(--r-card)", overflow: "hidden", boxShadow: "var(--shadow-sm)" }}>
         <div style={{ overflowX: "auto" }}>
           <table style={{ borderCollapse: "collapse", minWidth: 760 }}>
             <thead>
               <tr>
-                <th rowSpan={2} style={Object.assign({}, thBase, { padding: "8px 12px", textAlign: "left", position: "sticky", left: 0, color: "var(--text-3)", textTransform: "uppercase", letterSpacing: ".03em" })}>ขนาด (mm²)</th>
+                <th rowSpan={2} style={Object.assign({}, thBase, { padding: "8px 12px", textAlign: "left", position: "sticky", left: 0, color: "var(--text-3)" })}>ขนาด (mm²)</th>
                 {groups.map((g) => (
                   /* มีรูปกำกับหัวคอลัมน์ด้วย — 7 กลุ่มจำจากชื่ออย่างเดียวไม่ไหว กรอกผิดคอลัมน์คือสายผิดทั้งงาน */
                   <th key={g.key} colSpan={nconds.length * groupCores(g).length} title={g.desc || ""} style={Object.assign({}, thBase, { padding: "7px 6px", borderLeft: "1px solid var(--border)" })}>
@@ -1605,7 +1605,7 @@ function PdfPreview({ data, onOpen }) {
     <div>
       {state === "loading" && <div style={{ padding: 18, textAlign: "center", fontSize: 12.5, color: "var(--text-3)" }}>กำลังเปิดเอกสาร…</div>}
       {state === "error" && (
-        <div style={{ padding: 14, borderRadius: 12, border: "1px dashed var(--border-strong)", background: "var(--surface2)",
+        <div style={{ padding: 14, borderRadius: "var(--r-tile)", border: "1px dashed var(--border-strong)", background: "var(--surface2)",
           fontSize: 12.5, color: "var(--text-2)", textAlign: "center" }}>
           แสดงในหน้านี้ไม่ได้ (ต่ออินเทอร์เน็ตไม่ได้) — <span onClick={onOpen} style={{ color: "var(--primary-dark)", fontWeight: 700, cursor: "pointer" }}>กดเปิดเต็มจอแทน</span>
         </div>
@@ -1682,7 +1682,7 @@ function ItemDetailModal({ item, img, variants, loadDoc, setDoc, onMove, onEdit,
     { k: "ชื่อเดิม / ชื่อพ้อง", v: (item.aka || []).join(" · ") || "—" },
   ];
   const priceTxt = +item.price > 0 ? (+item.price).toLocaleString(undefined, { maximumFractionDigits: 2 }) : null;
-  const sectionLabel = { fontSize: 10.5, fontWeight: 800, letterSpacing: ".05em", textTransform: "uppercase", color: "var(--text-3)" };
+  const sectionLabel = { fontSize: 10.5, fontWeight: 800, color: "var(--text-3)" };
   return (
     <div {...bdClose} style={{ position: "fixed", inset: 0, background: "rgba(8,20,14,.45)", backdropFilter: "blur(3px)", zIndex: 110,
       display: "grid", placeItems: isMobile ? "end center" : "center", padding: isMobile ? 0 : 20 }}>
@@ -1697,7 +1697,7 @@ function ItemDetailModal({ item, img, variants, loadDoc, setDoc, onMove, onEdit,
             <span style={{ color: mainCat.color, fontWeight: 700 }}>{mainCat.th}</span>
             {mainCat.key !== c.key ? <span> › {c.th}</span> : null}
           </span>
-          <button onClick={onClose} style={{ flexShrink: 0, width: 32, height: 32, borderRadius: 9, border: "1px solid var(--border)",
+          <button onClick={onClose} style={{ flexShrink: 0, width: 32, height: 32, borderRadius: "var(--r-chip)", boxShadow: "var(--shadow-sm)",
             background: "var(--surface)", cursor: "pointer", display: "grid", placeItems: "center", color: "var(--text-2)" }}><Icon name="x" size={16} /></button>
         </div>
 
@@ -1705,11 +1705,11 @@ function ItemDetailModal({ item, img, variants, loadDoc, setDoc, onMove, onEdit,
           {/* สองคอลัมน์แบบหน้าสินค้า — ซ้ายรูปใหญ่ ขวาข้อมูล+ราคา+ปุ่ม */}
           <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "minmax(0,540px) minmax(0,1fr)", gap: isMobile ? 16 : 28 }}>
             <div>
-              <div style={{ background: "var(--surface2)", border: "1px solid var(--border)", borderRadius: 16, overflow: "hidden",
+              <div style={{ background: "var(--surface2)", boxShadow: "var(--shadow-sm)", borderRadius: "var(--r-tile)", overflow: "hidden",
                 aspectRatio: "1 / 1", display: "grid", placeItems: "center", padding: 16, position: "relative" }}>
                 <MatThumb src={img} item={item} size={"100%"} radius={0} />
                 {st !== "ok" && (
-                  <span style={{ position: "absolute", top: 12, left: 12, fontSize: 11, fontWeight: 800, padding: "5px 11px", borderRadius: 99,
+                  <span style={{ position: "absolute", top: 12, left: 12, fontSize: 11, fontWeight: 800, padding: "5px 11px", borderRadius: "var(--r-pill)",
                     background: st === "out" ? "#EF4444" : "#F59E0B", color: "#fff" }}>{st === "out" ? "หมดสต็อก" : "ต่ำกว่าขั้นต่ำ"}</span>
                 )}
               </div>
@@ -1718,7 +1718,7 @@ function ItemDetailModal({ item, img, variants, loadDoc, setDoc, onMove, onEdit,
             <div style={{ display: "flex", flexDirection: "column", gap: 12, minWidth: 0 }}>
               {(item.brand || "").trim() && (
                 <span style={{ alignSelf: "flex-start", fontSize: 11, fontWeight: 800, letterSpacing: ".04em", padding: "4px 11px",
-                  borderRadius: 6, background: mainCat.color + "18", color: mainCat.color }}>{item.brand}</span>
+                  borderRadius: "var(--r-chip)", background: mainCat.color + "18", color: mainCat.color }}>{item.brand}</span>
               )}
               <h2 style={{ margin: 0, fontSize: isMobile ? 20 : 25, fontWeight: 700, color: "var(--text-1)", lineHeight: 1.3, letterSpacing: "-.01em" }}>{item.name}</h2>
               {(item.model || "").trim() && (
@@ -1743,8 +1743,8 @@ function ItemDetailModal({ item, img, variants, loadDoc, setDoc, onMove, onEdit,
                       return (
                         <button key={v.it.id} onClick={() => !on && onPickVariant && onPickVariant(v.it)}
                           title={v.it.name + (vs === "out" ? " · หมดสต็อก" : "")}
-                          style={{ padding: "6px 13px", borderRadius: 9, cursor: on ? "default" : "pointer", fontFamily: "inherit",
-                            fontSize: 12.5, fontWeight: 700, border: "1px solid " + (on ? "var(--primary)" : "var(--border-strong)"),
+                          style={{ padding: "6px 13px", borderRadius: "var(--r-chip)", cursor: on ? "default" : "pointer", fontFamily: "inherit",
+                            fontSize: 12.5, fontWeight: 700, border: "1px solid " + (on ? "var(--primary)" : "transparent"),
                             background: on ? "var(--primary)18" : "var(--surface)",
                             color: on ? "var(--primary-dark)" : (vs === "out" ? "var(--text-3)" : "var(--text-2)"),
                             textDecoration: vs === "out" ? "line-through" : "none" }}>
@@ -1754,7 +1754,7 @@ function ItemDetailModal({ item, img, variants, loadDoc, setDoc, onMove, onEdit,
                     })}
                     {onAddSize && (
                       <button onClick={onAddSize} title="เพิ่มขนาดใหม่ให้ของชิ้นนี้"
-                        style={{ padding: "6px 12px", borderRadius: 9, cursor: "pointer", fontFamily: "inherit", fontSize: 12.5, fontWeight: 700,
+                        style={{ padding: "6px 12px", borderRadius: "var(--r-chip)", cursor: "pointer", fontFamily: "inherit", fontSize: 12.5, fontWeight: 700,
                           border: "1px dashed var(--border-strong)", background: "var(--surface2)", color: "var(--text-3)" }}>＋ เพิ่มขนาด</button>
                     )}
                   </div>
@@ -1787,7 +1787,7 @@ function ItemDetailModal({ item, img, variants, loadDoc, setDoc, onMove, onEdit,
                   const mt = MOVE_TYPES[k];
                   return (
                     <button key={k} onClick={() => onMove(k)}
-                      style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 3, padding: "13px 8px", borderRadius: 12,
+                      style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 3, padding: "13px 8px", borderRadius: "var(--r-tile)",
                         border: "1px solid " + mt.accent + "44", background: mt.bg, color: mt.color,
                         fontFamily: "inherit", fontSize: 13, fontWeight: 700, cursor: "pointer" }}>
                       <span style={{ fontSize: 19, lineHeight: 1 }}>{mt.sym}</span>
@@ -1798,7 +1798,7 @@ function ItemDetailModal({ item, img, variants, loadDoc, setDoc, onMove, onEdit,
               </div>
 
               <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr", gap: 1, background: "var(--border)",
-                border: "1px solid var(--border)", borderRadius: 12, overflow: "hidden" }}>
+                borderRadius: "var(--r-tile)", overflow: "hidden" }}>
                 {info.map((r) => (
                   <span key={r.k} style={{ background: "var(--surface)", padding: "9px 12px", display: "flex", alignItems: "baseline", gap: 8 }}>
                     <span style={{ fontSize: 11, color: "var(--text-3)", whiteSpace: "nowrap" }}>{r.k}</span>
@@ -1813,10 +1813,10 @@ function ItemDetailModal({ item, img, variants, loadDoc, setDoc, onMove, onEdit,
 
           {specs.length > 0 && (
             <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-              <span style={{ fontSize: 10.5, fontWeight: 800, letterSpacing: ".05em", textTransform: "uppercase", color: "var(--text-3)" }}>สเปคอุปกรณ์</span>
+              <span style={{ fontSize: 10.5, fontWeight: 800, color: "var(--text-3)" }}>สเปคอุปกรณ์</span>
               <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(120px, 1fr))", gap: 8 }}>
                 {specs.map((f) => (
-                  <div key={f.k} style={{ padding: "8px 10px", borderRadius: 10, background: "var(--surface2)", border: "1px solid var(--border)" }}>
+                  <div key={f.k} style={{ padding: "8px 10px", borderRadius: "var(--r-tile)", background: "var(--surface2)", boxShadow: "var(--shadow-sm)" }}>
                     <div style={{ fontSize: 10, fontWeight: 700, color: "var(--text-3)" }}>{f.th}</div>
                     <div style={{ fontFamily: "var(--mono)", fontSize: 13.5, fontWeight: 700, color: "var(--text-1)", marginTop: 2 }}>{item[f.k]}</div>
                   </div>
@@ -1827,26 +1827,26 @@ function ItemDetailModal({ item, img, variants, loadDoc, setDoc, onMove, onEdit,
 
           {/* DATA SHEET — แนบไฟล์ PDF ของผู้ผลิต ไว้เปิดดูหน้างานได้เลย */}
           <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-            <span style={{ fontSize: 10.5, fontWeight: 800, letterSpacing: ".05em", textTransform: "uppercase", color: "var(--text-3)" }}>DATA SHEET / เอกสาร</span>
+            <span style={{ fontSize: 10.5, fontWeight: 800, color: "var(--text-3)" }}>DATA SHEET / เอกสาร</span>
             {doc && doc.data ? (
-              <div style={{ display: "flex", alignItems: "center", gap: 11, padding: "11px 13px", borderRadius: 12,
-                background: "var(--surface2)", border: "1px solid var(--border)" }}>
-                <span style={{ width: 38, height: 38, borderRadius: 9, flexShrink: 0, display: "grid", placeItems: "center",
+              <div style={{ display: "flex", alignItems: "center", gap: 11, padding: "11px 13px", borderRadius: "var(--r-tile)",
+                background: "var(--surface2)", boxShadow: "var(--shadow-sm)" }}>
+                <span style={{ width: 38, height: 38, borderRadius: "var(--r-chip)", flexShrink: 0, display: "grid", placeItems: "center",
                   background: "#EF444414", color: "#EF4444", fontSize: 10, fontWeight: 800 }}>PDF</span>
                 <span style={{ minWidth: 0, flex: 1 }}>
                   <span style={{ display: "block", fontSize: 13, fontWeight: 600, color: "var(--text-1)", overflow: "hidden",
                     textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{doc.name}</span>
                   <span style={{ display: "block", fontSize: 11, color: "var(--text-3)", marginTop: 1 }}>{kb(doc.size || 0)}</span>
                 </span>
-                <button onClick={openDoc} style={{ flexShrink: 0, padding: "7px 13px", borderRadius: 9, border: "1px solid var(--border-strong)",
+                <button onClick={openDoc} style={{ flexShrink: 0, padding: "7px 13px", borderRadius: "var(--r-chip)", boxShadow: "var(--shadow-sm)",
                   background: "var(--surface)", color: "var(--text-2)", fontFamily: "inherit", fontSize: 12.5, fontWeight: 700, cursor: "pointer" }}>เปิดเต็มจอ</button>
                 <button onClick={() => { askConfirm({ title: "ลบเอกสารนี้?", body: "DATA SHEET ที่แนบไว้กับรายการนี้จะหายไป", ok: "ลบเอกสาร" }).then((ok) => { if (ok) { setDoc(item.id, null); setDocState(null); } }); }}
-                  title="ลบ" style={{ flexShrink: 0, width: 32, height: 32, borderRadius: 9, border: "1px solid var(--border-strong)",
+                  title="ลบ" style={{ flexShrink: 0, width: 32, height: 32, borderRadius: "var(--r-chip)", boxShadow: "var(--shadow-sm)",
                     background: "var(--surface)", color: "#EF4444", cursor: "pointer", display: "grid", placeItems: "center" }}><Icon name="x" size={14} /></button>
               </div>
             ) : (
               <button onClick={() => fileRef.current && fileRef.current.click()} disabled={busy}
-                style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 7, padding: "14px 12px", borderRadius: 12,
+                style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 7, padding: "14px 12px", borderRadius: "var(--r-tile)",
                   border: "1px dashed var(--border-strong)", background: "var(--surface2)", color: "var(--text-2)",
                   fontFamily: "inherit", fontSize: 12.5, fontWeight: 700, cursor: busy ? "wait" : "pointer", width: "100%" }}>
                 <Icon name="plus" size={14} color="var(--text-2)" />
@@ -1856,7 +1856,7 @@ function ItemDetailModal({ item, img, variants, loadDoc, setDoc, onMove, onEdit,
             )}
             {/* แสดงเอกสารในหน้านี้เลย — ไม่ต้องกดเปิดแท็บใหม่ */}
             {doc && doc.data && (isDocImg
-              ? <img src={docUrl} alt={doc.name} style={{ width: "100%", borderRadius: 12, border: "1px solid var(--border)", display: "block" }} />
+              ? <img src={docUrl} alt={doc.name} style={{ width: "100%", borderRadius: "var(--r-tile)", display: "block" }} />
               : <PdfPreview data={doc.data} onOpen={openDoc} />)}
             <input ref={fileRef} type="file" accept="application/pdf,image/*" style={{ display: "none" }}
               onChange={(e) => { pickDoc(e.target.files && e.target.files[0]); e.target.value = ""; }} />
@@ -1867,14 +1867,14 @@ function ItemDetailModal({ item, img, variants, loadDoc, setDoc, onMove, onEdit,
           gap: 8, justifyContent: "flex-end", flexShrink: 0 }}>
           {/* เพิ่มขนาดใหม่ให้ของชิ้นนี้ — ก๊อปชื่อ/หมวด/ยี่ห้อ/หน่วยไปให้แล้ว เหลือแก้ตัวเลขขนาดกับราคา */}
           {onAddSize && (
-            <button onClick={onAddSize} style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "9px 15px", borderRadius: 11,
-              marginRight: "auto", border: "1px solid var(--border-strong)", background: "var(--surface)", color: "var(--primary-dark)",
+            <button onClick={onAddSize} style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "9px 15px", borderRadius: "var(--r-tile)",
+              marginRight: "auto", background: "var(--surface2)", color: "var(--primary-dark)",
               fontFamily: "inherit", fontSize: 13, fontWeight: 700, cursor: "pointer" }}>
               <Icon name="plus" size={14} color="var(--primary-dark)" /> เพิ่มขนาด
             </button>
           )}
-          <button onClick={onEdit} style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "9px 15px", borderRadius: 11,
-            border: "1px solid var(--border-strong)", background: "var(--surface)", color: "var(--text-2)", fontFamily: "inherit",
+          <button onClick={onEdit} style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "9px 15px", borderRadius: "var(--r-tile)",
+            background: "var(--surface2)", color: "var(--text-2)", fontFamily: "inherit",
             fontSize: 13, fontWeight: 700, cursor: "pointer" }}><Icon name="settings" size={14} color="var(--text-2)" /> แก้ไขรายการ</button>
         </div>
       </div>
@@ -1925,8 +1925,8 @@ function FillVariantModal({ items, onApply, onClose }) {
                 <span style={{ fontFamily: "var(--mono)", fontSize: 10.5, color: "var(--text-3)" }}>{r.it.sku}</span>
               </span>
               <span style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
-                {r.g.brand && <span style={{ fontSize: 11.5, fontWeight: 800, color: "var(--primary-dark)", background: "var(--primary-soft)", borderRadius: 99, padding: "2px 9px" }}>{r.g.brand}</span>}
-                {r.g.model && <span style={{ fontSize: 11.5, fontWeight: 700, color: "var(--text-2)", background: "var(--surface2)", border: "1px solid var(--border)", borderRadius: 99, padding: "2px 9px" }}>{r.g.model}</span>}
+                {r.g.brand && <span style={{ fontSize: 11.5, fontWeight: 800, color: "var(--primary-dark)", background: "var(--primary-soft)", borderRadius: "var(--r-pill)", padding: "2px 9px" }}>{r.g.brand}</span>}
+                {r.g.model && <span style={{ fontSize: 11.5, fontWeight: 700, color: "var(--text-2)", background: "var(--surface2)", boxShadow: "var(--shadow-sm)", borderRadius: "var(--r-pill)", padding: "2px 9px" }}>{r.g.model}</span>}
               </span>
             </label>
           ))}
@@ -1935,10 +1935,10 @@ function FillVariantModal({ items, onApply, onClose }) {
           gap: 8, alignItems: "center", flexShrink: 0 }}>
           <span style={{ fontSize: 12, fontWeight: 700, color: "var(--text-2)" }}>เลือกไว้ {picked.length} / {rows.length} รายการ</span>
           <span style={{ marginLeft: "auto", display: "flex", gap: 8 }}>
-            <button onClick={onClose} style={{ padding: "9px 15px", borderRadius: 11, border: "1px solid var(--border-strong)",
+            <button onClick={onClose} style={{ padding: "9px 15px", borderRadius: "var(--r-tile)", boxShadow: "var(--shadow-sm)",
               background: "var(--surface)", color: "var(--text-2)", fontFamily: "inherit", fontSize: 13, fontWeight: 700, cursor: "pointer" }}>ยกเลิก</button>
             <button disabled={!picked.length} onClick={apply}
-              style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "9px 16px", borderRadius: 11, border: 0,
+              style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "9px 16px", borderRadius: "var(--r-tile)", border: 0,
                 background: "var(--primary)", color: "#fff", fontFamily: "inherit", fontSize: 13, fontWeight: 700,
                 cursor: picked.length ? "pointer" : "default", opacity: picked.length ? 1 : .5 }}>
               <Icon name="check" size={15} color="#fff" /> บันทึก {picked.length} รายการ
@@ -1958,7 +1958,7 @@ function MatThumb({ src, item, size, radius }) {
   const c = (SF.STOCK_CAT_BY[(item || {}).cat] || {}).color || "#94A3B8";
   const box = { width: s, height: s, borderRadius: radius != null ? radius : 9, flexShrink: 0,
     overflow: "hidden", display: "grid", placeItems: "center", background: "var(--surface2)",
-    border: "1px solid var(--border)" };
+    boxShadow: "var(--shadow-sm)" };
   if (src) return <span style={box}><img src={src} alt="" loading="lazy" style={{ width: "100%", height: "100%", objectFit: "contain", display: "block" }} /></span>;
   const ch = String((item || {}).name || "?").trim().charAt(0).toUpperCase();
   return (
@@ -1982,17 +1982,17 @@ function StockGrid({ rows, imgs, onOpen, onEdit, onRemove, lowState }) {
         const c = SF.STOCK_CAT_BY[it.cat] || {};
         return (
           <div key={it.id} onClick={() => onOpen(it)} title={g ? "กดเพื่อเลือกขนาด" : "กดเพื่อดูรายละเอียด · รับ / เบิก / คืน"}
-            style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 14, overflow: "hidden",
+            style={{ background: "var(--surface)", borderRadius: "var(--r-tile)", overflow: "hidden",
               cursor: "pointer", display: "flex", flexDirection: "column", boxShadow: "var(--shadow-sm)" }}>
             <div style={{ position: "relative", background: "var(--surface2)", aspectRatio: "1 / 1", display: "grid", placeItems: "center", padding: 10 }}>
               <MatThumb src={imgs[it.id]} item={it} size={"100%"} radius={0} />
               {st !== "ok" && (
-                <span style={{ position: "absolute", top: 8, left: 8, fontSize: 10, fontWeight: 800, padding: "3px 8px", borderRadius: 99,
+                <span style={{ position: "absolute", top: 8, left: 8, fontSize: 10, fontWeight: 800, padding: "3px 8px", borderRadius: "var(--r-pill)",
                   background: st === "out" ? "#EF4444" : "#F59E0B", color: "#fff" }}>{st === "out" ? "หมดสต็อก" : "ต่ำกว่าขั้นต่ำ"}</span>
               )}
               {g && (
-                <span style={{ position: "absolute", top: 8, right: 8, fontSize: 10, fontWeight: 800, padding: "3px 8px", borderRadius: 99,
-                  background: "var(--surface)", border: "1px solid var(--border-strong)", color: "var(--text-2)" }}>{g.n} ขนาด</span>
+                <span style={{ position: "absolute", top: 8, right: 8, fontSize: 10, fontWeight: 800, padding: "3px 8px", borderRadius: "var(--r-pill)",
+                  background: "var(--surface)", boxShadow: "var(--shadow-sm)", color: "var(--text-2)" }}>{g.n} ขนาด</span>
               )}
             </div>
             <div style={{ padding: "10px 11px 11px", display: "flex", flexDirection: "column", gap: 3, flex: 1 }}>
@@ -2018,12 +2018,12 @@ function StockGrid({ rows, imgs, onOpen, onEdit, onRemove, lowState }) {
               </div>
               {/* การ์ดรวมขนาดไม่มีปุ่มแก้ไข/ลบ — ต้องเลือกขนาดก่อนถึงจะรู้ว่าจะแก้ตัวไหน */}
               {g ? (
-                <div style={{ marginTop: 7, height: 28, borderRadius: 7, background: "var(--primary-soft)", color: "var(--primary-dark)",
+                <div style={{ marginTop: 7, height: 28, borderRadius: "var(--r-chip)", background: "var(--primary-soft)", color: "var(--primary-dark)",
                   fontSize: 11.5, fontWeight: 700, display: "grid", placeItems: "center" }}>เลือกขนาด</div>
               ) : (
                 <div onClick={(e) => e.stopPropagation()} style={{ display: "flex", gap: 5, marginTop: 7 }}>
-                  <button onClick={() => onEdit(it)} title="แก้ไข" style={{ flex: 1, height: 28, background: "#3B82F614", border: "none", color: "#3B82F6", borderRadius: 7, cursor: "pointer", display: "grid", placeItems: "center" }}><Icon name="settings" size={13} /></button>
-                  <button onClick={() => { askConfirm({ title: "ลบ “" + it.name + "” ออกจากคลัง?" }).then((ok) => { if (ok) onRemove(it.id); }); }} title="ลบ" style={{ width: 32, height: 28, background: "#EF444414", border: "none", color: "#EF4444", borderRadius: 7, cursor: "pointer", display: "grid", placeItems: "center" }}><Icon name="x" size={13} /></button>
+                  <button onClick={() => onEdit(it)} title="แก้ไข" style={{ flex: 1, height: 28, background: "#3B82F614", border: "none", color: "#3B82F6", borderRadius: "var(--r-chip)", cursor: "pointer", display: "grid", placeItems: "center" }}><Icon name="settings" size={13} /></button>
+                  <button onClick={() => { askConfirm({ title: "ลบ “" + it.name + "” ออกจากคลัง?" }).then((ok) => { if (ok) onRemove(it.id); }); }} title="ลบ" style={{ width: 32, height: 28, background: "#EF444414", border: "none", color: "#EF4444", borderRadius: "var(--r-chip)", cursor: "pointer", display: "grid", placeItems: "center" }}><Icon name="x" size={13} /></button>
                 </div>
               )}
             </div>
@@ -2062,13 +2062,13 @@ function MatImagePicker({ src, item, onPick, onClear }) {
       <div style={{ display: "flex", flexDirection: "column", gap: 5, minWidth: 0 }}>
         <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
           <button type="button" disabled={busy} onClick={() => ref.current && ref.current.click()}
-            style={{ padding: "7px 13px", borderRadius: 9, border: "1px solid var(--border-strong)", background: "var(--surface2)",
+            style={{ padding: "7px 13px", borderRadius: "var(--r-chip)", boxShadow: "var(--shadow-sm)", background: "var(--surface2)",
               color: "var(--text-1)", fontFamily: "inherit", fontSize: 12.5, fontWeight: 700, cursor: busy ? "wait" : "pointer" }}>
             {busy ? "กำลังย่อรูป…" : (src ? "เปลี่ยนรูป" : "เลือกรูป")}
           </button>
           {src && (
             <button type="button" onClick={onClear}
-              style={{ padding: "7px 11px", borderRadius: 9, border: "1px solid var(--border-strong)", background: "var(--surface2)",
+              style={{ padding: "7px 11px", borderRadius: "var(--r-chip)", boxShadow: "var(--shadow-sm)", background: "var(--surface2)",
                 color: "#EF4444", fontFamily: "inherit", fontSize: 12.5, fontWeight: 700, cursor: "pointer" }}>ลบรูป</button>
           )}
         </div>
@@ -2094,14 +2094,16 @@ function CatCard({ c, n, lowN, img, onPick, onImage }) {
     window.resizeImageFile(file, 600, 0.72).then((d) => { onImage(d); setBusy(false); })
       .catch(() => { setBusy(false); alert("อ่านไฟล์รูปไม่สำเร็จ"); });
   };
-  const btn = { padding: "3px 9px", borderRadius: 99, border: "1px solid var(--border-strong)", background: "var(--surface)",
+  /* ปุ่มนี้นั่งอยู่บนการ์ดหมวดซึ่งเป็นสีขาว — ขาวบนขาวมองไม่เห็นแม้จะมีเงา
+     เงา shadow-sm มีไว้ยกการ์ดขึ้นจากพื้นเทาของหน้า บนพื้นขาวมันแทบไม่เหลืออะไร */
+  const btn = { padding: "3px 9px", borderRadius: "var(--r-pill)", background: "var(--surface2)",
     fontFamily: "inherit", fontSize: 10.5, fontWeight: 700, cursor: busy ? "wait" : "pointer", color: "var(--text-2)" };
   return (
     <div onClick={() => onPick(c.key)}
-      style={{ position: "relative", background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 16,
+      style={{ position: "relative", background: "var(--surface)", borderRadius: "var(--r-tile)",
         cursor: "pointer", display: "flex", alignItems: "center", gap: 13, padding: 14, boxShadow: "var(--shadow-sm)" }}>
-      <span style={{ width: 76, height: 76, borderRadius: 12, flexShrink: 0, overflow: "hidden", display: "grid", placeItems: "center",
-        background: img ? "var(--surface2)" : c.color + "16", border: "1px solid " + (img ? "var(--border)" : c.color + "33") }}>
+      <span style={{ width: 76, height: 76, borderRadius: "var(--r-tile)", flexShrink: 0, overflow: "hidden", display: "grid", placeItems: "center",
+        background: img ? "var(--surface2)" : c.color + "16", border: "1px solid " + (img ? "transparent" : c.color + "33") }}>
         {img
           ? <img src={img} alt="" loading="lazy" style={{ width: "100%", height: "100%", objectFit: "contain", display: "block" }} />
           : <Icon name={c.icon || "box"} size={30} color={c.color} />}
@@ -2137,14 +2139,14 @@ function CatBrowser({ list, count, low, imgs, title, hint, allLabel, onPick, onA
       <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 12, flexWrap: "wrap" }}>
         {onBack && (
           <button onClick={onBack} title="กลับไปหน้าหมวดหลัก"
-            style={{ display: "flex", alignItems: "center", gap: 4, padding: "6px 11px", borderRadius: 9, border: "1px solid var(--border-strong)",
+            style={{ display: "flex", alignItems: "center", gap: 4, padding: "6px 11px", borderRadius: "var(--r-chip)", boxShadow: "var(--shadow-sm)",
               background: "var(--surface2)", color: "var(--text-2)", fontFamily: "inherit", fontSize: 12.5, fontWeight: 700, cursor: "pointer" }}>
             <Icon name="chevronDown" size={14} color="var(--text-3)" style={{ transform: "rotate(90deg)" }} />ย้อนกลับ
           </button>
         )}
         <span style={{ fontSize: 13.5, fontWeight: 800, color: "var(--text-1)" }}>{title}</span>
         <span style={{ fontSize: 11.5, color: "var(--text-3)" }}>{hint}</span>
-        <button onClick={onAll} style={{ marginLeft: "auto", padding: "7px 14px", borderRadius: 9, border: "1px solid var(--border-strong)",
+        <button onClick={onAll} style={{ marginLeft: "auto", padding: "7px 14px", borderRadius: "var(--r-chip)", boxShadow: "var(--shadow-sm)",
           background: "var(--surface2)", color: "var(--text-2)", fontFamily: "inherit", fontSize: 12.5, fontWeight: 700, cursor: "pointer" }}>
           {allLabel || "ดูทุกรายการ"}
         </button>

@@ -82,7 +82,7 @@ function SurveyView({
         alignItems: "center",
         gap: 6,
         padding: isMobile ? "6px 12px" : "7px 14px",
-        borderRadius: 99,
+        borderRadius: "var(--r-pill)",
         cursor: "pointer",
         fontFamily: "inherit",
         fontSize: 12.5,
@@ -96,7 +96,7 @@ function SurveyView({
       style: {
         width: 7,
         height: 7,
-        borderRadius: 99,
+        borderRadius: "var(--r-pill)",
         background: ff.color
       }
     }), ff.label, React.createElement("span", {
@@ -120,8 +120,8 @@ function SurveyView({
       color: "var(--text-3)",
       fontSize: 14,
       background: "var(--surface)",
-      border: "1px solid var(--border)",
-      borderRadius: 14
+      boxShadow: "var(--shadow-sm)",
+      borderRadius: "var(--r-tile)"
     }
   }, "\u0E44\u0E21\u0E48\u0E21\u0E35\u0E07\u0E32\u0E19\u0E43\u0E19\u0E2A\u0E16\u0E32\u0E19\u0E30\u0E19\u0E35\u0E49"), shown.map(({
     job,
@@ -147,8 +147,7 @@ function SurveyView({
         cursor: "pointer",
         fontFamily: "inherit",
         background: "var(--surface)",
-        border: "1px solid var(--border)",
-        borderRadius: 14,
+        borderRadius: "var(--r-tile)",
         boxShadow: "var(--shadow-sm)",
         opacity: isSkip ? 0.72 : 1
       }
@@ -156,7 +155,7 @@ function SurveyView({
       style: {
         width: 42,
         height: 42,
-        borderRadius: 12,
+        borderRadius: "var(--r-tile)",
         flexShrink: 0,
         display: "grid",
         placeItems: "center",
@@ -210,7 +209,7 @@ function SurveyView({
         display: "block",
         marginTop: 7,
         height: 5,
-        borderRadius: 99,
+        borderRadius: "var(--r-pill)",
         background: "var(--surface3)",
         overflow: "hidden"
       }
@@ -220,7 +219,7 @@ function SurveyView({
         height: "100%",
         width: st.pct + "%",
         background: st.color,
-        borderRadius: 99,
+        borderRadius: "var(--r-pill)",
         transition: "width .3s"
       }
     }))), React.createElement("span", {
@@ -238,7 +237,7 @@ function SurveyView({
         color: st.color,
         background: st.color + "16",
         padding: "3px 9px",
-        borderRadius: 99,
+        borderRadius: "var(--r-pill)",
         whiteSpace: "nowrap"
       }
     }, st.label), !isSkip && React.createElement("span", {
@@ -264,8 +263,8 @@ function SurveyView({
         fontWeight: 700,
         color: "var(--text-2)",
         background: "var(--surface2)",
-        border: "1px solid var(--border-strong)",
-        borderRadius: 8,
+        boxShadow: "var(--shadow-sm)",
+        borderRadius: "var(--r-chip)",
         padding: "5px 9px",
         cursor: "pointer",
         fontFamily: "inherit",
@@ -287,7 +286,7 @@ function SurveyView({
         color: "var(--tint-green-tx)",
         background: "rgba(22,163,74,.08)",
         border: "1px solid rgba(22,163,74,.27)",
-        borderRadius: 8,
+        borderRadius: "var(--r-chip)",
         padding: "5px 9px",
         cursor: "pointer",
         fontFamily: "inherit",
@@ -433,7 +432,7 @@ function LeadsView({
         alignItems: "center",
         gap: 6,
         padding: isMobile ? "6px 12px" : "7px 14px",
-        borderRadius: 99,
+        borderRadius: "var(--r-pill)",
         cursor: "pointer",
         fontFamily: "inherit",
         fontSize: 12.5,
@@ -447,7 +446,7 @@ function LeadsView({
       style: {
         width: 7,
         height: 7,
-        borderRadius: 99,
+        borderRadius: "var(--r-pill)",
         background: ff.color
       }
     }), ff.th, React.createElement("span", {
@@ -466,7 +465,7 @@ function LeadsView({
       fontSize: 14,
       background: "var(--surface)",
       border: "1px dashed var(--border-strong)",
-      borderRadius: 16
+      borderRadius: "var(--r-tile)"
     }
   }, "\u0E22\u0E31\u0E07\u0E44\u0E21\u0E48\u0E21\u0E35\u0E25\u0E39\u0E01\u0E04\u0E49\u0E32\u0E2A\u0E33\u0E23\u0E27\u0E08\u0E43\u0E19\u0E2A\u0E16\u0E32\u0E19\u0E30\u0E19\u0E35\u0E49 \xB7 \u0E01\u0E14 \u201C\u0E25\u0E39\u0E01\u0E04\u0E49\u0E32\u0E43\u0E2B\u0E21\u0E48\u201D \u0E2B\u0E23\u0E37\u0E2D\u0E2A\u0E23\u0E49\u0E32\u0E07\u0E08\u0E32\u0E01\u0E2B\u0E19\u0E49\u0E32 \u201C\u0E08\u0E31\u0E14\u0E15\u0E32\u0E23\u0E32\u0E07\u0E2A\u0E33\u0E23\u0E27\u0E08\u201D") : React.createElement("div", {
     style: {
@@ -515,8 +514,6 @@ function ContactLogModal({
   const lbl = {
     fontSize: 10.5,
     fontWeight: 700,
-    letterSpacing: ".05em",
-    textTransform: "uppercase",
     color: "var(--text-3)"
   };
   const submit = () => onSave({
@@ -582,9 +579,8 @@ function ContactLogModal({
     style: {
       width: 32,
       height: 32,
-      borderRadius: 9,
-      border: "1px solid var(--border)",
-      background: "var(--surface)",
+      borderRadius: "var(--r-chip)",
+      background: "var(--surface2)",
       cursor: "pointer",
       display: "grid",
       placeItems: "center",
@@ -625,7 +621,7 @@ function ContactLogModal({
         alignItems: "center",
         gap: 5,
         padding: "8px 13px",
-        borderRadius: 99,
+        borderRadius: "var(--r-pill)",
         cursor: "pointer",
         fontFamily: "inherit",
         fontSize: 12.5,
@@ -688,9 +684,8 @@ function ContactLogModal({
     onClick: onClose,
     style: {
       padding: "12px 18px",
-      borderRadius: 11,
-      border: "1px solid var(--border-strong)",
-      background: "var(--surface)",
+      borderRadius: "var(--r-tile)",
+      background: "var(--surface2)",
       color: "var(--text-2)",
       fontWeight: 700,
       fontFamily: "inherit",
@@ -702,7 +697,7 @@ function ContactLogModal({
     style: {
       flex: 1,
       padding: 12,
-      borderRadius: 11,
+      borderRadius: "var(--r-tile)",
       border: "none",
       background: "var(--primary)",
       color: "#fff",
@@ -725,9 +720,8 @@ function leadBtn(color, solid) {
     fontSize: 12.5,
     fontWeight: 700,
     border: "none",
-    background: solid ? color : "var(--surface)",
-    color: solid ? "#fff" : color,
-    boxShadow: solid ? "none" : "var(--shadow-sm)"
+    background: solid ? color : "var(--surface2)",
+    color: solid ? "#fff" : color
   };
 }
 function LeadModal({
@@ -766,8 +760,6 @@ function LeadModal({
   const lbl = {
     fontSize: 10.5,
     fontWeight: 700,
-    letterSpacing: ".05em",
-    textTransform: "uppercase",
     color: "var(--text-3)"
   };
   const submit = () => {
@@ -823,9 +815,8 @@ function LeadModal({
     style: {
       width: 32,
       height: 32,
-      borderRadius: 9,
-      border: "1px solid var(--border)",
-      background: "var(--surface)",
+      borderRadius: "var(--r-chip)",
+      background: "var(--surface2)",
       cursor: "pointer",
       display: "grid",
       placeItems: "center",
@@ -1079,9 +1070,8 @@ function LeadModal({
     onClick: onClose,
     style: {
       padding: "12px 18px",
-      borderRadius: 11,
-      border: "1px solid var(--border-strong)",
-      background: "var(--surface)",
+      borderRadius: "var(--r-tile)",
+      background: "var(--surface2)",
       color: "var(--text-2)",
       fontWeight: 700,
       fontFamily: "inherit",
@@ -1093,7 +1083,7 @@ function LeadModal({
     style: {
       flex: 1,
       padding: 12,
-      borderRadius: 11,
+      borderRadius: "var(--r-tile)",
       border: "none",
       background: "var(--primary)",
       color: "#fff",
@@ -1136,9 +1126,8 @@ function LeadCard({
       title: onOpen ? "เปิดใบลูกค้า" : undefined,
       style: {
         background: "var(--surface)",
-        border: "1px solid var(--border)",
         borderLeft: "4px solid " + sc.color,
-        borderRadius: 14,
+        borderRadius: "var(--r-tile)",
         boxShadow: "var(--shadow-sm)",
         padding: 14,
         display: "flex",
@@ -1179,7 +1168,7 @@ function LeadCard({
         color: sc.color,
         background: sc.color + "16",
         padding: "3px 9px",
-        borderRadius: 99,
+        borderRadius: "var(--r-pill)",
         whiteSpace: "nowrap",
         flexShrink: 0
       }
@@ -1199,7 +1188,7 @@ function LeadCard({
         color: "var(--text-2)",
         fontWeight: 700,
         padding: "3px 9px",
-        borderRadius: 99
+        borderRadius: "var(--r-pill)"
       }
     }, React.createElement(Icon, {
       name: "user",
@@ -1212,7 +1201,7 @@ function LeadCard({
         gap: 4,
         fontWeight: 700,
         padding: "3px 9px",
-        borderRadius: 99,
+        borderRadius: "var(--r-pill)",
         background: late ? "var(--tint-red-bg2)" : "var(--surface2)",
         color: late ? "#EF4444" : "var(--text-2)"
       }
@@ -1226,7 +1215,7 @@ function LeadCard({
         color: "var(--text-2)",
         fontWeight: 700,
         padding: "3px 9px",
-        borderRadius: 99,
+        borderRadius: "var(--r-pill)",
         fontFamily: "var(--mono)"
       }
     }, l.expKwp, " kWp"), +l.expValue > 0 && React.createElement("span", {
@@ -1235,7 +1224,7 @@ function LeadCard({
         color: "var(--primary-dark)",
         fontWeight: 800,
         padding: "3px 9px",
-        borderRadius: 99
+        borderRadius: "var(--r-pill)"
       }
     }, "\u0E3F", fmtBaht(+l.expValue)), l.source && window.LEAD_SOURCE_TH && React.createElement("span", {
       style: {
@@ -1243,7 +1232,7 @@ function LeadCard({
         color: "var(--text-3)",
         fontWeight: 700,
         padding: "3px 9px",
-        borderRadius: 99
+        borderRadius: "var(--r-pill)"
       }
     }, window.LEAD_SOURCE_TH(l.source))), l.address && React.createElement("div", {
       style: {
@@ -1282,7 +1271,7 @@ function LeadCard({
         fontSize: 12,
         color: "var(--text-2)",
         background: "var(--surface2)",
-        borderRadius: 8,
+        borderRadius: "var(--r-chip)",
         padding: "7px 10px"
       }
     }, "\uD83D\uDCDD ", l.note), (l.contacts || []).length > 0 && (() => {
@@ -1336,7 +1325,7 @@ function LeadCard({
       style: {
         flex: 1,
         height: 5,
-        borderRadius: 99,
+        borderRadius: "var(--r-pill)",
         background: "var(--surface3)",
         overflow: "hidden"
       }
@@ -1346,7 +1335,7 @@ function LeadCard({
         height: "100%",
         width: st.pct + "%",
         background: st.color,
-        borderRadius: 99
+        borderRadius: "var(--r-pill)"
       }
     })), React.createElement("span", {
       style: {
@@ -1535,7 +1524,7 @@ function LeadSpecPhase({
       onClick: () => onSave(k),
       style: {
         padding: "5px 13px",
-        borderRadius: 8,
+        borderRadius: "var(--r-chip)",
         border: "none",
         cursor: "pointer",
         fontFamily: "inherit",
@@ -1634,7 +1623,7 @@ function LeadDetail({
   };
   const card = {
     background: "var(--surface)",
-    borderRadius: 18,
+    borderRadius: "var(--r-card)",
     padding: "16px 18px",
     marginBottom: 10,
     boxShadow: "var(--shadow-sm)"
@@ -1666,14 +1655,14 @@ function LeadDetail({
       color: sc.color,
       background: sc.color + "16",
       padding: "5px 12px",
-      borderRadius: 99,
+      borderRadius: "var(--r-pill)",
       flexShrink: 0
     }
   }, React.createElement("span", {
     style: {
       width: 8,
       height: 8,
-      borderRadius: 99,
+      borderRadius: "var(--r-pill)",
       background: sc.color
     }
   }), sc.th), React.createElement("span", {
@@ -1839,7 +1828,7 @@ function LeadDetail({
       fontWeight: 700,
       cursor: "pointer",
       fontFamily: "inherit",
-      borderRadius: 9,
+      borderRadius: "var(--r-chip)",
       padding: "5px 11px",
       color: st.state === "skip" ? "var(--text-2)" : "var(--tint-green-tx)",
       background: st.state === "skip" ? "var(--surface2)" : "rgba(22,163,74,.08)",
@@ -1862,7 +1851,7 @@ function LeadDetail({
       padding: "10px 14px",
       background: "var(--primary-soft)",
       border: "1px solid var(--primary)",
-      borderRadius: 11,
+      borderRadius: "var(--r-tile)",
       cursor: "pointer",
       fontFamily: "inherit",
       fontSize: 13,

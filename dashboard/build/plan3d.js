@@ -6933,8 +6933,7 @@ function Plan3DEditor({
       fontSize: 9.5,
       fontWeight: 700,
       letterSpacing: ".14em",
-      color: "var(--text-3)",
-      textTransform: "uppercase"
+      color: "var(--text-3)"
     }
   }, "\u0E27\u0E32\u0E07\u0E41\u0E1C\u0E07 3D", job && job.code ? " · " + job.code : ""), React.createElement("div", {
     style: {

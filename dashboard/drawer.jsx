@@ -255,7 +255,7 @@ function StockShopModal({ stock, job, byName, onClose }) {
   };
 
   const SectionHead = ({ children }) => (
-    <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: ".05em", textTransform: "uppercase", color: "var(--text-3)", padding: "12px 8px 6px", display: "flex", alignItems: "center", gap: 6 }}>{children}</div>
+    <div style={{ fontSize: 11, fontWeight: 700, color: "var(--text-3)", padding: "12px 8px 6px", display: "flex", alignItems: "center", gap: 6 }}>{children}</div>
   );
 
   const boqMissing = boqLines.filter((l) => !l.stockItem);

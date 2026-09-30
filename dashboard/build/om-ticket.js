@@ -385,8 +385,6 @@ function OmJobFacts({
     style: {
       fontSize: 11,
       fontWeight: 800,
-      letterSpacing: ".07em",
-      textTransform: "uppercase",
       color: "var(--text-3)"
     }
   }, "\u0E02\u0E49\u0E2D\u0E21\u0E39\u0E25\u0E07\u0E32\u0E19\u0E15\u0E34\u0E14\u0E15\u0E31\u0E49\u0E07\u0E40\u0E14\u0E34\u0E21"), React.createElement("span", {

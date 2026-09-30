@@ -18,8 +18,6 @@ function Field({
     style: {
       fontSize: 10.5,
       fontWeight: 700,
-      letterSpacing: ".05em",
-      textTransform: "uppercase",
       color: "var(--text-3)"
     }
   }, label, required && React.createElement("span", {
@@ -30,12 +28,12 @@ function Field({
 }
 const inputStyle = {
   background: "var(--surface2)",
-  border: "1px solid var(--border-strong)",
+  border: "none",
   color: "var(--text-1)",
   fontFamily: "inherit",
   fontSize: 13.5,
-  padding: "9px 11px",
-  borderRadius: 10,
+  padding: "10px 12px",
+  borderRadius: "var(--r-tile)",
   outline: "none",
   width: "100%"
 };
@@ -1374,8 +1372,6 @@ function Section({
     style: {
       fontSize: 11,
       fontWeight: 700,
-      letterSpacing: ".06em",
-      textTransform: "uppercase",
       color: "var(--text-3)",
       display: "flex",
       alignItems: "center",

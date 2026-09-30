@@ -785,8 +785,6 @@ function Meas3DModal({
     style: {
       fontSize: 10.5,
       fontWeight: 800,
-      letterSpacing: ".05em",
-      textTransform: "uppercase",
       color: "var(--text-3)"
     }
   }, "\u0E23\u0E30\u0E22\u0E30\u0E08\u0E32\u0E01\u0E41\u0E1A\u0E1A 3D"), React.createElement("div", {
@@ -3103,7 +3101,6 @@ function BOQEditor({
         fontWeight: 800,
         letterSpacing: ".05em",
         color: "var(--text-3)",
-        textTransform: "uppercase",
         padding: "0 2px"
       }
     }, React.createElement("span", null, "\u0E23\u0E32\u0E22\u0E01\u0E32\u0E23"), !isMobile && React.createElement("span", {
@@ -3403,8 +3400,6 @@ function BOQEditor({
     style: {
       fontSize: 10,
       fontWeight: 700,
-      letterSpacing: ".04em",
-      textTransform: "uppercase",
       color: "var(--text-3)"
     }
   }, "\u0E27\u0E31\u0E2A\u0E14\u0E38\u0E40\u0E1E\u0E34\u0E48\u0E21 (\u0E19\u0E2D\u0E01\u0E23\u0E30\u0E1A\u0E1A)"), extraItems.map((x, i) => React.createElement("div", {
@@ -4811,8 +4806,6 @@ function BOQEditor({
       marginBottom: 8,
       fontSize: 10.5,
       fontWeight: 800,
-      letterSpacing: ".05em",
-      textTransform: "uppercase",
       color: "var(--text-3)"
     }
   }, "\u0E2A\u0E40\u0E1B\u0E04\u0E08\u0E32\u0E01\u0E04\u0E25\u0E31\u0E07\u0E2A\u0E34\u0E19\u0E04\u0E49\u0E32 \xB7 ", selInv.model), React.createElement("div", {
@@ -4941,8 +4934,6 @@ function BOQEditor({
       marginBottom: 8,
       fontSize: 10.5,
       fontWeight: 800,
-      letterSpacing: ".05em",
-      textTransform: "uppercase",
       color: "var(--text-3)"
     }
   }, "\u0E2A\u0E40\u0E1B\u0E04\u0E08\u0E32\u0E01\u0E04\u0E25\u0E31\u0E07\u0E2A\u0E34\u0E19\u0E04\u0E49\u0E32 \xB7 ", selInv2.model, " \xB7 ", inv2Count, " \u0E15\u0E31\u0E27"), React.createElement("div", {
@@ -5154,8 +5145,6 @@ function BOQEditor({
       marginBottom: 8,
       fontSize: 10.5,
       fontWeight: 800,
-      letterSpacing: ".05em",
-      textTransform: "uppercase",
       color: "var(--text-3)"
     }
   }, "\u0E41\u0E1C\u0E19\u0E2A\u0E15\u0E23\u0E34\u0E07 \xB7 ", plan.panels, " \u0E41\u0E1C\u0E07 \xF7 ", plan.series, " \u0E41\u0E1C\u0E07/\u0E2A\u0E15\u0E23\u0E34\u0E07"), React.createElement("div", {
@@ -5530,8 +5519,6 @@ function BOQEditor({
       padding: "0 2px 6px",
       fontSize: 9.5,
       fontWeight: 800,
-      letterSpacing: ".05em",
-      textTransform: "uppercase",
       color: "var(--text-3)"
     }
   }, React.createElement("span", null, "\u0E08\u0E38\u0E14\u0E40\u0E14\u0E34\u0E19\u0E2A\u0E32\u0E22"), React.createElement("span", null, "\u0E0A\u0E19\u0E34\u0E14\u0E2A\u0E32\u0E22\u0E44\u0E1F"), React.createElement("span", {
@@ -5601,8 +5588,6 @@ function BOQEditor({
       style: {
         fontSize: 10,
         fontWeight: 700,
-        letterSpacing: ".05em",
-        textTransform: "uppercase",
         color: "var(--text-3)"
       }
     }, "\u0E08\u0E38\u0E14\u0E40\u0E14\u0E34\u0E19\u0E2A\u0E32\u0E22"), React.createElement(Dropdown, {
@@ -6191,7 +6176,6 @@ function BOQEditor({
       fontWeight: 800,
       letterSpacing: ".07em",
       color: "var(--text-3)",
-      textTransform: "uppercase",
       marginBottom: 6
     }
   }, sec.title), React.createElement("div", {
@@ -6321,8 +6305,7 @@ function BOQEditor({
         fontSize: 9.5,
         fontWeight: 700,
         letterSpacing: ".02em",
-        color: "var(--text-3)",
-        textTransform: "uppercase"
+        color: "var(--text-3)"
       }
     }, label), React.createElement("div", {
       style: {
@@ -6403,9 +6386,7 @@ function BOQEditor({
   }, React.createElement("thead", null, React.createElement("tr", {
     style: {
       color: "var(--text-3)",
-      fontSize: 11,
-      textTransform: "uppercase",
-      letterSpacing: ".04em"
+      fontSize: 11
     }
   }, React.createElement("th", {
     style: {
@@ -7059,8 +7040,6 @@ function BOQEditor({
       style: {
         fontSize: 9.5,
         fontWeight: 800,
-        letterSpacing: ".05em",
-        textTransform: "uppercase",
         color: "var(--text-3)"
       }
     }, "\u0E2D\u0E38\u0E1B\u0E01\u0E23\u0E13\u0E4C\u0E43\u0E19\u0E15\u0E39\u0E49\u0E19\u0E35\u0E49"), bd.items.map(it => numBox(it))), React.createElement("div", {
@@ -7097,8 +7076,6 @@ function BOQEditor({
     style: {
       fontSize: 11,
       fontWeight: 800,
-      letterSpacing: ".05em",
-      textTransform: "uppercase",
       color: "var(--text-3)",
       marginBottom: 8
     }
@@ -7110,8 +7087,6 @@ function BOQEditor({
     style: {
       fontSize: 11,
       fontWeight: 800,
-      letterSpacing: ".05em",
-      textTransform: "uppercase",
       color: "var(--text-3)",
       margin: "18px 0 8px"
     }
@@ -7698,8 +7673,6 @@ function BOQEditor({
       marginBottom: 8,
       fontSize: 10.5,
       fontWeight: 800,
-      letterSpacing: ".05em",
-      textTransform: "uppercase",
       color: "var(--text-3)"
     }
   }, "\u0E15\u0E49\u0E19\u0E17\u0E38\u0E19\u0E15\u0E48\u0E2D\u0E27\u0E31\u0E15\u0E15\u0E4C \xB7 ", Math.round(result.meta.kw * 1000).toLocaleString(), " W (", result.meta.kw.toLocaleString(), " kW)"), React.createElement("div", {
@@ -8712,8 +8685,6 @@ function MatVariantModal({
     style: {
       fontSize: 10.5,
       fontWeight: 800,
-      letterSpacing: ".05em",
-      textTransform: "uppercase",
       color: "var(--text-3)"
     }
   }, "\u0E22\u0E35\u0E48\u0E2B\u0E49\u0E2D \xB7 \u0E23\u0E38\u0E48\u0E19 \xB7 \u0E23\u0E32\u0E04\u0E32"), React.createElement("div", {
@@ -8741,8 +8712,6 @@ function MatVariantModal({
     style: {
       fontSize: 10.5,
       fontWeight: 800,
-      letterSpacing: ".05em",
-      textTransform: "uppercase",
       color: "var(--text-3)"
     }
   }, "\u0E0A\u0E37\u0E48\u0E2D\u0E23\u0E32\u0E22\u0E01\u0E32\u0E23\u0E43\u0E19\u0E43\u0E1A\u0E16\u0E2D\u0E14\u0E02\u0E2D\u0E07"), React.createElement(Dropdown, {
@@ -8871,8 +8840,6 @@ function MatVariantModal({
     style: {
       fontSize: 10.5,
       fontWeight: 800,
-      letterSpacing: ".05em",
-      textTransform: "uppercase",
       color: "var(--text-3)"
     }
   }, "\u0E07\u0E32\u0E19\u0E19\u0E35\u0E49\u0E43\u0E0A\u0E49\u0E15\u0E31\u0E27\u0E44\u0E2B\u0E19"), variants.map(v => {
@@ -8943,8 +8910,6 @@ function MatVariantModal({
     style: {
       fontSize: 10.5,
       fontWeight: 800,
-      letterSpacing: ".05em",
-      textTransform: "uppercase",
       color: "var(--text-3)"
     }
   }, f.isNew ? "เพิ่มยี่ห้อ/รุ่นใหม่ของของชิ้นนี้" : "แก้รายละเอียด (บันทึกลงคลังสินค้า)"), priceSrc !== item.name && React.createElement("span", {

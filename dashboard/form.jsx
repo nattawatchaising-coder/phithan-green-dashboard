@@ -9,7 +9,7 @@ function Field({ label, required, children, span }) {
     : (typeof span === "number" ? (mob ? "1 / -1" : "span " + span) : "auto");
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 5, gridColumn: gc }}>
-      <label style={{ fontSize: 10.5, fontWeight: 700, letterSpacing: ".05em", textTransform: "uppercase", color: "var(--text-3)" }}>
+      <label style={{ fontSize: 10.5, fontWeight: 700, color: "var(--text-3)" }}>
         {label}{required && <span style={{ color: "#EF4444" }}> *</span>}
       </label>
       {children}
@@ -17,9 +17,12 @@ function Field({ label, required, children, span }) {
   );
 }
 
+/* ช่องกรอกกลางของทั้งแอป — อ้างจากอีกเก้าไฟล์ แก้ที่นี่ที่เดียวเปลี่ยนทุกฟอร์ม
+   ช่องกรอกคือหลุมที่จมลงไปในการ์ด พื้นจึงเข้มกว่าการ์ดและบอกขอบเขตได้เอง ไม่ต้องขีดเส้นซ้ำ
+   ⚠ ห้ามใส่เงาให้ช่องกรอก — เงาแปลว่า "ลอยอยู่ข้างบน" ซึ่งเป็นคนละเรื่องกับช่องที่รอให้กรอก */
 const inputStyle = {
-  background: "var(--surface2)", border: "1px solid var(--border-strong)", color: "var(--text-1)",
-  fontFamily: "inherit", fontSize: 13.5, padding: "9px 11px", borderRadius: 10, outline: "none", width: "100%",
+  background: "var(--surface2)", border: "none", color: "var(--text-1)",
+  fontFamily: "inherit", fontSize: 13.5, padding: "10px 12px", borderRadius: "var(--r-tile)", outline: "none", width: "100%",
 };
 
 /* responsive helper — matchMedia-based (re-renders on breakpoint change) */
@@ -507,7 +510,7 @@ function Section({ title, icon, right, children }) {
   return (
     <div style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 14, padding: mob ? 14 : 18 }}>
       <div style={{ marginBottom: 14, display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
-        <span style={{ fontSize: 11, fontWeight: 700, letterSpacing: ".06em", textTransform: "uppercase", color: "var(--text-3)", display: "flex", alignItems: "center", gap: 7 }}>
+        <span style={{ fontSize: 11, fontWeight: 700, color: "var(--text-3)", display: "flex", alignItems: "center", gap: 7 }}>
           <Icon name={icon} size={14} color="var(--primary)" /> {title}
         </span>
         {right}

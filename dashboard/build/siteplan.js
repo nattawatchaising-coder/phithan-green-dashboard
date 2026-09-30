@@ -4478,8 +4478,6 @@ function SitePlanEditor({
     style: {
       fontSize: 11,
       fontWeight: 700,
-      letterSpacing: ".05em",
-      textTransform: "uppercase",
       color: "var(--text-3)",
       marginBottom: 8
     }
@@ -4535,8 +4533,6 @@ function SitePlanEditor({
     style: {
       fontSize: 11,
       fontWeight: 700,
-      letterSpacing: ".05em",
-      textTransform: "uppercase",
       color: "var(--text-3)",
       marginBottom: 6
     }
@@ -4602,8 +4598,6 @@ function SitePlanEditor({
     style: {
       fontSize: 11,
       fontWeight: 700,
-      letterSpacing: ".05em",
-      textTransform: "uppercase",
       color: "var(--text-3)",
       marginBottom: 8,
       display: "flex",
@@ -4692,8 +4686,6 @@ function SitePlanEditor({
     style: {
       fontSize: 11,
       fontWeight: 700,
-      letterSpacing: ".05em",
-      textTransform: "uppercase",
       color: "var(--text-3)",
       marginBottom: 8,
       display: "flex",
@@ -4846,8 +4838,6 @@ function SitePlanEditor({
     style: {
       fontSize: 11,
       fontWeight: 700,
-      letterSpacing: ".05em",
-      textTransform: "uppercase",
       color: "var(--text-3)",
       marginBottom: 6
     }
@@ -4899,8 +4889,6 @@ function SitePlanEditor({
     style: {
       fontSize: 11,
       fontWeight: 700,
-      letterSpacing: ".05em",
-      textTransform: "uppercase",
       color: "var(--text-3)",
       marginBottom: 6
     }
@@ -4951,9 +4939,7 @@ function SitePlanEditor({
     style: {
       fontSize: 10.5,
       opacity: 0.85,
-      fontWeight: 700,
-      letterSpacing: ".08em",
-      textTransform: "uppercase"
+      fontWeight: 700
     }
   }, "\u0E2A\u0E23\u0E38\u0E1B\u0E2A\u0E33\u0E2B\u0E23\u0E31\u0E1A\u0E19\u0E33\u0E40\u0E2A\u0E19\u0E2D\u0E25\u0E39\u0E01\u0E04\u0E49\u0E32"), React.createElement("div", {
     style: {
@@ -5032,8 +5018,6 @@ function SitePlanEditor({
     style: {
       fontSize: 11,
       fontWeight: 700,
-      letterSpacing: ".05em",
-      textTransform: "uppercase",
       color: "var(--text-3)",
       display: "flex",
       alignItems: "center",
@@ -5142,8 +5126,6 @@ function SitePlanEditor({
     style: {
       fontSize: 11,
       fontWeight: 700,
-      letterSpacing: ".05em",
-      textTransform: "uppercase",
       color: "var(--text-3)",
       marginBottom: 6,
       display: "flex",
@@ -5205,8 +5187,6 @@ function SitePlanEditor({
     style: {
       fontSize: 11,
       fontWeight: 700,
-      letterSpacing: ".05em",
-      textTransform: "uppercase",
       color: "var(--text-3)",
       marginBottom: 8
     }

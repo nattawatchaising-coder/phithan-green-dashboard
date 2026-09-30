@@ -2609,8 +2609,6 @@ function DailyBriefing({
     style: {
       fontSize: 11,
       fontWeight: 800,
-      letterSpacing: ".05em",
-      textTransform: "uppercase",
       color: "#EF4444",
       padding: "2px 2px"
     }
@@ -2625,8 +2623,6 @@ function DailyBriefing({
     style: {
       fontSize: 11,
       fontWeight: 800,
-      letterSpacing: ".05em",
-      textTransform: "uppercase",
       color: "var(--primary-dark)",
       padding: "6px 2px 2px"
     }

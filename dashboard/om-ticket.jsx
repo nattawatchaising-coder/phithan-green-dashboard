@@ -208,7 +208,7 @@ function OmJobFacts({ job, site }) {
       padding: isMobile ? 13 : 15, marginBottom: 16 }}>
       <div style={{ display: "flex", alignItems: "center", gap: 7, marginBottom: 12, flexWrap: "wrap" }}>
         <Icon name="sun" size={14} color="var(--primary)" />
-        <span style={{ fontSize: 11, fontWeight: 800, letterSpacing: ".07em", textTransform: "uppercase", color: "var(--text-3)" }}>ข้อมูลงานติดตั้งเดิม</span>
+        <span style={{ fontSize: 11, fontWeight: 800, color: "var(--text-3)" }}>ข้อมูลงานติดตั้งเดิม</span>
         <span style={{ fontFamily: "var(--mono)", fontSize: 11.5, color: "var(--primary-dark)", background: "var(--primary-soft)", padding: "2px 8px", borderRadius: 6 }}>{s.code || (j && j.code) || ""}</span>
         {j && <window.OmPill th={j.type === "home" ? "งานบ้าน" : "งานโครงการ"} color="#0EA5E9" />}
         {!j && <window.OmPill th="ไซต์นอกระบบ · ไม่มีใบงาน" color="#94A3B8" />}

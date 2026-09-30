@@ -626,7 +626,7 @@ const A_INPUT = {
 function AField({ label, required, children, full }) {
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 5, gridColumn: full ? "1 / -1" : "auto" }}>
-      <label style={{ fontSize: 10.5, fontWeight: 700, letterSpacing: ".05em", textTransform: "uppercase", color: "var(--text-3)" }}>
+      <label style={{ fontSize: 10.5, fontWeight: 700, color: "var(--text-3)" }}>
         {label}{required && <span style={{ color: "#EF4444" }}> *</span>}
       </label>
       {children}
@@ -678,7 +678,7 @@ function LoginScreen({ authStore }) {
         <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 3 }}>
           <window.BrandWord size={40} />
           <div style={{ fontFamily: "var(--brand-font)", fontSize: 12, letterSpacing: ".32em",
-            textTransform: "uppercase", color: "var(--brand-muted)", fontWeight: 500, paddingLeft: ".32em" }}>
+            color: "var(--brand-muted)", fontWeight: 500, paddingLeft: ".32em" }}>
             {window.BRANDING.tagline}
           </div>
         </div>
@@ -788,7 +788,7 @@ function NotifPanel({ items, lateAlerts, omAlerts, onOpenOm, onClose, onOpenJob,
           {/* งานล่าช้าตามขั้น (Flow) — คำนวณสด */}
           {alerts.length > 0 && (
             <React.Fragment>
-              <div style={{ fontSize: 10.5, fontWeight: 700, letterSpacing: ".05em", textTransform: "uppercase", color: "#EF4444", padding: "2px 4px" }}>⚠ งานล่าช้ากว่ากำหนด ({alerts.length})</div>
+              <div style={{ fontSize: 10.5, fontWeight: 700, color: "#EF4444", padding: "2px 4px" }}>⚠ งานล่าช้ากว่ากำหนด ({alerts.length})</div>
               {alerts.map((a, i) => (
                 <button key={a.jobId + a.stage.key + i} onClick={() => onOpenJob({ jobId: a.jobId })}
                   style={{ display: "flex", gap: 10, padding: "11px 12px", width: "100%", textAlign: "left", cursor: "pointer", fontFamily: "inherit",
@@ -807,7 +807,7 @@ function NotifPanel({ items, lateAlerts, omAlerts, onOpenOm, onClose, onOpenJob,
           {/* งานบริการหลังการขายที่ค้างอยู่ — เลยรอบล้าง · ประกันใกล้หมด · เคสเกินกำหนด */}
           {oms.length > 0 && (
             <React.Fragment>
-              <div style={{ fontSize: 10.5, fontWeight: 700, letterSpacing: ".05em", textTransform: "uppercase", color: "#7C5CFC", padding: "2px 4px" }}>🔧 งานบริการหลังการขายค้างอยู่ ({oms.length})</div>
+              <div style={{ fontSize: 10.5, fontWeight: 700, color: "#7C5CFC", padding: "2px 4px" }}>🔧 งานบริการหลังการขายค้างอยู่ ({oms.length})</div>
               {oms.map((a) => (
                 <button key={a.key} onClick={() => onOpenOm(a)}
                   style={{ display: "flex", gap: 10, padding: "11px 12px", width: "100%", textAlign: "left", cursor: "pointer", fontFamily: "inherit",

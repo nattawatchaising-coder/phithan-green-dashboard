@@ -105,8 +105,7 @@ function ReportBlock({
   return React.createElement("div", {
     style: {
       background: "var(--surface)",
-      border: "1px solid var(--border)",
-      borderRadius: 14,
+      borderRadius: "var(--r-tile)",
       padding: "14px 16px",
       boxShadow: "var(--shadow-sm)",
       position: "relative"
@@ -121,7 +120,7 @@ function ReportBlock({
     style: {
       width: 8,
       height: 8,
-      borderRadius: 99,
+      borderRadius: "var(--r-pill)",
       background: st ? st.color : "var(--text-3)",
       marginTop: 7,
       flexShrink: 0
@@ -188,7 +187,7 @@ function ReportBlock({
       alignItems: "center",
       gap: 5,
       padding: "5px 10px",
-      borderRadius: 9,
+      borderRadius: "var(--r-chip)",
       border: "1px solid " + (copied ? "var(--primary)" : "var(--border-strong)"),
       background: copied ? "var(--primary-soft)" : "var(--surface2)",
       color: copied ? "var(--primary-dark)" : "var(--text-2)",
@@ -208,8 +207,8 @@ function ReportBlock({
     style: {
       width: 30,
       height: 30,
-      borderRadius: 9,
-      border: "1px solid var(--border-strong)",
+      borderRadius: "var(--r-chip)",
+      boxShadow: "var(--shadow-sm)",
       background: "var(--surface2)",
       cursor: "pointer",
       display: "grid",
@@ -283,7 +282,7 @@ function ReportView({
     alignItems: "center",
     gap: 7,
     padding: "10px 16px",
-    borderRadius: 11,
+    borderRadius: "var(--r-tile)",
     fontSize: 13.5,
     fontWeight: 700,
     cursor: "pointer",
@@ -300,8 +299,7 @@ function ReportView({
   }, React.createElement("div", {
     style: {
       background: "var(--surface)",
-      border: "1px solid var(--border)",
-      borderRadius: 14,
+      borderRadius: "var(--r-tile)",
       padding: isMobile ? 14 : "16px 18px",
       boxShadow: "var(--shadow-sm)",
       display: "flex",
@@ -348,7 +346,7 @@ function ReportView({
     style: btn({
       background: "var(--surface2)",
       color: "var(--text-2)",
-      border: "1px solid var(--border-strong)"
+      border: "none"
     })
   }, React.createElement(Icon, {
     name: "eye",
@@ -359,7 +357,7 @@ function ReportView({
     style: btn({
       background: "var(--surface2)",
       color: "var(--text-2)",
-      border: "1px solid var(--border-strong)"
+      border: "none"
     })
   }, React.createElement(Icon, {
     name: "download",
@@ -384,8 +382,8 @@ function ReportView({
       width: "100%",
       minHeight: 240,
       padding: 14,
-      borderRadius: 12,
-      border: "1px solid var(--border-strong)",
+      borderRadius: "var(--r-tile)",
+      boxShadow: "var(--shadow-sm)",
       background: "var(--surface2)",
       color: "var(--text-1)",
       fontFamily: "var(--mono)",
@@ -413,7 +411,7 @@ function ReportView({
     style: {
       width: 9,
       height: 9,
-      borderRadius: 99,
+      borderRadius: "var(--r-pill)",
       background: s.color,
       flexShrink: 0
     }
@@ -462,7 +460,7 @@ function DailyReportButton({
       justifyContent: "center",
       gap: 6,
       padding: "8px 12px",
-      borderRadius: 9,
+      borderRadius: "var(--r-chip)",
       border: "1px dashed var(--primary)",
       background: "var(--primary-soft)",
       color: "var(--primary-dark)",

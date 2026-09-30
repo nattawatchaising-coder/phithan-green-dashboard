@@ -488,8 +488,6 @@ function DispatchView({
     style: {
       fontSize: 11,
       fontWeight: 800,
-      letterSpacing: ".05em",
-      textTransform: "uppercase",
       color: "var(--text-3)",
       marginBottom: 9
     }
@@ -902,8 +900,6 @@ function SurveyApptModal({
   const lbl = {
     fontSize: 10.5,
     fontWeight: 700,
-    letterSpacing: ".05em",
-    textTransform: "uppercase",
     color: "var(--text-3)"
   };
   return React.createElement("div", _extends({}, bdClose, {
@@ -2048,8 +2044,6 @@ function MyScheduleView({
     style: {
       fontSize: 11,
       fontWeight: 800,
-      letterSpacing: ".05em",
-      textTransform: "uppercase",
       color: "var(--text-3)",
       marginBottom: 9
     }

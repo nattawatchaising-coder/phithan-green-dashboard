@@ -278,7 +278,6 @@ function JobPhotos({
       fontWeight: 700,
       letterSpacing: ".08em",
       color: "var(--text-3)",
-      textTransform: "uppercase",
       display: "flex",
       alignItems: "center",
       gap: 6
@@ -634,7 +633,6 @@ function JobFiles({
       fontWeight: 700,
       letterSpacing: ".08em",
       color: "var(--text-3)",
-      textTransform: "uppercase",
       display: "flex",
       alignItems: "center",
       gap: 6
@@ -825,7 +823,6 @@ function JobComments({
       fontWeight: 700,
       letterSpacing: ".08em",
       color: "var(--text-3)",
-      textTransform: "uppercase",
       marginBottom: 12,
       display: "flex",
       alignItems: "center",

@@ -122,10 +122,10 @@ function ReportBlock({ job, onOpen }) {
   const bullets = rpBullets(job);
   const copy = () => rpCopy(rpJobText(job), (ok) => { if (ok) { setCopied(true); setTimeout(() => setCopied(false), 1500); } });
   return (
-    <div style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 14,
+    <div style={{ background: "var(--surface)", borderRadius: "var(--r-tile)",
       padding: "14px 16px", boxShadow: "var(--shadow-sm)", position: "relative" }}>
       <div style={{ display: "flex", alignItems: "flex-start", gap: 10 }}>
-        <span style={{ width: 8, height: 8, borderRadius: 99, background: st ? st.color : "var(--text-3)", marginTop: 7, flexShrink: 0 }} />
+        <span style={{ width: 8, height: 8, borderRadius: "var(--r-pill)", background: st ? st.color : "var(--text-3)", marginTop: 7, flexShrink: 0 }} />
         <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{ fontSize: 14.5, fontWeight: 700, color: "var(--text-1)", lineHeight: 1.45 }}>
             {rpHeader(job)}
@@ -143,7 +143,7 @@ function ReportBlock({ job, onOpen }) {
         </div>
         <div style={{ display: "flex", gap: 6, flexShrink: 0 }}>
           <button onClick={copy} title="คัดลอกงานนี้"
-            style={{ display: "inline-flex", alignItems: "center", gap: 5, padding: "5px 10px", borderRadius: 9,
+            style={{ display: "inline-flex", alignItems: "center", gap: 5, padding: "5px 10px", borderRadius: "var(--r-chip)",
               border: "1px solid " + (copied ? "var(--primary)" : "var(--border-strong)"),
               background: copied ? "var(--primary-soft)" : "var(--surface2)",
               color: copied ? "var(--primary-dark)" : "var(--text-2)", fontSize: 11.5, fontWeight: 600,
@@ -153,7 +153,7 @@ function ReportBlock({ job, onOpen }) {
           </button>
           {onOpen && (
             <button onClick={() => onOpen(job)} title="เปิดรายละเอียดงาน"
-              style={{ width: 30, height: 30, borderRadius: 9, border: "1px solid var(--border-strong)",
+              style={{ width: 30, height: 30, borderRadius: "var(--r-chip)", boxShadow: "var(--shadow-sm)",
                 background: "var(--surface2)", cursor: "pointer", display: "grid", placeItems: "center", color: "var(--text-2)" }}>
               <Icon name="arrowRight" size={15} color="var(--text-2)" />
             </button>
@@ -200,14 +200,14 @@ function ReportView({ jobs, onOpen }) {
   }
 
   const btn = (extra) => Object.assign({
-    display: "inline-flex", alignItems: "center", gap: 7, padding: "10px 16px", borderRadius: 11,
+    display: "inline-flex", alignItems: "center", gap: 7, padding: "10px 16px", borderRadius: "var(--r-tile)",
     fontSize: 13.5, fontWeight: 700, cursor: "pointer", fontFamily: "inherit", whiteSpace: "nowrap", border: "none",
   }, extra);
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
       {/* แถบเครื่องมือ — ปุ่ม output */}
-      <div style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 14, padding: isMobile ? 14 : "16px 18px",
+      <div style={{ background: "var(--surface)", borderRadius: "var(--r-tile)", padding: isMobile ? 14 : "16px 18px",
         boxShadow: "var(--shadow-sm)", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, flexWrap: "wrap" }}>
         <div style={{ minWidth: 0 }}>
           <div style={{ fontSize: 15, fontWeight: 700, color: "var(--text-1)" }}>รายงานสรุปสถานะงาน</div>
@@ -224,11 +224,11 @@ function ReportView({ jobs, onOpen }) {
             {hideDone ? "ซ่อนงานเสร็จสิ้นอยู่" : "ซ่อนงานเสร็จสิ้น"}
           </button>
           <button onClick={() => setShowText((v) => !v)}
-            style={btn({ background: "var(--surface2)", color: "var(--text-2)", border: "1px solid var(--border-strong)" })}>
+            style={btn({ background: "var(--surface2)", color: "var(--text-2)", border: "none" })}>
             <Icon name="eye" size={16} color="var(--text-2)" /> {showText ? "ซ่อนข้อความ" : "ดูข้อความล้วน"}
           </button>
           <button onClick={() => rpDownload(fullText)}
-            style={btn({ background: "var(--surface2)", color: "var(--text-2)", border: "1px solid var(--border-strong)" })}>
+            style={btn({ background: "var(--surface2)", color: "var(--text-2)", border: "none" })}>
             <Icon name="download" size={16} color="var(--text-2)" /> ดาวน์โหลด .txt
           </button>
           <button onClick={copyAll}
@@ -241,7 +241,7 @@ function ReportView({ jobs, onOpen }) {
       {/* กล่องข้อความล้วน — สำหรับเลือก/คัดลอกเอง */}
       {showText && (
         <textarea readOnly value={fullText} onFocus={(e) => e.target.select()}
-          style={{ width: "100%", minHeight: 240, padding: 14, borderRadius: 12, border: "1px solid var(--border-strong)",
+          style={{ width: "100%", minHeight: 240, padding: 14, borderRadius: "var(--r-tile)", boxShadow: "var(--shadow-sm)",
             background: "var(--surface2)", color: "var(--text-1)", fontFamily: "var(--mono)", fontSize: 12.5, lineHeight: 1.6,
             resize: "vertical", outline: "none" }} />
       )}
@@ -250,7 +250,7 @@ function ReportView({ jobs, onOpen }) {
       {sections.filter((s) => s.jobs.length).map((s) => (
         <div key={s.key} style={{ display: "flex", flexDirection: "column", gap: 10 }}>
           <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "2px 2px", marginTop: 4 }}>
-            <span style={{ width: 9, height: 9, borderRadius: 99, background: s.color, flexShrink: 0 }} />
+            <span style={{ width: 9, height: 9, borderRadius: "var(--r-pill)", background: s.color, flexShrink: 0 }} />
             <span style={{ fontSize: 13, fontWeight: 800, letterSpacing: ".03em", color: s.color }}>{s.title}</span>
             <span style={{ fontSize: 12, fontWeight: 700, color: "var(--text-3)", fontFamily: "var(--mono)" }}>{s.jobs.length}</span>
             <span style={{ flex: 1, height: 1, background: "var(--border)", marginLeft: 4 }} />
@@ -270,7 +270,7 @@ function DailyReportButton({ job }) {
     <React.Fragment>
       <button onClick={(e) => { e.stopPropagation(); setOpen(true); }} title="รายงานประจำวัน"
         style={{ marginTop: 10, width: "100%", display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 6,
-          padding: "8px 12px", borderRadius: 9, border: "1px dashed var(--primary)", background: "var(--primary-soft)",
+          padding: "8px 12px", borderRadius: "var(--r-chip)", border: "1px dashed var(--primary)", background: "var(--primary-soft)",
           color: "var(--primary-dark)", fontWeight: 700, fontSize: 12, cursor: "pointer", fontFamily: "inherit" }}>
         <Icon name="file" size={13} color="var(--primary-dark)" /> รายงานวันนี้
       </button>

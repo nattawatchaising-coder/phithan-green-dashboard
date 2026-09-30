@@ -8,15 +8,17 @@
    ตั้งชื่อ top-level ขึ้นต้นด้วย Ec/ec กันชนกับไฟล์อื่น (สคริปต์ธรรมดา scope เดียวกันหมด)
    ============================================================ */
 
+/* ช่องกรอกคือหลุมที่จมลงไปในการ์ด — พื้นจึงเข้มกว่าการ์ด และห้ามมีเงา
+   เงาแปลว่า "ลอยอยู่ข้างบน" ซึ่งเป็นคนละเรื่องกับช่องที่รอให้พิมพ์ลงไป */
 const EC_INPUT = {
-  width: "100%", padding: "10px 12px", borderRadius: 10, border: "1px solid var(--border-strong)",
-  background: "var(--surface)", color: "var(--text-1)", fontFamily: "inherit", fontSize: 13.5, boxSizing: "border-box",
+  width: "100%", padding: "10px 12px", borderRadius: "var(--r-tile)", border: "none",
+  background: "var(--surface2)", color: "var(--text-1)", fontFamily: "inherit", fontSize: 13.5, boxSizing: "border-box",
 };
 
 function EcPill({ th, color, sub }) {
   return (
     <span style={{ display: "inline-flex", alignItems: "center", gap: 5, whiteSpace: "nowrap",
-      fontSize: 11.5, fontWeight: 700, color: color, background: color + "1a", borderRadius: 99, padding: "3px 10px" }}>
+      fontSize: 11.5, fontWeight: 700, color: color, background: color + "1a", borderRadius: "var(--r-pill)", padding: "3px 10px" }}>
       {th}{sub && <span style={{ fontWeight: 500, opacity: 0.85 }}>{sub}</span>}
     </span>
   );
@@ -25,9 +27,9 @@ function EcPill({ th, color, sub }) {
 function EcStat({ label, value, unit, color, hint, on, onClick }) {
   return (
     <button type="button" onClick={onClick} disabled={!onClick}
-      style={{ flex: 1, minWidth: 130, textAlign: "left", padding: "11px 13px", borderRadius: 12, fontFamily: "inherit",
+      style={{ flex: 1, minWidth: 130, textAlign: "left", padding: "11px 13px", borderRadius: "var(--r-tile)", fontFamily: "inherit",
         background: on ? (color || "var(--primary)") + "14" : "var(--surface2)",
-        border: "1px solid " + (on ? (color || "var(--primary)") : "var(--border)"),
+        border: "1px solid " + (on ? (color || "var(--primary)") : "transparent"),
         cursor: onClick ? "pointer" : "default" }}>
       <div style={{ fontSize: 11, color: "var(--text-3)", fontWeight: 700 }}>{label}</div>
       <div style={{ fontFamily: "var(--display)", fontSize: 21, fontWeight: 800, color: color, lineHeight: 1.25 }}>
@@ -85,7 +87,7 @@ function EcReceipts({ claimId, currentUser, disabled, count, big, onBig }) {
     }
   };
 
-  const pickBtn = { display: "inline-flex", alignItems: "center", gap: 7, padding: "9px 14px", borderRadius: 10,
+  const pickBtn = { display: "inline-flex", alignItems: "center", gap: 7, padding: "9px 14px", borderRadius: "var(--r-tile)",
     border: "1px dashed var(--border-strong)", background: "var(--surface)", cursor: "pointer",
     fontSize: 12.5, fontWeight: 700, color: "var(--text-2)" };
 
@@ -113,14 +115,14 @@ function EcReceipts({ claimId, currentUser, disabled, count, big, onBig }) {
       )}
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(140px, 1fr))", gap: 11 }}>
         {shots.map((r) => (
-          <div key={r.id} style={{ border: "1px solid var(--border)", borderRadius: 11, overflow: "hidden",
+          <div key={r.id} style={{ boxShadow: "var(--shadow-sm)", borderRadius: "var(--r-tile)", overflow: "hidden",
             background: "var(--surface)", position: "relative" }}>
             {window.ecReceiptKind(r) === "pdf" ? (
               <button type="button" onClick={() => onBig && onBig(r)} title="เปิดดูไฟล์"
                 style={{ width: "100%", height: 130, border: "none", background: "var(--surface2)", cursor: "pointer",
                   display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 7,
                   padding: "8px 10px", fontFamily: "inherit" }}>
-                <span style={{ width: 36, height: 36, borderRadius: 10, display: "grid", placeItems: "center",
+                <span style={{ width: 36, height: 36, borderRadius: "var(--r-tile)", display: "grid", placeItems: "center",
                   background: "#EF44441a" }}>
                   <Icon name="file" size={18} color="#EF4444" />
                 </span>
@@ -135,7 +137,7 @@ function EcReceipts({ claimId, currentUser, disabled, count, big, onBig }) {
             )}
             {!disabled && (
               <button type="button" onClick={() => remove(r.id)} title="ลบบิลนี้"
-                style={{ position: "absolute", top: 6, right: 6, width: 26, height: 26, borderRadius: 8, border: "none",
+                style={{ position: "absolute", top: 6, right: 6, width: 26, height: 26, borderRadius: "var(--r-chip)", border: "none",
                   background: "rgba(8,20,14,.62)", color: "#fff", cursor: "pointer", display: "grid", placeItems: "center" }}>
                 <Icon name="trash" size={13} color="#fff" />
               </button>
@@ -170,7 +172,7 @@ function EcBigShot({ shot, onClose }) {
       <div onClick={onClose}
         style={{ position: "fixed", inset: 0, zIndex: 120, background: "rgba(8,20,26,.86)",
           display: "flex", alignItems: "center", justifyContent: "center", padding: 18, cursor: "zoom-out" }}>
-        <img src={shot.dataUrl} alt="รูปบิล" style={{ maxWidth: "100%", maxHeight: "100%", borderRadius: 10 }} />
+        <img src={shot.dataUrl} alt="รูปบิล" style={{ maxWidth: "100%", maxHeight: "100%", borderRadius: "var(--r-tile)" }} />
       </div>
     );
   }
@@ -184,19 +186,19 @@ function EcBigShot({ shot, onClose }) {
           {shot.name || "ใบเสร็จ.pdf"}{shot.size ? " · " + window.ecFileSize(shot.size) : ""}
         </span>
         <a href={url || shot.dataUrl} target="_blank" rel="noopener noreferrer"
-          style={{ padding: "7px 13px", borderRadius: 9, background: "rgba(255,255,255,.16)", color: "#fff",
+          style={{ padding: "7px 13px", borderRadius: "var(--r-chip)", background: "rgba(255,255,255,.16)", color: "#fff",
             fontSize: 12, fontWeight: 700, textDecoration: "none" }}>เปิดแท็บใหม่</a>
         <a href={shot.dataUrl} download={shot.name || "ใบเสร็จ.pdf"}
-          style={{ padding: "7px 13px", borderRadius: 9, background: "rgba(255,255,255,.16)", color: "#fff",
+          style={{ padding: "7px 13px", borderRadius: "var(--r-chip)", background: "rgba(255,255,255,.16)", color: "#fff",
             fontSize: 12, fontWeight: 700, textDecoration: "none" }}>ดาวน์โหลด</a>
         <button onClick={onClose} title="ปิด"
-          style={{ width: 32, height: 32, borderRadius: 9, border: "none", background: "rgba(255,255,255,.16)",
+          style={{ width: 32, height: 32, borderRadius: "var(--r-chip)", border: "none", background: "rgba(255,255,255,.16)",
             color: "#fff", cursor: "pointer", display: "grid", placeItems: "center" }}>
           <Icon name="x" size={16} color="#fff" />
         </button>
       </div>
       {url ? (
-        <iframe src={url} title="บิล" style={{ flex: 1, width: "100%", border: "none", borderRadius: 10, background: "#fff" }} />
+        <iframe src={url} title="บิล" style={{ flex: 1, width: "100%", border: "none", borderRadius: "var(--r-tile)", background: "#fff" }} />
       ) : (
         <div style={{ flex: 1, display: "grid", placeItems: "center", color: "#fff", fontSize: 13 }}>
           เปิดไฟล์ไม่สำเร็จ — ลองกดดาวน์โหลดแล้วเปิดด้วยโปรแกรมอ่าน PDF
@@ -270,7 +272,7 @@ function EcClaimModal({ claim, job, users, role, currentUser, onClose, onPatch, 
         {/* หัว */}
         <div style={{ display: "flex", alignItems: "center", gap: 10, padding: isMobile ? "13px 14px" : "15px 18px",
           borderBottom: "1px solid var(--border)", background: "var(--surface)" }}>
-          <span style={{ width: 34, height: 34, borderRadius: 10, display: "grid", placeItems: "center", flexShrink: 0,
+          <span style={{ width: 34, height: 34, borderRadius: "var(--r-tile)", display: "grid", placeItems: "center", flexShrink: 0,
             background: kind.color + "1a" }}>
             <Icon name="wallet" size={17} color={kind.color} />
           </span>
@@ -293,17 +295,17 @@ function EcClaimModal({ claim, job, users, role, currentUser, onClose, onPatch, 
               + (c.printedByName ? " · โดย " + c.printedByName : "")}
               style={{ display: "inline-flex", alignItems: "center", gap: 4, whiteSpace: "nowrap", flexShrink: 0,
                 fontSize: 11.5, fontWeight: 700, color: "var(--text-2)", background: "var(--surface2)",
-                border: "1px solid var(--border)", borderRadius: 99, padding: "3px 9px" }}>
+                boxShadow: "var(--shadow-sm)", borderRadius: "var(--r-pill)", padding: "3px 9px" }}>
               <Icon name="check" size={12} color="var(--text-2)" /> พิมพ์แล้ว
             </span>
           )}
           {/* พิมพ์ใบนี้ได้ทุกสถานะ — คนอนุมัติที่อยากได้กระดาษไม่ต้องรอให้ปิดรอบจ่ายก่อน */}
           <button onClick={() => setPaper(true)} title="พิมพ์ใบเบิกใบนี้"
-            style={{ width: 30, height: 30, borderRadius: 9, border: "1px solid var(--border)",
+            style={{ width: 30, height: 30, borderRadius: "var(--r-chip)", boxShadow: "var(--shadow-sm)",
               background: "var(--surface)", cursor: "pointer", display: "grid", placeItems: "center", flexShrink: 0 }}>
             <Icon name="file" size={15} color="var(--text-2)" />
           </button>
-          <button onClick={onClose} style={{ width: 30, height: 30, borderRadius: 9, border: "1px solid var(--border)",
+          <button onClick={onClose} style={{ width: 30, height: 30, borderRadius: "var(--r-chip)", boxShadow: "var(--shadow-sm)",
             background: "var(--surface)", cursor: "pointer", display: "grid", placeItems: "center", flexShrink: 0 }}>
             <Icon name="x" size={15} color="var(--text-2)" />
           </button>
@@ -313,7 +315,7 @@ function EcClaimModal({ claim, job, users, role, currentUser, onClose, onPatch, 
 
           {/* ยอดรวม — ตัวเลขที่ทุกคนมาดูก่อนอย่างอื่น */}
           <div style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap", marginBottom: 16,
-            padding: "13px 16px", borderRadius: 13, background: "var(--surface)", border: "1px solid var(--border)",
+            padding: "13px 16px", borderRadius: "var(--r-tile)", background: "var(--surface)", boxShadow: "var(--shadow-sm)",
             borderLeft: "3px solid " + pay.color }}>
             <div style={{ flex: 1, minWidth: 140 }}>
               <div style={{ fontSize: 11, fontWeight: 700, color: "var(--text-3)" }}>ยอดรวมที่ขอเบิก</div>
@@ -434,13 +436,13 @@ function EcClaimModal({ claim, job, users, role, currentUser, onClose, onPatch, 
               : (c.decidedByName ? "โดย " + c.decidedByName : "")}>
             {c.status === "approved" && window.ecCanPay(role) && !payChk.ok && payChk.why && (
               <div style={{ fontSize: 12, lineHeight: 1.55, color: "var(--tint-amber-tx)", background: "var(--tint-amber-bg)",
-                border: "1px solid var(--tint-amber-bd)", borderRadius: 9, padding: "8px 11px", marginBottom: 12 }}>
+                border: "1px solid var(--tint-amber-bd)", borderRadius: "var(--r-chip)", padding: "8px 11px", marginBottom: 12 }}>
                 {payChk.why}
               </div>
             )}
             {c.status === "sent" && !chk.ok && chk.why && (
               <div style={{ fontSize: 12, lineHeight: 1.55, color: "var(--tint-amber-tx)", background: "var(--tint-amber-bg)",
-                border: "1px solid var(--tint-amber-bd)", borderRadius: 9, padding: "8px 11px", marginBottom: 12 }}>
+                border: "1px solid var(--tint-amber-bd)", borderRadius: "var(--r-chip)", padding: "8px 11px", marginBottom: 12 }}>
                 {chk.why}
               </div>
             )}
@@ -475,7 +477,7 @@ function EcClaimModal({ claim, job, users, role, currentUser, onClose, onPatch, 
                 <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
                   {nexts.map((s) => (
                     <button key={s.key} onClick={() => { onMove(c, s.key, { text: note, ref: payRef }); setNote(""); setPayRef(""); }}
-                      style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "9px 16px", borderRadius: 10,
+                      style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "9px 16px", borderRadius: "var(--r-tile)",
                         border: "1px solid " + s.color, background: s.color + "16", cursor: "pointer",
                         fontFamily: "inherit", fontSize: 13, fontWeight: 800, color: s.color }}>
                       <Icon name="arrowRight" size={14} color={s.color} /> {s.th}
@@ -494,7 +496,7 @@ function EcClaimModal({ claim, job, users, role, currentUser, onClose, onPatch, 
           {/* ประวัติ */}
           {(c.hist || []).length > 0 && (
             <div style={{ marginBottom: 16 }}>
-              <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: ".07em", textTransform: "uppercase",
+              <div style={{ fontSize: 11, fontWeight: 700,
                 color: "var(--text-3)", marginBottom: 8 }}>ประวัติ</div>
               {(c.hist || []).slice().reverse().map((h, i) => (
                 <div key={i} style={{ display: "flex", gap: 9, alignItems: "baseline", fontSize: 12, color: "var(--text-2)",
@@ -513,7 +515,7 @@ function EcClaimModal({ claim, job, users, role, currentUser, onClose, onPatch, 
 
           {canDel && (
             <button onClick={del}
-              style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "8px 14px", borderRadius: 9,
+              style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "8px 14px", borderRadius: "var(--r-chip)",
                 border: "1px solid var(--tint-red-bd)", background: "var(--tint-red-bg)", cursor: "pointer",
                 fontFamily: "inherit", fontSize: 12.5, fontWeight: 700, color: "var(--tint-red-tx)" }}>
               <Icon name="trash" size={13} color="var(--tint-red-tx)" /> ลบใบนี้
@@ -537,7 +539,7 @@ function EcClaimModal({ claim, job, users, role, currentUser, onClose, onPatch, 
 function EcDocMark({ th, doneTh, at, byName, color, can, mine, onSet, onClear }) {
   if (at) {
     return (
-      <span style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "7px 12px", borderRadius: 99,
+      <span style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "7px 12px", borderRadius: "var(--r-pill)",
         background: color + "16", border: "1px solid " + color + "55", fontSize: 12, fontWeight: 700, color: color }}>
         <Icon name="check" size={13} color={color} />
         {doneTh} · {window.drDateTH(String(at).slice(0, 10))}{byName ? " · " + byName : ""}
@@ -554,7 +556,7 @@ function EcDocMark({ th, doneTh, at, byName, color, can, mine, onSet, onClear })
   if (!can) return null;
   return (
     <button onClick={onSet}
-      style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "7px 13px", borderRadius: 99,
+      style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "7px 13px", borderRadius: "var(--r-pill)",
         border: "1px dashed var(--border-strong)", background: "var(--surface)", cursor: "pointer",
         fontFamily: "inherit", fontSize: 12, fontWeight: 700, color: "var(--text-2)" }}>
       <Icon name="file" size={13} color="var(--text-3)" /> {th}
@@ -572,7 +574,7 @@ function EcClaimRow({ claim, onOpen, gone, currentUser, role, onDoc, onRemove })
   const canSend = !!uid && (claim.byId === uid || window.ecOwedTo(claim).id === uid);
   const canGet = window.ecCanApprove(role) || window.ecCanPay(role);
   const docBtn = { display: "inline-flex", alignItems: "center", gap: 4, whiteSpace: "nowrap", marginRight: 5,
-    fontSize: 11.5, fontWeight: 700, borderRadius: 99, padding: "3px 9px", cursor: "pointer", fontFamily: "inherit" };
+    fontSize: 11.5, fontWeight: 700, borderRadius: "var(--r-pill)", padding: "3px 9px", cursor: "pointer", fontFamily: "inherit" };
   const hitDoc = (e, k) => { e.stopPropagation(); if (onDoc) onDoc(claim.id, k, true); };
   /* ลบจากแถว — ถามยืนยันก่อนเสมอ และบอกให้ชัดว่าใบที่อนุมัติแล้วลบทิ้งแล้วยอดของใครหาย */
   const del = (e) => {
@@ -589,10 +591,10 @@ function EcClaimRow({ claim, onOpen, gone, currentUser, role, onDoc, onRemove })
     <div role="button" tabIndex={0} onClick={() => onOpen(claim.id)}
       onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); onOpen(claim.id); } }}
       style={{ width: "100%", textAlign: "left", display: "flex", alignItems: "center", gap: 12, padding: "11px 13px",
-        borderRadius: 12, background: "var(--surface)", border: "1px solid var(--border)",
+        borderRadius: "var(--r-tile)", background: "var(--surface)", boxShadow: "var(--shadow-sm)",
         borderLeft: "3px solid " + st.color, cursor: "pointer", fontFamily: "inherit", marginBottom: 7,
         boxSizing: "border-box" }}>
-      <span style={{ width: 32, height: 32, borderRadius: 9, display: "grid", placeItems: "center", flexShrink: 0,
+      <span style={{ width: 32, height: 32, borderRadius: "var(--r-chip)", display: "grid", placeItems: "center", flexShrink: 0,
         background: kind.color + "1a" }}>
         <Icon name="wallet" size={15} color={kind.color} />
       </span>
@@ -658,7 +660,7 @@ function EcClaimRow({ claim, onOpen, gone, currentUser, role, onDoc, onRemove })
             <span title={"พิมพ์เมื่อ " + window.drDateTH(String(claim.printedAt).slice(0, 10))
               + (claim.printedByName ? " · โดย " + claim.printedByName : "")}
               style={{ display: "inline-flex", alignItems: "center", gap: 4, whiteSpace: "nowrap", marginRight: 5,
-                fontSize: 11.5, fontWeight: 700, color: "#0F7A5A", background: "#10B98122", borderRadius: 99, padding: "3px 9px" }}>
+                fontSize: 11.5, fontWeight: 700, color: "#0F7A5A", background: "#10B98122", borderRadius: "var(--r-pill)", padding: "3px 9px" }}>
               <Icon name="file" size={12} color="#0F7A5A" /> พิมพ์แล้ว
             </span>
           )}
@@ -673,8 +675,8 @@ function EcClaimRow({ claim, onOpen, gone, currentUser, role, onDoc, onRemove })
       {/* ลบได้เฉพาะแอดมิน — เป็นเอกสารการเงิน ไม่ใช่รายการที่ใครก็เก็บกวาดได้ */}
       {window.ecCanDelete(role) && onRemove && (
         <button onClick={del} title={"ลบใบ " + (claim.no || "")}
-          style={{ width: 28, height: 28, borderRadius: 8, flexShrink: 0, display: "grid", placeItems: "center",
-            border: "1px solid var(--border)", background: "var(--surface)", cursor: "pointer" }}>
+          style={{ width: 28, height: 28, borderRadius: "var(--r-chip)", flexShrink: 0, display: "grid", placeItems: "center",
+            background: "var(--surface2)", cursor: "pointer" }}>
           <Icon name="trash" size={13} color="var(--tint-red-tx)" />
         </button>
       )}
@@ -695,7 +697,7 @@ function EcPersonTable({ claims, users, onPick, onPay, onCover, canPay, canCover
   const th = { textAlign: "right", padding: "8px 10px", fontSize: 11, fontWeight: 700, color: "var(--text-3)", whiteSpace: "nowrap" };
   const td = { textAlign: "right", padding: "10px", fontFamily: "var(--mono)", fontSize: 12.5, whiteSpace: "nowrap" };
   return (
-    <div style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 14, overflow: "hidden" }}>
+    <div style={{ background: "var(--surface)", boxShadow: "var(--shadow-sm)", borderRadius: "var(--r-tile)", overflow: "hidden" }}>
       <div style={{ overflowX: "auto" }}>
         <table style={{ width: "100%", minWidth: 560, borderCollapse: "collapse" }}>
           <thead>
@@ -730,7 +732,7 @@ function EcPersonTable({ claims, users, onPick, onPay, onCover, canPay, canCover
                         <button onClick={(e) => { e.stopPropagation(); onCover && onCover(r); }}
                           title="พิมพ์ใบปะหน้าไปตรวจเอกสารก่อนโอน"
                           style={{ display: "inline-flex", alignItems: "center", gap: 5, marginRight: canPay ? 6 : 0,
-                            padding: "7px 12px", borderRadius: 9, border: "1px solid var(--border-strong)",
+                            padding: "7px 12px", borderRadius: "var(--r-chip)", boxShadow: "var(--shadow-sm)",
                             background: "var(--surface)", color: "var(--text-2)", cursor: "pointer",
                             fontFamily: "inherit", fontSize: 12, fontWeight: 800 }}>
                           <Icon name="file" size={13} color="var(--text-2)" /> ใบปะหน้า
@@ -742,7 +744,7 @@ function EcPersonTable({ claims, users, onPick, onPay, onCover, canPay, canCover
                         return (
                           <button onClick={(e) => { e.stopPropagation(); if (ck.ok) onPay && onPay(r); }}
                             disabled={!ck.ok} title={ck.ok ? "" : ck.why}
-                            style={{ whiteSpace: "nowrap", padding: "7px 13px", borderRadius: 9, border: "none",
+                            style={{ whiteSpace: "nowrap", padding: "7px 13px", borderRadius: "var(--r-chip)", border: "none",
                               background: ck.ok ? "var(--primary)" : "var(--surface2)",
                               color: ck.ok ? "#fff" : "var(--text-3)", cursor: ck.ok ? "pointer" : "not-allowed",
                               fontFamily: "inherit", fontSize: 12, fontWeight: 800 }}>
@@ -847,14 +849,14 @@ function EcPayModal({ person, claims, batches, currentUser, role, payers, onClos
           maxHeight: isMobile ? "94dvh" : "90dvh", display: "flex", flexDirection: "column", overflow: "hidden" }}>
         <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "15px 18px",
           borderBottom: "1px solid var(--border)", background: "var(--surface)" }}>
-          <span style={{ width: 34, height: 34, borderRadius: 10, display: "grid", placeItems: "center", background: "#10B9811a" }}>
+          <span style={{ width: 34, height: 34, borderRadius: "var(--r-tile)", display: "grid", placeItems: "center", background: "#10B9811a" }}>
             <Icon name="wallet" size={17} color="#10B981" />
           </span>
           <div style={{ flex: 1, minWidth: 0 }}>
             <div style={{ fontSize: 14.5, fontWeight: 800, color: "var(--text-1)" }}>จ่ายคืน {(person || {}).name || "-"}</div>
             <div style={{ fontFamily: "var(--mono)", fontSize: 11, color: "var(--text-3)" }}>รอบ {no} · {list.length} ใบ</div>
           </div>
-          <button onClick={onClose} style={{ width: 30, height: 30, borderRadius: 9, border: "1px solid var(--border)",
+          <button onClick={onClose} style={{ width: 30, height: 30, borderRadius: "var(--r-chip)", boxShadow: "var(--shadow-sm)",
             background: "var(--surface)", cursor: "pointer", display: "grid", placeItems: "center" }}>
             <Icon name="x" size={15} color="var(--text-2)" />
           </button>
@@ -868,7 +870,7 @@ function EcPayModal({ person, claims, batches, currentUser, role, payers, onClos
             <div style={{ fontSize: 12, color: "var(--text-3)", marginTop: 3 }}>บาท · ยอดที่จะโอนคืนในรอบนี้</div>
           </div>
 
-          <div style={{ border: "1px solid var(--border)", borderRadius: 12, overflow: "hidden", marginBottom: 15 }}>
+          <div style={{ background: "var(--surface)", boxShadow: "var(--shadow-sm)", borderRadius: "var(--r-tile)", overflow: "hidden", marginBottom: 15 }}>
             {list.map((c) => (
               <div key={c.id} style={{ display: "flex", alignItems: "center", gap: 10, padding: "9px 12px",
                 borderBottom: "1px solid var(--border)", background: "var(--surface)" }}>
@@ -896,15 +898,15 @@ function EcPayModal({ person, claims, batches, currentUser, role, payers, onClos
           </window.DrLabel>
           {slip ? (
             <div style={{ display: "flex", alignItems: "center", gap: 11, padding: 9, marginBottom: 12,
-              border: "1px solid var(--border)", borderRadius: 11, background: "var(--surface)" }}>
+              boxShadow: "var(--shadow-sm)", borderRadius: "var(--r-tile)", background: "var(--surface)" }}>
               {slip.kind === "pdf" ? (
-                <span style={{ width: 54, height: 54, flexShrink: 0, borderRadius: 9, display: "grid", placeItems: "center",
+                <span style={{ width: 54, height: 54, flexShrink: 0, borderRadius: "var(--r-chip)", display: "grid", placeItems: "center",
                   background: "#EF44441a" }}>
                   <Icon name="file" size={20} color="#EF4444" />
                 </span>
               ) : (
                 <img src={slip.dataUrl} alt="สลิป"
-                  style={{ width: 54, height: 54, flexShrink: 0, objectFit: "cover", borderRadius: 9, border: "1px solid var(--border)" }} />
+                  style={{ width: 54, height: 54, flexShrink: 0, objectFit: "cover", borderRadius: "var(--r-chip)" }} />
               )}
               <span style={{ flex: 1, minWidth: 0 }}>
                 <span style={{ display: "block", fontSize: 12.5, fontWeight: 700, color: "var(--text-1)",
@@ -914,20 +916,20 @@ function EcPayModal({ person, claims, batches, currentUser, role, payers, onClos
                 </span>
               </span>
               <button onClick={() => setSlip(null)} title="เอาสลิปออก"
-                style={{ width: 28, height: 28, flexShrink: 0, borderRadius: 8, display: "grid", placeItems: "center",
-                  border: "1px solid var(--border)", background: "var(--surface)", cursor: "pointer" }}>
+                style={{ width: 28, height: 28, flexShrink: 0, borderRadius: "var(--r-chip)", display: "grid", placeItems: "center",
+                  background: "var(--surface2)", cursor: "pointer" }}>
                 <Icon name="x" size={14} color="var(--text-2)" />
               </button>
             </div>
           ) : (
             <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 12 }}>
-              <label style={{ display: "inline-flex", alignItems: "center", gap: 7, padding: "9px 14px", borderRadius: 10,
+              <label style={{ display: "inline-flex", alignItems: "center", gap: 7, padding: "9px 14px", borderRadius: "var(--r-tile)",
                 border: "1px dashed var(--border-strong)", background: "var(--surface)", cursor: "pointer",
                 fontSize: 12.5, fontWeight: 700, color: "var(--text-2)" }}>
                 <Icon name="camera" size={15} /> ถ่าย/เลือกรูปสลิป
                 <input type="file" accept="image/*" onChange={(e) => pickSlip(e, false)} style={{ display: "none" }} />
               </label>
-              <label style={{ display: "inline-flex", alignItems: "center", gap: 7, padding: "9px 14px", borderRadius: 10,
+              <label style={{ display: "inline-flex", alignItems: "center", gap: 7, padding: "9px 14px", borderRadius: "var(--r-tile)",
                 border: "1px dashed var(--border-strong)", background: "var(--surface)", cursor: "pointer",
                 fontSize: 12.5, fontWeight: 700, color: "var(--text-2)" }}>
                 <Icon name="file" size={15} /> แนบไฟล์ PDF
@@ -947,7 +949,7 @@ function EcPayModal({ person, claims, batches, currentUser, role, payers, onClos
           </div>
           {!ck.ok && ck.why && (
             <div style={{ fontSize: 12, lineHeight: 1.55, color: "var(--tint-amber-tx)", background: "var(--tint-amber-bg)",
-              border: "1px solid var(--tint-amber-bd)", borderRadius: 9, padding: "8px 11px", marginTop: 12 }}>
+              border: "1px solid var(--tint-amber-bd)", borderRadius: "var(--r-chip)", padding: "8px 11px", marginTop: 12 }}>
               {ck.why}
             </div>
           )}
@@ -955,19 +957,19 @@ function EcPayModal({ person, claims, batches, currentUser, role, payers, onClos
 
         <div style={{ display: "flex", gap: 9, padding: "13px 18px", borderTop: "1px solid var(--border)", background: "var(--surface)" }}>
           <button onClick={onClose}
-            style={{ padding: "10px 18px", borderRadius: 10, border: "1px solid var(--border-strong)",
+            style={{ padding: "10px 18px", borderRadius: "var(--r-tile)", boxShadow: "var(--shadow-sm)",
               background: "var(--surface)", cursor: "pointer", fontFamily: "inherit", fontSize: 13, fontWeight: 700, color: "var(--text-2)" }}>
             ยกเลิก
           </button>
           {/* พิมพ์ได้ตั้งแต่ก่อนโอน — คนจ่ายเอาไปวางหน้ากองเอกสารแล้วไล่ตรวจทีละใบ */}
           <button onClick={openCover} disabled={!list.length}
-            style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "10px 15px", borderRadius: 10,
-              border: "1px solid var(--border-strong)", background: "var(--surface)", cursor: "pointer",
+            style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "10px 15px", borderRadius: "var(--r-tile)",
+              background: "var(--surface2)", cursor: "pointer",
               fontFamily: "inherit", fontSize: 13, fontWeight: 700, color: "var(--text-2)" }}>
             <Icon name="file" size={15} color="var(--text-2)" /> ใบปะหน้า
           </button>
           <button onClick={go} disabled={busy || !list.length || !ck.ok}
-            style={{ flex: 1, padding: "10px 18px", borderRadius: 10, border: "none",
+            style={{ flex: 1, padding: "10px 18px", borderRadius: "var(--r-tile)", border: "none",
               background: ck.ok ? "#10B981" : "var(--surface2)", color: ck.ok ? "#fff" : "var(--text-3)",
               cursor: busy || !ck.ok ? "default" : "pointer", opacity: busy ? 0.7 : 1,
               fontFamily: "inherit", fontSize: 13, fontWeight: 800 }}>
@@ -996,11 +998,11 @@ function EcBatchList({ batches, onPrint, onDrop }) {
   if (!rows.length) return null;
   return (
     <div style={{ marginTop: 14 }}>
-      <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: ".07em", textTransform: "uppercase",
+      <div style={{ fontSize: 11, fontWeight: 700,
         color: "var(--text-3)", marginBottom: 8 }}>รอบจ่ายล่าสุด</div>
       {rows.map((b) => (
         <div key={b.id} style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap", padding: "9px 12px",
-          borderRadius: 10, background: "var(--surface)", border: "1px solid var(--border)", marginBottom: 6 }}>
+          borderRadius: "var(--r-tile)", background: "var(--surface)", boxShadow: "var(--shadow-sm)", marginBottom: 6 }}>
           <span style={{ fontFamily: "var(--mono)", fontSize: 11.5, fontWeight: 700, color: "#10B981" }}>{b.no}</span>
           <span style={{ flex: 1, minWidth: 140, fontSize: 12.5, color: "var(--text-1)", fontWeight: 700 }}>{b.toName || "-"}</span>
           <span style={{ fontSize: 11, color: "var(--text-3)" }}>
@@ -1013,8 +1015,8 @@ function EcBatchList({ batches, onPrint, onDrop }) {
           </span>
           {onPrint && (
             <button onClick={() => onPrint(b)} title="ใบสำคัญจ่าย A4"
-              style={{ display: "inline-flex", alignItems: "center", gap: 5, padding: "6px 11px", borderRadius: 9,
-                border: "1px solid var(--border-strong)", background: "var(--surface)", cursor: "pointer",
+              style={{ display: "inline-flex", alignItems: "center", gap: 5, padding: "6px 11px", borderRadius: "var(--r-chip)",
+                background: "var(--surface2)", cursor: "pointer",
                 fontFamily: "inherit", fontSize: 11.5, fontWeight: 700, color: "var(--text-2)" }}>
               <Icon name="file" size={13} color="var(--text-3)" /> ใบสำคัญจ่าย
             </button>
@@ -1022,8 +1024,8 @@ function EcBatchList({ batches, onPrint, onDrop }) {
           {/* สลิปโอนเงินที่แนบไว้ตอนกดจ่าย — หลักฐานว่าเงินออกจากบัญชีจริง */}
           {b.slipAt && (
             <button onClick={() => openSlip(b)} title="ดูสลิปโอนเงินของรอบนี้"
-              style={{ display: "inline-flex", alignItems: "center", gap: 5, padding: "6px 11px", borderRadius: 9,
-                border: "1px solid var(--border-strong)", background: "var(--surface)", cursor: "pointer",
+              style={{ display: "inline-flex", alignItems: "center", gap: 5, padding: "6px 11px", borderRadius: "var(--r-chip)",
+                background: "var(--surface2)", cursor: "pointer",
                 fontFamily: "inherit", fontSize: 11.5, fontWeight: 700, color: "var(--text-2)" }}>
               <Icon name="image" size={13} color="var(--text-3)" /> สลิป
             </button>
@@ -1031,8 +1033,8 @@ function EcBatchList({ batches, onPrint, onDrop }) {
           {/* ยกเลิกรอบที่บันทึกผิด — เฉพาะแอดมิน และใบในรอบจะกลับไปรอจ่ายเหมือนเดิม */}
           {onDrop && (
             <button onClick={() => onDrop(b)} title={"ยกเลิกรอบจ่าย " + (b.no || "")}
-              style={{ width: 28, height: 28, borderRadius: 8, display: "grid", placeItems: "center",
-                border: "1px solid var(--border)", background: "var(--surface)", cursor: "pointer" }}>
+              style={{ width: 28, height: 28, borderRadius: "var(--r-chip)", display: "grid", placeItems: "center",
+                background: "var(--surface2)", cursor: "pointer" }}>
               <Icon name="trash" size={13} color="var(--tint-red-tx)" />
             </button>
           )}
@@ -1071,8 +1073,8 @@ function EcJobTable({ claims, jobs, onPick }) {
     <div>
       {rows.map((r) => (
         <div key={r.jobId} onClick={() => onPick && onPick(r)}
-          style={{ padding: "11px 13px", borderRadius: 12, background: "var(--surface)",
-            border: "1px solid var(--border)", marginBottom: 7, cursor: onPick ? "pointer" : "default" }}>
+          style={{ padding: "11px 13px", borderRadius: "var(--r-tile)", background: "var(--surface)",
+            boxShadow: "var(--shadow-sm)", marginBottom: 7, cursor: onPick ? "pointer" : "default" }}>
           <div style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
             <span style={{ flex: 1, minWidth: 180 }}>
               <span style={{ display: "block", fontSize: 13, fontWeight: 700, color: "var(--text-1)" }}>{r.name || "-"}</span>
@@ -1097,7 +1099,7 @@ function EcJobTable({ claims, jobs, onPick }) {
         </div>
       ))}
       <div style={{ display: "flex", gap: 14, flexWrap: "wrap", justifyContent: "flex-end", padding: "11px 13px",
-        borderRadius: 12, background: "var(--surface2)", border: "1px solid var(--border)" }}>
+        borderRadius: "var(--r-tile)", background: "var(--surface2)", boxShadow: "var(--shadow-sm)" }}>
         <EcMini label="เงินสดหน้างานรวม" value={window.ecBaht(sumCash)} color="var(--text-1)" />
         <EcMini label="ค่าแรงผู้รับเหมารวม" value={window.ecBaht(sumLabor)} color="var(--text-3)" />
         <EcMini label="รวมทั้งหมด" value={window.ecBaht(window.ecRound(sumCash + sumLabor))} color="var(--text-1)" big />
@@ -1133,9 +1135,9 @@ function EcJobButton({ job, sum, onOpen }) {
   return (
     <button onClick={onOpen}
       style={{ width: "100%", marginBottom: 10, display: "flex", alignItems: "center", gap: 10, padding: "12px 14px",
-        background: "var(--surface)", border: "1px solid var(--border-strong)", borderLeft: "3px solid " + color,
-        borderRadius: 12, cursor: "pointer", fontFamily: "inherit", textAlign: "left" }}>
-      <span style={{ width: 34, height: 34, borderRadius: 9, background: color + "1c", display: "grid", placeItems: "center", flexShrink: 0 }}>
+        background: "var(--surface2)", borderLeft: "3px solid " + color,
+        borderRadius: "var(--r-tile)", cursor: "pointer", fontFamily: "inherit", textAlign: "left" }}>
+      <span style={{ width: 34, height: 34, borderRadius: "var(--r-chip)", background: color + "1c", display: "grid", placeItems: "center", flexShrink: 0 }}>
         <Icon name="wallet" size={17} color={color} />
       </span>
       <span style={{ flex: 1, minWidth: 0 }}>
@@ -1332,13 +1334,13 @@ function ExpenseView({ jobs, users, role, currentUser, focus }) {
 
       {/* เปิดใบใหม่ */}
       <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center",
-        padding: "11px 13px", borderRadius: 12, background: "var(--surface2)", border: "1px solid var(--border)" }}>
+        padding: "11px 13px", borderRadius: "var(--r-tile)", background: "var(--surface2)", boxShadow: "var(--shadow-sm)" }}>
         <span style={{ fontSize: 12.5, fontWeight: 700, color: "var(--text-2)" }}>เปิดใบเบิกใหม่</span>
         <window.SearchPick items={doneJobs} value={newJob} onChange={setNewJob} minWidth={200}
           emptyLabel="— ไม่ผูกกับงาน (ค่าใช้จ่ายทั่วไป) —"
           placeholder="พิมพ์ชื่อลูกค้าหรือรหัสงานเพื่อค้นหา · เว้นว่าง = ค่าใช้จ่ายทั่วไป" />
         <button onClick={openNew}
-          style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "9px 15px", borderRadius: 10,
+          style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "9px 15px", borderRadius: "var(--r-tile)",
             border: "none", background: "var(--primary)", color: "#fff", cursor: "pointer",
             fontFamily: "inherit", fontSize: 12.5, fontWeight: 800 }}>
           <Icon name="plus" size={14} color="#fff" /> เปิดใบเบิก
@@ -1349,8 +1351,8 @@ function ExpenseView({ jobs, users, role, currentUser, focus }) {
       <div style={{ display: "flex", gap: 7, flexWrap: "wrap" }}>
         {TABS.map(([k, th, ic, n]) => (
           <button key={k} onClick={() => setTab(k)}
-            style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "8px 14px", borderRadius: 99,
-              border: "1px solid " + (tab === k ? "var(--primary)" : "var(--border-strong)"),
+            style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "8px 14px", borderRadius: "var(--r-pill)",
+              border: "1px solid " + (tab === k ? "var(--primary)" : "transparent"),
               background: tab === k ? "var(--primary-soft)" : "var(--surface)", cursor: "pointer", fontFamily: "inherit",
               fontSize: 12.5, fontWeight: 700, color: tab === k ? "var(--primary-dark)" : "var(--text-2)" }}>
             <Icon name={ic} size={14} color={tab === k ? "var(--primary-dark)" : "var(--text-3)"} /> {th}
@@ -1360,7 +1362,7 @@ function ExpenseView({ jobs, users, role, currentUser, focus }) {
         ))}
         <button onClick={doXlsx} title="ออกไฟล์ Excel ตามรายการที่เห็นอยู่"
           style={{ marginLeft: "auto", display: "inline-flex", alignItems: "center", gap: 6, padding: "8px 14px",
-            borderRadius: 99, border: "1px solid var(--border-strong)", background: "var(--surface)", cursor: "pointer",
+            borderRadius: "var(--r-pill)", background: "var(--surface2)", cursor: "pointer",
             fontFamily: "inherit", fontSize: 12.5, fontWeight: 700, color: "var(--text-2)" }}>
           <Icon name="file" size={14} color="var(--text-3)" /> ออก Excel
         </button>
@@ -1382,14 +1384,14 @@ function ExpenseView({ jobs, users, role, currentUser, focus }) {
         <React.Fragment>
           {jobFilter && (
             <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap", padding: "8px 12px",
-              borderRadius: 10, background: "var(--surface2)", border: "1px solid var(--border)" }}>
+              borderRadius: "var(--r-tile)", background: "var(--surface2)", boxShadow: "var(--shadow-sm)" }}>
               <Icon name="sun" size={13} color="#0EA5E9" />
               <span style={{ fontSize: 12.5, fontWeight: 700, color: "var(--text-1)" }}>
                 เฉพาะงาน {(jobById[jobFilter] || {}).code || jobFilter}
                 {jobById[jobFilter] ? " · " + jobById[jobFilter].name : " · งานถูกลบจากฐานข้อมูล"}
               </span>
               <button onClick={() => setJobFilter("")}
-                style={{ marginLeft: "auto", padding: "5px 11px", borderRadius: 8, border: "1px solid var(--border-strong)",
+                style={{ marginLeft: "auto", padding: "5px 11px", borderRadius: "var(--r-chip)", boxShadow: "var(--shadow-sm)",
                   background: "var(--surface)", cursor: "pointer", fontFamily: "inherit", fontSize: 11.5,
                   fontWeight: 700, color: "var(--text-2)" }}>ดูทั้งหมด</button>
             </div>

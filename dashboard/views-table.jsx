@@ -93,7 +93,7 @@ function TableView({ jobs, onOpen, onEdit, onDelete, onSetMat, onSetStage, trash
       <th onClick={key ? () => setSort((s) => ({ key, dir: s.key === key ? -s.dir : 1 })) : undefined}
         onMouseEnter={key ? (e) => { const c = e.currentTarget.querySelector("i"); if (c) c.style.opacity = active ? 1 : .45; } : undefined}
         onMouseLeave={key ? (e) => { const c = e.currentTarget.querySelector("i"); if (c) c.style.opacity = active ? 1 : 0; } : undefined}
-        style={{ padding: "12px 14px", fontSize: 10, fontWeight: 800, letterSpacing: ".09em", textTransform: "uppercase",
+        style={{ padding: "12px 14px", fontSize: 10, fontWeight: 800,
           color: active ? "var(--primary-dark)" : "var(--text-3)", textAlign: center ? "center" : "left", whiteSpace: "nowrap",
           cursor: key ? "pointer" : "default", userSelect: "none", background: "var(--surface)",
           position: "sticky", top: 0, zIndex: 2, boxShadow: "inset 0 -1px 0 var(--border)" }}>

@@ -4023,8 +4023,7 @@ function SolarWorkspace({
       fontSize: 9.5,
       fontWeight: 700,
       letterSpacing: ".14em",
-      color: "var(--text-3)",
-      textTransform: "uppercase"
+      color: "var(--text-3)"
     }
   }, "\u0E2D\u0E2D\u0E01\u0E41\u0E1A\u0E1A\u0E23\u0E30\u0E1A\u0E1A\u0E44\u0E1F\u0E1F\u0E49\u0E32", job && job.code ? " · " + job.code : ""), React.createElement("div", {
     style: {

@@ -3765,7 +3765,7 @@ function Plan3DEditor({ job, onClose, currentUser }) {
           <P3Icon name="grid" size={16} />
         </span>
         <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ fontSize: 9.5, fontWeight: 700, letterSpacing: ".14em", color: "var(--text-3)", textTransform: "uppercase" }}>
+          <div style={{ fontSize: 9.5, fontWeight: 700, letterSpacing: ".14em", color: "var(--text-3)" }}>
             วางแผง 3D{job && job.code ? " · " + job.code : ""}
           </div>
           <div style={{ fontSize: isMobile ? 13 : 14.5, fontWeight: 700, letterSpacing: "-.1px", color: "var(--text-1)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{job ? job.name : ""}</div>

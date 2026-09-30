@@ -42,7 +42,7 @@ function BlRail({
     }, React.createElement("div", {
       style: {
         height: 4,
-        borderRadius: 99,
+        borderRadius: "var(--r-pill)",
         background: st.color,
         opacity: r.status === "pending" ? 0.35 : 1
       }
@@ -80,7 +80,7 @@ function BlNote({
     style: {
       margin: "0 12px 10px",
       padding: "8px 11px",
-      borderRadius: 10,
+      borderRadius: "var(--r-tile)",
       background: c.bg,
       border: "1px solid " + c.bd,
       color: c.tx,
@@ -116,7 +116,7 @@ function BlMoveBtns({
       onClick: () => onMove(row, s.key),
       style: {
         padding: size === "sm" ? "6px 10px" : "8px 12px",
-        borderRadius: 9,
+        borderRadius: "var(--r-chip)",
         fontFamily: "inherit",
         fontSize: size === "sm" ? 11.5 : 12.5,
         fontWeight: 700,
@@ -144,7 +144,7 @@ function BlPaidSum({
     style: {
       margin: flush ? "0 0 12px" : "0 12px 10px",
       padding: "10px 12px",
-      borderRadius: 10,
+      borderRadius: "var(--r-tile)",
       background: "var(--tint-ok-bg)",
       border: "1px solid var(--tint-ok-bd)",
       color: "var(--tint-ok-tx)"
@@ -205,9 +205,9 @@ function BlMoneyStrip({
       flex: 1,
       minWidth: 0,
       padding: "7px 9px",
-      borderRadius: 9,
+      borderRadius: "var(--r-chip)",
       background: "var(--surface2)",
-      border: "1px solid var(--border)"
+      boxShadow: "var(--shadow-sm)"
     }
   }, React.createElement("div", {
     style: {
@@ -279,7 +279,7 @@ function BlPayModal({
     alignItems: "center",
     gap: 7,
     padding: "9px 14px",
-    borderRadius: 10,
+    borderRadius: "var(--r-tile)",
     border: "1px dashed var(--border-strong)",
     background: "var(--surface)",
     cursor: "pointer",
@@ -302,7 +302,7 @@ function BlPayModal({
       maxWidth: 480,
       margin: "0 auto",
       background: "var(--surface)",
-      borderRadius: 16,
+      borderRadius: "var(--r-tile)",
       boxShadow: "var(--shadow-lg)",
       overflow: "hidden"
     }
@@ -317,7 +317,7 @@ function BlPayModal({
     style: {
       width: 38,
       height: 38,
-      borderRadius: 11,
+      borderRadius: "var(--r-tile)",
       flexShrink: 0,
       display: "grid",
       placeItems: "center",
@@ -382,8 +382,7 @@ function BlPayModal({
       gap: 11,
       padding: 9,
       marginBottom: 8,
-      border: "1px solid var(--border)",
-      borderRadius: 11,
+      borderRadius: "var(--r-tile)",
       background: "var(--surface2)"
     }
   }, s.fileKind === "pdf" ? React.createElement("span", {
@@ -391,7 +390,7 @@ function BlPayModal({
       width: 48,
       height: 48,
       flexShrink: 0,
-      borderRadius: 9,
+      borderRadius: "var(--r-chip)",
       display: "grid",
       placeItems: "center",
       background: "#EF44441a"
@@ -408,8 +407,7 @@ function BlPayModal({
       height: 48,
       flexShrink: 0,
       objectFit: "cover",
-      borderRadius: 9,
-      border: "1px solid var(--border)"
+      borderRadius: "var(--r-chip)"
     }
   }), React.createElement("span", {
     style: {
@@ -439,11 +437,10 @@ function BlPayModal({
       width: 28,
       height: 28,
       flexShrink: 0,
-      borderRadius: 8,
+      borderRadius: "var(--r-chip)",
       display: "grid",
       placeItems: "center",
-      border: "1px solid var(--border)",
-      background: "var(--surface)",
+      background: "var(--surface2)",
       cursor: "pointer"
     }
   }, React.createElement(Icon, {
@@ -501,8 +498,8 @@ function BlPayModal({
     onClick: onCancel,
     style: {
       padding: "10px 16px",
-      borderRadius: 10,
-      border: "1px solid var(--border-strong)",
+      borderRadius: "var(--r-tile)",
+      boxShadow: "var(--shadow-sm)",
       background: "var(--surface)",
       color: "var(--text-2)",
       fontFamily: "inherit",
@@ -517,7 +514,7 @@ function BlPayModal({
     disabled: !!busy,
     style: {
       padding: "10px 18px",
-      borderRadius: 10,
+      borderRadius: "var(--r-tile)",
       border: "none",
       background: busy ? "var(--surface3)" : "#10B981",
       color: busy ? "var(--text-3)" : "#fff",
@@ -579,7 +576,7 @@ function BlJobCard({
       marginBottom: 22,
       border: "1px solid " + (S.overdue.length ? "var(--tint-amber-bd)" : "var(--border-strong)"),
       borderLeft: "3px solid " + (st ? st.color : !S.has && quote ? "var(--primary)" : "var(--border-strong)"),
-      borderRadius: 12,
+      borderRadius: "var(--r-tile)",
       overflow: "hidden",
       background: "var(--surface)"
     }
@@ -602,7 +599,7 @@ function BlJobCard({
     style: {
       width: 34,
       height: 34,
-      borderRadius: 9,
+      borderRadius: "var(--r-chip)",
       background: BL_ACCENT + "1c",
       display: "grid",
       placeItems: "center",
@@ -699,9 +696,8 @@ function BlJobCard({
     onClick: () => setPrint(cur),
     style: {
       padding: "6px 10px",
-      borderRadius: 9,
-      border: "1px solid var(--border-strong)",
-      background: "var(--surface)",
+      borderRadius: "var(--r-chip)",
+      background: "var(--surface2)",
       color: "var(--text-2)",
       fontFamily: "inherit",
       fontSize: 11.5,
@@ -808,7 +804,7 @@ function BlPhotoPick({
       style: {
         padding: 0,
         border: "2px solid " + (on ? "var(--primary)" : "var(--border)"),
-        borderRadius: 10,
+        borderRadius: "var(--r-tile)",
         overflow: "hidden",
         background: "var(--surface2)",
         cursor: on ? "default" : "pointer",
@@ -846,7 +842,7 @@ function BlPhotoPick({
     onClick: () => setTab(id),
     style: {
       padding: "7px 12px",
-      borderRadius: 9,
+      borderRadius: "var(--r-chip)",
       fontFamily: "inherit",
       fontSize: 12.5,
       fontWeight: 700,
@@ -870,7 +866,7 @@ function BlPhotoPick({
       maxWidth: 720,
       margin: "0 auto",
       background: "var(--surface)",
-      borderRadius: 14,
+      borderRadius: "var(--r-tile)",
       boxShadow: "var(--shadow-lg)",
       overflow: "hidden"
     }
@@ -903,8 +899,8 @@ function BlPhotoPick({
     style: {
       width: 34,
       height: 34,
-      borderRadius: 10,
-      border: "1px solid var(--border-strong)",
+      borderRadius: "var(--r-tile)",
+      boxShadow: "var(--shadow-sm)",
       background: "var(--surface)",
       cursor: "pointer",
       display: "grid",
@@ -943,7 +939,7 @@ function BlPhotoPick({
       alignItems: "center",
       gap: 8,
       padding: "10px 14px",
-      borderRadius: 11,
+      borderRadius: "var(--r-tile)",
       border: "1px dashed var(--border-strong)",
       cursor: "pointer",
       fontSize: 13,
@@ -996,8 +992,7 @@ function BlPhotoPick({
       width: 64,
       height: 48,
       objectFit: "cover",
-      borderRadius: 8,
-      border: "1px solid var(--border)"
+      borderRadius: "var(--r-chip)"
     }
   }), React.createElement("input", {
     value: p.cap || "",
@@ -1027,7 +1022,7 @@ function BlPhotoPick({
       width: 32,
       height: 32,
       flexShrink: 0,
-      borderRadius: 9,
+      borderRadius: "var(--r-chip)",
       border: "1px solid var(--tint-red-bd)",
       background: "var(--tint-red-bg)",
       color: "var(--tint-red-tx)",
@@ -1052,7 +1047,7 @@ function BlPhotoPick({
     onClick: onClose,
     style: {
       padding: "10px 18px",
-      borderRadius: 11,
+      borderRadius: "var(--r-tile)",
       border: "none",
       background: "var(--primary)",
       color: "#fff",
@@ -1131,8 +1126,7 @@ function BlRowDetail({
       width: 46,
       height: 36,
       objectFit: "cover",
-      borderRadius: 6,
-      border: "1px solid var(--border)"
+      borderRadius: "var(--r-chip)"
     }
   })), ps.length > 10 && React.createElement("span", {
     style: {
@@ -1143,7 +1137,7 @@ function BlRowDetail({
     onClick: () => setPick(itId),
     style: {
       padding: "6px 10px",
-      borderRadius: 8,
+      borderRadius: "var(--r-chip)",
       border: "1px dashed var(--border-strong)",
       background: "var(--surface)",
       color: "var(--text-2)",
@@ -1202,9 +1196,9 @@ function BlRowDetail({
         gap: 8,
         marginBottom: 8,
         padding: "10px 11px",
-        borderRadius: 11,
+        borderRadius: "var(--r-tile)",
         background: "var(--surface)",
-        border: "1px solid var(--border)"
+        boxShadow: "var(--shadow-sm)"
       }
     }, React.createElement("span", {
       style: {
@@ -1294,8 +1288,8 @@ function BlRowDetail({
         width: 36,
         height: 36,
         flexShrink: 0,
-        borderRadius: 9,
-        border: "1px solid var(--border-strong)",
+        borderRadius: "var(--r-chip)",
+        boxShadow: "var(--shadow-sm)",
         background: "var(--surface)",
         color: "var(--text-3)",
         cursor: "pointer"
@@ -1309,7 +1303,7 @@ function BlRowDetail({
     onClick: addItem,
     style: {
       padding: "7px 12px",
-      borderRadius: 9,
+      borderRadius: "var(--r-chip)",
       border: "1px dashed var(--border-strong)",
       background: "none",
       color: "var(--text-2)",
@@ -1321,7 +1315,7 @@ function BlRowDetail({
   }, "+ \u0E40\u0E1E\u0E34\u0E48\u0E21\u0E23\u0E32\u0E22\u0E01\u0E32\u0E23")), !!loose.length && React.createElement("div", {
     style: {
       padding: "9px 11px",
-      borderRadius: 10,
+      borderRadius: "var(--r-tile)",
       background: "var(--tint-amber-bg)",
       border: "1px solid var(--tint-amber-bd)"
     }
@@ -1335,7 +1329,7 @@ function BlRowDetail({
   }, "\u0E23\u0E39\u0E1B\u0E17\u0E35\u0E48\u0E22\u0E31\u0E07\u0E44\u0E21\u0E48\u0E44\u0E14\u0E49\u0E1C\u0E39\u0E01\u0E01\u0E31\u0E1A\u0E23\u0E32\u0E22\u0E01\u0E32\u0E23 (", loose.length, ") \u2014 \u0E08\u0E30\u0E1E\u0E34\u0E21\u0E1E\u0E4C\u0E44\u0E27\u0E49\u0E41\u0E1C\u0E48\u0E19\u0E17\u0E49\u0E32\u0E22\u0E2A\u0E38\u0E14\u0E41\u0E1A\u0E1A\u0E44\u0E21\u0E48\u0E21\u0E35\u0E2B\u0E31\u0E27\u0E02\u0E49\u0E2D"), thumbs(loose, "")), !!slips.length && React.createElement("div", {
     style: {
       padding: "9px 11px",
-      borderRadius: 10,
+      borderRadius: "var(--r-tile)",
       background: "var(--tint-ok-bg)",
       border: "1px solid var(--tint-ok-bd)"
     }
@@ -1359,9 +1353,9 @@ function BlRowDetail({
       alignItems: "center",
       gap: 7,
       padding: "5px 8px",
-      borderRadius: 9,
+      borderRadius: "var(--r-chip)",
       background: "var(--surface)",
-      border: "1px solid var(--border)"
+      boxShadow: "var(--shadow-sm)"
     }
   }, React.createElement("a", {
     href: p.dataUrl,
@@ -1380,7 +1374,7 @@ function BlRowDetail({
     style: {
       width: 34,
       height: 34,
-      borderRadius: 7,
+      borderRadius: "var(--r-chip)",
       display: "grid",
       placeItems: "center",
       background: "#EF44441a"
@@ -1396,8 +1390,7 @@ function BlRowDetail({
       width: 34,
       height: 34,
       objectFit: "cover",
-      borderRadius: 7,
-      border: "1px solid var(--border)"
+      borderRadius: "var(--r-chip)"
     }
   }), React.createElement("span", {
     style: {
@@ -1558,7 +1551,7 @@ function BlSetupModal({
     disabled: ro,
     style: {
       padding: "8px 14px",
-      borderRadius: 10,
+      borderRadius: "var(--r-tile)",
       fontFamily: "inherit",
       fontSize: 13,
       fontWeight: 700,
@@ -1598,7 +1591,7 @@ function BlSetupModal({
       maxWidth: 980,
       margin: "0 auto",
       background: "var(--surface)",
-      borderRadius: 14,
+      borderRadius: "var(--r-tile)",
       boxShadow: "var(--shadow-lg)",
       overflow: "hidden"
     }
@@ -1614,7 +1607,7 @@ function BlSetupModal({
     style: {
       width: 34,
       height: 34,
-      borderRadius: 9,
+      borderRadius: "var(--r-chip)",
       background: BL_ACCENT + "1c",
       display: "grid",
       placeItems: "center",
@@ -1648,8 +1641,8 @@ function BlSetupModal({
     style: {
       width: 34,
       height: 34,
-      borderRadius: 10,
-      border: "1px solid var(--border-strong)",
+      borderRadius: "var(--r-tile)",
+      boxShadow: "var(--shadow-sm)",
       background: "var(--surface)",
       cursor: "pointer",
       display: "grid",
@@ -1708,7 +1701,7 @@ function BlSetupModal({
   }))), quote && quote.status === "accepted" && React.createElement("span", {
     style: {
       padding: "6px 11px",
-      borderRadius: 99,
+      borderRadius: "var(--r-pill)",
       background: "var(--tint-ok-bg)",
       border: "1px solid var(--tint-ok-bd)",
       color: "var(--tint-ok-tx)",
@@ -1719,7 +1712,7 @@ function BlSetupModal({
     onClick: seed,
     style: {
       padding: "10px 14px",
-      borderRadius: 10,
+      borderRadius: "var(--r-tile)",
       border: "none",
       background: BL_ACCENT,
       color: "#fff",
@@ -1731,7 +1724,7 @@ function BlSetupModal({
   }, "\u0E14\u0E36\u0E07\u0E07\u0E27\u0E14\u0E08\u0E32\u0E01\u0E40\u0E07\u0E37\u0E48\u0E2D\u0E19\u0E44\u0E02\u0E01\u0E32\u0E23\u0E0A\u0E33\u0E23\u0E30\u0E40\u0E07\u0E34\u0E19")) : React.createElement("div", {
     style: {
       padding: "11px 13px",
-      borderRadius: 11,
+      borderRadius: "var(--r-tile)",
       background: "var(--tint-amber-bg)",
       border: "1px solid var(--tint-amber-bd)",
       color: "var(--tint-amber-tx)",
@@ -1756,7 +1749,7 @@ function BlSetupModal({
     style: {
       marginTop: 8,
       padding: "10px 13px",
-      borderRadius: 11,
+      borderRadius: "var(--r-tile)",
       background: "var(--tint-amber-bg)",
       border: "1px solid var(--tint-amber-bd)",
       color: "var(--tint-amber-tx)",
@@ -1851,7 +1844,7 @@ function BlSetupModal({
     style: {
       marginBottom: 12,
       padding: "9px 12px",
-      borderRadius: 10,
+      borderRadius: "var(--r-tile)",
       background: "var(--tint-ok-bg)",
       border: "1px solid var(--tint-ok-bd)",
       color: "var(--tint-ok-tx)",
@@ -1859,8 +1852,9 @@ function BlSetupModal({
     }
   }, msg), React.createElement("div", {
     style: {
-      border: "1px solid var(--border)",
-      borderRadius: 12,
+      background: "var(--surface)",
+      boxShadow: "var(--shadow-sm)",
+      borderRadius: "var(--r-tile)",
       overflow: "hidden"
     }
   }, React.createElement("div", {
@@ -1997,9 +1991,8 @@ function BlSetupModal({
       onClick: () => setOpen(open === r.id ? null : r.id),
       style: {
         padding: "6px 9px",
-        borderRadius: 8,
-        border: "1px solid var(--border-strong)",
-        background: "var(--surface)",
+        borderRadius: "var(--r-chip)",
+        background: "var(--surface2)",
         color: "var(--text-2)",
         fontFamily: "inherit",
         fontSize: 11.5,
@@ -2012,8 +2005,8 @@ function BlSetupModal({
       style: {
         marginLeft: 4,
         padding: "6px 9px",
-        borderRadius: 8,
-        border: "1px solid var(--border-strong)",
+        borderRadius: "var(--r-chip)",
+        boxShadow: "var(--shadow-sm)",
         background: "var(--surface)",
         color: "var(--text-2)",
         fontFamily: "inherit",
@@ -2027,8 +2020,8 @@ function BlSetupModal({
       style: {
         marginLeft: 4,
         padding: "6px 8px",
-        borderRadius: 8,
-        border: "1px solid var(--border-strong)",
+        borderRadius: "var(--r-chip)",
+        boxShadow: "var(--shadow-sm)",
         background: "var(--surface)",
         color: "var(--text-3)",
         cursor: "pointer"
@@ -2070,7 +2063,7 @@ function BlSetupModal({
     onClick: addRow,
     style: {
       padding: "7px 12px",
-      borderRadius: 9,
+      borderRadius: "var(--r-chip)",
       border: "1px dashed var(--border-strong)",
       background: "none",
       color: "var(--text-2)",
@@ -2116,7 +2109,7 @@ function BlSetupModal({
     style: {
       marginRight: "auto",
       padding: "10px 14px",
-      borderRadius: 11,
+      borderRadius: "var(--r-tile)",
       border: "1px solid var(--tint-red-bd)",
       background: "var(--tint-red-bg)",
       color: "var(--tint-red-tx)",
@@ -2129,8 +2122,8 @@ function BlSetupModal({
     onClick: onClose,
     style: {
       padding: "10px 16px",
-      borderRadius: 11,
-      border: "1px solid var(--border-strong)",
+      borderRadius: "var(--r-tile)",
+      boxShadow: "var(--shadow-sm)",
       background: "var(--surface)",
       color: "var(--text-2)",
       fontFamily: "inherit",
@@ -2149,7 +2142,7 @@ function BlSetupModal({
     disabled: !dirty,
     style: {
       padding: "10px 20px",
-      borderRadius: 11,
+      borderRadius: "var(--r-tile)",
       border: "none",
       background: dirty ? "var(--primary)" : "var(--surface3)",
       color: dirty ? "#fff" : "var(--text-3)",
@@ -2285,7 +2278,7 @@ function BillingView({
     onClick: () => setFilter(id),
     style: {
       padding: "6px 12px",
-      borderRadius: 99,
+      borderRadius: "var(--r-pill)",
       fontFamily: "inherit",
       fontSize: 12.5,
       fontWeight: 700,
@@ -2377,8 +2370,8 @@ function BillingView({
     return React.createElement("div", {
       key: j.id,
       style: {
-        border: "1px solid var(--border)",
-        borderRadius: 13,
+        boxShadow: "var(--shadow-sm)",
+        borderRadius: "var(--r-tile)",
         overflow: "hidden",
         marginBottom: 12,
         background: "var(--surface)"
@@ -2429,9 +2422,8 @@ function BillingView({
       title: shut ? "กางตารางงวดของงานนี้" : "ย่อเหลือแค่บรรทัดสรุป",
       style: {
         padding: "8px 12px",
-        borderRadius: 10,
-        border: "1px solid var(--border-strong)",
-        background: "var(--surface)",
+        borderRadius: "var(--r-tile)",
+        background: "var(--surface2)",
         color: "var(--text-2)",
         fontFamily: "inherit",
         fontSize: 12.5,
@@ -2442,8 +2434,8 @@ function BillingView({
       onClick: () => onOpenJob(j.id),
       style: {
         padding: "8px 12px",
-        borderRadius: 10,
-        border: "1px solid var(--border-strong)",
+        borderRadius: "var(--r-tile)",
+        boxShadow: "var(--shadow-sm)",
         background: "var(--surface)",
         color: "var(--text-2)",
         fontFamily: "inherit",
@@ -2455,7 +2447,7 @@ function BillingView({
       onClick: () => onSetup(j),
       style: {
         padding: "8px 12px",
-        borderRadius: 10,
+        borderRadius: "var(--r-tile)",
         border: "none",
         background: BL_ACCENT,
         color: "#fff",
@@ -2574,9 +2566,8 @@ function BillingView({
       }),
       style: {
         padding: "6px 10px",
-        borderRadius: 9,
-        border: "1px solid var(--border-strong)",
-        background: "var(--surface)",
+        borderRadius: "var(--r-chip)",
+        background: "var(--surface2)",
         color: "var(--text-2)",
         fontFamily: "inherit",
         fontSize: 11.5,
@@ -2591,7 +2582,7 @@ function BillingView({
       fontSize: 13,
       color: "var(--text-3)",
       border: "1px dashed var(--border-strong)",
-      borderRadius: 13
+      borderRadius: "var(--r-tile)"
     }
   }, "\u0E44\u0E21\u0E48\u0E21\u0E35\u0E07\u0E27\u0E14\u0E07\u0E32\u0E19\u0E17\u0E35\u0E48\u0E15\u0E23\u0E07\u0E01\u0E31\u0E1A\u0E15\u0E31\u0E27\u0E01\u0E23\u0E2D\u0E07"), !!pendingSetup.length && React.createElement("div", {
     style: {
@@ -2606,8 +2597,8 @@ function BillingView({
     }
   }, "\u0E07\u0E32\u0E19\u0E17\u0E35\u0E48\u0E15\u0E34\u0E14\u0E15\u0E31\u0E49\u0E07\u0E41\u0E25\u0E49\u0E27\u0E41\u0E15\u0E48\u0E22\u0E31\u0E07\u0E44\u0E21\u0E48\u0E15\u0E31\u0E49\u0E07\u0E07\u0E27\u0E14 (", pendingSetup.length, ")"), React.createElement("div", {
     style: {
-      border: "1px solid var(--border)",
-      borderRadius: 13,
+      boxShadow: "var(--shadow-sm)",
+      borderRadius: "var(--r-tile)",
       overflow: "hidden",
       background: "var(--surface)"
     }
@@ -2643,7 +2634,7 @@ function BillingView({
       onClick: () => onSetup(j),
       style: {
         padding: "8px 14px",
-        borderRadius: 10,
+        borderRadius: "var(--r-tile)",
         border: "none",
         background: BL_ACCENT,
         color: "#fff",
@@ -2657,9 +2648,8 @@ function BillingView({
       title: "\u0E07\u0E32\u0E19\u0E19\u0E35\u0E49\u0E44\u0E21\u0E48\u0E15\u0E49\u0E2D\u0E07\u0E15\u0E31\u0E49\u0E07\u0E07\u0E27\u0E14 \u2014 \u0E40\u0E2D\u0E32\u0E2D\u0E2D\u0E01\u0E08\u0E32\u0E01\u0E23\u0E32\u0E22\u0E01\u0E32\u0E23 (\u0E40\u0E09\u0E1E\u0E32\u0E30\u0E41\u0E2D\u0E14\u0E21\u0E34\u0E19)",
       style: {
         padding: "8px 12px",
-        borderRadius: 10,
-        border: "1px solid var(--border-strong)",
-        background: "var(--surface)",
+        borderRadius: "var(--r-tile)",
+        background: "var(--surface2)",
         color: "var(--text-3)",
         fontFamily: "inherit",
         fontSize: 12.5,
@@ -2681,7 +2671,7 @@ function BillingView({
   }, "\u0E07\u0E32\u0E19\u0E17\u0E35\u0E48\u0E40\u0E2D\u0E32\u0E2D\u0E2D\u0E01\u0E08\u0E32\u0E01\u0E23\u0E32\u0E22\u0E01\u0E32\u0E23\u0E07\u0E27\u0E14\u0E07\u0E32\u0E19 (", skipped.length, ")"), React.createElement("div", {
     style: {
       border: "1px dashed var(--border-strong)",
-      borderRadius: 13,
+      borderRadius: "var(--r-tile)",
       overflow: "hidden"
     }
   }, skipped.map(j => React.createElement("div", {
@@ -2705,9 +2695,8 @@ function BillingView({
     onClick: () => skip(j, false),
     style: {
       padding: "7px 12px",
-      borderRadius: 9,
-      border: "1px solid var(--border-strong)",
-      background: "var(--surface)",
+      borderRadius: "var(--r-chip)",
+      background: "var(--surface2)",
       color: "var(--text-2)",
       fontFamily: "inherit",
       fontSize: 12,

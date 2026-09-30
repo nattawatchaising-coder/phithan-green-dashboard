@@ -1580,7 +1580,7 @@ function QuoteEditor({ quote, job, target, stock, onClose, onSave, onDelete, cur
     });
   };
 
-  const lbl = { fontSize: 10.5, fontWeight: 700, letterSpacing: ".05em", textTransform: "uppercase", color: "var(--text-3)" };
+  const lbl = { fontSize: 10.5, fontWeight: 700, color: "var(--text-3)" };
   const cell = Object.assign({}, inputStyle, { padding: "8px 9px", fontSize: 12.5 });
   const num = Object.assign({}, cell, { textAlign: "right", fontVariantNumeric: "tabular-nums" });
 

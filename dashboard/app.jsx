@@ -1682,11 +1682,11 @@ function DailyBriefing({ lateAlerts, todayTasks, onOpen, onClose }) {
           <button onClick={onClose} style={{ width: 32, height: 32, borderRadius: 9, border: "1px solid var(--border)", background: "var(--surface)", cursor: "pointer", display: "grid", placeItems: "center", color: "var(--text-2)" }}><Icon name="x" size={16} /></button>
         </div>
         <div style={{ overflowY: "auto", padding: 16, display: "flex", flexDirection: "column", gap: 8 }}>
-          {lateAlerts.length > 0 && <div style={{ fontSize: 11, fontWeight: 800, letterSpacing: ".05em", textTransform: "uppercase", color: "#EF4444", padding: "2px 2px" }}>⚠ เลยกำหนด ({lateAlerts.length})</div>}
+          {lateAlerts.length > 0 && <div style={{ fontSize: 11, fontWeight: 800, color: "#EF4444", padding: "2px 2px" }}>⚠ เลยกำหนด ({lateAlerts.length})</div>}
           {lateAlerts.map((a, i) => (
             <Row key={"l" + i} jobId={a.jobId} color="#EF4444" danger title={a.jobName} sub={'ขั้น "' + a.stage.th + '" เลยกำหนด ' + a.stage.daysLate + " วัน"} />
           ))}
-          {todayTasks.length > 0 && <div style={{ fontSize: 11, fontWeight: 800, letterSpacing: ".05em", textTransform: "uppercase", color: "var(--primary-dark)", padding: "6px 2px 2px" }}>📍 กำหนดวันนี้ ({todayTasks.length})</div>}
+          {todayTasks.length > 0 && <div style={{ fontSize: 11, fontWeight: 800, color: "var(--primary-dark)", padding: "6px 2px 2px" }}>📍 กำหนดวันนี้ ({todayTasks.length})</div>}
           {todayTasks.map((e, i) => (
             <Row key={"t" + i} jobId={e.job.id} color={e.stage.color} title={e.job.name} sub={({ start: "เริ่ม", progress: "กำลังดำเนินการ", end: "ส่งมอบ/เสร็จ", both: "เริ่ม–เสร็จ" }[e.kind]) + " · " + e.stage.th} />
           ))}

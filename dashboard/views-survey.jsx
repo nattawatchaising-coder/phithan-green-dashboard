@@ -48,11 +48,11 @@ function SurveyView({ jobs, role, onOpen, onToggleSkip }) {
           const active = filter === ff.key;
           return (
             <button key={ff.key} onClick={() => setFilter(ff.key)}
-              style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: isMobile ? "6px 12px" : "7px 14px", borderRadius: 99, cursor: "pointer", fontFamily: "inherit",
+              style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: isMobile ? "6px 12px" : "7px 14px", borderRadius: "var(--r-pill)", cursor: "pointer", fontFamily: "inherit",
                 fontSize: 12.5, fontWeight: 600, whiteSpace: "nowrap",
                 border: "1px solid " + (active ? ff.color : "var(--border-strong)"),
                 background: active ? ff.color + "16" : "var(--surface)", color: active ? ff.color : "var(--text-2)" }}>
-              {ff.key !== "all" && <span style={{ width: 7, height: 7, borderRadius: 99, background: ff.color }} />}
+              {ff.key !== "all" && <span style={{ width: 7, height: 7, borderRadius: "var(--r-pill)", background: ff.color }} />}
               {ff.label}
               <span style={{ fontSize: 11, fontWeight: 700, fontFamily: "var(--mono)", opacity: active ? 1 : .6 }}>{counts[ff.key] || 0}</span>
             </button>
@@ -63,7 +63,7 @@ function SurveyView({ jobs, role, onOpen, onToggleSkip }) {
       {/* รายการงาน */}
       <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
         {shown.length === 0 && (
-          <div style={{ padding: 40, textAlign: "center", color: "var(--text-3)", fontSize: 14, background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 14 }}>
+          <div style={{ padding: 40, textAlign: "center", color: "var(--text-3)", fontSize: 14, background: "var(--surface)", boxShadow: "var(--shadow-sm)", borderRadius: "var(--r-tile)" }}>
             ไม่มีงานในสถานะนี้
           </div>
         )}
@@ -73,9 +73,9 @@ function SurveyView({ jobs, role, onOpen, onToggleSkip }) {
           return (
           <div key={job.id} role="button" tabIndex={0} onClick={() => onOpen(job)}
             style={{ display: "flex", alignItems: "center", gap: 13, padding: 14, width: "100%", textAlign: "left", cursor: "pointer", fontFamily: "inherit",
-              background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 14, boxShadow: "var(--shadow-sm)", opacity: isSkip ? 0.72 : 1 }}>
+              background: "var(--surface)", borderRadius: "var(--r-tile)", boxShadow: "var(--shadow-sm)", opacity: isSkip ? 0.72 : 1 }}>
             {/* สถานะวงกลม */}
-            <span style={{ width: 42, height: 42, borderRadius: 12, flexShrink: 0, display: "grid", placeItems: "center", background: st.color + "1c", color: st.color }}>
+            <span style={{ width: 42, height: 42, borderRadius: "var(--r-tile)", flexShrink: 0, display: "grid", placeItems: "center", background: st.color + "1c", color: st.color }}>
               {st.state === "done" ? <Icon name="check" size={20} color={st.color} sw={2.4} />
                 : isSkip ? <Icon name="check" size={19} color={st.color} sw={2.2} />
                 : st.state === "partial" ? <span style={{ fontSize: 12, fontWeight: 800, fontFamily: "var(--mono)" }}>{st.pct}%</span>
@@ -88,23 +88,23 @@ function SurveyView({ jobs, role, onOpen, onToggleSkip }) {
                 {job.code} · {job.province || "-"}{job.brand ? " · " + job.brand : ""}
               </span>
               {/* progress bar */}
-              <span style={{ display: "block", marginTop: 7, height: 5, borderRadius: 99, background: "var(--surface3)", overflow: "hidden" }}>
-                <span style={{ display: "block", height: "100%", width: st.pct + "%", background: st.color, borderRadius: 99, transition: "width .3s" }} />
+              <span style={{ display: "block", marginTop: 7, height: 5, borderRadius: "var(--r-pill)", background: "var(--surface3)", overflow: "hidden" }}>
+                <span style={{ display: "block", height: "100%", width: st.pct + "%", background: st.color, borderRadius: "var(--r-pill)", transition: "width .3s" }} />
               </span>
             </span>
             {/* ป้ายสถานะ + action */}
             <span style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 6, flexShrink: 0 }}>
-              <span style={{ fontSize: 10.5, fontWeight: 700, color: st.color, background: st.color + "16", padding: "3px 9px", borderRadius: 99, whiteSpace: "nowrap" }}>{st.label}</span>
+              <span style={{ fontSize: 10.5, fontWeight: 700, color: st.color, background: st.color + "16", padding: "3px 9px", borderRadius: "var(--r-pill)", whiteSpace: "nowrap" }}>{st.label}</span>
               {!isSkip && (
                 <span style={{ display: "inline-flex", alignItems: "center", gap: 4, fontSize: 12, fontWeight: 700, color: "var(--primary-dark)" }}>
                   {st.state === "none" ? "เริ่มสำรวจ" : "แก้ไข"} <Icon name="chevronRight" size={14} color="var(--primary-dark)" />
                 </span>
               )}
               {onToggleSkip && (isSkip
-                ? <button onClick={toggleSkip} style={{ display: "inline-flex", alignItems: "center", gap: 4, fontSize: 11, fontWeight: 700, color: "var(--text-2)", background: "var(--surface2)", border: "1px solid var(--border-strong)", borderRadius: 8, padding: "5px 9px", cursor: "pointer", fontFamily: "inherit", whiteSpace: "nowrap" }}>
+                ? <button onClick={toggleSkip} style={{ display: "inline-flex", alignItems: "center", gap: 4, fontSize: 11, fontWeight: 700, color: "var(--text-2)", background: "var(--surface2)", boxShadow: "var(--shadow-sm)", borderRadius: "var(--r-chip)", padding: "5px 9px", cursor: "pointer", fontFamily: "inherit", whiteSpace: "nowrap" }}>
                     <Icon name="history" size={12} color="var(--text-2)" /> เข้าคิวสำรวจ
                   </button>
-                : <button onClick={toggleSkip} title="ทำเครื่องหมายว่าสำรวจแล้ว/ไม่ต้องสำรวจ" style={{ display: "inline-flex", alignItems: "center", gap: 4, fontSize: 11, fontWeight: 700, color: "var(--tint-green-tx)", background: "rgba(22,163,74,.08)", border: "1px solid rgba(22,163,74,.27)", borderRadius: 8, padding: "5px 9px", cursor: "pointer", fontFamily: "inherit", whiteSpace: "nowrap" }}>
+                : <button onClick={toggleSkip} title="ทำเครื่องหมายว่าสำรวจแล้ว/ไม่ต้องสำรวจ" style={{ display: "inline-flex", alignItems: "center", gap: 4, fontSize: 11, fontWeight: 700, color: "var(--tint-green-tx)", background: "rgba(22,163,74,.08)", border: "1px solid rgba(22,163,74,.27)", borderRadius: "var(--r-chip)", padding: "5px 9px", cursor: "pointer", fontFamily: "inherit", whiteSpace: "nowrap" }}>
                     <Icon name="check" size={12} color="var(--tint-green-tx)" sw={2.6} /> ไม่ต้องสำรวจ
                   </button>
               )}
@@ -205,11 +205,11 @@ function LeadsView({ leadStore, appts, jobs, onMenuOpen, onOpenSurvey, onReport,
             const active = filter === ff.key;
             return (
               <button key={ff.key} onClick={() => setFilter(ff.key)}
-                style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: isMobile ? "6px 12px" : "7px 14px", borderRadius: 99, cursor: "pointer", fontFamily: "inherit",
+                style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: isMobile ? "6px 12px" : "7px 14px", borderRadius: "var(--r-pill)", cursor: "pointer", fontFamily: "inherit",
                   fontSize: 12.5, fontWeight: 600, whiteSpace: "nowrap",
                   border: "1px solid " + (active ? ff.color : "var(--border-strong)"),
                   background: active ? ff.color + "16" : "var(--surface)", color: active ? ff.color : "var(--text-2)" }}>
-                {ff.key !== "all" && <span style={{ width: 7, height: 7, borderRadius: 99, background: ff.color }} />}
+                {ff.key !== "all" && <span style={{ width: 7, height: 7, borderRadius: "var(--r-pill)", background: ff.color }} />}
                 {ff.th}
                 <span style={{ fontSize: 11, fontWeight: 700, fontFamily: "var(--mono)", opacity: active ? 1 : .6 }}>{counts[ff.key] || 0}</span>
               </button>
@@ -218,7 +218,7 @@ function LeadsView({ leadStore, appts, jobs, onMenuOpen, onOpenSurvey, onReport,
         </div>
 
         {shown.length === 0 ? (
-          <div style={{ padding: 44, textAlign: "center", color: "var(--text-3)", fontSize: 14, background: "var(--surface)", border: "1px dashed var(--border-strong)", borderRadius: 16 }}>
+          <div style={{ padding: 44, textAlign: "center", color: "var(--text-3)", fontSize: 14, background: "var(--surface)", border: "1px dashed var(--border-strong)", borderRadius: "var(--r-tile)" }}>
             ยังไม่มีลูกค้าสำรวจในสถานะนี้ · กด “ลูกค้าใหม่” หรือสร้างจากหน้า “จัดตารางสำรวจ”
           </div>
         ) : (
@@ -245,7 +245,7 @@ function ContactLogModal({ lead, currentUser, onClose, onSave }) {
   const [how, setHow] = React.useState("call");
   const [note, setNote] = React.useState("");
   const [next, setNext] = React.useState(lead.nextFollow || "");
-  const lbl = { fontSize: 10.5, fontWeight: 700, letterSpacing: ".05em", textTransform: "uppercase", color: "var(--text-3)" };
+  const lbl = { fontSize: 10.5, fontWeight: 700, color: "var(--text-3)" };
   const submit = () => onSave({
     id: "c-" + Date.now().toString(36), at: new Date().toISOString(),
     by: (currentUser && currentUser.id) || "", byName: (currentUser && currentUser.name) || "",
@@ -259,7 +259,7 @@ function ContactLogModal({ lead, currentUser, onClose, onSave }) {
             <h2 style={{ fontSize: 16.5, fontWeight: 800, color: "var(--text-1)", margin: 0 }}>บันทึกการติดต่อ</h2>
             <div style={{ fontSize: 11.5, color: "var(--text-3)", marginTop: 2 }}>{lead.name || "(ไม่ระบุชื่อ)"} · {lead.code}</div>
           </div>
-          <button onClick={onClose} style={{ width: 32, height: 32, borderRadius: 9, border: "1px solid var(--border)", background: "var(--surface)", cursor: "pointer", display: "grid", placeItems: "center", color: "var(--text-2)" }}><Icon name="x" size={16} /></button>
+          <button onClick={onClose} style={{ width: 32, height: 32, borderRadius: "var(--r-chip)", background: "var(--surface2)", cursor: "pointer", display: "grid", placeItems: "center", color: "var(--text-2)" }}><Icon name="x" size={16} /></button>
         </div>
         <div style={{ overflowY: "auto", padding: 18, display: "flex", flexDirection: "column", gap: 14 }}>
           <div style={{ display: "flex", flexDirection: "column", gap: 6 }}><label style={lbl}>ติดต่อทางไหน</label>
@@ -268,7 +268,7 @@ function ContactLogModal({ lead, currentUser, onClose, onSave }) {
                 const on = how === w.key;
                 return (
                   <button key={w.key} onClick={() => setHow(w.key)}
-                    style={{ display: "inline-flex", alignItems: "center", gap: 5, padding: "8px 13px", borderRadius: 99, cursor: "pointer", fontFamily: "inherit",
+                    style={{ display: "inline-flex", alignItems: "center", gap: 5, padding: "8px 13px", borderRadius: "var(--r-pill)", cursor: "pointer", fontFamily: "inherit",
                       fontSize: 12.5, fontWeight: 700, border: "1px solid " + (on ? "var(--primary)" : "var(--border-strong)"),
                       background: on ? "var(--primary-soft)" : "var(--surface)", color: on ? "var(--primary-dark)" : "var(--text-2)" }}>
                     <Icon name={w.icon} size={13} color={on ? "var(--primary-dark)" : "var(--text-2)"} />{w.th}
@@ -287,8 +287,8 @@ function ContactLogModal({ lead, currentUser, onClose, onSave }) {
           </div>
         </div>
         <div style={{ padding: "12px 18px", paddingBottom: isMobile ? "calc(12px + env(safe-area-inset-bottom,0px))" : 12, borderTop: "1px solid var(--border)", background: "var(--surface)", display: "flex", gap: 10 }}>
-          <button onClick={onClose} style={{ padding: "12px 18px", borderRadius: 11, border: "1px solid var(--border-strong)", background: "var(--surface)", color: "var(--text-2)", fontWeight: 700, fontFamily: "inherit", fontSize: 13.5, cursor: "pointer" }}>ยกเลิก</button>
-          <button onClick={submit} style={{ flex: 1, padding: 12, borderRadius: 11, border: "none", background: "var(--primary)", color: "#fff", fontWeight: 700, fontFamily: "inherit", fontSize: 14, cursor: "pointer" }}>บันทึก</button>
+          <button onClick={onClose} style={{ padding: "12px 18px", borderRadius: "var(--r-tile)", background: "var(--surface2)", color: "var(--text-2)", fontWeight: 700, fontFamily: "inherit", fontSize: 13.5, cursor: "pointer" }}>ยกเลิก</button>
+          <button onClick={submit} style={{ flex: 1, padding: 12, borderRadius: "var(--r-tile)", border: "none", background: "var(--primary)", color: "#fff", fontWeight: 700, fontFamily: "inherit", fontSize: 14, cursor: "pointer" }}>บันทึก</button>
         </div>
       </div>
     </div>
@@ -299,8 +299,7 @@ function ContactLogModal({ lead, currentUser, onClose, onSave }) {
 function leadBtn(color, solid) {
   return { display: "inline-flex", alignItems: "center", gap: 5, padding: "9px 15px", borderRadius: "var(--r-pill)",
     cursor: "pointer", fontFamily: "inherit", fontSize: 12.5, fontWeight: 700, border: "none",
-    background: solid ? color : "var(--surface)", color: solid ? "#fff" : color,
-    boxShadow: solid ? "none" : "var(--shadow-sm)" };
+    background: solid ? color : "var(--surface2)", color: solid ? "#fff" : color };
 }
 
 /* ── ฟอร์มลูกค้าสำรวจ ── */
@@ -328,14 +327,14 @@ function LeadModal({ initial, isNew, users, onClose, onSave }) {
     }
     return arr;
   }, [users, initial.ownerId, initial.ownerName]);
-  const lbl = { fontSize: 10.5, fontWeight: 700, letterSpacing: ".05em", textTransform: "uppercase", color: "var(--text-3)" };
+  const lbl = { fontSize: 10.5, fontWeight: 700, color: "var(--text-3)" };
   const submit = () => { if (!String(f.name || "").trim()) { alert("กรุณากรอกชื่อลูกค้า"); return; } onSave(Object.assign({}, f, { name: f.name.trim() })); };
   return (
     <div {...bdClose} style={{ position: "fixed", inset: 0, background: "rgba(8,20,14,.45)", backdropFilter: "blur(3px)", zIndex: 118, display: "grid", placeItems: isMobile ? "end center" : "center", padding: isMobile ? 0 : 20 }}>
       <div onClick={(e) => e.stopPropagation()} style={{ background: "var(--bg)", borderRadius: isMobile ? "20px 20px 0 0" : 18, width: isMobile ? "100%" : "min(520px,100%)", maxHeight: isMobile ? "94dvh" : "90vh", display: "flex", flexDirection: "column", overflow: "hidden", boxShadow: "0 30px 80px rgba(8,20,14,.3)" }}>
         <div style={{ padding: "16px 20px", borderBottom: "1px solid var(--border)", background: "var(--surface)", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
           <h2 style={{ fontSize: 16.5, fontWeight: 800, color: "var(--text-1)", margin: 0 }}>{isNew ? "ลูกค้าสำรวจใหม่" : "แก้ไขลูกค้าสำรวจ"}</h2>
-          <button onClick={onClose} style={{ width: 32, height: 32, borderRadius: 9, border: "1px solid var(--border)", background: "var(--surface)", cursor: "pointer", display: "grid", placeItems: "center", color: "var(--text-2)" }}><Icon name="x" size={16} /></button>
+          <button onClick={onClose} style={{ width: 32, height: 32, borderRadius: "var(--r-chip)", background: "var(--surface2)", cursor: "pointer", display: "grid", placeItems: "center", color: "var(--text-2)" }}><Icon name="x" size={16} /></button>
         </div>
         <div style={{ overflowY: "auto", padding: 18, display: "flex", flexDirection: "column", gap: 14 }}>
           <div style={{ fontSize: 11.5, color: "var(--text-3)" }}>เก็บแยกจากฐานข้อมูลงาน — ยังไม่ถูกนับเป็นงานติดตั้งจนกว่าจะกด “แปลงเป็นงาน”</div>
@@ -380,8 +379,8 @@ function LeadModal({ initial, isNew, users, onClose, onSave }) {
             <textarea value={f.note} onChange={(e) => set("note", e.target.value)} rows={2} placeholder='เช่น "สนใจ 5 kW ขอใบเสนอราคาก่อน"' style={Object.assign({}, inputStyle, { resize: "vertical", lineHeight: 1.5 })} /></div>
         </div>
         <div style={{ padding: "12px 18px", paddingBottom: isMobile ? "calc(12px + env(safe-area-inset-bottom,0px))" : 12, borderTop: "1px solid var(--border)", background: "var(--surface)", display: "flex", gap: 10 }}>
-          <button onClick={onClose} style={{ padding: "12px 18px", borderRadius: 11, border: "1px solid var(--border-strong)", background: "var(--surface)", color: "var(--text-2)", fontWeight: 700, fontFamily: "inherit", fontSize: 13.5, cursor: "pointer" }}>ยกเลิก</button>
-          <button onClick={submit} style={{ flex: 1, padding: 12, borderRadius: 11, border: "none", background: "var(--primary)", color: "#fff", fontWeight: 700, fontFamily: "inherit", fontSize: 14, cursor: "pointer" }}>บันทึก</button>
+          <button onClick={onClose} style={{ padding: "12px 18px", borderRadius: "var(--r-tile)", background: "var(--surface2)", color: "var(--text-2)", fontWeight: 700, fontFamily: "inherit", fontSize: 13.5, cursor: "pointer" }}>ยกเลิก</button>
+          <button onClick={submit} style={{ flex: 1, padding: 12, borderRadius: "var(--r-tile)", border: "none", background: "var(--primary)", color: "#fff", fontWeight: 700, fontFamily: "inherit", fontSize: 14, cursor: "pointer" }}>บันทึก</button>
         </div>
       </div>
     </div>
@@ -406,7 +405,7 @@ function LeadCard({ l, ctx }) {
     /* กดที่การ์ด = เปิดใบเต็ม (ใบเดียวกับที่เด้งจากบอร์ดงาน) ปุ่มจัดการทั้งหมดอยู่ในใบนั้น
        เดิมการ์ดพกแถวปุ่มของตัวเองไว้ ทำให้ลูกค้ารายเดียวกันมีหน้าตาและชุดปุ่มคนละอย่างสองที่ */
     <div key={l.id} onClick={() => onOpen && onOpen(l)} title={onOpen ? "เปิดใบลูกค้า" : undefined}
-      style={{ background: "var(--surface)", border: "1px solid var(--border)", borderLeft: "4px solid " + sc.color, borderRadius: 14, boxShadow: "var(--shadow-sm)", padding: 14, display: "flex", flexDirection: "column", gap: 9, cursor: onOpen ? "pointer" : "default" }}>
+      style={{ background: "var(--surface)", borderLeft: "4px solid " + sc.color, borderRadius: "var(--r-tile)", boxShadow: "var(--shadow-sm)", padding: 14, display: "flex", flexDirection: "column", gap: 9, cursor: onOpen ? "pointer" : "default" }}>
       <div style={{ display: "flex", alignItems: "flex-start", gap: 10 }}>
         <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{ fontSize: 15, fontWeight: 800, color: "var(--text-1)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{l.name || "(ไม่ระบุชื่อ)"}</div>
@@ -414,21 +413,21 @@ function LeadCard({ l, ctx }) {
             {l.code}{l.province ? " · " + l.province : ""}{l.phone ? " · " + l.phone : ""}
           </div>
         </div>
-        <span style={{ fontSize: 10.5, fontWeight: 700, color: sc.color, background: sc.color + "16", padding: "3px 9px", borderRadius: 99, whiteSpace: "nowrap", flexShrink: 0 }}>{sc.th}</span>
+        <span style={{ fontSize: 10.5, fontWeight: 700, color: sc.color, background: sc.color + "16", padding: "3px 9px", borderRadius: "var(--r-pill)", whiteSpace: "nowrap", flexShrink: 0 }}>{sc.th}</span>
       </div>
       {/* แถวข้อมูลของเซลล์ — เจ้าของราย · วันติดตาม · มูลค่าที่คาด · ใบเสนอราคา */}
       <div style={{ display: "flex", gap: 6, flexWrap: "wrap", fontSize: 10.5 }}>
-        {l.ownerName && <span style={{ display: "inline-flex", alignItems: "center", gap: 4, background: "var(--surface2)", color: "var(--text-2)", fontWeight: 700, padding: "3px 9px", borderRadius: 99 }}><Icon name="user" size={11} color="var(--text-3)" />{l.ownerName}</span>}
-        {l.nextFollow && <span style={{ display: "inline-flex", alignItems: "center", gap: 4, fontWeight: 700, padding: "3px 9px", borderRadius: 99,
+        {l.ownerName && <span style={{ display: "inline-flex", alignItems: "center", gap: 4, background: "var(--surface2)", color: "var(--text-2)", fontWeight: 700, padding: "3px 9px", borderRadius: "var(--r-pill)" }}><Icon name="user" size={11} color="var(--text-3)" />{l.ownerName}</span>}
+        {l.nextFollow && <span style={{ display: "inline-flex", alignItems: "center", gap: 4, fontWeight: 700, padding: "3px 9px", borderRadius: "var(--r-pill)",
           background: late ? "var(--tint-red-bg2)" : "var(--surface2)", color: late ? "#EF4444" : "var(--text-2)" }}>
           <Icon name="clock" size={11} color={late ? "#EF4444" : "var(--text-3)"} />ติดตาม {thDate(l.nextFollow, true)}{late ? " · เลยแล้ว" : ""}</span>}
-        {+l.expKwp > 0 && <span style={{ background: "var(--surface2)", color: "var(--text-2)", fontWeight: 700, padding: "3px 9px", borderRadius: 99, fontFamily: "var(--mono)" }}>{l.expKwp} kWp</span>}
-        {+l.expValue > 0 && <span style={{ background: "var(--primary-soft)", color: "var(--primary-dark)", fontWeight: 800, padding: "3px 9px", borderRadius: 99 }}>฿{fmtBaht(+l.expValue)}</span>}
-        {l.source && window.LEAD_SOURCE_TH && <span style={{ background: "var(--surface2)", color: "var(--text-3)", fontWeight: 700, padding: "3px 9px", borderRadius: 99 }}>{window.LEAD_SOURCE_TH(l.source)}</span>}
+        {+l.expKwp > 0 && <span style={{ background: "var(--surface2)", color: "var(--text-2)", fontWeight: 700, padding: "3px 9px", borderRadius: "var(--r-pill)", fontFamily: "var(--mono)" }}>{l.expKwp} kWp</span>}
+        {+l.expValue > 0 && <span style={{ background: "var(--primary-soft)", color: "var(--primary-dark)", fontWeight: 800, padding: "3px 9px", borderRadius: "var(--r-pill)" }}>฿{fmtBaht(+l.expValue)}</span>}
+        {l.source && window.LEAD_SOURCE_TH && <span style={{ background: "var(--surface2)", color: "var(--text-3)", fontWeight: 700, padding: "3px 9px", borderRadius: "var(--r-pill)" }}>{window.LEAD_SOURCE_TH(l.source)}</span>}
       </div>
       {l.address && <div style={{ fontSize: 12, color: "var(--text-2)", display: "flex", gap: 6 }}><Icon name="pin" size={13} color="var(--text-3)" style={{ flexShrink: 0, marginTop: 1 }} /><span style={{ flex: 1, minWidth: 0 }}>{l.address}</span></div>}
       {next && <div style={{ fontSize: 12, color: "var(--text-2)", display: "flex", alignItems: "center", gap: 6 }}><Icon name="clock" size={13} color="var(--text-3)" />นัดสำรวจ {next.start ? thDate(next.start.slice(0, 10), true) : "-"}{list.length > 1 ? " · ทั้งหมด " + list.length + " นัด" : ""}</div>}
-      {l.note && <div style={{ fontSize: 12, color: "var(--text-2)", background: "var(--surface2)", borderRadius: 8, padding: "7px 10px" }}>📝 {l.note}</div>}
+      {l.note && <div style={{ fontSize: 12, color: "var(--text-2)", background: "var(--surface2)", borderRadius: "var(--r-chip)", padding: "7px 10px" }}>📝 {l.note}</div>}
       {/* ติดต่อครั้งล่าสุด — เห็นทันทีว่าคุยอะไรไปแล้ว ไม่ต้องเปิดเข้าไปอ่าน */}
       {(l.contacts || []).length > 0 && (() => {
         const c = l.contacts[l.contacts.length - 1];
@@ -446,8 +445,8 @@ function LeadCard({ l, ctx }) {
       })()}
       {/* ความคืบหน้าแบบสำรวจ */}
       <div style={{ display: "flex", alignItems: "center", gap: 9 }}>
-        <span style={{ flex: 1, height: 5, borderRadius: 99, background: "var(--surface3)", overflow: "hidden" }}>
-          <span style={{ display: "block", height: "100%", width: st.pct + "%", background: st.color, borderRadius: 99 }} />
+        <span style={{ flex: 1, height: 5, borderRadius: "var(--r-pill)", background: "var(--surface3)", overflow: "hidden" }}>
+          <span style={{ display: "block", height: "100%", width: st.pct + "%", background: st.color, borderRadius: "var(--r-pill)" }} />
         </span>
         <span style={{ fontSize: 11.5, fontWeight: 700, color: st.color, whiteSpace: "nowrap" }}>{surveyPctText(st)}</span>
       </div>
@@ -529,7 +528,7 @@ function LeadSpecPhase({ label, lead, onSave, disabled }) {
           const on = cur === +k;
           return (
             <button key={k} type="button" onClick={() => onSave(k)}
-              style={{ padding: "5px 13px", borderRadius: 8, border: "none", cursor: "pointer", fontFamily: "inherit",
+              style={{ padding: "5px 13px", borderRadius: "var(--r-chip)", border: "none", cursor: "pointer", fontFamily: "inherit",
                 fontSize: 12.5, fontWeight: 700,
                 background: on ? "var(--surface)" : "transparent", color: on ? "var(--primary-dark)" : "var(--text-3)",
                 boxShadow: on ? "var(--shadow-sm)" : "none" }}>{k} เฟส</button>
@@ -605,7 +604,7 @@ function LeadDetail({ l, ctx }) {
   /* กล่องย่อยในลิ้นชัก — ขาวเต็มใบบนพื้นเทาอ่อนของลิ้นชัก (--bg) ไม่มีเส้นขอบ ใช้เงาบอกชั้นแทน
      ⚠ อย่าเปลี่ยนกลับไปเป็น --surface2 — มันสว่างกว่าพื้นลิ้นชักไม่ถึงห้าหน่วยสี
        กล่องจะอ่านออกมาเป็นสีเทาทึม แทนที่จะเป็นแผ่นขาวที่ลอยอยู่ (ชุดเดียวกับ .act-row) */
-  const card = { background: "var(--surface)", borderRadius: 18, padding: "16px 18px", marginBottom: 10,
+  const card = { background: "var(--surface)", borderRadius: "var(--r-card)", padding: "16px 18px", marginBottom: 10,
     boxShadow: "var(--shadow-sm)" };
   /* ไม่ uppercase ไม่ถ่างตัวอักษร — ไทยไม่มีตัวพิมพ์ใหญ่ และการถ่างดันสระกับวรรณยุกต์หลุดตำแหน่ง */
   const capt = { fontSize: 11.5, fontWeight: 700, color: "var(--text-3)",
@@ -616,8 +615,8 @@ function LeadDetail({ l, ctx }) {
       {/* ขั้นการขาย + ความคืบหน้าแบบสำรวจ — แทนที่แถบลำดับขั้นงานของใบงาน */}
       <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 18, flexWrap: "wrap" }}>
         <span style={{ display: "inline-flex", alignItems: "center", gap: 7, fontSize: 12.5, fontWeight: 800, color: sc.color,
-          background: sc.color + "16", padding: "5px 12px", borderRadius: 99, flexShrink: 0 }}>
-          <span style={{ width: 8, height: 8, borderRadius: 99, background: sc.color }} />{sc.th}
+          background: sc.color + "16", padding: "5px 12px", borderRadius: "var(--r-pill)", flexShrink: 0 }}>
+          <span style={{ width: 8, height: 8, borderRadius: "var(--r-pill)", background: sc.color }} />{sc.th}
         </span>
         <span className="mbar" style={{ flex: 1, minWidth: 90, height: 6, "--fill": st.color }}>
           <i style={{ width: st.pct + "%" }} />
@@ -709,7 +708,7 @@ function LeadDetail({ l, ctx }) {
         <div style={{ display: "flex", justifyContent: "flex-end", marginTop: -4, marginBottom: 10 }}>
           <button onClick={toggleSurveySkip}
             style={{ display: "inline-flex", alignItems: "center", gap: 5, fontSize: 11.5, fontWeight: 700, cursor: "pointer", fontFamily: "inherit",
-              borderRadius: 9, padding: "5px 11px",
+              borderRadius: "var(--r-chip)", padding: "5px 11px",
               color: st.state === "skip" ? "var(--text-2)" : "var(--tint-green-tx)",
               background: st.state === "skip" ? "var(--surface2)" : "rgba(22,163,74,.08)",
               border: "1px solid " + (st.state === "skip" ? "var(--border-strong)" : "rgba(22,163,74,.27)") }}>
@@ -724,7 +723,7 @@ function LeadDetail({ l, ctx }) {
       {onReport && st.state !== "none" && st.state !== "skip" && l.survey && l.survey.startedAt && (
         <button onClick={() => onReport(window.leadAsJob(l))}
           style={{ width: "100%", marginBottom: 10, display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 7,
-            padding: "10px 14px", background: "var(--primary-soft)", border: "1px solid var(--primary)", borderRadius: 11,
+            padding: "10px 14px", background: "var(--primary-soft)", border: "1px solid var(--primary)", borderRadius: "var(--r-tile)",
             cursor: "pointer", fontFamily: "inherit", fontSize: 13, fontWeight: 700, color: "var(--primary-dark)" }}>
           <Icon name="file" size={15} color="var(--primary-dark)" /> ดูรายงานผลสำรวจ · บันทึก PDF
         </button>

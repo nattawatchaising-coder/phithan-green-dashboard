@@ -1239,8 +1239,6 @@ function AField({
     style: {
       fontSize: 10.5,
       fontWeight: 700,
-      letterSpacing: ".05em",
-      textTransform: "uppercase",
       color: "var(--text-3)"
     }
   }, label, required && React.createElement("span", {
@@ -1342,7 +1340,6 @@ function LoginScreen({
       fontFamily: "var(--brand-font)",
       fontSize: 12,
       letterSpacing: ".32em",
-      textTransform: "uppercase",
       color: "var(--brand-muted)",
       fontWeight: 500,
       paddingLeft: ".32em"
@@ -1637,8 +1634,6 @@ function NotifPanel({
     style: {
       fontSize: 10.5,
       fontWeight: 700,
-      letterSpacing: ".05em",
-      textTransform: "uppercase",
       color: "#EF4444",
       padding: "2px 4px"
     }
@@ -1714,8 +1709,6 @@ function NotifPanel({
     style: {
       fontSize: 10.5,
       fontWeight: 700,
-      letterSpacing: ".05em",
-      textTransform: "uppercase",
       color: "#7C5CFC",
       padding: "2px 4px"
     }

@@ -585,7 +585,6 @@ function Dropdown({
         fontWeight: 800,
         letterSpacing: ".04em",
         color: "var(--text-3)",
-        textTransform: "uppercase",
         padding: "8px 11px 3px"
       }
     }, o.group) : null;

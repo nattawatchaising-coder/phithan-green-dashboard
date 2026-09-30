@@ -97,7 +97,7 @@ function StockKpi({
     onMouseLeave: () => setHov(false),
     style: {
       background: active ? accent + "0e" : "var(--surface)",
-      border: "1px solid " + (active || hov ? accent : "var(--border)"),
+      border: "1px solid " + (active || hov ? accent : "transparent"),
       borderRadius: mob ? 14 : 16,
       padding: mob ? 14 : 18,
       boxShadow: active ? "0 0 0 3px " + accent + "22" : hov ? "0 4px 12px rgba(0,0,0,.08)" : "var(--shadow-sm)",
@@ -443,9 +443,8 @@ function StockView({
       alignItems: "center",
       gap: 6,
       padding: "6px 13px",
-      borderRadius: 99,
-      border: "1px solid var(--border-strong)",
-      background: "var(--surface)",
+      borderRadius: "var(--r-pill)",
+      background: "var(--surface2)",
       color: "var(--text-2)",
       fontSize: 12.5,
       fontWeight: 600,
@@ -631,7 +630,7 @@ function StockView({
     style: {
       background: "var(--surface2)",
       color: "var(--text-2)",
-      border: "1px solid var(--border-strong)"
+      border: "none"
     }
   }, React.createElement(Icon, {
     name: view === "grid" ? "menu" : "grid",
@@ -643,7 +642,7 @@ function StockView({
     style: {
       background: "var(--surface2)",
       color: "var(--text-2)",
-      border: "1px solid var(--border-strong)"
+      border: "none"
     }
   }, React.createElement(Icon, {
     name: "sparkle",
@@ -739,8 +738,6 @@ function StockView({
     style: {
       fontSize: 10,
       fontWeight: 800,
-      letterSpacing: ".05em",
-      textTransform: "uppercase",
       color: "var(--text-3)",
       whiteSpace: "nowrap",
       paddingRight: 2
@@ -773,8 +770,8 @@ function StockView({
       alignItems: "center",
       gap: 4,
       padding: "6px 11px",
-      borderRadius: 9,
-      border: "1px solid var(--border-strong)",
+      borderRadius: "var(--r-chip)",
+      boxShadow: "var(--shadow-sm)",
       background: "var(--surface2)",
       color: "var(--text-2)",
       fontFamily: "inherit",
@@ -906,8 +903,7 @@ function StockView({
   }) : React.createElement("div", {
     style: {
       background: "var(--surface)",
-      border: "1px solid var(--border)",
-      borderRadius: 18,
+      borderRadius: "var(--r-card)",
       overflow: "hidden",
       boxShadow: "var(--shadow-sm)"
     }
@@ -931,8 +927,6 @@ function StockView({
       padding: "12px 12px",
       fontSize: 10.5,
       fontWeight: 700,
-      letterSpacing: ".04em",
-      textTransform: "uppercase",
       color: "var(--text-3)",
       textAlign: i === 1 ? "right" : i >= 2 && i <= 3 ? "center" : "left",
       whiteSpace: "nowrap",
@@ -1060,7 +1054,7 @@ function StockView({
         color: "#3B82F6",
         width: 28,
         height: 28,
-        borderRadius: 7,
+        borderRadius: "var(--r-chip)",
         cursor: "pointer",
         verticalAlign: "middle"
       }
@@ -1082,7 +1076,7 @@ function StockView({
         color: "#EF4444",
         width: 28,
         height: 28,
-        borderRadius: 7,
+        borderRadius: "var(--r-chip)",
         cursor: "pointer",
         marginLeft: 4,
         verticalAlign: "middle"
@@ -1246,9 +1240,8 @@ function MovesModal({
     style: {
       width: 32,
       height: 32,
-      borderRadius: 9,
-      border: "1px solid var(--border)",
-      background: "var(--surface)",
+      borderRadius: "var(--r-chip)",
+      background: "var(--surface2)",
       cursor: "pointer",
       display: "grid",
       placeItems: "center",
@@ -1297,14 +1290,14 @@ function MovesModal({
         display: "flex",
         gap: 11,
         padding: "10px 11px",
-        border: "1px solid var(--border)",
-        borderRadius: 11
+        background: "var(--surface2)",
+        borderRadius: "var(--r-tile)"
       }
     }, React.createElement("span", {
       style: {
         width: 30,
         height: 30,
-        borderRadius: 8,
+        borderRadius: "var(--r-chip)",
         flexShrink: 0,
         display: "grid",
         placeItems: "center",
@@ -1393,9 +1386,10 @@ function CatChip({
       alignItems: "center",
       gap: 6,
       padding: mob ? "5px 11px" : "6px 13px",
-      borderRadius: 99,
-      border: "1px solid " + (active ? color : "var(--border-strong)"),
+      borderRadius: "var(--r-pill)",
+      border: "1px solid " + (active ? color : "transparent"),
       background: active ? color + "16" : "var(--surface)",
+      boxShadow: active ? "none" : "var(--shadow-sm)",
       color: active ? color : "var(--text-2)",
       fontSize: mob ? 11.5 : 12.5,
       fontWeight: 600,
@@ -1411,7 +1405,7 @@ function CatChip({
       lineHeight: 1.5,
       color: active ? color : "var(--text-3)",
       background: active ? color + "22" : "var(--surface3)",
-      borderRadius: 99,
+      borderRadius: "var(--r-pill)",
       padding: "0 6px",
       minWidth: 17,
       textAlign: "center"
@@ -1451,8 +1445,8 @@ function StockCardList({
       key: it.id,
       style: {
         background: st === "out" ? "rgba(239,68,68,.07)" : "var(--surface)",
-        border: "1px solid " + (st === "out" ? "rgba(239,68,68,.22)" : "var(--border)"),
-        borderRadius: 14,
+        border: "1px solid " + (st === "out" ? "rgba(239,68,68,.22)" : "transparent"),
+        borderRadius: "var(--r-tile)",
         padding: 13,
         borderLeft: "3px solid " + STOCK_COLORS[st],
         boxShadow: "var(--shadow-sm)"
@@ -1504,7 +1498,7 @@ function StockCardList({
         color: c.color,
         background: c.color + "16",
         padding: "3px 9px",
-        borderRadius: 99,
+        borderRadius: "var(--r-pill)",
         whiteSpace: "nowrap",
         flexShrink: 0
       }
@@ -1512,7 +1506,7 @@ function StockCardList({
       style: {
         width: 7,
         height: 7,
-        borderRadius: 99,
+        borderRadius: "var(--r-pill)",
         background: c.color
       }
     }), c.th)), React.createElement("div", {
@@ -1598,7 +1592,7 @@ function StockCardList({
         fontWeight: 700,
         fontSize: 12.5,
         padding: "9px 6px",
-        borderRadius: 9,
+        borderRadius: "var(--r-chip)",
         cursor: "pointer",
         fontFamily: "inherit"
       }
@@ -1613,7 +1607,7 @@ function StockCardList({
         color: "#3B82F6",
         width: 44,
         height: 36,
-        borderRadius: 9,
+        borderRadius: "var(--r-chip)",
         cursor: "pointer",
         display: "grid",
         placeItems: "center"
@@ -1638,7 +1632,7 @@ function StockCardList({
         color: "#EF4444",
         width: 44,
         height: 36,
-        borderRadius: 9,
+        borderRadius: "var(--r-chip)",
         cursor: "pointer",
         display: "grid",
         placeItems: "center"
@@ -1681,8 +1675,9 @@ function CatDropdown({
       fontWeight: 600,
       color: "var(--text-1)",
       background: "var(--surface)",
-      border: "1px solid " + (open ? "var(--primary)" : "var(--border-strong)"),
-      borderRadius: 10,
+      border: "1px solid " + (open ? "var(--primary)" : "transparent"),
+      boxShadow: open ? "none" : "var(--shadow-sm)",
+      borderRadius: "var(--r-tile)",
       padding: "10px 13px",
       outline: "none",
       cursor: "pointer"
@@ -1691,7 +1686,7 @@ function CatDropdown({
     style: {
       width: 9,
       height: 9,
-      borderRadius: 99,
+      borderRadius: "var(--r-pill)",
       background: cur.color,
       flexShrink: 0
     }
@@ -1703,7 +1698,7 @@ function CatDropdown({
       color: "var(--text-3)",
       background: "var(--surface3)",
       padding: "1px 7px",
-      borderRadius: 99
+      borderRadius: "var(--r-pill)"
     }
   }, countOf(cur.key)), React.createElement(Icon, {
     name: "chevronDown",
@@ -1729,8 +1724,7 @@ function CatDropdown({
       right: 0,
       zIndex: 61,
       background: "var(--bg)",
-      border: "1px solid var(--border)",
-      borderRadius: 12,
+      borderRadius: "var(--r-tile)",
       boxShadow: "0 14px 40px rgba(8,20,14,.2)",
       maxHeight: "58dvh",
       overflowY: "auto",
@@ -1750,7 +1744,7 @@ function CatDropdown({
         alignItems: "center",
         gap: 10,
         padding: "11px 11px",
-        borderRadius: 9,
+        borderRadius: "var(--r-chip)",
         border: "none",
         background: active ? "var(--primary-soft)" : "transparent",
         cursor: "pointer",
@@ -1761,7 +1755,7 @@ function CatDropdown({
       style: {
         width: 9,
         height: 9,
-        borderRadius: 99,
+        borderRadius: "var(--r-pill)",
         background: c.color,
         flexShrink: 0
       }
@@ -1780,7 +1774,7 @@ function CatDropdown({
         color: active ? "var(--primary-dark)" : "var(--text-3)",
         background: active ? "var(--surface)" : "var(--surface3)",
         padding: "1px 7px",
-        borderRadius: 99
+        borderRadius: "var(--r-pill)"
       }
     }, countOf(c.key)), active && React.createElement(Icon, {
       name: "check",
@@ -1913,8 +1907,8 @@ function MoveModal({
       gap: 8,
       padding: "10px 12px",
       background: "var(--surface2)",
-      border: "1px solid var(--border)",
-      borderRadius: 10,
+      boxShadow: "var(--shadow-sm)",
+      borderRadius: "var(--r-tile)",
       fontSize: 13.5,
       color: "var(--text-1)"
     }
@@ -1960,7 +1954,7 @@ function MoveModal({
       padding: "10px 12px",
       background: "var(--surface2)",
       border: "1px dashed var(--border-strong)",
-      borderRadius: 10,
+      borderRadius: "var(--r-tile)",
       fontSize: 12.5,
       color: "var(--text-2)"
     }
@@ -1988,9 +1982,8 @@ function MoveModal({
     style: {
       flex: isMobile ? "0 0 auto" : "none",
       padding: "11px 18px",
-      borderRadius: 11,
-      border: "1px solid var(--border-strong)",
-      background: "var(--surface)",
+      borderRadius: "var(--r-tile)",
+      background: "var(--surface2)",
       color: "var(--text-2)",
       fontWeight: 600,
       fontFamily: "inherit",
@@ -2002,7 +1995,7 @@ function MoveModal({
     style: {
       flex: isMobile ? 1 : "none",
       padding: "11px 22px",
-      borderRadius: 11,
+      borderRadius: "var(--r-tile)",
       border: "none",
       background: accent,
       color: "#fff",
@@ -2063,9 +2056,8 @@ function StkOptPairs({
     style: {
       marginLeft: "auto",
       padding: "6px 11px",
-      borderRadius: 9,
-      border: "1px solid var(--border-strong)",
-      background: "var(--surface)",
+      borderRadius: "var(--r-chip)",
+      background: "var(--surface2)",
       color: "var(--primary-dark)",
       fontFamily: "inherit",
       fontSize: 11.5,
@@ -2131,9 +2123,8 @@ function StkOptPairs({
     style: {
       width: 32,
       height: 32,
-      borderRadius: 9,
-      border: "1px solid var(--border-strong)",
-      background: "var(--surface)",
+      borderRadius: "var(--r-chip)",
+      background: "var(--surface2)",
       cursor: "pointer",
       display: "grid",
       placeItems: "center"
@@ -2242,9 +2233,8 @@ function ItemModal({
     style: {
       width: 32,
       height: 32,
-      borderRadius: 9,
-      border: "1px solid var(--border)",
-      background: "var(--surface)",
+      borderRadius: "var(--r-chip)",
+      background: "var(--surface2)",
       cursor: "pointer",
       display: "grid",
       placeItems: "center",
@@ -2312,8 +2302,8 @@ function ItemModal({
     style: {
       flexShrink: 0,
       padding: "0 12px",
-      borderRadius: 10,
-      border: "1px solid var(--border-strong)",
+      borderRadius: "var(--r-tile)",
+      boxShadow: "var(--shadow-sm)",
       background: "var(--surface2)",
       color: "var(--primary-dark)",
       fontFamily: "inherit",
@@ -2391,7 +2381,7 @@ function ItemModal({
       flexShrink: 0,
       padding: "0 14px",
       height: 38,
-      borderRadius: 10,
+      borderRadius: "var(--r-tile)",
       border: "none",
       background: "var(--primary)",
       color: "#fff",
@@ -2410,8 +2400,8 @@ function ItemModal({
       flexShrink: 0,
       padding: "0 12px",
       height: 38,
-      borderRadius: 10,
-      border: "1px solid var(--border-strong)",
+      borderRadius: "var(--r-tile)",
+      boxShadow: "var(--shadow-sm)",
       background: "var(--surface2)",
       color: "var(--text-2)",
       fontFamily: "inherit",
@@ -2536,7 +2526,7 @@ function ItemModal({
       padding: 14,
       background: "var(--surface2)",
       border: "1px dashed var(--border-strong)",
-      borderRadius: 12
+      borderRadius: "var(--r-tile)"
     }
   }, React.createElement("div", {
     style: {
@@ -2746,7 +2736,7 @@ function ItemModal({
       padding: 14,
       background: "var(--surface2)",
       border: "1px dashed var(--border-strong)",
-      borderRadius: 12
+      borderRadius: "var(--r-tile)"
     }
   }, React.createElement("div", {
     style: {
@@ -2883,7 +2873,7 @@ function ItemModal({
       padding: 14,
       background: "var(--surface2)",
       border: "1px dashed var(--border-strong)",
-      borderRadius: 12
+      borderRadius: "var(--r-tile)"
     }
   }, React.createElement("div", {
     style: {
@@ -3112,7 +3102,7 @@ function ItemModal({
       padding: 14,
       background: "var(--surface2)",
       border: "1px dashed var(--border-strong)",
-      borderRadius: 12
+      borderRadius: "var(--r-tile)"
     }
   }, React.createElement("div", {
     style: {
@@ -3198,7 +3188,7 @@ function ItemModal({
       padding: 14,
       background: "var(--surface2)",
       border: "1px dashed var(--border-strong)",
-      borderRadius: 12
+      borderRadius: "var(--r-tile)"
     }
   }, React.createElement("div", {
     style: {
@@ -3254,9 +3244,8 @@ function ItemModal({
     style: {
       flex: isMobile ? "0 0 auto" : "none",
       padding: "11px 18px",
-      borderRadius: 11,
-      border: "1px solid var(--border-strong)",
-      background: "var(--surface)",
+      borderRadius: "var(--r-tile)",
+      background: "var(--surface2)",
       color: "var(--text-2)",
       fontWeight: 600,
       fontFamily: "inherit",
@@ -3268,7 +3257,7 @@ function ItemModal({
     style: {
       flex: isMobile ? 1 : "none",
       padding: "11px 22px",
-      borderRadius: 11,
+      borderRadius: "var(--r-tile)",
       border: "none",
       background: "var(--primary)",
       color: "#fff",
@@ -3391,12 +3380,12 @@ function ConduitDefaultsEditor({
   };
   const numBase = {
     background: "var(--surface2)",
-    border: "1px solid var(--border-strong)",
+    boxShadow: "var(--shadow-sm)",
     color: "var(--text-1)",
     fontFamily: "inherit",
     fontSize: 13,
     padding: "7px 9px",
-    borderRadius: 9,
+    borderRadius: "var(--r-chip)",
     outline: "none",
     width: "100%",
     textAlign: "right"
@@ -3408,7 +3397,7 @@ function ConduitDefaultsEditor({
   });
   const btn = on => ({
     padding: "7px 14px",
-    borderRadius: 10,
+    borderRadius: "var(--r-tile)",
     fontFamily: "inherit",
     fontSize: 12.5,
     fontWeight: 700,
@@ -3488,8 +3477,8 @@ function ConduitDefaultsEditor({
   const ruleTable = React.createElement("div", {
     style: {
       background: "var(--surface)",
-      border: "1px solid var(--border)",
-      borderRadius: 12,
+      boxShadow: "var(--shadow-sm)",
+      borderRadius: "var(--r-tile)",
       overflow: "hidden"
     }
   }, React.createElement("div", {
@@ -3588,8 +3577,8 @@ function ConduitDefaultsEditor({
   const table = grp => React.createElement("div", {
     style: {
       background: "var(--surface)",
-      border: "1px solid var(--border)",
-      borderRadius: 12,
+      boxShadow: "var(--shadow-sm)",
+      borderRadius: "var(--r-tile)",
       overflow: "hidden"
     }
   }, React.createElement("div", {
@@ -3644,9 +3633,8 @@ function ConduitDefaultsEditor({
     disabled: !nEdited || edit,
     style: {
       padding: "8px 14px",
-      borderRadius: 10,
-      border: "1px solid var(--border-strong)",
-      background: "var(--surface)",
+      borderRadius: "var(--r-tile)",
+      background: "var(--surface2)",
       color: nEdited ? "var(--text-2)" : "var(--text-3)",
       fontSize: 12.5,
       fontWeight: 600,
@@ -3723,8 +3711,8 @@ function AmpacityEditor({
     height: 32,
     padding: "0 4px",
     textAlign: "center",
-    borderRadius: 8,
-    border: "1px solid var(--border-strong)",
+    borderRadius: "var(--r-chip)",
+    boxShadow: "var(--shadow-sm)",
     background: "var(--surface)",
     color: "var(--text-1)",
     fontFamily: "var(--mono)",
@@ -3747,7 +3735,7 @@ function AmpacityEditor({
       padding: "12px 14px",
       background: "var(--tint-amber-bg)",
       border: "1px solid var(--tint-amber-bd)",
-      borderRadius: 12,
+      borderRadius: "var(--r-tile)",
       marginBottom: 14
     }
   }, React.createElement(Icon, {
@@ -3772,7 +3760,7 @@ function AmpacityEditor({
       padding: "11px 14px",
       background: "var(--tint-ok-bg)",
       border: "1px solid var(--tint-ok-bd)",
-      borderRadius: 12,
+      borderRadius: "var(--r-tile)",
       marginBottom: 14
     }
   }, React.createElement(Icon, {
@@ -3797,7 +3785,7 @@ function AmpacityEditor({
       padding: "11px 14px",
       background: "var(--tint-red-bg)",
       border: "1px solid var(--tint-red-bd2)",
-      borderRadius: 12,
+      borderRadius: "var(--r-tile)",
       marginBottom: 14
     }
   }, React.createElement(Icon, {
@@ -3874,7 +3862,7 @@ function AmpacityEditor({
       alignItems: "center",
       gap: 5,
       padding: "6px 12px",
-      borderRadius: 99,
+      borderRadius: "var(--r-pill)",
       border: "1px solid var(--tint-red-bd2)",
       background: "var(--tint-red-bg)",
       color: "var(--tint-red-tx)",
@@ -3890,8 +3878,7 @@ function AmpacityEditor({
   }), " \u0E04\u0E37\u0E19\u0E04\u0E48\u0E32\u0E17\u0E35\u0E48\u0E41\u0E01\u0E49 (", editedCount, ")")), React.createElement("div", {
     style: {
       background: "var(--surface)",
-      border: "1px solid var(--border)",
-      borderRadius: 18,
+      borderRadius: "var(--r-card)",
       overflow: "hidden",
       boxShadow: "var(--shadow-sm)"
     }
@@ -3911,9 +3898,7 @@ function AmpacityEditor({
       textAlign: "left",
       position: "sticky",
       left: 0,
-      color: "var(--text-3)",
-      textTransform: "uppercase",
-      letterSpacing: ".03em"
+      color: "var(--text-3)"
     })
   }, "\u0E02\u0E19\u0E32\u0E14 (mm\xB2)"), groups.map(g => React.createElement("th", {
     key: g.key,
@@ -4080,7 +4065,7 @@ function PdfPreview({
   }, "\u0E01\u0E33\u0E25\u0E31\u0E07\u0E40\u0E1B\u0E34\u0E14\u0E40\u0E2D\u0E01\u0E2A\u0E32\u0E23\u2026"), state === "error" && React.createElement("div", {
     style: {
       padding: 14,
-      borderRadius: 12,
+      borderRadius: "var(--r-tile)",
       border: "1px dashed var(--border-strong)",
       background: "var(--surface2)",
       fontSize: 12.5,
@@ -4269,8 +4254,6 @@ function ItemDetailModal({
   const sectionLabel = {
     fontSize: 10.5,
     fontWeight: 800,
-    letterSpacing: ".05em",
-    textTransform: "uppercase",
     color: "var(--text-3)"
   };
   return React.createElement("div", _extends({}, bdClose, {
@@ -4327,8 +4310,8 @@ function ItemDetailModal({
       flexShrink: 0,
       width: 32,
       height: 32,
-      borderRadius: 9,
-      border: "1px solid var(--border)",
+      borderRadius: "var(--r-chip)",
+      boxShadow: "var(--shadow-sm)",
       background: "var(--surface)",
       cursor: "pointer",
       display: "grid",
@@ -4355,8 +4338,8 @@ function ItemDetailModal({
   }, React.createElement("div", null, React.createElement("div", {
     style: {
       background: "var(--surface2)",
-      border: "1px solid var(--border)",
-      borderRadius: 16,
+      boxShadow: "var(--shadow-sm)",
+      borderRadius: "var(--r-tile)",
       overflow: "hidden",
       aspectRatio: "1 / 1",
       display: "grid",
@@ -4377,7 +4360,7 @@ function ItemDetailModal({
       fontSize: 11,
       fontWeight: 800,
       padding: "5px 11px",
-      borderRadius: 99,
+      borderRadius: "var(--r-pill)",
       background: st === "out" ? "#EF4444" : "#F59E0B",
       color: "#fff"
     }
@@ -4395,7 +4378,7 @@ function ItemDetailModal({
       fontWeight: 800,
       letterSpacing: ".04em",
       padding: "4px 11px",
-      borderRadius: 6,
+      borderRadius: "var(--r-chip)",
       background: mainCat.color + "18",
       color: mainCat.color
     }
@@ -4456,12 +4439,12 @@ function ItemDetailModal({
       title: v.it.name + (vs === "out" ? " · หมดสต็อก" : ""),
       style: {
         padding: "6px 13px",
-        borderRadius: 9,
+        borderRadius: "var(--r-chip)",
         cursor: on ? "default" : "pointer",
         fontFamily: "inherit",
         fontSize: 12.5,
         fontWeight: 700,
-        border: "1px solid " + (on ? "var(--primary)" : "var(--border-strong)"),
+        border: "1px solid " + (on ? "var(--primary)" : "transparent"),
         background: on ? "var(--primary)18" : "var(--surface)",
         color: on ? "var(--primary-dark)" : vs === "out" ? "var(--text-3)" : "var(--text-2)",
         textDecoration: vs === "out" ? "line-through" : "none"
@@ -4472,7 +4455,7 @@ function ItemDetailModal({
     title: "\u0E40\u0E1E\u0E34\u0E48\u0E21\u0E02\u0E19\u0E32\u0E14\u0E43\u0E2B\u0E21\u0E48\u0E43\u0E2B\u0E49\u0E02\u0E2D\u0E07\u0E0A\u0E34\u0E49\u0E19\u0E19\u0E35\u0E49",
     style: {
       padding: "6px 12px",
-      borderRadius: 9,
+      borderRadius: "var(--r-chip)",
       cursor: "pointer",
       fontFamily: "inherit",
       fontSize: 12.5,
@@ -4554,7 +4537,7 @@ function ItemDetailModal({
         alignItems: "center",
         gap: 3,
         padding: "13px 8px",
-        borderRadius: 12,
+        borderRadius: "var(--r-tile)",
         border: "1px solid " + mt.accent + "44",
         background: mt.bg,
         color: mt.color,
@@ -4575,8 +4558,7 @@ function ItemDetailModal({
       gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr",
       gap: 1,
       background: "var(--border)",
-      border: "1px solid var(--border)",
-      borderRadius: 12,
+      borderRadius: "var(--r-tile)",
       overflow: "hidden"
     }
   }, info.map(r => React.createElement("span", {
@@ -4618,8 +4600,6 @@ function ItemDetailModal({
     style: {
       fontSize: 10.5,
       fontWeight: 800,
-      letterSpacing: ".05em",
-      textTransform: "uppercase",
       color: "var(--text-3)"
     }
   }, "\u0E2A\u0E40\u0E1B\u0E04\u0E2D\u0E38\u0E1B\u0E01\u0E23\u0E13\u0E4C"), React.createElement("div", {
@@ -4632,9 +4612,9 @@ function ItemDetailModal({
     key: f.k,
     style: {
       padding: "8px 10px",
-      borderRadius: 10,
+      borderRadius: "var(--r-tile)",
       background: "var(--surface2)",
-      border: "1px solid var(--border)"
+      boxShadow: "var(--shadow-sm)"
     }
   }, React.createElement("div", {
     style: {
@@ -4660,8 +4640,6 @@ function ItemDetailModal({
     style: {
       fontSize: 10.5,
       fontWeight: 800,
-      letterSpacing: ".05em",
-      textTransform: "uppercase",
       color: "var(--text-3)"
     }
   }, "DATA SHEET / \u0E40\u0E2D\u0E01\u0E2A\u0E32\u0E23"), doc && doc.data ? React.createElement("div", {
@@ -4670,15 +4648,15 @@ function ItemDetailModal({
       alignItems: "center",
       gap: 11,
       padding: "11px 13px",
-      borderRadius: 12,
+      borderRadius: "var(--r-tile)",
       background: "var(--surface2)",
-      border: "1px solid var(--border)"
+      boxShadow: "var(--shadow-sm)"
     }
   }, React.createElement("span", {
     style: {
       width: 38,
       height: 38,
-      borderRadius: 9,
+      borderRadius: "var(--r-chip)",
       flexShrink: 0,
       display: "grid",
       placeItems: "center",
@@ -4714,8 +4692,8 @@ function ItemDetailModal({
     style: {
       flexShrink: 0,
       padding: "7px 13px",
-      borderRadius: 9,
-      border: "1px solid var(--border-strong)",
+      borderRadius: "var(--r-chip)",
+      boxShadow: "var(--shadow-sm)",
       background: "var(--surface)",
       color: "var(--text-2)",
       fontFamily: "inherit",
@@ -4741,8 +4719,8 @@ function ItemDetailModal({
       flexShrink: 0,
       width: 32,
       height: 32,
-      borderRadius: 9,
-      border: "1px solid var(--border-strong)",
+      borderRadius: "var(--r-chip)",
+      boxShadow: "var(--shadow-sm)",
       background: "var(--surface)",
       color: "#EF4444",
       cursor: "pointer",
@@ -4761,7 +4739,7 @@ function ItemDetailModal({
       justifyContent: "center",
       gap: 7,
       padding: "14px 12px",
-      borderRadius: 12,
+      borderRadius: "var(--r-tile)",
       border: "1px dashed var(--border-strong)",
       background: "var(--surface2)",
       color: "var(--text-2)",
@@ -4780,8 +4758,7 @@ function ItemDetailModal({
     alt: doc.name,
     style: {
       width: "100%",
-      borderRadius: 12,
-      border: "1px solid var(--border)",
+      borderRadius: "var(--r-tile)",
       display: "block"
     }
   }) : React.createElement(PdfPreview, {
@@ -4815,10 +4792,9 @@ function ItemDetailModal({
       alignItems: "center",
       gap: 6,
       padding: "9px 15px",
-      borderRadius: 11,
+      borderRadius: "var(--r-tile)",
       marginRight: "auto",
-      border: "1px solid var(--border-strong)",
-      background: "var(--surface)",
+      background: "var(--surface2)",
       color: "var(--primary-dark)",
       fontFamily: "inherit",
       fontSize: 13,
@@ -4836,9 +4812,8 @@ function ItemDetailModal({
       alignItems: "center",
       gap: 6,
       padding: "9px 15px",
-      borderRadius: 11,
-      border: "1px solid var(--border-strong)",
-      background: "var(--surface)",
+      borderRadius: "var(--r-tile)",
+      background: "var(--surface2)",
       color: "var(--text-2)",
       fontFamily: "inherit",
       fontSize: 13,
@@ -4976,7 +4951,7 @@ function FillVariantModal({
       fontWeight: 800,
       color: "var(--primary-dark)",
       background: "var(--primary-soft)",
-      borderRadius: 99,
+      borderRadius: "var(--r-pill)",
       padding: "2px 9px"
     }
   }, r.g.brand), r.g.model && React.createElement("span", {
@@ -4985,8 +4960,8 @@ function FillVariantModal({
       fontWeight: 700,
       color: "var(--text-2)",
       background: "var(--surface2)",
-      border: "1px solid var(--border)",
-      borderRadius: 99,
+      boxShadow: "var(--shadow-sm)",
+      borderRadius: "var(--r-pill)",
       padding: "2px 9px"
     }
   }, r.g.model))))), React.createElement("div", {
@@ -5015,8 +4990,8 @@ function FillVariantModal({
     onClick: onClose,
     style: {
       padding: "9px 15px",
-      borderRadius: 11,
-      border: "1px solid var(--border-strong)",
+      borderRadius: "var(--r-tile)",
+      boxShadow: "var(--shadow-sm)",
       background: "var(--surface)",
       color: "var(--text-2)",
       fontFamily: "inherit",
@@ -5032,7 +5007,7 @@ function FillVariantModal({
       alignItems: "center",
       gap: 6,
       padding: "9px 16px",
-      borderRadius: 11,
+      borderRadius: "var(--r-tile)",
       border: 0,
       background: "var(--primary)",
       color: "#fff",
@@ -5066,7 +5041,7 @@ function MatThumb({
     display: "grid",
     placeItems: "center",
     background: "var(--surface2)",
-    border: "1px solid var(--border)"
+    boxShadow: "var(--shadow-sm)"
   };
   if (src) return React.createElement("span", {
     style: box
@@ -5124,8 +5099,7 @@ function StockGrid({
       title: g ? "กดเพื่อเลือกขนาด" : "กดเพื่อดูรายละเอียด · รับ / เบิก / คืน",
       style: {
         background: "var(--surface)",
-        border: "1px solid var(--border)",
-        borderRadius: 14,
+        borderRadius: "var(--r-tile)",
         overflow: "hidden",
         cursor: "pointer",
         display: "flex",
@@ -5154,7 +5128,7 @@ function StockGrid({
         fontSize: 10,
         fontWeight: 800,
         padding: "3px 8px",
-        borderRadius: 99,
+        borderRadius: "var(--r-pill)",
         background: st === "out" ? "#EF4444" : "#F59E0B",
         color: "#fff"
       }
@@ -5166,9 +5140,9 @@ function StockGrid({
         fontSize: 10,
         fontWeight: 800,
         padding: "3px 8px",
-        borderRadius: 99,
+        borderRadius: "var(--r-pill)",
         background: "var(--surface)",
-        border: "1px solid var(--border-strong)",
+        boxShadow: "var(--shadow-sm)",
         color: "var(--text-2)"
       }
     }, g.n, " \u0E02\u0E19\u0E32\u0E14")), React.createElement("div", {
@@ -5241,7 +5215,7 @@ function StockGrid({
       style: {
         marginTop: 7,
         height: 28,
-        borderRadius: 7,
+        borderRadius: "var(--r-chip)",
         background: "var(--primary-soft)",
         color: "var(--primary-dark)",
         fontSize: 11.5,
@@ -5265,7 +5239,7 @@ function StockGrid({
         background: "#3B82F614",
         border: "none",
         color: "#3B82F6",
-        borderRadius: 7,
+        borderRadius: "var(--r-chip)",
         cursor: "pointer",
         display: "grid",
         placeItems: "center"
@@ -5288,7 +5262,7 @@ function StockGrid({
         background: "#EF444414",
         border: "none",
         color: "#EF4444",
-        borderRadius: 7,
+        borderRadius: "var(--r-chip)",
         cursor: "pointer",
         display: "grid",
         placeItems: "center"
@@ -5364,8 +5338,8 @@ function MatImagePicker({
     onClick: () => ref.current && ref.current.click(),
     style: {
       padding: "7px 13px",
-      borderRadius: 9,
-      border: "1px solid var(--border-strong)",
+      borderRadius: "var(--r-chip)",
+      boxShadow: "var(--shadow-sm)",
       background: "var(--surface2)",
       color: "var(--text-1)",
       fontFamily: "inherit",
@@ -5378,8 +5352,8 @@ function MatImagePicker({
     onClick: onClear,
     style: {
       padding: "7px 11px",
-      borderRadius: 9,
-      border: "1px solid var(--border-strong)",
+      borderRadius: "var(--r-chip)",
+      boxShadow: "var(--shadow-sm)",
       background: "var(--surface2)",
       color: "#EF4444",
       fontFamily: "inherit",
@@ -5429,9 +5403,8 @@ function CatCard({
   };
   const btn = {
     padding: "3px 9px",
-    borderRadius: 99,
-    border: "1px solid var(--border-strong)",
-    background: "var(--surface)",
+    borderRadius: "var(--r-pill)",
+    background: "var(--surface2)",
     fontFamily: "inherit",
     fontSize: 10.5,
     fontWeight: 700,
@@ -5443,8 +5416,7 @@ function CatCard({
     style: {
       position: "relative",
       background: "var(--surface)",
-      border: "1px solid var(--border)",
-      borderRadius: 16,
+      borderRadius: "var(--r-tile)",
       cursor: "pointer",
       display: "flex",
       alignItems: "center",
@@ -5456,13 +5428,13 @@ function CatCard({
     style: {
       width: 76,
       height: 76,
-      borderRadius: 12,
+      borderRadius: "var(--r-tile)",
       flexShrink: 0,
       overflow: "hidden",
       display: "grid",
       placeItems: "center",
       background: img ? "var(--surface2)" : c.color + "16",
-      border: "1px solid " + (img ? "var(--border)" : c.color + "33")
+      border: "1px solid " + (img ? "transparent" : c.color + "33")
     }
   }, img ? React.createElement("img", {
     src: img,
@@ -5573,8 +5545,8 @@ function CatBrowser({
       alignItems: "center",
       gap: 4,
       padding: "6px 11px",
-      borderRadius: 9,
-      border: "1px solid var(--border-strong)",
+      borderRadius: "var(--r-chip)",
+      boxShadow: "var(--shadow-sm)",
       background: "var(--surface2)",
       color: "var(--text-2)",
       fontFamily: "inherit",
@@ -5605,8 +5577,8 @@ function CatBrowser({
     style: {
       marginLeft: "auto",
       padding: "7px 14px",
-      borderRadius: 9,
-      border: "1px solid var(--border-strong)",
+      borderRadius: "var(--r-chip)",
+      boxShadow: "var(--shadow-sm)",
       background: "var(--surface2)",
       color: "var(--text-2)",
       fontFamily: "inherit",

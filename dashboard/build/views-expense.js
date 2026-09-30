@@ -1,9 +1,9 @@
 const EC_INPUT = {
   width: "100%",
   padding: "10px 12px",
-  borderRadius: 10,
-  border: "1px solid var(--border-strong)",
-  background: "var(--surface)",
+  borderRadius: "var(--r-tile)",
+  border: "none",
+  background: "var(--surface2)",
   color: "var(--text-1)",
   fontFamily: "inherit",
   fontSize: 13.5,
@@ -24,7 +24,7 @@ function EcPill({
       fontWeight: 700,
       color: color,
       background: color + "1a",
-      borderRadius: 99,
+      borderRadius: "var(--r-pill)",
       padding: "3px 10px"
     }
   }, th, sub && React.createElement("span", {
@@ -52,10 +52,10 @@ function EcStat({
       minWidth: 130,
       textAlign: "left",
       padding: "11px 13px",
-      borderRadius: 12,
+      borderRadius: "var(--r-tile)",
       fontFamily: "inherit",
       background: on ? (color || "var(--primary)") + "14" : "var(--surface2)",
-      border: "1px solid " + (on ? color || "var(--primary)" : "var(--border)"),
+      border: "1px solid " + (on ? color || "var(--primary)" : "transparent"),
       cursor: onClick ? "pointer" : "default"
     }
   }, React.createElement("div", {
@@ -151,7 +151,7 @@ function EcReceipts({
     alignItems: "center",
     gap: 7,
     padding: "9px 14px",
-    borderRadius: 10,
+    borderRadius: "var(--r-tile)",
     border: "1px dashed var(--border-strong)",
     background: "var(--surface)",
     cursor: "pointer",
@@ -213,8 +213,8 @@ function EcReceipts({
   }, shots.map(r => React.createElement("div", {
     key: r.id,
     style: {
-      border: "1px solid var(--border)",
-      borderRadius: 11,
+      boxShadow: "var(--shadow-sm)",
+      borderRadius: "var(--r-tile)",
       overflow: "hidden",
       background: "var(--surface)",
       position: "relative"
@@ -241,7 +241,7 @@ function EcReceipts({
     style: {
       width: 36,
       height: 36,
-      borderRadius: 10,
+      borderRadius: "var(--r-tile)",
       display: "grid",
       placeItems: "center",
       background: "#EF44441a"
@@ -289,7 +289,7 @@ function EcReceipts({
       right: 6,
       width: 26,
       height: 26,
-      borderRadius: 8,
+      borderRadius: "var(--r-chip)",
       border: "none",
       background: "rgba(8,20,14,.62)",
       color: "#fff",
@@ -346,7 +346,7 @@ function EcBigShot({
       style: {
         maxWidth: "100%",
         maxHeight: "100%",
-        borderRadius: 10
+        borderRadius: "var(--r-tile)"
       }
     }));
   }
@@ -387,7 +387,7 @@ function EcBigShot({
     rel: "noopener noreferrer",
     style: {
       padding: "7px 13px",
-      borderRadius: 9,
+      borderRadius: "var(--r-chip)",
       background: "rgba(255,255,255,.16)",
       color: "#fff",
       fontSize: 12,
@@ -399,7 +399,7 @@ function EcBigShot({
     download: shot.name || "ใบเสร็จ.pdf",
     style: {
       padding: "7px 13px",
-      borderRadius: 9,
+      borderRadius: "var(--r-chip)",
       background: "rgba(255,255,255,.16)",
       color: "#fff",
       fontSize: 12,
@@ -412,7 +412,7 @@ function EcBigShot({
     style: {
       width: 32,
       height: 32,
-      borderRadius: 9,
+      borderRadius: "var(--r-chip)",
       border: "none",
       background: "rgba(255,255,255,.16)",
       color: "#fff",
@@ -431,7 +431,7 @@ function EcBigShot({
       flex: 1,
       width: "100%",
       border: "none",
-      borderRadius: 10,
+      borderRadius: "var(--r-tile)",
       background: "#fff"
     }
   }) : React.createElement("div", {
@@ -542,7 +542,7 @@ function EcClaimModal({
     style: {
       width: 34,
       height: 34,
-      borderRadius: 10,
+      borderRadius: "var(--r-tile)",
       display: "grid",
       placeItems: "center",
       flexShrink: 0,
@@ -591,8 +591,8 @@ function EcClaimModal({
       fontWeight: 700,
       color: "var(--text-2)",
       background: "var(--surface2)",
-      border: "1px solid var(--border)",
-      borderRadius: 99,
+      boxShadow: "var(--shadow-sm)",
+      borderRadius: "var(--r-pill)",
       padding: "3px 9px"
     }
   }, React.createElement(Icon, {
@@ -605,8 +605,8 @@ function EcClaimModal({
     style: {
       width: 30,
       height: 30,
-      borderRadius: 9,
-      border: "1px solid var(--border)",
+      borderRadius: "var(--r-chip)",
+      boxShadow: "var(--shadow-sm)",
       background: "var(--surface)",
       cursor: "pointer",
       display: "grid",
@@ -622,8 +622,8 @@ function EcClaimModal({
     style: {
       width: 30,
       height: 30,
-      borderRadius: 9,
-      border: "1px solid var(--border)",
+      borderRadius: "var(--r-chip)",
+      boxShadow: "var(--shadow-sm)",
       background: "var(--surface)",
       cursor: "pointer",
       display: "grid",
@@ -648,9 +648,9 @@ function EcClaimModal({
       flexWrap: "wrap",
       marginBottom: 16,
       padding: "13px 16px",
-      borderRadius: 13,
+      borderRadius: "var(--r-tile)",
       background: "var(--surface)",
-      border: "1px solid var(--border)",
+      boxShadow: "var(--shadow-sm)",
       borderLeft: "3px solid " + pay.color
     }
   }, React.createElement("div", {
@@ -905,7 +905,7 @@ function EcClaimModal({
       color: "var(--tint-amber-tx)",
       background: "var(--tint-amber-bg)",
       border: "1px solid var(--tint-amber-bd)",
-      borderRadius: 9,
+      borderRadius: "var(--r-chip)",
       padding: "8px 11px",
       marginBottom: 12
     }
@@ -916,7 +916,7 @@ function EcClaimModal({
       color: "var(--tint-amber-tx)",
       background: "var(--tint-amber-bg)",
       border: "1px solid var(--tint-amber-bd)",
-      borderRadius: 9,
+      borderRadius: "var(--r-chip)",
       padding: "8px 11px",
       marginBottom: 12
     }
@@ -981,7 +981,7 @@ function EcClaimModal({
       alignItems: "center",
       gap: 6,
       padding: "9px 16px",
-      borderRadius: 10,
+      borderRadius: "var(--r-tile)",
       border: "1px solid " + s.color,
       background: s.color + "16",
       cursor: "pointer",
@@ -1007,8 +1007,6 @@ function EcClaimModal({
     style: {
       fontSize: 11,
       fontWeight: 700,
-      letterSpacing: ".07em",
-      textTransform: "uppercase",
       color: "var(--text-3)",
       marginBottom: 8
     }
@@ -1045,7 +1043,7 @@ function EcClaimModal({
       alignItems: "center",
       gap: 6,
       padding: "8px 14px",
-      borderRadius: 9,
+      borderRadius: "var(--r-chip)",
       border: "1px solid var(--tint-red-bd)",
       background: "var(--tint-red-bg)",
       cursor: "pointer",
@@ -1089,7 +1087,7 @@ function EcDocMark({
         alignItems: "center",
         gap: 6,
         padding: "7px 12px",
-        borderRadius: 99,
+        borderRadius: "var(--r-pill)",
         background: color + "16",
         border: "1px solid " + color + "55",
         fontSize: 12,
@@ -1127,7 +1125,7 @@ function EcDocMark({
       alignItems: "center",
       gap: 6,
       padding: "7px 13px",
-      borderRadius: 99,
+      borderRadius: "var(--r-pill)",
       border: "1px dashed var(--border-strong)",
       background: "var(--surface)",
       cursor: "pointer",
@@ -1165,7 +1163,7 @@ function EcClaimRow({
     marginRight: 5,
     fontSize: 11.5,
     fontWeight: 700,
-    borderRadius: 99,
+    borderRadius: "var(--r-pill)",
     padding: "3px 9px",
     cursor: "pointer",
     fontFamily: "inherit"
@@ -1201,9 +1199,9 @@ function EcClaimRow({
       alignItems: "center",
       gap: 12,
       padding: "11px 13px",
-      borderRadius: 12,
+      borderRadius: "var(--r-tile)",
       background: "var(--surface)",
-      border: "1px solid var(--border)",
+      boxShadow: "var(--shadow-sm)",
       borderLeft: "3px solid " + st.color,
       cursor: "pointer",
       fontFamily: "inherit",
@@ -1214,7 +1212,7 @@ function EcClaimRow({
     style: {
       width: 32,
       height: 32,
-      borderRadius: 9,
+      borderRadius: "var(--r-chip)",
       display: "grid",
       placeItems: "center",
       flexShrink: 0,
@@ -1347,7 +1345,7 @@ function EcClaimRow({
       fontWeight: 700,
       color: "#0F7A5A",
       background: "#10B98122",
-      borderRadius: 99,
+      borderRadius: "var(--r-pill)",
       padding: "3px 9px"
     }
   }, React.createElement(Icon, {
@@ -1369,12 +1367,11 @@ function EcClaimRow({
     style: {
       width: 28,
       height: 28,
-      borderRadius: 8,
+      borderRadius: "var(--r-chip)",
       flexShrink: 0,
       display: "grid",
       placeItems: "center",
-      border: "1px solid var(--border)",
-      background: "var(--surface)",
+      background: "var(--surface2)",
       cursor: "pointer"
     }
   }, React.createElement(Icon, {
@@ -1425,8 +1422,8 @@ function EcPersonTable({
   return React.createElement("div", {
     style: {
       background: "var(--surface)",
-      border: "1px solid var(--border)",
-      borderRadius: 14,
+      boxShadow: "var(--shadow-sm)",
+      borderRadius: "var(--r-tile)",
       overflow: "hidden"
     }
   }, React.createElement("div", {
@@ -1520,8 +1517,8 @@ function EcPersonTable({
         gap: 5,
         marginRight: canPay ? 6 : 0,
         padding: "7px 12px",
-        borderRadius: 9,
-        border: "1px solid var(--border-strong)",
+        borderRadius: "var(--r-chip)",
+        boxShadow: "var(--shadow-sm)",
         background: "var(--surface)",
         color: "var(--text-2)",
         cursor: "pointer",
@@ -1545,7 +1542,7 @@ function EcPersonTable({
         style: {
           whiteSpace: "nowrap",
           padding: "7px 13px",
-          borderRadius: 9,
+          borderRadius: "var(--r-chip)",
           border: "none",
           background: ck.ok ? "var(--primary)" : "var(--surface2)",
           color: ck.ok ? "#fff" : "var(--text-3)",
@@ -1698,7 +1695,7 @@ function EcPayModal({
     style: {
       width: 34,
       height: 34,
-      borderRadius: 10,
+      borderRadius: "var(--r-tile)",
       display: "grid",
       placeItems: "center",
       background: "#10B9811a"
@@ -1729,8 +1726,8 @@ function EcPayModal({
     style: {
       width: 30,
       height: 30,
-      borderRadius: 9,
-      border: "1px solid var(--border)",
+      borderRadius: "var(--r-chip)",
+      boxShadow: "var(--shadow-sm)",
       background: "var(--surface)",
       cursor: "pointer",
       display: "grid",
@@ -1767,8 +1764,9 @@ function EcPayModal({
     }
   }, "\u0E1A\u0E32\u0E17 \xB7 \u0E22\u0E2D\u0E14\u0E17\u0E35\u0E48\u0E08\u0E30\u0E42\u0E2D\u0E19\u0E04\u0E37\u0E19\u0E43\u0E19\u0E23\u0E2D\u0E1A\u0E19\u0E35\u0E49")), React.createElement("div", {
     style: {
-      border: "1px solid var(--border)",
-      borderRadius: 12,
+      background: "var(--surface)",
+      boxShadow: "var(--shadow-sm)",
+      borderRadius: "var(--r-tile)",
       overflow: "hidden",
       marginBottom: 15
     }
@@ -1822,8 +1820,8 @@ function EcPayModal({
       gap: 11,
       padding: 9,
       marginBottom: 12,
-      border: "1px solid var(--border)",
-      borderRadius: 11,
+      boxShadow: "var(--shadow-sm)",
+      borderRadius: "var(--r-tile)",
       background: "var(--surface)"
     }
   }, slip.kind === "pdf" ? React.createElement("span", {
@@ -1831,7 +1829,7 @@ function EcPayModal({
       width: 54,
       height: 54,
       flexShrink: 0,
-      borderRadius: 9,
+      borderRadius: "var(--r-chip)",
       display: "grid",
       placeItems: "center",
       background: "#EF44441a"
@@ -1848,8 +1846,7 @@ function EcPayModal({
       height: 54,
       flexShrink: 0,
       objectFit: "cover",
-      borderRadius: 9,
-      border: "1px solid var(--border)"
+      borderRadius: "var(--r-chip)"
     }
   }), React.createElement("span", {
     style: {
@@ -1879,11 +1876,10 @@ function EcPayModal({
       width: 28,
       height: 28,
       flexShrink: 0,
-      borderRadius: 8,
+      borderRadius: "var(--r-chip)",
       display: "grid",
       placeItems: "center",
-      border: "1px solid var(--border)",
-      background: "var(--surface)",
+      background: "var(--surface2)",
       cursor: "pointer"
     }
   }, React.createElement(Icon, {
@@ -1903,7 +1899,7 @@ function EcPayModal({
       alignItems: "center",
       gap: 7,
       padding: "9px 14px",
-      borderRadius: 10,
+      borderRadius: "var(--r-tile)",
       border: "1px dashed var(--border-strong)",
       background: "var(--surface)",
       cursor: "pointer",
@@ -1927,7 +1923,7 @@ function EcPayModal({
       alignItems: "center",
       gap: 7,
       padding: "9px 14px",
-      borderRadius: 10,
+      borderRadius: "var(--r-tile)",
       border: "1px dashed var(--border-strong)",
       background: "var(--surface)",
       cursor: "pointer",
@@ -1972,7 +1968,7 @@ function EcPayModal({
       color: "var(--tint-amber-tx)",
       background: "var(--tint-amber-bg)",
       border: "1px solid var(--tint-amber-bd)",
-      borderRadius: 9,
+      borderRadius: "var(--r-chip)",
       padding: "8px 11px",
       marginTop: 12
     }
@@ -1988,8 +1984,8 @@ function EcPayModal({
     onClick: onClose,
     style: {
       padding: "10px 18px",
-      borderRadius: 10,
-      border: "1px solid var(--border-strong)",
+      borderRadius: "var(--r-tile)",
+      boxShadow: "var(--shadow-sm)",
       background: "var(--surface)",
       cursor: "pointer",
       fontFamily: "inherit",
@@ -2005,9 +2001,8 @@ function EcPayModal({
       alignItems: "center",
       gap: 6,
       padding: "10px 15px",
-      borderRadius: 10,
-      border: "1px solid var(--border-strong)",
-      background: "var(--surface)",
+      borderRadius: "var(--r-tile)",
+      background: "var(--surface2)",
       cursor: "pointer",
       fontFamily: "inherit",
       fontSize: 13,
@@ -2024,7 +2019,7 @@ function EcPayModal({
     style: {
       flex: 1,
       padding: "10px 18px",
-      borderRadius: 10,
+      borderRadius: "var(--r-tile)",
       border: "none",
       background: ck.ok ? "#10B981" : "var(--surface2)",
       color: ck.ok ? "#fff" : "var(--text-3)",
@@ -2065,8 +2060,6 @@ function EcBatchList({
     style: {
       fontSize: 11,
       fontWeight: 700,
-      letterSpacing: ".07em",
-      textTransform: "uppercase",
       color: "var(--text-3)",
       marginBottom: 8
     }
@@ -2078,9 +2071,9 @@ function EcBatchList({
       gap: 10,
       flexWrap: "wrap",
       padding: "9px 12px",
-      borderRadius: 10,
+      borderRadius: "var(--r-tile)",
       background: "var(--surface)",
-      border: "1px solid var(--border)",
+      boxShadow: "var(--shadow-sm)",
       marginBottom: 6
     }
   }, React.createElement("span", {
@@ -2118,9 +2111,8 @@ function EcBatchList({
       alignItems: "center",
       gap: 5,
       padding: "6px 11px",
-      borderRadius: 9,
-      border: "1px solid var(--border-strong)",
-      background: "var(--surface)",
+      borderRadius: "var(--r-chip)",
+      background: "var(--surface2)",
       cursor: "pointer",
       fontFamily: "inherit",
       fontSize: 11.5,
@@ -2139,9 +2131,8 @@ function EcBatchList({
       alignItems: "center",
       gap: 5,
       padding: "6px 11px",
-      borderRadius: 9,
-      border: "1px solid var(--border-strong)",
-      background: "var(--surface)",
+      borderRadius: "var(--r-chip)",
+      background: "var(--surface2)",
       cursor: "pointer",
       fontFamily: "inherit",
       fontSize: 11.5,
@@ -2158,11 +2149,10 @@ function EcBatchList({
     style: {
       width: 28,
       height: 28,
-      borderRadius: 8,
+      borderRadius: "var(--r-chip)",
       display: "grid",
       placeItems: "center",
-      border: "1px solid var(--border)",
-      background: "var(--surface)",
+      background: "var(--surface2)",
       cursor: "pointer"
     }
   }, React.createElement(Icon, {
@@ -2214,9 +2204,9 @@ function EcJobTable({
     onClick: () => onPick && onPick(r),
     style: {
       padding: "11px 13px",
-      borderRadius: 12,
+      borderRadius: "var(--r-tile)",
       background: "var(--surface)",
-      border: "1px solid var(--border)",
+      boxShadow: "var(--shadow-sm)",
       marginBottom: 7,
       cursor: onPick ? "pointer" : "default"
     }
@@ -2297,9 +2287,9 @@ function EcJobTable({
       flexWrap: "wrap",
       justifyContent: "flex-end",
       padding: "11px 13px",
-      borderRadius: 12,
+      borderRadius: "var(--r-tile)",
       background: "var(--surface2)",
-      border: "1px solid var(--border)"
+      boxShadow: "var(--shadow-sm)"
     }
   }, React.createElement(EcMini, {
     label: "\u0E40\u0E07\u0E34\u0E19\u0E2A\u0E14\u0E2B\u0E19\u0E49\u0E32\u0E07\u0E32\u0E19\u0E23\u0E27\u0E21",
@@ -2374,10 +2364,9 @@ function EcJobButton({
       alignItems: "center",
       gap: 10,
       padding: "12px 14px",
-      background: "var(--surface)",
-      border: "1px solid var(--border-strong)",
+      background: "var(--surface2)",
       borderLeft: "3px solid " + color,
-      borderRadius: 12,
+      borderRadius: "var(--r-tile)",
       cursor: "pointer",
       fontFamily: "inherit",
       textAlign: "left"
@@ -2386,7 +2375,7 @@ function EcJobButton({
     style: {
       width: 34,
       height: 34,
-      borderRadius: 9,
+      borderRadius: "var(--r-chip)",
       background: color + "1c",
       display: "grid",
       placeItems: "center",
@@ -2610,9 +2599,9 @@ function ExpenseView({
       flexWrap: "wrap",
       alignItems: "center",
       padding: "11px 13px",
-      borderRadius: 12,
+      borderRadius: "var(--r-tile)",
       background: "var(--surface2)",
-      border: "1px solid var(--border)"
+      boxShadow: "var(--shadow-sm)"
     }
   }, React.createElement("span", {
     style: {
@@ -2634,7 +2623,7 @@ function ExpenseView({
       alignItems: "center",
       gap: 6,
       padding: "9px 15px",
-      borderRadius: 10,
+      borderRadius: "var(--r-tile)",
       border: "none",
       background: "var(--primary)",
       color: "#fff",
@@ -2661,8 +2650,8 @@ function ExpenseView({
       alignItems: "center",
       gap: 6,
       padding: "8px 14px",
-      borderRadius: 99,
-      border: "1px solid " + (tab === k ? "var(--primary)" : "var(--border-strong)"),
+      borderRadius: "var(--r-pill)",
+      border: "1px solid " + (tab === k ? "var(--primary)" : "transparent"),
       background: tab === k ? "var(--primary-soft)" : "var(--surface)",
       cursor: "pointer",
       fontFamily: "inherit",
@@ -2690,9 +2679,8 @@ function ExpenseView({
       alignItems: "center",
       gap: 6,
       padding: "8px 14px",
-      borderRadius: 99,
-      border: "1px solid var(--border-strong)",
-      background: "var(--surface)",
+      borderRadius: "var(--r-pill)",
+      background: "var(--surface2)",
       cursor: "pointer",
       fontFamily: "inherit",
       fontSize: 12.5,
@@ -2737,9 +2725,9 @@ function ExpenseView({
       gap: 8,
       flexWrap: "wrap",
       padding: "8px 12px",
-      borderRadius: 10,
+      borderRadius: "var(--r-tile)",
       background: "var(--surface2)",
-      border: "1px solid var(--border)"
+      boxShadow: "var(--shadow-sm)"
     }
   }, React.createElement(Icon, {
     name: "sun",
@@ -2756,8 +2744,8 @@ function ExpenseView({
     style: {
       marginLeft: "auto",
       padding: "5px 11px",
-      borderRadius: 8,
-      border: "1px solid var(--border-strong)",
+      borderRadius: "var(--r-chip)",
+      boxShadow: "var(--shadow-sm)",
       background: "var(--surface)",
       cursor: "pointer",
       fontFamily: "inherit",

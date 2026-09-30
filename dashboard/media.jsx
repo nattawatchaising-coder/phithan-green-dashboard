@@ -213,7 +213,7 @@ function JobPhotos({ media, currentUser, canManage, readOnly }) {
   return (
     <div style={{ marginBottom: 24 }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
-        <span style={{ fontSize: 11, fontWeight: 700, letterSpacing: ".08em", color: "var(--text-3)", textTransform: "uppercase", display: "flex", alignItems: "center", gap: 6 }}>
+        <span style={{ fontSize: 11, fontWeight: 700, letterSpacing: ".08em", color: "var(--text-3)", display: "flex", alignItems: "center", gap: 6 }}>
           <Icon name="image" size={14} color="var(--text-2)" /> รูปหน้างาน{n > 0 && " · " + n}
         </span>
         {!readOnly && <button onClick={() => fileRef.current && fileRef.current.click()} disabled={busy}
@@ -352,7 +352,7 @@ function JobFiles({ media, currentUser, canManage }) {
   return (
     <div style={{ marginBottom: 24 }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10, marginBottom: 12, flexWrap: "wrap" }}>
-        <span style={{ fontSize: 11, fontWeight: 700, letterSpacing: ".08em", color: "var(--text-3)", textTransform: "uppercase", display: "flex", alignItems: "center", gap: 6 }}>
+        <span style={{ fontSize: 11, fontWeight: 700, letterSpacing: ".08em", color: "var(--text-3)", display: "flex", alignItems: "center", gap: 6 }}>
           <Icon name="file" size={14} color="var(--text-2)" /> เอกสารแนบ (PDF){files.length > 0 && " · " + files.length}
         </span>
         <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
@@ -413,7 +413,7 @@ function JobComments({ media, currentUser, canManage }) {
 
   return (
     <div style={{ marginBottom: 20 }}>
-      <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: ".08em", color: "var(--text-3)", textTransform: "uppercase", marginBottom: 12, display: "flex", alignItems: "center", gap: 6 }}>
+      <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: ".08em", color: "var(--text-3)", marginBottom: 12, display: "flex", alignItems: "center", gap: 6 }}>
         <Icon name="message" size={14} color="var(--text-2)" /> พูดคุย / บันทึกงาน{media.comments.length > 0 && " · " + media.comments.length}
       </div>
 

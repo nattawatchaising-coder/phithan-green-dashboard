@@ -183,8 +183,6 @@ function TableView({
         padding: "12px 14px",
         fontSize: 10,
         fontWeight: 800,
-        letterSpacing: ".09em",
-        textTransform: "uppercase",
         color: active ? "var(--primary-dark)" : "var(--text-3)",
         textAlign: center ? "center" : "left",
         whiteSpace: "nowrap",

@@ -37,7 +37,7 @@ function BlRail({ rows, curId, onPick }) {
         return (
           <div key={r.id} onClick={onPick ? () => onPick(r) : undefined}
             style={{ flex: 1, minWidth: 0, cursor: onPick ? "pointer" : "default" }}>
-            <div style={{ height: 4, borderRadius: 99, background: st.color, opacity: r.status === "pending" ? 0.35 : 1 }} />
+            <div style={{ height: 4, borderRadius: "var(--r-pill)", background: st.color, opacity: r.status === "pending" ? 0.35 : 1 }} />
             <div style={{ fontSize: 9.5, marginTop: 3, color: on ? st.color : "var(--text-3)", fontWeight: on ? 800 : 600,
               whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>งวด {r.n}</div>
           </div>
@@ -55,7 +55,7 @@ function BlNote({ tone, children }) {
       ? { bg: "var(--tint-red-bg)", bd: "var(--tint-red-bd)", tx: "var(--tint-red-tx)" }
       : { bg: "var(--tint-amber-bg)", bd: "var(--tint-amber-bd)", tx: "var(--tint-amber-tx)" };
   return (
-    <div style={{ margin: "0 12px 10px", padding: "8px 11px", borderRadius: 10, background: c.bg,
+    <div style={{ margin: "0 12px 10px", padding: "8px 11px", borderRadius: "var(--r-tile)", background: c.bg,
       border: "1px solid " + c.bd, color: c.tx, fontSize: 11.5, lineHeight: 1.55 }}>{children}</div>
   );
 }
@@ -72,7 +72,7 @@ function BlMoveBtns({ row, bills, role, currentUser, job, onMove, size }) {
         const fwd = window.blFlowIdx(s.key) > window.blFlowIdx(row.status);
         return (
           <button key={s.key} onClick={() => onMove(row, s.key)}
-            style={{ padding: size === "sm" ? "6px 10px" : "8px 12px", borderRadius: 9, fontFamily: "inherit",
+            style={{ padding: size === "sm" ? "6px 10px" : "8px 12px", borderRadius: "var(--r-chip)", fontFamily: "inherit",
               fontSize: size === "sm" ? 11.5 : 12.5, fontWeight: 700, cursor: "pointer",
               border: fwd ? "none" : "1px solid var(--border-strong)",
               background: fwd ? s.color : "var(--surface)", color: fwd ? "#fff" : "var(--text-2)" }}>
@@ -93,7 +93,7 @@ function BlPaidSum({ info, onClose, flush }) {
   if (!info) return null;
   const S = info.S;
   return (
-    <div style={{ margin: flush ? "0 0 12px" : "0 12px 10px", padding: "10px 12px", borderRadius: 10,
+    <div style={{ margin: flush ? "0 0 12px" : "0 12px 10px", padding: "10px 12px", borderRadius: "var(--r-tile)",
       background: "var(--tint-ok-bg)", border: "1px solid var(--tint-ok-bd)", color: "var(--tint-ok-tx)" }}>
       <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
         <span style={{ flex: 1, fontSize: 12.5, fontWeight: 800 }}>
@@ -122,8 +122,8 @@ function BlMoneyStrip({ S }) {
   return (
     <div style={{ display: "flex", gap: 6 }}>
       {cells.map(([label, v, color]) => (
-        <div key={label} style={{ flex: 1, minWidth: 0, padding: "7px 9px", borderRadius: 9,
-          background: "var(--surface2)", border: "1px solid var(--border)" }}>
+        <div key={label} style={{ flex: 1, minWidth: 0, padding: "7px 9px", borderRadius: "var(--r-chip)",
+          background: "var(--surface2)", boxShadow: "var(--shadow-sm)" }}>
           <div style={{ fontSize: 10, color: "var(--text-3)", fontWeight: 700 }}>{label}</div>
           <div style={{ fontSize: 12.5, fontWeight: 800, color: color, fontFamily: "var(--mono)",
             whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{blMoney(v)}</div>
@@ -169,16 +169,16 @@ function BlPayModal({ row, onCancel, onOk }) {
   };
 
   const drop = (i) => setSlips((a) => a.filter((x, k) => k !== i));
-  const dash = { display: "inline-flex", alignItems: "center", gap: 7, padding: "9px 14px", borderRadius: 10,
+  const dash = { display: "inline-flex", alignItems: "center", gap: 7, padding: "9px 14px", borderRadius: "var(--r-tile)",
     border: "1px dashed var(--border-strong)", background: "var(--surface)", cursor: "pointer",
     fontFamily: "inherit", fontSize: 12.5, fontWeight: 700, color: "var(--text-2)" };
 
   return (
     <div style={{ position: "fixed", inset: 0, zIndex: 200, background: "rgba(8,20,14,.5)", overflow: "auto", padding: "18px 12px" }}>
-      <div style={{ maxWidth: 480, margin: "0 auto", background: "var(--surface)", borderRadius: 16,
+      <div style={{ maxWidth: 480, margin: "0 auto", background: "var(--surface)", borderRadius: "var(--r-tile)",
         boxShadow: "var(--shadow-lg)", overflow: "hidden" }}>
         <div style={{ display: "flex", gap: 12, alignItems: "flex-start", padding: "18px 20px 0" }}>
-          <span style={{ width: 38, height: 38, borderRadius: 11, flexShrink: 0, display: "grid", placeItems: "center",
+          <span style={{ width: 38, height: 38, borderRadius: "var(--r-tile)", flexShrink: 0, display: "grid", placeItems: "center",
             background: "#10B9811a" }}>
             <Icon name="wallet" size={18} color="#10B981" />
           </span>
@@ -202,14 +202,14 @@ function BlPayModal({ row, onCancel, onOk }) {
           </div>
           {slips.map((s, i) => (
             <div key={i} style={{ display: "flex", alignItems: "center", gap: 11, padding: 9, marginBottom: 8,
-              border: "1px solid var(--border)", borderRadius: 11, background: "var(--surface2)" }}>
+              borderRadius: "var(--r-tile)", background: "var(--surface2)" }}>
               {s.fileKind === "pdf" ? (
-                <span style={{ width: 48, height: 48, flexShrink: 0, borderRadius: 9, display: "grid", placeItems: "center", background: "#EF44441a" }}>
+                <span style={{ width: 48, height: 48, flexShrink: 0, borderRadius: "var(--r-chip)", display: "grid", placeItems: "center", background: "#EF44441a" }}>
                   <Icon name="file" size={19} color="#EF4444" />
                 </span>
               ) : (
                 <img src={s.dataUrl} alt="" style={{ width: 48, height: 48, flexShrink: 0, objectFit: "cover",
-                  borderRadius: 9, border: "1px solid var(--border)" }} />
+                  borderRadius: "var(--r-chip)" }} />
               )}
               <span style={{ flex: 1, minWidth: 0 }}>
                 <span style={{ display: "block", fontSize: 12.5, fontWeight: 700, color: "var(--text-1)",
@@ -219,8 +219,8 @@ function BlPayModal({ row, onCancel, onOk }) {
                 </span>
               </span>
               <button onClick={() => drop(i)} title="เอาออก"
-                style={{ width: 28, height: 28, flexShrink: 0, borderRadius: 8, display: "grid", placeItems: "center",
-                  border: "1px solid var(--border)", background: "var(--surface)", cursor: "pointer" }}>
+                style={{ width: 28, height: 28, flexShrink: 0, borderRadius: "var(--r-chip)", display: "grid", placeItems: "center",
+                  background: "var(--surface2)", cursor: "pointer" }}>
                 <Icon name="x" size={14} color="var(--text-2)" />
               </button>
             </div>
@@ -239,12 +239,12 @@ function BlPayModal({ row, onCancel, onOk }) {
         </div>
 
         <div style={{ display: "flex", gap: 8, justifyContent: "flex-end", padding: "18px 20px 20px" }}>
-          <button onClick={onCancel} style={{ padding: "10px 16px", borderRadius: 10, border: "1px solid var(--border-strong)",
+          <button onClick={onCancel} style={{ padding: "10px 16px", borderRadius: "var(--r-tile)", boxShadow: "var(--shadow-sm)",
             background: "var(--surface)", color: "var(--text-2)", fontFamily: "inherit", fontSize: 13, fontWeight: 700, cursor: "pointer" }}>
             ยกเลิก
           </button>
           <button onClick={() => { if (!busy) onOk(ref, slips); }} disabled={!!busy}
-            style={{ padding: "10px 18px", borderRadius: 10, border: "none", background: busy ? "var(--surface3)" : "#10B981",
+            style={{ padding: "10px 18px", borderRadius: "var(--r-tile)", border: "none", background: busy ? "var(--surface3)" : "#10B981",
               color: busy ? "var(--text-3)" : "#fff", fontFamily: "inherit", fontSize: 13, fontWeight: 700, cursor: busy ? "default" : "pointer" }}>
             บันทึกรับเงิน
           </button>
@@ -295,12 +295,12 @@ function BlJobCard({ job, quotes, leads, role, currentUser, readOnly, onOpen, on
   return (
     <div style={{ marginBottom: 22, border: "1px solid " + (S.overdue.length ? "var(--tint-amber-bd)" : "var(--border-strong)"),
       borderLeft: "3px solid " + (st ? st.color : (!S.has && quote ? "var(--primary)" : "var(--border-strong)")),
-      borderRadius: 12, overflow: "hidden", background: "var(--surface)" }}>
+      borderRadius: "var(--r-tile)", overflow: "hidden", background: "var(--surface)" }}>
 
       <button onClick={onOpen} disabled={!onOpen}
         style={{ width: "100%", display: "flex", alignItems: "center", gap: 10, padding: "12px 14px",
           background: "none", border: "none", cursor: onOpen ? "pointer" : "default", fontFamily: "inherit", textAlign: "left" }}>
-        <span style={{ width: 34, height: 34, borderRadius: 9, background: BL_ACCENT + "1c", display: "grid", placeItems: "center", flexShrink: 0 }}>
+        <span style={{ width: 34, height: 34, borderRadius: "var(--r-chip)", background: BL_ACCENT + "1c", display: "grid", placeItems: "center", flexShrink: 0 }}>
           <Icon name="file" size={17} color={BL_ACCENT} />
         </span>
         <span style={{ flex: 1, minWidth: 0 }}>
@@ -332,7 +332,7 @@ function BlJobCard({ job, quotes, leads, role, currentUser, readOnly, onOpen, on
               <BlMoveBtns row={cur} bills={bills} role={role} currentUser={currentUser} job={j} onMove={move} size="sm" />
               {window.blPrintable(cur) && (
                 <button onClick={() => setPrint(cur)}
-                  style={{ padding: "6px 10px", borderRadius: 9, border: "1px solid var(--border-strong)", background: "var(--surface)",
+                  style={{ padding: "6px 10px", borderRadius: "var(--r-chip)", background: "var(--surface2)",
                     color: "var(--text-2)", fontFamily: "inherit", fontSize: 11.5, fontWeight: 700, cursor: "pointer" }}>
                   พิมพ์เอกสาร
                 </button>
@@ -420,7 +420,7 @@ function BlPhotoPick({ job, row, api, items, itemId, currentUser, onClose }) {
         const on = has(sr);
         return (
           <button key={p.id} onClick={() => take(p, src, sr)} disabled={on}
-            style={{ padding: 0, border: "2px solid " + (on ? "var(--primary)" : "var(--border)"), borderRadius: 10,
+            style={{ padding: 0, border: "2px solid " + (on ? "var(--primary)" : "var(--border)"), borderRadius: "var(--r-tile)",
               overflow: "hidden", background: "var(--surface2)", cursor: on ? "default" : "pointer", position: "relative" }}>
             <img src={p.dataUrl} alt="" style={{ display: "block", width: "100%", height: 78, objectFit: "cover", opacity: on ? 0.45 : 1 }} />
             {on && <span style={{ position: "absolute", inset: 0, display: "grid", placeItems: "center",
@@ -434,14 +434,14 @@ function BlPhotoPick({ job, row, api, items, itemId, currentUser, onClose }) {
 
   const tabBtn = (id, label) => (
     <button onClick={() => setTab(id)}
-      style={{ padding: "7px 12px", borderRadius: 9, fontFamily: "inherit", fontSize: 12.5, fontWeight: 700, cursor: "pointer",
+      style={{ padding: "7px 12px", borderRadius: "var(--r-chip)", fontFamily: "inherit", fontSize: 12.5, fontWeight: 700, cursor: "pointer",
         border: "1px solid " + (tab === id ? BL_ACCENT : "var(--border-strong)"),
         background: tab === id ? BL_ACCENT + "18" : "var(--surface)", color: tab === id ? BL_ACCENT : "var(--text-2)" }}>{label}</button>
   );
 
   return (
     <div style={{ position: "fixed", inset: 0, zIndex: 190, background: "rgba(8,20,14,.5)", overflow: "auto", padding: "18px 12px" }}>
-      <div style={{ maxWidth: 720, margin: "0 auto", background: "var(--surface)", borderRadius: 14, boxShadow: "var(--shadow-lg)", overflow: "hidden" }}>
+      <div style={{ maxWidth: 720, margin: "0 auto", background: "var(--surface)", borderRadius: "var(--r-tile)", boxShadow: "var(--shadow-lg)", overflow: "hidden" }}>
         <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "13px 15px", borderBottom: "1px solid var(--border)" }}>
           <div style={{ flex: 1, minWidth: 0 }}>
             <div style={{ fontSize: 14, fontWeight: 800, color: "var(--text-1)" }}>
@@ -451,7 +451,7 @@ function BlPhotoPick({ job, row, api, items, itemId, currentUser, onClose }) {
               {itemId ? "รูปที่เลือกจะเข้ารายการนี้ · " : ""}ทั้งงวดมี {picked.length} รูป · แผ่นละ 4 รูปเวลาพิมพ์
             </div>
           </div>
-          <button onClick={onClose} style={{ width: 34, height: 34, borderRadius: 10, border: "1px solid var(--border-strong)",
+          <button onClick={onClose} style={{ width: 34, height: 34, borderRadius: "var(--r-tile)", boxShadow: "var(--shadow-sm)",
             background: "var(--surface)", cursor: "pointer", display: "grid", placeItems: "center", color: "var(--text-2)" }}>
             <Icon name="x" size={15} />
           </button>
@@ -477,7 +477,7 @@ function BlPhotoPick({ job, row, api, items, itemId, currentUser, onClose }) {
           {tab === "job" && grid(media.photos || [], "job", (p) => "job/" + p.id)}
           {tab === "up" && (
             <div>
-              <label style={{ display: "inline-flex", alignItems: "center", gap: 8, padding: "10px 14px", borderRadius: 11,
+              <label style={{ display: "inline-flex", alignItems: "center", gap: 8, padding: "10px 14px", borderRadius: "var(--r-tile)",
                 border: "1px dashed var(--border-strong)", cursor: "pointer", fontSize: 13, fontWeight: 700, color: "var(--text-2)" }}>
                 <Icon name="camera" size={16} color="var(--text-2)" />
                 {busy ? "กำลังย่อรูป…" : "เลือกไฟล์รูป"}
@@ -494,7 +494,7 @@ function BlPhotoPick({ job, row, api, items, itemId, currentUser, onClose }) {
             </div>
             {mine.map((p) => (
               <div key={p.id} style={{ display: "flex", gap: 10, alignItems: "center", marginBottom: 8 }}>
-                <img src={p.dataUrl} alt="" style={{ width: 64, height: 48, objectFit: "cover", borderRadius: 8, border: "1px solid var(--border)" }} />
+                <img src={p.dataUrl} alt="" style={{ width: 64, height: 48, objectFit: "cover", borderRadius: "var(--r-chip)" }} />
                 <input value={p.cap || ""} onChange={(e) => api.setCap(p.id, e.target.value)} placeholder="คำบรรยายใต้รูป (ไม่ใส่ก็ได้)"
                   style={Object.assign({}, BL_INPUT(), { fontSize: 12.5, padding: "8px 10px" })} />
                 {/* ย้ายรูปข้ามรายการโดยไม่ต้องลบแล้วเลือกใหม่ — รูปที่อัปโหลดเองมีอยู่ชุดเดียว เลือกใหม่ไม่ได้ */}
@@ -503,7 +503,7 @@ function BlPhotoPick({ job, row, api, items, itemId, currentUser, onClose }) {
                   <option value="">— ไม่ผูกกับรายการ —</option>
                   {its.map((x, i) => <option key={x.id} value={x.id}>{(i + 1) + ". " + (x.text || "(ยังไม่ตั้งชื่อ)")}</option>)}
                 </select>
-                <button onClick={() => api.remove(p.id)} style={{ width: 32, height: 32, flexShrink: 0, borderRadius: 9,
+                <button onClick={() => api.remove(p.id)} style={{ width: 32, height: 32, flexShrink: 0, borderRadius: "var(--r-chip)",
                   border: "1px solid var(--tint-red-bd)", background: "var(--tint-red-bg)", color: "var(--tint-red-tx)", cursor: "pointer" }}>
                   <Icon name="trash" size={14} color="var(--tint-red-tx)" />
                 </button>
@@ -514,7 +514,7 @@ function BlPhotoPick({ job, row, api, items, itemId, currentUser, onClose }) {
         </div>
 
         <div style={{ padding: "12px 15px", borderTop: "1px solid var(--border)", textAlign: "right" }}>
-          <button onClick={onClose} style={{ padding: "10px 18px", borderRadius: 11, border: "none", background: "var(--primary)",
+          <button onClick={onClose} style={{ padding: "10px 18px", borderRadius: "var(--r-tile)", border: "none", background: "var(--primary)",
             color: "#fff", fontFamily: "inherit", fontSize: 13.5, fontWeight: 700, cursor: "pointer" }}>เสร็จแล้ว</button>
         </div>
       </div>
@@ -557,12 +557,12 @@ function BlRowDetail({ job, row, onPatch, currentUser, readOnly }) {
     <div style={{ display: "flex", gap: 6, flexWrap: "wrap", alignItems: "center" }}>
       {ps.slice(0, 10).map((p) => (
         <img key={p.id} src={p.dataUrl} alt="" title={p.cap || ""}
-          style={{ width: 46, height: 36, objectFit: "cover", borderRadius: 6, border: "1px solid var(--border)" }} />
+          style={{ width: 46, height: 36, objectFit: "cover", borderRadius: "var(--r-chip)" }} />
       ))}
       {ps.length > 10 && <span style={{ fontSize: 11, color: "var(--text-3)" }}>+{ps.length - 10}</span>}
       {!readOnly && (
         <button onClick={() => setPick(itId)}
-          style={{ padding: "6px 10px", borderRadius: 8, border: "1px dashed var(--border-strong)", background: "var(--surface)",
+          style={{ padding: "6px 10px", borderRadius: "var(--r-chip)", border: "1px dashed var(--border-strong)", background: "var(--surface)",
             color: "var(--text-2)", fontFamily: "inherit", fontSize: 11.5, fontWeight: 700, cursor: "pointer" }}>
           <Icon name="camera" size={13} color="var(--text-2)" /> {ps.length ? "แก้รูป" : "เลือกรูป"}
         </button>
@@ -589,8 +589,8 @@ function BlRowDetail({ job, row, onPatch, currentUser, readOnly }) {
           {items.map((it, i) => {
             const ps = photosOf(it.id);
             return (
-              <div key={it.id} style={{ display: "flex", gap: 8, marginBottom: 8, padding: "10px 11px", borderRadius: 11,
-                background: "var(--surface)", border: "1px solid var(--border)" }}>
+              <div key={it.id} style={{ display: "flex", gap: 8, marginBottom: 8, padding: "10px 11px", borderRadius: "var(--r-tile)",
+                background: "var(--surface)", boxShadow: "var(--shadow-sm)" }}>
                 <span style={{ width: 18, flexShrink: 0, textAlign: "right", fontSize: 12.5, fontWeight: 800,
                   color: "var(--text-3)", paddingTop: 11 }}>{i + 1}.</span>
                 <div style={{ flex: 1, minWidth: 0, display: "grid", gap: 7 }}>
@@ -619,7 +619,7 @@ function BlRowDetail({ job, row, onPatch, currentUser, readOnly }) {
                 </div>
                 {!readOnly && (
                   <button onClick={() => delItem(it)} title="ลบรายการนี้"
-                    style={{ width: 36, height: 36, flexShrink: 0, borderRadius: 9, border: "1px solid var(--border-strong)",
+                    style={{ width: 36, height: 36, flexShrink: 0, borderRadius: "var(--r-chip)", boxShadow: "var(--shadow-sm)",
                       background: "var(--surface)", color: "var(--text-3)", cursor: "pointer" }}>
                     <Icon name="trash" size={14} color="var(--text-3)" />
                   </button>
@@ -629,7 +629,7 @@ function BlRowDetail({ job, row, onPatch, currentUser, readOnly }) {
           })}
 
           {!readOnly && (
-            <button onClick={addItem} style={{ padding: "7px 12px", borderRadius: 9, border: "1px dashed var(--border-strong)",
+            <button onClick={addItem} style={{ padding: "7px 12px", borderRadius: "var(--r-chip)", border: "1px dashed var(--border-strong)",
               background: "none", color: "var(--text-2)", fontFamily: "inherit", fontSize: 12.5, fontWeight: 700, cursor: "pointer" }}>
               + เพิ่มรายการ
             </button>
@@ -638,7 +638,7 @@ function BlRowDetail({ job, row, onPatch, currentUser, readOnly }) {
 
         {/* รูปที่ยังไม่ได้ผูกกับข้อไหน — พิมพ์ได้อยู่ แต่ไปกองท้ายสุดโดยไม่มีหัวข้อ */}
         {!!loose.length && (
-          <div style={{ padding: "9px 11px", borderRadius: 10, background: "var(--tint-amber-bg)",
+          <div style={{ padding: "9px 11px", borderRadius: "var(--r-tile)", background: "var(--tint-amber-bg)",
             border: "1px solid var(--tint-amber-bd)" }}>
             <div style={{ fontSize: 11.5, fontWeight: 700, color: "var(--tint-amber-tx)", marginBottom: 6 }}>
               รูปที่ยังไม่ได้ผูกกับรายการ ({loose.length}) — จะพิมพ์ไว้แผ่นท้ายสุดแบบไม่มีหัวข้อ
@@ -648,22 +648,22 @@ function BlRowDetail({ job, row, onPatch, currentUser, readOnly }) {
         )}
 
         {!!slips.length && (
-          <div style={{ padding: "9px 11px", borderRadius: 10, background: "var(--tint-ok-bg)", border: "1px solid var(--tint-ok-bd)" }}>
+          <div style={{ padding: "9px 11px", borderRadius: "var(--r-tile)", background: "var(--tint-ok-bg)", border: "1px solid var(--tint-ok-bd)" }}>
             <div style={{ fontSize: 11.5, fontWeight: 700, color: "var(--tint-ok-tx)", marginBottom: 7 }}>
               สลิป / หลักฐานการรับเงิน ({slips.length}) — ไม่ถูกพิมพ์บนเอกสารที่ส่งลูกค้า
             </div>
             <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
               {slips.map((p) => (
-                <span key={p.id} style={{ display: "inline-flex", alignItems: "center", gap: 7, padding: "5px 8px", borderRadius: 9,
-                  background: "var(--surface)", border: "1px solid var(--border)" }}>
+                <span key={p.id} style={{ display: "inline-flex", alignItems: "center", gap: 7, padding: "5px 8px", borderRadius: "var(--r-chip)",
+                  background: "var(--surface)", boxShadow: "var(--shadow-sm)" }}>
                   <a href={p.dataUrl} target="_blank" rel="noreferrer" download={p.name || undefined}
                     title={(p.name || "สลิป") + " — กดเพื่อเปิด/บันทึก"}
                     style={{ display: "inline-flex", alignItems: "center", gap: 7, textDecoration: "none", color: "var(--text-2)" }}>
                     {p.fileKind === "pdf"
-                      ? <span style={{ width: 34, height: 34, borderRadius: 7, display: "grid", placeItems: "center", background: "#EF44441a" }}>
+                      ? <span style={{ width: 34, height: 34, borderRadius: "var(--r-chip)", display: "grid", placeItems: "center", background: "#EF44441a" }}>
                           <Icon name="file" size={15} color="#EF4444" />
                         </span>
-                      : <img src={p.dataUrl} alt="" style={{ width: 34, height: 34, objectFit: "cover", borderRadius: 7, border: "1px solid var(--border)" }} />}
+                      : <img src={p.dataUrl} alt="" style={{ width: 34, height: 34, objectFit: "cover", borderRadius: "var(--r-chip)" }} />}
                     <span style={{ fontSize: 11.5, fontWeight: 700, maxWidth: 160, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                       {p.name || "สลิปโอนเงิน"}
                     </span>
@@ -789,7 +789,7 @@ function BlSetupModal({ job, quotes, leads, role, currentUser, readOnly, focusRo
 
   const modeBtn = (id, label) => (
     <button onClick={() => { put({ from: id }); if (id === "manual") setQid(""); else if (pick) setQid(pick.id); }} disabled={ro}
-      style={{ padding: "8px 14px", borderRadius: 10, fontFamily: "inherit", fontSize: 13, fontWeight: 700, cursor: ro ? "default" : "pointer",
+      style={{ padding: "8px 14px", borderRadius: "var(--r-tile)", fontFamily: "inherit", fontSize: 13, fontWeight: 700, cursor: ro ? "default" : "pointer",
         border: "1px solid " + (bills.from === id ? BL_ACCENT : "var(--border-strong)"),
         background: bills.from === id ? BL_ACCENT + "18" : "var(--surface)", color: bills.from === id ? BL_ACCENT : "var(--text-2)" }}>{label}</button>
   );
@@ -800,10 +800,10 @@ function BlSetupModal({ job, quotes, leads, role, currentUser, readOnly, focusRo
 
   return (
     <div style={{ position: "fixed", inset: 0, zIndex: 180, background: "rgba(8,20,14,.5)", overflow: "auto", padding: "18px 12px" }}>
-      <div style={{ maxWidth: 980, margin: "0 auto", background: "var(--surface)", borderRadius: 14, boxShadow: "var(--shadow-lg)", overflow: "hidden" }}>
+      <div style={{ maxWidth: 980, margin: "0 auto", background: "var(--surface)", borderRadius: "var(--r-tile)", boxShadow: "var(--shadow-lg)", overflow: "hidden" }}>
 
         <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "13px 16px", borderBottom: "1px solid var(--border)" }}>
-          <span style={{ width: 34, height: 34, borderRadius: 9, background: BL_ACCENT + "1c", display: "grid", placeItems: "center", flexShrink: 0 }}>
+          <span style={{ width: 34, height: 34, borderRadius: "var(--r-chip)", background: BL_ACCENT + "1c", display: "grid", placeItems: "center", flexShrink: 0 }}>
             <Icon name="file" size={17} color={BL_ACCENT} />
           </span>
           <div style={{ flex: 1, minWidth: 0 }}>
@@ -812,7 +812,7 @@ function BlSetupModal({ job, quotes, leads, role, currentUser, readOnly, focusRo
               {j.name || ""}{ro ? " · ดูได้อย่างเดียว" : ""}
             </div>
           </div>
-          <button onClick={onClose} style={{ width: 34, height: 34, borderRadius: 10, border: "1px solid var(--border-strong)",
+          <button onClick={onClose} style={{ width: 34, height: 34, borderRadius: "var(--r-tile)", boxShadow: "var(--shadow-sm)",
             background: "var(--surface)", cursor: "pointer", display: "grid", placeItems: "center", color: "var(--text-2)" }}>
             <Icon name="x" size={15} />
           </button>
@@ -844,18 +844,18 @@ function BlSetupModal({ job, quotes, leads, role, currentUser, readOnly, focusRo
                     </select>
                   </div>
                   {quote && quote.status === "accepted" && (
-                    <span style={{ padding: "6px 11px", borderRadius: 99, background: "var(--tint-ok-bg)", border: "1px solid var(--tint-ok-bd)",
+                    <span style={{ padding: "6px 11px", borderRadius: "var(--r-pill)", background: "var(--tint-ok-bg)", border: "1px solid var(--tint-ok-bd)",
                       color: "var(--tint-ok-tx)", fontSize: 11.5, fontWeight: 700 }}>ลูกค้าตกลงแล้ว</span>
                   )}
                   {!ro && (
-                    <button onClick={seed} style={{ padding: "10px 14px", borderRadius: 10, border: "none", background: BL_ACCENT,
+                    <button onClick={seed} style={{ padding: "10px 14px", borderRadius: "var(--r-tile)", border: "none", background: BL_ACCENT,
                       color: "#fff", fontFamily: "inherit", fontSize: 13, fontWeight: 700, cursor: "pointer" }}>
                       ดึงงวดจากเงื่อนไขการชำระเงิน
                     </button>
                   )}
                 </div>
               ) : (
-                <div style={{ padding: "11px 13px", borderRadius: 11, background: "var(--tint-amber-bg)", border: "1px solid var(--tint-amber-bd)",
+                <div style={{ padding: "11px 13px", borderRadius: "var(--r-tile)", background: "var(--tint-amber-bg)", border: "1px solid var(--tint-amber-bd)",
                   color: "var(--tint-amber-tx)", fontSize: 12.5, lineHeight: 1.6 }}>
                   งานนี้ไม่มีใบเสนอราคาในระบบ — สลับไป “กรอกเอง” แล้วตั้งยอดกับเงื่อนไขของแต่ละงวดเอง
                 </div>
@@ -872,7 +872,7 @@ function BlSetupModal({ job, quotes, leads, role, currentUser, readOnly, focusRo
                 </div>
               )}
               {drift && (
-                <div style={{ marginTop: 8, padding: "10px 13px", borderRadius: 11, background: "var(--tint-amber-bg)",
+                <div style={{ marginTop: 8, padding: "10px 13px", borderRadius: "var(--r-tile)", background: "var(--tint-amber-bg)",
                   border: "1px solid var(--tint-amber-bd)", color: "var(--tint-amber-tx)", fontSize: 12.5, lineHeight: 1.6 }}>
                   ใบเสนอราคาถูกแก้หลังตั้งงวด — กด “ดึงงวดจากเงื่อนไขการชำระเงิน” เพื่อถอดใหม่
                   (งวดที่ออกเอกสารไปแล้วจะไม่ถูกเขียนทับ)
@@ -901,12 +901,12 @@ function BlSetupModal({ job, quotes, leads, role, currentUser, readOnly, focusRo
           )}
 
           {msg && (
-            <div style={{ marginBottom: 12, padding: "9px 12px", borderRadius: 10, background: "var(--tint-ok-bg)",
+            <div style={{ marginBottom: 12, padding: "9px 12px", borderRadius: "var(--r-tile)", background: "var(--tint-ok-bg)",
               border: "1px solid var(--tint-ok-bd)", color: "var(--tint-ok-tx)", fontSize: 12.5 }}>{msg}</div>
           )}
 
           {/* ── ตารางงวด ── */}
-          <div style={{ border: "1px solid var(--border)", borderRadius: 12, overflow: "hidden" }}>
+          <div style={{ background: "var(--surface)", boxShadow: "var(--shadow-sm)", borderRadius: "var(--r-tile)", overflow: "hidden" }}>
             <div style={{ overflowX: "auto" }}>
               <table style={{ width: "100%", borderCollapse: "collapse", minWidth: 680 }}>
                 <thead>
@@ -956,13 +956,13 @@ function BlSetupModal({ job, quotes, leads, role, currentUser, readOnly, focusRo
                           </td>
                           <td style={Object.assign({}, cell, { whiteSpace: "nowrap" })}>
                             <button onClick={() => setOpen(open === r.id ? null : r.id)}
-                              style={{ padding: "6px 9px", borderRadius: 8, border: "1px solid var(--border-strong)", background: "var(--surface)",
+                              style={{ padding: "6px 9px", borderRadius: "var(--r-chip)", background: "var(--surface2)",
                                 color: "var(--text-2)", fontFamily: "inherit", fontSize: 11.5, fontWeight: 700, cursor: "pointer" }}>
                               {open === r.id ? "ย่อ" : "แก้ใบ"}
                             </button>
                             {window.blPrintable(r) && (
                               <button onClick={() => setPrintRow(r)} title="พิมพ์ชุดเอกสารของงวดนี้"
-                                style={{ marginLeft: 4, padding: "6px 9px", borderRadius: 8, border: "1px solid var(--border-strong)",
+                                style={{ marginLeft: 4, padding: "6px 9px", borderRadius: "var(--r-chip)", boxShadow: "var(--shadow-sm)",
                                   background: "var(--surface)", color: "var(--text-2)", fontFamily: "inherit", fontSize: 11.5,
                                   fontWeight: 700, cursor: "pointer" }}>
                                 พิมพ์
@@ -970,7 +970,7 @@ function BlSetupModal({ job, quotes, leads, role, currentUser, readOnly, focusRo
                             )}
                             {!ro && !lock && (
                               <button onClick={() => delRow(r)} title="ลบงวดนี้"
-                                style={{ marginLeft: 4, padding: "6px 8px", borderRadius: 8, border: "1px solid var(--border-strong)",
+                                style={{ marginLeft: 4, padding: "6px 8px", borderRadius: "var(--r-chip)", boxShadow: "var(--shadow-sm)",
                                   background: "var(--surface)", color: "var(--text-3)", cursor: "pointer" }}>
                                 <Icon name="trash" size={13} color="var(--text-3)" />
                               </button>
@@ -998,7 +998,7 @@ function BlSetupModal({ job, quotes, leads, role, currentUser, readOnly, focusRo
             <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap", padding: "10px 12px",
               borderTop: "1px solid var(--border)", background: "var(--surface2)" }}>
               {!ro && (
-                <button onClick={addRow} style={{ padding: "7px 12px", borderRadius: 9, border: "1px dashed var(--border-strong)",
+                <button onClick={addRow} style={{ padding: "7px 12px", borderRadius: "var(--r-chip)", border: "1px dashed var(--border-strong)",
                   background: "none", color: "var(--text-2)", fontFamily: "inherit", fontSize: 12.5, fontWeight: 700, cursor: "pointer" }}>
                   + เพิ่มงวด
                 </button>
@@ -1018,19 +1018,19 @@ function BlSetupModal({ job, quotes, leads, role, currentUser, readOnly, focusRo
         <div style={{ display: "flex", gap: 8, justifyContent: "flex-end", padding: "12px 16px", borderTop: "1px solid var(--border)" }}>
           {!ro && window.hasRole(role, "admin") && window.blHas(j) && (
             <button onClick={dropAll} title="ลบงวดงานทั้งชุดออกจากงานนี้ (เฉพาะแอดมิน)"
-              style={{ marginRight: "auto", padding: "10px 14px", borderRadius: 11, border: "1px solid var(--tint-red-bd)",
+              style={{ marginRight: "auto", padding: "10px 14px", borderRadius: "var(--r-tile)", border: "1px solid var(--tint-red-bd)",
                 background: "var(--tint-red-bg)", color: "var(--tint-red-tx)", fontFamily: "inherit", fontSize: 13, fontWeight: 700, cursor: "pointer" }}>
               เอางวดงานออก
             </button>
           )}
-          <button onClick={onClose} style={{ padding: "10px 16px", borderRadius: 11, border: "1px solid var(--border-strong)",
+          <button onClick={onClose} style={{ padding: "10px 16px", borderRadius: "var(--r-tile)", boxShadow: "var(--shadow-sm)",
             background: "var(--surface)", color: "var(--text-2)", fontFamily: "inherit", fontSize: 13.5, fontWeight: 700, cursor: "pointer" }}>
             ปิด
           </button>
           {printRow && <BlPrintHost job={Object.assign({}, j, { bills: bills })} row={printRow} onClose={() => setPrintRow(null)} />}
           {!ro && (
             <button onClick={save} disabled={!dirty}
-              style={{ padding: "10px 20px", borderRadius: 11, border: "none", background: dirty ? "var(--primary)" : "var(--surface3)",
+              style={{ padding: "10px 20px", borderRadius: "var(--r-tile)", border: "none", background: dirty ? "var(--primary)" : "var(--surface3)",
                 color: dirty ? "#fff" : "var(--text-3)", fontFamily: "inherit", fontSize: 13.5, fontWeight: 700, cursor: dirty ? "pointer" : "default" }}>
               บันทึก
             </button>
@@ -1140,7 +1140,7 @@ function BillingView({ jobs, quotes, leads, role, currentUser, onOpenJob, onSave
 
   const chip = (id, label) => (
     <button key={id} onClick={() => setFilter(id)}
-      style={{ padding: "6px 12px", borderRadius: 99, fontFamily: "inherit", fontSize: 12.5, fontWeight: 700, cursor: "pointer",
+      style={{ padding: "6px 12px", borderRadius: "var(--r-pill)", fontFamily: "inherit", fontSize: 12.5, fontWeight: 700, cursor: "pointer",
         border: "1px solid " + (filter === id ? BL_ACCENT : "var(--border-strong)"),
         background: filter === id ? BL_ACCENT + "18" : "var(--surface)", color: filter === id ? BL_ACCENT : "var(--text-2)" }}>{label}</button>
   );
@@ -1181,7 +1181,7 @@ function BillingView({ jobs, quotes, leads, role, currentUser, onOpenJob, onSave
         /* ค่าปริยาย = ย่องานที่เก็บเงินครบแล้ว · กดเมื่อไรความตั้งใจของคนกดชนะค่าปริยาย */
         const shut = fold[j.id] === undefined ? S.allPaid : fold[j.id];
         return (
-          <div key={j.id} style={{ border: "1px solid var(--border)", borderRadius: 13, overflow: "hidden", marginBottom: 12, background: "var(--surface)" }}>
+          <div key={j.id} style={{ boxShadow: "var(--shadow-sm)", borderRadius: "var(--r-tile)", overflow: "hidden", marginBottom: 12, background: "var(--surface)" }}>
             <div style={{ display: "flex", gap: 12, alignItems: "center", flexWrap: "wrap", padding: "11px 13px", background: "var(--surface2)",
               borderBottom: "1px solid var(--border)" }}>
               <div style={{ minWidth: 0, flex: 1 }}>
@@ -1195,18 +1195,18 @@ function BillingView({ jobs, quotes, leads, role, currentUser, onOpenJob, onSave
               <div style={{ width: 170, flexShrink: 0 }}><BlRail rows={window.blRows(j)} curId={S.cur ? S.cur.id : null} /></div>
               <button onClick={() => setFold((f) => Object.assign({}, f, { [j.id]: !shut }))}
                 title={shut ? "กางตารางงวดของงานนี้" : "ย่อเหลือแค่บรรทัดสรุป"}
-                style={{ padding: "8px 12px", borderRadius: 10, border: "1px solid var(--border-strong)", background: "var(--surface)",
+                style={{ padding: "8px 12px", borderRadius: "var(--r-tile)", background: "var(--surface2)",
                   color: "var(--text-2)", fontFamily: "inherit", fontSize: 12.5, fontWeight: 700, cursor: "pointer" }}>
                 {shut ? "ขยาย · " + g.rows.length + " งวด" : "ย่อ"}
               </button>
               {onOpenJob && (
-                <button onClick={() => onOpenJob(j.id)} style={{ padding: "8px 12px", borderRadius: 10, border: "1px solid var(--border-strong)",
+                <button onClick={() => onOpenJob(j.id)} style={{ padding: "8px 12px", borderRadius: "var(--r-tile)", boxShadow: "var(--shadow-sm)",
                   background: "var(--surface)", color: "var(--text-2)", fontFamily: "inherit", fontSize: 12.5, fontWeight: 700, cursor: "pointer" }}>
                   เปิดใบงาน
                 </button>
               )}
               {onSetup && !ro && (
-                <button onClick={() => onSetup(j)} style={{ padding: "8px 12px", borderRadius: 10, border: "none", background: BL_ACCENT,
+                <button onClick={() => onSetup(j)} style={{ padding: "8px 12px", borderRadius: "var(--r-tile)", border: "none", background: BL_ACCENT,
                   color: "#fff", fontFamily: "inherit", fontSize: 12.5, fontWeight: 700, cursor: "pointer" }}>
                   ตั้งงวด / แก้ใบ
                 </button>
@@ -1248,7 +1248,7 @@ function BillingView({ jobs, quotes, leads, role, currentUser, onOpenJob, onSave
                           {!ro && <BlMoveBtns row={r} bills={j.bills} role={role} currentUser={currentUser} job={j} onMove={(row, to) => move(j, row, to)} size="sm" />}
                           {window.blPrintable(r) && (
                             <button onClick={() => setPrint({ job: j, row: r })}
-                              style={{ padding: "6px 10px", borderRadius: 9, border: "1px solid var(--border-strong)", background: "var(--surface)",
+                              style={{ padding: "6px 10px", borderRadius: "var(--r-chip)", background: "var(--surface2)",
                                 color: "var(--text-2)", fontFamily: "inherit", fontSize: 11.5, fontWeight: 700, cursor: "pointer" }}>
                               พิมพ์
                             </button>
@@ -1266,7 +1266,7 @@ function BillingView({ jobs, quotes, leads, role, currentUser, onOpenJob, onSave
       })}
 
       {!onlyNew && !groups.length && (
-        <div style={{ padding: 26, textAlign: "center", fontSize: 13, color: "var(--text-3)", border: "1px dashed var(--border-strong)", borderRadius: 13 }}>
+        <div style={{ padding: 26, textAlign: "center", fontSize: 13, color: "var(--text-3)", border: "1px dashed var(--border-strong)", borderRadius: "var(--r-tile)" }}>
           ไม่มีงวดงานที่ตรงกับตัวกรอง
         </div>
       )}
@@ -1276,7 +1276,7 @@ function BillingView({ jobs, quotes, leads, role, currentUser, onOpenJob, onSave
           <div style={{ fontSize: 13, fontWeight: 800, color: "var(--text-2)", marginBottom: 8 }}>
             งานที่ติดตั้งแล้วแต่ยังไม่ตั้งงวด ({pendingSetup.length})
           </div>
-          <div style={{ border: "1px solid var(--border)", borderRadius: 13, overflow: "hidden", background: "var(--surface)" }}>
+          <div style={{ boxShadow: "var(--shadow-sm)", borderRadius: "var(--r-tile)", overflow: "hidden", background: "var(--surface)" }}>
             {pendingSetup.map((j) => {
               const qt = window.blPickQuote(quotes, j, leads);
               return (
@@ -1289,12 +1289,12 @@ function BillingView({ jobs, quotes, leads, role, currentUser, onOpenJob, onSave
                     </div>
                   </div>
                   {onSetup && !ro && (
-                    <button onClick={() => onSetup(j)} style={{ padding: "8px 14px", borderRadius: 10, border: "none", background: BL_ACCENT,
+                    <button onClick={() => onSetup(j)} style={{ padding: "8px 14px", borderRadius: "var(--r-tile)", border: "none", background: BL_ACCENT,
                       color: "#fff", fontFamily: "inherit", fontSize: 12.5, fontWeight: 700, cursor: "pointer" }}>ตั้งงวด</button>
                   )}
                   {onSkip && (
                     <button onClick={() => skip(j, true)} title="งานนี้ไม่ต้องตั้งงวด — เอาออกจากรายการ (เฉพาะแอดมิน)"
-                      style={{ padding: "8px 12px", borderRadius: 10, border: "1px solid var(--border-strong)", background: "var(--surface)",
+                      style={{ padding: "8px 12px", borderRadius: "var(--r-tile)", background: "var(--surface2)",
                         color: "var(--text-3)", fontFamily: "inherit", fontSize: 12.5, fontWeight: 700, cursor: "pointer" }}>
                       เอาออก
                     </button>
@@ -1311,13 +1311,13 @@ function BillingView({ jobs, quotes, leads, role, currentUser, onOpenJob, onSave
           <div style={{ fontSize: 13, fontWeight: 800, color: "var(--text-3)", marginBottom: 8 }}>
             งานที่เอาออกจากรายการงวดงาน ({skipped.length})
           </div>
-          <div style={{ border: "1px dashed var(--border-strong)", borderRadius: 13, overflow: "hidden" }}>
+          <div style={{ border: "1px dashed var(--border-strong)", borderRadius: "var(--r-tile)", overflow: "hidden" }}>
             {skipped.map((j) => (
               <div key={j.id} style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap",
                 padding: "9px 13px", borderBottom: "1px solid var(--border)" }}>
                 <div style={{ flex: 1, minWidth: 0, fontSize: 12.5, color: "var(--text-3)" }}>{j.code} · {j.name}</div>
                 <button onClick={() => skip(j, false)}
-                  style={{ padding: "7px 12px", borderRadius: 9, border: "1px solid var(--border-strong)", background: "var(--surface)",
+                  style={{ padding: "7px 12px", borderRadius: "var(--r-chip)", background: "var(--surface2)",
                     color: "var(--text-2)", fontFamily: "inherit", fontSize: 12, fontWeight: 700, cursor: "pointer" }}>
                   เอากลับเข้ารายการ
                 </button>

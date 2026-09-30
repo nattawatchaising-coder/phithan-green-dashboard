@@ -2101,8 +2101,6 @@ function QuoteEditor({
   const lbl = {
     fontSize: 10.5,
     fontWeight: 700,
-    letterSpacing: ".05em",
-    textTransform: "uppercase",
     color: "var(--text-3)"
   };
   const cell = Object.assign({}, inputStyle, {
