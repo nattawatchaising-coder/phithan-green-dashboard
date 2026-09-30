@@ -758,9 +758,9 @@ function AnnEditor({ shot, onSave, onClose }) {
    อิโมจิหน้าตาไม่เหมือนกันในแต่ละเครื่อง ไม่รับสีธีม และดูคนละภาษากับไอคอนที่เหลือ */
 function SurveyBlock({ icon, title, sub, children }) {
   return (
-    <section style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 16, padding: "15px 16px 16px", display: "flex", flexDirection: "column", gap: 14, boxShadow: "0 1px 2px rgba(8,20,14,.04)" }}>
+    <section style={{ background: "var(--surface)", borderRadius: "var(--r-card)", padding: "16px 16px 17px", display: "flex", flexDirection: "column", gap: 14, boxShadow: "var(--shadow-card)" }}>
       <header style={{ display: "flex", gap: 10, alignItems: "flex-start" }}>
-        {icon && <span style={{ width: 30, height: 30, borderRadius: 10, flexShrink: 0, display: "grid", placeItems: "center", background: "var(--primary-soft)" }}>
+        {icon && <span style={{ width: 32, height: 32, borderRadius: "var(--r-pill)", flexShrink: 0, display: "grid", placeItems: "center", background: "var(--primary-soft)" }}>
           <Icon name={icon} size={15} color="var(--primary-dark)" sw={1.9} />
         </span>}
         <span style={{ minWidth: 0, paddingTop: icon ? 2 : 0 }}>
@@ -778,7 +778,7 @@ function SurveyBlock({ icon, title, sub, children }) {
    แล้วปุ่มไปลอยอยู่ล่างสุดดูยาวผิดรูป · แบบแถวนี้กว้างเท่าไรก็ไม่เพี้ยน */
 function SurveyToggle({ label, hint, value, onChange, options }) {
   return (
-    <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, padding: "9px 12px", background: "var(--surface2)", border: "1px solid var(--border)", borderRadius: 11 }}>
+    <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, padding: "9px 12px", background: "var(--surface2)", borderRadius: 14, boxShadow: "var(--shadow-inset)" }}>
       <span style={{ minWidth: 0 }}>
         <span style={{ display: "block", fontSize: 12.5, fontWeight: 600, color: "var(--text-1)", lineHeight: 1.35 }}>{label}</span>
         {hint && <span style={{ display: "block", fontSize: 11, color: "var(--text-3)", marginTop: 1 }}>{hint}</span>}
@@ -793,22 +793,22 @@ function SurveyShotCard({ shot, slot, n, busy, onPick, onRemove, onAnn, onField,
   const inputRef = React.useRef(null);
   const has = !!(shot && shot.dataUrl);
   const req = !!slot;
-  const mini = { width: 30, height: 30, borderRadius: 8, border: "1px solid var(--border-strong)", background: "var(--surface)", cursor: "pointer", display: "grid", placeItems: "center", color: "var(--text-2)", fontSize: 13, fontWeight: 800, flexShrink: 0 };
+  const mini = { width: 30, height: 30, borderRadius: "var(--r-pill)", border: "none", boxShadow: "var(--shadow-sm)", background: "var(--surface)", cursor: "pointer", display: "grid", placeItems: "center", color: "var(--text-2)", fontSize: 13, fontWeight: 800, flexShrink: 0 };
   return (
-    <div style={{ border: "1px solid " + (has ? "var(--border)" : "var(--border-strong)"), borderRadius: 13, padding: 11,
-      borderLeft: "3px solid " + (has ? "var(--primary)" : "var(--surface3)"),
-      background: has ? "var(--surface)" : "var(--surface2)", display: "flex", flexDirection: "column", gap: 10, transition: "border-color .2s" }}>
+    <div style={{ borderRadius: 14, padding: 11,
+      boxShadow: "inset 3px 0 0 " + (has ? "var(--primary)" : "var(--surface3)") + ", var(--shadow-sm)",
+      background: "var(--surface)", display: "flex", flexDirection: "column", gap: 10, transition: "box-shadow .2s" }}>
       <div style={{ display: "flex", gap: 11, alignItems: "center" }}>
         {has ? (
           /* มีรูปแล้ว — โชว์รูปย่อพร้อมเลขลำดับมุมบนซ้าย แตะเพื่อเขียนทับได้ทันที */
           <span style={{ position: "relative", flexShrink: 0, lineHeight: 0 }}>
-            <img src={shot.dataUrl} alt="" onClick={() => onAnn && onAnn()} style={{ width: 54, height: 54, borderRadius: 10, objectFit: "cover", cursor: "pointer", border: "1px solid var(--border)" }} />
+            <img src={shot.dataUrl} alt="" onClick={() => onAnn && onAnn()} style={{ width: 54, height: 54, borderRadius: 12, objectFit: "cover", cursor: "pointer", boxShadow: "var(--shadow-sm)" }} />
             <span style={{ position: "absolute", top: -5, left: -5, width: 20, height: 20, borderRadius: 99, display: "grid", placeItems: "center",
               background: "var(--primary)", color: "#fff", fontSize: 10.5, fontWeight: 800, fontFamily: "var(--mono)", border: "2px solid var(--surface)" }}>{n || "✓"}</span>
           </span>
         ) : (
           <span style={{ width: 54, height: 54, borderRadius: 10, flexShrink: 0, display: "grid", placeItems: "center",
-            background: "var(--surface3)", border: "1px dashed var(--border-strong)" }}>
+            background: "var(--surface2)", boxShadow: "var(--shadow-inset)" }}>
             <Icon name="image" size={17} color="var(--text-3)" />
           </span>
         )}
@@ -820,21 +820,20 @@ function SurveyShotCard({ shot, slot, n, busy, onPick, onRemove, onAnn, onField,
           onChange={(e) => { const f = e.target.files && e.target.files[0]; if (f) onPick(f); e.target.value = ""; }} />
         <div style={{ display: "flex", gap: 6, flexShrink: 0 }}>
           <button type="button" onClick={() => inputRef.current && inputRef.current.click()} disabled={busy}
-            style={{ display: "inline-flex", alignItems: "center", gap: 5, padding: "7px 11px", borderRadius: 9, border: "none",
-              background: has ? "var(--surface3)" : "var(--primary)", color: has ? "var(--text-2)" : "#fff",
+            style={{ display: "inline-flex", alignItems: "center", gap: 5, padding: "7px 12px", borderRadius: "var(--r-pill)", border: "none",
+              boxShadow: has ? "var(--shadow-sm)" : "var(--shadow-btn)", background: has ? "var(--surface2)" : "var(--primary)", color: has ? "var(--text-2)" : "#fff",
               fontFamily: "inherit", fontSize: 12, fontWeight: 700, cursor: busy ? "default" : "pointer", whiteSpace: "nowrap" }}>
             <Icon name="image" size={13} color={has ? "var(--text-2)" : "#fff"} />{busy ? "..." : has ? "ถ่ายใหม่" : "ถ่าย/อัปโหลด"}
           </button>
           {has && <button type="button" onClick={onRemove} title="ลบรูป"
-            style={{ width: 32, height: 32, borderRadius: 9, border: "none", background: "#EF444414", color: "#EF4444", cursor: "pointer", display: "grid", placeItems: "center" }}><Icon name="x" size={13} /></button>}
+            style={{ width: 32, height: 32, borderRadius: "var(--r-pill)", border: "none", background: "#EF444414", color: "#EF4444", cursor: "pointer", display: "grid", placeItems: "center" }}><Icon name="x" size={13} /></button>}
         </div>
       </div>
       {has && (
         <React.Fragment>
           <div style={{ display: "flex", gap: 7, flexWrap: "wrap", alignItems: "center" }}>
-            <button type="button" onClick={onAnn} style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "7px 12px", borderRadius: 9,
-              border: "1px solid " + (shot.ann && shot.ann.length ? "var(--primary)" : "var(--border-strong)"),
-              background: shot.ann && shot.ann.length ? "var(--primary-soft)" : "var(--surface)", color: "var(--primary-dark)", fontFamily: "inherit", fontSize: 12, fontWeight: 700, cursor: "pointer" }}>
+            <button type="button" onClick={onAnn} style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "7px 12px", borderRadius: "var(--r-pill)", border: "none", boxShadow: "var(--shadow-sm)",
+              background: shot.ann && shot.ann.length ? "var(--primary-soft)" : "var(--surface2)", color: "var(--primary-dark)", fontFamily: "inherit", fontSize: 12, fontWeight: 700, cursor: "pointer" }}>
               ↗ เขียน / แปะรูปทับ
               {shot.ann && shot.ann.length ? <span style={{ fontFamily: "var(--mono)", fontSize: 10.5, background: "var(--primary)", color: "#fff", borderRadius: 99, padding: "1px 6px" }}>{shot.ann.length}</span> : null}
             </button>
@@ -867,7 +866,7 @@ function SurveyShotCard({ shot, slot, n, busy, onPick, onRemove, onAnn, onField,
    card() ส่งมาจากหน้าต่างสำรวจ เพราะการ์ดรูปต้องใช้ทั้งเลขลำดับรวม การเลื่อนขึ้นลง และการเขียนทับรูป */
 function SurveyNoteBox({ blk, value, onChange, shots, card, slotNode, count, busy, onAdd, onPaste }) {
   return (
-    <div style={{ margin: "-2px -3px 0", padding: "11px 12px 12px", borderRadius: 13, background: "var(--surface2)", border: "1px solid var(--border)", display: "flex", flexDirection: "column", gap: 10 }}>
+    <div style={{ margin: "-2px -3px 0", padding: "11px 12px 12px", borderRadius: 16, background: "var(--surface2)", boxShadow: "var(--shadow-inset)", display: "flex", flexDirection: "column", gap: 10 }}>
       <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", gap: 9 }}>
         <span style={{ fontSize: 11.5, fontWeight: 700, color: "var(--text-2)" }}>บันทึก &amp; รูปของหัวข้อนี้</span>
         <span style={{ fontSize: 10.5, fontWeight: 700, fontFamily: "var(--mono)", color: count ? "var(--primary-dark)" : "var(--text-3)" }}>
@@ -887,13 +886,13 @@ function SurveyNoteBox({ blk, value, onChange, shots, card, slotNode, count, bus
   );
 }
 
-// ── ตัวช่วยกรอบ step (เลขขั้น + ชื่อ) ──
+// ── ตัวช่วยกรอบ step (เลขขั้น + ชื่อ) ── sh = ชื่อสั้นบนแท็บแฟ้ม (ห้าแท็บชื่อเต็มล้นความกว้างใบ)
 const SURVEY_STEPS = [
-  { n: 1, icon: "pin",   th: "เช็คอิน & มิเตอร์" },
-  { n: 2, icon: "box",   th: "หลังคา" },
-  { n: 3, icon: "bolt",  th: "ไฟฟ้า & ตำแหน่ง" },
-  { n: 4, icon: "file",  th: "อุปกรณ์ & หมายเหตุ" },
-  { n: 5, icon: "image", th: "รูปเพิ่มเติม" },
+  { n: 1, icon: "pin",   th: "เช็คอิน & มิเตอร์", sh: "เช็คอิน & มิเตอร์" },
+  { n: 2, icon: "box",   th: "หลังคา", sh: "หลังคา" },
+  { n: 3, icon: "bolt",  th: "ไฟฟ้า & ตำแหน่ง", sh: "ไฟฟ้า" },
+  { n: 4, icon: "file",  th: "อุปกรณ์ & หมายเหตุ", sh: "อุปกรณ์" },
+  { n: 5, icon: "image", th: "รูปเพิ่มเติม", sh: "รูปเพิ่ม" },
 ];
 
 function SurveyWizard({ job, onClose, onSave, onReport, currentUser, stock }) {
@@ -1082,9 +1081,29 @@ function SurveyWizard({ job, onClose, onSave, onReport, currentUser, stock }) {
   return (
     <React.Fragment>
     <div {...bdClose} style={{ position: "fixed", inset: 0, background: "rgba(8,20,14,.45)", backdropFilter: "blur(3px)", zIndex: 115, display: "grid", placeItems: isMobile ? "end center" : "center", padding: isMobile ? 0 : 20 }}>
-      <div onClick={(e) => e.stopPropagation()} style={{ background: "var(--bg)", borderRadius: isMobile ? "20px 20px 0 0" : 18, width: isMobile ? "100%" : "min(680px,100%)", maxHeight: isMobile ? "96dvh" : "94vh", display: "flex", flexDirection: "column", overflow: "hidden", boxShadow: "0 30px 80px rgba(8,20,14,.3)" }}>
-        {/* header */}
-        <div style={{ padding: "15px 18px 13px", borderBottom: "1px solid var(--border)", background: "var(--surface)" }}>
+      {/* แท็บแฟ้ม = ขั้นตอนทั้ง 5 ชุดเดียวกับลิ้นชักลูกค้า (.ld-tab ใน index.html) แทนแถบวงกลมเลขขั้นเดิม
+          เงาอยู่ที่กรอบนอก (drop-shadow) ไม่ทาทับแท็บ · ความสูงตายตัว สลับขั้นแล้วใบไม่กระโดด */}
+      <div onClick={(e) => e.stopPropagation()} style={{ width: isMobile ? "100%" : "min(680px,100%)", height: isMobile ? "94dvh" : "min(900px, 94vh)",
+        display: "flex", flexDirection: "column", minHeight: 0, filter: "drop-shadow(0 24px 40px rgba(8,20,14,.28))" }}>
+      <div className="ld-tabs" role="tablist">
+        {SURVEY_STEPS.map((s, i) => {
+          const on = s.n === step, done = s.n < step;
+          return (
+            <button key={s.n} role="tab" aria-selected={on} className={"ld-tab" + (on ? " on" : "")} title={s.th}
+              style={{ zIndex: on ? 10 : SURVEY_STEPS.length - i }} onClick={() => setStep(s.n)}>
+              <span className="ld-tab-n" style={done && !on ? { background: "var(--primary)", color: "#fff" } : null}>
+                {done ? <Icon name="check" size={10} color="#fff" sw={3} /> : s.n}
+              </span>
+              {/* มือถือ: แท็บที่ไม่ได้เลือกเหลือแค่เลข ห้าแท็บจะพอดีจอ */}
+              {(!isMobile || on) && s.sh}
+            </button>
+          );
+        })}
+      </div>
+      <div style={{ background: "var(--bg)", borderRadius: isMobile ? "0 20px 0 0" : "0 18px 18px 18px", flex: 1, minHeight: 0,
+        position: "relative", zIndex: 11, display: "flex", flexDirection: "column", overflow: "hidden" }}>
+        {/* header — แยกจากเนื้อด้วยเงาฟุ้ง ไม่ใช้เส้นคาด */}
+        <div style={{ padding: "15px 18px 14px", boxShadow: "0 10px 18px -14px rgba(8,20,14,.45)", background: "var(--surface)", position: "relative", zIndex: 1 }}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 12 }}>
             <div style={{ minWidth: 0 }}>
               <div style={{ display: "flex", alignItems: "center", gap: 7, fontSize: 11, color: "var(--text-3)", fontWeight: 600 }}>
@@ -1100,48 +1119,24 @@ function SurveyWizard({ job, onClose, onSave, onReport, currentUser, stock }) {
                 <span style={{ position: "absolute", inset: 3.5, borderRadius: 99, background: "var(--surface)" }} />
                 <span style={{ position: "relative", fontSize: 10.5, fontWeight: 800, color: st.color, fontFamily: "var(--mono)" }}>{st.pct}</span>
               </span>
-              <button className="x-close" onClick={onClose} style={{ width: 34, height: 34, borderRadius: 10, border: "1px solid var(--border)", background: "var(--surface)", cursor: "pointer", display: "grid", placeItems: "center", color: "var(--text-2)" }}><Icon name="x" size={16} /></button>
+              <button className="x-close" onClick={onClose} style={{ width: 34, height: 34, cursor: "pointer", display: "grid", placeItems: "center" }}><Icon name="x" size={16} /></button>
             </div>
           </div>
-          {/* ขั้นตอน — เลขขั้นในวงกลม ขั้นที่ผ่านแล้วขึ้นเครื่องหมายถูก กดข้ามไปขั้นไหนก็ได้ */}
-          <div style={{ display: "flex", alignItems: "center", gap: 2, marginTop: 14 }}>
-            {SURVEY_STEPS.map((s, i) => {
-              const active = s.n === step, done = s.n < step;
-              return (
-                <React.Fragment key={s.n}>
-                  {i > 0 && <span style={{ flex: 1, height: 2, borderRadius: 99, background: done || active ? "var(--primary)" : "var(--surface3)", transition: "background .2s" }} />}
-                  <button onClick={() => setStep(s.n)} title={s.th}
-                    style={{ display: "flex", alignItems: "center", gap: 6, background: active ? "var(--primary-soft)" : "transparent", border: "none", cursor: "pointer",
-                      fontFamily: "inherit", padding: active && !isMobile ? "4px 11px 4px 4px" : 4, borderRadius: 99, flexShrink: 0 }}>
-                    <span style={{ width: 24, height: 24, borderRadius: 99, display: "grid", placeItems: "center", flexShrink: 0,
-                      fontSize: 11.5, fontWeight: 800, fontFamily: "var(--mono)", transition: "all .2s",
-                      background: done ? "var(--primary)" : active ? "var(--primary)" : "var(--surface3)",
-                      color: done || active ? "#fff" : "var(--text-3)",
-                      boxShadow: active ? "0 0 0 3px var(--primary-soft)" : "none" }}>
-                      {done ? <Icon name="check" size={13} color="#fff" sw={2.8} /> : s.n}
-                    </span>
-                    {active && !isMobile && <span style={{ fontSize: 12, fontWeight: 700, color: "var(--primary-dark)", whiteSpace: "nowrap" }}>{s.th}</span>}
-                  </button>
-                </React.Fragment>
-              );
-            })}
-          </div>
-          {isMobile && <div style={{ marginTop: 7, fontSize: 12, fontWeight: 700, color: "var(--primary-dark)" }}>{(SURVEY_STEPS[step - 1] || {}).th}</div>}
         </div>
 
         {/* body */}
-        <div style={{ overflowY: "auto", flex: 1, padding: 16, display: "flex", flexDirection: "column", gap: 13, background: "var(--surface2)" }}>
+        <div style={{ overflowY: "auto", flex: 1, minHeight: 0, padding: 16, display: "flex", flexDirection: "column", gap: 14 }}>
           {step === 1 && (
             <React.Fragment>
               <SurveyBlock icon="pin" title="เช็คอิน — พิกัด GPS" sub="กดปุ่มเพื่อบันทึกตำแหน่งปัจจุบันของหน้างาน">
                 <button type="button" onClick={captureGps} disabled={gpsBusy}
-                  style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 8, padding: "11px 14px", borderRadius: 11, border: "none",
+                  style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 8, padding: "11px 14px", borderRadius: "var(--r-pill)", border: "none", boxShadow: "var(--shadow-btn)",
                     background: "var(--primary)", color: "#fff", fontFamily: "inherit", fontSize: 13.5, fontWeight: 700, cursor: gpsBusy ? "default" : "pointer" }}>
                   <Icon name="pin" size={16} color="#fff" />{gpsBusy ? "กำลังจับพิกัด..." : f.gps ? "จับพิกัดใหม่" : "จับพิกัด GPS ปัจจุบัน"}
                 </button>
                 {gpsErr && <div style={{ fontSize: 12, color: "#EF4444", fontWeight: 600 }}>⚠ {gpsErr}</div>}
                 {f.gps && (
-                  <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10, padding: "10px 12px", background: "var(--surface2)", borderRadius: 10, border: "1px solid var(--border)" }}>
+                  <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10, padding: "10px 12px", background: "var(--surface2)", borderRadius: 12, boxShadow: "var(--shadow-inset)" }}>
                     <span style={{ fontFamily: "var(--mono)", fontSize: 12.5, color: "var(--text-1)" }}>
                       {f.gps.lat}, {f.gps.lng}{f.gps.acc ? <span style={{ color: "var(--text-3)" }}> · ±{f.gps.acc}m</span> : null}
                     </span>
@@ -1276,20 +1271,21 @@ function SurveyWizard({ job, onClose, onSave, onReport, currentUser, stock }) {
         </div>
 
         {/* footer */}
-        <div style={{ display: "flex", gap: 10, alignItems: "center", padding: "12px 16px", paddingBottom: isMobile ? "calc(12px + env(safe-area-inset-bottom,0px))" : 12, borderTop: "1px solid var(--border)", background: "var(--surface)" }}>
+        <div style={{ display: "flex", gap: 10, alignItems: "center", padding: "12px 16px", paddingBottom: isMobile ? "calc(12px + env(safe-area-inset-bottom,0px))" : 12, boxShadow: "0 -10px 18px -14px rgba(8,20,14,.45)", position: "relative", background: "var(--surface)" }}>
           {step > 1
-            ? <button onClick={() => setStep((s) => s - 1)} style={{ flex: "0 0 auto", padding: "12px 15px", borderRadius: 11, border: "1px solid var(--border-strong)", background: "var(--surface)", color: "var(--text-2)", fontWeight: 700, fontFamily: "inherit", fontSize: 13.5, cursor: "pointer", display: "inline-flex", alignItems: "center", gap: 5 }}><Icon name="chevronRight" size={15} color="var(--text-2)" style={{ transform: "scaleX(-1)" }} />{!isMobile && " ย้อนกลับ"}</button>
-            : <button onClick={onClose} style={{ flex: "0 0 auto", padding: "12px 18px", borderRadius: 11, border: "1px solid var(--border-strong)", background: "var(--surface)", color: "var(--text-2)", fontWeight: 700, fontFamily: "inherit", fontSize: 13.5, cursor: "pointer" }}>ปิด</button>}
+            ? <button onClick={() => setStep((s) => s - 1)} style={{ flex: "0 0 auto", padding: "12px 15px", borderRadius: "var(--r-pill)", border: "none", background: "var(--surface2)", boxShadow: "var(--shadow-sm)", color: "var(--text-2)", fontWeight: 700, fontFamily: "inherit", fontSize: 13.5, cursor: "pointer", display: "inline-flex", alignItems: "center", gap: 5 }}><Icon name="chevronRight" size={15} color="var(--text-2)" style={{ transform: "scaleX(-1)" }} />{!isMobile && " ย้อนกลับ"}</button>
+            : <button onClick={onClose} style={{ flex: "0 0 auto", padding: "12px 18px", borderRadius: "var(--r-pill)", border: "none", background: "var(--surface2)", boxShadow: "var(--shadow-sm)", color: "var(--text-2)", fontWeight: 700, fontFamily: "inherit", fontSize: 13.5, cursor: "pointer" }}>ปิด</button>}
           {step < SURVEY_STEPS.length
             ? <React.Fragment>
-                <button onClick={() => save(false)} style={{ flex: "0 0 auto", padding: "12px 15px", borderRadius: 11, border: "1px solid var(--border-strong)", background: "var(--surface)", color: "var(--primary-dark)", fontWeight: 700, fontFamily: "inherit", fontSize: 13.5, cursor: "pointer" }}>บันทึก</button>
-                <button onClick={() => setStep((s) => s + 1)} style={{ flex: 1, padding: "12px", borderRadius: 11, border: "none", background: "var(--primary)", color: "#fff", fontWeight: 700, fontFamily: "inherit", fontSize: 14, cursor: "pointer", display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 6 }}>ถัดไป <Icon name="chevronRight" size={16} color="#fff" /></button>
+                <button onClick={() => save(false)} style={{ flex: "0 0 auto", padding: "12px 15px", borderRadius: "var(--r-pill)", border: "none", background: "var(--surface2)", boxShadow: "var(--shadow-sm)", color: "var(--primary-dark)", fontWeight: 700, fontFamily: "inherit", fontSize: 13.5, cursor: "pointer" }}>บันทึก</button>
+                <button onClick={() => setStep((s) => s + 1)} style={{ flex: 1, padding: "12px", borderRadius: "var(--r-pill)", border: "none", background: "var(--primary)", boxShadow: "var(--shadow-btn)", color: "#fff", fontWeight: 700, fontFamily: "inherit", fontSize: 14, cursor: "pointer", display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 6 }}>ถัดไป <Icon name="chevronRight" size={16} color="#fff" /></button>
               </React.Fragment>
             : <React.Fragment>
-                <button onClick={() => save(true)} style={{ flex: "0 0 auto", padding: "12px 15px", borderRadius: 11, border: "1px solid var(--primary)", background: "var(--primary-soft)", color: "var(--primary-dark)", fontWeight: 700, fontFamily: "inherit", fontSize: 13.5, cursor: "pointer", display: "inline-flex", alignItems: "center", gap: 5 }}><Icon name="file" size={15} color="var(--primary-dark)" /> ออกรายงาน</button>
-                <button onClick={() => save(false)} style={{ flex: 1, padding: "12px", borderRadius: 11, border: "none", background: "var(--primary)", color: "#fff", fontWeight: 700, fontFamily: "inherit", fontSize: 14, cursor: "pointer", display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 6 }}><Icon name="check" size={16} color="#fff" sw={2.4} /> บันทึก</button>
+                <button onClick={() => save(true)} style={{ flex: "0 0 auto", padding: "12px 15px", borderRadius: "var(--r-pill)", border: "none", background: "var(--primary-soft)", boxShadow: "var(--shadow-sm)", color: "var(--primary-dark)", fontWeight: 700, fontFamily: "inherit", fontSize: 13.5, cursor: "pointer", display: "inline-flex", alignItems: "center", gap: 5 }}><Icon name="file" size={15} color="var(--primary-dark)" /> ออกรายงาน</button>
+                <button onClick={() => save(false)} style={{ flex: 1, padding: "12px", borderRadius: "var(--r-pill)", border: "none", background: "var(--primary)", boxShadow: "var(--shadow-btn)", color: "#fff", fontWeight: 700, fontFamily: "inherit", fontSize: 14, cursor: "pointer", display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 6 }}><Icon name="check" size={16} color="#fff" sw={2.4} /> บันทึก</button>
               </React.Fragment>}
         </div>
+      </div>
       </div>
     </div>
     {annKey && media.photos[annKey] && (
@@ -1304,9 +1300,9 @@ function SurveyWizard({ job, onClose, onSave, onReport, currentUser, stock }) {
 /* ปุ่มเพิ่มรูป — แยกออกมาเพราะต้องมี input file ของตัวเอง */
 function AddShotButton({ busy, onPick, onPaste, label, slim }) {
   const ref = React.useRef(null);
-  const btn = Object.assign({ flex: 1, display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 7, padding: "13px", borderRadius: 11,
-    border: "1px dashed var(--border-strong)", background: "var(--surface)", color: "var(--primary-dark)", fontFamily: "inherit", fontSize: 13.5, fontWeight: 700, cursor: busy ? "default" : "pointer" },
-    slim ? { flex: "0 0 auto", padding: "8px 13px", borderRadius: 10, fontSize: 12.5 } : null);
+  const btn = Object.assign({ flex: 1, display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 7, padding: "13px", borderRadius: "var(--r-pill)",
+    border: "none", boxShadow: "var(--shadow-sm)", background: "var(--primary-soft)", color: "var(--primary-dark)", fontFamily: "inherit", fontSize: 13.5, fontWeight: 700, cursor: busy ? "default" : "pointer" },
+    slim ? { flex: "0 0 auto", padding: "8px 14px", fontSize: 12.5 } : null);
   return (
     <React.Fragment>
       <input ref={ref} type="file" accept="image/*" capture="environment" style={{ display: "none" }}

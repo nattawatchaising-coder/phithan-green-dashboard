@@ -1581,13 +1581,12 @@ function SurveyBlock({
   return React.createElement("section", {
     style: {
       background: "var(--surface)",
-      border: "1px solid var(--border)",
-      borderRadius: 16,
-      padding: "15px 16px 16px",
+      borderRadius: "var(--r-card)",
+      padding: "16px 16px 17px",
       display: "flex",
       flexDirection: "column",
       gap: 14,
-      boxShadow: "0 1px 2px rgba(8,20,14,.04)"
+      boxShadow: "var(--shadow-card)"
     }
   }, React.createElement("header", {
     style: {
@@ -1597,9 +1596,9 @@ function SurveyBlock({
     }
   }, icon && React.createElement("span", {
     style: {
-      width: 30,
-      height: 30,
-      borderRadius: 10,
+      width: 32,
+      height: 32,
+      borderRadius: "var(--r-pill)",
       flexShrink: 0,
       display: "grid",
       placeItems: "center",
@@ -1648,8 +1647,8 @@ function SurveyToggle({
       gap: 12,
       padding: "9px 12px",
       background: "var(--surface2)",
-      border: "1px solid var(--border)",
-      borderRadius: 11
+      borderRadius: 14,
+      boxShadow: "var(--shadow-inset)"
     }
   }, React.createElement("span", {
     style: {
@@ -1700,8 +1699,9 @@ function SurveyShotCard({
   const mini = {
     width: 30,
     height: 30,
-    borderRadius: 8,
-    border: "1px solid var(--border-strong)",
+    borderRadius: "var(--r-pill)",
+    border: "none",
+    boxShadow: "var(--shadow-sm)",
     background: "var(--surface)",
     cursor: "pointer",
     display: "grid",
@@ -1713,15 +1713,14 @@ function SurveyShotCard({
   };
   return React.createElement("div", {
     style: {
-      border: "1px solid " + (has ? "var(--border)" : "var(--border-strong)"),
-      borderRadius: 13,
+      borderRadius: 14,
       padding: 11,
-      borderLeft: "3px solid " + (has ? "var(--primary)" : "var(--surface3)"),
-      background: has ? "var(--surface)" : "var(--surface2)",
+      boxShadow: "inset 3px 0 0 " + (has ? "var(--primary)" : "var(--surface3)") + ", var(--shadow-sm)",
+      background: "var(--surface)",
       display: "flex",
       flexDirection: "column",
       gap: 10,
-      transition: "border-color .2s"
+      transition: "box-shadow .2s"
     }
   }, React.createElement("div", {
     style: {
@@ -1742,10 +1741,10 @@ function SurveyShotCard({
     style: {
       width: 54,
       height: 54,
-      borderRadius: 10,
+      borderRadius: 12,
       objectFit: "cover",
       cursor: "pointer",
-      border: "1px solid var(--border)"
+      boxShadow: "var(--shadow-sm)"
     }
   }), React.createElement("span", {
     style: {
@@ -1772,8 +1771,8 @@ function SurveyShotCard({
       flexShrink: 0,
       display: "grid",
       placeItems: "center",
-      background: "var(--surface3)",
-      border: "1px dashed var(--border-strong)"
+      background: "var(--surface2)",
+      boxShadow: "var(--shadow-inset)"
     }
   }, React.createElement(Icon, {
     name: "image",
@@ -1828,10 +1827,11 @@ function SurveyShotCard({
       display: "inline-flex",
       alignItems: "center",
       gap: 5,
-      padding: "7px 11px",
-      borderRadius: 9,
+      padding: "7px 12px",
+      borderRadius: "var(--r-pill)",
       border: "none",
-      background: has ? "var(--surface3)" : "var(--primary)",
+      boxShadow: has ? "var(--shadow-sm)" : "var(--shadow-btn)",
+      background: has ? "var(--surface2)" : "var(--primary)",
       color: has ? "var(--text-2)" : "#fff",
       fontFamily: "inherit",
       fontSize: 12,
@@ -1850,7 +1850,7 @@ function SurveyShotCard({
     style: {
       width: 32,
       height: 32,
-      borderRadius: 9,
+      borderRadius: "var(--r-pill)",
       border: "none",
       background: "#EF444414",
       color: "#EF4444",
@@ -1876,9 +1876,10 @@ function SurveyShotCard({
       alignItems: "center",
       gap: 6,
       padding: "7px 12px",
-      borderRadius: 9,
-      border: "1px solid " + (shot.ann && shot.ann.length ? "var(--primary)" : "var(--border-strong)"),
-      background: shot.ann && shot.ann.length ? "var(--primary-soft)" : "var(--surface)",
+      borderRadius: "var(--r-pill)",
+      border: "none",
+      boxShadow: "var(--shadow-sm)",
+      background: shot.ann && shot.ann.length ? "var(--primary-soft)" : "var(--surface2)",
       color: "var(--primary-dark)",
       fontFamily: "inherit",
       fontSize: 12,
@@ -1953,9 +1954,9 @@ function SurveyNoteBox({
     style: {
       margin: "-2px -3px 0",
       padding: "11px 12px 12px",
-      borderRadius: 13,
+      borderRadius: 16,
       background: "var(--surface2)",
-      border: "1px solid var(--border)",
+      boxShadow: "var(--shadow-inset)",
       display: "flex",
       flexDirection: "column",
       gap: 10
@@ -2007,23 +2008,28 @@ function SurveyNoteBox({
 const SURVEY_STEPS = [{
   n: 1,
   icon: "pin",
-  th: "เช็คอิน & มิเตอร์"
+  th: "เช็คอิน & มิเตอร์",
+  sh: "เช็คอิน & มิเตอร์"
 }, {
   n: 2,
   icon: "box",
-  th: "หลังคา"
+  th: "หลังคา",
+  sh: "หลังคา"
 }, {
   n: 3,
   icon: "bolt",
-  th: "ไฟฟ้า & ตำแหน่ง"
+  th: "ไฟฟ้า & ตำแหน่ง",
+  sh: "ไฟฟ้า"
 }, {
   n: 4,
   icon: "file",
-  th: "อุปกรณ์ & หมายเหตุ"
+  th: "อุปกรณ์ & หมายเหตุ",
+  sh: "อุปกรณ์"
 }, {
   n: 5,
   icon: "image",
-  th: "รูปเพิ่มเติม"
+  th: "รูปเพิ่มเติม",
+  sh: "รูปเพิ่ม"
 }];
 function SurveyWizard({
   job,
@@ -2310,20 +2316,60 @@ function SurveyWizard({
   }), React.createElement("div", {
     onClick: e => e.stopPropagation(),
     style: {
-      background: "var(--bg)",
-      borderRadius: isMobile ? "20px 20px 0 0" : 18,
       width: isMobile ? "100%" : "min(680px,100%)",
-      maxHeight: isMobile ? "96dvh" : "94vh",
+      height: isMobile ? "94dvh" : "min(900px, 94vh)",
       display: "flex",
       flexDirection: "column",
-      overflow: "hidden",
-      boxShadow: "0 30px 80px rgba(8,20,14,.3)"
+      minHeight: 0,
+      filter: "drop-shadow(0 24px 40px rgba(8,20,14,.28))"
+    }
+  }, React.createElement("div", {
+    className: "ld-tabs",
+    role: "tablist"
+  }, SURVEY_STEPS.map((s, i) => {
+    const on = s.n === step,
+      done = s.n < step;
+    return React.createElement("button", {
+      key: s.n,
+      role: "tab",
+      "aria-selected": on,
+      className: "ld-tab" + (on ? " on" : ""),
+      title: s.th,
+      style: {
+        zIndex: on ? 10 : SURVEY_STEPS.length - i
+      },
+      onClick: () => setStep(s.n)
+    }, React.createElement("span", {
+      className: "ld-tab-n",
+      style: done && !on ? {
+        background: "var(--primary)",
+        color: "#fff"
+      } : null
+    }, done ? React.createElement(Icon, {
+      name: "check",
+      size: 10,
+      color: "#fff",
+      sw: 3
+    }) : s.n), (!isMobile || on) && s.sh);
+  })), React.createElement("div", {
+    style: {
+      background: "var(--bg)",
+      borderRadius: isMobile ? "0 20px 0 0" : "0 18px 18px 18px",
+      flex: 1,
+      minHeight: 0,
+      position: "relative",
+      zIndex: 11,
+      display: "flex",
+      flexDirection: "column",
+      overflow: "hidden"
     }
   }, React.createElement("div", {
     style: {
-      padding: "15px 18px 13px",
-      borderBottom: "1px solid var(--border)",
-      background: "var(--surface)"
+      padding: "15px 18px 14px",
+      boxShadow: "0 10px 18px -14px rgba(8,20,14,.45)",
+      background: "var(--surface)",
+      position: "relative",
+      zIndex: 1
     }
   }, React.createElement("div", {
     style: {
@@ -2405,97 +2451,22 @@ function SurveyWizard({
     style: {
       width: 34,
       height: 34,
-      borderRadius: 10,
-      border: "1px solid var(--border)",
-      background: "var(--surface)",
       cursor: "pointer",
       display: "grid",
-      placeItems: "center",
-      color: "var(--text-2)"
+      placeItems: "center"
     }
   }, React.createElement(Icon, {
     name: "x",
     size: 16
-  })))), React.createElement("div", {
-    style: {
-      display: "flex",
-      alignItems: "center",
-      gap: 2,
-      marginTop: 14
-    }
-  }, SURVEY_STEPS.map((s, i) => {
-    const active = s.n === step,
-      done = s.n < step;
-    return React.createElement(React.Fragment, {
-      key: s.n
-    }, i > 0 && React.createElement("span", {
-      style: {
-        flex: 1,
-        height: 2,
-        borderRadius: 99,
-        background: done || active ? "var(--primary)" : "var(--surface3)",
-        transition: "background .2s"
-      }
-    }), React.createElement("button", {
-      onClick: () => setStep(s.n),
-      title: s.th,
-      style: {
-        display: "flex",
-        alignItems: "center",
-        gap: 6,
-        background: active ? "var(--primary-soft)" : "transparent",
-        border: "none",
-        cursor: "pointer",
-        fontFamily: "inherit",
-        padding: active && !isMobile ? "4px 11px 4px 4px" : 4,
-        borderRadius: 99,
-        flexShrink: 0
-      }
-    }, React.createElement("span", {
-      style: {
-        width: 24,
-        height: 24,
-        borderRadius: 99,
-        display: "grid",
-        placeItems: "center",
-        flexShrink: 0,
-        fontSize: 11.5,
-        fontWeight: 800,
-        fontFamily: "var(--mono)",
-        transition: "all .2s",
-        background: done ? "var(--primary)" : active ? "var(--primary)" : "var(--surface3)",
-        color: done || active ? "#fff" : "var(--text-3)",
-        boxShadow: active ? "0 0 0 3px var(--primary-soft)" : "none"
-      }
-    }, done ? React.createElement(Icon, {
-      name: "check",
-      size: 13,
-      color: "#fff",
-      sw: 2.8
-    }) : s.n), active && !isMobile && React.createElement("span", {
-      style: {
-        fontSize: 12,
-        fontWeight: 700,
-        color: "var(--primary-dark)",
-        whiteSpace: "nowrap"
-      }
-    }, s.th)));
-  })), isMobile && React.createElement("div", {
-    style: {
-      marginTop: 7,
-      fontSize: 12,
-      fontWeight: 700,
-      color: "var(--primary-dark)"
-    }
-  }, (SURVEY_STEPS[step - 1] || {}).th)), React.createElement("div", {
+  }))))), React.createElement("div", {
     style: {
       overflowY: "auto",
       flex: 1,
+      minHeight: 0,
       padding: 16,
       display: "flex",
       flexDirection: "column",
-      gap: 13,
-      background: "var(--surface2)"
+      gap: 14
     }
   }, step === 1 && React.createElement(React.Fragment, null, React.createElement(SurveyBlock, {
     icon: "pin",
@@ -2511,8 +2482,9 @@ function SurveyWizard({
       justifyContent: "center",
       gap: 8,
       padding: "11px 14px",
-      borderRadius: 11,
+      borderRadius: "var(--r-pill)",
       border: "none",
+      boxShadow: "var(--shadow-btn)",
       background: "var(--primary)",
       color: "#fff",
       fontFamily: "inherit",
@@ -2538,8 +2510,8 @@ function SurveyWizard({
       gap: 10,
       padding: "10px 12px",
       background: "var(--surface2)",
-      borderRadius: 10,
-      border: "1px solid var(--border)"
+      borderRadius: 12,
+      boxShadow: "var(--shadow-inset)"
     }
   }, React.createElement("span", {
     style: {
@@ -2894,7 +2866,8 @@ function SurveyWizard({
       alignItems: "center",
       padding: "12px 16px",
       paddingBottom: isMobile ? "calc(12px + env(safe-area-inset-bottom,0px))" : 12,
-      borderTop: "1px solid var(--border)",
+      boxShadow: "0 -10px 18px -14px rgba(8,20,14,.45)",
+      position: "relative",
       background: "var(--surface)"
     }
   }, step > 1 ? React.createElement("button", {
@@ -2902,9 +2875,10 @@ function SurveyWizard({
     style: {
       flex: "0 0 auto",
       padding: "12px 15px",
-      borderRadius: 11,
-      border: "1px solid var(--border-strong)",
-      background: "var(--surface)",
+      borderRadius: "var(--r-pill)",
+      border: "none",
+      background: "var(--surface2)",
+      boxShadow: "var(--shadow-sm)",
       color: "var(--text-2)",
       fontWeight: 700,
       fontFamily: "inherit",
@@ -2926,9 +2900,10 @@ function SurveyWizard({
     style: {
       flex: "0 0 auto",
       padding: "12px 18px",
-      borderRadius: 11,
-      border: "1px solid var(--border-strong)",
-      background: "var(--surface)",
+      borderRadius: "var(--r-pill)",
+      border: "none",
+      background: "var(--surface2)",
+      boxShadow: "var(--shadow-sm)",
       color: "var(--text-2)",
       fontWeight: 700,
       fontFamily: "inherit",
@@ -2940,9 +2915,10 @@ function SurveyWizard({
     style: {
       flex: "0 0 auto",
       padding: "12px 15px",
-      borderRadius: 11,
-      border: "1px solid var(--border-strong)",
-      background: "var(--surface)",
+      borderRadius: "var(--r-pill)",
+      border: "none",
+      background: "var(--surface2)",
+      boxShadow: "var(--shadow-sm)",
       color: "var(--primary-dark)",
       fontWeight: 700,
       fontFamily: "inherit",
@@ -2954,9 +2930,10 @@ function SurveyWizard({
     style: {
       flex: 1,
       padding: "12px",
-      borderRadius: 11,
+      borderRadius: "var(--r-pill)",
       border: "none",
       background: "var(--primary)",
+      boxShadow: "var(--shadow-btn)",
       color: "#fff",
       fontWeight: 700,
       fontFamily: "inherit",
@@ -2976,9 +2953,10 @@ function SurveyWizard({
     style: {
       flex: "0 0 auto",
       padding: "12px 15px",
-      borderRadius: 11,
-      border: "1px solid var(--primary)",
+      borderRadius: "var(--r-pill)",
+      border: "none",
       background: "var(--primary-soft)",
+      boxShadow: "var(--shadow-sm)",
       color: "var(--primary-dark)",
       fontWeight: 700,
       fontFamily: "inherit",
@@ -2997,9 +2975,10 @@ function SurveyWizard({
     style: {
       flex: 1,
       padding: "12px",
-      borderRadius: 11,
+      borderRadius: "var(--r-pill)",
       border: "none",
       background: "var(--primary)",
+      boxShadow: "var(--shadow-btn)",
       color: "#fff",
       fontWeight: 700,
       fontFamily: "inherit",
@@ -3015,7 +2994,7 @@ function SurveyWizard({
     size: 16,
     color: "#fff",
     sw: 2.4
-  }), " \u0E1A\u0E31\u0E19\u0E17\u0E36\u0E01"))))), annKey && media.photos[annKey] && React.createElement(AnnEditor, {
+  }), " \u0E1A\u0E31\u0E19\u0E17\u0E36\u0E01")))))), annKey && media.photos[annKey] && React.createElement(AnnEditor, {
     shot: Object.assign({
       key: annKey
     }, media.photos[annKey]),
@@ -3043,9 +3022,10 @@ function AddShotButton({
     justifyContent: "center",
     gap: 7,
     padding: "13px",
-    borderRadius: 11,
-    border: "1px dashed var(--border-strong)",
-    background: "var(--surface)",
+    borderRadius: "var(--r-pill)",
+    border: "none",
+    boxShadow: "var(--shadow-sm)",
+    background: "var(--primary-soft)",
     color: "var(--primary-dark)",
     fontFamily: "inherit",
     fontSize: 13.5,
@@ -3053,8 +3033,7 @@ function AddShotButton({
     cursor: busy ? "default" : "pointer"
   }, slim ? {
     flex: "0 0 auto",
-    padding: "8px 13px",
-    borderRadius: 10,
+    padding: "8px 14px",
     fontSize: 12.5
   } : null);
   return React.createElement(React.Fragment, null, React.createElement("input", {
