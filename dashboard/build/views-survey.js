@@ -496,6 +496,82 @@ function LeadsView({
     }
   }));
 }
+const CONTACT_RESULTS = [{
+  key: "interest",
+  th: "สนใจ · ขอใบเสนอราคา",
+  color: "#1B9B75",
+  days: 2
+}, {
+  key: "survey",
+  th: "นัดสำรวจหน้างานแล้ว",
+  color: "#0EA5E9",
+  days: null
+}, {
+  key: "nego",
+  th: "ต่อรองราคา",
+  color: "#8B5CF6",
+  days: 3
+}, {
+  key: "think",
+  th: "ขอเวลาคิด",
+  color: "#D97706",
+  days: 7
+}, {
+  key: "noanswer",
+  th: "ไม่รับสาย / ยังไม่ตอบ",
+  color: "#64748B",
+  days: 1
+}, {
+  key: "no",
+  th: "ไม่สนใจแล้ว",
+  color: "#EF4444",
+  days: 0
+}];
+const ctResultOf = k => CONTACT_RESULTS.find(x => x.key === k) || null;
+const ctAddDays = n => {
+  const d = new Date();
+  d.setDate(d.getDate() + n);
+  return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0");
+};
+const ctAgo = at => {
+  const t = new Date(at);
+  if (isNaN(t)) return "";
+  const day = x => new Date(x.getFullYear(), x.getMonth(), x.getDate()).getTime();
+  const n = Math.round((day(new Date()) - day(t)) / 86400000);
+  if (n <= 0) return "วันนี้ " + String(t.getHours()).padStart(2, "0") + ":" + String(t.getMinutes()).padStart(2, "0");
+  if (n === 1) return "เมื่อวาน";
+  if (n < 30) return n + " วันก่อน";
+  return thDateTime(at);
+};
+function CtResultBadge({
+  k
+}) {
+  const r = ctResultOf(k);
+  if (!r) return null;
+  return React.createElement("span", {
+    style: {
+      display: "inline-flex",
+      alignItems: "center",
+      gap: 5,
+      fontSize: 11,
+      fontWeight: 700,
+      color: r.color,
+      background: "color-mix(in srgb, " + r.color + " 12%, transparent)",
+      padding: "2px 9px",
+      borderRadius: "var(--r-pill)",
+      marginLeft: 6,
+      verticalAlign: 1,
+      whiteSpace: "nowrap"
+    }
+  }, React.createElement("span", {
+    style: {
+      width: 6,
+      height: 6,
+      borderRadius: "var(--r-pill)",
+      background: r.color
+    }
+  }), r.th);
+}
 function ContactLogModal({
   lead,
   currentUser,
@@ -511,6 +587,31 @@ function ContactLogModal({
   const [how, setHow] = React.useState("call");
   const [note, setNote] = React.useState("");
   const [next, setNext] = React.useState(lead.nextFollow || "");
+  const [result, setResult] = React.useState("");
+  const pickResult = r => {
+    if (result === r.key) {
+      setResult("");
+      return;
+    }
+    setResult(r.key);
+    if (r.days != null) setNext(r.days ? ctAddDays(r.days) : "");
+  };
+  const QUICK = [["พรุ่งนี้", 1], ["3 วัน", 3], ["1 สัปดาห์", 7], ["2 สัปดาห์", 14], ["1 เดือน", 30]];
+  const chip = (on, color) => ({
+    display: "inline-flex",
+    alignItems: "center",
+    gap: 6,
+    padding: "8px 13px",
+    borderRadius: "var(--r-pill)",
+    cursor: "pointer",
+    fontFamily: "inherit",
+    fontSize: 12.5,
+    fontWeight: 700,
+    border: "none",
+    background: on ? color ? "color-mix(in srgb, " + color + " 14%, var(--surface))" : "var(--primary-soft)" : "var(--surface)",
+    color: on ? color || "var(--primary-dark)" : "var(--text-2)",
+    boxShadow: on ? "inset 0 0 0 1.5px " + (color || "var(--primary)") : "var(--shadow-sm)"
+  });
   const lbl = {
     fontSize: 10.5,
     fontWeight: 700,
@@ -522,6 +623,7 @@ function ContactLogModal({
     by: currentUser && currentUser.id || "",
     byName: currentUser && currentUser.name || "",
     how: how,
+    result: result,
     note: note.trim(),
     nextFollow: next || ""
   });
@@ -618,25 +720,41 @@ function ContactLogModal({
     return React.createElement("button", {
       key: w.key,
       onClick: () => setHow(w.key),
-      style: {
-        display: "inline-flex",
-        alignItems: "center",
-        gap: 5,
-        padding: "8px 13px",
-        borderRadius: "var(--r-pill)",
-        cursor: "pointer",
-        fontFamily: "inherit",
-        fontSize: 12.5,
-        fontWeight: 700,
-        border: "1px solid " + (on ? "var(--primary)" : "var(--border-strong)"),
-        background: on ? "var(--primary-soft)" : "var(--surface)",
-        color: on ? "var(--primary-dark)" : "var(--text-2)"
-      }
+      style: chip(on)
     }, React.createElement(Icon, {
       name: w.icon,
       size: 13,
       color: on ? "var(--primary-dark)" : "var(--text-2)"
     }), w.th);
+  }))), React.createElement("div", {
+    style: {
+      display: "flex",
+      flexDirection: "column",
+      gap: 6
+    }
+  }, React.createElement("label", {
+    style: lbl
+  }, "\u0E1C\u0E25\u0E01\u0E32\u0E23\u0E15\u0E34\u0E14\u0E15\u0E48\u0E2D"), React.createElement("div", {
+    style: {
+      display: "flex",
+      gap: 7,
+      flexWrap: "wrap"
+    }
+  }, CONTACT_RESULTS.map(r => {
+    const on = result === r.key;
+    return React.createElement("button", {
+      key: r.key,
+      onClick: () => pickResult(r),
+      style: chip(on, r.color)
+    }, React.createElement("span", {
+      style: {
+        width: 7,
+        height: 7,
+        borderRadius: "var(--r-pill)",
+        background: r.color,
+        opacity: on ? 1 : .55
+      }
+    }), r.th);
   }))), React.createElement("div", {
     style: {
       display: "flex",
@@ -669,6 +787,32 @@ function ContactLogModal({
     onChange: e => setNext(e.target.value),
     style: inputStyle
   }), React.createElement("div", {
+    style: {
+      display: "flex",
+      gap: 6,
+      flexWrap: "wrap",
+      marginTop: 3
+    }
+  }, QUICK.map(([t, n]) => {
+    const on = next === ctAddDays(n);
+    return React.createElement("button", {
+      key: n,
+      onClick: () => setNext(ctAddDays(n)),
+      style: Object.assign(chip(on), {
+        padding: "6px 11px",
+        fontSize: 12
+      })
+    }, t);
+  }), next && React.createElement("button", {
+    onClick: () => setNext(""),
+    style: Object.assign(chip(false), {
+      padding: "6px 11px",
+      fontSize: 12,
+      color: "var(--text-3)",
+      boxShadow: "none",
+      background: "transparent"
+    })
+  }, "\u0E44\u0E21\u0E48\u0E15\u0E49\u0E2D\u0E07\u0E15\u0E32\u0E21\u0E15\u0E48\u0E2D")), React.createElement("div", {
     style: {
       fontSize: 11,
       color: "var(--text-3)"
@@ -710,6 +854,169 @@ function ContactLogModal({
       cursor: "pointer"
     }
   }, "\u0E1A\u0E31\u0E19\u0E17\u0E36\u0E01"))));
+}
+function LeadContactCard({
+  l,
+  count,
+  lastC,
+  way,
+  late,
+  onLog
+}) {
+  const phone = String(l.phone || "").trim();
+  const tel = phone.replace(/[^\d+]/g, "");
+  const status = l.nextFollow ? {
+    text: (late ? "เลยวันติดตาม · " : "ติดตามครั้งถัดไป ") + thDate(l.nextFollow, true),
+    color: late ? "#EF4444" : "var(--primary-dark)",
+    strong: true
+  } : {
+    text: "ยังไม่ได้ตั้งวันติดตาม",
+    color: "var(--text-3)"
+  };
+  return React.createElement("div", {
+    style: {
+      background: "var(--surface)",
+      borderRadius: "var(--r-card)",
+      padding: "16px 18px",
+      marginBottom: 10,
+      boxShadow: "var(--shadow-sm)"
+    }
+  }, React.createElement("div", {
+    style: {
+      display: "flex",
+      alignItems: "center",
+      gap: 12
+    }
+  }, React.createElement("span", {
+    className: "ic-chip",
+    style: {
+      background: late ? "rgba(239,68,68,.11)" : "var(--primary-soft)"
+    }
+  }, React.createElement(Icon, {
+    name: "phone",
+    size: 18,
+    color: late ? "#EF4444" : "var(--primary)"
+  })), React.createElement("span", {
+    style: {
+      flex: 1,
+      minWidth: 0
+    }
+  }, React.createElement("span", {
+    style: {
+      display: "block",
+      fontSize: 14,
+      fontWeight: 800,
+      color: "var(--text-1)"
+    }
+  }, "\u0E01\u0E32\u0E23\u0E15\u0E34\u0E14\u0E15\u0E48\u0E2D"), React.createElement("span", {
+    style: {
+      display: "block",
+      fontSize: 12,
+      fontWeight: status.strong ? 700 : 500,
+      color: status.color
+    }
+  }, status.text)), count > 0 && React.createElement("span", {
+    style: {
+      fontSize: 11.5,
+      fontWeight: 700,
+      color: "var(--text-2)",
+      background: "var(--surface2)",
+      padding: "4px 10px",
+      borderRadius: "var(--r-pill)",
+      whiteSpace: "nowrap"
+    }
+  }, count, " \u0E04\u0E23\u0E31\u0E49\u0E07")), React.createElement("div", {
+    style: {
+      marginTop: 12,
+      background: "var(--surface2)",
+      borderRadius: "var(--r-tile)",
+      padding: "10px 12px",
+      boxShadow: "var(--shadow-inset)"
+    }
+  }, lastC ? React.createElement(React.Fragment, null, React.createElement("div", {
+    style: {
+      display: "flex",
+      alignItems: "center",
+      flexWrap: "wrap",
+      rowGap: 4,
+      fontSize: 11.5,
+      color: "var(--text-3)"
+    }
+  }, React.createElement(Icon, {
+    name: way.icon,
+    size: 12,
+    color: "var(--text-3)",
+    style: {
+      marginRight: 5
+    }
+  }), React.createElement("span", null, "\u0E25\u0E48\u0E32\u0E2A\u0E38\u0E14 \xB7 ", way.th, " \xB7 ", ctAgo(lastC.at), lastC.byName ? " · " + lastC.byName : ""), React.createElement(CtResultBadge, {
+    k: lastC.result
+  })), React.createElement("div", {
+    style: {
+      fontSize: 13,
+      color: lastC.note ? "var(--text-1)" : "var(--text-3)",
+      lineHeight: 1.55,
+      marginTop: 4,
+      display: "-webkit-box",
+      WebkitLineClamp: 3,
+      WebkitBoxOrient: "vertical",
+      overflow: "hidden"
+    }
+  }, lastC.note || "ไม่ได้จดว่าคุยอะไร")) : React.createElement("div", {
+    style: {
+      fontSize: 12.5,
+      color: "var(--text-3)",
+      lineHeight: 1.55
+    }
+  }, "\u0E22\u0E31\u0E07\u0E44\u0E21\u0E48\u0E40\u0E04\u0E22\u0E15\u0E34\u0E14\u0E15\u0E48\u0E2D \u2014 \u0E42\u0E17\u0E23\u0E41\u0E25\u0E49\u0E27\u0E08\u0E14\u0E44\u0E27\u0E49\u0E27\u0E48\u0E32\u0E04\u0E38\u0E22\u0E2D\u0E30\u0E44\u0E23 \u0E25\u0E39\u0E01\u0E04\u0E49\u0E32\u0E15\u0E2D\u0E1A\u0E27\u0E48\u0E32\u0E2D\u0E22\u0E48\u0E32\u0E07\u0E44\u0E23 \u0E04\u0E19\u0E17\u0E35\u0E48\u0E21\u0E32\u0E14\u0E39\u0E41\u0E25\u0E15\u0E48\u0E2D\u0E08\u0E30\u0E44\u0E14\u0E49\u0E44\u0E21\u0E48\u0E15\u0E49\u0E2D\u0E07\u0E40\u0E23\u0E34\u0E48\u0E21\u0E16\u0E32\u0E21\u0E43\u0E2B\u0E21\u0E48")), React.createElement("div", {
+    style: {
+      display: "flex",
+      gap: 8,
+      marginTop: 12
+    }
+  }, tel && React.createElement("a", {
+    href: "tel:" + tel,
+    style: {
+      display: "inline-flex",
+      alignItems: "center",
+      justifyContent: "center",
+      gap: 7,
+      padding: "11px 16px",
+      borderRadius: "var(--r-tile)",
+      background: "var(--primary-soft)",
+      color: "var(--primary-dark)",
+      fontWeight: 700,
+      fontSize: 13.5,
+      textDecoration: "none",
+      boxShadow: "var(--shadow-sm)",
+      whiteSpace: "nowrap"
+    }
+  }, React.createElement(Icon, {
+    name: "phone",
+    size: 15
+  }), " \u0E42\u0E17\u0E23 ", phone), React.createElement("button", {
+    onClick: onLog,
+    style: {
+      flex: 1,
+      display: "inline-flex",
+      alignItems: "center",
+      justifyContent: "center",
+      gap: 7,
+      padding: "11px 16px",
+      borderRadius: "var(--r-tile)",
+      border: "none",
+      background: "var(--primary)",
+      color: "#fff",
+      fontWeight: 700,
+      fontSize: 13.5,
+      fontFamily: "inherit",
+      cursor: "pointer",
+      boxShadow: "var(--shadow-btn)"
+    }
+  }, React.createElement(Icon, {
+    name: "plus",
+    size: 15
+  }), " \u0E1A\u0E31\u0E19\u0E17\u0E36\u0E01\u0E01\u0E32\u0E23\u0E15\u0E34\u0E14\u0E15\u0E48\u0E2D")));
 }
 function leadBtn(color, solid) {
   return {
@@ -1312,7 +1619,9 @@ function LeadCard({
         style: {
           color: "var(--text-1)"
         }
-      }, w.th), " ", thDateTime(c.at), c.byName ? " · " + c.byName : "", c.note ? React.createElement("span", {
+      }, w.th), " ", thDateTime(c.at), c.byName ? " · " + c.byName : "", React.createElement(CtResultBadge, {
+        k: c.result
+      }), c.note ? React.createElement("span", {
         style: {
           display: "block",
           color: "var(--text-3)"
@@ -1379,7 +1688,7 @@ function LeadActionRow({
   }, React.createElement("span", {
     className: "ic-chip",
     style: {
-      background: color + "1c"
+      background: "color-mix(in srgb, " + color + " 11%, transparent)"
     }
   }, React.createElement(Icon, {
     name: icon,
@@ -1806,12 +2115,13 @@ function LeadDetail({
     quotes: quotes,
     onOpenQuote: q => onOpenQuote(l, q),
     card: true
-  }), React.createElement(LeadActionRow, {
-    icon: "phone",
-    color: "var(--primary)",
-    title: "\u0E1A\u0E31\u0E19\u0E17\u0E36\u0E01\u0E01\u0E32\u0E23\u0E15\u0E34\u0E14\u0E15\u0E48\u0E2D",
-    sub: lastC ? "ล่าสุด " + wayOf(lastC.how).th + " " + thDateTime(lastC.at) + " · ติดต่อไปแล้ว " + contacts.length + " ครั้ง" : "ยังไม่เคยบันทึกการติดต่อ",
-    onClick: () => setLog(l)
+  }), React.createElement(LeadContactCard, {
+    l: l,
+    count: contacts.length,
+    lastC: lastC,
+    way: lastC ? wayOf(lastC.how) : null,
+    late: late,
+    onLog: () => setLog(l)
   }), onOpenSurvey && React.createElement(LeadActionRow, {
     icon: "list",
     color: st.color,
@@ -1924,7 +2234,9 @@ function LeadDetail({
       style: {
         color: "var(--text-1)"
       }
-    }, w.th), " ", thDateTime(c.at), c.byName ? " · " + c.byName : "", c.note ? React.createElement("span", {
+    }, w.th), " ", thDateTime(c.at), c.byName ? " · " + c.byName : "", React.createElement(CtResultBadge, {
+      k: c.result
+    }), c.note ? React.createElement("span", {
       style: {
         display: "block",
         color: "var(--text-3)",

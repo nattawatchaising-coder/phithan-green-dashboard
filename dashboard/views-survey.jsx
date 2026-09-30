@@ -235,6 +235,47 @@ function LeadsView({ leadStore, appts, jobs, onMenuOpen, onOpenSurvey, onReport,
   );
 }
 
+/* ── ผลการติดต่อ ──
+   ตัวที่บอกว่าคุยแล้ว "ไปทางไหน" — จดแค่ว่าโทรแล้ว ไม่บอกอะไรกับคนที่มาอ่านต่อ
+   แต่ละผลเสนอวันติดตามครั้งถัดไปให้ (days) เซลล์ไม่ต้องนั่งนับวันเอง แก้ทับได้ทุกครั้ง
+   days: null = ไม่แตะวันติดตาม (นัดสำรวจมีวันอยู่ในตารางสำรวจแล้ว) · 0 = ล้างวันติดตาม (ไม่ต้องตามต่อ)
+   ⚠ key ถูกเก็บลงบันทึกของลูกค้าจริง — เปลี่ยนชื่อที่แสดง (th) ได้ แต่ห้ามเปลี่ยน key ของเดิม */
+const CONTACT_RESULTS = [
+  { key: "interest", th: "สนใจ · ขอใบเสนอราคา", color: "#1B9B75", days: 2 },
+  { key: "survey",   th: "นัดสำรวจหน้างานแล้ว",   color: "#0EA5E9", days: null },
+  { key: "nego",     th: "ต่อรองราคา",            color: "#8B5CF6", days: 3 },
+  { key: "think",    th: "ขอเวลาคิด",             color: "#D97706", days: 7 },
+  { key: "noanswer", th: "ไม่รับสาย / ยังไม่ตอบ",   color: "#64748B", days: 1 },
+  { key: "no",       th: "ไม่สนใจแล้ว",            color: "#EF4444", days: 0 },
+];
+const ctResultOf = (k) => CONTACT_RESULTS.find((x) => x.key === k) || null;
+/* วันที่ตามเวลาเครื่อง (ไทย) + n วัน — ไม่ใช้ toISOString เพราะเป็น UTC จะเพี้ยนหนึ่งวันช่วงเช้ามืด */
+const ctAddDays = (n) => {
+  const d = new Date(); d.setDate(d.getDate() + n);
+  return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0");
+};
+/* "วันนี้ 14:05" / "เมื่อวาน" / "3 วันก่อน" — อ่านเร็วกว่าวันที่เต็ม ส่วนวันที่เต็มดูได้ในประวัติ */
+const ctAgo = (at) => {
+  const t = new Date(at); if (isNaN(t)) return "";
+  const day = (x) => new Date(x.getFullYear(), x.getMonth(), x.getDate()).getTime();
+  const n = Math.round((day(new Date()) - day(t)) / 86400000);
+  if (n <= 0) return "วันนี้ " + String(t.getHours()).padStart(2, "0") + ":" + String(t.getMinutes()).padStart(2, "0");
+  if (n === 1) return "เมื่อวาน";
+  if (n < 30) return n + " วันก่อน";
+  return thDateTime(at);
+};
+function CtResultBadge({ k }) {
+  const r = ctResultOf(k);
+  if (!r) return null;
+  return (
+    <span style={{ display: "inline-flex", alignItems: "center", gap: 5, fontSize: 11, fontWeight: 700, color: r.color,
+      background: "color-mix(in srgb, " + r.color + " 12%, transparent)", padding: "2px 9px", borderRadius: "var(--r-pill)",
+      marginLeft: 6, verticalAlign: 1, whiteSpace: "nowrap" }}>
+      <span style={{ width: 6, height: 6, borderRadius: "var(--r-pill)", background: r.color }} />{r.th}
+    </span>
+  );
+}
+
 /* ── บันทึกการติดต่อ ──
    เซลล์คุยกับลูกค้าหลายรายต่อวัน ถ้าไม่จดว่าคุยอะไรไป รอบหน้าจะถามซ้ำ
    และเมื่อเปลี่ยนมือคนดูแล คนใหม่จะเริ่มจากศูนย์ — ตั้งวันติดตามครั้งถัดไปในหน้าเดียวกันเลย */
@@ -245,11 +286,24 @@ function ContactLogModal({ lead, currentUser, onClose, onSave }) {
   const [how, setHow] = React.useState("call");
   const [note, setNote] = React.useState("");
   const [next, setNext] = React.useState(lead.nextFollow || "");
+  const [result, setResult] = React.useState("");
+  /* เลือกผลแล้วเสนอวันติดตามตามผลนั้น — กดผลเดิมซ้ำคือยกเลิก วันที่เสนอไปแล้วคงไว้ให้แก้เอง */
+  const pickResult = (r) => {
+    if (result === r.key) { setResult(""); return; }
+    setResult(r.key);
+    if (r.days != null) setNext(r.days ? ctAddDays(r.days) : "");
+  };
+  const QUICK = [["พรุ่งนี้", 1], ["3 วัน", 3], ["1 สัปดาห์", 7], ["2 สัปดาห์", 14], ["1 เดือน", 30]];
+  const chip = (on, color) => ({ display: "inline-flex", alignItems: "center", gap: 6, padding: "8px 13px", borderRadius: "var(--r-pill)",
+    cursor: "pointer", fontFamily: "inherit", fontSize: 12.5, fontWeight: 700, border: "none",
+    background: on ? (color ? "color-mix(in srgb, " + color + " 14%, var(--surface))" : "var(--primary-soft)") : "var(--surface)",
+    color: on ? (color || "var(--primary-dark)") : "var(--text-2)",
+    boxShadow: on ? "inset 0 0 0 1.5px " + (color || "var(--primary)") : "var(--shadow-sm)" });
   const lbl = { fontSize: 10.5, fontWeight: 700, color: "var(--text-3)" };
   const submit = () => onSave({
     id: "c-" + Date.now().toString(36), at: new Date().toISOString(),
     by: (currentUser && currentUser.id) || "", byName: (currentUser && currentUser.name) || "",
-    how: how, note: note.trim(), nextFollow: next || "",
+    how: how, result: result, note: note.trim(), nextFollow: next || "",
   });
   return (
     <div {...bdClose} style={{ position: "fixed", inset: 0, background: "rgba(8,20,14,.45)", backdropFilter: "blur(3px)", zIndex: 118, display: "grid", placeItems: isMobile ? "end center" : "center", padding: isMobile ? 0 : 20 }}>
@@ -267,11 +321,20 @@ function ContactLogModal({ lead, currentUser, onClose, onSave }) {
               {WAYS.map((w) => {
                 const on = how === w.key;
                 return (
-                  <button key={w.key} onClick={() => setHow(w.key)}
-                    style={{ display: "inline-flex", alignItems: "center", gap: 5, padding: "8px 13px", borderRadius: "var(--r-pill)", cursor: "pointer", fontFamily: "inherit",
-                      fontSize: 12.5, fontWeight: 700, border: "1px solid " + (on ? "var(--primary)" : "var(--border-strong)"),
-                      background: on ? "var(--primary-soft)" : "var(--surface)", color: on ? "var(--primary-dark)" : "var(--text-2)" }}>
+                  <button key={w.key} onClick={() => setHow(w.key)} style={chip(on)}>
                     <Icon name={w.icon} size={13} color={on ? "var(--primary-dark)" : "var(--text-2)"} />{w.th}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+          <div style={{ display: "flex", flexDirection: "column", gap: 6 }}><label style={lbl}>ผลการติดต่อ</label>
+            <div style={{ display: "flex", gap: 7, flexWrap: "wrap" }}>
+              {CONTACT_RESULTS.map((r) => {
+                const on = result === r.key;
+                return (
+                  <button key={r.key} onClick={() => pickResult(r)} style={chip(on, r.color)}>
+                    <span style={{ width: 7, height: 7, borderRadius: "var(--r-pill)", background: r.color, opacity: on ? 1 : .55 }} />{r.th}
                   </button>
                 );
               })}
@@ -283,6 +346,15 @@ function ContactLogModal({ lead, currentUser, onClose, onSave }) {
               style={Object.assign({}, inputStyle, { resize: "vertical", lineHeight: 1.5 })} /></div>
           <div style={{ display: "flex", flexDirection: "column", gap: 5 }}><label style={lbl}>ติดตามครั้งถัดไป</label>
             <input type="date" value={next} onChange={(e) => setNext(e.target.value)} style={inputStyle} />
+            <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginTop: 3 }}>
+              {QUICK.map(([t, n]) => {
+                const on = next === ctAddDays(n);
+                return <button key={n} onClick={() => setNext(ctAddDays(n))}
+                  style={Object.assign(chip(on), { padding: "6px 11px", fontSize: 12 })}>{t}</button>;
+              })}
+              {next && <button onClick={() => setNext("")}
+                style={Object.assign(chip(false), { padding: "6px 11px", fontSize: 12, color: "var(--text-3)", boxShadow: "none", background: "transparent" })}>ไม่ต้องตามต่อ</button>}
+            </div>
             <div style={{ fontSize: 11, color: "var(--text-3)" }}>เลยวันแล้วการ์ดจะขึ้นแดงและถูกดันขึ้นบนสุดในบอร์ดขาย</div>
           </div>
         </div>
@@ -294,6 +366,71 @@ function ContactLogModal({ lead, currentUser, onClose, onSave }) {
     </div>
   );
 }
+/* ── การ์ดการติดต่อในใบลูกค้า ──
+   เดิมเป็นแถวปุ่มบรรทัดเดียว "บันทึกการติดต่อ" — บอกแค่ว่ากดได้ ไม่บอกว่าตอนนี้ต้องทำอะไร
+   การ์ดนี้ตอบสามคำถามที่เซลล์มีตอนเปิดใบลูกค้า: ต้องตามเมื่อไร · คุยอะไรไปล่าสุด · กดโทรเลยได้ไหม
+   ⚠ ปุ่มโทรเป็นลิงก์ tel: — บนคอมพิวเตอร์จะเปิดแอปโทรของเครื่อง (ถ้ามี) ไม่ใช่บั๊ก */
+function LeadContactCard({ l, count, lastC, way, late, onLog }) {
+  const phone = String(l.phone || "").trim();
+  const tel = phone.replace(/[^\d+]/g, "");
+  const status = l.nextFollow
+    ? { text: (late ? "เลยวันติดตาม · " : "ติดตามครั้งถัดไป ") + thDate(l.nextFollow, true), color: late ? "#EF4444" : "var(--primary-dark)", strong: true }
+    : { text: "ยังไม่ได้ตั้งวันติดตาม", color: "var(--text-3)" };
+  return (
+    <div style={{ background: "var(--surface)", borderRadius: "var(--r-card)", padding: "16px 18px", marginBottom: 10, boxShadow: "var(--shadow-sm)" }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+        <span className="ic-chip" style={{ background: late ? "rgba(239,68,68,.11)" : "var(--primary-soft)" }}>
+          <Icon name="phone" size={18} color={late ? "#EF4444" : "var(--primary)"} />
+        </span>
+        <span style={{ flex: 1, minWidth: 0 }}>
+          <span style={{ display: "block", fontSize: 14, fontWeight: 800, color: "var(--text-1)" }}>การติดต่อ</span>
+          <span style={{ display: "block", fontSize: 12, fontWeight: status.strong ? 700 : 500, color: status.color }}>{status.text}</span>
+        </span>
+        {count > 0 && (
+          <span style={{ fontSize: 11.5, fontWeight: 700, color: "var(--text-2)", background: "var(--surface2)", padding: "4px 10px",
+            borderRadius: "var(--r-pill)", whiteSpace: "nowrap" }}>{count} ครั้ง</span>
+        )}
+      </div>
+
+      {/* ครั้งล่าสุด — หลุมจมแบบช่องกรอก เพราะเป็นข้อความที่คนจดไว้ ไม่ใช่ปุ่ม */}
+      <div style={{ marginTop: 12, background: "var(--surface2)", borderRadius: "var(--r-tile)", padding: "10px 12px", boxShadow: "var(--shadow-inset)" }}>
+        {lastC ? (
+          <React.Fragment>
+            <div style={{ display: "flex", alignItems: "center", flexWrap: "wrap", rowGap: 4, fontSize: 11.5, color: "var(--text-3)" }}>
+              <Icon name={way.icon} size={12} color="var(--text-3)" style={{ marginRight: 5 }} />
+              <span>ล่าสุด · {way.th} · {ctAgo(lastC.at)}{lastC.byName ? " · " + lastC.byName : ""}</span>
+              <CtResultBadge k={lastC.result} />
+            </div>
+            <div style={{ fontSize: 13, color: lastC.note ? "var(--text-1)" : "var(--text-3)", lineHeight: 1.55, marginTop: 4,
+              display: "-webkit-box", WebkitLineClamp: 3, WebkitBoxOrient: "vertical", overflow: "hidden" }}>
+              {lastC.note || "ไม่ได้จดว่าคุยอะไร"}
+            </div>
+          </React.Fragment>
+        ) : (
+          <div style={{ fontSize: 12.5, color: "var(--text-3)", lineHeight: 1.55 }}>
+            ยังไม่เคยติดต่อ — โทรแล้วจดไว้ว่าคุยอะไร ลูกค้าตอบว่าอย่างไร คนที่มาดูแลต่อจะได้ไม่ต้องเริ่มถามใหม่
+          </div>
+        )}
+      </div>
+
+      <div style={{ display: "flex", gap: 8, marginTop: 12 }}>
+        {tel && (
+          <a href={"tel:" + tel} style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 7, padding: "11px 16px",
+            borderRadius: "var(--r-tile)", background: "var(--primary-soft)", color: "var(--primary-dark)", fontWeight: 700, fontSize: 13.5,
+            textDecoration: "none", boxShadow: "var(--shadow-sm)", whiteSpace: "nowrap" }}>
+            <Icon name="phone" size={15} /> โทร {phone}
+          </a>
+        )}
+        <button onClick={onLog} style={{ flex: 1, display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 7, padding: "11px 16px",
+          borderRadius: "var(--r-tile)", border: "none", background: "var(--primary)", color: "#fff", fontWeight: 700, fontSize: 13.5,
+          fontFamily: "inherit", cursor: "pointer", boxShadow: "var(--shadow-btn)" }}>
+          <Icon name="plus" size={15} /> บันทึกการติดต่อ
+        </button>
+      </div>
+    </div>
+  );
+}
+
 /* ชุดเดียวกับ .btn-add / .ghost-btn — เม็ดยาเต็มใบ ไม่มีเส้นขอบ ชั้นบอกด้วยเงา
    ปุ่มที่มีเส้นขอบในแถบที่ทุกอย่างไม่มีเส้น จะอ่านออกมาเป็นของคนละชุด */
 function leadBtn(color, solid) {
@@ -437,7 +574,7 @@ function LeadCard({ l, ctx }) {
           <div style={{ fontSize: 11.5, color: "var(--text-2)", display: "flex", gap: 7, alignItems: "flex-start" }}>
             <Icon name={w.icon} size={13} color="var(--text-3)" style={{ flexShrink: 0, marginTop: 2 }} />
             <span style={{ flex: 1, minWidth: 0 }}>
-              <b style={{ color: "var(--text-1)" }}>{w.th}</b> {thDateTime(c.at)}{c.byName ? " · " + c.byName : ""}
+              <b style={{ color: "var(--text-1)" }}>{w.th}</b> {thDateTime(c.at)}{c.byName ? " · " + c.byName : ""}<CtResultBadge k={c.result} />
               {c.note ? <span style={{ display: "block", color: "var(--text-3)" }}>{c.note}</span> : null}
               {l.contacts.length > 1 ? <span style={{ color: "var(--text-3)" }}>ติดต่อไปแล้ว {l.contacts.length} ครั้ง</span> : null}
             </span>
@@ -469,7 +606,9 @@ function LeadActionRow({ icon, color, title, sub, onClick }) {
   return (
     /* หน้าตาอยู่ในคลาส .act-row / .ic-chip (index.html) — ชุดเดียวกับแถวเครื่องมือฝั่งใบงาน */
     <button onClick={onClick} className="act-row">
-      <span className="ic-chip" style={{ background: color + "1c" }}>
+      {/* color-mix แทน color + "1c" — ต่อท้ายเลขฐานสิบหกใช้ได้กับ #hex เท่านั้น
+          ถ้าส่งมาเป็น var(--primary) จะได้ "var(--primary)1c" ซึ่งไม่ใช่สี ชิปหายไปทั้งก้อน */}
+      <span className="ic-chip" style={{ background: "color-mix(in srgb, " + color + " 11%, transparent)" }}>
         <Icon name={icon} size={18} color={color} />
       </span>
       <span style={{ flex: 1, minWidth: 0 }}>
@@ -694,9 +833,8 @@ function LeadDetail({ l, ctx }) {
       )}
 
       {/* ปุ่มงานของเซลล์ */}
-      <LeadActionRow icon="phone" color="var(--primary)" title="บันทึกการติดต่อ"
-        sub={lastC ? "ล่าสุด " + wayOf(lastC.how).th + " " + thDateTime(lastC.at) + " · ติดต่อไปแล้ว " + contacts.length + " ครั้ง" : "ยังไม่เคยบันทึกการติดต่อ"}
-        onClick={() => setLog(l)} />
+      <LeadContactCard l={l} count={contacts.length} lastC={lastC} way={lastC ? wayOf(lastC.how) : null} late={late}
+        onLog={() => setLog(l)} />
       {onOpenSurvey && (
         <LeadActionRow icon="list" color={st.color} title="สำรวจหน้างาน (Site Survey)"
           sub={st.state === "skip" ? "ข้ามขั้นตอนสำรวจไว้" + (l.survey && l.survey.skipBy ? " โดย " + l.survey.skipBy : "") + " · แตะเพื่อกรอกแบบสำรวจ"
@@ -759,7 +897,7 @@ function LeadDetail({ l, ctx }) {
                 borderTop: i ? "1px solid var(--border)" : "none" }}>
                 <Icon name={w.icon} size={14} color="var(--text-3)" style={{ flexShrink: 0, marginTop: 2 }} />
                 <span style={{ flex: 1, minWidth: 0, fontSize: 12, color: "var(--text-2)" }}>
-                  <b style={{ color: "var(--text-1)" }}>{w.th}</b> {thDateTime(c.at)}{c.byName ? " · " + c.byName : ""}
+                  <b style={{ color: "var(--text-1)" }}>{w.th}</b> {thDateTime(c.at)}{c.byName ? " · " + c.byName : ""}<CtResultBadge k={c.result} />
                   {c.note ? <span style={{ display: "block", color: "var(--text-3)", lineHeight: 1.5 }}>{c.note}</span> : null}
                 </span>
                 {/* ลบได้เฉพาะคนที่แก้ใบลูกค้าได้ · ถามยืนยันก่อนเสมอ ประวัติที่ลบแล้วเอากลับไม่ได้ */}
