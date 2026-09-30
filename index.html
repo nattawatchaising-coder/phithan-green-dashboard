@@ -667,12 +667,21 @@ html.theme-anim, html.theme-anim * { transition: background-color .34s ease, bor
 [data-theme="aurora"] .bd-col{background:color-mix(in srgb,#000 34%,var(--bg))}
 /* ⚠ background-color ไม่ใช่ background — แบบย่อจะล้าง background-image ไปด้วย
    ซึ่งคือผ้าคลุมสีสถานะทั้งหมด โหมดมืดจึงเคยไม่มีสีสถานะเลย ทั้งที่กฎกลางเขียนไว้ครบ */
-[data-theme="aurora"] .bd-card{background-color:var(--gr-card);box-shadow:0 1px 3px rgba(0,0,0,.4)}
-/* พื้นมืด สีจาง 15% จะจมหายไปกับการ์ดเทาเข้ม ต้องเข้มกว่าโหมดสว่างเกือบสองเท่า */
+/* พื้นการ์ดในโหมดมืดย้อมสีสถานะไว้เจือออน ๆ แทนที่จะเป็นเทากลางล้วน
+   เทาล้วนที่มีผ้าคลุมสีพาดทับ ตาจะเอาสองอย่างมาเทียบกัน เทาจึงอ่านออกมาหม่น และรอยต่อก็หัก
+   พอพื้นถือสีเดียวกับผ้าคลุมไว้จาง ๆ ผ้าคลุมก็ไม่มีจุดเริ่มให้สังเกต ทั้งใบจึงเนียนเป็นผืนเดียว
+   ที่เขียน var(--rail,#1E1E22) ไม่ใช่ transparent — ใบที่ไม่มีสถานะจะได้
+   สีเดิมผสมกับสีเดิมคือสีเดิม ทึบเต็มร้อย ถ้าใช้ transparent การ์ดจะโปร่งแล้วเห็นร่องมืดทะลุขึ้นมา
+   ⚠ และไม่มีเส้นขอบขาว — ขาวคือสีที่ทำให้แผ่นสีเข้มดูเป็น "เทาติดขาว"
+     ร่องมืดของรางแยกขอบการ์ดให้อยู่แล้ว ไม่ต้องขีดเส้นซ้ำ */
+[data-theme="aurora"] .bd-card{background-color:color-mix(in srgb,var(--rail,#1E1E22) 7%,#1E1E22);
+  border-color:transparent;box-shadow:0 1px 3px rgba(0,0,0,.5)}
+/* พื้นมืด สีจาง 15% จะจมหายไปกับการ์ดเทาเข้ม ต้องเข้มกว่าโหมดสว่างเกือบสองเท่า
+   จุดจบขยับมาที่ 70% แทน 62% — ผ้าคลุมที่เข้มขึ้นต้องจางยาวขึ้นด้วย ไม่งั้นขอบที่ตัดจะชัด */
 [data-theme="aurora"] .bd-card{background-image:radial-gradient(150% 170% at 100% 40%,
-  color-mix(in srgb,var(--rail,transparent) 28%,transparent) 0%,transparent 62%)}
+  color-mix(in srgb,var(--rail,transparent) 26%,transparent) 0%,transparent 70%)}
 [data-theme="aurora"] .bd-card:hover{background-image:radial-gradient(150% 170% at 100% 40%,
-  color-mix(in srgb,var(--rail,transparent) 40%,transparent) 0%,transparent 62%)}
+  color-mix(in srgb,var(--rail,transparent) 38%,transparent) 0%,transparent 70%)}
 
 /* แถบความคืบหน้า — ไล่เฉดจากจางไปเข้ม ไม่ใช่แท่งสีตัน
    แท่งสีตันบอกได้อย่างเดียวว่า "มาถึงตรงนี้" · การไล่เฉดบอกทิศทางที่มันวิ่งไปด้วย
