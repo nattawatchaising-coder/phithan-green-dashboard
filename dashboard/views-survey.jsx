@@ -1017,11 +1017,11 @@ function LeadDrawer({ lead, leadStore, appts, jobs, quotes, users, currentUser, 
   const lateFollow = window.sOverdue && window.sOverdue(lead.nextFollow) && stageKey(lead) !== "won" && stageKey(lead) !== "lost";
   const sst = window.surveyStatus({ survey: lead.survey });
   const TABS = [
-    /* h = เฉดสีประจำแท็บ (องศา oklch) ความสว่าง/ความสดเท่ากันทุกแท็บ ดูเป็นชุดเดียวกัน — แท็บที่ไม่ได้เลือกย้อมสีตัวเอง แท็บที่เลือกขาวต่อกับหัวใบ + แถบสีบนหัวแท็บ (หัวใบไม่เปลี่ยนสี) */
-    { k: "ov", th: "ภาพรวม", h: 165 },
-    { k: "ct", th: isMobile ? "ติดต่อ" : "การติดต่อ", h: 235, n: nContacts, alert: lateFollow },
-    { k: "qt", th: isMobile ? "ใบเสนอ" : "ใบเสนอราคา", h: 70, n: nQuotes },
-    { k: "sv", th: isMobile ? "สำรวจ" : "สำรวจ & ออกแบบ", h: 300, n: sst.state === "skip" ? null : (sst.pct ? sst.pct + "%" : null) },
+    /* ทุกแท็บโทนเดียวกัน (สีหลัก) — เคยแยกสีรายแท็บ ผู้ใช้ดูแล้วไม่เนียน แท็บที่ไม่ได้เลือกย้อมเขียวจาง แท็บที่เลือกขาวต่อกับหัวใบ + แถบเขียวบนหัวแท็บ */
+    { k: "ov", th: "ภาพรวม" },
+    { k: "ct", th: isMobile ? "ติดต่อ" : "การติดต่อ", n: nContacts, alert: lateFollow },
+    { k: "qt", th: isMobile ? "ใบเสนอ" : "ใบเสนอราคา", n: nQuotes },
+    { k: "sv", th: isMobile ? "สำรวจ" : "สำรวจ & ออกแบบ", n: sst.state === "skip" ? null : (sst.pct ? sst.pct + "%" : null) },
   ];
 
   const ctx = {
@@ -1039,11 +1039,11 @@ function LeadDrawer({ lead, leadStore, appts, jobs, quotes, users, currentUser, 
             แท็บอื่นจมอยู่ข้างหลัง หน้าตาอยู่ในคลาส .ld-tab (index.html)
             ความสูงตายตัว (ไม่ใช่ maxHeight) — แต่ละแท็บยาวไม่เท่ากัน ถ้าปล่อยยืดหด ลิ้นชักที่จัดกลางจอจะกระโดดทุกครั้งที่สลับแท็บ */}
         <div onClick={(e) => e.stopPropagation()} style={{ width: isMobile ? "100%" : "min(680px,100%)", height: isMobile ? "88dvh" : "min(820px, 90vh)",
-          display: "flex", flexDirection: "column", minHeight: 0 }}>
+          display: "flex", flexDirection: "column", minHeight: 0, filter: "drop-shadow(0 24px 40px rgba(8,20,14,.28))" }}>
         <div className="ld-tabs" role="tablist">
           {TABS.map((t, i) => (
             <button key={t.k} role="tab" aria-selected={tab === t.k} className={"ld-tab" + (tab === t.k ? " on" : "")}
-              style={{ zIndex: tab === t.k ? 10 : TABS.length - i, "--h": t.h }} onClick={() => setTab(t.k)}>
+              style={{ zIndex: tab === t.k ? 10 : TABS.length - i }} onClick={() => setTab(t.k)}>
               {t.th}
               {t.n ? <span className="ld-tab-n">{t.n}</span> : null}
               {t.alert ? <span className="ld-tab-dot" title="เลยวันติดตามแล้ว" /> : null}
@@ -1052,7 +1052,9 @@ function LeadDrawer({ lead, leadStore, appts, jobs, quotes, users, currentUser, 
         </div>
         <div style={{ background: "var(--bg)", borderRadius: isMobile ? "0 22px 0 0" : "0 var(--r-card) var(--r-card) var(--r-card)",
           flex: 1, minHeight: 0, position: "relative", zIndex: 11,
-          display: "flex", flexDirection: "column", overflow: "hidden", boxShadow: "0 30px 80px rgba(8,20,14,.3)" }}>
+          display: "flex", flexDirection: "column", overflow: "hidden" }}>
+          {/* เงาลิ้นชักอยู่ที่กรอบนอก (filter: drop-shadow) ไม่ใช่ box-shadow ของตัวใบ — ตัวใบอยู่ชั้นบนแท็บ
+              เงาฟุ้ง 80px ของมันเคยทาทับแท็บจนแท็บที่เลือกดูเทากว่าหัวใบ drop-shadow ตามรูปทรงแท็บ+ใบรวมเป็นชิ้นเดียว */}
           {/* หัวลิ้นชัก — แยกจากเนื้อด้วยเงาฟุ้ง ชุดเดียวกับแถบปุ่มล่าง ไม่ใช้เส้นคาด */}
           <div style={{ padding: "14px 16px", boxShadow: "0 10px 18px -14px rgba(8,20,14,.45)", background: "var(--surface)",
             display: "flex", alignItems: "center", gap: 10, position: "relative", zIndex: 1 }}>

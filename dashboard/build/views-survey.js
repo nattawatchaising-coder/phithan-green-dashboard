@@ -2440,23 +2440,19 @@ function LeadDrawer({
   });
   const TABS = [{
     k: "ov",
-    th: "ภาพรวม",
-    h: 165
+    th: "ภาพรวม"
   }, {
     k: "ct",
     th: isMobile ? "ติดต่อ" : "การติดต่อ",
-    h: 235,
     n: nContacts,
     alert: lateFollow
   }, {
     k: "qt",
     th: isMobile ? "ใบเสนอ" : "ใบเสนอราคา",
-    h: 70,
     n: nQuotes
   }, {
     k: "sv",
     th: isMobile ? "สำรวจ" : "สำรวจ & ออกแบบ",
-    h: 300,
     n: sst.state === "skip" ? null : sst.pct ? sst.pct + "%" : null
   }];
   const ctx = {
@@ -2501,7 +2497,8 @@ function LeadDrawer({
       height: isMobile ? "88dvh" : "min(820px, 90vh)",
       display: "flex",
       flexDirection: "column",
-      minHeight: 0
+      minHeight: 0,
+      filter: "drop-shadow(0 24px 40px rgba(8,20,14,.28))"
     }
   }, React.createElement("div", {
     className: "ld-tabs",
@@ -2512,8 +2509,7 @@ function LeadDrawer({
     "aria-selected": tab === t.k,
     className: "ld-tab" + (tab === t.k ? " on" : ""),
     style: {
-      zIndex: tab === t.k ? 10 : TABS.length - i,
-      "--h": t.h
+      zIndex: tab === t.k ? 10 : TABS.length - i
     },
     onClick: () => setTab(t.k)
   }, t.th, t.n ? React.createElement("span", {
@@ -2531,8 +2527,7 @@ function LeadDrawer({
       zIndex: 11,
       display: "flex",
       flexDirection: "column",
-      overflow: "hidden",
-      boxShadow: "0 30px 80px rgba(8,20,14,.3)"
+      overflow: "hidden"
     }
   }, React.createElement("div", {
     style: {

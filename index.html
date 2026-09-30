@@ -372,13 +372,12 @@ html.theme-anim, html.theme-anim * { transition: background-color .34s ease, bor
 /* margin-bottom -2px = แท็บมุดลงใต้หัวใบ 2px — ขอบบนหัวใบกับก้นแท็บชนกันพอดีเป๊ะแล้วจอบางความละเอียด (ซูม/DPR ไม่ลงตัว) เห็นเป็นรอยต่อจาง ๆ */
 /* width:0 + min-width:100% — แถวแท็บไม่ดันความกว้างลิ้นชัก (ช่อง grid ของฉากหลังจะยืดตามแท็บจนล้นจอมือถือ) แต่ยังเต็มความกว้างเสมอ */
 .ld-tabs::-webkit-scrollbar { display: none; }
-/* --h = เฉดสี (องศา) ตั้งใน style ของแต่ละแท็บ · --tc = สีแท็บ · --tb = พื้นแท็บ
-   ใช้ oklch ล็อกความสว่างกับความสดให้เท่ากันทุกแท็บ — hex เดิม (#1B9B75 #0284C7 #D97706 #7C3AED)
-   สว่างไม่เท่ากัน ย้อม % เท่ากันแล้วส้มออกซีด ฟ้าออกสด ม่วงออกเข้ม ดูเป็นคนละชุด
-   แท็บที่ไม่ได้เลือกย้อมสีตัวเองชัด ๆ · แท็บที่เลือกขาวเท่าหัวใบ ต่อเป็นแผ่นเดียว + แถบสีบนหัวแท็บ
+/* --tc = สีแท็บ · --tb = พื้นแท็บ — ทุกแท็บโทนเดียวกัน (สีหลัก) ไม่แยกสีรายแท็บ
+   เคยแยกสีรายแท็บ (เขียว ฟ้า ส้ม ม่วง) ต่อให้ล็อกความสว่างเท่ากันแล้วตาก็ยังอ่านว่าเป็นคนละชุด
+   แท็บที่ไม่ได้เลือกย้อมเขียวจาง · แท็บที่เลือกขาวเท่าหัวใบ ต่อเป็นแผ่นเดียว + แถบเขียวบนหัวแท็บ
    มุมล่างสองข้างของแท็บที่เลือกโค้งออก (::before/::after เป็น radial-gradient) ให้ไหลลงหัวใบเนียน ๆ
    ⚠ เคยใช้ขอบเฉียง skewX — ปลายเฉียงแยกจากตัวแท็บเป็นร่องสามเหลี่ยมมืด ๆ ห้ามกลับไปใช้ */
-.ld-tab { --tc: oklch(0.58 0.13 var(--h)); --tb: color-mix(in oklab, var(--tc) 18%, var(--surface));
+.ld-tab { --tc: var(--primary); --tb: color-mix(in oklab, var(--tc) 18%, var(--surface));
   position: relative; flex-shrink: 0; display: inline-flex; align-items: center; gap: 7px; height: 38px;
   padding: 0 16px; margin-right: 5px; border: none; border-radius: 14px 14px 0 0; cursor: pointer;
   font-family: inherit; font-size: 13px; font-weight: 700; white-space: nowrap;
@@ -1100,7 +1099,7 @@ H-@G1I margin-top D'IC*D%L-1'@- 6H
 <script src="dashboard/build/survey.js?v=27"></script>
 <script src="dashboard/build/survey-report.js?v=13"></script>
 <script src="dashboard/build/sales.js?v=75"></script>
-<script src="dashboard/build/views-survey.js?v=46"></script>
+<script src="dashboard/build/views-survey.js?v=48"></script>
 <script src="dashboard/build/survey-sched.js?v=39"></script>
 <script src="dashboard/build/permit.js?v=8"></script>
 <script src="dashboard/build/views-permit.js?v=19"></script>
