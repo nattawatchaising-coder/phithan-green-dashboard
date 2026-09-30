@@ -8,42 +8,42 @@ const NAV = [
   /* ลำดับ = ทางเดินของงานจริง งานขาย → นัดสำรวจ/ตารางงาน → ติดตั้ง → วางบิลเก็บเงิน → หลังการขาย
      ยกเว้นสองแถวแรก ที่เรียงตาม "เปิดบ่อยแค่ไหน" ไม่ใช่ตามลำดับงาน — กองงานที่กำลังทำอยู่
      ต้องอยู่บนสุด ไม่งั้นคนกดทุกวันต้องกวาดตาผ่านหน้าที่เปิดเดือนละครั้งทุกครั้ง */
-  { key: "overview",   th: "ภาพรวม",         en: "Overview",      icon: "grid" },
+  { sect: "work", key: "overview",   th: "ภาพรวม",         en: "Overview",      icon: "grid" },
   /* งานติดตั้ง — บอร์ดกับตารางคืองานใบเดียวกัน ต่างกันแค่ทรงที่วาง จึงเป็นเมนูเดียวแล้วสลับมุมในหน้า
      (กฎเดียวกับที่ยุบบอร์ดขายเข้ากับรายการลูกค้าข้างล่าง) */
-  { key: "board",      th: "งานติดตั้ง",       en: "Jobs",          icon: "kanban",   tab: "บอร์ด" },
-  { key: "table",      th: "ฐานข้อมูลงาน",     en: "Database",      icon: "table",    perm: "viewAll", group: "board", tab: "ตาราง" },
+  { sect: "work", key: "board",      th: "งานติดตั้ง",       en: "Jobs",          icon: "kanban",   tab: "บอร์ด" },
+  { sect: "work", key: "table",      th: "ฐานข้อมูลงาน",     en: "Database",      icon: "table",    perm: "viewAll", group: "board", tab: "ตาราง" },
   // "สถานะสำรวจ" (SurveyView) ถอดออกจากเมนูแล้ว — การสำรวจย้ายไปอยู่กับ "ลูกค้าสำรวจ" ทั้งหมด
   // งานในฐานงานมาจากลูกค้าที่แปลงแล้ว (พกแบบสำรวจติดมาด้วย) · โค้ดหน้ายังอยู่ใน views-survey.jsx ถ้าอยากได้คืน
   /* ตารางงาน — สามหน้านี้เป็นปฏิทินทั้งหมด ต่างกันที่ตัวกรอง (ทุกนัด / เฉพาะนัดสำรวจ / เฉพาะของฉัน)
      เคยกินเมนูสามแถวแล้วใช้ไอคอนซ้ำกันสองแถว ซึ่งเป็นสัญญาณว่ามันเป็นเรื่องเดียวกันมาแต่แรก */
-  { key: "calendar",   th: "ตารางงาน",         en: "Schedule",      icon: "calendar", tab: "ปฏิทิน" },
-  { key: "dispatch",   th: "จัดตารางสำรวจ",    en: "Dispatch",      icon: "pin",      perm: "dispatch", group: "calendar", tab: "นัดสำรวจ" },
-  { key: "myschedule", th: "ตารางงานของฉัน",   en: "My Schedule",   icon: "list",     own: true, group: "calendar", tab: "ของฉัน" },
+  { sect: "work", key: "calendar",   th: "ตารางงาน",         en: "Schedule",      icon: "calendar", tab: "ปฏิทิน" },
+  { sect: "work", key: "dispatch",   th: "จัดตารางสำรวจ",    en: "Dispatch",      icon: "pin",      perm: "dispatch", group: "calendar", tab: "นัดสำรวจ" },
+  { sect: "work", key: "myschedule", th: "ตารางงานของฉัน",   en: "My Schedule",   icon: "list",     own: true, group: "calendar", tab: "ของฉัน" },
   /* บอร์ดขายกับรายการลูกค้าคือข้อมูลชุดเดียวกันคนละมุม จึงเป็นเมนูเดียว แล้วสลับมุมในหน้า
      ยอดขายคือ "ตัวเลขสรุปของกองเดียวกันนี้" จึงยุบเข้ามาเป็นแท็บ ไม่ใช่เมนูแยก
      เดิมงานขายถูกซ่อน (NAV_IN_BOARD) แต่ยอดขายยังกินแถวอยู่ เมนูจึงมีหน้าสรุปของเรื่อง
      ที่ไม่มีอยู่ในเมนู กดจากยอดขายแล้วไปต่อที่รายชื่อลูกค้าไม่ได้ ต้องวนกลับเข้าทางบอร์ด */
-  { key: "leads",      th: "งานขาย",           en: "Sales",         icon: "trend",    perm: "leads",   tab: "ลูกค้า" },
-  { key: "saleskpi",   th: "ยอดขาย",           en: "Sales KPI",     icon: "chart",    perm: "price",   group: "leads", tab: "ยอดขาย" },
+  { sect: "work", key: "leads",      th: "งานขาย",           en: "Sales",         icon: "trend",    perm: "leads",   tab: "ลูกค้า" },
+  { sect: "work", key: "saleskpi",   th: "ยอดขาย",           en: "Sales KPI",     icon: "chart",    perm: "price",   group: "leads", tab: "ยอดขาย" },
   /* เอกสารงวดงาน — ถอดงวดจากใบเสนอราคา ออกใบแจ้งส่งมอบงาน แล้วตามเงินจนจบโปรเจค */
-  { key: "billing",    th: "เอกสารงวดงาน",    en: "Billing",      icon: "file",     perm: "billing" },
-  { key: "permit",     th: "ขออนุญาตการไฟฟ้า", en: "Permit",        icon: "shield",   perm: "permit" },
+  { sect: "work", key: "billing",    th: "เอกสารงวดงาน",    en: "Billing",      icon: "file",     perm: "billing" },
+  { sect: "work", key: "permit",     th: "ขออนุญาตการไฟฟ้า", en: "Permit",        icon: "shield",   perm: "permit" },
   /* งานบริการหลังการขาย — ทะเบียนประกัน · รอบล้างแผง · ใบแจ้งซ่อม · ใบรายงานเข้าบริการ */
-  { key: "om",         th: "งานบริการหลังการขาย", en: "O&M",         icon: "wrench",   perm: "om" },
+  { sect: "work", key: "om",         th: "งานบริการหลังการขาย", en: "O&M",         icon: "wrench",   perm: "om" },
   /* ใบเบิกเงินหน้างาน — ซื้อของหน้างาน · ค่าขนส่ง · ค่าใช้จ่ายอื่น และยอดค้างจ่ายรายคน
      sep = ขีดเส้นคั่นเหนือแถวนี้ แยก "ของและเงินหน้างาน" (เบิกเงิน · คลังสินค้า) ออกจากเรื่องโปรเจกต์
      สองแถวนี้เป็นที่อยู่ของเลขค้างเกือบทั้งหมดในแถบเมนู แยกกองไว้จะได้กวาดตาหาเจอโดยไม่ต้องอ่านชื่อ
      ไม่ใส่หัวข้อกำกับกลุ่ม เพราะหัวข้อกินความสูงพอ ๆ กับหนึ่งแถว ซึ่งคือสิ่งที่เพิ่งยุบไป */
-  { key: "expense",    th: "เบิกเงินหน้างาน",  en: "Expenses",     icon: "wallet",   perm: "expense", sep: true },
-  { key: "stock",      th: "คลังสินค้า",       en: "Inventory",     icon: "box",      perm: "stock" },
+  { sect: "yard", key: "expense",    th: "เบิกเงินหน้างาน",  en: "Expenses",     icon: "wallet",   perm: "expense" },
+  { sect: "yard", key: "stock",      th: "คลังสินค้า",       en: "Inventory",     icon: "box",      perm: "stock" },
   /* รายงานประจำวันหน้างาน — ช่างเขียน วิศวกรผู้รับผิดชอบอนุมัติ จึงผูกกับสิทธิ์แก้ใบงาน
      foot = ดันไปล่างสุดของแถบเมนู แยกเส้นคั่นออกจากเมนูงาน เพราะเป็นเอกสารที่เข้าทุกวัน
      ไม่ใช่หน้าดูข้อมูล — วางติดกับตัวเองจะได้กดถึงเร็วโดยไม่ปนกับหัวข้อด้านบน */
-  { key: "daily",      th: "รายงานประจำวัน",   en: "Daily Report",  icon: "clipboard", perm: "editJob", foot: true },
+  { sect: "day", key: "daily",      th: "รายงานประจำวัน",   en: "Daily Report",  icon: "clipboard", perm: "editJob", foot: true },
   /* เวลาทำงาน — ลงเวลาเข้า-ออก และใบขอ OT · ปั๊มเวลาทำจากแอปในไลน์ หน้านี้คือฝั่งออฟฟิศ
      foot เหมือนรายงานประจำวัน เพราะเป็นเอกสารที่เข้าทุกวัน ไม่ใช่หน้าดูข้อมูล */
-  { key: "attend",     th: "เวลาทำงาน",       en: "Attendance",    icon: "clock",    perm: "attend", foot: true },
+  { sect: "day", key: "attend",     th: "เวลาทำงาน",       en: "Attendance",    icon: "clock",    perm: "attend", foot: true },
   /* หน้าแอดมินล้วน — โควตาข้อความของ LINE กับสวิตช์เลือกว่าเรื่องไหนส่งเข้าแชต
      inSettings = ไม่ขึ้นในเมนูหลัก ไปอยู่ในเมนู "ตั้งค่า" ท้ายแถบแทน
      ยังอยู่ใน navForRole ตามปกติ เพราะ allowed ใช้ลิสต์นี้ตัดสินว่าหน้าไหนเข้าได้ —
@@ -112,6 +112,17 @@ const permitStageOf = (key) => (window.PERMIT_COLS || []).find((c) => c.key === 
 /* หน้าที่ไม่กินแถวในเมนู เพราะไปอยู่เป็นมุมหนึ่งในหน้าบอร์ดแล้ว
    งานขายถอดออกจากรายการนี้แล้ว — มันมีหน้าสรุป (ยอดขาย) ห้อยอยู่ การซ่อนตัวแม่
    ทำให้เหลือแต่หน้าสรุปของเรื่องที่ไม่มีในเมนู ซึ่งเดินต่อไปไหนไม่ได้ */
+/* ── หัวข้อกำกับกลุ่มในแถบเมนู ──
+   เมนูสิบกว่าแถวเรียงติดกันอ่านเป็นกองเดียว เส้นคั่นเปล่า ๆ บอกได้แค่ว่า "คนละพวก"
+   แต่ไม่ได้บอกว่า "พวกไหน" จึงเปลี่ยนเป็นคำกำกับ
+   ⚠ หัวข้อเกิดจาก "แถวแรกของกลุ่มที่เห็นจริง" ไม่ใช่ตำแหน่งตายตัว
+     คนที่ไม่มีสิทธิ์เบิกเงิน หัวข้อจะย้ายไปเกาะคลังสินค้าเอง ไม่ค้างเป็นหัวข้อลอย */
+const NAV_SECT = {
+  work: "งานโปรเจกต์",
+  yard: "ของและเงินหน้างาน",
+  day:  "บันทึกประจำวัน",
+};
+
 const NAV_IN_BOARD = ["permit"];
 
 /* หน้าไหนมีช่องค้นหาบนหัว — ค่าคือข้อความในช่อง ดูคอมเมนต์ที่ searchPh ใน Header
@@ -1224,6 +1235,12 @@ function Sidebar({ view, onNav, role, techId, jobs, stock, t, badges, open, onCl
              ใส่ทุกตัวจะแยกกันกระจายทั้งคอลัมน์ ไม่ได้เกาะกลุ่มอยู่ด้วยกัน */
           const first = items.findIndex((n) => n.foot);
           return items.map((n, i) => {
+          /* ขึ้นหัวข้อเมื่อแถวนี้เปลี่ยนกลุ่มจากแถวก่อน — ดูจากแถวที่เหลือหลังกรองสิทธิ์แล้ว
+             ไม่ใช่ตำแหน่งใน NAV ตายตัว — คนที่ไม่มีสิทธิ์เบิกเงินจะได้หัวข้อเกาะคลังสินค้าแทน ไม่ใช่หัวข้อลอย */
+          const newSect = !!n.sect && (i === 0 || items[i - 1].sect !== n.sect);
+          /* กลุ่มท้ายถูกดันลงล่างด้วย margin-top:auto — ถ้ากลุ่มนั้นมีหัวข้อ หัวข้อเป็นตัวดัน
+             ไม่งั้นหัวข้อจะค้างอยู่กลางแถบ แล้วแถวของมันหลุดไปอยู่ล่างสุดตัวเดียว */
+          const footHere = i === first;
           /* หน้าที่ยุบเข้ามาอยู่ใต้แถวนี้ ต้องทำให้แถวแม่ติดไฟด้วย ไม่งั้นเปิดมุมตารางอยู่
              แต่เมนูซ้ายไม่มีแถวไหนติดไฟเลย — คนอ่านจะไม่รู้ว่าตัวเองอยู่ตรงไหนของแอป */
           const active = navTop(view) === n.key;
@@ -1233,7 +1250,10 @@ function Sidebar({ view, onNav, role, techId, jobs, stock, t, badges, open, onCl
           const subs = active ? navTabsOf(all, n.key) : [];
           return (
             <React.Fragment key={n.key}>
-            <button onClick={() => onNav(n.key)} className={"nav-item" + (active ? " active" : "") + (i === first ? " nav-foot" : "") + (n.sep && i !== first ? " nav-sep" : "")}
+            {newSect && (
+              <div className={"nav-sect" + (footHere ? " nav-sect-foot" : "")} aria-hidden="true"><span>{NAV_SECT[n.sect]}</span></div>
+            )}
+            <button onClick={() => onNav(n.key)} className={"nav-item" + (active ? " active" : "") + (footHere && !newSect ? " nav-foot" : "")}
               title={n.th}>
               <Icon name={n.icon} size={19} color={active ? "var(--primary-dark)" : "var(--text-2)"} />
               {!icons && <span>{n.th}</span>}

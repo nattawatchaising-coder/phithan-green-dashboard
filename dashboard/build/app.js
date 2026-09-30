@@ -1,16 +1,19 @@
 function _extends() { return _extends = Object.assign ? Object.assign.bind() : function (n) { for (var e = 1; e < arguments.length; e++) { var t = arguments[e]; for (var r in t) ({}).hasOwnProperty.call(t, r) && (n[r] = t[r]); } return n; }, _extends.apply(null, arguments); }
 const NAV = [{
+  sect: "work",
   key: "overview",
   th: "ภาพรวม",
   en: "Overview",
   icon: "grid"
 }, {
+  sect: "work",
   key: "board",
   th: "งานติดตั้ง",
   en: "Jobs",
   icon: "kanban",
   tab: "บอร์ด"
 }, {
+  sect: "work",
   key: "table",
   th: "ฐานข้อมูลงาน",
   en: "Database",
@@ -19,12 +22,14 @@ const NAV = [{
   group: "board",
   tab: "ตาราง"
 }, {
+  sect: "work",
   key: "calendar",
   th: "ตารางงาน",
   en: "Schedule",
   icon: "calendar",
   tab: "ปฏิทิน"
 }, {
+  sect: "work",
   key: "dispatch",
   th: "จัดตารางสำรวจ",
   en: "Dispatch",
@@ -33,6 +38,7 @@ const NAV = [{
   group: "calendar",
   tab: "นัดสำรวจ"
 }, {
+  sect: "work",
   key: "myschedule",
   th: "ตารางงานของฉัน",
   en: "My Schedule",
@@ -41,6 +47,7 @@ const NAV = [{
   group: "calendar",
   tab: "ของฉัน"
 }, {
+  sect: "work",
   key: "leads",
   th: "งานขาย",
   en: "Sales",
@@ -48,6 +55,7 @@ const NAV = [{
   perm: "leads",
   tab: "ลูกค้า"
 }, {
+  sect: "work",
   key: "saleskpi",
   th: "ยอดขาย",
   en: "Sales KPI",
@@ -56,37 +64,42 @@ const NAV = [{
   group: "leads",
   tab: "ยอดขาย"
 }, {
+  sect: "work",
   key: "billing",
   th: "เอกสารงวดงาน",
   en: "Billing",
   icon: "file",
   perm: "billing"
 }, {
+  sect: "work",
   key: "permit",
   th: "ขออนุญาตการไฟฟ้า",
   en: "Permit",
   icon: "shield",
   perm: "permit"
 }, {
+  sect: "work",
   key: "om",
   th: "งานบริการหลังการขาย",
   en: "O&M",
   icon: "wrench",
   perm: "om"
 }, {
+  sect: "yard",
   key: "expense",
   th: "เบิกเงินหน้างาน",
   en: "Expenses",
   icon: "wallet",
-  perm: "expense",
-  sep: true
+  perm: "expense"
 }, {
+  sect: "yard",
   key: "stock",
   th: "คลังสินค้า",
   en: "Inventory",
   icon: "box",
   perm: "stock"
 }, {
+  sect: "day",
   key: "daily",
   th: "รายงานประจำวัน",
   en: "Daily Report",
@@ -94,6 +107,7 @@ const NAV = [{
   perm: "editJob",
   foot: true
 }, {
+  sect: "day",
   key: "attend",
   th: "เวลาทำงาน",
   en: "Attendance",
@@ -151,6 +165,11 @@ const PERMIT_TODO = {
 };
 const permitStageKey = j => j && j.permit && j.permit.status || "todo";
 const permitStageOf = key => (window.PERMIT_COLS || []).find(c => c.key === key) || PERMIT_TODO;
+const NAV_SECT = {
+  work: "งานโปรเจกต์",
+  yard: "ของและเงินหน้างาน",
+  day: "บันทึกประจำวัน"
+};
 const NAV_IN_BOARD = ["permit"];
 const HDR_SEARCH = {
   board: "ค้นหา",
@@ -1730,13 +1749,18 @@ function Sidebar({
     const items = all.filter(n => !n.hidden && !n.inSettings);
     const first = items.findIndex(n => n.foot);
     return items.map((n, i) => {
+      const newSect = !!n.sect && (i === 0 || items[i - 1].sect !== n.sect);
+      const footHere = i === first;
       const active = navTop(view) === n.key;
       const subs = active ? navTabsOf(all, n.key) : [];
       return React.createElement(React.Fragment, {
         key: n.key
-      }, React.createElement("button", {
+      }, newSect && React.createElement("div", {
+        className: "nav-sect" + (footHere ? " nav-sect-foot" : ""),
+        "aria-hidden": "true"
+      }, React.createElement("span", null, NAV_SECT[n.sect])), React.createElement("button", {
         onClick: () => onNav(n.key),
-        className: "nav-item" + (active ? " active" : "") + (i === first ? " nav-foot" : "") + (n.sep && i !== first ? " nav-sep" : ""),
+        className: "nav-item" + (active ? " active" : "") + (footHere && !newSect ? " nav-foot" : ""),
         title: n.th
       }, React.createElement(Icon, {
         name: n.icon,

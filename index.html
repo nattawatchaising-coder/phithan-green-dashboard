@@ -69,7 +69,7 @@ label { min-width: 0; }
 .brand-name { font-family: var(--brand-font); font-size: 19px; font-weight: 700; letter-spacing: -.02em; color: var(--brand-ink); line-height: 1.05; white-space: nowrap; }
 .brand-name .plus { color: #22B36A; }
 
-.sidebar-nav { padding: 14px 12px; display: flex; flex-direction: column; gap: 2px; flex: 1; }
+.sidebar-nav { padding: 14px 12px; display: flex; flex-direction: column; gap: 3px; flex: 1; }
 .sidebar[data-mode="icons"] .sidebar-nav { width: 100%; align-items: center; }
 /* เมนู: หน้าที่เปิดอยู่ใช้ "ขีดเขียวด้านซ้าย + พื้นจาง" ชุดเดียวกับสารบัญในหน้า BOQ/ออกแบบ
    (เดิมทาพื้นเขียวทั้งปุ่ม ซึ่งเด่นกว่าเนื้อหาจริงบนหน้าจอ) */
@@ -104,10 +104,17 @@ label { min-width: 0; }
 .sidebar[data-mode="icons"] .nav-sub { width: 34px; height: 34px; justify-content: center; padding: 0; }
 .sidebar[data-mode="icons"] .nav-sub.active::before { left: 0; top: auto; bottom: -2px; transform: none;
   width: 14px; height: 2px; left: 50%; margin-left: -7px; }
-/* เส้นคั่นกลุ่มกลางแถบ (nav-sep) — เหมือน nav-foot แต่ไม่ดันลงล่าง ใช้แยกกองเรื่องที่ไม่ใช่เรื่องเดียวกัน */
-.sidebar-nav > .nav-item.nav-sep { margin-top: 9px; }
-.sidebar-nav > .nav-item.nav-sep::after {
-  content: ""; position: absolute; left: 4px; right: 4px; top: -5px; height: 1px; background: var(--border); }
+/* หัวข้อกำกับกลุ่ม (nav-sect) — แทนเส้นคั่นเปล่า เส้นบอกได้ว่า "คนละพวก" คำบอกได้ว่า "พวกไหน"
+   ไม่ใช้ uppercase + letter-spacing แบบเมนูฝรั่ง — ไทยไม่มีตัวพิมพ์ใหญ่
+   และการถ่างตัวอักษรจะดันสระกับวรรณยุกต์หลุดตำแหน่ง ใช้ขนาด + น้ำหนัก + สีแทน */
+.sidebar-nav > .nav-sect { padding: 0 13px; margin: 12px 0 3px; font-size: 10.5px; font-weight: 700;
+  color: var(--text-3); line-height: 1.5; user-select: none; }
+.sidebar-nav > .nav-sect:first-child { margin-top: 0; }
+.sidebar-nav > .nav-sect.nav-sect-foot { margin-top: auto; padding-top: 12px; }
+/* แถบย่อเหลือแค่ไอคอน ไม่มีที่ให้คำ — หัวข้อกลายเป็นขีดสั้น ๆ แทน กลุ่มยังอยู่ แต่ไม่มีชื่อ */
+.sidebar[data-mode="icons"] .sidebar-nav > .nav-sect { width: 26px; height: 1px; padding: 0; margin: 10px auto 7px;
+  background: var(--border); }
+.sidebar[data-mode="icons"] .sidebar-nav > .nav-sect > span { display: none; }
 /* เมนูที่ปักไว้ล่างสุด (nav-foot) — ขีดเส้นคั่นให้เห็นว่าไม่ได้อยู่กลุ่มเดียวกับหัวข้อด้านบน */
 .sidebar-nav > .nav-item.nav-foot { margin-top: auto; }
 .sidebar-nav > .nav-item.nav-foot::after {
@@ -668,7 +675,7 @@ html.theme-anim, html.theme-anim * { transition: background-color .34s ease, bor
 [data-theme="aurora"] .nav-dot.info { background: #0A84FF; }
 /* เส้นคั่นเหนือเมนูล่างสุด — โหมดกราไฟต์พื้นมืด ใช้เส้นของธีมนี้เอง */
 [data-theme="aurora"] .sidebar-nav > .nav-item.nav-foot::after,
-[data-theme="aurora"] .sidebar-nav > .nav-item.nav-sep::after { background: var(--border-strong); }
+[data-theme="aurora"] .sidebar[data-mode="icons"] .sidebar-nav > .nav-sect { background: var(--border-strong); }
 [data-theme="aurora"] .role-btn.active { background: var(--primary); color: #fff; }
 
 /* ── การ์ด: เทาสว่างกว่าพื้นหนึ่งระดับ + เส้นขอบบาง ไม่ใช้เงาหนัก ──
@@ -945,6 +952,6 @@ H-@G1I margin-top D'IC*D%L-1'@- 6H
 <script src="dashboard/build/ot-paper.js?v=6"></script>
 <script src="dashboard/build/views-line.js?v=2"></script>
 <script src="dashboard/build/guide.js?v=5"></script>
-<script src="dashboard/build/app.js?v=200"></script>
+<script src="dashboard/build/app.js?v=201"></script>
 </body>
 </html>
