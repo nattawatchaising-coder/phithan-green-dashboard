@@ -620,7 +620,7 @@ function PmHandoverModal({ job, currentUser, onClose, onSummary }) {
                 {job.code} · {job.name}
               </div>
             </div>
-            <button onClick={onClose} aria-label="ปิด" style={{ flexShrink: 0, width: 32, height: 32, borderRadius: 10,
+            <button className="x-close" onClick={onClose} aria-label="ปิด" style={{ flexShrink: 0, width: 32, height: 32, borderRadius: 10,
               border: "1px solid var(--border-strong)", background: "var(--surface)", color: "var(--text-2)", cursor: "pointer",
               fontFamily: "inherit", fontSize: 16, lineHeight: 1 }}>×</button>
           </div>

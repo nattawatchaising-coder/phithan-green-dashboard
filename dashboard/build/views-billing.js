@@ -162,6 +162,7 @@ function BlPaidSum({
       fontWeight: 800
     }
   }, "\u2714 \u0E1A\u0E31\u0E19\u0E17\u0E36\u0E01\u0E23\u0E31\u0E1A\u0E40\u0E07\u0E34\u0E19\u0E07\u0E27\u0E14\u0E17\u0E35\u0E48 ", info.n, " \u0E41\u0E25\u0E49\u0E27 ", blMoney(info.amt), " \u0E1A\u0E32\u0E17", info.job ? " · " + info.job : ""), React.createElement("button", {
+    className: "x-close",
     onClick: onClose,
     style: {
       border: "none",

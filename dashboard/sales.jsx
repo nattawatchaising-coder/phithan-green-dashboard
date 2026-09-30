@@ -1055,6 +1055,14 @@ function quoteHTML(q, lang, sheets, pics) {
       "font-variant-numeric:tabular-nums;line-height:1.2}" +
     ".kpi .ks{display:block;font-size:9.5px;color:#9ca3af}" +
     ".nt{font-size:9.2px;color:#6b7280;line-height:1.45;margin-top:7px}" +
+    /* ดูบนจอ — วางแต่ละหน้าเป็นแผ่น A4 บนพื้นเทา ให้เห็นว่ากระดาษจะออกมาหน้าตาแบบไหน ตัดหน้าตรงไหน
+       ลูกตรงของ body ทุกตัวคือหนึ่งหน้ากระดาษ (.cv .pg1 .tmpg .dpg .shpg) จึงจับ body>div[class] ได้ทั้งชุด ([class] ไว้ยกน้ำหนักให้ชนะ .cv/.dpg/.fit ที่ตั้ง min-height ไว้)
+       padding 14mm = ขอบ @page · แผ่นสูง 297mm แบบ border-box เหลือเนื้อใน 269mm เท่ากับ min-height เดิมพอดี
+       จอแคบกว่ากระดาษ ย่อทั้งหน้าด้วย zoom (--z ตั้งจากสคริปต์ท้ายไฟล์) แทนการบีบให้ข้อความไหลใหม่
+       ⚠ อยู่ใน @media screen เท่านั้น ตอนพิมพ์ต้องไม่มีพื้นเทา เงา หรือการย่อติดไปด้วย */
+    "@media screen{html{background:#E6ECEA}body{padding:24px 0 40px;zoom:var(--z,1)}" +
+      "body>div[class]{width:210mm;min-height:297mm;margin:0 auto 22px;padding:14mm;background:#fff;border-radius:3px;" +
+      "box-shadow:0 1px 2px rgba(15,43,51,.08),0 10px 30px rgba(15,43,51,.14)}}" +
     "</style></head><body>" +
     (quotePageOn(q, "cover") ? coverHTML() : "") +
     '<div class="pg1' + (quotePageOn(q, "cover") ? " brk" : "") + '">' + headHTML("ใบเสนอราคา") +
@@ -1101,6 +1109,8 @@ function quoteHTML(q, lang, sheets, pics) {
     (quotePageOn(q, "cash") ? cashHTML() : "") +
     (quotePageOn(q, "payback") ? paybackHTML() : "") +
     shPages +
+    "<script>(function(){var d=document.documentElement;function f(){" +
+      "d.style.setProperty('--z',Math.min(1,(d.clientWidth-16)/810).toFixed(3))}f();addEventListener('resize',f)})()</script>" +
     "</body></html>";
   return window.pgDocHTML ? window.pgDocHTML(doc, L, QUOTE_I18N) : doc;
 }

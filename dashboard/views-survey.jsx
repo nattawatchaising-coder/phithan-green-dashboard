@@ -877,7 +877,7 @@ function LeadDrawer({ lead, leadStore, appts, jobs, quotes, users, currentUser, 
               <div style={{ fontSize: 14.5, fontWeight: 800, color: "var(--text-1)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{lead.name || "(ไม่ระบุชื่อ)"}</div>
               <div style={{ fontSize: 11, color: "var(--text-3)", marginTop: 1 }}>{lead.code}</div>
             </div>
-            <button onClick={onClose} aria-label="ปิด" style={{ flexShrink: 0, width: 32, height: 32, borderRadius: "var(--r-pill)", border: "none", background: "var(--surface2)", boxShadow: "var(--shadow-sm)", color: "var(--text-2)", cursor: "pointer", fontFamily: "inherit", fontSize: 16, lineHeight: 1 }}>×</button>
+            <button className="x-close" onClick={onClose} aria-label="ปิด" style={{ flexShrink: 0, width: 32, height: 32, borderRadius: "var(--r-pill)", border: "none", background: "var(--surface2)", boxShadow: "var(--shadow-sm)", color: "var(--text-2)", cursor: "pointer", fontFamily: "inherit", fontSize: 16, lineHeight: 1 }}>×</button>
           </div>
           <div style={{ padding: "14px 16px 0", overflowY: "auto" }}>
             <LeadDetail l={lead} ctx={ctx} />

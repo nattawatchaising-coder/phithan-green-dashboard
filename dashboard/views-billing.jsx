@@ -99,7 +99,7 @@ function BlPaidSum({ info, onClose, flush }) {
         <span style={{ flex: 1, fontSize: 12.5, fontWeight: 800 }}>
           ✔ บันทึกรับเงินงวดที่ {info.n} แล้ว {blMoney(info.amt)} บาท{info.job ? " · " + info.job : ""}
         </span>
-        <button onClick={onClose} style={{ border: "none", background: "none", cursor: "pointer", color: "inherit",
+        <button className="x-close" onClick={onClose} style={{ border: "none", background: "none", cursor: "pointer", color: "inherit",
           fontSize: 13, fontFamily: "inherit", padding: 0 }}>✕</button>
       </div>
       <div style={{ display: "flex", gap: 16, flexWrap: "wrap", marginTop: 6, fontSize: 12 }}>

@@ -1418,6 +1418,7 @@ function AnnEditor({
       cursor: "pointer"
     }
   }, "\u0E43\u0E2A\u0E48"), React.createElement("button", {
+    className: "x-close",
     onClick: () => setTxt(null),
     style: {
       border: "none",

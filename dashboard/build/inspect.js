@@ -334,6 +334,7 @@ function InspectionListModal({
       textOverflow: "ellipsis"
     }
   }, job.code, " \xB7 ", job.name)), React.createElement("button", {
+    className: "x-close",
     onClick: onClose,
     "aria-label": "\u0E1B\u0E34\u0E14",
     style: {
@@ -821,6 +822,7 @@ function InspectionFormModal({
       textOverflow: "ellipsis"
     }
   }, job.code, " \xB7 ", job.name)), React.createElement("button", {
+    className: "x-close",
     onClick: onClose,
     "aria-label": "\u0E1B\u0E34\u0E14",
     style: {

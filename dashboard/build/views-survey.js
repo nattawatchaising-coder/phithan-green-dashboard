@@ -2193,6 +2193,7 @@ function LeadDrawer({
       marginTop: 1
     }
   }, lead.code)), React.createElement("button", {
+    className: "x-close",
     onClick: onClose,
     "aria-label": "\u0E1B\u0E34\u0E14",
     style: {

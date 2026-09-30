@@ -1984,7 +1984,7 @@ function SuReportView({ html, title, onClose }) {
   return (
     <div style={{ position: "fixed", inset: 0, zIndex: 260, background: "rgba(8,20,14,.62)", display: "flex", flexDirection: "column" }}>
       <div style={{ display: "flex", gap: 9, alignItems: "center", padding: "11px 14px", background: "var(--surface)", borderBottom: "1px solid var(--border)", flexShrink: 0 }}>
-        <button onClick={onClose} title="ปิด" style={{ width: 36, height: 36, borderRadius: 10, border: "1px solid var(--border-strong)", background: "var(--surface)", cursor: "pointer", display: "grid", placeItems: "center", color: "var(--text-2)", fontSize: 16, lineHeight: 1, flexShrink: 0 }}>✕</button>
+        <button className="x-close" onClick={onClose} title="ปิด" style={{ width: 36, height: 36, borderRadius: 10, border: "1px solid var(--border-strong)", background: "var(--surface)", cursor: "pointer", display: "grid", placeItems: "center", color: "var(--text-2)", fontSize: 16, lineHeight: 1, flexShrink: 0 }}>✕</button>
         <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{ fontSize: 13.5, fontWeight: 800, color: "var(--text-1)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{title || "รายงานออกแบบระบบ"}</div>
           <div style={{ fontSize: 11, color: "var(--text-3)" }}>{ready ? "กดปุ่มแล้วเลือก “บันทึกเป็น PDF”" : "กำลังจัดหน้ารายงาน…"}</div>

@@ -708,7 +708,7 @@ function AnnEditor({ shot, onSave, onClose }) {
                   onKeyDown={(e) => { if (e.key === "Enter") commitText(); if (e.key === "Escape") setTxt(null); }}
                   placeholder="พิมพ์ข้อความ…" style={{ width: 168, border: "none", outline: "none", background: "transparent", fontFamily: "inherit", fontSize: 13, color: "var(--text-1)" }} />
                 <button onClick={commitText} style={{ border: "none", background: "var(--primary)", color: "#fff", borderRadius: 8, height: 28, padding: "0 11px", fontFamily: "inherit", fontSize: 12, fontWeight: 700, cursor: "pointer" }}>ใส่</button>
-                <button onClick={() => setTxt(null)} style={{ border: "none", background: "var(--surface3)", color: "var(--text-2)", borderRadius: 8, width: 28, height: 28, cursor: "pointer" }}>✕</button>
+                <button className="x-close" onClick={() => setTxt(null)} style={{ border: "none", background: "var(--surface3)", color: "var(--text-2)", borderRadius: 8, width: 28, height: 28, cursor: "pointer" }}>✕</button>
               </div>
             )}
           </div>
