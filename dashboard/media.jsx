@@ -311,17 +311,19 @@ function JobFileViewer({ file, onClose }) {
   const download = () => { if (!url) return; const a = document.createElement("a"); a.href = url; a.download = file.name || "เอกสาร.pdf"; document.body.appendChild(a); a.click(); a.remove(); };
   const ib = { width: 34, height: 34, borderRadius: "var(--r-pill)", border: "none", boxShadow: "var(--shadow-sm)", background: "var(--surface)", cursor: "pointer", display: "grid", placeItems: "center", flexShrink: 0 };
   return ReactDOM.createPortal(
-    <div onClick={onClose} style={{ position: "fixed", inset: 0, background: "rgba(8,20,14,.5)", backdropFilter: "blur(3px)", zIndex: 140, display: "grid", placeItems: isMobile ? "stretch" : "center", padding: isMobile ? 0 : 20 }}>
+    /* ⚠ ไม่ใช้ backdrop-filter และไม่ตัดมุม iframe ด้วย overflow:hidden — ทั้งสองอย่างบังคับให้เบราว์เซอร์
+       วาดทั้งจอใหม่ทุกเฟรมที่เลื่อน PDF จนกระตุก (ตัวอ่าน PDF เลื่อนเองในชั้นของมัน ปล่อยให้มันลื่น) */
+    <div onClick={onClose} style={{ position: "fixed", inset: 0, background: "rgba(8,20,14,.62)", zIndex: 140, display: "grid", placeItems: isMobile ? "stretch" : "center", padding: isMobile ? 0 : 20 }}>
       <div onClick={(e) => e.stopPropagation()} style={{ background: "var(--bg)", borderRadius: isMobile ? 0 : 18, width: isMobile ? "100%" : "min(900px,96vw)", height: isMobile ? "100%" : "92vh",
-        display: "flex", flexDirection: "column", overflow: "hidden", boxShadow: "0 30px 80px rgba(8,20,14,.3)" }}>
-        <div style={{ padding: "12px 16px", background: "var(--surface)", boxShadow: "0 10px 18px -14px rgba(8,20,14,.45)", position: "relative", display: "flex", alignItems: "center", gap: 10, flexShrink: 0 }}>
+        display: "flex", flexDirection: "column", boxShadow: "0 30px 80px rgba(8,20,14,.3)" }}>
+        <div style={{ padding: "12px 16px", background: "var(--surface)", borderRadius: isMobile ? 0 : "18px 18px 0 0", position: "relative", display: "flex", alignItems: "center", gap: 10, flexShrink: 0 }}>
           <Icon name="file" size={17} color="var(--primary)" />
           <div style={{ flex: 1, minWidth: 0, fontSize: 13.5, fontWeight: 700, color: "var(--text-1)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{file.name}</div>
           {url && <button onClick={() => window.open(url, "_blank")} title="เปิดในแท็บใหม่" style={ib}><Icon name="link" size={15} color="var(--text-2)" /></button>}
           {url && <button onClick={download} title="ดาวน์โหลด" style={ib}><Icon name="download" size={15} color="var(--text-2)" /></button>}
           <button className="x-close" onClick={onClose} title="ปิด" style={ib}><Icon name="x" size={16} /></button>
         </div>
-        <div style={{ flex: 1, minHeight: 0, background: "var(--surface2)", display: "grid" }}>
+        <div style={{ flex: 1, minHeight: 0, background: "#2a2a2e", display: "grid", borderRadius: isMobile ? 0 : "0 0 18px 18px", padding: isMobile ? 0 : "0 0 14px" }}>
           {url
             ? <iframe src={url} title={file.name} style={{ width: "100%", height: "100%", border: "none" }} />
             : <div style={{ placeSelf: "center", color: "var(--text-3)", fontSize: 13 }}>เปิดไฟล์ไม่สำเร็จ — ลองกดดาวน์โหลดแทน</div>}

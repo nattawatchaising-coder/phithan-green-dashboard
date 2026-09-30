@@ -575,8 +575,7 @@ function JobFileViewer({
     style: {
       position: "fixed",
       inset: 0,
-      background: "rgba(8,20,14,.5)",
-      backdropFilter: "blur(3px)",
+      background: "rgba(8,20,14,.62)",
       zIndex: 140,
       display: "grid",
       placeItems: isMobile ? "stretch" : "center",
@@ -591,14 +590,13 @@ function JobFileViewer({
       height: isMobile ? "100%" : "92vh",
       display: "flex",
       flexDirection: "column",
-      overflow: "hidden",
       boxShadow: "0 30px 80px rgba(8,20,14,.3)"
     }
   }, React.createElement("div", {
     style: {
       padding: "12px 16px",
       background: "var(--surface)",
-      boxShadow: "0 10px 18px -14px rgba(8,20,14,.45)",
+      borderRadius: isMobile ? 0 : "18px 18px 0 0",
       position: "relative",
       display: "flex",
       alignItems: "center",
@@ -648,8 +646,10 @@ function JobFileViewer({
     style: {
       flex: 1,
       minHeight: 0,
-      background: "var(--surface2)",
-      display: "grid"
+      background: "#2a2a2e",
+      display: "grid",
+      borderRadius: isMobile ? 0 : "0 0 18px 18px",
+      padding: isMobile ? 0 : "0 0 14px"
     }
   }, url ? React.createElement("iframe", {
     src: url,
