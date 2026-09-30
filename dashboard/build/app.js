@@ -289,18 +289,12 @@ function App() {
   const fileFlags = useJobFileFlags();
   const [t, setTweak] = useTweaks(TWEAK_DEFAULTS);
   const [view, setView] = React.useState("overview");
-  const [leadMode, setLeadModeRaw] = React.useState(() => {
-    const m = localStorage.getItem("pg-leadmode");
-    return m === "list" ? "list" : "board";
-  });
-  const setLeadMode = React.useCallback(m => {
-    localStorage.setItem("pg-leadmode", m);
-    setLeadModeRaw(m);
-  }, []);
-  const [leadFocus, setLeadFocus] = React.useState(null);
   const [boardLead, setBoardLead] = React.useState(null);
   const [plan3dLead, setPlan3dLead] = React.useState(null);
   const [leadNew, setLeadNew] = React.useState(null);
+  const newLead = React.useCallback(() => {
+    setLeadNew(leadStore.blank());
+  }, [leadStore]);
   const [permitReview, setPermitReview] = React.useState(null);
   const [quoteOpen, setQuoteOpen] = React.useState(null);
   const [search, setSearch] = React.useState("");
@@ -854,6 +848,7 @@ function App() {
     onOpenLead: l => {
       if (l) setBoardLead(l.id);
     },
+    onNewLead: can(role, "leads") ? newLead : null,
     onPatchLead: (id, fields) => leadStore.patch(id, fields)
   });
   const salesHead = React.useMemo(() => {
@@ -868,42 +863,6 @@ function App() {
     });
     return "ยังไล่อยู่ " + live + " ราย · เลยวันติดตาม " + late + " ราย";
   }, [leadStore.leads]);
-  const leadTabs = React.createElement("div", {
-    style: {
-      display: "inline-flex",
-      gap: 4,
-      padding: 3,
-      borderRadius: 99,
-      background: "var(--surface2)",
-      border: "1px solid var(--border)"
-    }
-  }, [["board", "บอร์ด", "kanban"], ["list", "รายการ", "list"]].map(([k, th, ic]) => {
-    const on = leadMode === k;
-    return React.createElement("button", {
-      key: k,
-      onClick: () => setLeadMode(k),
-      title: th,
-      style: {
-        display: "inline-flex",
-        alignItems: "center",
-        gap: 5,
-        padding: "6px 12px",
-        borderRadius: 99,
-        border: "none",
-        cursor: "pointer",
-        fontFamily: "inherit",
-        fontSize: 12.5,
-        fontWeight: 700,
-        background: on ? "var(--surface)" : "transparent",
-        color: on ? "var(--primary-dark)" : "var(--text-3)",
-        boxShadow: on ? "0 1px 3px rgba(0,0,0,.08)" : "none"
-      }
-    }, React.createElement(Icon, {
-      name: ic,
-      size: 14,
-      color: on ? "var(--primary-dark)" : "var(--text-3)"
-    }), th);
-  }));
   const onSave = rec => {
     const prev = store.raw.find(r => r.id === rec.id);
     if (!prev && !rec.createdBy && auth.current) {
@@ -961,9 +920,6 @@ function App() {
       expense: ec
     };
   }, [omLive.tickets, omLive.sites, omLive.bySite, apptStore.appts, ecLive.claims, auth.current, role]);
-  const newLead = React.useCallback(() => {
-    setLeadNew(leadStore.blank());
-  }, [leadStore]);
   const newPermitJob = React.useCallback(() => {
     if (!can(role, "addJob")) {
       alert("คุณไม่มีสิทธิ์สร้างงาน");
@@ -1132,10 +1088,9 @@ function App() {
     leadStore: leadStore,
     onMenuOpen: () => setSidebarOpen(true),
     onOpenJob: openJob
-  }) : view === "leads" && leadMode === "board" ? React.createElement(React.Fragment, null, React.createElement(window.SchedHeader, {
+  }) : view === "leads" ? React.createElement(React.Fragment, null, React.createElement(window.SchedHeader, {
     title: "\u0E07\u0E32\u0E19\u0E02\u0E32\u0E22",
     sub: salesHead,
-    right: leadTabs,
     onMenuOpen: () => setSidebarOpen(true)
   }), React.createElement("div", {
     className: "app-content",
@@ -1144,27 +1099,7 @@ function App() {
       flexDirection: "column",
       minHeight: 0
     }
-  }, salesBoard)) : view === "leads" ? React.createElement(LeadsView, {
-    leadStore: leadStore,
-    appts: apptStore.appts,
-    jobs: jobs,
-    users: auth.users,
-    currentUser: auth.current,
-    quotes: quoteStore.quotes,
-    headRight: leadTabs,
-    onOpenLead: l => {
-      if (l) setBoardLead(l.id);
-    },
-    focusId: leadFocus,
-    onFocusDone: () => setLeadFocus(null),
-    onMenuOpen: () => setSidebarOpen(true),
-    onOpenSurvey: can(role, "doSurvey") || can(role, "dispatch") ? pseudo => openSurvey(pseudo) : null,
-    onReport: pseudo => setReportJob(pseudo),
-    onOpenQuote: can(role, "price") ? openQuoteForLead : null,
-    onPlan3d: can(role, "design") && window.Plan3DEditor ? pseudo => setPlan3dLead(pseudo) : null,
-    onConvert: convertLead,
-    canConvert: can(role, "addJob")
-  }) : view === "saleskpi" ? React.createElement(SalesKpiView, {
+  }, salesBoard)) : view === "saleskpi" ? React.createElement(SalesKpiView, {
     leads: leadStore.leads,
     quotes: quoteStore.quotes,
     appts: apptStore.appts,

@@ -3229,7 +3229,8 @@ function SalesBoardView({
   currentUser,
   onOpenLead,
   onPatchLead,
-  onConvert
+  onConvert,
+  onNewLead
 }) {
   const isMobile = window.matchMedia("(max-width: 860px)").matches;
   const [drag, setDrag] = React.useState(null);
@@ -3284,7 +3285,29 @@ function SalesBoardView({
       flex: 1,
       minWidth: 140
     }
-  }, "\u0E25\u0E32\u0E01\u0E01\u0E32\u0E23\u0E4C\u0E14\u0E02\u0E49\u0E32\u0E21\u0E04\u0E2D\u0E25\u0E31\u0E21\u0E19\u0E4C\u0E40\u0E1E\u0E37\u0E48\u0E2D\u0E40\u0E14\u0E34\u0E19\u0E02\u0E31\u0E49\u0E19\u0E01\u0E32\u0E23\u0E02\u0E32\u0E22 \xB7 \u0E01\u0E32\u0E23\u0E4C\u0E14\u0E02\u0E35\u0E14\u0E41\u0E14\u0E07\u0E04\u0E37\u0E2D\u0E40\u0E25\u0E22\u0E27\u0E31\u0E19\u0E15\u0E34\u0E14\u0E15\u0E32\u0E21\u0E41\u0E25\u0E49\u0E27"), currentUser && React.createElement("button", {
+  }, "\u0E25\u0E32\u0E01\u0E01\u0E32\u0E23\u0E4C\u0E14\u0E02\u0E49\u0E32\u0E21\u0E04\u0E2D\u0E25\u0E31\u0E21\u0E19\u0E4C\u0E40\u0E1E\u0E37\u0E48\u0E2D\u0E40\u0E14\u0E34\u0E19\u0E02\u0E31\u0E49\u0E19\u0E01\u0E32\u0E23\u0E02\u0E32\u0E22 \xB7 \u0E01\u0E32\u0E23\u0E4C\u0E14\u0E02\u0E35\u0E14\u0E41\u0E14\u0E07\u0E04\u0E37\u0E2D\u0E40\u0E25\u0E22\u0E27\u0E31\u0E19\u0E15\u0E34\u0E14\u0E15\u0E32\u0E21\u0E41\u0E25\u0E49\u0E27"), onNewLead && React.createElement("button", {
+    onClick: onNewLead,
+    title: "\u0E40\u0E1E\u0E34\u0E48\u0E21\u0E25\u0E39\u0E01\u0E04\u0E49\u0E32\u0E43\u0E2B\u0E21\u0E48",
+    style: {
+      display: "inline-flex",
+      alignItems: "center",
+      gap: 6,
+      padding: "7px 13px",
+      borderRadius: 99,
+      cursor: "pointer",
+      fontFamily: "inherit",
+      fontSize: 12.5,
+      fontWeight: 700,
+      border: "1px solid var(--primary)",
+      background: "var(--primary)",
+      color: "#fff"
+    }
+  }, React.createElement(Icon, {
+    name: "plus",
+    size: 13,
+    color: "#fff",
+    sw: 2.6
+  }), " \u0E25\u0E39\u0E01\u0E04\u0E49\u0E32\u0E43\u0E2B\u0E21\u0E48"), currentUser && React.createElement("button", {
     onClick: () => setMine(v => !v),
     style: {
       display: "inline-flex",

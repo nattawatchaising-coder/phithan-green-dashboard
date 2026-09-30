@@ -240,15 +240,10 @@ function App() {
   const fileFlags = useJobFileFlags();
   const [t, setTweak] = useTweaks(TWEAK_DEFAULTS);
   const [view, setView] = React.useState("overview");
-  /* หน้า "งานขาย" มีสองมุมบนข้อมูลชุดเดียวกัน — บอร์ด (ภาพรวมว่าใครค้างขั้นไหน) กับ
-     รายการ (ที่เดียวที่ทำอะไรกับลูกค้าได้ครบ) · จำมุมล่าสุดไว้ให้แต่ละเครื่อง */
-  const [leadMode, setLeadModeRaw] = React.useState(() => {
-    const m = localStorage.getItem("pg-leadmode");
-    return m === "list" ? "list" : "board";
-  });
-  const setLeadMode = React.useCallback((m) => { localStorage.setItem("pg-leadmode", m); setLeadModeRaw(m); }, []);
-  /* ลูกค้าที่สั่งให้เปิดใบทันทีหลังสลับมามุมรายการ (กดมาจากภาพรวมงานขาย) */
-  const [leadFocus, setLeadFocus] = React.useState(null);
+  /* หน้า "งานขาย" เหลือมุมเดียวคือบอร์ด — มุม "รายการ" (LeadsView) ถอดออกจากแอปแล้ว
+     ทั้งสองมุมเปิดใบลูกค้าใบเดียวกัน (LeadDrawer) ที่มีปุ่มครบเท่ากัน รายการจึงเป็นแค่ทรงที่วางต่างกัน
+     โค้ดหน้ายังอยู่ที่ views-lead.jsx ถ้าอยากได้คืน — ท่าเดียวกับ SurveyView ที่ถอดไปก่อนหน้านี้
+     สเตต leadFocus ที่คู่กับมุมนั้นถูกเอาออกด้วย มันไม่เคยถูกตั้งค่าจากที่ไหนอยู่แล้ว */
   /* ลูกค้าที่กดมาจากการ์ดขายบนบอร์ดงาน — เปิดเป็นแผงทับบอร์ด ไม่ต้องเด้งออกไปหน้าอื่น */
   const [boardLead, setBoardLead] = React.useState(null);
   /* วางแผง 3D ของลูกค้าที่ยังไม่เป็นงาน — เปิดทับแผงลูกค้า ปิดแล้วกลับมาที่ใบเดิม */
@@ -257,6 +252,11 @@ function App() {
      เดิมพาไปหน้างานขายก่อนเสมอ แต่คนกดปุ่มนี้จากบอร์ดกำลังดูบอร์ดอยู่ กดเพิ่มชื่อเสร็จก็ต้องกดกลับมาเอง
      ฟอร์มเป็น LeadModal ตัวเดียวกับที่หน้างานขายใช้ จึงไม่มีร่างที่สองให้ต้องตามแก้ */
   const [leadNew, setLeadNew] = React.useState(null);
+  /* ประกาศไว้ตรงนี้ ไม่ใช่ท้ายไฟล์ — salesBoard ข้างล่างอ่านค่านี้ตอนสร้าง element
+     const ที่ประกาศทีหลังยังอยู่ใน temporal dead zone ตอนนั้น = ReferenceError ตอนเปิดหน้างานขาย */
+  const newLead = React.useCallback(() => {
+    setLeadNew(leadStore.blank());
+  }, [leadStore]);
   /* ชุดข้อมูลขออนุญาตที่เปิดอยู่ — อยู่ระดับแอป จะได้เปิดได้ทั้งจากบอร์ดและจากในใบงาน */
   const [permitReview, setPermitReview] = React.useState(null);
   /* ใบเสนอราคาที่เปิดอยู่ — เหตุผลเดียวกัน เปิดได้ทั้งจากหน้าลูกค้าสำรวจและจากในใบงาน */
@@ -695,6 +695,7 @@ function App() {
     <SalesBoardView leads={leadStore.leads} quotes={quoteStore.quotes} search={search} currentUser={auth.current}
       /* กดการ์ด = เปิดใบเต็มทับบอร์ด ใบเดียวกับที่เด้งจากบอร์ดงานและหน้ารายการ */
       onOpenLead={(l) => { if (l) setBoardLead(l.id); }}
+      onNewLead={can(role, "leads") ? newLead : null}
       onPatchLead={(id, fields) => leadStore.patch(id, fields)} />
   );
   const salesHead = React.useMemo(() => {
@@ -708,24 +709,6 @@ function App() {
     });
     return "ยังไล่อยู่ " + live + " ราย · เลยวันติดตาม " + late + " ราย";
   }, [leadStore.leads]);
-  /* ปุ่มสลับมุมของหน้า "งานขาย" — วางไว้บนหัวหน้าทั้งสองมุม ตำแหน่งเดียวกันจะได้กดสลับไปมาได้ */
-  const leadTabs = (
-    <div style={{ display: "inline-flex", gap: 4, padding: 3, borderRadius: 99, background: "var(--surface2)", border: "1px solid var(--border)" }}>
-      {[["board", "บอร์ด", "kanban"], ["list", "รายการ", "list"]].map(([k, th, ic]) => {
-        const on = leadMode === k;
-        return (
-          <button key={k} onClick={() => setLeadMode(k)} title={th}
-            style={{ display: "inline-flex", alignItems: "center", gap: 5, padding: "6px 12px", borderRadius: 99, border: "none", cursor: "pointer",
-              fontFamily: "inherit", fontSize: 12.5, fontWeight: 700,
-              background: on ? "var(--surface)" : "transparent", color: on ? "var(--primary-dark)" : "var(--text-3)",
-              boxShadow: on ? "0 1px 3px rgba(0,0,0,.08)" : "none" }}>
-            <Icon name={ic} size={14} color={on ? "var(--primary-dark)" : "var(--text-3)"} />{th}
-          </button>
-        );
-      })}
-    </div>
-  );
-
   /* SalesOverview ไม่ได้ใช้เป็นหน้าแรกของเซลล์แล้ว — หน้าแรกเป็นหน้าเดียวกันหมดทุกตำแหน่ง
      ตัวคอมโพเนนต์ยังอยู่ที่ views-sales ถ้าจะเอากลับมาเป็นมุมหนึ่งของหน้า "งานขาย" ก็ทำได้ */
 
@@ -805,10 +788,6 @@ function App() {
       expense: ec,
     };
   }, [omLive.tickets, omLive.sites, omLive.bySite, apptStore.appts, ecLive.claims, auth.current, role]);
-
-  const newLead = React.useCallback(() => {
-    setLeadNew(leadStore.blank());
-  }, [leadStore]);
 
   /* ── เปิดใบงานขออนุญาตโดยตรง ──
      งานเก่า/งานที่รับช่วงต่อติดตั้งเสร็จไปแล้ว ไม่เคยเดินผ่านบอร์ดขายและบอร์ดหน้างาน
@@ -915,24 +894,12 @@ function App() {
         ) : view === "dispatch" ? (
           <DispatchView appts={apptStore.appts} jobs={jobs} techs={techStore.techs} store={apptStore} leadStore={leadStore}
             onMenuOpen={() => setSidebarOpen(true)} onOpenJob={openJob} />
-        ) : (view === "leads" && leadMode === "board") ? (
+        ) : view === "leads" ? (
           <React.Fragment>
-            <window.SchedHeader title="งานขาย" sub={salesHead} right={leadTabs} onMenuOpen={() => setSidebarOpen(true)} />
+            {/* หัวจอไม่มีปุ่มสลับมุมแล้ว — ปุ่มเพิ่มลูกค้าอยู่บนแถวหัวของบอร์ดเอง ใกล้ของที่มันเพิ่มเข้าไป */}
+            <window.SchedHeader title="งานขาย" sub={salesHead} onMenuOpen={() => setSidebarOpen(true)} />
             <div className="app-content" style={{ display: "flex", flexDirection: "column", minHeight: 0 }}>{salesBoard}</div>
           </React.Fragment>
-        ) : view === "leads" ? (
-          <LeadsView leadStore={leadStore} appts={apptStore.appts} jobs={jobs}
-            users={auth.users} currentUser={auth.current} quotes={quoteStore.quotes}
-            headRight={leadTabs}
-            /* กดการ์ดในรายการ = เปิดใบเต็มใบเดียวกับที่เด้งจากบอร์ด ไม่ใช่คนละหน้าตา */
-            onOpenLead={(l) => { if (l) setBoardLead(l.id); }}
-            focusId={leadFocus} onFocusDone={() => setLeadFocus(null)}
-            onMenuOpen={() => setSidebarOpen(true)}
-            onOpenSurvey={(can(role, "doSurvey") || can(role, "dispatch")) ? (pseudo) => openSurvey(pseudo) : null}
-            onReport={(pseudo) => setReportJob(pseudo)}
-            onOpenQuote={can(role, "price") ? openQuoteForLead : null}
-            onPlan3d={can(role, "design") && window.Plan3DEditor ? (pseudo) => setPlan3dLead(pseudo) : null}
-            onConvert={convertLead} canConvert={can(role, "addJob")} />
         ) : view === "saleskpi" ? (
           <SalesKpiView leads={leadStore.leads} quotes={quoteStore.quotes} appts={apptStore.appts} techs={techStore.techs} currentUser={auth.current}
             onMenuOpen={() => setSidebarOpen(true)} onNewLead={can(role, "leads") ? newLead : null} />

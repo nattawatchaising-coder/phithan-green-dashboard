@@ -1996,7 +1996,7 @@ function SalesCard({ lead, quotes, onOpen, onDragStart, dragging }) {
   );
 }
 
-function SalesBoardView({ leads, quotes, search, currentUser, onOpenLead, onPatchLead, onConvert }) {
+function SalesBoardView({ leads, quotes, search, currentUser, onOpenLead, onPatchLead, onConvert, onNewLead }) {
   const isMobile = window.matchMedia("(max-width: 860px)").matches;
   const [drag, setDrag] = React.useState(null);
   const [over, setOver] = React.useState(null);
@@ -2040,6 +2040,17 @@ function SalesBoardView({ leads, quotes, search, currentUser, onOpenLead, onPatc
       <span style={{ fontSize: 12, color: "var(--text-3)", flex: 1, minWidth: 140 }}>
         ลากการ์ดข้ามคอลัมน์เพื่อเดินขั้นการขาย · การ์ดขีดแดงคือเลยวันติดตามแล้ว
       </span>
+      {/* เพิ่มลูกค้าอยู่บนบอร์ดเอง — เดิมปุ่มนี้มีเฉพาะในมุม "รายการ" ซึ่งถอดออกไปแล้ว
+          บอร์ดจึงต้องเป็นทั้งที่ดูและที่เริ่ม ไม่ใช่ที่ดูอย่างเดียวแล้วต้องไปเปิดจากหน้าอื่น
+          ฟอร์มเป็น LeadModal ตัวเดียวกับที่ปุ่มบนบอร์ดงานเรียก เปิดทับบอร์ดไว้ ปิดแล้วอยู่ที่เดิม */}
+      {onNewLead && (
+        <button onClick={onNewLead} title="เพิ่มลูกค้าใหม่"
+          style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "7px 13px", borderRadius: 99, cursor: "pointer",
+            fontFamily: "inherit", fontSize: 12.5, fontWeight: 700, border: "1px solid var(--primary)",
+            background: "var(--primary)", color: "#fff" }}>
+          <Icon name="plus" size={13} color="#fff" sw={2.6} /> ลูกค้าใหม่
+        </button>
+      )}
       {currentUser && (
         <button onClick={() => setMine((v) => !v)}
           style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "7px 13px", borderRadius: 99, cursor: "pointer", fontFamily: "inherit",
