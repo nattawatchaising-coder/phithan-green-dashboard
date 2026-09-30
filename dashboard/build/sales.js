@@ -2137,7 +2137,7 @@ function QuoteEditor({
       color: "var(--text-3)"
     }
   }, hint), React.createElement("textarea", {
-    rows: 4,
+    rows: Math.max(8, (q[key] || []).length + 1),
     value: (q[key] || []).join("\n"),
     disabled: locked,
     onChange: e => set(key, e.target.value.split("\n")),

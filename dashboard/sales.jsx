@@ -1608,7 +1608,8 @@ function QuoteEditor({ quote, job, target, stock, onClose, onSave, onDelete, cur
     <div style={{ display: "flex", flexDirection: "column", gap: 5 }}>
       <label style={lbl}>{title}</label>
       <div style={{ fontSize: 11, color: "var(--text-3)" }}>{hint}</div>
-      <textarea rows={4} value={(q[key] || []).join("\n")} disabled={locked}
+      {/* เปิดมาสูง 8 บรรทัด (~186px ที่ผู้ใช้ลากขยายไว้) รายการยาวกว่านั้นก็ยืดตามจำนวนบรรทัด ไม่ต้องลากเอง */}
+      <textarea rows={Math.max(8, (q[key] || []).length + 1)} value={(q[key] || []).join("\n")} disabled={locked}
         onChange={(e) => set(key, e.target.value.split("\n"))}
         style={Object.assign({}, inputStyle, { resize: "vertical", lineHeight: 1.6, fontSize: 12.5 })} />
       {extra}
