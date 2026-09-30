@@ -13,7 +13,7 @@
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@400;500;600;700&family=Outfit:wght@500;600;700;800&family=Sora:wght@600;700;800&family=JetBrains+Mono:wght@500;600&display=swap" rel="stylesheet" />
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="anonymous" />
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin="anonymous"></script>
-<link rel="stylesheet" href="dashboard/tokens.css?v=4" />
+<link rel="stylesheet" href="dashboard/tokens.css?v=6" />
 <style>
 
 * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -27,6 +27,19 @@ button, input, textarea, select { font-family: inherit; border: none; }
    ช่องกรอกคือหลุมที่รอให้พิมพ์ลงไป ถ้าขาวเท่าแผ่นที่รองอยู่ก็หายไปทั้งช่อง
    กฎนี้อยู่ระดับอิลิเมนต์ ช่องที่กำหนดพื้นเองไว้ในคลาสหรือใน style ยังชนะตามเดิม */
 input, textarea, select { background: var(--surface2); color: var(--text-1); }
+/* ช่องกรอกเป็นหลุมที่จมลงไป — วงแหวนด้านในคือตัวบอกขอบ ไม่ใช่พื้น
+   พื้นช่องต่างจากพื้นการ์ดแค่ 10/255 ลำพังพื้นจึงกลืนไปกับแผ่นที่รองอยู่
+   เขียนเป็น box-shadow ไม่ใช่ border เพราะไม่กินที่เพิ่ม ไม่ขยับ layout
+   และเบราว์เซอร์รีเซ็ต border ทับไม่ได้ ซึ่งเป็นบั๊กที่เพิ่งเจอมาสองรอบ
+   ⚠ ไม่ครอบ checkbox/radio/range/color/file — พวกนั้นเบราว์เซอร์วาดเอง วงแหวนจะเลอะ */
+input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="color"]):not([type="file"]),
+textarea, select { box-shadow: var(--shadow-inset); }
+input:focus, textarea:focus, select:focus { outline: none; }
+/* ⚠ กฎโฟกัสต้องลาก :not() ชุดเดียวกันมาด้วย ไม่ใช่เขียน input:focus-visible สั้น ๆ
+   กฎด้านบนมี :not() ห้าตัว น้ำหนักจึงสูงกว่า ถ้าเขียนสั้นกว่าจะแพ้และโฟกัสไม่ขึ้นเลย */
+input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="color"]):not([type="file"]):focus-visible,
+textarea:focus-visible, select:focus-visible {
+  box-shadow: inset 0 0 0 1px var(--primary), 0 0 0 3px var(--primary-soft); }
 input, select, textarea { font-family: inherit; }
 /* ⚠ ต้นเหตุที่ช่องกรอกในตารางสองสามคอลัมน์ซ้อนทับกัน
    input (โดยเฉพาะ type=number/date/time) มีความกว้างขั้นต่ำในตัวราว 180px
@@ -270,7 +283,7 @@ html.theme-anim, html.theme-anim * { transition: background-color .34s ease, bor
   border-radius: var(--r-pill); padding: 9px 16px; width: 280px; transition: border-color .15s, box-shadow .15s, background .15s; }
 .search-box:hover { background: var(--surface3); }
 .search-box:focus-within { background: var(--surface2); border-color: var(--primary); box-shadow: 0 0 0 3px var(--primary-soft); }
-.search-box input { border: none; background: none; outline: none; font-size: 13.5px; color: var(--text-1); width: 100%; }
+.search-box input { border: none; background: none; box-shadow: none; outline: none; font-size: 13.5px; color: var(--text-1); width: 100%; }
 .search-box input::placeholder { color: var(--text-3); }
 /* ปุ่มสั่งงานมนเต็มใบเหมือนช่องค้นหา — ในแถบเครื่องมือแถวเดียวกัน ถ้าความมนไม่เท่ากัน
    สายตาจะอ่านว่าเป็นของคนละชุด ทั้งที่อยู่ติดกันและระดับเดียวกัน */
