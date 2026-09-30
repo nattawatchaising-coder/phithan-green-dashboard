@@ -30,6 +30,24 @@ input, select, textarea { min-width: 0; max-width: 100%; }
 /* กล่องที่ห่อช่องกรอกก็ต้องยอมหดด้วย ไม่งั้นตัวมันเองล้นรางไปทับรางข้าง ๆ
    (min-width ของ grid/flex item ดีฟอลต์เป็น auto = "ห้ามเล็กกว่าเนื้อใน") */
 label { min-width: 0; }
+/* ⚠ ช่องวันที่บน iOS ยื่นเลยขอบการ์ดออกไปทางขวา — คนละสาเหตุกับ min-width ข้างบน
+   Safari เรนเดอร์ "ค่า" ข้างในช่อง date/time ผ่านชิ้นส่วนเงา ::-webkit-date-and-time-value
+   ซึ่งจัดข้อความไว้กลางและกว้างตามเนื้อความของตัวเอง โดยไม่ฟัง width ของช่องที่ครอบมันอยู่
+   ตัวช่องจึงถูกดันกว้างเกินรางไปเท่ากับระยะขอบพอดี และข้อความจะอยู่กลางช่อง
+   (ซึ่งเป็นจุดสังเกตว่าเป็นอาการนี้ ไม่ใช่เรื่อง box-sizing)
+
+   ⚠ ต้องมี -webkit-appearance: none ด้วย ไม่งั้น iOS ใช้ขนาดของคอนโทรลตัวเอง
+     แล้วคำสั่ง width ทั้งหมดถูกเมินทั้งชุด
+   Chrome บนคอมไม่มีอาการนี้ ทดสอบบนเครื่องจึงไม่เห็น — ต้องดูบนมือถือจริงเท่านั้น */
+input[type="date"], input[type="time"], input[type="datetime-local"], input[type="month"] {
+  -webkit-appearance: none; appearance: none; display: block; width: 100%;
+}
+input[type="date"]::-webkit-date-and-time-value,
+input[type="time"]::-webkit-date-and-time-value,
+input[type="datetime-local"]::-webkit-date-and-time-value,
+input[type="month"]::-webkit-date-and-time-value {
+  text-align: left; width: 100%; margin: 0;
+}
 /* ตาข่ายกันอีกชั้น — หน้านี้ไม่มีอะไรที่ควรกว้างเกินจอ ถ้ามีแปลว่าพัง ไม่ใช่ให้เลื่อนดู */
 html, body { overflow-x: hidden; }
 a { color: var(--primary-dark); }
