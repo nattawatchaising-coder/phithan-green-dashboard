@@ -1017,11 +1017,11 @@ function LeadDrawer({ lead, leadStore, appts, jobs, quotes, users, currentUser, 
   const lateFollow = window.sOverdue && window.sOverdue(lead.nextFollow) && stageKey(lead) !== "won" && stageKey(lead) !== "lost";
   const sst = window.surveyStatus({ survey: lead.survey });
   const TABS = [
-    /* c = สีประจำแท็บ — แท็บที่ไม่ได้เลือกย้อมสีตัวเอง แท็บที่เลือกขาวต่อกับหัวใบ + แถบสีบนหัวแท็บ (หัวใบไม่เปลี่ยนสี) */
-    { k: "ov", th: "ภาพรวม", c: "#1B9B75" },
-    { k: "ct", th: isMobile ? "ติดต่อ" : "การติดต่อ", c: "#0284C7", n: nContacts, alert: lateFollow },
-    { k: "qt", th: isMobile ? "ใบเสนอ" : "ใบเสนอราคา", c: "#D97706", n: nQuotes },
-    { k: "sv", th: isMobile ? "สำรวจ" : "สำรวจ & ออกแบบ", c: "#7C3AED", n: sst.state === "skip" ? null : (sst.pct ? sst.pct + "%" : null) },
+    /* h = เฉดสีประจำแท็บ (องศา oklch) ความสว่าง/ความสดเท่ากันทุกแท็บ ดูเป็นชุดเดียวกัน — แท็บที่ไม่ได้เลือกย้อมสีตัวเอง แท็บที่เลือกขาวต่อกับหัวใบ + แถบสีบนหัวแท็บ (หัวใบไม่เปลี่ยนสี) */
+    { k: "ov", th: "ภาพรวม", h: 165 },
+    { k: "ct", th: isMobile ? "ติดต่อ" : "การติดต่อ", h: 235, n: nContacts, alert: lateFollow },
+    { k: "qt", th: isMobile ? "ใบเสนอ" : "ใบเสนอราคา", h: 70, n: nQuotes },
+    { k: "sv", th: isMobile ? "สำรวจ" : "สำรวจ & ออกแบบ", h: 300, n: sst.state === "skip" ? null : (sst.pct ? sst.pct + "%" : null) },
   ];
 
   const ctx = {
@@ -1043,7 +1043,7 @@ function LeadDrawer({ lead, leadStore, appts, jobs, quotes, users, currentUser, 
         <div className="ld-tabs" role="tablist">
           {TABS.map((t, i) => (
             <button key={t.k} role="tab" aria-selected={tab === t.k} className={"ld-tab" + (tab === t.k ? " on" : "")}
-              style={{ zIndex: tab === t.k ? 10 : TABS.length - i, "--tc": t.c }} onClick={() => setTab(t.k)}>
+              style={{ zIndex: tab === t.k ? 10 : TABS.length - i, "--h": t.h }} onClick={() => setTab(t.k)}>
               {t.th}
               {t.n ? <span className="ld-tab-n">{t.n}</span> : null}
               {t.alert ? <span className="ld-tab-dot" title="เลยวันติดตามแล้ว" /> : null}

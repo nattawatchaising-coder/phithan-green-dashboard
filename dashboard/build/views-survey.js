@@ -2441,22 +2441,22 @@ function LeadDrawer({
   const TABS = [{
     k: "ov",
     th: "ภาพรวม",
-    c: "#1B9B75"
+    h: 165
   }, {
     k: "ct",
     th: isMobile ? "ติดต่อ" : "การติดต่อ",
-    c: "#0284C7",
+    h: 235,
     n: nContacts,
     alert: lateFollow
   }, {
     k: "qt",
     th: isMobile ? "ใบเสนอ" : "ใบเสนอราคา",
-    c: "#D97706",
+    h: 70,
     n: nQuotes
   }, {
     k: "sv",
     th: isMobile ? "สำรวจ" : "สำรวจ & ออกแบบ",
-    c: "#7C3AED",
+    h: 300,
     n: sst.state === "skip" ? null : sst.pct ? sst.pct + "%" : null
   }];
   const ctx = {
@@ -2513,7 +2513,7 @@ function LeadDrawer({
     className: "ld-tab" + (tab === t.k ? " on" : ""),
     style: {
       zIndex: tab === t.k ? 10 : TABS.length - i,
-      "--tc": t.c
+      "--h": t.h
     },
     onClick: () => setTab(t.k)
   }, t.th, t.n ? React.createElement("span", {
