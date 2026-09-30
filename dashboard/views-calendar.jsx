@@ -64,7 +64,7 @@ function calMonthCount(jobs, ym) {
   }).length;
 }
 
-function CalendarView({ jobs, onOpen, onAddOnDate, canAdd, onAdvance }) {
+function CalendarView({ jobs, onOpen, onAdvance }) {
   const isMobile = useMobileCal();
   /* เปิดหน้าปฏิทินมาต้องอยู่ที่เดือนปัจจุบันเสมอ — อ่านจากวันที่จริงของเครื่อง ไม่ใช่เดือนที่ตั้งค่าตายตัวไว้ */
   const calToday = React.useMemo(() => new Date(window.SF.TODAY + "T00:00:00"), []);
@@ -163,13 +163,15 @@ function CalendarView({ jobs, onOpen, onAddOnDate, canAdd, onAdvance }) {
 
       {/* ── ขวา: แถบสรุปรายวัน (ใช้การ์ดสไตล์เดียวกับตารางงานของฉัน) ── */}
       <DaySidebar day={selDay} ym={ym} groups={selDay ? groupsOn(selDay) : []}
-        todayKey={todayKey} keyOf={keyOf} onOpen={onOpen} onAdvance={onAdvance} canAdd={canAdd} onAddOnDate={onAddOnDate} />
+        todayKey={todayKey} keyOf={keyOf} onOpen={onOpen} onAdvance={onAdvance} />
     </div>
   );
 }
 
 /* ── แถบสรุปรายวัน (เดสก์ท็อป) — ใช้การ์ดเดียวกับ "ตารางงานของฉัน" (JobTaskCard) ── */
-function DaySidebar({ day, ym, groups, todayKey, keyOf, onOpen, onAdvance, canAdd, onAddOnDate }) {
+/* แถบวันไม่มีปุ่ม "เพิ่มงาน" — ทางเพิ่มงานเหลือทางเดียวที่ปุ่มบนหัวหน้า (app.jsx onAdd)
+      ปฏิทินมีไว้ดูว่าวันไหนมีอะไร ไม่ใช่ที่ตั้งต้นสร้างงาน */
+function DaySidebar({ day, ym, groups, todayKey, keyOf, onOpen, onAdvance }) {
   const list = groups || [];
   const isToday = day != null && keyOf(day) === todayKey;
   const dayKey = day != null ? keyOf(day) : "";
@@ -193,18 +195,12 @@ function DaySidebar({ day, ym, groups, todayKey, keyOf, onOpen, onAdvance, canAd
               </div>
               <div style={{ fontSize: 12, color: "var(--text-3)", marginTop: 1 }}>{list.length} งาน</div>
             </div>
-            {canAdd && onAddOnDate && (
-              <button onClick={() => onAddOnDate(dayKey)} title="เพิ่มงานวันนี้"
-                style={{ display: "inline-flex", alignItems: "center", gap: 5, flexShrink: 0, background: "var(--primary)", color: "#fff", border: "none", borderRadius: 9, padding: "8px 11px", fontWeight: 700, fontSize: 12, cursor: "pointer", fontFamily: "inherit" }}>
-                <Icon name="plus" size={14} color="#fff" /> เพิ่มงาน
-              </button>
-            )}
           </div>
 
           <div style={{ display: "flex", flexDirection: "column", gap: 11, maxHeight: "66vh", overflowY: "auto", margin: "0 -4px", padding: "0 4px" }}>
             {list.length === 0 ? (
               <div style={{ textAlign: "center", color: "var(--text-3)", fontSize: 13, padding: "26px 0" }}>
-                ยังไม่มีงานในวันนี้{canAdd && onAddOnDate ? " — กด “เพิ่มงาน”" : ""}
+                ยังไม่มีงานในวันนี้
               </div>
             ) : list.map((g) => (
               <window.JobTaskCard key={g.job.id} job={g.job} stages={g.stages} day={dayKey} onOpen={onOpen} onAdvance={onAdvance} />

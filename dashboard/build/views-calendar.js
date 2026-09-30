@@ -72,8 +72,6 @@ function calMonthCount(jobs, ym) {
 function CalendarView({
   jobs,
   onOpen,
-  onAddOnDate,
-  canAdd,
   onAdvance
 }) {
   const isMobile = useMobileCal();
@@ -295,9 +293,7 @@ function CalendarView({
     todayKey: todayKey,
     keyOf: keyOf,
     onOpen: onOpen,
-    onAdvance: onAdvance,
-    canAdd: canAdd,
-    onAddOnDate: onAddOnDate
+    onAdvance: onAdvance
   }));
 }
 function DaySidebar({
@@ -307,9 +303,7 @@ function DaySidebar({
   todayKey,
   keyOf,
   onOpen,
-  onAdvance,
-  canAdd,
-  onAddOnDate
+  onAdvance
 }) {
   const list = groups || [];
   const isToday = day != null && keyOf(day) === todayKey;
@@ -382,29 +376,7 @@ function DaySidebar({
       color: "var(--text-3)",
       marginTop: 1
     }
-  }, list.length, " \u0E07\u0E32\u0E19")), canAdd && onAddOnDate && React.createElement("button", {
-    onClick: () => onAddOnDate(dayKey),
-    title: "\u0E40\u0E1E\u0E34\u0E48\u0E21\u0E07\u0E32\u0E19\u0E27\u0E31\u0E19\u0E19\u0E35\u0E49",
-    style: {
-      display: "inline-flex",
-      alignItems: "center",
-      gap: 5,
-      flexShrink: 0,
-      background: "var(--primary)",
-      color: "#fff",
-      border: "none",
-      borderRadius: 9,
-      padding: "8px 11px",
-      fontWeight: 700,
-      fontSize: 12,
-      cursor: "pointer",
-      fontFamily: "inherit"
-    }
-  }, React.createElement(Icon, {
-    name: "plus",
-    size: 14,
-    color: "#fff"
-  }), " \u0E40\u0E1E\u0E34\u0E48\u0E21\u0E07\u0E32\u0E19")), React.createElement("div", {
+  }, list.length, " \u0E07\u0E32\u0E19"))), React.createElement("div", {
     style: {
       display: "flex",
       flexDirection: "column",
@@ -421,7 +393,7 @@ function DaySidebar({
       fontSize: 13,
       padding: "26px 0"
     }
-  }, "\u0E22\u0E31\u0E07\u0E44\u0E21\u0E48\u0E21\u0E35\u0E07\u0E32\u0E19\u0E43\u0E19\u0E27\u0E31\u0E19\u0E19\u0E35\u0E49", canAdd && onAddOnDate ? " — กด “เพิ่มงาน”" : "") : list.map(g => React.createElement(window.JobTaskCard, {
+  }, "\u0E22\u0E31\u0E07\u0E44\u0E21\u0E48\u0E21\u0E35\u0E07\u0E32\u0E19\u0E43\u0E19\u0E27\u0E31\u0E19\u0E19\u0E35\u0E49") : list.map(g => React.createElement(window.JobTaskCard, {
     key: g.job.id,
     job: g.job,
     stages: g.stages,

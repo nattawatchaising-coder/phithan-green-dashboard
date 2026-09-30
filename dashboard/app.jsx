@@ -981,8 +981,7 @@ function App() {
               store.patch(j.id, { survey: Object.assign({}, cur, { skip: !cur.skip, skippedAt: !cur.skip ? new Date().toISOString() : null }) });
             } : null} />}
           {view === "calendar" && <CalendarView jobs={filtered} onOpen={openJob}
-            canAdd={can(role, "addJob")} onAdvance={can(role, "editJob") ? (j) => store.advance(j.id) : null}
-            onAddOnDate={(key) => setForm({ job: Object.assign(store.blank(), { startDate: key, deadline: key }), isNew: true })} />}
+            onAdvance={can(role, "editJob") ? (j) => store.advance(j.id) : null} />}
         </div>
         </React.Fragment>
         )}

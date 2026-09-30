@@ -1332,15 +1332,7 @@ function App() {
   }), view === "calendar" && React.createElement(CalendarView, {
     jobs: filtered,
     onOpen: openJob,
-    canAdd: can(role, "addJob"),
-    onAdvance: can(role, "editJob") ? j => store.advance(j.id) : null,
-    onAddOnDate: key => setForm({
-      job: Object.assign(store.blank(), {
-        startDate: key,
-        deadline: key
-      }),
-      isNew: true
-    })
+    onAdvance: can(role, "editJob") ? j => store.advance(j.id) : null
   })))), boardLead && React.createElement(LeadDrawer, {
     lead: (leadStore.leads || []).find(x => x.id === boardLead) || null,
     leadStore: leadStore,
