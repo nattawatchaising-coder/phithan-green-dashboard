@@ -1378,33 +1378,15 @@ function LeadActionRow({
 }) {
   return React.createElement("button", {
     onClick: onClick,
-    style: {
-      width: "100%",
-      marginBottom: 10,
-      display: "flex",
-      alignItems: "center",
-      gap: 10,
-      padding: "12px 14px",
-      background: "var(--surface)",
-      border: "1px solid var(--border-strong)",
-      borderRadius: 12,
-      cursor: "pointer",
-      fontFamily: "inherit",
-      textAlign: "left"
-    }
+    className: "act-row"
   }, React.createElement("span", {
+    className: "ic-chip",
     style: {
-      width: 34,
-      height: 34,
-      borderRadius: 9,
-      background: color + "1c",
-      display: "grid",
-      placeItems: "center",
-      flexShrink: 0
+      background: color + "1c"
     }
   }, React.createElement(Icon, {
     name: icon,
-    size: 17,
+    size: 18,
     color: color
   })), React.createElement("span", {
     style: {
@@ -1650,10 +1632,9 @@ function LeadDetail({
     setDelC(null);
   };
   const card = {
-    background: "var(--surface)",
-    border: "1px solid var(--border)",
-    borderRadius: 14,
-    padding: 16,
+    background: "var(--surface2)",
+    borderRadius: 18,
+    padding: "16px 18px",
     marginBottom: 10
   };
   const capt = {
@@ -1696,21 +1677,16 @@ function LeadDetail({
       background: sc.color
     }
   }), sc.th), React.createElement("span", {
+    className: "mbar",
     style: {
       flex: 1,
       minWidth: 90,
       height: 6,
-      borderRadius: 99,
-      background: "var(--surface3)",
-      overflow: "hidden"
+      "--fill": st.color
     }
-  }, React.createElement("span", {
+  }, React.createElement("i", {
     style: {
-      display: "block",
-      height: "100%",
-      width: st.pct + "%",
-      background: st.color,
-      borderRadius: 99
+      width: st.pct + "%"
     }
   })), React.createElement("span", {
     style: {

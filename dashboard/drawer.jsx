@@ -82,7 +82,9 @@ function FlowTimeline({ job }) {
 function InfoRow({ label, children }) {
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 3, minWidth: 0 }}>
-      <span style={{ fontSize: 10.5, fontWeight: 600, letterSpacing: ".06em", color: "var(--text-3)", textTransform: "uppercase" }}>{label}</span>
+      {/* ไม่ uppercase ไม่ถ่างตัวอักษร — ไทยไม่มีตัวพิมพ์ใหญ่ กฎเลยมีผลกับคำอังกฤษฝั่งเดียว
+          คำกำกับสองภาษาในตารางเดียวกันจึงสูงไม่เท่ากัน และการถ่างดันสระกับวรรณยุกต์หลุดตำแหน่ง */}
+      <span style={{ fontSize: 11, fontWeight: 600, color: "var(--text-3)" }}>{label}</span>
       <span style={{ fontSize: 13.5, fontWeight: 500, color: "var(--text-1)", overflowWrap: "anywhere", wordBreak: "break-word" }}>{children}</span>
     </div>
   );
@@ -411,7 +413,7 @@ function PermitJobSummary({ job, onOpenReview }) {
         <button onClick={onOpenReview}
           style={{ width: "100%", marginBottom: 16, display: "flex", alignItems: "center", gap: 10, padding: "12px 14px",
             background: "var(--surface)", border: "1px solid var(--border-strong)", borderRadius: 12, cursor: "pointer", fontFamily: "inherit", textAlign: "left" }}>
-          <span style={{ width: 34, height: 34, borderRadius: 9, background: "#14B8A61c", display: "grid", placeItems: "center", flexShrink: 0 }}>
+          <span className="ic-chip" style={{ background: "#14B8A61c" }}>
             <Icon name="file" size={17} color="#14B8A6" />
           </span>
           <span style={{ flex: 1, minWidth: 0 }}>
@@ -495,7 +497,7 @@ function DrToolGroup({ alert, children }) {
           padding: "9px 4px", background: "none", border: "none", borderBottom: "1px solid var(--border)",
           cursor: "pointer", fontFamily: "inherit", textAlign: "left" }}>
         <Icon name={open ? "chevronDown" : "chevronRight"} size={14} color="var(--text-2)" />
-        <span style={{ fontSize: 11, fontWeight: 700, letterSpacing: ".08em", color: "var(--text-3)", textTransform: "uppercase" }}>
+        <span style={{ fontSize: 11.5, fontWeight: 700, color: "var(--text-3)" }}>
           เครื่องมือของงานนี้
         </span>
         <span style={{ fontSize: 11, fontWeight: 600, color: "var(--text-3)" }}>{n} รายการ</span>
@@ -704,9 +706,8 @@ function DetailDrawer({ job, onClose, onAdvance, onSetMat, onEdit, currentUser, 
                   return (
                     <React.Fragment>
                     <button onClick={onSurvey}
-                      style={{ width: "100%", marginBottom: 10, display: "flex", alignItems: "center", gap: 10, padding: "12px 14px",
-                        background: "var(--surface)", border: "1px solid var(--border-strong)", borderRadius: 12, cursor: "pointer", fontFamily: "inherit", textAlign: "left" }}>
-                      <span style={{ width: 34, height: 34, borderRadius: 9, background: ss.color + "1c", display: "grid", placeItems: "center", flexShrink: 0 }}><Icon name="list" size={17} color={ss.color} /></span>
+                      className="act-row">
+                      <span className="ic-chip" style={{ background: ss.color + "1c" }}><Icon name="list" size={17} color={ss.color} /></span>
                       <span style={{ flex: 1, minWidth: 0 }}>
                         <span style={{ display: "block", fontSize: 13.5, fontWeight: 700, color: "var(--text-1)" }}>สำรวจหน้างาน (Site Survey)</span>
                         <span style={{ display: "block", fontSize: 11.5, color: "var(--text-3)" }}>{ss.state === "none" ? "ยังไม่ได้สำรวจ · แตะเพื่อเริ่ม" : ss.label + " · " + ss.pct + "% · แตะเพื่อแก้ไข"}</span>
@@ -732,9 +733,8 @@ function DetailDrawer({ job, onClose, onAdvance, onSetMat, onEdit, currentUser, 
                   const st = window.irJobSummary ? window.irJobSummary(inspections.list) : null;
                   return (
                     <button onClick={() => setIrOpen(true)}
-                      style={{ width: "100%", marginBottom: 10, display: "flex", alignItems: "center", gap: 10, padding: "12px 14px",
-                        background: "var(--surface)", border: "1px solid var(--border-strong)", borderRadius: 12, cursor: "pointer", fontFamily: "inherit", textAlign: "left" }}>
-                      <span style={{ width: 34, height: 34, borderRadius: 9, background: "#0EA5E91c", display: "grid", placeItems: "center", flexShrink: 0 }}>
+                      className="act-row">
+                      <span className="ic-chip" style={{ background: "#0EA5E91c" }}>
                         <Icon name="list" size={17} color="#0284C7" />
                       </span>
                       <span style={{ flex: 1, minWidth: 0 }}>
@@ -756,9 +756,8 @@ function DetailDrawer({ job, onClose, onAdvance, onSetMat, onEdit, currentUser, 
                   const hs = window.pmCardStatus ? window.pmCardStatus(job) : null;
                   return (
                     <button onClick={onHandover}
-                      style={{ width: "100%", marginBottom: 10, display: "flex", alignItems: "center", gap: 10, padding: "12px 14px",
-                        background: "var(--surface)", border: "1px solid var(--border-strong)", borderRadius: 12, cursor: "pointer", fontFamily: "inherit", textAlign: "left" }}>
-                      <span style={{ width: 34, height: 34, borderRadius: 9, background: "#16A34A1c", display: "grid", placeItems: "center", flexShrink: 0 }}>
+                      className="act-row">
+                      <span className="ic-chip" style={{ background: "#16A34A1c" }}>
                         <Icon name="check" size={17} color="#16A34A" />
                       </span>
                       <span style={{ flex: 1, minWidth: 0 }}>
@@ -775,9 +774,8 @@ function DetailDrawer({ job, onClose, onAdvance, onSetMat, onEdit, currentUser, 
                 {/* ผังหน้างาน (Site Plan) — ซ่อนปุ่มไว้ก่อนตามที่สั่ง (โค้ดยังอยู่ครบ เปลี่ยน false กลับเป็น true เมื่อจะเอากลับมา) */}
                 {false && window.SitePlanEditor && (
                 <button onClick={() => setPlanOpen(true)}
-                  style={{ width: "100%", marginBottom: 10, display: "flex", alignItems: "center", gap: 10, padding: "12px 14px",
-                    background: "var(--surface)", border: "1px solid var(--border-strong)", borderRadius: 12, cursor: "pointer", fontFamily: "inherit", textAlign: "left" }}>
-                  <span style={{ width: 34, height: 34, borderRadius: 9, background: "#0EA5E91c", display: "grid", placeItems: "center", flexShrink: 0 }}><Icon name="map" size={17} color="#0784b8" /></span>
+                  className="act-row">
+                  <span className="ic-chip" style={{ background: "#0EA5E91c" }}><Icon name="map" size={17} color="#0784b8" /></span>
                   <span style={{ flex: 1, minWidth: 0 }}>
                     <span style={{ display: "block", fontSize: 13.5, fontWeight: 700, color: "var(--text-1)" }}>ผังหน้างาน (วาด + วัดระยะ)</span>
                     <span style={{ display: "block", fontSize: 11.5, color: "var(--text-3)" }}>วาดเส้นสาย · วางจุดอุปกรณ์ · ประเมินของเบื้องต้น</span>
@@ -792,9 +790,8 @@ function DetailDrawer({ job, onClose, onAdvance, onSetMat, onEdit, currentUser, 
                    คนที่เคยเข้าหน้าออกแบบระบบได้จะหมดทางเข้าไปเฉย ๆ ซึ่งเป็นการตัดสิทธิ์โดยบังเอิญ */}
                 {window.Plan3DEditor && !roMode && (
                 <button onClick={() => setPlan3dOpen(true)}
-                  style={{ width: "100%", marginBottom: 10, display: "flex", alignItems: "center", gap: 10, padding: "12px 14px",
-                    background: "var(--surface)", border: "1px solid var(--border-strong)", borderRadius: 12, cursor: "pointer", fontFamily: "inherit", textAlign: "left" }}>
-                  <span style={{ width: 34, height: 34, borderRadius: 9, background: "#6366F11c", display: "grid", placeItems: "center", flexShrink: 0 }}><Icon name="panel" size={17} color="#4F46E5" /></span>
+                  className="act-row">
+                  <span className="ic-chip" style={{ background: "#6366F11c" }}><Icon name="panel" size={17} color="#4F46E5" /></span>
                   <span style={{ flex: 1, minWidth: 0 }}>
                     <span style={{ display: "block", fontSize: 13.5, fontWeight: 700, color: "var(--text-1)" }}>วางแผง 3D (โมเดลหลังคา + เงาแดด)</span>
                     <span style={{ display: "block", fontSize: 11.5, color: "var(--text-3)" }}>ปั้นหลังคาตามรูปโดรน · วางแผง · เงาดวงอาทิตย์ · ออกแบบระบบ + ผลผลิต อยู่ในจอเดียวกัน</span>
@@ -805,9 +802,8 @@ function DetailDrawer({ job, onClose, onAdvance, onSetMat, onEdit, currentUser, 
 
                 {/* ถอดวัสดุ BOQ */}
                 {!roMode && <button onClick={() => setBoqOpen(true)}
-                  style={{ width: "100%", marginBottom: 10, display: "flex", alignItems: "center", gap: 10, padding: "12px 14px",
-                    background: "var(--surface)", border: "1px solid var(--border-strong)", borderRadius: 12, cursor: "pointer", fontFamily: "inherit", textAlign: "left" }}>
-                  <span style={{ width: 34, height: 34, borderRadius: 9, background: "var(--primary-soft)", display: "grid", placeItems: "center", flexShrink: 0 }}><Icon name="box" size={17} color="var(--primary-dark)" /></span>
+                  className="act-row">
+                  <span className="ic-chip" style={{ background: "var(--primary-soft)" }}><Icon name="box" size={17} color="var(--primary-dark)" /></span>
                   <span style={{ flex: 1, minWidth: 0 }}>
                     <span style={{ display: "block", fontSize: 13.5, fontWeight: 700, color: "var(--text-1)" }}>ถอดวัสดุ BOQ</span>
                     <span style={{ display: "block", fontSize: 11.5, color: "var(--text-3)" }}>{job.boq ? "มีรายการแล้ว · แตะเพื่อแก้ไข / ดาวน์โหลด" : "คำนวณปริมาณวัสดุของงานนี้"}</span>
@@ -831,7 +827,7 @@ function DetailDrawer({ job, onClose, onAdvance, onSetMat, onEdit, currentUser, 
                       <button onClick={onPermit}
                         style={{ width: "100%", display: "flex", alignItems: "center", gap: 10, padding: "12px 14px",
                           background: "none", border: "none", cursor: "pointer", fontFamily: "inherit", textAlign: "left" }}>
-                        <span style={{ width: 34, height: 34, borderRadius: 9, background: "#14B8A61c", display: "grid", placeItems: "center", flexShrink: 0 }}><Icon name="shield" size={17} color="#14B8A6" /></span>
+                        <span className="ic-chip" style={{ background: "#14B8A61c" }}><Icon name="shield" size={17} color="#14B8A6" /></span>
                         <span style={{ flex: 1, minWidth: 0 }}>
                           <span style={{ display: "block", fontSize: 13.5, fontWeight: 700, color: "var(--text-1)" }}>ขออนุญาตการไฟฟ้า</span>
                           <span style={{ display: "block", fontSize: 11.5, color: pst ? pst.color : "var(--text-3)", fontWeight: pst ? 700 : 400 }}>
@@ -906,9 +902,8 @@ function DetailDrawer({ job, onClose, onAdvance, onSetMat, onEdit, currentUser, 
                   </span>
                   {/* ความคืบหน้าเป็นแถบสั้น ๆ ข้างตัวเลข — เห็นภาพรวมก่อนไล่อ่านทีละรายการ */}
                   <span style={{ display: "inline-flex", alignItems: "center", gap: 8 }}>
-                    <span style={{ width: 54, height: 6, borderRadius: 99, background: "var(--surface3)", overflow: "hidden", display: "block" }}>
-                      <span style={{ display: "block", height: "100%", width: job.matReadyPct + "%", borderRadius: 99,
-                        background: job.matReady ? "var(--primary)" : "#F59E0B", transition: "width .4s cubic-bezier(.2,.8,.2,1)" }} />
+                    <span className="mbar" style={{ width: 54, height: 6, "--fill": job.matReady ? "var(--primary)" : "#F59E0B" }}>
+                      <i style={{ width: job.matReadyPct + "%" }} />
                     </span>
                     <span style={{ fontFamily: "var(--display)", fontSize: 13, fontWeight: 700, letterSpacing: "-.02em",
                       fontVariantNumeric: "tabular-nums", color: job.matReady ? "var(--primary-dark)" : "var(--text-2)" }}>{job.matReadyPct}%</span>

@@ -463,12 +463,10 @@ function LeadCard({ l, ctx }) {
 /* ── แถวปุ่มงานแบบเดียวกับในใบงาน (ไอคอน · หัวข้อ · บรรทัดรอง · ลูกศร) ── */
 function LeadActionRow({ icon, color, title, sub, onClick }) {
   return (
-    <button onClick={onClick}
-      style={{ width: "100%", marginBottom: 10, display: "flex", alignItems: "center", gap: 10, padding: "12px 14px",
-        background: "var(--surface)", border: "1px solid var(--border-strong)", borderRadius: 12, cursor: "pointer",
-        fontFamily: "inherit", textAlign: "left" }}>
-      <span style={{ width: 34, height: 34, borderRadius: 9, background: color + "1c", display: "grid", placeItems: "center", flexShrink: 0 }}>
-        <Icon name={icon} size={17} color={color} />
+    /* หน้าตาอยู่ในคลาส .act-row / .ic-chip (index.html) — ชุดเดียวกับแถวเครื่องมือฝั่งใบงาน */
+    <button onClick={onClick} className="act-row">
+      <span className="ic-chip" style={{ background: color + "1c" }}>
+        <Icon name={icon} size={18} color={color} />
       </span>
       <span style={{ flex: 1, minWidth: 0 }}>
         <span style={{ display: "block", fontSize: 13.5, fontWeight: 700, color: "var(--text-1)" }}>{title}</span>
@@ -599,7 +597,10 @@ function LeadDetail({ l, ctx }) {
     setDelC(null);
   };
 
-  const card = { background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 14, padding: 16, marginBottom: 10 };
+  /* กล่องย่อยในลิ้นชัก — ลิ้นชักพื้นขาวอยู่แล้ว กล่องขาวซ้อนขาวจึงต้องพึ่งเส้นขอบเพื่อให้เห็น
+     เปลี่ยนเป็นพื้นจางกว่าหนึ่งขั้นแทน ชั้นอ่านออกโดยไม่ต้องขีดเส้นรอบทุกกล่อง
+     (ชุดเดียวกับ .act-row ที่อยู่ในลิ้นชักเดียวกัน) */
+  const card = { background: "var(--surface2)", borderRadius: 18, padding: "16px 18px", marginBottom: 10 };
   const capt = { fontSize: 11, fontWeight: 700, letterSpacing: ".08em", color: "var(--text-3)", textTransform: "uppercase",
     marginBottom: 12, display: "flex", alignItems: "center", gap: 6 };
 
@@ -611,8 +612,8 @@ function LeadDetail({ l, ctx }) {
           background: sc.color + "16", padding: "5px 12px", borderRadius: 99, flexShrink: 0 }}>
           <span style={{ width: 8, height: 8, borderRadius: 99, background: sc.color }} />{sc.th}
         </span>
-        <span style={{ flex: 1, minWidth: 90, height: 6, borderRadius: 99, background: "var(--surface3)", overflow: "hidden" }}>
-          <span style={{ display: "block", height: "100%", width: st.pct + "%", background: st.color, borderRadius: 99 }} />
+        <span className="mbar" style={{ flex: 1, minWidth: 90, height: 6, "--fill": st.color }}>
+          <i style={{ width: st.pct + "%" }} />
         </span>
         <span style={{ fontSize: 11.5, fontWeight: 700, color: st.color, whiteSpace: "nowrap" }}>{surveyPctText(st)}</span>
       </div>

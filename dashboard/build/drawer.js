@@ -192,11 +192,9 @@ function InfoRow({
     }
   }, React.createElement("span", {
     style: {
-      fontSize: 10.5,
+      fontSize: 11,
       fontWeight: 600,
-      letterSpacing: ".06em",
-      color: "var(--text-3)",
-      textTransform: "uppercase"
+      color: "var(--text-3)"
     }
   }, label), React.createElement("span", {
     style: {
@@ -1034,14 +1032,9 @@ function PermitJobSummary({
       textAlign: "left"
     }
   }, React.createElement("span", {
+    className: "ic-chip",
     style: {
-      width: 34,
-      height: 34,
-      borderRadius: 9,
-      background: "#14B8A61c",
-      display: "grid",
-      placeItems: "center",
-      flexShrink: 0
+      background: "#14B8A61c"
     }
   }, React.createElement(Icon, {
     name: "file",
@@ -1202,11 +1195,9 @@ function DrToolGroup({
     color: "var(--text-2)"
   }), React.createElement("span", {
     style: {
-      fontSize: 11,
+      fontSize: 11.5,
       fontWeight: 700,
-      letterSpacing: ".08em",
-      color: "var(--text-3)",
-      textTransform: "uppercase"
+      color: "var(--text-3)"
     }
   }, "\u0E40\u0E04\u0E23\u0E37\u0E48\u0E2D\u0E07\u0E21\u0E37\u0E2D\u0E02\u0E2D\u0E07\u0E07\u0E32\u0E19\u0E19\u0E35\u0E49"), React.createElement("span", {
     style: {
@@ -1672,29 +1663,11 @@ function DetailDrawer({
     };
     return React.createElement(React.Fragment, null, React.createElement("button", {
       onClick: onSurvey,
-      style: {
-        width: "100%",
-        marginBottom: 10,
-        display: "flex",
-        alignItems: "center",
-        gap: 10,
-        padding: "12px 14px",
-        background: "var(--surface)",
-        border: "1px solid var(--border-strong)",
-        borderRadius: 12,
-        cursor: "pointer",
-        fontFamily: "inherit",
-        textAlign: "left"
-      }
+      className: "act-row"
     }, React.createElement("span", {
+      className: "ic-chip",
       style: {
-        width: 34,
-        height: 34,
-        borderRadius: 9,
-        background: ss.color + "1c",
-        display: "grid",
-        placeItems: "center",
-        flexShrink: 0
+        background: ss.color + "1c"
       }
     }, React.createElement(Icon, {
       name: "list",
@@ -1750,29 +1723,11 @@ function DetailDrawer({
     const st = window.irJobSummary ? window.irJobSummary(inspections.list) : null;
     return React.createElement("button", {
       onClick: () => setIrOpen(true),
-      style: {
-        width: "100%",
-        marginBottom: 10,
-        display: "flex",
-        alignItems: "center",
-        gap: 10,
-        padding: "12px 14px",
-        background: "var(--surface)",
-        border: "1px solid var(--border-strong)",
-        borderRadius: 12,
-        cursor: "pointer",
-        fontFamily: "inherit",
-        textAlign: "left"
-      }
+      className: "act-row"
     }, React.createElement("span", {
+      className: "ic-chip",
       style: {
-        width: 34,
-        height: 34,
-        borderRadius: 9,
-        background: "#0EA5E91c",
-        display: "grid",
-        placeItems: "center",
-        flexShrink: 0
+        background: "#0EA5E91c"
       }
     }, React.createElement(Icon, {
       name: "list",
@@ -1806,29 +1761,11 @@ function DetailDrawer({
     const hs = window.pmCardStatus ? window.pmCardStatus(job) : null;
     return React.createElement("button", {
       onClick: onHandover,
-      style: {
-        width: "100%",
-        marginBottom: 10,
-        display: "flex",
-        alignItems: "center",
-        gap: 10,
-        padding: "12px 14px",
-        background: "var(--surface)",
-        border: "1px solid var(--border-strong)",
-        borderRadius: 12,
-        cursor: "pointer",
-        fontFamily: "inherit",
-        textAlign: "left"
-      }
+      className: "act-row"
     }, React.createElement("span", {
+      className: "ic-chip",
       style: {
-        width: 34,
-        height: 34,
-        borderRadius: 9,
-        background: "#16A34A1c",
-        display: "grid",
-        placeItems: "center",
-        flexShrink: 0
+        background: "#16A34A1c"
       }
     }, React.createElement(Icon, {
       name: "check",
@@ -1860,29 +1797,11 @@ function DetailDrawer({
     }));
   })(), false && window.SitePlanEditor && React.createElement("button", {
     onClick: () => setPlanOpen(true),
-    style: {
-      width: "100%",
-      marginBottom: 10,
-      display: "flex",
-      alignItems: "center",
-      gap: 10,
-      padding: "12px 14px",
-      background: "var(--surface)",
-      border: "1px solid var(--border-strong)",
-      borderRadius: 12,
-      cursor: "pointer",
-      fontFamily: "inherit",
-      textAlign: "left"
-    }
+    className: "act-row"
   }, React.createElement("span", {
+    className: "ic-chip",
     style: {
-      width: 34,
-      height: 34,
-      borderRadius: 9,
-      background: "#0EA5E91c",
-      display: "grid",
-      placeItems: "center",
-      flexShrink: 0
+      background: "#0EA5E91c"
     }
   }, React.createElement(Icon, {
     name: "map",
@@ -1912,29 +1831,11 @@ function DetailDrawer({
     color: "var(--text-3)"
   })), window.Plan3DEditor && !roMode && React.createElement("button", {
     onClick: () => setPlan3dOpen(true),
-    style: {
-      width: "100%",
-      marginBottom: 10,
-      display: "flex",
-      alignItems: "center",
-      gap: 10,
-      padding: "12px 14px",
-      background: "var(--surface)",
-      border: "1px solid var(--border-strong)",
-      borderRadius: 12,
-      cursor: "pointer",
-      fontFamily: "inherit",
-      textAlign: "left"
-    }
+    className: "act-row"
   }, React.createElement("span", {
+    className: "ic-chip",
     style: {
-      width: 34,
-      height: 34,
-      borderRadius: 9,
-      background: "#6366F11c",
-      display: "grid",
-      placeItems: "center",
-      flexShrink: 0
+      background: "#6366F11c"
     }
   }, React.createElement(Icon, {
     name: "panel",
@@ -1964,29 +1865,11 @@ function DetailDrawer({
     color: "var(--text-3)"
   })), !roMode && React.createElement("button", {
     onClick: () => setBoqOpen(true),
-    style: {
-      width: "100%",
-      marginBottom: 10,
-      display: "flex",
-      alignItems: "center",
-      gap: 10,
-      padding: "12px 14px",
-      background: "var(--surface)",
-      border: "1px solid var(--border-strong)",
-      borderRadius: 12,
-      cursor: "pointer",
-      fontFamily: "inherit",
-      textAlign: "left"
-    }
+    className: "act-row"
   }, React.createElement("span", {
+    className: "ic-chip",
     style: {
-      width: 34,
-      height: 34,
-      borderRadius: 9,
-      background: "var(--primary-soft)",
-      display: "grid",
-      placeItems: "center",
-      flexShrink: 0
+      background: "var(--primary-soft)"
     }
   }, React.createElement(Icon, {
     name: "box",
@@ -2044,14 +1927,9 @@ function DetailDrawer({
         textAlign: "left"
       }
     }, React.createElement("span", {
+      className: "ic-chip",
       style: {
-        width: 34,
-        height: 34,
-        borderRadius: 9,
-        background: "#14B8A61c",
-        display: "grid",
-        placeItems: "center",
-        flexShrink: 0
+        background: "#14B8A61c"
       }
     }, React.createElement(Icon, {
       name: "shield",
@@ -2219,22 +2097,15 @@ function DetailDrawer({
       gap: 8
     }
   }, React.createElement("span", {
+    className: "mbar",
     style: {
       width: 54,
       height: 6,
-      borderRadius: 99,
-      background: "var(--surface3)",
-      overflow: "hidden",
-      display: "block"
+      "--fill": job.matReady ? "var(--primary)" : "#F59E0B"
     }
-  }, React.createElement("span", {
+  }, React.createElement("i", {
     style: {
-      display: "block",
-      height: "100%",
-      width: job.matReadyPct + "%",
-      borderRadius: 99,
-      background: job.matReady ? "var(--primary)" : "#F59E0B",
-      transition: "width .4s cubic-bezier(.2,.8,.2,1)"
+      width: job.matReadyPct + "%"
     }
   })), React.createElement("span", {
     style: {

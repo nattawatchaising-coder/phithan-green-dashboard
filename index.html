@@ -637,10 +637,16 @@ html.theme-anim, html.theme-anim * { transition: background-color .34s ease, bor
    และทำให้มุมมนฝั่งซ้ายกลายเป็นวงโค้งหนาคนละขนาดกับอีกสามมุม
    สีของขีดส่งเข้ามาทาง --rail จากไฟล์ jsx (ไม่ตั้ง = ไม่มีขีด = งานปกติ) */
 .bd-card{position:relative;background:var(--surface);border:1px solid var(--card-bd);
-  border-radius:var(--r-tile);padding:13px 15px;cursor:grab;box-shadow:var(--shadow-sm);
+  border-radius:var(--r-tile);padding:13px 15px 13px 18px;cursor:grab;box-shadow:var(--shadow-sm);
   transition:box-shadow .16s ease,transform .16s ease,opacity .15s ease}
-.bd-card::before{content:"";position:absolute;left:0;top:0;bottom:0;width:3px;
-  border-radius:var(--r-tile) 0 0 var(--r-tile);background:var(--rail,transparent)}
+/* ขีดสถานะ — ร่นเข้ามาจากขอบทั้งสี่ด้านแล้วมนเต็มปลาย ไม่ใช่เส้นพาดชนขอบการ์ด
+   เส้นที่ชนขอบจะโดนมุมมนของการ์ดตัดปลายเป็นเหลี่ยม และอ่านว่าเป็น "ขอบการ์ดที่ทาสี"
+   ไม่ใช่ "เครื่องหมายที่วางอยู่บนการ์ด" ซึ่งเป็นคนละความหมาย
+   ไล่เฉดจากเข้มลงไปจาง — บอกทั้งว่ามีเรื่อง และบอกว่าจุดที่ต้องมองอยู่ด้านบน (ชื่องานกับป้าย)
+   สีส่งเข้ามาทาง --rail จากไฟล์ jsx ไม่ตั้ง = ไม่มีขีด */
+.bd-card::before{content:"";position:absolute;left:7px;top:13px;bottom:13px;width:3px;border-radius:99px;
+  background:linear-gradient(180deg,var(--rail,transparent),
+    color-mix(in srgb,var(--rail,transparent) 15%,transparent))}
 .bd-card:hover{transform:translateY(-2px);box-shadow:var(--hov-sh)}
 .bd-card:active{transform:none;box-shadow:var(--shadow-sm)}
 .bd-card[data-drag="1"]{opacity:.4}
@@ -650,6 +656,30 @@ html.theme-anim, html.theme-anim * { transition: background-color .34s ease, bor
 /* พื้นมืดไม่มีเงาให้ใช้ — การ์ดบอกตัวเองด้วยความสว่างกับเส้นขอบบางแทน */
 [data-theme="aurora"] .bd-col{background:rgba(255,255,255,.04)}
 [data-theme="aurora"] .bd-card{background:var(--gr-card);box-shadow:0 1px 3px rgba(0,0,0,.4)}
+
+/* แถบความคืบหน้า — ไล่เฉดจากจางไปเข้ม ไม่ใช่แท่งสีตัน
+   แท่งสีตันบอกได้อย่างเดียวว่า "มาถึงตรงนี้" · การไล่เฉดบอกทิศทางที่มันวิ่งไปด้วย
+   ปลายที่เข้มที่สุดคือหัวแถว ซึ่งเป็นจุดที่ตาไปหยุดพอดี
+   สีส่งเข้ามาทาง --fill จากไฟล์ jsx — ประกาศคลาสนี้แทนการเขียน background ซ้ำทุกที่ */
+.mbar{border-radius:99px;background:var(--surface3);overflow:hidden;display:block}
+.mbar>i{display:block;height:100%;border-radius:99px;
+  background:linear-gradient(90deg,color-mix(in srgb,var(--fill) 45%,transparent),var(--fill));
+  transition:width .4s cubic-bezier(.2,.8,.2,1)}
+
+/* ══ แถวเครื่องมือในลิ้นชัก (ไอคอน · หัวเรื่อง · บรรทัดสถานะ · ลูกศร) ══
+   เคยเป็นสไตล์ในบรรทัดชุดเดียวกัน ก๊อบไว้เก้าที่ในสองไฟล์ แก้ทีต้องไล่แก้ทุกที่
+   ลิ้นชักพื้นขาวอยู่แล้ว แถวจึงเป็น "แผ่นสีจาง" บนขาว ไม่ใช่การ์ดขาวบนขาวที่ต้องพึ่งเส้นขอบ
+   ตอนชี้ค่อยยกขึ้นเป็นขาวพร้อมเงา — ของที่ลอยได้ต้องลอยตอนถูกเลือกเท่านั้น */
+.act-row{width:100%;margin-bottom:9px;display:flex;align-items:center;gap:12px;padding:13px 15px;
+  background:var(--surface2);border:none;border-radius:var(--r-tile);cursor:pointer;
+  font-family:inherit;text-align:left;transition:background .16s ease,box-shadow .18s ease,transform .16s ease}
+.act-row:hover{background:var(--surface);transform:translateY(-1px);box-shadow:var(--hov-sh)}
+.act-row:active{transform:none;box-shadow:none;background:var(--surface2)}
+[data-theme="aurora"] .act-row{background:var(--gr-hi)}
+[data-theme="aurora"] .act-row:hover{background:var(--surface3)}
+@media (prefers-reduced-motion: reduce){.act-row:hover{transform:none}}
+/* ชิปไอคอนหน้าแถว — สี่เหลี่ยมมนจัด ไม่ใช่วงกลม วงกลมจะชนกับจุดสถานะกลม ๆ ที่ใช้ทั่วแอป */
+.ic-chip{width:38px;height:38px;border-radius:13px;display:grid;place-items:center;flex-shrink:0}
 
 /* ---- แผงเนื้อหาหน้าภาพรวม: หัวข้อคาดเส้นผม + รายการคั่นเส้น แทนกล่องซ้อนกล่อง ---- */
 .pnl{background:var(--surface);border:1px solid var(--card-bd);border-radius:var(--r-card);
@@ -956,7 +986,7 @@ H-@G1I margin-top D'IC*D%L-1'@- 6H
 <script src="dashboard/build/confirm.js?v=2"></script>
 <script src="dashboard/build/store.js?v=47"></script>
 <script src="dashboard/build/media.js?v=14"></script>
-<script src="dashboard/build/boq.js?v=138"></script>
+<script src="dashboard/build/boq.js?v=139"></script>
 <script src="dashboard/build/prices.js?v=17"></script>
 <script src="dashboard/build/siteplan.js?v=49"></script>
 <script src="dashboard/build/solarcalc.js?v=33"></script>
@@ -970,7 +1000,7 @@ H-@G1I margin-top D'IC*D%L-1'@- 6H
 <script src="dashboard/build/pm.js?v=12"></script>
 <script src="dashboard/build/pm-paper.js?v=11"></script>
 <script src="dashboard/build/pm-form.js?v=11"></script>
-<script src="dashboard/build/drawer.js?v=72"></script>
+<script src="dashboard/build/drawer.js?v=73"></script>
 <script src="dashboard/build/views-overview.js?v=46"></script>
 <script src="dashboard/build/views-board.js?v=38"></script>
 <script src="dashboard/build/views-table.js?v=31"></script>
@@ -981,7 +1011,7 @@ H-@G1I margin-top D'IC*D%L-1'@- 6H
 <script src="dashboard/build/survey.js?v=25"></script>
 <script src="dashboard/build/survey-report.js?v=12"></script>
 <script src="dashboard/build/sales.js?v=65"></script>
-<script src="dashboard/build/views-survey.js?v=28"></script>
+<script src="dashboard/build/views-survey.js?v=29"></script>
 <script src="dashboard/build/survey-sched.js?v=36"></script>
 <script src="dashboard/build/permit.js?v=7"></script>
 <script src="dashboard/build/views-permit.js?v=18"></script>

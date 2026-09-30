@@ -3190,8 +3190,8 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
                         <span style={{ fontSize: 11, fontWeight: 700, color: "var(--text-2)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{g.group}</span>
                       </span>
                       {!isMobile && (
-                        <span style={{ height: 6, borderRadius: 99, background: "var(--surface3)", overflow: "hidden" }}>
-                          <span style={{ display: "block", height: "100%", width: Math.max(2, (g.subtotal / priced.grandTotal) * 100) + "%", background: GROUP_COLOR[g.group] || "var(--text-3)", borderRadius: 99 }} />
+                        <span className="mbar" style={{ height: 6, "--fill": GROUP_COLOR[g.group] || "var(--text-3)" }}>
+                          <i style={{ width: Math.max(2, (g.subtotal / priced.grandTotal) * 100) + "%" }} />
                         </span>
                       )}
                       {!isMobile && <span style={{ textAlign: "right", fontFamily: "var(--mono)", fontSize: 11.5, fontWeight: 700, color: "var(--text-1)", fontVariantNumeric: "tabular-nums" }}>฿{baht(g.subtotal)}</span>}

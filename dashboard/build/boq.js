@@ -7764,19 +7764,14 @@ function BOQEditor({
       whiteSpace: "nowrap"
     }
   }, g.group)), !isMobile && React.createElement("span", {
+    className: "mbar",
     style: {
       height: 6,
-      borderRadius: 99,
-      background: "var(--surface3)",
-      overflow: "hidden"
+      "--fill": GROUP_COLOR[g.group] || "var(--text-3)"
     }
-  }, React.createElement("span", {
+  }, React.createElement("i", {
     style: {
-      display: "block",
-      height: "100%",
-      width: Math.max(2, g.subtotal / priced.grandTotal * 100) + "%",
-      background: GROUP_COLOR[g.group] || "var(--text-3)",
-      borderRadius: 99
+      width: Math.max(2, g.subtotal / priced.grandTotal * 100) + "%"
     }
   })), !isMobile && React.createElement("span", {
     style: {
