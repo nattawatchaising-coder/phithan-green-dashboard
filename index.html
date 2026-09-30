@@ -640,16 +640,20 @@ html.theme-anim, html.theme-anim * { transition: background-color .34s ease, bor
    ขีดเส้นบอกได้แค่ว่ามีสีติดอยู่ตรงขอบ · ผ้าคลุมทำให้ทั้งใบเป็นสีของสถานะนั้นไปเลย
    กวาดตาดูทั้งบอร์ดแล้วแยกกองออกได้โดยไม่ต้องอ่านตัวหนังสือ
    ไล่มาจากมุมขวาแล้วจางหายก่อนถึงกลางใบ — ฝั่งซ้ายซึ่งเป็นตัวหนังสือจึงยังขาวสะอาด
-   เส้นขอบด้านในเป็นสีเดียวกันแบบจางกว่า ทำหน้าที่เก็บขอบของผ้าคลุมไม่ให้ดูหลุดลอย
+   ⚠ ห้ามใส่เส้นขอบสีเข้มรอบใบ (เคยมี inset ring สีเดียวกัน แล้วถอดออก)
+     ผ้าคลุมมันจางหายไปกลางใบ แต่เส้นขอบเข้มเท่ากันทั้งรอบ มันจึงกลายเป็นกรอบสีที่ครอบผ้าคลุมไว้
+     กลายเป็นการ์ดมีกรอบสี ซึ่งหนักกว่าขีดเส้นเดิมที่ถอดทิ้งไปเสียอีก
    สีส่งเข้ามาทาง --rail จากไฟล์ jsx · ไม่ตั้ง = ผสมกับ transparent = ไม่มีสีเลย (ใบปกติจึงขาวล้วน) */
 .bd-card{position:relative;background-color:var(--surface);
-  background-image:radial-gradient(135% 155% at 100% 42%,
-    color-mix(in srgb,var(--rail,transparent) 30%,transparent) 0%,transparent 58%);
+  background-image:radial-gradient(150% 170% at 100% 40%,
+    color-mix(in srgb,var(--rail,transparent) 15%,transparent) 0%,transparent 62%);
   border:1px solid var(--card-bd);border-radius:var(--r-tile);padding:13px 15px;cursor:grab;
-  box-shadow:var(--shadow-sm),inset 0 0 0 1px color-mix(in srgb,var(--rail,transparent) 20%,transparent);
-  transition:box-shadow .16s ease,transform .16s ease,opacity .15s ease}
-.bd-card:hover{transform:translateY(-2px);
-  box-shadow:var(--hov-sh),inset 0 0 0 1px color-mix(in srgb,var(--rail,transparent) 34%,transparent)}
+  box-shadow:var(--shadow-sm);
+  transition:box-shadow .16s ease,transform .16s ease,opacity .15s ease,background-image .16s ease}
+/* ตอนชี้ ผ้าคลุมเข้มขึ้นแทนการขึ้นเส้นขอบ — สีที่มีอยู่แล้วเข้มขึ้น ไม่ใช่ของชิ้นใหม่โผล่มา */
+.bd-card:hover{transform:translateY(-2px);box-shadow:var(--hov-sh);
+  background-image:radial-gradient(150% 170% at 100% 40%,
+    color-mix(in srgb,var(--rail,transparent) 24%,transparent) 0%,transparent 62%)}
 .bd-card:active{transform:none;box-shadow:var(--shadow-sm)}
 .bd-card[data-drag="1"]{opacity:.4}
 /* ใบที่กดดูได้อย่างเดียว (ลากไม่ได้) — เคอร์เซอร์ต้องไม่หลอกว่าลากได้ */
