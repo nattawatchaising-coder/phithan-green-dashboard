@@ -409,7 +409,7 @@ function StickerPicker({ onPick, onClose }) {
                 border: "1px solid " + (manage ? "var(--primary)" : "var(--border-strong)"), background: manage ? "var(--primary-soft)" : "var(--surface)", color: manage ? "var(--primary-dark)" : "var(--text-2)" }}>
               {manage ? "เสร็จแล้ว" : "จัดการ"}
             </button>
-            <button onClick={onClose} style={{ width: 34, height: 34, borderRadius: 10, border: "1px solid var(--border)", background: "var(--surface)", cursor: "pointer", display: "grid", placeItems: "center", color: "var(--text-2)" }}><Icon name="x" size={16} /></button>
+            <button className="x-close" onClick={onClose} style={{ width: 34, height: 34, borderRadius: 10, border: "1px solid var(--border)", background: "var(--surface)", cursor: "pointer", display: "grid", placeItems: "center", color: "var(--text-2)" }}><Icon name="x" size={16} /></button>
           </div>
         </div>
 
@@ -681,7 +681,7 @@ function AnnEditor({ shot, onSave, onClose }) {
             <div style={{ fontSize: 15, fontWeight: 800, color: "var(--text-1)", letterSpacing: "-.01em" }}>เขียนบนรูป</div>
             <div style={{ fontSize: 11.5, color: "var(--text-3)", marginTop: 1 }}>{curTool.hint}</div>
           </div>
-          <button onClick={onClose} style={{ width: 34, height: 34, borderRadius: 10, border: "1px solid var(--border)", background: "var(--surface)", cursor: "pointer", display: "grid", placeItems: "center", color: "var(--text-2)", flexShrink: 0 }}><Icon name="x" size={16} /></button>
+          <button className="x-close" onClick={onClose} style={{ width: 34, height: 34, borderRadius: 10, border: "1px solid var(--border)", background: "var(--surface)", cursor: "pointer", display: "grid", placeItems: "center", color: "var(--text-2)", flexShrink: 0 }}><Icon name="x" size={16} /></button>
         </div>
 
         <div style={{ flex: 1, overflow: "auto", padding: 14, background: "var(--surface2)", display: "grid", placeItems: "center" }}>
@@ -1100,7 +1100,7 @@ function SurveyWizard({ job, onClose, onSave, onReport, currentUser, stock }) {
                 <span style={{ position: "absolute", inset: 3.5, borderRadius: 99, background: "var(--surface)" }} />
                 <span style={{ position: "relative", fontSize: 10.5, fontWeight: 800, color: st.color, fontFamily: "var(--mono)" }}>{st.pct}</span>
               </span>
-              <button onClick={onClose} style={{ width: 34, height: 34, borderRadius: 10, border: "1px solid var(--border)", background: "var(--surface)", cursor: "pointer", display: "grid", placeItems: "center", color: "var(--text-2)" }}><Icon name="x" size={16} /></button>
+              <button className="x-close" onClick={onClose} style={{ width: 34, height: 34, borderRadius: 10, border: "1px solid var(--border)", background: "var(--surface)", cursor: "pointer", display: "grid", placeItems: "center", color: "var(--text-2)" }}><Icon name="x" size={16} /></button>
             </div>
           </div>
           {/* ขั้นตอน — เลขขั้นในวงกลม ขั้นที่ผ่านแล้วขึ้นเครื่องหมายถูก กดข้ามไปขั้นไหนก็ได้ */}

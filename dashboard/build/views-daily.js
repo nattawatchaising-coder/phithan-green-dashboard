@@ -1064,6 +1064,7 @@ function DailyReportModal({
       textOverflow: "ellipsis"
     }
   }, job.code, " \xB7 ", job.name)), React.createElement("button", {
+    className: "x-close",
     onClick: () => {
       flush();
       onClose();
@@ -2098,6 +2099,7 @@ function DailyPaper({
       boxShadow: "var(--shadow-sm)"
     }
   }, React.createElement("button", {
+    className: "x-close",
     onClick: onClose,
     style: {
       width: 36,

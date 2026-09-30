@@ -178,7 +178,7 @@ function JobForm({ initial, isNew, onSave, onClose, onManageTechs, onManageBrand
               <span style={{ fontFamily: "var(--mono)", fontSize: 12, color: "var(--text-3)" }}>{f.code}</span>
             </div>
           </div>
-          <button onClick={onClose} style={{ width: 34, height: 34, borderRadius: 9, border: "1px solid var(--border)", background: "var(--surface)", cursor: "pointer", display: "grid", placeItems: "center", color: "var(--text-2)" }}>
+          <button className="x-close" onClick={onClose} style={{ width: 34, height: 34, borderRadius: 9, border: "1px solid var(--border)", background: "var(--surface)", cursor: "pointer", display: "grid", placeItems: "center", color: "var(--text-2)" }}>
             <Icon name="x" size={17} />
           </button>
         </div>
@@ -610,7 +610,7 @@ function TechManager({ store, onClose }) {
               <span style={{ fontSize: 12, color: "var(--text-3)" }}>{techs.length} คน · เพิ่ม / แก้ไข / ลบ ได้</span>
             </div>
           </div>
-          <button onClick={onClose} style={{ width: 34, height: 34, borderRadius: 9, border: "1px solid var(--border)", background: "var(--surface)", cursor: "pointer", display: "grid", placeItems: "center", color: "var(--text-2)" }}><Icon name="x" size={17} /></button>
+          <button className="x-close" onClick={onClose} style={{ width: 34, height: 34, borderRadius: 9, border: "1px solid var(--border)", background: "var(--surface)", cursor: "pointer", display: "grid", placeItems: "center", color: "var(--text-2)" }}><Icon name="x" size={17} /></button>
         </div>
 
         <div style={{ overflowY: "auto", padding: 18, display: "flex", flexDirection: "column", gap: 9 }}>
@@ -647,7 +647,7 @@ function TechEditModal({ initial, colors, onSave, onClose }) {
       <div onClick={(e) => e.stopPropagation()} style={{ background: "var(--bg)", borderRadius: 18, width: "min(420px,100%)", overflow: "hidden", boxShadow: "0 30px 80px rgba(8,20,14,.35)" }}>
         <div style={{ padding: "16px 22px", borderBottom: "1px solid var(--border)", background: "var(--surface)", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
           <h3 style={{ fontSize: 16, fontWeight: 700, color: "var(--text-1)", margin: 0 }}>{isNew ? "เพิ่มช่างใหม่" : "แก้ไขข้อมูลช่าง"}</h3>
-          <button onClick={onClose} style={{ width: 30, height: 30, borderRadius: 8, border: "1px solid var(--border)", background: "var(--surface)", cursor: "pointer", display: "grid", placeItems: "center", color: "var(--text-2)" }}><Icon name="x" size={15} /></button>
+          <button className="x-close" onClick={onClose} style={{ width: 30, height: 30, borderRadius: 8, border: "1px solid var(--border)", background: "var(--surface)", cursor: "pointer", display: "grid", placeItems: "center", color: "var(--text-2)" }}><Icon name="x" size={15} /></button>
         </div>
         <div style={{ padding: 22, display: "flex", flexDirection: "column", gap: 14 }}>
           <div style={{ display: "flex", justifyContent: "center" }}>
@@ -697,7 +697,7 @@ function BrandManager({ store, onClose }) {
               <span style={{ fontSize: 12, color: "var(--text-3)" }}>{brands.length} รายการ · เพิ่ม / แก้ไข / ลบ ได้</span>
             </div>
           </div>
-          <button onClick={onClose} style={{ width: 34, height: 34, borderRadius: 9, border: "1px solid var(--border)", background: "var(--surface)", cursor: "pointer", display: "grid", placeItems: "center", color: "var(--text-2)" }}><Icon name="x" size={17} /></button>
+          <button className="x-close" onClick={onClose} style={{ width: 34, height: 34, borderRadius: 9, border: "1px solid var(--border)", background: "var(--surface)", cursor: "pointer", display: "grid", placeItems: "center", color: "var(--text-2)" }}><Icon name="x" size={17} /></button>
         </div>
 
         <div style={{ overflowY: "auto", padding: 18, display: "flex", flexDirection: "column", gap: 9 }}>
@@ -735,7 +735,7 @@ function BrandEditModal({ initial, origName, existing, onSave, onClose }) {
       <div onClick={(e) => e.stopPropagation()} style={{ background: "var(--bg)", borderRadius: 18, width: "min(420px,100%)", overflow: "hidden", boxShadow: "0 30px 80px rgba(8,20,14,.35)" }}>
         <div style={{ padding: "16px 22px", borderBottom: "1px solid var(--border)", background: "var(--surface)", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
           <h3 style={{ fontSize: 16, fontWeight: 700, color: "var(--text-1)", margin: 0 }}>{isNew ? "เพิ่มแบรนด์ / รุ่นใหม่" : "แก้ไขแบรนด์ / รุ่น"}</h3>
-          <button onClick={onClose} style={{ width: 30, height: 30, borderRadius: 8, border: "1px solid var(--border)", background: "var(--surface)", cursor: "pointer", display: "grid", placeItems: "center", color: "var(--text-2)" }}><Icon name="x" size={15} /></button>
+          <button className="x-close" onClick={onClose} style={{ width: 30, height: 30, borderRadius: 8, border: "1px solid var(--border)", background: "var(--surface)", cursor: "pointer", display: "grid", placeItems: "center", color: "var(--text-2)" }}><Icon name="x" size={15} /></button>
         </div>
         <div style={{ padding: 22, display: "flex", flexDirection: "column", gap: 16 }}>
           <Field label="ชื่อแบรนด์ / รุ่น" required><input autoFocus style={inputStyle} value={f.name} onChange={(e) => set("name", e.target.value)} placeholder="เช่น Deye, Growatt, SUN2000..." /></Field>

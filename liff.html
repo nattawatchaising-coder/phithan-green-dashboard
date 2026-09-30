@@ -77,6 +77,11 @@ a { color: var(--primary-dark); }
 input:focus-visible, select:focus-visible, textarea:focus-visible {
   outline: none; box-shadow: 0 0 0 3px rgba(27,155,117,.16);
 }
+/* ปุ่มปิด (กากบาท) — ชุดเดียวกับหน้าเว็บ ดูคำอธิบายที่ index.html */
+.x-close { border: none !important; border-radius: 999px !important;
+  background: var(--primary-soft) !important; color: var(--primary) !important;
+  box-shadow: var(--shadow-sm) !important; min-width: 28px; min-height: 28px; }
+.x-close svg { stroke: currentColor; }
 </style>
 </head>
 <body>
@@ -109,12 +114,12 @@ window.LN_LIFF_ID = "2011577974-yzS9mgQQ";
 <script src="dashboard/build/confirm.js?v=2"></script>
 <script src="dashboard/build/store.js?v=47"></script>
 <script src="dashboard/build/media.js?v=17"></script>
-<script src="dashboard/build/daily.js?v=13"></script>
-<script src="dashboard/build/auth.js?v=43"></script>
+<script src="dashboard/build/daily.js?v=14"></script>
+<script src="dashboard/build/auth.js?v=44"></script>
 <!-- ตัวสร้างคิวอาร์ + นามบัตรอิเล็กทรอนิกส์ — หลัง auth.js เพราะอ่าน ROLE_INFO/userRoles/useUserAvatar จากที่นั่น
      น้ำหนักที่เพิ่มมาสองตัวนี้คุ้มกับการได้นามบัตรในไลน์ ซึ่งเป็นที่ที่ช่างอยู่ตอนส่งจริง -->
 <script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.js"></script>
-<script src="dashboard/build/vcard.js?v=16"></script>
+<script src="dashboard/build/vcard.js?v=17"></script>
 <script src="dashboard/build/attend.js?v=12"></script>
 <script src="dashboard/build/expense.js?v=17"></script>
 <!-- om.js เข้ามาเพราะแท็บ "ซ่อม" ใช้ใบแจ้งซ่อมชุดเดียวกับหน้า O&M บนเดสก์ท็อป
@@ -125,12 +130,12 @@ window.LN_LIFF_ID = "2011577974-yzS9mgQQ";
      สคริปต์ชุดนี้ใช้ขอบเขตร่วมกัน ของที่ประกาศในนี้จึงถูกไฟล์ที่โหลดทีหลังเรียกใช้ได้ตรง ๆ
      ⚠ ห้ามประกาศ LN_CARD / LN_FIELD / LN_BTN / LnSub ซ้ำในไฟล์อื่นอีก
         const ระดับบนที่ชื่อชนกัน = จอขาวทั้งแอป โดย error ชี้ไปที่ไฟล์ที่สอง ไม่ใช่ต้นเหตุ -->
-<script src="dashboard/build/liff-ui.js?v=1"></script>
+<script src="dashboard/build/liff-ui.js?v=2"></script>
 <script src="dashboard/build/liff-ec.js?v=7"></script>
 <script src="dashboard/build/liff-daily.js?v=6"></script>
 <script src="dashboard/build/liff-app.js?v=26"></script>
 <!-- แท็บอนุมัติ โหลดหลัง liff-app เพราะใช้ LnPick จากไฟล์นั้น -->
-<script src="dashboard/build/liff-approve.js?v=4"></script>
+<script src="dashboard/build/liff-approve.js?v=5"></script>
 
 <script>
 (function () {

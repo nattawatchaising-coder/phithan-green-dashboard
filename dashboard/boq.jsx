@@ -1973,7 +1973,7 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
           <div className="eb">ถอดวัสดุ BOQ{job && job.code ? " · " + job.code : ""}</div>
           <div className="nm">{job ? job.name : "งาน"}</div>
         </div>
-        <button className="x" onClick={onClose} title="ปิด"><Icon name="x" size={16} /></button>
+        <button className="x x-close" onClick={onClose} title="ปิด"><Icon name="x" size={16} /></button>
       </div>
 
       <div className="bq-body">

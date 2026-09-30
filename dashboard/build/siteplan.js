@@ -2627,6 +2627,7 @@ function SitePlanEditor({
       textOverflow: "ellipsis"
     }
   }, job ? job.name : "")), React.createElement("button", {
+    className: "x-close",
     onClick: onClose,
     style: {
       width: 32,

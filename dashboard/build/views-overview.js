@@ -1141,6 +1141,7 @@ function OvDayModal({
       minWidth: 0
     }
   }, React.createElement("b", null, window.drDateTH ? window.drDateTH(date) : date), React.createElement("span", null, list.length, " \u0E07\u0E32\u0E19\u0E15\u0E34\u0E14\u0E15\u0E31\u0E49\u0E07", kw ? " · รวม " + Math.round(kw * 10) / 10 + " kW" : "")), React.createElement("button", {
+    className: "x-close",
     onClick: onClose,
     "aria-label": "\u0E1B\u0E34\u0E14"
   }, React.createElement(Icon, {

@@ -3795,7 +3795,7 @@ function Plan3DEditor({ job, onClose, currentUser }) {
             );
           })() : null}
         </div>
-        <button className="ghost" onClick={tryClose} title="ปิดโหมด 3D"><Icon name="x" size={16} /></button>
+        <button className="ghost x-close" onClick={tryClose} title="ปิดโหมด 3D"><Icon name="x" size={16} /></button>
       </div>
 
       {/* body */}

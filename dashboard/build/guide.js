@@ -441,6 +441,7 @@ function GdHandout({
       boxShadow: "var(--shadow-sm)"
     }
   }, React.createElement("button", {
+    className: "x-close",
     onClick: onClose,
     style: {
       width: 36,

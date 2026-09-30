@@ -109,6 +109,7 @@ function LnSheetHead({
       paddingTop: "calc(14px + env(safe-area-inset-top, 0px))"
     }
   }, React.createElement("button", {
+    className: "x-close",
     onClick: onClose,
     "aria-label": "\u0E1B\u0E34\u0E14",
     style: {

@@ -237,7 +237,7 @@ function DocViewer({ job, kind, label, color, onClose }) {
             style={{ width: 34, height: 34, borderRadius: "var(--r-chip)", boxShadow: "var(--shadow-sm)", background: "var(--surface)", cursor: "pointer", display: "grid", placeItems: "center", flexShrink: 0 }}><Icon name="link" size={16} color="var(--text-2)" /></button>}
           {blobUrl && <button onClick={download} title="ดาวน์โหลด"
             style={{ width: 34, height: 34, borderRadius: "var(--r-chip)", boxShadow: "var(--shadow-sm)", background: "var(--surface)", cursor: "pointer", display: "grid", placeItems: "center", flexShrink: 0 }}><Icon name="download" size={16} color="var(--text-2)" /></button>}
-          <button onClick={onClose} title="ปิด" style={{ width: 34, height: 34, borderRadius: "var(--r-chip)", boxShadow: "var(--shadow-sm)", background: "var(--surface)", cursor: "pointer", display: "grid", placeItems: "center", flexShrink: 0, color: "var(--text-2)" }}><Icon name="x" size={16} /></button>
+          <button className="x-close" onClick={onClose} title="ปิด" style={{ width: 34, height: 34, borderRadius: "var(--r-chip)", boxShadow: "var(--shadow-sm)", background: "var(--surface)", cursor: "pointer", display: "grid", placeItems: "center", flexShrink: 0, color: "var(--text-2)" }}><Icon name="x" size={16} /></button>
         </div>
         {/* แท็บไฟล์ (กรณีแนบหลายไฟล์) */}
         {files.length > 1 && (

@@ -748,6 +748,7 @@ function MyProfileModal({
       margin: 0
     }
   }, "\u0E42\u0E1B\u0E23\u0E44\u0E1F\u0E25\u0E4C\u0E02\u0E2D\u0E07\u0E09\u0E31\u0E19"), React.createElement("button", {
+    className: "x-close",
     onClick: onClose,
     style: {
       width: 30,
@@ -2394,6 +2395,7 @@ function UserManager({
       color: "var(--text-3)"
     }
   }, tab === "perms" ? "ตั้งเองได้ว่าแต่ละตำแหน่งเห็นงานไหน ทำอะไรได้" : users.length + " บัญชี · หนึ่งคนถือได้หลายตำแหน่ง"))), React.createElement("button", {
+    className: "x-close",
     onClick: onClose,
     style: {
       width: 34,
@@ -2910,6 +2912,7 @@ function UserEditModal({
       margin: 0
     }
   }, isNew ? "เพิ่มผู้ใช้ใหม่" : "แก้ไขผู้ใช้"), React.createElement("button", {
+    className: "x-close",
     onClick: onClose,
     style: {
       width: 30,

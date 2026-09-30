@@ -2328,6 +2328,7 @@ function QuoteEditor({
       }
     }, s.th);
   })(), React.createElement("button", {
+    className: "x-close",
     onClick: onClose,
     style: {
       width: 32,
@@ -2977,7 +2978,7 @@ function QuoteEditor({
         sentAt: new Date().toISOString()
       });
     },
-    style: qBtn(null, "#0EA5E9")
+    style: qBtn(null, null, true)
   }, "\u0E2A\u0E48\u0E07\u0E43\u0E2B\u0E49\u0E25\u0E39\u0E01\u0E04\u0E49\u0E32\u0E41\u0E25\u0E49\u0E27"), q.status === "sent" && React.createElement(React.Fragment, null, React.createElement("button", {
     onClick: () => save({
       status: "rejected",
@@ -2989,7 +2990,7 @@ function QuoteEditor({
       status: "accepted",
       decidedAt: new Date().toISOString()
     }),
-    style: qBtn(null, "#10B981")
+    style: qBtn(null, null, true)
   }, "\u0E25\u0E39\u0E01\u0E04\u0E49\u0E32\u0E15\u0E01\u0E25\u0E07")), (q.status === "accepted" || q.status === "rejected") && React.createElement("button", {
     onClick: () => save({
       status: "sent",
@@ -3005,8 +3006,8 @@ function QuoteEditor({
     title: (qLang === "en" ? "Quotation" : qLang === "zh" ? "报价单" : "ใบเสนอราคา") + " " + q.no
   }));
 }
-function qBtn(color, solid) {
-  return {
+function qBtn(color, solid, soft) {
+  const base = {
     display: "inline-flex",
     alignItems: "center",
     gap: 6,
@@ -3016,10 +3017,23 @@ function qBtn(color, solid) {
     fontFamily: "inherit",
     fontSize: 13,
     fontWeight: 700,
-    border: solid ? "none" : "1px solid var(--border-strong)",
-    background: solid || "var(--surface)",
-    color: solid ? "#fff" : color || "var(--text-1)"
+    border: "none"
   };
+  if (solid) return Object.assign(base, {
+    background: solid,
+    color: "#fff",
+    boxShadow: "var(--shadow-btn)"
+  });
+  if (soft) return Object.assign(base, {
+    background: "var(--primary-soft)",
+    color: "var(--primary-dark)",
+    boxShadow: "var(--shadow-sm)"
+  });
+  return Object.assign(base, {
+    background: "var(--surface2)",
+    color: color || "var(--text-1)",
+    boxShadow: "var(--shadow-sm)"
+  });
 }
 function SalesCard({
   lead,

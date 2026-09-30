@@ -1337,7 +1337,7 @@ function SitePlanEditor({ job, onClose, currentUser }) {
             <div style={{ fontSize: 11.5, color: "var(--text-3)", fontWeight: 600 }}>ผังหน้างาน · {job ? job.code : ""}</div>
             <h2 style={{ fontSize: 16.5, fontWeight: 800, color: "var(--text-1)", margin: "2px 0 0", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{job ? job.name : ""}</h2>
           </div>
-          <button onClick={onClose} style={{ width: 32, height: 32, borderRadius: 9, border: "1px solid var(--border)", background: "var(--surface)", cursor: "pointer", display: "grid", placeItems: "center", color: "var(--text-2)", flexShrink: 0 }}><Icon name="x" size={16} /></button>
+          <button className="x-close" onClick={onClose} style={{ width: 32, height: 32, borderRadius: 9, border: "1px solid var(--border)", background: "var(--surface)", cursor: "pointer", display: "grid", placeItems: "center", color: "var(--text-2)", flexShrink: 0 }}><Icon name="x" size={16} /></button>
         </div>
 
         <div style={{ flex: 1, overflowY: "auto", padding: 14, display: "flex", flexDirection: "column", gap: 12, background: "var(--surface2)" }}>

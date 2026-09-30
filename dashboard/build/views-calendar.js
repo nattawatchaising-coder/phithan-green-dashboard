@@ -606,6 +606,7 @@ function MobileCalendar({
       color: "var(--text-3)"
     }
   }, selGroups.length, " \u0E07\u0E32\u0E19")), React.createElement("button", {
+    className: "x-close",
     onClick: () => setSelDay(null),
     style: {
       width: 34,

@@ -7019,7 +7019,7 @@ function Plan3DEditor({
       }
     })));
   })() : null), React.createElement("button", {
-    className: "ghost",
+    className: "ghost x-close",
     onClick: tryClose,
     title: "\u0E1B\u0E34\u0E14\u0E42\u0E2B\u0E21\u0E14 3D"
   }, React.createElement(Icon, {

@@ -1734,7 +1734,7 @@ function Sidebar({
   }, "flash", React.createElement("span", {
     className: "plus"
   }, "+"), "solar"), React.createElement("button", {
-    className: "sidebar-close-btn",
+    className: "sidebar-close-btn x-close",
     onClick: onClose,
     title: "\u0E1B\u0E34\u0E14\u0E40\u0E21\u0E19\u0E39",
     "aria-label": "\u0E1B\u0E34\u0E14\u0E40\u0E21\u0E19\u0E39"
@@ -2392,6 +2392,7 @@ function Header({
       if (compactSearch && !search.trim()) setSearchOpen(false);
     }
   }), compactSearch && React.createElement("button", {
+    className: "x-close",
     onMouseDown: e => e.preventDefault(),
     onClick: () => {
       setSearch("");
@@ -2582,6 +2583,7 @@ function DailyBriefing({
       color: "var(--text-3)"
     }
   }, thDate(today, true)))), React.createElement("button", {
+    className: "x-close",
     onClick: onClose,
     style: {
       width: 32,
@@ -2967,6 +2969,7 @@ function TrashModal({
       color: "var(--text-3)"
     }
   }, trash.length, " \u0E07\u0E32\u0E19 \xB7 \u0E01\u0E39\u0E49\u0E04\u0E37\u0E19\u0E44\u0E14\u0E49\u0E15\u0E25\u0E2D\u0E14 \xB7 \u0E25\u0E1A\u0E16\u0E32\u0E27\u0E23\u0E15\u0E49\u0E2D\u0E07\u0E43\u0E2A\u0E48\u0E23\u0E2B\u0E31\u0E2A\u0E1C\u0E48\u0E32\u0E19"))), React.createElement("button", {
+    className: "x-close",
     onClick: onClose,
     style: {
       width: 32,
@@ -3224,6 +3227,7 @@ function MapModal({
       color: "var(--text-3)"
     }
   }, jobs.length, " \u0E07\u0E32\u0E19 \xB7 \u0E04\u0E25\u0E34\u0E01\u0E2B\u0E21\u0E38\u0E14\u0E40\u0E1E\u0E37\u0E48\u0E2D\u0E14\u0E39\u0E23\u0E32\u0E22\u0E25\u0E30\u0E40\u0E2D\u0E35\u0E22\u0E14"))), React.createElement("button", {
+    className: "x-close",
     onClick: onClose,
     style: {
       width: 32,

@@ -409,6 +409,7 @@ function EcBigShot({
       textDecoration: "none"
     }
   }, "\u0E14\u0E32\u0E27\u0E19\u0E4C\u0E42\u0E2B\u0E25\u0E14"), React.createElement("button", {
+    className: "x-close",
     onClick: onClose,
     title: "\u0E1B\u0E34\u0E14",
     style: {
@@ -620,6 +621,7 @@ function EcClaimModal({
     size: 15,
     color: "var(--text-2)"
   })), React.createElement("button", {
+    className: "x-close",
     onClick: onClose,
     style: {
       width: 30,
@@ -1725,6 +1727,7 @@ function EcPayModal({
       color: "var(--text-3)"
     }
   }, "\u0E23\u0E2D\u0E1A ", no, " \xB7 ", list.length, " \u0E43\u0E1A")), React.createElement("button", {
+    className: "x-close",
     onClick: onClose,
     style: {
       width: 30,

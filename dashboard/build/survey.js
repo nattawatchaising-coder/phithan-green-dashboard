@@ -653,6 +653,7 @@ function StickerPicker({
       color: manage ? "var(--primary-dark)" : "var(--text-2)"
     }
   }, manage ? "เสร็จแล้ว" : "จัดการ"), React.createElement("button", {
+    className: "x-close",
     onClick: onClose,
     style: {
       width: 34,
@@ -1277,6 +1278,7 @@ function AnnEditor({
       marginTop: 1
     }
   }, curTool.hint)), React.createElement("button", {
+    className: "x-close",
     onClick: onClose,
     style: {
       width: 34,
@@ -2397,6 +2399,7 @@ function SurveyWizard({
       fontFamily: "var(--mono)"
     }
   }, st.pct)), React.createElement("button", {
+    className: "x-close",
     onClick: onClose,
     style: {
       width: 34,

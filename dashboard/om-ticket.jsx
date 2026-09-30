@@ -330,7 +330,7 @@ function OmTicketModal({ ticket, site, job, users, role, currentUser, visits, on
               </div>
             </div>
             <window.OmPill th={st.th} color={st.color} />
-            <button onClick={onClose} title="ปิด"
+            <button className="x-close" onClick={onClose} title="ปิด"
               style={{ width: 32, height: 32, borderRadius: 9, border: "1px solid var(--border-strong)", background: "var(--surface)",
                 cursor: "pointer", display: "grid", placeItems: "center", color: "var(--text-2)", flexShrink: 0 }}>
               <Icon name="x" size={15} />

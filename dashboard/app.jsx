@@ -1222,7 +1222,7 @@ function Sidebar({ view, onNav, role, techId, jobs, stock, t, badges, open, onCl
         {!icons && (
           <div className="brand-name">flash<span className="plus">+</span>solar</div>
         )}
-        <button className="sidebar-close-btn" onClick={onClose} title="ปิดเมนู" aria-label="ปิดเมนู">
+        <button className="sidebar-close-btn x-close" onClick={onClose} title="ปิดเมนู" aria-label="ปิดเมนู">
           <Icon name="x" size={15} color="var(--text-2)" />
         </button>
       </div>
@@ -1626,7 +1626,7 @@ function Header({ view, navList, plain, subtitle, ownOnly, count, total, search,
               <input ref={searchRef} value={search} onChange={(e) => setSearch(e.target.value)} placeholder={searchPh}
                 onBlur={() => { if (compactSearch && !search.trim()) setSearchOpen(false); }} />
               {compactSearch && (
-                <button onMouseDown={(e) => e.preventDefault()} onClick={() => { setSearch(""); setSearchOpen(false); }} title="ปิดค้นหา" aria-label="ปิดค้นหา"
+                <button className="x-close" onMouseDown={(e) => e.preventDefault()} onClick={() => { setSearch(""); setSearchOpen(false); }} title="ปิดค้นหา" aria-label="ปิดค้นหา"
                   style={{ flexShrink: 0, width: 22, height: 22, borderRadius: 7, border: "none", background: "var(--surface3)", color: "var(--text-3)", cursor: "pointer", display: "grid", placeItems: "center" }}>
                   <Icon name="x" size={14} color="var(--text-3)" />
                 </button>
@@ -1679,7 +1679,7 @@ function DailyBriefing({ lateAlerts, todayTasks, onOpen, onClose }) {
               <span style={{ fontSize: 12, color: "var(--text-3)" }}>{thDate(today, true)}</span>
             </div>
           </div>
-          <button onClick={onClose} style={{ width: 32, height: 32, borderRadius: 9, border: "1px solid var(--border)", background: "var(--surface)", cursor: "pointer", display: "grid", placeItems: "center", color: "var(--text-2)" }}><Icon name="x" size={16} /></button>
+          <button className="x-close" onClick={onClose} style={{ width: 32, height: 32, borderRadius: 9, border: "1px solid var(--border)", background: "var(--surface)", cursor: "pointer", display: "grid", placeItems: "center", color: "var(--text-2)" }}><Icon name="x" size={16} /></button>
         </div>
         <div style={{ overflowY: "auto", padding: 16, display: "flex", flexDirection: "column", gap: 8 }}>
           {lateAlerts.length > 0 && <div style={{ fontSize: 11, fontWeight: 800, color: "#EF4444", padding: "2px 2px" }}>⚠ เลยกำหนด ({lateAlerts.length})</div>}
@@ -1807,7 +1807,7 @@ function TrashModal({ trash, me, onRestore, onPurge, onClose }) {
               <span style={{ fontSize: 11.5, color: "var(--text-3)" }}>{trash.length} งาน · กู้คืนได้ตลอด · ลบถาวรต้องใส่รหัสผ่าน</span>
             </div>
           </div>
-          <button onClick={onClose} style={{ width: 32, height: 32, borderRadius: 9, border: "1px solid var(--border)", background: "var(--surface)", cursor: "pointer", display: "grid", placeItems: "center", color: "var(--text-2)", flexShrink: 0 }}><Icon name="x" size={16} /></button>
+          <button className="x-close" onClick={onClose} style={{ width: 32, height: 32, borderRadius: 9, border: "1px solid var(--border)", background: "var(--surface)", cursor: "pointer", display: "grid", placeItems: "center", color: "var(--text-2)", flexShrink: 0 }}><Icon name="x" size={16} /></button>
         </div>
         <div style={{ flex: 1, minHeight: 0, overflowY: "auto", padding: 14, display: "flex", flexDirection: "column", gap: 9 }}>
           {trash.length === 0 && (
@@ -1881,7 +1881,7 @@ function MapModal({ jobs, onOpen, onClose }) {
               <span style={{ fontSize: 12, color: "var(--text-3)" }}>{jobs.length} งาน · คลิกหมุดเพื่อดูรายละเอียด</span>
             </div>
           </div>
-          <button onClick={onClose} style={{ width: 32, height: 32, borderRadius: 9, border: "1px solid var(--border)", background: "var(--surface)", cursor: "pointer", display: "grid", placeItems: "center", color: "var(--text-2)" }}><Icon name="x" size={16} /></button>
+          <button className="x-close" onClick={onClose} style={{ width: 32, height: 32, borderRadius: 9, border: "1px solid var(--border)", background: "var(--surface)", cursor: "pointer", display: "grid", placeItems: "center", color: "var(--text-2)" }}><Icon name="x" size={16} /></button>
         </div>
         <div style={{ flex: 1, minHeight: 0, overflowY: isMobile ? "auto" : "hidden", padding: isMobile ? 14 : 18, display: "flex", flexDirection: "column" }}>
           <MapView jobs={jobs} onOpen={onOpen} />

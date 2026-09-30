@@ -641,6 +641,7 @@ function OmTicketModal({
     th: st.th,
     color: st.color
   }), React.createElement("button", {
+    className: "x-close",
     onClick: onClose,
     title: "\u0E1B\u0E34\u0E14",
     style: {

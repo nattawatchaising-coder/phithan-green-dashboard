@@ -666,6 +666,7 @@ function DrSignPad({
       marginTop: 2
     }
   }, hint || "เซ็นด้วยนิ้วหรือเมาส์ในกรอบด้านล่าง")), React.createElement("button", {
+    className: "x-close",
     onClick: onClose,
     style: {
       width: 34,

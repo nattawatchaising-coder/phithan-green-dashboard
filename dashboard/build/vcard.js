@@ -448,6 +448,7 @@ function VcCardModal({
       margin: 0
     }
   }, "\u0E19\u0E32\u0E21\u0E1A\u0E31\u0E15\u0E23\u0E02\u0E2D\u0E07\u0E09\u0E31\u0E19"), React.createElement("button", {
+    className: "x-close",
     onClick: onClose,
     style: {
       width: 30,

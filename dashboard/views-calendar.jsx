@@ -298,7 +298,7 @@ function MobileCalendar({ ym, cells, tasksOn, groupsOn, keyOf, todayKey, shift, 
                 <div style={{ fontSize: 16, fontWeight: 700, color: "var(--text-1)" }}>{selDay} {TH_MONTH_FULL[ym.m]} {ym.y + 543}</div>
                 <div style={{ fontSize: 12, color: "var(--text-3)" }}>{selGroups.length} งาน</div>
               </div>
-              <button onClick={() => setSelDay(null)} style={{ width: 34, height: 34, borderRadius: 10,
+              <button className="x-close" onClick={() => setSelDay(null)} style={{ width: 34, height: 34, borderRadius: 10,
                 border: "1px solid var(--border)", background: "var(--surface)", cursor: "pointer",
                 display: "grid", placeItems: "center", color: "var(--text-2)" }}>
                 <Icon name="x" size={17} />

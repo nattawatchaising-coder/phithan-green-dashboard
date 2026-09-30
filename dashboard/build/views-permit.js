@@ -1294,6 +1294,7 @@ function PermitReview({
       fontWeight: 700
     }
   }, st.th))), React.createElement("button", {
+    className: "x-close",
     onClick: onClose,
     style: {
       width: 32,

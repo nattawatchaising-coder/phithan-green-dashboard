@@ -492,6 +492,7 @@ function AddPriceModal({
       margin: 0
     }
   }, "\u0E40\u0E1E\u0E34\u0E48\u0E21\u0E27\u0E31\u0E2A\u0E14\u0E38"), React.createElement("button", {
+    className: "x-close",
     onClick: onClose,
     style: {
       width: 32,

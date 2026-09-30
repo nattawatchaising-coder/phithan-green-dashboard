@@ -898,6 +898,7 @@ function BlPhotoPick({
       color: "var(--text-3)"
     }
   }, itemId ? "รูปที่เลือกจะเข้ารายการนี้ · " : "", "\u0E17\u0E31\u0E49\u0E07\u0E07\u0E27\u0E14\u0E21\u0E35 ", picked.length, " \u0E23\u0E39\u0E1B \xB7 \u0E41\u0E1C\u0E48\u0E19\u0E25\u0E30 4 \u0E23\u0E39\u0E1B\u0E40\u0E27\u0E25\u0E32\u0E1E\u0E34\u0E21\u0E1E\u0E4C")), React.createElement("button", {
+    className: "x-close",
     onClick: onClose,
     style: {
       width: 34,
@@ -1640,6 +1641,7 @@ function BlSetupModal({
       whiteSpace: "nowrap"
     }
   }, j.name || "", ro ? " · ดูได้อย่างเดียว" : "")), React.createElement("button", {
+    className: "x-close",
     onClick: onClose,
     style: {
       width: 34,

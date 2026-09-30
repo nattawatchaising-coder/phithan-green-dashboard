@@ -351,6 +351,18 @@ html.theme-anim, html.theme-anim * { transition: background-color .34s ease, bor
   transition: background .15s;
 }
 .sidebar-close-btn:hover { background: var(--surface3); }
+/* ปุ่มปิด (กากบาท) ทุกตัวในระบบ — วงกลมพื้นเขียวอ่อน
+   เดิมแต่ละหน้าวาดเอง บางตัวขาวบนการ์ดขาว บางตัวเทาจนกลืนไปกับหัวแผง
+   ใช้ !important เพราะปุ่มพวกนี้มี style ในบรรทัดอยู่แล้วทุกตัว ถ้าไม่ทับก็ไม่มีผล
+   ⚠ ไม่แตะ display — ปุ่มปิดเมนูข้าง (.sidebar-close-btn) ซ่อน/โชว์ด้วย display ตามขนาดจอ
+   ⚠ ปุ่มกากบาทสีแดงที่แปลว่า "ลบ" ไม่ใช้คลาสนี้ ปิดกับลบต้องหน้าตาต่างกัน */
+.x-close { border: none !important; border-radius: var(--r-pill) !important;
+  background: var(--primary-soft) !important; color: var(--primary) !important;
+  box-shadow: var(--shadow-sm) !important; min-width: 28px; min-height: 28px;
+  transition: background .16s ease, transform .16s ease; }
+.x-close svg { stroke: currentColor; }
+.x-close:hover { background: color-mix(in srgb, var(--primary) 20%, var(--surface)) !important; }
+.x-close:active { transform: scale(.94); }
 
 /* sidebar overlay backdrop */
 .sidebar-overlay {
@@ -1029,59 +1041,59 @@ H-@G1I margin-top D'IC*D%L-1'@- 6H
 <script src="dashboard/build/confirm.js?v=2"></script>
 <script src="dashboard/build/store.js?v=47"></script>
 <script src="dashboard/build/media.js?v=17"></script>
-<script src="dashboard/build/boq.js?v=141"></script>
-<script src="dashboard/build/prices.js?v=17"></script>
-<script src="dashboard/build/siteplan.js?v=51"></script>
+<script src="dashboard/build/boq.js?v=142"></script>
+<script src="dashboard/build/prices.js?v=18"></script>
+<script src="dashboard/build/siteplan.js?v=52"></script>
 <script src="dashboard/build/solarcalc.js?v=33"></script>
 <script src="dashboard/build/solariv.js?v=20"></script>
 <script src="dashboard/build/solarreport.js?v=46"></script>
-<script src="dashboard/build/solarui.js?v=78"></script>
+<script src="dashboard/build/solarui.js?v=79"></script>
 <script src="dashboard/build/dxf.js?v=8"></script>
-<script src="dashboard/build/plan3d.js?v=98"></script>
+<script src="dashboard/build/plan3d.js?v=99"></script>
 <script src="dashboard/build/inspect.js?v=6"></script>
 <script src="dashboard/build/inspect-paper.js?v=8"></script>
 <script src="dashboard/build/pm.js?v=12"></script>
 <script src="dashboard/build/pm-paper.js?v=11"></script>
 <script src="dashboard/build/pm-form.js?v=11"></script>
-<script src="dashboard/build/drawer.js?v=77"></script>
-<script src="dashboard/build/views-overview.js?v=48"></script>
-<script src="dashboard/build/views-board.js?v=40"></script>
+<script src="dashboard/build/drawer.js?v=78"></script>
+<script src="dashboard/build/views-overview.js?v=49"></script>
+<script src="dashboard/build/views-board.js?v=41"></script>
 <script src="dashboard/build/views-table.js?v=33"></script>
 <script src="dashboard/build/views-report.js?v=11"></script>
-<script src="dashboard/build/views-calendar.js?v=30"></script>
-<script src="dashboard/build/views-stock.js?v=113"></script>
-<script src="dashboard/build/form.js?v=38"></script>
-<script src="dashboard/build/survey.js?v=25"></script>
-<script src="dashboard/build/survey-report.js?v=12"></script>
-<script src="dashboard/build/sales.js?v=71"></script>
-<script src="dashboard/build/views-survey.js?v=35"></script>
-<script src="dashboard/build/survey-sched.js?v=38"></script>
-<script src="dashboard/build/permit.js?v=7"></script>
-<script src="dashboard/build/views-permit.js?v=18"></script>
+<script src="dashboard/build/views-calendar.js?v=31"></script>
+<script src="dashboard/build/views-stock.js?v=114"></script>
+<script src="dashboard/build/form.js?v=39"></script>
+<script src="dashboard/build/survey.js?v=26"></script>
+<script src="dashboard/build/survey-report.js?v=13"></script>
+<script src="dashboard/build/sales.js?v=72"></script>
+<script src="dashboard/build/views-survey.js?v=36"></script>
+<script src="dashboard/build/survey-sched.js?v=39"></script>
+<script src="dashboard/build/permit.js?v=8"></script>
+<script src="dashboard/build/views-permit.js?v=19"></script>
 <!-- เอกสารงวดงาน · วางบิล: ตรรกะ → กระดาษ → หน้าจอ -->
 <script src="dashboard/build/billing.js?v=5"></script>
 <script src="dashboard/build/bill-paper.js?v=6"></script>
-<script src="dashboard/build/views-billing.js?v=10"></script>
+<script src="dashboard/build/views-billing.js?v=11"></script>
 <script src="dashboard/build/views-lead.js?v=20"></script>
 <script src="dashboard/build/views-flow.js?v=17"></script>
-<script src="dashboard/build/daily.js?v=13"></script>
-<script src="dashboard/build/views-daily.js?v=33"></script>
+<script src="dashboard/build/daily.js?v=14"></script>
+<script src="dashboard/build/views-daily.js?v=34"></script>
 <script src="dashboard/build/om.js?v=13"></script>
-<script src="dashboard/build/views-om.js?v=18"></script>
-<script src="dashboard/build/om-ticket.js?v=19"></script>
+<script src="dashboard/build/views-om.js?v=19"></script>
+<script src="dashboard/build/om-ticket.js?v=20"></script>
 <script src="dashboard/build/om-paper.js?v=14"></script>
 <script src="dashboard/build/expense.js?v=17"></script>
-<script src="dashboard/build/views-expense.js?v=30"></script>
+<script src="dashboard/build/views-expense.js?v=31"></script>
 <script src="dashboard/build/ec-paper.js?v=17"></script>
 <script src="dashboard/build/attend.js?v=12"></script>
-<script src="dashboard/build/auth.js?v=43"></script>
+<script src="dashboard/build/auth.js?v=44"></script>
 <!-- นามบัตรอิเล็กทรอนิกส์ — หลัง auth.js เพราะอ่าน ROLE_INFO/userRoles จากที่นั่น -->
-<script src="dashboard/build/vcard.js?v=16"></script>
+<script src="dashboard/build/vcard.js?v=17"></script>
 <script src="dashboard/build/line.js?v=5"></script>
-<script src="dashboard/build/views-attend.js?v=16"></script>
+<script src="dashboard/build/views-attend.js?v=17"></script>
 <script src="dashboard/build/ot-paper.js?v=6"></script>
 <script src="dashboard/build/views-line.js?v=2"></script>
-<script src="dashboard/build/guide.js?v=5"></script>
-<script src="dashboard/build/app.js?v=203"></script>
+<script src="dashboard/build/guide.js?v=6"></script>
+<script src="dashboard/build/app.js?v=204"></script>
 </body>
 </html>

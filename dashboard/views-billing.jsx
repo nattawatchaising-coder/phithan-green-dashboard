@@ -451,7 +451,7 @@ function BlPhotoPick({ job, row, api, items, itemId, currentUser, onClose }) {
               {itemId ? "รูปที่เลือกจะเข้ารายการนี้ · " : ""}ทั้งงวดมี {picked.length} รูป · แผ่นละ 4 รูปเวลาพิมพ์
             </div>
           </div>
-          <button onClick={onClose} style={{ width: 34, height: 34, borderRadius: "var(--r-tile)", boxShadow: "var(--shadow-sm)",
+          <button className="x-close" onClick={onClose} style={{ width: 34, height: 34, borderRadius: "var(--r-tile)", boxShadow: "var(--shadow-sm)",
             background: "var(--surface)", cursor: "pointer", display: "grid", placeItems: "center", color: "var(--text-2)" }}>
             <Icon name="x" size={15} />
           </button>
@@ -812,7 +812,7 @@ function BlSetupModal({ job, quotes, leads, role, currentUser, readOnly, focusRo
               {j.name || ""}{ro ? " · ดูได้อย่างเดียว" : ""}
             </div>
           </div>
-          <button onClick={onClose} style={{ width: 34, height: 34, borderRadius: "var(--r-tile)", boxShadow: "var(--shadow-sm)",
+          <button className="x-close" onClick={onClose} style={{ width: 34, height: 34, borderRadius: "var(--r-tile)", boxShadow: "var(--shadow-sm)",
             background: "var(--surface)", cursor: "pointer", display: "grid", placeItems: "center", color: "var(--text-2)" }}>
             <Icon name="x" size={15} />
           </button>

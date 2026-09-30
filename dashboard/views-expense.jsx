@@ -192,7 +192,7 @@ function EcBigShot({ shot, onClose }) {
         <a href={shot.dataUrl} download={shot.name || "ใบเสร็จ.pdf"}
           style={{ padding: "7px 13px", borderRadius: "var(--r-chip)", background: "rgba(255,255,255,.16)", color: "#fff",
             fontSize: 12, fontWeight: 700, textDecoration: "none" }}>ดาวน์โหลด</a>
-        <button onClick={onClose} title="ปิด"
+        <button className="x-close" onClick={onClose} title="ปิด"
           style={{ width: 32, height: 32, borderRadius: "var(--r-chip)", border: "none", background: "rgba(255,255,255,.16)",
             color: "#fff", cursor: "pointer", display: "grid", placeItems: "center" }}>
           <Icon name="x" size={16} color="#fff" />
@@ -306,7 +306,7 @@ function EcClaimModal({ claim, job, users, role, currentUser, onClose, onPatch, 
               background: "var(--surface)", cursor: "pointer", display: "grid", placeItems: "center", flexShrink: 0 }}>
             <Icon name="file" size={15} color="var(--text-2)" />
           </button>
-          <button onClick={onClose} style={{ width: 30, height: 30, borderRadius: "var(--r-chip)", boxShadow: "var(--shadow-sm)",
+          <button className="x-close" onClick={onClose} style={{ width: 30, height: 30, borderRadius: "var(--r-chip)", boxShadow: "var(--shadow-sm)",
             background: "var(--surface)", cursor: "pointer", display: "grid", placeItems: "center", flexShrink: 0 }}>
             <Icon name="x" size={15} color="var(--text-2)" />
           </button>
@@ -857,7 +857,7 @@ function EcPayModal({ person, claims, batches, currentUser, role, payers, onClos
             <div style={{ fontSize: 14.5, fontWeight: 800, color: "var(--text-1)" }}>จ่ายคืน {(person || {}).name || "-"}</div>
             <div style={{ fontFamily: "var(--mono)", fontSize: 11, color: "var(--text-3)" }}>รอบ {no} · {list.length} ใบ</div>
           </div>
-          <button onClick={onClose} style={{ width: 30, height: 30, borderRadius: "var(--r-chip)", boxShadow: "var(--shadow-sm)",
+          <button className="x-close" onClick={onClose} style={{ width: 30, height: 30, borderRadius: "var(--r-chip)", boxShadow: "var(--shadow-sm)",
             background: "var(--surface)", cursor: "pointer", display: "grid", placeItems: "center" }}>
             <Icon name="x" size={15} color="var(--text-2)" />
           </button>

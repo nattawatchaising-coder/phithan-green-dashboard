@@ -654,6 +654,7 @@ function StockShopModal({
       whiteSpace: "nowrap"
     }
   }, job.name)), React.createElement("button", {
+    className: "x-close",
     onClick: onClose,
     style: {
       width: 32,
@@ -1357,6 +1358,7 @@ function DetailDrawer({
       lineHeight: 1.25
     }
   }, job.name)), React.createElement("button", {
+    className: "x-close",
     onClick: onClose,
     style: {
       width: 36,
@@ -2213,6 +2215,7 @@ function DetailDrawer({
       flexShrink: 0
     }
   }, React.createElement("button", {
+    className: "x-close",
     onClick: onClose,
     title: "\u0E1B\u0E34\u0E14",
     "aria-label": "\u0E1B\u0E34\u0E14",

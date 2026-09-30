@@ -513,7 +513,7 @@ function OvDayModal({ date, list, onClose, onOpen }) {
             <b>{window.drDateTH ? window.drDateTH(date) : date}</b>
             <span>{list.length} งานติดตั้ง{kw ? " · รวม " + Math.round(kw * 10) / 10 + " kW" : ""}</span>
           </div>
-          <button onClick={onClose} aria-label="ปิด"><Icon name="x" size={16} color="var(--text-2)" /></button>
+          <button className="x-close" onClick={onClose} aria-label="ปิด"><Icon name="x" size={16} color="var(--text-2)" /></button>
         </div>
         <div className="ov-day-bd rows">
           {list.map((j) => {

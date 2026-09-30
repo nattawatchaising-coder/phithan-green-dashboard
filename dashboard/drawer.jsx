@@ -269,7 +269,7 @@ function StockShopModal({ stock, job, byName, onClose }) {
               <div style={{ fontSize: 11.5, color: "var(--text-3)" }}>เบิกของเข้างาน · {job.code}</div>
               <h2 style={{ fontSize: 16.5, fontWeight: 700, color: "var(--text-1)", margin: "2px 0 0", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{job.name}</h2>
             </div>
-            <button onClick={onClose} style={{ width: 32, height: 32, borderRadius: "var(--r-chip)", boxShadow: "var(--shadow-sm)", background: "var(--surface)", cursor: "pointer", display: "grid", placeItems: "center", color: "var(--text-2)", flexShrink: 0 }}><Icon name="x" size={16} /></button>
+            <button className="x-close" onClick={onClose} style={{ width: 32, height: 32, borderRadius: "var(--r-chip)", boxShadow: "var(--shadow-sm)", background: "var(--surface)", cursor: "pointer", display: "grid", placeItems: "center", color: "var(--text-2)", flexShrink: 0 }}><Icon name="x" size={16} /></button>
           </div>
         </div>
 
@@ -568,7 +568,7 @@ function DetailDrawer({ job, onClose, onAdvance, onSetMat, onEdit, currentUser, 
                   </div>
                   <h2 style={{ fontSize: isMobile ? 17 : 20, fontWeight: 700, color: "var(--text-1)", margin: 0, lineHeight: 1.25 }}>{job.name}</h2>
                 </div>
-                <button onClick={onClose} style={{ width: 36, height: 36, borderRadius: "var(--r-tile)", boxShadow: "var(--shadow-sm)",
+                <button className="x-close" onClick={onClose} style={{ width: 36, height: 36, borderRadius: "var(--r-tile)", boxShadow: "var(--shadow-sm)",
                   background: "var(--surface)", cursor: "pointer", display: "grid", placeItems: "center", color: "var(--text-2)", flexShrink: 0 }}>
                   <Icon name="x" size={18} />
                 </button>
@@ -968,7 +968,7 @@ function DetailDrawer({ job, onClose, onAdvance, onSetMat, onEdit, currentUser, 
                มือถือ: ปุ่ม ปิด/แก้ไข เป็นไอคอนล้วน ให้ปุ่มเลื่อนขั้นกว้างพอแสดงบรรทัดเดียว */}
             <div style={{ padding: isMobile ? "12px 16px" : "14px 24px", paddingBottom: "calc(" + (isMobile ? 12 : 14) + "px + env(safe-area-inset-bottom, 0px))",
               borderTop: "1px solid var(--border)", background: "var(--surface)", display: "flex", gap: isMobile ? 8 : 10, flexShrink: 0 }}>
-              <button onClick={onClose} title="ปิด" aria-label="ปิด"
+              <button className="x-close" onClick={onClose} title="ปิด" aria-label="ปิด"
                 style={{ flex: "0 0 auto", padding: isMobile ? 0 : "11px 16px", width: isMobile ? 42 : "auto", height: isMobile ? 42 : "auto",
                   borderRadius: "var(--r-tile)", boxShadow: "var(--shadow-sm)", background: "var(--surface)", color: "var(--text-2)",
                   fontWeight: 600, fontFamily: "inherit", fontSize: 13.5, cursor: "pointer",

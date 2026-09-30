@@ -4427,7 +4427,7 @@ function BOQEditor({
   }, "\u0E16\u0E2D\u0E14\u0E27\u0E31\u0E2A\u0E14\u0E38 BOQ", job && job.code ? " · " + job.code : ""), React.createElement("div", {
     className: "nm"
   }, job ? job.name : "งาน")), React.createElement("button", {
-    className: "x",
+    className: "x x-close",
     onClick: onClose,
     title: "\u0E1B\u0E34\u0E14"
   }, React.createElement(Icon, {

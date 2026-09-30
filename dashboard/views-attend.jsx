@@ -707,7 +707,7 @@ function TmOtModal({ rec, cfg, jobs, users, role, currentUser, onSave, onMove, o
             <div style={{ fontSize: 17, fontWeight: 800, color: "var(--text-1)" }}>{window.tmNameOf(users, f.userId, f.userName)}</div>
           </div>
           <TmPill s={f.status} />
-          <button onClick={onClose} style={{ border: "none", background: "none", cursor: "pointer", padding: 4 }}>
+          <button className="x-close" onClick={onClose} style={{ border: "none", background: "none", cursor: "pointer", padding: 4 }}>
             <Icon name="x" size={18} color="var(--text-3)" />
           </button>
         </div>

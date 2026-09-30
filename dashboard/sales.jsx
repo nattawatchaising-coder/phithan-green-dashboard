@@ -1686,7 +1686,7 @@ function QuoteEditor({ quote, job, target, stock, onClose, onSave, onDelete, cur
             {(() => { const s = QUOTE_STATUS_BY[q.status] || QUOTE_STATUS_BY.draft; return (
               <span style={{ fontSize: 11, fontWeight: 700, color: s.color, background: s.color + "16", padding: "4px 11px", borderRadius: "var(--r-pill)", whiteSpace: "nowrap" }}>{s.th}</span>
             ); })()}
-            <button onClick={onClose} style={{ width: 32, height: 32, borderRadius: "var(--r-chip)", boxShadow: "var(--shadow-sm)", background: "var(--surface2)", cursor: "pointer", display: "grid", placeItems: "center", color: "var(--text-2)" }}>
+            <button className="x-close" onClick={onClose} style={{ width: 32, height: 32, borderRadius: "var(--r-chip)", boxShadow: "var(--shadow-sm)", background: "var(--surface2)", cursor: "pointer", display: "grid", placeItems: "center", color: "var(--text-2)" }}>
               <Icon name="x" size={16} />
             </button>
           </div>
@@ -1899,11 +1899,11 @@ function QuoteEditor({ quote, job, target, stock, onClose, onSave, onDelete, cur
                 .then((ok) => { if (ok) onDelete(); })} style={qBtn("#EF4444")}>ลบ</button>
             )}
             <span style={{ flex: 1 }} />
-            {q.status === "draft" && <button onClick={() => { setStatus("sent"); save({ status: "sent", sentAt: new Date().toISOString() }); }} style={qBtn(null, "#0EA5E9")}>ส่งให้ลูกค้าแล้ว</button>}
+            {q.status === "draft" && <button onClick={() => { setStatus("sent"); save({ status: "sent", sentAt: new Date().toISOString() }); }} style={qBtn(null, null, true)}>ส่งให้ลูกค้าแล้ว</button>}
             {q.status === "sent" && (
               <React.Fragment>
                 <button onClick={() => save({ status: "rejected", decidedAt: new Date().toISOString() })} style={qBtn("#EF4444")}>ลูกค้าไม่เอา</button>
-                <button onClick={() => save({ status: "accepted", decidedAt: new Date().toISOString() })} style={qBtn(null, "#10B981")}>ลูกค้าตกลง</button>
+                <button onClick={() => save({ status: "accepted", decidedAt: new Date().toISOString() })} style={qBtn(null, null, true)}>ลูกค้าตกลง</button>
               </React.Fragment>
             )}
             {(q.status === "accepted" || q.status === "rejected") && (
@@ -1920,10 +1920,18 @@ function QuoteEditor({ quote, job, target, stock, onClose, onSave, onDelete, cur
     </React.Fragment>
   );
 }
-function qBtn(color, solid) {
-  return { display: "inline-flex", alignItems: "center", gap: 6, padding: "10px 15px", borderRadius: "var(--r-tile)", cursor: "pointer", fontFamily: "inherit",
-    fontSize: 13, fontWeight: 700, border: solid ? "none" : "1px solid var(--border-strong)",
-    background: solid || "var(--surface)", color: solid ? "#fff" : (color || "var(--text-1)") };
+/* ปุ่มท้ายตัวแก้ใบเสนอราคา — ในแถวเดียวกันมีปุ่มพื้นทึบได้ตัวเดียว คือ "บันทึก"
+   ปุ่มเปลี่ยนสถานะ (ส่งแล้ว · ลูกค้าตกลง) เคยเป็นพื้นทึบสีของสถานะ ฟ้าบ้าง เขียวมรกตบ้าง
+   วางข้างปุ่มบันทึกสีเขียวหลักแล้วกลายเป็นเขียวสองโทนชนกัน และแย่งกันเป็นปุ่มหลัก
+   ตอนนี้ใช้ "soft" คือพื้นย้อมจางของสีหลักตระกูลเดียวกัน อ่านออกว่าเป็นทางเลือกเชิงบวก
+   แต่ยอมให้ปุ่มบันทึกเป็นตัวเด่นตัวเดียว
+   สีของสถานะยังอยู่ที่ป้ายสถานะมุมบน ปุ่มไม่ต้องพูดซ้ำ */
+function qBtn(color, solid, soft) {
+  const base = { display: "inline-flex", alignItems: "center", gap: 6, padding: "10px 15px", borderRadius: "var(--r-tile)", cursor: "pointer", fontFamily: "inherit",
+    fontSize: 13, fontWeight: 700, border: "none" };
+  if (solid) return Object.assign(base, { background: solid, color: "#fff", boxShadow: "var(--shadow-btn)" });
+  if (soft) return Object.assign(base, { background: "var(--primary-soft)", color: "var(--primary-dark)", boxShadow: "var(--shadow-sm)" });
+  return Object.assign(base, { background: "var(--surface2)", color: color || "var(--text-1)", boxShadow: "var(--shadow-sm)" });
 }
 
 /* ============================================================

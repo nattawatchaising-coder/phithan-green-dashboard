@@ -942,6 +942,7 @@ function SurveyApptModal({
       margin: 0
     }
   }, isNew ? "นัดสำรวจใหม่" : "แก้ไขนัดสำรวจ"), React.createElement("button", {
+    className: "x-close",
     onClick: onClose,
     style: {
       width: 32,

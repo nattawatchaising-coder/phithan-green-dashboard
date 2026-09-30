@@ -70,7 +70,7 @@ function LnApHead({ kind, no, title, sub, onClose }) {
         <div style={{ fontSize: 16, fontWeight: 800, color: "var(--text-1)" }}>{title}</div>
         {sub && <div style={{ marginTop: 2, fontSize: 12, color: "var(--text-3)" }}>{sub}</div>}
       </div>
-      <button onClick={onClose} aria-label="ปิด"
+      <button className="x-close" onClick={onClose} aria-label="ปิด"
         style={{ flexShrink: 0, width: 34, height: 34, borderRadius: 99, padding: 0, cursor: "pointer",
           border: "1px solid var(--border)", boxShadow: "var(--soft)", background: "var(--surface)",
           display: "grid", placeItems: "center" }}>

@@ -1240,6 +1240,7 @@ function MovesModal({
       marginTop: 1
     }
   }, "\u0E23\u0E31\u0E1A\u0E40\u0E02\u0E49\u0E32 / \u0E40\u0E1A\u0E34\u0E01\u0E2D\u0E2D\u0E01 / \u0E04\u0E37\u0E19\u0E02\u0E2D\u0E07 \xB7 \u0E17\u0E31\u0E49\u0E07\u0E2B\u0E21\u0E14 ", all.length, " \u0E23\u0E32\u0E22\u0E01\u0E32\u0E23"))), React.createElement("button", {
+    className: "x-close",
     onClick: onClose,
     style: {
       width: 32,
@@ -2237,6 +2238,7 @@ function ItemModal({
       margin: 0
     }
   }, isNew ? "เพิ่มรายการอุปกรณ์" : "แก้ไขรายการ"), React.createElement("button", {
+    className: "x-close",
     onClick: onClose,
     style: {
       width: 32,
@@ -4319,6 +4321,7 @@ function ItemDetailModal({
       fontWeight: 700
     }
   }, mainCat.th), mainCat.key !== c.key ? React.createElement("span", null, " \u203A ", c.th) : null), React.createElement("button", {
+    className: "x-close",
     onClick: onClose,
     style: {
       flexShrink: 0,

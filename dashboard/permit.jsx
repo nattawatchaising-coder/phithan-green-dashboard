@@ -205,7 +205,7 @@ function PermitSampleModal({ slot, onClose }) {
         <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "13px 15px", borderBottom: "1px solid var(--border)" }}>
           <Icon name="image" size={16} color="var(--primary)" />
           <span style={{ flex: 1, fontSize: 14, fontWeight: 800, color: "var(--text-1)" }}>ตัวอย่าง — {slot.label}</span>
-          <button onClick={onClose} style={{ width: 28, height: 28, borderRadius: 8, border: "none", background: "var(--surface3)", color: "var(--text-2)", cursor: "pointer", display: "grid", placeItems: "center" }}>
+          <button className="x-close" onClick={onClose} style={{ width: 28, height: 28, borderRadius: 8, border: "none", background: "var(--surface3)", color: "var(--text-2)", cursor: "pointer", display: "grid", placeItems: "center" }}>
             <Icon name="x" size={14} />
           </button>
         </div>
@@ -677,7 +677,7 @@ function PermitWizard({ job, onClose, onSave, onSubmit, currentUser, stock, read
               <h2 style={{ fontSize: 16, fontWeight: 700, color: "var(--text-1)", margin: 0 }}>ข้อมูลขออนุญาตการไฟฟ้า</h2>
               <span style={{ fontSize: 11.5, color: "var(--text-3)" }}>{job ? (job.code + " · " + (job.name || "")) : ""}</span>
             </div>
-            <button onClick={onClose} style={{ width: 32, height: 32, borderRadius: 9, border: "1px solid var(--border)", background: "var(--surface)", cursor: "pointer", display: "grid", placeItems: "center", color: "var(--text-2)", flexShrink: 0 }}><Icon name="x" size={16} /></button>
+            <button className="x-close" onClick={onClose} style={{ width: 32, height: 32, borderRadius: 9, border: "1px solid var(--border)", background: "var(--surface)", cursor: "pointer", display: "grid", placeItems: "center", color: "var(--text-2)", flexShrink: 0 }}><Icon name="x" size={16} /></button>
           </div>
 
           <div style={{ display: "flex", alignItems: "center", gap: 10, marginTop: 12 }}>

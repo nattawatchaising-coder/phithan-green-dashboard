@@ -718,6 +718,7 @@ function PermitSampleModal({
       color: "var(--text-1)"
     }
   }, "\u0E15\u0E31\u0E27\u0E2D\u0E22\u0E48\u0E32\u0E07 \u2014 ", slot.label), React.createElement("button", {
+    className: "x-close",
     onClick: onClose,
     style: {
       width: 28,
@@ -1702,6 +1703,7 @@ function PermitWizard({
       color: "var(--text-3)"
     }
   }, job ? job.code + " · " + (job.name || "") : "")), React.createElement("button", {
+    className: "x-close",
     onClick: onClose,
     style: {
       width: 32,

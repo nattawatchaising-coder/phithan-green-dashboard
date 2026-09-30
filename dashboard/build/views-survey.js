@@ -575,6 +575,7 @@ function ContactLogModal({
       marginTop: 2
     }
   }, lead.name || "(ไม่ระบุชื่อ)", " \xB7 ", lead.code)), React.createElement("button", {
+    className: "x-close",
     onClick: onClose,
     style: {
       width: 32,
@@ -814,6 +815,7 @@ function LeadModal({
       margin: 0
     }
   }, isNew ? "ลูกค้าสำรวจใหม่" : "แก้ไขลูกค้าสำรวจ"), React.createElement("button", {
+    className: "x-close",
     onClick: onClose,
     style: {
       width: 32,

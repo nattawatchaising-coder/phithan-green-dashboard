@@ -1661,6 +1661,7 @@ function TmOtModal({
   }, window.tmNameOf(users, f.userId, f.userName))), React.createElement(TmPill, {
     s: f.status
   }), React.createElement("button", {
+    className: "x-close",
     onClick: onClose,
     style: {
       border: "none",

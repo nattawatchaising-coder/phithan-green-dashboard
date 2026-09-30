@@ -78,7 +78,7 @@ function LnSheetHead({ title, no, onClose, right }) {
     <div style={{ position: "sticky", top: 0, zIndex: 2, display: "flex", alignItems: "center", gap: 11,
       padding: "14px 16px 12px", background: "var(--bg)",
       paddingTop: "calc(14px + env(safe-area-inset-top, 0px))" }}>
-      <button onClick={onClose} aria-label="ปิด"
+      <button className="x-close" onClick={onClose} aria-label="ปิด"
         style={{ flexShrink: 0, width: 34, height: 34, borderRadius: 99, padding: 0, cursor: "pointer",
           border: "1px solid var(--border)", boxShadow: "var(--soft)", background: "var(--surface)",
           display: "grid", placeItems: "center" }}>

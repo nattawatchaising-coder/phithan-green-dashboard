@@ -2182,7 +2182,7 @@ function SolarWorkspace({ job, st, sys, onChange, onClose, snap }) {
           </div>
           <div style={{ fontSize: 14.5, fontWeight: 700, color: "var(--text-1)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{job ? job.name : ""}</div>
         </div>
-        <button className="ghost" onClick={onClose} title="กลับไปหน้าวางแผง"><Icon name="x" size={16} /></button>
+        <button className="ghost x-close" onClick={onClose} title="กลับไปหน้าวางแผง"><Icon name="x" size={16} /></button>
       </div>
 
       <div className="su-body">
@@ -4090,7 +4090,7 @@ function SolarWorkspace({ job, st, sys, onChange, onClose, snap }) {
                 <h4>เลือกเนื้อหาที่จะออกรายงาน</h4>
                 <p>ติ๊กเฉพาะหัวข้อที่อยากให้อยู่ในไฟล์ — เลขหัวข้อจะไล่ใหม่ให้เอง ไม่มีเลขขาด</p>
               </div>
-              <button className="ghost" onClick={() => setRepOpen(false)} title="ปิด"><Icon name="x" size={15} /></button>
+              <button className="ghost x-close" onClick={() => setRepOpen(false)} title="ปิด"><Icon name="x" size={15} /></button>
             </div>
             <div className="su-sheet-bd">
               {(typeof RP_SECTIONS !== "undefined" ? RP_SECTIONS : []).map((s) => (

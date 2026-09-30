@@ -557,7 +557,7 @@ function DailyReportModal({ job, role, currentUser, onClose, onNotify, openDate 
                   {job.code} · {job.name}
                 </div>
               </div>
-              <button onClick={() => { flush(); onClose(); }}
+              <button className="x-close" onClick={() => { flush(); onClose(); }}
                 style={{ width: 34, height: 34, borderRadius: 10, border: "1px solid var(--border-strong)", background: "var(--surface)",
                   cursor: "pointer", display: "grid", placeItems: "center", color: "var(--text-2)", flexShrink: 0 }}>
                 <Icon name="x" size={16} />
@@ -1030,7 +1030,7 @@ function DailyPaper({ job, rec, date, allDates, onClose }) {
         alignItems: "center", flexWrap: "wrap",
         padding: "11px 14px", background: "var(--surface)", borderBottom: "1px solid var(--border)",
         marginBottom: isMobile ? 0 : 16, borderRadius: isMobile ? 0 : 12, maxWidth: 900, marginLeft: "auto", marginRight: "auto", boxShadow: "var(--shadow-sm)" }}>
-        <button onClick={onClose} style={{ width: 36, height: 36, borderRadius: 10, border: "1px solid var(--border-strong)",
+        <button className="x-close" onClick={onClose} style={{ width: 36, height: 36, borderRadius: 10, border: "1px solid var(--border-strong)",
           background: "var(--surface)", cursor: "pointer", display: "grid", placeItems: "center", color: "var(--text-2)", flexShrink: 0 }}><Icon name="x" size={16} /></button>
         <div style={{ flex: "1 1 170px", minWidth: 0 }}>
           <div style={{ fontSize: 13.5, fontWeight: 800, color: "var(--text-1)" }}>รายงานประจำวัน · {window.drDateTH(date)}</div>
