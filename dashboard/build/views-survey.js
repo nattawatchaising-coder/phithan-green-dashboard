@@ -1855,8 +1855,10 @@ function LeadSpecPhase({
 }
 function LeadDetail({
   l,
-  ctx
+  ctx,
+  tab
 }) {
+  const show = k => !tab || tab === k;
   const {
     leadStore,
     jobs,
@@ -1953,7 +1955,7 @@ function LeadDetail({
     alignItems: "center",
     gap: 6
   };
-  return React.createElement(React.Fragment, null, React.createElement("div", {
+  return React.createElement(React.Fragment, null, show("ov") && React.createElement(React.Fragment, null, React.createElement("div", {
     style: {
       display: "flex",
       alignItems: "center",
@@ -2110,19 +2112,19 @@ function LeadDetail({
     label: "\u0E23\u0E30\u0E1A\u0E1A\u0E44\u0E1F\u0E1F\u0E49\u0E32",
     lead: l,
     onSave: setLeadPhase
-  }))), onOpenQuote && window.SalesQuoteList && React.createElement(window.SalesQuoteList, {
+  })))), show("qt") && React.createElement(React.Fragment, null, onOpenQuote && window.SalesQuoteList && React.createElement(window.SalesQuoteList, {
     lead: l,
     quotes: quotes,
     onOpenQuote: q => onOpenQuote(l, q),
     card: true
-  }), React.createElement(LeadContactCard, {
+  })), show("ct") && React.createElement(React.Fragment, null, React.createElement(LeadContactCard, {
     l: l,
     count: contacts.length,
     lastC: lastC,
     way: lastC ? wayOf(lastC.how) : null,
     late: late,
     onLog: () => setLog(l)
-  }), onOpenSurvey && React.createElement(LeadActionRow, {
+  })), show("sv") && React.createElement(React.Fragment, null, onOpenSurvey && React.createElement(LeadActionRow, {
     icon: "list",
     color: st.color,
     title: "\u0E2A\u0E33\u0E23\u0E27\u0E08\u0E2B\u0E19\u0E49\u0E32\u0E07\u0E32\u0E19 (Site Survey)",
@@ -2195,7 +2197,7 @@ function LeadDetail({
     media: media,
     currentUser: currentUser,
     canManage: canManage !== false
-  }), contacts.length > 0 && React.createElement("div", {
+  })), show("ct") && React.createElement(React.Fragment, null, contacts.length > 0 && React.createElement("div", {
     style: card
   }, React.createElement("div", {
     style: capt
@@ -2302,14 +2304,14 @@ function LeadDetail({
       color: "var(--text-3)",
       paddingTop: 8
     }
-  }, "\xB7 \u0E41\u0E25\u0E30\u0E01\u0E48\u0E2D\u0E19\u0E2B\u0E19\u0E49\u0E32\u0E19\u0E35\u0E49\u0E2D\u0E35\u0E01 ", contacts.length - 8, " \u0E04\u0E23\u0E31\u0E49\u0E07")), React.createElement("div", {
+  }, "\xB7 \u0E41\u0E25\u0E30\u0E01\u0E48\u0E2D\u0E19\u0E2B\u0E19\u0E49\u0E32\u0E19\u0E35\u0E49\u0E2D\u0E35\u0E01 ", contacts.length - 8, " \u0E04\u0E23\u0E31\u0E49\u0E07"))), React.createElement("div", {
     style: {
       position: "sticky",
       bottom: 0,
       background: "var(--bg)",
       boxShadow: "0 -10px 18px -14px rgba(8,20,14,.45)",
       padding: "14px 0",
-      marginTop: 6,
+      marginTop: "auto",
       display: "flex",
       gap: 8,
       flexWrap: "wrap",
@@ -2413,6 +2415,10 @@ function LeadDrawer({
   const bdClose = window.useBackdropClose(onClose);
   const [edit, setEdit] = React.useState(null);
   const [log, setLog] = React.useState(null);
+  const [tab, setTab] = React.useState("ov");
+  React.useEffect(() => {
+    setTab("ov");
+  }, [lead && lead.id]);
   React.useEffect(() => {
     const onKey = e => {
       if (e.key === "Escape" && !edit && !log) onClose();
@@ -2426,6 +2432,29 @@ function LeadDrawer({
   (appts || []).forEach(a => {
     if (a.leadId === lead.id) (apptsOf[a.leadId] = apptsOf[a.leadId] || []).push(a);
   });
+  const nQuotes = window.quotesOfLead ? window.quotesOfLead(quotes, lead).length : 0;
+  const nContacts = (lead.contacts || []).length;
+  const lateFollow = window.sOverdue && window.sOverdue(lead.nextFollow) && stageKey(lead) !== "won" && stageKey(lead) !== "lost";
+  const sst = window.surveyStatus({
+    survey: lead.survey
+  });
+  const TABS = [{
+    k: "ov",
+    th: "ภาพรวม"
+  }, {
+    k: "ct",
+    th: isMobile ? "ติดต่อ" : "การติดต่อ",
+    n: nContacts,
+    alert: lateFollow
+  }, {
+    k: "qt",
+    th: isMobile ? "ใบเสนอ" : "ใบเสนอราคา",
+    n: nQuotes
+  }, {
+    k: "sv",
+    th: isMobile ? "สำรวจ/ออกแบบ" : "สำรวจ & ออกแบบ",
+    n: sst.state === "skip" ? null : sst.pct ? sst.pct + "%" : null
+  }];
   const ctx = {
     leadStore,
     jobs,
@@ -2464,10 +2493,37 @@ function LeadDrawer({
   }), React.createElement("div", {
     onClick: e => e.stopPropagation(),
     style: {
-      background: "var(--bg)",
-      borderRadius: isMobile ? "22px 22px 0 0" : "var(--r-card)",
       width: isMobile ? "100%" : "min(680px,100%)",
-      maxHeight: isMobile ? "94dvh" : "90vh",
+      height: isMobile ? "88dvh" : "min(820px, 90vh)",
+      display: "flex",
+      flexDirection: "column",
+      minHeight: 0
+    }
+  }, React.createElement("div", {
+    className: "ld-tabs",
+    role: "tablist"
+  }, TABS.map((t, i) => React.createElement("button", {
+    key: t.k,
+    role: "tab",
+    "aria-selected": tab === t.k,
+    className: "ld-tab" + (tab === t.k ? " on" : ""),
+    style: {
+      zIndex: tab === t.k ? 10 : TABS.length - i
+    },
+    onClick: () => setTab(t.k)
+  }, t.th, t.n ? React.createElement("span", {
+    className: "ld-tab-n"
+  }, t.n) : null, t.alert ? React.createElement("span", {
+    className: "ld-tab-dot",
+    title: "\u0E40\u0E25\u0E22\u0E27\u0E31\u0E19\u0E15\u0E34\u0E14\u0E15\u0E32\u0E21\u0E41\u0E25\u0E49\u0E27"
+  }) : null))), React.createElement("div", {
+    style: {
+      background: "var(--bg)",
+      borderRadius: isMobile ? "0 22px 0 0" : "0 var(--r-card) var(--r-card) var(--r-card)",
+      flex: 1,
+      minHeight: 0,
+      position: "relative",
+      zIndex: 11,
       display: "flex",
       flexDirection: "column",
       overflow: "hidden",
@@ -2525,12 +2581,17 @@ function LeadDrawer({
   }, "\xD7")), React.createElement("div", {
     style: {
       padding: "14px 16px 0",
-      overflowY: "auto"
+      overflowY: "auto",
+      flex: 1,
+      minHeight: 0,
+      display: "flex",
+      flexDirection: "column"
     }
   }, React.createElement(LeadDetail, {
     l: lead,
-    ctx: ctx
-  })))), edit && React.createElement(LeadModal, {
+    ctx: ctx,
+    tab: tab
+  }))))), edit && React.createElement(LeadModal, {
     initial: edit.lead,
     isNew: edit.isNew,
     users: users,

@@ -363,6 +363,28 @@ html.theme-anim, html.theme-anim * { transition: background-color .34s ease, bor
 .x-close svg { stroke: currentColor; }
 .x-close:hover { background: color-mix(in srgb, var(--primary) 20%, var(--surface)) !important; }
 .x-close:active { transform: scale(.94); }
+/* แท็บแฟ้มบนลิ้นชักลูกค้า — แท็บที่เลือกขาวเท่าหัวใบ ต่อเป็นแผ่นเดียวกับตัวใบ
+   แท็บอื่นเป็นแผ่นจาง ๆ ซ้อนอยู่ข้างหลัง ขอบขวาเฉียงลงแบบแฟ้มเอกสาร (::after)
+   z-index ตั้งใน style ของแต่ละแท็บ — แท็บซ้ายทับแท็บขวา แท็บที่เลือกทับทุกตัว
+   ⚠ แท็บที่เลือกต้องใช้ --surface ให้ตรงกับหัวใบ ถ้าต่างกันรอยต่อจะเห็นเป็นเส้น */
+.ld-tabs { display: flex; align-items: flex-end; padding-right: 12px; overflow-x: auto; scrollbar-width: none; flex-shrink: 0;
+  width: 0; min-width: 100%; }
+/* width:0 + min-width:100% — แถวแท็บไม่ดันความกว้างลิ้นชัก (ช่อง grid ของฉากหลังจะยืดตามแท็บจนล้นจอมือถือ) แต่ยังเต็มความกว้างเสมอ */
+.ld-tabs::-webkit-scrollbar { display: none; }
+.ld-tab { position: relative; flex-shrink: 0; display: inline-flex; align-items: center; gap: 7px; height: 40px;
+  padding: 0 16px 0 18px; margin-right: 14px; border: none; border-radius: 16px 6px 0 0; cursor: pointer;
+  font-family: inherit; font-size: 13px; font-weight: 700; white-space: nowrap;
+  background: color-mix(in srgb, var(--surface) 72%, var(--bg)); color: var(--text-3);
+  transition: background .16s ease, color .16s ease, height .16s ease; }
+.ld-tab::after { content: ""; position: absolute; top: 0; bottom: 0; right: -16px; width: 26px;
+  background: inherit; border-top-right-radius: 14px; transform: skewX(24deg); transform-origin: bottom left; z-index: -1; }
+/* z-index -1 = ขอบเฉียงอยู่ใต้ตัวอักษรของแท็บเดียวกัน (แท็บเป็น stacking context เพราะมี z-index ใน style) ไม่งั้นมันทับท้ายคำ */
+.ld-tab:hover { color: var(--text-2); background: color-mix(in srgb, var(--surface) 88%, var(--bg)); }
+.ld-tab.on { height: 46px; background: var(--surface); color: var(--text-1); }
+.ld-tab-n { font-size: 11px; font-weight: 700; padding: 1px 7px; border-radius: 999px; background: var(--surface2); color: var(--text-3); }
+.ld-tab.on .ld-tab-n { background: var(--primary-soft); color: var(--primary-dark); }
+.ld-tab-dot { width: 7px; height: 7px; border-radius: 999px; background: #EF4444; box-shadow: 0 0 0 2px color-mix(in srgb, #EF4444 22%, transparent); }
+@media (max-width: 560px) { .ld-tab { padding: 0 11px 0 13px; margin-right: 10px; font-size: 12.5px; gap: 5px; } }
 
 /* sidebar overlay backdrop */
 .sidebar-overlay {
@@ -1067,7 +1089,7 @@ H-@G1I margin-top D'IC*D%L-1'@- 6H
 <script src="dashboard/build/survey.js?v=27"></script>
 <script src="dashboard/build/survey-report.js?v=13"></script>
 <script src="dashboard/build/sales.js?v=75"></script>
-<script src="dashboard/build/views-survey.js?v=38"></script>
+<script src="dashboard/build/views-survey.js?v=43"></script>
 <script src="dashboard/build/survey-sched.js?v=39"></script>
 <script src="dashboard/build/permit.js?v=8"></script>
 <script src="dashboard/build/views-permit.js?v=19"></script>

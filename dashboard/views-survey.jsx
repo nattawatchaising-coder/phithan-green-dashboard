@@ -686,7 +686,9 @@ function LeadSpecPhase({ label, lead, onSave, disabled }) {
    · สถานะวัสดุ · อุปกรณ์ที่เบิก/คืน · ลำดับขั้นการทำงาน
    ลูกค้าที่ยังไม่ปิดการขายไม่มีของพวกนี้ ใส่ไปก็เป็นช่องว่างที่กดแล้วไม่มีอะไร
    (ใบย่อในหน้ารายชื่อยังเป็น LeadCard เหมือนเดิม — รายชื่อยาว ๆ ต้องอ่านเร็ว ไม่ใช่อ่านครบ) */
-function LeadDetail({ l, ctx }) {
+function LeadDetail({ l, ctx, tab }) {
+  /* tab มาจากแท็บแฟ้มบนลิ้นชัก (LeadDrawer) — ไม่ส่งมา = โชว์ทุกส่วนเรียงกันแบบเดิม */
+  const show = (k) => !tab || tab === k;
   const { leadStore, jobs, quotes, apptsOf, STATUS, STATUS_BY, stageKey, currentUser, stock, priceMap,
           canManage, canDesign, onSaveBoq,
           onOpenSurvey, onReport, onOpenQuote, onPlan3d, onConvert, canConvert, setEdit, setLog, setStage } = ctx;
@@ -752,6 +754,7 @@ function LeadDetail({ l, ctx }) {
 
   return (
     <React.Fragment>
+      {show("ov") && (<React.Fragment>
       {/* ขั้นการขาย + ความคืบหน้าแบบสำรวจ — แทนที่แถบลำดับขั้นงานของใบงาน */}
       <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 18, flexWrap: "wrap" }}>
         <span style={{ display: "inline-flex", alignItems: "center", gap: 7, fontSize: 12.5, fontWeight: 800, color: sc.color,
@@ -826,15 +829,21 @@ function LeadDetail({ l, ctx }) {
           <LeadSpecPhase label="ระบบไฟฟ้า" lead={l} onSave={setLeadPhase} />
         </div>
       </div>
+      </React.Fragment>)}
 
+      {show("qt") && (<React.Fragment>
       {/* ใบเสนอราคาทุกฉบับ — ชุดเดียวกับในใบงาน */}
       {onOpenQuote && window.SalesQuoteList && (
         <window.SalesQuoteList lead={l} quotes={quotes} onOpenQuote={(q) => onOpenQuote(l, q)} card />
       )}
+      </React.Fragment>)}
 
+      {show("ct") && (<React.Fragment>
       {/* ปุ่มงานของเซลล์ */}
       <LeadContactCard l={l} count={contacts.length} lastC={lastC} way={lastC ? wayOf(lastC.how) : null} late={late}
         onLog={() => setLog(l)} />
+      </React.Fragment>)}
+      {show("sv") && (<React.Fragment>
       {onOpenSurvey && (
         <LeadActionRow icon="list" color={st.color} title="สำรวจหน้างาน (Site Survey)"
           sub={st.state === "skip" ? "ข้ามขั้นตอนสำรวจไว้" + (l.survey && l.survey.skipBy ? " โดย " + l.survey.skipBy : "") + " · แตะเพื่อกรอกแบบสำรวจ"
@@ -884,7 +893,9 @@ function LeadDetail({ l, ctx }) {
       {media && window.JobFiles && (
         <window.JobFiles media={media} currentUser={currentUser} canManage={canManage !== false} />
       )}
+      </React.Fragment>)}
 
+      {show("ct") && (<React.Fragment>
       {/* ประวัติการติดต่อทั้งหมด */}
       {contacts.length > 0 && (
         <div style={card}>
@@ -926,12 +937,13 @@ function LeadDetail({ l, ctx }) {
           )}
         </div>
       )}
+      </React.Fragment>)}
 
       {/* แถบปุ่มล่าง — ค้างอยู่ก้นใบเหมือนใบงาน จะได้กดได้โดยไม่ต้องเลื่อนกลับลงมา */}
       {/* แยกแถบปุ่มออกจากเนื้อหาด้วยเงาฟุ้ง ไม่ใช่เส้นคาด — ชุดเดียวกับที่ถอดเส้นออกจากหัวแผง
           เส้นบอกได้แค่ว่าของสองชิ้นชนกันตรงไหน เงาบอกได้ว่าชิ้นไหนอยู่บน ซึ่งคือสิ่งที่แถบค้างต้องการบอก */}
       <div style={{ position: "sticky", bottom: 0, background: "var(--bg)", boxShadow: "0 -10px 18px -14px rgba(8,20,14,.45)",
-        padding: "14px 0", marginTop: 6, display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
+        padding: "14px 0", marginTop: "auto", display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
         {ask ? (
           <React.Fragment>
             <span style={{ flex: 1, minWidth: 140, fontSize: 12, fontWeight: 700, lineHeight: 1.5,
@@ -980,6 +992,9 @@ function LeadDrawer({ lead, leadStore, appts, jobs, quotes, users, currentUser, 
   const bdClose = window.useBackdropClose(onClose);
   const [edit, setEdit] = React.useState(null);
   const [log, setLog] = React.useState(null);
+  /* แท็บแฟ้ม — เปลี่ยนลูกค้าแล้วกลับไปหน้าภาพรวมเสมอ ไม่ค้างแท็บของรายก่อน */
+  const [tab, setTab] = React.useState("ov");
+  React.useEffect(() => { setTab("ov"); }, [lead && lead.id]);
 
   /* ปิดด้วยปุ่ม Esc — มือยังอยู่บนคีย์บอร์ดตอนไล่ดูทีละราย */
   React.useEffect(() => {
@@ -994,6 +1009,19 @@ function LeadDrawer({ lead, leadStore, appts, jobs, quotes, users, currentUser, 
   const apptsOf = {};
   (appts || []).forEach((a) => { if (a.leadId === lead.id) (apptsOf[a.leadId] = apptsOf[a.leadId] || []).push(a); });
 
+  /* ตัวเลขบนแท็บ — บอกว่าในแท็บมีของไหม ไม่ต้องกดเข้าไปดู
+     จุดแดงบนแท็บติดต่อ = เลยวันติดตามแล้ว ห้ามให้เรื่องนี้ซ่อนอยู่หลังแท็บที่ไม่ได้เปิด */
+  const nQuotes = window.quotesOfLead ? window.quotesOfLead(quotes, lead).length : 0;
+  const nContacts = (lead.contacts || []).length;
+  const lateFollow = window.sOverdue && window.sOverdue(lead.nextFollow) && stageKey(lead) !== "won" && stageKey(lead) !== "lost";
+  const sst = window.surveyStatus({ survey: lead.survey });
+  const TABS = [
+    { k: "ov", th: "ภาพรวม" },
+    { k: "ct", th: isMobile ? "ติดต่อ" : "การติดต่อ", n: nContacts, alert: lateFollow },
+    { k: "qt", th: isMobile ? "ใบเสนอ" : "ใบเสนอราคา", n: nQuotes },
+    { k: "sv", th: isMobile ? "สำรวจ/ออกแบบ" : "สำรวจ & ออกแบบ", n: sst.state === "skip" ? null : (sst.pct ? sst.pct + "%" : null) },
+  ];
+
   const ctx = {
     leadStore, jobs, quotes, apptsOf, currentUser, stock, priceMap, canManage, canDesign, onSaveBoq,
     STATUS: window.SALES_STAGES || [], STATUS_BY: window.SALES_BY || {}, stageKey,
@@ -1005,8 +1033,23 @@ function LeadDrawer({ lead, leadStore, appts, jobs, quotes, users, currentUser, 
     <React.Fragment>
       <div {...bdClose} style={{ position: "fixed", inset: 0, background: "rgba(8,20,14,.45)", backdropFilter: "blur(3px)", zIndex: 116,
         display: "grid", placeItems: isMobile ? "end center" : "center", padding: isMobile ? 0 : 20 }}>
-        <div onClick={(e) => e.stopPropagation()} style={{ background: "var(--bg)", borderRadius: isMobile ? "22px 22px 0 0" : "var(--r-card)",
-          width: isMobile ? "100%" : "min(680px,100%)", maxHeight: isMobile ? "94dvh" : "90vh",
+        {/* แท็บแฟ้มยื่นออกมาเหนือตัวใบ — แท็บที่เลือกสีเดียวกับหัวใบ ต่อเป็นแผ่นเดียวกัน
+            แท็บอื่นจมอยู่ข้างหลัง หน้าตาอยู่ในคลาส .ld-tab (index.html)
+            ความสูงตายตัว (ไม่ใช่ maxHeight) — แต่ละแท็บยาวไม่เท่ากัน ถ้าปล่อยยืดหด ลิ้นชักที่จัดกลางจอจะกระโดดทุกครั้งที่สลับแท็บ */}
+        <div onClick={(e) => e.stopPropagation()} style={{ width: isMobile ? "100%" : "min(680px,100%)", height: isMobile ? "88dvh" : "min(820px, 90vh)",
+          display: "flex", flexDirection: "column", minHeight: 0 }}>
+        <div className="ld-tabs" role="tablist">
+          {TABS.map((t, i) => (
+            <button key={t.k} role="tab" aria-selected={tab === t.k} className={"ld-tab" + (tab === t.k ? " on" : "")}
+              style={{ zIndex: tab === t.k ? 10 : TABS.length - i }} onClick={() => setTab(t.k)}>
+              {t.th}
+              {t.n ? <span className="ld-tab-n">{t.n}</span> : null}
+              {t.alert ? <span className="ld-tab-dot" title="เลยวันติดตามแล้ว" /> : null}
+            </button>
+          ))}
+        </div>
+        <div style={{ background: "var(--bg)", borderRadius: isMobile ? "0 22px 0 0" : "0 var(--r-card) var(--r-card) var(--r-card)",
+          flex: 1, minHeight: 0, position: "relative", zIndex: 11,
           display: "flex", flexDirection: "column", overflow: "hidden", boxShadow: "0 30px 80px rgba(8,20,14,.3)" }}>
           {/* หัวลิ้นชัก — แยกจากเนื้อด้วยเงาฟุ้ง ชุดเดียวกับแถบปุ่มล่าง ไม่ใช้เส้นคาด */}
           <div style={{ padding: "14px 16px", boxShadow: "0 10px 18px -14px rgba(8,20,14,.45)", background: "var(--surface)",
@@ -1017,9 +1060,10 @@ function LeadDrawer({ lead, leadStore, appts, jobs, quotes, users, currentUser, 
             </div>
             <button className="x-close" onClick={onClose} aria-label="ปิด" style={{ flexShrink: 0, width: 32, height: 32, borderRadius: "var(--r-pill)", border: "none", background: "var(--surface2)", boxShadow: "var(--shadow-sm)", color: "var(--text-2)", cursor: "pointer", fontFamily: "inherit", fontSize: 16, lineHeight: 1 }}>×</button>
           </div>
-          <div style={{ padding: "14px 16px 0", overflowY: "auto" }}>
-            <LeadDetail l={lead} ctx={ctx} />
+          <div style={{ padding: "14px 16px 0", overflowY: "auto", flex: 1, minHeight: 0, display: "flex", flexDirection: "column" }}>
+            <LeadDetail l={lead} ctx={ctx} tab={tab} />
           </div>
+        </div>
         </div>
       </div>
       {edit && <LeadModal initial={edit.lead} isNew={edit.isNew} users={users} onClose={() => setEdit(null)}
