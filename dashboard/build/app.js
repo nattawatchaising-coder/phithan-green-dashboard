@@ -1034,11 +1034,6 @@ function App() {
     setView(v);
     closeSidebar();
   };
-  const viewTabs = React.createElement(NavTabs, {
-    items: navTabsOf(navItems, navTop(view)),
-    value: view,
-    onPick: navTo
-  });
   if (loading) return React.createElement(LoadingScreen, null);
   if (!auth.current) return React.createElement(LoginScreen, {
     authStore: auth
@@ -1129,8 +1124,7 @@ function App() {
     store: apptStore,
     leadStore: leadStore,
     onMenuOpen: () => setSidebarOpen(true),
-    onOpenJob: openJob,
-    tabs: viewTabs
+    onOpenJob: openJob
   }) : view === "leads" && leadMode === "board" ? React.createElement(React.Fragment, null, React.createElement(window.SchedHeader, {
     title: "\u0E07\u0E32\u0E19\u0E02\u0E32\u0E22",
     sub: salesHead,
@@ -1180,12 +1174,10 @@ function App() {
     onStatus: (id, s) => apptStore.setStatus(id, s),
     onOpenSurvey: (j, appt) => openSurvey(j, appt),
     onOpen: openJob,
-    onAdvance: j => store.advance(j.id),
-    tabs: viewTabs
+    onAdvance: j => store.advance(j.id)
   }) : React.createElement(React.Fragment, null, React.createElement(Header, {
     view: view,
     navList: navItems,
-    tabs: viewTabs,
     plain: permitPage || PLAIN_SUB[view] !== undefined,
     subtitle: permitPage ? permitHead : PLAIN_SUB[view] !== undefined ? PLAIN_SUB[view] : null,
     ownOnly: ownOnly,
@@ -1673,56 +1665,6 @@ function App() {
     onChange: v => setTweak("cardStyle", v)
   })), React.createElement(ConfirmHost, null)));
 }
-function NavTabs({
-  items,
-  value,
-  onPick
-}) {
-  const isMobile = useIsMobile();
-  if (!items || items.length < 2) return null;
-  return React.createElement("div", {
-    style: {
-      display: "inline-flex",
-      gap: 3,
-      padding: 3,
-      borderRadius: 99,
-      flexShrink: 0,
-      background: "var(--surface2)",
-      border: "1px solid var(--border)"
-    }
-  }, items.map(it => {
-    const on = value === it.key;
-    return React.createElement("button", {
-      key: it.key,
-      onClick: () => {
-        if (!on) onPick(it.key);
-      },
-      title: it.th,
-      "aria-current": on ? "page" : undefined,
-      style: {
-        display: "inline-flex",
-        alignItems: "center",
-        gap: 5,
-        borderRadius: 99,
-        border: "none",
-        cursor: on ? "default" : "pointer",
-        padding: isMobile ? "6px 10px" : "6px 13px",
-        fontFamily: "inherit",
-        fontSize: 12.5,
-        fontWeight: 700,
-        whiteSpace: "nowrap",
-        background: on ? "var(--surface)" : "transparent",
-        color: on ? "var(--primary-dark)" : "var(--text-3)",
-        boxShadow: on ? "0 1px 3px rgba(20,40,28,.10)" : "none",
-        transition: "background .15s, color .15s"
-      }
-    }, React.createElement(Icon, {
-      name: it.icon,
-      size: 14,
-      color: on ? "var(--primary-dark)" : "var(--text-3)"
-    }), React.createElement("span", null, it.th));
-  }));
-}
 function Sidebar({
   view,
   onNav,
@@ -1842,12 +1784,15 @@ function Sidebar({
   }))), React.createElement("nav", {
     className: "sidebar-nav"
   }, (() => {
-    const items = navForRole(role, techId).filter(n => !n.hidden && !n.inSettings);
+    const all = navForRole(role, techId);
+    const items = all.filter(n => !n.hidden && !n.inSettings);
     const first = items.findIndex(n => n.foot);
     return items.map((n, i) => {
       const active = navTop(view) === n.key;
-      return React.createElement("button", {
-        key: n.key,
+      const subs = active ? navTabsOf(all, n.key) : [];
+      return React.createElement(React.Fragment, {
+        key: n.key
+      }, React.createElement("button", {
         onClick: () => onNav(n.key),
         className: "nav-item" + (active ? " active" : "") + (i === first ? " nav-foot" : ""),
         title: n.th
@@ -1868,7 +1813,19 @@ function Sidebar({
           className: "nav-badge" + tone,
           title: tip
         }, cnt);
-      })());
+      })()), subs.length > 1 && React.createElement("div", {
+        className: "nav-subs"
+      }, subs.map(s => React.createElement("button", {
+        key: s.key,
+        onClick: () => onNav(s.key),
+        title: s.th,
+        className: "nav-sub" + (view === s.key ? " active" : ""),
+        "aria-current": view === s.key ? "page" : undefined
+      }, React.createElement(Icon, {
+        name: s.icon,
+        size: 15,
+        color: view === s.key ? "var(--primary-dark)" : "var(--text-3)"
+      }), !icons && React.createElement("span", null, s.th)))));
     });
   })()), React.createElement("div", {
     className: "sidebar-foot"
@@ -2296,7 +2253,6 @@ window.HeaderTools = HeaderTools;
 function Header({
   view,
   navList,
-  tabs,
   plain,
   subtitle,
   ownOnly,
@@ -2413,21 +2369,12 @@ function Header({
   })), React.createElement("div", {
     style: {
       flex: isMobile ? 1 : "0 1 auto",
-      flexShrink: tabs && !isMobile ? 0 : undefined,
-      minWidth: 0,
+      minWidth: isMobile ? 0 : 108,
       alignSelf: subtitle === "" ? "center" : undefined
-    }
-  }, React.createElement("div", {
-    style: {
-      display: "flex",
-      alignItems: "center",
-      gap: 10,
-      minWidth: 0,
-      flexWrap: "nowrap"
     }
   }, React.createElement("h1", {
     className: "page-title"
-  }, nav.th), !isMobile && tabs), subtitle !== "" && React.createElement("p", {
+  }, nav.th), subtitle !== "" && React.createElement("p", {
     className: "page-sub"
   }, subtitle || React.createElement(React.Fragment, null, "\u0E41\u0E2A\u0E14\u0E07 ", React.createElement("strong", null, count), " \u0E08\u0E32\u0E01 ", total, " \u0E07\u0E32\u0E19", ownOnly && " · เฉพาะงานของคุณ"), stageFilter && React.createElement("span", null, " \xB7 \u0E01\u0E23\u0E2D\u0E07: ", stInfo(stageFilter).th, " ", React.createElement("button", {
     onClick: () => setStageFilter(null),
@@ -2528,11 +2475,7 @@ function Header({
     onToggleAurora: onToggleAurora,
     me: me,
     onMySign: onMySign
-  }))), isMobile && tabs && React.createElement("div", {
-    style: {
-      paddingTop: 12
-    }
-  }, tabs), isMobile && filterBar);
+  }))), isMobile && filterBar);
 }
 function DailyBriefing({
   lateAlerts,

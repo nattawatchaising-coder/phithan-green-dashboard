@@ -849,10 +849,6 @@ function App() {
     closeSidebar();
   };
 
-  /* แท็บสลับมุมของเมนูที่ยุบเข้าด้วยกัน — คำนวณที่เดียวแล้วส่งให้ทุกหัวจอ
-     (หัวจอหลัก · SchedHeader ของจัดตารางสำรวจและตารางงานของฉัน) จะได้ไม่มีชุดที่สองให้ต้องตามแก้
-     ไม่มีลูกหรือมีสิทธิ์เข้าหน้าเดียว NavTabs คืน null เอง ไม่ต้องเช็กที่ปลายทาง */
-  const viewTabs = <NavTabs items={navTabsOf(navItems, navTop(view))} value={view} onPick={navTo} />;
 
   if (loading) return <LoadingScreen />;
   if (!auth.current) return <LoginScreen authStore={auth} />;
@@ -900,7 +896,7 @@ function App() {
             priceStore={priceStore} ampStore={ampStore} condStore={condStore} canManagePrices={can(role, "price")} />
         ) : view === "dispatch" ? (
           <DispatchView appts={apptStore.appts} jobs={jobs} techs={techStore.techs} store={apptStore} leadStore={leadStore}
-            onMenuOpen={() => setSidebarOpen(true)} onOpenJob={openJob} tabs={viewTabs} />
+            onMenuOpen={() => setSidebarOpen(true)} onOpenJob={openJob} />
         ) : (view === "leads" && leadMode === "board") ? (
           <React.Fragment>
             <window.SchedHeader title="งานขาย" sub={salesHead} right={leadTabs} onMenuOpen={() => setSidebarOpen(true)} />
@@ -928,10 +924,10 @@ function App() {
             onStatus={(id, s) => apptStore.setStatus(id, s)}
             onOpenSurvey={(j, appt) => openSurvey(j, appt)}
             onOpen={openJob}
-            onAdvance={(j) => store.advance(j.id)} tabs={viewTabs} />
+            onAdvance={(j) => store.advance(j.id)} />
         ) : (
         <React.Fragment>
-        <Header view={view} navList={navItems} tabs={viewTabs} plain={permitPage || PLAIN_SUB[view] !== undefined}
+        <Header view={view} navList={navItems} plain={permitPage || PLAIN_SUB[view] !== undefined}
           subtitle={permitPage ? permitHead : (PLAIN_SUB[view] !== undefined ? PLAIN_SUB[view] : null)} ownOnly={ownOnly} count={filtered.length} total={jobs.length}
           search={search} setSearch={setSearch}
           typeFilter={typeFilter} setTypeFilter={setTypeFilter}
@@ -1174,33 +1170,6 @@ function App() {
   );
 }
 
-/* ── แท็บสลับมุมบนหัวจอ ──
-   ของที่ยุบเข้ามาอยู่ใต้เมนูเดียวกัน โผล่ตรงนี้ให้กดถึงได้ในคลิกเดียว วางชิดชื่อหน้า
-   เพื่อให้อ่านเป็น "ชื่อหน้า › มุมที่กำลังดู" ไม่ใช่ปุ่มลอยปนกับเครื่องมือฝั่งขวา
-   มือถือลงไปเป็นแถวของตัวเองใต้หัว (ดู Header) จึงมีที่พอให้ชื่อเต็มทุกมุม */
-function NavTabs({ items, value, onPick }) {
-  const isMobile = useIsMobile();
-  if (!items || items.length < 2) return null;
-  return (
-    <div style={{ display: "inline-flex", gap: 3, padding: 3, borderRadius: 99, flexShrink: 0,
-      background: "var(--surface2)", border: "1px solid var(--border)" }}>
-      {items.map((it) => {
-        const on = value === it.key;
-        return (
-          <button key={it.key} onClick={() => { if (!on) onPick(it.key); }} title={it.th} aria-current={on ? "page" : undefined}
-            style={{ display: "inline-flex", alignItems: "center", gap: 5, borderRadius: 99, border: "none", cursor: on ? "default" : "pointer",
-              padding: isMobile ? "6px 10px" : "6px 13px", fontFamily: "inherit", fontSize: 12.5, fontWeight: 700, whiteSpace: "nowrap",
-              background: on ? "var(--surface)" : "transparent", color: on ? "var(--primary-dark)" : "var(--text-3)",
-              boxShadow: on ? "0 1px 3px rgba(20,40,28,.10)" : "none", transition: "background .15s, color .15s" }}>
-            <Icon name={it.icon} size={14} color={on ? "var(--primary-dark)" : "var(--text-3)"} />
-            <span>{it.th}</span>
-          </button>
-        );
-      })}
-    </div>
-  );
-}
-
 function Sidebar({ view, onNav, role, techId, jobs, stock, t, badges, open, onClose, collapsed, onToggleCollapsed, currentUser, onLogout, canManageUsers, onManageUsers, onManageTechs, onMySign }) {
   // Read media query synchronously every render — avoids stale state when
   // the preview or device loads at one size then displays at another.
@@ -1264,16 +1233,22 @@ function Sidebar({ view, onNav, role, techId, jobs, stock, t, badges, open, onCl
 
       <nav className="sidebar-nav">
         {(() => {
-          const items = navForRole(role, techId).filter((n) => !n.hidden && !n.inSettings);
+          const all = navForRole(role, techId);
+          const items = all.filter((n) => !n.hidden && !n.inSettings);
           /* เมนูที่ปักไว้ล่างสุด — ดันด้วย margin-top:auto ที่ "ตัวแรก" ของกลุ่มเท่านั้น
              ใส่ทุกตัวจะแยกกันกระจายทั้งคอลัมน์ ไม่ได้เกาะกลุ่มอยู่ด้วยกัน */
           const first = items.findIndex((n) => n.foot);
           return items.map((n, i) => {
-          /* หน้าที่ยุบเป็นแท็บอยู่ใต้แถวนี้ ต้องทำให้แถวแม่ติดไฟด้วย ไม่งั้นเปิดมุมตารางอยู่
+          /* หน้าที่ยุบเข้ามาอยู่ใต้แถวนี้ ต้องทำให้แถวแม่ติดไฟด้วย ไม่งั้นเปิดมุมตารางอยู่
              แต่เมนูซ้ายไม่มีแถวไหนติดไฟเลย — คนอ่านจะไม่รู้ว่าตัวเองอยู่ตรงไหนของแอป */
           const active = navTop(view) === n.key;
+          /* เมนูย่อยกางเฉพาะแถวที่เปิดอยู่ — ไม่ใช่หีบเพลงที่ต้องกดพับ/กางเอง
+             เมนูอื่นจึงไม่ยาวขึ้นเลย และหน้าที่ยุบไปก็ยังกดถึงได้ในคลิกเดียวจากตรงนี้
+             navTabsOf ใส่ตัวแม่ไว้เป็นรายการแรกเสมอ ไม่งั้นเข้ามุมตารางแล้วกลับบอร์ดไม่ได้ */
+          const subs = active ? navTabsOf(all, n.key) : [];
           return (
-            <button key={n.key} onClick={() => onNav(n.key)} className={"nav-item" + (active ? " active" : "") + (i === first ? " nav-foot" : "")}
+            <React.Fragment key={n.key}>
+            <button onClick={() => onNav(n.key)} className={"nav-item" + (active ? " active" : "") + (i === first ? " nav-foot" : "")}
               title={n.th}>
               <Icon name={n.icon} size={19} color={active ? "var(--primary-dark)" : "var(--text-2)"} />
               {!icons && <span>{n.th}</span>}
@@ -1290,6 +1265,18 @@ function Sidebar({ view, onNav, role, techId, jobs, stock, t, badges, open, onCl
                   : <span className={"nav-badge" + tone} title={tip}>{cnt}</span>;
               })()}
             </button>
+            {subs.length > 1 && (
+              <div className="nav-subs">
+                {subs.map((s) => (
+                  <button key={s.key} onClick={() => onNav(s.key)} title={s.th}
+                    className={"nav-sub" + (view === s.key ? " active" : "")} aria-current={view === s.key ? "page" : undefined}>
+                    <Icon name={s.icon} size={15} color={view === s.key ? "var(--primary-dark)" : "var(--text-3)"} />
+                    {!icons && <span>{s.th}</span>}
+                  </button>
+                ))}
+              </div>
+            )}
+            </React.Fragment>
           );
           });
         })()}
@@ -1529,7 +1516,7 @@ function HeaderTools({ hidden, showBell, unread, notifItems, lateAlerts, omAlert
 }
 window.HeaderTools = HeaderTools;
 
-function Header({ view, navList, tabs, plain, subtitle, ownOnly, count, total, search, setSearch, typeFilter, setTypeFilter, delayedOnly, setDelayedOnly, stageFilter, setStageFilter, stageCounts, stageMode, quickFilter, setQuickFilter, techFilter, setTechFilter, techCounts, techs, onAdd, canAdd, onMap, showBell, unread, notifItems, lateAlerts, omAlerts, onOpenOm, notifOpen, onBell, onCloseNotif, onOpenNotif, onMarkAll, onMenuOpen, me, aurora, onToggleAurora, onMySign }) {
+function Header({ view, navList, plain, subtitle, ownOnly, count, total, search, setSearch, typeFilter, setTypeFilter, delayedOnly, setDelayedOnly, stageFilter, setStageFilter, stageCounts, stageMode, quickFilter, setQuickFilter, techFilter, setTechFilter, techCounts, techs, onAdd, canAdd, onMap, showBell, unread, notifItems, lateAlerts, omAlerts, onOpenOm, notifOpen, onBell, onCloseNotif, onOpenNotif, onMarkAll, onMenuOpen, me, aurora, onToggleAurora, onMySign }) {
   /* ชื่อหน้าเอาของ "เมนูแม่" ไม่ใช่ของแท็บ — ชื่อบนหัวจอกับแถวที่ติดไฟในเมนูซ้ายต้องเป็นคำเดียวกัน
      ส่วนว่าอยู่มุมไหนของเมนูนั้น อ่านจากแท็บที่เลือกอยู่ข้าง ๆ ชื่อ */
   const nav = navList.find((n) => n.key === navTop(view)) || NAV.find((n) => n.key === navTop(view))
@@ -1599,18 +1586,14 @@ function Header({ view, navList, tabs, plain, subtitle, ownOnly, count, total, s
         </button>
         {/* .header-top ตั้ง align-items:flex-start ไว้สำหรับก้อนชื่อหน้า+บรรทัดรองที่สูงกว่าของข้าง ๆ
             หน้าที่ไม่มีบรรทัดรอง ชื่อหน้าสูง 26px แต่ชิปผู้ใช้สูง 40px — ชื่อหน้าเลยไปเกาะขอบบนคนเดียว ดูลอย */}
-        <div style={{ flex: isMobile ? 1 : "0 1 auto", flexShrink: (tabs && !isMobile) ? 0 : undefined, minWidth: 0, alignSelf: subtitle === "" ? "center" : undefined }}>
-          {/* ⚠ ห้ามห่อบรรทัด — แท็บต้องอยู่ข้างชื่อหน้า ไม่ใช่ตกลงไปคั่นระหว่างชื่อหน้ากับบรรทัดรอง
-              .header-top เป็น nowrap และให้ก้อนชื่อหน้าหดก่อนแถบตัวกรอง (ดู .header-filters.in-top)
-              ปล่อยให้ห่อได้เมื่อไร แท็บจะตกบรรทัดตั้งแต่จอ 1440 ทั้งที่ยังมีที่ว่างเหลืออีกครึ่งจอ
-              ที่ไม่พอจริง ๆ ให้แถบตัวกรองเลื่อนแนวนอนเอา ซึ่งมันทำได้อยู่แล้ว (overflow-x:auto)
-              ⚠ มือถือไม่เอาแท็บมาไว้แถวนี้เลย — วัดแล้วแถวบนเหลือที่ให้ก้อนชื่อหน้าราว 77px
-                ซึ่งพอดีกับชื่อหน้าเปล่า ๆ ยัดแท็บเข้าไปคือดันชื่อหน้าตกบรรทัดไปทับแถวแฮมเบอร์เกอร์
-                มือถือจึงให้แท็บเป็นแถวของตัวเองใต้หัว คู่กับแถบตัวกรองซึ่งทำแบบนี้อยู่แล้ว */}
-          <div style={{ display: "flex", alignItems: "center", gap: 10, minWidth: 0, flexWrap: "nowrap" }}>
-            <h1 className="page-title">{nav.th}</h1>
-            {!isMobile && tabs}
-          </div>
+        {/* พื้นขั้นต่ำของก้อนชื่อหน้า — .header-filters.in-top ตั้ง flex-shrink ไว้ต่ำมาก (.15)
+            ชื่อหน้าจึงรับการหดไว้เกือบทั้งหมด ปล่อยไว้จะหดจนหายไปทั้งคำตอนจอแคบ
+            ตั้งพื้นไว้แล้วเหลืออย่างน้อยสองสามคำแรก ที่เหลือให้แถบตัวกรองเลื่อนแนวนอนเอา ซึ่งมันทำได้อยู่แล้ว */}
+        <div style={{ flex: isMobile ? 1 : "0 1 auto", minWidth: isMobile ? 0 : 108, alignSelf: subtitle === "" ? "center" : undefined }}>
+          {/* หัวจอมีแต่ชื่อหน้า — มุมที่กำลังดู (บอร์ด/ตาราง · ปฏิทิน/นัดสำรวจ) อยู่เป็นเมนูย่อย
+              ในแถบเมนูซ้าย ไม่ใช่บนหัวจอ · แถวบนนี้มีตัวกรอง ช่องค้นหา และปุ่มเครื่องมืออัดอยู่แล้ว
+              เติมอะไรเข้าไปอีกคือเบียดกันเอง (เคยลองวางไว้ข้างชื่อหน้าแล้วรก) */}
+          <h1 className="page-title">{nav.th}</h1>
           {/* subtitle === "" คือ "หน้านี้ไม่เอาบรรทัดรอง" — ไม่ใช่ null เพราะ null แปลว่า "ใช้บรรทัดมาตรฐาน แสดง N จาก M งาน"
               ไม่เรนเดอร์ <p> เปล่าทิ้งไว้ — มันกินความสูง 21px กับ margin อีก 4px ซึ่งคือสิ่งที่เราอยากเอาออกพอดี */}
           {subtitle !== "" && (
@@ -1656,8 +1639,6 @@ function Header({ view, navList, tabs, plain, subtitle, ownOnly, count, total, s
             aurora={aurora} onToggleAurora={onToggleAurora} me={me} onMySign={onMySign} />
         </div>
       </div>
-      {/* มือถือ: แท็บสลับมุมเป็นแถวของตัวเองใต้หัว (บนจอใหญ่อยู่ข้างชื่อหน้า) */}
-      {isMobile && tabs && <div style={{ paddingTop: 12 }}>{tabs}</div>}
       {/* มือถือ: แถบตัวกรองยังเป็นแถวของตัวเองใต้หัว และเหลือไว้แค่ตัวกรองช่าง (ตัวอื่นซ่อนเพื่อประหยัดพื้นที่) */}
       {isMobile && filterBar}
       {/* แถบชิปกรองขั้นงานเอาออกแล้วตามที่สั่ง — มันกินความสูงของหัวจอไปอีกหนึ่งแถวทุกหน้า

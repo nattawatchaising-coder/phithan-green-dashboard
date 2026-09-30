@@ -177,9 +177,7 @@ function SchedHdrTools() {
   return <window.HeaderTools {...ctx} />;
 }
 
-/* tabs = แท็บสลับมุมของเมนูที่ยุบเข้าด้วยกัน (ส่งมาจาก app.jsx) วางชิดชื่อหน้าเหมือนหัวจอหลัก
-   ต้องอยู่ที่เดียวกันทั้งสองหัวจอ ไม่งั้นแท็บชุดเดียวกันจะเด้งไปมาเวลาสลับมุม */
-function SchedHeader({ icon, title, sub, onMenuOpen, right, tabs }) {
+function SchedHeader({ icon, title, sub, onMenuOpen, right }) {
   const isMobile = window.matchMedia("(max-width: 860px)").matches;
   /* ระยะขอบล่างต้องเท่ากับหัวจอหลัก (Header ใน app.jsx) ไม่งั้นหน้าที่ใช้หัวจอตัวนี้
      (ยอดขาย · จัดตารางสำรวจ) จะเตี้ยกว่าหน้าอื่น 18px และเส้นขอบล่างชิดตัวหนังสือ */
@@ -189,18 +187,12 @@ function SchedHeader({ icon, title, sub, onMenuOpen, right, tabs }) {
         <button className="hamburger" onClick={onMenuOpen} aria-label="เปิดเมนู"><Icon name="menu" size={18} color="var(--text-2)" /></button>
         {/* จอใหญ่ชื่อหน้ากินเท่าที่ตัวมันกว้าง ที่เหลือเป็นของแถบตัวกรอง — ท่าเดียวกับ Header ใน app.jsx */}
         {/* ไม่มีบรรทัดรอง = กลุ่มนี้เตี้ยกว่าชิปผู้ใช้ข้าง ๆ ต้องจัดกึ่งกลางเอง ไม่งั้นชื่อหน้าจะลอยอยู่ขอบบน */}
-        <div style={{ flex: isMobile ? 1 : "0 1 auto", flexShrink: (tabs && !isMobile) ? 0 : undefined, minWidth: 0, alignSelf: sub ? undefined : "center" }}>
-          {/* ⚠ ห้ามห่อบรรทัด — แท็บต้องอยู่ข้างชื่อหน้า ไม่ใช่ตกลงไปคั่นระหว่างชื่อหน้ากับบรรทัดรอง
-              .header-top เป็น nowrap และให้ก้อนชื่อหน้าหดก่อนแถบตัวกรอง (ดู .header-filters.in-top)
-              ปล่อยให้ห่อได้เมื่อไร แท็บจะตกบรรทัดตั้งแต่จอ 1440 ทั้งที่ยังมีที่ว่างเหลืออีกครึ่งจอ
-              ที่ไม่พอจริง ๆ ให้แถบตัวกรองเลื่อนแนวนอนเอา ซึ่งมันทำได้อยู่แล้ว (overflow-x:auto)
-              ⚠ มือถือไม่เอาแท็บมาไว้แถวนี้เลย — วัดแล้วแถวบนเหลือที่ให้ก้อนชื่อหน้าราว 77px
-                ซึ่งพอดีกับชื่อหน้าเปล่า ๆ ยัดแท็บเข้าไปคือดันชื่อหน้าตกบรรทัดไปทับแถวแฮมเบอร์เกอร์
-                มือถือจึงให้แท็บเป็นแถวของตัวเองใต้หัว คู่กับแถบตัวกรองซึ่งทำแบบนี้อยู่แล้ว */}
-          <div style={{ display: "flex", alignItems: "center", gap: 10, minWidth: 0, flexWrap: "nowrap" }}>
-            <h1 className="page-title">{title}</h1>
-            {!isMobile && tabs}
-          </div>
+        {/* พื้นขั้นต่ำของก้อนชื่อหน้า — .header-filters.in-top ตั้ง flex-shrink ไว้ต่ำมาก (.15)
+            ชื่อหน้าจึงรับการหดไว้เกือบทั้งหมด ปล่อยไว้จะหดจนหายไปทั้งคำตอนจอแคบ
+            ตั้งพื้นไว้แล้วเหลืออย่างน้อยสองสามคำแรก ที่เหลือให้แถบตัวกรองเลื่อนแนวนอนเอา ซึ่งมันทำได้อยู่แล้ว */}
+        <div style={{ flex: isMobile ? 1 : "0 1 auto", minWidth: isMobile ? 0 : 108, alignSelf: sub ? undefined : "center" }}>
+          {/* มุมที่กำลังดู (ปฏิทิน/นัดสำรวจ/ของฉัน) อยู่เป็นเมนูย่อยในแถบเมนูซ้าย ไม่ใช่บนหัวจอ */}
+          <h1 className="page-title">{title}</h1>
           {sub && <p className="page-sub">{sub}</p>}
         </div>
         {!isMobile && <window.HdrSlot />}
@@ -211,8 +203,6 @@ function SchedHeader({ icon, title, sub, onMenuOpen, right, tabs }) {
           <SchedHdrTools />
         </div>
       </div>
-      {/* มือถือ: แท็บสลับมุมเป็นแถวของตัวเองใต้หัว — เหตุผลเดียวกับหัวจอหลักใน app.jsx */}
-      {isMobile && tabs && <div style={{ paddingTop: 12 }}>{tabs}</div>}
     </header>
   );
 }
@@ -220,7 +210,7 @@ function SchedHeader({ icon, title, sub, onMenuOpen, right, tabs }) {
 /* ============================================================
    DISPATCH — ปฏิทินจ่ายงานรายวิศวกร (office) + เตือนซ้อนทับ
    ============================================================ */
-function DispatchView({ appts, jobs, techs, store, leadStore, onMenuOpen, onOpenJob, tabs }) {
+function DispatchView({ appts, jobs, techs, store, leadStore, onMenuOpen, onOpenJob }) {
   const leads = (leadStore && leadStore.leads) || [];
   const isMobile = window.matchMedia("(max-width: 860px)").matches;
   const [day, setDay] = React.useState(() => _ymdLocal(new Date()));
@@ -255,7 +245,7 @@ function DispatchView({ appts, jobs, techs, store, leadStore, onMenuOpen, onOpen
       {/* ชื่อหน้าเป็นชื่อเมนูแม่ ไม่ใช่ชื่อแท็บ — สลับแท็บแล้วหัวจอไม่ควรเปลี่ยนชื่อทั้งอัน
           คนอ่านจะได้รู้ว่ายังอยู่เมนูเดิม แค่คนละมุม (ท่าเดียวกับหน้างานขาย บอร์ด/รายการ)
           ว่าอยู่มุมไหนดูที่แท็บ ส่วนบรรทัดรองยังบอกรายละเอียดของมุมนั้นเหมือนเดิม */}
-      <SchedHeader icon="calendar" title="ตารางงาน" onMenuOpen={onMenuOpen} tabs={tabs}
+      <SchedHeader icon="calendar" title="ตารางงาน" onMenuOpen={onMenuOpen}
         sub={<span>{scopeAppts.length} นัด{mode === "day" ? " (วันนี้)" : " (ทั้งหมด)"} · {conflictScope.size > 0 ? <span style={{ color: "#EF4444", fontWeight: 700 }}>⚠ ซ้อนทับ {conflictScope.size / 2 | 0} คู่</span> : "ไม่มีเวลาซ้อนทับ"}</span>}
         right={<button onClick={() => setEdit(Object.assign(blankAppt(), { start: _composeISO(mode === "day" ? day : _ymdLocal(new Date()), "09:00"), end: _composeISO(mode === "day" ? day : _ymdLocal(new Date()), "11:00") }))} className="btn-add"><Icon name="plus" size={17} color="#fff" sw={2.4} /><span>นัดสำรวจ</span></button>} />
       <div className="app-content">
@@ -698,7 +688,7 @@ function buildMySchedItems(appts, jobs, techId) {
   return out.sort((x, y) => x.ts - y.ts);
 }
 
-function MyScheduleView({ appts, jobs, leads, me, onMenuOpen, onStatus, onOpenSurvey, onOpen, onAdvance, tabs }) {
+function MyScheduleView({ appts, jobs, leads, me, onMenuOpen, onStatus, onOpenSurvey, onOpen, onAdvance }) {
   const techId = me && me.techId;
   const jobsById = React.useMemo(() => Object.fromEntries((jobs || []).map((j) => [j.id, j])), [jobs]);
   const leadsById = React.useMemo(() => Object.fromEntries((leads || []).map((l) => [l.id, l])), [leads]);
@@ -734,7 +724,7 @@ function MyScheduleView({ appts, jobs, leads, me, onMenuOpen, onStatus, onOpenSu
 
   return (
     <React.Fragment>
-      <SchedHeader icon="list" title="ตารางงาน" onMenuOpen={onMenuOpen} sub={sub} tabs={tabs} />
+      <SchedHeader icon="list" title="ตารางงาน" onMenuOpen={onMenuOpen} sub={sub} />
       <div className="app-content">
         {!techId ? (
           <div style={{ padding: 40, textAlign: "center", color: "var(--text-3)", fontSize: 14, background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 14 }}>

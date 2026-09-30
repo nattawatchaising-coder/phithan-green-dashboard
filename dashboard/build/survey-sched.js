@@ -294,8 +294,7 @@ function SchedHeader({
   title,
   sub,
   onMenuOpen,
-  right,
-  tabs
+  right
 }) {
   const isMobile = window.matchMedia("(max-width: 860px)").matches;
   return React.createElement("header", {
@@ -316,29 +315,16 @@ function SchedHeader({
   })), React.createElement("div", {
     style: {
       flex: isMobile ? 1 : "0 1 auto",
-      flexShrink: tabs && !isMobile ? 0 : undefined,
-      minWidth: 0,
+      minWidth: isMobile ? 0 : 108,
       alignSelf: sub ? undefined : "center"
-    }
-  }, React.createElement("div", {
-    style: {
-      display: "flex",
-      alignItems: "center",
-      gap: 10,
-      minWidth: 0,
-      flexWrap: "nowrap"
     }
   }, React.createElement("h1", {
     className: "page-title"
-  }, title), !isMobile && tabs), sub && React.createElement("p", {
+  }, title), sub && React.createElement("p", {
     className: "page-sub"
   }, sub)), !isMobile && React.createElement(window.HdrSlot, null), React.createElement("div", {
     className: "header-actions"
-  }, right, React.createElement(SchedHdrTools, null))), isMobile && tabs && React.createElement("div", {
-    style: {
-      paddingTop: 12
-    }
-  }, tabs));
+  }, right, React.createElement(SchedHdrTools, null))));
 }
 function DispatchView({
   appts,
@@ -347,8 +333,7 @@ function DispatchView({
   store,
   leadStore,
   onMenuOpen,
-  onOpenJob,
-  tabs
+  onOpenJob
 }) {
   const leads = leadStore && leadStore.leads || [];
   const isMobile = window.matchMedia("(max-width: 860px)").matches;
@@ -394,7 +379,6 @@ function DispatchView({
     icon: "calendar",
     title: "\u0E15\u0E32\u0E23\u0E32\u0E07\u0E07\u0E32\u0E19",
     onMenuOpen: onMenuOpen,
-    tabs: tabs,
     sub: React.createElement("span", null, scopeAppts.length, " \u0E19\u0E31\u0E14", mode === "day" ? " (วันนี้)" : " (ทั้งหมด)", " \xB7 ", conflictScope.size > 0 ? React.createElement("span", {
       style: {
         color: "#EF4444",
@@ -1969,8 +1953,7 @@ function MyScheduleView({
   onStatus,
   onOpenSurvey,
   onOpen,
-  onAdvance,
-  tabs
+  onAdvance
 }) {
   const techId = me && me.techId;
   const jobsById = React.useMemo(() => Object.fromEntries((jobs || []).map(j => [j.id, j])), [jobs]);
@@ -2024,8 +2007,7 @@ function MyScheduleView({
     icon: "list",
     title: "\u0E15\u0E32\u0E23\u0E32\u0E07\u0E07\u0E32\u0E19",
     onMenuOpen: onMenuOpen,
-    sub: sub,
-    tabs: tabs
+    sub: sub
   }), React.createElement("div", {
     className: "app-content"
   }, !techId ? React.createElement("div", {

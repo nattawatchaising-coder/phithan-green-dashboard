@@ -82,6 +82,28 @@ label { min-width: 0; }
 .nav-item.active::before { content: ""; position: absolute; left: 0; top: 9px; bottom: 9px; width: 3px;
   border-radius: 0 3px 3px 0; background: var(--primary); }
 .sidebar[data-mode="icons"] .nav-item.active::before { display: none; }
+/* ── เมนูย่อยของแถวที่เปิดอยู่ ──
+   หน้าที่เป็น "มุม" ของข้อมูลชุดเดียวกัน (บอร์ด/ตาราง · ปฏิทิน/นัดสำรวจ/ของฉัน)
+   กางเฉพาะตอนอยู่ในเมนูนั้น — ไม่ใช่หีบเพลงที่ต้องกดพับ/กางเอง
+   แถบเมนูจึงยาวขึ้นแค่ตอนที่อยู่ในหมวดนั้น ส่วนหัวจอไม่มีอะไรเพิ่มเลย */
+.nav-subs { display: flex; flex-direction: column; gap: 1px; margin: 3px 0 5px; position: relative; padding-left: 27px; }
+/* เส้นรางแนวตั้ง — บอกด้วยสายตาว่าสามแถวนี้เกาะอยู่กับเมนูข้างบน ไม่ใช่เมนูใหม่สามแถว */
+.nav-subs::before { content: ""; position: absolute; left: 20px; top: 4px; bottom: 4px; width: 1.5px;
+  border-radius: 2px; background: var(--border-strong); }
+.nav-sub { display: flex; align-items: center; gap: 9px; padding: 7px 11px; border-radius: 9px; border: none; background: none;
+  cursor: pointer; font-size: 12.5px; font-weight: 600; color: var(--text-3); width: 100%; text-align: left;
+  position: relative; white-space: nowrap; font-family: inherit; transition: background .15s, color .15s; }
+.nav-sub:hover { background: var(--surface2); color: var(--text-1); }
+/* มุมที่เปิดอยู่ — ขีดเขียวทับบนเส้นรางพอดี ชุดเดียวกับขีดซ้ายของแถวแม่ แต่เบากว่า */
+.nav-sub.active { color: var(--primary-dark); font-weight: 800; background: var(--surface2); }
+.nav-sub.active::before { content: ""; position: absolute; left: -7px; top: 50%; width: 1.5px; height: 17px;
+  transform: translateY(-50%); border-radius: 2px; background: var(--primary); }
+/* ย่อแถบเป็นไอคอน — เมนูย่อยเหลือไอคอนเล็กเรียงใต้ไอคอนแม่ ไม่มีเส้นราง */
+.sidebar[data-mode="icons"] .nav-subs { padding-left: 0; align-items: center; margin: 4px 0 6px; }
+.sidebar[data-mode="icons"] .nav-subs::before { display: none; }
+.sidebar[data-mode="icons"] .nav-sub { width: 34px; height: 34px; justify-content: center; padding: 0; }
+.sidebar[data-mode="icons"] .nav-sub.active::before { left: 0; top: auto; bottom: -2px; transform: none;
+  width: 14px; height: 2px; left: 50%; margin-left: -7px; }
 /* เมนูที่ปักไว้ล่างสุด (nav-foot) — ขีดเส้นคั่นให้เห็นว่าไม่ได้อยู่กลุ่มเดียวกับหัวข้อด้านบน */
 .sidebar-nav > .nav-item.nav-foot { margin-top: auto; }
 .sidebar-nav > .nav-item.nav-foot::after {
@@ -123,7 +145,10 @@ label { min-width: 0; }
 .header-top { display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; flex-wrap: nowrap; }
 /* ชื่อหน้าใช้ฟอนต์หัวเรื่อง + บีบระยะตัวอักษร ให้ดูเป็นงานออกแบบ ไม่ใช่ตัวหนาธรรมดา */
 .page-title { font-family: var(--display); font-size: 24px; font-weight: 700; color: var(--text-1);
-  letter-spacing: -.035em; white-space: nowrap; line-height: 1.1; }
+  letter-spacing: -.035em; white-space: nowrap; line-height: 1.1;
+  /* ก้อนชื่อหน้าหดได้ (flex: 0 1 auto) แต่ตัวหนังสือ nowrap — พอจอแคบชื่อหน้าจึงล้นออกไปทับแถบตัวกรอง
+     ตัดด้วยจุดไข่ดีกว่าทับกัน — ทับกันคืออ่านไม่ออกทั้งสองอัน */
+  overflow: hidden; text-overflow: ellipsis; }
 .page-sub { font-size: 12.5px; color: var(--text-3); margin-top: 4px; font-variant-numeric: tabular-nums;
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .page-sub strong { color: var(--text-2); font-weight: 700; }
@@ -879,7 +904,7 @@ H-@G1I margin-top D'IC*D%L-1'@- 6H
 <script src="dashboard/build/survey-report.js?v=12"></script>
 <script src="dashboard/build/sales.js?v=61"></script>
 <script src="dashboard/build/views-survey.js?v=27"></script>
-<script src="dashboard/build/survey-sched.js?v=35"></script>
+<script src="dashboard/build/survey-sched.js?v=36"></script>
 <script src="dashboard/build/permit.js?v=7"></script>
 <script src="dashboard/build/views-permit.js?v=17"></script>
 <!-- เอกสารงวดงาน · วางบิล: ตรรกะ → กระดาษ → หน้าจอ -->
@@ -906,6 +931,6 @@ H-@G1I margin-top D'IC*D%L-1'@- 6H
 <script src="dashboard/build/ot-paper.js?v=6"></script>
 <script src="dashboard/build/views-line.js?v=2"></script>
 <script src="dashboard/build/guide.js?v=5"></script>
-<script src="dashboard/build/app.js?v=195"></script>
+<script src="dashboard/build/app.js?v=196"></script>
 </body>
 </html>
