@@ -297,8 +297,44 @@ function fmtBytes(n) {
   return (n / 1024 / 1024).toFixed(1) + " MB";
 }
 
+/* ดู PDF ในแอป — เดิมเปิดด้วย window.open(blob) ซึ่งเบราว์เซอร์/LINE/แอปห่อหน้าเว็บหลายตัวบล็อกป๊อปอัป
+   กดแล้วเงียบ ไม่มีอะไรเกิดขึ้น · ตอนนี้ฝัง iframe ในหน้าต่างซ้อน ส่วนปุ่มเปิดแท็บใหม่/ดาวน์โหลดเป็นทางสำรอง */
+function JobFileViewer({ file, onClose }) {
+  const isMobile = window.matchMedia("(max-width: 860px)").matches;
+  const url = React.useMemo(() => { try { return dataUrlToBlobUrl(file.dataUrl); } catch (e) { return null; } }, [file.id]);
+  React.useEffect(() => () => { if (url) URL.revokeObjectURL(url); }, [url]);
+  React.useEffect(() => {
+    const k = (e) => { if (e.key === "Escape") { e.stopPropagation(); onClose(); } };
+    window.addEventListener("keydown", k, true);
+    return () => window.removeEventListener("keydown", k, true);
+  }, []);
+  const download = () => { if (!url) return; const a = document.createElement("a"); a.href = url; a.download = file.name || "เอกสาร.pdf"; document.body.appendChild(a); a.click(); a.remove(); };
+  const ib = { width: 34, height: 34, borderRadius: "var(--r-pill)", border: "none", boxShadow: "var(--shadow-sm)", background: "var(--surface)", cursor: "pointer", display: "grid", placeItems: "center", flexShrink: 0 };
+  return ReactDOM.createPortal(
+    <div onClick={onClose} style={{ position: "fixed", inset: 0, background: "rgba(8,20,14,.5)", backdropFilter: "blur(3px)", zIndex: 140, display: "grid", placeItems: isMobile ? "stretch" : "center", padding: isMobile ? 0 : 20 }}>
+      <div onClick={(e) => e.stopPropagation()} style={{ background: "var(--bg)", borderRadius: isMobile ? 0 : 18, width: isMobile ? "100%" : "min(900px,96vw)", height: isMobile ? "100%" : "92vh",
+        display: "flex", flexDirection: "column", overflow: "hidden", boxShadow: "0 30px 80px rgba(8,20,14,.3)" }}>
+        <div style={{ padding: "12px 16px", background: "var(--surface)", boxShadow: "0 10px 18px -14px rgba(8,20,14,.45)", position: "relative", display: "flex", alignItems: "center", gap: 10, flexShrink: 0 }}>
+          <Icon name="file" size={17} color="var(--primary)" />
+          <div style={{ flex: 1, minWidth: 0, fontSize: 13.5, fontWeight: 700, color: "var(--text-1)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{file.name}</div>
+          {url && <button onClick={() => window.open(url, "_blank")} title="เปิดในแท็บใหม่" style={ib}><Icon name="link" size={15} color="var(--text-2)" /></button>}
+          {url && <button onClick={download} title="ดาวน์โหลด" style={ib}><Icon name="download" size={15} color="var(--text-2)" /></button>}
+          <button className="x-close" onClick={onClose} title="ปิด" style={ib}><Icon name="x" size={16} /></button>
+        </div>
+        <div style={{ flex: 1, minHeight: 0, background: "var(--surface2)", display: "grid" }}>
+          {url
+            ? <iframe src={url} title={file.name} style={{ width: "100%", height: "100%", border: "none" }} />
+            : <div style={{ placeSelf: "center", color: "var(--text-3)", fontSize: 13 }}>เปิดไฟล์ไม่สำเร็จ — ลองกดดาวน์โหลดแทน</div>}
+        </div>
+      </div>
+    </div>,
+    document.body
+  );
+}
+
 function JobFiles({ media, currentUser, canManage }) {
   const [busy, setBusy] = React.useState(false);
+  const [viewing, setViewing] = React.useState(null);
   const pickKind = React.useRef("other");
   const fileRef = React.useRef(null);
   const files = media.files || [];
@@ -329,10 +365,11 @@ function JobFiles({ media, currentUser, canManage }) {
         const a = document.createElement("a");
         a.href = url; a.download = f.name || "เอกสาร.pdf";
         document.body.appendChild(a); a.click(); a.remove();
+        setTimeout(() => URL.revokeObjectURL(url), 60000);
       } else {
-        window.open(url, "_blank", "noopener");
+        URL.revokeObjectURL(url);
+        setViewing(f);
       }
-      setTimeout(() => URL.revokeObjectURL(url), 60000);
     } catch (err) { alert("เปิดไฟล์ไม่สำเร็จ: " + err.message); }
   };
 
@@ -351,6 +388,7 @@ function JobFiles({ media, currentUser, canManage }) {
 
   return (
     <div style={{ marginBottom: 24 }}>
+      {viewing && <JobFileViewer file={viewing} onClose={() => setViewing(null)} />}
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10, marginBottom: 12, flexWrap: "wrap" }}>
         <span style={{ fontSize: 11, fontWeight: 700, letterSpacing: ".08em", color: "var(--text-3)", display: "flex", alignItems: "center", gap: 6 }}>
           <Icon name="file" size={14} color="var(--text-2)" /> เอกสารแนบ (PDF){files.length > 0 && " · " + files.length}

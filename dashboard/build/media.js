@@ -524,12 +524,156 @@ function fmtBytes(n) {
   if (n < 1024 * 1024) return (n / 1024).toFixed(0) + " KB";
   return (n / 1024 / 1024).toFixed(1) + " MB";
 }
+function JobFileViewer({
+  file,
+  onClose
+}) {
+  const isMobile = window.matchMedia("(max-width: 860px)").matches;
+  const url = React.useMemo(() => {
+    try {
+      return dataUrlToBlobUrl(file.dataUrl);
+    } catch (e) {
+      return null;
+    }
+  }, [file.id]);
+  React.useEffect(() => () => {
+    if (url) URL.revokeObjectURL(url);
+  }, [url]);
+  React.useEffect(() => {
+    const k = e => {
+      if (e.key === "Escape") {
+        e.stopPropagation();
+        onClose();
+      }
+    };
+    window.addEventListener("keydown", k, true);
+    return () => window.removeEventListener("keydown", k, true);
+  }, []);
+  const download = () => {
+    if (!url) return;
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = file.name || "เอกสาร.pdf";
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+  };
+  const ib = {
+    width: 34,
+    height: 34,
+    borderRadius: "var(--r-pill)",
+    border: "none",
+    boxShadow: "var(--shadow-sm)",
+    background: "var(--surface)",
+    cursor: "pointer",
+    display: "grid",
+    placeItems: "center",
+    flexShrink: 0
+  };
+  return ReactDOM.createPortal(React.createElement("div", {
+    onClick: onClose,
+    style: {
+      position: "fixed",
+      inset: 0,
+      background: "rgba(8,20,14,.5)",
+      backdropFilter: "blur(3px)",
+      zIndex: 140,
+      display: "grid",
+      placeItems: isMobile ? "stretch" : "center",
+      padding: isMobile ? 0 : 20
+    }
+  }, React.createElement("div", {
+    onClick: e => e.stopPropagation(),
+    style: {
+      background: "var(--bg)",
+      borderRadius: isMobile ? 0 : 18,
+      width: isMobile ? "100%" : "min(900px,96vw)",
+      height: isMobile ? "100%" : "92vh",
+      display: "flex",
+      flexDirection: "column",
+      overflow: "hidden",
+      boxShadow: "0 30px 80px rgba(8,20,14,.3)"
+    }
+  }, React.createElement("div", {
+    style: {
+      padding: "12px 16px",
+      background: "var(--surface)",
+      boxShadow: "0 10px 18px -14px rgba(8,20,14,.45)",
+      position: "relative",
+      display: "flex",
+      alignItems: "center",
+      gap: 10,
+      flexShrink: 0
+    }
+  }, React.createElement(Icon, {
+    name: "file",
+    size: 17,
+    color: "var(--primary)"
+  }), React.createElement("div", {
+    style: {
+      flex: 1,
+      minWidth: 0,
+      fontSize: 13.5,
+      fontWeight: 700,
+      color: "var(--text-1)",
+      overflow: "hidden",
+      textOverflow: "ellipsis",
+      whiteSpace: "nowrap"
+    }
+  }, file.name), url && React.createElement("button", {
+    onClick: () => window.open(url, "_blank"),
+    title: "\u0E40\u0E1B\u0E34\u0E14\u0E43\u0E19\u0E41\u0E17\u0E47\u0E1A\u0E43\u0E2B\u0E21\u0E48",
+    style: ib
+  }, React.createElement(Icon, {
+    name: "link",
+    size: 15,
+    color: "var(--text-2)"
+  })), url && React.createElement("button", {
+    onClick: download,
+    title: "\u0E14\u0E32\u0E27\u0E19\u0E4C\u0E42\u0E2B\u0E25\u0E14",
+    style: ib
+  }, React.createElement(Icon, {
+    name: "download",
+    size: 15,
+    color: "var(--text-2)"
+  })), React.createElement("button", {
+    className: "x-close",
+    onClick: onClose,
+    title: "\u0E1B\u0E34\u0E14",
+    style: ib
+  }, React.createElement(Icon, {
+    name: "x",
+    size: 16
+  }))), React.createElement("div", {
+    style: {
+      flex: 1,
+      minHeight: 0,
+      background: "var(--surface2)",
+      display: "grid"
+    }
+  }, url ? React.createElement("iframe", {
+    src: url,
+    title: file.name,
+    style: {
+      width: "100%",
+      height: "100%",
+      border: "none"
+    }
+  }) : React.createElement("div", {
+    style: {
+      placeSelf: "center",
+      color: "var(--text-3)",
+      fontSize: 13
+    }
+  }, "\u0E40\u0E1B\u0E34\u0E14\u0E44\u0E1F\u0E25\u0E4C\u0E44\u0E21\u0E48\u0E2A\u0E33\u0E40\u0E23\u0E47\u0E08 \u2014 \u0E25\u0E2D\u0E07\u0E01\u0E14\u0E14\u0E32\u0E27\u0E19\u0E4C\u0E42\u0E2B\u0E25\u0E14\u0E41\u0E17\u0E19")))), document.body);
+}
 function JobFiles({
   media,
   currentUser,
   canManage
 }) {
   const [busy, setBusy] = React.useState(false);
+  const [viewing, setViewing] = React.useState(null);
   const pickKind = React.useRef("other");
   const fileRef = React.useRef(null);
   const files = media.files || [];
@@ -575,10 +719,11 @@ function JobFiles({
         document.body.appendChild(a);
         a.click();
         a.remove();
+        setTimeout(() => URL.revokeObjectURL(url), 60000);
       } else {
-        window.open(url, "_blank", "noopener");
+        URL.revokeObjectURL(url);
+        setViewing(f);
       }
-      setTimeout(() => URL.revokeObjectURL(url), 60000);
     } catch (err) {
       alert("เปิดไฟล์ไม่สำเร็จ: " + err.message);
     }
@@ -618,7 +763,10 @@ function JobFiles({
     style: {
       marginBottom: 24
     }
-  }, React.createElement("div", {
+  }, viewing && React.createElement(JobFileViewer, {
+    file: viewing,
+    onClose: () => setViewing(null)
+  }), React.createElement("div", {
     style: {
       display: "flex",
       justifyContent: "space-between",
