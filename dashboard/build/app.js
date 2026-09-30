@@ -34,7 +34,7 @@ const NAV = [{
   key: "saleskpi",
   th: "ยอดขาย",
   en: "Sales KPI",
-  icon: "grid",
+  icon: "chart",
   perm: "price"
 }, {
   key: "calendar",
@@ -107,7 +107,7 @@ const NAV = [{
   key: "guide",
   th: "คู่มือการใช้งาน",
   en: "Guide",
-  icon: "file",
+  icon: "book",
   inSettings: true
 }];
 const PLAIN_SUB = {
