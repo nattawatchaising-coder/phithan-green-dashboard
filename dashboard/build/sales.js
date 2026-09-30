@@ -3869,7 +3869,7 @@ function SalesKpiView({
     }
   }, text);
   return React.createElement(React.Fragment, null, React.createElement(window.SchedHeader, {
-    title: "\u0E22\u0E2D\u0E14\u0E02\u0E32\u0E22",
+    title: "\u0E07\u0E32\u0E19\u0E02\u0E32\u0E22",
     onMenuOpen: onMenuOpen
   }), React.createElement("div", {
     className: "app-content"

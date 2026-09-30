@@ -19,24 +19,6 @@ const NAV = [{
   group: "board",
   tab: "ตาราง"
 }, {
-  key: "billing",
-  th: "เอกสารงวดงาน",
-  en: "Billing",
-  icon: "file",
-  perm: "billing"
-}, {
-  key: "leads",
-  th: "งานขาย",
-  en: "Sales",
-  icon: "trend",
-  perm: "leads"
-}, {
-  key: "saleskpi",
-  th: "ยอดขาย",
-  en: "Sales KPI",
-  icon: "chart",
-  perm: "price"
-}, {
   key: "calendar",
   th: "ตารางงาน",
   en: "Schedule",
@@ -59,6 +41,27 @@ const NAV = [{
   group: "calendar",
   tab: "ของฉัน"
 }, {
+  key: "leads",
+  th: "งานขาย",
+  en: "Sales",
+  icon: "trend",
+  perm: "leads",
+  tab: "ลูกค้า"
+}, {
+  key: "saleskpi",
+  th: "ยอดขาย",
+  en: "Sales KPI",
+  icon: "chart",
+  perm: "price",
+  group: "leads",
+  tab: "ยอดขาย"
+}, {
+  key: "billing",
+  th: "เอกสารงวดงาน",
+  en: "Billing",
+  icon: "file",
+  perm: "billing"
+}, {
   key: "permit",
   th: "ขออนุญาตการไฟฟ้า",
   en: "Permit",
@@ -75,7 +78,8 @@ const NAV = [{
   th: "เบิกเงินหน้างาน",
   en: "Expenses",
   icon: "wallet",
-  perm: "expense"
+  perm: "expense",
+  sep: true
 }, {
   key: "stock",
   th: "คลังสินค้า",
@@ -147,15 +151,18 @@ const PERMIT_TODO = {
 };
 const permitStageKey = j => j && j.permit && j.permit.status || "todo";
 const permitStageOf = key => (window.PERMIT_COLS || []).find(c => c.key === key) || PERMIT_TODO;
-const NAV_IN_BOARD = ["leads", "permit"];
+const NAV_IN_BOARD = ["permit"];
 const HDR_SEARCH = {
   board: "ค้นหา",
   table: "ค้นหา",
   billing: "ค้นหา"
 };
-const navForRole = (roles, techId) => NAV.filter(n => n.own ? !!techId : !n.perm || can(roles, n.perm)).map(n => n.group || NAV_IN_BOARD.indexOf(n.key) !== -1 ? Object.assign({}, n, {
-  hidden: true
-}) : n);
+const navForRole = (roles, techId) => NAV.filter(n => n.own ? !!techId : !n.perm || can(roles, n.perm)).map((n, i, list) => {
+  const orphan = n.group && !list.some(x => x.key === n.group);
+  return n.group && !orphan || NAV_IN_BOARD.indexOf(n.key) !== -1 ? Object.assign({}, n, {
+    hidden: true
+  }) : n;
+});
 const navTop = key => {
   const n = NAV.find(x => x.key === key);
   return n && n.group || key;
@@ -1794,7 +1801,7 @@ function Sidebar({
         key: n.key
       }, React.createElement("button", {
         onClick: () => onNav(n.key),
-        className: "nav-item" + (active ? " active" : "") + (i === first ? " nav-foot" : ""),
+        className: "nav-item" + (active ? " active" : "") + (i === first ? " nav-foot" : "") + (n.sep && i !== first ? " nav-sep" : ""),
         title: n.th
       }, React.createElement(Icon, {
         name: n.icon,

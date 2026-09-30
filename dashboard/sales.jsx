@@ -2330,7 +2330,9 @@ function SalesKpiView({ leads, quotes, appts, techs, currentUser, onMenuOpen, on
     <React.Fragment>
       {/* ไม่มีบรรทัดรอง — เดือน ยอดปิด จำนวนราย และ pipeline อยู่ในการ์ดสรุปใต้หัวจอครบทุกตัวอยู่แล้ว
           บรรทัดนี้จึงเป็นการพูดซ้ำด้วยตัวหนังสือเล็กกว่า และดันตัวกรองที่มาอยู่แถวเดียวกันให้ห่างจากชื่อหน้า */}
-      <window.SchedHeader title="ยอดขาย" onMenuOpen={onMenuOpen} />
+      {/* ชื่อหน้าเป็นชื่อเมนูแม่ ไม่ใช่ชื่อแท็บ — ท่าเดียวกับจัดตารางสำรวจและตารางงานของฉัน
+          สลับแท็บแล้วหัวจอไม่ควรเปลี่ยนชื่อทั้งอัน คนอ่านจะได้รู้ว่ายังอยู่เมนูเดิม แค่คนละมุม */}
+      <window.SchedHeader title="งานขาย" onMenuOpen={onMenuOpen} />
       <div className="app-content">
         <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap", marginBottom: 16 }}>
           <SalesMonthPick month={month} thisMonth={thisMonth} onShift={shiftMonth} onPick={setMonth} />
