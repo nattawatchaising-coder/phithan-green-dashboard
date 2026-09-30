@@ -294,7 +294,8 @@ function SchedHeader({
   title,
   sub,
   onMenuOpen,
-  right
+  right,
+  tabs
 }) {
   const isMobile = window.matchMedia("(max-width: 860px)").matches;
   return React.createElement("header", {
@@ -315,16 +316,29 @@ function SchedHeader({
   })), React.createElement("div", {
     style: {
       flex: isMobile ? 1 : "0 1 auto",
+      flexShrink: tabs && !isMobile ? 0 : undefined,
       minWidth: 0,
       alignSelf: sub ? undefined : "center"
     }
+  }, React.createElement("div", {
+    style: {
+      display: "flex",
+      alignItems: "center",
+      gap: 10,
+      minWidth: 0,
+      flexWrap: "nowrap"
+    }
   }, React.createElement("h1", {
     className: "page-title"
-  }, title), sub && React.createElement("p", {
+  }, title), !isMobile && tabs), sub && React.createElement("p", {
     className: "page-sub"
   }, sub)), !isMobile && React.createElement(window.HdrSlot, null), React.createElement("div", {
     className: "header-actions"
-  }, right, React.createElement(SchedHdrTools, null))));
+  }, right, React.createElement(SchedHdrTools, null))), isMobile && tabs && React.createElement("div", {
+    style: {
+      paddingTop: 12
+    }
+  }, tabs));
 }
 function DispatchView({
   appts,
@@ -333,7 +347,8 @@ function DispatchView({
   store,
   leadStore,
   onMenuOpen,
-  onOpenJob
+  onOpenJob,
+  tabs
 }) {
   const leads = leadStore && leadStore.leads || [];
   const isMobile = window.matchMedia("(max-width: 860px)").matches;
@@ -377,8 +392,9 @@ function DispatchView({
   }, [appts]);
   return React.createElement(React.Fragment, null, React.createElement(SchedHeader, {
     icon: "calendar",
-    title: "\u0E08\u0E31\u0E14\u0E15\u0E32\u0E23\u0E32\u0E07\u0E2A\u0E33\u0E23\u0E27\u0E08",
+    title: "\u0E15\u0E32\u0E23\u0E32\u0E07\u0E07\u0E32\u0E19",
     onMenuOpen: onMenuOpen,
+    tabs: tabs,
     sub: React.createElement("span", null, scopeAppts.length, " \u0E19\u0E31\u0E14", mode === "day" ? " (วันนี้)" : " (ทั้งหมด)", " \xB7 ", conflictScope.size > 0 ? React.createElement("span", {
       style: {
         color: "#EF4444",
@@ -1953,7 +1969,8 @@ function MyScheduleView({
   onStatus,
   onOpenSurvey,
   onOpen,
-  onAdvance
+  onAdvance,
+  tabs
 }) {
   const techId = me && me.techId;
   const jobsById = React.useMemo(() => Object.fromEntries((jobs || []).map(j => [j.id, j])), [jobs]);
@@ -2005,9 +2022,10 @@ function MyScheduleView({
   });
   return React.createElement(React.Fragment, null, React.createElement(SchedHeader, {
     icon: "list",
-    title: "\u0E15\u0E32\u0E23\u0E32\u0E07\u0E07\u0E32\u0E19\u0E02\u0E2D\u0E07\u0E09\u0E31\u0E19",
+    title: "\u0E15\u0E32\u0E23\u0E32\u0E07\u0E07\u0E32\u0E19",
     onMenuOpen: onMenuOpen,
-    sub: sub
+    sub: sub,
+    tabs: tabs
   }), React.createElement("div", {
     className: "app-content"
   }, !techId ? React.createElement("div", {

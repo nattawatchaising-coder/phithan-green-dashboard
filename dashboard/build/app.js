@@ -6,15 +6,18 @@ const NAV = [{
   icon: "grid"
 }, {
   key: "board",
-  th: "บอร์ดงาน",
-  en: "Workflow",
-  icon: "kanban"
+  th: "งานติดตั้ง",
+  en: "Jobs",
+  icon: "kanban",
+  tab: "บอร์ด"
 }, {
   key: "table",
   th: "ฐานข้อมูลงาน",
   en: "Database",
   icon: "table",
-  perm: "viewAll"
+  perm: "viewAll",
+  group: "board",
+  tab: "ตาราง"
 }, {
   key: "billing",
   th: "เอกสารงวดงาน",
@@ -34,11 +37,27 @@ const NAV = [{
   icon: "grid",
   perm: "price"
 }, {
+  key: "calendar",
+  th: "ตารางงาน",
+  en: "Schedule",
+  icon: "calendar",
+  tab: "ปฏิทิน"
+}, {
   key: "dispatch",
   th: "จัดตารางสำรวจ",
   en: "Dispatch",
-  icon: "calendar",
-  perm: "dispatch"
+  icon: "pin",
+  perm: "dispatch",
+  group: "calendar",
+  tab: "นัดสำรวจ"
+}, {
+  key: "myschedule",
+  th: "ตารางงานของฉัน",
+  en: "My Schedule",
+  icon: "list",
+  own: true,
+  group: "calendar",
+  tab: "ของฉัน"
 }, {
   key: "permit",
   th: "ขออนุญาตการไฟฟ้า",
@@ -57,17 +76,6 @@ const NAV = [{
   en: "Expenses",
   icon: "wallet",
   perm: "expense"
-}, {
-  key: "myschedule",
-  th: "ตารางงานของฉัน",
-  en: "My Schedule",
-  icon: "list",
-  own: true
-}, {
-  key: "calendar",
-  th: "ปฏิทินนัด",
-  en: "Calendar",
-  icon: "calendar"
 }, {
   key: "stock",
   th: "คลังสินค้า",
@@ -115,6 +123,11 @@ const NAV_BADGE_TONE = {
   stock: "warn",
   calendar: "info"
 };
+const NAV_TONE_RANK = {
+  "": 0,
+  warn: 1,
+  info: 2
+};
 const NAV_BADGE_TIP = {
   overview: "งานที่ล่าช้ากว่ากำหนด",
   stock: "ของที่เหลือถึงหรือต่ำกว่าจุดสั่งซื้อ",
@@ -140,9 +153,18 @@ const HDR_SEARCH = {
   table: "ค้นหา",
   billing: "ค้นหา"
 };
-const navForRole = (roles, techId) => NAV.filter(n => n.own ? !!techId : !n.perm || can(roles, n.perm)).map(n => NAV_IN_BOARD.indexOf(n.key) !== -1 ? Object.assign({}, n, {
+const navForRole = (roles, techId) => NAV.filter(n => n.own ? !!techId : !n.perm || can(roles, n.perm)).map(n => n.group || NAV_IN_BOARD.indexOf(n.key) !== -1 ? Object.assign({}, n, {
   hidden: true
 }) : n);
+const navTop = key => {
+  const n = NAV.find(x => x.key === key);
+  return n && n.group || key;
+};
+const navTabsOf = (items, top) => (items || []).filter(n => n.key === top || n.group === top).map(n => ({
+  key: n.key,
+  th: n.tab || n.th,
+  icon: n.icon
+}));
 const techKey = (j, known) => j.tech && (!known || known.has(j.tech)) ? j.tech : "__none";
 const matchTech = (j, f, known) => techKey(j, known) === f;
 const instDate = j => window.SF.installDate ? window.SF.installDate(j) : "";
@@ -1005,13 +1027,18 @@ function App() {
     setView(listView());
   };
   const navTo = v => {
-    setView(v);
-    if (v !== "table") {
+    if (navTop(v) !== navTop(view)) {
       setStageFilter(null);
       setQuickFilter(null);
     }
+    setView(v);
     closeSidebar();
   };
+  const viewTabs = React.createElement(NavTabs, {
+    items: navTabsOf(navItems, navTop(view)),
+    value: view,
+    onPick: navTo
+  });
   if (loading) return React.createElement(LoadingScreen, null);
   if (!auth.current) return React.createElement(LoginScreen, {
     authStore: auth
@@ -1102,7 +1129,8 @@ function App() {
     store: apptStore,
     leadStore: leadStore,
     onMenuOpen: () => setSidebarOpen(true),
-    onOpenJob: openJob
+    onOpenJob: openJob,
+    tabs: viewTabs
   }) : view === "leads" && leadMode === "board" ? React.createElement(React.Fragment, null, React.createElement(window.SchedHeader, {
     title: "\u0E07\u0E32\u0E19\u0E02\u0E32\u0E22",
     sub: salesHead,
@@ -1152,10 +1180,12 @@ function App() {
     onStatus: (id, s) => apptStore.setStatus(id, s),
     onOpenSurvey: (j, appt) => openSurvey(j, appt),
     onOpen: openJob,
-    onAdvance: j => store.advance(j.id)
+    onAdvance: j => store.advance(j.id),
+    tabs: viewTabs
   }) : React.createElement(React.Fragment, null, React.createElement(Header, {
     view: view,
     navList: navItems,
+    tabs: viewTabs,
     plain: permitPage || PLAIN_SUB[view] !== undefined,
     subtitle: permitPage ? permitHead : PLAIN_SUB[view] !== undefined ? PLAIN_SUB[view] : null,
     ownOnly: ownOnly,
@@ -1643,6 +1673,56 @@ function App() {
     onChange: v => setTweak("cardStyle", v)
   })), React.createElement(ConfirmHost, null)));
 }
+function NavTabs({
+  items,
+  value,
+  onPick
+}) {
+  const isMobile = useIsMobile();
+  if (!items || items.length < 2) return null;
+  return React.createElement("div", {
+    style: {
+      display: "inline-flex",
+      gap: 3,
+      padding: 3,
+      borderRadius: 99,
+      flexShrink: 0,
+      background: "var(--surface2)",
+      border: "1px solid var(--border)"
+    }
+  }, items.map(it => {
+    const on = value === it.key;
+    return React.createElement("button", {
+      key: it.key,
+      onClick: () => {
+        if (!on) onPick(it.key);
+      },
+      title: it.th,
+      "aria-current": on ? "page" : undefined,
+      style: {
+        display: "inline-flex",
+        alignItems: "center",
+        gap: 5,
+        borderRadius: 99,
+        border: "none",
+        cursor: on ? "default" : "pointer",
+        padding: isMobile ? "6px 10px" : "6px 13px",
+        fontFamily: "inherit",
+        fontSize: 12.5,
+        fontWeight: 700,
+        whiteSpace: "nowrap",
+        background: on ? "var(--surface)" : "transparent",
+        color: on ? "var(--primary-dark)" : "var(--text-3)",
+        boxShadow: on ? "0 1px 3px rgba(20,40,28,.10)" : "none",
+        transition: "background .15s, color .15s"
+      }
+    }, React.createElement(Icon, {
+      name: it.icon,
+      size: 14,
+      color: on ? "var(--primary-dark)" : "var(--text-3)"
+    }), React.createElement("span", null, it.th));
+  }));
+}
 function Sidebar({
   view,
   onNav,
@@ -1671,7 +1751,27 @@ function Sidebar({
   const badgeOf = key => {
     if (key === "overview") return delayed;
     if (key === "stock") return lowStock;
-    return (badges || {})[key] || 0;
+    const b = badges || {};
+    return NAV.reduce((s, n) => s + (n.key === key || n.group === key ? b[n.key] || 0 : 0), 0);
+  };
+  const badgeInfo = key => {
+    const b = badges || {};
+    let best = null;
+    NAV.forEach(n => {
+      if (n.key !== key && n.group !== key || !(b[n.key] || 0)) return;
+      const t = NAV_BADGE_TONE[n.key] || "";
+      if (best === null || NAV_TONE_RANK[t] < NAV_TONE_RANK[best.t]) best = {
+        t: t,
+        k: n.key
+      };
+    });
+    return best ? {
+      tone: best.t ? " " + best.t : "",
+      tip: NAV_BADGE_TIP[best.k] || ""
+    } : {
+      tone: NAV_BADGE_TONE[key] ? " " + NAV_BADGE_TONE[key] : "",
+      tip: NAV_BADGE_TIP[key] || ""
+    };
   };
   const sidebarStyle = isMobile ? {
     transform: open ? "translateX(0)" : "translateX(-100%)",
@@ -1745,7 +1845,7 @@ function Sidebar({
     const items = navForRole(role, techId).filter(n => !n.hidden && !n.inSettings);
     const first = items.findIndex(n => n.foot);
     return items.map((n, i) => {
-      const active = view === n.key;
+      const active = navTop(view) === n.key;
       return React.createElement("button", {
         key: n.key,
         onClick: () => onNav(n.key),
@@ -1758,8 +1858,9 @@ function Sidebar({
       }), !icons && React.createElement("span", null, n.th), (() => {
         const cnt = badgeOf(n.key);
         if (!cnt) return null;
-        const tone = NAV_BADGE_TONE[n.key] ? " " + NAV_BADGE_TONE[n.key] : "";
-        const tip = NAV_BADGE_TIP[n.key] || "";
+        const bi = badgeInfo(n.key);
+        const tone = bi.tone;
+        const tip = bi.tip;
         return icons ? React.createElement("span", {
           className: "nav-dot" + tone,
           title: tip + " " + cnt
@@ -2195,6 +2296,7 @@ window.HeaderTools = HeaderTools;
 function Header({
   view,
   navList,
+  tabs,
   plain,
   subtitle,
   ownOnly,
@@ -2236,7 +2338,7 @@ function Header({
   onToggleAurora,
   onMySign
 }) {
-  const nav = navList.find(n => n.key === view) || NAV.find(n => n.key === view);
+  const nav = navList.find(n => n.key === navTop(view)) || NAV.find(n => n.key === navTop(view)) || navList.find(n => n.key === view) || NAV.find(n => n.key === view);
   const QUICK_LABELS = {
     active: "กำลังดำเนินการ",
     delayed: "ล่าช้า",
@@ -2311,12 +2413,21 @@ function Header({
   })), React.createElement("div", {
     style: {
       flex: isMobile ? 1 : "0 1 auto",
+      flexShrink: tabs && !isMobile ? 0 : undefined,
       minWidth: 0,
       alignSelf: subtitle === "" ? "center" : undefined
     }
+  }, React.createElement("div", {
+    style: {
+      display: "flex",
+      alignItems: "center",
+      gap: 10,
+      minWidth: 0,
+      flexWrap: "nowrap"
+    }
   }, React.createElement("h1", {
     className: "page-title"
-  }, nav.th), subtitle !== "" && React.createElement("p", {
+  }, nav.th), !isMobile && tabs), subtitle !== "" && React.createElement("p", {
     className: "page-sub"
   }, subtitle || React.createElement(React.Fragment, null, "\u0E41\u0E2A\u0E14\u0E07 ", React.createElement("strong", null, count), " \u0E08\u0E32\u0E01 ", total, " \u0E07\u0E32\u0E19", ownOnly && " · เฉพาะงานของคุณ"), stageFilter && React.createElement("span", null, " \xB7 \u0E01\u0E23\u0E2D\u0E07: ", stInfo(stageFilter).th, " ", React.createElement("button", {
     onClick: () => setStageFilter(null),
@@ -2417,7 +2528,11 @@ function Header({
     onToggleAurora: onToggleAurora,
     me: me,
     onMySign: onMySign
-  }))), isMobile && filterBar);
+  }))), isMobile && tabs && React.createElement("div", {
+    style: {
+      paddingTop: 12
+    }
+  }, tabs), isMobile && filterBar);
 }
 function DailyBriefing({
   lateAlerts,

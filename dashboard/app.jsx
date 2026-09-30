@@ -6,8 +6,10 @@
    perm ว่าง = ทุกคนที่ล็อกอินเห็น · own = เห็นเมื่อบัญชีผูกกับพนักงานในระบบ (มีงานเป็นของตัวเอง) */
 const NAV = [
   { key: "overview",   th: "ภาพรวม",         en: "Overview",      icon: "grid" },
-  { key: "board",      th: "บอร์ดงาน",        en: "Workflow",      icon: "kanban" },
-  { key: "table",      th: "ฐานข้อมูลงาน",     en: "Database",      icon: "table",    perm: "viewAll" },
+  /* งานติดตั้ง — บอร์ดกับตารางคืองานใบเดียวกัน ต่างกันแค่ทรงที่วาง จึงเป็นเมนูเดียวแล้วสลับมุมในหน้า
+     (กฎเดียวกับที่ยุบบอร์ดขายเข้ากับรายการลูกค้าข้างล่าง) */
+  { key: "board",      th: "งานติดตั้ง",       en: "Jobs",          icon: "kanban",   tab: "บอร์ด" },
+  { key: "table",      th: "ฐานข้อมูลงาน",     en: "Database",      icon: "table",    perm: "viewAll", group: "board", tab: "ตาราง" },
   /* เอกสารงวดงาน — ถอดงวดจากใบเสนอราคา ออกใบแจ้งส่งมอบงาน แล้วตามเงินจนจบโปรเจค */
   { key: "billing",    th: "เอกสารงวดงาน",    en: "Billing",      icon: "file",     perm: "billing" },
   /* บอร์ดขายกับรายการลูกค้าคือข้อมูลชุดเดียวกันคนละมุม จึงเป็นเมนูเดียว แล้วสลับมุมในหน้า */
@@ -15,14 +17,16 @@ const NAV = [
   { key: "saleskpi",   th: "ยอดขาย",           en: "Sales KPI",     icon: "grid",     perm: "price" },
   // "สถานะสำรวจ" (SurveyView) ถอดออกจากเมนูแล้ว — การสำรวจย้ายไปอยู่กับ "ลูกค้าสำรวจ" ทั้งหมด
   // งานในฐานงานมาจากลูกค้าที่แปลงแล้ว (พกแบบสำรวจติดมาด้วย) · โค้ดหน้ายังอยู่ใน views-survey.jsx ถ้าอยากได้คืน
-  { key: "dispatch",   th: "จัดตารางสำรวจ",    en: "Dispatch",      icon: "calendar", perm: "dispatch" },
+  /* ตารางงาน — สามหน้านี้เป็นปฏิทินทั้งหมด ต่างกันที่ตัวกรอง (ทุกนัด / เฉพาะนัดสำรวจ / เฉพาะของฉัน)
+     เคยกินเมนูสามแถวแล้วใช้ไอคอนซ้ำกันสองแถว ซึ่งเป็นสัญญาณว่ามันเป็นเรื่องเดียวกันมาแต่แรก */
+  { key: "calendar",   th: "ตารางงาน",         en: "Schedule",      icon: "calendar", tab: "ปฏิทิน" },
+  { key: "dispatch",   th: "จัดตารางสำรวจ",    en: "Dispatch",      icon: "pin",      perm: "dispatch", group: "calendar", tab: "นัดสำรวจ" },
+  { key: "myschedule", th: "ตารางงานของฉัน",   en: "My Schedule",   icon: "list",     own: true, group: "calendar", tab: "ของฉัน" },
   { key: "permit",     th: "ขออนุญาตการไฟฟ้า", en: "Permit",        icon: "shield",   perm: "permit" },
   /* งานบริการหลังการขาย — ทะเบียนประกัน · รอบล้างแผง · ใบแจ้งซ่อม · ใบรายงานเข้าบริการ */
   { key: "om",         th: "งานบริการหลังการขาย", en: "O&M",         icon: "wrench",   perm: "om" },
   /* ใบเบิกเงินหน้างาน — ซื้อของหน้างาน · ค่าขนส่ง · ค่าใช้จ่ายอื่น และยอดค้างจ่ายรายคน */
   { key: "expense",    th: "เบิกเงินหน้างาน",  en: "Expenses",     icon: "wallet",   perm: "expense" },
-  { key: "myschedule", th: "ตารางงานของฉัน",   en: "My Schedule",   icon: "list",     own: true },
-  { key: "calendar",   th: "ปฏิทินนัด",        en: "Calendar",      icon: "calendar" },
   { key: "stock",      th: "คลังสินค้า",       en: "Inventory",     icon: "box",      perm: "stock" },
   /* รายงานประจำวันหน้างาน — ช่างเขียน วิศวกรผู้รับผิดชอบอนุมัติ จึงผูกกับสิทธิ์แก้ใบงาน
      foot = ดันไปล่างสุดของแถบเมนู แยกเส้นคั่นออกจากเมนูงาน เพราะเป็นเอกสารที่เข้าทุกวัน
@@ -64,6 +68,9 @@ const PLAIN_SUB = {
   guide: "ขั้นตอนการใช้งานทีละข้อ แยกตามหน้าที่ · พิมพ์เป็นใบแจกได้",
 };
 const NAV_BADGE_TONE = { stock: "warn", calendar: "info" };
+/* ความด่วนของโทนเลขท้ายเมนู — เลขรวมบนแถวแม่ต้องใช้โทนของเรื่องที่ด่วนที่สุดที่ยังค้างอยู่
+   ไม่งั้นนัดสำรวจที่เลยวันแล้ว (แดง) จะถูกกลืนเป็นฟ้าตามนัดของวันนี้ซึ่งไม่ใช่ปัญหา */
+const NAV_TONE_RANK = { "": 0, warn: 1, info: 2 };
 const NAV_BADGE_TIP = {
   overview: "งานที่ล่าช้ากว่ากำหนด",
   stock:    "ของที่เหลือถึงหรือต่ำกว่าจุดสั่งซื้อ",
@@ -105,7 +112,18 @@ const HDR_SEARCH = {
 };
 const navForRole = (roles, techId) => NAV
   .filter((n) => (n.own ? !!techId : (!n.perm || can(roles, n.perm))))
-  .map((n) => (NAV_IN_BOARD.indexOf(n.key) !== -1 ? Object.assign({}, n, { hidden: true }) : n));
+  .map((n) => (n.group || NAV_IN_BOARD.indexOf(n.key) !== -1 ? Object.assign({}, n, { hidden: true }) : n));
+
+/* ── เมนูที่ยุบเข้าด้วยกัน ──
+   หน้าที่มี group ไม่กินแถวในเมนูซ้ายแล้ว แต่ยังอยู่ใน navForRole ครบ เพราะ allowed ใช้ลิสต์นี้
+   ตัดสินว่าหน้าไหนเข้าได้ — ถอดออกจริงคือกดเข้าไม่ได้ ไม่ใช่แค่ไม่เห็นเมนู
+   ⚠ ยุบเมนูได้ แต่ห้ามให้ของหาย: ทุกหน้าที่เคยมีแถวของตัวเอง ต้องยังกดถึงได้ในคลิกเดียว
+     จากแท็บบนหัวจอ และเลขค้างของมันต้องไปโผล่บนแถวแม่ ไม่ใช่หายไปพร้อมแถว */
+const navTop = (key) => { const n = NAV.find((x) => x.key === key); return (n && n.group) || key; };
+/* แท็บของเมนูแม่ตัวหนึ่ง — เรียงตามลำดับใน NAV (แม่มาก่อนเสมอ)
+   รับ items ที่ผ่าน navForRole มาแล้ว หน้าที่ไม่มีสิทธิ์จึงไม่ขึ้นเป็นแท็บที่กดไม่ได้ */
+const navTabsOf = (items, top) => (items || []).filter((n) => n.key === top || n.group === top)
+  .map((n) => ({ key: n.key, th: n.tab || n.th, icon: n.icon }));
 /* บอร์ดงานเปิดให้ทุกตำแหน่ง — ไม่มีการตัดเมนูนี้ทิ้งตามตำแหน่งอีกแล้ว
    สิ่งที่แต่ละตำแหน่งเห็นบนบอร์ด ตัดสินจากค่าที่ตั้งไว้ล้วน ๆ
      · เลนไหนโผล่  → flGroups(role) ใน views-flow.jsx (ฝ่ายขายดู leads · เอกสารดู permit)
@@ -823,10 +841,18 @@ function App() {
   const goKpi = (key) => { setQuickFilter(key); setStageFilter(null); setTypeFilter("all"); setDelayedOnly(false); setView(listView()); };
 
   const navTo = (v) => {
+    /* สลับแท็บในเมนูเดียวกัน = ยังดูงานกองเดิมอยู่คนละมุม ตัวกรองจึงต้องติดไปด้วย
+       ถ้าล้างทุกครั้ง คนที่กรอง "เฉพาะงานล่าช้า" ไว้แล้วสลับไปมุมตาราง จะได้งานทั้งบริษัทกลับมาเต็มจอ
+       ข้ามไปคนละเมนูค่อยล้าง เพราะตัวกรองของหน้าเดิมไม่มีความหมายบนหน้าใหม่ */
+    if (navTop(v) !== navTop(view)) { setStageFilter(null); setQuickFilter(null); }
     setView(v);
-    if (v !== "table") { setStageFilter(null); setQuickFilter(null); }
     closeSidebar();
   };
+
+  /* แท็บสลับมุมของเมนูที่ยุบเข้าด้วยกัน — คำนวณที่เดียวแล้วส่งให้ทุกหัวจอ
+     (หัวจอหลัก · SchedHeader ของจัดตารางสำรวจและตารางงานของฉัน) จะได้ไม่มีชุดที่สองให้ต้องตามแก้
+     ไม่มีลูกหรือมีสิทธิ์เข้าหน้าเดียว NavTabs คืน null เอง ไม่ต้องเช็กที่ปลายทาง */
+  const viewTabs = <NavTabs items={navTabsOf(navItems, navTop(view))} value={view} onPick={navTo} />;
 
   if (loading) return <LoadingScreen />;
   if (!auth.current) return <LoginScreen authStore={auth} />;
@@ -874,7 +900,7 @@ function App() {
             priceStore={priceStore} ampStore={ampStore} condStore={condStore} canManagePrices={can(role, "price")} />
         ) : view === "dispatch" ? (
           <DispatchView appts={apptStore.appts} jobs={jobs} techs={techStore.techs} store={apptStore} leadStore={leadStore}
-            onMenuOpen={() => setSidebarOpen(true)} onOpenJob={openJob} />
+            onMenuOpen={() => setSidebarOpen(true)} onOpenJob={openJob} tabs={viewTabs} />
         ) : (view === "leads" && leadMode === "board") ? (
           <React.Fragment>
             <window.SchedHeader title="งานขาย" sub={salesHead} right={leadTabs} onMenuOpen={() => setSidebarOpen(true)} />
@@ -902,10 +928,10 @@ function App() {
             onStatus={(id, s) => apptStore.setStatus(id, s)}
             onOpenSurvey={(j, appt) => openSurvey(j, appt)}
             onOpen={openJob}
-            onAdvance={(j) => store.advance(j.id)} />
+            onAdvance={(j) => store.advance(j.id)} tabs={viewTabs} />
         ) : (
         <React.Fragment>
-        <Header view={view} navList={navItems} plain={permitPage || PLAIN_SUB[view] !== undefined}
+        <Header view={view} navList={navItems} tabs={viewTabs} plain={permitPage || PLAIN_SUB[view] !== undefined}
           subtitle={permitPage ? permitHead : (PLAIN_SUB[view] !== undefined ? PLAIN_SUB[view] : null)} ownOnly={ownOnly} count={filtered.length} total={jobs.length}
           search={search} setSearch={setSearch}
           typeFilter={typeFilter} setTypeFilter={setTypeFilter}
@@ -1148,6 +1174,33 @@ function App() {
   );
 }
 
+/* ── แท็บสลับมุมบนหัวจอ ──
+   ของที่ยุบเข้ามาอยู่ใต้เมนูเดียวกัน โผล่ตรงนี้ให้กดถึงได้ในคลิกเดียว วางชิดชื่อหน้า
+   เพื่อให้อ่านเป็น "ชื่อหน้า › มุมที่กำลังดู" ไม่ใช่ปุ่มลอยปนกับเครื่องมือฝั่งขวา
+   มือถือลงไปเป็นแถวของตัวเองใต้หัว (ดู Header) จึงมีที่พอให้ชื่อเต็มทุกมุม */
+function NavTabs({ items, value, onPick }) {
+  const isMobile = useIsMobile();
+  if (!items || items.length < 2) return null;
+  return (
+    <div style={{ display: "inline-flex", gap: 3, padding: 3, borderRadius: 99, flexShrink: 0,
+      background: "var(--surface2)", border: "1px solid var(--border)" }}>
+      {items.map((it) => {
+        const on = value === it.key;
+        return (
+          <button key={it.key} onClick={() => { if (!on) onPick(it.key); }} title={it.th} aria-current={on ? "page" : undefined}
+            style={{ display: "inline-flex", alignItems: "center", gap: 5, borderRadius: 99, border: "none", cursor: on ? "default" : "pointer",
+              padding: isMobile ? "6px 10px" : "6px 13px", fontFamily: "inherit", fontSize: 12.5, fontWeight: 700, whiteSpace: "nowrap",
+              background: on ? "var(--surface)" : "transparent", color: on ? "var(--primary-dark)" : "var(--text-3)",
+              boxShadow: on ? "0 1px 3px rgba(20,40,28,.10)" : "none", transition: "background .15s, color .15s" }}>
+            <Icon name={it.icon} size={14} color={on ? "var(--primary-dark)" : "var(--text-3)"} />
+            <span>{it.th}</span>
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
 function Sidebar({ view, onNav, role, techId, jobs, stock, t, badges, open, onClose, collapsed, onToggleCollapsed, currentUser, onLogout, canManageUsers, onManageUsers, onManageTechs, onMySign }) {
   // Read media query synchronously every render — avoids stale state when
   // the preview or device loads at one size then displays at another.
@@ -1162,7 +1215,23 @@ function Sidebar({ view, onNav, role, techId, jobs, stock, t, badges, open, onCl
   const badgeOf = (key) => {
     if (key === "overview") return delayed;
     if (key === "stock") return lowStock;
-    return ((badges || {})[key]) || 0;
+    /* แถวแม่รวมเลขของหน้าที่ยุบเข้าไปเป็นแท็บด้วย — ยุบแถวได้ แต่เรื่องที่ค้างอยู่ห้ามหายไปกับแถว */
+    const b = badges || {};
+    return NAV.reduce((s, n) => s + ((n.key === key || n.group === key) ? (b[n.key] || 0) : 0), 0);
+  };
+  /* โทนกับคำอธิบายของเลขรวม — เอาของเรื่องที่ด่วนที่สุดในกลุ่มที่ยังมีเลขค้างอยู่
+     (แดง > เหลือง > ฟ้า) · กลุ่มที่ไม่มีลูกก็ได้ค่าของตัวเองตามเดิม */
+  const badgeInfo = (key) => {
+    const b = badges || {};
+    let best = null;
+    NAV.forEach((n) => {
+      if ((n.key !== key && n.group !== key) || !(b[n.key] || 0)) return;
+      const t = NAV_BADGE_TONE[n.key] || "";
+      if (best === null || NAV_TONE_RANK[t] < NAV_TONE_RANK[best.t]) best = { t: t, k: n.key };
+    });
+    return best
+      ? { tone: best.t ? " " + best.t : "", tip: NAV_BADGE_TIP[best.k] || "" }
+      : { tone: NAV_BADGE_TONE[key] ? " " + NAV_BADGE_TONE[key] : "", tip: NAV_BADGE_TIP[key] || "" };
   };
   // On mobile: slide in/out via transform; on desktop: no inline style → always visible in flex flow
   const sidebarStyle = isMobile
@@ -1200,7 +1269,9 @@ function Sidebar({ view, onNav, role, techId, jobs, stock, t, badges, open, onCl
              ใส่ทุกตัวจะแยกกันกระจายทั้งคอลัมน์ ไม่ได้เกาะกลุ่มอยู่ด้วยกัน */
           const first = items.findIndex((n) => n.foot);
           return items.map((n, i) => {
-          const active = view === n.key;
+          /* หน้าที่ยุบเป็นแท็บอยู่ใต้แถวนี้ ต้องทำให้แถวแม่ติดไฟด้วย ไม่งั้นเปิดมุมตารางอยู่
+             แต่เมนูซ้ายไม่มีแถวไหนติดไฟเลย — คนอ่านจะไม่รู้ว่าตัวเองอยู่ตรงไหนของแอป */
+          const active = navTop(view) === n.key;
           return (
             <button key={n.key} onClick={() => onNav(n.key)} className={"nav-item" + (active ? " active" : "") + (i === first ? " nav-foot" : "")}
               title={n.th}>
@@ -1209,8 +1280,9 @@ function Sidebar({ view, onNav, role, techId, jobs, stock, t, badges, open, onCl
               {(() => {
                 const cnt = badgeOf(n.key);
                 if (!cnt) return null;
-                const tone = NAV_BADGE_TONE[n.key] ? " " + NAV_BADGE_TONE[n.key] : "";
-                const tip = NAV_BADGE_TIP[n.key] || "";
+                const bi = badgeInfo(n.key);
+                const tone = bi.tone;
+                const tip = bi.tip;
                 /* ย่อแถบเมนูแล้วไม่มีที่ให้ตัวเลข เหลือเป็นจุดมุมไอคอน
                    ให้ยังรู้ว่าเมนูนั้นมีเรื่องค้าง ไม่ใช่หายไปเฉย ๆ */
                 return icons
@@ -1457,8 +1529,11 @@ function HeaderTools({ hidden, showBell, unread, notifItems, lateAlerts, omAlert
 }
 window.HeaderTools = HeaderTools;
 
-function Header({ view, navList, plain, subtitle, ownOnly, count, total, search, setSearch, typeFilter, setTypeFilter, delayedOnly, setDelayedOnly, stageFilter, setStageFilter, stageCounts, stageMode, quickFilter, setQuickFilter, techFilter, setTechFilter, techCounts, techs, onAdd, canAdd, onMap, showBell, unread, notifItems, lateAlerts, omAlerts, onOpenOm, notifOpen, onBell, onCloseNotif, onOpenNotif, onMarkAll, onMenuOpen, me, aurora, onToggleAurora, onMySign }) {
-  const nav = navList.find((n) => n.key === view) || NAV.find((n) => n.key === view);
+function Header({ view, navList, tabs, plain, subtitle, ownOnly, count, total, search, setSearch, typeFilter, setTypeFilter, delayedOnly, setDelayedOnly, stageFilter, setStageFilter, stageCounts, stageMode, quickFilter, setQuickFilter, techFilter, setTechFilter, techCounts, techs, onAdd, canAdd, onMap, showBell, unread, notifItems, lateAlerts, omAlerts, onOpenOm, notifOpen, onBell, onCloseNotif, onOpenNotif, onMarkAll, onMenuOpen, me, aurora, onToggleAurora, onMySign }) {
+  /* ชื่อหน้าเอาของ "เมนูแม่" ไม่ใช่ของแท็บ — ชื่อบนหัวจอกับแถวที่ติดไฟในเมนูซ้ายต้องเป็นคำเดียวกัน
+     ส่วนว่าอยู่มุมไหนของเมนูนั้น อ่านจากแท็บที่เลือกอยู่ข้าง ๆ ชื่อ */
+  const nav = navList.find((n) => n.key === navTop(view)) || NAV.find((n) => n.key === navTop(view))
+    || navList.find((n) => n.key === view) || NAV.find((n) => n.key === view);
   const QUICK_LABELS = { active: "กำลังดำเนินการ", delayed: "ล่าช้า", ready: "อุปกรณ์พร้อมติดตั้ง", battery: "มีแบตเตอรี่",
     problem: "ติดปัญหาหน้างาน", noinstall: "ยังไม่นัดวันติดตั้ง" };
   const isMobile = window.matchMedia("(max-width: 860px)").matches;
@@ -1524,8 +1599,18 @@ function Header({ view, navList, plain, subtitle, ownOnly, count, total, search,
         </button>
         {/* .header-top ตั้ง align-items:flex-start ไว้สำหรับก้อนชื่อหน้า+บรรทัดรองที่สูงกว่าของข้าง ๆ
             หน้าที่ไม่มีบรรทัดรอง ชื่อหน้าสูง 26px แต่ชิปผู้ใช้สูง 40px — ชื่อหน้าเลยไปเกาะขอบบนคนเดียว ดูลอย */}
-        <div style={{ flex: isMobile ? 1 : "0 1 auto", minWidth: 0, alignSelf: subtitle === "" ? "center" : undefined }}>
-          <h1 className="page-title">{nav.th}</h1>
+        <div style={{ flex: isMobile ? 1 : "0 1 auto", flexShrink: (tabs && !isMobile) ? 0 : undefined, minWidth: 0, alignSelf: subtitle === "" ? "center" : undefined }}>
+          {/* ⚠ ห้ามห่อบรรทัด — แท็บต้องอยู่ข้างชื่อหน้า ไม่ใช่ตกลงไปคั่นระหว่างชื่อหน้ากับบรรทัดรอง
+              .header-top เป็น nowrap และให้ก้อนชื่อหน้าหดก่อนแถบตัวกรอง (ดู .header-filters.in-top)
+              ปล่อยให้ห่อได้เมื่อไร แท็บจะตกบรรทัดตั้งแต่จอ 1440 ทั้งที่ยังมีที่ว่างเหลืออีกครึ่งจอ
+              ที่ไม่พอจริง ๆ ให้แถบตัวกรองเลื่อนแนวนอนเอา ซึ่งมันทำได้อยู่แล้ว (overflow-x:auto)
+              ⚠ มือถือไม่เอาแท็บมาไว้แถวนี้เลย — วัดแล้วแถวบนเหลือที่ให้ก้อนชื่อหน้าราว 77px
+                ซึ่งพอดีกับชื่อหน้าเปล่า ๆ ยัดแท็บเข้าไปคือดันชื่อหน้าตกบรรทัดไปทับแถวแฮมเบอร์เกอร์
+                มือถือจึงให้แท็บเป็นแถวของตัวเองใต้หัว คู่กับแถบตัวกรองซึ่งทำแบบนี้อยู่แล้ว */}
+          <div style={{ display: "flex", alignItems: "center", gap: 10, minWidth: 0, flexWrap: "nowrap" }}>
+            <h1 className="page-title">{nav.th}</h1>
+            {!isMobile && tabs}
+          </div>
           {/* subtitle === "" คือ "หน้านี้ไม่เอาบรรทัดรอง" — ไม่ใช่ null เพราะ null แปลว่า "ใช้บรรทัดมาตรฐาน แสดง N จาก M งาน"
               ไม่เรนเดอร์ <p> เปล่าทิ้งไว้ — มันกินความสูง 21px กับ margin อีก 4px ซึ่งคือสิ่งที่เราอยากเอาออกพอดี */}
           {subtitle !== "" && (
@@ -1571,6 +1656,8 @@ function Header({ view, navList, plain, subtitle, ownOnly, count, total, search,
             aurora={aurora} onToggleAurora={onToggleAurora} me={me} onMySign={onMySign} />
         </div>
       </div>
+      {/* มือถือ: แท็บสลับมุมเป็นแถวของตัวเองใต้หัว (บนจอใหญ่อยู่ข้างชื่อหน้า) */}
+      {isMobile && tabs && <div style={{ paddingTop: 12 }}>{tabs}</div>}
       {/* มือถือ: แถบตัวกรองยังเป็นแถวของตัวเองใต้หัว และเหลือไว้แค่ตัวกรองช่าง (ตัวอื่นซ่อนเพื่อประหยัดพื้นที่) */}
       {isMobile && filterBar}
       {/* แถบชิปกรองขั้นงานเอาออกแล้วตามที่สั่ง — มันกินความสูงของหัวจอไปอีกหนึ่งแถวทุกหน้า
