@@ -1910,7 +1910,7 @@ function DetailDrawer({
     name: "arrowRight",
     size: 16,
     color: "var(--text-3)"
-  })), window.Plan3DEditor && canDesign && !roMode && React.createElement("button", {
+  })), window.Plan3DEditor && !roMode && React.createElement("button", {
     onClick: () => setPlan3dOpen(true),
     style: {
       width: "100%",

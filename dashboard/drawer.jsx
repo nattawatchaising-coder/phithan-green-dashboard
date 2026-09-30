@@ -786,10 +786,11 @@ function DetailDrawer({ job, onClose, onAdvance, onSetMat, onEdit, currentUser, 
                 </button>
                 )}
 
-                {/* วางแผง 3D — เฉพาะคนที่มีสิทธิ์ออกแบบ (วิศวกรไฟฟ้า/เขียนแบบ/หัวหน้า/แอดมิน) 
-                   ออกแบบระบบ/ผลผลิต ไม่มีแถวของตัวเอง — อยู่ในจอ 3 มิติตามเดิม เพราะมันกินทิศ/มุมแผงจากผังนั้น
-                   ⚠ ด้วยเหตุนี้ คนที่ไม่มี canDesign จะไม่เห็นหน้าออกแบบระบบอีกต่อไป (เดิมแถวนั้นกันแค่ roMode) */}
-                {window.Plan3DEditor && canDesign && !roMode && (
+                {/* วางแผง 3D — ออกแบบระบบ/ผลผลิต อยู่ในจอนี้ ไม่มีแถวของตัวเอง
+                   เพราะมันกินทิศ/มุมของแผงจากผังนั้นตรง ๆ แยกสองทางจึงเป็นสองทางที่ทำเรื่องเดียวกัน
+                   กันแค่ roMode ไม่กัน canDesign — ตอนยุบสองแถวเข้าด้วยกัน ถ้ากัน canDesign ต่อ
+                   คนที่เคยเข้าหน้าออกแบบระบบได้จะหมดทางเข้าไปเฉย ๆ ซึ่งเป็นการตัดสิทธิ์โดยบังเอิญ */}
+                {window.Plan3DEditor && !roMode && (
                 <button onClick={() => setPlan3dOpen(true)}
                   style={{ width: "100%", marginBottom: 10, display: "flex", alignItems: "center", gap: 10, padding: "12px 14px",
                     background: "var(--surface)", border: "1px solid var(--border-strong)", borderRadius: 12, cursor: "pointer", fontFamily: "inherit", textAlign: "left" }}>
