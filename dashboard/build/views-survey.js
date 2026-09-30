@@ -1632,17 +1632,16 @@ function LeadDetail({
     setDelC(null);
   };
   const card = {
-    background: "var(--surface2)",
+    background: "var(--surface)",
     borderRadius: 18,
     padding: "16px 18px",
-    marginBottom: 10
+    marginBottom: 10,
+    boxShadow: "var(--shadow-sm)"
   };
   const capt = {
-    fontSize: 11,
+    fontSize: 11.5,
     fontWeight: 700,
-    letterSpacing: ".08em",
     color: "var(--text-3)",
-    textTransform: "uppercase",
     marginBottom: 12,
     display: "flex",
     alignItems: "center",

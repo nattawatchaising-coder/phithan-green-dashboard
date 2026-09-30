@@ -636,18 +636,20 @@ html.theme-anim, html.theme-anim * { transition: background-color .34s ease, bor
    ขีดสีซ้ายวาดด้วย ::before ไม่ใช่ border-left เพราะ border หนา 3px จะดันเนื้อหาเข้ามา 3px
    และทำให้มุมมนฝั่งซ้ายกลายเป็นวงโค้งหนาคนละขนาดกับอีกสามมุม
    สีของขีดส่งเข้ามาทาง --rail จากไฟล์ jsx (ไม่ตั้ง = ไม่มีขีด = งานปกติ) */
-.bd-card{position:relative;background:var(--surface);border:1px solid var(--card-bd);
-  border-radius:var(--r-tile);padding:13px 15px 13px 18px;cursor:grab;box-shadow:var(--shadow-sm);
+/* สถานะของใบบอกด้วย "ผ้าคลุมสีจาง" ทั้งใบ ไม่ใช่ขีดเส้นที่ขอบ
+   ขีดเส้นบอกได้แค่ว่ามีสีติดอยู่ตรงขอบ · ผ้าคลุมทำให้ทั้งใบเป็นสีของสถานะนั้นไปเลย
+   กวาดตาดูทั้งบอร์ดแล้วแยกกองออกได้โดยไม่ต้องอ่านตัวหนังสือ
+   ไล่มาจากมุมขวาแล้วจางหายก่อนถึงกลางใบ — ฝั่งซ้ายซึ่งเป็นตัวหนังสือจึงยังขาวสะอาด
+   เส้นขอบด้านในเป็นสีเดียวกันแบบจางกว่า ทำหน้าที่เก็บขอบของผ้าคลุมไม่ให้ดูหลุดลอย
+   สีส่งเข้ามาทาง --rail จากไฟล์ jsx · ไม่ตั้ง = ผสมกับ transparent = ไม่มีสีเลย (ใบปกติจึงขาวล้วน) */
+.bd-card{position:relative;background-color:var(--surface);
+  background-image:radial-gradient(135% 155% at 100% 42%,
+    color-mix(in srgb,var(--rail,transparent) 30%,transparent) 0%,transparent 58%);
+  border:1px solid var(--card-bd);border-radius:var(--r-tile);padding:13px 15px;cursor:grab;
+  box-shadow:var(--shadow-sm),inset 0 0 0 1px color-mix(in srgb,var(--rail,transparent) 20%,transparent);
   transition:box-shadow .16s ease,transform .16s ease,opacity .15s ease}
-/* ขีดสถานะ — ร่นเข้ามาจากขอบทั้งสี่ด้านแล้วมนเต็มปลาย ไม่ใช่เส้นพาดชนขอบการ์ด
-   เส้นที่ชนขอบจะโดนมุมมนของการ์ดตัดปลายเป็นเหลี่ยม และอ่านว่าเป็น "ขอบการ์ดที่ทาสี"
-   ไม่ใช่ "เครื่องหมายที่วางอยู่บนการ์ด" ซึ่งเป็นคนละความหมาย
-   ไล่เฉดจากเข้มลงไปจาง — บอกทั้งว่ามีเรื่อง และบอกว่าจุดที่ต้องมองอยู่ด้านบน (ชื่องานกับป้าย)
-   สีส่งเข้ามาทาง --rail จากไฟล์ jsx ไม่ตั้ง = ไม่มีขีด */
-.bd-card::before{content:"";position:absolute;left:7px;top:13px;bottom:13px;width:3px;border-radius:99px;
-  background:linear-gradient(180deg,var(--rail,transparent),
-    color-mix(in srgb,var(--rail,transparent) 15%,transparent))}
-.bd-card:hover{transform:translateY(-2px);box-shadow:var(--hov-sh)}
+.bd-card:hover{transform:translateY(-2px);
+  box-shadow:var(--hov-sh),inset 0 0 0 1px color-mix(in srgb,var(--rail,transparent) 34%,transparent)}
 .bd-card:active{transform:none;box-shadow:var(--shadow-sm)}
 .bd-card[data-drag="1"]{opacity:.4}
 /* ใบที่กดดูได้อย่างเดียว (ลากไม่ได้) — เคอร์เซอร์ต้องไม่หลอกว่าลากได้ */
@@ -668,15 +670,15 @@ html.theme-anim, html.theme-anim * { transition: background-color .34s ease, bor
 
 /* ══ แถวเครื่องมือในลิ้นชัก (ไอคอน · หัวเรื่อง · บรรทัดสถานะ · ลูกศร) ══
    เคยเป็นสไตล์ในบรรทัดชุดเดียวกัน ก๊อบไว้เก้าที่ในสองไฟล์ แก้ทีต้องไล่แก้ทุกที่
-   ลิ้นชักพื้นขาวอยู่แล้ว แถวจึงเป็น "แผ่นสีจาง" บนขาว ไม่ใช่การ์ดขาวบนขาวที่ต้องพึ่งเส้นขอบ
-   ตอนชี้ค่อยยกขึ้นเป็นขาวพร้อมเงา — ของที่ลอยได้ต้องลอยตอนถูกเลือกเท่านั้น */
-.act-row{width:100%;margin-bottom:9px;display:flex;align-items:center;gap:12px;padding:13px 15px;
-  background:var(--surface2);border:none;border-radius:var(--r-tile);cursor:pointer;
+   ⚠ พื้นของลิ้นชักเป็น --bg (เทาอ่อน) ไม่ใช่ --surface — แถวจึงต้องขาวเต็มใบพร้อมเงา
+     ถ้าใช้ --surface2 มันจะสว่างกว่าพื้นลิ้นชักไม่ถึงห้าหน่วยสี ทั้งแถบอ่านออกมาเป็นสีเทาทึม ๆ */
+.act-row{width:100%;margin-bottom:9px;display:flex;align-items:center;gap:12px;padding:14px 16px;
+  background:var(--surface);border:none;border-radius:var(--r-tile);cursor:pointer;box-shadow:var(--shadow-sm);
   font-family:inherit;text-align:left;transition:background .16s ease,box-shadow .18s ease,transform .16s ease}
-.act-row:hover{background:var(--surface);transform:translateY(-1px);box-shadow:var(--hov-sh)}
-.act-row:active{transform:none;box-shadow:none;background:var(--surface2)}
-[data-theme="aurora"] .act-row{background:var(--gr-hi)}
-[data-theme="aurora"] .act-row:hover{background:var(--surface3)}
+.act-row:hover{transform:translateY(-1px);box-shadow:var(--hov-sh)}
+.act-row:active{transform:none;box-shadow:var(--shadow-sm)}
+[data-theme="aurora"] .act-row{background:var(--gr-card);box-shadow:0 1px 3px rgba(0,0,0,.4)}
+[data-theme="aurora"] .act-row:hover{background:var(--surface2)}
 @media (prefers-reduced-motion: reduce){.act-row:hover{transform:none}}
 /* ชิปไอคอนหน้าแถว — สี่เหลี่ยมมนจัด ไม่ใช่วงกลม วงกลมจะชนกับจุดสถานะกลม ๆ ที่ใช้ทั่วแอป */
 .ic-chip{width:38px;height:38px;border-radius:13px;display:grid;place-items:center;flex-shrink:0}
@@ -1000,7 +1002,7 @@ H-@G1I margin-top D'IC*D%L-1'@- 6H
 <script src="dashboard/build/pm.js?v=12"></script>
 <script src="dashboard/build/pm-paper.js?v=11"></script>
 <script src="dashboard/build/pm-form.js?v=11"></script>
-<script src="dashboard/build/drawer.js?v=73"></script>
+<script src="dashboard/build/drawer.js?v=74"></script>
 <script src="dashboard/build/views-overview.js?v=46"></script>
 <script src="dashboard/build/views-board.js?v=38"></script>
 <script src="dashboard/build/views-table.js?v=31"></script>
@@ -1011,7 +1013,7 @@ H-@G1I margin-top D'IC*D%L-1'@- 6H
 <script src="dashboard/build/survey.js?v=25"></script>
 <script src="dashboard/build/survey-report.js?v=12"></script>
 <script src="dashboard/build/sales.js?v=65"></script>
-<script src="dashboard/build/views-survey.js?v=29"></script>
+<script src="dashboard/build/views-survey.js?v=30"></script>
 <script src="dashboard/build/survey-sched.js?v=36"></script>
 <script src="dashboard/build/permit.js?v=7"></script>
 <script src="dashboard/build/views-permit.js?v=18"></script>

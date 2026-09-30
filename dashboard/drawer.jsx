@@ -116,7 +116,7 @@ function JobMaterialUsage({ job, stock, currentUser }) {
 
   return (
     <div style={{ marginBottom: 24 }}>
-      <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: ".08em", color: "var(--text-3)", textTransform: "uppercase", marginBottom: 12, display: "flex", alignItems: "center", gap: 6 }}>
+      <div style={{ fontSize: 11.5, fontWeight: 700, color: "var(--text-3)", marginBottom: 12, display: "flex", alignItems: "center", gap: 6 }}>
         <Icon name="box" size={14} color="var(--text-2)" /> อุปกรณ์ที่เบิก / คืน
         {rows.length > 0 && <span style={{ fontSize: 10, fontWeight: 500, letterSpacing: 0, textTransform: "none", color: "var(--text-3)", marginLeft: 2 }}>· {rows.length} รายการ</span>}
       </div>
@@ -426,7 +426,7 @@ function PermitJobSummary({ job, onOpenReview }) {
 
       {/* ติดอะไรอยู่ */}
       <div style={{ marginBottom: 18 }}>
-        <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: ".08em", color: "var(--text-3)", textTransform: "uppercase", marginBottom: 9 }}>
+        <div style={{ fontSize: 11.5, fontWeight: 700, color: "var(--text-3)", marginBottom: 9 }}>
           ติดอะไรอยู่
         </div>
         {blockers.length === 0 ? (
@@ -445,7 +445,7 @@ function PermitJobSummary({ job, onOpenReview }) {
 
       {/* ไฟล์แบบที่ต้องหยิบไปแนบ */}
       <div style={{ marginBottom: 18 }}>
-        <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: ".08em", color: "var(--text-3)", textTransform: "uppercase", marginBottom: 9 }}>
+        <div style={{ fontSize: 11.5, fontWeight: 700, color: "var(--text-3)", marginBottom: 9 }}>
           ไฟล์แบบที่แนบกับงาน
         </div>
         {window.PermitJobFiles ? <window.PermitJobFiles jobId={job.id} /> : null}
@@ -453,7 +453,7 @@ function PermitJobSummary({ job, onOpenReview }) {
 
       {/* ข้อมูลสำหรับกรอกใบคำขอ */}
       <div style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 14, padding: 16, marginBottom: 18 }}>
-        <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: ".08em", color: "var(--text-3)", textTransform: "uppercase", marginBottom: 6 }}>
+        <div style={{ fontSize: 11.5, fontWeight: 700, color: "var(--text-3)", marginBottom: 6 }}>
           ข้อมูลสำหรับกรอกใบคำขอ
         </div>
         {filing.map(([label, value]) => <Line key={label} label={label} value={value} />)}
@@ -658,7 +658,7 @@ function DetailDrawer({ job, onClose, onAdvance, onSetMat, onEdit, currentUser, 
 
               {/* spec card */}
               <div style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 14, padding: isMobile ? 15 : 18, marginBottom: isMobile ? 18 : 22 }}>
-                <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: ".08em", color: "var(--text-3)", textTransform: "uppercase", marginBottom: 14, display: "flex", alignItems: "center", gap: 6 }}>
+                <div style={{ fontSize: 11.5, fontWeight: 700, color: "var(--text-3)", marginBottom: 14, display: "flex", alignItems: "center", gap: 6 }}>
                   <Icon name="sun" size={14} color="var(--primary)" /> สเปกระบบ
                 </div>
                 <div style={{ display: "grid", gridTemplateColumns: isMobile ? "repeat(2, 1fr)" : "repeat(3, 1fr)", gap: isMobile ? 14 : 16 }}>
@@ -896,7 +896,7 @@ function DetailDrawer({ job, onClose, onAdvance, onSetMat, onEdit, currentUser, 
               {/* material checklist */}
               {!roMode && <div style={{ marginBottom: 24 }}>
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
-                  <span style={{ fontSize: 11, fontWeight: 700, letterSpacing: ".08em", color: "var(--text-3)", textTransform: "uppercase", display: "flex", alignItems: "center", gap: 6 }}>
+                  <span style={{ fontSize: 11.5, fontWeight: 700, color: "var(--text-3)", display: "flex", alignItems: "center", gap: 6 }}>
                     <Icon name="box" size={14} color="var(--text-2)" /> สถานะวัสดุ
                     <span style={{ fontSize: 10, fontWeight: 500, letterSpacing: 0, textTransform: "none", color: "var(--text-3)", marginLeft: 2 }}>· แตะเพื่อแก้ไข</span>
                   </span>
@@ -944,7 +944,7 @@ function DetailDrawer({ job, onClose, onAdvance, onSetMat, onEdit, currentUser, 
 
               {/* flow timeline — ขั้นติดตั้ง ฝ่ายขออนุญาตไม่ได้ใช้ (ของเขาอยู่ในบล็อกสรุปด้านบน) */}
               {!roMode && <div style={{ marginBottom: 20 }}>
-                <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: ".08em", color: "var(--text-3)", textTransform: "uppercase", marginBottom: 16, display: "flex", alignItems: "center", gap: 6 }}>
+                <div style={{ fontSize: 11.5, fontWeight: 700, color: "var(--text-3)", marginBottom: 16, display: "flex", alignItems: "center", gap: 6 }}>
                   <Icon name="flow" size={14} color="var(--text-2)" /> Flow การทำงาน
                 </div>
                 <FlowTimeline job={job} />

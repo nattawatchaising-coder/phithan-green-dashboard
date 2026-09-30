@@ -597,11 +597,13 @@ function LeadDetail({ l, ctx }) {
     setDelC(null);
   };
 
-  /* กล่องย่อยในลิ้นชัก — ลิ้นชักพื้นขาวอยู่แล้ว กล่องขาวซ้อนขาวจึงต้องพึ่งเส้นขอบเพื่อให้เห็น
-     เปลี่ยนเป็นพื้นจางกว่าหนึ่งขั้นแทน ชั้นอ่านออกโดยไม่ต้องขีดเส้นรอบทุกกล่อง
-     (ชุดเดียวกับ .act-row ที่อยู่ในลิ้นชักเดียวกัน) */
-  const card = { background: "var(--surface2)", borderRadius: 18, padding: "16px 18px", marginBottom: 10 };
-  const capt = { fontSize: 11, fontWeight: 700, letterSpacing: ".08em", color: "var(--text-3)", textTransform: "uppercase",
+  /* กล่องย่อยในลิ้นชัก — ขาวเต็มใบบนพื้นเทาอ่อนของลิ้นชัก (--bg) ไม่มีเส้นขอบ ใช้เงาบอกชั้นแทน
+     ⚠ อย่าเปลี่ยนกลับไปเป็น --surface2 — มันสว่างกว่าพื้นลิ้นชักไม่ถึงห้าหน่วยสี
+       กล่องจะอ่านออกมาเป็นสีเทาทึม แทนที่จะเป็นแผ่นขาวที่ลอยอยู่ (ชุดเดียวกับ .act-row) */
+  const card = { background: "var(--surface)", borderRadius: 18, padding: "16px 18px", marginBottom: 10,
+    boxShadow: "var(--shadow-sm)" };
+  /* ไม่ uppercase ไม่ถ่างตัวอักษร — ไทยไม่มีตัวพิมพ์ใหญ่ และการถ่างดันสระกับวรรณยุกต์หลุดตำแหน่ง */
+  const capt = { fontSize: 11.5, fontWeight: 700, color: "var(--text-3)",
     marginBottom: 12, display: "flex", alignItems: "center", gap: 6 };
 
   return (
