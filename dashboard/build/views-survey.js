@@ -2459,7 +2459,6 @@ function LeadDrawer({
     c: "#7C3AED",
     n: sst.state === "skip" ? null : sst.pct ? sst.pct + "%" : null
   }];
-  const tabC = (TABS.find(t => t.k === tab) || TABS[0]).c;
   const ctx = {
     leadStore,
     jobs,
@@ -2539,8 +2538,7 @@ function LeadDrawer({
     style: {
       padding: "14px 16px",
       boxShadow: "0 10px 18px -14px rgba(8,20,14,.45)",
-      background: "color-mix(in srgb, " + tabC + " 13%, var(--surface))",
-      transition: "background .18s ease",
+      background: "var(--surface)",
       display: "flex",
       alignItems: "center",
       gap: 10,

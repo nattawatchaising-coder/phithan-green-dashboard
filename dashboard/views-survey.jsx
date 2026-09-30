@@ -1017,14 +1017,12 @@ function LeadDrawer({ lead, leadStore, appts, jobs, quotes, users, currentUser, 
   const lateFollow = window.sOverdue && window.sOverdue(lead.nextFollow) && stageKey(lead) !== "won" && stageKey(lead) !== "lost";
   const sst = window.surveyStatus({ survey: lead.survey });
   const TABS = [
-    /* c = สีประจำแท็บ — แท็บที่เลือกกับหัวใบย้อมสีเดียวกัน กดแล้วทั้งแผ่นเปลี่ยนสีตาม รู้ทันทีว่าอยู่แฟ้มไหน */
+    /* c = สีประจำแท็บ — แท็บที่ไม่ได้เลือกย้อมสีตัวเอง แท็บที่เลือกขาวต่อกับหัวใบ + แถบสีบนหัวแท็บ (หัวใบไม่เปลี่ยนสี) */
     { k: "ov", th: "ภาพรวม", c: "#1B9B75" },
     { k: "ct", th: isMobile ? "ติดต่อ" : "การติดต่อ", c: "#0284C7", n: nContacts, alert: lateFollow },
     { k: "qt", th: isMobile ? "ใบเสนอ" : "ใบเสนอราคา", c: "#D97706", n: nQuotes },
     { k: "sv", th: isMobile ? "สำรวจ" : "สำรวจ & ออกแบบ", c: "#7C3AED", n: sst.state === "skip" ? null : (sst.pct ? sst.pct + "%" : null) },
   ];
-
-  const tabC = (TABS.find((t) => t.k === tab) || TABS[0]).c;
 
   const ctx = {
     leadStore, jobs, quotes, apptsOf, currentUser, stock, priceMap, canManage, canDesign, onSaveBoq,
@@ -1056,8 +1054,7 @@ function LeadDrawer({ lead, leadStore, appts, jobs, quotes, users, currentUser, 
           flex: 1, minHeight: 0, position: "relative", zIndex: 11,
           display: "flex", flexDirection: "column", overflow: "hidden", boxShadow: "0 30px 80px rgba(8,20,14,.3)" }}>
           {/* หัวลิ้นชัก — แยกจากเนื้อด้วยเงาฟุ้ง ชุดเดียวกับแถบปุ่มล่าง ไม่ใช้เส้นคาด */}
-          <div style={{ padding: "14px 16px", boxShadow: "0 10px 18px -14px rgba(8,20,14,.45)",
-            background: "color-mix(in srgb, " + tabC + " 13%, var(--surface))", transition: "background .18s ease",
+          <div style={{ padding: "14px 16px", boxShadow: "0 10px 18px -14px rgba(8,20,14,.45)", background: "var(--surface)",
             display: "flex", alignItems: "center", gap: 10, position: "relative", zIndex: 1 }}>
             <div style={{ flex: 1, minWidth: 0 }}>
               <div style={{ fontSize: 14.5, fontWeight: 800, color: "var(--text-1)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{lead.name || "(ไม่ระบุชื่อ)"}</div>
