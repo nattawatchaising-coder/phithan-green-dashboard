@@ -1475,6 +1475,12 @@ function QuoteSheetPick({ ids, items, hintText, locked, onChange }) {
   );
 }
 
+/* แท็บแฟ้มของตัวแก้ใบเสนอราคา — th = ชื่อเต็ม · sh = ชื่อสั้นบนมือถือ */
+const QUOTE_TABS = [
+  { k: "main", th: "ลูกค้า & รายการ", sh: "รายการ" },
+  { k: "terms", th: "เงื่อนไข & รับประกัน", sh: "เงื่อนไข" },
+  { k: "pages", th: "หน้าเอกสาร & แนบท้าย", sh: "หน้าเอกสาร" },
+];
 function QuoteEditor({ quote, job, target, stock, onClose, onSave, onDelete, currentUser }) {
   const isMobile = window.matchMedia("(max-width: 860px)").matches;
   const [q, setQ] = React.useState(() => Object.assign({}, quote, {
@@ -1483,6 +1489,9 @@ function QuoteEditor({ quote, job, target, stock, onClose, onSave, onDelete, cur
     terms: (quote.terms || []).slice(), warranties: (quote.warranties || []).slice(),
   }));
   const [rep, setRep] = React.useState(null);
+  /* แท็บแฟ้มเหนือตัวใบ — ชุดเดียวกับลิ้นชักลูกค้า (.ld-tab ใน index.html) ใบยาวมากจนหาของไม่เจอ */
+  const [tab, setTab] = React.useState("main");
+  const show = (k) => tab === k;
   /* ภาษาของใบที่จะออก — เลือกก่อนกดดู เอกสารหนึ่งใบมีภาษาเดียว
      จำค่าล่าสุดไว้ทั้งระบบ ออกให้ลูกค้าจีนติดกันหลายใบจะได้ไม่ต้องเลือกใหม่ */
   const [qLang, setQLang] = React.useState(() => (window.pgLang ? window.pgLang() : "th"));
@@ -1677,15 +1686,36 @@ function QuoteEditor({ quote, job, target, stock, onClose, onSave, onDelete, cur
     </div>
   );
 
+  /* ตัวเลขบนแท็บ — บอกว่าในแฟ้มมีของกี่ชิ้น ไม่ต้องกดเข้าไปดู */
+  const tabN = {
+    main: (q.items || []).length,
+    terms: (q.terms || []).filter(Boolean).length + (q.warranties || []).filter(Boolean).length,
+    pages: QUOTE_PAGES.filter((p) => quotePageOn(q, p.key)).length,
+  };
+
   return (
     <React.Fragment>
       <div style={{ position: "fixed", inset: 0, background: "rgba(8,20,14,.45)", backdropFilter: "blur(3px)", zIndex: 118,
         display: "grid", placeItems: isMobile ? "end center" : "center", padding: isMobile ? 0 : 20 }}>
-        <div style={{ background: "var(--bg)", borderRadius: isMobile ? "20px 20px 0 0" : 18, width: isMobile ? "100%" : "min(880px,100%)",
-          maxHeight: isMobile ? "94dvh" : "92vh", display: "flex", flexDirection: "column", overflow: "hidden", boxShadow: "0 30px 80px rgba(8,20,14,.3)" }}>
+        {/* เงาอยู่ที่กรอบนอก (drop-shadow) ไม่ใช่ box-shadow ของตัวใบ — ไม่งั้นเงาทาทับแท็บจนแท็บที่เลือกเทากว่าหัวใบ
+            ความสูงตายตัว สลับแท็บแล้วใบไม่กระโดด */}
+        <div style={{ width: isMobile ? "100%" : "min(880px,100%)", height: isMobile ? "92dvh" : "min(900px, 92vh)",
+          display: "flex", flexDirection: "column", minHeight: 0, filter: "drop-shadow(0 24px 40px rgba(8,20,14,.28))" }}>
+        <div className="ld-tabs" role="tablist">
+          {QUOTE_TABS.map((t, i) => (
+            <button key={t.k} role="tab" aria-selected={tab === t.k} className={"ld-tab" + (tab === t.k ? " on" : "")}
+              style={{ zIndex: tab === t.k ? 10 : QUOTE_TABS.length - i }} onClick={() => setTab(t.k)}>
+              {isMobile ? t.sh : t.th}
+              {tabN[t.k] ? <span className="ld-tab-n">{tabN[t.k]}</span> : null}
+            </button>
+          ))}
+        </div>
+        <div style={{ background: "var(--bg)", borderRadius: isMobile ? "0 20px 0 0" : "0 18px 18px 18px", flex: 1, minHeight: 0,
+          position: "relative", zIndex: 11, display: "flex", flexDirection: "column", overflow: "hidden" }}>
 
           {/* หัว */}
-          <div style={{ padding: "15px 20px", borderBottom: "1px solid var(--border)", background: "var(--surface)", display: "flex", alignItems: "center", gap: 12 }}>
+          <div style={{ padding: "15px 20px", boxShadow: "0 10px 18px -14px rgba(8,20,14,.45)", background: "var(--surface)",
+            display: "flex", alignItems: "center", gap: 12, position: "relative", zIndex: 1 }}>
             <div style={{ flex: 1, minWidth: 0 }}>
               <h2 style={{ fontSize: 16.5, fontWeight: 800, color: "var(--text-1)", margin: 0 }}>
                 ใบเสนอราคา <span style={{ fontFamily: "var(--mono)", color: "var(--primary-dark)" }}>{q.no}</span>
@@ -1702,13 +1732,14 @@ function QuoteEditor({ quote, job, target, stock, onClose, onSave, onDelete, cur
             </button>
           </div>
 
-          <div style={{ overflowY: "auto", padding: 18, display: "flex", flexDirection: "column", gap: 16 }}>
+          <div style={{ overflowY: "auto", flex: 1, minHeight: 0, padding: 18, display: "flex", flexDirection: "column", gap: 16 }}>
             {locked && (
               <div style={{ fontSize: 12, color: "var(--tint-green-tx)", background: "var(--primary-soft)", border: "1px solid var(--primary)", borderRadius: "var(--r-tile)", padding: "9px 12px" }}>
                 ใบนี้ลูกค้าตกลงแล้ว — แก้ตัวเลขไม่ได้ เพราะยอดขายถูกนับไปแล้ว · ถ้าต้องแก้จริง ให้กด “ย้อนกลับเป็นส่งแล้ว” ก่อน
               </div>
             )}
 
+            {show("main") && (<React.Fragment>
             {/* ลูกค้า */}
             <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr", gap: 11 }}>
               <div style={{ display: "flex", flexDirection: "column", gap: 5 }}><label style={lbl}>ชื่อลูกค้า</label>
@@ -1846,8 +1877,19 @@ function QuoteEditor({ quote, job, target, stock, onClose, onSave, onDelete, cur
               )}
             </div>
 
+            </React.Fragment>)}
+
+            {show("terms") && (<React.Fragment>
             {lineList("terms", "เงื่อนไขการชำระเงิน", "บรรทัดละ 1 งวด · ใส่ % ไว้ในบรรทัด ระบบจะคิดเป็นเงินให้เอง", termMoney)}
             {lineList("warranties", "การรับประกันและบริการ", "บรรทัดละ 1 ข้อ")}
+            <div style={{ display: "flex", flexDirection: "column", gap: 5 }}>
+              <label style={lbl}>หมายเหตุ</label>
+              <textarea rows={2} value={q.note || ""} disabled={locked} onChange={(e) => set("note", e.target.value)}
+                style={Object.assign({}, inputStyle, { resize: "vertical", lineHeight: 1.5 })} />
+            </div>
+            </React.Fragment>)}
+
+            {show("pages") && (<React.Fragment>
             <QuotePagePick q={q} locked={locked} onToggle={togglePage} onAll={setAllPages} warn={pageWarn} />
             {pageOn("boq") && (
               <QuoteRowsEdit title="รายการในแผ่น BOQ" hint="ขอบเขตงานที่ลูกค้าจะได้ · ไม่มีราคาทีละบรรทัด"
@@ -1887,16 +1929,12 @@ function QuoteEditor({ quote, job, target, stock, onClose, onSave, onDelete, cur
                 ))}
               </div>
             )}
-            <div style={{ display: "flex", flexDirection: "column", gap: 5 }}>
-              <label style={lbl}>หมายเหตุ</label>
-              <textarea rows={2} value={q.note || ""} disabled={locked} onChange={(e) => set("note", e.target.value)}
-                style={Object.assign({}, inputStyle, { resize: "vertical", lineHeight: 1.5 })} />
-            </div>
+            </React.Fragment>)}
           </div>
 
-          {/* ท้าย */}
+          {/* ท้าย — แยกจากเนื้อด้วยเงาฟุ้ง ไม่ใช้เส้นคาด */}
           <div style={{ padding: "12px 18px", paddingBottom: isMobile ? "calc(12px + env(safe-area-inset-bottom,0px))" : 12,
-            borderTop: "1px solid var(--border)", background: "var(--surface)", display: "flex", gap: 9, flexWrap: "wrap", alignItems: "center" }}>
+            boxShadow: "0 -10px 18px -14px rgba(8,20,14,.45)", position: "relative", background: "var(--surface)", display: "flex", gap: 9, flexWrap: "wrap", alignItems: "center" }}>
             {typeof window.LangPick === "function" && (
               <span style={{ flexBasis: "100%", marginBottom: 4 }}>
                 <window.LangPick value={qLang} onChange={pickQLang} />
@@ -1922,6 +1960,7 @@ function QuoteEditor({ quote, job, target, stock, onClose, onSave, onDelete, cur
             )}
             <button onClick={() => save()} style={qBtn(null, "var(--primary)")}>บันทึก</button>
           </div>
+        </div>
         </div>
       </div>
       {rep && typeof SuReportView === "function" && (

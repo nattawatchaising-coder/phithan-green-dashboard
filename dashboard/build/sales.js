@@ -1923,6 +1923,19 @@ function QuoteSheetPick({
     }
   }, qs ? "ไม่พบรุ่นที่ค้นหา" : hitCount === 0 ? "รุ่นที่ระบุในใบนี้ยังไม่มี DATA SHEET ในคลัง — พิมพ์ค้นหาเพื่อเลือกรุ่นอื่นได้" : ""))));
 }
+const QUOTE_TABS = [{
+  k: "main",
+  th: "ลูกค้า & รายการ",
+  sh: "รายการ"
+}, {
+  k: "terms",
+  th: "เงื่อนไข & รับประกัน",
+  sh: "เงื่อนไข"
+}, {
+  k: "pages",
+  th: "หน้าเอกสาร & แนบท้าย",
+  sh: "หน้าเอกสาร"
+}];
 function QuoteEditor({
   quote,
   job,
@@ -1941,6 +1954,8 @@ function QuoteEditor({
     warranties: (quote.warranties || []).slice()
   }));
   const [rep, setRep] = React.useState(null);
+  const [tab, setTab] = React.useState("main");
+  const show = k => tab === k;
   const [qLang, setQLang] = React.useState(() => window.pgLang ? window.pgLang() : "th");
   const sheetItems = (stock && stock.items || []).filter(it => it && it.doc);
   const sheetIds = q.sheetIds || [];
@@ -2260,6 +2275,11 @@ function QuoteEditor({
       fontFamily: "var(--mono)"
     }
   }, "\u0E3F", sBaht(T.grand))));
+  const tabN = {
+    main: (q.items || []).length,
+    terms: (q.terms || []).filter(Boolean).length + (q.warranties || []).filter(Boolean).length,
+    pages: QUOTE_PAGES.filter(p => quotePageOn(q, p.key)).length
+  };
   return React.createElement(React.Fragment, null, React.createElement("div", {
     style: {
       position: "fixed",
@@ -2273,23 +2293,49 @@ function QuoteEditor({
     }
   }, React.createElement("div", {
     style: {
-      background: "var(--bg)",
-      borderRadius: isMobile ? "20px 20px 0 0" : 18,
       width: isMobile ? "100%" : "min(880px,100%)",
-      maxHeight: isMobile ? "94dvh" : "92vh",
+      height: isMobile ? "92dvh" : "min(900px, 92vh)",
       display: "flex",
       flexDirection: "column",
-      overflow: "hidden",
-      boxShadow: "0 30px 80px rgba(8,20,14,.3)"
+      minHeight: 0,
+      filter: "drop-shadow(0 24px 40px rgba(8,20,14,.28))"
+    }
+  }, React.createElement("div", {
+    className: "ld-tabs",
+    role: "tablist"
+  }, QUOTE_TABS.map((t, i) => React.createElement("button", {
+    key: t.k,
+    role: "tab",
+    "aria-selected": tab === t.k,
+    className: "ld-tab" + (tab === t.k ? " on" : ""),
+    style: {
+      zIndex: tab === t.k ? 10 : QUOTE_TABS.length - i
+    },
+    onClick: () => setTab(t.k)
+  }, isMobile ? t.sh : t.th, tabN[t.k] ? React.createElement("span", {
+    className: "ld-tab-n"
+  }, tabN[t.k]) : null))), React.createElement("div", {
+    style: {
+      background: "var(--bg)",
+      borderRadius: isMobile ? "0 20px 0 0" : "0 18px 18px 18px",
+      flex: 1,
+      minHeight: 0,
+      position: "relative",
+      zIndex: 11,
+      display: "flex",
+      flexDirection: "column",
+      overflow: "hidden"
     }
   }, React.createElement("div", {
     style: {
       padding: "15px 20px",
-      borderBottom: "1px solid var(--border)",
+      boxShadow: "0 10px 18px -14px rgba(8,20,14,.45)",
       background: "var(--surface)",
       display: "flex",
       alignItems: "center",
-      gap: 12
+      gap: 12,
+      position: "relative",
+      zIndex: 1
     }
   }, React.createElement("div", {
     style: {
@@ -2347,6 +2393,8 @@ function QuoteEditor({
   }))), React.createElement("div", {
     style: {
       overflowY: "auto",
+      flex: 1,
+      minHeight: 0,
       padding: 18,
       display: "flex",
       flexDirection: "column",
@@ -2361,7 +2409,7 @@ function QuoteEditor({
       borderRadius: "var(--r-tile)",
       padding: "9px 12px"
     }
-  }, "\u0E43\u0E1A\u0E19\u0E35\u0E49\u0E25\u0E39\u0E01\u0E04\u0E49\u0E32\u0E15\u0E01\u0E25\u0E07\u0E41\u0E25\u0E49\u0E27 \u2014 \u0E41\u0E01\u0E49\u0E15\u0E31\u0E27\u0E40\u0E25\u0E02\u0E44\u0E21\u0E48\u0E44\u0E14\u0E49 \u0E40\u0E1E\u0E23\u0E32\u0E30\u0E22\u0E2D\u0E14\u0E02\u0E32\u0E22\u0E16\u0E39\u0E01\u0E19\u0E31\u0E1A\u0E44\u0E1B\u0E41\u0E25\u0E49\u0E27 \xB7 \u0E16\u0E49\u0E32\u0E15\u0E49\u0E2D\u0E07\u0E41\u0E01\u0E49\u0E08\u0E23\u0E34\u0E07 \u0E43\u0E2B\u0E49\u0E01\u0E14 \u201C\u0E22\u0E49\u0E2D\u0E19\u0E01\u0E25\u0E31\u0E1A\u0E40\u0E1B\u0E47\u0E19\u0E2A\u0E48\u0E07\u0E41\u0E25\u0E49\u0E27\u201D \u0E01\u0E48\u0E2D\u0E19"), React.createElement("div", {
+  }, "\u0E43\u0E1A\u0E19\u0E35\u0E49\u0E25\u0E39\u0E01\u0E04\u0E49\u0E32\u0E15\u0E01\u0E25\u0E07\u0E41\u0E25\u0E49\u0E27 \u2014 \u0E41\u0E01\u0E49\u0E15\u0E31\u0E27\u0E40\u0E25\u0E02\u0E44\u0E21\u0E48\u0E44\u0E14\u0E49 \u0E40\u0E1E\u0E23\u0E32\u0E30\u0E22\u0E2D\u0E14\u0E02\u0E32\u0E22\u0E16\u0E39\u0E01\u0E19\u0E31\u0E1A\u0E44\u0E1B\u0E41\u0E25\u0E49\u0E27 \xB7 \u0E16\u0E49\u0E32\u0E15\u0E49\u0E2D\u0E07\u0E41\u0E01\u0E49\u0E08\u0E23\u0E34\u0E07 \u0E43\u0E2B\u0E49\u0E01\u0E14 \u201C\u0E22\u0E49\u0E2D\u0E19\u0E01\u0E25\u0E31\u0E1A\u0E40\u0E1B\u0E47\u0E19\u0E2A\u0E48\u0E07\u0E41\u0E25\u0E49\u0E27\u201D \u0E01\u0E48\u0E2D\u0E19"), show("main") && React.createElement(React.Fragment, null, React.createElement("div", {
     style: {
       display: "grid",
       gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr",
@@ -2805,7 +2853,24 @@ function QuoteEditor({
       color: "var(--text-3)",
       textAlign: "right"
     }
-  }, "\u2248 \u0E3F", sBaht(T.grand / (q.kwp * 1000)), " \u0E15\u0E48\u0E2D\u0E27\u0E31\u0E15\u0E15\u0E4C \xB7 \u0E3F", sBaht(T.grand / q.kwp), " \u0E15\u0E48\u0E2D kWp")), lineList("terms", "เงื่อนไขการชำระเงิน", "บรรทัดละ 1 งวด · ใส่ % ไว้ในบรรทัด ระบบจะคิดเป็นเงินให้เอง", termMoney), lineList("warranties", "การรับประกันและบริการ", "บรรทัดละ 1 ข้อ"), React.createElement(QuotePagePick, {
+  }, "\u2248 \u0E3F", sBaht(T.grand / (q.kwp * 1000)), " \u0E15\u0E48\u0E2D\u0E27\u0E31\u0E15\u0E15\u0E4C \xB7 \u0E3F", sBaht(T.grand / q.kwp), " \u0E15\u0E48\u0E2D kWp"))), show("terms") && React.createElement(React.Fragment, null, lineList("terms", "เงื่อนไขการชำระเงิน", "บรรทัดละ 1 งวด · ใส่ % ไว้ในบรรทัด ระบบจะคิดเป็นเงินให้เอง", termMoney), lineList("warranties", "การรับประกันและบริการ", "บรรทัดละ 1 ข้อ"), React.createElement("div", {
+    style: {
+      display: "flex",
+      flexDirection: "column",
+      gap: 5
+    }
+  }, React.createElement("label", {
+    style: lbl
+  }, "\u0E2B\u0E21\u0E32\u0E22\u0E40\u0E2B\u0E15\u0E38"), React.createElement("textarea", {
+    rows: 2,
+    value: q.note || "",
+    disabled: locked,
+    onChange: e => set("note", e.target.value),
+    style: Object.assign({}, inputStyle, {
+      resize: "vertical",
+      lineHeight: 1.5
+    })
+  }))), show("pages") && React.createElement(React.Fragment, null, React.createElement(QuotePagePick, {
     q: q,
     locked: locked,
     onToggle: togglePage,
@@ -2914,28 +2979,12 @@ function QuoteEditor({
     name: "file",
     size: 13,
     color: sd.kind === "image" ? "var(--primary-dark)" : "#EF4444"
-  }), " ", sd.label))), React.createElement("div", {
-    style: {
-      display: "flex",
-      flexDirection: "column",
-      gap: 5
-    }
-  }, React.createElement("label", {
-    style: lbl
-  }, "\u0E2B\u0E21\u0E32\u0E22\u0E40\u0E2B\u0E15\u0E38"), React.createElement("textarea", {
-    rows: 2,
-    value: q.note || "",
-    disabled: locked,
-    onChange: e => set("note", e.target.value),
-    style: Object.assign({}, inputStyle, {
-      resize: "vertical",
-      lineHeight: 1.5
-    })
-  }))), React.createElement("div", {
+  }), " ", sd.label))))), React.createElement("div", {
     style: {
       padding: "12px 18px",
       paddingBottom: isMobile ? "calc(12px + env(safe-area-inset-bottom,0px))" : 12,
-      borderTop: "1px solid var(--border)",
+      boxShadow: "0 -10px 18px -14px rgba(8,20,14,.45)",
+      position: "relative",
       background: "var(--surface)",
       display: "flex",
       gap: 9,
@@ -3000,7 +3049,7 @@ function QuoteEditor({
   }, "\u21A9 \u0E22\u0E49\u0E2D\u0E19\u0E01\u0E25\u0E31\u0E1A\u0E40\u0E1B\u0E47\u0E19\u0E2A\u0E48\u0E07\u0E41\u0E25\u0E49\u0E27"), React.createElement("button", {
     onClick: () => save(),
     style: qBtn(null, "var(--primary)")
-  }, "\u0E1A\u0E31\u0E19\u0E17\u0E36\u0E01")))), rep && typeof SuReportView === "function" && React.createElement(SuReportView, {
+  }, "\u0E1A\u0E31\u0E19\u0E17\u0E36\u0E01"))))), rep && typeof SuReportView === "function" && React.createElement(SuReportView, {
     html: rep,
     onClose: () => setRep(null),
     title: (qLang === "en" ? "Quotation" : qLang === "zh" ? "报价单" : "ใบเสนอราคา") + " " + q.no
