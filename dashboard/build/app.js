@@ -86,7 +86,7 @@ const NAV = [{
   key: "daily",
   th: "รายงานประจำวัน",
   en: "Daily Report",
-  icon: "pen",
+  icon: "clipboard",
   perm: "editJob",
   foot: true
 }, {
