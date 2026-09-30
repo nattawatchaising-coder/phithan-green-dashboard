@@ -56,6 +56,7 @@ function EcStat({
       fontFamily: "inherit",
       background: on ? (color || "var(--primary)") + "14" : "var(--surface2)",
       border: "1px solid " + (on ? color || "var(--primary)" : "transparent"),
+      boxShadow: on ? "none" : "var(--shadow-sm)",
       cursor: onClick ? "pointer" : "default"
     }
   }, React.createElement("div", {
@@ -228,6 +229,7 @@ function EcReceipts({
       height: 130,
       border: "none",
       background: "var(--surface2)",
+      boxShadow: "var(--shadow-sm)",
       cursor: "pointer",
       display: "flex",
       flexDirection: "column",
@@ -1372,6 +1374,7 @@ function EcClaimRow({
       display: "grid",
       placeItems: "center",
       background: "var(--surface2)",
+      boxShadow: "var(--shadow-sm)",
       cursor: "pointer"
     }
   }, React.createElement(Icon, {
@@ -1880,6 +1883,7 @@ function EcPayModal({
       display: "grid",
       placeItems: "center",
       background: "var(--surface2)",
+      boxShadow: "var(--shadow-sm)",
       cursor: "pointer"
     }
   }, React.createElement(Icon, {
@@ -2003,6 +2007,7 @@ function EcPayModal({
       padding: "10px 15px",
       borderRadius: "var(--r-tile)",
       background: "var(--surface2)",
+      boxShadow: "var(--shadow-sm)",
       cursor: "pointer",
       fontFamily: "inherit",
       fontSize: 13,
@@ -2113,6 +2118,7 @@ function EcBatchList({
       padding: "6px 11px",
       borderRadius: "var(--r-chip)",
       background: "var(--surface2)",
+      boxShadow: "var(--shadow-sm)",
       cursor: "pointer",
       fontFamily: "inherit",
       fontSize: 11.5,
@@ -2133,6 +2139,7 @@ function EcBatchList({
       padding: "6px 11px",
       borderRadius: "var(--r-chip)",
       background: "var(--surface2)",
+      boxShadow: "var(--shadow-sm)",
       cursor: "pointer",
       fontFamily: "inherit",
       fontSize: 11.5,
@@ -2153,6 +2160,7 @@ function EcBatchList({
       display: "grid",
       placeItems: "center",
       background: "var(--surface2)",
+      boxShadow: "var(--shadow-sm)",
       cursor: "pointer"
     }
   }, React.createElement(Icon, {
@@ -2365,6 +2373,7 @@ function EcJobButton({
       gap: 10,
       padding: "12px 14px",
       background: "var(--surface2)",
+      boxShadow: "var(--shadow-sm)",
       borderLeft: "3px solid " + color,
       borderRadius: "var(--r-tile)",
       cursor: "pointer",
@@ -2681,6 +2690,7 @@ function ExpenseView({
       padding: "8px 14px",
       borderRadius: "var(--r-pill)",
       background: "var(--surface2)",
+      boxShadow: "var(--shadow-sm)",
       cursor: "pointer",
       fontFamily: "inherit",
       fontSize: 12.5,

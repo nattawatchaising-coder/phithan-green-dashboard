@@ -445,6 +445,7 @@ function StockView({
       padding: "6px 13px",
       borderRadius: "var(--r-pill)",
       background: "var(--surface2)",
+      boxShadow: "var(--shadow-sm)",
       color: "var(--text-2)",
       fontSize: 12.5,
       fontWeight: 600,
@@ -629,6 +630,7 @@ function StockView({
     title: view === "grid" ? "สลับเป็นมุมมองตาราง" : "สลับเป็นมุมมองการ์ด (มีรูป)",
     style: {
       background: "var(--surface2)",
+      boxShadow: "var(--shadow-sm)",
       color: "var(--text-2)",
       border: "none"
     }
@@ -641,6 +643,7 @@ function StockView({
     onClick: () => setFillOpen(true),
     style: {
       background: "var(--surface2)",
+      boxShadow: "var(--shadow-sm)",
       color: "var(--text-2)",
       border: "none"
     }
@@ -773,6 +776,7 @@ function StockView({
       borderRadius: "var(--r-chip)",
       boxShadow: "var(--shadow-sm)",
       background: "var(--surface2)",
+      boxShadow: "var(--shadow-sm)",
       color: "var(--text-2)",
       fontFamily: "inherit",
       fontSize: 12.5,
@@ -1242,6 +1246,7 @@ function MovesModal({
       height: 32,
       borderRadius: "var(--r-chip)",
       background: "var(--surface2)",
+      boxShadow: "var(--shadow-sm)",
       cursor: "pointer",
       display: "grid",
       placeItems: "center",
@@ -1984,6 +1989,7 @@ function MoveModal({
       padding: "11px 18px",
       borderRadius: "var(--r-tile)",
       background: "var(--surface2)",
+      boxShadow: "var(--shadow-sm)",
       color: "var(--text-2)",
       fontWeight: 600,
       fontFamily: "inherit",
@@ -2058,6 +2064,7 @@ function StkOptPairs({
       padding: "6px 11px",
       borderRadius: "var(--r-chip)",
       background: "var(--surface2)",
+      boxShadow: "var(--shadow-sm)",
       color: "var(--primary-dark)",
       fontFamily: "inherit",
       fontSize: 11.5,
@@ -2125,6 +2132,7 @@ function StkOptPairs({
       height: 32,
       borderRadius: "var(--r-chip)",
       background: "var(--surface2)",
+      boxShadow: "var(--shadow-sm)",
       cursor: "pointer",
       display: "grid",
       placeItems: "center"
@@ -2235,6 +2243,7 @@ function ItemModal({
       height: 32,
       borderRadius: "var(--r-chip)",
       background: "var(--surface2)",
+      boxShadow: "var(--shadow-sm)",
       cursor: "pointer",
       display: "grid",
       placeItems: "center",
@@ -2305,6 +2314,7 @@ function ItemModal({
       borderRadius: "var(--r-tile)",
       boxShadow: "var(--shadow-sm)",
       background: "var(--surface2)",
+      boxShadow: "var(--shadow-sm)",
       color: "var(--primary-dark)",
       fontFamily: "inherit",
       fontSize: 12,
@@ -2403,6 +2413,7 @@ function ItemModal({
       borderRadius: "var(--r-tile)",
       boxShadow: "var(--shadow-sm)",
       background: "var(--surface2)",
+      boxShadow: "var(--shadow-sm)",
       color: "var(--text-2)",
       fontFamily: "inherit",
       fontSize: 13,
@@ -3246,6 +3257,7 @@ function ItemModal({
       padding: "11px 18px",
       borderRadius: "var(--r-tile)",
       background: "var(--surface2)",
+      boxShadow: "var(--shadow-sm)",
       color: "var(--text-2)",
       fontWeight: 600,
       fontFamily: "inherit",
@@ -3402,9 +3414,10 @@ function ConduitDefaultsEditor({
     fontSize: 12.5,
     fontWeight: 700,
     cursor: "pointer",
-    border: on ? "none" : "1px solid var(--border-strong)",
-    background: on ? "var(--primary)" : "var(--surface)",
-    color: on ? "#fff" : "var(--text-2)"
+    border: "none",
+    background: on ? "var(--primary)" : "var(--surface2)",
+    color: on ? "#fff" : "var(--text-2)",
+    boxShadow: on ? "none" : "var(--shadow-sm)"
   });
   const bar = React.createElement("div", {
     style: {
@@ -3635,6 +3648,7 @@ function ConduitDefaultsEditor({
       padding: "8px 14px",
       borderRadius: "var(--r-tile)",
       background: "var(--surface2)",
+      boxShadow: "var(--shadow-sm)",
       color: nEdited ? "var(--text-2)" : "var(--text-3)",
       fontSize: 12.5,
       fontWeight: 600,
@@ -4462,6 +4476,7 @@ function ItemDetailModal({
       fontWeight: 700,
       border: "1px dashed var(--border-strong)",
       background: "var(--surface2)",
+      boxShadow: "var(--shadow-sm)",
       color: "var(--text-3)"
     }
   }, "\uFF0B \u0E40\u0E1E\u0E34\u0E48\u0E21\u0E02\u0E19\u0E32\u0E14"))), React.createElement("div", {
@@ -4742,6 +4757,7 @@ function ItemDetailModal({
       borderRadius: "var(--r-tile)",
       border: "1px dashed var(--border-strong)",
       background: "var(--surface2)",
+      boxShadow: "var(--shadow-sm)",
       color: "var(--text-2)",
       fontFamily: "inherit",
       fontSize: 12.5,
@@ -4795,6 +4811,7 @@ function ItemDetailModal({
       borderRadius: "var(--r-tile)",
       marginRight: "auto",
       background: "var(--surface2)",
+      boxShadow: "var(--shadow-sm)",
       color: "var(--primary-dark)",
       fontFamily: "inherit",
       fontSize: 13,
@@ -4814,6 +4831,7 @@ function ItemDetailModal({
       padding: "9px 15px",
       borderRadius: "var(--r-tile)",
       background: "var(--surface2)",
+      boxShadow: "var(--shadow-sm)",
       color: "var(--text-2)",
       fontFamily: "inherit",
       fontSize: 13,
@@ -5341,6 +5359,7 @@ function MatImagePicker({
       borderRadius: "var(--r-chip)",
       boxShadow: "var(--shadow-sm)",
       background: "var(--surface2)",
+      boxShadow: "var(--shadow-sm)",
       color: "var(--text-1)",
       fontFamily: "inherit",
       fontSize: 12.5,
@@ -5355,6 +5374,7 @@ function MatImagePicker({
       borderRadius: "var(--r-chip)",
       boxShadow: "var(--shadow-sm)",
       background: "var(--surface2)",
+      boxShadow: "var(--shadow-sm)",
       color: "#EF4444",
       fontFamily: "inherit",
       fontSize: 12.5,
@@ -5405,6 +5425,7 @@ function CatCard({
     padding: "3px 9px",
     borderRadius: "var(--r-pill)",
     background: "var(--surface2)",
+    boxShadow: "var(--shadow-sm)",
     fontFamily: "inherit",
     fontSize: 10.5,
     fontWeight: 700,
@@ -5548,6 +5569,7 @@ function CatBrowser({
       borderRadius: "var(--r-chip)",
       boxShadow: "var(--shadow-sm)",
       background: "var(--surface2)",
+      boxShadow: "var(--shadow-sm)",
       color: "var(--text-2)",
       fontFamily: "inherit",
       fontSize: 12.5,
@@ -5580,6 +5602,7 @@ function CatBrowser({
       borderRadius: "var(--r-chip)",
       boxShadow: "var(--shadow-sm)",
       background: "var(--surface2)",
+      boxShadow: "var(--shadow-sm)",
       color: "var(--text-2)",
       fontFamily: "inherit",
       fontSize: 12.5,

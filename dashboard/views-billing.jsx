@@ -220,7 +220,7 @@ function BlPayModal({ row, onCancel, onOk }) {
               </span>
               <button onClick={() => drop(i)} title="เอาออก"
                 style={{ width: 28, height: 28, flexShrink: 0, borderRadius: "var(--r-chip)", display: "grid", placeItems: "center",
-                  background: "var(--surface2)", cursor: "pointer" }}>
+                  background: "var(--surface2)", boxShadow: "var(--shadow-sm)", cursor: "pointer" }}>
                 <Icon name="x" size={14} color="var(--text-2)" />
               </button>
             </div>
@@ -332,7 +332,7 @@ function BlJobCard({ job, quotes, leads, role, currentUser, readOnly, onOpen, on
               <BlMoveBtns row={cur} bills={bills} role={role} currentUser={currentUser} job={j} onMove={move} size="sm" />
               {window.blPrintable(cur) && (
                 <button onClick={() => setPrint(cur)}
-                  style={{ padding: "6px 10px", borderRadius: "var(--r-chip)", background: "var(--surface2)",
+                  style={{ padding: "6px 10px", borderRadius: "var(--r-chip)", background: "var(--surface2)", boxShadow: "var(--shadow-sm)",
                     color: "var(--text-2)", fontFamily: "inherit", fontSize: 11.5, fontWeight: 700, cursor: "pointer" }}>
                   พิมพ์เอกสาร
                 </button>
@@ -421,7 +421,7 @@ function BlPhotoPick({ job, row, api, items, itemId, currentUser, onClose }) {
         return (
           <button key={p.id} onClick={() => take(p, src, sr)} disabled={on}
             style={{ padding: 0, border: "2px solid " + (on ? "var(--primary)" : "var(--border)"), borderRadius: "var(--r-tile)",
-              overflow: "hidden", background: "var(--surface2)", cursor: on ? "default" : "pointer", position: "relative" }}>
+              overflow: "hidden", background: "var(--surface2)", boxShadow: "var(--shadow-sm)", cursor: on ? "default" : "pointer", position: "relative" }}>
             <img src={p.dataUrl} alt="" style={{ display: "block", width: "100%", height: 78, objectFit: "cover", opacity: on ? 0.45 : 1 }} />
             {on && <span style={{ position: "absolute", inset: 0, display: "grid", placeItems: "center",
               fontSize: 11, fontWeight: 800, color: "var(--primary-dark)" }}>เลือกแล้ว</span>}
@@ -956,7 +956,7 @@ function BlSetupModal({ job, quotes, leads, role, currentUser, readOnly, focusRo
                           </td>
                           <td style={Object.assign({}, cell, { whiteSpace: "nowrap" })}>
                             <button onClick={() => setOpen(open === r.id ? null : r.id)}
-                              style={{ padding: "6px 9px", borderRadius: "var(--r-chip)", background: "var(--surface2)",
+                              style={{ padding: "6px 9px", borderRadius: "var(--r-chip)", background: "var(--surface2)", boxShadow: "var(--shadow-sm)",
                                 color: "var(--text-2)", fontFamily: "inherit", fontSize: 11.5, fontWeight: 700, cursor: "pointer" }}>
                               {open === r.id ? "ย่อ" : "แก้ใบ"}
                             </button>
@@ -1195,7 +1195,7 @@ function BillingView({ jobs, quotes, leads, role, currentUser, onOpenJob, onSave
               <div style={{ width: 170, flexShrink: 0 }}><BlRail rows={window.blRows(j)} curId={S.cur ? S.cur.id : null} /></div>
               <button onClick={() => setFold((f) => Object.assign({}, f, { [j.id]: !shut }))}
                 title={shut ? "กางตารางงวดของงานนี้" : "ย่อเหลือแค่บรรทัดสรุป"}
-                style={{ padding: "8px 12px", borderRadius: "var(--r-tile)", background: "var(--surface2)",
+                style={{ padding: "8px 12px", borderRadius: "var(--r-tile)", background: "var(--surface2)", boxShadow: "var(--shadow-sm)",
                   color: "var(--text-2)", fontFamily: "inherit", fontSize: 12.5, fontWeight: 700, cursor: "pointer" }}>
                 {shut ? "ขยาย · " + g.rows.length + " งวด" : "ย่อ"}
               </button>
@@ -1248,7 +1248,7 @@ function BillingView({ jobs, quotes, leads, role, currentUser, onOpenJob, onSave
                           {!ro && <BlMoveBtns row={r} bills={j.bills} role={role} currentUser={currentUser} job={j} onMove={(row, to) => move(j, row, to)} size="sm" />}
                           {window.blPrintable(r) && (
                             <button onClick={() => setPrint({ job: j, row: r })}
-                              style={{ padding: "6px 10px", borderRadius: "var(--r-chip)", background: "var(--surface2)",
+                              style={{ padding: "6px 10px", borderRadius: "var(--r-chip)", background: "var(--surface2)", boxShadow: "var(--shadow-sm)",
                                 color: "var(--text-2)", fontFamily: "inherit", fontSize: 11.5, fontWeight: 700, cursor: "pointer" }}>
                               พิมพ์
                             </button>
@@ -1294,7 +1294,7 @@ function BillingView({ jobs, quotes, leads, role, currentUser, onOpenJob, onSave
                   )}
                   {onSkip && (
                     <button onClick={() => skip(j, true)} title="งานนี้ไม่ต้องตั้งงวด — เอาออกจากรายการ (เฉพาะแอดมิน)"
-                      style={{ padding: "8px 12px", borderRadius: "var(--r-tile)", background: "var(--surface2)",
+                      style={{ padding: "8px 12px", borderRadius: "var(--r-tile)", background: "var(--surface2)", boxShadow: "var(--shadow-sm)",
                         color: "var(--text-3)", fontFamily: "inherit", fontSize: 12.5, fontWeight: 700, cursor: "pointer" }}>
                       เอาออก
                     </button>
@@ -1317,7 +1317,7 @@ function BillingView({ jobs, quotes, leads, role, currentUser, onOpenJob, onSave
                 padding: "9px 13px", borderBottom: "1px solid var(--border)" }}>
                 <div style={{ flex: 1, minWidth: 0, fontSize: 12.5, color: "var(--text-3)" }}>{j.code} · {j.name}</div>
                 <button onClick={() => skip(j, false)}
-                  style={{ padding: "7px 12px", borderRadius: "var(--r-chip)", background: "var(--surface2)",
+                  style={{ padding: "7px 12px", borderRadius: "var(--r-chip)", background: "var(--surface2)", boxShadow: "var(--shadow-sm)",
                     color: "var(--text-2)", fontFamily: "inherit", fontSize: 12, fontWeight: 700, cursor: "pointer" }}>
                   เอากลับเข้ารายการ
                 </button>

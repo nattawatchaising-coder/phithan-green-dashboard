@@ -260,7 +260,7 @@ function StockView({ stock, onResetAll, onMenuOpen, currentUser, jobs, priceStor
             {!isMobile && !isAmp && !isCond && (
               <button onClick={toggleCat} title={catOpen ? "ซ่อนตัวกรองหมวด" : "แสดงตัวกรองหมวด"}
                 style={{ marginLeft: "auto", display: "inline-flex", alignItems: "center", gap: 6, padding: "6px 13px", borderRadius: "var(--r-pill)",
-                  background: "var(--surface2)", color: "var(--text-2)",
+                  background: "var(--surface2)", boxShadow: "var(--shadow-sm)", color: "var(--text-2)",
                   fontSize: 12.5, fontWeight: 600, cursor: "pointer", fontFamily: "inherit", whiteSpace: "nowrap" }}>
                 <Icon name="filter" size={14} color="var(--text-2)" />
                 หมวดหมู่{isPrices
@@ -347,7 +347,7 @@ function StockView({ stock, onResetAll, onMenuOpen, currentUser, jobs, priceStor
                 {!isMobile && (
                   <button className="btn-add" onClick={() => setView((v) => (v === "grid" ? "table" : "grid"))}
                     title={view === "grid" ? "สลับเป็นมุมมองตาราง" : "สลับเป็นมุมมองการ์ด (มีรูป)"}
-                    style={{ background: "var(--surface2)", color: "var(--text-2)", border: "none" }}>
+                    style={{ background: "var(--surface2)", boxShadow: "var(--shadow-sm)", color: "var(--text-2)", border: "none" }}>
                     <Icon name={view === "grid" ? "menu" : "grid"} size={16} color="var(--text-2)" />
                     <span>{view === "grid" ? "ตาราง" : "การ์ด"}</span>
                   </button>
@@ -355,7 +355,7 @@ function StockView({ stock, onResetAll, onMenuOpen, currentUser, jobs, priceStor
                 {/* เติมยี่ห้อ/รุ่นจากชื่อ — ของเดิมส่วนใหญ่เขียนยี่ห้อกับรุ่นไว้ในชื่ออยู่แล้ว
                     ให้ดูรายการที่จะเติมก่อน แล้วค่อยกดยืนยัน ไม่เขียนทับของที่กรอกไว้เอง */}
                 <button className="btn-add" onClick={() => setFillOpen(true)}
-                  style={{ background: "var(--surface2)", color: "var(--text-2)", border: "none" }}>
+                  style={{ background: "var(--surface2)", boxShadow: "var(--shadow-sm)", color: "var(--text-2)", border: "none" }}>
                   <Icon name="sparkle" size={16} color="var(--text-2)" /><span>เติมยี่ห้อ/รุ่น</span>
                 </button>
                 <button className="btn-add" onClick={() => setItemForm({ item: stock.blankItem(), isNew: true })}>
@@ -423,7 +423,7 @@ function StockView({ stock, onResetAll, onMenuOpen, currentUser, jobs, priceStor
             <div style={{ display: "flex", alignItems: "center", gap: 9, marginBottom: 12, flexWrap: "wrap" }}>
               <button onClick={goBack} title="ย้อนกลับ"
                 style={{ display: "flex", alignItems: "center", gap: 4, padding: "6px 11px", borderRadius: "var(--r-chip)", boxShadow: "var(--shadow-sm)",
-                  background: "var(--surface2)", color: "var(--text-2)", fontFamily: "inherit", fontSize: 12.5, fontWeight: 700, cursor: "pointer" }}>
+                  background: "var(--surface2)", boxShadow: "var(--shadow-sm)", color: "var(--text-2)", fontFamily: "inherit", fontSize: 12.5, fontWeight: 700, cursor: "pointer" }}>
                 <Icon name="chevronDown" size={14} color="var(--text-3)" style={{ transform: "rotate(90deg)" }} />ย้อนกลับ
               </button>
               <span style={{ fontSize: 12, color: "var(--text-3)" }}>
@@ -581,7 +581,7 @@ function MovesModal({ moves, items, jobs, onClose }) {
                 <div style={{ fontSize: 11.5, color: "var(--text-3)", marginTop: 1 }}>รับเข้า / เบิกออก / คืนของ · ทั้งหมด {all.length} รายการ</div>
               </div>
             </div>
-            <button onClick={onClose} style={{ width: 32, height: 32, borderRadius: "var(--r-chip)", background: "var(--surface2)", cursor: "pointer", display: "grid", placeItems: "center", color: "var(--text-2)", flexShrink: 0 }}><Icon name="x" size={16} /></button>
+            <button onClick={onClose} style={{ width: 32, height: 32, borderRadius: "var(--r-chip)", background: "var(--surface2)", boxShadow: "var(--shadow-sm)", cursor: "pointer", display: "grid", placeItems: "center", color: "var(--text-2)", flexShrink: 0 }}><Icon name="x" size={16} /></button>
           </div>
           <div className="search-box" style={{ marginTop: 12 }}>
             <Icon name="search" size={15} color="var(--text-3)" />
@@ -806,7 +806,7 @@ function MoveModal({ info, onSave, onClose, byName, jobs, lockedJob, maxQty }) {
           </div>
         </div>
         <div style={{ padding: "14px 22px", paddingBottom: isMobile ? "calc(14px + env(safe-area-inset-bottom, 0px))" : 14, borderTop: "1px solid var(--border)", background: "var(--surface)", display: "flex", justifyContent: "flex-end", gap: 10, flexShrink: 0 }}>
-          <button onClick={onClose} style={{ flex: isMobile ? "0 0 auto" : "none", padding: "11px 18px", borderRadius: "var(--r-tile)", background: "var(--surface2)", color: "var(--text-2)", fontWeight: 600, fontFamily: "inherit", fontSize: 13.5, cursor: "pointer" }}>ยกเลิก</button>
+          <button onClick={onClose} style={{ flex: isMobile ? "0 0 auto" : "none", padding: "11px 18px", borderRadius: "var(--r-tile)", background: "var(--surface2)", boxShadow: "var(--shadow-sm)", color: "var(--text-2)", fontWeight: 600, fontFamily: "inherit", fontSize: 13.5, cursor: "pointer" }}>ยกเลิก</button>
           <button onClick={submit}
             style={{ flex: isMobile ? 1 : "none", padding: "11px 22px", borderRadius: "var(--r-tile)", border: "none", background: accent, color: "#fff", fontWeight: 700, fontFamily: "inherit", fontSize: 13.5, cursor: "pointer" }}>
             {mt.sym} {mt.label}
@@ -834,7 +834,7 @@ function StkOptPairs({ pairs, invNames, onChange, isMobile }) {
         <span style={{ fontSize: 11.5, fontWeight: 700, color: "var(--text-2)" }}>ใช้คู่กับอินเวอร์เตอร์รุ่นไหนได้บ้าง</span>
         <span style={{ fontSize: 11, color: "var(--text-3)" }}>ความยาวสตริงตามคู่มือ · แต่ละรุ่นไม่เท่ากัน</span>
         <button type="button" onClick={add} style={{ marginLeft: "auto", padding: "6px 11px", borderRadius: "var(--r-chip)",
-          background: "var(--surface2)", color: "var(--primary-dark)",
+          background: "var(--surface2)", boxShadow: "var(--shadow-sm)", color: "var(--primary-dark)",
           fontFamily: "inherit", fontSize: 11.5, fontWeight: 700, cursor: "pointer" }}>+ เพิ่มรุ่น</button>
       </div>
       {!list.length ? (
@@ -852,7 +852,7 @@ function StkOptPairs({ pairs, invNames, onChange, isMobile }) {
           <input type="number" style={cell} value={r.max || ""} placeholder="สูงสุด" onChange={(e) => setRow(i, { max: parseInt(e.target.value) || 0 })} />
           <input type="number" style={cell} value={r.maxW || ""} placeholder="W/สตริง" onChange={(e) => setRow(i, { maxW: parseInt(e.target.value) || 0 })} />
           <button type="button" onClick={() => del(i)} title="ลบแถวนี้"
-            style={{ width: 32, height: 32, borderRadius: "var(--r-chip)", background: "var(--surface2)",
+            style={{ width: 32, height: 32, borderRadius: "var(--r-chip)", background: "var(--surface2)", boxShadow: "var(--shadow-sm)",
               cursor: "pointer", display: "grid", placeItems: "center" }}>
             <Icon name="trash" size={13} color="#EF4444" />
           </button>
@@ -905,7 +905,7 @@ function ItemModal({ initial, isNew, items, onSave, onClose, onAddCat, onRemoveC
       <div onClick={(e) => e.stopPropagation()} style={{ background: "var(--bg)", borderRadius: isMobile ? "20px 20px 0 0" : 18, width: isMobile ? "100%" : "min(560px,100%)", maxHeight: isMobile ? "94dvh" : "90vh", display: "flex", flexDirection: "column", overflow: "hidden", boxShadow: "0 30px 80px rgba(8,20,14,.3)" }}>
         <div style={{ padding: "18px 22px", borderBottom: "1px solid var(--border)", background: "var(--surface)", display: "flex", justifyContent: "space-between", alignItems: "center", flexShrink: 0 }}>
           <h2 style={{ fontSize: 17, fontWeight: 700, color: "var(--text-1)", margin: 0 }}>{isNew ? "เพิ่มรายการอุปกรณ์" : "แก้ไขรายการ"}</h2>
-          <button onClick={onClose} style={{ width: 32, height: 32, borderRadius: "var(--r-chip)", background: "var(--surface2)", cursor: "pointer", display: "grid", placeItems: "center", color: "var(--text-2)" }}><Icon name="x" size={16} /></button>
+          <button onClick={onClose} style={{ width: 32, height: 32, borderRadius: "var(--r-chip)", background: "var(--surface2)", boxShadow: "var(--shadow-sm)", cursor: "pointer", display: "grid", placeItems: "center", color: "var(--text-2)" }}><Icon name="x" size={16} /></button>
         </div>
         <div style={{ padding: 22, display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr", gap: 14, overflowY: "auto" }}>
           {/* รูปสินค้า — บันทึกทันทีเมื่อเลือก (เก็บคนละโหนดกับตัวรายการ) */}
@@ -925,7 +925,7 @@ function ItemModal({ initial, isNew, items, onSave, onClose, onAddCat, onRemoveC
             <div style={{ display: "flex", gap: 6 }}>
               <input style={Object.assign({}, inputStyle, { flex: 1 })} value={f.sku} onChange={(e) => set("sku", e.target.value)} placeholder={suggestCode + " (อัตโนมัติ)"} />
               <button type="button" onClick={() => set("sku", suggestCode)} title="สร้างรหัสอัตโนมัติตามหมวด"
-                style={{ flexShrink: 0, padding: "0 12px", borderRadius: "var(--r-tile)", boxShadow: "var(--shadow-sm)", background: "var(--surface2)", color: "var(--primary-dark)", fontFamily: "inherit", fontSize: 12, fontWeight: 700, cursor: "pointer", whiteSpace: "nowrap" }}>auto</button>
+                style={{ flexShrink: 0, padding: "0 12px", borderRadius: "var(--r-tile)", boxShadow: "var(--shadow-sm)", background: "var(--surface2)", boxShadow: "var(--shadow-sm)", color: "var(--primary-dark)", fontFamily: "inherit", fontSize: 12, fontWeight: 700, cursor: "pointer", whiteSpace: "nowrap" }}>auto</button>
             </div>
           </Field>
           {/* หมวดหลัก / หมวดย่อย — เก็บลง f.cat คีย์เดียว (หมวดย่อยถ้าเลือก ไม่งั้นหมวดหลัก)
@@ -960,7 +960,7 @@ function ItemModal({ initial, isNew, items, onSave, onClose, onAddCat, onRemoveC
               <button type="button" onClick={commitCat}
                 style={{ flexShrink: 0, padding: "0 14px", height: 38, borderRadius: "var(--r-tile)", border: "none", background: "var(--primary)", color: "#fff", fontFamily: "inherit", fontSize: 13, fontWeight: 700, cursor: "pointer" }}>เพิ่ม</button>
               <button type="button" onClick={() => { setAdding(null); setNewCat(""); }}
-                style={{ flexShrink: 0, padding: "0 12px", height: 38, borderRadius: "var(--r-tile)", boxShadow: "var(--shadow-sm)", background: "var(--surface2)", color: "var(--text-2)", fontFamily: "inherit", fontSize: 13, cursor: "pointer" }}>ยกเลิก</button>
+                style={{ flexShrink: 0, padding: "0 12px", height: 38, borderRadius: "var(--r-tile)", boxShadow: "var(--shadow-sm)", background: "var(--surface2)", boxShadow: "var(--shadow-sm)", color: "var(--text-2)", fontFamily: "inherit", fontSize: 13, cursor: "pointer" }}>ยกเลิก</button>
             </div>
           )}
           {isCustomCat && onRemoveCat && !adding && (
@@ -1191,7 +1191,7 @@ function ItemModal({ initial, isNew, items, onSave, onClose, onAddCat, onRemoveC
           )}
         </div>
         <div style={{ padding: "14px 22px", paddingBottom: isMobile ? "calc(14px + env(safe-area-inset-bottom, 0px))" : 14, borderTop: "1px solid var(--border)", background: "var(--surface)", display: "flex", justifyContent: "flex-end", gap: 10, flexShrink: 0 }}>
-          <button onClick={onClose} style={{ flex: isMobile ? "0 0 auto" : "none", padding: "11px 18px", borderRadius: "var(--r-tile)", background: "var(--surface2)", color: "var(--text-2)", fontWeight: 600, fontFamily: "inherit", fontSize: 13.5, cursor: "pointer" }}>ยกเลิก</button>
+          <button onClick={onClose} style={{ flex: isMobile ? "0 0 auto" : "none", padding: "11px 18px", borderRadius: "var(--r-tile)", background: "var(--surface2)", boxShadow: "var(--shadow-sm)", color: "var(--text-2)", fontWeight: 600, fontFamily: "inherit", fontSize: 13.5, cursor: "pointer" }}>ยกเลิก</button>
           <button onClick={submitItem}
             style={{ flex: isMobile ? 1 : "none", padding: "11px 22px", borderRadius: "var(--r-tile)", border: "none", background: "var(--primary)", color: "#fff", fontWeight: 700, fontFamily: "inherit", fontSize: 13.5, cursor: "pointer" }}>บันทึก</button>
         </div>
@@ -1274,7 +1274,8 @@ function ConduitDefaultsEditor({ condStore }) {
   /* ตอนยังไม่กดแก้ไข ช่องกรอกต้องดูเหมือน "ค่าที่ตั้งไว้" ไม่ใช่ช่องที่กดแล้วไม่มีอะไรเกิดขึ้น */
   const num = edit ? numBase : Object.assign({}, numBase, { background: "transparent", borderColor: "transparent", color: "var(--text-2)" });
   const btn = (on) => ({ padding: "7px 14px", borderRadius: "var(--r-tile)", fontFamily: "inherit", fontSize: 12.5, fontWeight: 700, cursor: "pointer",
-    border: on ? "none" : "1px solid var(--border-strong)", background: on ? "var(--primary)" : "var(--surface)", color: on ? "#fff" : "var(--text-2)" });
+    border: "none", background: on ? "var(--primary)" : "var(--surface2)", color: on ? "#fff" : "var(--text-2)",
+    boxShadow: on ? "none" : "var(--shadow-sm)" });
   const bar = (
     <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
       {edit ? (
@@ -1388,7 +1389,7 @@ function ConduitDefaultsEditor({ condStore }) {
           window.askConfirm({ title: "คืนค่าตั้งต้นอุปกรณ์ท่อร้อยสาย?", body: "ค่าที่ตั้งไว้ " + nEdited + " รายการ จะกลับไปใช้กฎ ค่าอัตโนมัติ และ % เผื่อเดิมของระบบ", ok: "คืนค่าตั้งต้น" })
             .then((ok) => { if (ok && condStore) condStore.reset(); });
         }} disabled={!nEdited || edit}
-          style={{ padding: "8px 14px", borderRadius: "var(--r-tile)", background: "var(--surface2)",
+          style={{ padding: "8px 14px", borderRadius: "var(--r-tile)", background: "var(--surface2)", boxShadow: "var(--shadow-sm)",
             color: nEdited ? "var(--text-2)" : "var(--text-3)", fontSize: 12.5, fontWeight: 600, cursor: nEdited ? "pointer" : "default", fontFamily: "inherit" }}>
           คืนค่าตั้งต้นทั้งหมด{nEdited ? " (" + nEdited + ")" : ""}
         </button>
@@ -1755,7 +1756,7 @@ function ItemDetailModal({ item, img, variants, loadDoc, setDoc, onMove, onEdit,
                     {onAddSize && (
                       <button onClick={onAddSize} title="เพิ่มขนาดใหม่ให้ของชิ้นนี้"
                         style={{ padding: "6px 12px", borderRadius: "var(--r-chip)", cursor: "pointer", fontFamily: "inherit", fontSize: 12.5, fontWeight: 700,
-                          border: "1px dashed var(--border-strong)", background: "var(--surface2)", color: "var(--text-3)" }}>＋ เพิ่มขนาด</button>
+                          border: "1px dashed var(--border-strong)", background: "var(--surface2)", boxShadow: "var(--shadow-sm)", color: "var(--text-3)" }}>＋ เพิ่มขนาด</button>
                     )}
                   </div>
                 </div>
@@ -1847,7 +1848,7 @@ function ItemDetailModal({ item, img, variants, loadDoc, setDoc, onMove, onEdit,
             ) : (
               <button onClick={() => fileRef.current && fileRef.current.click()} disabled={busy}
                 style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 7, padding: "14px 12px", borderRadius: "var(--r-tile)",
-                  border: "1px dashed var(--border-strong)", background: "var(--surface2)", color: "var(--text-2)",
+                  border: "1px dashed var(--border-strong)", background: "var(--surface2)", boxShadow: "var(--shadow-sm)", color: "var(--text-2)",
                   fontFamily: "inherit", fontSize: 12.5, fontWeight: 700, cursor: busy ? "wait" : "pointer", width: "100%" }}>
                 <Icon name="plus" size={14} color="var(--text-2)" />
                 {/* รูป JPG/PNG จะถูกเอาไปต่อท้ายเป็นหน้าใน "รายงานผลสำรวจ" ให้อัตโนมัติ เมื่อเสนอรุ่นนี้ */}
@@ -1868,13 +1869,13 @@ function ItemDetailModal({ item, img, variants, loadDoc, setDoc, onMove, onEdit,
           {/* เพิ่มขนาดใหม่ให้ของชิ้นนี้ — ก๊อปชื่อ/หมวด/ยี่ห้อ/หน่วยไปให้แล้ว เหลือแก้ตัวเลขขนาดกับราคา */}
           {onAddSize && (
             <button onClick={onAddSize} style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "9px 15px", borderRadius: "var(--r-tile)",
-              marginRight: "auto", background: "var(--surface2)", color: "var(--primary-dark)",
+              marginRight: "auto", background: "var(--surface2)", boxShadow: "var(--shadow-sm)", color: "var(--primary-dark)",
               fontFamily: "inherit", fontSize: 13, fontWeight: 700, cursor: "pointer" }}>
               <Icon name="plus" size={14} color="var(--primary-dark)" /> เพิ่มขนาด
             </button>
           )}
           <button onClick={onEdit} style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "9px 15px", borderRadius: "var(--r-tile)",
-            background: "var(--surface2)", color: "var(--text-2)", fontFamily: "inherit",
+            background: "var(--surface2)", boxShadow: "var(--shadow-sm)", color: "var(--text-2)", fontFamily: "inherit",
             fontSize: 13, fontWeight: 700, cursor: "pointer" }}><Icon name="settings" size={14} color="var(--text-2)" /> แก้ไขรายการ</button>
         </div>
       </div>
@@ -2062,13 +2063,13 @@ function MatImagePicker({ src, item, onPick, onClear }) {
       <div style={{ display: "flex", flexDirection: "column", gap: 5, minWidth: 0 }}>
         <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
           <button type="button" disabled={busy} onClick={() => ref.current && ref.current.click()}
-            style={{ padding: "7px 13px", borderRadius: "var(--r-chip)", boxShadow: "var(--shadow-sm)", background: "var(--surface2)",
+            style={{ padding: "7px 13px", borderRadius: "var(--r-chip)", boxShadow: "var(--shadow-sm)", background: "var(--surface2)", boxShadow: "var(--shadow-sm)",
               color: "var(--text-1)", fontFamily: "inherit", fontSize: 12.5, fontWeight: 700, cursor: busy ? "wait" : "pointer" }}>
             {busy ? "กำลังย่อรูป…" : (src ? "เปลี่ยนรูป" : "เลือกรูป")}
           </button>
           {src && (
             <button type="button" onClick={onClear}
-              style={{ padding: "7px 11px", borderRadius: "var(--r-chip)", boxShadow: "var(--shadow-sm)", background: "var(--surface2)",
+              style={{ padding: "7px 11px", borderRadius: "var(--r-chip)", boxShadow: "var(--shadow-sm)", background: "var(--surface2)", boxShadow: "var(--shadow-sm)",
                 color: "#EF4444", fontFamily: "inherit", fontSize: 12.5, fontWeight: 700, cursor: "pointer" }}>ลบรูป</button>
           )}
         </div>
@@ -2094,9 +2095,10 @@ function CatCard({ c, n, lowN, img, onPick, onImage }) {
     window.resizeImageFile(file, 600, 0.72).then((d) => { onImage(d); setBusy(false); })
       .catch(() => { setBusy(false); alert("อ่านไฟล์รูปไม่สำเร็จ"); });
   };
-  /* ปุ่มนี้นั่งอยู่บนการ์ดหมวดซึ่งเป็นสีขาว — ขาวบนขาวมองไม่เห็นแม้จะมีเงา
-     เงา shadow-sm มีไว้ยกการ์ดขึ้นจากพื้นเทาของหน้า บนพื้นขาวมันแทบไม่เหลืออะไร */
+  /* ปุ่มนี้นั่งอยู่บนการ์ดหมวดซึ่งเป็นสีขาว — พื้นขาวล้วนบนพื้นขาวมองไม่เห็น
+     พื้นจางกว่านิดหนึ่งบวกเงาซ้อนชั้น (วงแหวน 1px อยู่ในชั้นแรก) จึงอ่านออกมาเป็นปุ่มกดได้ */
   const btn = { padding: "3px 9px", borderRadius: "var(--r-pill)", background: "var(--surface2)",
+    boxShadow: "var(--shadow-sm)",
     fontFamily: "inherit", fontSize: 10.5, fontWeight: 700, cursor: busy ? "wait" : "pointer", color: "var(--text-2)" };
   return (
     <div onClick={() => onPick(c.key)}
@@ -2140,14 +2142,14 @@ function CatBrowser({ list, count, low, imgs, title, hint, allLabel, onPick, onA
         {onBack && (
           <button onClick={onBack} title="กลับไปหน้าหมวดหลัก"
             style={{ display: "flex", alignItems: "center", gap: 4, padding: "6px 11px", borderRadius: "var(--r-chip)", boxShadow: "var(--shadow-sm)",
-              background: "var(--surface2)", color: "var(--text-2)", fontFamily: "inherit", fontSize: 12.5, fontWeight: 700, cursor: "pointer" }}>
+              background: "var(--surface2)", boxShadow: "var(--shadow-sm)", color: "var(--text-2)", fontFamily: "inherit", fontSize: 12.5, fontWeight: 700, cursor: "pointer" }}>
             <Icon name="chevronDown" size={14} color="var(--text-3)" style={{ transform: "rotate(90deg)" }} />ย้อนกลับ
           </button>
         )}
         <span style={{ fontSize: 13.5, fontWeight: 800, color: "var(--text-1)" }}>{title}</span>
         <span style={{ fontSize: 11.5, color: "var(--text-3)" }}>{hint}</span>
         <button onClick={onAll} style={{ marginLeft: "auto", padding: "7px 14px", borderRadius: "var(--r-chip)", boxShadow: "var(--shadow-sm)",
-          background: "var(--surface2)", color: "var(--text-2)", fontFamily: "inherit", fontSize: 12.5, fontWeight: 700, cursor: "pointer" }}>
+          background: "var(--surface2)", boxShadow: "var(--shadow-sm)", color: "var(--text-2)", fontFamily: "inherit", fontSize: 12.5, fontWeight: 700, cursor: "pointer" }}>
           {allLabel || "ดูทุกรายการ"}
         </button>
       </div>

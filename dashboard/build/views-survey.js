@@ -581,6 +581,7 @@ function ContactLogModal({
       height: 32,
       borderRadius: "var(--r-chip)",
       background: "var(--surface2)",
+      boxShadow: "var(--shadow-sm)",
       cursor: "pointer",
       display: "grid",
       placeItems: "center",
@@ -686,6 +687,7 @@ function ContactLogModal({
       padding: "12px 18px",
       borderRadius: "var(--r-tile)",
       background: "var(--surface2)",
+      boxShadow: "var(--shadow-sm)",
       color: "var(--text-2)",
       fontWeight: 700,
       fontFamily: "inherit",
@@ -721,7 +723,8 @@ function leadBtn(color, solid) {
     fontWeight: 700,
     border: "none",
     background: solid ? color : "var(--surface2)",
-    color: solid ? "#fff" : color
+    color: solid ? "#fff" : color,
+    boxShadow: solid ? "none" : "var(--shadow-sm)"
   };
 }
 function LeadModal({
@@ -817,6 +820,7 @@ function LeadModal({
       height: 32,
       borderRadius: "var(--r-chip)",
       background: "var(--surface2)",
+      boxShadow: "var(--shadow-sm)",
       cursor: "pointer",
       display: "grid",
       placeItems: "center",
@@ -1072,6 +1076,7 @@ function LeadModal({
       padding: "12px 18px",
       borderRadius: "var(--r-tile)",
       background: "var(--surface2)",
+      boxShadow: "var(--shadow-sm)",
       color: "var(--text-2)",
       fontWeight: 700,
       fontFamily: "inherit",
@@ -1966,6 +1971,7 @@ function LeadDetail({
         borderRadius: "var(--r-pill)",
         border: "none",
         background: "var(--surface2)",
+        boxShadow: "var(--shadow-sm)",
         cursor: "pointer",
         display: "grid",
         placeItems: "center",
@@ -2194,6 +2200,7 @@ function LeadDrawer({
       borderRadius: "var(--r-pill)",
       border: "none",
       background: "var(--surface2)",
+      boxShadow: "var(--shadow-sm)",
       color: "var(--text-2)",
       cursor: "pointer",
       fontFamily: "inherit",

@@ -441,6 +441,7 @@ function BlPayModal({
       display: "grid",
       placeItems: "center",
       background: "var(--surface2)",
+      boxShadow: "var(--shadow-sm)",
       cursor: "pointer"
     }
   }, React.createElement(Icon, {
@@ -698,6 +699,7 @@ function BlJobCard({
       padding: "6px 10px",
       borderRadius: "var(--r-chip)",
       background: "var(--surface2)",
+      boxShadow: "var(--shadow-sm)",
       color: "var(--text-2)",
       fontFamily: "inherit",
       fontSize: 11.5,
@@ -807,6 +809,7 @@ function BlPhotoPick({
         borderRadius: "var(--r-tile)",
         overflow: "hidden",
         background: "var(--surface2)",
+        boxShadow: "var(--shadow-sm)",
         cursor: on ? "default" : "pointer",
         position: "relative"
       }
@@ -1993,6 +1996,7 @@ function BlSetupModal({
         padding: "6px 9px",
         borderRadius: "var(--r-chip)",
         background: "var(--surface2)",
+        boxShadow: "var(--shadow-sm)",
         color: "var(--text-2)",
         fontFamily: "inherit",
         fontSize: 11.5,
@@ -2424,6 +2428,7 @@ function BillingView({
         padding: "8px 12px",
         borderRadius: "var(--r-tile)",
         background: "var(--surface2)",
+        boxShadow: "var(--shadow-sm)",
         color: "var(--text-2)",
         fontFamily: "inherit",
         fontSize: 12.5,
@@ -2568,6 +2573,7 @@ function BillingView({
         padding: "6px 10px",
         borderRadius: "var(--r-chip)",
         background: "var(--surface2)",
+        boxShadow: "var(--shadow-sm)",
         color: "var(--text-2)",
         fontFamily: "inherit",
         fontSize: 11.5,
@@ -2650,6 +2656,7 @@ function BillingView({
         padding: "8px 12px",
         borderRadius: "var(--r-tile)",
         background: "var(--surface2)",
+        boxShadow: "var(--shadow-sm)",
         color: "var(--text-3)",
         fontFamily: "inherit",
         fontSize: 12.5,
@@ -2697,6 +2704,7 @@ function BillingView({
       padding: "7px 12px",
       borderRadius: "var(--r-chip)",
       background: "var(--surface2)",
+      boxShadow: "var(--shadow-sm)",
       color: "var(--text-2)",
       fontFamily: "inherit",
       fontSize: 12,

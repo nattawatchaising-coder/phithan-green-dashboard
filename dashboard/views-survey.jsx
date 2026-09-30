@@ -259,7 +259,7 @@ function ContactLogModal({ lead, currentUser, onClose, onSave }) {
             <h2 style={{ fontSize: 16.5, fontWeight: 800, color: "var(--text-1)", margin: 0 }}>บันทึกการติดต่อ</h2>
             <div style={{ fontSize: 11.5, color: "var(--text-3)", marginTop: 2 }}>{lead.name || "(ไม่ระบุชื่อ)"} · {lead.code}</div>
           </div>
-          <button onClick={onClose} style={{ width: 32, height: 32, borderRadius: "var(--r-chip)", background: "var(--surface2)", cursor: "pointer", display: "grid", placeItems: "center", color: "var(--text-2)" }}><Icon name="x" size={16} /></button>
+          <button onClick={onClose} style={{ width: 32, height: 32, borderRadius: "var(--r-chip)", background: "var(--surface2)", boxShadow: "var(--shadow-sm)", cursor: "pointer", display: "grid", placeItems: "center", color: "var(--text-2)" }}><Icon name="x" size={16} /></button>
         </div>
         <div style={{ overflowY: "auto", padding: 18, display: "flex", flexDirection: "column", gap: 14 }}>
           <div style={{ display: "flex", flexDirection: "column", gap: 6 }}><label style={lbl}>ติดต่อทางไหน</label>
@@ -287,7 +287,7 @@ function ContactLogModal({ lead, currentUser, onClose, onSave }) {
           </div>
         </div>
         <div style={{ padding: "12px 18px", paddingBottom: isMobile ? "calc(12px + env(safe-area-inset-bottom,0px))" : 12, borderTop: "1px solid var(--border)", background: "var(--surface)", display: "flex", gap: 10 }}>
-          <button onClick={onClose} style={{ padding: "12px 18px", borderRadius: "var(--r-tile)", background: "var(--surface2)", color: "var(--text-2)", fontWeight: 700, fontFamily: "inherit", fontSize: 13.5, cursor: "pointer" }}>ยกเลิก</button>
+          <button onClick={onClose} style={{ padding: "12px 18px", borderRadius: "var(--r-tile)", background: "var(--surface2)", boxShadow: "var(--shadow-sm)", color: "var(--text-2)", fontWeight: 700, fontFamily: "inherit", fontSize: 13.5, cursor: "pointer" }}>ยกเลิก</button>
           <button onClick={submit} style={{ flex: 1, padding: 12, borderRadius: "var(--r-tile)", border: "none", background: "var(--primary)", color: "#fff", fontWeight: 700, fontFamily: "inherit", fontSize: 14, cursor: "pointer" }}>บันทึก</button>
         </div>
       </div>
@@ -299,7 +299,8 @@ function ContactLogModal({ lead, currentUser, onClose, onSave }) {
 function leadBtn(color, solid) {
   return { display: "inline-flex", alignItems: "center", gap: 5, padding: "9px 15px", borderRadius: "var(--r-pill)",
     cursor: "pointer", fontFamily: "inherit", fontSize: 12.5, fontWeight: 700, border: "none",
-    background: solid ? color : "var(--surface2)", color: solid ? "#fff" : color };
+    background: solid ? color : "var(--surface2)", color: solid ? "#fff" : color,
+    boxShadow: solid ? "none" : "var(--shadow-sm)" };
 }
 
 /* ── ฟอร์มลูกค้าสำรวจ ── */
@@ -334,7 +335,7 @@ function LeadModal({ initial, isNew, users, onClose, onSave }) {
       <div onClick={(e) => e.stopPropagation()} style={{ background: "var(--bg)", borderRadius: isMobile ? "20px 20px 0 0" : 18, width: isMobile ? "100%" : "min(520px,100%)", maxHeight: isMobile ? "94dvh" : "90vh", display: "flex", flexDirection: "column", overflow: "hidden", boxShadow: "0 30px 80px rgba(8,20,14,.3)" }}>
         <div style={{ padding: "16px 20px", borderBottom: "1px solid var(--border)", background: "var(--surface)", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
           <h2 style={{ fontSize: 16.5, fontWeight: 800, color: "var(--text-1)", margin: 0 }}>{isNew ? "ลูกค้าสำรวจใหม่" : "แก้ไขลูกค้าสำรวจ"}</h2>
-          <button onClick={onClose} style={{ width: 32, height: 32, borderRadius: "var(--r-chip)", background: "var(--surface2)", cursor: "pointer", display: "grid", placeItems: "center", color: "var(--text-2)" }}><Icon name="x" size={16} /></button>
+          <button onClick={onClose} style={{ width: 32, height: 32, borderRadius: "var(--r-chip)", background: "var(--surface2)", boxShadow: "var(--shadow-sm)", cursor: "pointer", display: "grid", placeItems: "center", color: "var(--text-2)" }}><Icon name="x" size={16} /></button>
         </div>
         <div style={{ overflowY: "auto", padding: 18, display: "flex", flexDirection: "column", gap: 14 }}>
           <div style={{ fontSize: 11.5, color: "var(--text-3)" }}>เก็บแยกจากฐานข้อมูลงาน — ยังไม่ถูกนับเป็นงานติดตั้งจนกว่าจะกด “แปลงเป็นงาน”</div>
@@ -379,7 +380,7 @@ function LeadModal({ initial, isNew, users, onClose, onSave }) {
             <textarea value={f.note} onChange={(e) => set("note", e.target.value)} rows={2} placeholder='เช่น "สนใจ 5 kW ขอใบเสนอราคาก่อน"' style={Object.assign({}, inputStyle, { resize: "vertical", lineHeight: 1.5 })} /></div>
         </div>
         <div style={{ padding: "12px 18px", paddingBottom: isMobile ? "calc(12px + env(safe-area-inset-bottom,0px))" : 12, borderTop: "1px solid var(--border)", background: "var(--surface)", display: "flex", gap: 10 }}>
-          <button onClick={onClose} style={{ padding: "12px 18px", borderRadius: "var(--r-tile)", background: "var(--surface2)", color: "var(--text-2)", fontWeight: 700, fontFamily: "inherit", fontSize: 13.5, cursor: "pointer" }}>ยกเลิก</button>
+          <button onClick={onClose} style={{ padding: "12px 18px", borderRadius: "var(--r-tile)", background: "var(--surface2)", boxShadow: "var(--shadow-sm)", color: "var(--text-2)", fontWeight: 700, fontFamily: "inherit", fontSize: 13.5, cursor: "pointer" }}>ยกเลิก</button>
           <button onClick={submit} style={{ flex: 1, padding: 12, borderRadius: "var(--r-tile)", border: "none", background: "var(--primary)", color: "#fff", fontWeight: 700, fontFamily: "inherit", fontSize: 14, cursor: "pointer" }}>บันทึก</button>
         </div>
       </div>
@@ -774,7 +775,7 @@ function LeadDetail({ l, ctx }) {
                   </span>
                 ) : (
                   <button onClick={() => setDelC(c.id || "i" + i)} title="ลบบันทึกนี้"
-                    style={{ width: 28, height: 28, borderRadius: "var(--r-pill)", border: "none", background: "var(--surface2)",
+                    style={{ width: 28, height: 28, borderRadius: "var(--r-pill)", border: "none", background: "var(--surface2)", boxShadow: "var(--shadow-sm)",
                       cursor: "pointer", display: "grid", placeItems: "center", flexShrink: 0, color: "var(--text-3)" }}>
                     <Icon name="trash" size={13} />
                   </button>
@@ -876,7 +877,7 @@ function LeadDrawer({ lead, leadStore, appts, jobs, quotes, users, currentUser, 
               <div style={{ fontSize: 14.5, fontWeight: 800, color: "var(--text-1)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{lead.name || "(ไม่ระบุชื่อ)"}</div>
               <div style={{ fontSize: 11, color: "var(--text-3)", marginTop: 1 }}>{lead.code}</div>
             </div>
-            <button onClick={onClose} aria-label="ปิด" style={{ flexShrink: 0, width: 32, height: 32, borderRadius: "var(--r-pill)", border: "none", background: "var(--surface2)", color: "var(--text-2)", cursor: "pointer", fontFamily: "inherit", fontSize: 16, lineHeight: 1 }}>×</button>
+            <button onClick={onClose} aria-label="ปิด" style={{ flexShrink: 0, width: 32, height: 32, borderRadius: "var(--r-pill)", border: "none", background: "var(--surface2)", boxShadow: "var(--shadow-sm)", color: "var(--text-2)", cursor: "pointer", fontFamily: "inherit", fontSize: 16, lineHeight: 1 }}>×</button>
           </div>
           <div style={{ padding: "14px 16px 0", overflowY: "auto" }}>
             <LeadDetail l={lead} ctx={ctx} />

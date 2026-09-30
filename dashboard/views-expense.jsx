@@ -30,6 +30,7 @@ function EcStat({ label, value, unit, color, hint, on, onClick }) {
       style={{ flex: 1, minWidth: 130, textAlign: "left", padding: "11px 13px", borderRadius: "var(--r-tile)", fontFamily: "inherit",
         background: on ? (color || "var(--primary)") + "14" : "var(--surface2)",
         border: "1px solid " + (on ? (color || "var(--primary)") : "transparent"),
+        boxShadow: on ? "none" : "var(--shadow-sm)",
         cursor: onClick ? "pointer" : "default" }}>
       <div style={{ fontSize: 11, color: "var(--text-3)", fontWeight: 700 }}>{label}</div>
       <div style={{ fontFamily: "var(--display)", fontSize: 21, fontWeight: 800, color: color, lineHeight: 1.25 }}>
@@ -119,7 +120,7 @@ function EcReceipts({ claimId, currentUser, disabled, count, big, onBig }) {
             background: "var(--surface)", position: "relative" }}>
             {window.ecReceiptKind(r) === "pdf" ? (
               <button type="button" onClick={() => onBig && onBig(r)} title="เปิดดูไฟล์"
-                style={{ width: "100%", height: 130, border: "none", background: "var(--surface2)", cursor: "pointer",
+                style={{ width: "100%", height: 130, border: "none", background: "var(--surface2)", boxShadow: "var(--shadow-sm)", cursor: "pointer",
                   display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 7,
                   padding: "8px 10px", fontFamily: "inherit" }}>
                 <span style={{ width: 36, height: 36, borderRadius: "var(--r-tile)", display: "grid", placeItems: "center",
@@ -676,7 +677,7 @@ function EcClaimRow({ claim, onOpen, gone, currentUser, role, onDoc, onRemove })
       {window.ecCanDelete(role) && onRemove && (
         <button onClick={del} title={"ลบใบ " + (claim.no || "")}
           style={{ width: 28, height: 28, borderRadius: "var(--r-chip)", flexShrink: 0, display: "grid", placeItems: "center",
-            background: "var(--surface2)", cursor: "pointer" }}>
+            background: "var(--surface2)", boxShadow: "var(--shadow-sm)", cursor: "pointer" }}>
           <Icon name="trash" size={13} color="var(--tint-red-tx)" />
         </button>
       )}
@@ -917,7 +918,7 @@ function EcPayModal({ person, claims, batches, currentUser, role, payers, onClos
               </span>
               <button onClick={() => setSlip(null)} title="เอาสลิปออก"
                 style={{ width: 28, height: 28, flexShrink: 0, borderRadius: "var(--r-chip)", display: "grid", placeItems: "center",
-                  background: "var(--surface2)", cursor: "pointer" }}>
+                  background: "var(--surface2)", boxShadow: "var(--shadow-sm)", cursor: "pointer" }}>
                 <Icon name="x" size={14} color="var(--text-2)" />
               </button>
             </div>
@@ -964,7 +965,7 @@ function EcPayModal({ person, claims, batches, currentUser, role, payers, onClos
           {/* พิมพ์ได้ตั้งแต่ก่อนโอน — คนจ่ายเอาไปวางหน้ากองเอกสารแล้วไล่ตรวจทีละใบ */}
           <button onClick={openCover} disabled={!list.length}
             style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "10px 15px", borderRadius: "var(--r-tile)",
-              background: "var(--surface2)", cursor: "pointer",
+              background: "var(--surface2)", boxShadow: "var(--shadow-sm)", cursor: "pointer",
               fontFamily: "inherit", fontSize: 13, fontWeight: 700, color: "var(--text-2)" }}>
             <Icon name="file" size={15} color="var(--text-2)" /> ใบปะหน้า
           </button>
@@ -1016,7 +1017,7 @@ function EcBatchList({ batches, onPrint, onDrop }) {
           {onPrint && (
             <button onClick={() => onPrint(b)} title="ใบสำคัญจ่าย A4"
               style={{ display: "inline-flex", alignItems: "center", gap: 5, padding: "6px 11px", borderRadius: "var(--r-chip)",
-                background: "var(--surface2)", cursor: "pointer",
+                background: "var(--surface2)", boxShadow: "var(--shadow-sm)", cursor: "pointer",
                 fontFamily: "inherit", fontSize: 11.5, fontWeight: 700, color: "var(--text-2)" }}>
               <Icon name="file" size={13} color="var(--text-3)" /> ใบสำคัญจ่าย
             </button>
@@ -1025,7 +1026,7 @@ function EcBatchList({ batches, onPrint, onDrop }) {
           {b.slipAt && (
             <button onClick={() => openSlip(b)} title="ดูสลิปโอนเงินของรอบนี้"
               style={{ display: "inline-flex", alignItems: "center", gap: 5, padding: "6px 11px", borderRadius: "var(--r-chip)",
-                background: "var(--surface2)", cursor: "pointer",
+                background: "var(--surface2)", boxShadow: "var(--shadow-sm)", cursor: "pointer",
                 fontFamily: "inherit", fontSize: 11.5, fontWeight: 700, color: "var(--text-2)" }}>
               <Icon name="image" size={13} color="var(--text-3)" /> สลิป
             </button>
@@ -1034,7 +1035,7 @@ function EcBatchList({ batches, onPrint, onDrop }) {
           {onDrop && (
             <button onClick={() => onDrop(b)} title={"ยกเลิกรอบจ่าย " + (b.no || "")}
               style={{ width: 28, height: 28, borderRadius: "var(--r-chip)", display: "grid", placeItems: "center",
-                background: "var(--surface2)", cursor: "pointer" }}>
+                background: "var(--surface2)", boxShadow: "var(--shadow-sm)", cursor: "pointer" }}>
               <Icon name="trash" size={13} color="var(--tint-red-tx)" />
             </button>
           )}
@@ -1135,7 +1136,7 @@ function EcJobButton({ job, sum, onOpen }) {
   return (
     <button onClick={onOpen}
       style={{ width: "100%", marginBottom: 10, display: "flex", alignItems: "center", gap: 10, padding: "12px 14px",
-        background: "var(--surface2)", borderLeft: "3px solid " + color,
+        background: "var(--surface2)", boxShadow: "var(--shadow-sm)", borderLeft: "3px solid " + color,
         borderRadius: "var(--r-tile)", cursor: "pointer", fontFamily: "inherit", textAlign: "left" }}>
       <span style={{ width: 34, height: 34, borderRadius: "var(--r-chip)", background: color + "1c", display: "grid", placeItems: "center", flexShrink: 0 }}>
         <Icon name="wallet" size={17} color={color} />
@@ -1362,7 +1363,7 @@ function ExpenseView({ jobs, users, role, currentUser, focus }) {
         ))}
         <button onClick={doXlsx} title="ออกไฟล์ Excel ตามรายการที่เห็นอยู่"
           style={{ marginLeft: "auto", display: "inline-flex", alignItems: "center", gap: 6, padding: "8px 14px",
-            borderRadius: "var(--r-pill)", background: "var(--surface2)", cursor: "pointer",
+            borderRadius: "var(--r-pill)", background: "var(--surface2)", boxShadow: "var(--shadow-sm)", cursor: "pointer",
             fontFamily: "inherit", fontSize: 12.5, fontWeight: 700, color: "var(--text-2)" }}>
           <Icon name="file" size={14} color="var(--text-3)" /> ออก Excel
         </button>
