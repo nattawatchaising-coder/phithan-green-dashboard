@@ -53,7 +53,7 @@ function KanbanCard({
         background: "#EAB30820",
         border: "1px solid #EAB30855",
         padding: "2px 7px",
-        borderRadius: 99,
+        borderRadius: "var(--r-pill)",
         whiteSpace: "nowrap"
       }
     }, "\u0E23\u0E2D\u0E2D\u0E19\u0E38\u0E21\u0E31\u0E15\u0E34"), job.drive && React.createElement("a", {
@@ -152,7 +152,7 @@ function KanbanCard({
         background: "#0D948814",
         border: "1px solid #0D948844",
         padding: "2px 7px",
-        borderRadius: 99
+        borderRadius: "var(--r-pill)"
       }
     }, React.createElement(Icon, {
       name: "net",
@@ -169,7 +169,7 @@ function KanbanCard({
         color: "var(--primary-dark)",
         background: "var(--primary-soft)",
         padding: "2px 7px",
-        borderRadius: 99
+        borderRadius: "var(--r-pill)"
       }
     }, React.createElement(Icon, {
       name: "shield",
@@ -183,7 +183,7 @@ function KanbanCard({
         style: {
           marginBottom: 10,
           padding: "7px 10px",
-          borderRadius: 11,
+          borderRadius: "var(--r-tile)",
           background: pst.color + "14",
           border: "1px solid " + pst.color + (rejected ? "" : "33")
         }
@@ -221,7 +221,7 @@ function KanbanCard({
         style: {
           marginBottom: 10,
           padding: "6px 9px",
-          borderRadius: 9,
+          borderRadius: "var(--r-chip)",
           background: c + "14",
           border: "1px solid " + c + "33"
         }
@@ -255,7 +255,7 @@ function KanbanCard({
         fontSize: 11,
         color: "var(--tint-red-tx)",
         background: "var(--tint-red-bg)",
-        borderRadius: 8,
+        borderRadius: "var(--r-chip)",
         padding: "6px 8px",
         marginBottom: 10,
         lineHeight: 1.4,
@@ -309,7 +309,7 @@ function KanbanCard({
         color: "var(--primary-dark)",
         background: "var(--primary-soft)",
         padding: "2px 7px",
-        borderRadius: 99
+        borderRadius: "var(--r-pill)"
       }
     }, React.createElement(Icon, {
       name: "battery",
@@ -322,7 +322,7 @@ function KanbanCard({
         color: "var(--text-2)",
         background: "var(--surface2)",
         padding: "2px 7px",
-        borderRadius: 99
+        borderRadius: "var(--r-pill)"
       }
     }, "\u0E15\u0E39\u0E49\u0E1B\u0E23\u0E30\u0E01\u0E2D\u0E1A")), React.createElement(InstallSpanBar, {
       job: job
@@ -365,7 +365,7 @@ function KanbanCard({
         background: "var(--tint-amber-bg2)",
         border: "1px solid #FCD34D",
         padding: "2px 7px",
-        borderRadius: 99,
+        borderRadius: "var(--r-pill)",
         whiteSpace: "nowrap"
       }
     }, React.createElement(Icon, {
@@ -435,7 +435,7 @@ function InstallSpanBar({
   }, right)), React.createElement("div", {
     style: {
       height: 5,
-      borderRadius: 99,
+      borderRadius: "var(--r-pill)",
       background: "var(--surface3)",
       overflow: "hidden"
     }
@@ -443,7 +443,7 @@ function InstallSpanBar({
     style: {
       width: pct + "%",
       height: "100%",
-      borderRadius: 99,
+      borderRadius: "var(--r-pill)",
       background: c
     }
   })), sp.phase === "running" && React.createElement("div", {
@@ -477,9 +477,9 @@ function DocChip({
       fontWeight: 700,
       color: color,
       background: soft,
-      border: "1px solid " + color + "44",
+      boxShadow: "var(--shadow-sm)",
       padding: "2px 7px",
-      borderRadius: 99,
+      borderRadius: "var(--r-pill)",
       cursor: "pointer",
       fontFamily: "inherit"
     }
@@ -569,7 +569,7 @@ function DocViewer({
     style: {
       width: 30,
       height: 30,
-      borderRadius: 8,
+      borderRadius: "var(--r-chip)",
       background: color + "16",
       display: "grid",
       placeItems: "center",
@@ -606,8 +606,8 @@ function DocViewer({
     style: {
       width: 34,
       height: 34,
-      borderRadius: 8,
-      border: "1px solid var(--border-strong)",
+      borderRadius: "var(--r-chip)",
+      boxShadow: "var(--shadow-sm)",
       background: "var(--surface)",
       cursor: "pointer",
       display: "grid",
@@ -624,8 +624,8 @@ function DocViewer({
     style: {
       width: 34,
       height: 34,
-      borderRadius: 8,
-      border: "1px solid var(--border-strong)",
+      borderRadius: "var(--r-chip)",
+      boxShadow: "var(--shadow-sm)",
       background: "var(--surface)",
       cursor: "pointer",
       display: "grid",
@@ -642,8 +642,8 @@ function DocViewer({
     style: {
       width: 34,
       height: 34,
-      borderRadius: 8,
-      border: "1px solid var(--border)",
+      borderRadius: "var(--r-chip)",
+      boxShadow: "var(--shadow-sm)",
       background: "var(--surface)",
       cursor: "pointer",
       display: "grid",
@@ -670,7 +670,7 @@ function DocViewer({
     style: {
       flexShrink: 0,
       padding: "5px 11px",
-      borderRadius: 8,
+      borderRadius: "var(--r-chip)",
       fontSize: 11.5,
       fontWeight: 600,
       fontFamily: "inherit",
@@ -739,7 +739,7 @@ function DocViewer({
     style: {
       flex: 1,
       padding: "11px",
-      borderRadius: 10,
+      borderRadius: "var(--r-tile)",
       border: "none",
       background: color,
       color: "#fff",
@@ -761,8 +761,8 @@ function DocViewer({
     style: {
       flex: "0 0 auto",
       padding: "11px 16px",
-      borderRadius: 10,
-      border: "1px solid var(--border-strong)",
+      borderRadius: "var(--r-tile)",
+      boxShadow: "var(--shadow-sm)",
       background: "var(--surface)",
       color: "var(--text-2)",
       fontWeight: 600,
@@ -794,7 +794,7 @@ function Stat({
       color: accent ? "var(--primary-dark)" : "var(--text-2)",
       background: accent ? "var(--primary-soft)" : "var(--surface2)",
       padding: "3px 7px",
-      borderRadius: 7
+      borderRadius: "var(--r-chip)"
     }
   }, React.createElement(Icon, {
     name: icon,
@@ -849,7 +849,7 @@ function KanbanView({
         flexShrink: 0,
         display: "flex",
         flexDirection: "column",
-        borderRadius: 18,
+        borderRadius: "var(--r-card)",
         background: isOver ? s.soft : "var(--surface2)",
         border: "1px solid " + (isOver ? s.color : "var(--border)"),
         transition: "background .15s, border-color .15s"
@@ -879,7 +879,7 @@ function KanbanView({
       style: {
         width: 7,
         height: 7,
-        borderRadius: 99,
+        borderRadius: "var(--r-pill)",
         background: s.color,
         flexShrink: 0
       }
@@ -925,7 +925,7 @@ function KanbanView({
         fontSize: 12,
         color: "var(--text-3)",
         border: "1.5px dashed var(--border-strong)",
-        borderRadius: 10
+        borderRadius: "var(--r-tile)"
       }
     }, isOver ? "วางที่นี่" : "ว่าง")));
   }));
@@ -950,9 +950,9 @@ function KanbanMobile({
     return React.createElement("div", {
       key: s.key,
       style: {
-        borderRadius: 14,
+        borderRadius: "var(--r-tile)",
         background: "var(--surface2)",
-        border: "1px solid var(--border)",
+        boxShadow: "var(--shadow-sm)",
         overflow: "hidden"
       }
     }, React.createElement("button", {
@@ -985,7 +985,7 @@ function KanbanMobile({
       style: {
         width: 10,
         height: 10,
-        borderRadius: 99,
+        borderRadius: "var(--r-pill)",
         background: s.color,
         flexShrink: 0
       }
@@ -1002,7 +1002,7 @@ function KanbanMobile({
         color: "#EF4444",
         background: "var(--tint-red-bg2)",
         padding: "1px 6px",
-        borderRadius: 99,
+        borderRadius: "var(--r-pill)",
         flexShrink: 0
       }
     }, problems, "\u26A0")), React.createElement("span", {
@@ -1021,7 +1021,7 @@ function KanbanMobile({
         background: s.soft,
         minWidth: 24,
         height: 24,
-        borderRadius: 99,
+        borderRadius: "var(--r-pill)",
         display: "grid",
         placeItems: "center",
         padding: "0 7px"

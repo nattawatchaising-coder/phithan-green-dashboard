@@ -294,8 +294,8 @@ function JobPhotos({
       alignItems: "center",
       gap: 6,
       padding: "7px 12px",
-      borderRadius: 9,
-      border: "1px solid var(--border-strong)",
+      borderRadius: "var(--r-chip)",
+      boxShadow: "var(--shadow-sm)",
       background: "var(--surface)",
       color: "var(--primary-dark)",
       fontWeight: 600,
@@ -328,7 +328,7 @@ function JobPhotos({
       fontSize: 12.5,
       color: "var(--text-3)",
       border: "1.5px dashed var(--border-strong)",
-      borderRadius: 12,
+      borderRadius: "var(--r-tile)",
       cursor: readOnly ? "default" : "pointer"
     }
   }, readOnly ? "ยังไม่มีรูปหน้างาน" : "ยังไม่มีรูป · แตะเพื่อเพิ่มรูปหน้างาน") : React.createElement("div", {
@@ -349,7 +349,7 @@ function JobPhotos({
       width: 96,
       height: 96,
       flexShrink: 0,
-      borderRadius: 10,
+      borderRadius: "var(--r-tile)",
       overflow: "hidden",
       background: "var(--surface3)"
     }
@@ -420,7 +420,7 @@ function JobPhotos({
     style: {
       maxWidth: "100%",
       maxHeight: "68vh",
-      borderRadius: 10,
+      borderRadius: "var(--r-tile)",
       objectFit: "contain"
     }
   }), React.createElement("div", {
@@ -444,7 +444,7 @@ function JobPhotos({
     style: {
       width: 48,
       height: 48,
-      borderRadius: 99,
+      borderRadius: "var(--r-pill)",
       border: "none",
       background: "rgba(255,255,255,.18)",
       color: "#fff",
@@ -469,7 +469,7 @@ function JobPhotos({
     style: {
       width: 48,
       height: 48,
-      borderRadius: 99,
+      borderRadius: "var(--r-pill)",
       border: "none",
       background: "rgba(255,255,255,.18)",
       color: "#fff",
@@ -490,7 +490,7 @@ function JobPhotos({
     onClick: () => setLbIndex(null),
     style: {
       padding: "8px 20px",
-      borderRadius: 10,
+      borderRadius: "var(--r-tile)",
       border: "1px solid rgba(255,255,255,.4)",
       background: "transparent",
       color: "#fff",
@@ -597,8 +597,8 @@ function JobFiles({
         alignItems: "center",
         gap: 6,
         padding: "7px 12px",
-        borderRadius: 9,
-        border: "1px solid " + k.color + "55",
+        borderRadius: "var(--r-chip)",
+        boxShadow: "var(--shadow-sm)",
         background: k.soft,
         color: k.color,
         fontWeight: 700,
@@ -670,7 +670,7 @@ function JobFiles({
       fontSize: 12.5,
       color: "var(--text-3)",
       border: "1.5px dashed var(--border-strong)",
-      borderRadius: 12,
+      borderRadius: "var(--r-tile)",
       cursor: "pointer"
     }
   }, "\u0E22\u0E31\u0E07\u0E44\u0E21\u0E48\u0E21\u0E35\u0E40\u0E2D\u0E01\u0E2A\u0E32\u0E23 \xB7 \u0E41\u0E15\u0E30\u0E1B\u0E38\u0E48\u0E21 \u201C\u0E41\u0E1A\u0E1A\u201D \u0E2B\u0E23\u0E37\u0E2D \u201CBOQ\u201D \u0E40\u0E1E\u0E37\u0E48\u0E2D\u0E2D\u0E31\u0E1B\u0E42\u0E2B\u0E25\u0E14 PDF") : React.createElement("div", {
@@ -689,14 +689,14 @@ function JobFiles({
         gap: 11,
         padding: "10px 12px",
         background: "var(--surface)",
-        border: "1px solid var(--border)",
-        borderRadius: 11
+        boxShadow: "var(--shadow-sm)",
+        borderRadius: "var(--r-tile)"
       }
     }, React.createElement("span", {
       style: {
         width: 34,
         height: 34,
-        borderRadius: 9,
+        borderRadius: "var(--r-chip)",
         background: k.soft,
         display: "grid",
         placeItems: "center",
@@ -758,8 +758,8 @@ function JobFiles({
       style: {
         width: 32,
         height: 32,
-        borderRadius: 8,
-        border: "1px solid var(--border)",
+        borderRadius: "var(--r-chip)",
+        boxShadow: "var(--shadow-sm)",
         background: "var(--surface)",
         cursor: "pointer",
         display: "grid",
@@ -785,8 +785,8 @@ function JobFiles({
       style: {
         width: 32,
         height: 32,
-        borderRadius: 8,
-        border: "1px solid var(--border)",
+        borderRadius: "var(--r-chip)",
+        boxShadow: "var(--shadow-sm)",
         background: "var(--surface)",
         cursor: "pointer",
         display: "grid",
@@ -856,7 +856,7 @@ function JobComments({
     style: {
       width: 30,
       height: 30,
-      borderRadius: 99,
+      borderRadius: "var(--r-pill)",
       flexShrink: 0,
       display: "grid",
       placeItems: "center",
@@ -939,13 +939,13 @@ function JobComments({
       minHeight: 44,
       boxSizing: "border-box",
       background: "var(--surface2)",
-      border: "1px solid var(--border-strong)",
+      boxShadow: "var(--shadow-sm)",
       color: "var(--text-1)",
       fontFamily: "inherit",
       fontSize: 13.5,
       lineHeight: 1.4,
       padding: "11px 12px",
-      borderRadius: 11,
+      borderRadius: "var(--r-tile)",
       outline: "none"
     }
   }), React.createElement("button", {
@@ -955,7 +955,7 @@ function JobComments({
       flexShrink: 0,
       width: 44,
       height: 44,
-      borderRadius: 11,
+      borderRadius: "var(--r-tile)",
       border: "none",
       background: text.trim() ? "var(--primary)" : "var(--surface3)",
       cursor: text.trim() ? "pointer" : "default",

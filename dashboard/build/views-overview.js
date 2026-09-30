@@ -165,7 +165,7 @@ function PipelinePanel({
     style: {
       width: 8,
       height: 8,
-      borderRadius: 99,
+      borderRadius: "var(--r-pill)",
       background: s.color,
       flexShrink: 0
     }
@@ -175,7 +175,7 @@ function PipelinePanel({
       minWidth: 0,
       height: 10,
       background: "var(--surface3)",
-      borderRadius: 99,
+      borderRadius: "var(--r-pill)",
       overflow: "hidden",
       display: "block"
     }
@@ -185,7 +185,7 @@ function PipelinePanel({
       height: "100%",
       width: Math.max(counts[i] / max * 100, counts[i] ? 5 : 0) + "%",
       background: s.color,
-      borderRadius: 99,
+      borderRadius: "var(--r-pill)",
       transition: "width .6s cubic-bezier(.2,.8,.2,1)"
     }
   })), React.createElement("span", {
@@ -287,8 +287,8 @@ function AlertsPanel({
       padding: "11px 12px",
       textAlign: "left",
       background: "var(--surface)",
-      border: "1px solid var(--border)",
-      borderRadius: 12,
+      boxShadow: "var(--shadow-sm)",
+      borderRadius: "var(--r-tile)",
       cursor: "pointer",
       fontFamily: "inherit",
       width: "100%",
@@ -306,7 +306,7 @@ function AlertsPanel({
     style: {
       width: 3,
       alignSelf: "stretch",
-      borderRadius: 99,
+      borderRadius: "var(--r-pill)",
       background: j.delayed ? "#D93025" : "#F59E0B",
       flexShrink: 0
     }
@@ -340,7 +340,7 @@ function AlertsPanel({
       color: "#D93025",
       background: "rgba(217,48,37,.11)",
       padding: "2px 7px",
-      borderRadius: 99,
+      borderRadius: "var(--r-pill)",
       flexShrink: 0
     }
   }, "\u0E25\u0E48\u0E32\u0E0A\u0E49\u0E32")), React.createElement("div", {
@@ -425,7 +425,7 @@ function SchedulePanel({
         padding: "9px 8px",
         background: "none",
         border: "none",
-        borderRadius: 10,
+        borderRadius: "var(--r-tile)",
         cursor: "pointer",
         fontFamily: "inherit",
         width: "100%",
@@ -1067,14 +1067,14 @@ function MaterialShortagePanel({
         alignItems: "center",
         gap: 5,
         padding: "6px 10px",
-        border: "1px solid var(--border-strong)",
-        borderRadius: 9,
+        boxShadow: "var(--shadow-sm)",
+        borderRadius: "var(--r-chip)",
         color: "var(--primary-dark)",
         fontWeight: 700,
         fontSize: 11.5,
         cursor: "pointer",
         whiteSpace: "nowrap",
-        background: "var(--surface)"
+        background: "var(--surface2)"
       }
     }, React.createElement(Icon, {
       name: "download",
@@ -1416,7 +1416,7 @@ function BrandPanel({
     style: {
       display: "flex",
       height: 14,
-      borderRadius: 99,
+      borderRadius: "var(--r-pill)",
       overflow: "hidden",
       gap: 2
     }
@@ -1496,7 +1496,7 @@ function BrandPanel({
     style: {
       width: 7,
       height: 7,
-      borderRadius: 99,
+      borderRadius: "var(--r-pill)",
       background: t.color,
       flexShrink: 0
     }

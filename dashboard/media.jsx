@@ -217,8 +217,8 @@ function JobPhotos({ media, currentUser, canManage, readOnly }) {
           <Icon name="image" size={14} color="var(--text-2)" /> รูปหน้างาน{n > 0 && " · " + n}
         </span>
         {!readOnly && <button onClick={() => fileRef.current && fileRef.current.click()} disabled={busy}
-          style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "7px 12px", borderRadius: 9,
-            border: "1px solid var(--border-strong)", background: "var(--surface)", color: "var(--primary-dark)",
+          style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "7px 12px", borderRadius: "var(--r-chip)",
+            boxShadow: "var(--shadow-sm)", background: "var(--surface)", color: "var(--primary-dark)",
             fontWeight: 600, fontFamily: "inherit", fontSize: 12.5, cursor: busy ? "default" : "pointer", opacity: busy ? 0.6 : 1 }}>
           <Icon name="plus" size={14} color="var(--primary-dark)" sw={2.4} /> {busy ? "กำลังเพิ่ม..." : "เพิ่มรูป"}
         </button>}
@@ -228,14 +228,14 @@ function JobPhotos({ media, currentUser, canManage, readOnly }) {
       {n === 0 ? (
         <div onClick={() => { if (!readOnly && fileRef.current) fileRef.current.click(); }}
           style={{ padding: "22px 0", textAlign: "center", fontSize: 12.5, color: "var(--text-3)",
-            border: "1.5px dashed var(--border-strong)", borderRadius: 12, cursor: readOnly ? "default" : "pointer" }}>
+            border: "1.5px dashed var(--border-strong)", borderRadius: "var(--r-tile)", cursor: readOnly ? "default" : "pointer" }}>
           {readOnly ? "ยังไม่มีรูปหน้างาน" : "ยังไม่มีรูป · แตะเพื่อเพิ่มรูปหน้างาน"}
         </div>
       ) : (
         // แถวเดียว เลื่อนแนวนอน
         <div style={{ display: "flex", gap: 8, overflowX: "auto", WebkitOverflowScrolling: "touch", paddingBottom: 4, margin: "0 -2px", paddingLeft: 2, paddingRight: 2 }}>
           {media.photos.map((p, idx) => (
-            <div key={p.id} style={{ position: "relative", width: 96, height: 96, flexShrink: 0, borderRadius: 10, overflow: "hidden", background: "var(--surface3)" }}>
+            <div key={p.id} style={{ position: "relative", width: 96, height: 96, flexShrink: 0, borderRadius: "var(--r-tile)", overflow: "hidden", background: "var(--surface3)" }}>
               <img src={p.dataUrl} alt={p.caption || "รูปหน้างาน"} onClick={() => setLbIndex(idx)}
                 style={{ width: "100%", height: "100%", objectFit: "cover", cursor: "pointer" }} />
               {canDelete(p) && (
@@ -257,23 +257,23 @@ function JobPhotos({ media, currentUser, canManage, readOnly }) {
           style={{ position: "fixed", inset: 0, background: "rgba(8,20,14,.9)", zIndex: 130,
             display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: 20 }}>
           <img src={cur.dataUrl} alt={cur.caption || ""} onClick={(e) => e.stopPropagation()}
-            style={{ maxWidth: "100%", maxHeight: "68vh", borderRadius: 10, objectFit: "contain" }} />
+            style={{ maxWidth: "100%", maxHeight: "68vh", borderRadius: "var(--r-tile)", objectFit: "contain" }} />
 
           {/* ปุ่มควบคุมด้านล่าง: ก่อนหน้า · ตำแหน่ง · ถัดไป */}
           <div onClick={(e) => e.stopPropagation()} style={{ marginTop: 16, display: "flex", flexDirection: "column", alignItems: "center", gap: 12 }}>
             {n > 1 && (
               <div style={{ display: "flex", alignItems: "center", gap: 20 }}>
                 <button onClick={prev} aria-label="ก่อนหน้า"
-                  style={{ width: 48, height: 48, borderRadius: 99, border: "none", background: "rgba(255,255,255,.18)", color: "#fff", fontSize: 28, lineHeight: 1, cursor: "pointer", display: "grid", placeItems: "center" }}>‹</button>
+                  style={{ width: 48, height: 48, borderRadius: "var(--r-pill)", border: "none", background: "rgba(255,255,255,.18)", color: "#fff", fontSize: 28, lineHeight: 1, cursor: "pointer", display: "grid", placeItems: "center" }}>‹</button>
                 <span style={{ color: "#fff", fontFamily: "var(--mono)", fontSize: 14, fontWeight: 600, minWidth: 52, textAlign: "center" }}>{lbIndex + 1} / {n}</span>
                 <button onClick={next} aria-label="ถัดไป"
-                  style={{ width: 48, height: 48, borderRadius: 99, border: "none", background: "rgba(255,255,255,.18)", color: "#fff", fontSize: 28, lineHeight: 1, cursor: "pointer", display: "grid", placeItems: "center" }}>›</button>
+                  style={{ width: 48, height: 48, borderRadius: "var(--r-pill)", border: "none", background: "rgba(255,255,255,.18)", color: "#fff", fontSize: 28, lineHeight: 1, cursor: "pointer", display: "grid", placeItems: "center" }}>›</button>
               </div>
             )}
             <div style={{ color: "#fff", fontSize: 12.5, textAlign: "center", opacity: 0.85 }}>
               {cur.caption ? cur.caption + " · " : ""}โดย {cur.byName} · {thDateTime ? thDateTime(cur.at) : ""}
             </div>
-            <button onClick={() => setLbIndex(null)} style={{ padding: "8px 20px", borderRadius: 10, border: "1px solid rgba(255,255,255,.4)",
+            <button onClick={() => setLbIndex(null)} style={{ padding: "8px 20px", borderRadius: "var(--r-tile)", border: "1px solid rgba(255,255,255,.4)",
               background: "transparent", color: "#fff", fontFamily: "inherit", fontSize: 13, cursor: "pointer" }}>ปิด</button>
           </div>
         </div>
@@ -341,8 +341,8 @@ function JobFiles({ media, currentUser, canManage }) {
     const k = FILE_KINDS[kind];
     return (
       <button onClick={() => trigger(kind)} disabled={busy}
-        style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "7px 12px", borderRadius: 9,
-          border: "1px solid " + k.color + "55", background: k.soft, color: k.color,
+        style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "7px 12px", borderRadius: "var(--r-chip)",
+          boxShadow: "var(--shadow-sm)", background: k.soft, color: k.color,
           fontWeight: 700, fontFamily: "inherit", fontSize: 12.5, cursor: busy ? "default" : "pointer", opacity: busy ? 0.6 : 1 }}>
         <Icon name="plus" size={14} color={k.color} sw={2.4} /> {label}
       </button>
@@ -365,7 +365,7 @@ function JobFiles({ media, currentUser, canManage }) {
       {files.length === 0 ? (
         <div onClick={() => trigger("other")}
           style={{ padding: "20px 0", textAlign: "center", fontSize: 12.5, color: "var(--text-3)",
-            border: "1.5px dashed var(--border-strong)", borderRadius: 12, cursor: "pointer" }}>
+            border: "1.5px dashed var(--border-strong)", borderRadius: "var(--r-tile)", cursor: "pointer" }}>
           ยังไม่มีเอกสาร · แตะปุ่ม “แบบ” หรือ “BOQ” เพื่ออัปโหลด PDF
         </div>
       ) : (
@@ -374,8 +374,8 @@ function JobFiles({ media, currentUser, canManage }) {
             const k = FILE_KINDS[f.kind] || FILE_KINDS.other;
             return (
               <div key={f.id} style={{ display: "flex", alignItems: "center", gap: 11, padding: "10px 12px",
-                background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 11 }}>
-                <span style={{ width: 34, height: 34, borderRadius: 9, background: k.soft, display: "grid", placeItems: "center", flexShrink: 0 }}>
+                background: "var(--surface)", boxShadow: "var(--shadow-sm)", borderRadius: "var(--r-tile)" }}>
+                <span style={{ width: 34, height: 34, borderRadius: "var(--r-chip)", background: k.soft, display: "grid", placeItems: "center", flexShrink: 0 }}>
                   <Icon name="file" size={17} color={k.color} />
                 </span>
                 <button onClick={() => open(f, false)} title="เปิดดู"
@@ -387,12 +387,12 @@ function JobFiles({ media, currentUser, canManage }) {
                   <span style={{ fontSize: 11, color: "var(--text-3)" }}>{fmtBytes(f.size)}{f.size ? " · " : ""}โดย {f.byName} · {thDateTime ? thDateTime(f.at) : ""}</span>
                 </button>
                 <button onClick={() => open(f, true)} title="ดาวน์โหลด" aria-label="ดาวน์โหลด"
-                  style={{ width: 32, height: 32, borderRadius: 8, border: "1px solid var(--border)", background: "var(--surface)", cursor: "pointer", display: "grid", placeItems: "center", flexShrink: 0 }}>
+                  style={{ width: 32, height: 32, borderRadius: "var(--r-chip)", boxShadow: "var(--shadow-sm)", background: "var(--surface)", cursor: "pointer", display: "grid", placeItems: "center", flexShrink: 0 }}>
                   <Icon name="download" size={15} color="var(--text-2)" />
                 </button>
                 {canDelete(f) && (
                   <button onClick={() => { askConfirm({ title: "ลบเอกสารนี้?", body: f.name || "", ok: "ลบเอกสาร" }).then((ok) => { if (ok) media.removeFile(f.id); }); }} title="ลบ" aria-label="ลบ"
-                    style={{ width: 32, height: 32, borderRadius: 8, border: "1px solid var(--border)", background: "var(--surface)", cursor: "pointer", display: "grid", placeItems: "center", flexShrink: 0, color: "var(--text-3)" }}>
+                    style={{ width: 32, height: 32, borderRadius: "var(--r-chip)", boxShadow: "var(--shadow-sm)", background: "var(--surface)", cursor: "pointer", display: "grid", placeItems: "center", flexShrink: 0, color: "var(--text-3)" }}>
                     <Icon name="x" size={15} color="var(--text-3)" />
                   </button>
                 )}
@@ -423,7 +423,7 @@ function JobComments({ media, currentUser, canManage }) {
         )}
         {media.comments.map((c) => (
           <div key={c.id} style={{ display: "flex", gap: 10 }}>
-            <span style={{ width: 30, height: 30, borderRadius: 99, flexShrink: 0, display: "grid", placeItems: "center",
+            <span style={{ width: 30, height: 30, borderRadius: "var(--r-pill)", flexShrink: 0, display: "grid", placeItems: "center",
               background: "var(--primary)", color: "#fff", fontWeight: 700, fontSize: 12 }}>{(c.userName || "?").slice(0, 1)}</span>
             <div style={{ flex: 1, minWidth: 0 }}>
               <div style={{ display: "flex", alignItems: "baseline", gap: 8, flexWrap: "wrap" }}>
@@ -444,10 +444,10 @@ function JobComments({ media, currentUser, canManage }) {
         <textarea value={text} onChange={(e) => setText(e.target.value)}
           onKeyDown={(e) => { if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) { e.preventDefault(); send(); } }}
           placeholder="พิมพ์ข้อความ / บันทึกงาน..." rows={1}
-          style={{ flex: 1, resize: "vertical", height: 44, minHeight: 44, boxSizing: "border-box", background: "var(--surface2)", border: "1px solid var(--border-strong)",
-            color: "var(--text-1)", fontFamily: "inherit", fontSize: 13.5, lineHeight: 1.4, padding: "11px 12px", borderRadius: 11, outline: "none" }} />
+          style={{ flex: 1, resize: "vertical", height: 44, minHeight: 44, boxSizing: "border-box", background: "var(--surface2)", boxShadow: "var(--shadow-sm)",
+            color: "var(--text-1)", fontFamily: "inherit", fontSize: 13.5, lineHeight: 1.4, padding: "11px 12px", borderRadius: "var(--r-tile)", outline: "none" }} />
         <button onClick={send} disabled={!text.trim()}
-          style={{ flexShrink: 0, width: 44, height: 44, borderRadius: 11, border: "none",
+          style={{ flexShrink: 0, width: 44, height: 44, borderRadius: "var(--r-tile)", border: "none",
             background: text.trim() ? "var(--primary)" : "var(--surface3)", cursor: text.trim() ? "pointer" : "default",
             display: "grid", placeItems: "center", transition: "background .15s" }}>
           <Icon name="arrowRight" size={18} color={text.trim() ? "#fff" : "var(--text-3)"} />

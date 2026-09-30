@@ -592,7 +592,7 @@ function SalesQuoteList({ job, lead, quotes, leads, onOpenQuote, card }) {
         <span style={{ fontSize: 11, fontWeight: 700, letterSpacing: ".05em", color: "var(--text-3)" }}>ใบเสนอราคา</span>
         {onOpenQuote && (
           <button onClick={() => onOpenQuote(null)} style={{ marginLeft: "auto", display: "inline-flex", alignItems: "center", gap: 4,
-            background: "none", border: "1px solid var(--border-strong)", borderRadius: 8, padding: "5px 10px", cursor: "pointer",
+            background: "var(--surface2)", boxShadow: "var(--shadow-sm)", borderRadius: "var(--r-chip)", padding: "5px 10px", cursor: "pointer",
             fontFamily: "inherit", fontSize: 11.5, fontWeight: 700, color: "var(--primary-dark)" }}>
             <Icon name="plus" size={13} color="var(--primary-dark)" /> ทำใบใหม่
           </button>
@@ -611,14 +611,14 @@ function SalesQuoteList({ job, lead, quotes, leads, onOpenQuote, card }) {
         return (
           <button key={q.id} onClick={() => onOpenQuote && onOpenQuote(q)} disabled={!onOpenQuote}
             style={{ width: "100%", display: "flex", alignItems: "center", gap: 10, padding: "10px 12px", marginBottom: 6,
-              background: i === 0 ? "var(--surface2)" : "transparent", border: "1px solid var(--border)", borderRadius: 11,
+              background: i === 0 ? "var(--surface2)" : "var(--surface)", boxShadow: "var(--shadow-sm)", borderRadius: "var(--r-tile)",
               cursor: onOpenQuote ? "pointer" : "default", fontFamily: "inherit", textAlign: "left" }}>
             <span style={{ flex: 1, minWidth: 0 }}>
               <span style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
                 <span style={{ fontSize: 12.5, fontWeight: 700, color: "var(--text-1)", fontFamily: "var(--mono)" }}>{q.no}</span>
                 {qs.length > 1 && (
                   <span style={{ fontSize: 10, fontWeight: 800, color: i === 0 ? "var(--primary-dark)" : "var(--text-3)",
-                    background: i === 0 ? "var(--primary-soft)" : "var(--surface2)", padding: "1px 7px", borderRadius: 99 }}>
+                    background: i === 0 ? "var(--primary-soft)" : "var(--surface2)", padding: "1px 7px", borderRadius: "var(--r-pill)" }}>
                     ฉบับที่ {ver}{i === 0 ? " · ล่าสุด" : ""}
                   </span>
                 )}
@@ -626,7 +626,7 @@ function SalesQuoteList({ job, lead, quotes, leads, onOpenQuote, card }) {
               <span style={{ display: "block", fontSize: 11, color: "var(--text-3)" }}>{thDate(q.date, true)}{q.ownerName ? " · " + q.ownerName : ""}</span>
             </span>
             <span style={{ fontSize: 13, fontWeight: 800, color: "var(--text-1)", fontVariantNumeric: "tabular-nums" }}>฿{sBaht(T.grand)}</span>
-            <span style={{ fontSize: 10.5, fontWeight: 700, color: s.color, background: s.color + "16", padding: "3px 9px", borderRadius: 99, whiteSpace: "nowrap" }}>{s.th}</span>
+            <span style={{ fontSize: 10.5, fontWeight: 700, color: s.color, background: s.color + "16", padding: "3px 9px", borderRadius: "var(--r-pill)", whiteSpace: "nowrap" }}>{s.th}</span>
           </button>
         );
       })}
@@ -634,7 +634,7 @@ function SalesQuoteList({ job, lead, quotes, leads, onOpenQuote, card }) {
   );
   if (!card) return <div>{body}</div>;
   return (
-    <div style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 14, padding: 16, marginBottom: 10 }}>{body}</div>
+    <div style={{ background: "var(--surface)", boxShadow: "var(--shadow-sm)", borderRadius: "var(--r-tile)", padding: 16, marginBottom: 10 }}>{body}</div>
   );
 }
 
@@ -1135,7 +1135,7 @@ function QuotePagePick({ q, locked, onToggle, onAll, warn }) {
           const dis = locked || p.lock;
           return (
             <button key={p.key} type="button" disabled={dis} onClick={() => onToggle(p.key)}
-              style={{ display: "flex", alignItems: "flex-start", gap: 9, padding: "9px 11px", borderRadius: 11,
+              style={{ display: "flex", alignItems: "flex-start", gap: 9, padding: "9px 11px", borderRadius: "var(--r-tile)",
                 border: "1px solid " + (on ? "var(--primary)" : "var(--border)"),
                 background: on ? "var(--primary-soft)" : "var(--surface)", cursor: dis ? "default" : "pointer",
                 fontFamily: "inherit", textAlign: "left", opacity: dis && !on ? .55 : 1 }}>
@@ -1156,12 +1156,12 @@ function QuotePagePick({ q, locked, onToggle, onAll, warn }) {
       </div>
       {warn && (
         <div style={{ fontSize: 11.5, color: "#B45309", background: "var(--tint-amber-bg)", border: "1px solid #F59E0B55",
-          borderRadius: 10, padding: "8px 11px", lineHeight: 1.6 }}>{warn}</div>
+          borderRadius: "var(--r-tile)", padding: "8px 11px", lineHeight: 1.6 }}>{warn}</div>
       )}
     </div>
   );
 }
-const pgQuick = { padding: "5px 10px", borderRadius: 8, border: "1px solid var(--border-strong)", background: "var(--surface)",
+const pgQuick = { padding: "5px 10px", borderRadius: "var(--r-chip)", boxShadow: "var(--shadow-sm)", background: "var(--surface)",
   cursor: "pointer", fontFamily: "inherit", fontSize: 11, fontWeight: 700, color: "var(--text-2)" };
 
 /* ── ตารางเล็ก ๆ ในเอกสาร (BOQ · ตารางรับประกัน) ──
@@ -1176,7 +1176,7 @@ function QuoteRowPic({ lib, id, locked, onPick }) {
     <div style={{ position: "relative" }}>
       <button type="button" disabled={locked} title={cur ? cur.name || "เปลี่ยนรูป" : "เลือกรูปจากคลัง"}
         onClick={() => setOpen((v) => !v)}
-        style={{ width: "100%", height: 34, padding: 0, borderRadius: 8, overflow: "hidden", display: "grid", placeItems: "center",
+        style={{ width: "100%", height: 34, padding: 0, borderRadius: "var(--r-chip)", overflow: "hidden", display: "grid", placeItems: "center",
           border: "1px solid " + (cur ? "var(--primary)" : "var(--border-strong)"), background: "var(--surface)",
           cursor: locked ? "default" : "pointer" }}>
         {cur ? <img src={cur.thumb} alt="" style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} />
@@ -1185,8 +1185,8 @@ function QuoteRowPic({ lib, id, locked, onPick }) {
       {open && !locked && (
         <React.Fragment>
           <div onClick={() => setOpen(false)} style={{ position: "fixed", inset: 0, zIndex: 40 }} />
-          <div style={{ position: "absolute", zIndex: 41, top: 38, left: 0, width: 232, padding: 8, borderRadius: 11,
-            border: "1px solid var(--border-strong)", background: "var(--surface)", boxShadow: "0 18px 44px rgba(8,20,14,.22)" }}>
+          <div style={{ position: "absolute", zIndex: 41, top: 38, left: 0, width: 232, padding: 8, borderRadius: "var(--r-tile)",
+            boxShadow: "var(--shadow-sm)", background: "var(--surface)", boxShadow: "0 18px 44px rgba(8,20,14,.22)" }}>
             {pics.length === 0 ? (
               <div style={{ fontSize: 11, color: "var(--text-3)", lineHeight: 1.6 }}>
                 คลังยังว่าง — เพิ่มรูปที่หัวข้อ “คลังรูปอุปกรณ์” ด้านล่างก่อน
@@ -1196,7 +1196,7 @@ function QuoteRowPic({ lib, id, locked, onPick }) {
                 {pics.map((p) => (
                   <img key={p.id} src={p.thumb} alt="" title={p.name || ""}
                     onClick={() => { onPick(p.id); setOpen(false); }}
-                    style={{ width: "100%", height: 44, objectFit: "cover", display: "block", cursor: "pointer", borderRadius: 7,
+                    style={{ width: "100%", height: 44, objectFit: "cover", display: "block", cursor: "pointer", borderRadius: "var(--r-chip)",
                       border: "2px solid " + (p.id === id ? "var(--primary)" : "transparent") }} />
                 ))}
               </div>
@@ -1216,7 +1216,7 @@ function QuoteRowsEdit({ title, hint, cols, rows, locked, onChange, onSeed, seed
   const a = rows || [];
   const grid = cols.map((c) => c.w).join(" ") + (locked ? "" : " 30px");
   const setCell = (i, k, v) => onChange(a.map((r, j) => j === i ? Object.assign({}, r, { [k]: v }) : r));
-  const cell = { padding: "7px 8px", borderRadius: 8, border: "1px solid var(--border-strong)", background: "var(--surface)",
+  const cell = { padding: "7px 8px", borderRadius: "var(--r-chip)", boxShadow: "var(--shadow-sm)", background: "var(--surface)",
     color: "var(--text-1)", fontFamily: "inherit", fontSize: 12, width: "100%", minWidth: 0 };
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 7 }}>
@@ -1243,7 +1243,7 @@ function QuoteRowsEdit({ title, hint, cols, rows, locked, onChange, onSeed, seed
             )))}
             {!locked && (
               <button type="button" onClick={() => onChange(a.filter((_, j) => j !== i))} title="ลบบรรทัดนี้"
-                style={{ width: 30, height: 30, borderRadius: 8, border: "1px solid var(--border-strong)", background: "var(--surface)",
+                style={{ width: 30, height: 30, borderRadius: "var(--r-chip)", boxShadow: "var(--shadow-sm)", background: "var(--surface)",
                   cursor: "pointer", display: "grid", placeItems: "center" }}>
                 <Icon name="trash" size={13} color="#EF4444" />
               </button>
@@ -1257,7 +1257,7 @@ function QuoteRowsEdit({ title, hint, cols, rows, locked, onChange, onSeed, seed
       {!locked && (
         <button type="button" onClick={() => onChange(a.concat([cols.reduce((o, c) => Object.assign(o, { [c.key]: c.num && !c.pic ? 1 : "" }), {})]))}
           style={{ alignSelf: "flex-start", display: "inline-flex", alignItems: "center", gap: 5, background: "none",
-            border: "1px dashed var(--border-strong)", borderRadius: 10, padding: "7px 12px", cursor: "pointer",
+            border: "1px dashed var(--border-strong)", borderRadius: "var(--r-tile)", padding: "7px 12px", cursor: "pointer",
             fontFamily: "inherit", fontSize: 12, fontWeight: 700, color: "var(--text-2)" }}>
           <Icon name="plus" size={13} color="var(--text-2)" /> เพิ่มบรรทัด
         </button>
@@ -1274,8 +1274,8 @@ function QuoteRoiEdit({ q, locked, onChange }) {
   const raw = q.roi || {};
   const R = (+q.kwp > 0 && quoteTotals(q).afterDisc > 0) ? quoteRoi(q) : null;
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 8, background: "var(--surface)", border: "1px solid var(--border)",
-      borderRadius: 13, padding: 13 }}>
+    <div style={{ display: "flex", flexDirection: "column", gap: 8, background: "var(--surface)", boxShadow: "var(--shadow-sm)",
+      borderRadius: "var(--r-tile)", padding: 13 }}>
       <div style={{ display: "flex", alignItems: "center", gap: 9, flexWrap: "wrap" }}>
         <label style={{ fontSize: 11.5, fontWeight: 700, color: "var(--text-2)" }}>สมมุติฐานที่ใช้คิดผลตอบแทน</label>
         {!locked && Object.keys(raw).length > 0 && (
@@ -1289,7 +1289,7 @@ function QuoteRoiEdit({ q, locked, onChange }) {
             <input type="number" value={raw[f.key] == null || raw[f.key] === "" ? "" : raw[f.key]} disabled={locked}
               placeholder={String(QUOTE_ROI_DEF[f.key])}
               onChange={(e) => onChange(Object.assign({}, raw, { [f.key]: e.target.value === "" ? "" : +e.target.value }))}
-              style={{ padding: "7px 9px", borderRadius: 8, border: "1px solid var(--border-strong)", background: "var(--surface)",
+              style={{ padding: "7px 9px", borderRadius: "var(--r-chip)", boxShadow: "var(--shadow-sm)", background: "var(--surface)",
                 color: "var(--text-1)", fontFamily: "inherit", fontSize: 12, textAlign: "right", fontVariantNumeric: "tabular-nums", width: "100%" }} />
           </div>
         ))}
@@ -1354,7 +1354,7 @@ function QuotePicPick({ lib, locked }) {
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(132px,1fr))", gap: 8 }}>
           {lib.pics.map((p) => {
             return (
-              <div key={p.id} style={{ border: "1px solid var(--border)", borderRadius: 11,
+              <div key={p.id} style={{ boxShadow: "var(--shadow-sm)", borderRadius: "var(--r-tile)",
                 overflow: "hidden", background: "var(--surface)" }}>
                 <div style={{ position: "relative" }}>
                   <img src={p.thumb} alt="" style={{ width: "100%", height: 84, objectFit: "cover", display: "block", background: "var(--surface2)" }} />
@@ -1363,7 +1363,7 @@ function QuotePicPick({ lib, locked }) {
                       onClick={(e) => { e.stopPropagation(); window.askConfirm({ title: "ลบรูปนี้ออกจากคลัง?",
                         body: "ใบอื่นที่ใช้รูปนี้อยู่จะไม่มีรูปนี้ในเอกสารอีก", ok: "ลบเลย" })
                         .then((ok) => { if (ok) lib.remove(p.id); }); }}
-                      style={{ position: "absolute", top: 6, right: 6, width: 22, height: 22, borderRadius: 7, border: "none",
+                      style={{ position: "absolute", top: 6, right: 6, width: 22, height: 22, borderRadius: "var(--r-chip)", border: "none",
                         background: "rgba(8,20,14,.45)", cursor: "pointer", display: "grid", placeItems: "center" }}>
                       <Icon name="trash" size={12} color="#fff" />
                     </button>
@@ -1421,14 +1421,14 @@ function QuoteSheetPick({ ids, items, hintText, locked, onChange }) {
       ) : (
         <React.Fragment>
           <input value={qs} onChange={(e) => setQs(e.target.value)} placeholder="อยากแนบรุ่นอื่นด้วย — พิมพ์ค้นหาจากทั้งคลัง"
-            style={{ padding: "7px 10px", borderRadius: 9, border: "1px solid var(--border-strong)",
+            style={{ padding: "7px 10px", borderRadius: "var(--r-chip)", boxShadow: "var(--shadow-sm)",
               background: "var(--surface)", color: "var(--text-1)", fontFamily: "inherit", fontSize: 12 }} />
           <div style={{ display: "flex", flexDirection: "column", gap: 5, maxHeight: 190, overflowY: "auto" }}>
             {shown.map((x) => {
               const on = sel.indexOf(x.it.id) !== -1;
               return (
                 <button key={x.it.id} type="button" onClick={() => toggle(x.it.id)} disabled={locked}
-                  style={{ display: "flex", alignItems: "center", gap: 9, padding: "8px 10px", borderRadius: 10,
+                  style={{ display: "flex", alignItems: "center", gap: 9, padding: "8px 10px", borderRadius: "var(--r-tile)",
                     border: "1px solid " + (on ? "var(--primary)" : "var(--border)"),
                     background: on ? "var(--primary-soft)" : "var(--surface)", cursor: locked ? "default" : "pointer",
                     fontFamily: "inherit", textAlign: "left" }}>
@@ -1445,7 +1445,7 @@ function QuoteSheetPick({ ids, items, hintText, locked, onChange }) {
                   </span>
                   {x.hit && !on && (
                     <span style={{ fontSize: 9.5, fontWeight: 800, color: "var(--primary-dark)", background: "var(--primary-soft)",
-                      padding: "2px 7px", borderRadius: 99, flexShrink: 0 }}>อยู่ในใบนี้</span>
+                      padding: "2px 7px", borderRadius: "var(--r-pill)", flexShrink: 0 }}>อยู่ในใบนี้</span>
                   )}
                 </button>
               );
@@ -1641,7 +1641,7 @@ function QuoteEditor({ quote, job, target, stock, onClose, onSave, onDelete, cur
   /* ตารางเงินรายงวด — คิดสดจากยอดท้ายใบทุกครั้งที่แก้ราคาหรือแก้ % จะได้ไม่มีทางค้างเลขเก่า */
   const split = quoteTermSplit(q.terms, T.grand);
   const termMoney = !split.count ? null : (
-    <div style={{ marginTop: 3, border: "1px solid var(--border)", borderRadius: 10, overflow: "hidden", background: "var(--surface)" }}>
+    <div style={{ marginTop: 3, boxShadow: "var(--shadow-sm)", borderRadius: "var(--r-tile)", overflow: "hidden", background: "var(--surface)" }}>
       {split.rows.filter((r) => r.pct != null).map((r, i) => (
         <div key={i} style={{ display: "flex", alignItems: "center", gap: 10, padding: "7px 11px",
           borderTop: i ? "1px solid var(--border)" : "none" }}>
@@ -1682,16 +1682,16 @@ function QuoteEditor({ quote, job, target, stock, onClose, onSave, onDelete, cur
               </div>
             </div>
             {(() => { const s = QUOTE_STATUS_BY[q.status] || QUOTE_STATUS_BY.draft; return (
-              <span style={{ fontSize: 11, fontWeight: 700, color: s.color, background: s.color + "16", padding: "4px 11px", borderRadius: 99, whiteSpace: "nowrap" }}>{s.th}</span>
+              <span style={{ fontSize: 11, fontWeight: 700, color: s.color, background: s.color + "16", padding: "4px 11px", borderRadius: "var(--r-pill)", whiteSpace: "nowrap" }}>{s.th}</span>
             ); })()}
-            <button onClick={onClose} style={{ width: 32, height: 32, borderRadius: 9, border: "1px solid var(--border)", background: "var(--surface)", cursor: "pointer", display: "grid", placeItems: "center", color: "var(--text-2)" }}>
+            <button onClick={onClose} style={{ width: 32, height: 32, borderRadius: "var(--r-chip)", boxShadow: "var(--shadow-sm)", background: "var(--surface)", cursor: "pointer", display: "grid", placeItems: "center", color: "var(--text-2)" }}>
               <Icon name="x" size={16} />
             </button>
           </div>
 
           <div style={{ overflowY: "auto", padding: 18, display: "flex", flexDirection: "column", gap: 16 }}>
             {locked && (
-              <div style={{ fontSize: 12, color: "var(--tint-green-tx)", background: "var(--primary-soft)", border: "1px solid var(--primary)", borderRadius: 10, padding: "9px 12px" }}>
+              <div style={{ fontSize: 12, color: "var(--tint-green-tx)", background: "var(--primary-soft)", border: "1px solid var(--primary)", borderRadius: "var(--r-tile)", padding: "9px 12px" }}>
                 ใบนี้ลูกค้าตกลงแล้ว — แก้ตัวเลขไม่ได้ เพราะยอดขายถูกนับไปแล้ว · ถ้าต้องแก้จริง ให้กด “ย้อนกลับเป็นส่งแล้ว” ก่อน
               </div>
             )}
@@ -1719,35 +1719,35 @@ function QuoteEditor({ quote, job, target, stock, onClose, onSave, onDelete, cur
               <div style={{ display: "flex", alignItems: "center", gap: 9, flexWrap: "wrap" }}>
                 <label style={lbl}>รายการที่เสนอ</label>
                 {canPullSpec && !locked && (
-                  <button onClick={pullSpec} style={{ marginLeft: "auto", display: "inline-flex", alignItems: "center", gap: 5, background: "none",
-                    border: "1px solid var(--border-strong)", borderRadius: 8, padding: "5px 10px", cursor: "pointer", fontFamily: "inherit",
+                  <button onClick={pullSpec} style={{ marginLeft: "auto", display: "inline-flex", alignItems: "center", gap: 5, background: "var(--surface2)", boxShadow: "var(--shadow-sm)",
+                    borderRadius: "var(--r-chip)", padding: "5px 10px", cursor: "pointer", fontFamily: "inherit",
                     fontSize: 11.5, fontWeight: 700, color: "var(--primary-dark)" }}>
                     <Icon name="download" size={13} color="var(--primary-dark)" /> ดึงรุ่นอุปกรณ์จากผลสำรวจ
                   </button>
                 )}
                 {planSum && !locked && (
-                  <button onClick={pullPlan} style={{ marginLeft: canPullSpec ? 0 : "auto", display: "inline-flex", alignItems: "center", gap: 5, background: "none",
-                    border: "1px solid var(--border-strong)", borderRadius: 8, padding: "5px 10px", cursor: "pointer", fontFamily: "inherit",
+                  <button onClick={pullPlan} style={{ marginLeft: canPullSpec ? 0 : "auto", display: "inline-flex", alignItems: "center", gap: 5, background: "var(--surface2)", boxShadow: "var(--shadow-sm)",
+                    borderRadius: "var(--r-chip)", padding: "5px 10px", cursor: "pointer", fontFamily: "inherit",
                     fontSize: 11.5, fontWeight: 700, color: "#4F46E5" }}>
                     <Icon name="download" size={13} color="#4F46E5" /> ดึงจากแบบ 3D ({planSum.panels} แผง · {planSum.kwp} kWp)
                   </button>
                 )}
                 {boqSell > 0 && !locked && (
-                  <button onClick={pullBoq} style={{ marginLeft: (canPullSpec || planSum) ? 0 : "auto", display: "inline-flex", alignItems: "center", gap: 5, background: "none",
-                    border: "1px solid var(--border-strong)", borderRadius: 8, padding: "5px 10px", cursor: "pointer", fontFamily: "inherit",
+                  <button onClick={pullBoq} style={{ marginLeft: (canPullSpec || planSum) ? 0 : "auto", display: "inline-flex", alignItems: "center", gap: 5, background: "var(--surface2)", boxShadow: "var(--shadow-sm)",
+                    borderRadius: "var(--r-chip)", padding: "5px 10px", cursor: "pointer", fontFamily: "inherit",
                     fontSize: 11.5, fontWeight: 700, color: "var(--primary-dark)" }}>
                     <Icon name="download" size={13} color="var(--primary-dark)" /> ดึงราคาขายจาก BOQ (฿{sBaht(boqSell)})
                   </button>
                 )}
               </div>
               {q.items.map((it, i) => (
-                <div key={it.id || i} style={{ border: "1px solid var(--border)", borderRadius: 12, padding: 11, background: "var(--surface)", display: "flex", flexDirection: "column", gap: 7 }}>
+                <div key={it.id || i} style={{ boxShadow: "var(--shadow-sm)", borderRadius: "var(--r-tile)", padding: 11, background: "var(--surface)", display: "flex", flexDirection: "column", gap: 7 }}>
                   <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
                     <input value={it.name || ""} disabled={locked} placeholder="ชื่อรายการ" onChange={(e) => setItem(i, "name", e.target.value)}
                       style={Object.assign({}, cell, { flex: 1, fontWeight: 700 })} />
                     {!locked && (
                       <button onClick={() => delItem(i)} title="ลบรายการนี้"
-                        style={{ width: 30, height: 30, flexShrink: 0, borderRadius: 8, border: "1px solid var(--border-strong)", background: "var(--surface)", cursor: "pointer", display: "grid", placeItems: "center" }}>
+                        style={{ width: 30, height: 30, flexShrink: 0, borderRadius: "var(--r-chip)", boxShadow: "var(--shadow-sm)", background: "var(--surface)", cursor: "pointer", display: "grid", placeItems: "center" }}>
                         <Icon name="trash" size={14} color="#EF4444" />
                       </button>
                     )}
@@ -1767,7 +1767,7 @@ function QuoteEditor({ quote, job, target, stock, onClose, onSave, onDelete, cur
               ))}
               {!locked && (
                 <button onClick={addItem} style={{ alignSelf: "flex-start", display: "inline-flex", alignItems: "center", gap: 5, background: "none",
-                  border: "1px dashed var(--border-strong)", borderRadius: 10, padding: "8px 13px", cursor: "pointer", fontFamily: "inherit",
+                  border: "1px dashed var(--border-strong)", borderRadius: "var(--r-tile)", padding: "8px 13px", cursor: "pointer", fontFamily: "inherit",
                   fontSize: 12.5, fontWeight: 700, color: "var(--text-2)" }}>
                   <Icon name="plus" size={14} color="var(--text-2)" /> เพิ่มรายการ
                 </button>
@@ -1775,7 +1775,7 @@ function QuoteEditor({ quote, job, target, stock, onClose, onSave, onDelete, cur
             </div>
 
             {/* ยอดรวม */}
-            <div style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 14, padding: 14, display: "flex", flexDirection: "column", gap: 9 }}>
+            <div style={{ background: "var(--surface)", boxShadow: "var(--shadow-sm)", borderRadius: "var(--r-tile)", padding: 14, display: "flex", flexDirection: "column", gap: 9 }}>
               {[["รวมเป็นเงิน", T.sub]].map((r) => (
                 <div key={r[0]} style={{ display: "flex", fontSize: 13, color: "var(--text-2)" }}>
                   <span style={{ flex: 1 }}>{r[0]}</span>
@@ -1785,10 +1785,10 @@ function QuoteEditor({ quote, job, target, stock, onClose, onSave, onDelete, cur
               {/* ส่วนลดกรอกได้ทั้งเป็นบาทและเป็น % — เก็บคนละช่อง สลับโหมดแล้วเลขเดิมไม่หาย */}
               <div style={{ display: "flex", alignItems: "center", gap: 10, fontSize: 13, color: "var(--text-2)", flexWrap: "wrap" }}>
                 <span style={{ flex: 1, minWidth: 90 }}>หักส่วนลด</span>
-                <span style={{ display: "flex", gap: 3, padding: 3, borderRadius: 9, background: "var(--surface2)", flexShrink: 0 }}>
+                <span style={{ display: "flex", gap: 3, padding: 3, borderRadius: "var(--r-chip)", background: "var(--surface2)", flexShrink: 0 }}>
                   {[["baht", "บาท"], ["pct", "%"]].map((m) => (
                     <button key={m[0]} type="button" disabled={locked} onClick={() => set("discountMode", m[0])}
-                      style={{ padding: "4px 11px", borderRadius: 7, border: "none", cursor: locked ? "default" : "pointer",
+                      style={{ padding: "4px 11px", borderRadius: "var(--r-chip)", border: "none", cursor: locked ? "default" : "pointer",
                         fontFamily: "inherit", fontSize: 11.5, fontWeight: 700,
                         background: (q.discountMode === "pct" ? "pct" : "baht") === m[0] ? "var(--surface)" : "transparent",
                         color: (q.discountMode === "pct" ? "pct" : "baht") === m[0] ? "var(--primary-dark)" : "var(--text-3)",
@@ -1864,8 +1864,8 @@ function QuoteEditor({ quote, job, target, stock, onClose, onSave, onDelete, cur
                       const url = window.dataUrlToBlobUrl ? window.dataUrlToBlobUrl(sd.dataUrl) : sd.dataUrl;
                       window.open(url, "_blank", "noopener");
                     } catch (e) { window.open(sd.dataUrl, "_blank", "noopener"); }
-                  }} style={{ display: "inline-flex", alignItems: "center", gap: 5, padding: "5px 10px", borderRadius: 8,
-                    border: "1px solid var(--border-strong)", background: "var(--surface)", cursor: "pointer",
+                  }} style={{ display: "inline-flex", alignItems: "center", gap: 5, padding: "5px 10px", borderRadius: "var(--r-chip)",
+                    boxShadow: "var(--shadow-sm)", background: "var(--surface)", cursor: "pointer",
                     fontFamily: "inherit", fontSize: 11.5, fontWeight: 700, color: "var(--text-2)" }}>
                     <Icon name="file" size={13} color={sd.kind === "image" ? "var(--primary-dark)" : "#EF4444"} /> {sd.label}
                   </button>
@@ -1917,7 +1917,7 @@ function QuoteEditor({ quote, job, target, stock, onClose, onSave, onDelete, cur
   );
 }
 function qBtn(color, solid) {
-  return { display: "inline-flex", alignItems: "center", gap: 6, padding: "10px 15px", borderRadius: 10, cursor: "pointer", fontFamily: "inherit",
+  return { display: "inline-flex", alignItems: "center", gap: 6, padding: "10px 15px", borderRadius: "var(--r-tile)", cursor: "pointer", fontFamily: "inherit",
     fontSize: 13, fontWeight: 700, border: solid ? "none" : "1px solid var(--border-strong)",
     background: solid || "var(--surface)", color: solid ? "#fff" : (color || "var(--text-1)") };
 }
@@ -1977,10 +1977,10 @@ function SalesCard({ lead, quotes, onOpen, onDragStart, dragging }) {
         {/* ยังไม่เป็นงาน — บอกไว้ว่าเป็นลูกค้าที่ยังไล่อยู่ ไม่ใช่งานที่ขายได้แล้ว */}
         <span title="ยังเป็นลูกค้า ยังไม่ได้แปลงเป็นงานติดตั้ง"
           style={{ fontWeight: 800, color: "var(--text-3)", background: "var(--surface3)",
-            padding: "3px 9px", borderRadius: 99, whiteSpace: "nowrap" }}>งานขาย</span>
-        {val > 0 && <span style={{ background: "var(--primary-soft)", color: "var(--primary-dark)", fontWeight: 800, padding: "3px 9px", borderRadius: 99, fontVariantNumeric: "tabular-nums" }}>฿{fmtBaht(val)}</span>}
+            padding: "3px 9px", borderRadius: "var(--r-pill)", whiteSpace: "nowrap" }}>งานขาย</span>
+        {val > 0 && <span style={{ background: "var(--primary-soft)", color: "var(--primary-dark)", fontWeight: 800, padding: "3px 9px", borderRadius: "var(--r-pill)", fontVariantNumeric: "tabular-nums" }}>฿{fmtBaht(val)}</span>}
         {q0 && (() => { const s = QUOTE_STATUS_BY[q0.status] || QUOTE_STATUS_BY.draft; return (
-          <span style={{ background: s.color + "1c", color: s.color, fontWeight: 800, padding: "3px 9px", borderRadius: 99 }}>
+          <span style={{ background: s.color + "1c", color: s.color, fontWeight: 800, padding: "3px 9px", borderRadius: "var(--r-pill)" }}>
             ใบเสนอราคา · {s.th}
           </span>
         ); })()}
@@ -2044,7 +2044,7 @@ function SalesBoardView({ leads, quotes, search, currentUser, onOpenLead, onPatc
           ฟอร์มเป็น LeadModal ตัวเดียวกับที่ปุ่มบนบอร์ดงานเรียก เปิดทับบอร์ดไว้ ปิดแล้วอยู่ที่เดิม */}
       {onNewLead && (
         <button onClick={onNewLead} title="เพิ่มลูกค้าใหม่"
-          style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "7px 13px", borderRadius: 99, cursor: "pointer",
+          style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "7px 13px", borderRadius: "var(--r-pill)", cursor: "pointer",
             fontFamily: "inherit", fontSize: 12.5, fontWeight: 700, border: "1px solid var(--primary)",
             background: "var(--primary)", color: "#fff" }}>
           <Icon name="plus" size={13} color="#fff" sw={2.6} /> ลูกค้าใหม่
@@ -2052,9 +2052,9 @@ function SalesBoardView({ leads, quotes, search, currentUser, onOpenLead, onPatc
       )}
       {currentUser && (
         <button onClick={() => setMine((v) => !v)}
-          style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "7px 13px", borderRadius: 99, cursor: "pointer", fontFamily: "inherit",
-            fontSize: 12.5, fontWeight: 700, border: "1px solid " + (mine ? "var(--primary)" : "var(--border-strong)"),
-            background: mine ? "var(--primary-soft)" : "var(--surface)", color: mine ? "var(--primary-dark)" : "var(--text-2)" }}>
+          style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "7px 13px", borderRadius: "var(--r-pill)", cursor: "pointer", fontFamily: "inherit",
+            fontSize: 12.5, fontWeight: 700, border: "none", boxShadow: "var(--shadow-sm)",
+            background: mine ? "var(--primary-soft)" : "var(--surface2)", color: mine ? "var(--primary-dark)" : "var(--text-2)" }}>
           <Icon name="user" size={13} color={mine ? "var(--primary-dark)" : "var(--text-2)"} /> เฉพาะลูกค้าของฉัน
         </button>
       )}
@@ -2071,7 +2071,7 @@ function SalesBoardView({ leads, quotes, search, currentUser, onOpenLead, onPatc
           return (
             <div key={c.key} style={{ display: "flex", flexDirection: "column", gap: 9 }}>
               <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                <span style={{ width: 7, height: 7, borderRadius: 99, background: c.color }} />
+                <span style={{ width: 7, height: 7, borderRadius: "var(--r-pill)", background: c.color }} />
                 <span style={{ fontSize: 12, fontWeight: 800, color: "var(--text-2)" }}>{c.th}</span>
                 <span style={{ fontSize: 12, fontWeight: 700, color: "var(--text-3)", fontFamily: "var(--mono)" }}>{col.length}</span>
               </div>
@@ -2103,7 +2103,7 @@ function SalesBoardView({ leads, quotes, search, currentUser, onOpenLead, onPatc
               <div className="hd">
                 <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
                   <span style={{ display: "flex", alignItems: "center", gap: 8, minWidth: 0 }}>
-                    <span style={{ width: 7, height: 7, borderRadius: 99, background: c.color, flexShrink: 0 }} />
+                    <span style={{ width: 7, height: 7, borderRadius: "var(--r-pill)", background: c.color, flexShrink: 0 }} />
                     {/* ไม่ถ่างตัวอักษร — ชื่อขั้นเป็นภาษาไทย การถ่างจะดันสระกับวรรณยุกต์หลุดตำแหน่ง */}
                     <span style={{ fontSize: 12, fontWeight: 700, color: "var(--text-2)",
                       whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{c.th}</span>
@@ -2180,16 +2180,16 @@ function SalesMonthPick({ month, thisMonth, onShift, onPick }) {
         /* กางใต้แถบ ชิดขอบซ้าย — ไล่ขอบขวาด้วย maxWidth กันหลุดจอตอนแถบนี้ไปอยู่ชิดขอบจอบนมือถือ */
         <div style={{ position: "absolute", top: "calc(100% + 8px)", left: 0,
           zIndex: 30, width: 272, maxWidth: "min(272px, 88vw)",
-          background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 16,
+          background: "var(--surface)", boxShadow: "var(--shadow-sm)", borderRadius: "var(--r-tile)",
           padding: "14px 16px 16px", boxShadow: "0 14px 36px rgba(8,20,14,.16)" }}>
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 13 }}>
             <button onClick={() => setYr((v) => v - 1)} aria-label="ปีก่อนหน้า"
-              style={{ width: 28, height: 28, minWidth: 28, borderRadius: 9, border: "none", background: "none",
+              style={{ width: 28, height: 28, minWidth: 28, borderRadius: "var(--r-chip)", border: "none", background: "none",
                 cursor: "pointer", display: "grid", placeItems: "center", padding: 0 }}>
               <Icon name="chevronLeft" size={14} color="var(--text-2)" /></button>
             <b style={{ fontSize: 13, fontWeight: 800, color: "var(--text-1)" }}>{yr + 543}</b>
             <button onClick={() => setYr((v) => Math.min(v + 1, thisYr))} disabled={yr >= thisYr} aria-label="ปีถัดไป"
-              style={{ width: 28, height: 28, minWidth: 28, borderRadius: 9, border: "none", background: "none",
+              style={{ width: 28, height: 28, minWidth: 28, borderRadius: "var(--r-chip)", border: "none", background: "none",
                 opacity: yr >= thisYr ? .4 : 1, cursor: yr >= thisYr ? "default" : "pointer", display: "grid", placeItems: "center", padding: 0 }}>
               <Icon name="chevronRight" size={14} color="var(--text-2)" /></button>
           </div>
@@ -2203,7 +2203,7 @@ function SalesMonthPick({ month, thisMonth, onShift, onPick }) {
                 <button key={k} disabled={off} onClick={() => { onPick(k); setOpen(false); }}
                   onMouseEnter={(e) => { if (!on && !off) e.currentTarget.style.background = "var(--surface3)"; }}
                   onMouseLeave={(e) => { if (!on) e.currentTarget.style.background = "none"; }}
-                  style={{ width: "100%", height: 34, padding: "0 4px", borderRadius: 10, fontFamily: "inherit",
+                  style={{ width: "100%", height: 34, padding: "0 4px", borderRadius: "var(--r-tile)", fontFamily: "inherit",
                     fontSize: 12.5, fontWeight: 700, display: "grid", placeItems: "center",
                     border: "none", background: on ? "var(--primary)" : "none",
                     color: on ? "#fff" : (off ? "var(--text-3)" : "var(--text-2)"),
@@ -2316,7 +2316,7 @@ function SalesKpiView({ leads, quotes, appts, techs, currentUser, onMenuOpen, on
   }), [thisMonth]);
 
   const kpi = (label, value, sub, color) => (
-    <div style={{ flex: "1 1 150px", background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 14, padding: "13px 15px" }}>
+    <div style={{ flex: "1 1 150px", background: "var(--surface)", boxShadow: "var(--shadow-sm)", borderRadius: "var(--r-tile)", padding: "13px 15px" }}>
       <div style={{ fontSize: 11, fontWeight: 700, color: "var(--text-3)", letterSpacing: ".04em" }}>{label}</div>
       <div style={{ fontFamily: "var(--display)", fontSize: 24, fontWeight: 800, letterSpacing: "-.02em", color: color || "var(--text-1)", marginTop: 3, fontVariantNumeric: "tabular-nums" }}>{value}</div>
       {sub && <div style={{ fontSize: 11, color: "var(--text-3)", marginTop: 2 }}>{sub}</div>}
@@ -2325,7 +2325,7 @@ function SalesKpiView({ leads, quotes, appts, techs, currentUser, onMenuOpen, on
   const th = { padding: "9px 11px", fontSize: 11, fontWeight: 700, color: "var(--text-3)", textAlign: "right", whiteSpace: "nowrap", borderBottom: "1px solid var(--border)" };
   const td = { padding: "11px", fontSize: 13, textAlign: "right", fontVariantNumeric: "tabular-nums", borderBottom: "1px solid var(--border)", whiteSpace: "nowrap" };
   const pill = (text, color) => (
-    <span style={{ display: "inline-block", padding: "2px 9px", borderRadius: 99, fontSize: 11, fontWeight: 700,
+    <span style={{ display: "inline-block", padding: "2px 9px", borderRadius: "var(--r-pill)", fontSize: 11, fontWeight: 700,
       background: color + "18", color: color, whiteSpace: "nowrap" }}>{text}</span>
   );
   const TYPE_TH = { home: { th: "งานบ้าน", color: "#1B9B75" }, project: { th: "งานโครงการ", color: "#7C5CFC" } };
@@ -2344,13 +2344,13 @@ function SalesKpiView({ leads, quotes, appts, techs, currentUser, onMenuOpen, on
           <SalesMonthPick month={month} thisMonth={thisMonth} onShift={shiftMonth} onPick={setMonth} />
           {!!month && month !== thisMonth && (
             <button onClick={() => setMonth(thisMonth)}
-              style={{ padding: "6px 12px", borderRadius: 99, cursor: "pointer", fontFamily: "inherit", fontSize: 12, fontWeight: 700,
-                border: "1px solid var(--border)", background: "var(--surface)", color: "var(--text-2)" }}>เดือนนี้</button>
+              style={{ padding: "6px 12px", borderRadius: "var(--r-pill)", cursor: "pointer", fontFamily: "inherit", fontSize: 12, fontWeight: 700,
+                boxShadow: "var(--shadow-sm)", background: "var(--surface)", color: "var(--text-2)" }}>เดือนนี้</button>
           )}
           {/* "ทุกเดือน" = ไม่กรองเดือน เป็นปุ่มสลับ
               ชื่อนี้ไม่ใช่ "ทั้งหมด" เพราะตัวกรองประเภทงานที่อยู่แถวเดียวกันก็ชื่อนั้น สองคำเหมือนกันในแถวเดียวอ่านไม่ออกว่าอันไหนกรองอะไร */}
           <button onClick={() => setMonth(month ? "" : thisMonth)}
-            style={{ padding: "6px 12px", borderRadius: 99, cursor: "pointer", fontFamily: "inherit", fontSize: 12, fontWeight: 700,
+            style={{ padding: "6px 12px", borderRadius: "var(--r-pill)", cursor: "pointer", fontFamily: "inherit", fontSize: 12, fontWeight: 700,
               border: "1px solid " + (month ? "var(--border)" : "transparent"),
               background: month ? "var(--surface)" : "var(--primary)", color: month ? "var(--text-2)" : "#fff" }}>ทุกเดือน</button>
 
@@ -2376,7 +2376,7 @@ function SalesKpiView({ leads, quotes, appts, techs, currentUser, onMenuOpen, on
           {kpi("มูลค่าที่ยังไล่อยู่", "฿" + fmtBaht(Math.round(tot.pipe)), "โครงการที่ยังไม่ปิด (ทุกช่วงเวลา)", "#F59E0B")}
         </div>
 
-        <div style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 16, overflow: "hidden" }}>
+        <div style={{ background: "var(--surface)", boxShadow: "var(--shadow-sm)", borderRadius: "var(--r-tile)", overflow: "hidden" }}>
           <div style={{ overflowX: "auto" }}>
             <table style={{ width: "100%", borderCollapse: "collapse", minWidth: 760 }}>
               <thead>
@@ -2400,7 +2400,7 @@ function SalesKpiView({ leads, quotes, appts, techs, currentUser, onMenuOpen, on
                     {onNewLead && (
                       <button onClick={onNewLead}
                         style={{ marginLeft: 10, display: "inline-flex", alignItems: "center", gap: 5, padding: "5px 12px",
-                          borderRadius: 99, border: "1px solid var(--primary)", background: "var(--primary)", color: "#fff",
+                          borderRadius: "var(--r-pill)", border: "1px solid var(--primary)", background: "var(--primary)", color: "#fff",
                           cursor: "pointer", fontFamily: "inherit", fontSize: 12.5, fontWeight: 700 }}>
                         <Icon name="plus" size={13} color="#fff" sw={2.6} /> ลูกค้าใหม่
                       </button>
@@ -2585,11 +2585,11 @@ function SalesOverview({ leads, quotes, jobs, currentUser, onOpenLead, onOpenJob
               <button key={row.st.key} onClick={onGoBoard} style={{ display: "flex", alignItems: "center", gap: 10,
                 background: "none", border: "none", cursor: "pointer", padding: 0, fontFamily: "inherit", textAlign: "left", width: "100%" }}>
                 <span style={{ width: 118, flexShrink: 0, display: "flex", alignItems: "center", gap: 7, fontSize: 12.5, fontWeight: 600, color: "var(--text-1)", lineHeight: 1.25 }}>
-                  <span style={{ width: 8, height: 8, borderRadius: 99, background: row.st.color, flexShrink: 0 }} />{row.st.th}
+                  <span style={{ width: 8, height: 8, borderRadius: "var(--r-pill)", background: row.st.color, flexShrink: 0 }} />{row.st.th}
                 </span>
-                <span style={{ flex: 1, minWidth: 0, height: 10, background: "var(--surface3)", borderRadius: 99, overflow: "hidden", display: "block" }}>
+                <span style={{ flex: 1, minWidth: 0, height: 10, background: "var(--surface3)", borderRadius: "var(--r-pill)", overflow: "hidden", display: "block" }}>
                   <span style={{ display: "block", height: "100%", width: Math.max((row.n / pipeMax) * 100, row.n ? 5 : 0) + "%",
-                    background: row.st.color, borderRadius: 99, transition: "width .6s cubic-bezier(.2,.8,.2,1)" }} />
+                    background: row.st.color, borderRadius: "var(--r-pill)", transition: "width .6s cubic-bezier(.2,.8,.2,1)" }} />
                 </span>
                 <span style={{ width: 30, flexShrink: 0, fontFamily: "var(--display)", fontSize: 15, fontWeight: 700, letterSpacing: "-.03em",
                   fontVariantNumeric: "tabular-nums", color: row.n ? "var(--text-1)" : "var(--text-3)", textAlign: "right" }}>{row.n}</span>
@@ -2689,10 +2689,10 @@ function SalesJobSummary({ job, quotes, leads, onOpenQuote }) {
   if (job.delayed) blockers.push({ th: "เลยกำหนดที่วางไว้", color: "#F59E0B" });
 
   return (
-    <div style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 16, padding: 16, marginBottom: 16 }}>
+    <div style={{ background: "var(--surface)", boxShadow: "var(--shadow-sm)", borderRadius: "var(--r-tile)", padding: 16, marginBottom: 16 }}>
       {/* ขั้นงานติดตั้ง */}
       <div style={{ display: "flex", alignItems: "center", gap: 9, marginBottom: 12 }}>
-        <span style={{ width: 9, height: 9, borderRadius: 99, background: st.color, flexShrink: 0 }} />
+        <span style={{ width: 9, height: 9, borderRadius: "var(--r-pill)", background: st.color, flexShrink: 0 }} />
         <span style={{ fontSize: 14.5, fontWeight: 800, color: "var(--text-1)" }}>{st.th}</span>
         <span style={{ marginLeft: "auto", fontSize: 12, color: "var(--text-3)", fontVariantNumeric: "tabular-nums" }}>
           ขั้นที่ {idx + 1} จาก {SF.STAGES.length}
@@ -2700,7 +2700,7 @@ function SalesJobSummary({ job, quotes, leads, onOpenQuote }) {
       </div>
       <div style={{ display: "flex", gap: 4, marginBottom: 14 }}>
         {SF.STAGES.map((s, i) => (
-          <span key={s.key} title={s.th} style={{ flex: 1, height: 6, borderRadius: 99, background: i <= idx ? st.color : "var(--surface3)" }} />
+          <span key={s.key} title={s.th} style={{ flex: 1, height: 6, borderRadius: "var(--r-pill)", background: i <= idx ? st.color : "var(--surface3)" }} />
         ))}
       </div>
 
@@ -2714,7 +2714,7 @@ function SalesJobSummary({ job, quotes, leads, onOpenQuote }) {
           })()],
           ["ขนาดระบบ", (job.kw || "—") + " kW · " + (job.panels || "—") + " แผง"],
           ["ขออนุญาตการไฟฟ้า", pst ? pst.th : "ยังไม่เริ่ม"]].map((r) => (
-          <div key={r[0]} style={{ background: "var(--surface2)", borderRadius: 11, padding: "9px 11px" }}>
+          <div key={r[0]} style={{ background: "var(--surface2)", borderRadius: "var(--r-tile)", padding: "9px 11px" }}>
             <div style={{ fontSize: 10.5, fontWeight: 700, color: "var(--text-3)", letterSpacing: ".04em" }}>{r[0]}</div>
             <div style={{ fontSize: 13, fontWeight: 700, color: "var(--text-1)", marginTop: 2 }}>{r[1]}</div>
           </div>
@@ -2725,12 +2725,12 @@ function SalesJobSummary({ job, quotes, leads, onOpenQuote }) {
       <div style={{ marginBottom: 14 }}>
         <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: ".05em", color: "var(--text-3)", marginBottom: 7 }}>ติดอะไรอยู่</div>
         {blockers.length === 0 ? (
-          <div style={{ fontSize: 12.5, color: "var(--tint-green-tx)", background: "var(--primary-soft)", borderRadius: 10, padding: "9px 12px" }}>
+          <div style={{ fontSize: 12.5, color: "var(--tint-green-tx)", background: "var(--primary-soft)", borderRadius: "var(--r-tile)", padding: "9px 12px" }}>
             ไม่ติดอะไร · งานเดินตามแผน
           </div>
         ) : blockers.map((b, i) => (
           <div key={i} style={{ fontSize: 12.5, color: b.color, background: b.color + "12", border: "1px solid " + b.color + "33",
-            borderRadius: 10, padding: "9px 12px", marginBottom: 6, lineHeight: 1.5 }}>⚠ {b.th}</div>
+            borderRadius: "var(--r-tile)", padding: "9px 12px", marginBottom: 6, lineHeight: 1.5 }}>⚠ {b.th}</div>
         ))}
       </div>
 

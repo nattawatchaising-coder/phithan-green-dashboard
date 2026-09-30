@@ -52,7 +52,7 @@ function FlCol({
       style: {
         width: 7,
         height: 7,
-        borderRadius: 99,
+        borderRadius: "var(--r-pill)",
         background: col.color,
         flexShrink: 0
       }
@@ -142,7 +142,7 @@ function FlGroup({
       style: {
         width: 7,
         height: 7,
-        borderRadius: 99,
+        borderRadius: "var(--r-pill)",
         background: g.color,
         marginTop: "auto"
       }
@@ -175,7 +175,7 @@ function FlGroup({
     style: {
       width: 27,
       height: 27,
-      borderRadius: 99,
+      borderRadius: "var(--r-pill)",
       border: "none",
       background: "var(--surface)",
       boxShadow: "var(--shadow-sm)",
@@ -195,7 +195,7 @@ function FlGroup({
     style: {
       width: 8,
       height: 8,
-      borderRadius: 99,
+      borderRadius: "var(--r-pill)",
       background: g.color,
       flexShrink: 0
     }
@@ -224,7 +224,7 @@ function FlGroup({
       gap: 5,
       height: 24,
       padding: "0 10px",
-      borderRadius: 8,
+      borderRadius: "var(--r-chip)",
       border: "1px solid color-mix(in srgb, " + g.color + " 33%, transparent)",
       background: "color-mix(in srgb, " + g.color + " 8%, transparent)",
       color: g.color,
@@ -595,8 +595,8 @@ function FlowMobile({
         alignItems: "center",
         gap: 9,
         padding: "10px 12px",
-        borderRadius: 12,
-        border: "1px solid var(--border)",
+        borderRadius: "var(--r-tile)",
+        boxShadow: "var(--shadow-sm)",
         background: "var(--surface2)",
         cursor: "pointer",
         fontFamily: "inherit",
@@ -607,7 +607,7 @@ function FlowMobile({
       style: {
         width: 9,
         height: 9,
-        borderRadius: 99,
+        borderRadius: "var(--r-pill)",
         background: g.color,
         flexShrink: 0
       }
@@ -640,9 +640,9 @@ function FlowMobile({
       return React.createElement("div", {
         key: c.key,
         style: {
-          borderRadius: 12,
+          borderRadius: "var(--r-tile)",
           background: "var(--surface2)",
-          border: "1px solid var(--border)",
+          boxShadow: "var(--shadow-sm)",
           overflow: "hidden"
         }
       }, React.createElement("button", {
@@ -666,7 +666,7 @@ function FlowMobile({
         style: {
           width: 8,
           height: 8,
-          borderRadius: 99,
+          borderRadius: "var(--r-pill)",
           background: c.color,
           flexShrink: 0
         }
@@ -693,7 +693,7 @@ function FlowMobile({
           background: c.soft || "var(--surface)",
           minWidth: 24,
           height: 24,
-          borderRadius: 99,
+          borderRadius: "var(--r-pill)",
           display: "grid",
           placeItems: "center",
           padding: "0 7px"

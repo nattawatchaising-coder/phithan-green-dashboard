@@ -300,7 +300,7 @@ function leadBtn(color, solid) {
   return { display: "inline-flex", alignItems: "center", gap: 5, padding: "9px 15px", borderRadius: "var(--r-pill)",
     cursor: "pointer", fontFamily: "inherit", fontSize: 12.5, fontWeight: 700, border: "none",
     background: solid ? color : "var(--surface2)", color: solid ? "#fff" : color,
-    boxShadow: solid ? "none" : "var(--shadow-sm)" };
+    boxShadow: solid ? "var(--shadow-btn)" : "var(--shadow-sm)" };
 }
 
 /* ── ฟอร์มลูกค้าสำรวจ ── */
@@ -712,7 +712,7 @@ function LeadDetail({ l, ctx }) {
               borderRadius: "var(--r-chip)", padding: "5px 11px",
               color: st.state === "skip" ? "var(--text-2)" : "var(--tint-green-tx)",
               background: st.state === "skip" ? "var(--surface2)" : "rgba(22,163,74,.08)",
-              border: "1px solid " + (st.state === "skip" ? "var(--border-strong)" : "rgba(22,163,74,.27)") }}>
+              boxShadow: "var(--shadow-sm)" }}>
             <Icon name={st.state === "skip" ? "history" : "check"} size={12}
               color={st.state === "skip" ? "var(--text-2)" : "var(--tint-green-tx)"} sw={2.4} />
             {st.state === "skip" ? "เอากลับเข้าคิวสำรวจ" : "ข้ามขั้นตอนสำรวจ · ไม่ต้องสำรวจ"}

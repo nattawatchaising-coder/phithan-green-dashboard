@@ -724,7 +724,7 @@ function leadBtn(color, solid) {
     border: "none",
     background: solid ? color : "var(--surface2)",
     color: solid ? "#fff" : color,
-    boxShadow: solid ? "none" : "var(--shadow-sm)"
+    boxShadow: solid ? "var(--shadow-btn)" : "var(--shadow-sm)"
   };
 }
 function LeadModal({
@@ -1837,7 +1837,7 @@ function LeadDetail({
       padding: "5px 11px",
       color: st.state === "skip" ? "var(--text-2)" : "var(--tint-green-tx)",
       background: st.state === "skip" ? "var(--surface2)" : "rgba(22,163,74,.08)",
-      border: "1px solid " + (st.state === "skip" ? "var(--border-strong)" : "rgba(22,163,74,.27)")
+      boxShadow: "var(--shadow-sm)"
     }
   }, React.createElement(Icon, {
     name: st.state === "skip" ? "history" : "check",

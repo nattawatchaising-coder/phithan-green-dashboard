@@ -890,9 +890,9 @@ function SalesQuoteList({
       display: "inline-flex",
       alignItems: "center",
       gap: 4,
-      background: "none",
-      border: "1px solid var(--border-strong)",
-      borderRadius: 8,
+      background: "var(--surface2)",
+      boxShadow: "var(--shadow-sm)",
+      borderRadius: "var(--r-chip)",
       padding: "5px 10px",
       cursor: "pointer",
       fontFamily: "inherit",
@@ -924,9 +924,9 @@ function SalesQuoteList({
         gap: 10,
         padding: "10px 12px",
         marginBottom: 6,
-        background: i === 0 ? "var(--surface2)" : "transparent",
-        border: "1px solid var(--border)",
-        borderRadius: 11,
+        background: i === 0 ? "var(--surface2)" : "var(--surface)",
+        boxShadow: "var(--shadow-sm)",
+        borderRadius: "var(--r-tile)",
         cursor: onOpenQuote ? "pointer" : "default",
         fontFamily: "inherit",
         textAlign: "left"
@@ -957,7 +957,7 @@ function SalesQuoteList({
         color: i === 0 ? "var(--primary-dark)" : "var(--text-3)",
         background: i === 0 ? "var(--primary-soft)" : "var(--surface2)",
         padding: "1px 7px",
-        borderRadius: 99
+        borderRadius: "var(--r-pill)"
       }
     }, "\u0E09\u0E1A\u0E31\u0E1A\u0E17\u0E35\u0E48 ", ver, i === 0 ? " · ล่าสุด" : "")), React.createElement("span", {
       style: {
@@ -979,7 +979,7 @@ function SalesQuoteList({
         color: s.color,
         background: s.color + "16",
         padding: "3px 9px",
-        borderRadius: 99,
+        borderRadius: "var(--r-pill)",
         whiteSpace: "nowrap"
       }
     }, s.th));
@@ -988,8 +988,8 @@ function SalesQuoteList({
   return React.createElement("div", {
     style: {
       background: "var(--surface)",
-      border: "1px solid var(--border)",
-      borderRadius: 14,
+      boxShadow: "var(--shadow-sm)",
+      borderRadius: "var(--r-tile)",
       padding: 16,
       marginBottom: 10
     }
@@ -1197,7 +1197,7 @@ function QuotePagePick({
         alignItems: "flex-start",
         gap: 9,
         padding: "9px 11px",
-        borderRadius: 11,
+        borderRadius: "var(--r-tile)",
         border: "1px solid " + (on ? "var(--primary)" : "var(--border)"),
         background: on ? "var(--primary-soft)" : "var(--surface)",
         cursor: dis ? "default" : "pointer",
@@ -1254,7 +1254,7 @@ function QuotePagePick({
       color: "#B45309",
       background: "var(--tint-amber-bg)",
       border: "1px solid #F59E0B55",
-      borderRadius: 10,
+      borderRadius: "var(--r-tile)",
       padding: "8px 11px",
       lineHeight: 1.6
     }
@@ -1262,8 +1262,8 @@ function QuotePagePick({
 }
 const pgQuick = {
   padding: "5px 10px",
-  borderRadius: 8,
-  border: "1px solid var(--border-strong)",
+  borderRadius: "var(--r-chip)",
+  boxShadow: "var(--shadow-sm)",
   background: "var(--surface)",
   cursor: "pointer",
   fontFamily: "inherit",
@@ -1293,7 +1293,7 @@ function QuoteRowPic({
       width: "100%",
       height: 34,
       padding: 0,
-      borderRadius: 8,
+      borderRadius: "var(--r-chip)",
       overflow: "hidden",
       display: "grid",
       placeItems: "center",
@@ -1329,8 +1329,8 @@ function QuoteRowPic({
       left: 0,
       width: 232,
       padding: 8,
-      borderRadius: 11,
-      border: "1px solid var(--border-strong)",
+      borderRadius: "var(--r-tile)",
+      boxShadow: "var(--shadow-sm)",
       background: "var(--surface)",
       boxShadow: "0 18px 44px rgba(8,20,14,.22)"
     }
@@ -1363,7 +1363,7 @@ function QuoteRowPic({
       objectFit: "cover",
       display: "block",
       cursor: "pointer",
-      borderRadius: 7,
+      borderRadius: "var(--r-chip)",
       border: "2px solid " + (p.id === id ? "var(--primary)" : "transparent")
     }
   }))), cur && React.createElement("button", {
@@ -1396,8 +1396,8 @@ function QuoteRowsEdit({
   }) : r));
   const cell = {
     padding: "7px 8px",
-    borderRadius: 8,
-    border: "1px solid var(--border-strong)",
+    borderRadius: "var(--r-chip)",
+    boxShadow: "var(--shadow-sm)",
     background: "var(--surface)",
     color: "var(--text-1)",
     fontFamily: "inherit",
@@ -1476,8 +1476,8 @@ function QuoteRowsEdit({
     style: {
       width: 30,
       height: 30,
-      borderRadius: 8,
-      border: "1px solid var(--border-strong)",
+      borderRadius: "var(--r-chip)",
+      boxShadow: "var(--shadow-sm)",
       background: "var(--surface)",
       cursor: "pointer",
       display: "grid",
@@ -1504,7 +1504,7 @@ function QuoteRowsEdit({
       gap: 5,
       background: "none",
       border: "1px dashed var(--border-strong)",
-      borderRadius: 10,
+      borderRadius: "var(--r-tile)",
       padding: "7px 12px",
       cursor: "pointer",
       fontFamily: "inherit",
@@ -1532,8 +1532,8 @@ function QuoteRoiEdit({
       flexDirection: "column",
       gap: 8,
       background: "var(--surface)",
-      border: "1px solid var(--border)",
-      borderRadius: 13,
+      boxShadow: "var(--shadow-sm)",
+      borderRadius: "var(--r-tile)",
       padding: 13
     }
   }, React.createElement("div", {
@@ -1587,8 +1587,8 @@ function QuoteRoiEdit({
     })),
     style: {
       padding: "7px 9px",
-      borderRadius: 8,
-      border: "1px solid var(--border-strong)",
+      borderRadius: "var(--r-chip)",
+      boxShadow: "var(--shadow-sm)",
       background: "var(--surface)",
       color: "var(--text-1)",
       fontFamily: "inherit",
@@ -1706,8 +1706,8 @@ function QuotePicPick({
     return React.createElement("div", {
       key: p.id,
       style: {
-        border: "1px solid var(--border)",
-        borderRadius: 11,
+        boxShadow: "var(--shadow-sm)",
+        borderRadius: "var(--r-tile)",
         overflow: "hidden",
         background: "var(--surface)"
       }
@@ -1744,7 +1744,7 @@ function QuotePicPick({
         right: 6,
         width: 22,
         height: 22,
-        borderRadius: 7,
+        borderRadius: "var(--r-chip)",
         border: "none",
         background: "rgba(8,20,14,.45)",
         cursor: "pointer",
@@ -1838,8 +1838,8 @@ function QuoteSheetPick({
     placeholder: "\u0E2D\u0E22\u0E32\u0E01\u0E41\u0E19\u0E1A\u0E23\u0E38\u0E48\u0E19\u0E2D\u0E37\u0E48\u0E19\u0E14\u0E49\u0E27\u0E22 \u2014 \u0E1E\u0E34\u0E21\u0E1E\u0E4C\u0E04\u0E49\u0E19\u0E2B\u0E32\u0E08\u0E32\u0E01\u0E17\u0E31\u0E49\u0E07\u0E04\u0E25\u0E31\u0E07",
     style: {
       padding: "7px 10px",
-      borderRadius: 9,
-      border: "1px solid var(--border-strong)",
+      borderRadius: "var(--r-chip)",
+      boxShadow: "var(--shadow-sm)",
       background: "var(--surface)",
       color: "var(--text-1)",
       fontFamily: "inherit",
@@ -1865,7 +1865,7 @@ function QuoteSheetPick({
         alignItems: "center",
         gap: 9,
         padding: "8px 10px",
-        borderRadius: 10,
+        borderRadius: "var(--r-tile)",
         border: "1px solid " + (on ? "var(--primary)" : "var(--border)"),
         background: on ? "var(--primary-soft)" : "var(--surface)",
         cursor: locked ? "default" : "pointer",
@@ -1913,7 +1913,7 @@ function QuoteSheetPick({
         color: "var(--primary-dark)",
         background: "var(--primary-soft)",
         padding: "2px 7px",
-        borderRadius: 99,
+        borderRadius: "var(--r-pill)",
         flexShrink: 0
       }
     }, "\u0E2D\u0E22\u0E39\u0E48\u0E43\u0E19\u0E43\u0E1A\u0E19\u0E35\u0E49"));
@@ -2196,8 +2196,8 @@ function QuoteEditor({
   const termMoney = !split.count ? null : React.createElement("div", {
     style: {
       marginTop: 3,
-      border: "1px solid var(--border)",
-      borderRadius: 10,
+      boxShadow: "var(--shadow-sm)",
+      borderRadius: "var(--r-tile)",
       overflow: "hidden",
       background: "var(--surface)"
     }
@@ -2325,7 +2325,7 @@ function QuoteEditor({
         color: s.color,
         background: s.color + "16",
         padding: "4px 11px",
-        borderRadius: 99,
+        borderRadius: "var(--r-pill)",
         whiteSpace: "nowrap"
       }
     }, s.th);
@@ -2334,8 +2334,8 @@ function QuoteEditor({
     style: {
       width: 32,
       height: 32,
-      borderRadius: 9,
-      border: "1px solid var(--border)",
+      borderRadius: "var(--r-chip)",
+      boxShadow: "var(--shadow-sm)",
       background: "var(--surface)",
       cursor: "pointer",
       display: "grid",
@@ -2359,7 +2359,7 @@ function QuoteEditor({
       color: "var(--tint-green-tx)",
       background: "var(--primary-soft)",
       border: "1px solid var(--primary)",
-      borderRadius: 10,
+      borderRadius: "var(--r-tile)",
       padding: "9px 12px"
     }
   }, "\u0E43\u0E1A\u0E19\u0E35\u0E49\u0E25\u0E39\u0E01\u0E04\u0E49\u0E32\u0E15\u0E01\u0E25\u0E07\u0E41\u0E25\u0E49\u0E27 \u2014 \u0E41\u0E01\u0E49\u0E15\u0E31\u0E27\u0E40\u0E25\u0E02\u0E44\u0E21\u0E48\u0E44\u0E14\u0E49 \u0E40\u0E1E\u0E23\u0E32\u0E30\u0E22\u0E2D\u0E14\u0E02\u0E32\u0E22\u0E16\u0E39\u0E01\u0E19\u0E31\u0E1A\u0E44\u0E1B\u0E41\u0E25\u0E49\u0E27 \xB7 \u0E16\u0E49\u0E32\u0E15\u0E49\u0E2D\u0E07\u0E41\u0E01\u0E49\u0E08\u0E23\u0E34\u0E07 \u0E43\u0E2B\u0E49\u0E01\u0E14 \u201C\u0E22\u0E49\u0E2D\u0E19\u0E01\u0E25\u0E31\u0E1A\u0E40\u0E1B\u0E47\u0E19\u0E2A\u0E48\u0E07\u0E41\u0E25\u0E49\u0E27\u201D \u0E01\u0E48\u0E2D\u0E19"), React.createElement("div", {
@@ -2477,9 +2477,9 @@ function QuoteEditor({
       display: "inline-flex",
       alignItems: "center",
       gap: 5,
-      background: "none",
-      border: "1px solid var(--border-strong)",
-      borderRadius: 8,
+      background: "var(--surface2)",
+      boxShadow: "var(--shadow-sm)",
+      borderRadius: "var(--r-chip)",
       padding: "5px 10px",
       cursor: "pointer",
       fontFamily: "inherit",
@@ -2498,9 +2498,9 @@ function QuoteEditor({
       display: "inline-flex",
       alignItems: "center",
       gap: 5,
-      background: "none",
-      border: "1px solid var(--border-strong)",
-      borderRadius: 8,
+      background: "var(--surface2)",
+      boxShadow: "var(--shadow-sm)",
+      borderRadius: "var(--r-chip)",
       padding: "5px 10px",
       cursor: "pointer",
       fontFamily: "inherit",
@@ -2519,9 +2519,9 @@ function QuoteEditor({
       display: "inline-flex",
       alignItems: "center",
       gap: 5,
-      background: "none",
-      border: "1px solid var(--border-strong)",
-      borderRadius: 8,
+      background: "var(--surface2)",
+      boxShadow: "var(--shadow-sm)",
+      borderRadius: "var(--r-chip)",
       padding: "5px 10px",
       cursor: "pointer",
       fontFamily: "inherit",
@@ -2536,8 +2536,8 @@ function QuoteEditor({
   }), " \u0E14\u0E36\u0E07\u0E23\u0E32\u0E04\u0E32\u0E02\u0E32\u0E22\u0E08\u0E32\u0E01 BOQ (\u0E3F", sBaht(boqSell), ")")), q.items.map((it, i) => React.createElement("div", {
     key: it.id || i,
     style: {
-      border: "1px solid var(--border)",
-      borderRadius: 12,
+      boxShadow: "var(--shadow-sm)",
+      borderRadius: "var(--r-tile)",
       padding: 11,
       background: "var(--surface)",
       display: "flex",
@@ -2566,8 +2566,8 @@ function QuoteEditor({
       width: 30,
       height: 30,
       flexShrink: 0,
-      borderRadius: 8,
-      border: "1px solid var(--border-strong)",
+      borderRadius: "var(--r-chip)",
+      boxShadow: "var(--shadow-sm)",
       background: "var(--surface)",
       cursor: "pointer",
       display: "grid",
@@ -2631,7 +2631,7 @@ function QuoteEditor({
       gap: 5,
       background: "none",
       border: "1px dashed var(--border-strong)",
-      borderRadius: 10,
+      borderRadius: "var(--r-tile)",
       padding: "8px 13px",
       cursor: "pointer",
       fontFamily: "inherit",
@@ -2646,8 +2646,8 @@ function QuoteEditor({
   }), " \u0E40\u0E1E\u0E34\u0E48\u0E21\u0E23\u0E32\u0E22\u0E01\u0E32\u0E23")), React.createElement("div", {
     style: {
       background: "var(--surface)",
-      border: "1px solid var(--border)",
-      borderRadius: 14,
+      boxShadow: "var(--shadow-sm)",
+      borderRadius: "var(--r-tile)",
       padding: 14,
       display: "flex",
       flexDirection: "column",
@@ -2688,7 +2688,7 @@ function QuoteEditor({
       display: "flex",
       gap: 3,
       padding: 3,
-      borderRadius: 9,
+      borderRadius: "var(--r-chip)",
       background: "var(--surface2)",
       flexShrink: 0
     }
@@ -2699,7 +2699,7 @@ function QuoteEditor({
     onClick: () => set("discountMode", m[0]),
     style: {
       padding: "4px 11px",
-      borderRadius: 7,
+      borderRadius: "var(--r-chip)",
       border: "none",
       cursor: locked ? "default" : "pointer",
       fontFamily: "inherit",
@@ -2902,8 +2902,8 @@ function QuoteEditor({
       alignItems: "center",
       gap: 5,
       padding: "5px 10px",
-      borderRadius: 8,
-      border: "1px solid var(--border-strong)",
+      borderRadius: "var(--r-chip)",
+      boxShadow: "var(--shadow-sm)",
       background: "var(--surface)",
       cursor: "pointer",
       fontFamily: "inherit",
@@ -3013,7 +3013,7 @@ function qBtn(color, solid) {
     alignItems: "center",
     gap: 6,
     padding: "10px 15px",
-    borderRadius: 10,
+    borderRadius: "var(--r-tile)",
     cursor: "pointer",
     fontFamily: "inherit",
     fontSize: 13,
@@ -3154,7 +3154,7 @@ function SalesCard({
         color: "var(--text-3)",
         background: "var(--surface3)",
         padding: "3px 9px",
-        borderRadius: 99,
+        borderRadius: "var(--r-pill)",
         whiteSpace: "nowrap"
       }
     }, "\u0E07\u0E32\u0E19\u0E02\u0E32\u0E22"), val > 0 && React.createElement("span", {
@@ -3163,7 +3163,7 @@ function SalesCard({
         color: "var(--primary-dark)",
         fontWeight: 800,
         padding: "3px 9px",
-        borderRadius: 99,
+        borderRadius: "var(--r-pill)",
         fontVariantNumeric: "tabular-nums"
       }
     }, "\u0E3F", fmtBaht(val)), q0 && (() => {
@@ -3174,7 +3174,7 @@ function SalesCard({
           color: s.color,
           fontWeight: 800,
           padding: "3px 9px",
-          borderRadius: 99
+          borderRadius: "var(--r-pill)"
         }
       }, "\u0E43\u0E1A\u0E40\u0E2A\u0E19\u0E2D\u0E23\u0E32\u0E04\u0E32 \xB7 ", s.th);
     })()), React.createElement("div", {
@@ -3276,7 +3276,7 @@ function SalesBoardView({
       alignItems: "center",
       gap: 6,
       padding: "7px 13px",
-      borderRadius: 99,
+      borderRadius: "var(--r-pill)",
       cursor: "pointer",
       fontFamily: "inherit",
       fontSize: 12.5,
@@ -3297,13 +3297,14 @@ function SalesBoardView({
       alignItems: "center",
       gap: 6,
       padding: "7px 13px",
-      borderRadius: 99,
+      borderRadius: "var(--r-pill)",
       cursor: "pointer",
       fontFamily: "inherit",
       fontSize: 12.5,
       fontWeight: 700,
-      border: "1px solid " + (mine ? "var(--primary)" : "var(--border-strong)"),
-      background: mine ? "var(--primary-soft)" : "var(--surface)",
+      border: "none",
+      boxShadow: "var(--shadow-sm)",
+      background: mine ? "var(--primary-soft)" : "var(--surface2)",
       color: mine ? "var(--primary-dark)" : "var(--text-2)"
     }
   }, React.createElement(Icon, {
@@ -3338,7 +3339,7 @@ function SalesBoardView({
         style: {
           width: 7,
           height: 7,
-          borderRadius: 99,
+          borderRadius: "var(--r-pill)",
           background: c.color
         }
       }), React.createElement("span", {
@@ -3424,7 +3425,7 @@ function SalesBoardView({
       style: {
         width: 7,
         height: 7,
-        borderRadius: 99,
+        borderRadius: "var(--r-pill)",
         background: c.color,
         flexShrink: 0
       }
@@ -3559,8 +3560,8 @@ function SalesMonthPick({
         width: 272,
         maxWidth: "min(272px, 88vw)",
         background: "var(--surface)",
-        border: "1px solid var(--border)",
-        borderRadius: 16,
+        boxShadow: "var(--shadow-sm)",
+        borderRadius: "var(--r-tile)",
         padding: "14px 16px 16px",
         boxShadow: "0 14px 36px rgba(8,20,14,.16)"
       }
@@ -3578,7 +3579,7 @@ function SalesMonthPick({
         width: 28,
         height: 28,
         minWidth: 28,
-        borderRadius: 9,
+        borderRadius: "var(--r-chip)",
         border: "none",
         background: "none",
         cursor: "pointer",
@@ -3604,7 +3605,7 @@ function SalesMonthPick({
         width: 28,
         height: 28,
         minWidth: 28,
-        borderRadius: 9,
+        borderRadius: "var(--r-chip)",
         border: "none",
         background: "none",
         opacity: yr >= thisYr ? .4 : 1,
@@ -3644,7 +3645,7 @@ function SalesMonthPick({
             width: "100%",
             height: 34,
             padding: "0 4px",
-            borderRadius: 10,
+            borderRadius: "var(--r-tile)",
             fontFamily: "inherit",
             fontSize: 12.5,
             fontWeight: 700,
@@ -3775,8 +3776,8 @@ function SalesKpiView({
     style: {
       flex: "1 1 150px",
       background: "var(--surface)",
-      border: "1px solid var(--border)",
-      borderRadius: 14,
+      boxShadow: "var(--shadow-sm)",
+      borderRadius: "var(--r-tile)",
       padding: "13px 15px"
     }
   }, React.createElement("div", {
@@ -3824,7 +3825,7 @@ function SalesKpiView({
     style: {
       display: "inline-block",
       padding: "2px 9px",
-      borderRadius: 99,
+      borderRadius: "var(--r-pill)",
       fontSize: 11,
       fontWeight: 700,
       background: color + "18",
@@ -3871,12 +3872,12 @@ function SalesKpiView({
     onClick: () => setMonth(thisMonth),
     style: {
       padding: "6px 12px",
-      borderRadius: 99,
+      borderRadius: "var(--r-pill)",
       cursor: "pointer",
       fontFamily: "inherit",
       fontSize: 12,
       fontWeight: 700,
-      border: "1px solid var(--border)",
+      boxShadow: "var(--shadow-sm)",
       background: "var(--surface)",
       color: "var(--text-2)"
     }
@@ -3884,7 +3885,7 @@ function SalesKpiView({
     onClick: () => setMonth(month ? "" : thisMonth),
     style: {
       padding: "6px 12px",
-      borderRadius: 99,
+      borderRadius: "var(--r-pill)",
       cursor: "pointer",
       fontFamily: "inherit",
       fontSize: 12,
@@ -3926,8 +3927,8 @@ function SalesKpiView({
   }, kpi("ยอดขายที่ปิดได้", "฿" + fmtBaht(Math.round(tot.sales)), "จากใบเสนอราคาที่ลูกค้าตกลง", "var(--primary-dark)"), kpi("ปิดการขาย", tot.won + " ราย", tot.won + tot.lost > 0 ? "อัตราปิด " + Math.round(tot.won / (tot.won + tot.lost) * 100) + "%" : "ยังไม่มีรายที่ตัดสิน"), kpi("รอมอบหมายผู้ดูแล", noOwner + " โครงการ", noOwner ? "ยังไม่มีใครตามต่อ" : "มอบหมายครบแล้ว", noOwner ? "#F59E0B" : undefined), kpi("ยังไม่ได้นัดสำรวจ", noEng + " โครงการ", noEng ? "ยังไม่มีช่างลงนัด" : "นัดครบแล้ว", noEng ? "#F59E0B" : undefined), kpi("มูลค่าที่ยังไล่อยู่", "฿" + fmtBaht(Math.round(tot.pipe)), "โครงการที่ยังไม่ปิด (ทุกช่วงเวลา)", "#F59E0B")), React.createElement("div", {
     style: {
       background: "var(--surface)",
-      border: "1px solid var(--border)",
-      borderRadius: 16,
+      boxShadow: "var(--shadow-sm)",
+      borderRadius: "var(--r-tile)",
       overflow: "hidden"
     }
   }, React.createElement("div", {
@@ -3982,7 +3983,7 @@ function SalesKpiView({
       alignItems: "center",
       gap: 5,
       padding: "5px 12px",
-      borderRadius: 99,
+      borderRadius: "var(--r-pill)",
       border: "1px solid var(--primary)",
       background: "var(--primary)",
       color: "#fff",
@@ -4284,7 +4285,7 @@ function SalesOverview({
     style: {
       width: 8,
       height: 8,
-      borderRadius: 99,
+      borderRadius: "var(--r-pill)",
       background: row.st.color,
       flexShrink: 0
     }
@@ -4294,7 +4295,7 @@ function SalesOverview({
       minWidth: 0,
       height: 10,
       background: "var(--surface3)",
-      borderRadius: 99,
+      borderRadius: "var(--r-pill)",
       overflow: "hidden",
       display: "block"
     }
@@ -4304,7 +4305,7 @@ function SalesOverview({
       height: "100%",
       width: Math.max(row.n / pipeMax * 100, row.n ? 5 : 0) + "%",
       background: row.st.color,
-      borderRadius: 99,
+      borderRadius: "var(--r-pill)",
       transition: "width .6s cubic-bezier(.2,.8,.2,1)"
     }
   })), React.createElement("span", {
@@ -4448,8 +4449,8 @@ function SalesJobSummary({
   return React.createElement("div", {
     style: {
       background: "var(--surface)",
-      border: "1px solid var(--border)",
-      borderRadius: 16,
+      boxShadow: "var(--shadow-sm)",
+      borderRadius: "var(--r-tile)",
       padding: 16,
       marginBottom: 16
     }
@@ -4464,7 +4465,7 @@ function SalesJobSummary({
     style: {
       width: 9,
       height: 9,
-      borderRadius: 99,
+      borderRadius: "var(--r-pill)",
       background: st.color,
       flexShrink: 0
     }
@@ -4493,7 +4494,7 @@ function SalesJobSummary({
     style: {
       flex: 1,
       height: 6,
-      borderRadius: 99,
+      borderRadius: "var(--r-pill)",
       background: i <= idx ? st.color : "var(--surface3)"
     }
   }))), React.createElement("div", {
@@ -4511,7 +4512,7 @@ function SalesJobSummary({
     key: r[0],
     style: {
       background: "var(--surface2)",
-      borderRadius: 11,
+      borderRadius: "var(--r-tile)",
       padding: "9px 11px"
     }
   }, React.createElement("div", {
@@ -4545,7 +4546,7 @@ function SalesJobSummary({
       fontSize: 12.5,
       color: "var(--tint-green-tx)",
       background: "var(--primary-soft)",
-      borderRadius: 10,
+      borderRadius: "var(--r-tile)",
       padding: "9px 12px"
     }
   }, "\u0E44\u0E21\u0E48\u0E15\u0E34\u0E14\u0E2D\u0E30\u0E44\u0E23 \xB7 \u0E07\u0E32\u0E19\u0E40\u0E14\u0E34\u0E19\u0E15\u0E32\u0E21\u0E41\u0E1C\u0E19") : blockers.map((b, i) => React.createElement("div", {
@@ -4555,7 +4556,7 @@ function SalesJobSummary({
       color: b.color,
       background: b.color + "12",
       border: "1px solid " + b.color + "33",
-      borderRadius: 10,
+      borderRadius: "var(--r-tile)",
       padding: "9px 12px",
       marginBottom: 6,
       lineHeight: 1.5

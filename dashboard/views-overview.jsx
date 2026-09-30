@@ -59,12 +59,12 @@ function PipelinePanel({ jobs, onStage }) {
           <button key={s.key} onClick={() => onStage(s.key)} style={{ display: "flex",
             alignItems: "center", gap: 10, background: "none", border: "none", cursor: "pointer", padding: 0, fontFamily: "inherit", textAlign: "left", width: "100%" }}>
             <span style={{ width: 104, flexShrink: 0, display: "flex", alignItems: "center", gap: 7, fontSize: 12.5, fontWeight: 600, color: "var(--text-1)", lineHeight: 1.25 }}>
-              <span style={{ width: 8, height: 8, borderRadius: 99, background: s.color, flexShrink: 0 }} />{s.th}
+              <span style={{ width: 8, height: 8, borderRadius: "var(--r-pill)", background: s.color, flexShrink: 0 }} />{s.th}
             </span>
             {/* แท่งบางลงและเป็นสีทึบสีเดียว — ไล่เฉดทำให้ความยาวแท่งอ่านยากขึ้นโดยไม่ได้อะไรกลับมา */}
-            <span style={{ flex: 1, minWidth: 0, height: 10, background: "var(--surface3)", borderRadius: 99, overflow: "hidden", display: "block" }}>
+            <span style={{ flex: 1, minWidth: 0, height: 10, background: "var(--surface3)", borderRadius: "var(--r-pill)", overflow: "hidden", display: "block" }}>
               <span style={{ display: "block", height: "100%", width: Math.max((counts[i] / max) * 100, counts[i] ? 5 : 0) + "%",
-                background: s.color, borderRadius: 99, transition: "width .6s cubic-bezier(.2,.8,.2,1)" }} />
+                background: s.color, borderRadius: "var(--r-pill)", transition: "width .6s cubic-bezier(.2,.8,.2,1)" }} />
             </span>
             <span style={{ width: 30, flexShrink: 0, fontFamily: "var(--display)", fontSize: 15, fontWeight: 700, letterSpacing: "-.03em",
               fontVariantNumeric: "tabular-nums", color: counts[i] ? "var(--text-1)" : "var(--text-3)", textAlign: "right" }}>{counts[i]}</span>
@@ -134,15 +134,15 @@ function AlertsPanel({ jobs, onOpen }) {
           /* เดิมทาพื้นแดง + ขอบแดง + ขีดแดง = บอกเรื่องเดียวกัน 3 ที่ ทั้งแผงเลยแดงไปหมดจนไม่รู้ว่าใบไหนหนักกว่ากัน
              เหลือขีดแดงอย่างเดียว แล้วให้ป้าย "ล่าช้า" เป็นตัวไล่ระดับความหนักแทน */
           <button key={j.id} onClick={() => onOpen(j)} style={{ display: "flex", gap: 12, padding: "11px 12px", textAlign: "left",
-            background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 12, cursor: "pointer", fontFamily: "inherit", width: "100%",
+            background: "var(--surface)", boxShadow: "var(--shadow-sm)", borderRadius: "var(--r-tile)", cursor: "pointer", fontFamily: "inherit", width: "100%",
             transition: "background .14s, border-color .14s" }}
             onMouseEnter={(e) => { e.currentTarget.style.background = "var(--surface2)"; e.currentTarget.style.borderColor = "var(--border-strong)"; }}
             onMouseLeave={(e) => { e.currentTarget.style.background = "var(--surface)"; e.currentTarget.style.borderColor = "var(--border)"; }}>
-            <span style={{ width: 3, alignSelf: "stretch", borderRadius: 99, background: j.delayed ? "#D93025" : "#F59E0B", flexShrink: 0 }} />
+            <span style={{ width: 3, alignSelf: "stretch", borderRadius: "var(--r-pill)", background: j.delayed ? "#D93025" : "#F59E0B", flexShrink: 0 }} />
             <div style={{ flex: 1, minWidth: 0 }}>
               <div style={{ display: "flex", alignItems: "center", gap: 8, minWidth: 0 }}>
                 <span style={{ fontSize: 13.5, fontWeight: 700, color: "var(--text-1)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", flex: "0 1 auto" }}>{j.name}</span>
-                {j.delayed && <span style={{ fontSize: 10, fontWeight: 800, letterSpacing: ".02em", color: "#D93025", background: "rgba(217,48,37,.11)", padding: "2px 7px", borderRadius: 99, flexShrink: 0 }}>ล่าช้า</span>}
+                {j.delayed && <span style={{ fontSize: 10, fontWeight: 800, letterSpacing: ".02em", color: "#D93025", background: "rgba(217,48,37,.11)", padding: "2px 7px", borderRadius: "var(--r-pill)", flexShrink: 0 }}>ล่าช้า</span>}
               </div>
               <div style={{ fontSize: 12, color: "var(--text-2)", marginTop: 3, lineHeight: 1.4, overflow: "hidden", textOverflow: "ellipsis", display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical" }}>
                 {j.problem || ("เลยกำหนดวันนัด " + thDate(j.deadline))}
@@ -188,7 +188,7 @@ function SchedulePanel({ jobs, onOpen }) {
           const d = parseDate(j.deadline);
           return (
             <button key={j.id} onClick={() => onOpen(j)} style={{ display: "flex", gap: 13, alignItems: "center", padding: "9px 8px",
-              background: "none", border: "none", borderRadius: 10, cursor: "pointer", fontFamily: "inherit", width: "100%", textAlign: "left" }}
+              background: "none", border: "none", borderRadius: "var(--r-tile)", cursor: "pointer", fontFamily: "inherit", width: "100%", textAlign: "left" }}
               onMouseEnter={(e) => e.currentTarget.style.background = "var(--surface2)"}
               onMouseLeave={(e) => e.currentTarget.style.background = "none"}>
               <div style={{ width: 46, textAlign: "center", flexShrink: 0 }}>
@@ -437,8 +437,8 @@ function MaterialShortagePanel({ jobs, stock, onOpen }) {
                 onKeyDown={(e) => { if (e.key === "Enter") { e.stopPropagation(); exportShortageXlsx(r.job, r.short); } }}
                 title="ดาวน์โหลดรายการสั่งซื้อ (Excel · แยกหมวด)"
                 style={{ flexShrink: 0, display: "inline-flex", alignItems: "center", gap: 5, padding: "6px 10px",
-                  border: "1px solid var(--border-strong)", borderRadius: 9, color: "var(--primary-dark)",
-                  fontWeight: 700, fontSize: 11.5, cursor: "pointer", whiteSpace: "nowrap", background: "var(--surface)" }}>
+                  boxShadow: "var(--shadow-sm)", borderRadius: "var(--r-chip)", color: "var(--primary-dark)",
+                  fontWeight: 700, fontSize: 11.5, cursor: "pointer", whiteSpace: "nowrap", background: "var(--surface2)" }}>
                 <Icon name="download" size={13} color="var(--primary-dark)" /> ไฟล์
               </span>
             </button>
@@ -673,7 +673,7 @@ function BrandPanel({ jobs }) {
       <PanelTitle icon="grid" title="สัดส่วนงาน" sub="แบรนด์ & ประเภท" />
       <div style={{ marginTop: 20 }}>
         <div style={{ fontSize: 11.5, fontWeight: 600, color: "var(--text-3)", marginBottom: 8 }}>แบรนด์อินเวอร์เตอร์</div>
-        <div style={{ display: "flex", height: 14, borderRadius: 99, overflow: "hidden", gap: 2 }}>
+        <div style={{ display: "flex", height: 14, borderRadius: "var(--r-pill)", overflow: "hidden", gap: 2 }}>
           {byBrand.map(({ b, n }) => n > 0 && (
             <div key={b} style={{ width: (n / total * 100) + "%", background: colors[b] || "var(--primary)" }} title={b + " " + n} />
           ))}
@@ -694,7 +694,7 @@ function BrandPanel({ jobs }) {
             <div key={t.key} style={{ flex: 1, minWidth: 0, padding: i ? "2px 0 2px 18px" : "2px 18px 2px 0",
               borderLeft: i ? "1px solid var(--border)" : "none" }}>
               <div style={{ display: "flex", alignItems: "center", gap: 7 }}>
-                <span style={{ width: 7, height: 7, borderRadius: 99, background: t.color, flexShrink: 0 }} />
+                <span style={{ width: 7, height: 7, borderRadius: "var(--r-pill)", background: t.color, flexShrink: 0 }} />
                 <span style={{ fontSize: 11.5, fontWeight: 600, color: "var(--text-2)" }}>{t.th}</span>
               </div>
               <div style={{ fontFamily: "var(--display)", fontSize: 30, fontWeight: 700, color: "var(--text-1)",

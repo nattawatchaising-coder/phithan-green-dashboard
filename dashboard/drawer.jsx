@@ -21,15 +21,15 @@ function FlowTimeline({ job }) {
           <div key={step.key} style={{ display: "flex", gap: 14, position: "relative" }}>
             {/* connector + dot */}
             <div style={{ display: "flex", flexDirection: "column", alignItems: "center" }}>
-              <div style={{ width: 26, height: 26, borderRadius: 99, flexShrink: 0,
+              <div style={{ width: 26, height: 26, borderRadius: "var(--r-pill)", flexShrink: 0,
                 background: (isDone || isCurrent) && !step.blocked ? s.color : step.blocked ? "var(--tint-red-bg2)" : "var(--surface3)",
                 border: isCurrent ? "2px solid " + (step.blocked ? "#EF4444" : s.color) : "2px solid transparent",
                 color: "#fff", display: "grid", placeItems: "center",
                 boxShadow: isCurrent ? "0 0 0 4px " + (step.blocked ? "#EF444422" : s.color + "22") : "none" }}>
                 {isDone ? <Icon name="check" size={14} color="#fff" sw={2.5} />
                   : step.blocked ? <Icon name="alert" size={13} color="#EF4444" />
-                  : isCurrent ? <span style={{ width: 8, height: 8, borderRadius: 99, background: "#fff" }} />
-                  : <span style={{ width: 7, height: 7, borderRadius: 99, background: "var(--text-3)" }} />}
+                  : isCurrent ? <span style={{ width: 8, height: 8, borderRadius: "var(--r-pill)", background: "#fff" }} />
+                  : <span style={{ width: 7, height: 7, borderRadius: "var(--r-pill)", background: "var(--text-3)" }} />}
               </div>
               {!isLast && <div style={{ width: 2, flex: 1, minHeight: 26,
                 background: isDone ? s.color : "var(--border)", marginTop: 2, marginBottom: 2 }} />}
@@ -41,9 +41,9 @@ function FlowTimeline({ job }) {
                   color: isDone || isCurrent ? "var(--text-1)" : "var(--text-3)" }}>{s.th}</span>
                 <span style={{ fontSize: 11, color: "var(--text-3)", fontFamily: "var(--mono)" }}>{s.en}</span>
                 {isCurrent && !step.blocked && <span style={{ fontSize: 10.5, fontWeight: 700, color: s.fg,
-                  background: s.soft, padding: "2px 8px", borderRadius: 99 }}>ขั้นปัจจุบัน</span>}
+                  background: s.soft, padding: "2px 8px", borderRadius: "var(--r-pill)" }}>ขั้นปัจจุบัน</span>}
                 {step.blocked && <span style={{ fontSize: 10.5, fontWeight: 700, color: "var(--tint-red-tx)",
-                  background: "var(--tint-red-bg2)", padding: "2px 8px", borderRadius: 99 }}>⚠ ติดปัญหา</span>}
+                  background: "var(--tint-red-bg2)", padding: "2px 8px", borderRadius: "var(--r-pill)" }}>⚠ ติดปัญหา</span>}
               </div>
               {(step.at || step.date) && (isDone || isCurrent) && (
                 // เวลาจริงที่กดเลื่อนเข้า stage นี้ (วัน + เวลา)
@@ -63,13 +63,13 @@ function FlowTimeline({ job }) {
                   <div style={{ fontSize: 11.5, color: late ? "#EF4444" : "var(--text-3)", marginTop: 3, display: "flex", alignItems: "center", gap: 5, flexWrap: "wrap" }}>
                     <Icon name={late ? "alert" : "calendar"} size={11} color={late ? "#EF4444" : "var(--text-3)"} />
                     <span>นัดติดตั้ง {thDate(st, true)}{en && en !== st ? "–" + thDate(en, true) : ""}</span>
-                    {late && <span style={{ fontWeight: 700, color: "#EF4444", background: "var(--tint-red-bg2)", padding: "1px 6px", borderRadius: 99 }}>เลยกำหนด {late.daysLate} วัน</span>}
+                    {late && <span style={{ fontWeight: 700, color: "#EF4444", background: "var(--tint-red-bg2)", padding: "1px 6px", borderRadius: "var(--r-pill)" }}>เลยกำหนด {late.daysLate} วัน</span>}
                   </div>
                 );
               })()}
               {step.blocked && job.problem && (
                 <div style={{ marginTop: 8, padding: "10px 12px", background: "var(--tint-red-bg)", border: "1px solid var(--tint-red-bd)",
-                  borderRadius: 10, fontSize: 12.5, color: "var(--tint-red-tx)", lineHeight: 1.5 }}>{job.problem}</div>
+                  borderRadius: "var(--r-tile)", fontSize: 12.5, color: "var(--tint-red-tx)", lineHeight: 1.5 }}>{job.problem}</div>
               )}
             </div>
           </div>
@@ -124,12 +124,12 @@ function JobMaterialUsage({ job, stock, currentUser }) {
       {/* ปุ่มเบิกของเข้างาน (ช้อปปิ้ง) */}
       <button onClick={() => setShopOpen(true)}
         style={{ width: "100%", marginBottom: rows.length ? 12 : 0, display: "flex", alignItems: "center", justifyContent: "center", gap: 8, padding: "11px 14px",
-          background: "#7C5CFC14", border: "1px dashed #7C5CFC66", borderRadius: 12, cursor: "pointer", fontFamily: "inherit", color: "#6645e0", fontWeight: 700, fontSize: 13.5 }}>
+          background: "#7C5CFC14", border: "1px dashed #7C5CFC66", borderRadius: "var(--r-tile)", cursor: "pointer", fontFamily: "inherit", color: "#6645e0", fontWeight: 700, fontSize: 13.5 }}>
         <Icon name="box" size={16} color="#6645e0" /> เบิกของเข้างานนี้
       </button>
 
       {rows.length > 0 && (
-      <div style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 14, overflow: "hidden" }}>
+      <div style={{ background: "var(--surface)", boxShadow: "var(--shadow-sm)", borderRadius: "var(--r-tile)", overflow: "hidden" }}>
         <div style={{ display: "grid", gridTemplateColumns: "1fr 42px 42px 64px", gap: 8, padding: "9px 14px", background: "var(--surface2)", borderBottom: "1px solid var(--border)" }}>
           <Cell head left color="var(--text-3)">อุปกรณ์</Cell>
           <Cell head color="#6645e0">เบิก</Cell>
@@ -144,10 +144,10 @@ function JobMaterialUsage({ job, stock, currentUser }) {
             <Cell color="#6645e0">{r.out}</Cell>
             <Cell color={r.ret ? "#0784b8" : "var(--text-3)"}>{r.ret || "–"}</Cell>
             {cancelled
-              ? <span style={{ justifySelf: "end", fontSize: 10.5, fontWeight: 700, color: "var(--text-3)", background: "var(--surface2)", padding: "4px 8px", borderRadius: 8, whiteSpace: "nowrap" }}>ยกเลิก</span>
+              ? <span style={{ justifySelf: "end", fontSize: 10.5, fontWeight: 700, color: "var(--text-3)", background: "var(--surface2)", padding: "4px 8px", borderRadius: "var(--r-chip)", whiteSpace: "nowrap" }}>ยกเลิก</span>
               : <button onClick={() => r.item && setRetRow(r)} disabled={!r.item} title={"คืนของเข้าคลัง (สูงสุด " + r.net + ")"}
                   style={{ justifySelf: "end", display: "inline-flex", alignItems: "center", gap: 3, background: r.item ? "#0EA5E916" : "var(--surface2)",
-                    border: "none", color: r.item ? "#0784b8" : "var(--text-3)", fontWeight: 700, fontSize: 11.5, padding: "5px 9px", borderRadius: 8,
+                    border: "none", color: r.item ? "#0784b8" : "var(--text-3)", fontWeight: 700, fontSize: 11.5, padding: "5px 9px", borderRadius: "var(--r-chip)",
                     cursor: r.item ? "pointer" : "default", fontFamily: "inherit", whiteSpace: "nowrap" }}>↩ คืน</button>}
           </div>
           );
@@ -245,10 +245,10 @@ function StockShopModal({ stock, job, byName, onClose }) {
           <div style={{ fontSize: 11, color: out ? "#EF4444" : "var(--text-3)", marginTop: 1 }}>{sub}</div>
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: 6, flexShrink: 0 }}>
-          <button onClick={() => setQty(it.id, inCart - 1, max)} disabled={!inCart} style={{ width: 30, height: 30, borderRadius: 8, border: "1px solid var(--border-strong)", background: "var(--surface)", color: "var(--text-2)", fontSize: 17, fontWeight: 700, cursor: inCart ? "pointer" : "default", lineHeight: 1 }}>−</button>
+          <button onClick={() => setQty(it.id, inCart - 1, max)} disabled={!inCart} style={{ width: 30, height: 30, borderRadius: "var(--r-chip)", boxShadow: "var(--shadow-sm)", background: "var(--surface)", color: "var(--text-2)", fontSize: 17, fontWeight: 700, cursor: inCart ? "pointer" : "default", lineHeight: 1 }}>−</button>
           <input type="number" value={inCart || ""} placeholder="0" onChange={(e) => setQty(it.id, e.target.value, max)}
-            style={{ width: 46, textAlign: "center", padding: "6px 4px", borderRadius: 8, border: "1px solid var(--border-strong)", background: "var(--surface2)", color: "var(--text-1)", fontFamily: "inherit", fontSize: 13 }} />
-          <button onClick={() => setQty(it.id, inCart + 1, max)} disabled={out || inCart >= max} style={{ width: 30, height: 30, borderRadius: 8, border: "none", background: out || inCart >= max ? "var(--surface3)" : "var(--primary)", color: out || inCart >= max ? "var(--text-3)" : "#fff", fontSize: 17, fontWeight: 700, cursor: out || inCart >= max ? "default" : "pointer", lineHeight: 1 }}>+</button>
+            style={{ width: 46, textAlign: "center", padding: "6px 4px", borderRadius: "var(--r-chip)", boxShadow: "var(--shadow-sm)", background: "var(--surface2)", color: "var(--text-1)", fontFamily: "inherit", fontSize: 13 }} />
+          <button onClick={() => setQty(it.id, inCart + 1, max)} disabled={out || inCart >= max} style={{ width: 30, height: 30, borderRadius: "var(--r-chip)", border: "none", background: out || inCart >= max ? "var(--surface3)" : "var(--primary)", color: out || inCart >= max ? "var(--text-3)" : "#fff", fontSize: 17, fontWeight: 700, cursor: out || inCart >= max ? "default" : "pointer", lineHeight: 1 }}>+</button>
         </div>
       </div>
     );
@@ -269,7 +269,7 @@ function StockShopModal({ stock, job, byName, onClose }) {
               <div style={{ fontSize: 11.5, color: "var(--text-3)" }}>เบิกของเข้างาน · {job.code}</div>
               <h2 style={{ fontSize: 16.5, fontWeight: 700, color: "var(--text-1)", margin: "2px 0 0", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{job.name}</h2>
             </div>
-            <button onClick={onClose} style={{ width: 32, height: 32, borderRadius: 9, border: "1px solid var(--border)", background: "var(--surface)", cursor: "pointer", display: "grid", placeItems: "center", color: "var(--text-2)", flexShrink: 0 }}><Icon name="x" size={16} /></button>
+            <button onClick={onClose} style={{ width: 32, height: 32, borderRadius: "var(--r-chip)", boxShadow: "var(--shadow-sm)", background: "var(--surface)", cursor: "pointer", display: "grid", placeItems: "center", color: "var(--text-2)", flexShrink: 0 }}><Icon name="x" size={16} /></button>
           </div>
         </div>
 
@@ -285,7 +285,7 @@ function StockShopModal({ stock, job, byName, onClose }) {
                   sub={<span>BOQ <b style={{ color: "var(--text-2)" }}>{l.qty}</b> {l.unit} · {it.qty <= 0 ? <span style={{ color: "#EF4444" }}>หมดสต็อก</span> : <span>คงเหลือ {it.qty.toLocaleString()} {it.unit}</span>}{it.sku ? " · " + it.sku : ""}{short && it.qty > 0 ? <span style={{ color: "#F59E0B" }}> · ไม่พอตาม BOQ</span> : ""}</span>} />;
               })}
               {boqMissing.length > 0 && (
-                <div style={{ margin: "8px 8px 0", padding: "10px 12px", background: "var(--tint-amber-bg)", border: "1px dashed var(--tint-amber-bd)", borderRadius: 10, fontSize: 11.5, color: "var(--tint-amber-tx)", lineHeight: 1.55 }}>
+                <div style={{ margin: "8px 8px 0", padding: "10px 12px", background: "var(--tint-amber-bg)", border: "1px dashed var(--tint-amber-bd)", borderRadius: "var(--r-tile)", fontSize: 11.5, color: "var(--tint-amber-tx)", lineHeight: 1.55 }}>
                   <b>{boqMissing.length} รายการใน BOQ ยังไม่มีในคลัง</b> — เพิ่มวัสดุ + สร้างรหัสในหน้า “คลังสินค้า” เพื่อให้เบิกได้:
                   <div style={{ marginTop: 4, color: "#7a5208" }}>{boqMissing.slice(0, 6).map((l) => l.name).join(" · ")}{boqMissing.length > 6 ? " …" : ""}</div>
                 </div>
@@ -309,9 +309,9 @@ function StockShopModal({ stock, job, byName, onClose }) {
         </div>
 
         <div style={{ padding: "12px 20px", paddingBottom: isMobile ? "calc(12px + env(safe-area-inset-bottom,0px))" : 12, borderTop: "1px solid var(--border)", background: "var(--surface)", display: "flex", gap: 10, flexShrink: 0 }}>
-          <button onClick={onClose} style={{ flex: "0 0 auto", padding: "11px 16px", borderRadius: 11, border: "1px solid var(--border-strong)", background: "var(--surface)", color: "var(--text-2)", fontWeight: 600, fontFamily: "inherit", fontSize: 13.5, cursor: "pointer" }}>ปิด</button>
+          <button onClick={onClose} style={{ flex: "0 0 auto", padding: "11px 16px", borderRadius: "var(--r-tile)", boxShadow: "var(--shadow-sm)", background: "var(--surface)", color: "var(--text-2)", fontWeight: 600, fontFamily: "inherit", fontSize: 13.5, cursor: "pointer" }}>ปิด</button>
           <button onClick={confirm} disabled={!cartIds.length}
-            style={{ flex: 1, padding: "11px 22px", borderRadius: 11, border: "none", background: cartIds.length ? "var(--primary)" : "var(--surface3)", color: cartIds.length ? "#fff" : "var(--text-3)", fontWeight: 700, fontFamily: "inherit", fontSize: 13.5, cursor: cartIds.length ? "pointer" : "default" }}>
+            style={{ flex: 1, padding: "11px 22px", borderRadius: "var(--r-tile)", border: "none", background: cartIds.length ? "var(--primary)" : "var(--surface3)", color: cartIds.length ? "#fff" : "var(--text-3)", fontWeight: 700, fontFamily: "inherit", fontSize: 13.5, cursor: cartIds.length ? "pointer" : "default" }}>
             เบิกเข้างาน{cartIds.length ? " (" + cartIds.length + " รายการ · " + totalQty + " ชิ้น)" : ""}
           </button>
         </div>
@@ -374,8 +374,8 @@ function PermitJobSummary({ job, onOpenReview }) {
   return (
     <React.Fragment>
       {/* ขั้นตอนถึงไหน */}
-      <div style={{ background: "var(--surface)", border: "1px solid var(--border)", borderLeft: "3px solid " + color,
-        borderRadius: 14, padding: 16, marginBottom: 14 }}>
+      <div style={{ background: "var(--surface)", boxShadow: "var(--shadow-sm)", borderLeft: "3px solid " + color,
+        borderRadius: "var(--r-tile)", padding: 16, marginBottom: 14 }}>
         <div style={{ display: "flex", alignItems: "center", gap: 9, marginBottom: 12 }}>
           <Icon name="shield" size={16} color={color} />
           <span style={{ fontSize: 14, fontWeight: 800, color: color }}>{pst ? pst.th : "ยังไม่เริ่มเก็บข้อมูล"}</span>
@@ -387,7 +387,7 @@ function PermitJobSummary({ job, onOpenReview }) {
             const c = rejected && now ? "#EF4444" : (done || now ? "var(--primary)" : "var(--border-strong)");
             return (
               <span key={st.key} style={{ flex: 1, minWidth: 0 }}>
-                <span style={{ display: "block", height: 4, borderRadius: 99, background: c, opacity: done ? .55 : 1 }} />
+                <span style={{ display: "block", height: 4, borderRadius: "var(--r-pill)", background: c, opacity: done ? .55 : 1 }} />
                 <span style={{ display: "block", marginTop: 5, fontSize: 9.5, lineHeight: 1.3,
                   fontWeight: now ? 800 : 600, color: now ? (rejected ? "#EF4444" : "var(--primary-dark)") : "var(--text-3)" }}>{st.th}</span>
               </span>
@@ -412,7 +412,7 @@ function PermitJobSummary({ job, onOpenReview }) {
       {onOpenReview && (
         <button onClick={onOpenReview}
           style={{ width: "100%", marginBottom: 16, display: "flex", alignItems: "center", gap: 10, padding: "12px 14px",
-            background: "var(--surface)", border: "1px solid var(--border-strong)", borderRadius: 12, cursor: "pointer", fontFamily: "inherit", textAlign: "left" }}>
+            background: "var(--surface)", boxShadow: "var(--shadow-sm)", borderRadius: "var(--r-tile)", cursor: "pointer", fontFamily: "inherit", textAlign: "left" }}>
           <span className="ic-chip" style={{ background: "#14B8A61c" }}>
             <Icon name="file" size={17} color="#14B8A6" />
           </span>
@@ -430,12 +430,12 @@ function PermitJobSummary({ job, onOpenReview }) {
           ติดอะไรอยู่
         </div>
         {blockers.length === 0 ? (
-          <div style={{ padding: "11px 13px", borderRadius: 11, background: "var(--primary-soft)", border: "1px solid var(--primary)",
+          <div style={{ padding: "11px 13px", borderRadius: "var(--r-tile)", background: "var(--primary-soft)", border: "1px solid var(--primary)",
             fontSize: 12.5, fontWeight: 700, color: "var(--primary-dark)" }}>ไม่ติดอะไร · ข้อมูลและไฟล์แบบครบพร้อมยื่น</div>
         ) : blockers.map((b, i) => {
           const t = TONE[b.tone];
           return (
-            <div key={i} style={{ marginBottom: 7, padding: "10px 12px", borderRadius: 11, background: t.bg, border: "1px solid " + t.bd }}>
+            <div key={i} style={{ marginBottom: 7, padding: "10px 12px", borderRadius: "var(--r-tile)", background: t.bg, border: "1px solid " + t.bd }}>
               <div style={{ fontSize: 12.5, fontWeight: 800, color: t.tx }}>{b.th}</div>
               <div style={{ fontSize: 12, color: t.tx, marginTop: 3, lineHeight: 1.55 }}>{b.detail}</div>
             </div>
@@ -452,7 +452,7 @@ function PermitJobSummary({ job, onOpenReview }) {
       </div>
 
       {/* ข้อมูลสำหรับกรอกใบคำขอ */}
-      <div style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 14, padding: 16, marginBottom: 18 }}>
+      <div style={{ background: "var(--surface)", boxShadow: "var(--shadow-sm)", borderRadius: "var(--r-tile)", padding: 16, marginBottom: 18 }}>
         <div style={{ fontSize: 11.5, fontWeight: 700, color: "var(--text-3)", marginBottom: 6 }}>
           ข้อมูลสำหรับกรอกใบคำขอ
         </div>
@@ -504,7 +504,7 @@ function DrToolGroup({ alert, children }) {
         <span style={{ flex: 1 }} />
         {/* ป้ายเตือนโผล่เฉพาะตอนพับ — ตอนกางอยู่ การ์ดตัวจริงบอกละเอียดกว่านี้อยู่แล้ว */}
         {!open && alert ? (
-          <span style={{ padding: "3px 9px", borderRadius: 99, background: "var(--tint-red-bg)",
+          <span style={{ padding: "3px 9px", borderRadius: "var(--r-pill)", background: "var(--tint-red-bg)",
             border: "1px solid var(--tint-red-bd)", color: "var(--tint-red-tx)", fontSize: 10.5, fontWeight: 800 }}>
             {alert}
           </span>
@@ -568,7 +568,7 @@ function DetailDrawer({ job, onClose, onAdvance, onSetMat, onEdit, currentUser, 
                   </div>
                   <h2 style={{ fontSize: isMobile ? 17 : 20, fontWeight: 700, color: "var(--text-1)", margin: 0, lineHeight: 1.25 }}>{job.name}</h2>
                 </div>
-                <button onClick={onClose} style={{ width: 36, height: 36, borderRadius: 10, border: "1px solid var(--border)",
+                <button onClick={onClose} style={{ width: 36, height: 36, borderRadius: "var(--r-tile)", boxShadow: "var(--shadow-sm)",
                   background: "var(--surface)", cursor: "pointer", display: "grid", placeItems: "center", color: "var(--text-2)", flexShrink: 0 }}>
                   <Icon name="x" size={18} />
                 </button>
@@ -585,7 +585,7 @@ function DetailDrawer({ job, onClose, onAdvance, onSetMat, onEdit, currentUser, 
                   return (
                     <React.Fragment>
                       <span style={{ fontSize: 12, fontWeight: 700, color: c, background: c + "16", border: "1px solid " + c + "33",
-                        borderRadius: 99, padding: "4px 11px", whiteSpace: "nowrap" }}>{pst ? pst.th : "ยังไม่เริ่มเก็บข้อมูล"}</span>
+                        borderRadius: "var(--r-pill)", padding: "4px 11px", whiteSpace: "nowrap" }}>{pst ? pst.th : "ยังไม่เริ่มเก็บข้อมูล"}</span>
                       <div style={{ flex: 1 }}><ProgressBar pct={pct} color={c} /></div>
                       <span style={{ fontFamily: "var(--mono)", fontSize: 13, fontWeight: 600, color: "var(--text-2)" }}>{pct}%</span>
                     </React.Fragment>
@@ -630,7 +630,7 @@ function DetailDrawer({ job, onClose, onAdvance, onSetMat, onEdit, currentUser, 
                       {job.eeName}
                       {job.eeIsTech && (
                         <span style={{ marginLeft: 7, fontSize: 10.5, fontWeight: 700, color: "var(--primary-dark)",
-                          background: "var(--primary-soft)", borderRadius: 99, padding: "2px 8px" }}>ลงหน้างานเองด้วย</span>
+                          background: "var(--primary-soft)", borderRadius: "var(--r-pill)", padding: "2px 8px" }}>ลงหน้างานเองด้วย</span>
                       )}
                     </span>
                   ) : <span style={{ color: "#F59E0B" }}>ยังไม่ระบุ</span>}
@@ -645,7 +645,7 @@ function DetailDrawer({ job, onClose, onAdvance, onSetMat, onEdit, currentUser, 
                 {job.drive && (
                   <div style={{ gridColumn: "1 / -1" }}>
                     <InfoRow label="โฟลเดอร์งาน Google Drive">
-                      <a href={job.drive} target="_blank" rel="noreferrer" style={{ display: "inline-flex", alignItems: "center", gap: 6, color: "#fff", background: "#1A73E8", padding: "6px 12px", borderRadius: 9, textDecoration: "none", fontWeight: 700, fontSize: 12.5 }}>
+                      <a href={job.drive} target="_blank" rel="noreferrer" style={{ display: "inline-flex", alignItems: "center", gap: 6, color: "#fff", background: "#1A73E8", padding: "6px 12px", borderRadius: "var(--r-chip)", textDecoration: "none", fontWeight: 700, fontSize: 12.5 }}>
                         <Icon name="folder" size={14} color="#fff" /> เปิดโฟลเดอร์ Drive <Icon name="arrowRight" size={13} color="#fff" />
                       </a>
                     </InfoRow>
@@ -657,7 +657,7 @@ function DetailDrawer({ job, onClose, onAdvance, onSetMat, onEdit, currentUser, 
               {salesMode && window.SalesJobSummary && <window.SalesJobSummary job={job} quotes={quotes} leads={leads} onOpenQuote={onOpenQuote} />}
 
               {/* spec card */}
-              <div style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 14, padding: isMobile ? 15 : 18, marginBottom: isMobile ? 18 : 22 }}>
+              <div style={{ background: "var(--surface)", boxShadow: "var(--shadow-sm)", borderRadius: "var(--r-tile)", padding: isMobile ? 15 : 18, marginBottom: isMobile ? 18 : 22 }}>
                 <div style={{ fontSize: 11.5, fontWeight: 700, color: "var(--text-3)", marginBottom: 14, display: "flex", alignItems: "center", gap: 6 }}>
                   <Icon name="sun" size={14} color="var(--primary)" /> สเปกระบบ
                 </div>
@@ -718,7 +718,7 @@ function DetailDrawer({ job, onClose, onAdvance, onSetMat, onEdit, currentUser, 
                     {onSurveyReport && ss.state !== "none" && (
                       <button onClick={onSurveyReport}
                         style={{ width: "100%", marginBottom: 10, display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 7, padding: "10px 14px",
-                          background: "var(--primary-soft)", border: "1px solid var(--primary)", borderRadius: 11, cursor: "pointer", fontFamily: "inherit",
+                          background: "var(--primary-soft)", border: "1px solid var(--primary)", borderRadius: "var(--r-tile)", cursor: "pointer", fontFamily: "inherit",
                           fontSize: 13, fontWeight: 700, color: "var(--primary-dark)" }}>
                         <Icon name="file" size={15} color="var(--primary-dark)" /> ดูรายงานผลสำรวจ · บันทึก PDF
                       </button>
@@ -822,7 +822,7 @@ function DetailDrawer({ job, onClose, onAdvance, onSetMat, onEdit, currentUser, 
                   const rejected = !!(pm && pm.status === "rejected");
                   return (
                     <div style={{ marginBottom: 22, border: "1px solid " + (rejected ? "var(--tint-red-bd)" : "var(--border-strong)"),
-                      borderLeft: "3px solid " + (pst ? pst.color : "var(--border-strong)"), borderRadius: 12, overflow: "hidden",
+                      borderLeft: "3px solid " + (pst ? pst.color : "var(--border-strong)"), borderRadius: "var(--r-tile)", overflow: "hidden",
                       background: "var(--surface)" }}>
                       <button onClick={onPermit}
                         style={{ width: "100%", display: "flex", alignItems: "center", gap: 10, padding: "12px 14px",
@@ -845,7 +845,7 @@ function DetailDrawer({ job, onClose, onAdvance, onSetMat, onEdit, currentUser, 
                             const c = rejected && now ? "#EF4444" : (done || now ? "var(--primary)" : "var(--border-strong)");
                             return (
                               <span key={st.key} style={{ flex: 1, minWidth: 0 }}>
-                                <span style={{ display: "block", height: 4, borderRadius: 99, background: c, opacity: done ? .55 : 1 }} />
+                                <span style={{ display: "block", height: 4, borderRadius: "var(--r-pill)", background: c, opacity: done ? .55 : 1 }} />
                                 <span style={{ display: "block", marginTop: 5, fontSize: 9.5, lineHeight: 1.3,
                                   fontWeight: now ? 800 : 600, color: now ? (rejected ? "#EF4444" : "var(--primary-dark)") : "var(--text-3)" }}>{st.th}</span>
                               </span>
@@ -856,7 +856,7 @@ function DetailDrawer({ job, onClose, onAdvance, onSetMat, onEdit, currentUser, 
 
                       {/* ตีกลับ = ช่างต้องลงมือแก้ ต้องเห็นเหตุผลตรงนี้เลย ไม่ใช่ไปตามอ่านในแจ้งเตือน */}
                       {rejected && (
-                        <div style={{ margin: "0 12px 12px", padding: "10px 12px", borderRadius: 10,
+                        <div style={{ margin: "0 12px 12px", padding: "10px 12px", borderRadius: "var(--r-tile)",
                           background: "var(--tint-red-bg)", border: "1px solid var(--tint-red-bd)" }}>
                           <div style={{ fontSize: 12, fontWeight: 800, color: "var(--tint-red-tx)" }}>↩ ฝ่ายขออนุญาตตีกลับ ต้องแก้ไขแล้วส่งใหม่</div>
                           <div style={{ fontSize: 12, color: "var(--tint-red-tx)", marginTop: 4, lineHeight: 1.55 }}>
@@ -868,14 +868,14 @@ function DetailDrawer({ job, onClose, onAdvance, onSetMat, onEdit, currentUser, 
                             </div>
                           )}
                           <button onClick={onPermit}
-                            style={{ marginTop: 9, padding: "8px 14px", borderRadius: 9, border: "none", background: "#EF4444", color: "#fff",
+                            style={{ marginTop: 9, padding: "8px 14px", borderRadius: "var(--r-chip)", border: "none", background: "#EF4444", color: "#fff",
                               fontFamily: "inherit", fontSize: 12.5, fontWeight: 700, cursor: "pointer" }}>แก้ไขแล้วส่งใหม่</button>
                         </div>
                       )}
 
                       {/* อนุมัติแล้ว = ปิดงานได้จริง ให้เห็นเลขที่คำร้อง/วันอนุมัติโดยไม่ต้องเปิดเข้าไป */}
                       {pm && pm.status === "approved" && (
-                        <div style={{ margin: "0 12px 12px", padding: "9px 12px", borderRadius: 10,
+                        <div style={{ margin: "0 12px 12px", padding: "9px 12px", borderRadius: "var(--r-tile)",
                           background: "var(--primary-soft)", border: "1px solid var(--primary)", fontSize: 11.5, color: "var(--primary-dark)", fontWeight: 700 }}>
                           ✔ การไฟฟ้าอนุมัติแล้ว{pm.approvedDate ? " · " + thDate(pm.approvedDate, true) : ""}{pm.reqNo ? " · คำร้อง " + pm.reqNo : ""}
                         </div>
@@ -912,7 +912,7 @@ function DetailDrawer({ job, onClose, onAdvance, onSetMat, onEdit, currentUser, 
                 {/* เดิมเป็นกล่องมีขอบ 6 ใบเรียงกัน = เส้นขอบ 6 เส้นแย่งความสนใจกับตัวข้อมูล
                    เปลี่ยนเป็นแผงเดียวแบ่งด้วยเส้นผม เหมือนตารางย่อย อ่านไล่ลงมาได้ลื่นกว่า */}
                 <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr", gap: 0,
-                  border: "1px solid var(--border)", borderRadius: 12, overflow: "hidden", background: "var(--surface)" }}>
+                  boxShadow: "var(--shadow-sm)", borderRadius: "var(--r-tile)", overflow: "hidden", background: "var(--surface)" }}>
                   {SF.MATERIALS.filter((m) => {
                     if (m.key === "battery" && !job.battery) return false;
                     if (m.key === "backup" && !job.backup) return false;
@@ -958,7 +958,7 @@ function DetailDrawer({ job, onClose, onAdvance, onSetMat, onEdit, currentUser, 
               <JobComments media={media} currentUser={currentUser} canManage={canManage} />
 
               {job.note && (
-                <div style={{ padding: "12px 14px", background: "var(--surface2)", border: "1px dashed var(--border-strong)", borderRadius: 10, fontSize: 12.5, color: "var(--text-2)", lineHeight: 1.55 }}>
+                <div style={{ padding: "12px 14px", background: "var(--surface2)", border: "1px dashed var(--border-strong)", borderRadius: "var(--r-tile)", fontSize: 12.5, color: "var(--text-2)", lineHeight: 1.55 }}>
                   <strong style={{ color: "var(--text-1)" }}>หมายเหตุ:</strong> {job.note}
                 </div>
               )}
@@ -970,14 +970,14 @@ function DetailDrawer({ job, onClose, onAdvance, onSetMat, onEdit, currentUser, 
               borderTop: "1px solid var(--border)", background: "var(--surface)", display: "flex", gap: isMobile ? 8 : 10, flexShrink: 0 }}>
               <button onClick={onClose} title="ปิด" aria-label="ปิด"
                 style={{ flex: "0 0 auto", padding: isMobile ? 0 : "11px 16px", width: isMobile ? 42 : "auto", height: isMobile ? 42 : "auto",
-                  borderRadius: 11, border: "1px solid var(--border-strong)", background: "var(--surface)", color: "var(--text-2)",
+                  borderRadius: "var(--r-tile)", boxShadow: "var(--shadow-sm)", background: "var(--surface)", color: "var(--text-2)",
                   fontWeight: 600, fontFamily: "inherit", fontSize: 13.5, cursor: "pointer",
                   display: "inline-flex", alignItems: "center", justifyContent: "center" }}>
                 {isMobile ? <Icon name="x" size={18} color="var(--text-2)" /> : "ปิด"}
               </button>
               {!salesMode && onEdit && <button onClick={() => onEdit(job.id)} title="แก้ไขข้อมูล" aria-label="แก้ไขข้อมูล"
                 style={{ flex: "0 0 auto", padding: isMobile ? 0 : "11px 16px", width: isMobile ? 42 : "auto", height: isMobile ? 42 : "auto",
-                  borderRadius: 11, border: "1px solid var(--border-strong)", background: "var(--surface)", color: "var(--text-1)",
+                  borderRadius: "var(--r-tile)", boxShadow: "var(--shadow-sm)", background: "var(--surface)", color: "var(--text-1)",
                   fontWeight: 600, fontFamily: "inherit", fontSize: 13.5, cursor: "pointer",
                   display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 7 }}>
                 <Icon name="settings" size={isMobile ? 17 : 15} color="var(--text-2)" />{!isMobile && " แก้ไขข้อมูล"}
@@ -996,7 +996,7 @@ function DetailDrawer({ job, onClose, onAdvance, onSetMat, onEdit, currentUser, 
               )}
               {!roMode && job.stage !== "done" && (
                 <button onClick={handleAdvance} disabled={advancing}
-                  style={{ flex: 1, minWidth: 0, padding: isMobile ? "11px 14px" : "11px 16px", height: isMobile ? 42 : "auto", borderRadius: 11, border: "none",
+                  style={{ flex: 1, minWidth: 0, padding: isMobile ? "11px 14px" : "11px 16px", height: isMobile ? 42 : "auto", borderRadius: "var(--r-tile)", border: "none",
                     background: advancing ? "var(--primary-dark)" : "var(--primary)",
                     color: "#fff", fontWeight: 700, fontFamily: "inherit", fontSize: isMobile ? 13 : 13.5,
                     cursor: advancing ? "default" : "pointer", opacity: advancing ? 0.82 : 1,

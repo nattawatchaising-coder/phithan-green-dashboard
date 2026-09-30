@@ -125,7 +125,7 @@ function LoQueuePanel({ jobs, onOpen }) {
                     return (
                       <button key={j.id} onClick={() => onOpen(j)} style={{ display: "flex", alignItems: "center", gap: 10,
                         padding: "7px 10px", width: "100%", textAlign: "left", cursor: "pointer", fontFamily: "inherit",
-                        background: "var(--surface)", border: "1px solid " + (bad ? "#FCA5A5" : "var(--border)"), borderRadius: 10 }}
+                        background: "var(--surface)", border: "1px solid " + (bad ? "#FCA5A5" : "var(--border)"), borderRadius: "var(--r-tile)" }}
                         onMouseEnter={(e) => e.currentTarget.style.background = "var(--surface2)"}
                         onMouseLeave={(e) => e.currentTarget.style.background = "var(--surface)"}>
                         <TechAvatar techId={j.tech} size={24} />
@@ -138,7 +138,7 @@ function LoQueuePanel({ jobs, onOpen }) {
                           </span>
                         </span>
                         {bad && <span style={{ flexShrink: 0, fontSize: 10.5, fontWeight: 800, color: "#D93025",
-                          background: "rgba(217,48,37,.11)", padding: "3px 8px", borderRadius: 99 }}>ช่างชนคิว</span>}
+                          background: "rgba(217,48,37,.11)", padding: "3px 8px", borderRadius: "var(--r-pill)" }}>ช่างชนคิว</span>}
                       </button>
                     );
                   })}
@@ -189,12 +189,12 @@ function LoTechLoadPanel({ jobs, techs, onTech }) {
               cursor: "pointer", fontFamily: "inherit", textAlign: "left", width: "100%" }}>
               <span style={{ width: 108, flexShrink: 0, display: "flex", alignItems: "center", gap: 7, fontSize: 12.5,
                 fontWeight: 650, color: "var(--text-1)", lineHeight: 1.25, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
-                <span style={{ width: 8, height: 8, borderRadius: 99, background: r.color, flexShrink: 0 }} />{r.name}
+                <span style={{ width: 8, height: 8, borderRadius: "var(--r-pill)", background: r.color, flexShrink: 0 }} />{r.name}
               </span>
               <span style={{ flex: 1, minWidth: 0 }}>
-                <span style={{ display: "block", height: 10, background: "var(--surface3)", borderRadius: 99, overflow: "hidden" }}>
+                <span style={{ display: "block", height: 10, background: "var(--surface3)", borderRadius: "var(--r-pill)", overflow: "hidden" }}>
                   <span style={{ display: "block", height: "100%", width: Math.max((r.n / max) * 100, r.n ? 5 : 0) + "%",
-                    background: r.late ? "#D93025" : r.color, borderRadius: 99, transition: "width .6s cubic-bezier(.2,.8,.2,1)" }} />
+                    background: r.late ? "#D93025" : r.color, borderRadius: "var(--r-pill)", transition: "width .6s cubic-bezier(.2,.8,.2,1)" }} />
                 </span>
                 <span style={{ display: "block", fontSize: 11, color: "var(--text-3)", marginTop: 4 }}>
                   {r.n === 0 ? "ว่าง — ยังไม่มีงานค้าง" : [
@@ -301,12 +301,12 @@ function LoBottleneckPanel({ jobs, onStage }) {
             cursor: "pointer", fontFamily: "inherit", textAlign: "left", width: "100%" }}>
             <span style={{ width: 104, flexShrink: 0, display: "flex", alignItems: "center", gap: 7, fontSize: 12.5,
               fontWeight: 650, color: "var(--text-1)", lineHeight: 1.25 }}>
-              <span style={{ width: 8, height: 8, borderRadius: 99, background: r.s.color, flexShrink: 0 }} />{r.s.th}
+              <span style={{ width: 8, height: 8, borderRadius: "var(--r-pill)", background: r.s.color, flexShrink: 0 }} />{r.s.th}
             </span>
             <span style={{ flex: 1, minWidth: 0 }}>
-              <span style={{ display: "block", height: 10, background: "var(--surface3)", borderRadius: 99, overflow: "hidden" }}>
+              <span style={{ display: "block", height: 10, background: "var(--surface3)", borderRadius: "var(--r-pill)", overflow: "hidden" }}>
                 <span style={{ display: "block", height: "100%", width: Math.max(((r.med || 0) / max) * 100, r.n ? 5 : 0) + "%",
-                  background: r.s.color, borderRadius: 99, transition: "width .6s cubic-bezier(.2,.8,.2,1)" }} />
+                  background: r.s.color, borderRadius: "var(--r-pill)", transition: "width .6s cubic-bezier(.2,.8,.2,1)" }} />
               </span>
               <span style={{ display: "block", fontSize: 11, marginTop: 4,
                 color: r.med != null && r.med >= 14 ? "#D93025" : "var(--text-3)" }}>

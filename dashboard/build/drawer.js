@@ -38,7 +38,7 @@ function FlowTimeline({
       style: {
         width: 26,
         height: 26,
-        borderRadius: 99,
+        borderRadius: "var(--r-pill)",
         flexShrink: 0,
         background: (isDone || isCurrent) && !step.blocked ? s.color : step.blocked ? "var(--tint-red-bg2)" : "var(--surface3)",
         border: isCurrent ? "2px solid " + (step.blocked ? "#EF4444" : s.color) : "2px solid transparent",
@@ -60,14 +60,14 @@ function FlowTimeline({
       style: {
         width: 8,
         height: 8,
-        borderRadius: 99,
+        borderRadius: "var(--r-pill)",
         background: "#fff"
       }
     }) : React.createElement("span", {
       style: {
         width: 7,
         height: 7,
-        borderRadius: 99,
+        borderRadius: "var(--r-pill)",
         background: "var(--text-3)"
       }
     })), !isLast && React.createElement("div", {
@@ -111,7 +111,7 @@ function FlowTimeline({
         color: s.fg,
         background: s.soft,
         padding: "2px 8px",
-        borderRadius: 99
+        borderRadius: "var(--r-pill)"
       }
     }, "\u0E02\u0E31\u0E49\u0E19\u0E1B\u0E31\u0E08\u0E08\u0E38\u0E1A\u0E31\u0E19"), step.blocked && React.createElement("span", {
       style: {
@@ -120,7 +120,7 @@ function FlowTimeline({
         color: "var(--tint-red-tx)",
         background: "var(--tint-red-bg2)",
         padding: "2px 8px",
-        borderRadius: 99
+        borderRadius: "var(--r-pill)"
       }
     }, "\u26A0 \u0E15\u0E34\u0E14\u0E1B\u0E31\u0E0D\u0E2B\u0E32")), (step.at || step.date) && (isDone || isCurrent) && React.createElement("div", {
       style: {
@@ -162,7 +162,7 @@ function FlowTimeline({
           color: "#EF4444",
           background: "var(--tint-red-bg2)",
           padding: "1px 6px",
-          borderRadius: 99
+          borderRadius: "var(--r-pill)"
         }
       }, "\u0E40\u0E25\u0E22\u0E01\u0E33\u0E2B\u0E19\u0E14 ", late.daysLate, " \u0E27\u0E31\u0E19"));
     })(), step.blocked && job.problem && React.createElement("div", {
@@ -171,7 +171,7 @@ function FlowTimeline({
         padding: "10px 12px",
         background: "var(--tint-red-bg)",
         border: "1px solid var(--tint-red-bd)",
-        borderRadius: 10,
+        borderRadius: "var(--r-tile)",
         fontSize: 12.5,
         color: "var(--tint-red-tx)",
         lineHeight: 1.5
@@ -292,7 +292,7 @@ function JobMaterialUsage({
       padding: "11px 14px",
       background: "#7C5CFC14",
       border: "1px dashed #7C5CFC66",
-      borderRadius: 12,
+      borderRadius: "var(--r-tile)",
       cursor: "pointer",
       fontFamily: "inherit",
       color: "#6645e0",
@@ -306,8 +306,8 @@ function JobMaterialUsage({
   }), " \u0E40\u0E1A\u0E34\u0E01\u0E02\u0E2D\u0E07\u0E40\u0E02\u0E49\u0E32\u0E07\u0E32\u0E19\u0E19\u0E35\u0E49"), rows.length > 0 && React.createElement("div", {
     style: {
       background: "var(--surface)",
-      border: "1px solid var(--border)",
-      borderRadius: 14,
+      boxShadow: "var(--shadow-sm)",
+      borderRadius: "var(--r-tile)",
       overflow: "hidden"
     }
   }, React.createElement("div", {
@@ -365,7 +365,7 @@ function JobMaterialUsage({
         color: "var(--text-3)",
         background: "var(--surface2)",
         padding: "4px 8px",
-        borderRadius: 8,
+        borderRadius: "var(--r-chip)",
         whiteSpace: "nowrap"
       }
     }, "\u0E22\u0E01\u0E40\u0E25\u0E34\u0E01") : React.createElement("button", {
@@ -383,7 +383,7 @@ function JobMaterialUsage({
         fontWeight: 700,
         fontSize: 11.5,
         padding: "5px 9px",
-        borderRadius: 8,
+        borderRadius: "var(--r-chip)",
         cursor: r.item ? "pointer" : "default",
         fontFamily: "inherit",
         whiteSpace: "nowrap"
@@ -541,8 +541,8 @@ function StockShopModal({
       style: {
         width: 30,
         height: 30,
-        borderRadius: 8,
-        border: "1px solid var(--border-strong)",
+        borderRadius: "var(--r-chip)",
+        boxShadow: "var(--shadow-sm)",
         background: "var(--surface)",
         color: "var(--text-2)",
         fontSize: 17,
@@ -559,8 +559,8 @@ function StockShopModal({
         width: 46,
         textAlign: "center",
         padding: "6px 4px",
-        borderRadius: 8,
-        border: "1px solid var(--border-strong)",
+        borderRadius: "var(--r-chip)",
+        boxShadow: "var(--shadow-sm)",
         background: "var(--surface2)",
         color: "var(--text-1)",
         fontFamily: "inherit",
@@ -572,7 +572,7 @@ function StockShopModal({
       style: {
         width: 30,
         height: 30,
-        borderRadius: 8,
+        borderRadius: "var(--r-chip)",
         border: "none",
         background: out || inCart >= max ? "var(--surface3)" : "var(--primary)",
         color: out || inCart >= max ? "var(--text-3)" : "#fff",
@@ -658,8 +658,8 @@ function StockShopModal({
     style: {
       width: 32,
       height: 32,
-      borderRadius: 9,
-      border: "1px solid var(--border)",
+      borderRadius: "var(--r-chip)",
+      boxShadow: "var(--shadow-sm)",
       background: "var(--surface)",
       cursor: "pointer",
       display: "grid",
@@ -713,7 +713,7 @@ function StockShopModal({
       padding: "10px 12px",
       background: "var(--tint-amber-bg)",
       border: "1px dashed var(--tint-amber-bd)",
-      borderRadius: 10,
+      borderRadius: "var(--r-tile)",
       fontSize: 11.5,
       color: "var(--tint-amber-tx)",
       lineHeight: 1.55
@@ -797,8 +797,8 @@ function StockShopModal({
     style: {
       flex: "0 0 auto",
       padding: "11px 16px",
-      borderRadius: 11,
-      border: "1px solid var(--border-strong)",
+      borderRadius: "var(--r-tile)",
+      boxShadow: "var(--shadow-sm)",
       background: "var(--surface)",
       color: "var(--text-2)",
       fontWeight: 600,
@@ -812,7 +812,7 @@ function StockShopModal({
     style: {
       flex: 1,
       padding: "11px 22px",
-      borderRadius: 11,
+      borderRadius: "var(--r-tile)",
       border: "none",
       background: cartIds.length ? "var(--primary)" : "var(--surface3)",
       color: cartIds.length ? "#fff" : "var(--text-3)",
@@ -914,9 +914,9 @@ function PermitJobSummary({
   return React.createElement(React.Fragment, null, React.createElement("div", {
     style: {
       background: "var(--surface)",
-      border: "1px solid var(--border)",
+      boxShadow: "var(--shadow-sm)",
       borderLeft: "3px solid " + color,
-      borderRadius: 14,
+      borderRadius: "var(--r-tile)",
       padding: 16,
       marginBottom: 14
     }
@@ -961,7 +961,7 @@ function PermitJobSummary({
       style: {
         display: "block",
         height: 4,
-        borderRadius: 99,
+        borderRadius: "var(--r-pill)",
         background: c,
         opacity: done ? .55 : 1
       }
@@ -1021,8 +1021,8 @@ function PermitJobSummary({
       gap: 10,
       padding: "12px 14px",
       background: "var(--surface)",
-      border: "1px solid var(--border-strong)",
-      borderRadius: 12,
+      boxShadow: "var(--shadow-sm)",
+      borderRadius: "var(--r-tile)",
       cursor: "pointer",
       fontFamily: "inherit",
       textAlign: "left"
@@ -1072,7 +1072,7 @@ function PermitJobSummary({
   }, "\u0E15\u0E34\u0E14\u0E2D\u0E30\u0E44\u0E23\u0E2D\u0E22\u0E39\u0E48"), blockers.length === 0 ? React.createElement("div", {
     style: {
       padding: "11px 13px",
-      borderRadius: 11,
+      borderRadius: "var(--r-tile)",
       background: "var(--primary-soft)",
       border: "1px solid var(--primary)",
       fontSize: 12.5,
@@ -1086,7 +1086,7 @@ function PermitJobSummary({
       style: {
         marginBottom: 7,
         padding: "10px 12px",
-        borderRadius: 11,
+        borderRadius: "var(--r-tile)",
         background: t.bg,
         border: "1px solid " + t.bd
       }
@@ -1120,8 +1120,8 @@ function PermitJobSummary({
   }) : null), React.createElement("div", {
     style: {
       background: "var(--surface)",
-      border: "1px solid var(--border)",
-      borderRadius: 14,
+      boxShadow: "var(--shadow-sm)",
+      borderRadius: "var(--r-tile)",
       padding: 16,
       marginBottom: 18
     }
@@ -1202,7 +1202,7 @@ function DrToolGroup({
   }), !open && alert ? React.createElement("span", {
     style: {
       padding: "3px 9px",
-      borderRadius: 99,
+      borderRadius: "var(--r-pill)",
       background: "var(--tint-red-bg)",
       border: "1px solid var(--tint-red-bd)",
       color: "var(--tint-red-tx)",
@@ -1361,8 +1361,8 @@ function DetailDrawer({
     style: {
       width: 36,
       height: 36,
-      borderRadius: 10,
-      border: "1px solid var(--border)",
+      borderRadius: "var(--r-tile)",
+      boxShadow: "var(--shadow-sm)",
       background: "var(--surface)",
       cursor: "pointer",
       display: "grid",
@@ -1393,7 +1393,7 @@ function DetailDrawer({
         color: c,
         background: c + "16",
         border: "1px solid " + c + "33",
-        borderRadius: 99,
+        borderRadius: "var(--r-pill)",
         padding: "4px 11px",
         whiteSpace: "nowrap"
       }
@@ -1497,7 +1497,7 @@ function DetailDrawer({
       fontWeight: 700,
       color: "var(--primary-dark)",
       background: "var(--primary-soft)",
-      borderRadius: 99,
+      borderRadius: "var(--r-pill)",
       padding: "2px 8px"
     }
   }, "\u0E25\u0E07\u0E2B\u0E19\u0E49\u0E32\u0E07\u0E32\u0E19\u0E40\u0E2D\u0E07\u0E14\u0E49\u0E27\u0E22")) : React.createElement("span", {
@@ -1541,7 +1541,7 @@ function DetailDrawer({
       color: "#fff",
       background: "#1A73E8",
       padding: "6px 12px",
-      borderRadius: 9,
+      borderRadius: "var(--r-chip)",
       textDecoration: "none",
       fontWeight: 700,
       fontSize: 12.5
@@ -1565,8 +1565,8 @@ function DetailDrawer({
   }), React.createElement("div", {
     style: {
       background: "var(--surface)",
-      border: "1px solid var(--border)",
-      borderRadius: 14,
+      boxShadow: "var(--shadow-sm)",
+      borderRadius: "var(--r-tile)",
       padding: isMobile ? 15 : 18,
       marginBottom: isMobile ? 18 : 22
     }
@@ -1695,7 +1695,7 @@ function DetailDrawer({
         padding: "10px 14px",
         background: "var(--primary-soft)",
         border: "1px solid var(--primary)",
-        borderRadius: 11,
+        borderRadius: "var(--r-tile)",
         cursor: "pointer",
         fontFamily: "inherit",
         fontSize: 13,
@@ -1896,7 +1896,7 @@ function DetailDrawer({
         marginBottom: 22,
         border: "1px solid " + (rejected ? "var(--tint-red-bd)" : "var(--border-strong)"),
         borderLeft: "3px solid " + (pst ? pst.color : "var(--border-strong)"),
-        borderRadius: 12,
+        borderRadius: "var(--r-tile)",
         overflow: "hidden",
         background: "var(--surface)"
       }
@@ -1966,7 +1966,7 @@ function DetailDrawer({
         style: {
           display: "block",
           height: 4,
-          borderRadius: 99,
+          borderRadius: "var(--r-pill)",
           background: c,
           opacity: done ? .55 : 1
         }
@@ -1984,7 +1984,7 @@ function DetailDrawer({
       style: {
         margin: "0 12px 12px",
         padding: "10px 12px",
-        borderRadius: 10,
+        borderRadius: "var(--r-tile)",
         background: "var(--tint-red-bg)",
         border: "1px solid var(--tint-red-bd)"
       }
@@ -2013,7 +2013,7 @@ function DetailDrawer({
       style: {
         marginTop: 9,
         padding: "8px 14px",
-        borderRadius: 9,
+        borderRadius: "var(--r-chip)",
         border: "none",
         background: "#EF4444",
         color: "#fff",
@@ -2026,7 +2026,7 @@ function DetailDrawer({
       style: {
         margin: "0 12px 12px",
         padding: "9px 12px",
-        borderRadius: 10,
+        borderRadius: "var(--r-tile)",
         background: "var(--primary-soft)",
         border: "1px solid var(--primary)",
         fontSize: 11.5,
@@ -2107,8 +2107,8 @@ function DetailDrawer({
       display: "grid",
       gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr",
       gap: 0,
-      border: "1px solid var(--border)",
-      borderRadius: 12,
+      boxShadow: "var(--shadow-sm)",
+      borderRadius: "var(--r-tile)",
       overflow: "hidden",
       background: "var(--surface)"
     }
@@ -2193,7 +2193,7 @@ function DetailDrawer({
       padding: "12px 14px",
       background: "var(--surface2)",
       border: "1px dashed var(--border-strong)",
-      borderRadius: 10,
+      borderRadius: "var(--r-tile)",
       fontSize: 12.5,
       color: "var(--text-2)",
       lineHeight: 1.55
@@ -2221,8 +2221,8 @@ function DetailDrawer({
       padding: isMobile ? 0 : "11px 16px",
       width: isMobile ? 42 : "auto",
       height: isMobile ? 42 : "auto",
-      borderRadius: 11,
-      border: "1px solid var(--border-strong)",
+      borderRadius: "var(--r-tile)",
+      boxShadow: "var(--shadow-sm)",
       background: "var(--surface)",
       color: "var(--text-2)",
       fontWeight: 600,
@@ -2246,8 +2246,8 @@ function DetailDrawer({
       padding: isMobile ? 0 : "11px 16px",
       width: isMobile ? 42 : "auto",
       height: isMobile ? 42 : "auto",
-      borderRadius: 11,
-      border: "1px solid var(--border-strong)",
+      borderRadius: "var(--r-tile)",
+      boxShadow: "var(--shadow-sm)",
       background: "var(--surface)",
       color: "var(--text-1)",
       fontWeight: 600,
@@ -2295,7 +2295,7 @@ function DetailDrawer({
       minWidth: 0,
       padding: isMobile ? "11px 14px" : "11px 16px",
       height: isMobile ? 42 : "auto",
-      borderRadius: 11,
+      borderRadius: "var(--r-tile)",
       border: "none",
       background: advancing ? "var(--primary-dark)" : "var(--primary)",
       color: "#fff",

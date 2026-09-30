@@ -28,7 +28,7 @@ function KanbanCard({ job, onOpen, onDragStart, dragging }) {
           {job.pendingApproval && (
             <span title="ลูกค้ายังไม่ตัดสินใจ — ออกแบบให้ดูก่อน"
               style={{ fontSize: 10.5, fontWeight: 800, color: "#A16207", background: "#EAB30820",
-                border: "1px solid #EAB30855", padding: "2px 7px", borderRadius: 99, whiteSpace: "nowrap" }}>รออนุมัติ</span>
+                border: "1px solid #EAB30855", padding: "2px 7px", borderRadius: "var(--r-pill)", whiteSpace: "nowrap" }}>รออนุมัติ</span>
           )}
           {/* ปุ่ม Drive เหลือแต่ไอคอน — คำว่า Drive กินความกว้าง ~33px ทำให้ป้ายตกบรรทัดจนการ์ดสูงขึ้น */}
           {job.drive && (
@@ -55,13 +55,13 @@ function KanbanCard({ job, onOpen, onDragStart, dragging }) {
         </span>
         {job.birdnet && (
           <span style={{ display: "inline-flex", alignItems: "center", gap: 3, flexShrink: 0, fontSize: 10.5, fontWeight: 700,
-            color: "#0D9488", background: "#0D948814", border: "1px solid #0D948844", padding: "2px 7px", borderRadius: 99 }}>
+            color: "#0D9488", background: "#0D948814", border: "1px solid #0D948844", padding: "2px 7px", borderRadius: "var(--r-pill)" }}>
             <Icon name="net" size={10} color="#0D9488" />กันนก
           </span>
         )}
         {job.backup && (
           <span style={{ display: "inline-flex", alignItems: "center", gap: 3, flexShrink: 0, fontSize: 10.5, fontWeight: 700,
-            color: "var(--primary-dark)", background: "var(--primary-soft)", padding: "2px 7px", borderRadius: 99 }}>
+            color: "var(--primary-dark)", background: "var(--primary-soft)", padding: "2px 7px", borderRadius: "var(--r-pill)" }}>
             <Icon name="shield" size={10} color="var(--primary-dark)" />Backup
           </span>
         )}
@@ -72,7 +72,7 @@ function KanbanCard({ job, onOpen, onDragStart, dragging }) {
         if (!pst) return null;
         const rejected = job.permit.status === "rejected";
         return (
-          <div style={{ marginBottom: 10, padding: "7px 10px", borderRadius: 11, background: pst.color + "14",
+          <div style={{ marginBottom: 10, padding: "7px 10px", borderRadius: "var(--r-tile)", background: pst.color + "14",
             border: "1px solid " + pst.color + (rejected ? "" : "33") }}>
             <div style={{ fontSize: 10.5, fontWeight: 800, color: pst.color }}>
               <Icon name="shield" size={10} color={pst.color} style={{ verticalAlign: -1 }} /> ขออนุญาต · {pst.th}
@@ -93,7 +93,7 @@ function KanbanCard({ job, onOpen, onDragStart, dragging }) {
         const st = cur ? window.blStatusOf(cur.status) : null;
         const c = S.allPaid ? "#10B981" : (S.overdue.length ? "#EF4444" : (st ? st.color : "#6366F1"));
         return (
-          <div style={{ marginBottom: 10, padding: "6px 9px", borderRadius: 9, background: c + "14", border: "1px solid " + c + "33" }}>
+          <div style={{ marginBottom: 10, padding: "6px 9px", borderRadius: "var(--r-chip)", background: c + "14", border: "1px solid " + c + "33" }}>
             <div style={{ fontSize: 10.5, fontWeight: 800, color: c, display: "flex", gap: 6, alignItems: "center", flexWrap: "wrap" }}>
               <Icon name="file" size={10} color={c} style={{ verticalAlign: -1 }} />
               งวดงาน · {S.allPaid ? "เก็บเงินครบแล้ว" : "งวด " + (S.doneCount + 1) + "/" + S.count + (st ? " · " + st.short : "")}
@@ -107,7 +107,7 @@ function KanbanCard({ job, onOpen, onDragStart, dragging }) {
         );
       })()}
       {job.problem && (
-        <div style={{ fontSize: 11, color: "var(--tint-red-tx)", background: "var(--tint-red-bg)", borderRadius: 8, padding: "6px 8px", marginBottom: 10, lineHeight: 1.4,
+        <div style={{ fontSize: 11, color: "var(--tint-red-tx)", background: "var(--tint-red-bg)", borderRadius: "var(--r-chip)", padding: "6px 8px", marginBottom: 10, lineHeight: 1.4,
           display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden" }}>
           ⚠ {job.problem}
         </div>
@@ -123,12 +123,12 @@ function KanbanCard({ job, onOpen, onDragStart, dragging }) {
         </span>
         {job.battery && (
           <span style={{ display: "inline-flex", alignItems: "center", gap: 3, fontSize: 10.5, fontWeight: 700,
-            color: "var(--primary-dark)", background: "var(--primary-soft)", padding: "2px 7px", borderRadius: 99 }}>
+            color: "var(--primary-dark)", background: "var(--primary-soft)", padding: "2px 7px", borderRadius: "var(--r-pill)" }}>
             <Icon name="battery" size={10} color="var(--primary-dark)" />{job.batSize}
           </span>
         )}
         {(job.brand || "").toUpperCase().includes("ATMOCE") && job.comboType === "assembled" && (
-          <span style={{ fontSize: 10.5, fontWeight: 700, color: "var(--text-2)", background: "var(--surface2)", padding: "2px 7px", borderRadius: 99 }}>ตู้ประกอบ</span>
+          <span style={{ fontSize: 10.5, fontWeight: 700, color: "var(--text-2)", background: "var(--surface2)", padding: "2px 7px", borderRadius: "var(--r-pill)" }}>ตู้ประกอบ</span>
         )}
       </div>
       <InstallSpanBar job={job} />
@@ -138,7 +138,7 @@ function KanbanCard({ job, onOpen, onDragStart, dragging }) {
           {job.startDate
             ? <span style={{ fontFamily: "var(--mono)", fontSize: 11.5, fontWeight: 600, letterSpacing: "-.01em",
                 color: job.delayed ? "#D93025" : "var(--text-2)" }}>{thDate(job.startDate)}</span>
-            : <span style={{ display: "inline-flex", alignItems: "center", gap: 3, fontSize: 10, fontWeight: 700, color: "var(--tint-amber-tx)", background: "var(--tint-amber-bg2)", border: "1px solid #FCD34D", padding: "2px 7px", borderRadius: 99, whiteSpace: "nowrap" }}><Icon name="alert" size={10} color="var(--tint-amber-tx)" /> ยังไม่ระบุวันติดตั้ง</span>}
+            : <span style={{ display: "inline-flex", alignItems: "center", gap: 3, fontSize: 10, fontWeight: 700, color: "var(--tint-amber-tx)", background: "var(--tint-amber-bg2)", border: "1px solid #FCD34D", padding: "2px 7px", borderRadius: "var(--r-pill)", whiteSpace: "nowrap" }}><Icon name="alert" size={10} color="var(--tint-amber-tx)" /> ยังไม่ระบุวันติดตั้ง</span>}
         </span>
         <span style={{ display: "inline-flex", alignItems: "center", gap: 6, flexShrink: 0 }}>
           <MatDots mat={job.mat} />
@@ -183,8 +183,8 @@ function InstallSpanBar({ job }) {
         </span>
         <span style={{ marginLeft: "auto", fontWeight: 800, color: c, fontVariantNumeric: "tabular-nums" }}>{right}</span>
       </div>
-      <div style={{ height: 5, borderRadius: 99, background: "var(--surface3)", overflow: "hidden" }}>
-        <div style={{ width: pct + "%", height: "100%", borderRadius: 99, background: c }} />
+      <div style={{ height: 5, borderRadius: "var(--r-pill)", background: "var(--surface3)", overflow: "hidden" }}>
+        <div style={{ width: pct + "%", height: "100%", borderRadius: "var(--r-pill)", background: c }} />
       </div>
       {sp.phase === "running" && (
         <div style={{ marginTop: 4, fontSize: 10.5, color: "var(--text-3)", fontVariantNumeric: "tabular-nums" }}>
@@ -201,7 +201,7 @@ function DocChip({ job, kind, label, color, soft }) {
     <React.Fragment>
       <button onClick={(e) => { e.stopPropagation(); setOpen(true); }} title={"ดู" + label}
         style={{ display: "inline-flex", alignItems: "center", gap: 4, fontSize: 10, fontWeight: 700,
-          color: color, background: soft, border: "1px solid " + color + "44", padding: "2px 7px", borderRadius: 99, cursor: "pointer", fontFamily: "inherit" }}>
+          color: color, background: soft, boxShadow: "var(--shadow-sm)", padding: "2px 7px", borderRadius: "var(--r-pill)", cursor: "pointer", fontFamily: "inherit" }}>
         <Icon name="file" size={10} color={color} />{label}
       </button>
       {open && ReactDOM.createPortal(<DocViewer job={job} kind={kind} label={label} color={color} onClose={() => setOpen(false)} />, document.body)}
@@ -228,22 +228,22 @@ function DocViewer({ job, kind, label, color, onClose }) {
       <div onClick={(e) => e.stopPropagation()} style={{ background: "var(--bg)", borderRadius: isMobile ? 0 : 16, width: isMobile ? "100%" : "min(900px,96vw)", height: isMobile ? "100%" : "92vh", display: "flex", flexDirection: "column", overflow: "hidden", boxShadow: "0 30px 80px rgba(8,20,14,.3)" }}>
         {/* header */}
         <div style={{ padding: "12px 16px", borderBottom: "1px solid var(--border)", background: "var(--surface)", display: "flex", alignItems: "center", gap: 10, flexShrink: 0 }}>
-          <span style={{ width: 30, height: 30, borderRadius: 8, background: color + "16", display: "grid", placeItems: "center", flexShrink: 0 }}><Icon name="file" size={16} color={color} /></span>
+          <span style={{ width: 30, height: 30, borderRadius: "var(--r-chip)", background: color + "16", display: "grid", placeItems: "center", flexShrink: 0 }}><Icon name="file" size={16} color={color} /></span>
           <div style={{ minWidth: 0, flex: 1 }}>
             <div style={{ fontSize: 10.5, fontWeight: 700, color: color, letterSpacing: ".04em" }}>{label} · {job.code}</div>
             <div style={{ fontSize: 13, fontWeight: 600, color: "var(--text-1)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{cur ? cur.name : "กำลังโหลด…"}</div>
           </div>
           {blobUrl && <button onClick={() => window.open(blobUrl, "_blank", "noopener")} title="เปิดเต็มจอ"
-            style={{ width: 34, height: 34, borderRadius: 8, border: "1px solid var(--border-strong)", background: "var(--surface)", cursor: "pointer", display: "grid", placeItems: "center", flexShrink: 0 }}><Icon name="link" size={16} color="var(--text-2)" /></button>}
+            style={{ width: 34, height: 34, borderRadius: "var(--r-chip)", boxShadow: "var(--shadow-sm)", background: "var(--surface)", cursor: "pointer", display: "grid", placeItems: "center", flexShrink: 0 }}><Icon name="link" size={16} color="var(--text-2)" /></button>}
           {blobUrl && <button onClick={download} title="ดาวน์โหลด"
-            style={{ width: 34, height: 34, borderRadius: 8, border: "1px solid var(--border-strong)", background: "var(--surface)", cursor: "pointer", display: "grid", placeItems: "center", flexShrink: 0 }}><Icon name="download" size={16} color="var(--text-2)" /></button>}
-          <button onClick={onClose} title="ปิด" style={{ width: 34, height: 34, borderRadius: 8, border: "1px solid var(--border)", background: "var(--surface)", cursor: "pointer", display: "grid", placeItems: "center", flexShrink: 0, color: "var(--text-2)" }}><Icon name="x" size={16} /></button>
+            style={{ width: 34, height: 34, borderRadius: "var(--r-chip)", boxShadow: "var(--shadow-sm)", background: "var(--surface)", cursor: "pointer", display: "grid", placeItems: "center", flexShrink: 0 }}><Icon name="download" size={16} color="var(--text-2)" /></button>}
+          <button onClick={onClose} title="ปิด" style={{ width: 34, height: 34, borderRadius: "var(--r-chip)", boxShadow: "var(--shadow-sm)", background: "var(--surface)", cursor: "pointer", display: "grid", placeItems: "center", flexShrink: 0, color: "var(--text-2)" }}><Icon name="x" size={16} /></button>
         </div>
         {/* แท็บไฟล์ (กรณีแนบหลายไฟล์) */}
         {files.length > 1 && (
           <div style={{ display: "flex", gap: 6, padding: "8px 12px", borderBottom: "1px solid var(--border)", background: "var(--surface)", overflowX: "auto", flexShrink: 0 }}>
             {files.map((f, i) => (
-              <button key={f.id} onClick={() => setIdx(i)} style={{ flexShrink: 0, padding: "5px 11px", borderRadius: 8, fontSize: 11.5, fontWeight: 600, fontFamily: "inherit", cursor: "pointer",
+              <button key={f.id} onClick={() => setIdx(i)} style={{ flexShrink: 0, padding: "5px 11px", borderRadius: "var(--r-chip)", fontSize: 11.5, fontWeight: 600, fontFamily: "inherit", cursor: "pointer",
                 border: "1px solid " + (i === idx ? color : "var(--border-strong)"), background: i === idx ? color + "14" : "var(--surface)", color: i === idx ? color : "var(--text-2)", maxWidth: 160, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{f.name}</button>
             ))}
           </div>
@@ -259,8 +259,8 @@ function DocViewer({ job, kind, label, color, onClose }) {
         </div>
         {isMobile && blobUrl && (
           <div style={{ padding: "10px 14px calc(10px + env(safe-area-inset-bottom,0px))", borderTop: "1px solid var(--border)", background: "var(--surface)", display: "flex", gap: 10, flexShrink: 0 }}>
-            <button onClick={() => window.open(blobUrl, "_blank", "noopener")} style={{ flex: 1, padding: "11px", borderRadius: 10, border: "none", background: color, color: "#fff", fontWeight: 700, fontFamily: "inherit", fontSize: 13.5, cursor: "pointer", display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 7 }}><Icon name="link" size={16} color="#fff" /> เปิดเต็มจอ</button>
-            <button onClick={download} style={{ flex: "0 0 auto", padding: "11px 16px", borderRadius: 10, border: "1px solid var(--border-strong)", background: "var(--surface)", color: "var(--text-2)", fontWeight: 600, fontFamily: "inherit", fontSize: 13.5, cursor: "pointer", display: "inline-flex", alignItems: "center", gap: 7 }}><Icon name="download" size={16} color="var(--text-2)" /></button>
+            <button onClick={() => window.open(blobUrl, "_blank", "noopener")} style={{ flex: 1, padding: "11px", borderRadius: "var(--r-tile)", border: "none", background: color, color: "#fff", fontWeight: 700, fontFamily: "inherit", fontSize: 13.5, cursor: "pointer", display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 7 }}><Icon name="link" size={16} color="#fff" /> เปิดเต็มจอ</button>
+            <button onClick={download} style={{ flex: "0 0 auto", padding: "11px 16px", borderRadius: "var(--r-tile)", boxShadow: "var(--shadow-sm)", background: "var(--surface)", color: "var(--text-2)", fontWeight: 600, fontFamily: "inherit", fontSize: 13.5, cursor: "pointer", display: "inline-flex", alignItems: "center", gap: 7 }}><Icon name="download" size={16} color="var(--text-2)" /></button>
           </div>
         )}
       </div>
@@ -272,7 +272,7 @@ function Stat({ icon, text, accent }) {
   return (
     <span style={{ display: "inline-flex", alignItems: "center", gap: 4, fontSize: 11, fontWeight: 600,
       color: accent ? "var(--primary-dark)" : "var(--text-2)", background: accent ? "var(--primary-soft)" : "var(--surface2)",
-      padding: "3px 7px", borderRadius: 7 }}>
+      padding: "3px 7px", borderRadius: "var(--r-chip)" }}>
       <Icon name={icon} size={11} color={accent ? "var(--primary-dark)" : "var(--text-3)"} />{text}
     </span>
   );
@@ -299,7 +299,7 @@ function KanbanView({ jobs, onOpen, onMoveStage }) {
             onDragOver={(e) => { e.preventDefault(); setOver(s.key); }}
             onDragLeave={() => setOver((o) => (o === s.key ? null : o))}
             onDrop={() => onDrop(s.key)}
-            style={{ width: 264, flexShrink: 0, display: "flex", flexDirection: "column", borderRadius: 18,
+            style={{ width: 264, flexShrink: 0, display: "flex", flexDirection: "column", borderRadius: "var(--r-card)",
               background: isOver ? s.soft : "var(--surface2)", border: "1px solid " + (isOver ? s.color : "var(--border)"),
               transition: "background .15s, border-color .15s" }}>
             {/* หัวคอลัมน์ค้างอยู่บนสุดเวลาเลื่อน ต้องมีพื้นทึบ ไม่งั้นการ์ดที่เลื่อนลอดใต้หัวจะทะลุขึ้นมาซ้อนตัวหนังสือ */}
@@ -308,7 +308,7 @@ function KanbanView({ jobs, onOpen, onMoveStage }) {
               background: isOver ? s.soft : "var(--surface2)", borderRadius: "17px 17px 0 0",
               transition: "background .15s" }}>
               <span style={{ display: "flex", alignItems: "center", gap: 8, minWidth: 0 }}>
-                <span style={{ width: 7, height: 7, borderRadius: 99, background: s.color, flexShrink: 0 }} />
+                <span style={{ width: 7, height: 7, borderRadius: "var(--r-pill)", background: s.color, flexShrink: 0 }} />
                 <span style={{ fontSize: 11.5, fontWeight: 700, letterSpacing: ".05em", color: "var(--text-2)",
                   whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{s.th}</span>
               </span>
@@ -318,7 +318,7 @@ function KanbanView({ jobs, onOpen, onMoveStage }) {
             <div style={{ padding: 11, display: "flex", flexDirection: "column", gap: 11, overflowY: "auto", flex: 1, minHeight: 80 }}>
               {col.map((j) => <KanbanCard key={j.id} job={j} onOpen={onOpen} onDragStart={onDragStart} dragging={drag === j.id} />)}
               {col.length === 0 && (
-                <div style={{ padding: "20px 0", textAlign: "center", fontSize: 12, color: "var(--text-3)", border: "1.5px dashed var(--border-strong)", borderRadius: 10 }}>
+                <div style={{ padding: "20px 0", textAlign: "center", fontSize: 12, color: "var(--text-3)", border: "1.5px dashed var(--border-strong)", borderRadius: "var(--r-tile)" }}>
                   {isOver ? "วางที่นี่" : "ว่าง"}
                 </div>
               )}
@@ -343,19 +343,19 @@ function KanbanMobile({ jobs, onOpen }) {
         const isOpen = collapsed[s.key] !== undefined ? !collapsed[s.key] : false;
         const problems = col.filter((j) => j.problem || j.delayed).length;
         return (
-          <div key={s.key} style={{ borderRadius: 14, background: "var(--surface2)", border: "1px solid var(--border)", overflow: "hidden" }}>
+          <div key={s.key} style={{ borderRadius: "var(--r-tile)", background: "var(--surface2)", boxShadow: "var(--shadow-sm)", overflow: "hidden" }}>
             <button onClick={() => setCollapsed((c) => ({ ...c, [s.key]: isOpen }))}
               style={{ width: "100%", padding: "13px 14px", display: "flex", alignItems: "center", justifyContent: "space-between",
                 gap: 8, background: "none", border: "none", cursor: "pointer", fontFamily: "inherit", textAlign: "left",
                 borderBottom: isOpen ? "1px solid var(--border)" : "none" }}>
               <span style={{ display: "flex", alignItems: "center", gap: 9, minWidth: 0 }}>
-                <span style={{ width: 10, height: 10, borderRadius: 99, background: s.color, flexShrink: 0 }} />
+                <span style={{ width: 10, height: 10, borderRadius: "var(--r-pill)", background: s.color, flexShrink: 0 }} />
                 <span style={{ fontSize: 14, fontWeight: 700, color: "var(--text-1)" }}>{s.th}</span>
-                {problems > 0 && <span style={{ fontSize: 10, fontWeight: 700, color: "#EF4444", background: "var(--tint-red-bg2)", padding: "1px 6px", borderRadius: 99, flexShrink: 0 }}>{problems}⚠</span>}
+                {problems > 0 && <span style={{ fontSize: 10, fontWeight: 700, color: "#EF4444", background: "var(--tint-red-bg2)", padding: "1px 6px", borderRadius: "var(--r-pill)", flexShrink: 0 }}>{problems}⚠</span>}
               </span>
               <span style={{ display: "flex", alignItems: "center", gap: 10, flexShrink: 0 }}>
                 <span style={{ fontFamily: "var(--mono)", fontSize: 12, fontWeight: 600, color: s.fg, background: s.soft,
-                  minWidth: 24, height: 24, borderRadius: 99, display: "grid", placeItems: "center", padding: "0 7px" }}>{col.length}</span>
+                  minWidth: 24, height: 24, borderRadius: "var(--r-pill)", display: "grid", placeItems: "center", padding: "0 7px" }}>{col.length}</span>
                 <Icon name="chevronDown" size={17} color="var(--text-3)"
                   style={{ transform: isOpen ? "none" : "rotate(-90deg)", transition: "transform .18s" }} />
               </span>

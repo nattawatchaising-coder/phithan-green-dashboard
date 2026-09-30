@@ -33,7 +33,7 @@ function FlCol({ col, count, isOver, dimmed, sub, onDragOver, onDragLeave, onDro
       <div className="hd">
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
           <span style={{ display: "flex", alignItems: "center", gap: 8, minWidth: 0 }}>
-            <span style={{ width: 7, height: 7, borderRadius: 99, background: col.color, flexShrink: 0 }} />
+            <span style={{ width: 7, height: 7, borderRadius: "var(--r-pill)", background: col.color, flexShrink: 0 }} />
             {/* ไม่ถ่างตัวอักษร — ชื่อขั้นเป็นภาษาไทย การถ่างจะดันสระกับวรรณยุกต์หลุดตำแหน่ง */}
             <span style={{ fontSize: 12, fontWeight: 700, color: "var(--text-2)",
               whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{col.th}</span>
@@ -65,7 +65,7 @@ function FlGroup({ g, count, collapsed, onToggle, onAdd, addLabel, children }) {
           fontVariantNumeric: "tabular-nums" }}>{count}</span>
         <span style={{ writingMode: "vertical-rl", fontSize: 12, fontWeight: 700,
           color: "var(--text-2)", whiteSpace: "nowrap" }}>{g.th}</span>
-        <span style={{ width: 7, height: 7, borderRadius: 99, background: g.color, marginTop: "auto" }} />
+        <span style={{ width: 7, height: 7, borderRadius: "var(--r-pill)", background: g.color, marginTop: "auto" }} />
       </button>
     );
   }
@@ -79,11 +79,11 @@ function FlGroup({ g, count, collapsed, onToggle, onAdd, addLabel, children }) {
             และตอนช่วงถูกพับอยู่ ปุ่มก็อยู่หัวคอลัมน์เหมือนกัน ตำแหน่งจะได้ไม่กระโดดไปมา
             ปุ่มอยู่ในแถบที่กดได้ทั้งแถบ ต้องหยุดคลิกไม่ให้ลอยขึ้นไปสั่งพับซ้ำ ไม่งั้นพับแล้วกางทันทีเหมือนกดไม่ติด */}
         <button onClick={(e) => { e.stopPropagation(); onToggle(); }} aria-label={"พับช่วง " + g.th}
-          style={{ width: 27, height: 27, borderRadius: 99, border: "none",
+          style={{ width: 27, height: 27, borderRadius: "var(--r-pill)", border: "none",
             background: "var(--surface)", boxShadow: "var(--shadow-sm)", cursor: "pointer", display: "grid", placeItems: "center", flexShrink: 0 }}>
           <Icon name="chevronDown" size={14} color="var(--text-3)" style={{ transform: "rotate(90deg)" }} />
         </button>
-        <span style={{ width: 8, height: 8, borderRadius: 99, background: g.color, flexShrink: 0 }} />
+        <span style={{ width: 8, height: 8, borderRadius: "var(--r-pill)", background: g.color, flexShrink: 0 }} />
         <span style={{ fontSize: 12.5, fontWeight: 800, color: "var(--text-2)" }}>{g.th}</span>
         <span style={{ fontFamily: "var(--mono)", fontSize: 11.5, fontWeight: 700, color: "var(--text-3)" }}>{count}</span>
         {/* ปุ่มเพิ่มของช่วงนั้น — ช่วงขายคือจุดเดียวที่สร้างลูกค้าใหม่ได้จากบอร์ด
@@ -97,7 +97,7 @@ function FlGroup({ g, count, collapsed, onToggle, onAdd, addLabel, children }) {
                ซึ่งต่อท้ายแล้วกลายเป็นค่าที่เบราว์เซอร์ทิ้งทั้งบรรทัด ปุ่มจึงโล่งไม่มีกรอบทั้งที่โค้ดสั่งไว้
                color-mix ผสมความจางให้เท่ากันทั้งสองแบบ ปุ่มทุกช่วงจึงหน้าตาชุดเดียวกัน */
             style={{ display: "inline-flex", alignItems: "center", gap: 5, height: 24, padding: "0 10px",
-              borderRadius: 8, border: "1px solid color-mix(in srgb, " + g.color + " 33%, transparent)",
+              borderRadius: "var(--r-chip)", border: "1px solid color-mix(in srgb, " + g.color + " 33%, transparent)",
               background: "color-mix(in srgb, " + g.color + " 8%, transparent)", color: g.color,
               cursor: "pointer", fontFamily: "inherit", fontSize: 11.5, fontWeight: 700, flexShrink: 0, whiteSpace: "nowrap" }}>
             <Icon name="plus" size={13} color={g.color} sw={2.6} /> {addLabel || "ลูกค้าใหม่"}
@@ -381,10 +381,10 @@ function FlowMobile({ groups, cardsOf, renderCard, collapsed, onToggle, groupCou
         return (
           <div key={g.key} style={{ display: "flex", flexDirection: "column", gap: 9 }}>
             <button onClick={() => onToggle(g.key)}
-              style={{ display: "flex", alignItems: "center", gap: 9, padding: "10px 12px", borderRadius: 12,
-                border: "1px solid var(--border)", background: "var(--surface2)", cursor: "pointer",
+              style={{ display: "flex", alignItems: "center", gap: 9, padding: "10px 12px", borderRadius: "var(--r-tile)",
+                boxShadow: "var(--shadow-sm)", background: "var(--surface2)", cursor: "pointer",
                 fontFamily: "inherit", textAlign: "left", width: "100%" }}>
-              <span style={{ width: 9, height: 9, borderRadius: 99, background: g.color, flexShrink: 0 }} />
+              <span style={{ width: 9, height: 9, borderRadius: "var(--r-pill)", background: g.color, flexShrink: 0 }} />
               <span style={{ fontSize: 13.5, fontWeight: 800, color: "var(--text-1)" }}>{g.th}</span>
               <span style={{ fontFamily: "var(--mono)", fontSize: 12, fontWeight: 700, color: "var(--text-3)" }}>{groupCount(g)}</span>
               <Icon name="chevronDown" size={17} color="var(--text-3)"
@@ -395,16 +395,16 @@ function FlowMobile({ groups, cardsOf, renderCard, collapsed, onToggle, groupCou
               const k = g.key + ":" + c.key;
               const isOpen = !!openCol[k];
               return (
-                <div key={c.key} style={{ borderRadius: 12, background: "var(--surface2)", border: "1px solid var(--border)", overflow: "hidden" }}>
+                <div key={c.key} style={{ borderRadius: "var(--r-tile)", background: "var(--surface2)", boxShadow: "var(--shadow-sm)", overflow: "hidden" }}>
                   <button onClick={() => setOpenCol((o) => Object.assign({}, o, { [k]: !isOpen }))}
                     style={{ width: "100%", padding: "11px 13px", display: "flex", alignItems: "center", gap: 9,
                       background: "none", border: "none", cursor: "pointer", fontFamily: "inherit", textAlign: "left",
                       borderBottom: isOpen ? "1px solid var(--border)" : "none" }}>
-                    <span style={{ width: 8, height: 8, borderRadius: 99, background: c.color, flexShrink: 0 }} />
+                    <span style={{ width: 8, height: 8, borderRadius: "var(--r-pill)", background: c.color, flexShrink: 0 }} />
                     <span style={{ fontSize: 13, fontWeight: 700, color: "var(--text-1)" }}>{c.th}</span>
                     <span style={{ marginLeft: "auto", display: "flex", alignItems: "center", gap: 9, flexShrink: 0 }}>
                       <span style={{ fontFamily: "var(--mono)", fontSize: 12, fontWeight: 600, color: c.fg || "var(--text-2)",
-                        background: c.soft || "var(--surface)", minWidth: 24, height: 24, borderRadius: 99,
+                        background: c.soft || "var(--surface)", minWidth: 24, height: 24, borderRadius: "var(--r-pill)",
                         display: "grid", placeItems: "center", padding: "0 7px" }}>{cards.length}</span>
                       <Icon name="chevronDown" size={16} color="var(--text-3)"
                         style={{ transform: isOpen ? "none" : "rotate(-90deg)", transition: "transform .18s" }} />

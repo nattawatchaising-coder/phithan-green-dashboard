@@ -164,7 +164,7 @@ function LoQueuePanel({
           fontFamily: "inherit",
           background: "var(--surface)",
           border: "1px solid " + (bad ? "#FCA5A5" : "var(--border)"),
-          borderRadius: 10
+          borderRadius: "var(--r-tile)"
         },
         onMouseEnter: e => e.currentTarget.style.background = "var(--surface2)",
         onMouseLeave: e => e.currentTarget.style.background = "var(--surface)"
@@ -204,7 +204,7 @@ function LoQueuePanel({
           color: "#D93025",
           background: "rgba(217,48,37,.11)",
           padding: "3px 8px",
-          borderRadius: 99
+          borderRadius: "var(--r-pill)"
         }
       }, "\u0E0A\u0E48\u0E32\u0E07\u0E0A\u0E19\u0E04\u0E34\u0E27"));
     })));
@@ -309,7 +309,7 @@ function LoTechLoadPanel({
     style: {
       width: 8,
       height: 8,
-      borderRadius: 99,
+      borderRadius: "var(--r-pill)",
       background: r.color,
       flexShrink: 0
     }
@@ -323,7 +323,7 @@ function LoTechLoadPanel({
       display: "block",
       height: 10,
       background: "var(--surface3)",
-      borderRadius: 99,
+      borderRadius: "var(--r-pill)",
       overflow: "hidden"
     }
   }, React.createElement("span", {
@@ -332,7 +332,7 @@ function LoTechLoadPanel({
       height: "100%",
       width: Math.max(r.n / max * 100, r.n ? 5 : 0) + "%",
       background: r.late ? "#D93025" : r.color,
-      borderRadius: 99,
+      borderRadius: "var(--r-pill)",
       transition: "width .6s cubic-bezier(.2,.8,.2,1)"
     }
   })), React.createElement("span", {
@@ -480,7 +480,7 @@ function LoBottleneckPanel({
     style: {
       width: 8,
       height: 8,
-      borderRadius: 99,
+      borderRadius: "var(--r-pill)",
       background: r.s.color,
       flexShrink: 0
     }
@@ -494,7 +494,7 @@ function LoBottleneckPanel({
       display: "block",
       height: 10,
       background: "var(--surface3)",
-      borderRadius: 99,
+      borderRadius: "var(--r-pill)",
       overflow: "hidden"
     }
   }, React.createElement("span", {
@@ -503,7 +503,7 @@ function LoBottleneckPanel({
       height: "100%",
       width: Math.max((r.med || 0) / max * 100, r.n ? 5 : 0) + "%",
       background: r.s.color,
-      borderRadius: 99,
+      borderRadius: "var(--r-pill)",
       transition: "width .6s cubic-bezier(.2,.8,.2,1)"
     }
   })), React.createElement("span", {
