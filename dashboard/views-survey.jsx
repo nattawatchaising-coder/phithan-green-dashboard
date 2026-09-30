@@ -294,9 +294,13 @@ function ContactLogModal({ lead, currentUser, onClose, onSave }) {
     </div>
   );
 }
+/* ชุดเดียวกับ .btn-add / .ghost-btn — เม็ดยาเต็มใบ ไม่มีเส้นขอบ ชั้นบอกด้วยเงา
+   ปุ่มที่มีเส้นขอบในแถบที่ทุกอย่างไม่มีเส้น จะอ่านออกมาเป็นของคนละชุด */
 function leadBtn(color, solid) {
-  return { display: "inline-flex", alignItems: "center", gap: 5, padding: "8px 13px", borderRadius: 10, cursor: "pointer", fontFamily: "inherit", fontSize: 12.5, fontWeight: 700,
-    border: solid ? "none" : "1px solid var(--border-strong)", background: solid ? color : "var(--surface)", color: solid ? "#fff" : color };
+  return { display: "inline-flex", alignItems: "center", gap: 5, padding: "9px 15px", borderRadius: "var(--r-pill)",
+    cursor: "pointer", fontFamily: "inherit", fontSize: 12.5, fontWeight: 700, border: "none",
+    background: solid ? color : "var(--surface)", color: solid ? "#fff" : color,
+    boxShadow: solid ? "none" : "var(--shadow-sm)" };
 }
 
 /* ── ฟอร์มลูกค้าสำรวจ ── */
@@ -494,14 +498,15 @@ function LeadSpecNum({ label, value, unit, mono, accent, onSave, disabled }) {
   };
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 3, minWidth: 0 }}>
-      <span style={{ fontSize: 10.5, color: "var(--text-3)", fontWeight: 600 }}>{label}</span>
+      <span style={{ fontSize: 11, color: "var(--text-3)", fontWeight: 600 }}>{label}</span>
       <span style={{ display: "flex", alignItems: "center", gap: 5, minWidth: 0 }}>
         <input value={typing ? txt : (has ? String(value) : "")} inputMode="decimal" placeholder="—"
           onFocus={() => { setTxt(has ? String(value) : ""); setTyping(true); }}
           onChange={(e) => setTxt(e.target.value)}
           onBlur={commit}
           onKeyDown={(e) => { if (e.key === "Enter") e.currentTarget.blur(); }}
-          style={{ flex: 1, minWidth: 0, padding: "5px 8px", borderRadius: 8, border: "1px solid var(--border)",
+          /* ช่องกรอกคือหลุมที่จมลงไปในการ์ด พื้นที่เข้มกว่าบอกขอบเขตได้เอง ไม่ต้องขีดเส้นซ้ำ */
+          style={{ flex: 1, minWidth: 0, padding: "7px 10px", borderRadius: "var(--r-chip)", border: "none",
             background: "var(--surface2)", color: accent ? "var(--primary-dark)" : "var(--text-1)",
             fontFamily: mono ? "var(--mono)" : "inherit", fontSize: 14, fontWeight: 600, outline: "none" }} />
         <span style={{ fontSize: 10.5, color: "var(--text-3)", whiteSpace: "nowrap", flexShrink: 0 }}>{unit}</span>
@@ -517,17 +522,17 @@ function LeadSpecPhase({ label, lead, onSave, disabled }) {
   if (disabled) return <SpecItem label={label} value={cur ? cur + " เฟส" : "—"} />;
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 3, minWidth: 0 }}>
-      <span style={{ fontSize: 10.5, color: "var(--text-3)", fontWeight: 600 }}>{label}</span>
-      <span style={{ display: "inline-flex", gap: 4, padding: 3, borderRadius: 9, background: "var(--surface2)",
-        border: "1px solid var(--border)", alignSelf: "flex-start" }}>
+      <span style={{ fontSize: 11, color: "var(--text-3)", fontWeight: 600 }}>{label}</span>
+      <span style={{ display: "inline-flex", gap: 4, padding: 3, borderRadius: "var(--r-chip)", background: "var(--surface2)",
+        border: "none", alignSelf: "flex-start" }}>
         {["1", "3"].map((k) => {
           const on = cur === +k;
           return (
             <button key={k} type="button" onClick={() => onSave(k)}
-              style={{ padding: "4px 11px", borderRadius: 7, border: "none", cursor: "pointer", fontFamily: "inherit",
+              style={{ padding: "5px 13px", borderRadius: 8, border: "none", cursor: "pointer", fontFamily: "inherit",
                 fontSize: 12.5, fontWeight: 700,
                 background: on ? "var(--surface)" : "transparent", color: on ? "var(--primary-dark)" : "var(--text-3)",
-                boxShadow: on ? "0 1px 3px rgba(0,0,0,.08)" : "none" }}>{k} เฟส</button>
+                boxShadow: on ? "var(--shadow-sm)" : "none" }}>{k} เฟส</button>
           );
         })}
       </span>
@@ -762,14 +767,15 @@ function LeadDetail({ l, ctx }) {
                   <span style={{ display: "inline-flex", gap: 6, alignItems: "center", flexShrink: 0 }}>
                     <button onClick={() => removeContact(c, i)}
                       style={{ fontSize: 11.5, fontWeight: 700, color: "#fff", background: "#EF4444", border: "none",
-                        borderRadius: 8, padding: "5px 10px", cursor: "pointer", fontFamily: "inherit" }}>ลบเลย</button>
+                        borderRadius: "var(--r-pill)", padding: "5px 12px", cursor: "pointer", fontFamily: "inherit" }}>ลบเลย</button>
                     <button onClick={() => setDelC(null)}
                       style={{ fontSize: 11.5, fontWeight: 700, color: "var(--text-2)", background: "var(--surface)",
-                        border: "1px solid var(--border-strong)", borderRadius: 8, padding: "5px 10px", cursor: "pointer", fontFamily: "inherit" }}>ยกเลิก</button>
+                        border: "none", borderRadius: "var(--r-pill)", padding: "5px 12px", cursor: "pointer",
+                        fontFamily: "inherit", boxShadow: "var(--shadow-sm)" }}>ยกเลิก</button>
                   </span>
                 ) : (
                   <button onClick={() => setDelC(c.id || "i" + i)} title="ลบบันทึกนี้"
-                    style={{ width: 26, height: 26, borderRadius: 8, border: "1px solid var(--border)", background: "var(--surface)",
+                    style={{ width: 28, height: 28, borderRadius: "var(--r-pill)", border: "none", background: "var(--surface2)",
                       cursor: "pointer", display: "grid", placeItems: "center", flexShrink: 0, color: "var(--text-3)" }}>
                     <Icon name="trash" size={13} />
                   </button>
@@ -784,8 +790,10 @@ function LeadDetail({ l, ctx }) {
       )}
 
       {/* แถบปุ่มล่าง — ค้างอยู่ก้นใบเหมือนใบงาน จะได้กดได้โดยไม่ต้องเลื่อนกลับลงมา */}
-      <div style={{ position: "sticky", bottom: 0, background: "var(--bg)", borderTop: "1px solid var(--border)",
-        padding: "12px 0 14px", marginTop: 6, display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
+      {/* แยกแถบปุ่มออกจากเนื้อหาด้วยเงาฟุ้ง ไม่ใช่เส้นคาด — ชุดเดียวกับที่ถอดเส้นออกจากหัวแผง
+          เส้นบอกได้แค่ว่าของสองชิ้นชนกันตรงไหน เงาบอกได้ว่าชิ้นไหนอยู่บน ซึ่งคือสิ่งที่แถบค้างต้องการบอก */}
+      <div style={{ position: "sticky", bottom: 0, background: "var(--bg)", boxShadow: "0 -10px 18px -14px rgba(8,20,14,.45)",
+        padding: "14px 0", marginTop: 6, display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
         {ask ? (
           <React.Fragment>
             <span style={{ flex: 1, minWidth: 140, fontSize: 12, fontWeight: 700, lineHeight: 1.5,
@@ -859,15 +867,17 @@ function LeadDrawer({ lead, leadStore, appts, jobs, quotes, users, currentUser, 
     <React.Fragment>
       <div {...bdClose} style={{ position: "fixed", inset: 0, background: "rgba(8,20,14,.45)", backdropFilter: "blur(3px)", zIndex: 116,
         display: "grid", placeItems: isMobile ? "end center" : "center", padding: isMobile ? 0 : 20 }}>
-        <div onClick={(e) => e.stopPropagation()} style={{ background: "var(--bg)", borderRadius: isMobile ? "20px 20px 0 0" : 18,
+        <div onClick={(e) => e.stopPropagation()} style={{ background: "var(--bg)", borderRadius: isMobile ? "22px 22px 0 0" : "var(--r-card)",
           width: isMobile ? "100%" : "min(680px,100%)", maxHeight: isMobile ? "94dvh" : "90vh",
           display: "flex", flexDirection: "column", overflow: "hidden", boxShadow: "0 30px 80px rgba(8,20,14,.3)" }}>
-          <div style={{ padding: "13px 16px", borderBottom: "1px solid var(--border)", background: "var(--surface)", display: "flex", alignItems: "center", gap: 10 }}>
+          {/* หัวลิ้นชัก — แยกจากเนื้อด้วยเงาฟุ้ง ชุดเดียวกับแถบปุ่มล่าง ไม่ใช้เส้นคาด */}
+          <div style={{ padding: "14px 16px", boxShadow: "0 10px 18px -14px rgba(8,20,14,.45)", background: "var(--surface)",
+            display: "flex", alignItems: "center", gap: 10, position: "relative", zIndex: 1 }}>
             <div style={{ flex: 1, minWidth: 0 }}>
               <div style={{ fontSize: 14.5, fontWeight: 800, color: "var(--text-1)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{lead.name || "(ไม่ระบุชื่อ)"}</div>
               <div style={{ fontSize: 11, color: "var(--text-3)", marginTop: 1 }}>{lead.code}</div>
             </div>
-            <button onClick={onClose} aria-label="ปิด" style={{ flexShrink: 0, width: 32, height: 32, borderRadius: 10, border: "1px solid var(--border-strong)", background: "var(--surface)", color: "var(--text-2)", cursor: "pointer", fontFamily: "inherit", fontSize: 16, lineHeight: 1 }}>×</button>
+            <button onClick={onClose} aria-label="ปิด" style={{ flexShrink: 0, width: 32, height: 32, borderRadius: "var(--r-pill)", border: "none", background: "var(--surface2)", color: "var(--text-2)", cursor: "pointer", fontFamily: "inherit", fontSize: 16, lineHeight: 1 }}>×</button>
           </div>
           <div style={{ padding: "14px 16px 0", overflowY: "auto" }}>
             <LeadDetail l={lead} ctx={ctx} />

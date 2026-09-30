@@ -718,15 +718,16 @@ function leadBtn(color, solid) {
     display: "inline-flex",
     alignItems: "center",
     gap: 5,
-    padding: "8px 13px",
-    borderRadius: 10,
+    padding: "9px 15px",
+    borderRadius: "var(--r-pill)",
     cursor: "pointer",
     fontFamily: "inherit",
     fontSize: 12.5,
     fontWeight: 700,
-    border: solid ? "none" : "1px solid var(--border-strong)",
+    border: "none",
     background: solid ? color : "var(--surface)",
-    color: solid ? "#fff" : color
+    color: solid ? "#fff" : color,
+    boxShadow: solid ? "none" : "var(--shadow-sm)"
   };
 }
 function LeadModal({
@@ -1445,7 +1446,7 @@ function LeadSpecNum({
     }
   }, React.createElement("span", {
     style: {
-      fontSize: 10.5,
+      fontSize: 11,
       color: "var(--text-3)",
       fontWeight: 600
     }
@@ -1472,9 +1473,9 @@ function LeadSpecNum({
     style: {
       flex: 1,
       minWidth: 0,
-      padding: "5px 8px",
-      borderRadius: 8,
-      border: "1px solid var(--border)",
+      padding: "7px 10px",
+      borderRadius: "var(--r-chip)",
+      border: "none",
       background: "var(--surface2)",
       color: accent ? "var(--primary-dark)" : "var(--text-1)",
       fontFamily: mono ? "var(--mono)" : "inherit",
@@ -1512,7 +1513,7 @@ function LeadSpecPhase({
     }
   }, React.createElement("span", {
     style: {
-      fontSize: 10.5,
+      fontSize: 11,
       color: "var(--text-3)",
       fontWeight: 600
     }
@@ -1521,9 +1522,9 @@ function LeadSpecPhase({
       display: "inline-flex",
       gap: 4,
       padding: 3,
-      borderRadius: 9,
+      borderRadius: "var(--r-chip)",
       background: "var(--surface2)",
-      border: "1px solid var(--border)",
+      border: "none",
       alignSelf: "flex-start"
     }
   }, ["1", "3"].map(k => {
@@ -1533,8 +1534,8 @@ function LeadSpecPhase({
       type: "button",
       onClick: () => onSave(k),
       style: {
-        padding: "4px 11px",
-        borderRadius: 7,
+        padding: "5px 13px",
+        borderRadius: 8,
         border: "none",
         cursor: "pointer",
         fontFamily: "inherit",
@@ -1542,7 +1543,7 @@ function LeadSpecPhase({
         fontWeight: 700,
         background: on ? "var(--surface)" : "transparent",
         color: on ? "var(--primary-dark)" : "var(--text-3)",
-        boxShadow: on ? "0 1px 3px rgba(0,0,0,.08)" : "none"
+        boxShadow: on ? "var(--shadow-sm)" : "none"
       }
     }, k, " \u0E40\u0E1F\u0E2A");
   })));
@@ -1948,8 +1949,8 @@ function LeadDetail({
         color: "#fff",
         background: "#EF4444",
         border: "none",
-        borderRadius: 8,
-        padding: "5px 10px",
+        borderRadius: "var(--r-pill)",
+        padding: "5px 12px",
         cursor: "pointer",
         fontFamily: "inherit"
       }
@@ -1960,21 +1961,22 @@ function LeadDetail({
         fontWeight: 700,
         color: "var(--text-2)",
         background: "var(--surface)",
-        border: "1px solid var(--border-strong)",
-        borderRadius: 8,
-        padding: "5px 10px",
+        border: "none",
+        borderRadius: "var(--r-pill)",
+        padding: "5px 12px",
         cursor: "pointer",
-        fontFamily: "inherit"
+        fontFamily: "inherit",
+        boxShadow: "var(--shadow-sm)"
       }
     }, "\u0E22\u0E01\u0E40\u0E25\u0E34\u0E01")) : React.createElement("button", {
       onClick: () => setDelC(c.id || "i" + i),
       title: "\u0E25\u0E1A\u0E1A\u0E31\u0E19\u0E17\u0E36\u0E01\u0E19\u0E35\u0E49",
       style: {
-        width: 26,
-        height: 26,
-        borderRadius: 8,
-        border: "1px solid var(--border)",
-        background: "var(--surface)",
+        width: 28,
+        height: 28,
+        borderRadius: "var(--r-pill)",
+        border: "none",
+        background: "var(--surface2)",
         cursor: "pointer",
         display: "grid",
         placeItems: "center",
@@ -1996,8 +1998,8 @@ function LeadDetail({
       position: "sticky",
       bottom: 0,
       background: "var(--bg)",
-      borderTop: "1px solid var(--border)",
-      padding: "12px 0 14px",
+      boxShadow: "0 -10px 18px -14px rgba(8,20,14,.45)",
+      padding: "14px 0",
       marginTop: 6,
       display: "flex",
       gap: 8,
@@ -2154,7 +2156,7 @@ function LeadDrawer({
     onClick: e => e.stopPropagation(),
     style: {
       background: "var(--bg)",
-      borderRadius: isMobile ? "20px 20px 0 0" : 18,
+      borderRadius: isMobile ? "22px 22px 0 0" : "var(--r-card)",
       width: isMobile ? "100%" : "min(680px,100%)",
       maxHeight: isMobile ? "94dvh" : "90vh",
       display: "flex",
@@ -2164,12 +2166,14 @@ function LeadDrawer({
     }
   }, React.createElement("div", {
     style: {
-      padding: "13px 16px",
-      borderBottom: "1px solid var(--border)",
+      padding: "14px 16px",
+      boxShadow: "0 10px 18px -14px rgba(8,20,14,.45)",
       background: "var(--surface)",
       display: "flex",
       alignItems: "center",
-      gap: 10
+      gap: 10,
+      position: "relative",
+      zIndex: 1
     }
   }, React.createElement("div", {
     style: {
@@ -2198,9 +2202,9 @@ function LeadDrawer({
       flexShrink: 0,
       width: 32,
       height: 32,
-      borderRadius: 10,
-      border: "1px solid var(--border-strong)",
-      background: "var(--surface)",
+      borderRadius: "var(--r-pill)",
+      border: "none",
+      background: "var(--surface2)",
       color: "var(--text-2)",
       cursor: "pointer",
       fontFamily: "inherit",
