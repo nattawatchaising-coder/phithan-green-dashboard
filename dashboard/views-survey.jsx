@@ -1039,7 +1039,7 @@ function LeadDrawer({ lead, leadStore, appts, jobs, quotes, users, currentUser, 
             แท็บอื่นจมอยู่ข้างหลัง หน้าตาอยู่ในคลาส .ld-tab (index.html)
             ความสูงตายตัว (ไม่ใช่ maxHeight) — แต่ละแท็บยาวไม่เท่ากัน ถ้าปล่อยยืดหด ลิ้นชักที่จัดกลางจอจะกระโดดทุกครั้งที่สลับแท็บ */}
         <div onClick={(e) => e.stopPropagation()} style={{ width: isMobile ? "100%" : "min(680px,100%)", height: isMobile ? "88dvh" : "min(820px, 90vh)",
-          display: "flex", flexDirection: "column", minHeight: 0, filter: "drop-shadow(0 24px 40px rgba(8,20,14,.28))" }}>
+          display: "flex", flexDirection: "column", minHeight: 0 }}>
         <div className="ld-tabs" role="tablist">
           {TABS.map((t, i) => (
             <button key={t.k} role="tab" aria-selected={tab === t.k} className={"ld-tab" + (tab === t.k ? " on" : "")}
@@ -1052,9 +1052,9 @@ function LeadDrawer({ lead, leadStore, appts, jobs, quotes, users, currentUser, 
         </div>
         <div style={{ background: "var(--bg)", borderRadius: isMobile ? "0 22px 0 0" : "0 var(--r-card) var(--r-card) var(--r-card)",
           flex: 1, minHeight: 0, position: "relative", zIndex: 11,
-          display: "flex", flexDirection: "column", overflow: "hidden" }}>
-          {/* เงาลิ้นชักอยู่ที่กรอบนอก (filter: drop-shadow) ไม่ใช่ box-shadow ของตัวใบ — ตัวใบอยู่ชั้นบนแท็บ
-              เงาฟุ้ง 80px ของมันเคยทาทับแท็บจนแท็บที่เลือกดูเทากว่าหัวใบ drop-shadow ตามรูปทรงแท็บ+ใบรวมเป็นชิ้นเดียว */}
+          display: "flex", flexDirection: "column", overflow: "hidden", boxShadow: "0 34px 60px -24px rgba(8,20,14,.45)" }}>
+          {/* เงาตัวใบหดขอบ (spread -24) ให้ตกลงล่างอย่างเดียว ไม่ฟุ้งขึ้นไปทาทับแท็บ
+              ⚠ ห้ามย้ายเงาไปเป็น filter: drop-shadow ที่กรอบนอก — filter ทำให้ position:fixed ข้างใน (BOQ เต็มจอ ฯลฯ) ถูกขังอยู่ในกรอบนี้ */}
           {/* หัวลิ้นชัก — แยกจากเนื้อด้วยเงาฟุ้ง ชุดเดียวกับแถบปุ่มล่าง ไม่ใช้เส้นคาด */}
           <div style={{ padding: "14px 16px", boxShadow: "0 10px 18px -14px rgba(8,20,14,.45)", background: "var(--surface)",
             display: "flex", alignItems: "center", gap: 10, position: "relative", zIndex: 1 }}>

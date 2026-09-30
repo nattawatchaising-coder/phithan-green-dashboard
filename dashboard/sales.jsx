@@ -1697,10 +1697,10 @@ function QuoteEditor({ quote, job, target, stock, onClose, onSave, onDelete, cur
     <React.Fragment>
       <div style={{ position: "fixed", inset: 0, background: "rgba(8,20,14,.45)", backdropFilter: "blur(3px)", zIndex: 118,
         display: "grid", placeItems: isMobile ? "end center" : "center", padding: isMobile ? 0 : 20 }}>
-        {/* เงาอยู่ที่กรอบนอก (drop-shadow) ไม่ใช่ box-shadow ของตัวใบ — ไม่งั้นเงาทาทับแท็บจนแท็บที่เลือกเทากว่าหัวใบ
-            ความสูงตายตัว สลับแท็บแล้วใบไม่กระโดด */}
+        {/* ความสูงตายตัว สลับแท็บแล้วใบไม่กระโดด · เงาตัวใบหดขอบให้ตกลงล่างอย่างเดียว ไม่ฟุ้งขึ้นไปทาทับแท็บ
+            ⚠ ห้ามใช้ filter: drop-shadow ที่กรอบนอก — มันขัง position:fixed ข้างในไว้ในกรอบ */}
         <div style={{ width: isMobile ? "100%" : "min(880px,100%)", height: isMobile ? "92dvh" : "min(900px, 92vh)",
-          display: "flex", flexDirection: "column", minHeight: 0, filter: "drop-shadow(0 24px 40px rgba(8,20,14,.28))" }}>
+          display: "flex", flexDirection: "column", minHeight: 0 }}>
         <div className="ld-tabs" role="tablist">
           {QUOTE_TABS.map((t, i) => (
             <button key={t.k} role="tab" aria-selected={tab === t.k} className={"ld-tab" + (tab === t.k ? " on" : "")}
@@ -1711,7 +1711,7 @@ function QuoteEditor({ quote, job, target, stock, onClose, onSave, onDelete, cur
           ))}
         </div>
         <div style={{ background: "var(--bg)", borderRadius: isMobile ? "0 20px 0 0" : "0 18px 18px 18px", flex: 1, minHeight: 0,
-          position: "relative", zIndex: 11, display: "flex", flexDirection: "column", overflow: "hidden" }}>
+          position: "relative", zIndex: 11, display: "flex", flexDirection: "column", overflow: "hidden", boxShadow: "0 34px 60px -24px rgba(8,20,14,.45)" }}>
 
           {/* หัว */}
           <div style={{ padding: "15px 20px", boxShadow: "0 10px 18px -14px rgba(8,20,14,.45)", background: "var(--surface)",

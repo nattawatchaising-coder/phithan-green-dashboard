@@ -369,6 +369,8 @@ html.theme-anim, html.theme-anim * { transition: background-color .34s ease, bor
    ⚠ แท็บที่เลือกต้องย้อมสีเท่ากับหัวใบ ถ้าต่างกันรอยต่อจะเห็นเป็นเส้น */
 .ld-tabs { display: flex; align-items: flex-end; padding-right: 22px; overflow-x: auto; scrollbar-width: none; flex-shrink: 0;
   width: 0; min-width: 100%; margin-bottom: -2px; }
+/* ⚠ แถวแท็บต้องอยู่ "ใต้" ตัวใบ (ตัวใบ z-index 11) — ป๊อปอัปเต็มจอที่เปิดจากในใบ (BOQ ฯลฯ) อยู่ในชั้นของตัวใบ
+   ถ้ายกแท็บขึ้นเหนือใบ แท็บจะลอยทับป๊อปอัปพวกนั้น · เงาตัวใบจึงหดขอบให้ตกลงล่างอย่างเดียวแทน */
 /* margin-bottom -2px = แท็บมุดลงใต้หัวใบ 2px — ขอบบนหัวใบกับก้นแท็บชนกันพอดีเป๊ะแล้วจอบางความละเอียด (ซูม/DPR ไม่ลงตัว) เห็นเป็นรอยต่อจาง ๆ */
 /* width:0 + min-width:100% — แถวแท็บไม่ดันความกว้างลิ้นชัก (ช่อง grid ของฉากหลังจะยืดตามแท็บจนล้นจอมือถือ) แต่ยังเต็มความกว้างเสมอ */
 .ld-tabs::-webkit-scrollbar { display: none; }
@@ -383,6 +385,7 @@ html.theme-anim, html.theme-anim * { transition: background-color .34s ease, bor
   font-family: inherit; font-size: 13px; font-weight: 700; white-space: nowrap;
   background: var(--tb); color: color-mix(in oklab, var(--tc) 72%, #0F2B33);
   transition: background .18s ease, color .18s ease, height .18s ease; }
+.ld-tab:not(.on) { margin-bottom: 2px; }  /* แท็บที่ไม่ได้เลือกจบพอดีขอบบนใบ ไม่จมทับหัวใบ 2px เหมือนแท็บที่เลือก */
 .ld-tab:hover { --tb: color-mix(in oklab, var(--tc) 27%, var(--surface)); }
 .ld-tab.on { --tb: var(--surface); height: 44px; color: color-mix(in oklab, var(--tc) 80%, #0F2B33);
   box-shadow: inset 0 3px 0 var(--tc); }
@@ -1096,10 +1099,10 @@ H-@G1I margin-top D'IC*D%L-1'@- 6H
 <script src="dashboard/build/views-calendar.js?v=31"></script>
 <script src="dashboard/build/views-stock.js?v=114"></script>
 <script src="dashboard/build/form.js?v=39"></script>
-<script src="dashboard/build/survey.js?v=29"></script>
+<script src="dashboard/build/survey.js?v=31"></script>
 <script src="dashboard/build/survey-report.js?v=13"></script>
-<script src="dashboard/build/sales.js?v=76"></script>
-<script src="dashboard/build/views-survey.js?v=48"></script>
+<script src="dashboard/build/sales.js?v=78"></script>
+<script src="dashboard/build/views-survey.js?v=50"></script>
 <script src="dashboard/build/survey-sched.js?v=39"></script>
 <script src="dashboard/build/permit.js?v=8"></script>
 <script src="dashboard/build/views-permit.js?v=19"></script>

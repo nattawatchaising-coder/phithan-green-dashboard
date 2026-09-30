@@ -2297,8 +2297,7 @@ function QuoteEditor({
       height: isMobile ? "92dvh" : "min(900px, 92vh)",
       display: "flex",
       flexDirection: "column",
-      minHeight: 0,
-      filter: "drop-shadow(0 24px 40px rgba(8,20,14,.28))"
+      minHeight: 0
     }
   }, React.createElement("div", {
     className: "ld-tabs",
@@ -2324,7 +2323,8 @@ function QuoteEditor({
       zIndex: 11,
       display: "flex",
       flexDirection: "column",
-      overflow: "hidden"
+      overflow: "hidden",
+      boxShadow: "0 34px 60px -24px rgba(8,20,14,.45)"
     }
   }, React.createElement("div", {
     style: {

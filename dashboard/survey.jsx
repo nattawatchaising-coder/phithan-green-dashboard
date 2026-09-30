@@ -1082,9 +1082,9 @@ function SurveyWizard({ job, onClose, onSave, onReport, currentUser, stock }) {
     <React.Fragment>
     <div {...bdClose} style={{ position: "fixed", inset: 0, background: "rgba(8,20,14,.45)", backdropFilter: "blur(3px)", zIndex: 115, display: "grid", placeItems: isMobile ? "end center" : "center", padding: isMobile ? 0 : 20 }}>
       {/* แท็บแฟ้ม = ขั้นตอนทั้ง 5 ชุดเดียวกับลิ้นชักลูกค้า (.ld-tab ใน index.html) แทนแถบวงกลมเลขขั้นเดิม
-          เงาอยู่ที่กรอบนอก (drop-shadow) ไม่ทาทับแท็บ · ความสูงตายตัว สลับขั้นแล้วใบไม่กระโดด */}
+          ความสูงตายตัว สลับขั้นแล้วใบไม่กระโดด · ⚠ ห้ามใช้ filter: drop-shadow ที่กรอบนอก — มันขัง position:fixed ข้างในไว้ในกรอบ */}
       <div onClick={(e) => e.stopPropagation()} style={{ width: isMobile ? "100%" : "min(680px,100%)", height: isMobile ? "94dvh" : "min(900px, 94vh)",
-        display: "flex", flexDirection: "column", minHeight: 0, filter: "drop-shadow(0 24px 40px rgba(8,20,14,.28))" }}>
+        display: "flex", flexDirection: "column", minHeight: 0 }}>
       <div className="ld-tabs" role="tablist">
         {SURVEY_STEPS.map((s, i) => {
           const on = s.n === step, done = s.n < step;
@@ -1101,7 +1101,7 @@ function SurveyWizard({ job, onClose, onSave, onReport, currentUser, stock }) {
         })}
       </div>
       <div style={{ background: "var(--bg)", borderRadius: isMobile ? "0 20px 0 0" : "0 18px 18px 18px", flex: 1, minHeight: 0,
-        position: "relative", zIndex: 11, display: "flex", flexDirection: "column", overflow: "hidden" }}>
+        position: "relative", zIndex: 11, display: "flex", flexDirection: "column", overflow: "hidden", boxShadow: "0 34px 60px -24px rgba(8,20,14,.45)" }}>
         {/* header — แยกจากเนื้อด้วยเงาฟุ้ง ไม่ใช้เส้นคาด */}
         <div style={{ padding: "15px 18px 14px", boxShadow: "0 10px 18px -14px rgba(8,20,14,.45)", background: "var(--surface)", position: "relative", zIndex: 1 }}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 12 }}>
