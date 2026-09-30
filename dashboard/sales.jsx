@@ -1754,8 +1754,10 @@ function QuoteEditor({ quote, job, target, stock, onClose, onSave, onDelete, cur
                       </button>
                     )}
                   </div>
-                  {/* รายละเอียดเป็นหลายบรรทัดได้ — พอใส่รุ่นอุปกรณ์จริงแล้วข้อความยาวเกินช่องบรรทัดเดียว */}
-                  <textarea value={it.detail || ""} disabled={locked} rows={2} placeholder="รายละเอียด (ไม่ใส่ก็ได้)" onChange={(e) => setItem(i, "detail", e.target.value)}
+                  {/* รายละเอียดเป็นหลายบรรทัดได้ — พอใส่รุ่นอุปกรณ์จริงแล้วข้อความยาวเกินช่องบรรทัดเดียว
+                      เปิดมาสูงราวเจ็ดบรรทัดเลย รายการระบบหลักมีห้าหกบรรทัด (แผง · อินเวอร์เตอร์ · แบต · โครงสร้าง · สาย · ค่าแรง)
+                      ถ้าเปิดมาสองบรรทัด ต้องเลื่อนในช่องหรือลากขยายทุกครั้งกว่าจะเห็นครบ ยังลากย่อขยายเองได้เหมือนเดิม */}
+                  <textarea value={it.detail || ""} disabled={locked} rows={7} placeholder="รายละเอียด (ไม่ใส่ก็ได้)" onChange={(e) => setItem(i, "detail", e.target.value)}
                     style={Object.assign({}, cell, { fontSize: 12, resize: "vertical", lineHeight: 1.5 })} />
                   <div style={{ display: "grid", gridTemplateColumns: "70px 80px 1fr auto", gap: 8, alignItems: "center" }}>
                     <input type="number" value={it.qty} disabled={locked} onChange={(e) => setItem(i, "qty", e.target.value === "" ? "" : +e.target.value)} style={num} />

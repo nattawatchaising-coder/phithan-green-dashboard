@@ -2578,7 +2578,7 @@ function QuoteEditor({
   }))), React.createElement("textarea", {
     value: it.detail || "",
     disabled: locked,
-    rows: 2,
+    rows: 7,
     placeholder: "\u0E23\u0E32\u0E22\u0E25\u0E30\u0E40\u0E2D\u0E35\u0E22\u0E14 (\u0E44\u0E21\u0E48\u0E43\u0E2A\u0E48\u0E01\u0E47\u0E44\u0E14\u0E49)",
     onChange: e => setItem(i, "detail", e.target.value),
     style: Object.assign({}, cell, {
