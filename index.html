@@ -620,12 +620,12 @@ html.theme-anim, html.theme-anim * { transition: background-color .34s ease, bor
 
 /* รางของขั้นงาน — เป็น "ถาดรอง" ไม่ใช่การ์ด จึงสว่างกว่าพื้นหน้าหนึ่งขั้นและไม่มีเงาของตัวเอง
    การ์ดข้างในเป็นสีขาวเต็มพร้อมเงา ความต่างสองชั้นนี้คือสิ่งที่ทำให้กองงานอ่านออกโดยไม่ต้องมีเส้นขอบ */
-/* รางไม่มีสีเป็นของตัวเอง — ใช้สีเดียวกับพื้นหน้า การ์ดขาวลอยอยู่บนพื้นตรง ๆ
-   ⚠ ห้ามทำรางให้เข้มกว่าหรือสว่างกว่าพื้นหน้า — ระหว่างรางมีช่องว่าง 14px คั่นอยู่
-     พื้นหน้าที่โผล่ขึ้นมาตรงช่องนั้นจะกลายเป็นเส้นสว่างแนวตั้งระหว่างทุกคู่ ซึ่งเด่นกว่าตัวรางเอง
-     ที่ต้องมีสี (ไม่ใช่ transparent) เพราะหัวรางเป็น sticky และรับพื้นมาจากรางด้วย inherit
-     ถ้ารางโปร่ง การ์ดที่เลื่อนลอดใต้หัวจะทะลุขึ้นมาซ้อนตัวหนังสือ */
-.bd-col{border-radius:var(--r-card);background:var(--bg);
+/* รางเป็น "ร่องที่จมลงไป" ไม่ใช่ "แผ่นที่ลอยขึ้นมา" — จึงต้องเข้มกว่าพื้นหน้าเสมอ
+   ⚠ ห้าทำรางให้สว่างกว่าพื้นหน้า (เช่น rgba(255,255,255,.04) ในโหมดมืด)
+     รางจะกลายเป็นแผ่นสว่างบนพื้นมืด รางที่ว่างและแคบจึงอ่านออกมาเป็นแถบขาวตั้ง ไม่ใช่ร่องรองการ์ด
+   และห้ามถอดสีรางออกทั้งหมด — เคยลองแล้ว ขั้นงานที่ยังไม่มีการ์ดจะหายไปทั้งคอลัมน์ มองไม่เห็นว่ามีขั้นนั้นอยู่
+   หัวรางเป็น sticky รับพื้นมาจากรางด้วย inherit — สีตรงนี้จึงต้องทึบ ห้าม transparent */
+.bd-col{border-radius:var(--r-card);background:color-mix(in srgb,var(--text-1) 5%,var(--bg));
   border:1px solid transparent;transition:background .15s,border-color .15s,opacity .15s}
 /* หัวรางค้างบนสุดเวลาเลื่อน จึงต้องพื้นทึบ — ไม่มีเส้นคาดใต้ ที่ว่างแยกหัวออกจากกองการ์ดพอแล้ว */
 .bd-col>.hd{padding:14px 16px 10px;position:sticky;top:0;z-index:1;background:inherit;
@@ -663,7 +663,8 @@ html.theme-anim, html.theme-anim * { transition: background-color .34s ease, bor
 .bd-card[data-nodrag="1"]{cursor:pointer}
 @media (prefers-reduced-motion: reduce){.bd-card:hover{transform:none}}
 /* พื้นมืดไม่มีเงาให้ใช้ — การ์ดบอกตัวเองด้วยความสว่างกับเส้นขอบบางแทน */
-[data-theme="aurora"] .bd-col{background:var(--bg)}
+/* โหมดมืดผสมดำลงไป ไม่ใช่ขาวขึ้นมา — ร่องมืดบนพื้นมืดไม่มีขอบสว่างให้เห็นเป็นเส้น */
+[data-theme="aurora"] .bd-col{background:color-mix(in srgb,#000 34%,var(--bg))}
 /* ⚠ background-color ไม่ใช่ background — แบบย่อจะล้าง background-image ไปด้วย
    ซึ่งคือผ้าคลุมสีสถานะทั้งหมด โหมดมืดจึงเคยไม่มีสีสถานะเลย ทั้งที่กฎกลางเขียนไว้ครบ */
 [data-theme="aurora"] .bd-card{background-color:var(--gr-card);box-shadow:0 1px 3px rgba(0,0,0,.4)}
