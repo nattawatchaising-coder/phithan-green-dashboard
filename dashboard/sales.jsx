@@ -1161,7 +1161,7 @@ function QuotePagePick({ q, locked, onToggle, onAll, warn }) {
     </div>
   );
 }
-const pgQuick = { padding: "5px 10px", borderRadius: "var(--r-chip)", boxShadow: "var(--shadow-sm)", background: "var(--surface)",
+const pgQuick = { padding: "5px 10px", borderRadius: "var(--r-chip)", boxShadow: "var(--shadow-sm)", background: "var(--surface2)",
   cursor: "pointer", fontFamily: "inherit", fontSize: 11, fontWeight: 700, color: "var(--text-2)" };
 
 /* ── ตารางเล็ก ๆ ในเอกสาร (BOQ · ตารางรับประกัน) ──
@@ -1186,7 +1186,7 @@ function QuoteRowPic({ lib, id, locked, onPick }) {
         <React.Fragment>
           <div onClick={() => setOpen(false)} style={{ position: "fixed", inset: 0, zIndex: 40 }} />
           <div style={{ position: "absolute", zIndex: 41, top: 38, left: 0, width: 232, padding: 8, borderRadius: "var(--r-tile)",
-            boxShadow: "var(--shadow-sm)", background: "var(--surface)", boxShadow: "0 18px 44px rgba(8,20,14,.22)" }}>
+            background: "var(--surface)", boxShadow: "0 18px 44px rgba(8,20,14,.22)" }}>
             {pics.length === 0 ? (
               <div style={{ fontSize: 11, color: "var(--text-3)", lineHeight: 1.6 }}>
                 คลังยังว่าง — เพิ่มรูปที่หัวข้อ “คลังรูปอุปกรณ์” ด้านล่างก่อน
@@ -1216,7 +1216,9 @@ function QuoteRowsEdit({ title, hint, cols, rows, locked, onChange, onSeed, seed
   const a = rows || [];
   const grid = cols.map((c) => c.w).join(" ") + (locked ? "" : " 30px");
   const setCell = (i, k, v) => onChange(a.map((r, j) => j === i ? Object.assign({}, r, { [k]: v }) : r));
-  const cell = { padding: "7px 8px", borderRadius: "var(--r-chip)", boxShadow: "var(--shadow-sm)", background: "var(--surface)",
+  /* ช่องกรอกในตาราง — หลุมที่จมลงไปในแผ่น ไม่ใช่แผ่นที่ลอยขึ้นมา จึงไม่มีเงา
+     ⚠ ต้องประกาศ border ไว้ด้วย ถ้าไม่ประกาศ เบราว์เซอร์จะใส่ขอบ 2px inset ให้เอง */
+  const cell = { padding: "7px 8px", borderRadius: "var(--r-chip)", border: "none", background: "var(--surface2)",
     color: "var(--text-1)", fontFamily: "inherit", fontSize: 12, width: "100%", minWidth: 0 };
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 7 }}>
@@ -1243,7 +1245,7 @@ function QuoteRowsEdit({ title, hint, cols, rows, locked, onChange, onSeed, seed
             )))}
             {!locked && (
               <button type="button" onClick={() => onChange(a.filter((_, j) => j !== i))} title="ลบบรรทัดนี้"
-                style={{ width: 30, height: 30, borderRadius: "var(--r-chip)", boxShadow: "var(--shadow-sm)", background: "var(--surface)",
+                style={{ width: 30, height: 30, borderRadius: "var(--r-chip)", boxShadow: "var(--shadow-sm)", background: "var(--surface2)",
                   cursor: "pointer", display: "grid", placeItems: "center" }}>
                 <Icon name="trash" size={13} color="#EF4444" />
               </button>
@@ -1289,7 +1291,7 @@ function QuoteRoiEdit({ q, locked, onChange }) {
             <input type="number" value={raw[f.key] == null || raw[f.key] === "" ? "" : raw[f.key]} disabled={locked}
               placeholder={String(QUOTE_ROI_DEF[f.key])}
               onChange={(e) => onChange(Object.assign({}, raw, { [f.key]: e.target.value === "" ? "" : +e.target.value }))}
-              style={{ padding: "7px 9px", borderRadius: "var(--r-chip)", boxShadow: "var(--shadow-sm)", background: "var(--surface)",
+              style={{ padding: "7px 9px", borderRadius: "var(--r-chip)", background: "var(--surface2)",
                 color: "var(--text-1)", fontFamily: "inherit", fontSize: 12, textAlign: "right", fontVariantNumeric: "tabular-nums", width: "100%" }} />
           </div>
         ))}
@@ -1684,7 +1686,7 @@ function QuoteEditor({ quote, job, target, stock, onClose, onSave, onDelete, cur
             {(() => { const s = QUOTE_STATUS_BY[q.status] || QUOTE_STATUS_BY.draft; return (
               <span style={{ fontSize: 11, fontWeight: 700, color: s.color, background: s.color + "16", padding: "4px 11px", borderRadius: "var(--r-pill)", whiteSpace: "nowrap" }}>{s.th}</span>
             ); })()}
-            <button onClick={onClose} style={{ width: 32, height: 32, borderRadius: "var(--r-chip)", boxShadow: "var(--shadow-sm)", background: "var(--surface)", cursor: "pointer", display: "grid", placeItems: "center", color: "var(--text-2)" }}>
+            <button onClick={onClose} style={{ width: 32, height: 32, borderRadius: "var(--r-chip)", boxShadow: "var(--shadow-sm)", background: "var(--surface2)", cursor: "pointer", display: "grid", placeItems: "center", color: "var(--text-2)" }}>
               <Icon name="x" size={16} />
             </button>
           </div>
@@ -1747,7 +1749,7 @@ function QuoteEditor({ quote, job, target, stock, onClose, onSave, onDelete, cur
                       style={Object.assign({}, cell, { flex: 1, fontWeight: 700 })} />
                     {!locked && (
                       <button onClick={() => delItem(i)} title="ลบรายการนี้"
-                        style={{ width: 30, height: 30, flexShrink: 0, borderRadius: "var(--r-chip)", boxShadow: "var(--shadow-sm)", background: "var(--surface)", cursor: "pointer", display: "grid", placeItems: "center" }}>
+                        style={{ width: 30, height: 30, flexShrink: 0, borderRadius: "var(--r-chip)", boxShadow: "var(--shadow-sm)", background: "var(--surface2)", cursor: "pointer", display: "grid", placeItems: "center" }}>
                         <Icon name="trash" size={14} color="#EF4444" />
                       </button>
                     )}
@@ -1865,7 +1867,7 @@ function QuoteEditor({ quote, job, target, stock, onClose, onSave, onDelete, cur
                       window.open(url, "_blank", "noopener");
                     } catch (e) { window.open(sd.dataUrl, "_blank", "noopener"); }
                   }} style={{ display: "inline-flex", alignItems: "center", gap: 5, padding: "5px 10px", borderRadius: "var(--r-chip)",
-                    boxShadow: "var(--shadow-sm)", background: "var(--surface)", cursor: "pointer",
+                    boxShadow: "var(--shadow-sm)", background: "var(--surface2)", cursor: "pointer",
                     fontFamily: "inherit", fontSize: 11.5, fontWeight: 700, color: "var(--text-2)" }}>
                     <Icon name="file" size={13} color={sd.kind === "image" ? "var(--primary-dark)" : "#EF4444"} /> {sd.label}
                   </button>
@@ -2345,7 +2347,7 @@ function SalesKpiView({ leads, quotes, appts, techs, currentUser, onMenuOpen, on
           {!!month && month !== thisMonth && (
             <button onClick={() => setMonth(thisMonth)}
               style={{ padding: "6px 12px", borderRadius: "var(--r-pill)", cursor: "pointer", fontFamily: "inherit", fontSize: 12, fontWeight: 700,
-                boxShadow: "var(--shadow-sm)", background: "var(--surface)", color: "var(--text-2)" }}>เดือนนี้</button>
+                boxShadow: "var(--shadow-sm)", background: "var(--surface2)", color: "var(--text-2)" }}>เดือนนี้</button>
           )}
           {/* "ทุกเดือน" = ไม่กรองเดือน เป็นปุ่มสลับ
               ชื่อนี้ไม่ใช่ "ทั้งหมด" เพราะตัวกรองประเภทงานที่อยู่แถวเดียวกันก็ชื่อนั้น สองคำเหมือนกันในแถวเดียวอ่านไม่ออกว่าอันไหนกรองอะไร */}

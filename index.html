@@ -22,7 +22,11 @@ body { font-family: var(--sans); background: var(--bg); color: var(--text-1); fo
 #root { height: 100dvh; }
 /* ปุ่มที่ไม่ประกาศ border ไม่ได้แปลว่า "ไม่มีขอบ" — มันตกไปใช้ขอบนูชสามมิติของเบราว์เซอร์
    (2px outset สีดำ) รีเซ็ตที่นี่ทีเดียว น้ำหนักระดับอิลิเมนต์ ขอบที่ตั้งใจใส่ไว้จึงยังชนะตามเดิม */
-button { font-family: inherit; border: none; }
+button, input, textarea, select { font-family: inherit; border: none; }
+/* ช่องกรอกที่ไม่มีใครกำหนดพื้นให้ ตกไปใช้พื้นจางของชุดสี ไม่ใช่ขาวล้วน
+   ช่องกรอกคือหลุมที่รอให้พิมพ์ลงไป ถ้าขาวเท่าแผ่นที่รองอยู่ก็หายไปทั้งช่อง
+   กฎนี้อยู่ระดับอิลิเมนต์ ช่องที่กำหนดพื้นเองไว้ในคลาสหรือใน style ยังชนะตามเดิม */
+input, textarea, select { background: var(--surface2); color: var(--text-1); }
 input, select, textarea { font-family: inherit; }
 /* ⚠ ต้นเหตุที่ช่องกรอกในตารางสองสามคอลัมน์ซ้อนทับกัน
    input (โดยเฉพาะ type=number/date/time) มีความกว้างขั้นต่ำในตัวราว 180px
@@ -1027,8 +1031,8 @@ H-@G1I margin-top D'IC*D%L-1'@- 6H
 <script src="dashboard/build/pm-paper.js?v=11"></script>
 <script src="dashboard/build/pm-form.js?v=11"></script>
 <script src="dashboard/build/drawer.js?v=77"></script>
-<script src="dashboard/build/views-overview.js?v=47"></script>
-<script src="dashboard/build/views-board.js?v=39"></script>
+<script src="dashboard/build/views-overview.js?v=48"></script>
+<script src="dashboard/build/views-board.js?v=40"></script>
 <script src="dashboard/build/views-table.js?v=33"></script>
 <script src="dashboard/build/views-report.js?v=11"></script>
 <script src="dashboard/build/views-calendar.js?v=30"></script>
@@ -1036,7 +1040,7 @@ H-@G1I margin-top D'IC*D%L-1'@- 6H
 <script src="dashboard/build/form.js?v=38"></script>
 <script src="dashboard/build/survey.js?v=25"></script>
 <script src="dashboard/build/survey-report.js?v=12"></script>
-<script src="dashboard/build/sales.js?v=69"></script>
+<script src="dashboard/build/sales.js?v=70"></script>
 <script src="dashboard/build/views-survey.js?v=35"></script>
 <script src="dashboard/build/survey-sched.js?v=38"></script>
 <script src="dashboard/build/permit.js?v=7"></script>
@@ -1045,8 +1049,8 @@ H-@G1I margin-top D'IC*D%L-1'@- 6H
 <script src="dashboard/build/billing.js?v=5"></script>
 <script src="dashboard/build/bill-paper.js?v=6"></script>
 <script src="dashboard/build/views-billing.js?v=10"></script>
-<script src="dashboard/build/views-lead.js?v=19"></script>
-<script src="dashboard/build/views-flow.js?v=16"></script>
+<script src="dashboard/build/views-lead.js?v=20"></script>
+<script src="dashboard/build/views-flow.js?v=17"></script>
 <script src="dashboard/build/daily.js?v=13"></script>
 <script src="dashboard/build/views-daily.js?v=33"></script>
 <script src="dashboard/build/om.js?v=13"></script>

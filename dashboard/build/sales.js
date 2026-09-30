@@ -1264,7 +1264,7 @@ const pgQuick = {
   padding: "5px 10px",
   borderRadius: "var(--r-chip)",
   boxShadow: "var(--shadow-sm)",
-  background: "var(--surface)",
+  background: "var(--surface2)",
   cursor: "pointer",
   fontFamily: "inherit",
   fontSize: 11,
@@ -1330,7 +1330,6 @@ function QuoteRowPic({
       width: 232,
       padding: 8,
       borderRadius: "var(--r-tile)",
-      boxShadow: "var(--shadow-sm)",
       background: "var(--surface)",
       boxShadow: "0 18px 44px rgba(8,20,14,.22)"
     }
@@ -1397,8 +1396,8 @@ function QuoteRowsEdit({
   const cell = {
     padding: "7px 8px",
     borderRadius: "var(--r-chip)",
-    boxShadow: "var(--shadow-sm)",
-    background: "var(--surface)",
+    border: "none",
+    background: "var(--surface2)",
     color: "var(--text-1)",
     fontFamily: "inherit",
     fontSize: 12,
@@ -1478,7 +1477,7 @@ function QuoteRowsEdit({
       height: 30,
       borderRadius: "var(--r-chip)",
       boxShadow: "var(--shadow-sm)",
-      background: "var(--surface)",
+      background: "var(--surface2)",
       cursor: "pointer",
       display: "grid",
       placeItems: "center"
@@ -1588,8 +1587,7 @@ function QuoteRoiEdit({
     style: {
       padding: "7px 9px",
       borderRadius: "var(--r-chip)",
-      boxShadow: "var(--shadow-sm)",
-      background: "var(--surface)",
+      background: "var(--surface2)",
       color: "var(--text-1)",
       fontFamily: "inherit",
       fontSize: 12,
@@ -2336,7 +2334,7 @@ function QuoteEditor({
       height: 32,
       borderRadius: "var(--r-chip)",
       boxShadow: "var(--shadow-sm)",
-      background: "var(--surface)",
+      background: "var(--surface2)",
       cursor: "pointer",
       display: "grid",
       placeItems: "center",
@@ -2568,7 +2566,7 @@ function QuoteEditor({
       flexShrink: 0,
       borderRadius: "var(--r-chip)",
       boxShadow: "var(--shadow-sm)",
-      background: "var(--surface)",
+      background: "var(--surface2)",
       cursor: "pointer",
       display: "grid",
       placeItems: "center"
@@ -2904,7 +2902,7 @@ function QuoteEditor({
       padding: "5px 10px",
       borderRadius: "var(--r-chip)",
       boxShadow: "var(--shadow-sm)",
-      background: "var(--surface)",
+      background: "var(--surface2)",
       cursor: "pointer",
       fontFamily: "inherit",
       fontSize: 11.5,
@@ -3878,7 +3876,7 @@ function SalesKpiView({
       fontSize: 12,
       fontWeight: 700,
       boxShadow: "var(--shadow-sm)",
-      background: "var(--surface)",
+      background: "var(--surface2)",
       color: "var(--text-2)"
     }
   }, "\u0E40\u0E14\u0E37\u0E2D\u0E19\u0E19\u0E35\u0E49"), React.createElement("button", {
