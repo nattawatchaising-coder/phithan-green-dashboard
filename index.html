@@ -63,7 +63,10 @@ label { min-width: 0; }
 .sidebar { width: var(--sidebar-w); flex-shrink: 0; background: var(--surface); border-right: 1px solid var(--border);
   display: flex; flex-direction: column; transition: width .2s; }
 .sidebar[data-mode="icons"] { width: 76px; align-items: center; }
-.sidebar-brand { display: flex; align-items: center; gap: 12px; padding: 18px 20px; border-bottom: 1px solid var(--border); min-height: 73px; }
+/* ใต้โลโก้ไม่มีเส้นคั่น — หัวข้อกำกับกลุ่มแถวแรกทำหน้าที่แบ่งให้แล้ว
+   เส้นสองเส้นซ้อนกันห่างกันไม่กี่พิกเซล กลายเป็นขีดสองเส้นที่ไม่ได้แบ่งอะไรเพิ่ม
+   min-height คงไว้ เพราะมันคือตัวที่ทำให้หัวแถบเมนูสูงเท่าหัวจอของหน้า */
+.sidebar-brand { display: flex; align-items: center; gap: 12px; padding: 18px 20px; min-height: 73px; }
 .sidebar[data-mode="icons"] .sidebar-brand { padding: 18px 0; justify-content: center; }
 .brand-mark { height: 38px; width: 38px; flex-shrink: 0; display: block; }
 .brand-name { font-family: var(--brand-font); font-size: 19px; font-weight: 700; letter-spacing: -.02em; color: var(--brand-ink); line-height: 1.05; white-space: nowrap; }
@@ -115,6 +118,9 @@ label { min-width: 0; }
 .sidebar[data-mode="icons"] .sidebar-nav > .nav-sect { width: 26px; height: 1px; padding: 0; margin: 10px auto 7px;
   background: var(--border); }
 .sidebar[data-mode="icons"] .sidebar-nav > .nav-sect > span { display: none; }
+/* กลุ่มท้ายยังต้องถูกดันลงล่างสุดในโหมดไอคอนด้วย
+   กฎข้างบนใช้ margin แบบย่อ ซึ่งเขียนทับ margin-top:auto ไปทั้งตัว */
+.sidebar[data-mode="icons"] .sidebar-nav > .nav-sect.nav-sect-foot { margin-top: auto; }
 /* เมนูที่ปักไว้ล่างสุด (nav-foot) — ขีดเส้นคั่นให้เห็นว่าไม่ได้อยู่กลุ่มเดียวกับหัวข้อด้านบน */
 .sidebar-nav > .nav-item.nav-foot { margin-top: auto; }
 .sidebar-nav > .nav-item.nav-foot::after {
@@ -649,7 +655,6 @@ html.theme-anim, html.theme-anim * { transition: background-color .34s ease, bor
 }
 [data-theme="aurora"] .sidebar { border-right: 1px solid var(--border); }
 [data-theme="aurora"] .app-header { border-bottom: 1px solid var(--border); }
-[data-theme="aurora"] .sidebar-brand,
 [data-theme="aurora"] .sidebar-foot { border-color: var(--border); }
 [data-theme="aurora"] .brand-name { color: var(--brand-ink); }
 /* ชื่อหน้า: เปลี่ยนแค่สี ขนาดกับระยะตัวอักษรคงเดิม สลับโหมดแล้วหัวหน้าจะได้ไม่ขยับ */
