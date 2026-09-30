@@ -13,7 +13,7 @@
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@400;500;600;700&family=Outfit:wght@500;600;700;800&family=Sora:wght@600;700;800&family=JetBrains+Mono:wght@500;600&display=swap" rel="stylesheet" />
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="anonymous" />
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin="anonymous"></script>
-<link rel="stylesheet" href="dashboard/tokens.css?v=1" />
+<link rel="stylesheet" href="dashboard/tokens.css?v=2" />
 <style>
 
 * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -189,7 +189,7 @@ label { min-width: 0; }
    ห้ามถอด :hover/:active ออกไม่ว่ากรณีใด — ปุ่มไม่มีกรอบที่ไม่ตอบสนองตอนชี้
    จะกลายเป็นไอคอนตกแต่งที่ไม่มีใครรู้ว่ากดได้ ซึ่งแย่กว่ามีกรอบเสียอีก
    และคนใช้คีย์บอร์ดต้องพึ่ง :focus-visible ล้วน ๆ จึงต้องมีวงแหวนโฟกัสทุกปุ่ม */
-.hdr-icon-btn { width: 44px; height: 44px; border-radius: 13px; border: none;
+.hdr-icon-btn { width: 44px; height: 44px; border-radius: var(--r-tile); border: none;
   background: transparent; cursor: pointer; display: grid; place-items: center; color: var(--text-2); flex-shrink: 0;
   transition: background .16s ease, transform .12s ease; }
 .hdr-icon-btn:hover { background: var(--surface3); }
@@ -267,9 +267,11 @@ html.theme-anim, html.theme-anim * { transition: background-color .34s ease, bor
 .search-box:focus-within { background: var(--surface); border-color: var(--primary); box-shadow: 0 0 0 3px var(--primary-soft); }
 .search-box input { border: none; background: none; outline: none; font-size: 13.5px; color: var(--text-1); width: 100%; }
 .search-box input::placeholder { color: var(--text-3); }
-.btn-add { display: flex; align-items: center; gap: 7px; background: var(--primary); color: #fff; border: none; padding: 10px 18px;
-  border-radius: 11px; font-size: 13.5px; font-weight: 700; cursor: pointer; box-shadow: 0 2px 8px rgba(27,155,117,.25); transition: transform .12s, box-shadow .12s; white-space: nowrap; }
-.btn-add:hover { transform: translateY(-1px); box-shadow: 0 4px 14px rgba(27,155,117,.35); }
+/* ปุ่มสั่งงานมนเต็มใบเหมือนช่องค้นหา — ในแถบเครื่องมือแถวเดียวกัน ถ้าความมนไม่เท่ากัน
+   สายตาจะอ่านว่าเป็นของคนละชุด ทั้งที่อยู่ติดกันและระดับเดียวกัน */
+.btn-add { display: flex; align-items: center; gap: 7px; background: var(--primary); color: #fff; border: none; padding: 10px 20px;
+  border-radius: var(--r-pill); font-size: 13.5px; font-weight: 700; cursor: pointer; box-shadow: 0 2px 10px -2px rgba(27,155,117,.4); transition: transform .12s, box-shadow .12s; white-space: nowrap; }
+.btn-add:hover { transform: translateY(-1px); box-shadow: 0 6px 18px -4px rgba(27,155,117,.5); }
 
 .header-filters { display: flex; align-items: center; gap: 12px; padding: 14px 0; flex-wrap: wrap; }
 /* ตัวกรองที่อยู่ในเนื้อหา ไม่ใช่ในหัวจอ (เช่น แถวแท็บของคลังสินค้า)
@@ -293,7 +295,7 @@ html.theme-anim, html.theme-anim * { transition: background-color .34s ease, bor
    ให้มันหดได้ถึง 150px ก่อน แล้วค่อยห่อบรรทัดถ้ายังไม่พอจริง ๆ */
 .header-top .header-actions .search-box { flex: 0 1 280px; min-width: 150px; width: auto; }
 .delay-toggle { display: flex; align-items: center; gap: 7px; background: transparent; border: none; color: var(--text-2);
-  padding: 7px 14px; border-radius: 10px; font-size: 12.5px; font-weight: 600; cursor: pointer;
+  padding: 7px 15px; border-radius: var(--r-pill); font-size: 12.5px; font-weight: 600; cursor: pointer;
   transition: background .16s ease, color .16s ease, transform .12s ease; white-space: nowrap; }
 /* ตอนชี้ใช้พื้นสีแดงจาง ๆ ไม่ใช่เทา — บอกล่วงหน้าว่าปุ่มนี้เกี่ยวกับงานล่าช้า ก่อนจะกดด้วยซ้ำ */
 .delay-toggle:hover { background: color-mix(in srgb, #EF4444 12%, transparent); color: #D93025; }
@@ -301,7 +303,7 @@ html.theme-anim, html.theme-anim * { transition: background-color .34s ease, bor
 .delay-toggle.on { background: #EF4444; color: #fff; }
 .delay-toggle.on:hover { background: #DC2626; color: #fff; }
 .ghost-btn { display: flex; align-items: center; gap: 6px; background: none; border: 1px solid var(--border); color: var(--text-3);
-  padding: 7px 13px; border-radius: 10px; font-size: 12.5px; font-weight: 600; cursor: pointer; transition: all .15s; white-space: nowrap; }
+  padding: 7px 14px; border-radius: var(--r-pill); font-size: 12.5px; font-weight: 600; cursor: pointer; transition: all .15s; white-space: nowrap; }
 .ghost-btn:hover { background: var(--surface2); color: var(--text-2); }
 
 @media (max-width: 1080px) {
@@ -317,7 +319,7 @@ html.theme-anim, html.theme-anim * { transition: background-color .34s ease, bor
 .hamburger {
   display: none; align-items: center; justify-content: center;
   width: 38px; height: 38px; border: none; background: var(--surface2);
-  border-radius: 10px; cursor: pointer; flex-shrink: 0; color: var(--text-2);
+  border-radius: var(--r-tile); cursor: pointer; flex-shrink: 0; color: var(--text-2);
   transition: background .15s;
 }
 .hamburger:hover { background: var(--surface3); }
@@ -327,7 +329,7 @@ html.theme-anim, html.theme-anim * { transition: background-color .34s ease, bor
   display: none; align-items: center; justify-content: center;
   position: absolute; top: 16px; right: 14px;
   width: 28px; height: 28px; border: none; background: var(--surface2);
-  border-radius: 8px; cursor: pointer; color: var(--text-2); flex-shrink: 0;
+  border-radius: var(--r-pill); cursor: pointer; color: var(--text-2); flex-shrink: 0;
   transition: background .15s;
 }
 .sidebar-close-btn:hover { background: var(--surface3); }
@@ -373,7 +375,7 @@ html.theme-anim, html.theme-anim * { transition: background-color .34s ease, bor
   .header-actions { gap: 8px; flex: 1; justify-content: flex-end; }
   .search-box { width: 0; min-width: 0; flex: 1; max-width: 200px; padding: 7px 13px; }
   .btn-add span { display: none; }
-  .btn-add { padding: 10px 12px; min-width: 38px; border-radius: 10px; }
+  .btn-add { padding: 10px 14px; min-width: 38px; border-radius: var(--r-pill); }
   .header-filters { padding: 8px 0; gap: 6px; }
   .content-filters { padding: 0 0 10px; gap: 6px; }
   .ghost-btn { display: none; }
@@ -408,7 +410,7 @@ html.theme-anim, html.theme-anim * { transition: background-color .34s ease, bor
 /* ---- แผงตัวเลขรวม: ผืนเดียวแบ่งด้วยเส้นผม ไม่ใช่ 3 กล่องเหมือนกันเป๊ะ ---- */
 /* ── โครงหน้าภาพรวม: แถบต้อนรับ · สองคอลัมน์ · ปฏิทินย่อ ── */
 .ov-hero{position:relative;overflow:hidden;display:flex;align-items:center;justify-content:space-between;gap:20px;
-  flex-wrap:wrap;padding:22px 26px;border-radius:20px;border:1px solid var(--border);
+  flex-wrap:wrap;padding:22px 26px;border-radius:var(--r-card);border:1px solid var(--card-bd);
   background:var(--primary-dark) url("dashboard/assets/hero-solarfarm.jpg") right center/cover no-repeat;
   box-shadow:var(--shadow-sm)}
 /* ผ้าคลุมสีแบรนด์ทับภาพถ่าย — ทึบทางซ้ายตรงที่เป็นคำทักทายกับวันที่ แล้วจางหายไปทางขวา
@@ -428,7 +430,7 @@ html.theme-anim, html.theme-anim * { transition: background-color .34s ease, bor
 .ov-hero-tx h2{font-family:var(--display);font-size:23px;font-weight:700;color:#fff;letter-spacing:-.03em;line-height:1.2}
 .ov-hero-tx p{margin-top:5px;font-size:12.5px;color:rgba(255,255,255,.82)}
 .ov-hero-figs{display:flex;gap:10px;flex-wrap:wrap}
-.ov-hero-fig{min-width:92px;padding:9px 14px;border-radius:14px;background:rgba(255,255,255,.16);
+.ov-hero-fig{min-width:92px;padding:9px 14px;border-radius:var(--r-tile);background:rgba(255,255,255,.16);
   border:1px solid rgba(255,255,255,.22);text-align:center}
 .ov-hero-fig b{display:block;font-family:var(--display);font-size:24px;font-weight:700;color:#fff;
   line-height:1.1;font-variant-numeric:tabular-nums}
@@ -458,7 +460,7 @@ html.theme-anim, html.theme-anim * { transition: background-color .34s ease, bor
    เก็บ border ไว้เป็น transparent ไม่ได้ถอดทิ้ง — ใบที่ต้องเตือน (data-warn) ยังต้องย้อมขอบแดงได้
    และการ์ดจะได้ไม่ขยับ 2px ตอนขอบโผล่ */
 .permit-grid>button{display:flex;flex-direction:column;align-items:flex-start;gap:7px;min-width:0;
-  padding:12px 13px;border:1px solid transparent;border-radius:14px;background:none;
+  padding:13px 14px;border:1px solid transparent;border-radius:var(--r-tile);background:none;
   cursor:pointer;font-family:inherit;text-align:left;transition:background .14s,border-color .14s}
 .permit-grid>button:hover{background:var(--surface3)}
 .permit-grid .pv{font-family:var(--display);font-size:20px;font-weight:700;line-height:1;
@@ -484,7 +486,7 @@ html.theme-anim, html.theme-anim * { transition: background-color .34s ease, bor
    ดันขอบกล่องออกข้างละ 12px ด้วย padding แล้วดึงกลับเข้ามาด้วย margin ติดลบเท่ากัน
    ตำแหน่งแถวไม่ขยับสักพิกเซล แต่มีที่ว่างให้เงาตกได้ครบทั้งสี่ด้าน */
 .bar-rows{padding-left:12px;padding-right:12px;margin-left:-12px;margin-right:-12px}
-.bar-rows>button{background:none;border:0;border-radius:12px;padding:7px 9px;
+.bar-rows>button{background:none;border:0;border-radius:var(--r-tile);padding:8px 10px;
   transition:background .16s ease,box-shadow .18s ease,transform .16s ease}
 .bar-rows>button:hover{background:var(--surface2);transform:translateY(-2px);box-shadow:var(--hov-sh)}
 .bar-rows>button:active{transform:translateY(0);box-shadow:none}
@@ -498,9 +500,11 @@ html.theme-anim, html.theme-anim * { transition: background-color .34s ease, bor
 .stat-rail>button:active,.permit-grid>button:active{transform:translateY(0);box-shadow:none}
 /* แถวในรายการยกตัวไม่ได้ (เส้นคั่นระหว่างแถวจะขยับตาม) จึงใช้วงแหวนพื้นสีกว้าง 6px
    เป็นตัวบอกขอบเขตแถว แล้วเติมเงาใต้แถวให้หนาขึ้นเท่ากับที่อื่น */
+/* แถวยกตัวไม่ได้ (เส้นคั่นระหว่างแถวจะขยับตาม) จึงใช้วงแหวนพื้นสีกว้าง 8px เป็นตัวบอกขอบเขตแถว
+   เงาที่ตามมาเบากว่าของการ์ด — แถวเป็นของชั้นในสุด เงาหนักเท่าการ์ดจะอ่านว่าแถวลอยพ้นการ์ดที่มันอยู่ */
 .rows>button{transition:background .14s ease,box-shadow .18s ease}
-.rows>button:hover{box-shadow:0 0 0 8px var(--surface2),var(--hov-sh-lg)}
-[data-theme="aurora"] .rows>button:hover{box-shadow:0 0 0 8px var(--gr-hi),var(--hov-sh-lg)}
+.rows>button:hover{box-shadow:0 0 0 8px var(--surface2),0 8px 18px -8px rgba(8,20,14,.22)}
+[data-theme="aurora"] .rows>button:hover{box-shadow:0 0 0 8px var(--gr-hi),var(--hov-sh)}
 /* ยกเว้นแถวในการ์ดวันบนปฏิทิน — การ์ดใบนี้เป็นป๊อปอัปที่ลอยอยู่บนเงาของตัวเองอยู่แล้ว
    ใส่วงแหวนกับเงาให้แถวข้างในอีกชั้นคือเงาซ้อนเงา พื้นเทาอย่างเดียวพอ
    เมื่อไม่มีเงาแล้วก็ไม่ต้องเผื่อที่ให้เงาตกอีก คืน padding 20px ของการ์ดกลับไปตามเดิม
@@ -554,13 +558,13 @@ html.theme-anim, html.theme-anim * { transition: background-color .34s ease, bor
 .ov-day-ov{position:fixed;inset:0;z-index:80;padding:24px;display:flex;align-items:center;justify-content:center;
   background:rgba(8,20,14,.5);backdrop-filter:blur(3px);animation:ovFade .16s ease}
 .ov-day-card{width:min(520px,100%);max-height:min(640px,86vh);display:flex;flex-direction:column;
-  background:var(--surface);border:1px solid var(--border-strong);border-radius:20px;overflow:hidden;
-  box-shadow:0 28px 70px rgba(8,20,14,.28);animation:ovPop .2s cubic-bezier(.2,.8,.2,1)}
+  background:var(--surface);border:1px solid var(--card-bd);border-radius:26px;overflow:hidden;
+  box-shadow:0 32px 80px -20px rgba(8,20,14,.34);animation:ovPop .2s cubic-bezier(.2,.8,.2,1)}
 .ov-day-hd{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;
-  padding:18px 20px 14px;border-bottom:1px solid var(--border)}
+  padding:20px 22px 14px}
 .ov-day-hd b{display:block;font-family:var(--display);font-size:16px;font-weight:700;color:var(--text-1)}
 .ov-day-hd span{display:block;font-size:11.5px;color:var(--text-3);margin-top:3px}
-.ov-day-hd button{width:30px;height:30px;flex-shrink:0;border-radius:10px;border:1px solid var(--border);
+.ov-day-hd button{width:32px;height:32px;flex-shrink:0;border-radius:var(--r-pill);border:none;
   background:var(--surface2);cursor:pointer;display:grid;place-items:center}
 .ov-day-hd button:hover{background:var(--surface3)}
 .ov-day-bd{padding:4px 20px 18px;overflow-y:auto}
@@ -574,13 +578,16 @@ html.theme-anim, html.theme-anim * { transition: background-color .34s ease, bor
    ใบนี้ใช้ร่วมกันทั้งภาพรวมช่าง · ภาพรวมหัวหน้า · คลังของ · งานขาย จึงเปลี่ยนพร้อมกันทั้งสี่หน้า */
 .stat-rail{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;position:relative}
 .stat-rail>button{position:relative;display:flex;flex-direction:column;gap:0;align-items:flex-start;
-  padding:20px 22px;border:1px solid var(--border);
-  border-radius:18px;overflow:hidden;cursor:pointer;font-family:inherit;text-align:left;
-  background:var(--surface);box-shadow:var(--shadow-sm);
+  padding:20px 22px;border:1px solid var(--card-bd);
+  border-radius:var(--r-card);overflow:hidden;cursor:pointer;font-family:inherit;text-align:left;
+  background:var(--surface);box-shadow:var(--shadow-card);
   transition:background .16s,border-color .16s}
-.stat-rail>button:hover{background:var(--surface2);border-color:var(--border-strong)}
-.stat-rail .lb{display:flex;align-items:center;gap:7px;font-size:11px;font-weight:650;
-  letter-spacing:.07em;text-transform:uppercase;color:var(--text-3)}
+/* ตอนชี้เปลี่ยนแค่พื้น — ขอบโผล่ขึ้นมาเฉพาะตอนชี้ไม่ได้ เพราะการ์ดใบอื่นไม่มีขอบ
+   ความ "ยกตัว" มาจากเงาในกฎ :hover ข้างบนอยู่แล้ว */
+.stat-rail>button:hover{background:var(--surface2)}
+/* คำกำกับ: ไม่ uppercase ไม่ถ่างตัวอักษร ด้วยเหตุผลเดียวกับ .pnl-hd .t */
+.stat-rail .lb{display:flex;align-items:center;gap:7px;font-size:11.5px;font-weight:650;
+  color:var(--text-3)}
 .stat-rail .lb .pip{width:6px;height:6px;border-radius:99px;flex:0 0 auto}
 .stat-rail .num{font-family:var(--display);font-size:40px;font-weight:700;line-height:1;
   letter-spacing:-.035em;color:var(--text-1);margin:13px 0 0;font-variant-numeric:tabular-nums}
@@ -603,12 +610,57 @@ html.theme-anim, html.theme-anim * { transition: background-color .34s ease, bor
   .stat-rail .sub{margin-top:2px}}
 
 
+/* ══════════════════════════════════════════════════════════════
+   บอร์ดงาน — ราง (คอลัมน์) กับการ์ด
+   สามหน้าที่เป็นบอร์ด (งานติดตั้ง · งานขาย · เอกสารราชการ) เคยก๊อบสไตล์การ์ดไปคนละชุด
+   พร้อมตัวจัดการ onMouseEnter/onMouseLeave ที่เขียนเลขเงาไว้ในไฟล์ jsx ทีละที่
+   ย้ายมาไว้ที่นี่คลาสเดียว — สามหน้าจึงเปลี่ยนพร้อมกันเสมอ และการชี้กลับไปเป็นงานของ CSS
+   ⚠ อย่าใส่ box-shadow/borderRadius ของการ์ดบอร์ดกลับเข้าไปในไฟล์ jsx อีก
+   ══════════════════════════════════════════════════════════════ */
+
+/* รางของขั้นงาน — เป็น "ถาดรอง" ไม่ใช่การ์ด จึงสว่างกว่าพื้นหน้าหนึ่งขั้นและไม่มีเงาของตัวเอง
+   การ์ดข้างในเป็นสีขาวเต็มพร้อมเงา ความต่างสองชั้นนี้คือสิ่งที่ทำให้กองงานอ่านออกโดยไม่ต้องมีเส้นขอบ */
+/* ถาดต้อง "จม" กว่าหน้า ไม่ใช่ "ลอย" เหนือหน้า — การ์ดขาวจึงเด่นขึ้นมาโดยไม่ต้องมีเส้นขอบ
+   ถ้าทำถาดสว่างกว่าหน้า (surface2) มันจะต่างจากพื้นหน้าไม่ถึง 5 หน่วยสี รางที่ยังว่างจะหายไปทั้งราง */
+.bd-col{border-radius:var(--r-card);background:color-mix(in srgb,var(--text-1) 5%,var(--bg));
+  border:1px solid transparent;transition:background .15s,border-color .15s,opacity .15s}
+/* หัวรางค้างบนสุดเวลาเลื่อน จึงต้องพื้นทึบ — ไม่มีเส้นคาดใต้ ที่ว่างแยกหัวออกจากกองการ์ดพอแล้ว */
+.bd-col>.hd{padding:14px 16px 10px;position:sticky;top:0;z-index:1;background:inherit;
+  border-radius:var(--r-card) var(--r-card) 0 0}
+.bd-col>.bd{padding:0 11px 11px;display:flex;flex-direction:column;gap:10px;overflow-y:auto;flex:1;min-height:80px}
+/* ช่องว่างตอนยังไม่มีงาน — เส้นประมนตามการ์ด ไม่ใช่มุมเหลี่ยมกว่าของที่มันรอ */
+.bd-col .empty{padding:22px 0;text-align:center;font-size:12px;color:var(--text-3);
+  border:1.5px dashed var(--border-strong);border-radius:var(--r-tile)}
+
+/* การ์ดใบงาน/ใบลูกค้า — ขาวเต็ม ไม่มีเส้นขอบ ลอยด้วยเงาฟุ้ง
+   ขีดสีซ้ายวาดด้วย ::before ไม่ใช่ border-left เพราะ border หนา 3px จะดันเนื้อหาเข้ามา 3px
+   และทำให้มุมมนฝั่งซ้ายกลายเป็นวงโค้งหนาคนละขนาดกับอีกสามมุม
+   สีของขีดส่งเข้ามาทาง --rail จากไฟล์ jsx (ไม่ตั้ง = ไม่มีขีด = งานปกติ) */
+.bd-card{position:relative;background:var(--surface);border:1px solid var(--card-bd);
+  border-radius:var(--r-tile);padding:13px 15px;cursor:grab;box-shadow:var(--shadow-sm);
+  transition:box-shadow .16s ease,transform .16s ease,opacity .15s ease}
+.bd-card::before{content:"";position:absolute;left:0;top:0;bottom:0;width:3px;
+  border-radius:var(--r-tile) 0 0 var(--r-tile);background:var(--rail,transparent)}
+.bd-card:hover{transform:translateY(-2px);box-shadow:var(--hov-sh)}
+.bd-card:active{transform:none;box-shadow:var(--shadow-sm)}
+.bd-card[data-drag="1"]{opacity:.4}
+/* ใบที่กดดูได้อย่างเดียว (ลากไม่ได้) — เคอร์เซอร์ต้องไม่หลอกว่าลากได้ */
+.bd-card[data-nodrag="1"]{cursor:pointer}
+@media (prefers-reduced-motion: reduce){.bd-card:hover{transform:none}}
+/* พื้นมืดไม่มีเงาให้ใช้ — การ์ดบอกตัวเองด้วยความสว่างกับเส้นขอบบางแทน */
+[data-theme="aurora"] .bd-col{background:rgba(255,255,255,.04)}
+[data-theme="aurora"] .bd-card{background:var(--gr-card);box-shadow:0 1px 3px rgba(0,0,0,.4)}
+
 /* ---- แผงเนื้อหาหน้าภาพรวม: หัวข้อคาดเส้นผม + รายการคั่นเส้น แทนกล่องซ้อนกล่อง ---- */
-.pnl{background:var(--surface);border:1px solid var(--border);border-radius:18px;
-  padding:20px 22px;box-shadow:var(--shadow-sm)}
-.pnl-hd{display:flex;align-items:baseline;gap:10px;padding-bottom:12px;
-  border-bottom:1px solid var(--border);margin-bottom:4px}
-.pnl-hd .t{font-size:12px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:var(--text-2)}
+.pnl{background:var(--surface);border:1px solid var(--card-bd);border-radius:var(--r-card);
+  padding:22px 24px;box-shadow:var(--shadow-card)}
+/* หัวแผงไม่มีเส้นคาดใต้แล้ว — ที่ว่างแยกหัวข้อออกจากเนื้อหาได้อยู่แล้ว
+   เส้นคาดในการ์ดที่ตัวการ์ดเองก็ไม่มีขอบ อ่านออกมาเป็นรอยแตกกลางแผ่น ไม่ใช่ตัวแบ่ง */
+.pnl-hd{display:flex;align-items:baseline;gap:10px;padding-bottom:15px;margin-bottom:2px}
+/* ⚠ ห้ามใส่ uppercase + letter-spacing กลับมา — ภาษาไทยไม่มีตัวพิมพ์ใหญ่ (กฎเลยมีผลกับคำอังกฤษฝั่งเดียว
+   หัวข้อสองภาษาในหน้าเดียวกันจึงสูงไม่เท่ากัน) และการถ่างตัวอักษรดันสระกับวรรณยุกต์หลุดตำแหน่ง
+   ลำดับความสำคัญบอกด้วยขนาดกับน้ำหนักแทน ซึ่งใช้ได้กับทั้งสองภาษา */
+.pnl-hd .t{font-size:13.5px;font-weight:700;color:var(--text-1);letter-spacing:-.01em}
 .pnl-hd .s{font-size:11.5px;color:var(--text-3);font-weight:500}
 .pnl-hd .r{margin-left:auto}
 /* รายการแถว — แตะได้ทั้งแถว คั่นด้วยเส้นผม ไม่ใช่กล่องมีพื้นสีทีละใบ */
@@ -619,7 +671,7 @@ html.theme-anim, html.theme-anim * { transition: background-color .34s ease, bor
   padding-left:10px;padding-right:10px;margin-left:-10px;margin-right:-10px}
 .rows>button{display:flex;gap:13px;align-items:center;padding:13px 4px;text-align:left;width:100%;
   background:none;border:0;border-top:1px solid var(--border);cursor:pointer;font-family:inherit;
-  transition:background .14s;border-radius:12px;position:relative}
+  transition:background .14s;border-radius:var(--r-tile);position:relative}
 .rows>button:first-child{border-top:0}
 .rows>button:hover{background:var(--surface2)}
 /* เส้นคั่นแถวต้องหายไปตอนชี้ ไม่งั้นมันพาดขวางบล็อกไฮไลต์มุมมนจนอ่านออกมาเป็นสี่เหลี่ยมเหมือนเดิม
@@ -920,7 +972,7 @@ H-@G1I margin-top D'IC*D%L-1'@- 6H
 <script src="dashboard/build/pm-form.js?v=11"></script>
 <script src="dashboard/build/drawer.js?v=72"></script>
 <script src="dashboard/build/views-overview.js?v=46"></script>
-<script src="dashboard/build/views-board.js?v=36"></script>
+<script src="dashboard/build/views-board.js?v=38"></script>
 <script src="dashboard/build/views-table.js?v=31"></script>
 <script src="dashboard/build/views-report.js?v=9"></script>
 <script src="dashboard/build/views-calendar.js?v=30"></script>
@@ -928,17 +980,17 @@ H-@G1I margin-top D'IC*D%L-1'@- 6H
 <script src="dashboard/build/form.js?v=36"></script>
 <script src="dashboard/build/survey.js?v=25"></script>
 <script src="dashboard/build/survey-report.js?v=12"></script>
-<script src="dashboard/build/sales.js?v=63"></script>
+<script src="dashboard/build/sales.js?v=65"></script>
 <script src="dashboard/build/views-survey.js?v=28"></script>
 <script src="dashboard/build/survey-sched.js?v=36"></script>
 <script src="dashboard/build/permit.js?v=7"></script>
-<script src="dashboard/build/views-permit.js?v=17"></script>
+<script src="dashboard/build/views-permit.js?v=18"></script>
 <!-- เอกสารงวดงาน · วางบิล: ตรรกะ → กระดาษ → หน้าจอ -->
 <script src="dashboard/build/billing.js?v=5"></script>
 <script src="dashboard/build/bill-paper.js?v=6"></script>
 <script src="dashboard/build/views-billing.js?v=7"></script>
 <script src="dashboard/build/views-lead.js?v=18"></script>
-<script src="dashboard/build/views-flow.js?v=14"></script>
+<script src="dashboard/build/views-flow.js?v=15"></script>
 <script src="dashboard/build/daily.js?v=13"></script>
 <script src="dashboard/build/views-daily.js?v=33"></script>
 <script src="dashboard/build/om.js?v=13"></script>

@@ -3044,183 +3044,168 @@ function SalesCard({
   const late = sOverdue(lead.nextFollow) && salesStageKey(lead) !== "won" && salesStageKey(lead) !== "lost";
   const val = +lead.expValue || 0;
   const phTH = lead.phase || lead.survey && lead.survey.phase ? window.SF.phaseOf(lead) + " เฟส" : "";
-  return React.createElement("div", {
-    draggable: true,
-    onDragStart: e => onDragStart(e, lead),
-    onClick: () => onOpen(lead),
-    style: {
-      background: "var(--surface)",
-      border: "1px solid var(--border)",
-      borderRadius: 14,
-      padding: "12px 13px",
-      cursor: "grab",
-      boxShadow: "var(--shadow-sm)",
-      opacity: dragging ? .4 : 1,
-      borderLeft: "3px solid " + (late ? "#EF4444" : st.color),
-      transition: "box-shadow .16s, transform .16s"
-    },
-    onMouseEnter: e => {
-      e.currentTarget.style.boxShadow = "0 8px 22px rgba(8,20,14,.09)";
-      e.currentTarget.style.transform = "translateY(-2px)";
-    },
-    onMouseLeave: e => {
-      e.currentTarget.style.boxShadow = "var(--shadow-sm)";
-      e.currentTarget.style.transform = "none";
-    }
-  }, React.createElement("div", {
-    style: {
-      display: "flex",
-      justifyContent: "space-between",
-      alignItems: "center",
-      gap: 8,
-      marginBottom: 6
-    }
-  }, React.createElement("span", {
-    style: {
-      fontFamily: "var(--mono)",
-      fontSize: 11,
-      fontWeight: 600,
-      color: "var(--text-3)",
-      minWidth: 0,
-      overflow: "hidden",
-      textOverflow: "ellipsis",
-      whiteSpace: "nowrap"
-    }
-  }, lead.code), React.createElement(TypeBadge, {
-    type: lead.type
-  })), flags && (flags.design || flags.boq) && window.DocChip && React.createElement("div", {
-    style: {
-      display: "flex",
-      gap: 5,
-      marginBottom: 6,
-      flexWrap: "wrap"
-    }
-  }, flags.design && React.createElement(window.DocChip, {
-    job: docJob,
-    kind: "design",
-    label: "\u0E41\u0E1A\u0E1A",
-    color: "#2563EB",
-    soft: "#2563EB14"
-  }), flags.boq && React.createElement(window.DocChip, {
-    job: docJob,
-    kind: "boq",
-    label: "BOQ",
-    color: "#0D9488",
-    soft: "#0D948814"
-  })), React.createElement("div", {
-    style: {
-      fontSize: 14,
-      fontWeight: 700,
-      color: "var(--text-1)",
-      lineHeight: 1.3,
-      marginBottom: 3
-    }
-  }, lead.name || "(ไม่ระบุชื่อ)"), React.createElement("div", {
-    style: {
-      fontSize: 11.5,
-      color: "var(--text-3)",
-      marginBottom: 9,
-      whiteSpace: "nowrap",
-      overflow: "hidden",
-      textOverflow: "ellipsis"
-    }
-  }, React.createElement(Icon, {
-    name: "pin",
-    size: 11,
-    style: {
-      verticalAlign: -1
-    }
-  }), " ", lead.province || "—", lead.source ? " · " + LEAD_SOURCE_TH(lead.source) : ""), (+lead.expKwp > 0 || phTH) && React.createElement("div", {
-    style: {
-      display: "flex",
-      alignItems: "center",
-      gap: 7,
-      marginBottom: 9,
-      flexWrap: "wrap",
-      fontSize: 11.5
-    }
-  }, React.createElement("span", {
-    style: {
-      color: "var(--text-2)",
-      fontWeight: 600,
-      fontVariantNumeric: "tabular-nums"
-    }
-  }, +lead.expKwp > 0 && React.createElement(React.Fragment, null, React.createElement("b", {
-    style: {
-      color: "var(--text-1)",
-      fontWeight: 700
-    }
-  }, lead.expKwp), " kWp"), +lead.expKwp > 0 && phTH && React.createElement("span", {
-    style: {
-      color: "var(--text-3)",
-      margin: "0 5px"
-    }
-  }, "\xB7"), phTH)), React.createElement("div", {
-    style: {
-      display: "flex",
-      gap: 5,
-      flexWrap: "wrap",
-      fontSize: 10.5,
-      color: "var(--text-2)"
-    }
-  }, React.createElement("span", {
-    title: "\u0E22\u0E31\u0E07\u0E40\u0E1B\u0E47\u0E19\u0E25\u0E39\u0E01\u0E04\u0E49\u0E32 \u0E22\u0E31\u0E07\u0E44\u0E21\u0E48\u0E44\u0E14\u0E49\u0E41\u0E1B\u0E25\u0E07\u0E40\u0E1B\u0E47\u0E19\u0E07\u0E32\u0E19\u0E15\u0E34\u0E14\u0E15\u0E31\u0E49\u0E07",
-    style: {
-      fontWeight: 800,
-      color: "var(--text-3)",
-      background: "var(--surface2)",
-      border: "1px solid var(--border)",
-      padding: "3px 8px",
-      borderRadius: 7,
-      whiteSpace: "nowrap"
-    }
-  }, "\u0E07\u0E32\u0E19\u0E02\u0E32\u0E22"), val > 0 && React.createElement("span", {
-    style: {
-      background: "var(--primary-soft)",
-      color: "var(--primary-dark)",
-      fontWeight: 800,
-      padding: "3px 8px",
-      borderRadius: 7,
-      fontVariantNumeric: "tabular-nums"
-    }
-  }, "\u0E3F", fmtBaht(val)), q0 && (() => {
-    const s = QUOTE_STATUS_BY[q0.status] || QUOTE_STATUS_BY.draft;
-    return React.createElement("span", {
+  return (React.createElement("div", {
+      draggable: true,
+      onDragStart: e => onDragStart(e, lead),
+      onClick: () => onOpen(lead),
+      className: "bd-card",
+      "data-drag": dragging ? "1" : null,
       style: {
-        background: s.color + "14",
-        border: "1px solid " + s.color + "33",
-        color: s.color,
-        fontWeight: 800,
-        padding: "3px 8px",
-        borderRadius: 7
+        "--rail": late ? "#EF4444" : st.color
       }
-    }, "\u0E43\u0E1A\u0E40\u0E2A\u0E19\u0E2D\u0E23\u0E32\u0E04\u0E32 \xB7 ", s.th);
-  })()), React.createElement("div", {
-    style: {
-      marginTop: 9,
-      paddingTop: 9,
-      borderTop: "1px solid var(--border)",
-      display: "flex",
-      alignItems: "center",
-      gap: 7,
-      fontSize: 10.5,
-      color: late ? "#EF4444" : "var(--text-3)"
-    }
-  }, React.createElement("span", {
-    style: {
-      flex: 1,
-      minWidth: 0,
-      whiteSpace: "nowrap",
-      overflow: "hidden",
-      textOverflow: "ellipsis"
-    }
-  }, lead.nextFollow ? (late ? "เลยวันติดตาม " : "ติดตาม ") + thDate(lead.nextFollow, true) : "ยังไม่ได้ตั้งวันติดตาม"), lead.ownerName && React.createElement("span", {
-    style: {
-      fontWeight: 700,
-      color: "var(--text-2)",
-      flexShrink: 0
-    }
-  }, lead.ownerName)));
+    }, React.createElement("div", {
+      style: {
+        display: "flex",
+        justifyContent: "space-between",
+        alignItems: "center",
+        gap: 8,
+        marginBottom: 6
+      }
+    }, React.createElement("span", {
+      style: {
+        fontFamily: "var(--mono)",
+        fontSize: 11,
+        fontWeight: 600,
+        color: "var(--text-3)",
+        minWidth: 0,
+        overflow: "hidden",
+        textOverflow: "ellipsis",
+        whiteSpace: "nowrap"
+      }
+    }, lead.code), React.createElement(TypeBadge, {
+      type: lead.type
+    })), flags && (flags.design || flags.boq) && window.DocChip && React.createElement("div", {
+      style: {
+        display: "flex",
+        gap: 5,
+        marginBottom: 6,
+        flexWrap: "wrap"
+      }
+    }, flags.design && React.createElement(window.DocChip, {
+      job: docJob,
+      kind: "design",
+      label: "\u0E41\u0E1A\u0E1A",
+      color: "#2563EB",
+      soft: "#2563EB14"
+    }), flags.boq && React.createElement(window.DocChip, {
+      job: docJob,
+      kind: "boq",
+      label: "BOQ",
+      color: "#0D9488",
+      soft: "#0D948814"
+    })), React.createElement("div", {
+      style: {
+        fontSize: 14,
+        fontWeight: 700,
+        color: "var(--text-1)",
+        lineHeight: 1.3,
+        marginBottom: 3
+      }
+    }, lead.name || "(ไม่ระบุชื่อ)"), React.createElement("div", {
+      style: {
+        fontSize: 11.5,
+        color: "var(--text-3)",
+        marginBottom: 9,
+        whiteSpace: "nowrap",
+        overflow: "hidden",
+        textOverflow: "ellipsis"
+      }
+    }, React.createElement(Icon, {
+      name: "pin",
+      size: 11,
+      style: {
+        verticalAlign: -1
+      }
+    }), " ", lead.province || "—", lead.source ? " · " + LEAD_SOURCE_TH(lead.source) : ""), (+lead.expKwp > 0 || phTH) && React.createElement("div", {
+      style: {
+        display: "flex",
+        alignItems: "center",
+        gap: 7,
+        marginBottom: 9,
+        flexWrap: "wrap",
+        fontSize: 11.5
+      }
+    }, React.createElement("span", {
+      style: {
+        color: "var(--text-2)",
+        fontWeight: 600,
+        fontVariantNumeric: "tabular-nums"
+      }
+    }, +lead.expKwp > 0 && React.createElement(React.Fragment, null, React.createElement("b", {
+      style: {
+        color: "var(--text-1)",
+        fontWeight: 700
+      }
+    }, lead.expKwp), " kWp"), +lead.expKwp > 0 && phTH && React.createElement("span", {
+      style: {
+        color: "var(--text-3)",
+        margin: "0 5px"
+      }
+    }, "\xB7"), phTH)), React.createElement("div", {
+      style: {
+        display: "flex",
+        gap: 5,
+        flexWrap: "wrap",
+        fontSize: 10.5,
+        color: "var(--text-2)"
+      }
+    }, React.createElement("span", {
+      title: "\u0E22\u0E31\u0E07\u0E40\u0E1B\u0E47\u0E19\u0E25\u0E39\u0E01\u0E04\u0E49\u0E32 \u0E22\u0E31\u0E07\u0E44\u0E21\u0E48\u0E44\u0E14\u0E49\u0E41\u0E1B\u0E25\u0E07\u0E40\u0E1B\u0E47\u0E19\u0E07\u0E32\u0E19\u0E15\u0E34\u0E14\u0E15\u0E31\u0E49\u0E07",
+      style: {
+        fontWeight: 800,
+        color: "var(--text-3)",
+        background: "var(--surface3)",
+        padding: "3px 9px",
+        borderRadius: 99,
+        whiteSpace: "nowrap"
+      }
+    }, "\u0E07\u0E32\u0E19\u0E02\u0E32\u0E22"), val > 0 && React.createElement("span", {
+      style: {
+        background: "var(--primary-soft)",
+        color: "var(--primary-dark)",
+        fontWeight: 800,
+        padding: "3px 9px",
+        borderRadius: 99,
+        fontVariantNumeric: "tabular-nums"
+      }
+    }, "\u0E3F", fmtBaht(val)), q0 && (() => {
+      const s = QUOTE_STATUS_BY[q0.status] || QUOTE_STATUS_BY.draft;
+      return React.createElement("span", {
+        style: {
+          background: s.color + "1c",
+          color: s.color,
+          fontWeight: 800,
+          padding: "3px 9px",
+          borderRadius: 99
+        }
+      }, "\u0E43\u0E1A\u0E40\u0E2A\u0E19\u0E2D\u0E23\u0E32\u0E04\u0E32 \xB7 ", s.th);
+    })()), React.createElement("div", {
+      style: {
+        marginTop: 9,
+        paddingTop: 9,
+        borderTop: "1px solid var(--border)",
+        display: "flex",
+        alignItems: "center",
+        gap: 7,
+        fontSize: 10.5,
+        color: late ? "#EF4444" : "var(--text-3)"
+      }
+    }, React.createElement("span", {
+      style: {
+        flex: 1,
+        minWidth: 0,
+        whiteSpace: "nowrap",
+        overflow: "hidden",
+        textOverflow: "ellipsis"
+      }
+    }, lead.nextFollow ? (late ? "เลยวันติดตาม " : "ติดตาม ") + thDate(lead.nextFollow, true) : "ยังไม่ได้ตั้งวันติดตาม"), lead.ownerName && React.createElement("span", {
+      style: {
+        fontWeight: 700,
+        color: "var(--text-2)",
+        flexShrink: 0
+      }
+    }, lead.ownerName)))
+  );
 }
 function SalesBoardView({
   leads,
@@ -3412,26 +3397,17 @@ function SalesBoardView({
       },
       onDragLeave: () => setOver(o => o === c.key ? null : o),
       onDrop: () => onDrop(c.key),
+      className: "bd-col",
       style: {
         width: 262,
         flexShrink: 0,
         display: "flex",
         flexDirection: "column",
-        borderRadius: 18,
-        background: isOver ? c.soft : "var(--surface2)",
-        border: "1px solid " + (isOver ? c.color : "var(--border)"),
-        transition: "background .15s, border-color .15s"
+        background: isOver ? c.soft : null,
+        borderColor: isOver ? c.color : null
       }
     }, React.createElement("div", {
-      style: {
-        padding: "12px 14px",
-        borderBottom: "1px solid var(--border)",
-        position: "sticky",
-        top: 0,
-        zIndex: 1,
-        background: isOver ? c.soft : "var(--surface2)",
-        borderRadius: "17px 17px 0 0"
-      }
+      className: "hd"
     }, React.createElement("div", {
       style: {
         display: "flex",
@@ -3456,9 +3432,8 @@ function SalesBoardView({
       }
     }), React.createElement("span", {
       style: {
-        fontSize: 11.5,
+        fontSize: 12,
         fontWeight: 700,
-        letterSpacing: ".05em",
         color: "var(--text-2)",
         whiteSpace: "nowrap",
         overflow: "hidden",
@@ -3481,15 +3456,7 @@ function SalesBoardView({
         fontVariantNumeric: "tabular-nums"
       }
     }, "\u0E21\u0E39\u0E25\u0E04\u0E48\u0E32\u0E23\u0E27\u0E21 \u0E3F", fmtBaht(sum))), React.createElement("div", {
-      style: {
-        padding: 11,
-        display: "flex",
-        flexDirection: "column",
-        gap: 11,
-        overflowY: "auto",
-        flex: 1,
-        minHeight: 80
-      }
+      className: "bd"
     }, col.map(l => React.createElement(SalesCard, {
       key: l.id,
       lead: l,
@@ -3501,14 +3468,7 @@ function SalesBoardView({
         e.dataTransfer.effectAllowed = "move";
       }
     })), col.length === 0 && React.createElement("div", {
-      style: {
-        padding: "20px 0",
-        textAlign: "center",
-        fontSize: 12,
-        color: "var(--text-3)",
-        border: "1.5px dashed var(--border-strong)",
-        borderRadius: 10
-      }
+      className: "empty"
     }, isOver ? "วางที่นี่" : "ว่าง")));
   })));
 }

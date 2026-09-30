@@ -23,17 +23,19 @@ const flReadCollapsed = () => {
    col = { key, th, color, soft } · dimmed = กำลังลากการ์ดที่วางที่นี่ไม่ได้ (หรี่ลงให้เห็นชัดว่าห้าม) */
 function FlCol({ col, count, isOver, dimmed, sub, onDragOver, onDragLeave, onDrop, children }) {
   return (
-    <div onDragOver={onDragOver} onDragLeave={onDragLeave} onDrop={onDrop}
-      style={{ width: 262, flexShrink: 0, display: "flex", flexDirection: "column", borderRadius: 18,
-        background: isOver ? col.soft : "var(--surface2)", border: "1px solid " + (isOver ? col.color : "var(--border)"),
-        opacity: dimmed ? 0.5 : 1, transition: "background .15s, border-color .15s, opacity .15s" }}>
-      {/* หัวคอลัมน์ค้างบนสุดเวลาเลื่อน ต้องมีพื้นทึบ ไม่งั้นการ์ดที่เลื่อนลอดใต้หัวจะทะลุขึ้นมาซ้อนตัวหนังสือ */}
-      <div style={{ padding: "12px 14px", borderBottom: "1px solid var(--border)", position: "sticky", top: 0, zIndex: 1,
-        background: isOver ? col.soft : "var(--surface2)", borderRadius: "17px 17px 0 0", transition: "background .15s" }}>
+    /* หน้าตาของรางอยู่ในคลาส .bd-col ใน index.html — ที่นี่เหลือแค่ค่าที่เปลี่ยนตามสถานะ
+       (กำลังลากของมาวาง / ถูกหรี่) เท่านั้น */
+    <div onDragOver={onDragOver} onDragLeave={onDragLeave} onDrop={onDrop} className="bd-col"
+      style={{ width: 262, flexShrink: 0, display: "flex", flexDirection: "column",
+        background: isOver ? col.soft : null, borderColor: isOver ? col.color : null,
+        opacity: dimmed ? 0.5 : 1 }}>
+      {/* หัวรางรับพื้นมาจากราง (background:inherit) จึงเปลี่ยนสีตามตอนลากของมาวางเองโดยไม่ต้องคำนวณซ้ำ */}
+      <div className="hd">
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
           <span style={{ display: "flex", alignItems: "center", gap: 8, minWidth: 0 }}>
             <span style={{ width: 7, height: 7, borderRadius: 99, background: col.color, flexShrink: 0 }} />
-            <span style={{ fontSize: 11.5, fontWeight: 700, letterSpacing: ".05em", color: "var(--text-2)",
+            {/* ไม่ถ่างตัวอักษร — ชื่อขั้นเป็นภาษาไทย การถ่างจะดันสระกับวรรณยุกต์หลุดตำแหน่ง */}
+            <span style={{ fontSize: 12, fontWeight: 700, color: "var(--text-2)",
               whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{col.th}</span>
           </span>
           <span style={{ fontFamily: "var(--display)", fontSize: 15, fontWeight: 700, letterSpacing: "-.02em",
@@ -41,12 +43,9 @@ function FlCol({ col, count, isOver, dimmed, sub, onDragOver, onDragLeave, onDro
         </div>
         {sub && <div style={{ fontSize: 10.5, color: "var(--text-3)", marginTop: 3, fontVariantNumeric: "tabular-nums" }}>{sub}</div>}
       </div>
-      <div style={{ padding: 11, display: "flex", flexDirection: "column", gap: 11, overflowY: "auto", flex: 1, minHeight: 80 }}>
+      <div className="bd">
         {children}
-        {count === 0 && (
-          <div style={{ padding: "20px 0", textAlign: "center", fontSize: 12, color: "var(--text-3)",
-            border: "1.5px dashed var(--border-strong)", borderRadius: 10 }}>{isOver ? "วางที่นี่" : "ว่าง"}</div>
-        )}
+        {count === 0 && <div className="empty">{isOver ? "วางที่นี่" : "ว่าง"}</div>}
       </div>
     </div>
   );
@@ -59,12 +58,12 @@ function FlGroup({ g, count, collapsed, onToggle, onAdd, addLabel, children }) {
     return (
       <button onClick={onToggle} title={"กางช่วง " + g.th}
         style={{ width: 52, flexShrink: 0, display: "flex", flexDirection: "column", alignItems: "center", gap: 10,
-          padding: "14px 0", borderRadius: 18, border: "1px solid var(--border)", background: "var(--surface2)",
+          padding: "14px 0", borderRadius: "var(--r-card)", border: "none", background: "var(--surface2)",
           cursor: "pointer", fontFamily: "inherit" }}>
         <Icon name="chevronDown" size={16} color="var(--text-3)" style={{ transform: "rotate(-90deg)" }} />
         <span style={{ fontFamily: "var(--display)", fontSize: 15, fontWeight: 700, color: "var(--text-1)",
           fontVariantNumeric: "tabular-nums" }}>{count}</span>
-        <span style={{ writingMode: "vertical-rl", fontSize: 11.5, fontWeight: 700, letterSpacing: ".08em",
+        <span style={{ writingMode: "vertical-rl", fontSize: 12, fontWeight: 700,
           color: "var(--text-2)", whiteSpace: "nowrap" }}>{g.th}</span>
         <span style={{ width: 7, height: 7, borderRadius: 99, background: g.color, marginTop: "auto" }} />
       </button>
@@ -80,12 +79,12 @@ function FlGroup({ g, count, collapsed, onToggle, onAdd, addLabel, children }) {
             และตอนช่วงถูกพับอยู่ ปุ่มก็อยู่หัวคอลัมน์เหมือนกัน ตำแหน่งจะได้ไม่กระโดดไปมา
             ปุ่มอยู่ในแถบที่กดได้ทั้งแถบ ต้องหยุดคลิกไม่ให้ลอยขึ้นไปสั่งพับซ้ำ ไม่งั้นพับแล้วกางทันทีเหมือนกดไม่ติด */}
         <button onClick={(e) => { e.stopPropagation(); onToggle(); }} aria-label={"พับช่วง " + g.th}
-          style={{ width: 26, height: 26, borderRadius: 8, border: "1px solid var(--border)",
-            background: "var(--surface)", cursor: "pointer", display: "grid", placeItems: "center", flexShrink: 0 }}>
+          style={{ width: 27, height: 27, borderRadius: 99, border: "none",
+            background: "var(--surface)", boxShadow: "var(--shadow-sm)", cursor: "pointer", display: "grid", placeItems: "center", flexShrink: 0 }}>
           <Icon name="chevronDown" size={14} color="var(--text-3)" style={{ transform: "rotate(90deg)" }} />
         </button>
         <span style={{ width: 8, height: 8, borderRadius: 99, background: g.color, flexShrink: 0 }} />
-        <span style={{ fontSize: 12, fontWeight: 800, letterSpacing: ".08em", color: "var(--text-2)" }}>{g.th}</span>
+        <span style={{ fontSize: 12.5, fontWeight: 800, color: "var(--text-2)" }}>{g.th}</span>
         <span style={{ fontFamily: "var(--mono)", fontSize: 11.5, fontWeight: 700, color: "var(--text-3)" }}>{count}</span>
         {/* ปุ่มเพิ่มของช่วงนั้น — ช่วงขายคือจุดเดียวที่สร้างลูกค้าใหม่ได้จากบอร์ด
             หัวหน้า/แอดมินไม่มีเมนู "งานขาย" ในแถบซ้าย (บอร์ดนี้แทนไปแล้ว) ถ้าไม่มีปุ่มตรงนี้

@@ -1938,12 +1938,11 @@ function SalesCard({ lead, quotes, onOpen, onDragStart, dragging }) {
   /* เฟสตามที่สำรวจมาจริง — ว่างไว้ถ้ายังไม่มีใครระบุ จะได้ไม่ขึ้น "1 เฟส" ให้เข้าใจผิดว่ารู้แล้ว */
   const phTH = (lead.phase || (lead.survey && lead.survey.phase)) ? window.SF.phaseOf(lead) + " เฟส" : "";
   return (
+    /* หน้าตาทั้งใบอยู่ในคลาส .bd-card (index.html) — ชุดเดียวกับการ์ดงานติดตั้งและเอกสารราชการ
+       ขีดสีซ้ายบอกขั้นของใบ และเปลี่ยนเป็นแดงเมื่อเลยวันติดตาม */
     <div draggable onDragStart={(e) => onDragStart(e, lead)} onClick={() => onOpen(lead)}
-      style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 14, padding: "12px 13px",
-        cursor: "grab", boxShadow: "var(--shadow-sm)", opacity: dragging ? .4 : 1,
-        borderLeft: "3px solid " + (late ? "#EF4444" : st.color), transition: "box-shadow .16s, transform .16s" }}
-      onMouseEnter={(e) => { e.currentTarget.style.boxShadow = "0 8px 22px rgba(8,20,14,.09)"; e.currentTarget.style.transform = "translateY(-2px)"; }}
-      onMouseLeave={(e) => { e.currentTarget.style.boxShadow = "var(--shadow-sm)"; e.currentTarget.style.transform = "none"; }}>
+      className="bd-card" data-drag={dragging ? "1" : null}
+      style={{ "--rail": late ? "#EF4444" : st.color }}>
       {/* หัวการ์ด — รหัส + ป้าย ชุดเดียวกับการ์ดงาน จะได้กวาดตาอ่านบอร์ดเดียวกันได้แบบเดียวกัน
           ป้ายตกบรรทัดใหม่ได้ ไม่งั้นการ์ดแคบ ๆ จะโดนขอบตัดจนอ่านไม่ออก */}
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8, marginBottom: 6 }}>
@@ -1977,11 +1976,11 @@ function SalesCard({ lead, quotes, onOpen, onDragStart, dragging }) {
       <div style={{ display: "flex", gap: 5, flexWrap: "wrap", fontSize: 10.5, color: "var(--text-2)" }}>
         {/* ยังไม่เป็นงาน — บอกไว้ว่าเป็นลูกค้าที่ยังไล่อยู่ ไม่ใช่งานที่ขายได้แล้ว */}
         <span title="ยังเป็นลูกค้า ยังไม่ได้แปลงเป็นงานติดตั้ง"
-          style={{ fontWeight: 800, color: "var(--text-3)", background: "var(--surface2)",
-            border: "1px solid var(--border)", padding: "3px 8px", borderRadius: 7, whiteSpace: "nowrap" }}>งานขาย</span>
-        {val > 0 && <span style={{ background: "var(--primary-soft)", color: "var(--primary-dark)", fontWeight: 800, padding: "3px 8px", borderRadius: 7, fontVariantNumeric: "tabular-nums" }}>฿{fmtBaht(val)}</span>}
+          style={{ fontWeight: 800, color: "var(--text-3)", background: "var(--surface3)",
+            padding: "3px 9px", borderRadius: 99, whiteSpace: "nowrap" }}>งานขาย</span>
+        {val > 0 && <span style={{ background: "var(--primary-soft)", color: "var(--primary-dark)", fontWeight: 800, padding: "3px 9px", borderRadius: 99, fontVariantNumeric: "tabular-nums" }}>฿{fmtBaht(val)}</span>}
         {q0 && (() => { const s = QUOTE_STATUS_BY[q0.status] || QUOTE_STATUS_BY.draft; return (
-          <span style={{ background: s.color + "14", border: "1px solid " + s.color + "33", color: s.color, fontWeight: 800, padding: "3px 8px", borderRadius: 7 }}>
+          <span style={{ background: s.color + "1c", color: s.color, fontWeight: 800, padding: "3px 9px", borderRadius: 99 }}>
             ใบเสนอราคา · {s.th}
           </span>
         ); })()}
@@ -2098,15 +2097,15 @@ function SalesBoardView({ leads, quotes, search, currentUser, onOpenLead, onPatc
               onDragOver={(e) => { if (!ok) return; e.preventDefault(); setOver(c.key); }}
               onDragLeave={() => setOver((o) => (o === c.key ? null : o))}
               onDrop={() => onDrop(c.key)}
-              style={{ width: 262, flexShrink: 0, display: "flex", flexDirection: "column", borderRadius: 18,
-                background: isOver ? c.soft : "var(--surface2)", border: "1px solid " + (isOver ? c.color : "var(--border)"),
-                transition: "background .15s, border-color .15s" }}>
-              <div style={{ padding: "12px 14px", borderBottom: "1px solid var(--border)", position: "sticky", top: 0, zIndex: 1,
-                background: isOver ? c.soft : "var(--surface2)", borderRadius: "17px 17px 0 0" }}>
+              className="bd-col"
+              style={{ width: 262, flexShrink: 0, display: "flex", flexDirection: "column",
+                background: isOver ? c.soft : null, borderColor: isOver ? c.color : null }}>
+              <div className="hd">
                 <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
                   <span style={{ display: "flex", alignItems: "center", gap: 8, minWidth: 0 }}>
                     <span style={{ width: 7, height: 7, borderRadius: 99, background: c.color, flexShrink: 0 }} />
-                    <span style={{ fontSize: 11.5, fontWeight: 700, letterSpacing: ".05em", color: "var(--text-2)",
+                    {/* ไม่ถ่างตัวอักษร — ชื่อขั้นเป็นภาษาไทย การถ่างจะดันสระกับวรรณยุกต์หลุดตำแหน่ง */}
+                    <span style={{ fontSize: 12, fontWeight: 700, color: "var(--text-2)",
                       whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{c.th}</span>
                   </span>
                   <span style={{ fontFamily: "var(--display)", fontSize: 15, fontWeight: 700, letterSpacing: "-.02em",
@@ -2114,16 +2113,12 @@ function SalesBoardView({ leads, quotes, search, currentUser, onOpenLead, onPatc
                 </div>
                 {sum > 0 && <div style={{ fontSize: 10.5, color: "var(--text-3)", marginTop: 3, fontVariantNumeric: "tabular-nums" }}>มูลค่ารวม ฿{fmtBaht(sum)}</div>}
               </div>
-              <div style={{ padding: 11, display: "flex", flexDirection: "column", gap: 11, overflowY: "auto", flex: 1, minHeight: 80 }}>
+              <div className="bd">
                 {col.map((l) => (
                   <SalesCard key={l.id} lead={l} quotes={quotes} onOpen={onOpenLead} dragging={drag === l.id}
                     onDragStart={(e, lead) => { setDrag(lead.id); e.dataTransfer.effectAllowed = "move"; }} />
                 ))}
-                {col.length === 0 && (
-                  <div style={{ padding: "20px 0", textAlign: "center", fontSize: 12, color: "var(--text-3)", border: "1.5px dashed var(--border-strong)", borderRadius: 10 }}>
-                    {isOver ? "วางที่นี่" : "ว่าง"}
-                  </div>
-                )}
+                {col.length === 0 && <div className="empty">{isOver ? "วางที่นี่" : "ว่าง"}</div>}
               </div>
             </div>
           );

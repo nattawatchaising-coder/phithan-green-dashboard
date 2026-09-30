@@ -73,13 +73,11 @@ function PermitCard({ job, onOpen, onDragStart, dragging, draggable }) {
   const days = p.submittedAt ? Math.floor((Date.now() - new Date(p.submittedAt).getTime()) / 86400000) : 0;
   const late = p.status === "sent" && days >= 3;   /* ค้างเกิน 3 วัน = ควรรีบรับ */
   return (
+    /* หน้าตาทั้งใบอยู่ในคลาส .bd-card (index.html) — ชุดเดียวกับการ์ดงานติดตั้งและใบลูกค้า
+       ใบที่ลากไม่ได้ตั้ง data-nodrag ให้เคอร์เซอร์เป็นนิ้วชี้ ไม่ใช่มือลาก */
     <div draggable={!!draggable} onDragStart={(e) => draggable && onDragStart(e, job)} onClick={() => onOpen(job)}
-      style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 14, padding: "12px 13px",
-        cursor: draggable ? "grab" : "pointer", boxShadow: "var(--shadow-sm)", opacity: dragging ? .4 : 1,
-        borderLeft: "3px solid " + (st ? st.color : "var(--border-strong)"),
-        transition: "box-shadow .16s, transform .16s" }}
-      onMouseEnter={(e) => { e.currentTarget.style.boxShadow = "0 8px 22px rgba(8,20,14,.09)"; e.currentTarget.style.transform = "translateY(-2px)"; }}
-      onMouseLeave={(e) => { e.currentTarget.style.boxShadow = "var(--shadow-sm)"; e.currentTarget.style.transform = "none"; }}>
+      className="bd-card" data-drag={dragging ? "1" : null} data-nodrag={draggable ? null : "1"}
+      style={{ "--rail": st ? st.color : "var(--border-strong)" }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8, marginBottom: 6 }}>
         <span style={{ fontFamily: "var(--mono)", fontSize: 11, fontWeight: 600, color: "var(--text-3)" }}>{job.code}</span>
         {late && <span style={{ fontSize: 10, fontWeight: 700, color: "#EF4444", background: "var(--tint-red-bg2)", padding: "1px 7px", borderRadius: 99 }}>ค้าง {days} วัน</span>}

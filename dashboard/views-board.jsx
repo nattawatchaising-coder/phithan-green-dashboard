@@ -12,13 +12,11 @@ function KanbanCard({ job, onOpen, onDragStart, dragging }) {
   return (
     /* การ์ดงาน — คอลัมน์บอกขั้นงานอยู่แล้ว การ์ดจึงไม่ต้องทาสีขั้นงานซ้ำ
        เหลือขีดสีไว้เฉพาะตอน "มีปัญหา" หรือ "ล่าช้า" ซึ่งเป็นสีที่มีความหมายจริง */
+    /* หน้าตาทั้งใบอยู่ในคลาส .bd-card (index.html) — ที่นี่เหลือแค่ "ขีดสีซ้ายหมายถึงอะไร"
+       ส่งสีเข้าไปทางตัวแปร --rail · ไม่ตั้ง = งานปกติ = ไม่มีขีด */
     <div draggable onDragStart={(e) => onDragStart(e, job)} onClick={() => onOpen(job)}
-      style={{ background: "var(--surface)", border: "1px solid " + (job.problem ? "var(--tint-red-bd)" : "var(--border)"),
-        borderRadius: 14, padding: "13px 14px", cursor: "grab", boxShadow: "var(--shadow-sm)", opacity: dragging ? 0.4 : 1,
-        borderLeft: job.problem ? "3px solid var(--mark-danger)" : (job.delayed ? "3px solid var(--mark-warn)" : "1px solid var(--border)"),
-        transition: "box-shadow .16s, transform .16s, border-color .16s" }}
-      onMouseEnter={(e) => { e.currentTarget.style.boxShadow = "0 8px 22px rgba(8,20,14,.09)"; e.currentTarget.style.transform = "translateY(-2px)"; }}
-      onMouseLeave={(e) => { e.currentTarget.style.boxShadow = "var(--shadow-sm)"; e.currentTarget.style.transform = "none"; }}>
+      className="bd-card" data-drag={dragging ? "1" : null}
+      style={{ "--rail": job.problem ? "var(--mark-danger)" : (job.delayed ? "var(--mark-warn)" : null) }}>
       {/* แถวหัวการ์ด — ให้ขึ้นบรรทัดใหม่ได้
          การ์ดกว้าง ~200px พอมีป้ายสองใบ (รออนุมัติ + ประเภทงาน) ป้ายท้ายสุดจะล้นออกนอกการ์ด
          แล้วถูกขอบการ์ดตัดจนอ่านไม่ออก · ตกลงมาอีกบรรทัดดีกว่าโดนตัด */}
@@ -74,7 +72,7 @@ function KanbanCard({ job, onOpen, onDragStart, dragging }) {
         if (!pst) return null;
         const rejected = job.permit.status === "rejected";
         return (
-          <div style={{ marginBottom: 10, padding: "6px 9px", borderRadius: 9, background: pst.color + "14",
+          <div style={{ marginBottom: 10, padding: "7px 10px", borderRadius: 11, background: pst.color + "14",
             border: "1px solid " + pst.color + (rejected ? "" : "33") }}>
             <div style={{ fontSize: 10.5, fontWeight: 800, color: pst.color }}>
               <Icon name="shield" size={10} color={pst.color} style={{ verticalAlign: -1 }} /> ขออนุญาต · {pst.th}

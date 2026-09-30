@@ -96,145 +96,133 @@ function PermitCard({
   const pt = (PERMIT_TYPES.find(x => x.key === p.permitType) || {}).th || "";
   const days = p.submittedAt ? Math.floor((Date.now() - new Date(p.submittedAt).getTime()) / 86400000) : 0;
   const late = p.status === "sent" && days >= 3;
-  return React.createElement("div", {
-    draggable: !!draggable,
-    onDragStart: e => draggable && onDragStart(e, job),
-    onClick: () => onOpen(job),
-    style: {
-      background: "var(--surface)",
-      border: "1px solid var(--border)",
-      borderRadius: 14,
-      padding: "12px 13px",
-      cursor: draggable ? "grab" : "pointer",
-      boxShadow: "var(--shadow-sm)",
-      opacity: dragging ? .4 : 1,
-      borderLeft: "3px solid " + (st ? st.color : "var(--border-strong)"),
-      transition: "box-shadow .16s, transform .16s"
-    },
-    onMouseEnter: e => {
-      e.currentTarget.style.boxShadow = "0 8px 22px rgba(8,20,14,.09)";
-      e.currentTarget.style.transform = "translateY(-2px)";
-    },
-    onMouseLeave: e => {
-      e.currentTarget.style.boxShadow = "var(--shadow-sm)";
-      e.currentTarget.style.transform = "none";
-    }
-  }, React.createElement("div", {
-    style: {
-      display: "flex",
-      justifyContent: "space-between",
-      alignItems: "center",
-      gap: 8,
-      marginBottom: 6
-    }
-  }, React.createElement("span", {
-    style: {
-      fontFamily: "var(--mono)",
-      fontSize: 11,
-      fontWeight: 600,
-      color: "var(--text-3)"
-    }
-  }, job.code), late && React.createElement("span", {
-    style: {
-      fontSize: 10,
-      fontWeight: 700,
-      color: "#EF4444",
-      background: "var(--tint-red-bg2)",
-      padding: "1px 7px",
-      borderRadius: 99
-    }
-  }, "\u0E04\u0E49\u0E32\u0E07 ", days, " \u0E27\u0E31\u0E19")), React.createElement("div", {
-    style: {
-      fontSize: 14,
-      fontWeight: 700,
-      color: "var(--text-1)",
-      lineHeight: 1.3,
-      marginBottom: 3
-    }
-  }, job.name), React.createElement("div", {
-    style: {
-      fontSize: 11.5,
-      color: "var(--text-3)",
-      marginBottom: 9,
-      whiteSpace: "nowrap",
-      overflow: "hidden",
-      textOverflow: "ellipsis"
-    }
-  }, React.createElement(Icon, {
-    name: "pin",
-    size: 11,
-    style: {
-      verticalAlign: -1
-    }
-  }), " ", job.province || "—", p.auth ? " · " + p.auth : "", p.branch ? " " + p.branch : ""), React.createElement("div", {
-    style: {
-      display: "flex",
-      gap: 5,
-      flexWrap: "wrap",
-      fontSize: 10.5,
-      color: "var(--text-2)"
-    }
-  }, pt && React.createElement("span", {
-    style: {
-      background: "var(--surface2)",
-      padding: "3px 8px",
-      borderRadius: 7
-    }
-  }, pt), React.createElement("span", {
-    style: {
-      background: "var(--surface2)",
-      padding: "3px 8px",
-      borderRadius: 7,
-      fontFamily: "var(--mono)"
-    }
-  }, p.kwp || job.kw || "—", " kWp"), p.reqNo && React.createElement("span", {
-    style: {
-      background: "var(--surface2)",
-      padding: "3px 8px",
-      borderRadius: 7,
-      fontFamily: "var(--mono)"
-    }
-  }, "\u0E04\u0E33\u0E23\u0E49\u0E2D\u0E07 ", p.reqNo), job.hasDesign && React.createElement("span", {
-    style: {
-      background: "#2563EB14",
-      border: "1px solid #2563EB33",
-      color: "#2563EB",
-      fontWeight: 800,
-      padding: "3px 8px",
-      borderRadius: 7
-    }
-  }, "\u0E41\u0E1A\u0E1A"), job.hasBoq && React.createElement("span", {
-    style: {
-      background: "#0D948814",
-      border: "1px solid #0D948833",
-      color: "#0D9488",
-      fontWeight: 800,
-      padding: "3px 8px",
-      borderRadius: 7
-    }
-  }, "BOQ")), p.status === "rejected" && p.rejectReason && React.createElement("div", {
-    style: {
-      marginTop: 9,
-      fontSize: 11,
-      lineHeight: 1.45,
-      color: "var(--tint-red-tx)",
-      background: "var(--tint-red-bg)",
-      borderRadius: 8,
-      padding: "6px 8px",
-      display: "-webkit-box",
-      WebkitLineClamp: 2,
-      WebkitBoxOrient: "vertical",
-      overflow: "hidden"
-    }
-  }, "\u21A9 ", p.rejectReason), React.createElement("div", {
-    style: {
-      marginTop: 9,
-      paddingTop: 9,
-      borderTop: "1px solid var(--border)",
-      fontSize: 10.5,
-      color: "var(--text-3)"
-    }
-  }, !p.status ? "ติดตั้งเสร็จแล้ว · ยังไม่มีชุดข้อมูลขออนุญาต" : p.status === "approved" ? "อนุมัติ " + (p.approvedDate ? thDate(p.approvedDate, true) : "—") : p.status === "filing" ? "ยื่นเมื่อ " + (p.filedDate ? thDate(p.filedDate, true) : "—") : p.submittedAt ? "ช่างส่ง " + thDate(String(p.submittedAt).slice(0, 10), true) + (p.submittedBy ? " · " + p.submittedBy : "") : "ยังไม่ได้ส่ง"));
+  return (React.createElement("div", {
+      draggable: !!draggable,
+      onDragStart: e => draggable && onDragStart(e, job),
+      onClick: () => onOpen(job),
+      className: "bd-card",
+      "data-drag": dragging ? "1" : null,
+      "data-nodrag": draggable ? null : "1",
+      style: {
+        "--rail": st ? st.color : "var(--border-strong)"
+      }
+    }, React.createElement("div", {
+      style: {
+        display: "flex",
+        justifyContent: "space-between",
+        alignItems: "center",
+        gap: 8,
+        marginBottom: 6
+      }
+    }, React.createElement("span", {
+      style: {
+        fontFamily: "var(--mono)",
+        fontSize: 11,
+        fontWeight: 600,
+        color: "var(--text-3)"
+      }
+    }, job.code), late && React.createElement("span", {
+      style: {
+        fontSize: 10,
+        fontWeight: 700,
+        color: "#EF4444",
+        background: "var(--tint-red-bg2)",
+        padding: "1px 7px",
+        borderRadius: 99
+      }
+    }, "\u0E04\u0E49\u0E32\u0E07 ", days, " \u0E27\u0E31\u0E19")), React.createElement("div", {
+      style: {
+        fontSize: 14,
+        fontWeight: 700,
+        color: "var(--text-1)",
+        lineHeight: 1.3,
+        marginBottom: 3
+      }
+    }, job.name), React.createElement("div", {
+      style: {
+        fontSize: 11.5,
+        color: "var(--text-3)",
+        marginBottom: 9,
+        whiteSpace: "nowrap",
+        overflow: "hidden",
+        textOverflow: "ellipsis"
+      }
+    }, React.createElement(Icon, {
+      name: "pin",
+      size: 11,
+      style: {
+        verticalAlign: -1
+      }
+    }), " ", job.province || "—", p.auth ? " · " + p.auth : "", p.branch ? " " + p.branch : ""), React.createElement("div", {
+      style: {
+        display: "flex",
+        gap: 5,
+        flexWrap: "wrap",
+        fontSize: 10.5,
+        color: "var(--text-2)"
+      }
+    }, pt && React.createElement("span", {
+      style: {
+        background: "var(--surface2)",
+        padding: "3px 8px",
+        borderRadius: 7
+      }
+    }, pt), React.createElement("span", {
+      style: {
+        background: "var(--surface2)",
+        padding: "3px 8px",
+        borderRadius: 7,
+        fontFamily: "var(--mono)"
+      }
+    }, p.kwp || job.kw || "—", " kWp"), p.reqNo && React.createElement("span", {
+      style: {
+        background: "var(--surface2)",
+        padding: "3px 8px",
+        borderRadius: 7,
+        fontFamily: "var(--mono)"
+      }
+    }, "\u0E04\u0E33\u0E23\u0E49\u0E2D\u0E07 ", p.reqNo), job.hasDesign && React.createElement("span", {
+      style: {
+        background: "#2563EB14",
+        border: "1px solid #2563EB33",
+        color: "#2563EB",
+        fontWeight: 800,
+        padding: "3px 8px",
+        borderRadius: 7
+      }
+    }, "\u0E41\u0E1A\u0E1A"), job.hasBoq && React.createElement("span", {
+      style: {
+        background: "#0D948814",
+        border: "1px solid #0D948833",
+        color: "#0D9488",
+        fontWeight: 800,
+        padding: "3px 8px",
+        borderRadius: 7
+      }
+    }, "BOQ")), p.status === "rejected" && p.rejectReason && React.createElement("div", {
+      style: {
+        marginTop: 9,
+        fontSize: 11,
+        lineHeight: 1.45,
+        color: "var(--tint-red-tx)",
+        background: "var(--tint-red-bg)",
+        borderRadius: 8,
+        padding: "6px 8px",
+        display: "-webkit-box",
+        WebkitLineClamp: 2,
+        WebkitBoxOrient: "vertical",
+        overflow: "hidden"
+      }
+    }, "\u21A9 ", p.rejectReason), React.createElement("div", {
+      style: {
+        marginTop: 9,
+        paddingTop: 9,
+        borderTop: "1px solid var(--border)",
+        fontSize: 10.5,
+        color: "var(--text-3)"
+      }
+    }, !p.status ? "ติดตั้งเสร็จแล้ว · ยังไม่มีชุดข้อมูลขออนุญาต" : p.status === "approved" ? "อนุมัติ " + (p.approvedDate ? thDate(p.approvedDate, true) : "—") : p.status === "filing" ? "ยื่นเมื่อ " + (p.filedDate ? thDate(p.filedDate, true) : "—") : p.submittedAt ? "ช่างส่ง " + thDate(String(p.submittedAt).slice(0, 10), true) + (p.submittedBy ? " · " + p.submittedBy : "") : "ยังไม่ได้ส่ง"))
+  );
 }
 function PermitQueueView({
   jobs,

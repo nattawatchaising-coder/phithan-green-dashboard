@@ -18,100 +18,75 @@ function FlCol({
   onDrop,
   children
 }) {
-  return React.createElement("div", {
-    onDragOver: onDragOver,
-    onDragLeave: onDragLeave,
-    onDrop: onDrop,
-    style: {
-      width: 262,
-      flexShrink: 0,
-      display: "flex",
-      flexDirection: "column",
-      borderRadius: 18,
-      background: isOver ? col.soft : "var(--surface2)",
-      border: "1px solid " + (isOver ? col.color : "var(--border)"),
-      opacity: dimmed ? 0.5 : 1,
-      transition: "background .15s, border-color .15s, opacity .15s"
-    }
-  }, React.createElement("div", {
-    style: {
-      padding: "12px 14px",
-      borderBottom: "1px solid var(--border)",
-      position: "sticky",
-      top: 0,
-      zIndex: 1,
-      background: isOver ? col.soft : "var(--surface2)",
-      borderRadius: "17px 17px 0 0",
-      transition: "background .15s"
-    }
-  }, React.createElement("div", {
-    style: {
-      display: "flex",
-      alignItems: "center",
-      justifyContent: "space-between",
-      gap: 8
-    }
-  }, React.createElement("span", {
-    style: {
-      display: "flex",
-      alignItems: "center",
-      gap: 8,
-      minWidth: 0
-    }
-  }, React.createElement("span", {
-    style: {
-      width: 7,
-      height: 7,
-      borderRadius: 99,
-      background: col.color,
-      flexShrink: 0
-    }
-  }), React.createElement("span", {
-    style: {
-      fontSize: 11.5,
-      fontWeight: 700,
-      letterSpacing: ".05em",
-      color: "var(--text-2)",
-      whiteSpace: "nowrap",
-      overflow: "hidden",
-      textOverflow: "ellipsis"
-    }
-  }, col.th)), React.createElement("span", {
-    style: {
-      fontFamily: "var(--display)",
-      fontSize: 15,
-      fontWeight: 700,
-      letterSpacing: "-.02em",
-      color: count ? "var(--text-1)" : "var(--text-3)",
-      fontVariantNumeric: "tabular-nums"
-    }
-  }, count)), sub && React.createElement("div", {
-    style: {
-      fontSize: 10.5,
-      color: "var(--text-3)",
-      marginTop: 3,
-      fontVariantNumeric: "tabular-nums"
-    }
-  }, sub)), React.createElement("div", {
-    style: {
-      padding: 11,
-      display: "flex",
-      flexDirection: "column",
-      gap: 11,
-      overflowY: "auto",
-      flex: 1,
-      minHeight: 80
-    }
-  }, children, count === 0 && React.createElement("div", {
-    style: {
-      padding: "20px 0",
-      textAlign: "center",
-      fontSize: 12,
-      color: "var(--text-3)",
-      border: "1.5px dashed var(--border-strong)",
-      borderRadius: 10
-    }
-  }, isOver ? "วางที่นี่" : "ว่าง")));
+  return (React.createElement("div", {
+      onDragOver: onDragOver,
+      onDragLeave: onDragLeave,
+      onDrop: onDrop,
+      className: "bd-col",
+      style: {
+        width: 262,
+        flexShrink: 0,
+        display: "flex",
+        flexDirection: "column",
+        background: isOver ? col.soft : null,
+        borderColor: isOver ? col.color : null,
+        opacity: dimmed ? 0.5 : 1
+      }
+    }, React.createElement("div", {
+      className: "hd"
+    }, React.createElement("div", {
+      style: {
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "space-between",
+        gap: 8
+      }
+    }, React.createElement("span", {
+      style: {
+        display: "flex",
+        alignItems: "center",
+        gap: 8,
+        minWidth: 0
+      }
+    }, React.createElement("span", {
+      style: {
+        width: 7,
+        height: 7,
+        borderRadius: 99,
+        background: col.color,
+        flexShrink: 0
+      }
+    }), React.createElement("span", {
+      style: {
+        fontSize: 12,
+        fontWeight: 700,
+        color: "var(--text-2)",
+        whiteSpace: "nowrap",
+        overflow: "hidden",
+        textOverflow: "ellipsis"
+      }
+    }, col.th)), React.createElement("span", {
+      style: {
+        fontFamily: "var(--display)",
+        fontSize: 15,
+        fontWeight: 700,
+        letterSpacing: "-.02em",
+        color: count ? "var(--text-1)" : "var(--text-3)",
+        fontVariantNumeric: "tabular-nums"
+      }
+    }, count)), sub && React.createElement("div", {
+      style: {
+        fontSize: 10.5,
+        color: "var(--text-3)",
+        marginTop: 3,
+        fontVariantNumeric: "tabular-nums"
+      }
+    }, sub)), React.createElement("div", {
+      className: "bd"
+    }, children, count === 0 && React.createElement("div", {
+      className: "empty"
+    }, isOver ? "วางที่นี่" : "ว่าง")))
+  );
 }
 function FlGroup({
   g,
@@ -134,8 +109,8 @@ function FlGroup({
         alignItems: "center",
         gap: 10,
         padding: "14px 0",
-        borderRadius: 18,
-        border: "1px solid var(--border)",
+        borderRadius: "var(--r-card)",
+        border: "none",
         background: "var(--surface2)",
         cursor: "pointer",
         fontFamily: "inherit"
@@ -158,9 +133,8 @@ function FlGroup({
     }, count), React.createElement("span", {
       style: {
         writingMode: "vertical-rl",
-        fontSize: 11.5,
+        fontSize: 12,
         fontWeight: 700,
-        letterSpacing: ".08em",
         color: "var(--text-2)",
         whiteSpace: "nowrap"
       }
@@ -199,11 +173,12 @@ function FlGroup({
     },
     "aria-label": "พับช่วง " + g.th,
     style: {
-      width: 26,
-      height: 26,
-      borderRadius: 8,
-      border: "1px solid var(--border)",
+      width: 27,
+      height: 27,
+      borderRadius: 99,
+      border: "none",
       background: "var(--surface)",
+      boxShadow: "var(--shadow-sm)",
       cursor: "pointer",
       display: "grid",
       placeItems: "center",
@@ -226,9 +201,8 @@ function FlGroup({
     }
   }), React.createElement("span", {
     style: {
-      fontSize: 12,
+      fontSize: 12.5,
       fontWeight: 800,
-      letterSpacing: ".08em",
       color: "var(--text-2)"
     }
   }, g.th), React.createElement("span", {

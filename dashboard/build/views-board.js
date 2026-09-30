@@ -12,24 +12,10 @@ function KanbanCard({
       draggable: true,
       onDragStart: e => onDragStart(e, job),
       onClick: () => onOpen(job),
+      className: "bd-card",
+      "data-drag": dragging ? "1" : null,
       style: {
-        background: "var(--surface)",
-        border: "1px solid " + (job.problem ? "var(--tint-red-bd)" : "var(--border)"),
-        borderRadius: 14,
-        padding: "13px 14px",
-        cursor: "grab",
-        boxShadow: "var(--shadow-sm)",
-        opacity: dragging ? 0.4 : 1,
-        borderLeft: job.problem ? "3px solid var(--mark-danger)" : job.delayed ? "3px solid var(--mark-warn)" : "1px solid var(--border)",
-        transition: "box-shadow .16s, transform .16s, border-color .16s"
-      },
-      onMouseEnter: e => {
-        e.currentTarget.style.boxShadow = "0 8px 22px rgba(8,20,14,.09)";
-        e.currentTarget.style.transform = "translateY(-2px)";
-      },
-      onMouseLeave: e => {
-        e.currentTarget.style.boxShadow = "var(--shadow-sm)";
-        e.currentTarget.style.transform = "none";
+        "--rail": job.problem ? "var(--mark-danger)" : job.delayed ? "var(--mark-warn)" : null
       }
     }, React.createElement("div", {
       style: {
@@ -196,8 +182,8 @@ function KanbanCard({
       return React.createElement("div", {
         style: {
           marginBottom: 10,
-          padding: "6px 9px",
-          borderRadius: 9,
+          padding: "7px 10px",
+          borderRadius: 11,
           background: pst.color + "14",
           border: "1px solid " + pst.color + (rejected ? "" : "33")
         }
