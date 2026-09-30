@@ -549,7 +549,6 @@ function LeadDetail({ l, ctx }) {
           canManage, canDesign, onSaveBoq,
           onOpenSurvey, onReport, onOpenQuote, onPlan3d, onConvert, canConvert, setEdit, setLog, setStage } = ctx;
   const [ask, setAsk] = React.useState(null);   // { kind: "del" | "conv" }
-  const [designOpen, setDesignOpen] = React.useState(false);
   const [boqOpen, setBoqOpen] = React.useState(false);
   const [delC, setDelC] = React.useState(null);   // บันทึกการติดต่อที่กำลังจะลบ (ถามยืนยันก่อน)
 
@@ -722,19 +721,13 @@ function LeadDetail({ l, ctx }) {
           <Icon name="file" size={15} color="var(--primary-dark)" /> ดูรายงานผลสำรวจ · บันทึก PDF
         </button>
       )}
-      {/* แบบที่ปั้นไว้ตอนยังเป็นลูกค้าจะตามไปกับงานเองตอนกดแปลง จึงเปิดด้วยเลขงานถ้าแปลงแล้ว */}
+      {/* แบบที่ปั้นไว้ตอนยังเป็นลูกค้าจะตามไปกับงานเองตอนกดแปลง จึงเปิดด้วยเลขงานถ้าแปลงแล้ว 
+         ออกแบบระบบ/ผลผลิต ไม่มีแถวของตัวเอง — กลับไปอยู่ในจอ 3 มิติตามเดิม
+         เพราะมันกินทิศกับมุมของแผงจากผังนั้นตรง ๆ เปิดแยกจะกลายเป็นสองทางที่ทำเรื่องเดียวกัน */}
       {onPlan3d && (
         <LeadActionRow icon="panel" color="#4F46E5" title="วางแผง 3D"
-          sub="ปั้นผังหลังคาไปคุยกับลูกค้า · ดึงจำนวนแผงเข้าใบเสนอราคาได้"
+          sub="ปั้นผังหลังคา · ดึงจำนวนแผงเข้าใบเสนอราคา · ออกแบบระบบ + ผลผลิต อยู่ในจอเดียวกัน"
           onClick={() => onPlan3d(job || window.leadAsJob(l))} />
-      )}
-      {/* ── ของที่ต้องใช้ตั้งแต่ตอนเสนอราคา ──
-         งานโครงการต้องคำนวณระบบกับถอดของให้เสร็จก่อน ถึงจะรู้ราคาไปเสนอลูกค้าได้
-         เดิมต้องกดแปลงเป็นงานก่อนถึงจะเข้าถึงสามอย่างนี้ ซึ่งทำให้ฐานข้อมูลงานมีงานที่ยังไม่ได้ขาย */}
-      {asJob && window.SolarDesignHost && canDesign !== false && (
-        <LeadActionRow icon="bolt" color="#B45309" title="ออกแบบระบบ + ผลผลิต"
-          sub="ต่อสตริง · ตรวจ I-V · ผลผลิต 25 ปี · คืนทุน — ใช้ผังแผงที่ปั้นไว้"
-          onClick={() => setDesignOpen(true)} />
       )}
       {asJob && window.BOQEditor && (
         <LeadActionRow icon="box" color="var(--primary-dark)" title="ถอดวัสดุ BOQ"
@@ -820,9 +813,6 @@ function LeadDetail({ l, ctx }) {
         )}
       </div>
 
-      {designOpen && asJob && window.SolarDesignHost && (
-        <window.SolarDesignHost job={asJob} onClose={() => setDesignOpen(false)} />
-      )}
       {boqOpen && asJob && window.BOQEditor && (
         <window.BOQEditor job={asJob} priceMap={priceMap} stock={stock} onClose={() => setBoqOpen(false)}
           onSave={onSaveBoq ? (boq) => { onSaveBoq(asJob, boq); setBoqOpen(false); } : null} />
