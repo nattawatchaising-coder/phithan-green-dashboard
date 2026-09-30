@@ -620,9 +620,12 @@ html.theme-anim, html.theme-anim * { transition: background-color .34s ease, bor
 
 /* รางของขั้นงาน — เป็น "ถาดรอง" ไม่ใช่การ์ด จึงสว่างกว่าพื้นหน้าหนึ่งขั้นและไม่มีเงาของตัวเอง
    การ์ดข้างในเป็นสีขาวเต็มพร้อมเงา ความต่างสองชั้นนี้คือสิ่งที่ทำให้กองงานอ่านออกโดยไม่ต้องมีเส้นขอบ */
-/* ถาดต้อง "จม" กว่าหน้า ไม่ใช่ "ลอย" เหนือหน้า — การ์ดขาวจึงเด่นขึ้นมาโดยไม่ต้องมีเส้นขอบ
-   ถ้าทำถาดสว่างกว่าหน้า (surface2) มันจะต่างจากพื้นหน้าไม่ถึง 5 หน่วยสี รางที่ยังว่างจะหายไปทั้งราง */
-.bd-col{border-radius:var(--r-card);background:color-mix(in srgb,var(--text-1) 5%,var(--bg));
+/* รางไม่มีสีเป็นของตัวเอง — ใช้สีเดียวกับพื้นหน้า การ์ดขาวลอยอยู่บนพื้นตรง ๆ
+   ⚠ ห้ามทำรางให้เข้มกว่าหรือสว่างกว่าพื้นหน้า — ระหว่างรางมีช่องว่าง 14px คั่นอยู่
+     พื้นหน้าที่โผล่ขึ้นมาตรงช่องนั้นจะกลายเป็นเส้นสว่างแนวตั้งระหว่างทุกคู่ ซึ่งเด่นกว่าตัวรางเอง
+     ที่ต้องมีสี (ไม่ใช่ transparent) เพราะหัวรางเป็น sticky และรับพื้นมาจากรางด้วย inherit
+     ถ้ารางโปร่ง การ์ดที่เลื่อนลอดใต้หัวจะทะลุขึ้นมาซ้อนตัวหนังสือ */
+.bd-col{border-radius:var(--r-card);background:var(--bg);
   border:1px solid transparent;transition:background .15s,border-color .15s,opacity .15s}
 /* หัวรางค้างบนสุดเวลาเลื่อน จึงต้องพื้นทึบ — ไม่มีเส้นคาดใต้ ที่ว่างแยกหัวออกจากกองการ์ดพอแล้ว */
 .bd-col>.hd{padding:14px 16px 10px;position:sticky;top:0;z-index:1;background:inherit;
@@ -660,8 +663,15 @@ html.theme-anim, html.theme-anim * { transition: background-color .34s ease, bor
 .bd-card[data-nodrag="1"]{cursor:pointer}
 @media (prefers-reduced-motion: reduce){.bd-card:hover{transform:none}}
 /* พื้นมืดไม่มีเงาให้ใช้ — การ์ดบอกตัวเองด้วยความสว่างกับเส้นขอบบางแทน */
-[data-theme="aurora"] .bd-col{background:rgba(255,255,255,.04)}
-[data-theme="aurora"] .bd-card{background:var(--gr-card);box-shadow:0 1px 3px rgba(0,0,0,.4)}
+[data-theme="aurora"] .bd-col{background:var(--bg)}
+/* ⚠ background-color ไม่ใช่ background — แบบย่อจะล้าง background-image ไปด้วย
+   ซึ่งคือผ้าคลุมสีสถานะทั้งหมด โหมดมืดจึงเคยไม่มีสีสถานะเลย ทั้งที่กฎกลางเขียนไว้ครบ */
+[data-theme="aurora"] .bd-card{background-color:var(--gr-card);box-shadow:0 1px 3px rgba(0,0,0,.4)}
+/* พื้นมืด สีจาง 15% จะจมหายไปกับการ์ดเทาเข้ม ต้องเข้มกว่าโหมดสว่างเกือบสองเท่า */
+[data-theme="aurora"] .bd-card{background-image:radial-gradient(150% 170% at 100% 40%,
+  color-mix(in srgb,var(--rail,transparent) 28%,transparent) 0%,transparent 62%)}
+[data-theme="aurora"] .bd-card:hover{background-image:radial-gradient(150% 170% at 100% 40%,
+  color-mix(in srgb,var(--rail,transparent) 40%,transparent) 0%,transparent 62%)}
 
 /* แถบความคืบหน้า — ไล่เฉดจากจางไปเข้ม ไม่ใช่แท่งสีตัน
    แท่งสีตันบอกได้อย่างเดียวว่า "มาถึงตรงนี้" · การไล่เฉดบอกทิศทางที่มันวิ่งไปด้วย
