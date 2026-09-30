@@ -307,7 +307,9 @@ function StockView({ stock, onResetAll, onMenuOpen, currentUser, jobs, priceStor
 
   return (
     <React.Fragment>
-      <header className="app-header">
+      {/* ชิดล่างเท่าหัวจอหน้าอื่น — เมื่อก่อนแถบตัวกรองเคยอยู่ในนี้ มันออกระยะห่างล่างให้เอง
+          พอย้ายแถบออกไป หัวจอหน้านี้เตี้ยกว่าหน้าอื่น 18px จึงต้องใส่คืน */}
+      <header className="app-header" style={{ paddingBottom: isMobile ? 12 : 18 }}>
         <div className="header-top">
           <button className="hamburger" onClick={onMenuOpen} aria-label="เปิดเมนู">
             <Icon name="menu" size={18} color="var(--text-2)" />

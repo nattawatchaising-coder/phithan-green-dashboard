@@ -560,7 +560,10 @@ function StockView({
     count: subCount[c.key] || 0
   })))));
   return React.createElement(React.Fragment, null, React.createElement("header", {
-    className: "app-header"
+    className: "app-header",
+    style: {
+      paddingBottom: isMobile ? 12 : 18
+    }
   }, React.createElement("div", {
     className: "header-top"
   }, React.createElement("button", {

@@ -140,7 +140,11 @@ label { min-width: 0; }
 /* ตั้งลำดับชั้นให้แถบหัวเรื่องอยู่เหนือเนื้อหา — กล่องแจ้งเตือน/เมนูที่ห้อยจากปุ่มบนหัวจะได้ไม่ถูกการ์ดในหน้าทะลุขึ้นมาทับ
    (ธีม aurora ใส่ backdrop-filter ที่แถบนี้ ซึ่งสร้างชั้นซ้อนของมันเอง z-index ข้างในเลยออกไปสู้กับเนื้อหาหน้าไม่ได้)
    60 = ต่ำกว่าฉากหลังเมนูข้าง (70) และกล่องซ้อนต่าง ๆ (100 ขึ้นไป) */
-.app-header { padding: 18px var(--page-gut) 0; border-bottom: 1px solid var(--border); background: var(--surface); flex-shrink: 0;
+/* สูงขั้นต่ำ — หัวจอทุกหน้าต้องสูงเท่ากัน ไม่งั้นแถบจะขยับขึ้นลงเวลาสลับหน้า
+   ที่ต่างกันคือบรรทัดรองใต้ชื่อหน้า (.page-sub) หน้าที่ไม่มีจะเตี้ยกว่าเพื่อน 7px
+   จึงจองความสูงของแถบไว้เท่ากับหน้าที่มีครบ (มือถือไม่ต้อง — หัวจอสั้นกว่าอยู่แล้ว) */
+.app-header { padding: 18px var(--page-gut) 0; min-height: 88.4px; box-sizing: border-box;
+  border-bottom: 1px solid var(--border); background: var(--surface); flex-shrink: 0;
   position: relative; z-index: 60; }
 [data-density="compact"] .app-header { padding: 12px var(--page-gut-sm) 0; }
 /* แถวบนไม่ห่อบรรทัด — ชื่อหน้า · ตัวกรอง · ปุ่มเครื่องมือ อยู่แถวเดียวกันเสมอ
@@ -348,7 +352,7 @@ html.theme-anim, html.theme-anim * { transition: background-color .34s ease, bor
   .sidebar-brand { position: relative; padding-right: 50px; }
 
   /* Header: compact — เผื่อ safe-area ด้านบน (รอยบาก/แถบสถานะ iOS) */
-  .app-header { padding: calc(12px + env(safe-area-inset-top, 0px)) 16px 0; }
+  .app-header { padding: calc(12px + env(safe-area-inset-top, 0px)) 16px 0; min-height: 0; }
   [data-density="compact"] .app-header { padding: calc(10px + env(safe-area-inset-top, 0px)) 12px 0; }
   .header-top { gap: 8px; flex-wrap: nowrap; align-items: center; }
   .page-title { font-size: 17px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 130px; }
@@ -908,7 +912,7 @@ H-@G1I margin-top D'IC*D%L-1'@- 6H
 <script src="dashboard/build/views-table.js?v=31"></script>
 <script src="dashboard/build/views-report.js?v=9"></script>
 <script src="dashboard/build/views-calendar.js?v=30"></script>
-<script src="dashboard/build/views-stock.js?v=108"></script>
+<script src="dashboard/build/views-stock.js?v=109"></script>
 <script src="dashboard/build/form.js?v=36"></script>
 <script src="dashboard/build/survey.js?v=25"></script>
 <script src="dashboard/build/survey-report.js?v=12"></script>
