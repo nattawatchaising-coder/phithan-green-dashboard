@@ -4,7 +4,7 @@ const BQ_CSS = `
   font-family:inherit;animation:bqIn .18s ease}
 @keyframes bqIn{from{opacity:0}to{opacity:1}}
 .bq-head{flex-shrink:0;display:flex;align-items:center;gap:11px;padding:11px 18px;
-  border-bottom:1px solid var(--border);background:var(--surface)}
+  box-shadow:0 10px 18px -16px rgba(8,20,14,.35);position:relative;z-index:2;background:var(--surface)}
 .bq-head .mark{width:32px;height:32px;border-radius:9px;display:grid;place-items:center;flex-shrink:0;
   background:var(--primary-soft);color:var(--primary-dark)}
 .bq-head .eb{font-size:9.5px;font-weight:700;letter-spacing:.14em;color:var(--text-3);text-transform:uppercase}
@@ -51,14 +51,14 @@ const BQ_CSS = `
 .bq-next .k{color:var(--text-3);font-weight:600}
 
 /* การ์ดเนื้อหา */
-.bq-card{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:18px 20px 20px}
-.bq-card>.hd{display:flex;align-items:center;gap:9px;padding-bottom:12px;margin-bottom:14px;
-  border-bottom:1px solid var(--border)}
+.bq-card{background:var(--surface);border-radius:var(--r-card, 18px);padding:18px 20px 20px;box-shadow:var(--shadow-card)}
+.bq-card>.hd{display:flex;align-items:center;gap:9px;margin-bottom:16px}
+.bq-card>.hd>svg{box-sizing:content-box;padding:7px;border-radius:999px;background:var(--primary-soft)}
 .bq-card>.hd .t{font-size:13.5px;font-weight:700;color:var(--text-1);letter-spacing:-.01em}
 .bq-card>.hd .r{margin-left:auto;flex-shrink:0}
 
 /* แถบสรุปล่าง */
-.bq-foot{flex-shrink:0;border-top:1px solid var(--border);background:var(--surface);
+.bq-foot{flex-shrink:0;box-shadow:0 -10px 18px -16px rgba(8,20,14,.35);position:relative;z-index:2;background:var(--surface);
   padding:10px 18px calc(10px + env(safe-area-inset-bottom,0px));display:flex;align-items:center;gap:0}
 .bq-kpis{display:flex;align-items:center;min-width:0}
 .bq-gap{flex:1}
@@ -79,7 +79,7 @@ const BQ_CSS = `
 
 /* ตารางสเปคจากคลัง + ตัวเลขที่คำนวณได้ — ช่องที่ยังไม่กรอกในคลังขึ้นสีส้มให้เห็นว่าต้องไปเติม */
 .bq-spec{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}
-.bq-spec>div{padding:9px 11px;border-radius:10px;background:var(--surface3);border:1px solid var(--border);min-width:0}
+.bq-spec>div{padding:9px 11px;border-radius:12px;background:var(--surface2);box-shadow:var(--shadow-inset);min-width:0}
 .bq-spec .k{display:block;font-size:10px;font-weight:700;color:var(--text-3);margin-bottom:3px;
   overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .bq-spec .v{display:block;font-family:var(--mono);font-size:13.5px;font-weight:800;color:var(--text-1);
@@ -103,14 +103,13 @@ const BQ_CSS = `
 .bq-x:hover{background:#EF44441a;border-color:#EF444433;color:#EF4444}
 .bq-note{margin-top:9px;display:flex;align-items:flex-start;gap:7px;padding:9px 12px;border-radius:10px;
   font-size:12px;font-weight:600;line-height:1.5}
-.bq-note.warn{background:var(--tint-amber-bg);border:1px solid var(--tint-amber-bd);color:var(--tint-amber-tx2)}
-.bq-note.ok{background:var(--tint-ok-bg);border:1px solid var(--tint-ok-bd);color:var(--tint-ok-tx)}
+.bq-note.warn{background:var(--tint-amber-bg);color:var(--tint-amber-tx2)}
+.bq-note.ok{background:var(--tint-ok-bg);color:var(--tint-ok-tx)}
 
 @media (max-width:860px){
   .bq-body{flex-direction:column}
   .bq-spec{grid-template-columns:repeat(2,minmax(0,1fr))}
-  .bq-rail{width:100%;flex-direction:row;gap:5px;overflow-x:auto;padding:9px 11px;
-    border-right:none;border-bottom:1px solid var(--border)}
+  .bq-rail{width:100%;flex-direction:row;gap:5px;overflow-x:auto;padding:9px 11px}
   .bq-rail{box-shadow:0 10px 18px -16px rgba(8,20,14,.35)}
   .bq-prog,.bq-grp{display:none}
   .bq-nav{width:auto;flex:0 0 auto;min-width:0;padding:7px 11px;align-items:center}
@@ -127,6 +126,18 @@ const BQ_CSS = `
   .bq-foot .bq-btn.pri{flex:1.6}
 }
 `;
+const BQ_MERGE = [["info", "hybrid"], ["dc", "layout"], ["raceway", "tray"], ["site", "support", "struct"], ["labor", "permit"]];
+const BQ_PAGE_TT = {
+  info: "ข้อมูลระบบ & อินเวอร์เตอร์",
+  dc: "สตริง DC & การจัดวางแผง",
+  raceway: "ท่อร้อยสาย & รางไฟ",
+  site: "หน้างาน & โครงสร้าง",
+  labor: "ค่าแรง & ค่าขออนุญาต"
+};
+const bqPageOf = k => {
+  const g = BQ_MERGE.find(x => x.indexOf(k) >= 0);
+  return g ? g[0] : k;
+};
 function BoqLocked({
   value,
   unit,
@@ -137,9 +148,9 @@ function BoqLocked({
       display: "flex",
       alignItems: "center",
       gap: 6,
-      background: "var(--surface3)",
-      border: "1px solid var(--border)",
-      borderRadius: 10,
+      background: "var(--surface2)",
+      boxShadow: "var(--shadow-inset)",
+      borderRadius: 12,
       padding: "9px 11px"
     },
     title: "\u0E15\u0E31\u0E49\u0E07\u0E04\u0E48\u0E32\u0E08\u0E32\u0E01\u0E2B\u0E19\u0E49\u0E32\u0E41\u0E01\u0E49\u0E07\u0E32\u0E19"
@@ -1537,8 +1548,8 @@ function BOQEditor({
   const isHome = !!(job && job.type === "home");
   const [openSec, setOpenSec] = React.useState("info");
   const secProps = key => ({
-    open: openSec === key,
-    onToggle: () => setOpenSec(key)
+    open: bqPageOf(openSec) === bqPageOf(key),
+    onToggle: () => setOpenSec(bqPageOf(key))
   });
   const [advU, setAdvU] = React.useState(false);
   const meas3d = useMeas3D(job ? job.id : null);
@@ -4436,9 +4447,29 @@ function BOQEditor({
     price: "cost"
   };
   const BQ_GRPS = [["sys", "ออกแบบระบบ"], ["run", "เดินสาย"], ["equip", "อุปกรณ์ & งานหน้างาน"], ["cost", "ต้นทุน & ราคา"]];
-  const secDone = navSecs.filter(x => secState(x) === "ok").length;
-  const secIdx = navSecs.findIndex(x => x.key === openSec);
-  const nextSec = secIdx >= 0 ? navSecs[secIdx + 1] : null;
+  const navPages = [];
+  navSecs.forEach(x => {
+    const pk = bqPageOf(x.key);
+    let pg = navPages.find(y => y.key === pk);
+    if (!pg) {
+      pg = {
+        key: pk,
+        subs: []
+      };
+      navPages.push(pg);
+    }
+    pg.subs.push(x);
+  });
+  navPages.forEach(pg => {
+    const sts = pg.subs.map(secState);
+    pg.title = pg.subs.length > 1 ? BQ_PAGE_TT[pg.key] : pg.subs[0].title;
+    pg.meta = pg.subs.map(x => x.meta).filter(Boolean).join(" · ");
+    pg.st = sts.indexOf("warn") >= 0 ? "warn" : sts.every(x => x === "ok") ? "ok" : "todo";
+  });
+  const curPage = bqPageOf(openSec);
+  const secDone = navPages.filter(x => x.st === "ok").length;
+  const secIdx = navPages.findIndex(x => x.key === curPage);
+  const nextSec = secIdx >= 0 ? navPages[secIdx + 1] : null;
   const goSec = k => {
     setOpenSec(k);
     const m = document.querySelector(".bq-main");
@@ -4482,22 +4513,22 @@ function BOQEditor({
     className: "k"
   }, "\u0E01\u0E23\u0E2D\u0E01\u0E41\u0E25\u0E49\u0E27"), React.createElement("span", {
     className: "v"
-  }, secDone, " / ", navSecs.length)), React.createElement("div", {
+  }, secDone, " / ", navPages.length)), React.createElement("div", {
     className: "bar"
   }, React.createElement("i", {
     style: {
-      width: (navSecs.length ? secDone / navSecs.length * 100 : 0) + "%"
+      width: (navPages.length ? secDone / navPages.length * 100 : 0) + "%"
     }
   }))), BQ_GRPS.map(([g, th]) => {
-    const list = navSecs.filter(x => (BQ_GRP_OF[x.key] || "equip") === g);
+    const list = navPages.filter(x => (BQ_GRP_OF[x.key] || "equip") === g);
     if (!list.length) return null;
     return React.createElement(React.Fragment, {
       key: g
     }, React.createElement("span", {
       className: "bq-grp"
     }, th), list.map(x => {
-      const on = openSec === x.key,
-        st = secState(x);
+      const on = curPage === x.key,
+        st = x.st;
       return React.createElement("button", {
         key: x.key,
         className: "bq-nav",
@@ -4571,9 +4602,9 @@ function BOQEditor({
       alignItems: "baseline",
       justifyContent: "flex-end",
       gap: 4,
-      background: "var(--surface3)",
-      border: "1px solid var(--border)",
-      borderRadius: 10,
+      background: "var(--surface2)",
+      boxShadow: "var(--shadow-inset)",
+      borderRadius: 12,
       padding: "9px 11px"
     }
   }, React.createElement("span", {
@@ -4599,9 +4630,9 @@ function BOQEditor({
       display: "flex",
       alignItems: "center",
       gap: 6,
-      background: "var(--surface3)",
-      border: "1px solid var(--border)",
-      borderRadius: 10,
+      background: "var(--surface2)",
+      boxShadow: "var(--shadow-inset)",
+      borderRadius: 12,
       padding: "9px 11px"
     }
   }, React.createElement(Icon, {
@@ -4784,13 +4815,6 @@ function BOQEditor({
       gap: 12
     }
   }, React.createElement(Field, {
-    label: "จำนวนอินเวอร์เตอร์ (แก้ไขได้)" + (selInv2 ? " · ตัวที่ 1" : "")
-  }, React.createElement(BoqInvCount, {
-    value: b.invCount,
-    auto: result.meta.invAuto,
-    onChange: v => set("invCount", v),
-    style: numStyle
-  })), React.createElement(Field, {
     label: "String ต่อตัว (รับได้ " + capPerInv + ")" + (selInv2 ? " · ตัวที่ 1" : "")
   }, React.createElement("input", {
     type: "number",
