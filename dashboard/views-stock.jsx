@@ -242,6 +242,69 @@ function StockView({ stock, onResetAll, onMenuOpen, currentUser, jobs, priceStor
   // ของที่อยู่ในหมวดหลักตรง ๆ (ไม่ได้ใส่หมวดย่อยไว้) — เอาไปต่อท้ายหน้าเลือกหมวดย่อย
   const directItems = showSubHome ? filtered.filter((it) => it.cat === cat) : [];
 
+  /* แถวแท็บกับหมวด — อยู่ในเนื้อหา ไม่ใช่ในหัวจอ
+     หัวจอเก็บแค่ชื่อหน้ากับเครื่องมือของหน้า ส่วนตัวกรองอยู่ติดกับของที่มันกรอง
+     ก้อนนี้ขึ้นเป็นแถวแรกของทุกแท็บ จึงสร้างที่เดียวแล้วส่งไปวาง ไม่ใช่ก๊อบสี่ชุด */
+  const filterBar = (
+    <div className="content-filters">
+          {/* แถวเดียว: แท็บ (ซ้าย) + ปุ่มย่อ/ขยายหมวด (ขวา) */}
+          <div style={{ display: "flex", gap: 7, alignItems: "center", flexWrap: "wrap" }}>
+            {canManagePrices && (
+              <React.Fragment>
+                <CatChip active={tab === "stock"} onClick={() => setTab("stock")} label="สต็อก" color="#3B82F6" />
+                <CatChip active={tab === "prices"} onClick={() => setTab("prices")} label="ราคา BOQ" color="#EC4899" />
+                <CatChip active={tab === "amp"} onClick={() => setTab("amp")} label="พิกัดสาย วสท." color="#F59E0B" />
+                <CatChip active={tab === "cond"} onClick={() => setTab("cond")} label="อุปกรณ์ท่อร้อยสาย" color="#0EA5E9" />
+              </React.Fragment>
+            )}
+            {!isMobile && !isAmp && !isCond && (
+              <button onClick={toggleCat} title={catOpen ? "ซ่อนตัวกรองหมวด" : "แสดงตัวกรองหมวด"}
+                style={{ marginLeft: "auto", display: "inline-flex", alignItems: "center", gap: 6, padding: "6px 13px", borderRadius: 99,
+                  border: "1px solid var(--border-strong)", background: "var(--surface)", color: "var(--text-2)",
+                  fontSize: 12.5, fontWeight: 600, cursor: "pointer", fontFamily: "inherit", whiteSpace: "nowrap" }}>
+                <Icon name="filter" size={14} color="var(--text-2)" />
+                หมวดหมู่{isPrices
+                  ? (priceGrp !== "all" ? ": " + (PG_TH[priceGrp] || priceGrp) : "")
+                  : (cat !== "all" ? ": " + ((SF.STOCK_CAT_BY[cat] || {}).th || "") : "")}
+                <Icon name="chevronDown" size={14} color="var(--text-3)" style={{ transform: catOpen ? "rotate(180deg)" : "none", transition: "transform .18s" }} />
+              </button>
+            )}
+          </div>
+          {/* มือถือ: dropdown หมวด */}
+          {isMobile && !isPrices && !isAmp && <div style={{ marginTop: 10 }}><CatDropdown cat={cat} setCat={setCat} items={items} cats={SF.STOCK_CATS} /></div>}
+          {isMobile && isPrices && <div style={{ marginTop: 10 }}><Dropdown value={priceGrp} onChange={setPriceGrp} options={priceGroups.map((g) => ({ value: g, label: g === "all" ? "ทั้งหมด" : (PG_TH[g] || g) }))} /></div>}
+          {/* เดสก์ท็อป: ชิปหมวด — ย่อ/ขยายแบบลื่น (max-height + opacity) */}
+          {!isMobile && !isAmp && (
+            <div style={{ overflow: "hidden",
+              maxHeight: catOpen ? (!isPrices && subChips.length ? 92 : 48) : 0,
+              opacity: catOpen ? 1 : 0,
+              marginTop: catOpen ? 8 : 0, transition: "max-height .24s ease, opacity .2s ease, margin-top .24s ease" }}>
+              <div className="cat-chip-row" style={{ display: "flex", gap: 7, flexWrap: "nowrap", alignItems: "center", overflowX: "auto", paddingBottom: 4 }}>
+                {isPrices ? (
+                  <React.Fragment>
+                    <CatChip active={priceGrp === "all"} onClick={() => setPriceGrp("all")} label="ทั้งหมด" color="var(--text-2)" />
+                    {priceGroups.filter((g) => g !== "all").map((g) => <CatChip key={g} active={priceGrp === g} onClick={() => setPriceGrp(g)} label={PG_TH[g] || g} color={PG_COLOR[g] || "var(--text-2)"} />)}
+                  </React.Fragment>
+                ) : (
+                  <React.Fragment>
+                    <CatChip active={cat === "all"} onClick={() => { setCat("all"); setBrowse(true); }} label="ทั้งหมด" color="var(--text-2)" count={items.length} />
+                    {SF.STOCK_CATS.filter((c) => cat === c.key || catCount[c.key]).map((c) => <CatChip key={c.key} active={cat === c.key} onClick={() => setCat(c.key)} label={c.th} color={c.color} count={catCount[c.key] || 0} />)}
+                  </React.Fragment>
+                )}
+              </div>
+              {/* แถวหมวดย่อย — ขึ้นเฉพาะตอนเลือกหมวดหลักที่มีหมวดย่อยอยู่จริง */}
+              {!isPrices && subChips.length > 0 && (
+                <div className="cat-chip-row" style={{ display: "flex", gap: 6, flexWrap: "nowrap", alignItems: "center", overflowX: "auto", marginTop: 6, paddingLeft: 2, paddingBottom: 2 }}>
+                  {/* กดชิปนี้ = อยากเห็นของทั้งหมวด ไม่ใช่กลับไปหน้าเลือกหมวดย่อย */}
+                  <CatChip active={sub === "all"} onClick={() => { setSub("all"); setBrowse(false); }} label={"ทุกหมวดย่อย"} color="var(--text-2)" count={catCount[cat] || 0} />
+                  {subChips.map((c) => <CatChip key={c.key} active={sub === c.key} onClick={() => setSub(c.key)} label={c.th} color={c.color} count={subCount[c.key] || 0} />)}
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+  );
+
   return (
     <React.Fragment>
       <header className="app-header">
@@ -301,79 +364,26 @@ function StockView({ stock, onResetAll, onMenuOpen, currentUser, jobs, priceStor
           </div>
           )}
         </div>
-        <div className="header-filters">
-          {/* แถวเดียว: แท็บ (ซ้าย) + ปุ่มย่อ/ขยายหมวด (ขวา) */}
-          <div style={{ display: "flex", gap: 7, alignItems: "center", flexWrap: "wrap" }}>
-            {canManagePrices && (
-              <React.Fragment>
-                <CatChip active={tab === "stock"} onClick={() => setTab("stock")} label="สต็อก" color="#3B82F6" />
-                <CatChip active={tab === "prices"} onClick={() => setTab("prices")} label="ราคา BOQ" color="#EC4899" />
-                <CatChip active={tab === "amp"} onClick={() => setTab("amp")} label="พิกัดสาย วสท." color="#F59E0B" />
-                <CatChip active={tab === "cond"} onClick={() => setTab("cond")} label="อุปกรณ์ท่อร้อยสาย" color="#0EA5E9" />
-              </React.Fragment>
-            )}
-            {!isMobile && !isAmp && !isCond && (
-              <button onClick={toggleCat} title={catOpen ? "ซ่อนตัวกรองหมวด" : "แสดงตัวกรองหมวด"}
-                style={{ marginLeft: "auto", display: "inline-flex", alignItems: "center", gap: 6, padding: "6px 13px", borderRadius: 99,
-                  border: "1px solid var(--border-strong)", background: "var(--surface)", color: "var(--text-2)",
-                  fontSize: 12.5, fontWeight: 600, cursor: "pointer", fontFamily: "inherit", whiteSpace: "nowrap" }}>
-                <Icon name="filter" size={14} color="var(--text-2)" />
-                หมวดหมู่{isPrices
-                  ? (priceGrp !== "all" ? ": " + (PG_TH[priceGrp] || priceGrp) : "")
-                  : (cat !== "all" ? ": " + ((SF.STOCK_CAT_BY[cat] || {}).th || "") : "")}
-                <Icon name="chevronDown" size={14} color="var(--text-3)" style={{ transform: catOpen ? "rotate(180deg)" : "none", transition: "transform .18s" }} />
-              </button>
-            )}
-          </div>
-          {/* มือถือ: dropdown หมวด */}
-          {isMobile && !isPrices && !isAmp && <div style={{ marginTop: 10 }}><CatDropdown cat={cat} setCat={setCat} items={items} cats={SF.STOCK_CATS} /></div>}
-          {isMobile && isPrices && <div style={{ marginTop: 10 }}><Dropdown value={priceGrp} onChange={setPriceGrp} options={priceGroups.map((g) => ({ value: g, label: g === "all" ? "ทั้งหมด" : (PG_TH[g] || g) }))} /></div>}
-          {/* เดสก์ท็อป: ชิปหมวด — ย่อ/ขยายแบบลื่น (max-height + opacity) */}
-          {!isMobile && !isAmp && (
-            <div style={{ overflow: "hidden",
-              maxHeight: catOpen ? (!isPrices && subChips.length ? 92 : 48) : 0,
-              opacity: catOpen ? 1 : 0,
-              marginTop: catOpen ? 8 : 0, transition: "max-height .24s ease, opacity .2s ease, margin-top .24s ease" }}>
-              <div className="cat-chip-row" style={{ display: "flex", gap: 7, flexWrap: "nowrap", alignItems: "center", overflowX: "auto", paddingBottom: 4 }}>
-                {isPrices ? (
-                  <React.Fragment>
-                    <CatChip active={priceGrp === "all"} onClick={() => setPriceGrp("all")} label="ทั้งหมด" color="var(--text-2)" />
-                    {priceGroups.filter((g) => g !== "all").map((g) => <CatChip key={g} active={priceGrp === g} onClick={() => setPriceGrp(g)} label={PG_TH[g] || g} color={PG_COLOR[g] || "var(--text-2)"} />)}
-                  </React.Fragment>
-                ) : (
-                  <React.Fragment>
-                    <CatChip active={cat === "all"} onClick={() => { setCat("all"); setBrowse(true); }} label="ทั้งหมด" color="var(--text-2)" count={items.length} />
-                    {SF.STOCK_CATS.filter((c) => cat === c.key || catCount[c.key]).map((c) => <CatChip key={c.key} active={cat === c.key} onClick={() => setCat(c.key)} label={c.th} color={c.color} count={catCount[c.key] || 0} />)}
-                  </React.Fragment>
-                )}
-              </div>
-              {/* แถวหมวดย่อย — ขึ้นเฉพาะตอนเลือกหมวดหลักที่มีหมวดย่อยอยู่จริง */}
-              {!isPrices && subChips.length > 0 && (
-                <div className="cat-chip-row" style={{ display: "flex", gap: 6, flexWrap: "nowrap", alignItems: "center", overflowX: "auto", marginTop: 6, paddingLeft: 2, paddingBottom: 2 }}>
-                  {/* กดชิปนี้ = อยากเห็นของทั้งหมวด ไม่ใช่กลับไปหน้าเลือกหมวดย่อย */}
-                  <CatChip active={sub === "all"} onClick={() => { setSub("all"); setBrowse(false); }} label={"ทุกหมวดย่อย"} color="var(--text-2)" count={catCount[cat] || 0} />
-                  {subChips.map((c) => <CatChip key={c.key} active={sub === c.key} onClick={() => setSub(c.key)} label={c.th} color={c.color} count={subCount[c.key] || 0} />)}
-                </div>
-              )}
-            </div>
-          )}
-        </div>
       </header>
 
       {isAmp ? (
         <div className="app-content">
+          {filterBar}
           <AmpacityEditor ampStore={ampStore} />
         </div>
       ) : isCond ? (
         <div className="app-content">
+          {filterBar}
           <ConduitDefaultsEditor condStore={condStore} />
         </div>
       ) : isPrices ? (
         <div className="app-content">
+          {filterBar}
           <PricePanel priceStore={priceStore} stock={stock} q={priceQ} grp={priceGrp} />
         </div>
       ) : (
       <div className="app-content">
+        {filterBar}
         {!isMobile && (
         /* ใช้แผงตัวเลขชุดเดียวกับหน้าภาพรวม — ช่องที่กำลังกรองอยู่จะมีเส้นใต้เขียวคาดไว้ */
         <div style={{ marginBottom: 18 }}>

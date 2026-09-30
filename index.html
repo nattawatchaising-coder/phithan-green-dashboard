@@ -255,6 +255,10 @@ html.theme-anim, html.theme-anim * { transition: background-color .34s ease, bor
 .btn-add:hover { transform: translateY(-1px); box-shadow: 0 4px 14px rgba(27,155,117,.35); }
 
 .header-filters { display: flex; align-items: center; gap: 12px; padding: 14px 0; flex-wrap: wrap; }
+/* ตัวกรองที่อยู่ในเนื้อหา ไม่ใช่ในหัวจอ (เช่น แถวแท็บของคลังสินค้า)
+   ทรงเดียวกับ .header-filters แต่ไม่มีระยะห่างด้านบน เพราะ .app-content มีของตัวเองอยู่แล้ว
+   ระยะห่างล่างเป็นตัวคั่นระหว่างแถบกับเนื้อหาที่มันกรอง */
+.content-filters { display: flex; align-items: center; gap: 12px; padding: 0 0 14px; flex-wrap: wrap; }
 /* แถบตัวกรองตอนขึ้นไปอยู่แถวเดียวกับชื่อหน้า — ไม่มีระยะห่างบน/ล่างของแถวตัวเองแล้ว
    flex กินที่ว่างระหว่างชื่อหน้ากับปุ่มเครื่องมือ · พอจอแคบจนไม่พอ .header-top ห่อบรรทัดให้เอง
    จึงกลับไปเป็นแถวของตัวเองโดยไม่ต้องมี media query แยก */
@@ -354,6 +358,7 @@ html.theme-anim, html.theme-anim * { transition: background-color .34s ease, bor
   .btn-add span { display: none; }
   .btn-add { padding: 10px 12px; min-width: 38px; border-radius: 10px; }
   .header-filters { padding: 8px 0; gap: 6px; }
+  .content-filters { padding: 0 0 10px; gap: 6px; }
   .ghost-btn { display: none; }
   .delay-toggle { padding: 5px 9px; font-size: 11.5px; }
 
@@ -903,7 +908,7 @@ H-@G1I margin-top D'IC*D%L-1'@- 6H
 <script src="dashboard/build/views-table.js?v=31"></script>
 <script src="dashboard/build/views-report.js?v=9"></script>
 <script src="dashboard/build/views-calendar.js?v=30"></script>
-<script src="dashboard/build/views-stock.js?v=107"></script>
+<script src="dashboard/build/views-stock.js?v=108"></script>
 <script src="dashboard/build/form.js?v=36"></script>
 <script src="dashboard/build/survey.js?v=25"></script>
 <script src="dashboard/build/survey-report.js?v=12"></script>

@@ -405,106 +405,8 @@ function StockView({
     })).sort((a, b) => sizeNum(a.size) - sizeNum(b.size) || a.size.localeCompare(b.size));
   };
   const directItems = showSubHome ? filtered.filter(it => it.cat === cat) : [];
-  return React.createElement(React.Fragment, null, React.createElement("header", {
-    className: "app-header"
-  }, React.createElement("div", {
-    className: "header-top"
-  }, React.createElement("button", {
-    className: "hamburger",
-    onClick: onMenuOpen,
-    "aria-label": "\u0E40\u0E1B\u0E34\u0E14\u0E40\u0E21\u0E19\u0E39"
-  }, React.createElement(Icon, {
-    name: "menu",
-    size: 18,
-    color: "var(--text-2)"
-  })), React.createElement("div", {
-    style: {
-      flex: 1,
-      minWidth: 0
-    }
-  }, React.createElement("h1", {
-    className: "page-title"
-  }, isAmp ? "พิกัดกระแสสายไฟ (วสท.)" : isPrices ? "ราคาวัสดุ (BOQ)" : "คลังสินค้า / สต็อก"), isAmp ? React.createElement("p", {
-    className: "page-sub"
-  }, "\u0E15\u0E32\u0E23\u0E32\u0E07\u0E1E\u0E34\u0E01\u0E31\u0E14\u0E01\u0E23\u0E30\u0E41\u0E2A \u0E27\u0E2A\u0E17. \u2014 \u0E41\u0E22\u0E01\u0E15\u0E32\u0E21\u0E09\u0E19\u0E27\u0E19 \xD7 \u0E27\u0E34\u0E18\u0E35\u0E40\u0E14\u0E34\u0E19\u0E2A\u0E32\u0E22 \xD7 \u0E02\u0E19\u0E32\u0E14 (\u0E43\u0E0A\u0E49\u0E04\u0E33\u0E19\u0E27\u0E13/\u0E40\u0E15\u0E37\u0E2D\u0E19\u0E02\u0E19\u0E32\u0E14\u0E2A\u0E32\u0E22\u0E43\u0E19 BOQ)") : isPrices ? React.createElement("p", {
-    className: "page-sub"
-  }, "\u0E23\u0E2B\u0E31\u0E2A / \u0E23\u0E32\u0E04\u0E32 / \u0E2B\u0E19\u0E48\u0E27\u0E22 \u0E2A\u0E33\u0E2B\u0E23\u0E31\u0E1A\u0E04\u0E33\u0E19\u0E27\u0E13\u0E15\u0E49\u0E19\u0E17\u0E38\u0E19 BOQ") : React.createElement("p", {
-    className: "page-sub"
-  }, "\u0E2D\u0E38\u0E1B\u0E01\u0E23\u0E13\u0E4C\u0E15\u0E34\u0E14\u0E15\u0E31\u0E49\u0E07 ", React.createElement("strong", null, filtered.length), " \u0E08\u0E32\u0E01 ", items.length, " \u0E23\u0E32\u0E22\u0E01\u0E32\u0E23", kpiFilter && React.createElement("span", null, " \xB7 ", React.createElement("span", {
-    style: {
-      color: "#F59E0B",
-      fontWeight: 700
-    }
-  }, "\u0E01\u0E23\u0E2D\u0E07: ", kpiFilter === "low" ? "ใกล้หมด" : kpiFilter === "in" ? "รับเข้าเดือนนี้" : "เบิกออกเดือนนี้"), " ", React.createElement("button", {
-    onClick: () => setKpiFilter(null),
-    className: "clear-chip"
-  }, "\u0E25\u0E49\u0E32\u0E07 \u2715")), !kpiFilter && lowCount > 0 && React.createElement("span", null, " \xB7 ", React.createElement("span", {
-    style: {
-      color: "#F59E0B",
-      fontWeight: 700
-    }
-  }, lowCount, " \u0E23\u0E32\u0E22\u0E01\u0E32\u0E23\u0E43\u0E01\u0E25\u0E49\u0E2B\u0E21\u0E14")))), !isAmp && React.createElement("div", {
-    className: "header-actions"
-  }, React.createElement("div", {
-    className: "search-box"
-  }, React.createElement(Icon, {
-    name: "search",
-    size: 16,
-    color: "var(--text-3)"
-  }), isPrices ? React.createElement("input", {
-    value: priceQ,
-    onChange: e => setPriceQ(e.target.value),
-    placeholder: "\u0E04\u0E49\u0E19\u0E2B\u0E32"
-  }) : React.createElement("input", {
-    value: search,
-    onChange: e => setSearch(e.target.value),
-    placeholder: "\u0E04\u0E49\u0E19\u0E2B\u0E32"
-  })), isPrices ? React.createElement("button", {
-    className: "btn-add",
-    onClick: () => setAddPriceOpen(true)
-  }, React.createElement(Icon, {
-    name: "plus",
-    size: 17,
-    color: "#fff",
-    sw: 2.4
-  }), React.createElement("span", null, "\u0E40\u0E1E\u0E34\u0E48\u0E21\u0E27\u0E31\u0E2A\u0E14\u0E38")) : React.createElement(React.Fragment, null, !isMobile && React.createElement("button", {
-    className: "btn-add",
-    onClick: () => setView(v => v === "grid" ? "table" : "grid"),
-    title: view === "grid" ? "สลับเป็นมุมมองตาราง" : "สลับเป็นมุมมองการ์ด (มีรูป)",
-    style: {
-      background: "var(--surface2)",
-      color: "var(--text-2)",
-      border: "1px solid var(--border-strong)"
-    }
-  }, React.createElement(Icon, {
-    name: view === "grid" ? "menu" : "grid",
-    size: 16,
-    color: "var(--text-2)"
-  }), React.createElement("span", null, view === "grid" ? "ตาราง" : "การ์ด")), React.createElement("button", {
-    className: "btn-add",
-    onClick: () => setFillOpen(true),
-    style: {
-      background: "var(--surface2)",
-      color: "var(--text-2)",
-      border: "1px solid var(--border-strong)"
-    }
-  }, React.createElement(Icon, {
-    name: "sparkle",
-    size: 16,
-    color: "var(--text-2)"
-  }), React.createElement("span", null, "\u0E40\u0E15\u0E34\u0E21\u0E22\u0E35\u0E48\u0E2B\u0E49\u0E2D/\u0E23\u0E38\u0E48\u0E19")), React.createElement("button", {
-    className: "btn-add",
-    onClick: () => setItemForm({
-      item: stock.blankItem(),
-      isNew: true
-    })
-  }, React.createElement(Icon, {
-    name: "plus",
-    size: 17,
-    color: "#fff",
-    sw: 2.4
-  }), React.createElement("span", null, "\u0E40\u0E1E\u0E34\u0E48\u0E21\u0E23\u0E32\u0E22\u0E01\u0E32\u0E23"))))), React.createElement("div", {
-    className: "header-filters"
+  const filterBar = React.createElement("div", {
+    className: "content-filters"
   }, React.createElement("div", {
     style: {
       display: "flex",
@@ -656,24 +558,123 @@ function StockView({
     label: c.th,
     color: c.color,
     count: subCount[c.key] || 0
-  })))))), isAmp ? React.createElement("div", {
+  })))));
+  return React.createElement(React.Fragment, null, React.createElement("header", {
+    className: "app-header"
+  }, React.createElement("div", {
+    className: "header-top"
+  }, React.createElement("button", {
+    className: "hamburger",
+    onClick: onMenuOpen,
+    "aria-label": "\u0E40\u0E1B\u0E34\u0E14\u0E40\u0E21\u0E19\u0E39"
+  }, React.createElement(Icon, {
+    name: "menu",
+    size: 18,
+    color: "var(--text-2)"
+  })), React.createElement("div", {
+    style: {
+      flex: 1,
+      minWidth: 0
+    }
+  }, React.createElement("h1", {
+    className: "page-title"
+  }, isAmp ? "พิกัดกระแสสายไฟ (วสท.)" : isPrices ? "ราคาวัสดุ (BOQ)" : "คลังสินค้า / สต็อก"), isAmp ? React.createElement("p", {
+    className: "page-sub"
+  }, "\u0E15\u0E32\u0E23\u0E32\u0E07\u0E1E\u0E34\u0E01\u0E31\u0E14\u0E01\u0E23\u0E30\u0E41\u0E2A \u0E27\u0E2A\u0E17. \u2014 \u0E41\u0E22\u0E01\u0E15\u0E32\u0E21\u0E09\u0E19\u0E27\u0E19 \xD7 \u0E27\u0E34\u0E18\u0E35\u0E40\u0E14\u0E34\u0E19\u0E2A\u0E32\u0E22 \xD7 \u0E02\u0E19\u0E32\u0E14 (\u0E43\u0E0A\u0E49\u0E04\u0E33\u0E19\u0E27\u0E13/\u0E40\u0E15\u0E37\u0E2D\u0E19\u0E02\u0E19\u0E32\u0E14\u0E2A\u0E32\u0E22\u0E43\u0E19 BOQ)") : isPrices ? React.createElement("p", {
+    className: "page-sub"
+  }, "\u0E23\u0E2B\u0E31\u0E2A / \u0E23\u0E32\u0E04\u0E32 / \u0E2B\u0E19\u0E48\u0E27\u0E22 \u0E2A\u0E33\u0E2B\u0E23\u0E31\u0E1A\u0E04\u0E33\u0E19\u0E27\u0E13\u0E15\u0E49\u0E19\u0E17\u0E38\u0E19 BOQ") : React.createElement("p", {
+    className: "page-sub"
+  }, "\u0E2D\u0E38\u0E1B\u0E01\u0E23\u0E13\u0E4C\u0E15\u0E34\u0E14\u0E15\u0E31\u0E49\u0E07 ", React.createElement("strong", null, filtered.length), " \u0E08\u0E32\u0E01 ", items.length, " \u0E23\u0E32\u0E22\u0E01\u0E32\u0E23", kpiFilter && React.createElement("span", null, " \xB7 ", React.createElement("span", {
+    style: {
+      color: "#F59E0B",
+      fontWeight: 700
+    }
+  }, "\u0E01\u0E23\u0E2D\u0E07: ", kpiFilter === "low" ? "ใกล้หมด" : kpiFilter === "in" ? "รับเข้าเดือนนี้" : "เบิกออกเดือนนี้"), " ", React.createElement("button", {
+    onClick: () => setKpiFilter(null),
+    className: "clear-chip"
+  }, "\u0E25\u0E49\u0E32\u0E07 \u2715")), !kpiFilter && lowCount > 0 && React.createElement("span", null, " \xB7 ", React.createElement("span", {
+    style: {
+      color: "#F59E0B",
+      fontWeight: 700
+    }
+  }, lowCount, " \u0E23\u0E32\u0E22\u0E01\u0E32\u0E23\u0E43\u0E01\u0E25\u0E49\u0E2B\u0E21\u0E14")))), !isAmp && React.createElement("div", {
+    className: "header-actions"
+  }, React.createElement("div", {
+    className: "search-box"
+  }, React.createElement(Icon, {
+    name: "search",
+    size: 16,
+    color: "var(--text-3)"
+  }), isPrices ? React.createElement("input", {
+    value: priceQ,
+    onChange: e => setPriceQ(e.target.value),
+    placeholder: "\u0E04\u0E49\u0E19\u0E2B\u0E32"
+  }) : React.createElement("input", {
+    value: search,
+    onChange: e => setSearch(e.target.value),
+    placeholder: "\u0E04\u0E49\u0E19\u0E2B\u0E32"
+  })), isPrices ? React.createElement("button", {
+    className: "btn-add",
+    onClick: () => setAddPriceOpen(true)
+  }, React.createElement(Icon, {
+    name: "plus",
+    size: 17,
+    color: "#fff",
+    sw: 2.4
+  }), React.createElement("span", null, "\u0E40\u0E1E\u0E34\u0E48\u0E21\u0E27\u0E31\u0E2A\u0E14\u0E38")) : React.createElement(React.Fragment, null, !isMobile && React.createElement("button", {
+    className: "btn-add",
+    onClick: () => setView(v => v === "grid" ? "table" : "grid"),
+    title: view === "grid" ? "สลับเป็นมุมมองตาราง" : "สลับเป็นมุมมองการ์ด (มีรูป)",
+    style: {
+      background: "var(--surface2)",
+      color: "var(--text-2)",
+      border: "1px solid var(--border-strong)"
+    }
+  }, React.createElement(Icon, {
+    name: view === "grid" ? "menu" : "grid",
+    size: 16,
+    color: "var(--text-2)"
+  }), React.createElement("span", null, view === "grid" ? "ตาราง" : "การ์ด")), React.createElement("button", {
+    className: "btn-add",
+    onClick: () => setFillOpen(true),
+    style: {
+      background: "var(--surface2)",
+      color: "var(--text-2)",
+      border: "1px solid var(--border-strong)"
+    }
+  }, React.createElement(Icon, {
+    name: "sparkle",
+    size: 16,
+    color: "var(--text-2)"
+  }), React.createElement("span", null, "\u0E40\u0E15\u0E34\u0E21\u0E22\u0E35\u0E48\u0E2B\u0E49\u0E2D/\u0E23\u0E38\u0E48\u0E19")), React.createElement("button", {
+    className: "btn-add",
+    onClick: () => setItemForm({
+      item: stock.blankItem(),
+      isNew: true
+    })
+  }, React.createElement(Icon, {
+    name: "plus",
+    size: 17,
+    color: "#fff",
+    sw: 2.4
+  }), React.createElement("span", null, "\u0E40\u0E1E\u0E34\u0E48\u0E21\u0E23\u0E32\u0E22\u0E01\u0E32\u0E23")))))), isAmp ? React.createElement("div", {
     className: "app-content"
-  }, React.createElement(AmpacityEditor, {
+  }, filterBar, React.createElement(AmpacityEditor, {
     ampStore: ampStore
   })) : isCond ? React.createElement("div", {
     className: "app-content"
-  }, React.createElement(ConduitDefaultsEditor, {
+  }, filterBar, React.createElement(ConduitDefaultsEditor, {
     condStore: condStore
   })) : isPrices ? React.createElement("div", {
     className: "app-content"
-  }, React.createElement(PricePanel, {
+  }, filterBar, React.createElement(PricePanel, {
     priceStore: priceStore,
     stock: stock,
     q: priceQ,
     grp: priceGrp
   })) : React.createElement("div", {
     className: "app-content"
-  }, !isMobile && React.createElement("div", {
+  }, filterBar, !isMobile && React.createElement("div", {
     style: {
       marginBottom: 18
     }
