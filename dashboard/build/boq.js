@@ -5660,7 +5660,7 @@ function BOQEditor({
     key: "om",
     icon: "sun",
     title: "O&M · ประกัน + ล้างแผง",
-    meta: omC.year > 0 ? omC.o.years + " ปีแรก ฿" + baht(omC.included) + " · ต่อปีละ ฿" + baht(omC.renew) : "ยังไม่มีขนาดระบบ",
+    meta: omC.year > 0 ? omC.o.years + " ปีแรก ฿" + baht(omC.included) : "ยังไม่มีขนาดระบบ",
     tone: omC.year > 0 ? "ok" : ""
   }, {
     key: "removable",
@@ -9187,15 +9187,7 @@ function BOQEditor({
     className: "k"
   }, "\u0E23\u0E27\u0E21\u0E43\u0E19\u0E07\u0E32\u0E19\u0E19\u0E35\u0E49 (", omC.o.years, " \u0E1B\u0E35)"), React.createElement("span", {
     className: "v hi"
-  }, "\u0E3F", baht(omC.included))), React.createElement("div", null, React.createElement("span", {
-    className: "k"
-  }, "\u0E25\u0E39\u0E01\u0E04\u0E49\u0E32\u0E15\u0E48\u0E2D\u0E40\u0E2D\u0E07\u0E15\u0E48\u0E2D\u0E1B\u0E35"), React.createElement("span", {
-    className: "v hi"
-  }, "\u0E3F", baht(omC.renew))), React.createElement("div", null, React.createElement("span", {
-    className: "k"
-  }, "\u0E15\u0E48\u0E2D\u0E17\u0E35\u0E40\u0E14\u0E35\u0E22\u0E27 3 \u0E1B\u0E35"), React.createElement("span", {
-    className: "v"
-  }, "\u0E3F", baht(omC.renew3)))), React.createElement("div", {
+  }, "\u0E3F", baht(omC.included)))), React.createElement("div", {
     style: {
       fontSize: 10.5,
       color: "var(--text-3)",

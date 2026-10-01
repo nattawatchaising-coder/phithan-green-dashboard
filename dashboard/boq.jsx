@@ -2732,7 +2732,7 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
       meta: priced.permitTotal > 0 ? "฿" + baht(priced.permitTotal) : "ยังไม่ได้กรอกค่าธรรมเนียม",
       tone: priced.permitTotal > 0 ? "ok" : "warn" },
     { key: "om", icon: "sun", title: "O&M · ประกัน + ล้างแผง",
-      meta: omC.year > 0 ? omC.o.years + " ปีแรก ฿" + baht(omC.included) + " · ต่อปีละ ฿" + baht(omC.renew) : "ยังไม่มีขนาดระบบ",
+      meta: omC.year > 0 ? omC.o.years + " ปีแรก ฿" + baht(omC.included) : "ยังไม่มีขนาดระบบ",
       tone: omC.year > 0 ? "ok" : "" },
     { key: "removable", icon: "box", title: "รายการวัสดุที่ถอดได้",
       meta: priced.grandTotal > 0 ? "รวม ฿" + baht(priced.grandTotal) : "ยังไม่มีราคา", tone: priced.grandTotal > 0 ? "ok" : "" },
@@ -4249,8 +4249,6 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
               <div><span className="k">งาน O&amp;M / ปี</span><span className="v">฿{baht(omC.svc)}</span></div>
               <div><span className="k">ค่าบริการต่อปี</span><span className="v">฿{baht(omC.year)}</span></div>
               <div><span className="k">รวมในงานนี้ ({omC.o.years} ปี)</span><span className="v hi">฿{baht(omC.included)}</span></div>
-              <div><span className="k">ลูกค้าต่อเองต่อปี</span><span className="v hi">฿{baht(omC.renew)}</span></div>
-              <div><span className="k">ต่อทีเดียว 3 ปี</span><span className="v">฿{baht(omC.renew3)}</span></div>
             </div>
             <div style={{ fontSize: 10.5, color: "var(--text-3)", lineHeight: 1.55, marginTop: 8 }}>
               ต่อปี: ล้าง {omC.o.perYear} ครั้ง × ฿{baht(omC.visit)} + งาน O&amp;M ฿{baht(omC.svc)} = ฿{baht(omC.year)}
