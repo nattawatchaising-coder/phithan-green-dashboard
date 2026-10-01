@@ -1011,6 +1011,9 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
     const kits = KITS.filter((k) => k.sec === s.sec);
     return Object.assign({}, s, { kits: kits, count: kits.reduce((n, k) => n + kitCount(k), 0) });
   });
+  // งานบ้านมีเฉพาะหมวดตู้ไฟ (กรอกเอง — อุปกรณ์อัตโนมัติคิดเฉพาะงานโครงการ) · ระบบน้ำมีแต่งานโครงการ
+  const kitShown = isHome ? kitSections.filter((sc) => sc.sec === "board")
+    .map((sc) => Object.assign({}, sc, { hint: "ตู้ไฟของงานบ้าน — กรอกจำนวนตู้ และอุปกรณ์ในตู้เองได้ (อุปกรณ์อัตโนมัติ MCCB / SPD / ฟิวส์ คิดให้เฉพาะงานโครงการ) · ราคาดึงจากคลังเหมือนวัสดุอื่น" })) : kitSections;
 
   // ── ราคาขาย & ส่วนลด ──
   const PRICE_DEF = { contractor: 0, sell: 0, discount: 0, vat: window.BOQ.VAT_RATE };
@@ -2683,7 +2686,7 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
       tone: condLen + trayLen > 0 ? (condBad + trayBad > 0 ? "warn" : "ok") : "" },
     /* หมวดของงานโครงการ — วางต่อจากรางไฟ เพราะกรอกไล่จากงานเดินสาย/เดินท่อมาที่ตู้และระบบน้ำต่อกันเลย
        งานบ้านไม่ต้องมีให้เกะกะ */
-  ].concat(isHome ? [] : kitSections.map((sc) => ({ key: sc.key, icon: sc.icon, title: sc.title,
+  ].concat(kitShown.map((sc) => ({ key: sc.key, icon: sc.icon, title: sc.title,
     meta: sc.count > 0 ? sc.count + " รายการ" : "ยังไม่ได้กรอก", tone: sc.count > 0 ? "ok" : "" }))).concat([
     !isHome ? { key: "site", icon: "power", title: "ขนส่ง & บริหารจัดการ",
       meta: siteTotal > 0 ? "฿" + baht(siteTotal) : "ยังไม่ได้กรอก", tone: siteTotal > 0 ? "ok" : "" } : null,
@@ -3874,7 +3877,7 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
           </BoqSection>
 
           {/* ── หมวดของงานโครงการ — ตู้ไฟ กับ ระบบน้ำ เป็นคนละหัวข้อกัน ── */}
-          {!isHome && kitSections.map((sc) => (
+          {kitShown.map((sc) => (
           <BoqSection key={sc.key} title={sc.title} icon={sc.icon} {...secProps(sc.key)}
             right={sc.count > 0 ? <span style={{ fontSize: 12.5, fontWeight: 800, color: "var(--primary-dark)" }}>{sc.count} รายการ</span> : null}>
             <div className="bq-hint" style={{ fontSize: 11.5, color: "var(--text-3)", lineHeight: 1.5, marginBottom: 14 }}>
