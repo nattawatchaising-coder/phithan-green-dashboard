@@ -1961,7 +1961,7 @@ function BOQEditor({
     sec: "board",
     icon: "box",
     title: "ตู้ไฟ",
-    hint: "ตู้ไฟของงานโครงการ — อินเวอร์เตอร์สตริง/ไฮบริด ระบบคิดอุปกรณ์ในตู้ AC / DC ให้จากอินเวอร์เตอร์ สตริง และสายไฟ (ตู้ AC 1 ตู้ต่อสายเมน 1 เส้น · ตู้ DC 1 ตู้ต่ออินเวอร์เตอร์) · " + "เบรกเกอร์: MCCB ปรับตั้งกระแสได้ ตั้งที่กระแสออก × 1.05 ปัดขึ้นทีละ 5 A (เช่น 84 A → 100 AT ปรับตั้ง 90 A) แล้วคิดขนาดสายจากกระแสตั้ง — ถ้าเลือกสายเองเล็กกว่านั้น จะขึ้นคำแนะนำในหัวข้อสายไฟ · " + "ระบบล่อฟ้า: ถ้าแผงอยู่ใกล้ล่อฟ้า (ต่อถึงกันหรือห่างไม่ถึงระยะปลอดภัย) SPD ทั้ง AC และ DC เปลี่ยนเป็น Type 1+2 และฟิวส์กันหลัง SPD ฝั่ง AC เป็นฟิวส์ใบมีด NH00 125 A (ไม่ต้องมีถ้า MCCB เมน ≤ 125 AT) · " + "ฟิวส์ AC เป็นฟิวส์ HRC gG 10x38 กันหลัง SPD ไม่ต้องใช้ฟิวส์ใบมีด (NH) เพราะ MCCB ทำหน้าที่ป้องกันกระแสเกินแล้ว — NH ใช้เมื่อเมนใหญ่หลายร้อยแอมป์จนต้องใช้สวิตช์-ฟิวส์แทน MCCB · " + "ฟิวส์ DC แบบ gPV ขั้ว + และ − ทุกสตริง (1.5–2.4 × Isc) · กรอกจำนวนตู้เองได้ และปิดรายการอัตโนมัติรายตู้ได้ · ราคาดึงจากคลังเหมือนวัสดุอื่น"
+    hint: "ตู้ไฟของงานโครงการ — อินเวอร์เตอร์สตริง/ไฮบริด ระบบคิดอุปกรณ์ในตู้ AC / DC ให้จากอินเวอร์เตอร์ สตริง และสายไฟ (ตู้ AC 1 ตู้ต่อสายเมน 1 เส้น · ตู้ DC 1 ตู้ต่ออินเวอร์เตอร์) · " + "เบรกเกอร์: MCCB ปรับตั้งกระแสได้ ตั้งที่กระแสออก × 1.05 ปัดขึ้นทีละ 5 A (เช่น 84 A → 100 AT ปรับตั้ง 90 A) แล้วคิดขนาดสายจากกระแสตั้ง — ถ้าเลือกสายเองเล็กกว่านั้น จะขึ้นคำแนะนำในหัวข้อสายไฟ · " + "ระบบล่อฟ้า: ถ้าแผงอยู่ใกล้ล่อฟ้า (ต่อถึงกันหรือห่างไม่ถึงระยะปลอดภัย) SPD ทั้ง AC และ DC เปลี่ยนเป็น Type 1+2 · " + "ฟิวส์กันหลัง SPD ฝั่ง AC เป็นฟิวส์ใบมีด NH00 gG เส้นไฟละ 1 ตัว — Type 2 ใช้ 32 A · Type 1+2 ใช้ 125 A (ไม่ต้องมีถ้า MCCB เมนตู้ ≤ 125 AT) · " + "ฟิวส์ DC แบบ gPV ขั้ว + และ − ทุกสตริง (1.5–2.4 × Isc) · กรอกจำนวนตู้เองได้ และปิดรายการอัตโนมัติรายตู้ได้ · ราคาดึงจากคลังเหมือนวัสดุอื่น"
   }, {
     key: "watersys",
     sec: "water",
@@ -3072,53 +3072,36 @@ function BOQEditor({
           why: tag + "อินเวอร์เตอร์ตัวที่ " + no + " · " + k.txt
         });
       });
-      if (!lps) {
+      const fA = lps ? 125 : 32;
+      const noFuse = lps && mainAt > 0 && mainAt <= 125;
+      out.ac.push(lps ? {
+        name: ph === 3 ? "AC SPD TYPE I+II 3P+N Uc385V Iimp12.5kA" : "AC SPD TYPE I+II 2P Uc275V Iimp12.5kA",
+        qty: 1,
+        unit: "ตัว",
+        auto: 1,
+        why: tag + "กันฟ้าผ่าฝั่ง AC ตู้ละ 1 ตัว (" + lpsTxt + " · Iimp 12.5 kA/ขั้ว)"
+      } : {
+        name: ph === 3 ? "AC SPD TYPE II 3P+N Uc385V In20Ka/Imax40Ka" : "AC SPD TYPE II 2P Uc275V In20Ka/Imax40Ka",
+        qty: 1,
+        unit: "ตัว",
+        auto: 1,
+        why: tag + "กันฟ้าผ่า/แรงดันกระชากฝั่ง AC ตู้ละ 1 ตัว (" + lpsTxt + " · Uc " + (ph === 3 ? "385" : "275") + " V)"
+      });
+      if (noFuse) out.ac[out.ac.length - 1].why += " · MCCB เมน " + mainAt + " AT ≤ 125 A ใช้กันหลัง SPD ได้ ไม่ต้องมีฟิวส์";else {
         out.ac.push({
-          name: ph === 3 ? "AC SPD TYPE II 3P+N Uc385V In20Ka/Imax40Ka" : "AC SPD TYPE II 2P Uc275V In20Ka/Imax40Ka",
-          qty: 1,
-          unit: "ตัว",
-          auto: 1,
-          why: tag + "กันฟ้าผ่า/แรงดันกระชากฝั่ง AC ตู้ละ 1 ตัว (" + lpsTxt + " · Uc " + (ph === 3 ? "385" : "275") + " V)"
-        });
-        out.ac.push({
-          name: "HRC FUSE gG 32A 10x38",
+          name: "AC FUSE gG " + fA + "A NH00",
           qty: ph,
           unit: "ตัว",
           auto: 1,
-          why: tag + "ฟิวส์กันหลัง SPD เส้นไฟละ 1 ตัว (ไม่ต้องเป็นฟิวส์ใบมีด — ดูคำอธิบาย)"
+          why: tag + "ฟิวส์ใบมีดกันหลัง SPD เส้นไฟละ 1 ตัว (ไม่ใส่ที่ N)" + (lps ? " — Type 1+2 ต้องทนกระแสฟ้าผ่า จึงใช้ 125 A (ตรวจ max backup fuse ในสเปค SPD)" : " — Type 2 ใช้ 32 A (ไม่เกิน max backup fuse ในสเปค SPD)")
         });
         out.ac.push({
-          name: "HRC FUSE HOLDER 10x38 1P",
+          name: "FUSE BASE NH00 1P",
           qty: ph,
           unit: "ตัว",
           auto: 1,
-          why: tag + "ฐานฟิวส์ของฟิวส์กันหลัง SPD"
+          why: tag + "ฐานฟิวส์ใบมีด NH00"
         });
-      } else {
-        const noFuse = mainAt > 0 && mainAt <= 125;
-        out.ac.push({
-          name: ph === 3 ? "AC SPD TYPE I+II 3P+N Uc385V Iimp12.5kA" : "AC SPD TYPE I+II 2P Uc275V Iimp12.5kA",
-          qty: 1,
-          unit: "ตัว",
-          auto: 1,
-          why: tag + "กันฟ้าผ่าฝั่ง AC ตู้ละ 1 ตัว (" + lpsTxt + " · Iimp 12.5 kA/ขั้ว)" + (noFuse ? " · MCCB เมน " + mainAt + " AT ≤ 125 A ใช้กันหลัง SPD ได้ ไม่ต้องมีฟิวส์" : "")
-        });
-        if (!noFuse) {
-          out.ac.push({
-            name: "AC FUSE gG 125A NH00",
-            qty: ph,
-            unit: "ตัว",
-            auto: 1,
-            why: tag + "ฟิวส์ใบมีดกันหลัง SPD Type 1+2 เส้นไฟละ 1 ตัว — ต้องทนกระแสฟ้าผ่าได้ จึงใช้ 125 A (ตรวจ max backup fuse ในสเปค SPD)"
-          });
-          out.ac.push({
-            name: "FUSE BASE NH00 1P",
-            qty: ph,
-            unit: "ตัว",
-            auto: 1,
-            why: tag + "ฐานฟิวส์ใบมีด NH00"
-          });
-        }
       }
     });
     const nStr = plan ? plan.strings : invUnits.length * Math.max(1, +selInv.inputs || 1);
