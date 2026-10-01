@@ -2711,6 +2711,22 @@ function BOQEditor({
     return CAB_PT_TH[n.toUpperCase()] || n;
   };
   const raceFit = (k, cables) => RACE_POOL[k].find(nm => window.BOQ.conduitCheck(nm, cables, RACE_POOL[k]).ok) || null;
+  const TRAY_KEYS = window.BOQ.TRAY_KIND_KEYS;
+  const RACE_TH = {
+    imc: "IMC",
+    upvc: "uPVC",
+    way: "Wireway",
+    tray: "รางบันได",
+    perf: "รางเจาะรู"
+  };
+  const isTrayK = k => TRAY_KEYS.indexOf(k) >= 0;
+  const trayFit = (k, cables) => {
+    const pool = window.BOQ.TRAY_KINDS[k].sizes;
+    return pool.find(nm => {
+      const c = window.BOQ.trayCheck(nm, cables, k, pool);
+      return c.ok && c.widthOk;
+    }) || null;
+  };
   const raceRuns = (b.cables || []).map((c, i) => {
     const dc = /PV-INVERTER/i.test(c.name || "");
     if (!dc && !cabPlans[i]) return null;
@@ -2744,6 +2760,22 @@ function BOQEditor({
         qty: 1
       });
     }
+    const trayCables = cables.map((x, k) => Object.assign({}, x, {
+      qty: k === 0 ? x.qty * sets : x.qty
+    }));
+    if (isTrayK(c.race)) return {
+      i,
+      label: raceLabel(c),
+      type: t,
+      cables,
+      trayCables,
+      sets,
+      kind: c.race,
+      tray: true,
+      len: +c.length || 0,
+      cabLen: +c.length || 0,
+      noOd: !od || !sz
+    };
     const kind = c.race === "imc" || c.race === "upvc" ? c.race : "";
     const auto = kind ? raceFit(kind, cables) : null;
     const pool = RACE_POOL[kind || "imc"];
@@ -2766,7 +2798,80 @@ function BOQEditor({
       chk: kind ? window.BOQ.conduitCheck(size, cables, pool) : null
     };
   });
-  const raceRows = raceRuns.filter(r => r && r.kind && r.len > 0 && r.size).map(r => ({
+  const raceTrayCfg = b.raceTray || {};
+  const raceTrays = TRAY_KEYS.map(k => {
+    const mem = raceRuns.filter(r => r && r.tray && r.kind === k);
+    if (!mem.length) return null;
+    const cables = [];
+    mem.forEach(r => r.trayCables.forEach(x => {
+      if (!x.type || !x.size) return;
+      const e = cables.find(y => y.type === x.type && y.size === x.size);
+      if (e) e.qty += x.qty;else cables.push(Object.assign({}, x));
+    }));
+    const pool = window.BOQ.TRAY_KINDS[k].sizes,
+      cfg = raceTrayCfg[k] || {};
+    const auto = trayFit(k, cables);
+    const size = cfg.size && pool.indexOf(cfg.size) >= 0 ? cfg.size : auto || pool[pool.length - 1];
+    const maxLen = Math.max.apply(null, mem.map(r => r.len).concat([0]));
+    const own = cfg.len != null && cfg.len !== "";
+    const len = own ? +cfg.len || 0 : maxLen;
+    return {
+      k,
+      mem,
+      cables,
+      pool,
+      auto,
+      size,
+      len,
+      own,
+      maxLen,
+      chk: window.BOQ.trayCheck(size, cables, k, pool)
+    };
+  }).filter(Boolean);
+  const setRaceTray = (k, patch) => setB(p => {
+    const all = Object.assign({}, p.raceTray);
+    const x = Object.assign({}, all[k], patch);
+    Object.keys(patch).forEach(f => {
+      if (patch[f] == null || patch[f] === "") delete x[f];
+    });
+    all[k] = x;
+    return Object.assign({}, p, {
+      raceTray: all
+    });
+  });
+  const raceTrayRows = raceTrays.filter(g => g.len > 0).map(g => ({
+    k: g.k,
+    row: {
+      size: g.size,
+      length: Math.round(g.len * 10) / 10,
+      cables: g.cables,
+      auto: 1,
+      lab: g.mem.map(r => r.label).join(" · ")
+    }
+  }));
+  const raceTrayKey = JSON.stringify(raceTrayRows);
+  React.useEffect(() => {
+    setB(p => {
+      const t0 = Object.assign({}, TRAY_DEF, p.tray);
+      const nx = {};
+      let changed = false;
+      TRAY_KEYS.forEach(k => {
+        const old = (t0[k] || []).find(x => x.auto) || {};
+        const add = raceTrayRows.filter(r => r.k === k).map(r => Object.assign({}, r.row, old.hdg ? {
+          hdg: old.hdg
+        } : {}, old.rail ? {
+          rail: old.rail
+        } : {}));
+        const out = add.concat((t0[k] || []).filter(x => !x.auto));
+        if (JSON.stringify(out) !== JSON.stringify(t0[k] || [])) changed = true;
+        nx[k] = out;
+      });
+      return changed ? Object.assign({}, p, {
+        tray: Object.assign({}, t0, nx)
+      }) : p;
+    });
+  }, [raceTrayKey]);
+  const raceRows = raceRuns.filter(r => r && !r.tray && r.kind && r.len > 0 && r.size).map(r => ({
     k: r.kind,
     row: {
       size: r.size,
@@ -3334,7 +3439,43 @@ function BOQEditor({
           padding: 9,
           background: "var(--surface2)"
         }
-      }, React.createElement("div", {
+      }, x.auto ? React.createElement("div", {
+        style: {
+          display: "flex",
+          alignItems: "center",
+          gap: 8,
+          flexWrap: "wrap",
+          minHeight: 36
+        }
+      }, React.createElement("span", {
+        style: {
+          fontSize: 12.5,
+          fontWeight: 800,
+          color: "var(--text-1)"
+        }
+      }, String(x.size || "").trim()), React.createElement("span", {
+        style: {
+          fontSize: 11.5,
+          color: "var(--text-3)"
+        }
+      }, "\u0E08\u0E32\u0E01 ", x.lab), React.createElement("span", {
+        style: {
+          marginLeft: "auto",
+          fontSize: 12.5,
+          fontWeight: 800,
+          fontVariantNumeric: "tabular-nums",
+          color: "var(--text-1)"
+        }
+      }, x.length, " \u0E21."), React.createElement("span", {
+        style: {
+          fontSize: 10,
+          fontWeight: 700,
+          padding: "2px 7px",
+          borderRadius: 99,
+          background: "var(--primary-soft)",
+          color: "var(--primary-dark)"
+        }
+      }, "\u0E2D\u0E31\u0E15\u0E42\u0E19\u0E21\u0E31\u0E15\u0E34")) : React.createElement("div", {
         style: {
           display: "grid",
           gridTemplateColumns: "minmax(0,1fr) 78px 36px",
@@ -3469,7 +3610,18 @@ function BOQEditor({
           flexDirection: "column",
           gap: 7
         }
-      }, cbs.map((c, j) => React.createElement("div", {
+      }, x.auto && cbs.map((c, j) => React.createElement("div", {
+        key: "a" + j,
+        style: {
+          fontSize: 11.5,
+          color: "var(--text-2)"
+        }
+      }, "\u2022 ", c.type, " ", c.size, " mm\xB2 \xD7 ", c.qty, " \u0E40\u0E2A\u0E49\u0E19")), x.auto && React.createElement("div", {
+        style: {
+          fontSize: 10.5,
+          color: "var(--text-3)"
+        }
+      }, "\u0E2A\u0E32\u0E22\u0E43\u0E19\u0E23\u0E32\u0E07\u0E19\u0E35\u0E49\u0E21\u0E32\u0E08\u0E32\u0E01\u0E2B\u0E31\u0E27\u0E02\u0E49\u0E2D\u0E2A\u0E32\u0E22\u0E44\u0E1F \u2014 \u0E40\u0E1B\u0E25\u0E35\u0E48\u0E22\u0E19\u0E02\u0E19\u0E32\u0E14/\u0E23\u0E30\u0E22\u0E30\u0E44\u0E14\u0E49\u0E17\u0E35\u0E48 \"\u0E40\u0E14\u0E34\u0E19\u0E17\u0E48\u0E2D\u0E15\u0E32\u0E21\u0E40\u0E2A\u0E49\u0E19\u0E2A\u0E32\u0E22\u0E44\u0E1F\" \u0E14\u0E49\u0E32\u0E19\u0E1A\u0E19\u0E2B\u0E31\u0E27\u0E02\u0E49\u0E2D\u0E17\u0E48\u0E2D\u0E23\u0E49\u0E2D\u0E22\u0E2A\u0E32\u0E22"), !x.auto && cbs.map((c, j) => React.createElement("div", {
         key: j,
         style: {
           display: "grid",
@@ -3518,7 +3670,7 @@ function BOQEditor({
       }, React.createElement(Icon, {
         name: "x",
         size: 13
-      })))), React.createElement("button", {
+      })))), !x.auto && React.createElement("button", {
         onClick: () => setCables(i, cbs.concat([{
           type: odTypes[0],
           size: +(Object.keys(OD[odTypes[0]] || {})[0] || 2.5),
@@ -7378,14 +7530,14 @@ function BOQEditor({
       color: "var(--text-2)",
       marginBottom: 3
     }
-  }, "\u0E40\u0E14\u0E34\u0E19\u0E17\u0E48\u0E2D\u0E15\u0E32\u0E21\u0E40\u0E2A\u0E49\u0E19\u0E2A\u0E32\u0E22\u0E44\u0E1F"), React.createElement("div", {
+  }, "\u0E40\u0E14\u0E34\u0E19\u0E17\u0E48\u0E2D / \u0E23\u0E32\u0E07\u0E15\u0E32\u0E21\u0E40\u0E2A\u0E49\u0E19\u0E2A\u0E32\u0E22\u0E44\u0E1F"), React.createElement("div", {
     className: "bq-hint",
     style: {
       fontSize: 10.5,
       color: "var(--text-3)",
       marginBottom: 8
     }
-  }, "\u0E40\u0E25\u0E37\u0E2D\u0E01\u0E27\u0E48\u0E32\u0E41\u0E15\u0E48\u0E25\u0E30\u0E40\u0E2A\u0E49\u0E19\u0E23\u0E49\u0E2D\u0E22\u0E17\u0E48\u0E2D\u0E2D\u0E30\u0E44\u0E23 \u2014 \u0E23\u0E30\u0E1A\u0E1A\u0E40\u0E25\u0E37\u0E2D\u0E01\u0E02\u0E19\u0E32\u0E14\u0E17\u0E48\u0E2D\u0E08\u0E32\u0E01 % \u0E40\u0E15\u0E34\u0E21\u0E40\u0E15\u0E47\u0E21 (\u0E2A\u0E32\u0E22 1 \u0E0A\u0E38\u0E14 + \u0E01\u0E23\u0E32\u0E27\u0E14\u0E4C) \u0E23\u0E30\u0E22\u0E30\u0E15\u0E31\u0E49\u0E07\u0E15\u0E49\u0E19\u0E40\u0E17\u0E48\u0E32\u0E23\u0E30\u0E22\u0E30\u0E2A\u0E32\u0E22 \u0E40\u0E14\u0E34\u0E19\u0E02\u0E19\u0E32\u0E19\u0E01\u0E35\u0E48\u0E0A\u0E38\u0E14\u0E01\u0E47\u0E04\u0E34\u0E14\u0E01\u0E35\u0E48\u0E17\u0E48\u0E2D"), React.createElement("div", {
+  }, "\u0E40\u0E25\u0E37\u0E2D\u0E01\u0E27\u0E48\u0E32\u0E41\u0E15\u0E48\u0E25\u0E30\u0E40\u0E2A\u0E49\u0E19\u0E23\u0E49\u0E2D\u0E22\u0E17\u0E48\u0E2D\u0E2B\u0E23\u0E37\u0E2D\u0E40\u0E14\u0E34\u0E19\u0E23\u0E32\u0E07\u0E2D\u0E30\u0E44\u0E23 \u2014 \u0E17\u0E48\u0E2D: \u0E02\u0E19\u0E32\u0E14\u0E08\u0E32\u0E01 % \u0E40\u0E15\u0E34\u0E21\u0E40\u0E15\u0E47\u0E21 (\u0E2A\u0E32\u0E22 1 \u0E0A\u0E38\u0E14 + \u0E01\u0E23\u0E32\u0E27\u0E14\u0E4C) \u0E40\u0E14\u0E34\u0E19\u0E02\u0E19\u0E32\u0E19\u0E01\u0E35\u0E48\u0E0A\u0E38\u0E14\u0E01\u0E47\u0E04\u0E34\u0E14\u0E01\u0E35\u0E48\u0E17\u0E48\u0E2D \xB7 \u0E23\u0E32\u0E07: \u0E40\u0E2A\u0E49\u0E19\u0E17\u0E35\u0E48\u0E40\u0E25\u0E37\u0E2D\u0E01\u0E23\u0E32\u0E07\u0E0A\u0E19\u0E34\u0E14\u0E40\u0E14\u0E35\u0E22\u0E27\u0E01\u0E31\u0E19\u0E40\u0E14\u0E34\u0E19\u0E23\u0E32\u0E07\u0E40\u0E14\u0E35\u0E22\u0E27\u0E01\u0E31\u0E19 \u0E02\u0E19\u0E32\u0E14\u0E04\u0E34\u0E14\u0E08\u0E32\u0E01\u0E2A\u0E32\u0E22\u0E17\u0E38\u0E01\u0E40\u0E2A\u0E49\u0E19\u0E23\u0E27\u0E21\u0E01\u0E31\u0E19"), React.createElement("div", {
     style: {
       display: "flex",
       flexDirection: "column",
@@ -7424,9 +7576,10 @@ function BOQEditor({
   }, r.type ? r.type.trim() + (r.sets > 1 ? " × " + r.sets + " ชุด" : "") : "ยังไม่ได้เลือกสาย", r.cabLen ? " · " + r.cabLen + " ม." : ""), React.createElement("span", {
     style: {
       display: "inline-flex",
-      gap: 5
+      gap: 5,
+      flexWrap: "wrap"
     }
-  }, [["", "ไม่ร้อยท่อ"], ["imc", "IMC"], ["upvc", "uPVC"]].map(([k, th]) => React.createElement("button", {
+  }, [["", "ไม่ร้อยท่อ"]].concat(Object.keys(RACE_TH).map(k => [k, RACE_TH[k]])).map(([k, th]) => React.createElement("button", {
     key: k,
     className: "bq-cab-chip" + (r.kind === k ? " on" : ""),
     style: {
@@ -7437,7 +7590,12 @@ function BOQEditor({
       race: k,
       raceSize: null
     })
-  }, th)))), r.kind && React.createElement("div", {
+  }, th)))), r.tray && React.createElement("span", {
+    style: {
+      fontSize: 11,
+      color: r.noOd ? "var(--tint-red-tx2)" : "var(--text-3)"
+    }
+  }, r.noOd ? "ยังไม่รู้ขนาดสาย — เลือกสายในหัวข้อสายไฟก่อน" : "เดินใน" + RACE_TH[r.kind] + "ร่วมกับเส้นอื่น — ขนาดรางดูที่กล่องด้านล่าง"), r.kind && !r.tray && React.createElement("div", {
     style: {
       display: "grid",
       gridTemplateColumns: isMobile ? "minmax(0,1fr) 90px" : "minmax(0,240px) 110px minmax(0,1fr)",
@@ -7475,7 +7633,77 @@ function BOQEditor({
       color: "var(--text-3)",
       fontWeight: 600
     }
-  }, " \xB7 ", r.sets, " \u0E17\u0E48\u0E2D \xD7 ", r.len, " \u0E21. = ", Math.round(r.len * r.sets * 10) / 10, " \u0E21."))))))), React.createElement("div", {
+  }, " \xB7 ", r.sets, " \u0E17\u0E48\u0E2D \xD7 ", r.len, " \u0E21. = ", Math.round(r.len * r.sets * 10) / 10, " \u0E21."))))), raceTrays.map(g => {
+    const ok = g.chk.ok && g.chk.widthOk;
+    return React.createElement("div", {
+      key: "t" + g.k,
+      style: {
+        background: "var(--surface)",
+        boxShadow: "var(--shadow-sm)",
+        borderRadius: 12,
+        padding: "10px 12px",
+        display: "flex",
+        flexDirection: "column",
+        gap: 8
+      }
+    }, React.createElement("div", {
+      style: {
+        display: "flex",
+        alignItems: "baseline",
+        gap: 8,
+        flexWrap: "wrap"
+      }
+    }, React.createElement("span", {
+      style: {
+        fontSize: 12.5,
+        fontWeight: 800,
+        color: "var(--text-1)"
+      }
+    }, window.BOQ.TRAY_KINDS[g.k].label, " (\u0E23\u0E32\u0E07\u0E23\u0E48\u0E27\u0E21)"), React.createElement("span", {
+      style: {
+        fontSize: 11,
+        color: "var(--text-3)"
+      }
+    }, g.mem.map(r => r.label).join(" · "))), React.createElement("div", {
+      style: {
+        display: "grid",
+        gridTemplateColumns: isMobile ? "minmax(0,1fr) 90px" : "minmax(0,260px) 110px minmax(0,1fr)",
+        gap: 8,
+        alignItems: "center"
+      }
+    }, React.createElement(Dropdown, {
+      value: g.size,
+      onChange: v => setRaceTray(g.k, {
+        size: v === g.auto ? null : v
+      }),
+      options: g.pool.map(nm => ({
+        value: nm,
+        label: nm.trim() + (nm === g.auto ? " (แนะนำ)" : "")
+      }))
+    }), React.createElement("input", {
+      type: "number",
+      style: numStyle,
+      value: g.own ? g.len : "",
+      placeholder: g.maxLen + " ม.",
+      title: "\u0E23\u0E30\u0E22\u0E30\u0E40\u0E14\u0E34\u0E19\u0E23\u0E32\u0E07 \u2014 \u0E40\u0E27\u0E49\u0E19\u0E27\u0E48\u0E32\u0E07 = \u0E40\u0E17\u0E48\u0E32\u0E2A\u0E32\u0E22\u0E40\u0E2A\u0E49\u0E19\u0E17\u0E35\u0E48\u0E22\u0E32\u0E27\u0E2A\u0E38\u0E14\u0E43\u0E19\u0E23\u0E32\u0E07",
+      onChange: e => setRaceTray(g.k, {
+        len: e.target.value
+      })
+    }), React.createElement("span", {
+      style: {
+        gridColumn: isMobile ? "1 / -1" : "auto",
+        fontSize: 11.5,
+        fontWeight: 700,
+        fontVariantNumeric: "tabular-nums",
+        color: ok ? "var(--tint-green-tx)" : "var(--tint-red-tx2)"
+      }
+    }, !g.auto ? "ใหญ่สุดยังรับไม่ไหว — แยกเดินสองราง หรือใช้รางชนิดอื่น" : "เติมเต็ม " + g.chk.fillPct + "% / " + g.chk.limit + "%" + (window.BOQ.TRAY_KINDS[g.k].oneLayer ? " · Ø รวม " + g.chk.odSum + "/" + g.chk.dim.w + " มม." : "") + (ok ? " ✓" : " ✗"), React.createElement("span", {
+      style: {
+        color: "var(--text-3)",
+        fontWeight: 600
+      }
+    }, " \xB7 \u0E15\u0E31\u0E27\u0E04\u0E39\u0E13\u0E25\u0E14\u0E01\u0E23\u0E30\u0E41\u0E2A \xD7", g.chk.derate.toFixed(2)))));
+  }))), React.createElement("div", {
     style: {
       display: "flex",
       flexDirection: "column",

@@ -1547,6 +1547,15 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
     return CAB_PT_TH[n.toUpperCase()] || n;
   };
   const raceFit = (k, cables) => RACE_POOL[k].find((nm) => window.BOQ.conduitCheck(nm, cables, RACE_POOL[k]).ok) || null;
+  /* รางไฟ — สายทุกเส้นที่เลือกรางชนิดเดียวกันเดินรางเดียวกัน (รางเป็นทางร่วม ไม่ใช่ทางใครทางมัน)
+     ขนาดรางคิดจากสายทุกเส้นรวมกัน · ความยาว = ระยะสายเส้นที่ยาวสุดในกลุ่ม · แก้ขนาด/ระยะได้ที่ b.raceTray[ชนิด] */
+  const TRAY_KEYS = window.BOQ.TRAY_KIND_KEYS;
+  const RACE_TH = { imc: "IMC", upvc: "uPVC", way: "Wireway", tray: "รางบันได", perf: "รางเจาะรู" };
+  const isTrayK = (k) => TRAY_KEYS.indexOf(k) >= 0;
+  const trayFit = (k, cables) => {
+    const pool = window.BOQ.TRAY_KINDS[k].sizes;
+    return pool.find((nm) => { const c = window.BOQ.trayCheck(nm, cables, k, pool); return c.ok && c.widthOk; }) || null;
+  };
   const raceRuns = (b.cables || []).map((c, i) => {
     const dc = /PV-INVERTER/i.test(c.name || "");
     if (!dc && !cabPlans[i]) return null;
@@ -1562,6 +1571,10 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
       cables.push({ type: od, size: sz, qty: Math.max(1, Math.round(+c.wires || 1)) });
       if (c.gnd && window.BOQ.cableSizeNum(c.gnd)) cables.push({ type: "IEC01 (THW)", size: window.BOQ.cableSizeNum(c.gnd), qty: 1 });
     }
+    // ในราง: ทุกชุดที่เดินขนานวางอยู่ในรางเดียวกัน (กราวด์ 1 เส้นต่อเส้นทาง)
+    const trayCables = cables.map((x, k) => Object.assign({}, x, { qty: k === 0 ? x.qty * sets : x.qty }));
+    if (isTrayK(c.race)) return { i, label: raceLabel(c), type: t, cables, trayCables, sets, kind: c.race, tray: true,
+      len: +c.length || 0, cabLen: +c.length || 0, noOd: !od || !sz };
     const kind = c.race === "imc" || c.race === "upvc" ? c.race : "";
     const auto = kind ? raceFit(kind, cables) : null;
     const pool = RACE_POOL[kind || "imc"];
@@ -1571,7 +1584,48 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
     return { i, label: raceLabel(c), type: t, cables, sets, kind, size, auto, len, own, cabLen: +c.length || 0,
       noOd: !od || !sz, chk: kind ? window.BOQ.conduitCheck(size, cables, pool) : null };
   });
-  const raceRows = raceRuns.filter((r) => r && r.kind && r.len > 0 && r.size).map((r) => ({
+  const raceTrayCfg = b.raceTray || {};
+  const raceTrays = TRAY_KEYS.map((k) => {
+    const mem = raceRuns.filter((r) => r && r.tray && r.kind === k);
+    if (!mem.length) return null;
+    const cables = [];
+    mem.forEach((r) => r.trayCables.forEach((x) => {
+      if (!x.type || !x.size) return;
+      const e = cables.find((y) => y.type === x.type && y.size === x.size);
+      if (e) e.qty += x.qty; else cables.push(Object.assign({}, x));
+    }));
+    const pool = window.BOQ.TRAY_KINDS[k].sizes, cfg = raceTrayCfg[k] || {};
+    const auto = trayFit(k, cables);
+    const size = cfg.size && pool.indexOf(cfg.size) >= 0 ? cfg.size : auto || pool[pool.length - 1];
+    const maxLen = Math.max.apply(null, mem.map((r) => r.len).concat([0]));
+    const own = cfg.len != null && cfg.len !== "";
+    const len = own ? +cfg.len || 0 : maxLen;
+    return { k, mem, cables, pool, auto, size, len, own, maxLen, chk: window.BOQ.trayCheck(size, cables, k, pool) };
+  }).filter(Boolean);
+  const setRaceTray = (k, patch) => setB((p) => {
+    const all = Object.assign({}, p.raceTray); const x = Object.assign({}, all[k], patch);
+    Object.keys(patch).forEach((f) => { if (patch[f] == null || patch[f] === "") delete x[f]; });
+    all[k] = x; return Object.assign({}, p, { raceTray: all });
+  });
+  const raceTrayRows = raceTrays.filter((g) => g.len > 0).map((g) => ({ k: g.k,
+    row: { size: g.size, length: Math.round(g.len * 10) / 10, cables: g.cables, auto: 1, lab: g.mem.map((r) => r.label).join(" · ") } }));
+  const raceTrayKey = JSON.stringify(raceTrayRows);
+  React.useEffect(() => {
+    setB((p) => {
+      const t0 = Object.assign({}, TRAY_DEF, p.tray);
+      const nx = {}; let changed = false;
+      TRAY_KEYS.forEach((k) => {
+        const old = (t0[k] || []).find((x) => x.auto) || {};
+        // ชุบ HDG / ยึดบน Rail กดที่แถวรางด้านล่าง — คิดแถวใหม่แล้วต้องติดไปด้วย
+        const add = raceTrayRows.filter((r) => r.k === k).map((r) => Object.assign({}, r.row, old.hdg ? { hdg: old.hdg } : {}, old.rail ? { rail: old.rail } : {}));
+        const out = add.concat((t0[k] || []).filter((x) => !x.auto));
+        if (JSON.stringify(out) !== JSON.stringify(t0[k] || [])) changed = true;
+        nx[k] = out;
+      });
+      return changed ? Object.assign({}, p, { tray: Object.assign({}, t0, nx) }) : p;
+    });
+  }, [raceTrayKey]); // eslint-disable-line
+  const raceRows = raceRuns.filter((r) => r && !r.tray && r.kind && r.len > 0 && r.size).map((r) => ({
     k: r.kind, row: { size: r.size, length: Math.round(r.len * r.sets * 10) / 10, cables: r.cables, auto: 1, from: r.i, lab: r.label, sets: r.sets } }));
   const raceKey = JSON.stringify(raceRows);
   React.useEffect(() => {
@@ -1789,11 +1843,20 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
             const any = cbs.length > 0;
             return (
               <div key={i} style={{ border: "1px solid var(--border)", borderRadius: 12, padding: 9, background: "var(--surface2)" }}>
+                {x.auto ? (
+                  <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap", minHeight: 36 }}>
+                    <span style={{ fontSize: 12.5, fontWeight: 800, color: "var(--text-1)" }}>{String(x.size || "").trim()}</span>
+                    <span style={{ fontSize: 11.5, color: "var(--text-3)" }}>จาก {x.lab}</span>
+                    <span style={{ marginLeft: "auto", fontSize: 12.5, fontWeight: 800, fontVariantNumeric: "tabular-nums", color: "var(--text-1)" }}>{x.length} ม.</span>
+                    <span style={{ fontSize: 10, fontWeight: 700, padding: "2px 7px", borderRadius: 99, background: "var(--primary-soft)", color: "var(--primary-dark)" }}>อัตโนมัติ</span>
+                  </div>
+                ) : (
                 <div style={{ display: "grid", gridTemplateColumns: "minmax(0,1fr) 78px 36px", gap: 8, alignItems: "center" }}>
                   <Dropdown value={x.size} onChange={(v) => setTrayRow(kind, i, "size", v)} options={opt(sizes)} placeholder="เลือกขนาด" />
                   <input type="number" style={numStyle} value={x.length} placeholder="ม." onChange={(e) => setTrayRow(kind, i, "length", e.target.value)} />
                   <button onClick={() => delTrayRow(kind, i)} title="ลบ" style={{ height: 40, background: "#EF444414", border: "none", color: "#EF4444", borderRadius: 9, cursor: "pointer", display: "grid", placeItems: "center" }}><Icon name="x" size={14} /></button>
                 </div>
+                )}
                 <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 7, flexWrap: "wrap" }}>
                   <button onClick={() => setTrayOpen((p) => Object.assign({}, p, { [kind + i]: !open }))}
                     style={{ display: "inline-flex", alignItems: "center", gap: 5, background: "none", border: "none", color: "var(--text-2)", fontWeight: 700, fontSize: 11.5, cursor: "pointer", fontFamily: "inherit", padding: 0 }}>
@@ -1836,7 +1899,11 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
                 </div>
                 {open && (
                   <div style={{ marginTop: 9, display: "flex", flexDirection: "column", gap: 7 }}>
-                    {cbs.map((c, j) => (
+                    {x.auto && cbs.map((c, j) => (
+                      <div key={"a" + j} style={{ fontSize: 11.5, color: "var(--text-2)" }}>• {c.type} {c.size} mm² × {c.qty} เส้น</div>
+                    ))}
+                    {x.auto && <div style={{ fontSize: 10.5, color: "var(--text-3)" }}>สายในรางนี้มาจากหัวข้อสายไฟ — เปลี่ยนขนาด/ระยะได้ที่ "เดินท่อตามเส้นสายไฟ" ด้านบนหัวข้อท่อร้อยสาย</div>}
+                    {!x.auto && cbs.map((c, j) => (
                       <div key={j} style={{ display: "grid", gridTemplateColumns: isMobile ? "minmax(0,1fr) 72px 56px 32px" : "minmax(0,1fr) 92px 66px 32px", gap: 7, alignItems: "center" }}>
                         <Dropdown value={c.type} onChange={(v) => setCables(i, cbs.map((y, k) => k === j ? Object.assign({}, y, { type: v, size: +(Object.keys(OD[v] || {})[0] || 2.5) }) : y))} options={opt(odTypes)} />
                         <Dropdown value={String(c.size)} onChange={(v) => setCables(i, cbs.map((y, k) => k === j ? Object.assign({}, y, { size: +v }) : y))} options={Object.keys(OD[c.type] || {}).map((s) => ({ value: s, label: s + " mm²" }))} />
@@ -1844,8 +1911,8 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
                         <button onClick={() => setCables(i, cbs.filter((_, k) => k !== j))} title="ลบ" style={{ height: 38, background: "#EF444414", border: "none", color: "#EF4444", borderRadius: 9, cursor: "pointer", display: "grid", placeItems: "center" }}><Icon name="x" size={13} /></button>
                       </div>
                     ))}
-                    <button onClick={() => setCables(i, cbs.concat([{ type: odTypes[0], size: +(Object.keys(OD[odTypes[0]] || {})[0] || 2.5), qty: 1 }]))}
-                      style={{ alignSelf: "flex-start", display: "inline-flex", alignItems: "center", gap: 5, background: "var(--surface3)", color: "var(--text-2)", border: "1px solid var(--border-strong)", borderRadius: 9, padding: "6px 10px", fontWeight: 700, fontSize: 11.5, cursor: "pointer", fontFamily: "inherit" }}><Icon name="plus" size={12} color="var(--text-2)" /> เพิ่มสาย</button>
+                    {!x.auto && <button onClick={() => setCables(i, cbs.concat([{ type: odTypes[0], size: +(Object.keys(OD[odTypes[0]] || {})[0] || 2.5), qty: 1 }]))}
+                      style={{ alignSelf: "flex-start", display: "inline-flex", alignItems: "center", gap: 5, background: "var(--surface3)", color: "var(--text-2)", border: "1px solid var(--border-strong)", borderRadius: 9, padding: "6px 10px", fontWeight: 700, fontSize: 11.5, cursor: "pointer", fontFamily: "inherit" }}><Icon name="plus" size={12} color="var(--text-2)" /> เพิ่มสาย</button>}
                     {any && (
                       <>
                         <div className="bq-spec" style={{ marginTop: 2 }}>
@@ -3452,9 +3519,9 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
             <MeasBar kinds={["conduit"]} />
             {raceRuns.some(Boolean) && (
               <div style={{ marginBottom: 18 }}>
-                <div style={{ fontSize: 11.5, fontWeight: 700, color: "var(--text-2)", marginBottom: 3 }}>เดินท่อตามเส้นสายไฟ</div>
+                <div style={{ fontSize: 11.5, fontWeight: 700, color: "var(--text-2)", marginBottom: 3 }}>เดินท่อ / รางตามเส้นสายไฟ</div>
                 <div className="bq-hint" style={{ fontSize: 10.5, color: "var(--text-3)", marginBottom: 8 }}>
-                  เลือกว่าแต่ละเส้นร้อยท่ออะไร — ระบบเลือกขนาดท่อจาก % เติมเต็ม (สาย 1 ชุด + กราวด์) ระยะตั้งต้นเท่าระยะสาย เดินขนานกี่ชุดก็คิดกี่ท่อ
+                  เลือกว่าแต่ละเส้นร้อยท่อหรือเดินรางอะไร — ท่อ: ขนาดจาก % เติมเต็ม (สาย 1 ชุด + กราวด์) เดินขนานกี่ชุดก็คิดกี่ท่อ · ราง: เส้นที่เลือกรางชนิดเดียวกันเดินรางเดียวกัน ขนาดคิดจากสายทุกเส้นรวมกัน
                 </div>
                 <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
                   {raceRuns.filter(Boolean).map((r) => (
@@ -3464,14 +3531,19 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
                         <span style={{ fontSize: 11, color: "var(--text-3)", flex: 1, minWidth: 120 }}>
                           {r.type ? r.type.trim() + (r.sets > 1 ? " × " + r.sets + " ชุด" : "") : "ยังไม่ได้เลือกสาย"}{r.cabLen ? " · " + r.cabLen + " ม." : ""}
                         </span>
-                        <span style={{ display: "inline-flex", gap: 5 }}>
-                          {[["", "ไม่ร้อยท่อ"], ["imc", "IMC"], ["upvc", "uPVC"]].map(([k, th]) => (
+                        <span style={{ display: "inline-flex", gap: 5, flexWrap: "wrap" }}>
+                          {[["", "ไม่ร้อยท่อ"]].concat(Object.keys(RACE_TH).map((k) => [k, RACE_TH[k]])).map(([k, th]) => (
                             <button key={k} className={"bq-cab-chip" + (r.kind === k ? " on" : "")} style={{ fontSize: 11.5, padding: "5px 11px" }}
                               onClick={() => setRace(r.i, { race: k, raceSize: null })}>{th}</button>
                           ))}
                         </span>
                       </div>
-                      {r.kind && (
+                      {r.tray && (
+                        <span style={{ fontSize: 11, color: r.noOd ? "var(--tint-red-tx2)" : "var(--text-3)" }}>
+                          {r.noOd ? "ยังไม่รู้ขนาดสาย — เลือกสายในหัวข้อสายไฟก่อน" : "เดินใน" + RACE_TH[r.kind] + "ร่วมกับเส้นอื่น — ขนาดรางดูที่กล่องด้านล่าง"}
+                        </span>
+                      )}
+                      {r.kind && !r.tray && (
                         <div style={{ display: "grid", gridTemplateColumns: isMobile ? "minmax(0,1fr) 90px" : "minmax(0,240px) 110px minmax(0,1fr)", gap: 8, alignItems: "center" }}>
                           <Dropdown value={r.size} onChange={(v) => setRace(r.i, { raceSize: v === r.auto ? null : v })}
                             options={RACE_POOL[r.kind].map((nm) => ({ value: nm, label: nm.trim() + (nm === r.auto ? " (แนะนำ)" : "") }))} />
@@ -3489,6 +3561,30 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
                       )}
                     </div>
                   ))}
+                  {raceTrays.map((g) => {
+                    const ok = g.chk.ok && g.chk.widthOk;
+                    return (
+                      <div key={"t" + g.k} style={{ background: "var(--surface)", boxShadow: "var(--shadow-sm)", borderRadius: 12, padding: "10px 12px", display: "flex", flexDirection: "column", gap: 8 }}>
+                        <div style={{ display: "flex", alignItems: "baseline", gap: 8, flexWrap: "wrap" }}>
+                          <span style={{ fontSize: 12.5, fontWeight: 800, color: "var(--text-1)" }}>{window.BOQ.TRAY_KINDS[g.k].label} (รางร่วม)</span>
+                          <span style={{ fontSize: 11, color: "var(--text-3)" }}>{g.mem.map((r) => r.label).join(" · ")}</span>
+                        </div>
+                        <div style={{ display: "grid", gridTemplateColumns: isMobile ? "minmax(0,1fr) 90px" : "minmax(0,260px) 110px minmax(0,1fr)", gap: 8, alignItems: "center" }}>
+                          <Dropdown value={g.size} onChange={(v) => setRaceTray(g.k, { size: v === g.auto ? null : v })}
+                            options={g.pool.map((nm) => ({ value: nm, label: nm.trim() + (nm === g.auto ? " (แนะนำ)" : "") }))} />
+                          <input type="number" style={numStyle} value={g.own ? g.len : ""} placeholder={g.maxLen + " ม."}
+                            title="ระยะเดินราง — เว้นว่าง = เท่าสายเส้นที่ยาวสุดในราง"
+                            onChange={(e) => setRaceTray(g.k, { len: e.target.value })} />
+                          <span style={{ gridColumn: isMobile ? "1 / -1" : "auto", fontSize: 11.5, fontWeight: 700, fontVariantNumeric: "tabular-nums",
+                            color: ok ? "var(--tint-green-tx)" : "var(--tint-red-tx2)" }}>
+                            {!g.auto ? "ใหญ่สุดยังรับไม่ไหว — แยกเดินสองราง หรือใช้รางชนิดอื่น"
+                              : "เติมเต็ม " + g.chk.fillPct + "% / " + g.chk.limit + "%" + (window.BOQ.TRAY_KINDS[g.k].oneLayer ? " · Ø รวม " + g.chk.odSum + "/" + g.chk.dim.w + " มม." : "") + (ok ? " ✓" : " ✗")}
+                            <span style={{ color: "var(--text-3)", fontWeight: 600 }}> · ตัวคูณลดกระแส ×{g.chk.derate.toFixed(2)}</span>
+                          </span>
+                        </div>
+                      </div>
+                    );
+                  })}
                 </div>
               </div>
             )}
