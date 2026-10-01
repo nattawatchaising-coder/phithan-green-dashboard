@@ -1326,14 +1326,18 @@ function BOQEditor({
     return rows;
   }, [job, microW, wcPhase, wcVolt, wcalc.battKw, wcalc.backupMainA, wcStrings, hasBattery, hasBackup, calcIns, calcMethod, calcGroup, calcNCond]);
   const cableAmp = (name, opts) => window.BOQ.ampacityOf(name, opts);
-  const BRK_AT = [16, 20, 25, 32, 40, 50, 63, 80, 100, 125, 160, 200, 225, 250, 320, 400, 500, 630, 800];
+  const BRK_AT = [16, 20, 25, 32, 40, 50, 63, 80, 100, 125, 160, 200, 225, 250, 320, 400, 500, 630, 800, 1000, 1250, 1600];
+  const ACB_AT = [2000, 2500, 3200, 4000];
   const brkSet = ib => {
     let ir = Math.ceil(ib * 1.05 / 5) * 5;
-    const at = BRK_AT.find(x => x >= ir) || BRK_AT[BRK_AT.length - 1];
-    ir = Math.min(at, Math.max(ir, Math.ceil(at * 0.8)));
+    const acb = ir > BRK_AT[BRK_AT.length - 1];
+    const L = acb ? ACB_AT : BRK_AT;
+    const at = L.find(x => x >= ir) || L[L.length - 1];
+    ir = Math.min(at, Math.max(ir, Math.ceil(at * (acb ? 0.4 : 0.8))));
     return {
       ir,
-      at
+      at,
+      kind: acb ? "ACB" : "MCCB"
     };
   };
   const reqAmpFor = cab => {
@@ -2980,18 +2984,21 @@ function BOQEditor({
     const iz = cabIz(c);
     const {
       ir,
-      at: a
+      at: a,
+      kind
     } = brkSet(ib);
     const base = r1(ib) + " A → " + a + " AT " + (ir < a ? "ปรับตั้ง " + ir + " A (" + r1(ir / a) + " × In)" : "ไม่ต้องปรับ");
     if (!iz) return {
       at: a,
       ir,
+      kind,
       ok: true,
       txt: base + " · ยังไม่ได้เลือกสาย ตรวจพิกัดสายไม่ได้"
     };
     if (ir <= iz) return {
       at: a,
       ir,
+      kind,
       ok: true,
       txt: base + " ≤ สายรับ " + iz + " A ✓"
     };
@@ -2999,6 +3006,7 @@ function BOQEditor({
     return {
       at: a,
       ir,
+      kind,
       ok: false,
       iz,
       rec,
@@ -3035,7 +3043,7 @@ function BOQEditor({
           who: "เมนตู้ AC"
         }, k);
         out.ac.push({
-          name: "MCCB " + pole + " " + k.at + "AT",
+          name: k.kind + " " + pole + " " + k.at + "AT",
           qty: 1,
           unit: "ตัว",
           auto: 1,
@@ -3052,7 +3060,7 @@ function BOQEditor({
           who: "อินเวอร์เตอร์ตัวที่ " + no
         }, k);
         out.ac.push({
-          name: "MCCB " + pole + " " + k.at + "AT",
+          name: k.kind + " " + pole + " " + k.at + "AT",
           qty: 1,
           unit: "ตัว",
           auto: 1,

@@ -691,12 +691,15 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
   /* MCCB ปรับตั้งกระแสได้ (Ir = 0.8–1.0 × In) — ไม่ต้องเผื่อถึง 1.25×
      Ir = กระแสออก × 1.05 ปัดขึ้นทีละ 5 A (84 A → 90 A) · In = ขนาดเฟรมมาตรฐานเล็กสุดที่ ≥ Ir (90 A → 100 AT ตั้งที่ 0.9)
      สายไฟคิดจาก Ir — สายรับ ≥ Ir เบรกเกอร์ตัดก่อนสายร้อนเสมอ */
-  const BRK_AT = [16, 20, 25, 32, 40, 50, 63, 80, 100, 125, 160, 200, 225, 250, 320, 400, 500, 630, 800];
+  const BRK_AT = [16, 20, 25, 32, 40, 50, 63, 80, 100, 125, 160, 200, 225, 250, 320, 400, 500, 630, 800, 1000, 1250, 1600];
+  const ACB_AT = [2000, 2500, 3200, 4000];                 // เกิน MCCB 1600 AT → ACB
   const brkSet = (ib) => {
     let ir = Math.ceil((ib * 1.05) / 5) * 5;
-    const at = BRK_AT.find((x) => x >= ir) || BRK_AT[BRK_AT.length - 1];
-    ir = Math.min(at, Math.max(ir, Math.ceil(at * 0.8)));   // อยู่ในช่วงปรับของเฟรม
-    return { ir, at };
+    const acb = ir > BRK_AT[BRK_AT.length - 1];
+    const L = acb ? ACB_AT : BRK_AT;
+    const at = L.find((x) => x >= ir) || L[L.length - 1];
+    ir = Math.min(at, Math.max(ir, Math.ceil(at * (acb ? 0.4 : 0.8))));   // อยู่ในช่วงปรับของเฟรม (ACB ปรับได้กว้าง 0.4–1.0)
+    return { ir, at, kind: acb ? "ACB" : "MCCB" };
   };
   const reqAmpFor = (cab) => {
     const r = reqAmpBase(cab);
@@ -1716,13 +1719,13 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
     || (/THW|IEC\s*0?1/i.test(c.type || "") ? CAB_FAMS[2] : cabCores(c.type) >= 2 ? CAB_FAMS[0] : CAB_FAMS[1]);
   const brkPick = (ib, c) => {
     const iz = cabIz(c);
-    const { ir, at: a } = brkSet(ib);
+    const { ir, at: a, kind } = brkSet(ib);
     const base = r1(ib) + " A → " + a + " AT " + (ir < a ? "ปรับตั้ง " + ir + " A (" + r1(ir / a) + " × In)" : "ไม่ต้องปรับ");
-    if (!iz) return { at: a, ir, ok: true, txt: base + " · ยังไม่ได้เลือกสาย ตรวจพิกัดสายไม่ได้" };
-    if (ir <= iz) return { at: a, ir, ok: true, txt: base + " ≤ สายรับ " + iz + " A ✓" };
+    if (!iz) return { at: a, ir, kind, ok: true, txt: base + " · ยังไม่ได้เลือกสาย ตรวจพิกัดสายไม่ได้" };
+    if (ir <= iz) return { at: a, ir, kind, ok: true, txt: base + " ≤ สายรับ " + iz + " A ✓" };
     // สายรับน้อยกว่ากระแสตั้ง — หาขนาดเล็กสุดในชนิดเดิม จำนวนชุดเดิม ที่รับได้ ≥ Ir (แนะนำ ไม่เปลี่ยนให้)
     const rec = cabFit(c, famOfCab(c), Math.max(1, Math.round(+c.sets || 1)), ir);
-    return { at: a, ir, ok: false, iz, rec, txt: base + " แต่สายรับได้ " + iz + " A"
+    return { at: a, ir, kind, ok: false, iz, rec, txt: base + " แต่สายรับได้ " + iz + " A"
       + (rec ? " — แนะนำ " + rec.name.trim() + (rec.sets > 1 ? " × " + rec.sets + " ชุด" : "") + " (รับ " + rec.amp * rec.sets + " A)" : " — ขยายสาย/เพิ่มชุด") };
   };
   // เบรกเกอร์ของสายแต่ละเส้น (index แถวสาย → ผลเลือก) — หัวข้อสายไฟเอาไปโชว์คำแนะนำ
@@ -1744,7 +1747,7 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
       if (ib > 0) {
         const k = brkPick(ib, m);
         if (m) brkOfCab[cs.indexOf(m)] = Object.assign({ who: "เมนตู้ AC" }, k);
-        out.ac.push({ name: "MCCB " + pole + " " + k.at + "AT", qty: 1, unit: "ตัว", auto: 1, ok: k.ok,
+        out.ac.push({ name: k.kind + " " + pole + " " + k.at + "AT", qty: 1, unit: "ตัว", auto: 1, ok: k.ok,
           why: tag + "เมน · อินเวอร์เตอร์ " + nos.join(", ") + " รวม " + k.txt });
       }
       nos.forEach((no) => {
@@ -1752,7 +1755,7 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
         const c = cs.find((x) => /INVERTER-MCB_SOLAR/i.test(x.name || "") && +x.inv === no);
         const k = brkPick(u.outA, c);
         if (c) brkOfCab[cs.indexOf(c)] = Object.assign({ who: "อินเวอร์เตอร์ตัวที่ " + no }, k);
-        out.ac.push({ name: "MCCB " + pole + " " + k.at + "AT", qty: 1, unit: "ตัว", auto: 1, ok: k.ok,
+        out.ac.push({ name: k.kind + " " + pole + " " + k.at + "AT", qty: 1, unit: "ตัว", auto: 1, ok: k.ok,
           why: tag + "อินเวอร์เตอร์ตัวที่ " + no + " · " + k.txt });
       });
       out.ac.push({ name: ph === 3 ? "AC SPD TYPE II 3P+N Uc385V In20Ka/Imax40Ka" : "AC SPD TYPE II 2P Uc275V In20Ka/Imax40Ka", qty: 1, unit: "ตัว", auto: 1,
