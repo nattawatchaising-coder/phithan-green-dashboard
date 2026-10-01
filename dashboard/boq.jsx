@@ -4570,7 +4570,7 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
               <label style={{ display: "flex", flexDirection: "column", gap: 3 }}
                 title={"ค่าแรง ฿" + baht(priced.laborTotal) + " + ค่าขออนุญาต ฿" + baht(priced.permitTotal) + " + ขนส่ง & บริหารจัดการ ฿" + baht(priced.siteTotal)}>
                 <span style={PRICE_LB}>ค่าแรงผู้รับเหมา (฿)</span>
-                <div style={Object.assign({}, numStyle, { width: "100%", height: 36, boxSizing: "border-box", color: "var(--text-2)", display: "flex", alignItems: "center", justifyContent: "flex-end" })}>
+                <div style={Object.assign({}, numStyle, { width: "100%", height: 36, boxSizing: "border-box", boxShadow: "var(--shadow-inset)", color: "var(--text-2)", display: "flex", alignItems: "center", justifyContent: "flex-end" })}>
                   {baht(pb.contractor)}
                 </div>
                 <span style={{ fontSize: 9.5, color: "var(--text-3)" }}>ค่าแรง + ขออนุญาต + บริหารจัดการ</span>

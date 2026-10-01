@@ -9953,6 +9953,7 @@ function BOQEditor({
       width: "100%",
       height: 36,
       boxSizing: "border-box",
+      boxShadow: "var(--shadow-inset)",
       color: "var(--text-2)",
       display: "flex",
       alignItems: "center",
