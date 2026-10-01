@@ -5560,13 +5560,13 @@ function BOQEditor({
     title: "ขนส่ง & บริหารจัดการ",
     meta: siteTotal > 0 ? "฿" + baht(siteTotal) : "ยังไม่ได้กรอก",
     tone: siteTotal > 0 ? "ok" : ""
-  } : null, {
+  } : null, !isHome ? {
     key: "support",
     icon: "box",
     title: "โครงสร้างรองรับอุปกรณ์",
     meta: sup.inv + sup.mdb > 0 ? "อินเวอร์เตอร์ " + sup.inv + " · ตู้ " + sup.mdb : "ยังไม่ได้ถอด",
     tone: sup.inv + sup.mdb > 0 ? "ok" : ""
-  }, !isHome ? {
+  } : null, !isHome ? {
     key: "struct",
     icon: "box",
     title: "งานเพิ่มเติม — โครงสร้าง",
@@ -8763,7 +8763,7 @@ function BOQEditor({
     sKey: "manage",
     preset: window.BOQ.MANAGE_PRESET,
     qtyLabel: "จำนวน"
-  })), React.createElement(BoqSection, _extends({
+  })), !isHome && React.createElement(BoqSection, _extends({
     title: "\u0E42\u0E04\u0E23\u0E07\u0E2A\u0E23\u0E49\u0E32\u0E07\u0E23\u0E2D\u0E07\u0E23\u0E31\u0E1A\u0E2D\u0E38\u0E1B\u0E01\u0E23\u0E13\u0E4C (Inverter / \u0E15\u0E39\u0E49 MDB)",
     icon: "box"
   }, secProps("support"), {

@@ -1830,7 +1830,7 @@
     const supSpare = sup.spare != null ? +sup.spare : 10;
     const nInvSup = Math.max(0, Math.round(+sup.inv || 0));
     const nMdbSup = Math.max(0, Math.round(+sup.mdb || 0));
-    if (nInvSup > 0 || nMdbSup > 0) {
+    if ((nInvSup > 0 || nMdbSup > 0) && (b.jobType || "") !== "home") {   // งานบ้านไม่มีโครงรองรับอุปกรณ์
       const supRows = [];
       const addKind = (n, kindKey) => {
         const K = SUPPORT_KINDS[kindKey] || SUPPORT_KINDS.floor;
