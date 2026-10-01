@@ -1090,13 +1090,15 @@
   }
   const OM_DEF = { years: 2, perYear: 1 };
   function omDefaults(b, kw) { return Object.assign({}, OM_DEF, { visit: omTierPrice(OM_CLEAN_TIERS, kw), svc: omTierPrice(OM_SVC_TIERS, kw) }); }
+  /* O&M รวมในราคาติดตั้งทุกใบ (ไม่มีตัวเลือกไม่รวม) · แก้ต่อใบได้แค่ ปีรับประกัน กับ ล้างแผงปีละกี่ครั้ง
+     ราคาล้าง/ครั้ง กับงาน O&M/ปี มาจากตารางเสมอ — ใบเก่าที่เคยเก็บ visit/svc/off ไว้ ไม่ถูกอ่านแล้ว */
   function omCalc(b, panels, kw) {
     const d = omDefaults(b, kw), raw = (b && b.om) || {};
-    const o = {};
-    Object.keys(d).forEach((k) => { const v = raw[k]; o[k] = v === "" || v == null || !isFinite(+v) ? d[k] : Math.max(0, +v); });
-    const visit = o.visit, svc = o.svc;
+    const o = Object.assign({}, d);
+    Object.keys(OM_DEF).forEach((k) => { const v = raw[k]; o[k] = v === "" || v == null || !isFinite(+v) ? d[k] : Math.max(0, +v); });
+    const visit = d.visit, svc = d.svc;
     const year = o.perYear * visit + svc;   // ค่าบริการต่อปี = ล้าง × ครั้ง + งาน O&M
-    return { o, def: d, visit, svc, year, included: o.years * year, renew: year, renew3: year * 3, off: raw.off === 1 };
+    return { o, def: d, visit, svc, year, included: o.years * year, renew: year, renew3: year * 3, off: false };
   }
 
   /* ── หมวดของงานโครงการ ──
@@ -1985,7 +1987,7 @@
        จึงขึ้นเฉพาะงานที่เข้าไปกรอกไว้จริง (ยังไม่แตะ = null = ไม่ต้องโผล่ในใบถอดของ) */
     if (b.transport != null) { const r = svcRows(b.transport, TRANSPORT_PRESET); if (r.length) groups.push({ group: G_TRANSPORT, items: r }); }
     if (b.manage != null) { const r = svcRows(b.manage, MANAGE_PRESET); if (r.length) groups.push({ group: G_MANAGE, items: r }); }
-    // O&M ที่รวมในราคาติดตั้ง (N ปีแรก) — ต้นทุนเข้างานนี้ · ปิดได้ต่อใบ (b.om.off)
+    // O&M ที่รวมในราคาติดตั้ง (N ปีแรก) — ต้นทุนเข้างานนี้ทุกใบ (om.off เป็น false เสมอแล้ว)
     const om = omCalc(b, panelCount, kw);
     if (!om.off && om.o.years > 0 && om.year > 0) {
       const omRows = [];

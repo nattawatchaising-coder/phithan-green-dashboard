@@ -5659,8 +5659,8 @@ function BOQEditor({
     key: "om",
     icon: "sun",
     title: "O&M · ประกัน + ล้างแผง",
-    meta: omC.off ? "ไม่รวมในงานนี้" : omC.year > 0 ? omC.o.years + " ปีแรก ฿" + baht(omC.included) + " · ต่อปีละ ฿" + baht(omC.renew) : "ยังไม่มีขนาดระบบ",
-    tone: omC.off || omC.year > 0 ? "ok" : ""
+    meta: omC.year > 0 ? omC.o.years + " ปีแรก ฿" + baht(omC.included) + " · ต่อปีละ ฿" + baht(omC.renew) : "ยังไม่มีขนาดระบบ",
+    tone: omC.year > 0 ? "ok" : ""
   }, {
     key: "removable",
     icon: "box",
@@ -9126,7 +9126,7 @@ function BOQEditor({
     title: "O&M \xB7 \u0E1B\u0E23\u0E30\u0E01\u0E31\u0E19 + \u0E25\u0E49\u0E32\u0E07\u0E41\u0E1C\u0E07",
     icon: "sun"
   }, secProps("om"), {
-    right: !omC.off && omC.included > 0 ? React.createElement("span", {
+    right: omC.included > 0 ? React.createElement("span", {
       style: {
         fontSize: 12.5,
         fontWeight: 800,
@@ -9141,26 +9141,7 @@ function BOQEditor({
       lineHeight: 1.5,
       marginBottom: 12
     }
-  }, "\u0E1A\u0E2D\u0E01\u0E25\u0E39\u0E01\u0E04\u0E49\u0E32\u0E27\u0E48\u0E32 ", React.createElement("b", null, "O&M \u0E1F\u0E23\u0E35"), " (\u0E04\u0E48\u0E32\u0E10\u0E32\u0E19 2 \u0E1B\u0E35 \xB7 \u0E25\u0E49\u0E32\u0E07\u0E41\u0E1C\u0E07\u0E1B\u0E35\u0E25\u0E30 1 \u0E04\u0E23\u0E31\u0E49\u0E07) \u2014 \u0E04\u0E48\u0E32\u0E1A\u0E23\u0E34\u0E01\u0E32\u0E23\u0E0A\u0E48\u0E27\u0E07\u0E19\u0E35\u0E49\u0E0B\u0E48\u0E2D\u0E19\u0E2D\u0E22\u0E39\u0E48\u0E43\u0E19\u0E23\u0E32\u0E04\u0E32\u0E15\u0E34\u0E14\u0E15\u0E31\u0E49\u0E07 \u0E23\u0E30\u0E1A\u0E1A\u0E1A\u0E27\u0E01\u0E40\u0E02\u0E49\u0E32\u0E22\u0E2D\u0E14\u0E43\u0E2B\u0E49 \u0E44\u0E21\u0E48\u0E02\u0E36\u0E49\u0E19\u0E40\u0E1B\u0E47\u0E19\u0E1A\u0E23\u0E23\u0E17\u0E31\u0E14\u0E41\u0E22\u0E01\u0E43\u0E19\u0E43\u0E1A\u0E40\u0E2A\u0E19\u0E2D\u0E23\u0E32\u0E04\u0E32 \xB7 \u0E23\u0E32\u0E04\u0E32\u0E25\u0E49\u0E32\u0E07\u0E41\u0E1C\u0E07\u0E41\u0E25\u0E30\u0E07\u0E32\u0E19 O&M \u0E21\u0E32\u0E08\u0E32\u0E01\u0E15\u0E32\u0E23\u0E32\u0E07\u0E23\u0E32\u0E04\u0E32\u0E15\u0E32\u0E21\u0E02\u0E19\u0E32\u0E14\u0E23\u0E30\u0E1A\u0E1A (kWp) \xB7 \u0E2B\u0E25\u0E31\u0E07\u0E08\u0E32\u0E01\u0E19\u0E31\u0E49\u0E19\u0E25\u0E39\u0E01\u0E04\u0E49\u0E32\u0E15\u0E48\u0E2D\u0E40\u0E1B\u0E47\u0E19\u0E23\u0E32\u0E22\u0E1B\u0E35\u0E14\u0E49\u0E27\u0E22\u0E23\u0E32\u0E04\u0E32\u0E40\u0E14\u0E35\u0E22\u0E27\u0E01\u0E31\u0E19 \xB7 \u0E0A\u0E48\u0E2D\u0E07\u0E17\u0E35\u0E48\u0E40\u0E27\u0E49\u0E19\u0E27\u0E48\u0E32\u0E07\u0E43\u0E0A\u0E49\u0E04\u0E48\u0E32\u0E15\u0E32\u0E21\u0E15\u0E32\u0E23\u0E32\u0E07 (\u0E15\u0E31\u0E27\u0E40\u0E25\u0E02\u0E08\u0E32\u0E07) \u0E41\u0E01\u0E49\u0E44\u0E14\u0E49\u0E15\u0E48\u0E2D\u0E43\u0E1A"), React.createElement("div", {
-    style: {
-      display: "flex",
-      gap: 6,
-      marginBottom: 12
-    }
-  }, [[0, "รวมในราคาติดตั้ง (O&M ฟรี)"], [1, "ไม่รวม (ลูกค้าไม่เอา)"]].map(([v, l]) => React.createElement("button", {
-    key: v,
-    type: "button",
-    className: "bq-cab-chip" + ((omC.off ? 1 : 0) === v ? " on" : ""),
-    style: {
-      fontSize: 11,
-      padding: "4px 10px"
-    },
-    onClick: () => setB(p => Object.assign({}, p, {
-      om: Object.assign({}, p.om || {}, {
-        off: v
-      })
-    }))
-  }, l))), !omC.off && React.createElement(React.Fragment, null, React.createElement("div", {
+  }, "\u0E1A\u0E2D\u0E01\u0E25\u0E39\u0E01\u0E04\u0E49\u0E32\u0E27\u0E48\u0E32 ", React.createElement("b", null, "O&M \u0E1F\u0E23\u0E35"), " (\u0E04\u0E48\u0E32\u0E10\u0E32\u0E19 2 \u0E1B\u0E35 \xB7 \u0E25\u0E49\u0E32\u0E07\u0E41\u0E1C\u0E07\u0E1B\u0E35\u0E25\u0E30 1 \u0E04\u0E23\u0E31\u0E49\u0E07) \u2014 \u0E04\u0E48\u0E32\u0E1A\u0E23\u0E34\u0E01\u0E32\u0E23\u0E0A\u0E48\u0E27\u0E07\u0E19\u0E35\u0E49\u0E0B\u0E48\u0E2D\u0E19\u0E2D\u0E22\u0E39\u0E48\u0E43\u0E19\u0E23\u0E32\u0E04\u0E32\u0E15\u0E34\u0E14\u0E15\u0E31\u0E49\u0E07 \u0E23\u0E30\u0E1A\u0E1A\u0E1A\u0E27\u0E01\u0E40\u0E02\u0E49\u0E32\u0E22\u0E2D\u0E14\u0E43\u0E2B\u0E49 \u0E44\u0E21\u0E48\u0E02\u0E36\u0E49\u0E19\u0E40\u0E1B\u0E47\u0E19\u0E1A\u0E23\u0E23\u0E17\u0E31\u0E14\u0E41\u0E22\u0E01\u0E43\u0E19\u0E43\u0E1A\u0E40\u0E2A\u0E19\u0E2D\u0E23\u0E32\u0E04\u0E32 \xB7 \u0E23\u0E32\u0E04\u0E32\u0E25\u0E49\u0E32\u0E07\u0E41\u0E1C\u0E07\u0E41\u0E25\u0E30\u0E07\u0E32\u0E19 O&M \u0E21\u0E32\u0E08\u0E32\u0E01\u0E15\u0E32\u0E23\u0E32\u0E07\u0E23\u0E32\u0E04\u0E32\u0E15\u0E32\u0E21\u0E02\u0E19\u0E32\u0E14\u0E23\u0E30\u0E1A\u0E1A (kWp) \xB7 \u0E2B\u0E25\u0E31\u0E07\u0E08\u0E32\u0E01\u0E19\u0E31\u0E49\u0E19\u0E25\u0E39\u0E01\u0E04\u0E49\u0E32\u0E15\u0E48\u0E2D\u0E40\u0E1B\u0E47\u0E19\u0E23\u0E32\u0E22\u0E1B\u0E35\u0E14\u0E49\u0E27\u0E22\u0E23\u0E32\u0E04\u0E32\u0E40\u0E14\u0E35\u0E22\u0E27\u0E01\u0E31\u0E19 \xB7 \u0E41\u0E01\u0E49\u0E23\u0E32\u0E04\u0E32\u0E44\u0E14\u0E49\u0E17\u0E35\u0E48\u0E2B\u0E19\u0E49\u0E32\u0E04\u0E25\u0E31\u0E07\u0E2A\u0E34\u0E19\u0E04\u0E49\u0E32 \u0E41\u0E17\u0E47\u0E1A \u201C\u0E23\u0E32\u0E04\u0E32 O&M \xB7 \u0E25\u0E49\u0E32\u0E07\u0E41\u0E1C\u0E07\u201D"), React.createElement("div", {
     style: {
       fontSize: 10.5,
       fontWeight: 800,
@@ -9169,7 +9150,7 @@ function BOQEditor({
     }
   }, "\u0E15\u0E31\u0E49\u0E07\u0E04\u0E48\u0E32 \xB7 \u0E23\u0E30\u0E1A\u0E1A ", result.meta.kw, " kWp"), React.createElement("div", {
     className: "bq-spec"
-  }, [["years", "แถมในราคาติดตั้ง (ปี)"], ["perYear", "ล้างแผงปีละ (ครั้ง)"], ["visit", "ราคาล้างแผง (฿/ครั้ง)"], ["svc", "งาน O&M (฿/ปี)"]].map(([k, l]) => React.createElement("div", {
+  }, [["years", "ปีรับประกัน (ปี)"], ["perYear", "ล้างแผงปีละ (ครั้ง)"]].map(([k, l]) => React.createElement("div", {
     key: k
   }, React.createElement("span", {
     className: "k"
@@ -9190,6 +9171,14 @@ function BOQEditor({
   }, "\u0E23\u0E30\u0E1A\u0E1A\u0E04\u0E34\u0E14\u0E43\u0E2B\u0E49"), React.createElement("div", {
     className: "bq-spec"
   }, React.createElement("div", null, React.createElement("span", {
+    className: "k"
+  }, "\u0E23\u0E32\u0E04\u0E32\u0E25\u0E49\u0E32\u0E07\u0E41\u0E1C\u0E07 / \u0E04\u0E23\u0E31\u0E49\u0E07"), React.createElement("span", {
+    className: "v"
+  }, "\u0E3F", baht(omC.visit))), React.createElement("div", null, React.createElement("span", {
+    className: "k"
+  }, "\u0E07\u0E32\u0E19 O&M / \u0E1B\u0E35"), React.createElement("span", {
+    className: "v"
+  }, "\u0E3F", baht(omC.svc))), React.createElement("div", null, React.createElement("span", {
     className: "k"
   }, "\u0E04\u0E48\u0E32\u0E1A\u0E23\u0E34\u0E01\u0E32\u0E23\u0E15\u0E48\u0E2D\u0E1B\u0E35"), React.createElement("span", {
     className: "v"
@@ -9212,7 +9201,7 @@ function BOQEditor({
       lineHeight: 1.55,
       marginTop: 8
     }
-  }, "\u0E15\u0E48\u0E2D\u0E1B\u0E35: \u0E25\u0E49\u0E32\u0E07 ", omC.o.perYear, " \u0E04\u0E23\u0E31\u0E49\u0E07 \xD7 \u0E3F", baht(omC.visit), " + \u0E07\u0E32\u0E19 O&M \u0E3F", baht(omC.svc), " = \u0E3F", baht(omC.year), " · ", "\u0E23\u0E27\u0E21\u0E43\u0E19\u0E07\u0E32\u0E19\u0E19\u0E35\u0E49: ", omC.o.years, " \u0E1B\u0E35 \xD7 \u0E3F", baht(omC.year), " = \u0E3F", baht(omC.included)))), !isHome && React.createElement(BoqSection, _extends({
+  }, "\u0E15\u0E48\u0E2D\u0E1B\u0E35: \u0E25\u0E49\u0E32\u0E07 ", omC.o.perYear, " \u0E04\u0E23\u0E31\u0E49\u0E07 \xD7 \u0E3F", baht(omC.visit), " + \u0E07\u0E32\u0E19 O&M \u0E3F", baht(omC.svc), " = \u0E3F", baht(omC.year), " · ", "\u0E23\u0E27\u0E21\u0E43\u0E19\u0E07\u0E32\u0E19\u0E19\u0E35\u0E49: ", omC.o.years, " \u0E1B\u0E35 \xD7 \u0E3F", baht(omC.year), " = \u0E3F", baht(omC.included))), !isHome && React.createElement(BoqSection, _extends({
     title: "\u0E07\u0E32\u0E19\u0E40\u0E1E\u0E34\u0E48\u0E21\u0E40\u0E15\u0E34\u0E21 (Input) \u2014 \u0E42\u0E04\u0E23\u0E07\u0E2A\u0E23\u0E49\u0E32\u0E07",
     icon: "box"
   }, secProps("struct"), {
