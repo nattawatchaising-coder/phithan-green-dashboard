@@ -6957,29 +6957,99 @@ function BOQEditor({
         textUnderlineOffset: 3
       }
     }, "\u0E43\u0E0A\u0E49\u0E04\u0E48\u0E32\u0E15\u0E31\u0E49\u0E07\u0E15\u0E49\u0E19")));
-  }), React.createElement("button", {
-    onClick: addCab,
-    style: {
-      alignSelf: "flex-start",
-      marginTop: 4,
-      display: "inline-flex",
-      alignItems: "center",
-      gap: 5,
-      background: "none",
-      color: "var(--primary-dark)",
-      border: "1px dashed var(--border-strong)",
-      borderRadius: 9,
-      padding: "6px 12px",
-      fontWeight: 700,
-      fontSize: 12,
-      cursor: "pointer",
-      fontFamily: "inherit"
+  }), (() => {
+    const cs = b.cables || [];
+    const has = re => cs.some(c => re.test(c.name || ""));
+    const adds = [];
+    const push = (label, fn) => adds.push({
+      label,
+      fn
+    });
+    const addRowAt = (row, at) => setB(p => {
+      const a = (p.cables || []).slice();
+      a.splice(at == null ? a.length : at, 0, row);
+      return Object.assign({}, p, {
+        cables: a
+      });
+    });
+    if (isStringInv) {
+      if (!has(/PV-INVERTER/i)) push("สาย DC", () => setB(p => Object.assign({}, p, {
+        cables: [{
+          name: "PV-INVERTER",
+          type: dcName(6),
+          length: ""
+        }, {
+          name: "GROUND",
+          type: "IEC01(THW)1Cx6 SQ.MM. Y/G",
+          length: ""
+        }].concat(p.cables || [])
+      })));
+      if (!has(/INVERTER-MCB_SOLAR/i)) push("สายอินเวอร์เตอร์ → MCB_SOLAR", () => addRowAt({
+        name: "INVERTER-MCB_SOLAR",
+        type: "",
+        length: "",
+        auto: 1
+      }));
+      const mIdx = [];
+      cs.forEach((c, k) => {
+        if (/MCB_SOLAR-MDB/i.test(c.name || "")) mIdx.push(k);
+      });
+      if (!mIdx.length) push("สายเมน MDB", () => addRowAt({
+        name: "MCB_SOLAR-MDB",
+        type: "",
+        length: "",
+        auto: 1
+      }));else if (invUnits.length >= 2 && mIdx.length < invUnits.length) push("สายเมน MDB ตู้ " + (mIdx.length + 1), () => addMcbCab(mIdx[mIdx.length - 1]));
+    } else {
+      (window.BOQ.MICRO_CABLE_NAMES || []).forEach(n => {
+        if (n === "COMBINER-BAT." && !hasBattery || n === "COMBINER-BACKUP" && !hasBackup) return;
+        if (!cs.some(c => c.name === n)) push(n, () => addRowAt({
+          name: n,
+          type: "",
+          length: ""
+        }));
+      });
+      if (!has(/^GROUND$/i)) push("สายกราวด์", () => addRowAt({
+        name: "GROUND",
+        type: "IEC01(THW)1Cx6 SQ.MM. Y/G",
+        length: ""
+      }));
     }
-  }, React.createElement(Icon, {
-    name: "plus",
-    size: 13,
-    color: "var(--primary-dark)"
-  }), " \u0E40\u0E1E\u0E34\u0E48\u0E21\u0E2A\u0E32\u0E22"), vdropSum.any && (() => {
+    push("สายสัญญาณ", () => addRowAt({
+      name: "LAN",
+      type: "LAN CAT6",
+      length: ""
+    }));
+    return React.createElement("div", {
+      style: {
+        display: "flex",
+        flexWrap: "wrap",
+        gap: 6,
+        marginTop: 4
+      }
+    }, adds.map(a => React.createElement("button", {
+      key: a.label,
+      onClick: a.fn,
+      style: {
+        display: "inline-flex",
+        alignItems: "center",
+        gap: 5,
+        background: "none",
+        color: "var(--primary-dark)",
+        border: "1px dashed var(--border-strong)",
+        borderRadius: 9,
+        padding: "6px 12px",
+        fontWeight: 700,
+        fontSize: 12,
+        cursor: "pointer",
+        fontFamily: "inherit"
+      }
+    }, React.createElement(Icon, {
+      name: "plus",
+      size: 13,
+      color: "var(--primary-dark)"
+    }), " ", a.label)));
+  })(), vdropSum.any && (() => {
     const L = vdropSum.lim;
     const cell = (lb, val, lim, tip) => React.createElement("span", {
       title: tip,
