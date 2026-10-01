@@ -1013,7 +1013,7 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
   });
   // งานบ้านมีเฉพาะหมวดตู้ไฟ (คิดอุปกรณ์อัตโนมัติแบบงานโครงการ) · ระบบน้ำมีแต่งานโครงการ
   const kitShown = isHome ? kitSections.filter((sc) => sc.sec === "board")
-    .map((sc) => Object.assign({}, sc, { hint: "ตู้ไฟของงานบ้าน — คิดแบบงานโครงการ: เบรกเกอร์ตามกระแสอินเวอร์เตอร์ (RCBO 100mA ขนาดแรกที่ ≥ 1.25 × กระแส — 1 เฟสถึง 50 A · 3 เฟสถึง 63 A เกินนั้นใช้ MCCB · อินเวอร์เตอร์ตัวเดียวไม่มีเมนแยก) · SPD Type 2 กันหลังด้วยฟิวส์ HRC 10x38 · ฟิวส์ DC ตาม Isc/Voc ของสตริง · ราคาดึงจากคลังเหมือนวัสดุอื่น" })) : kitSections;
+    .map((sc) => Object.assign({}, sc, { hint: "ตู้ไฟของงานบ้าน — คิดแบบงานโครงการ: เบรกเกอร์ตามกระแสอินเวอร์เตอร์ (RCBO 100mA ขนาดแรกที่ ≥ 1.25 × กระแส — 1 เฟสถึง 50 A · 3 เฟสถึง 63 A เกินนั้นใช้ MCCB · อินเวอร์เตอร์ตัวเดียวไม่มีเมนแยก) · SPD Type 2 กันหลังด้วยฟิวส์ 10x38 · ฟิวส์ DC ตาม Isc/Voc ของสตริง · ราคาดึงจากคลังเหมือนวัสดุอื่น" })) : kitSections;
 
   // ── ราคาขาย & ส่วนลด ──
   const PRICE_DEF = { contractor: 0, sell: 0, discount: 0, vat: window.BOQ.VAT_RATE };
@@ -1742,7 +1742,7 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
   const brkPickHome = (ib, c, pole) => {
     const need = ib * 1.25, a = (RCBO_AT[pole] || RCBO_AT["2P"]).find((x) => x >= need);
     if (!a) { const k = brkPick(ib, c); return Object.assign(k, { nm: k.kind + " " + pole + " " + k.at + "AT" }); }
-    const iz = cabIz(c), nm = "RCBO " + a + "A " + (pole === "3P" ? "3P+N" : "2P") + " 100mA FEEO";
+    const iz = cabIz(c), nm = "RCBO " + a + "A " + (pole === "3P" ? "3P+N" : "2P") + " 100mA";
     const base = r1(ib) + " A × 1.25 = " + r1(need) + " A → RCBO " + a + " A 100mA (งานบ้าน กันไฟรั่ว + กระแสเกินในตัวเดียว)";
     if (!iz) return { at: a, ir: a, kind: "RCBO", nm, ok: true, txt: base + " · ยังไม่ได้เลือกสาย ตรวจพิกัดสายไม่ได้" };
     if (a <= iz) return { at: a, ir: a, kind: "RCBO", nm, ok: true, txt: base + " ≤ สายรับ " + iz + " A ✓" };
@@ -1803,8 +1803,8 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
             why: tag + "กันฟ้าผ่า/แรงดันกระชากฝั่ง AC ตู้ละ 1 ตัว (" + lpsTxt + " · Uc " + (ph === 3 ? "385" : "275") + " V)" });
       if (noFuse) out.ac[out.ac.length - 1].why += " · เบรกเกอร์" + (homeOne ? "" : "เมน") + " " + mainAt + " A ≤ 125 A ใช้กันหลัง SPD ได้ ไม่ต้องมีฟิวส์";
       else if (isHome && !lps) {
-        out.ac.push({ name: "HRC FUSE gG 32A 10x38", qty: ph, unit: "ตัว", auto: 1, why: tag + "ฟิวส์กันหลัง SPD เส้นไฟละ 1 ตัว (ไม่ใส่ที่ N) — งานบ้านใช้ฟิวส์ HRC ฐานปกติ" });
-        out.ac.push({ name: "HRC FUSE HOLDER 10x38 1P", qty: ph, unit: "ตัว", auto: 1, why: tag + "ฐานฟิวส์ HRC 10x38" });
+        out.ac.push({ name: "AC FUSE gG 32A 10x38", qty: ph, unit: "ตัว", auto: 1, why: tag + "ฟิวส์กันหลัง SPD เส้นไฟละ 1 ตัว (ไม่ใส่ที่ N) — งานบ้านใช้ฟิวส์ 10x38 ฐานปกติ" });
+        out.ac.push({ name: "FUSE HOLDER 10x38 1P", qty: ph, unit: "ตัว", auto: 1, why: tag + "ฐานฟิวส์ 10x38" });
       } else {
         out.ac.push({ name: "AC FUSE gG " + fA + "A NH00", qty: ph, unit: "ตัว", auto: 1,
           why: tag + "ฟิวส์ใบมีดกันหลัง SPD เส้นไฟละ 1 ตัว (ไม่ใส่ที่ N)"

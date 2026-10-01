@@ -1979,7 +1979,7 @@ function BOQEditor({
     });
   });
   const kitShown = isHome ? kitSections.filter(sc => sc.sec === "board").map(sc => Object.assign({}, sc, {
-    hint: "ตู้ไฟของงานบ้าน — คิดแบบงานโครงการ: เบรกเกอร์ตามกระแสอินเวอร์เตอร์ (RCBO 100mA ขนาดแรกที่ ≥ 1.25 × กระแส — 1 เฟสถึง 50 A · 3 เฟสถึง 63 A เกินนั้นใช้ MCCB · อินเวอร์เตอร์ตัวเดียวไม่มีเมนแยก) · SPD Type 2 กันหลังด้วยฟิวส์ HRC 10x38 · ฟิวส์ DC ตาม Isc/Voc ของสตริง · ราคาดึงจากคลังเหมือนวัสดุอื่น"
+    hint: "ตู้ไฟของงานบ้าน — คิดแบบงานโครงการ: เบรกเกอร์ตามกระแสอินเวอร์เตอร์ (RCBO 100mA ขนาดแรกที่ ≥ 1.25 × กระแส — 1 เฟสถึง 50 A · 3 เฟสถึง 63 A เกินนั้นใช้ MCCB · อินเวอร์เตอร์ตัวเดียวไม่มีเมนแยก) · SPD Type 2 กันหลังด้วยฟิวส์ 10x38 · ฟิวส์ DC ตาม Isc/Voc ของสตริง · ราคาดึงจากคลังเหมือนวัสดุอื่น"
   })) : kitSections;
   const PRICE_DEF = {
     contractor: 0,
@@ -3036,7 +3036,7 @@ function BOQEditor({
       });
     }
     const iz = cabIz(c),
-      nm = "RCBO " + a + "A " + (pole === "3P" ? "3P+N" : "2P") + " 100mA FEEO";
+      nm = "RCBO " + a + "A " + (pole === "3P" ? "3P+N" : "2P") + " 100mA";
     const base = r1(ib) + " A × 1.25 = " + r1(need) + " A → RCBO " + a + " A 100mA (งานบ้าน กันไฟรั่ว + กระแสเกินในตัวเดียว)";
     if (!iz) return {
       at: a,
@@ -3146,18 +3146,18 @@ function BOQEditor({
       });
       if (noFuse) out.ac[out.ac.length - 1].why += " · เบรกเกอร์" + (homeOne ? "" : "เมน") + " " + mainAt + " A ≤ 125 A ใช้กันหลัง SPD ได้ ไม่ต้องมีฟิวส์";else if (isHome && !lps) {
         out.ac.push({
-          name: "HRC FUSE gG 32A 10x38",
+          name: "AC FUSE gG 32A 10x38",
           qty: ph,
           unit: "ตัว",
           auto: 1,
-          why: tag + "ฟิวส์กันหลัง SPD เส้นไฟละ 1 ตัว (ไม่ใส่ที่ N) — งานบ้านใช้ฟิวส์ HRC ฐานปกติ"
+          why: tag + "ฟิวส์กันหลัง SPD เส้นไฟละ 1 ตัว (ไม่ใส่ที่ N) — งานบ้านใช้ฟิวส์ 10x38 ฐานปกติ"
         });
         out.ac.push({
-          name: "HRC FUSE HOLDER 10x38 1P",
+          name: "FUSE HOLDER 10x38 1P",
           qty: ph,
           unit: "ตัว",
           auto: 1,
-          why: tag + "ฐานฟิวส์ HRC 10x38"
+          why: tag + "ฐานฟิวส์ 10x38"
         });
       } else {
         out.ac.push({
