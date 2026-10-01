@@ -4220,14 +4220,8 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
           <BoqSection title="ค่าขออนุญาต & เอกสาร" icon="box" {...secProps("permit")}
             right={priced.permitTotal > 0 ? <span style={{ fontSize: 12.5, fontWeight: 800, color: "var(--primary-dark)" }}>฿{baht(priced.permitTotal)}</span> : null}>
             <div className="bq-hint" style={{ fontSize: 11.5, color: "var(--text-3)", lineHeight: 1.5, marginBottom: 12 }}>
-              รายการขึ้นตามเงื่อนไขของงานนี้ — กกพ. จดแจ้งยกเว้น (&lt; 1,000 kW) หรือใบอนุญาต (≥ 1,000 kW) · พค.2 (เกิน 10–200 kW) · อ.1 (แผงเกิน 160 ตร.ม.) · เปลี่ยนมิเตอร์ (ยกเว้นใช้เองไม่ขายไฟ)
-              · ค่าขนานไฟ (งานบ้าน) MEA 2,140 · PEA 3,745 · ค่าวิศวกร 5,000–15,000 ตามขนาดระบบ
-            </div>
-            <div style={{ fontSize: 11.5, color: "var(--text-2)", marginBottom: 12 }}>
-              การไฟฟ้า: {b.gridAuth
-                ? <b style={{ color: "var(--primary-dark)" }}>{b.gridAuth === "MEA" ? "MEA นครหลวง" : "PEA ภูมิภาค"}{b.jobType === "home" ? " · ค่าขนานไฟ ฿" + baht(window.BOQ.PERMIT_GRID_FEE[b.gridAuth]) : ""}</b>
-                : <span style={{ color: "var(--tint-amber-tx)", fontWeight: 700 }}>ไม่ทราบ</span>}
-              <span style={{ color: "var(--text-3)" }}> — {job && job.province ? "จากจังหวัด " + job.province + " ในข้อมูลลูกค้า" : "ข้อมูลลูกค้ายังไม่มีจังหวัด"}</span>
+              รายการขึ้นตามเงื่อนไขของงานนี้ — กกพ. จดแจ้งยกเว้น (&lt; 1,000 kW) หรือใบอนุญาต (≥ 1,000 kW) · พค.2 (เกิน 10–200 kW) · อ.1 (แผงเกิน 160 ตร.ม.)
+              · ค่าขนานไฟ MEA 2,140 · PEA 3,745 (ดูจากจังหวัดในข้อมูลลูกค้า) · ค่าวิศวกร 5,000–15,000 ตามขนาดระบบ
             </div>
             {SvcTable({ sKey: "permit", preset: window.BOQ.permitPresetFor(b, result.meta.kw), qtyLabel: "จำนวน", total: priced.permitTotal, perW: priced.permitPerW })}
           </BoqSection>

@@ -9117,26 +9117,7 @@ function BOQEditor({
       lineHeight: 1.5,
       marginBottom: 12
     }
-  }, "\u0E23\u0E32\u0E22\u0E01\u0E32\u0E23\u0E02\u0E36\u0E49\u0E19\u0E15\u0E32\u0E21\u0E40\u0E07\u0E37\u0E48\u0E2D\u0E19\u0E44\u0E02\u0E02\u0E2D\u0E07\u0E07\u0E32\u0E19\u0E19\u0E35\u0E49 \u2014 \u0E01\u0E01\u0E1E. \u0E08\u0E14\u0E41\u0E08\u0E49\u0E07\u0E22\u0E01\u0E40\u0E27\u0E49\u0E19 (< 1,000 kW) \u0E2B\u0E23\u0E37\u0E2D\u0E43\u0E1A\u0E2D\u0E19\u0E38\u0E0D\u0E32\u0E15 (\u2265 1,000 kW) \xB7 \u0E1E\u0E04.2 (\u0E40\u0E01\u0E34\u0E19 10\u2013200 kW) \xB7 \u0E2D.1 (\u0E41\u0E1C\u0E07\u0E40\u0E01\u0E34\u0E19 160 \u0E15\u0E23.\u0E21.) \xB7 \u0E40\u0E1B\u0E25\u0E35\u0E48\u0E22\u0E19\u0E21\u0E34\u0E40\u0E15\u0E2D\u0E23\u0E4C (\u0E22\u0E01\u0E40\u0E27\u0E49\u0E19\u0E43\u0E0A\u0E49\u0E40\u0E2D\u0E07\u0E44\u0E21\u0E48\u0E02\u0E32\u0E22\u0E44\u0E1F) \xB7 \u0E04\u0E48\u0E32\u0E02\u0E19\u0E32\u0E19\u0E44\u0E1F (\u0E07\u0E32\u0E19\u0E1A\u0E49\u0E32\u0E19) MEA 2,140 \xB7 PEA 3,745 \xB7 \u0E04\u0E48\u0E32\u0E27\u0E34\u0E28\u0E27\u0E01\u0E23 5,000\u201315,000 \u0E15\u0E32\u0E21\u0E02\u0E19\u0E32\u0E14\u0E23\u0E30\u0E1A\u0E1A"), React.createElement("div", {
-    style: {
-      fontSize: 11.5,
-      color: "var(--text-2)",
-      marginBottom: 12
-    }
-  }, "\u0E01\u0E32\u0E23\u0E44\u0E1F\u0E1F\u0E49\u0E32: ", b.gridAuth ? React.createElement("b", {
-    style: {
-      color: "var(--primary-dark)"
-    }
-  }, b.gridAuth === "MEA" ? "MEA นครหลวง" : "PEA ภูมิภาค", b.jobType === "home" ? " · ค่าขนานไฟ ฿" + baht(window.BOQ.PERMIT_GRID_FEE[b.gridAuth]) : "") : React.createElement("span", {
-    style: {
-      color: "var(--tint-amber-tx)",
-      fontWeight: 700
-    }
-  }, "\u0E44\u0E21\u0E48\u0E17\u0E23\u0E32\u0E1A"), React.createElement("span", {
-    style: {
-      color: "var(--text-3)"
-    }
-  }, " \u2014 ", job && job.province ? "จากจังหวัด " + job.province + " ในข้อมูลลูกค้า" : "ข้อมูลลูกค้ายังไม่มีจังหวัด")), SvcTable({
+  }, "\u0E23\u0E32\u0E22\u0E01\u0E32\u0E23\u0E02\u0E36\u0E49\u0E19\u0E15\u0E32\u0E21\u0E40\u0E07\u0E37\u0E48\u0E2D\u0E19\u0E44\u0E02\u0E02\u0E2D\u0E07\u0E07\u0E32\u0E19\u0E19\u0E35\u0E49 \u2014 \u0E01\u0E01\u0E1E. \u0E08\u0E14\u0E41\u0E08\u0E49\u0E07\u0E22\u0E01\u0E40\u0E27\u0E49\u0E19 (< 1,000 kW) \u0E2B\u0E23\u0E37\u0E2D\u0E43\u0E1A\u0E2D\u0E19\u0E38\u0E0D\u0E32\u0E15 (\u2265 1,000 kW) \xB7 \u0E1E\u0E04.2 (\u0E40\u0E01\u0E34\u0E19 10\u2013200 kW) \xB7 \u0E2D.1 (\u0E41\u0E1C\u0E07\u0E40\u0E01\u0E34\u0E19 160 \u0E15\u0E23.\u0E21.) \xB7 \u0E04\u0E48\u0E32\u0E02\u0E19\u0E32\u0E19\u0E44\u0E1F MEA 2,140 \xB7 PEA 3,745 (\u0E14\u0E39\u0E08\u0E32\u0E01\u0E08\u0E31\u0E07\u0E2B\u0E27\u0E31\u0E14\u0E43\u0E19\u0E02\u0E49\u0E2D\u0E21\u0E39\u0E25\u0E25\u0E39\u0E01\u0E04\u0E49\u0E32) \xB7 \u0E04\u0E48\u0E32\u0E27\u0E34\u0E28\u0E27\u0E01\u0E23 5,000\u201315,000 \u0E15\u0E32\u0E21\u0E02\u0E19\u0E32\u0E14\u0E23\u0E30\u0E1A\u0E1A"), SvcTable({
     sKey: "permit",
     preset: window.BOQ.permitPresetFor(b, result.meta.kw),
     qtyLabel: "จำนวน",
