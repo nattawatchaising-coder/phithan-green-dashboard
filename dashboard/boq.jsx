@@ -81,6 +81,34 @@ const BQ_CSS = `
 /* กลุ่ม "สรุปผล" ในแถบซ้าย — หน้าที่ระบบคิดให้ ไม่ต้องกรอก จึงไม่นับในความคืบหน้า */
 .bq-nav[data-out="1"] .dot{box-shadow:none;background:var(--surface3);color:var(--text-2)}
 
+/* สรุปการจัดวางจากแบบ 3D (หัวการ์ดการจัดวางแผง) */
+.bq-p3{margin-bottom:14px;background:var(--surface);border-radius:var(--r-tile);box-shadow:var(--shadow-sm);overflow:hidden}
+.bq-p3-hd{display:flex;align-items:center;flex-wrap:wrap;gap:10px 12px;padding:12px 14px;background:color-mix(in srgb,#2563EB 7%,var(--surface))}
+.bq-p3[data-ok="1"] .bq-p3-hd{background:var(--primary-soft)}
+.bq-p3-hd .ic{width:30px;height:30px;border-radius:10px;display:grid;place-items:center;background:#2563EB;color:#fff;flex-shrink:0}
+.bq-p3[data-ok="1"] .bq-p3-hd .ic{background:var(--primary)}
+.bq-p3-hd .tt{display:flex;flex-direction:column;gap:1px;min-width:0;flex:1 1 180px}
+.bq-p3-hd .tt b{font-size:13px;color:var(--text-1)}
+.bq-p3-hd .tt span{font-size:11px;color:var(--text-3);font-weight:600}
+.bq-p3-hd .sum{font-size:12px;color:var(--text-2);font-weight:600;white-space:nowrap}
+.bq-p3-hd .sum b{font-size:15px;color:var(--text-1);font-weight:800}
+.bq-p3-hd .sum i{font-style:normal;margin:0 7px;color:var(--text-3)}
+.bq-p3-hd .go{display:inline-flex;align-items:center;gap:6px;border:0;border-radius:var(--r-chip);padding:8px 14px;background:#2563EB;color:#fff;
+  font-family:inherit;font-size:12px;font-weight:800;cursor:pointer;box-shadow:0 4px 12px -4px rgba(37,99,235,.55)}
+.bq-p3-hd .go:hover{background:#1D4ED8}
+.bq-p3-tb{width:100%;border-collapse:collapse;font-size:12.5px}
+.bq-p3-tb th{font-size:10.5px;font-weight:700;color:var(--text-3);text-align:left;padding:9px 14px 6px}
+.bq-p3-tb td{padding:7px 14px;color:var(--text-2);border-top:1px solid color-mix(in srgb,var(--text-3) 12%,transparent)}
+.bq-p3-tb .n{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
+.bq-p3-tb td b{color:var(--text-1);font-weight:800}
+.bq-p3-tb .bar{width:28%;padding-left:6px}
+.bq-p3-tb .bar span{display:block;height:6px;border-radius:99px;background:color-mix(in srgb,var(--primary) 55%,transparent)}
+.bq-p3-tb tbody tr:hover td{background:var(--surface2)}
+.bq-p3 .ori{display:inline-flex;align-items:center;gap:7px;font-weight:700;color:var(--text-1)}
+.bq-p3 .ori i{display:inline-block;width:9px;height:14px;border-radius:2px;border:1.6px solid var(--primary);background:var(--primary-soft)}
+.bq-p3 .ori[data-o="landscape"] i{width:14px;height:9px}
+.bq-p3 .warn{display:flex;align-items:center;gap:6px;padding:8px 14px;font-size:11.5px;font-weight:700;color:var(--tint-amber-tx);background:var(--tint-amber-bg)}
+
 /* แถบสรุปล่าง */
 .bq-foot{flex-shrink:0;box-shadow:0 -10px 18px -16px rgba(8,20,14,.35);position:relative;z-index:2;background:var(--surface);
   padding:10px 18px calc(10px + env(safe-area-inset-bottom,0px));display:flex;align-items:center;gap:0}
@@ -2453,22 +2481,46 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
             right={<span style={{ fontSize: 11.5, fontWeight: 700, color: remaining === 0 ? "var(--primary-dark)" : "#EF4444" }}>
               วางแล้ว {result.meta.rowsSum} / {result.meta.panelCount} แผง
             </span>}>
-            {rail3d && (
-              <div style={{ marginBottom: 12, display: "flex", alignItems: "center", flexWrap: "wrap", gap: 9, padding: "9px 12px",
-                background: rail3dSame ? "var(--primary-soft)" : "var(--tint-blue-bg, rgba(37,99,235,.08))", borderRadius: 11 }}>
-                <Icon name={rail3dSame ? "check" : "grid"} size={15} color={rail3dSame ? "var(--primary-dark)" : "#2563EB"} />
-                <span style={{ fontSize: 12.5, fontWeight: 700, color: rail3dSame ? "var(--primary-dark)" : "#1D4ED8" }}>
-                  {rail3dSame ? "ตรงกับแบบ 3D แล้ว" : "แบบ 3D วางไว้"} {rail3d.total} แผง · {rail3d.rows.map((r) => (r.orient === "landscape" ? "แนวนอน " : "แนวตั้ง ") + r.panels + " แผง/ราง × " + r.count + " แนว").join(" · ")}
-                  {rail3d.total !== +result.meta.panelCount ? " (งานนี้ตั้งไว้ " + result.meta.panelCount + " แผง)" : ""}
-                </span>
-                {!rail3dSame && (
-                  <button onClick={applyRail3d}
-                    style={{ marginLeft: "auto", display: "inline-flex", alignItems: "center", gap: 5, background: "#2563EB", color: "#fff", border: "none", borderRadius: 8, padding: "6px 12px", fontWeight: 700, fontSize: 12, cursor: "pointer", fontFamily: "inherit" }}>
-                    ใช้การจัดวางจากแบบ 3D
-                  </button>
-                )}
-              </div>
-            )}
+            {rail3d && (() => {
+              /* สรุปการจัดวางจากแบบ 3D เป็นตาราง — เดิมเป็นข้อความยาวบรรทัดเดียว อ่านไม่ออกว่าแนวไหนกี่แผง */
+              const mism = rail3d.total !== +result.meta.panelCount;
+              const maxN = Math.max(1, ...rail3d.rows.map((r) => r.panels * r.count));
+              const lines = rail3d.rows.reduce((t, r) => t + r.count, 0);
+              return (
+                <div className="bq-p3" data-ok={rail3dSame ? "1" : "0"}>
+                  <div className="bq-p3-hd">
+                    <span className="ic"><Icon name={rail3dSame ? "check" : "grid"} size={15} color="currentColor" sw={rail3dSame ? 2.6 : 2} /></span>
+                    <div className="tt">
+                      <b>การจัดวางจากแบบ 3D</b>
+                      <span>{rail3dSame ? "ตารางด้านล่างตรงกับแบบแล้ว" : "ยังไม่ได้ใช้ — กดปุ่มเพื่อกรอกตารางด้านล่างตามแบบ"}</span>
+                    </div>
+                    <div className="sum"><b>{rail3d.total.toLocaleString()}</b> แผง<i>·</i><b>{lines.toLocaleString()}</b> แนวราง</div>
+                    {!rail3dSame && (
+                      <button type="button" className="go" onClick={applyRail3d}>
+                        <Icon name="download" size={13} color="#fff" /> ใช้การจัดวางนี้
+                      </button>
+                    )}
+                  </div>
+                  <table className="bq-p3-tb">
+                    <thead><tr><th>แนวแผง</th><th className="n">แผง / แนวราง</th><th className="n">จำนวนแนวราง</th><th className="n">รวมแผง</th>{!isMobile && <th className="bar" />}</tr></thead>
+                    <tbody>
+                      {rail3d.rows.map((r, i) => (
+                        <tr key={i}>
+                          <td><span className="ori" data-o={r.orient}><i />{r.orient === "landscape" ? "แนวนอน" : "แนวตั้ง"}</span></td>
+                          <td className="n"><b>{r.panels}</b></td>
+                          <td className="n">× {r.count.toLocaleString()}</td>
+                          <td className="n"><b>{(r.panels * r.count).toLocaleString()}</b></td>
+                          {!isMobile && <td className="bar"><span style={{ width: Math.max(3, Math.round(r.panels * r.count / maxN * 100)) + "%" }} /></td>}
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                  {mism && (
+                    <div className="warn"><Icon name="alert" size={13} color="currentColor" /> แบบ 3D วางไว้ {rail3d.total.toLocaleString()} แผง แต่งานนี้ตั้งไว้ {(+result.meta.panelCount).toLocaleString()} แผง</div>
+                  )}
+                </div>
+              );
+            })()}
             <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
               {b.rows.map((r, i) => (
                 <div key={i} style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr 1fr 1fr 40px" : "1fr 1fr 150px 40px", gap: 8, alignItems: "center" }}>

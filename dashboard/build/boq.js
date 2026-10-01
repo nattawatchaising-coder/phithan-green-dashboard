@@ -74,6 +74,34 @@ const BQ_CSS = `
 /* กลุ่ม "สรุปผล" ในแถบซ้าย — หน้าที่ระบบคิดให้ ไม่ต้องกรอก จึงไม่นับในความคืบหน้า */
 .bq-nav[data-out="1"] .dot{box-shadow:none;background:var(--surface3);color:var(--text-2)}
 
+/* สรุปการจัดวางจากแบบ 3D (หัวการ์ดการจัดวางแผง) */
+.bq-p3{margin-bottom:14px;background:var(--surface);border-radius:var(--r-tile);box-shadow:var(--shadow-sm);overflow:hidden}
+.bq-p3-hd{display:flex;align-items:center;flex-wrap:wrap;gap:10px 12px;padding:12px 14px;background:color-mix(in srgb,#2563EB 7%,var(--surface))}
+.bq-p3[data-ok="1"] .bq-p3-hd{background:var(--primary-soft)}
+.bq-p3-hd .ic{width:30px;height:30px;border-radius:10px;display:grid;place-items:center;background:#2563EB;color:#fff;flex-shrink:0}
+.bq-p3[data-ok="1"] .bq-p3-hd .ic{background:var(--primary)}
+.bq-p3-hd .tt{display:flex;flex-direction:column;gap:1px;min-width:0;flex:1 1 180px}
+.bq-p3-hd .tt b{font-size:13px;color:var(--text-1)}
+.bq-p3-hd .tt span{font-size:11px;color:var(--text-3);font-weight:600}
+.bq-p3-hd .sum{font-size:12px;color:var(--text-2);font-weight:600;white-space:nowrap}
+.bq-p3-hd .sum b{font-size:15px;color:var(--text-1);font-weight:800}
+.bq-p3-hd .sum i{font-style:normal;margin:0 7px;color:var(--text-3)}
+.bq-p3-hd .go{display:inline-flex;align-items:center;gap:6px;border:0;border-radius:var(--r-chip);padding:8px 14px;background:#2563EB;color:#fff;
+  font-family:inherit;font-size:12px;font-weight:800;cursor:pointer;box-shadow:0 4px 12px -4px rgba(37,99,235,.55)}
+.bq-p3-hd .go:hover{background:#1D4ED8}
+.bq-p3-tb{width:100%;border-collapse:collapse;font-size:12.5px}
+.bq-p3-tb th{font-size:10.5px;font-weight:700;color:var(--text-3);text-align:left;padding:9px 14px 6px}
+.bq-p3-tb td{padding:7px 14px;color:var(--text-2);border-top:1px solid color-mix(in srgb,var(--text-3) 12%,transparent)}
+.bq-p3-tb .n{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
+.bq-p3-tb td b{color:var(--text-1);font-weight:800}
+.bq-p3-tb .bar{width:28%;padding-left:6px}
+.bq-p3-tb .bar span{display:block;height:6px;border-radius:99px;background:color-mix(in srgb,var(--primary) 55%,transparent)}
+.bq-p3-tb tbody tr:hover td{background:var(--surface2)}
+.bq-p3 .ori{display:inline-flex;align-items:center;gap:7px;font-weight:700;color:var(--text-1)}
+.bq-p3 .ori i{display:inline-block;width:9px;height:14px;border-radius:2px;border:1.6px solid var(--primary);background:var(--primary-soft)}
+.bq-p3 .ori[data-o="landscape"] i{width:14px;height:9px}
+.bq-p3 .warn{display:flex;align-items:center;gap:6px;padding:8px 14px;font-size:11.5px;font-weight:700;color:var(--tint-amber-tx);background:var(--tint-amber-bg)}
+
 /* แถบสรุปล่าง */
 .bq-foot{flex-shrink:0;box-shadow:0 -10px 18px -16px rgba(8,20,14,.35);position:relative;z-index:2;background:var(--surface);
   padding:10px 18px calc(10px + env(safe-area-inset-bottom,0px));display:flex;align-items:center;gap:0}
@@ -5410,45 +5438,69 @@ function BOQEditor({
         color: remaining === 0 ? "var(--primary-dark)" : "#EF4444"
       }
     }, "\u0E27\u0E32\u0E07\u0E41\u0E25\u0E49\u0E27 ", result.meta.rowsSum, " / ", result.meta.panelCount, " \u0E41\u0E1C\u0E07")
-  }), rail3d && React.createElement("div", {
-    style: {
-      marginBottom: 12,
-      display: "flex",
-      alignItems: "center",
-      flexWrap: "wrap",
-      gap: 9,
-      padding: "9px 12px",
-      background: rail3dSame ? "var(--primary-soft)" : "var(--tint-blue-bg, rgba(37,99,235,.08))",
-      borderRadius: 11
-    }
-  }, React.createElement(Icon, {
-    name: rail3dSame ? "check" : "grid",
-    size: 15,
-    color: rail3dSame ? "var(--primary-dark)" : "#2563EB"
-  }), React.createElement("span", {
-    style: {
-      fontSize: 12.5,
-      fontWeight: 700,
-      color: rail3dSame ? "var(--primary-dark)" : "#1D4ED8"
-    }
-  }, rail3dSame ? "ตรงกับแบบ 3D แล้ว" : "แบบ 3D วางไว้", " ", rail3d.total, " \u0E41\u0E1C\u0E07 \xB7 ", rail3d.rows.map(r => (r.orient === "landscape" ? "แนวนอน " : "แนวตั้ง ") + r.panels + " แผง/ราง × " + r.count + " แนว").join(" · "), rail3d.total !== +result.meta.panelCount ? " (งานนี้ตั้งไว้ " + result.meta.panelCount + " แผง)" : ""), !rail3dSame && React.createElement("button", {
-    onClick: applyRail3d,
-    style: {
-      marginLeft: "auto",
-      display: "inline-flex",
-      alignItems: "center",
-      gap: 5,
-      background: "#2563EB",
-      color: "#fff",
-      border: "none",
-      borderRadius: 8,
-      padding: "6px 12px",
-      fontWeight: 700,
-      fontSize: 12,
-      cursor: "pointer",
-      fontFamily: "inherit"
-    }
-  }, "\u0E43\u0E0A\u0E49\u0E01\u0E32\u0E23\u0E08\u0E31\u0E14\u0E27\u0E32\u0E07\u0E08\u0E32\u0E01\u0E41\u0E1A\u0E1A 3D")), React.createElement("div", {
+  }), rail3d && (() => {
+    const mism = rail3d.total !== +result.meta.panelCount;
+    const maxN = Math.max(1, ...rail3d.rows.map(r => r.panels * r.count));
+    const lines = rail3d.rows.reduce((t, r) => t + r.count, 0);
+    return React.createElement("div", {
+      className: "bq-p3",
+      "data-ok": rail3dSame ? "1" : "0"
+    }, React.createElement("div", {
+      className: "bq-p3-hd"
+    }, React.createElement("span", {
+      className: "ic"
+    }, React.createElement(Icon, {
+      name: rail3dSame ? "check" : "grid",
+      size: 15,
+      color: "currentColor",
+      sw: rail3dSame ? 2.6 : 2
+    })), React.createElement("div", {
+      className: "tt"
+    }, React.createElement("b", null, "\u0E01\u0E32\u0E23\u0E08\u0E31\u0E14\u0E27\u0E32\u0E07\u0E08\u0E32\u0E01\u0E41\u0E1A\u0E1A 3D"), React.createElement("span", null, rail3dSame ? "ตารางด้านล่างตรงกับแบบแล้ว" : "ยังไม่ได้ใช้ — กดปุ่มเพื่อกรอกตารางด้านล่างตามแบบ")), React.createElement("div", {
+      className: "sum"
+    }, React.createElement("b", null, rail3d.total.toLocaleString()), " \u0E41\u0E1C\u0E07", React.createElement("i", null, "\xB7"), React.createElement("b", null, lines.toLocaleString()), " \u0E41\u0E19\u0E27\u0E23\u0E32\u0E07"), !rail3dSame && React.createElement("button", {
+      type: "button",
+      className: "go",
+      onClick: applyRail3d
+    }, React.createElement(Icon, {
+      name: "download",
+      size: 13,
+      color: "#fff"
+    }), " \u0E43\u0E0A\u0E49\u0E01\u0E32\u0E23\u0E08\u0E31\u0E14\u0E27\u0E32\u0E07\u0E19\u0E35\u0E49")), React.createElement("table", {
+      className: "bq-p3-tb"
+    }, React.createElement("thead", null, React.createElement("tr", null, React.createElement("th", null, "\u0E41\u0E19\u0E27\u0E41\u0E1C\u0E07"), React.createElement("th", {
+      className: "n"
+    }, "\u0E41\u0E1C\u0E07 / \u0E41\u0E19\u0E27\u0E23\u0E32\u0E07"), React.createElement("th", {
+      className: "n"
+    }, "\u0E08\u0E33\u0E19\u0E27\u0E19\u0E41\u0E19\u0E27\u0E23\u0E32\u0E07"), React.createElement("th", {
+      className: "n"
+    }, "\u0E23\u0E27\u0E21\u0E41\u0E1C\u0E07"), !isMobile && React.createElement("th", {
+      className: "bar"
+    }))), React.createElement("tbody", null, rail3d.rows.map((r, i) => React.createElement("tr", {
+      key: i
+    }, React.createElement("td", null, React.createElement("span", {
+      className: "ori",
+      "data-o": r.orient
+    }, React.createElement("i", null), r.orient === "landscape" ? "แนวนอน" : "แนวตั้ง")), React.createElement("td", {
+      className: "n"
+    }, React.createElement("b", null, r.panels)), React.createElement("td", {
+      className: "n"
+    }, "\xD7 ", r.count.toLocaleString()), React.createElement("td", {
+      className: "n"
+    }, React.createElement("b", null, (r.panels * r.count).toLocaleString())), !isMobile && React.createElement("td", {
+      className: "bar"
+    }, React.createElement("span", {
+      style: {
+        width: Math.max(3, Math.round(r.panels * r.count / maxN * 100)) + "%"
+      }
+    })))))), mism && React.createElement("div", {
+      className: "warn"
+    }, React.createElement(Icon, {
+      name: "alert",
+      size: 13,
+      color: "currentColor"
+    }), " \u0E41\u0E1A\u0E1A 3D \u0E27\u0E32\u0E07\u0E44\u0E27\u0E49 ", rail3d.total.toLocaleString(), " \u0E41\u0E1C\u0E07 \u0E41\u0E15\u0E48\u0E07\u0E32\u0E19\u0E19\u0E35\u0E49\u0E15\u0E31\u0E49\u0E07\u0E44\u0E27\u0E49 ", (+result.meta.panelCount).toLocaleString(), " \u0E41\u0E1C\u0E07"));
+  })(), React.createElement("div", {
     style: {
       display: "flex",
       flexDirection: "column",
