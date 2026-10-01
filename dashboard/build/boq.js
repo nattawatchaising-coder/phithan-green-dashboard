@@ -5659,8 +5659,8 @@ function BOQEditor({
     key: "om",
     icon: "sun",
     title: "O&M · ประกัน + ล้างแผง",
-    meta: omC.off ? "ไม่รวมในงานนี้" : omC.visit > 0 ? omC.o.years + " ปีแรก ฿" + baht(omC.included) + " · ต่อปีละ ฿" + baht(omC.renew) : "ยังไม่มีจำนวนแผง",
-    tone: omC.off || omC.visit > 0 ? "ok" : ""
+    meta: omC.off ? "ไม่รวมในงานนี้" : omC.year > 0 ? omC.o.years + " ปีแรก ฿" + baht(omC.included) + " · ต่อปีละ ฿" + baht(omC.renew) : "ยังไม่มีขนาดระบบ",
+    tone: omC.off || omC.year > 0 ? "ok" : ""
   }, {
     key: "removable",
     icon: "box",
@@ -9141,7 +9141,7 @@ function BOQEditor({
       lineHeight: 1.5,
       marginBottom: 12
     }
-  }, "\u0E1A\u0E2D\u0E01\u0E25\u0E39\u0E01\u0E04\u0E49\u0E32\u0E27\u0E48\u0E32 ", React.createElement("b", null, "O&M \u0E1F\u0E23\u0E35"), " (\u0E04\u0E48\u0E32\u0E10\u0E32\u0E19 2 \u0E1B\u0E35 \xB7 \u0E25\u0E49\u0E32\u0E07\u0E41\u0E1C\u0E07\u0E1B\u0E35\u0E25\u0E30 1 \u0E04\u0E23\u0E31\u0E49\u0E07) \u2014 \u0E15\u0E49\u0E19\u0E17\u0E38\u0E19\u0E08\u0E23\u0E34\u0E07\u0E02\u0E2D\u0E07\u0E0A\u0E48\u0E27\u0E07\u0E19\u0E35\u0E49\u0E0B\u0E48\u0E2D\u0E19\u0E2D\u0E22\u0E39\u0E48\u0E43\u0E19\u0E23\u0E32\u0E04\u0E32\u0E15\u0E34\u0E14\u0E15\u0E31\u0E49\u0E07 \u0E23\u0E30\u0E1A\u0E1A\u0E1A\u0E27\u0E01\u0E40\u0E02\u0E49\u0E32\u0E22\u0E2D\u0E14\u0E43\u0E2B\u0E49 \u0E44\u0E21\u0E48\u0E02\u0E36\u0E49\u0E19\u0E40\u0E1B\u0E47\u0E19\u0E1A\u0E23\u0E23\u0E17\u0E31\u0E14\u0E41\u0E22\u0E01\u0E43\u0E19\u0E43\u0E1A\u0E40\u0E2A\u0E19\u0E2D\u0E23\u0E32\u0E04\u0E32 \xB7 \u0E2B\u0E25\u0E31\u0E07\u0E08\u0E32\u0E01\u0E19\u0E31\u0E49\u0E19\u0E25\u0E39\u0E01\u0E04\u0E49\u0E32\u0E15\u0E48\u0E2D\u0E1B\u0E23\u0E30\u0E01\u0E31\u0E19\u0E40\u0E1B\u0E47\u0E19\u0E23\u0E32\u0E22\u0E1B\u0E35 \u0E23\u0E32\u0E04\u0E32 = \u0E15\u0E49\u0E19\u0E17\u0E38\u0E19\u0E15\u0E48\u0E2D\u0E1B\u0E35 + \u0E01\u0E33\u0E44\u0E23 \xB7 \u0E25\u0E49\u0E32\u0E07 1 \u0E04\u0E23\u0E31\u0E49\u0E07 = \u0E17\u0E35\u0E21 \xD7 \u0E04\u0E48\u0E32\u0E41\u0E23\u0E07/\u0E27\u0E31\u0E19 \xD7 \u0E27\u0E31\u0E19\u0E17\u0E35\u0E48\u0E43\u0E0A\u0E49 (\u0E1B\u0E31\u0E14\u0E17\u0E35\u0E25\u0E30\u0E04\u0E23\u0E36\u0E48\u0E07\u0E27\u0E31\u0E19) + \u0E04\u0E48\u0E32\u0E40\u0E14\u0E34\u0E19\u0E17\u0E32\u0E07 + \u0E19\u0E49\u0E33/\u0E19\u0E49\u0E33\u0E22\u0E32 \u0E44\u0E21\u0E48\u0E16\u0E36\u0E07\u0E02\u0E31\u0E49\u0E19\u0E15\u0E48\u0E33\u0E43\u0E0A\u0E49\u0E02\u0E31\u0E49\u0E19\u0E15\u0E48\u0E33 \xB7 \u0E40\u0E1C\u0E37\u0E48\u0E2D\u0E1B\u0E23\u0E30\u0E01\u0E31\u0E19 = \u0E40\u0E07\u0E34\u0E19\u0E01\u0E31\u0E19\u0E44\u0E27\u0E49\u0E40\u0E02\u0E49\u0E32\u0E44\u0E1B\u0E41\u0E01\u0E49/\u0E40\u0E23\u0E35\u0E22\u0E01\u0E0B\u0E48\u0E2D\u0E21 (\u0E04\u0E48\u0E32\u0E41\u0E23\u0E07+\u0E40\u0E14\u0E34\u0E19\u0E17\u0E32\u0E07) \u0E15\u0E48\u0E2D kW \u0E15\u0E48\u0E2D\u0E1B\u0E35 \u2014 \u0E15\u0E31\u0E27\u0E2D\u0E38\u0E1B\u0E01\u0E23\u0E13\u0E4C\u0E21\u0E35\u0E1B\u0E23\u0E30\u0E01\u0E31\u0E19\u0E1C\u0E39\u0E49\u0E1C\u0E25\u0E34\u0E15\u0E2D\u0E22\u0E39\u0E48\u0E41\u0E25\u0E49\u0E27 \xB7 \u0E0A\u0E48\u0E2D\u0E07\u0E17\u0E35\u0E48\u0E40\u0E27\u0E49\u0E19\u0E27\u0E48\u0E32\u0E07\u0E43\u0E0A\u0E49\u0E04\u0E48\u0E32\u0E15\u0E31\u0E49\u0E07\u0E15\u0E49\u0E19 (\u0E15\u0E31\u0E27\u0E40\u0E25\u0E02\u0E08\u0E32\u0E07) \u0E41\u0E01\u0E49\u0E44\u0E14\u0E49\u0E15\u0E48\u0E2D\u0E43\u0E1A"), React.createElement("div", {
+  }, "\u0E1A\u0E2D\u0E01\u0E25\u0E39\u0E01\u0E04\u0E49\u0E32\u0E27\u0E48\u0E32 ", React.createElement("b", null, "O&M \u0E1F\u0E23\u0E35"), " (\u0E04\u0E48\u0E32\u0E10\u0E32\u0E19 2 \u0E1B\u0E35 \xB7 \u0E25\u0E49\u0E32\u0E07\u0E41\u0E1C\u0E07\u0E1B\u0E35\u0E25\u0E30 1 \u0E04\u0E23\u0E31\u0E49\u0E07) \u2014 \u0E04\u0E48\u0E32\u0E1A\u0E23\u0E34\u0E01\u0E32\u0E23\u0E0A\u0E48\u0E27\u0E07\u0E19\u0E35\u0E49\u0E0B\u0E48\u0E2D\u0E19\u0E2D\u0E22\u0E39\u0E48\u0E43\u0E19\u0E23\u0E32\u0E04\u0E32\u0E15\u0E34\u0E14\u0E15\u0E31\u0E49\u0E07 \u0E23\u0E30\u0E1A\u0E1A\u0E1A\u0E27\u0E01\u0E40\u0E02\u0E49\u0E32\u0E22\u0E2D\u0E14\u0E43\u0E2B\u0E49 \u0E44\u0E21\u0E48\u0E02\u0E36\u0E49\u0E19\u0E40\u0E1B\u0E47\u0E19\u0E1A\u0E23\u0E23\u0E17\u0E31\u0E14\u0E41\u0E22\u0E01\u0E43\u0E19\u0E43\u0E1A\u0E40\u0E2A\u0E19\u0E2D\u0E23\u0E32\u0E04\u0E32 \xB7 \u0E23\u0E32\u0E04\u0E32\u0E25\u0E49\u0E32\u0E07\u0E41\u0E1C\u0E07\u0E41\u0E25\u0E30\u0E07\u0E32\u0E19 O&M \u0E21\u0E32\u0E08\u0E32\u0E01\u0E15\u0E32\u0E23\u0E32\u0E07\u0E23\u0E32\u0E04\u0E32\u0E15\u0E32\u0E21\u0E02\u0E19\u0E32\u0E14\u0E23\u0E30\u0E1A\u0E1A (kWp) \xB7 \u0E2B\u0E25\u0E31\u0E07\u0E08\u0E32\u0E01\u0E19\u0E31\u0E49\u0E19\u0E25\u0E39\u0E01\u0E04\u0E49\u0E32\u0E15\u0E48\u0E2D\u0E40\u0E1B\u0E47\u0E19\u0E23\u0E32\u0E22\u0E1B\u0E35\u0E14\u0E49\u0E27\u0E22\u0E23\u0E32\u0E04\u0E32\u0E40\u0E14\u0E35\u0E22\u0E27\u0E01\u0E31\u0E19 \xB7 \u0E0A\u0E48\u0E2D\u0E07\u0E17\u0E35\u0E48\u0E40\u0E27\u0E49\u0E19\u0E27\u0E48\u0E32\u0E07\u0E43\u0E0A\u0E49\u0E04\u0E48\u0E32\u0E15\u0E32\u0E21\u0E15\u0E32\u0E23\u0E32\u0E07 (\u0E15\u0E31\u0E27\u0E40\u0E25\u0E02\u0E08\u0E32\u0E07) \u0E41\u0E01\u0E49\u0E44\u0E14\u0E49\u0E15\u0E48\u0E2D\u0E43\u0E1A"), React.createElement("div", {
     style: {
       display: "flex",
       gap: 6,
@@ -9167,9 +9167,9 @@ function BOQEditor({
       color: "var(--text-3)",
       marginBottom: 6
     }
-  }, "\u0E15\u0E31\u0E49\u0E07\u0E04\u0E48\u0E32"), React.createElement("div", {
+  }, "\u0E15\u0E31\u0E49\u0E07\u0E04\u0E48\u0E32 \xB7 \u0E23\u0E30\u0E1A\u0E1A ", result.meta.kw, " kWp"), React.createElement("div", {
     className: "bq-spec"
-  }, [["years", "แถมในราคาติดตั้ง (ปี)"], ["perYear", "ล้างแผงปีละ (ครั้ง)"], ["crew", "ทีมช่าง (คน)"], ["wage", "ค่าแรงช่าง (฿/คน/วัน)"], ["ppd", "ล้างได้ (แผง/ทีม/วัน)"], ["travel", "ค่าเดินทาง (฿/ครั้ง)"], ["supplies", "น้ำ/น้ำยา/อุปกรณ์ (฿/ครั้ง)"], ["minVisit", "ขั้นต่ำต่อครั้ง (฿)"], ["warrantyKw", "เผื่อประกัน (฿/kW/ปี)"], ["markup", "กำไรตอนต่อประกัน (%)"]].map(([k, l]) => React.createElement("div", {
+  }, [["years", "แถมในราคาติดตั้ง (ปี)"], ["perYear", "ล้างแผงปีละ (ครั้ง)"], ["visit", "ราคาล้างแผง (฿/ครั้ง)"], ["svc", "งาน O&M (฿/ปี)"]].map(([k, l]) => React.createElement("div", {
     key: k
   }, React.createElement("span", {
     className: "k"
@@ -9187,15 +9187,11 @@ function BOQEditor({
       color: "var(--text-3)",
       margin: "14px 0 6px"
     }
-  }, "\u0E23\u0E30\u0E1A\u0E1A\u0E04\u0E34\u0E14\u0E43\u0E2B\u0E49 \xB7 ", result.meta.panelCount, " \u0E41\u0E1C\u0E07 \xB7 ", result.meta.kw, " kW"), React.createElement("div", {
+  }, "\u0E23\u0E30\u0E1A\u0E1A\u0E04\u0E34\u0E14\u0E43\u0E2B\u0E49"), React.createElement("div", {
     className: "bq-spec"
   }, React.createElement("div", null, React.createElement("span", {
     className: "k"
-  }, "\u0E25\u0E49\u0E32\u0E07 1 \u0E04\u0E23\u0E31\u0E49\u0E07"), React.createElement("span", {
-    className: "v"
-  }, "\u0E3F", baht(omC.visit))), React.createElement("div", null, React.createElement("span", {
-    className: "k"
-  }, "\u0E15\u0E49\u0E19\u0E17\u0E38\u0E19\u0E15\u0E48\u0E2D\u0E1B\u0E35"), React.createElement("span", {
+  }, "\u0E04\u0E48\u0E32\u0E1A\u0E23\u0E34\u0E01\u0E32\u0E23\u0E15\u0E48\u0E2D\u0E1B\u0E35"), React.createElement("span", {
     className: "v"
   }, "\u0E3F", baht(omC.year))), React.createElement("div", null, React.createElement("span", {
     className: "k"
@@ -9203,16 +9199,20 @@ function BOQEditor({
     className: "v hi"
   }, "\u0E3F", baht(omC.included))), React.createElement("div", null, React.createElement("span", {
     className: "k"
-  }, "\u0E15\u0E48\u0E2D\u0E1B\u0E23\u0E30\u0E01\u0E31\u0E19 + \u0E25\u0E49\u0E32\u0E07\u0E41\u0E1C\u0E07 \u0E15\u0E48\u0E2D\u0E1B\u0E35"), React.createElement("span", {
+  }, "\u0E25\u0E39\u0E01\u0E04\u0E49\u0E32\u0E15\u0E48\u0E2D\u0E40\u0E2D\u0E07\u0E15\u0E48\u0E2D\u0E1B\u0E35"), React.createElement("span", {
     className: "v hi"
-  }, "\u0E3F", baht(omC.renew)))), React.createElement("div", {
+  }, "\u0E3F", baht(omC.renew))), React.createElement("div", null, React.createElement("span", {
+    className: "k"
+  }, "\u0E15\u0E48\u0E2D\u0E17\u0E35\u0E40\u0E14\u0E35\u0E22\u0E27 3 \u0E1B\u0E35"), React.createElement("span", {
+    className: "v"
+  }, "\u0E3F", baht(omC.renew3)))), React.createElement("div", {
     style: {
       fontSize: 10.5,
       color: "var(--text-3)",
       lineHeight: 1.55,
       marginTop: 8
     }
-  }, "\u0E25\u0E49\u0E32\u0E07 1 \u0E04\u0E23\u0E31\u0E49\u0E07: ", omC.o.crew, " \u0E04\u0E19 \xD7 \u0E3F", baht(omC.o.wage), " \xD7 ", omC.days, " \u0E27\u0E31\u0E19 + \u0E40\u0E14\u0E34\u0E19\u0E17\u0E32\u0E07 \u0E3F", baht(omC.o.travel), " + \u0E19\u0E49\u0E33/\u0E19\u0E49\u0E33\u0E22\u0E32 \u0E3F", baht(omC.o.supplies), " = \u0E3F", baht(omC.visitRaw), omC.minHit ? " → ไม่ถึงขั้นต่ำ ใช้ ฿" + baht(omC.o.minVisit) : "", React.createElement("br", null), "\u0E15\u0E48\u0E2D\u0E1B\u0E35: ", omC.o.perYear, " \u0E04\u0E23\u0E31\u0E49\u0E07 \xD7 \u0E3F", baht(omC.visit), " + \u0E40\u0E1C\u0E37\u0E48\u0E2D\u0E1B\u0E23\u0E30\u0E01\u0E31\u0E19 \u0E3F", baht(omC.o.warrantyKw), " \xD7 ", result.meta.kw, " kW (\u0E3F", baht(omC.warranty), ") = \u0E3F", baht(omC.year), React.createElement("br", null), "\u0E15\u0E48\u0E2D\u0E1B\u0E23\u0E30\u0E01\u0E31\u0E19: \u0E3F", baht(omC.year), " + \u0E01\u0E33\u0E44\u0E23 ", omC.o.markup, "% \u0E1B\u0E31\u0E14\u0E02\u0E36\u0E49\u0E19\u0E17\u0E35\u0E25\u0E30 100 = \u0E3F", baht(omC.renew), "/\u0E1B\u0E35 \xB7 \u0E15\u0E48\u0E2D\u0E17\u0E35\u0E40\u0E14\u0E35\u0E22\u0E27 3 \u0E1B\u0E35 \u0E3F", baht(omC.renew3), " (\u0E40\u0E2A\u0E19\u0E2D\u0E41\u0E22\u0E01 \u0E44\u0E21\u0E48\u0E23\u0E27\u0E21\u0E43\u0E19\u0E22\u0E2D\u0E14\u0E15\u0E34\u0E14\u0E15\u0E31\u0E49\u0E07)"))), !isHome && React.createElement(BoqSection, _extends({
+  }, "\u0E15\u0E48\u0E2D\u0E1B\u0E35: \u0E25\u0E49\u0E32\u0E07 ", omC.o.perYear, " \u0E04\u0E23\u0E31\u0E49\u0E07 \xD7 \u0E3F", baht(omC.visit), " + \u0E07\u0E32\u0E19 O&M \u0E3F", baht(omC.svc), " = \u0E3F", baht(omC.year), " · ", "\u0E23\u0E27\u0E21\u0E43\u0E19\u0E07\u0E32\u0E19\u0E19\u0E35\u0E49: ", omC.o.years, " \u0E1B\u0E35 \xD7 \u0E3F", baht(omC.year), " = \u0E3F", baht(omC.included)))), !isHome && React.createElement(BoqSection, _extends({
     title: "\u0E07\u0E32\u0E19\u0E40\u0E1E\u0E34\u0E48\u0E21\u0E40\u0E15\u0E34\u0E21 (Input) \u2014 \u0E42\u0E04\u0E23\u0E07\u0E2A\u0E23\u0E49\u0E32\u0E07",
     icon: "box"
   }, secProps("struct"), {

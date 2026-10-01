@@ -2732,8 +2732,8 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
       meta: priced.permitTotal > 0 ? "฿" + baht(priced.permitTotal) : "ยังไม่ได้กรอกค่าธรรมเนียม",
       tone: priced.permitTotal > 0 ? "ok" : "warn" },
     { key: "om", icon: "sun", title: "O&M · ประกัน + ล้างแผง",
-      meta: omC.off ? "ไม่รวมในงานนี้" : omC.visit > 0 ? omC.o.years + " ปีแรก ฿" + baht(omC.included) + " · ต่อปีละ ฿" + baht(omC.renew) : "ยังไม่มีจำนวนแผง",
-      tone: omC.off || omC.visit > 0 ? "ok" : "" },
+      meta: omC.off ? "ไม่รวมในงานนี้" : omC.year > 0 ? omC.o.years + " ปีแรก ฿" + baht(omC.included) + " · ต่อปีละ ฿" + baht(omC.renew) : "ยังไม่มีขนาดระบบ",
+      tone: omC.off || omC.year > 0 ? "ok" : "" },
     { key: "removable", icon: "box", title: "รายการวัสดุที่ถอดได้",
       meta: priced.grandTotal > 0 ? "รวม ฿" + baht(priced.grandTotal) : "ยังไม่มีราคา", tone: priced.grandTotal > 0 ? "ok" : "" },
     { key: "price", icon: "bolt", title: "แบ่งราคา & กำไร",
@@ -4229,10 +4229,9 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
           <BoqSection title="O&M · ประกัน + ล้างแผง" icon="sun" {...secProps("om")}
             right={!omC.off && omC.included > 0 ? <span style={{ fontSize: 12.5, fontWeight: 800, color: "var(--primary-dark)" }}>฿{baht(omC.included)}</span> : null}>
             <div className="bq-hint" style={{ fontSize: 11.5, color: "var(--text-3)", lineHeight: 1.5, marginBottom: 12 }}>
-              บอกลูกค้าว่า <b>O&amp;M ฟรี</b> (ค่าฐาน 2 ปี · ล้างแผงปีละ 1 ครั้ง) — ต้นทุนจริงของช่วงนี้ซ่อนอยู่ในราคาติดตั้ง ระบบบวกเข้ายอดให้ ไม่ขึ้นเป็นบรรทัดแยกในใบเสนอราคา · หลังจากนั้นลูกค้าต่อประกันเป็นรายปี ราคา = ต้นทุนต่อปี + กำไร
-              · ล้าง 1 ครั้ง = ทีม × ค่าแรง/วัน × วันที่ใช้ (ปัดทีละครึ่งวัน) + ค่าเดินทาง + น้ำ/น้ำยา ไม่ถึงขั้นต่ำใช้ขั้นต่ำ
-              · เผื่อประกัน = เงินกันไว้เข้าไปแก้/เรียกซ่อม (ค่าแรง+เดินทาง) ต่อ kW ต่อปี — ตัวอุปกรณ์มีประกันผู้ผลิตอยู่แล้ว
-              · ช่องที่เว้นว่างใช้ค่าตั้งต้น (ตัวเลขจาง) แก้ได้ต่อใบ
+              บอกลูกค้าว่า <b>O&amp;M ฟรี</b> (ค่าฐาน 2 ปี · ล้างแผงปีละ 1 ครั้ง) — ค่าบริการช่วงนี้ซ่อนอยู่ในราคาติดตั้ง ระบบบวกเข้ายอดให้ ไม่ขึ้นเป็นบรรทัดแยกในใบเสนอราคา
+              · ราคาล้างแผงและงาน O&amp;M มาจากตารางราคาตามขนาดระบบ (kWp) · หลังจากนั้นลูกค้าต่อเป็นรายปีด้วยราคาเดียวกัน
+              · ช่องที่เว้นว่างใช้ค่าตามตาราง (ตัวเลขจาง) แก้ได้ต่อใบ
             </div>
             <div style={{ display: "flex", gap: 6, marginBottom: 12 }}>
               {[[0, "รวมในราคาติดตั้ง (O&M ฟรี)"], [1, "ไม่รวม (ลูกค้าไม่เอา)"]].map(([v, l]) => (
@@ -4242,29 +4241,25 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
             </div>
             {!omC.off && (
             <React.Fragment>
-            <div style={{ fontSize: 10.5, fontWeight: 800, color: "var(--text-3)", marginBottom: 6 }}>ตั้งค่า</div>
+            <div style={{ fontSize: 10.5, fontWeight: 800, color: "var(--text-3)", marginBottom: 6 }}>ตั้งค่า · ระบบ {result.meta.kw} kWp</div>
             <div className="bq-spec">
-              {[["years", "แถมในราคาติดตั้ง (ปี)"], ["perYear", "ล้างแผงปีละ (ครั้ง)"], ["crew", "ทีมช่าง (คน)"], ["wage", "ค่าแรงช่าง (฿/คน/วัน)"],
-                ["ppd", "ล้างได้ (แผง/ทีม/วัน)"], ["travel", "ค่าเดินทาง (฿/ครั้ง)"], ["supplies", "น้ำ/น้ำยา/อุปกรณ์ (฿/ครั้ง)"], ["minVisit", "ขั้นต่ำต่อครั้ง (฿)"],
-                ["warrantyKw", "เผื่อประกัน (฿/kW/ปี)"], ["markup", "กำไรตอนต่อประกัน (%)"]].map(([k, l]) => (
+              {[["years", "แถมในราคาติดตั้ง (ปี)"], ["perYear", "ล้างแผงปีละ (ครั้ง)"], ["visit", "ราคาล้างแผง (฿/ครั้ง)"], ["svc", "งาน O&M (฿/ปี)"]].map(([k, l]) => (
                 <div key={k}><span className="k">{l}</span>
                   <input className="vin" type="number" min={0} value={(b.om || {})[k] != null ? b.om[k] : ""} placeholder={String(omC.def[k])}
                     onChange={(e) => setOm(k, e.target.value)} />
                 </div>
               ))}
             </div>
-            <div style={{ fontSize: 10.5, fontWeight: 800, color: "var(--text-3)", margin: "14px 0 6px" }}>ระบบคิดให้ · {result.meta.panelCount} แผง · {result.meta.kw} kW</div>
+            <div style={{ fontSize: 10.5, fontWeight: 800, color: "var(--text-3)", margin: "14px 0 6px" }}>ระบบคิดให้</div>
             <div className="bq-spec">
-              <div><span className="k">ล้าง 1 ครั้ง</span><span className="v">฿{baht(omC.visit)}</span></div>
-              <div><span className="k">ต้นทุนต่อปี</span><span className="v">฿{baht(omC.year)}</span></div>
+              <div><span className="k">ค่าบริการต่อปี</span><span className="v">฿{baht(omC.year)}</span></div>
               <div><span className="k">รวมในงานนี้ ({omC.o.years} ปี)</span><span className="v hi">฿{baht(omC.included)}</span></div>
-              <div><span className="k">ต่อประกัน + ล้างแผง ต่อปี</span><span className="v hi">฿{baht(omC.renew)}</span></div>
+              <div><span className="k">ลูกค้าต่อเองต่อปี</span><span className="v hi">฿{baht(omC.renew)}</span></div>
+              <div><span className="k">ต่อทีเดียว 3 ปี</span><span className="v">฿{baht(omC.renew3)}</span></div>
             </div>
             <div style={{ fontSize: 10.5, color: "var(--text-3)", lineHeight: 1.55, marginTop: 8 }}>
-              ล้าง 1 ครั้ง: {omC.o.crew} คน × ฿{baht(omC.o.wage)} × {omC.days} วัน + เดินทาง ฿{baht(omC.o.travel)} + น้ำ/น้ำยา ฿{baht(omC.o.supplies)} = ฿{baht(omC.visitRaw)}
-              {omC.minHit ? " → ไม่ถึงขั้นต่ำ ใช้ ฿" + baht(omC.o.minVisit) : ""}
-              <br />ต่อปี: {omC.o.perYear} ครั้ง × ฿{baht(omC.visit)} + เผื่อประกัน ฿{baht(omC.o.warrantyKw)} × {result.meta.kw} kW (฿{baht(omC.warranty)}) = ฿{baht(omC.year)}
-              <br />ต่อประกัน: ฿{baht(omC.year)} + กำไร {omC.o.markup}% ปัดขึ้นทีละ 100 = ฿{baht(omC.renew)}/ปี · ต่อทีเดียว 3 ปี ฿{baht(omC.renew3)} (เสนอแยก ไม่รวมในยอดติดตั้ง)
+              ต่อปี: ล้าง {omC.o.perYear} ครั้ง × ฿{baht(omC.visit)} + งาน O&amp;M ฿{baht(omC.svc)} = ฿{baht(omC.year)}
+              {" · "}รวมในงานนี้: {omC.o.years} ปี × ฿{baht(omC.year)} = ฿{baht(omC.included)}
             </div>
             </React.Fragment>
             )}

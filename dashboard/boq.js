@@ -1056,31 +1056,30 @@
   const G_OM = "O&M · ประกัน + ล้างแผง";
   const SERVICE_GROUPS = [G_LABOR, G_PERMIT, G_TRANSPORT, G_MANAGE, G_OM];   // หมวดที่ราคาอยู่ในบรรทัดเอง ไม่ดึงจากคลัง
 
-  /* ── O&M: ประกันงานติดตั้ง + ล้างแผง ──
-     ขายรวมในราคาติดตั้ง N ปีแรก (ปกติ 2 ปี) → ต้นทุนช่วงนั้นต้องบวกเข้างานนี้ ไม่งั้นกำไรถูกกินเงียบ ๆ
-     ต่อประกันหลังจากนั้น = ต้นทุนต่อปี + กำไร (เสนอเป็นราคาต่อปี ไม่รวมในยอดติดตั้ง)
-     ต้นทุนล้าง 1 ครั้ง = ทีมช่าง × ค่าแรง/วัน × วันที่ใช้ (ปัดทีละครึ่งวัน) + ค่าเดินทาง + น้ำ/น้ำยา
-       ไม่ถึงขั้นต่ำ ใช้ขั้นต่ำ (งานเล็กค่าเดินทาง/เสียวันเท่ากับงานใหญ่)
-     เผื่อประกัน = เงินกันไว้เรียกซ่อม/ตรวจแก้ ต่อ kW ต่อปี (อุปกรณ์มีประกันผู้ผลิต — ที่ร้านรับคือค่าแรง+ค่าเดินทางตอนเข้าไปแก้)
-     ทุกค่าเป็นค่าตั้งต้น แก้ได้ต่อใบ · เว้นว่าง = ใช้ค่าตั้งต้น */
-  /* ค่าฐานของบริษัท: แถม 2 ปี · ล้างแผงปีละ 1 ครั้ง — ฝั่งลูกค้าเสนอเป็น "O&M ฟรี" ต้นทุนแฝงอยู่ในราคาติดตั้ง */
-  const OM_DEF = { years: 2, perYear: 1, crew: 2, wage: 700, ppd: 80, travel: 1000, supplies: 300, minVisit: 2500, warrantyKw: 100, markup: 30 };
-  const OM_DEF_PROJECT = { ppd: 200 };   // หลังคาโรงงาน/พื้นเรียบ มีระบบน้ำ ล้างได้วันละมากกว่า
-  function omDefaults(b) { return Object.assign({}, OM_DEF, b && b.jobType !== "home" ? OM_DEF_PROJECT : {}); }
+  /* ── O&M: ล้างแผง + งาน O&M ──
+     ฝั่งลูกค้าเสนอว่า "O&M ฟรี" N ปีแรก (ค่าฐาน 2 ปี · ล้างแผงปีละ 1 ครั้ง) — ค่าบริการช่วงนั้นบวกเข้างานนี้ ซ่อนอยู่ในราคาติดตั้ง
+     หลังจากนั้นลูกค้าต่อเป็นรายปี ราคาเท่ากับค่าบริการต่อปีเดียวกัน
+     ราคาเป็น "ราคางาน" ตามตารางของบริษัท แบ่งตามขนาดระบบ (kWp) — ขนาดไม่เกินขั้นไหนใช้ราคาขั้นนั้น
+     ใหญ่เกินขั้นสุดท้าย = คูณต่อด้วยเรตต่อ kWp ของขั้นสุดท้าย ปัดขึ้นทีละ 500 บาท (ราคาไม่กระโดด)
+     แก้ได้ต่อใบ: ปีที่แถม · ครั้งต่อปี · ราคาล้าง/ครั้ง · ราคา O&M/ปี (เว้นว่าง = ตามตาราง) */
+  const OM_CLEAN_TIERS = [[5, 4000], [10, 5000], [15, 7000], [20, 8000], [30, 9500], [40, 11000], [50, 13000], [100, 17500], [200, 33000]];
+  const OM_SVC_TIERS = [[10, 5000], [100, 10000], [250, 20000], [1000, 50000]];
+  function omTierPrice(tiers, kw) {
+    const k = Math.max(0, +kw || 0);
+    if (!k) return 0;
+    for (let i = 0; i < tiers.length; i++) if (k <= tiers[i][0]) return tiers[i][1];
+    const last = tiers[tiers.length - 1];
+    return Math.ceil((k * last[1] / last[0]) / 500) * 500;
+  }
+  const OM_DEF = { years: 2, perYear: 1 };
+  function omDefaults(b, kw) { return Object.assign({}, OM_DEF, { visit: omTierPrice(OM_CLEAN_TIERS, kw), svc: omTierPrice(OM_SVC_TIERS, kw) }); }
   function omCalc(b, panels, kw) {
-    const d = omDefaults(b), raw = (b && b.om) || {};
+    const d = omDefaults(b, kw), raw = (b && b.om) || {};
     const o = {};
     Object.keys(d).forEach((k) => { const v = raw[k]; o[k] = v === "" || v == null || !isFinite(+v) ? d[k] : Math.max(0, +v); });
-    const n = Math.max(0, +panels || 0);
-    const days = n > 0 && o.ppd > 0 ? Math.max(0.5, Math.ceil((n / o.ppd) * 2) / 2) : 0;
-    const labor = o.crew * o.wage * days;
-    const visitRaw = n > 0 ? labor + o.travel + o.supplies : 0;
-    const visit = n > 0 ? Math.max(o.minVisit, visitRaw) : 0;
-    const warranty = Math.round(o.warrantyKw * (+kw || 0));
-    const year = o.perYear * visit + warranty;
-    const renew = Math.ceil((year * (1 + o.markup / 100)) / 100) * 100;   // ปัดขึ้นทีละ 100 บาท
-    return { o, def: d, days, labor, visitRaw, visit, minHit: visit > visitRaw, warranty, year,
-      included: o.years * year, renew, renew3: renew * 3, off: raw.off === 1 };
+    const visit = o.visit, svc = o.svc;
+    const year = o.perYear * visit + svc;   // ค่าบริการต่อปี = ล้าง × ครั้ง + งาน O&M
+    return { o, def: d, visit, svc, year, included: o.years * year, renew: year, renew3: year * 3, off: raw.off === 1 };
   }
 
   /* ── หมวดของงานโครงการ ──
@@ -1971,10 +1970,10 @@
     if (b.manage != null) { const r = svcRows(b.manage, MANAGE_PRESET); if (r.length) groups.push({ group: G_MANAGE, items: r }); }
     // O&M ที่รวมในราคาติดตั้ง (N ปีแรก) — ต้นทุนเข้างานนี้ · ปิดได้ต่อใบ (b.om.off)
     const om = omCalc(b, panelCount, kw);
-    if (!om.off && om.o.years > 0 && om.visit > 0) {
+    if (!om.off && om.o.years > 0 && om.year > 0) {
       const omRows = [];
-      if (om.o.perYear > 0) omRows.push({ name: "ล้างแผง + ตรวจระบบ (" + om.o.years + " ปีแรก · ปีละ " + om.o.perYear + " ครั้ง)", qty: om.o.years * om.o.perYear, unit: "ครั้ง", price: om.visit });
-      if (om.warranty > 0) omRows.push({ name: "เผื่อประกันงานติดตั้ง / เรียกซ่อม (" + om.o.years + " ปีแรก)", qty: om.o.years, unit: "ปี", price: om.warranty });
+      if (om.o.perYear > 0 && om.visit > 0) omRows.push({ name: "ล้างแผง (" + om.o.years + " ปีแรก · ปีละ " + om.o.perYear + " ครั้ง)", qty: om.o.years * om.o.perYear, unit: "ครั้ง", price: om.visit });
+      if (om.svc > 0) omRows.push({ name: "งาน O&M ตรวจ/บำรุงรักษาระบบ (" + om.o.years + " ปีแรก)", qty: om.o.years, unit: "ปี", price: om.svc });
       if (omRows.length) groups.push({ group: G_OM, items: omRows });
     }
 
@@ -2340,5 +2339,5 @@
     TRAY_FILL_LIMIT, TRAY_DERATE, trayDerate, trayDim, trayCheck, cableCores,
     UPVC_CONDUIT, conduitFillLimit, conduitDim, conduitCheck,
     AMP_CORE_LABEL, ampGroupMeta, ampCoresFor, ampCoreKey, WIRE_METHOD_LEGACY, normWireMethod,
-    G_TRAY, G_SUPPORT, G_LABOR, G_PERMIT, G_OM, OM_DEF, omDefaults, omCalc, SERVICE_GROUPS, mergeItems };
+    G_TRAY, G_SUPPORT, G_LABOR, G_PERMIT, G_OM, OM_DEF, OM_CLEAN_TIERS, OM_SVC_TIERS, omTierPrice, omDefaults, omCalc, SERVICE_GROUPS, mergeItems };
 })();
