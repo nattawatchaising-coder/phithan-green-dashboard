@@ -1013,7 +1013,7 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
   });
   // งานบ้านมีเฉพาะหมวดตู้ไฟ (คิดอุปกรณ์อัตโนมัติแบบงานโครงการ) · ระบบน้ำมีแต่งานโครงการ
   const kitShown = isHome ? kitSections.filter((sc) => sc.sec === "board")
-    .map((sc) => Object.assign({}, sc, { hint: "ตู้ไฟของงานบ้าน — คิดแบบงานโครงการ: เบรกเกอร์ตามกระแสอินเวอร์เตอร์ (RCBO 100mA ขนาดแรกที่ ≥ 1.25 × กระแส — 1 เฟสถึง 50 A · 3 เฟสถึง 63 A เกินนั้นใช้ MCCB · อินเวอร์เตอร์ตัวเดียวไม่มีเมนแยก) · SPD ตามระบบล่อฟ้า (Type 2 กันหลังด้วยฟิวส์ HRC 10x38) · ฟิวส์ DC ตาม Isc/Voc ของสตริง · Ground Fault / PM2230 ปิดไว้ (บ้านมี Smart Meter แล้ว) กดเปิดได้ · ราคาดึงจากคลังเหมือนวัสดุอื่น" })) : kitSections;
+    .map((sc) => Object.assign({}, sc, { hint: "ตู้ไฟของงานบ้าน — คิดแบบงานโครงการ: เบรกเกอร์ตามกระแสอินเวอร์เตอร์ (RCBO 100mA ขนาดแรกที่ ≥ 1.25 × กระแส — 1 เฟสถึง 50 A · 3 เฟสถึง 63 A เกินนั้นใช้ MCCB · อินเวอร์เตอร์ตัวเดียวไม่มีเมนแยก) · SPD ตามระบบล่อฟ้า (Type 2 กันหลังด้วยฟิวส์ HRC 10x38) · ฟิวส์ DC ตาม Isc/Voc ของสตริง · ราคาดึงจากคลังเหมือนวัสดุอื่น" })) : kitSections;
 
   // ── ราคาขาย & ส่วนลด ──
   const PRICE_DEF = { contractor: 0, sell: 0, discount: 0, vat: window.BOQ.VAT_RATE };
@@ -1753,7 +1753,8 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
   // เบรกเกอร์ของสายแต่ละเส้น (index แถวสาย → ผลเลือก) — หัวข้อสายไฟเอาไปโชว์คำแนะนำ
   const brkOfCab = {};
   const projBoard = project.board || {};
-  const bOn = (key) => isHome ? projBoard[key] === "on" : projBoard[key] !== "off";
+  // Ground Fault / PM2230 มีเฉพาะงานโครงการ (เปิดเป็นค่าเริ่ม ปิดได้) — งานบ้านไม่มี
+  const bOn = (key) => !isHome && projBoard[key] !== "off";
   const boardAuto = (() => {
     const out = { ac: [], dc: [] };
     if (!isStringInv || !invUnits.length) return out;
@@ -4014,14 +4015,14 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
                                 </span>
                               </div>
                             )}
-                            {bd.key === "ac" && (boardAuto.ac || []).length > 0 && (
+                            {bd.key === "ac" && !isHome && (boardAuto.ac || []).length > 0 && (
                               <div style={{ display: "flex", flexWrap: "wrap", gap: 5, alignItems: "center" }}>
                                 <span style={{ fontSize: 9.5, fontWeight: 800, color: "var(--text-3)", width: "100%" }}>ที่เมนตู้ AC</span>
                                 {[["gf", "ระบบ Ground Fault"], ["pm", "Power Meter PM2230"]].map(([key, l]) => {
-                                  const on = isHome ? st[key] === "on" : st[key] !== "off";
+                                  const on = st[key] !== "off";
                                   return (
                                     <button key={key} type="button" className={"bq-cab-chip" + (on ? " on" : "")} style={{ fontSize: 10, padding: "3px 8px" }}
-                                      onClick={() => setKit(k.key, key, isHome ? (on ? "" : "on") : (on ? "off" : ""))}>{on ? "✓ " : ""}{l}</button>
+                                      onClick={() => setKit(k.key, key, on ? "off" : "")}>{on ? "✓ " : ""}{l}</button>
                                   );
                                 })}
                               </div>

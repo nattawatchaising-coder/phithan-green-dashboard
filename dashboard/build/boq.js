@@ -1979,7 +1979,7 @@ function BOQEditor({
     });
   });
   const kitShown = isHome ? kitSections.filter(sc => sc.sec === "board").map(sc => Object.assign({}, sc, {
-    hint: "ตู้ไฟของงานบ้าน — คิดแบบงานโครงการ: เบรกเกอร์ตามกระแสอินเวอร์เตอร์ (RCBO 100mA ขนาดแรกที่ ≥ 1.25 × กระแส — 1 เฟสถึง 50 A · 3 เฟสถึง 63 A เกินนั้นใช้ MCCB · อินเวอร์เตอร์ตัวเดียวไม่มีเมนแยก) · SPD ตามระบบล่อฟ้า (Type 2 กันหลังด้วยฟิวส์ HRC 10x38) · ฟิวส์ DC ตาม Isc/Voc ของสตริง · Ground Fault / PM2230 ปิดไว้ (บ้านมี Smart Meter แล้ว) กดเปิดได้ · ราคาดึงจากคลังเหมือนวัสดุอื่น"
+    hint: "ตู้ไฟของงานบ้าน — คิดแบบงานโครงการ: เบรกเกอร์ตามกระแสอินเวอร์เตอร์ (RCBO 100mA ขนาดแรกที่ ≥ 1.25 × กระแส — 1 เฟสถึง 50 A · 3 เฟสถึง 63 A เกินนั้นใช้ MCCB · อินเวอร์เตอร์ตัวเดียวไม่มีเมนแยก) · SPD ตามระบบล่อฟ้า (Type 2 กันหลังด้วยฟิวส์ HRC 10x38) · ฟิวส์ DC ตาม Isc/Voc ของสตริง · ราคาดึงจากคลังเหมือนวัสดุอื่น"
   })) : kitSections;
   const PRICE_DEF = {
     contractor: 0,
@@ -3068,7 +3068,7 @@ function BOQEditor({
   };
   const brkOfCab = {};
   const projBoard = project.board || {};
-  const bOn = key => isHome ? projBoard[key] === "on" : projBoard[key] !== "off";
+  const bOn = key => !isHome && projBoard[key] !== "off";
   const boardAuto = (() => {
     const out = {
       ac: [],
@@ -8633,7 +8633,7 @@ function BOQEditor({
           color: "var(--text-3)",
           lineHeight: 1.4
         }
-      }, st.lps === "near" ? "SPD เป็น Type 1+2 (ทนกระแสฟ้าผ่า) ทั้ง AC และ DC" : "SPD Type 2 · ถ้าแผงอยู่ใกล้เสา/สายล่อฟ้า หรือต่อโครงแผงเข้ากับระบบล่อฟ้า ให้เลือก \"แผงใกล้/ต่อถึงกัน\"")), bd.key === "ac" && (boardAuto.ac || []).length > 0 && React.createElement("div", {
+      }, st.lps === "near" ? "SPD เป็น Type 1+2 (ทนกระแสฟ้าผ่า) ทั้ง AC และ DC" : "SPD Type 2 · ถ้าแผงอยู่ใกล้เสา/สายล่อฟ้า หรือต่อโครงแผงเข้ากับระบบล่อฟ้า ให้เลือก \"แผงใกล้/ต่อถึงกัน\"")), bd.key === "ac" && !isHome && (boardAuto.ac || []).length > 0 && React.createElement("div", {
         style: {
           display: "flex",
           flexWrap: "wrap",
@@ -8648,7 +8648,7 @@ function BOQEditor({
           width: "100%"
         }
       }, "\u0E17\u0E35\u0E48\u0E40\u0E21\u0E19\u0E15\u0E39\u0E49 AC"), [["gf", "ระบบ Ground Fault"], ["pm", "Power Meter PM2230"]].map(([key, l]) => {
-        const on = isHome ? st[key] === "on" : st[key] !== "off";
+        const on = st[key] !== "off";
         return React.createElement("button", {
           key: key,
           type: "button",
@@ -8657,7 +8657,7 @@ function BOQEditor({
             fontSize: 10,
             padding: "3px 8px"
           },
-          onClick: () => setKit(k.key, key, isHome ? on ? "" : "on" : on ? "off" : "")
+          onClick: () => setKit(k.key, key, on ? "off" : "")
         }, on ? "✓ " : "", l);
       })), (boardAuto[bd.key] || []).length > 0 && (() => {
         const off = !!st["noauto_" + bd.key];
