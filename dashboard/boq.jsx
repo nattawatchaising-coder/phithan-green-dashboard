@@ -582,6 +582,9 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
   const calcMethod = calcPick.method;
   const calcGroup = calcPick.group;
   const calcNCond = wcalc.ncond ? String(wcalc.ncond) : (wcPhase === 3 ? "3" : "2");   // ว่าง = ตามเฟส
+  /* จำนวนตัวนำที่มีกระแสของ "วงจรนั้น" — 2 ตัวนำ = 1 เฟส (L+N) · 3 ตัวนำ = 3 เฟส (L1 L2 L3)
+     สาย MICRO-MICRO เป็นวงจร 1 เฟสเสมอ (ไมโคร 230V) แม้งานจะเป็น 3 เฟส จึงต้องอ่านคอลัมน์ 2 ตัวนำ */
+  const ncondOf = (name) => (/MICRO[\s-]*MICRO/i.test(name || "") ? "2" : calcNCond);
   const calcDerate = +wcalc.derate > 0 ? +wcalc.derate : 1;   // ตัวคูณลดกระแส (หลายวงจรในช่อง/รางเดียวกัน)
   /* แกนย่อยของคอลัมน์ — แต่ละกลุ่มแยกไม่เหมือนกัน (ดู AMP_GROUPS.cores ใน boq.js)
      กลุ่ม 1,2,3,7 = แกนเดียว/หลายแกน · กลุ่ม 4 = แนวตั้ง/แนวราบ · กลุ่ม 5,6 = รวมเป็นคอลัมน์เดียว */
@@ -591,7 +594,7 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
   const corePick = wcalc.core || "single";
   const calcCore = (window.BOQ.ampCoreKey || (() => "single"))(calcGroup, corePick, corePick);
   // เลือกขนาดสายให้รับ กระแส×1.25 (โหลดต่อเนื่อง) — ตามพิกัด วสท. (ฉนวน+วิธี+กลุ่ม+จำนวนตัวนำ+แกน) แล้วหักตัวคูณลดกระแส
-  const pickWire = (amp) => window.BOQ.pickWireSize((+amp || 0) * 1.25, calcIns, { method: calcMethod, group: calcGroup, ncond: calcNCond, core: calcCore, derate: calcDerate });
+  const pickWire = (amp, nc) => window.BOQ.pickWireSize((+amp || 0) * 1.25, calcIns, { method: calcMethod, group: calcGroup, ncond: nc || calcNCond, core: calcCore, derate: calcDerate });
   // ตารางพิกัดของวิธีที่เลือกมีจริงไหม / ยืมมาจากวิธีอื่นไหม — ไว้บอกผู้ใช้ตรง ๆ
   const ampSrc = window.BOQ.ampTableFor
     ? window.BOQ.ampTableFor(calcIns, calcMethod, window.BOQ.ampColKey(calcGroup, calcNCond, calcCore))
@@ -618,7 +621,7 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
     const microAmp = microW / 230;
     const rows = [
       { kind: "micromicro", label: "MICRO-MICRO", w: microW, ampTotal: microAmp, ampString: microAmp,
-        wire: pickWire(microAmp), note: "สายต่อไมโคร · ไมโคร 1 ตัว · 1 เฟส 230V · " + (Math.round(microW / 10) / 100) + " kW", splittable: false },
+        wire: pickWire(microAmp, "2"), note: "สายต่อไมโคร · ไมโคร 1 ตัว · 1 เฟส 230V · " + (Math.round(microW / 10) / 100) + " kW", splittable: false },
     ];
     // 2) MICRO-COMBINER: ต่อสตริง (กระแสไมโครรวม ÷ String) — กระแสรวม = ไมโครทุกสตริง
     const mw = sysKw * 1000; const microTotal = div ? mw / div : 0; const microString = microTotal / wcStrings;
@@ -1280,7 +1283,7 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
     const pick = (window.BOQ.normWireMethod || ((m, g) => ({ method: m, group: g })))(rawMethod, rawGroup);
     const coreType = window.BOQ.cableCoreType(type);
     const coreKey = (window.BOQ.ampCoreKey || (() => coreType))(pick.group, c.core || coreType, c.core || coreType);
-    return { method: pick.method, group: pick.group, ncond: c.ncond || calcNCond, core: coreKey, orient: coreKey };
+    return { method: pick.method, group: pick.group, ncond: c.ncond || ncondOf(c.name), core: coreKey, orient: coreKey };
   };
   const cabCores = (t) => { const m = /(\d+)\s*C\s*x/i.exec(t || ""); return m ? +m[1] : 1; };
   const cabSuggest = (c) => {
@@ -2686,7 +2689,7 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
                 const pick = (window.BOQ.normWireMethod || ((m, g) => ({ method: m, group: g })))(rawMethod, rawGroup);
                 const method = pick.method;
                 const group = pick.group;
-                const ncond = c.ncond || calcNCond;
+                const ncond = c.ncond || ncondOf(c.name);
                 const coreType = window.BOQ.cableCoreType(c.type);   // single / multi (จากชื่อ 1C/nC)
                 /* กลุ่มที่เลือกอาจไม่ได้แยกคอลัมน์ตามแกนเดียว/หลายแกน (กลุ่ม 5,6 รวมกัน · กลุ่ม 4 แยกแนวการวาง)
                    ตั้งต้นใช้ค่าที่อ่านจากชื่อสาย แล้วเด้งเข้าแกนย่อยที่กลุ่มนั้นมีจริง — ผู้ใช้แก้ทับได้ */

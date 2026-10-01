@@ -1200,14 +1200,15 @@ function BOQEditor({
   const calcMethod = calcPick.method;
   const calcGroup = calcPick.group;
   const calcNCond = wcalc.ncond ? String(wcalc.ncond) : wcPhase === 3 ? "3" : "2";
+  const ncondOf = name => /MICRO[\s-]*MICRO/i.test(name || "") ? "2" : calcNCond;
   const calcDerate = +wcalc.derate > 0 ? +wcalc.derate : 1;
   const coreOpts = (window.BOQ.ampCoresFor || (() => []))(calcGroup);
   const corePick = wcalc.core || "single";
   const calcCore = (window.BOQ.ampCoreKey || (() => "single"))(calcGroup, corePick, corePick);
-  const pickWire = amp => window.BOQ.pickWireSize((+amp || 0) * 1.25, calcIns, {
+  const pickWire = (amp, nc) => window.BOQ.pickWireSize((+amp || 0) * 1.25, calcIns, {
     method: calcMethod,
     group: calcGroup,
-    ncond: calcNCond,
+    ncond: nc || calcNCond,
     core: calcCore,
     derate: calcDerate
   });
@@ -1236,7 +1237,7 @@ function BOQEditor({
       w: microW,
       ampTotal: microAmp,
       ampString: microAmp,
-      wire: pickWire(microAmp),
+      wire: pickWire(microAmp, "2"),
       note: "สายต่อไมโคร · ไมโคร 1 ตัว · 1 เฟส 230V · " + Math.round(microW / 10) / 100 + " kW",
       splittable: false
     }];
@@ -2332,7 +2333,7 @@ function BOQEditor({
     return {
       method: pick.method,
       group: pick.group,
-      ncond: c.ncond || calcNCond,
+      ncond: c.ncond || ncondOf(c.name),
       core: coreKey,
       orient: coreKey
     };
@@ -5914,7 +5915,7 @@ function BOQEditor({
     })))(rawMethod, rawGroup);
     const method = pick.method;
     const group = pick.group;
-    const ncond = c.ncond || calcNCond;
+    const ncond = c.ncond || ncondOf(c.name);
     const coreType = window.BOQ.cableCoreType(c.type);
     const rowCoreOpts = (window.BOQ.ampCoresFor || (() => []))(group);
     const coreKey = (window.BOQ.ampCoreKey || (() => coreType))(group, c.core || coreType, c.core || coreType);
