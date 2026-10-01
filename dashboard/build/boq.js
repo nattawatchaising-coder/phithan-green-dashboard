@@ -1326,8 +1326,8 @@ function BOQEditor({
     return rows;
   }, [job, microW, wcPhase, wcVolt, wcalc.battKw, wcalc.backupMainA, wcStrings, hasBattery, hasBackup, calcIns, calcMethod, calcGroup, calcNCond]);
   const cableAmp = (name, opts) => window.BOQ.ampacityOf(name, opts);
-  const BRK_AT = [16, 20, 25, 32, 40, 50, 63, 80, 100, 125, 160, 200, 225, 250, 320, 400, 500, 630, 800, 1000, 1250, 1600];
-  const ACB_AT = [2000, 2500, 3200, 4000];
+  const BRK_AT = [16, 20, 25, 32, 40, 50, 63, 80, 100, 125, 160, 200, 225, 250, 320, 400, 500, 630, 800, 1000, 1250];
+  const ACB_AT = [1600, 2000, 2500, 3200, 4000];
   const GF_IN_AT = 1000;
   const brkSet = ib => {
     let ir = Math.ceil(ib * 1.05 / 5) * 5;
