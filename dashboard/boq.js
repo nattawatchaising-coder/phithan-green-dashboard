@@ -817,11 +817,12 @@
     const onRail = !!rail && spec.hanger;                         // Wireway ยึดพุ๊กเข้าโครงตรง ๆ ไม่มีขาล็อกให้วางบน Rail
     const out = [
       { name: z(trayAlias(name)) + " (" + trayLenTxt(pipeLen) + "m/ท่อน)", qty: pcs, unit: "ท่อน" },
-      { name: z("ชุดข้อต่อราง " + spec.brief + " " + sz), qty: up(joint), unit: "ชุด" },
     ];
-    // รางเคเบิลล็อกด้วยขาล็อกสำเร็จ · Wireway ยึดพุ๊กเข้าโครงตรง ๆ ไม่ต้องมีขาล็อก
+    // Wireway ไม่ต้องมีของประกอบ (ข้อต่อ · สกรู M6 · พุ๊ก) — ผู้ใช้ยืนยัน · ถอดแค่ตัวราง
+    if (!spec.hanger) return out;
+    out.push({ name: z("ชุดข้อต่อราง " + spec.brief + " " + sz), qty: up(joint), unit: "ชุด" });
+    // รางเคเบิลล็อกด้วยขาล็อกสำเร็จ
     if (spec.hanger) out.push({ name: z("ขาล็อกรางไฟ " + spec.brief + " " + sz), qty: up(hanger), unit: "ชุด" });
-    else out.push({ name: "สกรู+น็อต M6 ประกอบราง", qty: up(pcs * 8), unit: "ชุด" });
     /* ตัวยึดขา — ของมาตรฐานที่ใช้ร่วมกับงานอื่นทั้งใบ ไม่ต่อท้าย (HDG.) ไม่งั้นบรรทัดเดียวแตกเป็นสองบรรทัด
        Rail ก็เช่นกัน เป็นรางอะลูมิเนียมตัวเดียวกับงานโครงยึดแผง ไม่ได้ชุบ */
     if (onRail) {
