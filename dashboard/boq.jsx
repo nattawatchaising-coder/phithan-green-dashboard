@@ -969,7 +969,10 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
   /* ตู้ไฟ กับ ระบบน้ำ เป็นคนละเรื่องกัน จึงแยกเป็นคนละหัวข้อในสารบัญ ไม่ใช่กองรวมกัน */
   const KIT_SECS = [
     { key: "project", sec: "board", icon: "box", title: "ตู้ไฟ",
-      hint: "ตู้ไฟของงานโครงการ — กรอกจำนวนตู้ แล้วกรอกอุปกรณ์ที่อยู่ในตู้นั้น · ราคาดึงจากคลังเหมือนวัสดุอื่น" },
+      hint: "ตู้ไฟของงานโครงการ — อินเวอร์เตอร์สตริง/ไฮบริด ระบบคิดอุปกรณ์ในตู้ AC / DC ให้จากอินเวอร์เตอร์ สตริง และสายไฟ (ตู้ AC 1 ตู้ต่อสายเมน 1 เส้น · ตู้ DC 1 ตู้ต่ออินเวอร์เตอร์) · "
+        + "เบรกเกอร์ตาม วสท.: กระแสใช้งาน ≤ In ≤ พิกัดสาย โดยเลือก ≥ 1.25 × กระแสออกก่อน ถ้าเกินสายจึงลดลง · "
+        + "ฟิวส์ AC เป็นฟิวส์ gG 10x38 กันหลัง SPD ไม่ต้องใช้ฟิวส์ใบมีด (NH) เพราะ MCCB ทำหน้าที่ป้องกันกระแสเกินแล้ว — NH ใช้เมื่อเมนใหญ่หลายร้อยแอมป์จนต้องใช้สวิตช์-ฟิวส์แทน MCCB · "
+        + "ฟิวส์ DC แบบ gPV ขั้ว + และ − ทุกสตริง (1.5–2.4 × Isc) · กรอกจำนวนตู้เองได้ และปิดรายการอัตโนมัติรายตู้ได้ · ราคาดึงจากคลังเหมือนวัสดุอื่น" },
     { key: "watersys", sec: "water", icon: "power", title: "ระบบน้ำ (ปั๊ม · ถัง · ท่อ)",
       hint: "ระบบล้างแผง — กรอกเฉพาะที่งานนี้มี ที่เหลือปล่อยว่าง · ราคาดึงจากคลังเหมือนวัสดุอื่น" },
   ];
@@ -1668,6 +1671,101 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
       return changed ? Object.assign({}, p, { conduit: Object.assign({}, c0, nx) }) : p;
     });
   }, [raceKey]); // eslint-disable-line
+  /* ── อุปกรณ์ในตู้ไฟ AC / DC — คิดให้อัตโนมัติ (งานโครงการ · อินเวอร์เตอร์สตริง/ไฮบริด) ──
+     ตู้ AC 1 ตู้ต่อสายเมน MCB_SOLAR → MDB 1 เส้น (แบ่งสองตู้ = สองชุด) · ตู้ DC 1 ตู้ต่ออินเวอร์เตอร์ 1 ตัว
+     เบรกเกอร์ (วสท.): Ib ≤ In ≤ Iz — In เลือกขนาดมาตรฐานแรกที่ ≥ 1.25 × กระแสออกอินเวอร์เตอร์ (โหลดต่อเนื่อง)
+       ถ้าขนาดนั้นเกินพิกัดสาย (Iz) ลดลงเป็นขนาดใหญ่สุดที่ยัง ≥ Ib และ ≤ Iz · ไม่มีขนาดไหนลงได้ = สายเล็กไป ต้องขยายสาย
+       (เบรกเกอร์ใหญ่กว่าที่สายรับได้ สายจะร้อนจนฉนวนเสียก่อนเบรกเกอร์ตัด)
+     SPD AC Type 2 ตู้ละ 1 ตัว + ฟิวส์ gG 32A 10x38 กันหลัง SPD ทุกเส้นไฟ (L)
+     ฝั่ง DC ต่อสตริง: ฟิวส์ gPV ขั้ว + และ − (IEC 62548: 1.5·Isc ≤ In ≤ 2.4·Isc) · SPD DC Type 2 สตริงละ 1 ตัว
+       แรงดันพิกัด ≥ Voc สตริง × 1.1 (เผื่อแรงดันขึ้นตอนแผงเย็น) */
+  const BRK_AT = [16, 20, 25, 32, 40, 50, 63, 80, 100, 125, 160, 200, 225, 250, 320, 400, 500, 630, 800];
+  const DCF_A = [10, 12, 15, 16, 20, 25, 30, 32];
+  const DC_V = [600, 800, 1000, 1500];
+  const r1 = (x) => Math.round(x * 10) / 10;
+  const cabIz = (c) => {
+    if (!c || !c.type) return null;
+    const a = cableAmp(c.type, cabCond(c, c.type));
+    return a ? Math.round(a * Math.max(1, Math.round(+c.sets || 1))) : null;
+  };
+  const brkPick = (ib, iz) => {
+    const need = ib * 1.25;
+    const a = BRK_AT.find((x) => x >= need) || BRK_AT[BRK_AT.length - 1];
+    const base = r1(ib) + " A × 1.25 = " + r1(need) + " A";
+    if (!iz) return { at: a, ok: true, txt: base + " → " + a + " AT · ยังไม่ได้เลือกสาย ตรวจพิกัดสายไม่ได้" };
+    if (a <= iz) return { at: a, ok: true, txt: base + " → " + a + " AT ≤ สายรับ " + iz + " A ✓" };
+    const lo = BRK_AT.filter((x) => x >= ib && x <= iz).pop();
+    if (lo) return { at: lo, ok: true, txt: base + " → " + a + " AT เกินสายรับ " + iz + " A จึงใช้ " + lo + " AT (≥ กระแสใช้งาน " + r1(ib) + " A และ ≤ สาย)" };
+    return { at: a, ok: false, txt: base + " → " + a + " AT แต่สายรับได้แค่ " + iz + " A — ขยายสาย/เพิ่มชุดในหัวข้อสายไฟก่อน" };
+  };
+  const projBoard = project.board || {};
+  const boardAuto = (() => {
+    const out = { ac: [], dc: [] };
+    if (isHome || !isStringInv || !invUnits.length) return out;
+    const ph = wcPhase === 3 ? 3 : 1, pole = ph === 3 ? "3P" : "2P";
+    const cs = b.cables || [];
+    // ── AC ──
+    const mRows = cs.filter((c) => /MCB_SOLAR-MDB/i.test(c.name || ""));
+    const boards = mRows.length ? mRows : [null];
+    if (!(+projBoard.ac > 0)) out.ac.push({ name: "ตู้ไฟ AC", qty: boards.length, unit: "ตู้", auto: 1, why: "1 ตู้ต่อสายเมน MCB SOLAR → MDB 1 เส้น" });
+    boards.forEach((m, bi) => {
+      const tag = boards.length > 1 ? "ตู้ " + (bi + 1) + " · " : "";
+      const nos = mcbInvsOf(m);
+      const ib = nos.reduce((s, no) => s + ((invUnits[no - 1] || {}).outA || 0), 0);
+      if (ib > 0) {
+        const k = brkPick(ib, cabIz(m));
+        out.ac.push({ name: "MCCB " + pole + " " + k.at + "AT", qty: 1, unit: "ตัว", auto: 1, ok: k.ok,
+          why: tag + "เมน · อินเวอร์เตอร์ " + nos.join(", ") + " รวม " + k.txt });
+      }
+      nos.forEach((no) => {
+        const u = invUnits[no - 1]; if (!u || !u.outA) return;
+        const c = cs.find((x) => /INVERTER-MCB_SOLAR/i.test(x.name || "") && +x.inv === no);
+        const k = brkPick(u.outA, cabIz(c));
+        out.ac.push({ name: "MCCB " + pole + " " + k.at + "AT", qty: 1, unit: "ตัว", auto: 1, ok: k.ok,
+          why: tag + "อินเวอร์เตอร์ตัวที่ " + no + " · " + k.txt });
+      });
+      out.ac.push({ name: ph === 3 ? "AC SPD TYPE II 3P+N Uc385V In20Ka/Imax40Ka" : "AC SPD TYPE II 2P Uc275V In20Ka/Imax40Ka", qty: 1, unit: "ตัว", auto: 1,
+        why: tag + "กันฟ้าผ่า/แรงดันกระชากฝั่ง AC ตู้ละ 1 ตัว (Type 2 · Uc " + (ph === 3 ? "385" : "275") + " V)" });
+      out.ac.push({ name: "AC FUSE gG 32A 10x38", qty: ph, unit: "ตัว", auto: 1, why: tag + "ฟิวส์กันหลัง SPD เส้นไฟละ 1 ตัว (ไม่ต้องเป็นฟิวส์ใบมีด — ดูคำอธิบาย)" });
+      out.ac.push({ name: "FUSE HOLDER 10x38 1P", qty: ph, unit: "ตัว", auto: 1, why: tag + "ฐานฟิวส์ของฟิวส์กันหลัง SPD" });
+    });
+    // ── DC ──
+    const nStr = plan ? plan.strings : invUnits.length * Math.max(1, +selInv.inputs || 1);
+    if (!(+projBoard.dc > 0)) out.dc.push({ name: "ตู้ไฟ DC", qty: invUnits.length, unit: "ตู้", auto: 1, why: "1 ตู้ต่ออินเวอร์เตอร์ 1 ตัว" });
+    const pIsc = selPanel && +selPanel.isc > 0 ? +selPanel.isc : 0;
+    const iIsc = +selInv.maxIscA > 0 ? +selInv.maxIscA / Math.max(1, Math.round(+selInv.strPerMppt || 1)) : 0;
+    const isc = pIsc || iIsc;
+    const voc = scfg && scfg.stringVoc ? scfg.stringVoc * 1.1 : (+selInv.maxVdc || 1000);
+    const V = DC_V.find((x) => x >= voc) || DC_V[DC_V.length - 1];
+    const vTxt = scfg && scfg.stringVoc ? "Voc สตริง " + r1(scfg.stringVoc) + " V × 1.1 = " + r1(voc) + " V → " + V + " VDC"
+      : "ยังไม่รู้ Voc สตริง ใช้แรงดันสูงสุดของอินเวอร์เตอร์ → " + V + " VDC";
+    if (nStr > 0 && isc > 0) {
+      const need = isc * 1.5, A = DCF_A.find((x) => x >= need) || DCF_A[DCF_A.length - 1];
+      const ok = A <= isc * 2.4;
+      out.dc.push({ name: "DC FUSE " + A + "A " + V + "VDC", qty: nStr * 2, unit: "ตัว", auto: 1, ok,
+        why: nStr + " สตริง × 2 ขั้ว · Isc " + (pIsc ? "แผง " : "จากสเปคอินเวอร์เตอร์ ") + r1(isc) + " A × 1.5 = " + r1(need) + " A → " + A + " A"
+          + (ok ? "" : " เกิน 2.4 × Isc") + " · " + vTxt });
+      out.dc.push({ name: "DC FUSE HOLDER", qty: nStr * 2, unit: "ตัว", auto: 1, why: "ฐานฟิวส์ สตริงละ 2 ตัว" });
+    } else if (nStr > 0) {
+      out.dc.push({ name: "DC FUSE HOLDER", qty: nStr * 2, unit: "ตัว", auto: 1, ok: false, why: "ยังไม่รู้ Isc — กรอกสเปคแผงหรือ maxIscA ของอินเวอร์เตอร์ในคลัง แล้วระบบจะเลือกฟิวส์ให้" });
+    }
+    if (nStr > 0) out.dc.push({ name: "DC SPD 2P " + V + "VDC 20-40KA", qty: nStr, unit: "ตัว", auto: 1, why: "สตริงละ 1 ตัว · " + vTxt });
+    return out;
+  })();
+  const boardAutoKey = JSON.stringify([boardAuto, !!projBoard.noauto_ac, !!projBoard.noauto_dc]);
+  React.useEffect(() => {
+    setB((p) => {
+      const pr = window.BOQ.normProject(p.project), bd = Object.assign({}, pr.board);
+      let changed = false;
+      ["ac", "dc"].forEach((key) => {
+        const ek = "extra_" + key, cur = bd[ek] || [];
+        const nx = (bd["noauto_" + key] ? [] : boardAuto[key]).concat(cur.filter((x) => !x.auto));
+        if (JSON.stringify(nx) !== JSON.stringify(cur)) { bd[ek] = nx; changed = true; }
+      });
+      if (!changed) return p;
+      pr.board = bd; return Object.assign({}, p, { project: pr });
+    });
+  }, [boardAutoKey]); // eslint-disable-line
   const setRace = (i, patch) => setB((p) => {
     const cs = (p.cables || []).slice(); if (!cs[i]) return p;
     const x = Object.assign({}, cs[i], patch);
@@ -3689,7 +3787,7 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
                 const numBox = (it) => (
                   <label key={it.key} style={{ display: "flex", flexDirection: "column", gap: 3 }}>
                     <span style={{ fontSize: 10, fontWeight: 700, color: "var(--text-3)" }}>{it.name} <span style={{ color: "var(--border-strong)" }}>({it.unit})</span></span>
-                    <input type="number" min={0} placeholder="0" value={st[it.key] != null ? st[it.key] : ""}
+                    <input type="number" min={0} placeholder={it.ph || "0"} value={st[it.key] != null ? st[it.key] : ""}
                       onChange={(e) => setKit(k.key, it.key, e.target.value === "" ? "" : Math.max(0, +e.target.value || 0))}
                       style={Object.assign({}, numStyle, { width: "100%", height: 34, fontSize: 12.5, padding: "6px 9px" })} />
                   </label>
@@ -3699,8 +3797,10 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
                    หมวดที่แยกเป็นตู้ เก็บแยกคีย์ละตู้ ของในตู้ AC ก็อยู่แค่ตู้ AC ไม่ปนตู้อื่น */
                 const extraList = (stateKey, ofWhat, small, opts) => {
                   const options = opts || allMatOptions;
-                  const extra = st[stateKey] || [];
-                  const setExtra = (v) => setKit(k.key, stateKey, v);
+                  // แถวที่ระบบคิดให้ (auto) โชว์แยกด้านบน — รายการนี้เป็นของที่กรอกเองล้วน
+                  const autoR = (st[stateKey] || []).filter((x) => x.auto);
+                  const extra = (st[stateKey] || []).filter((x) => !x.auto);
+                  const setExtra = (v) => setKit(k.key, stateKey, autoR.concat(v));
                   const patch = (i, o) => setExtra(extra.map((y, j) => j === i ? Object.assign({}, y, o) : y));
                   const upd = (i, key) => (e) => patch(i, { [key]: e.target.value });
                   // เลือกจากคลัง → เติมหน่วยให้ตามที่คลังตั้งไว้
@@ -3774,7 +3874,31 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
                         {shown.map((bd) => (
                           <div key={bd.key} style={{ border: "1px solid var(--border)", borderRadius: 12, padding: 10, background: "var(--surface2)",
                             display: "flex", flexDirection: "column", gap: 9 }}>
-                            {numBox({ key: bd.key, name: bd.name, unit: bd.unit })}
+                            {numBox({ key: bd.key, name: bd.name, unit: bd.unit,
+                              ph: (() => { const a = (st[bd.extraKey] || []).find((x) => x.auto && x.name === bd.name); return a ? "อัตโนมัติ " + a.qty : "0"; })() })}
+                            {(boardAuto[bd.key] || []).length > 0 && (() => {
+                              const off = !!st["noauto_" + bd.key];
+                              const rows = (st[bd.extraKey] || []).filter((x) => x.auto && x.name !== bd.name);
+                              return (
+                                <div style={{ display: "flex", flexDirection: "column", gap: 6, paddingTop: 8, borderTop: "1px dashed var(--border-strong)" }}>
+                                  <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                                    <span style={{ fontSize: 9.5, fontWeight: 800, color: "var(--text-3)", flex: 1 }}>อุปกรณ์ในตู้ — ระบบคิดให้</span>
+                                    <button type="button" className={"bq-cab-chip" + (off ? "" : " on")} style={{ fontSize: 10, padding: "3px 8px" }}
+                                      title={off ? "ให้ระบบคิดอุปกรณ์ในตู้นี้ให้" : "ไม่ใช้รายการที่ระบบคิด (กรอกเองทั้งหมด)"}
+                                      onClick={() => setKit(k.key, "noauto_" + bd.key, off ? "" : 1)}>{off ? "ปิดอยู่" : "อัตโนมัติ"}</button>
+                                  </div>
+                                  {!off && rows.map((x, i) => (
+                                    <div key={i} style={{ background: "var(--surface)", boxShadow: "var(--shadow-sm)", borderRadius: 9, padding: "6px 8px" }}>
+                                      <div style={{ display: "flex", gap: 6, alignItems: "baseline" }}>
+                                        <span style={{ flex: 1, minWidth: 0, fontSize: 11.5, fontWeight: 700, color: "var(--text-1)" }}>{x.name}</span>
+                                        <span style={{ fontSize: 11.5, fontWeight: 800, color: "var(--primary-dark)", whiteSpace: "nowrap" }}>{x.qty} {x.unit}</span>
+                                      </div>
+                                      <div style={{ fontSize: 10, lineHeight: 1.45, marginTop: 2, color: x.ok === false ? "var(--tint-red-tx2)" : "var(--text-3)" }}>{x.why}</div>
+                                    </div>
+                                  ))}
+                                </div>
+                              );
+                            })()}
                             {(bd.items || []).length > 0 && (
                               <div style={{ display: "flex", flexDirection: "column", gap: 8, paddingTop: 8, borderTop: "1px dashed var(--border-strong)" }}>
                                 <span style={{ fontSize: 9.5, fontWeight: 800, color: "var(--text-3)" }}>อุปกรณ์ในตู้นี้</span>
