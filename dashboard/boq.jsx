@@ -2846,13 +2846,6 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
           <BoqSection title="สายไฟ" icon="power" {...secProps("wire")}
             right={cabLenSum > 0 ? <span style={{ fontSize: 12, fontWeight: 800, color: "var(--primary-dark)" }}>รวม {cabLenSum} ม.</span> : null}>
             <MeasBar kinds={["cable"]} />
-            {/* หัวคอลัมน์ — เดิมไม่มีเลย ต้องเดาเอาว่าช่องไหนคืออะไร */}
-            {!isMobile && (
-              <div style={{ display: "grid", gridTemplateColumns: CAB_COLS, gap: 8, padding: "0 2px 6px",
-                fontSize: 9.5, fontWeight: 800, color: "var(--text-3)" }}>
-                <span>จุดเดินสาย</span><span>ชนิดสายไฟ</span><span style={{ textAlign: "right" }}>ความยาว</span><span />
-              </div>
-            )}
             <div style={{ display: "flex", flexDirection: "column", gap: isMobile ? 10 : 2 }}>
               {b.cables.map((c, i) => {
                 const isComm = /LAN|CAT/i.test(c.type || "");

@@ -6156,21 +6156,7 @@ function BOQEditor({
     }, "\u0E23\u0E27\u0E21 ", cabLenSum, " \u0E21.") : null
   }), React.createElement(MeasBar, {
     kinds: ["cable"]
-  }), !isMobile && React.createElement("div", {
-    style: {
-      display: "grid",
-      gridTemplateColumns: CAB_COLS,
-      gap: 8,
-      padding: "0 2px 6px",
-      fontSize: 9.5,
-      fontWeight: 800,
-      color: "var(--text-3)"
-    }
-  }, React.createElement("span", null, "\u0E08\u0E38\u0E14\u0E40\u0E14\u0E34\u0E19\u0E2A\u0E32\u0E22"), React.createElement("span", null, "\u0E0A\u0E19\u0E34\u0E14\u0E2A\u0E32\u0E22\u0E44\u0E1F"), React.createElement("span", {
-    style: {
-      textAlign: "right"
-    }
-  }, "\u0E04\u0E27\u0E32\u0E21\u0E22\u0E32\u0E27"), React.createElement("span", null)), React.createElement("div", {
+  }), React.createElement("div", {
     style: {
       display: "flex",
       flexDirection: "column",
