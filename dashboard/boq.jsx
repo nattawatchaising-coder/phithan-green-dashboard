@@ -2258,7 +2258,7 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
           <span style={{ textAlign: "right" }}>ราคา/หน่วย</span><span />
         </div>
         {rows.map((r, i) => {
-          const q = live[i] ? live[i].qty : (r.qty == null || r.qty === "" ? 1 : +r.qty || 0);
+          const q = live[i] ? live[i].qty : (r.qty == null || r.qty === "" ? (+r.price > 0 ? 1 : 0) : +r.qty || 0);
           const tot = q * (+r.price || 0);
           return (
             <div key={i} style={{ display: "grid", gridTemplateColumns: isMobile ? "minmax(0,1fr) 62px 36px" : "minmax(0,1fr) 84px 62px 96px 36px", gap: 8, alignItems: "center" }}>
@@ -2268,7 +2268,7 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
               </span>
               {!isMobile && (r.auto
                 ? <span style={{ textAlign: "right", fontFamily: "var(--mono)", fontSize: 13, fontWeight: 700, color: "var(--primary-dark)" }} title="ปริมาณคิดจากผลถอดวัสดุอัตโนมัติ">{(Math.round(q * 100) / 100).toLocaleString()}</span>
-                : <input type="number" style={numStyle} value={r.qty != null ? r.qty : ""} placeholder="1" onChange={(e) => setSvc(sKey, preset, i, "qty", e.target.value)} />)}
+                : <input type="number" style={numStyle} value={r.qty != null ? r.qty : ""} placeholder={+r.price > 0 ? "1" : ""} onChange={(e) => setSvc(sKey, preset, i, "qty", e.target.value)} />)}
               {!isMobile && <input value={r.unit || ""} onChange={(e) => setSvc(sKey, preset, i, "unit", e.target.value)} style={Object.assign({}, inputStyle, { width: "100%", textAlign: "right" })} />}
               <input type="number" style={numStyle} value={r.price != null ? r.price : ""} placeholder="0" onChange={(e) => setSvc(sKey, preset, i, "price", e.target.value)} />
               <button className="bq-x" onClick={() => delSvc(sKey, preset, i)} title="ลบบรรทัด"><Icon name="x" size={14} /></button>
@@ -4120,7 +4120,7 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
           <BoqSection title="ขนส่ง & บริหารจัดการหน้างาน" icon="power" {...secProps("site")}
             right={siteTotal > 0 ? <span style={{ fontSize: 12.5, fontWeight: 800, color: "var(--primary-dark)" }}>฿{baht(siteTotal)}</span> : null}>
             <div className="bq-hint" style={{ fontSize: 11.5, color: "var(--text-3)", lineHeight: 1.5, marginBottom: 12 }}>
-              ค่าขนของขึ้นไซต์ เครน และค่าอยู่หน้างาน — แยกจากค่าแรง · กรอกเฉพาะที่งานนี้มีจริง บรรทัดที่ไม่ใช้ลบทิ้งได้
+              ค่าขนของขึ้นไซต์ เครน นั่งร้าน และค่าอยู่หน้างาน — แยกจากค่าแรง · กรอกเฉพาะที่งานนี้มีจริง บรรทัดที่ไม่ใช้ลบทิ้งได้
             </div>
             <div style={{ fontSize: 11, fontWeight: 800, color: "var(--text-3)", marginBottom: 8 }}>ขนส่ง & เครื่องจักร</div>
             {SvcTable({ sKey: "transport", preset: window.BOQ.TRANSPORT_PRESET, qtyLabel: "จำนวน" })}
@@ -4180,7 +4180,7 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
               <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
                 <div style={{ fontSize: 11.5, color: "var(--text-3)", lineHeight: 1.5 }}>
                   ตกลงค่าแรงเป็นก้อนเดียว — เลือกฐานคิดแล้วกรอกเรต ระบบคูณปริมาณจริงของงานนี้ให้เอง
-                  {" · "}<b style={{ color: "var(--text-2)" }}>ไม่รวมค่าขนส่ง · เครน</b> กรอกแยกที่{" "}
+                  {" · "}<b style={{ color: "var(--text-2)" }}>ไม่รวมค่าขนส่ง · เครน · นั่งร้าน</b> กรอกแยกที่{" "}
                   <button type="button" onClick={() => goSec("site")} style={{ border: 0, background: "none", padding: 0, cursor: "pointer", fontFamily: "inherit",
                     fontSize: 11.5, fontWeight: 700, color: "var(--primary-dark)", textDecoration: "underline" }}>ขนส่ง & บริหารจัดการ</button>
                 </div>

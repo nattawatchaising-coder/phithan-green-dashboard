@@ -1019,7 +1019,7 @@
     { name: "ค่าแรงงานโครงสร้างบนหลังคา (บันได/ทางเดิน/ราวกันตก)", unit: "จุด", auto: "struct" },
     { name: "ค่าแรงงานระบบกราวด์", unit: "งาน", auto: "one" },
     { name: "ทดสอบระบบ & Commissioning", unit: "งาน", auto: "one" },
-    /* ขนส่ง · เครน ไม่อยู่ในค่าแรงแล้ว — แยกไปหมวด "ขนส่ง & เครื่องจักร" (TRANSPORT_PRESET)
+    /* ขนส่ง · เครน · นั่งร้าน ไม่อยู่ในค่าแรงแล้ว — แยกไปหมวด "ขนส่ง & เครื่องจักร" (TRANSPORT_PRESET)
        ค่าแรงเหมารวมจะได้เทียบเรต ฿/W กันได้ตรง ๆ ไม่มีค่ารถปนอยู่ข้างใน */
   ];
   /* ── ค่าขออนุญาต & เอกสาร ── ค่าธรรมเนียมจริงเปลี่ยนตามพื้นที่/ขนาดระบบ จึงเว้นราคาไว้ให้กรอก */
@@ -1066,6 +1066,7 @@
   const TRANSPORT_PRESET = [
     { name: "รถบรรทุก / รถเฮี้ยบ", unit: "เที่ยว" },
     { name: "รถเครน", unit: "วัน" },
+    { name: "นั่งร้าน", unit: "งาน" },
   ];
   const MANAGE_PRESET = [
     { name: "ค่าที่พักทีมติดตั้ง", unit: "คืน" },
@@ -1995,7 +1996,7 @@
       .filter((r) => r && (r.name || "").trim())
       .map((r) => ({
         name: String(r.name).trim(),
-        qty: r.auto && AUTO[r.auto] != null ? AUTO[r.auto] : r.qty == null || r.qty === "" ? 1 : Math.max(0, +r.qty || 0),
+        qty: r.auto && AUTO[r.auto] != null ? AUTO[r.auto] : r.qty == null || r.qty === "" ? (+r.price > 0 ? 1 : 0) : Math.max(0, +r.qty || 0),   // จำนวนว่าง: มีราคา = 1 · ยังไม่ใส่ราคา = 0 (บรรทัดสำรองไว้เฉย ๆ)
         unit: r.unit || "",
         price: Math.max(0, +r.price || 0),
         auto: r.auto || "",

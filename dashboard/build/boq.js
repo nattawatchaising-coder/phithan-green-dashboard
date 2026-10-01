@@ -4392,7 +4392,7 @@ function BOQEditor({
         textAlign: "right"
       }
     }, "\u0E23\u0E32\u0E04\u0E32/\u0E2B\u0E19\u0E48\u0E27\u0E22"), React.createElement("span", null)), rows.map((r, i) => {
-      const q = live[i] ? live[i].qty : r.qty == null || r.qty === "" ? 1 : +r.qty || 0;
+      const q = live[i] ? live[i].qty : r.qty == null || r.qty === "" ? +r.price > 0 ? 1 : 0 : +r.qty || 0;
       const tot = q * (+r.price || 0);
       return React.createElement("div", {
         key: i,
@@ -4434,7 +4434,7 @@ function BOQEditor({
         type: "number",
         style: numStyle,
         value: r.qty != null ? r.qty : "",
-        placeholder: "1",
+        placeholder: +r.price > 0 ? "1" : "",
         onChange: e => setSvc(sKey, preset, i, "qty", e.target.value)
       })), !isMobile && React.createElement("input", {
         value: r.unit || "",
@@ -8813,7 +8813,7 @@ function BOQEditor({
       lineHeight: 1.5,
       marginBottom: 12
     }
-  }, "\u0E04\u0E48\u0E32\u0E02\u0E19\u0E02\u0E2D\u0E07\u0E02\u0E36\u0E49\u0E19\u0E44\u0E0B\u0E15\u0E4C \u0E40\u0E04\u0E23\u0E19 \u0E41\u0E25\u0E30\u0E04\u0E48\u0E32\u0E2D\u0E22\u0E39\u0E48\u0E2B\u0E19\u0E49\u0E32\u0E07\u0E32\u0E19 \u2014 \u0E41\u0E22\u0E01\u0E08\u0E32\u0E01\u0E04\u0E48\u0E32\u0E41\u0E23\u0E07 \xB7 \u0E01\u0E23\u0E2D\u0E01\u0E40\u0E09\u0E1E\u0E32\u0E30\u0E17\u0E35\u0E48\u0E07\u0E32\u0E19\u0E19\u0E35\u0E49\u0E21\u0E35\u0E08\u0E23\u0E34\u0E07 \u0E1A\u0E23\u0E23\u0E17\u0E31\u0E14\u0E17\u0E35\u0E48\u0E44\u0E21\u0E48\u0E43\u0E0A\u0E49\u0E25\u0E1A\u0E17\u0E34\u0E49\u0E07\u0E44\u0E14\u0E49"), React.createElement("div", {
+  }, "\u0E04\u0E48\u0E32\u0E02\u0E19\u0E02\u0E2D\u0E07\u0E02\u0E36\u0E49\u0E19\u0E44\u0E0B\u0E15\u0E4C \u0E40\u0E04\u0E23\u0E19 \u0E19\u0E31\u0E48\u0E07\u0E23\u0E49\u0E32\u0E19 \u0E41\u0E25\u0E30\u0E04\u0E48\u0E32\u0E2D\u0E22\u0E39\u0E48\u0E2B\u0E19\u0E49\u0E32\u0E07\u0E32\u0E19 \u2014 \u0E41\u0E22\u0E01\u0E08\u0E32\u0E01\u0E04\u0E48\u0E32\u0E41\u0E23\u0E07 \xB7 \u0E01\u0E23\u0E2D\u0E01\u0E40\u0E09\u0E1E\u0E32\u0E30\u0E17\u0E35\u0E48\u0E07\u0E32\u0E19\u0E19\u0E35\u0E49\u0E21\u0E35\u0E08\u0E23\u0E34\u0E07 \u0E1A\u0E23\u0E23\u0E17\u0E31\u0E14\u0E17\u0E35\u0E48\u0E44\u0E21\u0E48\u0E43\u0E0A\u0E49\u0E25\u0E1A\u0E17\u0E34\u0E49\u0E07\u0E44\u0E14\u0E49"), React.createElement("div", {
     style: {
       fontSize: 11,
       fontWeight: 800,
@@ -9013,7 +9013,7 @@ function BOQEditor({
     style: {
       color: "var(--text-2)"
     }
-  }, "\u0E44\u0E21\u0E48\u0E23\u0E27\u0E21\u0E04\u0E48\u0E32\u0E02\u0E19\u0E2A\u0E48\u0E07 \xB7 \u0E40\u0E04\u0E23\u0E19"), " \u0E01\u0E23\u0E2D\u0E01\u0E41\u0E22\u0E01\u0E17\u0E35\u0E48", " ", React.createElement("button", {
+  }, "\u0E44\u0E21\u0E48\u0E23\u0E27\u0E21\u0E04\u0E48\u0E32\u0E02\u0E19\u0E2A\u0E48\u0E07 \xB7 \u0E40\u0E04\u0E23\u0E19 \xB7 \u0E19\u0E31\u0E48\u0E07\u0E23\u0E49\u0E32\u0E19"), " \u0E01\u0E23\u0E2D\u0E01\u0E41\u0E22\u0E01\u0E17\u0E35\u0E48", " ", React.createElement("button", {
     type: "button",
     onClick: () => goSec("site"),
     style: {
