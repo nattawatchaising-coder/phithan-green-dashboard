@@ -1319,7 +1319,7 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
     [window.BOQ.G_TRAY]: "#0891B2", [window.BOQ.G_SUPPORT]: "#78716C",
     [window.BOQ.G_LABOR]: "#2563EB", [window.BOQ.G_PERMIT]: "#9333EA",
     [window.BOQ.G_TRANSPORT]: "#0F766E", [window.BOQ.G_MANAGE]: "var(--tint-amber-tx)",
-    "ตู้ไฟ": "#475569", "ระบบสูบน้ำ (WATER SYSTEM)": "#0284C7", "ถังเก็บน้ำ (TANK)": "#0369A1",
+    "ตู้ไฟ": "#475569", "ตู้ไฟ AC": "#475569", "ตู้ไฟ DC": "#B45309", "ตู้ไฟ DATA LOGGER": "#6D28D9", "ระบบสูบน้ำ (WATER SYSTEM)": "#0284C7", "ถังเก็บน้ำ (TANK)": "#0369A1",
     "ท่อน้ำ (PIPE)": "#0E7490", "อุปกรณ์มอนิเตอร์": "#6D28D9" };
 
   // ── Accessories: เพิ่มของ / ดึงจากราคาวัสดุ + คลังสินค้า ──

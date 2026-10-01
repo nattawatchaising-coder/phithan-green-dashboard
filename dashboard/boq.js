@@ -1864,6 +1864,21 @@
     const proj = normProject(b.project);
     PROJECT_KITS.forEach((k) => {
       const st = proj[k.key] || {};
+      /* หมวดที่แยกเป็นตู้ — ใบรายการแยกหมวดละตู้ (ตู้ไฟ AC / ตู้ไฟ DC / ตู้ไฟ DATA LOGGER) ตัวตู้ + อุปกรณ์ในตู้นั้นอยู่ด้วยกัน */
+      if (k.boards) {
+        k.boards.forEach((bd) => {
+          const rows = [];
+          const q0 = Math.max(0, +st[bd.key] || 0);
+          if (q0 > 0) rows.push({ name: bd.name, qty: q0, unit: bd.unit });
+          (bd.items || []).forEach((it) => { const q = Math.max(0, +st[it.key] || 0); if (q > 0) rows.push({ name: it.name, qty: q, unit: it.unit }); });
+          (st[bd.extraKey] || []).forEach((x) => {
+            const nm = String(x.name || "").trim(), q = Math.max(0, +x.qty || 0);
+            if (nm && q > 0) rows.push({ name: nm, qty: q, unit: x.unit || "ชิ้น" });
+          });
+          if (rows.length) groups.push({ group: bd.name, items: mergeItems(rows) });
+        });
+        return;
+      }
       const rows = [];
       k.items.forEach((it) => { const q = Math.max(0, +st[it.key] || 0); if (q > 0) rows.push({ name: it.name, qty: q, unit: it.unit }); });
       kitExtraKeys(k).forEach((ek) => (st[ek] || []).forEach((x) => {
