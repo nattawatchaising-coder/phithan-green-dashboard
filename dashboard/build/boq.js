@@ -105,6 +105,11 @@ const BQ_CSS = `
   text-decoration:underline;text-underline-offset:3px}
 .bq-cabx-sum{font-size:11px;font-weight:700;color:var(--text-2)}
 .bq-cabx-sum b{color:var(--text-1)}
+.bq-cab-hd{display:flex;align-items:center;gap:6px;font-size:11.5px;font-weight:800;color:var(--primary-dark);padding:2px 2px 0}
+.bq-cab-hd > span{font-size:10.5px;font-weight:700;color:var(--text-3)}
+.bq-cab-chip{border:0;border-radius:99px;padding:3px 9px;font-family:inherit;font-size:10.5px;font-weight:700;cursor:pointer;
+  background:var(--surface2);color:var(--text-3);box-shadow:var(--shadow-sm)}
+.bq-cab-chip.on{background:var(--primary-soft);color:var(--primary-dark);box-shadow:inset 0 0 0 1.5px var(--primary)}
 @media (max-width:700px){.bq-cabx-opts{grid-template-columns:minmax(0,1fr)}.bq-cabx-step > .lb{min-width:0}}
 
 /* ตารางกรอกการจัดวางแผง */
@@ -1078,6 +1083,16 @@ function BOQEditor({
     maximumFractionDigits: 2
   });
   const isMobile = window.matchMedia("(max-width: 860px)").matches;
+  const pairPanelGround = cs => {
+    const dc = cs.map(c => /PV-INVERTER/i.test(c.name || "")).lastIndexOf(true);
+    if (dc < 0) return cs;
+    const g = cs.filter(c => /^GROUND$/i.test((c.name || "").trim()));
+    if (!g.length) return cs;
+    const rest = cs.filter(c => g.indexOf(c) < 0);
+    const at = rest.map(c => /PV-INVERTER/i.test(c.name || "")).lastIndexOf(true) + 1;
+    const out = rest.slice(0, at).concat(g, rest.slice(at));
+    return out.every((c, k) => c === cs[k]) ? cs : out;
+  };
   const [b, setB] = React.useState(() => {
     const base = window.BOQ.mergeBOQ(job);
     if (job) {
@@ -1105,6 +1120,7 @@ function BOQEditor({
         });
         return c;
       });
+      base.cables = pairPanelGround(base.cables);
     }
     return base;
   });
@@ -1310,10 +1326,21 @@ function BOQEditor({
     return rows;
   }, [job, microW, wcPhase, wcVolt, wcalc.battKw, wcalc.backupMainA, wcStrings, hasBattery, hasBackup, calcIns, calcMethod, calcGroup, calcNCond]);
   const cableAmp = (name, opts) => window.BOQ.ampacityOf(name, opts);
-  const reqAmpFor = cabName => {
-    const n = (cabName || "").toUpperCase();
+  const reqAmpFor = cab => {
+    const row = cab && typeof cab === "object" ? cab : null;
+    const n = ((row ? row.name : cab) || "").toUpperCase();
     if (/LAN|CAT|GROUND|กราว|ดิน/.test(n)) return null;
     if (/PV-INVERTER/.test(n)) return null;
+    if (invUnits.length) {
+      if (/MCB_SOLAR-MDB/.test(n)) {
+        const a = mcbInvsOf(row).reduce((s, no) => s + ((invUnits[no - 1] || {}).outA || 0), 0);
+        return a ? a * 1.25 : null;
+      }
+      if (/INVERTER-MCB_SOLAR/.test(n)) {
+        const u = invUnits[(row && +row.inv || 1) - 1] || invUnits[0];
+        return u.outA ? u.outA * 1.25 : null;
+      }
+    }
     const invAcPer = selInv ? +selInv.outA || 0 : 0;
     const invCnt = result && result.meta && result.meta.invCount || 1;
     if (/MCB_SOLAR-MDB/.test(n)) return invAcPer ? invAcPer * invCnt * 1.25 : null;
@@ -2019,6 +2046,119 @@ function BOQEditor({
   const jobPanel = job && job.panelModel || "";
   const panelOff = !!jobPanel && b.panelModel !== jobPanel;
   const isStringInv = !!(selInv && (selInv.type === "string" || selInv.type === "hybrid"));
+  const invUnits = React.useMemo(() => {
+    const u = [];
+    if (!isStringInv || !selInv) return u;
+    const n1 = Math.max(1, Math.round(result.meta.invCount || 1));
+    for (let k = 0; k < n1; k++) u.push({
+      model: selInv.model,
+      outA: +selInv.outA || 0,
+      kw: +selInv.maxAcKw || 0
+    });
+    if (selInv2) for (let k = 0; k < Math.round(inv2Count); k++) u.push({
+      model: selInv2.model,
+      outA: +selInv2.outA || 0,
+      kw: +selInv2.maxAcKw || 0
+    });
+    return u.map((x, k) => Object.assign(x, {
+      no: k + 1
+    }));
+  }, [isStringInv, selInv, selInv2, result.meta.invCount, inv2Count]);
+  const mcbInvsOf = c => {
+    const all = invUnits.map(u => u.no);
+    return c && Array.isArray(c.invs) ? c.invs.filter(no => all.indexOf(no) >= 0) : all;
+  };
+  const invUnitsKey = invUnits.map(u => u.model).join("|");
+  React.useEffect(() => {
+    if (!invUnits.length) return;
+    setB(p => {
+      const cs = p.cables || [];
+      const idx = [];
+      cs.forEach((c, i) => {
+        if (/INVERTER-MCB_SOLAR/i.test(c.name || "")) idx.push(i);
+      });
+      if (!idx.length) return p;
+      const N = invUnits.length;
+      if (idx.length === N && idx.every((ix, k) => +cs[ix].inv === k + 1)) return p;
+      const old = idx.map(ix => cs[ix]);
+      const t = old[0];
+      const rows = invUnits.map((u, k) => {
+        const o = old.some(x => +x.inv > 0) ? old.find(x => +x.inv === k + 1) : old[k];
+        if (o) return Object.assign({}, o, {
+          inv: k + 1
+        });
+        const nx = {
+          name: t.name,
+          type: "",
+          length: t.length,
+          auto: 1,
+          inv: k + 1
+        };
+        ["method", "group", "ncond", "core", "fam"].forEach(f => {
+          if (t[f] != null) nx[f] = t[f];
+        });
+        return nx;
+      });
+      const out = [];
+      cs.forEach((c, i) => {
+        if (i === idx[0]) out.push.apply(out, rows);else if (idx.indexOf(i) < 0) out.push(c);
+      });
+      return Object.assign({}, p, {
+        cables: out
+      });
+    });
+  }, [invUnitsKey]);
+  const toggleMcbInv = (i, no) => setB(p => {
+    const cs = p.cables.slice();
+    const cur = mcbInvsOf(cs[i]);
+    const nx = cur.indexOf(no) >= 0 ? cur.filter(x => x !== no) : cur.concat([no]).sort((a, b2) => a - b2);
+    cs[i] = Object.assign({}, cs[i], {
+      invs: nx
+    });
+    return Object.assign({}, p, {
+      cables: cs
+    });
+  });
+  const addMcbCab = i => setB(p => {
+    const cs = p.cables.slice();
+    const all = invUnits.map(u => u.no);
+    const mIdx = [];
+    cs.forEach((c, k) => {
+      if (/MCB_SOLAR-MDB/i.test(c.name || "")) mIdx.push(k);
+    });
+    const used = {};
+    mIdx.forEach(k => {
+      const l = mcbInvsOf(cs[k]);
+      cs[k] = Object.assign({}, cs[k], {
+        invs: l
+      });
+      l.forEach(n => {
+        used[n] = 1;
+      });
+    });
+    let free = all.filter(n => !used[n]);
+    if (!free.length && mIdx.length === 1) {
+      const m0 = (invUnits[0] || {}).model;
+      const two = invUnits.filter(u => u.model !== m0).map(u => u.no);
+      free = two.length ? two : all.slice(Math.ceil(all.length / 2));
+      cs[mIdx[0]].invs = all.filter(n => free.indexOf(n) < 0);
+    }
+    const t = cs[i];
+    const nx = {
+      name: t.name,
+      type: "",
+      length: "",
+      auto: 1,
+      invs: free
+    };
+    ["method", "group", "ncond", "core", "fam"].forEach(f => {
+      if (t[f] != null) nx[f] = t[f];
+    });
+    cs.splice(mIdx[mIdx.length - 1] + 1, 0, nx);
+    return Object.assign({}, p, {
+      cables: cs
+    });
+  });
   const scfg = isStringInv && window.BOQ.stringConfig ? window.BOQ.stringConfig(selPanel, selInv, {
     series: b.dcSeries != null && b.dcSeries !== "" ? b.dcSeries : undefined
   }) : null;
@@ -2051,7 +2191,7 @@ function BOQEditor({
         dc: true
       }) : null;
     }
-    const req = reqAmpFor(c.name);
+    const req = reqAmpFor(c);
     if (!req) return null;
     const ph = wcPhase === 3 && !/MICRO[\s-]*MICRO/.test(n) ? 3 : 1;
     const volts = ph === 3 ? +wcVolt || 400 : wcPhase === 3 ? 230 : +wcVolt || 230;
@@ -2102,7 +2242,7 @@ function BOQEditor({
     setB(p => {
       const keep = (p.cables || []).filter(c => sysAll.indexOf(c.name) < 0);
       return Object.assign({}, p, {
-        cables: defaults.map(d => Object.assign({}, d)).concat(keep)
+        cables: pairPanelGround(defaults.map(d => Object.assign({}, d)).concat(keep))
       });
     });
   }, [isStringInv]);
@@ -2401,13 +2541,13 @@ function BOQEditor({
     const n = (c.name || "").toUpperCase();
     if (!n || /LAN|CAT|GROUND|กราว|ดิน|PV-INVERTER/.test(n)) return false;
     if (c.type && (window.BOQ.isPvDcCable(c.type) || /LAN|CAT/i.test(c.type))) return false;
-    return !!reqAmpFor(c.name);
+    return !!reqAmpFor(c);
   };
   const cabPh = c => wcPhase === 3 && !/MICRO[\s-]*MICRO/i.test(c.name || "") ? 3 : 1;
   const cabVolts = ph => ph === 3 ? +wcVolt || 400 : wcPhase === 3 ? 230 : +wcVolt || 230;
   const wiresPerSet = (type, ph) => cabCores(type) >= 2 ? 1 : ph === 3 ? 4 : 2;
   const cabFit = (c, fam, sets) => {
-    const req = reqAmpFor(c.name);
+    const req = reqAmpFor(c);
     if (!req) return null;
     const ph = cabPh(c),
       len = +c.length || 0;
@@ -2463,7 +2603,7 @@ function BOQEditor({
   };
   const cabSetsFor = c => {
     if (c.setsOwn && +c.sets > 0) return Math.round(+c.sets);
-    const req = reqAmpFor(c.name),
+    const req = reqAmpFor(c),
       amp = c.type ? cableAmp(c.type, cabCond(c, c.type)) : null;
     if (!req || !amp) return 1;
     for (let s = 1; s <= 6; s++) if (amp * s >= req) return s;
@@ -2487,7 +2627,7 @@ function BOQEditor({
       auto: !c.type || c.auto ? 1 : 0,
       sets,
       wires: wiresPerSet(type, ph),
-      gnd: !noGnd && sz ? gndNameFor(sz) : ""
+      gnd: !noGnd && sz ? gndNameFor(sz * sets) : ""
     };
   });
   const cabWantKey = JSON.stringify(cabWant);
@@ -4652,7 +4792,7 @@ function BOQEditor({
   const CAB_COLS = "minmax(150px,1fr) minmax(0,1.35fr) 88px 34px";
   const dcStrings = result.meta.plan && result.meta.plan.strings || 1;
   const dcOf = c => window.BOQ.pvDcLength(+c.length || 0, dcStrings);
-  const cabLenSum = Math.round((b.cables || []).reduce((s, c) => s + (window.BOQ.isPvDcCable(c.type) ? dcOf(c).total : (+c.length || 0) * Math.max(1, +c.sets || 1) * Math.max(1, +c.wires || 1) + (c.gnd ? (+c.length || 0) * Math.max(1, +c.sets || 1) : 0)), 0));
+  const cabLenSum = Math.round((b.cables || []).reduce((s, c) => s + (window.BOQ.isPvDcCable(c.type) ? dcOf(c).total : (+c.length || 0) * Math.max(1, +c.sets || 1) * Math.max(1, +c.wires || 1) + (c.gnd ? +c.length || 0 : 0)), 0));
   const wireDone = (b.cables || []).filter(c => c.type && +c.length > 0).length;
   const navSecs = [{
     key: "info",
@@ -6035,6 +6175,10 @@ function BOQEditor({
     }
   }, b.cables.map((c, i) => {
     const isComm = /LAN|CAT/i.test(c.type || "");
+    const isGnd = /GROUND|กราว|ดิน/i.test(c.name || "");
+    const gndPair = isGnd && i > 0 && /PV-INVERTER/i.test((b.cables[i - 1] || {}).name || "");
+    const invU = invUnits.length && /INVERTER-MCB_SOLAR/i.test(c.name || "") ? invUnits[(+c.inv || 1) - 1] || null : null;
+    const isMcb = invUnits.length >= 2 && /MCB_SOLAR-MDB/i.test(c.name || "");
     const isDC = /PV1-F|PV CABLE/i.test(c.type || "") || /PV-INVERTER/i.test(c.name || "");
     const own = !!(c.method || c.group || c.ncond || c.core);
     const rawMethod = c.method || calcMethod;
@@ -6059,11 +6203,11 @@ function BOQEditor({
       core: coreKey,
       orient: coreKey
     });
-    const req = reqAmpFor(c.name);
+    const req = reqAmpFor(c);
     const power = !!cabPlans[i];
     const setsN = power ? +c.sets || 1 : 1;
     const bad = amp != null && req && amp * setsN < req;
-    const showHint = !!c.type && !isComm && !isDC;
+    const showHint = !!c.type && !isComm && !isDC && !isGnd;
     const vd = isComm ? null : vdropFor(c);
     const open = !!cabOpen[i];
     const mShort = (window.BOQ.WIRE_METHODS || []).find(m => m.key === method) || {};
@@ -6080,9 +6224,53 @@ function BOQEditor({
         borderRadius: 12,
         background: "var(--surface)"
       } : {
-        borderTop: i === 0 ? "none" : "1px solid var(--border)"
+        borderTop: i === 0 || gndPair ? "none" : "1px solid var(--border)"
       })
-    }, isMobile && React.createElement("div", {
+    }, invU && React.createElement("div", {
+      className: "bq-cab-hd"
+    }, React.createElement(Icon, {
+      name: "bolt",
+      size: 12,
+      color: "currentColor"
+    }), "\u0E2D\u0E34\u0E19\u0E40\u0E27\u0E2D\u0E23\u0E4C\u0E40\u0E15\u0E2D\u0E23\u0E4C\u0E15\u0E31\u0E27\u0E17\u0E35\u0E48 ", invU.no, invUnits.length > 1 ? "/" + invUnits.length : "", React.createElement("span", null, invU.model, invU.outA ? " · กระแสออก " + invU.outA + " A" : "")), isMcb && (() => {
+      const mRows = [];
+      b.cables.forEach((x, k) => {
+        if (/MCB_SOLAR-MDB/i.test(x.name || "")) mRows.push(k);
+      });
+      const cabNo = mRows.indexOf(i) + 1;
+      const mine = mcbInvsOf(c);
+      const cnt = {};
+      mRows.forEach(k => mcbInvsOf(b.cables[k]).forEach(n => {
+        cnt[n] = (cnt[n] || 0) + 1;
+      }));
+      const last = mRows[mRows.length - 1] === i;
+      const miss = invUnits.filter(u => !cnt[u.no]).map(u => u.no);
+      const dup = invUnits.filter(u => cnt[u.no] > 1).map(u => u.no);
+      return React.createElement("div", {
+        className: "bq-cab-hd",
+        style: {
+          flexWrap: "wrap"
+        }
+      }, React.createElement(Icon, {
+        name: "grid",
+        size: 12,
+        color: "currentColor"
+      }), "\u0E15\u0E39\u0E49 MCB_SOLAR", mRows.length > 1 ? " ที่ " + cabNo : "", React.createElement("span", null, "\u0E23\u0E31\u0E1A\u0E2D\u0E34\u0E19\u0E40\u0E27\u0E2D\u0E23\u0E4C\u0E40\u0E15\u0E2D\u0E23\u0E4C"), invUnits.map(u => React.createElement("button", {
+        key: u.no,
+        type: "button",
+        className: "bq-cab-chip" + (mine.indexOf(u.no) >= 0 ? " on" : ""),
+        title: u.model + (u.outA ? " · " + u.outA + " A" : ""),
+        onClick: () => toggleMcbInv(i, u.no)
+      }, "\u0E15\u0E31\u0E27\u0E17\u0E35\u0E48 ", u.no, u.kw ? " · " + u.kw + " kW" : "")), last && React.createElement("button", {
+        type: "button",
+        className: "bq-cabx-link",
+        onClick: () => addMcbCab(i)
+      }, "+ \u0E41\u0E22\u0E01\u0E2D\u0E35\u0E01\u0E15\u0E39\u0E49"), last && (miss.length > 0 || dup.length > 0) && React.createElement("span", {
+        style: {
+          color: "var(--tint-amber-tx)"
+        }
+      }, miss.length ? "ตัวที่ " + miss.join(", ") + " ยังไม่อยู่ตู้ไหน" : "", miss.length && dup.length ? " · " : "", dup.length ? "ตัวที่ " + dup.join(", ") + " อยู่หลายตู้" : ""));
+    })(), isMobile && React.createElement("div", {
       style: {
         display: "flex",
         flexDirection: "column",
@@ -6104,18 +6292,23 @@ function BOQEditor({
     })), React.createElement("div", {
       style: {
         display: "grid",
-        gridTemplateColumns: isMobile ? "minmax(0,1fr) 64px 34px" : CAB_COLS,
+        gridTemplateColumns: isMobile ? power ? "minmax(0,1fr) 34px" : "minmax(0,1fr) 64px 34px" : CAB_COLS,
         gap: 8,
         alignItems: "center"
       }
-    }, !isMobile && React.createElement(Dropdown, {
+    }, !isMobile && React.createElement("div", {
+      style: {
+        gridColumn: power ? "span 2" : undefined,
+        minWidth: 0
+      }
+    }, React.createElement(Dropdown, {
       value: c.name || "",
       onChange: v => setCab(i, "name", v),
       options: cablePtOptions,
       placeholder: "\u2014 \u0E40\u0E25\u0E37\u0E2D\u0E01\u0E08\u0E38\u0E14 \u2014",
       addable: true,
       onAdd: addCablePt
-    }), React.createElement(Dropdown, {
+    })), !power && React.createElement(Dropdown, {
       value: c.type,
       onChange: v => setCab(i, "type", v),
       options: cableTypeOptions,
@@ -6134,7 +6327,7 @@ function BOQEditor({
     }, React.createElement(Icon, {
       name: "x",
       size: 14
-    }))), !power && (showHint || isDC || vd) && React.createElement("div", {
+    }))), !power && (showHint || isDC || vd || isGnd) && React.createElement("div", {
       style: {
         display: "flex",
         alignItems: "center",
@@ -6143,7 +6336,19 @@ function BOQEditor({
         fontSize: 11,
         lineHeight: 1.5
       }
-    }, showHint && React.createElement("button", {
+    }, isGnd && React.createElement("span", {
+      style: {
+        display: "inline-flex",
+        alignItems: "center",
+        gap: 4,
+        fontWeight: 700,
+        color: "var(--text-3)"
+      }
+    }, React.createElement(Icon, {
+      name: "bolt",
+      size: 11,
+      color: "var(--text-3)"
+    }), gndPair ? "กราวด์แผง · เดินคู่ไปกับสาย DC (PV-INVERTER)" : "สายกราวด์"), showHint && React.createElement("button", {
       type: "button",
       onClick: () => setCabOpen(p => Object.assign({}, p, {
         [i]: !open
@@ -6359,9 +6564,9 @@ function BOQEditor({
         className: "bq-cabx-sum"
       }, "\u0E0A\u0E38\u0E14\u0E25\u0E30 ", wires, " \u0E40\u0E2A\u0E49\u0E19", wires > 1 ? " (" + (ph === 3 ? "L1 L2 L3 N" : "L N") + ")" : " (" + cabCores(c.type) + " แกน)", " \u2192 ", React.createElement("b", null, total, " \u0E40\u0E2A\u0E49\u0E19")), c.gnd ? React.createElement("span", {
         className: "bq-cabx-sum"
-      }, "+ \u0E01\u0E23\u0E32\u0E27\u0E14\u0E4C ", React.createElement("b", null, c.gnd.replace(/\s*SQ\.MM\.\s*/i, " ")), " \xD7 ", setsN, " \u0E40\u0E2A\u0E49\u0E19 ", React.createElement("span", {
+      }, "+ \u0E01\u0E23\u0E32\u0E27\u0E14\u0E4C ", React.createElement("b", null, c.gnd.replace(/\s*SQ\.MM\.\s*/i, " ")), " \xD7 1 \u0E40\u0E2A\u0E49\u0E19 ", React.createElement("span", {
         className: "hint"
-      }, "(\u0E15\u0E32\u0E23\u0E32\u0E07 4.1)"), " ", React.createElement("button", {
+      }, "(\u0E15\u0E32\u0E23\u0E32\u0E07 4.1", setsN > 1 && window.BOQ.cableSizeNum(c.type) ? " · ตัวนำรวม " + window.BOQ.cableSizeNum(c.type) + " × " + setsN + " = " + window.BOQ.cableSizeNum(c.type) * setsN + " mm²" : "", ")"), " ", React.createElement("button", {
         type: "button",
         className: "bq-cabx-link",
         onClick: () => setCab(i, "noGnd", true)
@@ -6410,7 +6615,7 @@ function BOQEditor({
         style: {
           color: "var(--primary-dark)"
         }
-      }, "\u0E16\u0E2D\u0E14\u0E40\u0E02\u0E49\u0E32 BOQ: ", len, " \u0E21. \xD7 ", total, " = ", React.createElement("b", null, (len * total).toLocaleString(), " \u0E21."), c.gnd ? " · กราวด์ " + len + " × " + setsN + " = " + (len * setsN).toLocaleString() + " ม." : "")));
+      }, "\u0E16\u0E2D\u0E14\u0E40\u0E02\u0E49\u0E32 BOQ: ", len, " \u0E21. \xD7 ", total, " = ", React.createElement("b", null, (len * total).toLocaleString(), " \u0E21."), c.gnd ? " · กราวด์ " + len.toLocaleString() + " ม." : "")));
     })(), !power && showHint && open && React.createElement("div", {
       style: {
         display: "flex",

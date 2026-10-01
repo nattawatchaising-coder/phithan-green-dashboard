@@ -1677,7 +1677,7 @@
         const sets = Math.max(1, Math.round(+c.sets || 1)), wires = Math.max(1, Math.round(+c.wires || 1));
         cableAgg[t] = (cableAgg[t] || 0) + len * sets * wires;
         const g = (c.gnd || "").trim();
-        if (g) cableAgg[g] = (cableAgg[g] || 0) + len * sets;
+        if (g) cableAgg[g] = (cableAgg[g] || 0) + len;   // กราวด์ 1 เส้นต่อเส้นทาง ไม่คูณจำนวนชุด
       }
     });
 
