@@ -1023,33 +1023,45 @@
        ค่าแรงเหมารวมจะได้เทียบเรต ฿/W กันได้ตรง ๆ ไม่มีค่ารถปนอยู่ข้างใน */
   ];
   /* ── ค่าขออนุญาต & เอกสาร ── ค่าธรรมเนียมจริงเปลี่ยนตามพื้นที่/ขนาดระบบ จึงเว้นราคาไว้ให้กรอก */
+  /* when(k, b) = งานนี้ต้องมีบรรทัดนี้ไหม (k = kWp) · ไม่มี when = ทุกงาน
+     บรรทัดที่ไม่เข้าเงื่อนไขไม่ขึ้นในรายการตั้งต้นเลย — ใบที่บันทึกรายการไว้แล้วไม่ขยับตาม */
+  const PERMIT_AREA_PER_KW = 4.5;   // ตร.ม. ต่อ kWp โดยประมาณ (แผง ~650 W ≈ 2.7 ตร.ม. + ช่องเดิน)
   const PERMIT_PRESET = [
     { name: "ค่าตรวจสอบระบบ — การไฟฟ้า (PEA/MEA)", unit: "งาน" },
-    { name: "ค่าเปลี่ยนมิเตอร์ / มิเตอร์ TOU", unit: "ชุด" },
+    // ใช้เองไม่ขายไฟ (Zero Export) ไม่ต้องเปลี่ยนมิเตอร์
+    { name: "ค่าเปลี่ยนมิเตอร์ / มิเตอร์ TOU", unit: "ชุด", when: (k, b) => (b && b.permitType) !== "self" },
     { name: "ค่าเชื่อมต่อระบบขนานไฟฟ้า", unit: "งาน" },
-    { name: "ค่าจดแจ้งยกเว้นใบอนุญาต (กกพ.)", unit: "งาน" },
-    { name: "ใบอนุญาตผลิตไฟฟ้า (กกพ.)", unit: "ฉบับ" },
+    // กกพ.: ต่ำกว่า 1,000 kW จดแจ้งยกเว้น · ตั้งแต่ 1,000 kW ขึ้นไปต้องขอใบอนุญาตผลิตไฟฟ้า
+    { name: "ค่าจดแจ้งยกเว้นใบอนุญาต (กกพ.)", unit: "งาน", when: (k) => k < 1000 },
+    { name: "ใบอนุญาตผลิตไฟฟ้า (กกพ.)", unit: "ฉบับ", when: (k) => k >= 1000 },
+    // พค.2 จาก พพ.: เกิน 10 ถึง 200 kW · ไม่มีค่าธรรมเนียม
+    { name: "ใบรับรองการแจ้งผลิตพลังงานควบคุม (พค.2) — พพ. ไม่มีค่าธรรมเนียม", unit: "ฉบับ", when: (k) => k > 10 && k <= 200 },
     // งานวิศวกรรมรวมเป็นบรรทัดเดียว ยอดรวม 5,000–15,000 ตามขนาดระบบ (เดิมแยก 4 บรรทัด — ใบเก่าที่บันทึกไว้ยังเห็น 4 บรรทัดเดิม)
     { name: "ค่าวิศวกร — เซ็นรับรองแบบไฟฟ้า/โครงสร้าง · คำนวณโครงสร้าง · แบบ As-built", unit: "งาน" },
-    { name: "ค่าขออนุญาตดัดแปลงอาคาร (อ.1)", unit: "งาน" },
+    // อ.1: พื้นที่แผงบนหลังคาเกิน 160 ตร.ม. (ประมาณจาก kWp)
+    { name: "ค่าขออนุญาตดัดแปลงอาคาร (อ.1)", unit: "งาน", when: (k) => k * PERMIT_AREA_PER_KW > 160 },
   ];
   /* ราคาตั้งต้นของใบใหม่ (ใบที่บันทึกรายการไว้แล้วไม่ขยับตาม) — ตัวเลขจากผู้ใช้
      ค่าบริการขนานไฟ (งานบ้าน) ตามการไฟฟ้า: MEA นครหลวง 2,140 · PEA ภูมิภาค 3,745 · ยังไม่รู้การไฟฟ้า = เว้นไว้ · งานโครงการเว้นไว้กรอกเอง
      ค่าวิศวกร (บรรทัดเดียวรวมทุกอย่าง) ยอดรวม 5,000–15,000 ตามขนาดระบบ: ≤10 kWp 5,000 · ≤100 kWp 10,000 · ใหญ่กว่านั้น 15,000
-     พค.2 (ใบรับรองการแจ้งผลิตพลังงานควบคุม จาก พพ.) ต้องยื่นเมื่อ 10 < kW ≤ 200 — ไม่มีค่าธรรมเนียม ใส่ไว้เป็นบรรทัดเตือนราคา 0 */
+     การไฟฟ้าดูจากจังหวัดในฐานลูกค้า: กรุงเทพฯ · นนทบุรี · สมุทรปราการ = MEA · จังหวัดอื่น = PEA */
   const PERMIT_GRID_NAME = "ค่าเชื่อมต่อระบบขนานไฟฟ้า";
   const PERMIT_GRID_FEE = { MEA: 2140, PEA: 3745 };
-  const PERMIT_PK2_NAME = "ใบรับรองการแจ้งผลิตพลังงานควบคุม (พค.2) — พพ. ไม่มีค่าธรรมเนียม";
+  const MEA_PROVINCES = ["กรุงเทพ", "กทม", "bangkok", "นนทบุรี", "nonthaburi", "สมุทรปราการ", "samut prakan"];
+  function gridAuthOf(job) {
+    const pv = String((job && job.province) || "").trim().toLowerCase();
+    if (pv) return MEA_PROVINCES.some((x) => pv.indexOf(x) >= 0) ? "MEA" : "PEA";
+    // ไม่มีจังหวัด → ถอยไปดูที่เลือกไว้ในใบขออนุญาต / แบบสำรวจ
+    return (job && ((job.permit && job.permit.auth) || (job.survey && job.survey.meterAuth))) || "";
+  }
   const PERMIT_ENG_NAMES = ["ค่าวิศวกร — เซ็นรับรองแบบไฟฟ้า/โครงสร้าง · คำนวณโครงสร้าง · แบบ As-built"];
   const PERMIT_ENG_TIERS = [[10, 5000], [100, 10000], [Infinity, 15000]];
   const permitGridFee = (b) => (((b && b.jobType) || "") === "home" ? PERMIT_GRID_FEE[(b && b.gridAuth) || ""] || 0 : 0);
   function permitPresetFor(b, kw) {
     const k = +kw || 0;
     const eng = k > 0 ? PERMIT_ENG_TIERS.find((t) => k <= t[0])[1] : 0;
-    const rows = PERMIT_PRESET.map((p) => Object.assign({}, p, { qty: 1,
+    return PERMIT_PRESET.filter((p) => !p.when || p.when(k, b)).map((p) => ({ name: p.name, unit: p.unit, qty: 1,
       price: PERMIT_ENG_NAMES.indexOf(p.name) >= 0 ? eng : p.name === PERMIT_GRID_NAME ? permitGridFee(b) : 0 }));
-    if (k > 10 && k <= 200) rows.splice(5, 0, { name: PERMIT_PK2_NAME, unit: "ฉบับ", qty: 1, price: 0 });   // ต่อจากใบอนุญาต กกพ.
-    return rows;
   }
   /* ── ค่าขนส่ง & เครื่องจักร · ค่าบริหารจัดการหน้างาน ──
      งานโครงการต้องขนของขึ้นหลังคาด้วยเฮี้ยบ/เครน และทีมค้างที่หน้างานหลายวัน
@@ -1400,6 +1412,9 @@
     /* ค่าแรงตั้งเหมารวมเป็นค่าเริ่ม — ใบเก่าบันทึก "split" ติดมาจากค่าเริ่มเดิมทั้งที่ไม่เคยกรอกรายการ (labor ยัง null)
        ใบแบบนั้นถือว่ายังไม่ได้เลือก ให้เป็นเหมารวม · ใบที่กรอกแยกรายการไว้จริงคงเดิม */
     if (out.laborMode !== "lump" && saved.labor == null) out.laborMode = "lump";
+    /* การไฟฟ้า / ประเภทการขออนุญาต อ่านจากข้อมูลลูกค้าทุกครั้งที่เปิด ไม่ใช้ค่าที่ติดมากับใบ — แก้จังหวัดแล้วใบตามทันที */
+    out.gridAuth = gridAuthOf(job);   // base ถูก Object.assign ทับด้วย saved แล้ว ต้องอ่านจากงานตรง ๆ
+    out.permitType = blankBOQ(job).permitType;
     return out;
   }
 
@@ -1449,7 +1464,8 @@
       laborLump: { basis: "w", rate: 0, note: "" },   // basis: w(บาท/วัตต์ · ที่ใช้กันจริง) / job / kw / panel
       permit: null,
       // การไฟฟ้าของงาน — ใช้คิดค่าบริการขนานไฟ · ตั้งต้นจากใบขออนุญาต แล้วแบบสำรวจ (ใบเก่าไม่มีคีย์ = ได้จากงานตอนเปิด)
-      gridAuth: (job && ((job.permit && job.permit.auth) || (job.survey && job.survey.meterAuth))) || "",
+      gridAuth: gridAuthOf(job),
+      permitType: (job && ((job.permit && job.permit.permitType) || (job.survey && job.survey.permitType))) || "",
       /* % เผื่อ และ ชิ้น/ท่อน ของอุปกรณ์ท่อ — เริ่มจากค่าตั้งต้นของบริษัท (ตั้งที่หน้าคลังสินค้า)
          ใบที่ถอดไว้แล้วไม่ไหลตามค่าตั้งต้นที่มาแก้ทีหลัง ดู mergeBOQ */
       conduitSpare: Object.assign({}, CONDUIT_SPARE_FIXED, CONDUIT_DEF.spare),
@@ -2370,7 +2386,7 @@
 
   window.BOQ = { PANELS, MICRO, INVERTERS, OPTIMIZERS, setOptimizers, findOptimizer, ROOF_HOOKS, ROOF_OPTIONS, CABLE_TYPES, CABLE_GROUPS, cableCategory, MATERIAL_SUBGROUPS, materialSubGroup, CABLE_POINTS, DEFAULT_CABLES, STRING_CABLE_POINTS, MICRO_CABLE_NAMES, DEFAULT_STRING_CABLES, IMC_SIZES, UPVC_SIZES, PULLBOX_SIZES, CABLE_OD, HDPE_TABLE, IMC_CONDUIT, WIRE_SIZES, WIRE_METHODS, INS_CLASSES, AMP_GROUPS, AMP_NCOND, AMP_CORES, ampColKey, DEFAULT_AMPACITY, AMPACITY, setAmpacity, WIRE_METHOD_BASE, ampTableFor, cableInsClass, cableCoreType, cableSizeNum, ampacityOf, pickWireSize, PV_WIRE_SIZES, PV_WIRE_AMP, PV_WIRE_MIN, pickPvWireSize, calcVdrop, VD_LIMIT, findPanel, findInverter, stringConfig, stringPlan, wireArea, calcWireWay, calcConduitSize, blankBOQ, mergeBOQ, setConduitDefaults, conduitDefaults, CONDUIT_SPARE_FIXED, IMC_RULE, IMC_RULE_DEF, imcRule, calcBOQ, calcStructures, matKey, qtyKey, catalog, isPvDcCable, PV_DC_COLORS, PV_DC_SPARE, pvDcLength, applyPrices, setPanels, setInverters,
     WAY_SIZES, TRAY_SIZES, PERF_SIZES, TRAY_KINDS, TRAY_KIND_KEYS, trayKindOf, trayNorm, trayAlias, hdgName,
-    optimizerQty, optimizerFits, DCAC_LIMIT, WAY_PIPE_LEN, TRAY_PIPE_LEN, trayLenTxt, railLenCm, railPerTon, railName, SUPPORT_KINDS, LABOR_PRESET, PERMIT_PRESET, permitPresetFor, permitGridFee, PERMIT_ENG_TIERS, PERMIT_GRID_FEE, PERMIT_GRID_NAME,
+    optimizerQty, optimizerFits, DCAC_LIMIT, WAY_PIPE_LEN, TRAY_PIPE_LEN, trayLenTxt, railLenCm, railPerTon, railName, SUPPORT_KINDS, LABOR_PRESET, PERMIT_PRESET, permitPresetFor, permitGridFee, gridAuthOf, PERMIT_ENG_TIERS, PERMIT_GRID_FEE, PERMIT_GRID_NAME,
     COND_FIT_KINDS, WAY_FIT_KINDS, condFittings, trayFittings, PPR_SIZES, PPR_FIT_KINDS, pipeFittings,
     STEEL_SPECS, steelName, steelBarLen, steelSel, steelOf,
     TRANSPORT_PRESET, MANAGE_PRESET, G_TRANSPORT, G_MANAGE, PROJECT_KITS, normProject, kitExtraKeys, ACC_ALLOW_PCT, ACC_ALLOW_PCT_HOME, accAllowDef, accAllowPct, VAT_RATE, priceBreakdown,
