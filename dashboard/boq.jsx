@@ -2713,8 +2713,9 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
        งานบ้านไม่ต้องมีให้เกะกะ */
   ].concat(kitShown.map((sc) => ({ key: sc.key, icon: sc.icon, title: sc.title,
     meta: scCount(sc) > 0 ? scCount(sc) + " รายการ" : "ยังไม่ได้กรอก", tone: scCount(sc) > 0 ? "ok" : "" }))).concat([
-    !isHome ? { key: "site", icon: "power", title: "ขนส่ง & บริหารจัดการ",
-      meta: siteTotal > 0 ? "฿" + baht(siteTotal) : "ยังไม่ได้กรอก", tone: siteTotal > 0 ? "ok" : "" } : null,
+    /* งานบ้านก็มีค่ารถ/เครนได้ — แยกจากค่าแรงแล้วจึงต้องมีที่กรอกทุกงาน */
+    { key: "site", icon: "power", title: "ขนส่ง & บริหารจัดการ",
+      meta: siteTotal > 0 ? "฿" + baht(siteTotal) : "ยังไม่ได้กรอก", tone: siteTotal > 0 ? "ok" : "" },
     !isHome ? { key: "support", icon: "box", title: "โครงสร้างรองรับอุปกรณ์",
       meta: sup.inv + sup.mdb > 0 ? "อินเวอร์เตอร์ " + sup.inv + " · ตู้ " + sup.mdb : "ยังไม่ได้ถอด", tone: sup.inv + sup.mdb > 0 ? "ok" : "" } : null,
     !isHome ? { key: "struct", icon: "box", title: "งานเพิ่มเติม — โครงสร้าง",
@@ -4112,11 +4113,11 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
           ))}
 
           {/* ── ขนส่ง & บริหารจัดการหน้างาน — ราคาอยู่ในบรรทัดเอง เหมือนค่าแรง ── */}
-          {!isHome && (
+          {(
           <BoqSection title="ขนส่ง & บริหารจัดการหน้างาน" icon="power" {...secProps("site")}
             right={siteTotal > 0 ? <span style={{ fontSize: 12.5, fontWeight: 800, color: "var(--primary-dark)" }}>฿{baht(siteTotal)}</span> : null}>
             <div className="bq-hint" style={{ fontSize: 11.5, color: "var(--text-3)", lineHeight: 1.5, marginBottom: 12 }}>
-              ค่าขนของขึ้นไซต์และค่าอยู่หน้างาน — กรอกเฉพาะที่งานนี้มีจริง บรรทัดที่ไม่ใช้ลบทิ้งได้
+              ค่าขนของขึ้นไซต์ เครน นั่งร้าน และค่าอยู่หน้างาน — แยกจากค่าแรง · กรอกเฉพาะที่งานนี้มีจริง บรรทัดที่ไม่ใช้ลบทิ้งได้
             </div>
             <div style={{ fontSize: 11, fontWeight: 800, color: "var(--text-3)", marginBottom: 8 }}>ขนส่ง & เครื่องจักร</div>
             {SvcTable({ sKey: "transport", preset: window.BOQ.TRANSPORT_PRESET, qtyLabel: "จำนวน" })}
@@ -4160,7 +4161,9 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
             {/* เหมารวม = ตกลงราคาเดียวจบ · แยกรายการ = เห็นว่าเงินไปอยู่งานไหน (ใช้ต่อรองและคุมหน้างานได้) */}
             <div style={{ display: "flex", gap: 8, marginBottom: 14, flexWrap: "wrap" }}>
               {[{ v: "lump", t: "เหมารวม", d: "ราคาเดียวจบ" }, { v: "split", t: "แยกรายการงาน", d: "เห็นทีละงาน" }].map((m) => (
-                <button key={m.v} type="button" onClick={() => set("laborMode", m.v)}
+                <button key={m.v} type="button" onClick={() => setB((p) => Object.assign({}, p, { laborMode: m.v },
+                    /* เลือกแยกรายการครั้งแรก — ลงรายการตั้งต้นไว้เลย ไม่งั้นเปิดใบใหม่จะถูกนับว่ายังไม่เลือกแล้วเด้งกลับเป็นเหมารวม */
+                    m.v === "split" && p.labor == null ? { labor: window.BOQ.LABOR_PRESET.map((x) => Object.assign({}, x, { price: 0 })) } : {}))}
                   style={{ flex: "1 1 180px", textAlign: "left", padding: "10px 13px", borderRadius: 11, cursor: "pointer", fontFamily: "inherit",
                     border: "1px solid " + (laborMode === m.v ? "var(--primary)" : "var(--border-strong)"),
                     background: laborMode === m.v ? "var(--primary-soft)" : "var(--surface2)" }}>
@@ -4174,6 +4177,9 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
               <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
                 <div style={{ fontSize: 11.5, color: "var(--text-3)", lineHeight: 1.5 }}>
                   ตกลงค่าแรงเป็นก้อนเดียว — เลือกฐานคิดแล้วกรอกเรต ระบบคูณปริมาณจริงของงานนี้ให้เอง
+                  {" · "}<b style={{ color: "var(--text-2)" }}>ไม่รวมค่าขนส่ง · เครน · นั่งร้าน</b> กรอกแยกที่{" "}
+                  <button type="button" onClick={() => goSec("site")} style={{ border: 0, background: "none", padding: 0, cursor: "pointer", fontFamily: "inherit",
+                    fontSize: 11.5, fontWeight: 700, color: "var(--primary-dark)", textDecoration: "underline" }}>ขนส่ง & บริหารจัดการ</button>
                 </div>
                 <div style={{ display: "grid", gridTemplateColumns: isMobile ? "minmax(0,1fr) minmax(0,1fr)" : "200px 140px minmax(0,1fr)", gap: 12 }}>
                   <Field label="ฐานคิด">
@@ -4189,7 +4195,7 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
                   </Field>
                   <div style={{ gridColumn: isMobile ? "1 / -1" : "auto" }}>
                     <Field label="ชื่อที่จะขึ้นในใบ BOQ (เว้นว่าง = ใช้ชื่อมาตรฐาน)">
-                      <input value={lump.note} placeholder="เช่น ค่าแรงติดตั้งเหมาทั้งระบบ รวมนั่งร้าน" style={inputStyle} onChange={(e) => setLump("note", e.target.value)} />
+                      <input value={lump.note} placeholder="เช่น ค่าแรงติดตั้งเหมาทั้งระบบ" style={inputStyle} onChange={(e) => setLump("note", e.target.value)} />
                     </Field>
                   </div>
                 </div>

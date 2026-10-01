@@ -5619,13 +5619,13 @@ function BOQEditor({
     title: sc.title,
     meta: scCount(sc) > 0 ? scCount(sc) + " รายการ" : "ยังไม่ได้กรอก",
     tone: scCount(sc) > 0 ? "ok" : ""
-  }))).concat([!isHome ? {
+  }))).concat([{
     key: "site",
     icon: "power",
     title: "ขนส่ง & บริหารจัดการ",
     meta: siteTotal > 0 ? "฿" + baht(siteTotal) : "ยังไม่ได้กรอก",
     tone: siteTotal > 0 ? "ok" : ""
-  } : null, !isHome ? {
+  }, !isHome ? {
     key: "support",
     icon: "box",
     title: "โครงสร้างรองรับอุปกรณ์",
@@ -8788,7 +8788,7 @@ function BOQEditor({
         color: "currentColor"
       }), " ", it.name))), extraList("extra", k.th, false, k.key === "pipe" ? pipeOptions : null));
     })());
-  })))), !isHome && React.createElement(BoqSection, _extends({
+  })))), React.createElement(BoqSection, _extends({
     title: "\u0E02\u0E19\u0E2A\u0E48\u0E07 & \u0E1A\u0E23\u0E34\u0E2B\u0E32\u0E23\u0E08\u0E31\u0E14\u0E01\u0E32\u0E23\u0E2B\u0E19\u0E49\u0E32\u0E07\u0E32\u0E19",
     icon: "power"
   }, secProps("site"), {
@@ -8807,7 +8807,7 @@ function BOQEditor({
       lineHeight: 1.5,
       marginBottom: 12
     }
-  }, "\u0E04\u0E48\u0E32\u0E02\u0E19\u0E02\u0E2D\u0E07\u0E02\u0E36\u0E49\u0E19\u0E44\u0E0B\u0E15\u0E4C\u0E41\u0E25\u0E30\u0E04\u0E48\u0E32\u0E2D\u0E22\u0E39\u0E48\u0E2B\u0E19\u0E49\u0E32\u0E07\u0E32\u0E19 \u2014 \u0E01\u0E23\u0E2D\u0E01\u0E40\u0E09\u0E1E\u0E32\u0E30\u0E17\u0E35\u0E48\u0E07\u0E32\u0E19\u0E19\u0E35\u0E49\u0E21\u0E35\u0E08\u0E23\u0E34\u0E07 \u0E1A\u0E23\u0E23\u0E17\u0E31\u0E14\u0E17\u0E35\u0E48\u0E44\u0E21\u0E48\u0E43\u0E0A\u0E49\u0E25\u0E1A\u0E17\u0E34\u0E49\u0E07\u0E44\u0E14\u0E49"), React.createElement("div", {
+  }, "\u0E04\u0E48\u0E32\u0E02\u0E19\u0E02\u0E2D\u0E07\u0E02\u0E36\u0E49\u0E19\u0E44\u0E0B\u0E15\u0E4C \u0E40\u0E04\u0E23\u0E19 \u0E19\u0E31\u0E48\u0E07\u0E23\u0E49\u0E32\u0E19 \u0E41\u0E25\u0E30\u0E04\u0E48\u0E32\u0E2D\u0E22\u0E39\u0E48\u0E2B\u0E19\u0E49\u0E32\u0E07\u0E32\u0E19 \u2014 \u0E41\u0E22\u0E01\u0E08\u0E32\u0E01\u0E04\u0E48\u0E32\u0E41\u0E23\u0E07 \xB7 \u0E01\u0E23\u0E2D\u0E01\u0E40\u0E09\u0E1E\u0E32\u0E30\u0E17\u0E35\u0E48\u0E07\u0E32\u0E19\u0E19\u0E35\u0E49\u0E21\u0E35\u0E08\u0E23\u0E34\u0E07 \u0E1A\u0E23\u0E23\u0E17\u0E31\u0E14\u0E17\u0E35\u0E48\u0E44\u0E21\u0E48\u0E43\u0E0A\u0E49\u0E25\u0E1A\u0E17\u0E34\u0E49\u0E07\u0E44\u0E14\u0E49"), React.createElement("div", {
     style: {
       fontSize: 11,
       fontWeight: 800,
@@ -8960,7 +8960,13 @@ function BOQEditor({
   }].map(m => React.createElement("button", {
     key: m.v,
     type: "button",
-    onClick: () => set("laborMode", m.v),
+    onClick: () => setB(p => Object.assign({}, p, {
+      laborMode: m.v
+    }, m.v === "split" && p.labor == null ? {
+      labor: window.BOQ.LABOR_PRESET.map(x => Object.assign({}, x, {
+        price: 0
+      }))
+    } : {})),
     style: {
       flex: "1 1 180px",
       textAlign: "left",
@@ -8997,7 +9003,25 @@ function BOQEditor({
       color: "var(--text-3)",
       lineHeight: 1.5
     }
-  }, "\u0E15\u0E01\u0E25\u0E07\u0E04\u0E48\u0E32\u0E41\u0E23\u0E07\u0E40\u0E1B\u0E47\u0E19\u0E01\u0E49\u0E2D\u0E19\u0E40\u0E14\u0E35\u0E22\u0E27 \u2014 \u0E40\u0E25\u0E37\u0E2D\u0E01\u0E10\u0E32\u0E19\u0E04\u0E34\u0E14\u0E41\u0E25\u0E49\u0E27\u0E01\u0E23\u0E2D\u0E01\u0E40\u0E23\u0E15 \u0E23\u0E30\u0E1A\u0E1A\u0E04\u0E39\u0E13\u0E1B\u0E23\u0E34\u0E21\u0E32\u0E13\u0E08\u0E23\u0E34\u0E07\u0E02\u0E2D\u0E07\u0E07\u0E32\u0E19\u0E19\u0E35\u0E49\u0E43\u0E2B\u0E49\u0E40\u0E2D\u0E07"), React.createElement("div", {
+  }, "\u0E15\u0E01\u0E25\u0E07\u0E04\u0E48\u0E32\u0E41\u0E23\u0E07\u0E40\u0E1B\u0E47\u0E19\u0E01\u0E49\u0E2D\u0E19\u0E40\u0E14\u0E35\u0E22\u0E27 \u2014 \u0E40\u0E25\u0E37\u0E2D\u0E01\u0E10\u0E32\u0E19\u0E04\u0E34\u0E14\u0E41\u0E25\u0E49\u0E27\u0E01\u0E23\u0E2D\u0E01\u0E40\u0E23\u0E15 \u0E23\u0E30\u0E1A\u0E1A\u0E04\u0E39\u0E13\u0E1B\u0E23\u0E34\u0E21\u0E32\u0E13\u0E08\u0E23\u0E34\u0E07\u0E02\u0E2D\u0E07\u0E07\u0E32\u0E19\u0E19\u0E35\u0E49\u0E43\u0E2B\u0E49\u0E40\u0E2D\u0E07", " · ", React.createElement("b", {
+    style: {
+      color: "var(--text-2)"
+    }
+  }, "\u0E44\u0E21\u0E48\u0E23\u0E27\u0E21\u0E04\u0E48\u0E32\u0E02\u0E19\u0E2A\u0E48\u0E07 \xB7 \u0E40\u0E04\u0E23\u0E19 \xB7 \u0E19\u0E31\u0E48\u0E07\u0E23\u0E49\u0E32\u0E19"), " \u0E01\u0E23\u0E2D\u0E01\u0E41\u0E22\u0E01\u0E17\u0E35\u0E48", " ", React.createElement("button", {
+    type: "button",
+    onClick: () => goSec("site"),
+    style: {
+      border: 0,
+      background: "none",
+      padding: 0,
+      cursor: "pointer",
+      fontFamily: "inherit",
+      fontSize: 11.5,
+      fontWeight: 700,
+      color: "var(--primary-dark)",
+      textDecoration: "underline"
+    }
+  }, "\u0E02\u0E19\u0E2A\u0E48\u0E07 & \u0E1A\u0E23\u0E34\u0E2B\u0E32\u0E23\u0E08\u0E31\u0E14\u0E01\u0E32\u0E23")), React.createElement("div", {
     style: {
       display: "grid",
       gridTemplateColumns: isMobile ? "minmax(0,1fr) minmax(0,1fr)" : "200px 140px minmax(0,1fr)",
@@ -9038,7 +9062,7 @@ function BOQEditor({
     label: "\u0E0A\u0E37\u0E48\u0E2D\u0E17\u0E35\u0E48\u0E08\u0E30\u0E02\u0E36\u0E49\u0E19\u0E43\u0E19\u0E43\u0E1A BOQ (\u0E40\u0E27\u0E49\u0E19\u0E27\u0E48\u0E32\u0E07 = \u0E43\u0E0A\u0E49\u0E0A\u0E37\u0E48\u0E2D\u0E21\u0E32\u0E15\u0E23\u0E10\u0E32\u0E19)"
   }, React.createElement("input", {
     value: lump.note,
-    placeholder: "\u0E40\u0E0A\u0E48\u0E19 \u0E04\u0E48\u0E32\u0E41\u0E23\u0E07\u0E15\u0E34\u0E14\u0E15\u0E31\u0E49\u0E07\u0E40\u0E2B\u0E21\u0E32\u0E17\u0E31\u0E49\u0E07\u0E23\u0E30\u0E1A\u0E1A \u0E23\u0E27\u0E21\u0E19\u0E31\u0E48\u0E07\u0E23\u0E49\u0E32\u0E19",
+    placeholder: "\u0E40\u0E0A\u0E48\u0E19 \u0E04\u0E48\u0E32\u0E41\u0E23\u0E07\u0E15\u0E34\u0E14\u0E15\u0E31\u0E49\u0E07\u0E40\u0E2B\u0E21\u0E32\u0E17\u0E31\u0E49\u0E07\u0E23\u0E30\u0E1A\u0E1A",
     style: inputStyle,
     onChange: e => setLump("note", e.target.value)
   })))), React.createElement("div", {
