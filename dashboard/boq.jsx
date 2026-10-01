@@ -1016,15 +1016,18 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
     .map((sc) => Object.assign({}, sc, { hint: "ตู้ไฟของงานบ้าน — คิดแบบงานโครงการ: เบรกเกอร์ตามกระแสอินเวอร์เตอร์ (RCBO 100mA ขนาดแรกที่ ≥ 1.25 × กระแส — 1 เฟสถึง 50 A · 3 เฟสถึง 63 A เกินนั้นใช้ MCCB · อินเวอร์เตอร์ตัวเดียวไม่มีเมนแยก) · SPD Type 2 กันหลังด้วย MCB 32A · ฟิวส์ DC ตาม Isc/Voc ของสตริง · ราคาดึงจากคลังเหมือนวัสดุอื่น" })) : kitSections;
 
   // ── ราคาขาย & ส่วนลด ──
-  const PRICE_DEF = { contractor: 0, sell: 0, discount: 0, vat: window.BOQ.VAT_RATE };
+  const PRICE_DEF = { discount: 0, vat: window.BOQ.VAT_RATE };
   const pricing = Object.assign({}, PRICE_DEF, b.pricing || {});
   const setPricing = (k, v) => setB((p) => Object.assign({}, p, { pricing: Object.assign({}, PRICE_DEF, p.pricing || {}, { [k]: v === "" ? "" : +v || 0 }) }));
+  // เลือกวิธีคิดกำไร (% / ฿) — ตั้งโหมดแล้วกรอกตัวเลขของโหมดนั้น
+  const setProfit = (mode, k, v) => setB((p) => Object.assign({}, p, { pricing: Object.assign({}, PRICE_DEF, p.pricing || {},
+    { profitMode: mode }, k ? { [k]: v === "" ? "" : +v || 0 } : {}) }));
 
   const result = window.BOQ.calcBOQ(b);
   const scCount = (sc) => sc.count;
   const priced = window.BOQ.applyPrices(result, priceMap || {}, b.pick || {});
-  // แบ่งราคา: ต้นทุนมาจากใบถอดของ · ผู้รับเหมา/ราคาขาย/ส่วนลด กรอกเอง
-  const pb = window.BOQ.priceBreakdown(priced.grandTotal, pricing, (result.meta.kw || 0) * 1000);
+  // แบ่งราคา: ต้นทุน + ค่าแรงผู้รับเหมามาจากใบถอดของ · กำไร (% หรือ ฿) และส่วนลดกรอกเอง → ราคาขายคำนวณให้
+  const pb = window.BOQ.priceBreakdown(priced.grandTotal, pricing, (result.meta.kw || 0) * 1000, priced.contractorTotal);
   // ยอดรวมของหมวดขนส่ง + บริหารจัดการ (ราคาอยู่ในบรรทัดเอง จึงบวกจากผลถอดของโดยตรง)
   const siteTotal = (priced.groups || []).filter((g) => g.group === window.BOQ.G_TRANSPORT || g.group === window.BOQ.G_MANAGE)
     .reduce((s, g) => s + g.subtotal, 0);
@@ -2597,8 +2600,8 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
       sec("โครงสร้างราคา");
       head3("รายการ", "จำนวนเงิน (บาท)", "฿ / วัตต์");
       const vf = 1 + pb.vat / 100;
-      const rCost = kv("ต้นทุนวัสดุ + ค่าแรงติดตั้ง", F(AT(SV, rSum), pb.cost), null, "kv");
-      const rCon = pb.contractor > 0 ? kv("ค่าแรงผู้รับเหมา", pb.contractor, null, "kv") : null;
+      const rCost = kv("ต้นทุนวัสดุ", F(AT(SV, rSum) + "-" + pb.contractor, pb.cost), null, "kv");
+      const rCon = pb.contractor > 0 ? kv("ค่าแรงผู้รับเหมา (ค่าแรง + ขออนุญาต + ขนส่ง/บริหาร)", pb.contractor, null, "kv") : null;
       const rTot = kv("ต้นทุนรวม",
         F(AT(SV, rCost) + (rCon != null ? "+" + AT(SV, rCon) : ""), pb.totalCost), null, "strong");
       B2.aoa[rTot][U] = perWf(rTot, pb.costPerW);
@@ -4498,12 +4501,38 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
           <BoqSection title="แบ่งราคา & กำไร" icon="bolt" {...secProps("price")}
             right={pb.sell > 0 ? <span style={{ fontSize: 12.5, fontWeight: 800, color: (pb.net > 0 ? pb.netProfit : pb.profit) > 0 ? "var(--primary-dark)" : "var(--tint-amber-tx)" }}>กำไร {(pb.net > 0 ? pb.netMargin : pb.margin)}%</span> : null}>
             <div className="bq-hint" style={{ fontSize: 11.5, color: "var(--text-3)", lineHeight: 1.5, marginBottom: 14 }}>
-              ต้นทุนดึงจากใบถอดของให้เอง — กรอกเฉพาะค่าแรงผู้รับเหมา ราคาขาย และส่วนลด แล้วระบบคิด VAT กำไร และบาทต่อวัตต์ให้
+              ต้นทุนวัสดุและค่าแรงผู้รับเหมาดึงจากใบถอดของให้เอง — ตั้งกำไรเป็น % ของราคาขาย (เริ่มที่ {window.BOQ.PROFIT_PCT_DEF}%) หรือเป็นจำนวนเงิน แล้วระบบคิดราคาขาย VAT และบาทต่อวัตต์ให้
             </div>
             <div style={{ display: "grid", gridTemplateColumns: isMobile ? "repeat(2, minmax(0,1fr))" : "repeat(4, minmax(0,1fr))", gap: 10, marginBottom: 14 }}>
+              <label style={{ display: "flex", flexDirection: "column", gap: 3 }}
+                title={"ค่าแรง ฿" + baht(priced.laborTotal) + " + ค่าขออนุญาต ฿" + baht(priced.permitTotal) + " + ขนส่ง & บริหารจัดการ ฿" + baht(priced.siteTotal)}>
+                <span style={{ fontSize: 10, fontWeight: 700, color: "var(--text-3)" }}>ค่าแรงผู้รับเหมา (฿)</span>
+                <div style={Object.assign({}, numStyle, { width: "100%", height: 36, color: "var(--text-2)", display: "flex", alignItems: "center", justifyContent: "flex-end" })}>
+                  {baht(pb.contractor)}
+                </div>
+                <span style={{ fontSize: 9.5, color: "var(--text-3)" }}>ค่าแรง + ขออนุญาต + บริหารจัดการ</span>
+              </label>
+              <label style={{ display: "flex", flexDirection: "column", gap: 3 }}>
+                <span style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 10, fontWeight: 700, color: "var(--text-3)" }}>
+                  กำไร
+                  {[["pct", "%"], ["baht", "฿"]].map(([m, l]) => (
+                    <button key={m} type="button" className={"bq-cab-chip" + (pb.mode === m ? " on" : "")} style={{ fontSize: 10.5, padding: "1px 9px" }}
+                      onClick={(e) => { e.preventDefault(); setProfit(m); }}>{l}</button>
+                  ))}
+                </span>
+                {pb.mode === "baht"
+                  ? <input type="number" min={0} placeholder="0" value={pricing.profitBaht != null ? pricing.profitBaht : ""}
+                      onChange={(e) => setProfit("baht", "profitBaht", e.target.value)}
+                      style={Object.assign({}, numStyle, { width: "100%", height: 36 })} />
+                  : <input type="number" min={0} max={90} placeholder={pb.mode === "sell" ? "เลือก % หรือ ฿" : String(window.BOQ.PROFIT_PCT_DEF)}
+                      value={pb.mode === "pct" && pricing.profitPct != null ? pricing.profitPct : ""}
+                      onChange={(e) => setProfit("pct", "profitPct", e.target.value)}
+                      style={Object.assign({}, numStyle, { width: "100%", height: 36 })} />}
+                <span style={{ fontSize: 9.5, color: "var(--text-3)" }}>
+                  {pb.mode === "sell" ? "ใบนี้ตั้งราคาขายเองไว้ ฿" + baht(pb.sell) : pb.mode === "pct" ? "% ของราคาขาย = ฿" + baht(pb.profit) : "= " + pb.margin + "% ของราคาขาย"}
+                </span>
+              </label>
               {[
-                { k: "contractor", lb: "ค่าแรงผู้รับเหมา (฿)", tip: "ค่าจ้างทีมผู้รับเหมาที่มารับงานนี้ — บวกเข้าเป็นต้นทุน" },
-                { k: "sell", lb: "ราคาขาย (฿)", tip: "ราคาขายก่อน VAT และก่อนหักส่วนลด" },
                 { k: "discount", lb: "ส่วนลด (฿)", tip: "จำนวนเงินที่ลดให้ลูกค้า — ราคาหลังลดคำนวณให้" },
                 { k: "vat", lb: "VAT (%)", tip: "ปกติ 7% — แก้ได้ถ้างานนี้คิดต่าง" },
               ].map((f) => (
@@ -4518,10 +4547,11 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
             {/* บันไดราคา — ไล่จากต้นทุนขึ้นไปถึงราคาสุทธิ ทุกขั้นมีทั้งก่อนและหลัง VAT */}
             <div style={{ border: "1px solid var(--border)", borderRadius: 12, overflow: "hidden" }}>
               {[
-                { lb: "ต้นทุนวัสดุ + ค่าแรง (จาก BOQ)", v: pb.cost, sub: priced.perW > 0 ? "฿" + baht(priced.perW) + "/W" : "" },
-                { lb: "ค่าแรงผู้รับเหมา", v: pb.contractor, dim: true },
+                { lb: "ต้นทุนวัสดุ (จาก BOQ)", v: pb.cost },
+                { lb: "ค่าแรงผู้รับเหมา (ค่าแรง + ขออนุญาต + ขนส่ง/บริหาร)", v: pb.contractor, dim: true },
                 { lb: "ต้นทุนรวม", v: pb.totalCost, strong: true, sub: pb.costPerW > 0 ? "฿" + baht(pb.costPerW) + "/W" : "" },
                 { lb: "ต้นทุนรวม + VAT " + pb.vat + "%", v: pb.totalCostVat, dim: true },
+                { lb: "กำไร" + (pb.mode === "pct" ? " " + pb.profitPct + "% ของราคาขาย" : ""), v: pb.profit, dim: true },
                 { lb: "ราคาขาย", v: pb.sell, strong: true, sub: pb.sellPerW > 0 ? "฿" + baht(pb.sellPerW) + "/W" : "" },
                 { lb: "ราคาขาย + VAT " + pb.vat + "%", v: pb.sellVat, dim: true },
                 pb.discount > 0 ? { lb: "ราคาหลังส่วนลด (ลด ฿" + baht(pb.discount) + ")", v: pb.net, strong: true, sub: pb.netPerW > 0 ? "฿" + baht(pb.netPerW) + "/W" : "" } : null,
@@ -4556,7 +4586,7 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
                   </span>
                   <span style={{ fontSize: 11, color: good ? "var(--primary-dark)" : "var(--tint-amber-tx2)", fontWeight: 600 }}>
                     {good
-                      ? "คิดจากราคา" + (pb.discount > 0 ? "หลังส่วนลด" : "ขาย") + " หักต้นทุนรวม (วัสดุ + ค่าแรงติดตั้ง + ค่าแรงผู้รับเหมา) · ตัวเลขนี้ยังไม่รวม VAT"
+                      ? "คิดจากราคา" + (pb.discount > 0 ? "หลังส่วนลด" : "ขาย") + " หักต้นทุนรวม (วัสดุ + ค่าแรงผู้รับเหมา) · ตัวเลขนี้ยังไม่รวม VAT"
                       : "ราคานี้ขายแล้วขาดทุน — ต้นทุนรวม ฿" + baht(pb.totalCost) + " สูงกว่าราคาที่ตั้งไว้"}
                   </span>
                 </div>
@@ -4597,7 +4627,8 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
         )}
         <button className="bq-btn" style={{ marginRight: 8 }} onClick={onClose}>ปิด</button>
         <button className="bq-btn gh" style={{ marginRight: 8 }} onClick={() => guardRun(exportXlsx)}><Icon name="box" size={15} color="var(--primary-dark)" /> Excel</button>
-        {onSave && <button className="bq-btn pri" onClick={() => guardRun(() => onSave(Object.assign({}, b, { project: project })))}><Icon name="check" size={15} color="#fff" /> บันทึก BOQ</button>}
+        {onSave && <button className="bq-btn pri" onClick={() => guardRun(() => onSave(Object.assign({}, b, { project: project,
+          pricing: Object.assign({}, b.pricing || {}, { sell: pb.sell }, pb.mode !== "sell" ? { profitMode: pb.mode } : {}) })))}><Icon name="check" size={15} color="#fff" /> บันทึก BOQ</button>}
       </div>
       {measOpen && (
         <Meas3DModal list={measFor(measOpen)} targets={measTargets} defaultTarget={measDefault}

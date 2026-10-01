@@ -2227,6 +2227,9 @@
     const grand = groups.reduce((s, g) => s + g.subtotal, 0);
     const sumOf = (keys) => groups.filter((g) => keys.indexOf(g.group) >= 0).reduce((s, g) => s + g.subtotal, 0);
     const laborTotal = sumOf([G_LABOR]), permitTotal = sumOf([G_PERMIT]), omTotal = sumOf([G_OM]);
+    const siteTotal = sumOf([G_TRANSPORT, G_MANAGE]);
+    // ค่าแรงผู้รับเหมา = ค่าแรง + ค่าขออนุญาต + ขนส่ง & บริหารจัดการ (ผู้รับเหมาเป็นคนจ่ายก้อนนี้)
+    const contractorTotal = laborTotal + permitTotal + siteTotal;
     const matTotal = grand - laborTotal - permitTotal - omTotal;
     return {
       groups: groups, grandTotal: grand, kw: kw, perKw: perKw(grand), perW: perW(grand),
@@ -2234,30 +2237,42 @@
       laborTotal: laborTotal, laborPerKw: perKw(laborTotal), laborPerW: perW(laborTotal),
       permitTotal: permitTotal, permitPerKw: perKw(permitTotal), permitPerW: perW(permitTotal),
       omTotal: omTotal, omPerW: perW(omTotal),
+      siteTotal: siteTotal, contractorTotal: contractorTotal,
     };
   }
 
-  /* ── แบ่งราคา: ต้นทุน → ค่าแรงผู้รับเหมา → ราคาขาย → ส่วนลด ──
-     ต้นทุนมาจากใบถอดของ (ไม่ต้องกรอก) ที่เหลือกรอกเอง แล้วคิด VAT / กำไร / ฿ต่อวัตต์ ให้
+  /* ── แบ่งราคา: ต้นทุนวัสดุ + ค่าแรงผู้รับเหมา → กำไร → ราคาขาย → ส่วนลด ──
+     cost = ยอดรวมทั้งใบ (grandTotal) · contractor = ค่าแรง + ขออนุญาต + ขนส่ง/บริหาร ซึ่งอยู่ใน cost แล้ว
+     (แยกโชว์ ไม่ได้บวกซ้ำ · ค่า pricing.contractor ที่ใบเก่ากรอกเองไม่ถูกอ่านแล้ว)
+     กำไรตั้งได้สองแบบ: "pct" = % ของราคาขาย (ค่าเริ่ม 15%) → ราคาขาย = ต้นทุน ÷ (1 − %)
+                        "baht" = จำนวนเงิน → ราคาขาย = ต้นทุน + กำไร
+     ใบเก่าที่กรอกราคาขายเองไว้ (ไม่มี profitMode แต่มี sell) = "sell" ใช้ราคาขายเดิมจนกว่าจะเลือก % หรือ ฿
      ส่วนลดกรอกเป็น "จำนวนเงินที่ลด" ราคาหลังลดคำนวณให้ ไม่ใช่กรอกราคาสุทธิเอง
      จะได้เห็นทันทีว่าลดไปเท่าไรแล้วกำไรเหลือเท่าไร */
   const VAT_RATE = 7;
-  function priceBreakdown(cost, p, watt) {
+  const PROFIT_PCT_DEF = 15;
+  function priceBreakdown(cost, p, watt, contractorAmt) {
     p = p || {};
     const vat = +p.vat >= 0 && p.vat !== "" && p.vat != null ? +p.vat : VAT_RATE;
     const r2 = (v) => Math.round(v * 100) / 100;
     const addVat = (v) => r2(v * (1 + vat / 100));
-    const base = Math.max(0, +cost || 0);
-    const contractor = Math.max(0, +p.contractor || 0);
-    const totalCost = base + contractor;
-    const sell = Math.max(0, +p.sell || 0);
+    const totalCost = Math.max(0, +cost || 0);
+    const contractor = Math.min(totalCost, Math.max(0, +contractorAmt || 0));
+    const base = totalCost - contractor;
+    const mode = p.profitMode === "pct" || p.profitMode === "baht" ? p.profitMode : +p.sell > 0 ? "sell" : "pct";
+    const profitPct = p.profitPct === "" || p.profitPct == null || !isFinite(+p.profitPct) ? PROFIT_PCT_DEF : Math.min(90, Math.max(0, +p.profitPct));
+    const profitBaht = Math.max(0, +p.profitBaht || 0);
+    const sell = totalCost <= 0 && mode !== "sell" ? 0
+      : mode === "sell" ? Math.max(0, +p.sell || 0)
+      : mode === "baht" ? r2(totalCost + profitBaht)
+      : Math.ceil(totalCost / (1 - profitPct / 100));   // ปัดขึ้นเป็นบาทเต็ม
     const discount = Math.max(0, +p.discount || 0);
     const net = Math.max(0, sell - discount);
     const w = Math.max(0, +watt || 0);
     const perW = (v) => (w > 0 ? Math.round((v / w) * 1000) / 1000 : 0);
     const pct = (profit, price) => (price > 0 ? Math.round((profit / price) * 10000) / 100 : 0);
     return {
-      vat: vat, cost: base, contractor: contractor,
+      vat: vat, cost: base, contractor: contractor, mode: mode, profitPct: profitPct, profitBaht: profitBaht,
       totalCost: totalCost, totalCostVat: addVat(totalCost),
       sell: sell, sellVat: addVat(sell),
       discount: discount, net: net, netVat: addVat(net),
@@ -2385,7 +2400,7 @@
     optimizerQty, optimizerFits, DCAC_LIMIT, WAY_PIPE_LEN, TRAY_PIPE_LEN, trayLenTxt, railLenCm, railPerTon, railName, SUPPORT_KINDS, LABOR_PRESET, PERMIT_PRESET, permitPresetFor, permitGridFee, gridAuthOf, PERMIT_ENG_TIERS, PERMIT_GRID_FEE, PERMIT_GRID_NAME,
     COND_FIT_KINDS, WAY_FIT_KINDS, condFittings, trayFittings, PPR_SIZES, PPR_FIT_KINDS, pipeFittings,
     STEEL_SPECS, steelName, steelBarLen, steelSel, steelOf,
-    TRANSPORT_PRESET, MANAGE_PRESET, G_TRANSPORT, G_MANAGE, PROJECT_KITS, normProject, kitExtraKeys, ACC_ALLOW_PCT, ACC_ALLOW_PCT_HOME, accAllowDef, accAllowPct, VAT_RATE, priceBreakdown,
+    TRANSPORT_PRESET, MANAGE_PRESET, G_TRANSPORT, G_MANAGE, PROJECT_KITS, normProject, kitExtraKeys, ACC_ALLOW_PCT, ACC_ALLOW_PCT_HOME, accAllowDef, accAllowPct, VAT_RATE, PROFIT_PCT_DEF, priceBreakdown,
     TRAY_FILL_LIMIT, TRAY_DERATE, trayDerate, trayDim, trayCheck, cableCores,
     UPVC_CONDUIT, conduitFillLimit, conduitDim, conduitCheck,
     AMP_CORE_LABEL, ampGroupMeta, ampCoresFor, ampCoreKey, WIRE_METHOD_LEGACY, normWireMethod,

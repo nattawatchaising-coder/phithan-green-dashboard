@@ -1982,8 +1982,6 @@ function BOQEditor({
     hint: "ตู้ไฟของงานบ้าน — คิดแบบงานโครงการ: เบรกเกอร์ตามกระแสอินเวอร์เตอร์ (RCBO 100mA ขนาดแรกที่ ≥ 1.25 × กระแส — 1 เฟสถึง 50 A · 3 เฟสถึง 63 A เกินนั้นใช้ MCCB · อินเวอร์เตอร์ตัวเดียวไม่มีเมนแยก) · SPD Type 2 กันหลังด้วย MCB 32A · ฟิวส์ DC ตาม Isc/Voc ของสตริง · ราคาดึงจากคลังเหมือนวัสดุอื่น"
   })) : kitSections;
   const PRICE_DEF = {
-    contractor: 0,
-    sell: 0,
     discount: 0,
     vat: window.BOQ.VAT_RATE
   };
@@ -1993,10 +1991,17 @@ function BOQEditor({
       [k]: v === "" ? "" : +v || 0
     })
   }));
+  const setProfit = (mode, k, v) => setB(p => Object.assign({}, p, {
+    pricing: Object.assign({}, PRICE_DEF, p.pricing || {}, {
+      profitMode: mode
+    }, k ? {
+      [k]: v === "" ? "" : +v || 0
+    } : {})
+  }));
   const result = window.BOQ.calcBOQ(b);
   const scCount = sc => sc.count;
   const priced = window.BOQ.applyPrices(result, priceMap || {}, b.pick || {});
-  const pb = window.BOQ.priceBreakdown(priced.grandTotal, pricing, (result.meta.kw || 0) * 1000);
+  const pb = window.BOQ.priceBreakdown(priced.grandTotal, pricing, (result.meta.kw || 0) * 1000, priced.contractorTotal);
   const siteTotal = (priced.groups || []).filter(g => g.group === window.BOQ.G_TRANSPORT || g.group === window.BOQ.G_MANAGE).reduce((s, g) => s + g.subtotal, 0);
   const accPct = window.BOQ.accAllowPct(b);
   const omC = result.meta.om || window.BOQ.omCalc(b, result.meta.panelCount, result.meta.kw);
@@ -5387,8 +5392,8 @@ function BOQEditor({
       sec("โครงสร้างราคา");
       head3("รายการ", "จำนวนเงิน (บาท)", "฿ / วัตต์");
       const vf = 1 + pb.vat / 100;
-      const rCost = kv("ต้นทุนวัสดุ + ค่าแรงติดตั้ง", F(AT(SV, rSum), pb.cost), null, "kv");
-      const rCon = pb.contractor > 0 ? kv("ค่าแรงผู้รับเหมา", pb.contractor, null, "kv") : null;
+      const rCost = kv("ต้นทุนวัสดุ", F(AT(SV, rSum) + "-" + pb.contractor, pb.cost), null, "kv");
+      const rCon = pb.contractor > 0 ? kv("ค่าแรงผู้รับเหมา (ค่าแรง + ขออนุญาต + ขนส่ง/บริหาร)", pb.contractor, null, "kv") : null;
       const rTot = kv("ต้นทุนรวม", F(AT(SV, rCost) + (rCon != null ? "+" + AT(SV, rCon) : ""), pb.totalCost), null, "strong");
       B2.aoa[rTot][U] = perWf(rTot, pb.costPerW);
       kv("ต้นทุนรวม + VAT " + pb.vat + "%", F("ROUND(" + AT(SV, rTot) + "*" + vf + ",2)", pb.totalCostVat), null, "kv");
@@ -9830,22 +9835,94 @@ function BOQEditor({
       lineHeight: 1.5,
       marginBottom: 14
     }
-  }, "\u0E15\u0E49\u0E19\u0E17\u0E38\u0E19\u0E14\u0E36\u0E07\u0E08\u0E32\u0E01\u0E43\u0E1A\u0E16\u0E2D\u0E14\u0E02\u0E2D\u0E07\u0E43\u0E2B\u0E49\u0E40\u0E2D\u0E07 \u2014 \u0E01\u0E23\u0E2D\u0E01\u0E40\u0E09\u0E1E\u0E32\u0E30\u0E04\u0E48\u0E32\u0E41\u0E23\u0E07\u0E1C\u0E39\u0E49\u0E23\u0E31\u0E1A\u0E40\u0E2B\u0E21\u0E32 \u0E23\u0E32\u0E04\u0E32\u0E02\u0E32\u0E22 \u0E41\u0E25\u0E30\u0E2A\u0E48\u0E27\u0E19\u0E25\u0E14 \u0E41\u0E25\u0E49\u0E27\u0E23\u0E30\u0E1A\u0E1A\u0E04\u0E34\u0E14 VAT \u0E01\u0E33\u0E44\u0E23 \u0E41\u0E25\u0E30\u0E1A\u0E32\u0E17\u0E15\u0E48\u0E2D\u0E27\u0E31\u0E15\u0E15\u0E4C\u0E43\u0E2B\u0E49"), React.createElement("div", {
+  }, "\u0E15\u0E49\u0E19\u0E17\u0E38\u0E19\u0E27\u0E31\u0E2A\u0E14\u0E38\u0E41\u0E25\u0E30\u0E04\u0E48\u0E32\u0E41\u0E23\u0E07\u0E1C\u0E39\u0E49\u0E23\u0E31\u0E1A\u0E40\u0E2B\u0E21\u0E32\u0E14\u0E36\u0E07\u0E08\u0E32\u0E01\u0E43\u0E1A\u0E16\u0E2D\u0E14\u0E02\u0E2D\u0E07\u0E43\u0E2B\u0E49\u0E40\u0E2D\u0E07 \u2014 \u0E15\u0E31\u0E49\u0E07\u0E01\u0E33\u0E44\u0E23\u0E40\u0E1B\u0E47\u0E19 % \u0E02\u0E2D\u0E07\u0E23\u0E32\u0E04\u0E32\u0E02\u0E32\u0E22 (\u0E40\u0E23\u0E34\u0E48\u0E21\u0E17\u0E35\u0E48 ", window.BOQ.PROFIT_PCT_DEF, "%) \u0E2B\u0E23\u0E37\u0E2D\u0E40\u0E1B\u0E47\u0E19\u0E08\u0E33\u0E19\u0E27\u0E19\u0E40\u0E07\u0E34\u0E19 \u0E41\u0E25\u0E49\u0E27\u0E23\u0E30\u0E1A\u0E1A\u0E04\u0E34\u0E14\u0E23\u0E32\u0E04\u0E32\u0E02\u0E32\u0E22 VAT \u0E41\u0E25\u0E30\u0E1A\u0E32\u0E17\u0E15\u0E48\u0E2D\u0E27\u0E31\u0E15\u0E15\u0E4C\u0E43\u0E2B\u0E49"), React.createElement("div", {
     style: {
       display: "grid",
       gridTemplateColumns: isMobile ? "repeat(2, minmax(0,1fr))" : "repeat(4, minmax(0,1fr))",
       gap: 10,
       marginBottom: 14
     }
-  }, [{
-    k: "contractor",
-    lb: "ค่าแรงผู้รับเหมา (฿)",
-    tip: "ค่าจ้างทีมผู้รับเหมาที่มารับงานนี้ — บวกเข้าเป็นต้นทุน"
-  }, {
-    k: "sell",
-    lb: "ราคาขาย (฿)",
-    tip: "ราคาขายก่อน VAT และก่อนหักส่วนลด"
-  }, {
+  }, React.createElement("label", {
+    style: {
+      display: "flex",
+      flexDirection: "column",
+      gap: 3
+    },
+    title: "ค่าแรง ฿" + baht(priced.laborTotal) + " + ค่าขออนุญาต ฿" + baht(priced.permitTotal) + " + ขนส่ง & บริหารจัดการ ฿" + baht(priced.siteTotal)
+  }, React.createElement("span", {
+    style: {
+      fontSize: 10,
+      fontWeight: 700,
+      color: "var(--text-3)"
+    }
+  }, "\u0E04\u0E48\u0E32\u0E41\u0E23\u0E07\u0E1C\u0E39\u0E49\u0E23\u0E31\u0E1A\u0E40\u0E2B\u0E21\u0E32 (\u0E3F)"), React.createElement("div", {
+    style: Object.assign({}, numStyle, {
+      width: "100%",
+      height: 36,
+      color: "var(--text-2)",
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "flex-end"
+    })
+  }, baht(pb.contractor)), React.createElement("span", {
+    style: {
+      fontSize: 9.5,
+      color: "var(--text-3)"
+    }
+  }, "\u0E04\u0E48\u0E32\u0E41\u0E23\u0E07 + \u0E02\u0E2D\u0E2D\u0E19\u0E38\u0E0D\u0E32\u0E15 + \u0E1A\u0E23\u0E34\u0E2B\u0E32\u0E23\u0E08\u0E31\u0E14\u0E01\u0E32\u0E23")), React.createElement("label", {
+    style: {
+      display: "flex",
+      flexDirection: "column",
+      gap: 3
+    }
+  }, React.createElement("span", {
+    style: {
+      display: "flex",
+      alignItems: "center",
+      gap: 6,
+      fontSize: 10,
+      fontWeight: 700,
+      color: "var(--text-3)"
+    }
+  }, "\u0E01\u0E33\u0E44\u0E23", [["pct", "%"], ["baht", "฿"]].map(([m, l]) => React.createElement("button", {
+    key: m,
+    type: "button",
+    className: "bq-cab-chip" + (pb.mode === m ? " on" : ""),
+    style: {
+      fontSize: 10.5,
+      padding: "1px 9px"
+    },
+    onClick: e => {
+      e.preventDefault();
+      setProfit(m);
+    }
+  }, l))), pb.mode === "baht" ? React.createElement("input", {
+    type: "number",
+    min: 0,
+    placeholder: "0",
+    value: pricing.profitBaht != null ? pricing.profitBaht : "",
+    onChange: e => setProfit("baht", "profitBaht", e.target.value),
+    style: Object.assign({}, numStyle, {
+      width: "100%",
+      height: 36
+    })
+  }) : React.createElement("input", {
+    type: "number",
+    min: 0,
+    max: 90,
+    placeholder: pb.mode === "sell" ? "เลือก % หรือ ฿" : String(window.BOQ.PROFIT_PCT_DEF),
+    value: pb.mode === "pct" && pricing.profitPct != null ? pricing.profitPct : "",
+    onChange: e => setProfit("pct", "profitPct", e.target.value),
+    style: Object.assign({}, numStyle, {
+      width: "100%",
+      height: 36
+    })
+  }), React.createElement("span", {
+    style: {
+      fontSize: 9.5,
+      color: "var(--text-3)"
+    }
+  }, pb.mode === "sell" ? "ใบนี้ตั้งราคาขายเองไว้ ฿" + baht(pb.sell) : pb.mode === "pct" ? "% ของราคาขาย = ฿" + baht(pb.profit) : "= " + pb.margin + "% ของราคาขาย")), [{
     k: "discount",
     lb: "ส่วนลด (฿)",
     tip: "จำนวนเงินที่ลดให้ลูกค้า — ราคาหลังลดคำนวณให้"
@@ -9884,11 +9961,10 @@ function BOQEditor({
       overflow: "hidden"
     }
   }, [{
-    lb: "ต้นทุนวัสดุ + ค่าแรง (จาก BOQ)",
-    v: pb.cost,
-    sub: priced.perW > 0 ? "฿" + baht(priced.perW) + "/W" : ""
+    lb: "ต้นทุนวัสดุ (จาก BOQ)",
+    v: pb.cost
   }, {
-    lb: "ค่าแรงผู้รับเหมา",
+    lb: "ค่าแรงผู้รับเหมา (ค่าแรง + ขออนุญาต + ขนส่ง/บริหาร)",
     v: pb.contractor,
     dim: true
   }, {
@@ -9899,6 +9975,10 @@ function BOQEditor({
   }, {
     lb: "ต้นทุนรวม + VAT " + pb.vat + "%",
     v: pb.totalCostVat,
+    dim: true
+  }, {
+    lb: "กำไร" + (pb.mode === "pct" ? " " + pb.profitPct + "% ของราคาขาย" : ""),
+    v: pb.profit,
     dim: true
   }, {
     lb: "ราคาขาย",
@@ -10005,7 +10085,7 @@ function BOQEditor({
         color: good ? "var(--primary-dark)" : "var(--tint-amber-tx2)",
         fontWeight: 600
       }
-    }, good ? "คิดจากราคา" + (pb.discount > 0 ? "หลังส่วนลด" : "ขาย") + " หักต้นทุนรวม (วัสดุ + ค่าแรงติดตั้ง + ค่าแรงผู้รับเหมา) · ตัวเลขนี้ยังไม่รวม VAT" : "ราคานี้ขายแล้วขาดทุน — ต้นทุนรวม ฿" + baht(pb.totalCost) + " สูงกว่าราคาที่ตั้งไว้"));
+    }, good ? "คิดจากราคา" + (pb.discount > 0 ? "หลังส่วนลด" : "ขาย") + " หักต้นทุนรวม (วัสดุ + ค่าแรงผู้รับเหมา) · ตัวเลขนี้ยังไม่รวม VAT" : "ราคานี้ขายแล้วขาดทุน — ต้นทุนรวม ฿" + baht(pb.totalCost) + " สูงกว่าราคาที่ตั้งไว้"));
   })()), nextSec && React.createElement("button", {
     type: "button",
     className: "bq-next",
@@ -10104,7 +10184,12 @@ function BOQEditor({
   }), " Excel"), onSave && React.createElement("button", {
     className: "bq-btn pri",
     onClick: () => guardRun(() => onSave(Object.assign({}, b, {
-      project: project
+      project: project,
+      pricing: Object.assign({}, b.pricing || {}, {
+        sell: pb.sell
+      }, pb.mode !== "sell" ? {
+        profitMode: pb.mode
+      } : {})
     })))
   }, React.createElement(Icon, {
     name: "check",
