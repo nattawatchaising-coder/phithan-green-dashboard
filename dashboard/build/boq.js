@@ -2487,6 +2487,17 @@ function BOQEditor({
       numeric: true
     }));
   }, [stockItems, b.cables]);
+  const COMM_CABLES = ["LAN CAT6"].concat([2, 3, 4, 5, 6, 7, 8, 10, 12].map(n => "สายสัญญาณ OPVC-JZ " + n + "x1.5"));
+  const commOptions = cur => {
+    const fromStock = cableTypeOptions.map(o => o.value).filter(v => /LAN|CAT|สัญญาณ|OPVC|RS-?485|COMM|SIGNAL/i.test(v));
+    return [...new Set(COMM_CABLES.concat(fromStock, cur ? [cur] : []))].map(v => ({
+      value: v,
+      label: v,
+      group: /OPVC/i.test(v) ? "สายคอนโทรล OPVC-JZ" : "สาย LAN / สื่อสาร"
+    })).sort((a, z) => a.group === z.group ? a.value.localeCompare(z.value, "th", {
+      numeric: true
+    }) : /LAN/.test(a.group) ? -1 : 1);
+  };
   const dcSizeOf = t => {
     const m = /1C\s*x\s*(\d+(?:\.\d+)?)/i.exec(t || "") || /(\d+(?:\.\d+)?)\s*(?:sq|mm)/i.exec(t || "");
     return m ? +m[1] : null;
@@ -6505,7 +6516,7 @@ function BOQEditor({
       onChange: v => setCab(i, "type", v),
       placeholder: "\u2014 \u0E40\u0E25\u0E37\u0E2D\u0E01\u0E2A\u0E32\u0E22\u0E2A\u0E31\u0E0D\u0E0D\u0E32\u0E13 \u2014",
       style: cabSelStyle,
-      options: cableTypeOptions.filter(o => /LAN|CAT|สัญญาณ|RS-?485|COMM|SIGNAL/i.test(o.value) || o.value === c.type)
+      options: commOptions(c.type)
     }))), React.createElement("div", {
       className: "bq-cabx-step"
     }, React.createElement("span", {

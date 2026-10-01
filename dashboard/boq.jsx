@@ -1389,6 +1389,16 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
       .sort((a, z) => (CABLE_CAT_ORDER.indexOf(a.group) - CABLE_CAT_ORDER.indexOf(z.group)) || String(a.value).localeCompare(String(z.value), "th", { numeric: true }));
   }, [stockItems, b.cables]);
 
+  /* สายสัญญาณ — LAN + สายคอนโทรล OPVC-JZ (2–12 แกน × 1.5) ที่ใช้ประจำ แม้คลังยังไม่มีรายการ
+     + สายสัญญาณอื่นที่อยู่ในคลัง · ชื่อที่ใบเลือกไว้แล้วโชว์เสมอ */
+  const COMM_CABLES = ["LAN CAT6"].concat([2, 3, 4, 5, 6, 7, 8, 10, 12].map((n) => "สายสัญญาณ OPVC-JZ " + n + "x1.5"));
+  const commOptions = (cur) => {
+    const fromStock = cableTypeOptions.map((o) => o.value).filter((v) => /LAN|CAT|สัญญาณ|OPVC|RS-?485|COMM|SIGNAL/i.test(v));
+    return [...new Set(COMM_CABLES.concat(fromStock, cur ? [cur] : []))]
+      .map((v) => ({ value: v, label: v, group: /OPVC/i.test(v) ? "สายคอนโทรล OPVC-JZ" : "สาย LAN / สื่อสาร" }))
+      .sort((a, z) => (a.group === z.group ? a.value.localeCompare(z.value, "th", { numeric: true }) : (/LAN/.test(a.group) ? -1 : 1)));
+  };
+
   /* สาย DC — เลือกแค่ขนาด PV1-F (สีแดง/ดำ ระบบแยกให้ตอนถอด BOQ) · ขนาดจากมาตรฐาน + ที่คลังมี */
   const dcSizeOf = (t) => { const m = /1C\s*x\s*(\d+(?:\.\d+)?)/i.exec(t || "") || /(\d+(?:\.\d+)?)\s*(?:sq|mm)/i.exec(t || ""); return m ? +m[1] : null; };
   const dcName = (sz) => "PV1-F 1Cx" + sz + " SQ.MM. (DC)";
@@ -3035,7 +3045,7 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
                           <span className="n">1</span><span className="lb">ชนิดสาย</span>
                           <div style={{ width: isMobile ? "100%" : 220 }}>
                             <Dropdown value={c.type} onChange={(v) => setCab(i, "type", v)} placeholder="— เลือกสายสัญญาณ —" style={cabSelStyle}
-                              options={cableTypeOptions.filter((o) => /LAN|CAT|สัญญาณ|RS-?485|COMM|SIGNAL/i.test(o.value) || o.value === c.type)} />
+                              options={commOptions(c.type)} />
                           </div>
                         </div>
                         <div className="bq-cabx-step">
