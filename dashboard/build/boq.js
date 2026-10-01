@@ -5111,6 +5111,30 @@ function BOQEditor({
           A.merge(r, 0, cQty - 1);
           A.merge(r, cQty, lastC);
         };
+        const SG = window.BOQ.SERVICE_GROUPS;
+        const heads = [["แผงโซลาร์เซลล์ (PV Module)", 0], ["อินเวอร์เตอร์และระบบมอนิเตอร์", 0], ["วัสดุและอุปกรณ์ติดตั้ง · ตู้ไฟ · สายไฟ · โครงสร้าง", 0], ["ค่าติดตั้ง วิศวกรรม ขออนุญาต และบริการ", 0]];
+        priced.groups.forEach(g => {
+          heads[g.group === "PV MODULE" ? 0 : g.group === "INVERTER" ? 1 : SG.indexOf(g.group) >= 0 ? 3 : 2][1] += +g.subtotal || 0;
+        });
+        if (priced.grandTotal > 0) {
+          const f = pb.sell / priced.grandTotal,
+            used = heads.filter(h => h[1] > 0);
+          let left = Math.round(pb.sell);
+          A.gap(8);
+          const hh = A.push(["", "สรุปราคาตามหัวข้อ"], "group", 21);
+          A.merge(hh, 1, lastC);
+          used.forEach((h, k) => {
+            const v = k === used.length - 1 ? left : Math.round(h[1] * f);
+            left -= v;
+            const c = [];
+            c[0] = "";
+            c[1] = k + 1 + ".  " + h[0];
+            c[cQty] = "฿" + baht(v);
+            const r = A.push(c, k % 2 ? "itemAlt" : "item", 20);
+            A.merge(r, 1, cQty - 1);
+            A.merge(r, cQty, lastC);
+          });
+        }
         if (pb.discount > 0) totRow("ราคาก่อนส่วนลด", pb.sell);
         if (pb.discount > 0) totRow("ส่วนลด", pb.discount);
         totRow("ราคารวมทั้งระบบ (ก่อน VAT)", price);
