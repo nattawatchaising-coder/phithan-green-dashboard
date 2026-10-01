@@ -1159,14 +1159,16 @@
   /* งานโครงการไม่ไล่ถอด Accessories ทีละชิ้น ใช้เงินเผื่อเป็น % ของราคาทุนวัสดุแทน
      ฐานคิด = ทุกหมวดวัสดุ ยกเว้นหมวดค่าแรง/ค่าธรรมเนียม/ขนส่ง/บริหาร และยกเว้นตัวเอง */
   const ACC_ALLOW_PCT = 5;
+  const ACC_ALLOW_PCT_HOME = 10;   // งานบ้านของจุกจิกต่อเงินวัสดุมากกว่า
+  const accAllowDef = (b) => (b && b.jobType === "home" ? ACC_ALLOW_PCT_HOME : ACC_ALLOW_PCT);
   /* 5% เป็นค่ามาตรฐาน ไม่ใช่ค่าตายตัว — งานที่ของจุกจิกเยอะ (หลังคาหลายผืน เดินสายไกล)
      ต้องเผื่อมากกว่านี้ ปล่อยให้ตั้งเองได้ต่อใบ · เว้นว่าง = กลับไปใช้ 5%
      คุมไว้ 0–100% กันพิมพ์ผิดแล้วเงินเผื่อบานเกินราคาวัสดุทั้งงาน */
   function accAllowPct(b) {
     const raw = b && b.accAllowPct;
-    if (raw === "" || raw == null) return ACC_ALLOW_PCT;
+    if (raw === "" || raw == null) return accAllowDef(b);
     const v = +raw;
-    if (!isFinite(v)) return ACC_ALLOW_PCT;
+    if (!isFinite(v)) return accAllowDef(b);
     return Math.max(0, Math.min(100, v));
   }
 
@@ -2293,7 +2295,7 @@
     optimizerQty, optimizerFits, DCAC_LIMIT, WAY_PIPE_LEN, TRAY_PIPE_LEN, trayLenTxt, railLenCm, railPerTon, railName, SUPPORT_KINDS, LABOR_PRESET, PERMIT_PRESET,
     COND_FIT_KINDS, WAY_FIT_KINDS, condFittings, trayFittings, PPR_SIZES, PPR_FIT_KINDS, pipeFittings,
     STEEL_SPECS, steelName, steelBarLen, steelSel, steelOf,
-    TRANSPORT_PRESET, MANAGE_PRESET, G_TRANSPORT, G_MANAGE, PROJECT_KITS, normProject, kitExtraKeys, ACC_ALLOW_PCT, accAllowPct, VAT_RATE, priceBreakdown,
+    TRANSPORT_PRESET, MANAGE_PRESET, G_TRANSPORT, G_MANAGE, PROJECT_KITS, normProject, kitExtraKeys, ACC_ALLOW_PCT, ACC_ALLOW_PCT_HOME, accAllowDef, accAllowPct, VAT_RATE, priceBreakdown,
     TRAY_FILL_LIMIT, TRAY_DERATE, trayDerate, trayDim, trayCheck, cableCores,
     UPVC_CONDUIT, conduitFillLimit, conduitDim, conduitCheck,
     AMP_CORE_LABEL, ampGroupMeta, ampCoresFor, ampCoreKey, WIRE_METHOD_LEGACY, normWireMethod,

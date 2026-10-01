@@ -4265,13 +4265,13 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
             right={accAllow > 0 ? <span style={{ fontSize: 12.5, fontWeight: 800, color: "var(--primary-dark)" }}>฿{baht(accAllow)}</span> : null}>
             <div className="bq-hint" style={{ fontSize: 11.5, color: "var(--text-3)", lineHeight: 1.5, marginBottom: 12 }}>
               ไม่ไล่ถอด Accessories ทีละชิ้น — คิดเป็นเงินเผื่อ {accPct}% ของราคาทุนวัสดุที่ถอดได้ทั้งงาน
-              (ไม่รวมค่าแรง ค่าขออนุญาต ขนส่ง บริหารจัดการ และไม่รวมตัวมันเอง) · อัตราปรับเองได้ เว้นว่าง = ใช้ {window.BOQ.ACC_ALLOW_PCT}% ตามมาตรฐาน
+              (ไม่รวมค่าแรง ค่าขออนุญาต ขนส่ง บริหารจัดการ และไม่รวมตัวมันเอง) · อัตราปรับเองได้ เว้นว่าง = ใช้ {window.BOQ.accAllowDef(b)}% ตามมาตรฐาน
             </div>
             <div className="bq-spec">
               <div><span className="k">ฐานคิด · ราคาทุนวัสดุ</span><span className="v">฿{baht(accBase)}</span></div>
               <div><span className="k">อัตราเงินเผื่อ (%)</span>
                 <input className="vin" type="number" min={0} max={100} step={0.5}
-                  value={b.accAllowPct != null ? b.accAllowPct : ""} placeholder={String(window.BOQ.ACC_ALLOW_PCT)}
+                  value={b.accAllowPct != null ? b.accAllowPct : ""} placeholder={String(window.BOQ.accAllowDef(b))}
                   onChange={(e) => set("accAllowPct", e.target.value)} />
               </div>
               <div><span className="k">เงินเผื่อ Accessories</span><span className="v hi">฿{baht(accAllow)}</span></div>
