@@ -2738,6 +2738,7 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
   };
 
   const numStyle = Object.assign({}, inputStyle, { textAlign: "right" });
+  const PRICE_LB = { display: "flex", alignItems: "center", height: 20, fontSize: 10, fontWeight: 700, color: "var(--text-3)" };   // หัวช่องการ์ดแบ่งราคา
   // ดรอปดาวน์เงื่อนไขใต้สายแต่ละเส้น — เป็นข้อมูลรอง จึงเล็กกว่าแถวหลักหนึ่งระดับ
   const cabSelStyle = { fontSize: 12, padding: "6px 9px", borderRadius: 9, background: "var(--surface)" };
   // คอลัมน์ของรายการสายไฟ — ใช้ทั้งหัวตารางและทุกแถว จะได้ตรงกันเสมอ
@@ -4564,20 +4565,21 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
             <div className="bq-hint" style={{ fontSize: 11.5, color: "var(--text-3)", lineHeight: 1.5, marginBottom: 14 }}>
               ต้นทุนวัสดุและค่าแรงผู้รับเหมาดึงจากใบถอดของให้เอง — ตั้งกำไรเป็น % ของราคาขาย (เริ่มที่ {window.BOQ.PROFIT_PCT_DEF}%) หรือเป็นจำนวนเงิน แล้วระบบคิดราคาขาย VAT และบาทต่อวัตต์ให้
             </div>
-            <div style={{ display: "grid", gridTemplateColumns: isMobile ? "repeat(2, minmax(0,1fr))" : "repeat(4, minmax(0,1fr))", gap: 10, marginBottom: 14 }}>
+            {/* หัวช่องสูงเท่ากันทุกช่อง (ช่องกำไรมีชิป %/฿) — ช่องกรอกจะได้อยู่แนวเดียวกัน */}
+            <div style={{ display: "grid", gridTemplateColumns: isMobile ? "repeat(2, minmax(0,1fr))" : "repeat(4, minmax(0,1fr))", gap: 10, marginBottom: 14, alignItems: "start" }}>
               <label style={{ display: "flex", flexDirection: "column", gap: 3 }}
                 title={"ค่าแรง ฿" + baht(priced.laborTotal) + " + ค่าขออนุญาต ฿" + baht(priced.permitTotal) + " + ขนส่ง & บริหารจัดการ ฿" + baht(priced.siteTotal)}>
-                <span style={{ fontSize: 10, fontWeight: 700, color: "var(--text-3)" }}>ค่าแรงผู้รับเหมา (฿)</span>
-                <div style={Object.assign({}, numStyle, { width: "100%", height: 36, color: "var(--text-2)", display: "flex", alignItems: "center", justifyContent: "flex-end" })}>
+                <span style={PRICE_LB}>ค่าแรงผู้รับเหมา (฿)</span>
+                <div style={Object.assign({}, numStyle, { width: "100%", height: 36, boxSizing: "border-box", color: "var(--text-2)", display: "flex", alignItems: "center", justifyContent: "flex-end" })}>
                   {baht(pb.contractor)}
                 </div>
                 <span style={{ fontSize: 9.5, color: "var(--text-3)" }}>ค่าแรง + ขออนุญาต + บริหารจัดการ</span>
               </label>
               <label style={{ display: "flex", flexDirection: "column", gap: 3 }}>
-                <span style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 10, fontWeight: 700, color: "var(--text-3)" }}>
+                <span style={Object.assign({}, PRICE_LB, { gap: 6 })}>
                   กำไร
                   {[["pct", "%"], ["baht", "฿"]].map(([m, l]) => (
-                    <button key={m} type="button" className={"bq-cab-chip" + (pb.mode === m ? " on" : "")} style={{ fontSize: 10.5, padding: "1px 9px" }}
+                    <button key={m} type="button" className={"bq-cab-chip" + (pb.mode === m ? " on" : "")} style={{ fontSize: 10.5, padding: "0 9px", height: 18, lineHeight: "16px" }}
                       onClick={(e) => { e.preventDefault(); setProfit(m); }}>{l}</button>
                   ))}
                 </span>
@@ -4598,7 +4600,7 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
                 { k: "vat", lb: "VAT (%)", tip: "ปกติ 7% — แก้ได้ถ้างานนี้คิดต่าง" },
               ].map((f) => (
                 <label key={f.k} style={{ display: "flex", flexDirection: "column", gap: 3 }} title={f.tip}>
-                  <span style={{ fontSize: 10, fontWeight: 700, color: "var(--text-3)" }}>{f.lb}</span>
+                  <span style={PRICE_LB}>{f.lb}</span>
                   <input type="number" min={0} placeholder="0" value={pricing[f.k] != null ? pricing[f.k] : ""}
                     onChange={(e) => setPricing(f.k, e.target.value)}
                     style={Object.assign({}, numStyle, { width: "100%", height: 36 })} />

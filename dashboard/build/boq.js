@@ -5658,6 +5658,14 @@ function BOQEditor({
   const numStyle = Object.assign({}, inputStyle, {
     textAlign: "right"
   });
+  const PRICE_LB = {
+    display: "flex",
+    alignItems: "center",
+    height: 20,
+    fontSize: 10,
+    fontWeight: 700,
+    color: "var(--text-3)"
+  };
   const cabSelStyle = {
     fontSize: 12,
     padding: "6px 9px",
@@ -9928,7 +9936,8 @@ function BOQEditor({
       display: "grid",
       gridTemplateColumns: isMobile ? "repeat(2, minmax(0,1fr))" : "repeat(4, minmax(0,1fr))",
       gap: 10,
-      marginBottom: 14
+      marginBottom: 14,
+      alignItems: "start"
     }
   }, React.createElement("label", {
     style: {
@@ -9938,15 +9947,12 @@ function BOQEditor({
     },
     title: "ค่าแรง ฿" + baht(priced.laborTotal) + " + ค่าขออนุญาต ฿" + baht(priced.permitTotal) + " + ขนส่ง & บริหารจัดการ ฿" + baht(priced.siteTotal)
   }, React.createElement("span", {
-    style: {
-      fontSize: 10,
-      fontWeight: 700,
-      color: "var(--text-3)"
-    }
+    style: PRICE_LB
   }, "\u0E04\u0E48\u0E32\u0E41\u0E23\u0E07\u0E1C\u0E39\u0E49\u0E23\u0E31\u0E1A\u0E40\u0E2B\u0E21\u0E32 (\u0E3F)"), React.createElement("div", {
     style: Object.assign({}, numStyle, {
       width: "100%",
       height: 36,
+      boxSizing: "border-box",
       color: "var(--text-2)",
       display: "flex",
       alignItems: "center",
@@ -9964,21 +9970,18 @@ function BOQEditor({
       gap: 3
     }
   }, React.createElement("span", {
-    style: {
-      display: "flex",
-      alignItems: "center",
-      gap: 6,
-      fontSize: 10,
-      fontWeight: 700,
-      color: "var(--text-3)"
-    }
+    style: Object.assign({}, PRICE_LB, {
+      gap: 6
+    })
   }, "\u0E01\u0E33\u0E44\u0E23", [["pct", "%"], ["baht", "฿"]].map(([m, l]) => React.createElement("button", {
     key: m,
     type: "button",
     className: "bq-cab-chip" + (pb.mode === m ? " on" : ""),
     style: {
       fontSize: 10.5,
-      padding: "1px 9px"
+      padding: "0 9px",
+      height: 18,
+      lineHeight: "16px"
     },
     onClick: e => {
       e.preventDefault();
@@ -10027,11 +10030,7 @@ function BOQEditor({
     },
     title: f.tip
   }, React.createElement("span", {
-    style: {
-      fontSize: 10,
-      fontWeight: 700,
-      color: "var(--text-3)"
-    }
+    style: PRICE_LB
   }, f.lb), React.createElement("input", {
     type: "number",
     min: 0,
