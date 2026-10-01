@@ -2868,7 +2868,9 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
                 // สาย DC (แผง → อินเวอร์เตอร์) — เป็นหัวข้อ "สาย DC" + กล่องขั้นตอน เหมือนสาย AC · กราวด์แผงแถวถัดไปรวมไว้ในกล่องเดียวกัน
                 const dcHead = /PV-INVERTER/i.test(c.name || "");
                 const gi = dcHead && /^GROUND$/i.test(((b.cables[i + 1] || {}).name || "").trim()) ? i + 1 : -1;
-                const headed = !!invU || isMcb || dcHead;
+                // สายสัญญาณ (LAN) — หัวข้อ "สายสัญญาณ" + กล่องขั้นตอน เลือกได้เฉพาะสายสัญญาณ
+                const commHead = /^LAN$|สัญญาณ/i.test((c.name || "").trim()) || (!c.name && isComm);
+                const headed = !!invU || isMcb || dcHead || commHead;
                 const isDC = /PV1-F|PV CABLE/i.test(c.type || "") || /PV-INVERTER/i.test(c.name || "");  // สาย DC คิดขนาดในส่วนสาย DC แยก
                 /* เงื่อนไขของสายเส้นนี้ — ไม่ได้ตั้งเอง = ตามค่าตั้งต้นของงาน (ตารางคำนวณขนาดสายไฟ)
                    ปกติทั้งงานเดินแบบเดียวกัน จะได้ไม่ต้องมากดซ้ำทุกเส้น เส้นไหนต่างค่อยกดแก้เฉพาะเส้น */
@@ -3021,6 +3023,32 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
                       </React.Fragment>
                     );
                   })()}
+                  {commHead && (
+                    <React.Fragment>
+                      <div className="bq-cab-hd">
+                        <Icon name="bolt" size={12} color="currentColor" />
+                        สายสัญญาณ
+                        <button className="bq-x" style={{ marginLeft: "auto", width: 30, height: 30, flex: "0 0 30px" }} onClick={() => delCab(i)} title="ลบสายสัญญาณ"><Icon name="x" size={14} /></button>
+                      </div>
+                      <div className="bq-cabx">
+                        <div className="bq-cabx-step">
+                          <span className="n">1</span><span className="lb">ชนิดสาย</span>
+                          <div style={{ width: isMobile ? "100%" : 220 }}>
+                            <Dropdown value={c.type} onChange={(v) => setCab(i, "type", v)} placeholder="— เลือกสายสัญญาณ —" style={cabSelStyle}
+                              options={cableTypeOptions.filter((o) => /LAN|CAT|สัญญาณ|RS-?485|COMM|SIGNAL/i.test(o.value) || o.value === c.type)} />
+                          </div>
+                        </div>
+                        <div className="bq-cabx-step">
+                          <span className="n">2</span><span className="lb">ระยะสาย</span>
+                          <div style={{ width: 110 }}>
+                            <input type="number" style={Object.assign({}, numStyle, { padding: "7px 10px" })} value={c.length} placeholder="ม."
+                              onChange={(e) => setCab(i, "length", e.target.value)} />
+                          </div>
+                          <span className="hint">เมตร</span>
+                        </div>
+                      </div>
+                    </React.Fragment>
+                  )}
                   {!(headed || (power && isMobile)) && (
                   <div style={{ display: "grid", gridTemplateColumns: isMobile ? "minmax(0,1fr) 64px 34px" : CAB_COLS, gap: 8, alignItems: "center" }}>
                     {!isMobile && (
@@ -3038,7 +3066,7 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
                   </div>
                   )}
                   {/* บรรทัดสถานะ — ปกติเห็นแค่สรุปสั้น ๆ กดที่ป้ายเงื่อนไขถึงจะกางช่องแก้เฉพาะเส้น */}
-                  {!power && !dcHead && (showHint || isDC || vd || isGnd) && (
+                  {!power && !dcHead && !commHead && (showHint || isDC || vd || isGnd) && (
                     <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap", fontSize: 11, lineHeight: 1.5 }}>
                       {isGnd && (
                         <span style={{ display: "inline-flex", alignItems: "center", gap: 4, fontWeight: 700, color: "var(--text-3)" }}>

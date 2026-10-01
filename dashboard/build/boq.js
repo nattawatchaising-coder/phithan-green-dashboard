@@ -6189,7 +6189,8 @@ function BOQEditor({
     if (gndPair) return null;
     const dcHead = /PV-INVERTER/i.test(c.name || "");
     const gi = dcHead && /^GROUND$/i.test(((b.cables[i + 1] || {}).name || "").trim()) ? i + 1 : -1;
-    const headed = !!invU || isMcb || dcHead;
+    const commHead = /^LAN$|สัญญาณ/i.test((c.name || "").trim()) || !c.name && isComm;
+    const headed = !!invU || isMcb || dcHead || commHead;
     const isDC = /PV1-F|PV CABLE/i.test(c.type || "") || /PV-INVERTER/i.test(c.name || "");
     const own = !!(c.method || c.group || c.ncond || c.core);
     const rawMethod = c.method || calcMethod;
@@ -6468,7 +6469,64 @@ function BOQEditor({
         },
         title: "\u0E23\u0E30\u0E22\u0E30\u0E44\u0E01\u0E25\u0E2A\u0E38\u0E14 \xD7 \u0E08\u0E33\u0E19\u0E27\u0E19\u0E2A\u0E15\u0E23\u0E34\u0E07 \xD7 \u0E40\u0E1C\u0E37\u0E48\u0E2D 1.2 = \u0E23\u0E30\u0E22\u0E30\u0E15\u0E48\u0E2D 1 \u0E02\u0E31\u0E49\u0E27 \xB7 \u0E16\u0E2D\u0E14\u0E02\u0E2D\u0E07\u0E40\u0E1B\u0E47\u0E19\u0E2A\u0E32\u0E22 2 \u0E2A\u0E35 \u0E41\u0E14\u0E07(+) \u0E01\u0E31\u0E1A \u0E14\u0E33(\u2212) \u0E40\u0E17\u0E48\u0E32\u0E01\u0E31\u0E19"
       }, "\u0E16\u0E2D\u0E14\u0E40\u0E02\u0E49\u0E32 BOQ: ", d.farthest.toLocaleString(), " \u0E21. \xD7 ", d.strings, " \u0E2A\u0E15\u0E23\u0E34\u0E07 \xD7 ", d.spare, " = ", React.createElement("b", null, d.perPole.toLocaleString(), " \u0E21./\u0E02\u0E31\u0E49\u0E27"), " \xB7 \u0E41\u0E14\u0E07 + \u0E14\u0E33 = ", React.createElement("b", null, d.total.toLocaleString(), " \u0E21."), g && +g.length > 0 ? " · กราวด์แผง " + (+g.length).toLocaleString() + " ม." : ""))));
-    })(), !(headed || power && isMobile) && React.createElement("div", {
+    })(), commHead && React.createElement(React.Fragment, null, React.createElement("div", {
+      className: "bq-cab-hd"
+    }, React.createElement(Icon, {
+      name: "bolt",
+      size: 12,
+      color: "currentColor"
+    }), "\u0E2A\u0E32\u0E22\u0E2A\u0E31\u0E0D\u0E0D\u0E32\u0E13", React.createElement("button", {
+      className: "bq-x",
+      style: {
+        marginLeft: "auto",
+        width: 30,
+        height: 30,
+        flex: "0 0 30px"
+      },
+      onClick: () => delCab(i),
+      title: "\u0E25\u0E1A\u0E2A\u0E32\u0E22\u0E2A\u0E31\u0E0D\u0E0D\u0E32\u0E13"
+    }, React.createElement(Icon, {
+      name: "x",
+      size: 14
+    }))), React.createElement("div", {
+      className: "bq-cabx"
+    }, React.createElement("div", {
+      className: "bq-cabx-step"
+    }, React.createElement("span", {
+      className: "n"
+    }, "1"), React.createElement("span", {
+      className: "lb"
+    }, "\u0E0A\u0E19\u0E34\u0E14\u0E2A\u0E32\u0E22"), React.createElement("div", {
+      style: {
+        width: isMobile ? "100%" : 220
+      }
+    }, React.createElement(Dropdown, {
+      value: c.type,
+      onChange: v => setCab(i, "type", v),
+      placeholder: "\u2014 \u0E40\u0E25\u0E37\u0E2D\u0E01\u0E2A\u0E32\u0E22\u0E2A\u0E31\u0E0D\u0E0D\u0E32\u0E13 \u2014",
+      style: cabSelStyle,
+      options: cableTypeOptions.filter(o => /LAN|CAT|สัญญาณ|RS-?485|COMM|SIGNAL/i.test(o.value) || o.value === c.type)
+    }))), React.createElement("div", {
+      className: "bq-cabx-step"
+    }, React.createElement("span", {
+      className: "n"
+    }, "2"), React.createElement("span", {
+      className: "lb"
+    }, "\u0E23\u0E30\u0E22\u0E30\u0E2A\u0E32\u0E22"), React.createElement("div", {
+      style: {
+        width: 110
+      }
+    }, React.createElement("input", {
+      type: "number",
+      style: Object.assign({}, numStyle, {
+        padding: "7px 10px"
+      }),
+      value: c.length,
+      placeholder: "\u0E21.",
+      onChange: e => setCab(i, "length", e.target.value)
+    })), React.createElement("span", {
+      className: "hint"
+    }, "\u0E40\u0E21\u0E15\u0E23")))), !(headed || power && isMobile) && React.createElement("div", {
       style: {
         display: "grid",
         gridTemplateColumns: isMobile ? "minmax(0,1fr) 64px 34px" : CAB_COLS,
@@ -6506,7 +6564,7 @@ function BOQEditor({
     }, React.createElement(Icon, {
       name: "x",
       size: 14
-    }))), !power && !dcHead && (showHint || isDC || vd || isGnd) && React.createElement("div", {
+    }))), !power && !dcHead && !commHead && (showHint || isDC || vd || isGnd) && React.createElement("div", {
       style: {
         display: "flex",
         alignItems: "center",
