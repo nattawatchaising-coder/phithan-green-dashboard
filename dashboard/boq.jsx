@@ -1526,6 +1526,72 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
       return changed ? Object.assign({}, p, { cables: cs }) : p;
     });
   }, [cabWantKey]); // eslint-disable-line
+
+  /* ── ท่อร้อยสายตามเส้นสายไฟ ──
+     แต่ละเส้นทางเลือกได้ว่า ไม่ร้อยท่อ / IMC / uPVC (เก็บไว้ที่แถวสาย: c.race · c.raceLen · c.raceSize)
+     ระบบหาขนาดท่อเล็กสุดที่ % เติมเต็มผ่าน (สาย 1 ชุด + กราวด์) · เดินขนานกี่ชุด = กี่ท่อ
+     แล้วเขียนเป็นแถวท่อ auto ลง conduit.imc / upvc — เครื่องคำนวณ BOQ คิดท่อ + อุปกรณ์ IMC ต่อให้ตามปกติ */
+  const RACE_POOL = { imc: window.BOQ.IMC_SIZES, upvc: window.BOQ.UPVC_SIZES };
+  const odKeyOf = (t) => {
+    const s = String(t || "");
+    if (window.BOQ.isPvDcCable(s) || /PV1-F|PV\s*CABLE/i.test(s)) return "PV Cable";
+    if (/THW|IEC\s*0?1/i.test(s)) return "IEC01 (THW)";
+    if (/CV/i.test(s)) return "CV FD " + Math.min(4, Math.max(1, cabCores(s))) + "C";
+    return null;
+  };
+  const raceLabel = (c) => {
+    const n = String(c.name || "").trim();
+    if (/PV-INVERTER/i.test(n)) return "สาย DC แผง → อินเวอร์เตอร์";
+    if (/INVERTER-MCB_SOLAR/i.test(n)) return "อินเวอร์เตอร์" + (c.inv ? "ตัวที่ " + c.inv : "") + " → ตู้ MCB SOLAR";
+    if (/MCB_SOLAR-MDB/i.test(n)) return "สายเมน MDB ตู้ " + ((b.cables || []).filter((x) => /MCB_SOLAR-MDB/i.test(x.name || "")).indexOf(c) + 1);
+    return CAB_PT_TH[n.toUpperCase()] || n;
+  };
+  const raceFit = (k, cables) => RACE_POOL[k].find((nm) => window.BOQ.conduitCheck(nm, cables, RACE_POOL[k]).ok) || null;
+  const raceRuns = (b.cables || []).map((c, i) => {
+    const dc = /PV-INVERTER/i.test(c.name || "");
+    if (!dc && !cabPlans[i]) return null;
+    const t = c.type || "", od = odKeyOf(t), sz = window.BOQ.cableSizeNum(t);
+    const cables = [];
+    let sets = 1;
+    if (dc) {
+      const g = /^GROUND$/i.test(String((b.cables[i + 1] || {}).name || "").trim()) ? b.cables[i + 1] : null;
+      cables.push({ type: od, size: sz, qty: 2 * (plan ? plan.strings : wcStrings) });
+      if (g && g.type && window.BOQ.cableSizeNum(g.type)) cables.push({ type: "IEC01 (THW)", size: window.BOQ.cableSizeNum(g.type), qty: 1 });
+    } else {
+      sets = Math.max(1, Math.round(+c.sets || 1));
+      cables.push({ type: od, size: sz, qty: Math.max(1, Math.round(+c.wires || 1)) });
+      if (c.gnd && window.BOQ.cableSizeNum(c.gnd)) cables.push({ type: "IEC01 (THW)", size: window.BOQ.cableSizeNum(c.gnd), qty: 1 });
+    }
+    const kind = c.race === "imc" || c.race === "upvc" ? c.race : "";
+    const auto = kind ? raceFit(kind, cables) : null;
+    const pool = RACE_POOL[kind || "imc"];
+    const size = !kind ? "" : (c.raceSize && pool.indexOf(c.raceSize) >= 0 ? c.raceSize : auto || pool[pool.length - 1]);
+    const own = c.raceLen != null && c.raceLen !== "";
+    const len = own ? +c.raceLen || 0 : +c.length || 0;
+    return { i, label: raceLabel(c), type: t, cables, sets, kind, size, auto, len, own, cabLen: +c.length || 0,
+      noOd: !od || !sz, chk: kind ? window.BOQ.conduitCheck(size, cables, pool) : null };
+  });
+  const raceRows = raceRuns.filter((r) => r && r.kind && r.len > 0 && r.size).map((r) => ({
+    k: r.kind, row: { size: r.size, length: Math.round(r.len * r.sets * 10) / 10, cables: r.cables, auto: 1, from: r.i, lab: r.label, sets: r.sets } }));
+  const raceKey = JSON.stringify(raceRows);
+  React.useEffect(() => {
+    setB((p) => {
+      const c0 = Object.assign({ imc: [], upvc: [], pullbox: [] }, p.conduit);
+      const nx = {}; let changed = false;
+      ["imc", "upvc"].forEach((k) => {
+        const out = raceRows.filter((r) => r.k === k).map((r) => r.row).concat((c0[k] || []).filter((x) => !x.auto));
+        if (JSON.stringify(out) !== JSON.stringify(c0[k] || [])) changed = true;
+        nx[k] = out;
+      });
+      return changed ? Object.assign({}, p, { conduit: Object.assign({}, c0, nx) }) : p;
+    });
+  }, [raceKey]); // eslint-disable-line
+  const setRace = (i, patch) => setB((p) => {
+    const cs = (p.cables || []).slice(); if (!cs[i]) return p;
+    const x = Object.assign({}, cs[i], patch);
+    Object.keys(patch).forEach((k) => { if (patch[k] == null || patch[k] === "") delete x[k]; });
+    cs[i] = x; return Object.assign({}, p, { cables: cs });
+  });
   // กดการ์ด = ใช้ชนิดนั้น ระบบยังปรับขนาด/ชุดตามกระแสและระยะให้ต่อ (auto + fam)
   const pickCabFam = (i, fam) => setB((p) => {
     const cs = p.cables.slice(); cs[i] = Object.assign({}, cs[i], { fam, auto: 1 }); return Object.assign({}, p, { cables: cs });
@@ -1608,7 +1674,14 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
             const chk = check ? window.BOQ.conduitCheck(x.size, cbs, sizes) : null;
             const open = condOpen[kind + i];
             const any = cbs.length > 0;
-            const row = (
+            const row = x.auto ? (
+              <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap", minHeight: 36 }}>
+                <span style={{ fontSize: 12.5, fontWeight: 800, color: "var(--text-1)" }}>{String(x.size || "").trim()}</span>
+                <span style={{ fontSize: 11.5, color: "var(--text-3)" }}>จาก {x.lab}{x.sets > 1 ? " · " + x.sets + " ท่อขนาน" : ""}</span>
+                <span style={{ marginLeft: "auto", fontSize: 12.5, fontWeight: 800, fontVariantNumeric: "tabular-nums", color: "var(--text-1)" }}>{x.length} ม.</span>
+                <span style={{ fontSize: 10, fontWeight: 700, padding: "2px 7px", borderRadius: 99, background: "var(--primary-soft)", color: "var(--primary-dark)" }}>อัตโนมัติ</span>
+              </div>
+            ) : (
               <div style={{ display: "grid", gridTemplateColumns: "minmax(0,1fr) 78px 36px", gap: 8, alignItems: "center" }}>
                 <Dropdown value={x.size} onChange={(v) => setCond(kind, i, "size", v)} options={opt(sizes)} placeholder="เลือกขนาด" />
                 <input type="number" style={numStyle} value={x[valKey]} placeholder={unitText} onChange={(e) => setCond(kind, i, valKey, e.target.value)} />
@@ -1636,7 +1709,11 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
                 </div>
                 {open && (
                   <div style={{ marginTop: 9, display: "flex", flexDirection: "column", gap: 7 }}>
-                    {cbs.map((c, j) => (
+                    {x.auto && cbs.map((c, j) => (
+                      <div key={"a" + j} style={{ fontSize: 11.5, color: "var(--text-2)" }}>• {c.type} {c.size} mm² × {c.qty} เส้น</div>
+                    ))}
+                    {x.auto && <div style={{ fontSize: 10.5, color: "var(--text-3)" }}>สายชุดนี้มาจากหัวข้อสายไฟ — เปลี่ยนชนิดท่อ/ขนาด/ระยะได้ที่ "เดินท่อตามเส้นสายไฟ" ด้านบน</div>}
+                    {!x.auto && cbs.map((c, j) => (
                       <div key={j} style={{ display: "grid", gridTemplateColumns: isMobile ? "minmax(0,1fr) 72px 56px 32px" : "minmax(0,1fr) 92px 66px 32px", gap: 7, alignItems: "center" }}>
                         <Dropdown value={c.type} onChange={(v) => setCables(i, cbs.map((y, k) => k === j ? Object.assign({}, y, { type: v, size: +(Object.keys(OD[v] || {})[0] || 2.5) }) : y))} options={opt(odTypes)} />
                         <Dropdown value={String(c.size)} onChange={(v) => setCables(i, cbs.map((y, k) => k === j ? Object.assign({}, y, { size: +v }) : y))} options={Object.keys(OD[c.type] || {}).map((s) => ({ value: s, label: s + " mm²" }))} />
@@ -1644,8 +1721,8 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
                         <button onClick={() => setCables(i, cbs.filter((_, k) => k !== j))} title="ลบ" style={{ height: 38, background: "#EF444414", border: "none", color: "#EF4444", borderRadius: 9, cursor: "pointer", display: "grid", placeItems: "center" }}><Icon name="x" size={13} /></button>
                       </div>
                     ))}
-                    <button onClick={() => setCables(i, cbs.concat([{ type: odTypes[0], size: +(Object.keys(OD[odTypes[0]] || {})[0] || 2.5), qty: 1 }]))}
-                      style={{ alignSelf: "flex-start", display: "inline-flex", alignItems: "center", gap: 5, background: "var(--surface3)", color: "var(--text-2)", border: "1px solid var(--border-strong)", borderRadius: 9, padding: "6px 10px", fontWeight: 700, fontSize: 11.5, cursor: "pointer", fontFamily: "inherit" }}><Icon name="plus" size={12} color="var(--text-2)" /> เพิ่มสาย</button>
+                    {!x.auto && <button onClick={() => setCables(i, cbs.concat([{ type: odTypes[0], size: +(Object.keys(OD[odTypes[0]] || {})[0] || 2.5), qty: 1 }]))}
+                      style={{ alignSelf: "flex-start", display: "inline-flex", alignItems: "center", gap: 5, background: "var(--surface3)", color: "var(--text-2)", border: "1px solid var(--border-strong)", borderRadius: 9, padding: "6px 10px", fontWeight: 700, fontSize: 11.5, cursor: "pointer", fontFamily: "inherit" }}><Icon name="plus" size={12} color="var(--text-2)" /> เพิ่มสาย</button>}
                     {any && (
                       <>
                         <div className="bq-spec" style={{ marginTop: 2 }}>
@@ -3373,6 +3450,48 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
           <BoqSection title="ท่อร้อยสาย (RACE WAY)" icon="grid" {...secProps("raceway")}
             right={condLen > 0 ? <span style={{ fontSize: 12, fontWeight: 800, color: "var(--primary-dark)" }}>รวม {condLen} ม.</span> : null}>
             <MeasBar kinds={["conduit"]} />
+            {raceRuns.some(Boolean) && (
+              <div style={{ marginBottom: 18 }}>
+                <div style={{ fontSize: 11.5, fontWeight: 700, color: "var(--text-2)", marginBottom: 3 }}>เดินท่อตามเส้นสายไฟ</div>
+                <div className="bq-hint" style={{ fontSize: 10.5, color: "var(--text-3)", marginBottom: 8 }}>
+                  เลือกว่าแต่ละเส้นร้อยท่ออะไร — ระบบเลือกขนาดท่อจาก % เติมเต็ม (สาย 1 ชุด + กราวด์) ระยะตั้งต้นเท่าระยะสาย เดินขนานกี่ชุดก็คิดกี่ท่อ
+                </div>
+                <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                  {raceRuns.filter(Boolean).map((r) => (
+                    <div key={r.i} style={{ background: "var(--surface2)", borderRadius: 12, padding: "10px 12px", display: "flex", flexDirection: "column", gap: 8 }}>
+                      <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+                        <span style={{ fontSize: 12.5, fontWeight: 800, color: "var(--text-1)" }}>{r.label}</span>
+                        <span style={{ fontSize: 11, color: "var(--text-3)", flex: 1, minWidth: 120 }}>
+                          {r.type ? r.type.trim() + (r.sets > 1 ? " × " + r.sets + " ชุด" : "") : "ยังไม่ได้เลือกสาย"}{r.cabLen ? " · " + r.cabLen + " ม." : ""}
+                        </span>
+                        <span style={{ display: "inline-flex", gap: 5 }}>
+                          {[["", "ไม่ร้อยท่อ"], ["imc", "IMC"], ["upvc", "uPVC"]].map(([k, th]) => (
+                            <button key={k} className={"bq-cab-chip" + (r.kind === k ? " on" : "")} style={{ fontSize: 11.5, padding: "5px 11px" }}
+                              onClick={() => setRace(r.i, { race: k, raceSize: null })}>{th}</button>
+                          ))}
+                        </span>
+                      </div>
+                      {r.kind && (
+                        <div style={{ display: "grid", gridTemplateColumns: isMobile ? "minmax(0,1fr) 90px" : "minmax(0,240px) 110px minmax(0,1fr)", gap: 8, alignItems: "center" }}>
+                          <Dropdown value={r.size} onChange={(v) => setRace(r.i, { raceSize: v === r.auto ? null : v })}
+                            options={RACE_POOL[r.kind].map((nm) => ({ value: nm, label: nm.trim() + (nm === r.auto ? " (แนะนำ)" : "") }))} />
+                          <input type="number" style={numStyle} value={r.own ? r.len : ""} placeholder={(r.cabLen || 0) + " ม."}
+                            title="ระยะเดินท่อ — เว้นว่าง = เท่าระยะสาย"
+                            onChange={(e) => setRace(r.i, { raceLen: e.target.value })} />
+                          <span style={{ gridColumn: isMobile ? "1 / -1" : "auto", fontSize: 11.5, fontWeight: 700, fontVariantNumeric: "tabular-nums",
+                            color: r.noOd || !r.chk || !r.chk.ok ? "var(--tint-red-tx2)" : "var(--tint-green-tx)" }}>
+                            {r.noOd ? "ยังไม่รู้ขนาดสาย — เลือกสายในหัวข้อสายไฟก่อน"
+                              : !r.auto ? (r.kind === "upvc" ? "uPVC ใหญ่สุดยังรับไม่ไหว — ใช้ IMC" : "IMC ใหญ่สุดยังรับไม่ไหว — แยกร้อยสองท่อ")
+                              : "เติมเต็ม " + r.chk.fillPct + "% / " + r.chk.limit + "% " + (r.chk.ok ? "✓" : "✗")}
+                            {r.sets > 1 && <span style={{ color: "var(--text-3)", fontWeight: 600 }}> · {r.sets} ท่อ × {r.len} ม. = {Math.round(r.len * r.sets * 10) / 10} ม.</span>}
+                          </span>
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
             <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
               {ConduitList({ kind: "imc", label: "ท่อ IMC (3m/ท่อน)", sizes: window.BOQ.IMC_SIZES, valKey: "length", unitText: "ม.", check: true,
                 hint: "ท่อเหล็ก IMC ยาว 3.0 ม./ท่อน — กรอกความยาวรวมของแต่ละขนาด" })}
