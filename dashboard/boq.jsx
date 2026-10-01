@@ -1013,7 +1013,7 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
   });
   // งานบ้านมีเฉพาะหมวดตู้ไฟ (คิดอุปกรณ์อัตโนมัติแบบงานโครงการ) · ระบบน้ำมีแต่งานโครงการ
   const kitShown = isHome ? kitSections.filter((sc) => sc.sec === "board")
-    .map((sc) => Object.assign({}, sc, { hint: "ตู้ไฟของงานบ้าน — คิดแบบงานโครงการ: เบรกเกอร์ตามกระแสอินเวอร์เตอร์ · SPD ตามระบบล่อฟ้า · ฟิวส์ DC ตาม Isc/Voc ของสตริง · Ground Fault / PM2230 ปิดไว้ (บ้านมี Smart Meter แล้ว) กดเปิดได้ · ราคาดึงจากคลังเหมือนวัสดุอื่น" })) : kitSections;
+    .map((sc) => Object.assign({}, sc, { hint: "ตู้ไฟของงานบ้าน — คิดแบบงานโครงการ: เบรกเกอร์ตามกระแสอินเวอร์เตอร์ (≤ 100 A ใช้ MCB ขนาดแรกที่ ≥ 1.25 × กระแส · อินเวอร์เตอร์ตัวเดียวไม่มีเมนแยก) · SPD ตามระบบล่อฟ้า (Type 2 กันหลังด้วยฟิวส์ HRC 10x38) · ฟิวส์ DC ตาม Isc/Voc ของสตริง · Ground Fault / PM2230 ปิดไว้ (บ้านมี Smart Meter แล้ว) กดเปิดได้ · ราคาดึงจากคลังเหมือนวัสดุอื่น" })) : kitSections;
 
   // ── ราคาขาย & ส่วนลด ──
   const PRICE_DEF = { contractor: 0, sell: 0, discount: 0, vat: window.BOQ.VAT_RATE };
@@ -1736,6 +1736,18 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
     return { at: a, ir, kind, ok: false, iz, rec, txt: base + " แต่สายรับได้ " + iz + " A"
       + (rec ? " — แนะนำ " + rec.name.trim() + (rec.sets > 1 ? " × " + rec.sets + " ชุด" : "") + " (รับ " + rec.amp * rec.sets + " A)" : " — ขยายสาย/เพิ่มชุด") };
   };
+  const MCB_AT = [6, 10, 16, 20, 25, 32, 40, 50, 63, 80, 100];
+  const brkPickHome = (ib, c, pole) => {
+    const need = ib * 1.25, a = MCB_AT.find((x) => x >= need);
+    if (!a) { const k = brkPick(ib, c); return Object.assign(k, { nm: k.kind + " " + pole + " " + k.at + "AT" }); }
+    const iz = cabIz(c), nm = "MCB " + pole + " " + a + "A";
+    const base = r1(ib) + " A × 1.25 = " + r1(need) + " A → MCB " + a + " A (งานบ้าน ≤ 100 A ใช้ MCB)";
+    if (!iz) return { at: a, ir: a, kind: "MCB", nm, ok: true, txt: base + " · ยังไม่ได้เลือกสาย ตรวจพิกัดสายไม่ได้" };
+    if (a <= iz) return { at: a, ir: a, kind: "MCB", nm, ok: true, txt: base + " ≤ สายรับ " + iz + " A ✓" };
+    const rec = cabFit(c, famOfCab(c), Math.max(1, Math.round(+c.sets || 1)), a);
+    return { at: a, ir: a, kind: "MCB", nm, ok: false, iz, rec, txt: base + " แต่สายรับได้ " + iz + " A"
+      + (rec ? " — แนะนำ " + rec.name.trim() + (rec.sets > 1 ? " × " + rec.sets + " ชุด" : "") + " (รับ " + rec.amp * rec.sets + " A)" : " — ขยายสาย/เพิ่มชุด") };
+  };
   // เบรกเกอร์ของสายแต่ละเส้น (index แถวสาย → ผลเลือก) — หัวข้อสายไฟเอาไปโชว์คำแนะนำ
   const brkOfCab = {};
   const projBoard = project.board || {};
@@ -1758,21 +1770,23 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
       let mainAt = 0;
       const nos = mcbInvsOf(m);
       const ib = nos.reduce((s, no) => s + ((invUnits[no - 1] || {}).outA || 0), 0);
-      if (ib > 0) {
-        const k = brkPick(ib, m); mainAt = k.at;
+      const homeOne = isHome && nos.length === 1;
+      if (ib > 0 && !homeOne) {
+        const k = isHome ? brkPickHome(ib, m, pole) : brkPick(ib, m); mainAt = k.at;
         if (m) brkOfCab[cs.indexOf(m)] = Object.assign({ who: "เมนตู้ AC" }, k);
         // เมน ≥ 1000 AT ใช้เบรกเกอร์ trip unit อิเล็กทรอนิกส์ LSIG — มี Ground Fault ในตัว ไม่ต้องมี GFR/ZCT/Shunt trip แยก
         const gIn = bOn("gf") && k.at >= GF_IN_AT;
-        out.ac.push({ name: k.kind + " " + pole + " " + k.at + "AT" + (gIn ? " LSIG" : ""), qty: 1, unit: "ตัว", auto: 1, ok: k.ok,
+        out.ac.push({ name: (k.nm || k.kind + " " + pole + " " + k.at + "AT") + (gIn ? " LSIG" : ""), qty: 1, unit: "ตัว", auto: 1, ok: k.ok,
           why: tag + "เมน · อินเวอร์เตอร์ " + nos.join(", ") + " รวม " + k.txt + (gIn ? " · trip unit LSIG มี Ground Fault ในตัว" : "") });
       }
       nos.forEach((no) => {
         const u = invUnits[no - 1]; if (!u || !u.outA) return;
         const c = cs.find((x) => /INVERTER-MCB_SOLAR/i.test(x.name || "") && +x.inv === no);
-        const k = brkPick(u.outA, c);
+        const k = isHome ? brkPickHome(u.outA, c, pole) : brkPick(u.outA, c);
         if (c) brkOfCab[cs.indexOf(c)] = Object.assign({ who: "อินเวอร์เตอร์ตัวที่ " + no }, k);
-        out.ac.push({ name: k.kind + " " + pole + " " + k.at + "AT", qty: 1, unit: "ตัว", auto: 1, ok: k.ok,
-          why: tag + "อินเวอร์เตอร์ตัวที่ " + no + " · " + k.txt });
+        if (homeOne) mainAt = k.at;
+        out.ac.push({ name: k.nm || k.kind + " " + pole + " " + k.at + "AT", qty: 1, unit: "ตัว", auto: 1, ok: k.ok,
+          why: tag + "อินเวอร์เตอร์ตัวที่ " + no + " · " + k.txt + (homeOne ? " · งานบ้านอินเวอร์เตอร์ตัวเดียว ต่อเข้าเบรกเกอร์นี้เลย ไม่มีเมนแยก" : "") });
       });
       // ฟิวส์กันหลัง SPD = ฟิวส์ใบมีด NH00 gG — Type 2 = 32 A · Type 1+2 = 125 A (ต้องทนกระแสฟ้าผ่า)
       // Type 1+2: MCCB เมนตู้ ≤ 125 AT กันหลัง SPD ได้เอง ไม่ต้องมีฟิวส์
@@ -1783,8 +1797,11 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
             why: tag + "กันฟ้าผ่าฝั่ง AC ตู้ละ 1 ตัว (" + lpsTxt + " · Iimp 12.5 kA/ขั้ว)" }
         : { name: ph === 3 ? "AC SPD TYPE II 3P+N Uc385V In20Ka/Imax40Ka" : "AC SPD TYPE II 2P Uc275V In20Ka/Imax40Ka", qty: 1, unit: "ตัว", auto: 1,
             why: tag + "กันฟ้าผ่า/แรงดันกระชากฝั่ง AC ตู้ละ 1 ตัว (" + lpsTxt + " · Uc " + (ph === 3 ? "385" : "275") + " V)" });
-      if (noFuse) out.ac[out.ac.length - 1].why += " · MCCB เมน " + mainAt + " AT ≤ 125 A ใช้กันหลัง SPD ได้ ไม่ต้องมีฟิวส์";
-      else {
+      if (noFuse) out.ac[out.ac.length - 1].why += " · เบรกเกอร์" + (homeOne ? "" : "เมน") + " " + mainAt + " A ≤ 125 A ใช้กันหลัง SPD ได้ ไม่ต้องมีฟิวส์";
+      else if (isHome && !lps) {
+        out.ac.push({ name: "HRC FUSE gG 32A 10x38", qty: ph, unit: "ตัว", auto: 1, why: tag + "ฟิวส์กันหลัง SPD เส้นไฟละ 1 ตัว (ไม่ใส่ที่ N) — งานบ้านใช้ฟิวส์ HRC ฐานปกติ" });
+        out.ac.push({ name: "HRC FUSE HOLDER 10x38 1P", qty: ph, unit: "ตัว", auto: 1, why: tag + "ฐานฟิวส์ HRC 10x38" });
+      } else {
         out.ac.push({ name: "AC FUSE gG " + fA + "A NH00", qty: ph, unit: "ตัว", auto: 1,
           why: tag + "ฟิวส์ใบมีดกันหลัง SPD เส้นไฟละ 1 ตัว (ไม่ใส่ที่ N)"
             + (lps ? " — Type 1+2 ต้องทนกระแสฟ้าผ่า จึงใช้ 125 A (ตรวจ max backup fuse ในสเปค SPD)" : " — Type 2 ใช้ 32 A (ไม่เกิน max backup fuse ในสเปค SPD)") });
