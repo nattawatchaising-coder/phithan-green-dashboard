@@ -80,14 +80,15 @@ function StockKpi({ label, value, unit, icon, accent, sub, active, onClick }) {
   );
 }
 
-function StockView({ stock, onResetAll, onMenuOpen, currentUser, jobs, priceStore, ampStore, condStore, canManagePrices }) {
+function StockView({ stock, onResetAll, onMenuOpen, currentUser, jobs, priceStore, ampStore, condStore, omStore, canManagePrices }) {
   const SF = window.SF;
   const isMobile = window.matchMedia("(max-width: 860px)").matches;
   const byName = (currentUser && currentUser.name) || "-";
-  const [tab, setTab] = React.useState("stock"); // "stock" | "prices" | "amp" | "cond"
+  const [tab, setTab] = React.useState("stock"); // "stock" | "prices" | "amp" | "cond" | "om"
   const isPrices = tab === "prices" && canManagePrices;
   const isAmp = tab === "amp" && canManagePrices;
   const isCond = tab === "cond" && canManagePrices;
+  const isOm = tab === "om" && canManagePrices;
   const [cat, setCat] = React.useState("all");
   const [sub, setSub] = React.useState("all");   // หมวดย่อยภายในหมวดหลักที่เลือก
   const [view, setView] = React.useState(() => localStorage.getItem("sf_stock_view") || "grid");   // grid = การ์ดมีรูป · table = ตาราง
@@ -255,9 +256,10 @@ function StockView({ stock, onResetAll, onMenuOpen, currentUser, jobs, priceStor
                 <CatChip active={tab === "prices"} onClick={() => setTab("prices")} label="ราคา BOQ" color="#EC4899" />
                 <CatChip active={tab === "amp"} onClick={() => setTab("amp")} label="พิกัดสาย วสท." color="#F59E0B" />
                 <CatChip active={tab === "cond"} onClick={() => setTab("cond")} label="อุปกรณ์ท่อ / รางไฟ" color="#0EA5E9" />
+                <CatChip active={tab === "om"} onClick={() => setTab("om")} label="ราคา O&M · ล้างแผง" color="#10B981" />
               </React.Fragment>
             )}
-            {!isMobile && !isAmp && !isCond && (
+            {!isMobile && !isAmp && !isCond && !isOm && (
               <button onClick={toggleCat} title={catOpen ? "ซ่อนตัวกรองหมวด" : "แสดงตัวกรองหมวด"}
                 style={{ marginLeft: "auto", display: "inline-flex", alignItems: "center", gap: 6, padding: "6px 13px", borderRadius: "var(--r-pill)",
                   background: "var(--surface2)", boxShadow: "var(--shadow-sm)", color: "var(--text-2)",
@@ -271,10 +273,10 @@ function StockView({ stock, onResetAll, onMenuOpen, currentUser, jobs, priceStor
             )}
           </div>
           {/* มือถือ: dropdown หมวด */}
-          {isMobile && !isPrices && !isAmp && <div style={{ marginTop: 10 }}><CatDropdown cat={cat} setCat={setCat} items={items} cats={SF.STOCK_CATS} /></div>}
+          {isMobile && !isPrices && !isAmp && !isCond && !isOm && <div style={{ marginTop: 10 }}><CatDropdown cat={cat} setCat={setCat} items={items} cats={SF.STOCK_CATS} /></div>}
           {isMobile && isPrices && <div style={{ marginTop: 10 }}><Dropdown value={priceGrp} onChange={setPriceGrp} options={priceGroups.map((g) => ({ value: g, label: g === "all" ? "ทั้งหมด" : (PG_TH[g] || g) }))} /></div>}
           {/* เดสก์ท็อป: ชิปหมวด — ย่อ/ขยายแบบลื่น (max-height + opacity) */}
-          {!isMobile && !isAmp && (
+          {!isMobile && !isAmp && !isCond && !isOm && (
             <div style={{ overflow: "hidden",
               maxHeight: catOpen ? (!isPrices && subChips.length ? 92 : 48) : 0,
               opacity: catOpen ? 1 : 0,
@@ -315,8 +317,10 @@ function StockView({ stock, onResetAll, onMenuOpen, currentUser, jobs, priceStor
             <Icon name="menu" size={18} color="var(--text-2)" />
           </button>
           <div style={{ flex: 1, minWidth: 0 }}>
-            <h1 className="page-title">{isAmp ? "พิกัดกระแสสายไฟ (วสท.)" : isPrices ? "ราคาวัสดุ (BOQ)" : "คลังสินค้า / สต็อก"}</h1>
-            {isAmp ? (
+            <h1 className="page-title">{isAmp ? "พิกัดกระแสสายไฟ (วสท.)" : isOm ? "ราคา O&M · ล้างแผง" : isPrices ? "ราคาวัสดุ (BOQ)" : "คลังสินค้า / สต็อก"}</h1>
+            {isOm ? (
+              <p className="page-sub">ราคางานตามขนาดระบบ (kWp) — ใบ BOQ ทุกใบคิดค่า O&amp;M จากตารางนี้</p>
+            ) : isAmp ? (
               <p className="page-sub">ตารางพิกัดกระแส วสท. — แยกตามฉนวน × วิธีเดินสาย × ขนาด (ใช้คำนวณ/เตือนขนาดสายใน BOQ)</p>
             ) : isPrices ? (
               <p className="page-sub">รหัส / ราคา / หน่วย สำหรับคำนวณต้นทุน BOQ</p>
@@ -329,7 +333,7 @@ function StockView({ stock, onResetAll, onMenuOpen, currentUser, jobs, priceStor
             </p>
             )}
           </div>
-          {!isAmp && (
+          {!isAmp && !isOm && (
           <div className="header-actions">
             <div className="search-box">
               <Icon name="search" size={16} color="var(--text-3)" />
@@ -377,6 +381,11 @@ function StockView({ stock, onResetAll, onMenuOpen, currentUser, jobs, priceStor
         <div className="app-content">
           {filterBar}
           <ConduitDefaultsEditor condStore={condStore} />
+        </div>
+      ) : isOm ? (
+        <div className="app-content">
+          {filterBar}
+          <OmTierEditor omStore={omStore} />
         </div>
       ) : isPrices ? (
         <div className="app-content">
@@ -1411,6 +1420,145 @@ function ConduitDefaultsEditor({ condStore }) {
           คืนค่าตั้งต้นทั้งหมด{nEdited ? " (" + nEdited + ")" : ""}
         </button>
       </div>
+    </div>
+  );
+}
+
+/* ── ตารางราคาล้างแผง / งาน O&M ตามขนาดระบบ ──
+   ตารางละการ์ด กดแก้ไข → แก้ในร่าง → บันทึกทั้งตาราง (ท่าเดียวกับ ConduitDefaultsEditor)
+   ขนาดในตาราง = "ไม่เกิน" X kWp · ใหญ่กว่าแถวสุดท้าย = คูณต่อด้วยเรตต่อ kWp ของแถวสุดท้าย ปัดขึ้นทีละ 500
+   มีช่องลองคิดราคาตามขนาดระบบไว้ข้างบน จะได้เห็นทันทีว่าใบ BOQ จะได้เท่าไร */
+const OM_TIER_KINDS = [
+  { key: "clean", th: "ราคาล้างแผง", unit: "฿/ครั้ง", color: "#0EA5E9", defKey: "OM_CLEAN_DEF", curKey: "OM_CLEAN_TIERS" },
+  { key: "svc", th: "งาน O&M ตรวจ/บำรุงรักษาระบบ", unit: "฿/ปี", color: "#10B981", defKey: "OM_SVC_DEF", curKey: "OM_SVC_TIERS" },
+];
+function OmTierTable({ kind, saved, onSave }) {
+  const BOQ = window.BOQ || {};
+  const def = BOQ[kind.defKey] || [];
+  const cur = (BOQ.omTierNorm && BOQ.omTierNorm(saved)) || def;
+  const custom = !!(BOQ.omTierNorm && BOQ.omTierNorm(saved));
+  const [draft, setDraft] = React.useState(null);
+  const rows = draft || cur.map((r) => [String(r[0]), String(r[1])]);
+  const edit = !!draft;
+  const setCell = (i, j, v) => setDraft((p) => p.map((r, k) => (k === i ? (j ? [r[0], v] : [v, r[1]]) : r)));
+  const save = () => {
+    const n = BOQ.omTierNorm ? BOQ.omTierNorm(draft) : null;
+    if (!n) { window.askConfirm({ title: "ตารางว่าง", body: "ต้องมีอย่างน้อยหนึ่งแถวที่กรอกขนาดและราคา", ok: "ตกลง", danger: false }); return; }
+    onSave(n); setDraft(null);
+  };
+  const cell = { padding: "7px 10px", borderBottom: "1px solid var(--border)", fontSize: 12.5 };
+  const inp = { background: "var(--surface2)", boxShadow: "var(--shadow-sm)", color: "var(--text-1)", border: "none",
+    fontFamily: "inherit", fontSize: 13, padding: "6px 9px", borderRadius: "var(--r-chip)", outline: "none", width: "100%", textAlign: "right" };
+  const btn = (on) => ({ padding: "6px 13px", borderRadius: "var(--r-tile)", fontFamily: "inherit", fontSize: 12, fontWeight: 700, cursor: "pointer",
+    border: "none", background: on ? "var(--primary)" : "var(--surface2)", color: on ? "#fff" : "var(--text-2)", boxShadow: on ? "none" : "var(--shadow-sm)" });
+  const last = cur[cur.length - 1];
+  return (
+    <div style={{ background: "var(--surface)", boxShadow: "var(--shadow-sm)", borderRadius: "var(--r-tile)", overflow: "hidden" }}>
+      <div style={{ padding: "10px 12px", display: "flex", alignItems: "center", gap: 8, background: "var(--surface2)", flexWrap: "wrap" }}>
+        <span style={{ width: 8, height: 8, borderRadius: 99, background: kind.color }} />
+        <span style={{ fontSize: 13, fontWeight: 700 }}>{kind.th}</span>
+        <span style={{ fontSize: 11, color: "var(--text-3)" }}>{kind.unit}{custom ? " · แก้จากค่าตั้งต้นแล้ว" : ""}</span>
+        <span style={{ marginLeft: "auto", display: "flex", gap: 6 }}>
+          {edit ? (
+            <React.Fragment>
+              <button onClick={save} style={btn(true)}>บันทึก</button>
+              <button onClick={() => setDraft(null)} style={btn(false)}>ยกเลิก</button>
+            </React.Fragment>
+          ) : (
+            <React.Fragment>
+              <button onClick={() => setDraft(cur.map((r) => [String(r[0]), String(r[1])]))} style={btn(false)}>แก้ไข</button>
+              {custom && <button style={btn(false)} onClick={() => window.askConfirm({ title: "คืนค่าตั้งต้น " + kind.th + "?", ok: "คืนค่าตั้งต้น" })
+                .then((ok) => { if (ok) onSave(null); })}>คืนค่าตั้งต้น</button>}
+            </React.Fragment>
+          )}
+        </span>
+      </div>
+      <table style={{ width: "100%", borderCollapse: "collapse" }}>
+        <thead>
+          <tr style={{ fontSize: 10.5, color: "var(--text-3)", textAlign: "right" }}>
+            <th style={Object.assign({}, cell, { textAlign: "left", fontWeight: 700 })}>ขนาดระบบ</th>
+            <th style={Object.assign({}, cell, { fontWeight: 700 })}>ราคา ({kind.unit})</th>
+            <th style={Object.assign({}, cell, { fontWeight: 700 })}>เฉลี่ย ฿/kWp</th>
+            {edit && <th style={cell} />}
+          </tr>
+        </thead>
+        <tbody>
+          {rows.map((r, i) => {
+            const prev = i ? +rows[i - 1][0] : 0;
+            const rate = +r[0] > 0 ? Math.round(+r[1] / +r[0]) : 0;
+            return (
+              <tr key={i} style={{ background: i % 2 ? "var(--surface2)" : "transparent" }}>
+                <td style={Object.assign({}, cell, { fontWeight: 600 })}>
+                  {edit ? (
+                    <span style={{ display: "flex", alignItems: "center", gap: 6 }}>ไม่เกิน
+                      <input type="number" min={0} step="any" style={Object.assign({}, inp, { width: 90 })} value={r[0]} onChange={(e) => setCell(i, 0, e.target.value)} /> kWp</span>
+                  ) : (
+                    <span>{prev ? "เกิน " + prev.toLocaleString() + " – " : "ไม่เกิน "}{(+r[0]).toLocaleString()} kWp</span>
+                  )}
+                </td>
+                <td style={Object.assign({}, cell, { width: 140, textAlign: "right" })}>
+                  {edit ? <input type="number" min={0} step="any" style={inp} value={r[1]} onChange={(e) => setCell(i, 1, e.target.value)} />
+                    : <b style={{ fontSize: 13.5 }}>฿{(+r[1]).toLocaleString()}</b>}
+                </td>
+                <td style={Object.assign({}, cell, { width: 100, textAlign: "right", color: "var(--text-3)" })}>{rate ? rate.toLocaleString() : "—"}</td>
+                {edit && <td style={Object.assign({}, cell, { width: 40 })}>
+                  <button onClick={() => setDraft((p) => p.filter((x, k) => k !== i))} title="ลบแถว"
+                    style={{ background: "#EF444414", border: "none", color: "#EF4444", width: 26, height: 26, borderRadius: "var(--r-chip)", cursor: "pointer" }}>✕</button>
+                </td>}
+              </tr>
+            );
+          })}
+          {!edit && last && (
+            <tr>
+              <td colSpan={3} style={Object.assign({}, cell, { fontSize: 11.5, color: "var(--text-3)", borderBottom: "none" })}>
+                เกิน {(+last[0]).toLocaleString()} kWp = kWp × ฿{(Math.round(last[1] / last[0] * 100) / 100).toLocaleString()} (เรตของแถวสุดท้าย) ปัดขึ้นทีละ ฿500
+              </td>
+            </tr>
+          )}
+        </tbody>
+      </table>
+      {edit && (
+        <div style={{ padding: "8px 12px" }}>
+          <button onClick={() => setDraft((p) => p.concat([["", ""]]))} style={btn(false)}>＋ เพิ่มแถว</button>
+        </div>
+      )}
+    </div>
+  );
+}
+function OmTierEditor({ omStore }) {
+  const BOQ = window.BOQ || {};
+  const val = (omStore && omStore.val) || {};
+  const [kw, setKw] = React.useState("10");
+  const k = +kw || 0;
+  const clean = BOQ.omTierPrice ? BOQ.omTierPrice(BOQ.OM_CLEAN_TIERS || [], k) : 0;
+  const svc = BOQ.omTierPrice ? BOQ.omTierPrice(BOQ.OM_SVC_TIERS || [], k) : 0;
+  const yr = clean + svc;
+  const box = (label, v, hi) => (
+    <div style={{ background: "var(--surface2)", borderRadius: "var(--r-tile)", padding: "9px 12px", minWidth: 0 }}>
+      <div style={{ fontSize: 10.5, fontWeight: 700, color: "var(--text-3)" }}>{label}</div>
+      <div style={{ fontFamily: "var(--display)", fontSize: 18, fontWeight: 700, color: hi ? "var(--primary-dark)" : "var(--text-1)" }}>฿{v.toLocaleString()}</div>
+    </div>
+  );
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: 12, maxWidth: 820 }}>
+      <div style={{ background: "var(--surface)", boxShadow: "var(--shadow-sm)", borderRadius: "var(--r-tile)", padding: 12 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap", marginBottom: 10 }}>
+          <span style={{ fontSize: 13, fontWeight: 700 }}>ลองคิดราคา</span>
+          <span style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12.5, color: "var(--text-2)" }}>ระบบ
+            <input type="number" min={0} step="any" value={kw} onChange={(e) => setKw(e.target.value)}
+              style={{ width: 100, background: "var(--surface2)", boxShadow: "var(--shadow-sm)", border: "none", borderRadius: "var(--r-chip)", padding: "6px 9px", fontFamily: "inherit", fontSize: 13, textAlign: "right", color: "var(--text-1)", outline: "none" }} /> kWp</span>
+          <span style={{ fontSize: 11, color: "var(--text-3)" }}>ค่าฐาน: แถม 2 ปี · ล้างแผงปีละ 1 ครั้ง</span>
+        </div>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(140px, 1fr))", gap: 8 }}>
+          {box("ล้างแผง / ครั้ง", clean)}
+          {box("งาน O&M / ปี", svc)}
+          {box("ต่อปี (ลูกค้าต่อเอง)", yr, true)}
+          {box("รวมในราคาติดตั้ง 2 ปี", yr * 2, true)}
+        </div>
+      </div>
+      {OM_TIER_KINDS.map((kd) => (
+        <OmTierTable key={kd.key} kind={kd} saved={val[kd.key]} onSave={(rows) => omStore && omStore.save(kd.key, rows)} />
+      ))}
     </div>
   );
 }

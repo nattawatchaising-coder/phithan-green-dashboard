@@ -245,6 +245,7 @@ function App() {
   const priceStore = usePriceStore();
   const ampStore = useAmpacityStore();
   const condStore = useConduitDefaults();   // ค่าตั้งต้นอุปกรณ์ท่อร้อยสายของบริษัท
+  const omStore = useOmTiers();             // ตารางราคาล้างแผง / งาน O&M ตามขนาดระบบ
   const apptStore = useSurveyApptStore();
   const leadStore = useSurveyLeadStore();   // ลูกค้าที่ขอให้ไปสำรวจ — แยกจากฐานข้อมูลงาน
   const quoteStore = useQuoteStore();       // ใบเสนอราคา — แขวนได้ทั้งกับลูกค้าสำรวจและกับงาน
@@ -545,6 +546,10 @@ function App() {
   React.useEffect(() => {
     if (window.BOQ && window.BOQ.setConduitDefaults) window.BOQ.setConduitDefaults(condStore.val);
   }, [condStore.val]);
+  /* ตารางราคา O&M → ช่องที่เว้นว่างในการ์ด O&M ของทุกใบคิดจากตารางนี้ */
+  React.useEffect(() => {
+    if (window.BOQ && window.BOQ.setOmTiers) window.BOQ.setOmTiers(omStore.val);
+  }, [omStore.val]);
 
   const closeSidebar = () => setSidebarOpen(false);
   const openJob = (j) => setSelected(j.id);
@@ -901,7 +906,7 @@ function App() {
       <main className="app-main">
         {view === "stock" ? (
           <StockView stock={stock} onMenuOpen={() => setSidebarOpen(true)} currentUser={auth.current} jobs={jobs}
-            priceStore={priceStore} ampStore={ampStore} condStore={condStore} canManagePrices={can(role, "price")} />
+            priceStore={priceStore} ampStore={ampStore} condStore={condStore} omStore={omStore} canManagePrices={can(role, "price")} />
         ) : view === "dispatch" ? (
           <DispatchView appts={apptStore.appts} jobs={jobs} techs={techStore.techs} store={apptStore} leadStore={leadStore}
             onMenuOpen={() => setSidebarOpen(true)} onOpenJob={openJob} />

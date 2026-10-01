@@ -1062,8 +1062,25 @@
      ราคาเป็น "ราคางาน" ตามตารางของบริษัท แบ่งตามขนาดระบบ (kWp) — ขนาดไม่เกินขั้นไหนใช้ราคาขั้นนั้น
      ใหญ่เกินขั้นสุดท้าย = คูณต่อด้วยเรตต่อ kWp ของขั้นสุดท้าย ปัดขึ้นทีละ 500 บาท (ราคาไม่กระโดด)
      แก้ได้ต่อใบ: ปีที่แถม · ครั้งต่อปี · ราคาล้าง/ครั้ง · ราคา O&M/ปี (เว้นว่าง = ตามตาราง) */
-  const OM_CLEAN_TIERS = [[5, 4000], [10, 5000], [15, 7000], [20, 8000], [30, 9500], [40, 11000], [50, 13000], [100, 17500], [200, 33000]];
-  const OM_SVC_TIERS = [[10, 5000], [100, 10000], [250, 20000], [1000, 50000]];
+  /* ค่าตั้งต้น = ตารางที่ผู้ใช้ให้มา · แก้ได้ที่หน้าคลัง แท็บ "ราคา O&M · ล้างแผง" (เก็บที่ omTiers/{clean,svc})
+     OM_CLEAN_TIERS / OM_SVC_TIERS เป็นอาร์เรย์ตัวเดิมตลอด setOmTiers แทนที่ไส้ข้างใน — ที่อ้างไว้แล้วจะได้เห็นค่าใหม่ */
+  const OM_CLEAN_DEF = [[5, 4000], [10, 5000], [15, 7000], [20, 8000], [30, 9500], [40, 11000], [50, 13000], [100, 17500], [200, 33000]];
+  const OM_SVC_DEF = [[10, 5000], [100, 10000], [250, 20000], [1000, 50000]];
+  const OM_CLEAN_TIERS = OM_CLEAN_DEF.map((r) => r.slice());
+  const OM_SVC_TIERS = OM_SVC_DEF.map((r) => r.slice());
+  /* แถวที่ใช้ได้ = ขนาด > 0 และราคา ≥ 0 · เรียงตามขนาด · ไม่เหลือสักแถว = กลับไปใช้ค่าตั้งต้น */
+  function omTierNorm(rows) {
+    const out = (Array.isArray(rows) ? rows : rows && typeof rows === "object" ? Object.values(rows) : [])
+      .map((r) => [+(r || [])[0], +(r || [])[1]])
+      .filter((r) => isFinite(r[0]) && r[0] > 0 && isFinite(r[1]) && r[1] >= 0)
+      .sort((a, b) => a[0] - b[0]);
+    return out.length ? out : null;
+  }
+  function setOmTiers(v) {
+    const put = (dst, src, def) => { dst.length = 0; (omTierNorm(src) || def).forEach((r) => dst.push(r.slice())); };
+    put(OM_CLEAN_TIERS, (v || {}).clean, OM_CLEAN_DEF);
+    put(OM_SVC_TIERS, (v || {}).svc, OM_SVC_DEF);
+  }
   function omTierPrice(tiers, kw) {
     const k = Math.max(0, +kw || 0);
     if (!k) return 0;
@@ -2339,5 +2356,5 @@
     TRAY_FILL_LIMIT, TRAY_DERATE, trayDerate, trayDim, trayCheck, cableCores,
     UPVC_CONDUIT, conduitFillLimit, conduitDim, conduitCheck,
     AMP_CORE_LABEL, ampGroupMeta, ampCoresFor, ampCoreKey, WIRE_METHOD_LEGACY, normWireMethod,
-    G_TRAY, G_SUPPORT, G_LABOR, G_PERMIT, G_OM, OM_DEF, OM_CLEAN_TIERS, OM_SVC_TIERS, omTierPrice, omDefaults, omCalc, SERVICE_GROUPS, mergeItems };
+    G_TRAY, G_SUPPORT, G_LABOR, G_PERMIT, G_OM, OM_DEF, OM_CLEAN_TIERS, OM_SVC_TIERS, OM_CLEAN_DEF, OM_SVC_DEF, omTierNorm, setOmTiers, omTierPrice, omDefaults, omCalc, SERVICE_GROUPS, mergeItems };
 })();

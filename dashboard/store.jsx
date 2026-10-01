@@ -828,6 +828,34 @@ function useConduitDefaults() {
 }
 
 /* ================================================================
+   useOmTiers — ตารางราคาล้างแผง / งาน O&M ตามขนาดระบบ (kWp)
+   เก็บที่ omTiers/{clean,svc} = [[kWp ไม่เกิน, ราคา], …] · ไม่มีคีย์ = ใช้ตารางตั้งต้นใน boq.js
+   ตารางเล็ก (ไม่ถึง 20 แถว) จึงบันทึกทั้งตารางทีเดียว
+   ================================================================ */
+const SF_OMT_KEY = "solarflow_om_tiers_v1";
+function _omtLsGet() { try { const s = localStorage.getItem(SF_OMT_KEY); return s ? (JSON.parse(s) || {}) : {}; } catch (e) { return {}; } }
+function useOmTiers() {
+  const [val, setVal] = React.useState(() => (_FB() ? {} : _omtLsGet()));
+  React.useEffect(() => {
+    if (!_FB()) return;
+    const ref = _fbr("omTiers");
+    const h = ref.on("value", (snap) => setVal(snap.val() || {}));
+    return () => ref.off("value", h);
+  }, []);
+  /* kind = "clean" | "svc" · rows = null → คืนค่าตั้งต้น */
+  const save = React.useCallback((kind, rows) => {
+    if (_FB()) { if (rows) _fbSet("omTiers/" + kind, rows); else _fbRem("omTiers/" + kind); return; }
+    setVal((p) => {
+      const next = Object.assign({}, p);
+      if (rows) next[kind] = rows; else delete next[kind];
+      _lsSet(SF_OMT_KEY, next);
+      return next;
+    });
+  }, []);
+  return { val, save };
+}
+
+/* ================================================================
    Export to window (same pattern as original)
    ================================================================ */
 /* ── คำค้นหนึ่งคำ ตรงกับงานใบนี้ไหม ──
@@ -841,7 +869,7 @@ function jobMatchQ(j, q) {
 }
 
 Object.assign(window, {
-  useJobStore, useStockStore, useTechStore, useBrandStore, usePriceStore, useAmpacityStore, useConduitDefaults,
+  useJobStore, useStockStore, useTechStore, useBrandStore, usePriceStore, useAmpacityStore, useConduitDefaults, useOmTiers,
   blankJob, blankItem, blankTech, nextCode, jobMatchQ,
   SF_STORE_KEY,
 });

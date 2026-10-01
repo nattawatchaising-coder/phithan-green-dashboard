@@ -1019,6 +1019,40 @@ function useConduitDefaults() {
     reset
   };
 }
+const SF_OMT_KEY = "solarflow_om_tiers_v1";
+function _omtLsGet() {
+  try {
+    const s = localStorage.getItem(SF_OMT_KEY);
+    return s ? JSON.parse(s) || {} : {};
+  } catch (e) {
+    return {};
+  }
+}
+function useOmTiers() {
+  const [val, setVal] = React.useState(() => _FB() ? {} : _omtLsGet());
+  React.useEffect(() => {
+    if (!_FB()) return;
+    const ref = _fbr("omTiers");
+    const h = ref.on("value", snap => setVal(snap.val() || {}));
+    return () => ref.off("value", h);
+  }, []);
+  const save = React.useCallback((kind, rows) => {
+    if (_FB()) {
+      if (rows) _fbSet("omTiers/" + kind, rows);else _fbRem("omTiers/" + kind);
+      return;
+    }
+    setVal(p => {
+      const next = Object.assign({}, p);
+      if (rows) next[kind] = rows;else delete next[kind];
+      _lsSet(SF_OMT_KEY, next);
+      return next;
+    });
+  }, []);
+  return {
+    val,
+    save
+  };
+}
 function jobMatchQ(j, q) {
   if (!q) return true;
   return ((j.name || "") + (j.code || "") + (j.province || "") + (j.phone || "") + (j.brand || "") + (j.address || "")).toLowerCase().includes(q);
@@ -1031,6 +1065,7 @@ Object.assign(window, {
   usePriceStore,
   useAmpacityStore,
   useConduitDefaults,
+  useOmTiers,
   blankJob,
   blankItem,
   blankTech,
