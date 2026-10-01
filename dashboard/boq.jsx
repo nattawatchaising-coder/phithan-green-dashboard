@@ -1013,7 +1013,7 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
   });
   // งานบ้านมีเฉพาะหมวดตู้ไฟ (คิดอุปกรณ์อัตโนมัติแบบงานโครงการ) · ระบบน้ำมีแต่งานโครงการ
   const kitShown = isHome ? kitSections.filter((sc) => sc.sec === "board")
-    .map((sc) => Object.assign({}, sc, { hint: "ตู้ไฟของงานบ้าน — คิดแบบงานโครงการ: เบรกเกอร์ตามกระแสอินเวอร์เตอร์ (RCBO 100mA ขนาดแรกที่ ≥ 1.25 × กระแส — 1 เฟสถึง 50 A · 3 เฟสถึง 63 A เกินนั้นใช้ MCCB · อินเวอร์เตอร์ตัวเดียวไม่มีเมนแยก) · SPD ตามระบบล่อฟ้า (Type 2 กันหลังด้วยฟิวส์ HRC 10x38) · ฟิวส์ DC ตาม Isc/Voc ของสตริง · ราคาดึงจากคลังเหมือนวัสดุอื่น" })) : kitSections;
+    .map((sc) => Object.assign({}, sc, { hint: "ตู้ไฟของงานบ้าน — คิดแบบงานโครงการ: เบรกเกอร์ตามกระแสอินเวอร์เตอร์ (RCBO 100mA ขนาดแรกที่ ≥ 1.25 × กระแส — 1 เฟสถึง 50 A · 3 เฟสถึง 63 A เกินนั้นใช้ MCCB · อินเวอร์เตอร์ตัวเดียวไม่มีเมนแยก) · SPD Type 2 กันหลังด้วยฟิวส์ HRC 10x38 · ฟิวส์ DC ตาม Isc/Voc ของสตริง · ราคาดึงจากคลังเหมือนวัสดุอื่น" })) : kitSections;
 
   // ── ราคาขาย & ส่วนลด ──
   const PRICE_DEF = { contractor: 0, sell: 0, discount: 0, vat: window.BOQ.VAT_RATE };
@@ -1762,8 +1762,9 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
     const cs = b.cables || [];
     /* ระบบล่อฟ้า (IEC 60364-7-712 / CLC TS 50539-12): แผงอยู่ใกล้ล่อฟ้า (ต่อถึงกัน/ห่างไม่ถึงระยะปลอดภัย)
        กระแสฟ้าผ่าบางส่วนวิ่งเข้าสายโซลาร์ → SPD ต้องเป็น Type 1+2 ทั้ง AC และ DC · ไม่มีล่อฟ้า / แผงห่างพอ = Type 2 */
-    const lps = projBoard.lps === "near";
-    const lpsTxt = projBoard.lps === "near" ? "แผงอยู่ใกล้ระบบล่อฟ้า → Type 1+2" : projBoard.lps === "far" ? "มีล่อฟ้า แต่แผงห่างพอ → Type 2" : "ไม่มีระบบล่อฟ้า → Type 2";
+    // งานบ้านไม่มีตัวเลือกระบบล่อฟ้า — SPD Type 2 เสมอ
+    const lps = !isHome && projBoard.lps === "near";
+    const lpsTxt = isHome ? "Type 2" : projBoard.lps === "near" ? "แผงอยู่ใกล้ระบบล่อฟ้า → Type 1+2" : projBoard.lps === "far" ? "มีล่อฟ้า แต่แผงห่างพอ → Type 2" : "ไม่มีระบบล่อฟ้า → Type 2";
     // ── AC ──
     const mRows = cs.filter((c) => /MCB_SOLAR-MDB/i.test(c.name || ""));
     const boards = mRows.length ? mRows : [null];
@@ -4001,7 +4002,7 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
                             display: "flex", flexDirection: "column", gap: 9 }}>
                             {numBox({ key: bd.key, name: bd.name, unit: bd.unit,
                               ph: (() => { const a = (st[bd.extraKey] || []).find((x) => x.auto && x.name === bd.name); return a ? "อัตโนมัติ " + a.qty : "0"; })() })}
-                            {(bd.key === "ac" || bd.key === "dc") && (boardAuto[bd.key] || []).length > 0 && (
+                            {(bd.key === "ac" || bd.key === "dc") && !isHome && (boardAuto[bd.key] || []).length > 0 && (
                               <div style={{ display: "flex", flexDirection: "column", gap: 5 }}>
                                 <span style={{ fontSize: 9.5, fontWeight: 800, color: "var(--text-3)" }}>ระบบล่อฟ้าของอาคาร (เลือก SPD) · ตั้งค่าเดียวกันทั้งตู้ AC และ DC</span>
                                 <div style={{ display: "flex", flexWrap: "wrap", gap: 5 }}>

@@ -1979,7 +1979,7 @@ function BOQEditor({
     });
   });
   const kitShown = isHome ? kitSections.filter(sc => sc.sec === "board").map(sc => Object.assign({}, sc, {
-    hint: "ตู้ไฟของงานบ้าน — คิดแบบงานโครงการ: เบรกเกอร์ตามกระแสอินเวอร์เตอร์ (RCBO 100mA ขนาดแรกที่ ≥ 1.25 × กระแส — 1 เฟสถึง 50 A · 3 เฟสถึง 63 A เกินนั้นใช้ MCCB · อินเวอร์เตอร์ตัวเดียวไม่มีเมนแยก) · SPD ตามระบบล่อฟ้า (Type 2 กันหลังด้วยฟิวส์ HRC 10x38) · ฟิวส์ DC ตาม Isc/Voc ของสตริง · ราคาดึงจากคลังเหมือนวัสดุอื่น"
+    hint: "ตู้ไฟของงานบ้าน — คิดแบบงานโครงการ: เบรกเกอร์ตามกระแสอินเวอร์เตอร์ (RCBO 100mA ขนาดแรกที่ ≥ 1.25 × กระแส — 1 เฟสถึง 50 A · 3 เฟสถึง 63 A เกินนั้นใช้ MCCB · อินเวอร์เตอร์ตัวเดียวไม่มีเมนแยก) · SPD Type 2 กันหลังด้วยฟิวส์ HRC 10x38 · ฟิวส์ DC ตาม Isc/Voc ของสตริง · ราคาดึงจากคลังเหมือนวัสดุอื่น"
   })) : kitSections;
   const PRICE_DEF = {
     contractor: 0,
@@ -3078,8 +3078,8 @@ function BOQEditor({
     const ph = wcPhase === 3 ? 3 : 1,
       pole = ph === 3 ? "3P" : "2P";
     const cs = b.cables || [];
-    const lps = projBoard.lps === "near";
-    const lpsTxt = projBoard.lps === "near" ? "แผงอยู่ใกล้ระบบล่อฟ้า → Type 1+2" : projBoard.lps === "far" ? "มีล่อฟ้า แต่แผงห่างพอ → Type 2" : "ไม่มีระบบล่อฟ้า → Type 2";
+    const lps = !isHome && projBoard.lps === "near";
+    const lpsTxt = isHome ? "Type 2" : projBoard.lps === "near" ? "แผงอยู่ใกล้ระบบล่อฟ้า → Type 1+2" : projBoard.lps === "far" ? "มีล่อฟ้า แต่แผงห่างพอ → Type 2" : "ไม่มีระบบล่อฟ้า → Type 2";
     const mRows = cs.filter(c => /MCB_SOLAR-MDB/i.test(c.name || ""));
     const boards = mRows.length ? mRows : [null];
     if (!(+projBoard.ac > 0)) out.ac.push({
@@ -8600,7 +8600,7 @@ function BOQEditor({
           const a = (st[bd.extraKey] || []).find(x => x.auto && x.name === bd.name);
           return a ? "อัตโนมัติ " + a.qty : "0";
         })()
-      }), (bd.key === "ac" || bd.key === "dc") && (boardAuto[bd.key] || []).length > 0 && React.createElement("div", {
+      }), (bd.key === "ac" || bd.key === "dc") && !isHome && (boardAuto[bd.key] || []).length > 0 && React.createElement("div", {
         style: {
           display: "flex",
           flexDirection: "column",
