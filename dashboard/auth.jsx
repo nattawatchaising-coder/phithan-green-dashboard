@@ -365,6 +365,40 @@ function useUserAvatar(userId) {
 /* ================================================================
    โปรไฟล์ของฉัน — รูป · ข้อมูลติดต่อ · ลายเซ็น (ทุกตำแหน่งแก้ของตัวเองได้)
    ================================================================ */
+/* รูปลายเซ็นจากไฟล์ (สแกน/ถ่ายรูปบนกระดาษขาว) → PNG พื้นโปร่ง ตัดขอบ แบบเดียวกับที่เซ็นบนจอ
+   พื้นกระดาษสว่างกลายเป็นโปร่งใส หมึกเข้มคงไว้ — วางบนใบรายงานแล้วไม่เป็นกล่องขาวทับเส้น */
+function signFromFile(file) {
+  return new Promise((resolve, reject) => {
+    const rd = new FileReader();
+    rd.onerror = reject;
+    rd.onload = (e) => {
+      const img = new Image();
+      img.onerror = reject;
+      img.onload = () => {
+        const k = Math.min(1, 1400 / Math.max(img.width, img.height));
+        const cv = document.createElement("canvas");
+        cv.width = Math.max(1, Math.round(img.width * k)); cv.height = Math.max(1, Math.round(img.height * k));
+        const g = cv.getContext("2d");
+        g.drawImage(img, 0, 0, cv.width, cv.height);
+        const id = g.getImageData(0, 0, cv.width, cv.height), d = id.data;
+        for (let i = 0; i < d.length; i += 4) {
+          const a = d[i + 3] / 255;
+          if (!a) continue;
+          // ความเข้ม 0 (ดำ) … 1 (ขาว) — สว่างกว่า 0.78 โปร่งหมด เข้มกว่า 0.45 ทึบเต็ม ระหว่างนั้นไล่ให้ขอบเส้นไม่แตก
+          const l = (0.299 * d[i] + 0.587 * d[i + 1] + 0.114 * d[i + 2]) / 255;
+          const op = l >= 0.78 ? 0 : l <= 0.45 ? 1 : (0.78 - l) / 0.33;
+          d[i + 3] = Math.round(255 * a * op);
+        }
+        g.putImageData(id, 0, 0);
+        const out = window.drTrimSign(cv);
+        out ? resolve(out) : reject(new Error("empty"));
+      };
+      img.src = e.target.result;
+    };
+    rd.readAsDataURL(file);
+  });
+}
+
 function MyProfileModal({ user, onSave, onClose }) {
   const bdClose = window.useBackdropClose(onClose);
   const isMobile = window.matchMedia("(max-width: 860px)").matches;
@@ -376,6 +410,18 @@ function MyProfileModal({ user, onSave, onClose }) {
   const [busy, setBusy] = React.useState(false);
   const [saved, setSaved] = React.useState(false);
   const file = React.useRef(null);
+  const sigFile = React.useRef(null);
+  const [sigBusy, setSigBusy] = React.useState(false);
+  const [sigErr, setSigErr] = React.useState("");
+  const pickSign = async (e) => {
+    const fl = e.target.files && e.target.files[0];
+    e.target.value = "";
+    if (!fl) return;
+    setSigBusy(true); setSigErr("");
+    try { sig.save(await signFromFile(fl)); }
+    catch (err) { setSigErr("อ่านรูปไม่ได้ หรือรูปไม่มีเส้นลายเซ็น — ลองรูปที่เซ็นด้วยปากกาเข้มบนกระดาษขาว"); }
+    setSigBusy(false);
+  };
   const set = (k, v) => { setF((p) => Object.assign({}, p, { [k]: v })); setSaved(false); };
   const rs = userRoles(user);
   const head = ROLE_INFO[rs[0]] || ROLE_INFO.tech;
@@ -511,7 +557,7 @@ function MyProfileModal({ user, onSave, onClose }) {
             <div style={{ padding: "13px 14px", borderRadius: 12, background: "var(--surface)", border: "1px solid var(--border)" }}>
               <div style={{ display: "flex", alignItems: "baseline", gap: 8 }}>
                 <span style={{ fontSize: 12.5, fontWeight: 800, color: "var(--text-2)" }}>ลายเซ็นของฉัน</span>
-                <span style={{ fontSize: 11, color: "var(--text-3)" }}>ใช้เซ็นใบรายงานประจำวัน</span>
+                <span style={{ fontSize: 11, color: "var(--text-3)" }}>ใช้เซ็นใบรายงานประจำวัน · เซ็นบนจอหรือแนบรูปลายเซ็นก็ได้</span>
               </div>
               <div style={{ height: 92, marginTop: 10, borderRadius: 10, background: "var(--surface2)", border: "1px solid var(--border)",
                 display: "grid", placeItems: "center", overflow: "hidden" }}>
@@ -530,12 +576,21 @@ function MyProfileModal({ user, onSave, onClose }) {
                     background: "var(--primary)", color: "#fff", fontFamily: "inherit", fontSize: 12.5, fontWeight: 700, cursor: "pointer" }}>
                   <Icon name="pen" size={14} color="#fff" /> {sig.sign && sig.sign.img ? "เซ็นใหม่" : "เซ็นชื่อ"}
                 </button>
+                <button onClick={() => sigFile.current && sigFile.current.click()} disabled={sigBusy}
+                  style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "9px 14px", borderRadius: 10, border: "1px solid var(--primary)",
+                    background: "var(--primary-soft)", color: "var(--primary-dark)", fontFamily: "inherit", fontSize: 12.5, fontWeight: 700, cursor: "pointer" }}>
+                  <Icon name="image" size={14} color="var(--primary-dark)" /> {sigBusy ? "กำลังเตรียมรูป…" : "แนบไฟล์ลายเซ็น"}
+                </button>
+                <input ref={sigFile} type="file" accept="image/*" onChange={pickSign} style={{ display: "none" }} />
                 {sig.sign && sig.sign.img && (
                   <button onClick={() => sig.clear()}
                     style={{ padding: "9px 13px", borderRadius: 10, border: "1px solid var(--border-strong)", background: "var(--surface)",
                       color: "var(--text-3)", fontFamily: "inherit", fontSize: 12.5, fontWeight: 700, cursor: "pointer" }}>ลบ</button>
                 )}
               </div>
+              {sigErr
+                ? <div style={{ fontSize: 11, color: "var(--danger, #DC2626)", marginTop: 8 }}>{sigErr}</div>
+                : <div style={{ fontSize: 11, color: "var(--text-3)", marginTop: 8 }}>รูปถ่าย/สแกนลายเซ็นบนกระดาษขาว ระบบลบพื้นขาวและตัดขอบให้</div>}
             </div>
           </div>
 

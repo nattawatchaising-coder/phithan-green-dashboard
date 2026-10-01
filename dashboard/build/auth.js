@@ -666,6 +666,38 @@ function useUserAvatar(userId) {
     clear
   };
 }
+function signFromFile(file) {
+  return new Promise((resolve, reject) => {
+    const rd = new FileReader();
+    rd.onerror = reject;
+    rd.onload = e => {
+      const img = new Image();
+      img.onerror = reject;
+      img.onload = () => {
+        const k = Math.min(1, 1400 / Math.max(img.width, img.height));
+        const cv = document.createElement("canvas");
+        cv.width = Math.max(1, Math.round(img.width * k));
+        cv.height = Math.max(1, Math.round(img.height * k));
+        const g = cv.getContext("2d");
+        g.drawImage(img, 0, 0, cv.width, cv.height);
+        const id = g.getImageData(0, 0, cv.width, cv.height),
+          d = id.data;
+        for (let i = 0; i < d.length; i += 4) {
+          const a = d[i + 3] / 255;
+          if (!a) continue;
+          const l = (0.299 * d[i] + 0.587 * d[i + 1] + 0.114 * d[i + 2]) / 255;
+          const op = l >= 0.78 ? 0 : l <= 0.45 ? 1 : (0.78 - l) / 0.33;
+          d[i + 3] = Math.round(255 * a * op);
+        }
+        g.putImageData(id, 0, 0);
+        const out = window.drTrimSign(cv);
+        out ? resolve(out) : reject(new Error("empty"));
+      };
+      img.src = e.target.result;
+    };
+    rd.readAsDataURL(file);
+  });
+}
 function MyProfileModal({
   user,
   onSave,
@@ -681,6 +713,22 @@ function MyProfileModal({
   const [busy, setBusy] = React.useState(false);
   const [saved, setSaved] = React.useState(false);
   const file = React.useRef(null);
+  const sigFile = React.useRef(null);
+  const [sigBusy, setSigBusy] = React.useState(false);
+  const [sigErr, setSigErr] = React.useState("");
+  const pickSign = async e => {
+    const fl = e.target.files && e.target.files[0];
+    e.target.value = "";
+    if (!fl) return;
+    setSigBusy(true);
+    setSigErr("");
+    try {
+      sig.save(await signFromFile(fl));
+    } catch (err) {
+      setSigErr("อ่านรูปไม่ได้ หรือรูปไม่มีเส้นลายเซ็น — ลองรูปที่เซ็นด้วยปากกาเข้มบนกระดาษขาว");
+    }
+    setSigBusy(false);
+  };
   const set = (k, v) => {
     setF(p => Object.assign({}, p, {
       [k]: v
@@ -1035,7 +1083,7 @@ function MyProfileModal({
       fontSize: 11,
       color: "var(--text-3)"
     }
-  }, "\u0E43\u0E0A\u0E49\u0E40\u0E0B\u0E47\u0E19\u0E43\u0E1A\u0E23\u0E32\u0E22\u0E07\u0E32\u0E19\u0E1B\u0E23\u0E30\u0E08\u0E33\u0E27\u0E31\u0E19")), React.createElement("div", {
+  }, "\u0E43\u0E0A\u0E49\u0E40\u0E0B\u0E47\u0E19\u0E43\u0E1A\u0E23\u0E32\u0E22\u0E07\u0E32\u0E19\u0E1B\u0E23\u0E30\u0E08\u0E33\u0E27\u0E31\u0E19 \xB7 \u0E40\u0E0B\u0E47\u0E19\u0E1A\u0E19\u0E08\u0E2D\u0E2B\u0E23\u0E37\u0E2D\u0E41\u0E19\u0E1A\u0E23\u0E39\u0E1B\u0E25\u0E32\u0E22\u0E40\u0E0B\u0E47\u0E19\u0E01\u0E47\u0E44\u0E14\u0E49")), React.createElement("div", {
     style: {
       height: 92,
       marginTop: 10,
@@ -1094,7 +1142,36 @@ function MyProfileModal({
     name: "pen",
     size: 14,
     color: "#fff"
-  }), " ", sig.sign && sig.sign.img ? "เซ็นใหม่" : "เซ็นชื่อ"), sig.sign && sig.sign.img && React.createElement("button", {
+  }), " ", sig.sign && sig.sign.img ? "เซ็นใหม่" : "เซ็นชื่อ"), React.createElement("button", {
+    onClick: () => sigFile.current && sigFile.current.click(),
+    disabled: sigBusy,
+    style: {
+      display: "inline-flex",
+      alignItems: "center",
+      gap: 6,
+      padding: "9px 14px",
+      borderRadius: 10,
+      border: "1px solid var(--primary)",
+      background: "var(--primary-soft)",
+      color: "var(--primary-dark)",
+      fontFamily: "inherit",
+      fontSize: 12.5,
+      fontWeight: 700,
+      cursor: "pointer"
+    }
+  }, React.createElement(Icon, {
+    name: "image",
+    size: 14,
+    color: "var(--primary-dark)"
+  }), " ", sigBusy ? "กำลังเตรียมรูป…" : "แนบไฟล์ลายเซ็น"), React.createElement("input", {
+    ref: sigFile,
+    type: "file",
+    accept: "image/*",
+    onChange: pickSign,
+    style: {
+      display: "none"
+    }
+  }), sig.sign && sig.sign.img && React.createElement("button", {
     onClick: () => sig.clear(),
     style: {
       padding: "9px 13px",
@@ -1107,7 +1184,19 @@ function MyProfileModal({
       fontWeight: 700,
       cursor: "pointer"
     }
-  }, "\u0E25\u0E1A")))), React.createElement("div", {
+  }, "\u0E25\u0E1A")), sigErr ? React.createElement("div", {
+    style: {
+      fontSize: 11,
+      color: "var(--danger, #DC2626)",
+      marginTop: 8
+    }
+  }, sigErr) : React.createElement("div", {
+    style: {
+      fontSize: 11,
+      color: "var(--text-3)",
+      marginTop: 8
+    }
+  }, "\u0E23\u0E39\u0E1B\u0E16\u0E48\u0E32\u0E22/\u0E2A\u0E41\u0E01\u0E19\u0E25\u0E32\u0E22\u0E40\u0E0B\u0E47\u0E19\u0E1A\u0E19\u0E01\u0E23\u0E30\u0E14\u0E32\u0E29\u0E02\u0E32\u0E27 \u0E23\u0E30\u0E1A\u0E1A\u0E25\u0E1A\u0E1E\u0E37\u0E49\u0E19\u0E02\u0E32\u0E27\u0E41\u0E25\u0E30\u0E15\u0E31\u0E14\u0E02\u0E2D\u0E1A\u0E43\u0E2B\u0E49"))), React.createElement("div", {
     style: {
       padding: "14px 22px",
       paddingBottom: isMobile ? "calc(14px + env(safe-area-inset-bottom, 0px))" : 14,
