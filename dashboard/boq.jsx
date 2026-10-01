@@ -716,6 +716,7 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
     return r ? r / 1.25 : null;
   };
   const reqAmpBase = (cab) => {
+    const homeJob = !!(job && job.type === "home");   // งานบ้าน = คิดสาย 1.25 × กระแสแบบเดิม · งานโครงการ = ตามกระแสตั้ง MCCB
     const row = cab && typeof cab === "object" ? cab : null;
     const n = ((row ? row.name : cab) || "").toUpperCase();
     if (/LAN|CAT|GROUND|กราว|ดิน/.test(n)) return null;
@@ -724,11 +725,11 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
     if (invUnits.length) {
       if (/MCB_SOLAR-MDB/.test(n)) {                                         // รวมเฉพาะตัวที่อยู่ตู้นี้ → ตู้เมน
         const a = mcbInvsOf(row).reduce((s, no) => s + ((invUnits[no - 1] || {}).outA || 0), 0);
-        return a ? brkSet(a).ir : null;                                      // ตามกระแสตั้งของ MCCB เมน
+        return a ? (homeJob ? a * 1.25 : brkSet(a).ir) : null;                                      // ตามกระแสตั้งของ MCCB เมน
       }
       if (/INVERTER-MCB_SOLAR/.test(n)) {                                    // อินเวอร์เตอร์ตัวของแถวนี้
         const u = invUnits[((row && +row.inv) || 1) - 1] || invUnits[0];
-        return u.outA ? brkSet(u.outA).ir : null;                           // ตามกระแสตั้งของ MCCB อินเวอร์เตอร์
+        return u.outA ? (homeJob ? u.outA * 1.25 : brkSet(u.outA).ir) : null;                           // ตามกระแสตั้งของ MCCB อินเวอร์เตอร์
       }
     }
     const invAcPer = selInv ? (+selInv.outA || 0) : 0;                       // กระแสออก AC ต่ออินเวอร์เตอร์ 1 ตัว

@@ -1357,6 +1357,7 @@ function BOQEditor({
     return r ? r / 1.25 : null;
   };
   const reqAmpBase = cab => {
+    const homeJob = !!(job && job.type === "home");
     const row = cab && typeof cab === "object" ? cab : null;
     const n = ((row ? row.name : cab) || "").toUpperCase();
     if (/LAN|CAT|GROUND|กราว|ดิน/.test(n)) return null;
@@ -1364,11 +1365,11 @@ function BOQEditor({
     if (invUnits.length) {
       if (/MCB_SOLAR-MDB/.test(n)) {
         const a = mcbInvsOf(row).reduce((s, no) => s + ((invUnits[no - 1] || {}).outA || 0), 0);
-        return a ? brkSet(a).ir : null;
+        return a ? homeJob ? a * 1.25 : brkSet(a).ir : null;
       }
       if (/INVERTER-MCB_SOLAR/.test(n)) {
         const u = invUnits[(row && +row.inv || 1) - 1] || invUnits[0];
-        return u.outA ? brkSet(u.outA).ir : null;
+        return u.outA ? homeJob ? u.outA * 1.25 : brkSet(u.outA).ir : null;
       }
     }
     const invAcPer = selInv ? +selInv.outA || 0 : 0;
