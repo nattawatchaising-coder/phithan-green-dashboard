@@ -6179,6 +6179,7 @@ function BOQEditor({
     const gndPair = isGnd && i > 0 && /PV-INVERTER/i.test((b.cables[i - 1] || {}).name || "");
     const invU = invUnits.length && /INVERTER-MCB_SOLAR/i.test(c.name || "") ? invUnits[(+c.inv || 1) - 1] || null : null;
     const isMcb = invUnits.length >= 2 && /MCB_SOLAR-MDB/i.test(c.name || "");
+    const headed = !!invU || isMcb;
     const isDC = /PV1-F|PV CABLE/i.test(c.type || "") || /PV-INVERTER/i.test(c.name || "");
     const own = !!(c.method || c.group || c.ncond || c.core);
     const rawMethod = c.method || calcMethod;
@@ -6269,8 +6270,18 @@ function BOQEditor({
         style: {
           color: "var(--tint-amber-tx)"
         }
-      }, miss.length ? "ตัวที่ " + miss.join(", ") + " ยังไม่อยู่ตู้ไหน" : "", miss.length && dup.length ? " · " : "", dup.length ? "ตัวที่ " + dup.join(", ") + " อยู่หลายตู้" : ""));
-    })(), isMobile && React.createElement("div", {
+      }, miss.length ? "ตัวที่ " + miss.join(", ") + " ยังไม่อยู่ตู้ไหน" : "", miss.length && dup.length ? " · " : "", dup.length ? "ตัวที่ " + dup.join(", ") + " อยู่หลายตู้" : ""), mRows.length > 1 && React.createElement("button", {
+        className: "bq-x",
+        style: {
+          marginLeft: "auto"
+        },
+        onClick: () => delCab(i),
+        title: "\u0E25\u0E1A\u0E15\u0E39\u0E49\u0E19\u0E35\u0E49"
+      }, React.createElement(Icon, {
+        name: "x",
+        size: 14
+      })));
+    })(), isMobile && !headed && React.createElement("div", {
       style: {
         display: "flex",
         flexDirection: "column",
@@ -6282,23 +6293,41 @@ function BOQEditor({
         fontWeight: 700,
         color: "var(--text-3)"
       }
-    }, "\u0E08\u0E38\u0E14\u0E40\u0E14\u0E34\u0E19\u0E2A\u0E32\u0E22"), React.createElement(Dropdown, {
+    }, "\u0E08\u0E38\u0E14\u0E40\u0E14\u0E34\u0E19\u0E2A\u0E32\u0E22"), React.createElement("div", {
+      style: {
+        display: "flex",
+        gap: 8,
+        alignItems: "center"
+      }
+    }, React.createElement("div", {
+      style: {
+        flex: 1,
+        minWidth: 0
+      }
+    }, React.createElement(Dropdown, {
       value: c.name || "",
       onChange: v => setCab(i, "name", v),
       options: cablePtOptions,
       placeholder: "\u2014 \u0E40\u0E25\u0E37\u0E2D\u0E01\u0E08\u0E38\u0E14 \u2014",
       addable: true,
       onAdd: addCablePt
-    })), React.createElement("div", {
+    })), power && React.createElement("button", {
+      className: "bq-x",
+      onClick: () => delCab(i),
+      title: "\u0E25\u0E1A\u0E2A\u0E32\u0E22\u0E40\u0E2A\u0E49\u0E19\u0E19\u0E35\u0E49"
+    }, React.createElement(Icon, {
+      name: "x",
+      size: 14
+    })))), !(power && (headed || isMobile)) && React.createElement("div", {
       style: {
         display: "grid",
-        gridTemplateColumns: isMobile ? power ? "minmax(0,1fr) 34px" : "minmax(0,1fr) 64px 34px" : CAB_COLS,
+        gridTemplateColumns: isMobile ? "minmax(0,1fr) 64px 34px" : CAB_COLS,
         gap: 8,
         alignItems: "center"
       }
     }, !isMobile && React.createElement("div", {
       style: {
-        gridColumn: power ? "span 2" : undefined,
+        gridColumn: power ? "span 3" : undefined,
         minWidth: 0
       }
     }, React.createElement(Dropdown, {
@@ -6313,7 +6342,7 @@ function BOQEditor({
       onChange: v => setCab(i, "type", v),
       options: cableTypeOptions,
       placeholder: "\u2014 \u0E40\u0E25\u0E37\u0E2D\u0E01\u0E2A\u0E32\u0E22\u0E44\u0E1F \u2014"
-    }), React.createElement("input", {
+    }), !power && React.createElement("input", {
       type: "number",
       style: numStyle,
       value: c.length,
@@ -6575,6 +6604,26 @@ function BOQEditor({
         className: "bq-cabx-link",
         onClick: () => setCab(i, "noGnd", false)
       }, "+ \u0E40\u0E14\u0E34\u0E19\u0E2A\u0E32\u0E22\u0E01\u0E23\u0E32\u0E27\u0E14\u0E4C\u0E44\u0E1B\u0E14\u0E49\u0E27\u0E22")), React.createElement("div", {
+        className: "bq-cabx-step"
+      }, React.createElement("span", {
+        className: "n"
+      }, "4"), React.createElement("span", {
+        className: "lb"
+      }, "\u0E23\u0E30\u0E22\u0E30\u0E2A\u0E32\u0E22"), React.createElement("div", {
+        style: {
+          width: 110
+        }
+      }, React.createElement("input", {
+        type: "number",
+        style: Object.assign({}, numStyle, {
+          padding: "7px 10px"
+        }),
+        value: c.length,
+        placeholder: "\u0E21.",
+        onChange: e => setCab(i, "length", e.target.value)
+      })), React.createElement("span", {
+        className: "hint"
+      }, "\u0E40\u0E21\u0E15\u0E23 \xB7 \u0E23\u0E30\u0E22\u0E30\u0E40\u0E2A\u0E49\u0E19\u0E17\u0E32\u0E07\u0E08\u0E23\u0E34\u0E07 1 \u0E40\u0E2A\u0E49\u0E19")), React.createElement("div", {
         style: {
           display: "flex",
           alignItems: "center",

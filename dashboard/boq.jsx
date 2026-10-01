@@ -2861,6 +2861,7 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
                 const gndPair = isGnd && i > 0 && /PV-INVERTER/i.test((b.cables[i - 1] || {}).name || "");
                 const invU = invUnits.length && /INVERTER-MCB_SOLAR/i.test(c.name || "") ? (invUnits[(+c.inv || 1) - 1] || null) : null;
                 const isMcb = invUnits.length >= 2 && /MCB_SOLAR-MDB/i.test(c.name || "");
+                const headed = !!invU || isMcb;
                 const isDC = /PV1-F|PV CABLE/i.test(c.type || "") || /PV-INVERTER/i.test(c.name || "");  // สาย DC คิดขนาดในส่วนสาย DC แยก
                 /* เงื่อนไขของสายเส้นนี้ — ไม่ได้ตั้งเอง = ตามค่าตั้งต้นของงาน (ตารางคำนวณขนาดสายไฟ)
                    ปกติทั้งงานเดินแบบเดียวกัน จะได้ไม่ต้องมากดซ้ำทุกเส้น เส้นไหนต่างค่อยกดแก้เฉพาะเส้น */
@@ -2928,29 +2929,38 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
                             {miss.length ? "ตัวที่ " + miss.join(", ") + " ยังไม่อยู่ตู้ไหน" : ""}{miss.length && dup.length ? " · " : ""}{dup.length ? "ตัวที่ " + dup.join(", ") + " อยู่หลายตู้" : ""}
                           </span>
                         )}
+                        {mRows.length > 1 && <button className="bq-x" style={{ marginLeft: "auto" }} onClick={() => delCab(i)} title="ลบตู้นี้"><Icon name="x" size={14} /></button>}
                       </div>
                     );
                   })()}
-                  {isMobile && (
+                  {isMobile && !headed && (
                     <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
                       <span style={{ fontSize: 10, fontWeight: 700, color: "var(--text-3)" }}>จุดเดินสาย</span>
-                      <Dropdown value={c.name || ""} onChange={(v) => setCab(i, "name", v)} options={cablePtOptions} placeholder="— เลือกจุด —" addable onAdd={addCablePt} />
+                      <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <Dropdown value={c.name || ""} onChange={(v) => setCab(i, "name", v)} options={cablePtOptions} placeholder="— เลือกจุด —" addable onAdd={addCablePt} />
+                        </div>
+                        {power && <button className="bq-x" onClick={() => delCab(i)} title="ลบสายเส้นนี้"><Icon name="x" size={14} /></button>}
+                      </div>
                     </div>
                   )}
-                  <div style={{ display: "grid", gridTemplateColumns: isMobile ? (power ? "minmax(0,1fr) 34px" : "minmax(0,1fr) 64px 34px") : CAB_COLS, gap: 8, alignItems: "center" }}>
+                  {/* แถวที่มีหัวข้อแล้ว (อินเวอร์เตอร์/ตู้ MCB_SOLAR) ไม่ต้องมีช่องจุดเดินสายซ้ำ · สายกำลัง AC กรอกระยะในขั้น ④ */}
+                  {!(power && (headed || isMobile)) && (
+                  <div style={{ display: "grid", gridTemplateColumns: isMobile ? "minmax(0,1fr) 64px 34px" : CAB_COLS, gap: 8, alignItems: "center" }}>
                     {!isMobile && (
-                      <div style={{ gridColumn: power ? "span 2" : undefined, minWidth: 0 }}>
+                      <div style={{ gridColumn: power ? "span 3" : undefined, minWidth: 0 }}>
                         <Dropdown value={c.name || ""} onChange={(v) => setCab(i, "name", v)} options={cablePtOptions} placeholder="— เลือกจุด —" addable onAdd={addCablePt} />
                       </div>
                     )}
                     {/* สายกำลัง AC เลือกชนิด/ขนาดจากการ์ดขั้น ② ด้านล่าง ไม่ต้องมีช่องเลือกซ้ำ */}
                     {!power && <Dropdown value={c.type} onChange={(v) => setCab(i, "type", v)} options={cableTypeOptions} placeholder="— เลือกสายไฟ —" />}
-                    <input type="number" style={numStyle} value={c.length}
+                    {!power && <input type="number" style={numStyle} value={c.length}
                       placeholder={window.BOQ.isPvDcCable(c.type) ? "ไกลสุด" : "ม."}
                       title={window.BOQ.isPvDcCable(c.type) ? "สาย DC — กรอก “ระยะเส้นที่ไกลที่สุด” (สตริงที่อยู่ไกลอินเวอร์เตอร์สุด) ระบบคูณจำนวนสตริงและเผื่อให้เอง" : undefined}
-                      onChange={(e) => setCab(i, "length", e.target.value)} />
+                      onChange={(e) => setCab(i, "length", e.target.value)} />}
                     <button className="bq-x" onClick={() => delCab(i)} title="ลบสายเส้นนี้"><Icon name="x" size={14} /></button>
                   </div>
+                  )}
                   {/* บรรทัดสถานะ — ปกติเห็นแค่สรุปสั้น ๆ กดที่ป้ายเงื่อนไขถึงจะกางช่องแก้เฉพาะเส้น */}
                   {!power && (showHint || isDC || vd || isGnd) && (
                     <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap", fontSize: 11, lineHeight: 1.5 }}>
@@ -3082,6 +3092,15 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
                             ? <span className="bq-cabx-sum">+ กราวด์ <b>{c.gnd.replace(/\s*SQ\.MM\.\s*/i, " ")}</b> × 1 เส้น <span className="hint">(ตาราง 4.1{setsN > 1 && window.BOQ.cableSizeNum(c.type) ? " · ตัวนำรวม " + window.BOQ.cableSizeNum(c.type) + " × " + setsN + " = " + window.BOQ.cableSizeNum(c.type) * setsN + " mm²" : ""})</span>{" "}
                                 <button type="button" className="bq-cabx-link" onClick={() => setCab(i, "noGnd", true)}>ไม่เดินกราวด์</button></span>
                             : <button type="button" className="bq-cabx-link" onClick={() => setCab(i, "noGnd", false)}>+ เดินสายกราวด์ไปด้วย</button>}
+                        </div>
+                        {/* ④ ระยะเดินสาย — ระบบคูณจำนวนเส้นและกราวด์ให้เอง */}
+                        <div className="bq-cabx-step">
+                          <span className="n">4</span><span className="lb">ระยะสาย</span>
+                          <div style={{ width: 110 }}>
+                            <input type="number" style={Object.assign({}, numStyle, { padding: "7px 10px" })} value={c.length} placeholder="ม."
+                              onChange={(e) => setCab(i, "length", e.target.value)} />
+                          </div>
+                          <span className="hint">เมตร · ระยะเส้นทางจริง 1 เส้น</span>
                         </div>
                         {/* ผลตรวจ + ปริมาณที่ถอดเข้า BOQ */}
                         <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap", fontSize: 11, fontWeight: 700 }}>
