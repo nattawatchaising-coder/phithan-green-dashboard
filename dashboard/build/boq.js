@@ -1979,7 +1979,7 @@ function BOQEditor({
     });
   });
   const kitShown = isHome ? kitSections.filter(sc => sc.sec === "board").map(sc => Object.assign({}, sc, {
-    hint: "ตู้ไฟของงานบ้าน — กรอกจำนวนตู้ และอุปกรณ์ในตู้เองได้ (อุปกรณ์อัตโนมัติ MCCB / SPD / ฟิวส์ คิดให้เฉพาะงานโครงการ) · ราคาดึงจากคลังเหมือนวัสดุอื่น"
+    hint: "ตู้ไฟของงานบ้าน — ใช้ตู้ Combiner ตู้เดียว ระบบคิดอุปกรณ์ในตู้ให้ตามสตริงและอินเวอร์เตอร์ · ถ้ามีตู้แยกเพิ่ม กรอกตู้ AC / DC เองด้านล่าง · ราคาดึงจากคลังเหมือนวัสดุอื่น"
   })) : kitSections;
   const PRICE_DEF = {
     contractor: 0,
@@ -1994,6 +1994,10 @@ function BOQEditor({
     })
   }));
   const result = window.BOQ.calcBOQ(b);
+  const combN = isHome ? ((result.groups || []).find(x => x.group === "COMBINER BOX") || {
+    items: []
+  }).items.filter(x => +x.qty > 0).length : 0;
+  const scCount = sc => sc.count + (sc.sec === "board" ? combN : 0);
   const priced = window.BOQ.applyPrices(result, priceMap || {}, b.pick || {});
   const pb = window.BOQ.priceBreakdown(priced.grandTotal, pricing, (result.meta.kw || 0) * 1000);
   const siteTotal = (priced.groups || []).filter(g => g.group === window.BOQ.G_TRANSPORT || g.group === window.BOQ.G_MANAGE).reduce((s, g) => s + g.subtotal, 0);
@@ -5555,8 +5559,8 @@ function BOQEditor({
     key: sc.key,
     icon: sc.icon,
     title: sc.title,
-    meta: sc.count > 0 ? sc.count + " รายการ" : "ยังไม่ได้กรอก",
-    tone: sc.count > 0 ? "ok" : ""
+    meta: scCount(sc) > 0 ? scCount(sc) + " รายการ" : "ยังไม่ได้กรอก",
+    tone: scCount(sc) > 0 ? "ok" : ""
   }))).concat([!isHome ? {
     key: "site",
     icon: "power",
@@ -8280,13 +8284,13 @@ function BOQEditor({
     title: sc.title,
     icon: sc.icon
   }, secProps(sc.key), {
-    right: sc.count > 0 ? React.createElement("span", {
+    right: scCount(sc) > 0 ? React.createElement("span", {
       style: {
         fontSize: 12.5,
         fontWeight: 800,
         color: "var(--primary-dark)"
       }
-    }, sc.count, " \u0E23\u0E32\u0E22\u0E01\u0E32\u0E23") : null
+    }, scCount(sc), " \u0E23\u0E32\u0E22\u0E01\u0E32\u0E23") : null
   }), React.createElement("div", {
     className: "bq-hint",
     style: {
@@ -8295,7 +8299,70 @@ function BOQEditor({
       lineHeight: 1.5,
       marginBottom: 14
     }
-  }, sc.hint), React.createElement("div", {
+  }, sc.hint), isHome && sc.sec === "board" && (() => {
+    const g = (result.groups || []).find(x => x.group === "COMBINER BOX");
+    const rows = g ? g.items.filter(x => +x.qty > 0) : [];
+    return React.createElement("div", {
+      style: {
+        background: "var(--surface2)",
+        borderRadius: 12,
+        padding: 10,
+        marginBottom: 14,
+        display: "flex",
+        flexDirection: "column",
+        gap: 6
+      }
+    }, React.createElement("span", {
+      style: {
+        fontSize: 10.5,
+        fontWeight: 800,
+        color: "var(--text-2)"
+      }
+    }, "\u0E15\u0E39\u0E49 Combiner (AC + DC \u0E23\u0E27\u0E21\u0E15\u0E39\u0E49\u0E40\u0E14\u0E35\u0E22\u0E27) \u2014 \u0E23\u0E30\u0E1A\u0E1A\u0E04\u0E34\u0E14\u0E43\u0E2B\u0E49"), rows.length ? React.createElement("div", {
+      style: {
+        display: "grid",
+        gridTemplateColumns: isMobile ? "1fr" : "repeat(2, minmax(0,1fr))",
+        gap: 6
+      }
+    }, rows.map((x, i) => React.createElement("div", {
+      key: i,
+      style: {
+        background: "var(--surface)",
+        boxShadow: "var(--shadow-sm)",
+        borderRadius: 9,
+        padding: "6px 8px",
+        display: "flex",
+        gap: 6,
+        alignItems: "baseline"
+      }
+    }, React.createElement("span", {
+      style: {
+        flex: 1,
+        minWidth: 0,
+        fontSize: 11.5,
+        fontWeight: 700,
+        color: "var(--text-1)"
+      }
+    }, x.name), React.createElement("span", {
+      style: {
+        fontSize: 11.5,
+        fontWeight: 800,
+        color: "var(--primary-dark)",
+        whiteSpace: "nowrap"
+      }
+    }, x.qty, " ", x.unit)))) : React.createElement("span", {
+      style: {
+        fontSize: 11,
+        color: "var(--text-3)"
+      }
+    }, "\u0E40\u0E25\u0E37\u0E2D\u0E01\u0E23\u0E38\u0E48\u0E19\u0E2D\u0E34\u0E19\u0E40\u0E27\u0E2D\u0E23\u0E4C\u0E40\u0E15\u0E2D\u0E23\u0E4C\u0E41\u0E25\u0E30\u0E01\u0E23\u0E2D\u0E01\u0E08\u0E33\u0E19\u0E27\u0E19\u0E41\u0E1C\u0E07\u0E01\u0E48\u0E2D\u0E19 \u0E23\u0E30\u0E1A\u0E1A\u0E08\u0E30\u0E04\u0E34\u0E14\u0E2D\u0E38\u0E1B\u0E01\u0E23\u0E13\u0E4C\u0E43\u0E19\u0E15\u0E39\u0E49\u0E43\u0E2B\u0E49"), React.createElement("span", {
+      style: {
+        fontSize: 10,
+        color: "var(--text-3)",
+        lineHeight: 1.45
+      }
+    }, "\u0E04\u0E34\u0E14\u0E15\u0E32\u0E21\u0E08\u0E33\u0E19\u0E27\u0E19\u0E2A\u0E15\u0E23\u0E34\u0E07\u0E41\u0E25\u0E30\u0E2D\u0E34\u0E19\u0E40\u0E27\u0E2D\u0E23\u0E4C\u0E40\u0E15\u0E2D\u0E23\u0E4C \u2014 \u0E1F\u0E34\u0E27\u0E2A\u0E4C/\u0E10\u0E32\u0E19\u0E1F\u0E34\u0E27\u0E2A\u0E4C DC \u0E2A\u0E15\u0E23\u0E34\u0E07\u0E25\u0E30 2 \xB7 SPD/MCB DC \u0E2A\u0E15\u0E23\u0E34\u0E07\u0E25\u0E30 1 \xB7 SPD AC + RCBO \u0E15\u0E32\u0E21\u0E2D\u0E34\u0E19\u0E40\u0E27\u0E2D\u0E23\u0E4C\u0E40\u0E15\u0E2D\u0E23\u0E4C \xB7 \u0E43\u0E1A\u0E23\u0E32\u0E22\u0E01\u0E32\u0E23\u0E2D\u0E22\u0E39\u0E48\u0E2B\u0E21\u0E27\u0E14 COMBINER BOX \xB7 \u0E16\u0E49\u0E32\u0E07\u0E32\u0E19\u0E19\u0E35\u0E49\u0E21\u0E35\u0E15\u0E39\u0E49\u0E41\u0E22\u0E01\u0E40\u0E1E\u0E34\u0E48\u0E21 \u0E01\u0E23\u0E2D\u0E01\u0E43\u0E19\u0E15\u0E39\u0E49 AC / DC \u0E14\u0E49\u0E32\u0E19\u0E25\u0E48\u0E32\u0E07\u0E44\u0E14\u0E49"));
+  })(), React.createElement("div", {
     style: {
       display: "flex",
       flexDirection: "column",

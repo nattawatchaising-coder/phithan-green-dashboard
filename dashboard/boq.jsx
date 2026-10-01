@@ -1013,7 +1013,7 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
   });
   // งานบ้านมีเฉพาะหมวดตู้ไฟ (กรอกเอง — อุปกรณ์อัตโนมัติคิดเฉพาะงานโครงการ) · ระบบน้ำมีแต่งานโครงการ
   const kitShown = isHome ? kitSections.filter((sc) => sc.sec === "board")
-    .map((sc) => Object.assign({}, sc, { hint: "ตู้ไฟของงานบ้าน — กรอกจำนวนตู้ และอุปกรณ์ในตู้เองได้ (อุปกรณ์อัตโนมัติ MCCB / SPD / ฟิวส์ คิดให้เฉพาะงานโครงการ) · ราคาดึงจากคลังเหมือนวัสดุอื่น" })) : kitSections;
+    .map((sc) => Object.assign({}, sc, { hint: "ตู้ไฟของงานบ้าน — ใช้ตู้ Combiner ตู้เดียว ระบบคิดอุปกรณ์ในตู้ให้ตามสตริงและอินเวอร์เตอร์ · ถ้ามีตู้แยกเพิ่ม กรอกตู้ AC / DC เองด้านล่าง · ราคาดึงจากคลังเหมือนวัสดุอื่น" })) : kitSections;
 
   // ── ราคาขาย & ส่วนลด ──
   const PRICE_DEF = { contractor: 0, sell: 0, discount: 0, vat: window.BOQ.VAT_RATE };
@@ -1021,6 +1021,9 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
   const setPricing = (k, v) => setB((p) => Object.assign({}, p, { pricing: Object.assign({}, PRICE_DEF, p.pricing || {}, { [k]: v === "" ? "" : +v || 0 }) }));
 
   const result = window.BOQ.calcBOQ(b);
+  // งานบ้าน: จำนวนรายการในตู้ Combiner ที่ระบบคิดให้ — นับรวมในหัวข้อตู้ไฟ
+  const combN = isHome ? (((result.groups || []).find((x) => x.group === "COMBINER BOX") || { items: [] }).items.filter((x) => +x.qty > 0).length) : 0;
+  const scCount = (sc) => sc.count + (sc.sec === "board" ? combN : 0);
   const priced = window.BOQ.applyPrices(result, priceMap || {}, b.pick || {});
   // แบ่งราคา: ต้นทุนมาจากใบถอดของ · ผู้รับเหมา/ราคาขาย/ส่วนลด กรอกเอง
   const pb = window.BOQ.priceBreakdown(priced.grandTotal, pricing, (result.meta.kw || 0) * 1000);
@@ -2687,7 +2690,7 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
     /* หมวดของงานโครงการ — วางต่อจากรางไฟ เพราะกรอกไล่จากงานเดินสาย/เดินท่อมาที่ตู้และระบบน้ำต่อกันเลย
        งานบ้านไม่ต้องมีให้เกะกะ */
   ].concat(kitShown.map((sc) => ({ key: sc.key, icon: sc.icon, title: sc.title,
-    meta: sc.count > 0 ? sc.count + " รายการ" : "ยังไม่ได้กรอก", tone: sc.count > 0 ? "ok" : "" }))).concat([
+    meta: scCount(sc) > 0 ? scCount(sc) + " รายการ" : "ยังไม่ได้กรอก", tone: scCount(sc) > 0 ? "ok" : "" }))).concat([
     !isHome ? { key: "site", icon: "power", title: "ขนส่ง & บริหารจัดการ",
       meta: siteTotal > 0 ? "฿" + baht(siteTotal) : "ยังไม่ได้กรอก", tone: siteTotal > 0 ? "ok" : "" } : null,
     !isHome ? { key: "support", icon: "box", title: "โครงสร้างรองรับอุปกรณ์",
@@ -3879,10 +3882,34 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
           {/* ── หมวดของงานโครงการ — ตู้ไฟ กับ ระบบน้ำ เป็นคนละหัวข้อกัน ── */}
           {kitShown.map((sc) => (
           <BoqSection key={sc.key} title={sc.title} icon={sc.icon} {...secProps(sc.key)}
-            right={sc.count > 0 ? <span style={{ fontSize: 12.5, fontWeight: 800, color: "var(--primary-dark)" }}>{sc.count} รายการ</span> : null}>
+            right={scCount(sc) > 0 ? <span style={{ fontSize: 12.5, fontWeight: 800, color: "var(--primary-dark)" }}>{scCount(sc)} รายการ</span> : null}>
             <div className="bq-hint" style={{ fontSize: 11.5, color: "var(--text-3)", lineHeight: 1.5, marginBottom: 14 }}>
               {sc.hint}
             </div>
+            {/* งานบ้าน: ตู้ Combiner (AC+DC รวมตู้เดียว) ระบบคิดให้แล้วตามสตริง/อินเวอร์เตอร์ — โชว์ให้เห็นในหัวข้อตู้ไฟ (ถอดของอยู่หมวด COMBINER BOX) */}
+            {isHome && sc.sec === "board" && (() => {
+              const g = (result.groups || []).find((x) => x.group === "COMBINER BOX");
+              const rows = g ? g.items.filter((x) => +x.qty > 0) : [];
+              return (
+                <div style={{ background: "var(--surface2)", borderRadius: 12, padding: 10, marginBottom: 14, display: "flex", flexDirection: "column", gap: 6 }}>
+                  <span style={{ fontSize: 10.5, fontWeight: 800, color: "var(--text-2)" }}>ตู้ Combiner (AC + DC รวมตู้เดียว) — ระบบคิดให้</span>
+                  {rows.length ? (
+                    <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "repeat(2, minmax(0,1fr))", gap: 6 }}>
+                      {rows.map((x, i) => (
+                        <div key={i} style={{ background: "var(--surface)", boxShadow: "var(--shadow-sm)", borderRadius: 9, padding: "6px 8px", display: "flex", gap: 6, alignItems: "baseline" }}>
+                          <span style={{ flex: 1, minWidth: 0, fontSize: 11.5, fontWeight: 700, color: "var(--text-1)" }}>{x.name}</span>
+                          <span style={{ fontSize: 11.5, fontWeight: 800, color: "var(--primary-dark)", whiteSpace: "nowrap" }}>{x.qty} {x.unit}</span>
+                        </div>
+                      ))}
+                    </div>
+                  ) : <span style={{ fontSize: 11, color: "var(--text-3)" }}>เลือกรุ่นอินเวอร์เตอร์และกรอกจำนวนแผงก่อน ระบบจะคิดอุปกรณ์ในตู้ให้</span>}
+                  <span style={{ fontSize: 10, color: "var(--text-3)", lineHeight: 1.45 }}>
+                    คิดตามจำนวนสตริงและอินเวอร์เตอร์ — ฟิวส์/ฐานฟิวส์ DC สตริงละ 2 · SPD/MCB DC สตริงละ 1 · SPD AC + RCBO ตามอินเวอร์เตอร์ · ใบรายการอยู่หมวด COMBINER BOX
+                    · ถ้างานนี้มีตู้แยกเพิ่ม กรอกในตู้ AC / DC ด้านล่างได้
+                  </span>
+                </div>
+              );
+            })()}
             <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
               {sc.kits.map((k, ki) => {
                 const st = kitOf(k.key);
