@@ -3611,62 +3611,17 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
                 hint: "ของท่อร้อยสายโดยเฉพาะ — เลือกได้ครบทุกขนาด แยกกลุ่ม IMC กับ uPVC (คนละอันกับข้องอของรางไฟ)" })}
             </div>
             <div className="bq-hint" style={{ marginTop: 12, fontSize: 11, color: "var(--text-3)", lineHeight: 1.5 }}>
-              * อุปกรณ์ IMC (แคล้มประกับ / บุชชิ่ง,ล็อกนัท / รางซี / คอนเนคเตอร์ / คุปปิ้ง) คำนวณอัตโนมัติจากความยาวท่อ + จำนวน PULL BOX
-              <br />* อยากคิดเป็นชิ้นต่อท่อ 1 ท่อน ให้กรอกช่อง "ชิ้น/ท่อน" ในตั้งค่าด้านล่าง — เว้นว่างไว้คือใช้กฎอัตโนมัติ
-              <br />* ค่าตั้งต้นที่ใบใหม่ทุกใบใช้ ตั้งได้ที่ คลังสินค้า › อุปกรณ์ท่อร้อยสาย (ใบที่ถอดไว้แล้วไม่ขยับตาม)
-              {condEdited && (
-                <button onClick={useCondDefault} title="ทิ้งค่าที่แก้ไว้ในใบนี้ แล้วใช้ค่าตั้งต้นของบริษัท"
-                  style={{ marginLeft: 8, padding: "3px 9px", borderRadius: 99, border: "1px solid var(--border-strong)",
-                    background: "var(--surface)", color: "var(--text-2)", fontSize: 11, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>
-                  ใช้ค่าตั้งต้นของบริษัท
-                </button>
-              )}
+              * อุปกรณ์ประกอบท่อ IMC / uPVC (แคล้ม บุชชิ่ง คอนเนคเตอร์ ฯลฯ) คิดอัตโนมัติจากความยาวท่อ + PULL BOX — กฎ ชิ้น/ท่อน และ % เผื่อ ตั้งได้ที่ คลังสินค้า › อุปกรณ์ท่อ / รางไฟ (ใบใหม่ใช้ค่านั้น · ใบที่ถอดไว้แล้วไม่ขยับตาม)
             </div>
-            {/* ตั้งค่า IMC */}
-            <button onClick={() => setAdvC((v) => !v)} style={{ marginTop: 8, display: "inline-flex", alignItems: "center", gap: 5, background: "none", border: "none", color: "var(--text-2)", fontWeight: 600, fontSize: 12, cursor: "pointer", fontFamily: "inherit" }}>
-              <Icon name="settings" size={13} color="var(--text-2)" /> ตั้งค่าอุปกรณ์ IMC (ชิ้น/ท่อน · % เผื่อ · ท่ออ่อน) <Icon name="chevronDown" size={14} color="var(--text-2)" style={{ transform: advC ? "rotate(180deg)" : "none" }} />
-            </button>
-            {advC && (
-              <div style={{ marginTop: 10, padding: 12, background: "var(--surface2)", borderRadius: 10, display: "grid", gridTemplateColumns: isMobile ? "1fr 1fr" : "repeat(3, 1fr)", gap: 10 }}>
-                <BoqCondAcc label="แคล้มประกับ" auto={cAuto("clamp")} numStyle={numStyle}
-                  per={cpr.clamp} spare={csp.clamp} onPer={(v) => setCPer("clamp", v)} onSpare={(v) => setCSpare("clamp", v)} />
-                <BoqCondAcc label="บุชชิ่ง/ล็อกนัท" auto={cAuto("bushing")} numStyle={numStyle}
-                  per={cpr.bushing} spare={csp.bushing} onPer={(v) => setCPer("bushing", v)} onSpare={(v) => setCSpare("bushing", v)} />
-                <BoqCondAcc label="รางซี" auto={cAuto("cchannel")} numStyle={numStyle}
-                  per={cpr.cchannel} spare={csp.cchannel} onPer={(v) => setCPer("cchannel", v)} onSpare={(v) => setCSpare("cchannel", v)} />
-                <BoqCondAcc label="คอนเนคเตอร์" auto={cAuto("connector")} numStyle={numStyle}
-                  per={cpr.connector} spare={csp.connector} onPer={(v) => setCPer("connector", v)} onSpare={(v) => setCSpare("connector", v)} />
-                <BoqCondAcc label="คุปปิ้ง" auto={cAuto("coupling")} numStyle={numStyle}
-                  per={cpr.coupling} spare={csp.coupling} onPer={(v) => setCPer("coupling", v)} onSpare={(v) => setCSpare("coupling", v)} />
-                {[...new Set((cond.imc || []).map((x) => (x.size || "").trim()).filter(Boolean))].map((sz) => (
-                  <Field key={sz} label={"ท่ออ่อน IMC " + sz.replace(/^IMC\s*/i, "") + " (กล่อง)"}><input type="number" style={numStyle} value={(cond.flex || {})[sz] != null ? cond.flex[sz] : 1} onChange={(e) => setFlexSize(sz, e.target.value)} /></Field>
-                ))}
-              </div>
-            )}
-
-            {/* ตั้งค่า uPVC */}
-            <button onClick={() => setAdvU((v) => !v)} style={{ marginTop: 8, display: "inline-flex", alignItems: "center", gap: 5, background: "none", border: "none", color: "var(--text-2)", fontWeight: 600, fontSize: 12, cursor: "pointer", fontFamily: "inherit" }}>
-              <Icon name="settings" size={13} color="var(--text-2)" /> ตั้งค่าอุปกรณ์ uPVC (ชิ้น/ท่อน · % เผื่อ · ท่ออ่อน) <Icon name="chevronDown" size={14} color="var(--text-2)" style={{ transform: advU ? "rotate(180deg)" : "none" }} />
-            </button>
-            {advU && (
-              <div style={{ marginTop: 10, padding: 12, background: "var(--surface2)", borderRadius: 10, display: "grid", gridTemplateColumns: isMobile ? "1fr 1fr" : "repeat(3, 1fr)", gap: 10 }}>
-                <BoqCondAcc label="ข้อต่อตรง" auto="อัตโนมัติ จำนวนท่อน + 4" numStyle={numStyle}
-                  per={cpr.upStraight} spare={csp.upStraight} onPer={(v) => setCPer("upStraight", v)} onSpare={(v) => setCSpare("upStraight", v)} />
-                <BoqCondAcc label="แคลมป์ก้ามปู" auto="อัตโนมัติ ทุก 60 ซม." numStyle={numStyle}
-                  per={cpr.upClamp} spare={csp.upClamp} onPer={(v) => setCPer("upClamp", v)} onSpare={(v) => setCSpare("upClamp", v)} />
-                <BoqCondAcc label="คอนเน็ตเตอร์ uPVC" auto="อัตโนมัติ 8 + แบต/สำรอง + 3 ต่อ PULL BOX uPVC" numStyle={numStyle}
-                  per={cpr.upConnector} spare={csp.upConnector} onPer={(v) => setCPer("upConnector", v)} onSpare={(v) => setCSpare("upConnector", v)} />
-                {[...new Set((cond.upvc || []).map((x) => (x.size || "").trim()).filter(Boolean))].map((sz) => (
-                  <Field key={sz} label={"ท่ออ่อนขาว " + ((sz.match(/(\d+)\s*mm/) || [])[1] || "") + "mm (กล่อง)"}><input type="number" style={numStyle} value={(cond.upFlex || {})[sz] != null ? cond.upFlex[sz] : 1} onChange={(e) => setUpFlexSize(sz, e.target.value)} /></Field>
-                ))}
-              </div>
-            )}
           </BoqSection>
 
           {/* ── รางไฟ (WIREWAY / CABLE TRAY) ── */}
           <BoqSection title="รางไฟ (Wireway / Cable Tray)" icon="grid" {...secProps("tray")}
             right={trayLen > 0 ? <span style={{ fontSize: 12, fontWeight: 800, color: "var(--primary-dark)" }}>รวม {trayLen} ม.</span> : null}>
             <MeasBar kinds={["tray"]} />
+            <div style={{ fontSize: 12, color: "var(--text-3)", marginBottom: 10 }}>
+              เลือกรางให้สายแต่ละเส้นได้ที่แผง "เดินท่อ / รางตามเส้นสายไฟ" ในหัวข้อท่อร้อยสาย — ขนาด ระยะ ชุบ HDG ยึดบน Rail และข้อต่อ อยู่ใต้เส้นนั้น
+            </div>
             <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
               {TrayList({ kind: "way", label: "Wireway เหล็กมีฝา", sizes: window.BOQ.WAY_SIZES,
                 hint: "รางเหล็กพับมีฝาปิด ยาว " + window.BOQ.trayLenTxt(window.BOQ.WAY_PIPE_LEN) + " ม./ท่อน — กรอกความยาวรวมของแต่ละขนาด" })}
@@ -3674,19 +3629,12 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
                 hint: "พื้นรางเป็นขั้นบันได ยาว " + window.BOQ.trayLenTxt(window.BOQ.TRAY_PIPE_LEN) + " ม./ท่อน — ใช้เดินสายเส้นใหญ่จำนวนมากระยะไกล ระบายความร้อนดีที่สุด" })}
               {TrayList({ kind: "perf", label: "Cable Tray Perforated (รางเจาะรู)", sizes: window.BOQ.PERF_SIZES,
                 hint: "พื้นรางเป็นแผ่นเจาะรู ยาว " + window.BOQ.trayLenTxt(window.BOQ.TRAY_PIPE_LEN) + " ม./ท่อน — รองสายเส้นเล็กได้ไม่ตกร่อง เกณฑ์เติมเต็มเท่ารางบันได" })}
-              <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "160px 1fr", gap: 12, alignItems: "center" }}>
-                <Field label="% เผื่อ อุปกรณ์ประกอบ">
-                  <input type="number" style={numStyle} value={tw.spare} onChange={(e) => setTrayVal("spare", e.target.value)} />
-                </Field>
-                <div style={{ fontSize: 11.5, color: "var(--text-3)", lineHeight: 1.5 }}>
-                  ตัวราง = ปัดขึ้นตามความยาว/ท่อน · ชุดข้อต่อ = ทุกรอยต่อ +2 · ขาล็อกรางไฟ = ทุก 1.5 ม. · ตัวยึด 2 ตัว/ขา
-                  <br />แถวที่ติ๊ก “ยึดบน Rail” = T-BOLT KIT 2 ชุด/ขา + Rail รองใต้ขา 1 ชิ้น/ขา (ยาวกว่ารางข้างละ 10 ซม.) ถอดเป็นท่อนเต็มตามที่ตัดแบ่งได้ · ไม่ติ๊ก = พุ๊กเหล็ก 2 ตัว/ขา
-                  <br />แถวที่ติ๊ก “ชุบ HDG” ถอดเป็นของชุบแยกบรรทัด (ตัวราง · ข้อต่อ · ขาล็อก) — พุ๊ก สกรู T-BOLT และ Rail ใช้ของมาตรฐานร่วมกับงานอื่น
-                </div>
-              </div>
               {/* ข้องอ / ข้อลด / สามทาง — รูปทรงไม่ตายตัว เลือกของ + กรอกจำนวนตามแบบ */}
               {FitList({ rows: (tw.extra || []).filter((x) => !x.auto), onChange: (v) => setTrayVal("extra", (tw.extra || []).filter((x) => x.auto).concat(v)), catalog: trayFits,
-                hint: "ของรางไฟโดยเฉพาะ — เลือกได้ครบทุกขนาด แยกกลุ่มตามชนิดราง และแยกของชุบ HDG ออกจากของธรรมดา" })}
+                hint: "ของรางไฟโดยเฉพาะ — แยกกลุ่มตามชนิดราง และแยกของชุบ HDG" })}
+            </div>
+            <div className="bq-hint" style={{ marginTop: 12, fontSize: 11, color: "var(--text-3)", lineHeight: 1.5 }}>
+              * ตัวราง ชุดข้อต่อ ขาล็อก ตัวยึด คิดอัตโนมัติจากความยาวราง — % เผื่ออุปกรณ์ประกอบ ตั้งได้ที่ คลังสินค้า › อุปกรณ์ท่อ / รางไฟ (ใบใหม่ใช้ค่านั้น · ใบที่ถอดไว้แล้วไม่ขยับตาม)
             </div>
           </BoqSection>
 

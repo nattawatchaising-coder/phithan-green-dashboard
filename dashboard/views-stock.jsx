@@ -254,7 +254,7 @@ function StockView({ stock, onResetAll, onMenuOpen, currentUser, jobs, priceStor
                 <CatChip active={tab === "stock"} onClick={() => setTab("stock")} label="สต็อก" color="#3B82F6" />
                 <CatChip active={tab === "prices"} onClick={() => setTab("prices")} label="ราคา BOQ" color="#EC4899" />
                 <CatChip active={tab === "amp"} onClick={() => setTab("amp")} label="พิกัดสาย วสท." color="#F59E0B" />
-                <CatChip active={tab === "cond"} onClick={() => setTab("cond")} label="อุปกรณ์ท่อร้อยสาย" color="#0EA5E9" />
+                <CatChip active={tab === "cond"} onClick={() => setTab("cond")} label="อุปกรณ์ท่อ / รางไฟ" color="#0EA5E9" />
               </React.Fragment>
             )}
             {!isMobile && !isAmp && !isCond && (
@@ -1267,6 +1267,7 @@ function ConduitDefaultsEditor({ condStore }) {
   };
 
   const nEdited = COND_DEF_ROWS.filter((r) => (saved.per || {})[r.key] != null || (saved.spare || {})[r.key] != null).length
+    + ((saved.spare || {}).tray != null && (saved.spare || {}).tray !== "" ? 1 : 0)
     + RULE_ROWS.filter((r) => (saved.rule || {})[r.key] != null && (saved.rule || {})[r.key] !== "").length;
   const cell = { padding: "7px 9px", borderBottom: "1px solid var(--border)", fontSize: 12.5 };
   const numBase = { background: "var(--surface2)", boxShadow: "var(--shadow-sm)", color: "var(--text-1)",
@@ -1384,6 +1385,22 @@ function ConduitDefaultsEditor({ condStore }) {
       {bar}
       {ruleTable}
       {table("uPVC")}
+      {/* รางไฟ — % เผื่อเดียวคุมของประกอบทั้งหมด (ชุดข้อต่อ ขาล็อก ตัวยึด) · เก็บที่ conduitDefaults/spare/tray */}
+      <div style={{ background: "var(--surface)", boxShadow: "var(--shadow-sm)", borderRadius: "var(--r-tile)", overflow: "hidden" }}>
+        <div style={{ padding: "9px 11px", fontSize: 12.5, fontWeight: 700, background: "var(--surface2)" }}>รางไฟ (Wireway / Ladder / Perforated)</div>
+        <div style={{ padding: "10px 11px", display: "grid", gridTemplateColumns: "minmax(0,1fr) 110px", gap: 12, alignItems: "center" }}>
+          <div style={{ fontSize: 11.5, color: "var(--text-3)", lineHeight: 1.55 }}>
+            ตัวราง = ปัดขึ้นตามความยาว/ท่อน · ชุดข้อต่อ = ทุกรอยต่อ +2 · ขาล็อกรางไฟ = ทุก 1.5 ม. · ตัวยึด 2 ตัว/ขา
+            <br />รางที่กด “ยึดบน Rail” = T-BOLT KIT 2 ชุด/ขา + Rail รองใต้ขา 1 ชิ้น/ขา (ยาวกว่ารางข้างละ 10 ซม.) ถอดเป็นท่อนเต็มตามที่ตัดแบ่งได้ · ไม่กด = พุ๊กเหล็ก 2 ตัว/ขา
+            <br />รางที่กด “ชุบ HDG” ถอดเป็นของชุบแยกบรรทัด (ตัวราง · ข้อต่อ · ขาล็อก) — พุ๊ก สกรู T-BOLT และ Rail ใช้ของมาตรฐานร่วมกับงานอื่น
+          </div>
+          <label style={{ display: "flex", flexDirection: "column", gap: 4, fontSize: 10.5, color: "var(--text-3)", fontWeight: 700 }}>
+            % เผื่อ อุปกรณ์ประกอบ
+            <input type="number" disabled={!edit} style={num} placeholder="10"
+              value={spare.tray != null ? spare.tray : ""} onChange={(e) => set("spare", "tray", e.target.value)} />
+          </label>
+        </div>
+      </div>
       <div>
         <button onClick={() => {
           window.askConfirm({ title: "คืนค่าตั้งต้นอุปกรณ์ท่อร้อยสาย?", body: "ค่าที่ตั้งไว้ " + nEdited + " รายการ จะกลับไปใช้กฎ ค่าอัตโนมัติ และ % เผื่อเดิมของระบบ", ok: "คืนค่าตั้งต้น" })

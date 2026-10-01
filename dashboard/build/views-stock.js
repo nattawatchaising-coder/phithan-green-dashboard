@@ -432,7 +432,7 @@ function StockView({
   }), React.createElement(CatChip, {
     active: tab === "cond",
     onClick: () => setTab("cond"),
-    label: "\u0E2D\u0E38\u0E1B\u0E01\u0E23\u0E13\u0E4C\u0E17\u0E48\u0E2D\u0E23\u0E49\u0E2D\u0E22\u0E2A\u0E32\u0E22",
+    label: "\u0E2D\u0E38\u0E1B\u0E01\u0E23\u0E13\u0E4C\u0E17\u0E48\u0E2D / \u0E23\u0E32\u0E07\u0E44\u0E1F",
     color: "#0EA5E9"
   })), !isMobile && !isAmp && !isCond && React.createElement("button", {
     onClick: toggleCat,
@@ -3386,7 +3386,7 @@ function ConduitDefaultsEditor({
       if (ok) setDraft(null);
     });
   };
-  const nEdited = COND_DEF_ROWS.filter(r => (saved.per || {})[r.key] != null || (saved.spare || {})[r.key] != null).length + RULE_ROWS.filter(r => (saved.rule || {})[r.key] != null && (saved.rule || {})[r.key] !== "").length;
+  const nEdited = COND_DEF_ROWS.filter(r => (saved.per || {})[r.key] != null || (saved.spare || {})[r.key] != null).length + ((saved.spare || {}).tray != null && (saved.spare || {}).tray !== "" ? 1 : 0) + RULE_ROWS.filter(r => (saved.rule || {})[r.key] != null && (saved.rule || {})[r.key] !== "").length;
   const cell = {
     padding: "7px 9px",
     borderBottom: "1px solid var(--border)",
@@ -3635,7 +3635,51 @@ function ConduitDefaultsEditor({
       gap: 12,
       maxWidth: 820
     }
-  }, bar, ruleTable, table("uPVC"), React.createElement("div", null, React.createElement("button", {
+  }, bar, ruleTable, table("uPVC"), React.createElement("div", {
+    style: {
+      background: "var(--surface)",
+      boxShadow: "var(--shadow-sm)",
+      borderRadius: "var(--r-tile)",
+      overflow: "hidden"
+    }
+  }, React.createElement("div", {
+    style: {
+      padding: "9px 11px",
+      fontSize: 12.5,
+      fontWeight: 700,
+      background: "var(--surface2)"
+    }
+  }, "\u0E23\u0E32\u0E07\u0E44\u0E1F (Wireway / Ladder / Perforated)"), React.createElement("div", {
+    style: {
+      padding: "10px 11px",
+      display: "grid",
+      gridTemplateColumns: "minmax(0,1fr) 110px",
+      gap: 12,
+      alignItems: "center"
+    }
+  }, React.createElement("div", {
+    style: {
+      fontSize: 11.5,
+      color: "var(--text-3)",
+      lineHeight: 1.55
+    }
+  }, "\u0E15\u0E31\u0E27\u0E23\u0E32\u0E07 = \u0E1B\u0E31\u0E14\u0E02\u0E36\u0E49\u0E19\u0E15\u0E32\u0E21\u0E04\u0E27\u0E32\u0E21\u0E22\u0E32\u0E27/\u0E17\u0E48\u0E2D\u0E19 \xB7 \u0E0A\u0E38\u0E14\u0E02\u0E49\u0E2D\u0E15\u0E48\u0E2D = \u0E17\u0E38\u0E01\u0E23\u0E2D\u0E22\u0E15\u0E48\u0E2D +2 \xB7 \u0E02\u0E32\u0E25\u0E47\u0E2D\u0E01\u0E23\u0E32\u0E07\u0E44\u0E1F = \u0E17\u0E38\u0E01 1.5 \u0E21. \xB7 \u0E15\u0E31\u0E27\u0E22\u0E36\u0E14 2 \u0E15\u0E31\u0E27/\u0E02\u0E32", React.createElement("br", null), "\u0E23\u0E32\u0E07\u0E17\u0E35\u0E48\u0E01\u0E14 \u201C\u0E22\u0E36\u0E14\u0E1A\u0E19 Rail\u201D = T-BOLT KIT 2 \u0E0A\u0E38\u0E14/\u0E02\u0E32 + Rail \u0E23\u0E2D\u0E07\u0E43\u0E15\u0E49\u0E02\u0E32 1 \u0E0A\u0E34\u0E49\u0E19/\u0E02\u0E32 (\u0E22\u0E32\u0E27\u0E01\u0E27\u0E48\u0E32\u0E23\u0E32\u0E07\u0E02\u0E49\u0E32\u0E07\u0E25\u0E30 10 \u0E0B\u0E21.) \u0E16\u0E2D\u0E14\u0E40\u0E1B\u0E47\u0E19\u0E17\u0E48\u0E2D\u0E19\u0E40\u0E15\u0E47\u0E21\u0E15\u0E32\u0E21\u0E17\u0E35\u0E48\u0E15\u0E31\u0E14\u0E41\u0E1A\u0E48\u0E07\u0E44\u0E14\u0E49 \xB7 \u0E44\u0E21\u0E48\u0E01\u0E14 = \u0E1E\u0E38\u0E4A\u0E01\u0E40\u0E2B\u0E25\u0E47\u0E01 2 \u0E15\u0E31\u0E27/\u0E02\u0E32", React.createElement("br", null), "\u0E23\u0E32\u0E07\u0E17\u0E35\u0E48\u0E01\u0E14 \u201C\u0E0A\u0E38\u0E1A HDG\u201D \u0E16\u0E2D\u0E14\u0E40\u0E1B\u0E47\u0E19\u0E02\u0E2D\u0E07\u0E0A\u0E38\u0E1A\u0E41\u0E22\u0E01\u0E1A\u0E23\u0E23\u0E17\u0E31\u0E14 (\u0E15\u0E31\u0E27\u0E23\u0E32\u0E07 \xB7 \u0E02\u0E49\u0E2D\u0E15\u0E48\u0E2D \xB7 \u0E02\u0E32\u0E25\u0E47\u0E2D\u0E01) \u2014 \u0E1E\u0E38\u0E4A\u0E01 \u0E2A\u0E01\u0E23\u0E39 T-BOLT \u0E41\u0E25\u0E30 Rail \u0E43\u0E0A\u0E49\u0E02\u0E2D\u0E07\u0E21\u0E32\u0E15\u0E23\u0E10\u0E32\u0E19\u0E23\u0E48\u0E27\u0E21\u0E01\u0E31\u0E1A\u0E07\u0E32\u0E19\u0E2D\u0E37\u0E48\u0E19"), React.createElement("label", {
+    style: {
+      display: "flex",
+      flexDirection: "column",
+      gap: 4,
+      fontSize: 10.5,
+      color: "var(--text-3)",
+      fontWeight: 700
+    }
+  }, "% \u0E40\u0E1C\u0E37\u0E48\u0E2D \u0E2D\u0E38\u0E1B\u0E01\u0E23\u0E13\u0E4C\u0E1B\u0E23\u0E30\u0E01\u0E2D\u0E1A", React.createElement("input", {
+    type: "number",
+    disabled: !edit,
+    style: num,
+    placeholder: "10",
+    value: spare.tray != null ? spare.tray : "",
+    onChange: e => set("spare", "tray", e.target.value)
+  })))), React.createElement("div", null, React.createElement("button", {
     onClick: () => {
       window.askConfirm({
         title: "คืนค่าตั้งต้นอุปกรณ์ท่อร้อยสาย?",

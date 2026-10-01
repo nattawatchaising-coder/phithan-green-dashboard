@@ -1372,7 +1372,7 @@
       // ท่อร้อยสาย — extra = ข้องอ/ข้อลด/สามทาง ที่เลือกเพิ่มเอง (ระบบเดาจากความยาวไม่ได้)
       conduit: { imc: [], upvc: [], pullbox: [], flex: {}, upFlex: {}, extra: [] },
       // รางไฟ — way = Wireway เหล็กมีฝา · tray = Cable Tray บันได · extra = ข้องอ/ข้อต่อพิเศษที่กรอกเอง
-      tray: { way: [], tray: [], spare: 10, extra: [] },
+      tray: { way: [], tray: [], spare: CONDUIT_DEF.spare.tray != null && CONDUIT_DEF.spare.tray !== "" ? +CONDUIT_DEF.spare.tray : 10, extra: [] },
       // โครงสร้างรองรับอุปกรณ์ — 0 = ไม่ถอด · kind: floor(โครงตั้งพื้น) / wall(ฉากยึดผนัง)
       support: { inv: 0, invKind: "floor", mdb: 0, mdbKind: "floor", spare: 10, extra: [] },
       // ค่าแรง / ค่าขออนุญาต — null = ยังไม่เคยตั้งค่า ใช้รายการตั้งต้น (ราคา 0 รอกรอก)

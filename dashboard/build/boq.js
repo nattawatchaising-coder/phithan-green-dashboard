@@ -7806,174 +7806,7 @@ function BOQEditor({
       color: "var(--text-3)",
       lineHeight: 1.5
     }
-  }, "* \u0E2D\u0E38\u0E1B\u0E01\u0E23\u0E13\u0E4C IMC (\u0E41\u0E04\u0E25\u0E49\u0E21\u0E1B\u0E23\u0E30\u0E01\u0E31\u0E1A / \u0E1A\u0E38\u0E0A\u0E0A\u0E34\u0E48\u0E07,\u0E25\u0E47\u0E2D\u0E01\u0E19\u0E31\u0E17 / \u0E23\u0E32\u0E07\u0E0B\u0E35 / \u0E04\u0E2D\u0E19\u0E40\u0E19\u0E04\u0E40\u0E15\u0E2D\u0E23\u0E4C / \u0E04\u0E38\u0E1B\u0E1B\u0E34\u0E49\u0E07) \u0E04\u0E33\u0E19\u0E27\u0E13\u0E2D\u0E31\u0E15\u0E42\u0E19\u0E21\u0E31\u0E15\u0E34\u0E08\u0E32\u0E01\u0E04\u0E27\u0E32\u0E21\u0E22\u0E32\u0E27\u0E17\u0E48\u0E2D + \u0E08\u0E33\u0E19\u0E27\u0E19 PULL BOX", React.createElement("br", null), "* \u0E2D\u0E22\u0E32\u0E01\u0E04\u0E34\u0E14\u0E40\u0E1B\u0E47\u0E19\u0E0A\u0E34\u0E49\u0E19\u0E15\u0E48\u0E2D\u0E17\u0E48\u0E2D 1 \u0E17\u0E48\u0E2D\u0E19 \u0E43\u0E2B\u0E49\u0E01\u0E23\u0E2D\u0E01\u0E0A\u0E48\u0E2D\u0E07 \"\u0E0A\u0E34\u0E49\u0E19/\u0E17\u0E48\u0E2D\u0E19\" \u0E43\u0E19\u0E15\u0E31\u0E49\u0E07\u0E04\u0E48\u0E32\u0E14\u0E49\u0E32\u0E19\u0E25\u0E48\u0E32\u0E07 \u2014 \u0E40\u0E27\u0E49\u0E19\u0E27\u0E48\u0E32\u0E07\u0E44\u0E27\u0E49\u0E04\u0E37\u0E2D\u0E43\u0E0A\u0E49\u0E01\u0E0E\u0E2D\u0E31\u0E15\u0E42\u0E19\u0E21\u0E31\u0E15\u0E34", React.createElement("br", null), "* \u0E04\u0E48\u0E32\u0E15\u0E31\u0E49\u0E07\u0E15\u0E49\u0E19\u0E17\u0E35\u0E48\u0E43\u0E1A\u0E43\u0E2B\u0E21\u0E48\u0E17\u0E38\u0E01\u0E43\u0E1A\u0E43\u0E0A\u0E49 \u0E15\u0E31\u0E49\u0E07\u0E44\u0E14\u0E49\u0E17\u0E35\u0E48 \u0E04\u0E25\u0E31\u0E07\u0E2A\u0E34\u0E19\u0E04\u0E49\u0E32 \u203A \u0E2D\u0E38\u0E1B\u0E01\u0E23\u0E13\u0E4C\u0E17\u0E48\u0E2D\u0E23\u0E49\u0E2D\u0E22\u0E2A\u0E32\u0E22 (\u0E43\u0E1A\u0E17\u0E35\u0E48\u0E16\u0E2D\u0E14\u0E44\u0E27\u0E49\u0E41\u0E25\u0E49\u0E27\u0E44\u0E21\u0E48\u0E02\u0E22\u0E31\u0E1A\u0E15\u0E32\u0E21)", condEdited && React.createElement("button", {
-    onClick: useCondDefault,
-    title: "\u0E17\u0E34\u0E49\u0E07\u0E04\u0E48\u0E32\u0E17\u0E35\u0E48\u0E41\u0E01\u0E49\u0E44\u0E27\u0E49\u0E43\u0E19\u0E43\u0E1A\u0E19\u0E35\u0E49 \u0E41\u0E25\u0E49\u0E27\u0E43\u0E0A\u0E49\u0E04\u0E48\u0E32\u0E15\u0E31\u0E49\u0E07\u0E15\u0E49\u0E19\u0E02\u0E2D\u0E07\u0E1A\u0E23\u0E34\u0E29\u0E31\u0E17",
-    style: {
-      marginLeft: 8,
-      padding: "3px 9px",
-      borderRadius: 99,
-      border: "1px solid var(--border-strong)",
-      background: "var(--surface)",
-      color: "var(--text-2)",
-      fontSize: 11,
-      fontWeight: 600,
-      cursor: "pointer",
-      fontFamily: "inherit"
-    }
-  }, "\u0E43\u0E0A\u0E49\u0E04\u0E48\u0E32\u0E15\u0E31\u0E49\u0E07\u0E15\u0E49\u0E19\u0E02\u0E2D\u0E07\u0E1A\u0E23\u0E34\u0E29\u0E31\u0E17")), React.createElement("button", {
-    onClick: () => setAdvC(v => !v),
-    style: {
-      marginTop: 8,
-      display: "inline-flex",
-      alignItems: "center",
-      gap: 5,
-      background: "none",
-      border: "none",
-      color: "var(--text-2)",
-      fontWeight: 600,
-      fontSize: 12,
-      cursor: "pointer",
-      fontFamily: "inherit"
-    }
-  }, React.createElement(Icon, {
-    name: "settings",
-    size: 13,
-    color: "var(--text-2)"
-  }), " \u0E15\u0E31\u0E49\u0E07\u0E04\u0E48\u0E32\u0E2D\u0E38\u0E1B\u0E01\u0E23\u0E13\u0E4C IMC (\u0E0A\u0E34\u0E49\u0E19/\u0E17\u0E48\u0E2D\u0E19 \xB7 % \u0E40\u0E1C\u0E37\u0E48\u0E2D \xB7 \u0E17\u0E48\u0E2D\u0E2D\u0E48\u0E2D\u0E19) ", React.createElement(Icon, {
-    name: "chevronDown",
-    size: 14,
-    color: "var(--text-2)",
-    style: {
-      transform: advC ? "rotate(180deg)" : "none"
-    }
-  })), advC && React.createElement("div", {
-    style: {
-      marginTop: 10,
-      padding: 12,
-      background: "var(--surface2)",
-      borderRadius: 10,
-      display: "grid",
-      gridTemplateColumns: isMobile ? "1fr 1fr" : "repeat(3, 1fr)",
-      gap: 10
-    }
-  }, React.createElement(BoqCondAcc, {
-    label: "\u0E41\u0E04\u0E25\u0E49\u0E21\u0E1B\u0E23\u0E30\u0E01\u0E31\u0E1A",
-    auto: cAuto("clamp"),
-    numStyle: numStyle,
-    per: cpr.clamp,
-    spare: csp.clamp,
-    onPer: v => setCPer("clamp", v),
-    onSpare: v => setCSpare("clamp", v)
-  }), React.createElement(BoqCondAcc, {
-    label: "\u0E1A\u0E38\u0E0A\u0E0A\u0E34\u0E48\u0E07/\u0E25\u0E47\u0E2D\u0E01\u0E19\u0E31\u0E17",
-    auto: cAuto("bushing"),
-    numStyle: numStyle,
-    per: cpr.bushing,
-    spare: csp.bushing,
-    onPer: v => setCPer("bushing", v),
-    onSpare: v => setCSpare("bushing", v)
-  }), React.createElement(BoqCondAcc, {
-    label: "\u0E23\u0E32\u0E07\u0E0B\u0E35",
-    auto: cAuto("cchannel"),
-    numStyle: numStyle,
-    per: cpr.cchannel,
-    spare: csp.cchannel,
-    onPer: v => setCPer("cchannel", v),
-    onSpare: v => setCSpare("cchannel", v)
-  }), React.createElement(BoqCondAcc, {
-    label: "\u0E04\u0E2D\u0E19\u0E40\u0E19\u0E04\u0E40\u0E15\u0E2D\u0E23\u0E4C",
-    auto: cAuto("connector"),
-    numStyle: numStyle,
-    per: cpr.connector,
-    spare: csp.connector,
-    onPer: v => setCPer("connector", v),
-    onSpare: v => setCSpare("connector", v)
-  }), React.createElement(BoqCondAcc, {
-    label: "\u0E04\u0E38\u0E1B\u0E1B\u0E34\u0E49\u0E07",
-    auto: cAuto("coupling"),
-    numStyle: numStyle,
-    per: cpr.coupling,
-    spare: csp.coupling,
-    onPer: v => setCPer("coupling", v),
-    onSpare: v => setCSpare("coupling", v)
-  }), [...new Set((cond.imc || []).map(x => (x.size || "").trim()).filter(Boolean))].map(sz => React.createElement(Field, {
-    key: sz,
-    label: "ท่ออ่อน IMC " + sz.replace(/^IMC\s*/i, "") + " (กล่อง)"
-  }, React.createElement("input", {
-    type: "number",
-    style: numStyle,
-    value: (cond.flex || {})[sz] != null ? cond.flex[sz] : 1,
-    onChange: e => setFlexSize(sz, e.target.value)
-  })))), React.createElement("button", {
-    onClick: () => setAdvU(v => !v),
-    style: {
-      marginTop: 8,
-      display: "inline-flex",
-      alignItems: "center",
-      gap: 5,
-      background: "none",
-      border: "none",
-      color: "var(--text-2)",
-      fontWeight: 600,
-      fontSize: 12,
-      cursor: "pointer",
-      fontFamily: "inherit"
-    }
-  }, React.createElement(Icon, {
-    name: "settings",
-    size: 13,
-    color: "var(--text-2)"
-  }), " \u0E15\u0E31\u0E49\u0E07\u0E04\u0E48\u0E32\u0E2D\u0E38\u0E1B\u0E01\u0E23\u0E13\u0E4C uPVC (\u0E0A\u0E34\u0E49\u0E19/\u0E17\u0E48\u0E2D\u0E19 \xB7 % \u0E40\u0E1C\u0E37\u0E48\u0E2D \xB7 \u0E17\u0E48\u0E2D\u0E2D\u0E48\u0E2D\u0E19) ", React.createElement(Icon, {
-    name: "chevronDown",
-    size: 14,
-    color: "var(--text-2)",
-    style: {
-      transform: advU ? "rotate(180deg)" : "none"
-    }
-  })), advU && React.createElement("div", {
-    style: {
-      marginTop: 10,
-      padding: 12,
-      background: "var(--surface2)",
-      borderRadius: 10,
-      display: "grid",
-      gridTemplateColumns: isMobile ? "1fr 1fr" : "repeat(3, 1fr)",
-      gap: 10
-    }
-  }, React.createElement(BoqCondAcc, {
-    label: "\u0E02\u0E49\u0E2D\u0E15\u0E48\u0E2D\u0E15\u0E23\u0E07",
-    auto: "\u0E2D\u0E31\u0E15\u0E42\u0E19\u0E21\u0E31\u0E15\u0E34 \u0E08\u0E33\u0E19\u0E27\u0E19\u0E17\u0E48\u0E2D\u0E19 + 4",
-    numStyle: numStyle,
-    per: cpr.upStraight,
-    spare: csp.upStraight,
-    onPer: v => setCPer("upStraight", v),
-    onSpare: v => setCSpare("upStraight", v)
-  }), React.createElement(BoqCondAcc, {
-    label: "\u0E41\u0E04\u0E25\u0E21\u0E1B\u0E4C\u0E01\u0E49\u0E32\u0E21\u0E1B\u0E39",
-    auto: "\u0E2D\u0E31\u0E15\u0E42\u0E19\u0E21\u0E31\u0E15\u0E34 \u0E17\u0E38\u0E01 60 \u0E0B\u0E21.",
-    numStyle: numStyle,
-    per: cpr.upClamp,
-    spare: csp.upClamp,
-    onPer: v => setCPer("upClamp", v),
-    onSpare: v => setCSpare("upClamp", v)
-  }), React.createElement(BoqCondAcc, {
-    label: "\u0E04\u0E2D\u0E19\u0E40\u0E19\u0E47\u0E15\u0E40\u0E15\u0E2D\u0E23\u0E4C uPVC",
-    auto: "\u0E2D\u0E31\u0E15\u0E42\u0E19\u0E21\u0E31\u0E15\u0E34 8 + \u0E41\u0E1A\u0E15/\u0E2A\u0E33\u0E23\u0E2D\u0E07 + 3 \u0E15\u0E48\u0E2D PULL BOX uPVC",
-    numStyle: numStyle,
-    per: cpr.upConnector,
-    spare: csp.upConnector,
-    onPer: v => setCPer("upConnector", v),
-    onSpare: v => setCSpare("upConnector", v)
-  }), [...new Set((cond.upvc || []).map(x => (x.size || "").trim()).filter(Boolean))].map(sz => React.createElement(Field, {
-    key: sz,
-    label: "ท่ออ่อนขาว " + ((sz.match(/(\d+)\s*mm/) || [])[1] || "") + "mm (กล่อง)"
-  }, React.createElement("input", {
-    type: "number",
-    style: numStyle,
-    value: (cond.upFlex || {})[sz] != null ? cond.upFlex[sz] : 1,
-    onChange: e => setUpFlexSize(sz, e.target.value)
-  }))))), React.createElement(BoqSection, _extends({
+  }, "* \u0E2D\u0E38\u0E1B\u0E01\u0E23\u0E13\u0E4C\u0E1B\u0E23\u0E30\u0E01\u0E2D\u0E1A\u0E17\u0E48\u0E2D IMC / uPVC (\u0E41\u0E04\u0E25\u0E49\u0E21 \u0E1A\u0E38\u0E0A\u0E0A\u0E34\u0E48\u0E07 \u0E04\u0E2D\u0E19\u0E40\u0E19\u0E04\u0E40\u0E15\u0E2D\u0E23\u0E4C \u0E2F\u0E25\u0E2F) \u0E04\u0E34\u0E14\u0E2D\u0E31\u0E15\u0E42\u0E19\u0E21\u0E31\u0E15\u0E34\u0E08\u0E32\u0E01\u0E04\u0E27\u0E32\u0E21\u0E22\u0E32\u0E27\u0E17\u0E48\u0E2D + PULL BOX \u2014 \u0E01\u0E0E \u0E0A\u0E34\u0E49\u0E19/\u0E17\u0E48\u0E2D\u0E19 \u0E41\u0E25\u0E30 % \u0E40\u0E1C\u0E37\u0E48\u0E2D \u0E15\u0E31\u0E49\u0E07\u0E44\u0E14\u0E49\u0E17\u0E35\u0E48 \u0E04\u0E25\u0E31\u0E07\u0E2A\u0E34\u0E19\u0E04\u0E49\u0E32 \u203A \u0E2D\u0E38\u0E1B\u0E01\u0E23\u0E13\u0E4C\u0E17\u0E48\u0E2D / \u0E23\u0E32\u0E07\u0E44\u0E1F (\u0E43\u0E1A\u0E43\u0E2B\u0E21\u0E48\u0E43\u0E0A\u0E49\u0E04\u0E48\u0E32\u0E19\u0E31\u0E49\u0E19 \xB7 \u0E43\u0E1A\u0E17\u0E35\u0E48\u0E16\u0E2D\u0E14\u0E44\u0E27\u0E49\u0E41\u0E25\u0E49\u0E27\u0E44\u0E21\u0E48\u0E02\u0E22\u0E31\u0E1A\u0E15\u0E32\u0E21)")), React.createElement(BoqSection, _extends({
     title: "\u0E23\u0E32\u0E07\u0E44\u0E1F (Wireway / Cable Tray)",
     icon: "grid"
   }, secProps("tray"), {
@@ -7987,6 +7820,12 @@ function BOQEditor({
   }), React.createElement(MeasBar, {
     kinds: ["tray"]
   }), React.createElement("div", {
+    style: {
+      fontSize: 12,
+      color: "var(--text-3)",
+      marginBottom: 10
+    }
+  }, "\u0E40\u0E25\u0E37\u0E2D\u0E01\u0E23\u0E32\u0E07\u0E43\u0E2B\u0E49\u0E2A\u0E32\u0E22\u0E41\u0E15\u0E48\u0E25\u0E30\u0E40\u0E2A\u0E49\u0E19\u0E44\u0E14\u0E49\u0E17\u0E35\u0E48\u0E41\u0E1C\u0E07 \"\u0E40\u0E14\u0E34\u0E19\u0E17\u0E48\u0E2D / \u0E23\u0E32\u0E07\u0E15\u0E32\u0E21\u0E40\u0E2A\u0E49\u0E19\u0E2A\u0E32\u0E22\u0E44\u0E1F\" \u0E43\u0E19\u0E2B\u0E31\u0E27\u0E02\u0E49\u0E2D\u0E17\u0E48\u0E2D\u0E23\u0E49\u0E2D\u0E22\u0E2A\u0E32\u0E22 \u2014 \u0E02\u0E19\u0E32\u0E14 \u0E23\u0E30\u0E22\u0E30 \u0E0A\u0E38\u0E1A HDG \u0E22\u0E36\u0E14\u0E1A\u0E19 Rail \u0E41\u0E25\u0E30\u0E02\u0E49\u0E2D\u0E15\u0E48\u0E2D \u0E2D\u0E22\u0E39\u0E48\u0E43\u0E15\u0E49\u0E40\u0E2A\u0E49\u0E19\u0E19\u0E31\u0E49\u0E19"), React.createElement("div", {
     style: {
       display: "flex",
       flexDirection: "column",
@@ -8007,32 +7846,20 @@ function BOQEditor({
     label: "Cable Tray Perforated (รางเจาะรู)",
     sizes: window.BOQ.PERF_SIZES,
     hint: "พื้นรางเป็นแผ่นเจาะรู ยาว " + window.BOQ.trayLenTxt(window.BOQ.TRAY_PIPE_LEN) + " ม./ท่อน — รองสายเส้นเล็กได้ไม่ตกร่อง เกณฑ์เติมเต็มเท่ารางบันได"
-  }), React.createElement("div", {
-    style: {
-      display: "grid",
-      gridTemplateColumns: isMobile ? "1fr" : "160px 1fr",
-      gap: 12,
-      alignItems: "center"
-    }
-  }, React.createElement(Field, {
-    label: "% \u0E40\u0E1C\u0E37\u0E48\u0E2D \u0E2D\u0E38\u0E1B\u0E01\u0E23\u0E13\u0E4C\u0E1B\u0E23\u0E30\u0E01\u0E2D\u0E1A"
-  }, React.createElement("input", {
-    type: "number",
-    style: numStyle,
-    value: tw.spare,
-    onChange: e => setTrayVal("spare", e.target.value)
-  })), React.createElement("div", {
-    style: {
-      fontSize: 11.5,
-      color: "var(--text-3)",
-      lineHeight: 1.5
-    }
-  }, "\u0E15\u0E31\u0E27\u0E23\u0E32\u0E07 = \u0E1B\u0E31\u0E14\u0E02\u0E36\u0E49\u0E19\u0E15\u0E32\u0E21\u0E04\u0E27\u0E32\u0E21\u0E22\u0E32\u0E27/\u0E17\u0E48\u0E2D\u0E19 \xB7 \u0E0A\u0E38\u0E14\u0E02\u0E49\u0E2D\u0E15\u0E48\u0E2D = \u0E17\u0E38\u0E01\u0E23\u0E2D\u0E22\u0E15\u0E48\u0E2D +2 \xB7 \u0E02\u0E32\u0E25\u0E47\u0E2D\u0E01\u0E23\u0E32\u0E07\u0E44\u0E1F = \u0E17\u0E38\u0E01 1.5 \u0E21. \xB7 \u0E15\u0E31\u0E27\u0E22\u0E36\u0E14 2 \u0E15\u0E31\u0E27/\u0E02\u0E32", React.createElement("br", null), "\u0E41\u0E16\u0E27\u0E17\u0E35\u0E48\u0E15\u0E34\u0E4A\u0E01 \u201C\u0E22\u0E36\u0E14\u0E1A\u0E19 Rail\u201D = T-BOLT KIT 2 \u0E0A\u0E38\u0E14/\u0E02\u0E32 + Rail \u0E23\u0E2D\u0E07\u0E43\u0E15\u0E49\u0E02\u0E32 1 \u0E0A\u0E34\u0E49\u0E19/\u0E02\u0E32 (\u0E22\u0E32\u0E27\u0E01\u0E27\u0E48\u0E32\u0E23\u0E32\u0E07\u0E02\u0E49\u0E32\u0E07\u0E25\u0E30 10 \u0E0B\u0E21.) \u0E16\u0E2D\u0E14\u0E40\u0E1B\u0E47\u0E19\u0E17\u0E48\u0E2D\u0E19\u0E40\u0E15\u0E47\u0E21\u0E15\u0E32\u0E21\u0E17\u0E35\u0E48\u0E15\u0E31\u0E14\u0E41\u0E1A\u0E48\u0E07\u0E44\u0E14\u0E49 \xB7 \u0E44\u0E21\u0E48\u0E15\u0E34\u0E4A\u0E01 = \u0E1E\u0E38\u0E4A\u0E01\u0E40\u0E2B\u0E25\u0E47\u0E01 2 \u0E15\u0E31\u0E27/\u0E02\u0E32", React.createElement("br", null), "\u0E41\u0E16\u0E27\u0E17\u0E35\u0E48\u0E15\u0E34\u0E4A\u0E01 \u201C\u0E0A\u0E38\u0E1A HDG\u201D \u0E16\u0E2D\u0E14\u0E40\u0E1B\u0E47\u0E19\u0E02\u0E2D\u0E07\u0E0A\u0E38\u0E1A\u0E41\u0E22\u0E01\u0E1A\u0E23\u0E23\u0E17\u0E31\u0E14 (\u0E15\u0E31\u0E27\u0E23\u0E32\u0E07 \xB7 \u0E02\u0E49\u0E2D\u0E15\u0E48\u0E2D \xB7 \u0E02\u0E32\u0E25\u0E47\u0E2D\u0E01) \u2014 \u0E1E\u0E38\u0E4A\u0E01 \u0E2A\u0E01\u0E23\u0E39 T-BOLT \u0E41\u0E25\u0E30 Rail \u0E43\u0E0A\u0E49\u0E02\u0E2D\u0E07\u0E21\u0E32\u0E15\u0E23\u0E10\u0E32\u0E19\u0E23\u0E48\u0E27\u0E21\u0E01\u0E31\u0E1A\u0E07\u0E32\u0E19\u0E2D\u0E37\u0E48\u0E19")), FitList({
+  }), FitList({
     rows: (tw.extra || []).filter(x => !x.auto),
     onChange: v => setTrayVal("extra", (tw.extra || []).filter(x => x.auto).concat(v)),
     catalog: trayFits,
-    hint: "ของรางไฟโดยเฉพาะ — เลือกได้ครบทุกขนาด แยกกลุ่มตามชนิดราง และแยกของชุบ HDG ออกจากของธรรมดา"
-  }))), !isHome && kitSections.map(sc => React.createElement(BoqSection, _extends({
+    hint: "ของรางไฟโดยเฉพาะ — แยกกลุ่มตามชนิดราง และแยกของชุบ HDG"
+  })), React.createElement("div", {
+    className: "bq-hint",
+    style: {
+      marginTop: 12,
+      fontSize: 11,
+      color: "var(--text-3)",
+      lineHeight: 1.5
+    }
+  }, "* \u0E15\u0E31\u0E27\u0E23\u0E32\u0E07 \u0E0A\u0E38\u0E14\u0E02\u0E49\u0E2D\u0E15\u0E48\u0E2D \u0E02\u0E32\u0E25\u0E47\u0E2D\u0E01 \u0E15\u0E31\u0E27\u0E22\u0E36\u0E14 \u0E04\u0E34\u0E14\u0E2D\u0E31\u0E15\u0E42\u0E19\u0E21\u0E31\u0E15\u0E34\u0E08\u0E32\u0E01\u0E04\u0E27\u0E32\u0E21\u0E22\u0E32\u0E27\u0E23\u0E32\u0E07 \u2014 % \u0E40\u0E1C\u0E37\u0E48\u0E2D\u0E2D\u0E38\u0E1B\u0E01\u0E23\u0E13\u0E4C\u0E1B\u0E23\u0E30\u0E01\u0E2D\u0E1A \u0E15\u0E31\u0E49\u0E07\u0E44\u0E14\u0E49\u0E17\u0E35\u0E48 \u0E04\u0E25\u0E31\u0E07\u0E2A\u0E34\u0E19\u0E04\u0E49\u0E32 \u203A \u0E2D\u0E38\u0E1B\u0E01\u0E23\u0E13\u0E4C\u0E17\u0E48\u0E2D / \u0E23\u0E32\u0E07\u0E44\u0E1F (\u0E43\u0E1A\u0E43\u0E2B\u0E21\u0E48\u0E43\u0E0A\u0E49\u0E04\u0E48\u0E32\u0E19\u0E31\u0E49\u0E19 \xB7 \u0E43\u0E1A\u0E17\u0E35\u0E48\u0E16\u0E2D\u0E14\u0E44\u0E27\u0E49\u0E41\u0E25\u0E49\u0E27\u0E44\u0E21\u0E48\u0E02\u0E22\u0E31\u0E1A\u0E15\u0E32\u0E21)")), !isHome && kitSections.map(sc => React.createElement(BoqSection, _extends({
     key: sc.key,
     title: sc.title,
     icon: sc.icon
