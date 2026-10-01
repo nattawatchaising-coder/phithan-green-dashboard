@@ -1721,7 +1721,8 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
      ฝั่ง DC ต่อสตริง: ฟิวส์ gPV ขั้ว + และ − (IEC 62548: 1.5·Isc ≤ In ≤ 2.4·Isc) · SPD DC Type 2 สตริงละ 1 ตัว
        แรงดันพิกัด ≥ Voc สตริง × 1.1 (เผื่อแรงดันขึ้นตอนแผงเย็น) */
   const DCF_A = [10, 12, 15, 16, 20, 25, 30, 32];
-  const DCF_V = [1000, 1500], SPD_V = [800, 1000, 1500];   // แรงดันพิกัดที่มีขายจริง (ฟิวส์ gPV / SPD DC)
+  const DCF_V = [1000, 1500], SPD_V = [800, 1000, 1500];
+  const DCMCB_A = [10, 16, 20, 25, 32, 40, 50, 63];   // DC MCB 2P 800VDC (งานบ้าน — ตัดวงจรสตริงหลังฟิวส์)   // แรงดันพิกัดที่มีขายจริง (ฟิวส์ gPV / SPD DC)
   const r1 = (x) => Math.round(x * 10) / 10;
   const cabIz = (c) => {
     if (!c || !c.type) return null;
@@ -1857,6 +1858,13 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
       out.dc.push({ name: "DC FUSE HOLDER", qty: nStr * 2, unit: "ตัว", auto: 1, why: "ฐานฟิวส์ สตริงละ 2 ตัว" });
     } else if (nStr > 0) {
       out.dc.push({ name: "DC FUSE HOLDER", qty: nStr * 2, unit: "ตัว", auto: 1, ok: false, why: "ยังไม่รู้ Isc — กรอกสเปคแผงหรือ maxIscA ของอินเวอร์เตอร์ในคลัง แล้วระบบจะเลือกฟิวส์ให้" });
+    }
+    /* งานบ้าน: DC MCB สตริงละ 1 ตัว ไว้ตัด/เปิดวงจรตอนซ่อม · ขนาดแรก ≥ 1.25 × Isc · 2P 800VDC (Voc สตริงงานบ้านไม่ถึง 800 V) */
+    if (isHome && nStr > 0 && isc > 0) {
+      const need = isc * 1.25, A = DCMCB_A.find((x) => x >= need) || DCMCB_A[DCMCB_A.length - 1];
+      const vOk = voc <= 800;
+      out.dc.push({ name: "DC MCB " + A + "A 2P 800VDC", qty: nStr, unit: "ตัว", auto: 1, ok: vOk,
+        why: "สตริงละ 1 ตัว · Isc " + r1(isc) + " A × 1.25 = " + r1(need) + " A → " + A + " A" + (vOk ? "" : " · Voc " + r1(voc) + " V เกิน 800 VDC ต้องใช้รุ่นแรงดันสูงกว่า") });
     }
     if (nStr > 0 && !lps) out.dc.push({ name: "DC SPD 2P " + SV + "VDC 20-40KA", qty: nStr, unit: "ตัว", auto: 1, why: "สตริงละ 1 ตัว · " + lpsTxt + " · " + vTxtOf(SV) });
     if (nStr > 0 && lps) {
@@ -3084,8 +3092,9 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
                   </div>
                   <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "auto 1fr", gap: 12, alignItems: "center" }}>
                     <Field label={"แผงต่ออนุกรม/สตริง" + (scfg.maxSeries >= scfg.minSeries ? " (แนะนำ " + scfg.minSeries + "–" + scfg.maxSeries + ")" : "")}>
-                      <input type="number" style={Object.assign({}, numStyle, { width: 130 })} min={1}
-                        value={(b.dcSeries != null && b.dcSeries !== "") ? b.dcSeries : scfg.recSeries}
+                      {/* ลบจนว่างได้ (ว่าง = ใช้ค่าแนะนำ โชว์เป็นตัวจาง) — เดิมว่างแล้วเติมค่าแนะนำกลับทันที พิมพ์ตัวเลขใหม่ไม่ได้ */}
+                      <input type="number" style={Object.assign({}, numStyle, { width: 130 })} min={1} placeholder={String(scfg.recSeries)}
+                        value={b.dcSeries != null ? b.dcSeries : ""}
                         onChange={(e) => set("dcSeries", e.target.value === "" ? "" : Math.max(1, parseInt(e.target.value) || 1))} />
                     </Field>
                     <div style={{ fontSize: 11.5, color: "var(--text-3)", lineHeight: 1.5 }}>
