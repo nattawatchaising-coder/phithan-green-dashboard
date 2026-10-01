@@ -1961,7 +1961,7 @@ function BOQEditor({
     sec: "board",
     icon: "box",
     title: "ตู้ไฟ",
-    hint: "ตู้ไฟของงานโครงการ — อินเวอร์เตอร์สตริง/ไฮบริด ระบบคิดอุปกรณ์ในตู้ AC / DC ให้จากอินเวอร์เตอร์ สตริง และสายไฟ (ตู้ AC 1 ตู้ต่อสายเมน 1 เส้น · ตู้ DC 1 ตู้ต่ออินเวอร์เตอร์) · " + "เบรกเกอร์: MCCB ปรับตั้งกระแสได้ ตั้งที่กระแสออก × 1.05 ปัดขึ้นทีละ 5 A (เช่น 84 A → 100 AT ปรับตั้ง 90 A) แล้วคิดขนาดสายจากกระแสตั้ง — ถ้าเลือกสายเองเล็กกว่านั้น จะขึ้นคำแนะนำในหัวข้อสายไฟ · " + "ฟิวส์ AC เป็นฟิวส์ gG 10x38 กันหลัง SPD ไม่ต้องใช้ฟิวส์ใบมีด (NH) เพราะ MCCB ทำหน้าที่ป้องกันกระแสเกินแล้ว — NH ใช้เมื่อเมนใหญ่หลายร้อยแอมป์จนต้องใช้สวิตช์-ฟิวส์แทน MCCB · " + "ฟิวส์ DC แบบ gPV ขั้ว + และ − ทุกสตริง (1.5–2.4 × Isc) · กรอกจำนวนตู้เองได้ และปิดรายการอัตโนมัติรายตู้ได้ · ราคาดึงจากคลังเหมือนวัสดุอื่น"
+    hint: "ตู้ไฟของงานโครงการ — อินเวอร์เตอร์สตริง/ไฮบริด ระบบคิดอุปกรณ์ในตู้ AC / DC ให้จากอินเวอร์เตอร์ สตริง และสายไฟ (ตู้ AC 1 ตู้ต่อสายเมน 1 เส้น · ตู้ DC 1 ตู้ต่ออินเวอร์เตอร์) · " + "เบรกเกอร์: MCCB ปรับตั้งกระแสได้ ตั้งที่กระแสออก × 1.05 ปัดขึ้นทีละ 5 A (เช่น 84 A → 100 AT ปรับตั้ง 90 A) แล้วคิดขนาดสายจากกระแสตั้ง — ถ้าเลือกสายเองเล็กกว่านั้น จะขึ้นคำแนะนำในหัวข้อสายไฟ · " + "ระบบล่อฟ้า: ถ้าแผงอยู่ใกล้ล่อฟ้า (ต่อถึงกันหรือห่างไม่ถึงระยะปลอดภัย) SPD ทั้ง AC และ DC เปลี่ยนเป็น Type 1+2 และฟิวส์กันหลัง SPD ฝั่ง AC เป็นฟิวส์ใบมีด NH00 125 A (ไม่ต้องมีถ้า MCCB เมน ≤ 125 AT) · " + "ฟิวส์ AC เป็นฟิวส์ gG 10x38 กันหลัง SPD ไม่ต้องใช้ฟิวส์ใบมีด (NH) เพราะ MCCB ทำหน้าที่ป้องกันกระแสเกินแล้ว — NH ใช้เมื่อเมนใหญ่หลายร้อยแอมป์จนต้องใช้สวิตช์-ฟิวส์แทน MCCB · " + "ฟิวส์ DC แบบ gPV ขั้ว + และ − ทุกสตริง (1.5–2.4 × Isc) · กรอกจำนวนตู้เองได้ และปิดรายการอัตโนมัติรายตู้ได้ · ราคาดึงจากคลังเหมือนวัสดุอื่น"
   }, {
     key: "watersys",
     sec: "water",
@@ -3024,6 +3024,8 @@ function BOQEditor({
     const ph = wcPhase === 3 ? 3 : 1,
       pole = ph === 3 ? "3P" : "2P";
     const cs = b.cables || [];
+    const lps = projBoard.lps === "near";
+    const lpsTxt = projBoard.lps === "near" ? "แผงอยู่ใกล้ระบบล่อฟ้า → Type 1+2" : projBoard.lps === "far" ? "มีล่อฟ้า แต่แผงห่างพอ → Type 2" : "ไม่มีระบบล่อฟ้า → Type 2";
     const mRows = cs.filter(c => /MCB_SOLAR-MDB/i.test(c.name || ""));
     const boards = mRows.length ? mRows : [null];
     if (!(+projBoard.ac > 0)) out.ac.push({
@@ -3035,10 +3037,12 @@ function BOQEditor({
     });
     boards.forEach((m, bi) => {
       const tag = boards.length > 1 ? "ตู้ " + (bi + 1) + " · " : "";
+      let mainAt = 0;
       const nos = mcbInvsOf(m);
       const ib = nos.reduce((s, no) => s + ((invUnits[no - 1] || {}).outA || 0), 0);
       if (ib > 0) {
         const k = brkPick(ib, m);
+        mainAt = k.at;
         if (m) brkOfCab[cs.indexOf(m)] = Object.assign({
           who: "เมนตู้ AC"
         }, k);
@@ -3068,27 +3072,54 @@ function BOQEditor({
           why: tag + "อินเวอร์เตอร์ตัวที่ " + no + " · " + k.txt
         });
       });
-      out.ac.push({
-        name: ph === 3 ? "AC SPD TYPE II 3P+N Uc385V In20Ka/Imax40Ka" : "AC SPD TYPE II 2P Uc275V In20Ka/Imax40Ka",
-        qty: 1,
-        unit: "ตัว",
-        auto: 1,
-        why: tag + "กันฟ้าผ่า/แรงดันกระชากฝั่ง AC ตู้ละ 1 ตัว (Type 2 · Uc " + (ph === 3 ? "385" : "275") + " V)"
-      });
-      out.ac.push({
-        name: "AC FUSE gG 32A 10x38",
-        qty: ph,
-        unit: "ตัว",
-        auto: 1,
-        why: tag + "ฟิวส์กันหลัง SPD เส้นไฟละ 1 ตัว (ไม่ต้องเป็นฟิวส์ใบมีด — ดูคำอธิบาย)"
-      });
-      out.ac.push({
-        name: "FUSE HOLDER 10x38 1P",
-        qty: ph,
-        unit: "ตัว",
-        auto: 1,
-        why: tag + "ฐานฟิวส์ของฟิวส์กันหลัง SPD"
-      });
+      if (!lps) {
+        out.ac.push({
+          name: ph === 3 ? "AC SPD TYPE II 3P+N Uc385V In20Ka/Imax40Ka" : "AC SPD TYPE II 2P Uc275V In20Ka/Imax40Ka",
+          qty: 1,
+          unit: "ตัว",
+          auto: 1,
+          why: tag + "กันฟ้าผ่า/แรงดันกระชากฝั่ง AC ตู้ละ 1 ตัว (" + lpsTxt + " · Uc " + (ph === 3 ? "385" : "275") + " V)"
+        });
+        out.ac.push({
+          name: "AC FUSE gG 32A 10x38",
+          qty: ph,
+          unit: "ตัว",
+          auto: 1,
+          why: tag + "ฟิวส์กันหลัง SPD เส้นไฟละ 1 ตัว (ไม่ต้องเป็นฟิวส์ใบมีด — ดูคำอธิบาย)"
+        });
+        out.ac.push({
+          name: "FUSE HOLDER 10x38 1P",
+          qty: ph,
+          unit: "ตัว",
+          auto: 1,
+          why: tag + "ฐานฟิวส์ของฟิวส์กันหลัง SPD"
+        });
+      } else {
+        const noFuse = mainAt > 0 && mainAt <= 125;
+        out.ac.push({
+          name: ph === 3 ? "AC SPD TYPE I+II 3P+N Uc385V Iimp12.5kA" : "AC SPD TYPE I+II 2P Uc275V Iimp12.5kA",
+          qty: 1,
+          unit: "ตัว",
+          auto: 1,
+          why: tag + "กันฟ้าผ่าฝั่ง AC ตู้ละ 1 ตัว (" + lpsTxt + " · Iimp 12.5 kA/ขั้ว)" + (noFuse ? " · MCCB เมน " + mainAt + " AT ≤ 125 A ใช้กันหลัง SPD ได้ ไม่ต้องมีฟิวส์" : "")
+        });
+        if (!noFuse) {
+          out.ac.push({
+            name: "AC FUSE gG 125A NH00",
+            qty: ph,
+            unit: "ตัว",
+            auto: 1,
+            why: tag + "ฟิวส์ใบมีดกันหลัง SPD Type 1+2 เส้นไฟละ 1 ตัว — ต้องทนกระแสฟ้าผ่าได้ จึงใช้ 125 A (ตรวจ max backup fuse ในสเปค SPD)"
+          });
+          out.ac.push({
+            name: "FUSE BASE NH00 1P",
+            qty: ph,
+            unit: "ตัว",
+            auto: 1,
+            why: tag + "ฐานฟิวส์ใบมีด NH00"
+          });
+        }
+      }
     });
     const nStr = plan ? plan.strings : invUnits.length * Math.max(1, +selInv.inputs || 1);
     if (!(+projBoard.dc > 0)) out.dc.push({
@@ -3136,16 +3167,26 @@ function BOQEditor({
         why: "ยังไม่รู้ Isc — กรอกสเปคแผงหรือ maxIscA ของอินเวอร์เตอร์ในคลัง แล้วระบบจะเลือกฟิวส์ให้"
       });
     }
-    if (nStr > 0) out.dc.push({
+    if (nStr > 0 && !lps) out.dc.push({
       name: "DC SPD 2P " + SV + "VDC 20-40KA",
       qty: nStr,
       unit: "ตัว",
       auto: 1,
-      why: "สตริงละ 1 ตัว · " + vTxtOf(SV)
+      why: "สตริงละ 1 ตัว · " + lpsTxt + " · " + vTxtOf(SV)
     });
+    if (nStr > 0 && lps) {
+      const TV = vPick(DCF_V);
+      out.dc.push({
+        name: "DC SPD 2P " + TV + "VDC TYPE I+II Iimp6.25KA",
+        qty: nStr,
+        unit: "ตัว",
+        auto: 1,
+        why: "สตริงละ 1 ตัว · " + lpsTxt + " · " + vTxtOf(TV)
+      });
+    }
     return out;
   })();
-  const boardAutoKey = JSON.stringify([boardAuto.ac.concat(boardAuto.dc).map(x => [x.name, x.qty, x.why]), !!projBoard.noauto_ac, !!projBoard.noauto_dc]);
+  const boardAutoKey = JSON.stringify([boardAuto.ac.concat(boardAuto.dc).map(x => [x.name, x.qty, x.why]), !!projBoard.noauto_ac, !!projBoard.noauto_dc, projBoard.lps || ""]);
   React.useEffect(() => {
     setB(p => {
       const pr = window.BOQ.normProject(p.project),
@@ -8453,7 +8494,40 @@ function BOQEditor({
           const a = (st[bd.extraKey] || []).find(x => x.auto && x.name === bd.name);
           return a ? "อัตโนมัติ " + a.qty : "0";
         })()
-      }), (boardAuto[bd.key] || []).length > 0 && (() => {
+      }), (bd.key === "ac" || bd.key === "dc") && (boardAuto[bd.key] || []).length > 0 && React.createElement("div", {
+        style: {
+          display: "flex",
+          flexDirection: "column",
+          gap: 5
+        }
+      }, React.createElement("span", {
+        style: {
+          fontSize: 9.5,
+          fontWeight: 800,
+          color: "var(--text-3)"
+        }
+      }, "\u0E23\u0E30\u0E1A\u0E1A\u0E25\u0E48\u0E2D\u0E1F\u0E49\u0E32\u0E02\u0E2D\u0E07\u0E2D\u0E32\u0E04\u0E32\u0E23 (\u0E40\u0E25\u0E37\u0E2D\u0E01 SPD) \xB7 \u0E15\u0E31\u0E49\u0E07\u0E04\u0E48\u0E32\u0E40\u0E14\u0E35\u0E22\u0E27\u0E01\u0E31\u0E19\u0E17\u0E31\u0E49\u0E07\u0E15\u0E39\u0E49 AC \u0E41\u0E25\u0E30 DC"), React.createElement("div", {
+        style: {
+          display: "flex",
+          flexWrap: "wrap",
+          gap: 5
+        }
+      }, [["", "ไม่มี"], ["far", "มี · แผงห่างพอ"], ["near", "มี · แผงใกล้/ต่อถึงกัน"]].map(([v, l]) => React.createElement("button", {
+        key: v,
+        type: "button",
+        className: "bq-cab-chip" + ((st.lps || "") === v ? " on" : ""),
+        style: {
+          fontSize: 10,
+          padding: "3px 8px"
+        },
+        onClick: () => setKit(k.key, "lps", v)
+      }, l))), React.createElement("span", {
+        style: {
+          fontSize: 9.5,
+          color: "var(--text-3)",
+          lineHeight: 1.4
+        }
+      }, st.lps === "near" ? "SPD เป็น Type 1+2 (ทนกระแสฟ้าผ่า) ทั้ง AC และ DC" : "SPD Type 2 · ถ้าแผงอยู่ใกล้เสา/สายล่อฟ้า หรือต่อโครงแผงเข้ากับระบบล่อฟ้า ให้เลือก \"แผงใกล้/ต่อถึงกัน\"")), (boardAuto[bd.key] || []).length > 0 && (() => {
         const off = !!st["noauto_" + bd.key];
         const rows = (st[bd.extraKey] || []).filter(x => x.auto && x.name !== bd.name);
         return React.createElement("div", {
