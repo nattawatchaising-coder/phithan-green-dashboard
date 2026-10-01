@@ -2720,6 +2720,7 @@ function BOQEditor({
     perf: "Perforated"
   };
   const isTrayK = k => TRAY_KEYS.indexOf(k) >= 0;
+  const raceDim = nm => (String(nm).match(/(\d+)\s*[xX×]\s*(\d+)/) || []).slice(1, 3).join("x");
   const trayFit = (k, cables) => {
     const pool = window.BOQ.TRAY_KINDS[k].sizes;
     return pool.find(nm => {
@@ -2771,6 +2772,23 @@ function BOQEditor({
     const own = c.raceLen != null && c.raceLen !== "";
     const len = own ? +c.raceLen || 0 : +c.length || 0;
     const chk = !kind ? null : tray ? window.BOQ.trayCheck(size, trayCables, kind, pool) : window.BOQ.conduitCheck(size, cables, pool);
+    const hdg = tray && !!c.raceHdg,
+      rail = tray && !!c.raceRail && window.BOQ.TRAY_KINDS[kind].hanger;
+    const sp = tray ? window.BOQ.TRAY_KINDS[kind] : null;
+    const sep = tray ? " " + sp.brief + " " : kind === "imc" ? " IMC " : " uPVC ";
+    const mm = (String(size).match(/(\d+)\s*mm/) || [])[1];
+    const fitCat = !kind ? [] : (tray ? trayFits : condFits).filter(f => {
+      if (tray) return f.group === window.BOQ.hdgName(sp.brief, hdg) && f.name.indexOf(sep) > 0 && raceDim(f.name) === raceDim(size);
+      if (kind === "imc") return f.group === "IMC" && f.name.endsWith(" IMC " + String(size).replace(/^IMC\s*/i, "").trim());
+      return f.group === "uPVC" && f.name.endsWith(" uPVC " + mm + "mm. (สีขาว)");
+    }).map(f => ({
+      k: f.name.split(sep)[0],
+      name: f.name,
+      unit: f.unit
+    }));
+    const fits = (c.raceFit || []).map(f => Object.assign({}, f, {
+      item: fitCat.find(x => x.k === f.k) || null
+    }));
     return {
       i,
       label: raceLabel(c),
@@ -2788,40 +2806,52 @@ function BOQEditor({
       cabLen: +c.length || 0,
       noOd: !od || !sz,
       chk,
-      ok: !!chk && chk.ok && (!tray || chk.widthOk)
+      ok: !!chk && chk.ok && (!tray || chk.widthOk),
+      hdg,
+      rail,
+      fitCat,
+      fits
     };
   });
+  const raceFitRows = trayK => raceRuns.filter(r => r && r.kind && !!r.tray === trayK).reduce((a, r) => a.concat(r.fits.filter(f => f.item && +f.qty > 0).map(f => ({
+    name: f.item.name,
+    qty: +f.qty,
+    unit: f.item.unit || "ชุด",
+    auto: 1,
+    from: r.i
+  }))), []);
   const raceTrayRows = raceRuns.filter(r => r && r.tray && r.len > 0 && r.size).map(r => ({
     k: r.kind,
-    row: {
+    row: Object.assign({
       size: r.size,
       length: Math.round(r.len * 10) / 10,
       cables: r.trayCables,
       auto: 1,
       from: r.i,
       lab: r.label
-    }
+    }, r.hdg ? {
+      hdg: true
+    } : {}, r.rail ? {
+      rail: true
+    } : {})
   }));
-  const raceTrayKey = JSON.stringify(raceTrayRows);
+  const trayFitAuto = raceFitRows(true);
+  const raceTrayKey = JSON.stringify([raceTrayRows, trayFitAuto]);
   React.useEffect(() => {
     setB(p => {
       const t0 = Object.assign({}, TRAY_DEF, p.tray);
       const nx = {};
       let changed = false;
       TRAY_KEYS.forEach(k => {
-        const olds = (t0[k] || []).filter(x => x.auto);
-        const add = raceTrayRows.filter(r => r.k === k).map(r => {
-          const old = olds.find(x => x.from === r.row.from) || {};
-          return Object.assign({}, r.row, old.hdg ? {
-            hdg: old.hdg
-          } : {}, old.rail ? {
-            rail: old.rail
-          } : {});
-        });
-        const out = add.concat((t0[k] || []).filter(x => !x.auto));
+        const out = raceTrayRows.filter(r => r.k === k).map(r => r.row).concat((t0[k] || []).filter(x => !x.auto));
         if (JSON.stringify(out) !== JSON.stringify(t0[k] || [])) changed = true;
         nx[k] = out;
       });
+      const ex = trayFitAuto.concat((t0.extra || []).filter(x => !x.auto));
+      if (JSON.stringify(ex) !== JSON.stringify(t0.extra || [])) {
+        changed = true;
+        nx.extra = ex;
+      }
       return changed ? Object.assign({}, p, {
         tray: Object.assign({}, t0, nx)
       }) : p;
@@ -2839,7 +2869,8 @@ function BOQEditor({
       sets: r.sets
     }
   }));
-  const raceKey = JSON.stringify(raceRows);
+  const condFitAuto = raceFitRows(false);
+  const raceKey = JSON.stringify([raceRows, condFitAuto]);
   React.useEffect(() => {
     setB(p => {
       const c0 = Object.assign({
@@ -2854,6 +2885,11 @@ function BOQEditor({
         if (JSON.stringify(out) !== JSON.stringify(c0[k] || [])) changed = true;
         nx[k] = out;
       });
+      const ex = condFitAuto.concat((c0.extra || []).filter(x => !x.auto));
+      if (JSON.stringify(ex) !== JSON.stringify(c0.extra || [])) {
+        changed = true;
+        nx.extra = ex;
+      }
       return changed ? Object.assign({}, p, {
         conduit: Object.assign({}, c0, nx)
       }) : p;
@@ -3502,7 +3538,9 @@ function BOQEditor({
           transform: open ? "rotate(180deg)" : "none"
         }
       })), React.createElement("button", {
-        onClick: () => setTrayRow(kind, i, "hdg", !x.hdg),
+        onClick: () => x.auto ? setRace(x.from, {
+          raceHdg: x.hdg ? null : 1
+        }) : setTrayRow(kind, i, "hdg", !x.hdg),
         title: x.hdg ? "ชุบกัลวาไนซ์แบบจุ่มร้อน — ตัวราง ข้อต่อ และขาแขวนของแถวนี้จะถอดเป็นของชุบ (HDG.)" : "ยังไม่ชุบ — ถอดเป็นของธรรมดา (Pre-Zinc) กดเพื่อเปลี่ยนเป็นของชุบ HDG",
         style: {
           display: "inline-flex",
@@ -3523,7 +3561,9 @@ function BOQEditor({
         size: 11,
         color: "var(--primary-dark)"
       }), "\u0E0A\u0E38\u0E1A HDG"), spec.hanger && React.createElement("button", {
-        onClick: () => setTrayRow(kind, i, "rail", !x.rail),
+        onClick: () => x.auto ? setRace(x.from, {
+          raceRail: x.rail ? null : 1
+        }) : setTrayRow(kind, i, "rail", !x.rail),
         title: x.rail ? "ขาล็อกวางบน Rail — ถอด T-BOLT KIT 2 ชุด/ขา + Rail รองใต้ขายาวชิ้นละ " + railCm(x.size) + " ซม. (กว้างกว่ารางข้างละ 10 ซม.) · สั่งเป็นท่อน RAIL " + railTon + " M ตัดได้ท่อนละ " + railPer(x.size) + " ชิ้น" : "ขาล็อกยึดเข้าโครง/ผนังตรง ๆ — ถอดพุ๊กเหล็ก 2 ตัว/ขา กดเพื่อเปลี่ยนเป็นวางบน Rail",
         style: {
           display: "inline-flex",
@@ -7544,7 +7584,10 @@ function BOQEditor({
     },
     onClick: () => setRace(r.i, {
       race: k,
-      raceSize: null
+      raceSize: null,
+      raceFit: null,
+      raceHdg: null,
+      raceRail: null
     })
   }, th)))), r.kind && React.createElement("div", {
     style: {
@@ -7589,7 +7632,127 @@ function BOQEditor({
       color: "var(--text-3)",
       fontWeight: 600
     }
-  }, " \xB7 ", r.sets, " \u0E17\u0E48\u0E2D \xD7 ", r.len, " \u0E21. = ", Math.round(r.len * r.sets * 10) / 10, " \u0E21."))))))), React.createElement("div", {
+  }, " \xB7 ", r.sets, " \u0E17\u0E48\u0E2D \xD7 ", r.len, " \u0E21. = ", Math.round(r.len * r.sets * 10) / 10, " \u0E21."))), r.kind && React.createElement("div", {
+    style: {
+      display: "flex",
+      flexDirection: "column",
+      gap: 7
+    }
+  }, r.tray && React.createElement("div", {
+    style: {
+      display: "flex",
+      gap: 6,
+      flexWrap: "wrap"
+    }
+  }, React.createElement("button", {
+    className: "bq-cab-chip" + (r.hdg ? " on" : ""),
+    style: {
+      fontSize: 11,
+      padding: "4px 10px"
+    },
+    title: "\u0E0A\u0E38\u0E1A\u0E01\u0E31\u0E25\u0E27\u0E32\u0E44\u0E19\u0E0B\u0E4C\u0E41\u0E1A\u0E1A\u0E08\u0E38\u0E48\u0E21\u0E23\u0E49\u0E2D\u0E19 \u2014 \u0E15\u0E31\u0E27\u0E23\u0E32\u0E07 \u0E02\u0E49\u0E2D\u0E15\u0E48\u0E2D \u0E41\u0E25\u0E30\u0E02\u0E32\u0E41\u0E02\u0E27\u0E19\u0E02\u0E2D\u0E07\u0E23\u0E32\u0E07\u0E40\u0E2A\u0E49\u0E19\u0E19\u0E35\u0E49\u0E16\u0E2D\u0E14\u0E40\u0E1B\u0E47\u0E19\u0E02\u0E2D\u0E07\u0E0A\u0E38\u0E1A (HDG.)",
+    onClick: () => setRace(r.i, {
+      raceHdg: r.hdg ? null : 1
+    })
+  }, r.hdg ? "✓ " : "", "\u0E0A\u0E38\u0E1A HDG"), window.BOQ.TRAY_KINDS[r.kind].hanger && React.createElement("button", {
+    className: "bq-cab-chip" + (r.rail ? " on" : ""),
+    style: {
+      fontSize: 11,
+      padding: "4px 10px"
+    },
+    title: "\u0E02\u0E32\u0E25\u0E47\u0E2D\u0E01\u0E27\u0E32\u0E07\u0E1A\u0E19 Rail \u2014 \u0E16\u0E2D\u0E14 T-BOLT KIT 2 \u0E0A\u0E38\u0E14/\u0E02\u0E32 + Rail \u0E23\u0E2D\u0E07\u0E43\u0E15\u0E49\u0E02\u0E32 (\u0E44\u0E21\u0E48\u0E01\u0E14 = \u0E22\u0E36\u0E14\u0E1E\u0E38\u0E4A\u0E01\u0E40\u0E02\u0E49\u0E32\u0E42\u0E04\u0E23\u0E07\u0E15\u0E23\u0E07 \u0E46)",
+    onClick: () => setRace(r.i, {
+      raceRail: r.rail ? null : 1
+    })
+  }, r.rail ? "✓ " : "", "\u0E22\u0E36\u0E14\u0E1A\u0E19 Rail")), r.fits.map((f, j) => React.createElement("div", {
+    key: j,
+    style: {
+      display: "grid",
+      gridTemplateColumns: isMobile ? "minmax(0,1fr) 70px 34px" : "minmax(0,240px) 110px 34px minmax(0,1fr)",
+      gap: 8,
+      alignItems: "center"
+    }
+  }, React.createElement(Dropdown, {
+    value: f.k || "",
+    placeholder: "\u0E40\u0E25\u0E37\u0E2D\u0E01\u0E02\u0E49\u0E2D\u0E15\u0E48\u0E2D",
+    options: r.fitCat.map(x => ({
+      value: x.k,
+      label: x.k
+    })),
+    onChange: v => setRace(r.i, {
+      raceFit: r.fits.map((y, q) => ({
+        k: q === j ? v : y.k,
+        qty: y.qty
+      }))
+    })
+  }), React.createElement("input", {
+    type: "number",
+    style: numStyle,
+    value: f.qty != null ? f.qty : "",
+    placeholder: "\u0E0A\u0E34\u0E49\u0E19",
+    onChange: e => setRace(r.i, {
+      raceFit: r.fits.map((y, q) => ({
+        k: y.k,
+        qty: q === j ? e.target.value : y.qty
+      }))
+    })
+  }), React.createElement("button", {
+    className: "bq-x",
+    style: {
+      width: 34,
+      height: 34,
+      flex: "0 0 34px"
+    },
+    title: "\u0E25\u0E1A",
+    onClick: () => setRace(r.i, {
+      raceFit: r.fits.filter((_, q) => q !== j).map(y => ({
+        k: y.k,
+        qty: y.qty
+      }))
+    })
+  }, React.createElement(Icon, {
+    name: "x",
+    size: 13
+  })), !isMobile && React.createElement("span", {
+    style: {
+      fontSize: 10.5,
+      color: f.item || !f.k ? "var(--text-3)" : "var(--tint-red-tx2)",
+      minWidth: 0,
+      overflow: "hidden",
+      textOverflow: "ellipsis",
+      whiteSpace: "nowrap"
+    }
+  }, f.item ? f.item.name : f.k ? "ไม่มีข้อต่อชนิดนี้ในขนาดนี้" : ""))), React.createElement("button", {
+    onClick: () => setRace(r.i, {
+      raceFit: r.fits.map(y => ({
+        k: y.k,
+        qty: y.qty
+      })).concat([{
+        k: (r.fitCat[0] || {}).k || "",
+        qty: 1
+      }])
+    }),
+    style: {
+      alignSelf: "flex-start",
+      display: "inline-flex",
+      alignItems: "center",
+      gap: 5,
+      background: "var(--surface)",
+      boxShadow: "var(--shadow-sm)",
+      color: "var(--text-2)",
+      border: "none",
+      borderRadius: 9,
+      padding: "6px 10px",
+      fontWeight: 700,
+      fontSize: 11.5,
+      cursor: "pointer",
+      fontFamily: "inherit"
+    }
+  }, React.createElement(Icon, {
+    name: "plus",
+    size: 12,
+    color: "var(--text-2)"
+  }), " \u0E40\u0E1E\u0E34\u0E48\u0E21\u0E02\u0E49\u0E2D\u0E15\u0E48\u0E2D", r.tray ? "ราง" : "ท่อ")))))), React.createElement("div", {
     style: {
       display: "flex",
       flexDirection: "column",
@@ -7619,8 +7782,8 @@ function BOQEditor({
     unitText: "ชิ้น",
     hint: "กล่องพักสาย — กรอกจำนวนใบ (ไม่มีสายวิ่งผ่านเป็นเส้นให้ตรวจ % เติมเต็ม)"
   }), FitList({
-    rows: cond.extra,
-    onChange: v => setCondVal("extra", v),
+    rows: (cond.extra || []).filter(x => !x.auto),
+    onChange: v => setCondVal("extra", (cond.extra || []).filter(x => x.auto).concat(v)),
     catalog: condFits,
     hint: "ของท่อร้อยสายโดยเฉพาะ — เลือกได้ครบทุกขนาด แยกกลุ่ม IMC กับ uPVC (คนละอันกับข้องอของรางไฟ)"
   })), React.createElement("div", {
@@ -7853,8 +8016,8 @@ function BOQEditor({
       lineHeight: 1.5
     }
   }, "\u0E15\u0E31\u0E27\u0E23\u0E32\u0E07 = \u0E1B\u0E31\u0E14\u0E02\u0E36\u0E49\u0E19\u0E15\u0E32\u0E21\u0E04\u0E27\u0E32\u0E21\u0E22\u0E32\u0E27/\u0E17\u0E48\u0E2D\u0E19 \xB7 \u0E0A\u0E38\u0E14\u0E02\u0E49\u0E2D\u0E15\u0E48\u0E2D = \u0E17\u0E38\u0E01\u0E23\u0E2D\u0E22\u0E15\u0E48\u0E2D +2 \xB7 \u0E02\u0E32\u0E25\u0E47\u0E2D\u0E01\u0E23\u0E32\u0E07\u0E44\u0E1F = \u0E17\u0E38\u0E01 1.5 \u0E21. \xB7 \u0E15\u0E31\u0E27\u0E22\u0E36\u0E14 2 \u0E15\u0E31\u0E27/\u0E02\u0E32", React.createElement("br", null), "\u0E41\u0E16\u0E27\u0E17\u0E35\u0E48\u0E15\u0E34\u0E4A\u0E01 \u201C\u0E22\u0E36\u0E14\u0E1A\u0E19 Rail\u201D = T-BOLT KIT 2 \u0E0A\u0E38\u0E14/\u0E02\u0E32 + Rail \u0E23\u0E2D\u0E07\u0E43\u0E15\u0E49\u0E02\u0E32 1 \u0E0A\u0E34\u0E49\u0E19/\u0E02\u0E32 (\u0E22\u0E32\u0E27\u0E01\u0E27\u0E48\u0E32\u0E23\u0E32\u0E07\u0E02\u0E49\u0E32\u0E07\u0E25\u0E30 10 \u0E0B\u0E21.) \u0E16\u0E2D\u0E14\u0E40\u0E1B\u0E47\u0E19\u0E17\u0E48\u0E2D\u0E19\u0E40\u0E15\u0E47\u0E21\u0E15\u0E32\u0E21\u0E17\u0E35\u0E48\u0E15\u0E31\u0E14\u0E41\u0E1A\u0E48\u0E07\u0E44\u0E14\u0E49 \xB7 \u0E44\u0E21\u0E48\u0E15\u0E34\u0E4A\u0E01 = \u0E1E\u0E38\u0E4A\u0E01\u0E40\u0E2B\u0E25\u0E47\u0E01 2 \u0E15\u0E31\u0E27/\u0E02\u0E32", React.createElement("br", null), "\u0E41\u0E16\u0E27\u0E17\u0E35\u0E48\u0E15\u0E34\u0E4A\u0E01 \u201C\u0E0A\u0E38\u0E1A HDG\u201D \u0E16\u0E2D\u0E14\u0E40\u0E1B\u0E47\u0E19\u0E02\u0E2D\u0E07\u0E0A\u0E38\u0E1A\u0E41\u0E22\u0E01\u0E1A\u0E23\u0E23\u0E17\u0E31\u0E14 (\u0E15\u0E31\u0E27\u0E23\u0E32\u0E07 \xB7 \u0E02\u0E49\u0E2D\u0E15\u0E48\u0E2D \xB7 \u0E02\u0E32\u0E25\u0E47\u0E2D\u0E01) \u2014 \u0E1E\u0E38\u0E4A\u0E01 \u0E2A\u0E01\u0E23\u0E39 T-BOLT \u0E41\u0E25\u0E30 Rail \u0E43\u0E0A\u0E49\u0E02\u0E2D\u0E07\u0E21\u0E32\u0E15\u0E23\u0E10\u0E32\u0E19\u0E23\u0E48\u0E27\u0E21\u0E01\u0E31\u0E1A\u0E07\u0E32\u0E19\u0E2D\u0E37\u0E48\u0E19")), FitList({
-    rows: tw.extra,
-    onChange: v => setTrayVal("extra", v),
+    rows: (tw.extra || []).filter(x => !x.auto),
+    onChange: v => setTrayVal("extra", (tw.extra || []).filter(x => x.auto).concat(v)),
     catalog: trayFits,
     hint: "ของรางไฟโดยเฉพาะ — เลือกได้ครบทุกขนาด แยกกลุ่มตามชนิดราง และแยกของชุบ HDG ออกจากของธรรมดา"
   }))), !isHome && kitSections.map(sc => React.createElement(BoqSection, _extends({

@@ -1552,6 +1552,7 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
   const TRAY_KEYS = window.BOQ.TRAY_KIND_KEYS;
   const RACE_TH = { imc: "IMC", upvc: "uPVC", way: "Wireway", tray: "Ladder", perf: "Perforated" };
   const isTrayK = (k) => TRAY_KEYS.indexOf(k) >= 0;
+  const raceDim = (nm) => (String(nm).match(/(\d+)\s*[xX×]\s*(\d+)/) || []).slice(1, 3).join("x");
   const trayFit = (k, cables) => {
     const pool = window.BOQ.TRAY_KINDS[k].sizes;
     return pool.find((nm) => { const c = window.BOQ.trayCheck(nm, cables, k, pool); return c.ok && c.widthOk; }) || null;
@@ -1581,33 +1582,47 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
     const own = c.raceLen != null && c.raceLen !== "";
     const len = own ? +c.raceLen || 0 : +c.length || 0;
     const chk = !kind ? null : tray ? window.BOQ.trayCheck(size, trayCables, kind, pool) : window.BOQ.conduitCheck(size, cables, pool);
+    /* ข้อต่อของเส้นนี้ — เก็บแค่ "ชนิด" (ข้องอ 90° ฯลฯ) ชื่อเต็มประกอบจากชนิดท่อ/ราง + ขนาด + ชุบ ณ ตอนนี้
+       เปลี่ยนขนาดทีหลัง ข้อต่อก็เปลี่ยนขนาดตามเอง ไม่ต้องไล่เลือกใหม่ */
+    const hdg = tray && !!c.raceHdg, rail = tray && !!c.raceRail && window.BOQ.TRAY_KINDS[kind].hanger;
+    const sp = tray ? window.BOQ.TRAY_KINDS[kind] : null;
+    const sep = tray ? " " + sp.brief + " " : kind === "imc" ? " IMC " : " uPVC ";
+    const mm = (String(size).match(/(\d+)\s*mm/) || [])[1];
+    const fitCat = !kind ? [] : (tray ? trayFits : condFits).filter((f) => {
+      if (tray) return f.group === window.BOQ.hdgName(sp.brief, hdg) && f.name.indexOf(sep) > 0 && raceDim(f.name) === raceDim(size);
+      if (kind === "imc") return f.group === "IMC" && f.name.endsWith(" IMC " + String(size).replace(/^IMC\s*/i, "").trim());
+      return f.group === "uPVC" && f.name.endsWith(" uPVC " + mm + "mm. (สีขาว)");
+    }).map((f) => ({ k: f.name.split(sep)[0], name: f.name, unit: f.unit }));
+    const fits = (c.raceFit || []).map((f) => Object.assign({}, f, { item: fitCat.find((x) => x.k === f.k) || null }));
     return { i, label: raceLabel(c), type: t, cables, trayCables, sets, kind, tray, pool, size, auto, len, own, cabLen: +c.length || 0,
-      noOd: !od || !sz, chk, ok: !!chk && chk.ok && (!tray || chk.widthOk) };
+      noOd: !od || !sz, chk, ok: !!chk && chk.ok && (!tray || chk.widthOk), hdg, rail, fitCat, fits };
   });
+  // ข้อต่อจากทุกเส้น → แถว auto ใน extra ของท่อ / ราง
+  const raceFitRows = (trayK) => raceRuns.filter((r) => r && r.kind && !!r.tray === trayK).reduce((a, r) =>
+    a.concat(r.fits.filter((f) => f.item && +f.qty > 0).map((f) => ({ name: f.item.name, qty: +f.qty, unit: f.item.unit || "ชุด", auto: 1, from: r.i }))), []);
   const raceTrayRows = raceRuns.filter((r) => r && r.tray && r.len > 0 && r.size).map((r) => ({ k: r.kind,
-    row: { size: r.size, length: Math.round(r.len * 10) / 10, cables: r.trayCables, auto: 1, from: r.i, lab: r.label } }));
-  const raceTrayKey = JSON.stringify(raceTrayRows);
+    row: Object.assign({ size: r.size, length: Math.round(r.len * 10) / 10, cables: r.trayCables, auto: 1, from: r.i, lab: r.label },
+      r.hdg ? { hdg: true } : {}, r.rail ? { rail: true } : {}) }));
+  const trayFitAuto = raceFitRows(true);
+  const raceTrayKey = JSON.stringify([raceTrayRows, trayFitAuto]);
   React.useEffect(() => {
     setB((p) => {
       const t0 = Object.assign({}, TRAY_DEF, p.tray);
       const nx = {}; let changed = false;
       TRAY_KEYS.forEach((k) => {
-        const olds = (t0[k] || []).filter((x) => x.auto);
-        // ชุบ HDG / ยึดบน Rail กดที่แถวรางด้านล่าง — คิดแถวใหม่แล้วต้องติดไปด้วย (จับคู่ด้วยเส้นสายต้นทาง)
-        const add = raceTrayRows.filter((r) => r.k === k).map((r) => {
-          const old = olds.find((x) => x.from === r.row.from) || {};
-          return Object.assign({}, r.row, old.hdg ? { hdg: old.hdg } : {}, old.rail ? { rail: old.rail } : {});
-        });
-        const out = add.concat((t0[k] || []).filter((x) => !x.auto));
+        const out = raceTrayRows.filter((r) => r.k === k).map((r) => r.row).concat((t0[k] || []).filter((x) => !x.auto));
         if (JSON.stringify(out) !== JSON.stringify(t0[k] || [])) changed = true;
         nx[k] = out;
       });
+      const ex = trayFitAuto.concat((t0.extra || []).filter((x) => !x.auto));
+      if (JSON.stringify(ex) !== JSON.stringify(t0.extra || [])) { changed = true; nx.extra = ex; }
       return changed ? Object.assign({}, p, { tray: Object.assign({}, t0, nx) }) : p;
     });
   }, [raceTrayKey]); // eslint-disable-line
   const raceRows = raceRuns.filter((r) => r && !r.tray && r.kind && r.len > 0 && r.size).map((r) => ({
     k: r.kind, row: { size: r.size, length: Math.round(r.len * r.sets * 10) / 10, cables: r.cables, auto: 1, from: r.i, lab: r.label, sets: r.sets } }));
-  const raceKey = JSON.stringify(raceRows);
+  const condFitAuto = raceFitRows(false);
+  const raceKey = JSON.stringify([raceRows, condFitAuto]);
   React.useEffect(() => {
     setB((p) => {
       const c0 = Object.assign({ imc: [], upvc: [], pullbox: [] }, p.conduit);
@@ -1617,6 +1632,8 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
         if (JSON.stringify(out) !== JSON.stringify(c0[k] || [])) changed = true;
         nx[k] = out;
       });
+      const ex = condFitAuto.concat((c0.extra || []).filter((x) => !x.auto));
+      if (JSON.stringify(ex) !== JSON.stringify(c0.extra || [])) { changed = true; nx.extra = ex; }
       return changed ? Object.assign({}, p, { conduit: Object.assign({}, c0, nx) }) : p;
     });
   }, [raceKey]); // eslint-disable-line
@@ -1845,7 +1862,7 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
                   </button>
                   {/* ชุบ HDG ทีละแถว — งานเดียวกันมีทั้งรางในอาคาร (Pre-Zinc) และรางนอกอาคาร (ชุบ) ได้
                       ติ๊กแล้วตัวราง ชุดข้อต่อ และขาแขวนของแถวนี้ต่อท้ายชื่อด้วย (HDG.) แยกราคาจากของไม่ชุบ */}
-                  <button onClick={() => setTrayRow(kind, i, "hdg", !x.hdg)}
+                  <button onClick={() => (x.auto ? setRace(x.from, { raceHdg: x.hdg ? null : 1 }) : setTrayRow(kind, i, "hdg", !x.hdg))}
                     title={x.hdg ? "ชุบกัลวาไนซ์แบบจุ่มร้อน — ตัวราง ข้อต่อ และขาแขวนของแถวนี้จะถอดเป็นของชุบ (HDG.)"
                       : "ยังไม่ชุบ — ถอดเป็นของธรรมดา (Pre-Zinc) กดเพื่อเปลี่ยนเป็นของชุบ HDG"}
                     style={{ display: "inline-flex", alignItems: "center", gap: 5, padding: "3px 10px", borderRadius: 99, cursor: "pointer", fontFamily: "inherit",
@@ -1856,7 +1873,7 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
                   {/* วิธียึดขาล็อก เลือกทีละแถว — บนหลังคาขาล็อกวางบน Rail ส่วนในอาคารยิงพุ๊กเข้าโครงตรง ๆ
                       ยึดบน Rail แล้วตัวยึดเปลี่ยนจากพุ๊กเป็น T-BOLT KIT และต้องมี Rail รองใต้ขาเพิ่มมาด้วย */}
                   {spec.hanger && (
-                    <button onClick={() => setTrayRow(kind, i, "rail", !x.rail)}
+                    <button onClick={() => (x.auto ? setRace(x.from, { raceRail: x.rail ? null : 1 }) : setTrayRow(kind, i, "rail", !x.rail))}
                       title={x.rail
                         ? "ขาล็อกวางบน Rail — ถอด T-BOLT KIT 2 ชุด/ขา + Rail รองใต้ขายาวชิ้นละ " + railCm(x.size)
                           + " ซม. (กว้างกว่ารางข้างละ 10 ซม.) · สั่งเป็นท่อน RAIL " + railTon + " M ตัดได้ท่อนละ " + railPer(x.size) + " ชิ้น"
@@ -3514,7 +3531,7 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
                         <span style={{ display: "inline-flex", gap: 5, flexWrap: "wrap" }}>
                           {[["", "ไม่ร้อยท่อ"]].concat(Object.keys(RACE_TH).map((k) => [k, RACE_TH[k]])).map(([k, th]) => (
                             <button key={k} className={"bq-cab-chip" + (r.kind === k ? " on" : "")} style={{ fontSize: 11.5, padding: "5px 11px" }}
-                              onClick={() => setRace(r.i, { race: k, raceSize: null })}>{th}</button>
+                              onClick={() => setRace(r.i, { race: k, raceSize: null, raceFit: null, raceHdg: null, raceRail: null })}>{th}</button>
                           ))}
                         </span>
                       </div>
@@ -3536,6 +3553,39 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
                           </span>
                         </div>
                       )}
+                      {r.kind && (
+                        <div style={{ display: "flex", flexDirection: "column", gap: 7 }}>
+                          {r.tray && (
+                            <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+                              <button className={"bq-cab-chip" + (r.hdg ? " on" : "")} style={{ fontSize: 11, padding: "4px 10px" }}
+                                title="ชุบกัลวาไนซ์แบบจุ่มร้อน — ตัวราง ข้อต่อ และขาแขวนของรางเส้นนี้ถอดเป็นของชุบ (HDG.)"
+                                onClick={() => setRace(r.i, { raceHdg: r.hdg ? null : 1 })}>{r.hdg ? "✓ " : ""}ชุบ HDG</button>
+                              {window.BOQ.TRAY_KINDS[r.kind].hanger && (
+                                <button className={"bq-cab-chip" + (r.rail ? " on" : "")} style={{ fontSize: 11, padding: "4px 10px" }}
+                                  title="ขาล็อกวางบน Rail — ถอด T-BOLT KIT 2 ชุด/ขา + Rail รองใต้ขา (ไม่กด = ยึดพุ๊กเข้าโครงตรง ๆ)"
+                                  onClick={() => setRace(r.i, { raceRail: r.rail ? null : 1 })}>{r.rail ? "✓ " : ""}ยึดบน Rail</button>
+                              )}
+                            </div>
+                          )}
+                          {r.fits.map((f, j) => (
+                            <div key={j} style={{ display: "grid", gridTemplateColumns: isMobile ? "minmax(0,1fr) 70px 34px" : "minmax(0,240px) 110px 34px minmax(0,1fr)", gap: 8, alignItems: "center" }}>
+                              <Dropdown value={f.k || ""} placeholder="เลือกข้อต่อ"
+                                options={r.fitCat.map((x) => ({ value: x.k, label: x.k }))}
+                                onChange={(v) => setRace(r.i, { raceFit: r.fits.map((y, q) => ({ k: q === j ? v : y.k, qty: y.qty })) })} />
+                              <input type="number" style={numStyle} value={f.qty != null ? f.qty : ""} placeholder="ชิ้น"
+                                onChange={(e) => setRace(r.i, { raceFit: r.fits.map((y, q) => ({ k: y.k, qty: q === j ? e.target.value : y.qty })) })} />
+                              <button className="bq-x" style={{ width: 34, height: 34, flex: "0 0 34px" }} title="ลบ"
+                                onClick={() => setRace(r.i, { raceFit: r.fits.filter((_, q) => q !== j).map((y) => ({ k: y.k, qty: y.qty })) })}><Icon name="x" size={13} /></button>
+                              {!isMobile && <span style={{ fontSize: 10.5, color: f.item || !f.k ? "var(--text-3)" : "var(--tint-red-tx2)", minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                                {f.item ? f.item.name : f.k ? "ไม่มีข้อต่อชนิดนี้ในขนาดนี้" : ""}</span>}
+                            </div>
+                          ))}
+                          <button onClick={() => setRace(r.i, { raceFit: r.fits.map((y) => ({ k: y.k, qty: y.qty })).concat([{ k: (r.fitCat[0] || {}).k || "", qty: 1 }]) })}
+                            style={{ alignSelf: "flex-start", display: "inline-flex", alignItems: "center", gap: 5, background: "var(--surface)", boxShadow: "var(--shadow-sm)", color: "var(--text-2)", border: "none", borderRadius: 9, padding: "6px 10px", fontWeight: 700, fontSize: 11.5, cursor: "pointer", fontFamily: "inherit" }}>
+                            <Icon name="plus" size={12} color="var(--text-2)" /> เพิ่มข้อต่อ{r.tray ? "ราง" : "ท่อ"}
+                          </button>
+                        </div>
+                      )}
                     </div>
                   ))}
                 </div>
@@ -3548,7 +3598,7 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
                 hint: "ท่อขาว uPVC ยาว 2.9 ม./ท่อน — ขนาดที่เรียกเป็นขนาดนอก ระบบหักผนังท่อให้แล้วตอนตรวจ % เติมเต็ม" })}
               {ConduitList({ kind: "pullbox", label: "PULL BOX", sizes: window.BOQ.PULLBOX_SIZES, valKey: "qty", unitText: "ชิ้น",
                 hint: "กล่องพักสาย — กรอกจำนวนใบ (ไม่มีสายวิ่งผ่านเป็นเส้นให้ตรวจ % เติมเต็ม)" })}
-              {FitList({ rows: cond.extra, onChange: (v) => setCondVal("extra", v), catalog: condFits,
+              {FitList({ rows: (cond.extra || []).filter((x) => !x.auto), onChange: (v) => setCondVal("extra", (cond.extra || []).filter((x) => x.auto).concat(v)), catalog: condFits,
                 hint: "ของท่อร้อยสายโดยเฉพาะ — เลือกได้ครบทุกขนาด แยกกลุ่ม IMC กับ uPVC (คนละอันกับข้องอของรางไฟ)" })}
             </div>
             <div className="bq-hint" style={{ marginTop: 12, fontSize: 11, color: "var(--text-3)", lineHeight: 1.5 }}>
@@ -3626,7 +3676,7 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
                 </div>
               </div>
               {/* ข้องอ / ข้อลด / สามทาง — รูปทรงไม่ตายตัว เลือกของ + กรอกจำนวนตามแบบ */}
-              {FitList({ rows: tw.extra, onChange: (v) => setTrayVal("extra", v), catalog: trayFits,
+              {FitList({ rows: (tw.extra || []).filter((x) => !x.auto), onChange: (v) => setTrayVal("extra", (tw.extra || []).filter((x) => x.auto).concat(v)), catalog: trayFits,
                 hint: "ของรางไฟโดยเฉพาะ — เลือกได้ครบทุกขนาด แยกกลุ่มตามชนิดราง และแยกของชุบ HDG ออกจากของธรรมดา" })}
             </div>
           </BoqSection>
