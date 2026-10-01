@@ -81,6 +81,15 @@ const BQ_CSS = `
 /* กลุ่ม "สรุปผล" ในแถบซ้าย — หน้าที่ระบบคิดให้ ไม่ต้องกรอก จึงไม่นับในความคืบหน้า */
 .bq-nav[data-out="1"] .dot{box-shadow:none;background:var(--surface3);color:var(--text-2)}
 
+/* ตารางกรอกการจัดวางแผง */
+.bq-rw{display:grid;grid-template-columns:150px minmax(0,1fr) minmax(0,1fr) 90px 40px;gap:8px;align-items:center}
+.bq-rw[data-m="1"]{grid-template-columns:minmax(0,1.1fr) minmax(0,1fr) minmax(0,1fr) 40px}
+.bq-rw-hd{margin-bottom:-3px}
+.bq-rw-hd span{font-size:10.5px;font-weight:700;color:var(--text-3);padding:0 2px}
+.bq-rw .n{text-align:right;padding-right:12px}
+.bq-rw .tot{text-align:right;font-weight:800;color:var(--text-1);font-variant-numeric:tabular-nums;padding-right:4px}
+.bq-p3[data-ok="1"]{box-shadow:none}
+
 /* สรุปการจัดวางจากแบบ 3D (หัวการ์ดการจัดวางแผง) */
 .bq-p3{margin-bottom:14px;background:var(--surface);border-radius:var(--r-tile);box-shadow:var(--shadow-sm);overflow:hidden}
 .bq-p3-hd{display:flex;align-items:center;flex-wrap:wrap;gap:10px 12px;padding:12px 14px;background:color-mix(in srgb,#2563EB 7%,var(--surface))}
@@ -2492,7 +2501,7 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
                     <span className="ic"><Icon name={rail3dSame ? "check" : "grid"} size={15} color="currentColor" sw={rail3dSame ? 2.6 : 2} /></span>
                     <div className="tt">
                       <b>การจัดวางจากแบบ 3D</b>
-                      <span>{rail3dSame ? "ตารางด้านล่างตรงกับแบบแล้ว" : "ยังไม่ได้ใช้ — กดปุ่มเพื่อกรอกตารางด้านล่างตามแบบ"}</span>
+                      <span>{rail3dSame ? "ตารางด้านล่างตรงกับแบบแล้ว" : "ตารางด้านล่างยังไม่ตรงกับแบบ — ดูที่วางไว้ในแบบด้านล่าง แล้วกดใช้"}</span>
                     </div>
                     <div className="sum"><b>{rail3d.total.toLocaleString()}</b> แผง<i>·</i><b>{lines.toLocaleString()}</b> แนวราง</div>
                     {!rail3dSame && (
@@ -2501,6 +2510,7 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
                       </button>
                     )}
                   </div>
+                  {!rail3dSame && (
                   <table className="bq-p3-tb">
                     <thead><tr><th>แนวแผง</th><th className="n">แผง / แนวราง</th><th className="n">จำนวนแนวราง</th><th className="n">รวมแผง</th>{!isMobile && <th className="bar" />}</tr></thead>
                     <tbody>
@@ -2515,6 +2525,7 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
                       ))}
                     </tbody>
                   </table>
+                  )}
                   {mism && (
                     <div className="warn"><Icon name="alert" size={13} color="currentColor" /> แบบ 3D วางไว้ {rail3d.total.toLocaleString()} แผง แต่งานนี้ตั้งไว้ {(+result.meta.panelCount).toLocaleString()} แผง</div>
                   )}
@@ -2522,14 +2533,19 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
               );
             })()}
             <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+              {/* ตารางกรอก — หัวคอลัมน์ครั้งเดียว (เดิมติดอยู่กับแถวแรก) + รวมแผงต่อแถว ไว้เทียบกับจำนวนแผงทั้งงาน */}
+              <div className="bq-rw bq-rw-hd" data-m={isMobile ? "1" : "0"}>
+                <span>แนวแผง</span><span className="n">แผง / แนวราง</span><span className="n">จำนวนแนวราง</span>{!isMobile && <span className="n">รวมแผง</span>}<span />
+              </div>
               {b.rows.map((r, i) => (
-                <div key={i} style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr 1fr 1fr 40px" : "1fr 1fr 150px 40px", gap: 8, alignItems: "center" }}>
-                  <Field label={i === 0 ? "แผง/แนวราง" : ""}><input type="number" style={numStyle} value={r.panels} onChange={(e) => setRow(i, "panels", e.target.value)} /></Field>
-                  <Field label={i === 0 ? "จำนวนแนวราง" : ""}><input type="number" min="0" style={numStyle} value={r.count} onChange={(e) => setRow(i, "count", e.target.value)} /></Field>
+                <div key={i} className="bq-rw" data-m={isMobile ? "1" : "0"}>
                   {/* แนวการวางแผง — บอกทิศราง: แนวตั้งนับตามแถว แนวนอนนับตามคอลัมน์ (ขึ้นตามลาด) */}
-                  <Field label={i === 0 ? "แนวแผง" : ""}><Dropdown value={r.orient === "landscape" ? "landscape" : "portrait"} onChange={(v) => setRow(i, "orient", v)}
-                    options={[{ value: "portrait", label: "แนวตั้ง" }, { value: "landscape", label: "แนวนอน" }]} /></Field>
-                  <button onClick={() => delRow(i)} title="ลบแถว" style={{ height: 40, marginTop: i === 0 ? 18 : 0, background: "#EF444414", border: "none", color: "#EF4444", borderRadius: 9, cursor: "pointer", display: "grid", placeItems: "center" }}><Icon name="x" size={15} /></button>
+                  <Dropdown value={r.orient === "landscape" ? "landscape" : "portrait"} onChange={(v) => setRow(i, "orient", v)}
+                    options={[{ value: "portrait", label: "แนวตั้ง" }, { value: "landscape", label: "แนวนอน" }]} />
+                  <input type="number" style={numStyle} value={r.panels} onChange={(e) => setRow(i, "panels", e.target.value)} />
+                  <input type="number" min="0" style={numStyle} value={r.count} onChange={(e) => setRow(i, "count", e.target.value)} />
+                  {!isMobile && <span className="tot">{((+r.panels || 0) * (+r.count || 0)).toLocaleString()}</span>}
+                  <button onClick={() => delRow(i)} title="ลบแถว" style={{ height: 40, background: "#EF444414", border: "none", color: "#EF4444", borderRadius: 9, cursor: "pointer", display: "grid", placeItems: "center" }}><Icon name="x" size={15} /></button>
                 </div>
               ))}
               <button onClick={addRow} style={{ alignSelf: "flex-start", display: "inline-flex", alignItems: "center", gap: 5, background: "var(--primary-soft)", color: "var(--primary-dark)", border: "none", borderRadius: 9, padding: "8px 12px", fontWeight: 700, fontSize: 12.5, cursor: "pointer", fontFamily: "inherit" }}><Icon name="plus" size={14} color="var(--primary-dark)" /> เพิ่มแถว</button>

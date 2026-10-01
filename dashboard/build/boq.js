@@ -74,6 +74,15 @@ const BQ_CSS = `
 /* กลุ่ม "สรุปผล" ในแถบซ้าย — หน้าที่ระบบคิดให้ ไม่ต้องกรอก จึงไม่นับในความคืบหน้า */
 .bq-nav[data-out="1"] .dot{box-shadow:none;background:var(--surface3);color:var(--text-2)}
 
+/* ตารางกรอกการจัดวางแผง */
+.bq-rw{display:grid;grid-template-columns:150px minmax(0,1fr) minmax(0,1fr) 90px 40px;gap:8px;align-items:center}
+.bq-rw[data-m="1"]{grid-template-columns:minmax(0,1.1fr) minmax(0,1fr) minmax(0,1fr) 40px}
+.bq-rw-hd{margin-bottom:-3px}
+.bq-rw-hd span{font-size:10.5px;font-weight:700;color:var(--text-3);padding:0 2px}
+.bq-rw .n{text-align:right;padding-right:12px}
+.bq-rw .tot{text-align:right;font-weight:800;color:var(--text-1);font-variant-numeric:tabular-nums;padding-right:4px}
+.bq-p3[data-ok="1"]{box-shadow:none}
+
 /* สรุปการจัดวางจากแบบ 3D (หัวการ์ดการจัดวางแผง) */
 .bq-p3{margin-bottom:14px;background:var(--surface);border-radius:var(--r-tile);box-shadow:var(--shadow-sm);overflow:hidden}
 .bq-p3-hd{display:flex;align-items:center;flex-wrap:wrap;gap:10px 12px;padding:12px 14px;background:color-mix(in srgb,#2563EB 7%,var(--surface))}
@@ -5456,7 +5465,7 @@ function BOQEditor({
       sw: rail3dSame ? 2.6 : 2
     })), React.createElement("div", {
       className: "tt"
-    }, React.createElement("b", null, "\u0E01\u0E32\u0E23\u0E08\u0E31\u0E14\u0E27\u0E32\u0E07\u0E08\u0E32\u0E01\u0E41\u0E1A\u0E1A 3D"), React.createElement("span", null, rail3dSame ? "ตารางด้านล่างตรงกับแบบแล้ว" : "ยังไม่ได้ใช้ — กดปุ่มเพื่อกรอกตารางด้านล่างตามแบบ")), React.createElement("div", {
+    }, React.createElement("b", null, "\u0E01\u0E32\u0E23\u0E08\u0E31\u0E14\u0E27\u0E32\u0E07\u0E08\u0E32\u0E01\u0E41\u0E1A\u0E1A 3D"), React.createElement("span", null, rail3dSame ? "ตารางด้านล่างตรงกับแบบแล้ว" : "ตารางด้านล่างยังไม่ตรงกับแบบ — ดูที่วางไว้ในแบบด้านล่าง แล้วกดใช้")), React.createElement("div", {
       className: "sum"
     }, React.createElement("b", null, rail3d.total.toLocaleString()), " \u0E41\u0E1C\u0E07", React.createElement("i", null, "\xB7"), React.createElement("b", null, lines.toLocaleString()), " \u0E41\u0E19\u0E27\u0E23\u0E32\u0E07"), !rail3dSame && React.createElement("button", {
       type: "button",
@@ -5466,7 +5475,7 @@ function BOQEditor({
       name: "download",
       size: 13,
       color: "#fff"
-    }), " \u0E43\u0E0A\u0E49\u0E01\u0E32\u0E23\u0E08\u0E31\u0E14\u0E27\u0E32\u0E07\u0E19\u0E35\u0E49")), React.createElement("table", {
+    }), " \u0E43\u0E0A\u0E49\u0E01\u0E32\u0E23\u0E08\u0E31\u0E14\u0E27\u0E32\u0E07\u0E19\u0E35\u0E49")), !rail3dSame && React.createElement("table", {
       className: "bq-p3-tb"
     }, React.createElement("thead", null, React.createElement("tr", null, React.createElement("th", null, "\u0E41\u0E19\u0E27\u0E41\u0E1C\u0E07"), React.createElement("th", {
       className: "n"
@@ -5506,31 +5515,19 @@ function BOQEditor({
       flexDirection: "column",
       gap: 8
     }
-  }, b.rows.map((r, i) => React.createElement("div", {
+  }, React.createElement("div", {
+    className: "bq-rw bq-rw-hd",
+    "data-m": isMobile ? "1" : "0"
+  }, React.createElement("span", null, "\u0E41\u0E19\u0E27\u0E41\u0E1C\u0E07"), React.createElement("span", {
+    className: "n"
+  }, "\u0E41\u0E1C\u0E07 / \u0E41\u0E19\u0E27\u0E23\u0E32\u0E07"), React.createElement("span", {
+    className: "n"
+  }, "\u0E08\u0E33\u0E19\u0E27\u0E19\u0E41\u0E19\u0E27\u0E23\u0E32\u0E07"), !isMobile && React.createElement("span", {
+    className: "n"
+  }, "\u0E23\u0E27\u0E21\u0E41\u0E1C\u0E07"), React.createElement("span", null)), b.rows.map((r, i) => React.createElement("div", {
     key: i,
-    style: {
-      display: "grid",
-      gridTemplateColumns: isMobile ? "1fr 1fr 1fr 40px" : "1fr 1fr 150px 40px",
-      gap: 8,
-      alignItems: "center"
-    }
-  }, React.createElement(Field, {
-    label: i === 0 ? "แผง/แนวราง" : ""
-  }, React.createElement("input", {
-    type: "number",
-    style: numStyle,
-    value: r.panels,
-    onChange: e => setRow(i, "panels", e.target.value)
-  })), React.createElement(Field, {
-    label: i === 0 ? "จำนวนแนวราง" : ""
-  }, React.createElement("input", {
-    type: "number",
-    min: "0",
-    style: numStyle,
-    value: r.count,
-    onChange: e => setRow(i, "count", e.target.value)
-  })), React.createElement(Field, {
-    label: i === 0 ? "แนวแผง" : ""
+    className: "bq-rw",
+    "data-m": isMobile ? "1" : "0"
   }, React.createElement(Dropdown, {
     value: r.orient === "landscape" ? "landscape" : "portrait",
     onChange: v => setRow(i, "orient", v),
@@ -5541,12 +5538,24 @@ function BOQEditor({
       value: "landscape",
       label: "แนวนอน"
     }]
-  })), React.createElement("button", {
+  }), React.createElement("input", {
+    type: "number",
+    style: numStyle,
+    value: r.panels,
+    onChange: e => setRow(i, "panels", e.target.value)
+  }), React.createElement("input", {
+    type: "number",
+    min: "0",
+    style: numStyle,
+    value: r.count,
+    onChange: e => setRow(i, "count", e.target.value)
+  }), !isMobile && React.createElement("span", {
+    className: "tot"
+  }, ((+r.panels || 0) * (+r.count || 0)).toLocaleString()), React.createElement("button", {
     onClick: () => delRow(i),
     title: "\u0E25\u0E1A\u0E41\u0E16\u0E27",
     style: {
       height: 40,
-      marginTop: i === 0 ? 18 : 0,
       background: "#EF444414",
       border: "none",
       color: "#EF4444",
