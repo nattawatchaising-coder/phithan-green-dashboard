@@ -1581,11 +1581,11 @@ function BOQEditor({
     })
   }));
   const svcList = (key, preset) => b[key] == null ? preset.map(x => Object.assign({}, x, {
-    price: 0
+    price: +x.price || 0
   })) : b[key];
   const setSvc = (key, preset, i, k, v) => setB(p => {
     const a = (p[key] == null ? preset.map(x => Object.assign({}, x, {
-      price: 0
+      price: +x.price || 0
     })) : p[key]).slice();
     a[i] = Object.assign({}, a[i], {
       [k]: v
@@ -1596,7 +1596,7 @@ function BOQEditor({
   });
   const addSvc = (key, preset) => setB(p => {
     const a = (p[key] == null ? preset.map(x => Object.assign({}, x, {
-      price: 0
+      price: +x.price || 0
     })) : p[key]).slice();
     return Object.assign({}, p, {
       [key]: a.concat([{
@@ -1610,7 +1610,7 @@ function BOQEditor({
   });
   const delSvc = (key, preset, i) => setB(p => {
     const a = p[key] == null ? preset.map(x => Object.assign({}, x, {
-      price: 0
+      price: +x.price || 0
     })) : p[key];
     return Object.assign({}, p, {
       [key]: a.filter((_, j) => j !== i)
@@ -4387,7 +4387,7 @@ function BOQEditor({
         textAlign: "right"
       }
     }, "\u0E23\u0E32\u0E04\u0E32/\u0E2B\u0E19\u0E48\u0E27\u0E22"), React.createElement("span", null)), rows.map((r, i) => {
-      const q = live[i] ? live[i].qty : +r.qty || 0;
+      const q = live[i] ? live[i].qty : r.qty == null || r.qty === "" ? 1 : +r.qty || 0;
       const tot = q * (+r.price || 0);
       return React.createElement("div", {
         key: i,
@@ -4429,6 +4429,7 @@ function BOQEditor({
         type: "number",
         style: numStyle,
         value: r.qty != null ? r.qty : "",
+        placeholder: "1",
         onChange: e => setSvc(sKey, preset, i, "qty", e.target.value)
       })), !isMobile && React.createElement("input", {
         value: r.unit || "",
@@ -9116,9 +9117,46 @@ function BOQEditor({
       lineHeight: 1.5,
       marginBottom: 12
     }
-  }, "\u0E04\u0E48\u0E32\u0E18\u0E23\u0E23\u0E21\u0E40\u0E19\u0E35\u0E22\u0E21\u0E08\u0E23\u0E34\u0E07\u0E40\u0E1B\u0E25\u0E35\u0E48\u0E22\u0E19\u0E15\u0E32\u0E21\u0E1E\u0E37\u0E49\u0E19\u0E17\u0E35\u0E48\u0E41\u0E25\u0E30\u0E02\u0E19\u0E32\u0E14\u0E23\u0E30\u0E1A\u0E1A \u0E23\u0E30\u0E1A\u0E1A\u0E08\u0E36\u0E07\u0E44\u0E21\u0E48\u0E40\u0E14\u0E32\u0E43\u0E2B\u0E49 \u2014 \u0E01\u0E23\u0E2D\u0E01\u0E15\u0E32\u0E21\u0E43\u0E1A\u0E40\u0E2A\u0E23\u0E47\u0E08/\u0E1B\u0E23\u0E30\u0E01\u0E32\u0E28\u0E25\u0E48\u0E32\u0E2A\u0E38\u0E14 \xB7 \u0E25\u0E1A\u0E1A\u0E23\u0E23\u0E17\u0E31\u0E14\u0E17\u0E35\u0E48\u0E07\u0E32\u0E19\u0E19\u0E35\u0E49\u0E44\u0E21\u0E48\u0E15\u0E49\u0E2D\u0E07\u0E02\u0E2D\u0E44\u0E14\u0E49\u0E40\u0E25\u0E22"), SvcTable({
+  }, "\u0E23\u0E32\u0E04\u0E32\u0E15\u0E31\u0E49\u0E07\u0E15\u0E49\u0E19: \u0E04\u0E48\u0E32\u0E1A\u0E23\u0E34\u0E01\u0E32\u0E23\u0E02\u0E19\u0E32\u0E19\u0E44\u0E1F (\u0E07\u0E32\u0E19\u0E1A\u0E49\u0E32\u0E19) MEA 2,140 \xB7 PEA 3,745 \xB7 \u0E04\u0E48\u0E32\u0E27\u0E34\u0E28\u0E27\u0E01\u0E23 (\u0E23\u0E27\u0E21\u0E1A\u0E23\u0E23\u0E17\u0E31\u0E14\u0E40\u0E14\u0E35\u0E22\u0E27) 5,000\u201315,000 \u0E15\u0E32\u0E21\u0E02\u0E19\u0E32\u0E14\u0E23\u0E30\u0E1A\u0E1A \xB7 \u0E23\u0E30\u0E1A\u0E1A\u0E40\u0E01\u0E34\u0E19 10 \u0E16\u0E36\u0E07 200 kW \u0E15\u0E49\u0E2D\u0E07\u0E22\u0E37\u0E48\u0E19 \u0E1E\u0E04.2 \u0E01\u0E31\u0E1A \u0E1E\u0E1E. (\u0E44\u0E21\u0E48\u0E21\u0E35\u0E04\u0E48\u0E32\u0E18\u0E23\u0E23\u0E21\u0E40\u0E19\u0E35\u0E22\u0E21) \xB7 \u0E25\u0E1A\u0E1A\u0E23\u0E23\u0E17\u0E31\u0E14\u0E17\u0E35\u0E48\u0E07\u0E32\u0E19\u0E19\u0E35\u0E49\u0E44\u0E21\u0E48\u0E15\u0E49\u0E2D\u0E07\u0E02\u0E2D\u0E44\u0E14\u0E49\u0E40\u0E25\u0E22"), React.createElement("div", {
+    style: {
+      display: "flex",
+      alignItems: "center",
+      gap: 6,
+      marginBottom: 12,
+      flexWrap: "wrap"
+    }
+  }, React.createElement("span", {
+    style: {
+      fontSize: 11,
+      fontWeight: 700,
+      color: "var(--text-3)"
+    }
+  }, "\u0E01\u0E32\u0E23\u0E44\u0E1F\u0E1F\u0E49\u0E32"), [["MEA", "MEA นครหลวง"], ["PEA", "PEA ภูมิภาค"]].map(([v, l]) => React.createElement("button", {
+    key: v,
+    type: "button",
+    className: "bq-cab-chip" + (b.gridAuth === v ? " on" : ""),
+    style: {
+      fontSize: 11,
+      padding: "4px 10px"
+    },
+    onClick: () => setB(p => {
+      const n = Object.assign({}, p, {
+        gridAuth: v
+      });
+      const fee = window.BOQ.permitGridFee(n);
+      if (p.permit != null && fee) n.permit = p.permit.map(r => r && r.name === window.BOQ.PERMIT_GRID_NAME ? Object.assign({}, r, {
+        price: fee
+      }) : r);
+      return n;
+    })
+  }, l, b.jobType === "home" ? " · ฿" + baht(window.BOQ.PERMIT_GRID_FEE[v]) : "")), !b.gridAuth && React.createElement("span", {
+    style: {
+      fontSize: 11,
+      color: "var(--tint-amber-tx)"
+    }
+  }, "\u0E22\u0E31\u0E07\u0E44\u0E21\u0E48\u0E44\u0E14\u0E49\u0E40\u0E25\u0E37\u0E2D\u0E01 \u2014 \u0E04\u0E48\u0E32\u0E02\u0E19\u0E32\u0E19\u0E44\u0E1F\u0E22\u0E31\u0E07\u0E40\u0E1B\u0E47\u0E19 0")), SvcTable({
     sKey: "permit",
-    preset: window.BOQ.PERMIT_PRESET,
+    preset: window.BOQ.permitPresetFor(b, result.meta.kw),
     qtyLabel: "จำนวน",
     total: priced.permitTotal,
     perW: priced.permitPerW

@@ -816,18 +816,18 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
   const setSup = (k, v) => setB((p) => Object.assign({}, p, { support: Object.assign({}, SUP_DEF, p.support, { [k]: v }) }));
 
   // ── ค่าแรง / ค่าขออนุญาต — null = ยังไม่เคยแก้ ใช้รายการตั้งต้น (ต้องคัดลอกก่อนแก้ครั้งแรก) ──
-  const svcList = (key, preset) => (b[key] == null ? preset.map((x) => Object.assign({}, x, { price: 0 })) : b[key]);
+  const svcList = (key, preset) => (b[key] == null ? preset.map((x) => Object.assign({}, x, { price: +x.price || 0 })) : b[key]);
   const setSvc = (key, preset, i, k, v) => setB((p) => {
-    const a = (p[key] == null ? preset.map((x) => Object.assign({}, x, { price: 0 })) : p[key]).slice();
+    const a = (p[key] == null ? preset.map((x) => Object.assign({}, x, { price: +x.price || 0 })) : p[key]).slice();
     a[i] = Object.assign({}, a[i], { [k]: v });
     return Object.assign({}, p, { [key]: a });
   });
   const addSvc = (key, preset) => setB((p) => {
-    const a = (p[key] == null ? preset.map((x) => Object.assign({}, x, { price: 0 })) : p[key]).slice();
+    const a = (p[key] == null ? preset.map((x) => Object.assign({}, x, { price: +x.price || 0 })) : p[key]).slice();
     return Object.assign({}, p, { [key]: a.concat([{ name: "", qty: 1, unit: "งาน", price: 0, auto: "" }]) });
   });
   const delSvc = (key, preset, i) => setB((p) => {
-    const a = (p[key] == null ? preset.map((x) => Object.assign({}, x, { price: 0 })) : p[key]);
+    const a = (p[key] == null ? preset.map((x) => Object.assign({}, x, { price: +x.price || 0 })) : p[key]);
     return Object.assign({}, p, { [key]: a.filter((_, j) => j !== i) });
   });
   const resetSvc = (key) => setB((p) => Object.assign({}, p, { [key]: null }));
@@ -2255,7 +2255,7 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
           <span style={{ textAlign: "right" }}>ราคา/หน่วย</span><span />
         </div>
         {rows.map((r, i) => {
-          const q = live[i] ? live[i].qty : (+r.qty || 0);
+          const q = live[i] ? live[i].qty : (r.qty == null || r.qty === "" ? 1 : +r.qty || 0);
           const tot = q * (+r.price || 0);
           return (
             <div key={i} style={{ display: "grid", gridTemplateColumns: isMobile ? "minmax(0,1fr) 62px 36px" : "minmax(0,1fr) 84px 62px 96px 36px", gap: 8, alignItems: "center" }}>
@@ -2265,7 +2265,7 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
               </span>
               {!isMobile && (r.auto
                 ? <span style={{ textAlign: "right", fontFamily: "var(--mono)", fontSize: 13, fontWeight: 700, color: "var(--primary-dark)" }} title="ปริมาณคิดจากผลถอดวัสดุอัตโนมัติ">{(Math.round(q * 100) / 100).toLocaleString()}</span>
-                : <input type="number" style={numStyle} value={r.qty != null ? r.qty : ""} onChange={(e) => setSvc(sKey, preset, i, "qty", e.target.value)} />)}
+                : <input type="number" style={numStyle} value={r.qty != null ? r.qty : ""} placeholder="1" onChange={(e) => setSvc(sKey, preset, i, "qty", e.target.value)} />)}
               {!isMobile && <input value={r.unit || ""} onChange={(e) => setSvc(sKey, preset, i, "unit", e.target.value)} style={Object.assign({}, inputStyle, { width: "100%", textAlign: "right" })} />}
               <input type="number" style={numStyle} value={r.price != null ? r.price : ""} placeholder="0" onChange={(e) => setSvc(sKey, preset, i, "price", e.target.value)} />
               <button className="bq-x" onClick={() => delSvc(sKey, preset, i)} title="ลบบรรทัด"><Icon name="x" size={14} /></button>
@@ -4220,9 +4220,24 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
           <BoqSection title="ค่าขออนุญาต & เอกสาร" icon="box" {...secProps("permit")}
             right={priced.permitTotal > 0 ? <span style={{ fontSize: 12.5, fontWeight: 800, color: "var(--primary-dark)" }}>฿{baht(priced.permitTotal)}</span> : null}>
             <div className="bq-hint" style={{ fontSize: 11.5, color: "var(--text-3)", lineHeight: 1.5, marginBottom: 12 }}>
-              ค่าธรรมเนียมจริงเปลี่ยนตามพื้นที่และขนาดระบบ ระบบจึงไม่เดาให้ — กรอกตามใบเสร็จ/ประกาศล่าสุด · ลบบรรทัดที่งานนี้ไม่ต้องขอได้เลย
+              ราคาตั้งต้น: ค่าบริการขนานไฟ (งานบ้าน) MEA 2,140 · PEA 3,745 · ค่าวิศวกร (รวมบรรทัดเดียว) 5,000–15,000 ตามขนาดระบบ
+              · ระบบเกิน 10 ถึง 200 kW ต้องยื่น พค.2 กับ พพ. (ไม่มีค่าธรรมเนียม) · ลบบรรทัดที่งานนี้ไม่ต้องขอได้เลย
             </div>
-            {SvcTable({ sKey: "permit", preset: window.BOQ.PERMIT_PRESET, qtyLabel: "จำนวน", total: priced.permitTotal, perW: priced.permitPerW })}
+            <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 12, flexWrap: "wrap" }}>
+              <span style={{ fontSize: 11, fontWeight: 700, color: "var(--text-3)" }}>การไฟฟ้า</span>
+              {[["MEA", "MEA นครหลวง"], ["PEA", "PEA ภูมิภาค"]].map(([v, l]) => (
+                <button key={v} type="button" className={"bq-cab-chip" + (b.gridAuth === v ? " on" : "")} style={{ fontSize: 11, padding: "4px 10px" }}
+                  onClick={() => setB((p) => {
+                    /* เปลี่ยนการไฟฟ้า — ถ้ารายการถูกแก้ไว้แล้ว อัปเดตราคาบรรทัดขนานไฟให้ด้วย */
+                    const n = Object.assign({}, p, { gridAuth: v });
+                    const fee = window.BOQ.permitGridFee(n);
+                    if (p.permit != null && fee) n.permit = p.permit.map((r) => (r && r.name === window.BOQ.PERMIT_GRID_NAME ? Object.assign({}, r, { price: fee }) : r));
+                    return n;
+                  })}>{l}{b.jobType === "home" ? " · ฿" + baht(window.BOQ.PERMIT_GRID_FEE[v]) : ""}</button>
+              ))}
+              {!b.gridAuth && <span style={{ fontSize: 11, color: "var(--tint-amber-tx)" }}>ยังไม่ได้เลือก — ค่าขนานไฟยังเป็น 0</span>}
+            </div>
+            {SvcTable({ sKey: "permit", preset: window.BOQ.permitPresetFor(b, result.meta.kw), qtyLabel: "จำนวน", total: priced.permitTotal, perW: priced.permitPerW })}
           </BoqSection>
 
           {/* ── O&M · ประกัน + ล้างแผง ── ขายรวมในราคาติดตั้ง N ปีแรก + ราคาต่อประกันรายปี */}
