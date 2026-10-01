@@ -2107,7 +2107,7 @@ function BOQEditor({
         cables: out
       });
     });
-  }, [invUnitsKey]);
+  }, [invUnitsKey + "#" + (b.cables || []).filter(c => /INVERTER-MCB_SOLAR/i.test(c.name || "")).map(c => c.inv || 0).join(",")]);
   const toggleMcbInv = (i, no) => setB(p => {
     const cs = p.cables.slice();
     const cur = mcbInvsOf(cs[i]);
@@ -2623,6 +2623,9 @@ function BOQEditor({
     const sz = window.BOQ.cableSizeNum(type);
     const noGnd = c.noGnd != null ? !!c.noGnd : /MICRO[\s-]*MICRO/i.test(c.name || "");
     return {
+      name: c.name,
+      inv: c.inv || 0,
+      invs: JSON.stringify(c.invs || null),
       type,
       auto: !c.type || c.auto ? 1 : 0,
       sets,
@@ -2636,7 +2639,7 @@ function BOQEditor({
       let changed = false;
       const cs = (p.cables || []).map((c, i) => {
         const w = cabWant[i];
-        if (!w) return c;
+        if (!w || w.name !== c.name || w.inv !== (c.inv || 0) || w.invs !== JSON.stringify(c.invs || null)) return c;
         const nx = Object.assign({}, c, {
           type: w.type,
           sets: w.sets,
@@ -6179,7 +6182,10 @@ function BOQEditor({
     const gndPair = isGnd && i > 0 && /PV-INVERTER/i.test((b.cables[i - 1] || {}).name || "");
     const invU = invUnits.length && /INVERTER-MCB_SOLAR/i.test(c.name || "") ? invUnits[(+c.inv || 1) - 1] || null : null;
     const isMcb = invUnits.length >= 1 && /MCB_SOLAR-MDB/i.test(c.name || "");
-    const headed = !!invU || isMcb;
+    if (gndPair) return null;
+    const dcHead = /PV-INVERTER/i.test(c.name || "");
+    const gi = dcHead && /^GROUND$/i.test(((b.cables[i + 1] || {}).name || "").trim()) ? i + 1 : -1;
+    const headed = !!invU || isMcb || dcHead;
     const isDC = /PV1-F|PV CABLE/i.test(c.type || "") || /PV-INVERTER/i.test(c.name || "");
     const own = !!(c.method || c.group || c.ncond || c.core);
     const rawMethod = c.method || calcMethod;
@@ -6273,7 +6279,10 @@ function BOQEditor({
       }, miss.length ? "ตัวที่ " + miss.join(", ") + " ยังไม่อยู่ตู้ไหน" : "", miss.length && dup.length ? " · " : "", dup.length ? "ตัวที่ " + dup.join(", ") + " อยู่หลายตู้" : ""), mRows.length > 1 && React.createElement("button", {
         className: "bq-x",
         style: {
-          marginLeft: "auto"
+          marginLeft: "auto",
+          width: 30,
+          height: 30,
+          flex: "0 0 30px"
         },
         onClick: () => delCab(i),
         title: "\u0E25\u0E1A\u0E15\u0E39\u0E49\u0E19\u0E35\u0E49"
@@ -6318,7 +6327,144 @@ function BOQEditor({
     }, React.createElement(Icon, {
       name: "x",
       size: 14
-    })))), !(power && (headed || isMobile)) && React.createElement("div", {
+    })))), dcHead && (() => {
+      const g = gi >= 0 ? b.cables[gi] : null;
+      const d = window.BOQ.isPvDcCable(c.type) && +c.length > 0 ? dcOf(c) : null;
+      const dvd = vdropFor(c);
+      return React.createElement(React.Fragment, null, React.createElement("div", {
+        className: "bq-cab-hd"
+      }, React.createElement(Icon, {
+        name: "bolt",
+        size: 12,
+        color: "currentColor"
+      }), "\u0E2A\u0E32\u0E22 DC", React.createElement("span", null, "\u0E41\u0E1C\u0E07 \u2192 \u0E2D\u0E34\u0E19\u0E40\u0E27\u0E2D\u0E23\u0E4C\u0E40\u0E15\u0E2D\u0E23\u0E4C", scfg && scfg.ready ? " · " + scfg.series + " แผงอนุกรม · " + scfg.stringVop + " V · Isc " + scfg.isc + " A" : ""), React.createElement("button", {
+        className: "bq-x",
+        style: {
+          marginLeft: "auto",
+          width: 30,
+          height: 30,
+          flex: "0 0 30px"
+        },
+        onClick: () => delCab(i),
+        title: "\u0E25\u0E1A\u0E2A\u0E32\u0E22 DC"
+      }, React.createElement(Icon, {
+        name: "x",
+        size: 14
+      }))), React.createElement("div", {
+        className: "bq-cabx"
+      }, React.createElement("div", {
+        className: "bq-cabx-step"
+      }, React.createElement("span", {
+        className: "n"
+      }, "1"), React.createElement("span", {
+        className: "lb"
+      }, "\u0E0A\u0E19\u0E34\u0E14\u0E2A\u0E32\u0E22"), React.createElement("div", {
+        style: {
+          width: isMobile ? "100%" : 260
+        }
+      }, React.createElement(Dropdown, {
+        value: c.type,
+        onChange: v => setCab(i, "type", v),
+        options: cableTypeOptions,
+        placeholder: "\u2014 \u0E40\u0E25\u0E37\u0E2D\u0E01\u0E2A\u0E32\u0E22 DC \u2014",
+        style: cabSelStyle
+      })), React.createElement("span", {
+        className: "hint"
+      }, scfg && scfg.ready ? "แนะนำ " + scfg.dcWire : "กรอก Voc/Isc แผง + ช่วง MPPT อินเวอร์เตอร์ (คลัง) เพื่อคำนวณ")), React.createElement("div", {
+        className: "bq-cabx-step"
+      }, React.createElement("span", {
+        className: "n"
+      }, "2"), React.createElement("span", {
+        className: "lb"
+      }, "\u0E23\u0E30\u0E22\u0E30\u0E44\u0E01\u0E25\u0E2A\u0E38\u0E14"), React.createElement("div", {
+        style: {
+          width: 110
+        }
+      }, React.createElement("input", {
+        type: "number",
+        style: Object.assign({}, numStyle, {
+          padding: "7px 10px"
+        }),
+        value: c.length,
+        placeholder: "\u0E21.",
+        onChange: e => setCab(i, "length", e.target.value)
+      })), React.createElement("span", {
+        className: "hint"
+      }, "\u0E40\u0E21\u0E15\u0E23 \xB7 \u0E2A\u0E15\u0E23\u0E34\u0E07\u0E17\u0E35\u0E48\u0E2D\u0E22\u0E39\u0E48\u0E44\u0E01\u0E25\u0E2D\u0E34\u0E19\u0E40\u0E27\u0E2D\u0E23\u0E4C\u0E40\u0E15\u0E2D\u0E23\u0E4C\u0E17\u0E35\u0E48\u0E2A\u0E38\u0E14 \u0E23\u0E30\u0E1A\u0E1A\u0E04\u0E39\u0E13\u0E08\u0E33\u0E19\u0E27\u0E19\u0E2A\u0E15\u0E23\u0E34\u0E07\u0E41\u0E25\u0E30\u0E40\u0E1C\u0E37\u0E48\u0E2D\u0E43\u0E2B\u0E49\u0E40\u0E2D\u0E07")), React.createElement("div", {
+        className: "bq-cabx-step"
+      }, React.createElement("span", {
+        className: "n"
+      }, "3"), React.createElement("span", {
+        className: "lb"
+      }, "\u0E01\u0E23\u0E32\u0E27\u0E14\u0E4C\u0E41\u0E1C\u0E07"), g ? React.createElement(React.Fragment, null, React.createElement("div", {
+        style: {
+          width: isMobile ? "100%" : 260
+        }
+      }, React.createElement(Dropdown, {
+        value: g.type,
+        onChange: v => setCab(gi, "type", v),
+        options: cableTypeOptions,
+        placeholder: "\u2014 \u0E40\u0E25\u0E37\u0E2D\u0E01\u0E2A\u0E32\u0E22\u0E01\u0E23\u0E32\u0E27\u0E14\u0E4C \u2014",
+        style: cabSelStyle
+      })), React.createElement("div", {
+        style: {
+          width: 110
+        }
+      }, React.createElement("input", {
+        type: "number",
+        style: Object.assign({}, numStyle, {
+          padding: "7px 10px"
+        }),
+        value: g.length,
+        placeholder: "\u0E21.",
+        onChange: e => setCab(gi, "length", e.target.value)
+      })), React.createElement("span", {
+        className: "hint"
+      }, "\u0E40\u0E14\u0E34\u0E19\u0E04\u0E39\u0E48\u0E44\u0E1B\u0E01\u0E31\u0E1A\u0E2A\u0E32\u0E22 DC"), React.createElement("button", {
+        type: "button",
+        className: "bq-cabx-link",
+        onClick: () => delCab(gi)
+      }, "\u0E44\u0E21\u0E48\u0E40\u0E14\u0E34\u0E19\u0E01\u0E23\u0E32\u0E27\u0E14\u0E4C\u0E41\u0E1C\u0E07")) : React.createElement("button", {
+        type: "button",
+        className: "bq-cabx-link",
+        onClick: () => setB(p => {
+          const cs = p.cables.slice();
+          cs.splice(i + 1, 0, {
+            name: "GROUND",
+            type: "IEC01(THW)1Cx6 SQ.MM. Y/G",
+            length: c.length || ""
+          });
+          return Object.assign({}, p, {
+            cables: cs
+          });
+        })
+      }, "+ \u0E40\u0E14\u0E34\u0E19\u0E2A\u0E32\u0E22\u0E01\u0E23\u0E32\u0E27\u0E14\u0E4C\u0E41\u0E1C\u0E07")), (dvd || d) && React.createElement("div", {
+        style: {
+          display: "flex",
+          alignItems: "center",
+          gap: 10,
+          flexWrap: "wrap",
+          fontSize: 11,
+          fontWeight: 700
+        }
+      }, dvd && React.createElement("span", {
+        style: {
+          display: "inline-flex",
+          alignItems: "center",
+          gap: 4,
+          color: dvd.ok ? "var(--text-3)" : "var(--tint-amber-tx)"
+        }
+      }, React.createElement(Icon, {
+        name: dvd.ok ? "check" : "alert",
+        size: 11,
+        color: "currentColor"
+      }), " \u0394V ", dvd.pct, "%", !dvd.ok && (dvd.minSize ? " · ต้องใช้ ≥ " + dvd.minSize + " mm²" : "")), d && React.createElement("span", {
+        style: {
+          color: "var(--primary-dark)"
+        },
+        title: "\u0E23\u0E30\u0E22\u0E30\u0E44\u0E01\u0E25\u0E2A\u0E38\u0E14 \xD7 \u0E08\u0E33\u0E19\u0E27\u0E19\u0E2A\u0E15\u0E23\u0E34\u0E07 \xD7 \u0E40\u0E1C\u0E37\u0E48\u0E2D 1.2 = \u0E23\u0E30\u0E22\u0E30\u0E15\u0E48\u0E2D 1 \u0E02\u0E31\u0E49\u0E27 \xB7 \u0E16\u0E2D\u0E14\u0E02\u0E2D\u0E07\u0E40\u0E1B\u0E47\u0E19\u0E2A\u0E32\u0E22 2 \u0E2A\u0E35 \u0E41\u0E14\u0E07(+) \u0E01\u0E31\u0E1A \u0E14\u0E33(\u2212) \u0E40\u0E17\u0E48\u0E32\u0E01\u0E31\u0E19"
+      }, "\u0E16\u0E2D\u0E14\u0E40\u0E02\u0E49\u0E32 BOQ: ", d.farthest.toLocaleString(), " \u0E21. \xD7 ", d.strings, " \u0E2A\u0E15\u0E23\u0E34\u0E07 \xD7 ", d.spare, " = ", React.createElement("b", null, d.perPole.toLocaleString(), " \u0E21./\u0E02\u0E31\u0E49\u0E27"), " \xB7 \u0E41\u0E14\u0E07 + \u0E14\u0E33 = ", React.createElement("b", null, d.total.toLocaleString(), " \u0E21."), g && +g.length > 0 ? " · กราวด์แผง " + (+g.length).toLocaleString() + " ม." : ""))));
+    })(), !(headed || power && isMobile) && React.createElement("div", {
       style: {
         display: "grid",
         gridTemplateColumns: isMobile ? "minmax(0,1fr) 64px 34px" : CAB_COLS,
@@ -6356,7 +6502,7 @@ function BOQEditor({
     }, React.createElement(Icon, {
       name: "x",
       size: 14
-    }))), !power && (showHint || isDC || vd || isGnd) && React.createElement("div", {
+    }))), !power && !dcHead && (showHint || isDC || vd || isGnd) && React.createElement("div", {
       style: {
         display: "flex",
         alignItems: "center",

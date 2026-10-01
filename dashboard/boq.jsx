@@ -1131,7 +1131,7 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
       const out = []; cs.forEach((c, i) => { if (i === idx[0]) out.push.apply(out, rows); else if (idx.indexOf(i) < 0) out.push(c); });
       return Object.assign({}, p, { cables: out });
     });
-  }, [invUnitsKey]); // eslint-disable-line
+  }, [invUnitsKey + "#" + (b.cables || []).filter((c) => /INVERTER-MCB_SOLAR/i.test(c.name || "")).map((c) => c.inv || 0).join(",")]); // eslint-disable-line
   // ตู้ MCB_SOLAR — สลับอินเวอร์เตอร์เข้า/ออกจากตู้ · แยกเป็นอีกตู้ (แบ่งรุ่นที่สองไป ไม่งั้นแบ่งครึ่ง)
   const toggleMcbInv = (i, no) => setB((p) => {
     const cs = p.cables.slice(); const cur = mcbInvsOf(cs[i]);
@@ -1484,7 +1484,7 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
     } else sets = cabSetsFor(c);
     const sz = window.BOQ.cableSizeNum(type);
     const noGnd = c.noGnd != null ? !!c.noGnd : /MICRO[\s-]*MICRO/i.test(c.name || "");
-    return { type, auto: (!c.type || c.auto) ? 1 : 0, sets, wires: wiresPerSet(type, ph), gnd: !noGnd && sz ? gndNameFor(sz * sets) : "" };
+    return { name: c.name, inv: c.inv || 0, invs: JSON.stringify(c.invs || null), type, auto: (!c.type || c.auto) ? 1 : 0, sets, wires: wiresPerSet(type, ph), gnd: !noGnd && sz ? gndNameFor(sz * sets) : "" };
   });
   const cabWantKey = JSON.stringify(cabWant);
   React.useEffect(() => {
@@ -1492,7 +1492,7 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
       let changed = false;
       const cs = (p.cables || []).map((c, i) => {
         const w = cabWant[i];
-        if (!w) return c;
+        if (!w || w.name !== c.name || w.inv !== (c.inv || 0) || w.invs !== JSON.stringify(c.invs || null)) return c;   // แถวเลื่อน (เพิ่ม/ลบแถว) — ค่าที่คิดไว้เป็นของแถวอื่น อย่าเขียนทับ
         const nx = Object.assign({}, c, { type: w.type, sets: w.sets, wires: w.wires, gnd: w.gnd });
         if (w.auto) nx.auto = 1;
         if (nx.type === c.type && nx.sets === c.sets && nx.wires === c.wires && nx.gnd === c.gnd && !!nx.auto === !!c.auto) return c;
@@ -2861,7 +2861,11 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
                 const gndPair = isGnd && i > 0 && /PV-INVERTER/i.test((b.cables[i - 1] || {}).name || "");
                 const invU = invUnits.length && /INVERTER-MCB_SOLAR/i.test(c.name || "") ? (invUnits[(+c.inv || 1) - 1] || null) : null;
                 const isMcb = invUnits.length >= 1 && /MCB_SOLAR-MDB/i.test(c.name || "");
-                const headed = !!invU || isMcb;
+                if (gndPair) return null;   // กราวด์แผงแสดงอยู่ในกล่องสาย DC แล้ว
+                // สาย DC (แผง → อินเวอร์เตอร์) — เป็นหัวข้อ "สาย DC" + กล่องขั้นตอน เหมือนสาย AC · กราวด์แผงแถวถัดไปรวมไว้ในกล่องเดียวกัน
+                const dcHead = /PV-INVERTER/i.test(c.name || "");
+                const gi = dcHead && /^GROUND$/i.test(((b.cables[i + 1] || {}).name || "").trim()) ? i + 1 : -1;
+                const headed = !!invU || isMcb || dcHead;
                 const isDC = /PV1-F|PV CABLE/i.test(c.type || "") || /PV-INVERTER/i.test(c.name || "");  // สาย DC คิดขนาดในส่วนสาย DC แยก
                 /* เงื่อนไขของสายเส้นนี้ — ไม่ได้ตั้งเอง = ตามค่าตั้งต้นของงาน (ตารางคำนวณขนาดสายไฟ)
                    ปกติทั้งงานเดินแบบเดียวกัน จะได้ไม่ต้องมากดซ้ำทุกเส้น เส้นไหนต่างค่อยกดแก้เฉพาะเส้น */
@@ -2929,7 +2933,7 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
                             {miss.length ? "ตัวที่ " + miss.join(", ") + " ยังไม่อยู่ตู้ไหน" : ""}{miss.length && dup.length ? " · " : ""}{dup.length ? "ตัวที่ " + dup.join(", ") + " อยู่หลายตู้" : ""}
                           </span>
                         )}
-                        {mRows.length > 1 && <button className="bq-x" style={{ marginLeft: "auto" }} onClick={() => delCab(i)} title="ลบตู้นี้"><Icon name="x" size={14} /></button>}
+                        {mRows.length > 1 && <button className="bq-x" style={{ marginLeft: "auto", width: 30, height: 30, flex: "0 0 30px" }} onClick={() => delCab(i)} title="ลบตู้นี้"><Icon name="x" size={14} /></button>}
                       </div>
                     );
                   })()}
@@ -2945,7 +2949,76 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
                     </div>
                   )}
                   {/* แถวที่มีหัวข้อแล้ว (อินเวอร์เตอร์/ตู้ MCB_SOLAR) ไม่ต้องมีช่องจุดเดินสายซ้ำ · สายกำลัง AC กรอกระยะในขั้น ④ */}
-                  {!(power && (headed || isMobile)) && (
+                  {dcHead && (() => {
+                    const g = gi >= 0 ? b.cables[gi] : null;
+                    const d = window.BOQ.isPvDcCable(c.type) && +c.length > 0 ? dcOf(c) : null;
+                    const dvd = vdropFor(c);
+                    return (
+                      <React.Fragment>
+                        <div className="bq-cab-hd">
+                          <Icon name="bolt" size={12} color="currentColor" />
+                          สาย DC
+                          <span>แผง → อินเวอร์เตอร์{scfg && scfg.ready ? " · " + scfg.series + " แผงอนุกรม · " + scfg.stringVop + " V · Isc " + scfg.isc + " A" : ""}</span>
+                          <button className="bq-x" style={{ marginLeft: "auto", width: 30, height: 30, flex: "0 0 30px" }} onClick={() => delCab(i)} title="ลบสาย DC"><Icon name="x" size={14} /></button>
+                        </div>
+                        <div className="bq-cabx">
+                          <div className="bq-cabx-step">
+                            <span className="n">1</span><span className="lb">ชนิดสาย</span>
+                            <div style={{ width: isMobile ? "100%" : 260 }}>
+                              <Dropdown value={c.type} onChange={(v) => setCab(i, "type", v)} options={cableTypeOptions} placeholder="— เลือกสาย DC —" style={cabSelStyle} />
+                            </div>
+                            <span className="hint">{scfg && scfg.ready ? "แนะนำ " + scfg.dcWire : "กรอก Voc/Isc แผง + ช่วง MPPT อินเวอร์เตอร์ (คลัง) เพื่อคำนวณ"}</span>
+                          </div>
+                          <div className="bq-cabx-step">
+                            <span className="n">2</span><span className="lb">ระยะไกลสุด</span>
+                            <div style={{ width: 110 }}>
+                              <input type="number" style={Object.assign({}, numStyle, { padding: "7px 10px" })} value={c.length} placeholder="ม."
+                                onChange={(e) => setCab(i, "length", e.target.value)} />
+                            </div>
+                            <span className="hint">เมตร · สตริงที่อยู่ไกลอินเวอร์เตอร์ที่สุด ระบบคูณจำนวนสตริงและเผื่อให้เอง</span>
+                          </div>
+                          <div className="bq-cabx-step">
+                            <span className="n">3</span><span className="lb">กราวด์แผง</span>
+                            {g ? (
+                              <React.Fragment>
+                                <div style={{ width: isMobile ? "100%" : 260 }}>
+                                  <Dropdown value={g.type} onChange={(v) => setCab(gi, "type", v)} options={cableTypeOptions} placeholder="— เลือกสายกราวด์ —" style={cabSelStyle} />
+                                </div>
+                                <div style={{ width: 110 }}>
+                                  <input type="number" style={Object.assign({}, numStyle, { padding: "7px 10px" })} value={g.length} placeholder="ม."
+                                    onChange={(e) => setCab(gi, "length", e.target.value)} />
+                                </div>
+                                <span className="hint">เดินคู่ไปกับสาย DC</span>
+                                <button type="button" className="bq-cabx-link" onClick={() => delCab(gi)}>ไม่เดินกราวด์แผง</button>
+                              </React.Fragment>
+                            ) : (
+                              <button type="button" className="bq-cabx-link" onClick={() => setB((p) => {
+                                const cs = p.cables.slice(); cs.splice(i + 1, 0, { name: "GROUND", type: "IEC01(THW)1Cx6 SQ.MM. Y/G", length: c.length || "" });
+                                return Object.assign({}, p, { cables: cs });
+                              })}>+ เดินสายกราวด์แผง</button>
+                            )}
+                          </div>
+                          {(dvd || d) && (
+                            <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap", fontSize: 11, fontWeight: 700 }}>
+                              {dvd && (
+                                <span style={{ display: "inline-flex", alignItems: "center", gap: 4, color: dvd.ok ? "var(--text-3)" : "var(--tint-amber-tx)" }}>
+                                  <Icon name={dvd.ok ? "check" : "alert"} size={11} color="currentColor" /> ΔV {dvd.pct}%
+                                  {!dvd.ok && (dvd.minSize ? " · ต้องใช้ ≥ " + dvd.minSize + " mm²" : "")}
+                                </span>
+                              )}
+                              {d && (
+                                <span style={{ color: "var(--primary-dark)" }} title="ระยะไกลสุด × จำนวนสตริง × เผื่อ 1.2 = ระยะต่อ 1 ขั้ว · ถอดของเป็นสาย 2 สี แดง(+) กับ ดำ(−) เท่ากัน">
+                                  ถอดเข้า BOQ: {d.farthest.toLocaleString()} ม. × {d.strings} สตริง × {d.spare} = <b>{d.perPole.toLocaleString()} ม./ขั้ว</b> · แดง + ดำ = <b>{d.total.toLocaleString()} ม.</b>
+                                  {g && +g.length > 0 ? " · กราวด์แผง " + (+g.length).toLocaleString() + " ม." : ""}
+                                </span>
+                              )}
+                            </div>
+                          )}
+                        </div>
+                      </React.Fragment>
+                    );
+                  })()}
+                  {!(headed || (power && isMobile)) && (
                   <div style={{ display: "grid", gridTemplateColumns: isMobile ? "minmax(0,1fr) 64px 34px" : CAB_COLS, gap: 8, alignItems: "center" }}>
                     {!isMobile && (
                       <div style={{ gridColumn: power ? "span 3" : undefined, minWidth: 0 }}>
@@ -2962,7 +3035,7 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
                   </div>
                   )}
                   {/* บรรทัดสถานะ — ปกติเห็นแค่สรุปสั้น ๆ กดที่ป้ายเงื่อนไขถึงจะกางช่องแก้เฉพาะเส้น */}
-                  {!power && (showHint || isDC || vd || isGnd) && (
+                  {!power && !dcHead && (showHint || isDC || vd || isGnd) && (
                     <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap", fontSize: 11, lineHeight: 1.5 }}>
                       {isGnd && (
                         <span style={{ display: "inline-flex", alignItems: "center", gap: 4, fontWeight: 700, color: "var(--text-3)" }}>
