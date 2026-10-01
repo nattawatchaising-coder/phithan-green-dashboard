@@ -1028,7 +1028,7 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
   // ยอดรวมของหมวดขนส่ง + บริหารจัดการ (ราคาอยู่ในบรรทัดเอง จึงบวกจากผลถอดของโดยตรง)
   const siteTotal = (priced.groups || []).filter((g) => g.group === window.BOQ.G_TRANSPORT || g.group === window.BOQ.G_MANAGE)
     .reduce((s, g) => s + g.subtotal, 0);
-  /* เงินเผื่อ Accessories (งานโครงการ) — เอนจินคิดมาให้แล้วตอนใส่ราคา ที่นี่แค่ดึงยอดกับฐานคิดมาโชว์ */
+  /* เงินเผื่อ Accessories (งานบ้าน + งานโครงการ) — เอนจินคิดมาให้แล้วตอนใส่ราคา ที่นี่แค่ดึงยอดกับฐานคิดมาโชว์ */
   const accPct = window.BOQ.accAllowPct(b);
   const accAllowGrp = (priced.groups || []).find((g) => g.allowance);
   const accAllow = accAllowGrp ? accAllowGrp.subtotal : 0;
@@ -2717,9 +2717,7 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
     !isHome ? { key: "struct", icon: "box", title: "งานเพิ่มเติม — โครงสร้าง",
       meta: structRows > 0 ? "กรอกแล้ว " + structRows + " รายการ" : "บันได · ทางเดิน · ราวกันตก",
       tone: structRows > 0 ? "ok" : "" } : null,
-    isHome
-      ? { key: "acc", icon: "box", title: "Accessories", meta: (accList || []).length ? accList.length + " รายการ" : "ยังไม่เพิ่ม", done: (accList || []).length > 0 }
-      : { key: "acc", icon: "box", title: "Accessories Allowance " + accPct + "%",
+    { key: "acc", icon: "box", title: "Accessories Allowance " + accPct + "%",
           meta: accAllow > 0 ? "฿" + baht(accAllow) + " (" + accPct + "% ของ ฿" + baht(accBase) + ")" : "ยังไม่มีราคาทุน",
           tone: accAllow > 0 ? "ok" : "" },
     { key: "labor", icon: "power", title: "ค่าแรงติดตั้ง",
@@ -4261,37 +4259,12 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
           )}
 
           {/* ── Accessories ──
-               งานโครงการไม่ไล่เพิ่มของทีละชิ้น ใช้เงินเผื่อเป็น % ของราคาทุนวัสดุแทน */}
-          {isHome ? (
-          <BoqSection title="Accessories (เพิ่มของ)" icon="box" {...secProps("acc")}>
-            <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-              {accList.map((a, i) => {
-                const items = a.cat === "พิมพ์เอง" ? [] : (accCat.map[a.cat] || []);
-                return (
-                  <div key={i} style={{ border: "1px solid var(--border)", borderRadius: 11, padding: 9, display: "flex", flexDirection: "column", gap: 7 }}>
-                    <div style={{ display: "grid", gridTemplateColumns: "minmax(0,1fr) 36px", gap: 8, alignItems: "center" }}>
-                      <Dropdown value={a.cat || ""} onChange={(v) => setAccCat(i, v)}
-                        options={[{ value: "", label: "— เลือกหมวด —" }].concat(accCat.cats.map((c) => ({ value: c, label: c }))).concat([{ value: "พิมพ์เอง", label: "✎ พิมพ์เอง" }])} />
-                      <button onClick={() => delAcc(i)} title="ลบ" style={{ height: 40, background: "#EF444414", border: "none", color: "#EF4444", borderRadius: 9, cursor: "pointer", display: "grid", placeItems: "center" }}><Icon name="x" size={14} /></button>
-                    </div>
-                    <div style={{ display: "grid", gridTemplateColumns: "minmax(0,1fr) 72px", gap: 8, alignItems: "center" }}>
-                      {a.cat === "พิมพ์เอง"
-                        ? <input value={a.name} onChange={(e) => setAcc(i, "name", e.target.value)} placeholder="ชื่อวัสดุ" style={inputStyle} />
-                        : <Dropdown value={a.name || ""} onChange={(v) => setAcc(i, "name", v)} disabled={!a.cat} options={[{ value: "", label: a.cat ? "— เลือกวัสดุ —" : "เลือกหมวดก่อน" }].concat(matItemOptions(items, a.cat))} />}
-                      <input type="number" style={numStyle} value={a.qty} placeholder="จำนวน" onChange={(e) => setAcc(i, "qty", e.target.value)} />
-                    </div>
-                  </div>
-                );
-              })}
-              <button onClick={addAcc} style={{ alignSelf: "flex-start", display: "inline-flex", alignItems: "center", gap: 5, background: "var(--primary-soft)", color: "var(--primary-dark)", border: "none", borderRadius: 9, padding: "8px 12px", fontWeight: 700, fontSize: 12.5, cursor: "pointer", fontFamily: "inherit" }}><Icon name="plus" size={14} color="var(--primary-dark)" /> เพิ่มของ</button>
-            </div>
-            <div className="bq-hint" style={{ marginTop: 8, fontSize: 11, color: "var(--text-3)" }}>* เลือกหมวด → เลือกวัสดุ (จากราคาวัสดุ + คลังสินค้า) หรือ "พิมพ์เอง" — ถ้ามีราคาในระบบจะคิดต้นทุนให้</div>
-          </BoqSection>
-          ) : (
+               งานบ้านและงานโครงการไม่ไล่เพิ่มของทีละชิ้น ใช้เงินเผื่อเป็น % ของราคาทุนวัสดุแทน */}
+          {(
           <BoqSection title={"Accessories Allowance " + accPct + "%"} icon="box" {...secProps("acc")}
             right={accAllow > 0 ? <span style={{ fontSize: 12.5, fontWeight: 800, color: "var(--primary-dark)" }}>฿{baht(accAllow)}</span> : null}>
             <div className="bq-hint" style={{ fontSize: 11.5, color: "var(--text-3)", lineHeight: 1.5, marginBottom: 12 }}>
-              งานโครงการไม่ไล่ถอด Accessories ทีละชิ้น — คิดเป็นเงินเผื่อ {accPct}% ของราคาทุนวัสดุที่ถอดได้ทั้งงาน
+              ไม่ไล่ถอด Accessories ทีละชิ้น — คิดเป็นเงินเผื่อ {accPct}% ของราคาทุนวัสดุที่ถอดได้ทั้งงาน
               (ไม่รวมค่าแรง ค่าขออนุญาต ขนส่ง บริหารจัดการ และไม่รวมตัวมันเอง) · อัตราปรับเองได้ เว้นว่าง = ใช้ {window.BOQ.ACC_ALLOW_PCT}% ตามมาตรฐาน
             </div>
             <div className="bq-spec">

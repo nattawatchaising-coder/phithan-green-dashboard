@@ -1880,22 +1880,13 @@
       ] });
     }
 
-    /* ── ACCESSORIES ──
-       งานบ้าน: ถอดของจริงเป็นชิ้น ๆ (ชุดมาตรฐาน + เทปพันสายไฟตามเฟส + ที่ผู้ใช้เพิ่มเอง)
-       งานโครงการ: ไม่ไล่ถอดทีละชิ้น ใช้เป็นเงินเผื่อ % ของราคาทุนวัสดุแทน
+    /* ── ACCESSORIES ── งานบ้านและงานโครงการ: ไม่ไล่ถอดทีละชิ้น ใช้เงินเผื่อ % ของราคาทุนวัสดุแทน
          (ยอดคิดตอน applyPrices เพราะต้องรู้ราคาทุนหมวดอื่นก่อน) */
-    if (isProject) {
+    {
       const accPct = accAllowPct(b);
       groups.push({ group: "ACCESSORIES", items: [
         { name: "Accessories Allowance " + accPct + "%", qty: 1, unit: "เหมา", allowancePct: accPct },
       ] });
-    } else {
-      const autoAcc = ACC_STD.concat(accTape(phase)).map((name) => ({ name, qty: 1, unit: "ชิ้น" }));
-      const acc = autoAcc.concat(
-        (b.accessories || []).filter((a) => (a.name || "").trim() && (+a.qty || 0) > 0)
-          .map((a) => ({ name: a.name.trim(), qty: +a.qty || 0, unit: a.unit || "" }))
-      );
-      if (acc.length) groups.push({ group: "ACCESSORIES", items: acc });
     }
 
     /* ── ค่าแรง & ค่าขออนุญาต ──

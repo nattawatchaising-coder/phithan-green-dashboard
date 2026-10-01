@@ -5631,13 +5631,7 @@ function BOQEditor({
     title: "งานเพิ่มเติม — โครงสร้าง",
     meta: structRows > 0 ? "กรอกแล้ว " + structRows + " รายการ" : "บันได · ทางเดิน · ราวกันตก",
     tone: structRows > 0 ? "ok" : ""
-  } : null, isHome ? {
-    key: "acc",
-    icon: "box",
-    title: "Accessories",
-    meta: (accList || []).length ? accList.length + " รายการ" : "ยังไม่เพิ่ม",
-    done: (accList || []).length > 0
-  } : {
+  } : null, {
     key: "acc",
     icon: "box",
     title: "Accessories Allowance " + accPct + "%",
@@ -9234,119 +9228,7 @@ function BOQEditor({
     onExtraAdd: () => addStructExtra("guardrail"),
     onExtraChange: (i, k, v) => setStructExtra("guardrail", i, k, v),
     onExtraDel: i => delStructExtra("guardrail", i)
-  }))), isHome ? React.createElement(BoqSection, _extends({
-    title: "Accessories (\u0E40\u0E1E\u0E34\u0E48\u0E21\u0E02\u0E2D\u0E07)",
-    icon: "box"
-  }, secProps("acc")), React.createElement("div", {
-    style: {
-      display: "flex",
-      flexDirection: "column",
-      gap: 10
-    }
-  }, accList.map((a, i) => {
-    const items = a.cat === "พิมพ์เอง" ? [] : accCat.map[a.cat] || [];
-    return React.createElement("div", {
-      key: i,
-      style: {
-        border: "1px solid var(--border)",
-        borderRadius: 11,
-        padding: 9,
-        display: "flex",
-        flexDirection: "column",
-        gap: 7
-      }
-    }, React.createElement("div", {
-      style: {
-        display: "grid",
-        gridTemplateColumns: "minmax(0,1fr) 36px",
-        gap: 8,
-        alignItems: "center"
-      }
-    }, React.createElement(Dropdown, {
-      value: a.cat || "",
-      onChange: v => setAccCat(i, v),
-      options: [{
-        value: "",
-        label: "— เลือกหมวด —"
-      }].concat(accCat.cats.map(c => ({
-        value: c,
-        label: c
-      }))).concat([{
-        value: "พิมพ์เอง",
-        label: "✎ พิมพ์เอง"
-      }])
-    }), React.createElement("button", {
-      onClick: () => delAcc(i),
-      title: "\u0E25\u0E1A",
-      style: {
-        height: 40,
-        background: "#EF444414",
-        border: "none",
-        color: "#EF4444",
-        borderRadius: 9,
-        cursor: "pointer",
-        display: "grid",
-        placeItems: "center"
-      }
-    }, React.createElement(Icon, {
-      name: "x",
-      size: 14
-    }))), React.createElement("div", {
-      style: {
-        display: "grid",
-        gridTemplateColumns: "minmax(0,1fr) 72px",
-        gap: 8,
-        alignItems: "center"
-      }
-    }, a.cat === "พิมพ์เอง" ? React.createElement("input", {
-      value: a.name,
-      onChange: e => setAcc(i, "name", e.target.value),
-      placeholder: "\u0E0A\u0E37\u0E48\u0E2D\u0E27\u0E31\u0E2A\u0E14\u0E38",
-      style: inputStyle
-    }) : React.createElement(Dropdown, {
-      value: a.name || "",
-      onChange: v => setAcc(i, "name", v),
-      disabled: !a.cat,
-      options: [{
-        value: "",
-        label: a.cat ? "— เลือกวัสดุ —" : "เลือกหมวดก่อน"
-      }].concat(matItemOptions(items, a.cat))
-    }), React.createElement("input", {
-      type: "number",
-      style: numStyle,
-      value: a.qty,
-      placeholder: "\u0E08\u0E33\u0E19\u0E27\u0E19",
-      onChange: e => setAcc(i, "qty", e.target.value)
-    })));
-  }), React.createElement("button", {
-    onClick: addAcc,
-    style: {
-      alignSelf: "flex-start",
-      display: "inline-flex",
-      alignItems: "center",
-      gap: 5,
-      background: "var(--primary-soft)",
-      color: "var(--primary-dark)",
-      border: "none",
-      borderRadius: 9,
-      padding: "8px 12px",
-      fontWeight: 700,
-      fontSize: 12.5,
-      cursor: "pointer",
-      fontFamily: "inherit"
-    }
-  }, React.createElement(Icon, {
-    name: "plus",
-    size: 14,
-    color: "var(--primary-dark)"
-  }), " \u0E40\u0E1E\u0E34\u0E48\u0E21\u0E02\u0E2D\u0E07")), React.createElement("div", {
-    className: "bq-hint",
-    style: {
-      marginTop: 8,
-      fontSize: 11,
-      color: "var(--text-3)"
-    }
-  }, "* \u0E40\u0E25\u0E37\u0E2D\u0E01\u0E2B\u0E21\u0E27\u0E14 \u2192 \u0E40\u0E25\u0E37\u0E2D\u0E01\u0E27\u0E31\u0E2A\u0E14\u0E38 (\u0E08\u0E32\u0E01\u0E23\u0E32\u0E04\u0E32\u0E27\u0E31\u0E2A\u0E14\u0E38 + \u0E04\u0E25\u0E31\u0E07\u0E2A\u0E34\u0E19\u0E04\u0E49\u0E32) \u0E2B\u0E23\u0E37\u0E2D \"\u0E1E\u0E34\u0E21\u0E1E\u0E4C\u0E40\u0E2D\u0E07\" \u2014 \u0E16\u0E49\u0E32\u0E21\u0E35\u0E23\u0E32\u0E04\u0E32\u0E43\u0E19\u0E23\u0E30\u0E1A\u0E1A\u0E08\u0E30\u0E04\u0E34\u0E14\u0E15\u0E49\u0E19\u0E17\u0E38\u0E19\u0E43\u0E2B\u0E49")) : React.createElement(BoqSection, _extends({
+  }))), React.createElement(BoqSection, _extends({
     title: "Accessories Allowance " + accPct + "%",
     icon: "box"
   }, secProps("acc"), {
@@ -9365,7 +9247,7 @@ function BOQEditor({
       lineHeight: 1.5,
       marginBottom: 12
     }
-  }, "\u0E07\u0E32\u0E19\u0E42\u0E04\u0E23\u0E07\u0E01\u0E32\u0E23\u0E44\u0E21\u0E48\u0E44\u0E25\u0E48\u0E16\u0E2D\u0E14 Accessories \u0E17\u0E35\u0E25\u0E30\u0E0A\u0E34\u0E49\u0E19 \u2014 \u0E04\u0E34\u0E14\u0E40\u0E1B\u0E47\u0E19\u0E40\u0E07\u0E34\u0E19\u0E40\u0E1C\u0E37\u0E48\u0E2D ", accPct, "% \u0E02\u0E2D\u0E07\u0E23\u0E32\u0E04\u0E32\u0E17\u0E38\u0E19\u0E27\u0E31\u0E2A\u0E14\u0E38\u0E17\u0E35\u0E48\u0E16\u0E2D\u0E14\u0E44\u0E14\u0E49\u0E17\u0E31\u0E49\u0E07\u0E07\u0E32\u0E19 (\u0E44\u0E21\u0E48\u0E23\u0E27\u0E21\u0E04\u0E48\u0E32\u0E41\u0E23\u0E07 \u0E04\u0E48\u0E32\u0E02\u0E2D\u0E2D\u0E19\u0E38\u0E0D\u0E32\u0E15 \u0E02\u0E19\u0E2A\u0E48\u0E07 \u0E1A\u0E23\u0E34\u0E2B\u0E32\u0E23\u0E08\u0E31\u0E14\u0E01\u0E32\u0E23 \u0E41\u0E25\u0E30\u0E44\u0E21\u0E48\u0E23\u0E27\u0E21\u0E15\u0E31\u0E27\u0E21\u0E31\u0E19\u0E40\u0E2D\u0E07) \xB7 \u0E2D\u0E31\u0E15\u0E23\u0E32\u0E1B\u0E23\u0E31\u0E1A\u0E40\u0E2D\u0E07\u0E44\u0E14\u0E49 \u0E40\u0E27\u0E49\u0E19\u0E27\u0E48\u0E32\u0E07 = \u0E43\u0E0A\u0E49 ", window.BOQ.ACC_ALLOW_PCT, "% \u0E15\u0E32\u0E21\u0E21\u0E32\u0E15\u0E23\u0E10\u0E32\u0E19"), React.createElement("div", {
+  }, "\u0E44\u0E21\u0E48\u0E44\u0E25\u0E48\u0E16\u0E2D\u0E14 Accessories \u0E17\u0E35\u0E25\u0E30\u0E0A\u0E34\u0E49\u0E19 \u2014 \u0E04\u0E34\u0E14\u0E40\u0E1B\u0E47\u0E19\u0E40\u0E07\u0E34\u0E19\u0E40\u0E1C\u0E37\u0E48\u0E2D ", accPct, "% \u0E02\u0E2D\u0E07\u0E23\u0E32\u0E04\u0E32\u0E17\u0E38\u0E19\u0E27\u0E31\u0E2A\u0E14\u0E38\u0E17\u0E35\u0E48\u0E16\u0E2D\u0E14\u0E44\u0E14\u0E49\u0E17\u0E31\u0E49\u0E07\u0E07\u0E32\u0E19 (\u0E44\u0E21\u0E48\u0E23\u0E27\u0E21\u0E04\u0E48\u0E32\u0E41\u0E23\u0E07 \u0E04\u0E48\u0E32\u0E02\u0E2D\u0E2D\u0E19\u0E38\u0E0D\u0E32\u0E15 \u0E02\u0E19\u0E2A\u0E48\u0E07 \u0E1A\u0E23\u0E34\u0E2B\u0E32\u0E23\u0E08\u0E31\u0E14\u0E01\u0E32\u0E23 \u0E41\u0E25\u0E30\u0E44\u0E21\u0E48\u0E23\u0E27\u0E21\u0E15\u0E31\u0E27\u0E21\u0E31\u0E19\u0E40\u0E2D\u0E07) \xB7 \u0E2D\u0E31\u0E15\u0E23\u0E32\u0E1B\u0E23\u0E31\u0E1A\u0E40\u0E2D\u0E07\u0E44\u0E14\u0E49 \u0E40\u0E27\u0E49\u0E19\u0E27\u0E48\u0E32\u0E07 = \u0E43\u0E0A\u0E49 ", window.BOQ.ACC_ALLOW_PCT, "% \u0E15\u0E32\u0E21\u0E21\u0E32\u0E15\u0E23\u0E10\u0E32\u0E19"), React.createElement("div", {
     className: "bq-spec"
   }, React.createElement("div", null, React.createElement("span", {
     className: "k"
