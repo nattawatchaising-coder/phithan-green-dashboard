@@ -106,60 +106,31 @@ const BQ_CSS = `
 .bq-note.warn{background:var(--tint-amber-bg);color:var(--tint-amber-tx2)}
 .bq-note.ok{background:var(--tint-ok-bg);color:var(--tint-ok-tx)}
 
-/* ── เนื้อหาด้านใน: Soft UI (นิวมอร์ฟิซึม) ──
-   ทุกอย่างเป็นเนื้อเดียวกับพื้น ไม่มีเส้นขอบ — รูปทรงบอกด้วยเงาคู่เท่านั้น
-   · ของที่ "นูน" (การ์ด · กล่องย่อย · ปุ่ม) = แสงขาวซ้ายบน + เงาเข้มขวาล่าง
-   · ของที่ "จม" (ช่องกรอก · ช่องตัวเลข · ปุ่มที่ถูกเลือก/กดค้าง) = เงาคู่ด้านใน
-   พื้นการ์ดต้องเท่าพื้นหน้าเป๊ะ ถ้าสว่างกว่าแม้นิดเดียวจะกลายเป็นแผ่นขาวมีเงา ไม่ใช่เนื้อที่ปั้นนูนขึ้นมา
-   จึงเขียนทับตัวแปรพื้นทั้งชุดไว้ที่ .bq-main — สไตล์ inline ของทุกช่องที่อ้าง var(--surface*) ตามมาเอง
-   ส่วนเส้นขอบที่เขียนไว้ใน inline ต้องจับด้วย attribute selector + !important (inline ชนะกฎ CSS ปกติ) */
-.bq-main{
-  --neu-base:var(--bg);
-  --neu-hi:rgba(255,255,255,.95); --neu-lo:rgba(13,39,80,.15);
-  --neu-out:-8px -8px 20px var(--neu-hi),8px 8px 20px var(--neu-lo);
-  --neu-out-sm:-4px -4px 9px var(--neu-hi),4px 4px 9px var(--neu-lo);
-  --neu-in:inset 3px 3px 6px var(--neu-lo),inset -3px -3px 6px var(--neu-hi);
-  --surface:var(--neu-base);--surface2:var(--neu-base);--surface3:var(--neu-base);
-  --shadow-card:var(--neu-out);--shadow-sm:var(--neu-out-sm);--shadow-inset:var(--neu-in);
-  background:var(--neu-base);padding:28px 30px 36px}
-.bq-main .bq-wrap{gap:26px}
-.bq .bq-main .bq-card{background:var(--neu-base);border:0;border-radius:26px;padding:22px 24px 24px;box-shadow:var(--neu-out)}
-.bq-main .bq-card>.hd>svg{background:var(--neu-base);box-shadow:var(--neu-out-sm);padding:8px}
-
-/* กล่องย่อยในการ์ด (ตู้ไฟ · ตาราง · แถวรายการ) — นูนเบา ๆ แทนกรอบเส้น */
+/* ── เนื้อหาด้านใน: ชุดเดียวกับใบเสนอราคา ──
+   ไม่มีเส้นขอบเลย รูปทรงบอกด้วยเงาซ้อนชั้นของชุดสี (tokens.css) อย่างเดียว
+   · กล่องย่อย/แถวรายการ = แผ่นขาว + --shadow-sm (วงแหวนบาง ๆ แล้วไล่จาง)
+   · ปุ่มรอง = พื้นจาง + --shadow-sm  · ดรอปดาวน์ = หน้าตาเดียวกับช่องกรอก (หลุมจม --shadow-inset)
+   · ตัวเลือกที่เลือกอยู่ = พื้นเขียวอ่อน + วงแหวนสีหลัก
+   ของเดิมเขียนเส้นขอบไว้ใน inline style ทั้งไฟล์ (~30 จุด) จึงจับด้วย attribute selector + !important
+   แทนการไล่แก้ทีละจุด — inline ชนะกฎ CSS ปกติ */
 .bq .bq-main div[style][style*="border: 1px solid var(--border);"]{
-  border-color:transparent !important;background:var(--neu-base) !important;box-shadow:var(--neu-out-sm) !important}
-
-/* ปุ่มรองทุกแบบ (เพิ่ม… · ดรอปดาวน์ · เส้นประ) — นูน กดแล้วจม */
+  border-color:transparent !important;background:var(--surface) !important;box-shadow:var(--shadow-sm) !important}
 .bq-main button[style*="var(--border-strong)"],
 .bq-main button[style*="1px dashed"]{
-  border-color:transparent !important;background:var(--neu-base) !important;box-shadow:var(--neu-out-sm) !important;
-  transition:box-shadow .15s ease,color .15s ease}
+  border-color:transparent !important;background:var(--surface2) !important;box-shadow:var(--shadow-sm) !important}
 .bq-main button[style*="var(--border-strong)"]:hover,
-.bq-main button[style*="1px dashed"]:hover{color:var(--primary-dark) !important}
-.bq-main button[style*="var(--border-strong)"]:active,
-.bq-main button[style*="1px dashed"]:active{box-shadow:var(--neu-in) !important}
-/* ตัวเลือกที่ถูกเลือกอยู่ (เช่น เหมารวม / แยกรายการงาน) = ปุ่มที่ถูกกดจมค้างไว้ */
+.bq-main button[style*="1px dashed"]:hover{background:var(--surface3) !important}
+/* ปุ่มที่ทำหน้าที่ดรอปดาวน์ (กว้างเต็มช่อง ชื่อซ้าย ลูกศรขวา) ต้องเป็นหลุมเหมือนช่องกรอกข้าง ๆ */
+.bq-main button[style*="var(--border-strong)"][style*="space-between"][style*="width: 100%"]{
+  box-shadow:var(--shadow-inset) !important}
+.bq-main button[style*="var(--border-strong)"][style*="space-between"][style*="width: 100%"]:hover{background:var(--surface2) !important}
 .bq-main button[style*="border: 1px solid var(--primary)"]{
-  border-color:transparent !important;background:var(--neu-base) !important;box-shadow:var(--neu-in) !important}
-
-/* ช่องกรอกที่เขียนกรอบไว้เอง — ถอดกรอบ เหลือหลุมจมอย่างเดียว */
+  border-color:transparent !important;box-shadow:inset 0 0 0 1.5px var(--primary) !important}
 .bq-main input[style*="var(--border-strong)"],
 .bq-main textarea[style*="var(--border-strong)"],
-.bq-main select[style*="var(--border-strong)"]{border-color:transparent !important;box-shadow:var(--neu-in) !important}
-.bq-main .bq-spec .vin{border-color:transparent;background:var(--neu-base);box-shadow:var(--neu-in);padding:3px 8px}
-
-.bq-main .mbar{background:var(--neu-base);box-shadow:var(--neu-in)}
-.bq-main .bq-next{background:var(--neu-base);box-shadow:var(--neu-out-sm);transition:box-shadow .15s ease}
-.bq-main .bq-next:hover{background:var(--neu-base);color:var(--primary)}
-.bq-main .bq-next:active{box-shadow:var(--neu-in)}
-
-/* โหมดมืด — พื้นเกือบดำทำเงาเข้มไม่ขึ้น ยกพื้นส่วนเนื้อหาขึ้นเป็นเทาถ่าน (แบบตัวอย่าง #292D32) */
-[data-theme="aurora"] .bq-main{--neu-base:#24272C;--neu-hi:rgba(255,255,255,.055);--neu-lo:rgba(0,0,0,.55)}
-@media (max-width:860px){
-  .bq .bq-main{padding:16px 14px 24px}
-  .bq .bq-main .bq-card{padding:16px 15px 18px;border-radius:20px}
-}
+.bq-main select[style*="var(--border-strong)"]{border-color:transparent !important}
+.bq-main .bq-spec .vin{border-color:transparent;background:var(--surface2);box-shadow:var(--shadow-inset)}
+.bq-main .bq-spec .vin:focus{box-shadow:inset 0 0 0 1px var(--primary),0 0 0 3px var(--primary-soft)}
 
 @media (max-width:860px){
   .bq-body{flex-direction:column}
