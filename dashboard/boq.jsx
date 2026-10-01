@@ -1546,6 +1546,16 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
     if (/MCB_SOLAR-MDB/i.test(n)) return "สายเมน MDB ตู้ " + ((b.cables || []).filter((x) => /MCB_SOLAR-MDB/i.test(x.name || "")).indexOf(c) + 1);
     return CAB_PT_TH[n.toUpperCase()] || n;
   };
+  // "1C × 4 เส้น × 2 ชุด = 8 เส้น + กราวด์ 1 เส้น" — บอกให้เห็นว่าคิด % เติมเต็มจากสายกี่เส้น
+  const raceWireTxt = (x) => {
+    const [m, g] = x.cables;
+    if (!m || !m.size) return "";
+    const cores = /^CV FD (\d)C/.test(m.type || "") ? +RegExp.$1 : 1;
+    let s = cores + "C " + m.size + " ตร.มม. × " + m.qty + " เส้น";
+    if (x.sets > 1) s += " × " + x.sets + " ชุด = " + (m.qty * x.sets) + " เส้น";
+    if (g) s += " + กราวด์ " + g.size + " ตร.มม. 1 เส้น";
+    return s;
+  };
   const raceFit = (k, cables) => RACE_POOL[k].find((nm) => window.BOQ.conduitCheck(nm, cables, RACE_POOL[k]).ok) || null;
   /* รางไฟ — แยกรางต่อเส้นสาย (แบบเดียวกับท่อ) · ทุกชุดที่เดินขนานของเส้นนั้นวางในรางเดียว + กราวด์
      ขนาดเล็กสุดที่ผ่านทั้ง % เติมเต็ม และ (รางเปิด) วางชั้นเดียวได้ */
@@ -1557,7 +1567,8 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
     const pool = window.BOQ.TRAY_KINDS[k].sizes;
     return pool.find((nm) => { const c = window.BOQ.trayCheck(nm, cables, k, pool); return c.ok && c.widthOk; }) || null;
   };
-  const raceRuns = (b.cables || []).map((c, i) => {
+  // สายในแต่ละเส้นทาง (ยังไม่สนท่อ/ราง) — ใช้ทั้งคิดขนาดของเส้นเอง และรวมเข้ารางร่วม
+  const raceBase = (b.cables || []).map((c, i) => {
     const dc = /PV-INVERTER/i.test(c.name || "");
     if (!dc && !cabPlans[i]) return null;
     const t = c.type || "", od = odKeyOf(t), sz = window.BOQ.cableSizeNum(t);
@@ -1572,8 +1583,24 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
       cables.push({ type: od, size: sz, qty: Math.max(1, Math.round(+c.wires || 1)) });
       if (c.gnd && window.BOQ.cableSizeNum(c.gnd)) cables.push({ type: "IEC01 (THW)", size: window.BOQ.cableSizeNum(c.gnd), qty: 1 });
     }
-    // ในราง: ทุกชุดที่เดินขนานวางอยู่ในรางเดียวกัน (กราวด์ 1 เส้นต่อเส้นทาง)
     const trayCables = cables.map((x, k) => Object.assign({}, x, { qty: k === 0 ? x.qty * sets : x.qty }));
+    return { c, dc, t, od, sz, cables, sets, trayCables };
+  });
+  /* รางร่วม — c.raceWith = แถวสายที่เป็นเจ้าของราง (เช่น อินเวอร์เตอร์ 2 วางในรางของอินเวอร์เตอร์ 1)
+     ใช้ได้เมื่อเจ้าของเลือกรางชนิดเดียวกันและตัวเองไม่ได้ฝากรางใครอีกต่อ · ขนาดรางคิดจากสายทุกเส้นในราง */
+  const raceHostOf = (i) => {
+    const x = raceBase[i]; if (!x || !isTrayK(x.c.race) || x.c.raceWith == null) return null;
+    const h = raceBase[+x.c.raceWith];
+    return h && +x.c.raceWith !== i && h.c.race === x.c.race && h.c.raceWith == null ? +x.c.raceWith : null;
+  };
+  const raceRuns = (b.cables || []).map((c, i) => {
+    const base = raceBase[i];
+    if (!base) return null;
+    const host = raceHostOf(i);
+    const guests = raceBase.map((x, j) => (x && raceHostOf(j) === i ? j : -1)).filter((j) => j >= 0);
+    const { t, od, sz, cables, sets } = base;
+    // ในราง: ทุกชุดที่เดินขนานวางอยู่ในรางเดียวกัน + สายของเส้นที่มาฝากราง
+    const trayCables = guests.reduce((a, j) => a.concat(raceBase[j].trayCables), base.trayCables);
     const tray = isTrayK(c.race);
     const kind = tray || c.race === "imc" || c.race === "upvc" ? c.race : "";
     const pool = tray ? window.BOQ.TRAY_KINDS[kind].sizes : RACE_POOL[kind || "imc"];
@@ -1595,13 +1622,17 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
     }).map((f) => ({ k: f.name.split(sep)[0], name: f.name, unit: f.unit }));
     const fits = (c.raceFit || []).map((f) => Object.assign({}, f, { item: fitCat.find((x) => x.k === f.k) || null }));
     return { i, label: raceLabel(c), type: t, cables, trayCables, sets, kind, tray, pool, size, auto, len, own, cabLen: +c.length || 0,
-      noOd: !od || !sz, chk, ok: !!chk && chk.ok && (!tray || chk.widthOk), hdg, rail, fitCat, fits };
+      noOd: !od || !sz, chk, ok: !!chk && chk.ok && (!tray || chk.widthOk), hdg, rail, fitCat, fits,
+      host, guests, wireTxt: raceWireTxt(base) };
   });
+  // เส้นที่ฝากรางเส้นอื่น — ไม่มีรางของตัวเอง ใช้ขนาด/ระยะ/HDG/Rail/ข้อต่อของเจ้าของราง
+  raceRuns.forEach((r) => { if (r && r.host != null) r.shared = raceRuns[r.host]; });
   // ข้อต่อจากทุกเส้น → แถว auto ใน extra ของท่อ / ราง
-  const raceFitRows = (trayK) => raceRuns.filter((r) => r && r.kind && !!r.tray === trayK).reduce((a, r) =>
+  const raceFitRows = (trayK) => raceRuns.filter((r) => r && r.kind && !r.shared && !!r.tray === trayK).reduce((a, r) =>
     a.concat(r.fits.filter((f) => f.item && +f.qty > 0).map((f) => ({ name: f.item.name, qty: +f.qty, unit: f.item.unit || "ชุด", auto: 1, from: r.i }))), []);
-  const raceTrayRows = raceRuns.filter((r) => r && r.tray && r.len > 0 && r.size).map((r) => ({ k: r.kind,
-    row: Object.assign({ size: r.size, length: Math.round(r.len * 10) / 10, cables: r.trayCables, auto: 1, from: r.i, lab: r.label },
+  const raceTrayRows = raceRuns.filter((r) => r && r.tray && !r.shared && r.len > 0 && r.size).map((r) => ({ k: r.kind,
+    row: Object.assign({ size: r.size, length: Math.round(r.len * 10) / 10, cables: r.trayCables, auto: 1, from: r.i,
+      lab: [r.label].concat(r.guests.map((j) => raceRuns[j].label)).join(" + ") },
       r.hdg ? { hdg: true } : {}, r.rail ? { rail: true } : {}) }));
   const trayFitAuto = raceFitRows(true);
   const raceTrayKey = JSON.stringify([raceTrayRows, trayFitAuto]);
@@ -2466,12 +2497,10 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
     { key: "wire", icon: "power", title: "สายไฟ",
       meta: wireDone ? wireDone + " เส้นที่ระบุครบ" + (vdropSum.any ? " · แรงดันตก " + vdropSum.total + "%" : "") : "ยังไม่ได้กรอกระยะสาย",
       tone: !wireDone ? "" : (vdropSum.total > vdropSum.lim.total ? "warn" : "ok") },
-    { key: "raceway", icon: "grid", title: "ท่อร้อยสาย",
-      meta: condLen > 0 ? "รวม " + condLen + " ม." + (condBad > 0 ? " · " + condBad + " ท่อสายแน่นเกิน" : "") : "ยังไม่ได้กรอก",
-      tone: condLen > 0 ? (condBad > 0 ? "warn" : "ok") : "" },
-    { key: "tray", icon: "grid", title: "รางไฟ (Wireway / Tray)",
-      meta: trayLen > 0 ? "รวม " + trayLen + " ม." + (trayBad > 0 ? " · " + trayBad + " รางสายแน่นเกิน" : "") : "ยังไม่ได้กรอก",
-      tone: trayLen > 0 ? (trayBad > 0 ? "warn" : "ok") : "" },
+    { key: "raceway", icon: "grid", title: "ท่อร้อยสาย & รางไฟ",
+      meta: condLen + trayLen > 0 ? [condLen > 0 ? "ท่อ " + condLen + " ม." : "", trayLen > 0 ? "ราง " + trayLen + " ม." : "",
+        condBad > 0 ? condBad + " ท่อสายแน่นเกิน" : "", trayBad > 0 ? trayBad + " รางสายแน่นเกิน" : ""].filter(Boolean).join(" · ") : "ยังไม่ได้กรอก",
+      tone: condLen + trayLen > 0 ? (condBad + trayBad > 0 ? "warn" : "ok") : "" },
     /* หมวดของงานโครงการ — วางต่อจากรางไฟ เพราะกรอกไล่จากงานเดินสาย/เดินท่อมาที่ตู้และระบบน้ำต่อกันเลย
        งานบ้านไม่ต้องมีให้เกะกะ */
   ].concat(isHome ? [] : kitSections.map((sc) => ({ key: sc.key, icon: sc.icon, title: sc.title,
@@ -3520,14 +3549,15 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
           </BoqSection>
 
           {/* ── ท่อร้อยสาย (RACE WAY) ── */}
-          <BoqSection title="ท่อร้อยสาย (RACE WAY)" icon="grid" {...secProps("raceway")}
-            right={condLen > 0 ? <span style={{ fontSize: 12, fontWeight: 800, color: "var(--primary-dark)" }}>รวม {condLen} ม.</span> : null}>
-            <MeasBar kinds={["conduit"]} />
+          <BoqSection title="ท่อร้อยสาย & รางไฟ" icon="grid" {...secProps("raceway")}
+            right={condLen + trayLen > 0 ? <span style={{ fontSize: 12, fontWeight: 800, color: "var(--primary-dark)" }}>
+              {[condLen > 0 ? "ท่อ " + condLen + " ม." : "", trayLen > 0 ? "ราง " + trayLen + " ม." : ""].filter(Boolean).join(" · ")}</span> : null}>
+            <MeasBar kinds={["conduit", "tray"]} />
             {raceRuns.some(Boolean) && (
               <div style={{ marginBottom: 18 }}>
                 <div style={{ fontSize: 11.5, fontWeight: 700, color: "var(--text-2)", marginBottom: 3 }}>เดินท่อ / รางตามเส้นสายไฟ</div>
                 <div className="bq-hint" style={{ fontSize: 10.5, color: "var(--text-3)", marginBottom: 8 }}>
-                  เลือกว่าแต่ละเส้นร้อยท่อหรือเดินรางอะไร — ท่อ: ขนาดจาก % เติมเต็ม (สาย 1 ชุด + กราวด์) เดินขนานกี่ชุดก็คิดกี่ท่อ · ราง: แยกรางต่อเส้น ทุกชุดของเส้นนั้นวางในรางเดียว
+                  เลือกว่าแต่ละเส้นร้อยท่อหรือเดินรางอะไร — ท่อ: ขนาดจาก % เติมเต็ม (สาย 1 ชุด + กราวด์) เดินขนานกี่ชุดก็คิดกี่ท่อ · ราง: ทุกชุดของเส้นนั้นวางในรางเดียว ถ้าหลายเส้นเดินรางเดียวกัน ให้กด "ร่วมกับ …" ที่เส้นที่มาฝาก ขนาดจะคิดจากสายรวม
                 </div>
                 <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
                   {raceRuns.filter(Boolean).map((r) => (
@@ -3535,16 +3565,41 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
                       <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
                         <span style={{ fontSize: 12.5, fontWeight: 800, color: "var(--text-1)" }}>{r.label}</span>
                         <span style={{ fontSize: 11, color: "var(--text-3)", flex: 1, minWidth: 120 }}>
-                          {r.type ? r.type.trim() + (r.sets > 1 ? " × " + r.sets + " ชุด" : "") : "ยังไม่ได้เลือกสาย"}{r.cabLen ? " · " + r.cabLen + " ม." : ""}
+                          {r.type ? r.type.trim() : "ยังไม่ได้เลือกสาย"}{r.cabLen ? " · " + r.cabLen + " ม." : ""}
+                          {r.wireTxt && <span style={{ display: "block", color: "var(--text-2)", fontWeight: 600 }}>{r.wireTxt}</span>}
                         </span>
                         <span style={{ display: "inline-flex", gap: 5, flexWrap: "wrap" }}>
                           {[["", "ไม่ร้อยท่อ"]].concat(Object.keys(RACE_TH).map((k) => [k, RACE_TH[k]])).map(([k, th]) => (
                             <button key={k} className={"bq-cab-chip" + (r.kind === k ? " on" : "")} style={{ fontSize: 11.5, padding: "5px 11px" }}
-                              onClick={() => setRace(r.i, { race: k, raceSize: null, raceFit: null, raceHdg: null, raceRail: null })}>{th}</button>
+                              onClick={() => setRace(r.i, { race: k, raceSize: null, raceFit: null, raceHdg: null, raceRail: null, raceWith: null })}>{th}</button>
                           ))}
                         </span>
                       </div>
-                      {r.kind && (
+                      {r.tray && (() => {
+                        // เลือกฝากรางกับเส้นอื่นที่เลือกรางชนิดเดียวกัน (และไม่ได้ฝากใครอยู่) — มีคนมาฝากรางเราแล้ว เราไปฝากใครไม่ได้
+                        const hosts = raceRuns.filter((x) => x && x.i !== r.i && x.kind === r.kind && x.host == null);
+                        if (!hosts.length || r.guests.length) return r.guests.length ? (
+                          <div style={{ fontSize: 11, color: "var(--text-2)", fontWeight: 600 }}>
+                            รางนี้มีสายของ {r.guests.map((j) => raceRuns[j].label).join(", ")} วางร่วมด้วย — ขนาดคิดจากสายทุกเส้นรวมกัน
+                          </div>) : null;
+                        return (
+                          <div style={{ display: "flex", gap: 6, flexWrap: "wrap", alignItems: "center" }}>
+                            <span style={{ fontSize: 11, color: "var(--text-3)", fontWeight: 600 }}>วางในราง:</span>
+                            {[{ i: null, label: "รางของเส้นนี้เอง" }].concat(hosts).map((h) => (
+                              <button key={String(h.i)} className={"bq-cab-chip" + (r.host === h.i ? " on" : "")} style={{ fontSize: 11, padding: "4px 10px" }}
+                                onClick={() => setRace(r.i, h.i == null ? { raceWith: null } : { raceWith: h.i, raceSize: null, raceLen: null, raceFit: null, raceHdg: null, raceRail: null })}>
+                                {h.i == null ? h.label : "ร่วมกับ " + h.label}</button>
+                            ))}
+                          </div>
+                        );
+                      })()}
+                      {r.shared && (
+                        <div style={{ fontSize: 11.5, fontWeight: 700, color: r.shared.ok ? "var(--tint-green-tx)" : "var(--tint-red-tx2)" }}>
+                          วางใน {String(r.shared.size).trim()} ของ {r.shared.label} · ขนาด ระยะ HDG Rail และข้อต่อ ตั้งที่เส้นนั้น
+                          {r.shared.chk && " · เติมเต็มรวม " + r.shared.chk.fillPct + "% / " + r.shared.chk.limit + "%" + (r.shared.ok ? " ✓" : " ✗")}
+                        </div>
+                      )}
+                      {r.kind && !r.shared && (
                         <div style={{ display: "grid", gridTemplateColumns: isMobile ? "minmax(0,1fr) 90px" : "minmax(0,240px) 110px minmax(0,1fr)", gap: 8, alignItems: "center" }}>
                           <Dropdown value={r.size} onChange={(v) => setRace(r.i, { raceSize: v === r.auto ? null : v })}
                             options={r.pool.map((nm) => ({ value: nm, label: nm.trim() + (nm === r.auto ? " (แนะนำ)" : "") }))} />
@@ -3562,7 +3617,7 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
                           </span>
                         </div>
                       )}
-                      {r.kind && (
+                      {r.kind && !r.shared && (
                         <div style={{ display: "flex", flexDirection: "column", gap: 7 }}>
                           {r.tray && (
                             <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
@@ -3609,32 +3664,14 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
                 hint: "กล่องพักสาย — กรอกจำนวนใบ (ไม่มีสายวิ่งผ่านเป็นเส้นให้ตรวจ % เติมเต็ม)" })}
               {FitList({ rows: (cond.extra || []).filter((x) => !x.auto), onChange: (v) => setCondVal("extra", (cond.extra || []).filter((x) => x.auto).concat(v)), catalog: condFits,
                 hint: "ของท่อร้อยสายโดยเฉพาะ — เลือกได้ครบทุกขนาด แยกกลุ่ม IMC กับ uPVC (คนละอันกับข้องอของรางไฟ)" })}
-            </div>
-            <div className="bq-hint" style={{ marginTop: 12, fontSize: 11, color: "var(--text-3)", lineHeight: 1.5 }}>
-              * อุปกรณ์ประกอบท่อ IMC / uPVC (แคล้ม บุชชิ่ง คอนเนคเตอร์ ฯลฯ) คิดอัตโนมัติจากความยาวท่อ + PULL BOX — กฎ ชิ้น/ท่อน และ % เผื่อ ตั้งได้ที่ คลังสินค้า › อุปกรณ์ท่อ / รางไฟ (ใบใหม่ใช้ค่านั้น · ใบที่ถอดไว้แล้วไม่ขยับตาม)
-            </div>
-          </BoqSection>
-
-          {/* ── รางไฟ (WIREWAY / CABLE TRAY) ── */}
-          <BoqSection title="รางไฟ (Wireway / Cable Tray)" icon="grid" {...secProps("tray")}
-            right={trayLen > 0 ? <span style={{ fontSize: 12, fontWeight: 800, color: "var(--primary-dark)" }}>รวม {trayLen} ม.</span> : null}>
-            <MeasBar kinds={["tray"]} />
-            <div style={{ fontSize: 12, color: "var(--text-3)", marginBottom: 10 }}>
-              เลือกรางให้สายแต่ละเส้นได้ที่แผง "เดินท่อ / รางตามเส้นสายไฟ" ในหัวข้อท่อร้อยสาย — ขนาด ระยะ ชุบ HDG ยึดบน Rail และข้อต่อ อยู่ใต้เส้นนั้น
-            </div>
-            <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-              {TrayList({ kind: "way", label: "Wireway เหล็กมีฝา", sizes: window.BOQ.WAY_SIZES,
-                hint: "รางเหล็กพับมีฝาปิด ยาว " + window.BOQ.trayLenTxt(window.BOQ.WAY_PIPE_LEN) + " ม./ท่อน — กรอกความยาวรวมของแต่ละขนาด" })}
-              {TrayList({ kind: "tray", label: "Cable Tray Ladder (รางบันได)", sizes: window.BOQ.TRAY_SIZES,
-                hint: "พื้นรางเป็นขั้นบันได ยาว " + window.BOQ.trayLenTxt(window.BOQ.TRAY_PIPE_LEN) + " ม./ท่อน — ใช้เดินสายเส้นใหญ่จำนวนมากระยะไกล ระบายความร้อนดีที่สุด" })}
-              {TrayList({ kind: "perf", label: "Cable Tray Perforated (รางเจาะรู)", sizes: window.BOQ.PERF_SIZES,
-                hint: "พื้นรางเป็นแผ่นเจาะรู ยาว " + window.BOQ.trayLenTxt(window.BOQ.TRAY_PIPE_LEN) + " ม./ท่อน — รองสายเส้นเล็กได้ไม่ตกร่อง เกณฑ์เติมเต็มเท่ารางบันได" })}
-              {/* ข้องอ / ข้อลด / สามทาง — รูปทรงไม่ตายตัว เลือกของ + กรอกจำนวนตามแบบ */}
+              {TrayList({ kind: "way", label: "Wireway เหล็กมีฝา", sizes: window.BOQ.WAY_SIZES, hint: "" })}
+              {TrayList({ kind: "tray", label: "Cable Tray Ladder (รางบันได)", sizes: window.BOQ.TRAY_SIZES, hint: "" })}
+              {TrayList({ kind: "perf", label: "Cable Tray Perforated (รางเจาะรู)", sizes: window.BOQ.PERF_SIZES, hint: "" })}
               {FitList({ rows: (tw.extra || []).filter((x) => !x.auto), onChange: (v) => setTrayVal("extra", (tw.extra || []).filter((x) => x.auto).concat(v)), catalog: trayFits,
                 hint: "ของรางไฟโดยเฉพาะ — แยกกลุ่มตามชนิดราง และแยกของชุบ HDG" })}
             </div>
             <div className="bq-hint" style={{ marginTop: 12, fontSize: 11, color: "var(--text-3)", lineHeight: 1.5 }}>
-              * ตัวราง ชุดข้อต่อ ขาล็อก ตัวยึด คิดอัตโนมัติจากความยาวราง — % เผื่ออุปกรณ์ประกอบ ตั้งได้ที่ คลังสินค้า › อุปกรณ์ท่อ / รางไฟ (ใบใหม่ใช้ค่านั้น · ใบที่ถอดไว้แล้วไม่ขยับตาม)
+              * อุปกรณ์ประกอบท่อ (แคล้ม บุชชิ่ง คอนเนคเตอร์ ฯลฯ) และของราง (ชุดข้อต่อ ขาล็อก ตัวยึด) คิดอัตโนมัติจากความยาว — กฎ ชิ้น/ท่อน และ % เผื่อ ตั้งได้ที่ คลังสินค้า › อุปกรณ์ท่อ / รางไฟ (ใบใหม่ใช้ค่านั้น · ใบที่ถอดไว้แล้วไม่ขยับตาม)
             </div>
           </BoqSection>
 

@@ -2710,6 +2710,15 @@ function BOQEditor({
     if (/MCB_SOLAR-MDB/i.test(n)) return "สายเมน MDB ตู้ " + ((b.cables || []).filter(x => /MCB_SOLAR-MDB/i.test(x.name || "")).indexOf(c) + 1);
     return CAB_PT_TH[n.toUpperCase()] || n;
   };
+  const raceWireTxt = x => {
+    const [m, g] = x.cables;
+    if (!m || !m.size) return "";
+    const cores = /^CV FD (\d)C/.test(m.type || "") ? +RegExp.$1 : 1;
+    let s = cores + "C " + m.size + " ตร.มม. × " + m.qty + " เส้น";
+    if (x.sets > 1) s += " × " + x.sets + " ชุด = " + m.qty * x.sets + " เส้น";
+    if (g) s += " + กราวด์ " + g.size + " ตร.มม. 1 เส้น";
+    return s;
+  };
   const raceFit = (k, cables) => RACE_POOL[k].find(nm => window.BOQ.conduitCheck(nm, cables, RACE_POOL[k]).ok) || null;
   const TRAY_KEYS = window.BOQ.TRAY_KIND_KEYS;
   const RACE_TH = {
@@ -2728,7 +2737,7 @@ function BOQEditor({
       return c.ok && c.widthOk;
     }) || null;
   };
-  const raceRuns = (b.cables || []).map((c, i) => {
+  const raceBase = (b.cables || []).map((c, i) => {
     const dc = /PV-INVERTER/i.test(c.name || "");
     if (!dc && !cabPlans[i]) return null;
     const t = c.type || "",
@@ -2764,6 +2773,36 @@ function BOQEditor({
     const trayCables = cables.map((x, k) => Object.assign({}, x, {
       qty: k === 0 ? x.qty * sets : x.qty
     }));
+    return {
+      c,
+      dc,
+      t,
+      od,
+      sz,
+      cables,
+      sets,
+      trayCables
+    };
+  });
+  const raceHostOf = i => {
+    const x = raceBase[i];
+    if (!x || !isTrayK(x.c.race) || x.c.raceWith == null) return null;
+    const h = raceBase[+x.c.raceWith];
+    return h && +x.c.raceWith !== i && h.c.race === x.c.race && h.c.raceWith == null ? +x.c.raceWith : null;
+  };
+  const raceRuns = (b.cables || []).map((c, i) => {
+    const base = raceBase[i];
+    if (!base) return null;
+    const host = raceHostOf(i);
+    const guests = raceBase.map((x, j) => x && raceHostOf(j) === i ? j : -1).filter(j => j >= 0);
+    const {
+      t,
+      od,
+      sz,
+      cables,
+      sets
+    } = base;
+    const trayCables = guests.reduce((a, j) => a.concat(raceBase[j].trayCables), base.trayCables);
     const tray = isTrayK(c.race);
     const kind = tray || c.race === "imc" || c.race === "upvc" ? c.race : "";
     const pool = tray ? window.BOQ.TRAY_KINDS[kind].sizes : RACE_POOL[kind || "imc"];
@@ -2810,17 +2849,23 @@ function BOQEditor({
       hdg,
       rail,
       fitCat,
-      fits
+      fits,
+      host,
+      guests,
+      wireTxt: raceWireTxt(base)
     };
   });
-  const raceFitRows = trayK => raceRuns.filter(r => r && r.kind && !!r.tray === trayK).reduce((a, r) => a.concat(r.fits.filter(f => f.item && +f.qty > 0).map(f => ({
+  raceRuns.forEach(r => {
+    if (r && r.host != null) r.shared = raceRuns[r.host];
+  });
+  const raceFitRows = trayK => raceRuns.filter(r => r && r.kind && !r.shared && !!r.tray === trayK).reduce((a, r) => a.concat(r.fits.filter(f => f.item && +f.qty > 0).map(f => ({
     name: f.item.name,
     qty: +f.qty,
     unit: f.item.unit || "ชุด",
     auto: 1,
     from: r.i
   }))), []);
-  const raceTrayRows = raceRuns.filter(r => r && r.tray && r.len > 0 && r.size).map(r => ({
+  const raceTrayRows = raceRuns.filter(r => r && r.tray && !r.shared && r.len > 0 && r.size).map(r => ({
     k: r.kind,
     row: Object.assign({
       size: r.size,
@@ -2828,7 +2873,7 @@ function BOQEditor({
       cables: r.trayCables,
       auto: 1,
       from: r.i,
-      lab: r.label
+      lab: [r.label].concat(r.guests.map(j => raceRuns[j].label)).join(" + ")
     }, r.hdg ? {
       hdg: true
     } : {}, r.rail ? {
@@ -5192,15 +5237,9 @@ function BOQEditor({
   }, {
     key: "raceway",
     icon: "grid",
-    title: "ท่อร้อยสาย",
-    meta: condLen > 0 ? "รวม " + condLen + " ม." + (condBad > 0 ? " · " + condBad + " ท่อสายแน่นเกิน" : "") : "ยังไม่ได้กรอก",
-    tone: condLen > 0 ? condBad > 0 ? "warn" : "ok" : ""
-  }, {
-    key: "tray",
-    icon: "grid",
-    title: "รางไฟ (Wireway / Tray)",
-    meta: trayLen > 0 ? "รวม " + trayLen + " ม." + (trayBad > 0 ? " · " + trayBad + " รางสายแน่นเกิน" : "") : "ยังไม่ได้กรอก",
-    tone: trayLen > 0 ? trayBad > 0 ? "warn" : "ok" : ""
+    title: "ท่อร้อยสาย & รางไฟ",
+    meta: condLen + trayLen > 0 ? [condLen > 0 ? "ท่อ " + condLen + " ม." : "", trayLen > 0 ? "ราง " + trayLen + " ม." : "", condBad > 0 ? condBad + " ท่อสายแน่นเกิน" : "", trayBad > 0 ? trayBad + " รางสายแน่นเกิน" : ""].filter(Boolean).join(" · ") : "ยังไม่ได้กรอก",
+    tone: condLen + trayLen > 0 ? condBad + trayBad > 0 ? "warn" : "ok" : ""
   }].concat(isHome ? [] : kitSections.map(sc => ({
     key: sc.key,
     icon: sc.icon,
@@ -7515,18 +7554,18 @@ function BOQEditor({
       }
     }, bad ? "เกินเกณฑ์ — ขยับขนาดสายขึ้นหรือลดระยะ ไม่งั้นไฟหายไปกับสายและแรงดันปลายทางตก" : "อยู่ในเกณฑ์ · คิดที่กระแสใช้งานจริงและความต้านทานทองแดงตอนสายร้อน"));
   })())), React.createElement(BoqSection, _extends({
-    title: "\u0E17\u0E48\u0E2D\u0E23\u0E49\u0E2D\u0E22\u0E2A\u0E32\u0E22 (RACE WAY)",
+    title: "\u0E17\u0E48\u0E2D\u0E23\u0E49\u0E2D\u0E22\u0E2A\u0E32\u0E22 & \u0E23\u0E32\u0E07\u0E44\u0E1F",
     icon: "grid"
   }, secProps("raceway"), {
-    right: condLen > 0 ? React.createElement("span", {
+    right: condLen + trayLen > 0 ? React.createElement("span", {
       style: {
         fontSize: 12,
         fontWeight: 800,
         color: "var(--primary-dark)"
       }
-    }, "\u0E23\u0E27\u0E21 ", condLen, " \u0E21.") : null
+    }, [condLen > 0 ? "ท่อ " + condLen + " ม." : "", trayLen > 0 ? "ราง " + trayLen + " ม." : ""].filter(Boolean).join(" · ")) : null
   }), React.createElement(MeasBar, {
-    kinds: ["conduit"]
+    kinds: ["conduit", "tray"]
   }), raceRuns.some(Boolean) && React.createElement("div", {
     style: {
       marginBottom: 18
@@ -7545,7 +7584,7 @@ function BOQEditor({
       color: "var(--text-3)",
       marginBottom: 8
     }
-  }, "\u0E40\u0E25\u0E37\u0E2D\u0E01\u0E27\u0E48\u0E32\u0E41\u0E15\u0E48\u0E25\u0E30\u0E40\u0E2A\u0E49\u0E19\u0E23\u0E49\u0E2D\u0E22\u0E17\u0E48\u0E2D\u0E2B\u0E23\u0E37\u0E2D\u0E40\u0E14\u0E34\u0E19\u0E23\u0E32\u0E07\u0E2D\u0E30\u0E44\u0E23 \u2014 \u0E17\u0E48\u0E2D: \u0E02\u0E19\u0E32\u0E14\u0E08\u0E32\u0E01 % \u0E40\u0E15\u0E34\u0E21\u0E40\u0E15\u0E47\u0E21 (\u0E2A\u0E32\u0E22 1 \u0E0A\u0E38\u0E14 + \u0E01\u0E23\u0E32\u0E27\u0E14\u0E4C) \u0E40\u0E14\u0E34\u0E19\u0E02\u0E19\u0E32\u0E19\u0E01\u0E35\u0E48\u0E0A\u0E38\u0E14\u0E01\u0E47\u0E04\u0E34\u0E14\u0E01\u0E35\u0E48\u0E17\u0E48\u0E2D \xB7 \u0E23\u0E32\u0E07: \u0E41\u0E22\u0E01\u0E23\u0E32\u0E07\u0E15\u0E48\u0E2D\u0E40\u0E2A\u0E49\u0E19 \u0E17\u0E38\u0E01\u0E0A\u0E38\u0E14\u0E02\u0E2D\u0E07\u0E40\u0E2A\u0E49\u0E19\u0E19\u0E31\u0E49\u0E19\u0E27\u0E32\u0E07\u0E43\u0E19\u0E23\u0E32\u0E07\u0E40\u0E14\u0E35\u0E22\u0E27"), React.createElement("div", {
+  }, "\u0E40\u0E25\u0E37\u0E2D\u0E01\u0E27\u0E48\u0E32\u0E41\u0E15\u0E48\u0E25\u0E30\u0E40\u0E2A\u0E49\u0E19\u0E23\u0E49\u0E2D\u0E22\u0E17\u0E48\u0E2D\u0E2B\u0E23\u0E37\u0E2D\u0E40\u0E14\u0E34\u0E19\u0E23\u0E32\u0E07\u0E2D\u0E30\u0E44\u0E23 \u2014 \u0E17\u0E48\u0E2D: \u0E02\u0E19\u0E32\u0E14\u0E08\u0E32\u0E01 % \u0E40\u0E15\u0E34\u0E21\u0E40\u0E15\u0E47\u0E21 (\u0E2A\u0E32\u0E22 1 \u0E0A\u0E38\u0E14 + \u0E01\u0E23\u0E32\u0E27\u0E14\u0E4C) \u0E40\u0E14\u0E34\u0E19\u0E02\u0E19\u0E32\u0E19\u0E01\u0E35\u0E48\u0E0A\u0E38\u0E14\u0E01\u0E47\u0E04\u0E34\u0E14\u0E01\u0E35\u0E48\u0E17\u0E48\u0E2D \xB7 \u0E23\u0E32\u0E07: \u0E17\u0E38\u0E01\u0E0A\u0E38\u0E14\u0E02\u0E2D\u0E07\u0E40\u0E2A\u0E49\u0E19\u0E19\u0E31\u0E49\u0E19\u0E27\u0E32\u0E07\u0E43\u0E19\u0E23\u0E32\u0E07\u0E40\u0E14\u0E35\u0E22\u0E27 \u0E16\u0E49\u0E32\u0E2B\u0E25\u0E32\u0E22\u0E40\u0E2A\u0E49\u0E19\u0E40\u0E14\u0E34\u0E19\u0E23\u0E32\u0E07\u0E40\u0E14\u0E35\u0E22\u0E27\u0E01\u0E31\u0E19 \u0E43\u0E2B\u0E49\u0E01\u0E14 \"\u0E23\u0E48\u0E27\u0E21\u0E01\u0E31\u0E1A \u2026\" \u0E17\u0E35\u0E48\u0E40\u0E2A\u0E49\u0E19\u0E17\u0E35\u0E48\u0E21\u0E32\u0E1D\u0E32\u0E01 \u0E02\u0E19\u0E32\u0E14\u0E08\u0E30\u0E04\u0E34\u0E14\u0E08\u0E32\u0E01\u0E2A\u0E32\u0E22\u0E23\u0E27\u0E21"), React.createElement("div", {
     style: {
       display: "flex",
       flexDirection: "column",
@@ -7581,7 +7620,13 @@ function BOQEditor({
       flex: 1,
       minWidth: 120
     }
-  }, r.type ? r.type.trim() + (r.sets > 1 ? " × " + r.sets + " ชุด" : "") : "ยังไม่ได้เลือกสาย", r.cabLen ? " · " + r.cabLen + " ม." : ""), React.createElement("span", {
+  }, r.type ? r.type.trim() : "ยังไม่ได้เลือกสาย", r.cabLen ? " · " + r.cabLen + " ม." : "", r.wireTxt && React.createElement("span", {
+    style: {
+      display: "block",
+      color: "var(--text-2)",
+      fontWeight: 600
+    }
+  }, r.wireTxt)), React.createElement("span", {
     style: {
       display: "inline-flex",
       gap: 5,
@@ -7599,9 +7644,59 @@ function BOQEditor({
       raceSize: null,
       raceFit: null,
       raceHdg: null,
-      raceRail: null
+      raceRail: null,
+      raceWith: null
     })
-  }, th)))), r.kind && React.createElement("div", {
+  }, th)))), r.tray && (() => {
+    const hosts = raceRuns.filter(x => x && x.i !== r.i && x.kind === r.kind && x.host == null);
+    if (!hosts.length || r.guests.length) return r.guests.length ? React.createElement("div", {
+      style: {
+        fontSize: 11,
+        color: "var(--text-2)",
+        fontWeight: 600
+      }
+    }, "\u0E23\u0E32\u0E07\u0E19\u0E35\u0E49\u0E21\u0E35\u0E2A\u0E32\u0E22\u0E02\u0E2D\u0E07 ", r.guests.map(j => raceRuns[j].label).join(", "), " \u0E27\u0E32\u0E07\u0E23\u0E48\u0E27\u0E21\u0E14\u0E49\u0E27\u0E22 \u2014 \u0E02\u0E19\u0E32\u0E14\u0E04\u0E34\u0E14\u0E08\u0E32\u0E01\u0E2A\u0E32\u0E22\u0E17\u0E38\u0E01\u0E40\u0E2A\u0E49\u0E19\u0E23\u0E27\u0E21\u0E01\u0E31\u0E19") : null;
+    return React.createElement("div", {
+      style: {
+        display: "flex",
+        gap: 6,
+        flexWrap: "wrap",
+        alignItems: "center"
+      }
+    }, React.createElement("span", {
+      style: {
+        fontSize: 11,
+        color: "var(--text-3)",
+        fontWeight: 600
+      }
+    }, "\u0E27\u0E32\u0E07\u0E43\u0E19\u0E23\u0E32\u0E07:"), [{
+      i: null,
+      label: "รางของเส้นนี้เอง"
+    }].concat(hosts).map(h => React.createElement("button", {
+      key: String(h.i),
+      className: "bq-cab-chip" + (r.host === h.i ? " on" : ""),
+      style: {
+        fontSize: 11,
+        padding: "4px 10px"
+      },
+      onClick: () => setRace(r.i, h.i == null ? {
+        raceWith: null
+      } : {
+        raceWith: h.i,
+        raceSize: null,
+        raceLen: null,
+        raceFit: null,
+        raceHdg: null,
+        raceRail: null
+      })
+    }, h.i == null ? h.label : "ร่วมกับ " + h.label)));
+  })(), r.shared && React.createElement("div", {
+    style: {
+      fontSize: 11.5,
+      fontWeight: 700,
+      color: r.shared.ok ? "var(--tint-green-tx)" : "var(--tint-red-tx2)"
+    }
+  }, "\u0E27\u0E32\u0E07\u0E43\u0E19 ", String(r.shared.size).trim(), " \u0E02\u0E2D\u0E07 ", r.shared.label, " \xB7 \u0E02\u0E19\u0E32\u0E14 \u0E23\u0E30\u0E22\u0E30 HDG Rail \u0E41\u0E25\u0E30\u0E02\u0E49\u0E2D\u0E15\u0E48\u0E2D \u0E15\u0E31\u0E49\u0E07\u0E17\u0E35\u0E48\u0E40\u0E2A\u0E49\u0E19\u0E19\u0E31\u0E49\u0E19", r.shared.chk && " · เติมเต็มรวม " + r.shared.chk.fillPct + "% / " + r.shared.chk.limit + "%" + (r.shared.ok ? " ✓" : " ✗")), r.kind && !r.shared && React.createElement("div", {
     style: {
       display: "grid",
       gridTemplateColumns: isMobile ? "minmax(0,1fr) 90px" : "minmax(0,240px) 110px minmax(0,1fr)",
@@ -7644,7 +7739,7 @@ function BOQEditor({
       color: "var(--text-3)",
       fontWeight: 600
     }
-  }, " \xB7 ", r.sets, " \u0E17\u0E48\u0E2D \xD7 ", r.len, " \u0E21. = ", Math.round(r.len * r.sets * 10) / 10, " \u0E21."))), r.kind && React.createElement("div", {
+  }, " \xB7 ", r.sets, " \u0E17\u0E48\u0E2D \xD7 ", r.len, " \u0E21. = ", Math.round(r.len * r.sets * 10) / 10, " \u0E21."))), r.kind && !r.shared && React.createElement("div", {
     style: {
       display: "flex",
       flexDirection: "column",
@@ -7798,54 +7893,21 @@ function BOQEditor({
     onChange: v => setCondVal("extra", (cond.extra || []).filter(x => x.auto).concat(v)),
     catalog: condFits,
     hint: "ของท่อร้อยสายโดยเฉพาะ — เลือกได้ครบทุกขนาด แยกกลุ่ม IMC กับ uPVC (คนละอันกับข้องอของรางไฟ)"
-  })), React.createElement("div", {
-    className: "bq-hint",
-    style: {
-      marginTop: 12,
-      fontSize: 11,
-      color: "var(--text-3)",
-      lineHeight: 1.5
-    }
-  }, "* \u0E2D\u0E38\u0E1B\u0E01\u0E23\u0E13\u0E4C\u0E1B\u0E23\u0E30\u0E01\u0E2D\u0E1A\u0E17\u0E48\u0E2D IMC / uPVC (\u0E41\u0E04\u0E25\u0E49\u0E21 \u0E1A\u0E38\u0E0A\u0E0A\u0E34\u0E48\u0E07 \u0E04\u0E2D\u0E19\u0E40\u0E19\u0E04\u0E40\u0E15\u0E2D\u0E23\u0E4C \u0E2F\u0E25\u0E2F) \u0E04\u0E34\u0E14\u0E2D\u0E31\u0E15\u0E42\u0E19\u0E21\u0E31\u0E15\u0E34\u0E08\u0E32\u0E01\u0E04\u0E27\u0E32\u0E21\u0E22\u0E32\u0E27\u0E17\u0E48\u0E2D + PULL BOX \u2014 \u0E01\u0E0E \u0E0A\u0E34\u0E49\u0E19/\u0E17\u0E48\u0E2D\u0E19 \u0E41\u0E25\u0E30 % \u0E40\u0E1C\u0E37\u0E48\u0E2D \u0E15\u0E31\u0E49\u0E07\u0E44\u0E14\u0E49\u0E17\u0E35\u0E48 \u0E04\u0E25\u0E31\u0E07\u0E2A\u0E34\u0E19\u0E04\u0E49\u0E32 \u203A \u0E2D\u0E38\u0E1B\u0E01\u0E23\u0E13\u0E4C\u0E17\u0E48\u0E2D / \u0E23\u0E32\u0E07\u0E44\u0E1F (\u0E43\u0E1A\u0E43\u0E2B\u0E21\u0E48\u0E43\u0E0A\u0E49\u0E04\u0E48\u0E32\u0E19\u0E31\u0E49\u0E19 \xB7 \u0E43\u0E1A\u0E17\u0E35\u0E48\u0E16\u0E2D\u0E14\u0E44\u0E27\u0E49\u0E41\u0E25\u0E49\u0E27\u0E44\u0E21\u0E48\u0E02\u0E22\u0E31\u0E1A\u0E15\u0E32\u0E21)")), React.createElement(BoqSection, _extends({
-    title: "\u0E23\u0E32\u0E07\u0E44\u0E1F (Wireway / Cable Tray)",
-    icon: "grid"
-  }, secProps("tray"), {
-    right: trayLen > 0 ? React.createElement("span", {
-      style: {
-        fontSize: 12,
-        fontWeight: 800,
-        color: "var(--primary-dark)"
-      }
-    }, "\u0E23\u0E27\u0E21 ", trayLen, " \u0E21.") : null
-  }), React.createElement(MeasBar, {
-    kinds: ["tray"]
-  }), React.createElement("div", {
-    style: {
-      fontSize: 12,
-      color: "var(--text-3)",
-      marginBottom: 10
-    }
-  }, "\u0E40\u0E25\u0E37\u0E2D\u0E01\u0E23\u0E32\u0E07\u0E43\u0E2B\u0E49\u0E2A\u0E32\u0E22\u0E41\u0E15\u0E48\u0E25\u0E30\u0E40\u0E2A\u0E49\u0E19\u0E44\u0E14\u0E49\u0E17\u0E35\u0E48\u0E41\u0E1C\u0E07 \"\u0E40\u0E14\u0E34\u0E19\u0E17\u0E48\u0E2D / \u0E23\u0E32\u0E07\u0E15\u0E32\u0E21\u0E40\u0E2A\u0E49\u0E19\u0E2A\u0E32\u0E22\u0E44\u0E1F\" \u0E43\u0E19\u0E2B\u0E31\u0E27\u0E02\u0E49\u0E2D\u0E17\u0E48\u0E2D\u0E23\u0E49\u0E2D\u0E22\u0E2A\u0E32\u0E22 \u2014 \u0E02\u0E19\u0E32\u0E14 \u0E23\u0E30\u0E22\u0E30 \u0E0A\u0E38\u0E1A HDG \u0E22\u0E36\u0E14\u0E1A\u0E19 Rail \u0E41\u0E25\u0E30\u0E02\u0E49\u0E2D\u0E15\u0E48\u0E2D \u0E2D\u0E22\u0E39\u0E48\u0E43\u0E15\u0E49\u0E40\u0E2A\u0E49\u0E19\u0E19\u0E31\u0E49\u0E19"), React.createElement("div", {
-    style: {
-      display: "flex",
-      flexDirection: "column",
-      gap: 16
-    }
-  }, TrayList({
+  }), TrayList({
     kind: "way",
     label: "Wireway เหล็กมีฝา",
     sizes: window.BOQ.WAY_SIZES,
-    hint: "รางเหล็กพับมีฝาปิด ยาว " + window.BOQ.trayLenTxt(window.BOQ.WAY_PIPE_LEN) + " ม./ท่อน — กรอกความยาวรวมของแต่ละขนาด"
+    hint: ""
   }), TrayList({
     kind: "tray",
     label: "Cable Tray Ladder (รางบันได)",
     sizes: window.BOQ.TRAY_SIZES,
-    hint: "พื้นรางเป็นขั้นบันได ยาว " + window.BOQ.trayLenTxt(window.BOQ.TRAY_PIPE_LEN) + " ม./ท่อน — ใช้เดินสายเส้นใหญ่จำนวนมากระยะไกล ระบายความร้อนดีที่สุด"
+    hint: ""
   }), TrayList({
     kind: "perf",
     label: "Cable Tray Perforated (รางเจาะรู)",
     sizes: window.BOQ.PERF_SIZES,
-    hint: "พื้นรางเป็นแผ่นเจาะรู ยาว " + window.BOQ.trayLenTxt(window.BOQ.TRAY_PIPE_LEN) + " ม./ท่อน — รองสายเส้นเล็กได้ไม่ตกร่อง เกณฑ์เติมเต็มเท่ารางบันได"
+    hint: ""
   }), FitList({
     rows: (tw.extra || []).filter(x => !x.auto),
     onChange: v => setTrayVal("extra", (tw.extra || []).filter(x => x.auto).concat(v)),
@@ -7859,7 +7921,7 @@ function BOQEditor({
       color: "var(--text-3)",
       lineHeight: 1.5
     }
-  }, "* \u0E15\u0E31\u0E27\u0E23\u0E32\u0E07 \u0E0A\u0E38\u0E14\u0E02\u0E49\u0E2D\u0E15\u0E48\u0E2D \u0E02\u0E32\u0E25\u0E47\u0E2D\u0E01 \u0E15\u0E31\u0E27\u0E22\u0E36\u0E14 \u0E04\u0E34\u0E14\u0E2D\u0E31\u0E15\u0E42\u0E19\u0E21\u0E31\u0E15\u0E34\u0E08\u0E32\u0E01\u0E04\u0E27\u0E32\u0E21\u0E22\u0E32\u0E27\u0E23\u0E32\u0E07 \u2014 % \u0E40\u0E1C\u0E37\u0E48\u0E2D\u0E2D\u0E38\u0E1B\u0E01\u0E23\u0E13\u0E4C\u0E1B\u0E23\u0E30\u0E01\u0E2D\u0E1A \u0E15\u0E31\u0E49\u0E07\u0E44\u0E14\u0E49\u0E17\u0E35\u0E48 \u0E04\u0E25\u0E31\u0E07\u0E2A\u0E34\u0E19\u0E04\u0E49\u0E32 \u203A \u0E2D\u0E38\u0E1B\u0E01\u0E23\u0E13\u0E4C\u0E17\u0E48\u0E2D / \u0E23\u0E32\u0E07\u0E44\u0E1F (\u0E43\u0E1A\u0E43\u0E2B\u0E21\u0E48\u0E43\u0E0A\u0E49\u0E04\u0E48\u0E32\u0E19\u0E31\u0E49\u0E19 \xB7 \u0E43\u0E1A\u0E17\u0E35\u0E48\u0E16\u0E2D\u0E14\u0E44\u0E27\u0E49\u0E41\u0E25\u0E49\u0E27\u0E44\u0E21\u0E48\u0E02\u0E22\u0E31\u0E1A\u0E15\u0E32\u0E21)")), !isHome && kitSections.map(sc => React.createElement(BoqSection, _extends({
+  }, "* \u0E2D\u0E38\u0E1B\u0E01\u0E23\u0E13\u0E4C\u0E1B\u0E23\u0E30\u0E01\u0E2D\u0E1A\u0E17\u0E48\u0E2D (\u0E41\u0E04\u0E25\u0E49\u0E21 \u0E1A\u0E38\u0E0A\u0E0A\u0E34\u0E48\u0E07 \u0E04\u0E2D\u0E19\u0E40\u0E19\u0E04\u0E40\u0E15\u0E2D\u0E23\u0E4C \u0E2F\u0E25\u0E2F) \u0E41\u0E25\u0E30\u0E02\u0E2D\u0E07\u0E23\u0E32\u0E07 (\u0E0A\u0E38\u0E14\u0E02\u0E49\u0E2D\u0E15\u0E48\u0E2D \u0E02\u0E32\u0E25\u0E47\u0E2D\u0E01 \u0E15\u0E31\u0E27\u0E22\u0E36\u0E14) \u0E04\u0E34\u0E14\u0E2D\u0E31\u0E15\u0E42\u0E19\u0E21\u0E31\u0E15\u0E34\u0E08\u0E32\u0E01\u0E04\u0E27\u0E32\u0E21\u0E22\u0E32\u0E27 \u2014 \u0E01\u0E0E \u0E0A\u0E34\u0E49\u0E19/\u0E17\u0E48\u0E2D\u0E19 \u0E41\u0E25\u0E30 % \u0E40\u0E1C\u0E37\u0E48\u0E2D \u0E15\u0E31\u0E49\u0E07\u0E44\u0E14\u0E49\u0E17\u0E35\u0E48 \u0E04\u0E25\u0E31\u0E07\u0E2A\u0E34\u0E19\u0E04\u0E49\u0E32 \u203A \u0E2D\u0E38\u0E1B\u0E01\u0E23\u0E13\u0E4C\u0E17\u0E48\u0E2D / \u0E23\u0E32\u0E07\u0E44\u0E1F (\u0E43\u0E1A\u0E43\u0E2B\u0E21\u0E48\u0E43\u0E0A\u0E49\u0E04\u0E48\u0E32\u0E19\u0E31\u0E49\u0E19 \xB7 \u0E43\u0E1A\u0E17\u0E35\u0E48\u0E16\u0E2D\u0E14\u0E44\u0E27\u0E49\u0E41\u0E25\u0E49\u0E27\u0E44\u0E21\u0E48\u0E02\u0E22\u0E31\u0E1A\u0E15\u0E32\u0E21)")), !isHome && kitSections.map(sc => React.createElement(BoqSection, _extends({
     key: sc.key,
     title: sc.title,
     icon: sc.icon
