@@ -1044,7 +1044,6 @@
   const MANAGE_PRESET = [
     { name: "ค่าที่พักทีมติดตั้ง", unit: "คืน" },
     { name: "ค่าเดินทาง", unit: "เที่ยว" },
-    { name: "ค่าดูแลระบบ O&M", unit: "ปี" },
   ];
   const G_TRAY = "รางไฟ (WIREWAY / TRAY)";
   const G_SUPPORT = "โครงสร้างรองรับอุปกรณ์";
@@ -1052,7 +1051,34 @@
   const G_PERMIT = "ค่าขออนุญาต & เอกสาร";
   const G_TRANSPORT = "ขนส่ง & เครื่องจักร";
   const G_MANAGE = "บริหารจัดการหน้างาน";
-  const SERVICE_GROUPS = [G_LABOR, G_PERMIT, G_TRANSPORT, G_MANAGE];   // หมวดที่ราคาอยู่ในบรรทัดเอง ไม่ดึงจากคลัง
+  const G_OM = "O&M · ประกัน + ล้างแผง";
+  const SERVICE_GROUPS = [G_LABOR, G_PERMIT, G_TRANSPORT, G_MANAGE, G_OM];   // หมวดที่ราคาอยู่ในบรรทัดเอง ไม่ดึงจากคลัง
+
+  /* ── O&M: ประกันงานติดตั้ง + ล้างแผง ──
+     ขายรวมในราคาติดตั้ง N ปีแรก (ปกติ 2 ปี) → ต้นทุนช่วงนั้นต้องบวกเข้างานนี้ ไม่งั้นกำไรถูกกินเงียบ ๆ
+     ต่อประกันหลังจากนั้น = ต้นทุนต่อปี + กำไร (เสนอเป็นราคาต่อปี ไม่รวมในยอดติดตั้ง)
+     ต้นทุนล้าง 1 ครั้ง = ทีมช่าง × ค่าแรง/วัน × วันที่ใช้ (ปัดทีละครึ่งวัน) + ค่าเดินทาง + น้ำ/น้ำยา
+       ไม่ถึงขั้นต่ำ ใช้ขั้นต่ำ (งานเล็กค่าเดินทาง/เสียวันเท่ากับงานใหญ่)
+     เผื่อประกัน = เงินกันไว้เรียกซ่อม/ตรวจแก้ ต่อ kW ต่อปี (อุปกรณ์มีประกันผู้ผลิต — ที่ร้านรับคือค่าแรง+ค่าเดินทางตอนเข้าไปแก้)
+     ทุกค่าเป็นค่าตั้งต้น แก้ได้ต่อใบ · เว้นว่าง = ใช้ค่าตั้งต้น */
+  const OM_DEF = { years: 2, perYear: 2, crew: 2, wage: 700, ppd: 80, travel: 1000, supplies: 300, minVisit: 2500, warrantyKw: 100, markup: 30 };
+  const OM_DEF_PROJECT = { ppd: 200 };   // หลังคาโรงงาน/พื้นเรียบ มีระบบน้ำ ล้างได้วันละมากกว่า
+  function omDefaults(b) { return Object.assign({}, OM_DEF, b && b.jobType !== "home" ? OM_DEF_PROJECT : {}); }
+  function omCalc(b, panels, kw) {
+    const d = omDefaults(b), raw = (b && b.om) || {};
+    const o = {};
+    Object.keys(d).forEach((k) => { const v = raw[k]; o[k] = v === "" || v == null || !isFinite(+v) ? d[k] : Math.max(0, +v); });
+    const n = Math.max(0, +panels || 0);
+    const days = n > 0 && o.ppd > 0 ? Math.max(0.5, Math.ceil((n / o.ppd) * 2) / 2) : 0;
+    const labor = o.crew * o.wage * days;
+    const visitRaw = n > 0 ? labor + o.travel + o.supplies : 0;
+    const visit = n > 0 ? Math.max(o.minVisit, visitRaw) : 0;
+    const warranty = Math.round(o.warrantyKw * (+kw || 0));
+    const year = o.perYear * visit + warranty;
+    const renew = Math.ceil((year * (1 + o.markup / 100)) / 100) * 100;   // ปัดขึ้นทีละ 100 บาท
+    return { o, def: d, days, labor, visitRaw, visit, minHit: visit > visitRaw, warranty, year,
+      included: o.years * year, renew, renew3: renew * 3, off: raw.off === 1 };
+  }
 
   /* ── หมวดของงานโครงการ ──
      งานโครงการมีของที่งานบ้านไม่มี: ตู้ไฟแยกฝั่ง (พร้อมอุปกรณ์ในตู้), ระบบสูบน้ำล้างแผง, ถังเก็บน้ำ, ท่อน้ำ
@@ -1937,6 +1963,14 @@
        จึงขึ้นเฉพาะงานที่เข้าไปกรอกไว้จริง (ยังไม่แตะ = null = ไม่ต้องโผล่ในใบถอดของ) */
     if (b.transport != null) { const r = svcRows(b.transport, TRANSPORT_PRESET); if (r.length) groups.push({ group: G_TRANSPORT, items: r }); }
     if (b.manage != null) { const r = svcRows(b.manage, MANAGE_PRESET); if (r.length) groups.push({ group: G_MANAGE, items: r }); }
+    // O&M ที่รวมในราคาติดตั้ง (N ปีแรก) — ต้นทุนเข้างานนี้ · ปิดได้ต่อใบ (b.om.off)
+    const om = omCalc(b, panelCount, kw);
+    if (!om.off && om.o.years > 0 && om.visit > 0) {
+      const omRows = [];
+      if (om.o.perYear > 0) omRows.push({ name: "ล้างแผง + ตรวจระบบ (" + om.o.years + " ปีแรก · ปีละ " + om.o.perYear + " ครั้ง)", qty: om.o.years * om.o.perYear, unit: "ครั้ง", price: om.visit });
+      if (om.warranty > 0) omRows.push({ name: "เผื่อประกันงานติดตั้ง / เรียกซ่อม (" + om.o.years + " ปีแรก)", qty: om.o.years, unit: "ปี", price: om.warranty });
+      if (omRows.length) groups.push({ group: G_OM, items: omRows });
+    }
 
     /* จำนวนที่แก้มือจากในใบถอดของ — ทับค่าที่ระบบถอดให้
        หมวดค่าแรง/ขออนุญาต/ขนส่ง/บริหาร ไม่รับ เพราะมีช่องกรอกจำนวนของตัวเองอยู่แล้ว */
@@ -1973,7 +2007,7 @@
       });
     }
 
-    return { groups, meta: { panelCount, kw, rowsSum, invCount, invAuto, inv2Count, invTotal: invTotalAll, plan, battCount, auto: AUTO, valid: rowsSum === panelCount } };
+    return { groups, meta: { panelCount, kw, rowsSum, invCount, invAuto, inv2Count, invTotal: invTotalAll, plan, battCount, auto: AUTO, om, valid: rowsSum === panelCount } };
   }
 
   /* คีย์จำนวนที่แก้มือ — ผูกกับหมวดด้วย กันชื่อซ้ำข้ามหมวดทับกัน */
@@ -2137,13 +2171,14 @@
     }
     const grand = groups.reduce((s, g) => s + g.subtotal, 0);
     const sumOf = (keys) => groups.filter((g) => keys.indexOf(g.group) >= 0).reduce((s, g) => s + g.subtotal, 0);
-    const laborTotal = sumOf([G_LABOR]), permitTotal = sumOf([G_PERMIT]);
-    const matTotal = grand - laborTotal - permitTotal;
+    const laborTotal = sumOf([G_LABOR]), permitTotal = sumOf([G_PERMIT]), omTotal = sumOf([G_OM]);
+    const matTotal = grand - laborTotal - permitTotal - omTotal;
     return {
       groups: groups, grandTotal: grand, kw: kw, perKw: perKw(grand), perW: perW(grand),
       matTotal: matTotal, matPerKw: perKw(matTotal), matPerW: perW(matTotal),
       laborTotal: laborTotal, laborPerKw: perKw(laborTotal), laborPerW: perW(laborTotal),
       permitTotal: permitTotal, permitPerKw: perKw(permitTotal), permitPerW: perW(permitTotal),
+      omTotal: omTotal, omPerW: perW(omTotal),
     };
   }
 
@@ -2299,5 +2334,5 @@
     TRAY_FILL_LIMIT, TRAY_DERATE, trayDerate, trayDim, trayCheck, cableCores,
     UPVC_CONDUIT, conduitFillLimit, conduitDim, conduitCheck,
     AMP_CORE_LABEL, ampGroupMeta, ampCoresFor, ampCoreKey, WIRE_METHOD_LEGACY, normWireMethod,
-    G_TRAY, G_SUPPORT, G_LABOR, G_PERMIT, SERVICE_GROUPS, mergeItems };
+    G_TRAY, G_SUPPORT, G_LABOR, G_PERMIT, G_OM, OM_DEF, omDefaults, omCalc, SERVICE_GROUPS, mergeItems };
 })();
