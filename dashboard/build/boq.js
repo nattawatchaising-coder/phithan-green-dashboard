@@ -1962,7 +1962,7 @@ function BOQEditor({
     sec: "board",
     icon: "box",
     title: "ตู้ไฟ",
-    hint: "ตู้ไฟของงานโครงการ — อินเวอร์เตอร์สตริง/ไฮบริด ระบบคิดอุปกรณ์ในตู้ AC / DC ให้จากอินเวอร์เตอร์ สตริง และสายไฟ (ตู้ AC 1 ตู้ต่อสายเมน 1 เส้น · ตู้ DC 1 ตู้ต่ออินเวอร์เตอร์) · " + "เบรกเกอร์: MCCB ปรับตั้งกระแสได้ ตั้งที่กระแสออก × 1.05 ปัดขึ้นทีละ 5 A (เช่น 84 A → 100 AT ปรับตั้ง 90 A) แล้วคิดขนาดสายจากกระแสตั้ง — ถ้าเลือกสายเองเล็กกว่านั้น จะขึ้นคำแนะนำในหัวข้อสายไฟ · " + "ระบบล่อฟ้า: ถ้าแผงอยู่ใกล้ล่อฟ้า (ต่อถึงกันหรือห่างไม่ถึงระยะปลอดภัย) SPD ทั้ง AC และ DC เปลี่ยนเป็น Type 1+2 · " + "ฟิวส์กันหลัง SPD ฝั่ง AC เป็นฟิวส์ใบมีด NH00 gG เส้นไฟละ 1 ตัว — Type 2 ใช้ 32 A · Type 1+2 ใช้ 125 A (ไม่ต้องมีถ้า MCCB เมนตู้ ≤ 125 AT) · " + "ฟิวส์ DC แบบ gPV ขั้ว + และ − ทุกสตริง (1.5–2.4 × Isc) · กรอกจำนวนตู้เองได้ และปิดรายการอัตโนมัติรายตู้ได้ · ราคาดึงจากคลังเหมือนวัสดุอื่น"
+    hint: "ตู้ไฟของงานโครงการ — อินเวอร์เตอร์สตริง/ไฮบริด ระบบคิดอุปกรณ์ในตู้ AC / DC ให้จากอินเวอร์เตอร์ สตริง และสายไฟ (ตู้ AC 1 ตู้ต่อสายเมน 1 เส้น · ตู้ DC 1 ตู้ต่ออินเวอร์เตอร์) · " + "เบรกเกอร์: MCCB ปรับตั้งกระแสได้ ตั้งที่กระแสออก × 1.05 ปัดขึ้นทีละ 5 A (เช่น 84 A → 100 AT ปรับตั้ง 90 A) แล้วคิดขนาดสายจากกระแสตั้ง — ถ้าเลือกสายเองเล็กกว่านั้น จะขึ้นคำแนะนำในหัวข้อสายไฟ · " + "ที่เมนตู้ AC มีระบบ Ground Fault (GFR + ZCT + Shunt trip ของ MCCB เมน) และ Power Meter PM2230 + CT ตามขนาดเมน + MCB 6A กันสายวัด — ปิดแยกได้ · " + "ระบบล่อฟ้า: ถ้าแผงอยู่ใกล้ล่อฟ้า (ต่อถึงกันหรือห่างไม่ถึงระยะปลอดภัย) SPD ทั้ง AC และ DC เปลี่ยนเป็น Type 1+2 · " + "ฟิวส์กันหลัง SPD ฝั่ง AC เป็นฟิวส์ใบมีด NH00 gG เส้นไฟละ 1 ตัว — Type 2 ใช้ 32 A · Type 1+2 ใช้ 125 A (ไม่ต้องมีถ้า MCCB เมนตู้ ≤ 125 AT) · " + "ฟิวส์ DC แบบ gPV ขั้ว + และ − ทุกสตริง (1.5–2.4 × Isc) · กรอกจำนวนตู้เองได้ และปิดรายการอัตโนมัติรายตู้ได้ · ราคาดึงจากคลังเหมือนวัสดุอื่น"
   }, {
     key: "watersys",
     sec: "water",
@@ -3104,6 +3104,55 @@ function BOQEditor({
           why: tag + "ฐานฟิวส์ใบมีด NH00"
         });
       }
+      if (projBoard.gf !== "off" && mainAt > 0) {
+        const zd = mainAt <= 125 ? 60 : mainAt <= 250 ? 80 : mainAt <= 630 ? 120 : 200;
+        out.ac.push({
+          name: "GROUND FAULT RELAY (GFR)",
+          qty: 1,
+          unit: "ตัว",
+          auto: 1,
+          why: tag + "ตรวจกระแสรั่วลงดิน สั่งตัด MCCB เมน"
+        });
+        out.ac.push({
+          name: "ZCT Φ" + zd + "mm",
+          qty: 1,
+          unit: "ตัว",
+          auto: 1,
+          why: tag + "ร้อยสายเฟส + N ของเมน " + mainAt + " AT ทั้งชุด (รูต้องใหญ่พอกับสายจริง)"
+        });
+        out.ac.push({
+          name: "SHUNT TRIP 220VAC สำหรับ MCCB " + mainAt + "AT",
+          qty: 1,
+          unit: "ตัว",
+          auto: 1,
+          why: tag + "คอยล์สั่งตัด MCCB เมน รับสัญญาณจาก GFR"
+        });
+      }
+      if (projBoard.pm !== "off" && mainAt > 0) {
+        const CT_R = [100, 150, 200, 250, 300, 400, 500, 600, 800, 1000, 1200, 1500, 1600, 2000, 2500, 3000, 4000];
+        const ct = CT_R.find(x => x >= mainAt) || CT_R[CT_R.length - 1];
+        out.ac.push({
+          name: "POWER METER SCHNEIDER PM2230",
+          qty: 1,
+          unit: "ตัว",
+          auto: 1,
+          why: tag + "วัดพลังงาน/กระแส/แรงดันที่เมนตู้"
+        });
+        out.ac.push({
+          name: "CT " + ct + "/5A",
+          qty: ph,
+          unit: "ตัว",
+          auto: 1,
+          why: tag + "เฟสละ 1 ตัว · อัตราส่วน ≥ MCCB เมน " + mainAt + " AT"
+        });
+      }
+      if ((projBoard.gf !== "off" || projBoard.pm !== "off") && mainAt > 0) out.ac.push({
+        name: "MCB " + pole + " 6A",
+        qty: 1,
+        unit: "ตัว",
+        auto: 1,
+        why: tag + "กันสายวัดแรงดัน" + (projBoard.pm !== "off" ? " PM2230" : "") + (projBoard.gf !== "off" ? (projBoard.pm !== "off" ? " และ" : "") + "ไฟเลี้ยง GFR / Shunt trip" : "")
+      });
     });
     const nStr = plan ? plan.strings : invUnits.length * Math.max(1, +selInv.inputs || 1);
     if (!(+projBoard.dc > 0)) out.dc.push({
@@ -3170,7 +3219,7 @@ function BOQEditor({
     }
     return out;
   })();
-  const boardAutoKey = JSON.stringify([boardAuto.ac.concat(boardAuto.dc).map(x => [x.name, x.qty, x.why]), !!projBoard.noauto_ac, !!projBoard.noauto_dc, projBoard.lps || ""]);
+  const boardAutoKey = JSON.stringify([boardAuto.ac.concat(boardAuto.dc).map(x => [x.name, x.qty, x.why]), !!projBoard.noauto_ac, !!projBoard.noauto_dc, projBoard.lps || "", projBoard.gf || "", projBoard.pm || ""]);
   React.useEffect(() => {
     setB(p => {
       const pr = window.BOQ.normProject(p.project),
@@ -8511,7 +8560,33 @@ function BOQEditor({
           color: "var(--text-3)",
           lineHeight: 1.4
         }
-      }, st.lps === "near" ? "SPD เป็น Type 1+2 (ทนกระแสฟ้าผ่า) ทั้ง AC และ DC" : "SPD Type 2 · ถ้าแผงอยู่ใกล้เสา/สายล่อฟ้า หรือต่อโครงแผงเข้ากับระบบล่อฟ้า ให้เลือก \"แผงใกล้/ต่อถึงกัน\"")), (boardAuto[bd.key] || []).length > 0 && (() => {
+      }, st.lps === "near" ? "SPD เป็น Type 1+2 (ทนกระแสฟ้าผ่า) ทั้ง AC และ DC" : "SPD Type 2 · ถ้าแผงอยู่ใกล้เสา/สายล่อฟ้า หรือต่อโครงแผงเข้ากับระบบล่อฟ้า ให้เลือก \"แผงใกล้/ต่อถึงกัน\"")), bd.key === "ac" && (boardAuto.ac || []).length > 0 && React.createElement("div", {
+        style: {
+          display: "flex",
+          flexWrap: "wrap",
+          gap: 5,
+          alignItems: "center"
+        }
+      }, React.createElement("span", {
+        style: {
+          fontSize: 9.5,
+          fontWeight: 800,
+          color: "var(--text-3)",
+          width: "100%"
+        }
+      }, "\u0E17\u0E35\u0E48\u0E40\u0E21\u0E19\u0E15\u0E39\u0E49 AC"), [["gf", "ระบบ Ground Fault"], ["pm", "Power Meter PM2230"]].map(([key, l]) => {
+        const on = st[key] !== "off";
+        return React.createElement("button", {
+          key: key,
+          type: "button",
+          className: "bq-cab-chip" + (on ? " on" : ""),
+          style: {
+            fontSize: 10,
+            padding: "3px 8px"
+          },
+          onClick: () => setKit(k.key, key, on ? "off" : "")
+        }, on ? "✓ " : "", l);
+      })), (boardAuto[bd.key] || []).length > 0 && (() => {
         const off = !!st["noauto_" + bd.key];
         const rows = (st[bd.extraKey] || []).filter(x => x.auto && x.name !== bd.name);
         return React.createElement("div", {
