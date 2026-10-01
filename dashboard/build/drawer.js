@@ -1819,7 +1819,7 @@ function DetailDrawer({
     name: "arrowRight",
     size: 16,
     color: "var(--text-3)"
-  })), window.Plan3DEditor && !roMode && React.createElement("button", {
+  })), window.Plan3DEntry && !roMode && React.createElement("button", {
     onClick: () => setPlan3dOpen(true),
     className: "act-row"
   }, React.createElement("span", {
@@ -2339,7 +2339,7 @@ function DetailDrawer({
     job: job,
     currentUser: currentUser,
     onClose: () => setPlanOpen(false)
-  }), plan3dOpen && job && window.Plan3DEditor && React.createElement(window.Plan3DEditor, {
+  }), plan3dOpen && job && window.Plan3DEntry && React.createElement(window.Plan3DEntry, {
     job: job,
     currentUser: currentUser,
     onClose: () => setPlan3dOpen(false)

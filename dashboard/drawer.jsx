@@ -788,7 +788,7 @@ function DetailDrawer({ job, onClose, onAdvance, onSetMat, onEdit, currentUser, 
                    เพราะมันกินทิศ/มุมของแผงจากผังนั้นตรง ๆ แยกสองทางจึงเป็นสองทางที่ทำเรื่องเดียวกัน
                    กันแค่ roMode ไม่กัน canDesign — ตอนยุบสองแถวเข้าด้วยกัน ถ้ากัน canDesign ต่อ
                    คนที่เคยเข้าหน้าออกแบบระบบได้จะหมดทางเข้าไปเฉย ๆ ซึ่งเป็นการตัดสิทธิ์โดยบังเอิญ */}
-                {window.Plan3DEditor && !roMode && (
+                {window.Plan3DEntry && !roMode && (
                 <button onClick={() => setPlan3dOpen(true)}
                   className="act-row">
                   <span className="ic-chip" style={{ background: "#6366F11c" }}><Icon name="panel" size={17} color="#4F46E5" /></span>
@@ -1020,7 +1020,7 @@ function DetailDrawer({ job, onClose, onAdvance, onSetMat, onEdit, currentUser, 
       {boqOpen && job && <BOQEditor job={job} onClose={() => setBoqOpen(false)} priceMap={priceMap} stock={stock}
         onSave={onSaveBOQ ? (boq) => { onSaveBOQ(job.id, boq); setBoqOpen(false); } : null} />}
       {planOpen && job && window.SitePlanEditor && <window.SitePlanEditor job={job} currentUser={currentUser} onClose={() => setPlanOpen(false)} />}
-      {plan3dOpen && job && window.Plan3DEditor && <window.Plan3DEditor job={job} currentUser={currentUser} onClose={() => setPlan3dOpen(false)} />}
+      {plan3dOpen && job && window.Plan3DEntry && <window.Plan3DEntry job={job} currentUser={currentUser} onClose={() => setPlan3dOpen(false)} />}
       {irOpen && job && window.InspectionListModal && <window.InspectionListModal job={job} currentUser={currentUser} onClose={() => setIrOpen(false)} />}
     </React.Fragment>
   );

@@ -2727,7 +2727,8 @@ function P3Slider({
 function Plan3DEditor({
   job,
   onClose,
-  currentUser
+  currentUser,
+  onSwitch
 }) {
   const isMobile = window.matchMedia("(max-width: 860px)").matches;
   const {
@@ -4695,6 +4696,23 @@ function Plan3DEditor({
       alert("ส่งออกแบบผังไม่สำเร็จ: " + e.message);
     }
     setBusyDxf("");
+  };
+  const trySwitch = () => {
+    if (!onSwitch) return;
+    if (!dirty) {
+      onSwitch();
+      return;
+    }
+    askConfirm({
+      title: "บันทึกก่อนสลับไปแบบใหม่?",
+      body: "มีการแก้ไขที่ยังไม่ได้บันทึก — กดบันทึกแล้วสลับ งานจะไปเปิดต่อในแบบใหม่ได้ครบ",
+      ok: "บันทึกแล้วสลับ"
+    }).then(ok => {
+      if (ok) {
+        doSave();
+        onSwitch();
+      }
+    });
   };
   const tryClose = () => {
     if (!dirty) {
@@ -7080,7 +7098,15 @@ function Plan3DEditor({
         transition: "width .35s ease"
       }
     })));
-  })() : null), React.createElement("button", {
+  })() : null), onSwitch && React.createElement("button", {
+    className: "ghost",
+    onClick: trySwitch,
+    title: "\u0E15\u0E31\u0E27\u0E41\u0E01\u0E49\u0E41\u0E1A\u0E1A\u0E43\u0E2B\u0E21\u0E48: \u0E27\u0E32\u0E14\u0E1A\u0E19\u0E1C\u0E31\u0E07 2D \u0E25\u0E32\u0E01\u0E41\u0E25\u0E49\u0E27\u0E01\u0E25\u0E49\u0E2D\u0E07\u0E44\u0E21\u0E48\u0E2B\u0E21\u0E38\u0E19 \u0E21\u0E35\u0E22\u0E49\u0E2D\u0E19\u0E01\u0E25\u0E31\u0E1A",
+    style: {
+      fontWeight: 700,
+      whiteSpace: "nowrap"
+    }
+  }, "\u0E25\u0E2D\u0E07\u0E41\u0E1A\u0E1A\u0E43\u0E2B\u0E21\u0E48"), React.createElement("button", {
     className: "ghost x-close",
     onClick: tryClose,
     title: "\u0E1B\u0E34\u0E14\u0E42\u0E2B\u0E21\u0E14 3D"

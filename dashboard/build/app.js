@@ -1353,13 +1353,13 @@ function App() {
       setBoardLead(null);
       openQuoteForLead(l, q);
     } : null,
-    onPlan3d: can(role, "design") && window.Plan3DEditor ? pseudo => setPlan3dLead(pseudo) : null,
+    onPlan3d: can(role, "design") && window.Plan3DEntry ? pseudo => setPlan3dLead(pseudo) : null,
     onConvert: l => {
       setBoardLead(null);
       convertLead(l);
     },
     canConvert: can(role, "addJob")
-  }), plan3dLead && window.Plan3DEditor && React.createElement(window.Plan3DEditor, {
+  }), plan3dLead && window.Plan3DEntry && React.createElement(window.Plan3DEntry, {
     job: plan3dLead,
     currentUser: auth.current,
     onClose: () => setPlan3dLead(null)

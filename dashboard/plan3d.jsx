@@ -1606,7 +1606,7 @@ function P3Slider({ label, value, onChange, min, max, step, right }) {
 /* ============================================================
    Plan3DEditor — โหมดเต็มจอ
    ============================================================ */
-function Plan3DEditor({ job, onClose, currentUser }) {
+function Plan3DEditor({ job, onClose, currentUser, onSwitch }) {
   const isMobile = window.matchMedia("(max-width: 860px)").matches;
   const { saved, loading, save } = usePlan3d(job ? job.id : null);
 
@@ -2943,6 +2943,13 @@ function Plan3DEditor({ job, onClose, currentUser }) {
     } catch (e) { alert("ส่งออกแบบผังไม่สำเร็จ: " + e.message); }
     setBusyDxf("");
   };
+  /* ไปตัวแก้แบบใหม่ (plan3d2.jsx) — ข้อมูลชุดเดียวกัน ถ้ายังไม่บันทึกให้บันทึกก่อน */
+  const trySwitch = () => {
+    if (!onSwitch) return;
+    if (!dirty) { onSwitch(); return; }
+    askConfirm({ title: "บันทึกก่อนสลับไปแบบใหม่?", body: "มีการแก้ไขที่ยังไม่ได้บันทึก — กดบันทึกแล้วสลับ งานจะไปเปิดต่อในแบบใหม่ได้ครบ",
+      ok: "บันทึกแล้วสลับ" }).then((ok) => { if (ok) { doSave(); onSwitch(); } });
+  };
   const tryClose = () => {
     if (!dirty) { onClose(); return; }
     askConfirm({ title: "ปิดโดยไม่บันทึก?", body: "มีการแก้ไขที่ยังไม่ได้บันทึก ถ้าปิดตอนนี้จะหายไป",
@@ -3844,6 +3851,7 @@ function Plan3DEditor({ job, onClose, currentUser }) {
             );
           })() : null}
         </div>
+        {onSwitch && <button className="ghost" onClick={trySwitch} title="ตัวแก้แบบใหม่: วาดบนผัง 2D ลากแล้วกล้องไม่หมุน มีย้อนกลับ" style={{ fontWeight: 700, whiteSpace: "nowrap" }}>ลองแบบใหม่</button>}
         <button className="ghost x-close" onClick={tryClose} title="ปิดโหมด 3D"><Icon name="x" size={16} /></button>
       </div>
 
