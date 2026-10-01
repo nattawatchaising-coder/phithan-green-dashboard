@@ -1979,7 +1979,7 @@ function BOQEditor({
     });
   });
   const kitShown = isHome ? kitSections.filter(sc => sc.sec === "board").map(sc => Object.assign({}, sc, {
-    hint: "ตู้ไฟของงานบ้าน — ใช้ตู้ Combiner ตู้เดียว ระบบคิดอุปกรณ์ในตู้ให้ตามสตริงและอินเวอร์เตอร์ · ถ้ามีตู้แยกเพิ่ม กรอกตู้ AC / DC เองด้านล่าง · ราคาดึงจากคลังเหมือนวัสดุอื่น"
+    hint: "ตู้ไฟของงานบ้าน — คิดแบบงานโครงการ: เบรกเกอร์ตามกระแสอินเวอร์เตอร์ · SPD ตามระบบล่อฟ้า · ฟิวส์ DC ตาม Isc/Voc ของสตริง · Ground Fault / PM2230 ปิดไว้ (บ้านมี Smart Meter แล้ว) กดเปิดได้ · ราคาดึงจากคลังเหมือนวัสดุอื่น"
   })) : kitSections;
   const PRICE_DEF = {
     contractor: 0,
@@ -1994,10 +1994,7 @@ function BOQEditor({
     })
   }));
   const result = window.BOQ.calcBOQ(b);
-  const combN = isHome ? ((result.groups || []).find(x => x.group === "COMBINER BOX") || {
-    items: []
-  }).items.filter(x => +x.qty > 0).length : 0;
-  const scCount = sc => sc.count + (sc.sec === "board" ? combN : 0);
+  const scCount = sc => sc.count;
   const priced = window.BOQ.applyPrices(result, priceMap || {}, b.pick || {});
   const pb = window.BOQ.priceBreakdown(priced.grandTotal, pricing, (result.meta.kw || 0) * 1000);
   const siteTotal = (priced.groups || []).filter(g => g.group === window.BOQ.G_TRANSPORT || g.group === window.BOQ.G_MANAGE).reduce((s, g) => s + g.subtotal, 0);
@@ -3027,12 +3024,13 @@ function BOQEditor({
   };
   const brkOfCab = {};
   const projBoard = project.board || {};
+  const bOn = key => isHome ? projBoard[key] === "on" : projBoard[key] !== "off";
   const boardAuto = (() => {
     const out = {
       ac: [],
       dc: []
     };
-    if (isHome || !isStringInv || !invUnits.length) return out;
+    if (!isStringInv || !invUnits.length) return out;
     const ph = wcPhase === 3 ? 3 : 1,
       pole = ph === 3 ? "3P" : "2P";
     const cs = b.cables || [];
@@ -3058,7 +3056,7 @@ function BOQEditor({
         if (m) brkOfCab[cs.indexOf(m)] = Object.assign({
           who: "เมนตู้ AC"
         }, k);
-        const gIn = projBoard.gf !== "off" && k.at >= GF_IN_AT;
+        const gIn = bOn("gf") && k.at >= GF_IN_AT;
         out.ac.push({
           name: k.kind + " " + pole + " " + k.at + "AT" + (gIn ? " LSIG" : ""),
           qty: 1,
@@ -3116,7 +3114,7 @@ function BOQEditor({
           why: tag + "ฐานฟิวส์ใบมีด NH00"
         });
       }
-      if (projBoard.gf !== "off" && mainAt > 0 && mainAt < GF_IN_AT) {
+      if (bOn("gf") && mainAt > 0 && mainAt < GF_IN_AT) {
         const zd = mainAt <= 125 ? 60 : mainAt <= 250 ? 80 : mainAt <= 630 ? 120 : 200;
         out.ac.push({
           name: "GROUND FAULT RELAY (GFR)",
@@ -3140,7 +3138,7 @@ function BOQEditor({
           why: tag + "คอยล์สั่งตัด MCCB เมน " + mainAt + " AT รับสัญญาณจาก GFR (สั่งให้ตรงรุ่น/เฟรมของ MCCB)"
         });
       }
-      if (projBoard.pm !== "off" && mainAt > 0) {
+      if (bOn("pm") && mainAt > 0) {
         const CT_R = [100, 150, 200, 250, 300, 400, 500, 600, 800, 1000, 1200, 1250, 1500, 1600, 2000, 2500, 3000, 4000];
         const ct = CT_R.find(x => x >= mainAt) || CT_R[CT_R.length - 1];
         out.ac.push({
@@ -3158,8 +3156,8 @@ function BOQEditor({
           why: tag + "เฟสละ 1 ตัว · อัตราส่วน ≥ MCCB เมน " + mainAt + " AT"
         });
       }
-      const gfSep = projBoard.gf !== "off" && mainAt < GF_IN_AT,
-        pmOn = projBoard.pm !== "off";
+      const gfSep = bOn("gf") && mainAt < GF_IN_AT,
+        pmOn = bOn("pm");
       if ((gfSep || pmOn) && mainAt > 0) out.ac.push({
         name: "MCB " + pole + " 6A",
         qty: 1,
@@ -8299,70 +8297,7 @@ function BOQEditor({
       lineHeight: 1.5,
       marginBottom: 14
     }
-  }, sc.hint), isHome && sc.sec === "board" && (() => {
-    const g = (result.groups || []).find(x => x.group === "COMBINER BOX");
-    const rows = g ? g.items.filter(x => +x.qty > 0) : [];
-    return React.createElement("div", {
-      style: {
-        background: "var(--surface2)",
-        borderRadius: 12,
-        padding: 10,
-        marginBottom: 14,
-        display: "flex",
-        flexDirection: "column",
-        gap: 6
-      }
-    }, React.createElement("span", {
-      style: {
-        fontSize: 10.5,
-        fontWeight: 800,
-        color: "var(--text-2)"
-      }
-    }, "\u0E15\u0E39\u0E49 Combiner (AC + DC \u0E23\u0E27\u0E21\u0E15\u0E39\u0E49\u0E40\u0E14\u0E35\u0E22\u0E27) \u2014 \u0E23\u0E30\u0E1A\u0E1A\u0E04\u0E34\u0E14\u0E43\u0E2B\u0E49"), rows.length ? React.createElement("div", {
-      style: {
-        display: "grid",
-        gridTemplateColumns: isMobile ? "1fr" : "repeat(2, minmax(0,1fr))",
-        gap: 6
-      }
-    }, rows.map((x, i) => React.createElement("div", {
-      key: i,
-      style: {
-        background: "var(--surface)",
-        boxShadow: "var(--shadow-sm)",
-        borderRadius: 9,
-        padding: "6px 8px",
-        display: "flex",
-        gap: 6,
-        alignItems: "baseline"
-      }
-    }, React.createElement("span", {
-      style: {
-        flex: 1,
-        minWidth: 0,
-        fontSize: 11.5,
-        fontWeight: 700,
-        color: "var(--text-1)"
-      }
-    }, x.name), React.createElement("span", {
-      style: {
-        fontSize: 11.5,
-        fontWeight: 800,
-        color: "var(--primary-dark)",
-        whiteSpace: "nowrap"
-      }
-    }, x.qty, " ", x.unit)))) : React.createElement("span", {
-      style: {
-        fontSize: 11,
-        color: "var(--text-3)"
-      }
-    }, "\u0E40\u0E25\u0E37\u0E2D\u0E01\u0E23\u0E38\u0E48\u0E19\u0E2D\u0E34\u0E19\u0E40\u0E27\u0E2D\u0E23\u0E4C\u0E40\u0E15\u0E2D\u0E23\u0E4C\u0E41\u0E25\u0E30\u0E01\u0E23\u0E2D\u0E01\u0E08\u0E33\u0E19\u0E27\u0E19\u0E41\u0E1C\u0E07\u0E01\u0E48\u0E2D\u0E19 \u0E23\u0E30\u0E1A\u0E1A\u0E08\u0E30\u0E04\u0E34\u0E14\u0E2D\u0E38\u0E1B\u0E01\u0E23\u0E13\u0E4C\u0E43\u0E19\u0E15\u0E39\u0E49\u0E43\u0E2B\u0E49"), React.createElement("span", {
-      style: {
-        fontSize: 10,
-        color: "var(--text-3)",
-        lineHeight: 1.45
-      }
-    }, "\u0E04\u0E34\u0E14\u0E15\u0E32\u0E21\u0E08\u0E33\u0E19\u0E27\u0E19\u0E2A\u0E15\u0E23\u0E34\u0E07\u0E41\u0E25\u0E30\u0E2D\u0E34\u0E19\u0E40\u0E27\u0E2D\u0E23\u0E4C\u0E40\u0E15\u0E2D\u0E23\u0E4C \u2014 \u0E1F\u0E34\u0E27\u0E2A\u0E4C/\u0E10\u0E32\u0E19\u0E1F\u0E34\u0E27\u0E2A\u0E4C DC \u0E2A\u0E15\u0E23\u0E34\u0E07\u0E25\u0E30 2 \xB7 SPD/MCB DC \u0E2A\u0E15\u0E23\u0E34\u0E07\u0E25\u0E30 1 \xB7 SPD AC + RCBO \u0E15\u0E32\u0E21\u0E2D\u0E34\u0E19\u0E40\u0E27\u0E2D\u0E23\u0E4C\u0E40\u0E15\u0E2D\u0E23\u0E4C \xB7 \u0E43\u0E1A\u0E23\u0E32\u0E22\u0E01\u0E32\u0E23\u0E2D\u0E22\u0E39\u0E48\u0E2B\u0E21\u0E27\u0E14 COMBINER BOX \xB7 \u0E16\u0E49\u0E32\u0E07\u0E32\u0E19\u0E19\u0E35\u0E49\u0E21\u0E35\u0E15\u0E39\u0E49\u0E41\u0E22\u0E01\u0E40\u0E1E\u0E34\u0E48\u0E21 \u0E01\u0E23\u0E2D\u0E01\u0E43\u0E19\u0E15\u0E39\u0E49 AC / DC \u0E14\u0E49\u0E32\u0E19\u0E25\u0E48\u0E32\u0E07\u0E44\u0E14\u0E49"));
-  })(), React.createElement("div", {
+  }, sc.hint), React.createElement("div", {
     style: {
       display: "flex",
       flexDirection: "column",
@@ -8652,7 +8587,7 @@ function BOQEditor({
           width: "100%"
         }
       }, "\u0E17\u0E35\u0E48\u0E40\u0E21\u0E19\u0E15\u0E39\u0E49 AC"), [["gf", "ระบบ Ground Fault"], ["pm", "Power Meter PM2230"]].map(([key, l]) => {
-        const on = st[key] !== "off";
+        const on = isHome ? st[key] === "on" : st[key] !== "off";
         return React.createElement("button", {
           key: key,
           type: "button",
@@ -8661,7 +8596,7 @@ function BOQEditor({
             fontSize: 10,
             padding: "3px 8px"
           },
-          onClick: () => setKit(k.key, key, on ? "off" : "")
+          onClick: () => setKit(k.key, key, isHome ? on ? "" : "on" : on ? "off" : "")
         }, on ? "✓ " : "", l);
       })), (boardAuto[bd.key] || []).length > 0 && (() => {
         const off = !!st["noauto_" + bd.key];

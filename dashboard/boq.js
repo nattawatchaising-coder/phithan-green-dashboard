@@ -1605,29 +1605,8 @@
           // ตัวคุมแผงยึดเข้ารางด้วย T-BOLT 1 ชุด/ตัวคุม — ไม่เผื่อ เพราะผูกกันแบบ 1:1
           invItems.push({ name: TBOLT_NAME, qty: optQty, unit: "ชุด" });
         }
-        /* กลุ่ม COMBINER BOX — เฉพาะงานบ้าน
-           งานโครงการไม่ใช้ตู้ Combiner สำเร็จ แต่ประกอบเป็นตู้ไฟ DC/AC ของโครงการเอง (หมวด "ตู้ไฟ") */
+        /* งานบ้าน/งานโครงการ: ตู้และอุปกรณ์ในตู้ (เบรกเกอร์ · SPD · ฟิวส์ DC) คิดแบบเดียวกันในหมวดตู้ไฟ AC / DC — ไม่มีกลุ่ม COMBINER BOX แล้ว */
         combItems = [];
-        if (!isProject) {
-          combItems.push({ name: HW.cabinet, qty: 1, unit: "ตู้" });
-          combItems.push({ name: HW.dcFuseHolder, qty: totalStr * 2, unit: "ตัว" });
-          combItems.push({ name: HW.dcFuse, qty: totalStr * 2, unit: "ตัว" });
-          combItems.push({ name: HW.dcSpd, qty: totalStr, unit: "ตัว" });
-          combItems.push({ name: HW.dcMcb, qty: totalStr, unit: "ตัว" });
-          combItems.push({ name: HW.mc4, qty: totalStr, unit: "ชุด" });
-          combItems.push({ name: ph === 3 ? HW.acSpd3 : HW.acSpd1, qty: invTotal, unit: "ตัว" });
-          /* RCBO ขนาดตามกระแสออกของแต่ละรุ่น — สองขนาดใช้เบรกเกอร์ตัวเดียวกันไม่ได้
-             ถ้าสองรุ่นได้ขนาดเท่ากัน ชื่อจะซ้ำ แล้วตัวรวมราคาจะรวมบรรทัดให้เองตอนจัดกลุ่ม */
-          combItems.push({ name: rcboName(selInv.outA, ph), qty: invCount, unit: "ตัว" });
-          if (selInv2) {
-            const ph2 = selInv2.phase === 3 ? 3 : 1;
-            combItems.push({ name: rcboName(selInv2.outA, ph2), qty: inv2Count, unit: "ตัว" });
-          }
-          combItems.push({ name: HW.wireDuct, qty: 2, unit: "เส้น" });   // 2 เส้น/ตู้
-          combItems.push({ name: HW.dinRail, qty: 1, unit: "เส้น" });    // ในตู้ใบเดียว
-          combItems.push({ name: HW.stopper, qty: 10, unit: "ตัว" });    // 10/งาน (flat)
-          combItems.push({ name: HW.groundBar, qty: 1, unit: "อัน" });
-        }
       } else {
         // String / Hybrid ทั่วไป: จำนวนตัว = ปัดขึ้น(kW รวม ÷ kW ต่อตัว) + แบต
         invItems = [{ name: selInv.model, qty: invCount, unit: "ตัว" }];
@@ -1930,7 +1909,8 @@
     const AUTO = {
       panels: panelCount,
       inv: invTotalAll,
-      board: combItems && combItems.length ? 1 : 0,
+      // ตู้ Combiner (ATMOCE) + ตู้ไฟ AC / DC / DATA LOGGER ตามจำนวนตู้ในใบถอดของ
+      board: (combItems && combItems.length ? 1 : 0) + groups.reduce((n, g) => n + (/^ตู้ไฟ/.test(g.group) ? g.items.filter((x) => x.name === g.group).reduce((m, x) => m + (+x.qty || 0), 0) : 0), 0),
       dcLen: Math.round(dcLen),
       acLen: Math.round(acLen),
       wayLen: Math.round(imcTotalLen + upvcTotalLen + wayTotalLen),

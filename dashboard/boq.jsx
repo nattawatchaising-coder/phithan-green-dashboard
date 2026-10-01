@@ -1011,9 +1011,9 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
     const kits = KITS.filter((k) => k.sec === s.sec);
     return Object.assign({}, s, { kits: kits, count: kits.reduce((n, k) => n + kitCount(k), 0) });
   });
-  // งานบ้านมีเฉพาะหมวดตู้ไฟ (กรอกเอง — อุปกรณ์อัตโนมัติคิดเฉพาะงานโครงการ) · ระบบน้ำมีแต่งานโครงการ
+  // งานบ้านมีเฉพาะหมวดตู้ไฟ (คิดอุปกรณ์อัตโนมัติแบบงานโครงการ) · ระบบน้ำมีแต่งานโครงการ
   const kitShown = isHome ? kitSections.filter((sc) => sc.sec === "board")
-    .map((sc) => Object.assign({}, sc, { hint: "ตู้ไฟของงานบ้าน — ใช้ตู้ Combiner ตู้เดียว ระบบคิดอุปกรณ์ในตู้ให้ตามสตริงและอินเวอร์เตอร์ · ถ้ามีตู้แยกเพิ่ม กรอกตู้ AC / DC เองด้านล่าง · ราคาดึงจากคลังเหมือนวัสดุอื่น" })) : kitSections;
+    .map((sc) => Object.assign({}, sc, { hint: "ตู้ไฟของงานบ้าน — คิดแบบงานโครงการ: เบรกเกอร์ตามกระแสอินเวอร์เตอร์ · SPD ตามระบบล่อฟ้า · ฟิวส์ DC ตาม Isc/Voc ของสตริง · Ground Fault / PM2230 ปิดไว้ (บ้านมี Smart Meter แล้ว) กดเปิดได้ · ราคาดึงจากคลังเหมือนวัสดุอื่น" })) : kitSections;
 
   // ── ราคาขาย & ส่วนลด ──
   const PRICE_DEF = { contractor: 0, sell: 0, discount: 0, vat: window.BOQ.VAT_RATE };
@@ -1021,9 +1021,7 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
   const setPricing = (k, v) => setB((p) => Object.assign({}, p, { pricing: Object.assign({}, PRICE_DEF, p.pricing || {}, { [k]: v === "" ? "" : +v || 0 }) }));
 
   const result = window.BOQ.calcBOQ(b);
-  // งานบ้าน: จำนวนรายการในตู้ Combiner ที่ระบบคิดให้ — นับรวมในหัวข้อตู้ไฟ
-  const combN = isHome ? (((result.groups || []).find((x) => x.group === "COMBINER BOX") || { items: [] }).items.filter((x) => +x.qty > 0).length) : 0;
-  const scCount = (sc) => sc.count + (sc.sec === "board" ? combN : 0);
+  const scCount = (sc) => sc.count;
   const priced = window.BOQ.applyPrices(result, priceMap || {}, b.pick || {});
   // แบ่งราคา: ต้นทุนมาจากใบถอดของ · ผู้รับเหมา/ราคาขาย/ส่วนลด กรอกเอง
   const pb = window.BOQ.priceBreakdown(priced.grandTotal, pricing, (result.meta.kw || 0) * 1000);
@@ -1741,9 +1739,10 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
   // เบรกเกอร์ของสายแต่ละเส้น (index แถวสาย → ผลเลือก) — หัวข้อสายไฟเอาไปโชว์คำแนะนำ
   const brkOfCab = {};
   const projBoard = project.board || {};
+  const bOn = (key) => isHome ? projBoard[key] === "on" : projBoard[key] !== "off";
   const boardAuto = (() => {
     const out = { ac: [], dc: [] };
-    if (isHome || !isStringInv || !invUnits.length) return out;
+    if (!isStringInv || !invUnits.length) return out;
     const ph = wcPhase === 3 ? 3 : 1, pole = ph === 3 ? "3P" : "2P";
     const cs = b.cables || [];
     /* ระบบล่อฟ้า (IEC 60364-7-712 / CLC TS 50539-12): แผงอยู่ใกล้ล่อฟ้า (ต่อถึงกัน/ห่างไม่ถึงระยะปลอดภัย)
@@ -1763,7 +1762,7 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
         const k = brkPick(ib, m); mainAt = k.at;
         if (m) brkOfCab[cs.indexOf(m)] = Object.assign({ who: "เมนตู้ AC" }, k);
         // เมน ≥ 1000 AT ใช้เบรกเกอร์ trip unit อิเล็กทรอนิกส์ LSIG — มี Ground Fault ในตัว ไม่ต้องมี GFR/ZCT/Shunt trip แยก
-        const gIn = projBoard.gf !== "off" && k.at >= GF_IN_AT;
+        const gIn = bOn("gf") && k.at >= GF_IN_AT;
         out.ac.push({ name: k.kind + " " + pole + " " + k.at + "AT" + (gIn ? " LSIG" : ""), qty: 1, unit: "ตัว", auto: 1, ok: k.ok,
           why: tag + "เมน · อินเวอร์เตอร์ " + nos.join(", ") + " รวม " + k.txt + (gIn ? " · trip unit LSIG มี Ground Fault ในตัว" : "") });
       }
@@ -1793,20 +1792,20 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
       }
       /* ระบบ Ground Fault — รีเลย์ตรวจกระแสรั่วลงดิน (GFR) + ZCT ร้อยสายเฟส+N ทั้งชุด → สั่ง Shunt trip ให้ MCCB เมนตัด
          ZCT เลือกขนาดรูตามเมน (สายใหญ่ขึ้นรูต้องใหญ่ขึ้น) — ตรวจกับขนาดสายจริงอีกครั้ง */
-      if (projBoard.gf !== "off" && mainAt > 0 && mainAt < GF_IN_AT) {
+      if (bOn("gf") && mainAt > 0 && mainAt < GF_IN_AT) {
         const zd = mainAt <= 125 ? 60 : mainAt <= 250 ? 80 : mainAt <= 630 ? 120 : 200;
         out.ac.push({ name: "GROUND FAULT RELAY (GFR)", qty: 1, unit: "ตัว", auto: 1, why: tag + "ตรวจกระแสรั่วลงดิน สั่งตัด MCCB เมน" });
         out.ac.push({ name: "ZCT Φ" + zd + "mm", qty: 1, unit: "ตัว", auto: 1, why: tag + "ร้อยสายเฟส + N ของเมน " + mainAt + " AT ทั้งชุด (รูต้องใหญ่พอกับสายจริง)" });
         out.ac.push({ name: "SHUNT TRIP 220VAC", qty: 1, unit: "ตัว", auto: 1, why: tag + "คอยล์สั่งตัด MCCB เมน " + mainAt + " AT รับสัญญาณจาก GFR (สั่งให้ตรงรุ่น/เฟรมของ MCCB)" });
       }
       /* Power Meter PM2230 — CT ตามขนาดเมน (อัตราส่วนมาตรฐานแรกที่ ≥ In ของ MCCB เมน /5A) เฟสละ 1 ตัว */
-      if (projBoard.pm !== "off" && mainAt > 0) {
+      if (bOn("pm") && mainAt > 0) {
         const CT_R = [100, 150, 200, 250, 300, 400, 500, 600, 800, 1000, 1200, 1250, 1500, 1600, 2000, 2500, 3000, 4000];
         const ct = CT_R.find((x) => x >= mainAt) || CT_R[CT_R.length - 1];
         out.ac.push({ name: "POWER METER SCHNEIDER PM2230", qty: 1, unit: "ตัว", auto: 1, why: tag + "วัดพลังงาน/กระแส/แรงดันที่เมนตู้" });
         out.ac.push({ name: "CT " + ct + "/5A", qty: ph, unit: "ตัว", auto: 1, why: tag + "เฟสละ 1 ตัว · อัตราส่วน ≥ MCCB เมน " + mainAt + " AT" });
       }
-      const gfSep = projBoard.gf !== "off" && mainAt < GF_IN_AT, pmOn = projBoard.pm !== "off";
+      const gfSep = bOn("gf") && mainAt < GF_IN_AT, pmOn = bOn("pm");
       if ((gfSep || pmOn) && mainAt > 0)
         out.ac.push({ name: "MCB " + pole + " 6A", qty: 1, unit: "ตัว", auto: 1,
           why: tag + "กันสายวัดแรงดัน" + (pmOn ? " PM2230" : "") + (gfSep ? (pmOn ? " และ" : "") + "ไฟเลี้ยง GFR / Shunt trip" : "") });
@@ -3886,30 +3885,6 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
             <div className="bq-hint" style={{ fontSize: 11.5, color: "var(--text-3)", lineHeight: 1.5, marginBottom: 14 }}>
               {sc.hint}
             </div>
-            {/* งานบ้าน: ตู้ Combiner (AC+DC รวมตู้เดียว) ระบบคิดให้แล้วตามสตริง/อินเวอร์เตอร์ — โชว์ให้เห็นในหัวข้อตู้ไฟ (ถอดของอยู่หมวด COMBINER BOX) */}
-            {isHome && sc.sec === "board" && (() => {
-              const g = (result.groups || []).find((x) => x.group === "COMBINER BOX");
-              const rows = g ? g.items.filter((x) => +x.qty > 0) : [];
-              return (
-                <div style={{ background: "var(--surface2)", borderRadius: 12, padding: 10, marginBottom: 14, display: "flex", flexDirection: "column", gap: 6 }}>
-                  <span style={{ fontSize: 10.5, fontWeight: 800, color: "var(--text-2)" }}>ตู้ Combiner (AC + DC รวมตู้เดียว) — ระบบคิดให้</span>
-                  {rows.length ? (
-                    <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "repeat(2, minmax(0,1fr))", gap: 6 }}>
-                      {rows.map((x, i) => (
-                        <div key={i} style={{ background: "var(--surface)", boxShadow: "var(--shadow-sm)", borderRadius: 9, padding: "6px 8px", display: "flex", gap: 6, alignItems: "baseline" }}>
-                          <span style={{ flex: 1, minWidth: 0, fontSize: 11.5, fontWeight: 700, color: "var(--text-1)" }}>{x.name}</span>
-                          <span style={{ fontSize: 11.5, fontWeight: 800, color: "var(--primary-dark)", whiteSpace: "nowrap" }}>{x.qty} {x.unit}</span>
-                        </div>
-                      ))}
-                    </div>
-                  ) : <span style={{ fontSize: 11, color: "var(--text-3)" }}>เลือกรุ่นอินเวอร์เตอร์และกรอกจำนวนแผงก่อน ระบบจะคิดอุปกรณ์ในตู้ให้</span>}
-                  <span style={{ fontSize: 10, color: "var(--text-3)", lineHeight: 1.45 }}>
-                    คิดตามจำนวนสตริงและอินเวอร์เตอร์ — ฟิวส์/ฐานฟิวส์ DC สตริงละ 2 · SPD/MCB DC สตริงละ 1 · SPD AC + RCBO ตามอินเวอร์เตอร์ · ใบรายการอยู่หมวด COMBINER BOX
-                    · ถ้างานนี้มีตู้แยกเพิ่ม กรอกในตู้ AC / DC ด้านล่างได้
-                  </span>
-                </div>
-              );
-            })()}
             <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
               {sc.kits.map((k, ki) => {
                 const st = kitOf(k.key);
@@ -4024,10 +3999,10 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
                               <div style={{ display: "flex", flexWrap: "wrap", gap: 5, alignItems: "center" }}>
                                 <span style={{ fontSize: 9.5, fontWeight: 800, color: "var(--text-3)", width: "100%" }}>ที่เมนตู้ AC</span>
                                 {[["gf", "ระบบ Ground Fault"], ["pm", "Power Meter PM2230"]].map(([key, l]) => {
-                                  const on = st[key] !== "off";
+                                  const on = isHome ? st[key] === "on" : st[key] !== "off";
                                   return (
                                     <button key={key} type="button" className={"bq-cab-chip" + (on ? " on" : "")} style={{ fontSize: 10, padding: "3px 8px" }}
-                                      onClick={() => setKit(k.key, key, on ? "off" : "")}>{on ? "✓ " : ""}{l}</button>
+                                      onClick={() => setKit(k.key, key, isHome ? (on ? "" : "on") : (on ? "off" : ""))}>{on ? "✓ " : ""}{l}</button>
                                   );
                                 })}
                               </div>
