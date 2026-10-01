@@ -74,6 +74,12 @@ const BQ_CSS = `
 /* กลุ่ม "สรุปผล" ในแถบซ้าย — หน้าที่ระบบคิดให้ ไม่ต้องกรอก จึงไม่นับในความคืบหน้า */
 .bq-nav[data-out="1"] .dot{box-shadow:none;background:var(--surface3);color:var(--text-2)}
 
+/* ป้ายสายที่ระบบเลือกให้ / ปุ่มเสนอเปลี่ยน (หมวดสายไฟ) */
+.bq-autopick{display:inline-flex;align-items:center;gap:4px;padding:2px 8px;border-radius:99px;font-size:10.5px;font-weight:800;
+  background:color-mix(in srgb,#2563EB 10%,var(--surface));color:#1D4ED8}
+.bq-swap{display:inline-flex;align-items:center;gap:4px;border:0;border-radius:99px;padding:3px 10px;cursor:pointer;font-family:inherit;
+  font-size:10.5px;font-weight:800;background:var(--primary);color:#fff;box-shadow:var(--shadow-btn)}
+
 /* ตารางกรอกการจัดวางแผง */
 .bq-rw{display:grid;grid-template-columns:150px minmax(0,1fr) minmax(0,1fr) 90px 40px;gap:8px;align-items:center}
 .bq-rw[data-m="1"]{grid-template-columns:minmax(0,1.1fr) minmax(0,1fr) minmax(0,1fr) 40px}
@@ -1118,6 +1124,7 @@ function BOQEditor({
     cs[i] = Object.assign({}, cs[i], {
       [k]: v
     });
+    if (k === "type") delete cs[i].auto;
     return Object.assign({}, p, {
       cables: cs
     });
@@ -2312,6 +2319,92 @@ function BOQEditor({
       numeric: true
     }));
   }, [stockItems, b.cables]);
+  const cabCond = (c, type) => {
+    const rawMethod = c.method || calcMethod;
+    const rawMeta = (window.BOQ.WIRE_METHODS || []).find(m => m.key === rawMethod) || {};
+    const rawGroup = c.group || ((rawMeta.groups || []).indexOf(calcGroup) >= 0 ? calcGroup : (rawMeta.groups || ["g1"])[0]);
+    const pick = (window.BOQ.normWireMethod || ((m, g) => ({
+      method: m,
+      group: g
+    })))(rawMethod, rawGroup);
+    const coreType = window.BOQ.cableCoreType(type);
+    const coreKey = (window.BOQ.ampCoreKey || (() => coreType))(pick.group, c.core || coreType, c.core || coreType);
+    return {
+      method: pick.method,
+      group: pick.group,
+      ncond: c.ncond || calcNCond,
+      core: coreKey,
+      orient: coreKey
+    };
+  };
+  const cabCores = t => {
+    const m = /(\d+)\s*C\s*x/i.exec(t || "");
+    return m ? +m[1] : 1;
+  };
+  const cabSuggest = c => {
+    const n = (c.name || "").toUpperCase();
+    if (!n || /LAN|CAT|GROUND|กราว|ดิน|PV-INVERTER/.test(n)) return null;
+    if (c.type && (window.BOQ.isPvDcCable(c.type) || /LAN|CAT/i.test(c.type))) return null;
+    const req = reqAmpFor(c.name);
+    if (!req) return null;
+    const ph = wcPhase === 3 && !/MICRO[\s-]*MICRO/.test(n) ? 3 : 1;
+    const cores = ph === 3 ? 4 : 2;
+    const volts = ph === 3 ? +wcVolt || 400 : wcPhase === 3 ? 230 : +wcVolt || 230;
+    const len = +c.length || 0;
+    const fam = (re, n) => cableTypeOptions.map(o => o.value).filter(t => re.test(t) && !/Y\/G/i.test(t) && cabCores(t) === n && window.BOQ.cableSizeNum(t) != null).sort((a, z) => window.BOQ.cableSizeNum(a) - window.BOQ.cableSizeNum(z));
+    const firstOk = list => list.find(t => {
+      const amp = cableAmp(t, cabCond(c, t));
+      if (amp == null || amp < req) return false;
+      if (len > 0 && window.BOQ.calcVdrop) {
+        const vd = window.BOQ.calcVdrop({
+          length: len,
+          amp: req / 1.25,
+          size: window.BOQ.cableSizeNum(t),
+          volts,
+          ins: window.BOQ.cableInsClass(t),
+          phase: ph,
+          dc: false
+        });
+        if (vd && !vd.ok) return false;
+      }
+      return true;
+    }) || null;
+    const cv = fam(/CV[\s-]*FD/i, cores);
+    const t = firstOk(cv.length ? cv : fam(/VCT/i, cores));
+    if (t) return {
+      type: t,
+      req,
+      cores
+    };
+    const single = firstOk(fam(/CV[\s-]*FD/i, 1));
+    return {
+      type: null,
+      req,
+      cores,
+      single,
+      wires: ph === 3 ? 4 : 2
+    };
+  };
+  const cabSug = (b.cables || []).map(c => cabSuggest(c));
+  const cabSugKey = cabSug.map((x, i) => (!b.cables[i].type || b.cables[i].auto) && x && x.type ? x.type : "").join("|");
+  React.useEffect(() => {
+    if (!cabSugKey.replace(/\|/g, "")) return;
+    setB(p => {
+      let changed = false;
+      const cs = (p.cables || []).map((c, i) => {
+        const t = cabSugKey.split("|")[i];
+        if (!t || c.type && !c.auto || c.type === t) return c;
+        changed = true;
+        return Object.assign({}, c, {
+          type: t,
+          auto: 1
+        });
+      });
+      return changed ? Object.assign({}, p, {
+        cables: cs
+      }) : p;
+    });
+  }, [cabSugKey]);
   const methodOptions = (window.BOQ.WIRE_METHODS || []).map(m => ({
     value: m.key,
     label: m.th,
@@ -5907,7 +6000,7 @@ function BOQEditor({
     }, React.createElement(Icon, {
       name: "x",
       size: 14
-    }))), (showHint || isDC || vd) && React.createElement("div", {
+    }))), (showHint || isDC || vd || cabSug[i]) && React.createElement("div", {
       style: {
         display: "flex",
         alignItems: "center",
@@ -5962,7 +6055,52 @@ function BOQEditor({
       name: amp == null || bad ? "alert" : req ? "check" : "bolt",
       size: 11,
       color: bad || amp == null ? "var(--tint-red-tx)" : req ? "var(--tint-green-tx)" : "var(--text-3)"
-    }), amp != null ? "พิกัด ~" + amp + " A" + (req ? " / ต้องการ " + (Math.round(req * 10) / 10).toFixed(1) + " A" : "") + (bad ? " · ไม่พอ" : req ? " · ผ่าน" : "") : !hasSize ? "เลือกสายที่ระบุขนาด (SQ.MM.) ก่อน" : "ยังไม่มีตารางพิกัดของเงื่อนไขนี้"), vd && React.createElement("span", {
+    }), amp != null ? "พิกัด ~" + amp + " A" + (req ? " / ต้องการ " + (Math.round(req * 10) / 10).toFixed(1) + " A" : "") + (bad ? " · ไม่พอ" : req ? " · ผ่าน" : "") : !hasSize ? "เลือกสายที่ระบุขนาด (SQ.MM.) ก่อน" : "ยังไม่มีตารางพิกัดของเงื่อนไขนี้"), (() => {
+      const sg = cabSug[i];
+      if (!sg) return null;
+      if (c.auto && c.type) return React.createElement("span", {
+        className: "bq-autopick",
+        title: "เลือกขนาดเล็กสุดที่รับกระแส " + Math.round(sg.req * 10) / 10 + " A ได้" + (+c.length > 0 ? " และแรงดันตกไม่เกินเกณฑ์" : "") + " · เลือกสายเองเมื่อไหร่ ระบบจะไม่เปลี่ยนเส้นนี้อีก"
+      }, React.createElement(Icon, {
+        name: "bolt",
+        size: 10,
+        color: "currentColor"
+      }), " \u0E23\u0E30\u0E1A\u0E1A\u0E40\u0E25\u0E37\u0E2D\u0E01\u0E43\u0E2B\u0E49");
+      if (!sg.type && (!c.type || bad || sg.single && c.type === sg.single)) return React.createElement("span", {
+        style: {
+          display: "inline-flex",
+          alignItems: "center",
+          flexWrap: "wrap",
+          gap: 6,
+          fontWeight: 700,
+          color: "var(--tint-amber-tx)"
+        }
+      }, React.createElement(Icon, {
+        name: "alert",
+        size: 11,
+        color: "currentColor"
+      }), " \u0E2A\u0E32\u0E22 ", sg.cores, " \u0E41\u0E01\u0E19\u0E43\u0E19\u0E04\u0E25\u0E31\u0E07\u0E23\u0E31\u0E1A ", (Math.round(sg.req * 10) / 10).toFixed(1), " A \u0E44\u0E21\u0E48\u0E44\u0E2B\u0E27", sg.single ? React.createElement(React.Fragment, null, " \u2014 \u0E43\u0E0A\u0E49 ", sg.single, " \u0E40\u0E14\u0E34\u0E19 ", sg.wires, " \u0E40\u0E2A\u0E49\u0E19 (\u0E04\u0E27\u0E32\u0E21\u0E22\u0E32\u0E27 = \u0E23\u0E30\u0E22\u0E30 \xD7 ", sg.wires, ")", c.type !== sg.single && React.createElement("button", {
+        type: "button",
+        className: "bq-swap",
+        onClick: () => setCab(i, "type", sg.single)
+      }, "\u0E43\u0E0A\u0E49 ", sg.single)) : " — เลือกสายแกนเดียวเอง แล้วกรอกความยาวรวมทุกเส้น");
+      const weak = bad || vd && !vd.ok;
+      if (sg.type && c.type && !c.auto && weak && sg.type !== c.type) return React.createElement("button", {
+        type: "button",
+        className: "bq-swap",
+        onClick: () => setB(p => {
+          const cs = p.cables.slice();
+          cs[i] = Object.assign({}, cs[i], {
+            type: sg.type,
+            auto: 1
+          });
+          return Object.assign({}, p, {
+            cables: cs
+          });
+        })
+      }, "\u0E40\u0E1B\u0E25\u0E35\u0E48\u0E22\u0E19\u0E40\u0E1B\u0E47\u0E19 ", sg.type);
+      return null;
+    })(), vd && React.createElement("span", {
       style: {
         display: "inline-flex",
         alignItems: "center",

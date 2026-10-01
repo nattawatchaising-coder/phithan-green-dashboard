@@ -81,6 +81,12 @@ const BQ_CSS = `
 /* กลุ่ม "สรุปผล" ในแถบซ้าย — หน้าที่ระบบคิดให้ ไม่ต้องกรอก จึงไม่นับในความคืบหน้า */
 .bq-nav[data-out="1"] .dot{box-shadow:none;background:var(--surface3);color:var(--text-2)}
 
+/* ป้ายสายที่ระบบเลือกให้ / ปุ่มเสนอเปลี่ยน (หมวดสายไฟ) */
+.bq-autopick{display:inline-flex;align-items:center;gap:4px;padding:2px 8px;border-radius:99px;font-size:10.5px;font-weight:800;
+  background:color-mix(in srgb,#2563EB 10%,var(--surface));color:#1D4ED8}
+.bq-swap{display:inline-flex;align-items:center;gap:4px;border:0;border-radius:99px;padding:3px 10px;cursor:pointer;font-family:inherit;
+  font-size:10.5px;font-weight:800;background:var(--primary);color:#fff;box-shadow:var(--shadow-btn)}
+
 /* ตารางกรอกการจัดวางแผง */
 .bq-rw{display:grid;grid-template-columns:150px minmax(0,1fr) minmax(0,1fr) 90px 40px;gap:8px;align-items:center}
 .bq-rw[data-m="1"]{grid-template-columns:minmax(0,1.1fr) minmax(0,1fr) minmax(0,1fr) 40px}
@@ -535,7 +541,11 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
   const fillRemaining = (rem) => { if (rem > 0) setB((p) => Object.assign({}, p, { rows: p.rows.concat([{ panels: rem, count: 1 }]) })); };
   const delRow = (i) => setB((p) => Object.assign({}, p, { rows: p.rows.filter((_, j) => j !== i) }));
 
-  const setCab = (i, k, v) => setB((p) => { const cs = p.cables.slice(); cs[i] = Object.assign({}, cs[i], { [k]: v }); return Object.assign({}, p, { cables: cs }); });
+  const setCab = (i, k, v) => setB((p) => {
+    const cs = p.cables.slice(); cs[i] = Object.assign({}, cs[i], { [k]: v });
+    if (k === "type") delete cs[i].auto;   // เลือกชนิดเอง = เส้นนี้ระบบไม่เลือกแทนอีก
+    return Object.assign({}, p, { cables: cs });
+  });
   const addCab = () => setB((p) => Object.assign({}, p, { cables: p.cables.concat([{ name: "", type: "", length: "" }]) }));
   const delCab = (i) => setB((p) => Object.assign({}, p, { cables: p.cables.filter((_, j) => j !== i) }));
   /* ล้างเงื่อนไขเฉพาะเส้น — กลับไปใช้ค่าตั้งต้นของงาน (ที่ตั้งไว้ในตารางคำนวณขนาดสายไฟ)
@@ -1257,6 +1267,68 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
       // เรียงตามหมวด แล้วตามชื่อ (ให้รายการหมวดเดียวกันอยู่ติดกัน → หัวข้อหมวดถูกต้อง)
       .sort((a, z) => (CABLE_CAT_ORDER.indexOf(a.group) - CABLE_CAT_ORDER.indexOf(z.group)) || String(a.value).localeCompare(String(z.value), "th", { numeric: true }));
   }, [stockItems, b.cables]);
+
+  /* ── เลือกชนิดสายให้เอง ──
+     สาย AC ทุกจุดรู้กระแสที่ต้องรับอยู่แล้ว (reqAmpFor) จึงไล่หา CV-FD ขนาดเล็กสุดในคลังที่
+     ① พิกัดกระแสพอ ตามวิธีเดินสาย/กลุ่ม/จำนวนตัวนำของเส้นนั้น ② แรงดันตกไม่เกินเกณฑ์ (ถ้ากรอกระยะแล้ว)
+     ใช้สายหลายแกนเส้นเดียวต่อหนึ่งเส้นทาง (1 เฟส = 2 แกน · 3 เฟส = 4 แกน) เพราะ BOQ นับความยาวตามเส้นทาง ไม่คูณจำนวนเส้น
+     เติมให้เฉพาะช่องที่ยังว่าง แล้วติดป้าย "ระบบเลือกให้" (c.auto) — เส้นที่ผู้ใช้เลือกเองไม่แตะ แค่เสนอให้เปลี่ยนถ้าไม่พอ */
+  const cabCond = (c, type) => {
+    const rawMethod = c.method || calcMethod;
+    const rawMeta = (window.BOQ.WIRE_METHODS || []).find((m) => m.key === rawMethod) || {};
+    const rawGroup = c.group || ((rawMeta.groups || []).indexOf(calcGroup) >= 0 ? calcGroup : (rawMeta.groups || ["g1"])[0]);
+    const pick = (window.BOQ.normWireMethod || ((m, g) => ({ method: m, group: g })))(rawMethod, rawGroup);
+    const coreType = window.BOQ.cableCoreType(type);
+    const coreKey = (window.BOQ.ampCoreKey || (() => coreType))(pick.group, c.core || coreType, c.core || coreType);
+    return { method: pick.method, group: pick.group, ncond: c.ncond || calcNCond, core: coreKey, orient: coreKey };
+  };
+  const cabCores = (t) => { const m = /(\d+)\s*C\s*x/i.exec(t || ""); return m ? +m[1] : 1; };
+  const cabSuggest = (c) => {
+    const n = (c.name || "").toUpperCase();
+    if (!n || /LAN|CAT|GROUND|กราว|ดิน|PV-INVERTER/.test(n)) return null;
+    if (c.type && (window.BOQ.isPvDcCable(c.type) || /LAN|CAT/i.test(c.type))) return null;
+    const req = reqAmpFor(c.name);
+    if (!req) return null;
+    const ph = wcPhase === 3 && !/MICRO[\s-]*MICRO/.test(n) ? 3 : 1;
+    const cores = ph === 3 ? 4 : 2;
+    const volts = ph === 3 ? (+wcVolt || 400) : (wcPhase === 3 ? 230 : (+wcVolt || 230));
+    const len = +c.length || 0;
+    /* CV-FD ก่อน (ฉนวน XLPE รับกระแสได้มากกว่า) · คลังไม่มี CV-FD จำนวนแกนนี้เลยค่อยใช้ VCT */
+    const fam = (re, n) => cableTypeOptions.map((o) => o.value)
+      .filter((t) => re.test(t) && !/Y\/G/i.test(t) && cabCores(t) === n && window.BOQ.cableSizeNum(t) != null)
+      .sort((a, z) => window.BOQ.cableSizeNum(a) - window.BOQ.cableSizeNum(z));
+    const firstOk = (list) => list.find((t) => {
+      const amp = cableAmp(t, cabCond(c, t));
+      if (amp == null || amp < req) return false;
+      if (len > 0 && window.BOQ.calcVdrop) {
+        const vd = window.BOQ.calcVdrop({ length: len, amp: req / 1.25, size: window.BOQ.cableSizeNum(t), volts, ins: window.BOQ.cableInsClass(t), phase: ph, dc: false });
+        if (vd && !vd.ok) return false;
+      }
+      return true;
+    }) || null;
+    const cv = fam(/CV[\s-]*FD/i, cores);
+    const t = firstOk(cv.length ? cv : fam(/VCT/i, cores));
+    if (t) return { type: t, req, cores };
+    /* สายหลายแกนในคลังใหญ่ไม่พอ (เช่น 4 แกนมีถึง 10 mm²) → งานจริงเดินสายแกนเดียวหลายเส้น
+       ไม่เติมให้เอง เพราะความยาวต้องคูณจำนวนเส้นด้วย — เสนอขนาดพร้อมบอกจำนวนเส้นแทน */
+    const single = firstOk(fam(/CV[\s-]*FD/i, 1));
+    return { type: null, req, cores, single, wires: ph === 3 ? 4 : 2 };
+  };
+  const cabSug = (b.cables || []).map((c) => cabSuggest(c));
+  const cabSugKey = cabSug.map((x, i) => ((!b.cables[i].type || b.cables[i].auto) && x && x.type ? x.type : "")).join("|");
+  React.useEffect(() => {
+    if (!cabSugKey.replace(/\|/g, "")) return;
+    setB((p) => {
+      let changed = false;
+      const cs = (p.cables || []).map((c, i) => {
+        const t = cabSugKey.split("|")[i];
+        if (!t || (c.type && !c.auto) || c.type === t) return c;
+        changed = true;
+        return Object.assign({}, c, { type: t, auto: 1 });
+      });
+      return changed ? Object.assign({}, p, { cables: cs }) : p;
+    });
+  }, [cabSugKey]); // eslint-disable-line
   // ตัวเลือกพิกัดกระแส วสท.: วิธีเดินสาย / ฉนวน / กลุ่มการติดตั้ง / จำนวนตัวนำมีกระแส
   const methodOptions = (window.BOQ.WIRE_METHODS || []).map((m) => ({ value: m.key, label: m.th, sub: m.sub }));
   const insOptions = (window.BOQ.INS_CLASSES || []).map((c) => ({ value: c.key, label: c.th }));
@@ -2650,7 +2722,7 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
                     <button className="bq-x" onClick={() => delCab(i)} title="ลบสายเส้นนี้"><Icon name="x" size={14} /></button>
                   </div>
                   {/* บรรทัดสถานะ — ปกติเห็นแค่สรุปสั้น ๆ กดที่ป้ายเงื่อนไขถึงจะกางช่องแก้เฉพาะเส้น */}
-                  {(showHint || isDC || vd) && (
+                  {(showHint || isDC || vd || cabSug[i]) && (
                     <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap", fontSize: 11, lineHeight: 1.5 }}>
                       {showHint && (
                         <button type="button" onClick={() => setCabOpen((p) => Object.assign({}, p, { [i]: !open }))}
@@ -2672,6 +2744,36 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
                             : (!hasSize ? "เลือกสายที่ระบุขนาด (SQ.MM.) ก่อน" : "ยังไม่มีตารางพิกัดของเงื่อนไขนี้")}
                         </span>
                       )}
+                      {/* ชนิดสายที่ระบบเลือกให้ / เสนอให้เปลี่ยน */}
+                      {(() => {
+                        const sg = cabSug[i];
+                        if (!sg) return null;
+                        if (c.auto && c.type) return (
+                          <span className="bq-autopick" title={"เลือกขนาดเล็กสุดที่รับกระแส " + (Math.round(sg.req * 10) / 10) + " A ได้" + (+c.length > 0 ? " และแรงดันตกไม่เกินเกณฑ์" : "") + " · เลือกสายเองเมื่อไหร่ ระบบจะไม่เปลี่ยนเส้นนี้อีก"}>
+                            <Icon name="bolt" size={10} color="currentColor" /> ระบบเลือกให้
+                          </span>
+                        );
+                        if (!sg.type && (!c.type || bad || (sg.single && c.type === sg.single))) return (
+                          <span style={{ display: "inline-flex", alignItems: "center", flexWrap: "wrap", gap: 6, fontWeight: 700, color: "var(--tint-amber-tx)" }}>
+                            <Icon name="alert" size={11} color="currentColor" /> สาย {sg.cores} แกนในคลังรับ {(Math.round(sg.req * 10) / 10).toFixed(1)} A ไม่ไหว
+                            {sg.single
+                              ? <React.Fragment> — ใช้ {sg.single} เดิน {sg.wires} เส้น (ความยาว = ระยะ × {sg.wires})
+                                  {c.type !== sg.single && (
+                                    <button type="button" className="bq-swap" onClick={() => setCab(i, "type", sg.single)}>ใช้ {sg.single}</button>
+                                  )}
+                                </React.Fragment>
+                              : " — เลือกสายแกนเดียวเอง แล้วกรอกความยาวรวมทุกเส้น"}
+                          </span>
+                        );
+                        const weak = bad || (vd && !vd.ok);
+                        if (sg.type && c.type && !c.auto && weak && sg.type !== c.type) return (
+                          <button type="button" className="bq-swap" onClick={() => setB((p) => {
+                            const cs = p.cables.slice(); cs[i] = Object.assign({}, cs[i], { type: sg.type, auto: 1 }); return Object.assign({}, p, { cables: cs }); })}>
+                            เปลี่ยนเป็น {sg.type}
+                          </button>
+                        );
+                        return null;
+                      })()}
                       {vd && (
                         <span style={{ display: "inline-flex", alignItems: "center", gap: 4, fontWeight: 700, color: vd.ok ? "var(--text-3)" : "var(--tint-amber-tx)" }}
                           title={"ΔV = " + (vd.phase === 3 ? "√3" : "2") + " × " + vd.length + " ม. × " + Math.round(vd.amp * 100) / 100 + " A × ρ ÷ " + vd.size + " mm²  ·  เกณฑ์ ≤ " + vd.lim + "%"}>
