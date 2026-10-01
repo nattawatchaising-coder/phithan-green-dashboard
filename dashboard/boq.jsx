@@ -1712,6 +1712,9 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
      กางออกได้เพื่อใส่สายที่จะร้อยในท่อนั้น แล้วตรวจ % เติมเต็ม + ตัวคูณลดกระแส
      (PULL BOX ไม่มีสายร้อยผ่านเป็นเส้น ๆ ให้ตรวจ จึงกรอกแค่จำนวน) */
   const ConduitList = ({ kind, label, sizes, valKey, unitText, hint, check }) => {
+    const legacy = kind !== "pullbox";
+    if (legacy && !(cond[kind] || []).some((x) => !x.auto)) return null;
+    if (legacy) { label = label + " — รายการเดิมที่กรอกเอง"; hint = "ใบนี้กรอกท่อไว้เองก่อนมีแผงเดินท่อตามเส้นสายไฟ — ตรวจแล้วลบออก แล้วเลือกท่อที่แผงด้านบนแทน"; }
     const OD = window.BOQ.CABLE_OD || {};
     const odTypes = Object.keys(OD);
     const setCables = (i, cs) => setCond(kind, i, "cables", cs);
@@ -1721,6 +1724,7 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
         {hint && <div className="bq-hint" style={{ fontSize: 10.5, color: "var(--text-3)", marginBottom: 7 }}>{hint}</div>}
         <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
           {(cond[kind] || []).map((x, i) => {
+            if (x.auto) return null;
             const cbs = x.cables || [];
             const chk = check ? window.BOQ.conduitCheck(x.size, cbs, sizes) : null;
             const open = condOpen[kind + i];
@@ -1811,7 +1815,7 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
               </div>
             );
           })}
-          <button onClick={() => addCond(kind, check ? { size: sizes[0], [valKey]: 0, cables: [] } : { size: sizes[0], [valKey]: 0 })} style={{ alignSelf: "flex-start", display: "inline-flex", alignItems: "center", gap: 5, background: "var(--surface3)", color: "var(--text-2)", border: "1px solid var(--border-strong)", borderRadius: 9, padding: "7px 11px", fontWeight: 700, fontSize: 12, cursor: "pointer", fontFamily: "inherit" }}><Icon name="plus" size={13} color="var(--text-2)" /> เพิ่ม {label}</button>
+          {!legacy && <button onClick={() => addCond(kind, check ? { size: sizes[0], [valKey]: 0, cables: [] } : { size: sizes[0], [valKey]: 0 })} style={{ alignSelf: "flex-start", display: "inline-flex", alignItems: "center", gap: 5, background: "var(--surface3)", color: "var(--text-2)", border: "1px solid var(--border-strong)", borderRadius: 9, padding: "7px 11px", fontWeight: 700, fontSize: 12, cursor: "pointer", fontFamily: "inherit" }}><Icon name="plus" size={13} color="var(--text-2)" /> เพิ่ม {label}</button>}
         </div>
       </div>
     );
@@ -1820,6 +1824,9 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
   /* รายการรางไฟ — เลือกขนาด + ความยาวรวมของขนาดนั้น (ข้อต่อ/ขาล็อก/ตัวยึด คิดต่อจากความยาวให้เอง)
      กางออกได้เพื่อใส่สายที่จะเดินในรางนั้น แล้วตรวจ % เติมเต็ม + ตัวคูณลดกระแส */
   const TrayList = ({ kind, label, sizes, hint }) => {
+    if (!(tw[kind] || []).some((x) => !x.auto)) return null;
+    label = label + " — รายการเดิมที่กรอกเอง";
+    hint = "ใบนี้กรอกรางไว้เองก่อนมีแผงเดินท่อ / รางตามเส้นสายไฟ — ตรวจแล้วลบออก แล้วเลือกรางที่แผงในหัวข้อท่อร้อยสายแทน";
     const spec = window.BOQ.TRAY_KINDS[kind] || window.BOQ.TRAY_KINDS.way;
     const oneLayer = spec.oneLayer;              // รางเปิดควรวางสายชั้นเดียว จึงมีบรรทัดผลรวม Ø เพิ่มมา
     const OD = window.BOQ.CABLE_OD || {};
@@ -1834,6 +1841,7 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
         <div className="bq-hint" style={{ fontSize: 10.5, color: "var(--text-3)", marginBottom: 7 }}>{hint}</div>
         <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
           {(tw[kind] || []).map((x, i) => {
+            if (x.auto) return null;
             const cbs = x.cables || [];
             const chk = window.BOQ.trayCheck(x.size, cbs, kind, sizes);
             const open = trayOpen[kind + i];
@@ -1947,7 +1955,7 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
               </div>
             );
           })}
-          <button onClick={() => addTrayRow(kind, { size: sizes[0], length: 0, cables: [] })} style={{ alignSelf: "flex-start", display: "inline-flex", alignItems: "center", gap: 5, background: "var(--surface3)", color: "var(--text-2)", border: "1px solid var(--border-strong)", borderRadius: 9, padding: "7px 11px", fontWeight: 700, fontSize: 12, cursor: "pointer", fontFamily: "inherit" }}><Icon name="plus" size={13} color="var(--text-2)" /> เพิ่ม {label}</button>
+          {false && <button onClick={() => addTrayRow(kind, { size: sizes[0], length: 0, cables: [] })} style={{ alignSelf: "flex-start", display: "inline-flex", alignItems: "center", gap: 5, background: "var(--surface3)", color: "var(--text-2)", border: "1px solid var(--border-strong)", borderRadius: 9, padding: "7px 11px", fontWeight: 700, fontSize: 12, cursor: "pointer", fontFamily: "inherit" }}><Icon name="plus" size={13} color="var(--text-2)" /> เพิ่ม {label}</button>}
         </div>
       </div>
     );
@@ -1969,9 +1977,10 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
       return base;
     }, [catalog, list]);
     const unitOf = (n) => { const f = catalog.find((x) => x.name === n); return f ? f.unit : ""; };
+    if (!list.length) return null;
     return (
       <div>
-        <div style={{ fontSize: 11.5, fontWeight: 700, color: "var(--text-2)", marginBottom: 3 }}>ข้องอ / ข้อลด / สามทาง</div>
+        <div style={{ fontSize: 11.5, fontWeight: 700, color: "var(--text-2)", marginBottom: 3 }}>ข้องอ / ข้อลด / สามทาง — รายการเดิมที่กรอกเอง</div>
         <div className="bq-hint" style={{ fontSize: 10.5, color: "var(--text-3)", marginBottom: 7 }}>{hint}</div>
         <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
           {list.map((x, i) => (
@@ -1984,7 +1993,7 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
               <button onClick={() => onChange(list.filter((_, j) => j !== i))} title="ลบ" style={{ height: 40, background: "#EF444414", border: "none", color: "#EF4444", borderRadius: 9, cursor: "pointer", display: "grid", placeItems: "center" }}><Icon name="x" size={14} /></button>
             </div>
           ))}
-          <button onClick={() => onChange(list.concat([{ name: "", qty: "", unit: (catalog[0] || {}).unit || "ชุด" }]))} style={{ alignSelf: "flex-start", display: "inline-flex", alignItems: "center", gap: 5, background: "var(--surface3)", color: "var(--text-2)", border: "1px solid var(--border-strong)", borderRadius: 9, padding: "7px 11px", fontWeight: 700, fontSize: 12, cursor: "pointer", fontFamily: "inherit" }}><Icon name="plus" size={13} color="var(--text-2)" /> เพิ่มข้อต่อ</button>
+          {false && <button onClick={() => onChange(list.concat([{ name: "", qty: "", unit: (catalog[0] || {}).unit || "ชุด" }]))} style={{ alignSelf: "flex-start", display: "inline-flex", alignItems: "center", gap: 5, background: "var(--surface3)", color: "var(--text-2)", border: "1px solid var(--border-strong)", borderRadius: 9, padding: "7px 11px", fontWeight: 700, fontSize: 12, cursor: "pointer", fontFamily: "inherit" }}><Icon name="plus" size={13} color="var(--text-2)" /> เพิ่มข้อต่อ</button>}
         </div>
       </div>
     );

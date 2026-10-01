@@ -3040,6 +3040,12 @@ function BOQEditor({
     hint,
     check
   }) => {
+    const legacy = kind !== "pullbox";
+    if (legacy && !(cond[kind] || []).some(x => !x.auto)) return null;
+    if (legacy) {
+      label = label + " — รายการเดิมที่กรอกเอง";
+      hint = "ใบนี้กรอกท่อไว้เองก่อนมีแผงเดินท่อตามเส้นสายไฟ — ตรวจแล้วลบออก แล้วเลือกท่อที่แผงด้านบนแทน";
+    }
     const OD = window.BOQ.CABLE_OD || {};
     const odTypes = Object.keys(OD);
     const setCables = (i, cs) => setCond(kind, i, "cables", cs);
@@ -3064,6 +3070,7 @@ function BOQEditor({
         gap: 8
       }
     }, (cond[kind] || []).map((x, i) => {
+      if (x.auto) return null;
       const cbs = x.cables || [];
       const chk = check ? window.BOQ.conduitCheck(x.size, cbs, sizes) : null;
       const open = condOpen[kind + i];
@@ -3354,7 +3361,7 @@ function BOQEditor({
         size: 15,
         color: "#1B9B75"
       }), React.createElement("span", null, "\u0E1C\u0E48\u0E32\u0E19\u0E40\u0E01\u0E13\u0E11\u0E4C \u2014 \u0E40\u0E2B\u0E25\u0E37\u0E2D\u0E1E\u0E37\u0E49\u0E19\u0E17\u0E35\u0E48\u0E2D\u0E35\u0E01 ", (chk.limit - chk.fillPct).toFixed(1), "% \xB7 \u0E2D\u0E22\u0E48\u0E32\u0E25\u0E37\u0E21\u0E40\u0E2D\u0E32\u0E15\u0E31\u0E27\u0E04\u0E39\u0E13 \xD7", chk.derate.toFixed(2), " \u0E44\u0E1B\u0E2B\u0E32\u0E23\u0E1E\u0E34\u0E01\u0E31\u0E14\u0E01\u0E23\u0E30\u0E41\u0E2A\u0E02\u0E2D\u0E07\u0E2A\u0E32\u0E22\u0E43\u0E19\u0E15\u0E32\u0E23\u0E32\u0E07\u0E04\u0E33\u0E19\u0E27\u0E13\u0E02\u0E19\u0E32\u0E14\u0E2A\u0E32\u0E22\u0E44\u0E1F")))));
-    }), React.createElement("button", {
+    }), !legacy && React.createElement("button", {
       onClick: () => addCond(kind, check ? {
         size: sizes[0],
         [valKey]: 0,
@@ -3390,6 +3397,9 @@ function BOQEditor({
     sizes,
     hint
   }) => {
+    if (!(tw[kind] || []).some(x => !x.auto)) return null;
+    label = label + " — รายการเดิมที่กรอกเอง";
+    hint = "ใบนี้กรอกรางไว้เองก่อนมีแผงเดินท่อ / รางตามเส้นสายไฟ — ตรวจแล้วลบออก แล้วเลือกรางที่แผงในหัวข้อท่อร้อยสายแทน";
     const spec = window.BOQ.TRAY_KINDS[kind] || window.BOQ.TRAY_KINDS.way;
     const oneLayer = spec.oneLayer;
     const OD = window.BOQ.CABLE_OD || {};
@@ -3419,6 +3429,7 @@ function BOQEditor({
         gap: 8
       }
     }, (tw[kind] || []).map((x, i) => {
+      if (x.auto) return null;
       const cbs = x.cables || [];
       const chk = window.BOQ.trayCheck(x.size, cbs, kind, sizes);
       const open = trayOpen[kind + i];
@@ -3753,7 +3764,7 @@ function BOQEditor({
         size: 15,
         color: "#1B9B75"
       }), React.createElement("span", null, "\u0E1C\u0E48\u0E32\u0E19\u0E40\u0E01\u0E13\u0E11\u0E4C \u2014 \u0E40\u0E2B\u0E25\u0E37\u0E2D\u0E1E\u0E37\u0E49\u0E19\u0E17\u0E35\u0E48\u0E2D\u0E35\u0E01 ", (chk.limit - chk.fillPct).toFixed(1), "% \xB7 \u0E2D\u0E22\u0E48\u0E32\u0E25\u0E37\u0E21\u0E40\u0E2D\u0E32\u0E15\u0E31\u0E27\u0E04\u0E39\u0E13 \xD7", chk.derate.toFixed(2), " \u0E44\u0E1B\u0E2B\u0E32\u0E23\u0E1E\u0E34\u0E01\u0E31\u0E14\u0E01\u0E23\u0E30\u0E41\u0E2A\u0E02\u0E2D\u0E07\u0E2A\u0E32\u0E22\u0E43\u0E19\u0E15\u0E32\u0E23\u0E32\u0E07\u0E04\u0E33\u0E19\u0E27\u0E13\u0E02\u0E19\u0E32\u0E14\u0E2A\u0E32\u0E22\u0E44\u0E1F")))));
-    }), React.createElement("button", {
+    }), false && React.createElement("button", {
       onClick: () => addTrayRow(kind, {
         size: sizes[0],
         length: 0,
@@ -3812,6 +3823,7 @@ function BOQEditor({
       const f = catalog.find(x => x.name === n);
       return f ? f.unit : "";
     };
+    if (!list.length) return null;
     return React.createElement("div", null, React.createElement("div", {
       style: {
         fontSize: 11.5,
@@ -3819,7 +3831,7 @@ function BOQEditor({
         color: "var(--text-2)",
         marginBottom: 3
       }
-    }, "\u0E02\u0E49\u0E2D\u0E07\u0E2D / \u0E02\u0E49\u0E2D\u0E25\u0E14 / \u0E2A\u0E32\u0E21\u0E17\u0E32\u0E07"), React.createElement("div", {
+    }, "\u0E02\u0E49\u0E2D\u0E07\u0E2D / \u0E02\u0E49\u0E2D\u0E25\u0E14 / \u0E2A\u0E32\u0E21\u0E17\u0E32\u0E07 \u2014 \u0E23\u0E32\u0E22\u0E01\u0E32\u0E23\u0E40\u0E14\u0E34\u0E21\u0E17\u0E35\u0E48\u0E01\u0E23\u0E2D\u0E01\u0E40\u0E2D\u0E07"), React.createElement("div", {
       className: "bq-hint",
       style: {
         fontSize: 10.5,
@@ -3882,7 +3894,7 @@ function BOQEditor({
     }, React.createElement(Icon, {
       name: "x",
       size: 14
-    })))), React.createElement("button", {
+    })))), false && React.createElement("button", {
       onClick: () => onChange(list.concat([{
         name: "",
         qty: "",
