@@ -284,10 +284,16 @@ function p3RailRows(saved) {
     });
     Object.keys(byRow).forEach((rk) => {
       const cs = byRow[rk].sort((a, b) => a - b);
-      const ori = orientOf(+rk.split("|")[1]);
+      const bi = +rk.split("|")[1];
+      const ori = orientOf(bi);
+      /* ชุดที่แบ่งกลุ่มย่อย (คอลัมน์/กลุ่ม + ทางเดิน) — ข้ามทางเดินคือรางคนละชุด ต้องตัดแถวตรงนั้น
+         ไม่งั้นงานที่วางเป็นโต๊ะ 2 แผงเรียงกันยาวทั้งหลังคา จะกลายเป็นแถวเดียวยาว 40+ แผง */
+      const B = (res.blocks || [])[bi] || {};
+      const gc = +B.gc > 0 && +B.gg > 0 ? +B.gc : 0;
+      const grpOf = (c) => (gc ? Math.floor(c / gc) : 0);
       let len = 1;
       for (let i = 1; i <= cs.length; i++) {
-        if (i < cs.length && cs[i] === cs[i - 1] + 1) { len++; continue; }
+        if (i < cs.length && cs[i] === cs[i - 1] + 1 && grpOf(cs[i]) === grpOf(cs[i - 1])) { len++; continue; }
         if (i < cs.length && cs[i] === cs[i - 1]) continue;   // ช่องซ้ำ (ไม่ควรเกิด) ไม่นับสองรอบ
         const rkey = ori + "|" + len;
         runs[rkey] = (runs[rkey] || 0) + 1; total += len; len = 1;

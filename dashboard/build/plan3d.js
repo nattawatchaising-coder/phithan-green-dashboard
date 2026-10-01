@@ -523,10 +523,14 @@ function p3RailRows(saved) {
     });
     Object.keys(byRow).forEach(rk => {
       const cs = byRow[rk].sort((a, b) => a - b);
-      const ori = orientOf(+rk.split("|")[1]);
+      const bi = +rk.split("|")[1];
+      const ori = orientOf(bi);
+      const B = (res.blocks || [])[bi] || {};
+      const gc = +B.gc > 0 && +B.gg > 0 ? +B.gc : 0;
+      const grpOf = c => gc ? Math.floor(c / gc) : 0;
       let len = 1;
       for (let i = 1; i <= cs.length; i++) {
-        if (i < cs.length && cs[i] === cs[i - 1] + 1) {
+        if (i < cs.length && cs[i] === cs[i - 1] + 1 && grpOf(cs[i]) === grpOf(cs[i - 1])) {
           len++;
           continue;
         }
