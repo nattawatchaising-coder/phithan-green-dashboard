@@ -1389,6 +1389,15 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
       .sort((a, z) => (CABLE_CAT_ORDER.indexOf(a.group) - CABLE_CAT_ORDER.indexOf(z.group)) || String(a.value).localeCompare(String(z.value), "th", { numeric: true }));
   }, [stockItems, b.cables]);
 
+  /* สาย DC — เลือกแค่ขนาด PV1-F (สีแดง/ดำ ระบบแยกให้ตอนถอด BOQ) · ขนาดจากมาตรฐาน + ที่คลังมี */
+  const dcSizeOf = (t) => { const m = /1C\s*x\s*(\d+(?:\.\d+)?)/i.exec(t || "") || /(\d+(?:\.\d+)?)\s*(?:sq|mm)/i.exec(t || ""); return m ? +m[1] : null; };
+  const dcName = (sz) => "PV1-F 1Cx" + sz + " SQ.MM. (DC)";
+  const dcOptions = React.useMemo(() => {
+    const sz = new Set(window.BOQ.PV_WIRE_SIZES || [2.5, 4, 6, 10, 16]);
+    stockItems.forEach((it) => { if (/PV1-F/i.test(it.name || "")) { const n = dcSizeOf(it.name); if (n) sz.add(n); } });
+    return [...sz].sort((a, z) => a - z).map((n) => ({ value: dcName(n), label: "PV1-F " + n + " mm²" }));
+  }, [stockItems]);
+
   /* ── เลือกชนิดสายให้เอง ──
      สาย AC ทุกจุดรู้กระแสที่ต้องรับอยู่แล้ว (reqAmpFor) จึงไล่หา CV-FD ขนาดเล็กสุดในคลังที่
      ① พิกัดกระแสพอ ตามวิธีเดินสาย/กลุ่ม/จำนวนตัวนำของเส้นนั้น ② แรงดันตกไม่เกินเกณฑ์ (ถ้ากรอกระยะแล้ว)
@@ -2957,8 +2966,8 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
                         <div className="bq-cabx">
                           <div className="bq-cabx-step">
                             <span className="n">1</span><span className="lb">ชนิดสาย</span>
-                            <div style={{ width: isMobile ? "100%" : 260 }}>
-                              <Dropdown value={c.type} onChange={(v) => setCab(i, "type", v)} options={cableTypeOptions} placeholder="— เลือกสาย DC —" style={cabSelStyle} />
+                            <div style={{ width: isMobile ? "100%" : 180 }}>
+                              <Dropdown value={dcSizeOf(c.type) ? dcName(dcSizeOf(c.type)) : ""} onChange={(v) => setCab(i, "type", v)} options={dcOptions} placeholder="— เลือกขนาดสาย PV1-F —" style={cabSelStyle} />
                             </div>
                             <span className="hint">{scfg && scfg.ready ? "แนะนำ " + scfg.dcWire : "กรอก Voc/Isc แผง + ช่วง MPPT อินเวอร์เตอร์ (คลัง) เพื่อคำนวณ"}</span>
                           </div>

@@ -2487,6 +2487,24 @@ function BOQEditor({
       numeric: true
     }));
   }, [stockItems, b.cables]);
+  const dcSizeOf = t => {
+    const m = /1C\s*x\s*(\d+(?:\.\d+)?)/i.exec(t || "") || /(\d+(?:\.\d+)?)\s*(?:sq|mm)/i.exec(t || "");
+    return m ? +m[1] : null;
+  };
+  const dcName = sz => "PV1-F 1Cx" + sz + " SQ.MM. (DC)";
+  const dcOptions = React.useMemo(() => {
+    const sz = new Set(window.BOQ.PV_WIRE_SIZES || [2.5, 4, 6, 10, 16]);
+    stockItems.forEach(it => {
+      if (/PV1-F/i.test(it.name || "")) {
+        const n = dcSizeOf(it.name);
+        if (n) sz.add(n);
+      }
+    });
+    return [...sz].sort((a, z) => a - z).map(n => ({
+      value: dcName(n),
+      label: "PV1-F " + n + " mm²"
+    }));
+  }, [stockItems]);
   const cabCond = (c, type) => {
     const rawMethod = c.method || calcMethod;
     const rawMeta = (window.BOQ.WIRE_METHODS || []).find(m => m.key === rawMethod) || {};
@@ -6346,13 +6364,13 @@ function BOQEditor({
         className: "lb"
       }, "\u0E0A\u0E19\u0E34\u0E14\u0E2A\u0E32\u0E22"), React.createElement("div", {
         style: {
-          width: isMobile ? "100%" : 260
+          width: isMobile ? "100%" : 180
         }
       }, React.createElement(Dropdown, {
-        value: c.type,
+        value: dcSizeOf(c.type) ? dcName(dcSizeOf(c.type)) : "",
         onChange: v => setCab(i, "type", v),
-        options: cableTypeOptions,
-        placeholder: "\u2014 \u0E40\u0E25\u0E37\u0E2D\u0E01\u0E2A\u0E32\u0E22 DC \u2014",
+        options: dcOptions,
+        placeholder: "\u2014 \u0E40\u0E25\u0E37\u0E2D\u0E01\u0E02\u0E19\u0E32\u0E14\u0E2A\u0E32\u0E22 PV1-F \u2014",
         style: cabSelStyle
       })), React.createElement("span", {
         className: "hint"
