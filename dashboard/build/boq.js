@@ -57,6 +57,23 @@ const BQ_CSS = `
 .bq-card>.hd .t{font-size:13.5px;font-weight:700;color:var(--text-1);letter-spacing:-.01em}
 .bq-card>.hd .r{margin-left:auto;flex-shrink:0}
 
+/* คำอธิบายที่ซ่อนไว้ + ปุ่มเปิดอ่านที่หัวการ์ด */
+.bq-card .bq-hint{display:none}
+.bq-card[data-hint="1"] .bq-hint{display:block}
+.bq-i{display:inline-flex;align-items:center;gap:5px;border:0;background:none;padding:3px 8px 3px 4px;border-radius:999px;
+  cursor:pointer;font-family:inherit;font-size:11px;font-weight:700;color:var(--text-3)}
+.bq-i:hover,.bq-i[data-on="1"]{background:var(--surface2);color:var(--primary-dark)}
+.bq-i .q{width:16px;height:16px;border-radius:99px;display:grid;place-items:center;font-size:10px;font-weight:800;
+  background:var(--surface3);color:var(--text-2)}
+.bq-i[data-on="1"] .q{background:var(--primary);color:#fff}
+/* ปุ่มเพิ่มรายการที่ซ่อนไว้ (ตู้ไฟ · ปั๊ม · ถัง …) — ของที่งานนี้ไม่ได้ใช้ไม่ต้องโชว์ช่อง 0 ให้รก */
+.bq-chips{display:flex;flex-wrap:wrap;gap:7px}
+.bq-chip{display:inline-flex;align-items:center;gap:5px;border:0;border-radius:999px;padding:6px 12px;cursor:pointer;
+  font-family:inherit;font-size:12px;font-weight:700;color:var(--text-2);background:var(--surface2);box-shadow:var(--shadow-sm)}
+.bq-chip:hover{background:var(--primary-soft);color:var(--primary-dark)}
+/* กลุ่ม "สรุปผล" ในแถบซ้าย — หน้าที่ระบบคิดให้ ไม่ต้องกรอก จึงไม่นับในความคืบหน้า */
+.bq-nav[data-out="1"] .dot{box-shadow:none;background:var(--surface3);color:var(--text-2)}
+
 /* แถบสรุปล่าง */
 .bq-foot{flex-shrink:0;box-shadow:0 -10px 18px -16px rgba(8,20,14,.35);position:relative;z-index:2;background:var(--surface);
   padding:10px 18px calc(10px + env(safe-area-inset-bottom,0px));display:flex;align-items:center;gap:0}
@@ -1576,6 +1593,7 @@ function BOQEditor({
   const [advC, setAdvC] = React.useState(false);
   const isHome = !!(job && job.type === "home");
   const [openSec, setOpenSec] = React.useState("info");
+  const [kitShow, setKitShow] = React.useState({});
   const secProps = key => ({
     open: bqPageOf(openSec) === bqPageOf(key),
     onToggle: () => setOpenSec(bqPageOf(key))
@@ -2362,6 +2380,7 @@ function BOQEditor({
         marginBottom: hint ? 3 : 7
       }
     }, label), hint && React.createElement("div", {
+      className: "bq-hint",
       style: {
         fontSize: 10.5,
         color: "var(--text-3)",
@@ -2669,6 +2688,7 @@ function BOQEditor({
         marginBottom: 3
       }
     }, label), React.createElement("div", {
+      className: "bq-hint",
       style: {
         fontSize: 10.5,
         color: "var(--text-3)",
@@ -3031,6 +3051,7 @@ function BOQEditor({
         marginBottom: 3
       }
     }, "\u0E02\u0E49\u0E2D\u0E07\u0E2D / \u0E02\u0E49\u0E2D\u0E25\u0E14 / \u0E2A\u0E32\u0E21\u0E17\u0E32\u0E07"), React.createElement("div", {
+      className: "bq-hint",
       style: {
         fontSize: 10.5,
         color: "var(--text-3)",
@@ -4472,10 +4493,10 @@ function BOQEditor({
     tray: "run",
     labor: "cost",
     permit: "cost",
-    removable: "cost",
-    price: "cost"
+    price: "cost",
+    removable: "out"
   };
-  const BQ_GRPS = [["sys", "ออกแบบระบบ"], ["run", "เดินสาย"], ["equip", "อุปกรณ์ & งานหน้างาน"], ["cost", "ต้นทุน & ราคา"]];
+  const BQ_GRPS = [["sys", "ออกแบบระบบ"], ["run", "เดินสาย"], ["equip", "อุปกรณ์ & งานหน้างาน"], ["cost", "ต้นทุน & ราคา"], ["out", "สรุปผล · ระบบคิดให้"]];
   const navPages = [];
   navSecs.forEach(x => {
     const pk = bqPageOf(x.key);
@@ -4495,8 +4516,11 @@ function BOQEditor({
     pg.meta = pg.subs.map(x => x.meta).filter(Boolean).join(" · ");
     pg.st = sts.indexOf("warn") >= 0 ? "warn" : sts.every(x => x === "ok") ? "ok" : "todo";
   });
+  const grpIdx = pg => BQ_GRPS.findIndex(y => y[0] === (BQ_GRP_OF[pg.key] || "equip"));
+  navPages.sort((a, c) => grpIdx(a) - grpIdx(c));
   const curPage = bqPageOf(openSec);
-  const secDone = navPages.filter(x => x.st === "ok").length;
+  const fillPages = navPages.filter(x => BQ_GRP_OF[x.key] !== "out");
+  const secDone = fillPages.filter(x => x.st === "ok").length;
   const secIdx = navPages.findIndex(x => x.key === curPage);
   const nextSec = secIdx >= 0 ? navPages[secIdx + 1] : null;
   const goSec = k => {
@@ -4542,11 +4566,11 @@ function BOQEditor({
     className: "k"
   }, "\u0E01\u0E23\u0E2D\u0E01\u0E41\u0E25\u0E49\u0E27"), React.createElement("span", {
     className: "v"
-  }, secDone, " / ", navPages.length)), React.createElement("div", {
+  }, secDone, " / ", fillPages.length)), React.createElement("div", {
     className: "bar"
   }, React.createElement("i", {
     style: {
-      width: (navPages.length ? secDone / navPages.length * 100 : 0) + "%"
+      width: (fillPages.length ? secDone / fillPages.length * 100 : 0) + "%"
     }
   }))), BQ_GRPS.map(([g, th]) => {
     const list = navPages.filter(x => (BQ_GRP_OF[x.key] || "equip") === g);
@@ -4557,17 +4581,24 @@ function BOQEditor({
       className: "bq-grp"
     }, th), list.map(x => {
       const on = curPage === x.key,
-        st = x.st;
+        out = g === "out",
+        st = out ? "" : x.st;
       return React.createElement("button", {
         key: x.key,
         className: "bq-nav",
         "data-on": on ? "1" : "0",
+        "data-out": out ? "1" : "0",
         onClick: () => goSec(x.key),
         title: x.meta
       }, React.createElement("span", {
         className: "dot",
         "data-st": st
-      }, st === "ok" ? React.createElement(Icon, {
+      }, out ? React.createElement(Icon, {
+        name: "list",
+        size: 9,
+        color: "currentColor",
+        sw: 2.4
+      }) : st === "ok" ? React.createElement(Icon, {
         name: "check",
         size: 10,
         color: "#fff",
@@ -4996,6 +5027,7 @@ function BOQEditor({
   }, c.k), React.createElement("span", {
     className: "v " + (c.hi && !c.bad ? "hi" : "")
   }, c.v)))), React.createElement("div", {
+    className: "bq-hint",
     style: {
       marginTop: 10,
       fontSize: 11,
@@ -5111,6 +5143,7 @@ function BOQEditor({
   }, c.k), React.createElement("span", {
     className: "v " + (c.hi && !c.bad ? "hi" : "")
   }, c.v))))), React.createElement("div", {
+    className: "bq-hint",
     style: {
       marginTop: 10,
       fontSize: 11,
@@ -5345,6 +5378,7 @@ function BOQEditor({
     size: 14,
     color: "#EF4444"
   }), " ", w))), React.createElement("div", {
+    className: "bq-hint",
     style: {
       fontSize: 11,
       color: "var(--text-3)",
@@ -6041,6 +6075,7 @@ function BOQEditor({
     catalog: condFits,
     hint: "ของท่อร้อยสายโดยเฉพาะ — เลือกได้ครบทุกขนาด แยกกลุ่ม IMC กับ uPVC (คนละอันกับข้องอของรางไฟ)"
   })), React.createElement("div", {
+    className: "bq-hint",
     style: {
       marginTop: 12,
       fontSize: 11,
@@ -6286,6 +6321,7 @@ function BOQEditor({
       }
     }, sc.count, " \u0E23\u0E32\u0E22\u0E01\u0E32\u0E23") : null
   }), React.createElement("div", {
+    className: "bq-hint",
     style: {
       fontSize: 11.5,
       color: "var(--text-3)",
@@ -6496,59 +6532,98 @@ function BOQEditor({
         marginBottom: k.hint ? 3 : 7
       }
     }, k.th), k.hint && React.createElement("div", {
+      className: "bq-hint",
       style: {
         fontSize: 10.5,
         color: "var(--text-3)",
         marginBottom: 7
       }
-    }, k.hint)), k.boards ? React.createElement("div", {
-      style: {
-        display: "grid",
-        gridTemplateColumns: isMobile ? "1fr" : "repeat(3, minmax(0,1fr))",
-        gap: 9,
-        alignItems: "start"
-      }
-    }, k.boards.map(bd => React.createElement("div", {
-      key: bd.key,
-      style: {
-        border: "1px solid var(--border)",
-        borderRadius: 12,
-        padding: 10,
-        background: "var(--surface2)",
-        display: "flex",
-        flexDirection: "column",
-        gap: 9
-      }
-    }, numBox({
-      key: bd.key,
-      name: bd.name,
-      unit: bd.unit
-    }), (bd.items || []).length > 0 && React.createElement("div", {
-      style: {
-        display: "flex",
-        flexDirection: "column",
-        gap: 8,
-        paddingTop: 8,
-        borderTop: "1px dashed var(--border-strong)"
-      }
-    }, React.createElement("span", {
-      style: {
-        fontSize: 9.5,
-        fontWeight: 800,
-        color: "var(--text-3)"
-      }
-    }, "\u0E2D\u0E38\u0E1B\u0E01\u0E23\u0E13\u0E4C\u0E43\u0E19\u0E15\u0E39\u0E49\u0E19\u0E35\u0E49"), bd.items.map(it => numBox(it))), React.createElement("div", {
-      style: {
-        paddingTop: 8,
-        borderTop: "1px dashed var(--border-strong)"
-      }
-    }, extraList(bd.extraKey, bd.name, true))))) : React.createElement(React.Fragment, null, React.createElement("div", {
-      style: {
-        display: "grid",
-        gridTemplateColumns: isMobile ? "repeat(2, minmax(0,1fr))" : "repeat(3, minmax(0,1fr))",
-        gap: 9
-      }
-    }, k.items.map(it => numBox(it))), extraList("extra", k.th, false, k.key === "pipe" ? pipeOptions : null)));
+    }, k.hint)), k.boards ? (() => {
+      const bdOn = bd => kitShow[k.key + "/" + bd.key] || +st[bd.key] > 0 || (bd.items || []).some(it => +st[it.key] > 0) || (st[bd.extraKey] || []).length > 0;
+      const shown = k.boards.filter(bdOn),
+        hidden = k.boards.filter(bd => !bdOn(bd));
+      return React.createElement(React.Fragment, null, shown.length > 0 && React.createElement("div", {
+        style: {
+          display: "grid",
+          gridTemplateColumns: isMobile ? "1fr" : "repeat(3, minmax(0,1fr))",
+          gap: 9,
+          alignItems: "start",
+          marginBottom: hidden.length ? 12 : 0
+        }
+      }, shown.map(bd => React.createElement("div", {
+        key: bd.key,
+        style: {
+          border: "1px solid var(--border)",
+          borderRadius: 12,
+          padding: 10,
+          background: "var(--surface2)",
+          display: "flex",
+          flexDirection: "column",
+          gap: 9
+        }
+      }, numBox({
+        key: bd.key,
+        name: bd.name,
+        unit: bd.unit
+      }), (bd.items || []).length > 0 && React.createElement("div", {
+        style: {
+          display: "flex",
+          flexDirection: "column",
+          gap: 8,
+          paddingTop: 8,
+          borderTop: "1px dashed var(--border-strong)"
+        }
+      }, React.createElement("span", {
+        style: {
+          fontSize: 9.5,
+          fontWeight: 800,
+          color: "var(--text-3)"
+        }
+      }, "\u0E2D\u0E38\u0E1B\u0E01\u0E23\u0E13\u0E4C\u0E43\u0E19\u0E15\u0E39\u0E49\u0E19\u0E35\u0E49"), bd.items.map(it => numBox(it))), React.createElement("div", {
+        style: {
+          paddingTop: 8,
+          borderTop: "1px dashed var(--border-strong)"
+        }
+      }, extraList(bd.extraKey, bd.name, true))))), hidden.length > 0 && React.createElement("div", {
+        className: "bq-chips"
+      }, hidden.map(bd => React.createElement("button", {
+        key: bd.key,
+        type: "button",
+        className: "bq-chip",
+        onClick: () => setKitShow(o => Object.assign({}, o, {
+          [k.key + "/" + bd.key]: true
+        }))
+      }, React.createElement(Icon, {
+        name: "plus",
+        size: 12,
+        color: "currentColor"
+      }), " ", bd.name))));
+    })() : (() => {
+      const itOn = it => kitShow[k.key + "/" + it.key] || +st[it.key] > 0;
+      const shown = k.items.filter(itOn),
+        hidden = k.items.filter(it => !itOn(it));
+      return React.createElement(React.Fragment, null, shown.length > 0 && React.createElement("div", {
+        style: {
+          display: "grid",
+          gridTemplateColumns: isMobile ? "repeat(2, minmax(0,1fr))" : "repeat(3, minmax(0,1fr))",
+          gap: 9,
+          marginBottom: hidden.length ? 10 : 0
+        }
+      }, shown.map(it => numBox(it))), hidden.length > 0 && React.createElement("div", {
+        className: "bq-chips"
+      }, hidden.map(it => React.createElement("button", {
+        key: it.key,
+        type: "button",
+        className: "bq-chip",
+        onClick: () => setKitShow(o => Object.assign({}, o, {
+          [k.key + "/" + it.key]: true
+        }))
+      }, React.createElement(Icon, {
+        name: "plus",
+        size: 12,
+        color: "currentColor"
+      }), " ", it.name))), extraList("extra", k.th, false, k.key === "pipe" ? pipeOptions : null));
+    })());
   })))), !isHome && React.createElement(BoqSection, _extends({
     title: "\u0E02\u0E19\u0E2A\u0E48\u0E07 & \u0E1A\u0E23\u0E34\u0E2B\u0E32\u0E23\u0E08\u0E31\u0E14\u0E01\u0E32\u0E23\u0E2B\u0E19\u0E49\u0E32\u0E07\u0E32\u0E19",
     icon: "power"
@@ -6561,6 +6636,7 @@ function BOQEditor({
       }
     }, "\u0E3F", baht(siteTotal)) : null
   }), React.createElement("div", {
+    className: "bq-hint",
     style: {
       fontSize: 11.5,
       color: "var(--text-3)",
@@ -6615,6 +6691,7 @@ function BOQEditor({
       title: supAuto > 0 ? "ตั้งเป็นอินเวอร์เตอร์ " + supAuto + " ตัว + ตู้ 1 ใบ" : "ไมโครอินเวอร์เตอร์ยึดใต้แผงอยู่แล้ว — ตั้งเฉพาะตู้ 1 ใบ"
     }, "\u0E43\u0E0A\u0E49\u0E15\u0E32\u0E21\u0E23\u0E30\u0E1A\u0E1A")
   }), React.createElement("div", {
+    className: "bq-hint",
     style: {
       fontSize: 11.5,
       color: "var(--text-3)",
@@ -6819,6 +6896,7 @@ function BOQEditor({
   }, "\u0E04\u0E34\u0E14\u0E40\u0E1B\u0E47\u0E19"), React.createElement("span", {
     className: "v hi"
   }, "\u0E3F", baht(priced.laborPerW), "/W")))) : React.createElement("div", null, React.createElement("div", {
+    className: "bq-hint",
     style: {
       fontSize: 11.5,
       color: "var(--text-3)",
@@ -6843,6 +6921,7 @@ function BOQEditor({
       }
     }, "\u0E3F", baht(priced.permitTotal)) : null
   }), React.createElement("div", {
+    className: "bq-hint",
     style: {
       fontSize: 11.5,
       color: "var(--text-3)",
@@ -7104,6 +7183,7 @@ function BOQEditor({
     size: 14,
     color: "var(--primary-dark)"
   }), " \u0E40\u0E1E\u0E34\u0E48\u0E21\u0E02\u0E2D\u0E07")), React.createElement("div", {
+    className: "bq-hint",
     style: {
       marginTop: 8,
       fontSize: 11,
@@ -7121,6 +7201,7 @@ function BOQEditor({
       }
     }, "\u0E3F", baht(accAllow)) : null
   }), React.createElement("div", {
+    className: "bq-hint",
     style: {
       fontSize: 11.5,
       color: "var(--text-3)",
@@ -7590,6 +7671,7 @@ function BOQEditor({
       }
     }, "\u0E01\u0E33\u0E44\u0E23 ", pb.net > 0 ? pb.netMargin : pb.margin, "%") : null
   }), React.createElement("div", {
+    className: "bq-hint",
     style: {
       fontSize: 11.5,
       color: "var(--text-3)",
@@ -8585,9 +8667,17 @@ function BoqSection({
   children,
   open
 }) {
+  const [hint, setHint] = React.useState(false);
+  const [hasHint, setHasHint] = React.useState(false);
+  const ref = React.useRef(null);
+  React.useEffect(() => {
+    if (ref.current) setHasHint(!!ref.current.querySelector(".bq-hint"));
+  });
   if (!open) return null;
   return React.createElement("div", {
-    className: "bq-card"
+    className: "bq-card",
+    ref: ref,
+    "data-hint": hint ? "1" : "0"
   }, React.createElement("div", {
     className: "hd"
   }, React.createElement(Icon, {
@@ -8596,7 +8686,15 @@ function BoqSection({
     color: "var(--primary)"
   }), React.createElement("span", {
     className: "t"
-  }, title), right && React.createElement("span", {
+  }, title), hasHint && React.createElement("button", {
+    type: "button",
+    className: "bq-i",
+    "data-on": hint ? "1" : "0",
+    onClick: () => setHint(v => !v),
+    title: hint ? "ซ่อนคำอธิบาย" : "อ่านคำอธิบายของหัวข้อนี้"
+  }, React.createElement("span", {
+    className: "q"
+  }, "?"), hint ? "ซ่อนคำอธิบาย" : "คำอธิบาย"), right && React.createElement("span", {
     className: "r"
   }, right)), children);
 }

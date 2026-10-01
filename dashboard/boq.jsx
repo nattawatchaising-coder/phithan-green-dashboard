@@ -64,6 +64,23 @@ const BQ_CSS = `
 .bq-card>.hd .t{font-size:13.5px;font-weight:700;color:var(--text-1);letter-spacing:-.01em}
 .bq-card>.hd .r{margin-left:auto;flex-shrink:0}
 
+/* คำอธิบายที่ซ่อนไว้ + ปุ่มเปิดอ่านที่หัวการ์ด */
+.bq-card .bq-hint{display:none}
+.bq-card[data-hint="1"] .bq-hint{display:block}
+.bq-i{display:inline-flex;align-items:center;gap:5px;border:0;background:none;padding:3px 8px 3px 4px;border-radius:999px;
+  cursor:pointer;font-family:inherit;font-size:11px;font-weight:700;color:var(--text-3)}
+.bq-i:hover,.bq-i[data-on="1"]{background:var(--surface2);color:var(--primary-dark)}
+.bq-i .q{width:16px;height:16px;border-radius:99px;display:grid;place-items:center;font-size:10px;font-weight:800;
+  background:var(--surface3);color:var(--text-2)}
+.bq-i[data-on="1"] .q{background:var(--primary);color:#fff}
+/* ปุ่มเพิ่มรายการที่ซ่อนไว้ (ตู้ไฟ · ปั๊ม · ถัง …) — ของที่งานนี้ไม่ได้ใช้ไม่ต้องโชว์ช่อง 0 ให้รก */
+.bq-chips{display:flex;flex-wrap:wrap;gap:7px}
+.bq-chip{display:inline-flex;align-items:center;gap:5px;border:0;border-radius:999px;padding:6px 12px;cursor:pointer;
+  font-family:inherit;font-size:12px;font-weight:700;color:var(--text-2);background:var(--surface2);box-shadow:var(--shadow-sm)}
+.bq-chip:hover{background:var(--primary-soft);color:var(--primary-dark)}
+/* กลุ่ม "สรุปผล" ในแถบซ้าย — หน้าที่ระบบคิดให้ ไม่ต้องกรอก จึงไม่นับในความคืบหน้า */
+.bq-nav[data-out="1"] .dot{box-shadow:none;background:var(--surface3);color:var(--text-2)}
+
 /* แถบสรุปล่าง */
 .bq-foot{flex-shrink:0;box-shadow:0 -10px 18px -16px rgba(8,20,14,.35);position:relative;z-index:2;background:var(--surface);
   padding:10px 18px calc(10px + env(safe-area-inset-bottom,0px));display:flex;align-items:center;gap:0}
@@ -713,6 +730,8 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
   const isHome = !!(job && job.type === "home");  // งานบ้าน = ไม่มีงานโครงสร้างเพิ่มเติม
   // หัวข้อที่กำลังเปิดอยู่ — เลือกจากแถบซ้าย ทีละหัวข้อ (เนื้อหาที่ไม่ได้เลือกไม่ต้องเรนเดอร์ให้หนักเปล่า)
   const [openSec, setOpenSec] = React.useState("info");
+  /* ช่องในหมวดตู้ไฟ/ระบบน้ำที่ผู้ใช้กด "+ เพิ่ม" ออกมาแล้ว (ยังไม่ได้กรอกเลขก็ให้ค้างไว้ ไม่หายไปต่อหน้า) */
+  const [kitShow, setKitShow] = React.useState({});
   const secProps = (key) => ({ open: bqPageOf(openSec) === bqPageOf(key), onToggle: () => setOpenSec(bqPageOf(key)) });
   const [advU, setAdvU] = React.useState(false);
 
@@ -1259,7 +1278,7 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
     return (
       <div>
         <div style={{ fontSize: 11.5, fontWeight: 700, color: "var(--text-2)", marginBottom: hint ? 3 : 7 }}>{label}</div>
-        {hint && <div style={{ fontSize: 10.5, color: "var(--text-3)", marginBottom: 7 }}>{hint}</div>}
+        {hint && <div className="bq-hint" style={{ fontSize: 10.5, color: "var(--text-3)", marginBottom: 7 }}>{hint}</div>}
         <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
           {(cond[kind] || []).map((x, i) => {
             const cbs = x.cables || [];
@@ -1361,7 +1380,7 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
     return (
       <div>
         <div style={{ fontSize: 11.5, fontWeight: 700, color: "var(--text-2)", marginBottom: 3 }}>{label}</div>
-        <div style={{ fontSize: 10.5, color: "var(--text-3)", marginBottom: 7 }}>{hint}</div>
+        <div className="bq-hint" style={{ fontSize: 10.5, color: "var(--text-3)", marginBottom: 7 }}>{hint}</div>
         <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
           {(tw[kind] || []).map((x, i) => {
             const cbs = x.cables || [];
@@ -1489,7 +1508,7 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
     return (
       <div>
         <div style={{ fontSize: 11.5, fontWeight: 700, color: "var(--text-2)", marginBottom: 3 }}>ข้องอ / ข้อลด / สามทาง</div>
-        <div style={{ fontSize: 10.5, color: "var(--text-3)", marginBottom: 7 }}>{hint}</div>
+        <div className="bq-hint" style={{ fontSize: 10.5, color: "var(--text-3)", marginBottom: 7 }}>{hint}</div>
         <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
           {list.map((x, i) => (
             <div key={i} style={{ display: "grid", gridTemplateColumns: "minmax(0,1fr) 78px 62px 36px", gap: 8, alignItems: "center" }}>
@@ -2015,8 +2034,8 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
   /* กลุ่มในแถบซ้าย — ลำดับงานจริง ออกแบบระบบ → เดินสาย → อุปกรณ์หน้างาน → ต้นทุนและราคา
      หัวข้อที่ไม่อยู่ในแผนที่นี้ (หมวดของงานโครงการ kitSections) ตกไปกลุ่ม "อุปกรณ์ & งานหน้างาน" */
   const BQ_GRP_OF = { info: "sys", hybrid: "sys", dc: "sys", layout: "sys", wire: "run", raceway: "run", tray: "run",
-    labor: "cost", permit: "cost", removable: "cost", price: "cost" };
-  const BQ_GRPS = [["sys", "ออกแบบระบบ"], ["run", "เดินสาย"], ["equip", "อุปกรณ์ & งานหน้างาน"], ["cost", "ต้นทุน & ราคา"]];
+    labor: "cost", permit: "cost", price: "cost", removable: "out" };
+  const BQ_GRPS = [["sys", "ออกแบบระบบ"], ["run", "เดินสาย"], ["equip", "อุปกรณ์ & งานหน้างาน"], ["cost", "ต้นทุน & ราคา"], ["out", "สรุปผล · ระบบคิดให้"]];
   const navPages = [];
   navSecs.forEach((x) => {
     const pk = bqPageOf(x.key);
@@ -2030,8 +2049,13 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
     pg.meta = pg.subs.map((x) => x.meta).filter(Boolean).join(" · ");
     pg.st = sts.indexOf("warn") >= 0 ? "warn" : sts.every((x) => x === "ok") ? "ok" : "todo";
   });
+  /* เรียงหน้าตามกลุ่มในแถบซ้าย — ปุ่ม "ถัดไป" จะได้ไล่ลำดับเดียวกับที่ตาเห็น (สรุปผลอยู่ท้ายสุด) */
+  const grpIdx = (pg) => BQ_GRPS.findIndex((y) => y[0] === (BQ_GRP_OF[pg.key] || "equip"));
+  navPages.sort((a, c) => grpIdx(a) - grpIdx(c));
   const curPage = bqPageOf(openSec);
-  const secDone = navPages.filter((x) => x.st === "ok").length;
+  /* หน้าผลลัพธ์ (กลุ่ม out) ไม่ต้องกรอก จึงไม่นับเป็นงานค้างในแถบความคืบหน้า */
+  const fillPages = navPages.filter((x) => BQ_GRP_OF[x.key] !== "out");
+  const secDone = fillPages.filter((x) => x.st === "ok").length;
   const secIdx = navPages.findIndex((x) => x.key === curPage);
   const nextSec = secIdx >= 0 ? navPages[secIdx + 1] : null;
   const goSec = (k) => { setOpenSec(k); const m = document.querySelector(".bq-main"); if (m) m.scrollTop = 0; };
@@ -2053,8 +2077,8 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
         {/* สารบัญ */}
         <div className="bq-rail">
           <div className="bq-prog">
-            <div className="row"><span className="k">กรอกแล้ว</span><span className="v">{secDone} / {navPages.length}</span></div>
-            <div className="bar"><i style={{ width: (navPages.length ? secDone / navPages.length * 100 : 0) + "%" }} /></div>
+            <div className="row"><span className="k">กรอกแล้ว</span><span className="v">{secDone} / {fillPages.length}</span></div>
+            <div className="bar"><i style={{ width: (fillPages.length ? secDone / fillPages.length * 100 : 0) + "%" }} /></div>
           </div>
           {BQ_GRPS.map(([g, th]) => {
             const list = navPages.filter((x) => (BQ_GRP_OF[x.key] || "equip") === g);
@@ -2063,11 +2087,11 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
               <React.Fragment key={g}>
                 <span className="bq-grp">{th}</span>
                 {list.map((x) => {
-                  const on = curPage === x.key, st = x.st;
+                  const on = curPage === x.key, out = g === "out", st = out ? "" : x.st;
                   return (
-                    <button key={x.key} className="bq-nav" data-on={on ? "1" : "0"} onClick={() => goSec(x.key)} title={x.meta}>
+                    <button key={x.key} className="bq-nav" data-on={on ? "1" : "0"} data-out={out ? "1" : "0"} onClick={() => goSec(x.key)} title={x.meta}>
                       <span className="dot" data-st={st}>
-                        {st === "ok" ? <Icon name="check" size={10} color="#fff" sw={3} /> : st === "warn" ? "!" : null}
+                        {out ? <Icon name="list" size={9} color="currentColor" sw={2.4} /> : st === "ok" ? <Icon name="check" size={10} color="#fff" sw={3} /> : st === "warn" ? "!" : null}
                       </span>
                       <span className="tx">
                         <span className="tt">{x.title}</span>
@@ -2257,7 +2281,7 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
                 ))}
               </div>
 
-              <div style={{ marginTop: 10, fontSize: 11, color: "var(--text-3)", lineHeight: 1.5 }}>
+              <div className="bq-hint" style={{ marginTop: 10, fontSize: 11, color: "var(--text-3)", lineHeight: 1.5 }}>
                 * ใส่แผงเกินกำลัง AC ได้ถึง DC/AC {window.BOQ.DCAC_LIMIT} เท่า — อินเวอร์เตอร์ตัดกำลังออกไว้ที่ Max AC Active Power อยู่แล้ว ส่วนที่เกินช่วยเก็บกำลังตอนแดดอ่อน
                 <br />* จำนวนตัว = ปัดขึ้น(กำลังแผงรวม ÷ MAX PV ต่อตัว) พิมพ์ทับได้ · Combiner Box + DC (Fuse/Holder/MCB/MC4) คิดตามจำนวน String · RCBO/SPD/Smart Meter/Backup เลือกตามเฟส ({selInv.phase === 3 ? "3" : "1"} เฟส) · RCBO ขนาดจากกระแสออก × 1.25
               </div>
@@ -2315,7 +2339,7 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
                 </React.Fragment>
               )}
 
-              <div style={{ marginTop: 10, fontSize: 11, color: "var(--text-3)", lineHeight: 1.5 }}>
+              <div className="bq-hint" style={{ marginTop: 10, fontSize: 11, color: "var(--text-3)", lineHeight: 1.5 }}>
                 * จำนวนตัวของรุ่นนี้กรอกเองเสมอ — ตัวที่ 1 จะคิดกำลังที่เหลือให้อัตโนมัติ ({result.meta.invAuto} ตัว) · รวมทั้งงาน {invTotal} ตัว
                 <br />* RCBO กับสาย AC ของรุ่นนี้แยกขนาดตามกระแสออกของตัวมันเอง ({selInv2.outA || "—"} A) ไม่ได้ใช้ขนาดเดียวกับตัวที่ 1 · AC SPD คิดตามจำนวนตัวรวม
                 <br />* ตัวออกแบบสตริง 3D และสมุดส่งมอบยังใช้อินเวอร์เตอร์ตัวที่ 1 อย่างเดียว
@@ -2408,7 +2432,7 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
                       ))}
                     </div>
                   )}
-                  <div style={{ fontSize: 11, color: "var(--text-3)", lineHeight: 1.5 }}>
+                  <div className="bq-hint" style={{ fontSize: 11, color: "var(--text-3)", lineHeight: 1.5 }}>
                     * แรงดันทำงานคิดจาก {scfg.vmp ? "Vmp" : "Voc"} × จำนวนแผงต่ออนุกรม · สาย DC เลือกจาก Isc × 1.25 (PV1-F ทองแดง) · สายคู่ แดง(+)/ดำ(−) ต่อสตริง
                   </div>
                 </div>
@@ -2654,7 +2678,7 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
               {FitList({ rows: cond.extra, onChange: (v) => setCondVal("extra", v), catalog: condFits,
                 hint: "ของท่อร้อยสายโดยเฉพาะ — เลือกได้ครบทุกขนาด แยกกลุ่ม IMC กับ uPVC (คนละอันกับข้องอของรางไฟ)" })}
             </div>
-            <div style={{ marginTop: 12, fontSize: 11, color: "var(--text-3)", lineHeight: 1.5 }}>
+            <div className="bq-hint" style={{ marginTop: 12, fontSize: 11, color: "var(--text-3)", lineHeight: 1.5 }}>
               * อุปกรณ์ IMC (แคล้มประกับ / บุชชิ่ง,ล็อกนัท / รางซี / คอนเนคเตอร์ / คุปปิ้ง) คำนวณอัตโนมัติจากความยาวท่อ + จำนวน PULL BOX
               <br />* อยากคิดเป็นชิ้นต่อท่อ 1 ท่อน ให้กรอกช่อง "ชิ้น/ท่อน" ในตั้งค่าด้านล่าง — เว้นว่างไว้คือใช้กฎอัตโนมัติ
               <br />* ค่าตั้งต้นที่ใบใหม่ทุกใบใช้ ตั้งได้ที่ คลังสินค้า › อุปกรณ์ท่อร้อยสาย (ใบที่ถอดไว้แล้วไม่ขยับตาม)
@@ -2738,7 +2762,7 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
           {!isHome && kitSections.map((sc) => (
           <BoqSection key={sc.key} title={sc.title} icon={sc.icon} {...secProps(sc.key)}
             right={sc.count > 0 ? <span style={{ fontSize: 12.5, fontWeight: 800, color: "var(--primary-dark)" }}>{sc.count} รายการ</span> : null}>
-            <div style={{ fontSize: 11.5, color: "var(--text-3)", lineHeight: 1.5, marginBottom: 14 }}>
+            <div className="bq-hint" style={{ fontSize: 11.5, color: "var(--text-3)", lineHeight: 1.5, marginBottom: 14 }}>
               {sc.hint}
             </div>
             <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
@@ -2817,13 +2841,20 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
                     {sc.kits.length > 1 && (
                       <React.Fragment>
                         <div style={{ fontSize: 11.5, fontWeight: 700, color: "var(--text-2)", marginBottom: k.hint ? 3 : 7 }}>{k.th}</div>
-                        {k.hint && <div style={{ fontSize: 10.5, color: "var(--text-3)", marginBottom: 7 }}>{k.hint}</div>}
+                        {k.hint && <div className="bq-hint" style={{ fontSize: 10.5, color: "var(--text-3)", marginBottom: 7 }}>{k.hint}</div>}
                       </React.Fragment>
                     )}
                     {/* หมวดที่แยกเป็นตู้ — แต่ละตู้เป็นกล่องของตัวเอง: จำนวนตู้ · อุปกรณ์ในตู้ · อุปกรณ์ประกอบของตู้นั้น */}
-                    {k.boards ? (
-                      <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "repeat(3, minmax(0,1fr))", gap: 9, alignItems: "start" }}>
-                        {k.boards.map((bd) => (
+                    {k.boards ? (() => {
+                      /* โชว์เฉพาะตู้ที่งานนี้มี (กรอกจำนวน/อุปกรณ์ไว้แล้ว หรือเพิ่งกด + เพิ่ม) ที่เหลือเป็นปุ่มเล็กด้านล่าง */
+                      const bdOn = (bd) => kitShow[k.key + "/" + bd.key] || +st[bd.key] > 0
+                        || (bd.items || []).some((it) => +st[it.key] > 0) || (st[bd.extraKey] || []).length > 0;
+                      const shown = k.boards.filter(bdOn), hidden = k.boards.filter((bd) => !bdOn(bd));
+                      return (
+                      <React.Fragment>
+                      {shown.length > 0 && (
+                      <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "repeat(3, minmax(0,1fr))", gap: 9, alignItems: "start", marginBottom: hidden.length ? 12 : 0 }}>
+                        {shown.map((bd) => (
                           <div key={bd.key} style={{ border: "1px solid var(--border)", borderRadius: 12, padding: 10, background: "var(--surface2)",
                             display: "flex", flexDirection: "column", gap: 9 }}>
                             {numBox({ key: bd.key, name: bd.name, unit: bd.unit })}
@@ -2839,15 +2870,44 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
                           </div>
                         ))}
                       </div>
-                    ) : (
-                      <React.Fragment>
-                        <div style={{ display: "grid", gridTemplateColumns: isMobile ? "repeat(2, minmax(0,1fr))" : "repeat(3, minmax(0,1fr))", gap: 9 }}>
-                          {k.items.map((it) => numBox(it))}
+                      )}
+                      {hidden.length > 0 && (
+                        <div className="bq-chips">
+                          {hidden.map((bd) => (
+                            <button key={bd.key} type="button" className="bq-chip"
+                              onClick={() => setKitShow((o) => Object.assign({}, o, { [k.key + "/" + bd.key]: true }))}>
+                              <Icon name="plus" size={12} color="currentColor" /> {bd.name}
+                            </button>
+                          ))}
                         </div>
+                      )}
+                      </React.Fragment>
+                      );
+                    })() : (() => {
+                      const itOn = (it) => kitShow[k.key + "/" + it.key] || +st[it.key] > 0;
+                      const shown = k.items.filter(itOn), hidden = k.items.filter((it) => !itOn(it));
+                      return (
+                      <React.Fragment>
+                        {shown.length > 0 && (
+                        <div style={{ display: "grid", gridTemplateColumns: isMobile ? "repeat(2, minmax(0,1fr))" : "repeat(3, minmax(0,1fr))", gap: 9, marginBottom: hidden.length ? 10 : 0 }}>
+                          {shown.map((it) => numBox(it))}
+                        </div>
+                        )}
+                        {hidden.length > 0 && (
+                          <div className="bq-chips">
+                            {hidden.map((it) => (
+                              <button key={it.key} type="button" className="bq-chip"
+                                onClick={() => setKitShow((o) => Object.assign({}, o, { [k.key + "/" + it.key]: true }))}>
+                                <Icon name="plus" size={12} color="currentColor" /> {it.name}
+                              </button>
+                            ))}
+                          </div>
+                        )}
                         {/* ท่อน้ำ ใช้รายการข้อต่อ PPR ของตัวเอง (แยกชิปตามขนาดท่อ) แทนที่จะไล่หาจากของทั้งคลัง */}
                         {extraList("extra", k.th, false, k.key === "pipe" ? pipeOptions : null)}
                       </React.Fragment>
-                    )}
+                      );
+                    })()}
                   </div>
                 );
               })}
@@ -2859,7 +2919,7 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
           {!isHome && (
           <BoqSection title="ขนส่ง & บริหารจัดการหน้างาน" icon="power" {...secProps("site")}
             right={siteTotal > 0 ? <span style={{ fontSize: 12.5, fontWeight: 800, color: "var(--primary-dark)" }}>฿{baht(siteTotal)}</span> : null}>
-            <div style={{ fontSize: 11.5, color: "var(--text-3)", lineHeight: 1.5, marginBottom: 12 }}>
+            <div className="bq-hint" style={{ fontSize: 11.5, color: "var(--text-3)", lineHeight: 1.5, marginBottom: 12 }}>
               ค่าขนของขึ้นไซต์และค่าอยู่หน้างาน — กรอกเฉพาะที่งานนี้มีจริง บรรทัดที่ไม่ใช้ลบทิ้งได้
             </div>
             <div style={{ fontSize: 11, fontWeight: 800, color: "var(--text-3)", marginBottom: 8 }}>ขนส่ง & เครื่องจักร</div>
@@ -2874,7 +2934,7 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
             right={<button onClick={() => { setSup("inv", supAuto); setSup("mdb", 1); }}
               style={{ display: "inline-flex", alignItems: "center", gap: 5, background: "var(--surface3)", color: "var(--text-2)", border: "1px solid var(--border-strong)", borderRadius: 8, padding: "6px 11px", fontWeight: 700, fontSize: 12, cursor: "pointer", fontFamily: "inherit" }}
               title={supAuto > 0 ? "ตั้งเป็นอินเวอร์เตอร์ " + supAuto + " ตัว + ตู้ 1 ใบ" : "ไมโครอินเวอร์เตอร์ยึดใต้แผงอยู่แล้ว — ตั้งเฉพาะตู้ 1 ใบ"}>ใช้ตามระบบ</button>}>
-            <div style={{ fontSize: 11.5, color: "var(--text-3)", lineHeight: 1.5, marginBottom: 14 }}>
+            <div className="bq-hint" style={{ fontSize: 11.5, color: "var(--text-3)", lineHeight: 1.5, marginBottom: 14 }}>
               อินเวอร์เตอร์ตัวใหญ่และตู้ MDB ต้องมีโครงเหล็กหรือฉากรองรับ ไม่ได้ยึดผนังเปล่า ๆ — ใส่ 0 ถ้างานนี้ไม่ต้องทำโครง
             </div>
             <div style={{ display: "grid", gridTemplateColumns: isMobile ? "minmax(0,1fr) minmax(0,1fr)" : "repeat(3, minmax(0,1fr))", gap: 12 }}>
@@ -2944,7 +3004,7 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
               </div>
             ) : (
               <div>
-                <div style={{ fontSize: 11.5, color: "var(--text-3)", lineHeight: 1.5, marginBottom: 12 }}>
+                <div className="bq-hint" style={{ fontSize: 11.5, color: "var(--text-3)", lineHeight: 1.5, marginBottom: 12 }}>
                   ปริมาณของบรรทัดที่ขึ้นเลขสีเขียวดึงจากผลถอดวัสดุให้เอง (แผง/ตัว/เมตร) — กรอกแค่ "ราคาต่อหน่วย" · บรรทัดที่ราคา 0 จะไม่ถูกบวกเข้ายอด
                 </div>
                 {SvcTable({ sKey: "labor", preset: window.BOQ.LABOR_PRESET, qtyLabel: "ปริมาณ", total: priced.laborTotal, perW: priced.laborPerW })}
@@ -2955,7 +3015,7 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
           {/* ── ค่าขออนุญาต & เอกสาร ── */}
           <BoqSection title="ค่าขออนุญาต & เอกสาร" icon="box" {...secProps("permit")}
             right={priced.permitTotal > 0 ? <span style={{ fontSize: 12.5, fontWeight: 800, color: "var(--primary-dark)" }}>฿{baht(priced.permitTotal)}</span> : null}>
-            <div style={{ fontSize: 11.5, color: "var(--text-3)", lineHeight: 1.5, marginBottom: 12 }}>
+            <div className="bq-hint" style={{ fontSize: 11.5, color: "var(--text-3)", lineHeight: 1.5, marginBottom: 12 }}>
               ค่าธรรมเนียมจริงเปลี่ยนตามพื้นที่และขนาดระบบ ระบบจึงไม่เดาให้ — กรอกตามใบเสร็จ/ประกาศล่าสุด · ลบบรรทัดที่งานนี้ไม่ต้องขอได้เลย
             </div>
             {SvcTable({ sKey: "permit", preset: window.BOQ.PERMIT_PRESET, qtyLabel: "จำนวน", total: priced.permitTotal, perW: priced.permitPerW })}
@@ -3031,12 +3091,12 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
               })}
               <button onClick={addAcc} style={{ alignSelf: "flex-start", display: "inline-flex", alignItems: "center", gap: 5, background: "var(--primary-soft)", color: "var(--primary-dark)", border: "none", borderRadius: 9, padding: "8px 12px", fontWeight: 700, fontSize: 12.5, cursor: "pointer", fontFamily: "inherit" }}><Icon name="plus" size={14} color="var(--primary-dark)" /> เพิ่มของ</button>
             </div>
-            <div style={{ marginTop: 8, fontSize: 11, color: "var(--text-3)" }}>* เลือกหมวด → เลือกวัสดุ (จากราคาวัสดุ + คลังสินค้า) หรือ "พิมพ์เอง" — ถ้ามีราคาในระบบจะคิดต้นทุนให้</div>
+            <div className="bq-hint" style={{ marginTop: 8, fontSize: 11, color: "var(--text-3)" }}>* เลือกหมวด → เลือกวัสดุ (จากราคาวัสดุ + คลังสินค้า) หรือ "พิมพ์เอง" — ถ้ามีราคาในระบบจะคิดต้นทุนให้</div>
           </BoqSection>
           ) : (
           <BoqSection title={"Accessories Allowance " + accPct + "%"} icon="box" {...secProps("acc")}
             right={accAllow > 0 ? <span style={{ fontSize: 12.5, fontWeight: 800, color: "var(--primary-dark)" }}>฿{baht(accAllow)}</span> : null}>
-            <div style={{ fontSize: 11.5, color: "var(--text-3)", lineHeight: 1.5, marginBottom: 12 }}>
+            <div className="bq-hint" style={{ fontSize: 11.5, color: "var(--text-3)", lineHeight: 1.5, marginBottom: 12 }}>
               งานโครงการไม่ไล่ถอด Accessories ทีละชิ้น — คิดเป็นเงินเผื่อ {accPct}% ของราคาทุนวัสดุที่ถอดได้ทั้งงาน
               (ไม่รวมค่าแรง ค่าขออนุญาต ขนส่ง บริหารจัดการ และไม่รวมตัวมันเอง) · อัตราปรับเองได้ เว้นว่าง = ใช้ {window.BOQ.ACC_ALLOW_PCT}% ตามมาตรฐาน
             </div>
@@ -3226,7 +3286,7 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
           {/* ── แบ่งราคา: ต้นทุน → ผู้รับเหมา → ราคาขาย → ส่วนลด ── */}
           <BoqSection title="แบ่งราคา & กำไร" icon="bolt" {...secProps("price")}
             right={pb.sell > 0 ? <span style={{ fontSize: 12.5, fontWeight: 800, color: (pb.net > 0 ? pb.netProfit : pb.profit) > 0 ? "var(--primary-dark)" : "var(--tint-amber-tx)" }}>กำไร {(pb.net > 0 ? pb.netMargin : pb.margin)}%</span> : null}>
-            <div style={{ fontSize: 11.5, color: "var(--text-3)", lineHeight: 1.5, marginBottom: 14 }}>
+            <div className="bq-hint" style={{ fontSize: 11.5, color: "var(--text-3)", lineHeight: 1.5, marginBottom: 14 }}>
               ต้นทุนดึงจากใบถอดของให้เอง — กรอกเฉพาะค่าแรงผู้รับเหมา ราคาขาย และส่วนลด แล้วระบบคิด VAT กำไร และบาทต่อวัตต์ให้
             </div>
             <div style={{ display: "grid", gridTemplateColumns: isMobile ? "repeat(2, minmax(0,1fr))" : "repeat(4, minmax(0,1fr))", gap: 10, marginBottom: 14 }}>
@@ -3628,12 +3688,24 @@ function MatVariantModal({ item, stock, priceMap, matOptions, picked, onPick, re
 
 /* การ์ดเนื้อหา 1 หัวข้อ — เลือกจากแถบซ้าย · หัวข้อที่ไม่ได้เลือกไม่เรนเดอร์เลย */
 function BoqSection({ title, icon, right, children, open }) {
+  /* คำอธิบายยาว ๆ (คลาส bq-hint) ซ่อนไว้ก่อน — คนกรอกประจำไม่ต้องอ่านซ้ำทุกครั้ง หน้าจอจะเหลือแต่ช่องที่ต้องกรอก
+     คนที่ยังไม่คุ้นกด "คำอธิบาย" ที่หัวการ์ดเพื่อเปิดอ่านได้ · ปุ่มขึ้นเฉพาะการ์ดที่มีคำอธิบายอยู่จริง */
+  const [hint, setHint] = React.useState(false);
+  const [hasHint, setHasHint] = React.useState(false);
+  const ref = React.useRef(null);
+  React.useEffect(() => { if (ref.current) setHasHint(!!ref.current.querySelector(".bq-hint")); });
   if (!open) return null;
   return (
-    <div className="bq-card">
+    <div className="bq-card" ref={ref} data-hint={hint ? "1" : "0"}>
       <div className="hd">
         <Icon name={icon} size={15} color="var(--primary)" />
         <span className="t">{title}</span>
+        {hasHint && (
+          <button type="button" className="bq-i" data-on={hint ? "1" : "0"} onClick={() => setHint((v) => !v)}
+            title={hint ? "ซ่อนคำอธิบาย" : "อ่านคำอธิบายของหัวข้อนี้"}>
+            <span className="q">?</span>{hint ? "ซ่อนคำอธิบาย" : "คำอธิบาย"}
+          </button>
+        )}
         {right && <span className="r">{right}</span>}
       </div>
       {children}
