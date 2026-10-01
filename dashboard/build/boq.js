@@ -69,13 +69,16 @@ const BQ_CSS = `
   font-variant-numeric:tabular-nums}
 .bq-kpi .v small{font-size:10px;font-weight:700;color:var(--text-3);margin-left:2px}
 .bq-kpi .v.hi{color:var(--primary-dark)}
-.bq-btn{padding:10px 16px;border-radius:11px;border:1px solid var(--border-strong);background:var(--surface);
-  color:var(--text-2);font-weight:700;font-family:inherit;font-size:13px;cursor:pointer;
+/* ปุ่มท้ายจอ — ชุดเดียวกับปุ่มท้ายใบเสนอราคา (qBtn ใน sales.jsx): ไม่มีเส้นขอบ บอกขอบด้วยเงา
+   มีพื้นทึบได้ตัวเดียวคือ "บันทึก" · Excel เป็นพื้นเขียวจาง (ทางเลือกเชิงบวก แต่ไม่แย่งปุ่มหลัก) */
+.bq-btn{padding:10px 15px;border-radius:var(--r-tile);border:0;background:var(--surface2);box-shadow:var(--shadow-sm);
+  color:var(--text-1);font-weight:700;font-family:inherit;font-size:13px;cursor:pointer;
   display:inline-flex;align-items:center;gap:6px;white-space:nowrap}
-.bq-btn:hover{background:var(--surface2)}
-.bq-btn.gh{border-color:var(--tint-ok-tx);background:rgba(27,155,117,.08);color:var(--tint-ok-tx)}
-.bq-btn.pri{border:0;background:var(--primary);color:#fff;padding:10px 24px}
-.bq-btn.pri:hover{filter:brightness(1.06)}
+.bq-btn:hover{background:var(--surface3)}
+.bq-btn.gh{background:var(--primary-soft);color:var(--primary-dark)}
+.bq-btn.gh:hover{background:color-mix(in srgb,var(--primary) 18%,var(--surface))}
+.bq-btn.pri{background:var(--primary);color:#fff;padding:10px 22px;box-shadow:var(--shadow-btn)}
+.bq-btn.pri:hover{background:var(--primary);filter:brightness(1.06)}
 
 /* ตารางสเปคจากคลัง + ตัวเลขที่คำนวณได้ — ช่องที่ยังไม่กรอกในคลังขึ้นสีส้มให้เห็นว่าต้องไปเติม */
 .bq-spec{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}
@@ -7863,7 +7866,7 @@ function BOQEditor({
   }, React.createElement(Icon, {
     name: "box",
     size: 15,
-    color: "var(--tint-ok-tx)"
+    color: "var(--primary-dark)"
   }), " Excel"), onSave && React.createElement("button", {
     className: "bq-btn pri",
     onClick: () => guardRun(() => onSave(Object.assign({}, b, {
