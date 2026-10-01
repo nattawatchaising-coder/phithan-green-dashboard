@@ -2487,6 +2487,13 @@ function BOQEditor({
       numeric: true
     }));
   }, [stockItems, b.cables]);
+  const CAB_PT_TH = {
+    "MICRO-MICRO": "สายต่อไมโคร",
+    "MICRO-COMBINER": "สายไมโคร → ตู้ COMBINER",
+    "COMBINER-MCB": "สายตู้ COMBINER → MCB ตู้ลูกค้า",
+    "COMBINER-BAT.": "สายตู้ COMBINER → แบตเตอรี่",
+    "COMBINER-BACKUP": "สายตู้ COMBINER → BACKUP"
+  };
   const COMM_CABLES = ["LAN CAT6"].concat([2, 3, 4, 5, 6, 7, 8, 10, 12].map(n => "สายสัญญาณ OPVC-JZ " + n + "x1.5"));
   const commOptions = cur => {
     const fromStock = cableTypeOptions.map(o => o.value).filter(v => /LAN|CAT|สัญญาณ|OPVC|RS-?485|COMM|SIGNAL/i.test(v));
@@ -6201,7 +6208,6 @@ function BOQEditor({
     const dcHead = /PV-INVERTER/i.test(c.name || "");
     const gi = dcHead && /^GROUND$/i.test(((b.cables[i + 1] || {}).name || "").trim()) ? i + 1 : -1;
     const commHead = /^LAN$|สัญญาณ/i.test((c.name || "").trim()) || !c.name && isComm;
-    const headed = !!invU || isMcb || dcHead || commHead;
     const isDC = /PV1-F|PV CABLE/i.test(c.type || "") || /PV-INVERTER/i.test(c.name || "");
     const own = !!(c.method || c.group || c.ncond || c.core);
     const rawMethod = c.method || calcMethod;
@@ -6228,6 +6234,9 @@ function BOQEditor({
     });
     const req = reqAmpFor(c);
     const power = !!cabPlans[i];
+    const powHead = power && !invU && !isMcb;
+    const gndHead = isGnd && !power;
+    const headed = !!invU || isMcb || dcHead || commHead || powHead || gndHead;
     const setsN = power ? +c.sets || 1 : 1;
     const bad = amp != null && req && amp * setsN < req;
     const showHint = !!c.type && !isComm && !isDC && !isGnd;
@@ -6480,7 +6489,83 @@ function BOQEditor({
         },
         title: "\u0E23\u0E30\u0E22\u0E30\u0E44\u0E01\u0E25\u0E2A\u0E38\u0E14 \xD7 \u0E08\u0E33\u0E19\u0E27\u0E19\u0E2A\u0E15\u0E23\u0E34\u0E07 \xD7 \u0E40\u0E1C\u0E37\u0E48\u0E2D 1.2 = \u0E23\u0E30\u0E22\u0E30\u0E15\u0E48\u0E2D 1 \u0E02\u0E31\u0E49\u0E27 \xB7 \u0E16\u0E2D\u0E14\u0E02\u0E2D\u0E07\u0E40\u0E1B\u0E47\u0E19\u0E2A\u0E32\u0E22 2 \u0E2A\u0E35 \u0E41\u0E14\u0E07(+) \u0E01\u0E31\u0E1A \u0E14\u0E33(\u2212) \u0E40\u0E17\u0E48\u0E32\u0E01\u0E31\u0E19"
       }, "\u0E16\u0E2D\u0E14\u0E40\u0E02\u0E49\u0E32 BOQ: ", d.farthest.toLocaleString(), " \u0E21. \xD7 ", d.strings, " \u0E2A\u0E15\u0E23\u0E34\u0E07 \xD7 ", d.spare, " = ", React.createElement("b", null, d.perPole.toLocaleString(), " \u0E21./\u0E02\u0E31\u0E49\u0E27"), " \xB7 \u0E41\u0E14\u0E07 + \u0E14\u0E33 = ", React.createElement("b", null, d.total.toLocaleString(), " \u0E21."), g && +g.length > 0 ? " · กราวด์แผง " + (+g.length).toLocaleString() + " ม." : ""))));
-    })(), commHead && React.createElement(React.Fragment, null, React.createElement("div", {
+    })(), powHead && React.createElement("div", {
+      className: "bq-cab-hd"
+    }, React.createElement(Icon, {
+      name: "bolt",
+      size: 12,
+      color: "currentColor"
+    }), CAB_PT_TH[c.name] || c.name, CAB_PT_TH[c.name] && React.createElement("span", null, c.name), React.createElement("button", {
+      className: "bq-x",
+      style: {
+        marginLeft: "auto",
+        width: 30,
+        height: 30,
+        flex: "0 0 30px"
+      },
+      onClick: () => delCab(i),
+      title: "\u0E25\u0E1A\u0E2A\u0E32\u0E22\u0E40\u0E2A\u0E49\u0E19\u0E19\u0E35\u0E49"
+    }, React.createElement(Icon, {
+      name: "x",
+      size: 14
+    }))), gndHead && React.createElement(React.Fragment, null, React.createElement("div", {
+      className: "bq-cab-hd"
+    }, React.createElement(Icon, {
+      name: "bolt",
+      size: 12,
+      color: "currentColor"
+    }), "\u0E2A\u0E32\u0E22\u0E01\u0E23\u0E32\u0E27\u0E14\u0E4C", React.createElement("button", {
+      className: "bq-x",
+      style: {
+        marginLeft: "auto",
+        width: 30,
+        height: 30,
+        flex: "0 0 30px"
+      },
+      onClick: () => delCab(i),
+      title: "\u0E25\u0E1A\u0E2A\u0E32\u0E22\u0E01\u0E23\u0E32\u0E27\u0E14\u0E4C"
+    }, React.createElement(Icon, {
+      name: "x",
+      size: 14
+    }))), React.createElement("div", {
+      className: "bq-cabx"
+    }, React.createElement("div", {
+      className: "bq-cabx-step"
+    }, React.createElement("span", {
+      className: "n"
+    }, "1"), React.createElement("span", {
+      className: "lb"
+    }, "\u0E0A\u0E19\u0E34\u0E14\u0E2A\u0E32\u0E22"), React.createElement("div", {
+      style: {
+        width: isMobile ? "100%" : 260
+      }
+    }, React.createElement(Dropdown, {
+      value: c.type,
+      onChange: v => setCab(i, "type", v),
+      placeholder: "\u2014 \u0E40\u0E25\u0E37\u0E2D\u0E01\u0E2A\u0E32\u0E22\u0E01\u0E23\u0E32\u0E27\u0E14\u0E4C \u2014",
+      style: cabSelStyle,
+      options: cableTypeOptions.filter(o => /Y\/G|GROUND|กราว/i.test(o.value) || o.value === c.type)
+    }))), React.createElement("div", {
+      className: "bq-cabx-step"
+    }, React.createElement("span", {
+      className: "n"
+    }, "2"), React.createElement("span", {
+      className: "lb"
+    }, "\u0E23\u0E30\u0E22\u0E30\u0E2A\u0E32\u0E22"), React.createElement("div", {
+      style: {
+        width: 110
+      }
+    }, React.createElement("input", {
+      type: "number",
+      style: Object.assign({}, numStyle, {
+        padding: "7px 10px"
+      }),
+      value: c.length,
+      placeholder: "\u0E21.",
+      onChange: e => setCab(i, "length", e.target.value)
+    })), React.createElement("span", {
+      className: "hint"
+    }, "\u0E40\u0E21\u0E15\u0E23")))), commHead && React.createElement(React.Fragment, null, React.createElement("div", {
       className: "bq-cab-hd"
     }, React.createElement(Icon, {
       name: "bolt",
@@ -6575,7 +6660,7 @@ function BOQEditor({
     }, React.createElement(Icon, {
       name: "x",
       size: 14
-    }))), !power && !dcHead && !commHead && (showHint || isDC || vd || isGnd) && React.createElement("div", {
+    }))), !power && !dcHead && !commHead && !gndHead && (showHint || isDC || vd || isGnd) && React.createElement("div", {
       style: {
         display: "flex",
         alignItems: "center",

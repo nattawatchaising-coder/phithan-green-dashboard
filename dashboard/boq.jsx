@@ -1391,6 +1391,11 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
 
   /* สายสัญญาณ — LAN + สายคอนโทรล OPVC-JZ (2–12 แกน × 1.5) ที่ใช้ประจำ แม้คลังยังไม่มีรายการ
      + สายสัญญาณอื่นที่อยู่ในคลัง · ชื่อที่ใบเลือกไว้แล้วโชว์เสมอ */
+  // ชื่อหัวข้อของจุดเดินสาย (ชื่อจุดเดิมโชว์ตัวเล็กข้าง ๆ)
+  const CAB_PT_TH = {
+    "MICRO-MICRO": "สายต่อไมโคร", "MICRO-COMBINER": "สายไมโคร → ตู้ COMBINER", "COMBINER-MCB": "สายตู้ COMBINER → MCB ตู้ลูกค้า",
+    "COMBINER-BAT.": "สายตู้ COMBINER → แบตเตอรี่", "COMBINER-BACKUP": "สายตู้ COMBINER → BACKUP",
+  };
   const COMM_CABLES = ["LAN CAT6"].concat([2, 3, 4, 5, 6, 7, 8, 10, 12].map((n) => "สายสัญญาณ OPVC-JZ " + n + "x1.5"));
   const commOptions = (cur) => {
     const fromStock = cableTypeOptions.map((o) => o.value).filter((v) => /LAN|CAT|สัญญาณ|OPVC|RS-?485|COMM|SIGNAL/i.test(v));
@@ -2880,7 +2885,6 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
                 const gi = dcHead && /^GROUND$/i.test(((b.cables[i + 1] || {}).name || "").trim()) ? i + 1 : -1;
                 // สายสัญญาณ (LAN) — หัวข้อ "สายสัญญาณ" + กล่องขั้นตอน เลือกได้เฉพาะสายสัญญาณ
                 const commHead = /^LAN$|สัญญาณ/i.test((c.name || "").trim()) || (!c.name && isComm);
-                const headed = !!invU || isMcb || dcHead || commHead;
                 const isDC = /PV1-F|PV CABLE/i.test(c.type || "") || /PV-INVERTER/i.test(c.name || "");  // สาย DC คิดขนาดในส่วนสาย DC แยก
                 /* เงื่อนไขของสายเส้นนี้ — ไม่ได้ตั้งเอง = ตามค่าตั้งต้นของงาน (ตารางคำนวณขนาดสายไฟ)
                    ปกติทั้งงานเดินแบบเดียวกัน จะได้ไม่ต้องมากดซ้ำทุกเส้น เส้นไหนต่างค่อยกดแก้เฉพาะเส้น */
@@ -2904,6 +2908,10 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
                 const amp = cableAmp(c.type, { method, group, ncond, core: coreKey, orient: coreKey });
                 const req = reqAmpFor(c);
                 const power = !!cabPlans[i];                      // สายกำลัง AC → ใช้ขั้นตอน ① ② ③
+                // สายกำลัง AC อื่น ๆ (จุดไมโคร ฯลฯ) + สายกราวด์ที่ไม่ได้คู่สาย DC — เป็นหัวข้อเหมือนกันหมด
+                const powHead = power && !invU && !isMcb;
+                const gndHead = isGnd && !power;
+                const headed = !!invU || isMcb || dcHead || commHead || powHead || gndHead;
                 const setsN = power ? (+c.sets || 1) : 1;
                 const bad = amp != null && req && amp * setsN < req;
                 const showHint = !!c.type && !isComm && !isDC && !isGnd;
@@ -3033,6 +3041,40 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
                       </React.Fragment>
                     );
                   })()}
+                  {powHead && (
+                    <div className="bq-cab-hd">
+                      <Icon name="bolt" size={12} color="currentColor" />
+                      {CAB_PT_TH[c.name] || c.name}
+                      {CAB_PT_TH[c.name] && <span>{c.name}</span>}
+                      <button className="bq-x" style={{ marginLeft: "auto", width: 30, height: 30, flex: "0 0 30px" }} onClick={() => delCab(i)} title="ลบสายเส้นนี้"><Icon name="x" size={14} /></button>
+                    </div>
+                  )}
+                  {gndHead && (
+                    <React.Fragment>
+                      <div className="bq-cab-hd">
+                        <Icon name="bolt" size={12} color="currentColor" />
+                        สายกราวด์
+                        <button className="bq-x" style={{ marginLeft: "auto", width: 30, height: 30, flex: "0 0 30px" }} onClick={() => delCab(i)} title="ลบสายกราวด์"><Icon name="x" size={14} /></button>
+                      </div>
+                      <div className="bq-cabx">
+                        <div className="bq-cabx-step">
+                          <span className="n">1</span><span className="lb">ชนิดสาย</span>
+                          <div style={{ width: isMobile ? "100%" : 260 }}>
+                            <Dropdown value={c.type} onChange={(v) => setCab(i, "type", v)} placeholder="— เลือกสายกราวด์ —" style={cabSelStyle}
+                              options={cableTypeOptions.filter((o) => /Y\/G|GROUND|กราว/i.test(o.value) || o.value === c.type)} />
+                          </div>
+                        </div>
+                        <div className="bq-cabx-step">
+                          <span className="n">2</span><span className="lb">ระยะสาย</span>
+                          <div style={{ width: 110 }}>
+                            <input type="number" style={Object.assign({}, numStyle, { padding: "7px 10px" })} value={c.length} placeholder="ม."
+                              onChange={(e) => setCab(i, "length", e.target.value)} />
+                          </div>
+                          <span className="hint">เมตร</span>
+                        </div>
+                      </div>
+                    </React.Fragment>
+                  )}
                   {commHead && (
                     <React.Fragment>
                       <div className="bq-cab-hd">
@@ -3076,7 +3118,7 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
                   </div>
                   )}
                   {/* บรรทัดสถานะ — ปกติเห็นแค่สรุปสั้น ๆ กดที่ป้ายเงื่อนไขถึงจะกางช่องแก้เฉพาะเส้น */}
-                  {!power && !dcHead && !commHead && (showHint || isDC || vd || isGnd) && (
+                  {!power && !dcHead && !commHead && !gndHead && (showHint || isDC || vd || isGnd) && (
                     <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap", fontSize: 11, lineHeight: 1.5 }}>
                       {isGnd && (
                         <span style={{ display: "inline-flex", alignItems: "center", gap: 4, fontWeight: 700, color: "var(--text-3)" }}>
