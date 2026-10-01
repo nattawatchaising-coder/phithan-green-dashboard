@@ -2716,8 +2716,8 @@ function BOQEditor({
     imc: "IMC",
     upvc: "uPVC",
     way: "Wireway",
-    tray: "รางบันได",
-    perf: "รางเจาะรู"
+    tray: "Ladder",
+    perf: "Perforated"
   };
   const isTrayK = k => TRAY_KEYS.indexOf(k) >= 0;
   const trayFit = (k, cables) => {
@@ -2763,90 +2763,43 @@ function BOQEditor({
     const trayCables = cables.map((x, k) => Object.assign({}, x, {
       qty: k === 0 ? x.qty * sets : x.qty
     }));
-    if (isTrayK(c.race)) return {
+    const tray = isTrayK(c.race);
+    const kind = tray || c.race === "imc" || c.race === "upvc" ? c.race : "";
+    const pool = tray ? window.BOQ.TRAY_KINDS[kind].sizes : RACE_POOL[kind || "imc"];
+    const auto = !kind ? null : tray ? trayFit(kind, trayCables) : raceFit(kind, cables);
+    const size = !kind ? "" : c.raceSize && pool.indexOf(c.raceSize) >= 0 ? c.raceSize : auto || pool[pool.length - 1];
+    const own = c.raceLen != null && c.raceLen !== "";
+    const len = own ? +c.raceLen || 0 : +c.length || 0;
+    const chk = !kind ? null : tray ? window.BOQ.trayCheck(size, trayCables, kind, pool) : window.BOQ.conduitCheck(size, cables, pool);
+    return {
       i,
       label: raceLabel(c),
       type: t,
       cables,
       trayCables,
       sets,
-      kind: c.race,
-      tray: true,
-      len: +c.length || 0,
-      cabLen: +c.length || 0,
-      noOd: !od || !sz
-    };
-    const kind = c.race === "imc" || c.race === "upvc" ? c.race : "";
-    const auto = kind ? raceFit(kind, cables) : null;
-    const pool = RACE_POOL[kind || "imc"];
-    const size = !kind ? "" : c.raceSize && pool.indexOf(c.raceSize) >= 0 ? c.raceSize : auto || pool[pool.length - 1];
-    const own = c.raceLen != null && c.raceLen !== "";
-    const len = own ? +c.raceLen || 0 : +c.length || 0;
-    return {
-      i,
-      label: raceLabel(c),
-      type: t,
-      cables,
-      sets,
       kind,
+      tray,
+      pool,
       size,
       auto,
       len,
       own,
       cabLen: +c.length || 0,
       noOd: !od || !sz,
-      chk: kind ? window.BOQ.conduitCheck(size, cables, pool) : null
+      chk,
+      ok: !!chk && chk.ok && (!tray || chk.widthOk)
     };
   });
-  const raceTrayCfg = b.raceTray || {};
-  const raceTrays = TRAY_KEYS.map(k => {
-    const mem = raceRuns.filter(r => r && r.tray && r.kind === k);
-    if (!mem.length) return null;
-    const cables = [];
-    mem.forEach(r => r.trayCables.forEach(x => {
-      if (!x.type || !x.size) return;
-      const e = cables.find(y => y.type === x.type && y.size === x.size);
-      if (e) e.qty += x.qty;else cables.push(Object.assign({}, x));
-    }));
-    const pool = window.BOQ.TRAY_KINDS[k].sizes,
-      cfg = raceTrayCfg[k] || {};
-    const auto = trayFit(k, cables);
-    const size = cfg.size && pool.indexOf(cfg.size) >= 0 ? cfg.size : auto || pool[pool.length - 1];
-    const maxLen = Math.max.apply(null, mem.map(r => r.len).concat([0]));
-    const own = cfg.len != null && cfg.len !== "";
-    const len = own ? +cfg.len || 0 : maxLen;
-    return {
-      k,
-      mem,
-      cables,
-      pool,
-      auto,
-      size,
-      len,
-      own,
-      maxLen,
-      chk: window.BOQ.trayCheck(size, cables, k, pool)
-    };
-  }).filter(Boolean);
-  const setRaceTray = (k, patch) => setB(p => {
-    const all = Object.assign({}, p.raceTray);
-    const x = Object.assign({}, all[k], patch);
-    Object.keys(patch).forEach(f => {
-      if (patch[f] == null || patch[f] === "") delete x[f];
-    });
-    all[k] = x;
-    return Object.assign({}, p, {
-      raceTray: all
-    });
-  });
-  const raceTrayRows = raceTrays.filter(g => g.len > 0).map(g => ({
-    k: g.k,
+  const raceTrayRows = raceRuns.filter(r => r && r.tray && r.len > 0 && r.size).map(r => ({
+    k: r.kind,
     row: {
-      size: g.size,
-      length: Math.round(g.len * 10) / 10,
-      cables: g.cables,
+      size: r.size,
+      length: Math.round(r.len * 10) / 10,
+      cables: r.trayCables,
       auto: 1,
-      lab: g.mem.map(r => r.label).join(" · ")
+      from: r.i,
+      lab: r.label
     }
   }));
   const raceTrayKey = JSON.stringify(raceTrayRows);
@@ -2856,12 +2809,15 @@ function BOQEditor({
       const nx = {};
       let changed = false;
       TRAY_KEYS.forEach(k => {
-        const old = (t0[k] || []).find(x => x.auto) || {};
-        const add = raceTrayRows.filter(r => r.k === k).map(r => Object.assign({}, r.row, old.hdg ? {
-          hdg: old.hdg
-        } : {}, old.rail ? {
-          rail: old.rail
-        } : {}));
+        const olds = (t0[k] || []).filter(x => x.auto);
+        const add = raceTrayRows.filter(r => r.k === k).map(r => {
+          const old = olds.find(x => x.from === r.row.from) || {};
+          return Object.assign({}, r.row, old.hdg ? {
+            hdg: old.hdg
+          } : {}, old.rail ? {
+            rail: old.rail
+          } : {});
+        });
         const out = add.concat((t0[k] || []).filter(x => !x.auto));
         if (JSON.stringify(out) !== JSON.stringify(t0[k] || [])) changed = true;
         nx[k] = out;
@@ -7537,7 +7493,7 @@ function BOQEditor({
       color: "var(--text-3)",
       marginBottom: 8
     }
-  }, "\u0E40\u0E25\u0E37\u0E2D\u0E01\u0E27\u0E48\u0E32\u0E41\u0E15\u0E48\u0E25\u0E30\u0E40\u0E2A\u0E49\u0E19\u0E23\u0E49\u0E2D\u0E22\u0E17\u0E48\u0E2D\u0E2B\u0E23\u0E37\u0E2D\u0E40\u0E14\u0E34\u0E19\u0E23\u0E32\u0E07\u0E2D\u0E30\u0E44\u0E23 \u2014 \u0E17\u0E48\u0E2D: \u0E02\u0E19\u0E32\u0E14\u0E08\u0E32\u0E01 % \u0E40\u0E15\u0E34\u0E21\u0E40\u0E15\u0E47\u0E21 (\u0E2A\u0E32\u0E22 1 \u0E0A\u0E38\u0E14 + \u0E01\u0E23\u0E32\u0E27\u0E14\u0E4C) \u0E40\u0E14\u0E34\u0E19\u0E02\u0E19\u0E32\u0E19\u0E01\u0E35\u0E48\u0E0A\u0E38\u0E14\u0E01\u0E47\u0E04\u0E34\u0E14\u0E01\u0E35\u0E48\u0E17\u0E48\u0E2D \xB7 \u0E23\u0E32\u0E07: \u0E40\u0E2A\u0E49\u0E19\u0E17\u0E35\u0E48\u0E40\u0E25\u0E37\u0E2D\u0E01\u0E23\u0E32\u0E07\u0E0A\u0E19\u0E34\u0E14\u0E40\u0E14\u0E35\u0E22\u0E27\u0E01\u0E31\u0E19\u0E40\u0E14\u0E34\u0E19\u0E23\u0E32\u0E07\u0E40\u0E14\u0E35\u0E22\u0E27\u0E01\u0E31\u0E19 \u0E02\u0E19\u0E32\u0E14\u0E04\u0E34\u0E14\u0E08\u0E32\u0E01\u0E2A\u0E32\u0E22\u0E17\u0E38\u0E01\u0E40\u0E2A\u0E49\u0E19\u0E23\u0E27\u0E21\u0E01\u0E31\u0E19"), React.createElement("div", {
+  }, "\u0E40\u0E25\u0E37\u0E2D\u0E01\u0E27\u0E48\u0E32\u0E41\u0E15\u0E48\u0E25\u0E30\u0E40\u0E2A\u0E49\u0E19\u0E23\u0E49\u0E2D\u0E22\u0E17\u0E48\u0E2D\u0E2B\u0E23\u0E37\u0E2D\u0E40\u0E14\u0E34\u0E19\u0E23\u0E32\u0E07\u0E2D\u0E30\u0E44\u0E23 \u2014 \u0E17\u0E48\u0E2D: \u0E02\u0E19\u0E32\u0E14\u0E08\u0E32\u0E01 % \u0E40\u0E15\u0E34\u0E21\u0E40\u0E15\u0E47\u0E21 (\u0E2A\u0E32\u0E22 1 \u0E0A\u0E38\u0E14 + \u0E01\u0E23\u0E32\u0E27\u0E14\u0E4C) \u0E40\u0E14\u0E34\u0E19\u0E02\u0E19\u0E32\u0E19\u0E01\u0E35\u0E48\u0E0A\u0E38\u0E14\u0E01\u0E47\u0E04\u0E34\u0E14\u0E01\u0E35\u0E48\u0E17\u0E48\u0E2D \xB7 \u0E23\u0E32\u0E07: \u0E41\u0E22\u0E01\u0E23\u0E32\u0E07\u0E15\u0E48\u0E2D\u0E40\u0E2A\u0E49\u0E19 \u0E17\u0E38\u0E01\u0E0A\u0E38\u0E14\u0E02\u0E2D\u0E07\u0E40\u0E2A\u0E49\u0E19\u0E19\u0E31\u0E49\u0E19\u0E27\u0E32\u0E07\u0E43\u0E19\u0E23\u0E32\u0E07\u0E40\u0E14\u0E35\u0E22\u0E27"), React.createElement("div", {
     style: {
       display: "flex",
       flexDirection: "column",
@@ -7590,12 +7546,7 @@ function BOQEditor({
       race: k,
       raceSize: null
     })
-  }, th)))), r.tray && React.createElement("span", {
-    style: {
-      fontSize: 11,
-      color: r.noOd ? "var(--tint-red-tx2)" : "var(--text-3)"
-    }
-  }, r.noOd ? "ยังไม่รู้ขนาดสาย — เลือกสายในหัวข้อสายไฟก่อน" : "เดินใน" + RACE_TH[r.kind] + "ร่วมกับเส้นอื่น — ขนาดรางดูที่กล่องด้านล่าง"), r.kind && !r.tray && React.createElement("div", {
+  }, th)))), r.kind && React.createElement("div", {
     style: {
       display: "grid",
       gridTemplateColumns: isMobile ? "minmax(0,1fr) 90px" : "minmax(0,240px) 110px minmax(0,1fr)",
@@ -7607,7 +7558,7 @@ function BOQEditor({
     onChange: v => setRace(r.i, {
       raceSize: v === r.auto ? null : v
     }),
-    options: RACE_POOL[r.kind].map(nm => ({
+    options: r.pool.map(nm => ({
       value: nm,
       label: nm.trim() + (nm === r.auto ? " (แนะนำ)" : "")
     }))
@@ -7616,7 +7567,7 @@ function BOQEditor({
     style: numStyle,
     value: r.own ? r.len : "",
     placeholder: (r.cabLen || 0) + " ม.",
-    title: "\u0E23\u0E30\u0E22\u0E30\u0E40\u0E14\u0E34\u0E19\u0E17\u0E48\u0E2D \u2014 \u0E40\u0E27\u0E49\u0E19\u0E27\u0E48\u0E32\u0E07 = \u0E40\u0E17\u0E48\u0E32\u0E23\u0E30\u0E22\u0E30\u0E2A\u0E32\u0E22",
+    title: (r.tray ? "ระยะเดินราง" : "ระยะเดินท่อ") + " — เว้นว่าง = เท่าระยะสาย",
     onChange: e => setRace(r.i, {
       raceLen: e.target.value
     })
@@ -7626,84 +7577,19 @@ function BOQEditor({
       fontSize: 11.5,
       fontWeight: 700,
       fontVariantNumeric: "tabular-nums",
-      color: r.noOd || !r.chk || !r.chk.ok ? "var(--tint-red-tx2)" : "var(--tint-green-tx)"
+      color: r.noOd || !r.ok ? "var(--tint-red-tx2)" : "var(--tint-green-tx)"
     }
-  }, r.noOd ? "ยังไม่รู้ขนาดสาย — เลือกสายในหัวข้อสายไฟก่อน" : !r.auto ? r.kind === "upvc" ? "uPVC ใหญ่สุดยังรับไม่ไหว — ใช้ IMC" : "IMC ใหญ่สุดยังรับไม่ไหว — แยกร้อยสองท่อ" : "เติมเต็ม " + r.chk.fillPct + "% / " + r.chk.limit + "% " + (r.chk.ok ? "✓" : "✗"), r.sets > 1 && React.createElement("span", {
+  }, r.noOd ? "ยังไม่รู้ขนาดสาย — เลือกสายในหัวข้อสายไฟก่อน" : !r.auto ? r.tray ? RACE_TH[r.kind] + " ใหญ่สุดยังรับไม่ไหว — แยกเดินสองราง" : r.kind === "upvc" ? "uPVC ใหญ่สุดยังรับไม่ไหว — ใช้ IMC" : "IMC ใหญ่สุดยังรับไม่ไหว — แยกร้อยสองท่อ" : "เติมเต็ม " + r.chk.fillPct + "% / " + r.chk.limit + "%" + (r.tray && window.BOQ.TRAY_KINDS[r.kind].oneLayer ? " · Ø รวม " + r.chk.odSum + "/" + r.chk.dim.w + " มม." : "") + (r.ok ? " ✓" : " ✗"), r.tray && r.auto && React.createElement("span", {
     style: {
       color: "var(--text-3)",
       fontWeight: 600
     }
-  }, " \xB7 ", r.sets, " \u0E17\u0E48\u0E2D \xD7 ", r.len, " \u0E21. = ", Math.round(r.len * r.sets * 10) / 10, " \u0E21."))))), raceTrays.map(g => {
-    const ok = g.chk.ok && g.chk.widthOk;
-    return React.createElement("div", {
-      key: "t" + g.k,
-      style: {
-        background: "var(--surface)",
-        boxShadow: "var(--shadow-sm)",
-        borderRadius: 12,
-        padding: "10px 12px",
-        display: "flex",
-        flexDirection: "column",
-        gap: 8
-      }
-    }, React.createElement("div", {
-      style: {
-        display: "flex",
-        alignItems: "baseline",
-        gap: 8,
-        flexWrap: "wrap"
-      }
-    }, React.createElement("span", {
-      style: {
-        fontSize: 12.5,
-        fontWeight: 800,
-        color: "var(--text-1)"
-      }
-    }, window.BOQ.TRAY_KINDS[g.k].label, " (\u0E23\u0E32\u0E07\u0E23\u0E48\u0E27\u0E21)"), React.createElement("span", {
-      style: {
-        fontSize: 11,
-        color: "var(--text-3)"
-      }
-    }, g.mem.map(r => r.label).join(" · "))), React.createElement("div", {
-      style: {
-        display: "grid",
-        gridTemplateColumns: isMobile ? "minmax(0,1fr) 90px" : "minmax(0,260px) 110px minmax(0,1fr)",
-        gap: 8,
-        alignItems: "center"
-      }
-    }, React.createElement(Dropdown, {
-      value: g.size,
-      onChange: v => setRaceTray(g.k, {
-        size: v === g.auto ? null : v
-      }),
-      options: g.pool.map(nm => ({
-        value: nm,
-        label: nm.trim() + (nm === g.auto ? " (แนะนำ)" : "")
-      }))
-    }), React.createElement("input", {
-      type: "number",
-      style: numStyle,
-      value: g.own ? g.len : "",
-      placeholder: g.maxLen + " ม.",
-      title: "\u0E23\u0E30\u0E22\u0E30\u0E40\u0E14\u0E34\u0E19\u0E23\u0E32\u0E07 \u2014 \u0E40\u0E27\u0E49\u0E19\u0E27\u0E48\u0E32\u0E07 = \u0E40\u0E17\u0E48\u0E32\u0E2A\u0E32\u0E22\u0E40\u0E2A\u0E49\u0E19\u0E17\u0E35\u0E48\u0E22\u0E32\u0E27\u0E2A\u0E38\u0E14\u0E43\u0E19\u0E23\u0E32\u0E07",
-      onChange: e => setRaceTray(g.k, {
-        len: e.target.value
-      })
-    }), React.createElement("span", {
-      style: {
-        gridColumn: isMobile ? "1 / -1" : "auto",
-        fontSize: 11.5,
-        fontWeight: 700,
-        fontVariantNumeric: "tabular-nums",
-        color: ok ? "var(--tint-green-tx)" : "var(--tint-red-tx2)"
-      }
-    }, !g.auto ? "ใหญ่สุดยังรับไม่ไหว — แยกเดินสองราง หรือใช้รางชนิดอื่น" : "เติมเต็ม " + g.chk.fillPct + "% / " + g.chk.limit + "%" + (window.BOQ.TRAY_KINDS[g.k].oneLayer ? " · Ø รวม " + g.chk.odSum + "/" + g.chk.dim.w + " มม." : "") + (ok ? " ✓" : " ✗"), React.createElement("span", {
-      style: {
-        color: "var(--text-3)",
-        fontWeight: 600
-      }
-    }, " \xB7 \u0E15\u0E31\u0E27\u0E04\u0E39\u0E13\u0E25\u0E14\u0E01\u0E23\u0E30\u0E41\u0E2A \xD7", g.chk.derate.toFixed(2)))));
-  }))), React.createElement("div", {
+  }, " \xB7 \u0E15\u0E31\u0E27\u0E04\u0E39\u0E13\u0E25\u0E14\u0E01\u0E23\u0E30\u0E41\u0E2A \xD7", r.chk.derate.toFixed(2)), !r.tray && r.sets > 1 && React.createElement("span", {
+    style: {
+      color: "var(--text-3)",
+      fontWeight: 600
+    }
+  }, " \xB7 ", r.sets, " \u0E17\u0E48\u0E2D \xD7 ", r.len, " \u0E21. = ", Math.round(r.len * r.sets * 10) / 10, " \u0E21."))))))), React.createElement("div", {
     style: {
       display: "flex",
       flexDirection: "column",

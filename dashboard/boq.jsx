@@ -1547,10 +1547,10 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
     return CAB_PT_TH[n.toUpperCase()] || n;
   };
   const raceFit = (k, cables) => RACE_POOL[k].find((nm) => window.BOQ.conduitCheck(nm, cables, RACE_POOL[k]).ok) || null;
-  /* รางไฟ — สายทุกเส้นที่เลือกรางชนิดเดียวกันเดินรางเดียวกัน (รางเป็นทางร่วม ไม่ใช่ทางใครทางมัน)
-     ขนาดรางคิดจากสายทุกเส้นรวมกัน · ความยาว = ระยะสายเส้นที่ยาวสุดในกลุ่ม · แก้ขนาด/ระยะได้ที่ b.raceTray[ชนิด] */
+  /* รางไฟ — แยกรางต่อเส้นสาย (แบบเดียวกับท่อ) · ทุกชุดที่เดินขนานของเส้นนั้นวางในรางเดียว + กราวด์
+     ขนาดเล็กสุดที่ผ่านทั้ง % เติมเต็ม และ (รางเปิด) วางชั้นเดียวได้ */
   const TRAY_KEYS = window.BOQ.TRAY_KIND_KEYS;
-  const RACE_TH = { imc: "IMC", upvc: "uPVC", way: "Wireway", tray: "รางบันได", perf: "รางเจาะรู" };
+  const RACE_TH = { imc: "IMC", upvc: "uPVC", way: "Wireway", tray: "Ladder", perf: "Perforated" };
   const isTrayK = (k) => TRAY_KEYS.indexOf(k) >= 0;
   const trayFit = (k, cables) => {
     const pool = window.BOQ.TRAY_KINDS[k].sizes;
@@ -1573,51 +1573,31 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
     }
     // ในราง: ทุกชุดที่เดินขนานวางอยู่ในรางเดียวกัน (กราวด์ 1 เส้นต่อเส้นทาง)
     const trayCables = cables.map((x, k) => Object.assign({}, x, { qty: k === 0 ? x.qty * sets : x.qty }));
-    if (isTrayK(c.race)) return { i, label: raceLabel(c), type: t, cables, trayCables, sets, kind: c.race, tray: true,
-      len: +c.length || 0, cabLen: +c.length || 0, noOd: !od || !sz };
-    const kind = c.race === "imc" || c.race === "upvc" ? c.race : "";
-    const auto = kind ? raceFit(kind, cables) : null;
-    const pool = RACE_POOL[kind || "imc"];
+    const tray = isTrayK(c.race);
+    const kind = tray || c.race === "imc" || c.race === "upvc" ? c.race : "";
+    const pool = tray ? window.BOQ.TRAY_KINDS[kind].sizes : RACE_POOL[kind || "imc"];
+    const auto = !kind ? null : tray ? trayFit(kind, trayCables) : raceFit(kind, cables);
     const size = !kind ? "" : (c.raceSize && pool.indexOf(c.raceSize) >= 0 ? c.raceSize : auto || pool[pool.length - 1]);
     const own = c.raceLen != null && c.raceLen !== "";
     const len = own ? +c.raceLen || 0 : +c.length || 0;
-    return { i, label: raceLabel(c), type: t, cables, sets, kind, size, auto, len, own, cabLen: +c.length || 0,
-      noOd: !od || !sz, chk: kind ? window.BOQ.conduitCheck(size, cables, pool) : null };
+    const chk = !kind ? null : tray ? window.BOQ.trayCheck(size, trayCables, kind, pool) : window.BOQ.conduitCheck(size, cables, pool);
+    return { i, label: raceLabel(c), type: t, cables, trayCables, sets, kind, tray, pool, size, auto, len, own, cabLen: +c.length || 0,
+      noOd: !od || !sz, chk, ok: !!chk && chk.ok && (!tray || chk.widthOk) };
   });
-  const raceTrayCfg = b.raceTray || {};
-  const raceTrays = TRAY_KEYS.map((k) => {
-    const mem = raceRuns.filter((r) => r && r.tray && r.kind === k);
-    if (!mem.length) return null;
-    const cables = [];
-    mem.forEach((r) => r.trayCables.forEach((x) => {
-      if (!x.type || !x.size) return;
-      const e = cables.find((y) => y.type === x.type && y.size === x.size);
-      if (e) e.qty += x.qty; else cables.push(Object.assign({}, x));
-    }));
-    const pool = window.BOQ.TRAY_KINDS[k].sizes, cfg = raceTrayCfg[k] || {};
-    const auto = trayFit(k, cables);
-    const size = cfg.size && pool.indexOf(cfg.size) >= 0 ? cfg.size : auto || pool[pool.length - 1];
-    const maxLen = Math.max.apply(null, mem.map((r) => r.len).concat([0]));
-    const own = cfg.len != null && cfg.len !== "";
-    const len = own ? +cfg.len || 0 : maxLen;
-    return { k, mem, cables, pool, auto, size, len, own, maxLen, chk: window.BOQ.trayCheck(size, cables, k, pool) };
-  }).filter(Boolean);
-  const setRaceTray = (k, patch) => setB((p) => {
-    const all = Object.assign({}, p.raceTray); const x = Object.assign({}, all[k], patch);
-    Object.keys(patch).forEach((f) => { if (patch[f] == null || patch[f] === "") delete x[f]; });
-    all[k] = x; return Object.assign({}, p, { raceTray: all });
-  });
-  const raceTrayRows = raceTrays.filter((g) => g.len > 0).map((g) => ({ k: g.k,
-    row: { size: g.size, length: Math.round(g.len * 10) / 10, cables: g.cables, auto: 1, lab: g.mem.map((r) => r.label).join(" · ") } }));
+  const raceTrayRows = raceRuns.filter((r) => r && r.tray && r.len > 0 && r.size).map((r) => ({ k: r.kind,
+    row: { size: r.size, length: Math.round(r.len * 10) / 10, cables: r.trayCables, auto: 1, from: r.i, lab: r.label } }));
   const raceTrayKey = JSON.stringify(raceTrayRows);
   React.useEffect(() => {
     setB((p) => {
       const t0 = Object.assign({}, TRAY_DEF, p.tray);
       const nx = {}; let changed = false;
       TRAY_KEYS.forEach((k) => {
-        const old = (t0[k] || []).find((x) => x.auto) || {};
-        // ชุบ HDG / ยึดบน Rail กดที่แถวรางด้านล่าง — คิดแถวใหม่แล้วต้องติดไปด้วย
-        const add = raceTrayRows.filter((r) => r.k === k).map((r) => Object.assign({}, r.row, old.hdg ? { hdg: old.hdg } : {}, old.rail ? { rail: old.rail } : {}));
+        const olds = (t0[k] || []).filter((x) => x.auto);
+        // ชุบ HDG / ยึดบน Rail กดที่แถวรางด้านล่าง — คิดแถวใหม่แล้วต้องติดไปด้วย (จับคู่ด้วยเส้นสายต้นทาง)
+        const add = raceTrayRows.filter((r) => r.k === k).map((r) => {
+          const old = olds.find((x) => x.from === r.row.from) || {};
+          return Object.assign({}, r.row, old.hdg ? { hdg: old.hdg } : {}, old.rail ? { rail: old.rail } : {});
+        });
         const out = add.concat((t0[k] || []).filter((x) => !x.auto));
         if (JSON.stringify(out) !== JSON.stringify(t0[k] || [])) changed = true;
         nx[k] = out;
@@ -3521,7 +3501,7 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
               <div style={{ marginBottom: 18 }}>
                 <div style={{ fontSize: 11.5, fontWeight: 700, color: "var(--text-2)", marginBottom: 3 }}>เดินท่อ / รางตามเส้นสายไฟ</div>
                 <div className="bq-hint" style={{ fontSize: 10.5, color: "var(--text-3)", marginBottom: 8 }}>
-                  เลือกว่าแต่ละเส้นร้อยท่อหรือเดินรางอะไร — ท่อ: ขนาดจาก % เติมเต็ม (สาย 1 ชุด + กราวด์) เดินขนานกี่ชุดก็คิดกี่ท่อ · ราง: เส้นที่เลือกรางชนิดเดียวกันเดินรางเดียวกัน ขนาดคิดจากสายทุกเส้นรวมกัน
+                  เลือกว่าแต่ละเส้นร้อยท่อหรือเดินรางอะไร — ท่อ: ขนาดจาก % เติมเต็ม (สาย 1 ชุด + กราวด์) เดินขนานกี่ชุดก็คิดกี่ท่อ · ราง: แยกรางต่อเส้น ทุกชุดของเส้นนั้นวางในรางเดียว
                 </div>
                 <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
                   {raceRuns.filter(Boolean).map((r) => (
@@ -3538,53 +3518,26 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
                           ))}
                         </span>
                       </div>
-                      {r.tray && (
-                        <span style={{ fontSize: 11, color: r.noOd ? "var(--tint-red-tx2)" : "var(--text-3)" }}>
-                          {r.noOd ? "ยังไม่รู้ขนาดสาย — เลือกสายในหัวข้อสายไฟก่อน" : "เดินใน" + RACE_TH[r.kind] + "ร่วมกับเส้นอื่น — ขนาดรางดูที่กล่องด้านล่าง"}
-                        </span>
-                      )}
-                      {r.kind && !r.tray && (
+                      {r.kind && (
                         <div style={{ display: "grid", gridTemplateColumns: isMobile ? "minmax(0,1fr) 90px" : "minmax(0,240px) 110px minmax(0,1fr)", gap: 8, alignItems: "center" }}>
                           <Dropdown value={r.size} onChange={(v) => setRace(r.i, { raceSize: v === r.auto ? null : v })}
-                            options={RACE_POOL[r.kind].map((nm) => ({ value: nm, label: nm.trim() + (nm === r.auto ? " (แนะนำ)" : "") }))} />
+                            options={r.pool.map((nm) => ({ value: nm, label: nm.trim() + (nm === r.auto ? " (แนะนำ)" : "") }))} />
                           <input type="number" style={numStyle} value={r.own ? r.len : ""} placeholder={(r.cabLen || 0) + " ม."}
-                            title="ระยะเดินท่อ — เว้นว่าง = เท่าระยะสาย"
+                            title={(r.tray ? "ระยะเดินราง" : "ระยะเดินท่อ") + " — เว้นว่าง = เท่าระยะสาย"}
                             onChange={(e) => setRace(r.i, { raceLen: e.target.value })} />
                           <span style={{ gridColumn: isMobile ? "1 / -1" : "auto", fontSize: 11.5, fontWeight: 700, fontVariantNumeric: "tabular-nums",
-                            color: r.noOd || !r.chk || !r.chk.ok ? "var(--tint-red-tx2)" : "var(--tint-green-tx)" }}>
+                            color: r.noOd || !r.ok ? "var(--tint-red-tx2)" : "var(--tint-green-tx)" }}>
                             {r.noOd ? "ยังไม่รู้ขนาดสาย — เลือกสายในหัวข้อสายไฟก่อน"
-                              : !r.auto ? (r.kind === "upvc" ? "uPVC ใหญ่สุดยังรับไม่ไหว — ใช้ IMC" : "IMC ใหญ่สุดยังรับไม่ไหว — แยกร้อยสองท่อ")
-                              : "เติมเต็ม " + r.chk.fillPct + "% / " + r.chk.limit + "% " + (r.chk.ok ? "✓" : "✗")}
-                            {r.sets > 1 && <span style={{ color: "var(--text-3)", fontWeight: 600 }}> · {r.sets} ท่อ × {r.len} ม. = {Math.round(r.len * r.sets * 10) / 10} ม.</span>}
+                              : !r.auto ? (r.tray ? RACE_TH[r.kind] + " ใหญ่สุดยังรับไม่ไหว — แยกเดินสองราง" : r.kind === "upvc" ? "uPVC ใหญ่สุดยังรับไม่ไหว — ใช้ IMC" : "IMC ใหญ่สุดยังรับไม่ไหว — แยกร้อยสองท่อ")
+                              : "เติมเต็ม " + r.chk.fillPct + "% / " + r.chk.limit + "%"
+                                + (r.tray && window.BOQ.TRAY_KINDS[r.kind].oneLayer ? " · Ø รวม " + r.chk.odSum + "/" + r.chk.dim.w + " มม." : "") + (r.ok ? " ✓" : " ✗")}
+                            {r.tray && r.auto && <span style={{ color: "var(--text-3)", fontWeight: 600 }}> · ตัวคูณลดกระแส ×{r.chk.derate.toFixed(2)}</span>}
+                            {!r.tray && r.sets > 1 && <span style={{ color: "var(--text-3)", fontWeight: 600 }}> · {r.sets} ท่อ × {r.len} ม. = {Math.round(r.len * r.sets * 10) / 10} ม.</span>}
                           </span>
                         </div>
                       )}
                     </div>
                   ))}
-                  {raceTrays.map((g) => {
-                    const ok = g.chk.ok && g.chk.widthOk;
-                    return (
-                      <div key={"t" + g.k} style={{ background: "var(--surface)", boxShadow: "var(--shadow-sm)", borderRadius: 12, padding: "10px 12px", display: "flex", flexDirection: "column", gap: 8 }}>
-                        <div style={{ display: "flex", alignItems: "baseline", gap: 8, flexWrap: "wrap" }}>
-                          <span style={{ fontSize: 12.5, fontWeight: 800, color: "var(--text-1)" }}>{window.BOQ.TRAY_KINDS[g.k].label} (รางร่วม)</span>
-                          <span style={{ fontSize: 11, color: "var(--text-3)" }}>{g.mem.map((r) => r.label).join(" · ")}</span>
-                        </div>
-                        <div style={{ display: "grid", gridTemplateColumns: isMobile ? "minmax(0,1fr) 90px" : "minmax(0,260px) 110px minmax(0,1fr)", gap: 8, alignItems: "center" }}>
-                          <Dropdown value={g.size} onChange={(v) => setRaceTray(g.k, { size: v === g.auto ? null : v })}
-                            options={g.pool.map((nm) => ({ value: nm, label: nm.trim() + (nm === g.auto ? " (แนะนำ)" : "") }))} />
-                          <input type="number" style={numStyle} value={g.own ? g.len : ""} placeholder={g.maxLen + " ม."}
-                            title="ระยะเดินราง — เว้นว่าง = เท่าสายเส้นที่ยาวสุดในราง"
-                            onChange={(e) => setRaceTray(g.k, { len: e.target.value })} />
-                          <span style={{ gridColumn: isMobile ? "1 / -1" : "auto", fontSize: 11.5, fontWeight: 700, fontVariantNumeric: "tabular-nums",
-                            color: ok ? "var(--tint-green-tx)" : "var(--tint-red-tx2)" }}>
-                            {!g.auto ? "ใหญ่สุดยังรับไม่ไหว — แยกเดินสองราง หรือใช้รางชนิดอื่น"
-                              : "เติมเต็ม " + g.chk.fillPct + "% / " + g.chk.limit + "%" + (window.BOQ.TRAY_KINDS[g.k].oneLayer ? " · Ø รวม " + g.chk.odSum + "/" + g.chk.dim.w + " มม." : "") + (ok ? " ✓" : " ✗")}
-                            <span style={{ color: "var(--text-3)", fontWeight: 600 }}> · ตัวคูณลดกระแส ×{g.chk.derate.toFixed(2)}</span>
-                          </span>
-                        </div>
-                      </div>
-                    );
-                  })}
                 </div>
               </div>
             )}
