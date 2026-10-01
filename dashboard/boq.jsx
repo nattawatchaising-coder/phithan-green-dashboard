@@ -2458,7 +2458,7 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
                 background: rail3dSame ? "var(--primary-soft)" : "var(--tint-blue-bg, rgba(37,99,235,.08))", borderRadius: 11 }}>
                 <Icon name={rail3dSame ? "check" : "grid"} size={15} color={rail3dSame ? "var(--primary-dark)" : "#2563EB"} />
                 <span style={{ fontSize: 12.5, fontWeight: 700, color: rail3dSame ? "var(--primary-dark)" : "#1D4ED8" }}>
-                  {rail3dSame ? "ตรงกับแบบ 3D แล้ว" : "แบบ 3D วางไว้"} {rail3d.total} แผง · {rail3d.rows.map((r) => (r.orient === "landscape" ? "แนวนอน " : "แนวตั้ง ") + r.panels + " แผง × " + r.count + " แถว").join(" · ")}
+                  {rail3dSame ? "ตรงกับแบบ 3D แล้ว" : "แบบ 3D วางไว้"} {rail3d.total} แผง · {rail3d.rows.map((r) => (r.orient === "landscape" ? "แนวนอน " : "แนวตั้ง ") + r.panels + " แผง/ราง × " + r.count + " แนว").join(" · ")}
                   {rail3d.total !== +result.meta.panelCount ? " (งานนี้ตั้งไว้ " + result.meta.panelCount + " แผง)" : ""}
                 </span>
                 {!rail3dSame && (
@@ -2472,9 +2472,9 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
             <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
               {b.rows.map((r, i) => (
                 <div key={i} style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr 1fr 1fr 40px" : "1fr 1fr 150px 40px", gap: 8, alignItems: "center" }}>
-                  <Field label={i === 0 ? "แผง/แถว" : ""}><input type="number" style={numStyle} value={r.panels} onChange={(e) => setRow(i, "panels", e.target.value)} /></Field>
-                  <Field label={i === 0 ? "จำนวนแถว" : ""}><input type="number" min="0" style={numStyle} value={r.count} onChange={(e) => setRow(i, "count", e.target.value)} /></Field>
-                  {/* แนวการวางแผง — แนวนอนเอาด้านยาวเรียงบนราง รางต่อแถวยาวขึ้นเกือบเท่าตัว */}
+                  <Field label={i === 0 ? "แผง/แนวราง" : ""}><input type="number" style={numStyle} value={r.panels} onChange={(e) => setRow(i, "panels", e.target.value)} /></Field>
+                  <Field label={i === 0 ? "จำนวนแนวราง" : ""}><input type="number" min="0" style={numStyle} value={r.count} onChange={(e) => setRow(i, "count", e.target.value)} /></Field>
+                  {/* แนวการวางแผง — บอกทิศราง: แนวตั้งนับตามแถว แนวนอนนับตามคอลัมน์ (ขึ้นตามลาด) */}
                   <Field label={i === 0 ? "แนวแผง" : ""}><Dropdown value={r.orient === "landscape" ? "landscape" : "portrait"} onChange={(v) => setRow(i, "orient", v)}
                     options={[{ value: "portrait", label: "แนวตั้ง" }, { value: "landscape", label: "แนวนอน" }]} /></Field>
                   <button onClick={() => delRow(i)} title="ลบแถว" style={{ height: 40, marginTop: i === 0 ? 18 : 0, background: "#EF444414", border: "none", color: "#EF4444", borderRadius: 9, cursor: "pointer", display: "grid", placeItems: "center" }}><Icon name="x" size={15} /></button>

@@ -260,43 +260,46 @@ function p3PlanSummary(saved) {
   };
 }
 
-/* การจัดวางแผงเป็น "แผง/แถว × จำนวนแถว" สำหรับ BOQ (ถอดราง/แคล้ม/L-FEET)
-   ไล่ทุกหลังคา ทุกบล็อก ทุกผืน แล้วแยกแผงตามแถว (คีย์แผง = …แถว_คอลัมน์)
-   แถวไหนมีแผงที่แตะเว้นไว้ตรงกลาง ต้องตัดเป็นสองช่วง เพราะหน้างานจะเป็นรางคนละเส้น
-   แยกแนวตั้ง/แนวนอนด้วย — แผงแนวนอนเอาด้านยาวเรียงบนราง รางต่อแถวยาวกว่าเกือบเท่าตัว
-   คืน { rows:[{panels,count,orient}] เรียงช่วงยาวก่อน, total } หรือ null ถ้ายังไม่มีแผง */
+/* การจัดวางแผงเป็น "แผง/ราง × จำนวนแนวราง" สำหรับ BOQ (ถอดราง/แคล้ม/L-FEET)
+   รางวิ่งตั้งฉากกับด้านยาวของแผงเสมอ (แคล้มจับด้านยาว) ความยาวรางต่อแผงจึงเท่าด้านสั้นทั้งสองแบบ
+   · แผงแนวตั้ง → รางวิ่งตามแถว (ซ้าย–ขวา) นับแผงที่เรียงกันในแถวเดียว
+   · แผงแนวนอน → รางวิ่งตามคอลัมน์ (ขึ้นตามลาด) นับแผงที่เรียงกันในคอลัมน์เดียว
+   ตัดแนวรางเมื่อ: ข้ามฝั่งหลังคา (จั่ว/ปั้นหยาแต่ละผืน) · ข้ามชุดแผง · ข้ามทางเดินของชุดที่แบ่งกลุ่มย่อย
+   · มีแผงที่แตะเว้นไว้ตรงกลาง — หน้างานคือรางคนละเส้นทั้งหมด
+   คืน { rows:[{panels,count,orient}] เรียงแนวยาวก่อน, total } หรือ null ถ้ายังไม่มีแผง */
 function p3RailRows(saved) {
   if (!saved || !Array.isArray(saved.roofs) || !saved.roofs.length) return null;
-  const runs = {};   // "แนว|ความยาวช่วง" → จำนวนช่วง
+  const runs = {};   // "แนวแผง|แผงต่อแนวราง" → จำนวนแนวราง
   let total = 0;
   saved.roofs.forEach((roof, ri) => {
     let res = null;
     try { res = p3Panels(roof); } catch (e) { res = null; }
     if (!res) return;
-    const orientOf = (bi) => ((res.blocks || [])[bi || 0] || {}).orient === "landscape" ? "landscape" : "portrait";
-    const byRow = {};
+    const lines = {};
     (res.list || []).forEach((p) => {
       if (!p || p.skip || p.slot) return;
-      const mm = /^(.*)_(-?\d+)$/.exec(String(p.key || ""));
+      const mm = /^(.*?)(-?\d+)_(-?\d+)$/.exec(String(p.key || ""));
       if (!mm) return;
-      const rk = ri + "|" + (p.blk || 0) + "|" + (p.side || "") + "|" + mm[1];
-      (byRow[rk] = byRow[rk] || []).push(+mm[2]);
+      const B = (res.blocks || [])[p.blk || 0] || {};
+      const land = B.orient === "landscape";
+      const r = +mm[2], c = +mm[3];
+      const along = land ? r : c, across = land ? c : r;
+      const lk = ri + "|" + (p.blk || 0) + "|" + (p.side || "") + "|" + mm[1] + "|" + across;
+      (lines[lk] = lines[lk] || { land, B, pos: [] }).pos.push(along);
     });
-    Object.keys(byRow).forEach((rk) => {
-      const cs = byRow[rk].sort((a, b) => a - b);
-      const bi = +rk.split("|")[1];
-      const ori = orientOf(bi);
-      /* ชุดที่แบ่งกลุ่มย่อย (คอลัมน์/กลุ่ม + ทางเดิน) — ข้ามทางเดินคือรางคนละชุด ต้องตัดแถวตรงนั้น
-         ไม่งั้นงานที่วางเป็นโต๊ะ 2 แผงเรียงกันยาวทั้งหลังคา จะกลายเป็นแถวเดียวยาว 40+ แผง */
-      const B = (res.blocks || [])[bi] || {};
-      const gc = +B.gc > 0 && +B.gg > 0 ? +B.gc : 0;
-      const grpOf = (c) => (gc ? Math.floor(c / gc) : 0);
+    Object.keys(lines).forEach((lk) => {
+      const L = lines[lk], B = L.B;
+      const ps = L.pos.sort((a, b) => a - b);
+      // ทางเดินตามทิศราง: แนวตั้งตัดทุก gc คอลัมน์ · แนวนอนตัดทุก gr แถว (เฉพาะตอนเว้นทางเดินจริง)
+      const g = +B.gg > 0 ? +(L.land ? B.gr : B.gc) || 0 : 0;
+      const grp = (x) => (g > 0 ? Math.floor(x / g) : 0);
+      const ori = L.land ? "landscape" : "portrait";
       let len = 1;
-      for (let i = 1; i <= cs.length; i++) {
-        if (i < cs.length && cs[i] === cs[i - 1] + 1 && grpOf(cs[i]) === grpOf(cs[i - 1])) { len++; continue; }
-        if (i < cs.length && cs[i] === cs[i - 1]) continue;   // ช่องซ้ำ (ไม่ควรเกิด) ไม่นับสองรอบ
-        const rkey = ori + "|" + len;
-        runs[rkey] = (runs[rkey] || 0) + 1; total += len; len = 1;
+      for (let i = 1; i <= ps.length; i++) {
+        if (i < ps.length && ps[i] === ps[i - 1]) continue;   // ช่องซ้ำ (ไม่ควรเกิด) ไม่นับสองรอบ
+        if (i < ps.length && ps[i] === ps[i - 1] + 1 && grp(ps[i]) === grp(ps[i - 1])) { len++; continue; }
+        const k = ori + "|" + len;
+        runs[k] = (runs[k] || 0) + 1; total += len; len = 1;
       }
     });
   });

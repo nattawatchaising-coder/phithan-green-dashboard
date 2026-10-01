@@ -512,31 +512,40 @@ function p3RailRows(saved) {
       res = null;
     }
     if (!res) return;
-    const orientOf = bi => ((res.blocks || [])[bi || 0] || {}).orient === "landscape" ? "landscape" : "portrait";
-    const byRow = {};
+    const lines = {};
     (res.list || []).forEach(p => {
       if (!p || p.skip || p.slot) return;
-      const mm = /^(.*)_(-?\d+)$/.exec(String(p.key || ""));
+      const mm = /^(.*?)(-?\d+)_(-?\d+)$/.exec(String(p.key || ""));
       if (!mm) return;
-      const rk = ri + "|" + (p.blk || 0) + "|" + (p.side || "") + "|" + mm[1];
-      (byRow[rk] = byRow[rk] || []).push(+mm[2]);
+      const B = (res.blocks || [])[p.blk || 0] || {};
+      const land = B.orient === "landscape";
+      const r = +mm[2],
+        c = +mm[3];
+      const along = land ? r : c,
+        across = land ? c : r;
+      const lk = ri + "|" + (p.blk || 0) + "|" + (p.side || "") + "|" + mm[1] + "|" + across;
+      (lines[lk] = lines[lk] || {
+        land,
+        B,
+        pos: []
+      }).pos.push(along);
     });
-    Object.keys(byRow).forEach(rk => {
-      const cs = byRow[rk].sort((a, b) => a - b);
-      const bi = +rk.split("|")[1];
-      const ori = orientOf(bi);
-      const B = (res.blocks || [])[bi] || {};
-      const gc = +B.gc > 0 && +B.gg > 0 ? +B.gc : 0;
-      const grpOf = c => gc ? Math.floor(c / gc) : 0;
+    Object.keys(lines).forEach(lk => {
+      const L = lines[lk],
+        B = L.B;
+      const ps = L.pos.sort((a, b) => a - b);
+      const g = +B.gg > 0 ? +(L.land ? B.gr : B.gc) || 0 : 0;
+      const grp = x => g > 0 ? Math.floor(x / g) : 0;
+      const ori = L.land ? "landscape" : "portrait";
       let len = 1;
-      for (let i = 1; i <= cs.length; i++) {
-        if (i < cs.length && cs[i] === cs[i - 1] + 1 && grpOf(cs[i]) === grpOf(cs[i - 1])) {
+      for (let i = 1; i <= ps.length; i++) {
+        if (i < ps.length && ps[i] === ps[i - 1]) continue;
+        if (i < ps.length && ps[i] === ps[i - 1] + 1 && grp(ps[i]) === grp(ps[i - 1])) {
           len++;
           continue;
         }
-        if (i < cs.length && cs[i] === cs[i - 1]) continue;
-        const rkey = ori + "|" + len;
-        runs[rkey] = (runs[rkey] || 0) + 1;
+        const k = ori + "|" + len;
+        runs[k] = (runs[k] || 0) + 1;
         total += len;
         len = 1;
       }

@@ -1414,12 +1414,9 @@
       const pr = +r.panels || 0, nr = +r.count || 0;
       if (!pr || !nr) return;
       rowsSum += pr * nr;
-      /* แนวตั้ง = ด้านสั้นเรียงบนราง · แนวนอน = ด้านยาวเรียงบนราง
-         ด้านยาวยังไม่ได้กรอกในคลัง → ประมาณจากด้านสั้น (สัดส่วนแผง 72 เซลล์ ≈ 2.01 เท่า) */
-      const along = r.orient === "landscape"
-        ? (+panel.length > 0 ? +panel.length : Math.round(panel.width * 2.009 * 1000) / 1000)
-        : panel.width;
-      const lenRow = (((along + gap) * pr) - gap) + endSpare;     // ความยาว/แถว
+      /* รางวิ่งตั้งฉากกับด้านยาวของแผงเสมอ (แคล้มจับด้านยาว) — แนวตั้งรางวิ่งตามแถว แนวนอนรางวิ่งตามคอลัมน์
+         ทั้งสองแบบแผงเรียงบนรางด้วยด้านสั้น "แผง/แถว" ของแนวนอนจึงหมายถึงแผงต่อแนวราง (ขึ้นตามลาด) */
+      const lenRow = (((panel.width + gap) * pr) - gap) + endSpare;     // ความยาว/แถว
       const tonRow = Math.ceil(lenRow / railSize);                       // ปัดเศษ ท่อน/แถว (ROUNDUP)
       const railx2 = tonRow * 2;                                         // ราง 2 ชั้น
       railSum     += nr * railx2;

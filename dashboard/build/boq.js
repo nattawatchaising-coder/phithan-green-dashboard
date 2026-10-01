@@ -5431,7 +5431,7 @@ function BOQEditor({
       fontWeight: 700,
       color: rail3dSame ? "var(--primary-dark)" : "#1D4ED8"
     }
-  }, rail3dSame ? "ตรงกับแบบ 3D แล้ว" : "แบบ 3D วางไว้", " ", rail3d.total, " \u0E41\u0E1C\u0E07 \xB7 ", rail3d.rows.map(r => (r.orient === "landscape" ? "แนวนอน " : "แนวตั้ง ") + r.panels + " แผง × " + r.count + " แถว").join(" · "), rail3d.total !== +result.meta.panelCount ? " (งานนี้ตั้งไว้ " + result.meta.panelCount + " แผง)" : ""), !rail3dSame && React.createElement("button", {
+  }, rail3dSame ? "ตรงกับแบบ 3D แล้ว" : "แบบ 3D วางไว้", " ", rail3d.total, " \u0E41\u0E1C\u0E07 \xB7 ", rail3d.rows.map(r => (r.orient === "landscape" ? "แนวนอน " : "แนวตั้ง ") + r.panels + " แผง/ราง × " + r.count + " แนว").join(" · "), rail3d.total !== +result.meta.panelCount ? " (งานนี้ตั้งไว้ " + result.meta.panelCount + " แผง)" : ""), !rail3dSame && React.createElement("button", {
     onClick: applyRail3d,
     style: {
       marginLeft: "auto",
@@ -5463,14 +5463,14 @@ function BOQEditor({
       alignItems: "center"
     }
   }, React.createElement(Field, {
-    label: i === 0 ? "แผง/แถว" : ""
+    label: i === 0 ? "แผง/แนวราง" : ""
   }, React.createElement("input", {
     type: "number",
     style: numStyle,
     value: r.panels,
     onChange: e => setRow(i, "panels", e.target.value)
   })), React.createElement(Field, {
-    label: i === 0 ? "จำนวนแถว" : ""
+    label: i === 0 ? "จำนวนแนวราง" : ""
   }, React.createElement("input", {
     type: "number",
     min: "0",
