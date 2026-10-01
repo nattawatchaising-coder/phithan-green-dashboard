@@ -930,6 +930,12 @@
   }
 
   /* รวมบรรทัดชื่อซ้ำเป็นบรรทัดเดียว — เช่น พุ๊กเหล็ก ที่ถอดมาจากรางหลายขนาด/หลายจุด */
+  /* ของที่ซื้อเป็นกล่อง/ม้วน แต่ถอดเป็นเมตร → ชื่อกล่องในคลัง + ความยาวต่อกล่อง (ใช้ตอนยังไม่ตั้งราคาต่อเมตร)
+     ดูจากชื่อ เพราะ mergeItems/ตัวแก้จำนวนสร้างแถวใหม่ ฟิลด์เสริมบนแถวไม่รอด */
+  function boxOfMeter(name) {
+    const m = String(name || "").match(/^ท่ออ่อนเหล็กกันน้ำ (?!30m)(.+)$/);
+    return m ? { name: "ท่ออ่อนเหล็กกันน้ำ 30m. " + m[1], len: 30 } : null;
+  }
   function mergeItems(rows) {
     const order = [], map = {};
     (rows || []).forEach((r) => {
@@ -1350,7 +1356,7 @@
      ⚠ ใบที่ถอดไว้แล้วต้องไม่ขยับตามค่าตั้งต้นที่มาแก้ทีหลัง — ใบเสนอราคาที่ส่งลูกค้าไปแล้ว
        เปลี่ยนจำนวนเองไม่ได้ · กติกานั้นอยู่ใน mergeBOQ ไม่ใช่ที่นี่
      ══════════════════════════════════════════════════ */
-  const CONDUIT_SPARE_FIXED = { clamp: 10, bushing: 10, cchannel: 10, connector: 10, coupling: 10, upStraight: 10, upClamp: 10, upConnector: 10 };
+  const CONDUIT_SPARE_FIXED = { clamp: 10, bushing: 10, cchannel: 10, connector: 10, coupling: 10, upStraight: 10, upClamp: 10, upConnector: 10, flex: 10 };
 
   /* ── กฎคิดจำนวนอุปกรณ์ท่อ IMC — ตัวเลขทุกตัวตั้งค่าได้ที่หน้าคลังสินค้า ──
      เดิมกฎพวกนี้ฝังเป็นตัวเลขในสูตร แก้ได้แค่คนเขียนโค้ด ตอนนี้เป็นค่าตั้งต้นของบริษัท
@@ -1366,6 +1372,7 @@
     { key: "connPer",    acc: "connector", th: "คอนเนคเตอร์ ต่อท่อ 1 ท่อน",            unit: "ชิ้น/ท่อน", def: 1 },
     { key: "coupPer",    acc: "coupling",  th: "คุปปิ้ง ต่อท่อ 1 ท่อน",                 unit: "ชิ้น/ท่อน", def: 1 },
     { key: "coupPb",     acc: "coupling",  th: "คุปปิ้ง เพิ่มต่อ PULL BOX 1 ใบ",        unit: "ชิ้น/ใบ",  def: 2 },
+    { key: "flexPerConn", acc: "flex",     th: "ท่ออ่อน ต่อคอนเนคเตอร์ 1 ตัว",          unit: "ม./ตัว",  def: 0.5 },
   ];
   const IMC_RULE_DEF = {};
   IMC_RULE.forEach((r) => { IMC_RULE_DEF[r.key] = r.def; });
@@ -1820,7 +1827,9 @@
       const bushing = cqty("bushing", pipes, ir ? pipes * ir.bushingPer : 8 + pipes, cs.bushing);
       const connector = cqty("connector", pipes, ir ? pipes * ir.connPer : 10 + 2 * pbHdg, cs.connector);
       const coupling = cqty("coupling", pipes, ir ? pipes * ir.coupPer + pbHdg * ir.coupPb : pipes / 2 + connector, cs.coupling);
-      const flex = (flexMap[nm] != null && flexMap[nm] !== "") ? Math.round(+flexMap[nm] || 0) : 1; // ท่ออ่อน default 1 กล่อง/ขนาด
+      /* ท่ออ่อนคิดเป็นเมตร (เดิมเหมา 1 กล่อง 30 ม. ต่อขนาด ทั้งที่งานบ้านใช้แค่ไม่กี่เมตร)
+         = คอนเนคเตอร์ × ม./ตัว (กฎ flexPerConn ค่าตั้งต้น 0.5) + % เผื่อ · อย่างน้อย 1 ม. */
+      const flex = Math.max(1, cpct(connector * (ir ? ir.flexPerConn : IMC_RULE_DEF.flexPerConn), cs.flex != null && cs.flex !== "" ? cs.flex : CONDUIT_SPARE_FIXED.flex));
       totalClamp += clamp;
       totalImcPipes += pipes;
       race.push({ name: nm + " (3m/ท่อน)", qty: pipes, unit: "pcs" });
@@ -1828,7 +1837,8 @@
       race.push({ name: "บุชชิ่ง,ล็อกนัท IMC " + sz, qty: bushing, unit: "pcs" });
       race.push({ name: "คอนเนคเตอร์ท่ออ่อนกันน้ำ IMC " + sz, qty: connector, unit: "pcs" });
       race.push({ name: "คุปปิ้ง " + sz, qty: coupling, unit: "pcs" });
-      if (flex > 0) race.push({ name: "ท่ออ่อนเหล็กกันน้ำ 30m. " + sz, qty: flex, unit: "box" });
+      // ราคา: ตั้งราคาต่อเมตรในคลังได้ · ยังไม่ตั้ง = ราคากล่อง 30 ม. ÷ 30
+      race.push({ name: "ท่ออ่อนเหล็กกันน้ำ " + sz, qty: flex, unit: "M" });
     });
     if (imcTotalLen > 0) {
       // รางซี เป็นของรวมทั้งงาน (ไม่แยกขนาด)
@@ -2121,7 +2131,8 @@
       add("RACE WAY", "บุชชิ่ง,ล็อกนัท IMC " + sz, "pcs");
       add("RACE WAY", "คอนเนคเตอร์ท่ออ่อนกันน้ำ IMC " + sz, "pcs");
       add("RACE WAY", "คุปปิ้ง " + sz, "pcs");
-      add("RACE WAY", "ท่ออ่อนเหล็กกันน้ำ 30m. " + sz, "box");
+      add("RACE WAY", "ท่ออ่อนเหล็กกันน้ำ " + sz, "M");
+      add("RACE WAY", "ท่ออ่อนเหล็กกันน้ำ 30m. " + sz, "box");   // ราคากล่อง — ใช้หารเป็นราคาต่อเมตรถ้ายังไม่ตั้ง
     });
     add("RACE WAY", "รางซี C-Channel 20x1200x40x1.0 mm.", "pcs");
     UPVC_SIZES.forEach((nm) => {
@@ -2200,7 +2211,10 @@
         const key = matKey(it.priceName || it.name);   // priceName = ชื่อที่ล็อกราคาไว้ (ติ๊ก "ใช้ราคาเดิม" ตอนเปลี่ยนชื่อ)
         const base = service ? {} : (priceMap[key] || {});
         const rec = service ? base : variantOf(key, base);
-        const price = service ? (+it.price || 0) : (+rec.price || 0);
+        let price = service ? (+it.price || 0) : (+rec.price || 0);
+        // ของที่ขายเป็นม้วน/กล่องแต่คิดเป็นเมตร — ยังไม่มีราคาต่อเมตรในคลัง ใช้ราคากล่อง ÷ ความยาว
+        const box = !service && !price ? boxOfMeter(key) : null;
+        if (box) { const bx = priceMap[matKey(box.name)] || {}; if (+bx.price > 0) price = Math.round((+bx.price / box.len) * 100) / 100; }
         const total = price * (it.qty || 0);
         sub += total;
         return Object.assign({}, it, { code: rec.code || "", price: price, total: total, perKw: perKw(total), perW: perW(total),
