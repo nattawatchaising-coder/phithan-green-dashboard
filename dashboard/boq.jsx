@@ -1013,7 +1013,7 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
   });
   // งานบ้านมีเฉพาะหมวดตู้ไฟ (คิดอุปกรณ์อัตโนมัติแบบงานโครงการ) · ระบบน้ำมีแต่งานโครงการ
   const kitShown = isHome ? kitSections.filter((sc) => sc.sec === "board")
-    .map((sc) => Object.assign({}, sc, { hint: "ตู้ไฟของงานบ้าน — คิดแบบงานโครงการ: เบรกเกอร์ตามกระแสอินเวอร์เตอร์ (≤ 100 A ใช้ MCB ขนาดแรกที่ ≥ 1.25 × กระแส · อินเวอร์เตอร์ตัวเดียวไม่มีเมนแยก) · SPD ตามระบบล่อฟ้า (Type 2 กันหลังด้วยฟิวส์ HRC 10x38) · ฟิวส์ DC ตาม Isc/Voc ของสตริง · Ground Fault / PM2230 ปิดไว้ (บ้านมี Smart Meter แล้ว) กดเปิดได้ · ราคาดึงจากคลังเหมือนวัสดุอื่น" })) : kitSections;
+    .map((sc) => Object.assign({}, sc, { hint: "ตู้ไฟของงานบ้าน — คิดแบบงานโครงการ: เบรกเกอร์ตามกระแสอินเวอร์เตอร์ (RCBO 100mA ขนาดแรกที่ ≥ 1.25 × กระแส — 1 เฟสถึง 50 A · 3 เฟสถึง 63 A เกินนั้นใช้ MCCB · อินเวอร์เตอร์ตัวเดียวไม่มีเมนแยก) · SPD ตามระบบล่อฟ้า (Type 2 กันหลังด้วยฟิวส์ HRC 10x38) · ฟิวส์ DC ตาม Isc/Voc ของสตริง · Ground Fault / PM2230 ปิดไว้ (บ้านมี Smart Meter แล้ว) กดเปิดได้ · ราคาดึงจากคลังเหมือนวัสดุอื่น" })) : kitSections;
 
   // ── ราคาขาย & ส่วนลด ──
   const PRICE_DEF = { contractor: 0, sell: 0, discount: 0, vat: window.BOQ.VAT_RATE };
@@ -1736,16 +1736,18 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
     return { at: a, ir, kind, ok: false, iz, rec, txt: base + " แต่สายรับได้ " + iz + " A"
       + (rec ? " — แนะนำ " + rec.name.trim() + (rec.sets > 1 ? " × " + rec.sets + " ชุด" : "") + " (รับ " + rec.amp * rec.sets + " A)" : " — ขยายสาย/เพิ่มชุด") };
   };
-  const MCB_AT = [6, 10, 16, 20, 25, 32, 40, 50, 63, 80, 100];
+  /* งานบ้าน: RCBO 100mA (RCCB + MCB ในตัวเดียว) ขนาดตามที่มีขาย — 2P (1 เฟส) ถึง 50 A · 4P (3 เฟส) ถึง 63 A
+     ปรับตั้งไม่ได้ จึงเลือกขนาดแรกที่ ≥ 1.25 × กระแส · เกินขนาดใหญ่สุด ใช้ MCCB แบบงานโครงการ */
+  const RCBO_AT = { "2P": [16, 20, 25, 32, 50], "3P": [16, 20, 25, 32, 50, 63] };
   const brkPickHome = (ib, c, pole) => {
-    const need = ib * 1.25, a = MCB_AT.find((x) => x >= need);
+    const need = ib * 1.25, a = (RCBO_AT[pole] || RCBO_AT["2P"]).find((x) => x >= need);
     if (!a) { const k = brkPick(ib, c); return Object.assign(k, { nm: k.kind + " " + pole + " " + k.at + "AT" }); }
-    const iz = cabIz(c), nm = "MCB " + pole + " " + a + "A";
-    const base = r1(ib) + " A × 1.25 = " + r1(need) + " A → MCB " + a + " A (งานบ้าน ≤ 100 A ใช้ MCB)";
-    if (!iz) return { at: a, ir: a, kind: "MCB", nm, ok: true, txt: base + " · ยังไม่ได้เลือกสาย ตรวจพิกัดสายไม่ได้" };
-    if (a <= iz) return { at: a, ir: a, kind: "MCB", nm, ok: true, txt: base + " ≤ สายรับ " + iz + " A ✓" };
+    const iz = cabIz(c), nm = "RCBO " + a + "A " + (pole === "3P" ? "3P+N" : "2P") + " 100mA FEEO";
+    const base = r1(ib) + " A × 1.25 = " + r1(need) + " A → RCBO " + a + " A 100mA (งานบ้าน กันไฟรั่ว + กระแสเกินในตัวเดียว)";
+    if (!iz) return { at: a, ir: a, kind: "RCBO", nm, ok: true, txt: base + " · ยังไม่ได้เลือกสาย ตรวจพิกัดสายไม่ได้" };
+    if (a <= iz) return { at: a, ir: a, kind: "RCBO", nm, ok: true, txt: base + " ≤ สายรับ " + iz + " A ✓" };
     const rec = cabFit(c, famOfCab(c), Math.max(1, Math.round(+c.sets || 1)), a);
-    return { at: a, ir: a, kind: "MCB", nm, ok: false, iz, rec, txt: base + " แต่สายรับได้ " + iz + " A"
+    return { at: a, ir: a, kind: "RCBO", nm, ok: false, iz, rec, txt: base + " แต่สายรับได้ " + iz + " A"
       + (rec ? " — แนะนำ " + rec.name.trim() + (rec.sets > 1 ? " × " + rec.sets + " ชุด" : "") + " (รับ " + rec.amp * rec.sets + " A)" : " — ขยายสาย/เพิ่มชุด") };
   };
   // เบรกเกอร์ของสายแต่ละเส้น (index แถวสาย → ผลเลือก) — หัวข้อสายไฟเอาไปโชว์คำแนะนำ

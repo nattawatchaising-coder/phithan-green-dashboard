@@ -1979,7 +1979,7 @@ function BOQEditor({
     });
   });
   const kitShown = isHome ? kitSections.filter(sc => sc.sec === "board").map(sc => Object.assign({}, sc, {
-    hint: "ตู้ไฟของงานบ้าน — คิดแบบงานโครงการ: เบรกเกอร์ตามกระแสอินเวอร์เตอร์ (≤ 100 A ใช้ MCB ขนาดแรกที่ ≥ 1.25 × กระแส · อินเวอร์เตอร์ตัวเดียวไม่มีเมนแยก) · SPD ตามระบบล่อฟ้า (Type 2 กันหลังด้วยฟิวส์ HRC 10x38) · ฟิวส์ DC ตาม Isc/Voc ของสตริง · Ground Fault / PM2230 ปิดไว้ (บ้านมี Smart Meter แล้ว) กดเปิดได้ · ราคาดึงจากคลังเหมือนวัสดุอื่น"
+    hint: "ตู้ไฟของงานบ้าน — คิดแบบงานโครงการ: เบรกเกอร์ตามกระแสอินเวอร์เตอร์ (RCBO 100mA ขนาดแรกที่ ≥ 1.25 × กระแส — 1 เฟสถึง 50 A · 3 เฟสถึง 63 A เกินนั้นใช้ MCCB · อินเวอร์เตอร์ตัวเดียวไม่มีเมนแยก) · SPD ตามระบบล่อฟ้า (Type 2 กันหลังด้วยฟิวส์ HRC 10x38) · ฟิวส์ DC ตาม Isc/Voc ของสตริง · Ground Fault / PM2230 ปิดไว้ (บ้านมี Smart Meter แล้ว) กดเปิดได้ · ราคาดึงจากคลังเหมือนวัสดุอื่น"
   })) : kitSections;
   const PRICE_DEF = {
     contractor: 0,
@@ -3022,10 +3022,13 @@ function BOQEditor({
       txt: base + " แต่สายรับได้ " + iz + " A" + (rec ? " — แนะนำ " + rec.name.trim() + (rec.sets > 1 ? " × " + rec.sets + " ชุด" : "") + " (รับ " + rec.amp * rec.sets + " A)" : " — ขยายสาย/เพิ่มชุด")
     };
   };
-  const MCB_AT = [6, 10, 16, 20, 25, 32, 40, 50, 63, 80, 100];
+  const RCBO_AT = {
+    "2P": [16, 20, 25, 32, 50],
+    "3P": [16, 20, 25, 32, 50, 63]
+  };
   const brkPickHome = (ib, c, pole) => {
     const need = ib * 1.25,
-      a = MCB_AT.find(x => x >= need);
+      a = (RCBO_AT[pole] || RCBO_AT["2P"]).find(x => x >= need);
     if (!a) {
       const k = brkPick(ib, c);
       return Object.assign(k, {
@@ -3033,12 +3036,12 @@ function BOQEditor({
       });
     }
     const iz = cabIz(c),
-      nm = "MCB " + pole + " " + a + "A";
-    const base = r1(ib) + " A × 1.25 = " + r1(need) + " A → MCB " + a + " A (งานบ้าน ≤ 100 A ใช้ MCB)";
+      nm = "RCBO " + a + "A " + (pole === "3P" ? "3P+N" : "2P") + " 100mA FEEO";
+    const base = r1(ib) + " A × 1.25 = " + r1(need) + " A → RCBO " + a + " A 100mA (งานบ้าน กันไฟรั่ว + กระแสเกินในตัวเดียว)";
     if (!iz) return {
       at: a,
       ir: a,
-      kind: "MCB",
+      kind: "RCBO",
       nm,
       ok: true,
       txt: base + " · ยังไม่ได้เลือกสาย ตรวจพิกัดสายไม่ได้"
@@ -3046,7 +3049,7 @@ function BOQEditor({
     if (a <= iz) return {
       at: a,
       ir: a,
-      kind: "MCB",
+      kind: "RCBO",
       nm,
       ok: true,
       txt: base + " ≤ สายรับ " + iz + " A ✓"
@@ -3055,7 +3058,7 @@ function BOQEditor({
     return {
       at: a,
       ir: a,
-      kind: "MCB",
+      kind: "RCBO",
       nm,
       ok: false,
       iz,
