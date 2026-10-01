@@ -6178,7 +6178,7 @@ function BOQEditor({
     const isGnd = /GROUND|กราว|ดิน/i.test(c.name || "");
     const gndPair = isGnd && i > 0 && /PV-INVERTER/i.test((b.cables[i - 1] || {}).name || "");
     const invU = invUnits.length && /INVERTER-MCB_SOLAR/i.test(c.name || "") ? invUnits[(+c.inv || 1) - 1] || null : null;
-    const isMcb = invUnits.length >= 2 && /MCB_SOLAR-MDB/i.test(c.name || "");
+    const isMcb = invUnits.length >= 1 && /MCB_SOLAR-MDB/i.test(c.name || "");
     const headed = !!invU || isMcb;
     const isDC = /PV1-F|PV CABLE/i.test(c.type || "") || /PV-INVERTER/i.test(c.name || "");
     const own = !!(c.method || c.group || c.ncond || c.core);
@@ -6256,13 +6256,13 @@ function BOQEditor({
         name: "grid",
         size: 12,
         color: "currentColor"
-      }), "\u0E15\u0E39\u0E49 MCB_SOLAR", mRows.length > 1 ? " ที่ " + cabNo : "", React.createElement("span", null, "\u0E23\u0E31\u0E1A\u0E2D\u0E34\u0E19\u0E40\u0E27\u0E2D\u0E23\u0E4C\u0E40\u0E15\u0E2D\u0E23\u0E4C"), invUnits.map(u => React.createElement("button", {
+      }), "\u0E2A\u0E32\u0E22\u0E40\u0E21\u0E19 MDB \u0E15\u0E39\u0E49 ", cabNo, invUnits.length >= 2 && React.createElement("span", null, "\u0E23\u0E31\u0E1A\u0E2D\u0E34\u0E19\u0E40\u0E27\u0E2D\u0E23\u0E4C\u0E40\u0E15\u0E2D\u0E23\u0E4C"), invUnits.length >= 2 && invUnits.map(u => React.createElement("button", {
         key: u.no,
         type: "button",
         className: "bq-cab-chip" + (mine.indexOf(u.no) >= 0 ? " on" : ""),
         title: u.model + (u.outA ? " · " + u.outA + " A" : ""),
         onClick: () => toggleMcbInv(i, u.no)
-      }, "\u0E15\u0E31\u0E27\u0E17\u0E35\u0E48 ", u.no, u.kw ? " · " + u.kw + " kW" : "")), last && React.createElement("button", {
+      }, "\u0E15\u0E31\u0E27\u0E17\u0E35\u0E48 ", u.no, u.kw ? " · " + u.kw + " kW" : "")), last && invUnits.length >= 2 && React.createElement("button", {
         type: "button",
         className: "bq-cabx-link",
         onClick: () => addMcbCab(i)

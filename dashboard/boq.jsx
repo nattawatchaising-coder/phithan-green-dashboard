@@ -2860,7 +2860,7 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
                 const isGnd = /GROUND|กราว|ดิน/i.test(c.name || "");
                 const gndPair = isGnd && i > 0 && /PV-INVERTER/i.test((b.cables[i - 1] || {}).name || "");
                 const invU = invUnits.length && /INVERTER-MCB_SOLAR/i.test(c.name || "") ? (invUnits[(+c.inv || 1) - 1] || null) : null;
-                const isMcb = invUnits.length >= 2 && /MCB_SOLAR-MDB/i.test(c.name || "");
+                const isMcb = invUnits.length >= 1 && /MCB_SOLAR-MDB/i.test(c.name || "");
                 const headed = !!invU || isMcb;
                 const isDC = /PV1-F|PV CABLE/i.test(c.type || "") || /PV-INVERTER/i.test(c.name || "");  // สาย DC คิดขนาดในส่วนสาย DC แยก
                 /* เงื่อนไขของสายเส้นนี้ — ไม่ได้ตั้งเอง = ตามค่าตั้งต้นของงาน (ตารางคำนวณขนาดสายไฟ)
@@ -2915,15 +2915,15 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
                     return (
                       <div className="bq-cab-hd" style={{ flexWrap: "wrap" }}>
                         <Icon name="grid" size={12} color="currentColor" />
-                        ตู้ MCB_SOLAR{mRows.length > 1 ? " ที่ " + cabNo : ""}
-                        <span>รับอินเวอร์เตอร์</span>
-                        {invUnits.map((u) => (
+                        สายเมน MDB ตู้ {cabNo}
+                        {invUnits.length >= 2 && <span>รับอินเวอร์เตอร์</span>}
+                        {invUnits.length >= 2 && invUnits.map((u) => (
                           <button key={u.no} type="button" className={"bq-cab-chip" + (mine.indexOf(u.no) >= 0 ? " on" : "")}
                             title={u.model + (u.outA ? " · " + u.outA + " A" : "")} onClick={() => toggleMcbInv(i, u.no)}>
                             ตัวที่ {u.no}{u.kw ? " · " + u.kw + " kW" : ""}
                           </button>
                         ))}
-                        {last && <button type="button" className="bq-cabx-link" onClick={() => addMcbCab(i)}>+ แยกอีกตู้</button>}
+                        {last && invUnits.length >= 2 && <button type="button" className="bq-cabx-link" onClick={() => addMcbCab(i)}>+ แยกอีกตู้</button>}
                         {last && (miss.length > 0 || dup.length > 0) && (
                           <span style={{ color: "var(--tint-amber-tx)" }}>
                             {miss.length ? "ตัวที่ " + miss.join(", ") + " ยังไม่อยู่ตู้ไหน" : ""}{miss.length && dup.length ? " · " : ""}{dup.length ? "ตัวที่ " + dup.join(", ") + " อยู่หลายตู้" : ""}
