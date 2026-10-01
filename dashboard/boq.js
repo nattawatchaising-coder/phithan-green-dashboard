@@ -1063,7 +1063,8 @@
        ไม่ถึงขั้นต่ำ ใช้ขั้นต่ำ (งานเล็กค่าเดินทาง/เสียวันเท่ากับงานใหญ่)
      เผื่อประกัน = เงินกันไว้เรียกซ่อม/ตรวจแก้ ต่อ kW ต่อปี (อุปกรณ์มีประกันผู้ผลิต — ที่ร้านรับคือค่าแรง+ค่าเดินทางตอนเข้าไปแก้)
      ทุกค่าเป็นค่าตั้งต้น แก้ได้ต่อใบ · เว้นว่าง = ใช้ค่าตั้งต้น */
-  const OM_DEF = { years: 2, perYear: 2, crew: 2, wage: 700, ppd: 80, travel: 1000, supplies: 300, minVisit: 2500, warrantyKw: 100, markup: 30 };
+  /* ค่าฐานของบริษัท: แถม 2 ปี · ล้างแผงปีละ 1 ครั้ง — ฝั่งลูกค้าเสนอเป็น "O&M ฟรี" ต้นทุนแฝงอยู่ในราคาติดตั้ง */
+  const OM_DEF = { years: 2, perYear: 1, crew: 2, wage: 700, ppd: 80, travel: 1000, supplies: 300, minVisit: 2500, warrantyKw: 100, markup: 30 };
   const OM_DEF_PROJECT = { ppd: 200 };   // หลังคาโรงงาน/พื้นเรียบ มีระบบน้ำ ล้างได้วันละมากกว่า
   function omDefaults(b) { return Object.assign({}, OM_DEF, b && b.jobType !== "home" ? OM_DEF_PROJECT : {}); }
   function omCalc(b, panels, kw) {
