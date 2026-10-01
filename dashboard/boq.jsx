@@ -4117,7 +4117,7 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
           <BoqSection title="ขนส่ง & บริหารจัดการหน้างาน" icon="power" {...secProps("site")}
             right={siteTotal > 0 ? <span style={{ fontSize: 12.5, fontWeight: 800, color: "var(--primary-dark)" }}>฿{baht(siteTotal)}</span> : null}>
             <div className="bq-hint" style={{ fontSize: 11.5, color: "var(--text-3)", lineHeight: 1.5, marginBottom: 12 }}>
-              ค่าขนของขึ้นไซต์ เครน นั่งร้าน และค่าอยู่หน้างาน — แยกจากค่าแรง · กรอกเฉพาะที่งานนี้มีจริง บรรทัดที่ไม่ใช้ลบทิ้งได้
+              ค่าขนของขึ้นไซต์ เครน และค่าอยู่หน้างาน — แยกจากค่าแรง · กรอกเฉพาะที่งานนี้มีจริง บรรทัดที่ไม่ใช้ลบทิ้งได้
             </div>
             <div style={{ fontSize: 11, fontWeight: 800, color: "var(--text-3)", marginBottom: 8 }}>ขนส่ง & เครื่องจักร</div>
             {SvcTable({ sKey: "transport", preset: window.BOQ.TRANSPORT_PRESET, qtyLabel: "จำนวน" })}
@@ -4177,7 +4177,7 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
               <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
                 <div style={{ fontSize: 11.5, color: "var(--text-3)", lineHeight: 1.5 }}>
                   ตกลงค่าแรงเป็นก้อนเดียว — เลือกฐานคิดแล้วกรอกเรต ระบบคูณปริมาณจริงของงานนี้ให้เอง
-                  {" · "}<b style={{ color: "var(--text-2)" }}>ไม่รวมค่าขนส่ง · เครน · นั่งร้าน</b> กรอกแยกที่{" "}
+                  {" · "}<b style={{ color: "var(--text-2)" }}>ไม่รวมค่าขนส่ง · เครน</b> กรอกแยกที่{" "}
                   <button type="button" onClick={() => goSec("site")} style={{ border: 0, background: "none", padding: 0, cursor: "pointer", fontFamily: "inherit",
                     fontSize: 11.5, fontWeight: 700, color: "var(--primary-dark)", textDecoration: "underline" }}>ขนส่ง & บริหารจัดการ</button>
                 </div>
