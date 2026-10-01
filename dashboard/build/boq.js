@@ -2493,10 +2493,10 @@ function BOQEditor({
   };
   const dcName = sz => "PV1-F 1Cx" + sz + " SQ.MM. (DC)";
   const dcOptions = React.useMemo(() => {
-    const sz = new Set(window.BOQ.PV_WIRE_SIZES || [2.5, 4, 6, 10, 16]);
-    stockItems.forEach(it => {
-      if (/PV1-F/i.test(it.name || "")) {
-        const n = dcSizeOf(it.name);
+    const sz = new Set([4, 6, 10]);
+    (b.cables || []).forEach(c => {
+      if (/PV-INVERTER/i.test(c.name || "")) {
+        const n = dcSizeOf(c.type);
         if (n) sz.add(n);
       }
     });
@@ -2504,7 +2504,7 @@ function BOQEditor({
       value: dcName(n),
       label: "PV1-F " + n + " mm²"
     }));
-  }, [stockItems]);
+  }, [b.cables]);
   const cabCond = (c, type) => {
     const rawMethod = c.method || calcMethod;
     const rawMeta = (window.BOQ.WIRE_METHODS || []).find(m => m.key === rawMethod) || {};

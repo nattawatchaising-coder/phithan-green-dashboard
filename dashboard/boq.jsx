@@ -1392,11 +1392,12 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
   /* สาย DC — เลือกแค่ขนาด PV1-F (สีแดง/ดำ ระบบแยกให้ตอนถอด BOQ) · ขนาดจากมาตรฐาน + ที่คลังมี */
   const dcSizeOf = (t) => { const m = /1C\s*x\s*(\d+(?:\.\d+)?)/i.exec(t || "") || /(\d+(?:\.\d+)?)\s*(?:sq|mm)/i.exec(t || ""); return m ? +m[1] : null; };
   const dcName = (sz) => "PV1-F 1Cx" + sz + " SQ.MM. (DC)";
+  // ใช้จริงแค่ 4 / 6 / 10 — ใบเก่าที่เลือกขนาดอื่นไว้ ยังโชว์ขนาดนั้นให้เห็น (ไม่หายเงียบ)
   const dcOptions = React.useMemo(() => {
-    const sz = new Set(window.BOQ.PV_WIRE_SIZES || [2.5, 4, 6, 10, 16]);
-    stockItems.forEach((it) => { if (/PV1-F/i.test(it.name || "")) { const n = dcSizeOf(it.name); if (n) sz.add(n); } });
+    const sz = new Set([4, 6, 10]);
+    (b.cables || []).forEach((c) => { if (/PV-INVERTER/i.test(c.name || "")) { const n = dcSizeOf(c.type); if (n) sz.add(n); } });
     return [...sz].sort((a, z) => a - z).map((n) => ({ value: dcName(n), label: "PV1-F " + n + " mm²" }));
-  }, [stockItems]);
+  }, [b.cables]);
 
   /* ── เลือกชนิดสายให้เอง ──
      สาย AC ทุกจุดรู้กระแสที่ต้องรับอยู่แล้ว (reqAmpFor) จึงไล่หา CV-FD ขนาดเล็กสุดในคลังที่
