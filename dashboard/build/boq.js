@@ -227,6 +227,40 @@ const BQ_CSS = `
 .bq-main .bq-spec .vin{border-color:transparent;background:var(--surface2);box-shadow:var(--shadow-inset)}
 .bq-main .bq-spec .vin:focus{box-shadow:inset 0 0 0 1px var(--primary),0 0 0 3px var(--primary-soft)}
 
+/* ตารางเรียบ (ค่าแรง · ขออนุญาต · ขนส่ง · บริหารจัดการ) — กล่องเดียว แถวคั่นเส้นจาง
+   ช่องกรอกกลืนไปกับแถวจนกว่าจะชี้/กด (ดูเป็นตารางเอกสาร ไม่ใช่ฟอร์มช่องเต็มจอ)
+   !important เพราะกฎกลางใน index.html ใส่เงาหลุมให้ input ทุกตัวด้วย selector :not() ห้าชั้น */
+.bq-tbl{background:var(--surface);box-shadow:var(--shadow-sm);border-radius:var(--r-tile);overflow:hidden}
+.bq-tbl .r{display:grid;gap:6px;align-items:center;padding:3px 6px 3px 8px;min-height:44px}
+.bq-tbl .r+.r{box-shadow:inset 0 1px 0 var(--border)}
+.bq-tbl .r.h{min-height:30px;background:var(--surface2);font-size:9.5px;font-weight:800;letter-spacing:.05em;color:var(--text-3)}
+.bq-tbl .r.h span{padding:0 8px}
+.bq-tbl input{width:100%;height:34px;box-sizing:border-box;padding:0 8px;border:0;border-radius:8px;outline:none;
+  background:transparent !important;box-shadow:none !important;font-family:inherit;font-size:13.5px;color:var(--text-1);
+  transition:background .12s,box-shadow .12s}
+.bq-tbl input:hover{background:var(--surface2) !important}
+.bq-tbl input:focus{background:var(--surface2) !important;box-shadow:inset 0 0 0 1.5px var(--primary) !important}
+.bq-tbl input::placeholder{color:var(--text-3);opacity:.7}
+.bq-tbl .n{text-align:right;font-variant-numeric:tabular-nums}
+.bq-tbl .nm{font-weight:600}
+.bq-tbl .auto{padding:0 8px;font-family:var(--mono);font-size:13px;font-weight:700;color:var(--primary-dark)}
+.bq-tbl .t{padding:0 8px;font-size:13.5px;font-weight:800;color:var(--text-1);font-variant-numeric:tabular-nums;text-align:right;white-space:nowrap}
+.bq-tbl .t small{display:block;font-size:9.5px;font-weight:600;color:var(--text-3)}
+.bq-tbl .r[data-idle="1"] input,.bq-tbl .r[data-idle="1"] .t{color:var(--text-3)}
+.bq-tbl .r[data-idle="1"] .nm{font-weight:500}
+.bq-tbl .x{width:28px;height:28px;border:0;border-radius:8px;background:none;color:var(--text-3);cursor:pointer;display:grid;place-items:center;opacity:0;transition:opacity .12s,background .12s,color .12s}
+.bq-tbl .r:hover .x,.bq-tbl .x:focus{opacity:1}
+.bq-tbl .x:hover{background:#EF44441a;color:#EF4444}
+@media (hover:none){.bq-tbl .x{opacity:1}}
+.bq-tbl .r.sum{min-height:46px;background:var(--primary-soft);color:var(--primary-dark)}
+.bq-tbl .r.sum .lb{padding:0 8px;font-size:11px;font-weight:800;letter-spacing:.06em}
+.bq-tbl .r.sum .t{color:var(--primary-dark);font-family:var(--display);font-size:16px;font-weight:700}
+.bq-tbl .m2{display:flex;align-items:center;gap:4px;font-size:12px;color:var(--text-3)}
+.bq-chip{display:inline-flex;align-items:center;gap:5px;background:var(--surface2);box-shadow:var(--shadow-sm);border:0;border-radius:var(--r-chip);
+  padding:7px 12px;cursor:pointer;font-family:inherit;font-size:12px;font-weight:700;color:var(--text-2)}
+.bq-chip:hover{background:var(--surface3)}
+.bq-chip.pri{color:var(--primary-dark)}
+
 @media (max-width:860px){
   .bq-body{flex-direction:column}
   .bq-spec{grid-template-columns:repeat(2,minmax(0,1fr))}
@@ -4376,236 +4410,128 @@ function BOQEditor({
     const live = g && g.items || [];
     const sum = total != null ? total : g ? g.subtotal : 0;
     const sumPerW = perW != null ? perW : g ? g.perW : 0;
-    const COLS = isMobile ? "minmax(0,1fr) minmax(0,1fr) minmax(0,1.2fr)" : "minmax(0,1fr) 78px 70px 100px 104px 30px";
-    const cellS = Object.assign({}, inputStyle, {
-      width: "100%",
-      height: 38,
-      boxSizing: "border-box",
-      padding: "0 11px"
-    });
-    const numS = Object.assign({}, cellS, {
-      textAlign: "right"
-    });
-    const chipBtn = {
-      display: "inline-flex",
-      alignItems: "center",
-      gap: 5,
-      background: "var(--surface2)",
-      boxShadow: "var(--shadow-sm)",
-      border: 0,
-      borderRadius: "var(--r-chip)",
-      padding: "7px 12px",
-      cursor: "pointer",
-      fontFamily: "inherit",
-      fontSize: 12,
-      fontWeight: 700
-    };
+    const COLS = isMobile ? "minmax(0,1fr) 28px" : "minmax(0,1fr) 70px 70px 96px 104px 28px";
     return React.createElement("div", {
       style: {
         display: "flex",
         flexDirection: "column",
-        gap: 7
+        gap: 10
       }
+    }, React.createElement("div", {
+      className: "bq-tbl"
     }, !isMobile && React.createElement("div", {
+      className: "r h",
       style: {
-        display: "grid",
-        gridTemplateColumns: COLS,
-        gap: 8,
-        padding: "0 8px 0 12px",
-        fontSize: 9.5,
-        fontWeight: 800,
-        letterSpacing: ".05em",
-        color: "var(--text-3)"
+        gridTemplateColumns: COLS
       }
     }, React.createElement("span", null, "\u0E23\u0E32\u0E22\u0E01\u0E32\u0E23"), React.createElement("span", {
-      style: {
-        textAlign: "right"
-      }
+      className: "n"
     }, qtyLabel), React.createElement("span", {
-      style: {
-        textAlign: "right"
-      }
+      className: "n"
     }, "\u0E2B\u0E19\u0E48\u0E27\u0E22"), React.createElement("span", {
-      style: {
-        textAlign: "right"
-      }
+      className: "n"
     }, "\u0E23\u0E32\u0E04\u0E32/\u0E2B\u0E19\u0E48\u0E27\u0E22"), React.createElement("span", {
-      style: {
-        textAlign: "right"
-      }
+      className: "n"
     }, "\u0E23\u0E27\u0E21"), React.createElement("span", null)), rows.map((r, i) => {
       const q = live[i] ? live[i].qty : r.qty == null || r.qty === "" ? +r.price > 0 ? 1 : 0 : +r.qty || 0;
       const tot = q * (+r.price || 0);
-      const idle = !(+r.price > 0);
       const qtyCell = r.auto ? React.createElement("span", {
-        style: {
-          textAlign: "right",
-          fontFamily: "var(--mono)",
-          fontSize: 13,
-          fontWeight: 700,
-          color: "var(--primary-dark)",
-          paddingRight: 4
-        },
+        className: "auto n",
         title: "\u0E1B\u0E23\u0E34\u0E21\u0E32\u0E13\u0E04\u0E34\u0E14\u0E08\u0E32\u0E01\u0E1C\u0E25\u0E16\u0E2D\u0E14\u0E27\u0E31\u0E2A\u0E14\u0E38\u0E2D\u0E31\u0E15\u0E42\u0E19\u0E21\u0E31\u0E15\u0E34"
       }, (Math.round(q * 100) / 100).toLocaleString()) : React.createElement("input", {
         type: "number",
-        style: numS,
+        className: "n",
         value: r.qty != null ? r.qty : "",
-        placeholder: +r.price > 0 ? "1" : "",
+        placeholder: +r.price > 0 ? "1" : "–",
         onChange: e => setSvc(sKey, preset, i, "qty", e.target.value)
-      });
-      const unitCell = React.createElement("input", {
-        value: r.unit || "",
-        placeholder: "\u0E2B\u0E19\u0E48\u0E27\u0E22",
-        onChange: e => setSvc(sKey, preset, i, "unit", e.target.value),
-        style: numS
       });
       const priceCell = React.createElement("input", {
         type: "number",
-        style: numS,
-        value: r.price != null ? r.price : "",
-        placeholder: "0",
+        className: "n",
+        value: r.price != null && r.price !== "" && +r.price !== 0 ? r.price : "",
+        placeholder: "\u2013",
         onChange: e => setSvc(sKey, preset, i, "price", e.target.value)
       });
       const totCell = React.createElement("span", {
-        style: {
-          textAlign: "right",
-          minWidth: 0,
-          lineHeight: 1.2
-        }
-      }, React.createElement("span", {
-        style: {
-          display: "block",
-          fontSize: 13,
-          fontWeight: 800,
-          fontVariantNumeric: "tabular-nums",
-          color: tot > 0 ? "var(--text-1)" : "var(--text-3)"
-        }
-      }, tot > 0 ? "฿" + baht(tot) : "—"), tot > 0 && result.meta.kw > 0 && React.createElement("span", {
-        style: {
-          display: "block",
-          fontSize: 9.5,
-          color: "var(--text-3)",
-          fontVariantNumeric: "tabular-nums"
-        }
-      }, "\u0E3F", baht(tot / (result.meta.kw * 1000)), "/W"));
+        className: "t"
+      }, tot > 0 ? "฿" + baht(tot) : "–", tot > 0 && result.meta.kw > 0 && React.createElement("small", null, "\u0E3F", baht(tot / (result.meta.kw * 1000)), "/W"));
+      const name = React.createElement("input", {
+        className: "nm",
+        value: r.name,
+        onChange: e => setSvc(sKey, preset, i, "name", e.target.value),
+        placeholder: "\u0E0A\u0E37\u0E48\u0E2D\u0E23\u0E32\u0E22\u0E01\u0E32\u0E23"
+      });
       const del = React.createElement("button", {
-        className: "bq-x",
-        style: {
-          height: 30,
-          width: 30
-        },
+        className: "x",
         onClick: () => delSvc(sKey, preset, i),
         title: "\u0E25\u0E1A\u0E1A\u0E23\u0E23\u0E17\u0E31\u0E14"
       }, React.createElement(Icon, {
         name: "x",
         size: 14
       }));
-      const name = React.createElement("input", {
-        value: r.name,
-        onChange: e => setSvc(sKey, preset, i, "name", e.target.value),
-        style: Object.assign({}, cellS, {
-          fontWeight: 600
-        }),
-        placeholder: "\u0E0A\u0E37\u0E48\u0E2D\u0E23\u0E32\u0E22\u0E01\u0E32\u0E23"
-      });
-      return React.createElement("div", {
+      return isMobile ? React.createElement("div", {
         key: i,
+        className: "r",
+        "data-idle": tot > 0 ? "0" : "1",
         style: {
-          background: "var(--surface)",
-          boxShadow: "var(--shadow-sm)",
-          borderRadius: "var(--r-tile)",
-          padding: "7px 8px 7px 12px",
-          opacity: idle ? 0.72 : 1,
-          transition: "opacity .12s"
-        }
-      }, isMobile ? React.createElement("div", {
-        style: {
-          display: "flex",
-          flexDirection: "column",
-          gap: 7
-        }
-      }, React.createElement("div", {
-        style: {
-          display: "flex",
-          gap: 6,
-          alignItems: "center"
-        }
-      }, React.createElement("span", {
-        style: {
-          flex: 1,
-          minWidth: 0
-        }
-      }, name), del), React.createElement("div", {
-        style: {
-          display: "grid",
           gridTemplateColumns: COLS,
-          gap: 7,
-          alignItems: "center"
+          rowGap: 2,
+          padding: "6px 6px 8px 8px"
         }
-      }, qtyCell, priceCell, totCell)) : React.createElement("div", {
+      }, name, del, React.createElement("span", {
         style: {
+          gridColumn: "1 / -1",
           display: "grid",
-          gridTemplateColumns: COLS,
-          gap: 8,
-          alignItems: "center"
+          gridTemplateColumns: "64px 12px minmax(0,1fr) minmax(0,1fr)",
+          alignItems: "center",
+          gap: 4
         }
-      }, name, qtyCell, unitCell, priceCell, totCell, del));
+      }, qtyCell, React.createElement("span", {
+        className: "m2"
+      }, "\xD7"), priceCell, totCell)) : React.createElement("div", {
+        key: i,
+        className: "r",
+        "data-idle": tot > 0 ? "0" : "1",
+        style: {
+          gridTemplateColumns: COLS
+        }
+      }, name, qtyCell, React.createElement("input", {
+        className: "n",
+        value: r.unit || "",
+        placeholder: "\u0E2B\u0E19\u0E48\u0E27\u0E22",
+        onChange: e => setSvc(sKey, preset, i, "unit", e.target.value)
+      }), priceCell, totCell, del);
     }), sum > 0 && React.createElement("div", {
+      className: "r sum",
       style: {
-        display: "flex",
-        justifyContent: "space-between",
-        alignItems: "baseline",
-        padding: "11px 14px",
-        marginTop: 2,
-        background: "var(--primary-soft)",
-        borderRadius: "var(--r-tile)"
+        gridTemplateColumns: "minmax(0,1fr) auto"
       }
     }, React.createElement("span", {
-      style: {
-        fontSize: 11,
-        fontWeight: 800,
-        letterSpacing: ".06em",
-        color: "var(--primary-dark)"
-      }
-    }, "\u0E23\u0E27\u0E21\u0E17\u0E38\u0E01\u0E1A\u0E23\u0E23\u0E17\u0E31\u0E14"), React.createElement("span", {
-      style: {
-        fontFamily: "var(--display)",
-        fontSize: 17,
-        fontWeight: 700,
-        letterSpacing: "-.03em",
-        fontVariantNumeric: "tabular-nums",
-        color: "var(--primary-dark)"
-      }
+      className: "lb"
+    }, "\u0E23\u0E27\u0E21"), React.createElement("span", {
+      className: "t"
     }, "\u0E3F", baht(sum), sumPerW > 0 ? React.createElement("span", {
       style: {
-        fontSize: 11.5,
+        fontSize: 11,
         fontWeight: 700,
         marginLeft: 6
       }
-    }, "\xB7 \u0E3F", baht(sumPerW), "/W") : null)), React.createElement("div", {
+    }, "\xB7 \u0E3F", baht(sumPerW), "/W") : null))), React.createElement("div", {
       style: {
         display: "flex",
         gap: 8,
-        flexWrap: "wrap",
-        marginTop: 2
+        flexWrap: "wrap"
       }
     }, React.createElement("button", {
-      className: "bq-chipbtn",
-      onClick: () => addSvc(sKey, preset),
-      style: Object.assign({}, chipBtn, {
-        color: "var(--primary-dark)"
-      })
+      className: "bq-chip pri",
+      onClick: () => addSvc(sKey, preset)
     }, React.createElement(Icon, {
       name: "plus",
       size: 13,
       color: "var(--primary-dark)"
     }), " \u0E40\u0E1E\u0E34\u0E48\u0E21\u0E1A\u0E23\u0E23\u0E17\u0E31\u0E14"), b[sKey] != null && React.createElement("button", {
-      className: "bq-chipbtn",
-      onClick: () => resetSvc(sKey),
-      style: Object.assign({}, chipBtn, {
-        color: "var(--text-2)"
-      })
+      className: "bq-chip",
+      onClick: () => resetSvc(sKey)
     }, "\u0E04\u0E37\u0E19\u0E23\u0E32\u0E22\u0E01\u0E32\u0E23\u0E15\u0E31\u0E49\u0E07\u0E15\u0E49\u0E19")));
   };
   const StructBlock = ({
