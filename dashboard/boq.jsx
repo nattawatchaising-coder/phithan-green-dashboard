@@ -1013,7 +1013,7 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
   });
   // งานบ้านมีเฉพาะหมวดตู้ไฟ (คิดอุปกรณ์อัตโนมัติแบบงานโครงการ) · ระบบน้ำมีแต่งานโครงการ
   const kitShown = isHome ? kitSections.filter((sc) => sc.sec === "board")
-    .map((sc) => Object.assign({}, sc, { hint: "ตู้ไฟของงานบ้าน — คิดแบบงานโครงการ: เบรกเกอร์ตามกระแสอินเวอร์เตอร์ (RCBO 100mA ขนาดแรกที่ ≥ 1.25 × กระแส — 1 เฟสถึง 50 A · 3 เฟสถึง 63 A เกินนั้นใช้ MCCB · อินเวอร์เตอร์ตัวเดียวไม่มีเมนแยก) · SPD Type 2 กันหลังด้วยฟิวส์ 10x38 · ฟิวส์ DC ตาม Isc/Voc ของสตริง · ราคาดึงจากคลังเหมือนวัสดุอื่น" })) : kitSections;
+    .map((sc) => Object.assign({}, sc, { hint: "ตู้ไฟของงานบ้าน — คิดแบบงานโครงการ: เบรกเกอร์ตามกระแสอินเวอร์เตอร์ (RCBO 100mA ขนาดแรกที่ ≥ 1.25 × กระแส — 1 เฟสถึง 50 A · 3 เฟสถึง 63 A เกินนั้นใช้ MCCB · อินเวอร์เตอร์ตัวเดียวไม่มีเมนแยก) · SPD Type 2 กันหลังด้วย MCB 32A · ฟิวส์ DC ตาม Isc/Voc ของสตริง · ราคาดึงจากคลังเหมือนวัสดุอื่น" })) : kitSections;
 
   // ── ราคาขาย & ส่วนลด ──
   const PRICE_DEF = { contractor: 0, sell: 0, discount: 0, vat: window.BOQ.VAT_RATE };
@@ -1803,8 +1803,7 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
             why: tag + "กันฟ้าผ่า/แรงดันกระชากฝั่ง AC ตู้ละ 1 ตัว (" + lpsTxt + " · Uc " + (ph === 3 ? "385" : "275") + " V)" });
       if (noFuse) out.ac[out.ac.length - 1].why += " · เบรกเกอร์" + (homeOne ? "" : "เมน") + " " + mainAt + " A ≤ 125 A ใช้กันหลัง SPD ได้ ไม่ต้องมีฟิวส์";
       else if (isHome && !lps) {
-        out.ac.push({ name: "AC FUSE gG 32A 10x38", qty: ph, unit: "ตัว", auto: 1, why: tag + "ฟิวส์กันหลัง SPD เส้นไฟละ 1 ตัว (ไม่ใส่ที่ N) — งานบ้านใช้ฟิวส์ 10x38 ฐานปกติ" });
-        out.ac.push({ name: "FUSE HOLDER 10x38 1P", qty: ph, unit: "ตัว", auto: 1, why: tag + "ฐานฟิวส์ 10x38" });
+        out.ac.push({ name: "MCB " + pole + " 32A", qty: 1, unit: "ตัว", auto: 1, why: tag + "กันหลัง SPD (ตัด SPD ออกได้เมื่อเสีย ไม่กระทบระบบ) — งานบ้านใช้ MCB แทนฟิวส์ · ไม่เกิน max backup ในสเปค SPD" });
       } else {
         out.ac.push({ name: "AC FUSE gG " + fA + "A NH00", qty: ph, unit: "ตัว", auto: 1,
           why: tag + "ฟิวส์ใบมีดกันหลัง SPD เส้นไฟละ 1 ตัว (ไม่ใส่ที่ N)"

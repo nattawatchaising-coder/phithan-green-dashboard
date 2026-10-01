@@ -1979,7 +1979,7 @@ function BOQEditor({
     });
   });
   const kitShown = isHome ? kitSections.filter(sc => sc.sec === "board").map(sc => Object.assign({}, sc, {
-    hint: "ตู้ไฟของงานบ้าน — คิดแบบงานโครงการ: เบรกเกอร์ตามกระแสอินเวอร์เตอร์ (RCBO 100mA ขนาดแรกที่ ≥ 1.25 × กระแส — 1 เฟสถึง 50 A · 3 เฟสถึง 63 A เกินนั้นใช้ MCCB · อินเวอร์เตอร์ตัวเดียวไม่มีเมนแยก) · SPD Type 2 กันหลังด้วยฟิวส์ 10x38 · ฟิวส์ DC ตาม Isc/Voc ของสตริง · ราคาดึงจากคลังเหมือนวัสดุอื่น"
+    hint: "ตู้ไฟของงานบ้าน — คิดแบบงานโครงการ: เบรกเกอร์ตามกระแสอินเวอร์เตอร์ (RCBO 100mA ขนาดแรกที่ ≥ 1.25 × กระแส — 1 เฟสถึง 50 A · 3 เฟสถึง 63 A เกินนั้นใช้ MCCB · อินเวอร์เตอร์ตัวเดียวไม่มีเมนแยก) · SPD Type 2 กันหลังด้วย MCB 32A · ฟิวส์ DC ตาม Isc/Voc ของสตริง · ราคาดึงจากคลังเหมือนวัสดุอื่น"
   })) : kitSections;
   const PRICE_DEF = {
     contractor: 0,
@@ -3146,18 +3146,11 @@ function BOQEditor({
       });
       if (noFuse) out.ac[out.ac.length - 1].why += " · เบรกเกอร์" + (homeOne ? "" : "เมน") + " " + mainAt + " A ≤ 125 A ใช้กันหลัง SPD ได้ ไม่ต้องมีฟิวส์";else if (isHome && !lps) {
         out.ac.push({
-          name: "AC FUSE gG 32A 10x38",
-          qty: ph,
+          name: "MCB " + pole + " 32A",
+          qty: 1,
           unit: "ตัว",
           auto: 1,
-          why: tag + "ฟิวส์กันหลัง SPD เส้นไฟละ 1 ตัว (ไม่ใส่ที่ N) — งานบ้านใช้ฟิวส์ 10x38 ฐานปกติ"
-        });
-        out.ac.push({
-          name: "FUSE HOLDER 10x38 1P",
-          qty: ph,
-          unit: "ตัว",
-          auto: 1,
-          why: tag + "ฐานฟิวส์ 10x38"
+          why: tag + "กันหลัง SPD (ตัด SPD ออกได้เมื่อเสีย ไม่กระทบระบบ) — งานบ้านใช้ MCB แทนฟิวส์ · ไม่เกิน max backup ในสเปค SPD"
         });
       } else {
         out.ac.push({
