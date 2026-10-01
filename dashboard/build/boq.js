@@ -80,6 +80,33 @@ const BQ_CSS = `
 .bq-swap{display:inline-flex;align-items:center;gap:4px;border:0;border-radius:99px;padding:3px 10px;cursor:pointer;font-family:inherit;
   font-size:10.5px;font-weight:800;background:var(--primary);color:#fff;box-shadow:var(--shadow-btn)}
 
+/* ออกแบบสายทีละเส้น: ① วิธีเดิน → ② ขนาดสาย THW/CV → ③ ชุด × เส้น + กราวด์ */
+.bq-cabx{display:flex;flex-direction:column;gap:8px;padding:10px 11px;margin-top:2px;border-radius:12px;background:var(--surface2)}
+.bq-cabx-step{display:flex;align-items:center;gap:7px;flex-wrap:wrap}
+.bq-cabx-step > .n{width:18px;height:18px;flex-shrink:0;border-radius:99px;background:var(--primary);color:#fff;font-size:10.5px;font-weight:800;
+  display:inline-flex;align-items:center;justify-content:center}
+.bq-cabx-step > .lb{font-size:11px;font-weight:800;color:var(--text-2);min-width:66px}
+.bq-cabx-step .hint{font-size:10.5px;font-weight:700;color:var(--text-3)}
+.bq-cabx-opts{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:7px;flex:1;min-width:0}
+.bq-cabx-opt{display:flex;flex-direction:column;align-items:flex-start;gap:1px;text-align:left;border:0;border-radius:10px;padding:7px 10px;
+  cursor:pointer;font-family:inherit;background:var(--surface);box-shadow:var(--shadow-sm);color:var(--text-1);min-width:0}
+.bq-cabx-opt:hover:not(:disabled){background:var(--primary-soft)}
+.bq-cabx-opt:disabled{cursor:default;opacity:.55}
+.bq-cabx-opt.on{box-shadow:inset 0 0 0 1.5px var(--primary);background:var(--primary-soft)}
+.bq-cabx-opt .t{font-size:10px;font-weight:800;color:var(--text-3)}
+.bq-cabx-opt b{font-size:14px;font-weight:800;font-family:var(--mono)}
+.bq-cabx-opt .s{font-size:10px;font-weight:600;color:var(--text-3)}
+.bq-cabx-opt .ns{font-size:9.5px;font-weight:800;color:var(--tint-amber-tx)}
+.bq-cabx-stp{display:inline-flex;align-items:center;border-radius:9px;background:var(--surface);box-shadow:var(--shadow-sm)}
+.bq-cabx-stp button{width:26px;height:26px;border:0;background:none;cursor:pointer;font-size:15px;font-weight:800;color:var(--text-2);font-family:inherit}
+.bq-cabx-stp button:disabled{opacity:.3;cursor:default}
+.bq-cabx-stp b{min-width:20px;text-align:center;font-size:13px;font-family:var(--mono)}
+.bq-cabx-link{border:0;background:none;padding:0;cursor:pointer;font-family:inherit;font-size:10.5px;font-weight:700;color:var(--text-3);
+  text-decoration:underline;text-underline-offset:3px}
+.bq-cabx-sum{font-size:11px;font-weight:700;color:var(--text-2)}
+.bq-cabx-sum b{color:var(--text-1)}
+@media (max-width:700px){.bq-cabx-opts{grid-template-columns:minmax(0,1fr)}.bq-cabx-step > .lb{min-width:0}}
+
 /* ตารางกรอกการจัดวางแผง */
 .bq-rw{display:grid;grid-template-columns:150px minmax(0,1fr) minmax(0,1fr) 90px 40px;gap:8px;align-items:center}
 .bq-rw[data-m="1"]{grid-template-columns:minmax(0,1.1fr) minmax(0,1fr) minmax(0,1fr) 40px}
@@ -2030,7 +2057,7 @@ function BOQEditor({
     const volts = ph === 3 ? +wcVolt || 400 : wcPhase === 3 ? 230 : +wcVolt || 230;
     return window.BOQ.calcVdrop({
       length: len,
-      amp: req / 1.25,
+      amp: req / 1.25 / Math.max(1, +c.sets || 1),
       size,
       volts,
       ins,
@@ -2342,70 +2369,174 @@ function BOQEditor({
     const m = /(\d+)\s*C\s*x/i.exec(t || "");
     return m ? +m[1] : 1;
   };
-  const cabSuggest = c => {
+  const CAB_FAMS = [{
+    key: "cvm",
+    th: "CV หลายแกน",
+    multi: true,
+    name: (sz, ph) => "CV-FD " + (ph === 3 ? 4 : 2) + "Cx" + sz + " SQ.MM."
+  }, {
+    key: "cv1",
+    th: "CV แกนเดียว",
+    name: sz => "CV-FD 1Cx" + sz + " SQ.MM."
+  }, {
+    key: "thw",
+    th: "THW แกนเดียว",
+    name: sz => "IEC01(THW)1Cx" + sz + " SQ.MM."
+  }];
+  const cabNorm = s => String(s || "").toUpperCase().replace(/\s+/g, "");
+  const cabStockName = React.useMemo(() => {
+    const m = {};
+    cableTypeOptions.forEach(o => {
+      m[cabNorm(o.value)] = o.value;
+    });
+    return m;
+  }, [cableTypeOptions]);
+  const gndSizeFor = sz => sz <= 35 ? 10 : sz <= 50 ? 16 : sz <= 95 ? 25 : sz <= 185 ? 35 : sz <= 300 ? 50 : sz <= 500 ? 70 : 95;
+  const gndNameFor = sz => {
+    const g = gndSizeFor(sz);
+    const n = "IEC01(THW)1Cx" + g + " SQ.MM. Y/G";
+    return cabStockName[cabNorm(n)] || n;
+  };
+  const isPowerCab = c => {
     const n = (c.name || "").toUpperCase();
-    if (!n || /LAN|CAT|GROUND|กราว|ดิน|PV-INVERTER/.test(n)) return null;
-    if (c.type && (window.BOQ.isPvDcCable(c.type) || /LAN|CAT/i.test(c.type))) return null;
+    if (!n || /LAN|CAT|GROUND|กราว|ดิน|PV-INVERTER/.test(n)) return false;
+    if (c.type && (window.BOQ.isPvDcCable(c.type) || /LAN|CAT/i.test(c.type))) return false;
+    return !!reqAmpFor(c.name);
+  };
+  const cabPh = c => wcPhase === 3 && !/MICRO[\s-]*MICRO/i.test(c.name || "") ? 3 : 1;
+  const cabVolts = ph => ph === 3 ? +wcVolt || 400 : wcPhase === 3 ? 230 : +wcVolt || 230;
+  const wiresPerSet = (type, ph) => cabCores(type) >= 2 ? 1 : ph === 3 ? 4 : 2;
+  const cabFit = (c, fam, sets) => {
     const req = reqAmpFor(c.name);
     if (!req) return null;
-    const ph = wcPhase === 3 && !/MICRO[\s-]*MICRO/.test(n) ? 3 : 1;
-    const cores = ph === 3 ? 4 : 2;
-    const volts = ph === 3 ? +wcVolt || 400 : wcPhase === 3 ? 230 : +wcVolt || 230;
-    const len = +c.length || 0;
-    const fam = (re, n) => cableTypeOptions.map(o => o.value).filter(t => re.test(t) && !/Y\/G/i.test(t) && cabCores(t) === n && window.BOQ.cableSizeNum(t) != null).sort((a, z) => window.BOQ.cableSizeNum(a) - window.BOQ.cableSizeNum(z));
-    const firstOk = list => list.find(t => {
-      const amp = cableAmp(t, cabCond(c, t));
-      if (amp == null || amp < req) return false;
+    const ph = cabPh(c),
+      len = +c.length || 0;
+    for (const sz of window.BOQ.WIRE_SIZES || []) {
+      if (sz < 2.5) continue;
+      const gen = fam.name(sz, ph);
+      const amp = cableAmp(gen, cabCond(c, gen));
+      if (amp == null || amp * sets < req) continue;
+      let vd = null;
       if (len > 0 && window.BOQ.calcVdrop) {
-        const vd = window.BOQ.calcVdrop({
+        vd = window.BOQ.calcVdrop({
           length: len,
-          amp: req / 1.25,
-          size: window.BOQ.cableSizeNum(t),
-          volts,
-          ins: window.BOQ.cableInsClass(t),
+          amp: req / 1.25 / sets,
+          size: sz,
+          volts: cabVolts(ph),
+          ins: window.BOQ.cableInsClass(gen),
           phase: ph,
           dc: false
         });
-        if (vd && !vd.ok) return false;
+        if (vd && !vd.ok) continue;
       }
-      return true;
-    }) || null;
-    const cv = fam(/CV[\s-]*FD/i, cores);
-    const t = firstOk(cv.length ? cv : fam(/VCT/i, cores));
-    if (t) return {
-      type: t,
-      req,
-      cores
-    };
-    const single = firstOk(fam(/CV[\s-]*FD/i, 1));
-    return {
-      type: null,
-      req,
-      cores,
-      single,
-      wires: ph === 3 ? 4 : 2
-    };
+      const stock = cabStockName[cabNorm(gen)];
+      return {
+        fam: fam.key,
+        size: sz,
+        name: stock || gen,
+        inStock: !!stock,
+        amp,
+        sets,
+        req,
+        vd,
+        wires: fam.multi ? 1 : ph === 3 ? 4 : 2
+      };
+    }
+    return null;
   };
-  const cabSug = (b.cables || []).map(c => cabSuggest(c));
-  const cabSugKey = cabSug.map((x, i) => (!b.cables[i].type || b.cables[i].auto) && x && x.type ? x.type : "").join("|");
+  const cabPlan = (c, fam) => {
+    if (c.setsOwn && +c.sets > 0) return cabFit(c, fam, Math.round(+c.sets));
+    for (let s = 1; s <= 6; s++) {
+      const p = cabFit(c, fam, s);
+      if (p) return p;
+    }
+    return null;
+  };
+  const cabPlans = (b.cables || []).map(c => isPowerCab(c) ? CAB_FAMS.map(f => cabPlan(c, f)) : null);
+  const cabDefaultPlan = (plans, c) => {
+    if (!plans) return null;
+    if (c.fam) {
+      const p = plans[CAB_FAMS.findIndex(f => f.key === c.fam)];
+      if (p) return p;
+    }
+    return plans.find(p => p && p.inStock && p.sets === 1) || plans.find(p => p && p.inStock) || plans.find(Boolean) || null;
+  };
+  const cabSetsFor = c => {
+    if (c.setsOwn && +c.sets > 0) return Math.round(+c.sets);
+    const req = reqAmpFor(c.name),
+      amp = c.type ? cableAmp(c.type, cabCond(c, c.type)) : null;
+    if (!req || !amp) return 1;
+    for (let s = 1; s <= 6; s++) if (amp * s >= req) return s;
+    return 1;
+  };
+  const cabWant = (b.cables || []).map((c, i) => {
+    if (!cabPlans[i]) return null;
+    const ph = cabPh(c);
+    let type = c.type,
+      sets;
+    if (!c.type || c.auto) {
+      const p = cabDefaultPlan(cabPlans[i], c);
+      if (!p) return null;
+      type = p.name;
+      sets = p.sets;
+    } else sets = cabSetsFor(c);
+    const sz = window.BOQ.cableSizeNum(type);
+    const noGnd = c.noGnd != null ? !!c.noGnd : /MICRO[\s-]*MICRO/i.test(c.name || "");
+    return {
+      type,
+      auto: !c.type || c.auto ? 1 : 0,
+      sets,
+      wires: wiresPerSet(type, ph),
+      gnd: !noGnd && sz ? gndNameFor(sz) : ""
+    };
+  });
+  const cabWantKey = JSON.stringify(cabWant);
   React.useEffect(() => {
-    if (!cabSugKey.replace(/\|/g, "")) return;
     setB(p => {
       let changed = false;
       const cs = (p.cables || []).map((c, i) => {
-        const t = cabSugKey.split("|")[i];
-        if (!t || c.type && !c.auto || c.type === t) return c;
-        changed = true;
-        return Object.assign({}, c, {
-          type: t,
-          auto: 1
+        const w = cabWant[i];
+        if (!w) return c;
+        const nx = Object.assign({}, c, {
+          type: w.type,
+          sets: w.sets,
+          wires: w.wires,
+          gnd: w.gnd
         });
+        if (w.auto) nx.auto = 1;
+        if (nx.type === c.type && nx.sets === c.sets && nx.wires === c.wires && nx.gnd === c.gnd && !!nx.auto === !!c.auto) return c;
+        changed = true;
+        return nx;
       });
       return changed ? Object.assign({}, p, {
         cables: cs
       }) : p;
     });
-  }, [cabSugKey]);
+  }, [cabWantKey]);
+  const pickCabFam = (i, fam) => setB(p => {
+    const cs = p.cables.slice();
+    cs[i] = Object.assign({}, cs[i], {
+      fam,
+      auto: 1
+    });
+    return Object.assign({}, p, {
+      cables: cs
+    });
+  });
+  const setCabSets = (i, n) => setB(p => {
+    const cs = p.cables.slice();
+    const x = Object.assign({}, cs[i]);
+    if (n == null) {
+      delete x.setsOwn;
+    } else {
+      x.sets = Math.max(1, Math.min(12, Math.round(n)));
+      x.setsOwn = 1;
+    }
+    cs[i] = x;
+    return Object.assign({}, p, {
+      cables: cs
+    });
+  });
   const methodOptions = (window.BOQ.WIRE_METHODS || []).map(m => ({
     value: m.key,
     label: m.th,
@@ -4521,7 +4652,7 @@ function BOQEditor({
   const CAB_COLS = "minmax(150px,1fr) minmax(0,1.35fr) 88px 34px";
   const dcStrings = result.meta.plan && result.meta.plan.strings || 1;
   const dcOf = c => window.BOQ.pvDcLength(+c.length || 0, dcStrings);
-  const cabLenSum = Math.round((b.cables || []).reduce((s, c) => s + (window.BOQ.isPvDcCable(c.type) ? dcOf(c).total : +c.length || 0), 0));
+  const cabLenSum = Math.round((b.cables || []).reduce((s, c) => s + (window.BOQ.isPvDcCable(c.type) ? dcOf(c).total : (+c.length || 0) * Math.max(1, +c.sets || 1) * Math.max(1, +c.wires || 1) + (c.gnd ? (+c.length || 0) * Math.max(1, +c.sets || 1) : 0)), 0));
   const wireDone = (b.cables || []).filter(c => c.type && +c.length > 0).length;
   const navSecs = [{
     key: "info",
@@ -5929,7 +6060,9 @@ function BOQEditor({
       orient: coreKey
     });
     const req = reqAmpFor(c.name);
-    const bad = amp != null && req && amp < req;
+    const power = !!cabPlans[i];
+    const setsN = power ? +c.sets || 1 : 1;
+    const bad = amp != null && req && amp * setsN < req;
     const showHint = !!c.type && !isComm && !isDC;
     const vd = isComm ? null : vdropFor(c);
     const open = !!cabOpen[i];
@@ -6001,7 +6134,7 @@ function BOQEditor({
     }, React.createElement(Icon, {
       name: "x",
       size: 14
-    }))), (showHint || isDC || vd || cabSug[i]) && React.createElement("div", {
+    }))), !power && (showHint || isDC || vd) && React.createElement("div", {
       style: {
         display: "flex",
         alignItems: "center",
@@ -6056,52 +6189,7 @@ function BOQEditor({
       name: amp == null || bad ? "alert" : req ? "check" : "bolt",
       size: 11,
       color: bad || amp == null ? "var(--tint-red-tx)" : req ? "var(--tint-green-tx)" : "var(--text-3)"
-    }), amp != null ? "พิกัด ~" + amp + " A" + (req ? " / ต้องการ " + (Math.round(req * 10) / 10).toFixed(1) + " A" : "") + (bad ? " · ไม่พอ" : req ? " · ผ่าน" : "") : !hasSize ? "เลือกสายที่ระบุขนาด (SQ.MM.) ก่อน" : "ยังไม่มีตารางพิกัดของเงื่อนไขนี้"), (() => {
-      const sg = cabSug[i];
-      if (!sg) return null;
-      if (c.auto && c.type) return React.createElement("span", {
-        className: "bq-autopick",
-        title: "เลือกขนาดเล็กสุดที่รับกระแส " + Math.round(sg.req * 10) / 10 + " A ได้" + (+c.length > 0 ? " และแรงดันตกไม่เกินเกณฑ์" : "") + " · เลือกสายเองเมื่อไหร่ ระบบจะไม่เปลี่ยนเส้นนี้อีก"
-      }, React.createElement(Icon, {
-        name: "bolt",
-        size: 10,
-        color: "currentColor"
-      }), " \u0E23\u0E30\u0E1A\u0E1A\u0E40\u0E25\u0E37\u0E2D\u0E01\u0E43\u0E2B\u0E49");
-      if (!sg.type && (!c.type || bad || sg.single && c.type === sg.single)) return React.createElement("span", {
-        style: {
-          display: "inline-flex",
-          alignItems: "center",
-          flexWrap: "wrap",
-          gap: 6,
-          fontWeight: 700,
-          color: "var(--tint-amber-tx)"
-        }
-      }, React.createElement(Icon, {
-        name: "alert",
-        size: 11,
-        color: "currentColor"
-      }), " \u0E2A\u0E32\u0E22 ", sg.cores, " \u0E41\u0E01\u0E19\u0E43\u0E19\u0E04\u0E25\u0E31\u0E07\u0E23\u0E31\u0E1A ", (Math.round(sg.req * 10) / 10).toFixed(1), " A \u0E44\u0E21\u0E48\u0E44\u0E2B\u0E27", sg.single ? React.createElement(React.Fragment, null, " \u2014 \u0E43\u0E0A\u0E49 ", sg.single, " \u0E40\u0E14\u0E34\u0E19 ", sg.wires, " \u0E40\u0E2A\u0E49\u0E19 (\u0E04\u0E27\u0E32\u0E21\u0E22\u0E32\u0E27 = \u0E23\u0E30\u0E22\u0E30 \xD7 ", sg.wires, ")", c.type !== sg.single && React.createElement("button", {
-        type: "button",
-        className: "bq-swap",
-        onClick: () => setCab(i, "type", sg.single)
-      }, "\u0E43\u0E0A\u0E49 ", sg.single)) : " — เลือกสายแกนเดียวเอง แล้วกรอกความยาวรวมทุกเส้น");
-      const weak = bad || vd && !vd.ok;
-      if (sg.type && c.type && !c.auto && weak && sg.type !== c.type) return React.createElement("button", {
-        type: "button",
-        className: "bq-swap",
-        onClick: () => setB(p => {
-          const cs = p.cables.slice();
-          cs[i] = Object.assign({}, cs[i], {
-            type: sg.type,
-            auto: 1
-          });
-          return Object.assign({}, p, {
-            cables: cs
-          });
-        })
-      }, "\u0E40\u0E1B\u0E25\u0E35\u0E48\u0E22\u0E19\u0E40\u0E1B\u0E47\u0E19 ", sg.type);
-      return null;
-    })(), vd && React.createElement("span", {
+    }), amp != null ? "พิกัด ~" + amp + " A" + (req ? " / ต้องการ " + (Math.round(req * 10) / 10).toFixed(1) + " A" : "") + (bad ? " · ไม่พอ" : req ? " · ผ่าน" : "") : !hasSize ? "เลือกสายที่ระบุขนาด (SQ.MM.) ก่อน" : "ยังไม่มีตารางพิกัดของเงื่อนไขนี้"), vd && React.createElement("span", {
       style: {
         display: "inline-flex",
         alignItems: "center",
@@ -6142,7 +6230,188 @@ function BOQEditor({
         size: 11,
         color: "var(--primary-dark)"
       }), d.farthest.toLocaleString() + " ม. × " + d.strings + " สตริง × " + d.spare + " = ", React.createElement("b", null, d.perPole.toLocaleString() + " ม./ขั้ว"), " · แดง " + d.perPole.toLocaleString() + " + ดำ " + d.perPole.toLocaleString() + " = รวม " + d.total.toLocaleString() + " ม.");
-    })()), showHint && open && React.createElement("div", {
+    })()), power && (() => {
+      const plans = cabPlans[i];
+      const ph = cabPh(c);
+      const wires = +c.wires || wiresPerSet(c.type, ph);
+      const total = wires * setsN;
+      const len = +c.length || 0;
+      const reqTh = (Math.round(req * 10) / 10).toFixed(1);
+      const ampAll = amp != null ? amp * setsN : null;
+      const ncondOpts = ncondOptions.map(o => ({
+        value: o.value,
+        label: o.label + (o.value === "3" ? " · 3 เฟส" : " · 1 เฟส")
+      }));
+      const orientOnly = rowCoreOpts.length >= 2 && !rowCoreOpts.some(x => x.key === "single");
+      return React.createElement("div", {
+        className: "bq-cabx"
+      }, React.createElement("div", {
+        className: "bq-cabx-step"
+      }, React.createElement("span", {
+        className: "n"
+      }, "1"), React.createElement("span", {
+        className: "lb"
+      }, "\u0E27\u0E34\u0E18\u0E35\u0E40\u0E14\u0E34\u0E19\u0E2A\u0E32\u0E22"), React.createElement("div", {
+        style: {
+          width: isMobile ? "100%" : 220
+        }
+      }, React.createElement(Dropdown, {
+        value: method,
+        onChange: v => setCab(i, "method", v),
+        options: methodOptions,
+        placeholder: "\u0E27\u0E34\u0E18\u0E35\u0E40\u0E14\u0E34\u0E19\u0E2A\u0E32\u0E22",
+        wrap: true,
+        style: cabSelStyle
+      })), React.createElement("div", {
+        style: {
+          width: isMobile ? "calc(50% - 4px)" : 118
+        }
+      }, React.createElement(Dropdown, {
+        value: group,
+        onChange: v => setCab(i, "group", v),
+        options: groupOptionsFor(method),
+        style: cabSelStyle
+      })), React.createElement("div", {
+        style: {
+          width: isMobile ? "calc(50% - 4px)" : 150
+        }
+      }, React.createElement(Dropdown, {
+        value: ncond,
+        onChange: v => setCab(i, "ncond", v),
+        options: ncondOpts,
+        style: cabSelStyle
+      })), orientOnly && React.createElement("div", {
+        style: {
+          width: isMobile ? "100%" : 142
+        }
+      }, React.createElement(Dropdown, {
+        value: coreKey,
+        onChange: v => setCab(i, "core", v),
+        options: rowCoreOpts.map(x => ({
+          value: x.key,
+          label: x.th
+        })),
+        style: cabSelStyle
+      })), own && React.createElement("button", {
+        type: "button",
+        className: "bq-cabx-link",
+        onClick: () => resetCabCond(i)
+      }, "\u0E43\u0E0A\u0E49\u0E04\u0E48\u0E32\u0E15\u0E31\u0E49\u0E07\u0E15\u0E49\u0E19\u0E02\u0E2D\u0E07\u0E07\u0E32\u0E19"), React.createElement("span", {
+        className: "hint"
+      }, "\u0E15\u0E49\u0E2D\u0E07\u0E23\u0E31\u0E1A ", reqTh, " A \xB7 ", ph === 3 ? "3 เฟส" : "1 เฟส")), React.createElement("div", {
+        className: "bq-cabx-step",
+        style: {
+          alignItems: "flex-start"
+        }
+      }, React.createElement("span", {
+        className: "n",
+        style: {
+          marginTop: 8
+        }
+      }, "2"), React.createElement("span", {
+        className: "lb",
+        style: {
+          marginTop: 9
+        }
+      }, "\u0E02\u0E19\u0E32\u0E14\u0E2A\u0E32\u0E22"), React.createElement("div", {
+        className: "bq-cabx-opts"
+      }, CAB_FAMS.map((f, k) => {
+        const p = plans[k];
+        const on = !!p && cabNorm(p.name) === cabNorm(c.type);
+        return React.createElement("button", {
+          key: f.key,
+          type: "button",
+          className: "bq-cabx-opt" + (on ? " on" : ""),
+          disabled: !p,
+          title: p ? p.name : "ไม่มีขนาดในตาราง วสท. ที่รับกระแสนี้ได้",
+          onClick: () => p && pickCabFam(i, f.key)
+        }, React.createElement("span", {
+          className: "t"
+        }, f.th, f.multi ? " (" + (ph === 3 ? 4 : 2) + " แกน)" : ""), p ? React.createElement(React.Fragment, null, React.createElement("b", null, p.size, " mm\xB2", p.sets > 1 ? " × " + p.sets + " ชุด" : ""), React.createElement("span", {
+          className: "s"
+        }, "\u0E1E\u0E34\u0E01\u0E31\u0E14 ", p.amp * p.sets, " A", p.vd ? " · ΔV " + p.vd.pct + "%" : ""), !p.inStock && React.createElement("span", {
+          className: "ns"
+        }, "\u0E44\u0E21\u0E48\u0E21\u0E35\u0E43\u0E19\u0E04\u0E25\u0E31\u0E07")) : React.createElement("span", {
+          className: "s"
+        }, "\u0E44\u0E21\u0E48\u0E21\u0E35\u0E02\u0E19\u0E32\u0E14\u0E17\u0E35\u0E48\u0E23\u0E31\u0E1A\u0E44\u0E2B\u0E27"));
+      }))), React.createElement("div", {
+        className: "bq-cabx-step"
+      }, React.createElement("span", {
+        className: "n"
+      }, "3"), React.createElement("span", {
+        className: "lb"
+      }, "\u0E08\u0E33\u0E19\u0E27\u0E19\u0E0A\u0E38\u0E14"), React.createElement("span", {
+        className: "bq-cabx-stp"
+      }, React.createElement("button", {
+        type: "button",
+        disabled: setsN <= 1,
+        onClick: () => setCabSets(i, setsN - 1)
+      }, "\u2212"), React.createElement("b", null, setsN), React.createElement("button", {
+        type: "button",
+        onClick: () => setCabSets(i, setsN + 1)
+      }, "+")), c.setsOwn ? React.createElement("button", {
+        type: "button",
+        className: "bq-cabx-link",
+        onClick: () => setCabSets(i, null)
+      }, "\u0E43\u0E2B\u0E49\u0E23\u0E30\u0E1A\u0E1A\u0E04\u0E34\u0E14\u0E08\u0E33\u0E19\u0E27\u0E19\u0E0A\u0E38\u0E14") : React.createElement("span", {
+        className: "hint"
+      }, "\u0E23\u0E30\u0E1A\u0E1A\u0E04\u0E34\u0E14\u0E43\u0E2B\u0E49"), React.createElement("span", {
+        className: "bq-cabx-sum"
+      }, "\u0E0A\u0E38\u0E14\u0E25\u0E30 ", wires, " \u0E40\u0E2A\u0E49\u0E19", wires > 1 ? " (" + (ph === 3 ? "L1 L2 L3 N" : "L N") + ")" : " (" + cabCores(c.type) + " แกน)", " \u2192 ", React.createElement("b", null, total, " \u0E40\u0E2A\u0E49\u0E19")), c.gnd ? React.createElement("span", {
+        className: "bq-cabx-sum"
+      }, "+ \u0E01\u0E23\u0E32\u0E27\u0E14\u0E4C ", React.createElement("b", null, c.gnd.replace(/\s*SQ\.MM\.\s*/i, " ")), " \xD7 ", setsN, " \u0E40\u0E2A\u0E49\u0E19 ", React.createElement("span", {
+        className: "hint"
+      }, "(\u0E15\u0E32\u0E23\u0E32\u0E07 4.1)"), " ", React.createElement("button", {
+        type: "button",
+        className: "bq-cabx-link",
+        onClick: () => setCab(i, "noGnd", true)
+      }, "\u0E44\u0E21\u0E48\u0E40\u0E14\u0E34\u0E19\u0E01\u0E23\u0E32\u0E27\u0E14\u0E4C")) : React.createElement("button", {
+        type: "button",
+        className: "bq-cabx-link",
+        onClick: () => setCab(i, "noGnd", false)
+      }, "+ \u0E40\u0E14\u0E34\u0E19\u0E2A\u0E32\u0E22\u0E01\u0E23\u0E32\u0E27\u0E14\u0E4C\u0E44\u0E1B\u0E14\u0E49\u0E27\u0E22")), React.createElement("div", {
+        style: {
+          display: "flex",
+          alignItems: "center",
+          gap: 10,
+          flexWrap: "wrap",
+          fontSize: 11,
+          fontWeight: 700
+        }
+      }, React.createElement("span", {
+        style: {
+          display: "inline-flex",
+          alignItems: "center",
+          gap: 4,
+          color: bad || ampAll == null ? "var(--tint-red-tx)" : "var(--tint-green-tx)"
+        }
+      }, React.createElement(Icon, {
+        name: ampAll == null || bad ? "alert" : "check",
+        size: 11,
+        color: "currentColor"
+      }), ampAll != null ? "พิกัด " + (setsN > 1 ? amp + " × " + setsN + " = " : "") + ampAll + " A / ต้องการ " + reqTh + " A · " + (bad ? "ไม่พอ" : "ผ่าน") : !hasSize ? "เลือกสายที่ระบุขนาด (SQ.MM.) ก่อน" : "ยังไม่มีตารางพิกัดของเงื่อนไขนี้"), vd && React.createElement("span", {
+        style: {
+          display: "inline-flex",
+          alignItems: "center",
+          gap: 4,
+          color: vd.ok ? "var(--text-3)" : "var(--tint-amber-tx)"
+        }
+      }, React.createElement(Icon, {
+        name: vd.ok ? "check" : "alert",
+        size: 11,
+        color: "currentColor"
+      }), " \u0394V ", vd.pct, "%"), c.auto ? React.createElement("span", {
+        className: "bq-autopick"
+      }, React.createElement(Icon, {
+        name: "bolt",
+        size: 10,
+        color: "currentColor"
+      }), " \u0E23\u0E30\u0E1A\u0E1A\u0E40\u0E25\u0E37\u0E2D\u0E01\u0E43\u0E2B\u0E49") : null, len > 0 && React.createElement("span", {
+        style: {
+          color: "var(--primary-dark)"
+        }
+      }, "\u0E16\u0E2D\u0E14\u0E40\u0E02\u0E49\u0E32 BOQ: ", len, " \u0E21. \xD7 ", total, " = ", React.createElement("b", null, (len * total).toLocaleString(), " \u0E21."), c.gnd ? " · กราวด์ " + len + " × " + setsN + " = " + (len * setsN).toLocaleString() + " ม." : "")));
+    })(), !power && showHint && open && React.createElement("div", {
       style: {
         display: "flex",
         alignItems: "center",

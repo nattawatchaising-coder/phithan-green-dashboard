@@ -1672,7 +1672,12 @@
         const dc = pvDcLength(len, plan ? plan.strings : 1);
         PV_DC_COLORS.forEach((col) => { const nm = pvCableColorName(t, col); cableAgg[nm] = (cableAgg[nm] || 0) + dc.perPole; });
       } else {
-        cableAgg[t] = (cableAgg[t] || 0) + len;
+        /* สายกำลัง AC: ความยาวเส้นทาง × จำนวนชุดเดินขนาน × เส้นต่อชุด (แกนเดียว 1 เฟส = 2 · 3 เฟส = 4 · หลายแกน = 1)
+           + สายกราวด์ (c.gnd) ชุดละ 1 เส้น — แถวเก่าที่ไม่มี sets/wires = 1 เท่าเดิม */
+        const sets = Math.max(1, Math.round(+c.sets || 1)), wires = Math.max(1, Math.round(+c.wires || 1));
+        cableAgg[t] = (cableAgg[t] || 0) + len * sets * wires;
+        const g = (c.gnd || "").trim();
+        if (g) cableAgg[g] = (cableAgg[g] || 0) + len * sets;
       }
     });
 
