@@ -4376,28 +4376,52 @@ function BOQEditor({
     const live = g && g.items || [];
     const sum = total != null ? total : g ? g.subtotal : 0;
     const sumPerW = perW != null ? perW : g ? g.perW : 0;
+    const COLS = isMobile ? "minmax(0,1fr) minmax(0,1fr) minmax(0,1.2fr)" : "minmax(0,1fr) 78px 70px 100px 104px 30px";
+    const cellS = Object.assign({}, inputStyle, {
+      width: "100%",
+      height: 38,
+      boxSizing: "border-box",
+      padding: "0 11px"
+    });
+    const numS = Object.assign({}, cellS, {
+      textAlign: "right"
+    });
+    const chipBtn = {
+      display: "inline-flex",
+      alignItems: "center",
+      gap: 5,
+      background: "var(--surface2)",
+      boxShadow: "var(--shadow-sm)",
+      border: 0,
+      borderRadius: "var(--r-chip)",
+      padding: "7px 12px",
+      cursor: "pointer",
+      fontFamily: "inherit",
+      fontSize: 12,
+      fontWeight: 700
+    };
     return React.createElement("div", {
       style: {
         display: "flex",
         flexDirection: "column",
-        gap: 8
+        gap: 7
       }
-    }, React.createElement("div", {
+    }, !isMobile && React.createElement("div", {
       style: {
         display: "grid",
-        gridTemplateColumns: isMobile ? "minmax(0,1fr) 62px 36px" : "minmax(0,1fr) 84px 62px 96px 36px",
+        gridTemplateColumns: COLS,
         gap: 8,
+        padding: "0 8px 0 12px",
         fontSize: 9.5,
         fontWeight: 800,
         letterSpacing: ".05em",
-        color: "var(--text-3)",
-        padding: "0 2px"
+        color: "var(--text-3)"
       }
-    }, React.createElement("span", null, "\u0E23\u0E32\u0E22\u0E01\u0E32\u0E23"), !isMobile && React.createElement("span", {
+    }, React.createElement("span", null, "\u0E23\u0E32\u0E22\u0E01\u0E32\u0E23"), React.createElement("span", {
       style: {
         textAlign: "right"
       }
-    }, qtyLabel), !isMobile && React.createElement("span", {
+    }, qtyLabel), React.createElement("span", {
       style: {
         textAlign: "right"
       }
@@ -4405,81 +4429,137 @@ function BOQEditor({
       style: {
         textAlign: "right"
       }
-    }, "\u0E23\u0E32\u0E04\u0E32/\u0E2B\u0E19\u0E48\u0E27\u0E22"), React.createElement("span", null)), rows.map((r, i) => {
+    }, "\u0E23\u0E32\u0E04\u0E32/\u0E2B\u0E19\u0E48\u0E27\u0E22"), React.createElement("span", {
+      style: {
+        textAlign: "right"
+      }
+    }, "\u0E23\u0E27\u0E21"), React.createElement("span", null)), rows.map((r, i) => {
       const q = live[i] ? live[i].qty : r.qty == null || r.qty === "" ? +r.price > 0 ? 1 : 0 : +r.qty || 0;
       const tot = q * (+r.price || 0);
-      return React.createElement("div", {
-        key: i,
-        style: {
-          display: "grid",
-          gridTemplateColumns: isMobile ? "minmax(0,1fr) 62px 36px" : "minmax(0,1fr) 84px 62px 96px 36px",
-          gap: 8,
-          alignItems: "center"
-        }
-      }, React.createElement("span", {
-        style: {
-          minWidth: 0
-        }
-      }, React.createElement("input", {
-        value: r.name,
-        onChange: e => setSvc(sKey, preset, i, "name", e.target.value),
-        style: Object.assign({}, inputStyle, {
-          width: "100%"
-        }),
-        placeholder: "\u0E0A\u0E37\u0E48\u0E2D\u0E23\u0E32\u0E22\u0E01\u0E32\u0E23"
-      }), tot > 0 && React.createElement("span", {
-        style: {
-          display: "block",
-          fontSize: 10,
-          color: "var(--text-3)",
-          marginTop: 2,
-          paddingLeft: 2
-        }
-      }, "= \u0E3F", baht(tot), result.meta.kw > 0 ? " · ฿" + baht(tot / (result.meta.kw * 1000)) + "/W" : "")), !isMobile && (r.auto ? React.createElement("span", {
+      const idle = !(+r.price > 0);
+      const qtyCell = r.auto ? React.createElement("span", {
         style: {
           textAlign: "right",
           fontFamily: "var(--mono)",
           fontSize: 13,
           fontWeight: 700,
-          color: "var(--primary-dark)"
+          color: "var(--primary-dark)",
+          paddingRight: 4
         },
         title: "\u0E1B\u0E23\u0E34\u0E21\u0E32\u0E13\u0E04\u0E34\u0E14\u0E08\u0E32\u0E01\u0E1C\u0E25\u0E16\u0E2D\u0E14\u0E27\u0E31\u0E2A\u0E14\u0E38\u0E2D\u0E31\u0E15\u0E42\u0E19\u0E21\u0E31\u0E15\u0E34"
       }, (Math.round(q * 100) / 100).toLocaleString()) : React.createElement("input", {
         type: "number",
-        style: numStyle,
+        style: numS,
         value: r.qty != null ? r.qty : "",
         placeholder: +r.price > 0 ? "1" : "",
         onChange: e => setSvc(sKey, preset, i, "qty", e.target.value)
-      })), !isMobile && React.createElement("input", {
+      });
+      const unitCell = React.createElement("input", {
         value: r.unit || "",
+        placeholder: "\u0E2B\u0E19\u0E48\u0E27\u0E22",
         onChange: e => setSvc(sKey, preset, i, "unit", e.target.value),
-        style: Object.assign({}, inputStyle, {
-          width: "100%",
-          textAlign: "right"
-        })
-      }), React.createElement("input", {
+        style: numS
+      });
+      const priceCell = React.createElement("input", {
         type: "number",
-        style: numStyle,
+        style: numS,
         value: r.price != null ? r.price : "",
         placeholder: "0",
         onChange: e => setSvc(sKey, preset, i, "price", e.target.value)
-      }), React.createElement("button", {
+      });
+      const totCell = React.createElement("span", {
+        style: {
+          textAlign: "right",
+          minWidth: 0,
+          lineHeight: 1.2
+        }
+      }, React.createElement("span", {
+        style: {
+          display: "block",
+          fontSize: 13,
+          fontWeight: 800,
+          fontVariantNumeric: "tabular-nums",
+          color: tot > 0 ? "var(--text-1)" : "var(--text-3)"
+        }
+      }, tot > 0 ? "฿" + baht(tot) : "—"), tot > 0 && result.meta.kw > 0 && React.createElement("span", {
+        style: {
+          display: "block",
+          fontSize: 9.5,
+          color: "var(--text-3)",
+          fontVariantNumeric: "tabular-nums"
+        }
+      }, "\u0E3F", baht(tot / (result.meta.kw * 1000)), "/W"));
+      const del = React.createElement("button", {
         className: "bq-x",
+        style: {
+          height: 30,
+          width: 30
+        },
         onClick: () => delSvc(sKey, preset, i),
         title: "\u0E25\u0E1A\u0E1A\u0E23\u0E23\u0E17\u0E31\u0E14"
       }, React.createElement(Icon, {
         name: "x",
         size: 14
-      })));
+      }));
+      const name = React.createElement("input", {
+        value: r.name,
+        onChange: e => setSvc(sKey, preset, i, "name", e.target.value),
+        style: Object.assign({}, cellS, {
+          fontWeight: 600
+        }),
+        placeholder: "\u0E0A\u0E37\u0E48\u0E2D\u0E23\u0E32\u0E22\u0E01\u0E32\u0E23"
+      });
+      return React.createElement("div", {
+        key: i,
+        style: {
+          background: "var(--surface)",
+          boxShadow: "var(--shadow-sm)",
+          borderRadius: "var(--r-tile)",
+          padding: "7px 8px 7px 12px",
+          opacity: idle ? 0.72 : 1,
+          transition: "opacity .12s"
+        }
+      }, isMobile ? React.createElement("div", {
+        style: {
+          display: "flex",
+          flexDirection: "column",
+          gap: 7
+        }
+      }, React.createElement("div", {
+        style: {
+          display: "flex",
+          gap: 6,
+          alignItems: "center"
+        }
+      }, React.createElement("span", {
+        style: {
+          flex: 1,
+          minWidth: 0
+        }
+      }, name), del), React.createElement("div", {
+        style: {
+          display: "grid",
+          gridTemplateColumns: COLS,
+          gap: 7,
+          alignItems: "center"
+        }
+      }, qtyCell, priceCell, totCell)) : React.createElement("div", {
+        style: {
+          display: "grid",
+          gridTemplateColumns: COLS,
+          gap: 8,
+          alignItems: "center"
+        }
+      }, name, qtyCell, unitCell, priceCell, totCell, del));
     }), sum > 0 && React.createElement("div", {
       style: {
         display: "flex",
         justifyContent: "space-between",
         alignItems: "baseline",
-        padding: "10px 12px",
+        padding: "11px 14px",
         marginTop: 2,
         background: "var(--primary-soft)",
-        borderRadius: 10
+        borderRadius: "var(--r-tile)"
       }
     }, React.createElement("span", {
       style: {
@@ -4507,44 +4587,25 @@ function BOQEditor({
       style: {
         display: "flex",
         gap: 8,
-        flexWrap: "wrap"
+        flexWrap: "wrap",
+        marginTop: 2
       }
     }, React.createElement("button", {
+      className: "bq-chipbtn",
       onClick: () => addSvc(sKey, preset),
-      style: {
-        display: "inline-flex",
-        alignItems: "center",
-        gap: 5,
-        background: "none",
-        color: "var(--primary-dark)",
-        border: "1px dashed var(--border-strong)",
-        borderRadius: 9,
-        padding: "6px 12px",
-        fontWeight: 700,
-        fontSize: 12,
-        cursor: "pointer",
-        fontFamily: "inherit"
-      }
+      style: Object.assign({}, chipBtn, {
+        color: "var(--primary-dark)"
+      })
     }, React.createElement(Icon, {
       name: "plus",
       size: 13,
       color: "var(--primary-dark)"
     }), " \u0E40\u0E1E\u0E34\u0E48\u0E21\u0E1A\u0E23\u0E23\u0E17\u0E31\u0E14"), b[sKey] != null && React.createElement("button", {
+      className: "bq-chipbtn",
       onClick: () => resetSvc(sKey),
-      style: {
-        display: "inline-flex",
-        alignItems: "center",
-        gap: 5,
-        background: "var(--surface3)",
-        color: "var(--text-2)",
-        border: "1px solid var(--border-strong)",
-        borderRadius: 9,
-        padding: "8px 12px",
-        fontWeight: 700,
-        fontSize: 12.5,
-        cursor: "pointer",
-        fontFamily: "inherit"
-      }
+      style: Object.assign({}, chipBtn, {
+        color: "var(--text-2)"
+      })
     }, "\u0E04\u0E37\u0E19\u0E23\u0E32\u0E22\u0E01\u0E32\u0E23\u0E15\u0E31\u0E49\u0E07\u0E15\u0E49\u0E19")));
   };
   const StructBlock = ({

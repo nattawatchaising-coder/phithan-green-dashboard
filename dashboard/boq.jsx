@@ -2257,44 +2257,68 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
     const live = (g && g.items) || [];
     const sum = total != null ? total : (g ? g.subtotal : 0);   // ไม่ส่ง total มา = เอายอดของหมวดนั้นเอง
     const sumPerW = perW != null ? perW : (g ? g.perW : 0);
+    /* แถวละแผ่น (ชุดเดียวกับรายการในใบเสนอราคา): แผ่นขาว + เงาบาง · ช่องกรอกเป็นหลุม · ยอดของแถวเป็นคอลัมน์ท้าย
+       ทุกช่องสูงเท่ากันในบรรทัดเดียว — เดิมยอดแถวห้อยใต้ชื่อ ทำให้ช่องจำนวน/ราคาเหลื่อมกับช่องชื่อ
+       บรรทัดที่ยังไม่ใส่ราคา (สำรองไว้เผื่อใช้) จางลง จะได้เห็นว่าบรรทัดไหนคิดเงินจริง */
+    const COLS = isMobile ? "minmax(0,1fr) minmax(0,1fr) minmax(0,1.2fr)" : "minmax(0,1fr) 78px 70px 100px 104px 30px";
+    const cellS = Object.assign({}, inputStyle, { width: "100%", height: 38, boxSizing: "border-box", padding: "0 11px" });
+    const numS = Object.assign({}, cellS, { textAlign: "right" });
+    const chipBtn = { display: "inline-flex", alignItems: "center", gap: 5, background: "var(--surface2)", boxShadow: "var(--shadow-sm)", border: 0,
+      borderRadius: "var(--r-chip)", padding: "7px 12px", cursor: "pointer", fontFamily: "inherit", fontSize: 12, fontWeight: 700 };
     return (
-      <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-        <div style={{ display: "grid", gridTemplateColumns: isMobile ? "minmax(0,1fr) 62px 36px" : "minmax(0,1fr) 84px 62px 96px 36px", gap: 8,
-          fontSize: 9.5, fontWeight: 800, letterSpacing: ".05em", color: "var(--text-3)", padding: "0 2px" }}>
-          <span>รายการ</span>{!isMobile && <span style={{ textAlign: "right" }}>{qtyLabel}</span>}
-          {!isMobile && <span style={{ textAlign: "right" }}>หน่วย</span>}
-          <span style={{ textAlign: "right" }}>ราคา/หน่วย</span><span />
-        </div>
+      <div style={{ display: "flex", flexDirection: "column", gap: 7 }}>
+        {!isMobile && (
+          <div style={{ display: "grid", gridTemplateColumns: COLS, gap: 8, padding: "0 8px 0 12px",
+            fontSize: 9.5, fontWeight: 800, letterSpacing: ".05em", color: "var(--text-3)" }}>
+            <span>รายการ</span><span style={{ textAlign: "right" }}>{qtyLabel}</span><span style={{ textAlign: "right" }}>หน่วย</span>
+            <span style={{ textAlign: "right" }}>ราคา/หน่วย</span><span style={{ textAlign: "right" }}>รวม</span><span />
+          </div>
+        )}
         {rows.map((r, i) => {
           const q = live[i] ? live[i].qty : (r.qty == null || r.qty === "" ? (+r.price > 0 ? 1 : 0) : +r.qty || 0);
           const tot = q * (+r.price || 0);
+          const idle = !(+r.price > 0);
+          const qtyCell = r.auto
+            ? <span style={{ textAlign: "right", fontFamily: "var(--mono)", fontSize: 13, fontWeight: 700, color: "var(--primary-dark)", paddingRight: 4 }} title="ปริมาณคิดจากผลถอดวัสดุอัตโนมัติ">{(Math.round(q * 100) / 100).toLocaleString()}</span>
+            : <input type="number" style={numS} value={r.qty != null ? r.qty : ""} placeholder={+r.price > 0 ? "1" : ""} onChange={(e) => setSvc(sKey, preset, i, "qty", e.target.value)} />;
+          const unitCell = <input value={r.unit || ""} placeholder="หน่วย" onChange={(e) => setSvc(sKey, preset, i, "unit", e.target.value)} style={numS} />;
+          const priceCell = <input type="number" style={numS} value={r.price != null ? r.price : ""} placeholder="0" onChange={(e) => setSvc(sKey, preset, i, "price", e.target.value)} />;
+          const totCell = (
+            <span style={{ textAlign: "right", minWidth: 0, lineHeight: 1.2 }}>
+              <span style={{ display: "block", fontSize: 13, fontWeight: 800, fontVariantNumeric: "tabular-nums", color: tot > 0 ? "var(--text-1)" : "var(--text-3)" }}>{tot > 0 ? "฿" + baht(tot) : "—"}</span>
+              {tot > 0 && result.meta.kw > 0 && <span style={{ display: "block", fontSize: 9.5, color: "var(--text-3)", fontVariantNumeric: "tabular-nums" }}>฿{baht(tot / (result.meta.kw * 1000))}/W</span>}
+            </span>
+          );
+          const del = <button className="bq-x" style={{ height: 30, width: 30 }} onClick={() => delSvc(sKey, preset, i)} title="ลบบรรทัด"><Icon name="x" size={14} /></button>;
+          const name = <input value={r.name} onChange={(e) => setSvc(sKey, preset, i, "name", e.target.value)} style={Object.assign({}, cellS, { fontWeight: 600 })} placeholder="ชื่อรายการ" />;
           return (
-            <div key={i} style={{ display: "grid", gridTemplateColumns: isMobile ? "minmax(0,1fr) 62px 36px" : "minmax(0,1fr) 84px 62px 96px 36px", gap: 8, alignItems: "center" }}>
-              <span style={{ minWidth: 0 }}>
-                <input value={r.name} onChange={(e) => setSvc(sKey, preset, i, "name", e.target.value)} style={Object.assign({}, inputStyle, { width: "100%" })} placeholder="ชื่อรายการ" />
-                {tot > 0 && <span style={{ display: "block", fontSize: 10, color: "var(--text-3)", marginTop: 2, paddingLeft: 2 }}>= ฿{baht(tot)}{result.meta.kw > 0 ? " · ฿" + baht(tot / (result.meta.kw * 1000)) + "/W" : ""}</span>}
-              </span>
-              {!isMobile && (r.auto
-                ? <span style={{ textAlign: "right", fontFamily: "var(--mono)", fontSize: 13, fontWeight: 700, color: "var(--primary-dark)" }} title="ปริมาณคิดจากผลถอดวัสดุอัตโนมัติ">{(Math.round(q * 100) / 100).toLocaleString()}</span>
-                : <input type="number" style={numStyle} value={r.qty != null ? r.qty : ""} placeholder={+r.price > 0 ? "1" : ""} onChange={(e) => setSvc(sKey, preset, i, "qty", e.target.value)} />)}
-              {!isMobile && <input value={r.unit || ""} onChange={(e) => setSvc(sKey, preset, i, "unit", e.target.value)} style={Object.assign({}, inputStyle, { width: "100%", textAlign: "right" })} />}
-              <input type="number" style={numStyle} value={r.price != null ? r.price : ""} placeholder="0" onChange={(e) => setSvc(sKey, preset, i, "price", e.target.value)} />
-              <button className="bq-x" onClick={() => delSvc(sKey, preset, i)} title="ลบบรรทัด"><Icon name="x" size={14} /></button>
+            <div key={i} style={{ background: "var(--surface)", boxShadow: "var(--shadow-sm)", borderRadius: "var(--r-tile)", padding: "7px 8px 7px 12px",
+              opacity: idle ? 0.72 : 1, transition: "opacity .12s" }}>
+              {isMobile ? (
+                <div style={{ display: "flex", flexDirection: "column", gap: 7 }}>
+                  <div style={{ display: "flex", gap: 6, alignItems: "center" }}><span style={{ flex: 1, minWidth: 0 }}>{name}</span>{del}</div>
+                  <div style={{ display: "grid", gridTemplateColumns: COLS, gap: 7, alignItems: "center" }}>{qtyCell}{priceCell}{totCell}</div>
+                </div>
+              ) : (
+                <div style={{ display: "grid", gridTemplateColumns: COLS, gap: 8, alignItems: "center" }}>
+                  {name}{qtyCell}{unitCell}{priceCell}{totCell}{del}
+                </div>
+              )}
             </div>
           );
         })}
         {sum > 0 && (
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", padding: "10px 12px", marginTop: 2,
-            background: "var(--primary-soft)", borderRadius: 10 }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", padding: "11px 14px", marginTop: 2,
+            background: "var(--primary-soft)", borderRadius: "var(--r-tile)" }}>
             <span style={{ fontSize: 11, fontWeight: 800, letterSpacing: ".06em", color: "var(--primary-dark)" }}>รวมทุกบรรทัด</span>
             <span style={{ fontFamily: "var(--display)", fontSize: 17, fontWeight: 700, letterSpacing: "-.03em", fontVariantNumeric: "tabular-nums", color: "var(--primary-dark)" }}>
               ฿{baht(sum)}{sumPerW > 0 ? <span style={{ fontSize: 11.5, fontWeight: 700, marginLeft: 6 }}>· ฿{baht(sumPerW)}/W</span> : null}
             </span>
           </div>
         )}
-        <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-          <button onClick={() => addSvc(sKey, preset)} style={{ display: "inline-flex", alignItems: "center", gap: 5, background: "none", color: "var(--primary-dark)", border: "1px dashed var(--border-strong)", borderRadius: 9, padding: "6px 12px", fontWeight: 700, fontSize: 12, cursor: "pointer", fontFamily: "inherit" }}><Icon name="plus" size={13} color="var(--primary-dark)" /> เพิ่มบรรทัด</button>
-          {b[sKey] != null && <button onClick={() => resetSvc(sKey)} style={{ display: "inline-flex", alignItems: "center", gap: 5, background: "var(--surface3)", color: "var(--text-2)", border: "1px solid var(--border-strong)", borderRadius: 9, padding: "8px 12px", fontWeight: 700, fontSize: 12.5, cursor: "pointer", fontFamily: "inherit" }}>คืนรายการตั้งต้น</button>}
+        <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginTop: 2 }}>
+          <button className="bq-chipbtn" onClick={() => addSvc(sKey, preset)} style={Object.assign({}, chipBtn, { color: "var(--primary-dark)" })}><Icon name="plus" size={13} color="var(--primary-dark)" /> เพิ่มบรรทัด</button>
+          {b[sKey] != null && <button className="bq-chipbtn" onClick={() => resetSvc(sKey)} style={Object.assign({}, chipBtn, { color: "var(--text-2)" })}>คืนรายการตั้งต้น</button>}
         </div>
       </div>
     );
