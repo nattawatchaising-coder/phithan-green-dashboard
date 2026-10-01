@@ -500,6 +500,55 @@ function p3PlanSummary(saved) {
     inv2Count: Math.max(0, Math.round(+sys.inv2Count || 0))
   };
 }
+function p3RailRows(saved) {
+  if (!saved || !Array.isArray(saved.roofs) || !saved.roofs.length) return null;
+  const runs = {};
+  let total = 0;
+  saved.roofs.forEach((roof, ri) => {
+    let res = null;
+    try {
+      res = p3Panels(roof);
+    } catch (e) {
+      res = null;
+    }
+    if (!res) return;
+    const orientOf = bi => ((res.blocks || [])[bi || 0] || {}).orient === "landscape" ? "landscape" : "portrait";
+    const byRow = {};
+    (res.list || []).forEach(p => {
+      if (!p || p.skip || p.slot) return;
+      const mm = /^(.*)_(-?\d+)$/.exec(String(p.key || ""));
+      if (!mm) return;
+      const rk = ri + "|" + (p.blk || 0) + "|" + (p.side || "") + "|" + mm[1];
+      (byRow[rk] = byRow[rk] || []).push(+mm[2]);
+    });
+    Object.keys(byRow).forEach(rk => {
+      const cs = byRow[rk].sort((a, b) => a - b);
+      const ori = orientOf(+rk.split("|")[1]);
+      let len = 1;
+      for (let i = 1; i <= cs.length; i++) {
+        if (i < cs.length && cs[i] === cs[i - 1] + 1) {
+          len++;
+          continue;
+        }
+        if (i < cs.length && cs[i] === cs[i - 1]) continue;
+        const rkey = ori + "|" + len;
+        runs[rkey] = (runs[rkey] || 0) + 1;
+        total += len;
+        len = 1;
+      }
+    });
+  });
+  if (!total) return null;
+  const rows = Object.keys(runs).map(k => ({
+    panels: +k.split("|")[1],
+    count: runs[k],
+    orient: k.split("|")[0]
+  })).sort((a, b) => a.orient === b.orient ? b.panels - a.panels : a.orient === "portrait" ? -1 : 1);
+  return {
+    rows: rows,
+    total: total
+  };
+}
 function movePlan3d(fromId, toId) {
   if (!fromId || !toId || fromId === toId) return Promise.resolve();
   if (!window.FBDB) {
@@ -8121,6 +8170,7 @@ Object.assign(window, {
   usePlan3d,
   movePlan3d,
   p3PlanSummary,
+  p3RailRows,
   P3_MEAS_KINDS,
   p3MeasKind,
   p3MeasLen,

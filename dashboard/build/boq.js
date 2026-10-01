@@ -780,26 +780,25 @@ function measLen(m) {
   for (let i = 1; i < pts.length; i++) s += Math.hypot((+pts[i].x || 0) - (+pts[i - 1].x || 0), (+pts[i].z || 0) - (+pts[i - 1].z || 0));
   return Math.round((s + Math.abs(+(m && m.rise) || 0)) * 100) / 100;
 }
-function useMeas3D(jobId) {
-  const [ms, setMs] = React.useState([]);
+function usePlan3dRO(jobId) {
+  const [v, setV] = React.useState(null);
   React.useEffect(() => {
     if (!jobId) {
-      setMs([]);
+      setV(null);
       return;
     }
-    const take = v => setMs((v && v.measures || []).filter(m => m && (m.pts || []).length >= 2));
     if (window.FBDB) {
       const ref = window.FBDB.ref("plan3d/" + jobId);
-      const h = ref.on("value", s => take(s.val()));
+      const h = ref.on("value", s => setV(s.val() || null));
       return () => ref.off("value", h);
     }
     try {
-      take(JSON.parse(localStorage.getItem("sf_plan3d_" + jobId) || "null"));
+      setV(JSON.parse(localStorage.getItem("sf_plan3d_" + jobId) || "null"));
     } catch (e) {
-      setMs([]);
+      setV(null);
     }
   }, [jobId]);
-  return ms;
+  return v;
 }
 function Meas3DModal({
   list,
@@ -1599,7 +1598,23 @@ function BOQEditor({
     onToggle: () => setOpenSec(bqPageOf(key))
   });
   const [advU, setAdvU] = React.useState(false);
-  const meas3d = useMeas3D(job ? job.id : null);
+  const plan3d = usePlan3dRO(job ? job.id : null);
+  const meas3d = React.useMemo(() => (plan3d && plan3d.measures || []).filter(m => m && (m.pts || []).length >= 2), [plan3d]);
+  const rail3d = React.useMemo(() => window.p3RailRows ? window.p3RailRows(plan3d) : null, [plan3d]);
+  const rowsKey = rs => (rs || []).filter(r => +r.panels > 0 && +r.count > 0).map(r => +r.panels + "x" + +r.count + (r.orient === "landscape" ? "L" : "")).sort().join(",");
+  const rail3dSame = !!rail3d && rowsKey(rail3d.rows) === rowsKey(b.rows);
+  const applyRail3d = () => {
+    if (rail3d) setB(p => Object.assign({}, p, {
+      rows: rail3d.rows.map(r => r.orient === "landscape" ? {
+        panels: r.panels,
+        count: r.count,
+        orient: "landscape"
+      } : {
+        panels: r.panels,
+        count: r.count
+      })
+    }));
+  };
   const [measOpen, setMeasOpen] = React.useState(null);
   const measFor = kinds => meas3d.filter(m => kinds.indexOf(m.kind || "other") >= 0 || (m.kind || "other") === "other");
   const measTargets = React.useMemo(() => {
@@ -5395,7 +5410,45 @@ function BOQEditor({
         color: remaining === 0 ? "var(--primary-dark)" : "#EF4444"
       }
     }, "\u0E27\u0E32\u0E07\u0E41\u0E25\u0E49\u0E27 ", result.meta.rowsSum, " / ", result.meta.panelCount, " \u0E41\u0E1C\u0E07")
-  }), React.createElement("div", {
+  }), rail3d && React.createElement("div", {
+    style: {
+      marginBottom: 12,
+      display: "flex",
+      alignItems: "center",
+      flexWrap: "wrap",
+      gap: 9,
+      padding: "9px 12px",
+      background: rail3dSame ? "var(--primary-soft)" : "var(--tint-blue-bg, rgba(37,99,235,.08))",
+      borderRadius: 11
+    }
+  }, React.createElement(Icon, {
+    name: rail3dSame ? "check" : "grid",
+    size: 15,
+    color: rail3dSame ? "var(--primary-dark)" : "#2563EB"
+  }), React.createElement("span", {
+    style: {
+      fontSize: 12.5,
+      fontWeight: 700,
+      color: rail3dSame ? "var(--primary-dark)" : "#1D4ED8"
+    }
+  }, rail3dSame ? "ตรงกับแบบ 3D แล้ว" : "แบบ 3D วางไว้", " ", rail3d.total, " \u0E41\u0E1C\u0E07 \xB7 ", rail3d.rows.map(r => (r.orient === "landscape" ? "แนวนอน " : "แนวตั้ง ") + r.panels + " แผง × " + r.count + " แถว").join(" · "), rail3d.total !== +result.meta.panelCount ? " (งานนี้ตั้งไว้ " + result.meta.panelCount + " แผง)" : ""), !rail3dSame && React.createElement("button", {
+    onClick: applyRail3d,
+    style: {
+      marginLeft: "auto",
+      display: "inline-flex",
+      alignItems: "center",
+      gap: 5,
+      background: "#2563EB",
+      color: "#fff",
+      border: "none",
+      borderRadius: 8,
+      padding: "6px 12px",
+      fontWeight: 700,
+      fontSize: 12,
+      cursor: "pointer",
+      fontFamily: "inherit"
+    }
+  }, "\u0E43\u0E0A\u0E49\u0E01\u0E32\u0E23\u0E08\u0E31\u0E14\u0E27\u0E32\u0E07\u0E08\u0E32\u0E01\u0E41\u0E1A\u0E1A 3D")), React.createElement("div", {
     style: {
       display: "flex",
       flexDirection: "column",
@@ -5405,7 +5458,7 @@ function BOQEditor({
     key: i,
     style: {
       display: "grid",
-      gridTemplateColumns: "1fr 1fr 40px",
+      gridTemplateColumns: isMobile ? "1fr 1fr 1fr 40px" : "1fr 1fr 150px 40px",
       gap: 8,
       alignItems: "center"
     }
@@ -5424,6 +5477,18 @@ function BOQEditor({
     style: numStyle,
     value: r.count,
     onChange: e => setRow(i, "count", e.target.value)
+  })), React.createElement(Field, {
+    label: i === 0 ? "แนวแผง" : ""
+  }, React.createElement(Dropdown, {
+    value: r.orient === "landscape" ? "landscape" : "portrait",
+    onChange: v => setRow(i, "orient", v),
+    options: [{
+      value: "portrait",
+      label: "แนวตั้ง"
+    }, {
+      value: "landscape",
+      label: "แนวนอน"
+    }]
   })), React.createElement("button", {
     onClick: () => delRow(i),
     title: "\u0E25\u0E1A\u0E41\u0E16\u0E27",

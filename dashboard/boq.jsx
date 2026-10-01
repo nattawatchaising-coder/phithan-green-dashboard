@@ -362,19 +362,19 @@ function measLen(m) {
   for (let i = 1; i < pts.length; i++) s += Math.hypot((+pts[i].x || 0) - (+pts[i - 1].x || 0), (+pts[i].z || 0) - (+pts[i - 1].z || 0));
   return Math.round((s + Math.abs(+(m && m.rise) || 0)) * 100) / 100;
 }
-function useMeas3D(jobId) {
-  const [ms, setMs] = React.useState([]);
+/* อ่านแบบ 3D ทั้งก้อน (อ่านอย่างเดียว) — ใช้ทั้งเส้นวัดระยะและการจัดวางแผง */
+function usePlan3dRO(jobId) {
+  const [v, setV] = React.useState(null);
   React.useEffect(() => {
-    if (!jobId) { setMs([]); return; }
-    const take = (v) => setMs((((v && v.measures) || [])).filter((m) => m && (m.pts || []).length >= 2));
+    if (!jobId) { setV(null); return; }
     if (window.FBDB) {
       const ref = window.FBDB.ref("plan3d/" + jobId);
-      const h = ref.on("value", (s) => take(s.val()));
+      const h = ref.on("value", (s) => setV(s.val() || null));
       return () => ref.off("value", h);
     }
-    try { take(JSON.parse(localStorage.getItem("sf_plan3d_" + jobId) || "null")); } catch (e) { setMs([]); }
+    try { setV(JSON.parse(localStorage.getItem("sf_plan3d_" + jobId) || "null")); } catch (e) { setV(null); }
   }, [jobId]);
-  return ms;
+  return v;
 }
 
 /* โมดัลเลือกว่า "เส้นวัดไหน → ลงช่องไหน" — ตั้งปลายทางให้ล่วงหน้าตามหมวดที่ติ๊กไว้ตอนวัด
@@ -738,7 +738,15 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
   /* ── ระยะจากแบบ 3D ──
      3D วัดบนผังดาวเทียมที่รู้สเกลจริง จึงเอาเมตรมากรอกช่องความยาวได้ตรง ๆ
      แทนที่จะกะเอาหรือเดินวัดหน้างานซ้ำ (เส้นวัดผูกกับงานเดียวกัน จึงไม่มีทางหยิบของงานอื่นมาปน) */
-  const meas3d = useMeas3D(job ? job.id : null);
+  const plan3d = usePlan3dRO(job ? job.id : null);
+  const meas3d = React.useMemo(() => ((plan3d && plan3d.measures) || []).filter((m) => m && (m.pts || []).length >= 2), [plan3d]);
+  /* การจัดวางแผงจากแบบ 3D — แผงที่วางบนผังจริงคือแหล่งที่ตรงที่สุด ไม่ต้องนั่งนับแถวเองอีก
+     ไม่ทับให้เอง: ขึ้นแถบให้กดดึง (ของที่กรอกไว้เองจะได้ไม่หายเงียบ ๆ) */
+  const rail3d = React.useMemo(() => (window.p3RailRows ? window.p3RailRows(plan3d) : null), [plan3d]);
+  const rowsKey = (rs) => (rs || []).filter((r) => +r.panels > 0 && +r.count > 0)
+    .map((r) => +r.panels + "x" + +r.count + (r.orient === "landscape" ? "L" : "")).sort().join(",");
+  const rail3dSame = !!rail3d && rowsKey(rail3d.rows) === rowsKey(b.rows);
+  const applyRail3d = () => { if (rail3d) setB((p) => Object.assign({}, p, { rows: rail3d.rows.map((r) => (r.orient === "landscape" ? { panels: r.panels, count: r.count, orient: "landscape" } : { panels: r.panels, count: r.count })) })); };
   const [measOpen, setMeasOpen] = React.useState(null);   // หมวดที่กดเปิดโมดัลมา (กรองรายการให้ตรงงานที่ทำอยู่)
   const measFor = (kinds) => meas3d.filter((m) => kinds.indexOf(m.kind || "other") >= 0 || (m.kind || "other") === "other");
   const measTargets = React.useMemo(() => {
@@ -2445,11 +2453,30 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
             right={<span style={{ fontSize: 11.5, fontWeight: 700, color: remaining === 0 ? "var(--primary-dark)" : "#EF4444" }}>
               วางแล้ว {result.meta.rowsSum} / {result.meta.panelCount} แผง
             </span>}>
+            {rail3d && (
+              <div style={{ marginBottom: 12, display: "flex", alignItems: "center", flexWrap: "wrap", gap: 9, padding: "9px 12px",
+                background: rail3dSame ? "var(--primary-soft)" : "var(--tint-blue-bg, rgba(37,99,235,.08))", borderRadius: 11 }}>
+                <Icon name={rail3dSame ? "check" : "grid"} size={15} color={rail3dSame ? "var(--primary-dark)" : "#2563EB"} />
+                <span style={{ fontSize: 12.5, fontWeight: 700, color: rail3dSame ? "var(--primary-dark)" : "#1D4ED8" }}>
+                  {rail3dSame ? "ตรงกับแบบ 3D แล้ว" : "แบบ 3D วางไว้"} {rail3d.total} แผง · {rail3d.rows.map((r) => (r.orient === "landscape" ? "แนวนอน " : "แนวตั้ง ") + r.panels + " แผง × " + r.count + " แถว").join(" · ")}
+                  {rail3d.total !== +result.meta.panelCount ? " (งานนี้ตั้งไว้ " + result.meta.panelCount + " แผง)" : ""}
+                </span>
+                {!rail3dSame && (
+                  <button onClick={applyRail3d}
+                    style={{ marginLeft: "auto", display: "inline-flex", alignItems: "center", gap: 5, background: "#2563EB", color: "#fff", border: "none", borderRadius: 8, padding: "6px 12px", fontWeight: 700, fontSize: 12, cursor: "pointer", fontFamily: "inherit" }}>
+                    ใช้การจัดวางจากแบบ 3D
+                  </button>
+                )}
+              </div>
+            )}
             <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
               {b.rows.map((r, i) => (
-                <div key={i} style={{ display: "grid", gridTemplateColumns: "1fr 1fr 40px", gap: 8, alignItems: "center" }}>
+                <div key={i} style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr 1fr 1fr 40px" : "1fr 1fr 150px 40px", gap: 8, alignItems: "center" }}>
                   <Field label={i === 0 ? "แผง/แถว" : ""}><input type="number" style={numStyle} value={r.panels} onChange={(e) => setRow(i, "panels", e.target.value)} /></Field>
                   <Field label={i === 0 ? "จำนวนแถว" : ""}><input type="number" min="0" style={numStyle} value={r.count} onChange={(e) => setRow(i, "count", e.target.value)} /></Field>
+                  {/* แนวการวางแผง — แนวนอนเอาด้านยาวเรียงบนราง รางต่อแถวยาวขึ้นเกือบเท่าตัว */}
+                  <Field label={i === 0 ? "แนวแผง" : ""}><Dropdown value={r.orient === "landscape" ? "landscape" : "portrait"} onChange={(v) => setRow(i, "orient", v)}
+                    options={[{ value: "portrait", label: "แนวตั้ง" }, { value: "landscape", label: "แนวนอน" }]} /></Field>
                   <button onClick={() => delRow(i)} title="ลบแถว" style={{ height: 40, marginTop: i === 0 ? 18 : 0, background: "#EF444414", border: "none", color: "#EF4444", borderRadius: 9, cursor: "pointer", display: "grid", placeItems: "center" }}><Icon name="x" size={15} /></button>
                 </div>
               ))}

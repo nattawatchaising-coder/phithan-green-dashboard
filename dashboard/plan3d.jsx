@@ -260,6 +260,46 @@ function p3PlanSummary(saved) {
   };
 }
 
+/* การจัดวางแผงเป็น "แผง/แถว × จำนวนแถว" สำหรับ BOQ (ถอดราง/แคล้ม/L-FEET)
+   ไล่ทุกหลังคา ทุกบล็อก ทุกผืน แล้วแยกแผงตามแถว (คีย์แผง = …แถว_คอลัมน์)
+   แถวไหนมีแผงที่แตะเว้นไว้ตรงกลาง ต้องตัดเป็นสองช่วง เพราะหน้างานจะเป็นรางคนละเส้น
+   แยกแนวตั้ง/แนวนอนด้วย — แผงแนวนอนเอาด้านยาวเรียงบนราง รางต่อแถวยาวกว่าเกือบเท่าตัว
+   คืน { rows:[{panels,count,orient}] เรียงช่วงยาวก่อน, total } หรือ null ถ้ายังไม่มีแผง */
+function p3RailRows(saved) {
+  if (!saved || !Array.isArray(saved.roofs) || !saved.roofs.length) return null;
+  const runs = {};   // "แนว|ความยาวช่วง" → จำนวนช่วง
+  let total = 0;
+  saved.roofs.forEach((roof, ri) => {
+    let res = null;
+    try { res = p3Panels(roof); } catch (e) { res = null; }
+    if (!res) return;
+    const orientOf = (bi) => ((res.blocks || [])[bi || 0] || {}).orient === "landscape" ? "landscape" : "portrait";
+    const byRow = {};
+    (res.list || []).forEach((p) => {
+      if (!p || p.skip || p.slot) return;
+      const mm = /^(.*)_(-?\d+)$/.exec(String(p.key || ""));
+      if (!mm) return;
+      const rk = ri + "|" + (p.blk || 0) + "|" + (p.side || "") + "|" + mm[1];
+      (byRow[rk] = byRow[rk] || []).push(+mm[2]);
+    });
+    Object.keys(byRow).forEach((rk) => {
+      const cs = byRow[rk].sort((a, b) => a - b);
+      const ori = orientOf(+rk.split("|")[1]);
+      let len = 1;
+      for (let i = 1; i <= cs.length; i++) {
+        if (i < cs.length && cs[i] === cs[i - 1] + 1) { len++; continue; }
+        if (i < cs.length && cs[i] === cs[i - 1]) continue;   // ช่องซ้ำ (ไม่ควรเกิด) ไม่นับสองรอบ
+        const rkey = ori + "|" + len;
+        runs[rkey] = (runs[rkey] || 0) + 1; total += len; len = 1;
+      }
+    });
+  });
+  if (!total) return null;
+  const rows = Object.keys(runs).map((k) => ({ panels: +k.split("|")[1], count: runs[k], orient: k.split("|")[0] }))
+    .sort((a, b) => (a.orient === b.orient ? b.panels - a.panels : a.orient === "portrait" ? -1 : 1));
+  return { rows: rows, total: total };
+}
+
 /* ย้ายแบบ 3D ตามไปกับงาน — ลูกค้าที่แปลงเป็นงานติดตั้งจะได้เลข id ใหม่
    ถ้าไม่ย้าย แบบที่ปั้นไว้ตอนยังเป็นงานขายจะหายไปเงียบ ๆ เหมือนไม่เคยทำ */
 function movePlan3d(fromId, toId) {
@@ -4462,6 +4502,6 @@ async function p3ExportSet(st, job, photos, prep) {
   return { sheets: P.sheets.length, files: P.files.length };
 }
 
-Object.assign(window, { Plan3DEditor, usePlan3d, movePlan3d, p3PlanSummary, P3_MEAS_KINDS, p3MeasKind, p3MeasLen,
+Object.assign(window, { Plan3DEditor, usePlan3d, movePlan3d, p3PlanSummary, p3RailRows, P3_MEAS_KINDS, p3MeasKind, p3MeasLen,
   p3Dxf, p3Sld, p3PhotoSheet, p3EquipSheet, p3DcSheet, p3SldModel, p3SldFields, p3SldApply, p3SheetInfo,
   p3ExportPlan, p3PrepSet, p3ExportSet, p3SaveBlob });
