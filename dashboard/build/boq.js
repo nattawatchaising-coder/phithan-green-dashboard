@@ -3123,11 +3123,11 @@ function BOQEditor({
           why: tag + "ร้อยสายเฟส + N ของเมน " + mainAt + " AT ทั้งชุด (รูต้องใหญ่พอกับสายจริง)"
         });
         out.ac.push({
-          name: "SHUNT TRIP 220VAC สำหรับ MCCB " + mainAt + "AT",
+          name: "SHUNT TRIP 220VAC",
           qty: 1,
           unit: "ตัว",
           auto: 1,
-          why: tag + "คอยล์สั่งตัด MCCB เมน รับสัญญาณจาก GFR"
+          why: tag + "คอยล์สั่งตัด MCCB เมน " + mainAt + " AT รับสัญญาณจาก GFR (สั่งให้ตรงรุ่น/เฟรมของ MCCB)"
         });
       }
       if (projBoard.pm !== "off" && mainAt > 0) {

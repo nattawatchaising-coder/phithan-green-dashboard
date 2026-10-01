@@ -1791,7 +1791,7 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
         const zd = mainAt <= 125 ? 60 : mainAt <= 250 ? 80 : mainAt <= 630 ? 120 : 200;
         out.ac.push({ name: "GROUND FAULT RELAY (GFR)", qty: 1, unit: "ตัว", auto: 1, why: tag + "ตรวจกระแสรั่วลงดิน สั่งตัด MCCB เมน" });
         out.ac.push({ name: "ZCT Φ" + zd + "mm", qty: 1, unit: "ตัว", auto: 1, why: tag + "ร้อยสายเฟส + N ของเมน " + mainAt + " AT ทั้งชุด (รูต้องใหญ่พอกับสายจริง)" });
-        out.ac.push({ name: "SHUNT TRIP 220VAC สำหรับ MCCB " + mainAt + "AT", qty: 1, unit: "ตัว", auto: 1, why: tag + "คอยล์สั่งตัด MCCB เมน รับสัญญาณจาก GFR" });
+        out.ac.push({ name: "SHUNT TRIP 220VAC", qty: 1, unit: "ตัว", auto: 1, why: tag + "คอยล์สั่งตัด MCCB เมน " + mainAt + " AT รับสัญญาณจาก GFR (สั่งให้ตรงรุ่น/เฟรมของ MCCB)" });
       }
       /* Power Meter PM2230 — CT ตามขนาดเมน (อัตราส่วนมาตรฐานแรกที่ ≥ In ของ MCCB เมน /5A) เฟสละ 1 ตัว */
       if (projBoard.pm !== "off" && mainAt > 0) {
