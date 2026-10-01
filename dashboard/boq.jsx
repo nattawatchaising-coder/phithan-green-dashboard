@@ -181,7 +181,24 @@ const BQ_CSS = `
 
 /* ตารางสเปคจากคลัง + ตัวเลขที่คำนวณได้ — ช่องที่ยังไม่กรอกในคลังขึ้นสีส้มให้เห็นว่าต้องไปเติม */
 .bq-spec{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}
-.bq-spec>div{padding:9px 11px;border-radius:12px;background:var(--surface2);box-shadow:var(--shadow-inset);min-width:0}
+/* ช่องสถิติ (ค่าที่ระบบคิดให้ อ่านอย่างเดียว) = พื้นจางแบน ไม่มีเงาหลุม — แยกออกจากช่องกรอกที่เป็นหลุมจม */
+.bq-spec>div{padding:9px 12px;border-radius:12px;background:var(--surface2);min-width:0}
+.bq-spec.c2{grid-template-columns:repeat(2,minmax(0,1fr))}
+.bq-spec .v .ok{color:var(--primary);margin-left:4px}
+/* ช่องกรอกที่มีหน่วยต่อท้าย — หน่วยอยู่ในหลุมเดียวกับตัวเลข ไม่ลอยอยู่นอกช่อง */
+.bq-fld{display:flex;align-items:center;gap:6px;height:42px;box-sizing:border-box;padding:0 12px;border-radius:var(--r-tile);
+  background:var(--surface2);box-shadow:var(--shadow-inset);min-width:0}
+.bq-fld:focus-within{box-shadow:inset 0 0 0 1.5px var(--primary)}
+.bq-fld input{flex:1;min-width:0;height:100%;border:0;outline:none;padding:0;background:transparent !important;box-shadow:none !important;
+  font-family:inherit;font-size:13.5px;color:var(--text-1);text-align:right;font-variant-numeric:tabular-nums}
+.bq-fld .u{font-size:11.5px;color:var(--text-3);flex-shrink:0}
+.bq-fld .bq-auto{margin-left:4px}
+/* ค่าที่ล็อก/คิดให้ ในแถวเดียวกับช่องกรอก — สูงเท่าช่องกรอก แต่แบน (ไม่ใช่หลุม) จะได้รู้ว่าพิมพ์ไม่ได้ */
+.bq-ro{display:flex;align-items:center;gap:6px;height:42px;box-sizing:border-box;padding:0 12px;border-radius:var(--r-tile);
+  background:color-mix(in srgb,var(--surface2) 60%,transparent);min-width:0}
+.bq-ro .v{flex:1;text-align:right;font-family:var(--mono);font-size:15px;font-weight:700;color:var(--primary-dark)}
+.bq-ro .v.tx{font-family:inherit;font-size:13.5px;font-weight:600;color:var(--text-1);text-align:left}
+.bq-ro .u{font-size:11.5px;color:var(--text-3)}
 .bq-spec .k{display:block;font-size:10px;font-weight:700;color:var(--text-3);margin-bottom:3px;
   overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .bq-spec .v{display:block;font-family:var(--mono);font-size:13.5px;font-weight:800;color:var(--text-1);
@@ -300,10 +317,10 @@ const bqPageOf = (k) => { const g = BQ_MERGE.find((x) => x.indexOf(k) >= 0); ret
 
 function BoqLocked({ value, unit, num }) {
   return (
-    <div style={{ display: "flex", alignItems: "center", gap: 6, background: "var(--surface2)", boxShadow: "var(--shadow-inset)", borderRadius: 12, padding: "9px 11px" }} title="ตั้งค่าจากหน้าแก้งาน">
+    <div className="bq-ro" title="ตั้งค่าจากหน้าแก้งาน">
       <Icon name="lock" size={13} color="var(--text-3)" />
-      <span style={{ flex: 1, textAlign: "right", fontFamily: num ? "var(--mono)" : "inherit", fontSize: num ? 15 : 13.5, fontWeight: num ? 700 : 600, color: num ? "var(--primary-dark)" : "var(--text-1)" }}>{value}</span>
-      {unit && <span style={{ fontSize: 11.5, color: "var(--text-3)" }}>{unit}</span>}
+      <span className={"v" + (num ? "" : " tx")}>{value}</span>
+      {unit && <span className="u">{unit}</span>}
     </div>
   );
 }
@@ -314,10 +331,10 @@ function BoqInvCount({ value, auto, onChange, style }) {
   const manual = +value > 0;
   const shown = manual ? +value : auto;
   return (
-    <div style={{ display: "flex", alignItems: "center", gap: 7 }}>
-      <input type="number" min={1} step={1} style={Object.assign({}, style, { flex: 1, minWidth: 0 })}
+    <div className="bq-fld">
+      <input type="number" min={1} step={1}
         value={shown || ""} onChange={(e) => onChange(Math.max(0, parseInt(e.target.value) || 0))} />
-      <span style={{ fontSize: 11.5, color: "var(--text-3)", flexShrink: 0 }}>ตัว</span>
+      <span className="u">ตัว</span>
       {manual
         ? <button type="button" className="bq-auto" onClick={() => onChange(0)}
             title={auto > 0 ? "กลับไปใช้ค่าอัตโนมัติ " + auto + " ตัว" : "กลับไปใช้ค่าอัตโนมัติ"}>อัตโนมัติ{auto > 0 ? " " + auto : ""}</button>
@@ -2940,23 +2957,22 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
                   ใบลูกค้า: ยังไม่มีงาน มีแต่ขนาดที่คาด — คิดจำนวนแผงให้จาก kWp แล้วให้แก้ทับได้ */}
               {isLead
                 ? <Field label="จำนวนแผง (คิดจากขนาดที่คาด · แก้ได้)">
-                    <div style={{ display: "flex", alignItems: "center", gap: 7 }}>
-                      <input type="number" min={0} step={1} style={Object.assign({}, numStyle, { flex: 1, minWidth: 0 })}
+                    <div className="bq-fld">
+                      <input type="number" min={0} step={1}
                         value={b.panels || ""} onChange={(e) => set("panels", Math.max(0, parseInt(e.target.value) || 0))} />
-                      <span style={{ fontSize: 11.5, color: "var(--text-3)", flexShrink: 0 }}>แผง</span>
+                      <span className="u">แผง</span>
                     </div>
                   </Field>
                 : <Field label="จำนวนแผง"><BoqLocked value={b.panels} unit="แผง" num /></Field>}
               <Field label="ขนาดติดตั้ง (kW)">
-                <div style={{ display: "flex", alignItems: "baseline", justifyContent: "flex-end", gap: 4, background: "var(--surface2)", boxShadow: "var(--shadow-inset)", borderRadius: 12, padding: "9px 11px" }}>
-                  <span style={{ fontFamily: "var(--mono)", fontSize: 15, fontWeight: 700, color: "var(--primary-dark)" }}>{result.meta.kw.toLocaleString()}</span>
-                  <span style={{ fontSize: 11.5, color: "var(--text-3)" }}>kW</span>
+                <div className="bq-ro" title="คิดจาก จำนวนแผง × วัตต์ต่อแผง">
+                  <span className="v">{result.meta.kw.toLocaleString()}</span><span className="u">kW</span>
                 </div>
               </Field>
               <div style={{ gridColumn: isMobile ? "1 / -1" : "auto" }}><Field label="ระบบไฟฟ้า (ตามงาน)">
-                <div style={{ display: "flex", alignItems: "center", gap: 6, background: "var(--surface2)", boxShadow: "var(--shadow-inset)", borderRadius: 12, padding: "9px 11px" }}>
+                <div className="bq-ro" title="ตั้งค่าจากหน้าแก้งาน">
                   <Icon name="lock" size={13} color="var(--text-3)" />
-                  <span style={{ fontSize: 13.5, fontWeight: 600, color: "var(--text-1)" }}>{String(b.phase) === "3" ? "3 เฟส" : "1 เฟส"}</span>
+                  <span className="v tx">{String(b.phase) === "3" ? "3 เฟส" : "1 เฟส"}</span>
                 </div>
               </Field></div>
               {/* ── อินเวอร์เตอร์ ── บรรทัดละตัว (รุ่น | จำนวน) ไม่ให้ช่องของคนละตัวไหลไปอยู่บรรทัดเดียวกัน
@@ -2978,10 +2994,10 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
                   </Field>
                   {!!selInv2 && (
                     <Field label="จำนวน (กรอกเอง)">
-                      <div style={{ display: "flex", alignItems: "center", gap: 7 }}>
-                        <input type="number" min={1} step={1} style={Object.assign({}, numStyle, { flex: 1, minWidth: 0 })}
+                      <div className="bq-fld">
+                        <input type="number" min={1} step={1}
                           value={inv2Count || ""} onChange={(e) => set("inv2Count", Math.max(1, parseInt(e.target.value) || 1))} />
-                        <span style={{ fontSize: 11.5, color: "var(--text-3)", flexShrink: 0 }}>ตัว</span>
+                        <span className="u">ตัว</span>
                       </div>
                     </Field>
                   )}
@@ -3181,37 +3197,36 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
                 </div>
               ) : (
                 <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-                  <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr", gap: 10 }}>
-                    <div style={{ padding: "10px 12px", borderRadius: 10, background: "var(--surface2)", border: "1px solid var(--border)" }}>
-                      <div style={{ fontSize: 10.5, color: "var(--text-3)", marginBottom: 3, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>แผง · {b.panelModel}</div>
-                      <div style={{ fontSize: 12.5, fontWeight: 700, color: "var(--text-1)" }}>Voc {scfg.voc} V · Isc {scfg.isc} A{scfg.vmp ? " · Vmp " + scfg.vmp + " V" : ""}</div>
-                    </div>
-                    <div style={{ padding: "10px 12px", borderRadius: 10, background: "var(--surface2)", border: "1px solid var(--border)" }}>
-                      <div style={{ fontSize: 10.5, color: "var(--text-3)", marginBottom: 3 }}>ช่วงทำงาน MPPT · {selInv.model}</div>
-                      <div style={{ fontSize: 12.5, fontWeight: 700, color: "var(--text-1)" }}>{scfg.vmin}–{scfg.vmax} Vdc{scfg.maxVdc ? " · สูงสุด " + scfg.maxVdc + " V" : ""}</div>
-                    </div>
+                  <div className="bq-spec c2" style={isMobile ? { gridTemplateColumns: "minmax(0,1fr)" } : null}>
+                    <div><span className="k" title={b.panelModel}>แผง · {b.panelModel}</span>
+                      <span className="v">Voc {scfg.voc} V · Isc {scfg.isc} A{scfg.vmp ? " · Vmp " + scfg.vmp + " V" : ""}</span></div>
+                    <div><span className="k">ช่วงทำงาน MPPT · {selInv.model}</span>
+                      <span className="v">{scfg.vmin}–{scfg.vmax} Vdc{scfg.maxVdc ? " · สูงสุด " + scfg.maxVdc + " V" : ""}</span></div>
                   </div>
-                  <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "auto 1fr", gap: 12, alignItems: "center" }}>
+                  <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "auto 1fr", gap: 12, alignItems: "end" }}>
                     <Field label={"แผงต่ออนุกรม/สตริง" + (scfg.maxSeries >= scfg.minSeries ? " (แนะนำ " + scfg.minSeries + "–" + scfg.maxSeries + ")" : "")}>
                       {/* ลบจนว่างได้ (ว่าง = ใช้ค่าแนะนำ โชว์เป็นตัวจาง) — เดิมว่างแล้วเติมค่าแนะนำกลับทันที พิมพ์ตัวเลขใหม่ไม่ได้ */}
-                      <input type="number" style={Object.assign({}, numStyle, { width: 130 })} min={1} placeholder={String(scfg.recSeries)}
-                        value={b.dcSeries != null ? b.dcSeries : ""}
-                        onChange={(e) => set("dcSeries", e.target.value === "" ? "" : Math.max(1, parseInt(e.target.value) || 1))} />
+                      <div className="bq-fld" style={{ width: 170 }}>
+                        <input type="number" min={1} placeholder={String(scfg.recSeries)}
+                          value={b.dcSeries != null ? b.dcSeries : ""}
+                          onChange={(e) => set("dcSeries", e.target.value === "" ? "" : Math.max(1, parseInt(e.target.value) || 1))} />
+                        <span className="u">แผง/สตริง</span>
+                      </div>
                     </Field>
-                    <div style={{ fontSize: 11.5, color: "var(--text-3)", lineHeight: 1.5 }}>
+                    <div style={{ fontSize: 11.5, color: "var(--text-3)", lineHeight: 1.5, paddingBottom: 12 }}>
                       ช่วงแนะนำ = แรงดันทำงานรวมอยู่ในช่วง MPPT และ Voc รวมไม่เกินแรงดันระบบสูงสุด
                     </div>
                   </div>
-                  <div style={{ display: "grid", gridTemplateColumns: isMobile ? "minmax(0,1fr) minmax(0,1fr)" : "repeat(4, 1fr)", gap: 10 }}>
+                  <div className="bq-spec">
                     {[
                       { l: "แรงดันทำงานรวม", v: scfg.stringVop + " V", ok: scfg.inRange },
                       { l: "Voc รวม (เปิดวงจร)", v: scfg.stringVoc + " V", ok: !scfg.overMaxVdc },
                       { l: "กระแส DC (Isc×1.25)", v: scfg.dcAmp + " A", ok: null },
                       { l: "ขนาดสาย DC PV1-F", v: scfg.dcWire, ok: null, hi: true },
                     ].map((c, i) => (
-                      <div key={i} style={{ padding: "10px 12px", borderRadius: 10, background: "var(--surface3)", border: "1px solid " + (c.ok === false ? "var(--tint-red-bd2)" : "var(--border)") }}>
-                        <div style={{ fontSize: 10.5, color: "var(--text-3)", marginBottom: 3 }}>{c.l}</div>
-                        <div style={{ fontFamily: "var(--mono)", fontSize: 15, fontWeight: 800, color: c.hi ? "var(--primary-dark)" : (c.ok === false ? "var(--tint-red-tx2)" : "var(--text-1)") }}>{c.v}{c.ok === true ? " ✓" : c.ok === false ? " ✗" : ""}</div>
+                      <div key={i} data-bad={c.ok === false ? "1" : "0"}>
+                        <span className="k">{c.l}</span>
+                        <span className={"v" + (c.hi ? " hi" : "")}>{c.v}{c.ok === true ? <span className="ok">✓</span> : c.ok === false ? " ✗" : ""}</span>
                       </div>
                     ))}
                   </div>
@@ -3326,10 +3341,10 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
                   <input type="number" style={numStyle} value={r.panels} onChange={(e) => setRow(i, "panels", e.target.value)} />
                   <input type="number" min="0" style={numStyle} value={r.count} onChange={(e) => setRow(i, "count", e.target.value)} />
                   {!isMobile && <span className="tot">{((+r.panels || 0) * (+r.count || 0)).toLocaleString()}</span>}
-                  <button onClick={() => delRow(i)} title="ลบแถว" style={{ height: 40, background: "#EF444414", border: "none", color: "#EF4444", borderRadius: 9, cursor: "pointer", display: "grid", placeItems: "center" }}><Icon name="x" size={15} /></button>
+                  <button className="bq-x" onClick={() => delRow(i)} title="ลบแถว"><Icon name="x" size={15} /></button>
                 </div>
               ))}
-              <button onClick={addRow} style={{ alignSelf: "flex-start", display: "inline-flex", alignItems: "center", gap: 5, background: "var(--primary-soft)", color: "var(--primary-dark)", border: "none", borderRadius: 9, padding: "8px 12px", fontWeight: 700, fontSize: 12.5, cursor: "pointer", fontFamily: "inherit" }}><Icon name="plus" size={14} color="var(--primary-dark)" /> เพิ่มแถว</button>
+              <button className="bq-chip pri" style={{ alignSelf: "flex-start" }} onClick={addRow}><Icon name="plus" size={13} color="var(--primary-dark)" /> เพิ่มแถว</button>
             </div>
 
             {/* สถานะวางแผงให้ครบ — กันพลาด */}
