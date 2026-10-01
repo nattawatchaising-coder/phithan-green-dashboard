@@ -4753,13 +4753,18 @@ function BOQEditor({
     size: 12,
     color: "var(--text-3)"
   }), " \u0E40\u0E1E\u0E34\u0E48\u0E21\u0E27\u0E31\u0E2A\u0E14\u0E38\u0E19\u0E2D\u0E01\u0E23\u0E30\u0E1A\u0E1A"));
-  const exportXlsx = () => {
+  const exportXlsx = opt => {
     if (!window.XLSX) {
       alert("ไม่พบไลบรารี Excel (ลองโหลดหน้าใหม่)");
       return;
     }
     const X = window.XLSX;
-    const hasPrice = priced.grandTotal > 0;
+    const cust = !!(opt && opt.customer);
+    const hasPrice = !cust && priced.grandTotal > 0;
+    const custHide = window.BOQ.SERVICE_GROUPS.concat(["ACCESSORIES"]);
+    const listGroups = cust ? priced.groups.filter(g => custHide.indexOf(g.group) < 0).map(g => Object.assign({}, g, {
+      items: g.items.filter(it => (+it.qty || 0) > 0)
+    })).filter(g => g.items.length) : priced.groups;
     const C = {
       brand: "1D854B",
       brandDk: "0F5233",
@@ -4976,8 +4981,9 @@ function BOQEditor({
     const kwTxt = (result.meta.kw || 0).toLocaleString("en-US", {
       maximumFractionDigits: 2
     }) + " kWp";
-    const itemCount = priced.groups.reduce((s, g) => s + g.items.length, 0);
+    const itemCount = listGroups.reduce((s, g) => s + g.items.length, 0);
     const cols = hasPrice ? ["ลำดับ", "รหัสวัสดุ", "รายการ", "ยี่ห้อ", "รุ่น", "จำนวน", "หน่วย", "ราคา/หน่วย", "จำนวนเงิน"] : ["ลำดับ", "รหัสวัสดุ", "รายการ", "ยี่ห้อ", "รุ่น", "จำนวน", "หน่วย"];
+    const cCodeIdx = 1;
     const cNo = 0,
       cCode = 1,
       cName = 2,
@@ -5020,10 +5026,16 @@ function BOQEditor({
     }, {
       wch: 10
     }];
+    if (cust) {
+      cols[cCodeIdx] = "";
+      colW[cCodeIdx] = {
+        wch: 1
+      };
+    }
     const A = mkSheet(lastC, colW);
-    docHead(A, "บัญชีแสดงปริมาณวัสดุ  ·  BILL OF QUANTITIES", ((window.BRANDING || {}).legal || "FLASHPLUSSOLAR CO., LTD.") + "  —  งานติดตั้งระบบผลิตไฟฟ้าพลังงานแสงอาทิตย์");
+    docHead(A, cust ? "รายการอุปกรณ์และวัสดุ  ·  BILL OF QUANTITIES" : "บัญชีแสดงปริมาณวัสดุ  ·  BILL OF QUANTITIES", ((window.BRANDING || {}).legal || "FLASHPLUSSOLAR CO., LTD.") + "  —  งานติดตั้งระบบผลิตไฟฟ้าพลังงานแสงอาทิตย์");
     const mid = Math.ceil((lastC + 1) / 2);
-    const info = [["โครงการ", jobName, "รหัสงาน", jobCode], ["ขนาดระบบ", (result.meta.panelCount || 0).toLocaleString("en-US") + " แผง  ·  " + kwTxt, "ระบบไฟ", String(b.phase) === "3" ? "3 เฟส 380V" : "1 เฟส 220V"], ["จำนวนรายการ", itemCount.toLocaleString("en-US") + " รายการ / " + priced.groups.length + " หมวด", "วันที่ออกเอกสาร", window.SF.TODAY || ""]];
+    const info = [["โครงการ", jobName, "รหัสงาน", jobCode], ["ขนาดระบบ", (result.meta.panelCount || 0).toLocaleString("en-US") + " แผง  ·  " + kwTxt, "ระบบไฟ", String(b.phase) === "3" ? "3 เฟส 380V" : "1 เฟส 220V"], ["จำนวนรายการ", itemCount.toLocaleString("en-US") + " รายการ / " + listGroups.length + " หมวด", "วันที่ออกเอกสาร", window.SF.TODAY || ""]];
     info.forEach(row => {
       const cells = [];
       cells[0] = row[0];
@@ -5043,7 +5055,7 @@ function BOQEditor({
     let n = 0,
       bodyStart = null,
       bodyEnd = null;
-    priced.groups.forEach(g => {
+    listGroups.forEach(g => {
       n += 1;
       const grow = [];
       grow[0] = "หมวด " + n;
@@ -5054,7 +5066,7 @@ function BOQEditor({
       groupRows.push(gr);
       const first = A.R;
       g.items.forEach((it, k) => {
-        const base = [n + "." + (k + 1), it.code || "", it.name || "", it.brand || "", it.model || "", +it.qty || 0, it.unit || ""];
+        const base = [n + "." + (k + 1), cust ? "" : it.code || "", it.name || "", it.brand || "", it.model || "", +it.qty || 0, it.unit || ""];
         if (hasPrice) {
           const er = A.R;
           base.push(it.price || 0);
@@ -5074,8 +5086,40 @@ function BOQEditor({
       const tr = A.push(totRow, "total", 26);
       A.merge(tr, 0, lastC - 1);
     }
+    if (cust) {
+      const svc = ["ค่าแรงติดตั้งทั้งระบบ พร้อมทดสอบและเปิดใช้งาน"];
+      if (priced.permitTotal > 0) svc.push("ดำเนินการขออนุญาต · เอกสาร · วิศวกรรับรองแบบ");
+      if (priced.siteTotal > 0) svc.push("ขนส่งอุปกรณ์และบริหารจัดการหน้างาน");
+      if (omC && omC.included > 0) svc.push("บริการ O&M ฟรี " + omC.o.years + " ปี · ล้างแผงปีละ " + omC.o.perYear + " ครั้ง");
+      svc.push("อุปกรณ์ประกอบการติดตั้ง (Accessories) ครบชุด");
+      A.gap(8);
+      const sh = A.push(["", "บริการที่รวมอยู่ในราคา"], "group", 21);
+      A.merge(sh, 1, lastC);
+      svc.forEach((t, k) => {
+        const r = A.push(["", "✓  " + t], k % 2 ? "itemAlt" : "item", 18);
+        A.merge(r, 1, lastC);
+      });
+      if (pb.sell > 0) {
+        const price = pb.discount > 0 ? pb.net : pb.sell,
+          priceVat = pb.discount > 0 ? pb.netVat : pb.sellVat;
+        A.gap(8);
+        const totRow = (label, v) => {
+          const c = [];
+          c[0] = label;
+          c[cQty] = "฿" + baht(v);
+          const r = A.push(c, "total", 24);
+          A.merge(r, 0, cQty - 1);
+          A.merge(r, cQty, lastC);
+        };
+        if (pb.discount > 0) totRow("ราคาก่อนส่วนลด", pb.sell);
+        if (pb.discount > 0) totRow("ส่วนลด", pb.discount);
+        totRow("ราคารวมทั้งระบบ (ก่อน VAT)", price);
+        totRow("ภาษีมูลค่าเพิ่ม " + pb.vat + "%", priceVat - price);
+        totRow("ราคารวมทั้งสิ้น", priceVat);
+      }
+    }
     A.gap(6);
-    const nr = A.band([hasPrice ? "หมายเหตุ  ·  ปริมาณคำนวณจากแบบและรวม % เผื่อแล้ว  ·  ราคาเป็นราคาต้นทุนก่อนภาษีมูลค่าเพิ่ม  ·  ช่องยอดเป็นสูตร แก้จำนวน/ราคา หรือแทรกบรรทัดในหมวด แล้วยอดหมวด ยอดรวม และชีตสรุปราคาคิดใหม่ให้เอง  ·  เอกสารสร้างอัตโนมัติจากระบบ flash+solar" : "หมายเหตุ  ·  ปริมาณคำนวณจากแบบและรวม % เผื่อแล้ว  ·  เอกสารสร้างอัตโนมัติจากระบบ flash+solar"], "note", 26);
+    const nr = A.band([cust ? "หมายเหตุ  ·  ราคารวมอุปกรณ์ วัสดุ ค่าติดตั้ง และบริการตามรายการข้างต้นแล้ว  ·  ปริมาณวัสดุอาจปรับตามสภาพหน้างานจริงโดยไม่กระทบราคารวม" : hasPrice ? "หมายเหตุ  ·  ปริมาณคำนวณจากแบบและรวม % เผื่อแล้ว  ·  ราคาเป็นราคาต้นทุนก่อนภาษีมูลค่าเพิ่ม  ·  ช่องยอดเป็นสูตร แก้จำนวน/ราคา หรือแทรกบรรทัดในหมวด แล้วยอดหมวด ยอดรวม และชีตสรุปราคาคิดใหม่ให้เอง  ·  เอกสารสร้างอัตโนมัติจากระบบ flash+solar" : "หมายเหตุ  ·  ปริมาณคำนวณจากแบบและรวม % เผื่อแล้ว  ·  เอกสารสร้างอัตโนมัติจากระบบ flash+solar"], "note", 26);
     A.merges.push({
       s: {
         r: nr,
@@ -5317,6 +5361,11 @@ function BOQEditor({
             }
           };
         }
+        if (cust && c === 1 && A.aoa[r] && A.aoa[r][0] === "") s.alignment = {
+          horizontal: "left",
+          vertical: "center",
+          indent: 1
+        };
       } else if (t === "total") {
         s.font = {
           name: FONT,
@@ -5579,7 +5628,7 @@ function BOQEditor({
       X.utils.book_append_sheet(wb, wsB, "สรุปราคา");
     }
     const stamp = (window.SF.TODAY || "").replace(/-/g, "");
-    const fn = "BOQ_" + jobCode.replace(/[\\/:*?"<>|]/g, "-") + "_" + stamp + ".xlsx";
+    const fn = (cust ? "BOQ-ลูกค้า_" : "BOQ_") + jobCode.replace(/[\\/:*?"<>|]/g, "-") + "_" + stamp + ".xlsx";
     X.writeFile(wb, fn);
   };
   const numStyle = Object.assign({}, inputStyle, {
@@ -10191,12 +10240,26 @@ function BOQEditor({
     style: {
       marginRight: 8
     },
-    onClick: () => guardRun(exportXlsx)
+    onClick: () => guardRun(exportXlsx),
+    title: "\u0E43\u0E1A\u0E16\u0E2D\u0E14\u0E27\u0E31\u0E2A\u0E14\u0E38\u0E09\u0E1A\u0E31\u0E1A\u0E40\u0E15\u0E47\u0E21 \u0E21\u0E35\u0E23\u0E32\u0E04\u0E32\u0E15\u0E49\u0E19\u0E17\u0E38\u0E19\u0E17\u0E38\u0E01\u0E23\u0E32\u0E22\u0E01\u0E32\u0E23 \u2014 \u0E43\u0E0A\u0E49\u0E20\u0E32\u0E22\u0E43\u0E19"
   }, React.createElement(Icon, {
     name: "box",
     size: 15,
     color: "var(--primary-dark)"
-  }), " Excel"), onSave && React.createElement("button", {
+  }), " Excel"), React.createElement("button", {
+    className: "bq-btn gh",
+    style: {
+      marginRight: 8
+    },
+    onClick: () => guardRun(() => exportXlsx({
+      customer: true
+    })),
+    title: "\u0E09\u0E1A\u0E31\u0E1A\u0E2A\u0E48\u0E07\u0E25\u0E39\u0E01\u0E04\u0E49\u0E32 \u2014 \u0E23\u0E32\u0E22\u0E01\u0E32\u0E23\u0E2D\u0E38\u0E1B\u0E01\u0E23\u0E13\u0E4C + \u0E08\u0E33\u0E19\u0E27\u0E19 \u0E44\u0E21\u0E48\u0E21\u0E35\u0E23\u0E32\u0E04\u0E32\u0E15\u0E48\u0E2D\u0E0A\u0E34\u0E49\u0E19 \u0E1B\u0E34\u0E14\u0E17\u0E49\u0E32\u0E22\u0E14\u0E49\u0E27\u0E22\u0E23\u0E32\u0E04\u0E32\u0E23\u0E27\u0E21"
+  }, React.createElement(Icon, {
+    name: "box",
+    size: 15,
+    color: "var(--primary-dark)"
+  }), " BOQ \u0E25\u0E39\u0E01\u0E04\u0E49\u0E32"), onSave && React.createElement("button", {
     className: "bq-btn pri",
     onClick: () => guardRun(() => onSave(Object.assign({}, b, {
       project: project,

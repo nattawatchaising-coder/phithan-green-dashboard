@@ -2348,10 +2348,20 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
   /* ── ส่งออก Excel ──
      ไฟล์เดียว 2 ชีต: "ใบถอดวัสดุ" (ปริมาณ+ราคา) กับ "สรุปราคา" (ตามหมวด + บันไดราคา + กำไร)
      บันไดราคาแยกออกจากใบถอดของ เพราะใบถอดของเอาไว้ส่งหน้างาน ส่วนบันไดราคาเป็นข้อมูลภายใน */
-  const exportXlsx = () => {
+  /* customer = ฉบับส่งลูกค้า: มีแค่ชื่อ ยี่ห้อ รุ่น จำนวน — ไม่มีราคาต่อชิ้น ไม่มีรหัสวัสดุ ไม่มีชีตสรุปต้นทุน
+     หมวดบริการ (ค่าแรง · ขออนุญาต · ขนส่ง · O&M) และเงินเผื่อ Accessories ไม่ขึ้นเป็นบรรทัด
+     แต่เขียนเป็น "บริการที่รวมในราคา" แล้วปิดท้ายด้วยราคารวมทั้งระบบก้อนเดียว */
+  const exportXlsx = (opt) => {
     if (!window.XLSX) { alert("ไม่พบไลบรารี Excel (ลองโหลดหน้าใหม่)"); return; }
     const X = window.XLSX;
-    const hasPrice = priced.grandTotal > 0;
+    const cust = !!(opt && opt.customer);
+    const hasPrice = !cust && priced.grandTotal > 0;
+    const custHide = window.BOQ.SERVICE_GROUPS.concat(["ACCESSORIES"]);
+    const listGroups = cust
+      ? priced.groups.filter((g) => custHide.indexOf(g.group) < 0)
+        .map((g) => Object.assign({}, g, { items: g.items.filter((it) => (+it.qty || 0) > 0) }))
+        .filter((g) => g.items.length)
+      : priced.groups;
 
     // ── จานสี (โทนแบรนด์ flash+solar) ──
     const C = {
@@ -2440,20 +2450,22 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
     const jobName = (job && job.name) || "—";
     const jobCode = (job && job.code) || "—";
     const kwTxt = (result.meta.kw || 0).toLocaleString("en-US", { maximumFractionDigits: 2 }) + " kWp";
-    const itemCount = priced.groups.reduce((s, g) => s + g.items.length, 0);
+    const itemCount = listGroups.reduce((s, g) => s + g.items.length, 0);
 
     /* ═══ ชีต 1: ใบถอดวัสดุ ═══ */
     /* คอลัมน์ — ตั้งชื่อ index ไว้ใช้ทั้งสูตรและสไตล์ จะได้ไม่ต้องนับนิ้วเวลาเพิ่ม/ลดคอลัมน์ */
     const cols = hasPrice
       ? ["ลำดับ", "รหัสวัสดุ", "รายการ", "ยี่ห้อ", "รุ่น", "จำนวน", "หน่วย", "ราคา/หน่วย", "จำนวนเงิน"]
       : ["ลำดับ", "รหัสวัสดุ", "รายการ", "ยี่ห้อ", "รุ่น", "จำนวน", "หน่วย"];
+    const cCodeIdx = 1;
     const cNo = 0, cCode = 1, cName = 2, cBrand = 3, cModel = 4, cQty = 5, cUnit = 6, cPrice = 7;
     const lastC = cols.length - 1;
     const colW = hasPrice
       ? [{ wch: 7 }, { wch: 14 }, { wch: 40 }, { wch: 15 }, { wch: 18 }, { wch: 9.5 }, { wch: 8 }, { wch: 13 }, { wch: 15 }]
       : [{ wch: 7 }, { wch: 16 }, { wch: 46 }, { wch: 16 }, { wch: 20 }, { wch: 11 }, { wch: 10 }];
+    if (cust) { cols[cCodeIdx] = ""; colW[cCodeIdx] = { wch: 1 }; }   // ฉบับลูกค้าไม่มีรหัสวัสดุ — บีบคอลัมน์ให้แทบหาย
     const A = mkSheet(lastC, colW);
-    docHead(A, "บัญชีแสดงปริมาณวัสดุ  ·  BILL OF QUANTITIES", ((window.BRANDING || {}).legal || "FLASHPLUSSOLAR CO., LTD.") + "  —  งานติดตั้งระบบผลิตไฟฟ้าพลังงานแสงอาทิตย์");
+    docHead(A, cust ? "รายการอุปกรณ์และวัสดุ  ·  BILL OF QUANTITIES" : "บัญชีแสดงปริมาณวัสดุ  ·  BILL OF QUANTITIES", ((window.BRANDING || {}).legal || "FLASHPLUSSOLAR CO., LTD.") + "  —  งานติดตั้งระบบผลิตไฟฟ้าพลังงานแสงอาทิตย์");
 
     // ข้อมูลงาน — วางเป็น 2 คู่ต่อแถว ไม่ให้เหลือช่องว่างยาว ๆ ทางขวา
     const mid = Math.ceil((lastC + 1) / 2);
@@ -2461,7 +2473,7 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
       ["โครงการ", jobName, "รหัสงาน", jobCode],
       ["ขนาดระบบ", (result.meta.panelCount || 0).toLocaleString("en-US") + " แผง  ·  " + kwTxt,
         "ระบบไฟ", String(b.phase) === "3" ? "3 เฟส 380V" : "1 เฟส 220V"],
-      ["จำนวนรายการ", itemCount.toLocaleString("en-US") + " รายการ / " + priced.groups.length + " หมวด",
+      ["จำนวนรายการ", itemCount.toLocaleString("en-US") + " รายการ / " + listGroups.length + " หมวด",
         "วันที่ออกเอกสาร", window.SF.TODAY || ""],
     ];
     info.forEach((row) => {
@@ -2480,7 +2492,7 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
     const QC = CL(cQty), PC = CL(cPrice), TC = CL(lastC);
     const groupRows = [];
     let n = 0, bodyStart = null, bodyEnd = null;
-    priced.groups.forEach((g) => {
+    listGroups.forEach((g) => {
       n += 1;
       const grow = []; grow[0] = "หมวด " + n; grow[1] = g.group;
       const gr = A.push(grow, "group", 21);
@@ -2489,7 +2501,7 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
       groupRows.push(gr);
       const first = A.R;
       g.items.forEach((it, k) => {
-        const base = [n + "." + (k + 1), it.code || "", it.name || "", it.brand || "", it.model || "", +it.qty || 0, it.unit || ""];
+        const base = [n + "." + (k + 1), cust ? "" : (it.code || ""), it.name || "", it.brand || "", it.model || "", +it.qty || 0, it.unit || ""];
         if (hasPrice) {
           const er = A.R;   // แถว Excel ของบรรทัดนี้ (ยังไม่ push จึงเท่ากับ index ถัดไป)
           base.push(it.price || 0);
@@ -2513,8 +2525,31 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
       const tr = A.push(totRow, "total", 26);
       A.merge(tr, 0, lastC - 1);
     }
+    if (cust) {
+      // บริการที่รวมในราคา — บอกเป็นข้อ ไม่มีตัวเลข
+      const svc = ["ค่าแรงติดตั้งทั้งระบบ พร้อมทดสอบและเปิดใช้งาน"];
+      if (priced.permitTotal > 0) svc.push("ดำเนินการขออนุญาต · เอกสาร · วิศวกรรับรองแบบ");
+      if (priced.siteTotal > 0) svc.push("ขนส่งอุปกรณ์และบริหารจัดการหน้างาน");
+      if (omC && omC.included > 0) svc.push("บริการ O&M ฟรี " + omC.o.years + " ปี · ล้างแผงปีละ " + omC.o.perYear + " ครั้ง");
+      svc.push("อุปกรณ์ประกอบการติดตั้ง (Accessories) ครบชุด");
+      A.gap(8);
+      const sh = A.push(["", "บริการที่รวมอยู่ในราคา"], "group", 21); A.merge(sh, 1, lastC);
+      svc.forEach((t, k) => { const r = A.push(["", "✓  " + t], k % 2 ? "itemAlt" : "item", 18); A.merge(r, 1, lastC); });
+      if (pb.sell > 0) {
+        const price = pb.discount > 0 ? pb.net : pb.sell, priceVat = pb.discount > 0 ? pb.netVat : pb.sellVat;
+        A.gap(8);
+        const totRow = (label, v) => { const c = []; c[0] = label; c[cQty] = "฿" + baht(v); const r = A.push(c, "total", 24); A.merge(r, 0, cQty - 1); A.merge(r, cQty, lastC); };
+        if (pb.discount > 0) totRow("ราคาก่อนส่วนลด", pb.sell);
+        if (pb.discount > 0) totRow("ส่วนลด", pb.discount);
+        totRow("ราคารวมทั้งระบบ (ก่อน VAT)", price);
+        totRow("ภาษีมูลค่าเพิ่ม " + pb.vat + "%", priceVat - price);
+        totRow("ราคารวมทั้งสิ้น", priceVat);
+      }
+    }
     A.gap(6);
-    const nr = A.band([hasPrice
+    const nr = A.band([cust
+      ? "หมายเหตุ  ·  ราคารวมอุปกรณ์ วัสดุ ค่าติดตั้ง และบริการตามรายการข้างต้นแล้ว  ·  ปริมาณวัสดุอาจปรับตามสภาพหน้างานจริงโดยไม่กระทบราคารวม"
+      : hasPrice
       ? "หมายเหตุ  ·  ปริมาณคำนวณจากแบบและรวม % เผื่อแล้ว  ·  ราคาเป็นราคาต้นทุนก่อนภาษีมูลค่าเพิ่ม  ·  ช่องยอดเป็นสูตร แก้จำนวน/ราคา หรือแทรกบรรทัดในหมวด แล้วยอดหมวด ยอดรวม และชีตสรุปราคาคิดใหม่ให้เอง  ·  เอกสารสร้างอัตโนมัติจากระบบ flash+solar"
       : "หมายเหตุ  ·  ปริมาณคำนวณจากแบบและรวม % เผื่อแล้ว  ·  เอกสารสร้างอัตโนมัติจากระบบ flash+solar"], "note", 26);
     A.merges.push({ s: { r: nr, c: 0 }, e: { r: nr, c: lastC } });
@@ -2552,6 +2587,7 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
         else if (c === cQty) { s.alignment = { horizontal: "right", vertical: "center" }; s.numFmt = qtyFmt; s.font = { name: FONT, sz: 10.5, bold: true, color: { rgb: C.text } }; }
         else if (c === cUnit) { s.alignment = { horizontal: "center", vertical: "center" }; s.font = { name: FONT, sz: 10, color: { rgb: C.sub } }; }
         else { s.alignment = { horizontal: "right", vertical: "center" }; s.numFmt = moneyFmt; if (c === lastC) s.font = { name: FONT, sz: 10.5, bold: true, color: { rgb: C.text } }; }
+        if (cust && c === 1 && A.aoa[r] && A.aoa[r][0] === "") s.alignment = { horizontal: "left", vertical: "center", indent: 1 };   // แถวบริการที่รวมในราคา
       } else if (t === "total") {
         s.font = { name: FONT, sz: 12, bold: true, color: { rgb: C.white } };
         s.fill = { patternType: "solid", fgColor: { rgb: C.brandDk } };
@@ -2681,7 +2717,7 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
     }
 
     const stamp = (window.SF.TODAY || "").replace(/-/g, "");
-    const fn = "BOQ_" + jobCode.replace(/[\\/:*?"<>|]/g, "-") + "_" + stamp + ".xlsx";
+    const fn = (cust ? "BOQ-ลูกค้า_" : "BOQ_") + jobCode.replace(/[\\/:*?"<>|]/g, "-") + "_" + stamp + ".xlsx";
     X.writeFile(wb, fn);
   };
 
@@ -4635,7 +4671,8 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
           </span>
         )}
         <button className="bq-btn" style={{ marginRight: 8 }} onClick={onClose}>ปิด</button>
-        <button className="bq-btn gh" style={{ marginRight: 8 }} onClick={() => guardRun(exportXlsx)}><Icon name="box" size={15} color="var(--primary-dark)" /> Excel</button>
+        <button className="bq-btn gh" style={{ marginRight: 8 }} onClick={() => guardRun(exportXlsx)} title="ใบถอดวัสดุฉบับเต็ม มีราคาต้นทุนทุกรายการ — ใช้ภายใน"><Icon name="box" size={15} color="var(--primary-dark)" /> Excel</button>
+        <button className="bq-btn gh" style={{ marginRight: 8 }} onClick={() => guardRun(() => exportXlsx({ customer: true }))} title="ฉบับส่งลูกค้า — รายการอุปกรณ์ + จำนวน ไม่มีราคาต่อชิ้น ปิดท้ายด้วยราคารวม"><Icon name="box" size={15} color="var(--primary-dark)" /> BOQ ลูกค้า</button>
         {onSave && <button className="bq-btn pri" onClick={() => guardRun(() => onSave(Object.assign({}, b, { project: project,
           pricing: Object.assign({}, b.pricing || {}, { sell: pb.sell }, pb.mode !== "sell" ? { profitMode: pb.mode } : {}) })))}><Icon name="check" size={15} color="#fff" /> บันทึก BOQ</button>}
       </div>
