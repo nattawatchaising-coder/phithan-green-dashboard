@@ -1431,8 +1431,10 @@ function AmpacityEditor({ ampStore }) {
   // โชว์เฉพาะกลุ่มที่วิธีนี้ใช้ได้จริง — ไม่งั้นได้คอลัมน์ว่าง 5 กลุ่มที่ไม่มีวันกรอก
   const groups = (BOQ.AMP_GROUPS || []).filter((g) => !methodMeta.groups || methodMeta.groups.indexOf(g.key) >= 0);
   const editedCount = React.useMemo(() => {
-    let n = 0; Object.keys(ov).forEach((i) => Object.keys(ov[i] || {}).forEach((m) => Object.keys(ov[i][m] || {}).forEach((col) => Object.keys(ov[i][m][col] || {}).forEach((s) => { if (+ov[i][m][col][s] > 0) n++; })))); return n;
-  }, [ov]);
+    // นับเฉพาะช่องที่ต่างจากค่าตั้งต้นในโค้ด — ค่าที่ฝังเป็นค่าตั้งต้นแล้วไม่ถือว่า "แก้"
+    const dv = (i, m, col, s) => { try { return def[i][m][col][s]; } catch (e) { return undefined; } };
+    let n = 0; Object.keys(ov).forEach((i) => Object.keys(ov[i] || {}).forEach((m) => Object.keys(ov[i][m] || {}).forEach((col) => Object.keys(ov[i][m][col] || {}).forEach((s) => { const v = +ov[i][m][col][s]; if (v > 0 && v !== dv(i, m, col, s)) n++; })))); return n;
+  }, [ov, def]);
   /* คอลัมน์ = กลุ่ม × จำนวนตัวนำ × แกนย่อย — "แกนย่อย" ไม่เท่ากันทุกกลุ่ม
      กลุ่ม 1,2,3,7 แยกแกนเดียว/หลายแกน · กลุ่ม 4 แยกแนวตั้ง/แนวราบ · กลุ่ม 5,6 รวมเป็นคอลัมน์เดียว */
   const groupCores = (g) => (BOQ.ampCoresFor ? BOQ.ampCoresFor(g.key) : cores);
@@ -1448,7 +1450,7 @@ function AmpacityEditor({ ampStore }) {
         <div style={{ fontSize: 12, color: "#92500C", lineHeight: 1.55 }}>
           ตารางพิกัดกระแส <strong>มาตรฐาน วสท.</strong> (ตัวนำทองแดง 0.6/1 kV) — แยกตาม <strong>กลุ่มการติดตั้ง × จำนวนตัวนำมีกระแส × แกนย่อย</strong>
           <br />แกนย่อยไม่เท่ากันทุกกลุ่ม: กลุ่ม 1,2,3,7 = <strong>แกนเดียว/หลายแกน</strong> · กลุ่ม 4 = <strong>แนวตั้ง/แนวราบ</strong> (แกนเดียวล้วน) · กลุ่ม 5,6 = <strong>รวมเป็นคอลัมน์เดียว</strong>
-          <br />ปัจจุบันมีตารางจริง: <strong>PVC · เดินในท่อร้อยสายในอากาศ · กลุ่มที่ 1–2</strong> (ตารางที่ 5-20) · กลุ่มที่ 3–7 และ XLPE <strong>กรอกค่าได้ที่นี่</strong> · ค่าที่กรอกใช้กับทุกงาน · เว้นว่าง = ใช้ค่าเริ่มต้น (ตัวเลขจาง)
+          <br />มีตารางครบแล้ว: <strong>PVC และ XLPE · ทุกวิธีเดินสาย · กลุ่มที่ 1–7</strong> (ตัวเลขจาง = ค่าตั้งต้นในระบบ) · ต้องการแก้ช่องไหน พิมพ์ทับได้เลย ค่าที่พิมพ์ใช้กับทุกงาน · ลบออก = กลับไปใช้ค่าตั้งต้น
         </div>
       </div>
 
