@@ -1326,10 +1326,31 @@ function BOQEditor({
     return rows;
   }, [job, microW, wcPhase, wcVolt, wcalc.battKw, wcalc.backupMainA, wcStrings, hasBattery, hasBackup, calcIns, calcMethod, calcGroup, calcNCond]);
   const cableAmp = (name, opts) => window.BOQ.ampacityOf(name, opts);
+  const BRK_AT = [16, 20, 25, 32, 40, 50, 63, 80, 100, 125, 160, 200, 225, 250, 320, 400, 500, 630, 800];
+  const brkSet = ib => {
+    let ir = Math.ceil(ib * 1.05 / 5) * 5;
+    const at = BRK_AT.find(x => x >= ir) || BRK_AT[BRK_AT.length - 1];
+    ir = Math.min(at, Math.max(ir, Math.ceil(at * 0.8)));
+    return {
+      ir,
+      at
+    };
+  };
   const reqAmpFor = cab => {
     const r = reqAmpBase(cab);
     const m = cab && typeof cab === "object" ? +cab.minA || 0 : 0;
     return r && m > r ? m : r;
+  };
+  const runAmpFor = cab => {
+    const row = cab && typeof cab === "object" ? cab : null;
+    const n = ((row ? row.name : cab) || "").toUpperCase();
+    if (invUnits.length && /MCB_SOLAR-MDB/.test(n)) return mcbInvsOf(row).reduce((s, no) => s + ((invUnits[no - 1] || {}).outA || 0), 0) || null;
+    if (invUnits.length && /INVERTER-MCB_SOLAR/.test(n)) {
+      const u = invUnits[(row && +row.inv || 1) - 1] || invUnits[0];
+      return u.outA || null;
+    }
+    const r = reqAmpBase(cab);
+    return r ? r / 1.25 : null;
   };
   const reqAmpBase = cab => {
     const row = cab && typeof cab === "object" ? cab : null;
@@ -1339,11 +1360,11 @@ function BOQEditor({
     if (invUnits.length) {
       if (/MCB_SOLAR-MDB/.test(n)) {
         const a = mcbInvsOf(row).reduce((s, no) => s + ((invUnits[no - 1] || {}).outA || 0), 0);
-        return a ? a * 1.25 : null;
+        return a ? brkSet(a).ir : null;
       }
       if (/INVERTER-MCB_SOLAR/.test(n)) {
         const u = invUnits[(row && +row.inv || 1) - 1] || invUnits[0];
-        return u.outA ? u.outA * 1.25 : null;
+        return u.outA ? brkSet(u.outA).ir : null;
       }
     }
     const invAcPer = selInv ? +selInv.outA || 0 : 0;
@@ -1936,7 +1957,7 @@ function BOQEditor({
     sec: "board",
     icon: "box",
     title: "ตู้ไฟ",
-    hint: "ตู้ไฟของงานโครงการ — อินเวอร์เตอร์สตริง/ไฮบริด ระบบคิดอุปกรณ์ในตู้ AC / DC ให้จากอินเวอร์เตอร์ สตริง และสายไฟ (ตู้ AC 1 ตู้ต่อสายเมน 1 เส้น · ตู้ DC 1 ตู้ต่ออินเวอร์เตอร์) · " + "เบรกเกอร์ตาม วสท.: ขนาดมาตรฐานแรกที่ ≥ 1.25 × กระแสออก (3P) — ถ้าใหญ่กว่าที่สายรับได้ จะขึ้นคำแนะนำขนาดสายที่พอดีเบรกเกอร์ในหัวข้อสายไฟ กดใช้เองได้ · " + "ฟิวส์ AC เป็นฟิวส์ gG 10x38 กันหลัง SPD ไม่ต้องใช้ฟิวส์ใบมีด (NH) เพราะ MCCB ทำหน้าที่ป้องกันกระแสเกินแล้ว — NH ใช้เมื่อเมนใหญ่หลายร้อยแอมป์จนต้องใช้สวิตช์-ฟิวส์แทน MCCB · " + "ฟิวส์ DC แบบ gPV ขั้ว + และ − ทุกสตริง (1.5–2.4 × Isc) · กรอกจำนวนตู้เองได้ และปิดรายการอัตโนมัติรายตู้ได้ · ราคาดึงจากคลังเหมือนวัสดุอื่น"
+    hint: "ตู้ไฟของงานโครงการ — อินเวอร์เตอร์สตริง/ไฮบริด ระบบคิดอุปกรณ์ในตู้ AC / DC ให้จากอินเวอร์เตอร์ สตริง และสายไฟ (ตู้ AC 1 ตู้ต่อสายเมน 1 เส้น · ตู้ DC 1 ตู้ต่ออินเวอร์เตอร์) · " + "เบรกเกอร์: MCCB ปรับตั้งกระแสได้ ตั้งที่กระแสออก × 1.05 ปัดขึ้นทีละ 5 A (เช่น 84 A → 100 AT ปรับตั้ง 90 A) แล้วคิดขนาดสายจากกระแสตั้ง — ถ้าเลือกสายเองเล็กกว่านั้น จะขึ้นคำแนะนำในหัวข้อสายไฟ · " + "ฟิวส์ AC เป็นฟิวส์ gG 10x38 กันหลัง SPD ไม่ต้องใช้ฟิวส์ใบมีด (NH) เพราะ MCCB ทำหน้าที่ป้องกันกระแสเกินแล้ว — NH ใช้เมื่อเมนใหญ่หลายร้อยแอมป์จนต้องใช้สวิตช์-ฟิวส์แทน MCCB · " + "ฟิวส์ DC แบบ gPV ขั้ว + และ − ทุกสตริง (1.5–2.4 × Isc) · กรอกจำนวนตู้เองได้ และปิดรายการอัตโนมัติรายตู้ได้ · ราคาดึงจากคลังเหมือนวัสดุอื่น"
   }, {
     key: "watersys",
     sec: "water",
@@ -2202,7 +2223,7 @@ function BOQEditor({
     const volts = ph === 3 ? +wcVolt || 400 : wcPhase === 3 ? 230 : +wcVolt || 230;
     return window.BOQ.calcVdrop({
       length: len,
-      amp: req / 1.25 / Math.max(1, +c.sets || 1),
+      amp: (runAmpFor(c) || req / 1.25) / Math.max(1, +c.sets || 1),
       size,
       volts,
       ins,
@@ -2601,7 +2622,7 @@ function BOQEditor({
       if (len > 0 && window.BOQ.calcVdrop) {
         vd = window.BOQ.calcVdrop({
           length: len,
-          amp: req / 1.25 / sets,
+          amp: (runAmpFor(c) || req / 1.25) / sets,
           size: sz,
           volts: cabVolts(ph),
           ins: window.BOQ.cableInsClass(gen),
@@ -2945,7 +2966,6 @@ function BOQEditor({
       }) : p;
     });
   }, [raceKey]);
-  const BRK_AT = [16, 20, 25, 32, 40, 50, 63, 80, 100, 125, 160, 200, 225, 250, 320, 400, 500, 630, 800];
   const DCF_A = [10, 12, 15, 16, 20, 25, 30, 32];
   const DCF_V = [1000, 1500],
     SPD_V = [800, 1000, 1500];
@@ -2958,22 +2978,27 @@ function BOQEditor({
   const famOfCab = c => CAB_FAMS.find(f => f.key === c.fam) || (/THW|IEC\s*0?1/i.test(c.type || "") ? CAB_FAMS[2] : cabCores(c.type) >= 2 ? CAB_FAMS[0] : CAB_FAMS[1]);
   const brkPick = (ib, c) => {
     const iz = cabIz(c);
-    const need = ib * 1.25;
-    const a = BRK_AT.find(x => x >= need) || BRK_AT[BRK_AT.length - 1];
-    const base = r1(ib) + " A × 1.25 = " + r1(need) + " A → " + a + " AT";
+    const {
+      ir,
+      at: a
+    } = brkSet(ib);
+    const base = r1(ib) + " A → " + a + " AT " + (ir < a ? "ปรับตั้ง " + ir + " A (" + r1(ir / a) + " × In)" : "ไม่ต้องปรับ");
     if (!iz) return {
       at: a,
+      ir,
       ok: true,
       txt: base + " · ยังไม่ได้เลือกสาย ตรวจพิกัดสายไม่ได้"
     };
-    if (a <= iz) return {
+    if (ir <= iz) return {
       at: a,
+      ir,
       ok: true,
       txt: base + " ≤ สายรับ " + iz + " A ✓"
     };
-    const rec = cabFit(c, famOfCab(c), Math.max(1, Math.round(+c.sets || 1)), a);
+    const rec = cabFit(c, famOfCab(c), Math.max(1, Math.round(+c.sets || 1)), ir);
     return {
       at: a,
+      ir,
       ok: false,
       iz,
       rec,
@@ -7474,11 +7499,11 @@ function BOQEditor({
             color: "var(--tint-green-tx)",
             fontWeight: 700
           }
-        }, "\u0E43\u0E0A\u0E49\u0E2A\u0E32\u0E22\u0E15\u0E32\u0E21\u0E40\u0E1A\u0E23\u0E01\u0E40\u0E01\u0E2D\u0E23\u0E4C ", c.minA, " AT \u0E41\u0E25\u0E49\u0E27 (\u0E2A\u0E32\u0E22\u0E15\u0E49\u0E2D\u0E07\u0E23\u0E31\u0E1A \u2265 ", c.minA, " A)", React.createElement("button", {
+        }, "\u0E43\u0E0A\u0E49\u0E2A\u0E32\u0E22\u0E15\u0E32\u0E21\u0E01\u0E23\u0E30\u0E41\u0E2A\u0E15\u0E31\u0E49\u0E07\u0E40\u0E1A\u0E23\u0E01\u0E40\u0E01\u0E2D\u0E23\u0E4C ", c.minA, " A \u0E41\u0E25\u0E49\u0E27 (\u0E2A\u0E32\u0E22\u0E15\u0E49\u0E2D\u0E07\u0E23\u0E31\u0E1A \u2265 ", c.minA, " A)", React.createElement("button", {
           type: "button",
           className: "bq-cabx-link",
           onClick: () => setCab(i, "minA", null)
-        }, "\u0E01\u0E25\u0E31\u0E1A\u0E44\u0E1B\u0E04\u0E34\u0E14\u0E08\u0E32\u0E01 1.25 \xD7 \u0E01\u0E23\u0E30\u0E41\u0E2A"));
+        }, "\u0E01\u0E25\u0E31\u0E1A\u0E44\u0E1B\u0E04\u0E34\u0E14\u0E15\u0E32\u0E21\u0E1B\u0E01\u0E15\u0E34"));
         if (!k || k.ok) return null;
         return React.createElement("div", {
           className: "bq-cabx-step",
@@ -7488,7 +7513,7 @@ function BOQEditor({
             fontWeight: 700,
             flexWrap: "wrap"
           }
-        }, "\u26A0 \u0E40\u0E1A\u0E23\u0E01\u0E40\u0E01\u0E2D\u0E23\u0E4C", k.who, " ", k.at, " AT \u0E41\u0E15\u0E48\u0E2A\u0E32\u0E22\u0E19\u0E35\u0E49\u0E23\u0E31\u0E1A\u0E44\u0E14\u0E49 ", k.iz, " A \u2014 \u0E16\u0E49\u0E32\u0E01\u0E23\u0E30\u0E41\u0E2A\u0E40\u0E01\u0E34\u0E19\u0E2A\u0E32\u0E22 \u0E2A\u0E32\u0E22\u0E08\u0E30\u0E23\u0E49\u0E2D\u0E19\u0E01\u0E48\u0E2D\u0E19\u0E40\u0E1A\u0E23\u0E01\u0E40\u0E01\u0E2D\u0E23\u0E4C\u0E15\u0E31\u0E14", k.rec && React.createElement("span", {
+        }, "\u26A0 \u0E40\u0E1A\u0E23\u0E01\u0E40\u0E01\u0E2D\u0E23\u0E4C", k.who, " ", k.at, " AT \u0E15\u0E31\u0E49\u0E07 ", k.ir, " A \u0E41\u0E15\u0E48\u0E2A\u0E32\u0E22\u0E19\u0E35\u0E49\u0E23\u0E31\u0E1A\u0E44\u0E14\u0E49 ", k.iz, " A \u2014 \u0E16\u0E49\u0E32\u0E01\u0E23\u0E30\u0E41\u0E2A\u0E40\u0E01\u0E34\u0E19\u0E2A\u0E32\u0E22 \u0E2A\u0E32\u0E22\u0E08\u0E30\u0E23\u0E49\u0E2D\u0E19\u0E01\u0E48\u0E2D\u0E19\u0E40\u0E1A\u0E23\u0E01\u0E40\u0E01\u0E2D\u0E23\u0E4C\u0E15\u0E31\u0E14", k.rec && React.createElement("span", {
           style: {
             fontWeight: 600,
             color: "var(--text-2)"
@@ -7499,7 +7524,7 @@ function BOQEditor({
           onClick: () => setB(p => {
             const cs = p.cables.slice();
             cs[i] = Object.assign({}, cs[i], {
-              minA: k.at
+              minA: k.ir
             }, k.rec ? {
               fam: k.rec.fam
             } : {});
