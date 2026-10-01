@@ -1328,6 +1328,7 @@ function BOQEditor({
   const cableAmp = (name, opts) => window.BOQ.ampacityOf(name, opts);
   const BRK_AT = [16, 20, 25, 32, 40, 50, 63, 80, 100, 125, 160, 200, 225, 250, 320, 400, 500, 630, 800, 1000, 1250, 1600];
   const ACB_AT = [2000, 2500, 3200, 4000];
+  const GF_IN_AT = 1000;
   const brkSet = ib => {
     let ir = Math.ceil(ib * 1.05 / 5) * 5;
     const acb = ir > BRK_AT[BRK_AT.length - 1];
@@ -1962,7 +1963,7 @@ function BOQEditor({
     sec: "board",
     icon: "box",
     title: "ตู้ไฟ",
-    hint: "ตู้ไฟของงานโครงการ — อินเวอร์เตอร์สตริง/ไฮบริด ระบบคิดอุปกรณ์ในตู้ AC / DC ให้จากอินเวอร์เตอร์ สตริง และสายไฟ (ตู้ AC 1 ตู้ต่อสายเมน 1 เส้น · ตู้ DC 1 ตู้ต่ออินเวอร์เตอร์) · " + "เบรกเกอร์: MCCB ปรับตั้งกระแสได้ ตั้งที่กระแสออก × 1.05 ปัดขึ้นทีละ 5 A (เช่น 84 A → 100 AT ปรับตั้ง 90 A) แล้วคิดขนาดสายจากกระแสตั้ง — ถ้าเลือกสายเองเล็กกว่านั้น จะขึ้นคำแนะนำในหัวข้อสายไฟ · " + "ที่เมนตู้ AC มีระบบ Ground Fault (GFR + ZCT + Shunt trip ของ MCCB เมน) และ Power Meter PM2230 + CT ตามขนาดเมน + MCB 6A กันสายวัด — ปิดแยกได้ · " + "ระบบล่อฟ้า: ถ้าแผงอยู่ใกล้ล่อฟ้า (ต่อถึงกันหรือห่างไม่ถึงระยะปลอดภัย) SPD ทั้ง AC และ DC เปลี่ยนเป็น Type 1+2 · " + "ฟิวส์กันหลัง SPD ฝั่ง AC เป็นฟิวส์ใบมีด NH00 gG เส้นไฟละ 1 ตัว — Type 2 ใช้ 32 A · Type 1+2 ใช้ 125 A (ไม่ต้องมีถ้า MCCB เมนตู้ ≤ 125 AT) · " + "ฟิวส์ DC แบบ gPV ขั้ว + และ − ทุกสตริง (1.5–2.4 × Isc) · กรอกจำนวนตู้เองได้ และปิดรายการอัตโนมัติรายตู้ได้ · ราคาดึงจากคลังเหมือนวัสดุอื่น"
+    hint: "ตู้ไฟของงานโครงการ — อินเวอร์เตอร์สตริง/ไฮบริด ระบบคิดอุปกรณ์ในตู้ AC / DC ให้จากอินเวอร์เตอร์ สตริง และสายไฟ (ตู้ AC 1 ตู้ต่อสายเมน 1 เส้น · ตู้ DC 1 ตู้ต่ออินเวอร์เตอร์) · " + "เบรกเกอร์: MCCB ปรับตั้งกระแสได้ ตั้งที่กระแสออก × 1.05 ปัดขึ้นทีละ 5 A (เช่น 84 A → 100 AT ปรับตั้ง 90 A) แล้วคิดขนาดสายจากกระแสตั้ง — ถ้าเลือกสายเองเล็กกว่านั้น จะขึ้นคำแนะนำในหัวข้อสายไฟ · " + "ที่เมนตู้ AC มีระบบ Ground Fault (เมน < 1000 AT = GFR + ZCT + Shunt trip · เมน ≥ 1000 AT = เบรกเกอร์ LSIG มีในตัว) และ Power Meter PM2230 + CT ตามขนาดเมน + MCB 6A กันสายวัด — ปิดแยกได้ · " + "ระบบล่อฟ้า: ถ้าแผงอยู่ใกล้ล่อฟ้า (ต่อถึงกันหรือห่างไม่ถึงระยะปลอดภัย) SPD ทั้ง AC และ DC เปลี่ยนเป็น Type 1+2 · " + "ฟิวส์กันหลัง SPD ฝั่ง AC เป็นฟิวส์ใบมีด NH00 gG เส้นไฟละ 1 ตัว — Type 2 ใช้ 32 A · Type 1+2 ใช้ 125 A (ไม่ต้องมีถ้า MCCB เมนตู้ ≤ 125 AT) · " + "ฟิวส์ DC แบบ gPV ขั้ว + และ − ทุกสตริง (1.5–2.4 × Isc) · กรอกจำนวนตู้เองได้ และปิดรายการอัตโนมัติรายตู้ได้ · ราคาดึงจากคลังเหมือนวัสดุอื่น"
   }, {
     key: "watersys",
     sec: "water",
@@ -3047,13 +3048,14 @@ function BOQEditor({
         if (m) brkOfCab[cs.indexOf(m)] = Object.assign({
           who: "เมนตู้ AC"
         }, k);
+        const gIn = projBoard.gf !== "off" && k.at >= GF_IN_AT;
         out.ac.push({
-          name: k.kind + " " + pole + " " + k.at + "AT",
+          name: k.kind + " " + pole + " " + k.at + "AT" + (gIn ? " LSIG" : ""),
           qty: 1,
           unit: "ตัว",
           auto: 1,
           ok: k.ok,
-          why: tag + "เมน · อินเวอร์เตอร์ " + nos.join(", ") + " รวม " + k.txt
+          why: tag + "เมน · อินเวอร์เตอร์ " + nos.join(", ") + " รวม " + k.txt + (gIn ? " · trip unit LSIG มี Ground Fault ในตัว" : "")
         });
       }
       nos.forEach(no => {
@@ -3104,7 +3106,7 @@ function BOQEditor({
           why: tag + "ฐานฟิวส์ใบมีด NH00"
         });
       }
-      if (projBoard.gf !== "off" && mainAt > 0) {
+      if (projBoard.gf !== "off" && mainAt > 0 && mainAt < GF_IN_AT) {
         const zd = mainAt <= 125 ? 60 : mainAt <= 250 ? 80 : mainAt <= 630 ? 120 : 200;
         out.ac.push({
           name: "GROUND FAULT RELAY (GFR)",
@@ -3129,7 +3131,7 @@ function BOQEditor({
         });
       }
       if (projBoard.pm !== "off" && mainAt > 0) {
-        const CT_R = [100, 150, 200, 250, 300, 400, 500, 600, 800, 1000, 1200, 1500, 1600, 2000, 2500, 3000, 4000];
+        const CT_R = [100, 150, 200, 250, 300, 400, 500, 600, 800, 1000, 1200, 1250, 1500, 1600, 2000, 2500, 3000, 4000];
         const ct = CT_R.find(x => x >= mainAt) || CT_R[CT_R.length - 1];
         out.ac.push({
           name: "POWER METER SCHNEIDER PM2230",
@@ -3146,12 +3148,14 @@ function BOQEditor({
           why: tag + "เฟสละ 1 ตัว · อัตราส่วน ≥ MCCB เมน " + mainAt + " AT"
         });
       }
-      if ((projBoard.gf !== "off" || projBoard.pm !== "off") && mainAt > 0) out.ac.push({
+      const gfSep = projBoard.gf !== "off" && mainAt < GF_IN_AT,
+        pmOn = projBoard.pm !== "off";
+      if ((gfSep || pmOn) && mainAt > 0) out.ac.push({
         name: "MCB " + pole + " 6A",
         qty: 1,
         unit: "ตัว",
         auto: 1,
-        why: tag + "กันสายวัดแรงดัน" + (projBoard.pm !== "off" ? " PM2230" : "") + (projBoard.gf !== "off" ? (projBoard.pm !== "off" ? " และ" : "") + "ไฟเลี้ยง GFR / Shunt trip" : "")
+        why: tag + "กันสายวัดแรงดัน" + (pmOn ? " PM2230" : "") + (gfSep ? (pmOn ? " และ" : "") + "ไฟเลี้ยง GFR / Shunt trip" : "")
       });
     });
     const nStr = plan ? plan.strings : invUnits.length * Math.max(1, +selInv.inputs || 1);
