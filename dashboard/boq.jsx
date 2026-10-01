@@ -4220,7 +4220,7 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
           <BoqSection title="ค่าขออนุญาต & เอกสาร" icon="box" {...secProps("permit")}
             right={priced.permitTotal > 0 ? <span style={{ fontSize: 12.5, fontWeight: 800, color: "var(--primary-dark)" }}>฿{baht(priced.permitTotal)}</span> : null}>
             <div className="bq-hint" style={{ fontSize: 11.5, color: "var(--text-3)", lineHeight: 1.5, marginBottom: 12 }}>
-              รายการขึ้นตามเงื่อนไขของงานนี้ — กกพ. จดแจ้งยกเว้น (&lt; 1,000 kW) หรือใบอนุญาต (≥ 1,000 kW) · พค.2 (เกิน 10–200 kW) · อ.1 (แผงเกิน 160 ตร.ม.)
+              รายการขึ้นตามเงื่อนไขของงานนี้ — กกพ. จดแจ้งยกเว้น (เกิน 10 ถึง &lt; 1,000 kW) หรือใบอนุญาต (≥ 1,000 kW) · พค.2 (เกิน 10–200 kW) · อ.1 (แผงเกิน 160 ตร.ม.)
               · ค่าขนานไฟ MEA 2,140 · PEA 3,745 (ดูจากจังหวัดในข้อมูลลูกค้า) · ค่าวิศวกร 5,000–15,000 ตามขนาดระบบ
             </div>
             {SvcTable({ sKey: "permit", preset: window.BOQ.permitPresetFor(b, result.meta.kw), qtyLabel: "จำนวน", total: priced.permitTotal, perW: priced.permitPerW })}
