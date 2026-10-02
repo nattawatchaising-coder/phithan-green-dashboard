@@ -1612,7 +1612,8 @@ function p3sBuild3D(THREE, grp, st, tex) {
     let t = MTX[key];
     if (!t) {
       const c = document.createElement("canvas"); c.width = D.cw; c.height = D.ch; D.draw(c.getContext("2d"));
-      t = MTX[key] = new THREE.CanvasTexture(c); t.wrapS = t.wrapT = THREE.RepeatWrapping; t.anisotropy = 8; t.repeat.set(1 / D.tw, 1 / D.th);
+      // anisotropy 2: ค่าสูง (8) เก็บลายลอนถี่ไว้ถึงระยะไกล → ลายคลื่น (moiré) บนหลังคาใหญ่ · 2 ใกล้ยังเห็นลอน ไกลจางเรียบ
+      t = MTX[key] = new THREE.CanvasTexture(c); t.wrapS = t.wrapT = THREE.RepeatWrapping; t.anisotropy = 2; t.repeat.set(1 / D.tw, 1 / D.th);
     }
     const cc = col && /^#[0-9a-f]{6}$/i.test(col) ? new THREE.Color(col) : null;
     return (MT[ck] = {
@@ -2352,7 +2353,9 @@ function P3SView3D({ st, sun, api }) {
       const D = S * 2 + H + 20, sc = sunL.shadow.camera;
       sunL.position.set(cx + d.x * D, cy + d.y * D, cz + d.z * D); sunL.target.position.set(cx, cy, cz); sunL.target.updateMatrixWorld();
       sc.left = -S; sc.right = S; sc.top = S; sc.bottom = -S; sc.near = 0.5; sc.far = D + S * 2 + H; sc.updateProjectionMatrix();
-      sunL.shadow.bias = -Math.max(0.015, tx * 0.9) / (sc.far - sc.near);
+      // ลายคลื่นบนหลังคา (shadow acne): ผิวเกือบราบ + แดดเฉียง → ความลึกในพิกเซลเงาเดียวต่างกัน ≈ พิกเซล ÷ tan(มุมเงย)
+      const ta = d.y / Math.max(0.05, Math.sqrt(1 - d.y * d.y));
+      sunL.shadow.bias = -Math.min(0.1, Math.max(0.015, tx * (1.5 + 1.5 / Math.max(0.15, ta)))) / (sc.far - sc.near);
     };
     T.current.fitSh = fitSh;
     const loop = () => {
