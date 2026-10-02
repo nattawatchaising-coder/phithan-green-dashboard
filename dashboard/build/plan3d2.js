@@ -2872,6 +2872,7 @@ const P3S_CSS = `
 .p3s-tsep{height:1px;background:var(--surface3);margin:4px 8px}
 .p3s-stage{flex:1;min-width:0;position:relative;overflow:hidden;background:#dfe5dc;touch-action:none;user-select:none;-webkit-user-select:none}
 .p3s-stage>svg{position:absolute;inset:0;display:block}
+.p3s-moving path,.p3s-moving polygon{shape-rendering:optimizeSpeed}
 .p3s-side{width:340px;flex:0 0 340px;background:var(--bg);overflow-y:auto;padding:14px;display:flex;flex-direction:column;gap:12px;position:relative;z-index:3;box-sizing:border-box;box-shadow:var(--shadow-sm)}
 .p3s-card{background:var(--surface);border-radius:15px;box-shadow:var(--shadow-card);padding:13px;display:flex;flex-direction:column;gap:10px}
 .p3s-h{display:flex;align-items:center;gap:8px;font-size:11px;font-weight:800;letter-spacing:.06em;color:var(--text-3)}
@@ -6141,9 +6142,15 @@ function Plan3DStudio({
   });
   const sizeRef = React.useRef(size);
   sizeRef.current = size;
+  const movT = React.useRef(0);
   const setView = v => {
     viewRef.current = v;
     setViewRaw(v);
+    const el = stageRef.current;
+    if (!el) return;
+    el.classList.add("p3s-moving");
+    clearTimeout(movT.current);
+    movT.current = setTimeout(() => el.classList.remove("p3s-moving"), 160);
   };
   React.useEffect(() => {
     if (loading || stRef.current) return;
@@ -9305,7 +9312,7 @@ function Plan3DStudio({
       "data-pk": r.id + ":" + bi,
       d: d,
       fill: selSet.indexOf(bi) >= 0 ? "#0ea5e9" : "#17357a",
-      stroke: selSet.indexOf(bi) >= 0 ? "#fff" : "rgba(219,234,254,.75)",
+      stroke: selSet.indexOf(bi) >= 0 ? "#fff" : "#aabddd",
       strokeWidth: selSet.indexOf(bi) >= 0 ? 1.2 : 0.7,
       style: NS
     })), slots.map(q => React.createElement("polygon", {

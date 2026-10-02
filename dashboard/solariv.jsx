@@ -532,6 +532,7 @@ function ivGeom(st) {
   const foot = (typeof p3FootAll === "function" ? p3FootAll(st) : { panels: [], outlines: [] });
   const panels = (foot.panels || []).filter((p) => p.u && p.v && p.n);
   const blockers = [];
+  const surfAll = [];   // ผิวหลังคาทุกผืน — ใช้หาความสูงหลังคาใต้สิ่งบดบังที่วางบนหลังคา
   /* ── ตัวอาคาร: ผิวหลังคาแต่ละผืน + ก้อนตึกใต้ชายคา ──
      ผิวหลังคาที่แผงตั้งอยู่จะถูกข้าม (ไม่งั้นแผงจะบังตัวเอง) แต่ผืนอื่น/อีกด้านของจั่วบังได้ตามจริง
      ส่วนก้อนตึกใต้ชายคาไม่ต้องข้าม เพราะแผงอยู่สูงกว่าชายคาเสมอ */
@@ -542,6 +543,7 @@ function ivGeom(st) {
     let minY = 1e9;
     const hull = [];
     surfs.forEach((s) => {
+      if (s.pts.length >= 3) surfAll.push(s.pts);
       const a = s.pts[0];
       let cx = 0, cy = 0, cz = 0, rad = 0;
       s.pts.forEach((q) => { cx += q.x; cy += q.y; cz += q.z; if (q.y < minY) minY = q.y; hull.push([q.x, q.z]); });
@@ -567,8 +569,58 @@ function ivGeom(st) {
         bc: { x: cx, y: top / 2, z: cz }, br: Math.hypot(rad, top / 2), name: "ตัวอาคาร " + (roof.name || "") });
     }
   });
+  /* ความสูงผิวหลังคา ณ จุด (x,z) — สูงสุดของทุกผืนที่ครอบจุดนั้น · ไม่มีหลังคา = พื้น 0 */
+  const roofY = (x, z) => {
+    let y = 0;
+    surfAll.forEach((P) => {
+      if (!ivInPoly(x, z, P.map((q) => [q.x, q.z]))) return;
+      const a = P[0], b = P[1], c = P[2];
+      const ux = b.x - a.x, uy = b.y - a.y, uz = b.z - a.z, vx = c.x - a.x, vy = c.y - a.y, vz = c.z - a.z;
+      const nx = uy * vz - uz * vy, ny = uz * vx - ux * vz, nz = ux * vy - uy * vx;
+      if (Math.abs(ny) < 1e-9) return;
+      y = Math.max(y, a.y - (nx * (x - a.x) + nz * (z - a.z)) / ny);
+    });
+    return y;
+  };
+  /* กล่องตรงยาวตามช่วง A→B (มุมตามแนวช่วง) สูง y0..y1 หนา th */
+  const segBox = (A, B, y0, y1, th, name, id) => {
+    const L = Math.hypot(B.x - A.x, B.z - A.z); if (L < 0.05) return;
+    const cx = (A.x + B.x) / 2, cz = (A.z + B.z) / 2, w = L / 2, d = th / 2;
+    blockers.push({ t: "b", lo: { x: cx - w, y: y0, z: cz - d }, hi: { x: cx + w, y: y1, z: cz + d },
+      rot: -Math.atan2(B.z - A.z, B.x - A.x), cx, cz,
+      bc: { x: cx, y: (y0 + y1) / 2, z: cz }, br: Math.hypot(w, (y1 - y0) / 2, d), name, id });
+  };
+  /* ดาดฟ้ามีขอบกันตก (p3sParapet) — ขอบปูนรอบหลังคาบังแผงริมขอบได้จริง */
+  (st.roofs || []).forEach((roof) => {
+    const ph = scNum(roof.p3sParapet, 0); if (!(ph > 0) || typeof p3RoofSurf !== "function") return;
+    let surfs = []; try { surfs = p3RoofSurf(roof) || []; } catch (e) { surfs = []; }
+    surfs.forEach((sf) => sf.pts.forEach((A, i) => { const B = sf.pts[(i + 1) % sf.pts.length]; segBox(A, B, Math.min(A.y, B.y), Math.max(A.y, B.y) + ph, 0.2, "ขอบกันตก " + (roof.name || "")); }));
+  });
   (st.obstacles || []).forEach((o) => {
     const x = scNum(o.x), z = scNum(o.z), h = Math.max(0.2, scNum(o.h, 1));
+    /* ของจากตัวแก้แบบใหม่ (p3sType) — วางตามจริงแบบภาพ 3 มิติ
+       ทางเดิน/ท่อ/รางไฟ/ช่องแสง แบนติดหลังคาหรืออยู่ใต้แผง · บันไดลิงเป็นกรงโปร่ง → ไม่นับเป็นตัวบัง
+       ราวกันตก = ราวบน 1.1 ม. + ราวกลาง (ไม่ใช่กำแพงทึบ) · ลูกหมุน/ปล่องควัน ตั้งบนผิวหลังคา */
+    const T = o.p3sType;
+    if (T === "walkway" || T === "pipe" || T === "tray" || T === "sky" || T === "ladder") return;
+    if (T === "rail") {
+      const P = Array.isArray(o.pts) && o.pts.length >= 2 ? o.pts.map((q) => ({ x: x + scNum(q.x), z: z + scNum(q.z) }))
+        : (() => { const L = scNum(o.w, 1) / 2, a = scNum(o.rot) * Math.PI / 180; return [{ x: x - Math.cos(a) * L, z: z - Math.sin(a) * L }, { x: x + Math.cos(a) * L, z: z + Math.sin(a) * L }]; })();
+      const H = scNum(o.h, 1.1);
+      for (let i = 1; i < P.length; i++) {
+        const A = P[i - 1], B = P[i], y0 = Math.max(roofY(A.x, A.z), roofY(B.x, B.z));
+        segBox(A, B, y0 + H - 0.05, y0 + H, 0.05, o.name || "ราวกันตก", o.id);
+        segBox(A, B, y0 + H / 2 - 0.025, y0 + H / 2 + 0.025, 0.05, o.name || "ราวกันตก", o.id);
+      }
+      return;
+    }
+    if (T === "turbine" || T === "vent") {
+      const w = Math.max(0.2, scNum(o.w, 0.6)) / 2, d = Math.max(0.2, scNum(o.d, 0.6)) / 2, y0 = roofY(x, z), hh = scNum(o.h, 0.5);
+      blockers.push({ t: "b", lo: { x: x - w, y: y0, z: z - d }, hi: { x: x + w, y: y0 + hh, z: z + d },
+        rot: -scNum(o.rot) * Math.PI / 180, cx: x, cz: z,
+        bc: { x, y: y0 + hh / 2, z }, br: Math.hypot(w, hh / 2, d), name: o.name || (T === "vent" ? "ปล่องดูดควัน" : "ลูกหมุน"), id: o.id });
+      return;
+    }
     if (o.kind === "tree") {
       const r = Math.max(scNum(o.w, 1), 1) / 2;
       const c = { x, y: h * 0.45 + r * 0.8, z };

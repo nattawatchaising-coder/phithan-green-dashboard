@@ -1324,6 +1324,7 @@ const P3S_CSS = `
 .p3s-tsep{height:1px;background:var(--surface3);margin:4px 8px}
 .p3s-stage{flex:1;min-width:0;position:relative;overflow:hidden;background:#dfe5dc;touch-action:none;user-select:none;-webkit-user-select:none}
 .p3s-stage>svg{position:absolute;inset:0;display:block}
+.p3s-moving path,.p3s-moving polygon{shape-rendering:optimizeSpeed}
 .p3s-side{width:340px;flex:0 0 340px;background:var(--bg);overflow-y:auto;padding:14px;display:flex;flex-direction:column;gap:12px;position:relative;z-index:3;box-sizing:border-box;box-shadow:var(--shadow-sm)}
 .p3s-card{background:var(--surface);border-radius:15px;box-shadow:var(--shadow-card);padding:13px;display:flex;flex-direction:column;gap:10px}
 .p3s-h{display:flex;align-items:center;gap:8px;font-size:11px;font-weight:800;letter-spacing:.06em;color:var(--text-3)}
@@ -2752,7 +2753,15 @@ function Plan3DStudio({ job, onClose, currentUser, onSwitch }) {
   const viewRef = React.useRef(view); viewRef.current = view;
   const [size, setSize] = React.useState({ w: 900, h: 600 });
   const sizeRef = React.useRef(size); sizeRef.current = size;
-  const setView = (v) => { viewRef.current = v; setViewRaw(v); };
+  /* ระหว่างซูม/เลื่อนผัง: วาดเส้นแบบไม่ลบรอยหยัก (.p3s-moving) — งานโรงงานแผงเป็นพันใบ เบราว์เซอร์วาดผังใหม่ทุกเฟรม
+     แบบลบรอยหยักกินเวลา 50–130 มิลลิวินาที/เฟรม (กระตุก) · หยุดขยับ 0.16 วิ กลับมาวาดเนียนเหมือนเดิม */
+  const movT = React.useRef(0);
+  const setView = (v) => {
+    viewRef.current = v; setViewRaw(v);
+    const el = stageRef.current; if (!el) return;
+    el.classList.add("p3s-moving"); clearTimeout(movT.current);
+    movT.current = setTimeout(() => el.classList.remove("p3s-moving"), 160);
+  };
 
   /* โหลดครั้งเดียว — ระหว่างเปิดอยู่ไม่ดึงทับ (แบบเก่าก็ทำแบบนี้) */
   React.useEffect(() => {
@@ -4130,7 +4139,7 @@ function Plan3DStudio({ job, onClose, currentUser, onSwitch }) {
       <g key={r.id}>
         {showGhost && isSel && P.off && <path d={P.off} fill="rgba(255,255,255,.18)" stroke="#64748b" strokeWidth={1} strokeDasharray="3 3" style={NS} />}
         {P.on.map((d, bi) => d && (
-          <path key={bi} data-pk={r.id + ":" + bi} d={d} fill={selSet.indexOf(bi) >= 0 ? "#0ea5e9" : "#17357a"} stroke={selSet.indexOf(bi) >= 0 ? "#fff" : "rgba(219,234,254,.75)"} strokeWidth={selSet.indexOf(bi) >= 0 ? 1.2 : 0.7} style={NS} />
+          <path key={bi} data-pk={r.id + ":" + bi} d={d} fill={selSet.indexOf(bi) >= 0 ? "#0ea5e9" : "#17357a"} stroke={selSet.indexOf(bi) >= 0 ? "#fff" : "#aabddd"} strokeWidth={selSet.indexOf(bi) >= 0 ? 1.2 : 0.7} style={NS} />
         ))}
         {slots.map((q) => <polygon key={"s" + q.key} points={ptsStr(q.pts)} fill="rgba(22,163,74,.10)" stroke="#16a34a" strokeWidth={1} strokeDasharray="2 3" style={NS} />)}
       </g>
