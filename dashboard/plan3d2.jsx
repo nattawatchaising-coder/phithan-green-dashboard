@@ -1105,6 +1105,8 @@ const P3S_CSS = `
 .p3s-well .sb{width:30px;height:30px;flex:0 0 30px;border:0;border-radius:8px;background:transparent;color:var(--text-2);font-size:17px;font-weight:600;cursor:pointer;display:grid;place-items:center;line-height:1}
 .p3s-well .sb:hover{background:var(--surface);color:var(--text-1)}
 .p3s-note{font-size:11.5px;color:var(--text-3);line-height:1.5}
+.p3s-note:not(.keep){display:none}
+.p3s-wiz .wd{display:none}
 .p3s-stat{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
 .p3s-stat>div{background:var(--surface2);border-radius:11px;padding:8px 10px}
 .p3s-stat .l{font-size:10px;font-weight:700;color:var(--text-3)}
@@ -1457,14 +1459,44 @@ function p3sBuild3D(THREE, grp, st, tex) {
       put(new THREE.CylinderGeometry(r * 0.96, r * 0.96, capH * 0.28, 26), metal, pipeH + capH * 0.14);
       put(new THREE.CylinderGeometry(r * 0.32, r * 0.96, capH * 0.72, 26), metal, pipeH + capH * 0.28 + capH * 0.36);
     } else if (o.kind === "tree") {
-      const tr = new THREE.Mesh(new THREE.CylinderGeometry(0.14, 0.2, h * 0.45, 8), new THREE.MeshLambertMaterial({ color: 0x7c5a3a }));
-      tr.position.y = h * 0.225; tr.castShadow = true; g.add(tr);
-      const R = Math.max(+o.w || 1, 1) / 2;
-      const cr = new THREE.Mesh(new THREE.SphereGeometry(R, 14, 10), new THREE.MeshLambertMaterial({ color: 0x3f7d44 }));
-      cr.position.y = h * 0.45 + R * 0.8; cr.castShadow = true; cr.receiveShadow = true; g.add(cr);
+      // ต้นไม้: ลำต้นเรียว + กิ่งแยก 3 กิ่ง + พุ่มใบเป็นก้อนหลายก้อน (สุ่มคงที่ตาม id ทุกครั้งที่วาดได้รูปเดิม)
+      let sd = 0; String(o.id || "t").split("").forEach((ch) => { sd = (sd * 31 + ch.charCodeAt(0)) >>> 0; });
+      const rnd = () => { sd = (sd * 1664525 + 1013904223) >>> 0; return sd / 4294967296; };
+      const R = Math.max(+o.w || 3, 0.8) / 2, H = Math.max(h, R * 1.4), trunkH = Math.max(H * 0.3, H - R * 1.7), tr0 = Math.max(0.08, R * 0.11);
+      const bark = new THREE.MeshStandardMaterial({ color: 0x6b4a2f, roughness: 0.95 });
+      const leafC = [0x2f6b34, 0x3b7f3c, 0x4a8f45, 0x2a5d30];
+      put(new THREE.CylinderGeometry(tr0 * 0.7, tr0 * 1.25, trunkH, 9), bark, trunkH / 2);
+      const cy = trunkH + R * 0.7;
+      for (let k = 0; k < 3; k++) {   // กิ่งหลัก
+        const a = k * 2.1 + rnd(), m = new THREE.Mesh(new THREE.CylinderGeometry(tr0 * 0.35, tr0 * 0.6, R * 0.9, 6), bark);
+        m.position.set(Math.cos(a) * R * 0.25, trunkH + R * 0.15, Math.sin(a) * R * 0.25); m.rotation.set(Math.sin(a) * 0.7, 0, -Math.cos(a) * 0.7); m.castShadow = true; g.add(m);
+      }
+      const blobs = 10;
+      for (let k = 0; k < blobs; k++) {
+        const top = k === blobs - 1, a = (k / (blobs - 1)) * Math.PI * 2 + rnd() * 0.6, rr = top ? 0 : R * (k < 5 ? 0.45 + rnd() * 0.1 : 0.25 + rnd() * 0.12);
+        const br = R * (top ? 0.7 : 0.55 + rnd() * 0.15);
+        const m = new THREE.Mesh(new THREE.IcosahedronGeometry(br, 1), new THREE.MeshStandardMaterial({ color: leafC[k % leafC.length], roughness: 0.9, flatShading: true }));
+        m.position.set(Math.cos(a) * rr, cy + (top ? R * 0.55 : k < 5 ? (rnd() - 0.5) * R * 0.3 : R * 0.35), Math.sin(a) * rr);
+        m.scale.y = 0.85; m.rotation.set(rnd() * 3, rnd() * 3, 0); m.castShadow = true; m.receiveShadow = true; g.add(m);
+      }
     } else {
-      const bx = new THREE.Mesh(new THREE.BoxGeometry(+o.w || 1, h, +o.d || 1), new THREE.MeshLambertMaterial({ color: 0x9aa8b5 }));
-      bx.position.y = h / 2; bx.castShadow = true; bx.receiveShadow = true; g.add(bx);
+      // ตึก: ผนังปูน · แถบหน้าต่างกระจกทุกชั้น (ชั้นละ 3 ม.) · คิ้วพื้นแต่ละชั้น · ดาดฟ้า + กันตก + ห้องบันได
+      const W = Math.max(+o.w || 1, 0.5), D = Math.max(+o.d || 1, 0.5);
+      const wall = new THREE.MeshStandardMaterial({ color: 0xe4ddd0, roughness: 0.9 });
+      const trim = new THREE.MeshStandardMaterial({ color: 0xc9c0b0, roughness: 0.85 });
+      const glass = new THREE.MeshStandardMaterial({ color: 0x5a7d99, roughness: 0.15, metalness: 0.4 });
+      put(new THREE.BoxGeometry(W, h, D), wall, h / 2);
+      const fl = Math.max(1, Math.round(h / 3)), fh = h / fl;
+      for (let i = 0; i < fl; i++) {
+        const wy = i * fh + fh * 0.55;
+        if (W > 1.6) [-1, 1].forEach((sg) => { const m = new THREE.Mesh(new THREE.BoxGeometry(W - 0.8, fh * 0.42, 0.06), glass); m.position.set(0, wy, sg * (D / 2 + 0.01)); g.add(m); });
+        if (D > 1.6) [-1, 1].forEach((sg) => { const m = new THREE.Mesh(new THREE.BoxGeometry(0.06, fh * 0.42, D - 0.8), glass); m.position.set(sg * (W / 2 + 0.01), wy, 0); g.add(m); });
+        if (i > 0) put(new THREE.BoxGeometry(W + 0.12, 0.14, D + 0.12), trim, i * fh);
+      }
+      put(new THREE.BoxGeometry(W + 0.16, 0.18, D + 0.16), trim, h + 0.09);
+      const pt = 0.15, ph = 0.8, py = h + 0.18 + ph / 2;
+      [[0, D / 2 - pt / 2, W, pt], [0, -D / 2 + pt / 2, W, pt], [W / 2 - pt / 2, 0, pt, D], [-W / 2 + pt / 2, 0, pt, D]].forEach(([x, z, w, d]) => { const m = put(new THREE.BoxGeometry(w, ph, d), wall, py); m.position.x = x; m.position.z = z; });
+      if (W > 4 && D > 4) { const m = put(new THREE.BoxGeometry(Math.min(3, W * 0.3), 2.6, Math.min(3, D * 0.3)), wall, h + 0.18 + 1.3); m.position.x = W * 0.22; m.position.z = -D * 0.18; }
     }
     eat(ox, by + h, oz);
   });
@@ -1472,7 +1504,7 @@ function p3sBuild3D(THREE, grp, st, tex) {
   return { cx: (minX + maxX) / 2, cz: (minZ + maxZ) / 2, R: Math.max(8, Math.hypot(maxX - minX, maxZ - minZ) / 2), maxY };
 }
 
-function P3SView3D({ st, sun }) {
+function P3SView3D({ st, sun, api }) {
   const mountRef = React.useRef(null);
   const T = React.useRef({});
   const [ready, setReady] = React.useState(false);
@@ -1508,11 +1540,35 @@ function P3SView3D({ st, sun }) {
     const onResize = () => { const w = el.clientWidth || 1, h = el.clientHeight || 1; renderer.setSize(w, h); camera.aspect = w / h; camera.updateProjectionMatrix(); };
     onResize();
     const ro = new ResizeObserver(onResize); ro.observe(el);
-    let run = true;
-    const loop = () => { if (!run) return; controls.update(); renderer.render(scene, camera); requestAnimationFrame(loop); };
+    let run = true, orbit = null;
+    const loop = () => {
+      if (!run) return;
+      if (orbit && !orbit.done) {
+        const f = (performance.now() - orbit.t0) / (orbit.sec * 1000);
+        if (f >= 1) { orbit.done = true; renderer.render(scene, camera); setTimeout(() => orbit && orbit.rec.stop(), 150); }
+        else { const a = orbit.a0 + f * Math.PI * 2; camera.position.set(orbit.tg.x + orbit.r * Math.cos(a), orbit.tg.y + orbit.y, orbit.tg.z + orbit.r * Math.sin(a)); camera.lookAt(orbit.tg); orbit.onProg && orbit.onProg(f); }
+      } else controls.update();
+      renderer.render(scene, camera); requestAnimationFrame(loop);
+    };
+    // ภาพนิ่ง (ขนาดเท่าจอ 3D) · วิดีโอกล้องหมุนรอบอาคาร 360° (mp4 ถ้าเบราว์เซอร์รองรับ ไม่งั้น webm)
+    if (api) api.current = {
+      shot: () => { renderer.render(scene, camera); return renderer.domElement.toDataURL("image/png"); },
+      video: (sec, onProg) => new Promise((res, rej) => {
+        const cv = renderer.domElement;
+        if (!cv.captureStream || !window.MediaRecorder) { rej(new Error("เบราว์เซอร์นี้อัดวิดีโอไม่ได้ — ใช้ Chrome หรือ Edge")); return; }
+        const mt = ["video/mp4;codecs=avc1", "video/mp4", "video/webm;codecs=vp9", "video/webm"].find((t) => MediaRecorder.isTypeSupported(t)) || "";
+        let rec; try { rec = new MediaRecorder(cv.captureStream(30), Object.assign({ videoBitsPerSecond: 8e6 }, mt ? { mimeType: mt } : {})); } catch (e) { rej(e); return; }
+        const chunks = []; rec.ondataavailable = (e) => { if (e.data && e.data.size) chunks.push(e.data); };
+        const tg = controls.target.clone(), p0 = camera.position.clone(), off = p0.clone().sub(tg);
+        controls.enabled = false;
+        orbit = { t0: performance.now(), sec, tg, r: Math.max(5, Math.hypot(off.x, off.z)), a0: Math.atan2(off.z, off.x), y: off.y, onProg, rec };
+        rec.onstop = () => { orbit = null; controls.enabled = true; camera.position.copy(p0); controls.update(); res({ blob: new Blob(chunks, { type: (mt || "video/webm").split(";")[0] }), ext: /mp4/.test(mt) ? "mp4" : "webm" }); };
+        rec.start(250);
+      }),
+    };
     requestAnimationFrame(loop);
     return () => {
-      run = false; ro.disconnect(); controls.dispose();
+      run = false; if (api) api.current = null; if (orbit && orbit.rec && orbit.rec.state !== "inactive") { try { orbit.rec.stop(); } catch (e) {} } ro.disconnect(); controls.dispose();
       [sunBall, sunGlow, sunPath, stars].forEach((o) => { o.geometry.dispose(); o.material.dispose(); });
       dyn.traverse((o) => { if (o.geometry) o.geometry.dispose(); if (o.material) o.material.dispose(); });
       Object.keys(texCache).forEach((k) => texCache[k].dispose());
@@ -1726,7 +1782,10 @@ function Plan3DStudio({ job, onClose, currentUser, onSwitch }) {
   const [walkPts, setWalkPts] = React.useState(null);     // กำลังวาดทางเดิน (พิกัดโลก)
   const [selWalk, setSelWalk] = React.useState(null);     // { roofId, id }
   const [eavePick, setEavePick] = React.useState(false);  // แตะขอบเพื่อตั้งเป็นชายคา
-  const [mxy, setMxy] = React.useState(null);              // ตำแหน่งเมาส์บนจอ (ป้าย "กำหนดทางลาด")
+  const [mxy, setMxy] = React.useState(null);
+  const v3api = React.useRef(null);                         // ถ่ายภาพ/อัดวิดีโอจากมุมมอง 3D
+  const [vidPct, setVidPct] = React.useState(null);         // กำลังอัดวิดีโอ (0–1)
+  const [mediaMsg, setMediaMsg] = React.useState(null);              // ตำแหน่งเมาส์บนจอ (ป้าย "กำหนดทางลาด")
   const [measPts, setMeasPts] = React.useState(null);   // กำลังวัดระยะ
   const [calib, setCalib] = React.useState(null);       // ตั้งมาตราส่วนรูปโดรน { pts:[], len:"" }
   const [trace, setTrace] = React.useState(null);       // ตัวช่วยวาดจากภาพ { on, busy, seed, pts, err }
@@ -3745,7 +3804,7 @@ function Plan3DStudio({ job, onClose, currentUser, onSwitch }) {
             </React.Fragment>
           )}
           {!isPoly && !panOnly && (
-            <span className="p3s-note">หันทิศ{azTxt(roof.az)} ({p3sR(+roof.az || 180, 1)}°) · ลากจุดส้มบนผังเพื่อหมุน</span>
+            <span className="p3s-note keep">หันทิศ{azTxt(roof.az)} ({p3sR(+roof.az || 180, 1)}°) · ลากจุดส้มบนผังเพื่อหมุน</span>
           )}
           {!wiz && <button className="p3s-btn wide" onClick={() => axisFromRoof(roof)}><P3SIcon name="axis" size={15} />ใช้หลังคานี้เป็นแนวอ้างอิง</button>}
           {panOnly && <span className="p3s-note">ขั้นวางแผงแก้หลังคาไม่ได้ — จะแก้ขนาด/ทรง/ความชัน กดย้อนไปขั้น "วาดหลังคา"</span>}
@@ -3782,8 +3841,8 @@ function Plan3DStudio({ job, onClose, currentUser, onSwitch }) {
                 {wOn && (
                   <React.Fragment>
                     <div className="p3s-g2">
-                      <P3SNum label="เว้นทุก ๆ (แผง)" step={1} min={0} max={200} digits={0} value={B0.gc || 0} onChange={(v) => patchZone({ gc: Math.round(v), adds: {} }, "gc")} />
-                      <P3SNum label="เว้นทุก ๆ (แถว)" step={1} min={0} max={200} digits={0} value={B0.gr || 0} onChange={(v) => patchZone({ gr: Math.round(v), adds: {} }, "gr")} />
+                      <P3SNum label="ทางเดินคั่นทุก ๆ" unit="แผง" step={1} min={0} max={200} digits={0} value={B0.gc || 0} onChange={(v) => patchZone({ gc: Math.round(v), adds: {} }, "gc")} />
+                      <P3SNum label="ทางเดินขวางทุก ๆ" unit="แถว" step={1} min={0} max={200} digits={0} value={B0.gr || 0} onChange={(v) => patchZone({ gr: Math.round(v), adds: {} }, "gr")} />
                       <P3SNum label="ทางเดินกว้าง" unit="ม." step={0.1} min={0} max={5} value={B0.gg || 0} onChange={(v) => patchZone({ gg: v, adds: {} }, "gg")} />
                     </div>
                     <span className="p3s-note">0 = ไม่เว้นในแนวนั้น</span>
@@ -4045,7 +4104,7 @@ function Plan3DStudio({ job, onClose, currentUser, onSwitch }) {
       act: (
         <React.Fragment>
           <button className={"p3s-btn wide" + (axisDeg == null ? " pri" : "")} disabled={!hasImgW} onClick={autoAxis}><P3SIcon name="magic" size={15} />หาแนวอัตโนมัติ</button>
-          {axisMsg && <span className="p3s-note">{axisMsg}</span>}
+          {axisMsg && <span className="p3s-note keep">{axisMsg}</span>}
           {axisDeg != null && (
             <div className="p3s-fld" style={{ gap: 6 }}>
               <span className="lb">แนว {p3sR(axisDeg, 10)}° — ตรงกับขอบอาคารไหม?</span>
@@ -4093,7 +4152,7 @@ function Plan3DStudio({ job, onClose, currentUser, onSwitch }) {
                 </div>
                 {(r.kind === "gable" || r.kind === "hip") && (
                   <div className="p3s-row" style={{ gap: 6, flexWrap: "nowrap", minHeight: 28 }}>
-                    <span className="p3s-note" style={{ flex: 1 }}>สันแนว{ridgeTxt(r, r.kind === "gable" ? +r.ridge || 0 : Math.max(+r.w || 0, +r.d || 0))}{r.kind === "hip" ? " · สันยาว " + p3sR(Math.max(0, (+r.w || 0) - (+r.d || 0)), 10) + " ม. (ด้านยาว − ด้านสั้น)" : ""}</span>
+                    <span className="p3s-note keep" style={{ flex: 1 }}>สันแนว{ridgeTxt(r, r.kind === "gable" ? +r.ridge || 0 : Math.max(+r.w || 0, +r.d || 0))}{r.kind === "hip" ? " · สันยาว " + p3sR(Math.max(0, (+r.w || 0) - (+r.d || 0)), 10) + " ม. (ด้านยาว − ด้านสั้น)" : ""}</span>
                     {r.kind === "gable" && <button className="p3s-btn" style={{ height: 28, fontSize: 12 }} onClick={() => flipRidge(r)}><P3SIcon name="rotate" size={14} />สลับแนวสัน</button>}
                   </div>)}
                 {kk === "shed" && (() => {
@@ -4167,7 +4226,16 @@ function Plan3DStudio({ job, onClose, currentUser, onSwitch }) {
       go: () => { setTool("panel"); const r = emptyRoofs[0] || roofs[0]; if (r && panelOk) pickRoof(r); else clearPick(); } },
     { t: "ตรวจ 3D และเงา แล้วบันทึก", k: "fin", tools: [], done: total > 0 && !!wizSeen.fin && !dirty,
       d: <span>เลือกเดือนและเวลา ดูเงาที่ตกบนแผง (ตรวจเดือนธันวาคมเสมอ) · เสร็จแล้วกด <b>บันทึก</b></span>,
-      act: <button className="p3s-btn pri wide" disabled={!dirty} onClick={() => { markSeen("fin"); doSave(); }}><P3Icon name="save" />{dirty ? "บันทึก" : "บันทึกแล้ว"}</button>,
+      act: (
+        <React.Fragment>
+          <div className="p3s-row" style={{ gap: 6 }}>
+            <button className="p3s-btn" style={{ flex: 1 }} disabled={!view3d || vidPct != null} onClick={takeShot}><P3Icon name="image" />ถ่ายภาพ</button>
+            <button className={"p3s-btn" + (vidPct != null ? " pri" : "")} style={{ flex: 1 }} disabled={!view3d || vidPct != null} onClick={takeVideo}>
+              <P3Icon name="play" />{vidPct != null ? "กำลังอัด " + Math.round(vidPct * 100) + "%" : "วิดีโอหมุนรอบ"}</button>
+          </div>
+          {mediaMsg && <span className="p3s-badge warn">{mediaMsg}</span>}
+          <button className="p3s-btn pri wide" disabled={!dirty} onClick={() => { markSeen("fin"); doSave(); }}><P3Icon name="save" />{dirty ? "บันทึก" : "บันทึกแล้ว"}</button>
+        </React.Fragment>),
       go: () => { setView3d(true); setToolRaw("select"); setDraw(null); setMeasPts(null); setTrace(null); setCalib(null); markSeen("fin"); } },
   ];
   /* ไปได้ไกลสุดถึงขั้นแรกที่ยังไม่เสร็จ (ขั้นก่อนหน้าต้องเสร็จครบ) — ย้อนกลับได้เสมอ ข้ามไปข้างหน้าไม่ได้ */
@@ -4198,9 +4266,9 @@ function Plan3DStudio({ job, onClose, currentUser, onSwitch }) {
         <button className="p3s-btn" disabled={wi === 0} onClick={() => goStep(wi - 1)}>← ย้อน</button>
         {wi < WIZ.length - 1
           ? <button className={"p3s-btn" + (canNext ? " pri" : "")} style={{ flex: 1 }} disabled={!canNext} onClick={nextStep}>{!W0.done && W0.opt ? "ไม่มี · " : "ถัดไป · "}{WIZ[wi + 1].t} →</button>
-          : <span className="p3s-note" style={{ flex: 1, textAlign: "right" }}>{WIZ.every((w) => w.done || w.skip) ? "เสร็จครบทุกขั้น" : "ยังมีขั้นที่ไม่เสร็จ — ดูเลขที่ไม่มี ✓"}</span>}
+          : <span className="p3s-note keep" style={{ flex: 1, textAlign: "right" }}>{WIZ.every((w) => w.done || w.skip) ? "เสร็จครบทุกขั้น" : "ยังมีขั้นที่ไม่เสร็จ — ดูเลขที่ไม่มี ✓"}</span>}
       </div>
-      {!canNext && wi < WIZ.length - 1 && <span className="p3s-note">ทำขั้นนี้ให้เสร็จก่อนจึงไปต่อได้ · ย้อนกลับไปแก้ขั้นก่อนหน้าได้เสมอ</span>}
+      {!canNext && wi < WIZ.length - 1 && <span className="p3s-note keep">ทำขั้นนี้ให้เสร็จก่อนจึงไปต่อได้ · ย้อนกลับไปแก้ขั้นก่อนหน้าได้เสมอ</span>}
     </div>
   );
   const wizTools = wiz && !view3d ? W0.tools : null;
@@ -4266,6 +4334,19 @@ function Plan3DStudio({ job, onClose, currentUser, onSwitch }) {
     </React.Fragment>
   );
 
+  const mediaName = (ext) => ((job && (job.name || job.code || job.id)) || "solar").replace(/[\\/:*?"<>|]+/g, " ").trim() + " · 3D " + new Date().toISOString().slice(0, 10) + "." + ext;
+  const saveHref = (href, name) => { const a = document.createElement("a"); a.href = href; a.download = name; document.body.appendChild(a); a.click(); a.remove(); };
+  function takeShot() {
+    const A = v3api.current; if (!A) { setMediaMsg("เปิดมุมมอง 3D ก่อน"); return; }
+    setMediaMsg(null); try { saveHref(A.shot(), mediaName("png")); } catch (e) { setMediaMsg("ถ่ายภาพไม่ได้: " + e.message); }
+  }
+  function takeVideo() {
+    const A = v3api.current; if (!A) { setMediaMsg("เปิดมุมมอง 3D ก่อน"); return; }
+    setMediaMsg(null); setVidPct(0);
+    A.video(12, (f) => setVidPct(f)).then(({ blob, ext }) => {
+      const url = URL.createObjectURL(blob); saveHref(url, mediaName(ext)); setTimeout(() => URL.revokeObjectURL(url), 5000); setVidPct(null);
+    }).catch((e) => { setVidPct(null); setMediaMsg(e.message || "อัดวิดีโอไม่ได้"); });
+  }
   const sunPanel = (() => {
     const MON = ["ม.ค.", "ก.พ.", "มี.ค.", "เม.ย.", "พ.ค.", "มิ.ย.", "ก.ค.", "ส.ค.", "ก.ย.", "ต.ค.", "พ.ย.", "ธ.ค."], mon = st.sun.month || 4;
     const hm = (h) => { const hh = Math.floor(h), mm = Math.round((h - hh) * 60); return (mm === 60 ? hh + 1 : hh) + ":" + (mm === 60 || mm < 10 ? "0" : "") + (mm === 60 ? 0 : mm) + " น."; };
@@ -4275,14 +4356,13 @@ function Plan3DStudio({ job, onClose, currentUser, onSwitch }) {
     return (
       <div className="p3s-card">
         <span className="p3s-ttl2"><P3Icon name="sunShadow" size={17} />แดดและเงา</span>
-        <div className="p3s-fld"><span className="lb">เดือน</span>
-          <div className="p3s-mon">{MON.map((m, i) => <button key={i} className={"p3s-btn" + (mon === i + 1 ? " pri" : "")}
-            onClick={() => commit((x) => Object.assign({}, x, { sun: Object.assign({}, x.sun, { month: i + 1 }) }), "smon")}>{m}</button>)}</div></div>
+        <P3SRange label="เดือน" right={MON[mon - 1]} min={1} max={12} step={1} value={mon}
+          onChange={(v) => commit((x) => Object.assign({}, x, { sun: Object.assign({}, x.sun, { month: Math.round(v) }) }), "smon")} />
         <P3SRange label="เวลา" right={hm(sun.hour)} min={5} max={20} step={0.25} value={p3sClamp(sun.hour, 5, 20)}
           onChange={(v) => { setSunHour(null); commit((x) => Object.assign({}, x, { sun: Object.assign({}, x.sun, { hour: v }) }), "shour"); }} />
         <div className="p3s-row" style={{ gap: 6, flexWrap: "wrap" }}>
           <span className={"p3s-badge" + (sp.alt > 0 ? " ok" : "")}>{sp.alt > 0 ? "ดวงอาทิตย์สูง " + Math.round(sp.alt) + "° · ทาง" + p3sCompass(sp.az) : "กลางคืน · ดวงอาทิตย์ตกแล้ว"}</span>
-          {rise != null && <span className="p3s-note">ขึ้น {hm(rise)} · ตก {hm(set)}</span>}
+          {rise != null && <span className="p3s-note keep">ขึ้น {hm(rise)} · ตก {hm(set)}</span>}
         </div>
         <button className={"p3s-btn wide" + (sunHour != null ? " pri" : "")} onClick={() => setSunHour(sunHour != null ? null : 5.5)}>
           <P3Icon name={sunHour != null ? "pause" : "play"} />{sunHour != null ? "หยุด" : "กวาดดูเงาทั้งวัน (5:30–19:30)"}</button>
@@ -4303,7 +4383,7 @@ function Plan3DStudio({ job, onClose, currentUser, onSwitch }) {
       <span className="p3s-ttl2"><P3SIcon name="axis" size={17} />แนวหลังคา (เส้นนำสายตา)</span>
       <span className="p3s-note">อาคารจริงแทบไม่เคยวางตรงทิศเหนือ–ใต้ ตั้งแนวก่อนวาด แล้ว<b>ผังจะหมุนให้หลังคาตรงจอ</b> — ลากสี่เหลี่ยม เส้นฉาก กริด และการดูดแนว จะตามแนวนี้ทั้งหมด ทิศจริงของแผงยังคิดถูกเสมอ</span>
       <div className="p3s-stat"><div style={{ gridColumn: "1 / -1" }}><div className="l">แนวปัจจุบัน</div><div className="v">{axisDeg != null ? p3sR(axisDeg, 10) + "°" : "ยังไม่ตั้ง"}</div></div></div>
-      {axisMsg && <span className="p3s-note"><b>{axisMsg}</b></span>}
+      {axisMsg && <span className="p3s-note keep"><b>{axisMsg}</b></span>}
       <button className="p3s-btn pri big wide" disabled={!((st.baseMap && st.baseMap.url) || st.photo)} onClick={autoAxis}><P3SIcon name="magic" size={17} />หาแนวจากภาพอัตโนมัติ</button>
       <span className="p3s-note">• <b>อัตโนมัติ</b>: เลื่อนให้หลังคาอยู่กลางจอแล้วกด — ระบบอ่านทิศของเส้นขอบทั้งหมดในภาพ (ไม่ขึ้นกับสีหลังคา)<br />• <b>ลากเอง</b>: ลากเส้นทับขอบชายคาที่ยาวที่สุดในภาพ<br />• <b>จากหลังคา</b>: เลือกหลังคาที่วาดแล้ว กด "ใช้หลังคานี้เป็นแนวอ้างอิง"</span>
       {axisDeg != null && (
@@ -4400,10 +4480,10 @@ function Plan3DStudio({ job, onClose, currentUser, onSwitch }) {
   const tracePop = !view3d && tool === "roof" && !kindPick && trace && trace.on && (trace.pts || trace.err) && (
     <div className="p3s-pop" onPointerDown={(e) => e.stopPropagation()} style={{ top: isMobile ? 104 : 64 }}>
       {trace.pts ? <span style={{ fontSize: 13.5, fontWeight: 800 }}>เจอหลังคา {trace.area} ตร.ม.{trace.warn && <span style={{ display: "block", fontSize: 12, fontWeight: 700, color: "var(--tint-amber-tx,#92400e)", marginTop: 4 }}>{trace.warn}</span>}</span> : <span style={{ fontSize: 13, fontWeight: 700, color: "var(--tint-amber-tx,#92400e)" }}>{trace.err}</span>}
-      {trace.ax != null && <span className="p3s-note">ตั้งแนวหลังคา {trace.ax}° ให้ด้วยเมื่อกดใช้</span>}
+      {trace.ax != null && <span className="p3s-note keep">ตั้งแนวหลังคา {trace.ax}° ให้ด้วยเมื่อกดใช้</span>}
       {trace.pts && (
         <div className="p3s-row" style={{ gap: 6 }}>
-          <span className="p3s-note" style={{ flex: 1 }}>{trace.busy ? "กำลังหาขอบจุดที่แตะเพิ่ม…" : <span><b>ยังไม่ครบหลัง?</b> แตะส่วนที่เหลือบนภาพ ระบบรวมเป็นหลังเดียว{(trace.parts || []).length > 1 ? " · รวมแล้ว " + trace.parts.length + " จุด" : ""}</span>}</span>
+          <span className="p3s-note keep" style={{ flex: 1 }}>{trace.busy ? "กำลังหาขอบจุดที่แตะเพิ่ม…" : <span><b>ยังไม่ครบหลัง?</b> แตะส่วนที่เหลือบนภาพ ระบบรวมเป็นหลังเดียว{(trace.parts || []).length > 1 ? " · รวมแล้ว " + trace.parts.length + " จุด" : ""}</span>}</span>
           {(trace.parts || []).length > 1 && <button className="p3s-btn" style={{ padding: "0 10px" }} onClick={undoTracePart}>ย้อนจุดล่าสุด</button>}
         </div>
       )}
@@ -4481,7 +4561,7 @@ function Plan3DStudio({ job, onClose, currentUser, onSwitch }) {
           onPointerDown={onDown} onPointerMove={onMove} onPointerUp={onUp} onPointerCancel={onCancel}
           onPointerLeave={() => { if (tool === "area" || tool === "panel" || tool === "obs") setMxy(null); if (!gest.current) { setHover(null); if (tool !== "roof" && tool !== "meas") setCur(null); } }}
           onContextMenu={(e) => e.preventDefault()}>
-          {view3d ? <P3SView3D st={st} sun={sun} /> : (
+          {view3d ? <P3SView3D st={st} sun={sun} api={v3api} /> : (
             <svg width={Sz.w} height={Sz.h}>
               {(() => {
                 /* กริดเป็นเมตรจริง วางตามแนวหลังคา (จอหมุนตามแนวแล้ว กริดจึงตรงจอ) — ถ้าไม่หมุนจอ กริดเอียงตามแนวแทน */
@@ -4572,7 +4652,7 @@ function Plan3DStudio({ job, onClose, currentUser, onSwitch }) {
               {axisDeg != null && <span style={{ position: "absolute", bottom: -17, fontSize: 10, fontWeight: 800, color: "#86198f", textShadow: "0 0 3px #fff,0 0 3px #fff", whiteSpace: "nowrap" }}>แนว {axisDeg}°</span>}
             </button>
           )}
-          <div className="p3s-hint">{hint}</div>
+
           {!view3d && <div className="p3s-scale"><span>{scaleBar.L} ม.</span><i style={{ width: scaleBar.px }} /></div>}
           {!view3d && (
             <div className="p3s-float p3s-zoom" onPointerDown={(e) => e.stopPropagation()}>
