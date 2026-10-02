@@ -224,21 +224,23 @@ function p3sPolyPitch(roof) {
   try { const pl = p3PolyPlane(roof); return pl ? p3sR(Math.acos(p3sClamp(pl.tiltCos, -1, 1)) / P3_DEG, 10) : 0; } catch (e) { return 0; }
 }
 
-/* ── เชื่อมรอยต่อหลังคาที่วาดทีละผืน ──
+/* ── เชื่อมรอยต่อหลังคาที่วาดทีละผืน → หลังคาทั้งหลังเป็นทรงจริง ──
    ผืนลาดเดียวที่ใช้มุมร่วมกัน (สัน/ตะเข้/ราง) ต้องสูงเท่ากันตรงมุมนั้น ไม่งั้นใน 3D ผืนลอยแยกหรือทะลุกัน
    1) มุมของผืนหนึ่งที่ตกกลางขอบผืนอื่น → แทรกมุมลงขอบนั้น (รอยต่อรูปตัว T)
    2) มุมที่ห่างกันไม่ถึง tol (40 ซม.) = มุมเดียวกัน
-   3) หาความชันรายผืน (least squares) ให้ "ชายคา + tan(ชัน) × ระยะจากชายคา" ตรงกันทุกมุมร่วม
-      โดยดึงเข้าหาความชันเดิม — ทุกผืนยังเป็นระนาบ แผงจึงยังวางแนบ
-   4) มุมร่วมรวมเป็นจุดเดียว (เฉลี่ย x z y) ปิดรอยแยกที่เหลือ
-   focusIds = ทำเฉพาะกลุ่มผืนที่ต่อกับผืนเหล่านี้ · opt.pitch = ตั้งความชันใหม่ทั้งกลุ่ม · opt.mark = ติดป้าย p3sFacet */
+   3) ชายคาเลือกใหม่ทั้งหลังทุกครั้ง: ขอบยาวสุดที่ไม่ติดผืนอื่น (ขอบนอกของหลังคา) — ตอนวาดผืนแรก ๆ ยังไม่รู้ว่าผืนข้าง ๆ
+      จะมาต่อตรงไหน จึงเลือกผิดได้ · ผืนที่ผู้ใช้แตะเลือกชายคาเอง (p3sEaveFix) ใช้ตามนั้น
+   4) ทั้งหลังชันเท่ากัน (หลังคาจริงเป็นแบบนี้ — สันและตะเข้จึงอยู่กึ่งกลางเอง) ชายคาสูงเท่ากัน
+      ความสูง = ชายคา + tan(ชัน) × ระยะจากชายคา แล้วมุมร่วมรวมเป็นจุดเดียว (เฉลี่ย x z y) ทำซ้ำให้นิ่ง
+   focusIds = ทำเฉพาะกลุ่มผืนที่ต่อกับผืนเหล่านี้ · opt.pitch = ตั้งความชันใหม่ทั้งหลัง · opt.mark = ติดป้าย p3sFacet
+   คืน gap = มุมที่ต้องขยับขึ้นลงมากสุด (ม.) — ไม่ถึง 3 ซม. ถือว่าเข้าทรงแล้ว */
 function p3sWeldFacets(roofs, focusIds, opt) {
   opt = opt || {};
   const tol = opt.tol || 0.4;
   const F = [];
   (roofs || []).forEach((r, ri) => {
     if (r.kind !== "poly" || !Array.isArray(r.pts) || r.pts.length < 3) return;
-    const pitch = p3sPolyPitch(r); if (!(pitch > 0.4)) return;
+    const pitch = p3sPolyPitch(r); if (!(pitch > 0.4) && !r.p3sFacet) return;
     const ox = +r.x || 0, oz = +r.z || 0, ph = p3PhOf(r), n = r.pts.length;
     let lo = 0;
     if (r.p3sLow != null) lo = ((+r.p3sLow % n) + n) % n;
@@ -288,62 +290,56 @@ function p3sWeldFacets(roofs, focusIds, opt) {
   const U = []; use.forEach((u, i) => { if (u) U.push(i); });
   if (!U.length) return none;
   const uc = clusters.filter((c) => use[c[0].fi]);
-  let gap = 0;
-  uc.forEach((c) => { const ys = c.map((v) => v.p.y); gap = Math.max(gap, Math.max.apply(null, ys) - Math.min.apply(null, ys)); });
-  // 3) ระยะจากชายคา แล้วแก้สมการหาความชันรายผืน
-  let Lsum = 0;
-  F.forEach((f) => {
-    const L = Math.hypot(f.B.x - f.A.x, f.B.z - f.A.z) || 1;
-    let nx = -(f.B.z - f.A.z) / L, nz = (f.B.x - f.A.x) / L;
-    const c = p3sCentroid(f.P);
-    if ((c.x - f.A.x) * nx + (c.z - f.A.z) * nz < 0) { nx = -nx; nz = -nz; }
-    f.P.forEach((p) => { p.d = Math.max(0, (p.x - f.A.x) * nx + (p.z - f.A.z) * nz); });
-    f.dmax = Math.max.apply(null, f.P.map((p) => p.d)) || 1; Lsum += f.dmax;
-    f.k0 = Math.tan(p3sClamp(opt.pitch != null ? +opt.pitch : f.pitch, 1, 60) * P3_DEG);
-  });
-  const nV = U.length, col = {}; U.forEach((fi, j) => { col[fi] = j; });
-  const M = []; for (let i = 0; i < nV; i++) M.push(new Array(nV + 1).fill(0));
-  const addRow = (cs, rhs) => {   // cs = [[j, a], ...] · แถว a·k = rhs → บวกลง AᵀA | Aᵀb
-    cs.forEach(([i, ai]) => { cs.forEach(([j, aj]) => { M[i][j] += ai * aj; }); M[i][nV] += ai * rhs; });
-  };
-  uc.forEach((c) => {
-    const m0 = c[0];
-    c.forEach((v) => {
-      if (v.fi === m0.fi) return;
-      const f0 = F[m0.fi], f1 = F[v.fi];
-      if (m0.p.d < 1e-3 && v.p.d < 1e-3) return;
-      addRow([[col[m0.fi], m0.p.d], [col[v.fi], -v.p.d]], f1.e - f0.e);
-    });
-  });
-  const wr = (opt.pitch != null ? 3 : 1) * Math.max(1, Lsum / F.length);
-  U.forEach((fi) => addRow([[col[fi], wr]], wr * F[fi].k0));
-  for (let i = 0; i < nV; i++) {      // กำจัดแบบเกาส์ เลือกตัวหลักที่ใหญ่สุด
-    let pv = i; for (let r = i + 1; r < nV; r++) if (Math.abs(M[r][i]) > Math.abs(M[pv][i])) pv = r;
-    const t = M[i]; M[i] = M[pv]; M[pv] = t;
-    if (Math.abs(M[i][i]) < 1e-12) continue;
-    for (let r = 0; r < nV; r++) {
-      if (r === i) continue;
-      const k = M[r][i] / M[i][i]; if (!k) continue;
-      for (let c2 = i; c2 <= nV; c2++) M[r][c2] -= k * M[i][c2];
-    }
-  }
+  // รหัสมุมร่วม (มุมที่ไม่มีใครใช้ร่วม = รหัสของตัวเอง)
+  V.forEach((v, i) => { v.p.cid = fnd(i); v.p.y0 = v.p.y; });
+  // 3) ชายคาใหม่ทั้งหลัง: ขอบนอก (มีผืนเดียวที่ใช้ขอบนี้) ที่ยาวที่สุดของผืน
+  const ek = (a, b) => (a < b ? a + "_" + b : b + "_" + a), ecount = {};
+  U.forEach((fi) => { const P = F[fi].P; P.forEach((a, i) => { const k = ek(a.cid, P[(i + 1) % P.length].cid); ecount[k] = (ecount[k] || 0) + 1; }); });
   U.forEach((fi) => {
-    const j = col[fi], k = Math.abs(M[j][j]) > 1e-12 ? M[j][nV] / M[j][j] : F[fi].k0;
-    const kk = p3sClamp(k, Math.tan(1 * P3_DEG), Math.tan(60 * P3_DEG));
-    F[fi].P.forEach((p) => { p.y = F[fi].e + kk * p.d; });
+    const f = F[fi], P = f.P;
+    f.loP = Math.max(0, P.findIndex((q) => q.orig === f.lo));
+    if (f.r.p3sEaveFix) return;
+    let best = -1, bl = 0;
+    P.forEach((a, i) => {
+      const b = P[(i + 1) % P.length]; if (ecount[ek(a.cid, b.cid)] > 1) return;
+      const L = Math.hypot(b.x - a.x, b.z - a.z); if (L > bl + 1e-6) { bl = L; best = i; }
+    });
+    if (best >= 0) f.loP = best;
   });
-  // 4) มุมร่วมเป็นจุดเดียวกันจริง
-  uc.forEach((c) => {
-    const sx = c.reduce((a, v) => a + v.p.x, 0) / c.length, sz = c.reduce((a, v) => a + v.p.z, 0) / c.length, sy = c.reduce((a, v) => a + v.p.y, 0) / c.length;
-    c.forEach((v) => { v.p.x = sx; v.p.z = sz; v.p.y = sy; });
-  });
+  // 4) ความชันและความสูงชายคาเดียวกันทั้งหลัง
+  const med = (a) => { const b = a.slice().sort((x, y) => x - y); return b.length ? (b.length % 2 ? b[(b.length - 1) / 2] : (b[b.length / 2 - 1] + b[b.length / 2]) / 2) : null; };
+  const fp0 = focus ? U.find((fi) => focus.has(F[fi].r.id)) : null;
+  let pc = opt.pitch != null ? +opt.pitch : null;
+  if (pc == null && fp0 != null && +F[fp0].r.p3sPitch > 0) pc = +F[fp0].r.p3sPitch;
+  if (pc == null) pc = med(U.map((fi) => +F[fi].r.p3sPitch).filter((v) => v > 0));
+  if (pc == null) pc = med(U.map((fi) => F[fi].pitch).filter((v) => v >= 3));
+  if (pc == null) pc = 20;
+  pc = p3sClamp(pc, 1, 60);
+  const k = Math.tan(pc * P3_DEG);
+  const e = p3sR(med(U.map((fi) => { const P = F[fi].P, i = F[fi].loP; return Math.min(P[i].y, P[(i + 1) % P.length].y); })) || 3);
+  for (let it = 0; it < 4; it++) {
+    U.forEach((fi) => {
+      const P = F[fi].P, A = P[F[fi].loP], B = P[(F[fi].loP + 1) % P.length];
+      const L = Math.hypot(B.x - A.x, B.z - A.z) || 1;
+      let nx = -(B.z - A.z) / L, nz = (B.x - A.x) / L;
+      const c = p3sCentroid(P);
+      if ((c.x - A.x) * nx + (c.z - A.z) * nz < 0) { nx = -nx; nz = -nz; }
+      P.forEach((q) => { q.y = e + k * Math.max(0, (q.x - A.x) * nx + (q.z - A.z) * nz); });
+    });
+    uc.forEach((c) => {
+      const sx = c.reduce((a, v) => a + v.p.x, 0) / c.length, sz = c.reduce((a, v) => a + v.p.z, 0) / c.length, sy = c.reduce((a, v) => a + v.p.y, 0) / c.length;
+      c.forEach((v) => { v.p.x = sx; v.p.z = sz; v.p.y = sy; });
+    });
+  }
+  let gap = 0;
+  U.forEach((fi) => F[fi].P.forEach((q) => { gap = Math.max(gap, Math.abs(q.y - q.y0)); }));
   const out = roofs.slice();
   U.forEach((fi) => {
     const f = F[fi], r = f.r, ox = +r.x || 0, oz = +r.z || 0;
     const nr = Object.assign({}, r, {
       pts: f.P.map((p) => ({ x: p3sR(p.x - ox), z: p3sR(p.z - oz) })),
       ph: f.P.map((p) => p3sR(p.y)),
-      p3sLow: Math.max(0, f.P.findIndex((p) => p.orig === f.lo)),
+      p3sLow: f.loP, p3sPitch: p3sR(pc, 10),
     });
     if (opt.mark) nr.p3sFacet = true;
     out[f.ri] = nr;
@@ -1181,6 +1177,7 @@ function Plan3DStudio({ job, onClose, currentUser, onSwitch }) {
     let k = "gable"; try { k = localStorage.getItem("p3s_kind") || "gable"; } catch (e) {}
     return { shape: k === "flat" || k === "shed" ? "rect" : k === "facet" ? "poly" : "rect", kind: k };
   });
+  const rectDraw = roofOpt.kind !== "facet" && (roofOpt.shape === "rect" || roofOpt.kind === "gable" || roofOpt.kind === "hip");
   const setRoofOpt = (o) => { setRoofOptRaw(o); try { localStorage.setItem("p3s_kind", o.kind); } catch (e) {} };
   const [alignView, setAlignView] = React.useState(true);   // หมุนผังให้แนวหลังคาตรงจอ
   const [axisPts, setAxisPts] = React.useState(null);      // กำลังลากเส้นแนว
@@ -1469,7 +1466,10 @@ function Plan3DStudio({ job, onClose, currentUser, onSwitch }) {
         nr.p3sLow = lo; nr.ph = p3sPitchPh(rel, lo, EAVE, 20); nr.p3sFacet = true;
         // ความชันตั้งต้นตามผืนข้าง ๆ ที่วาดไว้แล้ว (หลังคาหลังเดียวกันมักชันเท่ากัน)
         const nb = (stRef.current.roofs || []).filter((r) => r.p3sFacet && r.kind === "poly");
-        if (nb.length) nr.ph = p3sPitchPh(rel, lo, EAVE, p3sPolyPitch(nb[nb.length - 1]) || 20);
+        if (nb.length) {
+          const lp = nb[nb.length - 1], pc = +lp.p3sPitch > 0 ? +lp.p3sPitch : (p3sPolyPitch(lp) || 20);
+          nr.ph = p3sPitchPh(rel, lo, EAVE, pc); nr.p3sPitch = pc;
+        }
       } else {
         // หลังคาราบ: แถวแผงขนานขอบที่ยาวที่สุด (ไม่งั้นแผงวางตามแกนผังแล้วโดนตัดขอบเป็นฟันเลื่อย)
         const rot = p3sAlignRot(nr, null, p3sLongEdgeAng(wpts));
@@ -1511,7 +1511,7 @@ function Plan3DStudio({ job, onClose, currentUser, onSwitch }) {
     if (!draw || !draw.typed) return false;
     const L = parseFloat(draw.typed); if (!(L > 0)) { setDraw(Object.assign({}, draw, { typed: "" })); return true; }
     const pts = draw.pts, last = pts[pts.length - 1], c = cur || last;
-    if (roofOpt.shape === "rect" && pts.length === 2) {
+    if (rectDraw && pts.length === 2) {
       const C = rectFrom3(pts[0], pts[1], c);
       const ex = pts[1].x - pts[0].x, ez = pts[1].z - pts[0].z, E = Math.hypot(ex, ez) || 1;
       let nx = -ez / E, nz = ex / E; const sd = (c.x - pts[0].x) * nx + (c.z - pts[0].z) * nz; if (sd < 0) { nx = -nx; nz = -nz; }
@@ -1601,7 +1601,7 @@ function Plan3DStudio({ job, onClose, currentUser, onSwitch }) {
     patchRoof(roof.id, (r) => {
       const ph = p3PhOf(r), base = ph.length ? Math.min.apply(null, ph) : EAVE;
       const pc = pitch != null ? pitch : (p3sPolyPitch(r) > 0.4 ? p3sPolyPitch(r) : 20);
-      return { ph: p3sPitchPh(r.pts, i, base, pc), p3sLow: i };
+      return { ph: p3sPitchPh(r.pts, i, base, pc), p3sLow: i, p3sEaveFix: true };
     });
     if (roof.p3sFacet) weldLive([roof.id]);
   };
@@ -1904,7 +1904,7 @@ function Plan3DStudio({ job, onClose, currentUser, onSwitch }) {
       if (trace && trace.on) { runTrace(w, traceTol); return; }
       const sp = snapPoint(w, { pts: snapPts().concat(draw && draw.pts.length > 2 ? [draw.pts[0]] : []), free: e.shiftKey, img: true, segs: snapSegs(),
         from: draw && draw.pts.length ? draw.pts[draw.pts.length - 1] : null, refs: draw && draw.pts.length > 1 ? [Math.atan2(draw.pts[1].z - draw.pts[0].z, draw.pts[1].x - draw.pts[0].x)] : [] });
-      if (roofOpt.kind !== "facet" && (roofOpt.shape === "rect" || roofOpt.kind === "gable" || roofOpt.kind === "hip")) {
+      if (rectDraw) {
         if (!draw) { gest.current = Object.assign(base, { type: "drawRect", a: sp }); return; }
         if (draw.pts.length === 1) { setDraw({ pts: [draw.pts[0], sp], typed: "" }); return; }
         makeRoof(rectFrom3(draw.pts[0], draw.pts[1], cur || sp), roofOpt.kind); setDraw(null); return;
@@ -2439,7 +2439,7 @@ function Plan3DStudio({ job, onClose, currentUser, onSwitch }) {
   const preview = [];
   if (tool === "roof" && draw && !view3d) {
     const pts = draw.pts, c = cur;
-    if (roofOpt.shape === "rect" || roofOpt.kind !== "flat" && roofOpt.kind !== "shed") {
+    if (rectDraw) {
       if (pts.length === 1 && c) { preview.push(<polyline key="r1" points={sPts([pts[0], c])} fill="none" stroke="#16a34a" strokeWidth={2.4} />); edgeLabels([pts[0], c], "pe", false); }
       if (pts.length === 2 && c) { const R4 = rectFrom3(pts[0], pts[1], c); preview.push(<polygon key="r2" points={sPts(R4)} fill="rgba(22,163,74,.14)" stroke="#16a34a" strokeWidth={2.4} />); edgeLabels(R4, "pe", true); }
     } else {
@@ -2556,8 +2556,7 @@ function Plan3DStudio({ job, onClose, currentUser, onSwitch }) {
         : <span><b>แตะกลางหลังคา</b> ระบบยิงหาขอบ 4 ทิศตามแนวหลังคา — ใช้ได้กับหลังคาทุกสี</span>;
       if (roofOpt.kind === "facet") return !draw ? <span><b>วาดทีละผืน</b>: คลิกทีละมุมของผืนหลังคาหนึ่งผืน (สามเหลี่ยม/คางหมู) · ดูดติดมุมและขอบผืนข้าง ๆ ให้ขอบร่วมกันพอดี</span>
         : <span>คลิกมุมถัดไป · คลิกจุดแรก/<kbd>Enter</kbd> = ปิดผืน · ระบบเลือกขอบชายคาให้ (เปลี่ยนได้)</span>;
-      const rect = roofOpt.shape === "rect" || roofOpt.kind === "gable" || roofOpt.kind === "hip";
-      if (rect) {
+      if (rectDraw) {
         if (!draw) return <span><b>ลากทแยง</b> = สี่เหลี่ยมตรง · หรือ <b>คลิกมุมแรก</b> แล้วคลิกตามแนวขอบหลังคาในภาพ (วาดเอียงได้)</span>;
         if (draw.pts.length === 1) return <span>คลิกปลายขอบแรก · พิมพ์ตัวเลข = ความยาว (ม.) แล้ว <kbd>Enter</kbd></span>;
         return <span>ลากออกไปตามความกว้าง แล้วคลิก · พิมพ์ตัวเลข + <kbd>Enter</kbd> = กว้างกี่เมตร</span>;
@@ -2634,13 +2633,15 @@ function Plan3DStudio({ job, onClose, currentUser, onSwitch }) {
     const setPolyPitch = (pitch, low, base) => {
       patchRoof(roof.id, (r) => {
         const lo = low == null ? lowIdx : low;
-        return { ph: p3sPitchPh(r.pts, lo, base == null ? eave : base, pitch), p3sLow: lo };
+        const o = { ph: p3sPitchPh(r.pts, lo, base == null ? eave : base, pitch), p3sLow: lo, p3sPitch: pitch };
+        if (low != null) o.p3sEaveFix = true;
+        return o;
       }, "pitch");
       // ผืนที่ต่อกับผืนอื่น: ความชันใหม่ใช้ทั้งหลัง แล้วเชื่อมรอยต่อใหม่
-      if (roof.p3sFacet) weldLive([roof.id], low == null ? { pitch } : null);
+      if (roof.p3sFacet) weldLive([roof.id], { pitch });
     };
     // สถานะรอยต่อกับผืนข้าง ๆ
-    const weld = isPoly && pitchNow > 0.4 ? (() => { try { return p3sWeldFacets(roofs, [roof.id]); } catch (e) { return null; } })() : null;
+    const weld = isPoly && (roof.p3sFacet || pitchNow > 0.4) ? (() => { try { return p3sWeldFacets(roofs, [roof.id]); } catch (e) { return null; } })() : null;
     const fillRoof = () => patchRoof(roof.id, (r) => {
       let rot = 0;
       if (r.kind === "poly") { const pl = p3PolyPlane(r); if (pl && pl.tiltCos > 0.999) rot = p3sAlignRot(r, null, p3sLongEdgeAng(p3sFaces2D(r)[0].pts)); }
@@ -2703,7 +2704,7 @@ function Plan3DStudio({ job, onClose, currentUser, onSwitch }) {
               )}
               {pitchNow <= 0.4 && <button className="p3s-btn wide" onClick={() => setPolyPitch(10, p3sSouthEdge(pts))}>ทำเป็นหลังคาเพิง ลาดลงทิศใต้ 10°</button>}
               {weld && weld.n > 1 && (weld.gap > 0.03
-                ? <button className="p3s-btn wide pri" onClick={() => weldNow(roof)}><P3SIcon name="magic" size={15} />เชื่อมรอยต่อ {weld.n} ผืน (ตอนนี้สูงต่างกัน {Math.round(weld.gap * 100)} ซม.)</button>
+                ? <button className="p3s-btn wide pri" onClick={() => weldNow(roof)}><P3SIcon name="magic" size={15} />จัดทรงหลังคาทั้งหลัง {weld.n} ผืน (ยังเพี้ยนสูงสุด {Math.round(weld.gap * 100)} ซม.)</button>
                 : <span className="p3s-badge ok" style={{ height: "auto", padding: "5px 10px", whiteSpace: "normal" }}>ต่อสนิทกับผืนข้าง ๆ แล้ว · ทั้งหลัง {weld.n} ผืน{roof.p3sFacet ? " · ลากมุม/เปลี่ยนความชัน เชื่อมให้เอง" : ""}</span>)}
               {pitchNow > 0.4 && <button className={"p3s-btn wide" + (eavePick ? " pri" : "")} onClick={() => setEavePick((v) => !v)}><P3SIcon name="target" size={15} />{eavePick ? "แตะขอบชายคาบนผัง… (Esc ยกเลิก)" : "แตะเลือกขอบชายคาบนผัง"}</button>}
               <div className="p3s-stat">
