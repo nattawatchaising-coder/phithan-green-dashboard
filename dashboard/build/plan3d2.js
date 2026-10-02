@@ -2518,10 +2518,50 @@ function p3sBuild3D(THREE, grp, st, tex) {
     pg.rotation.y = -((+st.photoRot || 0) * P3_DEG);
     pg.add(pm);
   }
+  const roofTex = (() => {
+    const c = document.createElement("canvas");
+    c.width = 128;
+    c.height = 16;
+    const g = c.getContext("2d");
+    g.fillStyle = "#e3e7ea";
+    g.fillRect(0, 0, 128, 16);
+    for (let i = 0; i < 4; i++) {
+      const x = i * 32;
+      g.fillStyle = "#f7f8f9";
+      g.fillRect(x, 0, 4, 16);
+      g.fillStyle = "#c3c9cf";
+      g.fillRect(x + 4, 0, 3, 16);
+      g.fillStyle = "#d6dbdf";
+      g.fillRect(x + 7, 0, 2, 16);
+    }
+    const t = new THREE.CanvasTexture(c);
+    t.wrapS = t.wrapT = THREE.RepeatWrapping;
+    t.anisotropy = 8;
+    return t;
+  })();
   const roofMat = new THREE.MeshLambertMaterial({
-    color: 0x94a3b8,
+    color: 0x9aa1a8,
+    map: roofTex,
     side: THREE.DoubleSide
   });
+  const capMat = new THREE.MeshLambertMaterial({
+    color: 0x7d858d,
+    side: THREE.DoubleSide
+  });
+  const fasMat = new THREE.MeshLambertMaterial({
+    color: 0x8a9198,
+    side: THREE.DoubleSide
+  });
+  const fasciaQ = [];
+  const meshOf = (arr, mat) => {
+    if (!arr.length) return;
+    const g = new THREE.BufferGeometry();
+    g.setAttribute("position", new THREE.Float32BufferAttribute(arr, 3));
+    g.computeVertexNormals();
+    const m = add(new THREE.Mesh(g, mat));
+    m.castShadow = true;
+    m.receiveShadow = true;
+  };
   const wallTex = (() => {
     const c = document.createElement("canvas");
     c.width = 128;
@@ -2555,7 +2595,7 @@ function p3sBuild3D(THREE, grp, st, tex) {
   const edgeMat = new THREE.LineBasicMaterial({
     color: 0x475569
   });
-  const polyMesh = pts3 => {
+  const polyMesh = (pts3, azDeg) => {
     const contour = pts3.map(p => new THREE.Vector2(p.x, p.z));
     let tris = [];
     try {
@@ -2564,10 +2604,43 @@ function p3sBuild3D(THREE, grp, st, tex) {
       tris = [];
     }
     if (!tris.length) for (let i = 1; i < pts3.length - 1; i++) tris.push([0, i, i + 1]);
-    const pos = [];
-    tris.forEach(t => t.forEach(i => pos.push(pts3[i].x, pts3[i].y, pts3[i].z)));
+    const pos = [],
+      uv = [];
+    let nx = 0,
+      ny = 0,
+      nz = 0;
+    for (let i = 0; i < pts3.length; i++) {
+      const a = pts3[i],
+        b = pts3[(i + 1) % pts3.length];
+      nx += (a.y - b.y) * (a.z + b.z);
+      ny += (a.z - b.z) * (a.x + b.x);
+      nz += (a.x - b.x) * (a.y + b.y);
+    }
+    if (ny < 0) {
+      nx = -nx;
+      nz = -nz;
+      ny = -ny;
+    }
+    const nl = Math.hypot(nx, ny, nz) || 1,
+      hl = Math.hypot(nx, nz);
+    let hx, hz;
+    if (hl / nl > 0.02) {
+      hx = nx / hl;
+      hz = nz / hl;
+    } else {
+      const a = (+azDeg || 180) * P3_DEG;
+      hx = Math.sin(a);
+      hz = -Math.cos(a);
+    }
+    const cs = Math.max(0.2, ny / nl);
+    tris.forEach(t => t.forEach(i => {
+      const q = pts3[i];
+      pos.push(q.x, q.y, q.z);
+      uv.push(-hz * q.x + hx * q.z, (hx * q.x + hz * q.z) / cs);
+    }));
     const g = new THREE.BufferGeometry();
     g.setAttribute("position", new THREE.Float32BufferAttribute(pos, 3));
+    g.setAttribute("uv", new THREE.Float32BufferAttribute(uv, 2));
     g.computeVertexNormals();
     const m = new THREE.Mesh(g, roofMat);
     m.castShadow = true;
@@ -2750,6 +2823,7 @@ function p3sBuild3D(THREE, grp, st, tex) {
         return new THREE.Vector3(q.x + (+roof.x || 0), y + h0, q.z + (+roof.z || 0));
       };
       const pos = [],
+        uv = [],
         dTris = [];
       for (let i = 0; i < segs; i++) {
         const t1 = -D.th + 2 * D.th * i / segs,
@@ -2759,6 +2833,39 @@ function p3sBuild3D(THREE, grp, st, tex) {
         const C = W(D.len / 2, D.yAt(t2), D.zAt(t2)),
           E = W(-D.len / 2, D.yAt(t2), D.zAt(t2));
         [A, B, C, A, C, E].forEach(v => pos.push(v.x, v.y, v.z));
+        const r = Math.max(1, +roof.span || 6) / 2;
+        [[-D.len / 2, t1], [D.len / 2, t1], [D.len / 2, t2], [-D.len / 2, t1], [D.len / 2, t2], [-D.len / 2, t2]].forEach(([u, t]) => uv.push(u, t * r));
+        fasciaQ.push({
+          p: A,
+          q: E,
+          c: {
+            x: +roof.x || 0,
+            z: +roof.z || 0
+          }
+        }, {
+          p: B,
+          q: C,
+          c: {
+            x: +roof.x || 0,
+            z: +roof.z || 0
+          }
+        });
+        if (i === 0) fasciaQ.push({
+          p: A,
+          q: B,
+          c: {
+            x: +roof.x || 0,
+            z: +roof.z || 0
+          }
+        });
+        if (i === segs - 1) fasciaQ.push({
+          p: E,
+          q: C,
+          c: {
+            x: +roof.x || 0,
+            z: +roof.z || 0
+          }
+        });
         allTris.push([A, B, C], [A, C, E]);
         dTris.push([A, B, C], [A, C, E]);
         eat(A.x, A.y, A.z);
@@ -2766,6 +2873,7 @@ function p3sBuild3D(THREE, grp, st, tex) {
       }
       const g = new THREE.BufferGeometry();
       g.setAttribute("position", new THREE.Float32BufferAttribute(pos, 3));
+      g.setAttribute("uv", new THREE.Float32BufferAttribute(uv, 2));
       g.computeVertexNormals();
       const m = add(new THREE.Mesh(g, roofMat));
       m.castShadow = true;
@@ -2786,9 +2894,103 @@ function p3sBuild3D(THREE, grp, st, tex) {
     }
     let tris = [];
     faces.forEach(f => {
-      tris = tris.concat(polyMesh(f) || []);
+      tris = tris.concat(polyMesh(f, roof.az) || []);
       f.forEach(p => eat(p.x, p.y, p.z));
     });
+    if (faces.length) {
+      const K = q => Math.round(q.x * 20) + "," + Math.round(q.y * 20) + "," + Math.round(q.z * 20);
+      const cen = faces.map(f => {
+        const c = {
+          x: 0,
+          y: 0,
+          z: 0
+        };
+        f.forEach(q => {
+          c.x += q.x / f.length;
+          c.y += q.y / f.length;
+          c.z += q.z / f.length;
+        });
+        return c;
+      });
+      const E = new Map();
+      faces.forEach((f, fi) => f.forEach((a, i) => {
+        const b = f[(i + 1) % f.length];
+        if (Math.hypot(b.x - a.x, b.y - a.y, b.z - a.z) < 0.05) return;
+        const ka = K(a),
+          kb = K(b),
+          k = ka < kb ? ka + "|" + kb : kb + "|" + ka;
+        const e = E.get(k);
+        if (e) e.f.push(fi);else E.set(k, {
+          a,
+          b,
+          f: [fi]
+        });
+      }));
+      const cap = [];
+      E.forEach(e => {
+        if (e.f.length === 1) {
+          fasciaQ.push({
+            p: e.a,
+            q: e.b,
+            c: cen[e.f[0]]
+          });
+          return;
+        }
+        const my = (e.a.y + e.b.y) / 2;
+        if (!e.f.every(fi => cen[fi].y < my - 0.02)) return;
+        const dx = e.b.x - e.a.x,
+          dy = e.b.y - e.a.y,
+          dz = e.b.z - e.a.z,
+          L = Math.hypot(dx, dy, dz);
+        const ex = -dx / L * 0.1,
+          ey = -dy / L * 0.1,
+          ez = -dz / L * 0.1;
+        e.f.slice(0, 2).forEach(fi => {
+          const c = cen[fi],
+            t = ((c.x - e.a.x) * dx + (c.y - e.a.y) * dy + (c.z - e.a.z) * dz) / (L * L);
+          let wx = c.x - (e.a.x + dx * t),
+            wy = c.y - (e.a.y + dy * t),
+            wz = c.z - (e.a.z + dz * t);
+          const wl = Math.hypot(wx, wy, wz) || 1;
+          wx = wx / wl * 0.2;
+          wy = wy / wl * 0.2;
+          wz = wz / wl * 0.2;
+          const P0 = {
+              x: e.a.x + ex,
+              y: e.a.y + ey + 0.07,
+              z: e.a.z + ez
+            },
+            P1 = {
+              x: e.b.x - ex,
+              y: e.b.y - ey + 0.07,
+              z: e.b.z - ez
+            };
+          const Q1 = {
+              x: P1.x + wx,
+              y: P1.y + wy - 0.03,
+              z: P1.z + wz
+            },
+            Q0 = {
+              x: P0.x + wx,
+              y: P0.y + wy - 0.03,
+              z: P0.z + wz
+            };
+          [P0, P1, Q1, P0, Q1, Q0].forEach(v => cap.push(v.x, v.y, v.z));
+          const R1 = {
+              x: Q1.x,
+              y: Q1.y - 0.05,
+              z: Q1.z
+            },
+            R0 = {
+              x: Q0.x,
+              y: Q0.y - 0.05,
+              z: Q0.z
+            };
+          [Q0, Q1, R1, Q0, R1, R0].forEach(v => cap.push(v.x, v.y, v.z));
+        });
+      });
+      meshOf(cap, capMat);
+    }
     allTris.push.apply(allTris, tris);
     if (faces.length) {
       const minY = Math.min.apply(null, faces.map(f => Math.min.apply(null, f.map(p => p.y))));
@@ -2883,6 +3085,70 @@ function p3sBuild3D(THREE, grp, st, tex) {
       opacity: 0.35
     })));
   });
+  {
+    const fa = [];
+    fasciaQ.forEach(({
+      p,
+      q,
+      c
+    }) => {
+      const dx = q.x - p.x,
+        dz = q.z - p.z,
+        L = Math.hypot(dx, dz);
+      let ox = 0,
+        oz = 0;
+      if (L > 0.01) {
+        ox = dz / L;
+        oz = -dx / L;
+        const mx = (p.x + q.x) / 2 - c.x,
+          mz = (p.z + q.z) / 2 - c.z;
+        if (ox * mx + oz * mz < 0) {
+          ox = -ox;
+          oz = -oz;
+        }
+      } else return;
+      const mx = (p.x + q.x) / 2,
+        mz = (p.z + q.z) / 2,
+        my = (p.y + q.y) / 2,
+        y2 = topY(mx + ox * 0.15, mz + oz * 0.15);
+      if (y2 != null && y2 > my - 0.4) return;
+      const o = 0.03,
+        H = 0.2,
+        up = 0.04;
+      const a = {
+          x: p.x + ox * o,
+          y: p.y + up,
+          z: p.z + oz * o
+        },
+        b = {
+          x: q.x + ox * o,
+          y: q.y + up,
+          z: q.z + oz * o
+        };
+      const a2 = {
+          x: a.x,
+          y: a.y - H,
+          z: a.z
+        },
+        b2 = {
+          x: b.x,
+          y: b.y - H,
+          z: b.z
+        };
+      const ai = {
+          x: p.x - ox * 0.04,
+          y: p.y + up,
+          z: p.z - oz * 0.04
+        },
+        bi = {
+          x: q.x - ox * 0.04,
+          y: q.y + up,
+          z: q.z - oz * 0.04
+        };
+      [a, b, b2, a, b2, a2, ai, bi, b, ai, b, a].forEach(v => fa.push(v.x, v.y, v.z));
+    });
+    meshOf(fa, fasMat);
+  }
   const metal = new THREE.MeshStandardMaterial({
     color: 0xd9dee4,
     metalness: 0.3,
@@ -3018,6 +3284,7 @@ function p3sBuild3D(THREE, grp, st, tex) {
       }
       const W = Math.max(0.1, +o.d || 0.3),
         pos = [],
+        sides = [],
         ln = [],
         wmat = new THREE.MeshStandardMaterial({
           color: 0xf5b800,
@@ -3034,8 +3301,8 @@ function p3sBuild3D(THREE, grp, st, tex) {
           const f = k / n,
             l = V3(R[0].x + (R[1].x - R[0].x) * f, 0, R[0].z + (R[1].z - R[0].z) * f),
             r = V3(R[3].x + (R[2].x - R[3].x) * f, 0, R[3].z + (R[2].z - R[3].z) * f);
-          l.y = ground(l.x, l.z) + 0.06;
-          r.y = ground(r.x, r.z) + 0.06;
+          l.y = ground(l.x, l.z) + 0.12;
+          r.y = ground(r.x, r.z) + 0.12;
           rows.push([l, r]);
         }
         for (let k = 0; k < n; k++) {
@@ -3043,6 +3310,14 @@ function p3sBuild3D(THREE, grp, st, tex) {
             [a2, b2] = rows[k + 1];
           [a1, b1, b2, a1, b2, a2].forEach(q => pos.push(q.x, q.y, q.z));
         }
+        const D = q => V3(q.x, q.y - 0.1, q.z),
+          side = (p1, p2) => [p1, p2, D(p2), p1, D(p2), D(p1)].forEach(q => sides.push(q.x, q.y, q.z));
+        for (let k = 0; k < n; k++) {
+          side(rows[k][0], rows[k + 1][0]);
+          side(rows[k][1], rows[k + 1][1]);
+        }
+        side(rows[0][0], rows[0][1]);
+        side(rows[n][0], rows[n][1]);
         const sub = Math.max(1, Math.round(Ls / 0.1)),
           across = Math.max(2, Math.round(W / 0.1));
         for (let j = 0; j <= across; j++) {
@@ -3063,6 +3338,11 @@ function p3sBuild3D(THREE, grp, st, tex) {
       const wm = add(new THREE.Mesh(gg, wmat));
       wm.castShadow = true;
       wm.receiveShadow = true;
+      meshOf(sides, new THREE.MeshStandardMaterial({
+        color: 0xc99400,
+        roughness: 0.7,
+        side: THREE.DoubleSide
+      }));
       const lg = new THREE.BufferGeometry();
       lg.setAttribute("position", new THREE.Float32BufferAttribute(ln, 3));
       add(new THREE.LineSegments(lg, new THREE.LineBasicMaterial({
@@ -11627,6 +11907,7 @@ function Plan3DEntry(props) {
 Object.assign(window, {
   Plan3DEntry,
   Plan3DStudio,
+  P3SView3D,
   p3sTrace,
   p3sQuads,
   p3sFaces2D
