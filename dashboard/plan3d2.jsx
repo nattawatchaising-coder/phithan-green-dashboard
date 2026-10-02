@@ -207,11 +207,35 @@ function p3sFillPatch(r, orient) {
 /* ชนิดสิ่งบดบัง [รหัส, ชื่อ, กว้าง, ลึก, สูง] — เก็บเป็น kind box/tree เดิม (แบบเก่า/เงาใช้ได้) + ป้าย p3sType */
 const P3S_OBS = [["turbine", "ลูกหมุน", 0.6, 0.6, 0.5], ["vent", "ปล่องดูดควัน", 0.6, 0.6, 1.5], ["sky", "หลังคาช่องแสง", 6, 1, 0.15],
   ["rail", "ราวกันตก", 6, 0.3, 1.1], ["walkway", "ทางเดิน", 6, 0.3, 0.05], ["ladder", "บันไดลิง", 0.8, 0.8, 4],
+  ["pipe", "ท่อน้ำ PPR", 6, 0.025, 0.05], ["tray", "รางไฟ", 6, 0.1, 0.05],
   ["bldg", "ตึก", 8, 6, 6], ["tree", "ต้นไม้", 3, 3, 5]];
 /* ชนิดที่เป็นแนวยาว: ลาก = ลากเส้นตามแนว (w = ยาว · d = กว้างคงที่ · rot = ทิศเส้น) */
 /* สีโซนแผง (กลุ่มที่เว้นทางเดินระหว่างกัน) */
 const P3S_ZONE_C = ["#f59e0b", "#0ea5e9", "#a855f7", "#ef4444", "#10b981", "#ec4899"];
-const P3S_OBS_LINE = { rail: 1, walkway: 1, sky: 1 };
+const P3S_OBS_LINE = { rail: 1, walkway: 1, sky: 1, pipe: 1, tray: 1 };
+/* ท่อน้ำ PPR / รางไฟ เดินใต้แผงบน Rail — ไม่ตัดแผง (ไม่อยู่ใน P3S_ON_ROOF) · ก๊อกบนท่อเก็บที่ o.taps = [{x,z} สัมพัทธ์ o.x/z] */
+const P3S_PIPE_D = [[0.02, "20 มม. (½\")"], [0.025, "25 มม. (¾\")"], [0.032, "32 มม. (1\")"]];
+const P3S_TRAY_W = [[0.05, "5 ซม."], [0.1, "10 ซม."], [0.15, "15 ซม."], [0.2, "20 ซม."]];
+/* จุดบนเส้นที่ใกล้ w ที่สุด → { x, z, d, t: ทิศเส้นตรงนั้น } */
+function p3sNearOnPath(P, w) {
+  let best = null;
+  for (let i = 1; i < P.length; i++) {
+    const a = P[i - 1], b = P[i], dx = b.x - a.x, dz = b.z - a.z, L2 = dx * dx + dz * dz || 1e-9;
+    const t = Math.max(0, Math.min(1, ((w.x - a.x) * dx + (w.z - a.z) * dz) / L2)), x = a.x + dx * t, z = a.z + dz * t, d = Math.hypot(w.x - x, w.z - z);
+    if (!best || d < best.d) { const L = Math.sqrt(L2); best = { x, z, d, t: { x: dx / L, z: dz / L } }; }
+  }
+  return best;
+}
+/* ลายรูพรุนข้างรางไฟ (ทำครั้งเดียว) */
+let _p3sTrayTex = null;
+function p3sTrayTex(THREE) {
+  if (_p3sTrayTex) return _p3sTrayTex;
+  const c = document.createElement("canvas"); c.width = 128; c.height = 32; const g = c.getContext("2d");
+  g.fillStyle = "#d4d9df"; g.fillRect(0, 0, 128, 32);
+  g.fillStyle = "#59626c"; for (let i = 0; i < 4; i++) { const x = 8 + i * 32; g.beginPath(); g.moveTo(x + 4, 11); g.lineTo(x + 16, 11); g.arc(x + 16, 16, 5, -Math.PI / 2, Math.PI / 2); g.lineTo(x + 4, 21); g.arc(x + 4, 16, 5, Math.PI / 2, Math.PI * 1.5); g.fill(); }
+  const t = new THREE.CanvasTexture(c); t.wrapS = THREE.RepeatWrapping; t.anisotropy = 4;
+  _p3sTrayTex = t; return t;
+}
 /* เส้นของราว/ทางเดิน (พิกัดโลก) — ใหม่เก็บ pts สัมพัทธ์ x/z (คลิกต่อจุด) · ของเก่าที่ไม่มี pts = เส้นตรงตาม w/rot */
 function p3sObsPath(o) {
   const x = +o.x || 0, z = +o.z || 0;
@@ -1902,6 +1926,65 @@ function p3sBuild3D(THREE, grp, st, tex) {
       add(new THREE.LineSegments(lg, new THREE.LineBasicMaterial({ color: 0xa87900 })));
       return;
     }
+    if (T === "pipe" || T === "tray") {
+      const P = p3sObsPath(o), lift = (x, z) => ground(x, z) + (topY(x, z) == null ? 0 : 0.012);   // บนหลังคา = ลอยบนลอน/ขาจับ
+      // เดินตามผิวหลังคาทีละ ≤ 0.5 ม. (ผิวลาด/ข้ามสันก็แนบ)
+      const S = [];
+      for (let i = 1; i < P.length; i++) {
+        const A = P[i - 1], B = P[i], n = Math.max(1, Math.ceil(Math.hypot(B.x - A.x, B.z - A.z) / 0.5));
+        for (let k = i === 1 ? 0 : 1; k <= n; k++) { const x = A.x + (B.x - A.x) * k / n, z = A.z + (B.z - A.z) * k / n; S.push(V3(x, lift(x, z), z)); }
+      }
+      if (T === "pipe") {
+        const r = Math.max(0.01, (+o.d || 0.025) / 2), up = r + 0.02;
+        const pm = new THREE.MeshStandardMaterial({ color: 0x3fae74, roughness: 0.45, metalness: 0.02 }), ym = new THREE.MeshStandardMaterial({ color: 0xf2d32c, roughness: 0.5 });
+        const Y = (q, dy) => V3(q.x, q.y + up + (dy || 0), q.z);
+        for (let k = 1; k < S.length; k++) { tube(Y(S[k - 1]), Y(S[k]), r, pm); tube(Y(S[k - 1], r * 0.92), Y(S[k], r * 0.92), r * 0.16, ym); }
+        P.forEach((q, k) => { if (k === 0 || k === P.length - 1) return; const m = new THREE.Mesh(new THREE.SphereGeometry(r * 1.18, 12, 8), pm); m.position.copy(Y(V3(q.x, lift(q.x, q.z), q.z))); m.castShadow = true; add(m); });
+        // ฝาปิดปลายท่อ + แคลมป์ยึดทุก 1 ม.
+        const cl = new THREE.MeshStandardMaterial({ color: 0x9aa4ae, roughness: 0.45, metalness: 0.5 });
+        let acc = 0; for (let k = 1; k < S.length; k++) { acc += S[k].distanceTo(S[k - 1]); if (acc >= 1) { acc = 0; const q = S[k], b = new THREE.Mesh(new THREE.BoxGeometry(0.03, up, 0.03), cl); b.position.set(q.x, q.y + up / 2 - r * 0.3, q.z); add(b); } }
+        // ก๊อก: ท่อตั้งขึ้น 15 ซม. · ตัวก๊อกเทาหันออกข้างท่อ · ปากโค้งลง · ด้ามโยกแดง · น็อตหกเหลี่ยมด้านหลัง
+        const gm = new THREE.MeshStandardMaterial({ color: 0xbfc4ca, roughness: 0.3, metalness: 0.6 }), rm = new THREE.MeshStandardMaterial({ color: 0xe11d23, roughness: 0.4 });
+        (o.taps || []).forEach((tp) => {
+          const w = { x: ox + (+tp.x || 0), z: oz + (+tp.z || 0) }, nr = p3sNearOnPath(P, w); if (!nr) return;
+          const base = V3(nr.x, lift(nr.x, nr.z) + up, nr.z), H = 0.15, top = base.clone().add(V3(0, H, 0));
+          const nx = -nr.t.z, nz = nr.t.x, Dir = (s, y) => V3(top.x + nx * s, top.y + (y || 0), top.z + nz * s);
+          tube(base, top, r * 0.9, pm);
+          const tee = new THREE.Mesh(new THREE.SphereGeometry(r * 1.3, 12, 8), pm); tee.position.copy(base); add(tee);
+          const nut = new THREE.Mesh(new THREE.CylinderGeometry(0.019, 0.019, 0.022, 6), gm); nut.position.copy(Dir(-0.005)); nut.quaternion.setFromUnitVectors(V3(0, 1, 0), V3(nx, 0, nz)); nut.castShadow = true; add(nut);
+          tube(Dir(0.005), Dir(0.075), 0.016, gm);
+          const ring = new THREE.Mesh(new THREE.CylinderGeometry(0.019, 0.019, 0.016, 16), gm); ring.position.copy(Dir(0.05)); ring.quaternion.setFromUnitVectors(V3(0, 1, 0), V3(nx, 0, nz)); add(ring);
+          tube(Dir(0.07), Dir(0.1, -0.03), 0.012, gm); tube(Dir(0.1, -0.03), Dir(0.105, -0.07), 0.012, gm);
+          const tip = new THREE.Mesh(new THREE.CylinderGeometry(0.015, 0.015, 0.016, 14), gm); tip.position.copy(Dir(0.105, -0.075)); add(tip);
+          const cap = new THREE.Mesh(new THREE.CylinderGeometry(0.017, 0.019, 0.026, 16), rm); cap.position.copy(Dir(0.04, 0.03)); cap.castShadow = true; add(cap);
+          const lv = new THREE.Mesh(new THREE.BoxGeometry(0.11, 0.006, 0.016), rm); lv.position.copy(Dir(-0.015, 0.045)); lv.rotation.y = -Math.atan2(nz, nx); lv.castShadow = true; add(lv);
+          eat(top.x, top.y + 0.06, top.z);
+        });
+        S.forEach((q) => eat(q.x, q.y, q.z));
+        return;
+      }
+      // รางไฟ: รางเหล็กพับ U ข้างมีรูยาว + ฝาปิดบน ทีละช่วง
+      const W = Math.max(0.05, +o.d || 0.1), H = W >= 0.15 ? 0.1 : 0.05, side = [], suv = [], top = [];
+      const ofs = (q, nx, nz, s) => V3(q.x + nx * s, q.y, q.z + nz * s);
+      for (let k = 1; k < S.length; k++) {
+        const A = S[k - 1], B = S[k], dx = B.x - A.x, dz = B.z - A.z, L = Math.hypot(dx, dz) || 1, nx = -dz / L, nz = dx / L;
+        const a0 = A, b0 = B;
+        [-1, 1].forEach((sg) => {
+          const p1 = ofs(a0, nx, nz, sg * W / 2), p2 = ofs(b0, nx, nz, sg * W / 2), p3 = p2.clone().add(V3(0, H, 0)), p4 = p1.clone().add(V3(0, H, 0));
+          [p1, p2, p3, p1, p3, p4].forEach((v) => side.push(v.x, v.y, v.z));
+          const ub = L / 0.4;   // รู 4 รูต่อ 40 ซม.
+          [[0, 0], [ub, 0], [ub, 1], [0, 0], [ub, 1], [0, 1]].forEach(([u, v]) => suv.push(u, v));
+        });
+        const c1 = ofs(a0, nx, nz, -W / 2 - 0.004).add(V3(0, H + 0.004, 0)), c2 = ofs(b0, nx, nz, -W / 2 - 0.004).add(V3(0, H + 0.004, 0)), c3 = ofs(b0, nx, nz, W / 2 + 0.004).add(V3(0, H + 0.004, 0)), c4 = ofs(a0, nx, nz, W / 2 + 0.004).add(V3(0, H + 0.004, 0));
+        [c1, c2, c3, c1, c3, c4].forEach((v) => top.push(v.x, v.y, v.z));
+      }
+      const sg = new THREE.BufferGeometry(); sg.setAttribute("position", new THREE.Float32BufferAttribute(side, 3)); sg.setAttribute("uv", new THREE.Float32BufferAttribute(suv, 2)); sg.computeVertexNormals();
+      const sm = add(new THREE.Mesh(sg, new THREE.MeshStandardMaterial({ map: p3sTrayTex(THREE), roughness: 0.42, metalness: 0.45, side: THREE.DoubleSide }))); sm.castShadow = true; sm.receiveShadow = true;
+      const tg2 = new THREE.BufferGeometry(); tg2.setAttribute("position", new THREE.Float32BufferAttribute(top, 3)); tg2.computeVertexNormals();
+      const tm = add(new THREE.Mesh(tg2, new THREE.MeshStandardMaterial({ color: 0xe3e7eb, roughness: 0.35, metalness: 0.5, side: THREE.DoubleSide }))); tm.castShadow = true; tm.receiveShadow = true;
+      S.forEach((q) => eat(q.x, q.y + H, q.z));
+      return;
+    }
     if (T === "ladder") {
       // บันไดลิงมีกรง: ตั้งพื้นดินชิดผนังที่ขอบหลังคาใกล้สุด · ราวจับโค้งข้ามขอบ 1.1 ม. · ห่วงกรงตั้งแต่ 2.4 ม.
       const fit = p3sLadderFit(st.roofs, ox, oz);
@@ -2248,6 +2331,8 @@ function p3sObsPreview(T) {
     if (T === "vent") dist = 4.4;
     if (T === "rail") { o.pts = [{ x: -2.7, z: 1.9 }, { x: 2.7, z: 1.9 }, { x: 2.7, z: -1.9 }]; tg = [0, 2.9, 0]; dist = 8.6; }
     if (T === "walkway" || T === "sky") { o.pts = [{ x: -2.6, z: 0 }, { x: 2.6, z: 0 }]; tg = [0, 2.4, 0]; dist = 6.4; }
+    if (T === "pipe") { o.pts = [{ x: -0.7, z: 0 }, { x: 0.7, z: 0 }]; o.taps = [{ x: 0.1, z: 0 }]; tg = [0.1, 2.5, 0]; dist = 1.1; }
+    if (T === "tray") { o.pts = [{ x: -0.9, z: 0.3 }, { x: 0.5, z: 0.3 }, { x: 0.5, z: -0.9 }]; tg = [0, 2.45, 0]; dist = 2; }
     if (T === "ladder") { o.x = 3.42; o.z = 0; o.rot = 90; tg = [2.6, 2.2, 0]; dist = 8.4; }
     if (T === "bldg") { tg = [0, 3, 0]; dist = 19; }
     if (T === "tree") { tg = [0, 2.6, 0]; dist = 11; }
@@ -2379,7 +2464,8 @@ function Plan3DStudio({ job, onClose, currentUser, onSwitch }) {
   const [walkW, setWalkW] = React.useState(0.6);
   const [walkPts, setWalkPts] = React.useState(null);     // กำลังวาดทางเดิน (พิกัดโลก)
   const [selWalk, setSelWalk] = React.useState(null);     // { roofId, id }
-  const [eavePick, setEavePick] = React.useState(false);  // แตะขอบเพื่อตั้งเป็นชายคา
+  const [eavePick, setEavePick] = React.useState(false);
+  const [tapPick, setTapPick] = React.useState(null);     // id ท่อ PPR ที่กำลังจิ้มวาง/เอาก๊อกออก  // แตะขอบเพื่อตั้งเป็นชายคา
   const [mxy, setMxy] = React.useState(null);
   const v3api = React.useRef(null);                         // ถ่ายภาพ/อัดวิดีโอจากมุมมอง 3D
   const vidRef = React.useRef(null);                        // กำลังอัดวิดีโอเงา (ตัวหยุดอัด)
@@ -2477,7 +2563,7 @@ function Plan3DStudio({ job, onClose, currentUser, onSwitch }) {
   };
 
   // เลือกหลายชิ้นอยู่ (Shift) แล้วแก้ค่าในการ์ด = แก้ทุกชิ้นที่เลือกพร้อมกัน — ยกเว้นตำแหน่ง/รูปร่าง/ชื่อ ที่เป็นของเฉพาะชิ้น
-  const P3S_NOSPREAD = { x: 1, z: 1, pts: 1, name: 1, id: 1 };
+  const P3S_NOSPREAD = { x: 1, z: 1, pts: 1, name: 1, id: 1, taps: 1 };
   const spreadIds = (id, patch) => (sel && sel.id === id && multi.length && (typeof patch === "function" || !Object.keys(patch).some((k) => P3S_NOSPREAD[k]))
     ? [id].concat(multi.filter((m) => m !== id)) : [id]);
   const patchRoof = (id, patch, key) => { const ids = spreadIds(id, patch); commit((s) => Object.assign({}, s, {
@@ -2970,6 +3056,7 @@ function Plan3DStudio({ job, onClose, currentUser, onSwitch }) {
       if (walkPts) { setWalkPts(null); return; }
       if (axisPts) { setAxisPts(null); setCur(null); return; }
       if (eavePick) { setEavePick(false); return; }
+      if (tapPick) { setTapPick(null); return; }
       if (selWalk) { setSelWalk(null); return; }
       if (calib) { setCalib(null); return; }
       if (trace && trace.pts) { setTrace({ on: true }); return; }
@@ -3221,6 +3308,17 @@ function Plan3DStudio({ job, onClose, currentUser, onSwitch }) {
     const now = Date.now(), dbl = now - lastTap.current.t < 360 && Math.hypot(p.x - lastTap.current.x, p.y - lastTap.current.y) < 14;
     lastTap.current = { t: now, x: p.x, y: p.y };
 
+    // จิ้มบนท่อ PPR = วางก๊อก (ดูดเข้าแนวท่อ) · จิ้มก๊อกเดิม = เอาออก · ห่างท่อเกิน 1 ม. = ไม่ทำอะไร
+    if (tapPick) {
+      const po = (S.obstacles || []).find((o) => o.id === tapPick);
+      if (po) {
+        const ox = +po.x || 0, oz = +po.z || 0, taps = po.taps || [], hitR = Math.max(0.25, HIT / viewRef.current.s);
+        const ki = taps.findIndex((t) => Math.hypot(ox + (+t.x || 0) - w.x, oz + (+t.z || 0) - w.z) < hitR);
+        if (ki >= 0) patchObs(po.id, { taps: taps.filter((t, i) => i !== ki) }, "tap");
+        else { const nr = p3sNearOnPath(p3sObsPath(po), w); if (nr && nr.d < 1) patchObs(po.id, { taps: taps.concat([{ x: p3sR(nr.x - ox, 1000), z: p3sR(nr.z - oz, 1000) }]) }, "tap"); }
+      }
+      return;
+    }
     // แตะขอบเพื่อตั้งชายคา (ผืนทรงอิสระที่เลือกอยู่)
     if (eavePick && selRoof && selRoof.kind === "poly") {
       const fp = p3sFaces2D(selRoof)[0].pts; let bi = -1, bd = HIT / viewRef.current.s;
@@ -3353,7 +3451,7 @@ function Plan3DStudio({ job, onClose, currentUser, onSwitch }) {
     if (!st || view3d) return;
     const p = localXY(e);
     if (ptrs.current.has(e.pointerId)) ptrs.current.set(e.pointerId, p);
-    if ((eavePick || tool === "area" || tool === "panel" || tool === "obs") && !(gest.current && (gest.current.type === "moveBlk" || gest.current.type === "blkPress"))) setMxy(p);
+    if ((eavePick || tapPick || tool === "area" || tool === "panel" || tool === "obs") && !(gest.current && (gest.current.type === "moveBlk" || gest.current.type === "blkPress"))) setMxy(p);
     const G = gest.current;
     if (!G) {
       // เมาส์ลอย: ไฮไลต์ + ตัวชี้ตำแหน่งวาด
@@ -3876,6 +3974,20 @@ function Plan3DStudio({ job, onClose, currentUser, onSwitch }) {
       <polygon points={ptsStr(p3sObsRect(o, P3S_ON_ROOF[T]))} fill="rgba(239,68,68,.08)" stroke="#ef4444" strokeWidth={1} strokeDasharray="4 3" style={NS} />
       <circle cx={+o.x || 0} cy={+o.z || 0} r={Math.min(+o.w || 0.6, +o.d || 0.6) / 2} fill="rgba(203,213,225,.85)" stroke={stk} strokeWidth={isSel ? 2.4 : 1.4} style={NS} />
       <circle cx={+o.x || 0} cy={+o.z || 0} r={Math.min(+o.w || 0.6, +o.d || 0.6) / (T === "vent" ? 4 : 6)} fill="#64748b" style={NS} /></g>;
+    if (T === "pipe" || T === "tray") {
+      const P = p3sObsPath(o), parts = [];
+      if (T === "tray") {
+        const hw = Math.max(0.05, (+o.d || 0.1) / 2);
+        for (let i = 1; i < P.length; i++) parts.push(<polygon key={"y" + i} points={ptsStr(p3sSegRect(P[i - 1], P[i], hw, hw))} fill="rgba(148,163,184,.9)" stroke={isSel ? "#16a34a" : isHov ? "#0ea5e9" : "#475569"} strokeWidth={isSel ? 2.2 : 1} style={NS} />);
+        parts.push(<polyline key="c" points={ptsStr(P)} fill="none" stroke="#334155" strokeWidth={1} strokeDasharray="3 3" style={NS} />);
+      } else {
+        parts.push(<polyline key="w" points={ptsStr(P)} fill="none" stroke={isSel ? "#16a34a" : isHov ? "#0ea5e9" : "#15803d"} strokeWidth={isSel ? 6 : 4.5} strokeLinecap="round" strokeLinejoin="round" style={NS} />);
+        parts.push(<polyline key="g" points={ptsStr(P)} fill="none" stroke="#4ade80" strokeWidth={2.4} strokeLinecap="round" strokeLinejoin="round" style={NS} />);
+        parts.push(<polyline key="y" points={ptsStr(P)} fill="none" stroke="#facc15" strokeWidth={0.9} strokeLinecap="round" strokeLinejoin="round" style={NS} />);
+        (o.taps || []).forEach((tp, k) => parts.push(<circle key={"t" + k} cx={(+o.x || 0) + (+tp.x || 0)} cy={(+o.z || 0) + (+tp.z || 0)} r={0.16} fill="#ef4444" stroke="#fff" strokeWidth={1.6} style={NS} />));
+      }
+      return <g key={o.id}>{parts}</g>;
+    }
     if (T === "rail" || T === "walkway" || T === "sky") {
       const P = p3sObsPath(o), hw = Math.max(0.05, (+o.d || 0.3) / 2), parts = [];
       p3sObsKeep(o, P3S_ON_ROOF[T]).forEach((R, k) => parts.push(<polygon key={"k" + k} points={ptsStr(R)} fill={T === "rail" ? "rgba(239,68,68,.06)" : "none"} stroke="#ef4444" strokeWidth={0.8} strokeDasharray="4 3" style={NS} />));
@@ -4021,7 +4133,7 @@ function Plan3DStudio({ job, onClose, currentUser, onSwitch }) {
   }
   if (obsPts && (tool !== "obs" || !P3S_OBS_LINE[obsType])) setObsPts(null);
   if (tool === "obs" && obsPts && !view3d) {
-    const all = cur ? obsPts.concat([cur]) : obsPts, col = obsType === "walkway" ? "#ca8a04" : "#475569";
+    const all = cur ? obsPts.concat([cur]) : obsPts, col = obsType === "walkway" ? "#ca8a04" : obsType === "pipe" ? "#15803d" : "#475569";
     preview.push(<polyline key="op" points={sPts(all)} fill="none" stroke={col} strokeWidth={obsType === "walkway" ? Math.max(4, 0.3 * V.s) : 3} strokeOpacity={0.8} strokeLinejoin="round" strokeLinecap="round" />);
     obsPts.forEach((q, i) => { const sq = toS(q.x, q.z); preview.push(<circle key={"opp" + i} cx={sq.x} cy={sq.y} r={HR - 2} fill="#fff" stroke={col} strokeWidth={2.4} />); });
     if (cur) { const sq = toS(cur.x, cur.z); lbl("ot", sq.x + 40, sq.y - 20, "รวม " + fmtM(p3sPathLen(all)), "warn"); }
@@ -4516,9 +4628,19 @@ function Plan3DStudio({ job, onClose, currentUser, onSwitch }) {
         const T = p3sObsType(o);
         return (
           <div className="p3s-g2">
+            {T === "pipe" && <label className="p3s-fld" style={{ gridColumn: "1 / -1" }}><span className="lb">ขนาดท่อ PPR</span>
+              <div className="p3s-seg full">{P3S_PIPE_D.map(([v, lb]) => <button key={v} type="button" data-on={Math.abs((+o.d || 0.025) - v) < 0.001 ? "1" : "0"} onClick={() => patchObs(o.id, { d: v }, "od")}>{lb.split(" (")[0]}</button>)}</div></label>}
+            {T === "tray" && <label className="p3s-fld" style={{ gridColumn: "1 / -1" }}><span className="lb">กว้างราง</span>
+              <div className="p3s-seg full">{P3S_TRAY_W.map(([v, lb]) => <button key={v} type="button" data-on={Math.abs((+o.d || 0.1) - v) < 0.001 ? "1" : "0"} onClick={() => patchObs(o.id, { d: v }, "od")}>{lb}</button>)}</div></label>}
             {(T === "walkway" || T === "sky") && <P3SNum label="กว้าง" unit="ม." step={0.05} min={0.2} value={o.d} onChange={(v) => patchObs(o.id, { d: v }, "od")} />}
-            {T !== "walkway" && T !== "sky" && <P3SNum label={T === "ladder" ? "สูง (ถ้าไม่ชิดหลังคา)" : "ราวสูง"} unit="ม." step={0.1} min={0.6} value={o.h} onChange={(v) => patchObs(o.id, { h: v }, "oh")} />}
+            {T !== "walkway" && T !== "sky" && T !== "pipe" && T !== "tray" && <P3SNum label={T === "ladder" ? "สูง (ถ้าไม่ชิดหลังคา)" : "ราวสูง"} unit="ม." step={0.1} min={0.6} value={o.h} onChange={(v) => patchObs(o.id, { h: v }, "oh")} />}
             {T !== "ladder" && <div className="p3s-fld"><span className="lb">ยาวรวม</span><b style={{ fontSize: 15, padding: "6px 2px" }}>{p3sR(p3sPathLen(p3sObsPath(o)), 10)} ม. <small style={{ fontWeight: 400 }}>· {p3sObsPath(o).length - 1} ช่วง</small></b></div>}
+            {T === "pipe" && <div className="p3s-fld"><span className="lb">ก๊อกน้ำ</span><b style={{ fontSize: 15, padding: "6px 2px" }}>{(o.taps || []).length} จุด</b></div>}
+            {T === "pipe" && <div className="p3s-row" style={{ gridColumn: "1 / -1", gap: 6 }}>
+              <button type="button" className={"p3s-btn" + (tapPick === o.id ? " pri" : "")} style={{ flex: 2 }} onClick={() => setTapPick(tapPick === o.id ? null : o.id)}>
+                <P3SIcon name="target" size={15} />{tapPick === o.id ? "จิ้มบนท่อ… (เสร็จ = แตะอีกครั้ง)" : "จิ้มวางก๊อกบนท่อ"}</button>
+              <button type="button" className="p3s-btn dngr" style={{ flex: 1 }} disabled={!(o.taps || []).length} onClick={() => patchObs(o.id, { taps: [] }, "tap")}>ล้างก๊อก</button>
+            </div>}
           </div>);
       })() : <div className="p3s-g2">
         <P3SNum label={o.kind === "tree" ? "ทรงพุ่มกว้าง" : "กว้าง"} unit="ม." step={0.1} min={0.3} value={o.w} onChange={(v) => patchObs(o.id, o.kind === "tree" ? { w: v, d: v } : { w: v }, "ow")} />
@@ -5008,6 +5130,7 @@ function Plan3DStudio({ job, onClose, currentUser, onSwitch }) {
   }
   function stopVideo() { const R = vidRef.current; vidRef.current = null; if (R) finishVideo(R); }
   if (!view3d && camK) setCamK(null);
+  if (tapPick && (!selObs || selObs.id !== tapPick || view3d)) setTapPick(null);
   if (!view3d && wide3d) setWide3d(false);
   const sunPanel = (() => {
     const MONF = ["มกราคม", "กุมภาพันธ์", "มีนาคม", "เมษายน", "พฤษภาคม", "มิถุนายน", "กรกฎาคม", "สิงหาคม", "กันยายน", "ตุลาคม", "พฤศจิกายน", "ธันวาคม"], mon = st.sun.month || 4;
@@ -5339,6 +5462,7 @@ function Plan3DStudio({ job, onClose, currentUser, onSwitch }) {
           )}
           {ladderFar && <div className="p3s-mtip" style={{ left: mxy.x + 16, top: mxy.y + 14, background: "#b45309" }}>บันไดลิงต้องติดขอบหลังคา — เลื่อนเข้าใกล้ขอบ (≤ 3 ม.)</div>}
           {tool === "obs" && obsGhost && !coarse && <div className="p3s-mtip" style={{ left: mxy.x + 16, top: mxy.y + 14 }}>แตะเพื่อวาง{p3sObsName({ p3sType: obsType })}{obsType !== "ladder" ? " · ลาก = ขนาดจริง" : ""}</div>}
+          {tapPick && mxy && !view3d && <div className="p3s-mtip" style={{ left: mxy.x + 16, top: mxy.y + 14 }}>จิ้มบนท่อ = วางก๊อก · จิ้มก๊อกเดิม = เอาออก</div>}
           {eavePick && mxy && !view3d && <div className="p3s-mtip" style={{ left: mxy.x + 16, top: mxy.y + 14 }}>กำหนดทางลาด — แตะขอบด้านต่ำ</div>}
           {tool === "panel" && mxy && !view3d && (marq || (hover && hover.indexOf("roof:") === 0 && !p3sCount((st.roofs || []).find((r) => "roof:" + r.id === hover) || {}))) && <div className="p3s-mtip" style={{ left: mxy.x + 16, top: mxy.y + 14 }}>{marq ? "ปล่อยแล้วแผงขึ้นในกรอบ" : "กดค้างแล้วลาก คลุมส่วนที่จะวางแผง"}</div>}
           {tool === "area" && !eavePick && mxy && !view3d && <div className="p3s-mtip" style={{ left: mxy.x + 16, top: mxy.y + 14 }}>{marq ? "ปล่อยเมื่อกรอบคลุมอาคารครบ" : "กดค้างแล้วลาก คลุมอาคารที่จะติดตั้ง"}</div>}
