@@ -257,6 +257,16 @@ function p3sAOTex(THREE) {
   const t = new THREE.CanvasTexture(c); t.wrapS = t.wrapT = THREE.ClampToEdgeWrapping;
   return (_p3sTx.ao = t);
 }
+function p3sPanAOTex(THREE) {
+  if (_p3sTx.pan) return _p3sTx.pan;
+  const N = 64, c = document.createElement("canvas"); c.width = c.height = N; const g = c.getContext("2d"), im = g.createImageData(N, N);
+  for (let y = 0; y < N; y++) for (let x = 0; x < N; x++) {
+    const u = (x + 0.5) / N, v = (y + 0.5) / N, e = Math.min(u, 1 - u, v, 1 - v) / 0.16, a = Math.max(0, Math.min(1, e)), i = (y * N + x) * 4;
+    im.data[i] = im.data[i + 1] = im.data[i + 2] = 0; im.data[i + 3] = Math.round(255 * 0.5 * a * a * (3 - 2 * a));
+  }
+  g.putImageData(im, 0, 0);
+  return (_p3sTx.pan = new THREE.CanvasTexture(c));
+}
 /* โลโก้บริษัทสำหรับวางบนภาพถ่าย 3D (โหลดล่วงหน้า — วาดลงแคนวาสได้ทันทีตอนถ่าย) */
 let _p3sLogo = null;
 function p3sLogoImg() {
@@ -268,23 +278,23 @@ function p3sDrawInfo(g, W, H, info) {
   const k = W / 3840, ff = (getComputedStyle(document.body).fontFamily || "sans-serif");
   const F = (w, px) => w + " " + Math.round(px * k) + "px " + ff;
   const lines = [[F(800, 66), info.title || "", "#0F2B33"], [F(600, 40), info.sub || "", "#25414a"], [F(500, 32), info.note || "", "#5B8A8A"]].filter((l) => l[1]);
-  const logo = p3sLogoImg(), lh = 84 * k, hasLogo = !!(logo && logo.complete && logo.naturalWidth);
+  const logo = p3sLogoImg(), lh = 104 * k, hasLogo = !!(logo && logo.complete && logo.naturalWidth);
   const brand = (typeof BRANDING !== "undefined" && BRANDING.legal) || "";
   g.save();
   let tw = 0; lines.forEach((l) => { g.font = l[0]; tw = Math.max(tw, g.measureText(l[1]).width); });
   g.font = F(800, 30); const lw = hasLogo ? lh * logo.naturalWidth / logo.naturalHeight : 0, bw = lw + (hasLogo ? 18 * k : 0) + g.measureText(brand).width;
   tw = Math.max(tw, bw);
   const pad = 46 * k, gap = 16 * k, hs = [44, 66, 40, 32], cw = tw + pad * 2;
-  const ch = pad * 2 + lh + gap * 1.6 + lines.reduce((a, l, i) => a + (i ? gap : 0) + parseFloat(l[0].split(" ")[1]) * 1.25, 0);
+  const ch = pad * 2 + lh + gap * 2.6 + lines.reduce((a, l, i) => a + (i ? gap : 0) + parseFloat(l[0].split(" ")[1]) * 1.25, 0);
   const x0 = 80 * k, y0 = H - 80 * k - ch, R = 30 * k;
   g.beginPath(); g.moveTo(x0 + R, y0); g.arcTo(x0 + cw, y0, x0 + cw, y0 + ch, R); g.arcTo(x0 + cw, y0 + ch, x0, y0 + ch, R); g.arcTo(x0, y0 + ch, x0, y0, R); g.arcTo(x0, y0, x0 + cw, y0, R); g.closePath();
-  g.shadowColor = "rgba(0,0,0,.28)"; g.shadowBlur = 40 * k; g.shadowOffsetY = 10 * k; g.fillStyle = "rgba(255,255,255,.93)"; g.fill();
+  g.shadowColor = "rgba(0,0,0,.28)"; g.shadowBlur = 40 * k; g.shadowOffsetY = 10 * k; g.fillStyle = "#ffffff"; g.fill();
   g.shadowColor = "transparent";
   let y = y0 + pad;
-  if (hasLogo) g.drawImage(logo, x0 + pad, y, lw, lh);
+  if (hasLogo) { g.globalCompositeOperation = "multiply"; g.drawImage(logo, x0 + pad, y, lw, lh); g.globalCompositeOperation = "source-over"; }
   g.font = F(800, 30); g.fillStyle = "#0F2B33"; g.textBaseline = "middle"; g.fillText(brand, x0 + pad + lw + (hasLogo ? 18 * k : 0), y + lh / 2);
-  y += lh + gap * 1.6; g.textBaseline = "top";
-  g.fillStyle = "#22B36A"; g.fillRect(x0 + pad, y - gap * 0.9, 90 * k, 5 * k);
+  y += lh + gap * 0.9; g.textBaseline = "top";
+  g.fillStyle = "#22B36A"; g.fillRect(x0 + pad, y, 90 * k, 5 * k); y += 5 * k + gap * 1.7;
   lines.forEach((l, i) => { if (i) y += gap; g.font = l[0]; g.fillStyle = l[2]; g.fillText(l[1], x0 + pad, y); y += parseFloat(l[0].split(" ")[1]) * 1.25; });
   g.restore();
   void hs;
@@ -1586,6 +1596,14 @@ function p3sBuild3D(THREE, grp, st, tex) {
   };
   const MT = {};
   const MTX = {};
+  let aoMatV = null, panAO = null;
+  const aoMat = () => aoMatV || (aoMatV = new THREE.MeshBasicMaterial({ map: p3sAOTex(THREE), transparent: true, depthWrite: false, side: THREE.DoubleSide, polygonOffset: true, polygonOffsetFactor: -1, polygonOffsetUnits: -1 }));
+  const aoMesh = (pos, uv, mat) => {
+    if (!pos.length) return;
+    const g = new THREE.BufferGeometry(); g.setAttribute("position", new THREE.Float32BufferAttribute(pos, 3)); g.setAttribute("uv", new THREE.Float32BufferAttribute(uv, 2));
+    add(new THREE.Mesh(g, mat)).renderOrder = 1;
+  };
+  const apP = [], apU = [];   // เงาใต้แผงทุกหลังคา รวมเป็นก้อนเดียว
   // col = สีหลังคาที่ผู้ใช้เลือก (#rrggbb) — ครอบสันเข้มลง · แผ่นปิดขอบเมทัลชีทสีเดียวกับหลังคา (บ้านกระเบื้องเชิงชายยังขาว)
   const matSet = (key, col) => {
     const ck = key + "|" + (col || "");
@@ -1694,7 +1712,7 @@ function p3sBuild3D(THREE, grp, st, tex) {
     let A = 0; foot.forEach((a, i) => { const b = foot[(i + 1) % foot.length]; A += a.x * b.z - b.x * a.z; });
     const sg = A > 0 ? 1 : -1;
     const topAt = (x, z) => { const y = surfY(tris, x, z); return y == null ? hMin : Math.max(0.3, y - 0.04); };
-    const wp = [], wu = [], bp = [], tl = [];
+    const wp = [], wu = [], bp = [], tl = [], ep = [], eu = [];
     const quad = (arr, a, b, y0a, y1a, y0b, y1b, o) => {
       const ox = o ? o.x : 0, oz = o ? o.z : 0;
       arr.push(a.x + ox, y0a, a.z + oz, b.x + ox, y0b, b.z + oz, b.x + ox, y1b, b.z + oz, a.x + ox, y0a, a.z + oz, b.x + ox, y1b, b.z + oz, a.x + ox, y1a, a.z + oz);
@@ -1712,6 +1730,9 @@ function p3sBuild3D(THREE, grp, st, tex) {
         const u0 = run + len * t0, u1 = run + len * t1;
         wu.push(u0, 0, u1, 0, u1, hQ, u0, 0, u1, hQ, u0, hP);
         tl.push(P.x, hP, P.z, Q.x, hQ, Q.z);
+        const lP = Math.max(0.05, hP - 0.9), lQ = Math.max(0.05, hQ - 0.9);
+        quad(ep, P, Q, lP, hP, lQ, hQ, { x: out.x * 1.5, z: out.z * 1.5 });
+        eu.push(0, 0, 1, 0, 1, 1, 0, 0, 1, 1, 0, 1);
       }
       run += len;
       const bh = Math.min(0.6, hMin * 0.15);
@@ -1736,10 +1757,8 @@ function p3sBuild3D(THREE, grp, st, tex) {
       ap.push(a.x, Y, a.z, b.x, Y, b.z, B2.x, Y, B2.z, a.x, Y, a.z, B2.x, Y, B2.z, A2.x, Y, A2.z);
       au.push(0, 1, 1, 1, 1, 0, 0, 1, 1, 0, 0, 0);
     });
-    if (ap.length) {
-      const g = new THREE.BufferGeometry(); g.setAttribute("position", new THREE.Float32BufferAttribute(ap, 3)); g.setAttribute("uv", new THREE.Float32BufferAttribute(au, 2));
-      add(new THREE.Mesh(g, new THREE.MeshBasicMaterial({ map: p3sAOTex(THREE), transparent: true, depthWrite: false, side: THREE.DoubleSide }))).renderOrder = 1;
-    }
+    aoMesh(ap, au, aoMat());
+    aoMesh(ep, eu, aoMat());   // ซอกผนังชนใต้ชายคา
     // เส้นมุมอาคาร + ขอบบนผนัง
     const cl = []; foot.forEach((p) => cl.push(p.x, 0, p.z, p.x, topAt(p.x, p.z), p.z));
     const lg = new THREE.BufferGeometry(); lg.setAttribute("position", new THREE.Float32BufferAttribute(cl.concat(tl), 3));
@@ -1869,6 +1888,10 @@ function p3sBuild3D(THREE, grp, st, tex) {
       const c = { x: f.cx, y: f.cy + yFix, z: f.cz }, U = f.u, V = f.v, n = f.n;
       const o = 0.12;   // ผิวแผงสูงจากหลังคา 12 ซม. — ใต้แผงมี Rail + L-feet
       pans.push({ x: c.x, y: c.y, z: c.z, nx: n.x, ny: n.y, nz: n.z });
+      { // เงานุ่มบนผิวหลังคาใต้แผง (กว้างกว่าแผง 15%)
+        const K = 1.15, e = 0.012, W = (su, sv) => [c.x + (su * U.x + sv * V.x) * K + n.x * e, c.y + (su * U.y + sv * V.y) * K + n.y * e, c.z + (su * U.z + sv * V.z) * K + n.z * e];
+        [[-1, -1, 0, 0], [1, -1, 1, 0], [1, 1, 1, 1], [-1, -1, 0, 0], [1, 1, 1, 1], [-1, 1, 0, 1]].forEach(([su, sv, uu, vv]) => { apP.push(...W(su, sv)); apU.push(uu, vv); });
+      }
       let lift = 0;
       const P = (su, sv, dn) => { const k = o + (dn || 0); return new THREE.Vector3(c.x + su * U.x + sv * V.x + n.x * k, c.y + su * U.y + sv * V.y + n.y * k + lift, c.z + su * U.z + sv * V.z + n.z * k); };
       // ผืนที่ต่อกับผืนอื่นอาจบิดเล็กน้อย (มุมร่วมถูกเฉลี่ย) — ยกแผงให้ทุกมุมพ้นผิวจริง ไม่จมหายในหลังคา
@@ -2244,6 +2267,7 @@ function p3sBuild3D(THREE, grp, st, tex) {
     }
     eat(ox, by + h, oz);
   });
+  aoMesh(apP, apU, panAO || (panAO = new THREE.MeshBasicMaterial({ map: p3sPanAOTex(THREE), transparent: true, depthWrite: false, side: THREE.DoubleSide, polygonOffset: true, polygonOffsetFactor: -1, polygonOffsetUnits: -1 })));
   if (minX > maxX) { minX = -10; maxX = 10; minZ = -10; maxZ = 10; }
   return { cx: (minX + maxX) / 2, cz: (minZ + maxZ) / 2, R: Math.max(8, Math.hypot(maxX - minX, maxZ - minZ) / 2), maxY, pans };
 }
@@ -2304,7 +2328,33 @@ function P3SView3D({ st, sun, api }) {
     const onResize = () => { const w = el.clientWidth || 1, h = el.clientHeight || 1; renderer.setSize(w, h); camera.aspect = w / h; camera.updateProjectionMatrix(); };
     onResize();
     const ro = new ResizeObserver(onResize); ro.observe(el);
-    let run = true, recNow = null, fly = null;
+    let run = true, recNow = null, fly = null, shKey = "";
+    /* เงาแดด: กรอบเงา (ortho ของแสง) ล้อมจุดที่กล้องมอง ขนาดตามระยะกล้อง (ไม่เกินทั้งอาคาร R×1.15)
+       งานใหญ่ 200+ ม. ถ้ากรอบคลุมทั้งอาคารตลอด 1 พิกเซลเงา = 6–7 ซม. ราว/ท่อ/ทางเดินไม่มีเงา ซูมเข้าแล้วก็ยังเบลอ
+       bias ตั้งเป็นระยะจริง (≥ 1.5 ซม. หรือ ~1 พิกเซลเงา) — ค่าคงที่ในหน่วยความลึกจะกลายเป็นหลายสิบ ซม. เมื่อ far ยาวตามอาคาร */
+    const fitSh = () => {
+      const t = T.current, b = t.bounds, d = t.sunDir; if (!b || !d) return;
+      const tg = controls.target, cap = b.R * 1.15, N = sunL.shadow.mapSize.x;
+      // พื้นที่ที่จอเห็น: ยิงมุมจอ 4 มุมลงระนาบความสูงจุดที่มอง (ไกลสุด max(60, ระยะกล้อง×8) — ไกลกว่านั้นเล็กจนไม่เห็นเงา)
+      const cp = camera.position, Lm = Math.max(60, cp.distanceTo(tg) * 8), py = Math.max(0, tg.y);
+      let x0 = cp.x, x1 = cp.x, z0 = cp.z, z1 = cp.z;
+      [[-1, -1], [1, -1], [1, 1], [-1, 1]].forEach(([sx, sy]) => {
+        const r = new THREE.Vector3(sx, sy, 0.5).unproject(camera).sub(cp).normalize();
+        let L = r.y < -1e-4 ? (py - cp.y) / r.y : Lm; if (!(L > 0) || L > Lm) L = Lm;
+        const x = cp.x + r.x * L, z = cp.z + r.z * L; x0 = Math.min(x0, x); x1 = Math.max(x1, x); z0 = Math.min(z0, z); z1 = Math.max(z1, z);
+      });
+      let S = Math.max(12, Math.hypot(x1 - x0, z1 - z0) / 2);   // กรอบแสงหมุนไม่ตรงแกนโลก → ใช้ครึ่งเส้นทแยง
+      S = Math.pow(1.25, Math.ceil(Math.log(S) / Math.log(1.25)));   // เป็นขั้น — ซูมทีละนิดแล้วเงาไม่สั่น
+      const full = S >= cap; if (full) S = cap;
+      const tx = 2 * S / N, H = Math.max(3, b.maxY || 3);
+      const cx = full ? b.cx : Math.round((x0 + x1) / 2 / tx) * tx, cz = full ? b.cz : Math.round((z0 + z1) / 2 / tx) * tx, cy = full ? 0 : py;
+      const key = [S, cx, cz, cy.toFixed(1), N, d.x, d.y, d.z].join("|"); if (key === shKey) return; shKey = key;
+      const D = S * 2 + H + 20, sc = sunL.shadow.camera;
+      sunL.position.set(cx + d.x * D, cy + d.y * D, cz + d.z * D); sunL.target.position.set(cx, cy, cz); sunL.target.updateMatrixWorld();
+      sc.left = -S; sc.right = S; sc.top = S; sc.bottom = -S; sc.near = 0.5; sc.far = D + S * 2 + H; sc.updateProjectionMatrix();
+      sunL.shadow.bias = -Math.max(0.015, tx * 0.9) / (sc.far - sc.near);
+    };
+    T.current.fitSh = fitSh;
     const loop = () => {
       if (!run) return;
       if (fly) {
@@ -2313,7 +2363,7 @@ function P3SView3D({ st, sun, api }) {
         camera.fov = fly.f0 + (fly.f1 - fly.f0) * e; camera.updateProjectionMatrix();
         if (k >= 1) fly = null;
       }
-      controls.update(); renderer.render(scene, camera); requestAnimationFrame(loop);
+      controls.update(); fitSh(); renderer.render(scene, camera); requestAnimationFrame(loop);
     };
     /* มุมกล้องสำเร็จรูป: bird = มุมนกจากใต้ค่อนตะวันออก · front = ระดับสายตาหน้าอาคาร · top = มองลงจากบน · close = เจาะใกล้แผงที่ขอบชุด มองย้อนข้ามแผง */
     const view = (kind) => {
@@ -2355,7 +2405,7 @@ function P3SView3D({ st, sun, api }) {
         const sm = sunL.shadow.mapSize.x, remap = () => { if (sunL.shadow.map) { sunL.shadow.map.dispose(); sunL.shadow.map = null; } };
         let url;
         try {
-          const big = Math.min(8192, glMax); sunL.shadow.mapSize.set(big, big); remap();
+          const big = Math.min(8192, glMax); sunL.shadow.mapSize.set(big, big); remap(); fitSh();
           renderer.setPixelRatio(1); renderer.setSize(SW, SH, false);
           camera.aspect = SW / SH; camera.updateProjectionMatrix();
           renderer.render(scene, camera);
@@ -2365,7 +2415,7 @@ function P3SView3D({ st, sun, api }) {
           } else url = cv.toDataURL("image/png");
         } finally {
           hid.forEach((o) => { o.visible = true; });
-          sunL.shadow.mapSize.set(sm, sm); remap();
+          sunL.shadow.mapSize.set(sm, sm); remap(); fitSh();
           camera.aspect = asp0; camera.updateProjectionMatrix();
           renderer.setPixelRatio(pr); renderer.setSize(w, h, false); renderer.render(scene, camera);
         }
@@ -2438,8 +2488,8 @@ function P3SView3D({ st, sun, api }) {
       t.stars.material.opacity = p3sClamp(1 - k * 2, 0, 1); t.stars.visible = k < 0.5;
       t.dyn.traverse((o) => { if (o.userData && o.userData.tint && o.material) o.material.color.setScalar(o.userData.tint * (0.16 + 0.84 * k)); });
       t.sunL.target.position.set(b.cx, 0, b.cz);
-      const S = b.R * 1.15, sc = t.sunL.shadow.camera;   // แคบ = ความละเอียดเงาต่อเมตรสูง (ราวกันตก/ท่อเห็นเป็นเส้น)
-      sc.left = -S; sc.right = S; sc.top = S; sc.bottom = -S; sc.near = 0.5; sc.far = D * 2.5; sc.updateProjectionMatrix();
+      t.sunDir = new THREE.Vector3(Math.sin(z) * Math.cos(a), Math.max(0.05, Math.sin(a)), -Math.cos(z) * Math.cos(a)).normalize();
+      if (t.fitSh) t.fitSh();   // กรอบเงา/ตำแหน่งแสงตามกล้อง (ดู fitSh)
       const day = sp.alt > 0;
       t.sunL.intensity = day ? (0.8 + 1.3 * Math.min(1, Math.sin(a) * 1.6)) : 0;   // แดดแรง ฟ้าอ่อน = เงาชัด (คู่กับ ACES)
       t.hemi.intensity = 0.08 + 0.38 * k;
