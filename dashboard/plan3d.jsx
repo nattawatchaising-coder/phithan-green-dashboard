@@ -407,7 +407,7 @@ function p3PolyToDomePatch(roof, buildH) {
   return {
     kind: "dome", skips: {}, rows: 0, cols: 0,
     /* ผิวเปลี่ยนทรงไปเลย ช่องที่เว้น/เพิ่มไว้เดิมใช้ไม่ได้แล้ว → ล้างเซลล์แต่คงค่าตั้งของแต่ละชุดไว้ */
-    blocks: p3Blocks(roof).map((b) => ({ id: b.id, orient: b.orient, rows: 0, cols: 0, gap: b.gap, du: 0, dv: 0, rot: 0, tilt: 0, skips: {}, adds: {}, face: b.face || null })),
+    blocks: p3Blocks(roof).map((b) => ({ id: b.id, orient: b.orient, rows: 0, cols: 0, gap: b.gap, du: 0, dv: 0, rot: 0, tilt: 0, skips: {}, adds: {}, face: b.face || null, patch: null, only: null })),
     ridge: Math.round(long * 100) / 100,
     span: Math.round(short * 100) / 100,
     rise: Math.min(short / 2, Math.max(0.5, Math.round(short / 5 * 10) / 10)),
@@ -995,6 +995,10 @@ function p3NormBlk(b, i) {
     skips: b.skips || {}, adds: b.adds || {},
     /* โซน = ด้านของหลังคา (A/B/C/D) — มีค่า = ชุดนี้วางเฉพาะด้านนั้น · ว่าง = ทุกด้าน (ของเก่าทุกงาน) */
     face: typeof b.face === "string" && b.face ? b.face : null,
+    /* ชุดแบบ "เฉพาะที่วาง" (ตัวแก้แบบใหม่ ลากกรอบวางแผง) — patch = true แล้วมีแผงเฉพาะช่องใน only {key:true}
+       ช่องนอกนั้นไม่สร้างเลย (ไม่ใช่ปิดไว้) ผังจึงไม่ต้องวาดช่องเป็นพัน · ไม่มี patch = เต็มผืนแบบเดิม */
+    patch: b.patch === true,
+    only: b.patch === true && b.only && typeof b.only === "object" ? b.only : {},
   };
 }
 function p3Blocks(roof) {
@@ -1087,9 +1091,10 @@ function p3FillBlk(face, blk, m, want) {
     return pts.every((t) => p3InPoly(t[0], t[1], poly));
   };
   const push = (r, c, mode) => {
+    const key = blk.pfx + face.keyPfx + r + "_" + c;
+    if (blk.patch && !blk.only[key]) return false;
     const p0 = { u: cellU(c), v: cellV(r) }, p = xf(p0.u, p0.v);
     if (!fits(p.u, p.v, mode)) return false;
-    const key = blk.pfx + face.keyPfx + r + "_" + c;
     const skip = !!blk.skips[key];
     res.list.push({ key, side: face.side, u: p.u, v: p.v, pw, pd, blk: blk.i, skip });
     if (!skip) res.count++;
@@ -1181,7 +1186,7 @@ function p3FillBlk(face, blk, m, want) {
     used[mm[1] + "_" + mm[2]] = 1;
     push(+mm[1], +mm[2], "add");
   });
-  if (!want || !want.slots) return res;
+  if (!want || !want.slots || blk.patch) return res;   // ชุดเฉพาะที่วาง: เติมด้วยการลากกรอบ ไม่มีช่องให้แตะ
   // ── ช่องว่างให้แตะเพิ่ม: ไล่ทั้งแลตทิซที่คลุมกรอบผืน (รวมช่วงติดลบ) แล้วเอาเฉพาะช่องที่ยังว่างและอยู่ในผืน ──
   const diag = Math.hypot(maxU - minU, maxV - minV);
   const nc = Math.ceil(diag / (pw + gap)) + 2, nr = Math.ceil(diag / (pd + gap)) + 2;
@@ -1282,6 +1287,7 @@ function p3PanelsCalc(roof, want) {
         const yc = D.yAt(t), zc = D.zAt(t);
         for (let c = 0; c < cols; c++) {
           const key = blk.pfx + r + "_" + c, skip = !!blk.skips[key];
+          if (blk.patch && !blk.only[key]) continue;
           out.list.push({ key, x: x0 + c * (pw + gap) + pw / 2, y: yc, z: zc, rx: t, pw, pd, blk: blk.i, skip });
           if (!skip) { out.count++; n++; }
         }
@@ -1734,9 +1740,10 @@ function Plan3DEditor({ job, onClose, currentUser, onSwitch }) {
     id: b.id, orient: b.orient, rows: b.rows, cols: b.cols, gap: b.gap,
     du: b.du, dv: b.dv, rot: b.rot, tilt: b.tilt, skips: b.skips, adds: b.adds,
     gc: b.gc, gr: b.gr, gg: b.gg, keep: b.keep, face: b.face || null,
+    patch: b.patch || null, only: b.patch ? b.only : null,   // ชุดเฉพาะที่วาง (ตัวแก้แบบใหม่) — เก็บไว้ครบ
   }));
-  /* ผิวเปลี่ยนทรง → ช่องที่เว้น/เพิ่มไว้ไม่ตรงแล้ว ล้างทิ้งแต่คงค่าตั้งของชุดไว้ */
-  const clearCells = (roof) => blkStore(roof).map((b) => Object.assign({}, b, { skips: {}, adds: {} }));
+  /* ผิวเปลี่ยนทรง → ช่องที่เว้น/เพิ่มไว้ไม่ตรงแล้ว ล้างทิ้งแต่คงค่าตั้งของชุดไว้ (ชุดเฉพาะที่วางกลับเป็นเต็มผืน) */
+  const clearCells = (roof) => blkStore(roof).map((b) => Object.assign({}, b, { skips: {}, adds: {}, patch: null, only: null }));
   const patchBlk = (roof, i, patch) => {
     const bs = blkStore(roof); if (!bs[i]) return;
     bs[i] = Object.assign({}, bs[i], patch);

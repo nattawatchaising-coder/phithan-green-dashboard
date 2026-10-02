@@ -763,7 +763,9 @@ function p3PolyToDomePatch(roof, buildH) {
       tilt: 0,
       skips: {},
       adds: {},
-      face: b.face || null
+      face: b.face || null,
+      patch: null,
+      only: null
     })),
     ridge: Math.round(long * 100) / 100,
     span: Math.round(short * 100) / 100,
@@ -1606,7 +1608,9 @@ function p3NormBlk(b, i) {
     tilt: Math.max(0, Math.min(60, +b.tilt || 0)),
     skips: b.skips || {},
     adds: b.adds || {},
-    face: typeof b.face === "string" && b.face ? b.face : null
+    face: typeof b.face === "string" && b.face ? b.face : null,
+    patch: b.patch === true,
+    only: b.patch === true && b.only && typeof b.only === "object" ? b.only : {}
   };
 }
 function p3Blocks(roof) {
@@ -1720,13 +1724,14 @@ function p3FillBlk(face, blk, m, want) {
     return pts.every(t => p3InPoly(t[0], t[1], poly));
   };
   const push = (r, c, mode) => {
+    const key = blk.pfx + face.keyPfx + r + "_" + c;
+    if (blk.patch && !blk.only[key]) return false;
     const p0 = {
         u: cellU(c),
         v: cellV(r)
       },
       p = xf(p0.u, p0.v);
     if (!fits(p.u, p.v, mode)) return false;
-    const key = blk.pfx + face.keyPfx + r + "_" + c;
     const skip = !!blk.skips[key];
     res.list.push({
       key,
@@ -1857,7 +1862,7 @@ function p3FillBlk(face, blk, m, want) {
     used[mm[1] + "_" + mm[2]] = 1;
     push(+mm[1], +mm[2], "add");
   });
-  if (!want || !want.slots) return res;
+  if (!want || !want.slots || blk.patch) return res;
   const diag = Math.hypot(maxU - minU, maxV - minV);
   const nc = Math.ceil(diag / (pw + gap)) + 2,
     nr = Math.ceil(diag / (pd + gap)) + 2;
@@ -2049,6 +2054,7 @@ function p3PanelsCalc(roof, want) {
         for (let c = 0; c < cols; c++) {
           const key = blk.pfx + r + "_" + c,
             skip = !!blk.skips[key];
+          if (blk.patch && !blk.only[key]) continue;
           out.list.push({
             key,
             x: x0 + c * (pw + gap) + pw / 2,
@@ -2961,11 +2967,15 @@ function Plan3DEditor({
     gr: b.gr,
     gg: b.gg,
     keep: b.keep,
-    face: b.face || null
+    face: b.face || null,
+    patch: b.patch || null,
+    only: b.patch ? b.only : null
   }));
   const clearCells = roof => blkStore(roof).map(b => Object.assign({}, b, {
     skips: {},
-    adds: {}
+    adds: {},
+    patch: null,
+    only: null
   }));
   const patchBlk = (roof, i, patch) => {
     const bs = blkStore(roof);
