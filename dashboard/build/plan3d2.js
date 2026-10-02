@@ -2537,6 +2537,7 @@ function Plan3DStudio({
     return n;
   });
   const [wizStep, setWizStep] = React.useState(null);
+  const [addBack, setAddBack] = React.useState(null);
   const [kindPick, setKindPick] = React.useState(false);
   const wizHomeRef = React.useRef(null);
   const shapeRef = React.useRef({
@@ -6410,7 +6411,7 @@ function Plan3DStudio({
       onChange: v => patchRoof(roof.id, {
         h: v
       }, "h")
-    })), React.createElement("div", {
+    })), !noPanUI && React.createElement("div", {
       className: "p3s-fld"
     }, React.createElement("span", {
       className: "lb"
@@ -6462,7 +6463,7 @@ function Plan3DStudio({
       onChange: v => patchRoof(roof.id, {
         h: v
       }, "h")
-    })), React.createElement("div", {
+    })), !noPanUI && React.createElement("div", {
       className: "p3s-fld"
     }, React.createElement("span", {
       className: "lb"
@@ -6564,7 +6565,7 @@ function Plan3DStudio({
       className: "p3s-note"
     }, "\u0E40\u0E2A\u0E49\u0E19\u0E1B\u0E23\u0E30\u0E1A\u0E19\u0E1C\u0E31\u0E07 = \u0E41\u0E19\u0E27\u0E42\u0E04\u0E49\u0E07 (\u0E0A\u0E34\u0E14\u0E01\u0E31\u0E19\u0E17\u0E35\u0E48\u0E02\u0E2D\u0E1A) \xB7 \u0E40\u0E2A\u0E49\u0E19\u0E2A\u0E49\u0E21 = \u0E2A\u0E31\u0E19\u0E42\u0E04\u0E49\u0E07 \xB7 \u0E15\u0E31\u0E49\u0E07\u0E21\u0E38\u0E21\u0E40\u0E2D\u0E35\u0E22\u0E07\u0E2A\u0E39\u0E07\u0E2A\u0E38\u0E14\u0E02\u0E2D\u0E07\u0E41\u0E1C\u0E07\u0E43\u0E0A\u0E49\u0E41\u0E1A\u0E1A\u0E40\u0E01\u0E48\u0E32")), !isPoly && React.createElement("span", {
       className: "p3s-note"
-    }, "\u0E2B\u0E31\u0E19\u0E17\u0E34\u0E28", azTxt(roof.az), " (", p3sR(+roof.az || 180, 1), "\xB0) \xB7 \u0E25\u0E32\u0E01\u0E08\u0E38\u0E14\u0E2A\u0E49\u0E21\u0E1A\u0E19\u0E1C\u0E31\u0E07\u0E40\u0E1E\u0E37\u0E48\u0E2D\u0E2B\u0E21\u0E38\u0E19"), React.createElement("button", {
+    }, "\u0E2B\u0E31\u0E19\u0E17\u0E34\u0E28", azTxt(roof.az), " (", p3sR(+roof.az || 180, 1), "\xB0) \xB7 \u0E25\u0E32\u0E01\u0E08\u0E38\u0E14\u0E2A\u0E49\u0E21\u0E1A\u0E19\u0E1C\u0E31\u0E07\u0E40\u0E1E\u0E37\u0E48\u0E2D\u0E2B\u0E21\u0E38\u0E19"), !wiz && React.createElement("button", {
       className: "p3s-btn wide",
       onClick: () => axisFromRoof(roof)
     }, React.createElement(P3SIcon, {
@@ -6596,7 +6597,7 @@ function Plan3DStudio({
       }
     }, React.createElement(P3Icon, {
       name: "trash"
-    }), "\u0E25\u0E1A\u0E2B\u0E25\u0E31\u0E07\u0E04\u0E32"))), React.createElement("div", {
+    }), "\u0E25\u0E1A\u0E2B\u0E25\u0E31\u0E07\u0E04\u0E32"))), !noPanUI && React.createElement("div", {
       className: "p3s-card"
     }, React.createElement("div", {
       className: "p3s-h"
@@ -7392,7 +7393,7 @@ function Plan3DStudio({
     }, React.createElement(P3SIcon, {
       name: "magic",
       size: 15
-    }), "\u0E2B\u0E32\u0E02\u0E2D\u0E1A\u0E2D\u0E31\u0E15\u0E42\u0E19\u0E21\u0E31\u0E15\u0E34"), roofs.length > 0 && React.createElement("button", {
+    }), "\u0E2B\u0E32\u0E02\u0E2D\u0E1A\u0E2D\u0E31\u0E15\u0E42\u0E19\u0E21\u0E31\u0E15\u0E34"), roofs.length > 0 && !addBack && React.createElement("button", {
       className: "p3s-btn pri",
       style: {
         flex: "1 1 100%"
@@ -7400,7 +7401,25 @@ function Plan3DStudio({
       onClick: addRoof
     }, React.createElement(P3Icon, {
       name: "plus"
-    }), "\u0E40\u0E1E\u0E34\u0E48\u0E21\u0E2B\u0E25\u0E31\u0E07\u0E04\u0E32\u0E2D\u0E35\u0E01\u0E2B\u0E25\u0E31\u0E07 (\u0E21\u0E35\u0E41\u0E25\u0E49\u0E27 ", roofs.length, ")")),
+    }), "\u0E40\u0E1E\u0E34\u0E48\u0E21\u0E2B\u0E25\u0E31\u0E07\u0E04\u0E32\u0E2D\u0E35\u0E01\u0E2B\u0E25\u0E31\u0E07 (\u0E21\u0E35\u0E41\u0E25\u0E49\u0E27 ", roofs.length, ")"), addBack && React.createElement("span", {
+      className: "p3s-badge warn",
+      style: {
+        flex: "1 1 100%"
+      }
+    }, "\u0E01\u0E33\u0E25\u0E31\u0E07\u0E40\u0E1E\u0E34\u0E48\u0E21\u0E2B\u0E25\u0E31\u0E07\u0E04\u0E32 \u2014 \u0E27\u0E32\u0E14\u0E40\u0E2A\u0E23\u0E47\u0E08\u0E41\u0E25\u0E49\u0E27\u0E01\u0E25\u0E31\u0E1A\u0E02\u0E31\u0E49\u0E19 ", addBack.to + 1, " \u0E40\u0E2D\u0E07"), addBack && React.createElement("button", {
+      className: "p3s-btn",
+      style: {
+        flex: "1 1 100%"
+      },
+      onClick: () => {
+        const to = addBack.to;
+        setAddBack(null);
+        setTrace(null);
+        setDraw(null);
+        setKindPick(false);
+        goStep(to);
+      }
+    }, roofs.length > addBack.n ? "เสร็จแล้ว · กลับขั้น " : "← ไม่เพิ่มแล้ว กลับขั้น ", addBack.to + 1)),
     go: () => {
       setTool("roof");
       setKindPick(true);
@@ -7566,7 +7585,23 @@ function Plan3DStudio({
     className: "wt"
   }, wi + 1, ". ", W0.t, W0.done ? " ✓" : ""), React.createElement("span", {
     className: "wd"
-  }, W0.d), W0.extra || null, W0.act || null);
+  }, W0.d), W0.extra || null, W0.act || null, wi >= 4 && wi <= 7 && roofs.length > 0 && React.createElement("button", {
+    className: "p3s-btn wide",
+    onClick: () => {
+      setAddBack({
+        to: wi,
+        n: roofs.length
+      });
+      setSel(null);
+      setWizStep(3);
+      setTool("roof");
+      setDraw(null);
+      setTrace(null);
+      setKindPick(true);
+    }
+  }, React.createElement(P3Icon, {
+    name: "plus"
+  }), "\u0E40\u0E1E\u0E34\u0E48\u0E21\u0E2B\u0E25\u0E31\u0E07\u0E04\u0E32"));
   const wizNav = wiz && React.createElement("div", {
     className: "p3s-wiznav"
   }, React.createElement("div", {
@@ -7594,6 +7629,20 @@ function Plan3DStudio({
   const wizTools = wiz && !view3d ? W0.tools : null;
   wizHomeRef.current = wiz ? W0.tools[0] || null : null;
   const roofStep = wiz && wi === 3 && !view3d;
+  const noPanUI = wiz && wi < 6;
+  if (addBack && roofs.length > addBack.n && !eavePick && !kindPick && roofOpt.kind !== "facet") {
+    const to = addBack.to,
+      nr = roofs[roofs.length - 1];
+    setAddBack(null);
+    setTrace(null);
+    setDraw(null);
+    setWizStep(to);
+    WIZ[to].go();
+    if (nr) setSel({
+      t: "roof",
+      id: nr.id
+    });
+  }
   wizAllowRef.current = wiz ? W0.tools.length ? ["pan"].concat(W0.tools, wi >= 3 ? ["select", "meas"] : []) : ["select", "pan", "meas"] : null;
   const guidePanel = React.createElement(React.Fragment, null, React.createElement("input", {
     ref: fileRef,
@@ -8428,7 +8477,7 @@ function Plan3DStudio({
     }));
   })(), React.createElement("g", {
     opacity: tool === "bg" ? 0.45 : 1
-  }, roofEls, panelEls, groupEls, blkFrame, obsEls, measEls)), labels, preview, handleEls), ctxBar, tracePop, addPop, kindPick && !view3d && tool === "roof" && React.createElement("div", {
+  }, roofEls, panelEls, groupEls, blkFrame, obsEls, measEls)), labels, preview, handleEls), tracePop || addPop ? null : ctxBar, tracePop, addPop, kindPick && !view3d && tool === "roof" && React.createElement("div", {
     className: "p3s-kpick",
     onPointerDown: e => e.stopPropagation(),
     onClick: () => setKindPick(false)
