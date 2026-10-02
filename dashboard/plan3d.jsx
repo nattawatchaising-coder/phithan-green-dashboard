@@ -1349,8 +1349,11 @@ function p3SegQuadDist(a, b, q) {
 }
 function p3WalkCut(roof, out) {
   const walks = Array.isArray(roof.walks) ? roof.walks.filter((w) => w && Array.isArray(w.pts) && w.pts.length >= 2 && +w.w > 0) : [];
-  if (!walks.length || !out || !out.list || !out.list.length) return out;
+  // roof.obs = รอยของสิ่งบดบังบนหลังคา (ลูกหมุน/ปล่องควัน/ช่องแสง) สัมพัทธ์กับ roof.x/z — ตัวแก้แบบใหม่เขียนให้เอง (p3sSyncObs)
   const ox = +roof.x || 0, oz = +roof.z || 0, segs = [];
+  const keepOut = (Array.isArray(roof.obs) ? roof.obs : []).filter((k) => k && Array.isArray(k.pts) && k.pts.length >= 3)
+    .map((k) => k.pts.map((p) => ({ x: ox + (+p.x || 0), z: oz + (+p.z || 0) })));
+  if ((!walks.length && !keepOut.length) || !out || !out.list || !out.list.length) return out;
   walks.forEach((w) => {
     for (let i = 1; i < w.pts.length; i++) {
       segs.push({ a: { x: ox + (+w.pts[i - 1].x || 0), z: oz + (+w.pts[i - 1].z || 0) }, b: { x: ox + (+w.pts[i].x || 0), z: oz + (+w.pts[i].z || 0) }, hw: +w.w / 2 });
@@ -1379,7 +1382,8 @@ function p3WalkCut(roof, out) {
     }
     const q = [{ x: cw.x - U.x - V.x, z: cw.z - U.z - V.z }, { x: cw.x + U.x - V.x, z: cw.z + U.z - V.z },
                { x: cw.x + U.x + V.x, z: cw.z + U.z + V.z }, { x: cw.x - U.x + V.x, z: cw.z - U.z + V.z }];
-    if (!segs.some((s) => p3SegQuadDist(s.a, s.b, q) < s.hw)) { keep.push(p); return; }
+    const hitObs = keepOut.some((K) => p3InPoly(cw.x, cw.z, K) || K.some((a, i) => p3SegQuadDist(a, K[(i + 1) % K.length], q) < 1e-6));
+    if (!hitObs && !segs.some((s) => p3SegQuadDist(s.a, s.b, q) < s.hw)) { keep.push(p); return; }
     if (!p.skip && !p.slot) {
       out.count--;
       if (out.perBlk && out.perBlk[p.blk || 0]) out.perBlk[p.blk || 0].count--;

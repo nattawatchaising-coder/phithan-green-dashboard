@@ -2165,10 +2165,14 @@ function p3SegQuadDist(a, b, q) {
 }
 function p3WalkCut(roof, out) {
   const walks = Array.isArray(roof.walks) ? roof.walks.filter(w => w && Array.isArray(w.pts) && w.pts.length >= 2 && +w.w > 0) : [];
-  if (!walks.length || !out || !out.list || !out.list.length) return out;
   const ox = +roof.x || 0,
     oz = +roof.z || 0,
     segs = [];
+  const keepOut = (Array.isArray(roof.obs) ? roof.obs : []).filter(k => k && Array.isArray(k.pts) && k.pts.length >= 3).map(k => k.pts.map(p => ({
+    x: ox + (+p.x || 0),
+    z: oz + (+p.z || 0)
+  })));
+  if (!walks.length && !keepOut.length || !out || !out.list || !out.list.length) return out;
   walks.forEach(w => {
     for (let i = 1; i < w.pts.length; i++) {
       segs.push({
@@ -2253,7 +2257,8 @@ function p3WalkCut(roof, out) {
       x: cw.x - U.x + V.x,
       z: cw.z - U.z + V.z
     }];
-    if (!segs.some(s => p3SegQuadDist(s.a, s.b, q) < s.hw)) {
+    const hitObs = keepOut.some(K => p3InPoly(cw.x, cw.z, K) || K.some((a, i) => p3SegQuadDist(a, K[(i + 1) % K.length], q) < 1e-6));
+    if (!hitObs && !segs.some(s => p3SegQuadDist(s.a, s.b, q) < s.hw)) {
       keep.push(p);
       return;
     }
