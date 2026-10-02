@@ -422,6 +422,227 @@ function p3sPolyPitch(roof) {
     return 0;
   }
 }
+function p3sWeldFacets(roofs, focusIds, opt) {
+  opt = opt || {};
+  const tol = opt.tol || 0.4;
+  const F = [];
+  (roofs || []).forEach((r, ri) => {
+    if (r.kind !== "poly" || !Array.isArray(r.pts) || r.pts.length < 3) return;
+    const pitch = p3sPolyPitch(r);
+    if (!(pitch > 0.4)) return;
+    const ox = +r.x || 0,
+      oz = +r.z || 0,
+      ph = p3PhOf(r),
+      n = r.pts.length;
+    let lo = 0;
+    if (r.p3sLow != null) lo = (+r.p3sLow % n + n) % n;else {
+      let bv = 1e9;
+      for (let i = 0; i < n; i++) {
+        const v = ph[i] + ph[(i + 1) % n];
+        if (v < bv) {
+          bv = v;
+          lo = i;
+        }
+      }
+    }
+    const P = r.pts.map((p, i) => ({
+      x: ox + (+p.x || 0),
+      z: oz + (+p.z || 0),
+      y: ph[i],
+      orig: i
+    }));
+    F.push({
+      r,
+      ri,
+      P,
+      lo,
+      pitch,
+      A: {
+        x: P[lo].x,
+        z: P[lo].z
+      },
+      B: {
+        x: P[(lo + 1) % n].x,
+        z: P[(lo + 1) % n].z
+      },
+      e: Math.min(ph[lo], ph[(lo + 1) % n])
+    });
+  });
+  const none = {
+    roofs,
+    n: 0,
+    gap: 0
+  };
+  if (F.length < 2) return none;
+  F.forEach((f, fi) => {
+    const out = [];
+    f.P.forEach((a, i) => {
+      out.push(a);
+      const b = f.P[(i + 1) % f.P.length],
+        L2 = (b.x - a.x) * (b.x - a.x) + (b.z - a.z) * (b.z - a.z);
+      if (L2 < 1e-6) return;
+      const ins = [];
+      F.forEach((g, gi) => {
+        if (gi === fi) return;
+        g.P.forEach(v => {
+          if (Math.hypot(v.x - a.x, v.z - a.z) < tol || Math.hypot(v.x - b.x, v.z - b.z) < tol) return;
+          if (p3sDistSeg(v, a, b) >= tol) return;
+          const t = ((v.x - a.x) * (b.x - a.x) + (v.z - a.z) * (b.z - a.z)) / L2;
+          if (t <= 0 || t >= 1 || ins.some(q => Math.abs(q.t - t) * Math.sqrt(L2) < tol)) return;
+          ins.push({
+            t
+          });
+        });
+      });
+      ins.sort((p, q) => p.t - q.t).forEach(q => out.push({
+        x: a.x + (b.x - a.x) * q.t,
+        z: a.z + (b.z - a.z) * q.t,
+        y: a.y + (b.y - a.y) * q.t,
+        orig: -1
+      }));
+    });
+    f.P = out;
+  });
+  const V = [];
+  F.forEach((f, fi) => f.P.forEach(p => V.push({
+    fi,
+    p
+  })));
+  const par = V.map((_, i) => i),
+    fnd = i => par[i] === i ? i : par[i] = fnd(par[i]);
+  for (let i = 0; i < V.length; i++) for (let j = i + 1; j < V.length; j++) {
+    if (V[i].fi !== V[j].fi && Math.hypot(V[i].p.x - V[j].p.x, V[i].p.z - V[j].p.z) < tol) par[fnd(i)] = fnd(j);
+  }
+  const CM = {};
+  V.forEach((v, i) => {
+    const k = fnd(i);
+    (CM[k] = CM[k] || []).push(v);
+  });
+  const clusters = Object.keys(CM).map(k => CM[k]).filter(c => new Set(c.map(v => v.fi)).size > 1);
+  if (!clusters.length) return none;
+  const fp = F.map((_, i) => i),
+    ff = i => fp[i] === i ? i : fp[i] = ff(fp[i]);
+  clusters.forEach(c => c.forEach(v => {
+    fp[ff(v.fi)] = ff(c[0].fi);
+  }));
+  const focus = focusIds && focusIds.length ? new Set(focusIds) : null;
+  const act = new Set();
+  F.forEach((f, i) => {
+    if (!focus || focus.has(f.r.id)) act.add(ff(i));
+  });
+  const linked = new Set();
+  clusters.forEach(c => c.forEach(v => linked.add(v.fi)));
+  const use = F.map((f, i) => act.has(ff(i)) && linked.has(i));
+  const U = [];
+  use.forEach((u, i) => {
+    if (u) U.push(i);
+  });
+  if (!U.length) return none;
+  const uc = clusters.filter(c => use[c[0].fi]);
+  let gap = 0;
+  uc.forEach(c => {
+    const ys = c.map(v => v.p.y);
+    gap = Math.max(gap, Math.max.apply(null, ys) - Math.min.apply(null, ys));
+  });
+  let Lsum = 0;
+  F.forEach(f => {
+    const L = Math.hypot(f.B.x - f.A.x, f.B.z - f.A.z) || 1;
+    let nx = -(f.B.z - f.A.z) / L,
+      nz = (f.B.x - f.A.x) / L;
+    const c = p3sCentroid(f.P);
+    if ((c.x - f.A.x) * nx + (c.z - f.A.z) * nz < 0) {
+      nx = -nx;
+      nz = -nz;
+    }
+    f.P.forEach(p => {
+      p.d = Math.max(0, (p.x - f.A.x) * nx + (p.z - f.A.z) * nz);
+    });
+    f.dmax = Math.max.apply(null, f.P.map(p => p.d)) || 1;
+    Lsum += f.dmax;
+    f.k0 = Math.tan(p3sClamp(opt.pitch != null ? +opt.pitch : f.pitch, 1, 60) * P3_DEG);
+  });
+  const nV = U.length,
+    col = {};
+  U.forEach((fi, j) => {
+    col[fi] = j;
+  });
+  const M = [];
+  for (let i = 0; i < nV; i++) M.push(new Array(nV + 1).fill(0));
+  const addRow = (cs, rhs) => {
+    cs.forEach(([i, ai]) => {
+      cs.forEach(([j, aj]) => {
+        M[i][j] += ai * aj;
+      });
+      M[i][nV] += ai * rhs;
+    });
+  };
+  uc.forEach(c => {
+    const m0 = c[0];
+    c.forEach(v => {
+      if (v.fi === m0.fi) return;
+      const f0 = F[m0.fi],
+        f1 = F[v.fi];
+      if (m0.p.d < 1e-3 && v.p.d < 1e-3) return;
+      addRow([[col[m0.fi], m0.p.d], [col[v.fi], -v.p.d]], f1.e - f0.e);
+    });
+  });
+  const wr = (opt.pitch != null ? 3 : 1) * Math.max(1, Lsum / F.length);
+  U.forEach(fi => addRow([[col[fi], wr]], wr * F[fi].k0));
+  for (let i = 0; i < nV; i++) {
+    let pv = i;
+    for (let r = i + 1; r < nV; r++) if (Math.abs(M[r][i]) > Math.abs(M[pv][i])) pv = r;
+    const t = M[i];
+    M[i] = M[pv];
+    M[pv] = t;
+    if (Math.abs(M[i][i]) < 1e-12) continue;
+    for (let r = 0; r < nV; r++) {
+      if (r === i) continue;
+      const k = M[r][i] / M[i][i];
+      if (!k) continue;
+      for (let c2 = i; c2 <= nV; c2++) M[r][c2] -= k * M[i][c2];
+    }
+  }
+  U.forEach(fi => {
+    const j = col[fi],
+      k = Math.abs(M[j][j]) > 1e-12 ? M[j][nV] / M[j][j] : F[fi].k0;
+    const kk = p3sClamp(k, Math.tan(1 * P3_DEG), Math.tan(60 * P3_DEG));
+    F[fi].P.forEach(p => {
+      p.y = F[fi].e + kk * p.d;
+    });
+  });
+  uc.forEach(c => {
+    const sx = c.reduce((a, v) => a + v.p.x, 0) / c.length,
+      sz = c.reduce((a, v) => a + v.p.z, 0) / c.length,
+      sy = c.reduce((a, v) => a + v.p.y, 0) / c.length;
+    c.forEach(v => {
+      v.p.x = sx;
+      v.p.z = sz;
+      v.p.y = sy;
+    });
+  });
+  const out = roofs.slice();
+  U.forEach(fi => {
+    const f = F[fi],
+      r = f.r,
+      ox = +r.x || 0,
+      oz = +r.z || 0;
+    const nr = Object.assign({}, r, {
+      pts: f.P.map(p => ({
+        x: p3sR(p.x - ox),
+        z: p3sR(p.z - oz)
+      })),
+      ph: f.P.map(p => p3sR(p.y)),
+      p3sLow: Math.max(0, f.P.findIndex(p => p.orig === f.lo))
+    });
+    if (opt.mark) nr.p3sFacet = true;
+    out[f.ri] = nr;
+  });
+  return {
+    roofs: out,
+    n: U.length,
+    gap
+  };
+}
 function p3sBounds(st, photoAR) {
   let minX = 1e9,
     maxX = -1e9,
@@ -2611,6 +2832,9 @@ function Plan3DStudio({
         });
         nr.p3sLow = lo;
         nr.ph = p3sPitchPh(rel, lo, EAVE, 20);
+        nr.p3sFacet = true;
+        const nb = (stRef.current.roofs || []).filter(r => r.p3sFacet && r.kind === "poly");
+        if (nb.length) nr.ph = p3sPitchPh(rel, lo, EAVE, p3sPolyPitch(nb[nb.length - 1]) || 20);
       } else {
         const rot = p3sAlignRot(nr, null, p3sLongEdgeAng(wpts));
         nr.blocks = [Object.assign(p3NewBlk(0), {
@@ -2630,9 +2854,13 @@ function Plan3DStudio({
       nr.panelW = S.panelW;
       nr.panelL = S.panelL;
     }
-    commit(s => Object.assign({}, s, {
-      roofs: (s.roofs || []).concat([nr])
-    }));
+    commit(s => {
+      let roofs = (s.roofs || []).concat([nr]);
+      if (nr.p3sFacet) roofs = p3sWeldFacets(roofs, [nr.id]).roofs;
+      return Object.assign({}, s, {
+        roofs
+      });
+    });
     setSel({
       t: "roof",
       id: nr.id
@@ -2882,14 +3110,33 @@ function Plan3DStudio({
     }));
     setSelWalk(null);
   };
-  const setEave = (roof, i, pitch) => patchRoof(roof.id, r => {
-    const ph = p3PhOf(r),
-      base = ph.length ? Math.min.apply(null, ph) : EAVE;
-    const pc = pitch != null ? pitch : p3sPolyPitch(r) > 0.4 ? p3sPolyPitch(r) : 20;
-    return {
-      ph: p3sPitchPh(r.pts, i, base, pc),
-      p3sLow: i
-    };
+  const setEave = (roof, i, pitch) => {
+    patchRoof(roof.id, r => {
+      const ph = p3PhOf(r),
+        base = ph.length ? Math.min.apply(null, ph) : EAVE;
+      const pc = pitch != null ? pitch : p3sPolyPitch(r) > 0.4 ? p3sPolyPitch(r) : 20;
+      return {
+        ph: p3sPitchPh(r.pts, i, base, pc),
+        p3sLow: i
+      };
+    });
+    if (roof.p3sFacet) weldLive([roof.id]);
+  };
+  const weldLive = (ids, opt) => {
+    const S = stRef.current;
+    if (!S) return;
+    const res = p3sWeldFacets(S.roofs, ids, opt);
+    if (res.n) live(Object.assign({}, S, {
+      roofs: res.roofs
+    }));
+  };
+  const weldNow = roof => commit(s => {
+    const res = p3sWeldFacets(s.roofs, [roof.id], {
+      mark: true
+    });
+    return res.n ? Object.assign({}, s, {
+      roofs: res.roofs
+    }) : s;
   });
   const convertRoof = (roof, kind) => {
     const fp = roof.kind === "poly" ? p3sFaces2D(roof)[0].pts : p3sOutline(roof);
@@ -4436,6 +4683,8 @@ function Plan3DStudio({
     }
     if (G.type === "vert" || G.type === "mid" || G.type === "side") {
       setCur(null);
+      const r = (G.type === "vert" || G.type === "mid") && S.roofs.find(x => x.id === G.roofId);
+      if (r && r.p3sFacet) weldLive([r.id]);
       return;
     }
   };
@@ -5409,13 +5658,25 @@ function Plan3DStudio({
     const blocks = pan ? pan.blocks || [] : [];
     const orient = blocks[0] ? blocks[0].orient : "portrait";
     const azTxt = az => p3sCompass(+az || 180);
-    const setPolyPitch = (pitch, low, base) => patchRoof(roof.id, r => {
-      const lo = low == null ? lowIdx : low;
-      return {
-        ph: p3sPitchPh(r.pts, lo, base == null ? eave : base, pitch),
-        p3sLow: lo
-      };
-    }, "pitch");
+    const setPolyPitch = (pitch, low, base) => {
+      patchRoof(roof.id, r => {
+        const lo = low == null ? lowIdx : low;
+        return {
+          ph: p3sPitchPh(r.pts, lo, base == null ? eave : base, pitch),
+          p3sLow: lo
+        };
+      }, "pitch");
+      if (roof.p3sFacet) weldLive([roof.id], low == null ? {
+        pitch
+      } : null);
+    };
+    const weld = isPoly && pitchNow > 0.4 ? (() => {
+      try {
+        return p3sWeldFacets(roofs, [roof.id]);
+      } catch (e) {
+        return null;
+      }
+    })() : null;
     const fillRoof = () => patchRoof(roof.id, r => {
       let rot = 0;
       if (r.kind === "poly") {
@@ -5542,7 +5803,20 @@ function Plan3DStudio({
     })))), pitchNow <= 0.4 && React.createElement("button", {
       className: "p3s-btn wide",
       onClick: () => setPolyPitch(10, p3sSouthEdge(pts))
-    }, "\u0E17\u0E33\u0E40\u0E1B\u0E47\u0E19\u0E2B\u0E25\u0E31\u0E07\u0E04\u0E32\u0E40\u0E1E\u0E34\u0E07 \u0E25\u0E32\u0E14\u0E25\u0E07\u0E17\u0E34\u0E28\u0E43\u0E15\u0E49 10\xB0"), pitchNow > 0.4 && React.createElement("button", {
+    }, "\u0E17\u0E33\u0E40\u0E1B\u0E47\u0E19\u0E2B\u0E25\u0E31\u0E07\u0E04\u0E32\u0E40\u0E1E\u0E34\u0E07 \u0E25\u0E32\u0E14\u0E25\u0E07\u0E17\u0E34\u0E28\u0E43\u0E15\u0E49 10\xB0"), weld && weld.n > 1 && (weld.gap > 0.03 ? React.createElement("button", {
+      className: "p3s-btn wide pri",
+      onClick: () => weldNow(roof)
+    }, React.createElement(P3SIcon, {
+      name: "magic",
+      size: 15
+    }), "\u0E40\u0E0A\u0E37\u0E48\u0E2D\u0E21\u0E23\u0E2D\u0E22\u0E15\u0E48\u0E2D ", weld.n, " \u0E1C\u0E37\u0E19 (\u0E15\u0E2D\u0E19\u0E19\u0E35\u0E49\u0E2A\u0E39\u0E07\u0E15\u0E48\u0E32\u0E07\u0E01\u0E31\u0E19 ", Math.round(weld.gap * 100), " \u0E0B\u0E21.)") : React.createElement("span", {
+      className: "p3s-badge ok",
+      style: {
+        height: "auto",
+        padding: "5px 10px",
+        whiteSpace: "normal"
+      }
+    }, "\u0E15\u0E48\u0E2D\u0E2A\u0E19\u0E34\u0E17\u0E01\u0E31\u0E1A\u0E1C\u0E37\u0E19\u0E02\u0E49\u0E32\u0E07 \u0E46 \u0E41\u0E25\u0E49\u0E27 \xB7 \u0E17\u0E31\u0E49\u0E07\u0E2B\u0E25\u0E31\u0E07 ", weld.n, " \u0E1C\u0E37\u0E19", roof.p3sFacet ? " · ลากมุม/เปลี่ยนความชัน เชื่อมให้เอง" : "")), pitchNow > 0.4 && React.createElement("button", {
       className: "p3s-btn wide" + (eavePick ? " pri" : ""),
       onClick: () => setEavePick(v => !v)
     }, React.createElement(P3SIcon, {
