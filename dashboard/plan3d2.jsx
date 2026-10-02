@@ -9,17 +9,12 @@
    · แก้ไขบน "ผัง 2D มุมบน" ที่วาดเป็น SVG ทับภาพดาวเทียม/โดรน — คลิกซ้ายลากไม่เคยหมุนกล้อง
      จุดจับมีขนาดเป็นพิกเซลเสมอ พิกัดเมาส์แปลงเป็นเมตรตรง ๆ ไม่มีอาการไหล
    · 3 มิติมีไว้ "ดูผล + ดูเงา" อย่างเดียว (หมุนกล้องได้อิสระเพราะไม่มีอะไรให้ลากพลาด)
-   · ข้อมูลรูปแบบเดิมทุกตัวอักษร (plan3d/{jobId}) เปิดสลับกับแบบเก่าได้ตลอด
+   · ข้อมูลรูปแบบเดิมทุกตัวอักษร (plan3d/{jobId}) — ตัวแก้แบบเก่าเอาออกแล้ว แต่ผังเก่าที่ทำไว้ยังเปิดได้
      ฟิลด์ที่ตัวนี้ไม่รู้จัก (โดม · กลุ่มหลังคา · sys ฯลฯ) ต้องถูกเก็บไว้ครบ — ห้าม "สร้างใหม่" ทั้งก้อน
    · ใช้เรขาคณิตของ plan3d.jsx ทั้งหมด (p3Panels / p3Xf / p3RoofSurf / p3FillBlk …)
      ไฟล์นี้จึงต้องโหลด "หลัง" plan3d.js เสมอ · ชื่อระดับโลกใช้คำนำหน้า p3s / P3S เท่านั้น
-
-   เลือกแบบ: localStorage "p3_editor" = "v1" → แบบเก่า · อย่างอื่น → แบบใหม่ (Plan3DEntry)
    ============================================================ */
 
-const P3S_PREF_KEY = "p3_editor";
-function p3sPref() { try { return localStorage.getItem(P3S_PREF_KEY) === "v1" ? "v1" : "v2"; } catch (e) { return "v2"; } }
-function p3sSetPref(v) { try { localStorage.setItem(P3S_PREF_KEY, v); } catch (e) {} }
 
 const p3sR = (v, n) => Math.round((+v || 0) * (n || 100)) / (n || 100);
 const p3sClamp = (v, a, b) => Math.max(a, Math.min(b, v));
@@ -2651,7 +2646,7 @@ function P3SObsPrev({ type, at }) {
 /* ============================================================
    Plan3DStudio — ตัวแก้หลัก
    ============================================================ */
-function Plan3DStudio({ job, onClose, currentUser, onSwitch }) {
+function Plan3DStudio({ job, onClose, currentUser }) {
   const isMobile = p3sUseMedia("(max-width: 860px)");
   const coarse = p3sUseMedia("(pointer: coarse)");
   const { saved, loading, save } = usePlan3d(job ? job.id : null);
@@ -2665,6 +2660,8 @@ function Plan3DStudio({ job, onClose, currentUser, onSwitch }) {
 
   const [tool, setToolRaw] = React.useState("select");
   const [view3d, setView3d] = React.useState(false);
+  const [sysOpen, setSysOpen] = React.useState(false);   // ขั้น 8: หน้าออกแบบระบบ · ผลผลิต (SolarWorkspace ใน solarui.jsx)
+  const sysT = React.useRef(null);
   const [sel, setSel] = React.useState(null);           // { t: "roof"|"obs"|"meas", id }
   const [selVert, setSelVert] = React.useState(null);   // index มุมที่เลือกของหลังคาทรงอิสระ
   const [selBlk, setSelBlk] = React.useState(null);     // ชุดแผงที่เลือก (เครื่องมือแผง)
@@ -3392,12 +3389,6 @@ function Plan3DStudio({ job, onClose, currentUser, onSwitch }) {
     if (!dirty) { onClose(); return; }
     window.askConfirm({ title: "ปิดโดยไม่บันทึก?", body: "มีการแก้ไขที่ยังไม่ได้บันทึก ถ้าปิดตอนนี้จะหายไป", ok: "ปิดโดยไม่บันทึก" })
       .then((ok) => { if (ok) onClose(); });
-  };
-  const trySwitch = () => {
-    if (!onSwitch) return;
-    if (!dirty) { onSwitch(); return; }
-    window.askConfirm({ title: "บันทึกก่อนสลับไปแบบเก่า?", body: "มีการแก้ไขที่ยังไม่ได้บันทึก — กดบันทึกแล้วสลับ งานจะไปเปิดต่อในแบบเก่าได้ครบ", ok: "บันทึกแล้วสลับ" })
-      .then((ok) => { if (ok) { doSave(); onSwitch(); } });
   };
 
   /* ── จุดจับของสิ่งที่เลือก (พิกัดจอ) ── */
@@ -4636,7 +4627,7 @@ function Plan3DStudio({ job, onClose, currentUser, onSwitch }) {
             <span className="p3s-ttl2"><P3Icon name="roof" size={17} />{roof.name || "หลังคา"}</span>
             <span className="p3s-badge">{kindTh}</span>
           </div>
-          {roof.grp && <span className="p3s-note">อยู่ในกลุ่มหลังคา {roofs.filter((x) => x.grp === roof.grp).length} ผืน — ลากผืนไหนก็ย้ายไปพร้อมกัน (แก้กลุ่มในแบบเก่า)</span>}
+          {roof.grp && <span className="p3s-note">อยู่ในกลุ่มหลังคา {roofs.filter((x) => x.grp === roof.grp).length} ผืน — ลากผืนไหนก็ย้ายไปพร้อมกัน</span>}
           {!panOnly && <React.Fragment>
           <P3SText label="ชื่อหลังคา" value={roof.name} onChange={(v) => patchRoof(roof.id, { name: v }, "name")} />
           {!isDome && (
@@ -4757,7 +4748,7 @@ function Plan3DStudio({ job, onClose, currentUser, onSwitch }) {
                   })}
                 </div>
               </div>
-              <span className="p3s-note">เส้นประบนผัง = แนวโค้ง (ชิดกันที่ขอบ) · เส้นส้ม = สันโค้ง · ตั้งมุมเอียงสูงสุดของแผงใช้แบบเก่า</span>
+              <span className="p3s-note">เส้นประบนผัง = แนวโค้ง (ชิดกันที่ขอบ) · เส้นส้ม = สันโค้ง</span>
             </React.Fragment>
           )}
           {!isPoly && !panOnly && (
@@ -5253,6 +5244,25 @@ function Plan3DStudio({ job, onClose, currentUser, onSwitch }) {
           </div>
         </React.Fragment>),
       go: () => { setView3d(true); setToolRaw("select"); setDraw(null); setMeasPts(null); setTrace(null); setCalib(null); markSeen("fin"); } },
+    { t: "ออกแบบระบบ · ผลผลิต", k: "sys", tools: [], done: !!(st.sys && (st.sys.invModel || st.sys.mode === "micro")),
+      d: <span>เลือกอินเวอร์เตอร์ จัดสตริง ดูผลผลิตทั้งปีและเงาบังแผง แล้วออกรายงาน — บันทึกให้เองทุกครั้งที่แก้</span>,
+      act: (
+        <React.Fragment>
+          {(() => {
+            const S = st.sys || {}, inv = S.mode === "micro" ? "ไมโครอินเวอร์เตอร์" : S.invModel ? S.invModel + " × " + (S.invCount || 1) + (S.inv2Model && S.inv2Count ? " + " + S.inv2Model + " × " + S.inv2Count : "") : "ยังไม่ได้เลือก";
+            return (
+              <div className="p3s-stat">
+                <div><div className="l">แผง</div><div className="v">{total} แผง · {p3sR(total * (+st.wp || 650) / 1000, 100)} kWp</div></div>
+                <div><div className="l">อินเวอร์เตอร์</div><div className="v" style={{ fontSize: 12.5 }}>{inv}</div></div>
+              </div>
+            );
+          })()}
+          <button type="button" className="p3s-btn pri p3s-cta" disabled={!total} onClick={openSys}>
+            <P3Icon name="grid" size={16} /><span className="ct"><b>เปิดหน้าออกแบบระบบ</b><small>อินเวอร์เตอร์ · สตริง · ผลผลิต · รายงาน</small></span></button>
+          {!total && <span className="p3s-badge warn">ยังไม่มีแผง — กลับไปขั้นวางแผงก่อน</span>}
+          {mediaMsg && <span className="p3s-badge warn">{mediaMsg}</span>}
+        </React.Fragment>),
+      go: () => { setToolRaw("select"); setDraw(null); setTrace(null); if (total) openSys(); } },
   ];
   /* ไปได้ไกลสุดถึงขั้นแรกที่ยังไม่เสร็จ (ขั้นก่อนหน้าต้องเสร็จครบ) — ย้อนกลับได้เสมอ ข้ามไปข้างหน้าไม่ได้ */
   let reach = 0; while (reach < WIZ.length - 1 && WIZ[reach].done) reach++;
@@ -5263,7 +5273,7 @@ function Plan3DStudio({ job, onClose, currentUser, onSwitch }) {
   const clearPick = () => { setSel(null); setMulti([]); setSelVert(null); setSelBlk(null); setSelWalk(null); };
   const goStep = (i) => { if (i < 0 || i >= WIZ.length) return; if (i !== wi) clearPick(); setWizStep(i); WIZ[i].go(); };
   const nextStep = () => { if (!canNext) return; markSeen(W0.k || wi); clearPick(); setWizStep(wi + 1); WIZ[wi + 1] && WIZ[wi + 1].go(); };
-  const finStep = wiz && wi === WIZ.length - 1;
+  const finStep = wiz && W0.k === "fin";   // ขั้น 3D/เงา (ไม่ใช่ขั้นสุดท้ายแล้ว — ขั้น 8 ออกแบบระบบต่อท้าย)
   const wizCard = wiz && (
     <div className="p3s-card p3s-wiz">
       <div className="p3s-h"><span className="t">พาทำทีละขั้น · ขั้น {wi + 1}/{WIZ.length}</span>
@@ -5369,6 +5379,24 @@ function Plan3DStudio({ job, onClose, currentUser, onSwitch }) {
   }
   function camGo(k) { setMediaMsg(null); setCamK(k); with3D((A) => A.view(k)); }
   // เปิด 3D ใหม่ = รอภาพพื้น/ลายวัสดุโหลดครู่หนึ่งก่อนถ่าย
+  /* ขั้น 8 ออกแบบระบบ — เปิด 3D ก่อน (ภาพฉากตามมุมกล้องไปแปะหัวรายงาน) แล้วค่อยเปิดหน้าออกแบบ
+     แก้ค่าในหน้าออกแบบ = เขียนเฉพาะ sys (+ wp ตามรุ่นแผง) ลงผังแล้วบันทึกเองแบบหน่วง 0.9 วิ
+     ไม่ผ่าน commit/dirty — ขั้น 7 นับว่าเสร็จเมื่อไม่มีของค้างบันทึก ถ้าตั้ง dirty ขั้นจะเด้งกลับไปขั้น 7 ระหว่างออกแบบ */
+  function openSys() { setMediaMsg(null); with3D((A, fresh) => { setTimeout(() => setSysOpen(true), fresh ? 700 : 0); return true; }); }
+  function sysFlush() {
+    if (sysT.current) { clearTimeout(sysT.current); sysT.current = null; save(JSON.parse(JSON.stringify(stRef.current))); }
+  }
+  function sysChange(sys) {
+    const wp = scNum((scPanelSpec(sys) || {}).wp, 0);   // เลือกรุ่นแผงแล้ว kWp ในผังใช้กำลังแผงรุ่นนั้น
+    const next = Object.assign({}, stRef.current, wp ? { sys, wp } : { sys });
+    stRef.current = next; setStRaw(next);
+    if (sysT.current) clearTimeout(sysT.current);
+    sysT.current = setTimeout(sysFlush, 900);
+  }
+  function sysSnap() {
+    const A = v3api.current; if (!A || !A.gl) return null;
+    try { A.gl.render(A.scene, A.cam); return A.gl.domElement.toDataURL("image/jpeg", 0.86); } catch (e) { return null; }
+  }
   function shotGo() { with3D((A, fresh) => { if (fresh) setTimeout(takeShot, 700); else takeShot(); return true; }); }
   function takeShot() {
     const A = v3api.current; if (!A) { setMediaMsg("เปิดมุมมอง 3D ก่อน"); return; }
@@ -5435,12 +5463,6 @@ function Plan3DStudio({ job, onClose, currentUser, onSwitch }) {
     );
   })();
 
-  const oldNote = onSwitch && (
-    <div className="p3s-card" style={{ background: "transparent", boxShadow: "none", padding: "4px 2px" }}>
-      <span className="p3s-note">ส่งออก DXF/ชุดแบบ · ออกแบบระบบไฟ · โดม/กลุ่มหลังคา/เชื่อมความสูงมุม ยังอยู่ใน<b> แบบเก่า</b> — ข้อมูลชุดเดียวกัน สลับไปมาได้</span>
-      <button className="p3s-btn wide" onClick={trySwitch}><P3SIcon name="swap" size={15} />เปิดแบบเก่า</button>
-    </div>
-  );
 
   const axisPanel = (
     <div className="p3s-card">
@@ -5481,7 +5503,8 @@ function Plan3DStudio({ job, onClose, currentUser, onSwitch }) {
 
   let sideBody;
   const cardRoof = wiz && wi === 3 ? null : selRoof;   // ขั้นความสูง/ความชัน: ตั้งค่าในรายการพาทำแล้ว ไม่ต้องมีการ์ดหลังคาซ้ำ
-  if (finStep) sideBody = sunPanel;   // ขั้นสุดท้าย: มีแค่แดดและเงา
+  if (finStep) sideBody = sunPanel;   // ขั้น 3D: มีแค่แดดและเงา
+  else if (wiz && W0.k === "sys") sideBody = null;   // ขั้นออกแบบระบบ: การ์ดพาทำมีครบแล้ว
   else if (view3d) sideBody = <React.Fragment>{sunPanel}{cardRoof ? roofPanelBody(cardRoof) : null}</React.Fragment>;
   else if (tool === "bg") sideBody = bgPanel;
   else if (tool === "axis") sideBody = wiz ? null : axisPanel;   // โหมดพาทำ: ปุ่มแนวอยู่ในการ์ดพาทำแล้ว
@@ -5596,6 +5619,10 @@ function Plan3DStudio({ job, onClose, currentUser, onSwitch }) {
   return (
     <div className="p3s" style={{ position: "fixed", inset: 0, zIndex: 120, background: "var(--bg)", display: "flex", flexDirection: "column" }}>
       <style>{P3_CSS + P3S_CSS}</style>
+      {sysOpen && typeof SolarWorkspace === "function" && (
+        <SolarWorkspace job={job} st={st} sys={st.sys || suBlankSys()} snap={sysSnap} onChange={sysChange}
+          onClose={() => { sysFlush(); setSysOpen(false); }} />
+      )}
       {mapOpen && <P3MapPicker initial={st.baseMap ? { lat: st.baseMap.lat, lng: st.baseMap.lng } : jobLatLng} initialQuery={jobAddr} onPick={onPickMap} onClose={() => setMapOpen(false)} />}
 
       <div className="p3s-head">
@@ -5616,7 +5643,6 @@ function Plan3DStudio({ job, onClose, currentUser, onSwitch }) {
         <button className="p3s-btn pri" onClick={doSave} disabled={!dirty} title="บันทึก (Ctrl+S)">
           <P3Icon name={justSaved && !dirty ? "check" : "save"} />{isMobile ? "" : dirty ? "บันทึก" : justSaved ? "บันทึกแล้ว" : "บันทึกแล้ว"}
         </button>
-        {!isMobile && onSwitch && <button className="p3s-btn ghost" onClick={trySwitch} title="เปิดตัวแก้แบบเก่า (ข้อมูลชุดเดียวกัน)">แบบเก่า</button>}
       </div>
 
       <div className="p3s-body">
@@ -5767,8 +5793,6 @@ function Plan3DStudio({ job, onClose, currentUser, onSwitch }) {
             <span style={{ flex: 1, textAlign: "right" }}>{sheetMin ? "ขยาย ▲" : "ย่อ ▼"}</span>
           </button>
           {sideBody}
-          {isMobile && oldNote}
-          {!isMobile && !sel && tool !== "bg" && !wiz && oldNote}
           {wizNav}
         </div>
       </div>
@@ -5777,12 +5801,7 @@ function Plan3DStudio({ job, onClose, currentUser, onSwitch }) {
   );
 }
 
-/* ── ตัวเลือกแบบ: แบบใหม่เป็นค่าเริ่ม สลับไปแบบเก่าได้ตลอด (จำไว้ในเครื่อง) ── */
-function Plan3DEntry(props) {
-  const [ver, setVer] = React.useState(p3sPref);
-  const sw = (v) => { p3sSetPref(v); setVer(v); };
-  if (ver === "v1" || typeof Plan3DStudio !== "function") return <Plan3DEditor {...props} onSwitch={() => sw("v2")} />;
-  return <Plan3DStudio {...props} onSwitch={() => sw("v1")} />;
-}
+/* ── จุดเปิด (drawer/app) — ตัวแก้แบบเก่า (Plan3DEditor) เอาออกแล้ว เหลือแบบใหม่ตัวเดียว ── */
+function Plan3DEntry(props) { return <Plan3DStudio {...props} />; }
 
 Object.assign(window, { Plan3DEntry, Plan3DStudio, P3SView3D, p3sKindPreview, p3sTrace, p3sQuads, p3sFaces2D });

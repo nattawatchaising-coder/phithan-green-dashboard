@@ -1,17 +1,4 @@
 function _extends() { return _extends = Object.assign ? Object.assign.bind() : function (n) { for (var e = 1; e < arguments.length; e++) { var t = arguments[e]; for (var r in t) ({}).hasOwnProperty.call(t, r) && (n[r] = t[r]); } return n; }, _extends.apply(null, arguments); }
-const P3S_PREF_KEY = "p3_editor";
-function p3sPref() {
-  try {
-    return localStorage.getItem(P3S_PREF_KEY) === "v1" ? "v1" : "v2";
-  } catch (e) {
-    return "v2";
-  }
-}
-function p3sSetPref(v) {
-  try {
-    localStorage.setItem(P3S_PREF_KEY, v);
-  } catch (e) {}
-}
 const p3sR = (v, n) => Math.round((+v || 0) * (n || 100)) / (n || 100);
 const p3sClamp = (v, a, b) => Math.max(a, Math.min(b, v));
 const P3S_COMPASS = ["เหนือ", "ตะวันออกเฉียงเหนือ", "ตะวันออก", "ตะวันออกเฉียงใต้", "ใต้", "ตะวันตกเฉียงใต้", "ตะวันตก", "ตะวันตกเฉียงเหนือ"];
@@ -5960,8 +5947,7 @@ function P3SObsPrev({
 function Plan3DStudio({
   job,
   onClose,
-  currentUser,
-  onSwitch
+  currentUser
 }) {
   const isMobile = p3sUseMedia("(max-width: 860px)");
   const coarse = p3sUseMedia("(pointer: coarse)");
@@ -5984,6 +5970,8 @@ function Plan3DStudio({
   const [, setHistTick] = React.useState(0);
   const [tool, setToolRaw] = React.useState("select");
   const [view3d, setView3d] = React.useState(false);
+  const [sysOpen, setSysOpen] = React.useState(false);
+  const sysT = React.useRef(null);
   const [sel, setSel] = React.useState(null);
   const [selVert, setSelVert] = React.useState(null);
   const [selBlk, setSelBlk] = React.useState(null);
@@ -7489,23 +7477,6 @@ function Plan3DStudio({
       ok: "ปิดโดยไม่บันทึก"
     }).then(ok => {
       if (ok) onClose();
-    });
-  };
-  const trySwitch = () => {
-    if (!onSwitch) return;
-    if (!dirty) {
-      onSwitch();
-      return;
-    }
-    window.askConfirm({
-      title: "บันทึกก่อนสลับไปแบบเก่า?",
-      body: "มีการแก้ไขที่ยังไม่ได้บันทึก — กดบันทึกแล้วสลับ งานจะไปเปิดต่อในแบบเก่าได้ครบ",
-      ok: "บันทึกแล้วสลับ"
-    }).then(ok => {
-      if (ok) {
-        doSave();
-        onSwitch();
-      }
     });
   };
   const HR = coarse ? 11 : 7;
@@ -10779,7 +10750,7 @@ function Plan3DStudio({
       className: "p3s-badge"
     }, kindTh)), roof.grp && React.createElement("span", {
       className: "p3s-note"
-    }, "\u0E2D\u0E22\u0E39\u0E48\u0E43\u0E19\u0E01\u0E25\u0E38\u0E48\u0E21\u0E2B\u0E25\u0E31\u0E07\u0E04\u0E32 ", roofs.filter(x => x.grp === roof.grp).length, " \u0E1C\u0E37\u0E19 \u2014 \u0E25\u0E32\u0E01\u0E1C\u0E37\u0E19\u0E44\u0E2B\u0E19\u0E01\u0E47\u0E22\u0E49\u0E32\u0E22\u0E44\u0E1B\u0E1E\u0E23\u0E49\u0E2D\u0E21\u0E01\u0E31\u0E19 (\u0E41\u0E01\u0E49\u0E01\u0E25\u0E38\u0E48\u0E21\u0E43\u0E19\u0E41\u0E1A\u0E1A\u0E40\u0E01\u0E48\u0E32)"), !panOnly && React.createElement(React.Fragment, null, React.createElement(P3SText, {
+    }, "\u0E2D\u0E22\u0E39\u0E48\u0E43\u0E19\u0E01\u0E25\u0E38\u0E48\u0E21\u0E2B\u0E25\u0E31\u0E07\u0E04\u0E32 ", roofs.filter(x => x.grp === roof.grp).length, " \u0E1C\u0E37\u0E19 \u2014 \u0E25\u0E32\u0E01\u0E1C\u0E37\u0E19\u0E44\u0E2B\u0E19\u0E01\u0E47\u0E22\u0E49\u0E32\u0E22\u0E44\u0E1B\u0E1E\u0E23\u0E49\u0E2D\u0E21\u0E01\u0E31\u0E19"), !panOnly && React.createElement(React.Fragment, null, React.createElement(P3SText, {
       label: "\u0E0A\u0E37\u0E48\u0E2D\u0E2B\u0E25\u0E31\u0E07\u0E04\u0E32",
       value: roof.name,
       onChange: v => patchRoof(roof.id, {
@@ -11148,7 +11119,7 @@ function Plan3DStudio({
       }, lb);
     }))), React.createElement("span", {
       className: "p3s-note"
-    }, "\u0E40\u0E2A\u0E49\u0E19\u0E1B\u0E23\u0E30\u0E1A\u0E19\u0E1C\u0E31\u0E07 = \u0E41\u0E19\u0E27\u0E42\u0E04\u0E49\u0E07 (\u0E0A\u0E34\u0E14\u0E01\u0E31\u0E19\u0E17\u0E35\u0E48\u0E02\u0E2D\u0E1A) \xB7 \u0E40\u0E2A\u0E49\u0E19\u0E2A\u0E49\u0E21 = \u0E2A\u0E31\u0E19\u0E42\u0E04\u0E49\u0E07 \xB7 \u0E15\u0E31\u0E49\u0E07\u0E21\u0E38\u0E21\u0E40\u0E2D\u0E35\u0E22\u0E07\u0E2A\u0E39\u0E07\u0E2A\u0E38\u0E14\u0E02\u0E2D\u0E07\u0E41\u0E1C\u0E07\u0E43\u0E0A\u0E49\u0E41\u0E1A\u0E1A\u0E40\u0E01\u0E48\u0E32")), !isPoly && !panOnly && React.createElement("span", {
+    }, "\u0E40\u0E2A\u0E49\u0E19\u0E1B\u0E23\u0E30\u0E1A\u0E19\u0E1C\u0E31\u0E07 = \u0E41\u0E19\u0E27\u0E42\u0E04\u0E49\u0E07 (\u0E0A\u0E34\u0E14\u0E01\u0E31\u0E19\u0E17\u0E35\u0E48\u0E02\u0E2D\u0E1A) \xB7 \u0E40\u0E2A\u0E49\u0E19\u0E2A\u0E49\u0E21 = \u0E2A\u0E31\u0E19\u0E42\u0E04\u0E49\u0E07")), !isPoly && !panOnly && React.createElement("span", {
       className: "p3s-note keep"
     }, "\u0E2B\u0E31\u0E19\u0E17\u0E34\u0E28", azTxt(roof.az), " (", p3sR(+roof.az || 180, 1), "\xB0) \xB7 \u0E25\u0E32\u0E01\u0E08\u0E38\u0E14\u0E2A\u0E49\u0E21\u0E1A\u0E19\u0E1C\u0E31\u0E07\u0E40\u0E1E\u0E37\u0E48\u0E2D\u0E2B\u0E21\u0E38\u0E19"), !wiz && React.createElement("button", {
       className: "p3s-btn wide",
@@ -12804,6 +12775,50 @@ function Plan3DStudio({
       setCalib(null);
       markSeen("fin");
     }
+  }, {
+    t: "ออกแบบระบบ · ผลผลิต",
+    k: "sys",
+    tools: [],
+    done: !!(st.sys && (st.sys.invModel || st.sys.mode === "micro")),
+    d: React.createElement("span", null, "\u0E40\u0E25\u0E37\u0E2D\u0E01\u0E2D\u0E34\u0E19\u0E40\u0E27\u0E2D\u0E23\u0E4C\u0E40\u0E15\u0E2D\u0E23\u0E4C \u0E08\u0E31\u0E14\u0E2A\u0E15\u0E23\u0E34\u0E07 \u0E14\u0E39\u0E1C\u0E25\u0E1C\u0E25\u0E34\u0E15\u0E17\u0E31\u0E49\u0E07\u0E1B\u0E35\u0E41\u0E25\u0E30\u0E40\u0E07\u0E32\u0E1A\u0E31\u0E07\u0E41\u0E1C\u0E07 \u0E41\u0E25\u0E49\u0E27\u0E2D\u0E2D\u0E01\u0E23\u0E32\u0E22\u0E07\u0E32\u0E19 \u2014 \u0E1A\u0E31\u0E19\u0E17\u0E36\u0E01\u0E43\u0E2B\u0E49\u0E40\u0E2D\u0E07\u0E17\u0E38\u0E01\u0E04\u0E23\u0E31\u0E49\u0E07\u0E17\u0E35\u0E48\u0E41\u0E01\u0E49"),
+    act: React.createElement(React.Fragment, null, (() => {
+      const S = st.sys || {},
+        inv = S.mode === "micro" ? "ไมโครอินเวอร์เตอร์" : S.invModel ? S.invModel + " × " + (S.invCount || 1) + (S.inv2Model && S.inv2Count ? " + " + S.inv2Model + " × " + S.inv2Count : "") : "ยังไม่ได้เลือก";
+      return React.createElement("div", {
+        className: "p3s-stat"
+      }, React.createElement("div", null, React.createElement("div", {
+        className: "l"
+      }, "\u0E41\u0E1C\u0E07"), React.createElement("div", {
+        className: "v"
+      }, total, " \u0E41\u0E1C\u0E07 \xB7 ", p3sR(total * (+st.wp || 650) / 1000, 100), " kWp")), React.createElement("div", null, React.createElement("div", {
+        className: "l"
+      }, "\u0E2D\u0E34\u0E19\u0E40\u0E27\u0E2D\u0E23\u0E4C\u0E40\u0E15\u0E2D\u0E23\u0E4C"), React.createElement("div", {
+        className: "v",
+        style: {
+          fontSize: 12.5
+        }
+      }, inv)));
+    })(), React.createElement("button", {
+      type: "button",
+      className: "p3s-btn pri p3s-cta",
+      disabled: !total,
+      onClick: openSys
+    }, React.createElement(P3Icon, {
+      name: "grid",
+      size: 16
+    }), React.createElement("span", {
+      className: "ct"
+    }, React.createElement("b", null, "\u0E40\u0E1B\u0E34\u0E14\u0E2B\u0E19\u0E49\u0E32\u0E2D\u0E2D\u0E01\u0E41\u0E1A\u0E1A\u0E23\u0E30\u0E1A\u0E1A"), React.createElement("small", null, "\u0E2D\u0E34\u0E19\u0E40\u0E27\u0E2D\u0E23\u0E4C\u0E40\u0E15\u0E2D\u0E23\u0E4C \xB7 \u0E2A\u0E15\u0E23\u0E34\u0E07 \xB7 \u0E1C\u0E25\u0E1C\u0E25\u0E34\u0E15 \xB7 \u0E23\u0E32\u0E22\u0E07\u0E32\u0E19"))), !total && React.createElement("span", {
+      className: "p3s-badge warn"
+    }, "\u0E22\u0E31\u0E07\u0E44\u0E21\u0E48\u0E21\u0E35\u0E41\u0E1C\u0E07 \u2014 \u0E01\u0E25\u0E31\u0E1A\u0E44\u0E1B\u0E02\u0E31\u0E49\u0E19\u0E27\u0E32\u0E07\u0E41\u0E1C\u0E07\u0E01\u0E48\u0E2D\u0E19"), mediaMsg && React.createElement("span", {
+      className: "p3s-badge warn"
+    }, mediaMsg)),
+    go: () => {
+      setToolRaw("select");
+      setDraw(null);
+      setTrace(null);
+      if (total) openSys();
+    }
   }];
   let reach = 0;
   while (reach < WIZ.length - 1 && WIZ[reach].done) reach++;
@@ -12837,7 +12852,7 @@ function Plan3DStudio({
     setWizStep(wi + 1);
     WIZ[wi + 1] && WIZ[wi + 1].go();
   };
-  const finStep = wiz && wi === WIZ.length - 1;
+  const finStep = wiz && W0.k === "fin";
   const wizCard = wiz && React.createElement("div", {
     className: "p3s-card p3s-wiz"
   }, React.createElement("div", {
@@ -13101,6 +13116,43 @@ function Plan3DStudio({
     setCamK(k);
     with3D(A => A.view(k));
   }
+  function openSys() {
+    setMediaMsg(null);
+    with3D((A, fresh) => {
+      setTimeout(() => setSysOpen(true), fresh ? 700 : 0);
+      return true;
+    });
+  }
+  function sysFlush() {
+    if (sysT.current) {
+      clearTimeout(sysT.current);
+      sysT.current = null;
+      save(JSON.parse(JSON.stringify(stRef.current)));
+    }
+  }
+  function sysChange(sys) {
+    const wp = scNum((scPanelSpec(sys) || {}).wp, 0);
+    const next = Object.assign({}, stRef.current, wp ? {
+      sys,
+      wp
+    } : {
+      sys
+    });
+    stRef.current = next;
+    setStRaw(next);
+    if (sysT.current) clearTimeout(sysT.current);
+    sysT.current = setTimeout(sysFlush, 900);
+  }
+  function sysSnap() {
+    const A = v3api.current;
+    if (!A || !A.gl) return null;
+    try {
+      A.gl.render(A.scene, A.cam);
+      return A.gl.domElement.toDataURL("image/jpeg", 0.86);
+    } catch (e) {
+      return null;
+    }
+  }
   function shotGo() {
     with3D((A, fresh) => {
       if (fresh) setTimeout(takeShot, 700);else takeShot();
@@ -13274,22 +13326,6 @@ function Plan3DStudio({
       className: "p3s-note"
     }, "\u0E40\u0E2A\u0E49\u0E19\u0E2A\u0E35\u0E2A\u0E49\u0E21\u0E1A\u0E19\u0E1F\u0E49\u0E32 = \u0E17\u0E32\u0E07\u0E40\u0E14\u0E34\u0E19\u0E02\u0E2D\u0E07\u0E14\u0E27\u0E07\u0E2D\u0E32\u0E17\u0E34\u0E15\u0E22\u0E4C\u0E17\u0E31\u0E49\u0E07\u0E27\u0E31\u0E19\u0E02\u0E2D\u0E07\u0E40\u0E14\u0E37\u0E2D\u0E19\u0E19\u0E35\u0E49 \xB7 \u0E40\u0E14\u0E37\u0E2D\u0E19\u0E18\u0E31\u0E19\u0E27\u0E32\u0E04\u0E21\u0E41\u0E14\u0E14\u0E2D\u0E49\u0E2D\u0E21\u0E43\u0E15\u0E49\u0E21\u0E32\u0E01\u0E17\u0E35\u0E48\u0E2A\u0E38\u0E14 \u0E40\u0E07\u0E32\u0E15\u0E49\u0E19\u0E44\u0E21\u0E49/\u0E2D\u0E32\u0E04\u0E32\u0E23\u0E22\u0E32\u0E27\u0E2A\u0E38\u0E14 \u2014 \u0E15\u0E23\u0E27\u0E08\u0E40\u0E14\u0E37\u0E2D\u0E19\u0E19\u0E35\u0E49\u0E44\u0E27\u0E49\u0E40\u0E2A\u0E21\u0E2D"));
   })();
-  const oldNote = onSwitch && React.createElement("div", {
-    className: "p3s-card",
-    style: {
-      background: "transparent",
-      boxShadow: "none",
-      padding: "4px 2px"
-    }
-  }, React.createElement("span", {
-    className: "p3s-note"
-  }, "\u0E2A\u0E48\u0E07\u0E2D\u0E2D\u0E01 DXF/\u0E0A\u0E38\u0E14\u0E41\u0E1A\u0E1A \xB7 \u0E2D\u0E2D\u0E01\u0E41\u0E1A\u0E1A\u0E23\u0E30\u0E1A\u0E1A\u0E44\u0E1F \xB7 \u0E42\u0E14\u0E21/\u0E01\u0E25\u0E38\u0E48\u0E21\u0E2B\u0E25\u0E31\u0E07\u0E04\u0E32/\u0E40\u0E0A\u0E37\u0E48\u0E2D\u0E21\u0E04\u0E27\u0E32\u0E21\u0E2A\u0E39\u0E07\u0E21\u0E38\u0E21 \u0E22\u0E31\u0E07\u0E2D\u0E22\u0E39\u0E48\u0E43\u0E19", React.createElement("b", null, " \u0E41\u0E1A\u0E1A\u0E40\u0E01\u0E48\u0E32"), " \u2014 \u0E02\u0E49\u0E2D\u0E21\u0E39\u0E25\u0E0A\u0E38\u0E14\u0E40\u0E14\u0E35\u0E22\u0E27\u0E01\u0E31\u0E19 \u0E2A\u0E25\u0E31\u0E1A\u0E44\u0E1B\u0E21\u0E32\u0E44\u0E14\u0E49"), React.createElement("button", {
-    className: "p3s-btn wide",
-    onClick: trySwitch
-  }, React.createElement(P3SIcon, {
-    name: "swap",
-    size: 15
-  }), "\u0E40\u0E1B\u0E34\u0E14\u0E41\u0E1A\u0E1A\u0E40\u0E01\u0E48\u0E32"));
   const axisPanel = React.createElement("div", {
     className: "p3s-card"
   }, React.createElement("span", {
@@ -13396,7 +13432,7 @@ function Plan3DStudio({
   }, "\u0E2D\u0E22\u0E32\u0E01\u0E40\u0E27\u0E49\u0E19\u0E17\u0E32\u0E07\u0E40\u0E14\u0E34\u0E19\u0E40\u0E1B\u0E47\u0E19\u0E0A\u0E48\u0E27\u0E07\u0E40\u0E17\u0E48\u0E32 \u0E46 \u0E01\u0E31\u0E19\u0E17\u0E31\u0E49\u0E07\u0E1C\u0E37\u0E19 \u0E43\u0E0A\u0E49 ", React.createElement("b", null, "\u0E08\u0E31\u0E14\u0E40\u0E1B\u0E47\u0E19\u0E01\u0E25\u0E38\u0E48\u0E21 + \u0E40\u0E27\u0E49\u0E19\u0E17\u0E32\u0E07\u0E40\u0E14\u0E34\u0E19"), " \u0E43\u0E19\u0E01\u0E32\u0E23\u0E4C\u0E14\u0E41\u0E1C\u0E07\u0E02\u0E2D\u0E07\u0E2B\u0E25\u0E31\u0E07\u0E04\u0E32\u0E41\u0E17\u0E19"));
   let sideBody;
   const cardRoof = wiz && wi === 3 ? null : selRoof;
-  if (finStep) sideBody = sunPanel;else if (view3d) sideBody = React.createElement(React.Fragment, null, sunPanel, cardRoof ? roofPanelBody(cardRoof) : null);else if (tool === "bg") sideBody = bgPanel;else if (tool === "axis") sideBody = wiz ? null : axisPanel;else if (tool === "walk") sideBody = React.createElement(React.Fragment, null, walkPanel, cardRoof ? roofPanelBody(cardRoof) : null);else if (cardRoof) sideBody = roofPanelBody(cardRoof);else if (selObs) sideBody = obsPanelBody(selObs);else if (selMeas) sideBody = measPanelBody(selMeas);else if (tool === "roof") sideBody = React.createElement("div", {
+  if (finStep) sideBody = sunPanel;else if (wiz && W0.k === "sys") sideBody = null;else if (view3d) sideBody = React.createElement(React.Fragment, null, sunPanel, cardRoof ? roofPanelBody(cardRoof) : null);else if (tool === "bg") sideBody = bgPanel;else if (tool === "axis") sideBody = wiz ? null : axisPanel;else if (tool === "walk") sideBody = React.createElement(React.Fragment, null, walkPanel, cardRoof ? roofPanelBody(cardRoof) : null);else if (cardRoof) sideBody = roofPanelBody(cardRoof);else if (selObs) sideBody = obsPanelBody(selObs);else if (selMeas) sideBody = measPanelBody(selMeas);else if (tool === "roof") sideBody = React.createElement("div", {
     className: "p3s-card"
   }, React.createElement("span", {
     className: "p3s-ttl2"
@@ -13731,7 +13767,17 @@ function Plan3DStudio({
       display: "flex",
       flexDirection: "column"
     }
-  }, React.createElement("style", null, P3_CSS + P3S_CSS), mapOpen && React.createElement(P3MapPicker, {
+  }, React.createElement("style", null, P3_CSS + P3S_CSS), sysOpen && typeof SolarWorkspace === "function" && React.createElement(SolarWorkspace, {
+    job: job,
+    st: st,
+    sys: st.sys || suBlankSys(),
+    snap: sysSnap,
+    onChange: sysChange,
+    onClose: () => {
+      sysFlush();
+      setSysOpen(false);
+    }
+  }), mapOpen && React.createElement(P3MapPicker, {
     initial: st.baseMap ? {
       lat: st.baseMap.lat,
       lng: st.baseMap.lng
@@ -13787,11 +13833,7 @@ function Plan3DStudio({
     title: "\u0E1A\u0E31\u0E19\u0E17\u0E36\u0E01 (Ctrl+S)"
   }, React.createElement(P3Icon, {
     name: justSaved && !dirty ? "check" : "save"
-  }), isMobile ? "" : dirty ? "บันทึก" : justSaved ? "บันทึกแล้ว" : "บันทึกแล้ว"), !isMobile && onSwitch && React.createElement("button", {
-    className: "p3s-btn ghost",
-    onClick: trySwitch,
-    title: "\u0E40\u0E1B\u0E34\u0E14\u0E15\u0E31\u0E27\u0E41\u0E01\u0E49\u0E41\u0E1A\u0E1A\u0E40\u0E01\u0E48\u0E32 (\u0E02\u0E49\u0E2D\u0E21\u0E39\u0E25\u0E0A\u0E38\u0E14\u0E40\u0E14\u0E35\u0E22\u0E27\u0E01\u0E31\u0E19)"
-  }, "\u0E41\u0E1A\u0E1A\u0E40\u0E01\u0E48\u0E32")), React.createElement("div", {
+  }), isMobile ? "" : dirty ? "บันทึก" : justSaved ? "บันทึกแล้ว" : "บันทึกแล้ว")), React.createElement("div", {
     className: "p3s-body"
   }, React.createElement("div", {
     ref: stageRef,
@@ -14184,20 +14226,10 @@ function Plan3DStudio({
       flex: 1,
       textAlign: "right"
     }
-  }, sheetMin ? "ขยาย ▲" : "ย่อ ▼")), sideBody, isMobile && oldNote, !isMobile && !sel && tool !== "bg" && !wiz && oldNote, wizNav)));
+  }, sheetMin ? "ขยาย ▲" : "ย่อ ▼")), sideBody, wizNav)));
 }
 function Plan3DEntry(props) {
-  const [ver, setVer] = React.useState(p3sPref);
-  const sw = v => {
-    p3sSetPref(v);
-    setVer(v);
-  };
-  if (ver === "v1" || typeof Plan3DStudio !== "function") return React.createElement(Plan3DEditor, _extends({}, props, {
-    onSwitch: () => sw("v2")
-  }));
-  return React.createElement(Plan3DStudio, _extends({}, props, {
-    onSwitch: () => sw("v1")
-  }));
+  return React.createElement(Plan3DStudio, props);
 }
 Object.assign(window, {
   Plan3DEntry,
