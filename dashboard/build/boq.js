@@ -1767,6 +1767,7 @@ function BOQEditor({
       })
     }));
   };
+  const pipe3dRaw = React.useMemo(() => window.BOQ.pipeFromPlan ? window.BOQ.pipeFromPlan(plan3d) : null, [plan3d]);
   const [measOpen, setMeasOpen] = React.useState(null);
   const measFor = kinds => meas3d.filter(m => kinds.indexOf(m.kind || "other") >= 0 || (m.kind || "other") === "other");
   const measTargets = React.useMemo(() => {
@@ -1999,7 +2000,7 @@ function BOQEditor({
       count: kits.reduce((n, k) => n + kitCount(k), 0)
     });
   });
-  const kitShown = isHome ? kitSections.filter(sc => sc.sec === "board").map(sc => Object.assign({}, sc, {
+  const kitShown = isHome ? kitSections.filter(sc => sc.sec === "board" || sc.sec === "water" && pipe3dRaw).map(sc => Object.assign({}, sc, {
     hint: "ตู้ไฟของงานบ้าน — คิดแบบงานโครงการ: เบรกเกอร์ตามกระแสอินเวอร์เตอร์ (RCBO 100mA ขนาดแรกที่ ≥ 1.25 × กระแส — 1 เฟสถึง 50 A · 3 เฟสถึง 63 A เกินนั้นใช้ MCCB · อินเวอร์เตอร์ตัวเดียวไม่มีเมนแยก) · SPD Type 2 กันหลังด้วย MCB 32A · ฟิวส์ DC ตาม Isc/Voc ของสตริง · ราคาดึงจากคลังเหมือนวัสดุอื่น"
   })) : kitSections;
   const PRICE_DEF = {
@@ -2433,6 +2434,57 @@ function BOQEditor({
     "อุปกรณ์มอนิเตอร์": "#6D28D9"
   };
   const stockItems = stock && stock.items || [];
+  const pipe3d = React.useMemo(() => {
+    const r = pipe3dRaw;
+    if (!r) return null;
+    const KW = {
+      pipe: /^ท่อ\s*PP-?R/i,
+      e90: /ข้องอ\s*90(?!.*เกลียว)/,
+      e45: /ข้องอ\s*45/,
+      joint: /ข้อต่อตรง/,
+      tee: /^สามทาง(?!.*เกลียว)/,
+      telb: /ข้องอเกลียวใน/,
+      cap: /ฝาครอบ|ฝาปิด/,
+      clamp: /แคลมป์|กิ๊บ/,
+      tap: /ก๊อก/
+    };
+    const MM = {
+      '1/2"': 20,
+      '3/4"': 25,
+      '1"': 32,
+      '1-1/4"': 40,
+      '1-1/2"': 50,
+      '2"': 63
+    };
+    const inch = sz => sz.replace(/"/g, "").replace("-", " ");
+    const resolve = it => {
+      const want = window.BOQ.matKey(it.name);
+      if (stockItems.some(s => window.BOQ.matKey(s.name || "") === want)) return it.name;
+      const i0 = inch(it.size).replace(/[/]/g, "\\/"),
+        sizeRe = new RegExp("(^|[^\\d/])" + i0 + "\\s*(นิ้ว|\")");
+      const c = stockItems.map(s => s.name || "").filter(n => KW[it.kind].test(n) && (it.kind === "tap" ? /ก๊อก/.test(n) && sizeRe.test(n) : sizeRe.test(n)));
+      if (!c.length) return it.name;
+      return c.find(n => new RegExp("D" + MM[it.size] + "\\b").test(n)) || c[0];
+    };
+    return Object.assign({}, r, {
+      items: r.items.map(it => Object.assign({}, it, {
+        name: resolve(it)
+      }))
+    });
+  }, [pipe3dRaw, stockItems]);
+  const pipeRowsKey = rows => (rows || []).map(x => window.BOQ.matKey(x.name) + "=" + +x.qty).sort().join("|");
+  const pipe3dSame = !!pipe3d && pipeRowsKey(pipe3d.items) === pipeRowsKey(((project.pipe || {}).extra || []).filter(x => x.p3));
+  const applyPipe3d = () => {
+    if (!pipe3d) return;
+    setKit("pipe", "extra", ((project.pipe || {}).extra || []).filter(x => !x.p3).concat(pipe3d.items.map(it => Object.assign({
+      name: it.name,
+      qty: it.qty,
+      unit: it.unit,
+      p3: 1
+    }, pipeOptions.some(o => o.value === it.name) ? {} : {
+      custom: true
+    }))));
+  };
   const canEditPrice = !!(priceMap && stock && stock.upsertItem && window.saveMatPrice);
   const [editPx, setEditPx] = React.useState(null);
   const isService = grp => (window.BOQ.SERVICE_GROUPS || []).indexOf(grp) >= 0;
@@ -8359,6 +8411,16 @@ function BOQEditor({
     }));
     const extraList = (stateKey, ofWhat, small, opts) => {
       const options = opts || allMatOptions;
+      const well = {
+        background: "var(--surface2)",
+        boxShadow: "var(--shadow-inset)",
+        border: "none",
+        height: 34,
+        boxSizing: "border-box"
+      };
+      const exSel = Object.assign({}, cabSelStyle, well),
+        exNum = Object.assign({}, numStyle, cabSelStyle, well),
+        exIn = Object.assign({}, inputStyle, cabSelStyle, well);
       const autoR = (st[stateKey] || []).filter(x => x.auto);
       const extra = (st[stateKey] || []).filter(x => !x.auto);
       const setExtra = v => setKit(k.key, stateKey, autoR.concat(v));
@@ -8375,12 +8437,12 @@ function BOQEditor({
         autoFocus: true,
         value: x.name || "",
         placeholder: "พิมพ์ชื่อ อุปกรณ์ประกอบ " + ofWhat,
-        style: Object.assign({}, inputStyle, cabSelStyle),
+        style: exIn,
         onChange: upd(i, "name")
       }) : React.createElement(Dropdown, {
         value: x.name || "",
         onChange: v => pickName(i, v),
-        style: cabSelStyle,
+        style: exSel,
         placeholder: "เลือกจากคลัง — " + ofWhat,
         options: options,
         addable: true,
@@ -8435,12 +8497,12 @@ function BOQEditor({
         min: 0,
         value: x.qty != null ? x.qty : "",
         placeholder: "\u0E08\u0E33\u0E19\u0E27\u0E19",
-        style: Object.assign({}, numStyle, cabSelStyle),
+        style: exNum,
         onChange: upd(i, "qty")
       }), React.createElement("input", {
         value: x.unit || "",
         placeholder: "\u0E2B\u0E19\u0E48\u0E27\u0E22",
-        style: Object.assign({}, inputStyle, cabSelStyle),
+        style: exIn,
         onChange: upd(i, "unit")
       }), React.createElement("button", {
         className: "bq-x",
@@ -8455,7 +8517,7 @@ function BOQEditor({
           display: "grid",
           gridTemplateColumns: "minmax(0,1fr) 72px 62px 34px",
           gap: 7,
-          alignItems: "center"
+          alignItems: "start"
         }
       }, React.createElement("span", {
         style: {
@@ -8469,15 +8531,18 @@ function BOQEditor({
         min: 0,
         value: x.qty != null ? x.qty : "",
         placeholder: "\u0E08\u0E33\u0E19\u0E27\u0E19",
-        style: Object.assign({}, numStyle, cabSelStyle),
+        style: exNum,
         onChange: upd(i, "qty")
       }), React.createElement("input", {
         value: x.unit || "",
         placeholder: "\u0E2B\u0E19\u0E48\u0E27\u0E22",
-        style: Object.assign({}, inputStyle, cabSelStyle),
+        style: exIn,
         onChange: upd(i, "unit")
       }), React.createElement("button", {
         className: "bq-x",
+        style: {
+          height: 34
+        },
         onClick: () => setExtra(extra.filter((_, j) => j !== i)),
         title: "\u0E25\u0E1A"
       }, React.createElement(Icon, {
@@ -8747,7 +8812,50 @@ function BOQEditor({
         name: "plus",
         size: 12,
         color: "currentColor"
-      }), " ", it.name))), extraList("extra", k.th, false, k.key === "pipe" ? pipeOptions : null));
+      }), " ", it.name))), k.key === "pipe" && pipe3d && React.createElement("div", {
+        className: "bq-p3",
+        "data-ok": pipe3dSame ? "1" : "0",
+        style: {
+          marginTop: 10
+        }
+      }, React.createElement("div", {
+        className: "bq-p3-hd"
+      }, React.createElement("span", {
+        className: "ic"
+      }, React.createElement(Icon, {
+        name: pipe3dSame ? "check" : "grid",
+        size: 15,
+        color: "currentColor",
+        sw: pipe3dSame ? 2.6 : 2
+      })), React.createElement("div", {
+        className: "tt"
+      }, React.createElement("b", null, "\u0E17\u0E48\u0E2D\u0E19\u0E49\u0E33 PPR \u0E08\u0E32\u0E01\u0E41\u0E1A\u0E1A 3D"), React.createElement("span", null, pipe3dSame ? "อุปกรณ์ประกอบด้านล่างตรงกับแบบแล้ว" : "ถอดท่อ ข้อต่อ แคลมป์ และก๊อกตามที่วาดไว้ — กดใช้แล้วแก้ต่อในรายการด้านล่างได้")), React.createElement("div", {
+        className: "sum"
+      }, pipe3d.sizes.map((g, i) => React.createElement(React.Fragment, {
+        key: g.size
+      }, i > 0 && React.createElement("i", null, "\xB7"), g.size, " ", React.createElement("b", null, g.len.toLocaleString()), " \u0E21.")), React.createElement("i", null, "\xB7"), "\u0E01\u0E4A\u0E2D\u0E01 ", React.createElement("b", null, pipe3d.sizes.reduce((t, g) => t + g.taps, 0)), " \u0E08\u0E38\u0E14"), !pipe3dSame && React.createElement("button", {
+        type: "button",
+        className: "go",
+        onClick: applyPipe3d
+      }, React.createElement(Icon, {
+        name: "download",
+        size: 13,
+        color: "#fff"
+      }), " \u0E43\u0E0A\u0E49\u0E23\u0E32\u0E22\u0E01\u0E32\u0E23\u0E19\u0E35\u0E49")), !pipe3dSame && React.createElement("table", {
+        className: "bq-p3-tb"
+      }, React.createElement("thead", null, React.createElement("tr", null, React.createElement("th", null, "\u0E23\u0E32\u0E22\u0E01\u0E32\u0E23"), React.createElement("th", {
+        className: "n"
+      }, "\u0E08\u0E33\u0E19\u0E27\u0E19"))), React.createElement("tbody", null, pipe3d.items.map((it, i) => React.createElement("tr", {
+        key: i
+      }, React.createElement("td", null, it.name), React.createElement("td", {
+        className: "n"
+      }, React.createElement("b", null, it.qty.toLocaleString()), " ", it.unit))))), +st.ppr34 > 0 && pipe3d.items.some(it => it.kind === "pipe") && React.createElement("div", {
+        className: "warn"
+      }, React.createElement(Icon, {
+        name: "alert",
+        size: 13,
+        color: "currentColor"
+      }), " \u0E0A\u0E48\u0E2D\u0E07 \"\u0E17\u0E48\u0E2D PPR 3/4\"\" \u0E14\u0E49\u0E32\u0E19\u0E1A\u0E19\u0E01\u0E23\u0E2D\u0E01\u0E44\u0E27\u0E49 ", st.ppr34, " \u0E40\u0E2A\u0E49\u0E19 \u2014 \u0E19\u0E31\u0E1A\u0E40\u0E1E\u0E34\u0E48\u0E21\u0E08\u0E32\u0E01\u0E17\u0E48\u0E2D\u0E43\u0E19\u0E41\u0E1A\u0E1A \u0E16\u0E49\u0E32\u0E0B\u0E49\u0E33\u0E43\u0E2B\u0E49\u0E25\u0E1A\u0E0A\u0E48\u0E2D\u0E07\u0E19\u0E31\u0E49\u0E19\u0E2D\u0E2D\u0E01")), extraList("extra", k.th, false, k.key === "pipe" ? pipeOptions : null));
     })());
   })))), React.createElement(BoqSection, _extends({
     title: "\u0E02\u0E19\u0E2A\u0E48\u0E07 & \u0E1A\u0E23\u0E34\u0E2B\u0E32\u0E23\u0E08\u0E31\u0E14\u0E01\u0E32\u0E23\u0E2B\u0E19\u0E49\u0E32\u0E07\u0E32\u0E19",

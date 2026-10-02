@@ -933,6 +933,7 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
     .map((r) => +r.panels + "x" + +r.count + (r.orient === "landscape" ? "L" : "")).sort().join(",");
   const rail3dSame = !!rail3d && rowsKey(rail3d.rows) === rowsKey(b.rows);
   const applyRail3d = () => { if (rail3d) setB((p) => Object.assign({}, p, { rows: rail3d.rows.map((r) => (r.orient === "landscape" ? { panels: r.panels, count: r.count, orient: "landscape" } : { panels: r.panels, count: r.count })) })); };
+  const pipe3dRaw = React.useMemo(() => (window.BOQ.pipeFromPlan ? window.BOQ.pipeFromPlan(plan3d) : null), [plan3d]);   // ท่อน้ำในแบบ 3D (ยังไม่เทียบชื่อคลัง)
   const [measOpen, setMeasOpen] = React.useState(null);   // หมวดที่กดเปิดโมดัลมา (กรองรายการให้ตรงงานที่ทำอยู่)
   const measFor = (kinds) => meas3d.filter((m) => kinds.indexOf(m.kind || "other") >= 0 || (m.kind || "other") === "other");
   const measTargets = React.useMemo(() => {
@@ -1063,7 +1064,7 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
     return Object.assign({}, s, { kits: kits, count: kits.reduce((n, k) => n + kitCount(k), 0) });
   });
   // งานบ้านมีเฉพาะหมวดตู้ไฟ (คิดอุปกรณ์อัตโนมัติแบบงานโครงการ) · ระบบน้ำมีแต่งานโครงการ
-  const kitShown = isHome ? kitSections.filter((sc) => sc.sec === "board")
+  const kitShown = isHome ? kitSections.filter((sc) => sc.sec === "board" || (sc.sec === "water" && pipe3dRaw))
     .map((sc) => Object.assign({}, sc, { hint: "ตู้ไฟของงานบ้าน — คิดแบบงานโครงการ: เบรกเกอร์ตามกระแสอินเวอร์เตอร์ (RCBO 100mA ขนาดแรกที่ ≥ 1.25 × กระแส — 1 เฟสถึง 50 A · 3 เฟสถึง 63 A เกินนั้นใช้ MCCB · อินเวอร์เตอร์ตัวเดียวไม่มีเมนแยก) · SPD Type 2 กันหลังด้วย MCB 32A · ฟิวส์ DC ตาม Isc/Voc ของสตริง · ราคาดึงจากคลังเหมือนวัสดุอื่น" })) : kitSections;
 
   // ── ราคาขาย & ส่วนลด ──
@@ -1385,6 +1386,31 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
 
   // ── Accessories: เพิ่มของ / ดึงจากราคาวัสดุ + คลังสินค้า ──
   const stockItems = (stock && stock.items) || [];
+  /* ท่อ PPR + ก๊อกจากแบบ 3D — ชื่อมาตรฐานเทียบกับของในคลังก่อน (ขนาดตรง + ชนิดตรง) ราคาจะได้ขึ้นเอง
+     กดใช้ = แทนแถวที่เคยดึงจากแบบ (ติด p3) ในอุปกรณ์ประกอบท่อน้ำ · แถวที่กรอกเองไม่ถูกแตะ */
+  const pipe3d = React.useMemo(() => {
+    const r = pipe3dRaw;
+    if (!r) return null;
+    const KW = { pipe: /^ท่อ\s*PP-?R/i, e90: /ข้องอ\s*90(?!.*เกลียว)/, e45: /ข้องอ\s*45/, joint: /ข้อต่อตรง/, tee: /^สามทาง(?!.*เกลียว)/,
+      telb: /ข้องอเกลียวใน/, cap: /ฝาครอบ|ฝาปิด/, clamp: /แคลมป์|กิ๊บ/, tap: /ก๊อก/ };
+    const MM = { '1/2"': 20, '3/4"': 25, '1"': 32, '1-1/4"': 40, '1-1/2"': 50, '2"': 63 };
+    const inch = (sz) => sz.replace(/"/g, "").replace("-", " ");
+    const resolve = (it) => {
+      const want = window.BOQ.matKey(it.name);
+      if (stockItems.some((s) => window.BOQ.matKey(s.name || "") === want)) return it.name;
+      const i0 = inch(it.size).replace(/[/]/g, "\\/"), sizeRe = new RegExp("(^|[^\\d/])" + i0 + "\\s*(นิ้ว|\")");
+      const c = stockItems.map((s) => s.name || "").filter((n) => KW[it.kind].test(n) && (it.kind === "tap" ? /ก๊อก/.test(n) && sizeRe.test(n) : sizeRe.test(n)));
+      if (!c.length) return it.name;
+      return c.find((n) => new RegExp("D" + MM[it.size] + "\\b").test(n)) || c[0];
+    };
+    return Object.assign({}, r, { items: r.items.map((it) => Object.assign({}, it, { name: resolve(it) })) });
+  }, [pipe3dRaw, stockItems]);
+  const pipeRowsKey = (rows) => (rows || []).map((x) => window.BOQ.matKey(x.name) + "=" + +x.qty).sort().join("|");
+  const pipe3dSame = !!pipe3d && pipeRowsKey(pipe3d.items) === pipeRowsKey(((project.pipe || {}).extra || []).filter((x) => x.p3));
+  const applyPipe3d = () => {
+    if (!pipe3d) return;
+    setKit("pipe", "extra", ((project.pipe || {}).extra || []).filter((x) => !x.p3).concat(pipe3d.items.map((it) => Object.assign({ name: it.name, qty: it.qty, unit: it.unit, p3: 1 }, pipeOptions.some((o) => o.value === it.name) ? {} : { custom: true }))));
+  };
 
   /* ── แก้ราคาได้จากในใบถอดของเลย ──
      เขียนลงคลังสินค้าเหมือนหน้า "ราคา BOQ" (ต้นทางเดียว) แก้ที่ไหนก็เห็นตรงกันทั้งสองที่
@@ -4055,6 +4081,8 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
                    หมวดที่แยกเป็นตู้ เก็บแยกคีย์ละตู้ ของในตู้ AC ก็อยู่แค่ตู้ AC ไม่ปนตู้อื่น */
                 const extraList = (stateKey, ofWhat, small, opts) => {
                   const options = opts || allMatOptions;
+                  const well = { background: "var(--surface2)", boxShadow: "var(--shadow-inset)", border: "none", height: 34, boxSizing: "border-box" };
+                  const exSel = Object.assign({}, cabSelStyle, well), exNum = Object.assign({}, numStyle, cabSelStyle, well), exIn = Object.assign({}, inputStyle, cabSelStyle, well);
                   // แถวที่ระบบคิดให้ (auto) โชว์แยกด้านบน — รายการนี้เป็นของที่กรอกเองล้วน
                   const autoR = (st[stateKey] || []).filter((x) => x.auto);
                   const extra = (st[stateKey] || []).filter((x) => !x.auto);
@@ -4064,8 +4092,8 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
                   // เลือกจากคลัง → เติมหน่วยให้ตามที่คลังตั้งไว้
                   const pickName = (i, v) => patch(i, Object.assign({ name: v }, matInfo[v] && matInfo[v].unit ? { unit: matInfo[v].unit } : {}));
                   const nameCell = (x, i) => (x.custom
-                    ? <input autoFocus value={x.name || ""} placeholder={"พิมพ์ชื่อ อุปกรณ์ประกอบ " + ofWhat} style={Object.assign({}, inputStyle, cabSelStyle)} onChange={upd(i, "name")} />
-                    : <Dropdown value={x.name || ""} onChange={(v) => pickName(i, v)} style={cabSelStyle}
+                    ? <input autoFocus value={x.name || ""} placeholder={"พิมพ์ชื่อ อุปกรณ์ประกอบ " + ofWhat} style={exIn} onChange={upd(i, "name")} />
+                    : <Dropdown value={x.name || ""} onChange={(v) => pickName(i, v)} style={exSel}
                         placeholder={"เลือกจากคลัง — " + ofWhat} options={options}
                         addable onAdd={(v) => patch(i, { name: v, custom: true })} />);
                   const customToggle = (x, i) => (
@@ -4084,21 +4112,21 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
                           <div key={i} style={{ display: "flex", flexDirection: "column", gap: 5 }}>
                             {nameCell(x, i)}
                             <div style={{ display: "grid", gridTemplateColumns: "minmax(0,1fr) minmax(0,1fr) 30px", gap: 5, alignItems: "center" }}>
-                              <input type="number" min={0} value={x.qty != null ? x.qty : ""} placeholder="จำนวน" style={Object.assign({}, numStyle, cabSelStyle)} onChange={upd(i, "qty")} />
-                              <input value={x.unit || ""} placeholder="หน่วย" style={Object.assign({}, inputStyle, cabSelStyle)} onChange={upd(i, "unit")} />
+                              <input type="number" min={0} value={x.qty != null ? x.qty : ""} placeholder="จำนวน" style={exNum} onChange={upd(i, "qty")} />
+                              <input value={x.unit || ""} placeholder="หน่วย" style={exIn} onChange={upd(i, "unit")} />
                               <button className="bq-x" onClick={() => setExtra(extra.filter((_, j) => j !== i))} title="ลบ"><Icon name="x" size={13} /></button>
                             </div>
                             {customToggle(x, i)}
                           </div>
                         ) : (
-                          <div key={i} style={{ display: "grid", gridTemplateColumns: "minmax(0,1fr) 72px 62px 34px", gap: 7, alignItems: "center" }}>
+                          <div key={i} style={{ display: "grid", gridTemplateColumns: "minmax(0,1fr) 72px 62px 34px", gap: 7, alignItems: "start" }}>
                             <span style={{ minWidth: 0, display: "flex", flexDirection: "column", gap: 3 }}>
                               {nameCell(x, i)}
                               {customToggle(x, i)}
                             </span>
-                            <input type="number" min={0} value={x.qty != null ? x.qty : ""} placeholder="จำนวน" style={Object.assign({}, numStyle, cabSelStyle)} onChange={upd(i, "qty")} />
-                            <input value={x.unit || ""} placeholder="หน่วย" style={Object.assign({}, inputStyle, cabSelStyle)} onChange={upd(i, "unit")} />
-                            <button className="bq-x" onClick={() => setExtra(extra.filter((_, j) => j !== i))} title="ลบ"><Icon name="x" size={13} /></button>
+                            <input type="number" min={0} value={x.qty != null ? x.qty : ""} placeholder="จำนวน" style={exNum} onChange={upd(i, "qty")} />
+                            <input value={x.unit || ""} placeholder="หน่วย" style={exIn} onChange={upd(i, "unit")} />
+                            <button className="bq-x" style={{ height: 34 }} onClick={() => setExtra(extra.filter((_, j) => j !== i))} title="ลบ"><Icon name="x" size={13} /></button>
                           </div>
                         )
                       ))}
@@ -4226,6 +4254,32 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
                                 <Icon name="plus" size={12} color="currentColor" /> {it.name}
                               </button>
                             ))}
+                          </div>
+                        )}
+                        {k.key === "pipe" && pipe3d && (
+                          <div className="bq-p3" data-ok={pipe3dSame ? "1" : "0"} style={{ marginTop: 10 }}>
+                            <div className="bq-p3-hd">
+                              <span className="ic"><Icon name={pipe3dSame ? "check" : "grid"} size={15} color="currentColor" sw={pipe3dSame ? 2.6 : 2} /></span>
+                              <div className="tt">
+                                <b>ท่อน้ำ PPR จากแบบ 3D</b>
+                                <span>{pipe3dSame ? "อุปกรณ์ประกอบด้านล่างตรงกับแบบแล้ว" : "ถอดท่อ ข้อต่อ แคลมป์ และก๊อกตามที่วาดไว้ — กดใช้แล้วแก้ต่อในรายการด้านล่างได้"}</span>
+                              </div>
+                              <div className="sum">{pipe3d.sizes.map((g, i) => <React.Fragment key={g.size}>{i > 0 && <i>·</i>}{g.size} <b>{g.len.toLocaleString()}</b> ม.</React.Fragment>)}<i>·</i>ก๊อก <b>{pipe3d.sizes.reduce((t, g) => t + g.taps, 0)}</b> จุด</div>
+                              {!pipe3dSame && (
+                                <button type="button" className="go" onClick={applyPipe3d}>
+                                  <Icon name="download" size={13} color="#fff" /> ใช้รายการนี้
+                                </button>
+                              )}
+                            </div>
+                            {!pipe3dSame && (
+                              <table className="bq-p3-tb">
+                                <thead><tr><th>รายการ</th><th className="n">จำนวน</th></tr></thead>
+                                <tbody>{pipe3d.items.map((it, i) => <tr key={i}><td>{it.name}</td><td className="n"><b>{it.qty.toLocaleString()}</b> {it.unit}</td></tr>)}</tbody>
+                              </table>
+                            )}
+                            {+st.ppr34 > 0 && pipe3d.items.some((it) => it.kind === "pipe") && (
+                              <div className="warn"><Icon name="alert" size={13} color="currentColor" /> ช่อง "ท่อ PPR 3/4&quot;" ด้านบนกรอกไว้ {st.ppr34} เส้น — นับเพิ่มจากท่อในแบบ ถ้าซ้ำให้ลบช่องนั้นออก</div>
+                            )}
                           </div>
                         )}
                         {/* ท่อน้ำ ใช้รายการข้อต่อ PPR ของตัวเอง (แยกชิปตามขนาดท่อ) แทนที่จะไล่หาจากของทั้งคลัง */}

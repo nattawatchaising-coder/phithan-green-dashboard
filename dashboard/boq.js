@@ -1189,6 +1189,48 @@
     PPR_SIZES.forEach((sz) => PPR_FIT_KINDS.forEach((k) => out.push({ name: k + " PPR " + sz, unit: "ชิ้น", group: "PPR " + sz })));
     return out;
   }
+  /* ── ท่อ PPR + ก๊อกน้ำจากแบบ 3D (plan3d.obstacles ชนิด pipe) ──
+     ท่อ 4 ม./เส้น เผื่อ 10% (รวมท่อตั้งขึ้นก๊อก) · ข้อต่อตรงทุก 4 ม. · ข้องอตามมุมเลี้ยว (< 60° = 45°) · ฝาปิดปลาย 1 ต่อเส้น
+     · แคลมป์ทุก ~1.2 ม. (ตรงกับ Rail ที่วางใน 3D) · ก๊อก 1 จุด = สามทาง + ข้องอเกลียวใน + ก๊อกบอลสนาม
+     คืนชื่อมาตรฐาน (ตระกูล pipeFittings) + kind/size — หน้า BOQ เทียบชื่อในคลังให้ทีหลัง */
+  const PPR_MM = { 20: '1/2"', 25: '3/4"', 32: '1"', 40: '1-1/4"', 50: '1-1/2"', 63: '2"' };
+  function pipeFromPlan(plan) {
+    const obs = ((plan && plan.obstacles) || []).filter((o) => o && o.p3sType === "pipe");
+    if (!obs.length) return null;
+    const by = {};
+    obs.forEach((o) => {
+      const mm = Math.round((+o.d || 0.025) * 1000), sz = PPR_MM[mm] || '3/4"';
+      const x = +o.x || 0, z = +o.z || 0;
+      let P;
+      if (Array.isArray(o.pts) && o.pts.length >= 2) P = o.pts.map((q) => ({ x: x + (+q.x || 0), z: z + (+q.z || 0) }));
+      else { const L = (+o.w || 1) / 2, a = (+o.rot || 0) * Math.PI / 180; P = [{ x: x - Math.cos(a) * L, z: z - Math.sin(a) * L }, { x: x + Math.cos(a) * L, z: z + Math.sin(a) * L }]; }
+      let len = 0, e90 = 0, e45 = 0;
+      for (let i = 1; i < P.length; i++) len += Math.hypot(P[i].x - P[i - 1].x, P[i].z - P[i - 1].z);
+      for (let i = 1; i < P.length - 1; i++) {
+        const ax = P[i].x - P[i - 1].x, az = P[i].z - P[i - 1].z, bx = P[i + 1].x - P[i].x, bz = P[i + 1].z - P[i].z;
+        const la = Math.hypot(ax, az), lb = Math.hypot(bx, bz); if (la < 1e-3 || lb < 1e-3) continue;
+        const t = Math.acos(Math.max(-1, Math.min(1, (ax * bx + az * bz) / (la * lb)))) * 180 / Math.PI;
+        if (t >= 60) e90++; else if (t >= 15) e45++;
+      }
+      const g = by[sz] || (by[sz] = { size: sz, len: 0, pipes: 0, taps: 0, e90: 0, e45: 0, joints: 0, clamps: 0 });
+      g.len += len; g.pipes++; g.taps += (o.taps || []).length; g.e90 += e90; g.e45 += e45;
+      g.joints += Math.max(0, Math.ceil(len / 4) - 1); g.clamps += Math.ceil(len / 1.2) + 1;
+    });
+    const sizes = PPR_SIZES.filter((s) => by[s]).map((s) => by[s]), items = [];
+    sizes.forEach((g) => {
+      const it = (kind, name, qty, unit) => { if (qty > 0) items.push({ kind, size: g.size, name, qty, unit }); };
+      it("pipe", "ท่อ PPR " + g.size, Math.ceil((g.len + g.taps * 0.2) * 1.1 / 4), "เส้น");
+      it("e90", "ข้องอ 90° PPR " + g.size, g.e90, "ชิ้น");
+      it("e45", "ข้องอ 45° PPR " + g.size, g.e45, "ชิ้น");
+      it("joint", "ข้อต่อตรง PPR " + g.size, g.joints, "ชิ้น");
+      it("tee", "สามทาง PPR " + g.size, g.taps, "ชิ้น");
+      it("telb", "ข้องอเกลียวใน 90° PPR " + g.size, g.taps, "ชิ้น");
+      it("cap", "ฝาครอบปิดปลายท่อ PPR " + g.size, g.pipes, "ชิ้น");
+      it("clamp", "แคลมป์รัดท่อ PPR " + g.size, g.clamps, "ชิ้น");
+      it("tap", "ก๊อกบอลสนาม " + g.size, g.taps, "ตัว");
+    });
+    return { sizes: sizes.map((g) => ({ size: g.size, len: Math.round(g.len * 10) / 10, pipes: g.pipes, taps: g.taps })), items };
+  }
   /* แปลง boards → items แบนราบ ให้ calcBOQ/catalog ใช้เหมือนหมวดอื่น
      ตัวตู้เองก็เป็นรายการหนึ่ง (key เดียวกับตู้) แล้วตามด้วยอุปกรณ์ในตู้นั้น */
   PROJECT_KITS.forEach((k) => {
@@ -2181,6 +2223,7 @@
     // หมวดงานโครงการ — ตู้ไฟ / ปั๊ม / ถัง / ท่อ / อุปกรณ์มอนิเตอร์
     PROJECT_KITS.forEach((k) => k.items.forEach((it) => add(k.group, it.name, it.unit)));
     pipeFittings().forEach((f) => add(G_PIPE, f.name, f.unit));       // ข้อต่อ/วาล์ว PPR ทุกขนาด
+    PPR_SIZES.forEach((sz) => { add(G_PIPE, "ท่อ PPR " + sz, "เส้น"); add(G_PIPE, "ก๊อกบอลสนาม " + sz, "ตัว"); });   // ท่อ/ก๊อกที่ถอดจากแบบ 3D
     // ACCESSORIES มาตรฐาน + เทปพันสายไฟทุกสี (1 เฟส + 3 เฟส)
     ACC_STD.forEach((n) => add("ACCESSORIES", n, "ชิ้น"));
     [...new Set([...ACC_TAPE_1P, ...ACC_TAPE_3P])].forEach((c) => add("ACCESSORIES", "เทปพันสายไฟ " + c, "ชิ้น"));
@@ -2414,7 +2457,7 @@
   window.BOQ = { PANELS, MICRO, INVERTERS, OPTIMIZERS, setOptimizers, findOptimizer, ROOF_HOOKS, ROOF_OPTIONS, CABLE_TYPES, CABLE_GROUPS, cableCategory, MATERIAL_SUBGROUPS, materialSubGroup, CABLE_POINTS, DEFAULT_CABLES, STRING_CABLE_POINTS, MICRO_CABLE_NAMES, DEFAULT_STRING_CABLES, IMC_SIZES, UPVC_SIZES, PULLBOX_SIZES, CABLE_OD, HDPE_TABLE, IMC_CONDUIT, WIRE_SIZES, WIRE_METHODS, INS_CLASSES, AMP_GROUPS, AMP_NCOND, AMP_CORES, ampColKey, DEFAULT_AMPACITY, AMPACITY, setAmpacity, WIRE_METHOD_BASE, ampTableFor, cableInsClass, cableCoreType, cableSizeNum, ampacityOf, pickWireSize, PV_WIRE_SIZES, PV_WIRE_AMP, PV_WIRE_MIN, pickPvWireSize, calcVdrop, VD_LIMIT, findPanel, findInverter, stringConfig, stringPlan, wireArea, calcWireWay, calcConduitSize, blankBOQ, mergeBOQ, setConduitDefaults, conduitDefaults, CONDUIT_SPARE_FIXED, IMC_RULE, IMC_RULE_DEF, imcRule, calcBOQ, calcStructures, matKey, qtyKey, catalog, isPvDcCable, PV_DC_COLORS, PV_DC_SPARE, pvDcLength, applyPrices, setPanels, setInverters,
     WAY_SIZES, TRAY_SIZES, PERF_SIZES, TRAY_KINDS, TRAY_KIND_KEYS, trayKindOf, trayNorm, trayAlias, hdgName,
     optimizerQty, optimizerFits, DCAC_LIMIT, WAY_PIPE_LEN, TRAY_PIPE_LEN, trayLenTxt, railLenCm, railPerTon, railName, SUPPORT_KINDS, LABOR_PRESET, PERMIT_PRESET, permitPresetFor, permitGridFee, gridAuthOf, PERMIT_ENG_TIERS, PERMIT_GRID_FEE, PERMIT_GRID_NAME,
-    COND_FIT_KINDS, WAY_FIT_KINDS, condFittings, trayFittings, PPR_SIZES, PPR_FIT_KINDS, pipeFittings,
+    COND_FIT_KINDS, WAY_FIT_KINDS, condFittings, trayFittings, PPR_SIZES, PPR_FIT_KINDS, pipeFittings, pipeFromPlan,
     STEEL_SPECS, steelName, steelBarLen, steelSel, steelOf,
     TRANSPORT_PRESET, MANAGE_PRESET, G_TRANSPORT, G_MANAGE, PROJECT_KITS, normProject, kitExtraKeys, ACC_ALLOW_PCT, ACC_ALLOW_PCT_HOME, accAllowDef, accAllowPct, VAT_RATE, PROFIT_PCT_DEF, priceBreakdown,
     TRAY_FILL_LIMIT, TRAY_DERATE, trayDerate, trayDim, trayCheck, cableCores,
