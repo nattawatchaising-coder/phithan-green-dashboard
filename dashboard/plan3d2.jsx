@@ -961,6 +961,17 @@ function p3sBuild3D(THREE, grp, st, tex) {
     add(m);
     const lp = pts3.concat([pts3[0]]).map((p) => new THREE.Vector3(p.x, p.y + 0.02, p.z));
     add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(lp), edgeMat));
+    return tris.map((t) => t.map((i) => pts3[i]));
+  };
+  /* ความสูงผิวหลังคาจริง (ตามสามเหลี่ยมที่วาด) ที่ตำแหน่ง x z — null = อยู่นอกผืน */
+  const surfY = (tris, x, z) => {
+    for (let i = 0; i < tris.length; i++) {
+      const [A, B, C] = tris[i];
+      const d = (B.z - C.z) * (A.x - C.x) + (C.x - B.x) * (A.z - C.z); if (Math.abs(d) < 1e-9) continue;
+      const a = ((B.z - C.z) * (x - C.x) + (C.x - B.x) * (z - C.z)) / d, b = ((C.z - A.z) * (x - C.x) + (A.x - C.x) * (z - C.z)) / d, c = 1 - a - b;
+      if (a > -1e-3 && b > -1e-3 && c > -1e-3) return a * A.y + b * B.y + c * C.y;
+    }
+    return null;
   };
   const wall = (foot, h) => {
     if (!(h > 0.2) || foot.length < 3) return;
@@ -993,7 +1004,8 @@ function p3sBuild3D(THREE, grp, st, tex) {
       const all = Object.assign({}, roof, { sideA: true, sideB: true, sideC: true, sideD: true });
       try { faces = p3RoofSurf(all).map((s) => s.pts); } catch (e) { faces = []; }
     }
-    faces.forEach((f) => { polyMesh(f); f.forEach((p) => eat(p.x, p.y, p.z)); });
+    let tris = [];
+    faces.forEach((f) => { tris = tris.concat(polyMesh(f) || []); f.forEach((p) => eat(p.x, p.y, p.z)); });
     if (faces.length) {
       const minY = Math.min.apply(null, faces.map((f) => Math.min.apply(null, f.map((p) => p.y))));
       wall(p3sOutline(roof), minY - 0.03);
@@ -1007,7 +1019,15 @@ function p3sBuild3D(THREE, grp, st, tex) {
     foot.forEach((f) => {
       const c = { x: f.cx, y: f.cy + yFix, z: f.cz }, U = f.u, V = f.v, n = f.n;
       const o = 0.07;
-      const P = (su, sv) => new THREE.Vector3(c.x + su * U.x + sv * V.x + n.x * o, c.y + su * U.y + sv * V.y + n.y * o, c.z + su * U.z + sv * V.z + n.z * o);
+      let lift = 0;
+      const P = (su, sv) => new THREE.Vector3(c.x + su * U.x + sv * V.x + n.x * o, c.y + su * U.y + sv * V.y + n.y * o + lift, c.z + su * U.z + sv * V.z + n.z * o);
+      // ผืนที่ต่อกับผืนอื่นอาจบิดเล็กน้อย (มุมร่วมถูกเฉลี่ย) — ยกแผงให้ทุกมุมพ้นผิวจริง ไม่จมหายในหลังคา
+      if (roof.kind === "poly" && tris.length) {
+        [[-1, -1], [1, -1], [1, 1], [-1, 1], [0, 0]].forEach(([su, sv]) => {
+          const q = P(su, sv), y = surfY(tris, q.x, q.z);
+          if (y != null && y + 0.05 > q.y) lift += y + 0.05 - q.y;
+        });
+      }
       const a = P(-1, -1), b = P(1, -1), d = P(1, 1), e = P(-1, 1);
       [a, b, d, a, d, e].forEach((v) => pos.push(v.x, v.y, v.z));
       [a, b, b, d, d, e, e, a].forEach((v) => ln.push(v.x, v.y + 0.004, v.z));
@@ -2642,11 +2662,29 @@ function Plan3DStudio({ job, onClose, currentUser, onSwitch }) {
     };
     // สถานะรอยต่อกับผืนข้าง ๆ
     const weld = isPoly && (roof.p3sFacet || pitchNow > 0.4) ? (() => { try { return p3sWeldFacets(roofs, [roof.id]); } catch (e) { return null; } })() : null;
+    /* แถวแผงขนานชายคา: หลังคาทรงอิสระที่ลาด = ขอบชายคา (ระนาบที่ไม่เป๊ะทำให้แถวตามระนาบเอียงจากชายคาได้) · ที่เหลือ = ขอบยาวสุด */
+    const alignRotFor = (r, side) => {
+      if (r.kind === "poly") {
+        const P = r.pts || [], n = P.length;
+        if (n > 2 && p3sPolyPitch(r) > 0.4) {
+          const lo = r.p3sLow != null ? ((+r.p3sLow % n) + n) % n : lowIdx, a = P[lo], b = P[(lo + 1) % n];
+          return p3sAlignRot(r, null, Math.atan2(b.z - a.z, b.x - a.x));
+        }
+        return p3sAlignRot(r, null, p3sLongEdgeAng(p3sFaces2D(r)[0].pts));
+      }
+      return p3sAlignRot(r, side, p3sLongEdgeAng(p3sOutline(r)));
+    };
     const fillRoof = () => patchRoof(roof.id, (r) => {
       let rot = 0;
-      if (r.kind === "poly") { const pl = p3PolyPlane(r); if (pl && pl.tiltCos > 0.999) rot = p3sAlignRot(r, null, p3sLongEdgeAng(p3sFaces2D(r)[0].pts)); }
+      if (r.kind === "poly") { const pl = p3PolyPlane(r); if (pl && (pl.tiltCos > 0.999 || p3sPolyPitch(r) > 0.4)) rot = alignRotFor(r); }
       return { blocks: [Object.assign(p3NewBlk(0), { orient, rot })], skips: {} };
     });
+    const blkSide = (i) => { const rc = pan && (pan.rects || []).find((x) => x.blk === i); return rc ? rc.side : null; };
+    const rot0 = blocks[0] ? +blocks[0].rot || 0 : 0;
+    const rotFit = blocks.length ? alignRotFor(roof, blkSide(0)) : 0;
+    const rotOff = blocks.length ? p3sR(rot0 - rotFit, 10) : 0;
+    const rotAll = (v, key) => patchAllBlk(roof, { rot: p3sR(v, 10) }, key);
+    const alignAll = () => patchRoof(roof.id, (r) => ({ blocks: p3sBlkStore(r).map((b, i) => Object.assign({}, b, { rot: alignRotFor(r, blkSide(i)) })) }));
     const allKeys = () => p3sQuads(roof).filter((q) => !q.slot).map((q) => q.key);
     const blkSel = tool === "panel" && selBlk != null && blocks[selBlk] ? blocks[selBlk] : null;
     const rect = blkSel && pan ? (pan.rects || []).find((x) => x.blk === selBlk) : null;
@@ -2786,6 +2824,17 @@ function Plan3DStudio({ job, onClose, currentUser, onSwitch }) {
             </div>
             <P3SNum label="เว้นรอบขอบ" unit="ม." step={0.05} min={0} max={5} value={+roof.margin || 0} onChange={(v) => patchRoof(roof.id, { margin: v }, "margin")} />
           </div>
+          {blocks.length > 0 && (
+            <div className="p3s-fld" style={{ gap: 8 }}>
+              <P3SRange label={"หมุนแผง" + (blocks.length > 1 ? " (ทุกชุด)" : "")} right={p3sR(rot0, 10) + "°"} min={-90} max={90} step={0.5} value={rot0} onChange={(v) => rotAll(v, "rotall")} />
+              <div className="p3s-row" style={{ gap: 5 }}>
+                <button className="p3s-btn" style={{ padding: "0 10px" }} onClick={() => rotAll(rot0 - 1, "rotall")}>−1°</button>
+                <button className={"p3s-btn" + (Math.abs(rotOff) > 0.3 ? " pri" : "")} style={{ flex: 1 }} onClick={alignAll}>
+                  <P3SIcon name="align" size={15} />{isPoly && pitchNow > 0.4 ? "ขนานชายคา" : "ขนานขอบยาว"}{Math.abs(rotOff) > 0.3 ? " (ตอนนี้เอียง " + Math.abs(rotOff) + "°)" : ""}</button>
+                <button className="p3s-btn" style={{ padding: "0 10px" }} onClick={() => rotAll(rot0 + 1, "rotall")}>+1°</button>
+              </div>
+            </div>
+          )}
           {(() => {
             const B0 = (roof.blocks && roof.blocks[0]) || blocks[0] || {}, on = (B0.gc > 0 || B0.gr > 0) && B0.gg > 0;
             const nG = on ? groupInfo(roof).length : 0;
