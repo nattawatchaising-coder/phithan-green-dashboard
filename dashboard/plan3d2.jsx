@@ -277,9 +277,9 @@ function p3sLadderFit(roofs, x, z) {
     let ar = 0; o.forEach((a, i) => { const b = o[(i + 1) % o.length]; ar += a.x * b.z - b.x * a.z; });
     o.forEach((a, i) => {
       const b = o[(i + 1) % o.length], dx = b.x - a.x, dz = b.z - a.z, L2 = dx * dx + dz * dz; if (L2 < 1e-6) return;
-      const t = Math.max(0.05, Math.min(0.95, ((x - a.x) * dx + (z - a.z) * dz) / L2)), qx = a.x + dx * t, qz = a.z + dz * t, d = Math.hypot(x - qx, z - qz);
+      const L = Math.sqrt(L2), mg = Math.min(0.45, L / 2) / L, t = Math.max(mg, Math.min(1 - mg, ((x - a.x) * dx + (z - a.z) * dz) / L2)), qx = a.x + dx * t, qz = a.z + dz * t, d = Math.hypot(x - qx, z - qz);
       if (d > 3 || (best && d >= best.d)) return;
-      const L = Math.sqrt(L2), tx = dx / L, tz = dz / L, sg = ar > 0 ? 1 : -1;
+      const tx = dx / L, tz = dz / L, sg = ar > 0 ? 1 : -1;
       best = { d, q: { x: qx, z: qz }, t: { x: tx, z: tz }, n: { x: tz * sg, z: -tx * sg } };
     });
   });
@@ -479,8 +479,36 @@ function p3sBlkStore(roof) {
   return p3Blocks(roof).map((b) => ({
     id: b.id, orient: b.orient, rows: b.rows, cols: b.cols, gap: b.gap,
     du: b.du, dv: b.dv, rot: b.rot, tilt: b.tilt, skips: b.skips, adds: b.adds,
-    gc: b.gc, gr: b.gr, gg: b.gg, keep: b.keep,
+    gc: b.gc, gr: b.gr, gg: b.gg, keep: b.keep, face: b.face || null,
   }));
+}
+/* แยกชุดแผงที่ใช้ทุกด้านออกเป็นชุดละด้าน (โซน) — ช่องที่ปิด/เติมไว้ย้ายตามไปด้วย จึงตั้งค่าแต่ละโซนต่างกันได้ */
+function p3sZoneSplit(roof, sides) {
+  const bs = p3sBlkStore(roof);
+  if (!sides || sides.length < 2 || bs.every((b) => b.face)) return bs;
+  const src = [];
+  bs.forEach((b, i) => { if (b.face) src.push({ b, i }); else sides.forEach((s) => src.push({ b: Object.assign({}, b, { face: s }), i, s })); });
+  const remap = (m, i, j, face) => {
+    const o = {}, op = i === 0 ? "" : "b" + i + "_", np = j === 0 ? "" : "b" + j + "_";
+    Object.keys(m || {}).forEach((k) => {
+      if (p3sBlkOfKey(k) !== i) return;
+      const rest = k.slice(op.length); if (face && rest.indexOf(face + "_") !== 0) return;
+      o[np + rest] = m[k];
+    });
+    return o;
+  };
+  return src.map((x, j) => Object.assign({}, x.b, { id: x.s ? (x.b.id || "b") + x.s : x.b.id, skips: remap(x.b.skips, x.i, j, x.b.face), adds: remap(x.b.adds, x.i, j, x.b.face) }));
+}
+/* เปิด/ปิดด้าน: ถ้าแยกโซนแล้วแต่ด้านที่เพิ่งเปิดยังไม่มีชุด → เพิ่มชุดของด้านนั้นจากค่าตั้งชุดแรก */
+function p3sSideFix(r, o) {
+  const nr = Object.assign({}, r, o), bs = p3sBlkStore(r);
+  if (!bs.some((b) => b.face)) return o;
+  const add = [];
+  ["A", "B", "C", "D"].forEach((s) => {
+    const on = s === "A" || s === "B" ? nr["side" + s] !== false : nr["side" + s] === true;
+    if (on && !bs.some((b) => b.face === s)) add.push(Object.assign({}, bs[0], { id: p3Id("pb"), face: s, skips: {}, adds: {}, du: 0, dv: 0 }));
+  });
+  return add.length ? Object.assign({}, o, { blocks: bs.concat(add) }) : o;
 }
 const p3sBlkOfKey = (key) => { const m = /^b(\d+)_/.exec(key || ""); return m ? +m[1] : 0; };
 
@@ -1557,6 +1585,9 @@ function Plan3DStudio({ job, onClose, currentUser, onSwitch }) {
   const pickRef = React.useRef(null);
   const canPick = (t) => { const k = pickRef.current; return !k || !!k[t]; };
   const canMove = (t) => { const k = pickRef.current; return !k || k[t] === 2; };
+  const [zoneSel, setZoneSel] = React.useState("A");   // โซน (ด้านหลังคา) ที่การ์ดแผงกำลังตั้งค่า · "all" = ทุกโซน
+  const zoneSides = (r) => { try { return (p3Panels(r).faces || []).map((f) => f.side).filter(Boolean); } catch (e) { return []; } };
+  const zoneOf = (r) => { const fs = zoneSides(r); if (fs.length < 2) return "all"; return zoneSel === "all" ? "all" : (fs.indexOf(zoneSel) >= 0 ? zoneSel : fs[0]); };
   const [multi, setMulti] = React.useState([]);   // เลือกเพิ่มด้วย Shift (ชนิดเดียวกับ sel)
   const keepMulti = React.useRef(false);
   const [photoAR, setPhotoAR] = React.useState(1);
@@ -1610,10 +1641,16 @@ function Plan3DStudio({ job, onClose, currentUser, onSwitch }) {
     stRef.current = nx; setStRaw(nx); setDirty(true); fixSel(nx); setHistTick((n) => n + 1);
   };
 
-  const patchRoof = (id, patch, key) => commit((s) => Object.assign({}, s, {
-    roofs: s.roofs.map((r) => (r.id === id ? Object.assign({}, r, typeof patch === "function" ? patch(r) : patch) : r)) }), key);
-  const patchObs = (id, patch, key) => commit((s) => Object.assign({}, s, {
-    obstacles: (s.obstacles || []).map((o) => (o.id === id ? Object.assign({}, o, patch) : o)) }), key);
+  // เลือกหลายชิ้นอยู่ (Shift) แล้วแก้ค่าในการ์ด = แก้ทุกชิ้นที่เลือกพร้อมกัน — ยกเว้นตำแหน่ง/รูปร่าง/ชื่อ ที่เป็นของเฉพาะชิ้น
+  const P3S_NOSPREAD = { x: 1, z: 1, pts: 1, name: 1, id: 1 };
+  const spreadIds = (id, patch) => (sel && sel.id === id && multi.length && (typeof patch === "function" || !Object.keys(patch).some((k) => P3S_NOSPREAD[k]))
+    ? [id].concat(multi.filter((m) => m !== id)) : [id]);
+  const patchRoof = (id, patch, key) => { const ids = spreadIds(id, patch); commit((s) => Object.assign({}, s, {
+    roofs: s.roofs.map((r) => (ids.indexOf(r.id) >= 0 ? Object.assign({}, r, typeof patch === "function" ? patch(r) : patch) : r)) }), key); };
+  const patchObs = (id, patch, key) => { const ids = spreadIds(id, patch); commit((s) => {
+    const o0 = (s.obstacles || []).find((o) => o.id === id), T0 = o0 ? p3sObsType(o0) : null;
+    return Object.assign({}, s, { obstacles: (s.obstacles || []).map((o) => (o.id === id || (ids.indexOf(o.id) >= 0 && p3sObsType(o) === T0) ? Object.assign({}, o, patch) : o)) });
+  }, key); };
   const patchMeas = (id, patch, key) => commit((s) => Object.assign({}, s, {
     measures: (s.measures || []).map((m) => (m.id === id ? Object.assign({}, m, patch) : m)) }), key);
   const patchBlk = (roof, i, patch, key) => patchRoof(roof.id, (r) => {
@@ -1633,10 +1670,10 @@ function Plan3DStudio({ job, onClose, currentUser, onSwitch }) {
     return { blocks: bs };
   });
   const setCells = (roof, keys, off) => patchRoof(roof.id, (r) => {
-    const bs = p3sBlkStore(r);
+    const bs = p3sBlkStore(r), cp = {};
     keys.forEach((k) => {
-      const b = bs[p3sBlkOfKey(k)]; if (!b) return;
-      b.skips = Object.assign({}, b.skips || {});
+      const i = p3sBlkOfKey(k), b = bs[i]; if (!b) return;
+      if (!cp[i]) { b.skips = Object.assign({}, b.skips || {}); cp[i] = 1; }
       if (off) b.skips[k] = true; else delete b.skips[k];
     });
     return { blocks: bs };
@@ -2593,12 +2630,12 @@ function Plan3DStudio({ job, onClose, currentUser, onSwitch }) {
           live(Object.assign({}, stRef.current, { obstacles: stRef.current.obstacles.map((o) => {
             const a = m0[o.id]; if (!a) return o;
             let q = { x: p3sR((+a.x || 0) + dx), z: p3sR((+a.z || 0) + dz) };
-            if (a.p3sType === "ladder") q = ladderAt(q.x, q.z) || q;
+            if (a.p3sType === "ladder") { const f = ladderAt(q.x, q.z); if (!f) return o; q = f; }
             return Object.assign({}, o, q);
           }) }));
           return;
         }
-        if (G.o0.p3sType === "ladder") mv = ladderAt(mv.x, mv.z) || mv;
+        if (G.o0.p3sType === "ladder") { const f = ladderAt(mv.x, mv.z); if (!f) return; mv = f; }
         live(Object.assign({}, stRef.current, { obstacles: stRef.current.obstacles.map((o) => (o.id === G.id ? Object.assign({}, o, mv) : o)) }));
         return;
       }
@@ -2887,15 +2924,27 @@ function Plan3DStudio({ job, onClose, currentUser, onSwitch }) {
   roofs.forEach((r) => {
     if (!(tool === "panel" || tool === "walk" || (selRoof && selRoof.id === r.id))) return;
     groupInfo(r).forEach((g, i) => {
-      const zc = P3S_ZONE_C[i % P3S_ZONE_C.length];
-      groupEls.push(<polygon key={r.id + g.k} points={ptsStr(g.hull)} fill={zc + "22"} stroke={zc} strokeWidth={1.8} strokeLinejoin="round" style={NS} />);
-      const hs = g.hull.map((q) => toS(q.x, q.z)), hw = Math.max.apply(null, hs.map((q) => q.x)) - Math.min.apply(null, hs.map((q) => q.x)), hh = Math.max.apply(null, hs.map((q) => q.y)) - Math.min.apply(null, hs.map((q) => q.y));
-      if (hw > 54 && hh > 22) {
-        const c = p3sCentroid(g.hull), sc = toS(c.x, c.z), txt = "โซน " + (i + 1) + " · " + g.n + " แผง", lw = txt.length * 6.4 + 14;
+      groupEls.push(<polygon key={r.id + g.k} points={ptsStr(g.hull)} fill="none" stroke="#f59e0b" strokeWidth={1.4} strokeDasharray="4 3" style={NS} />);
+      if (V.s >= 9) {
+        const c = p3sCentroid(g.hull), sc = toS(c.x, c.z);
         groupLbls.push(<g key={"gl" + r.id + g.k} transform={"translate(" + sc.x + " " + sc.y + ")"} style={{ pointerEvents: "none" }}>
-          <rect x={-lw / 2} y={-10} width={lw} height={20} rx={10} fill={zc} />
-          <text textAnchor="middle" y={4.5} fontSize={11} fontWeight={800} fill="#fff">{txt}</text></g>);
+          <text textAnchor="middle" y={4} fontSize={10.5} fontWeight={800} fill="#78350f" stroke="#fff" strokeWidth={3} paintOrder="stroke">กลุ่ม {i + 1} · {g.n}</text></g>);
       }
+    });
+  });
+  /* โซน = ด้านของหลังคา (จั่ว A/B · ปั้นหยา A–D) แต่ละโซนตั้งค่าแผงแยกกันได้ — โซนที่เลือกในการ์ดเน้นสีทึบ */
+  if (tool === "panel") roofs.forEach((r) => {
+    if (r.noPanel) return;
+    let pan; try { pan = p3Panels(r); } catch (e) { return; }
+    const fsd = (pan.faces || []).map((f) => f.side).filter(Boolean); if (fsd.length < 2) return;
+    p3sFaces2D(r).forEach((f) => {
+      if (!f.side || fsd.indexOf(f.side) < 0) return;
+      const zc = P3S_ZONE_C["ABCD".indexOf(f.side)] || "#f59e0b", on = selRoof && selRoof.id === r.id && zoneOf(r) === f.side;
+      groupEls.push(<polygon key={"z" + r.id + f.side} points={ptsStr(f.pts)} fill={on ? zc + "24" : "none"} stroke={zc} strokeWidth={on ? 2.6 : 1.6} strokeDasharray={on ? null : "7 4"} strokeLinejoin="round" style={NS} />);
+      const c = p3sCentroid(f.pts), sc = toS(c.x, c.z), txt = "โซน " + f.side + " · " + (pan["count" + f.side] || 0) + " แผง", lw = txt.length * 6.4 + 14;
+      groupLbls.push(<g key={"zl" + r.id + f.side} transform={"translate(" + sc.x + " " + sc.y + ")"} style={{ pointerEvents: "none" }}>
+        <rect x={-lw / 2} y={-10} width={lw} height={20} rx={10} fill={zc} opacity={on ? 1 : 0.85} />
+        <text textAnchor="middle" y={4.5} fontSize={11} fontWeight={800} fill="#fff">{txt}</text></g>);
     });
   });
   /* กรอบชุดแผงที่เลือก */
@@ -3241,7 +3290,13 @@ function Plan3DStudio({ job, onClose, currentUser, onSwitch }) {
     const lowIdx = isPoly ? (roof.p3sLow != null ? +roof.p3sLow : (() => { let b = 0, bv = 1e9; pts.forEach((_, i) => { const v = ph[i] + ph[(i + 1) % pts.length]; if (v < bv) { bv = v; b = i; } }); return b; })()) : 0;
     const area = isPoly && pts.length > 2 ? p3sR(p3Area(pts), 10) : null;
     const pan = (() => { try { return p3Panels(roof); } catch (e) { return null; } })();
-    const blocks = pan ? pan.blocks || [] : [];
+    const blocksAll = pan ? pan.blocks || [] : [];
+    const zSides = ((pan && pan.faces) || []).map((f) => f.side).filter(Boolean), zNow = zoneOf(roof);
+    const inZone = (b) => zNow === "all" || !b.face || b.face === zNow;
+    // ค่าที่แสดงในการ์ด = ของชุดแรกในโซนที่เลือก
+    const blocks = blocksAll.filter(inZone).length ? blocksAll.filter(inZone) : blocksAll;
+    const zoneBs = (r) => (zNow !== "all" && zSides.length > 1 ? p3sZoneSplit(r, zSides) : p3sBlkStore(r));
+    const patchZone = (patch, key) => patchRoof(roof.id, (r) => ({ blocks: zoneBs(r).map((b) => (inZone(b) ? Object.assign({}, b, patch) : b)) }), key);
     const orient = blocks[0] ? blocks[0].orient : "portrait";
     const azTxt = (az) => p3sCompass(+az || 180);
     const setPolyPitch = (pitch, low, base) => {
@@ -3269,6 +3324,11 @@ function Plan3DStudio({ job, onClose, currentUser, onSwitch }) {
       return p3sAlignRot(r, side, p3sLongEdgeAng(p3sOutline(r)));
     };
     const fillRoof = () => patchRoof(roof.id, (r) => {
+      // เลือกโซนอยู่ (หลังคามีแผงแล้ว) = เติมเฉพาะโซนนั้น ชุดของโซนอื่นคงไว้
+      if (zNow !== "all" && !r.noPanel && zSides.length > 1) {
+        const bs = p3sZoneSplit(r, zSides).filter((b) => b.face !== zNow), b0 = blocks[0] || {};
+        return { blocks: bs.concat([Object.assign(p3NewBlk(0), { orient, rot: +b0.rot || 0, face: zNow, gc: b0.gc || 0, gr: b0.gr || 0, gg: b0.gg || 0 })]) };
+      }
       let rot = 0;
       if (r.kind === "poly") { const pl = p3PolyPlane(r); if (pl && (pl.tiltCos > 0.999 || p3sPolyPitch(r) > 0.4)) rot = alignRotFor(r); }
       return { blocks: [Object.assign(p3NewBlk(0), { orient, rot })], skips: {}, noPanel: null };
@@ -3277,10 +3337,10 @@ function Plan3DStudio({ job, onClose, currentUser, onSwitch }) {
     const rot0 = blocks[0] ? +blocks[0].rot || 0 : 0;
     const rotFit = blocks.length ? alignRotFor(roof, blkSide(0)) : 0;
     const rotOff = blocks.length ? p3sR(rot0 - rotFit, 10) : 0;
-    const rotAll = (v, key) => patchAllBlk(roof, { rot: p3sR(v, 10) }, key);
-    const alignAll = () => patchRoof(roof.id, (r) => ({ blocks: p3sBlkStore(r).map((b, i) => Object.assign({}, b, { rot: alignRotFor(r, blkSide(i)) })) }));
-    const allKeys = () => p3sQuads(roof).filter((q) => !q.slot).map((q) => q.key);
-    const blkSel = tool === "panel" && selBlk != null && blocks[selBlk] ? blocks[selBlk] : null;
+    const rotAll = (v, key) => patchZone({ rot: p3sR(v, 10) }, key);
+    const alignAll = () => patchRoof(roof.id, (r) => ({ blocks: zoneBs(r).map((b, i) => (inZone(b) ? Object.assign({}, b, { rot: alignRotFor(r, b.face || blkSide(i)) }) : b)) }));
+    const allKeys = () => p3sQuads(roof).filter((q) => !q.slot && (zNow === "all" || !q.side || q.side === zNow)).map((q) => q.key);
+    const blkSel = tool === "panel" && selBlk != null && blocksAll[selBlk] ? blocksAll[selBlk] : null;
     const rect = blkSel && pan ? (pan.rects || []).find((x) => x.blk === selBlk) : null;
     return (
       <React.Fragment>
@@ -3367,7 +3427,7 @@ function Plan3DStudio({ job, onClose, currentUser, onSwitch }) {
                 <P3SNum label="ความสูงชายคา" unit="ม." step={0.1} min={0} value={roof.h} onChange={(v) => patchRoof(roof.id, { h: v }, "h")} />
               </div>}
               {!noPanUI && <div className="p3s-fld"><span className="lb">วางแผงด้าน</span>
-                <P3SSeg full value={(roof.sideA !== false ? "A" : "") + (roof.sideB !== false ? "B" : "")} onChange={(v) => patchRoof(roof.id, { sideA: v.indexOf("A") >= 0, sideB: v.indexOf("B") >= 0 })}
+                <P3SSeg full value={(roof.sideA !== false ? "A" : "") + (roof.sideB !== false ? "B" : "")} onChange={(v) => patchRoof(roof.id, (r) => p3sSideFix(r, { sideA: v.indexOf("A") >= 0, sideB: v.indexOf("B") >= 0 }))}
                   options={[["AB", "ทั้งสองด้าน"], ["A", "ด้าน A (" + azTxt(roof.az) + ")"], ["B", "ด้าน B (" + p3sCompass((+roof.az || 180) + 180) + ")"]]} />
               </div>}
             </React.Fragment>
@@ -3384,7 +3444,7 @@ function Plan3DStudio({ job, onClose, currentUser, onSwitch }) {
                 <div className="p3s-row">
                   {[["A", 0], ["B", 180], ["C", 90], ["D", -90]].map(([sd, off]) => {
                     const on = sd === "A" || sd === "B" ? roof["side" + sd] !== false : roof["side" + sd] === true;
-                    return <button key={sd} className={"p3s-btn" + (on ? " pri" : "")} style={{ flex: 1 }} onClick={() => { const o = {}; o["side" + sd] = !on; patchRoof(roof.id, o); }}>{sd} · {p3sCompass((+roof.az || 180) + off)}</button>;
+                    return <button key={sd} className={"p3s-btn" + (on ? " pri" : "")} style={{ flex: 1 }} onClick={() => { const o = {}; o["side" + sd] = !on; patchRoof(roof.id, (r) => p3sSideFix(r, o)); }}>{sd} · {p3sCompass((+roof.az || 180) + off)}</button>;
                   })}
                 </div>
               </div>}
@@ -3426,43 +3486,42 @@ function Plan3DStudio({ job, onClose, currentUser, onSwitch }) {
 
         {!noPanUI && <div className="p3s-card">
           <div className="p3s-h"><span className="t">แผงบนหลังคานี้</span>{roof.noPanel ? <span className="p3s-badge warn">ยังไม่วางแผง</span> : <span className="p3s-badge ok">{n} แผง · {p3sR(n * (+st.wp || 650) / 1000, 100)} kWp</span>}</div>
-          <button className="p3s-btn pri big wide" onClick={fillRoof}><P3SIcon name="magic" size={17} />{roof.noPanel ? "วางแผงเต็มหลังคา" : "เติมแผงเต็มหลังคา"}</button>
+          {zSides.length > 1 && !roof.noPanel && <div className="p3s-fld"><span className="lb">ตั้งค่าโซน (ด้านหลังคา) · แต่ละโซนตั้งแนวแผง/หมุน/แบ่งกลุ่มแยกกัน</span>
+            <P3SSeg full value={zNow} onChange={setZoneSel}
+              options={[["all", "ทุกโซน"]].concat(zSides.map((s) => [s, "โซน " + s + " · " + (pan["count" + s] || 0)]))} />
+          </div>}
+          <button className="p3s-btn pri big wide" onClick={fillRoof}><P3SIcon name="magic" size={17} />{roof.noPanel ? "วางแผงเต็มหลังคา" : zNow !== "all" ? "เติมแผงเต็มโซน " + zNow : "เติมแผงเต็มหลังคา"}</button>
           {!roof.noPanel && <button className="p3s-btn dngr wide" onClick={() => patchRoof(roof.id, { noPanel: true })}><P3Icon name="trash" />เอาแผงออกจากหลังคานี้</button>}
           <div className="p3s-g2">
             <div className="p3s-fld"><span className="lb">แนวแผง</span>
-              <P3SSeg full value={orient} onChange={(v) => patchAllBlk(roof, { orient: v })} options={[["portrait", "ตั้ง"], ["landscape", "นอน"]]} />
+              <P3SSeg full value={orient} onChange={(v) => patchZone({ orient: v })} options={[["portrait", "ตั้ง"], ["landscape", "นอน"]]} />
             </div>
             <P3SNum label="เว้นรอบขอบ" unit="ม." step={0.05} min={0} max={5} value={+roof.margin || 0} onChange={(v) => patchRoof(roof.id, { margin: v }, "margin")} />
           </div>
           {blocks.length > 0 && (
             <div className="p3s-fld" style={{ gap: 8 }}>
               <P3SRange label={"หมุนแผง" + (blocks.length > 1 ? " (ทุกชุด)" : "")} right={p3sR(rot0, 10) + "°"} min={-90} max={90} step={0.5} value={rot0} onChange={(v) => rotAll(v, "rotall")} />
-              <div className="p3s-row" style={{ gap: 5 }}>
-                <button className="p3s-btn" style={{ padding: "0 10px" }} onClick={() => rotAll(rot0 - 1, "rotall")}>−1°</button>
-                <button className={"p3s-btn" + (Math.abs(rotOff) > 0.3 ? " pri" : "")} style={{ flex: 1 }} onClick={alignAll}>
-                  <P3SIcon name="align" size={15} />{isPoly && pitchNow > 0.4 ? "ขนานชายคา" : "ขนานขอบยาว"}{Math.abs(rotOff) > 0.3 ? " (ตอนนี้เอียง " + Math.abs(rotOff) + "°)" : ""}</button>
-                <button className="p3s-btn" style={{ padding: "0 10px" }} onClick={() => rotAll(rot0 + 1, "rotall")}>+1°</button>
+              <div className="p3s-row" style={{ gap: 5, flexWrap: "nowrap" }}>
+                <button className="p3s-btn" style={{ padding: "0 9px", flex: "0 0 auto" }} onClick={() => rotAll(rot0 - 1, "rotall")}>−1°</button>
+                <button className={"p3s-btn" + (Math.abs(rotOff) > 0.3 ? " pri" : "")} style={{ flex: "1 1 0", minWidth: 0, padding: "0 6px", whiteSpace: "nowrap", overflow: "hidden" }} onClick={alignAll}>
+                  <P3SIcon name="align" size={15} />{isPoly && pitchNow > 0.4 ? "ขนานชายคา" : "ขนานขอบยาว"}{Math.abs(rotOff) > 0.3 ? " · เอียง " + Math.abs(rotOff) + "°" : ""}</button>
+                <button className="p3s-btn" style={{ padding: "0 9px", flex: "0 0 auto" }} onClick={() => rotAll(rot0 + 1, "rotall")}>+1°</button>
               </div>
             </div>
           )}
           {(() => {
-            const B0 = (roof.blocks && roof.blocks[0]) || blocks[0] || {}, on = (B0.gc > 0 || B0.gr > 0) && B0.gg > 0;
+            const B0 = blocks[0] || {}, on = (B0.gc > 0 || B0.gr > 0) && B0.gg > 0;
             const nG = on ? groupInfo(roof).length : 0;
-            const preset = (gc, gr, gg) => patchAllBlk(roof, { gc, gr, gg, adds: {} });
+            const preset = (gc, gr, gg) => patchZone({ gc, gr, gg, adds: {} });
             return (
               <div className="p3s-fld" style={{ gap: 8 }}>
-                <span className="lb">แบ่งโซน + เว้นทางเดินระหว่างโซน{on && <i>{nG} โซน</i>}</span>
-                <div className="p3s-row" style={{ gap: 5 }}>
-                  <button className={"p3s-btn" + (!on ? " pri" : "")} style={{ flex: 1, padding: "0 4px", fontSize: 12 }} onClick={() => preset(0, 0, 0)}>ไม่แบ่ง</button>
-                  <button className="p3s-btn" style={{ flex: 1, padding: "0 4px", fontSize: 12 }} onClick={() => preset(0, 2, 0.6)}>ทุก 2 แถว</button>
-                  <button className="p3s-btn" style={{ flex: 1, padding: "0 4px", fontSize: 12 }} onClick={() => preset(10, 0, 0.6)}>ทุก 10 แผง</button>
-                  <button className="p3s-btn" style={{ flex: 1, padding: "0 4px", fontSize: 12 }} onClick={() => preset(8, 3, 0.6)}>8×3</button>
-                </div>
+                <span className="lb">แบ่งกลุ่มแผง + เว้นทางเดิน{zNow !== "all" ? " (โซน " + zNow + ")" : ""}{on && <i>{nG} กลุ่ม</i>}</span>
+                <P3SSeg full value={on ? "on" : "off"} onChange={(v) => (v === "on" ? (!on && preset(10, 2, 0.6)) : preset(0, 0, 0))} options={[["off", "ไม่แบ่ง"], ["on", "แบ่ง"]]} />
                 {on && (
                   <div className="p3s-g2">
-                    <P3SNum label="แผง/โซน" step={1} min={0} max={200} digits={0} value={B0.gc || 0} onChange={(v) => patchAllBlk(roof, { gc: Math.round(v), adds: {} }, "gc")} />
-                    <P3SNum label="แถว/โซน" step={1} min={0} max={200} digits={0} value={B0.gr || 0} onChange={(v) => patchAllBlk(roof, { gr: Math.round(v), adds: {} }, "gr")} />
-                    <P3SNum label="ทางเดิน" unit="ม." step={0.1} min={0} max={5} value={B0.gg || 0} onChange={(v) => patchAllBlk(roof, { gg: v, adds: {} }, "gg")} />
+                    <P3SNum label="แผง/กลุ่ม" step={1} min={0} max={200} digits={0} value={B0.gc || 0} onChange={(v) => patchZone({ gc: Math.round(v), adds: {} }, "gc")} />
+                    <P3SNum label="แถว/กลุ่ม" step={1} min={0} max={200} digits={0} value={B0.gr || 0} onChange={(v) => patchZone({ gr: Math.round(v), adds: {} }, "gr")} />
+                    <P3SNum label="ทางเดิน" unit="ม." step={0.1} min={0} max={5} value={B0.gg || 0} onChange={(v) => patchZone({ gg: v, adds: {} }, "gg")} />
                   </div>
                 )}
                 {!wiz && <button className="p3s-btn wide" onClick={() => { setTool("walk"); setSel({ t: "roof", id: roof.id }); }}><P3SIcon name="walk" size={15} />วาดทางเดินเอง (W){(roof.walks || []).length ? " · มี " + roof.walks.length + " เส้น" : ""}</button>}
@@ -3470,15 +3529,18 @@ function Plan3DStudio({ job, onClose, currentUser, onSwitch }) {
             );
           })()}
           <div className="p3s-row">
-            <button className="p3s-btn" style={{ flex: 1 }} onClick={() => setCells(roof, allKeys(), false)}>เปิดแผงทุกแผ่น</button>
-            <button className="p3s-btn" style={{ flex: 1 }} onClick={() => setCells(roof, allKeys(), true)}>ไม่วางแผงผืนนี้</button>
+            <button className="p3s-btn" style={{ flex: 1 }} onClick={() => {
+              if (zNow === "all" || blocksAll.some((b) => b.face)) patchZone({ skips: {} });
+              else setCells(roof, allKeys(), false);
+            }}>เปิดแผงทุกแผ่น</button>
+            <button className="p3s-btn" style={{ flex: 1 }} onClick={() => setCells(roof, allKeys(), true)}>{zNow !== "all" ? "ไม่วางแผงโซน " + zNow : "ไม่วางแผงผืนนี้"}</button>
           </div>
           {tool !== "panel" && <button className="p3s-btn wide" onClick={() => setTool("panel")}><P3SIcon name="panel" size={16} />จัดแผงทีละแผ่น / ย้ายชุดแผง (P)</button>}
         </div>}
 
         {tool === "panel" && (
           <div className="p3s-card">
-            <div className="p3s-h"><span className="t">ชุดแผง {blocks.length > 1 ? "(" + blocks.length + " ชุด)" : ""}</span>
+            <div className="p3s-h"><span className="t">ชุดแผง {blocksAll.length > 1 ? "(" + blocksAll.length + " ชุด)" : ""}</span>
               {blkSel && <span className="p3s-badge warn">ชุดที่ {selBlk + 1}</span>}</div>
             {!blkSel && <span className="p3s-note">แตะแผงบนผังเพื่อเลือกชุด แล้วตั้งค่าได้ที่นี่ — ลากแผงเพื่อย้ายทั้งชุด</span>}
             {blkSel && (
@@ -3507,10 +3569,10 @@ function Plan3DStudio({ job, onClose, currentUser, onSwitch }) {
                   <input type="checkbox" checked={!!blkSel.keep} onChange={(e) => patchBlk(roof, selBlk, { keep: e.target.checked })} />
                   จัดเป็นสี่เหลี่ยมเต็มแถว (ไม่ตัดตามขอบ)
                 </label>
-                {blocks.length > 1 && <button className="p3s-btn wide dngr" onClick={() => { patchRoof(roof.id, (r) => ({ blocks: p3sBlkStore(r).filter((_, i) => i !== selBlk) })); setSelBlk(null); }}><P3Icon name="trash" />ลบชุดนี้</button>}
+                {blocksAll.length > 1 && <button className="p3s-btn wide dngr" onClick={() => { patchRoof(roof.id, (r) => ({ blocks: p3sBlkStore(r).filter((_, i) => i !== selBlk) })); setSelBlk(null); }}><P3Icon name="trash" />ลบชุดนี้</button>}
               </React.Fragment>
             )}
-            <button className="p3s-btn wide" onClick={() => { patchRoof(roof.id, (r) => ({ blocks: p3sBlkStore(r).concat([Object.assign(p3NewBlk(0), { orient, rows: 2, cols: 4 })]) })); setSelBlk(blocks.length); }}>
+            <button className="p3s-btn wide" onClick={() => { patchRoof(roof.id, (r) => ({ blocks: p3sBlkStore(r).concat([Object.assign(p3NewBlk(0), { orient, rows: 2, cols: 4, face: zNow !== "all" && blocksAll.some((b) => b.face) ? zNow : null })]) })); setSelBlk(blocksAll.length); }}>
               <P3Icon name="plus" />เพิ่มชุดแผงอีกชุด</button>
             <span className="p3s-note">ชุดใหม่วางที่มุมหลังคา ลากไปวางตรงไหนก็ได้ · แตะช่องเส้นประสีเขียวเพื่อเติมแผงทีละแผ่น</span>
           </div>
@@ -3690,7 +3752,16 @@ function Plan3DStudio({ job, onClose, currentUser, onSwitch }) {
   const flipRidge = (r) => patchRoof(r.id, (q) => (q.kind === "gable"
     ? { ridge: q.span, span: q.ridge, az: p3sR(((+q.az || 180) + 90) % 360, 10) }
     : { w: q.d, d: q.w, az: p3sR(((+q.az || 180) + 90) % 360, 10) }));
-  const pickRoof = (r) => { setSel({ t: "roof", id: r.id }); const c = p3sRoofCenter(r); setView(Object.assign({}, viewRef.current, { cx: c.x, cz: c.z })); };
+  const pickRoof = (r) => {
+    setSel({ t: "roof", id: r.id });
+    const P = p3sRoofPts(r); if (!P.length) { const c = p3sRoofCenter(r); setView(Object.assign({}, viewRef.current, { cx: c.x, cz: c.z })); return; }
+    // กรอบหลังคาในแนวจอ (ผังหมุนตามแนวหลังคาได้) แล้วซูมให้พอดีจอ
+    const Q = P.map((p) => p3sRot(p.x, p.z, -rotRef.current)), xs = Q.map((q) => q.x), zs = Q.map((q) => q.z);
+    const x0 = Math.min.apply(null, xs), x1 = Math.max.apply(null, xs), z0 = Math.min.apply(null, zs), z1 = Math.max.apply(null, zs);
+    const c = p3sRot((x0 + x1) / 2, (z0 + z1) / 2, rotRef.current), { w, h } = sizeRef.current, pad = isMobile ? 50 : 140;
+    const s = p3sClamp(Math.min((w - pad) / Math.max(2, x1 - x0), (h - pad) / Math.max(2, z1 - z0)), 0.4, 300);
+    setView({ cx: c.x, cz: c.z, s });
+  };
   const WIZ = [
     { t: "ภาพมุมสูง", tools: ["bg"], done: hasImgW,
       d: <span>กด <b>ดาวเทียม</b> หรือ <b>รูปโดรน</b> แล้วเลื่อนให้อาคารอยู่กลางจอ · รูปโดรนต้องตั้งมาตราส่วนจากระยะที่รู้จริงก่อน — ทุกอย่างหลังจากนี้วัดตามภาพนี้</span>,
@@ -3806,9 +3877,12 @@ function Plan3DStudio({ job, onClose, currentUser, onSwitch }) {
       go: () => setTool("obs") },
     { t: "วางแผง ทีละหลังคา", tools: ["panel"], done: total > 0,
       d: <span><b>กดค้างแล้วลากกรอบบนหลังคา</b> แผงขึ้นเฉพาะในกรอบ (หรือกด <b>วางแผงเต็มหลังคา</b>) · รุ่นแผง <b>{((st.sys || {}).panelModel) || (st.wp || 650) + " W"}</b> · ตั้งเว้นรอบขอบ แนวตั้ง/นอน · แถวเอียงกด <b>ขนานชายคา</b> · แตะแผงที่ไม่ต้องการเพื่อปิด</span>,
-      extra: emptyRoofs.length > 0 && roofs.length > 0 && (
-        <div className="p3s-fld" style={{ gap: 5 }}><span className="lb">ยังไม่มีแผง {emptyRoofs.length} หลังคา — แตะเพื่อไปที่หลังคานั้น</span>
-          <div className="chips">{emptyRoofs.slice(0, 12).map((r) => <button key={r.id} className="p3s-btn" onClick={() => { setTool("panel"); pickRoof(r); }}>{r.name || "หลังคา"}</button>)}</div></div>),
+      extra: roofs.length > 0 && (
+        <div className="p3s-fld" style={{ gap: 5 }}><span className="lb">เลือกหลังคา — แตะแล้วผังเลื่อนไปที่หลังคานั้น{emptyRoofs.length ? " · ยังไม่มีแผง " + emptyRoofs.length + " หลัง (สีส้ม)" : ""}</span>
+          <div className="chips">{roofs.slice(0, 40).map((r) => {
+            const on = selRoof && selRoof.id === r.id, empty = emptyRoofs.indexOf(r) >= 0;
+            return <button key={r.id} className={"p3s-btn" + (on ? " pri" : "")} style={!on && empty ? { color: "#b45309" } : null} onClick={() => { setTool("panel"); pickRoof(r); }}>{r.name || "หลังคา"}</button>;
+          })}</div></div>),
       go: () => { setTool("panel"); const r = emptyRoofs[0] || roofs[0]; if (r) pickRoof(r); } },
     { t: "ตรวจ 3D และเงา แล้วบันทึก", k: "fin", tools: [], done: total > 0 && !!wizSeen.fin && !dirty,
       d: <span>เลือกเดือนและเวลา ดูเงาที่ตกบนแผง (ตรวจเดือนธันวาคมเสมอ) · เสร็จแล้วกด <b>บันทึก</b></span>,

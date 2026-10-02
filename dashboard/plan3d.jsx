@@ -407,7 +407,7 @@ function p3PolyToDomePatch(roof, buildH) {
   return {
     kind: "dome", skips: {}, rows: 0, cols: 0,
     /* ผิวเปลี่ยนทรงไปเลย ช่องที่เว้น/เพิ่มไว้เดิมใช้ไม่ได้แล้ว → ล้างเซลล์แต่คงค่าตั้งของแต่ละชุดไว้ */
-    blocks: p3Blocks(roof).map((b) => ({ id: b.id, orient: b.orient, rows: 0, cols: 0, gap: b.gap, du: 0, dv: 0, rot: 0, tilt: 0, skips: {}, adds: {} })),
+    blocks: p3Blocks(roof).map((b) => ({ id: b.id, orient: b.orient, rows: 0, cols: 0, gap: b.gap, du: 0, dv: 0, rot: 0, tilt: 0, skips: {}, adds: {}, face: b.face || null })),
     ridge: Math.round(long * 100) / 100,
     span: Math.round(short * 100) / 100,
     rise: Math.min(short / 2, Math.max(0.5, Math.round(short / 5 * 10) / 10)),
@@ -993,6 +993,8 @@ function p3NormBlk(b, i) {
     keep: b.keep === true,                                // หมุนแล้วคงรูปสี่เหลี่ยม ไม่ตัดตามขอบหลังคา
     tilt: Math.max(0, Math.min(60, +b.tilt || 0)),        // ขาตั้งเอียง (°) ยกแผงจากผิวหลังคา
     skips: b.skips || {}, adds: b.adds || {},
+    /* โซน = ด้านของหลังคา (A/B/C/D) — มีค่า = ชุดนี้วางเฉพาะด้านนั้น · ว่าง = ทุกด้าน (ของเก่าทุกงาน) */
+    face: typeof b.face === "string" && b.face ? b.face : null,
   };
 }
 function p3Blocks(roof) {
@@ -1306,6 +1308,7 @@ function p3PanelsCalc(roof, want) {
     const ry = p3BlkRy(roof, blk), tiltR = blk.tilt * P3_DEG;
     let mr = 0, mc = 0, n = 0;
     faces.forEach((face, fi) => {
+      if (blk.face && face.side && blk.face !== face.side) return;
       const slots = wantB != null && (wantB === -1 || wantB === blk.i);
       const r = p3FillBlk(face, blk, m, { slots });
       if (r.rect) out.rects.push(Object.assign({ blk: blk.i, side: face.side, faceIdx: fi }, r.rect));
@@ -1730,7 +1733,7 @@ function Plan3DEditor({ job, onClose, currentUser, onSwitch }) {
   const blkStore = (roof) => p3Blocks(roof).map((b) => ({
     id: b.id, orient: b.orient, rows: b.rows, cols: b.cols, gap: b.gap,
     du: b.du, dv: b.dv, rot: b.rot, tilt: b.tilt, skips: b.skips, adds: b.adds,
-    gc: b.gc, gr: b.gr, gg: b.gg, keep: b.keep,
+    gc: b.gc, gr: b.gr, gg: b.gg, keep: b.keep, face: b.face || null,
   }));
   /* ผิวเปลี่ยนทรง → ช่องที่เว้น/เพิ่มไว้ไม่ตรงแล้ว ล้างทิ้งแต่คงค่าตั้งของชุดไว้ */
   const clearCells = (roof) => blkStore(roof).map((b) => Object.assign({}, b, { skips: {}, adds: {} }));

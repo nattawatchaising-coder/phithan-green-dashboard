@@ -762,7 +762,8 @@ function p3PolyToDomePatch(roof, buildH) {
       rot: 0,
       tilt: 0,
       skips: {},
-      adds: {}
+      adds: {},
+      face: b.face || null
     })),
     ridge: Math.round(long * 100) / 100,
     span: Math.round(short * 100) / 100,
@@ -1604,7 +1605,8 @@ function p3NormBlk(b, i) {
     keep: b.keep === true,
     tilt: Math.max(0, Math.min(60, +b.tilt || 0)),
     skips: b.skips || {},
-    adds: b.adds || {}
+    adds: b.adds || {},
+    face: typeof b.face === "string" && b.face ? b.face : null
   };
 }
 function p3Blocks(roof) {
@@ -2101,6 +2103,7 @@ function p3PanelsCalc(roof, want) {
       mc = 0,
       n = 0;
     faces.forEach((face, fi) => {
+      if (blk.face && face.side && blk.face !== face.side) return;
       const slots = wantB != null && (wantB === -1 || wantB === blk.i);
       const r = p3FillBlk(face, blk, m, {
         slots
@@ -2957,7 +2960,8 @@ function Plan3DEditor({
     gc: b.gc,
     gr: b.gr,
     gg: b.gg,
-    keep: b.keep
+    keep: b.keep,
+    face: b.face || null
   }));
   const clearCells = roof => blkStore(roof).map(b => Object.assign({}, b, {
     skips: {},
