@@ -1982,7 +1982,18 @@ function p3Panels(roof, want) {
   const key = JSON.stringify(want || 0) + "" + JSON.stringify(roof);
   const hit = _p3PanCache.get(key);
   if (hit) return hit;
-  const res = p3WalkCut(roof, p3PanelsCalc(roof, want));
+  let res = p3WalkCut(roof, p3PanelsCalc(roof, want));
+  if (roof.noPanel) res = Object.assign({}, res, {
+    list: [],
+    count: 0,
+    countA: 0,
+    countB: 0,
+    countC: 0,
+    countD: 0,
+    perBlk: (res.perBlk || []).map(b => Object.assign({}, b, {
+      count: 0
+    }))
+  });
   if (_p3PanCache.size > 32) _p3PanCache.clear();
   _p3PanCache.set(key, res);
   return res;
