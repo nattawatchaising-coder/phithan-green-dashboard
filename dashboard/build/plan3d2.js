@@ -2690,6 +2690,7 @@ const P3S_CSS = `
 }
 `;
 function p3sBuild3D(THREE, grp, st, tex) {
+  const pans = [];
   const add = o => {
     grp.add(o);
     return o;
@@ -3495,6 +3496,14 @@ function p3sBuild3D(THREE, grp, st, tex) {
         V = f.v,
         n = f.n;
       const o = 0.07;
+      pans.push({
+        x: c.x,
+        y: c.y,
+        z: c.z,
+        nx: n.x,
+        ny: n.y,
+        nz: n.z
+      });
       let lift = 0;
       const P = (su, sv, dn) => {
         const k = o + (dn || 0);
@@ -3536,10 +3545,10 @@ function p3sBuild3D(THREE, grp, st, tex) {
     g.setAttribute("position", new THREE.Float32BufferAttribute(pos, 3));
     g.computeVertexNormals();
     const pm = add(new THREE.Mesh(g, new THREE.MeshStandardMaterial({
-      color: 0x14306a,
-      roughness: 0.14,
-      metalness: 0.6,
-      envMapIntensity: 1.25,
+      color: 0x0a1a48,
+      roughness: 0.2,
+      metalness: 0.1,
+      envMapIntensity: 0.5,
       side: THREE.DoubleSide
     })));
     pm.castShadow = true;
@@ -4025,7 +4034,8 @@ function p3sBuild3D(THREE, grp, st, tex) {
     cx: (minX + maxX) / 2,
     cz: (minZ + maxZ) / 2,
     R: Math.max(8, Math.hypot(maxX - minX, maxZ - minZ) / 2),
-    maxY
+    maxY,
+    pans
   };
 }
 function P3SView3D({
@@ -4166,16 +4176,96 @@ function P3SView3D({
     const ro = new ResizeObserver(onResize);
     ro.observe(el);
     let run = true,
-      recNow = null;
+      recNow = null,
+      fly = null;
     const loop = () => {
       if (!run) return;
+      if (fly) {
+        const k = Math.min(1, (performance.now() - fly.t0) / 700),
+          e = k < 0.5 ? 2 * k * k : 1 - Math.pow(-2 * k + 2, 2) / 2;
+        camera.position.lerpVectors(fly.p0, fly.p1, e);
+        controls.target.lerpVectors(fly.q0, fly.q1, e);
+        camera.fov = fly.f0 + (fly.f1 - fly.f0) * e;
+        camera.updateProjectionMatrix();
+        if (k >= 1) fly = null;
+      }
       controls.update();
       renderer.render(scene, camera);
       requestAnimationFrame(loop);
     };
+    const view = kind => {
+      const b = T.current.bounds;
+      if (!b) return false;
+      const V3 = (x, y, z) => new THREE.Vector3(x, y, z),
+        H = Math.max(3, b.maxY || 3);
+      let tg,
+        pos,
+        fov = 38;
+      const orbit = (azDeg, elDeg, dist, t) => {
+        const a = azDeg * P3_DEG,
+          e = elDeg * P3_DEG;
+        return V3(t.x + Math.sin(a) * Math.cos(e) * dist, t.y + Math.sin(e) * dist, t.z - Math.cos(a) * Math.cos(e) * dist);
+      };
+      if (kind === "close") {
+        const P = b.pans || [];
+        if (!P.length) return false;
+        let mx = 0,
+          mz = 0;
+        P.forEach(q => {
+          mx += q.x / P.length;
+          mz += q.z / P.length;
+        });
+        let best = P[0],
+          bs = -1e9;
+        P.forEach(q => {
+          const sc = q.z - mz + 0.6 * (q.x - mx);
+          if (sc > bs) {
+            bs = sc;
+            best = q;
+          }
+        });
+        let dx = best.x - mx,
+          dz = best.z - mz,
+          dl = Math.hypot(dx, dz);
+        if (dl < 0.5) {
+          dx = 0.5;
+          dz = 1;
+          dl = Math.hypot(dx, dz);
+        }
+        dx /= dl;
+        dz /= dl;
+        tg = V3(best.x - dx * 1.2, best.y, best.z - dz * 1.2);
+        pos = V3(best.x + dx * 3.2 - dz * 1.6, best.y + 1.9, best.z + dz * 3.2 + dx * 1.6);
+        fov = 50;
+      } else if (kind === "top") {
+        tg = V3(b.cx, 0, b.cz);
+        pos = orbit(180, 84, b.R * 3.2, tg);
+        fov = 38;
+      } else if (kind === "front") {
+        tg = V3(b.cx, H * 0.45, b.cz);
+        pos = orbit(200, 9, b.R * 3, tg);
+        fov = 40;
+      } else {
+        tg = V3(b.cx, H * 0.35, b.cz);
+        pos = orbit(155, 36, b.R * 3.3, tg);
+        fov = 36;
+      }
+      fly = {
+        t0: performance.now(),
+        p0: camera.position.clone(),
+        p1: pos,
+        q0: controls.target.clone(),
+        q1: tg,
+        f0: camera.fov,
+        f1: fov
+      };
+      return true;
+    };
     if (api) api.current = {
       gl: renderer,
       scene,
+      view,
+      hasPanels: () => !!(T.current.bounds && T.current.bounds.pans && T.current.bounds.pans.length),
       shot: () => {
         const cv = renderer.domElement,
           w = cv.clientWidth || 1,
@@ -11306,6 +11396,59 @@ function Plan3DStudio({
     done: total > 0 && !!wizSeen.fin && !dirty,
     d: React.createElement("span", null, "\u0E40\u0E25\u0E37\u0E2D\u0E01\u0E40\u0E14\u0E37\u0E2D\u0E19\u0E41\u0E25\u0E30\u0E40\u0E27\u0E25\u0E32 \u0E14\u0E39\u0E40\u0E07\u0E32\u0E17\u0E35\u0E48\u0E15\u0E01\u0E1A\u0E19\u0E41\u0E1C\u0E07 (\u0E15\u0E23\u0E27\u0E08\u0E40\u0E14\u0E37\u0E2D\u0E19\u0E18\u0E31\u0E19\u0E27\u0E32\u0E04\u0E21\u0E40\u0E2A\u0E21\u0E2D) \xB7 \u0E40\u0E2A\u0E23\u0E47\u0E08\u0E41\u0E25\u0E49\u0E27\u0E01\u0E14 ", React.createElement("b", null, "\u0E1A\u0E31\u0E19\u0E17\u0E36\u0E01")),
     act: React.createElement(React.Fragment, null, React.createElement("div", {
+      className: "p3s-fld",
+      style: {
+        gap: 5
+      }
+    }, React.createElement("span", {
+      className: "lb"
+    }, "\u0E21\u0E38\u0E21\u0E01\u0E25\u0E49\u0E2D\u0E07"), React.createElement("div", {
+      className: "p3s-row",
+      style: {
+        gap: 5
+      }
+    }, [["bird", "มุมนก"], ["front", "หน้าอาคาร"], ["top", "มุมบน"], ["close", "ใกล้แผง"]].map(([k, lb]) => React.createElement("button", {
+      key: k,
+      className: "p3s-btn",
+      style: {
+        flex: 1,
+        padding: "0 4px",
+        fontSize: 12
+      },
+      disabled: !view3d || k === "close" && !total,
+      onClick: () => {
+        const A = v3api.current;
+        if (A && A.view) A.view(k);
+      }
+    }, lb)))), React.createElement("div", {
+      className: "p3s-fld",
+      style: {
+        gap: 5
+      }
+    }, React.createElement("span", {
+      className: "lb"
+    }, "\u0E41\u0E2A\u0E07\u0E2A\u0E27\u0E22"), React.createElement("div", {
+      className: "p3s-row",
+      style: {
+        gap: 5
+      }
+    }, [[9, "เช้า 9:00"], [16.5, "เย็น 16:30"]].map(([h, lb]) => React.createElement("button", {
+      key: h,
+      className: "p3s-btn" + (sunHour == null && Math.abs((+st.sun.hour || 0) - h) < 0.01 ? " pri" : ""),
+      style: {
+        flex: 1,
+        fontSize: 12
+      },
+      disabled: vidOn,
+      onClick: () => {
+        setSunHour(null);
+        commit(x => Object.assign({}, x, {
+          sun: Object.assign({}, x.sun, {
+            hour: h
+          })
+        }), "shour");
+      }
+    }, lb)))), React.createElement("div", {
       className: "p3s-row",
       style: {
         gap: 6
