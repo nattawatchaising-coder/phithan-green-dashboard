@@ -2549,16 +2549,6 @@ function p3sBuild3D(THREE, grp, st, tex) {
     color: 0x8b8f94,
     side: THREE.DoubleSide
   });
-  const glassMat = new THREE.MeshStandardMaterial({
-    color: 0x3d5a73,
-    roughness: 0.15,
-    metalness: 0.6,
-    side: THREE.DoubleSide
-  });
-  const doorMat = new THREE.MeshLambertMaterial({
-    color: 0x9aa4ad,
-    side: THREE.DoubleSide
-  });
   const trimMat = new THREE.LineBasicMaterial({
     color: 0x9c968a
   });
@@ -2672,25 +2662,13 @@ function p3sBuild3D(THREE, grp, st, tex) {
     const wp = [],
       wu = [],
       bp = [],
-      gp = [],
-      dp = [],
       tl = [];
     const quad = (arr, a, b, y0a, y1a, y0b, y1b, o) => {
       const ox = o ? o.x : 0,
         oz = o ? o.z : 0;
       arr.push(a.x + ox, y0a, a.z + oz, b.x + ox, y0b, b.z + oz, b.x + ox, y1b, b.z + oz, a.x + ox, y0a, a.z + oz, b.x + ox, y1b, b.z + oz, a.x + ox, y1a, a.z + oz);
     };
-    let run = 0,
-      longest = -1,
-      longL = 0;
-    foot.forEach((a, i) => {
-      const b = foot[(i + 1) % foot.length],
-        l = Math.hypot(b.x - a.x, b.z - a.z);
-      if (l > longL) {
-        longL = l;
-        longest = i;
-      }
-    });
+    let run = 0;
     foot.forEach((a, i) => {
       const b = foot[(i + 1) % foot.length],
         dx = b.x - a.x,
@@ -2724,40 +2702,6 @@ function p3sBuild3D(THREE, grp, st, tex) {
       run += len;
       const bh = Math.min(0.6, hMin * 0.15);
       quad(bp, a, b, 0, bh, 0, bh, out);
-      if (hMin > 3.2 && len > 4) {
-        const y0 = hMin * 0.62,
-          y1 = Math.min(hMin - 0.35, y0 + Math.max(0.8, hMin * 0.16)),
-          m = Math.min(1.2, len * 0.08);
-        const segs = Math.max(1, Math.floor((len - 2 * m) / 6));
-        for (let k = 0; k < segs; k++) {
-          const s0 = m + (len - 2 * m) * k / segs + 0.25,
-            s1 = m + (len - 2 * m) * (k + 1) / segs - 0.25;
-          if (s1 - s0 < 0.6) continue;
-          quad(gp, {
-            x: a.x + dx / len * s0,
-            z: a.z + dz / len * s0
-          }, {
-            x: a.x + dx / len * s1,
-            z: a.z + dz / len * s1
-          }, y0, y1, y0, y1, out);
-        }
-      }
-      if (i === longest) {
-        const big = hMin > 4.5 && len > 12,
-          dw = big ? Math.min(5, len * 0.2) : 1,
-          dh = big ? Math.min(hMin * 0.6, 4.5) : Math.min(2.1, hMin * 0.8);
-        const c = len / 2;
-        quad(dp, {
-          x: a.x + dx / len * (c - dw / 2),
-          z: a.z + dz / len * (c - dw / 2)
-        }, {
-          x: a.x + dx / len * (c + dw / 2),
-          z: a.z + dz / len * (c + dw / 2)
-        }, 0, dh, 0, dh, {
-          x: out.x * 1.5,
-          z: out.z * 1.5
-        });
-      }
     });
     const mk = (arr, mat, uv) => {
       if (!arr.length) return;
@@ -2771,8 +2715,6 @@ function p3sBuild3D(THREE, grp, st, tex) {
     };
     mk(wp, wallMat, wu);
     mk(bp, baseMat);
-    mk(gp, glassMat);
-    mk(dp, doorMat);
     const cl = [];
     foot.forEach(p => cl.push(p.x, 0, p.z, p.x, topAt(p.x, p.z), p.z));
     const lg = new THREE.BufferGeometry();
@@ -2860,8 +2802,10 @@ function p3sBuild3D(THREE, grp, st, tex) {
     }
     if (!foot.length) return;
     const pos = [],
+      fr = [],
       ln = [];
     const yFix = roof.kind === "poly" ? bH - (+roof.h || 0) : 0;
+    const Q = (arr, a, b, d, e) => [a, b, d, a, d, e].forEach(v => arr.push(v.x, v.y, v.z));
     foot.forEach(f => {
       const c = {
           x: f.cx,
@@ -2873,7 +2817,10 @@ function p3sBuild3D(THREE, grp, st, tex) {
         n = f.n;
       const o = 0.07;
       let lift = 0;
-      const P = (su, sv) => new THREE.Vector3(c.x + su * U.x + sv * V.x + n.x * o, c.y + su * U.y + sv * V.y + n.y * o + lift, c.z + su * U.z + sv * V.z + n.z * o);
+      const P = (su, sv, dn) => {
+        const k = o + (dn || 0);
+        return new THREE.Vector3(c.x + su * U.x + sv * V.x + n.x * k, c.y + su * U.y + sv * V.y + n.y * k + lift, c.z + su * U.z + sv * V.z + n.z * k);
+      };
       if (roof.kind === "poly" && tris.length) {
         [[-1, -1], [1, -1], [1, 1], [-1, 1], [0, 0]].forEach(([su, sv]) => {
           const q = P(su, sv),
@@ -2881,31 +2828,59 @@ function p3sBuild3D(THREE, grp, st, tex) {
           if (y != null && y + 0.05 > q.y) lift += y + 0.05 - q.y;
         });
       }
-      const a = P(-1, -1),
-        b = P(1, -1),
-        d = P(1, 1),
-        e = P(-1, 1);
-      [a, b, d, a, d, e].forEach(v => pos.push(v.x, v.y, v.z));
-      [a, b, b, d, d, e, e, a].forEach(v => ln.push(v.x, v.y + 0.004, v.z));
+      const lu = Math.hypot(U.x, U.y, U.z) || 1,
+        lv = Math.hypot(V.x, V.y, V.z) || 1,
+        fu = 1 - 0.03 / lu,
+        fv = 1 - 0.03 / lv,
+        T = 0.035,
+        up = 0.006;
+      Q(pos, P(-fu, -fv), P(fu, -fv), P(fu, fv), P(-fu, fv));
+      Q(fr, P(-1, -1, up), P(1, -1, up), P(fu, -fv, up), P(-fu, -fv, up));
+      Q(fr, P(1, -1, up), P(1, 1, up), P(fu, fv, up), P(fu, -fv, up));
+      Q(fr, P(1, 1, up), P(-1, 1, up), P(-fu, fv, up), P(fu, fv, up));
+      Q(fr, P(-1, 1, up), P(-1, -1, up), P(-fu, -fv, up), P(-fu, fv, up));
+      [[-1, -1, 1, -1], [1, -1, 1, 1], [1, 1, -1, 1], [-1, 1, -1, -1]].forEach(([u0, v0, u1, v1]) => Q(fr, P(u0, v0, up), P(u1, v1, up), P(u1, v1, -T), P(u0, v0, -T)));
+      const nu = lu >= lv ? 12 : 6,
+        nv = lu >= lv ? 6 : 12;
+      for (let i = 1; i < nu; i++) {
+        const t = -fu + 2 * fu * i / nu;
+        [P(t, -fv, 0.002), P(t, fv, 0.002)].forEach(v => ln.push(v.x, v.y, v.z));
+      }
+      for (let i = 1; i < nv; i++) {
+        const t = -fv + 2 * fv * i / nv;
+        [P(-fu, t, 0.002), P(fu, t, 0.002)].forEach(v => ln.push(v.x, v.y, v.z));
+      }
+      const d = P(1, 1);
       eat(d.x, d.y, d.z);
     });
     const g = new THREE.BufferGeometry();
     g.setAttribute("position", new THREE.Float32BufferAttribute(pos, 3));
     g.computeVertexNormals();
     const pm = add(new THREE.Mesh(g, new THREE.MeshStandardMaterial({
-      color: 0x15306a,
-      roughness: 0.35,
-      metalness: 0.5,
+      color: 0x122a5e,
+      roughness: 0.25,
+      metalness: 0.55,
       side: THREE.DoubleSide
     })));
     pm.castShadow = true;
     pm.receiveShadow = true;
+    const fg = new THREE.BufferGeometry();
+    fg.setAttribute("position", new THREE.Float32BufferAttribute(fr, 3));
+    fg.computeVertexNormals();
+    const fm = add(new THREE.Mesh(fg, new THREE.MeshStandardMaterial({
+      color: 0xc9d0d8,
+      roughness: 0.4,
+      metalness: 0.6,
+      side: THREE.DoubleSide
+    })));
+    fm.castShadow = true;
+    fm.receiveShadow = true;
     const lg = new THREE.BufferGeometry();
     lg.setAttribute("position", new THREE.Float32BufferAttribute(ln, 3));
     add(new THREE.LineSegments(lg, new THREE.LineBasicMaterial({
-      color: 0xc7d2fe,
+      color: 0x8aa0d6,
       transparent: true,
-      opacity: 0.55
+      opacity: 0.35
     })));
   });
   const metal = new THREE.MeshStandardMaterial({
