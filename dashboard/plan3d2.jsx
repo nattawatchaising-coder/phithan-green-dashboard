@@ -2741,6 +2741,11 @@ function Plan3DStudio({ job, onClose, currentUser, onSwitch }) {
     const el = stageRef.current; if (!el) return;
     const onWheel = (e) => {
       if (view3d) return;
+      // ป๊อปบนผัง (เลือกทรง ฯลฯ) = ให้ลูกกลิ้งเลื่อนป๊อป ไม่ซูมผัง
+      if (e.target.closest && e.target.closest(".p3s-kpick")) return;
+      for (let n = e.target; n && n !== el; n = n.parentElement) {
+        if (n.scrollHeight > n.clientHeight + 1 && /auto|scroll/.test(getComputedStyle(n).overflowY)) return;
+      }
       e.preventDefault();
       const r = el.getBoundingClientRect();
       const dy = e.deltaMode === 1 ? e.deltaY * 16 : e.deltaY;

@@ -6064,6 +6064,10 @@ function Plan3DStudio({
     if (!el) return;
     const onWheel = e => {
       if (view3d) return;
+      if (e.target.closest && e.target.closest(".p3s-kpick")) return;
+      for (let n = e.target; n && n !== el; n = n.parentElement) {
+        if (n.scrollHeight > n.clientHeight + 1 && /auto|scroll/.test(getComputedStyle(n).overflowY)) return;
+      }
       e.preventDefault();
       const r = el.getBoundingClientRect();
       const dy = e.deltaMode === 1 ? e.deltaY * 16 : e.deltaY;
