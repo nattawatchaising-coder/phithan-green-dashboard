@@ -3446,6 +3446,7 @@ function Plan3DStudio({
     }));
   };
   const addRoof = () => {
+    setView3d(false);
     setTool("roof");
     setSel(null);
     setSelVert(null);
@@ -7687,78 +7688,25 @@ function Plan3DStudio({
     }), "\u0E15\u0E23\u0E07\u0E41\u0E25\u0E49\u0E27 \u0E44\u0E1B\u0E15\u0E48\u0E2D")))),
     go: () => setTool("axis")
   }, {
-    t: "วาดหลังคาให้ครบทุกผืน",
+    t: "วาดหลังคา · ความสูงและความชัน",
     tools: ["roof"],
-    done: roofs.length > 0,
-    d: React.createElement("span", null, React.createElement("b", null, "\u0E40\u0E25\u0E37\u0E2D\u0E01\u0E17\u0E23\u0E07\u0E01\u0E48\u0E2D\u0E19"), " \xB7 ", React.createElement("b", null, "\u0E23\u0E32\u0E1A \u0E40\u0E1E\u0E34\u0E07 \u0E08\u0E31\u0E48\u0E27 \u0E1B\u0E31\u0E49\u0E19\u0E2B\u0E22\u0E32 \u0E04\u0E23\u0E36\u0E48\u0E07\u0E27\u0E07\u0E01\u0E25\u0E21"), " = \u0E25\u0E32\u0E01\u0E2A\u0E35\u0E48\u0E40\u0E2B\u0E25\u0E35\u0E48\u0E22\u0E21 \u0E2B\u0E23\u0E37\u0E2D ", React.createElement("b", null, "\u0E2B\u0E32\u0E02\u0E2D\u0E1A\u0E2D\u0E31\u0E15\u0E42\u0E19\u0E21\u0E31\u0E15\u0E34"), " (\u0E41\u0E15\u0E30\u0E2B\u0E25\u0E32\u0E22\u0E08\u0E38\u0E14\u0E44\u0E14\u0E49 \u0E23\u0E27\u0E21\u0E40\u0E1B\u0E47\u0E19\u0E2B\u0E25\u0E31\u0E07\u0E40\u0E14\u0E35\u0E22\u0E27 \xB7 \u0E2A\u0E25\u0E31\u0E1A\u0E17\u0E23\u0E07\u0E44\u0E14\u0E49\u0E01\u0E48\u0E2D\u0E19\u0E01\u0E14\u0E40\u0E2D\u0E32\u0E41\u0E1A\u0E1A\u0E19\u0E35\u0E49) \xB7 ", React.createElement("b", null, "\u0E40\u0E1E\u0E34\u0E07"), " \u0E15\u0E49\u0E2D\u0E07\u0E41\u0E15\u0E30\u0E02\u0E2D\u0E1A\u0E14\u0E49\u0E32\u0E19\u0E15\u0E48\u0E33\u0E40\u0E1E\u0E37\u0E48\u0E2D\u0E01\u0E33\u0E2B\u0E19\u0E14\u0E17\u0E32\u0E07\u0E25\u0E32\u0E14 \xB7 ", React.createElement("b", null, "\u0E17\u0E35\u0E25\u0E30\u0E1C\u0E37\u0E19"), " = \u0E04\u0E25\u0E34\u0E01\u0E44\u0E25\u0E48\u0E21\u0E38\u0E21\u0E2B\u0E25\u0E32\u0E22\u0E08\u0E38\u0E14"),
-    act: React.createElement("div", {
+    done: roofs.length > 0 && shapeGap < 0.03,
+    d: roofs.length ? React.createElement("span", null, "\u0E15\u0E31\u0E49\u0E07 ", React.createElement("b", null, "\u0E04\u0E27\u0E32\u0E21\u0E2A\u0E39\u0E07\u0E2D\u0E32\u0E04\u0E32\u0E23"), " (\u0E1E\u0E37\u0E49\u0E19\u0E16\u0E36\u0E07\u0E0A\u0E32\u0E22\u0E04\u0E32) \u0E41\u0E25\u0E30 ", React.createElement("b", null, "\u0E04\u0E27\u0E32\u0E21\u0E0A\u0E31\u0E19"), " \u0E02\u0E2D\u0E07\u0E41\u0E15\u0E48\u0E25\u0E30\u0E2B\u0E25\u0E31\u0E07 \xB7 \u0E22\u0E31\u0E07\u0E44\u0E21\u0E48\u0E04\u0E23\u0E1A\u0E01\u0E14 ", React.createElement("b", null, "\u0E40\u0E1E\u0E34\u0E48\u0E21\u0E2B\u0E25\u0E31\u0E07\u0E04\u0E32\u0E2D\u0E35\u0E01\u0E2B\u0E25\u0E31\u0E07"), " \xB7 \u0E1C\u0E37\u0E19\u0E17\u0E35\u0E48\u0E15\u0E48\u0E2D\u0E01\u0E31\u0E19\u0E0A\u0E31\u0E19\u0E40\u0E17\u0E48\u0E32\u0E01\u0E31\u0E19\u0E17\u0E31\u0E49\u0E07\u0E2B\u0E25\u0E31\u0E07") : React.createElement("span", null, React.createElement("b", null, "\u0E40\u0E25\u0E37\u0E2D\u0E01\u0E17\u0E23\u0E07\u0E01\u0E48\u0E2D\u0E19"), " \xB7 ", React.createElement("b", null, "\u0E23\u0E32\u0E1A \u0E40\u0E1E\u0E34\u0E07 \u0E08\u0E31\u0E48\u0E27 \u0E1B\u0E31\u0E49\u0E19\u0E2B\u0E22\u0E32 \u0E04\u0E23\u0E36\u0E48\u0E07\u0E27\u0E07\u0E01\u0E25\u0E21"), " = \u0E25\u0E32\u0E01\u0E2A\u0E35\u0E48\u0E40\u0E2B\u0E25\u0E35\u0E48\u0E22\u0E21 \u0E2B\u0E23\u0E37\u0E2D ", React.createElement("b", null, "\u0E2B\u0E32\u0E02\u0E2D\u0E1A\u0E2D\u0E31\u0E15\u0E42\u0E19\u0E21\u0E31\u0E15\u0E34"), " (\u0E41\u0E15\u0E30\u0E2B\u0E25\u0E32\u0E22\u0E08\u0E38\u0E14\u0E44\u0E14\u0E49 \u0E23\u0E27\u0E21\u0E40\u0E1B\u0E47\u0E19\u0E2B\u0E25\u0E31\u0E07\u0E40\u0E14\u0E35\u0E22\u0E27 \xB7 \u0E2A\u0E25\u0E31\u0E1A\u0E17\u0E23\u0E07\u0E44\u0E14\u0E49\u0E01\u0E48\u0E2D\u0E19\u0E01\u0E14\u0E40\u0E2D\u0E32\u0E41\u0E1A\u0E1A\u0E19\u0E35\u0E49) \xB7 ", React.createElement("b", null, "\u0E40\u0E1E\u0E34\u0E07"), " \u0E15\u0E49\u0E2D\u0E07\u0E41\u0E15\u0E30\u0E02\u0E2D\u0E1A\u0E14\u0E49\u0E32\u0E19\u0E15\u0E48\u0E33\u0E40\u0E1E\u0E37\u0E48\u0E2D\u0E01\u0E33\u0E2B\u0E19\u0E14\u0E17\u0E32\u0E07\u0E25\u0E32\u0E14 \xB7 ", React.createElement("b", null, "\u0E17\u0E35\u0E25\u0E30\u0E1C\u0E37\u0E19"), " = \u0E04\u0E25\u0E34\u0E01\u0E44\u0E25\u0E48\u0E21\u0E38\u0E21\u0E2B\u0E25\u0E32\u0E22\u0E08\u0E38\u0E14"),
+    extra: shapeGap >= 0.03 && facetRoofs.length > 1 && React.createElement("div", {
       className: "p3s-row"
-    }, React.createElement("button", {
-      className: "p3s-btn",
+    }, React.createElement("span", {
+      className: "p3s-badge warn",
       style: {
         flex: 1
-      },
-      onClick: () => {
-        if (tool !== "roof") setTool("roof");
-        setKindPick(true);
       }
-    }, React.createElement(P3SIcon, {
-      name: "polygon",
-      size: 15
-    }), "\u0E17\u0E23\u0E07: ", P3S_KIND_TH[roofOpt.kind] || roofOpt.kind), React.createElement("button", {
-      className: "p3s-btn" + (tool === "roof" && trace && trace.on ? " pri" : ""),
-      style: {
-        flex: 1
-      },
-      disabled: !hasImgW || roofOpt.kind === "facet",
-      onClick: () => {
-        if (tool !== "roof") setTool("roof");
-        setDraw(null);
-        setTrace(tool === "roof" && trace && trace.on ? null : {
-          on: true,
-          mode: "edge"
-        });
-      }
+    }, "\u0E17\u0E23\u0E07\u0E22\u0E31\u0E07\u0E40\u0E1E\u0E35\u0E49\u0E22\u0E19 ", Math.round(shapeGap * 100), " \u0E0B\u0E21."), React.createElement("button", {
+      className: "p3s-btn pri",
+      onClick: () => weldNow(facetRoofs[0])
     }, React.createElement(P3SIcon, {
       name: "magic",
       size: 15
-    }), "\u0E2B\u0E32\u0E02\u0E2D\u0E1A\u0E2D\u0E31\u0E15\u0E42\u0E19\u0E21\u0E31\u0E15\u0E34"), roofs.length > 0 && !addBack && React.createElement("button", {
-      className: "p3s-btn pri",
-      style: {
-        flex: "1 1 100%"
-      },
-      onClick: addRoof
-    }, React.createElement(P3Icon, {
-      name: "plus"
-    }), "\u0E40\u0E1E\u0E34\u0E48\u0E21\u0E2B\u0E25\u0E31\u0E07\u0E04\u0E32\u0E2D\u0E35\u0E01\u0E2B\u0E25\u0E31\u0E07 (\u0E21\u0E35\u0E41\u0E25\u0E49\u0E27 ", roofs.length, ")"), addBack && React.createElement("span", {
-      className: "p3s-badge warn",
-      style: {
-        flex: "1 1 100%"
-      }
-    }, "\u0E01\u0E33\u0E25\u0E31\u0E07\u0E40\u0E1E\u0E34\u0E48\u0E21\u0E2B\u0E25\u0E31\u0E07\u0E04\u0E32 \u2014 \u0E27\u0E32\u0E14\u0E40\u0E2A\u0E23\u0E47\u0E08\u0E41\u0E25\u0E49\u0E27\u0E01\u0E25\u0E31\u0E1A\u0E02\u0E31\u0E49\u0E19 ", addBack.to + 1, " \u0E40\u0E2D\u0E07"), addBack && React.createElement("button", {
-      className: "p3s-btn",
-      style: {
-        flex: "1 1 100%"
-      },
-      onClick: () => {
-        const to = addBack.to;
-        setAddBack(null);
-        setTrace(null);
-        setDraw(null);
-        setKindPick(false);
-        goStep(to);
-      }
-    }, roofs.length > addBack.n ? "เสร็จแล้ว · กลับขั้น " : "← ไม่เพิ่มแล้ว กลับขั้น ", addBack.to + 1)),
-    go: () => {
-      setTool("roof");
-      setKindPick(true);
-    }
-  }, {
-    t: "ความสูงอาคารและความชัน",
-    tools: ["select"],
-    done: roofs.length > 0 && shapeGap < 0.03,
-    d: React.createElement("span", null, "\u0E15\u0E31\u0E49\u0E07 ", React.createElement("b", null, "\u0E04\u0E27\u0E32\u0E21\u0E2A\u0E39\u0E07\u0E2D\u0E32\u0E04\u0E32\u0E23"), " (\u0E1E\u0E37\u0E49\u0E19\u0E16\u0E36\u0E07\u0E0A\u0E32\u0E22\u0E04\u0E32) \u0E41\u0E25\u0E30 ", React.createElement("b", null, "\u0E04\u0E27\u0E32\u0E21\u0E0A\u0E31\u0E19"), " \u0E02\u0E2D\u0E07\u0E41\u0E15\u0E48\u0E25\u0E30\u0E2B\u0E25\u0E31\u0E07 \xB7 \u0E1C\u0E37\u0E19\u0E17\u0E35\u0E48\u0E15\u0E48\u0E2D\u0E01\u0E31\u0E19\u0E0A\u0E31\u0E19\u0E40\u0E17\u0E48\u0E32\u0E01\u0E31\u0E19\u0E17\u0E31\u0E49\u0E07\u0E2B\u0E25\u0E31\u0E07 \xB7 \u0E41\u0E25\u0E49\u0E27\u0E01\u0E14 ", React.createElement("b", null, "3D"), " \u0E14\u0E39\u0E17\u0E23\u0E07\u0E41\u0E27\u0E1A\u0E40\u0E14\u0E35\u0E22\u0E27"),
-    list: React.createElement("div", {
+    }), "\u0E08\u0E31\u0E14\u0E17\u0E23\u0E07\u0E17\u0E31\u0E49\u0E07\u0E2B\u0E25\u0E31\u0E07")),
+    list: roofs.length > 0 && React.createElement("div", {
       className: "p3s-fld",
       style: {
         gap: 8
@@ -7767,6 +7715,12 @@ function Plan3DStudio({
       const pc = roofPitchOf(r),
         on = selRoof && selRoof.id === r.id;
       const kk = r.kind === "poly" ? r.p3sFacet ? "facet" : pc > 0.4 ? "shed" : "flat" : r.kind;
+      let ar = 0;
+      try {
+        ar = p3Area(p3sOutline(r));
+      } catch (e) {
+        ar = 0;
+      }
       return React.createElement("div", {
         key: r.id,
         className: "p3s-fld",
@@ -7780,14 +7734,16 @@ function Plan3DStudio({
         className: "p3s-row",
         style: {
           justifyContent: "space-between",
-          gap: 6
+          gap: 6,
+          flexWrap: "nowrap"
         }
       }, React.createElement("button", {
         className: "p3s-btn",
         style: {
           height: 26,
           padding: "0 10px",
-          fontSize: 12
+          fontSize: 12,
+          minWidth: 0
         },
         onClick: () => pickRoof(r)
       }, React.createElement(P3Icon, {
@@ -7796,22 +7752,36 @@ function Plan3DStudio({
         style: {
           fontSize: 12,
           fontWeight: 700,
-          whiteSpace: "nowrap"
+          whiteSpace: "nowrap",
+          marginLeft: "auto"
         }
-      }, (() => {
-        let a = 0;
-        try {
-          a = p3Area(p3sOutline(r));
-        } catch (e) {
-          a = 0;
-        }
-        return p3sR(a, 10).toLocaleString();
-      })(), React.createElement("small", {
+      }, p3sR(ar, 10).toLocaleString(), React.createElement("small", {
         style: {
           fontSize: 10,
           fontWeight: 400
         }
-      }, " \u0E15\u0E23.\u0E21."))), React.createElement("div", {
+      }, " \u0E15\u0E23.\u0E21.")), React.createElement("button", {
+        className: "p3s-btn dngr",
+        title: "\u0E25\u0E1A\u0E2B\u0E25\u0E31\u0E07\u0E04\u0E32\u0E19\u0E35\u0E49",
+        style: {
+          height: 26,
+          width: 26,
+          padding: 0,
+          flex: "0 0 26px"
+        },
+        onClick: () => {
+          commit(x => Object.assign({}, x, {
+            roofs: (x.roofs || []).filter(q => q.id !== r.id)
+          }));
+          if (on) {
+            setSel(null);
+            setSelVert(null);
+            setSelBlk(null);
+          }
+        }
+      }, React.createElement(P3Icon, {
+        name: "trash"
+      }))), React.createElement("div", {
         className: "p3s-g2"
       }, React.createElement(P3SNum, {
         label: "\u0E04\u0E27\u0E32\u0E21\u0E2A\u0E39\u0E07\u0E2D\u0E32\u0E04\u0E32\u0E23",
@@ -7829,28 +7799,43 @@ function Plan3DStudio({
         digits: 1,
         value: pc,
         onChange: v => setRoofPitch(r, v)
-      }) : React.createElement("span", {
-        className: "p3s-note",
+      }) : React.createElement(P3SNum, {
+        label: "\u0E04\u0E27\u0E32\u0E21\u0E2A\u0E39\u0E07\u0E42\u0E04\u0E49\u0E07",
+        unit: "\u0E21.",
+        step: 0.1,
+        min: 0.2,
+        value: r.rise,
+        onChange: v => patchRoof(r.id, {
+          rise: v
+        }, "rise")
+      })), r.kind === "dome" && React.createElement("button", {
+        className: "p3s-btn",
         style: {
-          alignSelf: "end"
-        }
-      }, "\u0E04\u0E27\u0E32\u0E21\u0E42\u0E04\u0E49\u0E07\u0E15\u0E31\u0E49\u0E07\u0E17\u0E35\u0E48\u0E01\u0E32\u0E23\u0E4C\u0E14\u0E2B\u0E25\u0E31\u0E07\u0E04\u0E32")));
+          height: 28,
+          fontSize: 12
+        },
+        onClick: () => patchRoof(r.id, q => {
+          const sp0 = +q.span || 10,
+            sp1 = +q.ridge || 12,
+            rs = +q.rise || sp0 / 2;
+          return {
+            ridge: sp0,
+            span: sp1,
+            rise: p3sR(Math.min(sp1 / 2, rs * sp1 / sp0)),
+            az: p3sR(((+q.az || 180) + 90) % 360, 10)
+          };
+        })
+      }, React.createElement(P3SIcon, {
+        name: "rotate",
+        size: 14
+      }), "\u0E01\u0E25\u0E31\u0E1A\u0E17\u0E34\u0E28\u0E42\u0E04\u0E49\u0E07"));
     })),
-    extra: shapeGap >= 0.03 && facetRoofs.length > 1 && React.createElement("div", {
-      className: "p3s-row"
-    }, React.createElement("span", {
-      className: "p3s-badge warn",
-      style: {
-        flex: 1
-      }
-    }, "\u0E17\u0E23\u0E07\u0E22\u0E31\u0E07\u0E40\u0E1E\u0E35\u0E49\u0E22\u0E19 ", Math.round(shapeGap * 100), " \u0E0B\u0E21."), React.createElement("button", {
-      className: "p3s-btn pri",
-      onClick: () => weldNow(facetRoofs[0])
-    }, React.createElement(P3SIcon, {
-      name: "magic",
-      size: 15
-    }), "\u0E08\u0E31\u0E14\u0E17\u0E23\u0E07\u0E17\u0E31\u0E49\u0E07\u0E2B\u0E25\u0E31\u0E07")),
-    act: view3d ? React.createElement("button", {
+    act: roofs.length > 0 ? React.createElement(React.Fragment, null, React.createElement("button", {
+      className: "p3s-btn pri wide",
+      onClick: addRoof
+    }, React.createElement(P3Icon, {
+      name: "plus"
+    }), "\u0E40\u0E1E\u0E34\u0E48\u0E21\u0E2B\u0E25\u0E31\u0E07\u0E04\u0E32\u0E2D\u0E35\u0E01\u0E2B\u0E25\u0E31\u0E07 (\u0E21\u0E35\u0E41\u0E25\u0E49\u0E27 ", roofs.length, ")"), view3d ? React.createElement("button", {
       className: "p3s-btn wide pri",
       onClick: () => {
         setView3d(false);
@@ -7864,19 +7849,30 @@ function Plan3DStudio({
       onClick: () => {
         setView3d(true);
         setToolRaw("select");
+        setDraw(null);
+        setTrace(null);
       }
     }, React.createElement(P3Icon, {
       name: "cube"
-    }), "\u0E14\u0E39\u0E17\u0E23\u0E07\u0E43\u0E19 3D"),
+    }), "\u0E14\u0E39\u0E17\u0E23\u0E07\u0E43\u0E19 3D")) : React.createElement("button", {
+      className: "p3s-btn pri wide",
+      onClick: () => {
+        if (tool !== "roof") setTool("roof");
+        setKindPick(true);
+      }
+    }, React.createElement(P3SIcon, {
+      name: "polygon",
+      size: 15
+    }), "\u0E40\u0E25\u0E37\u0E2D\u0E01\u0E17\u0E23\u0E07\u0E2B\u0E25\u0E31\u0E07\u0E04\u0E32"),
     go: () => {
-      setTool("select");
-      const r = facetRoofs[0] || roofs[0];
-      if (r && !(sel && sel.t === "roof")) pickRoof(r);
+      setTool("roof");
+      if (!roofs.length) setKindPick(true);
     }
   }, {
     t: "สิ่งบดบัง",
+    k: "obs",
     tools: ["obs"],
-    done: (st.obstacles || []).length > 0 || !!wizSeen[5],
+    done: (st.obstacles || []).length > 0 || !!wizSeen.obs,
     opt: true,
     d: React.createElement("span", null, "\u0E40\u0E25\u0E37\u0E2D\u0E01\u0E0A\u0E19\u0E34\u0E14 \u0E41\u0E25\u0E49\u0E27", React.createElement("b", null, "\u0E41\u0E15\u0E30\u0E1A\u0E19\u0E1C\u0E31\u0E07"), " = \u0E02\u0E19\u0E32\u0E14\u0E21\u0E32\u0E15\u0E23\u0E10\u0E32\u0E19 \u0E2B\u0E23\u0E37\u0E2D", React.createElement("b", null, "\u0E25\u0E32\u0E01\u0E01\u0E23\u0E2D\u0E1A"), "\u0E15\u0E32\u0E21\u0E02\u0E19\u0E32\u0E14\u0E08\u0E23\u0E34\u0E07 \xB7 \u0E17\u0E33", React.createElement("b", null, "\u0E01\u0E48\u0E2D\u0E19\u0E27\u0E32\u0E07\u0E41\u0E1C\u0E07"), " \u0E41\u0E1C\u0E07\u0E17\u0E35\u0E48\u0E17\u0E31\u0E1A\u0E16\u0E39\u0E01\u0E15\u0E31\u0E14\u0E2D\u0E2D\u0E01\u0E40\u0E2D\u0E07 \xB7 \u0E44\u0E21\u0E48\u0E21\u0E35\u0E01\u0E47\u0E01\u0E14\u0E16\u0E31\u0E14\u0E44\u0E1B"),
     act: React.createElement("div", {
@@ -7929,15 +7925,17 @@ function Plan3DStudio({
     }
   }, {
     t: "ทางเดิน",
+    k: "walk",
     tools: ["walk"],
-    done: anyWalk || !!wizSeen[7],
+    done: anyWalk || !!wizSeen.walk,
     opt: true,
     d: React.createElement("span", null, "\u0E04\u0E25\u0E34\u0E01\u0E44\u0E25\u0E48\u0E08\u0E38\u0E14\u0E40\u0E1B\u0E47\u0E19\u0E41\u0E19\u0E27\u0E17\u0E32\u0E07\u0E40\u0E14\u0E34\u0E19 \u0E14\u0E31\u0E1A\u0E40\u0E1A\u0E34\u0E25\u0E04\u0E25\u0E34\u0E01\u0E08\u0E1A\u0E40\u0E2A\u0E49\u0E19 \xB7 \u0E41\u0E1C\u0E07\u0E17\u0E35\u0E48\u0E17\u0E31\u0E1A\u0E41\u0E19\u0E27\u0E2B\u0E32\u0E22\u0E40\u0E2D\u0E07 \u0E08\u0E33\u0E19\u0E27\u0E19\u0E41\u0E1C\u0E07\u0E41\u0E25\u0E30 BOQ \u0E15\u0E23\u0E07\u0E40\u0E2D\u0E07 \xB7 \u0E44\u0E21\u0E48\u0E15\u0E49\u0E2D\u0E07\u0E21\u0E35\u0E01\u0E47\u0E01\u0E14\u0E16\u0E31\u0E14\u0E44\u0E1B"),
     go: () => setTool("walk")
   }, {
     t: "ตรวจ 3D และเงา แล้วบันทึก",
+    k: "fin",
     tools: [],
-    done: total > 0 && !!wizSeen[8] && !dirty,
+    done: total > 0 && !!wizSeen.fin && !dirty,
     d: React.createElement("span", null, "\u0E2B\u0E21\u0E38\u0E19\u0E14\u0E39\u0E23\u0E2D\u0E1A \u0E46 \u0E41\u0E25\u0E49\u0E27\u0E01\u0E14 ", React.createElement("b", null, "\u0E01\u0E27\u0E32\u0E14\u0E14\u0E39\u0E40\u0E07\u0E32\u0E17\u0E31\u0E49\u0E07\u0E27\u0E31\u0E19"), " (\u0E15\u0E23\u0E27\u0E08\u0E40\u0E14\u0E37\u0E2D\u0E19\u0E18\u0E31\u0E19\u0E27\u0E32\u0E04\u0E21\u0E40\u0E2A\u0E21\u0E2D) \xB7 \u0E40\u0E2A\u0E23\u0E47\u0E08\u0E41\u0E25\u0E49\u0E27\u0E01\u0E14 ", React.createElement("b", null, "\u0E1A\u0E31\u0E19\u0E17\u0E36\u0E01")),
     act: React.createElement("div", {
       className: "p3s-row"
@@ -7949,7 +7947,7 @@ function Plan3DStudio({
       onClick: () => {
         setView3d(true);
         setToolRaw("select");
-        markSeen(8);
+        markSeen("fin");
       }
     }, React.createElement(P3Icon, {
       name: "cube"
@@ -7960,7 +7958,7 @@ function Plan3DStudio({
       },
       disabled: !dirty,
       onClick: () => {
-        markSeen(8);
+        markSeen("fin");
         doSave();
       }
     }, React.createElement(P3Icon, {
@@ -7973,7 +7971,7 @@ function Plan3DStudio({
       setMeasPts(null);
       setTrace(null);
       setCalib(null);
-      markSeen(8);
+      markSeen("fin");
     }
   }];
   let reach = 0;
@@ -7982,7 +7980,7 @@ function Plan3DStudio({
     setWizStep(reach);
     if (reach === 3) {
       setToolRaw("roof");
-      setKindPick(true);
+      if (!roofs.length) setKindPick(true);
     }
   }
   const wi = wizStep != null ? Math.min(wizStep, reach) : reach,
@@ -7995,7 +7993,7 @@ function Plan3DStudio({
   };
   const nextStep = () => {
     if (!canNext) return;
-    markSeen(wi);
+    markSeen(W0.k || wi);
     setWizStep(wi + 1);
     WIZ[wi + 1] && WIZ[wi + 1].go();
   };
@@ -8021,23 +8019,7 @@ function Plan3DStudio({
     className: "wt"
   }, wi + 1, ". ", W0.t, W0.done ? " ✓" : ""), React.createElement("span", {
     className: "wd"
-  }, W0.d), W0.extra || null, W0.list || null, W0.act || null, wi === 4 && roofs.length > 0 && React.createElement("button", {
-    className: "p3s-btn wide",
-    onClick: () => {
-      setAddBack({
-        to: wi,
-        n: roofs.length
-      });
-      setSel(null);
-      setWizStep(3);
-      setTool("roof");
-      setDraw(null);
-      setTrace(null);
-      setKindPick(true);
-    }
-  }, React.createElement(P3Icon, {
-    name: "plus"
-  }), "\u0E40\u0E1E\u0E34\u0E48\u0E21\u0E2B\u0E25\u0E31\u0E07\u0E04\u0E32"));
+  }, W0.d), W0.extra || null, W0.list || null, W0.act || null);
   const wizNav = wiz && React.createElement("div", {
     className: "p3s-wiznav"
   }, React.createElement("div", {
@@ -8065,20 +8047,7 @@ function Plan3DStudio({
   const wizTools = wiz && !view3d ? W0.tools : null;
   wizHomeRef.current = wiz ? W0.tools[0] || null : null;
   const roofStep = wiz && wi === 3 && !view3d;
-  const noPanUI = wiz && wi < 6;
-  if (addBack && roofs.length > addBack.n && !eavePick && !kindPick && roofOpt.kind !== "facet") {
-    const to = addBack.to,
-      nr = roofs[roofs.length - 1];
-    setAddBack(null);
-    setTrace(null);
-    setDraw(null);
-    setWizStep(to);
-    WIZ[to].go();
-    if (nr) setSel({
-      t: "roof",
-      id: nr.id
-    });
-  }
+  const noPanUI = wiz && wi < 5;
   wizAllowRef.current = wiz ? W0.tools.length ? ["pan"].concat(W0.tools, wi >= 3 ? ["select", "meas"] : []) : ["select", "pan", "meas"] : null;
   const guidePanel = React.createElement(React.Fragment, null, React.createElement("input", {
     ref: fileRef,
@@ -8393,7 +8362,7 @@ function Plan3DStudio({
     className: "p3s-note"
   }, "\u0E2D\u0E22\u0E32\u0E01\u0E40\u0E27\u0E49\u0E19\u0E17\u0E32\u0E07\u0E40\u0E14\u0E34\u0E19\u0E40\u0E1B\u0E47\u0E19\u0E0A\u0E48\u0E27\u0E07\u0E40\u0E17\u0E48\u0E32 \u0E46 \u0E01\u0E31\u0E19\u0E17\u0E31\u0E49\u0E07\u0E1C\u0E37\u0E19 \u0E43\u0E0A\u0E49 ", React.createElement("b", null, "\u0E08\u0E31\u0E14\u0E40\u0E1B\u0E47\u0E19\u0E01\u0E25\u0E38\u0E48\u0E21 + \u0E40\u0E27\u0E49\u0E19\u0E17\u0E32\u0E07\u0E40\u0E14\u0E34\u0E19"), " \u0E43\u0E19\u0E01\u0E32\u0E23\u0E4C\u0E14\u0E41\u0E1C\u0E07\u0E02\u0E2D\u0E07\u0E2B\u0E25\u0E31\u0E07\u0E04\u0E32\u0E41\u0E17\u0E19"));
   let sideBody;
-  const cardRoof = wiz && wi === 4 ? null : selRoof;
+  const cardRoof = wiz && wi === 3 ? null : selRoof;
   if (view3d) sideBody = React.createElement(React.Fragment, null, sunPanel, cardRoof ? roofPanelBody(cardRoof) : null);else if (tool === "bg") sideBody = bgPanel;else if (tool === "axis") sideBody = wiz ? null : axisPanel;else if (tool === "walk") sideBody = React.createElement(React.Fragment, null, walkPanel, cardRoof ? roofPanelBody(cardRoof) : null);else if (cardRoof) sideBody = roofPanelBody(cardRoof);else if (selObs) sideBody = obsPanelBody(selObs);else if (selMeas) sideBody = measPanelBody(selMeas);else if (tool === "roof") sideBody = React.createElement("div", {
     className: "p3s-card"
   }, React.createElement("span", {
@@ -8433,7 +8402,7 @@ function Plan3DStudio({
       c: v > 1.2 ? 1.3 : 1
     })
   }));else sideBody = guidePanel;
-  if (wiz && wi === 4 && !view3d) sideBody = null;
+  if (wiz && wi === 3 && !view3d && !selObs && !selMeas) sideBody = null;
   if (wizCard) sideBody = React.createElement(React.Fragment, null, wizCard, sideBody);
   let ctxBar = null;
   if (!view3d && (tool === "roof" || roofStep) && (roofArm || draw || !(st.roofs || []).length)) {
@@ -8937,9 +8906,19 @@ function Plan3DStudio({
     }
   }, React.createElement(P3SKindArt, {
     k: k
-  }), React.createElement("b", null, lb), React.createElement("small", null, P3S_KIND_D[k])))), React.createElement("span", {
+  }), React.createElement("b", null, lb), React.createElement("small", null, P3S_KIND_D[k])))), (st.roofs || []).length > 0 && React.createElement("button", {
+    className: "p3s-btn pri wide",
+    onClick: () => {
+      setKindPick(false);
+      setRoofArm(false);
+      setDraw(null);
+      setTrace(null);
+    }
+  }, React.createElement(P3Icon, {
+    name: "check"
+  }), "\u0E04\u0E23\u0E1A\u0E41\u0E25\u0E49\u0E27 \xB7 \u0E44\u0E21\u0E48\u0E40\u0E1E\u0E34\u0E48\u0E21\u0E2B\u0E25\u0E31\u0E07\u0E04\u0E32 (\u0E21\u0E35 ", (st.roofs || []).length, " \u0E2B\u0E25\u0E31\u0E07)"), React.createElement("span", {
     className: "p3s-note"
-  }, "\u0E40\u0E1B\u0E25\u0E35\u0E48\u0E22\u0E19\u0E17\u0E23\u0E07\u0E17\u0E35\u0E2B\u0E25\u0E31\u0E07\u0E44\u0E14\u0E49\u0E17\u0E35\u0E48\u0E41\u0E16\u0E1A\u0E1A\u0E19\u0E1C\u0E31\u0E07 \xB7 \u0E2B\u0E25\u0E31\u0E07\u0E04\u0E32\u0E2B\u0E25\u0E32\u0E22\u0E17\u0E23\u0E07\u0E43\u0E19\u0E07\u0E32\u0E19\u0E40\u0E14\u0E35\u0E22\u0E27 \u0E40\u0E25\u0E37\u0E2D\u0E01\u0E17\u0E23\u0E07\u0E43\u0E2B\u0E21\u0E48\u0E01\u0E48\u0E2D\u0E19\u0E27\u0E32\u0E14\u0E41\u0E15\u0E48\u0E25\u0E30\u0E2B\u0E25\u0E31\u0E07"))), eavePick && mxy && !view3d && React.createElement("div", {
+  }, "\u0E2B\u0E25\u0E31\u0E07\u0E04\u0E32\u0E2B\u0E25\u0E32\u0E22\u0E17\u0E23\u0E07\u0E43\u0E19\u0E07\u0E32\u0E19\u0E40\u0E14\u0E35\u0E22\u0E27 \u0E40\u0E25\u0E37\u0E2D\u0E01\u0E17\u0E23\u0E07\u0E43\u0E2B\u0E21\u0E48\u0E01\u0E48\u0E2D\u0E19\u0E27\u0E32\u0E14\u0E41\u0E15\u0E48\u0E25\u0E30\u0E2B\u0E25\u0E31\u0E07"))), eavePick && mxy && !view3d && React.createElement("div", {
     className: "p3s-mtip",
     style: {
       left: mxy.x + 16,
