@@ -1732,6 +1732,7 @@ const P3S_CSS = `
 .p3s-step .tt{font-size:13.5px;font-weight:800}
 .p3s-step .ds{font-size:11.5px;color:var(--text-3);line-height:1.45}
 .p3s-wiz .dots{display:flex;gap:4px}
+.p3s-wiz .dot:disabled{opacity:.45;cursor:not-allowed}
 .p3s-wiz .dot{flex:1;min-width:0;height:26px;border:0;border-radius:8px;background:var(--surface2);box-shadow:var(--shadow-inset);color:var(--text-3);font-size:11.5px;font-weight:800;cursor:pointer;display:grid;place-items:center;padding:0}
 .p3s-wiz .dot[data-done="1"]{background:var(--primary-soft,rgba(16,185,129,.16));color:var(--primary);box-shadow:none}
 .p3s-wiz .dot[data-on="1"]{background:var(--primary);color:#fff;box-shadow:none}
@@ -2395,19 +2396,7 @@ function Plan3DStudio({
   const [marq, setMarq] = React.useState(null);
   const [mapOpen, setMapOpen] = React.useState(false);
   const [sheetMin, setSheetMin] = React.useState(false);
-  const [wiz, setWizRaw] = React.useState(() => {
-    try {
-      return localStorage.getItem("p3s_wiz") !== "0";
-    } catch (e) {
-      return true;
-    }
-  });
-  const setWiz = v => {
-    setWizRaw(v);
-    try {
-      localStorage.setItem("p3s_wiz", v ? "1" : "0");
-    } catch (e) {}
-  };
+  const wiz = true;
   const wizKey = "p3s_wiz2_" + (job ? job.id : "");
   const [wizSeen, setWizSeenRaw] = React.useState(() => {
     try {
@@ -6952,7 +6941,6 @@ function Plan3DStudio({
     t: "ภาพมุมสูง",
     tools: ["bg"],
     done: hasImgW,
-    skip: true,
     d: React.createElement("span", null, "\u0E01\u0E14 ", React.createElement("b", null, "\u0E14\u0E32\u0E27\u0E40\u0E17\u0E35\u0E22\u0E21"), " \u0E2B\u0E23\u0E37\u0E2D ", React.createElement("b", null, "\u0E23\u0E39\u0E1B\u0E42\u0E14\u0E23\u0E19"), " \u0E41\u0E25\u0E49\u0E27\u0E40\u0E25\u0E37\u0E48\u0E2D\u0E19\u0E43\u0E2B\u0E49\u0E2D\u0E32\u0E04\u0E32\u0E23\u0E2D\u0E22\u0E39\u0E48\u0E01\u0E25\u0E32\u0E07\u0E08\u0E2D \xB7 \u0E23\u0E39\u0E1B\u0E42\u0E14\u0E23\u0E19\u0E15\u0E49\u0E2D\u0E07\u0E15\u0E31\u0E49\u0E07\u0E21\u0E32\u0E15\u0E23\u0E32\u0E2A\u0E48\u0E27\u0E19\u0E08\u0E32\u0E01\u0E23\u0E30\u0E22\u0E30\u0E17\u0E35\u0E48\u0E23\u0E39\u0E49\u0E08\u0E23\u0E34\u0E07\u0E01\u0E48\u0E2D\u0E19 \u2014 \u0E17\u0E38\u0E01\u0E2D\u0E22\u0E48\u0E32\u0E07\u0E2B\u0E25\u0E31\u0E07\u0E08\u0E32\u0E01\u0E19\u0E35\u0E49\u0E27\u0E31\u0E14\u0E15\u0E32\u0E21\u0E20\u0E32\u0E1E\u0E19\u0E35\u0E49"),
     act: React.createElement("div", {
       className: "p3s-row"
@@ -6978,7 +6966,6 @@ function Plan3DStudio({
     t: "กำหนดพื้นที่ติดตั้ง",
     tools: ["area"],
     done: !!(st.p3sArea && (st.p3sArea.pts || []).length > 2),
-    skip: true,
     d: React.createElement("span", null, React.createElement("b", null, "\u0E25\u0E32\u0E01\u0E01\u0E23\u0E2D\u0E1A"), " \u0E04\u0E25\u0E38\u0E21\u0E2D\u0E32\u0E04\u0E32\u0E23\u0E2B\u0E23\u0E37\u0E2D\u0E2B\u0E25\u0E31\u0E07\u0E04\u0E32\u0E17\u0E35\u0E48\u0E08\u0E30\u0E15\u0E34\u0E14\u0E15\u0E31\u0E49\u0E07 \u0E23\u0E30\u0E1A\u0E1A\u0E0B\u0E39\u0E21\u0E40\u0E02\u0E49\u0E32\u0E43\u0E2B\u0E49 \u0E41\u0E25\u0E30\u0E43\u0E0A\u0E49\u0E01\u0E23\u0E2D\u0E1A\u0E19\u0E35\u0E49\u0E2B\u0E32\u0E41\u0E19\u0E27\u0E2B\u0E25\u0E31\u0E07\u0E04\u0E32\u0E2D\u0E31\u0E15\u0E42\u0E19\u0E21\u0E31\u0E15\u0E34 \xB7 \u0E25\u0E32\u0E01\u0E43\u0E2B\u0E21\u0E48\u0E44\u0E14\u0E49\u0E40\u0E2A\u0E21\u0E2D"),
     act: st.p3sArea ? React.createElement("div", {
       className: "p3s-row"
@@ -7007,7 +6994,6 @@ function Plan3DStudio({
     t: "ตั้งแนวหลังคา",
     tools: ["axis"],
     done: axisDeg != null,
-    skip: true,
     d: React.createElement("span", null, "\u0E01\u0E14 ", React.createElement("b", null, "\u0E2B\u0E32\u0E41\u0E19\u0E27\u0E2D\u0E31\u0E15\u0E42\u0E19\u0E21\u0E31\u0E15\u0E34"), " (\u0E2D\u0E48\u0E32\u0E19\u0E02\u0E2D\u0E1A\u0E43\u0E19\u0E01\u0E23\u0E2D\u0E1A\u0E1E\u0E37\u0E49\u0E19\u0E17\u0E35\u0E48\u0E15\u0E34\u0E14\u0E15\u0E31\u0E49\u0E07) \u0E41\u0E25\u0E49\u0E27\u0E14\u0E39\u0E27\u0E48\u0E32\u0E40\u0E2A\u0E49\u0E19\u0E01\u0E23\u0E34\u0E14\u0E2A\u0E35\u0E21\u0E48\u0E27\u0E07\u0E02\u0E19\u0E32\u0E19\u0E01\u0E31\u0E1A\u0E02\u0E2D\u0E1A\u0E2D\u0E32\u0E04\u0E32\u0E23\u0E44\u0E2B\u0E21 \xB7 \u0E44\u0E21\u0E48\u0E15\u0E23\u0E07\u0E1B\u0E23\u0E31\u0E1A\u0E17\u0E35\u0E25\u0E30\u0E2D\u0E07\u0E28\u0E32 \u0E2B\u0E23\u0E37\u0E2D\u0E25\u0E32\u0E01\u0E40\u0E2A\u0E49\u0E19\u0E17\u0E31\u0E1A\u0E02\u0E2D\u0E1A\u0E0A\u0E32\u0E22\u0E04\u0E32\u0E40\u0E2D\u0E07"),
     act: React.createElement(React.Fragment, null, React.createElement("button", {
       className: "p3s-btn wide" + (axisDeg == null ? " pri" : ""),
@@ -7061,7 +7047,7 @@ function Plan3DStudio({
   }, {
     t: "ตั้งความชันและเช็กชายคา",
     tools: ["select"],
-    done: roofs.length > 0 && shapeGap < 0.03 && !!wizSeen[4],
+    done: roofs.length > 0 && shapeGap < 0.03,
     d: React.createElement("span", null, "\u0E41\u0E15\u0E30\u0E2B\u0E25\u0E31\u0E07\u0E04\u0E32\u0E1C\u0E37\u0E19\u0E44\u0E2B\u0E19\u0E01\u0E47\u0E44\u0E14\u0E49 \u0E41\u0E25\u0E49\u0E27\u0E15\u0E31\u0E49\u0E07 ", React.createElement("b", null, "\u0E04\u0E27\u0E32\u0E21\u0E0A\u0E31\u0E19"), " \u0E04\u0E23\u0E31\u0E49\u0E07\u0E40\u0E14\u0E35\u0E22\u0E27 \u0E1C\u0E37\u0E19\u0E17\u0E35\u0E48\u0E15\u0E48\u0E2D\u0E01\u0E31\u0E19\u0E08\u0E30\u0E0A\u0E31\u0E19\u0E40\u0E17\u0E48\u0E32\u0E01\u0E31\u0E19\u0E17\u0E31\u0E49\u0E07\u0E2B\u0E25\u0E31\u0E07 \xB7 \u0E1C\u0E37\u0E19\u0E44\u0E2B\u0E19\u0E0A\u0E32\u0E22\u0E04\u0E32\u0E1C\u0E34\u0E14\u0E14\u0E49\u0E32\u0E19 \u0E43\u0E0A\u0E49 ", React.createElement("b", null, "\u0E41\u0E15\u0E30\u0E40\u0E25\u0E37\u0E2D\u0E01\u0E02\u0E2D\u0E1A\u0E0A\u0E32\u0E22\u0E04\u0E32\u0E1A\u0E19\u0E1C\u0E31\u0E07"), " \xB7 \u0E41\u0E25\u0E49\u0E27\u0E01\u0E14 ", React.createElement("b", null, "3D"), " \u0E14\u0E39\u0E17\u0E23\u0E07\u0E41\u0E27\u0E1A\u0E40\u0E14\u0E35\u0E22\u0E27"),
     extra: shapeGap >= 0.03 && facetRoofs.length > 1 && React.createElement("div", {
       className: "p3s-row"
@@ -7095,7 +7081,7 @@ function Plan3DStudio({
     t: "สิ่งบดบัง",
     tools: ["obs"],
     done: (st.obstacles || []).length > 0 || !!wizSeen[5],
-    skip: true,
+    opt: true,
     d: React.createElement("span", null, "\u0E27\u0E32\u0E14\u0E41\u0E17\u0E47\u0E07\u0E01\u0E4C\u0E19\u0E49\u0E33 \u0E0A\u0E48\u0E2D\u0E07\u0E41\u0E2A\u0E07 \u0E40\u0E2A\u0E32 \u0E15\u0E49\u0E19\u0E44\u0E21\u0E49 ", React.createElement("b", null, "\u0E01\u0E48\u0E2D\u0E19\u0E27\u0E32\u0E07\u0E41\u0E1C\u0E07"), " \u2014 \u0E41\u0E1C\u0E07\u0E17\u0E35\u0E48\u0E17\u0E31\u0E1A\u0E08\u0E30\u0E16\u0E39\u0E01\u0E15\u0E31\u0E14\u0E2D\u0E2D\u0E01\u0E40\u0E2D\u0E07 \xB7 \u0E44\u0E21\u0E48\u0E21\u0E35\u0E01\u0E47\u0E01\u0E14\u0E16\u0E31\u0E14\u0E44\u0E1B\u0E44\u0E14\u0E49\u0E40\u0E25\u0E22"),
     go: () => setTool("obs")
   }, {
@@ -7129,7 +7115,7 @@ function Plan3DStudio({
     t: "ทางเดิน",
     tools: ["walk"],
     done: anyWalk || !!wizSeen[7],
-    skip: true,
+    opt: true,
     d: React.createElement("span", null, "\u0E04\u0E25\u0E34\u0E01\u0E44\u0E25\u0E48\u0E08\u0E38\u0E14\u0E40\u0E1B\u0E47\u0E19\u0E41\u0E19\u0E27\u0E17\u0E32\u0E07\u0E40\u0E14\u0E34\u0E19 \u0E14\u0E31\u0E1A\u0E40\u0E1A\u0E34\u0E25\u0E04\u0E25\u0E34\u0E01\u0E08\u0E1A\u0E40\u0E2A\u0E49\u0E19 \xB7 \u0E41\u0E1C\u0E07\u0E17\u0E35\u0E48\u0E17\u0E31\u0E1A\u0E41\u0E19\u0E27\u0E2B\u0E32\u0E22\u0E40\u0E2D\u0E07 \u0E08\u0E33\u0E19\u0E27\u0E19\u0E41\u0E1C\u0E07\u0E41\u0E25\u0E30 BOQ \u0E15\u0E23\u0E07\u0E40\u0E2D\u0E07 \xB7 \u0E44\u0E21\u0E48\u0E15\u0E49\u0E2D\u0E07\u0E21\u0E35\u0E01\u0E47\u0E01\u0E14\u0E16\u0E31\u0E14\u0E44\u0E1B"),
     go: () => setTool("walk")
   }, {
@@ -7174,20 +7160,21 @@ function Plan3DStudio({
       markSeen(8);
     }
   }];
-  const wizAuto = (() => {
-    const i = WIZ.findIndex(w => !w.done);
-    return i < 0 ? WIZ.length - 1 : i;
-  })();
-  const wi = wizStep != null ? wizStep : wizAuto,
+  let reach = 0;
+  while (reach < WIZ.length - 1 && WIZ[reach].done) reach++;
+  const wi = wizStep != null ? Math.min(wizStep, reach) : reach,
     W0 = WIZ[wi];
+  const canNext = W0.done || W0.opt;
   const goStep = i => {
     if (i < 0 || i >= WIZ.length) return;
     setWizStep(i);
     WIZ[i].go();
   };
   const nextStep = () => {
+    if (!canNext) return;
     markSeen(wi);
-    goStep(wi + 1);
+    setWizStep(wi + 1);
+    WIZ[wi + 1] && WIZ[wi + 1].go();
   };
   const wizCard = wiz && React.createElement("div", {
     className: "p3s-card p3s-wiz"
@@ -7195,25 +7182,18 @@ function Plan3DStudio({
     className: "p3s-h"
   }, React.createElement("span", {
     className: "t"
-  }, "\u0E1E\u0E32\u0E17\u0E33\u0E17\u0E35\u0E25\u0E30\u0E02\u0E31\u0E49\u0E19 \xB7 \u0E02\u0E31\u0E49\u0E19 ", wi + 1, "/", WIZ.length), React.createElement("button", {
-    className: "p3s-btn ghost",
-    style: {
-      marginLeft: "auto",
-      height: 24,
-      padding: "0 8px",
-      fontSize: 11
-    },
-    onClick: () => setWiz(false),
-    title: "\u0E1B\u0E34\u0E14\u0E42\u0E2B\u0E21\u0E14\u0E1E\u0E32\u0E17\u0E33"
-  }, "\u0E1B\u0E34\u0E14")), React.createElement("div", {
+  }, "\u0E1E\u0E32\u0E17\u0E33\u0E17\u0E35\u0E25\u0E30\u0E02\u0E31\u0E49\u0E19 \xB7 \u0E02\u0E31\u0E49\u0E19 ", wi + 1, "/", WIZ.length)), React.createElement("div", {
     className: "dots"
   }, WIZ.map((w, i) => React.createElement("button", {
     key: i,
     className: "dot",
     "data-on": i === wi ? "1" : "0",
     "data-done": w.done ? "1" : "0",
-    title: w.t,
-    onClick: () => goStep(i)
+    disabled: i > reach,
+    title: i > reach ? w.t + " — ทำขั้นก่อนหน้าให้เสร็จก่อน" : w.t,
+    onClick: () => {
+      if (i <= reach) goStep(i);
+    }
   }, w.done && i !== wi ? "✓" : i + 1))), React.createElement("span", {
     className: "wt"
   }, wi + 1, ". ", W0.t, W0.done ? " ✓" : ""), React.createElement("span", {
@@ -7228,20 +7208,21 @@ function Plan3DStudio({
     disabled: wi === 0,
     onClick: () => goStep(wi - 1)
   }, "\u2190 \u0E22\u0E49\u0E2D\u0E19"), wi < WIZ.length - 1 ? React.createElement("button", {
-    className: "p3s-btn" + (W0.done || W0.skip ? " pri" : ""),
+    className: "p3s-btn" + (canNext ? " pri" : ""),
     style: {
       flex: 1
     },
+    disabled: !canNext,
     onClick: nextStep
-  }, !W0.done && W0.skip ? "ข้าม · " : "ถัดไป · ", WIZ[wi + 1].t, " \u2192") : React.createElement("span", {
+  }, !W0.done && W0.opt ? "ไม่มี · " : "ถัดไป · ", WIZ[wi + 1].t, " \u2192") : React.createElement("span", {
     className: "p3s-note",
     style: {
       flex: 1,
       textAlign: "right"
     }
-  }, WIZ.every(w => w.done || w.skip) ? "เสร็จครบทุกขั้น" : "ยังมีขั้นที่ไม่เสร็จ — ดูเลขที่ไม่มี ✓")), !W0.done && !W0.skip && wi < WIZ.length - 1 && React.createElement("span", {
+  }, WIZ.every(w => w.done || w.skip) ? "เสร็จครบทุกขั้น" : "ยังมีขั้นที่ไม่เสร็จ — ดูเลขที่ไม่มี ✓")), !canNext && wi < WIZ.length - 1 && React.createElement("span", {
     className: "p3s-note"
-  }, "\u0E02\u0E31\u0E49\u0E19\u0E19\u0E35\u0E49\u0E22\u0E31\u0E07\u0E44\u0E21\u0E48\u0E40\u0E2A\u0E23\u0E47\u0E08 \u2014 \u0E44\u0E1B\u0E15\u0E48\u0E2D\u0E44\u0E14\u0E49 \u0E41\u0E15\u0E48\u0E16\u0E49\u0E32\u0E01\u0E25\u0E31\u0E1A\u0E21\u0E32\u0E41\u0E01\u0E49\u0E17\u0E35\u0E2B\u0E25\u0E31\u0E07\u0E2D\u0E32\u0E08\u0E15\u0E49\u0E2D\u0E07\u0E08\u0E31\u0E14\u0E41\u0E1C\u0E07\u0E43\u0E2B\u0E21\u0E48"));
+  }, "\u0E17\u0E33\u0E02\u0E31\u0E49\u0E19\u0E19\u0E35\u0E49\u0E43\u0E2B\u0E49\u0E40\u0E2A\u0E23\u0E47\u0E08\u0E01\u0E48\u0E2D\u0E19\u0E08\u0E36\u0E07\u0E44\u0E1B\u0E15\u0E48\u0E2D\u0E44\u0E14\u0E49 \xB7 \u0E22\u0E49\u0E2D\u0E19\u0E01\u0E25\u0E31\u0E1A\u0E44\u0E1B\u0E41\u0E01\u0E49\u0E02\u0E31\u0E49\u0E19\u0E01\u0E48\u0E2D\u0E19\u0E2B\u0E19\u0E49\u0E32\u0E44\u0E14\u0E49\u0E40\u0E2A\u0E21\u0E2D"));
   const wizTools = wiz && !view3d ? W0.tools : null;
   wizAllowRef.current = wiz ? W0.tools.length ? ["pan"].concat(W0.tools, wi >= 3 ? ["select", "meas"] : []) : ["select", "pan", "meas"] : null;
   const guidePanel = React.createElement(React.Fragment, null, React.createElement("input", {
@@ -7266,10 +7247,7 @@ function Plan3DStudio({
       padding: "0 10px",
       fontSize: 11.5
     },
-    onClick: () => {
-      setWiz(true);
-      setWizStep(null);
-    }
+    onClick: () => setWizStep(null)
   }, "\u0E1E\u0E32\u0E17\u0E33\u0E17\u0E35\u0E25\u0E30\u0E02\u0E31\u0E49\u0E19")), [{
     done: !!(st.baseMap || st.photo),
     t: "ภาพมุมสูง",

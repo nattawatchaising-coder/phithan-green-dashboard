@@ -870,6 +870,7 @@ const P3S_CSS = `
 .p3s-step .tt{font-size:13.5px;font-weight:800}
 .p3s-step .ds{font-size:11.5px;color:var(--text-3);line-height:1.45}
 .p3s-wiz .dots{display:flex;gap:4px}
+.p3s-wiz .dot:disabled{opacity:.45;cursor:not-allowed}
 .p3s-wiz .dot{flex:1;min-width:0;height:26px;border:0;border-radius:8px;background:var(--surface2);box-shadow:var(--shadow-inset);color:var(--text-3);font-size:11.5px;font-weight:800;cursor:pointer;display:grid;place-items:center;padding:0}
 .p3s-wiz .dot[data-done="1"]{background:var(--primary-soft,rgba(16,185,129,.16));color:var(--primary);box-shadow:none}
 .p3s-wiz .dot[data-on="1"]{background:var(--primary);color:#fff;box-shadow:none}
@@ -1234,8 +1235,7 @@ function Plan3DStudio({ job, onClose, currentUser, onSwitch }) {
   const [mapOpen, setMapOpen] = React.useState(false);
   const [sheetMin, setSheetMin] = React.useState(false);
   /* โหมดพาทำทีละขั้น — เปิด/ปิดจำไว้ในเครื่อง · ขั้นที่ผ่านแล้ว (ขั้นที่ข้ามได้) จำแยกตามงาน */
-  const [wiz, setWizRaw] = React.useState(() => { try { return localStorage.getItem("p3s_wiz") !== "0"; } catch (e) { return true; } });
-  const setWiz = (v) => { setWizRaw(v); try { localStorage.setItem("p3s_wiz", v ? "1" : "0"); } catch (e) {} };
+  const wiz = true;   // ทำตามขั้นเสมอ ข้ามไม่ได้ ย้อนกลับได้อย่างเดียว
   const wizKey = "p3s_wiz2_" + (job ? job.id : "");
   const [wizSeen, setWizSeenRaw] = React.useState(() => { try { return JSON.parse(localStorage.getItem(wizKey) || "{}") || {}; } catch (e) { return {}; } });
   const markSeen = (i) => setWizSeenRaw((o) => { if (o[i]) return o; const n = Object.assign({}, o, { [i]: 1 }); try { localStorage.setItem(wizKey, JSON.stringify(n)); } catch (e) {} return n; });
@@ -3067,16 +3067,16 @@ function Plan3DStudio({ job, onClose, currentUser, onSwitch }) {
   const anyWalk = roofs.some((r) => (r.walks || []).length);
   const pickRoof = (r) => { setSel({ t: "roof", id: r.id }); const c = p3sRoofCenter(r); setView(Object.assign({}, viewRef.current, { cx: c.x, cz: c.z })); };
   const WIZ = [
-    { t: "ภาพมุมสูง", tools: ["bg"], done: hasImgW, skip: true,
+    { t: "ภาพมุมสูง", tools: ["bg"], done: hasImgW,
       d: <span>กด <b>ดาวเทียม</b> หรือ <b>รูปโดรน</b> แล้วเลื่อนให้อาคารอยู่กลางจอ · รูปโดรนต้องตั้งมาตราส่วนจากระยะที่รู้จริงก่อน — ทุกอย่างหลังจากนี้วัดตามภาพนี้</span>,
       act: <div className="p3s-row"><button className="p3s-btn" style={{ flex: 1 }} onClick={() => setMapOpen(true)}><P3Icon name="map" />ดาวเทียม</button><button className="p3s-btn" style={{ flex: 1 }} onClick={() => fileRef.current && fileRef.current.click()}><P3Icon name="camera" />รูปโดรน</button></div>,
       go: () => setTool("bg") },
-    { t: "กำหนดพื้นที่ติดตั้ง", tools: ["area"], done: !!(st.p3sArea && (st.p3sArea.pts || []).length > 2), skip: true,
+    { t: "กำหนดพื้นที่ติดตั้ง", tools: ["area"], done: !!(st.p3sArea && (st.p3sArea.pts || []).length > 2),
       d: <span><b>ลากกรอบ</b> คลุมอาคารหรือหลังคาที่จะติดตั้ง ระบบซูมเข้าให้ และใช้กรอบนี้หาแนวหลังคาอัตโนมัติ · ลากใหม่ได้เสมอ</span>,
       act: st.p3sArea ? <div className="p3s-row"><button className="p3s-btn" style={{ flex: 1 }} onClick={() => zoomArea(st.p3sArea)}><P3SIcon name="fit" size={15} />ซูมไปที่กรอบ</button>
         <button className="p3s-btn dngr" onClick={() => commit({ p3sArea: null })}><P3Icon name="trash" /></button></div> : null,
       go: () => { setTool("area"); if (st.p3sArea) zoomArea(st.p3sArea); } },
-    { t: "ตั้งแนวหลังคา", tools: ["axis"], done: axisDeg != null, skip: true,
+    { t: "ตั้งแนวหลังคา", tools: ["axis"], done: axisDeg != null,
       d: <span>กด <b>หาแนวอัตโนมัติ</b> (อ่านขอบในกรอบพื้นที่ติดตั้ง) แล้วดูว่าเส้นกริดสีม่วงขนานกับขอบอาคารไหม · ไม่ตรงปรับทีละองศา หรือลากเส้นทับขอบชายคาเอง</span>,
       act: (
         <React.Fragment>
@@ -3098,14 +3098,14 @@ function Plan3DStudio({ job, onClose, currentUser, onSwitch }) {
     { t: "วาดหลังคาให้ครบทุกผืน", tools: ["roof"], done: roofs.length > 0,
       d: <span>เลือกทรงที่แถบบนผัง · ทรงง่าย (ราบ เพิง จั่ว ปั้นหยา) ลากทับครั้งเดียว · หลังคาซับซ้อนเลือก <b>ทีละผืน</b> คลิกไล่มุมแต่ละผืน มุมที่ห่างกันไม่ถึง 40 ซม. ต่อกันเอง · <b>ยังไม่ต้องสนใจความชันและแผง</b></span>,
       go: () => setTool("roof") },
-    { t: "ตั้งความชันและเช็กชายคา", tools: ["select"], done: roofs.length > 0 && shapeGap < 0.03 && !!wizSeen[4],
+    { t: "ตั้งความชันและเช็กชายคา", tools: ["select"], done: roofs.length > 0 && shapeGap < 0.03,
       d: <span>แตะหลังคาผืนไหนก็ได้ แล้วตั้ง <b>ความชัน</b> ครั้งเดียว ผืนที่ต่อกันจะชันเท่ากันทั้งหลัง · ผืนไหนชายคาผิดด้าน ใช้ <b>แตะเลือกขอบชายคาบนผัง</b> · แล้วกด <b>3D</b> ดูทรงแวบเดียว</span>,
       extra: shapeGap >= 0.03 && facetRoofs.length > 1 && (
         <div className="p3s-row"><span className="p3s-badge warn" style={{ flex: 1 }}>ทรงยังเพี้ยน {Math.round(shapeGap * 100)} ซม.</span>
           <button className="p3s-btn pri" onClick={() => weldNow(facetRoofs[0])}><P3SIcon name="magic" size={15} />จัดทรงทั้งหลัง</button></div>),
       act: <button className="p3s-btn wide" onClick={() => { setView3d(true); setToolRaw("select"); }}><P3Icon name="cube" />ดูทรงใน 3D</button>,
       go: () => { setTool("select"); const r = facetRoofs[0] || roofs[0]; if (r && !(sel && sel.t === "roof")) pickRoof(r); } },
-    { t: "สิ่งบดบัง", tools: ["obs"], done: (st.obstacles || []).length > 0 || !!wizSeen[5], skip: true,
+    { t: "สิ่งบดบัง", tools: ["obs"], done: (st.obstacles || []).length > 0 || !!wizSeen[5], opt: true,
       d: <span>วาดแท็งก์น้ำ ช่องแสง เสา ต้นไม้ <b>ก่อนวางแผง</b> — แผงที่ทับจะถูกตัดออกเอง · ไม่มีก็กดถัดไปได้เลย</span>,
       go: () => setTool("obs") },
     { t: "วางแผง ทีละหลังคา", tools: ["panel"], done: total > 0,
@@ -3114,7 +3114,7 @@ function Plan3DStudio({ job, onClose, currentUser, onSwitch }) {
         <div className="p3s-fld" style={{ gap: 5 }}><span className="lb">ยังไม่มีแผง {emptyRoofs.length} หลังคา — แตะเพื่อไปที่หลังคานั้น</span>
           <div className="chips">{emptyRoofs.slice(0, 12).map((r) => <button key={r.id} className="p3s-btn" onClick={() => { setTool("panel"); pickRoof(r); }}>{r.name || "หลังคา"}</button>)}</div></div>),
       go: () => { setTool("panel"); const r = emptyRoofs[0] || roofs[0]; if (r) pickRoof(r); } },
-    { t: "ทางเดิน", tools: ["walk"], done: anyWalk || !!wizSeen[7], skip: true,
+    { t: "ทางเดิน", tools: ["walk"], done: anyWalk || !!wizSeen[7], opt: true,
       d: <span>คลิกไล่จุดเป็นแนวทางเดิน ดับเบิลคลิกจบเส้น · แผงที่ทับแนวหายเอง จำนวนแผงและ BOQ ตรงเอง · ไม่ต้องมีก็กดถัดไป</span>,
       go: () => setTool("walk") },
     { t: "ตรวจ 3D และเงา แล้วบันทึก", tools: [], done: total > 0 && !!wizSeen[8] && !dirty,
@@ -3123,15 +3123,17 @@ function Plan3DStudio({ job, onClose, currentUser, onSwitch }) {
         <button className="p3s-btn pri" style={{ flex: 1 }} disabled={!dirty} onClick={() => { markSeen(8); doSave(); }}><P3Icon name="save" />{dirty ? "บันทึก" : "บันทึกแล้ว"}</button></div>,
       go: () => { setView3d(true); setToolRaw("select"); setDraw(null); setMeasPts(null); setTrace(null); setCalib(null); markSeen(8); } },
   ];
-  const wizAuto = (() => { const i = WIZ.findIndex((w) => !w.done); return i < 0 ? WIZ.length - 1 : i; })();
-  const wi = wizStep != null ? wizStep : wizAuto, W0 = WIZ[wi];
+  /* ไปได้ไกลสุดถึงขั้นแรกที่ยังไม่เสร็จ (ขั้นก่อนหน้าต้องเสร็จครบ) — ย้อนกลับได้เสมอ ข้ามไปข้างหน้าไม่ได้ */
+  let reach = 0; while (reach < WIZ.length - 1 && WIZ[reach].done) reach++;
+  const wi = wizStep != null ? Math.min(wizStep, reach) : reach, W0 = WIZ[wi];
+  const canNext = W0.done || W0.opt;
   const goStep = (i) => { if (i < 0 || i >= WIZ.length) return; setWizStep(i); WIZ[i].go(); };
-  const nextStep = () => { markSeen(wi); goStep(wi + 1); };
+  const nextStep = () => { if (!canNext) return; markSeen(wi); setWizStep(wi + 1); WIZ[wi + 1] && WIZ[wi + 1].go(); };
   const wizCard = wiz && (
     <div className="p3s-card p3s-wiz">
       <div className="p3s-h"><span className="t">พาทำทีละขั้น · ขั้น {wi + 1}/{WIZ.length}</span>
-        <button className="p3s-btn ghost" style={{ marginLeft: "auto", height: 24, padding: "0 8px", fontSize: 11 }} onClick={() => setWiz(false)} title="ปิดโหมดพาทำ">ปิด</button></div>
-      <div className="dots">{WIZ.map((w, i) => <button key={i} className="dot" data-on={i === wi ? "1" : "0"} data-done={w.done ? "1" : "0"} title={w.t} onClick={() => goStep(i)}>{w.done && i !== wi ? "✓" : i + 1}</button>)}</div>
+</div>
+      <div className="dots">{WIZ.map((w, i) => <button key={i} className="dot" data-on={i === wi ? "1" : "0"} data-done={w.done ? "1" : "0"} disabled={i > reach} title={i > reach ? w.t + " — ทำขั้นก่อนหน้าให้เสร็จก่อน" : w.t} onClick={() => { if (i <= reach) goStep(i); }}>{w.done && i !== wi ? "✓" : i + 1}</button>)}</div>
       <span className="wt">{wi + 1}. {W0.t}{W0.done ? " ✓" : ""}</span>
       <span className="wd">{W0.d}</span>
       {W0.extra || null}
@@ -3143,10 +3145,10 @@ function Plan3DStudio({ job, onClose, currentUser, onSwitch }) {
       <div className="p3s-row">
         <button className="p3s-btn" disabled={wi === 0} onClick={() => goStep(wi - 1)}>← ย้อน</button>
         {wi < WIZ.length - 1
-          ? <button className={"p3s-btn" + (W0.done || W0.skip ? " pri" : "")} style={{ flex: 1 }} onClick={nextStep}>{!W0.done && W0.skip ? "ข้าม · " : "ถัดไป · "}{WIZ[wi + 1].t} →</button>
+          ? <button className={"p3s-btn" + (canNext ? " pri" : "")} style={{ flex: 1 }} disabled={!canNext} onClick={nextStep}>{!W0.done && W0.opt ? "ไม่มี · " : "ถัดไป · "}{WIZ[wi + 1].t} →</button>
           : <span className="p3s-note" style={{ flex: 1, textAlign: "right" }}>{WIZ.every((w) => w.done || w.skip) ? "เสร็จครบทุกขั้น" : "ยังมีขั้นที่ไม่เสร็จ — ดูเลขที่ไม่มี ✓"}</span>}
       </div>
-      {!W0.done && !W0.skip && wi < WIZ.length - 1 && <span className="p3s-note">ขั้นนี้ยังไม่เสร็จ — ไปต่อได้ แต่ถ้ากลับมาแก้ทีหลังอาจต้องจัดแผงใหม่</span>}
+      {!canNext && wi < WIZ.length - 1 && <span className="p3s-note">ทำขั้นนี้ให้เสร็จก่อนจึงไปต่อได้ · ย้อนกลับไปแก้ขั้นก่อนหน้าได้เสมอ</span>}
     </div>
   );
   const wizTools = wiz && !view3d ? W0.tools : null;
@@ -3157,7 +3159,7 @@ function Plan3DStudio({ job, onClose, currentUser, onSwitch }) {
       <input ref={fileRef} type="file" accept="image/*" style={{ display: "none" }} onChange={onPickPhoto} />
       {wiz ? null : <div className="p3s-card">
         <div className="p3s-h"><span className="t">ขั้นตอน</span>
-          <button className="p3s-btn pri" style={{ marginLeft: "auto", height: 26, padding: "0 10px", fontSize: 11.5 }} onClick={() => { setWiz(true); setWizStep(null); }}>พาทำทีละขั้น</button></div>
+          <button className="p3s-btn pri" style={{ marginLeft: "auto", height: 26, padding: "0 10px", fontSize: 11.5 }} onClick={() => setWizStep(null)}>พาทำทีละขั้น</button></div>
         {[
           { done: !!(st.baseMap || st.photo), t: "ภาพมุมสูง", d: "ภาพดาวเทียมจากแผนที่ หรือรูปโดรน (ข้ามได้ถ้าวาดจากขนาดที่วัดมา)",
             act: <div className="p3s-row"><button className="p3s-btn" onClick={() => setMapOpen(true)}><P3Icon name="map" />ดาวเทียม</button><button className="p3s-btn" onClick={() => fileRef.current && fileRef.current.click()}><P3Icon name="camera" />รูปโดรน</button></div> },
