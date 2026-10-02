@@ -1073,6 +1073,19 @@ function p3sFaceAsp(pts3) {
 const p3sNormAxis = (deg) => { let d = ((+deg % 90) + 90) % 90; if (d > 45) d -= 90; return p3sR(d, 10); };
 
 /* ── ไอคอนเพิ่มเติม (ที่เหลือยืม P3Icon) ── */
+/* ไอคอนเส้นของแผงถ่ายภาพขั้น 7 — มุมกล้อง (bird/front/top/close) · แสง (am/pm) · กล้อง (cam) */
+function P3SCamGlyph({ k }) {
+  const F = React.Fragment, g = {
+    bird: <F><path d="M3 10.5 12 6l9 4.5v4.8L12 19.8l-9-4.5z" /><path d="M3 10.5 12 15l9-4.5M12 15v4.8" /><path d="M7.5 8.2 12 6l4.5 2.2" opacity=".45" /></F>,
+    front: <F><path d="M5 19.5v-8.2L12 5.5l7 5.8v8.2" /><path d="M2.5 19.5h19" /><path d="M9.5 19.5v-4.5h5v4.5" opacity=".55" /></F>,
+    top: <F><rect x="4" y="5" width="16" height="14" rx="1.5" /><path d="M4 12h16" /><path d="M8 7.5v2.5M11 7.5v2.5M14 7.5v2.5M17 7.5v2.5" opacity=".55" /></F>,
+    close: <F><path d="M3 18 8.5 7H21l-5.5 11z" /><path d="M5.75 12.5h12.5M7.2 18l5.5-11M11.4 18l5.5-11" opacity=".6" /></F>,
+    am: <F><path d="M2.5 18.5h19" /><path d="M7 18.5a5 5 0 0 1 10 0" /><path d="M12 7v2.5M5.2 11.2l1.6 1.4M18.8 11.2l-1.6 1.4" /><path d="M9.5 4.5 12 2.5l2.5 2" /></F>,
+    pm: <F><path d="M2.5 18.5h19" /><path d="M7 18.5a5 5 0 0 1 10 0" /><path d="M12 7v2.5M5.2 11.2l1.6 1.4M18.8 11.2l-1.6 1.4" /><path d="M9.5 2.5 12 4.5l2.5-2" /></F>,
+    cam: <F><path d="M3.5 8.5A1.5 1.5 0 0 1 5 7h2.6l1.6-2.2h5.6L16.4 7H19a1.5 1.5 0 0 1 1.5 1.5v9A1.5 1.5 0 0 1 19 19H5a1.5 1.5 0 0 1-1.5-1.5z" /><circle cx="12" cy="12.8" r="3.6" /></F>,
+  };
+  return <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">{g[k]}</svg>;
+}
 function P3SIcon({ name, size }) {
   const s = size || 18;
   const F = React.Fragment;
@@ -1281,6 +1294,34 @@ const P3S_CSS = `
 .p3s-msel{left:50%;bottom:58px;transform:translateX(-50%);flex-wrap:wrap;justify-content:center;max-width:calc(100% - 24px)}
 .p3s-msel .lbl{font-size:12px;font-weight:800;color:var(--text-2);padding:0 6px 0 8px}
 .p3s-mon{display:grid;grid-template-columns:repeat(6,1fr);gap:5px}
+.p3s-sec{display:flex;flex-direction:column;gap:7px}
+.p3s-sec>.lb{font-size:11px;font-weight:700;color:var(--text-3);display:flex;align-items:baseline;gap:8px}
+.p3s-sec>.lb em{font-style:normal;font-weight:600;color:var(--primary);margin-left:auto}
+.p3s-cams{display:grid;grid-template-columns:repeat(4,1fr);gap:3px;background:var(--surface2);box-shadow:var(--shadow-inset);border-radius:14px;padding:4px}
+.p3s-cams button{border:0;background:transparent;border-radius:11px;padding:9px 2px 7px;display:flex;flex-direction:column;align-items:center;gap:5px;font-size:11.5px;font-weight:700;color:var(--text-2);cursor:pointer;transition:background .15s,color .15s}
+.p3s-cams button:hover:not(:disabled){color:var(--text-1);background:color-mix(in srgb,var(--surface) 55%,transparent)}
+.p3s-cams button[data-on="1"]{background:var(--surface);color:var(--primary);box-shadow:var(--shadow-sm)}
+.p3s-cams button:disabled{opacity:.35;cursor:default}
+.p3s-lights{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+.p3s-lights button{border:0;min-height:48px;border-radius:13px;background:var(--surface2);display:flex;align-items:center;gap:9px;padding:6px 10px;cursor:pointer;color:var(--text-2);text-align:left;transition:background .2s,color .2s}
+.p3s-lights button:hover:not(:disabled){color:var(--text-1)}
+.p3s-lights button svg{flex:0 0 22px;width:22px;height:22px}
+.p3s-lights b{display:block;font-size:12.5px;color:inherit}
+.p3s-lights small{display:block;font-size:10px;font-weight:600;opacity:.75;line-height:1.25}
+.p3s-lights button[data-on="1"][data-k="am"]{background:linear-gradient(135deg,#fff4d1,#ffd88a);color:#7a4b00;box-shadow:var(--shadow-sm)}
+.p3s-lights button[data-on="1"][data-k="pm"]{background:linear-gradient(135deg,#ffd9b8,#f5a06a);color:#6e2604;box-shadow:var(--shadow-sm)}
+.p3s-lights button:disabled{opacity:.4;cursor:default}
+.p3s-btn.p3s-cta{width:100%;height:58px;border-radius:15px;justify-content:flex-start;padding:0 16px;gap:13px;box-shadow:var(--shadow-sm)}
+.p3s-cta svg{width:26px;height:26px;flex:0 0 26px}
+.p3s-cta .ct{display:flex;flex-direction:column;align-items:flex-start;line-height:1.25;min-width:0}
+.p3s-cta .ct b{font-size:15px}
+.p3s-cta .ct small{font-size:10.5px;font-weight:600;opacity:.82;white-space:normal;text-align:left}
+.p3s-btn.p3s-vid.on{background:linear-gradient(90deg,var(--tint-red-bg,#fee2e2) var(--pc,0%),var(--surface2) var(--pc,0%));color:var(--tint-red-tx,#b91c1c)}
+.p3s-savebar{display:flex;align-items:center;gap:10px;margin-top:4px;padding:8px 8px 8px 12px;border-radius:13px;background:var(--surface2);box-shadow:var(--shadow-inset)}
+.p3s-savebar .st{flex:1;display:flex;align-items:center;gap:7px;font-size:11.5px;font-weight:700;color:var(--text-2);min-width:0}
+.p3s-savebar .st i{width:8px;height:8px;border-radius:50%;background:#10b981;flex:0 0 8px}
+.p3s-savebar .st.dirty i{background:#f59e0b;box-shadow:0 0 0 3px rgba(245,158,11,.18)}
+.p3s-savebar .p3s-btn{flex:0 0 auto}
 .p3s-monnav{display:flex;align-items:center;gap:8px}
 .p3s-monnav .p3s-btn{width:36px;height:36px;padding:0;flex:0 0 36px;font-size:20px;justify-content:center}
 .p3s-monnav b{flex:1;text-align:center;font-size:15px;font-weight:800}
@@ -1964,7 +2005,7 @@ function P3SView3D({ st, sun, api }) {
     // ภาพนิ่ง (ขนาดเท่าจอ 3D) · อัดวิดีโอจอ 3D (mp4 ถ้าเบราว์เซอร์รองรับ ไม่งั้น webm) — เริ่ม/หยุดจากข้างนอก
     if (api) api.current = {
       gl: renderer, scene,   // ให้ทดสอบ/ปรับแสงจากคอนโซลได้
-      view, hasPanels: () => !!(T.current.bounds && T.current.bounds.pans && T.current.bounds.pans.length),
+      view, ready: () => !!T.current.bounds, hasPanels: () => !!(T.current.bounds && T.current.bounds.pans && T.current.bounds.pans.length),
       /* ถ่ายภาพ: เรนเดอร์ใหม่นอกจอ ด้านยาว ~3840 px (ไม่เกินที่การ์ดจอรับได้) · ซ่อนดวงอาทิตย์จำลอง/เส้นทางโคจร/ดาว/เส้นขอบช่วยวาด
          · เงาละเอียด 4096 เฉพาะตอนถ่าย — จอปกติไม่ช้าลง */
       shot: () => {
@@ -2262,7 +2303,10 @@ function Plan3DStudio({ job, onClose, currentUser, onSwitch }) {
   const v3api = React.useRef(null);                         // ถ่ายภาพ/อัดวิดีโอจากมุมมอง 3D
   const vidRef = React.useRef(null);                        // กำลังอัดวิดีโอเงา (ตัวหยุดอัด)
   const [vidOn, setVidOn] = React.useState(false);
-  const [mediaMsg, setMediaMsg] = React.useState(null);              // ตำแหน่งเมาส์บนจอ (ป้าย "กำหนดทางลาด")
+  const [mediaMsg, setMediaMsg] = React.useState(null);
+  const [camK, setCamK] = React.useState(null);            // มุมกล้องสำเร็จรูปที่กดล่าสุด (ไฮไลต์ไทล์)
+  const camTimer = React.useRef(null);                      // รอจอ 3D พร้อม (กดจากผัง 2D)
+  React.useEffect(() => () => clearInterval(camTimer.current), []);              // ตำแหน่งเมาส์บนจอ (ป้าย "กำหนดทางลาด")
   const [measPts, setMeasPts] = React.useState(null);   // กำลังวัดระยะ
   const [calib, setCalib] = React.useState(null);       // ตั้งมาตราส่วนรูปโดรน { pts:[], len:"" }
   const [trace, setTrace] = React.useState(null);       // ตัวช่วยวาดจากภาพ { on, busy, seed, pts, err }
@@ -4714,25 +4758,31 @@ function Plan3DStudio({ job, onClose, currentUser, onSwitch }) {
       d: <span>เลือกเดือนและเวลา ดูเงาที่ตกบนแผง (ตรวจเดือนธันวาคมเสมอ) · เสร็จแล้วกด <b>บันทึก</b></span>,
       act: (
         <React.Fragment>
-          <div className="p3s-fld" style={{ gap: 5 }}><span className="lb">มุมกล้อง</span>
-            <div className="p3s-row" style={{ gap: 5 }}>
+          <div className="p3s-sec"><span className="lb">มุมกล้อง{!view3d && <em>แตะแล้วเปิด 3D ให้เอง</em>}</span>
+            <div className="p3s-cams">
               {[["bird", "มุมนก"], ["front", "หน้าอาคาร"], ["top", "มุมบน"], ["close", "ใกล้แผง"]].map(([k, lb]) => (
-                <button key={k} className="p3s-btn" style={{ flex: 1, padding: "0 4px", fontSize: 12 }} disabled={!view3d || (k === "close" && !total)}
-                  onClick={() => { const A = v3api.current; if (A && A.view) A.view(k); }}>{lb}</button>))}
+                <button key={k} type="button" data-on={view3d && camK === k ? "1" : "0"} disabled={vidOn || (k === "close" && !total)}
+                  title={k === "close" && !total ? "ยังไม่มีแผง" : lb} onClick={() => camGo(k)}><P3SCamGlyph k={k} />{lb}</button>))}
             </div></div>
-          <div className="p3s-fld" style={{ gap: 5 }}><span className="lb">แสงสวย</span>
-            <div className="p3s-row" style={{ gap: 5 }}>
-              {[[9, "เช้า 9:00"], [16.5, "เย็น 16:30"]].map(([h, lb]) => (
-                <button key={h} className={"p3s-btn" + (sunHour == null && Math.abs((+st.sun.hour || 0) - h) < 0.01 ? " pri" : "")} style={{ flex: 1, fontSize: 12 }} disabled={vidOn}
-                  onClick={() => { setSunHour(null); commit((x) => Object.assign({}, x, { sun: Object.assign({}, x.sun, { hour: h }) }), "shour"); }}>{lb}</button>))}
+          <div className="p3s-sec"><span className="lb">แสงสวย</span>
+            <div className="p3s-lights">
+              {[[9, "am", "แสงเช้า", "9:00 น. · แสงใส"], [16.5, "pm", "แสงเย็น", "16:30 น. · โทนอุ่น"]].map(([h, k, lb, sub]) => (
+                <button key={k} type="button" data-k={k} data-on={sunHour == null && Math.abs((+st.sun.hour || 0) - h) < 0.01 ? "1" : "0"} disabled={vidOn}
+                  onClick={() => { setSunHour(null); commit((x) => Object.assign({}, x, { sun: Object.assign({}, x.sun, { hour: h }) }), "shour"); }}>
+                  <P3SCamGlyph k={k} /><span><b>{lb}</b><small>{sub}</small></span></button>))}
             </div></div>
-          <div className="p3s-row" style={{ gap: 6 }}>
-            <button className="p3s-btn" style={{ flex: 1 }} disabled={!view3d || vidOn} onClick={takeShot}><P3Icon name="image" />ถ่ายภาพ</button>
-            <button className={"p3s-btn" + (vidOn ? " dngr" : "")} style={{ flex: 1 }} disabled={!view3d} onClick={vidOn ? stopVideo : takeVideo}>
-              <P3Icon name={vidOn ? "pause" : "play"} />{vidOn ? "หยุดอัด · " + Math.round(((sunHour || 5.5) - 5.5) / 14 * 100) + "%" : "อัดวิดีโอเงา"}</button>
+          <div className="p3s-sec"><span className="lb">บันทึกภาพ</span>
+            <button type="button" className="p3s-btn pri p3s-cta" disabled={vidOn} onClick={shotGo}>
+              <P3SCamGlyph k="cam" /><span className="ct"><b>ถ่ายภาพ 4K</b><small>PNG · ซ่อนเส้นช่วยวาดและดวงอาทิตย์จำลอง</small></span></button>
+            <button type="button" className={"p3s-btn wide p3s-vid" + (vidOn ? " on" : "")} style={vidOn ? { "--pc": Math.round(((sunHour || 5.5) - 5.5) / 14 * 100) + "%" } : null}
+              onClick={vidOn ? stopVideo : () => with3D((A) => { takeVideo(); return true; })}>
+              <P3Icon name={vidOn ? "pause" : "play"} />{vidOn ? "กำลังอัด " + Math.round(((sunHour || 5.5) - 5.5) / 14 * 100) + "% · แตะเพื่อหยุด" : "อัดวิดีโอเงาทั้งวัน"}</button>
+            {mediaMsg && <span className="p3s-badge warn">{mediaMsg}</span>}
           </div>
-          {mediaMsg && <span className="p3s-badge warn">{mediaMsg}</span>}
-          <button className="p3s-btn pri wide" disabled={!dirty} onClick={() => { markSeen("fin"); doSave(); }}><P3Icon name="save" />{dirty ? "บันทึก" : "บันทึกแล้ว"}</button>
+          <div className="p3s-savebar">
+            <span className={"st" + (dirty ? " dirty" : "")}><i />{dirty ? "มีการแก้ไขที่ยังไม่บันทึก" : "บันทึกครบแล้ว"}</span>
+            <button type="button" className="p3s-btn pri" disabled={!dirty} onClick={() => { markSeen("fin"); doSave(); }}><P3Icon name="save" />{dirty ? "บันทึก" : "บันทึกแล้ว"}</button>
+          </div>
         </React.Fragment>),
       go: () => { setView3d(true); setToolRaw("select"); setDraw(null); setMeasPts(null); setTrace(null); setCalib(null); markSeen("fin"); } },
   ];
@@ -4834,6 +4884,24 @@ function Plan3DStudio({ job, onClose, currentUser, onSwitch }) {
 
   const mediaName = (ext) => ((job && (job.name || job.code || job.id)) || "solar").replace(/[\\/:*?"<>|]+/g, " ").trim() + " · 3D " + new Date().toISOString().slice(0, 10) + "." + ext;
   const saveHref = (href, name) => { const a = document.createElement("a"); a.href = href; a.download = name; document.body.appendChild(a); a.click(); a.remove(); };
+  /* ทำงานกับจอ 3D — ยังอยู่ผัง 2D = เปิด 3D ให้แล้วรอจนฉากพร้อม (fn คืน false = ยังไม่พร้อม ลองใหม่ทุก 0.1 วิ สูงสุด 5 วิ) */
+  function with3D(fn) {
+    clearInterval(camTimer.current);
+    const fresh = !view3d || !v3api.current;
+    if (!view3d) { setView3d(true); setToolRaw("select"); }
+    let n = 0;
+    const tryIt = () => {
+      const A = v3api.current;
+      if (A && (!A.ready || A.ready()) && fn(A, fresh) !== false) { clearInterval(camTimer.current); return true; }
+      if (++n > 50) { clearInterval(camTimer.current); setMediaMsg("เปิดมุมมอง 3D ไม่ทัน ลองกดอีกครั้ง"); }
+      return false;
+    };
+    if (!fresh && tryIt()) return;
+    camTimer.current = setInterval(tryIt, 100);
+  }
+  function camGo(k) { setMediaMsg(null); setCamK(k); with3D((A) => A.view(k)); }
+  // เปิด 3D ใหม่ = รอภาพพื้น/ลายวัสดุโหลดครู่หนึ่งก่อนถ่าย
+  function shotGo() { with3D((A, fresh) => { if (fresh) setTimeout(takeShot, 700); else takeShot(); return true; }); }
   function takeShot() {
     const A = v3api.current; if (!A) { setMediaMsg("เปิดมุมมอง 3D ก่อน"); return; }
     setMediaMsg(null); try { saveHref(A.shot(), mediaName("png")); } catch (e) { setMediaMsg("ถ่ายภาพไม่ได้: " + e.message); }
@@ -4850,6 +4918,7 @@ function Plan3DStudio({ job, onClose, currentUser, onSwitch }) {
     R.stop().then(({ blob, ext }) => { const url = URL.createObjectURL(blob); saveHref(url, mediaName(ext)); setTimeout(() => URL.revokeObjectURL(url), 5000); });
   }
   function stopVideo() { const R = vidRef.current; vidRef.current = null; if (R) finishVideo(R); }
+  if (!view3d && camK) setCamK(null);
   const sunPanel = (() => {
     const MONF = ["มกราคม", "กุมภาพันธ์", "มีนาคม", "เมษายน", "พฤษภาคม", "มิถุนายน", "กรกฎาคม", "สิงหาคม", "กันยายน", "ตุลาคม", "พฤศจิกายน", "ธันวาคม"], mon = st.sun.month || 4;
     const setMon = (m) => commit((x) => Object.assign({}, x, { sun: Object.assign({}, x.sun, { month: m }) }), "smon");
