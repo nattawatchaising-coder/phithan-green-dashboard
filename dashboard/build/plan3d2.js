@@ -4760,11 +4760,6 @@ function Plan3DStudio({
       zoomArea({
         pts: A4
       });
-      if (wiz) {
-        markSeen(1);
-        setWizStep(2);
-        setTool("axis");
-      }
       return;
     }
     if (G.type === "drawRect") {
@@ -5779,11 +5774,6 @@ function Plan3DStudio({
     setTimeout(() => {
       if (!(stRef.current.roofs || []).length) fitView();
     }, 0);
-    if (wiz) {
-      markSeen(0);
-      setWizStep(1);
-      setTool("area");
-    }
   };
   const card = (title, body, right) => React.createElement("div", {
     className: "p3s-card"
@@ -7162,6 +7152,7 @@ function Plan3DStudio({
   }];
   let reach = 0;
   while (reach < WIZ.length - 1 && WIZ[reach].done) reach++;
+  if (wizStep == null) setWizStep(reach);
   const wi = wizStep != null ? Math.min(wizStep, reach) : reach,
     W0 = WIZ[wi];
   const canNext = W0.done || W0.opt;
@@ -7538,7 +7529,7 @@ function Plan3DStudio({
     className: "p3s-note"
   }, "\u0E2D\u0E22\u0E32\u0E01\u0E40\u0E27\u0E49\u0E19\u0E17\u0E32\u0E07\u0E40\u0E14\u0E34\u0E19\u0E40\u0E1B\u0E47\u0E19\u0E0A\u0E48\u0E27\u0E07\u0E40\u0E17\u0E48\u0E32 \u0E46 \u0E01\u0E31\u0E19\u0E17\u0E31\u0E49\u0E07\u0E1C\u0E37\u0E19 \u0E43\u0E0A\u0E49 ", React.createElement("b", null, "\u0E08\u0E31\u0E14\u0E40\u0E1B\u0E47\u0E19\u0E01\u0E25\u0E38\u0E48\u0E21 + \u0E40\u0E27\u0E49\u0E19\u0E17\u0E32\u0E07\u0E40\u0E14\u0E34\u0E19"), " \u0E43\u0E19\u0E01\u0E32\u0E23\u0E4C\u0E14\u0E41\u0E1C\u0E07\u0E02\u0E2D\u0E07\u0E2B\u0E25\u0E31\u0E07\u0E04\u0E32\u0E41\u0E17\u0E19"));
   let sideBody;
-  if (view3d) sideBody = React.createElement(React.Fragment, null, sunPanel, selRoof ? roofPanelBody(selRoof) : null);else if (tool === "bg") sideBody = bgPanel;else if (tool === "axis") sideBody = axisPanel;else if (tool === "walk") sideBody = React.createElement(React.Fragment, null, walkPanel, selRoof ? roofPanelBody(selRoof) : null);else if (selRoof) sideBody = roofPanelBody(selRoof);else if (selObs) sideBody = obsPanelBody(selObs);else if (selMeas) sideBody = measPanelBody(selMeas);else if (tool === "roof") sideBody = React.createElement("div", {
+  if (view3d) sideBody = React.createElement(React.Fragment, null, sunPanel, selRoof ? roofPanelBody(selRoof) : null);else if (tool === "bg") sideBody = bgPanel;else if (tool === "axis") sideBody = wiz ? null : axisPanel;else if (tool === "walk") sideBody = React.createElement(React.Fragment, null, walkPanel, selRoof ? roofPanelBody(selRoof) : null);else if (selRoof) sideBody = roofPanelBody(selRoof);else if (selObs) sideBody = obsPanelBody(selObs);else if (selMeas) sideBody = measPanelBody(selMeas);else if (tool === "roof") sideBody = React.createElement("div", {
     className: "p3s-card"
   }, React.createElement("span", {
     className: "p3s-ttl2"

@@ -2285,7 +2285,6 @@ function Plan3DStudio({ job, onClose, currentUser, onSwitch }) {
       if (p3Area(A4) < 4) return;
       commit({ p3sArea: { pts: A4 } });
       zoomArea({ pts: A4 });
-      if (wiz) { markSeen(1); setWizStep(2); setTool("axis"); }
       return;
     }
     if (G.type === "drawRect") {
@@ -2688,7 +2687,6 @@ function Plan3DStudio({ job, onClose, currentUser, onSwitch }) {
       groundW: Math.max(20, Math.ceil(res.widthM)), sun: Object.assign({}, s.sun, { lat: res.lat, lng: res.lng }) }));
     setMapOpen(false);
     setTimeout(() => { if (!(stRef.current.roofs || []).length) fitView(); }, 0);
-    if (wiz) { markSeen(0); setWizStep(1); setTool("area"); }
   };
 
   const card = (title, body, right) => (
@@ -3125,6 +3123,8 @@ function Plan3DStudio({ job, onClose, currentUser, onSwitch }) {
   ];
   /* ไปได้ไกลสุดถึงขั้นแรกที่ยังไม่เสร็จ (ขั้นก่อนหน้าต้องเสร็จครบ) — ย้อนกลับได้เสมอ ข้ามไปข้างหน้าไม่ได้ */
   let reach = 0; while (reach < WIZ.length - 1 && WIZ[reach].done) reach++;
+  // เปิดมาครั้งแรกเริ่มที่ขั้นที่ค้าง แล้วอยู่ขั้นเดิมจนผู้ใช้กดถัดไปเอง (ทำเสร็จแล้วไม่เด้งไปขั้นถัดไป)
+  if (wizStep == null) setWizStep(reach);
   const wi = wizStep != null ? Math.min(wizStep, reach) : reach, W0 = WIZ[wi];
   const canNext = W0.done || W0.opt;
   const goStep = (i) => { if (i < 0 || i >= WIZ.length) return; setWizStep(i); WIZ[i].go(); };
@@ -3258,7 +3258,7 @@ function Plan3DStudio({ job, onClose, currentUser, onSwitch }) {
   let sideBody;
   if (view3d) sideBody = <React.Fragment>{sunPanel}{selRoof ? roofPanelBody(selRoof) : null}</React.Fragment>;
   else if (tool === "bg") sideBody = bgPanel;
-  else if (tool === "axis") sideBody = axisPanel;
+  else if (tool === "axis") sideBody = wiz ? null : axisPanel;   // โหมดพาทำ: ปุ่มแนวอยู่ในการ์ดพาทำแล้ว
   else if (tool === "walk") sideBody = <React.Fragment>{walkPanel}{selRoof ? roofPanelBody(selRoof) : null}</React.Fragment>;
   else if (selRoof) sideBody = roofPanelBody(selRoof);
   else if (selObs) sideBody = obsPanelBody(selObs);
