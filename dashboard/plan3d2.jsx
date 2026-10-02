@@ -563,7 +563,8 @@ function p3sMarqPatch(r, bs, inR) {
   });
   const faces = []; nb.forEach((b) => { const f = b.face || ""; if (b.patch && faces.indexOf(f) < 0) faces.push(f); });
   faces.forEach((f) => {
-    if (done[f]) return;
+    // กรอบโดนแผงที่มีอยู่แล้วของด้านนี้ = ตั้งใจเอาออก ไม่สร้างกลุ่มใหม่ไปอุดช่องทางเดิน
+    if (done[f] || onQ.some((o) => inR(o) && ((bs[o.blk] || {}).face || "") === f)) return;
     let i = nb.findIndex((b) => b.patch && (b.face || "") === f && !Object.keys(b.only).length);
     // กลุ่มใหม่ตั้งแนวตามหลังคา (ไม่เอามุมที่หมุนไว้ของกลุ่มอื่นมา)
     if (i < 0) { const t = nb.find((b) => b.patch && (b.face || "") === f); nb.push(Object.assign({}, t, { id: p3Id("pb"), du: 0, dv: 0, rot: +p3sFillPatch(r, "portrait").blocks[0].rot || 0, only: {}, skips: {}, adds: {} })); i = nb.length - 1; }

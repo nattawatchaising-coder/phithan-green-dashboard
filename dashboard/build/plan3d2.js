@@ -1162,7 +1162,7 @@ function p3sMarqPatch(r, bs, inR) {
     if (b.patch && faces.indexOf(f) < 0) faces.push(f);
   });
   faces.forEach(f => {
-    if (done[f]) return;
+    if (done[f] || onQ.some(o => inR(o) && ((bs[o.blk] || {}).face || "") === f)) return;
     let i = nb.findIndex(b => b.patch && (b.face || "") === f && !Object.keys(b.only).length);
     if (i < 0) {
       const t = nb.find(b => b.patch && (b.face || "") === f);
