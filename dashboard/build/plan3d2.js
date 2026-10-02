@@ -7575,6 +7575,129 @@ function Plan3DStudio({
       pitch: v
     });
   };
+  const roofDims = r => {
+    const k = r.kind;
+    if (k === "gable") return {
+      a: ["ยาวตามสัน", +r.ridge || 0, v => patchRoof(r.id, {
+        ridge: v
+      }, "ridge")],
+      b: ["กว้างจั่ว", +r.span || 0, v => patchRoof(r.id, {
+        span: v
+      }, "span")]
+    };
+    if (k === "hip") {
+      const ewIsW = q => {
+        const t = (((+q.az || 180) + 90) % 180 + 180) % 180;
+        return t >= 45 && t < 135;
+      };
+      const hipSet = (ew, v) => patchRoof(r.id, q => {
+        const o = {
+          w: +q.w || 10,
+          d: +q.d || 7,
+          az: +q.az || 180
+        };
+        o[ewIsW(q) === ew ? "w" : "d"] = v;
+        if (o.d > o.w) {
+          const t = o.w;
+          o.w = o.d;
+          o.d = t;
+          o.az = p3sR((o.az + 90) % 360, 10);
+        }
+        return o;
+      }, "hip" + ew);
+      const wEW = ewIsW(r);
+      return {
+        a: ["ด้านออก–ตก", +(wEW ? r.w : r.d) || 0, v => hipSet(true, v)],
+        b: ["ด้านเหนือ–ใต้", +(wEW ? r.d : r.w) || 0, v => hipSet(false, v)]
+      };
+    }
+    if (k === "dome") return {
+      a: ["ยาว", +r.ridge || 0, v => patchRoof(r.id, {
+        ridge: v
+      }, "ridge")],
+      b: ["กว้าง", +r.span || 0, v => patchRoof(r.id, {
+        span: v
+      }, "span")]
+    };
+    if (k === "rect") return {
+      a: ["กว้าง", +r.w || 0, v => patchRoof(r.id, {
+        w: v
+      }, "w")],
+      b: ["ยาวตามลาด", +r.d || 0, v => patchRoof(r.id, {
+        d: v
+      }, "d")]
+    };
+    if (k !== "poly" || (r.pts || []).length !== 4) return null;
+    const P = r.pts,
+      e0 = Math.hypot(P[1].x - P[0].x, P[1].z - P[0].z),
+      e1 = Math.hypot(P[2].x - P[1].x, P[2].z - P[1].z);
+    if (e0 < 0.01 || e1 < 0.01) return null;
+    const scale = (edge, v) => patchRoof(r.id, x => {
+      const Q = x.pts,
+        a = Q[edge],
+        b = Q[edge + 1],
+        L = Math.hypot(b.x - a.x, b.z - a.z);
+      if (!(L > 0.01) || !(v > 0.3)) return {};
+      const ux = (b.x - a.x) / L,
+        uz = (b.z - a.z) / L,
+        f = v / L;
+      const cx = Q.reduce((t, q) => t + q.x, 0) / 4,
+        cz = Q.reduce((t, q) => t + q.z, 0) / 4;
+      const pts = Q.map(q => {
+        const t = (q.x - cx) * ux + (q.z - cz) * uz;
+        return {
+          x: p3sR(q.x + t * (f - 1) * ux, 1000),
+          z: p3sR(q.z + t * (f - 1) * uz, 1000)
+        };
+      });
+      const o = {
+          pts
+        },
+        pc = p3sPolyPitch(x);
+      if (pc > 0.4) {
+        const n = pts.length,
+          ph = p3PhOf(x),
+          lo = x.p3sLow != null ? (+x.p3sLow % n + n) % n : p3sSouthEdge(pts);
+        o.ph = p3sPitchPh(pts, lo, Math.min.apply(null, ph), x.p3sPitch != null ? +x.p3sPitch : pc);
+      }
+      return o;
+    }, "dim" + edge);
+    const lng = e0 >= e1 ? 0 : 1;
+    return {
+      a: ["ยาว", p3sR(lng ? e1 : e0, 100), v => scale(lng, v)],
+      b: ["กว้าง", p3sR(lng ? e0 : e1, 100), v => scale(1 - lng, v)]
+    };
+  };
+  const ridgeTxt = (r, len) => {
+    let o = [];
+    try {
+      o = p3sOutline(r) || [];
+    } catch (e) {
+      o = [];
+    }
+    if (o.length < 3) return "";
+    let bi = 0,
+      bd = 1e9;
+    o.forEach((a, i) => {
+      const b = o[(i + 1) % o.length],
+        d = Math.abs(Math.hypot(b.x - a.x, b.z - a.z) - len);
+      if (d < bd) {
+        bd = d;
+        bi = i;
+      }
+    });
+    const f = p3sEdgeBearing(o, bi);
+    return p3sCompass(f + 90) + "–" + p3sCompass(f - 90);
+  };
+  const flipRidge = r => patchRoof(r.id, q => q.kind === "gable" ? {
+    ridge: q.span,
+    span: q.ridge,
+    az: p3sR(((+q.az || 180) + 90) % 360, 10)
+  } : {
+    w: q.d,
+    d: q.w,
+    az: p3sR(((+q.az || 180) + 90) % 360, 10)
+  });
   const pickRoof = r => {
     setSel({
       t: "roof",
@@ -7781,7 +7904,26 @@ function Plan3DStudio({
         }
       }, React.createElement(P3Icon, {
         name: "trash"
-      }))), React.createElement("div", {
+      }))), (() => {
+        const D = roofDims(r);
+        return D && React.createElement("div", {
+          className: "p3s-g2"
+        }, React.createElement(P3SNum, {
+          label: D.a[0],
+          unit: "\u0E21.",
+          step: 0.1,
+          min: 0.5,
+          value: D.a[1],
+          onChange: D.a[2]
+        }), React.createElement(P3SNum, {
+          label: D.b[0],
+          unit: "\u0E21.",
+          step: 0.1,
+          min: 0.5,
+          value: D.b[1],
+          onChange: D.b[2]
+        }));
+      })(), React.createElement("div", {
         className: "p3s-g2"
       }, React.createElement(P3SNum, {
         label: "\u0E04\u0E27\u0E32\u0E21\u0E2A\u0E39\u0E07\u0E2D\u0E32\u0E04\u0E32\u0E23",
@@ -7808,9 +7950,94 @@ function Plan3DStudio({
         onChange: v => patchRoof(r.id, {
           rise: v
         }, "rise")
-      })), r.kind === "dome" && React.createElement("button", {
+      })), (r.kind === "gable" || r.kind === "hip") && React.createElement("div", {
+        className: "p3s-row",
+        style: {
+          gap: 6,
+          flexWrap: "nowrap",
+          minHeight: 28
+        }
+      }, React.createElement("span", {
+        className: "p3s-note",
+        style: {
+          flex: 1
+        }
+      }, "\u0E2A\u0E31\u0E19\u0E41\u0E19\u0E27", ridgeTxt(r, r.kind === "gable" ? +r.ridge || 0 : Math.max(+r.w || 0, +r.d || 0)), r.kind === "hip" ? " · สันยาว " + p3sR(Math.max(0, (+r.w || 0) - (+r.d || 0)), 10) + " ม. (ด้านยาว − ด้านสั้น)" : ""), r.kind === "gable" && React.createElement("button", {
         className: "p3s-btn",
         style: {
+          height: 28,
+          fontSize: 12
+        },
+        onClick: () => flipRidge(r)
+      }, React.createElement(P3SIcon, {
+        name: "rotate",
+        size: 14
+      }), "\u0E2A\u0E25\u0E31\u0E1A\u0E41\u0E19\u0E27\u0E2A\u0E31\u0E19")), kk === "shed" && (() => {
+        const P = r.pts || [],
+          n = P.length,
+          lo = r.p3sLow != null ? (+r.p3sLow % n + n) % n : p3sSouthEdge(P);
+        return React.createElement("div", {
+          className: "p3s-row",
+          style: {
+            gap: 6,
+            flexWrap: "nowrap"
+          }
+        }, React.createElement("span", {
+          className: "p3s-well",
+          style: {
+            flex: 1,
+            minWidth: 0
+          }
+        }, React.createElement("select", {
+          value: lo,
+          title: "\u0E25\u0E32\u0E14\u0E25\u0E07\u0E17\u0E32\u0E07 (\u0E02\u0E2D\u0E1A\u0E0A\u0E32\u0E22\u0E04\u0E32)",
+          onChange: e => setEave(r, +e.target.value)
+        }, P.map((q, k) => {
+          const q2 = P[(k + 1) % n];
+          return React.createElement("option", {
+            key: k,
+            value: k
+          }, "\u0E25\u0E32\u0E14\u0E25\u0E07", p3sCompass(p3sEdgeBearing(P, k)), " \xB7 \u0E02\u0E2D\u0E1A ", p3sR(Math.hypot(q2.x - q.x, q2.z - q.z), 10), " \u0E21.");
+        }))), React.createElement("button", {
+          className: "p3s-btn" + (eavePick && on ? " pri" : ""),
+          style: {
+            height: 32,
+            fontSize: 12
+          },
+          title: "\u0E41\u0E15\u0E30\u0E02\u0E2D\u0E1A\u0E14\u0E49\u0E32\u0E19\u0E15\u0E48\u0E33\u0E1A\u0E19\u0E1C\u0E31\u0E07",
+          onClick: () => {
+            pickRoof(r);
+            setEavePick(true);
+          }
+        }, React.createElement(P3SIcon, {
+          name: "target",
+          size: 14
+        }), "\u0E41\u0E15\u0E30\u0E1A\u0E19\u0E1C\u0E31\u0E07"));
+      })(), r.kind === "dome" && React.createElement("div", {
+        className: "p3s-row",
+        style: {
+          gap: 5,
+          flexWrap: "wrap"
+        }
+      }, [["ครึ่งวง", 2], ["1/3", 3], ["1/4", 4], ["1/6", 6]].map(([lb, k]) => {
+        const v = p3sR((+r.span || 10) / k);
+        return React.createElement("button", {
+          key: k,
+          className: "p3s-btn" + (Math.abs((+r.rise || 0) - v) < 0.02 ? " pri" : ""),
+          style: {
+            flex: 1,
+            padding: 0,
+            height: 28,
+            fontSize: 11.5
+          },
+          onClick: () => patchRoof(r.id, {
+            rise: v
+          })
+        }, lb);
+      }), React.createElement("button", {
+        className: "p3s-btn",
+        style: {
+          flex: "1 1 100%",
           height: 28,
           fontSize: 12
         },
@@ -7828,7 +8055,7 @@ function Plan3DStudio({
       }, React.createElement(P3SIcon, {
         name: "rotate",
         size: 14
-      }), "\u0E01\u0E25\u0E31\u0E1A\u0E17\u0E34\u0E28\u0E42\u0E04\u0E49\u0E07"));
+      }), "\u0E01\u0E25\u0E31\u0E1A\u0E17\u0E34\u0E28\u0E42\u0E04\u0E49\u0E07 \xB7 \u0E15\u0E2D\u0E19\u0E19\u0E35\u0E49\u0E41\u0E01\u0E19\u0E22\u0E32\u0E27\u0E41\u0E19\u0E27", ridgeTxt(r, +r.ridge || 0))));
     })),
     act: roofs.length > 0 ? React.createElement(React.Fragment, null, React.createElement("button", {
       className: "p3s-btn pri wide",
@@ -8147,7 +8374,7 @@ function Plan3DStudio({
     className: "tt"
   }, s.t), React.createElement("span", {
     className: "ds"
-  }, s.d), s.act)))), React.createElement("div", {
+  }, s.d), s.act)))), noPanUI ? null : React.createElement("div", {
     className: "p3s-card"
   }, React.createElement("div", {
     className: "p3s-h"
@@ -8169,7 +8396,7 @@ function Plan3DStudio({
     onChange: v => commit({
       wp: v
     }, "wp")
-  })), roofs.length > 0 && React.createElement("div", {
+  })), roofs.length > 0 && !noPanUI && React.createElement("div", {
     className: "p3s-card"
   }, React.createElement("div", {
     className: "p3s-h"
