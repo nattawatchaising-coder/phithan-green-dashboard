@@ -383,7 +383,9 @@ function suPanelAngle(foot) {
   return Math.round(Math.atan2(best[1], best[0]) * 180 / Math.PI * 10) / 10;
 }
 
-function SuLayout2D({ foot, assign, active, onPaint, onPaintMany, height, labels, colorOf, unitName, onTap, paths }) {
+function SuLayout2D({ foot, assign, active, onPaint, onPaintMany, height, labels, colorOf, unitName, onTap, paths, onErase, full, onFull }) {
+  /* เมาส์: ปุ่มกลางลาก = เลื่อนผังได้ทุกโหมด · คลิกขวาบนแผง = เอาออก (onErase) ไม่เปิดเมนูของเบราว์เซอร์ */
+  const midRef = React.useRef(false);
   const wrapRef = React.useRef(null);
   /* โหมด "ไล่ทีละสตริง" (มีเมื่อพาเรนต์ส่ง onTap): แตะแผงหนึ่งครั้ง = ได้ทั้งสตริงตามแนวเดินสาย
      ลากในโหมดนี้ = เลื่อนผัง (แตะ = ไม่ขยับเกิน 5 px) */
@@ -416,9 +418,25 @@ function SuLayout2D({ foot, assign, active, onPaint, onPaintMany, height, labels
      ซึ่งทำให้ซูมเข้าไปจัดสตริงไม่ได้เลย */
   const sig = foot.panels.length + "|" + b.minX + "," + b.maxX + "," + b.minZ + "," + b.maxZ;
   React.useEffect(() => { setView(null); }, [sig]);
-  const v = view || base;
+  /* กรอบเริ่มต้น = พอดีกลุ่มแผง (เผื่อขอบ 3 ม.) — หลังคาใหญ่กว่าส่วนที่มีแผงมาก มองทั้งหลังคาแล้วแผงเล็กจนแตะไม่ได้
+     ยังซูมออกดูทั้งหลังคาได้ (ปุ่ม "เต็มผัง" = กรอบ base) · view = null แปลว่าใช้กรอบนี้ */
+  const fitV = React.useMemo(() => {
+    let x0 = 1e9, x1 = -1e9, y0 = 1e9, y1 = -1e9;
+    const c = Math.cos(th), sn = Math.sin(th);
+    foot.panels.forEach((q) => q.pts.forEach((t) => {
+      const x = cx + (t[0] - cx) * c - (t[1] - cz) * sn, y = cz + (t[0] - cx) * sn + (t[1] - cz) * c;
+      if (x < x0) x0 = x; if (x > x1) x1 = x; if (y < y0) y0 = y; if (y > y1) y1 = y;
+    }));
+    if (x0 > x1) return null;
+    const m = 3, w = Math.max(4, x1 - x0 + m * 2), h = Math.max(4, y1 - y0 + m * 2);
+    if (w >= base.w * 0.6 && h >= base.h * 0.6) return null;      // แผงเต็มผังอยู่แล้ว
+    /* คงสัดส่วนเดียวกับ base — ซูมเข้า/ออกจากกรอบนี้จะได้ไม่บิด */
+    const k = Math.min(1, Math.max(w / base.w, h / base.h));
+    return { x: (x0 + x1) / 2 - base.w * k / 2, y: (y0 + y1) / 2 - base.h * k / 2, w: base.w * k, h: base.h * k };
+  }, [sig, rot]); // eslint-disable-line
+  const v = view || fitV || base;
   const [hand, setHand] = React.useState(false);   // โหมดลากเลื่อน (ปิด = ลากแล้วทาสีแผง)
-  const zoomed = !!view && Math.abs(v.w - base.w) > 0.001;
+  const zoomed = Math.abs(v.w - base.w) > 0.001;
 
   /* ── แปลงหน่วยจอ ↔ หน่วยผัง ──
      svg ใช้ preserveAspectRatio ค่าปริยาย (meet) = ผังถูกย่อให้พอดีด้านที่คับกว่า
@@ -446,7 +464,7 @@ function SuLayout2D({ foot, assign, active, onPaint, onPaintMany, height, labels
     if (w > maxW) { w = base.w; h = base.h; }
     if (w < minW) { w = minW; h = base.h / 40; }
     const k = w / v.w;
-    setView(w >= base.w ? null : { x: p.x - (p.x - v.x) * k, y: p.y - (p.y - v.y) * k, w: w, h: h });
+    setView(w >= base.w ? base : { x: p.x - (p.x - v.x) * k, y: p.y - (p.y - v.y) * k, w: w, h: h });
   };
   const panBy = (dxPx, dyPx) => {
     const m = scaleOf();
@@ -553,15 +571,31 @@ function SuLayout2D({ foot, assign, active, onPaint, onPaintMany, height, labels
         )}
         <button type="button" onClick={() => zoomAt(1 / 1.4)} style={btn(false)} title="ซูมออก">−</button>
         <button type="button" onClick={() => zoomAt(1.4)} style={btn(false)} title="ซูมเข้า">+</button>
-        {zoomed && <button type="button" onClick={() => { setView(null); setHand(false); }} style={Object.assign({}, btn(false), { width: "auto", padding: "0 9px", fontSize: 11 })} title="กลับไปมองทั้งผัง">เต็มผัง</button>}
+        {onFull && (
+          <button type="button" onClick={onFull} style={btn(!!full)}
+            title={full ? "ย่อกลับ (Esc)" : "ขยายผังเต็มจอ"}>{full ? "⤡" : "⤢"}</button>
+        )}
+        {zoomed && <button type="button" onClick={() => { setView(base); setHand(false); }} style={Object.assign({}, btn(false), { width: "auto", padding: "0 9px", fontSize: 11 })} title="กลับไปมองทั้งผัง">เต็มผัง</button>}
       </div>
 
       <svg ref={svgRef} viewBox={v.x + " " + v.y + " " + v.w + " " + v.h}
         style={{ width: "100%", height: height || 340, display: "block",
-          cursor: panning ? (drag ? "grabbing" : "grab") : "crosshair" }}
+          cursor: drag && (panning || midRef.current) ? "grabbing" : panning ? "grab" : "crosshair" }}
         onPointerDown={(e) => {
           /* จับ pointer ไว้เพื่อให้ลากออกนอก svg แล้วยังทำงานต่อได้ — บางเบราว์เซอร์โยน error ถ้า pointer ไม่ active */
           try { e.currentTarget.setPointerCapture(e.pointerId); } catch (err) {}
+          if (e.button === 2) {
+            e.preventDefault();
+            const el = document.elementFromPoint(e.clientX, e.clientY);
+            if (onErase && el && el.dataset && el.dataset.uid) onErase(el.dataset.uid, seqOn);
+            return;
+          }
+          if (e.button === 1) {
+            e.preventDefault();
+            midRef.current = true; dragRef.current = true; setDrag(true); downRef.current = null;
+            last.current = { x: e.clientX, y: e.clientY };
+            return;
+          }
           setDrag(true); dragRef.current = true;
           downRef.current = seqOn ? { x: e.clientX, y: e.clientY, moved: false } : null;
           if (panning) { last.current = { x: e.clientX, y: e.clientY }; return; }
@@ -575,7 +609,7 @@ function SuLayout2D({ foot, assign, active, onPaint, onPaintMany, height, labels
         }}
         onPointerMove={(e) => {
           if (!dragRef.current) return;
-          if (panning) {
+          if (panning || midRef.current) {
             const l = last.current, dn = downRef.current;
             if (dn && !dn.moved) {
               /* ยังไม่เกิน 5 px = ยังนับเป็นการแตะ ไม่เลื่อนผัง (นิ้วสั่นนิดเดียวไม่ควรกลายเป็นลาก) */
@@ -595,14 +629,17 @@ function SuLayout2D({ foot, assign, active, onPaint, onPaintMany, height, labels
           }
           if (active) paintAt(e);
         }}
+        onContextMenu={(e) => e.preventDefault()}
+        onAuxClick={(e) => e.preventDefault()}
         onPointerUp={(e) => { setDrag(false); dragRef.current = false; last.current = null;
+          if (midRef.current) { midRef.current = false; return; }
           const dn = downRef.current; downRef.current = null;
           if (dn && !dn.moved && onTap) {
             const el = document.elementFromPoint(dn.x, dn.y);
             if (el && el.dataset && el.dataset.uid) onTap(el.dataset.uid);
           }
           if (rectRef.current) { applyBox(rectRef.current); rectRef.current = null; setRect(null); } }}
-        onPointerCancel={() => { setDrag(false); dragRef.current = false; last.current = null; rectRef.current = null; setRect(null); }}>
+        onPointerCancel={() => { midRef.current = false; setDrag(false); dragRef.current = false; last.current = null; rectRef.current = null; setRect(null); }}>
         {/* ทั้งผังอยู่ในกลุ่มเดียวเพื่อหมุนพร้อมกัน — หมุนรอบจุดกึ่งกลางผัง */}
         <g transform={"rotate(" + rot + " " + cx + " " + cz + ")"}>
         {/* เส้นขอบผืนหลังคา */}
@@ -1888,6 +1925,22 @@ function SolarWorkspace({ job, st, sys, onChange, onClose, snap }) {
     set({ assign: a, manual: true });
     setActiveStr(Math.max(maxId, sid) + 1);
   };
+  /* คลิกขวาบนแผง: โหมดไล่สตริง = ปลดทั้งสตริง · โหมดอื่น = เอาแผงใบนั้นออก */
+  const eraseAt = (uid, whole) => {
+    const a = Object.assign({}, effAssign), cur = a[uid];
+    if (!cur) return;
+    if (whole) Object.keys(a).forEach((k) => { if (a[k] === cur) delete a[k]; });
+    else delete a[uid];
+    set({ assign: a, manual: true });
+  };
+  /* ผังเต็มจอ — จัดสตริงงานใหญ่บนการ์ดสูง 340 px ซูม/เลื่อนลำบาก */
+  const [bigMap, setBigMap] = React.useState(false);
+  React.useEffect(() => {
+    if (!bigMap) return;
+    const k = (e) => { if (e.key === "Escape") { e.stopPropagation(); setBigMap(false); } };
+    window.addEventListener("keydown", k, true);
+    return () => window.removeEventListener("keydown", k, true);
+  }, [bigMap]);
   /* เส้นเดินสายของแต่ละสตริง — เรียงแผงในสตริงตามลำดับแนวเดินสาย แล้วต่อจุดกึ่งกลาง */
   const wirePaths = React.useMemo(() => {
     if (isMicro) return [];
@@ -2664,9 +2717,14 @@ function SolarWorkspace({ job, st, sys, onChange, onClose, snap }) {
 
                 {/* ── ผัง 2D: จัดแผงเข้าสตริงเองได้ ── */}
                 {!isMicro && (
-                  <div className="p3-card">
+                  <div className="p3-card" style={bigMap ? { position: "fixed", inset: 0, zIndex: 9000, borderRadius: 0, border: "none",
+                    background: "var(--surface)", overflow: "auto", padding: "12px 16px" } : undefined}>
                     <span className="p3-eb"><P3Icon name="plan" size={13} />ผังแผง 2 มิติ<span className="ln" />
-                      <span style={{ fontWeight: 600 }}>{isManual ? "แก้เอง" : "ระบบจัดให้"}</span></span>
+                      <span style={{ fontWeight: 600 }}>{isManual ? "แก้เอง" : "ระบบจัดให้"}</span>
+                      <button className="p3-b sm" style={{ marginLeft: 8 }} onClick={() => setBigMap((x) => !x)}
+                        title={bigMap ? "ย่อกลับ (Esc)" : "ขยายผังเต็มจอ"}>
+                        <P3Icon name={bigMap ? "check" : "plan"} size={13} />{bigMap ? "ย่อกลับ" : "เต็มจอ"}
+                      </button></span>
                     {/* จานสี = เลือกสตริงที่จะทา แล้วแตะ/ลากบนแผงในผัง (ใช้ได้ทันที ไม่ต้องกดปุ่มก่อน)
                         ผังใหญ่มีสตริงเป็นร้อย จึงย่อไว้ก่อน — ตัวที่เลือกอยู่จะถูกดึงมาให้เห็นเสมอ */}
                     <SuChipBox cap={24} more="สตริง"
@@ -2726,9 +2784,10 @@ function SolarWorkspace({ job, st, sys, onChange, onClose, snap }) {
                       <span style={{ fontSize: 11.5, color: "var(--text-3)" }}>สตริงละ <b style={{ color: "var(--text-1)" }}>{serN}</b> แผง</span>
                     </div>
                     <SuLayout2D foot={foot} assign={effAssign} active={activeStr !== null} onPaint={paint} onPaintMany={paintMany}
-                      onTap={fillAt} paths={wirePaths} />
+                      onTap={fillAt} paths={wirePaths} onErase={eraseAt}
+                      full={bigMap} onFull={() => setBigMap((x) => !x)} height={bigMap ? "calc(100vh - 230px)" : undefined} />
                     <span className="p3-note">
-                      {"⇣ แตะแผงที่จะเริ่มสตริง = ได้ทั้งสตริง " + serN + " แผงตามแนวเดินสาย แล้วไปสตริงถัดไปเอง · แตะแผงที่มีสตริงแล้ว = เลือกสตริงนั้น · โหมด “เอาออก” แตะ = ปลดทั้งสตริง · ✎ ทาทีละใบ · ▢ ลากกรอบ"}
+                      {"⇣ แตะแผงที่จะเริ่มสตริง = ได้ทั้งสตริง " + serN + " แผงตามแนวเดินสาย แล้วไปสตริงถัดไปเอง · แตะแผงที่มีสตริงแล้ว = เลือกสตริงนั้น · โหมด “เอาออก” แตะ = ปลดทั้งสตริง · ✎ ทาทีละใบ · ▢ ลากกรอบ · ลูกกลิ้ง = ซูม · กดปุ่มกลางลาก = เลื่อน · คลิกขวา = เอาออก"}
                       {isManual ? " · กำลังใช้ผังที่แก้เอง" : " · ตอนนี้ระบบจัดให้ตามแนวเดินสาย (แก้ครั้งแรกระบบจะยึดผังนี้เป็นของคุณ)"}
                       {" · มองจากด้านบน ทิศเหนืออยู่บน"}
                     </span>

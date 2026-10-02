@@ -598,8 +598,12 @@ function SuLayout2D({
   colorOf,
   unitName,
   onTap,
-  paths
+  paths,
+  onErase,
+  full,
+  onFull
 }) {
+  const midRef = React.useRef(false);
   const wrapRef = React.useRef(null);
   const [seq, setSeq] = React.useState(!!onTap);
   const [showPath, setShowPath] = React.useState(true);
@@ -629,9 +633,37 @@ function SuLayout2D({
   React.useEffect(() => {
     setView(null);
   }, [sig]);
-  const v = view || base;
+  const fitV = React.useMemo(() => {
+    let x0 = 1e9,
+      x1 = -1e9,
+      y0 = 1e9,
+      y1 = -1e9;
+    const c = Math.cos(th),
+      sn = Math.sin(th);
+    foot.panels.forEach(q => q.pts.forEach(t => {
+      const x = cx + (t[0] - cx) * c - (t[1] - cz) * sn,
+        y = cz + (t[0] - cx) * sn + (t[1] - cz) * c;
+      if (x < x0) x0 = x;
+      if (x > x1) x1 = x;
+      if (y < y0) y0 = y;
+      if (y > y1) y1 = y;
+    }));
+    if (x0 > x1) return null;
+    const m = 3,
+      w = Math.max(4, x1 - x0 + m * 2),
+      h = Math.max(4, y1 - y0 + m * 2);
+    if (w >= base.w * 0.6 && h >= base.h * 0.6) return null;
+    const k = Math.min(1, Math.max(w / base.w, h / base.h));
+    return {
+      x: (x0 + x1) / 2 - base.w * k / 2,
+      y: (y0 + y1) / 2 - base.h * k / 2,
+      w: base.w * k,
+      h: base.h * k
+    };
+  }, [sig, rot]);
+  const v = view || fitV || base;
   const [hand, setHand] = React.useState(false);
-  const zoomed = !!view && Math.abs(v.w - base.w) > 0.001;
+  const zoomed = Math.abs(v.w - base.w) > 0.001;
   const scaleOf = () => {
     const r = svgRef.current ? svgRef.current.getBoundingClientRect() : null;
     if (!r || !r.width || !r.height) return null;
@@ -672,7 +704,7 @@ function SuLayout2D({
       h = base.h / 40;
     }
     const k = w / v.w;
-    setView(w >= base.w ? null : {
+    setView(w >= base.w ? base : {
       x: p.x - (p.x - v.x) * k,
       y: p.y - (p.y - v.y) * k,
       w: w,
@@ -838,10 +870,15 @@ function SuLayout2D({
     onClick: () => zoomAt(1.4),
     style: btn(false),
     title: "\u0E0B\u0E39\u0E21\u0E40\u0E02\u0E49\u0E32"
-  }, "+"), zoomed && React.createElement("button", {
+  }, "+"), onFull && React.createElement("button", {
+    type: "button",
+    onClick: onFull,
+    style: btn(!!full),
+    title: full ? "ย่อกลับ (Esc)" : "ขยายผังเต็มจอ"
+  }, full ? "⤡" : "⤢"), zoomed && React.createElement("button", {
     type: "button",
     onClick: () => {
-      setView(null);
+      setView(base);
       setHand(false);
     },
     style: Object.assign({}, btn(false), {
@@ -857,12 +894,30 @@ function SuLayout2D({
       width: "100%",
       height: height || 340,
       display: "block",
-      cursor: panning ? drag ? "grabbing" : "grab" : "crosshair"
+      cursor: drag && (panning || midRef.current) ? "grabbing" : panning ? "grab" : "crosshair"
     },
     onPointerDown: e => {
       try {
         e.currentTarget.setPointerCapture(e.pointerId);
       } catch (err) {}
+      if (e.button === 2) {
+        e.preventDefault();
+        const el = document.elementFromPoint(e.clientX, e.clientY);
+        if (onErase && el && el.dataset && el.dataset.uid) onErase(el.dataset.uid, seqOn);
+        return;
+      }
+      if (e.button === 1) {
+        e.preventDefault();
+        midRef.current = true;
+        dragRef.current = true;
+        setDrag(true);
+        downRef.current = null;
+        last.current = {
+          x: e.clientX,
+          y: e.clientY
+        };
+        return;
+      }
       setDrag(true);
       dragRef.current = true;
       downRef.current = seqOn ? {
@@ -896,7 +951,7 @@ function SuLayout2D({
     },
     onPointerMove: e => {
       if (!dragRef.current) return;
-      if (panning) {
+      if (panning || midRef.current) {
         const l = last.current,
           dn = downRef.current;
         if (dn && !dn.moved) {
@@ -926,10 +981,16 @@ function SuLayout2D({
       }
       if (active) paintAt(e);
     },
+    onContextMenu: e => e.preventDefault(),
+    onAuxClick: e => e.preventDefault(),
     onPointerUp: e => {
       setDrag(false);
       dragRef.current = false;
       last.current = null;
+      if (midRef.current) {
+        midRef.current = false;
+        return;
+      }
       const dn = downRef.current;
       downRef.current = null;
       if (dn && !dn.moved && onTap) {
@@ -943,6 +1004,7 @@ function SuLayout2D({
       }
     },
     onPointerCancel: () => {
+      midRef.current = false;
       setDrag(false);
       dragRef.current = false;
       last.current = null;
@@ -3596,6 +3658,30 @@ function SolarWorkspace({
     });
     setActiveStr(Math.max(maxId, sid) + 1);
   };
+  const eraseAt = (uid, whole) => {
+    const a = Object.assign({}, effAssign),
+      cur = a[uid];
+    if (!cur) return;
+    if (whole) Object.keys(a).forEach(k => {
+      if (a[k] === cur) delete a[k];
+    });else delete a[uid];
+    set({
+      assign: a,
+      manual: true
+    });
+  };
+  const [bigMap, setBigMap] = React.useState(false);
+  React.useEffect(() => {
+    if (!bigMap) return;
+    const k = e => {
+      if (e.key === "Escape") {
+        e.stopPropagation();
+        setBigMap(false);
+      }
+    };
+    window.addEventListener("keydown", k, true);
+    return () => window.removeEventListener("keydown", k, true);
+  }, [bigMap]);
   const wirePaths = React.useMemo(() => {
     if (isMicro) return [];
     const ctr = {};
@@ -5239,7 +5325,17 @@ function SolarWorkspace({
   }, "\u0E43\u0E2B\u0E49\u0E23\u0E30\u0E1A\u0E1A\u0E40\u0E25\u0E37\u0E2D\u0E01"), React.createElement("span", {
     className: "p3-stat"
   }, "\u0E2A\u0E15\u0E23\u0E34\u0E07\u0E15\u0E48\u0E2D MPPT ", React.createElement("b", null, scStringsPerMppt(panel, inv))))), !isMicro && React.createElement("div", {
-    className: "p3-card"
+    className: "p3-card",
+    style: bigMap ? {
+      position: "fixed",
+      inset: 0,
+      zIndex: 9000,
+      borderRadius: 0,
+      border: "none",
+      background: "var(--surface)",
+      overflow: "auto",
+      padding: "12px 16px"
+    } : undefined
   }, React.createElement("span", {
     className: "p3-eb"
   }, React.createElement(P3Icon, {
@@ -5251,7 +5347,17 @@ function SolarWorkspace({
     style: {
       fontWeight: 600
     }
-  }, isManual ? "แก้เอง" : "ระบบจัดให้")), React.createElement(SuChipBox, {
+  }, isManual ? "แก้เอง" : "ระบบจัดให้"), React.createElement("button", {
+    className: "p3-b sm",
+    style: {
+      marginLeft: 8
+    },
+    onClick: () => setBigMap(x => !x),
+    title: bigMap ? "ย่อกลับ (Esc)" : "ขยายผังเต็มจอ"
+  }, React.createElement(P3Icon, {
+    name: bigMap ? "check" : "plan",
+    size: 13
+  }), bigMap ? "ย่อกลับ" : "เต็มจอ")), React.createElement(SuChipBox, {
     cap: 24,
     more: "\u0E2A\u0E15\u0E23\u0E34\u0E07",
     keep: (plan && plan.strings ? plan.strings : []).findIndex(x => x.id === activeStr),
@@ -5392,10 +5498,14 @@ function SolarWorkspace({
     onPaint: paint,
     onPaintMany: paintMany,
     onTap: fillAt,
-    paths: wirePaths
+    paths: wirePaths,
+    onErase: eraseAt,
+    full: bigMap,
+    onFull: () => setBigMap(x => !x),
+    height: bigMap ? "calc(100vh - 230px)" : undefined
   }), React.createElement("span", {
     className: "p3-note"
-  }, "⇣ แตะแผงที่จะเริ่มสตริง = ได้ทั้งสตริง " + serN + " แผงตามแนวเดินสาย แล้วไปสตริงถัดไปเอง · แตะแผงที่มีสตริงแล้ว = เลือกสตริงนั้น · โหมด “เอาออก” แตะ = ปลดทั้งสตริง · ✎ ทาทีละใบ · ▢ ลากกรอบ", isManual ? " · กำลังใช้ผังที่แก้เอง" : " · ตอนนี้ระบบจัดให้ตามแนวเดินสาย (แก้ครั้งแรกระบบจะยึดผังนี้เป็นของคุณ)", " · มองจากด้านบน ทิศเหนืออยู่บน")), !isMicro && plan && React.createElement("div", {
+  }, "⇣ แตะแผงที่จะเริ่มสตริง = ได้ทั้งสตริง " + serN + " แผงตามแนวเดินสาย แล้วไปสตริงถัดไปเอง · แตะแผงที่มีสตริงแล้ว = เลือกสตริงนั้น · โหมด “เอาออก” แตะ = ปลดทั้งสตริง · ✎ ทาทีละใบ · ▢ ลากกรอบ · ลูกกลิ้ง = ซูม · กดปุ่มกลางลาก = เลื่อน · คลิกขวา = เอาออก", isManual ? " · กำลังใช้ผังที่แก้เอง" : " · ตอนนี้ระบบจัดให้ตามแนวเดินสาย (แก้ครั้งแรกระบบจะยึดผังนี้เป็นของคุณ)", " · มองจากด้านบน ทิศเหนืออยู่บน")), !isMicro && plan && React.createElement("div", {
     className: "p3-card"
   }, React.createElement("span", {
     className: "p3-eb"
