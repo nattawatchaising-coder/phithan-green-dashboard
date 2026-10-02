@@ -3374,7 +3374,10 @@ function Plan3DStudio({ job, onClose, currentUser, onSwitch }) {
             const kk = r.kind === "poly" ? (r.p3sFacet ? "facet" : pc > 0.4 ? "shed" : "flat") : r.kind;
             return (
               <div key={r.id} className="p3s-fld" style={{ gap: 4, padding: 8, borderRadius: 11, background: on ? "var(--tint-green-bg,#ecfdf5)" : "var(--surface2)" }}>
-                <button className="p3s-btn" style={{ height: 26, padding: "0 10px", fontSize: 12, alignSelf: "flex-start" }} onClick={() => pickRoof(r)}><P3Icon name="roof" />{r.name || "หลังคา"} · {P3S_KIND_TH[kk] || kk}</button>
+                <div className="p3s-row" style={{ justifyContent: "space-between", gap: 6 }}>
+                  <button className="p3s-btn" style={{ height: 26, padding: "0 10px", fontSize: 12 }} onClick={() => pickRoof(r)}><P3Icon name="roof" />{r.name || "หลังคา"} · {P3S_KIND_TH[kk] || kk}</button>
+                  <span style={{ fontSize: 12, fontWeight: 700, whiteSpace: "nowrap" }}>{(() => { let a = 0; try { a = p3Area(p3sOutline(r)); } catch (e) { a = 0; } return p3sR(a, 10).toLocaleString(); })()}<small style={{ fontSize: 10, fontWeight: 400 }}> ตร.ม.</small></span>
+                </div>
                 <div className="p3s-g2">
                   <P3SNum label="ความสูงอาคาร" unit="ม." step={0.1} min={0} value={p3sR(roofEaveOf(r), 100)} onChange={(v) => setRoofEave(r, v)} />
                   {pc != null ? <P3SNum label="ความชัน" unit="°" step={1} min={0} max={60} digits={1} value={pc} onChange={(v) => setRoofPitch(r, v)} /> : <span className="p3s-note" style={{ alignSelf: "end" }}>ความโค้งตั้งที่การ์ดหลังคา</span>}
@@ -3386,7 +3389,9 @@ function Plan3DStudio({ job, onClose, currentUser, onSwitch }) {
       extra: shapeGap >= 0.03 && facetRoofs.length > 1 && (
         <div className="p3s-row"><span className="p3s-badge warn" style={{ flex: 1 }}>ทรงยังเพี้ยน {Math.round(shapeGap * 100)} ซม.</span>
           <button className="p3s-btn pri" onClick={() => weldNow(facetRoofs[0])}><P3SIcon name="magic" size={15} />จัดทรงทั้งหลัง</button></div>),
-      act: <button className="p3s-btn wide" onClick={() => { setView3d(true); setToolRaw("select"); }}><P3Icon name="cube" />ดูทรงใน 3D</button>,
+      act: view3d
+        ? <button className="p3s-btn wide pri" onClick={() => { setView3d(false); setToolRaw(wizHomeRef.current || "select"); }}><P3SIcon name="polygon" size={15} />กลับไปผัง 2D</button>
+        : <button className="p3s-btn wide" onClick={() => { setView3d(true); setToolRaw("select"); }}><P3Icon name="cube" />ดูทรงใน 3D</button>,
       go: () => { setTool("select"); const r = facetRoofs[0] || roofs[0]; if (r && !(sel && sel.t === "roof")) pickRoof(r); } },
     { t: "สิ่งบดบัง", tools: ["obs"], done: (st.obstacles || []).length > 0 || !!wizSeen[5], opt: true,
       d: <span>เลือกชนิด แล้ว<b>แตะบนผัง</b> = ขนาดมาตรฐาน หรือ<b>ลากกรอบ</b>ตามขนาดจริง · ทำ<b>ก่อนวางแผง</b> แผงที่ทับถูกตัดออกเอง · ไม่มีก็กดถัดไป</span>,
@@ -3556,11 +3561,12 @@ function Plan3DStudio({ job, onClose, currentUser, onSwitch }) {
   );
 
   let sideBody;
-  if (view3d) sideBody = <React.Fragment>{sunPanel}{selRoof ? roofPanelBody(selRoof) : null}</React.Fragment>;
+  const cardRoof = wiz && wi === 4 ? null : selRoof;   // ขั้นความสูง/ความชัน: ตั้งค่าในรายการพาทำแล้ว ไม่ต้องมีการ์ดหลังคาซ้ำ
+  if (view3d) sideBody = <React.Fragment>{sunPanel}{cardRoof ? roofPanelBody(cardRoof) : null}</React.Fragment>;
   else if (tool === "bg") sideBody = bgPanel;
   else if (tool === "axis") sideBody = wiz ? null : axisPanel;   // โหมดพาทำ: ปุ่มแนวอยู่ในการ์ดพาทำแล้ว
-  else if (tool === "walk") sideBody = <React.Fragment>{walkPanel}{selRoof ? roofPanelBody(selRoof) : null}</React.Fragment>;
-  else if (selRoof) sideBody = roofPanelBody(selRoof);
+  else if (tool === "walk") sideBody = <React.Fragment>{walkPanel}{cardRoof ? roofPanelBody(cardRoof) : null}</React.Fragment>;
+  else if (cardRoof) sideBody = roofPanelBody(cardRoof);
   else if (selObs) sideBody = obsPanelBody(selObs);
   else if (selMeas) sideBody = measPanelBody(selMeas);
   else if (tool === "roof") sideBody = (
@@ -3574,6 +3580,7 @@ function Plan3DStudio({ job, onClose, currentUser, onSwitch }) {
     </div>
   );
   else sideBody = guidePanel;
+  if (wiz && wi === 4 && !view3d) sideBody = null;   // ขั้นความสูง/ความชัน: การ์ดพาทำมีครบแล้ว ไม่ต้องมีอะไรด้านล่าง
   if (wizCard) sideBody = <React.Fragment>{wizCard}{sideBody}</React.Fragment>;
 
   /* ============== แถบบริบทบนผัง ============== */

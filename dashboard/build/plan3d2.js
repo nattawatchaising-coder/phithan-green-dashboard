@@ -7776,18 +7776,42 @@ function Plan3DStudio({
           borderRadius: 11,
           background: on ? "var(--tint-green-bg,#ecfdf5)" : "var(--surface2)"
         }
+      }, React.createElement("div", {
+        className: "p3s-row",
+        style: {
+          justifyContent: "space-between",
+          gap: 6
+        }
       }, React.createElement("button", {
         className: "p3s-btn",
         style: {
           height: 26,
           padding: "0 10px",
-          fontSize: 12,
-          alignSelf: "flex-start"
+          fontSize: 12
         },
         onClick: () => pickRoof(r)
       }, React.createElement(P3Icon, {
         name: "roof"
-      }), r.name || "หลังคา", " \xB7 ", P3S_KIND_TH[kk] || kk), React.createElement("div", {
+      }), r.name || "หลังคา", " \xB7 ", P3S_KIND_TH[kk] || kk), React.createElement("span", {
+        style: {
+          fontSize: 12,
+          fontWeight: 700,
+          whiteSpace: "nowrap"
+        }
+      }, (() => {
+        let a = 0;
+        try {
+          a = p3Area(p3sOutline(r));
+        } catch (e) {
+          a = 0;
+        }
+        return p3sR(a, 10).toLocaleString();
+      })(), React.createElement("small", {
+        style: {
+          fontSize: 10,
+          fontWeight: 400
+        }
+      }, " \u0E15\u0E23.\u0E21."))), React.createElement("div", {
         className: "p3s-g2"
       }, React.createElement(P3SNum, {
         label: "\u0E04\u0E27\u0E32\u0E21\u0E2A\u0E39\u0E07\u0E2D\u0E32\u0E04\u0E32\u0E23",
@@ -7826,7 +7850,16 @@ function Plan3DStudio({
       name: "magic",
       size: 15
     }), "\u0E08\u0E31\u0E14\u0E17\u0E23\u0E07\u0E17\u0E31\u0E49\u0E07\u0E2B\u0E25\u0E31\u0E07")),
-    act: React.createElement("button", {
+    act: view3d ? React.createElement("button", {
+      className: "p3s-btn wide pri",
+      onClick: () => {
+        setView3d(false);
+        setToolRaw(wizHomeRef.current || "select");
+      }
+    }, React.createElement(P3SIcon, {
+      name: "polygon",
+      size: 15
+    }), "\u0E01\u0E25\u0E31\u0E1A\u0E44\u0E1B\u0E1C\u0E31\u0E07 2D") : React.createElement("button", {
       className: "p3s-btn wide",
       onClick: () => {
         setView3d(true);
@@ -8360,7 +8393,8 @@ function Plan3DStudio({
     className: "p3s-note"
   }, "\u0E2D\u0E22\u0E32\u0E01\u0E40\u0E27\u0E49\u0E19\u0E17\u0E32\u0E07\u0E40\u0E14\u0E34\u0E19\u0E40\u0E1B\u0E47\u0E19\u0E0A\u0E48\u0E27\u0E07\u0E40\u0E17\u0E48\u0E32 \u0E46 \u0E01\u0E31\u0E19\u0E17\u0E31\u0E49\u0E07\u0E1C\u0E37\u0E19 \u0E43\u0E0A\u0E49 ", React.createElement("b", null, "\u0E08\u0E31\u0E14\u0E40\u0E1B\u0E47\u0E19\u0E01\u0E25\u0E38\u0E48\u0E21 + \u0E40\u0E27\u0E49\u0E19\u0E17\u0E32\u0E07\u0E40\u0E14\u0E34\u0E19"), " \u0E43\u0E19\u0E01\u0E32\u0E23\u0E4C\u0E14\u0E41\u0E1C\u0E07\u0E02\u0E2D\u0E07\u0E2B\u0E25\u0E31\u0E07\u0E04\u0E32\u0E41\u0E17\u0E19"));
   let sideBody;
-  if (view3d) sideBody = React.createElement(React.Fragment, null, sunPanel, selRoof ? roofPanelBody(selRoof) : null);else if (tool === "bg") sideBody = bgPanel;else if (tool === "axis") sideBody = wiz ? null : axisPanel;else if (tool === "walk") sideBody = React.createElement(React.Fragment, null, walkPanel, selRoof ? roofPanelBody(selRoof) : null);else if (selRoof) sideBody = roofPanelBody(selRoof);else if (selObs) sideBody = obsPanelBody(selObs);else if (selMeas) sideBody = measPanelBody(selMeas);else if (tool === "roof") sideBody = React.createElement("div", {
+  const cardRoof = wiz && wi === 4 ? null : selRoof;
+  if (view3d) sideBody = React.createElement(React.Fragment, null, sunPanel, cardRoof ? roofPanelBody(cardRoof) : null);else if (tool === "bg") sideBody = bgPanel;else if (tool === "axis") sideBody = wiz ? null : axisPanel;else if (tool === "walk") sideBody = React.createElement(React.Fragment, null, walkPanel, cardRoof ? roofPanelBody(cardRoof) : null);else if (cardRoof) sideBody = roofPanelBody(cardRoof);else if (selObs) sideBody = obsPanelBody(selObs);else if (selMeas) sideBody = measPanelBody(selMeas);else if (tool === "roof") sideBody = React.createElement("div", {
     className: "p3s-card"
   }, React.createElement("span", {
     className: "p3s-ttl2"
@@ -8399,6 +8433,7 @@ function Plan3DStudio({
       c: v > 1.2 ? 1.3 : 1
     })
   }));else sideBody = guidePanel;
+  if (wiz && wi === 4 && !view3d) sideBody = null;
   if (wizCard) sideBody = React.createElement(React.Fragment, null, wizCard, sideBody);
   let ctxBar = null;
   if (!view3d && (tool === "roof" || roofStep) && (roofArm || draw || !(st.roofs || []).length)) {
