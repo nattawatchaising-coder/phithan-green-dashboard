@@ -1821,7 +1821,6 @@ function Plan3DStudio({ job, onClose, currentUser, onSwitch }) {
   const keepMulti = React.useRef(false);
   const [photoAR, setPhotoAR] = React.useState(1);
   const [sunHour, setSunHour] = React.useState(null);   // ชั่วโมงที่กำลังกวาดดูเงา (ไม่บันทึก)
-  const [lockRoofs, setLockRoofs] = React.useState(false);
 
   const [view, setViewRaw] = React.useState({ cx: 0, cz: 0, s: 14 });
   const viewRef = React.useRef(view); viewRef.current = view;
@@ -2472,7 +2471,7 @@ function Plan3DStudio({ job, onClose, currentUser, onSwitch }) {
   const HR = coarse ? 11 : 7;           // รัศมีที่วาด
   const HIT = coarse ? 22 : 12;         // รัศมีที่แตะโดน
   const handles = [];
-  const roofHandlesOn = st && !view3d && selRoof && !lockRoofs && canMove("roof") && !multi.length && (tool === "select" || (tool === "roof" && !draw));
+  const roofHandlesOn = st && !view3d && selRoof && canMove("roof") && !multi.length && (tool === "select" || (tool === "roof" && !draw));
   if (roofHandlesOn) {
     if (selRoof.kind === "poly" && Array.isArray(selRoof.pts)) {
       const wp = p3sFaces2D(selRoof)[0] ? p3sFaces2D(selRoof)[0].pts : [];
@@ -2734,7 +2733,7 @@ function Plan3DStudio({ job, onClose, currentUser, onSwitch }) {
       if (!inSet) { setSel(hb); setSelVert(null); setSelBlk(null); }
       else setSelVert(null);
       const group = inSet ? [sel.id].concat(multi) : [hb.id];
-      if (!canMove(hb.t) || (hb.t === "roof" && lockRoofs)) { gest.current = Object.assign(base, { type: "pan", v0: viewRef.current }); return; }
+      if (!canMove(hb.t)) { gest.current = Object.assign(base, { type: "pan", v0: viewRef.current }); return; }
       if (hb.t === "roof") {
         // หลังคาที่แบบเก่าจัดกลุ่มไว้ (grp) ลากผืนไหนก็ย้ายไปพร้อมกันทั้งกลุ่ม — เหมือนแบบเก่า · เลือกหลายหลัง = ย้ายทั้งชุด
         const gs = {}; (S.roofs || []).forEach((r) => { if (group.indexOf(r.id) >= 0 && r.grp) gs[r.grp] = 1; });
@@ -4669,8 +4668,6 @@ function Plan3DStudio({ job, onClose, currentUser, onSwitch }) {
               <button className="p3s-btn ico ghost" onClick={() => zoomAt({ x: Sz.w / 2, y: Sz.h / 2 }, 1.3)} title="ซูมเข้า (+)"><P3Icon name="plus" /></button>
               <button className="p3s-btn ico ghost" onClick={() => zoomAt({ x: Sz.w / 2, y: Sz.h / 2 }, 1 / 1.3)} title="ซูมออก (−)"><P3SIcon name="minus" /></button>
               <button className="p3s-btn ico ghost" onClick={() => fitView()} title="พอดีจอ (F)"><P3SIcon name="fit" /></button>
-              <button className={"p3s-btn ico " + (lockRoofs ? "pri" : "ghost")} onClick={() => setLockRoofs((v) => !v)}
-                title={lockRoofs ? "ล็อกหลังคาอยู่ — ลากหลังคาจะเลื่อนภาพแทน" : "ล็อกหลังคา กันเผลอลากย้าย"}><P3Icon name={lockRoofs ? "lock" : "unlock"} /></button>
             </div>
           )}
         </div>

@@ -3816,7 +3816,6 @@ function Plan3DStudio({
   const keepMulti = React.useRef(false);
   const [photoAR, setPhotoAR] = React.useState(1);
   const [sunHour, setSunHour] = React.useState(null);
-  const [lockRoofs, setLockRoofs] = React.useState(false);
   const [view, setViewRaw] = React.useState({
     cx: 0,
     cz: 0,
@@ -5200,7 +5199,7 @@ function Plan3DStudio({
   const HR = coarse ? 11 : 7;
   const HIT = coarse ? 22 : 12;
   const handles = [];
-  const roofHandlesOn = st && !view3d && selRoof && !lockRoofs && canMove("roof") && !multi.length && (tool === "select" || tool === "roof" && !draw);
+  const roofHandlesOn = st && !view3d && selRoof && canMove("roof") && !multi.length && (tool === "select" || tool === "roof" && !draw);
   if (roofHandlesOn) {
     if (selRoof.kind === "poly" && Array.isArray(selRoof.pts)) {
       const wp = p3sFaces2D(selRoof)[0] ? p3sFaces2D(selRoof)[0].pts : [];
@@ -5895,7 +5894,7 @@ function Plan3DStudio({
         setSelBlk(null);
       } else setSelVert(null);
       const group = inSet ? [sel.id].concat(multi) : [hb.id];
-      if (!canMove(hb.t) || hb.t === "roof" && lockRoofs) {
+      if (!canMove(hb.t)) {
         gest.current = Object.assign(base, {
           type: "pan",
           v0: viewRef.current
@@ -11412,12 +11411,6 @@ function Plan3DStudio({
     title: "\u0E1E\u0E2D\u0E14\u0E35\u0E08\u0E2D (F)"
   }, React.createElement(P3SIcon, {
     name: "fit"
-  })), React.createElement("button", {
-    className: "p3s-btn ico " + (lockRoofs ? "pri" : "ghost"),
-    onClick: () => setLockRoofs(v => !v),
-    title: lockRoofs ? "ล็อกหลังคาอยู่ — ลากหลังคาจะเลื่อนภาพแทน" : "ล็อกหลังคา กันเผลอลากย้าย"
-  }, React.createElement(P3Icon, {
-    name: lockRoofs ? "lock" : "unlock"
   })))), React.createElement("div", {
     className: "p3s-side",
     "data-min": isMobile && sheetMin ? "1" : "0"
