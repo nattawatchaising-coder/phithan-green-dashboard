@@ -383,8 +383,13 @@ function suPanelAngle(foot) {
   return Math.round(Math.atan2(best[1], best[0]) * 180 / Math.PI * 10) / 10;
 }
 
-function SuLayout2D({ foot, assign, active, onPaint, onPaintMany, height, labels, colorOf, unitName }) {
+function SuLayout2D({ foot, assign, active, onPaint, onPaintMany, height, labels, colorOf, unitName, onTap, paths }) {
   const wrapRef = React.useRef(null);
+  /* โหมด "ไล่ทีละสตริง" (มีเมื่อพาเรนต์ส่ง onTap): แตะแผงหนึ่งครั้ง = ได้ทั้งสตริงตามแนวเดินสาย
+     ลากในโหมดนี้ = เลื่อนผัง (แตะ = ไม่ขยับเกิน 5 px) */
+  const [seq, setSeq] = React.useState(!!onTap);
+  const [showPath, setShowPath] = React.useState(true);
+  const downRef = React.useRef(null);
   const svgRef = React.useRef(null);
   const [drag, setDrag] = React.useState(false);
   const b = foot.bounds;
@@ -493,7 +498,8 @@ function SuLayout2D({ foot, assign, active, onPaint, onPaintMany, height, labels
     if (hit.length) onPaintMany(hit);
   };
 
-  const panning = (hand || !active) && !box;
+  const seqOn = seq && !!onTap && active && !box && !hand;
+  const panning = (hand || !active || seqOn) && !box;
 
   /* ลูกกลิ้ง = ซูมผัง ไม่ใช่เลื่อนหน้า
      ต้องผูกเองแบบ passive:false — React ผูก wheel ให้แบบ passive ซึ่งสั่ง preventDefault ไม่ได้
@@ -510,7 +516,7 @@ function SuLayout2D({ foot, assign, active, onPaint, onPaintMany, height, labels
   });
 
   const btn = (on) => ({ width: 30, height: 30, borderRadius: 8, display: "grid", placeItems: "center",
-    border: "1px solid " + (on ? "var(--acd)" : "var(--ln2)"), background: on ? "var(--acd)" : "var(--surface)",
+    border: "1px solid " + (on ? "var(--acd, #15803D)" : "var(--ln2)"), background: on ? "var(--acd, #15803D)" : "var(--surface)",
     color: on ? "#fff" : "var(--text-2)", cursor: "pointer", fontFamily: "inherit", fontSize: 14, fontWeight: 800, lineHeight: 1 });
 
   return (
@@ -525,6 +531,18 @@ function SuLayout2D({ foot, assign, active, onPaint, onPaintMany, height, labels
         )}
         <button type="button" onClick={straighten} style={btn(Math.abs(rot) > 0.01)}
           title={Math.abs(rot) > 0.01 ? "กลับไปมุมจริงของหลังคา" : "หมุนผังให้แถวแผงนอนตรง (ลากกรอบเลือกง่ายขึ้น)"}>⟲</button>
+        {paths && paths.length > 0 && (
+          <button type="button" onClick={() => setShowPath((x) => !x)} style={btn(showPath)}
+            title={showPath ? "ซ่อนแนวเดินสายของแต่ละสตริง" : "แสดงแนวเดินสาย + จุดเริ่มของแต่ละสตริง"}>〰</button>
+        )}
+        {active && onTap && (
+          <button type="button" onClick={() => { setSeq(true); setBox(false); setHand(false); }} style={btn(seqOn)}
+            title="ไล่ทีละสตริง: แตะแผงที่จะเริ่ม ระบบเก็บแผงต่อจากใบนั้นตามแนวแถวจนครบสตริงให้เอง · ลาก = เลื่อนผัง">⇣</button>
+        )}
+        {active && onTap && (
+          <button type="button" onClick={() => { setSeq(false); setBox(false); setHand(false); }} style={btn(!seqOn && !box && !hand)}
+            title="ทาทีละใบ: แตะหรือลากผ่านแผงเพื่อย้ายเข้าสตริงที่เลือก">✎</button>
+        )}
         {active && onPaintMany && (
           <button type="button" onClick={() => { setBox((x) => !x); setHand(false); }} style={btn(box)}
             title={box ? "ตอนนี้ลากเป็นกรอบเลือกทีละหลายใบ — กดเพื่อกลับไปทาทีละใบ" : "ลากกรอบเลือกแผงทีละหลายใบ"}>▢</button>
@@ -545,6 +563,7 @@ function SuLayout2D({ foot, assign, active, onPaint, onPaintMany, height, labels
           /* จับ pointer ไว้เพื่อให้ลากออกนอก svg แล้วยังทำงานต่อได้ — บางเบราว์เซอร์โยน error ถ้า pointer ไม่ active */
           try { e.currentTarget.setPointerCapture(e.pointerId); } catch (err) {}
           setDrag(true); dragRef.current = true;
+          downRef.current = seqOn ? { x: e.clientX, y: e.clientY, moved: false } : null;
           if (panning) { last.current = { x: e.clientX, y: e.clientY }; return; }
           if (box) {
             const m = scaleOf();
@@ -557,7 +576,12 @@ function SuLayout2D({ foot, assign, active, onPaint, onPaintMany, height, labels
         onPointerMove={(e) => {
           if (!dragRef.current) return;
           if (panning) {
-            const l = last.current;
+            const l = last.current, dn = downRef.current;
+            if (dn && !dn.moved) {
+              /* ยังไม่เกิน 5 px = ยังนับเป็นการแตะ ไม่เลื่อนผัง (นิ้วสั่นนิดเดียวไม่ควรกลายเป็นลาก) */
+              if (Math.hypot(e.clientX - dn.x, e.clientY - dn.y) < 5) return;
+              dn.moved = true;
+            }
             if (l) panBy(e.clientX - l.x, e.clientY - l.y);
             last.current = { x: e.clientX, y: e.clientY };
             return;
@@ -571,7 +595,12 @@ function SuLayout2D({ foot, assign, active, onPaint, onPaintMany, height, labels
           }
           if (active) paintAt(e);
         }}
-        onPointerUp={() => { setDrag(false); dragRef.current = false; last.current = null;
+        onPointerUp={(e) => { setDrag(false); dragRef.current = false; last.current = null;
+          const dn = downRef.current; downRef.current = null;
+          if (dn && !dn.moved && onTap) {
+            const el = document.elementFromPoint(dn.x, dn.y);
+            if (el && el.dataset && el.dataset.uid) onTap(el.dataset.uid);
+          }
           if (rectRef.current) { applyBox(rectRef.current); rectRef.current = null; setRect(null); } }}
         onPointerCancel={() => { setDrag(false); dragRef.current = false; last.current = null; rectRef.current = null; setRect(null); }}>
         {/* ทั้งผังอยู่ในกลุ่มเดียวเพื่อหมุนพร้อมกัน — หมุนรอบจุดกึ่งกลางผัง */}
@@ -590,12 +619,27 @@ function SuLayout2D({ foot, assign, active, onPaint, onPaintMany, height, labels
             <polygon key={p.uid} data-uid={p.uid} points={p.pts.map((q) => q[0] + "," + q[1]).join(" ")}
               fill={c ? c : "#CBD5E1"} fillOpacity={c ? 0.88 : 0.5}
               stroke={c ? "#fff" : "#94A3B8"} strokeWidth="0.035" strokeDasharray={c ? null : "0.12 0.09"}
-              style={{ cursor: active ? "crosshair" : "pointer" }}>
+              style={{ cursor: seqOn ? "pointer" : active ? "crosshair" : "pointer" }}>
               <title>{p.roofName + " · " + p.key + (s ? " · " + un + " " + s : " · ยังไม่อยู่" + un + "ไหน")
                 + (labels && labels[p.uid] ? " · เฟส " + labels[p.uid] : "")}</title>
             </polygon>
           );
         })}
+        {/* แนวเดินสาย: เส้นลากผ่านกลางแผงตามลำดับในสตริง + วงกลมเลขสตริงที่ใบแรก + จุดที่ใบสุดท้าย
+            ช่างดูแล้วรู้ว่าสายเริ่มตรงไหน วกตรงไหน จบตรงไหน · pointerEvents none = ไม่บังการแตะ */}
+        {showPath && paths && paths.map((q) => q.pts.length > 0 && (
+          <g key={"P" + q.id} style={{ pointerEvents: "none" }}>
+            {q.pts.length > 1 && <polyline points={q.pts.map((t) => t[0] + "," + t[1]).join(" ")} fill="none"
+              stroke="#fff" strokeOpacity="0.9" strokeWidth="0.16" strokeLinejoin="round" strokeLinecap="round" />}
+            {q.pts.length > 1 && <polyline points={q.pts.map((t) => t[0] + "," + t[1]).join(" ")} fill="none"
+              stroke="rgba(15,23,42,.78)" strokeWidth="0.07" strokeLinejoin="round" strokeLinecap="round" />}
+            {q.pts.length > 1 && <circle cx={q.pts[q.pts.length - 1][0]} cy={q.pts[q.pts.length - 1][1]} r="0.13"
+              fill="rgba(15,23,42,.85)" stroke="#fff" strokeWidth="0.04" />}
+            <circle cx={q.pts[0][0]} cy={q.pts[0][1]} r="0.36" fill="#fff" stroke={q.color} strokeWidth="0.09" />
+            <text x={q.pts[0][0]} y={q.pts[0][1] + 0.14} textAnchor="middle" fontSize={q.id > 99 ? 0.3 : 0.4} fontWeight="800"
+              fill={q.color} style={{ userSelect: "none" }}>{q.id}</text>
+          </g>
+        ))}
         {/* ป้ายบอกเฟสบนแผงแต่ละใบ — เขียนทับตรงกลางแผง ให้อ่านออกแม้พิมพ์ขาวดำ
             pointerEvents none เพื่อไม่ให้บังการแตะทาสีแผง */}
         {labels && foot.panels.map((p) => {
@@ -1779,9 +1823,21 @@ function SolarWorkspace({ job, st, sys, onChange, onClose, snap }) {
   /* ระบบจัดสตริงให้เองตั้งแต่เปิดเข้ามา — ผังจึงมีสีและแตะแก้ได้ทันที ไม่ต้องกดปุ่มก่อน
      ยังไม่เขียนลง state จนกว่าผู้ใช้จะแตะแก้จริง (จะได้ไม่ขึ้น "ยังไม่บันทึก" ทั้งที่ยังไม่ได้แตะอะไร) */
   const isManual = !!S.manual;
+  /* แนวเดินสาย: "col" = ไล่ตามแนวลาดหลังคา (ขึ้น–ลง ตามคอลัมน์แผง) · "row" = ไล่ขวางลาด (ตามแถว)
+     ทั้งระบบจัดให้และโหมดแตะไล่สตริงใช้ลำดับเดียวกันนี้ */
+  const strDir = S.strDir === "row" ? "row" : "col";
+  const lay = React.useMemo(() => scLayoutOrder(foot.panels, idx.byPanel, strDir), [foot, idx, strDir]);
+  /* ขนาดสตริงที่ใช้จริง: ผู้ใช้เลือกที่แถบแรงดัน > ขนาดที่ลงตัวกับความยาวแถวแผงของกลุ่มใหญ่สุด > ที่ระบบแนะนำ
+     (ต้องคิดแบบเดียวกับ scAutoStrings — แถบแรงดันจะได้ชี้ขนาดเดียวกับที่ผังจัดให้) */
+  const bigG = groups.slice().sort((a, b) => b.count - a.count)[0];
+  const lineLen = bigG ? lay.lineLen[bigG.key] || 0 : 0;
+  const okSizes = range ? range.ok.map((r) => r.n).sort((a, b) => b - a) : [];
+  const userSer = S.series && okSizes.indexOf(S.series) >= 0 ? S.series : 0;
+  const alignN = lineLen > 1 ? okSizes.find((n) => n % lineLen === 0 || lineLen % n === 0) || 0 : 0;
+  const serN = userSer || alignN || (range ? range.best : 0);
   const autoSeed = React.useMemo(() => (!isMicro && panel.voc && inv.mpptVmin && foot.panels.length
-    ? scAutoAssign(foot.panels, idx.byPanel, groups, panel, inv, S.env, { invCount: S.invCount, inv2, inv2Count })
-    : {}), [isMicro, foot, idx, groups, panel, inv, S.env, S.invCount, inv2, inv2Count]);
+    ? scAutoAssign(foot.panels, idx.byPanel, groups, panel, inv, S.env, { invCount: S.invCount, inv2, inv2Count, dir: strDir, series: userSer, optimizer: optPlan })
+    : {}), [isMicro, foot, idx, groups, panel, inv, S.env, S.invCount, inv2, inv2Count, strDir, userSer, optPlan]);
   const effAssign = isManual ? (S.assign || {}) : autoSeed;
   /* ตาราง/ผัง/จานสี อ่านจากชุดข้อมูลเดียวกันทั้งหมด จะได้ไม่มีทางขัดกันเอง */
   const plan = React.useMemo(() => (!isMicro && panel.voc
@@ -1809,6 +1865,41 @@ function SolarWorkspace({ job, st, sys, onChange, onClose, snap }) {
   };
   const strIds = plan && plan.strings ? plan.strings.map((s) => s.id || 0).filter(Boolean) : [];
   const nextStr = (strIds.length ? Math.max.apply(null, strIds) : 0) + 1;
+  /* แตะไล่สตริง: แตะแผงว่าง = เก็บแผงต่อจากใบนั้นตามแนวเดินสายจนครบ serN ใบ ใส่สตริงที่เลือก
+     (สตริงที่เลือกเต็มแล้ว = เปิดสตริงใหม่ให้เอง) แล้วขยับไปสตริงถัดไปรอแตะต่อ
+     แตะแผงที่อยู่สตริงแล้ว = เลือกสตริงนั้น · โหมด "เอาออก" แตะ = ปลดทั้งสตริง */
+  const fillAt = (uid) => {
+    const a = Object.assign({}, effAssign);
+    const cur = a[uid];
+    if (cur && activeStr === 0) {
+      Object.keys(a).forEach((k) => { if (a[k] === cur) delete a[k]; });
+      set({ assign: a, manual: true });
+      return;
+    }
+    if (cur) { setActiveStr(cur); return; }
+    if (activeStr === 0) return;
+    const n = Math.max(1, Math.round(serN || 1));
+    let maxId = 0, have = 0;
+    const taken = {};
+    Object.keys(a).forEach((k) => { const v = a[k]; if (!v) return; taken[k] = true; if (v > maxId) maxId = v; if (v === activeStr) have++; });
+    let sid = activeStr || maxId + 1;
+    if (have >= n) { sid = maxId + 1; have = 0; }
+    scFillFrom(lay, uid, n - have, taken).forEach((u) => { a[u] = sid; });
+    set({ assign: a, manual: true });
+    setActiveStr(Math.max(maxId, sid) + 1);
+  };
+  /* เส้นเดินสายของแต่ละสตริง — เรียงแผงในสตริงตามลำดับแนวเดินสาย แล้วต่อจุดกึ่งกลาง */
+  const wirePaths = React.useMemo(() => {
+    if (isMicro) return [];
+    const ctr = {};
+    foot.panels.forEach((q) => { ctr[q.uid] = [q.pts.reduce((x, t) => x + t[0], 0) / q.pts.length, q.pts.reduce((x, t) => x + t[1], 0) / q.pts.length]; });
+    const bag = {};
+    Object.keys(effAssign || {}).forEach((u) => { const v = effAssign[u]; if (v && ctr[u]) (bag[v] = bag[v] || []).push(u); });
+    return Object.keys(bag).map((k) => {
+      const us = bag[k].sort((x, y) => (lay.rank[x] != null ? lay.rank[x] : 1e9) - (lay.rank[y] != null ? lay.rank[y] : 1e9));
+      return { id: +k, color: suColor(+k), pts: us.map((u) => ctr[u]) };
+    });
+  }, [isMicro, foot, effAssign, lay]);
   const microPlans = React.useMemo(() => (isMicro ? scMicroPlan(groups, panel, micros, S.env, S) : null),
     [isMicro, groups, panel, micros, S.env, S.microRatio, S.micro]);
   const stockMicroRow = micros.find((m) => m.ratio === S.microRatio) || micros[0] || {};
@@ -2559,10 +2650,13 @@ function SolarWorkspace({ job, st, sys, onChange, onClose, snap }) {
                       ต้องอยู่ในพื้นเขียว (ช่วง MPPT) ตลอด และขีด Voc ห้ามเลยเส้นแดง
                     </span>
                     <SuVoltBand rows={range.rows.filter((r) => r.n >= Math.max(1, range.min - 2) && r.n <= range.max + 2)}
-                      inv={inv} sel={S.series || range.best} onPick={(n) => set({ series: n })} />
+                      inv={inv} sel={serN} onPick={(n) => set({ series: n })} />
                     <div style={{ display: "flex", gap: 14, flexWrap: "wrap", borderTop: "1px solid var(--ln)", paddingTop: 9 }}>
                       <span className="p3-stat">ต่อได้ <b>{range.min}–{range.max}</b> แผง/สตริง</span>
                       <span className="p3-stat">ระบบแนะนำ <b>{range.best}</b> แผง</span>
+                      {lineLen > 1 && <span className="p3-stat">แนวแผงยาว <b>{lineLen}</b> แผง/{strDir === "row" ? "แถว" : "คอลัมน์"}</span>}
+                      <span className="p3-stat">ใช้จัดสตริง <b>{serN}</b> แผง{userSer ? " (เลือกเอง)" : alignN ? " (ลงตัวกับแนวแผง)" : ""}</span>
+                      {userSer > 0 && <button className="p3-b sm" onClick={() => set({ series: null })} title="กลับไปให้ระบบเลือกขนาดที่ลงตัวกับแนวแผง">ให้ระบบเลือก</button>}
                       <span className="p3-stat">สตริงต่อ MPPT <b>{scStringsPerMppt(panel, inv)}</b></span>
                     </div>
                   </div>
@@ -2622,11 +2716,20 @@ function SolarWorkspace({ job, st, sys, onChange, onClose, snap }) {
                         )}
                       </span>
                     </div>
-                    <SuLayout2D foot={foot} assign={effAssign} active={activeStr !== null} onPaint={paint} onPaintMany={paintMany} />
+                    <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center", marginTop: 8, marginBottom: 8 }}>
+                      <span style={{ fontSize: 11.5, fontWeight: 700, color: "var(--text-3)" }}>แนวเดินสาย</span>
+                      <span className="p3-seg wide">
+                        {[["col", "↕ ตามแนวลาด (คอลัมน์)"], ["row", "↔ ขวางลาด (แถว)"]].map(([k, t]) => (
+                          <button key={k} type="button" data-on={strDir === k ? "1" : "0"} onClick={() => set({ strDir: k })}>{t}</button>
+                        ))}
+                      </span>
+                      <span style={{ fontSize: 11.5, color: "var(--text-3)" }}>สตริงละ <b style={{ color: "var(--text-1)" }}>{serN}</b> แผง</span>
+                    </div>
+                    <SuLayout2D foot={foot} assign={effAssign} active={activeStr !== null} onPaint={paint} onPaintMany={paintMany}
+                      onTap={fillAt} paths={wirePaths} />
                     <span className="p3-note">
-                      {isManual
-                        ? "กำลังใช้ผังที่แก้เอง · เลือกสตริงด้านบนแล้วแตะหรือลากบนแผงเพื่อย้ายเข้าสตริงนั้น · แผงเทาประ = ยังไม่อยู่สตริงไหน"
-                        : "ระบบแบ่งสตริงให้แล้วตามที่เห็น — แตะหรือลากบนแผงได้เลยถ้าจะแก้ (แก้ครั้งแรกระบบจะยึดผังนี้เป็นของคุณทันที)"}
+                      {"⇣ แตะแผงที่จะเริ่มสตริง = ได้ทั้งสตริง " + serN + " แผงตามแนวเดินสาย แล้วไปสตริงถัดไปเอง · แตะแผงที่มีสตริงแล้ว = เลือกสตริงนั้น · โหมด “เอาออก” แตะ = ปลดทั้งสตริง · ✎ ทาทีละใบ · ▢ ลากกรอบ"}
+                      {isManual ? " · กำลังใช้ผังที่แก้เอง" : " · ตอนนี้ระบบจัดให้ตามแนวเดินสาย (แก้ครั้งแรกระบบจะยึดผังนี้เป็นของคุณ)"}
                       {" · มองจากด้านบน ทิศเหนืออยู่บน"}
                     </span>
                   </div>

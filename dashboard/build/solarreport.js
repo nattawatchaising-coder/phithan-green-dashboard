@@ -71,13 +71,48 @@ function rpIv(exp, stcRef, meas) {
   const line = c => c.pts.map((q, k) => (k ? "L" : "M") + X(q.v).toFixed(1) + " " + Y(q.i).toFixed(1)).join(" ");
   return '<svg viewBox="0 0 ' + W + " " + H + '" class="chart">' + '<line x1="' + L + '" y1="' + T + '" x2="' + L + '" y2="' + (H - B) + '" stroke="#C9D3CD"/>' + '<line x1="' + L + '" y1="' + (H - B) + '" x2="' + (W - R) + '" y2="' + (H - B) + '" stroke="#C9D3CD"/>' + (stcRef ? '<path d="' + line(stcRef) + '" fill="none" stroke="#A8B4AE" stroke-width="1.1" stroke-dasharray="4 3"/>' : "") + '<path d="' + line(exp) + '" fill="none" stroke="#1B9B75" stroke-width="1.9"/>' + '<circle cx="' + X(exp.vmp).toFixed(1) + '" cy="' + Y(exp.imp).toFixed(1) + '" r="3.2" fill="#fff" stroke="#1B9B75" stroke-width="1.8"/>' + (meas && meas.voc ? '<circle cx="' + X(meas.voc).toFixed(1) + '" cy="' + Y(0).toFixed(1) + '" r="3.2" fill="#2563EB"/>' : "") + (meas && meas.isc ? '<circle cx="' + X(0).toFixed(1) + '" cy="' + Y(meas.isc).toFixed(1) + '" r="3.2" fill="#2563EB"/>' : "") + (meas && meas.vmp && meas.imp ? '<circle cx="' + X(meas.vmp).toFixed(1) + '" cy="' + Y(meas.imp).toFixed(1) + '" r="3.6" fill="#2563EB" stroke="#fff" stroke-width="1.2"/>' : "") + '<text x="' + (W - R) + '" y="' + (H - 6) + '" text-anchor="end" font-size="8.5" fill="#8A968F">V</text>' + '<text x="' + (L - 4) + '" y="' + (T + 8) + '" text-anchor="end" font-size="8.5" fill="#8A968F">A</text>' + "</svg>";
 }
-function rpLayout(foot, assign, labels) {
+function rpLayout(foot, assign, labels, opt) {
   if (!foot || !foot.panels || !foot.panels.length) return "";
-  const b = foot.bounds,
-    pad = 1.2;
+  opt = opt || {};
+  let b = foot.bounds;
+  if (opt.zoom) {
+    b = {
+      minX: 1e9,
+      maxX: -1e9,
+      minZ: 1e9,
+      maxZ: -1e9
+    };
+    foot.panels.forEach(p => p.pts.forEach(q => {
+      b.minX = Math.min(b.minX, q[0]);
+      b.maxX = Math.max(b.maxX, q[0]);
+      b.minZ = Math.min(b.minZ, q[1]);
+      b.maxZ = Math.max(b.maxZ, q[1]);
+    }));
+  }
+  const pad = opt.zoom ? 2 : 1.2;
   const W = b.maxX - b.minX + pad * 2,
     H = b.maxZ - b.minZ + pad * 2;
   const vb = b.minX - pad + " " + (b.minZ - pad) + " " + Math.max(1, W) + " " + Math.max(1, H);
+  let wire = "";
+  if (opt.paths && assign && typeof scLayoutOrder === "function") {
+    const L = scLayoutOrder(foot.panels, null, opt.dir);
+    const ctr = {},
+      bag = {};
+    foot.panels.forEach(p => {
+      ctr[p.uid] = [p.pts.reduce((a, q) => a + q[0], 0) / p.pts.length, p.pts.reduce((a, q) => a + q[1], 0) / p.pts.length];
+    });
+    Object.keys(assign).forEach(u => {
+      const v = assign[u];
+      if (v && ctr[u]) (bag[v] = bag[v] || []).push(u);
+    });
+    const pl = (pts, st, w) => '<polyline points="' + pts.map(t => t[0].toFixed(2) + "," + t[1].toFixed(2)).join(" ") + '" fill="none" stroke="' + st + '" stroke-width="' + w + '" stroke-linejoin="round" stroke-linecap="round"/>';
+    wire = Object.keys(bag).map(k => {
+      const pts = bag[k].sort((x, y) => (L.rank[x] || 0) - (L.rank[y] || 0)).map(u => ctr[u]);
+      const c = typeof suColor === "function" ? suColor(+k) : "#1B9B75",
+        e = pts[pts.length - 1];
+      return (pts.length > 1 ? pl(pts, "#fff", 0.16) + pl(pts, "rgba(15,23,42,.78)", 0.07) + '<circle cx="' + e[0].toFixed(2) + '" cy="' + e[1].toFixed(2) + '" r="0.13" fill="#0F172A" stroke="#fff" stroke-width="0.04"/>' : "") + '<circle cx="' + pts[0][0].toFixed(2) + '" cy="' + pts[0][1].toFixed(2) + '" r="0.36" fill="#fff" stroke="' + c + '" stroke-width="0.09"/>' + '<text x="' + pts[0][0].toFixed(2) + '" y="' + (pts[0][1] + 0.14).toFixed(2) + '" text-anchor="middle" font-size="' + (+k > 99 ? 0.3 : 0.4) + '" font-weight="800" fill="' + c + '">' + k + "</text>";
+    }).join("");
+  }
   const poly = (pts, fill, stroke, sw, dash) => '<polygon points="' + pts.map(p => p[0].toFixed(2) + "," + p[1].toFixed(2)).join(" ") + '" fill="' + fill + '" stroke="' + stroke + '" stroke-width="' + sw + '"' + (dash ? ' stroke-dasharray="' + dash + '"' : "") + "/>";
   return '<svg viewBox="' + vb + '" class="chart" style="max-height:300px" preserveAspectRatio="xMidYMid meet">' + foot.outlines.map(o => poly(o.pts, "#F1F4F2", "#C9D3CD", 0.06)).join("") + foot.panels.map(p => {
     const s = (assign || {})[p.uid] || 0;
@@ -88,7 +123,7 @@ function rpLayout(foot, assign, labels) {
     const cx = p.pts.reduce((a, q) => a + q[0], 0) / p.pts.length;
     const cz = p.pts.reduce((a, q) => a + q[1], 0) / p.pts.length;
     return '<text x="' + cx.toFixed(2) + '" y="' + (cz + 0.16).toFixed(2) + '" text-anchor="middle" font-size="0.44" ' + 'font-weight="700" fill="#fff" stroke="rgba(0,0,0,.35)" stroke-width="0.05" paint-order="stroke">' + RP_ESC(t) + "</text>";
-  }).join("") : "") + '<g transform="translate(' + (b.minX - pad + 0.7) + "," + (b.minZ - pad + 0.8) + ')">' + '<line x1="0" y1="0" x2="0" y2="1" stroke="#B3261E" stroke-width="0.08"/>' + '<text x="0" y="-0.15" font-size="0.55" font-weight="700" fill="#B3261E" text-anchor="middle">N</text></g></svg>';
+  }).join("") : "") + wire + '<g transform="translate(' + (b.minX - pad + 0.7) + "," + (b.minZ - pad + 0.8) + ')">' + '<line x1="0" y1="0" x2="0" y2="1" stroke="#B3261E" stroke-width="0.08"/>' + '<text x="0" y="-0.15" font-size="0.55" font-weight="700" fill="#B3261E" text-anchor="middle">N</text></g></svg>';
 }
 function rpDayLight(sim, groups) {
   if (!sim || !sim.rows.length) return "";
@@ -872,6 +907,8 @@ const RP_I18N = {
   "คืนทุน {} ปี": ["payback {} years", "回收期 {} 年"],
   "ผังแผงมองจากด้านบน (สีเดียวกัน = ": ["Top-down module layout (same colour = ", "组件俯视布置图（同色 = "],
   "ผังแผงมองจากด้านบน": ["Top-down module layout", "组件俯视布置图"],
+  " · เส้น = แนวเดินสาย วงกลม = จุดเริ่มสตริง": [" · line = wiring path, circle = string start", " · 线 = 走线路径，圆 = 组串起点"],
+  "ขยายเฉพาะส่วนที่มีแผง": ["Zoomed to the module area", "组件区域放大图"],
   "สีเดียวกัน = สตริง/ไมโครเดียวกัน": ["Same colour = same string / microinverter", "同色 = 同一组串/微逆"],
   "ไมโครตัวเดียวกัน": ["same microinverter", "同一台微逆"],
   "สตริงเดียวกัน": ["same string", "同一组串"],
@@ -1224,7 +1261,31 @@ function suReportHTML(D) {
   const cover = !P.cover ? "" : '<header class="cover">' + '<div class="cv-bar">' + '<div class="brand"><img class="lock" src="' + RP_ESC(rpLogoURL()) + '" alt="' + RP_ESC(window.BRANDING.legal) + '">' + "<div><b>" + RP_ESC(window.BRANDING.legal) + "</b>" + "<span>ระบบผลิตไฟฟ้าพลังงานแสงอาทิตย์</span></div></div>" + '<span class="cv-tag">' + RP_ESC(job.code || "—") + "</span>" + "</div>" + '<div class="cv-mid">' + '<p class="cv-kick">รายงานการออกแบบและวิเคราะห์ระบบ</p>' + "<h1>ระบบผลิตไฟฟ้า<br>พลังงานแสงอาทิตย์บนหลังคา</h1>" + '<div class="cv-big"><b>' + (E ? rpN(E.dcKw, 2) : "—") + "</b><i>kWp</i>" + "<span>ผลิตได้ปีละราว " + (L ? rpN(L.rows[0].kwh) : "—") + " kWh" + (roi && roi.payback ? " · คืนทุนใน " + roi.payback + " ปี" : "") + "</span></div>" + "</div>" + (D.snapImg ? '<figure class="cv-shot"><img src="' + D.snapImg + '" alt="ผังการติดตั้ง 3 มิติ">' + "<figcaption>ผังการติดตั้งจำลอง 3 มิติ — ทุกตัวเลขในรายงานนี้อ้างอิงจากโมเดลนี้</figcaption></figure>" : "") + '<div class="cv-meta">' + "<span><i>ลูกค้า</i>" + RP_ESC(job.name || "—") + "</span>" + "<span><i>สถานที่ติดตั้ง</i>" + RP_ESC([job.address, job.province].filter(Boolean).join(" ") || "—") + "</span>" + "<span><i>วันที่ออกรายงาน</i>" + RP_ESC(today) + "</span>" + "</div>" + "</header>";
   const summary = !P.summary ? "" : '<section class="sec sum"><h2><span class="no">✦</span>สรุปผลการออกแบบ<small>' + RP_ESC(job.code || "") + "</small></h2>" + '<div class="kpis">' + kpis + "</div>" + '<p class="note">ตัวเลขทั้งหมดมาจากการจำลองตำแหน่งดวงอาทิตย์จริงที่พิกัดของงานนี้ ร่วมกับโมเดล 3 มิติของอาคาร ' + "รายละเอียดวิธีคิดและสมมติฐานอยู่ในหัวข้อถัดไปทั้งหมด</p></section>";
   addSec(P.equip, "อุปกรณ์ที่ใช้", specTbl + "<h3>ผืนหลังคาและทิศทางแผง</h3>" + groupTbl, D.totalPanels + " แผง · " + (D.groups || []).length + " กลุ่มทิศทาง");
-  addSec(P.wiring, D.isMicro ? "การต่อไมโครอินเวอร์เตอร์" : "การต่อสตริงและช่อง MPPT", wiring + microNote + phaseSec + wiringNote + (P.layout ? "<h3>ผังแผงมองจากด้านบน (สีเดียวกัน = " + (D.isMicro ? "ไมโครตัวเดียวกัน" : "สตริงเดียวกัน") + (D.isMicro && D.phases === 3 ? " · ตัวหนังสือบนแผง = เฟส" : "") + " · ทิศเหนืออยู่บน)</h3>" + rpLayout(D.foot, D.assign, D.uidPhase) : "") + (D.isMicro && (D.microUnits || []).length ? rpTable(["ไมโคร", "แผง", "กลุ่มทิศทาง"].concat(D.phases === 3 ? ["เฟส"] : []).concat(["หมายเหตุ"]), D.microUnits.map(u => [{
+  addSec(P.wiring, D.isMicro ? "การต่อไมโครอินเวอร์เตอร์" : "การต่อสตริงและช่อง MPPT", wiring + microNote + phaseSec + wiringNote + (P.layout ? "<h3>ผังแผงมองจากด้านบน (สีเดียวกัน = " + (D.isMicro ? "ไมโครตัวเดียวกัน" : "สตริงเดียวกัน") + (D.isMicro && D.phases === 3 ? " · ตัวหนังสือบนแผง = เฟส" : "") + " · ทิศเหนืออยู่บน)</h3>" + (() => {
+    const f = D.foot,
+      sd = (D.sys && D.sys.strDir) === "row" ? "row" : "col";
+    if (!f || !f.panels || !f.panels.length) return "";
+    let x0 = 1e9,
+      x1 = -1e9,
+      z0 = 1e9,
+      z1 = -1e9;
+    f.panels.forEach(p => p.pts.forEach(q => {
+      x0 = Math.min(x0, q[0]);
+      x1 = Math.max(x1, q[0]);
+      z0 = Math.min(z0, q[1]);
+      z1 = Math.max(z1, q[1]);
+    }));
+    const fb = f.bounds,
+      share = Math.max((x1 - x0) / Math.max(1, fb.maxX - fb.minX), (z1 - z0) / Math.max(1, fb.maxZ - fb.minZ));
+    const strOpt = {
+      paths: !D.isMicro,
+      dir: sd
+    };
+    if (share >= 0.5) return rpLayout(f, D.assign, D.uidPhase, strOpt);
+    return rpLayout(f, D.assign, D.uidPhase) + "<h3>ขยายเฉพาะส่วนที่มีแผง" + (D.isMicro ? "" : " · เส้น = แนวเดินสาย วงกลม = จุดเริ่มสตริง") + "</h3>" + rpLayout(f, D.assign, D.uidPhase, Object.assign({
+      zoom: true
+    }, strOpt));
+  })() : "") + (D.isMicro && (D.microUnits || []).length ? rpTable(["ไมโคร", "แผง", "กลุ่มทิศทาง"].concat(D.phases === 3 ? ["เฟส"] : []).concat(["หมายเหตุ"]), D.microUnits.map(u => [{
     html: '<span class="dot" style="background:' + (typeof suColor === "function" ? suColor(u.id) : "#1B9B75") + '"></span><b>ตัวที่ ' + u.id + "</b>"
   }, u.n, u.gLabel].concat(D.phases === 3 ? [{
     v: (D.uidPhase || {})[(u.uids || [])[0]] || "—",

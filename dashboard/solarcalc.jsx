@@ -452,26 +452,62 @@ function scAutoStrings(groups, panel, inv, env, opt) {
     return out;
   }
   const sizes = R.ok.map((r) => r.n).sort((a, b) => b - a);      // ใหญ่ก่อน = สตริงน้อย กระแสรวมต่ำ
-  (groups || []).forEach((g) => {
+  const okN = (n) => R.ok.some((r) => r.n === n);
+  /* ขนาดสตริงที่ "ตั้งใจ" ของกลุ่มนี้
+     1) ผู้ใช้เลือกจำนวนแผง/สตริงเองที่แถบแรงดัน (opt.series) — ใช้ตามนั้นเสมอ
+     2) ไม่ได้เลือก: เอาขนาดที่ลงตัวกับความยาวแถวแผงบนหลังคา (opt.align[กลุ่ม] = แผงต่อแถว)
+        เช่นแถวละ 13 → สตริงละ 13 (หนึ่งแถว) หรือ 26 (สองแถวไปกลับ) ช่างเดินสายตามแถวได้ตรง ๆ
+        ขนาดที่ใหญ่ที่สุดในช่วงแต่ไม่ลงตัวกับแถว จะได้สตริงที่ข้ามไปกินครึ่งแถวถัดไป เดินสายวกวน */
+  const prefOf = (g, useAlign) => {
+    const ser = Math.round(scNum(opt.series, 0));
+    if (ser && okN(ser)) return ser;
+    const h = useAlign && opt.align ? Math.round(scNum(opt.align[g.key], 0)) : 0;
+    if (h > 1) { const c = sizes.filter((n) => n % h === 0 || h % n === 0); if (c.length) return c[0]; }
+    return 0;
+  };
+  const pickFor = (g, pref) => {
     let left = g.count;
     const pick = [];
+    if (pref) {
+      const k = Math.floor(left / pref);
+      for (let i = 0; i < k; i++) pick.push(pref);
+      left -= k * pref;
+      if (left > 0 && okN(left)) { pick.push(left); left = 0; }
+      /* เศษต่อเองไม่ได้ → ยืมสตริงท้ายมาแบ่งใหม่เป็นสองเส้นที่ต่อได้ทั้งคู่ (ยาวใกล้ขนาดตั้งใจที่สุด) */
+      if (left > 0 && pick.length) {
+        const tot = pref + left;
+        const a = sizes.find((x) => okN(tot - x) && x >= tot - x);
+        if (a) { pick.pop(); pick.push(a, tot - a); left = 0; }
+      }
+      while (left > 0) { const n = sizes.find((x) => x <= left); if (!n) break; pick.push(n); left -= n; }
+      return { pick, left };
+    }
     while (left > 0) {
-      const s = sizes.find((n) => n <= left);
-      if (!s) break;
-      pick.push(s); left -= s;
+      const n = sizes.find((x) => x <= left);
+      if (!n) break;
+      pick.push(n); left -= n;
     }
     /* เกลี่ยให้สตริงยาวใกล้เคียงกัน (ต่างกันมากทำให้ MPPT เสียเปรียบ) */
     if (pick.length > 1) {
       const tot = pick.reduce((a, b) => a + b, 0);
       const even = Math.floor(tot / pick.length);
-      if (R.ok.some((r) => r.n === even)) {
+      if (okN(even)) {
         let rem = tot - even * pick.length;
-        for (let i = 0; i < pick.length; i++) { pick[i] = even + (rem > 0 && R.ok.some((r) => r.n === even + 1) ? (rem--, 1) : 0); }
+        for (let i = 0; i < pick.length; i++) { pick[i] = even + (rem > 0 && okN(even + 1) ? (rem--, 1) : 0); }
       }
     }
-    pick.forEach((n) => out.strings.push({ n, groupKey: g.key, label: g.label, tilt: g.tilt, az: g.az,
+    return { pick, left };
+  };
+  /* ขั้วเสียบมีจำกัด — ถ้าจัดให้ลงตัวกับแถวแล้วสตริงเยอะเกินช่องที่มี ถอยไปใช้สตริงยาวสุดแบบเดิม */
+  const capPins = scMpptOrder(LAY).reduce((a, m) => a + perMpptOf(m), 0);
+  let picks = (groups || []).map((g) => pickFor(g, prefOf(g, true)));
+  if (!scNum(opt.series, 0) && picks.reduce((a, x) => a + x.pick.length, 0) > capPins)
+    picks = (groups || []).map((g) => pickFor(g, 0));
+  (groups || []).forEach((g, gi) => {
+    const pk = picks[gi];
+    pk.pick.forEach((n) => out.strings.push({ n, groupKey: g.key, label: g.label, tilt: g.tilt, az: g.az,
       chk: scStringCheck(panel, inv, n, env) }));
-    if (left > 0) out.leftovers.push({ group: g, left });
+    if (pk.left > 0) out.leftovers.push({ group: g, left: pk.left });
   });
   /* กระจายลง MPPT: กลุ่มเดียวกันอยู่ MPPT เดียวกันก่อน */
   /* รุ่นเดียว: ไล่ช่องตามลำดับเดิม (เติมช่องจนเต็มก่อนค่อยขยับ) — ผังที่เคยออกแบบไว้ไม่ขยับ
@@ -629,16 +665,124 @@ function scStringsFromAssign(assign, byPanel, groups, panel, inv, env, opt) {
     load, owner, nInv, fuse, manual: true };
 }
 
-/* สร้าง assign map ตั้งต้นจากการจัดอัตโนมัติ (ผู้ใช้จะได้แก้ต่อจากของที่ใช้ได้อยู่แล้ว) */
+/* ── ลำดับแผงตามแนวเดินสาย ──
+   ช่างเดินสายสตริงไล่ไปตาม "แถวแผง" บนหลังคา: สุดแถวแล้ววกกลับมาแถวข้าง ๆ (งูเลื้อย)
+   หาแถว/คอลัมน์จาก "ตำแหน่งจริง" บนแกนของตัวแผง (u = ด้านกว้าง · v = ด้านลึกตามลาด) ไม่ใช่เลขในคีย์
+   — ชุดแผงแบบวางเฉพาะในกรอบ (patch) เลขคอลัมน์ในคีย์ไม่ต่อเนื่อง คอลัมน์เดียวบนหลังคาแตกเป็นสองเลขก็มี
+   dir "col" = หนึ่งเส้นคือคอลัมน์เดียวกัน ไล่ตามแนวลาดหลังคา (ขึ้น–ลง) · "row" = แถวเดียวกัน ไล่ขวางลาด
+   คืน { order: {กลุ่ม: [uid ตามลำดับ]}, rank: {uid: ลำดับ}, cell: {uid: {b, l, k}}, blocks: {b: {lines: {l: [uid]}, ls: []}},
+         lineLen: {กลุ่ม: จำนวนแผงต่อเส้นที่เจอบ่อยสุด} } */
+function scLayoutOrder(footPanels, byPanel, dir) {
+  const byCol = dir !== "row";
+  const blocks = {}, cell = {}, gOf = {};
+  (footPanels || []).forEach((f) => {
+    const g = byPanel ? byPanel[f.uid] : "all";
+    if (!g) return;
+    const b = g + "|" + f.roofId + "|" + (f.blk || 0) + "|" + (f.side || "");
+    const B = blocks[b] || (blocks[b] = { g, ps: [], lines: {}, ls: [], x: 0, z: 0, n: 0 });
+    B.ps.push(f); B.x += f.cx || 0; B.z += f.cz || 0; B.n++;
+    gOf[f.uid] = g;
+  });
+  Object.keys(blocks).forEach((b) => {
+    const B = blocks[b], f0 = B.ps[0];
+    /* แกนของแผงบนผัง (มองจากบน) — u แนวนอนตามขอบกว้าง · v ตั้งฉาก (ตามลาด) */
+    const U = f0.u || { x: 0.5, z: 0 };
+    const ul = Math.hypot(U.x, U.z) || 1, eu = { x: U.x / ul, z: U.z / ul };
+    /* หันแกนให้คงที่: u ชี้ไปทางตะวันออก (+x) · v ชี้ลงใต้ (+z) — สตริง 1 จึงเริ่มซ้ายบนของผังเสมอ
+       แล้วไล่ไปทางขวา ไม่กระโดดเริ่มฝั่งไหนก็ได้ตามทิศที่ชุดแผงถูกวาด */
+    if (eu.x < -1e-6 || (Math.abs(eu.x) <= 1e-6 && eu.z < 0)) { eu.x = -eu.x; eu.z = -eu.z; }
+    const ev = { x: -eu.z, z: eu.x };
+    if (ev.z < -1e-6) { ev.x = -ev.x; ev.z = -ev.z; }
+    const V = f0.v || { x: 0, z: 0.5 };
+    const w = ul * 2, d = Math.max(0.2, Math.abs(V.x * ev.x + V.z * ev.z) * 2);
+    /* เส้น = กลุ่มแผงที่พิกัดขวางเส้นใกล้กัน (ห่างไม่ถึงครึ่งแผง = เส้นเดียวกัน) */
+    const q = B.ps.map((f) => {
+      const a = f.cx * eu.x + f.cz * eu.z, bb = f.cx * ev.x + f.cz * ev.z;
+      return byCol ? { uid: f.uid, l: a, k: bb } : { uid: f.uid, l: bb, k: a };
+    }).sort((x, y) => x.l - y.l);
+    const tol = (byCol ? w : d) * 0.5;
+    let li = -1, prev = -1e9;
+    q.forEach((t) => {
+      if (t.l - prev > tol) li++;
+      prev = t.l;
+      (B.lines[li] = B.lines[li] || []).push({ uid: t.uid, k: t.k });
+      cell[t.uid] = { b, l: li, k: t.k };
+    });
+    delete B.ps;
+  });
+  const order = {}, rank = {}, lenCount = {};
+  /* ชุดแผงในกลุ่มเดียวกัน เรียงจากเหนือ→ใต้ แล้วตะวันตก→ตะวันออก (คงที่ ไม่สลับไปมา) */
+  const bks = Object.keys(blocks).sort((a, b) => {
+    const A = blocks[a], B = blocks[b];
+    return A.g < B.g ? -1 : A.g > B.g ? 1 : (Math.round(A.z / A.n) - Math.round(B.z / B.n)) || (A.x / A.n - B.x / B.n);
+  });
+  let ri = 0;
+  bks.forEach((b) => {
+    const B = blocks[b];
+    B.ls = Object.keys(B.lines).map(Number).sort((x, y) => x - y);
+    B.ls.forEach((l, i) => {
+      const L = B.lines[l].sort((x, y) => x.k - y.k);
+      if (i % 2) L.reverse();
+      B.lines[l] = L.map((q) => q.uid);
+      const lc = (lenCount[B.g] = lenCount[B.g] || {});
+      lc[L.length] = (lc[L.length] || 0) + 1;
+      L.forEach((q) => { (order[B.g] = order[B.g] || []).push(q.uid); rank[q.uid] = ri++; });
+    });
+  });
+  const lineLen = {};
+  Object.keys(lenCount).forEach((g) => {
+    const lc = lenCount[g];
+    lineLen[g] = +Object.keys(lc).sort((a, b) => lc[b] - lc[a] || b - a)[0];
+  });
+  return { order, rank, cell, blocks, lineLen, gOf, dir: byCol ? "col" : "row" };
+}
+
+/* ── แตะแผงหนึ่งใบ → ไล่เก็บแผงว่างต่อจากใบนั้นจนครบ n ใบ ตามแนวเดินสาย ──
+   เริ่มที่เส้นของใบที่แตะ เดินไปทางที่ยังมีแผงว่างมากกว่า สุดเส้นแล้ววกเข้าเส้นข้าง ๆ (งูเลื้อย)
+   ชุดแผงนี้หมดแล้วยังไม่ครบ ค่อยไปต่อชุดอื่นในกลุ่มทิศ/มุมเดียวกัน — ไม่ข้ามไปคนละทิศเด็ดขาด
+   taken = { uid: true } แผงที่อยู่สตริงอื่นแล้ว (ข้าม) */
+function scFillFrom(L, uid, n, taken) {
+  const out = [], seen = {};
+  const free = (u) => !taken[u] && !seen[u];
+  const take = (u) => { if (out.length < n && free(u)) { out.push(u); seen[u] = 1; } };
+  const c0 = L && L.cell[uid];
+  if (!c0 || n <= 0) return free(uid) && n > 0 ? [uid] : [];
+  const B = L.blocks[c0.b];
+  const line = B.lines[c0.l], i0 = line.indexOf(uid);
+  const after = line.slice(i0 + 1).filter(free).length, before = line.slice(0, i0).filter(free).length;
+  let d = after >= before ? 1 : -1;
+  for (let i = i0; i >= 0 && i < line.length; i += d) take(line[i]);
+  /* ลำดับในเส้นถูกกลับทุกเส้นเว้นเส้น (งูเลื้อย) — เทียบทิศจริงด้วยเลขแถว k ไม่ใช่ตำแหน่งในอาร์เรย์ */
+  const kOf = (u) => L.cell[u].k;
+  let kd = (line.length < 2 || kOf(line[line.length - 1]) > kOf(line[0]) ? 1 : -1) * d;   // +1 = เดินไปทางเลขแถวมาก
+  const li = B.ls.indexOf(c0.l);
+  const has = (j) => j >= 0 && j < B.ls.length && B.lines[B.ls[j]].some(free);
+  const step = has(li + 1) || !has(li - 1) ? 1 : -1;
+  /* เส้นถัดไปเดินสวนทางกับเส้นก่อน — สายจะได้ต่อจากปลายที่เพิ่งจบ ไม่ต้องลากกลับไปต้นแถว */
+  for (let j = li + step; j >= 0 && j < B.ls.length && out.length < n; j += step) {
+    kd = -kd;
+    const ln = B.lines[B.ls[j]].slice().sort((a, b) => kOf(a) - kOf(b));
+    if (kd > 0) ln.forEach(take); else for (let i = ln.length - 1; i >= 0; i--) take(ln[i]);
+  }
+  /* ฝั่งตรงข้ามของเส้นแรก แล้วค่อยชุดอื่นในกลุ่มเดียวกัน */
+  if (out.length < n) (L.order[L.gOf[uid]] || []).forEach(take);
+  return out;
+}
+
+/* สร้าง assign map ตั้งต้นจากการจัดอัตโนมัติ (ผู้ใช้จะได้แก้ต่อจากของที่ใช้ได้อยู่แล้ว)
+   ไล่แผงตามแนวเดินสายจริง (scLayoutOrder) — เดิมไล่ตามลำดับในข้อมูล สตริงเลยกระโดดข้ามแถว
+   opt.dir = "col" | "row" · opt.series = แผง/สตริงที่ผู้ใช้เลือก · ขนาดสตริงตั้งต้นให้ลงตัวกับแถวแผง */
 function scAutoAssign(footPanels, byPanel, groups, panel, inv, env, opt) {
-  const plan = scAutoStrings(groups, panel, inv, env, opt);
-  const byGroup = {};
-  (footPanels || []).forEach((f) => { const g = byPanel[f.uid]; if (g) (byGroup[g] = byGroup[g] || []).push(f.uid); });
-  const assign = {}; let sid = 0;
+  opt = opt || {};
+  const L = scLayoutOrder(footPanels, byPanel, opt.dir);
+  const plan = scAutoStrings(groups, panel, inv, env, Object.assign({}, opt, { align: L.lineLen }));
+  const assign = {}, at = {}; let sid = 0;
   plan.strings.forEach((s) => {
-    const pool = byGroup[s.groupKey] || [];
+    const pool = L.order[s.groupKey] || [];
     sid++;
-    for (let i = 0; i < s.n && pool.length; i++) assign[pool.shift()] = sid;
+    let i = at[s.groupKey] || 0;
+    for (let j = 0; j < s.n && i < pool.length; j++) assign[pool[i++]] = sid;
+    at[s.groupKey] = i;
   });
   return assign;
 }
@@ -1463,7 +1607,7 @@ function scInvSpec2(sys) {
 Object.assign(window, {
   SC_DEG, SC_MON, SC_MDAYS, SC_PANEL_EXTRA, SC_INV_EXTRA, SC_ENV, SC_LOSS, SC_TAMB, SC_KC,
   SC_MOUNT, SC_WIND, scTcell, scIam, SC_IAM_DIFF, scStringFuse, SC_FUSE_SIZES,
-  scSunPos, scNormalToTiltAz, scPanelNormal, scGroupsFromPlan, scPanelIndex, scStringsFromAssign, scAutoAssign,
+  scSunPos, scNormalToTiltAz, scPanelNormal, scGroupsFromPlan, scPanelIndex, scStringsFromAssign, scAutoAssign, scLayoutOrder, scFillFrom,
   scVocAt, scVmpAt, scStringCheck, scSeriesRange, scCurrent, scStringsPerMppt, scMpptName, scPinLayout, scPinAddr, scInvUnits, scMpptOrder, scPinOrder, scAutoStrings,
   scMicroPlan, scMicroSpec, scMicroPerMppt, scMicroAssign, scMicroPhases, scPhaseBalance, SC_MICRO_EXTRA,
   scYearOneGroup, scDcAt, scEnergy, scLife, scBlankSys, scPanelSpec, scInvSpec, scInvSpec2, scOptSpec, scOptPlan, scHalfCut, scR, scNum, scClamp,

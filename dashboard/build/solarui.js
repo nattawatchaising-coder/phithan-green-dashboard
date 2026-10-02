@@ -596,9 +596,14 @@ function SuLayout2D({
   height,
   labels,
   colorOf,
-  unitName
+  unitName,
+  onTap,
+  paths
 }) {
   const wrapRef = React.useRef(null);
+  const [seq, setSeq] = React.useState(!!onTap);
+  const [showPath, setShowPath] = React.useState(true);
+  const downRef = React.useRef(null);
   const svgRef = React.useRef(null);
   const [drag, setDrag] = React.useState(false);
   const b = foot.bounds;
@@ -720,7 +725,8 @@ function SuLayout2D({
     });
     if (hit.length) onPaintMany(hit);
   };
-  const panning = (hand || !active) && !box;
+  const seqOn = seq && !!onTap && active && !box && !hand;
+  const panning = (hand || !active || seqOn) && !box;
   React.useEffect(() => {
     const el = wrapRef.current;
     if (!el) return;
@@ -739,8 +745,8 @@ function SuLayout2D({
     borderRadius: 8,
     display: "grid",
     placeItems: "center",
-    border: "1px solid " + (on ? "var(--acd)" : "var(--ln2)"),
-    background: on ? "var(--acd)" : "var(--surface)",
+    border: "1px solid " + (on ? "var(--acd, #15803D)" : "var(--ln2)"),
+    background: on ? "var(--acd, #15803D)" : "var(--surface)",
     color: on ? "#fff" : "var(--text-2)",
     cursor: "pointer",
     fontFamily: "inherit",
@@ -783,7 +789,30 @@ function SuLayout2D({
     onClick: straighten,
     style: btn(Math.abs(rot) > 0.01),
     title: Math.abs(rot) > 0.01 ? "กลับไปมุมจริงของหลังคา" : "หมุนผังให้แถวแผงนอนตรง (ลากกรอบเลือกง่ายขึ้น)"
-  }, "\u27F2"), active && onPaintMany && React.createElement("button", {
+  }, "\u27F2"), paths && paths.length > 0 && React.createElement("button", {
+    type: "button",
+    onClick: () => setShowPath(x => !x),
+    style: btn(showPath),
+    title: showPath ? "ซ่อนแนวเดินสายของแต่ละสตริง" : "แสดงแนวเดินสาย + จุดเริ่มของแต่ละสตริง"
+  }, "\u3030"), active && onTap && React.createElement("button", {
+    type: "button",
+    onClick: () => {
+      setSeq(true);
+      setBox(false);
+      setHand(false);
+    },
+    style: btn(seqOn),
+    title: "\u0E44\u0E25\u0E48\u0E17\u0E35\u0E25\u0E30\u0E2A\u0E15\u0E23\u0E34\u0E07: \u0E41\u0E15\u0E30\u0E41\u0E1C\u0E07\u0E17\u0E35\u0E48\u0E08\u0E30\u0E40\u0E23\u0E34\u0E48\u0E21 \u0E23\u0E30\u0E1A\u0E1A\u0E40\u0E01\u0E47\u0E1A\u0E41\u0E1C\u0E07\u0E15\u0E48\u0E2D\u0E08\u0E32\u0E01\u0E43\u0E1A\u0E19\u0E31\u0E49\u0E19\u0E15\u0E32\u0E21\u0E41\u0E19\u0E27\u0E41\u0E16\u0E27\u0E08\u0E19\u0E04\u0E23\u0E1A\u0E2A\u0E15\u0E23\u0E34\u0E07\u0E43\u0E2B\u0E49\u0E40\u0E2D\u0E07 \xB7 \u0E25\u0E32\u0E01 = \u0E40\u0E25\u0E37\u0E48\u0E2D\u0E19\u0E1C\u0E31\u0E07"
+  }, "\u21E3"), active && onTap && React.createElement("button", {
+    type: "button",
+    onClick: () => {
+      setSeq(false);
+      setBox(false);
+      setHand(false);
+    },
+    style: btn(!seqOn && !box && !hand),
+    title: "\u0E17\u0E32\u0E17\u0E35\u0E25\u0E30\u0E43\u0E1A: \u0E41\u0E15\u0E30\u0E2B\u0E23\u0E37\u0E2D\u0E25\u0E32\u0E01\u0E1C\u0E48\u0E32\u0E19\u0E41\u0E1C\u0E07\u0E40\u0E1E\u0E37\u0E48\u0E2D\u0E22\u0E49\u0E32\u0E22\u0E40\u0E02\u0E49\u0E32\u0E2A\u0E15\u0E23\u0E34\u0E07\u0E17\u0E35\u0E48\u0E40\u0E25\u0E37\u0E2D\u0E01"
+  }, "\u270E"), active && onPaintMany && React.createElement("button", {
     type: "button",
     onClick: () => {
       setBox(x => !x);
@@ -836,6 +865,11 @@ function SuLayout2D({
       } catch (err) {}
       setDrag(true);
       dragRef.current = true;
+      downRef.current = seqOn ? {
+        x: e.clientX,
+        y: e.clientY,
+        moved: false
+      } : null;
       if (panning) {
         last.current = {
           x: e.clientX,
@@ -863,7 +897,12 @@ function SuLayout2D({
     onPointerMove: e => {
       if (!dragRef.current) return;
       if (panning) {
-        const l = last.current;
+        const l = last.current,
+          dn = downRef.current;
+        if (dn && !dn.moved) {
+          if (Math.hypot(e.clientX - dn.x, e.clientY - dn.y) < 5) return;
+          dn.moved = true;
+        }
         if (l) panBy(e.clientX - l.x, e.clientY - l.y);
         last.current = {
           x: e.clientX,
@@ -887,10 +926,16 @@ function SuLayout2D({
       }
       if (active) paintAt(e);
     },
-    onPointerUp: () => {
+    onPointerUp: e => {
       setDrag(false);
       dragRef.current = false;
       last.current = null;
+      const dn = downRef.current;
+      downRef.current = null;
+      if (dn && !dn.moved && onTap) {
+        const el = document.elementFromPoint(dn.x, dn.y);
+        if (el && el.dataset && el.dataset.uid) onTap(el.dataset.uid);
+      }
       if (rectRef.current) {
         applyBox(rectRef.current);
         rectRef.current = null;
@@ -926,10 +971,54 @@ function SuLayout2D({
       strokeWidth: "0.035",
       strokeDasharray: c ? null : "0.12 0.09",
       style: {
-        cursor: active ? "crosshair" : "pointer"
+        cursor: seqOn ? "pointer" : active ? "crosshair" : "pointer"
       }
     }, React.createElement("title", null, p.roofName + " · " + p.key + (s ? " · " + un + " " + s : " · ยังไม่อยู่" + un + "ไหน") + (labels && labels[p.uid] ? " · เฟส " + labels[p.uid] : "")));
-  }), labels && foot.panels.map(p => {
+  }), showPath && paths && paths.map(q => q.pts.length > 0 && React.createElement("g", {
+    key: "P" + q.id,
+    style: {
+      pointerEvents: "none"
+    }
+  }, q.pts.length > 1 && React.createElement("polyline", {
+    points: q.pts.map(t => t[0] + "," + t[1]).join(" "),
+    fill: "none",
+    stroke: "#fff",
+    strokeOpacity: "0.9",
+    strokeWidth: "0.16",
+    strokeLinejoin: "round",
+    strokeLinecap: "round"
+  }), q.pts.length > 1 && React.createElement("polyline", {
+    points: q.pts.map(t => t[0] + "," + t[1]).join(" "),
+    fill: "none",
+    stroke: "rgba(15,23,42,.78)",
+    strokeWidth: "0.07",
+    strokeLinejoin: "round",
+    strokeLinecap: "round"
+  }), q.pts.length > 1 && React.createElement("circle", {
+    cx: q.pts[q.pts.length - 1][0],
+    cy: q.pts[q.pts.length - 1][1],
+    r: "0.13",
+    fill: "rgba(15,23,42,.85)",
+    stroke: "#fff",
+    strokeWidth: "0.04"
+  }), React.createElement("circle", {
+    cx: q.pts[0][0],
+    cy: q.pts[0][1],
+    r: "0.36",
+    fill: "#fff",
+    stroke: q.color,
+    strokeWidth: "0.09"
+  }), React.createElement("text", {
+    x: q.pts[0][0],
+    y: q.pts[0][1] + 0.14,
+    textAnchor: "middle",
+    fontSize: q.id > 99 ? 0.3 : 0.4,
+    fontWeight: "800",
+    fill: q.color,
+    style: {
+      userSelect: "none"
+    }
+  }, q.id))), labels && foot.panels.map(p => {
     const t = labels[p.uid];
     if (!t) return null;
     const cx = p.pts.reduce((a, q) => a + q[0], 0) / p.pts.length;
@@ -3407,11 +3496,22 @@ function SolarWorkspace({
   const [activeStr, setActiveStr] = React.useState(1);
   const range = React.useMemo(() => panel.voc && inv.mpptVmin ? scSeriesRange(panel, inv, S.env, optPlan) : null, [panel.voc, panel.vmp, panel.tcVoc, inv.mpptVmin, inv.mpptVmax, inv.maxVdc, S.env, optPlan]);
   const isManual = !!S.manual;
+  const strDir = S.strDir === "row" ? "row" : "col";
+  const lay = React.useMemo(() => scLayoutOrder(foot.panels, idx.byPanel, strDir), [foot, idx, strDir]);
+  const bigG = groups.slice().sort((a, b) => b.count - a.count)[0];
+  const lineLen = bigG ? lay.lineLen[bigG.key] || 0 : 0;
+  const okSizes = range ? range.ok.map(r => r.n).sort((a, b) => b - a) : [];
+  const userSer = S.series && okSizes.indexOf(S.series) >= 0 ? S.series : 0;
+  const alignN = lineLen > 1 ? okSizes.find(n => n % lineLen === 0 || lineLen % n === 0) || 0 : 0;
+  const serN = userSer || alignN || (range ? range.best : 0);
   const autoSeed = React.useMemo(() => !isMicro && panel.voc && inv.mpptVmin && foot.panels.length ? scAutoAssign(foot.panels, idx.byPanel, groups, panel, inv, S.env, {
     invCount: S.invCount,
     inv2,
-    inv2Count
-  }) : {}, [isMicro, foot, idx, groups, panel, inv, S.env, S.invCount, inv2, inv2Count]);
+    inv2Count,
+    dir: strDir,
+    series: userSer,
+    optimizer: optPlan
+  }) : {}, [isMicro, foot, idx, groups, panel, inv, S.env, S.invCount, inv2, inv2Count, strDir, userSer, optPlan]);
   const effAssign = isManual ? S.assign || {} : autoSeed;
   const plan = React.useMemo(() => !isMicro && panel.voc ? scStringsFromAssign(effAssign, idx.byPanel, groups, panel, inv, S.env, {
     invCount: S.invCount,
@@ -3453,6 +3553,69 @@ function SolarWorkspace({
   };
   const strIds = plan && plan.strings ? plan.strings.map(s => s.id || 0).filter(Boolean) : [];
   const nextStr = (strIds.length ? Math.max.apply(null, strIds) : 0) + 1;
+  const fillAt = uid => {
+    const a = Object.assign({}, effAssign);
+    const cur = a[uid];
+    if (cur && activeStr === 0) {
+      Object.keys(a).forEach(k => {
+        if (a[k] === cur) delete a[k];
+      });
+      set({
+        assign: a,
+        manual: true
+      });
+      return;
+    }
+    if (cur) {
+      setActiveStr(cur);
+      return;
+    }
+    if (activeStr === 0) return;
+    const n = Math.max(1, Math.round(serN || 1));
+    let maxId = 0,
+      have = 0;
+    const taken = {};
+    Object.keys(a).forEach(k => {
+      const v = a[k];
+      if (!v) return;
+      taken[k] = true;
+      if (v > maxId) maxId = v;
+      if (v === activeStr) have++;
+    });
+    let sid = activeStr || maxId + 1;
+    if (have >= n) {
+      sid = maxId + 1;
+      have = 0;
+    }
+    scFillFrom(lay, uid, n - have, taken).forEach(u => {
+      a[u] = sid;
+    });
+    set({
+      assign: a,
+      manual: true
+    });
+    setActiveStr(Math.max(maxId, sid) + 1);
+  };
+  const wirePaths = React.useMemo(() => {
+    if (isMicro) return [];
+    const ctr = {};
+    foot.panels.forEach(q => {
+      ctr[q.uid] = [q.pts.reduce((x, t) => x + t[0], 0) / q.pts.length, q.pts.reduce((x, t) => x + t[1], 0) / q.pts.length];
+    });
+    const bag = {};
+    Object.keys(effAssign || {}).forEach(u => {
+      const v = effAssign[u];
+      if (v && ctr[u]) (bag[v] = bag[v] || []).push(u);
+    });
+    return Object.keys(bag).map(k => {
+      const us = bag[k].sort((x, y) => (lay.rank[x] != null ? lay.rank[x] : 1e9) - (lay.rank[y] != null ? lay.rank[y] : 1e9));
+      return {
+        id: +k,
+        color: suColor(+k),
+        pts: us.map(u => ctr[u])
+      };
+    });
+  }, [isMicro, foot, effAssign, lay]);
   const microPlans = React.useMemo(() => isMicro ? scMicroPlan(groups, panel, micros, S.env, S) : null, [isMicro, groups, panel, micros, S.env, S.microRatio, S.micro]);
   const stockMicroRow = micros.find(m => m.ratio === S.microRatio) || micros[0] || {};
   const setM = (k, v) => {
@@ -5047,7 +5210,7 @@ function SolarWorkspace({
   }, "\u0E2D\u0E32\u0E01\u0E32\u0E28\u0E40\u0E22\u0E47\u0E19"), " \u2014 \u0E15\u0E49\u0E2D\u0E07\u0E2D\u0E22\u0E39\u0E48\u0E43\u0E19\u0E1E\u0E37\u0E49\u0E19\u0E40\u0E02\u0E35\u0E22\u0E27 (\u0E0A\u0E48\u0E27\u0E07 MPPT) \u0E15\u0E25\u0E2D\u0E14 \u0E41\u0E25\u0E30\u0E02\u0E35\u0E14 Voc \u0E2B\u0E49\u0E32\u0E21\u0E40\u0E25\u0E22\u0E40\u0E2A\u0E49\u0E19\u0E41\u0E14\u0E07"), React.createElement(SuVoltBand, {
     rows: range.rows.filter(r => r.n >= Math.max(1, range.min - 2) && r.n <= range.max + 2),
     inv: inv,
-    sel: S.series || range.best,
+    sel: serN,
     onPick: n => set({
       series: n
     })
@@ -5063,7 +5226,17 @@ function SolarWorkspace({
     className: "p3-stat"
   }, "\u0E15\u0E48\u0E2D\u0E44\u0E14\u0E49 ", React.createElement("b", null, range.min, "\u2013", range.max), " \u0E41\u0E1C\u0E07/\u0E2A\u0E15\u0E23\u0E34\u0E07"), React.createElement("span", {
     className: "p3-stat"
-  }, "\u0E23\u0E30\u0E1A\u0E1A\u0E41\u0E19\u0E30\u0E19\u0E33 ", React.createElement("b", null, range.best), " \u0E41\u0E1C\u0E07"), React.createElement("span", {
+  }, "\u0E23\u0E30\u0E1A\u0E1A\u0E41\u0E19\u0E30\u0E19\u0E33 ", React.createElement("b", null, range.best), " \u0E41\u0E1C\u0E07"), lineLen > 1 && React.createElement("span", {
+    className: "p3-stat"
+  }, "\u0E41\u0E19\u0E27\u0E41\u0E1C\u0E07\u0E22\u0E32\u0E27 ", React.createElement("b", null, lineLen), " \u0E41\u0E1C\u0E07/", strDir === "row" ? "แถว" : "คอลัมน์"), React.createElement("span", {
+    className: "p3-stat"
+  }, "\u0E43\u0E0A\u0E49\u0E08\u0E31\u0E14\u0E2A\u0E15\u0E23\u0E34\u0E07 ", React.createElement("b", null, serN), " \u0E41\u0E1C\u0E07", userSer ? " (เลือกเอง)" : alignN ? " (ลงตัวกับแนวแผง)" : ""), userSer > 0 && React.createElement("button", {
+    className: "p3-b sm",
+    onClick: () => set({
+      series: null
+    }),
+    title: "\u0E01\u0E25\u0E31\u0E1A\u0E44\u0E1B\u0E43\u0E2B\u0E49\u0E23\u0E30\u0E1A\u0E1A\u0E40\u0E25\u0E37\u0E2D\u0E01\u0E02\u0E19\u0E32\u0E14\u0E17\u0E35\u0E48\u0E25\u0E07\u0E15\u0E31\u0E27\u0E01\u0E31\u0E1A\u0E41\u0E19\u0E27\u0E41\u0E1C\u0E07"
+  }, "\u0E43\u0E2B\u0E49\u0E23\u0E30\u0E1A\u0E1A\u0E40\u0E25\u0E37\u0E2D\u0E01"), React.createElement("span", {
     className: "p3-stat"
   }, "\u0E2A\u0E15\u0E23\u0E34\u0E07\u0E15\u0E48\u0E2D MPPT ", React.createElement("b", null, scStringsPerMppt(panel, inv))))), !isMicro && React.createElement("div", {
     className: "p3-card"
@@ -5179,15 +5352,50 @@ function SolarWorkspace({
   }, React.createElement(P3Icon, {
     name: "check",
     size: 13
-  }), "\u0E22\u0E36\u0E14\u0E0A\u0E38\u0E14\u0E19\u0E35\u0E49\u0E44\u0E27\u0E49\u0E41\u0E01\u0E49\u0E40\u0E2D\u0E07"))), React.createElement(SuLayout2D, {
+  }), "\u0E22\u0E36\u0E14\u0E0A\u0E38\u0E14\u0E19\u0E35\u0E49\u0E44\u0E27\u0E49\u0E41\u0E01\u0E49\u0E40\u0E2D\u0E07"))), React.createElement("div", {
+    style: {
+      display: "flex",
+      gap: 8,
+      flexWrap: "wrap",
+      alignItems: "center",
+      marginTop: 8,
+      marginBottom: 8
+    }
+  }, React.createElement("span", {
+    style: {
+      fontSize: 11.5,
+      fontWeight: 700,
+      color: "var(--text-3)"
+    }
+  }, "\u0E41\u0E19\u0E27\u0E40\u0E14\u0E34\u0E19\u0E2A\u0E32\u0E22"), React.createElement("span", {
+    className: "p3-seg wide"
+  }, [["col", "↕ ตามแนวลาด (คอลัมน์)"], ["row", "↔ ขวางลาด (แถว)"]].map(([k, t]) => React.createElement("button", {
+    key: k,
+    type: "button",
+    "data-on": strDir === k ? "1" : "0",
+    onClick: () => set({
+      strDir: k
+    })
+  }, t))), React.createElement("span", {
+    style: {
+      fontSize: 11.5,
+      color: "var(--text-3)"
+    }
+  }, "\u0E2A\u0E15\u0E23\u0E34\u0E07\u0E25\u0E30 ", React.createElement("b", {
+    style: {
+      color: "var(--text-1)"
+    }
+  }, serN), " \u0E41\u0E1C\u0E07")), React.createElement(SuLayout2D, {
     foot: foot,
     assign: effAssign,
     active: activeStr !== null,
     onPaint: paint,
-    onPaintMany: paintMany
+    onPaintMany: paintMany,
+    onTap: fillAt,
+    paths: wirePaths
   }), React.createElement("span", {
     className: "p3-note"
-  }, isManual ? "กำลังใช้ผังที่แก้เอง · เลือกสตริงด้านบนแล้วแตะหรือลากบนแผงเพื่อย้ายเข้าสตริงนั้น · แผงเทาประ = ยังไม่อยู่สตริงไหน" : "ระบบแบ่งสตริงให้แล้วตามที่เห็น — แตะหรือลากบนแผงได้เลยถ้าจะแก้ (แก้ครั้งแรกระบบจะยึดผังนี้เป็นของคุณทันที)", " · มองจากด้านบน ทิศเหนืออยู่บน")), !isMicro && plan && React.createElement("div", {
+  }, "⇣ แตะแผงที่จะเริ่มสตริง = ได้ทั้งสตริง " + serN + " แผงตามแนวเดินสาย แล้วไปสตริงถัดไปเอง · แตะแผงที่มีสตริงแล้ว = เลือกสตริงนั้น · โหมด “เอาออก” แตะ = ปลดทั้งสตริง · ✎ ทาทีละใบ · ▢ ลากกรอบ", isManual ? " · กำลังใช้ผังที่แก้เอง" : " · ตอนนี้ระบบจัดให้ตามแนวเดินสาย (แก้ครั้งแรกระบบจะยึดผังนี้เป็นของคุณ)", " · มองจากด้านบน ทิศเหนืออยู่บน")), !isMicro && plan && React.createElement("div", {
     className: "p3-card"
   }, React.createElement("span", {
     className: "p3-eb"

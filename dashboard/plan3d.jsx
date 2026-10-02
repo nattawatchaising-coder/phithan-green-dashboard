@@ -836,6 +836,13 @@ function p3FootAll(st) {
     /* เส้นขอบผืนหลังคา — ใช้เส้นเดียวกับที่ระบบใช้วางแผง จึงตรงกับของจริงเสมอ */
     if (roof.kind === "poly" && Array.isArray(roof.pts)) {
       outlines.push({ roofId: roof.id, pts: roof.pts.map((p) => [(+p.x || 0) + (+roof.x || 0), (+p.z || 0) + (+roof.z || 0)]) });
+    } else {
+      /* หลังคาทรงอื่น (ราบ/เพิง/จั่ว/ปั้นหยา) — เดิมไม่วาดขอบเลย ผังรายงานเห็นแต่แผงลอย ๆ
+         ไม่มีหลังคาใต้แผง · ใช้ผิวผืนชุดเดียวกับตัวคำนวณเงา (มองจากบน = ทิ้งแกน y) ผืนละรูป
+         (โดมไม่มีผิวผืน ไม่วาดขอบ — แผงโค้งเห็นรูปหลังคาอยู่แล้ว) */
+      let surfs = [];
+      try { surfs = typeof p3RoofSurf === "function" ? p3RoofSurf(roof) : []; } catch (e) { surfs = []; }
+      surfs.forEach((sf) => outlines.push({ roofId: roof.id, pts: sf.pts.map((q) => [q.x, q.z]) }));
     }
   });
   let minX = 1e9, maxX = -1e9, minZ = 1e9, maxZ = -1e9;

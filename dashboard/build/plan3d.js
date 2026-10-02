@@ -1359,6 +1359,17 @@ function p3FootAll(st) {
         roofId: roof.id,
         pts: roof.pts.map(p => [(+p.x || 0) + (+roof.x || 0), (+p.z || 0) + (+roof.z || 0)])
       });
+    } else {
+      let surfs = [];
+      try {
+        surfs = typeof p3RoofSurf === "function" ? p3RoofSurf(roof) : [];
+      } catch (e) {
+        surfs = [];
+      }
+      surfs.forEach(sf => outlines.push({
+        roofId: roof.id,
+        pts: sf.pts.map(q => [q.x, q.z])
+      }));
     }
   });
   let minX = 1e9,
