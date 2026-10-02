@@ -1077,6 +1077,17 @@ function p3FillBlk(face, blk, m, want) {
     return { u: Au + a * cs - b * sn + blk.du, v: Av + a * sn + b * cs + blk.dv };
   };
   const keepOn = !!blk.keep;
+  /* ชุดเฉพาะที่วาง (patch): ทางเดินแบ่งกลุ่มนับจากแถว/คอลัมน์แรกของชุดเอง ไม่ใช่จากขอบหลังคา
+     (ไม่งั้นกลุ่ม 13 แถวที่วางกลางหลังคาโดนทางเดินผ่ากลาง) — ชุดเต็มผืนเหมือนเดิม */
+  let pr0 = 0, pc0 = 0;
+  if (blk.patch && blk.only) {
+    const pre = blk.pfx + face.keyPfx; let mr = Infinity, mc = Infinity;
+    Object.keys(blk.only).forEach((k) => { if (k.indexOf(pre) !== 0) return; const mm = /^(-?\d+)_(-?\d+)$/.exec(k.slice(pre.length)); if (mm) { mr = Math.min(mr, +mm[1]); mc = Math.min(mc, +mm[2]); } });
+    if (mr < Infinity) { pr0 = mr; pc0 = mc; }
+  }
+  const vSg = face.anchor === "topLeft" ? -1 : 1;
+  const dU = (c) => (gc > 0 && gg > 0 ? Math.floor((c - pc0) / gc) * gg - offU(c) : 0);
+  const dV = (r) => (gr > 0 && gg > 0 ? (Math.floor((r - pr0) / gr) * gg - offV(r)) * vSg : 0);
   const mi = Math.max(0, m - 0.02);          // หดจุดทดสอบเล็กน้อย กันตกบนเส้นขอบพอดี
   /* mode "auto" = ช่องในกริดปกติ (คงพฤติกรรมเดิมเป๊ะ) · "slot" = ช่องว่างให้แตะเพิ่ม ต้องตรวจขอบเสมอ
      · "add" = แผงที่ผู้ใช้เติมเอง เช็คแค่จุดกึ่งกลาง จะได้ยื่นพ้นขอบได้นิดหน่อยตามที่ตั้งใจ แต่ไม่ลอยกลางอากาศ */
@@ -1093,7 +1104,7 @@ function p3FillBlk(face, blk, m, want) {
   const push = (r, c, mode) => {
     const key = blk.pfx + face.keyPfx + r + "_" + c;
     if (blk.patch && !blk.only[key]) return false;
-    const p0 = { u: cellU(c), v: cellV(r) }, p = xf(p0.u, p0.v);
+    const p0 = { u: cellU(c) + dU(c), v: cellV(r) + dV(r) }, p = xf(p0.u, p0.v);
     if (!fits(p.u, p.v, mode)) return false;
     const skip = !!blk.skips[key];
     res.list.push({ key, side: face.side, u: p.u, v: p.v, pw, pd, blk: blk.i, skip });

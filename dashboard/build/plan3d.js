@@ -1712,6 +1712,28 @@ function p3FillBlk(face, blk, m, want) {
     };
   };
   const keepOn = !!blk.keep;
+  let pr0 = 0,
+    pc0 = 0;
+  if (blk.patch && blk.only) {
+    const pre = blk.pfx + face.keyPfx;
+    let mr = Infinity,
+      mc = Infinity;
+    Object.keys(blk.only).forEach(k => {
+      if (k.indexOf(pre) !== 0) return;
+      const mm = /^(-?\d+)_(-?\d+)$/.exec(k.slice(pre.length));
+      if (mm) {
+        mr = Math.min(mr, +mm[1]);
+        mc = Math.min(mc, +mm[2]);
+      }
+    });
+    if (mr < Infinity) {
+      pr0 = mr;
+      pc0 = mc;
+    }
+  }
+  const vSg = face.anchor === "topLeft" ? -1 : 1;
+  const dU = c => gc > 0 && gg > 0 ? Math.floor((c - pc0) / gc) * gg - offU(c) : 0;
+  const dV = r => gr > 0 && gg > 0 ? (Math.floor((r - pr0) / gr) * gg - offV(r)) * vSg : 0;
   const mi = Math.max(0, m - 0.02);
   const fits = (u, v, mode) => {
     if (mode === "add") return p3InPoly(u, v, poly);
@@ -1727,8 +1749,8 @@ function p3FillBlk(face, blk, m, want) {
     const key = blk.pfx + face.keyPfx + r + "_" + c;
     if (blk.patch && !blk.only[key]) return false;
     const p0 = {
-        u: cellU(c),
-        v: cellV(r)
+        u: cellU(c) + dU(c),
+        v: cellV(r) + dV(r)
       },
       p = xf(p0.u, p0.v);
     if (!fits(p.u, p.v, mode)) return false;
