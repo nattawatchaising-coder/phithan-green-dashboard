@@ -879,9 +879,65 @@ function p3sRay(F, s, ux, uz, maxL) {
   }
   return null;
 }
-const P3S_KINDS = [["flat", "ราบ"], ["shed", "เพิง"], ["gable", "จั่ว"], ["hip", "ปั้นหยา"], ["dome", "ครึ่งวงกลม"], ["facet", "ทีละผืน"]];
-const P3S_KIND_TH = { flat: "ราบ", shed: "เพิง", gable: "จั่ว", hip: "ปั้นหยา", dome: "ครึ่งวงกลม", facet: "ทีละผืน" };
-const P3S_KIND_D = { flat: "ดาดฟ้า · หลังคาเรียบ", shed: "ลาดด้านเดียว · ต้องแตะขอบด้านต่ำ", gable: "สองลาด สันตามด้านยาว", hip: "สี่ลาด", dome: "โค้งตามด้านยาว · กลับทิศได้", facet: "หลังคาซับซ้อน · คลิกไล่มุม" };
+const P3S_KINDS = [["flat", "ราบ"], ["shed", "เพิง"], ["gable", "จั่ว"], ["hip", "ปั้นหยา"], ["dome", "ครึ่งวงกลม"], ["mgable", "จั่วหลายช่วง"], ["saw", "ฟันเลื่อย"], ["facet", "ทีละผืน"]];
+const P3S_KIND_TH = { flat: "ราบ", shed: "เพิง", gable: "จั่ว", hip: "ปั้นหยา", dome: "ครึ่งวงกลม", mgable: "จั่วหลายช่วง", saw: "ฟันเลื่อย", facet: "ทีละผืน" };
+const P3S_KIND_D = { flat: "ดาดฟ้า · หลังคาเรียบ", shed: "ลาดด้านเดียว · ต้องแตะขอบด้านต่ำ", gable: "สองลาด สันตามด้านยาว", hip: "สี่ลาด", dome: "โค้งตามด้านยาว · กลับทิศได้", mgable: "โรงงาน/โกดัง · จั่วต่อกันหลายช่วง (ทรง M)", saw: "โรงงาน · ลาดเดียวซ้ำ ลาดลงทิศใต้", facet: "หลังคาซับซ้อน · คลิกไล่มุม" };
+/* ทรงที่วาดกรอบเดียวแล้วแบ่งเป็นหลายหลังในกลุ่มเดียว (grp) — เอนจิน/BOQ/แบบเก่าเห็นเป็นจั่ว/เพิงธรรมดา */
+const P3S_MULTI = { mgable: 1, saw: 1 };
+
+/* ── สร้างหลังคาจากกรอบ (ทรงพื้นฐาน · ทุกทรงยกเว้นทีละผืน) ── */
+function p3sRoofFromRect(wpts, kind, n, EAVE) {
+  let nr;
+  if (kind === "gable" || kind === "hip" || kind === "dome") {
+    const R = p3MinRect(wpts); if (!R) return null;
+    const long = Math.max(R.w, R.d), short = Math.min(R.w, R.d);
+    const ang = R.w >= R.d ? R.ang : R.ang + Math.PI / 2;
+    const az = p3sR((((180 + ang / P3_DEG) % 360) + 360) % 360, 10);
+    // ครึ่งวงกลม: แนวโค้งวางตามด้านยาว (กลับทิศได้ในการ์ดหลังคา) · ความสูงโค้ง = ครึ่งความกว้าง
+    const base = kind === "gable"
+      ? Object.assign(p3NewGable(n), { ridge: p3sR(long), span: p3sR(short), pitch: 20 })
+      : kind === "dome"
+      ? Object.assign(p3NewDome(n), { ridge: p3sR(long), span: p3sR(short), rise: p3sR(short / 2), maxTilt: 90 })
+      : Object.assign(p3NewHip(n), { w: p3sR(long), d: p3sR(short), pitch: 25 });
+    nr = Object.assign(base, { x: p3sR(R.cx), z: p3sR(R.cz), az, h: EAVE });
+  } else {
+    const c = p3sCentroid(wpts);
+    const rel = wpts.map((p) => ({ x: p3sR(p.x - c.x), z: p3sR(p.z - c.z) }));
+    nr = Object.assign(p3NewRoof(n), { kind: "poly", x: p3sR(c.x), z: p3sR(c.z), h: 0.05, pts: rel, ph: rel.map(() => EAVE), margin: 0.3 });
+    if (kind === "shed") { const lo = p3sSouthEdge(rel); nr.p3sLow = lo; nr.ph = p3sPitchPh(rel, lo, EAVE, 10); }
+    else {
+      // หลังคาราบ: แถวแผงขนานขอบที่ยาวที่สุด (ไม่งั้นแผงวางตามแกนผังแล้วโดนตัดขอบเป็นฟันเลื่อย)
+      const rot = p3sAlignRot(nr, null, p3sLongEdgeAng(wpts));
+      nr.blocks = [Object.assign(p3NewBlk(0), { rot })];
+    }
+  }
+  // วาดหลังคาก่อน วางแผงทีหลัง — แผงขึ้นเมื่อกด "วางแผงเต็มหลังคา"
+  nr.noPanel = true;
+  return nr;
+}
+/* จั่วหลายช่วง / ฟันเลื่อย: แบ่งกรอบตามด้านสั้นเป็น spans ช่วง (สันทุกช่วงวิ่งตามด้านยาว) แล้วรวมกลุ่มด้วย grp เดียว
+   ฟันเลื่อย = เพิงทุกช่วงลาดลงทิศเดียวกัน (ขอบยาวที่หันใต้มากที่สุด) ชัน 20° */
+function p3sMultiRoof(wpts, kind, spans, n0, EAVE) {
+  const R = p3MinRect(wpts); if (!R) return [];
+  const N = Math.max(2, Math.min(20, Math.round(+spans || 3)));
+  const uL = R.w >= R.d ? { x: Math.cos(R.ang), z: Math.sin(R.ang) } : { x: -Math.sin(R.ang), z: Math.cos(R.ang) };
+  const uS = { x: -uL.z, z: uL.x }, long = Math.max(R.w, R.d), short = Math.min(R.w, R.d), sw = short / N;
+  const grp = p3Id("g"), out = [];
+  for (let i = 0; i < N; i++) {
+    const o = -short / 2 + (i + 0.5) * sw, cx = R.cx + uS.x * o, cz = R.cz + uS.z * o;
+    const P = (a, b) => ({ x: p3sR(cx + uL.x * a * long / 2 + uS.x * b * sw / 2), z: p3sR(cz + uL.z * a * long / 2 + uS.z * b * sw / 2) });
+    const pts = [P(-1, -1), P(1, -1), P(1, 1), P(-1, 1)];
+    const r = p3sRoofFromRect(pts, kind === "saw" ? "shed" : "gable", n0 + i, EAVE); if (!r) continue;
+    if (kind === "saw") {
+      let lo = 0, bv = Infinity;
+      [0, 2].forEach((k) => { const v = Math.abs(p3sEdgeBearing(r.pts, k) - 180); if (v < bv) { bv = v; lo = k; } });   // ขอบยาวคือ 0 กับ 2
+      r.p3sLow = lo; r.ph = p3sPitchPh(r.pts, lo, EAVE, 20);
+    }
+    r.grp = grp; r.p3sMulti = kind;
+    out.push(r);
+  }
+  return out;
+}
 function P3SKindArt({ k }) {
   const st = { fill: "rgba(37,99,235,.14)", stroke: "#1e3a8a", strokeWidth: 1.6, strokeLinejoin: "round" };
   const ln = { fill: "none", stroke: "#1e3a8a", strokeWidth: 1.6, strokeLinejoin: "round" };
@@ -892,6 +948,8 @@ function P3SKindArt({ k }) {
       {k === "gable" && <React.Fragment><path d="M6 26 L22 12 L50 12 L58 28 L30 30 Z" {...st} /><path d="M22 12 L30 30 M6 26 L30 30" {...ln} /></React.Fragment>}
       {k === "hip" && <React.Fragment><path d="M6 28 L20 14 L44 14 L58 28 Z" {...st} /><path d="M20 14 L26 28 M44 14 L40 28 M6 28 L58 28" {...ln} /></React.Fragment>}
       {k === "dome" && <React.Fragment><path d="M6 32 A16 16 0 0 1 38 32 L58 26 A16 16 0 0 0 26 26 Z" {...st} /><path d="M22 16 L42 10" {...ln} /></React.Fragment>}
+      {k === "mgable" && <React.Fragment><path d="M4 30 L12 18 L20 30 L28 18 L36 30 L44 18 L52 30 Z" {...st} /></React.Fragment>}
+      {k === "saw" && <React.Fragment><path d="M4 32 L4 18 L18 32 L18 18 L32 32 L32 18 L46 32 L46 18 L60 32 Z" {...st} /></React.Fragment>}
       {k === "facet" && <React.Fragment><path d="M6 30 L22 14 L40 14 L40 22 L58 22 L58 34 L6 34 Z" {...st} />{[[6, 30], [22, 14], [40, 14], [40, 22], [58, 22], [58, 34], [6, 34]].map(([x, y], i) => <circle key={i} cx={x} cy={y} r={2.4} fill="#fff" stroke="#1e3a8a" strokeWidth={1.4} />)}</React.Fragment>}
     </svg>
   );
@@ -1182,14 +1240,20 @@ const P3S_CSS = `
 .p3s-empty p{margin:0;font-size:13px;color:var(--text-2);line-height:1.55}
 .p3s-pop{position:absolute;z-index:3;left:50%;top:64px;transform:translateX(-50%);width:min(360px,calc(100% - 24px));background:var(--surface);border-radius:15px;box-shadow:var(--shadow-card);padding:13px;display:flex;flex-direction:column;gap:10px;box-sizing:border-box}
 .p3s-kpick{position:absolute;inset:0;z-index:6;background:rgba(15,23,42,.38);display:flex;align-items:center;justify-content:center;padding:16px;box-sizing:border-box}
-.p3s-kpick .in{background:var(--surface);border-radius:18px;box-shadow:var(--shadow-card);padding:16px;width:min(520px,100%);display:flex;flex-direction:column;gap:12px;box-sizing:border-box;max-height:100%;overflow:auto}
+.p3s-kpick .in{background:var(--surface);border-radius:18px;box-shadow:var(--shadow-card);padding:16px;width:min(640px,100%);display:flex;flex-direction:column;gap:12px;box-sizing:border-box;max-height:100%;overflow:auto}
 .p3s-kpick .tt{font-size:16px;font-weight:800;color:var(--text)}
-.p3s-kpick .gr{display:grid;grid-template-columns:repeat(3,1fr);gap:9px}
+.p3s-kpick .gr{display:grid;grid-template-columns:repeat(4,1fr);gap:9px}
 .p3s-kpick .k{border:none;background:var(--surface2);box-shadow:var(--shadow-inset);border-radius:14px;padding:10px 6px 9px;display:flex;flex-direction:column;align-items:center;gap:5px;cursor:pointer;font:inherit;color:var(--text)}
 .p3s-kpick .k b{font-size:13.5px}
+.p3s-kpick .k .pic{width:100%;aspect-ratio:16/10;border-radius:10px;overflow:hidden;background:#e3edf5;display:flex;align-items:center;justify-content:center}
+.p3s-kpick .k .pic img{width:100%;height:100%;object-fit:cover;display:block}
+.p3s-kspan{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.p3s-kspan>span{font-size:13px;font-weight:700;color:var(--text-2)}
+.p3s-kspan>b{min-width:26px;text-align:center;font-size:16px}
+.p3s-kspan .p3s-btn:not(.pri){width:36px;padding:0;justify-content:center;font-size:18px}
 .p3s-kpick .k small{font-size:10.5px;color:var(--text-3);text-align:center;line-height:1.3}
 .p3s-kpick .k[data-on="1"]{background:var(--surface);box-shadow:0 0 0 2.5px var(--primary),var(--shadow-sm)}
-@media (max-width:520px){.p3s-kpick .gr{grid-template-columns:repeat(2,1fr)}}
+@media (max-width:620px){.p3s-kpick .gr{grid-template-columns:repeat(2,1fr)}}
 .p3s-range{width:100%;accent-color:var(--primary);height:26px;margin:0;box-shadow:none!important;background:transparent!important}
 .p3s-mbar{display:none}
 .p3s-sheetbar{display:none}
@@ -1445,7 +1509,7 @@ function p3sBuild3D(THREE, grp, st, tex) {
     allTris.push.apply(allTris, tris);
     if (faces.length) {
       const minY = Math.min.apply(null, faces.map((f) => Math.min.apply(null, f.map((p) => p.y))));
-      wall(p3sOutline(roof), tris, minY - 0.03, roof.kind !== "poly");
+      wall(p3sOutline(roof), tris, minY - 0.03, roof.kind !== "poly" && !roof.grp);
     }
     // แผง — รวมเป็นก้อนเดียวต่อผืน (ร้อยแผ่นก็วาดเร็ว)
     let foot = [];
@@ -1862,6 +1926,49 @@ function p3sObsPreview(T) {
   _p3sPrevP[T].catch(() => { delete _p3sPrevP[T]; });
   return _p3sPrevP[T];
 }
+/* รูปตัวอย่าง 3D ของทรงหลังคา (ป๊อปเลือกทรง) — อาคาร 12 × 8 ม. สูง 3 ม. */
+function p3sKindPreview(k) {
+  const key = "kind:" + k;
+  if (_p3sPrevP[key]) return _p3sPrevP[key];
+  _p3sPrevP[key] = p3LoadThree().then((THREE) => {
+    const W = 240, H = 150;
+    if (!_p3sPrevR) { _p3sPrevR = new THREE.WebGLRenderer({ antialias: true, preserveDrawingBuffer: true }); _p3sPrevR.setPixelRatio(2); _p3sPrevR.shadowMap.enabled = true; _p3sPrevR.shadowMap.type = THREE.PCFSoftShadowMap; }
+    _p3sPrevR.setSize(W, H);
+    const scene = new THREE.Scene(); scene.background = new THREE.Color(0xe3edf5);
+    scene.add(new THREE.HemisphereLight(0xcfe4ff, 0x8a795d, 0.8));
+    const L = new THREE.DirectionalLight(0xffffff, 1.1); L.position.set(10, 18, 14); L.castShadow = true; L.shadow.mapSize.set(1024, 1024); L.shadow.bias = -0.0005;
+    const sc = L.shadow.camera; sc.left = -16; sc.right = 16; sc.top = 16; sc.bottom = -16; sc.near = 0.5; sc.far = 70; scene.add(L);
+    const rect = (w, d, x, z) => [{ x: x - w / 2, z: z - d / 2 }, { x: x + w / 2, z: z - d / 2 }, { x: x + w / 2, z: z + d / 2 }, { x: x - w / 2, z: z + d / 2 }];
+    let roofs;
+    if (P3S_MULTI[k]) roofs = p3sMultiRoof(rect(12, 10, 0, 0), k, k === "saw" ? 4 : 3, 1, 3);
+    else if (k === "facet") {
+      // ทรงตัว L จากจั่วสองหลังตั้งฉากกัน
+      roofs = [p3sRoofFromRect(rect(12, 5, 0, -2), "gable", 1, 3), p3sRoofFromRect(rect(5, 9, 3.5, 2.5), "gable", 2, 3)];
+    } else roofs = [p3sRoofFromRect(rect(12, 8, 0, 0), k, 1, 3)];
+    roofs = roofs.filter(Boolean);
+    const grp = new THREE.Group(); scene.add(grp);
+    p3sBuild3D(THREE, grp, { roofs, obstacles: [], buildH: 0, groundW: 50 }, () => null);
+    const tg = [0, 2.2, 0], dv = new THREE.Vector3(1.05, 0.85, 1.25).normalize().multiplyScalar(17.5);
+    const cam = new THREE.PerspectiveCamera(38, W / H, 0.1, 400);
+    cam.position.set(tg[0] + dv.x, tg[1] + dv.y, tg[2] + dv.z); cam.lookAt(tg[0], tg[1], tg[2]);
+    _p3sPrevR.render(scene, cam);
+    const url = _p3sPrevR.domElement.toDataURL("image/png");
+    grp.traverse((x) => { if (x.geometry) x.geometry.dispose(); if (x.material) (Array.isArray(x.material) ? x.material : [x.material]).forEach((m) => { if (m.map) m.map.dispose(); m.dispose(); }); });
+    _p3sPrevUrl[key] = url;
+    return url;
+  });
+  _p3sPrevP[key].catch(() => { delete _p3sPrevP[key]; });
+  return _p3sPrevP[key];
+}
+function P3SKindPic({ k }) {
+  const key = "kind:" + k, [url, setUrl] = React.useState(_p3sPrevUrl[key] || null);
+  React.useEffect(() => {
+    let live = true;
+    if (!_p3sPrevUrl[key]) p3sKindPreview(k).then((u) => { if (live) setUrl(u); }).catch(() => {});
+    return () => { live = false; };
+  }, [k]);
+  return <span className="pic">{url ? <img src={url} alt="" /> : <P3SKindArt k={k} />}</span>;
+}
 /* ป๊อปโมเดลสิ่งบดบังข้างปุ่มที่ชี้ (ซ้ายของแผงข้าง) */
 function P3SObsPrev({ type, at }) {
   const [url, setUrl] = React.useState(_p3sPrevUrl[type] || null);
@@ -2226,25 +2333,14 @@ function Plan3DStudio({ job, onClose, currentUser, onSwitch }) {
   /* ── สร้างหลังคาจากจุดบนผัง ── */
   const EAVE = 3;
   const buildRoof = (wpts, kind, n) => {
+    if (kind !== "facet") return p3sRoofFromRect(wpts, kind, n, EAVE);
     let nr;
-    if (kind === "gable" || kind === "hip" || kind === "dome") {
-      const R = p3MinRect(wpts); if (!R) return;
-      const long = Math.max(R.w, R.d), short = Math.min(R.w, R.d);
-      const ang = R.w >= R.d ? R.ang : R.ang + Math.PI / 2;
-      const az = p3sR((((180 + ang / P3_DEG) % 360) + 360) % 360, 10);
-      // ครึ่งวงกลม: แนวโค้งวางตามด้านยาว (กลับทิศได้ในการ์ดหลังคา) · ความสูงโค้ง = ครึ่งความกว้าง
-      const base = kind === "gable"
-        ? Object.assign(p3NewGable(n), { ridge: p3sR(long), span: p3sR(short), pitch: 20 })
-        : kind === "dome"
-        ? Object.assign(p3NewDome(n), { ridge: p3sR(long), span: p3sR(short), rise: p3sR(short / 2), maxTilt: 90 })
-        : Object.assign(p3NewHip(n), { w: p3sR(long), d: p3sR(short), pitch: 25 });
-      nr = Object.assign(base, { x: p3sR(R.cx), z: p3sR(R.cz), az, h: EAVE });
-    } else {
+    {
       const c = p3sCentroid(wpts);
       const rel = wpts.map((p) => ({ x: p3sR(p.x - c.x), z: p3sR(p.z - c.z) }));
       nr = Object.assign(p3NewRoof(n), { kind: "poly", x: p3sR(c.x), z: p3sR(c.z), h: 0.05, pts: rel, ph: rel.map(() => EAVE), margin: 0.3 });
-      if (kind === "shed") { const lo = p3sSouthEdge(rel); nr.p3sLow = lo; nr.ph = p3sPitchPh(rel, lo, EAVE, 10); }
-      else if (kind === "facet") {
+      {
+
         /* ผืนเดียวของหลังคาทรงซับซ้อน: ชายคา = ขอบยาวที่สุดที่ "ไม่ได้" ใช้ร่วมกับผืนข้าง ๆ
            (ขอบที่ใช้ร่วมคือสัน/ตะเข้) — เสมอกันเลือกขอบที่หันใต้มากกว่า */
         const segs = snapSegs(), tol = 0.15;
@@ -2262,10 +2358,6 @@ function Plan3DStudio({ job, onClose, currentUser, onSwitch }) {
           const lp = nb[nb.length - 1], pc = +lp.p3sPitch > 0 ? +lp.p3sPitch : (p3sPolyPitch(lp) || 20);
           nr.ph = p3sPitchPh(rel, lo, EAVE, pc); nr.p3sPitch = pc;
         }
-      } else {
-        // หลังคาราบ: แถวแผงขนานขอบที่ยาวที่สุด (ไม่งั้นแผงวางตามแกนผังแล้วโดนตัดขอบเป็นฟันเลื่อย)
-        const rot = p3sAlignRot(nr, null, p3sLongEdgeAng(wpts));
-        nr.blocks = [Object.assign(p3NewBlk(0), { rot })];
       }
     }
     // วาดหลังคาก่อน วางแผงทีหลัง — แผงขึ้นเมื่อกด "วางแผงเต็มหลังคา" (ทรงยังไม่นิ่ง วางไปก็ต้องจัดใหม่)
@@ -2275,6 +2367,13 @@ function Plan3DStudio({ job, onClose, currentUser, onSwitch }) {
   const makeRoof = (wpts, kind) => {
     const S = stRef.current; if (!S || wpts.length < 3) return;
     if (p3Area(wpts) < 1) return;
+    if (P3S_MULTI[kind]) {
+      const list = p3sMultiRoof(wpts, kind, roofOpt.spans || 3, p3NextRoofNo(S.roofs), EAVE); if (!list.length) return;
+      if (+S.panelW > 0) list.forEach((r) => { r.panelW = S.panelW; r.panelL = S.panelL; });
+      commit((s) => Object.assign({}, s, { roofs: (s.roofs || []).concat(list) }));
+      setSel({ t: "roof", id: list[0].id }); setSelVert(null); setSelBlk(null); setRoofArm(false);
+      return list[0];
+    }
     const nr = buildRoof(wpts, kind, p3NextRoofNo(S.roofs)); if (!nr) return;
     if (+S.panelW > 0) { nr.panelW = S.panelW; nr.panelL = S.panelL; }
     commit((s) => {
@@ -4794,11 +4893,24 @@ function Plan3DStudio({ job, onClose, currentUser, onSwitch }) {
                 <div className="gr">
                   {P3S_KINDS.map(([k, lb]) => (
                     <button key={k} className="k" data-on={roofOpt.kind === k ? "1" : "0"}
-                      onClick={() => { setRoofOpt(Object.assign({}, roofOpt, { kind: k, shape: k === "facet" ? "poly" : "rect" })); setDraw(null); setTrace(null); setKindPick(false); setRoofArm(true); }}>
-                      <P3SKindArt k={k} /><b>{lb}</b><small>{P3S_KIND_D[k]}</small>
+                      onClick={() => {
+                        setRoofOpt(Object.assign({}, roofOpt, { kind: k, shape: k === "facet" ? "poly" : "rect", spans: roofOpt.spans || 3 }));
+                        if (P3S_MULTI[k]) return;   // เลือกจำนวนช่วงก่อน แล้วกดเริ่มวาด
+                        setDraw(null); setTrace(null); setKindPick(false); setRoofArm(true);
+                      }}>
+                      <P3SKindPic k={k} /><b>{lb}</b><small>{P3S_KIND_D[k]}</small>
                     </button>
                   ))}
                 </div>
+                {P3S_MULTI[roofOpt.kind] && (
+                  <div className="p3s-kspan">
+                    <span>จำนวนช่วง{roofOpt.kind === "saw" ? " (ฟัน)" : " (จั่ว)"}</span>
+                    <button type="button" className="p3s-btn" onClick={() => setRoofOpt(Object.assign({}, roofOpt, { spans: Math.max(2, (roofOpt.spans || 3) - 1) }))}>−</button>
+                    <b>{roofOpt.spans || 3}</b>
+                    <button type="button" className="p3s-btn" onClick={() => setRoofOpt(Object.assign({}, roofOpt, { spans: Math.min(20, (roofOpt.spans || 3) + 1) }))}>+</button>
+                    <button type="button" className="p3s-btn pri" style={{ flex: 1 }} onClick={() => { setDraw(null); setTrace(null); setKindPick(false); setRoofArm(true); }}><P3Icon name="check" />เริ่มวาด · ลากกรอบทั้งอาคาร</button>
+                  </div>
+                )}
                 {(st.roofs || []).length > 0 && <button className="p3s-btn pri wide" onClick={() => { setKindPick(false); setRoofArm(false); setDraw(null); setTrace(null); }}><P3Icon name="check" />ครบแล้ว · ไม่เพิ่มหลังคา (มี {(st.roofs || []).length} หลัง)</button>}
                 <span className="p3s-note">หลังคาหลายทรงในงานเดียว เลือกทรงใหม่ก่อนวาดแต่ละหลัง</span>
               </div>
@@ -4854,4 +4966,4 @@ function Plan3DEntry(props) {
   return <Plan3DStudio {...props} onSwitch={() => sw("v1")} />;
 }
 
-Object.assign(window, { Plan3DEntry, Plan3DStudio, P3SView3D, p3sTrace, p3sQuads, p3sFaces2D });
+Object.assign(window, { Plan3DEntry, Plan3DStudio, P3SView3D, p3sKindPreview, p3sTrace, p3sQuads, p3sFaces2D });
