@@ -213,7 +213,9 @@ const P3S_OBS = [["turbine", "ลูกหมุน", 0.6, 0.6, 0.5], ["vent", "
 /* สีโซนแผง (กลุ่มที่เว้นทางเดินระหว่างกัน) */
 const P3S_ZONE_C = ["#f59e0b", "#0ea5e9", "#a855f7", "#ef4444", "#10b981", "#ec4899"];
 const P3S_OBS_LINE = { rail: 1, walkway: 1, sky: 1, pipe: 1, tray: 1 };
-/* ท่อน้ำ PPR / รางไฟ เดินใต้แผงบน Rail — ไม่ตัดแผง (ไม่อยู่ใน P3S_ON_ROOF) · ก๊อกบนท่อเก็บที่ o.taps = [{x,z} สัมพัทธ์ o.x/z] */
+/* ท่อน้ำ PPR / รางไฟ เดินใต้แผงบน Rail — ไม่ตัดแผง (ไม่อยู่ใน P3S_ON_ROOF) · ก๊อกบนท่อเก็บที่ o.taps = [{x,z} สัมพัทธ์ o.x/z]
+   ก๊อกสูง ~20 ซม. เกินช่องใต้แผง → ตรงก๊อกติดแผงไม่ได้ (กรอบ ±P3S_TAP_KEEP รอบก๊อก ลง roof.obs id "ท่อ@k") */
+const P3S_TAP_KEEP = 0.25;
 const P3S_PIPE_D = [[0.02, "20 มม. (½\")"], [0.025, "25 มม. (¾\")"], [0.032, "32 มม. (1\")"]];
 const P3S_TRAY_W = [[0.05, "5 ซม."], [0.1, "10 ซม."], [0.15, "15 ซม."], [0.2, "20 ซม."]];
 /* จุดบนเส้นที่ใกล้ w ที่สุด → { x, z, d, t: ทิศเส้นตรงนั้น } */
@@ -225,6 +227,67 @@ function p3sNearOnPath(P, w) {
     if (!best || d < best.d) { const L = Math.sqrt(L2); best = { x, z, d, t: { x: dx / L, z: dz / L } }; }
   }
   return best;
+}
+/* พื้นหญ้ารอบอาคาร (ลายสุ่มคงที่ 1 แผ่น = 6 ม.) · ขอบภาพดาวเทียมจางลงกลืนกับหญ้า · เงานุ่มโคนผนัง (AO ปลอม) */
+const _p3sTx = {};
+function p3sGrassTex(THREE) {
+  if (_p3sTx.grass) return _p3sTx.grass;
+  const N = 256, c = document.createElement("canvas"); c.width = c.height = N; const g = c.getContext("2d");
+  g.fillStyle = "#8ea468"; g.fillRect(0, 0, N, N);
+  let sd = 11; const rnd = () => ((sd = (sd * 9301 + 49297) % 233280) / 233280);
+  for (let i = 0; i < 70; i++) { const x = rnd() * N, y = rnd() * N, r = 10 + rnd() * 34, v = rnd(); g.fillStyle = v < 0.5 ? "rgba(120,146,92,.16)" : "rgba(196,206,150,.16)"; g.beginPath(); g.arc(x, y, r, 0, Math.PI * 2); g.fill(); }
+  for (let i = 0; i < 5000; i++) { const v = rnd(); g.fillStyle = v < 0.5 ? "rgba(88,116,64,.28)" : "rgba(214,222,170,.24)"; g.fillRect(rnd() * N, rnd() * N, 1, 1 + Math.floor(rnd() * 3)); }
+  const t = new THREE.CanvasTexture(c); t.wrapS = t.wrapT = THREE.RepeatWrapping; t.anisotropy = 8;
+  return (_p3sTx.grass = t);
+}
+function p3sFadeTex(THREE) {
+  if (_p3sTx.fade) return _p3sTx.fade;
+  const N = 256, c = document.createElement("canvas"); c.width = c.height = N; const g = c.getContext("2d"), im = g.createImageData(N, N);
+  for (let y = 0; y < N; y++) for (let x = 0; x < N; x++) {
+    const u = (x + 0.5) / N, v = (y + 0.5) / N, e = Math.min(u, 1 - u, v, 1 - v), a = Math.max(0, Math.min(1, e / 0.06)), k = Math.round(255 * a * a * (3 - 2 * a)), i = (y * N + x) * 4;
+    im.data[i] = im.data[i + 1] = im.data[i + 2] = k; im.data[i + 3] = 255;
+  }
+  g.putImageData(im, 0, 0);
+  return (_p3sTx.fade = new THREE.CanvasTexture(c));
+}
+function p3sAOTex(THREE) {
+  if (_p3sTx.ao) return _p3sTx.ao;
+  const c = document.createElement("canvas"); c.width = 4; c.height = 64; const g = c.getContext("2d");
+  for (let y = 0; y < 64; y++) { const t = y / 63; g.fillStyle = "rgba(0,0,0," + (0.62 * Math.pow(1 - t, 2)).toFixed(3) + ")"; g.fillRect(0, y, 4, 1); }
+  const t = new THREE.CanvasTexture(c); t.wrapS = t.wrapT = THREE.ClampToEdgeWrapping;
+  return (_p3sTx.ao = t);
+}
+/* โลโก้บริษัทสำหรับวางบนภาพถ่าย 3D (โหลดล่วงหน้า — วาดลงแคนวาสได้ทันทีตอนถ่าย) */
+let _p3sLogo = null;
+function p3sLogoImg() {
+  if (!_p3sLogo && typeof brandDocURL === "function") { _p3sLogo = new Image(); _p3sLogo.src = brandDocURL(); }
+  return _p3sLogo;
+}
+/* กรอบข้อมูลมุมซ้ายล่างของภาพถ่าย: โลโก้+ชื่อบริษัท · ชื่องาน · รายละเอียดระบบ · วันเวลาที่จำลองแดด */
+function p3sDrawInfo(g, W, H, info) {
+  const k = W / 3840, ff = (getComputedStyle(document.body).fontFamily || "sans-serif");
+  const F = (w, px) => w + " " + Math.round(px * k) + "px " + ff;
+  const lines = [[F(800, 66), info.title || "", "#0F2B33"], [F(600, 40), info.sub || "", "#25414a"], [F(500, 32), info.note || "", "#5B8A8A"]].filter((l) => l[1]);
+  const logo = p3sLogoImg(), lh = 84 * k, hasLogo = !!(logo && logo.complete && logo.naturalWidth);
+  const brand = (typeof BRANDING !== "undefined" && BRANDING.legal) || "";
+  g.save();
+  let tw = 0; lines.forEach((l) => { g.font = l[0]; tw = Math.max(tw, g.measureText(l[1]).width); });
+  g.font = F(800, 30); const lw = hasLogo ? lh * logo.naturalWidth / logo.naturalHeight : 0, bw = lw + (hasLogo ? 18 * k : 0) + g.measureText(brand).width;
+  tw = Math.max(tw, bw);
+  const pad = 46 * k, gap = 16 * k, hs = [44, 66, 40, 32], cw = tw + pad * 2;
+  const ch = pad * 2 + lh + gap * 1.6 + lines.reduce((a, l, i) => a + (i ? gap : 0) + parseFloat(l[0].split(" ")[1]) * 1.25, 0);
+  const x0 = 80 * k, y0 = H - 80 * k - ch, R = 30 * k;
+  g.beginPath(); g.moveTo(x0 + R, y0); g.arcTo(x0 + cw, y0, x0 + cw, y0 + ch, R); g.arcTo(x0 + cw, y0 + ch, x0, y0 + ch, R); g.arcTo(x0, y0 + ch, x0, y0, R); g.arcTo(x0, y0, x0 + cw, y0, R); g.closePath();
+  g.shadowColor = "rgba(0,0,0,.28)"; g.shadowBlur = 40 * k; g.shadowOffsetY = 10 * k; g.fillStyle = "rgba(255,255,255,.93)"; g.fill();
+  g.shadowColor = "transparent";
+  let y = y0 + pad;
+  if (hasLogo) g.drawImage(logo, x0 + pad, y, lw, lh);
+  g.font = F(800, 30); g.fillStyle = "#0F2B33"; g.textBaseline = "middle"; g.fillText(brand, x0 + pad + lw + (hasLogo ? 18 * k : 0), y + lh / 2);
+  y += lh + gap * 1.6; g.textBaseline = "top";
+  g.fillStyle = "#22B36A"; g.fillRect(x0 + pad, y - gap * 0.9, 90 * k, 5 * k);
+  lines.forEach((l, i) => { if (i) y += gap; g.font = l[0]; g.fillStyle = l[2]; g.fillText(l[1], x0 + pad, y); y += parseFloat(l[0].split(" ")[1]) * 1.25; });
+  g.restore();
+  void hs;
 }
 /* ลายรูยาวที่พื้นรางไฟ (ทำครั้งเดียว · ซ้ำทั้งสองแกน) */
 let _p3sTrayTex = null;
@@ -272,6 +335,8 @@ function p3sObsRect(o, pad) {
 function p3sSyncObs(s) {
   if (!s || !Array.isArray(s.roofs)) return s;
   const obs = (s.obstacles || []).filter((o) => P3S_ON_ROOF[o.p3sType] != null);
+  const taps = [];
+  (s.obstacles || []).forEach((o) => { if (o.p3sType === "pipe") (o.taps || []).forEach((t, k) => taps.push({ id: o.id + "@" + k, x: (+o.x || 0) + (+t.x || 0), z: (+o.z || 0) + (+t.z || 0) })); });
   let ch = false;
   const roofs = s.roofs.map((r) => {
     let out = []; try { out = p3sOutline(r) || []; } catch (e) { out = []; }
@@ -284,6 +349,11 @@ function p3sSyncObs(s) {
         if (!(p3InPoly(mx, mz, out) || R.some((q) => p3InPoly(q.x, q.z, out)))) return;
         list.push({ id: K0.length > 1 ? o.id + "#" + k : o.id, pts: K[k].map((p) => ({ x: p3sR(p.x - ox, 1000), z: p3sR(p.z - oz, 1000) })) });
       });
+    });
+    if (out.length >= 3) taps.forEach((t) => {
+      if (!p3InPoly(t.x, t.z, out)) return;
+      const h = P3S_TAP_KEEP;
+      list.push({ id: t.id, pts: [[-h, -h], [h, -h], [h, h], [-h, h]].map(([u, v]) => ({ x: p3sR(t.x + u - ox, 1000), z: p3sR(t.z + v - oz, 1000) })) });
     });
     if (JSON.stringify(r.obs && r.obs.length ? r.obs : []) === JSON.stringify(list)) return r;
     ch = true;
@@ -915,6 +985,9 @@ const P3S_KIND_D = { flat: "ดาดฟ้า · หลังคาเรีย
 /* วัสดุหลังคา (เฉพาะภาพ 3D — ไม่กระทบการนับแผง/BOQ) · ไม่ตั้ง = ตามทรง */
 const P3S_MATS = [["metal", "เมทัลชีทลอน"], ["kliplok", "เมทัลชีทล็อกตะเข็บ (Kliplok)"], ["sandwich", "เมทัลชีทบุฉนวน PU"], ["cpac", "กระเบื้องคอนกรีต"],
   ["ceramic", "กระเบื้องเซรามิก/ดินเผา"], ["shingle", "ชิงเกิ้ลรูฟ"], ["fiber", "กระเบื้องลอนคู่"], ["concrete", "พื้นคอนกรีต (ดาดฟ้า)"]];
+/* สีหลังคา (เฉพาะภาพ 3D) · roof.p3sCol = "#rrggbb" · ไม่ตั้ง = สีตามวัสดุ */
+const P3S_ROOF_COLS = [["#e8e6df", "ขาวครีม"], ["#b9bec4", "เงิน"], ["#5d636a", "เทาเข้ม"], ["#2e3236", "ดำ"], ["#a8322c", "แดง"], ["#c4622d", "ส้มอิฐ"],
+  ["#6b4430", "น้ำตาล"], ["#2f5d8a", "น้ำเงิน"], ["#3d6e4a", "เขียว"], ["#b8a27a", "ทราย"]];
 function p3sRoofMat(r) {
   if (r && r.p3sMat && P3S_MATS.some((o) => o[0] === r.p3sMat)) return r.p3sMat;
   const k = r && r.p3sKind;
@@ -1252,6 +1325,10 @@ const P3S_CSS = `
 .p3s-rlist label.p3s-fld .lb{flex:1;min-width:0}
 .p3s-rlist label.p3s-fld .p3s-well{flex:0 0 160px;width:160px}
 .p3s-fld{display:flex;flex-direction:column;gap:5px;min-width:0}
+.p3s-cols{display:flex;flex-wrap:wrap;gap:6px}
+.p3s-col{width:22px;height:22px;border-radius:50%;border:0;padding:0;cursor:pointer;box-shadow:var(--shadow-sm)}
+.p3s-col.def{background:conic-gradient(#9aa1a8 0 25%,#c86a3c 0 50%,#878c93 0 75%,#e8e6df 0)}
+.p3s-col[data-on]{box-shadow:0 0 0 2px var(--surface),0 0 0 4px var(--accent,#2563eb)}
 .p3s-fld .lb{font-size:11px;font-weight:700;color:var(--text-3);display:flex;gap:6px;align-items:baseline}
 .p3s-fld .lb i{font-style:normal;font-weight:600;color:var(--text-3);opacity:.8;font-size:10.5px;margin-left:auto}
 .p3s-well{display:flex;align-items:center;height:42px;border-radius:11px;background:var(--surface2);box-shadow:var(--shadow-inset);padding:0 4px;gap:2px;box-sizing:border-box}
@@ -1437,7 +1514,8 @@ function p3sBuild3D(THREE, grp, st, tex) {
   let minX = 1e9, maxX = -1e9, minZ = 1e9, maxZ = -1e9, maxY = 0;
   const eat = (x, y, z) => { minX = Math.min(minX, x); maxX = Math.max(maxX, x); minZ = Math.min(minZ, z); maxZ = Math.max(maxZ, z); maxY = Math.max(maxY, y); };
   const G = Math.max(40, +st.groundW || 40);
-  const ground = add(new THREE.Mesh(new THREE.PlaneGeometry(G * 3, G * 3), new THREE.MeshLambertMaterial({ color: 0xb9c4a5 })));
+  const gT = p3sGrassTex(THREE).clone(); gT.needsUpdate = true; gT.repeat.set(G * 3 / 6, G * 3 / 6);
+  const ground = add(new THREE.Mesh(new THREE.PlaneGeometry(G * 3, G * 3), new THREE.MeshLambertMaterial({ color: 0xffffff, map: gT })));
   ground.rotation.x = -Math.PI / 2; ground.position.y = -0.03; ground.receiveShadow = true;
   if (st.baseMap && st.baseMap.url) {
     const W = Math.max(2, +st.baseMap.widthM || 30);
@@ -1451,7 +1529,7 @@ function p3sBuild3D(THREE, grp, st, tex) {
       pm.geometry.dispose(); pm.geometry = new THREE.PlaneGeometry(pw, pw * (im.height / im.width));
     });
     const b = p3sClamp(st.photoBright == null ? 0.7 : +st.photoBright, 0.25, 1);
-    const pm = new THREE.Mesh(new THREE.PlaneGeometry(pw, pw), new THREE.MeshBasicMaterial({ map: t, transparent: true,
+    const pm = new THREE.Mesh(new THREE.PlaneGeometry(pw, pw), new THREE.MeshBasicMaterial({ map: t, transparent: true, alphaMap: p3sFadeTex(THREE),
       opacity: p3sClamp(+st.photoOpacity || 0.95, 0.15, 1), color: new THREE.Color(b + 0.2, b + 0.2, b + 0.2) }));
     if (t.image && t.image.width) pm.geometry = new THREE.PlaneGeometry(pw, pw * (t.image.height / t.image.width));
     pm.userData.tint = b + 0.2;
@@ -1507,14 +1585,22 @@ function p3sBuild3D(THREE, grp, st, tex) {
     } },
   };
   const MT = {};
-  const matSet = (key) => {
-    if (MT[key]) return MT[key];
-    const D = MDEF[key] || MDEF.metal, c = document.createElement("canvas"); c.width = D.cw; c.height = D.ch; D.draw(c.getContext("2d"));
-    const t = new THREE.CanvasTexture(c); t.wrapS = t.wrapT = THREE.RepeatWrapping; t.anisotropy = 8; t.repeat.set(1 / D.tw, 1 / D.th);
-    return (MT[key] = {
-      roof: new THREE.MeshLambertMaterial({ color: D.c, map: t, side: THREE.DoubleSide }),
-      cap: new THREE.MeshLambertMaterial({ color: D.cap, side: THREE.DoubleSide }),
-      fas: new THREE.MeshLambertMaterial({ color: D.fas, side: THREE.DoubleSide }),
+  const MTX = {};
+  // col = สีหลังคาที่ผู้ใช้เลือก (#rrggbb) — ครอบสันเข้มลง · แผ่นปิดขอบเมทัลชีทสีเดียวกับหลังคา (บ้านกระเบื้องเชิงชายยังขาว)
+  const matSet = (key, col) => {
+    const ck = key + "|" + (col || "");
+    if (MT[ck]) return MT[ck];
+    const D = MDEF[key] || MDEF.metal;
+    let t = MTX[key];
+    if (!t) {
+      const c = document.createElement("canvas"); c.width = D.cw; c.height = D.ch; D.draw(c.getContext("2d"));
+      t = MTX[key] = new THREE.CanvasTexture(c); t.wrapS = t.wrapT = THREE.RepeatWrapping; t.anisotropy = 8; t.repeat.set(1 / D.tw, 1 / D.th);
+    }
+    const cc = col && /^#[0-9a-f]{6}$/i.test(col) ? new THREE.Color(col) : null;
+    return (MT[ck] = {
+      roof: new THREE.MeshLambertMaterial({ color: cc ? cc.clone() : D.c, map: t, side: THREE.DoubleSide }),
+      cap: new THREE.MeshLambertMaterial({ color: cc ? cc.clone().multiplyScalar(0.78) : D.cap, side: THREE.DoubleSide }),
+      fas: new THREE.MeshLambertMaterial({ color: cc && !D.house ? cc.clone().multiplyScalar(0.9) : D.fas, side: THREE.DoubleSide }),
       H: D.H, house: !!D.house });
   };
   const roofMat = matSet("metal").roof;
@@ -1639,6 +1725,21 @@ function p3sBuild3D(THREE, grp, st, tex) {
       const m = add(new THREE.Mesh(g, mat)); m.castShadow = true; m.receiveShadow = true;
     };
     mk(wp, wm || wallMat, wu); mk(bp, baseMat);
+    // เงานุ่มบนพื้นรอบโคนผนัง กว้าง 1.1 ม. (AO ปลอม — ทำให้อาคารดูวางบนพื้นจริง ไม่ลอย)
+    const AW = 1.1, ap = [], au = [], nE = foot.map((a, i) => { const b = foot[(i + 1) % foot.length], L = Math.hypot(b.x - a.x, b.z - a.z) || 1; return { x: (b.z - a.z) / L * sg, z: -(b.x - a.x) / L * sg }; });
+    const off = foot.map((a, i) => {
+      const n0 = nE[(i - 1 + foot.length) % foot.length], n1 = nE[i]; let mx = n0.x + n1.x, mz = n0.z + n1.z; const L = Math.hypot(mx, mz) || 1; mx /= L; mz /= L;
+      const sc = AW / Math.max(0.35, mx * n1.x + mz * n1.z); return { x: a.x + mx * sc, z: a.z + mz * sc };
+    });
+    foot.forEach((a, i) => {
+      const j = (i + 1) % foot.length, b = foot[j], A2 = off[i], B2 = off[j], Y = 0.006;
+      ap.push(a.x, Y, a.z, b.x, Y, b.z, B2.x, Y, B2.z, a.x, Y, a.z, B2.x, Y, B2.z, A2.x, Y, A2.z);
+      au.push(0, 1, 1, 1, 1, 0, 0, 1, 1, 0, 0, 0);
+    });
+    if (ap.length) {
+      const g = new THREE.BufferGeometry(); g.setAttribute("position", new THREE.Float32BufferAttribute(ap, 3)); g.setAttribute("uv", new THREE.Float32BufferAttribute(au, 2));
+      add(new THREE.Mesh(g, new THREE.MeshBasicMaterial({ map: p3sAOTex(THREE), transparent: true, depthWrite: false, side: THREE.DoubleSide }))).renderOrder = 1;
+    }
     // เส้นมุมอาคาร + ขอบบนผนัง
     const cl = []; foot.forEach((p) => cl.push(p.x, 0, p.z, p.x, topAt(p.x, p.z), p.z));
     const lg = new THREE.BufferGeometry(); lg.setAttribute("position", new THREE.Float32BufferAttribute(cl.concat(tl), 3));
@@ -1649,7 +1750,7 @@ function p3sBuild3D(THREE, grp, st, tex) {
   const topY = (x, z) => { let y = null; for (let i = 0; i < allTris.length; i++) { const v = surfY([allTris[i]], x, z); if (v != null && (y == null || v > y)) y = v; } return y; };
   (st.roofs || []).forEach((roof) => {
     let faces = [];
-    curMS = matSet(roof.p3sGround ? "metal" : p3sRoofMat(roof));
+    curMS = roof.p3sGround ? matSet("metal") : matSet(p3sRoofMat(roof), roof.p3sCol);
     const wmat = curMS.house ? plasterMat : wallMat;
     if (roof.kind === "poly") {
       if (!Array.isArray(roof.pts) || roof.pts.length < 3) return;
@@ -2148,6 +2249,7 @@ function p3sBuild3D(THREE, grp, st, tex) {
 }
 
 function P3SView3D({ st, sun, api }) {
+  p3sLogoImg();
   const mountRef = React.useRef(null);
   const T = React.useRef({});
   const [ready, setReady] = React.useState(false);
@@ -2243,7 +2345,7 @@ function P3SView3D({ st, sun, api }) {
       /* ถ่ายภาพ: เรนเดอร์ใหม่นอกจอ 16:9 เสมอ (3840×2160 ไม่เกินที่การ์ดจอรับได้) ไม่ขึ้นกับขนาดจอ 3D — แผงข้างไม่ทำให้ภาพแคบ
          · กล้องเดิม (มุมเงย fov แนวตั้ง) จึงได้ภาพกว้างขึ้นด้านข้าง · ซ่อนดวงอาทิตย์จำลอง/เส้นทางโคจร/ดาว/เส้นขอบช่วยวาด
          · เงาละเอียด 4096 เฉพาะตอนถ่าย — จอปกติไม่ช้าลง */
-      shot: () => {
+      shot: (opt) => {
         const cv = renderer.domElement, w = cv.clientWidth || 1, h = cv.clientHeight || 1, pr = renderer.getPixelRatio();
         const gl = renderer.getContext(), maxS = Math.min(gl.getParameter(gl.MAX_RENDERBUFFER_SIZE) || 4096, gl.getParameter(gl.MAX_TEXTURE_SIZE) || 4096, 8192);
         const SW = Math.min(3840, maxS), SH = Math.round(SW * 9 / 16), asp0 = camera.aspect;
@@ -2256,7 +2358,11 @@ function P3SView3D({ st, sun, api }) {
           const big = Math.min(8192, glMax); sunL.shadow.mapSize.set(big, big); remap();
           renderer.setPixelRatio(1); renderer.setSize(SW, SH, false);
           camera.aspect = SW / SH; camera.updateProjectionMatrix();
-          renderer.render(scene, camera); url = cv.toDataURL("image/png");
+          renderer.render(scene, camera);
+          if (opt && opt.info) {   // กรอบข้อมูล/โลโก้ — วาดทับบนแคนวาส 2D (ต้องทำในเฟรมเดียวกับที่เรนเดอร์)
+            const c2 = document.createElement("canvas"); c2.width = SW; c2.height = SH; const g2 = c2.getContext("2d");
+            g2.drawImage(cv, 0, 0, SW, SH); p3sDrawInfo(g2, SW, SH, opt.info); url = c2.toDataURL("image/png");
+          } else url = cv.toDataURL("image/png");
         } finally {
           hid.forEach((o) => { o.visible = true; });
           sunL.shadow.mapSize.set(sm, sm); remap();
@@ -2544,6 +2650,7 @@ function Plan3DStudio({ job, onClose, currentUser, onSwitch }) {
   const vidRef = React.useRef(null);                        // กำลังอัดวิดีโอเงา (ตัวหยุดอัด)
   const [vidOn, setVidOn] = React.useState(false);
   const [mediaMsg, setMediaMsg] = React.useState(null);
+  const [shotInfo, setShotInfo] = React.useState(() => { try { return localStorage.getItem("p3s_shotInfo") !== "0"; } catch (e) { return true; } });
   const [camK, setCamK] = React.useState(null);
   const [wide3d, setWide3d] = React.useState(false);       // ซ่อนแผงขวา จอ 3D เต็มความกว้าง
   const vidWideRef = React.useRef(false);                   // ซ่อนแผงให้เองตอนอัดวิดีโอ → อัดเสร็จคืนแผง            // มุมกล้องสำเร็จรูปที่กดล่าสุด (ไฮไลต์ไทล์)
@@ -4959,6 +5066,17 @@ function Plan3DStudio({ job, onClose, currentUser, onSwitch }) {
                       </select>
                     </span>
                   </label>)}
+                {!r.p3sGround && (
+                  <div className="p3s-fld">
+                    <span className="lb">สีหลังคา</span>
+                    <span className="p3s-cols">
+                      {[[null, "ตามวัสดุ"]].concat(P3S_ROOF_COLS).map(([c, t]) => (
+                        <button key={c || "def"} type="button" title={t} data-on={(r.p3sCol || null) === c ? "1" : undefined}
+                          className={"p3s-col" + (c ? "" : " def")} style={c ? { background: c } : null}
+                          onClick={() => commit((s) => Object.assign({}, s, {
+                            roofs: (s.roofs || []).map((q) => (q.id === r.id || (r.grp && q.grp === r.grp) ? Object.assign({}, q, { p3sCol: c }) : q)) }))} />))}
+                    </span>
+                  </div>)}
                 {r.p3sParapet != null && (
                   <div className="p3s-g2">
                     <P3SNum label="ขอบกันตกสูง" unit="ม." step={0.1} min={0} max={3} value={+r.p3sParapet || 0} onChange={(v) => patchRoof(r.id, { p3sParapet: v }, "par")} />
@@ -5058,6 +5176,10 @@ function Plan3DStudio({ job, onClose, currentUser, onSwitch }) {
           <div className="p3s-sec"><span className="lb">บันทึกภาพ</span>
             <button type="button" className="p3s-btn pri p3s-cta" disabled={vidOn} onClick={shotGo}>
               <P3SCamGlyph k="cam" /><span className="ct"><b>ถ่ายภาพ 4K</b><small>3840×2160 (16:9) · ซ่อนเส้นช่วยวาดและดวงอาทิตย์จำลอง</small></span></button>
+            <label className="p3s-row" style={{ fontSize: 12.5, fontWeight: 700, cursor: "pointer" }}>
+              <input type="checkbox" checked={shotInfo} onChange={(e) => { const v = e.target.checked; setShotInfo(v); try { localStorage.setItem("p3s_shotInfo", v ? "1" : "0"); } catch (er) {} }} />
+              ใส่โลโก้ · ชื่องาน · ขนาดระบบ บนภาพ
+            </label>
             <button type="button" className={"p3s-btn wide p3s-vid" + (vidOn ? " on" : "")} style={vidOn ? { "--pc": Math.round(((sunHour || 5.5) - 5.5) / 14 * 100) + "%" } : null}
               onClick={vidOn ? stopVideo : () => with3D((A) => { takeVideo(); return true; })}>
               <P3Icon name={vidOn ? "pause" : "play"} />{vidOn ? "กำลังอัด " + Math.round(((sunHour || 5.5) - 5.5) / 14 * 100) + "% · แตะเพื่อหยุด" : "อัดวิดีโอเงาทั้งวัน · จอเต็ม"}</button>
@@ -5188,7 +5310,18 @@ function Plan3DStudio({ job, onClose, currentUser, onSwitch }) {
   function shotGo() { with3D((A, fresh) => { if (fresh) setTimeout(takeShot, 700); else takeShot(); return true; }); }
   function takeShot() {
     const A = v3api.current; if (!A) { setMediaMsg("เปิดมุมมอง 3D ก่อน"); return; }
-    setMediaMsg(null); try { saveHref(A.shot(), mediaName("png")); } catch (e) { setMediaMsg("ถ่ายภาพไม่ได้: " + e.message); }
+    setMediaMsg(null); try { saveHref(A.shot(shotInfo ? { info: shotInfoData() } : null), mediaName("png")); } catch (e) { setMediaMsg("ถ่ายภาพไม่ได้: " + e.message); }
+  }
+  function shotInfoData() {
+    const MON = ["ม.ค.", "ก.พ.", "มี.ค.", "เม.ย.", "พ.ค.", "มิ.ย.", "ก.ค.", "ส.ค.", "ก.ย.", "ต.ค.", "พ.ย.", "ธ.ค."];
+    const pm = (st.sys || {}).panelModel, pmn = typeof pm === "string" ? pm : (pm && (pm.model || pm.name)) || "";
+    const h = +sun.hour || 12, hh = Math.floor(h), mm = Math.round((h - hh) * 60);
+    const nm = (job && job.name) || "", cd = (job && job.code) || "";
+    return {
+      title: nm || cd || "ระบบโซลาร์เซลล์",
+      sub: [nm && cd ? cd : "", total ? "ระบบ " + kwp + " kWp" : "", total ? total + " แผง" : "", pmn].filter(Boolean).join(" · "),
+      note: "จำลองแสงแดด " + (+sun.day || 15) + " " + MON[((+sun.month || 4) - 1 + 12) % 12] + " · " + hh + ":" + String(mm).padStart(2, "0") + " น.",
+    };
   }
   /* วิดีโอเงา: อัดจอ 3D ระหว่างดวงอาทิตย์เดิน 5:30→19:30 รอบเดียว — มุมกล้องผู้ใช้หมุน/ซูมเองได้ระหว่างอัด */
   function takeVideo() {
