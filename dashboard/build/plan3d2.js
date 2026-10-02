@@ -459,6 +459,7 @@ function p3sTrayTex(THREE) {
   }
   const t = new THREE.CanvasTexture(c);
   t.wrapS = THREE.RepeatWrapping;
+  t.wrapT = THREE.RepeatWrapping;
   t.anisotropy = 4;
   _p3sTrayTex = t;
   return t;
@@ -3971,6 +3972,174 @@ function p3sBuild3D(THREE, grp, st, tex) {
     roughness: 0.32,
     flatShading: true
   });
+  const SUP = 0.06,
+    supLift = (x, z) => {
+      const g = topY(x, z);
+      return g == null ? 0 : g + SUP;
+    };
+  const supAt = P => {
+    const out = [];
+    for (let i = 1; i < P.length; i++) {
+      const a = P[i - 1],
+        b = P[i],
+        L = Math.hypot(b.x - a.x, b.z - a.z);
+      if (L < 1e-3) continue;
+      const tx = (b.x - a.x) / L,
+        tz = (b.z - a.z) / L,
+        m = L < 0.6 ? 1 : Math.ceil((L - 0.4) / 1.2) + 1;
+      for (let k = 0; k < m; k++) {
+        const sd = m === 1 ? L / 2 : 0.2 + (L - 0.4) * k / (m - 1);
+        out.push({
+          x: a.x + tx * sd,
+          z: a.z + tz * sd,
+          tx,
+          tz
+        });
+      }
+    }
+    return out;
+  };
+  {
+    const ORD = {
+        walkway: 0,
+        tray: 1,
+        pipe: 2
+      },
+      sts = [];
+    (st.obstacles || []).filter(o => ORD[p3sObsType(o)] != null).sort((a, b) => ORD[p3sObsType(a)] - ORD[p3sObsType(b)]).forEach(o => {
+      const T = p3sObsType(o),
+        hw = T === "pipe" ? (+o.d || 0.025) / 2 + 0.015 : Math.max(0.05, +o.d || (T === "walkway" ? 0.3 : 0.1)) / 2 + 0.005;
+      supAt(p3sObsPath(o)).forEach(q => {
+        if (topY(q.x, q.z) == null) return;
+        const c = sts.find(c => {
+          if (Math.abs(c.tx * q.tx + c.tz * q.tz) < 0.96 || Math.abs((q.x - c.x) * c.tx + (q.z - c.z) * c.tz) > 0.45) return false;
+          const v = (q.x - c.x) * c.nx + (q.z - c.z) * c.nz;
+          return v - hw < c.hi + 1 && v + hw > c.lo - 1;
+        });
+        if (c) {
+          const v = (q.x - c.x) * c.nx + (q.z - c.z) * c.nz;
+          c.lo = Math.min(c.lo, v - hw);
+          c.hi = Math.max(c.hi, v + hw);
+        } else sts.push({
+          x: q.x,
+          z: q.z,
+          tx: q.tx,
+          tz: q.tz,
+          nx: -q.tz,
+          nz: q.tx,
+          lo: -hw,
+          hi: hw
+        });
+      });
+    });
+    const rl = [],
+      ft = [],
+      QB = (arr, a, b, c, d) => [a, b, c, a, c, d].forEach(v => arr.push(v.x, v.y, v.z));
+    const bx = (arr, c, a, b, h) => {
+      const V = (i, j, k) => ({
+        x: c.x + a.x * i + b.x * j + h.x * k,
+        y: c.y + a.y * i + b.y * j + h.y * k,
+        z: c.z + a.z * i + b.z * j + h.z * k
+      });
+      QB(arr, V(-1, -1, 1), V(1, -1, 1), V(1, 1, 1), V(-1, 1, 1));
+      QB(arr, V(-1, 1, -1), V(1, 1, -1), V(1, -1, -1), V(-1, -1, -1));
+      QB(arr, V(-1, -1, -1), V(1, -1, -1), V(1, -1, 1), V(-1, -1, 1));
+      QB(arr, V(1, 1, -1), V(-1, 1, -1), V(-1, 1, 1), V(1, 1, 1));
+      QB(arr, V(-1, 1, -1), V(-1, -1, -1), V(-1, -1, 1), V(-1, 1, 1));
+      QB(arr, V(1, -1, -1), V(1, 1, -1), V(1, 1, 1), V(1, -1, 1));
+    };
+    sts.forEach(c => {
+      const lo = c.lo - 0.05,
+        hi = c.hi + 0.05,
+        g0 = topY(c.x, c.z),
+        gy = (x, z) => {
+          const g = topY(x, z);
+          return g == null ? g0 : g;
+        };
+      const n = Math.max(1, Math.ceil((hi - lo) / 0.5));
+      for (let k = 0; k < n; k++) {
+        const v0 = lo + (hi - lo) * k / n,
+          v1 = lo + (hi - lo) * (k + 1) / n;
+        const p0 = {
+            x: c.x + c.nx * v0,
+            z: c.z + c.nz * v0
+          },
+          p1 = {
+            x: c.x + c.nx * v1,
+            z: c.z + c.nz * v1
+          };
+        const y0 = gy(p0.x, p0.z) + SUP - 0.0175,
+          y1 = gy(p1.x, p1.z) + SUP - 0.0175;
+        bx(rl, {
+          x: (p0.x + p1.x) / 2,
+          y: (y0 + y1) / 2,
+          z: (p0.z + p1.z) / 2
+        }, {
+          x: (p1.x - p0.x) / 2,
+          y: (y1 - y0) / 2,
+          z: (p1.z - p0.z) / 2
+        }, {
+          x: c.tx * 0.02,
+          y: 0,
+          z: c.tz * 0.02
+        }, {
+          x: 0,
+          y: 0.0175,
+          z: 0
+        });
+      }
+      const m = Math.max(2, Math.ceil((hi - lo - 0.1) / 0.8) + 1),
+        off = 0.0225;
+      for (let k = 0; k < m; k++) {
+        const v = lo + 0.05 + (hi - lo - 0.1) * k / (m - 1),
+          x = c.x + c.nx * v,
+          z = c.z + c.nz * v,
+          g = gy(x, z),
+          tp = g + SUP;
+        const A = {
+          x: c.nx * 0.025,
+          y: 0,
+          z: c.nz * 0.025
+        };
+        bx(ft, {
+          x: x + c.tx * off,
+          y: (g + tp) / 2,
+          z: z + c.tz * off
+        }, A, {
+          x: c.tx * 0.0025,
+          y: 0,
+          z: c.tz * 0.0025
+        }, {
+          x: 0,
+          y: (tp - g) / 2,
+          z: 0
+        });
+        bx(ft, {
+          x: x + c.tx * (off + 0.04),
+          y: g + 0.003,
+          z: z + c.tz * (off + 0.04)
+        }, A, {
+          x: c.tx * 0.042,
+          y: 0,
+          z: c.tz * 0.042
+        }, {
+          x: 0,
+          y: 0.003,
+          z: 0
+        });
+      }
+    });
+    meshOf(rl, new THREE.MeshStandardMaterial({
+      color: 0xbfc6ce,
+      roughness: 0.38,
+      metalness: 0.55
+    }));
+    meshOf(ft, new THREE.MeshStandardMaterial({
+      color: 0x9aa4ae,
+      roughness: 0.45,
+      metalness: 0.5
+    }));
+  }
   (st.obstacles || []).forEach(o => {
     const T = p3sObsType(o),
       onRoof = P3S_ON_ROOF[T] != null,
@@ -4093,6 +4262,7 @@ function p3sBuild3D(THREE, grp, st, tex) {
         }
         return;
       }
+      const wLift = (x, z) => topY(x, z) == null ? 0.02 : supLift(x, z);
       const W = Math.max(0.1, +o.d || 0.3),
         pos = [],
         sides = [],
@@ -4112,8 +4282,8 @@ function p3sBuild3D(THREE, grp, st, tex) {
           const f = k / n,
             l = V3(R[0].x + (R[1].x - R[0].x) * f, 0, R[0].z + (R[1].z - R[0].z) * f),
             r = V3(R[3].x + (R[2].x - R[3].x) * f, 0, R[3].z + (R[2].z - R[3].z) * f);
-          l.y = ground(l.x, l.z) + 0.12;
-          r.y = ground(r.x, r.z) + 0.12;
+          l.y = wLift(l.x, l.z) + 0.1;
+          r.y = wLift(r.x, r.z) + 0.1;
           rows.push([l, r]);
         }
         for (let k = 0; k < n; k++) {
@@ -4163,7 +4333,7 @@ function p3sBuild3D(THREE, grp, st, tex) {
     }
     if (T === "pipe" || T === "tray") {
       const P = p3sObsPath(o),
-        lift = (x, z) => ground(x, z) + (topY(x, z) == null ? 0 : 0.012);
+        lift = supLift;
       const S = [];
       for (let i = 1; i < P.length; i++) {
         const A = P[i - 1],
@@ -4177,7 +4347,7 @@ function p3sBuild3D(THREE, grp, st, tex) {
       }
       if (T === "pipe") {
         const r = Math.max(0.01, (+o.d || 0.025) / 2),
-          up = r + 0.02;
+          up = r;
         const pm = new THREE.MeshStandardMaterial({
             color: 0x3fae74,
             roughness: 0.45,
@@ -4204,17 +4374,14 @@ function p3sBuild3D(THREE, grp, st, tex) {
           roughness: 0.45,
           metalness: 0.5
         });
-        let acc = 0;
-        for (let k = 1; k < S.length; k++) {
-          acc += S[k].distanceTo(S[k - 1]);
-          if (acc >= 1) {
-            acc = 0;
-            const q = S[k],
-              b = new THREE.Mesh(new THREE.BoxGeometry(0.03, up, 0.03), cl);
-            b.position.set(q.x, q.y + up / 2 - r * 0.3, q.z);
-            add(b);
-          }
-        }
+        supAt(P).forEach(q => {
+          if (topY(q.x, q.z) == null) return;
+          const b = new THREE.Mesh(new THREE.BoxGeometry(0.02, r * 2 + 0.008, r * 2 + 0.008), cl);
+          b.position.set(q.x, lift(q.x, q.z) + r, q.z);
+          b.rotation.y = -Math.atan2(q.tz, q.tx);
+          b.castShadow = true;
+          add(b);
+        });
         const gm = new THREE.MeshStandardMaterial({
             color: 0xbfc4ca,
             roughness: 0.3,
@@ -4272,58 +4439,114 @@ function p3sBuild3D(THREE, grp, st, tex) {
       }
       const W = Math.max(0.05, +o.d || 0.1),
         H = W >= 0.15 ? 0.1 : 0.05,
-        side = [],
-        suv = [],
-        top = [];
-      const ofs = (q, nx, nz, s) => V3(q.x + nx * s, q.y, q.z + nz * s);
-      for (let k = 1; k < S.length; k++) {
-        const A = S[k - 1],
-          B = S[k],
-          dx = B.x - A.x,
-          dz = B.z - A.z,
-          L = Math.hypot(dx, dz) || 1,
-          nx = -dz / L,
-          nz = dx / L;
-        const a0 = A,
-          b0 = B;
-        [-1, 1].forEach(sg => {
-          const p1 = ofs(a0, nx, nz, sg * W / 2),
-            p2 = ofs(b0, nx, nz, sg * W / 2),
-            p3 = p2.clone().add(V3(0, H, 0)),
-            p4 = p1.clone().add(V3(0, H, 0));
-          [p1, p2, p3, p1, p3, p4].forEach(v => side.push(v.x, v.y, v.z));
-          const ub = L / 0.4;
-          [[0, 0], [ub, 0], [ub, 1], [0, 0], [ub, 1], [0, 1]].forEach(([u, v]) => suv.push(u, v));
+        hw = W / 2;
+      const mit = sd => P.map((q, i) => {
+        const dir = (a, b) => {
+          const dx = b.x - a.x,
+            dz = b.z - a.z,
+            L = Math.hypot(dx, dz);
+          return L < 1e-4 ? null : {
+            x: dx / L,
+            z: dz / L
+          };
+        };
+        const d0 = i > 0 ? dir(P[i - 1], q) : null,
+          d1 = i < P.length - 1 ? dir(q, P[i + 1]) : null;
+        const n0 = d0 && {
+            x: -d0.z,
+            z: d0.x
+          },
+          n1 = d1 && {
+            x: -d1.z,
+            z: d1.x
+          };
+        if (!n0 || !n1) {
+          const nn = n0 || n1 || {
+            x: 0,
+            z: 1
+          };
+          return {
+            x: q.x + nn.x * sd,
+            z: q.z + nn.z * sd
+          };
+        }
+        let mx = n0.x + n1.x,
+          mz = n0.z + n1.z;
+        const ml = Math.hypot(mx, mz) || 1;
+        mx /= ml;
+        mz /= ml;
+        const k = sd / Math.max(0.25, mx * n0.x + mz * n0.z);
+        return {
+          x: q.x + mx * k,
+          z: q.z + mz * k
+        };
+      });
+      const ML = mit(hw),
+        MR = mit(-hw),
+        CL = mit(hw + 0.004),
+        CR = mit(-hw - 0.004),
+        bot = [],
+        buv = [],
+        wal = [],
+        cov = [];
+      const Yp = (q, dy) => V3(q.x, lift(q.x, q.z) + (dy || 0), q.z),
+        lp = (a, b, f) => ({
+          x: a.x + (b.x - a.x) * f,
+          z: a.z + (b.z - a.z) * f
         });
-        const c1 = ofs(a0, nx, nz, -W / 2 - 0.004).add(V3(0, H + 0.004, 0)),
-          c2 = ofs(b0, nx, nz, -W / 2 - 0.004).add(V3(0, H + 0.004, 0)),
-          c3 = ofs(b0, nx, nz, W / 2 + 0.004).add(V3(0, H + 0.004, 0)),
-          c4 = ofs(a0, nx, nz, W / 2 + 0.004).add(V3(0, H + 0.004, 0));
-        [c1, c2, c3, c1, c3, c4].forEach(v => top.push(v.x, v.y, v.z));
+      const QA = (arr, a, b, c, d) => [a, b, c, a, c, d].forEach(v => arr.push(v.x, v.y, v.z));
+      let s0 = 0;
+      for (let i = 1; i < P.length; i++) {
+        const L = Math.hypot(P[i].x - P[i - 1].x, P[i].z - P[i - 1].z);
+        if (L < 1e-3) continue;
+        const n = Math.max(1, Math.ceil(L / 0.5)),
+          vv = W / 0.08;
+        for (let k = 0; k < n; k++) {
+          const f0 = k / n,
+            f1 = (k + 1) / n;
+          const l0 = lp(ML[i - 1], ML[i], f0),
+            l1 = lp(ML[i - 1], ML[i], f1),
+            r0 = lp(MR[i - 1], MR[i], f0),
+            r1 = lp(MR[i - 1], MR[i], f1);
+          QA(bot, Yp(l0), Yp(l1), Yp(r1), Yp(r0));
+          const u0 = (s0 + L * f0) / 0.4,
+            u1 = (s0 + L * f1) / 0.4;
+          [[u0, 0], [u1, 0], [u1, vv], [u0, 0], [u1, vv], [u0, vv]].forEach(([u, v]) => buv.push(u, v));
+          QA(wal, Yp(l0), Yp(l1), Yp(l1, H), Yp(l0, H));
+          QA(wal, Yp(r0), Yp(r1), Yp(r1, H), Yp(r0, H));
+          const c0 = lp(CL[i - 1], CL[i], f0),
+            c1 = lp(CL[i - 1], CL[i], f1),
+            e0 = lp(CR[i - 1], CR[i], f0),
+            e1 = lp(CR[i - 1], CR[i], f1);
+          QA(cov, Yp(c0, H + 0.004), Yp(c1, H + 0.004), Yp(e1, H + 0.004), Yp(e0, H + 0.004));
+        }
+        s0 += L;
       }
-      const sg = new THREE.BufferGeometry();
-      sg.setAttribute("position", new THREE.Float32BufferAttribute(side, 3));
-      sg.setAttribute("uv", new THREE.Float32BufferAttribute(suv, 2));
-      sg.computeVertexNormals();
-      const sm = add(new THREE.Mesh(sg, new THREE.MeshStandardMaterial({
+      [0, P.length - 1].forEach(i => QA(wal, Yp(ML[i]), Yp(MR[i]), Yp(MR[i], H), Yp(ML[i], H)));
+      const bg = new THREE.BufferGeometry();
+      bg.setAttribute("position", new THREE.Float32BufferAttribute(bot, 3));
+      bg.setAttribute("uv", new THREE.Float32BufferAttribute(buv, 2));
+      bg.computeVertexNormals();
+      const bm = add(new THREE.Mesh(bg, new THREE.MeshStandardMaterial({
         map: p3sTrayTex(THREE),
         roughness: 0.42,
         metalness: 0.45,
         side: THREE.DoubleSide
       })));
-      sm.castShadow = true;
-      sm.receiveShadow = true;
-      const tg2 = new THREE.BufferGeometry();
-      tg2.setAttribute("position", new THREE.Float32BufferAttribute(top, 3));
-      tg2.computeVertexNormals();
-      const tm = add(new THREE.Mesh(tg2, new THREE.MeshStandardMaterial({
+      bm.castShadow = true;
+      bm.receiveShadow = true;
+      meshOf(wal, new THREE.MeshStandardMaterial({
+        color: 0xd4d9df,
+        roughness: 0.4,
+        metalness: 0.45,
+        side: THREE.DoubleSide
+      }));
+      meshOf(cov, new THREE.MeshStandardMaterial({
         color: 0xe3e7eb,
         roughness: 0.35,
         metalness: 0.5,
         side: THREE.DoubleSide
-      })));
-      tm.castShadow = true;
-      tm.receiveShadow = true;
+      }));
       S.forEach(q => eat(q.x, q.y + H, q.z));
       return;
     }
@@ -4547,7 +4770,7 @@ function P3SView3D({
     });
     renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
     renderer.shadowMap.enabled = true;
-    renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+    renderer.shadowMap.type = THREE.PCFShadowMap;
     renderer.toneMapping = THREE.ACESFilmicToneMapping;
     renderer.toneMappingExposure = 1.0;
     el.appendChild(renderer.domElement);
@@ -4565,8 +4788,10 @@ function P3SView3D({
     scene.add(hemi);
     const sunL = new THREE.DirectionalLight(0xffffff, 1.3);
     sunL.castShadow = true;
-    sunL.shadow.mapSize.set(2048, 2048);
     sunL.shadow.bias = -0.0004;
+    const glMax = renderer.capabilities.maxTextureSize || 4096,
+      SHM = glMax >= 4096 ? 4096 : 2048;
+    sunL.shadow.mapSize.set(SHM, SHM);
     scene.add(sunL);
     scene.add(sunL.target);
     const dyn = new THREE.Group();
@@ -4781,7 +5006,8 @@ function P3SView3D({
           };
         let url;
         try {
-          sunL.shadow.mapSize.set(4096, 4096);
+          const big = Math.min(8192, glMax);
+          sunL.shadow.mapSize.set(big, big);
           remap();
           renderer.setPixelRatio(1);
           renderer.setSize(SW, SH, false);
@@ -4944,7 +5170,7 @@ function P3SView3D({
         if (o.userData && o.userData.tint && o.material) o.material.color.setScalar(o.userData.tint * (0.16 + 0.84 * k));
       });
       t.sunL.target.position.set(b.cx, 0, b.cz);
-      const S = b.R * 1.6,
+      const S = b.R * 1.15,
         sc = t.sunL.shadow.camera;
       sc.left = -S;
       sc.right = S;
@@ -10973,7 +11199,18 @@ function Plan3DStudio({
       onClick: () => patchObs(o.id, {
         d: v
       }, "od")
-    }, lb)))), (T === "walkway" || T === "sky") && React.createElement(P3SNum, {
+    }, lb)))), T === "tray" && React.createElement(P3SNum, {
+      label: "\u0E01\u0E27\u0E49\u0E32\u0E07\u0E23\u0E32\u0E07 (\u0E01\u0E33\u0E2B\u0E19\u0E14\u0E40\u0E2D\u0E07)",
+      unit: "\u0E0B\u0E21.",
+      step: 5,
+      min: 5,
+      max: 100,
+      digits: 0,
+      value: Math.round((+o.d || 0.1) * 100),
+      onChange: v => patchObs(o.id, {
+        d: Math.max(0.05, Math.min(1, v / 100))
+      }, "od")
+    }), (T === "walkway" || T === "sky") && React.createElement(P3SNum, {
       label: "\u0E01\u0E27\u0E49\u0E32\u0E07",
       unit: "\u0E21.",
       step: 0.05,

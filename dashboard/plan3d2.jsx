@@ -226,14 +226,14 @@ function p3sNearOnPath(P, w) {
   }
   return best;
 }
-/* ลายรูพรุนข้างรางไฟ (ทำครั้งเดียว) */
+/* ลายรูยาวที่พื้นรางไฟ (ทำครั้งเดียว · ซ้ำทั้งสองแกน) */
 let _p3sTrayTex = null;
 function p3sTrayTex(THREE) {
   if (_p3sTrayTex) return _p3sTrayTex;
   const c = document.createElement("canvas"); c.width = 128; c.height = 32; const g = c.getContext("2d");
   g.fillStyle = "#d4d9df"; g.fillRect(0, 0, 128, 32);
   g.fillStyle = "#59626c"; for (let i = 0; i < 4; i++) { const x = 8 + i * 32; g.beginPath(); g.moveTo(x + 4, 11); g.lineTo(x + 16, 11); g.arc(x + 16, 16, 5, -Math.PI / 2, Math.PI / 2); g.lineTo(x + 4, 21); g.arc(x + 4, 16, 5, Math.PI / 2, Math.PI * 1.5); g.fill(); }
-  const t = new THREE.CanvasTexture(c); t.wrapS = THREE.RepeatWrapping; t.anisotropy = 4;
+  const t = new THREE.CanvasTexture(c); t.wrapS = THREE.RepeatWrapping; t.wrapT = THREE.RepeatWrapping; t.anisotropy = 4;
   _p3sTrayTex = t; return t;
 }
 /* เส้นของราว/ทางเดิน (พิกัดโลก) — ใหม่เก็บ pts สัมพัทธ์ x/z (คลิกต่อจุด) · ของเก่าที่ไม่มี pts = เส้นตรงตาม w/rot */
@@ -1856,6 +1856,60 @@ function p3sBuild3D(THREE, grp, st, tex) {
   }
   const metal = new THREE.MeshStandardMaterial({ color: 0xd9dee4, metalness: 0.3, roughness: 0.38 });
   const metalV = new THREE.MeshStandardMaterial({ color: 0xd2d8df, metalness: 0.35, roughness: 0.32, flatShading: true });
+  /* ทางเดิน · ท่อ PPR · รางไฟ บนหลังคา วางบน Rail ขวาง + L-feet (แบบเดียวกับใต้แผง) ทุก ~1.2 ม. ต่อช่วง
+     · ของที่เดินขนานข้างกัน (ห่าง < 1 ม.) ใช้ Rail ตัวเดียวกัน — Rail ยาวคลุมทุกเส้น ยื่นข้างละ 5 ซม. · L-feet ที่ปลาย + ทุก ≤ 0.8 ม.
+     · ผิวบน Rail สูงจากหลังคา SUP */
+  const SUP = 0.06, supLift = (x, z) => { const g = topY(x, z); return g == null ? 0 : g + SUP; };
+  const supAt = (P) => {
+    const out = [];
+    for (let i = 1; i < P.length; i++) {
+      const a = P[i - 1], b = P[i], L = Math.hypot(b.x - a.x, b.z - a.z); if (L < 1e-3) continue;
+      const tx = (b.x - a.x) / L, tz = (b.z - a.z) / L, m = L < 0.6 ? 1 : Math.ceil((L - 0.4) / 1.2) + 1;
+      for (let k = 0; k < m; k++) { const sd = m === 1 ? L / 2 : 0.2 + (L - 0.4) * k / (m - 1); out.push({ x: a.x + tx * sd, z: a.z + tz * sd, tx, tz }); }
+    }
+    return out;
+  };
+  {
+    const ORD = { walkway: 0, tray: 1, pipe: 2 }, sts = [];
+    (st.obstacles || []).filter((o) => ORD[p3sObsType(o)] != null).sort((a, b) => ORD[p3sObsType(a)] - ORD[p3sObsType(b)]).forEach((o) => {
+      const T = p3sObsType(o), hw = T === "pipe" ? (+o.d || 0.025) / 2 + 0.015 : Math.max(0.05, +o.d || (T === "walkway" ? 0.3 : 0.1)) / 2 + 0.005;
+      supAt(p3sObsPath(o)).forEach((q) => {
+        if (topY(q.x, q.z) == null) return;
+        const c = sts.find((c) => {
+          if (Math.abs(c.tx * q.tx + c.tz * q.tz) < 0.96 || Math.abs((q.x - c.x) * c.tx + (q.z - c.z) * c.tz) > 0.45) return false;
+          const v = (q.x - c.x) * c.nx + (q.z - c.z) * c.nz; return v - hw < c.hi + 1 && v + hw > c.lo - 1;
+        });
+        if (c) { const v = (q.x - c.x) * c.nx + (q.z - c.z) * c.nz; c.lo = Math.min(c.lo, v - hw); c.hi = Math.max(c.hi, v + hw); }
+        else sts.push({ x: q.x, z: q.z, tx: q.tx, tz: q.tz, nx: -q.tz, nz: q.tx, lo: -hw, hi: hw });
+      });
+    });
+    const rl = [], ft = [], QB = (arr, a, b, c, d) => [a, b, c, a, c, d].forEach((v) => arr.push(v.x, v.y, v.z));
+    const bx = (arr, c, a, b, h) => {
+      const V = (i, j, k) => ({ x: c.x + a.x * i + b.x * j + h.x * k, y: c.y + a.y * i + b.y * j + h.y * k, z: c.z + a.z * i + b.z * j + h.z * k });
+      QB(arr, V(-1, -1, 1), V(1, -1, 1), V(1, 1, 1), V(-1, 1, 1)); QB(arr, V(-1, 1, -1), V(1, 1, -1), V(1, -1, -1), V(-1, -1, -1));
+      QB(arr, V(-1, -1, -1), V(1, -1, -1), V(1, -1, 1), V(-1, -1, 1)); QB(arr, V(1, 1, -1), V(-1, 1, -1), V(-1, 1, 1), V(1, 1, 1));
+      QB(arr, V(-1, 1, -1), V(-1, -1, -1), V(-1, -1, 1), V(-1, 1, 1)); QB(arr, V(1, -1, -1), V(1, 1, -1), V(1, 1, 1), V(1, -1, 1));
+    };
+    sts.forEach((c) => {
+      const lo = c.lo - 0.05, hi = c.hi + 0.05, g0 = topY(c.x, c.z), gy = (x, z) => { const g = topY(x, z); return g == null ? g0 : g; };
+      const n = Math.max(1, Math.ceil((hi - lo) / 0.5));
+      for (let k = 0; k < n; k++) {   // Rail ทีละท่อนตามผิวหลังคา (ข้ามสันก็แนบ)
+        const v0 = lo + (hi - lo) * k / n, v1 = lo + (hi - lo) * (k + 1) / n;
+        const p0 = { x: c.x + c.nx * v0, z: c.z + c.nz * v0 }, p1 = { x: c.x + c.nx * v1, z: c.z + c.nz * v1 };
+        const y0 = gy(p0.x, p0.z) + SUP - 0.0175, y1 = gy(p1.x, p1.z) + SUP - 0.0175;
+        bx(rl, { x: (p0.x + p1.x) / 2, y: (y0 + y1) / 2, z: (p0.z + p1.z) / 2 }, { x: (p1.x - p0.x) / 2, y: (y1 - y0) / 2, z: (p1.z - p0.z) / 2 }, { x: c.tx * 0.02, y: 0, z: c.tz * 0.02 }, { x: 0, y: 0.0175, z: 0 });
+      }
+      const m = Math.max(2, Math.ceil((hi - lo - 0.1) / 0.8) + 1), off = 0.0225;
+      for (let k = 0; k < m; k++) {   // L-feet: แผ่นตั้งข้าง Rail + ฐานแปะหลังคา
+        const v = lo + 0.05 + (hi - lo - 0.1) * k / (m - 1), x = c.x + c.nx * v, z = c.z + c.nz * v, g = gy(x, z), tp = g + SUP;
+        const A = { x: c.nx * 0.025, y: 0, z: c.nz * 0.025 };
+        bx(ft, { x: x + c.tx * off, y: (g + tp) / 2, z: z + c.tz * off }, A, { x: c.tx * 0.0025, y: 0, z: c.tz * 0.0025 }, { x: 0, y: (tp - g) / 2, z: 0 });
+        bx(ft, { x: x + c.tx * (off + 0.04), y: g + 0.003, z: z + c.tz * (off + 0.04) }, A, { x: c.tx * 0.042, y: 0, z: c.tz * 0.042 }, { x: 0, y: 0.003, z: 0 });
+      }
+    });
+    meshOf(rl, new THREE.MeshStandardMaterial({ color: 0xbfc6ce, roughness: 0.38, metalness: 0.55 }));
+    meshOf(ft, new THREE.MeshStandardMaterial({ color: 0x9aa4ae, roughness: 0.45, metalness: 0.5 }));
+  }
   (st.obstacles || []).forEach((o) => {
     const T = p3sObsType(o), onRoof = P3S_ON_ROOF[T] != null, ox = +o.x || 0, oz = +o.z || 0;
     const by = onRoof ? (topY(ox, oz) || 0) : 0;
@@ -1904,12 +1958,13 @@ function p3sBuild3D(THREE, grp, st, tex) {
         for (let k = 1; k < posts.length; k++) { const A = posts[k - 1], B = posts[k]; tube(V3(A.x, A.y + H, A.z), V3(B.x, B.y + H, B.z), 0.024); tube(V3(A.x, A.y + H * 0.5, A.z), V3(B.x, B.y + H * 0.5, B.z), 0.018); }
         return;
       }
-      // ทางเดินตะแกรงไฟเบอร์กลาสสีเหลือง แนบผิวหลังคา (ทีละช่วง ปลายยื่นครึ่งความกว้างให้มุมต่อสนิท)
+      // ทางเดินตะแกรงไฟเบอร์กลาสสีเหลือง หนา 10 ซม. วางบน Rail ขวาง (ทีละช่วง ปลายยื่นครึ่งความกว้างให้มุมต่อสนิท)
+      const wLift = (x, z) => topY(x, z) == null ? 0.02 : supLift(x, z);
       const W = Math.max(0.1, +o.d || 0.3), pos = [], sides = [], ln = [], wmat = new THREE.MeshStandardMaterial({ color: 0xf5b800, roughness: 0.6, side: THREE.DoubleSide });
       const LN = (p, q) => ln.push(p.x, p.y + 0.006, p.z, q.x, q.y + 0.006, q.z);
       for (let i = 1; i < P.length; i++) {
         const R = p3sSegRect(P[i - 1], P[i], W / 2, W / 2), Ls = Math.hypot(R[1].x - R[0].x, R[1].z - R[0].z), n = Math.max(1, Math.ceil(Ls / 0.5)), rows = [];
-        for (let k = 0; k <= n; k++) { const f = k / n, l = V3(R[0].x + (R[1].x - R[0].x) * f, 0, R[0].z + (R[1].z - R[0].z) * f), r = V3(R[3].x + (R[2].x - R[3].x) * f, 0, R[3].z + (R[2].z - R[3].z) * f); l.y = ground(l.x, l.z) + 0.12; r.y = ground(r.x, r.z) + 0.12; rows.push([l, r]); }
+        for (let k = 0; k <= n; k++) { const f = k / n, l = V3(R[0].x + (R[1].x - R[0].x) * f, 0, R[0].z + (R[1].z - R[0].z) * f), r = V3(R[3].x + (R[2].x - R[3].x) * f, 0, R[3].z + (R[2].z - R[3].z) * f); l.y = wLift(l.x, l.z) + 0.1; r.y = wLift(r.x, r.z) + 0.1; rows.push([l, r]); }
         for (let k = 0; k < n; k++) { const [a1, b1] = rows[k], [a2, b2] = rows[k + 1]; [a1, b1, b2, a1, b2, a2].forEach((q) => pos.push(q.x, q.y, q.z)); }
         const D = (q) => V3(q.x, q.y - 0.1, q.z), side = (p1, p2) => [p1, p2, D(p2), p1, D(p2), D(p1)].forEach((q) => sides.push(q.x, q.y, q.z));
         for (let k = 0; k < n; k++) { side(rows[k][0], rows[k + 1][0]); side(rows[k][1], rows[k + 1][1]); }
@@ -1927,7 +1982,7 @@ function p3sBuild3D(THREE, grp, st, tex) {
       return;
     }
     if (T === "pipe" || T === "tray") {
-      const P = p3sObsPath(o), lift = (x, z) => ground(x, z) + (topY(x, z) == null ? 0 : 0.012);   // บนหลังคา = ลอยบนลอน/ขาจับ
+      const P = p3sObsPath(o), lift = supLift;   // บนหลังคา = วางบน Rail ขวาง
       // เดินตามผิวหลังคาทีละ ≤ 0.5 ม. (ผิวลาด/ข้ามสันก็แนบ)
       const S = [];
       for (let i = 1; i < P.length; i++) {
@@ -1935,14 +1990,14 @@ function p3sBuild3D(THREE, grp, st, tex) {
         for (let k = i === 1 ? 0 : 1; k <= n; k++) { const x = A.x + (B.x - A.x) * k / n, z = A.z + (B.z - A.z) * k / n; S.push(V3(x, lift(x, z), z)); }
       }
       if (T === "pipe") {
-        const r = Math.max(0.01, (+o.d || 0.025) / 2), up = r + 0.02;
+        const r = Math.max(0.01, (+o.d || 0.025) / 2), up = r;
         const pm = new THREE.MeshStandardMaterial({ color: 0x3fae74, roughness: 0.45, metalness: 0.02 }), ym = new THREE.MeshStandardMaterial({ color: 0xf2d32c, roughness: 0.5 });
         const Y = (q, dy) => V3(q.x, q.y + up + (dy || 0), q.z);
         for (let k = 1; k < S.length; k++) { tube(Y(S[k - 1]), Y(S[k]), r, pm); tube(Y(S[k - 1], r * 0.92), Y(S[k], r * 0.92), r * 0.16, ym); }
         P.forEach((q, k) => { if (k === 0 || k === P.length - 1) return; const m = new THREE.Mesh(new THREE.SphereGeometry(r * 1.18, 12, 8), pm); m.position.copy(Y(V3(q.x, lift(q.x, q.z), q.z))); m.castShadow = true; add(m); });
-        // ฝาปิดปลายท่อ + แคลมป์ยึดทุก 1 ม.
+        // แคลมป์รัดท่อลง Rail ทุกจุดที่มี Rail ขวาง
         const cl = new THREE.MeshStandardMaterial({ color: 0x9aa4ae, roughness: 0.45, metalness: 0.5 });
-        let acc = 0; for (let k = 1; k < S.length; k++) { acc += S[k].distanceTo(S[k - 1]); if (acc >= 1) { acc = 0; const q = S[k], b = new THREE.Mesh(new THREE.BoxGeometry(0.03, up, 0.03), cl); b.position.set(q.x, q.y + up / 2 - r * 0.3, q.z); add(b); } }
+        supAt(P).forEach((q) => { if (topY(q.x, q.z) == null) return; const b = new THREE.Mesh(new THREE.BoxGeometry(0.02, r * 2 + 0.008, r * 2 + 0.008), cl); b.position.set(q.x, lift(q.x, q.z) + r, q.z); b.rotation.y = -Math.atan2(q.tz, q.tx); b.castShadow = true; add(b); });
         // ก๊อก: ท่อตั้งขึ้น 15 ซม. · ตัวก๊อกเทาหันออกข้างท่อ · ปากโค้งลง · ด้ามโยกแดง · น็อตหกเหลี่ยมด้านหลัง
         const gm = new THREE.MeshStandardMaterial({ color: 0xbfc4ca, roughness: 0.3, metalness: 0.6 }), rm = new THREE.MeshStandardMaterial({ color: 0xe11d23, roughness: 0.4 });
         (o.taps || []).forEach((tp) => {
@@ -1963,25 +2018,41 @@ function p3sBuild3D(THREE, grp, st, tex) {
         S.forEach((q) => eat(q.x, q.y, q.z));
         return;
       }
-      // รางไฟ: รางเหล็กพับ U ข้างมีรูยาว + ฝาปิดบน ทีละช่วง
-      const W = Math.max(0.05, +o.d || 0.1), H = W >= 0.15 ? 0.1 : 0.05, side = [], suv = [], top = [];
-      const ofs = (q, nx, nz, s) => V3(q.x + nx * s, q.y, q.z + nz * s);
-      for (let k = 1; k < S.length; k++) {
-        const A = S[k - 1], B = S[k], dx = B.x - A.x, dz = B.z - A.z, L = Math.hypot(dx, dz) || 1, nx = -dz / L, nz = dx / L;
-        const a0 = A, b0 = B;
-        [-1, 1].forEach((sg) => {
-          const p1 = ofs(a0, nx, nz, sg * W / 2), p2 = ofs(b0, nx, nz, sg * W / 2), p3 = p2.clone().add(V3(0, H, 0)), p4 = p1.clone().add(V3(0, H, 0));
-          [p1, p2, p3, p1, p3, p4].forEach((v) => side.push(v.x, v.y, v.z));
-          const ub = L / 0.4;   // รู 4 รูต่อ 40 ซม.
-          [[0, 0], [ub, 0], [ub, 1], [0, 0], [ub, 1], [0, 1]].forEach(([u, v]) => suv.push(u, v));
-        });
-        const c1 = ofs(a0, nx, nz, -W / 2 - 0.004).add(V3(0, H + 0.004, 0)), c2 = ofs(b0, nx, nz, -W / 2 - 0.004).add(V3(0, H + 0.004, 0)), c3 = ofs(b0, nx, nz, W / 2 + 0.004).add(V3(0, H + 0.004, 0)), c4 = ofs(a0, nx, nz, W / 2 + 0.004).add(V3(0, H + 0.004, 0));
-        [c1, c2, c3, c1, c3, c4].forEach((v) => top.push(v.x, v.y, v.z));
+      // รางไฟ: รางเหล็กพับ U — ข้างทึบ · พื้นเจาะรูยาว · ฝาปิดบน · มุมเลี้ยวต่อแบบตัดเฉียง (miter) ปลายปิด
+      const W = Math.max(0.05, +o.d || 0.1), H = W >= 0.15 ? 0.1 : 0.05, hw = W / 2;
+      const mit = (sd) => P.map((q, i) => {
+        const dir = (a, b) => { const dx = b.x - a.x, dz = b.z - a.z, L = Math.hypot(dx, dz); return L < 1e-4 ? null : { x: dx / L, z: dz / L }; };
+        const d0 = i > 0 ? dir(P[i - 1], q) : null, d1 = i < P.length - 1 ? dir(q, P[i + 1]) : null;
+        const n0 = d0 && { x: -d0.z, z: d0.x }, n1 = d1 && { x: -d1.z, z: d1.x };
+        if (!n0 || !n1) { const nn = n0 || n1 || { x: 0, z: 1 }; return { x: q.x + nn.x * sd, z: q.z + nn.z * sd }; }
+        let mx = n0.x + n1.x, mz = n0.z + n1.z; const ml = Math.hypot(mx, mz) || 1; mx /= ml; mz /= ml;
+        const k = sd / Math.max(0.25, mx * n0.x + mz * n0.z);
+        return { x: q.x + mx * k, z: q.z + mz * k };
+      });
+      const ML = mit(hw), MR = mit(-hw), CL = mit(hw + 0.004), CR = mit(-hw - 0.004), bot = [], buv = [], wal = [], cov = [];
+      const Yp = (q, dy) => V3(q.x, lift(q.x, q.z) + (dy || 0), q.z), lp = (a, b, f) => ({ x: a.x + (b.x - a.x) * f, z: a.z + (b.z - a.z) * f });
+      const QA = (arr, a, b, c, d) => [a, b, c, a, c, d].forEach((v) => arr.push(v.x, v.y, v.z));
+      let s0 = 0;
+      for (let i = 1; i < P.length; i++) {
+        const L = Math.hypot(P[i].x - P[i - 1].x, P[i].z - P[i - 1].z); if (L < 1e-3) continue;
+        const n = Math.max(1, Math.ceil(L / 0.5)), vv = W / 0.08;
+        for (let k = 0; k < n; k++) {
+          const f0 = k / n, f1 = (k + 1) / n;
+          const l0 = lp(ML[i - 1], ML[i], f0), l1 = lp(ML[i - 1], ML[i], f1), r0 = lp(MR[i - 1], MR[i], f0), r1 = lp(MR[i - 1], MR[i], f1);
+          QA(bot, Yp(l0), Yp(l1), Yp(r1), Yp(r0));
+          const u0 = (s0 + L * f0) / 0.4, u1 = (s0 + L * f1) / 0.4;
+          [[u0, 0], [u1, 0], [u1, vv], [u0, 0], [u1, vv], [u0, vv]].forEach(([u, v]) => buv.push(u, v));
+          QA(wal, Yp(l0), Yp(l1), Yp(l1, H), Yp(l0, H)); QA(wal, Yp(r0), Yp(r1), Yp(r1, H), Yp(r0, H));
+          const c0 = lp(CL[i - 1], CL[i], f0), c1 = lp(CL[i - 1], CL[i], f1), e0 = lp(CR[i - 1], CR[i], f0), e1 = lp(CR[i - 1], CR[i], f1);
+          QA(cov, Yp(c0, H + 0.004), Yp(c1, H + 0.004), Yp(e1, H + 0.004), Yp(e0, H + 0.004));
+        }
+        s0 += L;
       }
-      const sg = new THREE.BufferGeometry(); sg.setAttribute("position", new THREE.Float32BufferAttribute(side, 3)); sg.setAttribute("uv", new THREE.Float32BufferAttribute(suv, 2)); sg.computeVertexNormals();
-      const sm = add(new THREE.Mesh(sg, new THREE.MeshStandardMaterial({ map: p3sTrayTex(THREE), roughness: 0.42, metalness: 0.45, side: THREE.DoubleSide }))); sm.castShadow = true; sm.receiveShadow = true;
-      const tg2 = new THREE.BufferGeometry(); tg2.setAttribute("position", new THREE.Float32BufferAttribute(top, 3)); tg2.computeVertexNormals();
-      const tm = add(new THREE.Mesh(tg2, new THREE.MeshStandardMaterial({ color: 0xe3e7eb, roughness: 0.35, metalness: 0.5, side: THREE.DoubleSide }))); tm.castShadow = true; tm.receiveShadow = true;
+      [0, P.length - 1].forEach((i) => QA(wal, Yp(ML[i]), Yp(MR[i]), Yp(MR[i], H), Yp(ML[i], H)));
+      const bg = new THREE.BufferGeometry(); bg.setAttribute("position", new THREE.Float32BufferAttribute(bot, 3)); bg.setAttribute("uv", new THREE.Float32BufferAttribute(buv, 2)); bg.computeVertexNormals();
+      const bm = add(new THREE.Mesh(bg, new THREE.MeshStandardMaterial({ map: p3sTrayTex(THREE), roughness: 0.42, metalness: 0.45, side: THREE.DoubleSide }))); bm.castShadow = true; bm.receiveShadow = true;
+      meshOf(wal, new THREE.MeshStandardMaterial({ color: 0xd4d9df, roughness: 0.4, metalness: 0.45, side: THREE.DoubleSide }));
+      meshOf(cov, new THREE.MeshStandardMaterial({ color: 0xe3e7eb, roughness: 0.35, metalness: 0.5, side: THREE.DoubleSide }));
       S.forEach((q) => eat(q.x, q.y + H, q.z));
       return;
     }
@@ -2087,7 +2158,7 @@ function P3SView3D({ st, sun, api }) {
     const THREE = window.THREE, el = mountRef.current;
     const renderer = new THREE.WebGLRenderer({ antialias: true, preserveDrawingBuffer: true, logarithmicDepthBuffer: true });
     renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
-    renderer.shadowMap.enabled = true; renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+    renderer.shadowMap.enabled = true; renderer.shadowMap.type = THREE.PCFShadowMap;   // ขอบเงาคมแบบแดดจริง (Soft = ฟุ้งจนราว/ท่อเป็นปื้น)
     renderer.toneMapping = THREE.ACESFilmicToneMapping; renderer.toneMappingExposure = 1.0;   // โทนแบบกล้องจริง ไม่ซีด ไม่ขาวโพลน
     el.appendChild(renderer.domElement);
     renderer.domElement.style.display = "block"; renderer.domElement.style.touchAction = "none";
@@ -2097,7 +2168,9 @@ function P3SView3D({ st, sun, api }) {
     controls.enableDamping = true; controls.dampingFactor = 0.12; controls.maxPolarAngle = Math.PI / 2 - 0.03;
     controls.screenSpacePanning = true;
     const hemi = new THREE.HemisphereLight(0xcfe4ff, 0x8a795d, 0.75); scene.add(hemi);
-    const sunL = new THREE.DirectionalLight(0xffffff, 1.3); sunL.castShadow = true; sunL.shadow.mapSize.set(2048, 2048); sunL.shadow.bias = -0.0004;
+    const sunL = new THREE.DirectionalLight(0xffffff, 1.3); sunL.castShadow = true; sunL.shadow.bias = -0.0004;   // ห้ามตั้ง normalBias — ผิวหลังคาบางชิ้น normal ชี้ลง เงาทั้งหลังคาดำ
+    const glMax = renderer.capabilities.maxTextureSize || 4096, SHM = glMax >= 4096 ? 4096 : 2048;
+    sunL.shadow.mapSize.set(SHM, SHM);
     scene.add(sunL); scene.add(sunL.target);
     const dyn = new THREE.Group(); scene.add(dyn);
     // ท้องฟ้าจำลองสำหรับเงาสะท้อน (ทำครั้งเดียว) — มีผลกับวัสดุ Standard: กระจกแผง กรอบอะลูมิเนียม เหล็ก
@@ -2180,7 +2253,7 @@ function P3SView3D({ st, sun, api }) {
         const sm = sunL.shadow.mapSize.x, remap = () => { if (sunL.shadow.map) { sunL.shadow.map.dispose(); sunL.shadow.map = null; } };
         let url;
         try {
-          sunL.shadow.mapSize.set(4096, 4096); remap();
+          const big = Math.min(8192, glMax); sunL.shadow.mapSize.set(big, big); remap();
           renderer.setPixelRatio(1); renderer.setSize(SW, SH, false);
           camera.aspect = SW / SH; camera.updateProjectionMatrix();
           renderer.render(scene, camera); url = cv.toDataURL("image/png");
@@ -2259,7 +2332,7 @@ function P3SView3D({ st, sun, api }) {
       t.stars.material.opacity = p3sClamp(1 - k * 2, 0, 1); t.stars.visible = k < 0.5;
       t.dyn.traverse((o) => { if (o.userData && o.userData.tint && o.material) o.material.color.setScalar(o.userData.tint * (0.16 + 0.84 * k)); });
       t.sunL.target.position.set(b.cx, 0, b.cz);
-      const S = b.R * 1.6, sc = t.sunL.shadow.camera;
+      const S = b.R * 1.15, sc = t.sunL.shadow.camera;   // แคบ = ความละเอียดเงาต่อเมตรสูง (ราวกันตก/ท่อเห็นเป็นเส้น)
       sc.left = -S; sc.right = S; sc.top = S; sc.bottom = -S; sc.near = 0.5; sc.far = D * 2.5; sc.updateProjectionMatrix();
       const day = sp.alt > 0;
       t.sunL.intensity = day ? (0.8 + 1.3 * Math.min(1, Math.sin(a) * 1.6)) : 0;   // แดดแรง ฟ้าอ่อน = เงาชัด (คู่กับ ACES)
@@ -4632,6 +4705,7 @@ function Plan3DStudio({ job, onClose, currentUser, onSwitch }) {
               <div className="p3s-seg full">{P3S_PIPE_D.map(([v, lb]) => <button key={v} type="button" data-on={Math.abs((+o.d || 0.025) - v) < 0.001 ? "1" : "0"} onClick={() => patchObs(o.id, { d: v }, "od")}>{lb.split(" (")[0]}</button>)}</div></label>}
             {T === "tray" && <label className="p3s-fld" style={{ gridColumn: "1 / -1" }}><span className="lb">กว้างราง</span>
               <div className="p3s-seg full">{P3S_TRAY_W.map(([v, lb]) => <button key={v} type="button" data-on={Math.abs((+o.d || 0.1) - v) < 0.001 ? "1" : "0"} onClick={() => patchObs(o.id, { d: v }, "od")}>{lb}</button>)}</div></label>}
+            {T === "tray" && <P3SNum label="กว้างราง (กำหนดเอง)" unit="ซม." step={5} min={5} max={100} digits={0} value={Math.round((+o.d || 0.1) * 100)} onChange={(v) => patchObs(o.id, { d: Math.max(0.05, Math.min(1, v / 100)) }, "od")} />}
             {(T === "walkway" || T === "sky") && <P3SNum label="กว้าง" unit="ม." step={0.05} min={0.2} value={o.d} onChange={(v) => patchObs(o.id, { d: v }, "od")} />}
             {T !== "walkway" && T !== "sky" && T !== "pipe" && T !== "tray" && <P3SNum label={T === "ladder" ? "สูง (ถ้าไม่ชิดหลังคา)" : "ราวสูง"} unit="ม." step={0.1} min={0.6} value={o.h} onChange={(v) => patchObs(o.id, { h: v }, "oh")} />}
             {T !== "ladder" && <div className="p3s-fld"><span className="lb">ยาวรวม</span><b style={{ fontSize: 15, padding: "6px 2px" }}>{p3sR(p3sPathLen(p3sObsPath(o)), 10)} ม. <small style={{ fontWeight: 400 }}>· {p3sObsPath(o).length - 1} ช่วง</small></b></div>}
