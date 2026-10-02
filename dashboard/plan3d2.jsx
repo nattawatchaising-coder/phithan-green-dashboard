@@ -879,14 +879,31 @@ function p3sRay(F, s, ux, uz, maxL) {
   }
   return null;
 }
-const P3S_KINDS = [["flat", "ราบ"], ["shed", "เพิง"], ["gable", "จั่ว"], ["hip", "ปั้นหยา"], ["dome", "ครึ่งวงกลม"], ["mgable", "จั่วหลายช่วง"], ["saw", "ฟันเลื่อย"], ["facet", "ทีละผืน"]];
-const P3S_KIND_TH = { flat: "ราบ", shed: "เพิง", gable: "จั่ว", hip: "ปั้นหยา", dome: "ครึ่งวงกลม", mgable: "จั่วหลายช่วง", saw: "ฟันเลื่อย", facet: "ทีละผืน" };
-const P3S_KIND_D = { flat: "ดาดฟ้า · หลังคาเรียบ", shed: "ลาดด้านเดียว · ต้องแตะขอบด้านต่ำ", gable: "สองลาด สันตามด้านยาว", hip: "สี่ลาด", dome: "โค้งตามด้านยาว · กลับทิศได้", mgable: "โรงงาน/โกดัง · จั่วต่อกันหลายช่วง (ทรง M)", saw: "โรงงาน · ลาดเดียวซ้ำ ลาดลงทิศใต้", facet: "หลังคาซับซ้อน · คลิกไล่มุม" };
-/* ทรงที่วาดกรอบเดียวแล้วแบ่งเป็นหลายหลังในกลุ่มเดียว (grp) — เอนจิน/BOQ/แบบเก่าเห็นเป็นจั่ว/เพิงธรรมดา */
-const P3S_MULTI = { mgable: 1, saw: 1 };
+const P3S_KINDS = [["flat", "ราบ"], ["parapet", "ดาดฟ้ามีขอบกันตก"], ["shed", "เพิง"], ["gable", "จั่ว"], ["hip", "ปั้นหยา"], ["manila", "มนิลา"], ["dome", "ครึ่งวงกลม"],
+  ["lshape", "จั่วตัว L"], ["tshape", "จั่วตัว T"], ["mgable", "จั่วหลายช่วง"], ["monitor", "จั่วยกสัน"], ["saw", "ฟันเลื่อย"], ["carport", "โรงจอดรถโซลาร์"], ["ground", "ติดตั้งบนพื้นดิน"], ["facet", "ทีละผืน"]];
+/* ทรงพื้นฐานเดิม (แถบเลือกทรงบนผัง/ป๊อปหาขอบ — ทรงประกอบเลือกจากป๊อปเลือกทรงเท่านั้น) */
+const P3S_KINDS_BASE = P3S_KINDS.filter((o) => ["flat", "shed", "gable", "hip", "dome", "facet"].indexOf(o[0]) >= 0);
+const P3S_KIND_TH = P3S_KINDS.reduce((a, o) => { a[o[0]] = o[1]; return a; }, {});
+const P3S_KIND_D = { flat: "ดาดฟ้า · หลังคาเรียบ", parapet: "ดาดฟ้าคอนกรีต · ขอบกันตกสูง 1 ม. แผงเว้นขอบ", shed: "ลาดด้านเดียว · ต้องแตะขอบด้านต่ำ", gable: "สองลาด สันตามด้านยาว", hip: "สี่ลาด",
+  manila: "ปั้นหยา + จั่วเล็กบนยอด (บ้าน)", dome: "โค้งตามด้านยาว · กลับทิศได้", lshape: "บ้านมีปีกยื่นที่ปลายด้านหนึ่ง", tshape: "บ้านมีปีกยื่นตรงกลาง",
+  mgable: "โรงงาน/โกดัง · จั่วต่อกันหลายช่วง (ทรง M)", monitor: "โกดัง · จั่วเล็กซ้อนบนสัน เว้นช่องระบายอากาศ", saw: "โรงงาน · ลาดเดียวซ้ำ ลาดลงทิศใต้",
+  carport: "หลังคาบนเสา ไม่มีผนัง · ลาด 5°", ground: "โซลาร์ฟาร์ม · แผงบนขาตั้งเอียง 15°", facet: "หลังคาซับซ้อน · คลิกไล่มุม" };
+/* ทรงที่วาดกรอบเดียวแล้วประกอบเป็นหลายหลังในกลุ่มเดียว (grp) — เอนจิน/BOQ/แบบเก่าเห็นเป็นจั่ว/เพิง/ปั้นหยาธรรมดา */
+const P3S_MULTI = { mgable: 1, saw: 1, monitor: 1, manila: 1, lshape: 1, tshape: 1 };
+const P3S_SPANS = { mgable: 1, saw: 1 };   // ถามจำนวนช่วงก่อนวาด
 
 /* ── สร้างหลังคาจากกรอบ (ทรงพื้นฐาน · ทุกทรงยกเว้นทีละผืน) ── */
 function p3sRoofFromRect(wpts, kind, n, EAVE) {
+  if (kind === "parapet" || kind === "ground") {
+    const r = p3sRoofFromRect(wpts, "flat", n, kind === "ground" ? 0.05 : EAVE); if (!r) return null;
+    if (kind === "parapet") { r.p3sParapet = 1; r.margin = 0.8; }
+    else { r.p3sGround = true; r.margin = 1; r.blocks = [Object.assign({}, r.blocks[0], { tilt: 15 })]; }
+    r.p3sKind = kind; return r;
+  }
+  if (kind === "carport") {
+    const r = p3sRoofFromRect(wpts, "shed", n, 2.6); if (!r) return null;
+    r.ph = p3sPitchPh(r.pts, r.p3sLow, 2.6, 5); r.p3sOpen = true; r.p3sKind = kind; return r;
+  }
   let nr;
   if (kind === "gable" || kind === "hip" || kind === "dome") {
     const R = p3MinRect(wpts); if (!R) return null;
@@ -923,6 +940,35 @@ function p3sMultiRoof(wpts, kind, spans, n0, EAVE) {
   const uL = R.w >= R.d ? { x: Math.cos(R.ang), z: Math.sin(R.ang) } : { x: -Math.sin(R.ang), z: Math.cos(R.ang) };
   const uS = { x: -uL.z, z: uL.x }, long = Math.max(R.w, R.d), short = Math.min(R.w, R.d), sw = short / N;
   const grp = p3Id("g"), out = [];
+  // สี่เหลี่ยมตามแนวอาคาร: กลางเลื่อนตามด้านยาว q · ด้านสั้น o · ยาว lL กว้าง lS
+  const box = (q, o, lL, lS) => { const cx = R.cx + uL.x * q + uS.x * o, cz = R.cz + uL.z * q + uS.z * o; return [[-1, -1], [1, -1], [1, 1], [-1, 1]].map(([a, b]) => ({ x: p3sR(cx + uL.x * a * lL / 2 + uS.x * b * lS / 2), z: p3sR(cz + uL.z * a * lL / 2 + uS.z * b * lS / 2) })); };
+  const tag = (list) => list.filter(Boolean).map((r) => Object.assign(r, { grp, p3sMulti: kind, p3sKind: kind }));
+  const T = (d) => Math.tan(d * P3_DEG);
+  if (kind === "monitor") {
+    // จั่วหลัก + จั่วเล็กกว้าง ~22% ยกเหนือสัน 0.9 ม. (ช่องลม) ชัน 20° เท่ากัน
+    const main = p3sRoofFromRect(box(0, 0, long, short), "gable", n0, EAVE), sS = Math.max(1.5, short * 0.22);
+    const up = p3sRoofFromRect(box(0, 0, long * 0.92, sS), "gable", n0 + 1, EAVE);
+    if (main && up) { main.pitch = 20; up.pitch = 20; up.h = p3sR(EAVE + (short / 2) * T(20) - (sS / 2) * T(20) + 0.9); }
+    return tag([main, up]);
+  }
+  if (kind === "manila") {
+    // ปั้นหยาชัน 30° + จั่วเล็กกว้างครึ่งหนึ่งบนยอด (หน้าจั่วตั้งที่ 1/4 ของด้านสั้นจากปลาย) ยกเหนือผิว 4 ซม.
+    const hip = p3sRoofFromRect(box(0, 0, long, short), "hip", n0, EAVE);
+    const gl = Math.max(1, long - short / 2), cap = p3sRoofFromRect(box(0, 0, gl, short / 2), "gable", n0 + 1, EAVE);
+    if (hip && cap) { hip.pitch = 30; cap.pitch = 30; cap.h = p3sR(EAVE + (short / 4) * T(30) + 0.04); if (gl < short / 2) { cap.ridge = p3sR(gl); cap.span = p3sR(short / 2); } }
+    return tag([hip, cap]);
+  }
+  if (kind === "lshape" || kind === "tshape") {
+    // ตัวหลักชิดด้านเหนือ (ขอบยาวที่หันเหนือ) + ปีกตั้งฉากยื่นจากแนวสันไปถึงขอบใต้ · กว้างเท่ากัน สันจึงสูงเท่ากัน
+    const s0 = Math.min(short * 0.45, long * 0.4);
+    const t0 = box(0, -1, long, 1), b0 = Math.abs(p3sEdgeBearing(t0, 0) - 0), b2 = Math.abs(p3sEdgeBearing(t0, 2) - 0);
+    const nS = Math.min(b0, 360 - b0) <= Math.min(b2, 360 - b2) ? -1 : 1;   // ด้านเหนืออยู่ฝั่ง o ลบหรือบวก
+    const oM = nS * (short / 2 - s0 / 2), far = -nS * short / 2, legL = short - s0 / 2;
+    const main = p3sRoofFromRect(box(0, oM, long, s0), "gable", n0, EAVE);
+    const leg = p3sRoofFromRect(box(kind === "lshape" ? -long / 2 + s0 / 2 : 0, (oM + far) / 2, s0, legL), "gable", n0 + 1, EAVE);
+    if (main && leg) { main.pitch = 25; leg.pitch = 25; }
+    return tag([main, leg]);
+  }
   for (let i = 0; i < N; i++) {
     const o = -short / 2 + (i + 0.5) * sw, cx = R.cx + uS.x * o, cz = R.cz + uS.z * o;
     const P = (a, b) => ({ x: p3sR(cx + uL.x * a * long / 2 + uS.x * b * sw / 2), z: p3sR(cz + uL.z * a * long / 2 + uS.z * b * sw / 2) });
@@ -933,7 +979,7 @@ function p3sMultiRoof(wpts, kind, spans, n0, EAVE) {
       [0, 2].forEach((k) => { const v = Math.abs(p3sEdgeBearing(r.pts, k) - 180); if (v < bv) { bv = v; lo = k; } });   // ขอบยาวคือ 0 กับ 2
       r.p3sLow = lo; r.ph = p3sPitchPh(r.pts, lo, EAVE, 20);
     }
-    r.grp = grp; r.p3sMulti = kind;
+    r.grp = grp; r.p3sMulti = kind; r.p3sKind = kind;
     out.push(r);
   }
   return out;
@@ -950,6 +996,7 @@ function P3SKindArt({ k }) {
       {k === "dome" && <React.Fragment><path d="M6 32 A16 16 0 0 1 38 32 L58 26 A16 16 0 0 0 26 26 Z" {...st} /><path d="M22 16 L42 10" {...ln} /></React.Fragment>}
       {k === "mgable" && <React.Fragment><path d="M4 30 L12 18 L20 30 L28 18 L36 30 L44 18 L52 30 Z" {...st} /></React.Fragment>}
       {k === "saw" && <React.Fragment><path d="M4 32 L4 18 L18 32 L18 18 L32 32 L32 18 L46 32 L46 18 L60 32 Z" {...st} /></React.Fragment>}
+      {["parapet", "manila", "lshape", "tshape", "monitor", "carport", "ground"].indexOf(k) >= 0 && <path d="M8 26 L30 16 L56 22 L34 32 Z" {...st} />}
       {k === "facet" && <React.Fragment><path d="M6 30 L22 14 L40 14 L40 22 L58 22 L58 34 L6 34 Z" {...st} />{[[6, 30], [22, 14], [40, 14], [40, 22], [58, 22], [58, 34], [6, 34]].map(([x, y], i) => <circle key={i} cx={x} cy={y} r={2.4} fill="#fff" stroke="#1e3a8a" strokeWidth={1.4} />)}</React.Fragment>}
     </svg>
   );
@@ -1326,7 +1373,17 @@ function p3sBuild3D(THREE, grp, st, tex) {
   const roofMat = new THREE.MeshLambertMaterial({ color: 0x9aa1a8, map: roofTex, side: THREE.DoubleSide });
   const capMat = new THREE.MeshLambertMaterial({ color: 0x7d858d, side: THREE.DoubleSide });
   const fasMat = new THREE.MeshLambertMaterial({ color: 0x8a9198, side: THREE.DoubleSide });
-  const fasciaQ = [];   // ขอบหลังคาที่จะติดแผ่นปิดขอบ — วางหลังวาดหลังคาครบทุกหลัง (ขอบที่ชนหลังคาอื่นไม่ติด)
+  const fasciaQ = [];
+  const gravelMat = new THREE.MeshLambertMaterial({ color: 0xb8b0a0, side: THREE.DoubleSide });
+  const steelMat = new THREE.MeshStandardMaterial({ color: 0x9aa3ac, metalness: 0.4, roughness: 0.5 });
+  const parMat = new THREE.MeshLambertMaterial({ color: 0xd8d4cb, side: THREE.DoubleSide });
+  const deckMat = new THREE.MeshLambertMaterial({ color: 0xbfbcb4, side: THREE.DoubleSide });   // พื้นดาดฟ้าคอนกรีต
+  /* คาน/เสาเหล็กกล่องจาก a ถึง b */
+  const bar = (a, b, w, h) => {
+    const L = a.distanceTo(b); if (L < 0.01) return;
+    const m = add(new THREE.Mesh(new THREE.BoxGeometry(w, h, L), steelMat));
+    m.position.copy(a).add(b).multiplyScalar(0.5); m.lookAt(b); m.castShadow = true; m.receiveShadow = true;
+  };   // ขอบหลังคาที่จะติดแผ่นปิดขอบ — วางหลังวาดหลังคาครบทุกหลัง (ขอบที่ชนหลังคาอื่นไม่ติด)
   const meshOf = (arr, mat) => { if (!arr.length) return; const g = new THREE.BufferGeometry(); g.setAttribute("position", new THREE.Float32BufferAttribute(arr, 3)); g.computeVertexNormals(); const m = add(new THREE.Mesh(g, mat)); m.castShadow = true; m.receiveShadow = true; };
   /* ผนังอาคารใต้หลังคา: เมทัลชีทลอนตั้ง (ลายจากแคนวาส · UV เป็นเมตร) + ฐานคอนกรีต */
   const wallTex = (() => {
@@ -1339,7 +1396,7 @@ function p3sBuild3D(THREE, grp, st, tex) {
   const baseMat = new THREE.MeshLambertMaterial({ color: 0x8b8f94, side: THREE.DoubleSide });
   const trimMat = new THREE.LineBasicMaterial({ color: 0x9c968a });
   const edgeMat = new THREE.LineBasicMaterial({ color: 0x475569 });
-  const polyMesh = (pts3, azDeg) => {
+  const polyMesh = (pts3, azDeg, mat) => {
     const contour = pts3.map((p) => new THREE.Vector2(p.x, p.z));
     let tris = [];
     try { tris = THREE.ShapeUtils.triangulateShape(contour, []); } catch (e) { tris = []; }
@@ -1358,7 +1415,7 @@ function p3sBuild3D(THREE, grp, st, tex) {
     g.setAttribute("position", new THREE.Float32BufferAttribute(pos, 3));
     g.setAttribute("uv", new THREE.Float32BufferAttribute(uv, 2));
     g.computeVertexNormals();
-    const m = new THREE.Mesh(g, roofMat); m.castShadow = true; m.receiveShadow = true;
+    const m = new THREE.Mesh(g, mat || roofMat); m.castShadow = true; m.receiveShadow = true;
     add(m);
     const lp = pts3.concat([pts3[0]]).map((p) => new THREE.Vector3(p.x, p.y + 0.02, p.z));
     add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(lp), edgeMat));
@@ -1475,7 +1532,7 @@ function p3sBuild3D(THREE, grp, st, tex) {
       try { faces = p3RoofSurf(all).map((s) => s.pts); } catch (e) { faces = []; }
     }
     let tris = [];
-    faces.forEach((f) => { tris = tris.concat(polyMesh(f, roof.az) || []); f.forEach((p) => eat(p.x, p.y, p.z)); });
+    faces.forEach((f) => { tris = tris.concat(polyMesh(f, roof.az, roof.p3sGround ? gravelMat : +roof.p3sParapet > 0 ? deckMat : null) || []); f.forEach((p) => eat(p.x, p.y, p.z)); });
     if (faces.length) {
       const K = (q) => Math.round(q.x * 20) + "," + Math.round(q.y * 20) + "," + Math.round(q.z * 20);
       const cen = faces.map((f) => { const c = { x: 0, y: 0, z: 0 }; f.forEach((q) => { c.x += q.x / f.length; c.y += q.y / f.length; c.z += q.z / f.length; }); return c; });
@@ -1487,7 +1544,7 @@ function p3sBuild3D(THREE, grp, st, tex) {
       }));
       const cap = [];
       E.forEach((e) => {
-        if (e.f.length === 1) { fasciaQ.push({ p: e.a, q: e.b, c: cen[e.f[0]] }); return; }
+        if (e.f.length === 1) { if (!roof.p3sGround && !(+roof.p3sParapet > 0)) fasciaQ.push({ p: e.a, q: e.b, c: cen[e.f[0]] }); return; }
         const my = (e.a.y + e.b.y) / 2;
         if (!e.f.every((fi) => cen[fi].y < my - 0.02)) return;   // รางน้ำตะเข้ราง (ขอบต่ำกว่าผืน) ไม่ครอบ
         const dx = e.b.x - e.a.x, dy = e.b.y - e.a.y, dz = e.b.z - e.a.z, L = Math.hypot(dx, dy, dz);
@@ -1509,7 +1566,29 @@ function p3sBuild3D(THREE, grp, st, tex) {
     allTris.push.apply(allTris, tris);
     if (faces.length) {
       const minY = Math.min.apply(null, faces.map((f) => Math.min.apply(null, f.map((p) => p.y))));
-      wall(p3sOutline(roof), tris, minY - 0.03, roof.kind !== "poly" && !roof.grp);
+      const OL = p3sOutline(roof);
+      if (roof.p3sOpen) {
+        // โรงจอดรถ: เสาเหล็กร่นจากขอบ 30 ซม. ทุก ≤ 6 ม. + คานใต้หลังคารอบขอบ (ไม่มีผนัง)
+        const IN = OL.length > 2 ? insetPoly(OL, 0.3) : OL, top = [];
+        IN.forEach((a, i) => {
+          const b = IN[(i + 1) % IN.length], L = Math.hypot(b.x - a.x, b.z - a.z), k = Math.max(1, Math.ceil(L / 6));
+          for (let j = 0; j < k; j++) { const x = a.x + (b.x - a.x) * j / k, z = a.z + (b.z - a.z) * j / k, y = surfY(tris, x, z); top.push(new THREE.Vector3(x, (y == null ? minY : y) - 0.12, z)); }
+        });
+        top.forEach((t, i) => { bar(new THREE.Vector3(t.x, 0, t.z), t, 0.15, 0.15); bar(t, top[(i + 1) % top.length], 0.1, 0.2); });
+      } else if (!roof.p3sGround) wall(OL, tris, minY - 0.03, roof.kind !== "poly" && !roof.grp);
+      if (+roof.p3sParapet > 0 && OL.length > 2) {
+        // ขอบกันตกคอนกรีตหนา 20 ซม. รอบดาดฟ้า
+        const H = +roof.p3sParapet, IN = insetPoly(OL, 0.2), pa = [];
+        const yAt = (q) => { const y = surfY(tris, q.x, q.z); return y == null ? minY : y; };
+        OL.forEach((a, i) => {
+          const b = OL[(i + 1) % OL.length], ai = IN[i], bi = IN[(i + 1) % IN.length];
+          const ya = yAt(ai), yb = yAt(bi), A = (x, y, z) => pa.push(x, y, z);
+          [[a, ya], [b, yb], [b, yb + H], [a, ya], [b, yb + H], [a, ya + H]].forEach(([q, y]) => A(q.x, y, q.z));
+          [[ai, ya], [bi, yb], [bi, yb + H], [ai, ya], [bi, yb + H], [ai, ya + H]].forEach(([q, y]) => A(q.x, y, q.z));
+          [[a, ya + H], [b, yb + H], [bi, yb + H], [a, ya + H], [bi, yb + H], [ai, ya + H]].forEach(([q, y]) => A(q.x, y, q.z));
+        });
+        meshOf(pa, parMat);
+      }
     }
     // แผง — รวมเป็นก้อนเดียวต่อผืน (ร้อยแผ่นก็วาดเร็ว)
     let foot = [];
@@ -1940,12 +2019,13 @@ function p3sKindPreview(k) {
     const sc = L.shadow.camera; sc.left = -16; sc.right = 16; sc.top = 16; sc.bottom = -16; sc.near = 0.5; sc.far = 70; scene.add(L);
     const rect = (w, d, x, z) => [{ x: x - w / 2, z: z - d / 2 }, { x: x + w / 2, z: z - d / 2 }, { x: x + w / 2, z: z + d / 2 }, { x: x - w / 2, z: z + d / 2 }];
     let roofs;
-    if (P3S_MULTI[k]) roofs = p3sMultiRoof(rect(12, 10, 0, 0), k, k === "saw" ? 4 : 3, 1, 3);
+    if (P3S_MULTI[k]) roofs = p3sMultiRoof(rect(12, k === "lshape" || k === "tshape" ? 11 : k === "manila" || k === "monitor" ? 8 : 10, 0, 0), k, k === "saw" ? 4 : 3, 1, 3);
     else if (k === "facet") {
       // ทรงตัว L จากจั่วสองหลังตั้งฉากกัน
       roofs = [p3sRoofFromRect(rect(12, 5, 0, -2), "gable", 1, 3), p3sRoofFromRect(rect(5, 9, 3.5, 2.5), "gable", 2, 3)];
     } else roofs = [p3sRoofFromRect(rect(12, 8, 0, 0), k, 1, 3)];
     roofs = roofs.filter(Boolean);
+    if (k === "carport" || k === "ground") roofs.forEach((r) => { r.noPanel = false; });
     const grp = new THREE.Group(); scene.add(grp);
     p3sBuild3D(THREE, grp, { roofs, obstacles: [], buildH: 0, groundW: 50 }, () => null);
     const tg = [0, 2.2, 0], dv = new THREE.Vector3(1.05, 0.85, 1.25).normalize().multiplyScalar(17.5);
@@ -4384,7 +4464,7 @@ function Plan3DStudio({ job, onClose, currentUser, onSwitch }) {
         <div className="p3s-fld p3s-rlist" style={{ gap: 10 }}>
           {roofs.map((r) => {
             const pc = roofPitchOf(r), on = selRoof && selRoof.id === r.id;
-            const kk = r.kind === "poly" ? (r.p3sFacet ? "facet" : pc > 0.4 ? "shed" : "flat") : r.kind;
+            const kk = r.p3sKind && P3S_KIND_TH[r.p3sKind] ? r.p3sKind : r.kind === "poly" ? (r.p3sFacet ? "facet" : pc > 0.4 ? "shed" : "flat") : r.kind;
             let ar = 0; try { ar = p3Area(p3sOutline(r)); } catch (e) { ar = 0; }
             return (
               <div key={r.id} className="p3s-fld" style={{ gap: 8, padding: 12, borderRadius: 12, background: on ? "var(--tint-green-bg,#ecfdf5)" : "var(--surface2)" }}>
@@ -4405,6 +4485,11 @@ function Plan3DStudio({ job, onClose, currentUser, onSwitch }) {
                     ? <P3SNum label="ความชัน" unit="°" step={1} min={0} max={60} digits={1} value={pc} onChange={(v) => setRoofPitch(r, v)} />
                     : <P3SNum label="ความสูงโค้ง" unit="ม." step={0.1} min={0.2} value={r.rise} onChange={(v) => patchRoof(r.id, { rise: v }, "rise")} />}
                 </div>
+                {r.p3sParapet != null && (
+                  <div className="p3s-g2">
+                    <P3SNum label="ขอบกันตกสูง" unit="ม." step={0.1} min={0} max={3} value={+r.p3sParapet || 0} onChange={(v) => patchRoof(r.id, { p3sParapet: v }, "par")} />
+                    <P3SNum label="แผงเว้นขอบ" unit="ม." step={0.1} min={0} max={5} value={+r.margin || 0} onChange={(v) => patchRoof(r.id, { margin: v }, "mrg")} />
+                  </div>)}
                 {(r.kind === "gable" || r.kind === "hip") && (
                   <div className="p3s-row" style={{ gap: 6, flexWrap: "nowrap", minHeight: 28 }}>
                     <span className="p3s-note keep" style={{ flex: 1 }}>สันแนว{ridgeTxt(r, r.kind === "gable" ? +r.ridge || 0 : Math.max(+r.w || 0, +r.d || 0))}{r.kind === "hip" ? " · สันยาว " + p3sR(Math.max(0, (+r.w || 0) - (+r.d || 0)), 10) + " ม. (ด้านยาว − ด้านสั้น)" : ""}</span>
@@ -4713,7 +4798,7 @@ function Plan3DStudio({ job, onClose, currentUser, onSwitch }) {
       <div className="p3s-float p3s-ctx" onPointerDown={(e) => e.stopPropagation()}>
         {tool !== "roof" && <button className="p3s-btn pri" onClick={() => setTool("roof")}><P3SIcon name="polygon" size={16} />กลับไปวาดหลังคา</button>}
         <P3SSeg value={roofOpt.kind} onChange={(v) => { if (tool !== "roof") setTool("roof"); setRoofOpt(Object.assign({}, roofOpt, { kind: v, shape: v === "facet" ? "poly" : "rect" })); setDraw(null); }}
-          options={P3S_KINDS} />
+          options={P3S_KINDS_BASE} />
         <span className="lbl">{polyOnly ? "คลิกไล่มุมทีละจุด" : "ลากสี่เหลี่ยม"}</span>
         <button className={"p3s-btn" + (trace && trace.on ? " pri" : "")} disabled={!hasImg || polyOnly}
           title={hasImg ? "แตะกลางหลังคา ระบบยิงหาขอบให้" : "ต้องมีภาพดาวเทียมหรือรูปโดรนก่อน"}
@@ -4764,7 +4849,7 @@ function Plan3DStudio({ job, onClose, currentUser, onSwitch }) {
       {trace.pts && (
         <div className="p3s-fld" style={{ gap: 5 }}><span className="lb">ทรงหลังคา — สลับดูได้ก่อนกดใช้</span>
           <P3SSeg full value={roofOpt.kind === "facet" ? "flat" : roofOpt.kind} onChange={(v) => setRoofOpt(Object.assign({}, roofOpt, { kind: v, shape: "rect" }))}
-            options={P3S_KINDS.filter((o) => o[0] !== "facet")} />
+            options={P3S_KINDS_BASE.filter((o) => o[0] !== "facet")} />
           {roofOpt.kind === "shed" && <span className="p3s-note">เพิง: กดใช้แล้ว<b> แตะขอบด้านต่ำ</b> เพื่อกำหนดทางลาด</span>}
           {roofOpt.kind === "dome" && <span className="p3s-note">ครึ่งวงกลม: แนวโค้งวางตามด้านยาว — กดใช้แล้วกด <b>กลับทิศโค้ง</b> ในการ์ดหลังคาได้</span>}
         </div>
@@ -4895,14 +4980,14 @@ function Plan3DStudio({ job, onClose, currentUser, onSwitch }) {
                     <button key={k} className="k" data-on={roofOpt.kind === k ? "1" : "0"}
                       onClick={() => {
                         setRoofOpt(Object.assign({}, roofOpt, { kind: k, shape: k === "facet" ? "poly" : "rect", spans: roofOpt.spans || 3 }));
-                        if (P3S_MULTI[k]) return;   // เลือกจำนวนช่วงก่อน แล้วกดเริ่มวาด
+                        if (P3S_SPANS[k]) return;   // เลือกจำนวนช่วงก่อน แล้วกดเริ่มวาด
                         setDraw(null); setTrace(null); setKindPick(false); setRoofArm(true);
                       }}>
                       <P3SKindPic k={k} /><b>{lb}</b><small>{P3S_KIND_D[k]}</small>
                     </button>
                   ))}
                 </div>
-                {P3S_MULTI[roofOpt.kind] && (
+                {P3S_SPANS[roofOpt.kind] && (
                   <div className="p3s-kspan">
                     <span>จำนวนช่วง{roofOpt.kind === "saw" ? " (ฟัน)" : " (จั่ว)"}</span>
                     <button type="button" className="p3s-btn" onClick={() => setRoofOpt(Object.assign({}, roofOpt, { spans: Math.max(2, (roofOpt.spans || 3) - 1) }))}>−</button>
