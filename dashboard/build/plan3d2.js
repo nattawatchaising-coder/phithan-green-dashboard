@@ -3082,7 +3082,7 @@ function p3sBuild3D(THREE, grp, st, tex) {
     m.receiveShadow = true;
     add(m);
     const lp = pts3.concat([pts3[0]]).map(p => new THREE.Vector3(p.x, p.y + 0.02, p.z));
-    add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(lp), edgeMat));
+    add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(lp), edgeMat)).userData.helper = true;
     return tris.map(t => t.map(i => pts3[i]));
   };
   const surfY = (tris, x, z) => {
@@ -3536,9 +3536,10 @@ function p3sBuild3D(THREE, grp, st, tex) {
     g.setAttribute("position", new THREE.Float32BufferAttribute(pos, 3));
     g.computeVertexNormals();
     const pm = add(new THREE.Mesh(g, new THREE.MeshStandardMaterial({
-      color: 0x122a5e,
-      roughness: 0.25,
-      metalness: 0.55,
+      color: 0x14306a,
+      roughness: 0.14,
+      metalness: 0.6,
+      envMapIntensity: 1.25,
       side: THREE.DoubleSide
     })));
     pm.castShadow = true;
@@ -4051,6 +4052,8 @@ function P3SView3D({
     renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
     renderer.shadowMap.enabled = true;
     renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+    renderer.toneMapping = THREE.ACESFilmicToneMapping;
+    renderer.toneMappingExposure = 1.0;
     el.appendChild(renderer.domElement);
     renderer.domElement.style.display = "block";
     renderer.domElement.style.touchAction = "none";
@@ -4072,6 +4075,37 @@ function P3SView3D({
     scene.add(sunL.target);
     const dyn = new THREE.Group();
     scene.add(dyn);
+    const envTex = (() => {
+      try {
+        const es = new THREE.Scene(),
+          g = new THREE.SphereGeometry(50, 32, 16),
+          col = [],
+          pos = g.attributes.position;
+        for (let i = 0; i < pos.count; i++) {
+          const y = pos.getY(i) / 50,
+            c = y > 0 ? new THREE.Color(0xeaf3fb).lerp(new THREE.Color(0x5d93cf), Math.pow(y, 0.6)) : new THREE.Color(0x8a8172).lerp(new THREE.Color(0x4a443c), Math.min(1, -y * 2));
+          col.push(c.r, c.g, c.b);
+        }
+        g.setAttribute("color", new THREE.Float32BufferAttribute(col, 3));
+        es.add(new THREE.Mesh(g, new THREE.MeshBasicMaterial({
+          vertexColors: true,
+          side: THREE.BackSide
+        })));
+        const sunS = new THREE.Mesh(new THREE.SphereGeometry(3, 16, 8), new THREE.MeshBasicMaterial({
+          color: 0xfff6dc
+        }));
+        sunS.position.set(20, 35, 20);
+        es.add(sunS);
+        const pm = new THREE.PMREMGenerator(renderer),
+          rt = pm.fromScene(es, 0.02);
+        pm.dispose();
+        g.dispose();
+        return rt.texture;
+      } catch (e) {
+        return null;
+      }
+    })();
+    if (envTex) scene.environment = envTex;
     const sunBall = new THREE.Mesh(new THREE.SphereGeometry(1, 28, 18), new THREE.MeshBasicMaterial({
       color: 0xfff1b8,
       fog: false
@@ -4140,9 +4174,49 @@ function P3SView3D({
       requestAnimationFrame(loop);
     };
     if (api) api.current = {
+      gl: renderer,
+      scene,
       shot: () => {
-        renderer.render(scene, camera);
-        return renderer.domElement.toDataURL("image/png");
+        const cv = renderer.domElement,
+          w = cv.clientWidth || 1,
+          h = cv.clientHeight || 1,
+          pr = renderer.getPixelRatio();
+        const gl = renderer.getContext(),
+          maxS = Math.min(gl.getParameter(gl.MAX_RENDERBUFFER_SIZE) || 4096, gl.getParameter(gl.MAX_TEXTURE_SIZE) || 4096, 8192);
+        const k = Math.max(1, Math.min(3840 / Math.max(w, h), maxS / Math.max(w, h)));
+        const hid = [sunBall, sunGlow, sunPath, stars].filter(o => o.visible);
+        dyn.traverse(o => {
+          if (o.userData && o.userData.helper && o.visible) hid.push(o);
+        });
+        hid.forEach(o => {
+          o.visible = false;
+        });
+        const sm = sunL.shadow.mapSize.x,
+          remap = () => {
+            if (sunL.shadow.map) {
+              sunL.shadow.map.dispose();
+              sunL.shadow.map = null;
+            }
+          };
+        let url;
+        try {
+          sunL.shadow.mapSize.set(4096, 4096);
+          remap();
+          renderer.setPixelRatio(1);
+          renderer.setSize(Math.round(w * k), Math.round(h * k), false);
+          renderer.render(scene, camera);
+          url = cv.toDataURL("image/png");
+        } finally {
+          hid.forEach(o => {
+            o.visible = true;
+          });
+          sunL.shadow.mapSize.set(sm, sm);
+          remap();
+          renderer.setPixelRatio(pr);
+          renderer.setSize(w, h, false);
+          renderer.render(scene, camera);
+        }
+        return url;
       },
       record: () => {
         const cv = renderer.domElement;
@@ -4194,6 +4268,7 @@ function P3SView3D({
         if (o.geometry) o.geometry.dispose();
         if (o.material) o.material.dispose();
       });
+      if (envTex) envTex.dispose();
       Object.keys(texCache).forEach(k => texCache[k].dispose());
       renderer.dispose();
       if (renderer.domElement.parentNode) renderer.domElement.parentNode.removeChild(renderer.domElement);
@@ -4294,8 +4369,8 @@ function P3SView3D({
       sc.far = D * 2.5;
       sc.updateProjectionMatrix();
       const day = sp.alt > 0;
-      t.sunL.intensity = day ? 0.55 + 0.85 * Math.min(1, Math.sin(a) * 1.6) : 0;
-      t.hemi.intensity = 0.1 + 0.62 * k;
+      t.sunL.intensity = day ? 0.8 + 1.3 * Math.min(1, Math.sin(a) * 1.6) : 0;
+      t.hemi.intensity = 0.08 + 0.38 * k;
     };
     t.applySun();
   }, [ready, sun && sun.month, sun && sun.day, sun && sun.hour, sun && sun.lat, sun && sun.lng]);

@@ -1476,7 +1476,7 @@ function p3sBuild3D(THREE, grp, st, tex) {
     const m = new THREE.Mesh(g, mat || roofMat); m.castShadow = true; m.receiveShadow = true;
     add(m);
     const lp = pts3.concat([pts3[0]]).map((p) => new THREE.Vector3(p.x, p.y + 0.02, p.z));
-    add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(lp), edgeMat));
+    add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(lp), edgeMat)).userData.helper = true;
     return tris.map((t) => t.map((i) => pts3[i]));
   };
   /* ความสูงผิวหลังคาจริง (ตามสามเหลี่ยมที่วาด) ที่ตำแหน่ง x z — null = อยู่นอกผืน */
@@ -1683,7 +1683,7 @@ function p3sBuild3D(THREE, grp, st, tex) {
       const d = P(1, 1); eat(d.x, d.y, d.z);
     });
     const g = new THREE.BufferGeometry(); g.setAttribute("position", new THREE.Float32BufferAttribute(pos, 3)); g.computeVertexNormals();
-    const pm = add(new THREE.Mesh(g, new THREE.MeshStandardMaterial({ color: 0x122a5e, roughness: 0.25, metalness: 0.55, side: THREE.DoubleSide })));
+    const pm = add(new THREE.Mesh(g, new THREE.MeshStandardMaterial({ color: 0x14306a, roughness: 0.14, metalness: 0.6, envMapIntensity: 1.25, side: THREE.DoubleSide })));
     pm.castShadow = true; pm.receiveShadow = true;
     const fg = new THREE.BufferGeometry(); fg.setAttribute("position", new THREE.Float32BufferAttribute(fr, 3)); fg.computeVertexNormals();
     const fm = add(new THREE.Mesh(fg, new THREE.MeshStandardMaterial({ color: 0xc9d0d8, roughness: 0.4, metalness: 0.6, side: THREE.DoubleSide })));
@@ -1884,6 +1884,7 @@ function P3SView3D({ st, sun, api }) {
     const renderer = new THREE.WebGLRenderer({ antialias: true, preserveDrawingBuffer: true, logarithmicDepthBuffer: true });
     renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
     renderer.shadowMap.enabled = true; renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+    renderer.toneMapping = THREE.ACESFilmicToneMapping; renderer.toneMappingExposure = 1.0;   // โทนแบบกล้องจริง ไม่ซีด ไม่ขาวโพลน
     el.appendChild(renderer.domElement);
     renderer.domElement.style.display = "block"; renderer.domElement.style.touchAction = "none";
     const scene = new THREE.Scene(); scene.background = new THREE.Color(0xdce8f2);
@@ -1895,6 +1896,22 @@ function P3SView3D({ st, sun, api }) {
     const sunL = new THREE.DirectionalLight(0xffffff, 1.3); sunL.castShadow = true; sunL.shadow.mapSize.set(2048, 2048); sunL.shadow.bias = -0.0004;
     scene.add(sunL); scene.add(sunL.target);
     const dyn = new THREE.Group(); scene.add(dyn);
+    // ท้องฟ้าจำลองสำหรับเงาสะท้อน (ทำครั้งเดียว) — มีผลกับวัสดุ Standard: กระจกแผง กรอบอะลูมิเนียม เหล็ก
+    const envTex = (() => {
+      try {
+        const es = new THREE.Scene(), g = new THREE.SphereGeometry(50, 32, 16), col = [], pos = g.attributes.position;
+        for (let i = 0; i < pos.count; i++) {
+          const y = pos.getY(i) / 50, c = y > 0 ? new THREE.Color(0xeaf3fb).lerp(new THREE.Color(0x5d93cf), Math.pow(y, 0.6)) : new THREE.Color(0x8a8172).lerp(new THREE.Color(0x4a443c), Math.min(1, -y * 2));
+          col.push(c.r, c.g, c.b);
+        }
+        g.setAttribute("color", new THREE.Float32BufferAttribute(col, 3));
+        es.add(new THREE.Mesh(g, new THREE.MeshBasicMaterial({ vertexColors: true, side: THREE.BackSide })));
+        const sunS = new THREE.Mesh(new THREE.SphereGeometry(3, 16, 8), new THREE.MeshBasicMaterial({ color: 0xfff6dc })); sunS.position.set(20, 35, 20); es.add(sunS);
+        const pm = new THREE.PMREMGenerator(renderer), rt = pm.fromScene(es, 0.02);
+        pm.dispose(); g.dispose(); return rt.texture;
+      } catch (e) { return null; }
+    })();
+    if (envTex) scene.environment = envTex;
     // ดวงอาทิตย์จำลอง (ลูกกลม + แสงฟุ้ง) · เส้นทางเดินของดวงอาทิตย์ทั้งวัน · ดาวตอนกลางคืน
     const sunBall = new THREE.Mesh(new THREE.SphereGeometry(1, 28, 18), new THREE.MeshBasicMaterial({ color: 0xfff1b8, fog: false }));
     const sunGlow = new THREE.Mesh(new THREE.SphereGeometry(1, 28, 18), new THREE.MeshBasicMaterial({ color: 0xffd36b, transparent: true, opacity: 0.25, depthWrite: false }));
@@ -1912,7 +1929,29 @@ function P3SView3D({ st, sun, api }) {
     const loop = () => { if (!run) return; controls.update(); renderer.render(scene, camera); requestAnimationFrame(loop); };
     // ภาพนิ่ง (ขนาดเท่าจอ 3D) · อัดวิดีโอจอ 3D (mp4 ถ้าเบราว์เซอร์รองรับ ไม่งั้น webm) — เริ่ม/หยุดจากข้างนอก
     if (api) api.current = {
-      shot: () => { renderer.render(scene, camera); return renderer.domElement.toDataURL("image/png"); },
+      gl: renderer, scene,   // ให้ทดสอบ/ปรับแสงจากคอนโซลได้
+      /* ถ่ายภาพ: เรนเดอร์ใหม่นอกจอ ด้านยาว ~3840 px (ไม่เกินที่การ์ดจอรับได้) · ซ่อนดวงอาทิตย์จำลอง/เส้นทางโคจร/ดาว/เส้นขอบช่วยวาด
+         · เงาละเอียด 4096 เฉพาะตอนถ่าย — จอปกติไม่ช้าลง */
+      shot: () => {
+        const cv = renderer.domElement, w = cv.clientWidth || 1, h = cv.clientHeight || 1, pr = renderer.getPixelRatio();
+        const gl = renderer.getContext(), maxS = Math.min(gl.getParameter(gl.MAX_RENDERBUFFER_SIZE) || 4096, gl.getParameter(gl.MAX_TEXTURE_SIZE) || 4096, 8192);
+        const k = Math.max(1, Math.min(3840 / Math.max(w, h), maxS / Math.max(w, h)));
+        const hid = [sunBall, sunGlow, sunPath, stars].filter((o) => o.visible);
+        dyn.traverse((o) => { if (o.userData && o.userData.helper && o.visible) hid.push(o); });
+        hid.forEach((o) => { o.visible = false; });
+        const sm = sunL.shadow.mapSize.x, remap = () => { if (sunL.shadow.map) { sunL.shadow.map.dispose(); sunL.shadow.map = null; } };
+        let url;
+        try {
+          sunL.shadow.mapSize.set(4096, 4096); remap();
+          renderer.setPixelRatio(1); renderer.setSize(Math.round(w * k), Math.round(h * k), false);
+          renderer.render(scene, camera); url = cv.toDataURL("image/png");
+        } finally {
+          hid.forEach((o) => { o.visible = true; });
+          sunL.shadow.mapSize.set(sm, sm); remap();
+          renderer.setPixelRatio(pr); renderer.setSize(w, h, false); renderer.render(scene, camera);
+        }
+        return url;
+      },
       record: () => {
         const cv = renderer.domElement;
         if (!cv.captureStream || !window.MediaRecorder) throw new Error("เบราว์เซอร์นี้อัดวิดีโอไม่ได้ — ใช้ Chrome หรือ Edge");
@@ -1928,6 +1967,7 @@ function P3SView3D({ st, sun, api }) {
       run = false; if (api) api.current = null; if (recNow && recNow.state !== "inactive") { try { recNow.stop(); } catch (e) {} } ro.disconnect(); controls.dispose();
       [sunBall, sunGlow, sunPath, stars].forEach((o) => { o.geometry.dispose(); o.material.dispose(); });
       dyn.traverse((o) => { if (o.geometry) o.geometry.dispose(); if (o.material) o.material.dispose(); });
+      if (envTex) envTex.dispose();
       Object.keys(texCache).forEach((k) => texCache[k].dispose());
       renderer.dispose(); if (renderer.domElement.parentNode) renderer.domElement.parentNode.removeChild(renderer.domElement);
     };
@@ -1982,8 +2022,8 @@ function P3SView3D({ st, sun, api }) {
       const S = b.R * 1.6, sc = t.sunL.shadow.camera;
       sc.left = -S; sc.right = S; sc.top = S; sc.bottom = -S; sc.near = 0.5; sc.far = D * 2.5; sc.updateProjectionMatrix();
       const day = sp.alt > 0;
-      t.sunL.intensity = day ? 0.55 + 0.85 * Math.min(1, Math.sin(a) * 1.6) : 0;
-      t.hemi.intensity = 0.1 + 0.62 * k;
+      t.sunL.intensity = day ? (0.8 + 1.3 * Math.min(1, Math.sin(a) * 1.6)) : 0;   // แดดแรง ฟ้าอ่อน = เงาชัด (คู่กับ ACES)
+      t.hemi.intensity = 0.08 + 0.38 * k;
     };
     t.applySun();
   }, [ready, sun && sun.month, sun && sun.day, sun && sun.hour, sun && sun.lat, sun && sun.lng]);
