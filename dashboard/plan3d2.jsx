@@ -2314,7 +2314,9 @@ function Plan3DStudio({ job, onClose, currentUser, onSwitch }) {
       setMeasPts((measPts || []).concat([sp]));
       return;
     }
-    if (tool === "obs" && P3S_OBS_LINE[obsType]) {
+    // ยังไม่เริ่มเส้น แล้วกดโดนของเดิม = เลือก/ลากย้าย (ไม่เริ่มเส้นทับ)
+    const obsHit = tool === "obs" && !obsPts ? hitBody(w) : null;
+    if (tool === "obs" && P3S_OBS_LINE[obsType] && !(obsHit && obsHit.t === "obs")) {
       const sp = snapPoint(w, { pts: snapPts().concat(obsPts || []), free: e.shiftKey, segs: snapSegs(), from: obsPts && obsPts.length ? obsPts[obsPts.length - 1] : null });
       if (obsPts && obsPts.length >= 2) { const l = obsPts[obsPts.length - 1], ls = toS(l.x, l.z); if (dbl || Math.hypot(ls.x - p.x, ls.y - p.y) < HIT) { finishObsLine(); return; } }
       setObsPts((obsPts || []).concat([{ x: p3sR(sp.x), z: p3sR(sp.z) }])); setSel(null); setObsMsg(null);
@@ -3192,6 +3194,7 @@ function Plan3DStudio({ job, onClose, currentUser, onSwitch }) {
             <span className="p3s-badge">{kindTh}</span>
           </div>
           {roof.grp && <span className="p3s-note">อยู่ในกลุ่มหลังคา {roofs.filter((x) => x.grp === roof.grp).length} ผืน — ลากผืนไหนก็ย้ายไปพร้อมกัน (แก้กลุ่มในแบบเก่า)</span>}
+          {!panOnly && <React.Fragment>
           <P3SText label="ชื่อหลังคา" value={roof.name} onChange={(v) => patchRoof(roof.id, { name: v }, "name")} />
           {!isDome && (
             <div className="p3s-fld"><span className="lb">ทรงหลังคา<i>เปลี่ยนได้ คงรอยเท้าเดิม</i></span>
@@ -3250,7 +3253,8 @@ function Plan3DStudio({ job, onClose, currentUser, onSwitch }) {
               <span className="p3s-note">ลากจุดเขียวเพื่อแก้มุม · ลากจุดกลางขอบเพื่อเพิ่มมุม · ดูดติดมุมหลังคาข้าง ๆ ให้เอง</span>
             </React.Fragment>
           )}
-          {roof.kind === "rect" && (
+          </React.Fragment>}
+          {roof.kind === "rect" && !panOnly && (
             <div className="p3s-g2">
               <P3SNum label="กว้าง" unit="ม." step={0.1} min={0.5} value={roof.w} onChange={(v) => patchRoof(roof.id, { w: v }, "w")} />
               <P3SNum label="ยาวตามลาด" unit="ม." step={0.1} min={0.5} value={roof.d} onChange={(v) => patchRoof(roof.id, { d: v }, "d")} />
@@ -3260,12 +3264,12 @@ function Plan3DStudio({ job, onClose, currentUser, onSwitch }) {
           )}
           {roof.kind === "gable" && (
             <React.Fragment>
-              <div className="p3s-g2">
+              {!panOnly && <div className="p3s-g2">
                 <P3SNum label="ยาวตามสัน" unit="ม." step={0.1} min={1} value={roof.ridge} onChange={(v) => patchRoof(roof.id, { ridge: v }, "ridge")} />
                 <P3SNum label="กว้างจั่ว" unit="ม." step={0.1} min={1} value={roof.span} onChange={(v) => patchRoof(roof.id, { span: v }, "span")} />
                 <P3SNum label="ความชัน" unit="°" step={1} min={0} max={60} digits={1} value={roof.pitch} onChange={(v) => patchRoof(roof.id, { pitch: v }, "pitch")} />
                 <P3SNum label="ความสูงชายคา" unit="ม." step={0.1} min={0} value={roof.h} onChange={(v) => patchRoof(roof.id, { h: v }, "h")} />
-              </div>
+              </div>}
               {!noPanUI && <div className="p3s-fld"><span className="lb">วางแผงด้าน</span>
                 <P3SSeg full value={(roof.sideA !== false ? "A" : "") + (roof.sideB !== false ? "B" : "")} onChange={(v) => patchRoof(roof.id, { sideA: v.indexOf("A") >= 0, sideB: v.indexOf("B") >= 0 })}
                   options={[["AB", "ทั้งสองด้าน"], ["A", "ด้าน A (" + azTxt(roof.az) + ")"], ["B", "ด้าน B (" + p3sCompass((+roof.az || 180) + 180) + ")"]]} />
@@ -3274,12 +3278,12 @@ function Plan3DStudio({ job, onClose, currentUser, onSwitch }) {
           )}
           {roof.kind === "hip" && (
             <React.Fragment>
-              <div className="p3s-g2">
+              {!panOnly && <div className="p3s-g2">
                 <P3SNum label="ยาว" unit="ม." step={0.1} min={1} value={roof.w} onChange={(v) => patchRoof(roof.id, { w: v }, "w")} />
                 <P3SNum label="กว้าง" unit="ม." step={0.1} min={1} value={roof.d} onChange={(v) => patchRoof(roof.id, { d: v }, "d")} />
                 <P3SNum label="ความชัน" unit="°" step={1} min={0} max={60} digits={1} value={roof.pitch} onChange={(v) => patchRoof(roof.id, { pitch: v }, "pitch")} />
                 <P3SNum label="ความสูงชายคา" unit="ม." step={0.1} min={0} value={roof.h} onChange={(v) => patchRoof(roof.id, { h: v }, "h")} />
-              </div>
+              </div>}
               {!noPanUI && <div className="p3s-fld"><span className="lb">วางแผงด้าน (แตะเพื่อเปิด/ปิด)</span>
                 <div className="p3s-row">
                   {[["A", 0], ["B", 180], ["C", 90], ["D", -90]].map(([sd, off]) => {
@@ -3290,7 +3294,7 @@ function Plan3DStudio({ job, onClose, currentUser, onSwitch }) {
               </div>}
             </React.Fragment>
           )}
-          {isDome && (
+          {isDome && !panOnly && (
             <React.Fragment>
               <div className="p3s-g2">
                 <P3SNum label="ยาว" unit="ม." step={0.1} min={1} value={roof.ridge} onChange={(v) => patchRoof(roof.id, { ridge: v }, "ridge")} />
@@ -3313,14 +3317,15 @@ function Plan3DStudio({ job, onClose, currentUser, onSwitch }) {
               <span className="p3s-note">เส้นประบนผัง = แนวโค้ง (ชิดกันที่ขอบ) · เส้นส้ม = สันโค้ง · ตั้งมุมเอียงสูงสุดของแผงใช้แบบเก่า</span>
             </React.Fragment>
           )}
-          {!isPoly && (
+          {!isPoly && !panOnly && (
             <span className="p3s-note">หันทิศ{azTxt(roof.az)} ({p3sR(+roof.az || 180, 1)}°) · ลากจุดส้มบนผังเพื่อหมุน</span>
           )}
           {!wiz && <button className="p3s-btn wide" onClick={() => axisFromRoof(roof)}><P3SIcon name="axis" size={15} />ใช้หลังคานี้เป็นแนวอ้างอิง</button>}
-          <div className="p3s-row">
+          {panOnly && <span className="p3s-note">ขั้นวางแผงแก้หลังคาไม่ได้ — จะแก้ขนาด/ทรง/ความชัน กดย้อนไปขั้น "วาดหลังคา"</span>}
+          {!panOnly && <div className="p3s-row">
             <button className="p3s-btn" style={{ flex: 1 }} onClick={duplicate}><P3SIcon name="copy" size={15} />ทำซ้ำ</button>
             <button className="p3s-btn dngr" style={{ flex: 1 }} onClick={() => { setSelVert(null); const id = roof.id; commit((s) => Object.assign({}, s, { roofs: s.roofs.filter((x) => x.id !== id) })); setSel(null); }}><P3Icon name="trash" />ลบหลังคา</button>
-          </div>
+          </div>}
         </div>
 
         {!noPanUI && <div className="p3s-card">
@@ -3751,7 +3756,9 @@ function Plan3DStudio({ job, onClose, currentUser, onSwitch }) {
   const wizTools = wiz && !view3d ? W0.tools : null;
   wizHomeRef.current = wiz ? (W0.tools[0] || null) : null;
   const roofStep = wiz && wi === 3 && !view3d;
-  const noPanUI = wiz && wi < 5;   // ก่อนถึงขั้นวางแผง ไม่โชว์ส่วนตั้งค่าแผง
+  const noPanUI = wiz && wi < 5;
+  // ตั้งแต่ขั้นวางแผง การ์ดหลังคาเหลือแค่ส่วนแผง (แก้หลังคาที่ขั้นวาดหลังคา)
+  const panOnly = wiz && wi >= 5;   // ก่อนถึงขั้นวางแผง ไม่โชว์ส่วนตั้งค่าแผง
   // เพิ่มหลังคาจากขั้นหลัง ๆ: วาดเสร็จ (เพิงกำหนดทางลาดแล้ว) → กลับขั้นเดิม เลือกหลังคาใหม่ไว้
   wizAllowRef.current = wiz ? (W0.tools.length ? ["pan"].concat(W0.tools, wi >= 3 ? ["select", "meas"] : []) : ["select", "pan", "meas"]) : null;
 

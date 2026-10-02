@@ -4820,7 +4820,8 @@ function Plan3DStudio({
       setMeasPts((measPts || []).concat([sp]));
       return;
     }
-    if (tool === "obs" && P3S_OBS_LINE[obsType]) {
+    const obsHit = tool === "obs" && !obsPts ? hitBody(w) : null;
+    if (tool === "obs" && P3S_OBS_LINE[obsType] && !(obsHit && obsHit.t === "obs")) {
       const sp = snapPoint(w, {
         pts: snapPts().concat(obsPts || []),
         free: e.shiftKey,
@@ -7069,7 +7070,7 @@ function Plan3DStudio({
       className: "p3s-badge"
     }, kindTh)), roof.grp && React.createElement("span", {
       className: "p3s-note"
-    }, "\u0E2D\u0E22\u0E39\u0E48\u0E43\u0E19\u0E01\u0E25\u0E38\u0E48\u0E21\u0E2B\u0E25\u0E31\u0E07\u0E04\u0E32 ", roofs.filter(x => x.grp === roof.grp).length, " \u0E1C\u0E37\u0E19 \u2014 \u0E25\u0E32\u0E01\u0E1C\u0E37\u0E19\u0E44\u0E2B\u0E19\u0E01\u0E47\u0E22\u0E49\u0E32\u0E22\u0E44\u0E1B\u0E1E\u0E23\u0E49\u0E2D\u0E21\u0E01\u0E31\u0E19 (\u0E41\u0E01\u0E49\u0E01\u0E25\u0E38\u0E48\u0E21\u0E43\u0E19\u0E41\u0E1A\u0E1A\u0E40\u0E01\u0E48\u0E32)"), React.createElement(P3SText, {
+    }, "\u0E2D\u0E22\u0E39\u0E48\u0E43\u0E19\u0E01\u0E25\u0E38\u0E48\u0E21\u0E2B\u0E25\u0E31\u0E07\u0E04\u0E32 ", roofs.filter(x => x.grp === roof.grp).length, " \u0E1C\u0E37\u0E19 \u2014 \u0E25\u0E32\u0E01\u0E1C\u0E37\u0E19\u0E44\u0E2B\u0E19\u0E01\u0E47\u0E22\u0E49\u0E32\u0E22\u0E44\u0E1B\u0E1E\u0E23\u0E49\u0E2D\u0E21\u0E01\u0E31\u0E19 (\u0E41\u0E01\u0E49\u0E01\u0E25\u0E38\u0E48\u0E21\u0E43\u0E19\u0E41\u0E1A\u0E1A\u0E40\u0E01\u0E48\u0E32)"), !panOnly && React.createElement(React.Fragment, null, React.createElement(P3SText, {
       label: "\u0E0A\u0E37\u0E48\u0E2D\u0E2B\u0E25\u0E31\u0E07\u0E04\u0E32",
       value: roof.name,
       onChange: v => patchRoof(roof.id, {
@@ -7206,7 +7207,7 @@ function Plan3DStudio({
       name: "trash"
     }), "\u0E25\u0E1A\u0E21\u0E38\u0E21\u0E17\u0E35\u0E48 ", selVert + 1), React.createElement("span", {
       className: "p3s-note"
-    }, "\u0E25\u0E32\u0E01\u0E08\u0E38\u0E14\u0E40\u0E02\u0E35\u0E22\u0E27\u0E40\u0E1E\u0E37\u0E48\u0E2D\u0E41\u0E01\u0E49\u0E21\u0E38\u0E21 \xB7 \u0E25\u0E32\u0E01\u0E08\u0E38\u0E14\u0E01\u0E25\u0E32\u0E07\u0E02\u0E2D\u0E1A\u0E40\u0E1E\u0E37\u0E48\u0E2D\u0E40\u0E1E\u0E34\u0E48\u0E21\u0E21\u0E38\u0E21 \xB7 \u0E14\u0E39\u0E14\u0E15\u0E34\u0E14\u0E21\u0E38\u0E21\u0E2B\u0E25\u0E31\u0E07\u0E04\u0E32\u0E02\u0E49\u0E32\u0E07 \u0E46 \u0E43\u0E2B\u0E49\u0E40\u0E2D\u0E07")), roof.kind === "rect" && React.createElement("div", {
+    }, "\u0E25\u0E32\u0E01\u0E08\u0E38\u0E14\u0E40\u0E02\u0E35\u0E22\u0E27\u0E40\u0E1E\u0E37\u0E48\u0E2D\u0E41\u0E01\u0E49\u0E21\u0E38\u0E21 \xB7 \u0E25\u0E32\u0E01\u0E08\u0E38\u0E14\u0E01\u0E25\u0E32\u0E07\u0E02\u0E2D\u0E1A\u0E40\u0E1E\u0E37\u0E48\u0E2D\u0E40\u0E1E\u0E34\u0E48\u0E21\u0E21\u0E38\u0E21 \xB7 \u0E14\u0E39\u0E14\u0E15\u0E34\u0E14\u0E21\u0E38\u0E21\u0E2B\u0E25\u0E31\u0E07\u0E04\u0E32\u0E02\u0E49\u0E32\u0E07 \u0E46 \u0E43\u0E2B\u0E49\u0E40\u0E2D\u0E07"))), roof.kind === "rect" && !panOnly && React.createElement("div", {
       className: "p3s-g2"
     }, React.createElement(P3SNum, {
       label: "\u0E01\u0E27\u0E49\u0E32\u0E07",
@@ -7246,7 +7247,7 @@ function Plan3DStudio({
       onChange: v => patchRoof(roof.id, {
         h: v
       }, "h")
-    })), roof.kind === "gable" && React.createElement(React.Fragment, null, React.createElement("div", {
+    })), roof.kind === "gable" && React.createElement(React.Fragment, null, !panOnly && React.createElement("div", {
       className: "p3s-g2"
     }, React.createElement(P3SNum, {
       label: "\u0E22\u0E32\u0E27\u0E15\u0E32\u0E21\u0E2A\u0E31\u0E19",
@@ -7298,7 +7299,7 @@ function Plan3DStudio({
         sideB: v.indexOf("B") >= 0
       }),
       options: [["AB", "ทั้งสองด้าน"], ["A", "ด้าน A (" + azTxt(roof.az) + ")"], ["B", "ด้าน B (" + p3sCompass((+roof.az || 180) + 180) + ")"]]
-    }))), roof.kind === "hip" && React.createElement(React.Fragment, null, React.createElement("div", {
+    }))), roof.kind === "hip" && React.createElement(React.Fragment, null, !panOnly && React.createElement("div", {
       className: "p3s-g2"
     }, React.createElement(P3SNum, {
       label: "\u0E22\u0E32\u0E27",
@@ -7358,7 +7359,7 @@ function Plan3DStudio({
           patchRoof(roof.id, o);
         }
       }, sd, " \xB7 ", p3sCompass((+roof.az || 180) + off));
-    })))), isDome && React.createElement(React.Fragment, null, React.createElement("div", {
+    })))), isDome && !panOnly && React.createElement(React.Fragment, null, React.createElement("div", {
       className: "p3s-g2"
     }, React.createElement(P3SNum, {
       label: "\u0E22\u0E32\u0E27",
@@ -7438,7 +7439,7 @@ function Plan3DStudio({
       }, lb);
     }))), React.createElement("span", {
       className: "p3s-note"
-    }, "\u0E40\u0E2A\u0E49\u0E19\u0E1B\u0E23\u0E30\u0E1A\u0E19\u0E1C\u0E31\u0E07 = \u0E41\u0E19\u0E27\u0E42\u0E04\u0E49\u0E07 (\u0E0A\u0E34\u0E14\u0E01\u0E31\u0E19\u0E17\u0E35\u0E48\u0E02\u0E2D\u0E1A) \xB7 \u0E40\u0E2A\u0E49\u0E19\u0E2A\u0E49\u0E21 = \u0E2A\u0E31\u0E19\u0E42\u0E04\u0E49\u0E07 \xB7 \u0E15\u0E31\u0E49\u0E07\u0E21\u0E38\u0E21\u0E40\u0E2D\u0E35\u0E22\u0E07\u0E2A\u0E39\u0E07\u0E2A\u0E38\u0E14\u0E02\u0E2D\u0E07\u0E41\u0E1C\u0E07\u0E43\u0E0A\u0E49\u0E41\u0E1A\u0E1A\u0E40\u0E01\u0E48\u0E32")), !isPoly && React.createElement("span", {
+    }, "\u0E40\u0E2A\u0E49\u0E19\u0E1B\u0E23\u0E30\u0E1A\u0E19\u0E1C\u0E31\u0E07 = \u0E41\u0E19\u0E27\u0E42\u0E04\u0E49\u0E07 (\u0E0A\u0E34\u0E14\u0E01\u0E31\u0E19\u0E17\u0E35\u0E48\u0E02\u0E2D\u0E1A) \xB7 \u0E40\u0E2A\u0E49\u0E19\u0E2A\u0E49\u0E21 = \u0E2A\u0E31\u0E19\u0E42\u0E04\u0E49\u0E07 \xB7 \u0E15\u0E31\u0E49\u0E07\u0E21\u0E38\u0E21\u0E40\u0E2D\u0E35\u0E22\u0E07\u0E2A\u0E39\u0E07\u0E2A\u0E38\u0E14\u0E02\u0E2D\u0E07\u0E41\u0E1C\u0E07\u0E43\u0E0A\u0E49\u0E41\u0E1A\u0E1A\u0E40\u0E01\u0E48\u0E32")), !isPoly && !panOnly && React.createElement("span", {
       className: "p3s-note"
     }, "\u0E2B\u0E31\u0E19\u0E17\u0E34\u0E28", azTxt(roof.az), " (", p3sR(+roof.az || 180, 1), "\xB0) \xB7 \u0E25\u0E32\u0E01\u0E08\u0E38\u0E14\u0E2A\u0E49\u0E21\u0E1A\u0E19\u0E1C\u0E31\u0E07\u0E40\u0E1E\u0E37\u0E48\u0E2D\u0E2B\u0E21\u0E38\u0E19"), !wiz && React.createElement("button", {
       className: "p3s-btn wide",
@@ -7446,7 +7447,9 @@ function Plan3DStudio({
     }, React.createElement(P3SIcon, {
       name: "axis",
       size: 15
-    }), "\u0E43\u0E0A\u0E49\u0E2B\u0E25\u0E31\u0E07\u0E04\u0E32\u0E19\u0E35\u0E49\u0E40\u0E1B\u0E47\u0E19\u0E41\u0E19\u0E27\u0E2D\u0E49\u0E32\u0E07\u0E2D\u0E34\u0E07"), React.createElement("div", {
+    }), "\u0E43\u0E0A\u0E49\u0E2B\u0E25\u0E31\u0E07\u0E04\u0E32\u0E19\u0E35\u0E49\u0E40\u0E1B\u0E47\u0E19\u0E41\u0E19\u0E27\u0E2D\u0E49\u0E32\u0E07\u0E2D\u0E34\u0E07"), panOnly && React.createElement("span", {
+      className: "p3s-note"
+    }, "\u0E02\u0E31\u0E49\u0E19\u0E27\u0E32\u0E07\u0E41\u0E1C\u0E07\u0E41\u0E01\u0E49\u0E2B\u0E25\u0E31\u0E07\u0E04\u0E32\u0E44\u0E21\u0E48\u0E44\u0E14\u0E49 \u2014 \u0E08\u0E30\u0E41\u0E01\u0E49\u0E02\u0E19\u0E32\u0E14/\u0E17\u0E23\u0E07/\u0E04\u0E27\u0E32\u0E21\u0E0A\u0E31\u0E19 \u0E01\u0E14\u0E22\u0E49\u0E2D\u0E19\u0E44\u0E1B\u0E02\u0E31\u0E49\u0E19 \"\u0E27\u0E32\u0E14\u0E2B\u0E25\u0E31\u0E07\u0E04\u0E32\""), !panOnly && React.createElement("div", {
       className: "p3s-row"
     }, React.createElement("button", {
       className: "p3s-btn",
@@ -8951,6 +8954,7 @@ function Plan3DStudio({
   wizHomeRef.current = wiz ? W0.tools[0] || null : null;
   const roofStep = wiz && wi === 3 && !view3d;
   const noPanUI = wiz && wi < 5;
+  const panOnly = wiz && wi >= 5;
   wizAllowRef.current = wiz ? W0.tools.length ? ["pan"].concat(W0.tools, wi >= 3 ? ["select", "meas"] : []) : ["select", "pan", "meas"] : null;
   const guidePanel = React.createElement(React.Fragment, null, React.createElement("input", {
     ref: fileRef,
