@@ -358,6 +358,52 @@ function p3sAlignRot(roof, side, ang) {
   if (r > 45) r -= 90;else if (r < -45) r += 90;
   return p3sR(r, 10);
 }
+function p3sFitRot(r, side) {
+  if (r.kind === "poly") {
+    const P = r.pts || [],
+      n = P.length;
+    if (n > 2 && p3sPolyPitch(r) > 0.4) {
+      const ph = p3PhOf(r);
+      let lo = 0;
+      if (r.p3sLow != null) lo = (+r.p3sLow % n + n) % n;else {
+        let bv = 1e9;
+        P.forEach((_, i) => {
+          const v = ph[i] + ph[(i + 1) % n];
+          if (v < bv) {
+            bv = v;
+            lo = i;
+          }
+        });
+      }
+      const a = P[lo],
+        b = P[(lo + 1) % n];
+      return p3sAlignRot(r, null, Math.atan2(b.z - a.z, b.x - a.x));
+    }
+    return p3sAlignRot(r, null, p3sLongEdgeAng(p3sFaces2D(r)[0].pts));
+  }
+  return p3sAlignRot(r, side, p3sLongEdgeAng(p3sOutline(r)));
+}
+function p3sFillPatch(r, orient) {
+  let rot = 0;
+  if (r.kind === "poly") {
+    const pl = p3PolyPlane(r);
+    if (pl && (pl.tiltCos > 0.999 || p3sPolyPitch(r) > 0.4)) rot = p3sFitRot(r);
+  }
+  return {
+    blocks: [Object.assign(p3NewBlk(0), {
+      orient: orient || "portrait",
+      rot
+    })],
+    skips: {},
+    noPanel: null
+  };
+}
+const P3S_OBS = [["turbine", "ลูกหมุน", 0.6, 0.6, 0.5], ["vent", "ปล่องดูดควัน", 0.6, 0.6, 1.5], ["sky", "หลังคาช่องแสง", 1.2, 2.4, 0.15], ["bldg", "ตึก", 8, 6, 6], ["tree", "ต้นไม้", 3, 3, 5]];
+const p3sObsType = o => o.p3sType || (o.kind === "tree" ? "tree" : "box");
+const p3sObsName = o => {
+  const t = P3S_OBS.find(x => x[0] === p3sObsType(o));
+  return t ? t[1] : "สิ่งบดบัง";
+};
 function p3sLongEdgeAng(pts) {
   let best = 0,
     ang = 0;
@@ -2515,6 +2561,8 @@ function Plan3DStudio({
   const [trace, setTrace] = React.useState(null);
   const [traceTol, setTraceTol] = React.useState(30);
   const [marq, setMarq] = React.useState(null);
+  const [roofArm, setRoofArm] = React.useState(false);
+  const [obsType, setObsType] = React.useState("turbine");
   const [mapOpen, setMapOpen] = React.useState(false);
   const [sheetMin, setSheetMin] = React.useState(false);
   const wiz = true;
@@ -3074,6 +3122,7 @@ function Plan3DStudio({
     });
     setSelVert(null);
     setSelBlk(null);
+    if (kind !== "facet") setRoofArm(false);
     if (kind === "shed") {
       setEavePick(true);
       setMxy(null);
@@ -4250,10 +4299,13 @@ function Plan3DStudio({
       return;
     }
     if (tool === "obs") {
-      gest.current = Object.assign(base, {
-        type: "obsRect"
-      });
-      return;
+      const ho = hitBody(w);
+      if (!(ho && ho.t === "obs")) {
+        gest.current = Object.assign(base, {
+          type: "obsRect"
+        });
+        return;
+      }
     }
     if (tool === "area") {
       gest.current = Object.assign(base, {
@@ -4399,7 +4451,7 @@ function Plan3DStudio({
     if (!st || view3d) return;
     const p = localXY(e);
     if (ptrs.current.has(e.pointerId)) ptrs.current.set(e.pointerId, p);
-    if (eavePick || tool === "area") setMxy(p);
+    if (eavePick || tool === "area" || tool === "panel") setMxy(p);
     const G = gest.current;
     if (!G) {
       if (e.pointerType === "mouse" || draw || measPts || axisPts || walkPts) {
@@ -4919,6 +4971,23 @@ function Plan3DStudio({
         x1 = Math.max(G.p0.x, p.x),
         y0 = Math.min(G.p0.y, p.y),
         y1 = Math.max(G.p0.y, p.y);
+      if (r.noPanel || !p3sCount(r)) {
+        const fp = p3sFillPatch(r, "portrait"),
+          all = p3sQuads(Object.assign({}, r, fp)).filter(q => !q.slot);
+        const inR = q => {
+          const c = toS(q.cx, q.cz);
+          return c.x >= x0 && c.x <= x1 && c.y >= y0 && c.y <= y1;
+        };
+        if (!all.some(inR)) return;
+        const sk = {};
+        all.forEach(q => {
+          if (!inR(q)) sk[q.key] = true;
+        });
+        fp.blocks[0].skips = sk;
+        patchRoof(r.id, fp);
+        setSelBlk(0);
+        return;
+      }
       const inside = p3sQuads(r).filter(q => {
         const c = toS(q.cx, q.cz);
         return c.x >= x0 && c.x <= x1 && c.y >= y0 && c.y <= y1;
@@ -5000,27 +5069,35 @@ function Plan3DStudio({
     if (G.type === "obsRect") {
       setMarq(null);
       let o;
+      const T = P3S_OBS.find(x => x[0] === obsType) || P3S_OBS[0],
+        kd = T[0] === "tree" ? "tree" : "box",
+        r0 = p3sR((rotRef.current / P3_DEG % 360 + 360) % 360, 10);
       if (!G.moved) o = {
         id: p3Id("o"),
-        kind: "tree",
+        kind: kd,
+        p3sType: T[0],
         x: p3sR(w.x),
         z: p3sR(w.z),
-        w: 3,
-        d: 3,
-        h: 5
+        w: T[2],
+        d: T[3],
+        h: T[4],
+        rot: r0
       };else {
         const a = G.w0,
           fa = frameOf(a),
-          fb = frameOf(w);
+          fb = frameOf(w),
+          ww = p3sR(Math.max(0.3, Math.abs(fb.x - fa.x)), 10),
+          dd = p3sR(Math.max(0.3, Math.abs(fb.z - fa.z)), 10);
         o = {
           id: p3Id("o"),
-          kind: "box",
+          kind: kd,
+          p3sType: T[0],
           x: p3sR((a.x + w.x) / 2),
           z: p3sR((a.z + w.z) / 2),
-          w: p3sR(Math.max(0.3, Math.abs(fb.x - fa.x)), 10),
-          d: p3sR(Math.max(0.3, Math.abs(fb.z - fa.z)), 10),
-          h: 1.5,
-          rot: p3sR((rotRef.current / P3_DEG % 360 + 360) % 360, 10)
+          w: kd === "tree" ? Math.max(ww, dd) : ww,
+          d: kd === "tree" ? Math.max(ww, dd) : dd,
+          h: T[4],
+          rot: r0
         };
       }
       commit(s => Object.assign({}, s, {
@@ -5030,7 +5107,7 @@ function Plan3DStudio({
         t: "obs",
         id: o.id
       });
-      setToolRaw("select");
+      if (!wizAllowRef.current) setToolRaw("select");
       return;
     }
     if (G.type === "vert" || G.type === "mid" || G.type === "side") {
@@ -5458,27 +5535,52 @@ function Plan3DStudio({
       if (isSel && tool !== "panel") lbl("fa" + i, sc.x, sc.y + 24, (f.side ? f.side + " · " : "") + "หัน" + p3sCompass(f.asp.az) + " " + Math.round(f.asp.pitch) + "°");
     });
   });
+  (st.obstacles || []).forEach(o => {
+    if (V.s < 5) return;
+    const s = toS(+o.x || 0, +o.z || 0);
+    labels.push(React.createElement("text", {
+      key: "on" + o.id,
+      x: s.x,
+      y: s.y + 4,
+      textAnchor: "middle",
+      fontSize: 10.5,
+      fontWeight: 800,
+      fill: "#0f172a",
+      stroke: "#fff",
+      strokeWidth: 3,
+      paintOrder: "stroke",
+      style: {
+        pointerEvents: "none"
+      }
+    }, p3sObsName(o)));
+  });
   roofs.forEach(r => {
-    if (V.s < 6) return;
+    if (V.s < 2) return;
     const c = p3sRoofCenter(r),
       s = toS(c.x, c.z),
-      n = p3sCount(r);
+      n = p3sCount(r),
+      nm = r.name || "หลังคา",
+      lw = nm.length * 7.2 + 18;
     labels.push(React.createElement("g", {
       key: "rn" + r.id,
       transform: "translate(" + s.x + " " + s.y + ")",
       style: {
         pointerEvents: "none"
       }
-    }, React.createElement("text", {
+    }, React.createElement("rect", {
+      x: -lw / 2,
+      y: -17,
+      width: lw,
+      height: 21,
+      rx: 10.5,
+      fill: selRoof && selRoof.id === r.id ? "#0f766e" : "rgba(15,23,42,.78)"
+    }), React.createElement("text", {
       textAnchor: "middle",
       y: -2,
       fontSize: 12,
       fontWeight: 800,
-      fill: "#0f172a",
-      stroke: "#fff",
-      strokeWidth: 3.5,
-      paintOrder: "stroke"
-    }, r.name || "หลังคา"), n > 0 && React.createElement("text", {
+      fill: "#fff"
+    }, nm), n > 0 && React.createElement("text", {
       textAnchor: "middle",
       y: 13,
       fontSize: 11,
@@ -5983,7 +6085,7 @@ function Plan3DStudio({
       return React.createElement("span", null, React.createElement("b", null, "\u0E41\u0E15\u0E30\u0E41\u0E1C\u0E07"), " = \u0E1B\u0E34\u0E14/\u0E40\u0E1B\u0E34\u0E14\u0E17\u0E35\u0E25\u0E30\u0E41\u0E1C\u0E48\u0E19 \xB7 ", React.createElement("b", null, "\u0E25\u0E32\u0E01\u0E41\u0E1C\u0E07"), " = \u0E22\u0E49\u0E32\u0E22\u0E17\u0E31\u0E49\u0E07\u0E0A\u0E38\u0E14 \xB7 ", React.createElement("b", null, "\u0E25\u0E32\u0E01\u0E04\u0E25\u0E38\u0E21"), " = \u0E1B\u0E34\u0E14\u0E2B\u0E25\u0E32\u0E22\u0E41\u0E1C\u0E48\u0E19", coarse ? " · สองนิ้ว = เลื่อน/ซูม" : " · คลิกขวาลาก = เลื่อนภาพ");
     }
     if (tool === "area") return React.createElement("span", null, React.createElement("b", null, "\u0E25\u0E32\u0E01\u0E01\u0E23\u0E2D\u0E1A"), " \u0E04\u0E25\u0E38\u0E21\u0E2D\u0E32\u0E04\u0E32\u0E23/\u0E2B\u0E25\u0E31\u0E07\u0E04\u0E32\u0E17\u0E35\u0E48\u0E08\u0E30\u0E15\u0E34\u0E14\u0E15\u0E31\u0E49\u0E07 \u2014 \u0E43\u0E0A\u0E49\u0E0B\u0E39\u0E21\u0E41\u0E25\u0E30\u0E2B\u0E32\u0E41\u0E19\u0E27\u0E2B\u0E25\u0E31\u0E07\u0E04\u0E32\u0E2D\u0E31\u0E15\u0E42\u0E19\u0E21\u0E31\u0E15\u0E34\u0E43\u0E19\u0E01\u0E23\u0E2D\u0E1A\u0E19\u0E35\u0E49");
-    if (tool === "obs") return React.createElement("span", null, React.createElement("b", null, "\u0E41\u0E15\u0E30"), " = \u0E27\u0E32\u0E07\u0E15\u0E49\u0E19\u0E44\u0E21\u0E49 \xB7 ", React.createElement("b", null, "\u0E25\u0E32\u0E01"), " = \u0E27\u0E32\u0E14\u0E01\u0E25\u0E48\u0E2D\u0E07 (\u0E16\u0E31\u0E07\u0E19\u0E49\u0E33 \u0E41\u0E17\u0E47\u0E07\u0E01\u0E4C \u0E1B\u0E49\u0E32\u0E22 \u0E15\u0E36\u0E01\u0E02\u0E49\u0E32\u0E07\u0E40\u0E04\u0E35\u0E22\u0E07)");
+    if (tool === "obs") return React.createElement("span", null, "\u0E27\u0E32\u0E07", React.createElement("b", null, (P3S_OBS.find(x => x[0] === obsType) || P3S_OBS[0])[1]), " \xB7 ", React.createElement("b", null, "\u0E41\u0E15\u0E30"), " = \u0E02\u0E19\u0E32\u0E14\u0E21\u0E32\u0E15\u0E23\u0E10\u0E32\u0E19 \xB7 ", React.createElement("b", null, "\u0E25\u0E32\u0E01"), " = \u0E15\u0E32\u0E21\u0E02\u0E19\u0E32\u0E14\u0E08\u0E23\u0E34\u0E07");
     if (tool === "meas") return measPts ? React.createElement("span", null, "\u0E04\u0E25\u0E34\u0E01\u0E08\u0E38\u0E14\u0E16\u0E31\u0E14\u0E44\u0E1B \xB7 ", React.createElement("kbd", null, "Enter"), "/\u0E14\u0E31\u0E1A\u0E40\u0E1A\u0E34\u0E25\u0E04\u0E25\u0E34\u0E01 = \u0E08\u0E1A\u0E40\u0E2A\u0E49\u0E19 \xB7 ", React.createElement("kbd", null, "\u232B"), " \u0E16\u0E2D\u0E22\u0E08\u0E38\u0E14") : React.createElement("span", null, React.createElement("b", null, "\u0E04\u0E25\u0E34\u0E01\u0E44\u0E25\u0E48\u0E08\u0E38\u0E14"), " \u0E15\u0E32\u0E21\u0E41\u0E19\u0E27\u0E40\u0E14\u0E34\u0E19\u0E2A\u0E32\u0E22/\u0E23\u0E32\u0E07 \u0E44\u0E14\u0E49\u0E23\u0E30\u0E22\u0E30\u0E08\u0E23\u0E34\u0E07\u0E44\u0E1B\u0E01\u0E23\u0E2D\u0E01 BOQ");
     if (tool === "bg") {
       if (calib) return calib.pts.length < 2 ? React.createElement("span", null, "\u0E04\u0E25\u0E34\u0E01 ", React.createElement("b", null, "2 \u0E08\u0E38\u0E14"), " \u0E1A\u0E19\u0E2A\u0E34\u0E48\u0E07\u0E17\u0E35\u0E48\u0E23\u0E39\u0E49\u0E04\u0E27\u0E32\u0E21\u0E22\u0E32\u0E27\u0E08\u0E23\u0E34\u0E07 (\u0E40\u0E0A\u0E48\u0E19 \u0E02\u0E2D\u0E1A\u0E2B\u0E25\u0E31\u0E07\u0E04\u0E32\u0E17\u0E35\u0E48\u0E27\u0E31\u0E14\u0E21\u0E32)") : React.createElement("span", null, "\u0E01\u0E23\u0E2D\u0E01\u0E04\u0E27\u0E32\u0E21\u0E22\u0E32\u0E27\u0E08\u0E23\u0E34\u0E07\u0E43\u0E19\u0E41\u0E1C\u0E07\u0E14\u0E49\u0E32\u0E19\u0E02\u0E27\u0E32");
@@ -6959,14 +7061,28 @@ function Plan3DStudio({
   }, React.createElement(P3Icon, {
     name: o.kind === "tree" ? "tree" : "box",
     size: 17
-  }), o.kind === "tree" ? "ต้นไม้" : "สิ่งบดบัง")), React.createElement(P3SSeg, {
-    full: true,
-    value: o.kind === "tree" ? "tree" : "box",
-    onChange: v => patchObs(o.id, {
-      kind: v
-    }),
-    options: [["box", "กล่อง/อาคาร"], ["tree", "ต้นไม้"]]
-  }), React.createElement("div", {
+  }), p3sObsName(o))), React.createElement("div", {
+    className: "p3s-row",
+    style: {
+      flexWrap: "wrap",
+      gap: 6
+    }
+  }, P3S_OBS.map(([k, lb, w0, d0, h0]) => React.createElement("button", {
+    key: k,
+    className: "p3s-btn" + (p3sObsType(o) === k ? " pri" : ""),
+    style: {
+      flex: "1 1 30%",
+      padding: "0 6px",
+      fontSize: 12.5
+    },
+    onClick: () => patchObs(o.id, {
+      p3sType: k,
+      kind: k === "tree" ? "tree" : "box",
+      w: w0,
+      d: d0,
+      h: h0
+    })
+  }, lb))), React.createElement("div", {
     className: "p3s-g2"
   }, React.createElement(P3SNum, {
     label: o.kind === "tree" ? "ทรงพุ่มกว้าง" : "กว้าง",
@@ -7245,6 +7361,46 @@ function Plan3DStudio({
   const shapeGap = shapeRef.current.gap;
   const emptyRoofs = roofs.filter(r => !roofCountOf(r));
   const anyWalk = roofs.some(r => (r.walks || []).length);
+  const roofEaveOf = r => r.kind === "poly" ? Math.min.apply(null, p3PhOf(r)) : +r.h || 0;
+  const roofPitchOf = r => r.kind === "dome" ? null : r.kind === "poly" ? p3sR(p3sPolyPitch(r), 10) : +r.pitch || 0;
+  const setRoofEave = (r, v) => {
+    if (r.kind !== "poly") {
+      patchRoof(r.id, {
+        h: v
+      }, "h");
+      return;
+    }
+    patchRoof(r.id, x => {
+      const ph = p3PhOf(x),
+        d = v - Math.min.apply(null, ph);
+      return {
+        ph: ph.map(h => p3sR(h + d))
+      };
+    }, "eave");
+  };
+  const setRoofPitch = (r, v) => {
+    if (r.kind !== "poly") {
+      patchRoof(r.id, {
+        pitch: v
+      }, "pitch");
+      return;
+    }
+    patchRoof(r.id, x => {
+      const P = x.pts || [],
+        n = P.length,
+        ph = p3PhOf(x),
+        base = Math.min.apply(null, ph);
+      const lo = x.p3sLow != null ? (+x.p3sLow % n + n) % n : p3sSouthEdge(P);
+      return {
+        ph: p3sPitchPh(P, lo, base, v),
+        p3sLow: lo,
+        p3sPitch: v
+      };
+    }, "pitch");
+    if (r.p3sFacet) weldLive([r.id], {
+      pitch: v
+    });
+  };
   const pickRoof = r => {
     setSel({
       t: "roof",
@@ -7425,10 +7581,64 @@ function Plan3DStudio({
       setKindPick(true);
     }
   }, {
-    t: "ตั้งความชันและเช็กชายคา",
+    t: "ความสูงอาคารและความชัน",
     tools: ["select"],
     done: roofs.length > 0 && shapeGap < 0.03,
-    d: React.createElement("span", null, "\u0E41\u0E15\u0E30\u0E2B\u0E25\u0E31\u0E07\u0E04\u0E32\u0E1C\u0E37\u0E19\u0E44\u0E2B\u0E19\u0E01\u0E47\u0E44\u0E14\u0E49 \u0E41\u0E25\u0E49\u0E27\u0E15\u0E31\u0E49\u0E07 ", React.createElement("b", null, "\u0E04\u0E27\u0E32\u0E21\u0E0A\u0E31\u0E19"), " \u0E04\u0E23\u0E31\u0E49\u0E07\u0E40\u0E14\u0E35\u0E22\u0E27 \u0E1C\u0E37\u0E19\u0E17\u0E35\u0E48\u0E15\u0E48\u0E2D\u0E01\u0E31\u0E19\u0E08\u0E30\u0E0A\u0E31\u0E19\u0E40\u0E17\u0E48\u0E32\u0E01\u0E31\u0E19\u0E17\u0E31\u0E49\u0E07\u0E2B\u0E25\u0E31\u0E07 \xB7 \u0E1C\u0E37\u0E19\u0E44\u0E2B\u0E19\u0E0A\u0E32\u0E22\u0E04\u0E32\u0E1C\u0E34\u0E14\u0E14\u0E49\u0E32\u0E19 \u0E43\u0E0A\u0E49 ", React.createElement("b", null, "\u0E41\u0E15\u0E30\u0E40\u0E25\u0E37\u0E2D\u0E01\u0E02\u0E2D\u0E1A\u0E0A\u0E32\u0E22\u0E04\u0E32\u0E1A\u0E19\u0E1C\u0E31\u0E07"), " \xB7 \u0E41\u0E25\u0E49\u0E27\u0E01\u0E14 ", React.createElement("b", null, "3D"), " \u0E14\u0E39\u0E17\u0E23\u0E07\u0E41\u0E27\u0E1A\u0E40\u0E14\u0E35\u0E22\u0E27"),
+    d: React.createElement("span", null, "\u0E15\u0E31\u0E49\u0E07 ", React.createElement("b", null, "\u0E04\u0E27\u0E32\u0E21\u0E2A\u0E39\u0E07\u0E2D\u0E32\u0E04\u0E32\u0E23"), " (\u0E1E\u0E37\u0E49\u0E19\u0E16\u0E36\u0E07\u0E0A\u0E32\u0E22\u0E04\u0E32) \u0E41\u0E25\u0E30 ", React.createElement("b", null, "\u0E04\u0E27\u0E32\u0E21\u0E0A\u0E31\u0E19"), " \u0E02\u0E2D\u0E07\u0E41\u0E15\u0E48\u0E25\u0E30\u0E2B\u0E25\u0E31\u0E07 \xB7 \u0E1C\u0E37\u0E19\u0E17\u0E35\u0E48\u0E15\u0E48\u0E2D\u0E01\u0E31\u0E19\u0E0A\u0E31\u0E19\u0E40\u0E17\u0E48\u0E32\u0E01\u0E31\u0E19\u0E17\u0E31\u0E49\u0E07\u0E2B\u0E25\u0E31\u0E07 \xB7 \u0E41\u0E25\u0E49\u0E27\u0E01\u0E14 ", React.createElement("b", null, "3D"), " \u0E14\u0E39\u0E17\u0E23\u0E07\u0E41\u0E27\u0E1A\u0E40\u0E14\u0E35\u0E22\u0E27"),
+    list: React.createElement("div", {
+      className: "p3s-fld",
+      style: {
+        gap: 8
+      }
+    }, roofs.map(r => {
+      const pc = roofPitchOf(r),
+        on = selRoof && selRoof.id === r.id;
+      const kk = r.kind === "poly" ? r.p3sFacet ? "facet" : pc > 0.4 ? "shed" : "flat" : r.kind;
+      return React.createElement("div", {
+        key: r.id,
+        className: "p3s-fld",
+        style: {
+          gap: 4,
+          padding: 8,
+          borderRadius: 11,
+          background: on ? "var(--tint-green-bg,#ecfdf5)" : "var(--surface2)"
+        }
+      }, React.createElement("button", {
+        className: "p3s-btn",
+        style: {
+          height: 26,
+          padding: "0 10px",
+          fontSize: 12,
+          alignSelf: "flex-start"
+        },
+        onClick: () => pickRoof(r)
+      }, React.createElement(P3Icon, {
+        name: "roof"
+      }), r.name || "หลังคา", " \xB7 ", P3S_KIND_TH[kk] || kk), React.createElement("div", {
+        className: "p3s-g2"
+      }, React.createElement(P3SNum, {
+        label: "\u0E04\u0E27\u0E32\u0E21\u0E2A\u0E39\u0E07\u0E2D\u0E32\u0E04\u0E32\u0E23",
+        unit: "\u0E21.",
+        step: 0.1,
+        min: 0,
+        value: p3sR(roofEaveOf(r), 100),
+        onChange: v => setRoofEave(r, v)
+      }), pc != null ? React.createElement(P3SNum, {
+        label: "\u0E04\u0E27\u0E32\u0E21\u0E0A\u0E31\u0E19",
+        unit: "\xB0",
+        step: 1,
+        min: 0,
+        max: 60,
+        digits: 1,
+        value: pc,
+        onChange: v => setRoofPitch(r, v)
+      }) : React.createElement("span", {
+        className: "p3s-note",
+        style: {
+          alignSelf: "end"
+        }
+      }, "\u0E04\u0E27\u0E32\u0E21\u0E42\u0E04\u0E49\u0E07\u0E15\u0E31\u0E49\u0E07\u0E17\u0E35\u0E48\u0E01\u0E32\u0E23\u0E4C\u0E14\u0E2B\u0E25\u0E31\u0E07\u0E04\u0E32")));
+    })),
     extra: shapeGap >= 0.03 && facetRoofs.length > 1 && React.createElement("div", {
       className: "p3s-row"
     }, React.createElement("span", {
@@ -7462,13 +7672,33 @@ function Plan3DStudio({
     tools: ["obs"],
     done: (st.obstacles || []).length > 0 || !!wizSeen[5],
     opt: true,
-    d: React.createElement("span", null, "\u0E27\u0E32\u0E14\u0E41\u0E17\u0E47\u0E07\u0E01\u0E4C\u0E19\u0E49\u0E33 \u0E0A\u0E48\u0E2D\u0E07\u0E41\u0E2A\u0E07 \u0E40\u0E2A\u0E32 \u0E15\u0E49\u0E19\u0E44\u0E21\u0E49 ", React.createElement("b", null, "\u0E01\u0E48\u0E2D\u0E19\u0E27\u0E32\u0E07\u0E41\u0E1C\u0E07"), " \u2014 \u0E41\u0E1C\u0E07\u0E17\u0E35\u0E48\u0E17\u0E31\u0E1A\u0E08\u0E30\u0E16\u0E39\u0E01\u0E15\u0E31\u0E14\u0E2D\u0E2D\u0E01\u0E40\u0E2D\u0E07 \xB7 \u0E44\u0E21\u0E48\u0E21\u0E35\u0E01\u0E47\u0E01\u0E14\u0E16\u0E31\u0E14\u0E44\u0E1B\u0E44\u0E14\u0E49\u0E40\u0E25\u0E22"),
+    d: React.createElement("span", null, "\u0E40\u0E25\u0E37\u0E2D\u0E01\u0E0A\u0E19\u0E34\u0E14 \u0E41\u0E25\u0E49\u0E27", React.createElement("b", null, "\u0E41\u0E15\u0E30\u0E1A\u0E19\u0E1C\u0E31\u0E07"), " = \u0E02\u0E19\u0E32\u0E14\u0E21\u0E32\u0E15\u0E23\u0E10\u0E32\u0E19 \u0E2B\u0E23\u0E37\u0E2D", React.createElement("b", null, "\u0E25\u0E32\u0E01\u0E01\u0E23\u0E2D\u0E1A"), "\u0E15\u0E32\u0E21\u0E02\u0E19\u0E32\u0E14\u0E08\u0E23\u0E34\u0E07 \xB7 \u0E17\u0E33", React.createElement("b", null, "\u0E01\u0E48\u0E2D\u0E19\u0E27\u0E32\u0E07\u0E41\u0E1C\u0E07"), " \u0E41\u0E1C\u0E07\u0E17\u0E35\u0E48\u0E17\u0E31\u0E1A\u0E16\u0E39\u0E01\u0E15\u0E31\u0E14\u0E2D\u0E2D\u0E01\u0E40\u0E2D\u0E07 \xB7 \u0E44\u0E21\u0E48\u0E21\u0E35\u0E01\u0E47\u0E01\u0E14\u0E16\u0E31\u0E14\u0E44\u0E1B"),
+    act: React.createElement("div", {
+      className: "p3s-row",
+      style: {
+        flexWrap: "wrap",
+        gap: 6
+      }
+    }, P3S_OBS.map(([k, lb]) => React.createElement("button", {
+      key: k,
+      className: "p3s-btn" + (obsType === k && tool === "obs" ? " pri" : ""),
+      style: {
+        flex: "1 1 30%",
+        padding: "0 6px",
+        fontSize: 12.5
+      },
+      onClick: () => {
+        setObsType(k);
+        setTool("obs");
+        setSel(null);
+      }
+    }, lb))),
     go: () => setTool("obs")
   }, {
     t: "วางแผง ทีละหลังคา",
     tools: ["panel"],
     done: total > 0,
-    d: React.createElement("span", null, "\u0E2B\u0E25\u0E31\u0E07\u0E04\u0E32\u0E17\u0E35\u0E48\u0E27\u0E32\u0E14\u0E44\u0E27\u0E49\u0E22\u0E31\u0E07\u0E44\u0E21\u0E48\u0E21\u0E35\u0E41\u0E1C\u0E07 \xB7 \u0E23\u0E38\u0E48\u0E19\u0E41\u0E1C\u0E07 ", React.createElement("b", null, (st.sys || {}).panelModel || (st.wp || 650) + " W"), " \xB7 \u0E41\u0E15\u0E30\u0E2B\u0E25\u0E31\u0E07\u0E04\u0E32\u0E41\u0E25\u0E49\u0E27\u0E01\u0E14 ", React.createElement("b", null, "\u0E27\u0E32\u0E07\u0E41\u0E1C\u0E07\u0E40\u0E15\u0E47\u0E21\u0E2B\u0E25\u0E31\u0E07\u0E04\u0E32"), " \xB7 \u0E15\u0E31\u0E49\u0E07\u0E40\u0E27\u0E49\u0E19\u0E23\u0E2D\u0E1A\u0E02\u0E2D\u0E1A \u0E41\u0E19\u0E27\u0E15\u0E31\u0E49\u0E07/\u0E19\u0E2D\u0E19 \xB7 \u0E41\u0E16\u0E27\u0E40\u0E2D\u0E35\u0E22\u0E07\u0E01\u0E14 ", React.createElement("b", null, "\u0E02\u0E19\u0E32\u0E19\u0E0A\u0E32\u0E22\u0E04\u0E32"), " \xB7 \u0E41\u0E15\u0E30\u0E41\u0E1C\u0E07\u0E17\u0E35\u0E48\u0E44\u0E21\u0E48\u0E15\u0E49\u0E2D\u0E07\u0E01\u0E32\u0E23\u0E40\u0E1E\u0E37\u0E48\u0E2D\u0E1B\u0E34\u0E14"),
+    d: React.createElement("span", null, React.createElement("b", null, "\u0E01\u0E14\u0E04\u0E49\u0E32\u0E07\u0E41\u0E25\u0E49\u0E27\u0E25\u0E32\u0E01\u0E01\u0E23\u0E2D\u0E1A\u0E1A\u0E19\u0E2B\u0E25\u0E31\u0E07\u0E04\u0E32"), " \u0E41\u0E1C\u0E07\u0E02\u0E36\u0E49\u0E19\u0E40\u0E09\u0E1E\u0E32\u0E30\u0E43\u0E19\u0E01\u0E23\u0E2D\u0E1A (\u0E2B\u0E23\u0E37\u0E2D\u0E01\u0E14 ", React.createElement("b", null, "\u0E27\u0E32\u0E07\u0E41\u0E1C\u0E07\u0E40\u0E15\u0E47\u0E21\u0E2B\u0E25\u0E31\u0E07\u0E04\u0E32"), ") \xB7 \u0E23\u0E38\u0E48\u0E19\u0E41\u0E1C\u0E07 ", React.createElement("b", null, (st.sys || {}).panelModel || (st.wp || 650) + " W"), " \xB7 \u0E15\u0E31\u0E49\u0E07\u0E40\u0E27\u0E49\u0E19\u0E23\u0E2D\u0E1A\u0E02\u0E2D\u0E1A \u0E41\u0E19\u0E27\u0E15\u0E31\u0E49\u0E07/\u0E19\u0E2D\u0E19 \xB7 \u0E41\u0E16\u0E27\u0E40\u0E2D\u0E35\u0E22\u0E07\u0E01\u0E14 ", React.createElement("b", null, "\u0E02\u0E19\u0E32\u0E19\u0E0A\u0E32\u0E22\u0E04\u0E32"), " \xB7 \u0E41\u0E15\u0E30\u0E41\u0E1C\u0E07\u0E17\u0E35\u0E48\u0E44\u0E21\u0E48\u0E15\u0E49\u0E2D\u0E07\u0E01\u0E32\u0E23\u0E40\u0E1E\u0E37\u0E48\u0E2D\u0E1B\u0E34\u0E14"),
     extra: emptyRoofs.length > 0 && roofs.length > 0 && React.createElement("div", {
       className: "p3s-fld",
       style: {
@@ -7585,7 +7815,7 @@ function Plan3DStudio({
     className: "wt"
   }, wi + 1, ". ", W0.t, W0.done ? " ✓" : ""), React.createElement("span", {
     className: "wd"
-  }, W0.d), W0.extra || null, W0.act || null, wi >= 4 && wi <= 7 && roofs.length > 0 && React.createElement("button", {
+  }, W0.d), W0.extra || null, W0.list || null, W0.act || null, wi === 4 && roofs.length > 0 && React.createElement("button", {
     className: "p3s-btn wide",
     onClick: () => {
       setAddBack({
@@ -7998,7 +8228,7 @@ function Plan3DStudio({
   }));else sideBody = guidePanel;
   if (wizCard) sideBody = React.createElement(React.Fragment, null, wizCard, sideBody);
   let ctxBar = null;
-  if (!view3d && (tool === "roof" || roofStep)) {
+  if (!view3d && (tool === "roof" || roofStep) && (roofArm || draw || !(st.roofs || []).length)) {
     const polyOnly = roofOpt.kind === "facet";
     const hasImg = !!(st.baseMap && st.baseMap.url || st.photo);
     ctxBar = React.createElement("div", {
@@ -8010,12 +8240,7 @@ function Plan3DStudio({
     }, React.createElement(P3SIcon, {
       name: "polygon",
       size: 16
-    }), "\u0E01\u0E25\u0E31\u0E1A\u0E44\u0E1B\u0E27\u0E32\u0E14\u0E2B\u0E25\u0E31\u0E07\u0E04\u0E32"), (st.roofs || []).length > 0 && React.createElement("button", {
-      className: "p3s-btn",
-      onClick: addRoof
-    }, React.createElement(P3Icon, {
-      name: "plus"
-    }), "\u0E40\u0E1E\u0E34\u0E48\u0E21\u0E2B\u0E25\u0E31\u0E07\u0E04\u0E32"), React.createElement(P3SSeg, {
+    }), "\u0E01\u0E25\u0E31\u0E1A\u0E44\u0E1B\u0E27\u0E32\u0E14\u0E2B\u0E25\u0E31\u0E07\u0E04\u0E32"), React.createElement(P3SSeg, {
       value: roofOpt.kind,
       onChange: v => {
         if (tool !== "roof") setTool("roof");
@@ -8401,7 +8626,7 @@ function Plan3DStudio({
     onPointerUp: onUp,
     onPointerCancel: onCancel,
     onPointerLeave: () => {
-      if (tool === "area") setMxy(null);
+      if (tool === "area" || tool === "panel") setMxy(null);
       if (!gest.current) {
         setHover(null);
         if (tool !== "roof" && tool !== "meas") setCur(null);
@@ -8500,6 +8725,7 @@ function Plan3DStudio({
       setDraw(null);
       setTrace(null);
       setKindPick(false);
+      setRoofArm(true);
     }
   }, React.createElement(P3SKindArt, {
     k: k
@@ -8511,7 +8737,13 @@ function Plan3DStudio({
       left: mxy.x + 16,
       top: mxy.y + 14
     }
-  }, "\u0E01\u0E33\u0E2B\u0E19\u0E14\u0E17\u0E32\u0E07\u0E25\u0E32\u0E14 \u2014 \u0E41\u0E15\u0E30\u0E02\u0E2D\u0E1A\u0E14\u0E49\u0E32\u0E19\u0E15\u0E48\u0E33"), tool === "area" && !eavePick && mxy && !view3d && React.createElement("div", {
+  }, "\u0E01\u0E33\u0E2B\u0E19\u0E14\u0E17\u0E32\u0E07\u0E25\u0E32\u0E14 \u2014 \u0E41\u0E15\u0E30\u0E02\u0E2D\u0E1A\u0E14\u0E49\u0E32\u0E19\u0E15\u0E48\u0E33"), tool === "panel" && mxy && !view3d && (marq || hover && hover.indexOf("roof:") === 0 && !p3sCount((st.roofs || []).find(r => "roof:" + r.id === hover) || {})) && React.createElement("div", {
+    className: "p3s-mtip",
+    style: {
+      left: mxy.x + 16,
+      top: mxy.y + 14
+    }
+  }, marq ? "ปล่อยแล้วแผงขึ้นในกรอบ" : "กดค้างแล้วลาก คลุมส่วนที่จะวางแผง"), tool === "area" && !eavePick && mxy && !view3d && React.createElement("div", {
     className: "p3s-mtip",
     style: {
       left: mxy.x + 16,
