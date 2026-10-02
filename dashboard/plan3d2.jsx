@@ -1718,12 +1718,31 @@ function p3sBuild3D(THREE, grp, st, tex) {
     let foot = [];
     try { foot = p3Foot(roof); } catch (e) { foot = []; }
     if (!foot.length) return;
-    const pos = [], fr = [], ln = [];
+    const pos = [], fr = [], ln = [], rl = [], ft = [];
     const yFix = roof.kind === "poly" ? bH - (+roof.h || 0) : 0;
     const Q = (arr, a, b, d, e) => [a, b, d, a, d, e].forEach((v) => arr.push(v.x, v.y, v.z));
+    // กล่องจากจุดกลาง + ครึ่งแกนสามแกน (เวกเตอร์) — ใช้ทำ Rail / L-feet / เสาขาตั้ง
+    const box = (arr, c, a, b, h) => {
+      const V3 = (i, j, k) => new THREE.Vector3(c.x + a.x * i + b.x * j + h.x * k, c.y + a.y * i + b.y * j + h.y * k, c.z + a.z * i + b.z * j + h.z * k);
+      Q(arr, V3(-1, -1, 1), V3(1, -1, 1), V3(1, 1, 1), V3(-1, 1, 1)); Q(arr, V3(-1, 1, -1), V3(1, 1, -1), V3(1, -1, -1), V3(-1, -1, -1));
+      Q(arr, V3(-1, -1, -1), V3(1, -1, -1), V3(1, -1, 1), V3(-1, -1, 1)); Q(arr, V3(1, 1, -1), V3(-1, 1, -1), V3(-1, 1, 1), V3(1, 1, 1));
+      Q(arr, V3(-1, 1, -1), V3(-1, -1, -1), V3(-1, -1, 1), V3(-1, 1, 1)); Q(arr, V3(1, -1, -1), V3(1, 1, -1), V3(1, 1, 1), V3(1, -1, 1));
+    };
+    const sc = (v, k) => ({ x: v.x * k, y: v.y * k, z: v.z * k });
+    const hz = (v, k) => { const l = Math.hypot(v.x, v.z) || 1; return { x: v.x / l * k, y: 0, z: v.z / l * k }; };
+    // ตารางจุดกลางแผง (ช่อง 0.5 ม.) — หาว่าปลาย Rail มีแผงข้างเคียงต่อไหม (ไม่มี = ปลายแถว ยื่นเลยแผง 15 ซม.)
+    const cellK = (x, z) => Math.round(x / 0.5) + "," + Math.round(z / 0.5), fGrid = new Map();
+    foot.forEach((f) => { const k = cellK(f.cx, f.cz); if (!fGrid.has(k)) fGrid.set(k, []); fGrid.get(k).push(f); });
+    const hasNb = (x, z) => {
+      const i0 = Math.round(x / 0.5), j0 = Math.round(z / 0.5);
+      for (let i = i0 - 1; i <= i0 + 1; i++) for (let j = j0 - 1; j <= j0 + 1; j++) {
+        const L = fGrid.get(i + "," + j); if (L && L.some((g) => Math.hypot(g.cx - x, g.cz - z) < 0.2)) return true;
+      }
+      return false;
+    };
     foot.forEach((f) => {
       const c = { x: f.cx, y: f.cy + yFix, z: f.cz }, U = f.u, V = f.v, n = f.n;
-      const o = 0.07;
+      const o = 0.12;   // ผิวแผงสูงจากหลังคา 12 ซม. — ใต้แผงมี Rail + L-feet
       pans.push({ x: c.x, y: c.y, z: c.z, nx: n.x, ny: n.y, nz: n.z });
       let lift = 0;
       const P = (su, sv, dn) => { const k = o + (dn || 0); return new THREE.Vector3(c.x + su * U.x + sv * V.x + n.x * k, c.y + su * U.y + sv * V.y + n.y * k + lift, c.z + su * U.z + sv * V.z + n.z * k); };
@@ -1745,8 +1764,45 @@ function p3sBuild3D(THREE, grp, st, tex) {
       const nu = lu >= lv ? 12 : 6, nv = lu >= lv ? 6 : 12;
       for (let i = 1; i < nu; i++) { const t = -fu + 2 * fu * i / nu; [P(t, -fv, 0.002), P(t, fv, 0.002)].forEach((v) => ln.push(v.x, v.y, v.z)); }
       for (let i = 1; i < nv; i++) { const t = -fv + 2 * fv * i / nv; [P(-fu, t, 0.002), P(fu, t, 0.002)].forEach((v) => ln.push(v.x, v.y, v.z)); }
+      /* Rail อะลูมิเนียม 2 เส้นต่อแผง ขวางด้านยาวที่ ¼ จากขอบ (ต่อกันเป็นเส้นยาวตลอดแถว) · หน้าตัด 4 × 3.5 ซม. ชิดใต้กรอบ
+         · ตัวยึดใต้ Rail ทุกช่วงแผง (~1.1 ม.): ใกล้ผิวหลังคา = L-feet · ขาตั้งเอียง/สูง = เสาขาตั้ง + แผ่นฐาน */
+      {
+        const port = lv >= lu, A = port ? U : V, B = port ? V : U, la = port ? lu : lv, lb = port ? lv : lu;
+        const at = (sa, sb, dn) => port ? P(sa, sb, dn) : P(sb, sa, dn);
+        const rT = -T, rB = -T - 0.035, wb = 0.02 / lb, gapA = 0.03 / la;
+        // ปลายที่มีแผงต่อ = ยื่นครึ่งช่องห่าง (ต่อเป็นเส้นเดียว) · ปลายแถว = ยื่นเลยขอบแผง 15 ซม.
+        const nbAt = (sg) => hasNb(f.cx + A.x * sg * (2 + gapA), f.cz + A.z * sg * (2 + gapA));
+        const e0 = 1 + (nbAt(-1) ? 0.016 : 0.15) / la, e1 = 1 + (nbAt(1) ? 0.016 : 0.15) / la;
+        [-0.5, 0.5].forEach((sb) => {
+          const c0 = at((e1 - e0) / 2, sb, (rT + rB) / 2);
+          box(rl, c0, sc(A, (e0 + e1) / 2), sc(B, wb), sc(n, 0.0175));
+          (la > 0.8 ? [-0.5, 0.5] : [0]).forEach((sa) => {
+            const q = at(sa, sb, rB), ys0 = tris.length ? surfY(tris, q.x, q.z) : null, ys = ys0 == null ? q.y - (o - T - 0.035) : ys0;
+            const hgt = q.y - ys; if (hgt < 0.005) return;
+            const ha = hz(A, 0.025), hb = hz(B, 1);
+            if (hgt < 0.16) {
+              // L-feet: แผ่นตั้งข้าง Rail + ฐานแปะหลังคา (ยึดสกรูลงลอน)
+              const off = 0.024 + 0.0025;
+              box(ft, { x: q.x + hb.x * off, y: (ys + q.y + 0.03) / 2, z: q.z + hb.z * off }, ha, sc(hb, 0.0025), { x: 0, y: (q.y + 0.03 - ys) / 2, z: 0 });
+              box(ft, { x: q.x + hb.x * (off + 0.04), y: ys + 0.003, z: q.z + hb.z * (off + 0.04) }, ha, sc(hb, 0.042), { x: 0, y: 0.003, z: 0 });
+            } else {
+              // ขาตั้ง: เสา 4 × 4 ซม. + แผ่นฐาน 12 × 12 ซม.
+              box(ft, { x: q.x, y: (ys + q.y) / 2, z: q.z }, hz(A, 0.02), sc(hb, 0.02), { x: 0, y: hgt / 2, z: 0 });
+              box(ft, { x: q.x, y: ys + 0.004, z: q.z }, hz(A, 0.06), sc(hb, 0.06), { x: 0, y: 0.004, z: 0 });
+            }
+          });
+        });
+      }
       const d = P(1, 1); eat(d.x, d.y, d.z);
     });
+    if (rl.length) {
+      const rg = new THREE.BufferGeometry(); rg.setAttribute("position", new THREE.Float32BufferAttribute(rl, 3)); rg.computeVertexNormals();
+      const rm = add(new THREE.Mesh(rg, new THREE.MeshStandardMaterial({ color: 0xbfc6ce, roughness: 0.38, metalness: 0.55 }))); rm.castShadow = true; rm.receiveShadow = true;
+    }
+    if (ft.length) {
+      const fg2 = new THREE.BufferGeometry(); fg2.setAttribute("position", new THREE.Float32BufferAttribute(ft, 3)); fg2.computeVertexNormals();
+      const fm2 = add(new THREE.Mesh(fg2, new THREE.MeshStandardMaterial({ color: 0x9aa4ae, roughness: 0.45, metalness: 0.5 }))); fm2.castShadow = true; fm2.receiveShadow = true;
+    }
     const g = new THREE.BufferGeometry(); g.setAttribute("position", new THREE.Float32BufferAttribute(pos, 3)); g.computeVertexNormals();
     const pm = add(new THREE.Mesh(g, new THREE.MeshStandardMaterial({ color: 0x0a1a48, roughness: 0.2, metalness: 0.1, envMapIntensity: 0.5, side: THREE.DoubleSide })   /* โลหะต่ำ = สีน้ำเงินสด ไม่สะท้อนพื้นจนเทา */));
     pm.castShadow = true; pm.receiveShadow = true;
@@ -2026,7 +2082,7 @@ function P3SView3D({ st, sun, api }) {
     };
     // ภาพนิ่ง (ขนาดเท่าจอ 3D) · อัดวิดีโอจอ 3D (mp4 ถ้าเบราว์เซอร์รองรับ ไม่งั้น webm) — เริ่ม/หยุดจากข้างนอก
     if (api) api.current = {
-      gl: renderer, scene,   // ให้ทดสอบ/ปรับแสงจากคอนโซลได้
+      gl: renderer, scene, cam: camera, ctl: controls,   // ให้ทดสอบ/ปรับแสง/มุมกล้องจากคอนโซลได้
       view, ready: () => !!T.current.bounds, hasPanels: () => !!(T.current.bounds && T.current.bounds.pans && T.current.bounds.pans.length),
       /* ถ่ายภาพ: เรนเดอร์ใหม่นอกจอ 16:9 เสมอ (3840×2160 ไม่เกินที่การ์ดจอรับได้) ไม่ขึ้นกับขนาดจอ 3D — แผงข้างไม่ทำให้ภาพแคบ
          · กล้องเดิม (มุมเงย fov แนวตั้ง) จึงได้ภาพกว้างขึ้นด้านข้าง · ซ่อนดวงอาทิตย์จำลอง/เส้นทางโคจร/ดาว/เส้นขอบช่วยวาด

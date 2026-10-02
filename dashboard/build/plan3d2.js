@@ -3614,9 +3614,49 @@ function p3sBuild3D(THREE, grp, st, tex) {
     if (!foot.length) return;
     const pos = [],
       fr = [],
-      ln = [];
+      ln = [],
+      rl = [],
+      ft = [];
     const yFix = roof.kind === "poly" ? bH - (+roof.h || 0) : 0;
     const Q = (arr, a, b, d, e) => [a, b, d, a, d, e].forEach(v => arr.push(v.x, v.y, v.z));
+    const box = (arr, c, a, b, h) => {
+      const V3 = (i, j, k) => new THREE.Vector3(c.x + a.x * i + b.x * j + h.x * k, c.y + a.y * i + b.y * j + h.y * k, c.z + a.z * i + b.z * j + h.z * k);
+      Q(arr, V3(-1, -1, 1), V3(1, -1, 1), V3(1, 1, 1), V3(-1, 1, 1));
+      Q(arr, V3(-1, 1, -1), V3(1, 1, -1), V3(1, -1, -1), V3(-1, -1, -1));
+      Q(arr, V3(-1, -1, -1), V3(1, -1, -1), V3(1, -1, 1), V3(-1, -1, 1));
+      Q(arr, V3(1, 1, -1), V3(-1, 1, -1), V3(-1, 1, 1), V3(1, 1, 1));
+      Q(arr, V3(-1, 1, -1), V3(-1, -1, -1), V3(-1, -1, 1), V3(-1, 1, 1));
+      Q(arr, V3(1, -1, -1), V3(1, 1, -1), V3(1, 1, 1), V3(1, -1, 1));
+    };
+    const sc = (v, k) => ({
+      x: v.x * k,
+      y: v.y * k,
+      z: v.z * k
+    });
+    const hz = (v, k) => {
+      const l = Math.hypot(v.x, v.z) || 1;
+      return {
+        x: v.x / l * k,
+        y: 0,
+        z: v.z / l * k
+      };
+    };
+    const cellK = (x, z) => Math.round(x / 0.5) + "," + Math.round(z / 0.5),
+      fGrid = new Map();
+    foot.forEach(f => {
+      const k = cellK(f.cx, f.cz);
+      if (!fGrid.has(k)) fGrid.set(k, []);
+      fGrid.get(k).push(f);
+    });
+    const hasNb = (x, z) => {
+      const i0 = Math.round(x / 0.5),
+        j0 = Math.round(z / 0.5);
+      for (let i = i0 - 1; i <= i0 + 1; i++) for (let j = j0 - 1; j <= j0 + 1; j++) {
+        const L = fGrid.get(i + "," + j);
+        if (L && L.some(g => Math.hypot(g.cx - x, g.cz - z) < 0.2)) return true;
+      }
+      return false;
+    };
     foot.forEach(f => {
       const c = {
           x: f.cx,
@@ -3626,7 +3666,7 @@ function p3sBuild3D(THREE, grp, st, tex) {
         U = f.u,
         V = f.v,
         n = f.n;
-      const o = 0.07;
+      const o = 0.12;
       pans.push({
         x: c.x,
         y: c.y,
@@ -3669,9 +3709,101 @@ function p3sBuild3D(THREE, grp, st, tex) {
         const t = -fv + 2 * fv * i / nv;
         [P(-fu, t, 0.002), P(fu, t, 0.002)].forEach(v => ln.push(v.x, v.y, v.z));
       }
+      {
+        const port = lv >= lu,
+          A = port ? U : V,
+          B = port ? V : U,
+          la = port ? lu : lv,
+          lb = port ? lv : lu;
+        const at = (sa, sb, dn) => port ? P(sa, sb, dn) : P(sb, sa, dn);
+        const rT = -T,
+          rB = -T - 0.035,
+          wb = 0.02 / lb,
+          gapA = 0.03 / la;
+        const nbAt = sg => hasNb(f.cx + A.x * sg * (2 + gapA), f.cz + A.z * sg * (2 + gapA));
+        const e0 = 1 + (nbAt(-1) ? 0.016 : 0.15) / la,
+          e1 = 1 + (nbAt(1) ? 0.016 : 0.15) / la;
+        [-0.5, 0.5].forEach(sb => {
+          const c0 = at((e1 - e0) / 2, sb, (rT + rB) / 2);
+          box(rl, c0, sc(A, (e0 + e1) / 2), sc(B, wb), sc(n, 0.0175));
+          (la > 0.8 ? [-0.5, 0.5] : [0]).forEach(sa => {
+            const q = at(sa, sb, rB),
+              ys0 = tris.length ? surfY(tris, q.x, q.z) : null,
+              ys = ys0 == null ? q.y - (o - T - 0.035) : ys0;
+            const hgt = q.y - ys;
+            if (hgt < 0.005) return;
+            const ha = hz(A, 0.025),
+              hb = hz(B, 1);
+            if (hgt < 0.16) {
+              const off = 0.024 + 0.0025;
+              box(ft, {
+                x: q.x + hb.x * off,
+                y: (ys + q.y + 0.03) / 2,
+                z: q.z + hb.z * off
+              }, ha, sc(hb, 0.0025), {
+                x: 0,
+                y: (q.y + 0.03 - ys) / 2,
+                z: 0
+              });
+              box(ft, {
+                x: q.x + hb.x * (off + 0.04),
+                y: ys + 0.003,
+                z: q.z + hb.z * (off + 0.04)
+              }, ha, sc(hb, 0.042), {
+                x: 0,
+                y: 0.003,
+                z: 0
+              });
+            } else {
+              box(ft, {
+                x: q.x,
+                y: (ys + q.y) / 2,
+                z: q.z
+              }, hz(A, 0.02), sc(hb, 0.02), {
+                x: 0,
+                y: hgt / 2,
+                z: 0
+              });
+              box(ft, {
+                x: q.x,
+                y: ys + 0.004,
+                z: q.z
+              }, hz(A, 0.06), sc(hb, 0.06), {
+                x: 0,
+                y: 0.004,
+                z: 0
+              });
+            }
+          });
+        });
+      }
       const d = P(1, 1);
       eat(d.x, d.y, d.z);
     });
+    if (rl.length) {
+      const rg = new THREE.BufferGeometry();
+      rg.setAttribute("position", new THREE.Float32BufferAttribute(rl, 3));
+      rg.computeVertexNormals();
+      const rm = add(new THREE.Mesh(rg, new THREE.MeshStandardMaterial({
+        color: 0xbfc6ce,
+        roughness: 0.38,
+        metalness: 0.55
+      })));
+      rm.castShadow = true;
+      rm.receiveShadow = true;
+    }
+    if (ft.length) {
+      const fg2 = new THREE.BufferGeometry();
+      fg2.setAttribute("position", new THREE.Float32BufferAttribute(ft, 3));
+      fg2.computeVertexNormals();
+      const fm2 = add(new THREE.Mesh(fg2, new THREE.MeshStandardMaterial({
+        color: 0x9aa4ae,
+        roughness: 0.45,
+        metalness: 0.5
+      })));
+      fm2.castShadow = true;
+      fm2.receiveShadow = true;
+    }
     const g = new THREE.BufferGeometry();
     g.setAttribute("position", new THREE.Float32BufferAttribute(pos, 3));
     g.computeVertexNormals();
@@ -4395,6 +4527,8 @@ function P3SView3D({
     if (api) api.current = {
       gl: renderer,
       scene,
+      cam: camera,
+      ctl: controls,
       view,
       ready: () => !!T.current.bounds,
       hasPanels: () => !!(T.current.bounds && T.current.bounds.pans && T.current.bounds.pans.length),
