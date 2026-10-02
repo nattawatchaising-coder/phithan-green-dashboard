@@ -4357,7 +4357,7 @@ function Plan3DStudio({
     if (!st || view3d) return;
     const p = localXY(e);
     if (ptrs.current.has(e.pointerId)) ptrs.current.set(e.pointerId, p);
-    if (eavePick) setMxy(p);
+    if (eavePick || tool === "area") setMxy(p);
     const G = gest.current;
     if (!G) {
       if (e.pointerType === "mouse" || draw || measPts || axisPts || walkPts) {
@@ -8230,6 +8230,7 @@ function Plan3DStudio({
     onPointerUp: onUp,
     onPointerCancel: onCancel,
     onPointerLeave: () => {
+      if (tool === "area") setMxy(null);
       if (!gest.current) {
         setHover(null);
         if (tool !== "roof" && tool !== "meas") setCur(null);
@@ -8339,7 +8340,13 @@ function Plan3DStudio({
       left: mxy.x + 16,
       top: mxy.y + 14
     }
-  }, "\u0E01\u0E33\u0E2B\u0E19\u0E14\u0E17\u0E32\u0E07\u0E25\u0E32\u0E14 \u2014 \u0E41\u0E15\u0E30\u0E02\u0E2D\u0E1A\u0E14\u0E49\u0E32\u0E19\u0E15\u0E48\u0E33"), emptyState, !view3d && React.createElement("button", {
+  }, "\u0E01\u0E33\u0E2B\u0E19\u0E14\u0E17\u0E32\u0E07\u0E25\u0E32\u0E14 \u2014 \u0E41\u0E15\u0E30\u0E02\u0E2D\u0E1A\u0E14\u0E49\u0E32\u0E19\u0E15\u0E48\u0E33"), tool === "area" && !eavePick && mxy && !view3d && React.createElement("div", {
+    className: "p3s-mtip",
+    style: {
+      left: mxy.x + 16,
+      top: mxy.y + 14
+    }
+  }, marq ? "ปล่อยเมื่อกรอบคลุมอาคารครบ" : "กดค้างแล้วลาก คลุมอาคารที่จะติดตั้ง"), emptyState, !view3d && React.createElement("button", {
     className: "p3s-north",
     onPointerDown: e => e.stopPropagation(),
     onClick: () => axisDeg != null && setAlignView(v => !v),

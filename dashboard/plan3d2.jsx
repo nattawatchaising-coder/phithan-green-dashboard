@@ -2099,7 +2099,7 @@ function Plan3DStudio({ job, onClose, currentUser, onSwitch }) {
     if (!st || view3d) return;
     const p = localXY(e);
     if (ptrs.current.has(e.pointerId)) ptrs.current.set(e.pointerId, p);
-    if (eavePick) setMxy(p);
+    if (eavePick || tool === "area") setMxy(p);
     const G = gest.current;
     if (!G) {
       // เมาส์ลอย: ไฮไลต์ + ตัวชี้ตำแหน่งวาด
@@ -3507,7 +3507,7 @@ function Plan3DStudio({ job, onClose, currentUser, onSwitch }) {
 
         <div ref={stageRef} className="p3s-stage" style={{ cursor }}
           onPointerDown={onDown} onPointerMove={onMove} onPointerUp={onUp} onPointerCancel={onCancel}
-          onPointerLeave={() => { if (!gest.current) { setHover(null); if (tool !== "roof" && tool !== "meas") setCur(null); } }}
+          onPointerLeave={() => { if (tool === "area") setMxy(null); if (!gest.current) { setHover(null); if (tool !== "roof" && tool !== "meas") setCur(null); } }}
           onContextMenu={(e) => e.preventDefault()}>
           {view3d ? <P3SView3D st={st} sun={sun} /> : (
             <svg width={Sz.w} height={Sz.h}>
@@ -3569,6 +3569,7 @@ function Plan3DStudio({ job, onClose, currentUser, onSwitch }) {
             </div>
           )}
           {eavePick && mxy && !view3d && <div className="p3s-mtip" style={{ left: mxy.x + 16, top: mxy.y + 14 }}>กำหนดทางลาด — แตะขอบด้านต่ำ</div>}
+          {tool === "area" && !eavePick && mxy && !view3d && <div className="p3s-mtip" style={{ left: mxy.x + 16, top: mxy.y + 14 }}>{marq ? "ปล่อยเมื่อกรอบคลุมอาคารครบ" : "กดค้างแล้วลาก คลุมอาคารที่จะติดตั้ง"}</div>}
           {emptyState}
           {!view3d && (
             <button className="p3s-north" onPointerDown={(e) => e.stopPropagation()} onClick={() => axisDeg != null && setAlignView((v) => !v)}
