@@ -205,10 +205,35 @@ function p3sFillPatch(r, orient) {
 }
 /* ชนิดสิ่งบดบัง [รหัส, ชื่อ, กว้าง, ลึก, สูง] — เก็บเป็น kind box/tree เดิม (แบบเก่า/เงาใช้ได้) + ป้าย p3sType */
 const P3S_OBS = [["turbine", "ลูกหมุน", 0.6, 0.6, 0.5], ["vent", "ปล่องดูดควัน", 0.6, 0.6, 1.5], ["sky", "หลังคาช่องแสง", 1.2, 2.4, 0.15],
-  ["rail", "ราวกันตก", 6, 0.3, 1.1], ["walkway", "ทางเดิน", 6, 0.6, 0.05], ["ladder", "บันไดลิง", 0.8, 0.8, 4],
+  ["rail", "ราวกันตก", 6, 0.3, 1.1], ["walkway", "ทางเดิน", 6, 0.3, 0.05], ["ladder", "บันไดลิง", 0.8, 0.8, 4],
   ["bldg", "ตึก", 8, 6, 6], ["tree", "ต้นไม้", 3, 3, 5]];
 /* ชนิดที่เป็นแนวยาว: ลาก = ลากเส้นตามแนว (w = ยาว · d = กว้างคงที่ · rot = ทิศเส้น) */
 const P3S_OBS_LINE = { rail: 1, walkway: 1 };
+/* เส้นของราว/ทางเดิน (พิกัดโลก) — ใหม่เก็บ pts สัมพัทธ์ x/z (คลิกต่อจุด) · ของเก่าที่ไม่มี pts = เส้นตรงตาม w/rot */
+function p3sObsPath(o) {
+  const x = +o.x || 0, z = +o.z || 0;
+  if (Array.isArray(o.pts) && o.pts.length >= 2) return o.pts.map((q) => ({ x: x + (+q.x || 0), z: z + (+q.z || 0) }));
+  const L = (+o.w || 1) / 2, a = (+o.rot || 0) * P3_DEG, ux = Math.cos(a), uz = Math.sin(a);
+  return [{ x: x - ux * L, z: z - uz * L }, { x: x + ux * L, z: z + uz * L }];
+}
+function p3sRailPosts(P) {
+  const out = [P[0]];
+  for (let i = 1; i < P.length; i++) { const A = P[i - 1], B = P[i], n = Math.max(1, Math.ceil(Math.hypot(B.x - A.x, B.z - A.z) / 2)); for (let k = 1; k <= n; k++) out.push({ x: A.x + (B.x - A.x) * k / n, z: A.z + (B.z - A.z) * k / n }); }
+  return out;
+}
+const p3sPathLen = (P) => { let L = 0; for (let i = 1; i < P.length; i++) L += Math.hypot(P[i].x - P[i - 1].x, P[i].z - P[i - 1].z); return L; };
+/* กรอบสี่เหลี่ยมของช่วง a→b กว้าง 2·hw ยื่นปลายออก ext (ให้รอยต่อมุมไม่มีช่อง) */
+function p3sSegRect(a, b, hw, ext) {
+  const L = Math.hypot(b.x - a.x, b.z - a.z) || 1, ux = (b.x - a.x) / L, uz = (b.z - a.z) / L, vx = -uz * hw, vz = ux * hw, ex = ux * (ext || 0), ez = uz * (ext || 0);
+  return [{ x: a.x - ex + vx, z: a.z - ez + vz }, { x: b.x + ex + vx, z: b.z + ez + vz }, { x: b.x + ex - vx, z: b.z + ez - vz }, { x: a.x - ex - vx, z: a.z - ez - vz }];
+}
+/* รอยกันแผงของสิ่งบดบัง: ราว/ทางเดิน = กรอบต่อช่วง · อื่น ๆ = กรอบเดียว */
+function p3sObsKeep(o, pad) {
+  if (!P3S_OBS_LINE[o.p3sType]) return [p3sObsRect(o, pad)];
+  const P = p3sObsPath(o), hw = Math.max(0.05, (+o.d || 0.3) / 2) + (pad || 0), out = [];
+  for (let i = 1; i < P.length; i++) out.push(p3sSegRect(P[i - 1], P[i], hw, hw));
+  return out;
+}
 const p3sObsType = (o) => o.p3sType || (o.kind === "tree" ? "tree" : "box");
 /* สิ่งบดบังที่ติดบนหลังคา → ระยะเว้นรอบ (ม.) · ตรงนั้นติดแผงไม่ได้ (เอนจินตัดผ่าน roof.obs) */
 const P3S_ON_ROOF = { turbine: 0.15, vent: 0.15, sky: 0.05, rail: 0.1, walkway: 0.05, ladder: 0.4 };
@@ -224,8 +249,15 @@ function p3sSyncObs(s) {
   const roofs = s.roofs.map((r) => {
     let out = []; try { out = p3sOutline(r) || []; } catch (e) { out = []; }
     const ox = +r.x || 0, oz = +r.z || 0;
-    const list = out.length >= 3 ? obs.filter((o) => p3InPoly(+o.x || 0, +o.z || 0, out) || p3sObsRect(o, 0).some((q) => p3InPoly(q.x, q.z, out)))
-      .map((o) => ({ id: o.id, pts: p3sObsRect(o, P3S_ON_ROOF[o.p3sType]).map((p) => ({ x: p3sR(p.x - ox, 1000), z: p3sR(p.z - oz, 1000) })) })) : [];
+    const list = [];
+    if (out.length >= 3) obs.forEach((o) => {
+      const K0 = p3sObsKeep(o, 0), K = p3sObsKeep(o, P3S_ON_ROOF[o.p3sType]);
+      K0.forEach((R, k) => {
+        const mx = R.reduce((t, q) => t + q.x, 0) / 4, mz = R.reduce((t, q) => t + q.z, 0) / 4;
+        if (!(p3InPoly(mx, mz, out) || R.some((q) => p3InPoly(q.x, q.z, out)))) return;
+        list.push({ id: K0.length > 1 ? o.id + "#" + k : o.id, pts: K[k].map((p) => ({ x: p3sR(p.x - ox, 1000), z: p3sR(p.z - oz, 1000) })) });
+      });
+    });
     if (JSON.stringify(r.obs && r.obs.length ? r.obs : []) === JSON.stringify(list)) return r;
     ch = true;
     const n = Object.assign({}, r);
@@ -1205,38 +1237,36 @@ function p3sBuild3D(THREE, grp, st, tex) {
     };
     const ground = (x, z) => { const y = topY(x, z); return y == null ? 0 : y; };
     if (T === "rail" || T === "walkway") {
-      const L = Math.max(0.3, +o.w || 1), a = (+o.rot || 0) * P3_DEG, ux = Math.cos(a), uz = Math.sin(a), vx = -uz, vz = ux;
+      const P = p3sObsPath(o);
       if (T === "rail") {
-        // ราวกันตกตั้งพื้นหลังคา: เสาทุก ≤ 2 ม. บนแผ่นฐาน + ค้ำเอียง · ราวบน 1.1 ม. + ราวกลาง
-        const H = Math.max(0.6, +o.h || 1.1), n = Math.max(1, Math.ceil(L / 2)), posts = [];
-        for (let k = 0; k <= n; k++) {
-          const t = -L / 2 + (L * k) / n, px = ox + ux * t, pz = oz + uz * t, y = ground(px, pz);
-          posts.push({ x: px, z: pz, y });
-          const pl = new THREE.Mesh(new THREE.BoxGeometry(0.22, 0.02, 0.36), metal); pl.position.set(px - vx * 0.08, y + 0.01, pz - vz * 0.08); pl.rotation.y = -a; pl.castShadow = true; pl.receiveShadow = true; add(pl);
-          tube(V3(px, y, pz), V3(px, y + H, pz), 0.024);
-          const bx = px - vx * 0.26, bz = pz - vz * 0.26; tube(V3(px, y + H * 0.58, pz), V3(bx, ground(bx, bz) + 0.03, bz), 0.016);
-        }
-        for (let k = 0; k < n; k++) { const A = posts[k], B = posts[k + 1]; tube(V3(A.x, A.y + H, A.z), V3(B.x, B.y + H, B.z), 0.024); tube(V3(A.x, A.y + H * 0.5, A.z), V3(B.x, B.y + H * 0.5, B.z), 0.018); }
-        eat(ox, by + H, oz);
+        // ราวกันตกตั้งพื้นหลังคา: เสาทุกมุม + ทุก ≤ 2 ม. บนแผ่นฐาน + ค้ำเอียง · ราวบน 1.1 ม. + ราวกลาง
+        const H = Math.max(0.6, +o.h || 1.1), posts = p3sRailPosts(P).map((q) => ({ x: q.x, z: q.z, y: ground(q.x, q.z) }));
+        posts.forEach((q, k) => {
+          const nb = posts[Math.min(posts.length - 1, k + 1)], pv = posts[Math.max(0, k - 1)], dx = nb.x - pv.x, dz = nb.z - pv.z, L = Math.hypot(dx, dz) || 1, vx = -dz / L, vz = dx / L, a = Math.atan2(dz, dx);
+          const pl = new THREE.Mesh(new THREE.BoxGeometry(0.22, 0.02, 0.36), metal); pl.position.set(q.x - vx * 0.08, q.y + 0.01, q.z - vz * 0.08); pl.rotation.y = -a; pl.castShadow = true; pl.receiveShadow = true; add(pl);
+          tube(V3(q.x, q.y, q.z), V3(q.x, q.y + H, q.z), 0.024);
+          const bx = q.x - vx * 0.26, bz = q.z - vz * 0.26; tube(V3(q.x, q.y + H * 0.58, q.z), V3(bx, ground(bx, bz) + 0.03, bz), 0.016);
+          eat(q.x, q.y + H, q.z);
+        });
+        for (let k = 1; k < posts.length; k++) { const A = posts[k - 1], B = posts[k]; tube(V3(A.x, A.y + H, A.z), V3(B.x, B.y + H, B.z), 0.024); tube(V3(A.x, A.y + H * 0.5, A.z), V3(B.x, B.y + H * 0.5, B.z), 0.018); }
         return;
       }
-      // ทางเดินตะแกรงไฟเบอร์กลาสสีเหลือง แนบผิวหลังคา
-      const W = Math.max(0.3, +o.d || 0.6), n = Math.max(1, Math.ceil(L / 0.5)), pos = [], ln = [], rows = [];
-      for (let k = 0; k <= n; k++) {
-        const t = -L / 2 + (L * k) / n, cx = ox + ux * t, cz = oz + uz * t;
-        const l = V3(cx + vx * W / 2, 0, cz + vz * W / 2), r = V3(cx - vx * W / 2, 0, cz - vz * W / 2);
-        l.y = ground(l.x, l.z) + 0.06; r.y = ground(r.x, r.z) + 0.06; rows.push([l, r]);
-      }
-      for (let k = 0; k < n; k++) { const [a1, b1] = rows[k], [a2, b2] = rows[k + 1]; [a1, b1, b2, a1, b2, a2].forEach((q) => pos.push(q.x, q.y, q.z)); }
-      const gg = new THREE.BufferGeometry(); gg.setAttribute("position", new THREE.Float32BufferAttribute(pos, 3)); gg.computeVertexNormals();
-      const wm = add(new THREE.Mesh(gg, new THREE.MeshStandardMaterial({ color: 0xf5b800, roughness: 0.6, side: THREE.DoubleSide }))); wm.castShadow = true; wm.receiveShadow = true;
+      // ทางเดินตะแกรงไฟเบอร์กลาสสีเหลือง แนบผิวหลังคา (ทีละช่วง ปลายยื่นครึ่งความกว้างให้มุมต่อสนิท)
+      const W = Math.max(0.1, +o.d || 0.3), pos = [], ln = [], wmat = new THREE.MeshStandardMaterial({ color: 0xf5b800, roughness: 0.6, side: THREE.DoubleSide });
       const LN = (p, q) => ln.push(p.x, p.y + 0.006, p.z, q.x, q.y + 0.006, q.z);
-      const sub = Math.max(1, Math.round(L / 0.1)), across = Math.max(2, Math.round(W / 0.1));
-      for (let j = 0; j <= across; j++) { const f = j / across; for (let k = 0; k < n; k++) LN(rows[k][0].clone().lerp(rows[k][1], f), rows[k + 1][0].clone().lerp(rows[k + 1][1], f)); }
-      for (let j = 0; j <= sub; j++) { const f = (j / sub) * n, k = Math.min(n - 1, Math.floor(f)), r = f - k; LN(rows[k][0].clone().lerp(rows[k + 1][0], r), rows[k][1].clone().lerp(rows[k + 1][1], r)); }
+      for (let i = 1; i < P.length; i++) {
+        const R = p3sSegRect(P[i - 1], P[i], W / 2, W / 2), Ls = Math.hypot(R[1].x - R[0].x, R[1].z - R[0].z), n = Math.max(1, Math.ceil(Ls / 0.5)), rows = [];
+        for (let k = 0; k <= n; k++) { const f = k / n, l = V3(R[0].x + (R[1].x - R[0].x) * f, 0, R[0].z + (R[1].z - R[0].z) * f), r = V3(R[3].x + (R[2].x - R[3].x) * f, 0, R[3].z + (R[2].z - R[3].z) * f); l.y = ground(l.x, l.z) + 0.06; r.y = ground(r.x, r.z) + 0.06; rows.push([l, r]); }
+        for (let k = 0; k < n; k++) { const [a1, b1] = rows[k], [a2, b2] = rows[k + 1]; [a1, b1, b2, a1, b2, a2].forEach((q) => pos.push(q.x, q.y, q.z)); }
+        const sub = Math.max(1, Math.round(Ls / 0.1)), across = Math.max(2, Math.round(W / 0.1));
+        for (let j = 0; j <= across; j++) { const f = j / across; for (let k = 0; k < n; k++) LN(rows[k][0].clone().lerp(rows[k][1], f), rows[k + 1][0].clone().lerp(rows[k + 1][1], f)); }
+        for (let j = 0; j <= sub; j++) { const f = (j / sub) * n, k = Math.min(n - 1, Math.floor(f)), r = f - k; LN(rows[k][0].clone().lerp(rows[k + 1][0], r), rows[k][1].clone().lerp(rows[k + 1][1], r)); }
+        eat(P[i].x, ground(P[i].x, P[i].z), P[i].z);
+      }
+      const gg = new THREE.BufferGeometry(); gg.setAttribute("position", new THREE.Float32BufferAttribute(pos, 3)); gg.computeVertexNormals();
+      const wm = add(new THREE.Mesh(gg, wmat)); wm.castShadow = true; wm.receiveShadow = true;
       const lg = new THREE.BufferGeometry(); lg.setAttribute("position", new THREE.Float32BufferAttribute(ln, 3));
       add(new THREE.LineSegments(lg, new THREE.LineBasicMaterial({ color: 0xa87900 })));
-      eat(ox, by, oz);
       return;
     }
     if (T === "ladder") {
@@ -1461,7 +1491,11 @@ function Plan3DStudio({ job, onClose, currentUser, onSwitch }) {
   const [traceTol, setTraceTol] = React.useState(30);
   const [marq, setMarq] = React.useState(null);         // กรอบลากคลุม (จอ)
   const [roofArm, setRoofArm] = React.useState(false);  // กดเพิ่มหลังคา/เลือกทรงแล้ว ยังวาดไม่เสร็จ → โชว์แถบเครื่องมือบนผัง
+  // มีหลังคาแล้ว ต้องกด "เพิ่มหลังคา" ก่อนถึงวาด/หาขอบหลังใหม่ได้ — ไม่งั้นแตะผัง = เลือก/ลากหลังคาเดิม (กันวาดเกินโดยไม่ตั้งใจ)
+  const roofLock = tool === "roof" && !roofArm && !draw && !!(st && (st.roofs || []).length);
   const [obsType, setObsType] = React.useState("turbine");  // ชนิดสิ่งบดบังที่จะวางต่อไป
+  const [obsPts, setObsPts] = React.useState(null);   // กำลังวาดราวกันตก/ทางเดิน (คลิกต่อจุด · พิกัดโลก)
+  const [obsMsg, setObsMsg] = React.useState(null);   // ข้อความเตือนตอนวางสิ่งบดบัง (เช่น บันไดต้องอยู่ที่ขอบ)
   const [mapOpen, setMapOpen] = React.useState(false);
   const [sheetMin, setSheetMin] = React.useState(false);
   /* โหมดพาทำทีละขั้น — เปิด/ปิดจำไว้ในเครื่อง · ขั้นที่ผ่านแล้ว (ขั้นที่ข้ามได้) จำแยกตามงาน */
@@ -1785,6 +1819,21 @@ function Plan3DStudio({ job, onClose, currentUser, onSwitch }) {
     if (!draw || draw.pts.length < 3) return;
     makeRoof(draw.pts, roofOpt.kind); setDraw(null);
   };
+  const finishObsLine = () => {
+    const P = obsPts; setObsPts(null);
+    if (!P || P.length < 2 || p3sPathLen(P) < 0.3) return;
+    const T = P3S_OBS.find((x) => x[0] === obsType) || P3S_OBS[0];
+    const xs = P.map((q) => q.x), zs = P.map((q) => q.z), cx = p3sR((Math.min.apply(null, xs) + Math.max.apply(null, xs)) / 2), cz = p3sR((Math.min.apply(null, zs) + Math.max.apply(null, zs)) / 2);
+    const o = { id: p3Id("o"), kind: "box", p3sType: T[0], x: cx, z: cz, w: p3sR(p3sPathLen(P), 10), d: T[3], h: T[4], rot: 0,
+      pts: P.map((q) => ({ x: p3sR(q.x - cx, 1000), z: p3sR(q.z - cz, 1000) })) };
+    commit((s) => Object.assign({}, s, { obstacles: (s.obstacles || []).concat([o]) }));
+    setSel({ t: "obs", id: o.id });
+  };
+  /* บันไดลิง: ดูดเข้าขอบหลังคาที่ใกล้ที่สุด (วางนอกผนัง หันตามขอบ) — ไกลกว่า 3 ม. = null */
+  const ladderAt = (x, z) => {
+    const f = p3sLadderFit(stRef.current.roofs, x, z); if (!f) return null;
+    return { x: p3sR(f.q.x + f.n.x * 0.42), z: p3sR(f.q.z + f.n.z * 0.42), rot: p3sR(((Math.atan2(f.t.z, f.t.x) / P3_DEG) % 360 + 360) % 360, 10) };
+  };
   const finishMeas = () => {
     if (!measPts || measPts.length < 2) { setMeasPts(null); return; }
     const S = stRef.current, nm = { id: p3Id("m"), name: "ระยะ " + (((S.measures || []).length) + 1), kind: "cable", rise: 0, pts: measPts.map((p) => ({ x: p3sR(p.x), z: p3sR(p.z) })) };
@@ -1984,6 +2033,7 @@ function Plan3DStudio({ job, onClose, currentUser, onSwitch }) {
     if (k === "Enter") {
       if (draw) { if (!applyTyped()) finishPoly(); e.preventDefault(); return; }
       if (measPts) { finishMeas(); return; }
+      if (obsPts) { finishObsLine(); return; }
       if (walkPts) { finishWalk(); return; }
       if (trace && trace.pts) { acceptTrace(); return; }
       return;
@@ -1991,11 +2041,13 @@ function Plan3DStudio({ job, onClose, currentUser, onSwitch }) {
     if (k === "Backspace") {
       if (draw) { e.preventDefault(); if (draw.typed) setDraw(Object.assign({}, draw, { typed: draw.typed.slice(0, -1) })); else if (draw.pts.length > 1) setDraw(Object.assign({}, draw, { pts: draw.pts.slice(0, -1) })); else setDraw(null); return; }
       if (measPts) { e.preventDefault(); setMeasPts(measPts.length > 1 ? measPts.slice(0, -1) : null); return; }
+      if (obsPts) { e.preventDefault(); setObsPts(obsPts.length > 1 ? obsPts.slice(0, -1) : null); return; }
       if (walkPts) { e.preventDefault(); setWalkPts(walkPts.length > 1 ? walkPts.slice(0, -1) : null); return; }
     }
     if (k === "Escape") {
       if (draw) { setDraw(null); return; }
       if (measPts) { setMeasPts(null); return; }
+      if (obsPts) { setObsPts(null); setCur(null); return; }
       if (walkPts) { setWalkPts(null); return; }
       if (axisPts) { setAxisPts(null); setCur(null); return; }
       if (eavePick) { setEavePick(false); return; }
@@ -2109,7 +2161,11 @@ function Plan3DStudio({ job, onClose, currentUser, onSwitch }) {
       handles.push({ t: "rot", x: cs.x, y: top - (coarse ? 40 : 30), ax: cs.x, ay: top });
     }
   }
-  if (st && !view3d && tool === "select" && selObs) {
+  if (st && !view3d && (tool === "select" || tool === "obs") && !obsPts && selObs && P3S_OBS_LINE[selObs.p3sType] && Array.isArray(selObs.pts)) {
+    p3sObsPath(selObs).forEach((q, i) => { const sq = toS(q.x, q.z); handles.push({ t: "opt", i, x: sq.x, y: sq.y }); });
+  } else if (st && !view3d && tool === "select" && selObs && selObs.p3sType === "ladder") {
+    // บันได: ไม่มีปุ่มย่อ/หมุน — ลากย้ายแล้วดูดเข้าขอบเอง
+  } else if (st && !view3d && tool === "select" && selObs) {
     const o = selObs, c = toS(+o.x || 0, +o.z || 0);
     if (o.kind === "tree") { const e = toS((+o.x || 0) + (+o.w || 3) / 2, +o.z || 0); handles.push({ t: "orad", x: e.x, y: e.y }); }
     else {
@@ -2148,6 +2204,7 @@ function Plan3DStudio({ job, onClose, currentUser, onSwitch }) {
     const obs = S.obstacles || [];
     for (let i = obs.length - 1; i >= 0; i--) {
       const o = obs[i], dx = w.x - (+o.x || 0), dz = w.z - (+o.z || 0);
+      if (P3S_OBS_LINE[o.p3sType]) { const P = p3sObsPath(o); for (let j = 1; j < P.length; j++) if (p3sDistSeg(w, P[j - 1], P[j]) <= Math.max((+o.d || 0.3) / 2, 10 / s)) return { t: "obs", id: o.id }; continue; }
       if (o.kind === "tree") { if (Math.hypot(dx, dz) <= Math.max(+o.w || 1, 0.6) / 2) return { t: "obs", id: o.id }; }
       else { const l = p3sRot(dx, dz, -(+o.rot || 0) * P3_DEG); if (Math.abs(l.x) <= (+o.w || 1) / 2 && Math.abs(l.z) <= Math.max(+o.d || 1, 0.6) / 2) return { t: "obs", id: o.id }; }
     }
@@ -2218,6 +2275,7 @@ function Plan3DStudio({ job, onClose, currentUser, onSwitch }) {
       if (h.t === "rot") { const c = p3sRoofCenter(selRoof); gest.current = Object.assign(base, { type: "rotRoof", roofId: selRoof.id, c, r0: selRoof }); return; }
       if (h.t === "ocorner" || h.t === "orad" || h.t === "orot") { gest.current = Object.assign(base, { type: h.t, id: selObs.id, o0: selObs }); return; }
       if (h.t === "mpt") { gest.current = Object.assign(base, { type: "mpt", i: h.i, id: selMeas.id }); return; }
+      if (h.t === "opt") { gest.current = Object.assign(base, { type: "opt", i: h.i, id: selObs.id }); return; }
       if (h.t === "pscale" || h.t === "prot") { gest.current = Object.assign(base, { type: h.t }); return; }
     }
 
@@ -2235,7 +2293,7 @@ function Plan3DStudio({ job, onClose, currentUser, onSwitch }) {
       setWalkPts((walkPts || []).concat([sp])); setSelWalk(null);
       return;
     }
-    if (tool === "roof") {
+    if (tool === "roof" && !roofLock) {
       if (trace && trace.on) { if (!trace.busy) runTrace(w, traceTol, null, !!trace.pts); return; }
       const sp = snapPoint(w, { pts: snapPts().concat(draw && draw.pts.length > 2 ? [draw.pts[0]] : []), free: e.shiftKey, img: true, segs: snapSegs(),
         from: draw && draw.pts.length ? draw.pts[draw.pts.length - 1] : null, refs: draw && draw.pts.length > 1 ? [Math.atan2(draw.pts[1].z - draw.pts[0].z, draw.pts[1].x - draw.pts[0].x)] : [] });
@@ -2254,6 +2312,12 @@ function Plan3DStudio({ job, onClose, currentUser, onSwitch }) {
       const sp = snapPoint(w, { pts: snapPts(), free: e.shiftKey, from: measPts && measPts.length ? measPts[measPts.length - 1] : null });
       if (measPts && dbl) { finishMeas(); return; }
       setMeasPts((measPts || []).concat([sp]));
+      return;
+    }
+    if (tool === "obs" && P3S_OBS_LINE[obsType]) {
+      const sp = snapPoint(w, { pts: snapPts().concat(obsPts || []), free: e.shiftKey, segs: snapSegs(), from: obsPts && obsPts.length ? obsPts[obsPts.length - 1] : null });
+      if (obsPts && obsPts.length >= 2) { const l = obsPts[obsPts.length - 1], ls = toS(l.x, l.z); if (dbl || Math.hypot(ls.x - p.x, ls.y - p.y) < HIT) { finishObsLine(); return; } }
+      setObsPts((obsPts || []).concat([{ x: p3sR(sp.x), z: p3sR(sp.z) }])); setSel(null); setObsMsg(null);
       return;
     }
     if (tool === "obs") { const ho = hitBody(w); if (!(ho && ho.t === "obs")) { gest.current = Object.assign(base, { type: "obsRect" }); return; } }
@@ -2310,9 +2374,9 @@ function Plan3DStudio({ job, onClose, currentUser, onSwitch }) {
     const G = gest.current;
     if (!G) {
       // เมาส์ลอย: ไฮไลต์ + ตัวชี้ตำแหน่งวาด
-      if (e.pointerType === "mouse" || draw || measPts || axisPts || walkPts) {
+      if (e.pointerType === "mouse" || draw || measPts || axisPts || walkPts || obsPts) {
         const w = toW(p);
-        if (tool === "roof" && !(trace && trace.on)) {
+        if (tool === "roof" && !roofLock && !(trace && trace.on)) {
           const fromP = draw && draw.pts.length ? draw.pts[draw.pts.length - 1] : null;
           if (edgeOn) needEdge(w);
           setCur(snapPoint(w, { pts: snapPts().concat(draw && draw.pts.length > 2 ? [draw.pts[0]] : []), free: e.shiftKey, from: fromP, img: true, segs: snapSegs(),
@@ -2324,6 +2388,8 @@ function Plan3DStudio({ job, onClose, currentUser, onSwitch }) {
           setCur(snapPoint(w, { pts: [], free: e.shiftKey, from: walkPts && walkPts.length ? walkPts[walkPts.length - 1] : null }));
         } else if (tool === "meas") {
           setCur(snapPoint(w, { pts: snapPts(), free: e.shiftKey, from: measPts && measPts.length ? measPts[measPts.length - 1] : null }));
+        } else if (tool === "obs" && P3S_OBS_LINE[obsType]) {
+          setCur(snapPoint(w, { pts: snapPts().concat(obsPts || []), free: e.shiftKey, segs: snapSegs(), from: obsPts && obsPts.length ? obsPts[obsPts.length - 1] : null }));
         } else if (tool === "bg" && calib) setCur({ x: w.x, z: w.z });
         if (e.pointerType === "mouse") {
           const h = hitHandle(p);
@@ -2442,7 +2508,9 @@ function Plan3DStudio({ job, onClose, currentUser, onSwitch }) {
       }
       case "moveObs": {
         ensurePushed(G);
-        live(Object.assign({}, stRef.current, { obstacles: stRef.current.obstacles.map((o) => (o.id === G.id ? Object.assign({}, o, { x: p3sR((+G.o0.x || 0) + dx), z: p3sR((+G.o0.z || 0) + dz) }) : o)) }));
+        let mv = { x: p3sR((+G.o0.x || 0) + dx), z: p3sR((+G.o0.z || 0) + dz) };
+        if (G.o0.p3sType === "ladder") mv = ladderAt(mv.x, mv.z) || mv;
+        live(Object.assign({}, stRef.current, { obstacles: stRef.current.obstacles.map((o) => (o.id === G.id ? Object.assign({}, o, mv) : o)) }));
         return;
       }
       case "ocorner": case "orad": case "orot": {
@@ -2458,6 +2526,16 @@ function Plan3DStudio({ job, onClose, currentUser, onSwitch }) {
       case "moveMeas": {
         ensurePushed(G);
         live(Object.assign({}, stRef.current, { measures: stRef.current.measures.map((m) => (m.id === G.id ? Object.assign({}, m, { pts: G.m0.pts.map((q) => ({ x: p3sR((+q.x || 0) + dx), z: p3sR((+q.z || 0) + dz) })) }) : m)) }));
+        return;
+      }
+      case "opt": {
+        ensurePushed(G);
+        const sp = snapPoint(w, { pts: snapPts(), free, segs: snapSegs() });
+        live(Object.assign({}, stRef.current, { obstacles: stRef.current.obstacles.map((o) => {
+          if (o.id !== G.id) return o;
+          const pts = o.pts.slice(); pts[G.i] = { x: p3sR(sp.x - (+o.x || 0), 1000), z: p3sR(sp.z - (+o.z || 0), 1000) };
+          return Object.assign({}, o, { pts, w: p3sR(p3sPathLen(pts), 10) });
+        }) }));
         return;
       }
       case "mpt": {
@@ -2529,7 +2607,7 @@ function Plan3DStudio({ job, onClose, currentUser, onSwitch }) {
     if (G.type === "pinch") { if (ptrs.current.size < 2) gest.current = null; return; }
     gest.current = null;
     const p = localXY(e), w = toW(p), S = stRef.current;
-    setCur((c) => (tool === "roof" || tool === "meas" || tool === "walk" || tool === "axis" ? c : null));
+    setCur((c) => (tool === "roof" || tool === "meas" || tool === "walk" || tool === "axis" || (tool === "obs" && P3S_OBS_LINE[obsType]) ? c : null));
     if (G.type === "pan") { if (!G.moved && G.clear) { setSel(null); setSelVert(null); setSelBlk(null); } return; }
     if (G.type === "blkPress" && !G.moved) { const r = S.roofs.find((x) => x.id === G.roofId); if (r) toggleCell(r, G.q.key, false); return; }
     if (G.type === "cellTap" && !G.moved) { const r = S.roofs.find((x) => x.id === G.roofId); if (r) toggleCell(r, G.q.key, !!G.q.slot); return; }
@@ -2579,17 +2657,21 @@ function Plan3DStudio({ job, onClose, currentUser, onSwitch }) {
       setMarq(null);
       let o;
       const T = P3S_OBS.find((x) => x[0] === obsType) || P3S_OBS[0], kd = T[0] === "tree" ? "tree" : "box", r0 = p3sR(((rotRef.current / P3_DEG) % 360 + 360) % 360, 10);
-      if (!G.moved) o = { id: p3Id("o"), kind: kd, p3sType: T[0], x: p3sR(w.x), z: p3sR(w.z), w: T[2], d: T[3], h: T[4], rot: r0 };
+      if (!G.moved && T[0] !== "ladder") o = { id: p3Id("o"), kind: kd, p3sType: T[0], x: p3sR(w.x), z: p3sR(w.z), w: T[2], d: T[3], h: T[4], rot: r0 };
       else if (P3S_OBS_LINE[T[0]]) {
         const a = G.w0, L = Math.hypot(w.x - a.x, w.z - a.z);
         o = { id: p3Id("o"), kind: kd, p3sType: T[0], x: p3sR((a.x + w.x) / 2), z: p3sR((a.z + w.z) / 2), w: p3sR(Math.max(0.5, L), 10), d: T[3], h: T[4], rot: p3sR(((Math.atan2(w.z - a.z, w.x - a.x) / P3_DEG) % 360 + 360) % 360, 10) };
-      } else if (T[0] === "ladder") o = { id: p3Id("o"), kind: kd, p3sType: T[0], x: p3sR(w.x), z: p3sR(w.z), w: T[2], d: T[3], h: T[4], rot: r0 };
+      } else if (T[0] === "ladder") {
+        const at = ladderAt(w.x, w.z);
+        if (!at) { setObsMsg("บันไดลิงต้องติดที่ขอบหลังคา — แตะใกล้ขอบหลังคา (ไม่เกิน 3 ม.)"); return; }
+        o = Object.assign({ id: p3Id("o"), kind: kd, p3sType: T[0], w: T[2], d: T[3], h: T[4] }, at);
+      }
       else {
         const a = G.w0, fa = frameOf(a), fb = frameOf(w), ww = p3sR(Math.max(0.3, Math.abs(fb.x - fa.x)), 10), dd = p3sR(Math.max(0.3, Math.abs(fb.z - fa.z)), 10);
         o = { id: p3Id("o"), kind: kd, p3sType: T[0], x: p3sR((a.x + w.x) / 2), z: p3sR((a.z + w.z) / 2), w: kd === "tree" ? Math.max(ww, dd) : ww, d: kd === "tree" ? Math.max(ww, dd) : dd, h: T[4], rot: r0 };
       }
       commit((s) => Object.assign({}, s, { obstacles: (s.obstacles || []).concat([o]) }));
-      setSel({ t: "obs", id: o.id });
+      setSel({ t: "obs", id: o.id }); setObsMsg(null);
       if (!wizAllowRef.current) setToolRaw("select");
       return;
     }
@@ -2746,22 +2828,25 @@ function Plan3DStudio({ job, onClose, currentUser, onSwitch }) {
       <circle cx={+o.x || 0} cy={+o.z || 0} r={Math.min(+o.w || 0.6, +o.d || 0.6) / 2} fill="rgba(203,213,225,.85)" stroke={stk} strokeWidth={isSel ? 2.4 : 1.4} style={NS} />
       <circle cx={+o.x || 0} cy={+o.z || 0} r={Math.min(+o.w || 0.6, +o.d || 0.6) / (T === "vent" ? 4 : 6)} fill="#64748b" style={NS} /></g>;
     if (T === "rail" || T === "walkway") {
-      const L = +o.w || 1, a = (+o.rot || 0) * P3_DEG, ux = Math.cos(a), uz = Math.sin(a), cx = +o.x || 0, cz = +o.z || 0, n = Math.max(1, Math.ceil(L / (T === "rail" ? 2 : 0.5)));
-      const ticks = []; for (let k = 0; k <= n; k++) { const t = -L / 2 + (L * k) / n; ticks.push({ x: cx + ux * t, z: cz + uz * t }); }
-      return <g key={o.id}>
-        <polygon points={ptsStr(p3sObsRect(o, P3S_ON_ROOF[T]))} fill={T === "walkway" ? "rgba(250,204,21,.55)" : "rgba(239,68,68,.06)"} stroke={T === "walkway" ? (isSel ? "#16a34a" : "#ca8a04") : "#ef4444"} strokeWidth={T === "walkway" && isSel ? 2.4 : 1} strokeDasharray={T === "walkway" ? null : "4 3"} style={NS} />
-        {T === "walkway"
-          ? ticks.map((q, k) => <line key={k} x1={q.x - uz * (+o.d || 0.6) / 2} y1={q.z + ux * (+o.d || 0.6) / 2} x2={q.x + uz * (+o.d || 0.6) / 2} y2={q.z - ux * (+o.d || 0.6) / 2} stroke="#a16207" strokeWidth={0.8} style={NS} />)
-          : <React.Fragment>
-              <line x1={cx - ux * L / 2} y1={cz - uz * L / 2} x2={cx + ux * L / 2} y2={cz + uz * L / 2} stroke={stk} strokeWidth={isSel ? 3.2 : 2.2} strokeLinecap="round" style={NS} />
-              {ticks.map((q, k) => <circle key={k} cx={q.x} cy={q.z} r={0.09} fill="#475569" style={NS} />)}
-            </React.Fragment>}
-      </g>;
+      const P = p3sObsPath(o), hw = Math.max(0.05, (+o.d || 0.3) / 2), parts = [];
+      p3sObsKeep(o, P3S_ON_ROOF[T]).forEach((R, k) => parts.push(<polygon key={"k" + k} points={ptsStr(R)} fill={T === "walkway" ? "none" : "rgba(239,68,68,.06)"} stroke="#ef4444" strokeWidth={0.8} strokeDasharray="4 3" style={NS} />));
+      if (T === "walkway") {
+        for (let i = 1; i < P.length; i++) {
+          const A = P[i - 1], B = P[i], L = Math.hypot(B.x - A.x, B.z - A.z) || 1, ux = (B.x - A.x) / L, uz = (B.z - A.z) / L, n = Math.max(1, Math.round(L / 0.3));
+          parts.push(<polygon key={"w" + i} points={ptsStr(p3sSegRect(A, B, hw, hw))} fill="rgba(250,204,21,.85)" stroke={isSel ? "#16a34a" : isHov ? "#0ea5e9" : "#ca8a04"} strokeWidth={isSel ? 2.2 : 1} style={NS} />);
+          for (let k = 1; k < n; k++) { const t = (L * k) / n, cx = A.x + ux * t, cz = A.z + uz * t; parts.push(<line key={"t" + i + "-" + k} x1={cx - uz * hw} y1={cz + ux * hw} x2={cx + uz * hw} y2={cz - ux * hw} stroke="#a16207" strokeWidth={0.7} style={NS} />); }
+        }
+      } else {
+        parts.push(<polyline key="ln" points={ptsStr(P)} fill="none" stroke={stk} strokeWidth={isSel ? 3.2 : 2.2} strokeLinecap="round" strokeLinejoin="round" style={NS} />);
+        p3sRailPosts(P).forEach((q, k) => parts.push(<circle key={"p" + k} cx={q.x} cy={q.z} r={0.09} fill="#475569" style={NS} />));
+      }
+      return <g key={o.id}>{parts}</g>;
     }
     if (T === "ladder") return <g key={o.id}>
       <polygon points={ptsStr(p3sObsRect(o, P3S_ON_ROOF[T]))} fill="rgba(239,68,68,.06)" stroke="#ef4444" strokeWidth={1} strokeDasharray="4 3" style={NS} />
-      <circle cx={+o.x || 0} cy={+o.z || 0} r={(+o.w || 0.8) / 2} fill="rgba(203,213,225,.7)" stroke={stk} strokeWidth={isSel ? 2.4 : 1.4} style={NS} />
-      <circle cx={+o.x || 0} cy={+o.z || 0} r={(+o.w || 0.8) / 3.2} fill="none" stroke="#64748b" strokeWidth={1} style={NS} /></g>;
+      <polygon points={ptsStr(p3sObsRect(o, 0))} fill="rgba(203,213,225,.75)" stroke={stk} strokeWidth={isSel ? 2.4 : 1.4} style={NS} />
+      {[-0.24, -0.08, 0.08, 0.24].map((u, k) => { const A = p3sRot(u, -0.4, (+o.rot || 0) * P3_DEG), B = p3sRot(u, 0.4, (+o.rot || 0) * P3_DEG);
+        return <line key={k} x1={(+o.x || 0) + A.x} y1={(+o.z || 0) + A.z} x2={(+o.x || 0) + B.x} y2={(+o.z || 0) + B.z} stroke="#475569" strokeWidth={0.8} style={NS} />; })}</g>;
     if (T === "sky") return <polygon key={o.id} points={ptsStr(p3sObsRect(o, 0))} fill="rgba(224,242,254,.78)" stroke={isSel ? "#16a34a" : isHov ? "#0ea5e9" : "#0284c7"} strokeWidth={isSel ? 2.4 : 1.4} style={NS} />;
     return <rect key={o.id} x={(+o.x || 0) - (+o.w || 1) / 2} y={(+o.z || 0) - (+o.d || 1) / 2} width={+o.w || 1} height={+o.d || 1}
       transform={"rotate(" + (+o.rot || 0) + " " + (+o.x || 0) + " " + (+o.z || 0) + ")"}
@@ -2869,6 +2954,13 @@ function Plan3DStudio({ job, onClose, currentUser, onSwitch }) {
     fp.forEach((a, i) => { const b = fp[(i + 1) % fp.length], sa = toS(a.x, a.z), sb = toS(b.x, b.z);
       preview.push(<line key={"ep" + i} x1={sa.x} y1={sa.y} x2={sb.x} y2={sb.y} stroke="#ea580c" strokeWidth={i === near ? 10 : 7} strokeOpacity={i === near ? 0.85 : 0.35} strokeLinecap="round" />); });
   }
+  if (obsPts && (tool !== "obs" || !P3S_OBS_LINE[obsType])) setObsPts(null);
+  if (tool === "obs" && obsPts && !view3d) {
+    const all = cur ? obsPts.concat([cur]) : obsPts, col = obsType === "walkway" ? "#ca8a04" : "#475569";
+    preview.push(<polyline key="op" points={sPts(all)} fill="none" stroke={col} strokeWidth={obsType === "walkway" ? Math.max(4, 0.3 * V.s) : 3} strokeOpacity={0.8} strokeLinejoin="round" strokeLinecap="round" />);
+    obsPts.forEach((q, i) => { const sq = toS(q.x, q.z); preview.push(<circle key={"opp" + i} cx={sq.x} cy={sq.y} r={HR - 2} fill="#fff" stroke={col} strokeWidth={2.4} />); });
+    if (cur) { const sq = toS(cur.x, cur.z); lbl("ot", sq.x + 40, sq.y - 20, "รวม " + fmtM(p3sPathLen(all)), "warn"); }
+  }
   if (tool === "meas" && measPts && !view3d) {
     const all = cur ? measPts.concat([cur]) : measPts;
     preview.push(<polyline key="mp" points={sPts(all)} fill="none" stroke="#f97316" strokeWidth={3} strokeLinejoin="round" strokeLinecap="round" />);
@@ -2876,7 +2968,7 @@ function Plan3DStudio({ job, onClose, currentUser, onSwitch }) {
     const tot = p3MeasLen({ pts: all });
     if (cur) { const s = toS(cur.x, cur.z); lbl("mt", s.x + 40, s.y - 20, "รวม " + fmtM(tot), "warn"); }
   }
-  if ((tool === "roof" || tool === "meas" || tool === "walk" || tool === "axis" || (gest.current && (gest.current.type === "vert" || gest.current.type === "side"))) && cur && !view3d) {
+  if ((tool === "roof" || tool === "meas" || tool === "walk" || tool === "axis" || (tool === "obs" && P3S_OBS_LINE[obsType]) || (gest.current && (gest.current.type === "vert" || gest.current.type === "side"))) && cur && !view3d) {
     const s = toS(cur.x, cur.z);
     if (cur.guide) {
       const F = toS(cur.guide.from.x, cur.guide.from.z), a = cur.guide.ang, Lp = 4000;
@@ -2942,7 +3034,7 @@ function Plan3DStudio({ job, onClose, currentUser, onSwitch }) {
   /* ตัวชี้เมาส์ตามสิ่งที่อยู่ใต้ */
   let cursor = "default";
   if (tool === "pan") cursor = gest.current && gest.current.type === "pan" ? "grabbing" : "grab";
-  else if (tool === "roof" || tool === "meas" || tool === "obs" || tool === "area" || (tool === "bg" && calib)) cursor = "crosshair";
+  else if ((tool === "roof" && !roofLock) || tool === "meas" || tool === "obs" || tool === "area" || (tool === "bg" && calib)) cursor = "crosshair";
   if (hover && hover.indexOf("h:") === 0) cursor = /rot/.test(hover) ? "alias" : "move";
   else if (hover && tool === "select") cursor = "move";
   else if (hover && tool === "panel") cursor = "pointer";
@@ -2967,6 +3059,7 @@ function Plan3DStudio({ job, onClose, currentUser, onSwitch }) {
       if (walkPts) return <span>คลิกจุดถัดไป · <kbd>Enter</kbd>/ดับเบิลคลิก = จบ · แผงที่ทับทางเดินจะหายไปเอง</span>;
       return <span><b>คลิกไล่จุด</b>เป็นแนวทางเดินบนหลังคา (กว้าง {walkW} ม.) · แตะทางเดินเดิมเพื่อแก้/ลบ</span>;
     }
+    if (tool === "roof" && roofLock) return <span>แตะหลังคาเพื่อเลือก/ลากย้าย · จะวาดหลังคาใหม่ กด <b>เพิ่มหลังคาอีกหลัง</b> ก่อน</span>;
     if (tool === "roof") {
       if (trace && trace.on) return trace.busy ? <span>กำลังหาขอบหลังคา…</span>
         : trace.pts ? <span>ได้รูปหลังคา {trace.area} ตร.ม. — <b>แตะส่วนที่เหลือ</b> เพื่อรวมเป็นหลังเดียว · <b>Enter</b> ใช้รูปนี้ · <kbd>Esc</kbd> ยกเลิก</span>
@@ -2988,6 +3081,9 @@ function Plan3DStudio({ job, onClose, currentUser, onSwitch }) {
       return <span><b>แตะแผง</b> = ปิด/เปิดทีละแผ่น · <b>ลากแผง</b> = ย้ายทั้งชุด · <b>ลากคลุม</b> = ปิดหลายแผ่น{coarse ? " · สองนิ้ว = เลื่อน/ซูม" : " · คลิกขวาลาก = เลื่อนภาพ"}</span>;
     }
     if (tool === "area") return <span><b>ลากกรอบ</b> คลุมอาคาร/หลังคาที่จะติดตั้ง — ใช้ซูมและหาแนวหลังคาอัตโนมัติในกรอบนี้</span>;
+    if (tool === "obs" && P3S_OBS_LINE[obsType]) return obsPts ? <span>คลิกจุดถัดไปต่อเป็นเส้นยาว · <kbd>Enter</kbd>/ดับเบิลคลิก/แตะจุดสุดท้ายซ้ำ = จบ · <kbd>⌫</kbd> ถอยจุด</span>
+      : <span>วาง<b>{obsType === "rail" ? "ราวกันตก" : "ทางเดิน"}</b> · <b>คลิกทีละจุด</b>ต่อกันเป็นเส้น (ดูดเข้าขอบหลังคา)</span>;
+    if (tool === "obs" && obsType === "ladder") return <span>วาง<b>บันไดลิง</b> · <b>แตะที่ขอบหลังคา</b> — ติดชิดผนังด้านนอกเอง</span>;
     if (tool === "obs") return <span>วาง<b>{(P3S_OBS.find((x) => x[0] === obsType) || P3S_OBS[0])[1]}</b> · <b>แตะ</b> = ขนาดมาตรฐาน · <b>ลาก</b> = ตามขนาดจริง</span>;
     if (tool === "meas") return measPts ? <span>คลิกจุดถัดไป · <kbd>Enter</kbd>/ดับเบิลคลิก = จบเส้น · <kbd>⌫</kbd> ถอยจุด</span>
       : <span><b>คลิกไล่จุด</b> ตามแนวเดินสาย/ราง ได้ระยะจริงไปกรอก BOQ</span>;
@@ -3328,17 +3424,16 @@ function Plan3DStudio({ job, onClose, currentUser, onSwitch }) {
         <span className="p3s-ttl2"><P3Icon name={o.kind === "tree" ? "tree" : "box"} size={17} />{p3sObsName(o)}</span>
       </div>
       <div className="p3s-row" style={{ flexWrap: "wrap", gap: 6 }}>
-        {P3S_OBS.map(([k, lb, w0, d0, h0]) => <button key={k} className={"p3s-btn" + (p3sObsType(o) === k ? " pri" : "")} style={{ flex: "1 1 30%", padding: "0 6px", fontSize: 12.5 }}
-          onClick={() => patchObs(o.id, { p3sType: k, kind: k === "tree" ? "tree" : "box", w: w0, d: d0, h: h0 })}>{lb}</button>)}
+        {P3S_OBS.filter(([k]) => !!P3S_OBS_LINE[k] === !!P3S_OBS_LINE[p3sObsType(o)] && (k === "ladder") === (p3sObsType(o) === "ladder")).map(([k, lb, w0, d0, h0]) => <button key={k} className={"p3s-btn" + (p3sObsType(o) === k ? " pri" : "")} style={{ flex: "1 1 30%", padding: "0 6px", fontSize: 12.5 }}
+          onClick={() => patchObs(o.id, P3S_OBS_LINE[k] ? { p3sType: k, d: d0, h: h0 } : { p3sType: k, kind: k === "tree" ? "tree" : "box", w: w0, d: d0, h: h0 })}>{lb}</button>)}
       </div>
       {P3S_OBS_LINE[p3sObsType(o)] || p3sObsType(o) === "ladder" ? (() => {
         const T = p3sObsType(o);
         return (
           <div className="p3s-g2">
-            {T !== "ladder" && <P3SNum label="ยาว" unit="ม." step={0.5} min={0.5} value={o.w} onChange={(v) => patchObs(o.id, { w: v }, "ow")} />}
-            {T !== "ladder" && <P3SNum label="กว้าง" unit="ม." step={0.1} min={0.1} value={o.d} onChange={(v) => patchObs(o.id, { d: v }, "od")} />}
+            {T === "walkway" && <P3SNum label="กว้าง" unit="ม." step={0.05} min={0.2} value={o.d} onChange={(v) => patchObs(o.id, { d: v }, "od")} />}
             {T !== "walkway" && <P3SNum label={T === "ladder" ? "สูง (ถ้าไม่ชิดหลังคา)" : "ราวสูง"} unit="ม." step={0.1} min={0.6} value={o.h} onChange={(v) => patchObs(o.id, { h: v }, "oh")} />}
-            {T !== "ladder" && <P3SNum label="หมุน" unit="°" step={5} min={0} max={360} digits={0} value={+o.rot || 0} onChange={(v) => patchObs(o.id, { rot: v }, "orot")} />}
+            {T !== "ladder" && <div className="p3s-fld"><span className="lb">ยาวรวม</span><b style={{ fontSize: 15, padding: "6px 2px" }}>{p3sR(p3sPathLen(p3sObsPath(o)), 10)} ม. <small style={{ fontWeight: 400 }}>· {p3sObsPath(o).length - 1} ช่วง</small></b></div>}
           </div>);
       })() : <div className="p3s-g2">
         <P3SNum label={o.kind === "tree" ? "ทรงพุ่มกว้าง" : "กว้าง"} unit="ม." step={0.1} min={0.3} value={o.w} onChange={(v) => patchObs(o.id, o.kind === "tree" ? { w: v, d: v } : { w: v }, "ow")} />
@@ -3346,9 +3441,9 @@ function Plan3DStudio({ job, onClose, currentUser, onSwitch }) {
         <P3SNum label="สูง" unit="ม." step={0.1} min={0.2} value={o.h} onChange={(v) => patchObs(o.id, { h: v }, "oh")} />
         {o.kind !== "tree" && <P3SNum label="หมุน" unit="°" step={5} min={0} max={360} digits={0} value={+o.rot || 0} onChange={(v) => patchObs(o.id, { rot: v }, "orot")} />}
       </div>}
-      <span className="p3s-note">{p3sObsType(o) === "rail" ? "ราวกันตกตั้งบนหลังคา เสาทุก 2 ม. — แนวราวและรอบ ๆ 10 ซม. ติดแผงไม่ได้ · ลากบนผังเพื่อวางตามแนวขอบ"
-        : p3sObsType(o) === "walkway" ? "ทางเดินตะแกรง (FRP) แนบหลังคา — ตรงทางเดินติดแผงไม่ได้ · ลากบนผังตามแนวที่ต้องการ"
-        : p3sObsType(o) === "ladder" ? "บันไดลิงมีกรง วางชิดขอบหลังคา — 3D ตั้งจากพื้นดินถึงชายคาที่ใกล้ที่สุดเอง ราวจับยื่นเหนือขอบ 1.1 ม. · จุดขึ้นบนหลังคาเว้นไม่ติดแผง 40 ซม."
+      <span className="p3s-note">{p3sObsType(o) === "rail" ? "ราวกันตกตั้งบนหลังคา เสาทุกมุมและทุก 2 ม. — แนวราวและรอบ ๆ 10 ซม. ติดแผงไม่ได้ · ลากจุดกลมบนผังเพื่อแก้แนว"
+        : p3sObsType(o) === "walkway" ? "ทางเดินตะแกรง (FRP) กว้าง 30 ซม. แนบหลังคา — ตรงทางเดินติดแผงไม่ได้ · ลากจุดกลมบนผังเพื่อแก้แนว"
+        : p3sObsType(o) === "ladder" ? "บันไดลิงมีกรง ติดที่ขอบหลังคาเสมอ (ลากย้ายแล้วดูดเข้าขอบที่ใกล้สุด) — 3D ตั้งจากพื้นดินถึงหลังคาตรงนั้นเอง ราวจับยื่นเหนือขอบ 1.1 ม. · จุดขึ้นบนหลังคาเว้นไม่ติดแผง 40 ซม."
         : P3S_ON_ROOF[p3sObsType(o)] != null
         ? (p3sObsType(o) === "sky" ? "แนบไปกับหลังคา — ตรงช่องแสงติดแผงไม่ได้ แผงที่ทับถูกตัดออกเอง" : "ตั้งบนหลังคา — ตรงนี้และรอบ ๆ 15 ซม. ติดแผงไม่ได้ (กรอบเส้นประแดง) · ความสูงใช้คำนวณเงาที่ตกบนแผงข้าง ๆ ดูได้ในมุมมอง 3D")
         : "ความสูงใช้คำนวณเงาที่ตกบนแผง — ดูผลได้ในมุมมอง 3D"}</span>
@@ -3595,10 +3690,16 @@ function Plan3DStudio({ job, onClose, currentUser, onSwitch }) {
         : <button className="p3s-btn pri wide" onClick={() => { if (tool !== "roof") setTool("roof"); setKindPick(true); }}><P3SIcon name="polygon" size={15} />เลือกทรงหลังคา</button>,
       go: () => { setTool("roof"); if (!roofs.length) setKindPick(true); } },
     { t: "สิ่งบดบัง", k: "obs", tools: ["obs"], done: (st.obstacles || []).length > 0 || !!wizSeen.obs, opt: true,
-      d: <span>เลือกชนิด แล้ว<b>แตะบนผัง</b> = ขนาดมาตรฐาน หรือ<b>ลากกรอบ</b>ตามขนาดจริง (ราวกันตก/ทางเดิน = <b>ลากตามแนว</b> · บันได = แตะที่ขอบหลังคา) · ทำ<b>ก่อนวางแผง</b> แผงที่ทับถูกตัดออกเอง · ไม่มีก็กดถัดไป</span>,
+      d: <span>เลือกชนิด แล้ว<b>แตะบนผัง</b> = ขนาดมาตรฐาน หรือ<b>ลากกรอบ</b>ตามขนาดจริง (ราวกันตก/ทางเดิน = <b>คลิกทีละจุดต่อเป็นเส้น</b> · บันไดลิง = <b>แตะที่ขอบหลังคา</b>) · ทำ<b>ก่อนวางแผง</b> แผงที่ทับถูกตัดออกเอง · ไม่มีก็กดถัดไป</span>,
       act: (
         <div className="p3s-row" style={{ flexWrap: "wrap", gap: 6 }}>
-          {P3S_OBS.map(([k, lb]) => <button key={k} className={"p3s-btn" + (obsType === k && tool === "obs" ? " pri" : "")} style={{ flex: "1 1 30%", padding: "0 6px", fontSize: 12.5 }} onClick={() => { setObsType(k); setTool("obs"); setSel(null); }}>{lb}</button>)}
+          {P3S_OBS.map(([k, lb]) => <button key={k} className={"p3s-btn" + (obsType === k && tool === "obs" ? " pri" : "")} style={{ flex: "1 1 30%", padding: "0 6px", fontSize: 12.5 }} onClick={() => { setObsType(k); setTool("obs"); setSel(null); setObsPts(null); setObsMsg(null); }}>{lb}</button>)}
+          {obsPts && <div className="p3s-row" style={{ flex: "1 1 100%", gap: 6 }}>
+            <button className="p3s-btn pri" style={{ flex: 2 }} disabled={obsPts.length < 2} onClick={finishObsLine}><P3Icon name="check" />จบเส้น ({obsPts.length} จุด)</button>
+            <button className="p3s-btn" style={{ flex: 1 }} onClick={() => setObsPts(obsPts.length > 1 ? obsPts.slice(0, -1) : null)}>ถอยจุด</button>
+            <button className="p3s-btn dngr" style={{ flex: 1 }} onClick={() => { setObsPts(null); setCur(null); }}>ยกเลิก</button>
+          </div>}
+          {obsMsg && <span className="p3s-badge warn" style={{ flex: "1 1 100%" }}>{obsMsg}</span>}
         </div>),
       go: () => setTool("obs") },
     { t: "วางแผง ทีละหลังคา", tools: ["panel"], done: total > 0,
@@ -3808,10 +3909,11 @@ function Plan3DStudio({ job, onClose, currentUser, onSwitch }) {
   const addPop = !view3d && tool === "roof" && !kindPick && !eavePick && trace && trace.on && trace.done > 0 && !trace.pts && !trace.err && !trace.busy && (
     <div className="p3s-pop" onPointerDown={(e) => e.stopPropagation()} style={{ top: isMobile ? 104 : 64 }}>
       <span style={{ fontSize: 13.5, fontWeight: 800 }}>เพิ่มหลังคาแล้ว {trace.done} หลัง</span>
-      <span className="p3s-note"><b>มีหลังคาอีก?</b> แตะกลางหลังคาหลังถัดไปบนภาพ ระบบหาขอบให้ทันที (ทรง{P3S_KIND_TH[roofOpt.kind] || ""})</span>
+      <span className="p3s-note">{roofArm ? <span><b>แตะกลางหลังคาหลังถัดไป</b>บนภาพ ระบบหาขอบให้ทันที (ทรง{P3S_KIND_TH[roofOpt.kind] || ""})</span> : <span><b>มีหลังคาอีก?</b> กดเพิ่มก่อน แล้วแตะหลังถัดไปบนภาพ</span>}</span>
       <div className="p3s-row">
-        <button className="p3s-btn pri" style={{ flex: 1 }} onClick={addRoof}><P3Icon name="plus" />เพิ่มหลังคาทรงอื่น</button>
-        <button className="p3s-btn" style={{ flex: "0 0 auto" }} onClick={() => setTrace(null)}>ครบแล้ว</button>
+        {!roofArm && <button className="p3s-btn pri" style={{ flex: 1 }} onClick={() => setRoofArm(true)}><P3Icon name="plus" />เพิ่มอีกหลัง (ทรง{P3S_KIND_TH[roofOpt.kind] || ""})</button>}
+        <button className="p3s-btn" style={{ flex: 1 }} onClick={addRoof}>ทรงอื่น</button>
+        <button className="p3s-btn" style={{ flex: "0 0 auto" }} onClick={() => { setTrace(null); setRoofArm(false); }}>ครบแล้ว</button>
       </div>
     </div>
   );
