@@ -1740,7 +1740,7 @@ const P3S_CSS = `
 .p3s-wiz .wd b{color:var(--text)}
 .p3s-wiz .chips{display:flex;flex-wrap:wrap;gap:5px}
 .p3s-wiz .chips .p3s-btn{height:28px;font-size:11.5px;padding:0 9px}
-.p3s-tool[data-dim="1"]{opacity:.35}
+.p3s-tool[data-dim="1"]{opacity:.28;cursor:not-allowed}
 .p3s-wiznav{position:sticky;bottom:-14px;margin:auto -14px -14px;padding:10px 14px 14px;background:var(--bg);box-shadow:0 -6px 14px rgba(0,0,0,.06);display:flex;flex-direction:column;gap:6px;z-index:4}
 .p3s-wiznav .p3s-row{gap:8px}
 .p3s-tool[data-hint="1"]{box-shadow:0 0 0 2px var(--primary) inset}
@@ -2431,6 +2431,11 @@ function Plan3DStudio({
     roofs: null,
     gap: 0
   });
+  const wizAllowRef = React.useRef(null);
+  const toolOk = k => {
+    const a = wizAllowRef.current;
+    return !a || a.includes(k);
+  };
   const [photoAR, setPhotoAR] = React.useState(1);
   const [sunHour, setSunHour] = React.useState(null);
   const [lockRoofs, setLockRoofs] = React.useState(false);
@@ -3107,7 +3112,7 @@ function Plan3DStudio({
     setCur(null);
     if (Math.hypot(b.x - a.x, b.z - a.z) < 0.4) return;
     setAxis(Math.atan2(b.z - a.z, b.x - a.x) / P3_DEG, "ตั้งแนวจากเส้นที่ลาก");
-    setToolRaw("roof");
+    if (!wizAllowRef.current) setToolRaw("roof");
   };
   const zoomArea = A => {
     if (!A || !(A.pts || []).length) return;
@@ -3436,7 +3441,7 @@ function Plan3DStudio({
         setSel(null);
         return;
       }
-      setTool("select");
+      if (toolOk("select")) setTool("select");
       return;
     }
     if (k === "Delete" || k === "Backspace") {
@@ -3467,7 +3472,7 @@ function Plan3DStudio({
     if (mod || e.altKey) return;
     const t = P3S_TOOLS.find(x => x.key.toLowerCase() === k.toLowerCase());
     if (t) {
-      setTool(t.k);
+      if (toolOk(t.k)) setTool(t.k);
       return;
     }
     if (k === "f" || k === "F") {
@@ -5785,6 +5790,11 @@ function Plan3DStudio({
     setTimeout(() => {
       if (!(stRef.current.roofs || []).length) fitView();
     }, 0);
+    if (wiz) {
+      markSeen(0);
+      setWizStep(1);
+      setTool("area");
+    }
   };
   const card = (title, body, right) => React.createElement("div", {
     className: "p3s-card"
@@ -6998,7 +7008,49 @@ function Plan3DStudio({
     tools: ["axis"],
     done: axisDeg != null,
     skip: true,
-    d: React.createElement("span", null, "\u0E01\u0E14 ", React.createElement("b", null, "\u0E2B\u0E32\u0E41\u0E19\u0E27\u0E08\u0E32\u0E01\u0E20\u0E32\u0E1E\u0E2D\u0E31\u0E15\u0E42\u0E19\u0E21\u0E31\u0E15\u0E34"), " (\u0E2D\u0E48\u0E32\u0E19\u0E02\u0E2D\u0E1A\u0E43\u0E19\u0E01\u0E23\u0E2D\u0E1A\u0E1E\u0E37\u0E49\u0E19\u0E17\u0E35\u0E48\u0E15\u0E34\u0E14\u0E15\u0E31\u0E49\u0E07) \u0E16\u0E49\u0E32\u0E44\u0E21\u0E48\u0E15\u0E23\u0E07\u0E1E\u0E2D\u0E1B\u0E23\u0E31\u0E1A", React.createElement("b", null, "\u0E2D\u0E07\u0E28\u0E32"), "\u0E43\u0E19\u0E41\u0E1C\u0E07\u0E14\u0E49\u0E32\u0E19\u0E25\u0E48\u0E32\u0E07 \u0E2B\u0E23\u0E37\u0E2D\u0E25\u0E32\u0E01\u0E40\u0E2A\u0E49\u0E19\u0E17\u0E31\u0E1A\u0E02\u0E2D\u0E1A\u0E0A\u0E32\u0E22\u0E04\u0E32\u0E40\u0E2D\u0E07 \xB7 \u0E15\u0E31\u0E49\u0E07\u0E01\u0E48\u0E2D\u0E19\u0E27\u0E32\u0E14\u0E2B\u0E25\u0E31\u0E07\u0E04\u0E32"),
+    d: React.createElement("span", null, "\u0E01\u0E14 ", React.createElement("b", null, "\u0E2B\u0E32\u0E41\u0E19\u0E27\u0E2D\u0E31\u0E15\u0E42\u0E19\u0E21\u0E31\u0E15\u0E34"), " (\u0E2D\u0E48\u0E32\u0E19\u0E02\u0E2D\u0E1A\u0E43\u0E19\u0E01\u0E23\u0E2D\u0E1A\u0E1E\u0E37\u0E49\u0E19\u0E17\u0E35\u0E48\u0E15\u0E34\u0E14\u0E15\u0E31\u0E49\u0E07) \u0E41\u0E25\u0E49\u0E27\u0E14\u0E39\u0E27\u0E48\u0E32\u0E40\u0E2A\u0E49\u0E19\u0E01\u0E23\u0E34\u0E14\u0E2A\u0E35\u0E21\u0E48\u0E27\u0E07\u0E02\u0E19\u0E32\u0E19\u0E01\u0E31\u0E1A\u0E02\u0E2D\u0E1A\u0E2D\u0E32\u0E04\u0E32\u0E23\u0E44\u0E2B\u0E21 \xB7 \u0E44\u0E21\u0E48\u0E15\u0E23\u0E07\u0E1B\u0E23\u0E31\u0E1A\u0E17\u0E35\u0E25\u0E30\u0E2D\u0E07\u0E28\u0E32 \u0E2B\u0E23\u0E37\u0E2D\u0E25\u0E32\u0E01\u0E40\u0E2A\u0E49\u0E19\u0E17\u0E31\u0E1A\u0E02\u0E2D\u0E1A\u0E0A\u0E32\u0E22\u0E04\u0E32\u0E40\u0E2D\u0E07"),
+    act: React.createElement(React.Fragment, null, React.createElement("button", {
+      className: "p3s-btn wide" + (axisDeg == null ? " pri" : ""),
+      disabled: !hasImgW,
+      onClick: autoAxis
+    }, React.createElement(P3SIcon, {
+      name: "magic",
+      size: 15
+    }), "\u0E2B\u0E32\u0E41\u0E19\u0E27\u0E2D\u0E31\u0E15\u0E42\u0E19\u0E21\u0E31\u0E15\u0E34"), axisMsg && React.createElement("span", {
+      className: "p3s-note"
+    }, axisMsg), axisDeg != null && React.createElement("div", {
+      className: "p3s-fld",
+      style: {
+        gap: 6
+      }
+    }, React.createElement("span", {
+      className: "lb"
+    }, "\u0E41\u0E19\u0E27 ", p3sR(axisDeg, 10), "\xB0 \u2014 \u0E15\u0E23\u0E07\u0E01\u0E31\u0E1A\u0E02\u0E2D\u0E1A\u0E2D\u0E32\u0E04\u0E32\u0E23\u0E44\u0E2B\u0E21?"), React.createElement("div", {
+      className: "p3s-row",
+      style: {
+        gap: 5
+      }
+    }, React.createElement("button", {
+      className: "p3s-btn",
+      style: {
+        padding: "0 10px"
+      },
+      onClick: () => setAxis(axisDeg - 1)
+    }, "\u22121\xB0"), React.createElement("button", {
+      className: "p3s-btn",
+      style: {
+        padding: "0 10px"
+      },
+      onClick: () => setAxis(axisDeg + 1)
+    }, "+1\xB0"), React.createElement("button", {
+      className: "p3s-btn pri",
+      style: {
+        flex: 1
+      },
+      onClick: () => nextStep()
+    }, React.createElement(P3Icon, {
+      name: "check"
+    }), "\u0E15\u0E23\u0E07\u0E41\u0E25\u0E49\u0E27 \u0E44\u0E1B\u0E15\u0E48\u0E2D")))),
     go: () => setTool("axis")
   }, {
     t: "วาดหลังคาให้ครบทุกผืน",
@@ -7191,6 +7243,7 @@ function Plan3DStudio({
     className: "p3s-note"
   }, "\u0E02\u0E31\u0E49\u0E19\u0E19\u0E35\u0E49\u0E22\u0E31\u0E07\u0E44\u0E21\u0E48\u0E40\u0E2A\u0E23\u0E47\u0E08 \u2014 \u0E44\u0E1B\u0E15\u0E48\u0E2D\u0E44\u0E14\u0E49 \u0E41\u0E15\u0E48\u0E16\u0E49\u0E32\u0E01\u0E25\u0E31\u0E1A\u0E21\u0E32\u0E41\u0E01\u0E49\u0E17\u0E35\u0E2B\u0E25\u0E31\u0E07\u0E2D\u0E32\u0E08\u0E15\u0E49\u0E2D\u0E07\u0E08\u0E31\u0E14\u0E41\u0E1C\u0E07\u0E43\u0E2B\u0E21\u0E48"));
   const wizTools = wiz && !view3d ? W0.tools : null;
+  wizAllowRef.current = wiz ? W0.tools.length ? ["pan"].concat(W0.tools, wi >= 3 ? ["select", "meas"] : []) : ["select", "pan", "meas"] : null;
   const guidePanel = React.createElement(React.Fragment, null, React.createElement("input", {
     ref: fileRef,
     type: "file",
@@ -7702,13 +7755,14 @@ function Plan3DStudio({
     key: t.k,
     className: "p3s-tool",
     "data-on": tool === t.k && !view3d ? "1" : "0",
-    "data-dim": wizTools && wizTools.length && !wizTools.includes(t.k) && !["select", "pan", "meas"].includes(t.k) ? "1" : "0",
+    "data-dim": toolOk(t.k) ? "0" : "1",
+    disabled: !toolOk(t.k),
     "data-hint": wizTools && wizTools.includes(t.k) && tool !== t.k ? "1" : "0",
     onClick: () => {
       if (view3d) setView3d(false);
       setTool(t.k);
     },
-    title: t.lb + " (" + t.key + ")"
+    title: toolOk(t.k) ? t.lb + " (" + t.key + ")" : t.lb + " — ล็อกตามขั้น กดถัดไปเมื่อขั้นนี้เสร็จ"
   }, React.createElement("kbd", null, t.key), React.createElement(P3SIcon, {
     name: t.ic,
     size: 21

@@ -878,7 +878,7 @@ const P3S_CSS = `
 .p3s-wiz .wd b{color:var(--text)}
 .p3s-wiz .chips{display:flex;flex-wrap:wrap;gap:5px}
 .p3s-wiz .chips .p3s-btn{height:28px;font-size:11.5px;padding:0 9px}
-.p3s-tool[data-dim="1"]{opacity:.35}
+.p3s-tool[data-dim="1"]{opacity:.28;cursor:not-allowed}
 .p3s-wiznav{position:sticky;bottom:-14px;margin:auto -14px -14px;padding:10px 14px 14px;background:var(--bg);box-shadow:0 -6px 14px rgba(0,0,0,.06);display:flex;flex-direction:column;gap:6px;z-index:4}
 .p3s-wiznav .p3s-row{gap:8px}
 .p3s-tool[data-hint="1"]{box-shadow:0 0 0 2px var(--primary) inset}
@@ -1241,6 +1241,8 @@ function Plan3DStudio({ job, onClose, currentUser, onSwitch }) {
   const markSeen = (i) => setWizSeenRaw((o) => { if (o[i]) return o; const n = Object.assign({}, o, { [i]: 1 }); try { localStorage.setItem(wizKey, JSON.stringify(n)); } catch (e) {} return n; });
   const [wizStep, setWizStep] = React.useState(null);  // null = ขั้นแรกที่ยังไม่เสร็จ
   const shapeRef = React.useRef({ roofs: null, gap: 0 });
+  const wizAllowRef = React.useRef(null);   // เครื่องมือที่ขั้นปัจจุบันให้ใช้ (null = ไม่ล็อก)
+  const toolOk = (k) => { const a = wizAllowRef.current; return !a || a.includes(k); };
   const [photoAR, setPhotoAR] = React.useState(1);
   const [sunHour, setSunHour] = React.useState(null);   // ชั่วโมงที่กำลังกวาดดูเงา (ไม่บันทึก)
   const [lockRoofs, setLockRoofs] = React.useState(false);
@@ -1599,7 +1601,7 @@ function Plan3DStudio({ job, onClose, currentUser, onSwitch }) {
     setAxisPts(null); setCur(null);
     if (Math.hypot(b.x - a.x, b.z - a.z) < 0.4) return;
     setAxis(Math.atan2(b.z - a.z, b.x - a.x) / P3_DEG, "ตั้งแนวจากเส้นที่ลาก");
-    setToolRaw("roof");
+    if (!wizAllowRef.current) setToolRaw("roof");
   };
   const zoomArea = (A) => {
     if (!A || !(A.pts || []).length) return;
@@ -1737,7 +1739,7 @@ function Plan3DStudio({ job, onClose, currentUser, onSwitch }) {
       if (selVert != null) { setSelVert(null); return; }
       if (selBlk != null) { setSelBlk(null); return; }
       if (sel) { setSel(null); return; }
-      setTool("select"); return;
+      if (toolOk("select")) setTool("select"); return;
     }
     if (k === "Delete" || k === "Backspace") { e.preventDefault(); delSelected(); return; }
     if (k.indexOf("Arrow") === 0 && sel && (sel.t === "roof" || sel.t === "obs")) {
@@ -1754,7 +1756,7 @@ function Plan3DStudio({ job, onClose, currentUser, onSwitch }) {
     }
     if (mod || e.altKey) return;
     const t = P3S_TOOLS.find((x) => x.key.toLowerCase() === k.toLowerCase());
-    if (t) { setTool(t.k); return; }
+    if (t) { if (toolOk(t.k)) setTool(t.k); return; }
     if (k === "f" || k === "F") { fitView(); return; }
     if (k === "+" || k === "=") zoomAt({ x: sizeRef.current.w / 2, y: sizeRef.current.h / 2 }, 1.25);
     if (k === "-" || k === "_") zoomAt({ x: sizeRef.current.w / 2, y: sizeRef.current.h / 2 }, 0.8);
@@ -2686,6 +2688,7 @@ function Plan3DStudio({ job, onClose, currentUser, onSwitch }) {
       groundW: Math.max(20, Math.ceil(res.widthM)), sun: Object.assign({}, s.sun, { lat: res.lat, lng: res.lng }) }));
     setMapOpen(false);
     setTimeout(() => { if (!(stRef.current.roofs || []).length) fitView(); }, 0);
+    if (wiz) { markSeen(0); setWizStep(1); setTool("area"); }
   };
 
   const card = (title, body, right) => (
@@ -3074,7 +3077,23 @@ function Plan3DStudio({ job, onClose, currentUser, onSwitch }) {
         <button className="p3s-btn dngr" onClick={() => commit({ p3sArea: null })}><P3Icon name="trash" /></button></div> : null,
       go: () => { setTool("area"); if (st.p3sArea) zoomArea(st.p3sArea); } },
     { t: "ตั้งแนวหลังคา", tools: ["axis"], done: axisDeg != null, skip: true,
-      d: <span>กด <b>หาแนวจากภาพอัตโนมัติ</b> (อ่านขอบในกรอบพื้นที่ติดตั้ง) ถ้าไม่ตรงพอปรับ<b>องศา</b>ในแผงด้านล่าง หรือลากเส้นทับขอบชายคาเอง · ตั้งก่อนวาดหลังคา</span>,
+      d: <span>กด <b>หาแนวอัตโนมัติ</b> (อ่านขอบในกรอบพื้นที่ติดตั้ง) แล้วดูว่าเส้นกริดสีม่วงขนานกับขอบอาคารไหม · ไม่ตรงปรับทีละองศา หรือลากเส้นทับขอบชายคาเอง</span>,
+      act: (
+        <React.Fragment>
+          <button className={"p3s-btn wide" + (axisDeg == null ? " pri" : "")} disabled={!hasImgW} onClick={autoAxis}><P3SIcon name="magic" size={15} />หาแนวอัตโนมัติ</button>
+          {axisMsg && <span className="p3s-note">{axisMsg}</span>}
+          {axisDeg != null && (
+            <div className="p3s-fld" style={{ gap: 6 }}>
+              <span className="lb">แนว {p3sR(axisDeg, 10)}° — ตรงกับขอบอาคารไหม?</span>
+              <div className="p3s-row" style={{ gap: 5 }}>
+                <button className="p3s-btn" style={{ padding: "0 10px" }} onClick={() => setAxis(axisDeg - 1)}>−1°</button>
+                <button className="p3s-btn" style={{ padding: "0 10px" }} onClick={() => setAxis(axisDeg + 1)}>+1°</button>
+                <button className="p3s-btn pri" style={{ flex: 1 }} onClick={() => nextStep()}><P3Icon name="check" />ตรงแล้ว ไปต่อ</button>
+              </div>
+            </div>
+          )}
+        </React.Fragment>
+      ),
       go: () => setTool("axis") },
     { t: "วาดหลังคาให้ครบทุกผืน", tools: ["roof"], done: roofs.length > 0,
       d: <span>เลือกทรงที่แถบบนผัง · ทรงง่าย (ราบ เพิง จั่ว ปั้นหยา) ลากทับครั้งเดียว · หลังคาซับซ้อนเลือก <b>ทีละผืน</b> คลิกไล่มุมแต่ละผืน มุมที่ห่างกันไม่ถึง 40 ซม. ต่อกันเอง · <b>ยังไม่ต้องสนใจความชันและแผง</b></span>,
@@ -3131,6 +3150,7 @@ function Plan3DStudio({ job, onClose, currentUser, onSwitch }) {
     </div>
   );
   const wizTools = wiz && !view3d ? W0.tools : null;
+  wizAllowRef.current = wiz ? (W0.tools.length ? ["pan"].concat(W0.tools, wi >= 3 ? ["select", "meas"] : []) : ["select", "pan", "meas"]) : null;
 
   const guidePanel = (
     <React.Fragment>
@@ -3301,9 +3321,9 @@ function Plan3DStudio({ job, onClose, currentUser, onSwitch }) {
     <React.Fragment>
       {P3S_TOOLS.map((t) => (
         <button key={t.k} className="p3s-tool" data-on={tool === t.k && !view3d ? "1" : "0"}
-          data-dim={wizTools && wizTools.length && !wizTools.includes(t.k) && !["select", "pan", "meas"].includes(t.k) ? "1" : "0"}
+          data-dim={toolOk(t.k) ? "0" : "1"} disabled={!toolOk(t.k)}
           data-hint={wizTools && wizTools.includes(t.k) && tool !== t.k ? "1" : "0"} onClick={() => { if (view3d) setView3d(false); setTool(t.k); }}
-          title={t.lb + " (" + t.key + ")"}>
+          title={toolOk(t.k) ? t.lb + " (" + t.key + ")" : t.lb + " — ล็อกตามขั้น กดถัดไปเมื่อขั้นนี้เสร็จ"}>
           <kbd>{t.key}</kbd><P3SIcon name={t.ic} size={21} />{t.lb}
         </button>
       ))}
