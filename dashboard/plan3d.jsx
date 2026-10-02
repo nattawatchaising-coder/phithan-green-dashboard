@@ -339,26 +339,26 @@ function p3NextRoofNo(roofs) {
 function p3NewRoof(n) {
   return { id: p3Id("r"), kind: "rect", name: "หลังคา " + n, x: 0, z: 0, w: 8, d: 5, pitch: 15, az: 180, h: 3.2,
     color: P3_ROOF_COLOR,
-    orient: "portrait", rows: 0, cols: 0, gap: 0.02, margin: 0.3, skips: {} };
+    orient: "portrait", rows: 0, cols: 0, gap: 0.03, margin: 0.3, skips: {} };
 }
 /* หลังคาจั่ว: สันหลังคากลาง ลาด 2 ด้าน (A หันทิศ az, B หันตรงข้าม) */
 function p3NewGable(n) {
   return { id: p3Id("r"), kind: "gable", name: "หลังคา " + n, x: 0, z: 0, ridge: 8, span: 8, pitch: 20, az: 180, h: 3.2,
     color: P3_ROOF_COLOR,
-    orient: "portrait", rows: 0, cols: 0, gap: 0.02, margin: 0.3, skips: {}, sideA: true, sideB: true };
+    orient: "portrait", rows: 0, cols: 0, gap: 0.03, margin: 0.3, skips: {}, sideA: true, sideB: true };
 }
 /* หลังคาปั้นหยา: 4 ผืนลาดชนสันกลาง (คางหมู A/B + สามเหลี่ยม C/D) — ผืนต่อกันสนิทอัตโนมัติ */
 function p3NewHip(n) {
   return { id: p3Id("r"), kind: "hip", name: "หลังคา " + n, x: 0, z: 0, w: 10, d: 7, pitch: 30, az: 180, h: 3.2,
     color: P3_ROOF_COLOR,
-    orient: "portrait", rows: 0, cols: 0, gap: 0.02, margin: 0.3, skips: {},
+    orient: "portrait", rows: 0, cols: 0, gap: 0.03, margin: 0.3, skips: {},
     sideA: true, sideB: true, sideC: false, sideD: false };
 }
 /* หลังคาโดม: ผิวโค้งส่วนโค้งวงกลม (arch) ยืดยาวไปตามแนวสัน — ใช้กับโรงจอดรถ/โรงงาน/ทางเดินโดม */
 function p3NewDome(n) {
   return { id: p3Id("r"), kind: "dome", name: "หลังคา " + n, x: 0, z: 0, ridge: 12, span: 10, rise: 2.5, az: 180, h: 3.2,
     color: P3_ROOF_COLOR,
-    orient: "portrait", rows: 0, cols: 0, gap: 0.02, margin: 0.3, skips: {}, maxTilt: 90 };
+    orient: "portrait", rows: 0, cols: 0, gap: 0.03, margin: 0.3, skips: {}, maxTilt: 90 };
 }
 /* เรขาคณิตโดม — คอร์ด (span) + ความสูงโค้ง (rise) → รัศมี, มุมครึ่ง, ความยาวส่วนโค้ง
    จุดบนโค้งที่มุม t ∈ [-th, th]: z = rad·sin t, y = rad·cos t − (rad − rise)  (ชายคาอยู่ y=0, ยอดโดม y=rise) */
@@ -979,7 +979,7 @@ function p3NormBlk(b, i) {
     pfx: i === 0 ? "" : "b" + i + "_",
     orient: b.orient === "landscape" ? "landscape" : "portrait",
     rows: Math.max(0, Math.round(+b.rows || 0)), cols: Math.max(0, Math.round(+b.cols || 0)),
-    gap: b.gap == null ? 0.02 : Math.max(0, +b.gap),
+    gap: b.gap == null ? 0.03 : Math.max(0, +b.gap),
     /* ขนาดแผงจริงของรุ่นที่เลือก (ม.) — ผืนที่ยังไม่ได้เลือกรุ่นจะเป็น 0 แล้วถอยไปใช้ขนาดมาตรฐาน
        ผังเก่าทุกใบจึงวางเหมือนเดิมเป๊ะ จนกว่าจะเลือกรุ่นแผง */
     panelW: +b.panelW > 0 ? +b.panelW : 0,
@@ -1009,7 +1009,7 @@ function p3Blocks(roof) {
   return bs.map((b, i) => p3NormBlk(Object.assign({}, b, { panelW: roof.panelW, panelL: roof.panelL }), i));
 }
 function p3NewBlk(i) {
-  return { id: p3Id("pb"), orient: "portrait", rows: 0, cols: 0, gap: 0.02, du: 0, dv: 0, rot: 0, tilt: 0, skips: {}, adds: {} };
+  return { id: p3Id("pb"), orient: "portrait", rows: 0, cols: 0, gap: 0.03, du: 0, dv: 0, rot: 0, tilt: 0, skips: {}, adds: {} };
 }
 /* ── มุมหมุนของ "ตัวแผงแต่ละแผ่น" (เรเดียน) ให้ตรงกับแนวแถวที่กริดหมุนไป ──
    กริดหมุนในพิกัดผิว (u,v) ด้วยมุม +rot เสมอ แต่ตัวแผงหมุนรอบแกนตั้งฉากผิวใน basis ของ renderer

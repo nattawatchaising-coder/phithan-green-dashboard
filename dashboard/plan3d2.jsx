@@ -138,6 +138,7 @@ function p3sQuads(roof, want) {
 /* แผงทั้งผืนรวมเป็น path ไม่กี่เส้น (แยกตามชุด + แผงที่ปิด) — งานโรงงานมีแผงเป็นพัน ๆ แผ่น
    ถ้าวาดทีละ polygon การเลื่อน/ซูมผังจะกระตุก */
 const _p3sPathCache = new WeakMap();
+const _p3sGrpCache = new WeakMap();
 function p3sQuadPaths(roof) {
   const hit = _p3sPathCache.get(roof); if (hit) return hit;
   const on = [], off = [];
@@ -2511,8 +2512,34 @@ function Plan3DStudio({ job, onClose, currentUser, onSwitch }) {
   const localXY = (e) => { const r = stageRef.current.getBoundingClientRect(); return { x: e.clientX - r.left, y: e.clientY - r.top }; };
   const THR = coarse ? 8 : 4;
   const ensurePushed = (G) => { if (!G.pushed) { pushHist(G.s0); G.pushed = true; } };
+  /* ลากกลุ่มแผง — ขยับรูปบนผังตรง ๆ (แผงย้ายบนผิวหลังคาระนาบ = เลื่อนบนผังเท่ากัน) */
+  const blkDragPaint = (G) => {
+    const svg = stageRef.current; if (!svg || !G.mv) return;
+    const now = new Set(), tf = "translate(" + G.dx + " " + G.dz + ")";
+    G.mv.forEach((m) => svg.querySelectorAll('[data-pk="' + G.roofId + ":" + m.k + '"]').forEach((el) => { el.setAttribute("transform", tf); now.add(el); }));
+    G.els.forEach((el) => { if (!now.has(el)) el.removeAttribute("transform"); });
+    G.els = now;
+    svg.querySelectorAll("[data-pkl]").forEach((el) => { el.style.visibility = "hidden"; });
+  };
+  const blkDragClear = (G) => {
+    if (!G || G.type !== "moveBlk") return;
+    if (G.raf) cancelAnimationFrame(G.raf); G.raf = 0;
+    (G.els || []).forEach((el) => el.removeAttribute("transform"));
+    const svg = stageRef.current; if (svg) svg.querySelectorAll("[data-pkl]").forEach((el) => { el.style.visibility = ""; });
+  };
+  const blkDragDone = (G) => {
+    blkDragClear(G);
+    if (G.dx == null) return;
+    ensurePushed(G);
+    live(Object.assign({}, stRef.current, { roofs: stRef.current.roofs.map((r) => {
+      if (r.id !== G.roofId) return r;
+      const bs = G.bsN.slice();
+      G.mv.forEach((m) => { if (!bs[m.k]) return; const d = p3sInvJ(m.J, G.dx, G.dz); bs[m.k] = Object.assign({}, bs[m.k], { du: p3sR(m.du0 + d.du), dv: p3sR(m.dv0 + d.dv) }); });
+      return Object.assign({}, r, { blocks: bs });
+    }) }));
+  };
   const cancelGesture = () => {
-    const G = gest.current; gest.current = null; setMarq(null);
+    const G = gest.current; gest.current = null; setMarq(null); blkDragClear(G);
     if (G && G.pushed) { const H = hist.current; const prev = H.u.pop(); if (prev) { stRef.current = prev; setStRaw(prev); } setHistTick((n) => n + 1); }
   };
 
@@ -2672,7 +2699,7 @@ function Plan3DStudio({ job, onClose, currentUser, onSwitch }) {
     if (!st || view3d) return;
     const p = localXY(e);
     if (ptrs.current.has(e.pointerId)) ptrs.current.set(e.pointerId, p);
-    if (eavePick || tool === "area" || tool === "panel" || tool === "obs") setMxy(p);
+    if ((eavePick || tool === "area" || tool === "panel" || tool === "obs") && !(gest.current && (gest.current.type === "moveBlk" || gest.current.type === "blkPress"))) setMxy(p);
     const G = gest.current;
     if (!G) {
       // เมาส์ลอย: ไฮไลต์ + ตัวชี้ตำแหน่งวาด
@@ -2904,15 +2931,12 @@ function Plan3DStudio({ job, onClose, currentUser, onSwitch }) {
             const rc = (pan1.rects || []).find((x) => x.blk === k), f1 = rc && p3sSurfFn(r1, rc.side);
             mv.push({ k, J: f1 ? p3sJac(f1, rc.cu, rc.cv) : p3sJac(fn, rect.cu, rect.cv), du0: +b.du || 0, dv0: +b.dv || 0 });
           });
-          Object.assign(G, { type: "moveBlk", mv, bsN, j });
+          Object.assign(G, { type: "moveBlk", mv, bsN, j, els: new Set() });
+          if (chg) { ensurePushed(G); setRoof(G.roofId, () => ({ blocks: bsN })); }   // จัดกลุ่มใหม่ก่อน (ตำแหน่งแผงไม่เปลี่ยน) ผังจะได้เลขกลุ่มตรงกับที่ลาก
           setSelBlk(j); setBlkMul(mv.length > 1 ? mv.map((m) => bsN[m.k].id) : []); if (b0.face) setZoneSel(b0.face);
         }
-        ensurePushed(G);
-        setRoof(G.roofId, () => {
-          const bs = G.bsN.slice();
-          G.mv.forEach((m) => { if (!bs[m.k]) return; const d = p3sInvJ(m.J, dx, dz); bs[m.k] = Object.assign({}, bs[m.k], { du: p3sR(m.du0 + d.du), dv: p3sR(m.dv0 + d.dv) }); });
-          return { blocks: bs };
-        });
+        G.dx = dx; G.dz = dz;
+        if (!G.raf) G.raf = requestAnimationFrame(() => { G.raf = 0; blkDragPaint(G); });
         return;
       }
       case "marquee": case "cellTap": {
@@ -2938,6 +2962,7 @@ function Plan3DStudio({ job, onClose, currentUser, onSwitch }) {
     const p = localXY(e), w = toW(p), S = stRef.current;
     setCur((c) => (tool === "roof" || tool === "meas" || tool === "walk" || tool === "axis" || (tool === "obs" && P3S_OBS_LINE[obsType]) ? c : null));
     if (G.type === "pan") { if (!G.moved && G.clear) { setSel(null); setSelVert(null); setSelBlk(null); } return; }
+    if (G.type === "moveBlk") { blkDragDone(G); return; }
     if (G.type === "blkPress" && !G.moved) { if ((G.ids || []).length > 1) { setSelBlk(G.q.blk); setBlkMul([]); } return; }   // แตะแผง = เลือกกลุ่มอย่างเดียว (เอาแผงออกใช้ลากกรอบคลุม)
     if (G.type === "cellTap" && !G.moved) { const r = S.roofs.find((x) => x.id === G.roofId); if (r) toggleCell(r, G.q.key, !!G.q.slot); return; }
     if (G.type === "marquee") {
@@ -3112,14 +3137,15 @@ function Plan3DStudio({ job, onClose, currentUser, onSwitch }) {
       <g key={r.id}>
         {showGhost && isSel && P.off && <path d={P.off} fill="rgba(255,255,255,.18)" stroke="#64748b" strokeWidth={1} strokeDasharray="3 3" style={NS} />}
         {P.on.map((d, bi) => d && (
-          <path key={bi} d={d} fill={selSet.indexOf(bi) >= 0 ? "#0ea5e9" : "#17357a"} stroke={selSet.indexOf(bi) >= 0 ? "#fff" : "rgba(219,234,254,.75)"} strokeWidth={selSet.indexOf(bi) >= 0 ? 1.2 : 0.7} style={NS} />
+          <path key={bi} data-pk={r.id + ":" + bi} d={d} fill={selSet.indexOf(bi) >= 0 ? "#0ea5e9" : "#17357a"} stroke={selSet.indexOf(bi) >= 0 ? "#fff" : "rgba(219,234,254,.75)"} strokeWidth={selSet.indexOf(bi) >= 0 ? 1.2 : 0.7} style={NS} />
         ))}
         {slots.map((q) => <polygon key={"s" + q.key} points={ptsStr(q.pts)} fill="rgba(22,163,74,.10)" stroke="#16a34a" strokeWidth={1} strokeDasharray="2 3" style={NS} />)}
       </g>
     );
   });
   /* กลุ่มแผง (แบ่งด้วยทางเดิน gc/gr/gg) — เส้นประรอบกลุ่ม + ป้ายจำนวน */
-  const groupInfo = (r) => {
+  const groupInfo = (r) => { const hit = _p3sGrpCache.get(r); if (hit) return hit; const v = groupInfo0(r); _p3sGrpCache.set(r, v); return v; };
+  const groupInfo0 = (r) => {
     let pan; try { pan = p3Panels(r); } catch (e) { return []; }
     const bl = pan.blocks || [];
     if (!bl.some((b) => ((b.gc > 0 || b.gr > 0) && b.gg > 0) || b.patch)) return [];
@@ -3143,10 +3169,10 @@ function Plan3DStudio({ job, onClose, currentUser, onSwitch }) {
   roofs.forEach((r) => {
     if (!(tool === "panel" || tool === "walk" || (selRoof && selRoof.id === r.id))) return;
     groupInfo(r).forEach((g, i) => {
-      groupEls.push(<polygon key={r.id + g.k} points={ptsStr(g.hull)} fill="none" stroke="#f59e0b" strokeWidth={1.4} strokeDasharray="4 3" style={NS} />);
+      groupEls.push(<polygon key={r.id + g.k} data-pk={r.id + ":" + g.k.split("|")[0]} points={ptsStr(g.hull)} fill="none" stroke="#f59e0b" strokeWidth={1.4} strokeDasharray="4 3" style={NS} />);
       if (V.s >= 9) {
         const c = p3sCentroid(g.hull), sc = toS(c.x, c.z);
-        groupLbls.push(<g key={"gl" + r.id + g.k} transform={"translate(" + sc.x + " " + sc.y + ")"} style={{ pointerEvents: "none" }}>
+        groupLbls.push(<g key={"gl" + r.id + g.k} data-pkl="1" transform={"translate(" + sc.x + " " + sc.y + ")"} style={{ pointerEvents: "none" }}>
           <text textAnchor="middle" y={4} fontSize={10.5} fontWeight={800} fill="#78350f" stroke="#fff" strokeWidth={3} paintOrder="stroke">กลุ่ม {i + 1} · {g.n}</text></g>);
       }
     });
@@ -3175,14 +3201,14 @@ function Plan3DStudio({ job, onClose, currentUser, onSwitch }) {
       sset.forEach((k) => {
         const sb = (pan.blocks || [])[k] || {}; if (!sb.patch) return;
         const pts = []; qa.forEach((q) => { if (q.blk === k && !q.skip && !q.slot) q.pts.forEach((pp) => pts.push(pp)); });
-        if (pts.length) blkFrame.push(<polygon key={"pf" + k} points={ptsStr(p3sHull(pts))} fill="none" stroke="#f59e0b" strokeWidth={2.4} strokeDasharray="6 4" style={NS} />);
+        if (pts.length) blkFrame.push(<polygon key={"pf" + k} data-pk={selRoof.id + ":" + k} points={ptsStr(p3sHull(pts))} fill="none" stroke="#f59e0b" strokeWidth={2.4} strokeDasharray="6 4" style={NS} />);
       });
       if (!((pan.blocks || [])[selBlk] || {}).patch)
       blkFrame = blkFrame.concat((pan.rects || []).filter((x) => x.blk === selBlk).map((rc, i) => {
         const fn = p3sSurfFn(selRoof, rc.side); if (!fn) return null;
         const cs = Math.cos(rc.rot * P3_DEG), sn = Math.sin(rc.rot * P3_DEG);
         const pts = [[-1, -1], [1, -1], [1, 1], [-1, 1]].map(([a, b]) => { const u = a * rc.w / 2 + 0.06 * a, v = b * rc.h / 2 + 0.06 * b; return fn(rc.cu + u * cs - v * sn, rc.cv + u * sn + v * cs); });
-        return <polygon key={i} points={ptsStr(pts)} fill="none" stroke="#f59e0b" strokeWidth={2} strokeDasharray="6 4" style={NS} />;
+        return <polygon key={i} data-pk={selRoof.id + ":" + selBlk} points={ptsStr(pts)} fill="none" stroke="#f59e0b" strokeWidth={2} strokeDasharray="6 4" style={NS} />;
       }));
     } catch (er) { blkFrame = null; }
   }
@@ -3783,10 +3809,11 @@ function Plan3DStudio({ job, onClose, currentUser, onSwitch }) {
                 <React.Fragment>
                   <span className="p3s-note">{nG > 1 ? "ค่าด้านล่างแก้ทุกกลุ่มที่เลือก (สีฟ้า) · ลากแผงกลุ่มใดก็ย้ายไปด้วยกัน · Shift+แตะ = ถอดออกจากที่เลือก" : "ค่าด้านล่างแก้เฉพาะกลุ่มนี้ (สีฟ้า) · Shift+แตะกลุ่มอื่น = เลือกเพิ่ม"}</span>
                   <P3SRange label={nG > 1 ? "หมุน " + nG + " กลุ่มที่เลือก" : "หมุนกลุ่มนี้"} right={p3sR(blkSel.rot, 10) + "°"} min={-90} max={90} step={0.5} value={blkSel.rot} onChange={(v) => rotSel(() => v, "rot")} />
-                  <div className="p3s-row" style={{ gap: 5, flexWrap: "nowrap" }}>
-                    <button className="p3s-btn" style={{ padding: "0 9px", flex: "0 0 auto" }} onClick={() => rotSel((v) => v - 1)}>−1°</button>
-                    <button className="p3s-btn" style={{ flex: "1 1 0", minWidth: 0, padding: "0 6px", whiteSpace: "nowrap" }} onClick={() => rotSel((v, i) => alignRotFor(roof, blkSide(i)))}><P3SIcon name="align" size={15} />ให้ตรงขอบหลังคา</button>
-                    <button className="p3s-btn" style={{ padding: "0 9px", flex: "0 0 auto" }} onClick={() => rotSel((v) => v + 1)}>+1°</button>
+                  <div className="p3s-row" style={{ gap: 6, flexWrap: "nowrap", alignItems: "flex-end" }}>
+                    <div style={{ flex: "1 1 0", minWidth: 0 }}>
+                      <P3SNum unit="องศา" step={1} min={-90} max={90} digits={1} value={p3sR(blkSel.rot, 10)} onChange={(v) => { const d = v - (+blkSel.rot || 0); rotSel((x) => x + d, "rot"); }} />
+                    </div>
+                    <button className="p3s-btn" style={{ flex: "0 0 auto", padding: "0 10px", height: 42, whiteSpace: "nowrap" }} title="หมุนให้ตรงขอบหลังคา" onClick={() => rotSel((v, i) => alignRotFor(roof, blkSide(i)))}><P3SIcon name="align" size={15} />ตรงขอบ</button>
                   </div>
                   {!blkSel.patch && (
                     <React.Fragment>

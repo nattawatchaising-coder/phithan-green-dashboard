@@ -273,6 +273,7 @@ function p3sQuads(roof, want) {
   return out;
 }
 const _p3sPathCache = new WeakMap();
+const _p3sGrpCache = new WeakMap();
 function p3sQuadPaths(roof) {
   const hit = _p3sPathCache.get(roof);
   if (hit) return hit;
@@ -5307,10 +5308,60 @@ function Plan3DStudio({
       G.pushed = true;
     }
   };
+  const blkDragPaint = G => {
+    const svg = stageRef.current;
+    if (!svg || !G.mv) return;
+    const now = new Set(),
+      tf = "translate(" + G.dx + " " + G.dz + ")";
+    G.mv.forEach(m => svg.querySelectorAll('[data-pk="' + G.roofId + ":" + m.k + '"]').forEach(el => {
+      el.setAttribute("transform", tf);
+      now.add(el);
+    }));
+    G.els.forEach(el => {
+      if (!now.has(el)) el.removeAttribute("transform");
+    });
+    G.els = now;
+    svg.querySelectorAll("[data-pkl]").forEach(el => {
+      el.style.visibility = "hidden";
+    });
+  };
+  const blkDragClear = G => {
+    if (!G || G.type !== "moveBlk") return;
+    if (G.raf) cancelAnimationFrame(G.raf);
+    G.raf = 0;
+    (G.els || []).forEach(el => el.removeAttribute("transform"));
+    const svg = stageRef.current;
+    if (svg) svg.querySelectorAll("[data-pkl]").forEach(el => {
+      el.style.visibility = "";
+    });
+  };
+  const blkDragDone = G => {
+    blkDragClear(G);
+    if (G.dx == null) return;
+    ensurePushed(G);
+    live(Object.assign({}, stRef.current, {
+      roofs: stRef.current.roofs.map(r => {
+        if (r.id !== G.roofId) return r;
+        const bs = G.bsN.slice();
+        G.mv.forEach(m => {
+          if (!bs[m.k]) return;
+          const d = p3sInvJ(m.J, G.dx, G.dz);
+          bs[m.k] = Object.assign({}, bs[m.k], {
+            du: p3sR(m.du0 + d.du),
+            dv: p3sR(m.dv0 + d.dv)
+          });
+        });
+        return Object.assign({}, r, {
+          blocks: bs
+        });
+      })
+    }));
+  };
   const cancelGesture = () => {
     const G = gest.current;
     gest.current = null;
     setMarq(null);
+    blkDragClear(G);
     if (G && G.pushed) {
       const H = hist.current;
       const prev = H.u.pop();
@@ -5783,7 +5834,7 @@ function Plan3DStudio({
     if (!st || view3d) return;
     const p = localXY(e);
     if (ptrs.current.has(e.pointerId)) ptrs.current.set(e.pointerId, p);
-    if (eavePick || tool === "area" || tool === "panel" || tool === "obs") setMxy(p);
+    if ((eavePick || tool === "area" || tool === "panel" || tool === "obs") && !(gest.current && (gest.current.type === "moveBlk" || gest.current.type === "blkPress"))) setMxy(p);
     const G = gest.current;
     if (!G) {
       if (e.pointerType === "mouse" || draw || measPts || axisPts || walkPts || obsPts) {
@@ -6311,26 +6362,24 @@ function Plan3DStudio({
               type: "moveBlk",
               mv,
               bsN,
-              j
+              j,
+              els: new Set()
             });
+            if (chg) {
+              ensurePushed(G);
+              setRoof(G.roofId, () => ({
+                blocks: bsN
+              }));
+            }
             setSelBlk(j);
             setBlkMul(mv.length > 1 ? mv.map(m => bsN[m.k].id) : []);
             if (b0.face) setZoneSel(b0.face);
           }
-          ensurePushed(G);
-          setRoof(G.roofId, () => {
-            const bs = G.bsN.slice();
-            G.mv.forEach(m => {
-              if (!bs[m.k]) return;
-              const d = p3sInvJ(m.J, dx, dz);
-              bs[m.k] = Object.assign({}, bs[m.k], {
-                du: p3sR(m.du0 + d.du),
-                dv: p3sR(m.dv0 + d.dv)
-              });
-            });
-            return {
-              blocks: bs
-            };
+          G.dx = dx;
+          G.dz = dz;
+          if (!G.raf) G.raf = requestAnimationFrame(() => {
+            G.raf = 0;
+            blkDragPaint(G);
           });
           return;
         }
@@ -6380,6 +6429,10 @@ function Plan3DStudio({
         setSelVert(null);
         setSelBlk(null);
       }
+      return;
+    }
+    if (G.type === "moveBlk") {
+      blkDragDone(G);
       return;
     }
     if (G.type === "blkPress" && !G.moved) {
@@ -6791,6 +6844,7 @@ function Plan3DStudio({
       style: NS
     }), P.on.map((d, bi) => d && React.createElement("path", {
       key: bi,
+      "data-pk": r.id + ":" + bi,
       d: d,
       fill: selSet.indexOf(bi) >= 0 ? "#0ea5e9" : "#17357a",
       stroke: selSet.indexOf(bi) >= 0 ? "#fff" : "rgba(219,234,254,.75)",
@@ -6807,6 +6861,13 @@ function Plan3DStudio({
     })));
   });
   const groupInfo = r => {
+    const hit = _p3sGrpCache.get(r);
+    if (hit) return hit;
+    const v = groupInfo0(r);
+    _p3sGrpCache.set(r, v);
+    return v;
+  };
+  const groupInfo0 = r => {
     let pan;
     try {
       pan = p3Panels(r);
@@ -6866,6 +6927,7 @@ function Plan3DStudio({
     groupInfo(r).forEach((g, i) => {
       groupEls.push(React.createElement("polygon", {
         key: r.id + g.k,
+        "data-pk": r.id + ":" + g.k.split("|")[0],
         points: ptsStr(g.hull),
         fill: "none",
         stroke: "#f59e0b",
@@ -6878,6 +6940,7 @@ function Plan3DStudio({
           sc = toS(c.x, c.z);
         groupLbls.push(React.createElement("g", {
           key: "gl" + r.id + g.k,
+          "data-pkl": "1",
           transform: "translate(" + sc.x + " " + sc.y + ")",
           style: {
             pointerEvents: "none"
@@ -6962,6 +7025,7 @@ function Plan3DStudio({
         });
         if (pts.length) blkFrame.push(React.createElement("polygon", {
           key: "pf" + k,
+          "data-pk": selRoof.id + ":" + k,
           points: ptsStr(p3sHull(pts)),
           fill: "none",
           stroke: "#f59e0b",
@@ -6982,6 +7046,7 @@ function Plan3DStudio({
         });
         return React.createElement("polygon", {
           key: i,
+          "data-pk": selRoof.id + ":" + selBlk,
           points: ptsStr(pts),
           fill: "none",
           stroke: "#f59e0b",
@@ -8758,36 +8823,40 @@ function Plan3DStudio({
       }), React.createElement("div", {
         className: "p3s-row",
         style: {
-          gap: 5,
-          flexWrap: "nowrap"
+          gap: 6,
+          flexWrap: "nowrap",
+          alignItems: "flex-end"
         }
-      }, React.createElement("button", {
-        className: "p3s-btn",
-        style: {
-          padding: "0 9px",
-          flex: "0 0 auto"
-        },
-        onClick: () => rotSel(v => v - 1)
-      }, "\u22121\xB0"), React.createElement("button", {
-        className: "p3s-btn",
+      }, React.createElement("div", {
         style: {
           flex: "1 1 0",
-          minWidth: 0,
-          padding: "0 6px",
+          minWidth: 0
+        }
+      }, React.createElement(P3SNum, {
+        unit: "\u0E2D\u0E07\u0E28\u0E32",
+        step: 1,
+        min: -90,
+        max: 90,
+        digits: 1,
+        value: p3sR(blkSel.rot, 10),
+        onChange: v => {
+          const d = v - (+blkSel.rot || 0);
+          rotSel(x => x + d, "rot");
+        }
+      })), React.createElement("button", {
+        className: "p3s-btn",
+        style: {
+          flex: "0 0 auto",
+          padding: "0 10px",
+          height: 42,
           whiteSpace: "nowrap"
         },
+        title: "\u0E2B\u0E21\u0E38\u0E19\u0E43\u0E2B\u0E49\u0E15\u0E23\u0E07\u0E02\u0E2D\u0E1A\u0E2B\u0E25\u0E31\u0E07\u0E04\u0E32",
         onClick: () => rotSel((v, i) => alignRotFor(roof, blkSide(i)))
       }, React.createElement(P3SIcon, {
         name: "align",
         size: 15
-      }), "\u0E43\u0E2B\u0E49\u0E15\u0E23\u0E07\u0E02\u0E2D\u0E1A\u0E2B\u0E25\u0E31\u0E07\u0E04\u0E32"), React.createElement("button", {
-        className: "p3s-btn",
-        style: {
-          padding: "0 9px",
-          flex: "0 0 auto"
-        },
-        onClick: () => rotSel(v => v + 1)
-      }, "+1\xB0")), !blkSel.patch && React.createElement(React.Fragment, null, React.createElement("div", {
+      }), "\u0E15\u0E23\u0E07\u0E02\u0E2D\u0E1A")), !blkSel.patch && React.createElement(React.Fragment, null, React.createElement("div", {
         className: "p3s-g2"
       }, React.createElement(P3SNum, {
         label: "\u0E08\u0E33\u0E19\u0E27\u0E19\u0E41\u0E16\u0E27",
