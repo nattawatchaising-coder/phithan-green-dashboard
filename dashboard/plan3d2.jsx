@@ -690,6 +690,13 @@ function p3sMergeRect(parts, axisDeg) {
   const P = (su, sv) => ({ x: p3sR(u.x * su + v.x * sv), z: p3sR(u.z * su + v.z * sv) });
   return [P(u0, v0), P(u1, v0), P(u1, v1), P(u0, v1)];
 }
+/* หมุนรูปรอบจุดกลาง (องศา) — ใช้ปรับผลหาขอบก่อนกดใช้ */
+function p3sRotPts(pts, deg) {
+  if (!deg) return pts;
+  const n = pts.length, cx = pts.reduce((a, q) => a + q.x, 0) / n, cz = pts.reduce((a, q) => a + q.z, 0) / n;
+  const c = Math.cos(deg * P3_DEG), sn = Math.sin(deg * P3_DEG);
+  return pts.map((q) => { const dx = q.x - cx, dz = q.z - cz; return { x: p3sR(cx + dx * c - dz * sn), z: p3sR(cz + dx * sn + dz * c) }; });
+}
 function p3sRayRect(F, seed, axisDeg) {
   const a = (axisDeg || 0) * P3_DEG, u = { x: Math.cos(a), z: Math.sin(a) }, v = { x: -Math.sin(a), z: Math.cos(a) };
   const L = Math.min(60, F.Wm / 2 - 2);
@@ -1633,24 +1640,38 @@ function Plan3DStudio({ job, onClose, currentUser, onSwitch }) {
     });
     job.then((r) => setTrace((t) => {
       if (!(t && t.on)) return t;
-      if (!prev) return Object.assign({}, t, { busy: false, seed, pts: r.pts || null, parts: r.pts ? [r.pts] : null, err: r.err || null, warn: r.warn || null, area: r.area, ax: r.ax });
+      if (!prev) return Object.assign({}, t, { busy: false, seed, pts: r.pts || null, parts: r.pts ? [r.pts] : null, rot: 0, err: r.err || null, warn: r.warn || null, area: r.area, ax: r.ax });
       if (!r.pts) return Object.assign({}, t, { busy: false, warn: "จุดที่แตะเพิ่มหาขอบไม่เจอ — ยังใช้รูปเดิม (" + (r.err || "ลองแตะใกล้กลางส่วนนั้นขึ้น") + ")" });
       const parts = prev.concat([r.pts]), ax = stRef.current.p3sAxis != null ? +stRef.current.p3sAxis : t.ax != null ? t.ax : (r.ax || 0);
-      const pts = p3sMergeRect(parts, ax);
+      const pts = traceShape(parts, ax, t.rot);
       return Object.assign({}, t, { busy: false, parts, pts, area: p3sR(p3Area(pts), 10), err: null, warn: null });
     }));
   };
+  const traceShape = (parts, ax, rot) => parts.length > 1 ? p3sMergeRect(parts, (ax || 0) + (rot || 0)) : p3sRotPts(parts[0], rot || 0);
   const undoTracePart = () => {
     if (!trace || !trace.parts || trace.parts.length < 2) return;
     const parts = trace.parts.slice(0, -1), ax = stRef.current.p3sAxis != null ? +stRef.current.p3sAxis : (trace.ax || 0);
-    const pts = parts.length > 1 ? p3sMergeRect(parts, ax) : parts[0];
+    const pts = traceShape(parts, ax, trace.rot);
     setTrace(Object.assign({}, trace, { parts, pts, area: p3sR(p3Area(pts), 10), warn: null }));
+  };
+  /* หมุนผลหาขอบ: หลายจุด = รวมกรอบใหม่ตามแนว+มุมหมุน · จุดเดียว = หมุนรอบจุดกลาง */
+  const rotateTrace = (d) => {
+    if (!trace || !trace.pts || trace.busy) return;
+    let rot = d == null ? 0 : Math.round(((trace.rot || 0) + d) * 10) / 10;
+    if (rot > 90) rot -= 180; if (rot <= -90) rot += 180;
+    const ax = stRef.current.p3sAxis != null ? +stRef.current.p3sAxis : (trace.ax || 0);
+    const pts = traceShape(trace.parts || [trace.pts], ax, rot);
+    setTrace(Object.assign({}, trace, { rot, pts, area: p3sR(p3Area(pts), 10) }));
+  };
+  /* เพิ่มหลังคาอีกหลัง: ล้างของค้าง แล้วเด้งเลือกทรงของหลังใหม่ */
+  const addRoof = () => {
+    setTool("roof"); setSel(null); setSelVert(null); setEavePick(false); setDraw(null); setTrace(null); setKindPick(true);
   };
   const acceptTrace = () => {
     if (!trace || !trace.pts) return;
     if (trace.ax != null && stRef.current.p3sAxis == null) commit({ p3sAxis: trace.ax });
-    makeRoof(trace.pts, roofOpt.kind === "facet" ? "flat" : roofOpt.kind);
-    setTrace({ on: true, mode: trace.mode });
+    const nr = makeRoof(trace.pts, roofOpt.kind === "facet" ? "flat" : roofOpt.kind);
+    setTrace({ on: true, mode: trace.mode, done: (trace.done || 0) + (nr ? 1 : 0) });
   };
   /* ── แนวอ้างอิง ── */
   const setAxis = (deg, msg) => {
@@ -3203,6 +3224,7 @@ function Plan3DStudio({ job, onClose, currentUser, onSwitch }) {
           <button className="p3s-btn" style={{ flex: 1 }} onClick={() => { if (tool !== "roof") setTool("roof"); setKindPick(true); }}><P3SIcon name="polygon" size={15} />ทรง: {P3S_KIND_TH[roofOpt.kind] || roofOpt.kind}</button>
           <button className={"p3s-btn" + (tool === "roof" && trace && trace.on ? " pri" : "")} style={{ flex: 1 }} disabled={!hasImgW || roofOpt.kind === "facet"}
             onClick={() => { if (tool !== "roof") setTool("roof"); setDraw(null); setTrace(tool === "roof" && trace && trace.on ? null : { on: true, mode: "edge" }); }}><P3SIcon name="magic" size={15} />หาขอบอัตโนมัติ</button>
+          {roofs.length > 0 && <button className="p3s-btn pri" style={{ flex: "1 1 100%" }} onClick={addRoof}><P3Icon name="plus" />เพิ่มหลังคาอีกหลัง (มีแล้ว {roofs.length})</button>}
         </div>),
       go: () => { setTool("roof"); setKindPick(true); } },
     { t: "ตั้งความชันและเช็กชายคา", tools: ["select"], done: roofs.length > 0 && shapeGap < 0.03,
@@ -3395,6 +3417,7 @@ function Plan3DStudio({ job, onClose, currentUser, onSwitch }) {
     ctxBar = (
       <div className="p3s-float p3s-ctx" onPointerDown={(e) => e.stopPropagation()}>
         {tool !== "roof" && <button className="p3s-btn pri" onClick={() => setTool("roof")}><P3SIcon name="polygon" size={16} />กลับไปวาดหลังคา</button>}
+        {(st.roofs || []).length > 0 && <button className="p3s-btn" onClick={addRoof}><P3Icon name="plus" />เพิ่มหลังคา</button>}
         <P3SSeg value={roofOpt.kind} onChange={(v) => { if (tool !== "roof") setTool("roof"); setRoofOpt(Object.assign({}, roofOpt, { kind: v, shape: v === "facet" ? "poly" : "rect" })); setDraw(null); }}
           options={P3S_KINDS} />
         <span className="lbl">{polyOnly ? "คลิกไล่มุมทีละจุด" : "ลากสี่เหลี่ยม"}</span>
@@ -3414,6 +3437,16 @@ function Plan3DStudio({ job, onClose, currentUser, onSwitch }) {
       </div>
     );
   }
+  const addPop = !view3d && tool === "roof" && !kindPick && !eavePick && trace && trace.on && trace.done > 0 && !trace.pts && !trace.err && !trace.busy && (
+    <div className="p3s-pop" onPointerDown={(e) => e.stopPropagation()} style={{ top: isMobile ? 104 : 64 }}>
+      <span style={{ fontSize: 13.5, fontWeight: 800 }}>เพิ่มหลังคาแล้ว {trace.done} หลัง</span>
+      <span className="p3s-note"><b>มีหลังคาอีก?</b> แตะกลางหลังคาหลังถัดไปบนภาพ ระบบหาขอบให้ทันที (ทรง{P3S_KIND_TH[roofOpt.kind] || ""})</span>
+      <div className="p3s-row">
+        <button className="p3s-btn pri" style={{ flex: 1 }} onClick={addRoof}><P3Icon name="plus" />เพิ่มหลังคาทรงอื่น</button>
+        <button className="p3s-btn" style={{ flex: "0 0 auto" }} onClick={() => setTrace(null)}>ครบแล้ว</button>
+      </div>
+    </div>
+  );
   const tracePop = !view3d && tool === "roof" && !kindPick && trace && trace.on && (trace.pts || trace.err) && (
     <div className="p3s-pop" onPointerDown={(e) => e.stopPropagation()} style={{ top: isMobile ? 104 : 64 }}>
       {trace.pts ? <span style={{ fontSize: 13.5, fontWeight: 800 }}>เจอหลังคา {trace.area} ตร.ม.{trace.warn && <span style={{ display: "block", fontSize: 12, fontWeight: 700, color: "var(--tint-amber-tx,#92400e)", marginTop: 4 }}>{trace.warn}</span>}</span> : <span style={{ fontSize: 13, fontWeight: 700, color: "var(--tint-amber-tx,#92400e)" }}>{trace.err}</span>}
@@ -3422,6 +3455,15 @@ function Plan3DStudio({ job, onClose, currentUser, onSwitch }) {
         <div className="p3s-row" style={{ gap: 6 }}>
           <span className="p3s-note" style={{ flex: 1 }}>{trace.busy ? "กำลังหาขอบจุดที่แตะเพิ่ม…" : <span><b>ยังไม่ครบหลัง?</b> แตะส่วนที่เหลือบนภาพ ระบบรวมเป็นหลังเดียว{(trace.parts || []).length > 1 ? " · รวมแล้ว " + trace.parts.length + " จุด" : ""}</span>}</span>
           {(trace.parts || []).length > 1 && <button className="p3s-btn" style={{ padding: "0 10px" }} onClick={undoTracePart}>ย้อนจุดล่าสุด</button>}
+        </div>
+      )}
+      {trace.pts && (
+        <div className="p3s-fld" style={{ gap: 5 }}><span className="lb">หมุนกรอบ {(trace.rot || 0) > 0 ? "+" : ""}{trace.rot || 0}° — ให้ตรงกับหลังคาในภาพ</span>
+          <div className="p3s-row" style={{ gap: 4 }}>
+            {[-5, -1].map((d) => <button key={d} className="p3s-btn" style={{ flex: 1, padding: "0 4px" }} disabled={!!trace.busy} onClick={() => rotateTrace(d)}>⟲ {-d}°</button>)}
+            <button className="p3s-btn" style={{ flex: 1, padding: "0 4px" }} disabled={!!trace.busy || !trace.rot} onClick={() => rotateTrace(null)}>0°</button>
+            {[1, 5].map((d) => <button key={d} className="p3s-btn" style={{ flex: 1, padding: "0 4px" }} disabled={!!trace.busy} onClick={() => rotateTrace(d)}>⟳ {d}°</button>)}
+          </div>
         </div>
       )}
       {trace.pts && (
@@ -3551,11 +3593,11 @@ function Plan3DStudio({ job, onClose, currentUser, onSwitch }) {
             </svg>
           )}
           {ctxBar}
-          {tracePop}
+          {tracePop}{addPop}
           {kindPick && !view3d && tool === "roof" && (
             <div className="p3s-kpick" onPointerDown={(e) => e.stopPropagation()} onClick={() => setKindPick(false)}>
               <div className="in" onClick={(e) => e.stopPropagation()}>
-                <span className="tt">เลือกทรงหลังคาก่อนวาด</span>
+                <span className="tt">{(st.roofs || []).length ? "เลือกทรงของหลังคาหลังที่ " + ((st.roofs || []).length + 1) : "เลือกทรงหลังคาก่อนวาด"}</span>
                 <div className="gr">
                   {P3S_KINDS.map(([k, lb]) => (
                     <button key={k} className="k" data-on={roofOpt.kind === k ? "1" : "0"}

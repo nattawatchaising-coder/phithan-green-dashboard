@@ -1326,6 +1326,22 @@ function p3sMergeRect(parts, axisDeg) {
   });
   return [P(u0, v0), P(u1, v0), P(u1, v1), P(u0, v1)];
 }
+function p3sRotPts(pts, deg) {
+  if (!deg) return pts;
+  const n = pts.length,
+    cx = pts.reduce((a, q) => a + q.x, 0) / n,
+    cz = pts.reduce((a, q) => a + q.z, 0) / n;
+  const c = Math.cos(deg * P3_DEG),
+    sn = Math.sin(deg * P3_DEG);
+  return pts.map(q => {
+    const dx = q.x - cx,
+      dz = q.z - cz;
+    return {
+      x: p3sR(cx + dx * c - dz * sn),
+      z: p3sR(cz + dx * sn + dz * c)
+    };
+  });
+}
 function p3sRayRect(F, seed, axisDeg) {
   const a = (axisDeg || 0) * P3_DEG,
     u = {
@@ -3191,6 +3207,7 @@ function Plan3DStudio({
         seed,
         pts: r.pts || null,
         parts: r.pts ? [r.pts] : null,
+        rot: 0,
         err: r.err || null,
         warn: r.warn || null,
         area: r.area,
@@ -3202,7 +3219,7 @@ function Plan3DStudio({
       });
       const parts = prev.concat([r.pts]),
         ax = stRef.current.p3sAxis != null ? +stRef.current.p3sAxis : t.ax != null ? t.ax : r.ax || 0;
-      const pts = p3sMergeRect(parts, ax);
+      const pts = traceShape(parts, ax, t.rot);
       return Object.assign({}, t, {
         busy: false,
         parts,
@@ -3213,11 +3230,12 @@ function Plan3DStudio({
       });
     }));
   };
+  const traceShape = (parts, ax, rot) => parts.length > 1 ? p3sMergeRect(parts, (ax || 0) + (rot || 0)) : p3sRotPts(parts[0], rot || 0);
   const undoTracePart = () => {
     if (!trace || !trace.parts || trace.parts.length < 2) return;
     const parts = trace.parts.slice(0, -1),
       ax = stRef.current.p3sAxis != null ? +stRef.current.p3sAxis : trace.ax || 0;
-    const pts = parts.length > 1 ? p3sMergeRect(parts, ax) : parts[0];
+    const pts = traceShape(parts, ax, trace.rot);
     setTrace(Object.assign({}, trace, {
       parts,
       pts,
@@ -3225,15 +3243,38 @@ function Plan3DStudio({
       warn: null
     }));
   };
+  const rotateTrace = d => {
+    if (!trace || !trace.pts || trace.busy) return;
+    let rot = d == null ? 0 : Math.round(((trace.rot || 0) + d) * 10) / 10;
+    if (rot > 90) rot -= 180;
+    if (rot <= -90) rot += 180;
+    const ax = stRef.current.p3sAxis != null ? +stRef.current.p3sAxis : trace.ax || 0;
+    const pts = traceShape(trace.parts || [trace.pts], ax, rot);
+    setTrace(Object.assign({}, trace, {
+      rot,
+      pts,
+      area: p3sR(p3Area(pts), 10)
+    }));
+  };
+  const addRoof = () => {
+    setTool("roof");
+    setSel(null);
+    setSelVert(null);
+    setEavePick(false);
+    setDraw(null);
+    setTrace(null);
+    setKindPick(true);
+  };
   const acceptTrace = () => {
     if (!trace || !trace.pts) return;
     if (trace.ax != null && stRef.current.p3sAxis == null) commit({
       p3sAxis: trace.ax
     });
-    makeRoof(trace.pts, roofOpt.kind === "facet" ? "flat" : roofOpt.kind);
+    const nr = makeRoof(trace.pts, roofOpt.kind === "facet" ? "flat" : roofOpt.kind);
     setTrace({
       on: true,
-      mode: trace.mode
+      mode: trace.mode,
+      done: (trace.done || 0) + (nr ? 1 : 0)
     });
   };
   const setAxis = (deg, msg) => {
@@ -7351,7 +7392,15 @@ function Plan3DStudio({
     }, React.createElement(P3SIcon, {
       name: "magic",
       size: 15
-    }), "\u0E2B\u0E32\u0E02\u0E2D\u0E1A\u0E2D\u0E31\u0E15\u0E42\u0E19\u0E21\u0E31\u0E15\u0E34")),
+    }), "\u0E2B\u0E32\u0E02\u0E2D\u0E1A\u0E2D\u0E31\u0E15\u0E42\u0E19\u0E21\u0E31\u0E15\u0E34"), roofs.length > 0 && React.createElement("button", {
+      className: "p3s-btn pri",
+      style: {
+        flex: "1 1 100%"
+      },
+      onClick: addRoof
+    }, React.createElement(P3Icon, {
+      name: "plus"
+    }), "\u0E40\u0E1E\u0E34\u0E48\u0E21\u0E2B\u0E25\u0E31\u0E07\u0E04\u0E32\u0E2D\u0E35\u0E01\u0E2B\u0E25\u0E31\u0E07 (\u0E21\u0E35\u0E41\u0E25\u0E49\u0E27 ", roofs.length, ")")),
     go: () => {
       setTool("roof");
       setKindPick(true);
@@ -7912,7 +7961,12 @@ function Plan3DStudio({
     }, React.createElement(P3SIcon, {
       name: "polygon",
       size: 16
-    }), "\u0E01\u0E25\u0E31\u0E1A\u0E44\u0E1B\u0E27\u0E32\u0E14\u0E2B\u0E25\u0E31\u0E07\u0E04\u0E32"), React.createElement(P3SSeg, {
+    }), "\u0E01\u0E25\u0E31\u0E1A\u0E44\u0E1B\u0E27\u0E32\u0E14\u0E2B\u0E25\u0E31\u0E07\u0E04\u0E32"), (st.roofs || []).length > 0 && React.createElement("button", {
+      className: "p3s-btn",
+      onClick: addRoof
+    }, React.createElement(P3Icon, {
+      name: "plus"
+    }), "\u0E40\u0E1E\u0E34\u0E48\u0E21\u0E2B\u0E25\u0E31\u0E07\u0E04\u0E32"), React.createElement(P3SSeg, {
       value: roofOpt.kind,
       onChange: v => {
         if (tool !== "roof") setTool("roof");
@@ -7980,6 +8034,36 @@ function Plan3DStudio({
       onClick: () => setAxis(null, "ล้างแนวแล้ว — กลับเป็นทิศเหนือขึ้นบน")
     }, "\u0E25\u0E49\u0E32\u0E07\u0E41\u0E19\u0E27"));
   }
+  const addPop = !view3d && tool === "roof" && !kindPick && !eavePick && trace && trace.on && trace.done > 0 && !trace.pts && !trace.err && !trace.busy && React.createElement("div", {
+    className: "p3s-pop",
+    onPointerDown: e => e.stopPropagation(),
+    style: {
+      top: isMobile ? 104 : 64
+    }
+  }, React.createElement("span", {
+    style: {
+      fontSize: 13.5,
+      fontWeight: 800
+    }
+  }, "\u0E40\u0E1E\u0E34\u0E48\u0E21\u0E2B\u0E25\u0E31\u0E07\u0E04\u0E32\u0E41\u0E25\u0E49\u0E27 ", trace.done, " \u0E2B\u0E25\u0E31\u0E07"), React.createElement("span", {
+    className: "p3s-note"
+  }, React.createElement("b", null, "\u0E21\u0E35\u0E2B\u0E25\u0E31\u0E07\u0E04\u0E32\u0E2D\u0E35\u0E01?"), " \u0E41\u0E15\u0E30\u0E01\u0E25\u0E32\u0E07\u0E2B\u0E25\u0E31\u0E07\u0E04\u0E32\u0E2B\u0E25\u0E31\u0E07\u0E16\u0E31\u0E14\u0E44\u0E1B\u0E1A\u0E19\u0E20\u0E32\u0E1E \u0E23\u0E30\u0E1A\u0E1A\u0E2B\u0E32\u0E02\u0E2D\u0E1A\u0E43\u0E2B\u0E49\u0E17\u0E31\u0E19\u0E17\u0E35 (\u0E17\u0E23\u0E07", P3S_KIND_TH[roofOpt.kind] || "", ")"), React.createElement("div", {
+    className: "p3s-row"
+  }, React.createElement("button", {
+    className: "p3s-btn pri",
+    style: {
+      flex: 1
+    },
+    onClick: addRoof
+  }, React.createElement(P3Icon, {
+    name: "plus"
+  }), "\u0E40\u0E1E\u0E34\u0E48\u0E21\u0E2B\u0E25\u0E31\u0E07\u0E04\u0E32\u0E17\u0E23\u0E07\u0E2D\u0E37\u0E48\u0E19"), React.createElement("button", {
+    className: "p3s-btn",
+    style: {
+      flex: "0 0 auto"
+    },
+    onClick: () => setTrace(null)
+  }, "\u0E04\u0E23\u0E1A\u0E41\u0E25\u0E49\u0E27")));
   const tracePop = !view3d && tool === "roof" && !kindPick && trace && trace.on && (trace.pts || trace.err) && React.createElement("div", {
     className: "p3s-pop",
     onPointerDown: e => e.stopPropagation(),
@@ -8024,6 +8108,44 @@ function Plan3DStudio({
     },
     onClick: undoTracePart
   }, "\u0E22\u0E49\u0E2D\u0E19\u0E08\u0E38\u0E14\u0E25\u0E48\u0E32\u0E2A\u0E38\u0E14")), trace.pts && React.createElement("div", {
+    className: "p3s-fld",
+    style: {
+      gap: 5
+    }
+  }, React.createElement("span", {
+    className: "lb"
+  }, "\u0E2B\u0E21\u0E38\u0E19\u0E01\u0E23\u0E2D\u0E1A ", (trace.rot || 0) > 0 ? "+" : "", trace.rot || 0, "\xB0 \u2014 \u0E43\u0E2B\u0E49\u0E15\u0E23\u0E07\u0E01\u0E31\u0E1A\u0E2B\u0E25\u0E31\u0E07\u0E04\u0E32\u0E43\u0E19\u0E20\u0E32\u0E1E"), React.createElement("div", {
+    className: "p3s-row",
+    style: {
+      gap: 4
+    }
+  }, [-5, -1].map(d => React.createElement("button", {
+    key: d,
+    className: "p3s-btn",
+    style: {
+      flex: 1,
+      padding: "0 4px"
+    },
+    disabled: !!trace.busy,
+    onClick: () => rotateTrace(d)
+  }, "\u27F2 ", -d, "\xB0")), React.createElement("button", {
+    className: "p3s-btn",
+    style: {
+      flex: 1,
+      padding: "0 4px"
+    },
+    disabled: !!trace.busy || !trace.rot,
+    onClick: () => rotateTrace(null)
+  }, "0\xB0"), [1, 5].map(d => React.createElement("button", {
+    key: d,
+    className: "p3s-btn",
+    style: {
+      flex: 1,
+      padding: "0 4px"
+    },
+    disabled: !!trace.busy,
+    onClick: () => rotateTrace(d)
+  }, "\u27F3 ", d, "\xB0")))), trace.pts && React.createElement("div", {
     className: "p3s-fld",
     style: {
       gap: 5
@@ -8306,7 +8428,7 @@ function Plan3DStudio({
     }));
   })(), React.createElement("g", {
     opacity: tool === "bg" ? 0.45 : 1
-  }, roofEls, panelEls, groupEls, blkFrame, obsEls, measEls)), labels, preview, handleEls), ctxBar, tracePop, kindPick && !view3d && tool === "roof" && React.createElement("div", {
+  }, roofEls, panelEls, groupEls, blkFrame, obsEls, measEls)), labels, preview, handleEls), ctxBar, tracePop, addPop, kindPick && !view3d && tool === "roof" && React.createElement("div", {
     className: "p3s-kpick",
     onPointerDown: e => e.stopPropagation(),
     onClick: () => setKindPick(false)
@@ -8315,7 +8437,7 @@ function Plan3DStudio({
     onClick: e => e.stopPropagation()
   }, React.createElement("span", {
     className: "tt"
-  }, "\u0E40\u0E25\u0E37\u0E2D\u0E01\u0E17\u0E23\u0E07\u0E2B\u0E25\u0E31\u0E07\u0E04\u0E32\u0E01\u0E48\u0E2D\u0E19\u0E27\u0E32\u0E14"), React.createElement("div", {
+  }, (st.roofs || []).length ? "เลือกทรงของหลังคาหลังที่ " + ((st.roofs || []).length + 1) : "เลือกทรงหลังคาก่อนวาด"), React.createElement("div", {
     className: "gr"
   }, P3S_KINDS.map(([k, lb]) => React.createElement("button", {
     key: k,
