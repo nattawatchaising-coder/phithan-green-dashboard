@@ -1093,6 +1093,10 @@ const P3S_CSS = `
 .p3s-h .t{flex:1}
 .p3s-ttl2{font-size:15px;font-weight:800;color:var(--text-1);display:flex;align-items:center;gap:8px}
 .p3s-g2{display:grid;grid-template-columns:1fr 1fr;gap:9px}
+.p3s-rlist .p3s-g2{grid-template-columns:1fr;gap:6px}
+.p3s-rlist label.p3s-fld{flex-direction:row;align-items:center;justify-content:space-between;gap:10px}
+.p3s-rlist label.p3s-fld .lb{flex:1;min-width:0}
+.p3s-rlist label.p3s-fld .p3s-well{flex:0 0 160px;width:160px}
 .p3s-fld{display:flex;flex-direction:column;gap:5px;min-width:0}
 .p3s-fld .lb{font-size:11px;font-weight:700;color:var(--text-3);display:flex;gap:6px;align-items:baseline}
 .p3s-fld .lb i{font-style:normal;font-weight:600;color:var(--text-3);opacity:.8;font-size:10.5px;margin-left:auto}
@@ -1162,6 +1166,9 @@ const P3S_CSS = `
 .p3s-msel{left:50%;bottom:58px;transform:translateX(-50%);flex-wrap:wrap;justify-content:center;max-width:calc(100% - 24px)}
 .p3s-msel .lbl{font-size:12px;font-weight:800;color:var(--text-2);padding:0 6px 0 8px}
 .p3s-mon{display:grid;grid-template-columns:repeat(6,1fr);gap:5px}
+.p3s-monnav{display:flex;align-items:center;gap:8px}
+.p3s-monnav .p3s-btn{width:36px;height:36px;padding:0;flex:0 0 36px;font-size:20px;justify-content:center}
+.p3s-monnav b{flex:1;text-align:center;font-size:15px;font-weight:800}
 .p3s-mon .p3s-btn{padding:0;height:30px;font-size:12px;justify-content:center}
 .p3s-hint{position:absolute;left:12px;bottom:12px;z-index:2;max-width:calc(100% - 90px);background:rgba(15,23,42,.82);color:#fff;font-size:12.5px;font-weight:600;border-radius:11px;padding:8px 12px;line-height:1.45;pointer-events:none;backdrop-filter:blur(6px)}
 .p3s-hint b{color:#86efac;font-weight:800}
@@ -1540,35 +1547,24 @@ function P3SView3D({ st, sun, api }) {
     const onResize = () => { const w = el.clientWidth || 1, h = el.clientHeight || 1; renderer.setSize(w, h); camera.aspect = w / h; camera.updateProjectionMatrix(); };
     onResize();
     const ro = new ResizeObserver(onResize); ro.observe(el);
-    let run = true, orbit = null;
-    const loop = () => {
-      if (!run) return;
-      if (orbit && !orbit.done) {
-        const f = (performance.now() - orbit.t0) / (orbit.sec * 1000);
-        if (f >= 1) { orbit.done = true; renderer.render(scene, camera); setTimeout(() => orbit && orbit.rec.stop(), 150); }
-        else { const a = orbit.a0 + f * Math.PI * 2; camera.position.set(orbit.tg.x + orbit.r * Math.cos(a), orbit.tg.y + orbit.y, orbit.tg.z + orbit.r * Math.sin(a)); camera.lookAt(orbit.tg); orbit.onProg && orbit.onProg(f); }
-      } else controls.update();
-      renderer.render(scene, camera); requestAnimationFrame(loop);
-    };
-    // ภาพนิ่ง (ขนาดเท่าจอ 3D) · วิดีโอกล้องหมุนรอบอาคาร 360° (mp4 ถ้าเบราว์เซอร์รองรับ ไม่งั้น webm)
+    let run = true, recNow = null;
+    const loop = () => { if (!run) return; controls.update(); renderer.render(scene, camera); requestAnimationFrame(loop); };
+    // ภาพนิ่ง (ขนาดเท่าจอ 3D) · อัดวิดีโอจอ 3D (mp4 ถ้าเบราว์เซอร์รองรับ ไม่งั้น webm) — เริ่ม/หยุดจากข้างนอก
     if (api) api.current = {
       shot: () => { renderer.render(scene, camera); return renderer.domElement.toDataURL("image/png"); },
-      video: (sec, onProg) => new Promise((res, rej) => {
+      record: () => {
         const cv = renderer.domElement;
-        if (!cv.captureStream || !window.MediaRecorder) { rej(new Error("เบราว์เซอร์นี้อัดวิดีโอไม่ได้ — ใช้ Chrome หรือ Edge")); return; }
+        if (!cv.captureStream || !window.MediaRecorder) throw new Error("เบราว์เซอร์นี้อัดวิดีโอไม่ได้ — ใช้ Chrome หรือ Edge");
         const mt = ["video/mp4;codecs=avc1", "video/mp4", "video/webm;codecs=vp9", "video/webm"].find((t) => MediaRecorder.isTypeSupported(t)) || "";
-        let rec; try { rec = new MediaRecorder(cv.captureStream(30), Object.assign({ videoBitsPerSecond: 8e6 }, mt ? { mimeType: mt } : {})); } catch (e) { rej(e); return; }
+        const rec = new MediaRecorder(cv.captureStream(30), Object.assign({ videoBitsPerSecond: 8e6 }, mt ? { mimeType: mt } : {}));
         const chunks = []; rec.ondataavailable = (e) => { if (e.data && e.data.size) chunks.push(e.data); };
-        const tg = controls.target.clone(), p0 = camera.position.clone(), off = p0.clone().sub(tg);
-        controls.enabled = false;
-        orbit = { t0: performance.now(), sec, tg, r: Math.max(5, Math.hypot(off.x, off.z)), a0: Math.atan2(off.z, off.x), y: off.y, onProg, rec };
-        rec.onstop = () => { orbit = null; controls.enabled = true; camera.position.copy(p0); controls.update(); res({ blob: new Blob(chunks, { type: (mt || "video/webm").split(";")[0] }), ext: /mp4/.test(mt) ? "mp4" : "webm" }); };
-        rec.start(250);
-      }),
+        rec.start(250); recNow = rec;
+        return { stop: () => new Promise((res) => { rec.onstop = () => { recNow = null; res({ blob: new Blob(chunks, { type: (mt || "video/webm").split(";")[0] }), ext: /mp4/.test(mt) ? "mp4" : "webm" }); }; if (rec.state !== "inactive") rec.stop(); }) };
+      },
     };
     requestAnimationFrame(loop);
     return () => {
-      run = false; if (api) api.current = null; if (orbit && orbit.rec && orbit.rec.state !== "inactive") { try { orbit.rec.stop(); } catch (e) {} } ro.disconnect(); controls.dispose();
+      run = false; if (api) api.current = null; if (recNow && recNow.state !== "inactive") { try { recNow.stop(); } catch (e) {} } ro.disconnect(); controls.dispose();
       [sunBall, sunGlow, sunPath, stars].forEach((o) => { o.geometry.dispose(); o.material.dispose(); });
       dyn.traverse((o) => { if (o.geometry) o.geometry.dispose(); if (o.material) o.material.dispose(); });
       Object.keys(texCache).forEach((k) => texCache[k].dispose());
@@ -1784,7 +1780,8 @@ function Plan3DStudio({ job, onClose, currentUser, onSwitch }) {
   const [eavePick, setEavePick] = React.useState(false);  // แตะขอบเพื่อตั้งเป็นชายคา
   const [mxy, setMxy] = React.useState(null);
   const v3api = React.useRef(null);                         // ถ่ายภาพ/อัดวิดีโอจากมุมมอง 3D
-  const [vidPct, setVidPct] = React.useState(null);         // กำลังอัดวิดีโอ (0–1)
+  const vidRef = React.useRef(null);                        // กำลังอัดวิดีโอเงา (ตัวหยุดอัด)
+  const [vidOn, setVidOn] = React.useState(false);
   const [mediaMsg, setMediaMsg] = React.useState(null);              // ตำแหน่งเมาส์บนจอ (ป้าย "กำหนดทางลาด")
   const [measPts, setMeasPts] = React.useState(null);   // กำลังวัดระยะ
   const [calib, setCalib] = React.useState(null);       // ตั้งมาตราส่วนรูปโดรน { pts:[], len:"" }
@@ -3116,10 +3113,13 @@ function Plan3DStudio({ job, onClose, currentUser, onSwitch }) {
   /* กวาดดูเงาทั้งวัน: เดิน 6:00→18:30 ใน ~15 วินาที แล้ววนใหม่ */
   React.useEffect(() => {
     if (sunHour == null) return;
-    let raf, last = performance.now();
+    let raf, last = performance.now(), h = sunHour;
     const step = (t) => {
       const dt = (t - last) / 1000; last = t;
-      setSunHour((h) => { if (h == null) return null; const n = h + dt * (14 / 15); return n > 19.5 ? 5.5 : n; });
+      h += dt * (14 / 15);
+      if (h > 19.5 && vidRef.current) { const R = vidRef.current; vidRef.current = null; finishVideo(R); return; }   // อัดวิดีโอ: กวาดรอบเดียวแล้วจบ
+      if (h > 19.5) h = 5.5;
+      setSunHour(h);
       raf = requestAnimationFrame(step);
     };
     raf = requestAnimationFrame(step);
@@ -4126,13 +4126,13 @@ function Plan3DStudio({ job, onClose, currentUser, onSwitch }) {
         <div className="p3s-row"><span className="p3s-badge warn" style={{ flex: 1 }}>ทรงยังเพี้ยน {Math.round(shapeGap * 100)} ซม.</span>
           <button className="p3s-btn pri" onClick={() => weldNow(facetRoofs[0])}><P3SIcon name="magic" size={15} />จัดทรงทั้งหลัง</button></div>),
       list: roofs.length > 0 && (
-        <div className="p3s-fld" style={{ gap: 8 }}>
+        <div className="p3s-fld p3s-rlist" style={{ gap: 10 }}>
           {roofs.map((r) => {
             const pc = roofPitchOf(r), on = selRoof && selRoof.id === r.id;
             const kk = r.kind === "poly" ? (r.p3sFacet ? "facet" : pc > 0.4 ? "shed" : "flat") : r.kind;
             let ar = 0; try { ar = p3Area(p3sOutline(r)); } catch (e) { ar = 0; }
             return (
-              <div key={r.id} className="p3s-fld" style={{ gap: 4, padding: 8, borderRadius: 11, background: on ? "var(--tint-green-bg,#ecfdf5)" : "var(--surface2)" }}>
+              <div key={r.id} className="p3s-fld" style={{ gap: 8, padding: 12, borderRadius: 12, background: on ? "var(--tint-green-bg,#ecfdf5)" : "var(--surface2)" }}>
                 <div className="p3s-row" style={{ justifyContent: "space-between", gap: 6, flexWrap: "nowrap" }}>
                   <button className="p3s-btn" style={{ height: 26, padding: "0 10px", fontSize: 12, minWidth: 0 }} onClick={() => pickRoof(r)}><P3Icon name="roof" />{r.name || "หลังคา"} · {P3S_KIND_TH[kk] || kk}</button>
                   <span style={{ fontSize: 12, fontWeight: 700, whiteSpace: "nowrap", marginLeft: "auto" }}>{p3sR(ar, 10).toLocaleString()}<small style={{ fontSize: 10, fontWeight: 400 }}> ตร.ม.</small></span>
@@ -4229,9 +4229,9 @@ function Plan3DStudio({ job, onClose, currentUser, onSwitch }) {
       act: (
         <React.Fragment>
           <div className="p3s-row" style={{ gap: 6 }}>
-            <button className="p3s-btn" style={{ flex: 1 }} disabled={!view3d || vidPct != null} onClick={takeShot}><P3Icon name="image" />ถ่ายภาพ</button>
-            <button className={"p3s-btn" + (vidPct != null ? " pri" : "")} style={{ flex: 1 }} disabled={!view3d || vidPct != null} onClick={takeVideo}>
-              <P3Icon name="play" />{vidPct != null ? "กำลังอัด " + Math.round(vidPct * 100) + "%" : "วิดีโอหมุนรอบ"}</button>
+            <button className="p3s-btn" style={{ flex: 1 }} disabled={!view3d || vidOn} onClick={takeShot}><P3Icon name="image" />ถ่ายภาพ</button>
+            <button className={"p3s-btn" + (vidOn ? " dngr" : "")} style={{ flex: 1 }} disabled={!view3d} onClick={vidOn ? stopVideo : takeVideo}>
+              <P3Icon name={vidOn ? "pause" : "play"} />{vidOn ? "หยุดอัด · " + Math.round(((sunHour || 5.5) - 5.5) / 14 * 100) + "%" : "อัดวิดีโอเงา"}</button>
           </div>
           {mediaMsg && <span className="p3s-badge warn">{mediaMsg}</span>}
           <button className="p3s-btn pri wide" disabled={!dirty} onClick={() => { markSeen("fin"); doSave(); }}><P3Icon name="save" />{dirty ? "บันทึก" : "บันทึกแล้ว"}</button>
@@ -4340,15 +4340,21 @@ function Plan3DStudio({ job, onClose, currentUser, onSwitch }) {
     const A = v3api.current; if (!A) { setMediaMsg("เปิดมุมมอง 3D ก่อน"); return; }
     setMediaMsg(null); try { saveHref(A.shot(), mediaName("png")); } catch (e) { setMediaMsg("ถ่ายภาพไม่ได้: " + e.message); }
   }
+  /* วิดีโอเงา: อัดจอ 3D ระหว่างดวงอาทิตย์เดิน 5:30→19:30 รอบเดียว — มุมกล้องผู้ใช้หมุน/ซูมเองได้ระหว่างอัด */
   function takeVideo() {
     const A = v3api.current; if (!A) { setMediaMsg("เปิดมุมมอง 3D ก่อน"); return; }
-    setMediaMsg(null); setVidPct(0);
-    A.video(12, (f) => setVidPct(f)).then(({ blob, ext }) => {
-      const url = URL.createObjectURL(blob); saveHref(url, mediaName(ext)); setTimeout(() => URL.revokeObjectURL(url), 5000); setVidPct(null);
-    }).catch((e) => { setVidPct(null); setMediaMsg(e.message || "อัดวิดีโอไม่ได้"); });
+    setMediaMsg(null);
+    try { vidRef.current = A.record(); } catch (e) { setMediaMsg(e.message || "อัดวิดีโอไม่ได้"); return; }
+    setVidOn(true); setSunHour(null); setTimeout(() => setSunHour(5.5), 30);   // เริ่มกวาดใหม่ตั้งแต่ 5:30 เสมอ
   }
+  function finishVideo(R) {
+    setVidOn(false); setSunHour(null);
+    R.stop().then(({ blob, ext }) => { const url = URL.createObjectURL(blob); saveHref(url, mediaName(ext)); setTimeout(() => URL.revokeObjectURL(url), 5000); });
+  }
+  function stopVideo() { const R = vidRef.current; vidRef.current = null; if (R) finishVideo(R); }
   const sunPanel = (() => {
-    const MON = ["ม.ค.", "ก.พ.", "มี.ค.", "เม.ย.", "พ.ค.", "มิ.ย.", "ก.ค.", "ส.ค.", "ก.ย.", "ต.ค.", "พ.ย.", "ธ.ค."], mon = st.sun.month || 4;
+    const MONF = ["มกราคม", "กุมภาพันธ์", "มีนาคม", "เมษายน", "พฤษภาคม", "มิถุนายน", "กรกฎาคม", "สิงหาคม", "กันยายน", "ตุลาคม", "พฤศจิกายน", "ธันวาคม"], mon = st.sun.month || 4;
+    const setMon = (m) => commit((x) => Object.assign({}, x, { sun: Object.assign({}, x.sun, { month: m }) }), "smon");
     const hm = (h) => { const hh = Math.floor(h), mm = Math.round((h - hh) * 60); return (mm === 60 ? hh + 1 : hh) + ":" + (mm === 60 || mm < 10 ? "0" : "") + (mm === 60 ? 0 : mm) + " น."; };
     const sp = p3SunPos(sun);
     let rise = null, set = null;
@@ -4356,15 +4362,19 @@ function Plan3DStudio({ job, onClose, currentUser, onSwitch }) {
     return (
       <div className="p3s-card">
         <span className="p3s-ttl2"><P3Icon name="sunShadow" size={17} />แดดและเงา</span>
-        <P3SRange label="เดือน" right={MON[mon - 1]} min={1} max={12} step={1} value={mon}
-          onChange={(v) => commit((x) => Object.assign({}, x, { sun: Object.assign({}, x.sun, { month: Math.round(v) }) }), "smon")} />
+        <div className="p3s-fld"><span className="lb">เดือน</span>
+          <div className="p3s-monnav">
+            <button type="button" className="p3s-btn" onClick={() => setMon(mon === 1 ? 12 : mon - 1)} aria-label="เดือนก่อน">‹</button>
+            <b>{MONF[mon - 1]}</b>
+            <button type="button" className="p3s-btn" onClick={() => setMon(mon === 12 ? 1 : mon + 1)} aria-label="เดือนถัดไป">›</button>
+          </div></div>
         <P3SRange label="เวลา" right={hm(sun.hour)} min={5} max={20} step={0.25} value={p3sClamp(sun.hour, 5, 20)}
           onChange={(v) => { setSunHour(null); commit((x) => Object.assign({}, x, { sun: Object.assign({}, x.sun, { hour: v }) }), "shour"); }} />
         <div className="p3s-row" style={{ gap: 6, flexWrap: "wrap" }}>
           <span className={"p3s-badge" + (sp.alt > 0 ? " ok" : "")}>{sp.alt > 0 ? "ดวงอาทิตย์สูง " + Math.round(sp.alt) + "° · ทาง" + p3sCompass(sp.az) : "กลางคืน · ดวงอาทิตย์ตกแล้ว"}</span>
           {rise != null && <span className="p3s-note keep">ขึ้น {hm(rise)} · ตก {hm(set)}</span>}
         </div>
-        <button className={"p3s-btn wide" + (sunHour != null ? " pri" : "")} onClick={() => setSunHour(sunHour != null ? null : 5.5)}>
+        <button className={"p3s-btn wide" + (sunHour != null ? " pri" : "")} disabled={vidOn} onClick={() => setSunHour(sunHour != null ? null : 5.5)}>
           <P3Icon name={sunHour != null ? "pause" : "play"} />{sunHour != null ? "หยุด" : "กวาดดูเงาทั้งวัน (5:30–19:30)"}</button>
         <span className="p3s-note">เส้นสีส้มบนฟ้า = ทางเดินของดวงอาทิตย์ทั้งวันของเดือนนี้ · เดือนธันวาคมแดดอ้อมใต้มากที่สุด เงาต้นไม้/อาคารยาวสุด — ตรวจเดือนนี้ไว้เสมอ</span>
       </div>

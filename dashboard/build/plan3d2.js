@@ -2336,6 +2336,10 @@ const P3S_CSS = `
 .p3s-h .t{flex:1}
 .p3s-ttl2{font-size:15px;font-weight:800;color:var(--text-1);display:flex;align-items:center;gap:8px}
 .p3s-g2{display:grid;grid-template-columns:1fr 1fr;gap:9px}
+.p3s-rlist .p3s-g2{grid-template-columns:1fr;gap:6px}
+.p3s-rlist label.p3s-fld{flex-direction:row;align-items:center;justify-content:space-between;gap:10px}
+.p3s-rlist label.p3s-fld .lb{flex:1;min-width:0}
+.p3s-rlist label.p3s-fld .p3s-well{flex:0 0 160px;width:160px}
 .p3s-fld{display:flex;flex-direction:column;gap:5px;min-width:0}
 .p3s-fld .lb{font-size:11px;font-weight:700;color:var(--text-3);display:flex;gap:6px;align-items:baseline}
 .p3s-fld .lb i{font-style:normal;font-weight:600;color:var(--text-3);opacity:.8;font-size:10.5px;margin-left:auto}
@@ -2405,6 +2409,9 @@ const P3S_CSS = `
 .p3s-msel{left:50%;bottom:58px;transform:translateX(-50%);flex-wrap:wrap;justify-content:center;max-width:calc(100% - 24px)}
 .p3s-msel .lbl{font-size:12px;font-weight:800;color:var(--text-2);padding:0 6px 0 8px}
 .p3s-mon{display:grid;grid-template-columns:repeat(6,1fr);gap:5px}
+.p3s-monnav{display:flex;align-items:center;gap:8px}
+.p3s-monnav .p3s-btn{width:36px;height:36px;padding:0;flex:0 0 36px;font-size:20px;justify-content:center}
+.p3s-monnav b{flex:1;text-align:center;font-size:15px;font-weight:800}
 .p3s-mon .p3s-btn{padding:0;height:30px;font-size:12px;justify-content:center}
 .p3s-hint{position:absolute;left:12px;bottom:12px;z-index:2;max-width:calc(100% - 90px);background:rgba(15,23,42,.82);color:#fff;font-size:12.5px;font-weight:600;border-radius:11px;padding:8px 12px;line-height:1.45;pointer-events:none;backdrop-filter:blur(6px)}
 .p3s-hint b{color:#86efac;font-weight:800}
@@ -3184,22 +3191,10 @@ function P3SView3D({
     const ro = new ResizeObserver(onResize);
     ro.observe(el);
     let run = true,
-      orbit = null;
+      recNow = null;
     const loop = () => {
       if (!run) return;
-      if (orbit && !orbit.done) {
-        const f = (performance.now() - orbit.t0) / (orbit.sec * 1000);
-        if (f >= 1) {
-          orbit.done = true;
-          renderer.render(scene, camera);
-          setTimeout(() => orbit && orbit.rec.stop(), 150);
-        } else {
-          const a = orbit.a0 + f * Math.PI * 2;
-          camera.position.set(orbit.tg.x + orbit.r * Math.cos(a), orbit.tg.y + orbit.y, orbit.tg.z + orbit.r * Math.sin(a));
-          camera.lookAt(orbit.tg);
-          orbit.onProg && orbit.onProg(f);
-        }
-      } else controls.update();
+      controls.update();
       renderer.render(scene, camera);
       requestAnimationFrame(loop);
     };
@@ -3208,64 +3203,44 @@ function P3SView3D({
         renderer.render(scene, camera);
         return renderer.domElement.toDataURL("image/png");
       },
-      video: (sec, onProg) => new Promise((res, rej) => {
+      record: () => {
         const cv = renderer.domElement;
-        if (!cv.captureStream || !window.MediaRecorder) {
-          rej(new Error("เบราว์เซอร์นี้อัดวิดีโอไม่ได้ — ใช้ Chrome หรือ Edge"));
-          return;
-        }
+        if (!cv.captureStream || !window.MediaRecorder) throw new Error("เบราว์เซอร์นี้อัดวิดีโอไม่ได้ — ใช้ Chrome หรือ Edge");
         const mt = ["video/mp4;codecs=avc1", "video/mp4", "video/webm;codecs=vp9", "video/webm"].find(t => MediaRecorder.isTypeSupported(t)) || "";
-        let rec;
-        try {
-          rec = new MediaRecorder(cv.captureStream(30), Object.assign({
-            videoBitsPerSecond: 8e6
-          }, mt ? {
-            mimeType: mt
-          } : {}));
-        } catch (e) {
-          rej(e);
-          return;
-        }
+        const rec = new MediaRecorder(cv.captureStream(30), Object.assign({
+          videoBitsPerSecond: 8e6
+        }, mt ? {
+          mimeType: mt
+        } : {}));
         const chunks = [];
         rec.ondataavailable = e => {
           if (e.data && e.data.size) chunks.push(e.data);
         };
-        const tg = controls.target.clone(),
-          p0 = camera.position.clone(),
-          off = p0.clone().sub(tg);
-        controls.enabled = false;
-        orbit = {
-          t0: performance.now(),
-          sec,
-          tg,
-          r: Math.max(5, Math.hypot(off.x, off.z)),
-          a0: Math.atan2(off.z, off.x),
-          y: off.y,
-          onProg,
-          rec
-        };
-        rec.onstop = () => {
-          orbit = null;
-          controls.enabled = true;
-          camera.position.copy(p0);
-          controls.update();
-          res({
-            blob: new Blob(chunks, {
-              type: (mt || "video/webm").split(";")[0]
-            }),
-            ext: /mp4/.test(mt) ? "mp4" : "webm"
-          });
-        };
         rec.start(250);
-      })
+        recNow = rec;
+        return {
+          stop: () => new Promise(res => {
+            rec.onstop = () => {
+              recNow = null;
+              res({
+                blob: new Blob(chunks, {
+                  type: (mt || "video/webm").split(";")[0]
+                }),
+                ext: /mp4/.test(mt) ? "mp4" : "webm"
+              });
+            };
+            if (rec.state !== "inactive") rec.stop();
+          })
+        };
+      }
     };
     requestAnimationFrame(loop);
     return () => {
       run = false;
       if (api) api.current = null;
-      if (orbit && orbit.rec && orbit.rec.state !== "inactive") {
+      if (recNow && recNow.state !== "inactive") {
         try {
-          orbit.rec.stop();
+          recNow.stop();
         } catch (e) {}
       }
       ro.disconnect();
@@ -3766,7 +3741,8 @@ function Plan3DStudio({
   const [eavePick, setEavePick] = React.useState(false);
   const [mxy, setMxy] = React.useState(null);
   const v3api = React.useRef(null);
-  const [vidPct, setVidPct] = React.useState(null);
+  const vidRef = React.useRef(null);
+  const [vidOn, setVidOn] = React.useState(false);
   const [mediaMsg, setMediaMsg] = React.useState(null);
   const [measPts, setMeasPts] = React.useState(null);
   const [calib, setCalib] = React.useState(null);
@@ -6827,15 +6803,20 @@ function Plan3DStudio({
   React.useEffect(() => {
     if (sunHour == null) return;
     let raf,
-      last = performance.now();
+      last = performance.now(),
+      h = sunHour;
     const step = t => {
       const dt = (t - last) / 1000;
       last = t;
-      setSunHour(h => {
-        if (h == null) return null;
-        const n = h + dt * (14 / 15);
-        return n > 19.5 ? 5.5 : n;
-      });
+      h += dt * (14 / 15);
+      if (h > 19.5 && vidRef.current) {
+        const R = vidRef.current;
+        vidRef.current = null;
+        finishVideo(R);
+        return;
+      }
+      if (h > 19.5) h = 5.5;
+      setSunHour(h);
       raf = requestAnimationFrame(step);
     };
     raf = requestAnimationFrame(step);
@@ -9771,9 +9752,9 @@ function Plan3DStudio({
       size: 15
     }), "\u0E08\u0E31\u0E14\u0E17\u0E23\u0E07\u0E17\u0E31\u0E49\u0E07\u0E2B\u0E25\u0E31\u0E07")),
     list: roofs.length > 0 && React.createElement("div", {
-      className: "p3s-fld",
+      className: "p3s-fld p3s-rlist",
       style: {
-        gap: 8
+        gap: 10
       }
     }, roofs.map(r => {
       const pc = roofPitchOf(r),
@@ -9789,9 +9770,9 @@ function Plan3DStudio({
         key: r.id,
         className: "p3s-fld",
         style: {
-          gap: 4,
-          padding: 8,
-          borderRadius: 11,
+          gap: 8,
+          padding: 12,
+          borderRadius: 12,
           background: on ? "var(--tint-green-bg,#ecfdf5)" : "var(--surface2)"
         }
       }, React.createElement("div", {
@@ -10188,20 +10169,20 @@ function Plan3DStudio({
       style: {
         flex: 1
       },
-      disabled: !view3d || vidPct != null,
+      disabled: !view3d || vidOn,
       onClick: takeShot
     }, React.createElement(P3Icon, {
       name: "image"
     }), "\u0E16\u0E48\u0E32\u0E22\u0E20\u0E32\u0E1E"), React.createElement("button", {
-      className: "p3s-btn" + (vidPct != null ? " pri" : ""),
+      className: "p3s-btn" + (vidOn ? " dngr" : ""),
       style: {
         flex: 1
       },
-      disabled: !view3d || vidPct != null,
-      onClick: takeVideo
+      disabled: !view3d,
+      onClick: vidOn ? stopVideo : takeVideo
     }, React.createElement(P3Icon, {
-      name: "play"
-    }), vidPct != null ? "กำลังอัด " + Math.round(vidPct * 100) + "%" : "วิดีโอหมุนรอบ")), mediaMsg && React.createElement("span", {
+      name: vidOn ? "pause" : "play"
+    }), vidOn ? "หยุดอัด · " + Math.round(((sunHour || 5.5) - 5.5) / 14 * 100) + "%" : "อัดวิดีโอเงา")), mediaMsg && React.createElement("span", {
       className: "p3s-badge warn"
     }, mediaMsg), React.createElement("button", {
       className: "p3s-btn pri wide",
@@ -10511,23 +10492,41 @@ function Plan3DStudio({
       return;
     }
     setMediaMsg(null);
-    setVidPct(0);
-    A.video(12, f => setVidPct(f)).then(({
+    try {
+      vidRef.current = A.record();
+    } catch (e) {
+      setMediaMsg(e.message || "อัดวิดีโอไม่ได้");
+      return;
+    }
+    setVidOn(true);
+    setSunHour(null);
+    setTimeout(() => setSunHour(5.5), 30);
+  }
+  function finishVideo(R) {
+    setVidOn(false);
+    setSunHour(null);
+    R.stop().then(({
       blob,
       ext
     }) => {
       const url = URL.createObjectURL(blob);
       saveHref(url, mediaName(ext));
       setTimeout(() => URL.revokeObjectURL(url), 5000);
-      setVidPct(null);
-    }).catch(e => {
-      setVidPct(null);
-      setMediaMsg(e.message || "อัดวิดีโอไม่ได้");
     });
   }
+  function stopVideo() {
+    const R = vidRef.current;
+    vidRef.current = null;
+    if (R) finishVideo(R);
+  }
   const sunPanel = (() => {
-    const MON = ["ม.ค.", "ก.พ.", "มี.ค.", "เม.ย.", "พ.ค.", "มิ.ย.", "ก.ค.", "ส.ค.", "ก.ย.", "ต.ค.", "พ.ย.", "ธ.ค."],
+    const MONF = ["มกราคม", "กุมภาพันธ์", "มีนาคม", "เมษายน", "พฤษภาคม", "มิถุนายน", "กรกฎาคม", "สิงหาคม", "กันยายน", "ตุลาคม", "พฤศจิกายน", "ธันวาคม"],
       mon = st.sun.month || 4;
+    const setMon = m => commit(x => Object.assign({}, x, {
+      sun: Object.assign({}, x.sun, {
+        month: m
+      })
+    }), "smon");
     const hm = h => {
       const hh = Math.floor(h),
         mm = Math.round((h - hh) * 60);
@@ -10551,19 +10550,23 @@ function Plan3DStudio({
     }, React.createElement(P3Icon, {
       name: "sunShadow",
       size: 17
-    }), "\u0E41\u0E14\u0E14\u0E41\u0E25\u0E30\u0E40\u0E07\u0E32"), React.createElement(P3SRange, {
-      label: "\u0E40\u0E14\u0E37\u0E2D\u0E19",
-      right: MON[mon - 1],
-      min: 1,
-      max: 12,
-      step: 1,
-      value: mon,
-      onChange: v => commit(x => Object.assign({}, x, {
-        sun: Object.assign({}, x.sun, {
-          month: Math.round(v)
-        })
-      }), "smon")
-    }), React.createElement(P3SRange, {
+    }), "\u0E41\u0E14\u0E14\u0E41\u0E25\u0E30\u0E40\u0E07\u0E32"), React.createElement("div", {
+      className: "p3s-fld"
+    }, React.createElement("span", {
+      className: "lb"
+    }, "\u0E40\u0E14\u0E37\u0E2D\u0E19"), React.createElement("div", {
+      className: "p3s-monnav"
+    }, React.createElement("button", {
+      type: "button",
+      className: "p3s-btn",
+      onClick: () => setMon(mon === 1 ? 12 : mon - 1),
+      "aria-label": "\u0E40\u0E14\u0E37\u0E2D\u0E19\u0E01\u0E48\u0E2D\u0E19"
+    }, "\u2039"), React.createElement("b", null, MONF[mon - 1]), React.createElement("button", {
+      type: "button",
+      className: "p3s-btn",
+      onClick: () => setMon(mon === 12 ? 1 : mon + 1),
+      "aria-label": "\u0E40\u0E14\u0E37\u0E2D\u0E19\u0E16\u0E31\u0E14\u0E44\u0E1B"
+    }, "\u203A"))), React.createElement(P3SRange, {
       label: "\u0E40\u0E27\u0E25\u0E32",
       right: hm(sun.hour),
       min: 5,
@@ -10590,6 +10593,7 @@ function Plan3DStudio({
       className: "p3s-note keep"
     }, "\u0E02\u0E36\u0E49\u0E19 ", hm(rise), " \xB7 \u0E15\u0E01 ", hm(set))), React.createElement("button", {
       className: "p3s-btn wide" + (sunHour != null ? " pri" : ""),
+      disabled: vidOn,
       onClick: () => setSunHour(sunHour != null ? null : 5.5)
     }, React.createElement(P3Icon, {
       name: sunHour != null ? "pause" : "play"
