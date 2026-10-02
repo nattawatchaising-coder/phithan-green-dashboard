@@ -1239,7 +1239,7 @@ function p3Panels(roof, want) {
   const key = JSON.stringify(want || 0) + "" + JSON.stringify(roof);
   const hit = _p3PanCache.get(key);
   if (hit) return hit;
-  const res = p3PanelsCalc(roof, want);
+  const res = p3WalkCut(roof, p3PanelsCalc(roof, want));
   if (_p3PanCache.size > 32) _p3PanCache.clear();   // กันโตไม่จบ — ของเก่าไม่มีใครใช้แล้ว
   _p3PanCache.set(key, res);
   return res;
@@ -1317,6 +1317,74 @@ function p3PanelsCalc(roof, want) {
     out.maxRows = Math.max(out.maxRows, mr); out.maxCols = Math.max(out.maxCols, mc);
     out.perBlk.push({ maxRows: mr, maxCols: mc, count: n });
   });
+  return out;
+}
+/* ── ทางเดินที่วาดบนหลังคา (roof.walks) ──
+   roof.walks = [{ id, w: กว้าง (ม.), pts:[{x,z}] พิกัดผังเทียบจุดตั้ง (roof.x, roof.z) }]
+   แผง/ช่องว่างที่รอยเท้าบนผังแตะแถบทางเดิน ถูกเอาออกจากผังเลย (ไม่ใช่ "ปิดไว้") — นับแผง/BOQ ตรงเสมอ
+   ผืนที่ไม่มี walks ได้ผลเท่าเดิมทุกตัวอักษร */
+function p3SegDist(p, a, b) {
+  const dx = b.x - a.x, dz = b.z - a.z, L2 = dx * dx + dz * dz;
+  const t = L2 ? Math.max(0, Math.min(1, ((p.x - a.x) * dx + (p.z - a.z) * dz) / L2)) : 0;
+  return Math.hypot(p.x - (a.x + t * dx), p.z - (a.z + t * dz));
+}
+function p3SegCross(a, b, c, d) {
+  const cr = (o, p, q) => (p.x - o.x) * (q.z - o.z) - (p.z - o.z) * (q.x - o.x);
+  const d1 = cr(c, d, a), d2 = cr(c, d, b), d3 = cr(a, b, c), d4 = cr(a, b, d);
+  return ((d1 > 0) !== (d2 > 0)) && ((d3 > 0) !== (d4 > 0));
+}
+/* ระยะจากเส้น a→b ถึงสี่เหลี่ยมนูน q (0 = ทับ/ตัดกัน) */
+function p3SegQuadDist(a, b, q) {
+  if (p3InPoly(a.x, a.z, q) || p3InPoly(b.x, b.z, q)) return 0;
+  let d = 1e9;
+  for (let i = 0; i < q.length; i++) {
+    const c = q[i], e = q[(i + 1) % q.length];
+    if (p3SegCross(a, b, c, e)) return 0;
+    d = Math.min(d, p3SegDist(c, a, b), p3SegDist(a, c, e), p3SegDist(b, c, e));
+  }
+  return d;
+}
+function p3WalkCut(roof, out) {
+  const walks = Array.isArray(roof.walks) ? roof.walks.filter((w) => w && Array.isArray(w.pts) && w.pts.length >= 2 && +w.w > 0) : [];
+  if (!walks.length || !out || !out.list || !out.list.length) return out;
+  const ox = +roof.x || 0, oz = +roof.z || 0, segs = [];
+  walks.forEach((w) => {
+    for (let i = 1; i < w.pts.length; i++) {
+      segs.push({ a: { x: ox + (+w.pts[i - 1].x || 0), z: oz + (+w.pts[i - 1].z || 0) }, b: { x: ox + (+w.pts[i].x || 0), z: oz + (+w.pts[i].z || 0) }, hw: +w.w / 2 });
+    }
+  });
+  const blocks = out.blocks || [];
+  const X = p3Xf(roof, out);
+  const keep = [];
+  out.list.forEach((p) => {
+    const blk = blocks[p.blk] || { rot: 0, tilt: 0 };
+    const ry = p3BlkRy(roof, blk), T = (+blk.tilt || 0) * P3_DEG;
+    const c0 = roof.kind === "dome" || roof.kind === "poly" ? { x: p.x, y: p.y || 0, z: p.z } : { x: p.x, y: 0, z: p.z };
+    const cw = X.world(X.chain(p.side, c0, false), false);
+    let U, V;
+    if (roof.kind === "poly" && out.plane) {
+      const P = out.plane, cr = Math.cos(ry), sr = Math.sin(ry), cT = Math.cos(T), sT = Math.sin(T);
+      const mix = (a, b, c) => ({ x: a * P.u.x + b * P.n.x - c * P.v.x, z: a * P.u.z + b * P.n.z - c * P.v.z });
+      U = mix(cr * p.pw / 2, 0, -sr * p.pw / 2);
+      V = mix(cT * sr * p.pd / 2, -sT * p.pd / 2, cT * cr * p.pd / 2);
+    } else if (roof.kind === "dome") {
+      U = X.world(X.chain(null, { x: p.pw / 2, y: 0, z: 0 }, true), true);
+      V = X.world(X.chain(null, X.RX({ x: 0, y: 0, z: p.pd / 2 }, p.rx || 0), true), true);
+    } else {
+      U = X.world(X.chain(p.side, X.RY({ x: p.pw / 2, y: 0, z: 0 }, ry), true), true);
+      V = X.world(X.chain(p.side, X.RY(X.RX({ x: 0, y: 0, z: p.pd / 2 }, T), ry), true), true);
+    }
+    const q = [{ x: cw.x - U.x - V.x, z: cw.z - U.z - V.z }, { x: cw.x + U.x - V.x, z: cw.z + U.z - V.z },
+               { x: cw.x + U.x + V.x, z: cw.z + U.z + V.z }, { x: cw.x - U.x + V.x, z: cw.z - U.z + V.z }];
+    if (!segs.some((s) => p3SegQuadDist(s.a, s.b, q) < s.hw)) { keep.push(p); return; }
+    if (!p.skip && !p.slot) {
+      out.count--;
+      if (out.perBlk && out.perBlk[p.blk || 0]) out.perBlk[p.blk || 0].count--;
+      if (p.side && out["count" + p.side] != null) out["count" + p.side]--;
+      out.walkCut = (out.walkCut || 0) + 1;
+    }
+  });
+  out.list = keep;
   return out;
 }
 function p3CountAll(st) { return (st.roofs || []).reduce((s, r) => s + p3Panels(r).count, 0); }
