@@ -204,10 +204,14 @@ function p3sFillPatch(r, orient) {
   return { blocks: [Object.assign(p3NewBlk(0), { orient: orient || "portrait", rot })], skips: {}, noPanel: null };
 }
 /* ชนิดสิ่งบดบัง [รหัส, ชื่อ, กว้าง, ลึก, สูง] — เก็บเป็น kind box/tree เดิม (แบบเก่า/เงาใช้ได้) + ป้าย p3sType */
-const P3S_OBS = [["turbine", "ลูกหมุน", 0.6, 0.6, 0.5], ["vent", "ปล่องดูดควัน", 0.6, 0.6, 1.5], ["sky", "หลังคาช่องแสง", 1.2, 2.4, 0.15], ["bldg", "ตึก", 8, 6, 6], ["tree", "ต้นไม้", 3, 3, 5]];
+const P3S_OBS = [["turbine", "ลูกหมุน", 0.6, 0.6, 0.5], ["vent", "ปล่องดูดควัน", 0.6, 0.6, 1.5], ["sky", "หลังคาช่องแสง", 1.2, 2.4, 0.15],
+  ["rail", "ราวกันตก", 6, 0.3, 1.1], ["walkway", "ทางเดิน", 6, 0.6, 0.05], ["ladder", "บันไดลิง", 0.8, 0.8, 4],
+  ["bldg", "ตึก", 8, 6, 6], ["tree", "ต้นไม้", 3, 3, 5]];
+/* ชนิดที่เป็นแนวยาว: ลาก = ลากเส้นตามแนว (w = ยาว · d = กว้างคงที่ · rot = ทิศเส้น) */
+const P3S_OBS_LINE = { rail: 1, walkway: 1 };
 const p3sObsType = (o) => o.p3sType || (o.kind === "tree" ? "tree" : "box");
 /* สิ่งบดบังที่ติดบนหลังคา → ระยะเว้นรอบ (ม.) · ตรงนั้นติดแผงไม่ได้ (เอนจินตัดผ่าน roof.obs) */
-const P3S_ON_ROOF = { turbine: 0.15, vent: 0.15, sky: 0.05 };
+const P3S_ON_ROOF = { turbine: 0.15, vent: 0.15, sky: 0.05, rail: 0.1, walkway: 0.05, ladder: 0.4 };
 function p3sObsRect(o, pad) {
   const w = (+o.w || 1) / 2 + (pad || 0), d = (+o.d || 1) / 2 + (pad || 0), a = (+o.rot || 0) * P3_DEG, c = Math.cos(a), s = Math.sin(a), x = +o.x || 0, z = +o.z || 0;
   return [[-w, -d], [w, -d], [w, d], [-w, d]].map(([u, v]) => ({ x: x + u * c - v * s, z: z + u * s + v * c }));
@@ -220,7 +224,7 @@ function p3sSyncObs(s) {
   const roofs = s.roofs.map((r) => {
     let out = []; try { out = p3sOutline(r) || []; } catch (e) { out = []; }
     const ox = +r.x || 0, oz = +r.z || 0;
-    const list = out.length >= 3 ? obs.filter((o) => p3InPoly(+o.x || 0, +o.z || 0, out))
+    const list = out.length >= 3 ? obs.filter((o) => p3InPoly(+o.x || 0, +o.z || 0, out) || p3sObsRect(o, 0).some((q) => p3InPoly(q.x, q.z, out)))
       .map((o) => ({ id: o.id, pts: p3sObsRect(o, P3S_ON_ROOF[o.p3sType]).map((p) => ({ x: p3sR(p.x - ox, 1000), z: p3sR(p.z - oz, 1000) })) })) : [];
     if (JSON.stringify(r.obs && r.obs.length ? r.obs : []) === JSON.stringify(list)) return r;
     ch = true;
@@ -229,6 +233,23 @@ function p3sSyncObs(s) {
     return n;
   });
   return ch ? Object.assign({}, s, { roofs }) : s;
+}
+/* บันได: หาขอบหลังคาที่ใกล้ที่สุด (ภายใน 3 ม.) → จุดบนขอบ q · แนวขอบ t · ทิศออกนอกอาคาร n */
+function p3sLadderFit(roofs, x, z) {
+  let best = null;
+  (roofs || []).forEach((r) => {
+    let o = []; try { o = p3sOutline(r) || []; } catch (e) { o = []; }
+    if (o.length < 3) return;
+    let ar = 0; o.forEach((a, i) => { const b = o[(i + 1) % o.length]; ar += a.x * b.z - b.x * a.z; });
+    o.forEach((a, i) => {
+      const b = o[(i + 1) % o.length], dx = b.x - a.x, dz = b.z - a.z, L2 = dx * dx + dz * dz; if (L2 < 1e-6) return;
+      const t = Math.max(0.05, Math.min(0.95, ((x - a.x) * dx + (z - a.z) * dz) / L2)), qx = a.x + dx * t, qz = a.z + dz * t, d = Math.hypot(x - qx, z - qz);
+      if (d > 3 || (best && d >= best.d)) return;
+      const L = Math.sqrt(L2), tx = dx / L, tz = dz / L, sg = ar > 0 ? 1 : -1;
+      best = { d, q: { x: qx, z: qz }, t: { x: tx, z: tz }, n: { x: tz * sg, z: -tx * sg } };
+    });
+  });
+  return best;
 }
 const p3sObsName = (o) => { const t = P3S_OBS.find((x) => x[0] === p3sObsType(o)); return t ? t[1] : "สิ่งบดบัง"; };
 /* ทิศของขอบที่ยาวที่สุด (เรเดียนบนผัง) */
@@ -1174,6 +1195,77 @@ function p3sBuild3D(THREE, grp, st, tex) {
       eat(ox, by, oz);
       return;
     }
+    const V3 = (x, y, z) => new THREE.Vector3(x, y, z);
+    /* ท่อกลมจากจุด a ถึง b */
+    const tube = (a, b, r, mat) => {
+      const d = b.clone().sub(a), L = d.length(); if (L < 1e-4) return null;
+      const m = new THREE.Mesh(new THREE.CylinderGeometry(r, r, L, 10), mat || metal);
+      m.position.copy(a.clone().add(b).multiplyScalar(0.5)); m.quaternion.setFromUnitVectors(V3(0, 1, 0), d.normalize());
+      m.castShadow = true; m.receiveShadow = true; add(m); return m;
+    };
+    const ground = (x, z) => { const y = topY(x, z); return y == null ? 0 : y; };
+    if (T === "rail" || T === "walkway") {
+      const L = Math.max(0.3, +o.w || 1), a = (+o.rot || 0) * P3_DEG, ux = Math.cos(a), uz = Math.sin(a), vx = -uz, vz = ux;
+      if (T === "rail") {
+        // ราวกันตกตั้งพื้นหลังคา: เสาทุก ≤ 2 ม. บนแผ่นฐาน + ค้ำเอียง · ราวบน 1.1 ม. + ราวกลาง
+        const H = Math.max(0.6, +o.h || 1.1), n = Math.max(1, Math.ceil(L / 2)), posts = [];
+        for (let k = 0; k <= n; k++) {
+          const t = -L / 2 + (L * k) / n, px = ox + ux * t, pz = oz + uz * t, y = ground(px, pz);
+          posts.push({ x: px, z: pz, y });
+          const pl = new THREE.Mesh(new THREE.BoxGeometry(0.22, 0.02, 0.36), metal); pl.position.set(px - vx * 0.08, y + 0.01, pz - vz * 0.08); pl.rotation.y = -a; pl.castShadow = true; pl.receiveShadow = true; add(pl);
+          tube(V3(px, y, pz), V3(px, y + H, pz), 0.024);
+          const bx = px - vx * 0.26, bz = pz - vz * 0.26; tube(V3(px, y + H * 0.58, pz), V3(bx, ground(bx, bz) + 0.03, bz), 0.016);
+        }
+        for (let k = 0; k < n; k++) { const A = posts[k], B = posts[k + 1]; tube(V3(A.x, A.y + H, A.z), V3(B.x, B.y + H, B.z), 0.024); tube(V3(A.x, A.y + H * 0.5, A.z), V3(B.x, B.y + H * 0.5, B.z), 0.018); }
+        eat(ox, by + H, oz);
+        return;
+      }
+      // ทางเดินตะแกรงไฟเบอร์กลาสสีเหลือง แนบผิวหลังคา
+      const W = Math.max(0.3, +o.d || 0.6), n = Math.max(1, Math.ceil(L / 0.5)), pos = [], ln = [], rows = [];
+      for (let k = 0; k <= n; k++) {
+        const t = -L / 2 + (L * k) / n, cx = ox + ux * t, cz = oz + uz * t;
+        const l = V3(cx + vx * W / 2, 0, cz + vz * W / 2), r = V3(cx - vx * W / 2, 0, cz - vz * W / 2);
+        l.y = ground(l.x, l.z) + 0.06; r.y = ground(r.x, r.z) + 0.06; rows.push([l, r]);
+      }
+      for (let k = 0; k < n; k++) { const [a1, b1] = rows[k], [a2, b2] = rows[k + 1]; [a1, b1, b2, a1, b2, a2].forEach((q) => pos.push(q.x, q.y, q.z)); }
+      const gg = new THREE.BufferGeometry(); gg.setAttribute("position", new THREE.Float32BufferAttribute(pos, 3)); gg.computeVertexNormals();
+      const wm = add(new THREE.Mesh(gg, new THREE.MeshStandardMaterial({ color: 0xf5b800, roughness: 0.6, side: THREE.DoubleSide }))); wm.castShadow = true; wm.receiveShadow = true;
+      const LN = (p, q) => ln.push(p.x, p.y + 0.006, p.z, q.x, q.y + 0.006, q.z);
+      const sub = Math.max(1, Math.round(L / 0.1)), across = Math.max(2, Math.round(W / 0.1));
+      for (let j = 0; j <= across; j++) { const f = j / across; for (let k = 0; k < n; k++) LN(rows[k][0].clone().lerp(rows[k][1], f), rows[k + 1][0].clone().lerp(rows[k + 1][1], f)); }
+      for (let j = 0; j <= sub; j++) { const f = (j / sub) * n, k = Math.min(n - 1, Math.floor(f)), r = f - k; LN(rows[k][0].clone().lerp(rows[k + 1][0], r), rows[k][1].clone().lerp(rows[k + 1][1], r)); }
+      const lg = new THREE.BufferGeometry(); lg.setAttribute("position", new THREE.Float32BufferAttribute(ln, 3));
+      add(new THREE.LineSegments(lg, new THREE.LineBasicMaterial({ color: 0xa87900 })));
+      eat(ox, by, oz);
+      return;
+    }
+    if (T === "ladder") {
+      // บันไดลิงมีกรง: ตั้งพื้นดินชิดผนังที่ขอบหลังคาใกล้สุด · ราวจับโค้งข้ามขอบ 1.1 ม. · ห่วงกรงตั้งแต่ 2.4 ม.
+      const fit = p3sLadderFit(st.roofs, ox, oz);
+      let q, t, n, top;
+      if (fit) { q = fit.q; t = fit.t; n = fit.n; const yy = topY(q.x - n.x * 0.15, q.z - n.z * 0.15); top = yy == null ? Math.max(1, +o.h || 4) : yy; }
+      else { const a = (+o.rot || 0) * P3_DEG; t = { x: Math.cos(a), z: Math.sin(a) }; n = { x: -t.z, z: t.x }; q = { x: ox - n.x * 0.2, z: oz - n.z * 0.2 }; top = Math.max(1, +o.h || 4); }
+      const off = 0.2, hw = 0.24, cr = 0.36, P = (s, u, y) => V3(q.x + n.x * s + t.x * u, y, q.z + n.z * s + t.z * u);
+      [-hw, hw].forEach((u) => {
+        tube(P(off, u, 0), P(off, u, top + 1.1), 0.026);
+        tube(P(off, u, top + 1.1), P(-0.45, u, top + 1.1), 0.026);
+        tube(P(-0.45, u, top + 1.1), P(-0.45, u, top + 0.02), 0.026);
+        for (let y = 1.2; y < top; y += 2) tube(P(off, u, y), P(0.02, u, y), 0.018);
+      });
+      for (let y = 0.3; y <= top + 0.01; y += 0.3) tube(P(off, -hw, y), P(off, hw, y), 0.014);
+      const cc = off + cr - 0.05, y0 = Math.min(2.4, top * 0.6), hoops = [];
+      for (let y = y0; y <= top + 1.05; y += 0.9) hoops.push(y);
+      hoops.forEach((y) => {
+        const tor = new THREE.Mesh(new THREE.TorusGeometry(cr, 0.014, 6, 28), metal);
+        tor.position.copy(P(cc, 0, y)); tor.rotation.x = Math.PI / 2; tor.castShadow = true; add(tor);
+      });
+      if (hoops.length > 1) [-0.85, -0.42, 0, 0.42, 0.85].forEach((k) => {
+        const ang = k * Math.PI / 2, s0 = cc + Math.cos(ang) * cr, u0 = Math.sin(ang) * cr;
+        tube(P(s0, u0, hoops[0]), P(s0, u0, hoops[hoops.length - 1]), 0.012);
+      });
+      eat(q.x, top + 1.1, q.z);
+      return;
+    }
     const g = add(new THREE.Group()); g.position.set(ox, by, oz); g.rotation.y = -((+o.rot || 0) * P3_DEG);
     const h = Math.max(0.2, +o.h || 2);
     const put = (geo, mat, y, sy) => { const m = new THREE.Mesh(geo, mat); m.position.y = y; if (sy) m.scale.y = sy; m.castShadow = true; m.receiveShadow = true; g.add(m); return m; };
@@ -2057,7 +2149,7 @@ function Plan3DStudio({ job, onClose, currentUser, onSwitch }) {
     for (let i = obs.length - 1; i >= 0; i--) {
       const o = obs[i], dx = w.x - (+o.x || 0), dz = w.z - (+o.z || 0);
       if (o.kind === "tree") { if (Math.hypot(dx, dz) <= Math.max(+o.w || 1, 0.6) / 2) return { t: "obs", id: o.id }; }
-      else { const l = p3sRot(dx, dz, -(+o.rot || 0) * P3_DEG); if (Math.abs(l.x) <= (+o.w || 1) / 2 && Math.abs(l.z) <= (+o.d || 1) / 2) return { t: "obs", id: o.id }; }
+      else { const l = p3sRot(dx, dz, -(+o.rot || 0) * P3_DEG); if (Math.abs(l.x) <= (+o.w || 1) / 2 && Math.abs(l.z) <= Math.max(+o.d || 1, 0.6) / 2) return { t: "obs", id: o.id }; }
     }
     const ms = S.measures || [];
     for (let i = ms.length - 1; i >= 0; i--) {
@@ -2488,6 +2580,10 @@ function Plan3DStudio({ job, onClose, currentUser, onSwitch }) {
       let o;
       const T = P3S_OBS.find((x) => x[0] === obsType) || P3S_OBS[0], kd = T[0] === "tree" ? "tree" : "box", r0 = p3sR(((rotRef.current / P3_DEG) % 360 + 360) % 360, 10);
       if (!G.moved) o = { id: p3Id("o"), kind: kd, p3sType: T[0], x: p3sR(w.x), z: p3sR(w.z), w: T[2], d: T[3], h: T[4], rot: r0 };
+      else if (P3S_OBS_LINE[T[0]]) {
+        const a = G.w0, L = Math.hypot(w.x - a.x, w.z - a.z);
+        o = { id: p3Id("o"), kind: kd, p3sType: T[0], x: p3sR((a.x + w.x) / 2), z: p3sR((a.z + w.z) / 2), w: p3sR(Math.max(0.5, L), 10), d: T[3], h: T[4], rot: p3sR(((Math.atan2(w.z - a.z, w.x - a.x) / P3_DEG) % 360 + 360) % 360, 10) };
+      } else if (T[0] === "ladder") o = { id: p3Id("o"), kind: kd, p3sType: T[0], x: p3sR(w.x), z: p3sR(w.z), w: T[2], d: T[3], h: T[4], rot: r0 };
       else {
         const a = G.w0, fa = frameOf(a), fb = frameOf(w), ww = p3sR(Math.max(0.3, Math.abs(fb.x - fa.x)), 10), dd = p3sR(Math.max(0.3, Math.abs(fb.z - fa.z)), 10);
         o = { id: p3Id("o"), kind: kd, p3sType: T[0], x: p3sR((a.x + w.x) / 2), z: p3sR((a.z + w.z) / 2), w: kd === "tree" ? Math.max(ww, dd) : ww, d: kd === "tree" ? Math.max(ww, dd) : dd, h: T[4], rot: r0 };
@@ -2649,6 +2745,23 @@ function Plan3DStudio({ job, onClose, currentUser, onSwitch }) {
       <polygon points={ptsStr(p3sObsRect(o, P3S_ON_ROOF[T]))} fill="rgba(239,68,68,.08)" stroke="#ef4444" strokeWidth={1} strokeDasharray="4 3" style={NS} />
       <circle cx={+o.x || 0} cy={+o.z || 0} r={Math.min(+o.w || 0.6, +o.d || 0.6) / 2} fill="rgba(203,213,225,.85)" stroke={stk} strokeWidth={isSel ? 2.4 : 1.4} style={NS} />
       <circle cx={+o.x || 0} cy={+o.z || 0} r={Math.min(+o.w || 0.6, +o.d || 0.6) / (T === "vent" ? 4 : 6)} fill="#64748b" style={NS} /></g>;
+    if (T === "rail" || T === "walkway") {
+      const L = +o.w || 1, a = (+o.rot || 0) * P3_DEG, ux = Math.cos(a), uz = Math.sin(a), cx = +o.x || 0, cz = +o.z || 0, n = Math.max(1, Math.ceil(L / (T === "rail" ? 2 : 0.5)));
+      const ticks = []; for (let k = 0; k <= n; k++) { const t = -L / 2 + (L * k) / n; ticks.push({ x: cx + ux * t, z: cz + uz * t }); }
+      return <g key={o.id}>
+        <polygon points={ptsStr(p3sObsRect(o, P3S_ON_ROOF[T]))} fill={T === "walkway" ? "rgba(250,204,21,.55)" : "rgba(239,68,68,.06)"} stroke={T === "walkway" ? (isSel ? "#16a34a" : "#ca8a04") : "#ef4444"} strokeWidth={T === "walkway" && isSel ? 2.4 : 1} strokeDasharray={T === "walkway" ? null : "4 3"} style={NS} />
+        {T === "walkway"
+          ? ticks.map((q, k) => <line key={k} x1={q.x - uz * (+o.d || 0.6) / 2} y1={q.z + ux * (+o.d || 0.6) / 2} x2={q.x + uz * (+o.d || 0.6) / 2} y2={q.z - ux * (+o.d || 0.6) / 2} stroke="#a16207" strokeWidth={0.8} style={NS} />)
+          : <React.Fragment>
+              <line x1={cx - ux * L / 2} y1={cz - uz * L / 2} x2={cx + ux * L / 2} y2={cz + uz * L / 2} stroke={stk} strokeWidth={isSel ? 3.2 : 2.2} strokeLinecap="round" style={NS} />
+              {ticks.map((q, k) => <circle key={k} cx={q.x} cy={q.z} r={0.09} fill="#475569" style={NS} />)}
+            </React.Fragment>}
+      </g>;
+    }
+    if (T === "ladder") return <g key={o.id}>
+      <polygon points={ptsStr(p3sObsRect(o, P3S_ON_ROOF[T]))} fill="rgba(239,68,68,.06)" stroke="#ef4444" strokeWidth={1} strokeDasharray="4 3" style={NS} />
+      <circle cx={+o.x || 0} cy={+o.z || 0} r={(+o.w || 0.8) / 2} fill="rgba(203,213,225,.7)" stroke={stk} strokeWidth={isSel ? 2.4 : 1.4} style={NS} />
+      <circle cx={+o.x || 0} cy={+o.z || 0} r={(+o.w || 0.8) / 3.2} fill="none" stroke="#64748b" strokeWidth={1} style={NS} /></g>;
     if (T === "sky") return <polygon key={o.id} points={ptsStr(p3sObsRect(o, 0))} fill="rgba(224,242,254,.78)" stroke={isSel ? "#16a34a" : isHov ? "#0ea5e9" : "#0284c7"} strokeWidth={isSel ? 2.4 : 1.4} style={NS} />;
     return <rect key={o.id} x={(+o.x || 0) - (+o.w || 1) / 2} y={(+o.z || 0) - (+o.d || 1) / 2} width={+o.w || 1} height={+o.d || 1}
       transform={"rotate(" + (+o.rot || 0) + " " + (+o.x || 0) + " " + (+o.z || 0) + ")"}
@@ -3218,13 +3331,25 @@ function Plan3DStudio({ job, onClose, currentUser, onSwitch }) {
         {P3S_OBS.map(([k, lb, w0, d0, h0]) => <button key={k} className={"p3s-btn" + (p3sObsType(o) === k ? " pri" : "")} style={{ flex: "1 1 30%", padding: "0 6px", fontSize: 12.5 }}
           onClick={() => patchObs(o.id, { p3sType: k, kind: k === "tree" ? "tree" : "box", w: w0, d: d0, h: h0 })}>{lb}</button>)}
       </div>
-      <div className="p3s-g2">
+      {P3S_OBS_LINE[p3sObsType(o)] || p3sObsType(o) === "ladder" ? (() => {
+        const T = p3sObsType(o);
+        return (
+          <div className="p3s-g2">
+            {T !== "ladder" && <P3SNum label="ยาว" unit="ม." step={0.5} min={0.5} value={o.w} onChange={(v) => patchObs(o.id, { w: v }, "ow")} />}
+            {T !== "ladder" && <P3SNum label="กว้าง" unit="ม." step={0.1} min={0.1} value={o.d} onChange={(v) => patchObs(o.id, { d: v }, "od")} />}
+            {T !== "walkway" && <P3SNum label={T === "ladder" ? "สูง (ถ้าไม่ชิดหลังคา)" : "ราวสูง"} unit="ม." step={0.1} min={0.6} value={o.h} onChange={(v) => patchObs(o.id, { h: v }, "oh")} />}
+            {T !== "ladder" && <P3SNum label="หมุน" unit="°" step={5} min={0} max={360} digits={0} value={+o.rot || 0} onChange={(v) => patchObs(o.id, { rot: v }, "orot")} />}
+          </div>);
+      })() : <div className="p3s-g2">
         <P3SNum label={o.kind === "tree" ? "ทรงพุ่มกว้าง" : "กว้าง"} unit="ม." step={0.1} min={0.3} value={o.w} onChange={(v) => patchObs(o.id, o.kind === "tree" ? { w: v, d: v } : { w: v }, "ow")} />
         {o.kind !== "tree" && <P3SNum label="ลึก" unit="ม." step={0.1} min={0.3} value={o.d} onChange={(v) => patchObs(o.id, { d: v }, "od")} />}
         <P3SNum label="สูง" unit="ม." step={0.1} min={0.2} value={o.h} onChange={(v) => patchObs(o.id, { h: v }, "oh")} />
         {o.kind !== "tree" && <P3SNum label="หมุน" unit="°" step={5} min={0} max={360} digits={0} value={+o.rot || 0} onChange={(v) => patchObs(o.id, { rot: v }, "orot")} />}
-      </div>
-      <span className="p3s-note">{P3S_ON_ROOF[p3sObsType(o)] != null
+      </div>}
+      <span className="p3s-note">{p3sObsType(o) === "rail" ? "ราวกันตกตั้งบนหลังคา เสาทุก 2 ม. — แนวราวและรอบ ๆ 10 ซม. ติดแผงไม่ได้ · ลากบนผังเพื่อวางตามแนวขอบ"
+        : p3sObsType(o) === "walkway" ? "ทางเดินตะแกรง (FRP) แนบหลังคา — ตรงทางเดินติดแผงไม่ได้ · ลากบนผังตามแนวที่ต้องการ"
+        : p3sObsType(o) === "ladder" ? "บันไดลิงมีกรง วางชิดขอบหลังคา — 3D ตั้งจากพื้นดินถึงชายคาที่ใกล้ที่สุดเอง ราวจับยื่นเหนือขอบ 1.1 ม. · จุดขึ้นบนหลังคาเว้นไม่ติดแผง 40 ซม."
+        : P3S_ON_ROOF[p3sObsType(o)] != null
         ? (p3sObsType(o) === "sky" ? "แนบไปกับหลังคา — ตรงช่องแสงติดแผงไม่ได้ แผงที่ทับถูกตัดออกเอง" : "ตั้งบนหลังคา — ตรงนี้และรอบ ๆ 15 ซม. ติดแผงไม่ได้ (กรอบเส้นประแดง) · ความสูงใช้คำนวณเงาที่ตกบนแผงข้าง ๆ ดูได้ในมุมมอง 3D")
         : "ความสูงใช้คำนวณเงาที่ตกบนแผง — ดูผลได้ในมุมมอง 3D"}</span>
       <div className="p3s-row">
@@ -3470,7 +3595,7 @@ function Plan3DStudio({ job, onClose, currentUser, onSwitch }) {
         : <button className="p3s-btn pri wide" onClick={() => { if (tool !== "roof") setTool("roof"); setKindPick(true); }}><P3SIcon name="polygon" size={15} />เลือกทรงหลังคา</button>,
       go: () => { setTool("roof"); if (!roofs.length) setKindPick(true); } },
     { t: "สิ่งบดบัง", k: "obs", tools: ["obs"], done: (st.obstacles || []).length > 0 || !!wizSeen.obs, opt: true,
-      d: <span>เลือกชนิด แล้ว<b>แตะบนผัง</b> = ขนาดมาตรฐาน หรือ<b>ลากกรอบ</b>ตามขนาดจริง · ทำ<b>ก่อนวางแผง</b> แผงที่ทับถูกตัดออกเอง · ไม่มีก็กดถัดไป</span>,
+      d: <span>เลือกชนิด แล้ว<b>แตะบนผัง</b> = ขนาดมาตรฐาน หรือ<b>ลากกรอบ</b>ตามขนาดจริง (ราวกันตก/ทางเดิน = <b>ลากตามแนว</b> · บันได = แตะที่ขอบหลังคา) · ทำ<b>ก่อนวางแผง</b> แผงที่ทับถูกตัดออกเอง · ไม่มีก็กดถัดไป</span>,
       act: (
         <div className="p3s-row" style={{ flexWrap: "wrap", gap: 6 }}>
           {P3S_OBS.map(([k, lb]) => <button key={k} className={"p3s-btn" + (obsType === k && tool === "obs" ? " pri" : "")} style={{ flex: "1 1 30%", padding: "0 6px", fontSize: 12.5 }} onClick={() => { setObsType(k); setTool("obs"); setSel(null); }}>{lb}</button>)}

@@ -398,12 +398,19 @@ function p3sFillPatch(r, orient) {
     noPanel: null
   };
 }
-const P3S_OBS = [["turbine", "ลูกหมุน", 0.6, 0.6, 0.5], ["vent", "ปล่องดูดควัน", 0.6, 0.6, 1.5], ["sky", "หลังคาช่องแสง", 1.2, 2.4, 0.15], ["bldg", "ตึก", 8, 6, 6], ["tree", "ต้นไม้", 3, 3, 5]];
+const P3S_OBS = [["turbine", "ลูกหมุน", 0.6, 0.6, 0.5], ["vent", "ปล่องดูดควัน", 0.6, 0.6, 1.5], ["sky", "หลังคาช่องแสง", 1.2, 2.4, 0.15], ["rail", "ราวกันตก", 6, 0.3, 1.1], ["walkway", "ทางเดิน", 6, 0.6, 0.05], ["ladder", "บันไดลิง", 0.8, 0.8, 4], ["bldg", "ตึก", 8, 6, 6], ["tree", "ต้นไม้", 3, 3, 5]];
+const P3S_OBS_LINE = {
+  rail: 1,
+  walkway: 1
+};
 const p3sObsType = o => o.p3sType || (o.kind === "tree" ? "tree" : "box");
 const P3S_ON_ROOF = {
   turbine: 0.15,
   vent: 0.15,
-  sky: 0.05
+  sky: 0.05,
+  rail: 0.1,
+  walkway: 0.05,
+  ladder: 0.4
 };
 function p3sObsRect(o, pad) {
   const w = (+o.w || 1) / 2 + (pad || 0),
@@ -431,7 +438,7 @@ function p3sSyncObs(s) {
     }
     const ox = +r.x || 0,
       oz = +r.z || 0;
-    const list = out.length >= 3 ? obs.filter(o => p3InPoly(+o.x || 0, +o.z || 0, out)).map(o => ({
+    const list = out.length >= 3 ? obs.filter(o => p3InPoly(+o.x || 0, +o.z || 0, out) || p3sObsRect(o, 0).some(q => p3InPoly(q.x, q.z, out))).map(o => ({
       id: o.id,
       pts: p3sObsRect(o, P3S_ON_ROOF[o.p3sType]).map(p => ({
         x: p3sR(p.x - ox, 1000),
@@ -447,6 +454,55 @@ function p3sSyncObs(s) {
   return ch ? Object.assign({}, s, {
     roofs
   }) : s;
+}
+function p3sLadderFit(roofs, x, z) {
+  let best = null;
+  (roofs || []).forEach(r => {
+    let o = [];
+    try {
+      o = p3sOutline(r) || [];
+    } catch (e) {
+      o = [];
+    }
+    if (o.length < 3) return;
+    let ar = 0;
+    o.forEach((a, i) => {
+      const b = o[(i + 1) % o.length];
+      ar += a.x * b.z - b.x * a.z;
+    });
+    o.forEach((a, i) => {
+      const b = o[(i + 1) % o.length],
+        dx = b.x - a.x,
+        dz = b.z - a.z,
+        L2 = dx * dx + dz * dz;
+      if (L2 < 1e-6) return;
+      const t = Math.max(0.05, Math.min(0.95, ((x - a.x) * dx + (z - a.z) * dz) / L2)),
+        qx = a.x + dx * t,
+        qz = a.z + dz * t,
+        d = Math.hypot(x - qx, z - qz);
+      if (d > 3 || best && d >= best.d) return;
+      const L = Math.sqrt(L2),
+        tx = dx / L,
+        tz = dz / L,
+        sg = ar > 0 ? 1 : -1;
+      best = {
+        d,
+        q: {
+          x: qx,
+          z: qz
+        },
+        t: {
+          x: tx,
+          z: tz
+        },
+        n: {
+          x: tz * sg,
+          z: -tx * sg
+        }
+      };
+    });
+  });
+  return best;
 }
 const p3sObsName = o => {
   const t = P3S_OBS.find(x => x[0] === p3sObsType(o));
@@ -2293,6 +2349,171 @@ function p3sBuild3D(THREE, grp, st, tex) {
         color: 0x9fb6c8
       })));
       eat(ox, by, oz);
+      return;
+    }
+    const V3 = (x, y, z) => new THREE.Vector3(x, y, z);
+    const tube = (a, b, r, mat) => {
+      const d = b.clone().sub(a),
+        L = d.length();
+      if (L < 1e-4) return null;
+      const m = new THREE.Mesh(new THREE.CylinderGeometry(r, r, L, 10), mat || metal);
+      m.position.copy(a.clone().add(b).multiplyScalar(0.5));
+      m.quaternion.setFromUnitVectors(V3(0, 1, 0), d.normalize());
+      m.castShadow = true;
+      m.receiveShadow = true;
+      add(m);
+      return m;
+    };
+    const ground = (x, z) => {
+      const y = topY(x, z);
+      return y == null ? 0 : y;
+    };
+    if (T === "rail" || T === "walkway") {
+      const L = Math.max(0.3, +o.w || 1),
+        a = (+o.rot || 0) * P3_DEG,
+        ux = Math.cos(a),
+        uz = Math.sin(a),
+        vx = -uz,
+        vz = ux;
+      if (T === "rail") {
+        const H = Math.max(0.6, +o.h || 1.1),
+          n = Math.max(1, Math.ceil(L / 2)),
+          posts = [];
+        for (let k = 0; k <= n; k++) {
+          const t = -L / 2 + L * k / n,
+            px = ox + ux * t,
+            pz = oz + uz * t,
+            y = ground(px, pz);
+          posts.push({
+            x: px,
+            z: pz,
+            y
+          });
+          const pl = new THREE.Mesh(new THREE.BoxGeometry(0.22, 0.02, 0.36), metal);
+          pl.position.set(px - vx * 0.08, y + 0.01, pz - vz * 0.08);
+          pl.rotation.y = -a;
+          pl.castShadow = true;
+          pl.receiveShadow = true;
+          add(pl);
+          tube(V3(px, y, pz), V3(px, y + H, pz), 0.024);
+          const bx = px - vx * 0.26,
+            bz = pz - vz * 0.26;
+          tube(V3(px, y + H * 0.58, pz), V3(bx, ground(bx, bz) + 0.03, bz), 0.016);
+        }
+        for (let k = 0; k < n; k++) {
+          const A = posts[k],
+            B = posts[k + 1];
+          tube(V3(A.x, A.y + H, A.z), V3(B.x, B.y + H, B.z), 0.024);
+          tube(V3(A.x, A.y + H * 0.5, A.z), V3(B.x, B.y + H * 0.5, B.z), 0.018);
+        }
+        eat(ox, by + H, oz);
+        return;
+      }
+      const W = Math.max(0.3, +o.d || 0.6),
+        n = Math.max(1, Math.ceil(L / 0.5)),
+        pos = [],
+        ln = [],
+        rows = [];
+      for (let k = 0; k <= n; k++) {
+        const t = -L / 2 + L * k / n,
+          cx = ox + ux * t,
+          cz = oz + uz * t;
+        const l = V3(cx + vx * W / 2, 0, cz + vz * W / 2),
+          r = V3(cx - vx * W / 2, 0, cz - vz * W / 2);
+        l.y = ground(l.x, l.z) + 0.06;
+        r.y = ground(r.x, r.z) + 0.06;
+        rows.push([l, r]);
+      }
+      for (let k = 0; k < n; k++) {
+        const [a1, b1] = rows[k],
+          [a2, b2] = rows[k + 1];
+        [a1, b1, b2, a1, b2, a2].forEach(q => pos.push(q.x, q.y, q.z));
+      }
+      const gg = new THREE.BufferGeometry();
+      gg.setAttribute("position", new THREE.Float32BufferAttribute(pos, 3));
+      gg.computeVertexNormals();
+      const wm = add(new THREE.Mesh(gg, new THREE.MeshStandardMaterial({
+        color: 0xf5b800,
+        roughness: 0.6,
+        side: THREE.DoubleSide
+      })));
+      wm.castShadow = true;
+      wm.receiveShadow = true;
+      const LN = (p, q) => ln.push(p.x, p.y + 0.006, p.z, q.x, q.y + 0.006, q.z);
+      const sub = Math.max(1, Math.round(L / 0.1)),
+        across = Math.max(2, Math.round(W / 0.1));
+      for (let j = 0; j <= across; j++) {
+        const f = j / across;
+        for (let k = 0; k < n; k++) LN(rows[k][0].clone().lerp(rows[k][1], f), rows[k + 1][0].clone().lerp(rows[k + 1][1], f));
+      }
+      for (let j = 0; j <= sub; j++) {
+        const f = j / sub * n,
+          k = Math.min(n - 1, Math.floor(f)),
+          r = f - k;
+        LN(rows[k][0].clone().lerp(rows[k + 1][0], r), rows[k][1].clone().lerp(rows[k + 1][1], r));
+      }
+      const lg = new THREE.BufferGeometry();
+      lg.setAttribute("position", new THREE.Float32BufferAttribute(ln, 3));
+      add(new THREE.LineSegments(lg, new THREE.LineBasicMaterial({
+        color: 0xa87900
+      })));
+      eat(ox, by, oz);
+      return;
+    }
+    if (T === "ladder") {
+      const fit = p3sLadderFit(st.roofs, ox, oz);
+      let q, t, n, top;
+      if (fit) {
+        q = fit.q;
+        t = fit.t;
+        n = fit.n;
+        const yy = topY(q.x - n.x * 0.15, q.z - n.z * 0.15);
+        top = yy == null ? Math.max(1, +o.h || 4) : yy;
+      } else {
+        const a = (+o.rot || 0) * P3_DEG;
+        t = {
+          x: Math.cos(a),
+          z: Math.sin(a)
+        };
+        n = {
+          x: -t.z,
+          z: t.x
+        };
+        q = {
+          x: ox - n.x * 0.2,
+          z: oz - n.z * 0.2
+        };
+        top = Math.max(1, +o.h || 4);
+      }
+      const off = 0.2,
+        hw = 0.24,
+        cr = 0.36,
+        P = (s, u, y) => V3(q.x + n.x * s + t.x * u, y, q.z + n.z * s + t.z * u);
+      [-hw, hw].forEach(u => {
+        tube(P(off, u, 0), P(off, u, top + 1.1), 0.026);
+        tube(P(off, u, top + 1.1), P(-0.45, u, top + 1.1), 0.026);
+        tube(P(-0.45, u, top + 1.1), P(-0.45, u, top + 0.02), 0.026);
+        for (let y = 1.2; y < top; y += 2) tube(P(off, u, y), P(0.02, u, y), 0.018);
+      });
+      for (let y = 0.3; y <= top + 0.01; y += 0.3) tube(P(off, -hw, y), P(off, hw, y), 0.014);
+      const cc = off + cr - 0.05,
+        y0 = Math.min(2.4, top * 0.6),
+        hoops = [];
+      for (let y = y0; y <= top + 1.05; y += 0.9) hoops.push(y);
+      hoops.forEach(y => {
+        const tor = new THREE.Mesh(new THREE.TorusGeometry(cr, 0.014, 6, 28), metal);
+        tor.position.copy(P(cc, 0, y));
+        tor.rotation.x = Math.PI / 2;
+        tor.castShadow = true;
+        add(tor);
+      });
+      if (hoops.length > 1) [-0.85, -0.42, 0, 0.42, 0.85].forEach(k => {
+        const ang = k * Math.PI / 2,
+          s0 = cc + Math.cos(ang) * cr,
+          u0 = Math.sin(ang) * cr;
+        tube(P(s0, u0, hoops[0]), P(s0, u0, hoops[hoops.length - 1]), 0.012);
+      });
+      eat(q.x, top + 1.1, q.z);
       return;
     }
     const g = add(new THREE.Group());
@@ -4146,7 +4367,7 @@ function Plan3DStudio({
         };
       } else {
         const l = p3sRot(dx, dz, -(+o.rot || 0) * P3_DEG);
-        if (Math.abs(l.x) <= (+o.w || 1) / 2 && Math.abs(l.z) <= (+o.d || 1) / 2) return {
+        if (Math.abs(l.x) <= (+o.w || 1) / 2 && Math.abs(l.z) <= Math.max(+o.d || 1, 0.6) / 2) return {
           t: "obs",
           id: o.id
         };
@@ -5222,6 +5443,30 @@ function Plan3DStudio({
         d: T[3],
         h: T[4],
         rot: r0
+      };else if (P3S_OBS_LINE[T[0]]) {
+        const a = G.w0,
+          L = Math.hypot(w.x - a.x, w.z - a.z);
+        o = {
+          id: p3Id("o"),
+          kind: kd,
+          p3sType: T[0],
+          x: p3sR((a.x + w.x) / 2),
+          z: p3sR((a.z + w.z) / 2),
+          w: p3sR(Math.max(0.5, L), 10),
+          d: T[3],
+          h: T[4],
+          rot: p3sR((Math.atan2(w.z - a.z, w.x - a.x) / P3_DEG % 360 + 360) % 360, 10)
+        };
+      } else if (T[0] === "ladder") o = {
+        id: p3Id("o"),
+        kind: kd,
+        p3sType: T[0],
+        x: p3sR(w.x),
+        z: p3sR(w.z),
+        w: T[2],
+        d: T[3],
+        h: T[4],
+        rot: r0
       };else {
         const a = G.w0,
           fa = frameOf(a),
@@ -5580,6 +5825,84 @@ function Plan3DStudio({
       cy: +o.z || 0,
       r: Math.min(+o.w || 0.6, +o.d || 0.6) / (T === "vent" ? 4 : 6),
       fill: "#64748b",
+      style: NS
+    }));
+    if (T === "rail" || T === "walkway") {
+      const L = +o.w || 1,
+        a = (+o.rot || 0) * P3_DEG,
+        ux = Math.cos(a),
+        uz = Math.sin(a),
+        cx = +o.x || 0,
+        cz = +o.z || 0,
+        n = Math.max(1, Math.ceil(L / (T === "rail" ? 2 : 0.5)));
+      const ticks = [];
+      for (let k = 0; k <= n; k++) {
+        const t = -L / 2 + L * k / n;
+        ticks.push({
+          x: cx + ux * t,
+          z: cz + uz * t
+        });
+      }
+      return React.createElement("g", {
+        key: o.id
+      }, React.createElement("polygon", {
+        points: ptsStr(p3sObsRect(o, P3S_ON_ROOF[T])),
+        fill: T === "walkway" ? "rgba(250,204,21,.55)" : "rgba(239,68,68,.06)",
+        stroke: T === "walkway" ? isSel ? "#16a34a" : "#ca8a04" : "#ef4444",
+        strokeWidth: T === "walkway" && isSel ? 2.4 : 1,
+        strokeDasharray: T === "walkway" ? null : "4 3",
+        style: NS
+      }), T === "walkway" ? ticks.map((q, k) => React.createElement("line", {
+        key: k,
+        x1: q.x - uz * (+o.d || 0.6) / 2,
+        y1: q.z + ux * (+o.d || 0.6) / 2,
+        x2: q.x + uz * (+o.d || 0.6) / 2,
+        y2: q.z - ux * (+o.d || 0.6) / 2,
+        stroke: "#a16207",
+        strokeWidth: 0.8,
+        style: NS
+      })) : React.createElement(React.Fragment, null, React.createElement("line", {
+        x1: cx - ux * L / 2,
+        y1: cz - uz * L / 2,
+        x2: cx + ux * L / 2,
+        y2: cz + uz * L / 2,
+        stroke: stk,
+        strokeWidth: isSel ? 3.2 : 2.2,
+        strokeLinecap: "round",
+        style: NS
+      }), ticks.map((q, k) => React.createElement("circle", {
+        key: k,
+        cx: q.x,
+        cy: q.z,
+        r: 0.09,
+        fill: "#475569",
+        style: NS
+      }))));
+    }
+    if (T === "ladder") return React.createElement("g", {
+      key: o.id
+    }, React.createElement("polygon", {
+      points: ptsStr(p3sObsRect(o, P3S_ON_ROOF[T])),
+      fill: "rgba(239,68,68,.06)",
+      stroke: "#ef4444",
+      strokeWidth: 1,
+      strokeDasharray: "4 3",
+      style: NS
+    }), React.createElement("circle", {
+      cx: +o.x || 0,
+      cy: +o.z || 0,
+      r: (+o.w || 0.8) / 2,
+      fill: "rgba(203,213,225,.7)",
+      stroke: stk,
+      strokeWidth: isSel ? 2.4 : 1.4,
+      style: NS
+    }), React.createElement("circle", {
+      cx: +o.x || 0,
+      cy: +o.z || 0,
+      r: (+o.w || 0.8) / 3.2,
+      fill: "none",
+      stroke: "#64748b",
+      strokeWidth: 1,
       style: NS
     }));
     if (T === "sky") return React.createElement("polygon", {
@@ -7256,7 +7579,50 @@ function Plan3DStudio({
       d: d0,
       h: h0
     })
-  }, lb))), React.createElement("div", {
+  }, lb))), P3S_OBS_LINE[p3sObsType(o)] || p3sObsType(o) === "ladder" ? (() => {
+    const T = p3sObsType(o);
+    return React.createElement("div", {
+      className: "p3s-g2"
+    }, T !== "ladder" && React.createElement(P3SNum, {
+      label: "\u0E22\u0E32\u0E27",
+      unit: "\u0E21.",
+      step: 0.5,
+      min: 0.5,
+      value: o.w,
+      onChange: v => patchObs(o.id, {
+        w: v
+      }, "ow")
+    }), T !== "ladder" && React.createElement(P3SNum, {
+      label: "\u0E01\u0E27\u0E49\u0E32\u0E07",
+      unit: "\u0E21.",
+      step: 0.1,
+      min: 0.1,
+      value: o.d,
+      onChange: v => patchObs(o.id, {
+        d: v
+      }, "od")
+    }), T !== "walkway" && React.createElement(P3SNum, {
+      label: T === "ladder" ? "สูง (ถ้าไม่ชิดหลังคา)" : "ราวสูง",
+      unit: "\u0E21.",
+      step: 0.1,
+      min: 0.6,
+      value: o.h,
+      onChange: v => patchObs(o.id, {
+        h: v
+      }, "oh")
+    }), T !== "ladder" && React.createElement(P3SNum, {
+      label: "\u0E2B\u0E21\u0E38\u0E19",
+      unit: "\xB0",
+      step: 5,
+      min: 0,
+      max: 360,
+      digits: 0,
+      value: +o.rot || 0,
+      onChange: v => patchObs(o.id, {
+        rot: v
+      }, "orot")
+    }));
+  })() : React.createElement("div", {
     className: "p3s-g2"
   }, React.createElement(P3SNum, {
     label: o.kind === "tree" ? "ทรงพุ่มกว้าง" : "กว้าง",
@@ -7301,7 +7667,7 @@ function Plan3DStudio({
     }, "orot")
   })), React.createElement("span", {
     className: "p3s-note"
-  }, P3S_ON_ROOF[p3sObsType(o)] != null ? p3sObsType(o) === "sky" ? "แนบไปกับหลังคา — ตรงช่องแสงติดแผงไม่ได้ แผงที่ทับถูกตัดออกเอง" : "ตั้งบนหลังคา — ตรงนี้และรอบ ๆ 15 ซม. ติดแผงไม่ได้ (กรอบเส้นประแดง) · ความสูงใช้คำนวณเงาที่ตกบนแผงข้าง ๆ ดูได้ในมุมมอง 3D" : "ความสูงใช้คำนวณเงาที่ตกบนแผง — ดูผลได้ในมุมมอง 3D"), React.createElement("div", {
+  }, p3sObsType(o) === "rail" ? "ราวกันตกตั้งบนหลังคา เสาทุก 2 ม. — แนวราวและรอบ ๆ 10 ซม. ติดแผงไม่ได้ · ลากบนผังเพื่อวางตามแนวขอบ" : p3sObsType(o) === "walkway" ? "ทางเดินตะแกรง (FRP) แนบหลังคา — ตรงทางเดินติดแผงไม่ได้ · ลากบนผังตามแนวที่ต้องการ" : p3sObsType(o) === "ladder" ? "บันไดลิงมีกรง วางชิดขอบหลังคา — 3D ตั้งจากพื้นดินถึงชายคาที่ใกล้ที่สุดเอง ราวจับยื่นเหนือขอบ 1.1 ม. · จุดขึ้นบนหลังคาเว้นไม่ติดแผง 40 ซม." : P3S_ON_ROOF[p3sObsType(o)] != null ? p3sObsType(o) === "sky" ? "แนบไปกับหลังคา — ตรงช่องแสงติดแผงไม่ได้ แผงที่ทับถูกตัดออกเอง" : "ตั้งบนหลังคา — ตรงนี้และรอบ ๆ 15 ซม. ติดแผงไม่ได้ (กรอบเส้นประแดง) · ความสูงใช้คำนวณเงาที่ตกบนแผงข้าง ๆ ดูได้ในมุมมอง 3D" : "ความสูงใช้คำนวณเงาที่ตกบนแผง — ดูผลได้ในมุมมอง 3D"), React.createElement("div", {
     className: "p3s-row"
   }, React.createElement("button", {
     className: "p3s-btn",
@@ -8101,7 +8467,7 @@ function Plan3DStudio({
     tools: ["obs"],
     done: (st.obstacles || []).length > 0 || !!wizSeen.obs,
     opt: true,
-    d: React.createElement("span", null, "\u0E40\u0E25\u0E37\u0E2D\u0E01\u0E0A\u0E19\u0E34\u0E14 \u0E41\u0E25\u0E49\u0E27", React.createElement("b", null, "\u0E41\u0E15\u0E30\u0E1A\u0E19\u0E1C\u0E31\u0E07"), " = \u0E02\u0E19\u0E32\u0E14\u0E21\u0E32\u0E15\u0E23\u0E10\u0E32\u0E19 \u0E2B\u0E23\u0E37\u0E2D", React.createElement("b", null, "\u0E25\u0E32\u0E01\u0E01\u0E23\u0E2D\u0E1A"), "\u0E15\u0E32\u0E21\u0E02\u0E19\u0E32\u0E14\u0E08\u0E23\u0E34\u0E07 \xB7 \u0E17\u0E33", React.createElement("b", null, "\u0E01\u0E48\u0E2D\u0E19\u0E27\u0E32\u0E07\u0E41\u0E1C\u0E07"), " \u0E41\u0E1C\u0E07\u0E17\u0E35\u0E48\u0E17\u0E31\u0E1A\u0E16\u0E39\u0E01\u0E15\u0E31\u0E14\u0E2D\u0E2D\u0E01\u0E40\u0E2D\u0E07 \xB7 \u0E44\u0E21\u0E48\u0E21\u0E35\u0E01\u0E47\u0E01\u0E14\u0E16\u0E31\u0E14\u0E44\u0E1B"),
+    d: React.createElement("span", null, "\u0E40\u0E25\u0E37\u0E2D\u0E01\u0E0A\u0E19\u0E34\u0E14 \u0E41\u0E25\u0E49\u0E27", React.createElement("b", null, "\u0E41\u0E15\u0E30\u0E1A\u0E19\u0E1C\u0E31\u0E07"), " = \u0E02\u0E19\u0E32\u0E14\u0E21\u0E32\u0E15\u0E23\u0E10\u0E32\u0E19 \u0E2B\u0E23\u0E37\u0E2D", React.createElement("b", null, "\u0E25\u0E32\u0E01\u0E01\u0E23\u0E2D\u0E1A"), "\u0E15\u0E32\u0E21\u0E02\u0E19\u0E32\u0E14\u0E08\u0E23\u0E34\u0E07 (\u0E23\u0E32\u0E27\u0E01\u0E31\u0E19\u0E15\u0E01/\u0E17\u0E32\u0E07\u0E40\u0E14\u0E34\u0E19 = ", React.createElement("b", null, "\u0E25\u0E32\u0E01\u0E15\u0E32\u0E21\u0E41\u0E19\u0E27"), " \xB7 \u0E1A\u0E31\u0E19\u0E44\u0E14 = \u0E41\u0E15\u0E30\u0E17\u0E35\u0E48\u0E02\u0E2D\u0E1A\u0E2B\u0E25\u0E31\u0E07\u0E04\u0E32) \xB7 \u0E17\u0E33", React.createElement("b", null, "\u0E01\u0E48\u0E2D\u0E19\u0E27\u0E32\u0E07\u0E41\u0E1C\u0E07"), " \u0E41\u0E1C\u0E07\u0E17\u0E35\u0E48\u0E17\u0E31\u0E1A\u0E16\u0E39\u0E01\u0E15\u0E31\u0E14\u0E2D\u0E2D\u0E01\u0E40\u0E2D\u0E07 \xB7 \u0E44\u0E21\u0E48\u0E21\u0E35\u0E01\u0E47\u0E01\u0E14\u0E16\u0E31\u0E14\u0E44\u0E1B"),
     act: React.createElement("div", {
       className: "p3s-row",
       style: {
