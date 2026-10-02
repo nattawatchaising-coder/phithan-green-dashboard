@@ -2522,10 +2522,45 @@ function p3sBuild3D(THREE, grp, st, tex) {
     color: 0x94a3b8,
     side: THREE.DoubleSide
   });
+  const wallTex = (() => {
+    const c = document.createElement("canvas");
+    c.width = 128;
+    c.height = 128;
+    const g = c.getContext("2d");
+    g.fillStyle = "#ebe8e1";
+    g.fillRect(0, 0, 128, 128);
+    for (let i = 0; i < 4; i++) {
+      const x = i * 32;
+      g.fillStyle = "#d9d5cc";
+      g.fillRect(x, 0, 5, 128);
+      g.fillStyle = "#f6f4ef";
+      g.fillRect(x + 5, 0, 3, 128);
+    }
+    const t = new THREE.CanvasTexture(c);
+    t.wrapS = t.wrapT = THREE.RepeatWrapping;
+    return t;
+  })();
   const wallMat = new THREE.MeshLambertMaterial({
-    color: 0xe7e2d8,
-    transparent: true,
-    opacity: 0.55
+    color: 0xffffff,
+    map: wallTex,
+    side: THREE.DoubleSide
+  });
+  const baseMat = new THREE.MeshLambertMaterial({
+    color: 0x8b8f94,
+    side: THREE.DoubleSide
+  });
+  const glassMat = new THREE.MeshStandardMaterial({
+    color: 0x3d5a73,
+    roughness: 0.15,
+    metalness: 0.6,
+    side: THREE.DoubleSide
+  });
+  const doorMat = new THREE.MeshLambertMaterial({
+    color: 0x9aa4ad,
+    side: THREE.DoubleSide
+  });
+  const trimMat = new THREE.LineBasicMaterial({
+    color: 0x9c968a
   });
   const edgeMat = new THREE.LineBasicMaterial({
     color: 0x475569
@@ -2564,17 +2599,185 @@ function p3sBuild3D(THREE, grp, st, tex) {
     }
     return null;
   };
-  const wall = (foot, h) => {
-    if (!(h > 0.2) || foot.length < 3) return;
-    const sh = new THREE.Shape();
-    foot.forEach((p, i) => i ? sh.lineTo(p.x, -p.z) : sh.moveTo(p.x, -p.z));
-    const m = add(new THREE.Mesh(new THREE.ExtrudeGeometry(sh, {
-      depth: h,
-      bevelEnabled: false
-    }), wallMat));
-    m.rotation.x = -Math.PI / 2;
-    m.castShadow = true;
-    m.receiveShadow = true;
+  const insetPoly = (pts, d) => {
+    const n = pts.length;
+    let A = 0;
+    for (let i = 0; i < n; i++) {
+      const a = pts[i],
+        b = pts[(i + 1) % n];
+      A += a.x * b.z - b.x * a.z;
+    }
+    const sg = A > 0 ? 1 : -1,
+      L = [];
+    for (let i = 0; i < n; i++) {
+      const a = pts[i],
+        b = pts[(i + 1) % n],
+        dx = b.x - a.x,
+        dz = b.z - a.z,
+        l = Math.hypot(dx, dz) || 1;
+      L.push({
+        x: a.x - dz / l * sg * d,
+        z: a.z + dx / l * sg * d,
+        dx,
+        dz
+      });
+    }
+    const out = [];
+    for (let i = 0; i < n; i++) {
+      const P = L[(i + n - 1) % n],
+        Q = L[i],
+        den = P.dx * Q.dz - P.dz * Q.dx;
+      if (Math.abs(den) < 1e-9) {
+        out.push({
+          x: Q.x,
+          z: Q.z
+        });
+        continue;
+      }
+      const t = ((Q.x - P.x) * Q.dz - (Q.z - P.z) * Q.dx) / den;
+      out.push({
+        x: P.x + P.dx * t,
+        z: P.z + P.dz * t
+      });
+    }
+    return out;
+  };
+  const wall = (foot0, tris, hMin, convex) => {
+    if (!(hMin > 0.2) || !foot0 || foot0.length < 3) return;
+    let foot = foot0;
+    if (convex) {
+      let mnx = Infinity,
+        mxx = -Infinity,
+        mnz = Infinity,
+        mxz = -Infinity;
+      foot0.forEach(p => {
+        mnx = Math.min(mnx, p.x);
+        mxx = Math.max(mxx, p.x);
+        mnz = Math.min(mnz, p.z);
+        mxz = Math.max(mxz, p.z);
+      });
+      const d = Math.min(0.5, Math.min(mxx - mnx, mxz - mnz) * 0.04);
+      if (d > 0.05) foot = insetPoly(foot0, d);
+    }
+    let A = 0;
+    foot.forEach((a, i) => {
+      const b = foot[(i + 1) % foot.length];
+      A += a.x * b.z - b.x * a.z;
+    });
+    const sg = A > 0 ? 1 : -1;
+    const topAt = (x, z) => {
+      const y = surfY(tris, x, z);
+      return y == null ? hMin : Math.max(0.3, y - 0.04);
+    };
+    const wp = [],
+      wu = [],
+      bp = [],
+      gp = [],
+      dp = [],
+      tl = [];
+    const quad = (arr, a, b, y0a, y1a, y0b, y1b, o) => {
+      const ox = o ? o.x : 0,
+        oz = o ? o.z : 0;
+      arr.push(a.x + ox, y0a, a.z + oz, b.x + ox, y0b, b.z + oz, b.x + ox, y1b, b.z + oz, a.x + ox, y0a, a.z + oz, b.x + ox, y1b, b.z + oz, a.x + ox, y1a, a.z + oz);
+    };
+    let run = 0,
+      longest = -1,
+      longL = 0;
+    foot.forEach((a, i) => {
+      const b = foot[(i + 1) % foot.length],
+        l = Math.hypot(b.x - a.x, b.z - a.z);
+      if (l > longL) {
+        longL = l;
+        longest = i;
+      }
+    });
+    foot.forEach((a, i) => {
+      const b = foot[(i + 1) % foot.length],
+        dx = b.x - a.x,
+        dz = b.z - a.z,
+        len = Math.hypot(dx, dz);
+      if (len < 0.05) return;
+      const out = {
+        x: dz / len * sg * 0.03,
+        z: -dx / len * sg * 0.03
+      };
+      const n = Math.max(1, Math.ceil(len / 1));
+      for (let k = 0; k < n; k++) {
+        const t0 = k / n,
+          t1 = (k + 1) / n;
+        const P = {
+            x: a.x + dx * t0,
+            z: a.z + dz * t0
+          },
+          Q = {
+            x: a.x + dx * t1,
+            z: a.z + dz * t1
+          };
+        const hP = topAt(P.x, P.z),
+          hQ = topAt(Q.x, Q.z);
+        quad(wp, P, Q, 0, hP, 0, hQ);
+        const u0 = run + len * t0,
+          u1 = run + len * t1;
+        wu.push(u0, 0, u1, 0, u1, hQ, u0, 0, u1, hQ, u0, hP);
+        tl.push(P.x, hP, P.z, Q.x, hQ, Q.z);
+      }
+      run += len;
+      const bh = Math.min(0.6, hMin * 0.15);
+      quad(bp, a, b, 0, bh, 0, bh, out);
+      if (hMin > 3.2 && len > 4) {
+        const y0 = hMin * 0.62,
+          y1 = Math.min(hMin - 0.35, y0 + Math.max(0.8, hMin * 0.16)),
+          m = Math.min(1.2, len * 0.08);
+        const segs = Math.max(1, Math.floor((len - 2 * m) / 6));
+        for (let k = 0; k < segs; k++) {
+          const s0 = m + (len - 2 * m) * k / segs + 0.25,
+            s1 = m + (len - 2 * m) * (k + 1) / segs - 0.25;
+          if (s1 - s0 < 0.6) continue;
+          quad(gp, {
+            x: a.x + dx / len * s0,
+            z: a.z + dz / len * s0
+          }, {
+            x: a.x + dx / len * s1,
+            z: a.z + dz / len * s1
+          }, y0, y1, y0, y1, out);
+        }
+      }
+      if (i === longest) {
+        const big = hMin > 4.5 && len > 12,
+          dw = big ? Math.min(5, len * 0.2) : 1,
+          dh = big ? Math.min(hMin * 0.6, 4.5) : Math.min(2.1, hMin * 0.8);
+        const c = len / 2;
+        quad(dp, {
+          x: a.x + dx / len * (c - dw / 2),
+          z: a.z + dz / len * (c - dw / 2)
+        }, {
+          x: a.x + dx / len * (c + dw / 2),
+          z: a.z + dz / len * (c + dw / 2)
+        }, 0, dh, 0, dh, {
+          x: out.x * 1.5,
+          z: out.z * 1.5
+        });
+      }
+    });
+    const mk = (arr, mat, uv) => {
+      if (!arr.length) return;
+      const g = new THREE.BufferGeometry();
+      g.setAttribute("position", new THREE.Float32BufferAttribute(arr, 3));
+      if (uv) g.setAttribute("uv", new THREE.Float32BufferAttribute(uv, 2));
+      g.computeVertexNormals();
+      const m = add(new THREE.Mesh(g, mat));
+      m.castShadow = true;
+      m.receiveShadow = true;
+    };
+    mk(wp, wallMat, wu);
+    mk(bp, baseMat);
+    mk(gp, glassMat);
+    mk(dp, doorMat);
+    const cl = [];
+    foot.forEach(p => cl.push(p.x, 0, p.z, p.x, topAt(p.x, p.z), p.z));
+    const lg = new THREE.BufferGeometry();
+    lg.setAttribute("position", new THREE.Float32BufferAttribute(cl.concat(tl), 3));
+    add(new THREE.LineSegments(lg, trimMat));
   };
   const allTris = [];
   const topY = (x, z) => {
@@ -2604,7 +2807,8 @@ function p3sBuild3D(THREE, grp, st, tex) {
         const q = p3sRY(x, z, a);
         return new THREE.Vector3(q.x + (+roof.x || 0), y + h0, q.z + (+roof.z || 0));
       };
-      const pos = [];
+      const pos = [],
+        dTris = [];
       for (let i = 0; i < segs; i++) {
         const t1 = -D.th + 2 * D.th * i / segs,
           t2 = -D.th + 2 * D.th * (i + 1) / segs;
@@ -2614,6 +2818,7 @@ function p3sBuild3D(THREE, grp, st, tex) {
           E = W(-D.len / 2, D.yAt(t2), D.zAt(t2));
         [A, B, C, A, C, E].forEach(v => pos.push(v.x, v.y, v.z));
         allTris.push([A, B, C], [A, C, E]);
+        dTris.push([A, B, C], [A, C, E]);
         eat(A.x, A.y, A.z);
         eat(C.x, C.y, C.z);
       }
@@ -2623,7 +2828,7 @@ function p3sBuild3D(THREE, grp, st, tex) {
       const m = add(new THREE.Mesh(g, roofMat));
       m.castShadow = true;
       m.receiveShadow = true;
-      wall(p3sFaces2D(roof)[0] ? p3sFaces2D(roof)[0].pts : [], h0);
+      wall(p3sFaces2D(roof)[0] ? p3sFaces2D(roof)[0].pts : [], dTris, h0, true);
     } else {
       const all = Object.assign({}, roof, {
         sideA: true,
@@ -2645,7 +2850,7 @@ function p3sBuild3D(THREE, grp, st, tex) {
     allTris.push.apply(allTris, tris);
     if (faces.length) {
       const minY = Math.min.apply(null, faces.map(f => Math.min.apply(null, f.map(p => p.y))));
-      wall(p3sOutline(roof), minY - 0.03);
+      wall(p3sOutline(roof), tris, minY - 0.03, roof.kind !== "poly");
     }
     let foot = [];
     try {
