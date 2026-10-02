@@ -1731,6 +1731,17 @@ const P3S_CSS = `
 .p3s-step .bd{flex:1;min-width:0;display:flex;flex-direction:column;gap:7px}
 .p3s-step .tt{font-size:13.5px;font-weight:800}
 .p3s-step .ds{font-size:11.5px;color:var(--text-3);line-height:1.45}
+.p3s-wiz .dots{display:flex;gap:4px}
+.p3s-wiz .dot{flex:1;min-width:0;height:26px;border:0;border-radius:8px;background:var(--surface2);box-shadow:var(--shadow-inset);color:var(--text-3);font-size:11.5px;font-weight:800;cursor:pointer;display:grid;place-items:center;padding:0}
+.p3s-wiz .dot[data-done="1"]{background:var(--primary-soft,rgba(16,185,129,.16));color:var(--primary);box-shadow:none}
+.p3s-wiz .dot[data-on="1"]{background:var(--primary);color:#fff;box-shadow:none}
+.p3s-wiz .wt{font-size:14.5px;font-weight:800;line-height:1.35}
+.p3s-wiz .wd{font-size:12px;color:var(--text-2);line-height:1.5}
+.p3s-wiz .wd b{color:var(--text)}
+.p3s-wiz .chips{display:flex;flex-wrap:wrap;gap:5px}
+.p3s-wiz .chips .p3s-btn{height:28px;font-size:11.5px;padding:0 9px}
+.p3s-tool[data-dim="1"]{opacity:.35}
+.p3s-tool[data-hint="1"]{box-shadow:0 0 0 2px var(--primary) inset}
 .p3s-float{position:absolute;background:var(--surface);border-radius:14px;box-shadow:var(--shadow-card);display:flex;align-items:center;gap:6px;padding:5px;z-index:2}
 .p3s-ctx{top:12px;left:50%;transform:translateX(-50%);max-width:calc(100% - 24px);flex-wrap:wrap;justify-content:center}
 .p3s-ctx .lbl{font-size:11px;font-weight:800;color:var(--text-3);padding:0 4px 0 8px}
@@ -2376,6 +2387,42 @@ function Plan3DStudio({
   const [marq, setMarq] = React.useState(null);
   const [mapOpen, setMapOpen] = React.useState(false);
   const [sheetMin, setSheetMin] = React.useState(false);
+  const [wiz, setWizRaw] = React.useState(() => {
+    try {
+      return localStorage.getItem("p3s_wiz") !== "0";
+    } catch (e) {
+      return true;
+    }
+  });
+  const setWiz = v => {
+    setWizRaw(v);
+    try {
+      localStorage.setItem("p3s_wiz", v ? "1" : "0");
+    } catch (e) {}
+  };
+  const wizKey = "p3s_wiz_" + (job ? job.id : "");
+  const [wizSeen, setWizSeenRaw] = React.useState(() => {
+    try {
+      return JSON.parse(localStorage.getItem(wizKey) || "{}") || {};
+    } catch (e) {
+      return {};
+    }
+  });
+  const markSeen = i => setWizSeenRaw(o => {
+    if (o[i]) return o;
+    const n = Object.assign({}, o, {
+      [i]: 1
+    });
+    try {
+      localStorage.setItem(wizKey, JSON.stringify(n));
+    } catch (e) {}
+    return n;
+  });
+  const [wizStep, setWizStep] = React.useState(null);
+  const shapeRef = React.useRef({
+    roofs: null,
+    gap: 0
+  });
   const [photoAR, setPhotoAR] = React.useState(1);
   const [sunHour, setSunHour] = React.useState(null);
   const [lockRoofs, setLockRoofs] = React.useState(false);
@@ -6753,13 +6800,284 @@ function Plan3DStudio({
   }), React.createElement("span", {
     className: "p3s-note"
   }, "\u0E21\u0E35\u0E17\u0E31\u0E49\u0E07\u0E20\u0E32\u0E1E\u0E14\u0E32\u0E27\u0E40\u0E17\u0E35\u0E22\u0E21\u0E41\u0E25\u0E30\u0E23\u0E39\u0E1B\u0E42\u0E14\u0E23\u0E19: \u0E25\u0E14\u0E04\u0E27\u0E32\u0E21\u0E17\u0E36\u0E1A\u0E23\u0E39\u0E1B\u0E42\u0E14\u0E23\u0E19\u0E41\u0E25\u0E49\u0E27\u0E25\u0E32\u0E01\u0E43\u0E2B\u0E49\u0E17\u0E31\u0E1A\u0E41\u0E1C\u0E19\u0E17\u0E35\u0E48\u0E1E\u0E2D\u0E14\u0E35 \u0E08\u0E30\u0E44\u0E14\u0E49\u0E17\u0E31\u0E49\u0E07\u0E04\u0E27\u0E32\u0E21\u0E04\u0E21\u0E02\u0E2D\u0E07\u0E42\u0E14\u0E23\u0E19\u0E41\u0E25\u0E30\u0E21\u0E32\u0E15\u0E23\u0E32\u0E2A\u0E48\u0E27\u0E19\u0E02\u0E2D\u0E07\u0E41\u0E1C\u0E19\u0E17\u0E35\u0E48"))));
-  const guidePanel = React.createElement(React.Fragment, null, React.createElement("div", {
+  const hasImgW = !!(st.baseMap || st.photo);
+  const facetRoofs = roofs.filter(r => r.p3sFacet);
+  if (shapeRef.current.roofs !== roofs) {
+    let g = 0;
+    if (facetRoofs.length > 1) {
+      try {
+        g = p3sWeldFacets(facetRoofs).gap || 0;
+      } catch (e) {
+        g = 0;
+      }
+    }
+    shapeRef.current = {
+      roofs,
+      gap: g
+    };
+  }
+  const shapeGap = shapeRef.current.gap;
+  const emptyRoofs = roofs.filter(r => !roofCountOf(r));
+  const anyWalk = roofs.some(r => (r.walks || []).length);
+  const pickRoof = r => {
+    setSel({
+      t: "roof",
+      id: r.id
+    });
+    const c = p3sRoofCenter(r);
+    setView(Object.assign({}, viewRef.current, {
+      cx: c.x,
+      cz: c.z
+    }));
+  };
+  const WIZ = [{
+    t: "ภาพมุมสูง",
+    tools: ["bg"],
+    done: hasImgW,
+    skip: true,
+    d: React.createElement("span", null, "\u0E01\u0E14 ", React.createElement("b", null, "\u0E14\u0E32\u0E27\u0E40\u0E17\u0E35\u0E22\u0E21"), " \u0E2B\u0E23\u0E37\u0E2D ", React.createElement("b", null, "\u0E23\u0E39\u0E1B\u0E42\u0E14\u0E23\u0E19"), " \u0E41\u0E25\u0E49\u0E27\u0E40\u0E25\u0E37\u0E48\u0E2D\u0E19\u0E43\u0E2B\u0E49\u0E2D\u0E32\u0E04\u0E32\u0E23\u0E2D\u0E22\u0E39\u0E48\u0E01\u0E25\u0E32\u0E07\u0E08\u0E2D \xB7 \u0E23\u0E39\u0E1B\u0E42\u0E14\u0E23\u0E19\u0E15\u0E49\u0E2D\u0E07\u0E15\u0E31\u0E49\u0E07\u0E21\u0E32\u0E15\u0E23\u0E32\u0E2A\u0E48\u0E27\u0E19\u0E08\u0E32\u0E01\u0E23\u0E30\u0E22\u0E30\u0E17\u0E35\u0E48\u0E23\u0E39\u0E49\u0E08\u0E23\u0E34\u0E07\u0E01\u0E48\u0E2D\u0E19 \u2014 \u0E17\u0E38\u0E01\u0E2D\u0E22\u0E48\u0E32\u0E07\u0E2B\u0E25\u0E31\u0E07\u0E08\u0E32\u0E01\u0E19\u0E35\u0E49\u0E27\u0E31\u0E14\u0E15\u0E32\u0E21\u0E20\u0E32\u0E1E\u0E19\u0E35\u0E49"),
+    act: React.createElement("div", {
+      className: "p3s-row"
+    }, React.createElement("button", {
+      className: "p3s-btn",
+      style: {
+        flex: 1
+      },
+      onClick: () => setMapOpen(true)
+    }, React.createElement(P3Icon, {
+      name: "map"
+    }), "\u0E14\u0E32\u0E27\u0E40\u0E17\u0E35\u0E22\u0E21"), React.createElement("button", {
+      className: "p3s-btn",
+      style: {
+        flex: 1
+      },
+      onClick: () => fileRef.current && fileRef.current.click()
+    }, React.createElement(P3Icon, {
+      name: "camera"
+    }), "\u0E23\u0E39\u0E1B\u0E42\u0E14\u0E23\u0E19")),
+    go: () => setTool("bg")
+  }, {
+    t: "ตั้งแนวหลังคา",
+    tools: ["axis"],
+    done: axisDeg != null,
+    skip: true,
+    d: React.createElement("span", null, "\u0E01\u0E14 ", React.createElement("b", null, "\u0E2B\u0E32\u0E41\u0E19\u0E27\u0E08\u0E32\u0E01\u0E20\u0E32\u0E1E\u0E2D\u0E31\u0E15\u0E42\u0E19\u0E21\u0E31\u0E15\u0E34"), " \u0E2B\u0E23\u0E37\u0E2D\u0E25\u0E32\u0E01\u0E40\u0E2A\u0E49\u0E19\u0E17\u0E31\u0E1A\u0E02\u0E2D\u0E1A\u0E0A\u0E32\u0E22\u0E04\u0E32\u0E17\u0E35\u0E48\u0E22\u0E32\u0E27\u0E17\u0E35\u0E48\u0E2A\u0E38\u0E14 1 \u0E40\u0E2A\u0E49\u0E19 \u0E1C\u0E31\u0E07\u0E08\u0E30\u0E2B\u0E21\u0E38\u0E19\u0E43\u0E2B\u0E49\u0E2D\u0E32\u0E04\u0E32\u0E23\u0E15\u0E31\u0E49\u0E07\u0E15\u0E23\u0E07 \xB7 ", React.createElement("b", null, "\u0E15\u0E31\u0E49\u0E07\u0E01\u0E48\u0E2D\u0E19\u0E27\u0E32\u0E14\u0E2B\u0E25\u0E31\u0E07\u0E04\u0E32"), " \u0E44\u0E21\u0E48\u0E15\u0E49\u0E2D\u0E07\u0E01\u0E25\u0E31\u0E1A\u0E21\u0E32\u0E41\u0E01\u0E49\u0E2D\u0E35\u0E01"),
+    go: () => setTool("axis")
+  }, {
+    t: "วาดหลังคาให้ครบทุกผืน",
+    tools: ["roof"],
+    done: roofs.length > 0,
+    d: React.createElement("span", null, "\u0E40\u0E25\u0E37\u0E2D\u0E01\u0E17\u0E23\u0E07\u0E17\u0E35\u0E48\u0E41\u0E16\u0E1A\u0E1A\u0E19\u0E1C\u0E31\u0E07 \xB7 \u0E17\u0E23\u0E07\u0E07\u0E48\u0E32\u0E22 (\u0E23\u0E32\u0E1A \u0E40\u0E1E\u0E34\u0E07 \u0E08\u0E31\u0E48\u0E27 \u0E1B\u0E31\u0E49\u0E19\u0E2B\u0E22\u0E32) \u0E25\u0E32\u0E01\u0E17\u0E31\u0E1A\u0E04\u0E23\u0E31\u0E49\u0E07\u0E40\u0E14\u0E35\u0E22\u0E27 \xB7 \u0E2B\u0E25\u0E31\u0E07\u0E04\u0E32\u0E0B\u0E31\u0E1A\u0E0B\u0E49\u0E2D\u0E19\u0E40\u0E25\u0E37\u0E2D\u0E01 ", React.createElement("b", null, "\u0E17\u0E35\u0E25\u0E30\u0E1C\u0E37\u0E19"), " \u0E04\u0E25\u0E34\u0E01\u0E44\u0E25\u0E48\u0E21\u0E38\u0E21\u0E41\u0E15\u0E48\u0E25\u0E30\u0E1C\u0E37\u0E19 \u0E21\u0E38\u0E21\u0E17\u0E35\u0E48\u0E2B\u0E48\u0E32\u0E07\u0E01\u0E31\u0E19\u0E44\u0E21\u0E48\u0E16\u0E36\u0E07 40 \u0E0B\u0E21. \u0E15\u0E48\u0E2D\u0E01\u0E31\u0E19\u0E40\u0E2D\u0E07 \xB7 ", React.createElement("b", null, "\u0E22\u0E31\u0E07\u0E44\u0E21\u0E48\u0E15\u0E49\u0E2D\u0E07\u0E2A\u0E19\u0E43\u0E08\u0E04\u0E27\u0E32\u0E21\u0E0A\u0E31\u0E19\u0E41\u0E25\u0E30\u0E41\u0E1C\u0E07")),
+    go: () => setTool("roof")
+  }, {
+    t: "ตั้งความชันและเช็กชายคา",
+    tools: ["select"],
+    done: roofs.length > 0 && shapeGap < 0.03 && !!wizSeen[3],
+    d: React.createElement("span", null, "\u0E41\u0E15\u0E30\u0E2B\u0E25\u0E31\u0E07\u0E04\u0E32\u0E1C\u0E37\u0E19\u0E44\u0E2B\u0E19\u0E01\u0E47\u0E44\u0E14\u0E49 \u0E41\u0E25\u0E49\u0E27\u0E15\u0E31\u0E49\u0E07 ", React.createElement("b", null, "\u0E04\u0E27\u0E32\u0E21\u0E0A\u0E31\u0E19"), " \u0E04\u0E23\u0E31\u0E49\u0E07\u0E40\u0E14\u0E35\u0E22\u0E27 \u0E1C\u0E37\u0E19\u0E17\u0E35\u0E48\u0E15\u0E48\u0E2D\u0E01\u0E31\u0E19\u0E08\u0E30\u0E0A\u0E31\u0E19\u0E40\u0E17\u0E48\u0E32\u0E01\u0E31\u0E19\u0E17\u0E31\u0E49\u0E07\u0E2B\u0E25\u0E31\u0E07 \xB7 \u0E1C\u0E37\u0E19\u0E44\u0E2B\u0E19\u0E0A\u0E32\u0E22\u0E04\u0E32\u0E1C\u0E34\u0E14\u0E14\u0E49\u0E32\u0E19 \u0E43\u0E0A\u0E49 ", React.createElement("b", null, "\u0E41\u0E15\u0E30\u0E40\u0E25\u0E37\u0E2D\u0E01\u0E02\u0E2D\u0E1A\u0E0A\u0E32\u0E22\u0E04\u0E32\u0E1A\u0E19\u0E1C\u0E31\u0E07"), " \xB7 \u0E41\u0E25\u0E49\u0E27\u0E01\u0E14 ", React.createElement("b", null, "3D"), " \u0E14\u0E39\u0E17\u0E23\u0E07\u0E41\u0E27\u0E1A\u0E40\u0E14\u0E35\u0E22\u0E27"),
+    extra: shapeGap >= 0.03 && facetRoofs.length > 1 && React.createElement("div", {
+      className: "p3s-row"
+    }, React.createElement("span", {
+      className: "p3s-badge warn",
+      style: {
+        flex: 1
+      }
+    }, "\u0E17\u0E23\u0E07\u0E22\u0E31\u0E07\u0E40\u0E1E\u0E35\u0E49\u0E22\u0E19 ", Math.round(shapeGap * 100), " \u0E0B\u0E21."), React.createElement("button", {
+      className: "p3s-btn pri",
+      onClick: () => weldNow(facetRoofs[0])
+    }, React.createElement(P3SIcon, {
+      name: "magic",
+      size: 15
+    }), "\u0E08\u0E31\u0E14\u0E17\u0E23\u0E07\u0E17\u0E31\u0E49\u0E07\u0E2B\u0E25\u0E31\u0E07")),
+    act: React.createElement("button", {
+      className: "p3s-btn wide",
+      onClick: () => {
+        setView3d(true);
+        setToolRaw("select");
+      }
+    }, React.createElement(P3Icon, {
+      name: "cube"
+    }), "\u0E14\u0E39\u0E17\u0E23\u0E07\u0E43\u0E19 3D"),
+    go: () => {
+      setTool("select");
+      const r = facetRoofs[0] || roofs[0];
+      if (r && !(sel && sel.t === "roof")) pickRoof(r);
+    }
+  }, {
+    t: "สิ่งบดบัง",
+    tools: ["obs"],
+    done: (st.obstacles || []).length > 0 || !!wizSeen[4],
+    skip: true,
+    d: React.createElement("span", null, "\u0E27\u0E32\u0E14\u0E41\u0E17\u0E47\u0E07\u0E01\u0E4C\u0E19\u0E49\u0E33 \u0E0A\u0E48\u0E2D\u0E07\u0E41\u0E2A\u0E07 \u0E40\u0E2A\u0E32 \u0E15\u0E49\u0E19\u0E44\u0E21\u0E49 ", React.createElement("b", null, "\u0E01\u0E48\u0E2D\u0E19\u0E27\u0E32\u0E07\u0E41\u0E1C\u0E07"), " \u2014 \u0E41\u0E1C\u0E07\u0E17\u0E35\u0E48\u0E17\u0E31\u0E1A\u0E08\u0E30\u0E16\u0E39\u0E01\u0E15\u0E31\u0E14\u0E2D\u0E2D\u0E01\u0E40\u0E2D\u0E07 \xB7 \u0E44\u0E21\u0E48\u0E21\u0E35\u0E01\u0E47\u0E01\u0E14\u0E16\u0E31\u0E14\u0E44\u0E1B\u0E44\u0E14\u0E49\u0E40\u0E25\u0E22"),
+    go: () => setTool("obs")
+  }, {
+    t: "วางแผง ทีละหลังคา",
+    tools: ["panel"],
+    done: total > 0,
+    d: React.createElement("span", null, "\u0E23\u0E38\u0E48\u0E19\u0E41\u0E1C\u0E07 ", React.createElement("b", null, (st.sys || {}).panelModel || (st.wp || 650) + " W"), " \xB7 \u0E41\u0E15\u0E30\u0E2B\u0E25\u0E31\u0E07\u0E04\u0E32\u0E41\u0E25\u0E49\u0E27\u0E01\u0E14 ", React.createElement("b", null, "\u0E40\u0E15\u0E34\u0E21\u0E41\u0E1C\u0E07"), " \xB7 \u0E15\u0E31\u0E49\u0E07\u0E40\u0E27\u0E49\u0E19\u0E23\u0E2D\u0E1A\u0E02\u0E2D\u0E1A \u0E41\u0E19\u0E27\u0E15\u0E31\u0E49\u0E07/\u0E19\u0E2D\u0E19 \xB7 \u0E41\u0E16\u0E27\u0E40\u0E2D\u0E35\u0E22\u0E07\u0E01\u0E14 ", React.createElement("b", null, "\u0E02\u0E19\u0E32\u0E19\u0E0A\u0E32\u0E22\u0E04\u0E32"), " \xB7 \u0E41\u0E15\u0E30\u0E41\u0E1C\u0E07\u0E17\u0E35\u0E48\u0E44\u0E21\u0E48\u0E15\u0E49\u0E2D\u0E07\u0E01\u0E32\u0E23\u0E40\u0E1E\u0E37\u0E48\u0E2D\u0E1B\u0E34\u0E14"),
+    extra: emptyRoofs.length > 0 && roofs.length > 0 && React.createElement("div", {
+      className: "p3s-fld",
+      style: {
+        gap: 5
+      }
+    }, React.createElement("span", {
+      className: "lb"
+    }, "\u0E22\u0E31\u0E07\u0E44\u0E21\u0E48\u0E21\u0E35\u0E41\u0E1C\u0E07 ", emptyRoofs.length, " \u0E2B\u0E25\u0E31\u0E07\u0E04\u0E32 \u2014 \u0E41\u0E15\u0E30\u0E40\u0E1E\u0E37\u0E48\u0E2D\u0E44\u0E1B\u0E17\u0E35\u0E48\u0E2B\u0E25\u0E31\u0E07\u0E04\u0E32\u0E19\u0E31\u0E49\u0E19"), React.createElement("div", {
+      className: "chips"
+    }, emptyRoofs.slice(0, 12).map(r => React.createElement("button", {
+      key: r.id,
+      className: "p3s-btn",
+      onClick: () => {
+        setTool("panel");
+        pickRoof(r);
+      }
+    }, r.name || "หลังคา")))),
+    go: () => {
+      setTool("panel");
+      const r = emptyRoofs[0] || roofs[0];
+      if (r) pickRoof(r);
+    }
+  }, {
+    t: "ทางเดิน",
+    tools: ["walk"],
+    done: anyWalk || !!wizSeen[6],
+    skip: true,
+    d: React.createElement("span", null, "\u0E04\u0E25\u0E34\u0E01\u0E44\u0E25\u0E48\u0E08\u0E38\u0E14\u0E40\u0E1B\u0E47\u0E19\u0E41\u0E19\u0E27\u0E17\u0E32\u0E07\u0E40\u0E14\u0E34\u0E19 \u0E14\u0E31\u0E1A\u0E40\u0E1A\u0E34\u0E25\u0E04\u0E25\u0E34\u0E01\u0E08\u0E1A\u0E40\u0E2A\u0E49\u0E19 \xB7 \u0E41\u0E1C\u0E07\u0E17\u0E35\u0E48\u0E17\u0E31\u0E1A\u0E41\u0E19\u0E27\u0E2B\u0E32\u0E22\u0E40\u0E2D\u0E07 \u0E08\u0E33\u0E19\u0E27\u0E19\u0E41\u0E1C\u0E07\u0E41\u0E25\u0E30 BOQ \u0E15\u0E23\u0E07\u0E40\u0E2D\u0E07 \xB7 \u0E44\u0E21\u0E48\u0E15\u0E49\u0E2D\u0E07\u0E21\u0E35\u0E01\u0E47\u0E01\u0E14\u0E16\u0E31\u0E14\u0E44\u0E1B"),
+    go: () => setTool("walk")
+  }, {
+    t: "ตรวจ 3D และเงา แล้วบันทึก",
+    tools: [],
+    done: total > 0 && !!wizSeen[7] && !dirty,
+    d: React.createElement("span", null, "\u0E2B\u0E21\u0E38\u0E19\u0E14\u0E39\u0E23\u0E2D\u0E1A \u0E46 \u0E41\u0E25\u0E49\u0E27\u0E01\u0E14 ", React.createElement("b", null, "\u0E01\u0E27\u0E32\u0E14\u0E14\u0E39\u0E40\u0E07\u0E32\u0E17\u0E31\u0E49\u0E07\u0E27\u0E31\u0E19"), " (\u0E15\u0E23\u0E27\u0E08\u0E40\u0E14\u0E37\u0E2D\u0E19\u0E18\u0E31\u0E19\u0E27\u0E32\u0E04\u0E21\u0E40\u0E2A\u0E21\u0E2D) \xB7 \u0E40\u0E2A\u0E23\u0E47\u0E08\u0E41\u0E25\u0E49\u0E27\u0E01\u0E14 ", React.createElement("b", null, "\u0E1A\u0E31\u0E19\u0E17\u0E36\u0E01")),
+    act: React.createElement("div", {
+      className: "p3s-row"
+    }, React.createElement("button", {
+      className: "p3s-btn",
+      style: {
+        flex: 1
+      },
+      onClick: () => {
+        setView3d(true);
+        setToolRaw("select");
+        markSeen(7);
+      }
+    }, React.createElement(P3Icon, {
+      name: "cube"
+    }), "\u0E14\u0E39 3D"), React.createElement("button", {
+      className: "p3s-btn pri",
+      style: {
+        flex: 1
+      },
+      disabled: !dirty,
+      onClick: () => {
+        markSeen(7);
+        doSave();
+      }
+    }, React.createElement(P3Icon, {
+      name: "save"
+    }), dirty ? "บันทึก" : "บันทึกแล้ว")),
+    go: () => {
+      setView3d(true);
+      setToolRaw("select");
+      setDraw(null);
+      setMeasPts(null);
+      setTrace(null);
+      setCalib(null);
+      markSeen(7);
+    }
+  }];
+  const wizAuto = (() => {
+    const i = WIZ.findIndex(w => !w.done);
+    return i < 0 ? WIZ.length - 1 : i;
+  })();
+  const wi = wizStep != null ? wizStep : wizAuto,
+    W0 = WIZ[wi];
+  const goStep = i => {
+    if (i < 0 || i >= WIZ.length) return;
+    setWizStep(i);
+    WIZ[i].go();
+  };
+  const nextStep = () => {
+    markSeen(wi);
+    goStep(wi + 1);
+  };
+  const wizCard = wiz && React.createElement("div", {
+    className: "p3s-card p3s-wiz"
+  }, React.createElement("div", {
+    className: "p3s-h"
+  }, React.createElement("span", {
+    className: "t"
+  }, "\u0E1E\u0E32\u0E17\u0E33\u0E17\u0E35\u0E25\u0E30\u0E02\u0E31\u0E49\u0E19 \xB7 \u0E02\u0E31\u0E49\u0E19 ", wi + 1, "/", WIZ.length), React.createElement("button", {
+    className: "p3s-btn ghost",
+    style: {
+      marginLeft: "auto",
+      height: 24,
+      padding: "0 8px",
+      fontSize: 11
+    },
+    onClick: () => setWiz(false),
+    title: "\u0E1B\u0E34\u0E14\u0E42\u0E2B\u0E21\u0E14\u0E1E\u0E32\u0E17\u0E33"
+  }, "\u0E1B\u0E34\u0E14")), React.createElement("div", {
+    className: "dots"
+  }, WIZ.map((w, i) => React.createElement("button", {
+    key: i,
+    className: "dot",
+    "data-on": i === wi ? "1" : "0",
+    "data-done": w.done ? "1" : "0",
+    title: w.t,
+    onClick: () => goStep(i)
+  }, w.done && i !== wi ? "✓" : i + 1))), React.createElement("span", {
+    className: "wt"
+  }, wi + 1, ". ", W0.t, W0.done ? " ✓" : ""), React.createElement("span", {
+    className: "wd"
+  }, W0.d), W0.extra || null, W0.act || null, React.createElement("div", {
+    className: "p3s-row"
+  }, React.createElement("button", {
+    className: "p3s-btn",
+    disabled: wi === 0,
+    onClick: () => goStep(wi - 1)
+  }, "\u2190 \u0E22\u0E49\u0E2D\u0E19"), wi < WIZ.length - 1 ? React.createElement("button", {
+    className: "p3s-btn" + (W0.done || W0.skip ? " pri" : ""),
+    style: {
+      flex: 1
+    },
+    onClick: nextStep
+  }, !W0.done && W0.skip ? "ข้าม · " : "ถัดไป · ", WIZ[wi + 1].t, " \u2192") : React.createElement("span", {
+    className: "p3s-note",
+    style: {
+      flex: 1,
+      textAlign: "right"
+    }
+  }, WIZ.every(w => w.done || w.skip) ? "เสร็จครบทุกขั้น" : "ยังมีขั้นที่ไม่เสร็จ — ดูเลขที่ไม่มี ✓")), !W0.done && !W0.skip && wi < WIZ.length - 1 && React.createElement("span", {
+    className: "p3s-note"
+  }, "\u0E02\u0E31\u0E49\u0E19\u0E19\u0E35\u0E49\u0E22\u0E31\u0E07\u0E44\u0E21\u0E48\u0E40\u0E2A\u0E23\u0E47\u0E08 \u2014 \u0E44\u0E1B\u0E15\u0E48\u0E2D\u0E44\u0E14\u0E49 \u0E41\u0E15\u0E48\u0E16\u0E49\u0E32\u0E01\u0E25\u0E31\u0E1A\u0E21\u0E32\u0E41\u0E01\u0E49\u0E17\u0E35\u0E2B\u0E25\u0E31\u0E07\u0E2D\u0E32\u0E08\u0E15\u0E49\u0E2D\u0E07\u0E08\u0E31\u0E14\u0E41\u0E1C\u0E07\u0E43\u0E2B\u0E21\u0E48"));
+  const wizTools = wiz && !view3d ? W0.tools : null;
+  const guidePanel = React.createElement(React.Fragment, null, React.createElement("input", {
+    ref: fileRef,
+    type: "file",
+    accept: "image/*",
+    style: {
+      display: "none"
+    },
+    onChange: onPickPhoto
+  }), wiz ? null : React.createElement("div", {
     className: "p3s-card"
   }, React.createElement("div", {
     className: "p3s-h"
   }, React.createElement("span", {
     className: "t"
-  }, "\u0E02\u0E31\u0E49\u0E19\u0E15\u0E2D\u0E19")), [{
+  }, "\u0E02\u0E31\u0E49\u0E19\u0E15\u0E2D\u0E19"), React.createElement("button", {
+    className: "p3s-btn pri",
+    style: {
+      marginLeft: "auto",
+      height: 26,
+      padding: "0 10px",
+      fontSize: 11.5
+    },
+    onClick: () => {
+      setWiz(true);
+      setWizStep(null);
+    }
+  }, "\u0E1E\u0E32\u0E17\u0E33\u0E17\u0E35\u0E25\u0E30\u0E02\u0E31\u0E49\u0E19")), [{
     done: !!(st.baseMap || st.photo),
     t: "ภาพมุมสูง",
     d: "ภาพดาวเทียมจากแผนที่ หรือรูปโดรน (ข้ามได้ถ้าวาดจากขนาดที่วัดมา)",
@@ -6834,15 +7152,7 @@ function Plan3DStudio({
     className: "tt"
   }, s.t), React.createElement("span", {
     className: "ds"
-  }, s.d), s.act))), React.createElement("input", {
-    ref: fileRef,
-    type: "file",
-    accept: "image/*",
-    style: {
-      display: "none"
-    },
-    onChange: onPickPhoto
-  })), React.createElement("div", {
+  }, s.d), s.act)))), React.createElement("div", {
     className: "p3s-card"
   }, React.createElement("div", {
     className: "p3s-h"
@@ -7096,6 +7406,7 @@ function Plan3DStudio({
       c: v > 1.2 ? 1.3 : 1
     })
   }));else sideBody = guidePanel;
+  if (wizCard) sideBody = React.createElement(React.Fragment, null, wizCard, sideBody);
   let ctxBar = null;
   if (!view3d && tool === "roof") {
     const rectOnly = roofOpt.kind === "gable" || roofOpt.kind === "hip",
@@ -7251,6 +7562,8 @@ function Plan3DStudio({
     key: t.k,
     className: "p3s-tool",
     "data-on": tool === t.k && !view3d ? "1" : "0",
+    "data-dim": wizTools && wizTools.length && !wizTools.includes(t.k) && !["select", "pan", "meas"].includes(t.k) ? "1" : "0",
+    "data-hint": wizTools && wizTools.includes(t.k) && tool !== t.k ? "1" : "0",
     onClick: () => {
       if (view3d) setView3d(false);
       setTool(t.k);
