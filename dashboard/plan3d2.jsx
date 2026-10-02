@@ -888,6 +888,16 @@ const P3S_KIND_D = { flat: "ดาดฟ้า · หลังคาเรีย
   manila: "ปั้นหยา + จั่วเล็กบนยอด (บ้าน)", dome: "โค้งตามด้านยาว · กลับทิศได้", lshape: "บ้านมีปีกยื่นที่ปลายด้านหนึ่ง", tshape: "บ้านมีปีกยื่นตรงกลาง",
   mgable: "โรงงาน/โกดัง · จั่วต่อกันหลายช่วง (ทรง M)", monitor: "โกดัง · จั่วเล็กซ้อนบนสัน เว้นช่องระบายอากาศ", saw: "โรงงาน · ลาดเดียวซ้ำ ลาดลงทิศใต้",
   carport: "หลังคาบนเสา ไม่มีผนัง · ลาด 5°", ground: "โซลาร์ฟาร์ม · แผงบนขาตั้งเอียง 15°", facet: "หลังคาซับซ้อน · คลิกไล่มุม" };
+/* วัสดุหลังคา (เฉพาะภาพ 3D — ไม่กระทบการนับแผง/BOQ) · ไม่ตั้ง = ตามทรง */
+const P3S_MATS = [["metal", "เมทัลชีทลอน"], ["kliplok", "เมทัลชีทล็อกตะเข็บ (Kliplok)"], ["sandwich", "เมทัลชีทบุฉนวน PU"], ["cpac", "กระเบื้องคอนกรีต"],
+  ["ceramic", "กระเบื้องเซรามิก/ดินเผา"], ["shingle", "ชิงเกิ้ลรูฟ"], ["fiber", "กระเบื้องลอนคู่"], ["concrete", "พื้นคอนกรีต (ดาดฟ้า)"]];
+function p3sRoofMat(r) {
+  if (r && r.p3sMat && P3S_MATS.some((o) => o[0] === r.p3sMat)) return r.p3sMat;
+  const k = r && r.p3sKind;
+  if (k === "parapet") return "concrete";
+  if (k === "manila" || k === "lshape" || k === "tshape") return "cpac";
+  return "metal";
+}
 /* ทรงที่วาดกรอบเดียวแล้วประกอบเป็นหลายหลังในกลุ่มเดียว (grp) — เอนจิน/BOQ/แบบเก่าเห็นเป็นจั่ว/เพิง/ปั้นหยาธรรมดา */
 const P3S_MULTI = { mgable: 1, saw: 1, monitor: 1, manila: 1, lshape: 1, tshape: 1 };
 const P3S_SPANS = { mgable: 1, saw: 1 };   // ถามจำนวนช่วงก่อนวาด
@@ -1363,21 +1373,68 @@ function p3sBuild3D(THREE, grp, st, tex) {
     pg.rotation.y = -((+st.photoRot || 0) * P3_DEG);
     pg.add(pm);
   }
-  /* หลังคาเมทัลชีท: ลอนสูงทุก 25 ซม. วิ่งตามแนวลาด (UV: u = ขวางลาด · v = ตามลาด หน่วยเมตร) */
-  const roofTex = (() => {
-    const c = document.createElement("canvas"); c.width = 128; c.height = 16; const g = c.getContext("2d");
-    g.fillStyle = "#e3e7ea"; g.fillRect(0, 0, 128, 16);
-    for (let i = 0; i < 4; i++) { const x = i * 32; g.fillStyle = "#f7f8f9"; g.fillRect(x, 0, 4, 16); g.fillStyle = "#c3c9cf"; g.fillRect(x + 4, 0, 3, 16); g.fillStyle = "#d6dbdf"; g.fillRect(x + 7, 0, 2, 16); }
-    const t = new THREE.CanvasTexture(c); t.wrapS = t.wrapT = THREE.RepeatWrapping; t.anisotropy = 8; return t;
-  })();
-  const roofMat = new THREE.MeshLambertMaterial({ color: 0x9aa1a8, map: roofTex, side: THREE.DoubleSide });
-  const capMat = new THREE.MeshLambertMaterial({ color: 0x7d858d, side: THREE.DoubleSide });
-  const fasMat = new THREE.MeshLambertMaterial({ color: 0x8a9198, side: THREE.DoubleSide });
-  const fasciaQ = [];
+  /* วัสดุหลังคา: ลายจากแคนวาส 1 แผ่น = tw × th เมตร (UV: u = ขวางลาด · v = ตามลาด หน่วยเมตร) · ครอบสัน/แผ่นปิดขอบสีตามวัสดุ
+     กระเบื้อง/ชิงเกิ้ล/คอนกรีต = บ้าน → ผนังปูนฉาบ · แผ่นปิดขอบ (ไม้เชิงชาย) สีขาว */
+  const tile = (g, w, h, x0, y0, tw, th) => {   // กระเบื้องลอนโค้ง: ไล่เงาขวางลอน + เงาใต้ขอบล่าง
+    const gr = g.createLinearGradient(x0, 0, x0 + tw, 0);
+    gr.addColorStop(0, "#9a9a9a"); gr.addColorStop(0.3, "#f2f2f2"); gr.addColorStop(0.62, "#d0d0d0"); gr.addColorStop(1, "#8c8c8c");
+    g.fillStyle = gr; g.fillRect(x0, y0, tw, th);
+    g.fillStyle = "rgba(0,0,0,.38)"; g.fillRect(x0, y0 + th - Math.max(2, th * 0.1), tw, Math.max(2, th * 0.1));
+  };
+  const MDEF = {
+    metal: { tw: 1, th: 1, c: 0x9aa1a8, cap: 0x7d858d, fas: 0x8a9198, H: 0.2, cw: 128, ch: 16, draw: (g) => {
+      g.fillStyle = "#e3e7ea"; g.fillRect(0, 0, 128, 16);
+      for (let i = 0; i < 4; i++) { const x = i * 32; g.fillStyle = "#f7f8f9"; g.fillRect(x, 0, 4, 16); g.fillStyle = "#c3c9cf"; g.fillRect(x + 4, 0, 3, 16); g.fillStyle = "#d6dbdf"; g.fillRect(x + 7, 0, 2, 16); }
+    } },
+    kliplok: { tw: 0.7, th: 1, c: 0xa3abb3, cap: 0x7d858d, fas: 0x8a9198, H: 0.2, cw: 128, ch: 8, draw: (g) => {
+      g.fillStyle = "#e9ecef"; g.fillRect(0, 0, 128, 8);
+      g.fillStyle = "#ffffff"; g.fillRect(0, 0, 5, 8); g.fillStyle = "#a9b0b8"; g.fillRect(5, 0, 6, 8);
+      g.fillStyle = "#dadee2"; g.fillRect(48, 0, 2, 8); g.fillRect(88, 0, 2, 8);
+    } },
+    sandwich: { tw: 1, th: 1, c: 0xb9c2ca, cap: 0x8f98a0, fas: 0x9ea7af, H: 0.32, cw: 128, ch: 16, draw: (g) => {
+      g.fillStyle = "#e6e9ec"; g.fillRect(0, 0, 128, 16);
+      for (let i = 0; i < 4; i++) { const x = i * 32; g.fillStyle = "#fbfcfd"; g.fillRect(x, 0, 6, 16); g.fillStyle = "#c2c8ce"; g.fillRect(x + 6, 0, 4, 16); }
+    } },
+    cpac: { tw: 0.33, th: 0.32, c: 0x878c93, cap: 0x5f646b, fas: 0xece8df, H: 0.25, house: 1, cw: 64, ch: 64, draw: (g) => tile(g, 64, 64, 0, 0, 64, 64) },
+    ceramic: { tw: 0.22, th: 0.36, c: 0xc86a3c, cap: 0x9c4a26, fas: 0xece8df, H: 0.22, house: 1, cw: 64, ch: 128, draw: (g) => {
+      tile(g, 64, 128, 0, 0, 64, 64); tile(g, 64, 128, -32, 64, 64, 64); tile(g, 64, 128, 32, 64, 64, 64);   // แถวสลับครึ่งแผ่น
+    } },
+    shingle: { tw: 1, th: 0.28, c: 0x6c7076, cap: 0x4c5056, fas: 0xece8df, H: 0.22, house: 1, cw: 128, ch: 64, draw: (g) => {
+      let sd = 7; const rnd = () => ((sd = (sd * 9301 + 49297) % 233280) / 233280);
+      for (let row = 0; row < 2; row++) for (let k = -1; k < 3; k++) {
+        const x = k * 43 + (row ? 21 : 0), y = row * 32, v = 200 + Math.floor(rnd() * 45);
+        g.fillStyle = "rgb(" + v + "," + v + "," + v + ")"; g.fillRect(x, y, 43, 32);
+        g.fillStyle = "rgba(0,0,0,.45)"; g.fillRect(x, y, 2, 32);
+      }
+      g.fillStyle = "rgba(0,0,0,.4)"; g.fillRect(0, 29, 128, 3); g.fillRect(0, 61, 128, 3);
+    } },
+    fiber: { tw: 0.18, th: 1.2, c: 0xbab9b1, cap: 0x9d9c94, fas: 0xa9a8a0, H: 0.15, cw: 32, ch: 64, draw: (g) => {
+      for (let x = 0; x < 32; x++) { const v = Math.round(190 + 55 * Math.cos((x / 32) * Math.PI * 2)); g.fillStyle = "rgb(" + v + "," + v + "," + v + ")"; g.fillRect(x, 0, 1, 64); }
+      g.fillStyle = "rgba(0,0,0,.28)"; g.fillRect(0, 60, 32, 4);   // รอยทับแผ่นทุก 1.2 ม.
+    } },
+    concrete: { tw: 1, th: 1, c: 0xc6c2ba, cap: 0xa8a49c, fas: 0xbdb9b1, H: 0.25, house: 1, cw: 64, ch: 64, draw: (g) => {
+      g.fillStyle = "#ebe8e2"; g.fillRect(0, 0, 64, 64);
+      let sd = 3; for (let i = 0; i < 260; i++) { sd = (sd * 9301 + 49297) % 233280; const x = sd % 64; sd = (sd * 9301 + 49297) % 233280; const y = sd % 64; g.fillStyle = i % 2 ? "rgba(0,0,0,.06)" : "rgba(255,255,255,.35)"; g.fillRect(x, y, 2, 2); }
+      g.fillStyle = "rgba(0,0,0,.14)"; g.fillRect(0, 0, 64, 1); g.fillRect(0, 0, 1, 64);
+    } },
+  };
+  const MT = {};
+  const matSet = (key) => {
+    if (MT[key]) return MT[key];
+    const D = MDEF[key] || MDEF.metal, c = document.createElement("canvas"); c.width = D.cw; c.height = D.ch; D.draw(c.getContext("2d"));
+    const t = new THREE.CanvasTexture(c); t.wrapS = t.wrapT = THREE.RepeatWrapping; t.anisotropy = 8; t.repeat.set(1 / D.tw, 1 / D.th);
+    return (MT[key] = {
+      roof: new THREE.MeshLambertMaterial({ color: D.c, map: t, side: THREE.DoubleSide }),
+      cap: new THREE.MeshLambertMaterial({ color: D.cap, side: THREE.DoubleSide }),
+      fas: new THREE.MeshLambertMaterial({ color: D.fas, side: THREE.DoubleSide }),
+      H: D.H, house: !!D.house });
+  };
+  const roofMat = matSet("metal").roof;
+  let curMS = matSet("metal");
+  const fasciaQ = [], fqPush = (...a) => a.forEach((o) => { o.m = curMS; fasciaQ.push(o); });
   const gravelMat = new THREE.MeshLambertMaterial({ color: 0xb8b0a0, side: THREE.DoubleSide });
   const steelMat = new THREE.MeshStandardMaterial({ color: 0x9aa3ac, metalness: 0.4, roughness: 0.5 });
   const parMat = new THREE.MeshLambertMaterial({ color: 0xd8d4cb, side: THREE.DoubleSide });
-  const deckMat = new THREE.MeshLambertMaterial({ color: 0xbfbcb4, side: THREE.DoubleSide });   // พื้นดาดฟ้าคอนกรีต
   /* คาน/เสาเหล็กกล่องจาก a ถึง b */
   const bar = (a, b, w, h) => {
     const L = a.distanceTo(b); if (L < 0.01) return;
@@ -1393,6 +1450,7 @@ function p3sBuild3D(THREE, grp, st, tex) {
     const t = new THREE.CanvasTexture(c); t.wrapS = t.wrapT = THREE.RepeatWrapping; return t;
   })();
   const wallMat = new THREE.MeshLambertMaterial({ color: 0xffffff, map: wallTex, side: THREE.DoubleSide });
+  const plasterMat = new THREE.MeshLambertMaterial({ color: 0xf1ece2, side: THREE.DoubleSide });   // ผนังปูนฉาบ (บ้าน)
   const baseMat = new THREE.MeshLambertMaterial({ color: 0x8b8f94, side: THREE.DoubleSide });
   const trimMat = new THREE.LineBasicMaterial({ color: 0x9c968a });
   const edgeMat = new THREE.LineBasicMaterial({ color: 0x475569 });
@@ -1450,7 +1508,7 @@ function p3sBuild3D(THREE, grp, st, tex) {
     return out;
   };
   /* ผนังจากพื้นขึ้นไปชนผิวหลังคาจริง (จั่ว/ครึ่งวงกลมได้หน้าจั่วปิดเต็ม) */
-  const wall = (foot0, tris, hMin, convex) => {
+  const wall = (foot0, tris, hMin, convex, wm) => {
     if (!(hMin > 0.2) || !foot0 || foot0.length < 3) return;
     let foot = foot0;
     if (convex) {
@@ -1492,7 +1550,7 @@ function p3sBuild3D(THREE, grp, st, tex) {
       g.computeVertexNormals();
       const m = add(new THREE.Mesh(g, mat)); m.castShadow = true; m.receiveShadow = true;
     };
-    mk(wp, wallMat, wu); mk(bp, baseMat);
+    mk(wp, wm || wallMat, wu); mk(bp, baseMat);
     // เส้นมุมอาคาร + ขอบบนผนัง
     const cl = []; foot.forEach((p) => cl.push(p.x, 0, p.z, p.x, topAt(p.x, p.z), p.z));
     const lg = new THREE.BufferGeometry(); lg.setAttribute("position", new THREE.Float32BufferAttribute(cl.concat(tl), 3));
@@ -1503,6 +1561,8 @@ function p3sBuild3D(THREE, grp, st, tex) {
   const topY = (x, z) => { let y = null; for (let i = 0; i < allTris.length; i++) { const v = surfY([allTris[i]], x, z); if (v != null && (y == null || v > y)) y = v; } return y; };
   (st.roofs || []).forEach((roof) => {
     let faces = [];
+    curMS = matSet(roof.p3sGround ? "metal" : p3sRoofMat(roof));
+    const wmat = curMS.house ? plasterMat : wallMat;
     if (roof.kind === "poly") {
       if (!Array.isArray(roof.pts) || roof.pts.length < 3) return;
       const ph = p3PhOf(roof);
@@ -1518,21 +1578,21 @@ function p3sBuild3D(THREE, grp, st, tex) {
         [A, B, C, A, C, E].forEach((v) => pos.push(v.x, v.y, v.z));
         const r = Math.max(1, +roof.span || 6) / 2;
         [[-D.len / 2, t1], [D.len / 2, t1], [D.len / 2, t2], [-D.len / 2, t1], [D.len / 2, t2], [-D.len / 2, t2]].forEach(([u, t]) => uv.push(u, t * r));
-        fasciaQ.push({ p: A, q: E, c: { x: +roof.x || 0, z: +roof.z || 0 } }, { p: B, q: C, c: { x: +roof.x || 0, z: +roof.z || 0 } });
-        if (i === 0) fasciaQ.push({ p: A, q: B, c: { x: +roof.x || 0, z: +roof.z || 0 } });
-        if (i === segs - 1) fasciaQ.push({ p: E, q: C, c: { x: +roof.x || 0, z: +roof.z || 0 } });
+        fqPush({ p: A, q: E, c: { x: +roof.x || 0, z: +roof.z || 0 } }, { p: B, q: C, c: { x: +roof.x || 0, z: +roof.z || 0 } });
+        if (i === 0) fqPush({ p: A, q: B, c: { x: +roof.x || 0, z: +roof.z || 0 } });
+        if (i === segs - 1) fqPush({ p: E, q: C, c: { x: +roof.x || 0, z: +roof.z || 0 } });
         allTris.push([A, B, C], [A, C, E]); dTris.push([A, B, C], [A, C, E]);
         eat(A.x, A.y, A.z); eat(C.x, C.y, C.z);
       }
       const g = new THREE.BufferGeometry(); g.setAttribute("position", new THREE.Float32BufferAttribute(pos, 3)); g.setAttribute("uv", new THREE.Float32BufferAttribute(uv, 2)); g.computeVertexNormals();
-      const m = add(new THREE.Mesh(g, roofMat)); m.castShadow = true; m.receiveShadow = true;
-      wall(p3sFaces2D(roof)[0] ? p3sFaces2D(roof)[0].pts : [], dTris, h0, true);
+      const m = add(new THREE.Mesh(g, curMS.roof)); m.castShadow = true; m.receiveShadow = true;
+      wall(p3sFaces2D(roof)[0] ? p3sFaces2D(roof)[0].pts : [], dTris, h0, true, wmat);
     } else {
       const all = Object.assign({}, roof, { sideA: true, sideB: true, sideC: true, sideD: true });
       try { faces = p3RoofSurf(all).map((s) => s.pts); } catch (e) { faces = []; }
     }
     let tris = [];
-    faces.forEach((f) => { tris = tris.concat(polyMesh(f, roof.az, roof.p3sGround ? gravelMat : +roof.p3sParapet > 0 ? deckMat : null) || []); f.forEach((p) => eat(p.x, p.y, p.z)); });
+    faces.forEach((f) => { tris = tris.concat(polyMesh(f, roof.az, roof.p3sGround ? gravelMat : curMS.roof) || []); f.forEach((p) => eat(p.x, p.y, p.z)); });
     if (faces.length) {
       const K = (q) => Math.round(q.x * 20) + "," + Math.round(q.y * 20) + "," + Math.round(q.z * 20);
       const cen = faces.map((f) => { const c = { x: 0, y: 0, z: 0 }; f.forEach((q) => { c.x += q.x / f.length; c.y += q.y / f.length; c.z += q.z / f.length; }); return c; });
@@ -1544,7 +1604,7 @@ function p3sBuild3D(THREE, grp, st, tex) {
       }));
       const cap = [];
       E.forEach((e) => {
-        if (e.f.length === 1) { if (!roof.p3sGround && !(+roof.p3sParapet > 0)) fasciaQ.push({ p: e.a, q: e.b, c: cen[e.f[0]] }); return; }
+        if (e.f.length === 1) { if (!roof.p3sGround && !(+roof.p3sParapet > 0)) fqPush({ p: e.a, q: e.b, c: cen[e.f[0]] }); return; }
         const my = (e.a.y + e.b.y) / 2;
         if (!e.f.every((fi) => cen[fi].y < my - 0.02)) return;   // รางน้ำตะเข้ราง (ขอบต่ำกว่าผืน) ไม่ครอบ
         const dx = e.b.x - e.a.x, dy = e.b.y - e.a.y, dz = e.b.z - e.a.z, L = Math.hypot(dx, dy, dz);
@@ -1561,7 +1621,7 @@ function p3sBuild3D(THREE, grp, st, tex) {
           [Q0, Q1, R1, Q0, R1, R0].forEach((v) => cap.push(v.x, v.y, v.z));
         });
       });
-      meshOf(cap, capMat);
+      meshOf(cap, curMS.cap);
     }
     allTris.push.apply(allTris, tris);
     if (faces.length) {
@@ -1575,7 +1635,7 @@ function p3sBuild3D(THREE, grp, st, tex) {
           for (let j = 0; j < k; j++) { const x = a.x + (b.x - a.x) * j / k, z = a.z + (b.z - a.z) * j / k, y = surfY(tris, x, z); top.push(new THREE.Vector3(x, (y == null ? minY : y) - 0.12, z)); }
         });
         top.forEach((t, i) => { bar(new THREE.Vector3(t.x, 0, t.z), t, 0.15, 0.15); bar(t, top[(i + 1) % top.length], 0.1, 0.2); });
-      } else if (!roof.p3sGround) wall(OL, tris, minY - 0.03, roof.kind !== "poly" && !roof.grp);
+      } else if (!roof.p3sGround) wall(OL, tris, minY - 0.03, roof.kind !== "poly" && !roof.grp, wmat);
       if (+roof.p3sParapet > 0 && OL.length > 2) {
         // ขอบกันตกคอนกรีตหนา 20 ซม. รอบดาดฟ้า
         const H = +roof.p3sParapet, IN = insetPoly(OL, 0.2), pa = [];
@@ -1632,21 +1692,22 @@ function p3sBuild3D(THREE, grp, st, tex) {
     add(new THREE.LineSegments(lg, new THREE.LineBasicMaterial({ color: 0x8aa0d6, transparent: true, opacity: 0.35 })));
   });
   {
-    const fa = [];
-    fasciaQ.forEach(({ p, q, c }) => {
+    const FA = new Map();
+    fasciaQ.forEach(({ p, q, c, m }) => {
+      const M = m || matSet("metal"); if (!FA.has(M)) FA.set(M, []); const fa = FA.get(M);
       const dx = q.x - p.x, dz = q.z - p.z, L = Math.hypot(dx, dz);
       let ox = 0, oz = 0;
       if (L > 0.01) { ox = dz / L; oz = -dx / L; const mx = (p.x + q.x) / 2 - c.x, mz = (p.z + q.z) / 2 - c.z; if (ox * mx + oz * mz < 0) { ox = -ox; oz = -oz; } }
       else return;
       const mx = (p.x + q.x) / 2, mz = (p.z + q.z) / 2, my = (p.y + q.y) / 2, y2 = topY(mx + ox * 0.15, mz + oz * 0.15);
       if (y2 != null && y2 > my - 0.4) return;   // ชนหลังคาอื่น (ผืนติดกัน/อาคารต่อกัน)
-      const o = 0.03, H = 0.2, up = 0.04;
+      const o = 0.03, H = M.H || 0.2, up = 0.04;
       const a = { x: p.x + ox * o, y: p.y + up, z: p.z + oz * o }, b = { x: q.x + ox * o, y: q.y + up, z: q.z + oz * o };
       const a2 = { x: a.x, y: a.y - H, z: a.z }, b2 = { x: b.x, y: b.y - H, z: b.z };
       const ai = { x: p.x - ox * 0.04, y: p.y + up, z: p.z - oz * 0.04 }, bi = { x: q.x - ox * 0.04, y: q.y + up, z: q.z - oz * 0.04 };
       [a, b, b2, a, b2, a2, ai, bi, b, ai, b, a].forEach((v) => fa.push(v.x, v.y, v.z));
     });
-    meshOf(fa, fasMat);
+    FA.forEach((fa, M) => meshOf(fa, M.fas));
   }
   const metal = new THREE.MeshStandardMaterial({ color: 0xd9dee4, metalness: 0.3, roughness: 0.38 });
   const metalV = new THREE.MeshStandardMaterial({ color: 0xd2d8df, metalness: 0.35, roughness: 0.32, flatShading: true });
@@ -4485,6 +4546,16 @@ function Plan3DStudio({ job, onClose, currentUser, onSwitch }) {
                     ? <P3SNum label="ความชัน" unit="°" step={1} min={0} max={60} digits={1} value={pc} onChange={(v) => setRoofPitch(r, v)} />
                     : <P3SNum label="ความสูงโค้ง" unit="ม." step={0.1} min={0.2} value={r.rise} onChange={(v) => patchRoof(r.id, { rise: v }, "rise")} />}
                 </div>
+                {!r.p3sGround && (
+                  <label className="p3s-fld">
+                    <span className="lb">วัสดุหลังคา</span>
+                    <span className="p3s-well">
+                      <select value={p3sRoofMat(r)} onChange={(e) => { const v = e.target.value; commit((s) => Object.assign({}, s, {
+                        roofs: (s.roofs || []).map((q) => (q.id === r.id || (r.grp && q.grp === r.grp) ? Object.assign({}, q, { p3sMat: v }) : q)) })); }}>
+                        {P3S_MATS.map(([k, t]) => <option key={k} value={k}>{t}</option>)}
+                      </select>
+                    </span>
+                  </label>)}
                 {r.p3sParapet != null && (
                   <div className="p3s-g2">
                     <P3SNum label="ขอบกันตกสูง" unit="ม." step={0.1} min={0} max={3} value={+r.p3sParapet || 0} onChange={(v) => patchRoof(r.id, { p3sParapet: v }, "par")} />
