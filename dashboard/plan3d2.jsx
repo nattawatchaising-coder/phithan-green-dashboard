@@ -662,6 +662,34 @@ function p3sRay(F, s, ux, uz, maxL) {
   }
   return null;
 }
+const P3S_KINDS = [["flat", "ราบ"], ["shed", "เพิง"], ["gable", "จั่ว"], ["hip", "ปั้นหยา"], ["dome", "ครึ่งวงกลม"], ["facet", "ทีละผืน"]];
+const P3S_KIND_TH = { flat: "ราบ", shed: "เพิง", gable: "จั่ว", hip: "ปั้นหยา", dome: "ครึ่งวงกลม", facet: "ทีละผืน" };
+const P3S_KIND_D = { flat: "ดาดฟ้า · หลังคาเรียบ", shed: "ลาดด้านเดียว · ต้องแตะขอบด้านต่ำ", gable: "สองลาด สันตามด้านยาว", hip: "สี่ลาด", dome: "โค้งตามด้านยาว · กลับทิศได้", facet: "หลังคาซับซ้อน · คลิกไล่มุม" };
+function P3SKindArt({ k }) {
+  const st = { fill: "rgba(37,99,235,.14)", stroke: "#1e3a8a", strokeWidth: 1.6, strokeLinejoin: "round" };
+  const ln = { fill: "none", stroke: "#1e3a8a", strokeWidth: 1.6, strokeLinejoin: "round" };
+  return (
+    <svg width="64" height="42" viewBox="0 0 64 42">
+      {k === "flat" && <path d="M8 24 L30 16 L56 22 L34 31 Z" {...st} />}
+      {k === "shed" && <React.Fragment><path d="M8 28 L32 34 L56 18 L32 10 Z" {...st} /><path d="M8 28 L8 34 L32 40 L32 34" {...ln} /></React.Fragment>}
+      {k === "gable" && <React.Fragment><path d="M6 26 L22 12 L50 12 L58 28 L30 30 Z" {...st} /><path d="M22 12 L30 30 M6 26 L30 30" {...ln} /></React.Fragment>}
+      {k === "hip" && <React.Fragment><path d="M6 28 L20 14 L44 14 L58 28 Z" {...st} /><path d="M20 14 L26 28 M44 14 L40 28 M6 28 L58 28" {...ln} /></React.Fragment>}
+      {k === "dome" && <React.Fragment><path d="M6 32 A16 16 0 0 1 38 32 L58 26 A16 16 0 0 0 26 26 Z" {...st} /><path d="M22 16 L42 10" {...ln} /></React.Fragment>}
+      {k === "facet" && <React.Fragment><path d="M6 30 L22 14 L40 14 L40 22 L58 22 L58 34 L6 34 Z" {...st} />{[[6, 30], [22, 14], [40, 14], [40, 22], [58, 22], [58, 34], [6, 34]].map(([x, y], i) => <circle key={i} cx={x} cy={y} r={2.4} fill="#fff" stroke="#1e3a8a" strokeWidth={1.4} />)}</React.Fragment>}
+    </svg>
+  );
+}
+/* รวมผลหาขอบหลายครั้งเป็นสี่เหลี่ยมเดียว — กรอบที่ครอบทุกจุด วางตามแนวหลังคา (องศา) */
+function p3sMergeRect(parts, axisDeg) {
+  const a = (axisDeg || 0) * P3_DEG, u = { x: Math.cos(a), z: Math.sin(a) }, v = { x: -Math.sin(a), z: Math.cos(a) };
+  let u0 = 1e9, u1 = -1e9, v0 = 1e9, v1 = -1e9;
+  parts.forEach((P) => P.forEach((q) => {
+    const pu = q.x * u.x + q.z * u.z, pv = q.x * v.x + q.z * v.z;
+    if (pu < u0) u0 = pu; if (pu > u1) u1 = pu; if (pv < v0) v0 = pv; if (pv > v1) v1 = pv;
+  }));
+  const P = (su, sv) => ({ x: p3sR(u.x * su + v.x * sv), z: p3sR(u.z * su + v.z * sv) });
+  return [P(u0, v0), P(u1, v0), P(u1, v1), P(u0, v1)];
+}
 function p3sRayRect(F, seed, axisDeg) {
   const a = (axisDeg || 0) * P3_DEG, u = { x: Math.cos(a), z: Math.sin(a) }, v = { x: -Math.sin(a), z: Math.cos(a) };
   const L = Math.min(60, F.Wm / 2 - 2);
@@ -899,6 +927,15 @@ const P3S_CSS = `
 .p3s-empty h3{margin:0;font-size:17px;font-weight:800}
 .p3s-empty p{margin:0;font-size:13px;color:var(--text-2);line-height:1.55}
 .p3s-pop{position:absolute;z-index:3;left:50%;top:64px;transform:translateX(-50%);width:min(360px,calc(100% - 24px));background:var(--surface);border-radius:15px;box-shadow:var(--shadow-card);padding:13px;display:flex;flex-direction:column;gap:10px;box-sizing:border-box}
+.p3s-kpick{position:absolute;inset:0;z-index:6;background:rgba(15,23,42,.38);display:flex;align-items:center;justify-content:center;padding:16px;box-sizing:border-box}
+.p3s-kpick .in{background:var(--surface);border-radius:18px;box-shadow:var(--shadow-card);padding:16px;width:min(520px,100%);display:flex;flex-direction:column;gap:12px;box-sizing:border-box;max-height:100%;overflow:auto}
+.p3s-kpick .tt{font-size:16px;font-weight:800;color:var(--text)}
+.p3s-kpick .gr{display:grid;grid-template-columns:repeat(3,1fr);gap:9px}
+.p3s-kpick .k{border:none;background:var(--surface2);box-shadow:var(--shadow-inset);border-radius:14px;padding:10px 6px 9px;display:flex;flex-direction:column;align-items:center;gap:5px;cursor:pointer;font:inherit;color:var(--text)}
+.p3s-kpick .k b{font-size:13.5px}
+.p3s-kpick .k small{font-size:10.5px;color:var(--text-3);text-align:center;line-height:1.3}
+.p3s-kpick .k[data-on="1"]{background:var(--surface);box-shadow:0 0 0 2.5px var(--primary),var(--shadow-sm)}
+@media (max-width:520px){.p3s-kpick .gr{grid-template-columns:repeat(2,1fr)}}
 .p3s-range{width:100%;accent-color:var(--primary);height:26px;margin:0;box-shadow:none!important;background:transparent!important}
 .p3s-mbar{display:none}
 .p3s-sheetbar{display:none}
@@ -1242,6 +1279,8 @@ function Plan3DStudio({ job, onClose, currentUser, onSwitch }) {
   const [wizSeen, setWizSeenRaw] = React.useState(() => { try { return JSON.parse(localStorage.getItem(wizKey) || "{}") || {}; } catch (e) { return {}; } });
   const markSeen = (i) => setWizSeenRaw((o) => { if (o[i]) return o; const n = Object.assign({}, o, { [i]: 1 }); try { localStorage.setItem(wizKey, JSON.stringify(n)); } catch (e) {} return n; });
   const [wizStep, setWizStep] = React.useState(null);  // null = ขั้นแรกที่ยังไม่เสร็จ
+  const [kindPick, setKindPick] = React.useState(false); // ป๊อปเลือกทรงหลังคา (เด้งขึ้นก่อนเมื่อเข้าขั้นวาดหลังคา)
+  const wizHomeRef = React.useRef(null);                  // เครื่องมือหลักของขั้นปัจจุบัน
   const shapeRef = React.useRef({ roofs: null, gap: 0 });
   const wizAllowRef = React.useRef(null);   // เครื่องมือที่ขั้นปัจจุบันให้ใช้ (null = ไม่ล็อก)
   const toolOk = (k) => { const a = wizAllowRef.current; return !a || a.includes(k); };
@@ -1485,13 +1524,16 @@ function Plan3DStudio({ job, onClose, currentUser, onSwitch }) {
   const EAVE = 3;
   const buildRoof = (wpts, kind, n) => {
     let nr;
-    if (kind === "gable" || kind === "hip") {
+    if (kind === "gable" || kind === "hip" || kind === "dome") {
       const R = p3MinRect(wpts); if (!R) return;
       const long = Math.max(R.w, R.d), short = Math.min(R.w, R.d);
       const ang = R.w >= R.d ? R.ang : R.ang + Math.PI / 2;
       const az = p3sR((((180 + ang / P3_DEG) % 360) + 360) % 360, 10);
+      // ครึ่งวงกลม: แนวโค้งวางตามด้านยาว (กลับทิศได้ในการ์ดหลังคา) · ความสูงโค้ง = ครึ่งความกว้าง
       const base = kind === "gable"
         ? Object.assign(p3NewGable(n), { ridge: p3sR(long), span: p3sR(short), pitch: 20 })
+        : kind === "dome"
+        ? Object.assign(p3NewDome(n), { ridge: p3sR(long), span: p3sR(short), rise: p3sR(short / 2), maxTilt: 90 })
         : Object.assign(p3NewHip(n), { w: p3sR(long), d: p3sR(short), pitch: 25 });
       nr = Object.assign(base, { x: p3sR(R.cx), z: p3sR(R.cz), az, h: EAVE });
     } else {
@@ -1577,9 +1619,11 @@ function Plan3DStudio({ job, onClose, currentUser, onSwitch }) {
 
   /* ── ตัวช่วยวาดจากภาพ ── */
   /* โหมด "edge" (ค่าเริ่ม) = ยิงหาขอบ 4 ทิศตามแนวหลังคา ใช้ได้ทุกสี · โหมด "color" = ไล่สี (หลังคาสีเรียบ) */
-  const runTrace = (seed, tol, mode) => {
+  /* add = แตะจุดเพิ่ม: ผลใหม่รวมกับผลเดิมเป็นสี่เหลี่ยมเดียวตามแนวหลังคา (อาคารที่หลังคาสองสี/สองช่วง) */
+  const runTrace = (seed, tol, mode, add) => {
     const md = mode || (trace && trace.mode) || "edge";
-    setTrace({ on: true, busy: true, seed, mode: md });
+    const prev = add && trace && trace.pts ? (trace.parts || [trace.pts]) : null;
+    setTrace(prev ? Object.assign({}, trace, { busy: true, seed, err: null, warn: null }) : { on: true, busy: true, seed, mode: md });
     const job = md === "color" ? p3sTrace(stRef.current, seed, tol) : needEdge(seed).then((F) => {
       if (!F || F.err) return { err: (F && F.err) || "อ่านขอบภาพไม่ได้" };
       const S = stRef.current, ax = S.p3sAxis != null ? +S.p3sAxis : p3sDetectAxis(F, seed, 20);
@@ -1587,7 +1631,20 @@ function Plan3DStudio({ job, onClose, currentUser, onSwitch }) {
       if (r.pts && S.p3sAxis == null && ax != null) r.ax = ax;
       return r;
     });
-    job.then((r) => setTrace((t) => (t && t.on ? Object.assign({}, t, { busy: false, seed, pts: r.pts || null, err: r.err || null, warn: r.warn || null, area: r.area, ax: r.ax }) : t)));
+    job.then((r) => setTrace((t) => {
+      if (!(t && t.on)) return t;
+      if (!prev) return Object.assign({}, t, { busy: false, seed, pts: r.pts || null, parts: r.pts ? [r.pts] : null, err: r.err || null, warn: r.warn || null, area: r.area, ax: r.ax });
+      if (!r.pts) return Object.assign({}, t, { busy: false, warn: "จุดที่แตะเพิ่มหาขอบไม่เจอ — ยังใช้รูปเดิม (" + (r.err || "ลองแตะใกล้กลางส่วนนั้นขึ้น") + ")" });
+      const parts = prev.concat([r.pts]), ax = stRef.current.p3sAxis != null ? +stRef.current.p3sAxis : t.ax != null ? t.ax : (r.ax || 0);
+      const pts = p3sMergeRect(parts, ax);
+      return Object.assign({}, t, { busy: false, parts, pts, area: p3sR(p3Area(pts), 10), err: null, warn: null });
+    }));
+  };
+  const undoTracePart = () => {
+    if (!trace || !trace.parts || trace.parts.length < 2) return;
+    const parts = trace.parts.slice(0, -1), ax = stRef.current.p3sAxis != null ? +stRef.current.p3sAxis : (trace.ax || 0);
+    const pts = parts.length > 1 ? p3sMergeRect(parts, ax) : parts[0];
+    setTrace(Object.assign({}, trace, { parts, pts, area: p3sR(p3Area(pts), 10), warn: null }));
   };
   const acceptTrace = () => {
     if (!trace || !trace.pts) return;
@@ -1742,6 +1799,8 @@ function Plan3DStudio({ job, onClose, currentUser, onSwitch }) {
       if (selVert != null) { setSelVert(null); return; }
       if (selBlk != null) { setSelBlk(null); return; }
       if (sel) { setSel(null); return; }
+      if (kindPick) { setKindPick(false); return; }
+      if (tool === "roof" && wizHomeRef.current === "roof") return;   // โหมดพาทำขั้นวาดหลังคา: อยู่ที่เครื่องมือวาดต่อ
       if (toolOk("select")) setTool("select"); return;
     }
     if (k === "Delete" || k === "Backspace") { e.preventDefault(); delSelected(); return; }
@@ -1970,7 +2029,7 @@ function Plan3DStudio({ job, onClose, currentUser, onSwitch }) {
       return;
     }
     if (tool === "roof") {
-      if (trace && trace.on) { runTrace(w, traceTol); return; }
+      if (trace && trace.on) { if (!trace.busy) runTrace(w, traceTol, null, !!trace.pts); return; }
       const sp = snapPoint(w, { pts: snapPts().concat(draw && draw.pts.length > 2 ? [draw.pts[0]] : []), free: e.shiftKey, img: true, segs: snapSegs(),
         from: draw && draw.pts.length ? draw.pts[draw.pts.length - 1] : null, refs: draw && draw.pts.length > 1 ? [Math.atan2(draw.pts[1].z - draw.pts[0].z, draw.pts[1].x - draw.pts[0].x)] : [] });
       if (rectDraw) {
@@ -2376,6 +2435,15 @@ function Plan3DStudio({ job, onClose, currentUser, onSwitch }) {
           <polygon key={i} points={ptsStr(f.pts)} fill={faceTone(f.asp, isSel)}
             stroke={isSel ? "#16a34a" : isHov ? "#0ea5e9" : "#334155"} strokeWidth={isSel ? 2.4 : isHov ? 2 : 1.3} style={NS} strokeLinejoin="round" />
         ))}
+        {r.kind === "dome" && (() => {
+          // เส้นตามแนวสันห่างเท่ากันตามส่วนโค้ง → ชิดกันที่ขอบ = เห็นทิศโค้ง
+          const D = p3DomeGeo(r), a = -(((+r.az || 180) - 180) * P3_DEG), ox = +r.x || 0, oz = +r.z || 0;
+          const W = (x, z) => { const q = p3sRY(x, z, a); return { x: q.x + ox, z: q.z + oz }; };
+          return [-0.75, -0.5, -0.25, 0, 0.25, 0.5, 0.75].map((f, i) => {
+            const zz = D.zAt(f * D.th), A = W(-D.len / 2, zz), B = W(D.len / 2, zz);
+            return <line key={"dm" + i} x1={A.x} y1={A.z} x2={B.x} y2={B.z} stroke={f === 0 ? "#b45309" : "#64748b"} strokeWidth={f === 0 ? 2 : 1} strokeDasharray={f === 0 ? null : "4 4"} style={NS} />;
+          });
+        })()}
         {r.kind === "poly" && faces[0] && faces[0].asp && faces[0].asp.az != null && (() => {
           // ขอบชายคา (ต่ำสุด) ของผืนเอียง — เส้นส้มหนา
           const fp = faces[0].pts, ph = p3PhOf(r); let lo = r.p3sLow != null ? +r.p3sLow : 0;
@@ -2572,13 +2640,17 @@ function Plan3DStudio({ job, onClose, currentUser, onSwitch }) {
     preview.push(<polygon key="tr" points={sPts(trace.pts)} fill="rgba(245,158,11,.18)" stroke="#f59e0b" strokeWidth={2.6} strokeDasharray="7 4" />);
     edgeLabels(trace.pts, "te", true);
     // เส้นสัน/ตะเข้ตามทรงที่เลือก ให้เห็นก่อนกดใช้
-    const R = (roofOpt.kind === "gable" || roofOpt.kind === "hip") ? p3MinRect(trace.pts) : null;
+    const R = (roofOpt.kind === "gable" || roofOpt.kind === "hip" || roofOpt.kind === "dome") ? p3MinRect(trace.pts) : null;
     if (R) {
       const ang = R.w >= R.d ? R.ang : R.ang + Math.PI / 2, L = Math.max(R.w, R.d) / 2, S2 = Math.min(R.w, R.d) / 2;
       const ux = Math.cos(ang), uz = Math.sin(ang), vx = -uz, vz = ux;
       const P = (a, b) => toS(R.cx + ux * a + vx * b, R.cz + uz * a + vz * b);
       const rl = roofOpt.kind === "hip" ? Math.max(0, L - S2) : L, A = P(-rl, 0), B = P(rl, 0);
       preview.push(<line key="trr" x1={A.x} y1={A.y} x2={B.x} y2={B.y} stroke="#b45309" strokeWidth={2.6} />);
+      if (roofOpt.kind === "dome") [-0.87, -0.5, 0.5, 0.87].forEach((f, i) => {
+        const C = P(-L, f * S2), D2 = P(L, f * S2);
+        preview.push(<line key={"trd" + i} x1={C.x} y1={C.y} x2={D2.x} y2={D2.y} stroke="#b45309" strokeWidth={1.3} strokeDasharray="4 4" />);
+      });
       if (roofOpt.kind === "hip") [[-1, -1], [-1, 1], [1, -1], [1, 1]].forEach(([a, b], i) => {
         const E = a < 0 ? A : B, C = P(a * L, b * S2);
         preview.push(<line key={"trh" + i} x1={E.x} y1={E.y} x2={C.x} y2={C.y} stroke="#b45309" strokeWidth={2} />);
@@ -2647,7 +2719,7 @@ function Plan3DStudio({ job, onClose, currentUser, onSwitch }) {
     }
     if (tool === "roof") {
       if (trace && trace.on) return trace.busy ? <span>กำลังหาขอบหลังคา…</span>
-        : trace.pts ? <span>ได้รูปหลังคา {trace.area} ตร.ม. — <b>Enter</b> ใช้รูปนี้ · ปรับความไวแล้วแตะใหม่ได้ · <kbd>Esc</kbd> ยกเลิก</span>
+        : trace.pts ? <span>ได้รูปหลังคา {trace.area} ตร.ม. — <b>แตะส่วนที่เหลือ</b> เพื่อรวมเป็นหลังเดียว · <b>Enter</b> ใช้รูปนี้ · <kbd>Esc</kbd> ยกเลิก</span>
         : trace.err ? <span style={{ color: "#fde68a" }}>{trace.err}</span>
         : trace.mode === "color" ? <span><b>แตะกลางหลังคาในภาพ</b> ระบบไล่สีหาขอบ (เหมาะกับหลังคาสีเรียบ)</span>
         : <span><b>แตะกลางหลังคา</b> ระบบยิงหาขอบ 4 ทิศตามแนวหลังคา — ใช้ได้กับหลังคาทุกสี</span>;
@@ -2717,7 +2789,7 @@ function Plan3DStudio({ job, onClose, currentUser, onSwitch }) {
 
   const roofPanelBody = (roof) => {
     const n = roofCountOf(roof), isPoly = roof.kind === "poly", isDome = roof.kind === "dome";
-    const kindTh = { poly: "ทรงอิสระ", rect: "เพิงแหงน", gable: "จั่ว", hip: "ปั้นหยา", dome: "โดม" }[roof.kind] || roof.kind;
+    const kindTh = { poly: "ทรงอิสระ", rect: "เพิงแหงน", gable: "จั่ว", hip: "ปั้นหยา", dome: "ครึ่งวงกลม" }[roof.kind] || roof.kind;
     const pts = isPoly ? (roof.pts || []) : [];
     const ph = isPoly ? p3PhOf(roof) : [];
     const eave = isPoly && ph.length ? Math.min.apply(null, ph) : +roof.h || 0;
@@ -2880,7 +2952,19 @@ function Plan3DStudio({ job, onClose, currentUser, onSwitch }) {
                 <P3SNum label="ความสูงโค้ง" unit="ม." step={0.1} min={0.2} value={roof.rise} onChange={(v) => patchRoof(roof.id, { rise: v }, "rise")} />
                 <P3SNum label="ความสูงชายคา" unit="ม." step={0.1} min={0} value={roof.h} onChange={(v) => patchRoof(roof.id, { h: v }, "h")} />
               </div>
-              <span className="p3s-note">ตั้งค่าโดมแบบละเอียด (มุมเอียงสูงสุดของแผง) ใช้แบบเก่า</span>
+              <button className="p3s-btn wide" onClick={() => patchRoof(roof.id, (r) => {
+                const sp0 = +r.span || 10, sp1 = +r.ridge || 12, rs = +r.rise || sp0 / 2;
+                return { ridge: sp0, span: sp1, rise: p3sR(Math.min(sp1 / 2, rs * sp1 / sp0)), az: p3sR(((+r.az || 180) + 90) % 360, 10) };
+              })}><P3SIcon name="rotate" size={15} />กลับทิศโค้ง (สลับด้านกว้าง/ยาว)</button>
+              <div className="p3s-fld"><span className="lb">ความสูงโค้งด่วน</span>
+                <div className="p3s-row" style={{ gap: 5 }}>
+                  {[["ครึ่งวงกลม", 2], ["1/3", 3], ["1/4", 4], ["1/6", 6]].map(([lb, k]) => {
+                    const v = p3sR((+roof.span || 10) / k);
+                    return <button key={k} className={"p3s-btn" + (Math.abs((+roof.rise || 0) - v) < 0.02 ? " pri" : "")} style={{ flex: 1, padding: 0, height: 32, fontSize: 12 }} onClick={() => patchRoof(roof.id, { rise: v })}>{lb}</button>;
+                  })}
+                </div>
+              </div>
+              <span className="p3s-note">เส้นประบนผัง = แนวโค้ง (ชิดกันที่ขอบ) · เส้นส้ม = สันโค้ง · ตั้งมุมเอียงสูงสุดของแผงใช้แบบเก่า</span>
             </React.Fragment>
           )}
           {!isPoly && (
@@ -3113,8 +3197,14 @@ function Plan3DStudio({ job, onClose, currentUser, onSwitch }) {
       ),
       go: () => setTool("axis") },
     { t: "วาดหลังคาให้ครบทุกผืน", tools: ["roof"], done: roofs.length > 0,
-      d: <span><b>เลือกทรงก่อน</b> ที่แถบบนผัง · <b>ราบ เพิง จั่ว ปั้นหยา</b> = ลากสี่เหลี่ยม หรือ <b>หาขอบอัตโนมัติ</b> (สลับทรงได้ก่อนกดเอาแบบนี้) · <b>เพิง</b> ต้องแตะขอบด้านต่ำเพื่อกำหนดทางลาด · <b>ทีละผืน</b> = คลิกไล่มุมหลายจุด (หาขอบอัตโนมัติไม่ได้)</span>,
-      go: () => setTool("roof") },
+      d: <span><b>เลือกทรงก่อน</b> · <b>ราบ เพิง จั่ว ปั้นหยา ครึ่งวงกลม</b> = ลากสี่เหลี่ยม หรือ <b>หาขอบอัตโนมัติ</b> (แตะหลายจุดได้ รวมเป็นหลังเดียว · สลับทรงได้ก่อนกดเอาแบบนี้) · <b>เพิง</b> ต้องแตะขอบด้านต่ำเพื่อกำหนดทางลาด · <b>ทีละผืน</b> = คลิกไล่มุมหลายจุด</span>,
+      act: (
+        <div className="p3s-row">
+          <button className="p3s-btn" style={{ flex: 1 }} onClick={() => { if (tool !== "roof") setTool("roof"); setKindPick(true); }}><P3SIcon name="polygon" size={15} />ทรง: {P3S_KIND_TH[roofOpt.kind] || roofOpt.kind}</button>
+          <button className={"p3s-btn" + (tool === "roof" && trace && trace.on ? " pri" : "")} style={{ flex: 1 }} disabled={!hasImgW || roofOpt.kind === "facet"}
+            onClick={() => { if (tool !== "roof") setTool("roof"); setDraw(null); setTrace(tool === "roof" && trace && trace.on ? null : { on: true, mode: "edge" }); }}><P3SIcon name="magic" size={15} />หาขอบอัตโนมัติ</button>
+        </div>),
+      go: () => { setTool("roof"); setKindPick(true); } },
     { t: "ตั้งความชันและเช็กชายคา", tools: ["select"], done: roofs.length > 0 && shapeGap < 0.03,
       d: <span>แตะหลังคาผืนไหนก็ได้ แล้วตั้ง <b>ความชัน</b> ครั้งเดียว ผืนที่ต่อกันจะชันเท่ากันทั้งหลัง · ผืนไหนชายคาผิดด้าน ใช้ <b>แตะเลือกขอบชายคาบนผัง</b> · แล้วกด <b>3D</b> ดูทรงแวบเดียว</span>,
       extra: shapeGap >= 0.03 && facetRoofs.length > 1 && (
@@ -3143,7 +3233,7 @@ function Plan3DStudio({ job, onClose, currentUser, onSwitch }) {
   /* ไปได้ไกลสุดถึงขั้นแรกที่ยังไม่เสร็จ (ขั้นก่อนหน้าต้องเสร็จครบ) — ย้อนกลับได้เสมอ ข้ามไปข้างหน้าไม่ได้ */
   let reach = 0; while (reach < WIZ.length - 1 && WIZ[reach].done) reach++;
   // เปิดมาครั้งแรกเริ่มที่ขั้นที่ค้าง แล้วอยู่ขั้นเดิมจนผู้ใช้กดถัดไปเอง (ทำเสร็จแล้วไม่เด้งไปขั้นถัดไป)
-  if (wizStep == null) setWizStep(reach);
+  if (wizStep == null) { setWizStep(reach); if (reach === 3) { setToolRaw("roof"); setKindPick(true); } }
   const wi = wizStep != null ? Math.min(wizStep, reach) : reach, W0 = WIZ[wi];
   const canNext = W0.done || W0.opt;
   const goStep = (i) => { if (i < 0 || i >= WIZ.length) return; setWizStep(i); WIZ[i].go(); };
@@ -3171,6 +3261,8 @@ function Plan3DStudio({ job, onClose, currentUser, onSwitch }) {
     </div>
   );
   const wizTools = wiz && !view3d ? W0.tools : null;
+  wizHomeRef.current = wiz ? (W0.tools[0] || null) : null;
+  const roofStep = wiz && wi === 3 && !view3d;
   wizAllowRef.current = wiz ? (W0.tools.length ? ["pan"].concat(W0.tools, wi >= 3 ? ["select", "meas"] : []) : ["select", "pan", "meas"]) : null;
 
   const guidePanel = (
@@ -3297,17 +3389,18 @@ function Plan3DStudio({ job, onClose, currentUser, onSwitch }) {
 
   /* ============== แถบบริบทบนผัง ============== */
   let ctxBar = null;
-  if (!view3d && tool === "roof") {
-    const rectOnly = roofOpt.kind === "gable" || roofOpt.kind === "hip", polyOnly = roofOpt.kind === "facet";
+  if (!view3d && (tool === "roof" || roofStep)) {
+    const polyOnly = roofOpt.kind === "facet";
     const hasImg = !!((st.baseMap && st.baseMap.url) || st.photo);
     ctxBar = (
       <div className="p3s-float p3s-ctx" onPointerDown={(e) => e.stopPropagation()}>
-        <P3SSeg value={roofOpt.kind} onChange={(v) => { setRoofOpt(Object.assign({}, roofOpt, { kind: v, shape: v === "facet" ? "poly" : v === "gable" || v === "hip" ? "rect" : roofOpt.shape })); setDraw(null); }}
-          options={[["flat", "ราบ"], ["shed", "เพิง"], ["gable", "จั่ว"], ["hip", "ปั้นหยา"], ["facet", "ทีละผืน"]]} />
+        {tool !== "roof" && <button className="p3s-btn pri" onClick={() => setTool("roof")}><P3SIcon name="polygon" size={16} />กลับไปวาดหลังคา</button>}
+        <P3SSeg value={roofOpt.kind} onChange={(v) => { if (tool !== "roof") setTool("roof"); setRoofOpt(Object.assign({}, roofOpt, { kind: v, shape: v === "facet" ? "poly" : "rect" })); setDraw(null); }}
+          options={P3S_KINDS} />
         <span className="lbl">{polyOnly ? "คลิกไล่มุมทีละจุด" : "ลากสี่เหลี่ยม"}</span>
         <button className={"p3s-btn" + (trace && trace.on ? " pri" : "")} disabled={!hasImg || polyOnly}
           title={hasImg ? "แตะกลางหลังคา ระบบยิงหาขอบให้" : "ต้องมีภาพดาวเทียมหรือรูปโดรนก่อน"}
-          onClick={() => { setDraw(null); setTrace(trace && trace.on ? null : { on: true, mode: "edge" }); }}><P3SIcon name="magic" size={16} />หาขอบอัตโนมัติ</button>
+          onClick={() => { const on = tool === "roof" && trace && trace.on; if (tool !== "roof") setTool("roof"); setDraw(null); setTrace(on ? null : { on: true, mode: "edge" }); }}><P3SIcon name="magic" size={16} />หาขอบอัตโนมัติ</button>
         {hasImg && <button className={"p3s-btn ico" + (edgeOn ? " pri" : "")} title={edgeOn ? "ดูดขอบภาพ: เปิด" : "ดูดขอบภาพ: ปิด"} onClick={() => setEdgeOn((v) => !v)}><P3SIcon name="edge" size={16} /></button>}
         {hasImg && <button className={"p3s-btn ico" + (imgFx.b !== 1 ? " pri" : "")} title="เร่งแสงภาพ (หลังคาสีเข้มเห็นขอบชัดขึ้น)" onClick={() => setImgFx(imgFx.b !== 1 ? { b: 1, c: 1 } : { b: 1.7, c: 1.35 })}><P3SIcon name="sun" size={16} /></button>}
       </div>
@@ -3321,15 +3414,22 @@ function Plan3DStudio({ job, onClose, currentUser, onSwitch }) {
       </div>
     );
   }
-  const tracePop = !view3d && tool === "roof" && trace && trace.on && (trace.pts || trace.err) && (
+  const tracePop = !view3d && tool === "roof" && !kindPick && trace && trace.on && (trace.pts || trace.err) && (
     <div className="p3s-pop" onPointerDown={(e) => e.stopPropagation()} style={{ top: isMobile ? 104 : 64 }}>
       {trace.pts ? <span style={{ fontSize: 13.5, fontWeight: 800 }}>เจอหลังคา {trace.area} ตร.ม.{trace.warn && <span style={{ display: "block", fontSize: 12, fontWeight: 700, color: "var(--tint-amber-tx,#92400e)", marginTop: 4 }}>{trace.warn}</span>}</span> : <span style={{ fontSize: 13, fontWeight: 700, color: "var(--tint-amber-tx,#92400e)" }}>{trace.err}</span>}
       {trace.ax != null && <span className="p3s-note">ตั้งแนวหลังคา {trace.ax}° ให้ด้วยเมื่อกดใช้</span>}
       {trace.pts && (
+        <div className="p3s-row" style={{ gap: 6 }}>
+          <span className="p3s-note" style={{ flex: 1 }}>{trace.busy ? "กำลังหาขอบจุดที่แตะเพิ่ม…" : <span><b>ยังไม่ครบหลัง?</b> แตะส่วนที่เหลือบนภาพ ระบบรวมเป็นหลังเดียว{(trace.parts || []).length > 1 ? " · รวมแล้ว " + trace.parts.length + " จุด" : ""}</span>}</span>
+          {(trace.parts || []).length > 1 && <button className="p3s-btn" style={{ padding: "0 10px" }} onClick={undoTracePart}>ย้อนจุดล่าสุด</button>}
+        </div>
+      )}
+      {trace.pts && (
         <div className="p3s-fld" style={{ gap: 5 }}><span className="lb">ทรงหลังคา — สลับดูได้ก่อนกดใช้</span>
           <P3SSeg full value={roofOpt.kind === "facet" ? "flat" : roofOpt.kind} onChange={(v) => setRoofOpt(Object.assign({}, roofOpt, { kind: v, shape: "rect" }))}
-            options={[["flat", "ราบ"], ["shed", "เพิง"], ["gable", "จั่ว"], ["hip", "ปั้นหยา"]]} />
+            options={P3S_KINDS.filter((o) => o[0] !== "facet")} />
           {roofOpt.kind === "shed" && <span className="p3s-note">เพิง: กดใช้แล้ว<b> แตะขอบด้านต่ำ</b> เพื่อกำหนดทางลาด</span>}
+          {roofOpt.kind === "dome" && <span className="p3s-note">ครึ่งวงกลม: แนวโค้งวางตามด้านยาว — กดใช้แล้วกด <b>กลับทิศโค้ง</b> ในการ์ดหลังคาได้</span>}
         </div>
       )}
       <P3SSeg full value={trace.mode || "edge"} onChange={(v) => { if (trace.seed) runTrace(trace.seed, traceTol, v); else setTrace({ on: true, mode: v }); }}
@@ -3337,7 +3437,7 @@ function Plan3DStudio({ job, onClose, currentUser, onSwitch }) {
       {trace.mode === "color" && <P3SRange label="ความไวสี" right={traceTol < 22 ? "แม่น" : traceTol > 42 ? "กว้าง" : "กลาง"} min={10} max={70} step={1} value={traceTol}
         onChange={(v) => { setTraceTol(v); if (trace.seed) runTrace(trace.seed, v); }} />}
       <div className="p3s-row">
-        {trace.pts && <button className="p3s-btn pri" style={{ flex: 1 }} onClick={acceptTrace}><P3Icon name="check" />เอาหลังคาแบบนี้ (Enter)</button>}
+        {trace.pts && <button className="p3s-btn pri" style={{ flex: 1 }} disabled={!!trace.busy} onClick={acceptTrace}><P3Icon name="check" />เอาหลังคาแบบนี้ (Enter)</button>}
         <button className="p3s-btn" style={{ flex: trace.pts ? "0 0 auto" : 1 }} onClick={() => setTrace({ on: true, mode: trace.mode })}>แตะใหม่</button>
       </div>
       <span className="p3s-note">ได้รูปแล้วลากจุดสี่เหลี่ยมที่ขอบ/มุมปรับให้ตรงได้เสมอ — ระหว่างลากจะดูดเข้าขอบในภาพ</span>
@@ -3390,7 +3490,7 @@ function Plan3DStudio({ job, onClose, currentUser, onSwitch }) {
         )}
         <button className="p3s-btn ico" onClick={undo} disabled={!H.u.length} title="ย้อนกลับ (Ctrl+Z)"><P3SIcon name="undo" /></button>
         <button className="p3s-btn ico" onClick={redo} disabled={!H.r.length} title="ทำซ้ำ (Ctrl+Shift+Z)"><P3SIcon name="redo" /></button>
-        <P3SSeg value={view3d ? "3d" : "2d"} onChange={(v) => { setView3d(v === "3d"); if (v === "3d") { setToolRaw("select"); setDraw(null); setMeasPts(null); setTrace(null); setCalib(null); } }}
+        <P3SSeg value={view3d ? "3d" : "2d"} onChange={(v) => { setView3d(v === "3d"); if (v === "3d") { setToolRaw("select"); setDraw(null); setMeasPts(null); setTrace(null); setCalib(null); } else if (wizHomeRef.current) setToolRaw(wizHomeRef.current); }}
           options={[["2d", isMobile ? "2D" : "ผัง 2D"], ["3d", "3D"]]} />
         <button className="p3s-btn pri" onClick={doSave} disabled={!dirty} title="บันทึก (Ctrl+S)">
           <P3Icon name={justSaved && !dirty ? "check" : "save"} />{isMobile ? "" : dirty ? "บันทึก" : justSaved ? "บันทึกแล้ว" : "บันทึกแล้ว"}
@@ -3452,6 +3552,22 @@ function Plan3DStudio({ job, onClose, currentUser, onSwitch }) {
           )}
           {ctxBar}
           {tracePop}
+          {kindPick && !view3d && tool === "roof" && (
+            <div className="p3s-kpick" onPointerDown={(e) => e.stopPropagation()} onClick={() => setKindPick(false)}>
+              <div className="in" onClick={(e) => e.stopPropagation()}>
+                <span className="tt">เลือกทรงหลังคาก่อนวาด</span>
+                <div className="gr">
+                  {P3S_KINDS.map(([k, lb]) => (
+                    <button key={k} className="k" data-on={roofOpt.kind === k ? "1" : "0"}
+                      onClick={() => { setRoofOpt(Object.assign({}, roofOpt, { kind: k, shape: k === "facet" ? "poly" : "rect" })); setDraw(null); setTrace(null); setKindPick(false); }}>
+                      <P3SKindArt k={k} /><b>{lb}</b><small>{P3S_KIND_D[k]}</small>
+                    </button>
+                  ))}
+                </div>
+                <span className="p3s-note">เปลี่ยนทรงทีหลังได้ที่แถบบนผัง · หลังคาหลายทรงในงานเดียว เลือกทรงใหม่ก่อนวาดแต่ละหลัง</span>
+              </div>
+            </div>
+          )}
           {eavePick && mxy && !view3d && <div className="p3s-mtip" style={{ left: mxy.x + 16, top: mxy.y + 14 }}>กำหนดทางลาด — แตะขอบด้านต่ำ</div>}
           {emptyState}
           {!view3d && (
