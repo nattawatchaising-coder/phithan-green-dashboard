@@ -438,6 +438,49 @@ function suPanelAngle(foot) {
 }
 
 /* mode (ถ้าส่งมา) = พาเรนต์คุมโหมดเอง ("blk" | "seq" | "paint" | "box" | "hand") ปุ่มโหมดบนผังซ่อน — ใช้กับหน้าจัดสตริงที่มีแผงเครื่องมือข้าง */
+/* ── ตัวดูแผ่นแบบ DXF (SVG) ซูม/เลื่อนได้ ──
+   ลูกกลิ้ง = ซูมรอบเมาส์ · ลาก = เลื่อน · ดับเบิลคลิก = ซูม 3 เท่าตรงจุดนั้น (ซูมอยู่แล้ว = กลับพอดีแผ่น)
+   ปุ่ม − / + / พอดีแผ่น มุมขวาล่าง · เปลี่ยนแผ่น = กลับพอดีแผ่น (ผู้เรียกใส่ key ตามแผ่น) */
+function SuDxfView({ svg }) {
+  const box = React.useRef(null), drag = React.useRef(null);
+  const [v, setV] = React.useState({ s: 1, x: 0, y: 0 });
+  const vRef = React.useRef(v); vRef.current = v;
+  const zoomAt = (px, py, k) => {
+    const o = vRef.current, s = Math.max(1, Math.min(24, o.s * k)), kk = s / o.s;
+    const n = s === 1 ? { s: 1, x: 0, y: 0 } : { s, x: px - (px - o.x) * kk, y: py - (py - o.y) * kk };
+    vRef.current = n; setV(n);   // ลูกกลิ้งยิงหลายครั้งก่อน render — ต้องต่อจากค่าล่าสุด
+  };
+  React.useEffect(() => {
+    const el = box.current;
+    if (!el) return undefined;
+    const wh = (e) => {
+      e.preventDefault();
+      const r = el.getBoundingClientRect();
+      zoomAt(e.clientX - r.left, e.clientY - r.top, Math.exp(-e.deltaY * 0.0018));
+    };
+    el.addEventListener("wheel", wh, { passive: false });
+    return () => el.removeEventListener("wheel", wh);
+  }, []);
+  const mid = (k) => { const r = box.current.getBoundingClientRect(); zoomAt(r.width / 2, r.height / 2, k); };
+  return (
+    <div ref={box} style={{ position: "absolute", inset: 0, overflow: "hidden", cursor: drag.current ? "grabbing" : "grab", userSelect: "none", touchAction: "none" }}
+      onDragStart={(e) => e.preventDefault()}
+      onPointerDown={(e) => { if (e.button !== 0 || e.target.closest("button")) return; drag.current = { x: e.clientX, y: e.clientY, o: vRef.current }; e.currentTarget.setPointerCapture(e.pointerId); }}
+      onPointerMove={(e) => { const d = drag.current; if (!d) return; setV({ s: d.o.s, x: d.o.x + e.clientX - d.x, y: d.o.y + e.clientY - d.y }); }}
+      onPointerUp={() => { drag.current = null; }}
+      onDoubleClick={(e) => { if (e.target.closest("button")) return; const r = box.current.getBoundingClientRect(); if (vRef.current.s > 1.05) setV({ s: 1, x: 0, y: 0 }); else zoomAt(e.clientX - r.left, e.clientY - r.top, 3); }}>
+      <div className="su-dxf-svg" style={{ position: "absolute", inset: 8, transformOrigin: "0 0", transform: "translate(" + v.x + "px," + v.y + "px) scale(" + v.s + ")" }}
+        dangerouslySetInnerHTML={{ __html: svg }} />
+      <div style={{ position: "absolute", right: 10, bottom: 10, display: "flex", gap: 4, alignItems: "center", background: "var(--surface)", borderRadius: 10, padding: 4, boxShadow: "var(--shadow-sm)" }}>
+        <button className="p3-b sm" onClick={() => mid(1 / 1.5)} title="ซูมออก">−</button>
+        <span style={{ minWidth: 42, textAlign: "center", fontSize: 11, fontWeight: 700, color: "var(--text-2)" }}>{Math.round(v.s * 100)}%</span>
+        <button className="p3-b sm" onClick={() => mid(1.5)} title="ซูมเข้า">+</button>
+        <button className="p3-b sm" onClick={() => setV({ s: 1, x: 0, y: 0 })} title="พอดีแผ่น">พอดีแผ่น</button>
+      </div>
+    </div>
+  );
+}
+
 function SuLayout2D({ foot, assign, active, onPaint, onPaintMany, height, labels, colorOf, unitName, onTap, paths, onErase, full, onFull, onFillBlock, sel, mode }) {
   const ctl = mode != null;
   /* เมาส์: ใช้ปุ่มซ้ายอย่างเดียวได้ครบ — ลากบนที่ว่าง = เลื่อนผังทุกโหมด (ยกเว้นโหมดลากกรอบ)
@@ -4589,7 +4632,7 @@ function SolarWorkspace({ job, st, sys, onChange, onClose, snap }) {
             </span></div>
             <div style={{ flex: 1, minHeight: 0, margin: 12, borderRadius: 12, background: "#fff", boxShadow: "var(--shadow-inset)", overflow: "hidden", position: "relative", display: "grid", placeItems: "center" }}>
               {dxfSvg
-                ? <div className="su-dxf-svg" style={{ position: "absolute", inset: 8 }} dangerouslySetInnerHTML={{ __html: dxfSvg }} />
+                ? <SuDxfView key={dxf.i} svg={dxfSvg} />
                 : <span className="p3-note keep">วาดแผ่นนี้ไม่สำเร็จ</span>}
             </div>
             <div className="su-sheet-ft">

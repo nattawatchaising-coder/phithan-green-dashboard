@@ -1572,13 +1572,19 @@ const pgSym = {
     pen.line(L, dx - dw, dy - dw * 0.42, dx - dw * 0.25, dy - dw * 0.42);
     pen.line(L, dx + dw * 0.25, dy - dw * 0.42, dx + dw, dy - dw * 0.42);
   },
-  pv(pen, x, y, w, h, no) {
+  pv(pen, x, y, w, h, no, right) {
     const L = PG_SLD.sym;
     pen.rect(L, x - w / 2, y - h / 2, w, h);
-    const vy = y + h / 2,
-      tip = y + h * 0.5 - h * 0.62;
-    pen.line(L, x - w / 2, vy, x, tip);
-    pen.line(L, x + w / 2, vy, x, tip);
+    if (right) {
+      const tx = x + w / 2 - Math.min(w * 0.45, h * 1.1);
+      pen.line(L, x + w / 2, y + h / 2, tx, y);
+      pen.line(L, x + w / 2, y - h / 2, tx, y);
+    } else {
+      const vy = y + h / 2,
+        tip = y + h * 0.5 - h * 0.62;
+      pen.line(L, x - w / 2, vy, x, tip);
+      pen.line(L, x + w / 2, vy, x, tip);
+    }
     if (no != null) {
       const r = Math.min(w * 0.42, h * 0.3);
       pen.circle(L, x, y - h / 2, r);
@@ -1780,7 +1786,7 @@ function pgSldPro(doc, sheet, M) {
   };
   const geo = (b, top) => {
     const nR = b.groups.reduce((t, gq) => t + gq.rows.length, 0);
-    const firstY = top - 9;
+    const firstY = top - 10.5;
     const lastY = firstY - (nR - 1) * RH - (b.groups.length - 1) * GAP;
     const dBot = lastY - 16;
     const boxBot = Math.min(lastY - 5, top - 27);
@@ -1886,8 +1892,8 @@ function pgSldPro(doc, sheet, M) {
       gq.rows.forEach(row => {
         ys.push(y);
         nStrB += row.k;
-        pgSym.pv(pen, X.m1, y, 4.6, 4.2, null);
-        pgSym.pv(pen, X.mn, y, 4.6, 4.2, null);
+        pgSym.pv(pen, X.m1, y, 6.4, 3.6, null, true);
+        pgSym.pv(pen, X.mn, y, 6.4, 3.6, null, true);
         pen.text(T, X.m1, y + 2.5, 1.3, "1", {
           align: 1,
           valign: 1
@@ -1896,7 +1902,7 @@ function pgSldPro(doc, sheet, M) {
           align: 1,
           valign: 1
         });
-        pen.line(CM, X.m1 + 2.3, y, X.mn - 2.3, y);
+        pen.line(CM, X.m1 + 3.2, y, X.mn - 3.2, y);
         const lw = X.sl - X.tx - 1.5;
         pen.text(T, X.tx, y + 0.9, fitH(row.lab, 1.7, lw), row.lab, {
           valign: 1
@@ -1904,16 +1910,22 @@ function pgSldPro(doc, sheet, M) {
         pen.text(T, X.tx, y - 1.0, fitH(row.sub, 1.4, lw), row.sub, {
           valign: 3
         });
-        pen.line(PE, X.pe0, y - 1.2, X.m1 - 2.3, y - 1.2);
+        pen.line(PE, X.pe0, y - 1.2, X.m1 - 3.2, y - 1.2);
         if (peTop == null) peTop = y - 1.2;else peDot(X.pe0, y - 1.2);
-        pen.line(R, X.mn + 2.3, y, fuseDev ? X.dcB - 2.4 : X.dcB - g - 0.75, y);
+        pen.line(R, X.mn + 3.2, y, fuseDev ? X.dcB - 2.4 : X.dcB - g - 0.75, y);
         if (fuseDev) hFuse(X.dcB, y);else hBrk(X.dcB, y);
         pen.line(R, fuseDev ? X.dcB + 2.4 : X.dcB + g + 0.75, y, X.iv0, y);
         pen.line(R, X.sl - 0.7, y - 1.0, X.sl + 0.3, y + 1.0);
         pen.line(R, X.sl + 0.5, y - 1.0, X.sl + 1.5, y + 1.0);
-        if (first) pen.text(T, X.dc0 + 1, y + 4.7, 1.25, P.dcDev.tag, {
-          valign: 1
-        });
+        if (first) {
+          const tw = X.dc1 - X.dc0 - 2;
+          pen.text(T, X.dc0 + 1, y + 6.5, fitH(P.dcSpdFull, 1.2, tw), P.dcSpdFull, {
+            valign: 1
+          });
+          pen.text(T, X.dc0 + 1, y + 4.7, fitH(P.dcDev.tag, 1.25, tw), P.dcDev.tag, {
+            valign: 1
+          });
+        }
         pen.dot(R, X.dcS, y, 0.5);
         pen.line(R, X.dcS, y, X.dcS, y - 2.2);
         spdS(X.dcS, y - 2.2);
@@ -2258,7 +2270,7 @@ function pgSldPro(doc, sheet, M) {
     }));
     ty -= noteH + 2;
   }
-  const legs = [[(x, y) => pgSym.pv(pen, x + 5, y, 4.4, 3.6, null), "PV MODULE"], [(x, y) => {
+  const legs = [[(x, y) => pgSym.pv(pen, x + 5, y, 6.4, 3.6, null, true), "PV MODULE"], [(x, y) => {
     pen.line(R, x, y, x + 5 - g - 0.75, y);
     hBrk(x + 5, y);
     pen.line(R, x + 5 + g + 0.75, y, x + 10, y);

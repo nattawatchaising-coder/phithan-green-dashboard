@@ -641,6 +641,142 @@ function suPanelAngle(foot) {
   if (!best) return 0;
   return Math.round(Math.atan2(best[1], best[0]) * 180 / Math.PI * 10) / 10;
 }
+function SuDxfView({
+  svg
+}) {
+  const box = React.useRef(null),
+    drag = React.useRef(null);
+  const [v, setV] = React.useState({
+    s: 1,
+    x: 0,
+    y: 0
+  });
+  const vRef = React.useRef(v);
+  vRef.current = v;
+  const zoomAt = (px, py, k) => {
+    const o = vRef.current,
+      s = Math.max(1, Math.min(24, o.s * k)),
+      kk = s / o.s;
+    const n = s === 1 ? {
+      s: 1,
+      x: 0,
+      y: 0
+    } : {
+      s,
+      x: px - (px - o.x) * kk,
+      y: py - (py - o.y) * kk
+    };
+    vRef.current = n;
+    setV(n);
+  };
+  React.useEffect(() => {
+    const el = box.current;
+    if (!el) return undefined;
+    const wh = e => {
+      e.preventDefault();
+      const r = el.getBoundingClientRect();
+      zoomAt(e.clientX - r.left, e.clientY - r.top, Math.exp(-e.deltaY * 0.0018));
+    };
+    el.addEventListener("wheel", wh, {
+      passive: false
+    });
+    return () => el.removeEventListener("wheel", wh);
+  }, []);
+  const mid = k => {
+    const r = box.current.getBoundingClientRect();
+    zoomAt(r.width / 2, r.height / 2, k);
+  };
+  return React.createElement("div", {
+    ref: box,
+    style: {
+      position: "absolute",
+      inset: 0,
+      overflow: "hidden",
+      cursor: drag.current ? "grabbing" : "grab",
+      userSelect: "none",
+      touchAction: "none"
+    },
+    onDragStart: e => e.preventDefault(),
+    onPointerDown: e => {
+      if (e.button !== 0 || e.target.closest("button")) return;
+      drag.current = {
+        x: e.clientX,
+        y: e.clientY,
+        o: vRef.current
+      };
+      e.currentTarget.setPointerCapture(e.pointerId);
+    },
+    onPointerMove: e => {
+      const d = drag.current;
+      if (!d) return;
+      setV({
+        s: d.o.s,
+        x: d.o.x + e.clientX - d.x,
+        y: d.o.y + e.clientY - d.y
+      });
+    },
+    onPointerUp: () => {
+      drag.current = null;
+    },
+    onDoubleClick: e => {
+      if (e.target.closest("button")) return;
+      const r = box.current.getBoundingClientRect();
+      if (vRef.current.s > 1.05) setV({
+        s: 1,
+        x: 0,
+        y: 0
+      });else zoomAt(e.clientX - r.left, e.clientY - r.top, 3);
+    }
+  }, React.createElement("div", {
+    className: "su-dxf-svg",
+    style: {
+      position: "absolute",
+      inset: 8,
+      transformOrigin: "0 0",
+      transform: "translate(" + v.x + "px," + v.y + "px) scale(" + v.s + ")"
+    },
+    dangerouslySetInnerHTML: {
+      __html: svg
+    }
+  }), React.createElement("div", {
+    style: {
+      position: "absolute",
+      right: 10,
+      bottom: 10,
+      display: "flex",
+      gap: 4,
+      alignItems: "center",
+      background: "var(--surface)",
+      borderRadius: 10,
+      padding: 4,
+      boxShadow: "var(--shadow-sm)"
+    }
+  }, React.createElement("button", {
+    className: "p3-b sm",
+    onClick: () => mid(1 / 1.5),
+    title: "\u0E0B\u0E39\u0E21\u0E2D\u0E2D\u0E01"
+  }, "\u2212"), React.createElement("span", {
+    style: {
+      minWidth: 42,
+      textAlign: "center",
+      fontSize: 11,
+      fontWeight: 700,
+      color: "var(--text-2)"
+    }
+  }, Math.round(v.s * 100), "%"), React.createElement("button", {
+    className: "p3-b sm",
+    onClick: () => mid(1.5),
+    title: "\u0E0B\u0E39\u0E21\u0E40\u0E02\u0E49\u0E32"
+  }, "+"), React.createElement("button", {
+    className: "p3-b sm",
+    onClick: () => setV({
+      s: 1,
+      x: 0,
+      y: 0
+    }),
+    title: "\u0E1E\u0E2D\u0E14\u0E35\u0E41\u0E1C\u0E48\u0E19"
+  }, "\u0E1E\u0E2D\u0E14\u0E35\u0E41\u0E1C\u0E48\u0E19")));
+}
 function SuLayout2D({
   foot,
   assign,
@@ -8862,15 +8998,9 @@ function SolarWorkspace({
       display: "grid",
       placeItems: "center"
     }
-  }, dxfSvg ? React.createElement("div", {
-    className: "su-dxf-svg",
-    style: {
-      position: "absolute",
-      inset: 8
-    },
-    dangerouslySetInnerHTML: {
-      __html: dxfSvg
-    }
+  }, dxfSvg ? React.createElement(SuDxfView, {
+    key: dxf.i,
+    svg: dxfSvg
   }) : React.createElement("span", {
     className: "p3-note keep"
   }, "\u0E27\u0E32\u0E14\u0E41\u0E1C\u0E48\u0E19\u0E19\u0E35\u0E49\u0E44\u0E21\u0E48\u0E2A\u0E33\u0E40\u0E23\u0E47\u0E08")), React.createElement("div", {

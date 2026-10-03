@@ -3327,6 +3327,7 @@ function p3SldModel(st, job, design) {
       auth: auth || "MEA/PEA",
       dcDev,
       dcSpdTag: "SPD T2 " + ucpv + "VDC",
+      dcSpdFull: "DC SPD T2 Ucpv " + ucpv + "VDC In 20kA Imax 40kA",
       dcCable: "PV1-F (H1Z2Z2-K) 1x" + (isc * 1.56 > 40 ? 6 : 4) + " mm2 1.5kV DC",
       acSpd: nPh === 3 ? ["AC SPD TYPE II 4P", "Uc 385V In 20kA", "Imax 40kA"] : ["AC SPD TYPE II 2P", "Uc 275V In 20kA", "Imax 40kA"],
       spdBk,
