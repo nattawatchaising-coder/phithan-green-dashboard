@@ -3243,8 +3243,8 @@ function p3SldModel(st, job, design) {
     branches,
     combinerModel: "",
     ctBranch: "CTx1 " + p3Ct(totA * 1.5) + "A/40mA",
-    rccb: "RCCB " + Vll + "V " + P + p3At(Math.max(63, totA * 1.25)) + "AT",
-    rccbType: "Type A 100mA",
+    rccb: totA * 1.25 > 63 ? "MCCB " + P + p3At(totA * 1.25) + "AT" : "RCCB " + Vll + "V " + P + "63AT",
+    rccbType: totA * 1.25 > 63 ? "c/w GFR + ZCT + SHUNT TRIP" : "Type A 100mA",
     gateway: true,
     mainCable: ["CV-FD  " + (nPh === 3 ? "4Cx" : "2Cx") + mainCu + " sq.mm. (SOLAR-CELL)", "IEC01 THW(G)  " + Math.max(6, p3Cu(totA * 0.5, 2)) + " sq.mm. (GROUND)"],
     mccbNew: true,
@@ -3268,6 +3268,60 @@ function p3SldModel(st, job, design) {
     const at = M.invData.findIndex(r => r[0] === "#" && r[1] === "OUTPUT PARAMETERS");
     const add = [MR.per && !M.invData.some(r => r[0] === "NUMBER OF MPPT") ? ["NUMBER OF MPPT", MR.per, ""] : null, MR.phys ? ["STRING INPUT PER MPPT", MR.phys, ""] : null, ["MPPT IN USE", used + (MR.rows.length ? " / " + MR.rows.length : ""), ""], ["STRINGS CONNECTED", (design.strings || []).length, ""]].filter(Boolean);
     M.invData.splice(at < 0 ? M.invData.length : at, 0, ...add);
+  }
+  if (M.mppt && M.mppt.rows.length && !micro) {
+    const PS = typeof scPanelSpec === "function" ? scPanelSpec(sys) : {};
+    const env = Object.assign({
+      tMin: 15
+    }, typeof SC_ENV !== "undefined" ? SC_ENV : {}, sys.env || {});
+    const tMin = Math.round(+env.tMin || 15);
+    const vocAt = n => Math.round((typeof scVocAt === "function" && PS.voc ? scVocAt(PS, tMin) : +PS.voc || 0) * n);
+    const isc = +PS.isc || 0;
+    const ivSp = inv.spec || {};
+    const home = job && job.type ? job.type === "home" : (+ivSp.kw || 0) <= 20;
+    const maxVdc = +ivSp.maxVdc || 1000;
+    const SS = design.strings || [];
+    const ns = SS.map(s => s.n);
+    const nMin = Math.min.apply(null, ns),
+      nMax = Math.max.apply(null, ns);
+    const perM = Math.max.apply(null, M.mppt.rows.map(r => r.ins.length));
+    const fuse = typeof scStringFuse === "function" ? scStringFuse(PS, perM, SS.length) : {
+      need: false
+    };
+    const dcA = [10, 16, 20, 25, 32, 40, 50, 63].find(a => a >= isc * 1.25) || 63;
+    const vocMax = vocAt(nMax);
+    const ucpv = [600, 800, 1000, 1200, 1500].find(v => v >= Math.max(vocMax, 1)) || 1500;
+    const auth = window.BOQ && window.BOQ.gridAuthOf && job ? window.BOQ.gridAuthOf(job) : "";
+    const P2 = nPh === 3 ? "4P " : "2P ";
+    M.pro = {
+      home,
+      maxVdc,
+      tMin,
+      isc,
+      wp,
+      vocAt,
+      vocMax,
+      auth: auth || "MEA/PEA",
+      fuse: fuse && fuse.need ? {
+        amp: fuse.amp || Math.ceil(isc * 1.5)
+      } : null,
+      dcCable: "PV1-F (H1Z2Z2-K) 1x" + (isc * 1.56 > 40 ? 6 : 4) + " mm2 1.5kV DC",
+      dcMcb: "DC MCB " + dcA + "A 2P " + (maxVdc > 800 ? 1000 : 800) + "VDC",
+      dcSpd: ["DC SPD TYPE II", "Ucpv " + ucpv + "VDC", "In 20kA"],
+      ivBrk: units.map(u => {
+        const a = p3At(aOfUnit(u) * 1.25);
+        return home && a <= 63 ? "RCBO " + P2 + a + "A 100mA" : (a > 125 ? "MCCB " : "MCB ") + P2 + a + "AT";
+      }),
+      mainA: p3At(totA * 1.25),
+      gf: !(home && p3At(totA * 1.25) <= 63),
+      lsig: p3At(totA * 1.25) >= 1000,
+      ivKw: units.map(u => Math.round((+u.w || unitW) / 100) / 10),
+      earthCu: Math.max(6, p3Cu(totA * 0.5, 2)),
+      phTxt: nPh === 3 ? "3PH 400V" : "1PH 230V"
+    };
+    const nTxt = nMin === nMax ? String(nMax) : nMin + "-" + nMax;
+    const r = (k, v, u) => v === 0 || v == null || v === "" ? null : [k, v, u];
+    M.pvData = [["BRAND", panel.brand], ["MODEL", panel.model], ["MAX. POWER (Pmax)", wp, "Wp"], r("OPEN CIRCUIT VOLTAGE (Voc)", PS.voc, "V"), r("SHORT CIRCUIT CURRENT (Isc)", PS.isc, "A"), r("MPP VOLTAGE (Vmp)", PS.vmp, "V"), r("MPP CURRENT (Imp)", PS.imp, "A"), ["#", "PV ARRAY"], ["TOTAL MODULES", nPanel, "PCS"], ["TOTAL STRINGS", SS.length, ""], ["MODULES PER STRING", nTxt, ""], r("STRING Voc @ " + tMin + "%%dC", vocMax, "V"), r("STRING Isc", isc, "A"), ["DC CAPACITY", dcKw.toFixed(2), "kWp"], ["AC CAPACITY", acKw.toFixed(2), "kW"], ["DC/AC RATIO", acKw ? (dcKw / acKw).toFixed(2) : "-", ""]].filter(Boolean);
   }
   M.battData = M.batt ? [["BRAND", M.batt.brand], ["MODEL", M.batt.model], ["BATTERY ENERGY", M.batt.kwh, "kWh"], ["NOMINAL VOLTAGE", Vll, "VAC"], ["CHEMISTRY", sys.batt && sys.batt.chem || "LiFePO4"]] : [];
   M.equip = [{
@@ -3360,11 +3414,11 @@ function p3SldFields(M) {
       auto: M.ctBranch
     }, {
       path: "rccb",
-      label: "RCCB",
+      label: "เมนตู้ AC (RCCB / MCCB)",
       auto: M.rccb
     }, {
       path: "rccbType",
-      label: "RCCB บรรทัดที่ 2",
+      label: "เมนตู้ AC บรรทัดที่ 2",
       auto: M.rccbType
     }, {
       path: "mainCable~0",
