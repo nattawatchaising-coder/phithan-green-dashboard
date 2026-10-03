@@ -539,6 +539,60 @@ function scPinOrder(L) {
   }
   return out;
 }
+function scSpreadMppt(L, items, capOf, load0) {
+  const ML = scMpptOrder(L);
+  const load = Object.assign({}, load0 || {});
+  const free = m => capOf(m) - (load[m] || 0);
+  const avail = ML.filter(m => free(m) > 0);
+  const out = items.map(() => null);
+  if (!avail.length || !items.length) return out;
+  const groups = [],
+    gi = {};
+  items.forEach((it, i) => {
+    const k = it && it.groupKey || "";
+    if (gi[k] == null) {
+      gi[k] = groups.length;
+      groups.push({
+        idx: []
+      });
+    }
+    groups[gi[k]].idx.push(i);
+  });
+  const A = avail.length,
+    S = items.length;
+  let share = groups.map(g => g.idx.length);
+  if (S > A) {
+    const raw = groups.map(g => g.idx.length * A / S);
+    share = raw.map(r => Math.max(1, Math.floor(r)));
+    let sum = share.reduce((a, b) => a + b, 0);
+    const ord = raw.map((r, i) => [r - Math.floor(r), i]).sort((a, b) => b[0] - a[0]);
+    for (let t = 0; sum < A && t < ord.length * 4; t++) {
+      share[ord[t % ord.length][1]]++;
+      sum++;
+    }
+    while (sum > A) {
+      const bi = share.indexOf(Math.max.apply(null, share));
+      if (share[bi] <= 1) break;
+      share[bi]--;
+      sum--;
+    }
+  }
+  let off = 0;
+  const least = pool => pool.reduce((b, x) => (load[x] || 0) < (load[b] || 0) ? x : b, pool[0]);
+  groups.forEach((g, i) => {
+    const mine = avail.slice(off, off + share[i]);
+    off += share[i];
+    g.idx.forEach(ii => {
+      let pool = mine.filter(m => free(m) > 0);
+      if (!pool.length) pool = avail.filter(m => free(m) > 0);
+      if (!pool.length) return;
+      const m = least(pool);
+      out[ii] = m;
+      load[m] = (load[m] || 0) + 1;
+    });
+  });
+  return out;
+}
 function scPinAddr(pin, inv, nInv, inv2, nInv2) {
   const L = inv && inv.units ? inv : scPinLayout(inv, nInv, inv2, nInv2);
   const u = L.unitOfPin(pin);
@@ -672,32 +726,23 @@ function scAutoStrings(groups, panel, inv, env, opt) {
       left: pk.left
     });
   });
-  const ORDER = LAY.mixed ? scPinOrder(LAY).map(k => LAY.mpptAt(k)) : scMpptOrder(LAY);
-  let oi = 0,
-    used = {};
-  const byGroup = {};
-  out.strings.forEach(s => {
-    (byGroup[s.groupKey] = byGroup[s.groupKey] || []).push(s);
-  });
-  Object.keys(byGroup).forEach(k => {
-    byGroup[k].forEach(s => {
-      while (oi < ORDER.length && (used[ORDER[oi]] || 0) >= perMpptOf(ORDER[oi])) oi++;
-      if (oi >= ORDER.length) {
-        s.mppt = null;
-        s.pin = null;
-        return;
-      }
-      const mi = ORDER[oi],
-        u = LAY.unitOfMppt(mi);
-      s.mppt = mi;
-      s.inv = u.no;
-      s.from = u.from;
-      s.pin = LAY.pinAt(mi, used[mi] || 0);
-      s.addr = scMpptName(s.pin, LAY);
-      used[mi] = (used[mi] || 0) + 1;
-      if (LAY.mixed) oi++;
-    });
-    oi++;
+  const used = {};
+  const capA = m => Math.min(perMpptOf(m), LAY.physOf(m));
+  const mA = scSpreadMppt(LAY, out.strings, capA, null);
+  out.strings.forEach((s, i) => {
+    const mi = mA[i];
+    if (mi == null) {
+      s.mppt = null;
+      s.pin = null;
+      return;
+    }
+    const u = LAY.unitOfMppt(mi);
+    s.mppt = mi;
+    s.inv = u.no;
+    s.from = u.from;
+    s.pin = LAY.pinAt(mi, used[mi] || 0);
+    s.addr = scMpptName(s.pin, LAY);
+    used[mi] = (used[mi] || 0) + 1;
   });
   if (LAY.mixed) out.strings.forEach(s => {
     if (s.mppt == null) return;
@@ -804,12 +849,20 @@ function scStringsFromAssign(assign, byPanel, groups, panel, inv, env, opt) {
     s.picked = true;
     place(s, pin);
   });
-  const PORDER = scPinOrder(LAY);
-  strings.forEach(s => {
-    if (s.pin != null) return;
-    const pin = PORDER.find(k => !owner[k] && (load[LAY.mpptAt(k)] || 0) < perMpptOf(LAY.mpptAt(k)));
-    if (pin == null) return;
-    place(s, pin);
+  const rest = strings.filter(s => s.pin == null);
+  const capM = m => Math.min(perMpptOf(m), LAY.physOf(m));
+  const mR = scSpreadMppt(LAY, rest, capM, load);
+  rest.forEach((s, i) => {
+    const m = mR[i];
+    if (m == null) return;
+    const u = LAY.unitOfMppt(m);
+    for (let k = 0; k < u.phys; k++) {
+      const pin = LAY.pinAt(m, k);
+      if (!owner[pin]) {
+        place(s, pin);
+        return;
+      }
+    }
   });
   Object.keys(owner).forEach(k => {
     if (owner[k].length > 1) warns.push(scMpptName(+k, LAY) + " ถูกจองซ้ำ " + owner[k].length + " สตริง (#" + owner[k].join(", #") + ") — 1 ขั้วเสียบได้สตริงเดียว");
@@ -2150,6 +2203,7 @@ Object.assign(window, {
   scInvUnits,
   scMpptOrder,
   scPinOrder,
+  scSpreadMppt,
   scAutoStrings,
   scMicroPlan,
   scMicroSpec,

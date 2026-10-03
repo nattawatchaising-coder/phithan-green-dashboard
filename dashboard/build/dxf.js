@@ -1903,6 +1903,17 @@ function pgSldDraw(doc, sheet, M) {
   let ty = A.y1 - 6;
   ty -= pgSldTable(pen, TX0, ty, TX1 - TX0, M.invData, "INVERTER DATA") + 8;
   if (M.battData && M.battData.length) ty -= pgSldTable(pen, TX0, ty, TX1 - TX0, M.battData, "BATTERY DATA") + 8;
+  if (M.mppt && M.mppt.rows.length && typeof p3MpptTable === "function") {
+    const eqH0 = 5.4 + 4.6 * (M.equip.length + 1);
+    const fit = Math.floor((ty - (A.y0 + 8 + eqH0 + 18)) / 4.2) - 1;
+    if (fit >= 2) {
+      const head = "MPPT CONNECTION" + (M.mppt.phys ? "  (" + M.mppt.phys + " INPUT / MPPT)" : "");
+      const rows = p3MpptTable(M.mppt, fit).map(r => [r[0], r[1], r[2] && r[2] !== "-" ? r[2] + " PV" : ""]);
+      ty -= pgSldTable(pen, TX0, ty, TX1 - TX0, rows, head, {
+        c1: (TX1 - TX0) * 0.3
+      }) + 8;
+    }
+  }
   const eqH = 5.4 + 4.6 * (M.equip.length + 1);
   const eqY = Math.min(ty - 4, A.y0 + 8 + eqH);
   pgSldEquip(pen, TX0, eqY, TX1 - TX0, M.equip);

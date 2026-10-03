@@ -1402,6 +1402,261 @@ function p3Foot(roof) {
   });
   return out;
 }
+function p3MpptRows(design) {
+  const SS = design && design.strings || [];
+  const L = design && design.lay || {};
+  const map = {};
+  let maxInv = 0;
+  SS.forEach(s => {
+    const m = /INV(\d+)\s*\/\s*MPPT(\d+)\s*\/\s*\D*(\d+)\s*$/.exec(s.addr || "");
+    if (!m) return;
+    const iv = +m[1],
+      mp = +m[2];
+    maxInv = Math.max(maxInv, iv);
+    const k = iv + "|" + mp;
+    (map[k] = map[k] || {
+      inv: iv,
+      mppt: mp,
+      ins: []
+    }).ins.push({
+      inNo: +m[3],
+      id: s.id,
+      n: s.n
+    });
+  });
+  const per = L.mixed ? 0 : +L.mpptPerInv || 0;
+  const nInv = Math.max(maxInv, +L.nInv || 0);
+  if (per && nInv * per <= 400) for (let i = 1; i <= nInv; i++) for (let j = 1; j <= per; j++) {
+    const k = i + "|" + j;
+    if (!map[k]) map[k] = {
+      inv: i,
+      mppt: j,
+      ins: []
+    };
+  }
+  const rows = Object.keys(map).map(k => map[k]).sort((a, b) => a.inv - b.inv || a.mppt - b.mppt);
+  rows.forEach(r => {
+    r.ins.sort((a, b) => a.inNo - b.inNo);
+    r.panels = r.ins.reduce((t, x) => t + x.n, 0);
+  });
+  return {
+    rows,
+    per,
+    phys: L.mixed ? 0 : +L.phys || 0,
+    nInv
+  };
+}
+const p3MpptCell = r => r.ins.length ? r.ins.map(x => "S" + x.id + "(" + x.n + ")").join(" + ") : "ว่าง";
+function p3MpptTable(MR, fit) {
+  if (MR.rows.length <= fit) return MR.rows.map(r => ["INV" + r.inv + " · MPPT" + r.mppt, p3MpptCell(r), r.panels ? r.panels + "" : "-"]);
+  const g = {};
+  MR.rows.forEach(r => {
+    (g[r.inv] = g[r.inv] || []).push(r);
+  });
+  let out = Object.keys(g).sort((a, b) => a - b).map(i => {
+    const a = g[i],
+      use = a.filter(r => r.ins.length);
+    const ids = [].concat.apply([], use.map(r => r.ins.map(x => x.id))).sort((x, y) => x - y);
+    return ["INV" + i, use.length + "/" + a.length + " MPPT · " + ids.length + " สตริง" + (ids.length ? " (S" + ids[0] + "–S" + ids[ids.length - 1] + ")" : ""), a.reduce((t, r) => t + r.panels, 0) + ""];
+  });
+  if (out.length > fit) out = out.slice(0, Math.max(1, fit - 1)).concat([["…", "ดูแผ่น STRING LAYOUT", ""]]);
+  return out;
+}
+function p3ClipSeg(a, c, b) {
+  let t0 = 0,
+    t1 = 1;
+  const dx = c[0] - a[0],
+    dy = c[1] - a[1];
+  const p = [-dx, dx, -dy, dy],
+    q = [a[0] - b.x0, b.x1 - a[0], a[1] - b.y0, b.y1 - a[1]];
+  for (let i = 0; i < 4; i++) {
+    if (p[i] === 0) {
+      if (q[i] < 0) return null;
+      continue;
+    }
+    const r = q[i] / p[i];
+    if (p[i] < 0) {
+      if (r > t1) return null;
+      if (r > t0) t0 = r;
+    } else {
+      if (r < t0) return null;
+      if (r < t1) t1 = r;
+    }
+  }
+  return [[a[0] + t0 * dx, a[1] + t0 * dy], [a[0] + t1 * dx, a[1] + t1 * dy]];
+}
+const P3_STR_ACI = [5, 1, 3, 6, 30, 4, 140, 200, 2];
+function p3StrLayout(st, job, media) {
+  media = media || {};
+  const DS = media.design || {};
+  let foot = {
+    panels: []
+  };
+  try {
+    foot = p3FootAll(st);
+  } catch (e) {
+    foot = {
+      panels: []
+    };
+  }
+  const sOf = {};
+  (DS.paths || []).forEach(q => {
+    const us = q.uids || [];
+    us.forEach((u, i) => {
+      sOf[u] = {
+        id: q.id,
+        k: i + 1,
+        n: us.length
+      };
+    });
+  });
+  let a = Infinity,
+    b = Infinity,
+    c = -Infinity,
+    d = -Infinity;
+  (foot.panels || []).forEach(p => p.pts.forEach(q => {
+    const x = q[0],
+      y = -q[1];
+    if (x < a) a = x;
+    if (x > c) c = x;
+    if (y < b) b = y;
+    if (y > d) d = y;
+  }));
+  if (!isFinite(a)) return p3Dxf(st, job, media);
+  const MG = 1.5;
+  const B = {
+    minX: a - MG,
+    minY: b - MG,
+    maxX: c + MG,
+    maxY: d + MG
+  };
+  const IN = PG_SHEET.IN;
+  const AW = IN.x1 - PG_SHEET.TB - IN.x0;
+  const COL = 128,
+    RH = 4.6;
+  const A = {
+    w: AW - COL - 8,
+    h: IN.y1 - IN.y0
+  };
+  const needW = B.maxX - B.minX,
+    needH = B.maxY - B.minY;
+  const SC = P3_SCALES.find(s => needW * 1000 <= A.w * 0.94 * s && needH * 1000 <= A.h * 0.94 * s) || P3_SCALES[P3_SCALES.length - 1];
+  const k = SC / 1000;
+  const doc = pgDoc({
+    units: "m",
+    ltscale: k
+  }, media.svg);
+  P3_DXF_LAYERS.forEach(L => doc.layer(L[0], L[1], "CONTINUOUS", L[2]));
+  P3_STR_ACI.forEach((col, i) => doc.layer("PG-STR-" + (i + 1), col, "CONTINUOUS", 25));
+  pgTableLayers(doc);
+  const px = IN.x0 + A.w / 2,
+    py = IN.y0 + A.h / 2;
+  const ox = (B.minX + B.maxX) / 2 - px * k,
+    oy = (B.minY + B.maxY) / 2 - py * k;
+  const sheet = pgSheet(doc, {
+    k,
+    ox,
+    oy,
+    info: p3SheetInfo(st, job, {
+      sheet: "STRING",
+      scale: "1:" + SC,
+      sheetNo: media.sheetNo || "1/1"
+    })
+  });
+  const pen = sheet.pen,
+    AR = sheet.area;
+  const TH = 2.0 * k;
+  const VB = {
+    x0: ox + (IN.x0 + 1) * k,
+    y0: oy + (IN.y0 + 1) * k,
+    x1: ox + (IN.x0 + A.w) * k,
+    y1: oy + (IN.y1 - 1) * k
+  };
+  const NL = P3_STR_ACI.length;
+  const lay = id => "PG-STR-" + ((((+id || 1) - 1) % NL + NL) % NL + 1);
+  (st.roofs || []).forEach(roof => {
+    let faces = [];
+    try {
+      faces = p3RoofSurf(roof) || [];
+    } catch (e) {
+      faces = [];
+    }
+    faces.forEach(f => {
+      const P = (f.pts || []).map(p => [p.x, -p.z]);
+      P.forEach((p, i) => {
+        const s = p3ClipSeg(p, P[(i + 1) % P.length], VB);
+        if (s) doc.line("PG-ROOF", s[0][0], s[0][1], s[1][0], s[1][1]);
+      });
+    });
+  });
+  const fp = foot.panels || [];
+  const pw = Math.min.apply(null, fp.map(p => {
+    const xs = p.pts.map(q => q[0]),
+      zs = p.pts.map(q => q[1]);
+    return Math.min(Math.max.apply(null, xs) - Math.min.apply(null, xs), Math.max.apply(null, zs) - Math.min.apply(null, zs));
+  }));
+  fp.forEach(p => {
+    const s = sOf[p.uid];
+    doc.pline(s ? lay(s.id) : "PG-PANEL", p.pts.map(q => [q[0], -q[1]]), true);
+  });
+  (DS.paths || []).forEach(q => {
+    const pts = (q.pts || []).map(t => [t[0], -t[1]]);
+    if (pts.length > 1) doc.pline(lay(q.id), pts, false);
+  });
+  const lh = Math.min(TH, pw * 0.24);
+  const each = lh / k >= 1.0;
+  fp.forEach(p => {
+    const s = sOf[p.uid];
+    if (!s) return;
+    const first = s.k === 1,
+      last = s.k === s.n;
+    if (!each && !first && !last) return;
+    const t = first ? "S" + s.id + "+" : last ? "S" + s.id + "-" : s.id + "-" + s.k;
+    doc.text(lay(s.id), p.cx, -p.cz, each ? lh : Math.max(lh, TH * 0.8), t, {
+      align: 1,
+      valign: 2
+    });
+  });
+  const barM = SC / 1000 * 40,
+    bx = AR.x0 + 4,
+    by = AR.y0 + 4;
+  pen.rect("PG-NORTH", bx, by, 40, 2.2);
+  pen.solid("PG-NORTH", [bx, by], [bx + 10, by], [bx + 10, by + 2.2], [bx, by + 2.2]);
+  pen.solid("PG-NORTH", [bx + 20, by], [bx + 30, by], [bx + 30, by + 2.2], [bx + 20, by + 2.2]);
+  [0, 0.5, 1].forEach(f => pen.text("PG-NORTH", bx + 40 * f, by + 3, 2.2, (barM * f).toFixed(0), {
+    align: 1,
+    valign: 1
+  }));
+  pen.text("PG-NORTH", bx + 44, by + 0.4, 2.2, "METRES   SCALE 1:" + SC);
+  const RX1 = AR.x1 - 2,
+    RX0 = RX1 - COL;
+  pgSheetTitle(pen, RX0, AR.y1 - 12, "STRING LAYOUT", 7.4, COL - 30, 0);
+  pen.text("PG-NOTE", RX0, AR.y1 - 19, 2.4, "SCALE");
+  pen.text("PG-NOTE", RX1 - 28, AR.y1 - 18, 2.4, "A1=1:" + Math.round(SC / 1.414));
+  pen.text("PG-NOTE", RX1 - 28, AR.y1 - 22.5, 2.4, "A3=1:" + SC);
+  pgCompass(pen, RX1 - 12, AR.y1 - 40, 6.5);
+  const notes = [each ? "ป้าย 3-5 = สตริง 3 แผงที่ 5 นับจากต้นสาย" : "แผงเล็กเกินใส่ป้ายทุกใบ - ไล่ลำดับตามเส้นเดินสาย", "S3+ = แผงแรกของสตริง (ต้นสาย)  S3- = แผงสุดท้าย (ปลายสาย)", "สีกรอบแผง = สตริง (layer PG-STR-1..9)", "วัดแรงดัน/ขั้วทุกสตริงก่อนเสียบเข้าอินเวอร์เตอร์"];
+  const noteY0 = AR.y0 + 6;
+  notes.slice().reverse().forEach((t, i) => pen.text("PG-NOTE", RX0, noteY0 + i * 4.2, 2.2, t));
+  const MR = p3MpptRows(DS);
+  if (MR.rows.length) {
+    const top = AR.y1 - 52,
+      bottom = noteY0 + notes.length * 4.2 + 4;
+    const fit = Math.floor((top - bottom) / RH) - 4;
+    const body = p3MpptTable(MR, Math.max(1, fit));
+    const head = "MPPT CONNECTION" + (MR.per ? " · " + MR.per + " MPPT/เครื่อง" : "") + (MR.phys ? " · " + MR.phys + " ช่อง/MPPT" : "");
+    const SS = DS.strings || [];
+    const rows = [["#", head], ["INV · MPPT", "สตริง (แผง)", "แผง"]].concat(body);
+    rows.push(["รวม", SS.length + " สตริง", SS.reduce((t, s) => t + s.n, 0) + ""]);
+    pgGrid(pen, RX0, top, COL, [1.1, 2.4, 0.5], rows, {
+      rh: RH,
+      th: 2.2,
+      align: [0, 0, 2],
+      headRow: 1
+    });
+  }
+  return doc.build();
+}
 function p3FootAll(st) {
   const panels = [];
   const outlines = [];
@@ -3006,6 +3261,14 @@ function p3SldModel(st, job, design) {
   const sp = inv.spec || {};
   const row = (k, v, u) => v === 0 || v == null || v === "" ? null : [k, v, u];
   M.invData = [["BRAND", inv.brand], ["MODEL", inv.model], ["#", "INPUT PARAMETERS"], row("MAX. POWER OF COMPATIBLE PV", sp.wpMax || (micro ? Math.round(unitW * 1.3) : ""), "W"), row("MPPT VOLTAGE RANGE", sp.mpptVmin && sp.mpptVmax ? sp.mpptVmin + " TO " + sp.mpptVmax : "", "VDC"), row("MAX. DC VOLTAGE", sp.maxVdc, "VDC"), row("START-UP INPUT VOLTAGE", sp.vStart, "VDC"), row("NUMBER OF INPUT", sp.inputs || sp.perInverter, ""), row("NUMBER OF MPPT", sp.mppt, ""), row("MAX. INPUT CURRENT", sp.maxInA, "A"), row("MAX. INPUT Isc", sp.maxIscA, "A"), ["#", "OUTPUT PARAMETERS"], ["NOMINAL VOLTAGE", micro ? inv.v || 230 : Vll, "VAC"], ["NOMINAL OUTPUT POWER", Math.round(unitW), "W"], ["NOMINAL OUTPUT CURRENT", unitA.toFixed(2), "A"], row("MAX. OUTPUT CURRENT", sp.outA, "A"), ["NUMBER OF UNIT", units.length, "EA"], row("MAX EFFICIENCY", sp.eff, "%")].filter(Boolean);
+  if (M.strs && design) {
+    const MR = p3MpptRows(design);
+    M.mppt = MR;
+    const used = MR.rows.filter(r => r.ins.length).length;
+    const at = M.invData.findIndex(r => r[0] === "#" && r[1] === "OUTPUT PARAMETERS");
+    const add = [MR.per && !M.invData.some(r => r[0] === "NUMBER OF MPPT") ? ["NUMBER OF MPPT", MR.per, ""] : null, MR.phys ? ["STRING INPUT PER MPPT", MR.phys, ""] : null, ["MPPT IN USE", used + (MR.rows.length ? " / " + MR.rows.length : ""), ""], ["STRINGS CONNECTED", (design.strings || []).length, ""]].filter(Boolean);
+    M.invData.splice(at < 0 ? M.invData.length : at, 0, ...add);
+  }
   M.battData = M.batt ? [["BRAND", M.batt.brand], ["MODEL", M.batt.model], ["BATTERY ENERGY", M.batt.kwh, "kWh"], ["NOMINAL VOLTAGE", Vll, "VAC"], ["CHEMISTRY", sys.batt && sys.batt.chem || "LiFePO4"]] : [];
   M.equip = [{
     brand: inv.brand,
@@ -3545,6 +3808,11 @@ async function p3PrepSet(st, job, photos, design) {
       imgs
     }, o))
   }];
+  if (design && (design.paths || []).some(q => q.uids && q.uids.length)) list.push({
+    key: "STRING",
+    label: "ผังสตริงหน้างาน",
+    fn: o => p3StrLayout(st, job, o)
+  });
   if (design) {
     list.push({
       key: "SLD",
@@ -3610,6 +3878,11 @@ async function p3ExportSet(st, job, photos, prep) {
     files: P.files.length
   };
 }
+Object.assign(window, {
+  p3MpptRows,
+  p3MpptTable,
+  p3StrLayout
+});
 Object.assign(window, {
   usePlan3d,
   movePlan3d,

@@ -614,11 +614,15 @@ function SuLayout2D({ foot, assign, active, onPaint, onPaintMany, height, labels
     color: on ? "#fff" : "var(--text-2)", cursor: "pointer", fontFamily: "inherit", fontSize: 14, fontWeight: 800, lineHeight: 1 });
 
   return (
-    <div ref={wrapRef} style={ctl
+    /* userSelect none + กัน dragstart: ลากต่อจากข้อความ/ป้ายที่ถูกเลือกค้างไว้ เบราว์เซอร์จะเริ่มลากแบบ drag-and-drop
+       เมาส์เป็นรูปห้าม แล้วผังไม่เลื่อน (ผู้ใช้เจอบ่อย) */
+    <div ref={wrapRef} onDragStart={(e) => e.preventDefault()} style={Object.assign(ctl
       ? { position: "relative", borderRadius: 14, background: "var(--surface2)", boxShadow: "var(--shadow-inset)", overflow: "hidden", touchAction: "none", height: "100%" }
-      : { position: "relative", borderRadius: 12, border: "1px solid var(--ln)", background: "var(--surface2)", overflow: "hidden", touchAction: "none" }}>
-      {/* แถบซูม — ลอยมุมขวาบน ไม่กินพื้นที่ผัง */}
-      <div style={{ position: "absolute", top: 8, right: 8, zIndex: 2, display: "flex", gap: 6, alignItems: "center" }}>
+      : { position: "relative", borderRadius: 12, border: "1px solid var(--ln)", background: "var(--surface2)", overflow: "hidden", touchAction: "none" },
+      { userSelect: "none", WebkitUserSelect: "none" })}>
+      {/* แถบซูม — ลอยมุมขวาบน · หน้าจัดสตริง (ctl) ย้ายไปซ้ายล่าง ไม่บังแผงที่มักอยู่ด้านบน */}
+      <div style={Object.assign({ position: "absolute", zIndex: 2, display: "flex", gap: 6, alignItems: "center" },
+        ctl ? { left: 10, bottom: 10 } : { top: 8, right: 8 })}>
         {zoomed && (
           <span style={{ fontSize: 10.5, fontWeight: 800, color: "var(--text-3)", background: "var(--surface)",
             border: "1px solid var(--ln2)", borderRadius: 8, padding: "5px 8px" }}>
@@ -666,6 +670,11 @@ function SuLayout2D({ foot, assign, active, onPaint, onPaintMany, height, labels
         onPointerDown={(e) => {
           /* จับ pointer ไว้เพื่อให้ลากออกนอก svg แล้วยังทำงานต่อได้ — บางเบราว์เซอร์โยน error ถ้า pointer ไม่ active */
           try { e.currentTarget.setPointerCapture(e.pointerId); } catch (err) {}
+          if (e.button === 0) {
+            e.preventDefault();
+            const sel0 = window.getSelection && window.getSelection();
+            if (sel0 && sel0.rangeCount) sel0.removeAllRanges();
+          }
           if (e.button === 2) {
             e.preventDefault();
             const el = document.elementFromPoint(e.clientX, e.clientY);
@@ -2123,7 +2132,7 @@ function SolarWorkspace({ job, st, sys, onChange, onClose, snap }) {
     Object.keys(effAssign || {}).forEach((u) => { const v = effAssign[u]; if (v && ctr[u]) (bag[v] = bag[v] || []).push(u); });
     return Object.keys(bag).map((k) => {
       const us = bag[k].sort((x, y) => (lay.rank[x] != null ? lay.rank[x] : 1e9) - (lay.rank[y] != null ? lay.rank[y] : 1e9));
-      return { id: +k, color: suColor(+k), pts: us.map((u) => ctr[u]) };
+      return { id: +k, color: suColor(+k), pts: us.map((u) => ctr[u]), uids: us };
     });
   }, [isMicro, foot, effAssign, lay]);
   /* ── ชุดแบบ DXF (ผังติดตั้ง · SLD · ต่อสาย DC · วัสดุหน้างาน) ──
@@ -2134,6 +2143,7 @@ function SolarWorkspace({ job, st, sys, onChange, onClose, snap }) {
   const dxfDesign = () => ({
     strings: isMicro || !plan ? [] : plan.strings.map((x) => ({ id: x.id, n: x.n, inv: x.inv, addr: x.addr })),
     paths: wirePaths,
+    lay: !isMicro && plan ? { mpptPerInv: pinLay.mpptPerInv, phys: pinLay.phys, nInv: pinLay.nInv, mixed: !!inv2 } : null,
   });
   const dxfSt = () => Object.assign({}, st, { sys: S });
   async function openDxf() {

@@ -878,378 +878,392 @@ function SuLayout2D({
     fontWeight: 800,
     lineHeight: 1
   });
-  return React.createElement("div", {
-    ref: wrapRef,
-    style: ctl ? {
-      position: "relative",
-      borderRadius: 14,
-      background: "var(--surface2)",
-      boxShadow: "var(--shadow-inset)",
-      overflow: "hidden",
-      touchAction: "none",
-      height: "100%"
-    } : {
-      position: "relative",
-      borderRadius: 12,
-      border: "1px solid var(--ln)",
-      background: "var(--surface2)",
-      overflow: "hidden",
-      touchAction: "none"
-    }
-  }, React.createElement("div", {
-    style: {
-      position: "absolute",
-      top: 8,
-      right: 8,
-      zIndex: 2,
-      display: "flex",
-      gap: 6,
-      alignItems: "center"
-    }
-  }, zoomed && React.createElement("span", {
-    style: {
-      fontSize: 10.5,
-      fontWeight: 800,
-      color: "var(--text-3)",
-      background: "var(--surface)",
-      border: "1px solid var(--ln2)",
-      borderRadius: 8,
-      padding: "5px 8px"
-    }
-  }, Math.round(base.w / v.w * 10) / 10, "\xD7"), React.createElement("button", {
-    type: "button",
-    onClick: straighten,
-    style: btn(Math.abs(rot) > 0.01),
-    title: Math.abs(rot) > 0.01 ? "กลับไปมุมจริงของหลังคา" : "หมุนผังให้แถวแผงนอนตรง (ลากกรอบเลือกง่ายขึ้น)"
-  }, "\u27F2"), paths && paths.length > 0 && React.createElement("button", {
-    type: "button",
-    onClick: () => setShowPath(x => !x),
-    style: btn(showPath),
-    title: showPath ? "ซ่อนแนวเดินสายของแต่ละสตริง" : "แสดงแนวเดินสาย + จุดเริ่มของแต่ละสตริง"
-  }, "\u3030"), !ctl && active && onFillBlock && React.createElement("button", {
-    type: "button",
-    onClick: () => {
-      setBlkMode(true);
-      setBox(false);
-      setHand(false);
-    },
-    style: btn(blkOn),
-    title: "\u0E08\u0E31\u0E14\u0E17\u0E31\u0E49\u0E07\u0E0A\u0E38\u0E14: \u0E41\u0E15\u0E30\u0E41\u0E1C\u0E07\u0E43\u0E1A\u0E44\u0E2B\u0E19\u0E01\u0E47\u0E44\u0E14\u0E49\u0E43\u0E19\u0E0A\u0E38\u0E14 = \u0E41\u0E1A\u0E48\u0E07\u0E41\u0E1C\u0E07\u0E17\u0E35\u0E48\u0E22\u0E31\u0E07\u0E27\u0E48\u0E32\u0E07\u0E17\u0E31\u0E49\u0E07\u0E0A\u0E38\u0E14\u0E40\u0E1B\u0E47\u0E19\u0E2A\u0E15\u0E23\u0E34\u0E07\u0E15\u0E32\u0E21\u0E41\u0E19\u0E27\u0E40\u0E14\u0E34\u0E19\u0E2A\u0E32\u0E22\u0E43\u0E2B\u0E49\u0E17\u0E35\u0E40\u0E14\u0E35\u0E22\u0E27"
-  }, "\u25A6"), !ctl && active && onTap && React.createElement("button", {
-    type: "button",
-    onClick: () => {
-      setSeq(true);
-      setBlkMode(false);
-      setBox(false);
-      setHand(false);
-    },
-    style: btn(seqOn),
-    title: "\u0E44\u0E25\u0E48\u0E17\u0E35\u0E25\u0E30\u0E2A\u0E15\u0E23\u0E34\u0E07: \u0E41\u0E15\u0E30\u0E41\u0E1C\u0E07\u0E17\u0E35\u0E48\u0E08\u0E30\u0E40\u0E23\u0E34\u0E48\u0E21 \u0E23\u0E30\u0E1A\u0E1A\u0E40\u0E01\u0E47\u0E1A\u0E41\u0E1C\u0E07\u0E15\u0E48\u0E2D\u0E08\u0E32\u0E01\u0E43\u0E1A\u0E19\u0E31\u0E49\u0E19\u0E15\u0E32\u0E21\u0E41\u0E19\u0E27\u0E41\u0E16\u0E27\u0E08\u0E19\u0E04\u0E23\u0E1A\u0E2A\u0E15\u0E23\u0E34\u0E07\u0E43\u0E2B\u0E49\u0E40\u0E2D\u0E07 \xB7 \u0E25\u0E32\u0E01 = \u0E40\u0E25\u0E37\u0E48\u0E2D\u0E19\u0E1C\u0E31\u0E07"
-  }, "\u21E3"), !ctl && active && onTap && React.createElement("button", {
-    type: "button",
-    onClick: () => {
-      setSeq(false);
-      setBlkMode(false);
-      setBox(false);
-      setHand(false);
-    },
-    style: btn(!tapOn && !box && !hand),
-    title: "\u0E17\u0E32\u0E17\u0E35\u0E25\u0E30\u0E43\u0E1A: \u0E41\u0E15\u0E30\u0E2B\u0E23\u0E37\u0E2D\u0E25\u0E32\u0E01\u0E1C\u0E48\u0E32\u0E19\u0E41\u0E1C\u0E07\u0E40\u0E1E\u0E37\u0E48\u0E2D\u0E22\u0E49\u0E32\u0E22\u0E40\u0E02\u0E49\u0E32\u0E2A\u0E15\u0E23\u0E34\u0E07\u0E17\u0E35\u0E48\u0E40\u0E25\u0E37\u0E2D\u0E01 \xB7 \u0E25\u0E32\u0E01\u0E1A\u0E19\u0E17\u0E35\u0E48\u0E27\u0E48\u0E32\u0E07 = \u0E40\u0E25\u0E37\u0E48\u0E2D\u0E19\u0E1C\u0E31\u0E07"
-  }, "\u270E"), !ctl && active && onPaintMany && React.createElement("button", {
-    type: "button",
-    onClick: () => {
-      setBox(x => !x);
-      setHand(false);
-    },
-    style: btn(box),
-    title: box ? "ตอนนี้ลากเป็นกรอบเลือกทีละหลายใบ — กดเพื่อกลับไปทาทีละใบ" : "ลากกรอบเลือกแผงทีละหลายใบ"
-  }, "\u25A2"), !ctl && active && React.createElement("button", {
-    type: "button",
-    onClick: () => {
-      setHand(x => !x);
-      setBox(false);
-    },
-    style: btn(hand),
-    title: hand ? "ตอนนี้ลากเพื่อเลื่อนผัง — กดเพื่อกลับไปทาสีแผง" : "ลากเพื่อเลื่อนผัง (ไม่ทาสีแผง)"
-  }, "\u2725"), React.createElement("button", {
-    type: "button",
-    onClick: () => zoomAt(1 / 1.4),
-    style: btn(false),
-    title: "\u0E0B\u0E39\u0E21\u0E2D\u0E2D\u0E01"
-  }, "\u2212"), React.createElement("button", {
-    type: "button",
-    onClick: () => zoomAt(1.4),
-    style: btn(false),
-    title: "\u0E0B\u0E39\u0E21\u0E40\u0E02\u0E49\u0E32"
-  }, "+"), onFull && !ctl && React.createElement("button", {
-    type: "button",
-    onClick: onFull,
-    style: btn(!!full),
-    title: full ? "ย่อกลับ (Esc)" : "ขยายผังเต็มจอ"
-  }, full ? "⤡" : "⤢"), zoomed && React.createElement("button", {
-    type: "button",
-    onClick: () => {
-      setView(base);
-      setHand(false);
-    },
-    style: Object.assign({}, btn(false), {
-      width: "auto",
-      padding: "0 9px",
-      fontSize: 11
-    }),
-    title: "\u0E01\u0E25\u0E31\u0E1A\u0E44\u0E1B\u0E21\u0E2D\u0E07\u0E17\u0E31\u0E49\u0E07\u0E1C\u0E31\u0E07"
-  }, "\u0E40\u0E15\u0E47\u0E21\u0E1C\u0E31\u0E07")), React.createElement("svg", {
-    ref: svgRef,
-    viewBox: v.x + " " + v.y + " " + v.w + " " + v.h,
-    style: {
-      width: "100%",
-      height: height || 340,
-      display: "block",
-      cursor: drag && (panning || midRef.current) ? "grabbing" : panning && (spaceOn || hand) ? "grab" : tapOn ? "pointer" : "crosshair"
-    },
-    onPointerDown: e => {
-      try {
-        e.currentTarget.setPointerCapture(e.pointerId);
-      } catch (err) {}
-      if (e.button === 2) {
-        e.preventDefault();
-        const el = document.elementFromPoint(e.clientX, e.clientY);
-        if (onErase && el && el.dataset && el.dataset.uid) onErase(el.dataset.uid, seqOn);
-        return;
+  return (React.createElement("div", {
+      ref: wrapRef,
+      onDragStart: e => e.preventDefault(),
+      style: Object.assign(ctl ? {
+        position: "relative",
+        borderRadius: 14,
+        background: "var(--surface2)",
+        boxShadow: "var(--shadow-inset)",
+        overflow: "hidden",
+        touchAction: "none",
+        height: "100%"
+      } : {
+        position: "relative",
+        borderRadius: 12,
+        border: "1px solid var(--ln)",
+        background: "var(--surface2)",
+        overflow: "hidden",
+        touchAction: "none"
+      }, {
+        userSelect: "none",
+        WebkitUserSelect: "none"
+      })
+    }, React.createElement("div", {
+      style: Object.assign({
+        position: "absolute",
+        zIndex: 2,
+        display: "flex",
+        gap: 6,
+        alignItems: "center"
+      }, ctl ? {
+        left: 10,
+        bottom: 10
+      } : {
+        top: 8,
+        right: 8
+      })
+    }, zoomed && React.createElement("span", {
+      style: {
+        fontSize: 10.5,
+        fontWeight: 800,
+        color: "var(--text-3)",
+        background: "var(--surface)",
+        border: "1px solid var(--ln2)",
+        borderRadius: 8,
+        padding: "5px 8px"
       }
-      if (e.button === 1) {
-        e.preventDefault();
-        midRef.current = true;
-        dragRef.current = true;
-        setDrag(true);
-        downRef.current = null;
-        last.current = {
-          x: e.clientX,
-          y: e.clientY
-        };
-        return;
-      }
-      setDrag(true);
-      dragRef.current = true;
-      downRef.current = tapOn ? {
-        x: e.clientX,
-        y: e.clientY,
-        moved: false
-      } : null;
-      if (panning) {
-        last.current = {
-          x: e.clientX,
-          y: e.clientY
-        };
-        return;
-      }
-      if (!box) {
-        const el0 = document.elementFromPoint(e.clientX, e.clientY);
-        if (!(el0 && el0.dataset && el0.dataset.uid)) {
+    }, Math.round(base.w / v.w * 10) / 10, "\xD7"), React.createElement("button", {
+      type: "button",
+      onClick: straighten,
+      style: btn(Math.abs(rot) > 0.01),
+      title: Math.abs(rot) > 0.01 ? "กลับไปมุมจริงของหลังคา" : "หมุนผังให้แถวแผงนอนตรง (ลากกรอบเลือกง่ายขึ้น)"
+    }, "\u27F2"), paths && paths.length > 0 && React.createElement("button", {
+      type: "button",
+      onClick: () => setShowPath(x => !x),
+      style: btn(showPath),
+      title: showPath ? "ซ่อนแนวเดินสายของแต่ละสตริง" : "แสดงแนวเดินสาย + จุดเริ่มของแต่ละสตริง"
+    }, "\u3030"), !ctl && active && onFillBlock && React.createElement("button", {
+      type: "button",
+      onClick: () => {
+        setBlkMode(true);
+        setBox(false);
+        setHand(false);
+      },
+      style: btn(blkOn),
+      title: "\u0E08\u0E31\u0E14\u0E17\u0E31\u0E49\u0E07\u0E0A\u0E38\u0E14: \u0E41\u0E15\u0E30\u0E41\u0E1C\u0E07\u0E43\u0E1A\u0E44\u0E2B\u0E19\u0E01\u0E47\u0E44\u0E14\u0E49\u0E43\u0E19\u0E0A\u0E38\u0E14 = \u0E41\u0E1A\u0E48\u0E07\u0E41\u0E1C\u0E07\u0E17\u0E35\u0E48\u0E22\u0E31\u0E07\u0E27\u0E48\u0E32\u0E07\u0E17\u0E31\u0E49\u0E07\u0E0A\u0E38\u0E14\u0E40\u0E1B\u0E47\u0E19\u0E2A\u0E15\u0E23\u0E34\u0E07\u0E15\u0E32\u0E21\u0E41\u0E19\u0E27\u0E40\u0E14\u0E34\u0E19\u0E2A\u0E32\u0E22\u0E43\u0E2B\u0E49\u0E17\u0E35\u0E40\u0E14\u0E35\u0E22\u0E27"
+    }, "\u25A6"), !ctl && active && onTap && React.createElement("button", {
+      type: "button",
+      onClick: () => {
+        setSeq(true);
+        setBlkMode(false);
+        setBox(false);
+        setHand(false);
+      },
+      style: btn(seqOn),
+      title: "\u0E44\u0E25\u0E48\u0E17\u0E35\u0E25\u0E30\u0E2A\u0E15\u0E23\u0E34\u0E07: \u0E41\u0E15\u0E30\u0E41\u0E1C\u0E07\u0E17\u0E35\u0E48\u0E08\u0E30\u0E40\u0E23\u0E34\u0E48\u0E21 \u0E23\u0E30\u0E1A\u0E1A\u0E40\u0E01\u0E47\u0E1A\u0E41\u0E1C\u0E07\u0E15\u0E48\u0E2D\u0E08\u0E32\u0E01\u0E43\u0E1A\u0E19\u0E31\u0E49\u0E19\u0E15\u0E32\u0E21\u0E41\u0E19\u0E27\u0E41\u0E16\u0E27\u0E08\u0E19\u0E04\u0E23\u0E1A\u0E2A\u0E15\u0E23\u0E34\u0E07\u0E43\u0E2B\u0E49\u0E40\u0E2D\u0E07 \xB7 \u0E25\u0E32\u0E01 = \u0E40\u0E25\u0E37\u0E48\u0E2D\u0E19\u0E1C\u0E31\u0E07"
+    }, "\u21E3"), !ctl && active && onTap && React.createElement("button", {
+      type: "button",
+      onClick: () => {
+        setSeq(false);
+        setBlkMode(false);
+        setBox(false);
+        setHand(false);
+      },
+      style: btn(!tapOn && !box && !hand),
+      title: "\u0E17\u0E32\u0E17\u0E35\u0E25\u0E30\u0E43\u0E1A: \u0E41\u0E15\u0E30\u0E2B\u0E23\u0E37\u0E2D\u0E25\u0E32\u0E01\u0E1C\u0E48\u0E32\u0E19\u0E41\u0E1C\u0E07\u0E40\u0E1E\u0E37\u0E48\u0E2D\u0E22\u0E49\u0E32\u0E22\u0E40\u0E02\u0E49\u0E32\u0E2A\u0E15\u0E23\u0E34\u0E07\u0E17\u0E35\u0E48\u0E40\u0E25\u0E37\u0E2D\u0E01 \xB7 \u0E25\u0E32\u0E01\u0E1A\u0E19\u0E17\u0E35\u0E48\u0E27\u0E48\u0E32\u0E07 = \u0E40\u0E25\u0E37\u0E48\u0E2D\u0E19\u0E1C\u0E31\u0E07"
+    }, "\u270E"), !ctl && active && onPaintMany && React.createElement("button", {
+      type: "button",
+      onClick: () => {
+        setBox(x => !x);
+        setHand(false);
+      },
+      style: btn(box),
+      title: box ? "ตอนนี้ลากเป็นกรอบเลือกทีละหลายใบ — กดเพื่อกลับไปทาทีละใบ" : "ลากกรอบเลือกแผงทีละหลายใบ"
+    }, "\u25A2"), !ctl && active && React.createElement("button", {
+      type: "button",
+      onClick: () => {
+        setHand(x => !x);
+        setBox(false);
+      },
+      style: btn(hand),
+      title: hand ? "ตอนนี้ลากเพื่อเลื่อนผัง — กดเพื่อกลับไปทาสีแผง" : "ลากเพื่อเลื่อนผัง (ไม่ทาสีแผง)"
+    }, "\u2725"), React.createElement("button", {
+      type: "button",
+      onClick: () => zoomAt(1 / 1.4),
+      style: btn(false),
+      title: "\u0E0B\u0E39\u0E21\u0E2D\u0E2D\u0E01"
+    }, "\u2212"), React.createElement("button", {
+      type: "button",
+      onClick: () => zoomAt(1.4),
+      style: btn(false),
+      title: "\u0E0B\u0E39\u0E21\u0E40\u0E02\u0E49\u0E32"
+    }, "+"), onFull && !ctl && React.createElement("button", {
+      type: "button",
+      onClick: onFull,
+      style: btn(!!full),
+      title: full ? "ย่อกลับ (Esc)" : "ขยายผังเต็มจอ"
+    }, full ? "⤡" : "⤢"), zoomed && React.createElement("button", {
+      type: "button",
+      onClick: () => {
+        setView(base);
+        setHand(false);
+      },
+      style: Object.assign({}, btn(false), {
+        width: "auto",
+        padding: "0 9px",
+        fontSize: 11
+      }),
+      title: "\u0E01\u0E25\u0E31\u0E1A\u0E44\u0E1B\u0E21\u0E2D\u0E07\u0E17\u0E31\u0E49\u0E07\u0E1C\u0E31\u0E07"
+    }, "\u0E40\u0E15\u0E47\u0E21\u0E1C\u0E31\u0E07")), React.createElement("svg", {
+      ref: svgRef,
+      viewBox: v.x + " " + v.y + " " + v.w + " " + v.h,
+      style: {
+        width: "100%",
+        height: height || 340,
+        display: "block",
+        cursor: drag && (panning || midRef.current) ? "grabbing" : panning && (spaceOn || hand) ? "grab" : tapOn ? "pointer" : "crosshair"
+      },
+      onPointerDown: e => {
+        try {
+          e.currentTarget.setPointerCapture(e.pointerId);
+        } catch (err) {}
+        if (e.button === 0) {
+          e.preventDefault();
+          const sel0 = window.getSelection && window.getSelection();
+          if (sel0 && sel0.rangeCount) sel0.removeAllRanges();
+        }
+        if (e.button === 2) {
+          e.preventDefault();
+          const el = document.elementFromPoint(e.clientX, e.clientY);
+          if (onErase && el && el.dataset && el.dataset.uid) onErase(el.dataset.uid, seqOn);
+          return;
+        }
+        if (e.button === 1) {
+          e.preventDefault();
           midRef.current = true;
+          dragRef.current = true;
+          setDrag(true);
+          downRef.current = null;
           last.current = {
             x: e.clientX,
             y: e.clientY
           };
           return;
         }
-      }
-      if (box) {
-        const m = scaleOf();
-        if (m) {
-          const x = e.clientX - m.r.left,
-            y = e.clientY - m.r.top;
-          rectRef.current = {
-            x0: x,
-            y0: y,
-            x1: x,
-            y1: y
-          };
-          setRect(rectRef.current);
-        }
-        return;
-      }
-      paintAt(e);
-    },
-    onPointerMove: e => {
-      if (!dragRef.current) return;
-      if (panning || midRef.current) {
-        const l = last.current,
-          dn = downRef.current;
-        if (dn && !dn.moved) {
-          if (Math.hypot(e.clientX - dn.x, e.clientY - dn.y) < 5) return;
-          dn.moved = true;
-        }
-        if (l) panBy(e.clientX - l.x, e.clientY - l.y);
-        last.current = {
+        setDrag(true);
+        dragRef.current = true;
+        downRef.current = tapOn ? {
           x: e.clientX,
-          y: e.clientY
-        };
-        return;
-      }
-      if (box) {
-        const m = scaleOf();
-        const r0 = rectRef.current;
-        if (m && r0) {
-          rectRef.current = {
-            x0: r0.x0,
-            y0: r0.y0,
-            x1: e.clientX - m.r.left,
-            y1: e.clientY - m.r.top
+          y: e.clientY,
+          moved: false
+        } : null;
+        if (panning) {
+          last.current = {
+            x: e.clientX,
+            y: e.clientY
           };
-          setRect(rectRef.current);
+          return;
         }
-        return;
-      }
-      if (active) paintAt(e);
-    },
-    onContextMenu: e => e.preventDefault(),
-    onAuxClick: e => e.preventDefault(),
-    onPointerUp: e => {
-      setDrag(false);
-      dragRef.current = false;
-      last.current = null;
-      if (midRef.current) {
+        if (!box) {
+          const el0 = document.elementFromPoint(e.clientX, e.clientY);
+          if (!(el0 && el0.dataset && el0.dataset.uid)) {
+            midRef.current = true;
+            last.current = {
+              x: e.clientX,
+              y: e.clientY
+            };
+            return;
+          }
+        }
+        if (box) {
+          const m = scaleOf();
+          if (m) {
+            const x = e.clientX - m.r.left,
+              y = e.clientY - m.r.top;
+            rectRef.current = {
+              x0: x,
+              y0: y,
+              x1: x,
+              y1: y
+            };
+            setRect(rectRef.current);
+          }
+          return;
+        }
+        paintAt(e);
+      },
+      onPointerMove: e => {
+        if (!dragRef.current) return;
+        if (panning || midRef.current) {
+          const l = last.current,
+            dn = downRef.current;
+          if (dn && !dn.moved) {
+            if (Math.hypot(e.clientX - dn.x, e.clientY - dn.y) < 5) return;
+            dn.moved = true;
+          }
+          if (l) panBy(e.clientX - l.x, e.clientY - l.y);
+          last.current = {
+            x: e.clientX,
+            y: e.clientY
+          };
+          return;
+        }
+        if (box) {
+          const m = scaleOf();
+          const r0 = rectRef.current;
+          if (m && r0) {
+            rectRef.current = {
+              x0: r0.x0,
+              y0: r0.y0,
+              x1: e.clientX - m.r.left,
+              y1: e.clientY - m.r.top
+            };
+            setRect(rectRef.current);
+          }
+          return;
+        }
+        if (active) paintAt(e);
+      },
+      onContextMenu: e => e.preventDefault(),
+      onAuxClick: e => e.preventDefault(),
+      onPointerUp: e => {
+        setDrag(false);
+        dragRef.current = false;
+        last.current = null;
+        if (midRef.current) {
+          midRef.current = false;
+          return;
+        }
+        const dn = downRef.current;
+        downRef.current = null;
+        if (dn && !dn.moved && (onTap || onFillBlock)) {
+          const el = document.elementFromPoint(dn.x, dn.y);
+          if (el && el.dataset && el.dataset.uid) (blkOn ? onFillBlock : onTap)(el.dataset.uid);
+        }
+        if (rectRef.current) {
+          applyBox(rectRef.current);
+          rectRef.current = null;
+          setRect(null);
+        }
+      },
+      onPointerCancel: () => {
         midRef.current = false;
-        return;
-      }
-      const dn = downRef.current;
-      downRef.current = null;
-      if (dn && !dn.moved && (onTap || onFillBlock)) {
-        const el = document.elementFromPoint(dn.x, dn.y);
-        if (el && el.dataset && el.dataset.uid) (blkOn ? onFillBlock : onTap)(el.dataset.uid);
-      }
-      if (rectRef.current) {
-        applyBox(rectRef.current);
+        setDrag(false);
+        dragRef.current = false;
+        last.current = null;
         rectRef.current = null;
         setRect(null);
       }
-    },
-    onPointerCancel: () => {
-      midRef.current = false;
-      setDrag(false);
-      dragRef.current = false;
-      last.current = null;
-      rectRef.current = null;
-      setRect(null);
-    }
-  }, React.createElement("g", {
-    transform: "rotate(" + rot + " " + cx + " " + cz + ")"
-  }, foot.outlines.map((o, i) => React.createElement("polygon", {
-    key: i,
-    points: o.pts.map(p => p[0] + "," + p[1]).join(" "),
-    fill: "rgba(148,163,184,.10)",
-    stroke: "var(--ln2)",
-    strokeWidth: "0.08"
-  })), foot.panels.map(p => {
-    const s = assign[p.uid] || 0;
-    const c = s ? colorOf ? colorOf(p.uid, s) : suColor(s) : null;
-    const on = !!s && sel != null && s === sel;
-    const un = unitName || "สตริง";
-    return React.createElement("polygon", {
-      key: p.uid,
-      "data-uid": p.uid,
-      points: p.pts.map(q => q[0] + "," + q[1]).join(" "),
-      fill: c ? c : "#CBD5E1",
-      fillOpacity: c ? selHas && !on ? 0.38 : 0.9 : 0.5,
-      stroke: on ? ctl ? "var(--text-1)" : "#0F172A" : c ? "#fff" : "#94A3B8",
-      strokeWidth: on ? ctl ? 0.11 : 0.09 : 0.035,
-      strokeDasharray: c ? null : "0.12 0.09"
-    }, React.createElement("title", null, p.roofName + " · " + p.key + (s ? " · " + un + " " + s : " · ยังไม่อยู่" + un + "ไหน") + (labels && labels[p.uid] ? " · เฟส " + labels[p.uid] : "")));
-  }), showPath && paths && paths.map(q => q.pts.length > 0 && React.createElement("g", {
-    key: "P" + q.id,
-    style: {
-      pointerEvents: "none"
-    }
-  }, q.pts.length > 1 && React.createElement("polyline", {
-    points: q.pts.map(t => t[0] + "," + t[1]).join(" "),
-    fill: "none",
-    stroke: "#fff",
-    strokeOpacity: "0.9",
-    strokeWidth: "0.16",
-    strokeLinejoin: "round",
-    strokeLinecap: "round"
-  }), q.pts.length > 1 && React.createElement("polyline", {
-    points: q.pts.map(t => t[0] + "," + t[1]).join(" "),
-    fill: "none",
-    stroke: "rgba(15,23,42,.78)",
-    strokeWidth: "0.07",
-    strokeLinejoin: "round",
-    strokeLinecap: "round"
-  }), q.pts.length > 1 && React.createElement("circle", {
-    cx: q.pts[q.pts.length - 1][0],
-    cy: q.pts[q.pts.length - 1][1],
-    r: "0.13",
-    fill: "rgba(15,23,42,.85)",
-    stroke: "#fff",
-    strokeWidth: "0.04"
-  }), React.createElement("circle", {
-    cx: q.pts[0][0],
-    cy: q.pts[0][1],
-    r: "0.36",
-    fill: "#fff",
-    stroke: q.color,
-    strokeWidth: "0.09"
-  }), React.createElement("text", {
-    x: q.pts[0][0],
-    y: q.pts[0][1] + 0.14,
-    textAnchor: "middle",
-    fontSize: q.id > 99 ? 0.3 : 0.4,
-    fontWeight: "800",
-    fill: q.color,
-    style: {
-      userSelect: "none"
-    }
-  }, q.id))), labels && foot.panels.map(p => {
-    const t = labels[p.uid];
-    if (!t) return null;
-    const cx = p.pts.reduce((a, q) => a + q[0], 0) / p.pts.length;
-    const cz = p.pts.reduce((a, q) => a + q[1], 0) / p.pts.length;
-    return React.createElement("text", {
-      key: "L" + p.uid,
-      x: cx,
-      y: cz + 0.16,
-      textAnchor: "middle",
-      fontSize: "0.44",
-      fontWeight: "800",
-      fill: "#fff",
-      stroke: "rgba(0,0,0,.35)",
-      strokeWidth: "0.05",
-      paintOrder: "stroke",
+    }, React.createElement("g", {
+      transform: "rotate(" + rot + " " + cx + " " + cz + ")"
+    }, foot.outlines.map((o, i) => React.createElement("polygon", {
+      key: i,
+      points: o.pts.map(p => p[0] + "," + p[1]).join(" "),
+      fill: "rgba(148,163,184,.10)",
+      stroke: "var(--ln2)",
+      strokeWidth: "0.08"
+    })), foot.panels.map(p => {
+      const s = assign[p.uid] || 0;
+      const c = s ? colorOf ? colorOf(p.uid, s) : suColor(s) : null;
+      const on = !!s && sel != null && s === sel;
+      const un = unitName || "สตริง";
+      return React.createElement("polygon", {
+        key: p.uid,
+        "data-uid": p.uid,
+        points: p.pts.map(q => q[0] + "," + q[1]).join(" "),
+        fill: c ? c : "#CBD5E1",
+        fillOpacity: c ? selHas && !on ? 0.38 : 0.9 : 0.5,
+        stroke: on ? ctl ? "var(--text-1)" : "#0F172A" : c ? "#fff" : "#94A3B8",
+        strokeWidth: on ? ctl ? 0.11 : 0.09 : 0.035,
+        strokeDasharray: c ? null : "0.12 0.09"
+      }, React.createElement("title", null, p.roofName + " · " + p.key + (s ? " · " + un + " " + s : " · ยังไม่อยู่" + un + "ไหน") + (labels && labels[p.uid] ? " · เฟส " + labels[p.uid] : "")));
+    }), showPath && paths && paths.map(q => q.pts.length > 0 && React.createElement("g", {
+      key: "P" + q.id,
       style: {
-        pointerEvents: "none",
+        pointerEvents: "none"
+      }
+    }, q.pts.length > 1 && React.createElement("polyline", {
+      points: q.pts.map(t => t[0] + "," + t[1]).join(" "),
+      fill: "none",
+      stroke: "#fff",
+      strokeOpacity: "0.9",
+      strokeWidth: "0.16",
+      strokeLinejoin: "round",
+      strokeLinecap: "round"
+    }), q.pts.length > 1 && React.createElement("polyline", {
+      points: q.pts.map(t => t[0] + "," + t[1]).join(" "),
+      fill: "none",
+      stroke: "rgba(15,23,42,.78)",
+      strokeWidth: "0.07",
+      strokeLinejoin: "round",
+      strokeLinecap: "round"
+    }), q.pts.length > 1 && React.createElement("circle", {
+      cx: q.pts[q.pts.length - 1][0],
+      cy: q.pts[q.pts.length - 1][1],
+      r: "0.13",
+      fill: "rgba(15,23,42,.85)",
+      stroke: "#fff",
+      strokeWidth: "0.04"
+    }), React.createElement("circle", {
+      cx: q.pts[0][0],
+      cy: q.pts[0][1],
+      r: "0.36",
+      fill: "#fff",
+      stroke: q.color,
+      strokeWidth: "0.09"
+    }), React.createElement("text", {
+      x: q.pts[0][0],
+      y: q.pts[0][1] + 0.14,
+      textAnchor: "middle",
+      fontSize: q.id > 99 ? 0.3 : 0.4,
+      fontWeight: "800",
+      fill: q.color,
+      style: {
         userSelect: "none"
       }
-    }, t);
-  })), React.createElement("g", {
-    transform: "translate(" + (base.x + 0.7) + "," + (base.y + 0.7) + ") rotate(" + rot + ")"
-  }, React.createElement("line", {
-    x1: "0",
-    y1: "0",
-    x2: "0",
-    y2: "1.1",
-    stroke: "var(--tint-red-tx)",
-    strokeWidth: "0.09"
-  }), React.createElement("text", {
-    x: "0",
-    y: "-0.15",
-    fontSize: "0.62",
-    fontWeight: "800",
-    fill: "var(--tint-red-tx)",
-    textAnchor: "middle"
-  }, "N"))), rect && React.createElement("div", {
-    style: {
-      position: "absolute",
-      pointerEvents: "none",
-      left: Math.min(rect.x0, rect.x1),
-      top: Math.min(rect.y0, rect.y1),
-      width: Math.abs(rect.x1 - rect.x0),
-      height: Math.abs(rect.y1 - rect.y0),
-      border: "1.5px dashed var(--acd)",
-      background: "rgba(79,70,229,.12)",
-      borderRadius: 4
-    }
-  }));
+    }, q.id))), labels && foot.panels.map(p => {
+      const t = labels[p.uid];
+      if (!t) return null;
+      const cx = p.pts.reduce((a, q) => a + q[0], 0) / p.pts.length;
+      const cz = p.pts.reduce((a, q) => a + q[1], 0) / p.pts.length;
+      return React.createElement("text", {
+        key: "L" + p.uid,
+        x: cx,
+        y: cz + 0.16,
+        textAnchor: "middle",
+        fontSize: "0.44",
+        fontWeight: "800",
+        fill: "#fff",
+        stroke: "rgba(0,0,0,.35)",
+        strokeWidth: "0.05",
+        paintOrder: "stroke",
+        style: {
+          pointerEvents: "none",
+          userSelect: "none"
+        }
+      }, t);
+    })), React.createElement("g", {
+      transform: "translate(" + (base.x + 0.7) + "," + (base.y + 0.7) + ") rotate(" + rot + ")"
+    }, React.createElement("line", {
+      x1: "0",
+      y1: "0",
+      x2: "0",
+      y2: "1.1",
+      stroke: "var(--tint-red-tx)",
+      strokeWidth: "0.09"
+    }), React.createElement("text", {
+      x: "0",
+      y: "-0.15",
+      fontSize: "0.62",
+      fontWeight: "800",
+      fill: "var(--tint-red-tx)",
+      textAnchor: "middle"
+    }, "N"))), rect && React.createElement("div", {
+      style: {
+        position: "absolute",
+        pointerEvents: "none",
+        left: Math.min(rect.x0, rect.x1),
+        top: Math.min(rect.y0, rect.y1),
+        width: Math.abs(rect.x1 - rect.x0),
+        height: Math.abs(rect.y1 - rect.y0),
+        border: "1.5px dashed var(--acd)",
+        background: "rgba(79,70,229,.12)",
+        borderRadius: 4
+      }
+    }))
+  );
 }
 const SU_TOOLS = [{
   k: "blk",
@@ -3949,7 +3963,8 @@ function SolarWorkspace({
       return {
         id: +k,
         color: suColor(+k),
-        pts: us.map(u => ctr[u])
+        pts: us.map(u => ctr[u]),
+        uids: us
       };
     });
   }, [isMicro, foot, effAssign, lay]);
@@ -3962,7 +3977,13 @@ function SolarWorkspace({
       inv: x.inv,
       addr: x.addr
     })),
-    paths: wirePaths
+    paths: wirePaths,
+    lay: !isMicro && plan ? {
+      mpptPerInv: pinLay.mpptPerInv,
+      phys: pinLay.phys,
+      nInv: pinLay.nInv,
+      mixed: !!inv2
+    } : null
   });
   const dxfSt = () => Object.assign({}, st, {
     sys: S
