@@ -1690,7 +1690,8 @@ function pgSldDraw(doc, sheet, M) {
     cols.push({
       n: part.length,
       phase: part[0].phase || 1,
-      panels: part.reduce((s, u) => s + (u.panels || 0), 0)
+      panels: part.reduce((s, u) => s + (u.panels || 0), 0),
+      strings: part.reduce((s, u) => s + (u.strings ? u.strings.length : 0), 0)
     });
   }
   const nCol = cols.length;
@@ -1725,6 +1726,10 @@ function pgSldDraw(doc, sheet, M) {
     } else {
       pgSym.pv(pen, cx, pvY + 2.6, Math.min(16, uW - 4), 8, null);
       pen.text(T, cx, pvY - 5.4, 2.2, k + " x " + M.panel.wp + "W", {
+        align: 1,
+        valign: 1
+      });
+      if (u.strings) pen.text(T, cx, pvY - 9.4, 2.0, u.strings + " STRINGS", {
         align: 1,
         valign: 1
       });

@@ -70,6 +70,7 @@ const SU_CSS = `
 .su-sheet-hd h4{font-size:14px;font-weight:800;color:var(--text-1);margin:0 0 2px}
 .su-sheet-hd p{font-size:10.5px;color:var(--text-3);margin:0;line-height:1.5}
 .su-sheet-bd{overflow-y:auto;padding:8px 12px 12px}
+.su-dxf-svg svg{width:100% !important;height:100% !important;display:block}
 .su-sheet-ft{display:flex;align-items:center;gap:8px;padding:13px 16px;border-top:1px solid var(--ln);background:var(--surface2)}
 /* แถวติ๊ก — ทั้งแถวกดได้ ไม่ต้องเล็งช่องสี่เหลี่ยม */
 .su-ck{display:flex;gap:11px;align-items:flex-start;width:100%;padding:9px 10px;border:0;border-radius:12px;
@@ -3800,6 +3801,55 @@ function SolarWorkspace({
       };
     });
   }, [isMicro, foot, effAssign, lay]);
+  const [dxf, setDxf] = React.useState(null);
+  const [dxfBusy, setDxfBusy] = React.useState("");
+  const dxfDesign = () => ({
+    strings: isMicro || !plan ? [] : plan.strings.map(x => ({
+      id: x.id,
+      n: x.n,
+      inv: x.inv,
+      addr: x.addr
+    })),
+    paths: wirePaths
+  });
+  const dxfSt = () => Object.assign({}, st, {
+    sys: S
+  });
+  async function openDxf() {
+    if (typeof p3PrepSet !== "function") return;
+    setDxfBusy("กำลังเตรียมชุดแบบ");
+    try {
+      const prep = await p3PrepSet(dxfSt(), job, null, dxfDesign());
+      setDxf({
+        prep,
+        i: 0
+      });
+    } catch (e) {
+      console.error(e);
+      alert("เตรียมชุดแบบไม่สำเร็จ: " + (e && e.message));
+    }
+    setDxfBusy("");
+  }
+  async function downloadDxf() {
+    if (!dxf) return;
+    setDxfBusy("กำลังดาวน์โหลด");
+    try {
+      await p3ExportSet(dxf.prep.st, job, null, dxf.prep);
+    } catch (e) {
+      console.error(e);
+      alert("ดาวน์โหลดไม่สำเร็จ: " + (e && e.message));
+    }
+    setDxfBusy("");
+  }
+  const dxfSvg = React.useMemo(() => {
+    if (!dxf) return "";
+    try {
+      return dxf.prep.sheets[dxf.i].make(true);
+    } catch (e) {
+      console.error(e);
+      return "";
+    }
+  }, [dxf]);
   const microPlans = React.useMemo(() => isMicro ? scMicroPlan(groups, panel, micros, S.env, S) : null, [isMicro, groups, panel, micros, S.env, S.microRatio, S.micro]);
   const stockMicroRow = micros.find(m => m.ratio === S.microRatio) || micros[0] || {};
   const setM = (k, v) => {
@@ -8425,6 +8475,18 @@ function SolarWorkspace({
       padding: "10px 16px",
       marginRight: 8
     },
+    onClick: openDxf,
+    disabled: !!dxfBusy,
+    title: "\u0E1C\u0E31\u0E07\u0E15\u0E34\u0E14\u0E15\u0E31\u0E49\u0E07 + \u0E41\u0E19\u0E27\u0E40\u0E14\u0E34\u0E19\u0E2A\u0E32\u0E22\u0E2A\u0E15\u0E23\u0E34\u0E07 \xB7 SLD \xB7 \u0E15\u0E48\u0E2D\u0E2A\u0E32\u0E22 DC \xB7 \u0E27\u0E31\u0E2A\u0E14\u0E38\u0E2B\u0E19\u0E49\u0E32\u0E07\u0E32\u0E19 \u2014 \u0E43\u0E0A\u0E49\u0E23\u0E38\u0E48\u0E19\u0E2D\u0E38\u0E1B\u0E01\u0E23\u0E13\u0E4C\u0E41\u0E25\u0E30\u0E01\u0E32\u0E23\u0E08\u0E31\u0E14\u0E2A\u0E15\u0E23\u0E34\u0E07\u0E08\u0E32\u0E01\u0E2B\u0E19\u0E49\u0E32\u0E19\u0E35\u0E49"
+  }, React.createElement(P3Icon, {
+    name: "layers",
+    size: 15
+  }), "\u0E0A\u0E38\u0E14\u0E41\u0E1A\u0E1A DXF"), React.createElement("button", {
+    className: "p3-b",
+    style: {
+      padding: "10px 16px",
+      marginRight: 8
+    },
     onClick: () => setRepOpen(true),
     disabled: !energy,
     title: "\u0E40\u0E25\u0E37\u0E2D\u0E01\u0E2B\u0E31\u0E27\u0E02\u0E49\u0E2D\u0E17\u0E35\u0E48\u0E08\u0E30\u0E2D\u0E2D\u0E01 \u0E41\u0E25\u0E49\u0E27\u0E2A\u0E31\u0E48\u0E07\u0E1E\u0E34\u0E21\u0E1E\u0E4C/\u0E1A\u0E31\u0E19\u0E17\u0E36\u0E01\u0E40\u0E1B\u0E47\u0E19 PDF"
@@ -8550,7 +8612,131 @@ function SolarWorkspace({
   }, React.createElement(P3Icon, {
     name: "doc",
     size: 14
-  }), "\u0E2D\u0E2D\u0E01\u0E23\u0E32\u0E22\u0E07\u0E32\u0E19")))), repBusy && React.createElement("div", {
+  }), "\u0E2D\u0E2D\u0E01\u0E23\u0E32\u0E22\u0E07\u0E32\u0E19")))), dxf && React.createElement("div", {
+    className: "su-sheet-bg",
+    onMouseDown: e => {
+      if (e.target === e.currentTarget) setDxf(null);
+    }
+  }, React.createElement("div", {
+    className: "su-sheet",
+    style: {
+      width: "min(1180px,100%)",
+      height: "100%"
+    }
+  }, React.createElement("div", {
+    className: "su-sheet-hd",
+    style: {
+      alignItems: "center"
+    }
+  }, React.createElement("span", {
+    style: {
+      width: 30,
+      height: 30,
+      borderRadius: 9,
+      background: "var(--acs)",
+      display: "grid",
+      placeItems: "center",
+      color: "var(--acd)",
+      flexShrink: 0
+    }
+  }, React.createElement(P3Icon, {
+    name: "layers",
+    size: 15
+  })), React.createElement("div", {
+    style: {
+      flex: 1,
+      minWidth: 0
+    }
+  }, React.createElement("h4", null, "\u0E0A\u0E38\u0E14\u0E41\u0E1A\u0E1A DXF", job && job.code ? " · " + job.code : ""), React.createElement("p", null, "A3 \u0E41\u0E19\u0E27\u0E19\u0E2D\u0E19 420 \xD7 297 \u0E21\u0E21. \xB7 ", dxf.prep.sheets.length, " \u0E41\u0E1C\u0E48\u0E19", isMicro ? "" : " · " + (plan ? plan.strings.length : 0) + " สตริงตามที่จัดไว้", dxf.prep.files.length ? " · ภาพพื้นหลัง " + dxf.prep.files.length + " ไฟล์ (วางโฟลเดอร์เดียวกับ DXF)" : "")), React.createElement("button", {
+    className: "ghost x-close",
+    onClick: () => setDxf(null),
+    title: "\u0E1B\u0E34\u0E14"
+  }, React.createElement(Icon, {
+    name: "x",
+    size: 15
+  }))), React.createElement("div", {
+    style: {
+      padding: "10px 16px 0",
+      overflowX: "auto"
+    }
+  }, React.createElement("span", {
+    className: "p3-seg"
+  }, dxf.prep.sheets.map((sh, i) => React.createElement("button", {
+    key: sh.key,
+    "data-on": i === dxf.i ? "1" : "0",
+    onClick: () => setDxf({
+      prep: dxf.prep,
+      i
+    })
+  }, sh.no, " \xB7 ", sh.label)))), React.createElement("div", {
+    style: {
+      flex: 1,
+      minHeight: 0,
+      margin: 12,
+      borderRadius: 12,
+      background: "#fff",
+      boxShadow: "var(--shadow-inset)",
+      overflow: "hidden",
+      position: "relative",
+      display: "grid",
+      placeItems: "center"
+    }
+  }, dxfSvg ? React.createElement("div", {
+    className: "su-dxf-svg",
+    style: {
+      position: "absolute",
+      inset: 8
+    },
+    dangerouslySetInnerHTML: {
+      __html: dxfSvg
+    }
+  }) : React.createElement("span", {
+    className: "p3-note keep"
+  }, "\u0E27\u0E32\u0E14\u0E41\u0E1C\u0E48\u0E19\u0E19\u0E35\u0E49\u0E44\u0E21\u0E48\u0E2A\u0E33\u0E40\u0E23\u0E47\u0E08")), React.createElement("div", {
+    className: "su-sheet-ft"
+  }, React.createElement("span", {
+    style: {
+      fontSize: 11,
+      color: "var(--text-3)",
+      fontWeight: 600
+    }
+  }, "\u0E44\u0E1F\u0E25\u0E4C: ", dxf.prep.sheets[dxf.i].file), React.createElement("span", {
+    style: {
+      flex: 1
+    }
+  }), React.createElement("button", {
+    className: "p3-b pri",
+    style: {
+      padding: "9px 18px"
+    },
+    onClick: downloadDxf,
+    disabled: !!dxfBusy
+  }, React.createElement(P3Icon, {
+    name: "save",
+    size: 14
+  }), dxfBusy || "ดาวน์โหลดทั้งชุด")))), dxfBusy && !dxf && React.createElement("div", {
+    style: {
+      position: "fixed",
+      left: 0,
+      right: 0,
+      bottom: 18,
+      display: "grid",
+      placeItems: "center",
+      zIndex: 90,
+      pointerEvents: "none"
+    }
+  }, React.createElement("div", {
+    className: "p3-card",
+    style: {
+      padding: "11px 14px",
+      boxShadow: "0 10px 30px rgba(0,0,0,.18)"
+    }
+  }, React.createElement("span", {
+    className: "p3-eb"
+  }, React.createElement(P3Icon, {
+    name: "layers",
+    size: 12
+  }), dxfBusy, "\u2026"))), repBusy && React.createElement("div", {
     style: {
       position: "fixed",
       left: 0,

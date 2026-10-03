@@ -75,6 +75,7 @@ const SU_CSS = `
 .su-sheet-hd h4{font-size:14px;font-weight:800;color:var(--text-1);margin:0 0 2px}
 .su-sheet-hd p{font-size:10.5px;color:var(--text-3);margin:0;line-height:1.5}
 .su-sheet-bd{overflow-y:auto;padding:8px 12px 12px}
+.su-dxf-svg svg{width:100% !important;height:100% !important;display:block}
 .su-sheet-ft{display:flex;align-items:center;gap:8px;padding:13px 16px;border-top:1px solid var(--ln);background:var(--surface2)}
 /* แถวติ๊ก — ทั้งแถวกดได้ ไม่ต้องเล็งช่องสี่เหลี่ยม */
 .su-ck{display:flex;gap:11px;align-items:flex-start;width:100%;padding:9px 10px;border:0;border-radius:12px;
@@ -2020,6 +2021,36 @@ function SolarWorkspace({ job, st, sys, onChange, onClose, snap }) {
       return { id: +k, color: suColor(+k), pts: us.map((u) => ctr[u]) };
     });
   }, [isMicro, foot, effAssign, lay]);
+  /* ── ชุดแบบ DXF (ผังติดตั้ง · SLD · ต่อสาย DC · วัสดุหน้างาน) ──
+     ออกจากหน้านี้เพราะมีรุ่นอุปกรณ์ · การจัดสตริง · แนวเดินสายครบแล้ว
+     dxf = { prep, i } · prep จาก p3PrepSet (เตรียมภาพพื้นหลังครั้งเดียว ดูตัวอย่าง/ดาวน์โหลดใช้ชุดเดียวกัน) */
+  const [dxf, setDxf] = React.useState(null);
+  const [dxfBusy, setDxfBusy] = React.useState("");
+  const dxfDesign = () => ({
+    strings: isMicro || !plan ? [] : plan.strings.map((x) => ({ id: x.id, n: x.n, inv: x.inv, addr: x.addr })),
+    paths: wirePaths,
+  });
+  const dxfSt = () => Object.assign({}, st, { sys: S });
+  async function openDxf() {
+    if (typeof p3PrepSet !== "function") return;
+    setDxfBusy("กำลังเตรียมชุดแบบ");
+    try {
+      const prep = await p3PrepSet(dxfSt(), job, null, dxfDesign());
+      setDxf({ prep, i: 0 });
+    } catch (e) { console.error(e); alert("เตรียมชุดแบบไม่สำเร็จ: " + (e && e.message)); }
+    setDxfBusy("");
+  }
+  async function downloadDxf() {
+    if (!dxf) return;
+    setDxfBusy("กำลังดาวน์โหลด");
+    try { await p3ExportSet(dxf.prep.st, job, null, dxf.prep); }
+    catch (e) { console.error(e); alert("ดาวน์โหลดไม่สำเร็จ: " + (e && e.message)); }
+    setDxfBusy("");
+  }
+  const dxfSvg = React.useMemo(() => {
+    if (!dxf) return "";
+    try { return dxf.prep.sheets[dxf.i].make(true); } catch (e) { console.error(e); return ""; }
+  }, [dxf]);
   const microPlans = React.useMemo(() => (isMicro ? scMicroPlan(groups, panel, micros, S.env, S) : null),
     [isMicro, groups, panel, micros, S.env, S.microRatio, S.micro]);
   const stockMicroRow = micros.find((m) => m.ratio === S.microRatio) || micros[0] || {};
@@ -4311,6 +4342,10 @@ function SolarWorkspace({ job, st, sys, onChange, onClose, snap }) {
             {warns.length} ข้อควรแก้
           </span>
         )}
+        <button className="p3-b" style={{ padding: "10px 16px", marginRight: 8 }} onClick={openDxf} disabled={!!dxfBusy}
+          title="ผังติดตั้ง + แนวเดินสายสตริง · SLD · ต่อสาย DC · วัสดุหน้างาน — ใช้รุ่นอุปกรณ์และการจัดสตริงจากหน้านี้">
+          <P3Icon name="layers" size={15} />ชุดแบบ DXF
+        </button>
         <button className="p3-b" style={{ padding: "10px 16px", marginRight: 8 }} onClick={() => setRepOpen(true)} disabled={!energy}
           title="เลือกหัวข้อที่จะออก แล้วสั่งพิมพ์/บันทึกเป็น PDF">
           <P3Icon name="doc" size={15} />รายงาน PDF
@@ -4373,6 +4408,53 @@ function SolarWorkspace({ job, st, sys, onChange, onClose, snap }) {
                 <P3Icon name="doc" size={14} />ออกรายงาน
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── ตัวอย่างชุดแบบ DXF — แท็บละแผ่น · ดาวน์โหลดทั้งชุด (DXF + ไฟล์ภาพพื้นหลังวางโฟลเดอร์เดียวกัน) ── */}
+      {dxf && (
+        <div className="su-sheet-bg" onMouseDown={(e) => { if (e.target === e.currentTarget) setDxf(null); }}>
+          <div className="su-sheet" style={{ width: "min(1180px,100%)", height: "100%" }}>
+            <div className="su-sheet-hd" style={{ alignItems: "center" }}>
+              <span style={{ width: 30, height: 30, borderRadius: 9, background: "var(--acs)", display: "grid", placeItems: "center", color: "var(--acd)", flexShrink: 0 }}>
+                <P3Icon name="layers" size={15} />
+              </span>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <h4>ชุดแบบ DXF{job && job.code ? " · " + job.code : ""}</h4>
+                <p>A3 แนวนอน 420 × 297 มม. · {dxf.prep.sheets.length} แผ่น{isMicro ? "" : " · " + (plan ? plan.strings.length : 0) + " สตริงตามที่จัดไว้"}
+                  {dxf.prep.files.length ? " · ภาพพื้นหลัง " + dxf.prep.files.length + " ไฟล์ (วางโฟลเดอร์เดียวกับ DXF)" : ""}</p>
+              </div>
+              <button className="ghost x-close" onClick={() => setDxf(null)} title="ปิด"><Icon name="x" size={15} /></button>
+            </div>
+            <div style={{ padding: "10px 16px 0", overflowX: "auto" }}><span className="p3-seg">
+              {dxf.prep.sheets.map((sh, i) => (
+                <button key={sh.key} data-on={i === dxf.i ? "1" : "0"} onClick={() => setDxf({ prep: dxf.prep, i })}>
+                  {sh.no} · {sh.label}
+                </button>
+              ))}
+            </span></div>
+            <div style={{ flex: 1, minHeight: 0, margin: 12, borderRadius: 12, background: "#fff", boxShadow: "var(--shadow-inset)", overflow: "hidden", position: "relative", display: "grid", placeItems: "center" }}>
+              {dxfSvg
+                ? <div className="su-dxf-svg" style={{ position: "absolute", inset: 8 }} dangerouslySetInnerHTML={{ __html: dxfSvg }} />
+                : <span className="p3-note keep">วาดแผ่นนี้ไม่สำเร็จ</span>}
+            </div>
+            <div className="su-sheet-ft">
+              <span style={{ fontSize: 11, color: "var(--text-3)", fontWeight: 600 }}>
+                ไฟล์: {dxf.prep.sheets[dxf.i].file}
+              </span>
+              <span style={{ flex: 1 }} />
+              <button className="p3-b pri" style={{ padding: "9px 18px" }} onClick={downloadDxf} disabled={!!dxfBusy}>
+                <P3Icon name="save" size={14} />{dxfBusy || "ดาวน์โหลดทั้งชุด"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+      {dxfBusy && !dxf && (
+        <div style={{ position: "fixed", left: 0, right: 0, bottom: 18, display: "grid", placeItems: "center", zIndex: 90, pointerEvents: "none" }}>
+          <div className="p3-card" style={{ padding: "11px 14px", boxShadow: "0 10px 30px rgba(0,0,0,.18)" }}>
+            <span className="p3-eb"><P3Icon name="layers" size={12} />{dxfBusy}…</span>
           </div>
         </div>
       )}

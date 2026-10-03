@@ -859,7 +859,7 @@ function p3MeasLen(m) {
   for (let i = 1; i < pts.length; i++) s += Math.hypot((+pts[i].x || 0) - (+pts[i - 1].x || 0), (+pts[i].z || 0) - (+pts[i - 1].z || 0));
   return Math.round((s + Math.abs(+(m && m.rise) || 0)) * 100) / 100;
 }
-const P3_DXF_LAYERS = [["PG-BG", 8, 5], ["PG-ROOF", 7, 35], ["PG-PANEL", 5, 25], ["PG-OBSTACLE", 3, 20], ["PG-MEAS-CABLE", 30, 30], ["PG-MEAS-CONDUIT", 140, 30], ["PG-MEAS-TRAY", 200, 30], ["PG-MEAS-LADDER", 6, 30], ["PG-MEAS-WALKWAY", 4, 30], ["PG-MEAS-GUARDRAIL", 1, 30], ["PG-MEAS-OTHER", 8, 30], ["PG-DIM", 1, 18], ["PG-NORTH", 8, 25], ["PG-NOTE", 8, 18]];
+const P3_DXF_LAYERS = [["PG-BG", 8, 5], ["PG-ROOF", 7, 35], ["PG-PANEL", 5, 25], ["PG-OBSTACLE", 3, 20], ["PG-MEAS-CABLE", 30, 30], ["PG-MEAS-CONDUIT", 140, 30], ["PG-MEAS-TRAY", 200, 30], ["PG-MEAS-LADDER", 6, 30], ["PG-MEAS-WALKWAY", 4, 30], ["PG-MEAS-GUARDRAIL", 1, 30], ["PG-MEAS-OTHER", 8, 30], ["PG-DIM", 1, 18], ["PG-NORTH", 8, 25], ["PG-NOTE", 8, 18], ["PG-STRING", 6, 25]];
 const p3MeasLayer = k => "PG-MEAS-" + String(k || "other").toUpperCase();
 const P3_SCALES = [50, 100, 150, 200, 250, 300, 400, 500, 600, 800, 1000, 1250, 1500, 2000];
 function p3ImgPlace(kind, st, aspect) {
@@ -914,6 +914,10 @@ function p3PlanBox(st, imgs) {
     (p3FootAll(st).panels || []).forEach(p => (p.pts || []).forEach(q => add(q[0], q[1])));
   } catch (e) {}
   (st.obstacles || []).forEach(o => {
+    if (Array.isArray(o.pts) && o.pts.length >= 2) {
+      o.pts.forEach(q => add((+o.x || 0) + (+q.x || 0), (+o.z || 0) + (+q.z || 0)));
+      return;
+    }
     const w = Math.max(0.5, +o.w || 1),
       h = Math.max(0.5, +o.d || 1);
     add((+o.x || 0) - w, (+o.z || 0) - h);
@@ -1091,6 +1095,18 @@ function p3Dxf(st, job, media) {
       doc.circle("PG-OBSTACLE", x, -z, Math.max(w, d) / 2);
       return;
     }
+    if (/^(walkway|rail|pipe|tray|sky)$/.test(o.p3sType || "")) {
+      let P;
+      if (Array.isArray(o.pts) && o.pts.length >= 2) P = o.pts.map(q => [x + (+q.x || 0), -(z + (+q.z || 0))]);else {
+        const L = w / 2,
+          a1 = (+o.rot || 0) * P3_DEG,
+          ux = Math.cos(a1),
+          uz = Math.sin(a1);
+        P = [[x - ux * L, -(z - uz * L)], [x + ux * L, -(z + uz * L)]];
+      }
+      doc.pline("PG-OBSTACLE", P, false);
+      return;
+    }
     const a2 = (+o.rot || 0) * P3_DEG,
       ca = Math.cos(a2),
       sa = Math.sin(a2);
@@ -1125,7 +1141,20 @@ function p3Dxf(st, job, media) {
   })) : 0;
   const lh = Math.min(TH * 0.9, pw * 0.34);
   const labW = ("PV PANEL-" + fp.length).length * (lh / k) * 0.62;
-  if (fp.length && lh / k >= 1.3 && pw / k >= labW) {
+  const SP = media.design && media.design.paths || [];
+  SP.forEach(q => {
+    const pts = (q.pts || []).map(t => [t[0], -t[1]]);
+    if (!pts.length) return;
+    if (pts.length > 1) doc.pline("PG-STRING", pts, false);
+    const r = Math.min(pw * 0.42 || TH, TH * 1.1);
+    doc.circle("PG-STRING", pts[0][0], pts[0][1], r);
+    doc.text("PG-STRING", pts[0][0], pts[0][1], r * 1.05, String(q.id), {
+      align: 1,
+      valign: 2
+    });
+    if (pts.length > 1) doc.circle("PG-STRING", pts[pts.length - 1][0], pts[pts.length - 1][1], r * 0.3);
+  });
+  if (!SP.length && fp.length && lh / k >= 1.3 && pw / k >= labW) {
     fp.sort((a, b) => a.cz - b.cz || a.cx - b.cx);
     fp.forEach((p, i) => doc.text("PG-NOTE", p.cx, -p.cz - lh / 2, lh, "PV PANEL-" + (i + 1), {
       align: 1,
@@ -1152,6 +1181,32 @@ function p3Dxf(st, job, media) {
   pen.text("PG-NOTE", RX1 - 28, AR.y1 - 18, 2.4, "A1=1:" + Math.round(SC / 1.414));
   pen.text("PG-NOTE", RX1 - 28, AR.y1 - 22.5, 2.4, "A3=1:" + SC);
   pgCompass(pen, RX1 - 12, AR.y1 - 40, 6.5);
+  const SS = media.design && media.design.strings || [];
+  if (SS.length) {
+    let rows = [["#", "STRING SCHEDULE"], ["สตริง", "ต่อเข้า", "แผง"]];
+    const maxRows = Math.floor((AR.y1 - 52 - AR.y0 - 70) / RH) - 2;
+    if (SS.length <= maxRows) {
+      SS.forEach(s => rows.push(["S" + s.id, s.addr || (s.inv != null ? "INV " + (s.inv + 1) : "-"), s.n + ""]));
+    } else {
+      const g = {};
+      SS.forEach(s => {
+        const k = s.inv != null ? s.inv : -1;
+        (g[k] = g[k] || []).push(s);
+      });
+      Object.keys(g).sort((a, b) => a - b).forEach(k => {
+        const a = g[k],
+          ids = a.map(s => s.id).sort((x, y) => x - y);
+        rows.push(["S" + ids[0] + "–" + ids[ids.length - 1] + " (" + a.length + ")", +k >= 0 ? "INV " + (+k + 1) : "-", a.reduce((t, s) => t + s.n, 0) + ""]);
+      });
+    }
+    rows.push(["รวม " + SS.length + " สตริง", "", SS.reduce((t, s) => t + s.n, 0) + ""]);
+    pgGrid(pen, RX0, AR.y1 - 52, RW, [1.3, 1.5, 0.6], rows, {
+      rh: RH,
+      th: 2.2,
+      align: [0, 0, 2],
+      headRow: 1
+    });
+  }
   const cab = p3CableRows(st);
   if (cab.length) {
     pgGrid(pen, RX0, AR.y0 + 4 + (cab.length + 2) * RH, RW, [2.4, 1, 0.6], [["#", "ระยะสายหน้างาน โดยประมาณ"], ["ประเภท", "ระยะ", ""]].concat(cab), {
@@ -2805,13 +2860,14 @@ const p3Brand = (model, fb) => {
   const w = String(model || "").trim().split(/[\s\-_]/)[0];
   return w ? w.toUpperCase() : fb || "-";
 };
-function p3SldModel(st, job) {
+function p3SldModel(st, job, design) {
   const sys = st.sys || {};
   const B = window.BOQ || {};
   const nPanel = Math.max(1, p3CountAll(st));
   const wp = +st.wp || 650;
-  const micro = sys.mode !== "string";
-  const phase = +sys.phases || (job ? window.SF.phaseOf(job) : 1);
+  const micro = sys.mode === "micro";
+  const ivPh = micro ? 0 : +(((window.BOQ || {}).INVERTERS || []).find(x => x.model === sys.invModel) || {}).phase || 0;
+  const phase = +sys.phases || ivPh || (job ? window.SF.phaseOf(job) : 1);
   const nPh = phase === 3 ? 3 : 1;
   const Vll = nPh === 3 ? 400 : 230,
     kPh = nPh === 3 ? Math.sqrt(3) : 1;
@@ -2875,6 +2931,18 @@ function p3SldModel(st, job) {
         from: i < n ? 1 : 2
       });
     });
+    const DS = design && design.strings || [];
+    if (DS.length) {
+      units.forEach(u => {
+        u.panels = 0;
+        u.strings = [];
+      });
+      DS.forEach(s => {
+        const u = units[Math.max(0, Math.min(units.length - 1, +s.inv || 0))];
+        u.panels += s.n;
+        u.strings.push(s.id);
+      });
+    }
   }
   inv.brand = p3Brand(inv.model, job && job.brand || "");
   const unitA = unitW / ((micro ? inv.v || 230 : Vll) * (micro ? 1 : kPh));
@@ -2910,6 +2978,7 @@ function p3SldModel(st, job) {
   const mainCu = p3Cu(totA * 1.25, nCore);
   const P = nPh === 3 ? "4P," : "2P,";
   const M = {
+    strs: !micro && design && design.strings && design.strings.length ? design.strings : null,
     mode: micro ? "micro" : "string",
     phase: nPh,
     panel,
@@ -3097,7 +3166,7 @@ function p3Sld(st, job, media) {
       sheetNo: media && media.sheetNo || "1/1"
     })
   });
-  pgSldDraw(doc, sheet, p3SldModel(st, job));
+  pgSldDraw(doc, sheet, p3SldModel(st, job, media && media.design));
   return doc.build();
 }
 const P3_PHOTO_MAX = 12;
@@ -3161,6 +3230,21 @@ function p3EquipRows(st, job, M) {
     const k = m.kind || "other";
     len[k] = (len[k] || 0) + p3MeasLen(m);
   });
+  const OBK = {
+    walkway: "walkway",
+    rail: "guardrail",
+    tray: "tray",
+    ladder: "ladder"
+  };
+  (st.obstacles || []).forEach(o => {
+    const k = OBK[o.p3sType];
+    if (!k) return;
+    let L = 0;
+    if (Array.isArray(o.pts) && o.pts.length > 1) {
+      for (let i = 1; i < o.pts.length; i++) L += Math.hypot((+o.pts[i].x || 0) - (+o.pts[i - 1].x || 0), (+o.pts[i].z || 0) - (+o.pts[i - 1].z || 0));
+    } else L = k === "ladder" ? Math.max(3, +o.h || 0) : +o.w || 0;
+    len[k] = (len[k] || 0) + L;
+  });
   const mOf = k => len[k] ? Math.ceil(len[k]) + " m." : "-";
   const rows = [["LIST", "SPECIFICATION", "BRAND", "DESCRIPTION"]];
   const add = (a, b, c, d) => rows.push([a, b || "-", c || "-", d || "-"]);
@@ -3171,7 +3255,7 @@ function p3EquipRows(st, job, M) {
   add("PV CABLE", "PV1-F 1x4 Sq.mm.  DC1500V (RED / BLACK)", "-", mOf("cable"));
   add("CABLE", M.acCable, "-", mOf("cable"));
   add("GROUND", M.mainCable[1] || "IEC01 THW(G)", "-", "-");
-  add("MC 4", "PV CONNECTOR MALE / FEMALE  DC1000V 30A", "-", M.units.length * 2 + " PAIR");
+  add("MC 4", "PV CONNECTOR MALE / FEMALE  DC1000V 30A", "-", (M.strs ? M.strs.length : M.units.length) * 2 + " PAIR");
   add("CONDUIT", "EMT / IMC / FLEXIBLE CONDUIT", "-", mOf("conduit"));
   add("RACE WAY", "WIREWAY / CABLE TRAY / CABLE LADDER", "-", mOf("tray"));
   if (len.ladder) add("บันไดลิง", "CAT LADDER เหล็กชุบกัลวาไนซ์", "-", mOf("ladder"));
@@ -3186,7 +3270,7 @@ function p3EquipRows(st, job, M) {
 }
 function p3EquipSheet(st, job, media) {
   media = media || {};
-  const M = p3SldModel(st, job);
+  const M = p3SldModel(st, job, media.design);
   const doc = pgDoc({
     units: "mm",
     ltscale: 1
@@ -3228,7 +3312,7 @@ function p3EquipSheet(st, job, media) {
 }
 function p3DcSheet(st, job, media) {
   media = media || {};
-  const M = p3SldModel(st, job);
+  const M = p3SldModel(st, job, media.design);
   const doc = pgDoc({
     units: "mm",
     ltscale: 1
@@ -3248,8 +3332,9 @@ function p3DcSheet(st, job, media) {
     A = sheet.area;
   pgSheetTitle(pen, A.x0 + 4, A.y1 - 10, "DC CONNECTION DIAGRAM", 7.4, 150, 0);
   const grp = {};
-  M.units.forEach(u => {
-    grp[u.panels] = (grp[u.panels] || 0) + 1;
+  (M.strs || M.units).forEach(u => {
+    const k = M.strs ? u.n : u.panels;
+    grp[k] = (grp[k] || 0) + 1;
   });
   const kinds = Object.keys(grp).map(k => ({
     per: +k,
@@ -3274,7 +3359,7 @@ function p3DcSheet(st, job, media) {
       n: g.per,
       maxH: maxPh
     });
-    pen.text(PG_TBL.txt, cx, s.top + 4, 3.0, (M.mode === "micro" ? "MICRO INV." : "INVERTER") + " x " + g.n + " ชุด · ชุดละ " + g.per + " แผง");
+    pen.text(PG_TBL.txt, cx, s.top + 4, 3.0, M.strs ? "STRING x " + g.n + " สาย · สายละ " + g.per + " แผง" : (M.mode === "micro" ? "MICRO INV." : "INVERTER") + " x " + g.n + " ชุด · ชุดละ " + g.per + " แผง");
     const iy = baseY - IVGAP,
       ih = IVH;
     pen.rect(PG_TBL.line, cx + bw * 0.15, iy, bw * 0.7, ih);
@@ -3289,8 +3374,19 @@ function p3DcSheet(st, job, media) {
     pen.text(PG_TBL.txt, A.x0 + 6, baseY - 34, 2.6, "ชุดที่เหลือต่อแบบเดียวกัน — ดูจำนวนแผงต่อชุดในตาราง SINGLE LINE DIAGRAM");
   }
   const sp = M.inv.spec || {};
-  const dcRows = [["#", "DC STRING"], ["ชุดที่", "จำนวนแผง", "ชนิดสาย"]];
-  kinds.forEach((g, i) => dcRows.push([(M.mode === "micro" ? "MICRO " : "INV ") + (i + 1) + (g.n > 1 ? " x" + g.n : ""), g.per + " แผง", "PV1-F 1x4"]));
+  const dcRows = [["#", "DC STRING"], [M.strs ? "สตริง" : "ชุดที่", M.strs ? "ต่อเข้า · แผง" : "จำนวนแผง", "ชนิดสาย"]];
+  if (M.strs) {
+    const g = {};
+    M.strs.forEach(s => {
+      const k = +s.inv || 0;
+      (g[k] = g[k] || []).push(s);
+    });
+    Object.keys(g).sort((a, b) => a - b).slice(0, 14).forEach(k => {
+      const a = g[k],
+        ids = a.map(s => s.id).sort((x, y) => x - y);
+      dcRows.push(["S" + ids[0] + (ids.length > 1 ? "–" + ids[ids.length - 1] : "") + " (" + a.length + ")", "INV " + (+k + 1) + " · " + a.reduce((t, s) => t + s.n, 0) + " แผง", "PV1-F 1x4"]);
+    });
+  } else kinds.forEach((g, i) => dcRows.push([(M.mode === "micro" ? "MICRO " : "INV ") + (i + 1) + (g.n > 1 ? " x" + g.n : ""), g.per + " แผง", "PV1-F 1x4"]));
   dcRows.push(["รวม", M.panel.count + " แผง", "-"]);
   let ry = A.y1 - 20;
   ry -= pgGrid(pen, RX, ry, RW, [1.1, 1, 1.2], dcRows, {
@@ -3387,7 +3483,7 @@ const p3ImgExt = url => {
   const e = m[1].toLowerCase();
   return e === "jpeg" ? "jpg" : e;
 };
-async function p3PrepSet(st, job, photos) {
+async function p3PrepSet(st, job, photos, design) {
   const base = job && (job.code || job.name) || "plan3d";
   const files = [];
   const want = [];
@@ -3442,17 +3538,52 @@ async function p3PrepSet(st, job, photos) {
       url: u
     });
   }
-  const sheets = [{
+  const list = [{
     key: "PLAN",
     label: "ผังติดตั้ง",
-    no: "1/1",
-    file: base + "-PLAN.dxf",
-    make: svg => p3Dxf(st, job, {
-      imgs,
-      sheetNo: "1/1",
-      svg: !!svg
-    })
+    fn: o => p3Dxf(st, job, Object.assign({
+      imgs
+    }, o))
   }];
+  if (design) {
+    list.push({
+      key: "SLD",
+      label: "แผนภาพไฟฟ้า (SLD)",
+      fn: o => p3Sld(st, job, o)
+    });
+    if (ph.length) list.push({
+      key: "PHOTO",
+      label: "รูปถ่ายจุดติดตั้ง",
+      fn: o => p3PhotoSheet(st, job, Object.assign({
+        photos: ph
+      }, o))
+    });
+    list.push({
+      key: "DC",
+      label: "ต่อสาย DC",
+      fn: o => p3DcSheet(st, job, o)
+    });
+    list.push({
+      key: "MAT",
+      label: "วัสดุหน้างาน",
+      fn: o => p3EquipSheet(st, job, o)
+    });
+  }
+  const sheets = list.map((L, i) => {
+    const no = i + 1 + "/" + list.length;
+    return {
+      key: L.key,
+      label: L.label,
+      no,
+      file: base + "-" + (i + 1) + "-" + L.key + ".dxf",
+      make: svg => L.fn({
+        sheetNo: no,
+        svg: !!svg,
+        design
+      })
+    };
+  });
+  if (!design) sheets[0].file = base + "-PLAN.dxf";
   return {
     base,
     sheets,
