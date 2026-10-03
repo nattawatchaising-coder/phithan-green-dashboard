@@ -943,6 +943,92 @@ function p3PlanBox(st, imgs) {
     maxY: d
   };
 }
+const P3_PLAN_COL = 128;
+function p3PlanView(st) {
+  const IN = PG_SHEET.IN;
+  const A = {
+    w: IN.x1 - PG_SHEET.TB - IN.x0 - P3_PLAN_COL - 8,
+    h: IN.y1 - IN.y0
+  };
+  const B = p3PlanBox(st, null);
+  const m = Math.max(6, 0.15 * Math.max(B.maxX - B.minX, B.maxY - B.minY));
+  const needW = B.maxX - B.minX + 2 * m,
+    needH = B.maxY - B.minY + 2 * m;
+  const SC = P3_SCALES.find(s => needW * 1000 <= A.w * s && needH * 1000 <= A.h * s) || P3_SCALES[P3_SCALES.length - 1];
+  const k = SC / 1000;
+  return {
+    SC,
+    k,
+    A,
+    cx: (B.minX + B.maxX) / 2,
+    cy: (B.minY + B.maxY) / 2,
+    W: A.w * k,
+    H: A.h * k
+  };
+}
+async function p3CropImg(im, view) {
+  const p = p3ImgPlace(im.kind, view.st, (+im.pxH || 3) / (+im.pxW || 4));
+  const src = await new Promise(res => {
+    const i = new Image();
+    i.onload = () => res(i);
+    i.onerror = () => res(null);
+    i.src = im.href;
+  });
+  if (!src) return null;
+  const den = Math.min(im.pxW / p.w, 4000 / Math.max(view.W, view.H));
+  const oW = Math.max(1, Math.round(view.W * den)),
+    oH = Math.max(1, Math.round(view.H * den));
+  const cv = document.createElement("canvas");
+  cv.width = oW;
+  cv.height = oH;
+  const g = cv.getContext("2d");
+  g.fillStyle = "#fff";
+  g.fillRect(0, 0, oW, oH);
+  const a = (p.rot || 0) * P3_DEG,
+    ca = Math.cos(a),
+    sa = Math.sin(a);
+  const sw = p.w / im.pxW,
+    sh = p.h / im.pxH;
+  const vx0 = view.cx - view.W / 2,
+    vy1 = view.cy + view.H / 2;
+  g.setTransform(den * ca * sw, -den * sa * sw, den * sa * sh, den * ca * sh, den * (p.cx - vx0 - ca * p.w / 2 - sa * p.h / 2), den * (vy1 - p.cy + sa * p.w / 2 - ca * p.h / 2));
+  g.drawImage(src, 0, 0);
+  const href = cv.toDataURL("image/jpeg", 0.86);
+  return Object.assign({}, im, {
+    href,
+    pxW: oW,
+    pxH: oH,
+    file: im.file.replace(/\.[a-z0-9]+$/i, ".jpg"),
+    place: {
+      cx: view.cx,
+      cy: view.cy,
+      w: view.W,
+      h: view.H,
+      rot: 0
+    }
+  });
+}
+async function p3CropAll(st, imgs, files) {
+  const view = Object.assign(p3PlanView(st), {
+    st
+  });
+  const out = [];
+  for (const im of imgs) {
+    let c = null;
+    try {
+      c = await p3CropImg(im, view);
+    } catch (e) {
+      c = null;
+    }
+    const f = files.find(x => x.name === im.file);
+    if (c && f) {
+      f.name = c.file;
+      f.url = c.href;
+    }
+    out.push(c || im);
+  }
+  return out;
+}
 function p3Dms(v, pos, neg) {
   const s = v < 0 ? neg : pos,
     x = Math.abs(+v || 0);
@@ -1011,20 +1097,18 @@ function p3AreaRows(st, M) {
 }
 function p3Dxf(st, job, media) {
   media = media || {};
-  const imgs = (media.imgs || []).map(im => Object.assign({}, im, p3ImgPlace(im.kind, st, (+im.pxH || 3) / (+im.pxW || 4))));
-  const B = p3PlanBox(st, imgs);
+  const imgs = (media.imgs || []).map(im => Object.assign({}, im, im.place || p3ImgPlace(im.kind, st, (+im.pxH || 3) / (+im.pxW || 4))));
+  const V = p3PlanView(st);
   const IN = PG_SHEET.IN;
   const AW = IN.x1 - PG_SHEET.TB - IN.x0;
-  const P3_COL = 128;
+  const P3_COL = P3_PLAN_COL;
   const RH = 4.6;
   const A = {
     w: AW - P3_COL - 8,
     h: IN.y1 - IN.y0
   };
-  const needW = Math.max(0.5, B.maxX - B.minX),
-    needH = Math.max(0.5, B.maxY - B.minY);
-  const SC = P3_SCALES.find(s => needW * 1000 <= A.w * 0.94 * s && needH * 1000 <= A.h * 0.94 * s) || P3_SCALES[P3_SCALES.length - 1];
-  const k = SC / 1000;
+  const SC = V.SC,
+    k = V.k;
   const doc = pgDoc({
     units: "m",
     ltscale: k
@@ -1033,8 +1117,8 @@ function p3Dxf(st, job, media) {
   pgTableLayers(doc);
   const px = IN.x0 + A.w / 2,
     py = IN.y0 + A.h / 2;
-  const ox = (B.minX + B.maxX) / 2 - px * k;
-  const oy = (B.minY + B.maxY) / 2 - py * k;
+  const ox = V.cx - px * k;
+  const oy = V.cy - py * k;
   const sheet = pgSheet(doc, {
     k,
     ox,
@@ -3821,6 +3905,7 @@ async function p3ExportPlan(st, job) {
     imgs.push({
       kind: w.kind,
       file,
+      href: w.url,
       pxW: sz.w,
       pxH: sz.h,
       fade: w.fade
@@ -3830,8 +3915,9 @@ async function p3ExportPlan(st, job) {
       url: w.url
     });
   }
+  const imgsC = await p3CropAll(st, imgs, files);
   p3SaveBlob(new Blob([p3Dxf(st, job, {
-    imgs
+    imgs: imgsC
   })], {
     type: "application/dxf"
   }), base + "-PLAN.dxf");
@@ -3883,6 +3969,7 @@ async function p3PrepSet(st, job, photos, design) {
       url: w.url
     });
   }
+  const imgsC = await p3CropAll(st, imgs, files);
   const ph = [],
     src = (photos || []).slice(0, P3_PHOTO_MAX);
   for (let i = 0; i < src.length; i++) {
@@ -3907,7 +3994,7 @@ async function p3PrepSet(st, job, photos, design) {
     key: "PLAN",
     label: "ผังติดตั้ง",
     fn: o => p3Dxf(st, job, Object.assign({
-      imgs
+      imgs: imgsC
     }, o))
   }];
   if (design && (design.paths || []).some(q => q.uids && q.uids.length)) list.push({

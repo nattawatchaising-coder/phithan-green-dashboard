@@ -1153,13 +1153,13 @@ const pgSym = {
     }
   },
   /* โหลดในบ้าน — กล่องแบ่งทแยง ครึ่งล่างขวาทึบ ตามสัญลักษณ์ LOAD ในแบบของบริษัท */
-  home(pen, x, y, s) {
+  home(pen, x, y, s, th) {
     const L = PG_SLD.sym;
     const x0 = x - s, x1 = x + s, y0 = y - s * 0.6, y1 = y + s * 0.6;
     pen.solid(PG_SLD.sol, [x0, y0], [x1, y0], [x1, y1]);
     pen.rect(L, x0, y0, s * 2, s * 1.2);
     pen.line(L, x0, y0, x1, y1);
-    pen.text(PG_SLD.txt, x, y0 - 2.6, 2.1, "LOAD", { align: 1, valign: 1 });
+    pen.text(PG_SLD.txt, x, y0 - 1.2 - (th || 2.1), th || 2.1, "LOAD", { align: 1, valign: 1 });
   },
   /* จุดจ่ายไฟของการไฟฟ้า — สามเหลี่ยมโปร่ง */
   utility(pen, x, y, s, label) {
@@ -1237,7 +1237,35 @@ function pgSldPro(doc, sheet, M) {
   const g = 3.4;
   const fuseDev = P.dcDev.k === "fuse";
   /* ความกว้างตัวอักษรโดยประมาณ — ใช้ย่อข้อความให้พอดีช่อง ไม่ให้ล้นไปทับเส้น */
-  const fitH = (s, h, w) => Math.min(h, w / Math.max(1, String(s).length * 0.82));
+  /* ขนาดตัวหนังสือตามชนิดข้อมูล (มม. บนกระดาษ A3 · แนว ISO 3098 ย่อตามความแน่นของ SLD)
+     ข้อมูลชนิดเดียวกันขนาดเท่ากันทั้งแผ่น — ห้ามใส่ตัวเลขขนาดตรง ๆ ในคำสั่งวาด ให้ใช้ TS.<ชนิด>
+     ข้อความยาวไม่พอที่: fitH ลดลงทีละขั้นในชุด TSL (ไม่ย่อแบบต่อเนื่อง) หรือ wrapT ตัดบรรทัด */
+  const TS = {
+    zone: 2.5,    // หัวโซนบนสุด PV ARRAY / DC BOX / INVERTER / AC BOX / MDB
+    sub: 1.5,     // หัวกลุ่มในตาราง (PV MODULE / INVERTER / PV ARRAY)
+    head: 1.8,    // หัวตาราง · ชื่ออุปกรณ์หลัก (INV1 50kW · MDB · TO GRID · ป้ายสตริง S1 : 17 x 650Wp)
+    spec: 1.4,    // สเปคอุปกรณ์บนแบบ (เบรกเกอร์ ฟิวส์ SPD CT สาย) · Voc/Isc สตริง
+    note: 1.4,    // หมายเหตุ
+    cell: 1.3,    // ข้อความในตาราง SYSTEM DATA / EQUIPMENT SCHEDULE
+    legend: 1.3,  // คำอธิบายสัญลักษณ์
+    tag: 1.2,     // ป้ายเล็กติดสัญลักษณ์ (IN1 · PE · ZCT · SHUNT TRIP · เลขแผง · RS485)
+  };
+  const TSL = [2.5, 1.8, 1.5, 1.4, 1.3, 1.2];
+  const fitH = (s, h, w) => {
+    const need = (x) => String(s).length * 0.82 * x <= w;
+    for (const t of TSL) if (t <= h + 1e-6 && need(t)) return t;
+    return Math.max(0.9, Math.min(TS.tag, w / Math.max(1, String(s).length * 0.82)));
+  };
+  /* ตัดคำตามช่องว่างให้แต่ละบรรทัดกว้างไม่เกิน w ที่ขนาด h */
+  const wrapT = (s, h, w) => {
+    const max = Math.max(4, Math.floor(w / (0.82 * h))), out = [];
+    let cur = "";
+    String(s).split(" ").forEach((wd) => {
+      if (cur && (cur + " " + wd).length > max) { out.push(cur); cur = wd; } else cur = cur ? cur + " " + wd : wd;
+    });
+    if (cur) out.push(cur);
+    return out;
+  };
 
   /* ── สัญลักษณ์แนวนอน ── */
   const hBrk = (x, y) => {
@@ -1323,11 +1351,11 @@ function pgSldPro(doc, sheet, M) {
 
   /* ── หัวคอลัมน์ ── */
   const hy = A.y1 - 7;
-  pen.text(LB, (X.m1 + X.sl) / 2, hy, 2.4, "PV ARRAY", { align: 1, valign: 1 });
-  pen.text(LB, (X.dc0 + X.dc1) / 2, hy, 2.4, fuseDev ? "DC COMBINER BOX" : "DC BOX", { align: 1, valign: 1 });
-  pen.text(LB, (X.iv0 + X.iv1) / 2, hy, 2.4, "INVERTER", { align: 1, valign: 1 });
-  pen.text(LB, (X.ac0 + X.ac1) / 2, hy, 2.4, "AC COMBINER BOX", { align: 1, valign: 1 });
-  pen.text(LB, (X.md0 + X.md1) / 2, hy, 2.4, "MDB / GRID", { align: 1, valign: 1 });
+  pen.text(LB, (X.m1 + X.sl) / 2, hy, TS.zone, "PV ARRAY", { align: 1, valign: 1 });
+  pen.text(LB, (X.dc0 + X.dc1) / 2, hy, TS.zone, fuseDev ? "DC COMBINER BOX" : "DC BOX", { align: 1, valign: 1 });
+  pen.text(LB, (X.iv0 + X.iv1) / 2, hy, TS.zone, "INVERTER", { align: 1, valign: 1 });
+  pen.text(LB, (X.ac0 + X.ac1) / 2, hy, TS.zone, "AC COMBINER BOX", { align: 1, valign: 1 });
+  pen.text(LB, (X.md0 + X.md1) / 2, hy, TS.zone, "MDB / GRID", { align: 1, valign: 1 });
 
   /* ── วาดบล็อกอินเวอร์เตอร์ทีละเครื่อง ──
      ทุกสตริง: แผงแรก ─ ─ แผงสุดท้าย → ป้องกันกระแสเกิน (DC MCB / ฟิวส์ gPV ทั้งสองขั้ว) → DC SPD → ขั้วอินเวอร์เตอร์
@@ -1350,12 +1378,12 @@ function pgSldPro(doc, sheet, M) {
         /* สตริง: แผงแรก ─ ─ แผงสุดท้าย */
         pgSym.pv(pen, X.m1, y, 6.4, 3.6, null, true);
         pgSym.pv(pen, X.mn, y, 6.4, 3.6, null, true);
-        pen.text(T, X.m1, y + 2.5, 1.3, "1", { align: 1, valign: 1 });
-        pen.text(T, X.mn, y + 2.5, 1.3, String(row.last), { align: 1, valign: 1 });
+        pen.text(T, X.m1, y + 2.5, TS.tag, "1", { align: 1, valign: 1 });
+        pen.text(T, X.mn, y + 2.5, TS.tag, String(row.last), { align: 1, valign: 1 });
         pen.line(CM, X.m1 + 3.2, y, X.mn - 3.2, y);
         const lw = X.sl - X.tx - 1.5;
-        pen.text(T, X.tx, y + 0.9, fitH(row.lab, 1.7, lw), row.lab, { valign: 1 });
-        pen.text(T, X.tx, y - 1.0, fitH(row.sub, 1.4, lw), row.sub, { valign: 3 });
+        pen.text(T, X.tx, y + 0.9, fitH(row.lab, TS.head, lw), row.lab, { valign: 1 });
+        pen.text(T, X.tx, y - 1.0, fitH(row.sub, TS.spec, lw), row.sub, { valign: 3 });
         /* ต่อฝากโครงแผงเข้า PE trunk */
         pen.line(PE, X.pe0, y - 1.2, X.m1 - 3.2, y - 1.2);
         if (peTop == null) peTop = y - 1.2; else peDot(X.pe0, y - 1.2);
@@ -1365,9 +1393,13 @@ function pgSldPro(doc, sheet, M) {
         pen.line(R, fuseDev ? X.dcB + 2.4 : X.dcB + g + 0.75, y, X.iv0, y);
         pen.line(R, X.sl - 0.7, y - 1.0, X.sl + 0.3, y + 1.0); pen.line(R, X.sl + 0.5, y - 1.0, X.sl + 1.5, y + 1.0);
         if (first) {
+          /* สเปคฟิวส์/MCB + DC SPD ขนาดตัวหนังสือเท่าสเปคอื่น (TS.spec) — ยาวเกินช่องตัดขึ้นบรรทัดใหม่ ไม่ย่อตัว */
           const tw = X.dc1 - X.dc0 - 2;
-          pen.text(T, X.dc0 + 1, y + 6.5, fitH(P.dcSpdFull, 1.2, tw), P.dcSpdFull, { valign: 1 });
-          pen.text(T, X.dc0 + 1, y + 4.7, fitH(P.dcDev.tag, 1.25, tw), P.dcDev.tag, { valign: 1 });
+          /* ตัดบรรทัดตามความหมาย: ชนิด+แรงดัน | กระแส */
+          const brk = (t, re) => t.split(re).filter(Boolean).reduce((o, p) => o.concat(wrapT(p.trim(), TS.spec, tw)), []);
+          const lines = brk(P.dcSpdFull, / (?=In )/).concat(brk(P.dcDev.tag, / (?=[0-9]+VDC)/));
+          const pitch = Math.min(1.7, 6.2 / Math.max(1, lines.length));
+          lines.slice().reverse().forEach((t, i) => pen.text(T, X.dc0 + 1, y + 2.4 + i * pitch, TS.spec, t, { valign: 1 }));
         }
         /* DC SPD ต่อทุกสตริง: L+/L− ลง SPD → PE bar */
         pen.dot(R, X.dcS, y, 0.5);
@@ -1375,9 +1407,9 @@ function pgSldPro(doc, sheet, M) {
         spdS(X.dcS, y - 2.2);
         pen.line(PE, X.dcS, y - 6.2, X.dcS, y - 7.2);
         pen.line(PE, X.dcS, y - 7.2, X.dcPE, y - 7.2);
-        if (first) pen.text(T, X.dcS + 2.5, y - 4.2, 1.2, "SPD", { valign: 2 });
+        if (first) pen.text(T, X.dcS + 2.5, y - 4.2, TS.tag, "SPD", { valign: 2 });
         pen.circle(S, X.iv0, y, 0.6);
-        if (row.tag) pen.text(T, X.iv0 + 1.2, y + 0.4, 1.3, row.tag, { valign: 1 });
+        if (row.tag) pen.text(T, X.iv0 + 1.2, y + 0.4, TS.tag, row.tag, { valign: 1 });
         first = false;
         y -= RH;
       });
@@ -1385,7 +1417,7 @@ function pgSldPro(doc, sheet, M) {
       const bx = X.iv0 + 7.5, y0 = ys[0], y1 = ys[ys.length - 1];
       ys.forEach((yy) => pen.line(S, X.iv0 + 0.6, yy, bx, yy));
       if (ys.length > 1) pen.line(S, bx, y0, bx, y1);
-      pen.text(T, bx + 1.0, (y0 + y1) / 2, 1.7, b.typical ? "MPPT" : "MPPT" + gq.mppt, { valign: 2 });
+      pen.text(T, bx + 1.0, (y0 + y1) / 2, TS.spec, b.typical ? "MPPT" : "MPPT" + gq.mppt, { valign: 2 });
       rowsY.push.apply(rowsY, ys);
     });
     const lastY = rowsY[rowsY.length - 1];
@@ -1394,7 +1426,7 @@ function pgSldPro(doc, sheet, M) {
     pen.rect(BX, X.dc0, G.dBot, X.dc1 - X.dc0, dTop - G.dBot);
     const barT = rowsY[0] - 5.6, barB = lastY - 8.8;
     pen.solid(PE, [X.dcPE - 0.5, barB], [X.dcPE + 0.5, barB], [X.dcPE + 0.5, barT], [X.dcPE - 0.5, barT]);
-    pen.text(T, X.dcPE - 1.2, barB - 0.4, 1.2, "PE", { align: 2, valign: 3 });
+    pen.text(T, X.dcPE - 1.2, barB - 0.4, TS.tag, "PE", { align: 2, valign: 3 });
     const per = b.typical ? " /INV" : "";
     const nS = b.typical ? Math.round(nStrB / b.cnt) : nStrB;
     const ft = [
@@ -1402,7 +1434,7 @@ function pgSldPro(doc, sheet, M) {
       "DC SPD " + P.dcSpdTag.replace(/^SPD /, "") + " x" + nS + per,
     ];
     const fw = X.dcPE - 2.5 - (X.dc0 + 1);
-    ft.forEach((s, i) => pen.text(T, X.dc0 + 1, G.dBot + 1.0 + (ft.length - 1 - i) * 2.1, fitH(s, 1.3, fw), s, { valign: 1 }));
+    ft.forEach((s, i) => pen.text(T, X.dc0 + 1, G.dBot + 1.0 + (ft.length - 1 - i) * 2.1, fitH(s, TS.spec, fw), s, { valign: 1 }));
     /* อินเวอร์เตอร์ */
     const boxTop = top - 1;
     pen.rect(S, X.iv0, G.boxBot, X.iv1 - X.iv0, boxTop - G.boxBot);
@@ -1410,10 +1442,10 @@ function pgSldPro(doc, sheet, M) {
     pgSym.inverter(pen, X.iv1 - 8, tapY, 11, 8.5);
     const nm = b.typical ? "INV" + b.no + "-INV" + b.to + " (x" + b.cnt + ")" : "INV" + b.no;
     const ix = X.iv0 + 4, iw = X.ac0 - 1 - ix;
-    pen.text(LB, ix, G.boxBot - 1.2, fitH(nm + "  " + b.kw + "kW " + P.phTxt, 2.0, iw), nm + "  " + b.kw + "kW " + P.phTxt, { valign: 3 });
-    pen.text(T, ix, G.boxBot - 4.3, fitH(M.inv.model, 1.5, iw), M.inv.model, { valign: 3 });
-    pen.text(T, ix, G.boxBot - 6.6, 1.35, "DC SWITCH : BUILT-IN", { valign: 3 });
-    pen.text(T, ix, G.boxBot - 8.7, fitH("AC : " + M.acCable, 1.35, iw), "AC : " + M.acCable, { valign: 3 });
+    pen.text(LB, ix, G.boxBot - 1.2, fitH(nm + "  " + b.kw + "kW " + P.phTxt, TS.head, iw), nm + "  " + b.kw + "kW " + P.phTxt, { valign: 3 });
+    pen.text(T, ix, G.boxBot - 4.3, fitH(M.inv.model, TS.spec, iw), M.inv.model, { valign: 3 });
+    pen.text(T, ix, G.boxBot - 6.6, TS.spec, "DC SWITCH : BUILT-IN", { valign: 3 });
+    pen.text(T, ix, G.boxBot - 8.7, fitH("AC : " + M.acCable, TS.spec, iw), "AC : " + M.acCable, { valign: 3 });
     /* สายดินของบล็อก: PE bar ตู้ DC + ตัวเครื่องอินเวอร์เตอร์ → PE trunk */
     const peX = X.iv0 + 2;
     pen.line(PE, X.dcPE, barB, X.dcPE, G.yG);
@@ -1425,7 +1457,7 @@ function pgSldPro(doc, sheet, M) {
     cur = G.bottom - 2;
   });
   const blkLow = cur;
-  pen.text(T, X.pe0 + 1.2, cur - 0.5, 1.3, "PV FRAME & RAIL BONDING  THW(G) " + Math.max(6, Math.min(16, P.earthCu)) + " mm2", { valign: 3 });
+  pen.text(T, X.pe0 + 1.2, cur - 0.5, TS.spec, "PV FRAME & RAIL BONDING  THW(G) " + Math.max(6, Math.min(16, P.earthCu)) + " mm2", { valign: 3 });
 
   /* ── ตู้ AC รวม ── */
   const tY = taps.map((t) => t.y);
@@ -1438,7 +1470,7 @@ function pgSldPro(doc, sheet, M) {
     pen.line(R, X.iv1, t.y, X.acB - g - 0.75, t.y);
     hBrk(X.acB, t.y);
     const bl = t.b.brk + (t.b.typical ? " x" + t.b.cnt : "");
-    pen.text(T, X.acB, t.y + 5.0, fitH(bl, 1.4, 2 * (X.acB - X.ac0) - 1), bl, { align: 1, valign: 1 });
+    pen.text(T, X.acB, t.y + 5.0, fitH(bl, TS.spec, 2 * (X.acB - X.ac0) - 1), bl, { align: 1, valign: 1 });
     pen.line(R, X.acB + g + 0.75, t.y, X.acBus, t.y);
     if (t.y !== tMax || yMain > tMax) pen.dot(R, X.acBus, t.y, 0.5);
   });
@@ -1453,12 +1485,12 @@ function pgSldPro(doc, sheet, M) {
     } else {
       pen.line(R, X.acBus, sy, X.acBus, by + g + 0.75); pgSym.breaker(pen, X.acBus, by, "", ""); sy = by - g - 0.75;
     }
-    pen.text(T, X.acBus + 2.6, by, fitH(P.spdBk, 1.35, 20), P.spdBk, { valign: 2 });
+    pen.text(T, X.acBus + 2.6, by, fitH(P.spdBk, TS.spec, 20), P.spdBk, { valign: 2 });
   }
   const spY = sy - 7;
   pen.line(R, X.acBus, sy, X.acBus, spY + 4);
   pgSym.spd(pen, X.acBus, spY, null);
-  P.acSpd.forEach((s, i) => pen.text(T, X.acBus - 3.6, spY + 2.4 - i * 2.2, 1.4, s, { align: 2, valign: 2 }));
+  P.acSpd.forEach((s, i) => pen.text(T, X.acBus - 3.6, spY + 2.4 - i * 2.2, TS.spec, s, { align: 2, valign: 2 }));
   const acBot = spY - 7;
   const acTop = busHi + 9;
   pen.rect(BX, X.ac0, acBot, X.ac1 - X.ac0, acTop - acBot);
@@ -1467,7 +1499,7 @@ function pgSldPro(doc, sheet, M) {
   pen.line(R, X.acBus, yMain, X.acM - g - 0.75, yMain);
   hBrk(X.acM, yMain);
   const mainL = P.mainTxt + (P.lsig ? " LSIG" : "");
-  pen.text(T, X.acM, yMain + 5.0, fitH(mainL, 1.5, 2 * (X.ac1 - X.acM) - 2), mainL, { align: 1, valign: 1 });
+  pen.text(T, X.acM, yMain + 5.0, fitH(mainL, TS.spec, 2 * (X.ac1 - X.acM) - 2), mainL, { align: 1, valign: 1 });
   let wx = X.acM + g + 0.75;
   if (P.gf && !P.lsig) {
     /* Ground fault: ZCT คล้องสายเมน → รีเลย์ GFR → สั่ง Shunt trip ของ MCCB */
@@ -1476,14 +1508,14 @@ function pgSldPro(doc, sheet, M) {
     pen.circle(S, zx, yMain, 1.7);
     pen.line(R, zx - 1.7, yMain, zx + 1.7, yMain);
     wx = zx + 1.7;
-    pen.text(T, zx, yMain + 2.3, 1.3, "ZCT", { align: 1, valign: 1 });
+    pen.text(T, zx, yMain + 2.3, TS.tag, "ZCT", { align: 1, valign: 1 });
     pen.rect(S, zx - 3.4, gy0, 6.8, gy1 - gy0);
-    pen.text(T, zx, (gy0 + gy1) / 2, 1.4, "GFR", { align: 1, valign: 2 });
+    pen.text(T, zx, (gy0 + gy1) / 2, TS.spec, "GFR", { align: 1, valign: 2 });
     pen.line(CM, zx, yMain - 1.7, zx, gy1);
     pen.line(CM, zx - 3.4, (gy0 + gy1) / 2, X.acM, (gy0 + gy1) / 2);
     pen.line(CM, X.acM, (gy0 + gy1) / 2, X.acM, yMain - 2.2);
-    pen.text(T, X.acM - 0.8, yMain - 4.4, 1.25, "SHUNT", { align: 2, valign: 2 });
-    pen.text(T, X.acM - 0.8, yMain - 6.1, 1.25, "TRIP", { align: 2, valign: 2 });
+    pen.text(T, X.acM - 0.8, yMain - 4.4, TS.tag, "SHUNT", { align: 2, valign: 2 });
+    pen.text(T, X.acM - 0.8, yMain - 6.1, TS.tag, "TRIP", { align: 2, valign: 2 });
   }
   if (P.pm) {
     /* Power meter: CT บนสายเมน → PM2230 (ไฟเลี้ยงผ่าน MCB 6A) */
@@ -1491,37 +1523,36 @@ function pgSldPro(doc, sheet, M) {
     pen.line(R, wx, yMain, px - 2.4, yMain);
     ctH(px, yMain);
     pen.line(R, px + 2.4, yMain, X.mdB - g - 0.75, yMain);
-    pen.text(T, px, yMain + 2.3, 1.3, "CT " + P.pmCt, { align: 1, valign: 1 });
+    pen.text(T, px, yMain + 2.3, TS.spec, "CT " + P.pmCt, { align: 1, valign: 1 });
     pen.line(CM, px, yMain - 1.5, px, pt);
     pen.rect(S, px - 4.5, pb, 9, pt - pb);
-    pen.text(T, px, (pb + pt) / 2, 1.35, "PM2230", { align: 1, valign: 2 });
+    pen.text(T, px, (pb + pt) / 2, TS.spec, "PM2230", { align: 1, valign: 2 });
   } else pen.line(R, wx, yMain, X.mdB - g - 0.75, yMain);
-  pen.text(T, X.ac1 + 3.0, yMain - 3, 1.5, M.mainCable[0], { rot: 90, align: 2 });
-  pen.text(T, X.ac1 + 5.8, yMain - 3, 1.5, "THW(G) " + P.earthCu + " mm2 (PE)", { rot: 90, align: 2 });
+  pen.text(T, X.ac1 + 3.0, yMain - 3, TS.spec, M.mainCable[0], { rot: 90, align: 2 });
+  pen.text(T, X.ac1 + 5.8, yMain - 3, TS.spec, "THW(G) " + P.earthCu + " mm2 (PE)", { rot: 90, align: 2 });
 
   /* ── MDB + มิเตอร์การไฟฟ้า ── */
   const mdTop = yMain + 22, mdBot = yMain - 24;
   pen.rect(BX, X.md0, mdBot, X.md1 - X.md0, mdTop - mdBot);
-  pen.text(LB, X.md0 + 1, mdTop + 1, 2.0, "MDB (EXISTING)", { valign: 1 });
+  pen.text(LB, X.md0 + 1, mdTop + 1, TS.head, "MDB (EXISTING)", { valign: 1 });
   hBrk(X.mdB, yMain);
-  pen.text(T, X.md0 + 1, yMain + 5.0, fitH(M.mccb[0], 1.5, X.mdBus - X.md0 - 3), M.mccb[0], { valign: 1 });
-  pen.text(T, X.md0 + 1, yMain - 2.2, 1.3, "SOLAR (" + (M.mccbNew ? "NEW" : "EXIST") + ")", { valign: 3 });
+  pen.text(T, X.md0 + 1, yMain + 5.0, fitH(M.mccb[0], TS.spec, X.mdBus - X.md0 - 3), M.mccb[0], { valign: 1 });
+  pen.text(T, X.md0 + 1, yMain - 2.2, TS.spec, "SOLAR (" + (M.mccbNew ? "NEW" : "EXIST") + ")", { valign: 3 });
   pen.line(W, X.mdB + g + 0.75, yMain, X.mdBus, yMain);
   pen.dot(W, X.mdBus, yMain, 0.5);
   pen.line(W, X.mdBus, yMain - 8, X.mdBus, yMain + 8);
   pgWireY(pen, W, X.mdBus, yMain + 8, mdTop, [{ y: yMain + 15 }]);
   pgSym.breaker(pen, X.mdBus, yMain + 15, "", "");
-  pen.text(T, X.mdBus + 3, yMain + 15.8, 1.5, "MAIN CB", { valign: 1 });
-  pen.text(T, X.mdBus + 3, yMain + 14.2, 1.3, P.exMain || "(EXISTING)", { valign: 3 });
+  pen.text(T, X.mdBus + 3, yMain + 15.8, TS.spec, "MAIN CB", { valign: 1 });
+  pen.text(T, X.mdBus + 3, yMain + 14.2, TS.spec, P.exMain || "(EXISTING)", { valign: 3 });
   pgWireY(pen, W, X.mdBus, yMain - 8, mdBot, [{ y: yMain - 15 }]);
   pgSym.breaker(pen, X.mdBus, yMain - 15, "", "");
-  pen.text(T, X.mdBus + 3, yMain - 15, 1.5, "LOAD", { valign: 2 });
   pen.line(W, X.mdBus, mdBot, X.mdBus, mdBot - 3.5);
-  pgSym.home(pen, X.mdBus, mdBot - 6.5, 3.4);
+  pgSym.home(pen, X.mdBus, mdBot - 6.5, 3.4, TS.head);
   /* PE bar ของ MDB → บัสดินหลัก */
   const mpx = X.md0 + 3;
   pen.rect(PE, mpx - 2, mdBot + 1.2, 4, 1.0);
-  pen.text(T, mpx + 2.6, mdBot + 1.7, 1.2, "PE / N-PE LINK", { valign: 2 });
+  pen.text(T, mpx + 2.6, mdBot + 1.7, TS.tag, "PE / N-PE LINK", { valign: 2 });
   const yE = Math.max(yE0, Math.min(blkLow - 4, acBot - 5, mdBot - 14));
   pen.line(PE, mpx, mdBot + 1.2, mpx, yE);
   pen.line(PE, X.acBus, spY - 4, X.acBus, yE);
@@ -1530,25 +1561,25 @@ function pgSldPro(doc, sheet, M) {
   const ctY = mdTop + 6, mY = mdTop + 15, uY = mdTop + 27;
   pen.line(W, X.mdBus, mdTop, X.mdBus, mY - 3.4);
   pgSym.ct(pen, X.mdBus, ctY, "", "");
-  pen.text(T, X.mdBus + 5.2, ctY, fitH(M.ctMain, 1.45, X.md1 + 10 - X.mdBus - 5.2), M.ctMain, { valign: 2 });
+  pen.text(T, X.mdBus + 5.2, ctY, fitH(M.ctMain, TS.spec, X.md1 + 10 - X.mdBus - 5.2), M.ctMain, { valign: 2 });
   meter(X.mdBus, mY, 3.4);
-  pen.text(T, X.mdBus + 4.4, mY + 0.8, 1.45, "BI-DIR. kWh", { valign: 1 });
-  pen.text(T, X.mdBus + 4.4, mY - 0.8, 1.45, "METER (" + P.auth + ")", { valign: 3 });
+  pen.text(T, X.mdBus + 4.4, mY + 0.8, TS.spec, "BI-DIR. kWh", { valign: 1 });
+  pen.text(T, X.mdBus + 4.4, mY - 0.8, TS.spec, "METER (" + P.auth + ")", { valign: 3 });
   pen.line(W, X.mdBus, mY + 3.4, X.mdBus, uY - 1.9);
   pgSym.utility(pen, X.mdBus, uY, 3.2, "");
-  pen.text(LB, X.mdBus + 3.6, uY, 1.9, "TO " + P.auth + " GRID", { valign: 2 });
+  pen.text(LB, X.mdBus + 3.6, uY, TS.head, "TO " + P.auth + " GRID", { valign: 2 });
 
   /* ── สายสื่อสาร: CT กริด → Smart meter/Logger → อินเวอร์เตอร์ (จำกัดไฟย้อน/มอนิเตอร์) ── */
   if (M.gateway) {
     const gy = A.y1 - 12, gx = (X.ac0 + X.ac1) / 2, gw = 15;
     pen.rect(S, gx - gw, gy - 3, gw * 2, 6);
-    pen.text(T, gx, gy, 1.5, "SMART METER / DATA LOGGER", { align: 1, valign: 2 });
+    pen.text(T, gx, gy, TS.spec, "SMART METER / DATA LOGGER", { align: 1, valign: 2 });
     const cx = X.mdBus - 7;
     pen.line(CM, gx + gw, gy, cx, gy); pen.line(CM, cx, gy, cx, ctY); pen.line(CM, cx, ctY, X.mdBus - 2.9, ctY);
-    pen.text(T, gx + gw + 1, gy + 0.6, 1.3, "CT SIGNAL", { valign: 1 });
+    pen.text(T, gx + gw + 1, gy + 0.6, TS.tag, "CT SIGNAL", { valign: 1 });
     const ix = X.iv1 - 5;
     pen.line(CM, gx - gw, gy, ix, gy); pen.line(CM, ix, gy, ix, yTop - 1);
-    pen.text(T, gx - gw - 1, gy + 0.6, 1.3, "RS485", { align: 2, valign: 1 });
+    pen.text(T, gx - gw - 1, gy + 0.6, TS.tag, "RS485", { align: 2, valign: 1 });
   }
 
   /* ── บัสดินหลัก (MET) + หลักดิน ── */
@@ -1556,42 +1587,49 @@ function pgSldPro(doc, sheet, M) {
   pen.line(PE, X.pe0, yE, metX, yE);
   [X.acBus, mpx].forEach((x) => peDot(x, yE));
   pen.rect(PE, metX, yE - 2.2, 10, 4.4);
-  pen.text(T, metX + 5, yE, 1.5, "MET", { align: 1, valign: 2 });
+  pen.text(T, metX + 5, yE, TS.spec, "MET", { align: 1, valign: 2 });
   const rx = metX + 5;
   pen.line(PE, rx, yE - 2.2, rx, yE - 4.5);
   pgSym.ground(pen, rx, yE - 4.5);
-  pen.text(T, rx - 4, yE - 5.6, 1.3, "EARTH ROD 5/8\" x 2.4m  R <= 5 OHM", { align: 2, valign: 2 });
-  pen.text(LB, X.pe0 + 1.5, yE - 1.2, 1.6, "MAIN EARTH (PE) : THW(G) " + P.earthCu + " mm2  GREEN/YELLOW", { valign: 3 });
+  pen.text(T, rx - 4, yE - 5.6, TS.spec, "EARTH ROD 5/8\" x 2.4m  R <= 5 OHM", { align: 2, valign: 2 });
+  pen.text(LB, X.pe0 + 1.5, yE - 1.2, TS.spec, "MAIN EARTH (PE) : THW(G) " + P.earthCu + " mm2  GREEN/YELLOW", { valign: 3 });
 
   /* ── คอลัมน์ขวา: ข้อมูลระบบ · ตารางอุปกรณ์ · หมายเหตุ · สัญลักษณ์ ── */
   const L = PG_SLD.tab;
   const grid = (rows, head, cw, rh, th) => {
     let cy = ty;
     pen.rect(L, RX0, cy - rh - 0.6, RW, rh + 0.6);
-    pen.text(LB, RX0 + 1.2, cy - (rh + 0.6) / 2, 1.8, head, { valign: 2 });
+    pen.text(LB, RX0 + 1.2, cy - (rh + 0.6) / 2, TS.head, head, { valign: 2 });
     cy -= rh + 0.6;
+    /* ข้อความในตารางขนาดเดียวกันทุกช่อง — ยาวเกินช่องตัดบรรทัดแล้วแถวสูงขึ้น (ไม่ย่อตัว) */
+    const lp = th + 0.7;
     rows.forEach((r) => {
-      pen.rect(L, RX0, cy - rh, RW, rh);
-      if (r[0] === "#") pen.text(T, RX0 + 1.2, cy - rh / 2, th, r[1], { valign: 2 });
-      else {
-        let cx = RX0;
-        cw.forEach((w, i) => {
-          if (i) pen.line(L, cx, cy, cx, cy - rh);
-          const s = String(r[i] == null ? "" : r[i]);
-          const c = i === cw.length - 1 && cw.length > 2;
-          pen.text(T, c ? cx + w / 2 : cx + 1, cy - rh / 2, fitH(s, th, w - 2), s, { align: c ? 1 : 0, valign: 2 });
-          cx += w;
-        });
+      if (r[0] === "#") {
+        pen.rect(L, RX0, cy - rh, RW, rh);
+        pen.text(LB, RX0 + 1.2, cy - rh / 2, TS.sub, r[1], { valign: 2 });
+        cy -= rh; return;
       }
-      cy -= rh;
+      const cells = cw.map((w, i) => wrapT(String(r[i] == null ? "" : r[i]), th, w - 2));
+      const nL = Math.max.apply(null, cells.map((c) => c.length));
+      const h = rh + (nL - 1) * lp;
+      pen.rect(L, RX0, cy - h, RW, h);
+      let cx = RX0;
+      cw.forEach((w, i) => {
+        if (i) pen.line(L, cx, cy, cx, cy - h);
+        const c = i === cw.length - 1 && cw.length > 2;
+        const ls = cells[i], y0 = cy - h / 2 + (ls.length - 1) * lp / 2;
+        ls.forEach((t, j) => pen.text(T, c ? cx + w / 2 : cx + 1, y0 - j * lp, th, t, { align: c ? 1 : 0, valign: 2 }));
+        cx += w;
+      });
+      cy -= h;
     });
     return ty - cy;
   };
   let ty = A.y1 - 4;
-  if (M.pvData) ty -= grid(M.pvData, "SYSTEM DATA", [RW * 0.4, RW * 0.6], 3.1, 1.4) + 3;
+  if (M.pvData) ty -= grid(M.pvData, "SYSTEM DATA", [RW * 0.4, RW * 0.6], 3.1, TS.cell) + 3;
   if (M.sched) {
     const rows = M.sched.map((r, i) => [i + 1, r[0], r[1], r[2]]);
-    ty -= grid([["NO", "ITEM", "SPECIFICATION", "QTY"]].concat(rows), "EQUIPMENT SCHEDULE", [5, 21, RW - 34, 8], 3.1, 1.3) + 3;
+    ty -= grid([["NO", "ITEM", "SPECIFICATION", "QTY"]].concat(rows), "EQUIPMENT SCHEDULE", [5, 21, RW - 34, 8], 3.1, TS.cell) + 3;
   }
   const notes = [
     "1. ติดตั้งตาม วสท. 022001 · IEC 62548 · IEC 60364-7-712",
@@ -1604,10 +1642,17 @@ function pgSldPro(doc, sheet, M) {
     "7. Anti-islanding ตามข้อกำหนด " + P.auth + " · ป้ายเตือน DC ที่ตู้/MDB",
   ];
   const titleY = A.y0 + 7;
-  const noteH = 4.5 + notes.length * 2.8;
+  /* หมายเหตุขนาดเดียวกันทุกข้อ — ยาวเกินตัดบรรทัด (ย่อหน้าต่อจากเลขข้อ) ไม่ย่อตัวหนังสือ
+     ภาษาไทยไม่มีช่องว่างระหว่างคำ wrapT ตัดได้แค่ที่ช่องว่าง/ · จึงเขียนหมายเหตุให้มีช่องว่างพอ */
+  const nLines = [];
+  notes.forEach((s) => {
+    const m = s.match(/^([0-9]+\.\s*)/), ind = m ? m[1].length * 0.82 * TS.note : 0;
+    wrapT(s, TS.note, RW - ind).forEach((t, i) => nLines.push({ t, x: i ? RX0 + ind : RX0 }));
+  });
+  const noteH = 4.5 + nLines.length * 2.2;
   if (ty - (titleY + 9) > noteH) {
-    pen.text(LB, RX0, ty - 1, 1.8, "NOTES", { valign: 3 });
-    notes.forEach((s, i) => pen.text(T, RX0, ty - 4.6 - i * 2.8, fitH(s, 1.4, RW), s, { valign: 3 }));
+    pen.text(LB, RX0, ty - 1, TS.head, "NOTES", { valign: 3 });
+    nLines.forEach((l, i) => pen.text(T, l.x, ty - 4.6 - i * 2.2, TS.note, l.t, { valign: 3 }));
     ty -= noteH + 2;
   }
   const legs = [
@@ -1622,11 +1667,11 @@ function pgSldPro(doc, sheet, M) {
   ];
   const legH = 4.5 + Math.ceil(legs.length / 2) * 4.6;
   if (ty - (titleY + 9) > legH) {
-    pen.text(LB, RX0, ty - 1, 1.8, "LEGEND", { valign: 3 });
+    pen.text(LB, RX0, ty - 1, TS.head, "LEGEND", { valign: 3 });
     legs.forEach((l, i) => {
       const lx = RX0 + 1 + (i % 2) * (RW / 2), ly = ty - 7.2 - Math.floor(i / 2) * 4.6;
       l[0](lx, ly);
-      pen.text(T, lx + 12, ly, 1.3, l[1], { valign: 2 });
+      pen.text(T, lx + 12, ly, TS.legend, l[1], { valign: 2 });
     });
   }
   pgSheetTitle(pen, (RX0 + RX1) / 2, titleY, "SINGLE LINE DIAGRAM - SOLAR PV SYSTEM", 4.4, RW - 2);
