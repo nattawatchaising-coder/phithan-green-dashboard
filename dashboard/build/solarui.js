@@ -601,11 +601,14 @@ function SuLayout2D({
   paths,
   onErase,
   full,
-  onFull
+  onFull,
+  onFillBlock,
+  sel
 }) {
   const midRef = React.useRef(false);
   const wrapRef = React.useRef(null);
   const [seq, setSeq] = React.useState(!!onTap);
+  const [blkMode, setBlkMode] = React.useState(false);
   const [showPath, setShowPath] = React.useState(true);
   const downRef = React.useRef(null);
   const svgRef = React.useRef(null);
@@ -757,8 +760,10 @@ function SuLayout2D({
     });
     if (hit.length) onPaintMany(hit);
   };
-  const seqOn = seq && !!onTap && active && !box && !hand;
-  const panning = (hand || !active || seqOn) && !box;
+  const blkOn = blkMode && !!onFillBlock && active && !box && !hand;
+  const seqOn = seq && !!onTap && active && !box && !hand && !blkOn;
+  const tapOn = seqOn || blkOn;
+  const panning = (hand || !active || tapOn) && !box;
   React.useEffect(() => {
     const el = wrapRef.current;
     if (!el) return;
@@ -826,10 +831,20 @@ function SuLayout2D({
     onClick: () => setShowPath(x => !x),
     style: btn(showPath),
     title: showPath ? "ซ่อนแนวเดินสายของแต่ละสตริง" : "แสดงแนวเดินสาย + จุดเริ่มของแต่ละสตริง"
-  }, "\u3030"), active && onTap && React.createElement("button", {
+  }, "\u3030"), active && onFillBlock && React.createElement("button", {
+    type: "button",
+    onClick: () => {
+      setBlkMode(true);
+      setBox(false);
+      setHand(false);
+    },
+    style: btn(blkOn),
+    title: "\u0E08\u0E31\u0E14\u0E17\u0E31\u0E49\u0E07\u0E0A\u0E38\u0E14: \u0E41\u0E15\u0E30\u0E41\u0E1C\u0E07\u0E43\u0E1A\u0E44\u0E2B\u0E19\u0E01\u0E47\u0E44\u0E14\u0E49\u0E43\u0E19\u0E0A\u0E38\u0E14 = \u0E41\u0E1A\u0E48\u0E07\u0E41\u0E1C\u0E07\u0E17\u0E35\u0E48\u0E22\u0E31\u0E07\u0E27\u0E48\u0E32\u0E07\u0E17\u0E31\u0E49\u0E07\u0E0A\u0E38\u0E14\u0E40\u0E1B\u0E47\u0E19\u0E2A\u0E15\u0E23\u0E34\u0E07\u0E15\u0E32\u0E21\u0E41\u0E19\u0E27\u0E40\u0E14\u0E34\u0E19\u0E2A\u0E32\u0E22\u0E43\u0E2B\u0E49\u0E17\u0E35\u0E40\u0E14\u0E35\u0E22\u0E27"
+  }, "\u25A6"), active && onTap && React.createElement("button", {
     type: "button",
     onClick: () => {
       setSeq(true);
+      setBlkMode(false);
       setBox(false);
       setHand(false);
     },
@@ -839,11 +854,12 @@ function SuLayout2D({
     type: "button",
     onClick: () => {
       setSeq(false);
+      setBlkMode(false);
       setBox(false);
       setHand(false);
     },
-    style: btn(!seqOn && !box && !hand),
-    title: "\u0E17\u0E32\u0E17\u0E35\u0E25\u0E30\u0E43\u0E1A: \u0E41\u0E15\u0E30\u0E2B\u0E23\u0E37\u0E2D\u0E25\u0E32\u0E01\u0E1C\u0E48\u0E32\u0E19\u0E41\u0E1C\u0E07\u0E40\u0E1E\u0E37\u0E48\u0E2D\u0E22\u0E49\u0E32\u0E22\u0E40\u0E02\u0E49\u0E32\u0E2A\u0E15\u0E23\u0E34\u0E07\u0E17\u0E35\u0E48\u0E40\u0E25\u0E37\u0E2D\u0E01"
+    style: btn(!tapOn && !box && !hand),
+    title: "\u0E17\u0E32\u0E17\u0E35\u0E25\u0E30\u0E43\u0E1A: \u0E41\u0E15\u0E30\u0E2B\u0E23\u0E37\u0E2D\u0E25\u0E32\u0E01\u0E1C\u0E48\u0E32\u0E19\u0E41\u0E1C\u0E07\u0E40\u0E1E\u0E37\u0E48\u0E2D\u0E22\u0E49\u0E32\u0E22\u0E40\u0E02\u0E49\u0E32\u0E2A\u0E15\u0E23\u0E34\u0E07\u0E17\u0E35\u0E48\u0E40\u0E25\u0E37\u0E2D\u0E01 \xB7 \u0E25\u0E32\u0E01\u0E1A\u0E19\u0E17\u0E35\u0E48\u0E27\u0E48\u0E32\u0E07 = \u0E40\u0E25\u0E37\u0E48\u0E2D\u0E19\u0E1C\u0E31\u0E07"
   }, "\u270E"), active && onPaintMany && React.createElement("button", {
     type: "button",
     onClick: () => {
@@ -920,7 +936,7 @@ function SuLayout2D({
       }
       setDrag(true);
       dragRef.current = true;
-      downRef.current = seqOn ? {
+      downRef.current = tapOn ? {
         x: e.clientX,
         y: e.clientY,
         moved: false
@@ -931,6 +947,17 @@ function SuLayout2D({
           y: e.clientY
         };
         return;
+      }
+      if (!box) {
+        const el0 = document.elementFromPoint(e.clientX, e.clientY);
+        if (!(el0 && el0.dataset && el0.dataset.uid)) {
+          midRef.current = true;
+          last.current = {
+            x: e.clientX,
+            y: e.clientY
+          };
+          return;
+        }
       }
       if (box) {
         const m = scaleOf();
@@ -993,9 +1020,9 @@ function SuLayout2D({
       }
       const dn = downRef.current;
       downRef.current = null;
-      if (dn && !dn.moved && onTap) {
+      if (dn && !dn.moved && (onTap || onFillBlock)) {
         const el = document.elementFromPoint(dn.x, dn.y);
-        if (el && el.dataset && el.dataset.uid) onTap(el.dataset.uid);
+        if (el && el.dataset && el.dataset.uid) (blkOn ? onFillBlock : onTap)(el.dataset.uid);
       }
       if (rectRef.current) {
         applyBox(rectRef.current);
@@ -1022,6 +1049,7 @@ function SuLayout2D({
   })), foot.panels.map(p => {
     const s = assign[p.uid] || 0;
     const c = s ? colorOf ? colorOf(p.uid, s) : suColor(s) : null;
+    const on = !!s && sel != null && s === sel;
     const un = unitName || "สตริง";
     return React.createElement("polygon", {
       key: p.uid,
@@ -1029,11 +1057,11 @@ function SuLayout2D({
       points: p.pts.map(q => q[0] + "," + q[1]).join(" "),
       fill: c ? c : "#CBD5E1",
       fillOpacity: c ? 0.88 : 0.5,
-      stroke: c ? "#fff" : "#94A3B8",
-      strokeWidth: "0.035",
+      stroke: on ? "#0F172A" : c ? "#fff" : "#94A3B8",
+      strokeWidth: on ? 0.09 : 0.035,
       strokeDasharray: c ? null : "0.12 0.09",
       style: {
-        cursor: seqOn ? "pointer" : active ? "crosshair" : "pointer"
+        cursor: tapOn ? "pointer" : active ? "crosshair" : "pointer"
       }
     }, React.createElement("title", null, p.roofName + " · " + p.key + (s ? " · " + un + " " + s : " · ยังไม่อยู่" + un + "ไหน") + (labels && labels[p.uid] ? " · เฟส " + labels[p.uid] : "")));
   }), showPath && paths && paths.map(q => q.pts.length > 0 && React.createElement("g", {
@@ -3658,6 +3686,76 @@ function SolarWorkspace({
     });
     setActiveStr(Math.max(maxId, sid) + 1);
   };
+  const [fillMsg, setFillMsg] = React.useState("");
+  const fillBlock = uid => {
+    const c = lay.cell[uid];
+    if (!c) return;
+    const B = lay.blocks[c.b];
+    const a = Object.assign({}, effAssign);
+    const pool = [];
+    B.ls.forEach(l => B.lines[l].forEach(u => {
+      if (!a[u]) pool.push(u);
+    }));
+    const n = Math.max(1, Math.round(serN || 1));
+    const minN = range ? range.min : 1;
+    if (!pool.length) {
+      setFillMsg("ชุดนี้จัดครบทุกแผงแล้ว");
+      return;
+    }
+    let maxId = 0;
+    Object.keys(a).forEach(k => {
+      if (a[k] > maxId) maxId = a[k];
+    });
+    let made = 0,
+      i = 0;
+    for (; i + n <= pool.length; i += n) {
+      made++;
+      for (let j = i; j < i + n; j++) a[pool[j]] = maxId + made;
+    }
+    const rest = pool.length - i;
+    if (rest > 0 && rest >= minN) {
+      made++;
+      for (let j = i; j < pool.length; j++) a[pool[j]] = maxId + made;
+    }
+    if (!made) {
+      setFillMsg("แผงว่างในชุดนี้มี " + pool.length + " ใบ น้อยกว่าที่ต่อเป็นสตริงได้ (" + minN + " ใบ)");
+      return;
+    }
+    set({
+      assign: a,
+      manual: true
+    });
+    setActiveStr(maxId + made + 1);
+    setFillMsg("จัดเพิ่ม " + made + " สตริง (สตริง " + (maxId + 1) + (made > 1 ? "–" + (maxId + made) : "") + ")" + (rest > 0 && rest < minN ? " · เหลือ " + rest + " แผงว่าง (น้อยกว่า " + minN + " ใบ) แตะเพิ่มเข้าสตริงข้าง ๆ เอง" : ""));
+  };
+  const strHas = id => !!id && Object.keys(effAssign || {}).some(k => effAssign[k] === id);
+  const dropStr = id => {
+    if (!strHas(id)) return;
+    const a = Object.assign({}, effAssign);
+    Object.keys(a).forEach(k => {
+      if (a[k] === id) delete a[k];
+    });
+    set({
+      assign: a,
+      manual: true
+    });
+    setFillMsg("ปลดสตริง " + id + " แล้ว");
+  };
+  const dropRef = React.useRef(null);
+  dropRef.current = () => dropStr(activeStr);
+  React.useEffect(() => {
+    if (isMicro || step !== 1) return;
+    const k = e => {
+      if (e.key !== "Delete" && e.key !== "Backspace") return;
+      const t = e.target,
+        tag = t && t.tagName;
+      if (tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT" || t && t.isContentEditable) return;
+      e.preventDefault();
+      dropRef.current && dropRef.current();
+    };
+    window.addEventListener("keydown", k);
+    return () => window.removeEventListener("keydown", k);
+  }, [isMicro, step]);
   const eraseAt = (uid, whole) => {
     const a = Object.assign({}, effAssign),
       cur = a[uid];
@@ -5417,7 +5515,17 @@ function SolarWorkspace({
   }, React.createElement(P3Icon, {
     name: "trash",
     size: 12
-  }), "\u0E40\u0E2D\u0E32\u0E2D\u0E2D\u0E01"), Object.keys(effAssign || {}).length > 0 && React.createElement("button", {
+  }), "\u0E40\u0E2D\u0E32\u0E2D\u0E2D\u0E01"), strHas(activeStr) && React.createElement("button", {
+    className: "p3-chip",
+    onClick: () => dropStr(activeStr),
+    title: "\u0E1B\u0E25\u0E14\u0E41\u0E1C\u0E07\u0E17\u0E38\u0E01\u0E43\u0E1A\u0E2D\u0E2D\u0E01\u0E08\u0E32\u0E01\u0E2A\u0E15\u0E23\u0E34\u0E07\u0E17\u0E35\u0E48\u0E40\u0E25\u0E37\u0E2D\u0E01 (\u0E1B\u0E38\u0E48\u0E21 Delete)",
+    style: {
+      color: "var(--tint-red-tx)"
+    }
+  }, React.createElement(P3Icon, {
+    name: "trash",
+    size: 12
+  }), "\u0E1B\u0E25\u0E14\u0E2A\u0E15\u0E23\u0E34\u0E07 ", activeStr), Object.keys(effAssign || {}).length > 0 && React.createElement("button", {
     className: "p3-chip",
     onClick: () => {
       set({
@@ -5491,7 +5599,29 @@ function SolarWorkspace({
     style: {
       color: "var(--text-1)"
     }
-  }, serN), " \u0E41\u0E1C\u0E07")), React.createElement(SuLayout2D, {
+  }, serN), " \u0E41\u0E1C\u0E07")), fillMsg && React.createElement("div", {
+    style: {
+      fontSize: 11.5,
+      fontWeight: 700,
+      color: "var(--text-2)",
+      background: "var(--surface2)",
+      boxShadow: "var(--shadow-inset)",
+      borderRadius: 8,
+      padding: "6px 10px",
+      marginBottom: 8,
+      display: "flex",
+      gap: 8,
+      alignItems: "center"
+    }
+  }, React.createElement("span", {
+    style: {
+      flex: 1
+    }
+  }, fillMsg), React.createElement("button", {
+    type: "button",
+    className: "p3-b sm",
+    onClick: () => setFillMsg("")
+  }, "\u0E1B\u0E34\u0E14")), React.createElement(SuLayout2D, {
     foot: foot,
     assign: effAssign,
     active: activeStr !== null,
@@ -5500,12 +5630,14 @@ function SolarWorkspace({
     onTap: fillAt,
     paths: wirePaths,
     onErase: eraseAt,
+    onFillBlock: fillBlock,
+    sel: activeStr,
     full: bigMap,
     onFull: () => setBigMap(x => !x),
     height: bigMap ? "calc(100vh - 230px)" : undefined
   }), React.createElement("span", {
     className: "p3-note"
-  }, "⇣ แตะแผงที่จะเริ่มสตริง = ได้ทั้งสตริง " + serN + " แผงตามแนวเดินสาย แล้วไปสตริงถัดไปเอง · แตะแผงที่มีสตริงแล้ว = เลือกสตริงนั้น · โหมด “เอาออก” แตะ = ปลดทั้งสตริง · ✎ ทาทีละใบ · ▢ ลากกรอบ · ลูกกลิ้ง = ซูม · กดปุ่มกลางลาก = เลื่อน · คลิกขวา = เอาออก", isManual ? " · กำลังใช้ผังที่แก้เอง" : " · ตอนนี้ระบบจัดให้ตามแนวเดินสาย (แก้ครั้งแรกระบบจะยึดผังนี้เป็นของคุณ)", " · มองจากด้านบน ทิศเหนืออยู่บน")), !isMicro && plan && React.createElement("div", {
+  }, "▦ แตะแผงในชุด = จัดแผงว่างทั้งชุดเป็นสตริงละ " + serN + " แผง · ⇣ แตะแผงที่จะเริ่ม = ได้ทั้งสตริงตามแนวเดินสาย · แตะแผงที่มีสตริงแล้ว = เลือกสตริงนั้น กด Delete = ปลด · ✎ ทาทีละใบ · ▢ ลากกรอบ · ลากที่ว่าง = เลื่อน · ลูกกลิ้ง = ซูม", isManual ? " · กำลังใช้ผังที่แก้เอง" : " · ตอนนี้ระบบจัดให้ตามแนวเดินสาย (แก้ครั้งแรกระบบจะยึดผังนี้เป็นของคุณ)", " · มองจากด้านบน ทิศเหนืออยู่บน")), !isMicro && plan && React.createElement("div", {
     className: "p3-card"
   }, React.createElement("span", {
     className: "p3-eb"

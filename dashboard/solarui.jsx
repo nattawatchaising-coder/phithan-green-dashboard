@@ -383,13 +383,17 @@ function suPanelAngle(foot) {
   return Math.round(Math.atan2(best[1], best[0]) * 180 / Math.PI * 10) / 10;
 }
 
-function SuLayout2D({ foot, assign, active, onPaint, onPaintMany, height, labels, colorOf, unitName, onTap, paths, onErase, full, onFull }) {
-  /* เมาส์: ปุ่มกลางลาก = เลื่อนผังได้ทุกโหมด · คลิกขวาบนแผง = เอาออก (onErase) ไม่เปิดเมนูของเบราว์เซอร์ */
+function SuLayout2D({ foot, assign, active, onPaint, onPaintMany, height, labels, colorOf, unitName, onTap, paths, onErase, full, onFull, onFillBlock, sel }) {
+  /* เมาส์: ใช้ปุ่มซ้ายอย่างเดียวได้ครบ — ลากบนที่ว่าง = เลื่อนผังทุกโหมด (ยกเว้นโหมดลากกรอบ)
+     ปุ่มกลางลาก = เลื่อน · คลิกขวาบนแผง = เอาออก (onErase) ยังใช้ได้สำหรับคนถนัด
+     midRef = กำลังลากเลื่อนผังที่ไม่ได้มาจากโหมดเลื่อน (ปุ่มกลาง หรือกดบนที่ว่าง) */
   const midRef = React.useRef(false);
   const wrapRef = React.useRef(null);
   /* โหมด "ไล่ทีละสตริง" (มีเมื่อพาเรนต์ส่ง onTap): แตะแผงหนึ่งครั้ง = ได้ทั้งสตริงตามแนวเดินสาย
      ลากในโหมดนี้ = เลื่อนผัง (แตะ = ไม่ขยับเกิน 5 px) */
   const [seq, setSeq] = React.useState(!!onTap);
+  /* โหมด "จัดทั้งชุด": แตะแผงใบไหนก็ได้ในชุด = แบ่งแผงว่างทั้งชุดเป็นสตริงตามแนวเดินสาย */
+  const [blkMode, setBlkMode] = React.useState(false);
   const [showPath, setShowPath] = React.useState(true);
   const downRef = React.useRef(null);
   const svgRef = React.useRef(null);
@@ -516,8 +520,10 @@ function SuLayout2D({ foot, assign, active, onPaint, onPaintMany, height, labels
     if (hit.length) onPaintMany(hit);
   };
 
-  const seqOn = seq && !!onTap && active && !box && !hand;
-  const panning = (hand || !active || seqOn) && !box;
+  const blkOn = blkMode && !!onFillBlock && active && !box && !hand;
+  const seqOn = seq && !!onTap && active && !box && !hand && !blkOn;
+  const tapOn = seqOn || blkOn;
+  const panning = (hand || !active || tapOn) && !box;
 
   /* ลูกกลิ้ง = ซูมผัง ไม่ใช่เลื่อนหน้า
      ต้องผูกเองแบบ passive:false — React ผูก wheel ให้แบบ passive ซึ่งสั่ง preventDefault ไม่ได้
@@ -553,13 +559,17 @@ function SuLayout2D({ foot, assign, active, onPaint, onPaintMany, height, labels
           <button type="button" onClick={() => setShowPath((x) => !x)} style={btn(showPath)}
             title={showPath ? "ซ่อนแนวเดินสายของแต่ละสตริง" : "แสดงแนวเดินสาย + จุดเริ่มของแต่ละสตริง"}>〰</button>
         )}
+        {active && onFillBlock && (
+          <button type="button" onClick={() => { setBlkMode(true); setBox(false); setHand(false); }} style={btn(blkOn)}
+            title="จัดทั้งชุด: แตะแผงใบไหนก็ได้ในชุด = แบ่งแผงที่ยังว่างทั้งชุดเป็นสตริงตามแนวเดินสายให้ทีเดียว">▦</button>
+        )}
         {active && onTap && (
-          <button type="button" onClick={() => { setSeq(true); setBox(false); setHand(false); }} style={btn(seqOn)}
+          <button type="button" onClick={() => { setSeq(true); setBlkMode(false); setBox(false); setHand(false); }} style={btn(seqOn)}
             title="ไล่ทีละสตริง: แตะแผงที่จะเริ่ม ระบบเก็บแผงต่อจากใบนั้นตามแนวแถวจนครบสตริงให้เอง · ลาก = เลื่อนผัง">⇣</button>
         )}
         {active && onTap && (
-          <button type="button" onClick={() => { setSeq(false); setBox(false); setHand(false); }} style={btn(!seqOn && !box && !hand)}
-            title="ทาทีละใบ: แตะหรือลากผ่านแผงเพื่อย้ายเข้าสตริงที่เลือก">✎</button>
+          <button type="button" onClick={() => { setSeq(false); setBlkMode(false); setBox(false); setHand(false); }} style={btn(!tapOn && !box && !hand)}
+            title="ทาทีละใบ: แตะหรือลากผ่านแผงเพื่อย้ายเข้าสตริงที่เลือก · ลากบนที่ว่าง = เลื่อนผัง">✎</button>
         )}
         {active && onPaintMany && (
           <button type="button" onClick={() => { setBox((x) => !x); setHand(false); }} style={btn(box)}
@@ -597,8 +607,16 @@ function SuLayout2D({ foot, assign, active, onPaint, onPaintMany, height, labels
             return;
           }
           setDrag(true); dragRef.current = true;
-          downRef.current = seqOn ? { x: e.clientX, y: e.clientY, moved: false } : null;
+          downRef.current = tapOn ? { x: e.clientX, y: e.clientY, moved: false } : null;
           if (panning) { last.current = { x: e.clientX, y: e.clientY }; return; }
+          /* โหมดทาทีละใบ: กดบนที่ว่าง (ไม่โดนแผง) = ลากเลื่อนผัง ไม่ต้องสลับไปปุ่มเลื่อน */
+          if (!box) {
+            const el0 = document.elementFromPoint(e.clientX, e.clientY);
+            if (!(el0 && el0.dataset && el0.dataset.uid)) {
+              midRef.current = true; last.current = { x: e.clientX, y: e.clientY };
+              return;
+            }
+          }
           if (box) {
             const m = scaleOf();
             if (m) { const x = e.clientX - m.r.left, y = e.clientY - m.r.top;
@@ -634,9 +652,9 @@ function SuLayout2D({ foot, assign, active, onPaint, onPaintMany, height, labels
         onPointerUp={(e) => { setDrag(false); dragRef.current = false; last.current = null;
           if (midRef.current) { midRef.current = false; return; }
           const dn = downRef.current; downRef.current = null;
-          if (dn && !dn.moved && onTap) {
+          if (dn && !dn.moved && (onTap || onFillBlock)) {
             const el = document.elementFromPoint(dn.x, dn.y);
-            if (el && el.dataset && el.dataset.uid) onTap(el.dataset.uid);
+            if (el && el.dataset && el.dataset.uid) (blkOn ? onFillBlock : onTap)(el.dataset.uid);
           }
           if (rectRef.current) { applyBox(rectRef.current); rectRef.current = null; setRect(null); } }}
         onPointerCancel={() => { midRef.current = false; setDrag(false); dragRef.current = false; last.current = null; rectRef.current = null; setRect(null); }}>
@@ -651,12 +669,13 @@ function SuLayout2D({ foot, assign, active, onPaint, onPaintMany, height, labels
         {foot.panels.map((p) => {
           const s = assign[p.uid] || 0;
           const c = s ? (colorOf ? colorOf(p.uid, s) : suColor(s)) : null;
+          const on = !!s && sel != null && s === sel;           // สตริงที่เลือกอยู่ — ขอบเข้ม ให้เห็นว่ากด Delete แล้วจะปลดอันไหน
           const un = unitName || "สตริง";
           return (
             <polygon key={p.uid} data-uid={p.uid} points={p.pts.map((q) => q[0] + "," + q[1]).join(" ")}
               fill={c ? c : "#CBD5E1"} fillOpacity={c ? 0.88 : 0.5}
-              stroke={c ? "#fff" : "#94A3B8"} strokeWidth="0.035" strokeDasharray={c ? null : "0.12 0.09"}
-              style={{ cursor: seqOn ? "pointer" : active ? "crosshair" : "pointer" }}>
+              stroke={on ? "#0F172A" : c ? "#fff" : "#94A3B8"} strokeWidth={on ? 0.09 : 0.035} strokeDasharray={c ? null : "0.12 0.09"}
+              style={{ cursor: tapOn ? "pointer" : active ? "crosshair" : "pointer" }}>
               <title>{p.roofName + " · " + p.key + (s ? " · " + un + " " + s : " · ยังไม่อยู่" + un + "ไหน")
                 + (labels && labels[p.uid] ? " · เฟส " + labels[p.uid] : "")}</title>
             </polygon>
@@ -1925,6 +1944,54 @@ function SolarWorkspace({ job, st, sys, onChange, onClose, snap }) {
     set({ assign: a, manual: true });
     setActiveStr(Math.max(maxId, sid) + 1);
   };
+  /* จัดทั้งชุด: แตะแผงใบไหนก็ได้ = แผงที่ยังว่างทั้งชุด (ชุดแผงเดียวกันบนหลังคาเดียวกัน) ไล่ตามแนวเดินสาย
+     แล้วตัดทีละ serN ใบเป็นสตริงใหม่ต่อจากเลขสูงสุด · เศษท้ายที่น้อยกว่าที่อินเวอร์เตอร์รับได้ไม่จัด ปล่อยว่างให้แตะเอง */
+  const [fillMsg, setFillMsg] = React.useState("");
+  const fillBlock = (uid) => {
+    const c = lay.cell[uid];
+    if (!c) return;
+    const B = lay.blocks[c.b];
+    const a = Object.assign({}, effAssign);
+    const pool = [];
+    B.ls.forEach((l) => B.lines[l].forEach((u) => { if (!a[u]) pool.push(u); }));
+    const n = Math.max(1, Math.round(serN || 1));
+    const minN = range ? range.min : 1;
+    if (!pool.length) { setFillMsg("ชุดนี้จัดครบทุกแผงแล้ว"); return; }
+    let maxId = 0;
+    Object.keys(a).forEach((k) => { if (a[k] > maxId) maxId = a[k]; });
+    let made = 0, i = 0;
+    for (; i + n <= pool.length; i += n) { made++; for (let j = i; j < i + n; j++) a[pool[j]] = maxId + made; }
+    const rest = pool.length - i;
+    if (rest > 0 && rest >= minN) { made++; for (let j = i; j < pool.length; j++) a[pool[j]] = maxId + made; }
+    if (!made) { setFillMsg("แผงว่างในชุดนี้มี " + pool.length + " ใบ น้อยกว่าที่ต่อเป็นสตริงได้ (" + minN + " ใบ)"); return; }
+    set({ assign: a, manual: true });
+    setActiveStr(maxId + made + 1);
+    setFillMsg("จัดเพิ่ม " + made + " สตริง (สตริง " + (maxId + 1) + (made > 1 ? "–" + (maxId + made) : "") + ")" +
+      (rest > 0 && rest < minN ? " · เหลือ " + rest + " แผงว่าง (น้อยกว่า " + minN + " ใบ) แตะเพิ่มเข้าสตริงข้าง ๆ เอง" : ""));
+  };
+  /* ปลดสตริงที่เลือก (ปุ่ม/ปุ่ม Delete) — แตะแผงในสตริงเพื่อเลือกก่อน */
+  const strHas = (id) => !!id && Object.keys(effAssign || {}).some((k) => effAssign[k] === id);
+  const dropStr = (id) => {
+    if (!strHas(id)) return;
+    const a = Object.assign({}, effAssign);
+    Object.keys(a).forEach((k) => { if (a[k] === id) delete a[k]; });
+    set({ assign: a, manual: true });
+    setFillMsg("ปลดสตริง " + id + " แล้ว");
+  };
+  const dropRef = React.useRef(null);
+  dropRef.current = () => dropStr(activeStr);
+  React.useEffect(() => {
+    if (isMicro || step !== 1) return;
+    const k = (e) => {
+      if (e.key !== "Delete" && e.key !== "Backspace") return;
+      const t = e.target, tag = t && t.tagName;
+      if (tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT" || (t && t.isContentEditable)) return;
+      e.preventDefault();
+      dropRef.current && dropRef.current();
+    };
+    window.addEventListener("keydown", k);
+    return () => window.removeEventListener("keydown", k);
+  }, [isMicro, step]);
   /* คลิกขวาบนแผง: โหมดไล่สตริง = ปลดทั้งสตริง · โหมดอื่น = เอาแผงใบนั้นออก */
   const eraseAt = (uid, whole) => {
     const a = Object.assign({}, effAssign), cur = a[uid];
@@ -2751,6 +2818,12 @@ function SolarWorkspace({ job, st, sys, onChange, onClose, snap }) {
                         title="แตะแผงเพื่อเอาออกจากสตริง" style={{ borderStyle: "dashed" }}>
                         <P3Icon name="trash" size={12} />เอาออก
                       </button>
+                      {strHas(activeStr) && (
+                        <button className="p3-chip" onClick={() => dropStr(activeStr)} title="ปลดแผงทุกใบออกจากสตริงที่เลือก (ปุ่ม Delete)"
+                          style={{ color: "var(--tint-red-tx)" }}>
+                          <P3Icon name="trash" size={12} />ปลดสตริง {activeStr}
+                        </button>
+                      )}
                       {/* ล้างทั้งผังในปุ่มเดียว — ของเดิมต้องเลือก "เอาออก" แล้วไล่แตะทีละแผง
                           ผัง 4,584 แผงคือแตะสี่พันครั้ง ซึ่งเท่ากับทำไม่ได้ */}
                       {Object.keys(effAssign || {}).length > 0 && (
@@ -2783,11 +2856,18 @@ function SolarWorkspace({ job, st, sys, onChange, onClose, snap }) {
                       </span>
                       <span style={{ fontSize: 11.5, color: "var(--text-3)" }}>สตริงละ <b style={{ color: "var(--text-1)" }}>{serN}</b> แผง</span>
                     </div>
+                    {fillMsg && (
+                      <div style={{ fontSize: 11.5, fontWeight: 700, color: "var(--text-2)", background: "var(--surface2)",
+                        boxShadow: "var(--shadow-inset)", borderRadius: 8, padding: "6px 10px", marginBottom: 8, display: "flex", gap: 8, alignItems: "center" }}>
+                        <span style={{ flex: 1 }}>{fillMsg}</span>
+                        <button type="button" className="p3-b sm" onClick={() => setFillMsg("")}>ปิด</button>
+                      </div>
+                    )}
                     <SuLayout2D foot={foot} assign={effAssign} active={activeStr !== null} onPaint={paint} onPaintMany={paintMany}
-                      onTap={fillAt} paths={wirePaths} onErase={eraseAt}
+                      onTap={fillAt} paths={wirePaths} onErase={eraseAt} onFillBlock={fillBlock} sel={activeStr}
                       full={bigMap} onFull={() => setBigMap((x) => !x)} height={bigMap ? "calc(100vh - 230px)" : undefined} />
                     <span className="p3-note">
-                      {"⇣ แตะแผงที่จะเริ่มสตริง = ได้ทั้งสตริง " + serN + " แผงตามแนวเดินสาย แล้วไปสตริงถัดไปเอง · แตะแผงที่มีสตริงแล้ว = เลือกสตริงนั้น · โหมด “เอาออก” แตะ = ปลดทั้งสตริง · ✎ ทาทีละใบ · ▢ ลากกรอบ · ลูกกลิ้ง = ซูม · กดปุ่มกลางลาก = เลื่อน · คลิกขวา = เอาออก"}
+                      {"▦ แตะแผงในชุด = จัดแผงว่างทั้งชุดเป็นสตริงละ " + serN + " แผง · ⇣ แตะแผงที่จะเริ่ม = ได้ทั้งสตริงตามแนวเดินสาย · แตะแผงที่มีสตริงแล้ว = เลือกสตริงนั้น กด Delete = ปลด · ✎ ทาทีละใบ · ▢ ลากกรอบ · ลากที่ว่าง = เลื่อน · ลูกกลิ้ง = ซูม"}
                       {isManual ? " · กำลังใช้ผังที่แก้เอง" : " · ตอนนี้ระบบจัดให้ตามแนวเดินสาย (แก้ครั้งแรกระบบจะยึดผังนี้เป็นของคุณ)"}
                       {" · มองจากด้านบน ทิศเหนืออยู่บน"}
                     </span>
