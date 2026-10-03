@@ -708,6 +708,12 @@ const PG_SHEET = {
     y1: 281
   }
 };
+const PG_TS = {
+  title: 7.4,
+  head: 3.0,
+  body: 2.5,
+  cell: 2.2
+};
 const PG_LAY = {
   frame: "PG-FRAME",
   tb: "PG-TITLEBLOCK",
@@ -1226,7 +1232,7 @@ function pgSpecBlock(pen, x, y, w, title, pairs, o) {
   let cy = y;
   pen.solid(PG_TBL.head, [x, cy - rh], [x + w, cy - rh], [x + w, cy], [x, cy]);
   pen.rect(L, x, cy - rh, w, rh);
-  pen.text(T, x + 2, cy - rh + (rh - th) / 2, th, title);
+  pen.text(T, x + 2, cy - rh + (rh - th * 1.15) / 2, th * 1.15, title);
   cy -= rh;
   pairs.forEach(p => {
     pen.rect(L, x, cy - rh, w, rh);
@@ -1415,17 +1421,17 @@ function pgDcString(pen, x, y, w, o) {
     pen.rect(R, px, yb, pw, ph);
     for (let c = 1; c < 3; c++) pen.line(L, px + pw * c / 3, yb + 1, px + pw * c / 3, yb + ph - 1);
     for (let c = 1; c < 6; c++) pen.line(L, px + 1, yb + ph * c / 6, px + pw - 1, yb + ph * c / 6);
-    pen.text(T, px + pw / 2, yb + ph + 2.2, 2.2, "PV " + (i + 1 === n && skip ? nAll : i + 1), {
+    pen.text(T, px + pw / 2, yb + ph + 2.2, PG_TS.cell, "PV " + (i + 1 === n && skip ? nAll : i + 1), {
       align: 1,
       valign: 1
     });
     const nx = px + pw * 0.28,
       cx2 = px + pw * 0.72;
-    pen.text(T, nx - 1.2, yb - 4.6, 2.0, "-", {
+    pen.text(T, nx - 1.2, yb - 4.6, PG_TS.cell, "-", {
       align: 2,
       valign: 1
     });
-    pen.text(T, cx2 + 1.2, yb - 4.6, 2.0, "+", {
+    pen.text(T, cx2 + 1.2, yb - 4.6, PG_TS.cell, "+", {
       align: 0,
       valign: 1
     });
@@ -1445,14 +1451,15 @@ function pgDcString(pen, x, y, w, o) {
   const mc = (mx, lab) => {
     pen.line(R, mx, yb - 6, mx, y + 1.5);
     pen.circle(L, mx, y + 1.5, 1.4);
-    pen.text(T, mx, y - 3.4, 2.0, lab, {
-      align: 1,
-      valign: 1
+    const pos = lab.slice(-1) === "+";
+    pen.text(T, mx + (pos ? 2.2 : -2.2), y + 1.5, PG_TS.cell, lab, {
+      align: pos ? 0 : 2,
+      valign: 2
     });
   };
   mc(lx, "MC4 -");
   mc(rx, "MC4 +");
-  if (skip) pen.text(T, x + w / 2, yb + ph / 2, 2.6, "( x " + nAll + " PANEL )", {
+  if (skip) pen.text(T, x + w / 2, yb + ph / 2, PG_TS.body, "( x " + nAll + " PANEL )", {
     align: 1,
     valign: 1
   });
@@ -2230,9 +2237,14 @@ function pgSldPro(doc, sheet, M) {
       valign: 1
     });
   }
+  pen.line(PE, X.pe0, yE, X.pe0, yE - 2.3);
+  pgSym.ground(pen, X.pe0, yE - 2.3);
+  pen.text(T, X.pe0 + 3.2, yE - 3.4, TS.spec, "PV EARTH ROD (SEPARATE)  5/8\" x 2.4m  R <= 5 OHM", {
+    valign: 2
+  });
   const metX = X.md1 - 10;
-  pen.line(PE, X.pe0, yE, metX, yE);
-  [X.acBus, mpx].forEach(x => peDot(x, yE));
+  pen.line(PE, Math.min(X.acBus, mpx), yE, metX, yE);
+  [Math.max(X.acBus, mpx)].forEach(x => peDot(x, yE));
   pen.rect(PE, metX, yE - 2.2, 10, 4.4);
   pen.text(T, metX + 5, yE, TS.spec, "MET", {
     align: 1,
@@ -2245,8 +2257,8 @@ function pgSldPro(doc, sheet, M) {
     align: 2,
     valign: 2
   });
-  pen.text(LB, X.pe0 + 1.5, yE - 1.2, TS.spec, "MAIN EARTH (PE) : THW(G) " + P.earthCu + " mm2  GREEN/YELLOW", {
-    valign: 3
+  pen.text(LB, Math.min(X.acBus, mpx) + 1.5, yE + 1.0, TS.spec, "MAIN EARTH (PE) : THW(G) " + P.earthCu + " mm2", {
+    valign: 1
   });
   const L = PG_SLD.tab;
   const grid = (rows, head, cw, rh, th) => {
@@ -2292,7 +2304,7 @@ function pgSldPro(doc, sheet, M) {
     const rows = M.sched.map((r, i) => [i + 1, r[0], r[1], r[2]]);
     ty -= grid([["NO", "ITEM", "SPECIFICATION", "QTY"]].concat(rows), "EQUIPMENT SCHEDULE", [5, 21, RW - 34, 8], 3.1, TS.cell) + 3;
   }
-  const notes = ["1. ติดตั้งตาม วสท. 022001 · IEC 62548 · IEC 60364-7-712", "2. สาย DC " + P.dcCable.replace(/ (H1Z2Z2-K)/, "") + " · MC4 ยี่ห้อ/รุ่นเดียวกันทั้งคู่", "3. Voc สตริงที่ " + P.tMin + "%%dC = " + P.vocMax + "V ต้องไม่เกิน " + P.maxVdc + "VDC", fuseDev ? "4. ฟิวส์ DC ชนิด gPV (IEC 60269-6) ทั้งขั้ว +/− ทุกสตริง >= 1.5 x Isc · ห้ามใช้ฟิวส์ AC" : "4. DC MCB 2 ขั้วทุกสตริง พิกัด >= 1.25 x Isc", "5. DC SPD Type II ทุกสตริง สายลง PE bar สั้นที่สุด (< 0.5 m)", "6. โครงแผง ราง ตู้ อินเวอร์เตอร์ ต่อฝากเข้า PE bar → MET → หลักดิน", "7. Anti-islanding ตามข้อกำหนด " + P.auth + " · ป้ายเตือน DC ที่ตู้/MDB"];
+  const notes = ["1. ติดตั้งตาม วสท. 022001 · IEC 62548 · IEC 60364-7-712", "2. สาย DC " + P.dcCable.replace(/ (H1Z2Z2-K)/, "") + " · MC4 ยี่ห้อ/รุ่นเดียวกันทั้งคู่", "3. Voc สตริงที่ " + P.tMin + "%%dC = " + P.vocMax + "V ต้องไม่เกิน " + P.maxVdc + "VDC", fuseDev ? "4. ฟิวส์ DC ชนิด gPV (IEC 60269-6) ทั้งขั้ว +/− ทุกสตริง >= 1.5 x Isc · ห้ามใช้ฟิวส์ AC" : "4. DC MCB 2 ขั้วทุกสตริง พิกัด >= 1.25 x Isc", "5. DC SPD Type II ทุกสตริง สายลง PE bar สั้นที่สุด (< 0.5 m)", "6. โครงแผง ราง ตู้ DC อินเวอร์เตอร์ → หลักดิน PV ที่ปักแยกจากระบบ · ฝั่ง AC → MET → หลักดินระบบ", "7. Anti-islanding ตามข้อกำหนด " + P.auth + " · ป้ายเตือน DC ที่ตู้/MDB"];
   const titleY = A.y0 + 7;
   const nLines = [];
   notes.forEach(s => {

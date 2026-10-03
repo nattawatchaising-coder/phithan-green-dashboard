@@ -1012,7 +1012,7 @@ function p3StrLayout(st, job, media) {
   const ox = (B.minX + B.maxX) / 2 - px * k, oy = (B.minY + B.maxY) / 2 - py * k;
   const sheet = pgSheet(doc, { k, ox, oy, info: p3SheetInfo(st, job, { sheet: "STRING", scale: "1:" + SC, sheetNo: media.sheetNo || "1/1" }) });
   const pen = sheet.pen, AR = sheet.area;
-  const TH = 2.0 * k;
+  const TH = PG_TS.cell * k;
   const VB = { x0: ox + (IN.x0 + 1) * k, y0: oy + (IN.y0 + 1) * k, x1: ox + (IN.x0 + A.w) * k, y1: oy + (IN.y1 - 1) * k };
   const NL = P3_STR_ACI.length;
   const lay = (id) => "PG-STR-" + ((((+id || 1) - 1) % NL + NL) % NL + 1);
@@ -1034,9 +1034,31 @@ function p3StrLayout(st, job, media) {
   }));
   fp.forEach((p) => { const s = sOf[p.uid]; doc.pline(s ? lay(s.id) : "PG-PANEL", p.pts.map((q) => [q[0], -q[1]]), true); });
 
+  /* เส้นเดินสาย: วาดเฉพาะช่วงที่ข้ามไปแผงที่ไม่ติดกัน (สายจัมเปอร์) — แผงติดกันไล่ตามเลขในแผงอยู่แล้ว
+     เดิมลากทุกช่วงผ่านกลางแผง ทับป้ายเลขจนอ่านไม่ออก */
+  const pl = Math.max.apply(null, fp.map((p) => {
+    const xs = p.pts.map((q) => q[0]), zs = p.pts.map((q) => q[1]);
+    return Math.max(Math.max.apply(null, xs) - Math.min.apply(null, xs), Math.max.apply(null, zs) - Math.min.apply(null, zs));
+  }));
+  /* เลื่อนเส้นจัมเปอร์ออกจากแนวกลางแผง (ป้ายอยู่กลาง) ไปทางขอบล่าง 60% ของครึ่งแผง ไม่ทับเลข */
+  const fpAt = {};
+  fp.forEach((p) => { fpAt[Math.round(p.cx * 20) + ":" + Math.round(p.cz * 20)] = p; });
+  const halfN = (c, nx, ny) => {
+    const p = fpAt[Math.round(c[0] * 20) + ":" + Math.round(-c[1] * 20)];
+    if (!p) return pw / 2;
+    return Math.max.apply(null, p.pts.map((t) => (t[0] - p.cx) * nx + (-t[1] + p.cz) * ny));
+  };
   (DS.paths || []).forEach((q) => {
     const pts = (q.pts || []).map((t) => [t[0], -t[1]]);
-    if (pts.length > 1) doc.pline(lay(q.id), pts, false);
+    for (let i = 1; i < pts.length; i++) {
+      const a0 = pts[i - 1], b0 = pts[i];
+      const L = Math.hypot(b0[0] - a0[0], b0[1] - a0[1]);
+      if (L <= pl * 1.15) continue;
+      let nx = -(b0[1] - a0[1]) / L, ny = (b0[0] - a0[0]) / L;
+      if (ny > 0 || (ny === 0 && nx > 0)) { nx = -nx; ny = -ny; }
+      const da = halfN(a0, nx, ny) * 0.6, db = halfN(b0, nx, ny) * 0.6;
+      doc.line(lay(q.id), a0[0] + nx * da, a0[1] + ny * da, b0[0] + nx * db, b0[1] + ny * db);
+    }
   });
   /* ป้ายในแผง — เล็กกว่า 1 มม. บนกระดาษอ่านไม่ออก เหลือแค่ป้ายต้น/ปลายสตริง */
   const lh = Math.min(TH, pw * 0.24);
@@ -1054,14 +1076,14 @@ function p3StrLayout(st, job, media) {
   pen.rect("PG-NORTH", bx, by, 40, 2.2);
   pen.solid("PG-NORTH", [bx, by], [bx + 10, by], [bx + 10, by + 2.2], [bx, by + 2.2]);
   pen.solid("PG-NORTH", [bx + 20, by], [bx + 30, by], [bx + 30, by + 2.2], [bx + 20, by + 2.2]);
-  [0, 0.5, 1].forEach((f) => pen.text("PG-NORTH", bx + 40 * f, by + 3, 2.2, (barM * f).toFixed(0), { align: 1, valign: 1 }));
-  pen.text("PG-NORTH", bx + 44, by + 0.4, 2.2, "METRES   SCALE 1:" + SC);
+  [0, 0.5, 1].forEach((f) => pen.text("PG-NORTH", bx + 40 * f, by + 3, PG_TS.cell, (barM * f).toFixed(0), { align: 1, valign: 1 }));
+  pen.text("PG-NORTH", bx + 44, by + 0.4, PG_TS.cell, "METRES   SCALE 1:" + SC);
 
   const RX1 = AR.x1 - 2, RX0 = RX1 - COL;
-  pgSheetTitle(pen, RX0, AR.y1 - 12, "STRING LAYOUT", 7.4, COL - 30, 0);
-  pen.text("PG-NOTE", RX0, AR.y1 - 19, 2.4, "SCALE");
-  pen.text("PG-NOTE", RX1 - 28, AR.y1 - 18, 2.4, "A1=1:" + Math.round(SC / 1.414));
-  pen.text("PG-NOTE", RX1 - 28, AR.y1 - 22.5, 2.4, "A3=1:" + SC);
+  pgSheetTitle(pen, RX0, AR.y1 - 12, "STRING LAYOUT", PG_TS.title, COL - 30, 0);
+  pen.text("PG-NOTE", RX0, AR.y1 - 19, PG_TS.cell, "SCALE");
+  pen.text("PG-NOTE", RX1 - 28, AR.y1 - 18, PG_TS.cell, "A1=1:" + Math.round(SC / 1.414));
+  pen.text("PG-NOTE", RX1 - 28, AR.y1 - 22.5, PG_TS.cell, "A3=1:" + SC);
   pgCompass(pen, RX1 - 12, AR.y1 - 40, 6.5);
 
   const notes = [
@@ -1071,7 +1093,7 @@ function p3StrLayout(st, job, media) {
     "วัดแรงดัน/ขั้วทุกสตริงก่อนเสียบเข้าอินเวอร์เตอร์",
   ];
   const noteY0 = AR.y0 + 6;
-  notes.slice().reverse().forEach((t, i) => pen.text("PG-NOTE", RX0, noteY0 + i * 4.2, 2.2, t));
+  notes.slice().reverse().forEach((t, i) => pen.text("PG-NOTE", RX0, noteY0 + i * 4.2, PG_TS.body, t));
 
   const MR = p3MpptRows(DS);
   if (MR.rows.length) {
@@ -1082,7 +1104,7 @@ function p3StrLayout(st, job, media) {
     const SS = DS.strings || [];
     const rows = [["#", head], ["INV · MPPT", "สตริง (แผง)", "แผง"]].concat(body);
     rows.push(["รวม", SS.length + " สตริง", SS.reduce((t, s) => t + s.n, 0) + ""]);
-    pgGrid(pen, RX0, top, COL, [1.1, 2.4, 0.5], rows, { rh: RH, th: 2.2, align: [0, 0, 2], headRow: 1 });
+    pgGrid(pen, RX0, top, COL, [1.1, 2.4, 0.5], rows, { rh: RH, th: PG_TS.cell, align: [0, 0, 2], headRow: 1 });
   }
   return doc.build();
 }
@@ -2176,7 +2198,8 @@ function p3SldModel(st, job, design) {
     S.push(["DC CABLE", M.pro.dcCable, "-"]);
     S.push(["AC CABLE", M.acCable.replace(/\s+/g, " "), "-"]);
     S.push(["EARTH CABLE", "IEC01 THW(G) " + earthCu + " mm2 (GREEN/YELLOW)", "-"]);
-    S.push(["EARTH ROD", "COPPER BONDED 5/8\" x 2.4 m  R <= 5 OHM", 1]);
+    S.push(["PV EARTH ROD", "COPPER BONDED 5/8\" x 2.4 m  R <= 5 OHM (SEPARATE)", 1]);
+    S.push(["EARTH ROD (SYSTEM)", "COPPER BONDED 5/8\" x 2.4 m  R <= 5 OHM", 1]);
     M.sched = S;
   }
 
@@ -2319,6 +2342,23 @@ function p3EquipRows(st, job, M) {
   const mOf = (k) => (len[k] ? Math.ceil(len[k]) + " m." : "-");
   const rows = [["LIST", "SPECIFICATION", "BRAND", "DESCRIPTION"]];
   const add = (a, b, c, d) => rows.push([a, b || "-", c || "-", d || "-"]);
+  /* มีตารางอุปกรณ์ของ SLD แบบมาตรฐาน = ใช้ชุดเดียวกันทุกบรรทัด (สเปค/จำนวนตรงกับแบบไฟฟ้าเสมอ)
+     แล้วเติมของหน้างานที่ SLD ไม่มี (โครงยึด · ท่อ · ราง · บันได · ทางเดิน · ราวกันตก) */
+  if (M.sched) {
+    const brandOf = { "PV MODULE": M.panel.brand, "INVERTER": M.inv.brand };
+    M.sched.forEach((r) => {
+      const q = r[2];
+      const d = typeof q === "number" ? q + (/MC4/.test(r[0]) ? " PAIR" : " Ea.") : /CABLE/.test(r[0]) ? mOf("cable") : String(q);
+      add(r[0], r[1], brandOf[r[0]], d);
+      if (r[0] === "INVERTER") add("MOUNTING", "RAIL ALUMINIUM + L-FOOT + END / MID CLAMP", "-", "1 SET");
+    });
+    add("CONDUIT", "EMT / IMC / FLEXIBLE CONDUIT", "-", mOf("conduit"));
+    add("RACE WAY", "WIREWAY / CABLE TRAY / CABLE LADDER", "-", mOf("tray"));
+    if (len.ladder) add("บันไดลิง", "CAT LADDER เหล็กชุบกัลวาไนซ์", "-", mOf("ladder"));
+    if (len.walkway) add("ทางเดิน", "WALKWAY บนหลังคา", "-", mOf("walkway"));
+    if (len.guardrail) add("ราวกันตก", "GUARD RAIL", "-", mOf("guardrail"));
+    return rows;
+  }
   add("PV MODULE", M.panel.model + "   " + M.panel.wp + " Wp.", M.panel.brand, M.panel.count + " Ea.");
   add(M.mode === "micro" ? "MICRO INVERTER" : "INVERTER", M.inv.model, M.inv.brand, M.units.length + " Ea.");
   if (M.batt) add("BATTERY", M.batt.model + "   " + M.batt.kwh + " kWh.", M.batt.brand, "1 Ea.");
@@ -2326,7 +2366,7 @@ function p3EquipRows(st, job, M) {
   add("PV CABLE", "PV1-F 1x4 Sq.mm.  DC1500V (RED / BLACK)", "-", mOf("cable"));
   add("CABLE", M.acCable, "-", mOf("cable"));
   add("GROUND", M.mainCable[1] || "IEC01 THW(G)", "-", "-");
-  add("MC 4", "PV CONNECTOR MALE / FEMALE  DC1000V 30A", "-", ((M.strs ? M.strs.length : M.units.length) * 2) + " PAIR");
+  add("MC 4", "PV CONNECTOR MALE / FEMALE  1500VDC IP68", "-", ((M.strs ? M.strs.length : M.units.length) * 2) + " PAIR");
   add("CONDUIT", "EMT / IMC / FLEXIBLE CONDUIT", "-", mOf("conduit"));
   add("RACE WAY", "WIREWAY / CABLE TRAY / CABLE LADDER", "-", mOf("tray"));
   if (len.ladder) add("บันไดลิง", "CAT LADDER เหล็กชุบกัลวาไนซ์", "-", mOf("ladder"));
@@ -2347,18 +2387,18 @@ function p3EquipSheet(st, job, media) {
   const sheet = pgSheet(doc, { k: 1, ox: 0, oy: 0,
     info: p3SheetInfo(st, job, { sheet: "MAT", scale: "NONE", sheetNo: media.sheetNo || "1/1" }) });
   const pen = sheet.pen, A = sheet.area;
-  pgSheetTitle(pen, A.x0 + 4, A.y1 - 10, "EQUIPMENT MATERIAL ON SITE", 7.4, 180, 0);
+  pgSheetTitle(pen, A.x0 + 4, A.y1 - 10, "EQUIPMENT MATERIAL ON SITE", PG_TS.title, 180, 0);
   const rows = p3EquipRows(st, job, M);
   const W = A.x1 - A.x0 - 8;
   /* ยืดความสูงแถวให้ตารางกินพื้นที่แผ่นพอดี แต่ไม่เกินสูงสุดที่ยังดูดี */
-  const rh = Math.max(5.5, Math.min(9.5, (A.y1 - A.y0 - 96) / rows.length));
+  const rh = Math.max(5.2, Math.min(9.5, (A.y1 - A.y0 - 112) / rows.length));
   const used = pgGrid(pen, A.x0 + 4, A.y1 - 18, W, [1.1, 3.4, 1.2, 1.2], rows,
-    { rh, th: Math.min(2.8, rh * 0.4), align: [0, 0, 1, 1], headRow: 0 });
+    { rh, th: PG_TS.body, align: [0, 0, 1, 1], headRow: 0 });
 
   /* รูปตัดแผงใต้ตาราง ให้เห็นว่าแผงที่ลงหน้างานหน้าตาแบบไหน */
   const ps = ((window.BOQ && window.BOQ.PANELS) || []).find((p) => p.model === (st.sys || {}).panelModel) || {};
   const dy = A.y1 - 18 - used - 74;
-  if (dy > A.y0 + 4) {
+  if (dy - 14 > A.y0) {
     pgModuleDetail(pen, A.x0 + 16, dy, 52, {
       wMm: Math.round((+ps.width || 1.134) * 1000), hMm: Math.round((+ps.length || 2.382) * 1000),
       tMm: +ps.frame || 30,
@@ -2378,7 +2418,9 @@ function p3DcSheet(st, job, media) {
   const sheet = pgSheet(doc, { k: 1, ox: 0, oy: 0,
     info: p3SheetInfo(st, job, { sheet: "DC", scale: "NONE", sheetNo: media.sheetNo || "1/1" }) });
   const pen = sheet.pen, A = sheet.area;
-  pgSheetTitle(pen, A.x0 + 4, A.y1 - 10, "DC CONNECTION DIAGRAM", 7.4, 150, 0);
+  pgSheetTitle(pen, A.x0 + 4, A.y1 - 10, "DC CONNECTION DIAGRAM", PG_TS.title, 150, 0);
+  doc.layer("PG-EARTH", PG_ACI.green, "CONTINUOUS", 35);
+  const P = M.pro;                                   // มี = สตริงอินเวอร์เตอร์ที่จัดสตริงแล้ว (อุปกรณ์ตรงกับ SLD)
 
   /* จัดกลุ่มชุดที่ต่อเหมือนกันเข้าด้วยกัน จะได้ไม่ต้องวาดซ้ำ 45 รูป */
   /* มีการจัดสตริงจริง = รูปละขนาดสตริง (สตริงอินเวอร์เตอร์ต่ออนุกรมทีละสตริง ไม่ใช่ทั้งตัว) */
@@ -2393,24 +2435,66 @@ function p3DcSheet(st, job, media) {
   const colW = LW / show.length;
   const bw = Math.min(colW - 14, 150);
   /* จัดรูปให้อยู่กลางช่องที่เหลือ — ล่างกันไว้ให้หมายเหตุ บนกันไว้ให้หัวเรื่อง */
-  const yLo = A.y0 + 40, yHi = A.y1 - 16, IVH = 13, IVGAP = 24;
+  const yLo = A.y0 + 40, yHi = A.y1 - 16, IVH = 13, IVGAP = P ? 64 : 24;
   const maxPh = (yHi - yLo) - IVGAP - 22;
   const blockH = IVGAP + Math.max.apply(null, show.map((g) => pgDcSize(bw, g.per, maxPh).h));
   const baseY = yLo + IVGAP + Math.max(0, (yHi - yLo - blockH) / 2);
   show.forEach((g, ci) => {
     const cx = A.x0 + 6 + ci * colW + (colW - bw) / 2;
     const s = pgDcString(pen, cx, baseY, bw, { n: g.per, maxH: maxPh });
-    pen.text(PG_TBL.txt, cx, s.top + 4, 3.0, M.strs ? "STRING x " + g.n + " สาย · สายละ " + g.per + " แผง"
+    pen.text(PG_TBL.txt, cx, s.top + 4, PG_TS.head, M.strs ? "STRING x " + g.n + " สาย · สายละ " + g.per + " แผง"
       : (M.mode === "micro" ? "MICRO INV." : "INVERTER") + " x " + g.n + " ชุด · ชุดละ " + g.per + " แผง");
     /* กล่องอินเวอร์เตอร์ที่ปลายสตริง — ลากจากหัว MC4 จริงลงมาเข้ากล่อง */
     const iy = baseY - IVGAP, ih = IVH;
     pen.rect(PG_TBL.line, cx + bw * 0.15, iy, bw * 0.7, ih);
-    pen.text(PG_TBL.txt, cx + bw * 0.5, iy + (ih - 2.4) / 2, 2.4, M.inv.model, { align: 1, valign: 1 });
-    pen.line("PG-DETAIL", s.lx, s.my, s.lx, iy + ih);
-    pen.line("PG-DETAIL", s.rx, s.my, s.rx, iy + ih);
+    pen.text(PG_TBL.txt, cx + bw * 0.5, iy + ih / 2 + (P ? 0.6 : -PG_TS.body / 2), PG_TS.body, M.inv.model, { align: 1, valign: 1 });
+    if (!P) {
+      pen.line("PG-DETAIL", s.lx, s.my, s.lx, iy + ih);
+      pen.line("PG-DETAIL", s.rx, s.my, s.rx, iy + ih);
+      return;
+    }
+    pen.text(PG_TBL.txt, cx + bw * 0.5, iy + ih / 2 - 0.6, PG_TS.cell, "MPPT INPUT (+ / -)", { align: 1, valign: 3 });
+    /* ตู้ DC ระหว่างสตริงกับอินเวอร์เตอร์ — อุปกรณ์/สเปคเดียวกับ SLD (M.pro)
+       ฟิวส์ DC gPV ทั้งขั้ว + และ − (งานใหญ่) หรือ DC MCB 2P (≤ 20 kW/เครื่อง) · DC SPD คร่อมขั้วลง PE bar → หลักดิน PV ที่ปักแยก */
+    const D = "PG-DETAIL", L = PG_TBL.line, T = PG_TBL.txt, E = "PG-EARTH";
+    const Y0 = s.my, bT = Y0 - 4, bB = iy + ih + 6, mx = (s.lx + s.rx) / 2;
+    const yF = Y0 - 12, yS = Y0 - 23, yPE = Y0 - 35;
+    pen.rect("PG-NORTH", s.lx - 6, bB, s.rx - s.lx + 12, bT - bB);
+    pen.text(T, s.lx + 2, bT - 1, PG_TS.cell, "DC BOX  IP65", { valign: 3 });
+    const fuse = P.dcDev.k === "fuse";
+    [s.lx, s.rx].forEach((px) => {
+      if (fuse) {
+        pen.line(D, px, Y0, px, yF + 3.2);
+        pen.rect(L, px - 1.2, yF - 3.2, 2.4, 6.4); pen.line(L, px, yF - 3.2, px, yF + 3.2);
+      } else {
+        pen.line(D, px, Y0, px, yF + 3.2);
+        pen.circle(L, px, yF + 2.6, 0.6); pen.circle(L, px, yF - 2.6, 0.6);
+        pen.line(L, px, yF - 2.0, px + 2.2, yF + 2.2);
+      }
+      pen.line(D, px, yF - 3.2, px, iy + ih);
+      pen.dot(D, px, yS, 0.7);
+      pen.line(D, px, yS, px < mx ? mx - 2 : mx + 2, yS);
+    });
+    if (!fuse) pen.line("PG-NORTH", s.lx + 1.1, yF, s.rx + 1.1, yF);    // ก้านโยกร่วม 2 ขั้ว
+    /* DC SPD กลางระหว่างขั้ว → PE bar → หลักดิน PV (ปักแยกจากระบบ) */
+    pen.rect(L, mx - 2, yS - 3, 4, 6);
+    pen.line(L, mx - 1.4, yS - 2.2, mx + 1.4, yS + 2.2);
+    pen.line(E, mx, yS - 3, mx, yPE);
+    pen.solid(E, [mx - 9, yPE - 0.5], [mx + 9, yPE - 0.5], [mx + 9, yPE + 0.5], [mx - 9, yPE + 0.5]);
+    pen.text(T, mx - 9.6, yPE, PG_TS.cell, "PE BAR", { align: 2, valign: 2 });
+    pen.line(E, mx + 9, yPE, mx + 14, yPE); pen.line(E, mx + 14, yPE, mx + 14, yPE - 4);
+    [3, 2, 1].forEach((h, i) => pen.line(E, mx + 14 - h, yPE - 4 - i * 0.8, mx + 14 + h, yPE - 4 - i * 0.8));
+    pen.text(T, mx + 14, yPE - 6.6, PG_TS.cell, "PV EARTH ROD", { align: 1, valign: 3 });
+    /* ป้ายสเปค — ชื่ออุปกรณ์ body · สเปค cell */
+    pen.text(T, mx, yF + 0.9, PG_TS.body, fuse ? "DC FUSE gPV (+/-)" : "DC MCB 2P", { align: 1, valign: 1 });
+    pen.text(T, mx, yF - 0.9, PG_TS.cell, P.dcDev.tag.replace(/^DC (FUSE gPV|MCB 2P) /, "").replace(/ \(\+\/-\)$/, ""), { align: 1, valign: 3 });
+    pen.text(T, mx + 3, yS - 1.0, PG_TS.body, "DC SPD", { valign: 3 });
+    pen.text(T, mx + 3, yS - 4.0, PG_TS.cell, P.dcSpdFull.replace(/^DC SPD /, "").replace(/ In .*/, ""), { valign: 3 });
+    pen.text(T, mx + 3, yS - 6.6, PG_TS.cell, (P.dcSpdFull.match(/In .*/) || [""])[0], { valign: 3 });
+    pen.text(T, s.lx + 2, bB + 1.6, PG_TS.cell, "DC CABLE : " + P.dcCable.replace(/ \(H1Z2Z2-K\)/, ""), { valign: 1 });
   });
   if (kinds.length > show.length) {
-    pen.text(PG_TBL.txt, A.x0 + 6, baseY - 34, 2.6,
+    pen.text(PG_TBL.txt, A.x0 + 6, baseY - IVGAP - 10, PG_TS.body,
       "ชุดที่เหลือต่อแบบเดียวกัน — ดูจำนวนแผงต่อชุดในตาราง SINGLE LINE DIAGRAM");
   }
 
@@ -2424,7 +2508,7 @@ function p3DcSheet(st, job, media) {
     Object.keys(g).sort((a, b) => a - b).slice(0, 14).forEach((k) => {
       const a = g[k], ids = a.map((s) => s.id).sort((x, y) => x - y);
       dcRows.push(["S" + ids[0] + (ids.length > 1 ? "–" + ids[ids.length - 1] : "") + " (" + a.length + ")",
-        "INV " + (+k + 1) + " · " + a.reduce((t, s) => t + s.n, 0) + " แผง", "PV1-F 1x4"]);
+        "INV " + (+k + 1) + " · " + a.reduce((t, s) => t + s.n, 0) + " แผง", P ? P.dcCable.replace(/ \(H1Z2Z2-K\)/, "").replace(/ mm2 .*$/, "") : "PV1-F 1x4"]);
     });
   } else kinds.forEach((g, i) => dcRows.push([
     (M.mode === "micro" ? "MICRO " : "INV ") + (i + 1) + (g.n > 1 ? " x" + g.n : ""),
@@ -2432,7 +2516,7 @@ function p3DcSheet(st, job, media) {
   ]));
   dcRows.push(["รวม", M.panel.count + " แผง", "-"]);
   let ry = A.y1 - 20;
-  ry -= pgGrid(pen, RX, ry, RW, [1.1, 1, 1.2], dcRows, { rh: 5.4, th: 2.3, headRow: 1 }) + 8;
+  ry -= pgGrid(pen, RX, ry, RW, [1.1, 1, 1.2], dcRows, { rh: 5.4, th: PG_TS.cell, headRow: 1 }) + 8;
 
   const spec = [["PV MODULE", M.panel.model],
     ["กำลังไฟต่อแผง", M.panel.wp + " Wp."],
@@ -2440,19 +2524,26 @@ function p3DcSheet(st, job, media) {
   if (sp.mpptVmin && sp.mpptVmax) spec.push(["MPPT VOLTAGE", sp.mpptVmin + " - " + sp.mpptVmax + " Vdc"]);
   if (sp.maxVdc) spec.push(["MAX. DC VOLTAGE", sp.maxVdc + " Vdc"]);
   if (sp.maxIscA) spec.push(["MAX. INPUT Isc", sp.maxIscA + " A"]);
-  spec.push(["สาย DC", "PV1-F 1x4 Sq.mm. DC1500V"]);
-  spec.push(["หัวต่อ", "MC4  DC1000V 30A"]);
-  ry -= pgSpecBlock(pen, RX, ry, RW, "DC SPECIFICATION", spec, { rh: 5.4, th: 2.2, split: 1 });
+  if (P) {
+    spec.push(["Voc สตริง @" + P.tMin + "%%dC", P.vocMax + " Vdc"]);
+    spec.push(["ป้องกันกระแสเกิน", P.dcDev.tag]);
+    spec.push(["DC SPD", P.dcSpdFull.replace(/^DC SPD /, "")]);
+    spec.push(["สาย DC", P.dcCable.replace(/ \(H1Z2Z2-K\)/, "")]);
+    spec.push(["สายดินโครงแผง", "THW(G) " + Math.max(6, Math.min(16, P.earthCu)) + " mm2 เขียว/เหลือง"]);
+  } else spec.push(["สาย DC", "PV1-F 1x4 Sq.mm. DC1500V"]);
+  spec.push(["หัวต่อ", "MC4 1500VDC IP68"]);
+  ry -= pgSpecBlock(pen, RX, ry, RW, "DC SPECIFICATION", spec, { rh: 5.4, th: PG_TS.cell, split: 1 });
 
   const note = [
     "1. ต่อแผงอนุกรมตามลำดับ ขั้ว + ของแผงหน้าเข้าขั้ว - ของแผงถัดไป",
-    "2. ปลายสตริงทั้งสองข้างเข้าหัว MC4 ก่อนต่อเข้าอินเวอร์เตอร์ ห้ามต่อสลับขั้ว",
-    "3. วัดแรงดัน Voc ของสตริงก่อนเสียบเข้าอินเวอร์เตอร์ทุกครั้ง",
-    "4. สาย DC ใช้ PV1-F 1x4 Sq.mm. เดินในท่อ/รางที่กันแดดได้",
-    "5. ยึดสายกับรางด้วยเคเบิลไทกันยูวี ห้ามให้สายห้อยสัมผัสหลังคา",
+    "2. ปลายสตริงเข้าหัว MC4 ยี่ห้อ/รุ่นเดียวกันทั้งคู่ ก่อนต่อเข้าตู้ DC ห้ามต่อสลับขั้ว",
+    "3. วัดแรงดัน Voc และขั้วของทุกสตริงก่อนใส่ฟิวส์/สับเบรกเกอร์",
+    "4. สาย DC " + (P ? P.dcCable.replace(/ \(H1Z2Z2-K\)/, "") : "PV1-F 1x4 Sq.mm.") + " เดินในท่อ/รางที่กันแดดได้",
+    P ? "5. DC SPD ทุกสตริงลง PE bar ตู้ DC แล้วเดินสายดินลงหลักดิน PV ที่ปักแยกจากระบบ · โครงแผง/ราง bonding ทุกแถว"
+      : "5. ยึดสายกับรางด้วยเคเบิลไทกันยูวี ห้ามให้สายห้อยสัมผัสหลังคา",
   ];
-  pen.text(PG_TBL.txt, A.x0 + 6, A.y0 + 6 + note.length * 5, 3.0, "NOTE");
-  note.forEach((s, i) => pen.text(PG_TBL.txt, A.x0 + 6, A.y0 + 6 + (note.length - 1 - i) * 5, 2.5, s));
+  pen.text(PG_TBL.txt, A.x0 + 6, A.y0 + 6 + note.length * 5, PG_TS.head, "NOTE");
+  note.forEach((s, i) => pen.text(PG_TBL.txt, A.x0 + 6, A.y0 + 6 + (note.length - 1 - i) * 5, PG_TS.body, s));
   return doc.build();
 }
 

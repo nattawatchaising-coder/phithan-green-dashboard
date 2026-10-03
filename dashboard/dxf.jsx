@@ -426,6 +426,14 @@ function pgDxf(opt) {
      (พิมพ์ 1:100 บน A3 = กระดาษกินพื้นที่จริง 42 × 29.7 เมตร)
    ================================================================== */
 const PG_SHEET = { W: 420, H: 297, TB: 62, IN: { x0: 26, y0: 16, x1: 404, y1: 281 } };
+/* ขนาดตัวหนังสือของแผ่นผัง/ผังสตริง/ต่อสาย DC/วัสดุหน้างาน (มม. บน A3) — ข้อมูลชนิดเดียวกันขนาดเท่ากันทุกแผ่น
+   (SLD แน่นกว่า ใช้ชุดของตัวเอง TS ใน pgSldPro) */
+const PG_TS = {
+  title: 7.4,   // ชื่อแผ่น (OVERALL LAYOUT ฯลฯ)
+  head: 3.0,    // หัวรูป/หัวข้อ (STRING x 9 สาย · NOTE)
+  body: 2.5,    // หมายเหตุ · ชื่ออุปกรณ์ในรูป · ตารางหลักของแผ่นวัสดุ
+  cell: 2.2,    // ตารางข้างแผ่น · มาตราส่วน · สเปค/ป้ายเล็ก (PV 1, MC4, ขั้ว +/−)
+};
 const PG_LAY = { frame: "PG-FRAME", tb: "PG-TITLEBLOCK", txt: "PG-TB-TEXT", thin: "PG-TB-THIN", logo: "PG-LOGO" };
 
 /* ปากกาที่แปลง "มม.บนกระดาษ" → พิกัดจริงในไฟล์ (เลื่อน ox,oy แล้วคูณ k) */
@@ -866,7 +874,7 @@ function pgSpecBlock(pen, x, y, w, title, pairs, o) {
   let cy = y;
   pen.solid(PG_TBL.head, [x, cy - rh], [x + w, cy - rh], [x + w, cy], [x, cy]);
   pen.rect(L, x, cy - rh, w, rh);
-  pen.text(T, x + 2, cy - rh + (rh - th) / 2, th, title);
+  pen.text(T, x + 2, cy - rh + (rh - th * 1.15) / 2, th * 1.15, title);
   cy -= rh;
   pairs.forEach((p) => {
     pen.rect(L, x, cy - rh, w, rh);
@@ -1004,11 +1012,11 @@ function pgDcString(pen, x, y, w, o) {
     pen.rect(R, px, yb, pw, ph);
     for (let c = 1; c < 3; c++) pen.line(L, px + pw * c / 3, yb + 1, px + pw * c / 3, yb + ph - 1);
     for (let c = 1; c < 6; c++) pen.line(L, px + 1, yb + ph * c / 6, px + pw - 1, yb + ph * c / 6);
-    pen.text(T, px + pw / 2, yb + ph + 2.2, 2.2, "PV " + (i + 1 === n && skip ? nAll : i + 1), { align: 1, valign: 1 });
+    pen.text(T, px + pw / 2, yb + ph + 2.2, PG_TS.cell, "PV " + (i + 1 === n && skip ? nAll : i + 1), { align: 1, valign: 1 });
     /* ขั้วบวก/ลบ ออกจากกล่องต่อสายด้านหลังแผง ลงมาที่แนวเดินสาย */
     const nx = px + pw * 0.28, cx2 = px + pw * 0.72;
-    pen.text(T, nx - 1.2, yb - 4.6, 2.0, "-", { align: 2, valign: 1 });
-    pen.text(T, cx2 + 1.2, yb - 4.6, 2.0, "+", { align: 0, valign: 1 });
+    pen.text(T, nx - 1.2, yb - 4.6, PG_TS.cell, "-", { align: 2, valign: 1 });
+    pen.text(T, cx2 + 1.2, yb - 4.6, PG_TS.cell, "+", { align: 0, valign: 1 });
     pen.line(L, nx, yb, nx, yb - 6); pen.dot(L, nx, yb - 6, 0.6);
     pen.line(L, cx2, yb, cx2, yb - 6); pen.dot(L, cx2, yb - 6, 0.6);
     if (i < n - 1) {                       // + ใบนี้ ไป − ใบถัดไป
@@ -1022,10 +1030,11 @@ function pgDcString(pen, x, y, w, o) {
   const mc = (mx, lab) => {
     pen.line(R, mx, yb - 6, mx, y + 1.5);
     pen.circle(L, mx, y + 1.5, 1.4);
-    pen.text(T, mx, y - 3.4, 2.0, lab, { align: 1, valign: 1 });
+    const pos = lab.slice(-1) === "+";
+    pen.text(T, mx + (pos ? 2.2 : -2.2), y + 1.5, PG_TS.cell, lab, { align: pos ? 0 : 2, valign: 2 });
   };
   mc(lx, "MC4 -"); mc(rx, "MC4 +");
-  if (skip) pen.text(T, x + w / 2, yb + ph / 2, 2.6, "( x " + nAll + " PANEL )", { align: 1, valign: 1 });
+  if (skip) pen.text(T, x + w / 2, yb + ph / 2, PG_TS.body, "( x " + nAll + " PANEL )", { align: 1, valign: 1 });
   return { h: yb + ph + 6 - y, top: yb + ph + 6, lx, rx, my: y + 1.5 };
 }
 
@@ -1360,7 +1369,8 @@ function pgSldPro(doc, sheet, M) {
   /* ── วาดบล็อกอินเวอร์เตอร์ทีละเครื่อง ──
      ทุกสตริง: แผงแรก ─ ─ แผงสุดท้าย → ป้องกันกระแสเกิน (DC MCB / ฟิวส์ gPV ทั้งสองขั้ว) → DC SPD → ขั้วอินเวอร์เตอร์
      สายดิน (เขียว): โครงแผง → PE trunk ซ้าย · SPD ทุกตัว → PE bar ในตู้ DC · ตัวเครื่องอินเวอร์เตอร์
-     ทั้งหมดรวมที่เส้น PE ใต้บล็อก → PE trunk → บัสดินหลัก (MET) → หลักดิน */
+     ทั้งหมดรวมที่เส้น PE ใต้บล็อก → PE trunk → หลักดินฝั่ง PV ที่ปักแยกจากระบบ (ไม่ต่อเข้า MET)
+     ฝั่ง AC (SPD AC · PE/N-PE ของ MDB) → บัสดินหลัก (MET) → หลักดินระบบ */
   let cur = yTop;
   const taps = [];
   let peTop = null;
@@ -1582,17 +1592,21 @@ function pgSldPro(doc, sheet, M) {
     pen.text(T, gx - gw - 1, gy + 0.6, TS.tag, "RS485", { align: 2, valign: 1 });
   }
 
-  /* ── บัสดินหลัก (MET) + หลักดิน ── */
+  /* ── หลักดินฝั่ง PV (ปักแยกจากระบบ) ปลาย PE trunk ซ้าย ── */
+  pen.line(PE, X.pe0, yE, X.pe0, yE - 2.3);
+  pgSym.ground(pen, X.pe0, yE - 2.3);
+  pen.text(T, X.pe0 + 3.2, yE - 3.4, TS.spec, "PV EARTH ROD (SEPARATE)  5/8\" x 2.4m  R <= 5 OHM", { valign: 2 });
+  /* ── บัสดินหลัก (MET) + หลักดินระบบ — ฝั่ง AC เท่านั้น ── */
   const metX = X.md1 - 10;
-  pen.line(PE, X.pe0, yE, metX, yE);
-  [X.acBus, mpx].forEach((x) => peDot(x, yE));
+  pen.line(PE, Math.min(X.acBus, mpx), yE, metX, yE);
+  [Math.max(X.acBus, mpx)].forEach((x) => peDot(x, yE));
   pen.rect(PE, metX, yE - 2.2, 10, 4.4);
   pen.text(T, metX + 5, yE, TS.spec, "MET", { align: 1, valign: 2 });
   const rx = metX + 5;
   pen.line(PE, rx, yE - 2.2, rx, yE - 4.5);
   pgSym.ground(pen, rx, yE - 4.5);
   pen.text(T, rx - 4, yE - 5.6, TS.spec, "EARTH ROD 5/8\" x 2.4m  R <= 5 OHM", { align: 2, valign: 2 });
-  pen.text(LB, X.pe0 + 1.5, yE - 1.2, TS.spec, "MAIN EARTH (PE) : THW(G) " + P.earthCu + " mm2  GREEN/YELLOW", { valign: 3 });
+  pen.text(LB, Math.min(X.acBus, mpx) + 1.5, yE + 1.0, TS.spec, "MAIN EARTH (PE) : THW(G) " + P.earthCu + " mm2", { valign: 1 });
 
   /* ── คอลัมน์ขวา: ข้อมูลระบบ · ตารางอุปกรณ์ · หมายเหตุ · สัญลักษณ์ ── */
   const L = PG_SLD.tab;
@@ -1638,7 +1652,7 @@ function pgSldPro(doc, sheet, M) {
     fuseDev ? "4. ฟิวส์ DC ชนิด gPV (IEC 60269-6) ทั้งขั้ว +/− ทุกสตริง >= 1.5 x Isc · ห้ามใช้ฟิวส์ AC"
       : "4. DC MCB 2 ขั้วทุกสตริง พิกัด >= 1.25 x Isc",
     "5. DC SPD Type II ทุกสตริง สายลง PE bar สั้นที่สุด (< 0.5 m)",
-    "6. โครงแผง ราง ตู้ อินเวอร์เตอร์ ต่อฝากเข้า PE bar → MET → หลักดิน",
+    "6. โครงแผง ราง ตู้ DC อินเวอร์เตอร์ → หลักดิน PV ที่ปักแยกจากระบบ · ฝั่ง AC → MET → หลักดินระบบ",
     "7. Anti-islanding ตามข้อกำหนด " + P.auth + " · ป้ายเตือน DC ที่ตู้/MDB",
   ];
   const titleY = A.y0 + 7;
