@@ -1387,7 +1387,7 @@ function pgSldPro(doc, sheet, M) {
     const per = b.typical ? " /INV" : "";
     const nS = b.typical ? Math.round(nStrB / b.cnt) : nStrB;
     const ft = [
-      (fuseDev ? "FUSE " + P.dcDev.tag.replace(/^FUSE /, "") + " x" + nS * 2 : P.dcDev.tag + " x" + nS) + per,
+      (fuseDev ? P.dcDev.tag + " x" + nS * 2 : P.dcDev.tag + " x" + nS) + per,
       "DC SPD " + P.dcSpdTag.replace(/^SPD /, "") + " x" + nS + per,
     ];
     const fw = X.dcPE - 2.5 - (X.dc0 + 1);
@@ -1586,7 +1586,7 @@ function pgSldPro(doc, sheet, M) {
     "1. ติดตั้งตาม วสท. 022001 · IEC 62548 · IEC 60364-7-712",
     "2. สาย DC " + P.dcCable.replace(/ (H1Z2Z2-K)/, "") + " · MC4 ยี่ห้อ/รุ่นเดียวกันทั้งคู่",
     "3. Voc สตริงที่ " + P.tMin + "%%dC = " + P.vocMax + "V ต้องไม่เกิน " + P.maxVdc + "VDC",
-    fuseDev ? "4. ฟิวส์ gPV (IEC 60269-6) ทั้งขั้ว + และ − ทุกสตริง >= 1.5 x Isc"
+    fuseDev ? "4. ฟิวส์ DC ชนิด gPV (IEC 60269-6) ทั้งขั้ว +/− ทุกสตริง >= 1.5 x Isc · ห้ามใช้ฟิวส์ AC"
       : "4. DC MCB 2 ขั้วทุกสตริง พิกัด >= 1.25 x Isc",
     "5. DC SPD Type II ทุกสตริง สายลง PE bar สั้นที่สุด (< 0.5 m)",
     "6. โครงแผง ราง ตู้ อินเวอร์เตอร์ ต่อฝากเข้า PE bar → MET → หลักดิน",
@@ -1602,7 +1602,7 @@ function pgSldPro(doc, sheet, M) {
   const legs = [
     [(x, y) => pgSym.pv(pen, x + 5, y, 4.4, 3.6, null), "PV MODULE"],
     [(x, y) => { pen.line(R, x, y, x + 5 - g - 0.75, y); hBrk(x + 5, y); pen.line(R, x + 5 + g + 0.75, y, x + 10, y); }, "CIRCUIT BREAKER"],
-    [(x, y) => { pen.line(R, x, y, x + 2.6, y); hFuse(x + 5, y); pen.line(R, x + 7.4, y, x + 10, y); }, "FUSE gPV / gG"],
+    [(x, y) => { pen.line(R, x, y, x + 2.6, y); hFuse(x + 5, y); pen.line(R, x + 7.4, y, x + 10, y); }, "FUSE (DC gPV / AC gG)"],
     [(x, y) => spdS(x + 5, y + 2), "SPD"],
     [(x, y) => { pen.line(W, x, y, x + 10, y); ctH(x + 5, y); }, "CT"],
     [(x, y) => meter(x + 5, y, 1.8), "kWh METER"],

@@ -2067,7 +2067,7 @@ function p3SldModel(st, job, design) {
     const gf = !(home && mainA <= 63);
     const lsig = mainA >= 1000;
     const pm = !home;
-    const spdBk = mainA > 125 ? "NH00 FUSE gG 32A" : home ? "MCB " + (nPh === 3 ? "3P" : "2P") + " 32A" : "";
+    const spdBk = mainA > 125 ? "AC FUSE NH00 gG 32A" : home ? "MCB " + (nPh === 3 ? "3P" : "2P") + " 32A" : "";
     /* สายดินอุปกรณ์ตามขนาดเครื่องป้องกันเมน (แนวตาราง วสท.) · SPD Type II ต้องไม่ต่ำกว่า 6 mm² */
     const earthCu = mainA <= 100 ? 10 : mainA <= 200 ? 16 : mainA <= 400 ? 25 : mainA <= 500 ? 35 : mainA <= 800 ? 50 : mainA <= 1000 ? 70 : 95;
     const pmt = (job && job.permit) || {}, sv = (job && job.survey) || {};
@@ -2076,7 +2076,7 @@ function p3SldModel(st, job, design) {
       return home && a <= 63 ? "RCBO " + P2 + a + "A 100mA" : (a > 125 ? "MCCB " : "MCB ") + P2 + a + "AT"; });
     const dcDev = small
       ? { k: "mcb", tag: "DC MCB 2P " + mcbA + "A " + (maxVdc > 800 ? 1000 : 800) + "VDC" }
-      : { k: "fuse", tag: "FUSE gPV " + fuseA + "A " + dcV + "VDC (+/-)" };
+      : { k: "fuse", tag: "DC FUSE gPV " + fuseA + "A " + dcV + "VDC (+/-)" };
     const mainTxt = !gf ? "RCBO " + P2 + mainA + "A 100mA" : (lsig && mainA > 1250 ? "ACB " : "MCCB ") + P2 + mainA + "AT";
     M.pro = {
       home, small, maxVdc, tMin, isc, wp, vocAt, vocMax, auth: auth || "MEA/PEA",
@@ -2115,7 +2115,7 @@ function p3SldModel(st, job, design) {
     S.push(["PV MODULE", panel.model + " " + wp + "Wp", nPanel]);
     S.push(["INVERTER", inv.model + " " + unitKw + "kW " + (nPh === 3 ? "3PH" : "1PH"), nInv]);
     S.push(["DC BOX", "IP65 ENCLOSURE c/w PE BAR", nInv]);
-    S.push(dcDev.k === "fuse" ? ["STRING FUSE", "gPV " + fuseA + "A " + dcV + "VDC " + (dcV > 1000 ? "10x85" : "10x38") + " + HOLDER", nStr * 2]
+    S.push(dcDev.k === "fuse" ? ["DC STRING FUSE", "gPV (IEC 60269-6) " + fuseA + "A " + dcV + "VDC " + (dcV > 1000 ? "10x85" : "10x38") + " + DC FUSE HOLDER", nStr * 2]
       : ["DC MCB", dcDev.tag.replace(/^DC MCB /, ""), nStr]);
     S.push(["DC SPD", "TYPE II Ucpv " + ucpv + "VDC In 20kA Imax 40kA", nStr]);
     S.push(["MC4 CONNECTOR", "1500VDC IP68 (PAIR)", nStr * 2]);

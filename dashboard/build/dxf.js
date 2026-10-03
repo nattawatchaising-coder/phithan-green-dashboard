@@ -1951,7 +1951,7 @@ function pgSldPro(doc, sheet, M) {
     });
     const per = b.typical ? " /INV" : "";
     const nS = b.typical ? Math.round(nStrB / b.cnt) : nStrB;
-    const ft = [(fuseDev ? "FUSE " + P.dcDev.tag.replace(/^FUSE /, "") + " x" + nS * 2 : P.dcDev.tag + " x" + nS) + per, "DC SPD " + P.dcSpdTag.replace(/^SPD /, "") + " x" + nS + per];
+    const ft = [(fuseDev ? P.dcDev.tag + " x" + nS * 2 : P.dcDev.tag + " x" + nS) + per, "DC SPD " + P.dcSpdTag.replace(/^SPD /, "") + " x" + nS + per];
     const fw = X.dcPE - 2.5 - (X.dc0 + 1);
     ft.forEach((s, i) => pen.text(T, X.dc0 + 1, G.dBot + 1.0 + (ft.length - 1 - i) * 2.1, fitH(s, 1.3, fw), s, {
       valign: 1
@@ -2246,7 +2246,7 @@ function pgSldPro(doc, sheet, M) {
     const rows = M.sched.map((r, i) => [i + 1, r[0], r[1], r[2]]);
     ty -= grid([["NO", "ITEM", "SPECIFICATION", "QTY"]].concat(rows), "EQUIPMENT SCHEDULE", [5, 21, RW - 34, 8], 3.1, 1.3) + 3;
   }
-  const notes = ["1. ติดตั้งตาม วสท. 022001 · IEC 62548 · IEC 60364-7-712", "2. สาย DC " + P.dcCable.replace(/ (H1Z2Z2-K)/, "") + " · MC4 ยี่ห้อ/รุ่นเดียวกันทั้งคู่", "3. Voc สตริงที่ " + P.tMin + "%%dC = " + P.vocMax + "V ต้องไม่เกิน " + P.maxVdc + "VDC", fuseDev ? "4. ฟิวส์ gPV (IEC 60269-6) ทั้งขั้ว + และ − ทุกสตริง >= 1.5 x Isc" : "4. DC MCB 2 ขั้วทุกสตริง พิกัด >= 1.25 x Isc", "5. DC SPD Type II ทุกสตริง สายลง PE bar สั้นที่สุด (< 0.5 m)", "6. โครงแผง ราง ตู้ อินเวอร์เตอร์ ต่อฝากเข้า PE bar → MET → หลักดิน", "7. Anti-islanding ตามข้อกำหนด " + P.auth + " · ป้ายเตือน DC ที่ตู้/MDB"];
+  const notes = ["1. ติดตั้งตาม วสท. 022001 · IEC 62548 · IEC 60364-7-712", "2. สาย DC " + P.dcCable.replace(/ (H1Z2Z2-K)/, "") + " · MC4 ยี่ห้อ/รุ่นเดียวกันทั้งคู่", "3. Voc สตริงที่ " + P.tMin + "%%dC = " + P.vocMax + "V ต้องไม่เกิน " + P.maxVdc + "VDC", fuseDev ? "4. ฟิวส์ DC ชนิด gPV (IEC 60269-6) ทั้งขั้ว +/− ทุกสตริง >= 1.5 x Isc · ห้ามใช้ฟิวส์ AC" : "4. DC MCB 2 ขั้วทุกสตริง พิกัด >= 1.25 x Isc", "5. DC SPD Type II ทุกสตริง สายลง PE bar สั้นที่สุด (< 0.5 m)", "6. โครงแผง ราง ตู้ อินเวอร์เตอร์ ต่อฝากเข้า PE bar → MET → หลักดิน", "7. Anti-islanding ตามข้อกำหนด " + P.auth + " · ป้ายเตือน DC ที่ตู้/MDB"];
   const titleY = A.y0 + 7;
   const noteH = 4.5 + notes.length * 2.8;
   if (ty - (titleY + 9) > noteH) {
@@ -2266,7 +2266,7 @@ function pgSldPro(doc, sheet, M) {
     pen.line(R, x, y, x + 2.6, y);
     hFuse(x + 5, y);
     pen.line(R, x + 7.4, y, x + 10, y);
-  }, "FUSE gPV / gG"], [(x, y) => spdS(x + 5, y + 2), "SPD"], [(x, y) => {
+  }, "FUSE (DC gPV / AC gG)"], [(x, y) => spdS(x + 5, y + 2), "SPD"], [(x, y) => {
     pen.line(W, x, y, x + 10, y);
     ctH(x + 5, y);
   }, "CT"], [(x, y) => meter(x + 5, y, 1.8), "kWh METER"], [(x, y) => pen.line(PE, x, y, x + 10, y), "EARTH (PE)"], [(x, y) => pen.line(CM, x, y, x + 10, y), "COMM. / BOX"]];
