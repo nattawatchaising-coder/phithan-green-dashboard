@@ -733,7 +733,7 @@ function pgSheet(doc, o) {
     mid(Y.logo.top - 21.5 - i * 2.5, 1.7, ln));
 
   /* 6 · สถานะของแบบ — จุดทึบคืออันที่ใช้อยู่ */
-  [["FOR PERLIMINARY", "prelim"], ["FOR PERMISSTION", "permit"],
+  [["FOR PRELIMINARY", "prelim"], ["FOR PERMISSION", "permit"],
     ["FOR CONSTRUCTION", "construct"], ["FOR AS-BUILT", "asbuilt"]].forEach((s, i) => {
     const y = Y.stat.top - 5.5 - i * 5.6;
     pen.circle(F.tb, tx0 + 10, y, 1.7);
@@ -1839,7 +1839,7 @@ function pgSldDraw(doc, sheet, M) {
     pen.line(PG_SLD.comm, gx, busTop + 4, cxr, busTop + 4);
     pen.line(PG_SLD.comm, gx + 11, gy, cxr, gy);
     pen.line(PG_SLD.comm, cxr, busTop + 4, cxr, acY1 + 34);
-    pen.text(T, cxr + 1.5, gy + 14, 2.1, "COMUNICATION", { rot: 90 });
+    pen.text(T, cxr + 1.5, gy + 14, 2.1, "COMMUNICATION", { rot: 90 });
   }
 
   /* ── สายจากตู้โซลาร์ขึ้นไปตู้เมนของบ้าน ── */

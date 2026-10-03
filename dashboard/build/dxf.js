@@ -1073,7 +1073,7 @@ function pgSheet(doc, o) {
     valign: 2
   });
   ["8/90 Moo 16, Bangkaew, Bangplee,", "Samutprakarn 10540", "TEL : " + ((window.BRANDING || {}).tel || ""), "http://" + ((window.BRANDING || {}).site || ""), "E-mail : " + ((window.BRANDING || {}).email || "")].forEach((ln, i) => mid(Y.logo.top - 21.5 - i * 2.5, 1.7, ln));
-  [["FOR PERLIMINARY", "prelim"], ["FOR PERMISSTION", "permit"], ["FOR CONSTRUCTION", "construct"], ["FOR AS-BUILT", "asbuilt"]].forEach((s, i) => {
+  [["FOR PRELIMINARY", "prelim"], ["FOR PERMISSION", "permit"], ["FOR CONSTRUCTION", "construct"], ["FOR AS-BUILT", "asbuilt"]].forEach((s, i) => {
     const y = Y.stat.top - 5.5 - i * 5.6;
     pen.circle(F.tb, tx0 + 10, y, 1.7);
     if ((I.status || "construct") === s[1]) pen.dot(F.tb, tx0 + 10, y, 1.25);
@@ -2526,7 +2526,7 @@ function pgSldDraw(doc, sheet, M) {
     pen.line(PG_SLD.comm, gx, busTop + 4, cxr, busTop + 4);
     pen.line(PG_SLD.comm, gx + 11, gy, cxr, gy);
     pen.line(PG_SLD.comm, cxr, busTop + 4, cxr, acY1 + 34);
-    pen.text(T, cxr + 1.5, gy + 14, 2.1, "COMUNICATION", {
+    pen.text(T, cxr + 1.5, gy + 14, 2.1, "COMMUNICATION", {
       rot: 90
     });
   }
