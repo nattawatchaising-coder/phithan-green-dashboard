@@ -1472,7 +1472,8 @@ const PG_SLD = {
   txt: "SLD-TEXT",
   lbl: "SLD-LABEL",
   comm: "SLD-COMM",
-  tab: "SLD-TABLE"
+  tab: "SLD-TABLE",
+  pe: "SLD-EARTH"
 };
 function pgSldLayers(doc) {
   doc.ltype("PG-DASH", "Dashed __ __ __", [6, -3]);
@@ -1485,6 +1486,7 @@ function pgSldLayers(doc) {
   doc.layer(PG_SLD.lbl, PG_ACI.cyan, "CONTINUOUS", 25);
   doc.layer(PG_SLD.comm, PG_ACI.white, "PG-DASH", 15);
   doc.layer(PG_SLD.tab, PG_ACI.white, "CONTINUOUS", 20);
+  doc.layer(PG_SLD.pe, PG_ACI.green, "CONTINUOUS", 25);
 }
 function pgWireY(pen, layer, x, yA, yB, brk) {
   const y0 = Math.min(yA, yB),
@@ -1672,56 +1674,54 @@ function pgSldPro(doc, sheet, M) {
     BX = PG_SLD.box,
     T = PG_SLD.txt,
     LB = PG_SLD.lbl,
-    CM = PG_SLD.comm;
-  const RX0 = A.x1 - 88,
+    CM = PG_SLD.comm,
+    PE = PG_SLD.pe;
+  const RX0 = A.x1 - 78,
     RX1 = A.x1 - 3,
     RW = RX1 - RX0;
   const DX0 = A.x0 + 4;
   const X = {
-    m1: DX0 + 5,
-    mn: DX0 + 16,
-    tx: DX0 + 20,
-    dc0: DX0 + 49,
-    dcF: DX0 + 53,
-    dcB: DX0 + 59,
-    dcS: DX0 + 71,
-    dc1: DX0 + 78,
-    iv0: DX0 + 84,
-    iv1: DX0 + 118,
-    ac0: DX0 + 127,
-    acB: DX0 + 137,
-    acBus: DX0 + 148,
-    acM: DX0 + 159,
-    ac1: DX0 + 170,
-    md0: DX0 + 180,
-    mdB: DX0 + 189,
-    mdBus: DX0 + 201,
-    md1: DX0 + 215
+    pe0: DX0 + 1.5,
+    m1: DX0 + 7,
+    mn: DX0 + 18,
+    tx: DX0 + 22,
+    sl: DX0 + 51,
+    dc0: DX0 + 54,
+    dcB: DX0 + 61,
+    dcS: DX0 + 76,
+    dcPE: DX0 + 85,
+    dc1: DX0 + 88,
+    iv0: DX0 + 94,
+    iv1: DX0 + 126,
+    ac0: DX0 + 133,
+    acB: DX0 + 142,
+    acBus: DX0 + 153,
+    acM: DX0 + 170,
+    ac1: DX0 + 188,
+    md0: DX0 + 196,
+    mdB: DX0 + 204,
+    mdBus: DX0 + 214,
+    md1: DX0 + 226
   };
-  const hasBox = !!(P.home || P.fuse);
   const g = 3.4;
-  const hBrk = (x, y, lab, sub) => {
+  const fuseDev = P.dcDev.k === "fuse";
+  const fitH = (s, h, w) => Math.min(h, w / Math.max(1, String(s).length * 0.82));
+  const hBrk = (x, y) => {
     pen.circle(S, x - g, y, 0.75);
     pen.circle(S, x + g, y, 0.75);
     pen.arc(S, x, y, g * 1.26, 28, 152);
-    if (lab) pen.text(T, x, y + 5.0, 1.8, lab, {
-      align: 1,
-      valign: 1
-    });
-    if (sub) pen.text(T, x, y - 2.0, 1.6, sub, {
-      align: 1,
-      valign: 3
-    });
   };
   const hFuse = (x, y) => {
     pen.rect(S, x - 2.4, y - 0.85, 4.8, 1.7);
+    pen.line(S, x - 2.4, y, x + 2.4, y);
   };
-  const spdV = (x, y, lines, left) => {
-    pgSym.spd(pen, x, y, null);
-    (lines || []).forEach((s, i) => pen.text(T, left ? x - 4.6 : x + 4.6, y + 2.6 - i * 2.2, 1.6, s, {
-      align: left ? 2 : 0,
-      valign: 2
-    }));
+  const vFuse = (x, y) => {
+    pen.rect(S, x - 0.85, y - 2.4, 1.7, 4.8);
+    pen.line(S, x, y - 2.4, x, y + 2.4);
+  };
+  const spdS = (x, y0) => {
+    pen.rect(S, x - 1.2, y0 - 4, 2.4, 4);
+    pen.line(S, x - 1.9, y0 - 3.3, x + 1.9, y0 - 0.7);
   };
   const meter = (x, y, r) => {
     pen.circle(S, x, y, r);
@@ -1737,18 +1737,19 @@ function pgSldPro(doc, sheet, M) {
     pen.circle(S, x - 0.9, y, 1.5);
     pen.circle(S, x + 0.9, y, 1.5);
   };
+  const peDot = (x, y) => pen.dot(PE, x, y, 0.5);
   const byInv = {};
   M.mppt.rows.forEach(r => {
     if (r.ins.length) (byInv[r.inv] = byInv[r.inv] || []).push(r);
   });
   const invNos = Object.keys(byInv).map(Number).sort((a, b) => a - b);
   const wp = P.wp;
-  const strRow = (x, mp) => ({
+  const strRow = x => ({
     lab: "S" + x.id + " : " + x.n + " x " + wp + "Wp",
     sub: "Voc " + P.vocAt(x.n) + "V  Isc " + P.isc + "A",
     tag: "IN" + x.inNo,
-    first: 1,
-    last: x.n
+    last: x.n,
+    k: 1
   });
   const grpRow = r => {
     const ids = r.ins.map(x => "S" + x.id).join("+");
@@ -1756,15 +1757,15 @@ function pgSldPro(doc, sheet, M) {
       nMax = Math.max.apply(null, ns),
       same = ns.every(n => n === nMax);
     return {
-      lab: ids + " : " + (r.ins.length > 1 ? r.ins.length + "x" : "") + (same ? nMax : ns.join("/")) + " x " + wp + "Wp",
-      sub: "Voc " + P.vocAt(nMax) + "V  Isc " + Math.round(P.isc * r.ins.length * 100) / 100 + "A",
+      lab: ids + " : " + (same ? nMax : ns.join("/")) + " x " + wp + "Wp",
+      sub: r.ins.length + " STR  Voc " + P.vocAt(nMax) + "V  Isc " + P.isc + "A",
       tag: r.ins.length > 1 ? "IN1-" + r.ins.length : "IN" + r.ins[0].inNo,
-      first: 1,
-      last: nMax
+      last: nMax,
+      k: r.ins.length
     };
   };
-  const RH = 8,
-    GAP = 2.5;
+  let RH = 10;
+  const GAP = 2;
   const mkBlock = (no, detail) => {
     const groups = byInv[no].map(r => ({
       mppt: r.mppt,
@@ -1777,24 +1778,41 @@ function pgSldPro(doc, sheet, M) {
       brk: P.ivBrk[no - 1]
     };
   };
-  const contentH = b => b.groups.reduce((t, gq) => t + gq.rows.length * RH, 0) + (b.groups.length - 1) * GAP;
-  const blockH = b => Math.max(contentH(b) + 5, 27) + 12 + (hasBox ? 6 : 0);
-  const eqList = M.equip.slice();
-  const eqH = 5.4 + 4.6 * (eqList.length + 1);
+  const geo = (b, top) => {
+    const nR = b.groups.reduce((t, gq) => t + gq.rows.length, 0);
+    const firstY = top - 9;
+    const lastY = firstY - (nR - 1) * RH - (b.groups.length - 1) * GAP;
+    const dBot = lastY - 16;
+    const boxBot = Math.min(lastY - 5, top - 27);
+    const yG = Math.min(dBot, boxBot - 10.8) - 3;
+    return {
+      firstY,
+      lastY,
+      dBot,
+      boxBot,
+      yG,
+      bottom: yG - 1.5
+    };
+  };
+  const blockH = b => b.typical ? 0 : 1000 - geo(b, 1000).bottom;
   const yTop = A.y1 - 16,
-    yBot = A.y0 + 4 + eqH + 6;
-  const avail = yTop - yBot - 12;
+    yE0 = A.y0 + 10;
+  const avail = yTop - (yE0 + 6);
   let blocks = invNos.map(n => mkBlock(n, true));
-  const sumH = bs => bs.reduce((t, b) => t + blockH(b) + 5, 0);
+  const sumH = bs => bs.reduce((t, b) => t + (1000 - geo(b, 1000).bottom) + 2, 0);
   if (sumH(blocks) > avail) blocks = invNos.map(n => mkBlock(n, false));
   if (sumH(blocks) > avail) {
     const keep = [];
     let h = 0;
-    const tH = 27 + 12 + (hasBox ? 6 : 0) + 5;
+    const tH = 1000 - geo({
+      groups: [{
+        rows: [0]
+      }]
+    }, 1000).bottom + 2;
     for (const b of blocks) {
-      if (h + blockH(b) + 5 + tH > avail && keep.length) break;
+      if (h + blockH(b) + 2 + tH > avail && keep.length) break;
       keep.push(b);
-      h += blockH(b) + 5;
+      h += blockH(b) + 2;
     }
     const rest = blocks.slice(keep.length);
     if (rest.length) {
@@ -1816,22 +1834,27 @@ function pgSldPro(doc, sheet, M) {
           mppt: 0,
           rows: [{
             lab: "S" + Math.min.apply(null, ids) + "-S" + Math.max.apply(null, ids) + " : " + ids.length + " STRINGS",
-            sub: nn.reduce((a, b) => a + b, 0) + " PV  (TYPICAL AS INV" + keep[0].no + ")",
+            sub: nn.reduce((a, b) => a + b, 0) + " PV (TYPICAL AS INV" + keep[0].no + ")",
             tag: "",
-            first: 1,
-            last: nMax
+            last: nMax,
+            k: ids.length
           }]
         }]
       });
     }
     blocks = keep;
   }
+  if (!blocks.some(b => b.typical)) {
+    const nR = blocks.reduce((t, b) => t + b.groups.reduce((u, gq) => u + gq.rows.length, 0) - 1, 0);
+    const spare = avail - sumH(blocks) - 30;
+    if (nR > 0 && spare > 0) RH = Math.min(15, RH + spare / nR);
+  }
   const hy = A.y1 - 7;
-  pen.text(LB, (X.m1 + X.tx + 22) / 2, hy, 2.4, "PV ARRAY", {
+  pen.text(LB, (X.m1 + X.sl) / 2, hy, 2.4, "PV ARRAY", {
     align: 1,
     valign: 1
   });
-  if (hasBox) pen.text(LB, (X.dc0 + X.dc1) / 2, hy, 2.4, P.fuse && !P.home ? "DC COMBINER" : "DC BOX", {
+  pen.text(LB, (X.dc0 + X.dc1) / 2, hy, 2.4, fuseDev ? "DC COMBINER BOX" : "DC BOX", {
     align: 1,
     valign: 1
   });
@@ -1847,71 +1870,63 @@ function pgSldPro(doc, sheet, M) {
     align: 1,
     valign: 1
   });
-  const DV = X.iv1 + 2.5;
-  pen.line(CM, DV, A.y1 - 3, DV, yBot - 2);
-  pen.text(T, DV - 1.5, A.y1 - 11, 1.8, "DC SIDE", {
-    align: 2,
-    valign: 2
-  });
-  pen.text(T, DV + 1.5, A.y1 - 11, 1.8, "AC SIDE", {
-    align: 0,
-    valign: 2
-  });
   let cur = yTop;
   const taps = [];
-  blocks.forEach((b, bi) => {
-    const top = cur;
-    let y = top - 5;
+  let peTop = null;
+  blocks.forEach(b => {
+    const top = cur,
+      G = geo(b, top);
+    let y = G.firstY;
     const rowsY = [];
+    let nStrB = 0,
+      first = true;
     b.groups.forEach((gq, gi) => {
       if (gi) y -= GAP;
       const ys = [];
       gq.rows.forEach(row => {
         ys.push(y);
+        nStrB += row.k;
         pgSym.pv(pen, X.m1, y, 4.6, 4.2, null);
         pgSym.pv(pen, X.mn, y, 4.6, 4.2, null);
-        pen.text(T, X.m1, y - 3.3, 1.5, String(row.first), {
+        pen.text(T, X.m1, y + 2.5, 1.3, "1", {
           align: 1,
-          valign: 3
-        });
-        pen.text(T, X.mn, y - 3.3, 1.5, String(row.last), {
-          align: 1,
-          valign: 3
-        });
-        pen.line(CM, X.m1 + 2.3, y, X.mn - 2.3, y);
-        pen.text(T, X.m1 - 3.2, y + 0.9, 1.7, "+", {
-          align: 1,
-          valign: 2
-        });
-        pen.text(T, X.tx, y + 0.9, 1.9, row.lab, {
           valign: 1
         });
-        pen.text(T, X.tx, y - 1.0, 1.55, row.sub, {
+        pen.text(T, X.mn, y + 2.5, 1.3, String(row.last), {
+          align: 1,
+          valign: 1
+        });
+        pen.line(CM, X.m1 + 2.3, y, X.mn - 2.3, y);
+        const lw = X.sl - X.tx - 1.5;
+        pen.text(T, X.tx, y + 0.9, fitH(row.lab, 1.7, lw), row.lab, {
+          valign: 1
+        });
+        pen.text(T, X.tx, y - 1.0, fitH(row.sub, 1.4, lw), row.sub, {
           valign: 3
         });
-        const segs = [];
-        let x = X.mn + 2.3;
-        if (hasBox) {
-          if (P.fuse) {
-            segs.push([x, X.dcF - 2.4]);
-            hFuse(X.dcF, y);
-            x = X.dcF + 2.4;
-          }
-          if (P.home) {
-            segs.push([x, X.dcB - g - 0.75]);
-            hBrk(X.dcB, y);
-            x = X.dcB + g + 0.75;
-          }
-        }
-        segs.push([x, X.iv0]);
-        segs.forEach(s => pen.line(R, s[0], y, s[1], y));
-        const sx = X.tx + 25;
-        pen.line(R, sx - 0.7, y - 1.0, sx + 0.3, y + 1.0);
-        pen.line(R, sx + 0.5, y - 1.0, sx + 1.5, y + 1.0);
+        pen.line(PE, X.pe0, y - 1.2, X.m1 - 2.3, y - 1.2);
+        if (peTop == null) peTop = y - 1.2;else peDot(X.pe0, y - 1.2);
+        pen.line(R, X.mn + 2.3, y, fuseDev ? X.dcB - 2.4 : X.dcB - g - 0.75, y);
+        if (fuseDev) hFuse(X.dcB, y);else hBrk(X.dcB, y);
+        pen.line(R, fuseDev ? X.dcB + 2.4 : X.dcB + g + 0.75, y, X.iv0, y);
+        pen.line(R, X.sl - 0.7, y - 1.0, X.sl + 0.3, y + 1.0);
+        pen.line(R, X.sl + 0.5, y - 1.0, X.sl + 1.5, y + 1.0);
+        if (first) pen.text(T, X.dc0 + 1, y + 4.7, 1.25, P.dcDev.tag, {
+          valign: 1
+        });
+        pen.dot(R, X.dcS, y, 0.5);
+        pen.line(R, X.dcS, y, X.dcS, y - 2.2);
+        spdS(X.dcS, y - 2.2);
+        pen.line(PE, X.dcS, y - 6.2, X.dcS, y - 7.2);
+        pen.line(PE, X.dcS, y - 7.2, X.dcPE, y - 7.2);
+        if (first) pen.text(T, X.dcS + 2.5, y - 4.2, 1.2, "SPD", {
+          valign: 2
+        });
         pen.circle(S, X.iv0, y, 0.6);
         if (row.tag) pen.text(T, X.iv0 + 1.2, y + 0.4, 1.3, row.tag, {
           valign: 1
         });
+        first = false;
         y -= RH;
       });
       const bx = X.iv0 + 7.5,
@@ -1925,112 +1940,168 @@ function pgSldPro(doc, sheet, M) {
       rowsY.push.apply(rowsY, ys);
     });
     const lastY = rowsY[rowsY.length - 1];
-    const boxBot = Math.min(lastY - 4, top - 27);
+    const dTop = top - 1.5;
+    pen.rect(BX, X.dc0, G.dBot, X.dc1 - X.dc0, dTop - G.dBot);
+    const barT = rowsY[0] - 5.6,
+      barB = lastY - 8.8;
+    pen.solid(PE, [X.dcPE - 0.5, barB], [X.dcPE + 0.5, barB], [X.dcPE + 0.5, barT], [X.dcPE - 0.5, barT]);
+    pen.text(T, X.dcPE - 1.2, barB - 0.4, 1.2, "PE", {
+      align: 2,
+      valign: 3
+    });
+    const per = b.typical ? " /INV" : "";
+    const nS = b.typical ? Math.round(nStrB / b.cnt) : nStrB;
+    const ft = [(fuseDev ? "FUSE " + P.dcDev.tag.replace(/^FUSE /, "") + " x" + nS * 2 : P.dcDev.tag + " x" + nS) + per, "DC SPD " + P.dcSpdTag.replace(/^SPD /, "") + " x" + nS + per];
+    const fw = X.dcPE - 2.5 - (X.dc0 + 1);
+    ft.forEach((s, i) => pen.text(T, X.dc0 + 1, G.dBot + 1.0 + (ft.length - 1 - i) * 2.1, fitH(s, 1.3, fw), s, {
+      valign: 1
+    }));
     const boxTop = top - 1;
-    pen.rect(S, X.iv0, boxBot, X.iv1 - X.iv0, boxTop - boxBot);
-    const tapY = (boxTop + boxBot) / 2;
+    pen.rect(S, X.iv0, G.boxBot, X.iv1 - X.iv0, boxTop - G.boxBot);
+    const tapY = (boxTop + G.boxBot) / 2;
     pgSym.inverter(pen, X.iv1 - 8, tapY, 11, 8.5);
     const nm = b.typical ? "INV" + b.no + "-INV" + b.to + " (x" + b.cnt + ")" : "INV" + b.no;
-    pen.text(LB, X.iv0, boxBot - 1.2, 2.1, nm + "  " + b.kw + "kW " + P.phTxt, {
+    const ix = X.iv0 + 4,
+      iw = X.ac0 - 1 - ix;
+    pen.text(LB, ix, G.boxBot - 1.2, fitH(nm + "  " + b.kw + "kW " + P.phTxt, 2.0, iw), nm + "  " + b.kw + "kW " + P.phTxt, {
       valign: 3
     });
-    pen.text(T, X.iv0, boxBot - 4.4, 1.6, M.inv.model, {
+    pen.text(T, ix, G.boxBot - 4.3, fitH(M.inv.model, 1.5, iw), M.inv.model, {
       valign: 3
     });
-    pen.text(T, X.iv0, boxBot - 6.8, 1.45, hasBox ? "DC SWITCH : BUILT-IN" : "DC SWITCH + DC SPD TYPE II : BUILT-IN", {
+    pen.text(T, ix, G.boxBot - 6.6, 1.35, "DC SWITCH : BUILT-IN", {
       valign: 3
     });
-    pen.text(T, X.iv0, boxBot - 9.0, 1.45, "AC : " + M.acCable, {
+    pen.text(T, ix, G.boxBot - 8.7, fitH("AC : " + M.acCable, 1.35, iw), "AC : " + M.acCable, {
       valign: 3
     });
-    let bottom = boxBot - 11;
-    if (hasBox) {
-      const sy = lastY - 9.5;
-      if (P.home) {
-        pen.dot(R, X.dcS, lastY, 0.6);
-        pen.line(R, X.dcS, lastY, X.dcS, sy + 4);
-        spdV(X.dcS, sy, P.dcSpd.concat([b.groups.length > 1 ? "x" + b.groups.length + " (1 PER MPPT)" : ""]), true);
-        pen.line(W, X.dcS, sy - 4, X.dcS, sy - 6.5);
-        pgSym.ground(pen, X.dcS, sy - 6.5);
-      }
-      const dTop = top - 1.5,
-        dBot = Math.min(boxBot, P.home ? sy - 10.5 : lastY - 4);
-      pen.rect(BX, X.dc0, dBot, X.dc1 - X.dc0, dTop - dBot);
-      const t1 = [P.home ? P.dcMcb + " x" + rowsY.length : "", P.fuse ? "FUSE gPV " + P.fuse.amp + "A 1000VDC x" + rowsY.length : ""].filter(Boolean);
-      t1.forEach((s, i) => pen.text(T, X.dc0 + 1, dBot + 1.0 + (t1.length - 1 - i) * 2.0, 1.45, s, {
-        valign: 1
-      }));
-      bottom = Math.min(bottom, dBot - 2);
-    }
+    const peX = X.iv0 + 2;
+    pen.line(PE, X.dcPE, barB, X.dcPE, G.yG);
+    pen.line(PE, peX, G.boxBot, peX, G.yG);
+    pen.line(PE, X.pe0, G.yG, peX, G.yG);
+    peDot(X.dcPE, G.yG);
+    peDot(X.pe0, G.yG);
     taps.push({
       y: tapY,
       b
     });
-    cur = bottom - 5;
+    cur = G.bottom - 2;
   });
-  const lowest = cur + 5;
+  const blkLow = cur;
+  pen.text(T, X.pe0 + 1.2, cur - 0.5, 1.3, "PV FRAME & RAIL BONDING  THW(G) " + Math.max(6, Math.min(16, P.earthCu)) + " mm2", {
+    valign: 3
+  });
   const tY = taps.map(t => t.y);
   const tMax = Math.max.apply(null, tY),
     tMin = Math.min.apply(null, tY);
   let yMain = Math.min((tMax + tMin) / 2, A.y1 - 66);
-  yMain = Math.max(yMain, yBot + 34);
+  yMain = Math.max(yMain, yE0 + 44);
   const oneInv = taps.length === 1 && !taps[0].b.typical;
-  taps.forEach(t => {
+  taps.forEach((t, i) => {
     if (oneInv) {
       pen.line(R, X.iv1, t.y, X.acBus, t.y);
       return;
     }
     pen.line(R, X.iv1, t.y, X.acB - g - 0.75, t.y);
-    hBrk(X.acB, t.y, t.b.brk + (t.b.typical ? " x" + t.b.cnt : ""));
+    hBrk(X.acB, t.y);
+    const bl = t.b.brk + (t.b.typical ? " x" + t.b.cnt : "");
+    pen.text(T, X.acB, t.y + 5.0, fitH(bl, 1.4, 2 * (X.acB - X.ac0) - 1), bl, {
+      align: 1,
+      valign: 1
+    });
     pen.line(R, X.acB + g + 0.75, t.y, X.acBus, t.y);
-    pen.dot(R, X.acBus, t.y, 0.6);
+    if (t.y !== tMax || yMain > tMax) pen.dot(R, X.acBus, t.y, 0.5);
   });
   const busHi = Math.max(tMax, yMain),
-    busLo = Math.min(tMin, yMain) - 4;
+    busLo = Math.min(tMin, yMain) - 3;
   pen.line(R, X.acBus, busHi, X.acBus, busLo);
-  const spY = busLo - 9;
-  pen.line(R, X.acBus, busLo, X.acBus, spY + 4);
-  spdV(X.acBus, spY, ["AC SPD TYPE II", "In 20kA Imax 40kA", "Uc 385V"], true);
-  pen.line(W, X.acBus, spY - 4, X.acBus, spY - 6.5);
-  pgSym.ground(pen, X.acBus, spY - 6.5);
-  const acTop = busHi + 9,
-    acBot = spY - 11;
+  let sy = busLo;
+  if (P.spdBk) {
+    const by = sy - 6.5;
+    if (/FUSE/.test(P.spdBk)) {
+      pen.line(R, X.acBus, sy, X.acBus, by + 2.4);
+      vFuse(X.acBus, by);
+      sy = by - 2.4;
+    } else {
+      pen.line(R, X.acBus, sy, X.acBus, by + g + 0.75);
+      pgSym.breaker(pen, X.acBus, by, "", "");
+      sy = by - g - 0.75;
+    }
+    pen.text(T, X.acBus + 2.6, by, fitH(P.spdBk, 1.35, 20), P.spdBk, {
+      valign: 2
+    });
+  }
+  const spY = sy - 7;
+  pen.line(R, X.acBus, sy, X.acBus, spY + 4);
+  pgSym.spd(pen, X.acBus, spY, null);
+  P.acSpd.forEach((s, i) => pen.text(T, X.acBus - 3.6, spY + 2.4 - i * 2.2, 1.4, s, {
+    align: 2,
+    valign: 2
+  }));
+  const acBot = spY - 7;
+  const acTop = busHi + 9;
   pen.rect(BX, X.ac0, acBot, X.ac1 - X.ac0, acTop - acBot);
-  pen.dot(R, X.acBus, yMain, 0.6);
+  pen.dot(R, X.acBus, yMain, 0.5);
   pen.line(R, X.acBus, yMain, X.acM - g - 0.75, yMain);
-  if (!P.gf) hBrk(X.acM, yMain, "RCBO " + M.rcbo[1], "100mA");else if (P.lsig) hBrk(X.acM, yMain, (P.mainA > 1250 ? "ACB " : "MCCB ") + M.mccb[0].replace(/^MCCB /, ""), "LSIG TRIP UNIT");else {
-    hBrk(X.acM, yMain, M.mccb[0], "");
-    const zx = X.acM + 7.2,
+  hBrk(X.acM, yMain);
+  const mainL = P.mainTxt + (P.lsig ? " LSIG" : "");
+  pen.text(T, X.acM, yMain + 5.0, fitH(mainL, 1.5, 2 * (X.ac1 - X.acM) - 2), mainL, {
+    align: 1,
+    valign: 1
+  });
+  let wx = X.acM + g + 0.75;
+  if (P.gf && !P.lsig) {
+    const zx = X.acM + 6.5,
       gy0 = yMain - 10.6,
       gy1 = yMain - 7;
+    pen.line(R, wx, yMain, zx - 1.7, yMain);
     pen.circle(S, zx, yMain, 1.7);
-    pen.text(T, zx, yMain + 2.3, 1.35, "ZCT", {
+    pen.line(R, zx - 1.7, yMain, zx + 1.7, yMain);
+    wx = zx + 1.7;
+    pen.text(T, zx, yMain + 2.3, 1.3, "ZCT", {
       align: 1,
       valign: 1
     });
     pen.rect(S, zx - 3.4, gy0, 6.8, gy1 - gy0);
-    pen.text(T, zx, (gy0 + gy1) / 2, 1.45, "GFR", {
+    pen.text(T, zx, (gy0 + gy1) / 2, 1.4, "GFR", {
       align: 1,
       valign: 2
     });
     pen.line(CM, zx, yMain - 1.7, zx, gy1);
     pen.line(CM, zx - 3.4, (gy0 + gy1) / 2, X.acM, (gy0 + gy1) / 2);
     pen.line(CM, X.acM, (gy0 + gy1) / 2, X.acM, yMain - 2.2);
-    pen.text(T, X.acM - 0.8, yMain - 4.4, 1.3, "SHUNT", {
+    pen.text(T, X.acM - 0.8, yMain - 4.4, 1.25, "SHUNT", {
       align: 2,
       valign: 2
     });
-    pen.text(T, X.acM - 0.8, yMain - 6.2, 1.3, "TRIP", {
+    pen.text(T, X.acM - 0.8, yMain - 6.1, 1.25, "TRIP", {
       align: 2,
       valign: 2
     });
   }
-  pen.line(R, X.acM + g + 0.75, yMain, X.mdB - g - 0.75, yMain);
-  pen.text(T, X.ac1 + 3.2, yMain - 3, 1.6, M.mainCable[0], {
+  if (P.pm) {
+    const px = X.acM + 13.5,
+      pb = yMain - 19,
+      pt = yMain - 14;
+    pen.line(R, wx, yMain, px - 2.4, yMain);
+    ctH(px, yMain);
+    pen.line(R, px + 2.4, yMain, X.mdB - g - 0.75, yMain);
+    pen.text(T, px, yMain + 2.3, 1.3, "CT " + P.pmCt, {
+      align: 1,
+      valign: 1
+    });
+    pen.line(CM, px, yMain - 1.5, px, pt);
+    pen.rect(S, px - 4.5, pb, 9, pt - pb);
+    pen.text(T, px, (pb + pt) / 2, 1.35, "PM2230", {
+      align: 1,
+      valign: 2
+    });
+  } else pen.line(R, wx, yMain, X.mdB - g - 0.75, yMain);
+  pen.text(T, X.ac1 + 3.0, yMain - 3, 1.5, M.mainCable[0], {
     rot: 90,
     align: 2
   });
-  pen.text(T, X.ac1 + 6.4, yMain - 3, 1.6, M.mainCable[1], {
+  pen.text(T, X.ac1 + 5.8, yMain - 3, 1.5, "THW(G) " + P.earthCu + " mm2 (PE)", {
     rot: 90,
     align: 2
   });
@@ -2040,144 +2111,180 @@ function pgSldPro(doc, sheet, M) {
   pen.text(LB, X.md0 + 1, mdTop + 1, 2.0, "MDB (EXISTING)", {
     valign: 1
   });
-  hBrk(X.mdB, yMain, M.mccb[0], "SOLAR (" + (M.mccbNew ? "NEW" : "EXIST") + ")");
+  hBrk(X.mdB, yMain);
+  pen.text(T, X.md0 + 1, yMain + 5.0, fitH(M.mccb[0], 1.5, X.mdBus - X.md0 - 3), M.mccb[0], {
+    valign: 1
+  });
+  pen.text(T, X.md0 + 1, yMain - 2.2, 1.3, "SOLAR (" + (M.mccbNew ? "NEW" : "EXIST") + ")", {
+    valign: 3
+  });
   pen.line(W, X.mdB + g + 0.75, yMain, X.mdBus, yMain);
-  pen.dot(W, X.mdBus, yMain, 0.6);
+  pen.dot(W, X.mdBus, yMain, 0.5);
   pen.line(W, X.mdBus, yMain - 8, X.mdBus, yMain + 8);
   pgWireY(pen, W, X.mdBus, yMain + 8, mdTop, [{
     y: yMain + 15
   }]);
   pgSym.breaker(pen, X.mdBus, yMain + 15, "", "");
-  pen.text(T, X.mdBus + 3, yMain + 15, 1.6, "MAIN CB", {
-    valign: 2
+  pen.text(T, X.mdBus + 3, yMain + 15.8, 1.5, "MAIN CB", {
+    valign: 1
+  });
+  pen.text(T, X.mdBus + 3, yMain + 14.2, 1.3, P.exMain || "(EXISTING)", {
+    valign: 3
   });
   pgWireY(pen, W, X.mdBus, yMain - 8, mdBot, [{
     y: yMain - 15
   }]);
   pgSym.breaker(pen, X.mdBus, yMain - 15, "", "");
-  pen.text(T, X.mdBus + 3, yMain - 15, 1.6, "LOAD CB", {
+  pen.text(T, X.mdBus + 3, yMain - 15, 1.5, "LOAD", {
     valign: 2
   });
   pen.line(W, X.mdBus, mdBot, X.mdBus, mdBot - 3.5);
   pgSym.home(pen, X.mdBus, mdBot - 6.5, 3.4);
+  const mpx = X.md0 + 3;
+  pen.rect(PE, mpx - 2, mdBot + 1.2, 4, 1.0);
+  pen.text(T, mpx + 2.6, mdBot + 1.7, 1.2, "PE / N-PE LINK", {
+    valign: 2
+  });
+  const yE = Math.max(yE0, Math.min(blkLow - 4, acBot - 5, mdBot - 14));
+  pen.line(PE, mpx, mdBot + 1.2, mpx, yE);
+  pen.line(PE, X.acBus, spY - 4, X.acBus, yE);
+  pen.line(PE, X.pe0, peTop, X.pe0, yE);
   const ctY = mdTop + 6,
     mY = mdTop + 15,
-    uY = mdTop + 28;
+    uY = mdTop + 27;
   pen.line(W, X.mdBus, mdTop, X.mdBus, mY - 3.4);
   pgSym.ct(pen, X.mdBus, ctY, "", "");
-  pen.text(T, X.mdBus + 5.4, ctY, 1.55, M.ctMain, {
+  pen.text(T, X.mdBus + 5.2, ctY, fitH(M.ctMain, 1.45, X.md1 + 10 - X.mdBus - 5.2), M.ctMain, {
     valign: 2
   });
   meter(X.mdBus, mY, 3.4);
-  pen.text(T, X.mdBus + 4.4, mY + 0.8, 1.55, "kWh METER", {
+  pen.text(T, X.mdBus + 4.4, mY + 0.8, 1.45, "BI-DIR. kWh", {
     valign: 1
   });
-  pen.text(T, X.mdBus + 4.4, mY - 0.8, 1.55, "BI-DIRECTIONAL (" + P.auth + ")", {
+  pen.text(T, X.mdBus + 4.4, mY - 0.8, 1.45, "METER (" + P.auth + ")", {
     valign: 3
   });
-  pen.line(W, X.mdBus, mY + 3.4, X.mdBus, uY - 2.8);
+  pen.line(W, X.mdBus, mY + 3.4, X.mdBus, uY - 1.9);
   pgSym.utility(pen, X.mdBus, uY, 3.2, "");
-  pen.text(LB, X.mdBus, uY + 4.2, 2.2, "TO " + P.auth + " GRID", {
-    align: 1,
-    valign: 1
+  pen.text(LB, X.mdBus + 3.6, uY, 1.9, "TO " + P.auth + " GRID", {
+    valign: 2
   });
   if (M.gateway) {
-    const gx = (X.ac0 + X.ac1) / 2,
-      gy = Math.max(acTop + 8, ctY);
-    if (gy + 4 < A.y1 - 13) {
-      pen.rect(S, gx - 13, gy - 3, 26, 6);
-      pen.text(T, gx, gy, 1.6, "SMART METER / GATEWAY", {
-        align: 1,
-        valign: 2
-      });
-      const cx = X.mdBus - 7;
-      pen.line(CM, gx + 13, gy, cx, gy);
-      if (gy !== ctY) pen.line(CM, cx, gy, cx, ctY);
-      pen.line(CM, cx, ctY, X.mdBus - 2.9, ctY);
-      pen.text(T, gx + 14, gy + 0.6, 1.4, "CT SIGNAL", {
-        valign: 1
-      });
-      const ix = DV + 2.2,
-        t0 = taps[0];
-      pen.line(CM, gx - 13, gy, ix, gy);
-      pen.line(CM, ix, gy, ix, t0.y + 3);
-      pen.line(CM, ix, t0.y + 3, X.iv1, t0.y + 3);
-      pen.text(T, ix + 1, gy + 0.6, 1.4, "RS485", {
-        valign: 1
-      });
-    }
-  }
-  const ey = lowest - 3;
-  if (ey > yBot + 4) {
-    pen.line(W, X.m1, ey, X.m1, ey - 3);
-    pgSym.ground(pen, X.m1, ey - 3);
-    pen.text(T, X.m1 + 4, ey - 2.4, 1.6, "MODULE FRAME & RAIL BONDING : THW(G) " + P.earthCu + " mm2 TO MAIN EARTH (R <= 5 OHM)", {
+    const gy = A.y1 - 12,
+      gx = (X.ac0 + X.ac1) / 2,
+      gw = 15;
+    pen.rect(S, gx - gw, gy - 3, gw * 2, 6);
+    pen.text(T, gx, gy, 1.5, "SMART METER / DATA LOGGER", {
+      align: 1,
       valign: 2
     });
+    const cx = X.mdBus - 7;
+    pen.line(CM, gx + gw, gy, cx, gy);
+    pen.line(CM, cx, gy, cx, ctY);
+    pen.line(CM, cx, ctY, X.mdBus - 2.9, ctY);
+    pen.text(T, gx + gw + 1, gy + 0.6, 1.3, "CT SIGNAL", {
+      valign: 1
+    });
+    const ix = X.iv1 - 5;
+    pen.line(CM, gx - gw, gy, ix, gy);
+    pen.line(CM, ix, gy, ix, yTop - 1);
+    pen.text(T, gx - gw - 1, gy + 0.6, 1.3, "RS485", {
+      align: 2,
+      valign: 1
+    });
   }
-  pgSldEquip(pen, DX0, A.y0 + 4 + eqH, X.md1 - DX0, eqList);
-  let ty = A.y1 - 4;
-  const o = {
-    rh: 3.6
+  const metX = X.md1 - 10;
+  pen.line(PE, X.pe0, yE, metX, yE);
+  [X.acBus, mpx].forEach(x => peDot(x, yE));
+  pen.rect(PE, metX, yE - 2.2, 10, 4.4);
+  pen.text(T, metX + 5, yE, 1.5, "MET", {
+    align: 1,
+    valign: 2
+  });
+  const rx = metX + 5;
+  pen.line(PE, rx, yE - 2.2, rx, yE - 4.5);
+  pgSym.ground(pen, rx, yE - 4.5);
+  pen.text(T, rx - 4, yE - 5.6, 1.3, "EARTH ROD 5/8\" x 2.4m  R <= 5 OHM", {
+    align: 2,
+    valign: 2
+  });
+  pen.text(LB, X.pe0 + 1.5, yE - 1.2, 1.6, "MAIN EARTH (PE) : THW(G) " + P.earthCu + " mm2  GREEN/YELLOW", {
+    valign: 3
+  });
+  const L = PG_SLD.tab;
+  const grid = (rows, head, cw, rh, th) => {
+    let cy = ty;
+    pen.rect(L, RX0, cy - rh - 0.6, RW, rh + 0.6);
+    pen.text(LB, RX0 + 1.2, cy - (rh + 0.6) / 2, 1.8, head, {
+      valign: 2
+    });
+    cy -= rh + 0.6;
+    rows.forEach(r => {
+      pen.rect(L, RX0, cy - rh, RW, rh);
+      if (r[0] === "#") pen.text(T, RX0 + 1.2, cy - rh / 2, th, r[1], {
+        valign: 2
+      });else {
+        let cx = RX0;
+        cw.forEach((w, i) => {
+          if (i) pen.line(L, cx, cy, cx, cy - rh);
+          const s = String(r[i] == null ? "" : r[i]);
+          const c = i === cw.length - 1 && cw.length > 2;
+          pen.text(T, c ? cx + w / 2 : cx + 1, cy - rh / 2, fitH(s, th, w - 2), s, {
+            align: c ? 1 : 0,
+            valign: 2
+          });
+          cx += w;
+        });
+      }
+      cy -= rh;
+    });
+    return ty - cy;
   };
-  ty -= pgSldTable(pen, RX0, ty, RW, M.invData, "INVERTER DATA", o) + 4;
-  if (M.pvData) ty -= pgSldTable(pen, RX0, ty, RW, M.pvData, "PV MODULE / ARRAY DATA", o) + 4;
-  const notes = ["1. ติดตั้งตามมาตรฐาน วสท. 022001 · IEC 62548 · IEC 60364-7-712", "2. สาย DC : " + P.dcCable + " ทนแดด/UV · MC4 ยี่ห้อเดียวกันทั้งคู่", "3. Voc สตริงที่ " + P.tMin + "%%dC (" + P.vocMax + "V) ต้องไม่เกิน " + P.maxVdc + "VDC ของอินเวอร์เตอร์", "4. โครงแผง ราง ตู้ ต่อฝากถึงกัน สายดิน THW(G) >= " + P.earthCu + " mm2 · หลักดิน <= 5 OHM", "5. อินเวอร์เตอร์ป้องกันการจ่ายไฟย้อนเมื่อไฟดับ (Anti-islanding) ตามข้อกำหนด " + P.auth, "6. ติดป้ายเตือน \"มีแรงดัน DC แม้ตัดไฟ AC\" ที่ตู้ DC · อินเวอร์เตอร์ · MDB", "7. ผังตำแหน่งสตริง ดูแผ่น STRING LAYOUT"];
+  let ty = A.y1 - 4;
+  if (M.pvData) ty -= grid(M.pvData, "SYSTEM DATA", [RW * 0.4, RW * 0.6], 3.1, 1.4) + 3;
+  if (M.sched) {
+    const rows = M.sched.map((r, i) => [i + 1, r[0], r[1], r[2]]);
+    ty -= grid([["NO", "ITEM", "SPECIFICATION", "QTY"]].concat(rows), "EQUIPMENT SCHEDULE", [5, 21, RW - 34, 8], 3.1, 1.3) + 3;
+  }
+  const notes = ["1. ติดตั้งตาม วสท. 022001 · IEC 62548 · IEC 60364-7-712", "2. สาย DC " + P.dcCable.replace(/ (H1Z2Z2-K)/, "") + " · MC4 ยี่ห้อ/รุ่นเดียวกันทั้งคู่", "3. Voc สตริงที่ " + P.tMin + "%%dC = " + P.vocMax + "V ต้องไม่เกิน " + P.maxVdc + "VDC", fuseDev ? "4. ฟิวส์ gPV (IEC 60269-6) ทั้งขั้ว + และ − ทุกสตริง >= 1.5 x Isc" : "4. DC MCB 2 ขั้วทุกสตริง พิกัด >= 1.25 x Isc", "5. DC SPD Type II ทุกสตริง สายลง PE bar สั้นที่สุด (< 0.5 m)", "6. โครงแผง ราง ตู้ อินเวอร์เตอร์ ต่อฝากเข้า PE bar → MET → หลักดิน", "7. Anti-islanding ตามข้อกำหนด " + P.auth + " · ป้ายเตือน DC ที่ตู้/MDB"];
   const titleY = A.y0 + 7;
-  const noteH = 5 + notes.length * 3.1;
-  const legH = 5 + 10 * 5.2;
-  const room = ty - (titleY + 10);
-  if (room > noteH) {
-    pen.text(LB, RX0, ty - 1, 2.0, "NOTES", {
+  const noteH = 4.5 + notes.length * 2.8;
+  if (ty - (titleY + 9) > noteH) {
+    pen.text(LB, RX0, ty - 1, 1.8, "NOTES", {
       valign: 3
     });
-    notes.forEach((s, i) => pen.text(T, RX0, ty - 5 - i * 3.1, 1.55, s, {
+    notes.forEach((s, i) => pen.text(T, RX0, ty - 4.6 - i * 2.8, fitH(s, 1.4, RW), s, {
       valign: 3
     }));
-    ty -= noteH + 3;
+    ty -= noteH + 2;
   }
-  if (ty - (titleY + 10) > legH) {
-    pen.text(LB, RX0, ty - 1, 2.0, "LEGEND", {
+  const legs = [[(x, y) => pgSym.pv(pen, x + 5, y, 4.4, 3.6, null), "PV MODULE"], [(x, y) => {
+    pen.line(R, x, y, x + 5 - g - 0.75, y);
+    hBrk(x + 5, y);
+    pen.line(R, x + 5 + g + 0.75, y, x + 10, y);
+  }, "CIRCUIT BREAKER"], [(x, y) => {
+    pen.line(R, x, y, x + 2.6, y);
+    hFuse(x + 5, y);
+    pen.line(R, x + 7.4, y, x + 10, y);
+  }, "FUSE gPV / gG"], [(x, y) => spdS(x + 5, y + 2), "SPD"], [(x, y) => {
+    pen.line(W, x, y, x + 10, y);
+    ctH(x + 5, y);
+  }, "CT"], [(x, y) => meter(x + 5, y, 1.8), "kWh METER"], [(x, y) => pen.line(PE, x, y, x + 10, y), "EARTH (PE)"], [(x, y) => pen.line(CM, x, y, x + 10, y), "COMM. / BOX"]];
+  const legH = 4.5 + Math.ceil(legs.length / 2) * 4.6;
+  if (ty - (titleY + 9) > legH) {
+    pen.text(LB, RX0, ty - 1, 1.8, "LEGEND", {
       valign: 3
     });
-    let ly = ty - 7;
-    const lx = RX0 + 6,
-      tx = RX0 + 14;
-    const leg = (draw, s) => {
-      draw(ly);
-      pen.text(T, tx, ly, 1.6, s, {
+    legs.forEach((l, i) => {
+      const lx = RX0 + 1 + i % 2 * (RW / 2),
+        ly = ty - 7.2 - Math.floor(i / 2) * 4.6;
+      l[0](lx, ly);
+      pen.text(T, lx + 12, ly, 1.3, l[1], {
         valign: 2
       });
-      ly -= 5.2;
-    };
-    leg(y => pgSym.pv(pen, lx, y, 4.4, 3.6, null), "PV MODULE (FIRST ... LAST OF STRING)");
-    leg(y => {
-      pen.line(R, lx - 5, y, lx - g - 0.75, y);
-      hBrk(lx, y);
-      pen.line(R, lx + g + 0.75, y, lx + 5, y);
-    }, "CIRCUIT BREAKER (MCB / MCCB / RCCB)");
-    leg(y => {
-      pen.line(R, lx - 5, y, lx + 5, y);
-      hFuse(lx, y);
-    }, "FUSE gPV");
-    leg(y => {
-      pen.rect(S, lx - 1.1, y - 2.2, 2.2, 4.4);
-      pen.line(S, lx - 1.8, y - 1.4, lx + 1.8, y + 1.4);
-    }, "SURGE PROTECTIVE DEVICE (SPD)");
-    leg(y => pgSym.inverter(pen, lx, y, 7, 4.4), "INVERTER (DC / AC)");
-    leg(y => {
-      pen.line(W, lx - 5, y, lx + 5, y);
-      ctH(lx, y);
-    }, "CURRENT TRANSFORMER (CT)");
-    if (P.gf && !P.lsig) leg(y => {
-      pen.line(W, lx - 5, y, lx + 5, y);
-      pen.circle(S, lx, y, 1.7);
-    }, "ZCT + GFR (GROUND FAULT) TRIP MCCB");
-    leg(y => meter(lx, y, 2.2), "kWh METER");
-    leg(y => pgSym.ground(pen, lx, y + 1.3), "EARTH ELECTRODE");
-    leg(y => pen.line(CM, lx - 5, y, lx + 5, y), "COMMUNICATION / ENCLOSURE (DASHED)");
+    });
   }
-  pgSheetTitle(pen, (RX0 + RX1) / 2, titleY, "SINGLE LINE DIAGRAM - SOLAR PV SYSTEM", 4.6, RW - 2);
+  pgSheetTitle(pen, (RX0 + RX1) / 2, titleY, "SINGLE LINE DIAGRAM - SOLAR PV SYSTEM", 4.4, RW - 2);
 }
 function pgSldDraw(doc, sheet, M) {
   if (M.pro && M.mppt && M.mppt.rows.some(r => r.ins.length) && M.mode === "string" && !M.batt) return pgSldPro(doc, sheet, M);

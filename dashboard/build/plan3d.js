@@ -3278,23 +3278,46 @@ function p3SldModel(st, job, design) {
     const vocAt = n => Math.round((typeof scVocAt === "function" && PS.voc ? scVocAt(PS, tMin) : +PS.voc || 0) * n);
     const isc = +PS.isc || 0;
     const ivSp = inv.spec || {};
-    const home = job && job.type ? job.type === "home" : (+ivSp.kw || 0) <= 20;
+    const unitKw = Math.max.apply(null, units.map(u => (+u.w || unitW) / 1000));
+    const home = job && job.type ? job.type === "home" : unitKw <= 20;
+    const small = unitKw <= 20;
     const maxVdc = +ivSp.maxVdc || 1000;
     const SS = design.strings || [];
+    const nStr = SS.length;
     const ns = SS.map(s => s.n);
     const nMin = Math.min.apply(null, ns),
       nMax = Math.max.apply(null, ns);
-    const perM = Math.max.apply(null, M.mppt.rows.map(r => r.ins.length));
-    const fuse = typeof scStringFuse === "function" ? scStringFuse(PS, perM, SS.length) : {
-      need: false
-    };
-    const dcA = [10, 16, 20, 25, 32, 40, 50, 63].find(a => a >= isc * 1.25) || 63;
     const vocMax = vocAt(nMax);
+    const dcV = maxVdc > 1000 ? 1500 : 1000;
+    const fuseA = [10, 12, 15, 16, 20, 25, 30, 32, 40].find(a => a >= isc * 1.5) || 40;
+    const mcbA = [10, 16, 20, 25, 32, 40, 50, 63].find(a => a >= isc * 1.25) || 63;
     const ucpv = [600, 800, 1000, 1200, 1500].find(v => v >= Math.max(vocMax, 1)) || 1500;
     const auth = window.BOQ && window.BOQ.gridAuthOf && job ? window.BOQ.gridAuthOf(job) : "";
     const P2 = nPh === 3 ? "4P " : "2P ";
+    const mainA = p3At(totA * 1.25);
+    const gf = !(home && mainA <= 63);
+    const lsig = mainA >= 1000;
+    const pm = !home;
+    const spdBk = mainA > 125 ? "NH00 FUSE gG 32A" : home ? "MCB " + (nPh === 3 ? "3P" : "2P") + " 32A" : "";
+    const earthCu = mainA <= 100 ? 10 : mainA <= 200 ? 16 : mainA <= 400 ? 25 : mainA <= 500 ? 35 : mainA <= 800 ? 50 : mainA <= 1000 ? 70 : 95;
+    const pmt = job && job.permit || {},
+      sv = job && job.survey || {};
+    const exMain = pmt.mainAT ? pmt.mainAT + "AT" : sv.mainBreaker || "";
+    const ivBrk = units.map(u => {
+      const a = p3At(aOfUnit(u) * 1.25);
+      return home && a <= 63 ? "RCBO " + P2 + a + "A 100mA" : (a > 125 ? "MCCB " : "MCB ") + P2 + a + "AT";
+    });
+    const dcDev = small ? {
+      k: "mcb",
+      tag: "DC MCB 2P " + mcbA + "A " + (maxVdc > 800 ? 1000 : 800) + "VDC"
+    } : {
+      k: "fuse",
+      tag: "FUSE gPV " + fuseA + "A " + dcV + "VDC (+/-)"
+    };
+    const mainTxt = !gf ? "RCBO " + P2 + mainA + "A 100mA" : (lsig && mainA > 1250 ? "ACB " : "MCCB ") + P2 + mainA + "AT";
     M.pro = {
       home,
+      small,
       maxVdc,
       tMin,
       isc,
@@ -3302,26 +3325,50 @@ function p3SldModel(st, job, design) {
       vocAt,
       vocMax,
       auth: auth || "MEA/PEA",
-      fuse: fuse && fuse.need ? {
-        amp: fuse.amp || Math.ceil(isc * 1.5)
-      } : null,
+      dcDev,
+      dcSpdTag: "SPD T2 " + ucpv + "VDC",
       dcCable: "PV1-F (H1Z2Z2-K) 1x" + (isc * 1.56 > 40 ? 6 : 4) + " mm2 1.5kV DC",
-      dcMcb: "DC MCB " + dcA + "A 2P " + (maxVdc > 800 ? 1000 : 800) + "VDC",
-      dcSpd: ["DC SPD TYPE II", "Ucpv " + ucpv + "VDC", "In 20kA"],
-      ivBrk: units.map(u => {
-        const a = p3At(aOfUnit(u) * 1.25);
-        return home && a <= 63 ? "RCBO " + P2 + a + "A 100mA" : (a > 125 ? "MCCB " : "MCB ") + P2 + a + "AT";
-      }),
-      mainA: p3At(totA * 1.25),
-      gf: !(home && p3At(totA * 1.25) <= 63),
-      lsig: p3At(totA * 1.25) >= 1000,
+      acSpd: nPh === 3 ? ["AC SPD TYPE II 4P", "Uc 385V In 20kA", "Imax 40kA"] : ["AC SPD TYPE II 2P", "Uc 275V In 20kA", "Imax 40kA"],
+      spdBk,
+      ivBrk,
+      mainA,
+      mainTxt,
+      gf,
+      lsig,
+      pm,
+      pmCt: p3Ct(mainA) + "/5A",
       ivKw: units.map(u => Math.round((+u.w || unitW) / 100) / 10),
-      earthCu: Math.max(6, p3Cu(totA * 0.5, 2)),
+      earthCu,
+      exMain,
       phTxt: nPh === 3 ? "3PH 400V" : "1PH 230V"
     };
     const nTxt = nMin === nMax ? String(nMax) : nMin + "-" + nMax;
-    const r = (k, v, u) => v === 0 || v == null || v === "" ? null : [k, v, u];
-    M.pvData = [["BRAND", panel.brand], ["MODEL", panel.model], ["MAX. POWER (Pmax)", wp, "Wp"], r("OPEN CIRCUIT VOLTAGE (Voc)", PS.voc, "V"), r("SHORT CIRCUIT CURRENT (Isc)", PS.isc, "A"), r("MPP VOLTAGE (Vmp)", PS.vmp, "V"), r("MPP CURRENT (Imp)", PS.imp, "A"), ["#", "PV ARRAY"], ["TOTAL MODULES", nPanel, "PCS"], ["TOTAL STRINGS", SS.length, ""], ["MODULES PER STRING", nTxt, ""], r("STRING Voc @ " + tMin + "%%dC", vocMax, "V"), r("STRING Isc", isc, "A"), ["DC CAPACITY", dcKw.toFixed(2), "kWp"], ["AC CAPACITY", acKw.toFixed(2), "kW"], ["DC/AC RATIO", acKw ? (dcKw / acKw).toFixed(2) : "-", ""]].filter(Boolean);
+    const sp = (a, u) => a.every(v => v !== "" && v != null && v !== 0) ? a.join(" / ") + (u || "") : "";
+    const r = (k, v) => v === "" || v == null ? null : [k, v];
+    const ratio = acKw ? (dcKw / acKw).toFixed(2) : "-";
+    const mpIn = M.mppt.per ? M.mppt.per + " MPPT x " + (M.mppt.phys || 1) + " IN" : "";
+    M.pvData = [["#", "PV MODULE"], r("MODEL", panel.model), r("Pmax / Voc / Isc", sp([wp + "W", PS.voc + "V", PS.isc + "A"].filter(x => !/undefined|^0[VA]$/.test(x)))), r("Vmp / Imp", PS.vmp && PS.imp ? PS.vmp + "V / " + PS.imp + "A" : ""), ["#", "INVERTER"], r("MODEL", inv.model + (inv.model2 ? " + " + inv.model2 : "")), r("AC OUTPUT x QTY", unitKw + " kW " + (nPh === 3 ? "3PH" : "1PH") + " x " + units.length), r("MAX Vdc / MPPT RANGE", ivSp.mpptVmin && ivSp.mpptVmax ? maxVdc + " / " + ivSp.mpptVmin + "-" + ivSp.mpptVmax + " V" : maxVdc + " V"), r("MPPT / INPUT", mpIn), ["#", "PV ARRAY"], ["MODULES / STRINGS", nPanel + " PCS / " + nStr + " STR"], ["MODULES PER STRING", nTxt], r("STRING Voc @" + tMin + "%%dC", vocMax ? vocMax + " V  (MAX " + maxVdc + " V)" : ""), ["DC / AC", dcKw.toFixed(2) + " kWp / " + acKw.toFixed(2) + " kW (" + ratio + ")"]].filter(Boolean);
+    const nInv = units.length;
+    const S = [];
+    S.push(["PV MODULE", panel.model + " " + wp + "Wp", nPanel]);
+    S.push(["INVERTER", inv.model + " " + unitKw + "kW " + (nPh === 3 ? "3PH" : "1PH"), nInv]);
+    S.push(["DC BOX", "IP65 ENCLOSURE c/w PE BAR", nInv]);
+    S.push(dcDev.k === "fuse" ? ["STRING FUSE", "gPV " + fuseA + "A " + dcV + "VDC " + (dcV > 1000 ? "10x85" : "10x38") + " + HOLDER", nStr * 2] : ["DC MCB", dcDev.tag.replace(/^DC MCB /, ""), nStr]);
+    S.push(["DC SPD", "TYPE II Ucpv " + ucpv + "VDC In 20kA Imax 40kA", nStr]);
+    S.push(["MC4 CONNECTOR", "1500VDC IP68 (PAIR)", nStr * 2]);
+    if (nInv > 1) S.push(["AC BREAKER (INV.)", ivBrk[0], nInv]);
+    S.push(["AC SPD", M.pro.acSpd.join(" ").replace(/^AC SPD /, ""), 1]);
+    if (spdBk) S.push(["SPD BACK-UP", spdBk + (/FUSE/.test(spdBk) ? " + FUSE BASE" : ""), 1]);
+    S.push(["MAIN BREAKER", mainTxt + (lsig ? " LSIG" : gf ? " c/w SHUNT TRIP" : ""), 1]);
+    if (gf && !lsig) S.push(["GROUND FAULT", "ZCT + GFR (ADJ. 0.1-30A)", 1]);
+    if (pm) S.push(["POWER METER", "PM2230 + CT " + M.pro.pmCt + " + MCB 2P 6A", 1]);
+    S.push(["SMART METER / LOGGER", (inv.brand || "") + " (ZERO EXPORT / MONITOR)", 1]);
+    S.push(["MDB SOLAR BREAKER", M.mccb[0], 1]);
+    S.push(["DC CABLE", M.pro.dcCable, "-"]);
+    S.push(["AC CABLE", M.acCable.replace(/\s+/g, " "), "-"]);
+    S.push(["EARTH CABLE", "IEC01 THW(G) " + earthCu + " mm2 (GREEN/YELLOW)", "-"]);
+    S.push(["EARTH ROD", "COPPER BONDED 5/8\" x 2.4 m  R <= 5 OHM", 1]);
+    M.sched = S;
   }
   M.battData = M.batt ? [["BRAND", M.batt.brand], ["MODEL", M.batt.model], ["BATTERY ENERGY", M.batt.kwh, "kWh"], ["NOMINAL VOLTAGE", Vll, "VAC"], ["CHEMISTRY", sys.batt && sys.batt.chem || "LiFePO4"]] : [];
   M.equip = [{
