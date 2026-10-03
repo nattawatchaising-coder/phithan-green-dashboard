@@ -65,6 +65,59 @@ const SU_CSS = `
 .su-pick-row tbody tr[data-on="1"] td{background:var(--acs)}
 .su-pick-row tbody tr[data-on="1"] td:first-child{box-shadow:inset 2px 0 0 var(--ac)}
 
+/* ---- หน้าจัดสตริง: ผังซ้าย · แผงเครื่องมือขวา (แบบตัวแก้ 3D) ---- */
+.su-strs{display:grid;grid-template-columns:minmax(0,1fr) 300px;gap:12px;height:680px}
+.su-strs[data-full="1"]{position:fixed;inset:0;z-index:9000;height:auto;background:var(--bg);padding:12px}
+.su-strs-map{position:relative;min-width:0;min-height:0}
+.su-mode{position:absolute;left:10px;top:10px;z-index:2;display:flex;align-items:center;gap:7px;pointer-events:none;
+  background:var(--surface);box-shadow:var(--shadow-sm);border-radius:99px;padding:6px 12px 6px 9px;font-size:11.5px;font-weight:800;color:var(--text-1)}
+.su-mode .d{width:12px;height:12px;border-radius:99px;flex:0 0 auto}
+.su-mode i{font-style:normal;font-weight:600;color:var(--text-3)}
+.su-strs-side{display:flex;flex-direction:column;gap:10px;min-height:0;overflow-y:auto}
+.su-sec{background:var(--surface);box-shadow:var(--shadow-sm);border-radius:14px;padding:11px 12px;display:flex;flex-direction:column;gap:8px}
+.su-sec.grow{flex:1 1 220px;min-height:200px}
+.su-sec .hd{display:flex;align-items:center;gap:8px;font-size:11px;font-weight:800;color:var(--text-3)}
+.su-sec .hd b{font-size:13px;color:var(--text-1)}
+.su-sec .hd .sp{flex:1}
+.su-tools{display:grid;grid-template-columns:repeat(5,1fr);gap:4px;background:var(--surface2);box-shadow:var(--shadow-inset);border-radius:12px;padding:4px}
+.su-tool{display:flex;flex-direction:column;align-items:center;gap:3px;padding:7px 2px 6px;border:none;border-radius:9px;background:transparent;
+  cursor:pointer;font-family:inherit;color:var(--text-2);position:relative}
+.su-tool .g{font-size:17px;font-weight:800;line-height:1}
+.su-tool b{font-size:9.5px;font-weight:700;white-space:nowrap}
+.su-tool kbd{position:absolute;top:2px;right:4px;font-family:inherit;font-size:8.5px;font-weight:800;color:var(--text-3)}
+.su-tool:hover{color:var(--text-1)}
+.su-tool[data-on="1"]{background:var(--surface);box-shadow:var(--shadow-sm);color:var(--acd)}
+.su-dir{display:grid;grid-template-columns:1fr 1fr;gap:4px;background:var(--surface2);box-shadow:var(--shadow-inset);border-radius:11px;padding:4px}
+.su-dir button{border:none;border-radius:8px;background:transparent;padding:7px 4px;font-family:inherit;font-size:11.5px;font-weight:700;color:var(--text-2);cursor:pointer}
+.su-dir button[data-on="1"]{background:var(--surface);box-shadow:var(--shadow-sm);color:var(--acd)}
+.su-tdesc{font-size:11px;line-height:1.5;color:var(--text-2)}
+.su-hint{font-size:10px;line-height:1.5;color:var(--text-3)}
+.su-step{display:flex;align-items:center;gap:8px}
+.su-step button{width:32px;height:32px;border-radius:10px;border:none;background:var(--surface2);box-shadow:var(--shadow-inset);
+  font-size:17px;font-weight:800;color:var(--text-1);cursor:pointer;font-family:inherit}
+.su-step button:disabled{opacity:.35;cursor:default}
+.su-step .n{min-width:44px;text-align:center;font-size:22px;font-weight:800;color:var(--text-1);line-height:1}
+.su-step .u{font-size:11px;color:var(--text-3);font-weight:700}
+.su-cur{display:flex;gap:11px;align-items:center}
+.su-cur .sw{width:44px;height:44px;border-radius:13px;display:grid;place-items:center;color:#fff;font-weight:800;font-size:15px;flex:0 0 auto}
+.su-cur .t{display:flex;flex-direction:column;gap:2px;min-width:0}
+.su-cur .t b{font-size:14px;color:var(--text-1);display:flex;align-items:center;gap:6px}
+.su-cur .t i{font-style:normal;font-size:11px;color:var(--text-3);line-height:1.4}
+.su-tag{font-size:9.5px;font-weight:800;border-radius:99px;padding:2px 7px;background:var(--acs);color:var(--acd)}
+.su-row{display:flex;gap:6px;flex-wrap:wrap}
+.su-msg{font-size:11.5px;font-weight:700;color:var(--text-2);background:var(--surface2);box-shadow:var(--shadow-inset);
+  border-radius:10px;padding:7px 10px;display:flex;gap:8px;align-items:center}
+.su-slist{flex:1;min-height:0;overflow-y:auto;display:flex;flex-direction:column;gap:2px;margin:0 -6px;padding:0 6px}
+.su-srow{display:grid;grid-template-columns:10px 34px 1fr auto;gap:8px;align-items:center;padding:6px 8px;border:none;border-radius:9px;
+  background:transparent;cursor:pointer;font-family:inherit;font-size:11.5px;color:var(--text-2);text-align:left}
+.su-srow:hover{background:var(--surface2)}
+.su-srow[data-on="1"]{background:var(--surface2);box-shadow:var(--shadow-inset);color:var(--text-1)}
+.su-srow .d{width:10px;height:10px;border-radius:99px}
+.su-srow .a{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:var(--text-3)}
+.su-srow .ok{font-weight:800;color:var(--acd)}
+.su-srow .bad{font-weight:800;color:var(--tint-red-tx)}
+@media (max-width:900px){.su-strs{grid-template-columns:1fr;height:auto}.su-strs-map{height:460px}.su-strs[data-full="1"] .su-strs-map{height:60vh}}
+
 /* ---- แผ่นเลือกเนื้อหารายงาน ---- */
 .su-sheet-bg{position:absolute;inset:0;z-index:40;background:rgba(11,25,20,.42);backdrop-filter:blur(2px);
   display:grid;place-items:center;padding:26px;animation:suFade .16s ease}
@@ -384,7 +437,9 @@ function suPanelAngle(foot) {
   return Math.round(Math.atan2(best[1], best[0]) * 180 / Math.PI * 10) / 10;
 }
 
-function SuLayout2D({ foot, assign, active, onPaint, onPaintMany, height, labels, colorOf, unitName, onTap, paths, onErase, full, onFull, onFillBlock, sel }) {
+/* mode (ถ้าส่งมา) = พาเรนต์คุมโหมดเอง ("blk" | "seq" | "paint" | "box" | "hand") ปุ่มโหมดบนผังซ่อน — ใช้กับหน้าจัดสตริงที่มีแผงเครื่องมือข้าง */
+function SuLayout2D({ foot, assign, active, onPaint, onPaintMany, height, labels, colorOf, unitName, onTap, paths, onErase, full, onFull, onFillBlock, sel, mode }) {
+  const ctl = mode != null;
   /* เมาส์: ใช้ปุ่มซ้ายอย่างเดียวได้ครบ — ลากบนที่ว่าง = เลื่อนผังทุกโหมด (ยกเว้นโหมดลากกรอบ)
      ปุ่มกลางลาก = เลื่อน · คลิกขวาบนแผง = เอาออก (onErase) ยังใช้ได้สำหรับคนถนัด
      midRef = กำลังลากเลื่อนผังที่ไม่ได้มาจากโหมดเลื่อน (ปุ่มกลาง หรือกดบนที่ว่าง) */
@@ -392,9 +447,9 @@ function SuLayout2D({ foot, assign, active, onPaint, onPaintMany, height, labels
   const wrapRef = React.useRef(null);
   /* โหมด "ไล่ทีละสตริง" (มีเมื่อพาเรนต์ส่ง onTap): แตะแผงหนึ่งครั้ง = ได้ทั้งสตริงตามแนวเดินสาย
      ลากในโหมดนี้ = เลื่อนผัง (แตะ = ไม่ขยับเกิน 5 px) */
-  const [seq, setSeq] = React.useState(!!onTap);
+  const [seqI, setSeq] = React.useState(!!onTap);
   /* โหมด "จัดทั้งชุด": แตะแผงใบไหนก็ได้ในชุด = แบ่งแผงว่างทั้งชุดเป็นสตริงตามแนวเดินสาย */
-  const [blkMode, setBlkMode] = React.useState(false);
+  const [blkI, setBlkMode] = React.useState(false);
   const [showPath, setShowPath] = React.useState(true);
   const downRef = React.useRef(null);
   const svgRef = React.useRef(null);
@@ -440,7 +495,7 @@ function SuLayout2D({ foot, assign, active, onPaint, onPaintMany, height, labels
     return { x: (x0 + x1) / 2 - base.w * k / 2, y: (y0 + y1) / 2 - base.h * k / 2, w: base.w * k, h: base.h * k };
   }, [sig, rot]); // eslint-disable-line
   const v = view || fitV || base;
-  const [hand, setHand] = React.useState(false);   // โหมดลากเลื่อน (ปิด = ลากแล้วทาสีแผง)
+  const [handI, setHand] = React.useState(false);   // โหมดลากเลื่อน (ปิด = ลากแล้วทาสีแผง)
   const zoomed = Math.abs(v.w - base.w) > 0.001;
 
   /* ── แปลงหน่วยจอ ↔ หน่วยผัง ──
@@ -487,7 +542,19 @@ function SuLayout2D({ foot, assign, active, onPaint, onPaintMany, height, labels
      มาถึงในเฟรมเดียวกับ pointerdown (ลากเร็ว ๆ หรือจอสัมผัส) แล้วจะกลายเป็นลากไม่ติด */
   const dragRef = React.useRef(false);
 
-  const [box, setBox] = React.useState(false);            // โหมดลากกรอบเลือกยกบล็อก
+  const [boxI, setBox] = React.useState(false);            // โหมดลากกรอบเลือกยกบล็อก
+  /* Space ค้าง = ลากเลื่อนผังได้ทุกโหมด (แบบโปรแกรมวาดแบบทั่วไป) — โหมดทาสี/กรอบ แผงแน่นจนไม่มีที่ว่างให้จับลาก */
+  const [spaceOn, setSpaceOn] = React.useState(false);
+  React.useEffect(() => {
+    const typing = (e) => { const t = e.target, g = t && t.tagName; return g === "INPUT" || g === "TEXTAREA" || g === "SELECT" || (t && t.isContentEditable); };
+    const dn = (e) => { if (e.code === "Space" && !typing(e)) { e.preventDefault(); setSpaceOn(true); } };
+    const up = (e) => { if (e.code === "Space") setSpaceOn(false); };
+    const bl = () => setSpaceOn(false);
+    window.addEventListener("keydown", dn); window.addEventListener("keyup", up); window.addEventListener("blur", bl);
+    return () => { window.removeEventListener("keydown", dn); window.removeEventListener("keyup", up); window.removeEventListener("blur", bl); };
+  }, []);
+  const seq = ctl ? mode === "seq" : seqI, blkMode = ctl ? mode === "blk" : blkI;
+  const box = ctl ? mode === "box" : boxI, hand = ctl ? mode === "hand" : handI;
   const [rect, setRect] = React.useState(null);           // กรอบที่กำลังลาก (พิกัดเทียบกรอบ svg) — ไว้วาดให้เห็น
   /* ตัวจริงที่ใช้ตัดสินว่าแผงไหนอยู่ในกรอบต้องเก็บใน ref ด้วย
      state ของ React ยังไม่ทันอัปเดตถ้า pointermove กับ pointerup มาถึงในจังหวะเดียวกัน
@@ -524,7 +591,9 @@ function SuLayout2D({ foot, assign, active, onPaint, onPaintMany, height, labels
   const blkOn = blkMode && !!onFillBlock && active && !box && !hand;
   const seqOn = seq && !!onTap && active && !box && !hand && !blkOn;
   const tapOn = seqOn || blkOn;
-  const panning = (hand || !active || tapOn) && !box;
+  const panning = ((hand || !active || tapOn) && !box) || spaceOn;
+  /* มีสตริงที่เลือกอยู่และมีแผงแล้ว = สตริงอื่นจางลง ให้เห็นชัดว่ากำลังทำงานกับสตริงไหน */
+  const selHas = ctl && !!sel && foot.panels.some((q) => assign[q.uid] === sel);
 
   /* ลูกกลิ้ง = ซูมผัง ไม่ใช่เลื่อนหน้า
      ต้องผูกเองแบบ passive:false — React ผูก wheel ให้แบบ passive ซึ่งสั่ง preventDefault ไม่ได้
@@ -545,7 +614,9 @@ function SuLayout2D({ foot, assign, active, onPaint, onPaintMany, height, labels
     color: on ? "#fff" : "var(--text-2)", cursor: "pointer", fontFamily: "inherit", fontSize: 14, fontWeight: 800, lineHeight: 1 });
 
   return (
-    <div ref={wrapRef} style={{ position: "relative", borderRadius: 12, border: "1px solid var(--ln)", background: "var(--surface2)", overflow: "hidden", touchAction: "none" }}>
+    <div ref={wrapRef} style={ctl
+      ? { position: "relative", borderRadius: 14, background: "var(--surface2)", boxShadow: "var(--shadow-inset)", overflow: "hidden", touchAction: "none", height: "100%" }
+      : { position: "relative", borderRadius: 12, border: "1px solid var(--ln)", background: "var(--surface2)", overflow: "hidden", touchAction: "none" }}>
       {/* แถบซูม — ลอยมุมขวาบน ไม่กินพื้นที่ผัง */}
       <div style={{ position: "absolute", top: 8, right: 8, zIndex: 2, display: "flex", gap: 6, alignItems: "center" }}>
         {zoomed && (
@@ -560,29 +631,29 @@ function SuLayout2D({ foot, assign, active, onPaint, onPaintMany, height, labels
           <button type="button" onClick={() => setShowPath((x) => !x)} style={btn(showPath)}
             title={showPath ? "ซ่อนแนวเดินสายของแต่ละสตริง" : "แสดงแนวเดินสาย + จุดเริ่มของแต่ละสตริง"}>〰</button>
         )}
-        {active && onFillBlock && (
+        {!ctl && active && onFillBlock && (
           <button type="button" onClick={() => { setBlkMode(true); setBox(false); setHand(false); }} style={btn(blkOn)}
             title="จัดทั้งชุด: แตะแผงใบไหนก็ได้ในชุด = แบ่งแผงที่ยังว่างทั้งชุดเป็นสตริงตามแนวเดินสายให้ทีเดียว">▦</button>
         )}
-        {active && onTap && (
+        {!ctl && active && onTap && (
           <button type="button" onClick={() => { setSeq(true); setBlkMode(false); setBox(false); setHand(false); }} style={btn(seqOn)}
             title="ไล่ทีละสตริง: แตะแผงที่จะเริ่ม ระบบเก็บแผงต่อจากใบนั้นตามแนวแถวจนครบสตริงให้เอง · ลาก = เลื่อนผัง">⇣</button>
         )}
-        {active && onTap && (
+        {!ctl && active && onTap && (
           <button type="button" onClick={() => { setSeq(false); setBlkMode(false); setBox(false); setHand(false); }} style={btn(!tapOn && !box && !hand)}
             title="ทาทีละใบ: แตะหรือลากผ่านแผงเพื่อย้ายเข้าสตริงที่เลือก · ลากบนที่ว่าง = เลื่อนผัง">✎</button>
         )}
-        {active && onPaintMany && (
+        {!ctl && active && onPaintMany && (
           <button type="button" onClick={() => { setBox((x) => !x); setHand(false); }} style={btn(box)}
             title={box ? "ตอนนี้ลากเป็นกรอบเลือกทีละหลายใบ — กดเพื่อกลับไปทาทีละใบ" : "ลากกรอบเลือกแผงทีละหลายใบ"}>▢</button>
         )}
-        {active && (
+        {!ctl && active && (
           <button type="button" onClick={() => { setHand((x) => !x); setBox(false); }} style={btn(hand)}
             title={hand ? "ตอนนี้ลากเพื่อเลื่อนผัง — กดเพื่อกลับไปทาสีแผง" : "ลากเพื่อเลื่อนผัง (ไม่ทาสีแผง)"}>✥</button>
         )}
         <button type="button" onClick={() => zoomAt(1 / 1.4)} style={btn(false)} title="ซูมออก">−</button>
         <button type="button" onClick={() => zoomAt(1.4)} style={btn(false)} title="ซูมเข้า">+</button>
-        {onFull && (
+        {onFull && !ctl && (
           <button type="button" onClick={onFull} style={btn(!!full)}
             title={full ? "ย่อกลับ (Esc)" : "ขยายผังเต็มจอ"}>{full ? "⤡" : "⤢"}</button>
         )}
@@ -591,7 +662,7 @@ function SuLayout2D({ foot, assign, active, onPaint, onPaintMany, height, labels
 
       <svg ref={svgRef} viewBox={v.x + " " + v.y + " " + v.w + " " + v.h}
         style={{ width: "100%", height: height || 340, display: "block",
-          cursor: drag && (panning || midRef.current) ? "grabbing" : panning ? "grab" : "crosshair" }}
+          cursor: drag && (panning || midRef.current) ? "grabbing" : panning && (spaceOn || hand) ? "grab" : tapOn ? "pointer" : "crosshair" }}
         onPointerDown={(e) => {
           /* จับ pointer ไว้เพื่อให้ลากออกนอก svg แล้วยังทำงานต่อได้ — บางเบราว์เซอร์โยน error ถ้า pointer ไม่ active */
           try { e.currentTarget.setPointerCapture(e.pointerId); } catch (err) {}
@@ -674,9 +745,8 @@ function SuLayout2D({ foot, assign, active, onPaint, onPaintMany, height, labels
           const un = unitName || "สตริง";
           return (
             <polygon key={p.uid} data-uid={p.uid} points={p.pts.map((q) => q[0] + "," + q[1]).join(" ")}
-              fill={c ? c : "#CBD5E1"} fillOpacity={c ? 0.88 : 0.5}
-              stroke={on ? "#0F172A" : c ? "#fff" : "#94A3B8"} strokeWidth={on ? 0.09 : 0.035} strokeDasharray={c ? null : "0.12 0.09"}
-              style={{ cursor: tapOn ? "pointer" : active ? "crosshair" : "pointer" }}>
+              fill={c ? c : "#CBD5E1"} fillOpacity={c ? (selHas && !on ? 0.38 : 0.9) : 0.5}
+              stroke={on ? (ctl ? "var(--text-1)" : "#0F172A") : c ? "#fff" : "#94A3B8"} strokeWidth={on ? (ctl ? 0.11 : 0.09) : 0.035} strokeDasharray={c ? null : "0.12 0.09"}>
               <title>{p.roofName + " · " + p.key + (s ? " · " + un + " " + s : " · ยังไม่อยู่" + un + "ไหน")
                 + (labels && labels[p.uid] ? " · เฟส " + labels[p.uid] : "")}</title>
             </polygon>
@@ -727,6 +797,15 @@ function SuLayout2D({ foot, assign, active, onPaint, onPaintMany, height, labels
     </div>
   );
 }
+
+/* เครื่องมือของหน้าจัดสตริง · key = ปุ่มลัด · N ในคำอธิบาย = จำนวนแผงต่อสตริง */
+const SU_TOOLS = [
+  { k: "blk", key: "1", g: "▦", name: "ทั้งชุด", d: "แตะแผงใบไหนก็ได้ในชุด = แบ่งแผงที่ยังว่างทั้งชุดเป็นสตริงละ N แผงตามแนวเดินสาย" },
+  { k: "seq", key: "2", g: "⇣", name: "ทีละสตริง", d: "แตะแผงที่จะเริ่ม = ได้ทั้งสตริง N แผงตามแนวเดินสาย · แตะแผงที่มีสตริงแล้ว = เลือกสตริงนั้น · ลาก = เลื่อนผัง" },
+  { k: "paint", key: "3", g: "✎", name: "ทาทีละแผง", d: "แตะหรือลากผ่านแผง = ย้ายเข้าสตริงที่เลือก · ลากบนที่ว่าง = เลื่อนผัง" },
+  { k: "box", key: "4", g: "▢", name: "ลากกรอบ", d: "ลากกรอบคลุมหลายแผง = ย้ายเข้าสตริงที่เลือกทีเดียว" },
+  { k: "hand", key: "5", g: "✥", name: "เลื่อนผัง", d: "ลากเพื่อเลื่อนผังอย่างเดียว ไม่แตะแผง" },
+];
 
 /* ── กล่องชิปที่ยุบได้ ──
    ผังใหญ่มีสตริงเป็นร้อย (เคสจริง 256 สตริง) โชว์หมดทุกตัวหน้าจอยาวเป็นพันพิกเซล
@@ -2003,12 +2082,38 @@ function SolarWorkspace({ job, st, sys, onChange, onClose, snap }) {
   };
   /* ผังเต็มจอ — จัดสตริงงานใหญ่บนการ์ดสูง 340 px ซูม/เลื่อนลำบาก */
   const [bigMap, setBigMap] = React.useState(false);
+  /* โหมดเครื่องมือของผังจัดสตริง (SU_TOOLS) — ค่าเริ่ม "seq" ไล่ทีละสตริง
+     Esc: อยู่โหมดอื่น/โหมดเอาออก = กลับโหมดทีละสตริง · อยู่โหมดนี้แล้ว = ออกจากเต็มจอ · ปุ่ม 1–5 = เปลี่ยนโหมด */
+  const [tool, setTool] = React.useState("seq");
+  const keyRef = React.useRef({});
+  keyRef.current = { tool, bigMap, activeStr, nextStr };
   React.useEffect(() => {
-    if (!bigMap) return;
-    const k = (e) => { if (e.key === "Escape") { e.stopPropagation(); setBigMap(false); } };
+    if (isMicro || step !== 1) return;
+    const k = (e) => {
+      const t = e.target, g = t && t.tagName;
+      if (g === "INPUT" || g === "TEXTAREA" || g === "SELECT" || (t && t.isContentEditable)) return;
+      const K = keyRef.current;
+      if (e.key === "Escape") {
+        if (K.tool !== "seq" || K.activeStr === 0) {
+          e.stopPropagation(); e.preventDefault();
+          setTool("seq");
+          if (K.activeStr === 0) setActiveStr(K.nextStr);
+        } else if (K.bigMap) { e.stopPropagation(); setBigMap(false); }
+        return;
+      }
+      if (e.ctrlKey || e.metaKey || e.altKey) return;
+      const m = SU_TOOLS.find((x) => x.key === e.key);
+      if (m) setTool(m.k);
+    };
     window.addEventListener("keydown", k, true);
     return () => window.removeEventListener("keydown", k, true);
-  }, [bigMap]);
+  }, [isMicro, step]);
+  /* แถวที่เลือกในรายการสตริงเลื่อนมาให้เห็นเสมอ (สตริงเป็นร้อย) */
+  const slistRef = React.useRef(null);
+  React.useEffect(() => {
+    const el = slistRef.current && slistRef.current.querySelector('[data-on="1"]');
+    if (el && el.scrollIntoView) el.scrollIntoView({ block: "nearest" });
+  }, [activeStr]);
   /* เส้นเดินสายของแต่ละสตริง — เรียงแผงในสตริงตามลำดับแนวเดินสาย แล้วต่อจุดกึ่งกลาง */
   const wirePaths = React.useMemo(() => {
     if (isMicro) return [];
@@ -2813,97 +2918,135 @@ function SolarWorkspace({ job, st, sys, onChange, onClose, snap }) {
                   </div>
                 )}
 
-                {/* ── ผัง 2D: จัดแผงเข้าสตริงเองได้ ── */}
-                {!isMicro && (
-                  <div className="p3-card" style={bigMap ? { position: "fixed", inset: 0, zIndex: 9000, borderRadius: 0, border: "none",
-                    background: "var(--surface)", overflow: "auto", padding: "12px 16px" } : undefined}>
-                    <span className="p3-eb"><P3Icon name="plan" size={13} />ผังแผง 2 มิติ<span className="ln" />
-                      <span style={{ fontWeight: 600 }}>{isManual ? "แก้เอง" : "ระบบจัดให้"}</span>
-                      <button className="p3-b sm" style={{ marginLeft: 8 }} onClick={() => setBigMap((x) => !x)}
-                        title={bigMap ? "ย่อกลับ (Esc)" : "ขยายผังเต็มจอ"}>
-                        <P3Icon name={bigMap ? "check" : "plan"} size={13} />{bigMap ? "ย่อกลับ" : "เต็มจอ"}
-                      </button></span>
-                    {/* จานสี = เลือกสตริงที่จะทา แล้วแตะ/ลากบนแผงในผัง (ใช้ได้ทันที ไม่ต้องกดปุ่มก่อน)
-                        ผังใหญ่มีสตริงเป็นร้อย จึงย่อไว้ก่อน — ตัวที่เลือกอยู่จะถูกดึงมาให้เห็นเสมอ */}
-                    <SuChipBox cap={24} more="สตริง"
-                      keep={(plan && plan.strings ? plan.strings : []).findIndex((x) => x.id === activeStr)}
-                      nodes={(plan && plan.strings ? plan.strings : []).map((s) => (
-                        <button key={s.id} className="p3-chip" data-on={activeStr === s.id ? "1" : "0"}
-                          onClick={() => setActiveStr(s.id)}
-                          title={s.chk.ok ? "สตริง " + s.id + " · " + s.chk.band + " — กดแล้วแตะแผงในผังเพื่อย้ายเข้าสตริงนี้" : s.chk.fails.join(" · ")}
-                          style={{ borderColor: activeStr === s.id ? suColor(s.id) : "var(--ln2)",
-                            background: activeStr === s.id ? suColor(s.id) + "1E" : "var(--surface)",
-                            color: activeStr === s.id ? suColor(s.id) : "var(--text-2)" }}>
-                          <span className="dot" style={{ background: suColor(s.id), width: 9, height: 9 }} />
-                          สตริง {s.id} · <b>{s.n}</b>
-                          {!s.chk.ok && <span style={{ color: "var(--tint-red-tx)", fontWeight: 800 }}>!</span>}
-                          {s.mixed && <span style={{ color: "var(--tint-amber-tx)", fontWeight: 800 }}>⌇</span>}
-                        </button>
-                      ))} />
-                    <div style={{ display: "flex", gap: 6, flexWrap: "wrap", alignItems: "center", marginTop: 7 }}>
-                      <button className="p3-chip" onClick={() => setActiveStr(nextStr)} data-on={activeStr === nextStr ? "1" : "0"}
-                        title="เริ่มสตริงใหม่ แล้วแตะแผงที่จะใส่">
-                        <P3Icon name="plus" size={12} />สตริงใหม่
-                      </button>
-                      <button className="p3-chip" onClick={() => setActiveStr(0)} data-on={activeStr === 0 ? "1" : "0"}
-                        title="แตะแผงเพื่อเอาออกจากสตริง" style={{ borderStyle: "dashed" }}>
-                        <P3Icon name="trash" size={12} />เอาออก
-                      </button>
-                      {strHas(activeStr) && (
-                        <button className="p3-chip" onClick={() => dropStr(activeStr)} title="ปลดแผงทุกใบออกจากสตริงที่เลือก (ปุ่ม Delete)"
-                          style={{ color: "var(--tint-red-tx)" }}>
-                          <P3Icon name="trash" size={12} />ปลดสตริง {activeStr}
-                        </button>
-                      )}
-                      {/* ล้างทั้งผังในปุ่มเดียว — ของเดิมต้องเลือก "เอาออก" แล้วไล่แตะทีละแผง
-                          ผัง 4,584 แผงคือแตะสี่พันครั้ง ซึ่งเท่ากับทำไม่ได้ */}
-                      {Object.keys(effAssign || {}).length > 0 && (
-                        <button className="p3-chip" onClick={() => { set({ assign: {}, manual: true }); setActiveStr(1); }}
-                          title="เอาแผงออกจากสตริงทั้งหมด แล้วเริ่มจัดเองจากผังว่าง"
-                          style={{ borderStyle: "dashed", color: "var(--tint-red-tx)", borderColor: "var(--tint-red-tx)" }}>
-                          <P3Icon name="trash" size={12} />ล้างสตริงทั้งหมด
-                        </button>
-                      )}
-                      <span style={{ marginLeft: "auto", display: "flex", gap: 6 }}>
-                        {isManual && (
-                          <button className="p3-b sm" onClick={() => set({ assign: {}, manual: false })}
-                            title="ทิ้งที่แก้เองทั้งหมด กลับไปใช้ที่ระบบจัดให้">
-                            <P3Icon name="reset" size={13} />คืนค่าที่ระบบจัด
-                          </button>
-                        )}
-                        {!isManual && (
-                          <button className="p3-b sm" onClick={doAuto} title="ยึดการจัดชุดนี้ไว้ แล้วเริ่มแก้เอง">
-                            <P3Icon name="check" size={13} />ยึดชุดนี้ไว้แก้เอง
-                          </button>
-                        )}
-                      </span>
-                    </div>
-                    <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center", marginTop: 8, marginBottom: 8 }}>
-                      <span style={{ fontSize: 11.5, fontWeight: 700, color: "var(--text-3)" }}>แนวเดินสาย</span>
-                      <span className="p3-seg wide">
-                        {[["col", "↕ ตามแนวลาด (คอลัมน์)"], ["row", "↔ ขวางลาด (แถว)"]].map(([k, t]) => (
-                          <button key={k} type="button" data-on={strDir === k ? "1" : "0"} onClick={() => set({ strDir: k })}>{t}</button>
-                        ))}
-                      </span>
-                      <span style={{ fontSize: 11.5, color: "var(--text-3)" }}>สตริงละ <b style={{ color: "var(--text-1)" }}>{serN}</b> แผง</span>
-                    </div>
-                    {fillMsg && (
-                      <div style={{ fontSize: 11.5, fontWeight: 700, color: "var(--text-2)", background: "var(--surface2)",
-                        boxShadow: "var(--shadow-inset)", borderRadius: 8, padding: "6px 10px", marginBottom: 8, display: "flex", gap: 8, alignItems: "center" }}>
-                        <span style={{ flex: 1 }}>{fillMsg}</span>
-                        <button type="button" className="p3-b sm" onClick={() => setFillMsg("")}>ปิด</button>
+                {/* ── หน้าจัดสตริง: ผัง 2D ซ้าย · แผงเครื่องมือขวา ──
+                    ทุกอย่างที่ใช้จัดสตริงอยู่แผงขวาที่เดียว (แบบตัวแก้ 3D) ผังไม่มีปุ่มโหมดรก ๆ แล้ว
+                    รายการสตริงอยู่ล่างแผงขวาเลื่อนดูได้ — สตริงเป็นร้อยไม่ดันผังลงไป */}
+                {!isMicro && (() => {
+                  const strs = plan && plan.strings ? plan.strings : [];
+                  const cur = activeStr ? strs.find((x) => x.id === activeStr) : null;
+                  const T = SU_TOOLS.find((x) => x.k === tool) || SU_TOOLS[1];
+                  const asc = okSizes.slice().reverse();
+                  const si = asc.indexOf(serN);
+                  const stepSer = (d) => { const n = asc[si < 0 ? 0 : Math.max(0, Math.min(asc.length - 1, si + d))]; if (n) set({ series: n }); };
+                  return (
+                    <div className="su-strs" data-full={bigMap ? "1" : "0"}>
+                      <div className="su-strs-map">
+                        <SuLayout2D foot={foot} assign={effAssign} active={activeStr !== null} onPaint={paint} onPaintMany={paintMany}
+                          onTap={fillAt} paths={wirePaths} onErase={eraseAt} onFillBlock={fillBlock} sel={activeStr}
+                          mode={tool} height="100%" />
+                        <span className="su-mode">
+                          <span className="d" style={{ background: activeStr ? suColor(activeStr) : "var(--tint-red-tx)" }} />
+                          {T.g} {T.name} · {activeStr === 0 ? "เอาแผงออก" : "สตริง " + activeStr + (cur ? "" : " (ใหม่)")}
+                          {(tool !== "seq" || activeStr === 0) && <i>Esc กลับ</i>}
+                        </span>
                       </div>
-                    )}
-                    <SuLayout2D foot={foot} assign={effAssign} active={activeStr !== null} onPaint={paint} onPaintMany={paintMany}
-                      onTap={fillAt} paths={wirePaths} onErase={eraseAt} onFillBlock={fillBlock} sel={activeStr}
-                      full={bigMap} onFull={() => setBigMap((x) => !x)} height={bigMap ? "calc(100vh - 230px)" : undefined} />
-                    <span className="p3-note">
-                      {"▦ แตะแผงในชุด = จัดแผงว่างทั้งชุดเป็นสตริงละ " + serN + " แผง · ⇣ แตะแผงที่จะเริ่ม = ได้ทั้งสตริงตามแนวเดินสาย · แตะแผงที่มีสตริงแล้ว = เลือกสตริงนั้น กด Delete = ปลด · ✎ ทาทีละใบ · ▢ ลากกรอบ · ลากที่ว่าง = เลื่อน · ลูกกลิ้ง = ซูม"}
-                      {isManual ? " · กำลังใช้ผังที่แก้เอง" : " · ตอนนี้ระบบจัดให้ตามแนวเดินสาย (แก้ครั้งแรกระบบจะยึดผังนี้เป็นของคุณ)"}
-                      {" · มองจากด้านบน ทิศเหนืออยู่บน"}
-                    </span>
-                  </div>
-                )}
+                      <aside className="su-strs-side">
+                        {/* เครื่องมือ */}
+                        <div className="su-sec">
+                          <div className="hd"><b>จัดสตริง</b><span>{isManual ? "แก้เอง" : "ระบบจัดให้"}</span><span className="sp" />
+                            <button className="p3-b sm" onClick={() => setBigMap((x) => !x)} title={bigMap ? "ย่อกลับ (Esc)" : "ขยายเต็มจอ"}>
+                              <P3Icon name={bigMap ? "check" : "plan"} size={13} />{bigMap ? "ย่อกลับ" : "เต็มจอ"}
+                            </button>
+                          </div>
+                          <div className="su-tools">
+                            {SU_TOOLS.map((x) => (
+                              <button key={x.k} type="button" className="su-tool" data-on={tool === x.k ? "1" : "0"} onClick={() => setTool(x.k)}
+                                title={x.name + " (" + x.key + ")"}>
+                                <kbd>{x.key}</kbd><span className="g">{x.g}</span><b>{x.name}</b>
+                              </button>
+                            ))}
+                          </div>
+                          <span className="su-tdesc">{T.d.replace("N", serN)}</span>
+                          <span className="su-hint">Space ค้าง + ลาก = เลื่อนผังทุกโหมด · ลูกกลิ้ง = ซูม · คลิกขวาที่แผง = เอาออก · Esc = กลับโหมดทีละสตริง</span>
+                        </div>
+
+                        {/* ขนาดสตริง + แนวเดินสาย */}
+                        {range && (
+                          <div className="su-sec">
+                            <div className="hd">แผงต่อ 1 สตริง<span className="sp" />
+                              {userSer > 0
+                                ? <button className="p3-b sm" onClick={() => set({ series: null })} title="กลับไปให้ระบบเลือกขนาดที่ลงตัวกับแนวแผง">ให้ระบบเลือก</button>
+                                : <span>{alignN ? "ลงตัวกับแนวแผง" : "ระบบแนะนำ"}</span>}
+                            </div>
+                            <div className="su-step">
+                              <button type="button" onClick={() => stepSer(-1)} disabled={si <= 0} title="ลดจำนวนแผงต่อสตริง">−</button>
+                              <span className="n">{serN}</span>
+                              <button type="button" onClick={() => stepSer(1)} disabled={si < 0 || si >= asc.length - 1} title="เพิ่มจำนวนแผงต่อสตริง">+</button>
+                              <span className="u">แผง<br />ได้ {range.min}–{range.max}</span>
+                            </div>
+                            <div className="su-dir" title="แนวเดินสายของแต่ละสตริง">
+                              {[["col", "↕ ตามแนวลาด"], ["row", "↔ ขวางลาด"]].map(([k, t]) => (
+                                <button key={k} type="button" data-on={strDir === k ? "1" : "0"} onClick={() => set({ strDir: k })}>{t}</button>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+
+                        {/* สตริงที่กำลังทำงานด้วย — เห็นชัดว่าแตะต่อไปจะลงสตริงไหน */}
+                        <div className="su-sec">
+                          <div className="hd">กำลังทำงานกับ</div>
+                          <div className="su-cur">
+                            <span className="sw" style={{ background: activeStr ? suColor(activeStr) : "var(--tint-red-tx)" }}>
+                              {activeStr ? activeStr : <P3Icon name="trash" size={16} />}
+                            </span>
+                            <div className="t">
+                              <b>{activeStr === 0 ? "เอาแผงออก" : "สตริง " + activeStr}{activeStr !== 0 && !cur && <span className="su-tag">ใหม่</span>}</b>
+                              <i>{activeStr === 0 ? "แตะแผง = เอาออกจากสตริง"
+                                : cur ? cur.n + " แผง · " + (cur.addr || "ยังไม่มีขั้วว่าง") + " · " + (cur.chk.ok ? cur.chk.band : "ไม่ผ่าน")
+                                : "ยังไม่มีแผง — แตะแผงบนผังเพื่อเริ่ม"}</i>
+                            </div>
+                          </div>
+                          <div className="su-row">
+                            <button className="p3-b sm" onClick={() => setActiveStr(nextStr)} disabled={activeStr === nextStr} title="เริ่มสตริงใหม่">
+                              <P3Icon name="plus" size={12} />สตริงใหม่
+                            </button>
+                            <button className={"p3-b sm" + (activeStr === 0 ? " pri" : "")} onClick={() => setActiveStr(activeStr === 0 ? nextStr : 0)}
+                              title="แตะแผงเพื่อเอาออกจากสตริง">
+                              <P3Icon name="trash" size={12} />เอาออก
+                            </button>
+                            {strHas(activeStr) && (
+                              <button className="p3-b sm" onClick={() => dropStr(activeStr)} title="ปลดแผงทุกใบออกจากสตริงนี้ (Delete)"
+                                style={{ color: "var(--tint-red-tx)" }}>ปลดสตริงนี้</button>
+                            )}
+                          </div>
+                          {fillMsg && (
+                            <div className="su-msg"><span style={{ flex: 1 }}>{fillMsg}</span>
+                              <button type="button" className="p3-b sm" onClick={() => setFillMsg("")}>ปิด</button></div>
+                          )}
+                        </div>
+
+                        {/* รายการสตริงทั้งหมด — เลื่อนดูได้ แตะ = เลือก */}
+                        <div className="su-sec grow">
+                          <div className="hd">สตริงทั้งหมด<span className="sp" /><span>{strs.length} สตริง · {plan ? plan.panels : 0} แผง</span></div>
+                          <div className="su-slist" ref={slistRef}>
+                            {strs.map((x) => (
+                              <button key={x.id} type="button" className="su-srow" data-on={activeStr === x.id ? "1" : "0"} onClick={() => setActiveStr(x.id)}
+                                title={x.chk.ok ? x.label : x.chk.fails.join(" · ")}>
+                                <span className="d" style={{ background: suColor(x.id) }} />
+                                <b>#{x.id}</b>
+                                <span className="a">{x.n} แผง · {x.addr || "ไม่มีขั้ว"}{x.mixed ? " · ต่างทิศ" : ""}</span>
+                                <span className={x.chk.ok ? "ok" : "bad"}>{x.chk.ok ? "✓" : "!"}</span>
+                              </button>
+                            ))}
+                            {!strs.length && <span className="su-hint">ยังไม่มีสตริง — เลือก ▦ แล้วแตะชุดแผง หรือ ⇣ แล้วแตะแผงที่จะเริ่ม</span>}
+                          </div>
+                          <div className="su-row" style={{ paddingTop: 2 }}>
+                            {isManual
+                              ? <button className="p3-b sm" onClick={() => set({ assign: {}, manual: false })} title="ทิ้งที่แก้เองทั้งหมด กลับไปใช้ที่ระบบจัดให้">
+                                  <P3Icon name="reset" size={12} />คืนค่าที่ระบบจัด</button>
+                              : <button className="p3-b sm" onClick={doAuto} title="ยึดการจัดชุดนี้ไว้ แล้วเริ่มแก้เอง">
+                                  <P3Icon name="check" size={12} />ยึดชุดนี้ไว้แก้เอง</button>}
+                            {Object.keys(effAssign || {}).length > 0 && (
+                              <button className="p3-b sm" onClick={() => { set({ assign: {}, manual: true }); setActiveStr(1); }}
+                                title="เอาแผงออกจากสตริงทั้งหมด แล้วเริ่มจัดเองจากผังว่าง" style={{ color: "var(--tint-red-tx)" }}>
+                                <P3Icon name="trash" size={12} />ล้างทั้งหมด</button>
+                            )}
+                          </div>
+                        </div>
+                      </aside>
+                    </div>
+                  );
+                })()}
 
                 {!isMicro && plan && (
                   <div className="p3-card">

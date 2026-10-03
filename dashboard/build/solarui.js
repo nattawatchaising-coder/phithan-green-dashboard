@@ -60,6 +60,59 @@ const SU_CSS = `
 .su-pick-row tbody tr[data-on="1"] td{background:var(--acs)}
 .su-pick-row tbody tr[data-on="1"] td:first-child{box-shadow:inset 2px 0 0 var(--ac)}
 
+/* ---- หน้าจัดสตริง: ผังซ้าย · แผงเครื่องมือขวา (แบบตัวแก้ 3D) ---- */
+.su-strs{display:grid;grid-template-columns:minmax(0,1fr) 300px;gap:12px;height:680px}
+.su-strs[data-full="1"]{position:fixed;inset:0;z-index:9000;height:auto;background:var(--bg);padding:12px}
+.su-strs-map{position:relative;min-width:0;min-height:0}
+.su-mode{position:absolute;left:10px;top:10px;z-index:2;display:flex;align-items:center;gap:7px;pointer-events:none;
+  background:var(--surface);box-shadow:var(--shadow-sm);border-radius:99px;padding:6px 12px 6px 9px;font-size:11.5px;font-weight:800;color:var(--text-1)}
+.su-mode .d{width:12px;height:12px;border-radius:99px;flex:0 0 auto}
+.su-mode i{font-style:normal;font-weight:600;color:var(--text-3)}
+.su-strs-side{display:flex;flex-direction:column;gap:10px;min-height:0;overflow-y:auto}
+.su-sec{background:var(--surface);box-shadow:var(--shadow-sm);border-radius:14px;padding:11px 12px;display:flex;flex-direction:column;gap:8px}
+.su-sec.grow{flex:1 1 220px;min-height:200px}
+.su-sec .hd{display:flex;align-items:center;gap:8px;font-size:11px;font-weight:800;color:var(--text-3)}
+.su-sec .hd b{font-size:13px;color:var(--text-1)}
+.su-sec .hd .sp{flex:1}
+.su-tools{display:grid;grid-template-columns:repeat(5,1fr);gap:4px;background:var(--surface2);box-shadow:var(--shadow-inset);border-radius:12px;padding:4px}
+.su-tool{display:flex;flex-direction:column;align-items:center;gap:3px;padding:7px 2px 6px;border:none;border-radius:9px;background:transparent;
+  cursor:pointer;font-family:inherit;color:var(--text-2);position:relative}
+.su-tool .g{font-size:17px;font-weight:800;line-height:1}
+.su-tool b{font-size:9.5px;font-weight:700;white-space:nowrap}
+.su-tool kbd{position:absolute;top:2px;right:4px;font-family:inherit;font-size:8.5px;font-weight:800;color:var(--text-3)}
+.su-tool:hover{color:var(--text-1)}
+.su-tool[data-on="1"]{background:var(--surface);box-shadow:var(--shadow-sm);color:var(--acd)}
+.su-dir{display:grid;grid-template-columns:1fr 1fr;gap:4px;background:var(--surface2);box-shadow:var(--shadow-inset);border-radius:11px;padding:4px}
+.su-dir button{border:none;border-radius:8px;background:transparent;padding:7px 4px;font-family:inherit;font-size:11.5px;font-weight:700;color:var(--text-2);cursor:pointer}
+.su-dir button[data-on="1"]{background:var(--surface);box-shadow:var(--shadow-sm);color:var(--acd)}
+.su-tdesc{font-size:11px;line-height:1.5;color:var(--text-2)}
+.su-hint{font-size:10px;line-height:1.5;color:var(--text-3)}
+.su-step{display:flex;align-items:center;gap:8px}
+.su-step button{width:32px;height:32px;border-radius:10px;border:none;background:var(--surface2);box-shadow:var(--shadow-inset);
+  font-size:17px;font-weight:800;color:var(--text-1);cursor:pointer;font-family:inherit}
+.su-step button:disabled{opacity:.35;cursor:default}
+.su-step .n{min-width:44px;text-align:center;font-size:22px;font-weight:800;color:var(--text-1);line-height:1}
+.su-step .u{font-size:11px;color:var(--text-3);font-weight:700}
+.su-cur{display:flex;gap:11px;align-items:center}
+.su-cur .sw{width:44px;height:44px;border-radius:13px;display:grid;place-items:center;color:#fff;font-weight:800;font-size:15px;flex:0 0 auto}
+.su-cur .t{display:flex;flex-direction:column;gap:2px;min-width:0}
+.su-cur .t b{font-size:14px;color:var(--text-1);display:flex;align-items:center;gap:6px}
+.su-cur .t i{font-style:normal;font-size:11px;color:var(--text-3);line-height:1.4}
+.su-tag{font-size:9.5px;font-weight:800;border-radius:99px;padding:2px 7px;background:var(--acs);color:var(--acd)}
+.su-row{display:flex;gap:6px;flex-wrap:wrap}
+.su-msg{font-size:11.5px;font-weight:700;color:var(--text-2);background:var(--surface2);box-shadow:var(--shadow-inset);
+  border-radius:10px;padding:7px 10px;display:flex;gap:8px;align-items:center}
+.su-slist{flex:1;min-height:0;overflow-y:auto;display:flex;flex-direction:column;gap:2px;margin:0 -6px;padding:0 6px}
+.su-srow{display:grid;grid-template-columns:10px 34px 1fr auto;gap:8px;align-items:center;padding:6px 8px;border:none;border-radius:9px;
+  background:transparent;cursor:pointer;font-family:inherit;font-size:11.5px;color:var(--text-2);text-align:left}
+.su-srow:hover{background:var(--surface2)}
+.su-srow[data-on="1"]{background:var(--surface2);box-shadow:var(--shadow-inset);color:var(--text-1)}
+.su-srow .d{width:10px;height:10px;border-radius:99px}
+.su-srow .a{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:var(--text-3)}
+.su-srow .ok{font-weight:800;color:var(--acd)}
+.su-srow .bad{font-weight:800;color:var(--tint-red-tx)}
+@media (max-width:900px){.su-strs{grid-template-columns:1fr;height:auto}.su-strs-map{height:460px}.su-strs[data-full="1"] .su-strs-map{height:60vh}}
+
 /* ---- แผ่นเลือกเนื้อหารายงาน ---- */
 .su-sheet-bg{position:absolute;inset:0;z-index:40;background:rgba(11,25,20,.42);backdrop-filter:blur(2px);
   display:grid;place-items:center;padding:26px;animation:suFade .16s ease}
@@ -604,12 +657,14 @@ function SuLayout2D({
   full,
   onFull,
   onFillBlock,
-  sel
+  sel,
+  mode
 }) {
+  const ctl = mode != null;
   const midRef = React.useRef(false);
   const wrapRef = React.useRef(null);
-  const [seq, setSeq] = React.useState(!!onTap);
-  const [blkMode, setBlkMode] = React.useState(false);
+  const [seqI, setSeq] = React.useState(!!onTap);
+  const [blkI, setBlkMode] = React.useState(false);
   const [showPath, setShowPath] = React.useState(true);
   const downRef = React.useRef(null);
   const svgRef = React.useRef(null);
@@ -666,7 +721,7 @@ function SuLayout2D({
     };
   }, [sig, rot]);
   const v = view || fitV || base;
-  const [hand, setHand] = React.useState(false);
+  const [handI, setHand] = React.useState(false);
   const zoomed = Math.abs(v.w - base.w) > 0.001;
   const scaleOf = () => {
     const r = svgRef.current ? svgRef.current.getBoundingClientRect() : null;
@@ -731,7 +786,37 @@ function SuLayout2D({
   };
   const last = React.useRef(null);
   const dragRef = React.useRef(false);
-  const [box, setBox] = React.useState(false);
+  const [boxI, setBox] = React.useState(false);
+  const [spaceOn, setSpaceOn] = React.useState(false);
+  React.useEffect(() => {
+    const typing = e => {
+      const t = e.target,
+        g = t && t.tagName;
+      return g === "INPUT" || g === "TEXTAREA" || g === "SELECT" || t && t.isContentEditable;
+    };
+    const dn = e => {
+      if (e.code === "Space" && !typing(e)) {
+        e.preventDefault();
+        setSpaceOn(true);
+      }
+    };
+    const up = e => {
+      if (e.code === "Space") setSpaceOn(false);
+    };
+    const bl = () => setSpaceOn(false);
+    window.addEventListener("keydown", dn);
+    window.addEventListener("keyup", up);
+    window.addEventListener("blur", bl);
+    return () => {
+      window.removeEventListener("keydown", dn);
+      window.removeEventListener("keyup", up);
+      window.removeEventListener("blur", bl);
+    };
+  }, []);
+  const seq = ctl ? mode === "seq" : seqI,
+    blkMode = ctl ? mode === "blk" : blkI;
+  const box = ctl ? mode === "box" : boxI,
+    hand = ctl ? mode === "hand" : handI;
   const [rect, setRect] = React.useState(null);
   const rectRef = React.useRef(null);
   const straighten = () => {
@@ -764,7 +849,8 @@ function SuLayout2D({
   const blkOn = blkMode && !!onFillBlock && active && !box && !hand;
   const seqOn = seq && !!onTap && active && !box && !hand && !blkOn;
   const tapOn = seqOn || blkOn;
-  const panning = (hand || !active || tapOn) && !box;
+  const panning = (hand || !active || tapOn) && !box || spaceOn;
+  const selHas = ctl && !!sel && foot.panels.some(q => assign[q.uid] === sel);
   React.useEffect(() => {
     const el = wrapRef.current;
     if (!el) return;
@@ -794,7 +880,15 @@ function SuLayout2D({
   });
   return React.createElement("div", {
     ref: wrapRef,
-    style: {
+    style: ctl ? {
+      position: "relative",
+      borderRadius: 14,
+      background: "var(--surface2)",
+      boxShadow: "var(--shadow-inset)",
+      overflow: "hidden",
+      touchAction: "none",
+      height: "100%"
+    } : {
       position: "relative",
       borderRadius: 12,
       border: "1px solid var(--ln)",
@@ -832,7 +926,7 @@ function SuLayout2D({
     onClick: () => setShowPath(x => !x),
     style: btn(showPath),
     title: showPath ? "ซ่อนแนวเดินสายของแต่ละสตริง" : "แสดงแนวเดินสาย + จุดเริ่มของแต่ละสตริง"
-  }, "\u3030"), active && onFillBlock && React.createElement("button", {
+  }, "\u3030"), !ctl && active && onFillBlock && React.createElement("button", {
     type: "button",
     onClick: () => {
       setBlkMode(true);
@@ -841,7 +935,7 @@ function SuLayout2D({
     },
     style: btn(blkOn),
     title: "\u0E08\u0E31\u0E14\u0E17\u0E31\u0E49\u0E07\u0E0A\u0E38\u0E14: \u0E41\u0E15\u0E30\u0E41\u0E1C\u0E07\u0E43\u0E1A\u0E44\u0E2B\u0E19\u0E01\u0E47\u0E44\u0E14\u0E49\u0E43\u0E19\u0E0A\u0E38\u0E14 = \u0E41\u0E1A\u0E48\u0E07\u0E41\u0E1C\u0E07\u0E17\u0E35\u0E48\u0E22\u0E31\u0E07\u0E27\u0E48\u0E32\u0E07\u0E17\u0E31\u0E49\u0E07\u0E0A\u0E38\u0E14\u0E40\u0E1B\u0E47\u0E19\u0E2A\u0E15\u0E23\u0E34\u0E07\u0E15\u0E32\u0E21\u0E41\u0E19\u0E27\u0E40\u0E14\u0E34\u0E19\u0E2A\u0E32\u0E22\u0E43\u0E2B\u0E49\u0E17\u0E35\u0E40\u0E14\u0E35\u0E22\u0E27"
-  }, "\u25A6"), active && onTap && React.createElement("button", {
+  }, "\u25A6"), !ctl && active && onTap && React.createElement("button", {
     type: "button",
     onClick: () => {
       setSeq(true);
@@ -851,7 +945,7 @@ function SuLayout2D({
     },
     style: btn(seqOn),
     title: "\u0E44\u0E25\u0E48\u0E17\u0E35\u0E25\u0E30\u0E2A\u0E15\u0E23\u0E34\u0E07: \u0E41\u0E15\u0E30\u0E41\u0E1C\u0E07\u0E17\u0E35\u0E48\u0E08\u0E30\u0E40\u0E23\u0E34\u0E48\u0E21 \u0E23\u0E30\u0E1A\u0E1A\u0E40\u0E01\u0E47\u0E1A\u0E41\u0E1C\u0E07\u0E15\u0E48\u0E2D\u0E08\u0E32\u0E01\u0E43\u0E1A\u0E19\u0E31\u0E49\u0E19\u0E15\u0E32\u0E21\u0E41\u0E19\u0E27\u0E41\u0E16\u0E27\u0E08\u0E19\u0E04\u0E23\u0E1A\u0E2A\u0E15\u0E23\u0E34\u0E07\u0E43\u0E2B\u0E49\u0E40\u0E2D\u0E07 \xB7 \u0E25\u0E32\u0E01 = \u0E40\u0E25\u0E37\u0E48\u0E2D\u0E19\u0E1C\u0E31\u0E07"
-  }, "\u21E3"), active && onTap && React.createElement("button", {
+  }, "\u21E3"), !ctl && active && onTap && React.createElement("button", {
     type: "button",
     onClick: () => {
       setSeq(false);
@@ -861,7 +955,7 @@ function SuLayout2D({
     },
     style: btn(!tapOn && !box && !hand),
     title: "\u0E17\u0E32\u0E17\u0E35\u0E25\u0E30\u0E43\u0E1A: \u0E41\u0E15\u0E30\u0E2B\u0E23\u0E37\u0E2D\u0E25\u0E32\u0E01\u0E1C\u0E48\u0E32\u0E19\u0E41\u0E1C\u0E07\u0E40\u0E1E\u0E37\u0E48\u0E2D\u0E22\u0E49\u0E32\u0E22\u0E40\u0E02\u0E49\u0E32\u0E2A\u0E15\u0E23\u0E34\u0E07\u0E17\u0E35\u0E48\u0E40\u0E25\u0E37\u0E2D\u0E01 \xB7 \u0E25\u0E32\u0E01\u0E1A\u0E19\u0E17\u0E35\u0E48\u0E27\u0E48\u0E32\u0E07 = \u0E40\u0E25\u0E37\u0E48\u0E2D\u0E19\u0E1C\u0E31\u0E07"
-  }, "\u270E"), active && onPaintMany && React.createElement("button", {
+  }, "\u270E"), !ctl && active && onPaintMany && React.createElement("button", {
     type: "button",
     onClick: () => {
       setBox(x => !x);
@@ -869,7 +963,7 @@ function SuLayout2D({
     },
     style: btn(box),
     title: box ? "ตอนนี้ลากเป็นกรอบเลือกทีละหลายใบ — กดเพื่อกลับไปทาทีละใบ" : "ลากกรอบเลือกแผงทีละหลายใบ"
-  }, "\u25A2"), active && React.createElement("button", {
+  }, "\u25A2"), !ctl && active && React.createElement("button", {
     type: "button",
     onClick: () => {
       setHand(x => !x);
@@ -887,7 +981,7 @@ function SuLayout2D({
     onClick: () => zoomAt(1.4),
     style: btn(false),
     title: "\u0E0B\u0E39\u0E21\u0E40\u0E02\u0E49\u0E32"
-  }, "+"), onFull && React.createElement("button", {
+  }, "+"), onFull && !ctl && React.createElement("button", {
     type: "button",
     onClick: onFull,
     style: btn(!!full),
@@ -911,7 +1005,7 @@ function SuLayout2D({
       width: "100%",
       height: height || 340,
       display: "block",
-      cursor: drag && (panning || midRef.current) ? "grabbing" : panning ? "grab" : "crosshair"
+      cursor: drag && (panning || midRef.current) ? "grabbing" : panning && (spaceOn || hand) ? "grab" : tapOn ? "pointer" : "crosshair"
     },
     onPointerDown: e => {
       try {
@@ -1057,13 +1151,10 @@ function SuLayout2D({
       "data-uid": p.uid,
       points: p.pts.map(q => q[0] + "," + q[1]).join(" "),
       fill: c ? c : "#CBD5E1",
-      fillOpacity: c ? 0.88 : 0.5,
-      stroke: on ? "#0F172A" : c ? "#fff" : "#94A3B8",
-      strokeWidth: on ? 0.09 : 0.035,
-      strokeDasharray: c ? null : "0.12 0.09",
-      style: {
-        cursor: tapOn ? "pointer" : active ? "crosshair" : "pointer"
-      }
+      fillOpacity: c ? selHas && !on ? 0.38 : 0.9 : 0.5,
+      stroke: on ? ctl ? "var(--text-1)" : "#0F172A" : c ? "#fff" : "#94A3B8",
+      strokeWidth: on ? ctl ? 0.11 : 0.09 : 0.035,
+      strokeDasharray: c ? null : "0.12 0.09"
     }, React.createElement("title", null, p.roofName + " · " + p.key + (s ? " · " + un + " " + s : " · ยังไม่อยู่" + un + "ไหน") + (labels && labels[p.uid] ? " · เฟส " + labels[p.uid] : "")));
   }), showPath && paths && paths.map(q => q.pts.length > 0 && React.createElement("g", {
     key: "P" + q.id,
@@ -1160,6 +1251,37 @@ function SuLayout2D({
     }
   }));
 }
+const SU_TOOLS = [{
+  k: "blk",
+  key: "1",
+  g: "▦",
+  name: "ทั้งชุด",
+  d: "แตะแผงใบไหนก็ได้ในชุด = แบ่งแผงที่ยังว่างทั้งชุดเป็นสตริงละ N แผงตามแนวเดินสาย"
+}, {
+  k: "seq",
+  key: "2",
+  g: "⇣",
+  name: "ทีละสตริง",
+  d: "แตะแผงที่จะเริ่ม = ได้ทั้งสตริง N แผงตามแนวเดินสาย · แตะแผงที่มีสตริงแล้ว = เลือกสตริงนั้น · ลาก = เลื่อนผัง"
+}, {
+  k: "paint",
+  key: "3",
+  g: "✎",
+  name: "ทาทีละแผง",
+  d: "แตะหรือลากผ่านแผง = ย้ายเข้าสตริงที่เลือก · ลากบนที่ว่าง = เลื่อนผัง"
+}, {
+  k: "box",
+  key: "4",
+  g: "▢",
+  name: "ลากกรอบ",
+  d: "ลากกรอบคลุมหลายแผง = ย้ายเข้าสตริงที่เลือกทีเดียว"
+}, {
+  k: "hand",
+  key: "5",
+  g: "✥",
+  name: "เลื่อนผัง",
+  d: "ลากเพื่อเลื่อนผังอย่างเดียว ไม่แตะแผง"
+}];
 function SuChipBox({
   nodes,
   cap,
@@ -3770,17 +3892,47 @@ function SolarWorkspace({
     });
   };
   const [bigMap, setBigMap] = React.useState(false);
+  const [tool, setTool] = React.useState("seq");
+  const keyRef = React.useRef({});
+  keyRef.current = {
+    tool,
+    bigMap,
+    activeStr,
+    nextStr
+  };
   React.useEffect(() => {
-    if (!bigMap) return;
+    if (isMicro || step !== 1) return;
     const k = e => {
+      const t = e.target,
+        g = t && t.tagName;
+      if (g === "INPUT" || g === "TEXTAREA" || g === "SELECT" || t && t.isContentEditable) return;
+      const K = keyRef.current;
       if (e.key === "Escape") {
-        e.stopPropagation();
-        setBigMap(false);
+        if (K.tool !== "seq" || K.activeStr === 0) {
+          e.stopPropagation();
+          e.preventDefault();
+          setTool("seq");
+          if (K.activeStr === 0) setActiveStr(K.nextStr);
+        } else if (K.bigMap) {
+          e.stopPropagation();
+          setBigMap(false);
+        }
+        return;
       }
+      if (e.ctrlKey || e.metaKey || e.altKey) return;
+      const m = SU_TOOLS.find(x => x.key === e.key);
+      if (m) setTool(m.k);
     };
     window.addEventListener("keydown", k, true);
     return () => window.removeEventListener("keydown", k, true);
-  }, [bigMap]);
+  }, [isMicro, step]);
+  const slistRef = React.useRef(null);
+  React.useEffect(() => {
+    const el = slistRef.current && slistRef.current.querySelector('[data-on="1"]');
+    if (el && el.scrollIntoView) el.scrollIntoView({
+      block: "nearest"
+    });
+  }, [activeStr]);
   const wirePaths = React.useMemo(() => {
     if (isMicro) return [];
     const ctr = {};
@@ -5472,222 +5624,230 @@ function SolarWorkspace({
     title: "\u0E01\u0E25\u0E31\u0E1A\u0E44\u0E1B\u0E43\u0E2B\u0E49\u0E23\u0E30\u0E1A\u0E1A\u0E40\u0E25\u0E37\u0E2D\u0E01\u0E02\u0E19\u0E32\u0E14\u0E17\u0E35\u0E48\u0E25\u0E07\u0E15\u0E31\u0E27\u0E01\u0E31\u0E1A\u0E41\u0E19\u0E27\u0E41\u0E1C\u0E07"
   }, "\u0E43\u0E2B\u0E49\u0E23\u0E30\u0E1A\u0E1A\u0E40\u0E25\u0E37\u0E2D\u0E01"), React.createElement("span", {
     className: "p3-stat"
-  }, "\u0E2A\u0E15\u0E23\u0E34\u0E07\u0E15\u0E48\u0E2D MPPT ", React.createElement("b", null, scStringsPerMppt(panel, inv))))), !isMicro && React.createElement("div", {
-    className: "p3-card",
-    style: bigMap ? {
-      position: "fixed",
-      inset: 0,
-      zIndex: 9000,
-      borderRadius: 0,
-      border: "none",
-      background: "var(--surface)",
-      overflow: "auto",
-      padding: "12px 16px"
-    } : undefined
-  }, React.createElement("span", {
-    className: "p3-eb"
-  }, React.createElement(P3Icon, {
-    name: "plan",
-    size: 13
-  }), "\u0E1C\u0E31\u0E07\u0E41\u0E1C\u0E07 2 \u0E21\u0E34\u0E15\u0E34", React.createElement("span", {
-    className: "ln"
-  }), React.createElement("span", {
-    style: {
-      fontWeight: 600
-    }
-  }, isManual ? "แก้เอง" : "ระบบจัดให้"), React.createElement("button", {
-    className: "p3-b sm",
-    style: {
-      marginLeft: 8
-    },
-    onClick: () => setBigMap(x => !x),
-    title: bigMap ? "ย่อกลับ (Esc)" : "ขยายผังเต็มจอ"
-  }, React.createElement(P3Icon, {
-    name: bigMap ? "check" : "plan",
-    size: 13
-  }), bigMap ? "ย่อกลับ" : "เต็มจอ")), React.createElement(SuChipBox, {
-    cap: 24,
-    more: "\u0E2A\u0E15\u0E23\u0E34\u0E07",
-    keep: (plan && plan.strings ? plan.strings : []).findIndex(x => x.id === activeStr),
-    nodes: (plan && plan.strings ? plan.strings : []).map(s => React.createElement("button", {
-      key: s.id,
-      className: "p3-chip",
-      "data-on": activeStr === s.id ? "1" : "0",
-      onClick: () => setActiveStr(s.id),
-      title: s.chk.ok ? "สตริง " + s.id + " · " + s.chk.band + " — กดแล้วแตะแผงในผังเพื่อย้ายเข้าสตริงนี้" : s.chk.fails.join(" · "),
-      style: {
-        borderColor: activeStr === s.id ? suColor(s.id) : "var(--ln2)",
-        background: activeStr === s.id ? suColor(s.id) + "1E" : "var(--surface)",
-        color: activeStr === s.id ? suColor(s.id) : "var(--text-2)"
-      }
-    }, React.createElement("span", {
-      className: "dot",
-      style: {
-        background: suColor(s.id),
-        width: 9,
-        height: 9
-      }
-    }), "\u0E2A\u0E15\u0E23\u0E34\u0E07 ", s.id, " \xB7 ", React.createElement("b", null, s.n), !s.chk.ok && React.createElement("span", {
-      style: {
-        color: "var(--tint-red-tx)",
-        fontWeight: 800
-      }
-    }, "!"), s.mixed && React.createElement("span", {
-      style: {
-        color: "var(--tint-amber-tx)",
-        fontWeight: 800
-      }
-    }, "\u2307")))
-  }), React.createElement("div", {
-    style: {
-      display: "flex",
-      gap: 6,
-      flexWrap: "wrap",
-      alignItems: "center",
-      marginTop: 7
-    }
-  }, React.createElement("button", {
-    className: "p3-chip",
-    onClick: () => setActiveStr(nextStr),
-    "data-on": activeStr === nextStr ? "1" : "0",
-    title: "\u0E40\u0E23\u0E34\u0E48\u0E21\u0E2A\u0E15\u0E23\u0E34\u0E07\u0E43\u0E2B\u0E21\u0E48 \u0E41\u0E25\u0E49\u0E27\u0E41\u0E15\u0E30\u0E41\u0E1C\u0E07\u0E17\u0E35\u0E48\u0E08\u0E30\u0E43\u0E2A\u0E48"
-  }, React.createElement(P3Icon, {
-    name: "plus",
-    size: 12
-  }), "\u0E2A\u0E15\u0E23\u0E34\u0E07\u0E43\u0E2B\u0E21\u0E48"), React.createElement("button", {
-    className: "p3-chip",
-    onClick: () => setActiveStr(0),
-    "data-on": activeStr === 0 ? "1" : "0",
-    title: "\u0E41\u0E15\u0E30\u0E41\u0E1C\u0E07\u0E40\u0E1E\u0E37\u0E48\u0E2D\u0E40\u0E2D\u0E32\u0E2D\u0E2D\u0E01\u0E08\u0E32\u0E01\u0E2A\u0E15\u0E23\u0E34\u0E07",
-    style: {
-      borderStyle: "dashed"
-    }
-  }, React.createElement(P3Icon, {
-    name: "trash",
-    size: 12
-  }), "\u0E40\u0E2D\u0E32\u0E2D\u0E2D\u0E01"), strHas(activeStr) && React.createElement("button", {
-    className: "p3-chip",
-    onClick: () => dropStr(activeStr),
-    title: "\u0E1B\u0E25\u0E14\u0E41\u0E1C\u0E07\u0E17\u0E38\u0E01\u0E43\u0E1A\u0E2D\u0E2D\u0E01\u0E08\u0E32\u0E01\u0E2A\u0E15\u0E23\u0E34\u0E07\u0E17\u0E35\u0E48\u0E40\u0E25\u0E37\u0E2D\u0E01 (\u0E1B\u0E38\u0E48\u0E21 Delete)",
-    style: {
-      color: "var(--tint-red-tx)"
-    }
-  }, React.createElement(P3Icon, {
-    name: "trash",
-    size: 12
-  }), "\u0E1B\u0E25\u0E14\u0E2A\u0E15\u0E23\u0E34\u0E07 ", activeStr), Object.keys(effAssign || {}).length > 0 && React.createElement("button", {
-    className: "p3-chip",
-    onClick: () => {
-      set({
-        assign: {},
-        manual: true
+  }, "\u0E2A\u0E15\u0E23\u0E34\u0E07\u0E15\u0E48\u0E2D MPPT ", React.createElement("b", null, scStringsPerMppt(panel, inv))))), !isMicro && (() => {
+    const strs = plan && plan.strings ? plan.strings : [];
+    const cur = activeStr ? strs.find(x => x.id === activeStr) : null;
+    const T = SU_TOOLS.find(x => x.k === tool) || SU_TOOLS[1];
+    const asc = okSizes.slice().reverse();
+    const si = asc.indexOf(serN);
+    const stepSer = d => {
+      const n = asc[si < 0 ? 0 : Math.max(0, Math.min(asc.length - 1, si + d))];
+      if (n) set({
+        series: n
       });
-      setActiveStr(1);
-    },
-    title: "\u0E40\u0E2D\u0E32\u0E41\u0E1C\u0E07\u0E2D\u0E2D\u0E01\u0E08\u0E32\u0E01\u0E2A\u0E15\u0E23\u0E34\u0E07\u0E17\u0E31\u0E49\u0E07\u0E2B\u0E21\u0E14 \u0E41\u0E25\u0E49\u0E27\u0E40\u0E23\u0E34\u0E48\u0E21\u0E08\u0E31\u0E14\u0E40\u0E2D\u0E07\u0E08\u0E32\u0E01\u0E1C\u0E31\u0E07\u0E27\u0E48\u0E32\u0E07",
-    style: {
-      borderStyle: "dashed",
-      color: "var(--tint-red-tx)",
-      borderColor: "var(--tint-red-tx)"
-    }
-  }, React.createElement(P3Icon, {
-    name: "trash",
-    size: 12
-  }), "\u0E25\u0E49\u0E32\u0E07\u0E2A\u0E15\u0E23\u0E34\u0E07\u0E17\u0E31\u0E49\u0E07\u0E2B\u0E21\u0E14"), React.createElement("span", {
-    style: {
-      marginLeft: "auto",
-      display: "flex",
-      gap: 6
-    }
-  }, isManual && React.createElement("button", {
-    className: "p3-b sm",
-    onClick: () => set({
-      assign: {},
-      manual: false
-    }),
-    title: "\u0E17\u0E34\u0E49\u0E07\u0E17\u0E35\u0E48\u0E41\u0E01\u0E49\u0E40\u0E2D\u0E07\u0E17\u0E31\u0E49\u0E07\u0E2B\u0E21\u0E14 \u0E01\u0E25\u0E31\u0E1A\u0E44\u0E1B\u0E43\u0E0A\u0E49\u0E17\u0E35\u0E48\u0E23\u0E30\u0E1A\u0E1A\u0E08\u0E31\u0E14\u0E43\u0E2B\u0E49"
-  }, React.createElement(P3Icon, {
-    name: "reset",
-    size: 13
-  }), "\u0E04\u0E37\u0E19\u0E04\u0E48\u0E32\u0E17\u0E35\u0E48\u0E23\u0E30\u0E1A\u0E1A\u0E08\u0E31\u0E14"), !isManual && React.createElement("button", {
-    className: "p3-b sm",
-    onClick: doAuto,
-    title: "\u0E22\u0E36\u0E14\u0E01\u0E32\u0E23\u0E08\u0E31\u0E14\u0E0A\u0E38\u0E14\u0E19\u0E35\u0E49\u0E44\u0E27\u0E49 \u0E41\u0E25\u0E49\u0E27\u0E40\u0E23\u0E34\u0E48\u0E21\u0E41\u0E01\u0E49\u0E40\u0E2D\u0E07"
-  }, React.createElement(P3Icon, {
-    name: "check",
-    size: 13
-  }), "\u0E22\u0E36\u0E14\u0E0A\u0E38\u0E14\u0E19\u0E35\u0E49\u0E44\u0E27\u0E49\u0E41\u0E01\u0E49\u0E40\u0E2D\u0E07"))), React.createElement("div", {
-    style: {
-      display: "flex",
-      gap: 8,
-      flexWrap: "wrap",
-      alignItems: "center",
-      marginTop: 8,
-      marginBottom: 8
-    }
-  }, React.createElement("span", {
-    style: {
-      fontSize: 11.5,
-      fontWeight: 700,
-      color: "var(--text-3)"
-    }
-  }, "\u0E41\u0E19\u0E27\u0E40\u0E14\u0E34\u0E19\u0E2A\u0E32\u0E22"), React.createElement("span", {
-    className: "p3-seg wide"
-  }, [["col", "↕ ตามแนวลาด (คอลัมน์)"], ["row", "↔ ขวางลาด (แถว)"]].map(([k, t]) => React.createElement("button", {
-    key: k,
-    type: "button",
-    "data-on": strDir === k ? "1" : "0",
-    onClick: () => set({
-      strDir: k
-    })
-  }, t))), React.createElement("span", {
-    style: {
-      fontSize: 11.5,
-      color: "var(--text-3)"
-    }
-  }, "\u0E2A\u0E15\u0E23\u0E34\u0E07\u0E25\u0E30 ", React.createElement("b", {
-    style: {
-      color: "var(--text-1)"
-    }
-  }, serN), " \u0E41\u0E1C\u0E07")), fillMsg && React.createElement("div", {
-    style: {
-      fontSize: 11.5,
-      fontWeight: 700,
-      color: "var(--text-2)",
-      background: "var(--surface2)",
-      boxShadow: "var(--shadow-inset)",
-      borderRadius: 8,
-      padding: "6px 10px",
-      marginBottom: 8,
-      display: "flex",
-      gap: 8,
-      alignItems: "center"
-    }
-  }, React.createElement("span", {
-    style: {
-      flex: 1
-    }
-  }, fillMsg), React.createElement("button", {
-    type: "button",
-    className: "p3-b sm",
-    onClick: () => setFillMsg("")
-  }, "\u0E1B\u0E34\u0E14")), React.createElement(SuLayout2D, {
-    foot: foot,
-    assign: effAssign,
-    active: activeStr !== null,
-    onPaint: paint,
-    onPaintMany: paintMany,
-    onTap: fillAt,
-    paths: wirePaths,
-    onErase: eraseAt,
-    onFillBlock: fillBlock,
-    sel: activeStr,
-    full: bigMap,
-    onFull: () => setBigMap(x => !x),
-    height: bigMap ? "calc(100vh - 230px)" : undefined
-  }), React.createElement("span", {
-    className: "p3-note"
-  }, "▦ แตะแผงในชุด = จัดแผงว่างทั้งชุดเป็นสตริงละ " + serN + " แผง · ⇣ แตะแผงที่จะเริ่ม = ได้ทั้งสตริงตามแนวเดินสาย · แตะแผงที่มีสตริงแล้ว = เลือกสตริงนั้น กด Delete = ปลด · ✎ ทาทีละใบ · ▢ ลากกรอบ · ลากที่ว่าง = เลื่อน · ลูกกลิ้ง = ซูม", isManual ? " · กำลังใช้ผังที่แก้เอง" : " · ตอนนี้ระบบจัดให้ตามแนวเดินสาย (แก้ครั้งแรกระบบจะยึดผังนี้เป็นของคุณ)", " · มองจากด้านบน ทิศเหนืออยู่บน")), !isMicro && plan && React.createElement("div", {
+    };
+    return React.createElement("div", {
+      className: "su-strs",
+      "data-full": bigMap ? "1" : "0"
+    }, React.createElement("div", {
+      className: "su-strs-map"
+    }, React.createElement(SuLayout2D, {
+      foot: foot,
+      assign: effAssign,
+      active: activeStr !== null,
+      onPaint: paint,
+      onPaintMany: paintMany,
+      onTap: fillAt,
+      paths: wirePaths,
+      onErase: eraseAt,
+      onFillBlock: fillBlock,
+      sel: activeStr,
+      mode: tool,
+      height: "100%"
+    }), React.createElement("span", {
+      className: "su-mode"
+    }, React.createElement("span", {
+      className: "d",
+      style: {
+        background: activeStr ? suColor(activeStr) : "var(--tint-red-tx)"
+      }
+    }), T.g, " ", T.name, " \xB7 ", activeStr === 0 ? "เอาแผงออก" : "สตริง " + activeStr + (cur ? "" : " (ใหม่)"), (tool !== "seq" || activeStr === 0) && React.createElement("i", null, "Esc \u0E01\u0E25\u0E31\u0E1A"))), React.createElement("aside", {
+      className: "su-strs-side"
+    }, React.createElement("div", {
+      className: "su-sec"
+    }, React.createElement("div", {
+      className: "hd"
+    }, React.createElement("b", null, "\u0E08\u0E31\u0E14\u0E2A\u0E15\u0E23\u0E34\u0E07"), React.createElement("span", null, isManual ? "แก้เอง" : "ระบบจัดให้"), React.createElement("span", {
+      className: "sp"
+    }), React.createElement("button", {
+      className: "p3-b sm",
+      onClick: () => setBigMap(x => !x),
+      title: bigMap ? "ย่อกลับ (Esc)" : "ขยายเต็มจอ"
+    }, React.createElement(P3Icon, {
+      name: bigMap ? "check" : "plan",
+      size: 13
+    }), bigMap ? "ย่อกลับ" : "เต็มจอ")), React.createElement("div", {
+      className: "su-tools"
+    }, SU_TOOLS.map(x => React.createElement("button", {
+      key: x.k,
+      type: "button",
+      className: "su-tool",
+      "data-on": tool === x.k ? "1" : "0",
+      onClick: () => setTool(x.k),
+      title: x.name + " (" + x.key + ")"
+    }, React.createElement("kbd", null, x.key), React.createElement("span", {
+      className: "g"
+    }, x.g), React.createElement("b", null, x.name)))), React.createElement("span", {
+      className: "su-tdesc"
+    }, T.d.replace("N", serN)), React.createElement("span", {
+      className: "su-hint"
+    }, "Space \u0E04\u0E49\u0E32\u0E07 + \u0E25\u0E32\u0E01 = \u0E40\u0E25\u0E37\u0E48\u0E2D\u0E19\u0E1C\u0E31\u0E07\u0E17\u0E38\u0E01\u0E42\u0E2B\u0E21\u0E14 \xB7 \u0E25\u0E39\u0E01\u0E01\u0E25\u0E34\u0E49\u0E07 = \u0E0B\u0E39\u0E21 \xB7 \u0E04\u0E25\u0E34\u0E01\u0E02\u0E27\u0E32\u0E17\u0E35\u0E48\u0E41\u0E1C\u0E07 = \u0E40\u0E2D\u0E32\u0E2D\u0E2D\u0E01 \xB7 Esc = \u0E01\u0E25\u0E31\u0E1A\u0E42\u0E2B\u0E21\u0E14\u0E17\u0E35\u0E25\u0E30\u0E2A\u0E15\u0E23\u0E34\u0E07")), range && React.createElement("div", {
+      className: "su-sec"
+    }, React.createElement("div", {
+      className: "hd"
+    }, "\u0E41\u0E1C\u0E07\u0E15\u0E48\u0E2D 1 \u0E2A\u0E15\u0E23\u0E34\u0E07", React.createElement("span", {
+      className: "sp"
+    }), userSer > 0 ? React.createElement("button", {
+      className: "p3-b sm",
+      onClick: () => set({
+        series: null
+      }),
+      title: "\u0E01\u0E25\u0E31\u0E1A\u0E44\u0E1B\u0E43\u0E2B\u0E49\u0E23\u0E30\u0E1A\u0E1A\u0E40\u0E25\u0E37\u0E2D\u0E01\u0E02\u0E19\u0E32\u0E14\u0E17\u0E35\u0E48\u0E25\u0E07\u0E15\u0E31\u0E27\u0E01\u0E31\u0E1A\u0E41\u0E19\u0E27\u0E41\u0E1C\u0E07"
+    }, "\u0E43\u0E2B\u0E49\u0E23\u0E30\u0E1A\u0E1A\u0E40\u0E25\u0E37\u0E2D\u0E01") : React.createElement("span", null, alignN ? "ลงตัวกับแนวแผง" : "ระบบแนะนำ")), React.createElement("div", {
+      className: "su-step"
+    }, React.createElement("button", {
+      type: "button",
+      onClick: () => stepSer(-1),
+      disabled: si <= 0,
+      title: "\u0E25\u0E14\u0E08\u0E33\u0E19\u0E27\u0E19\u0E41\u0E1C\u0E07\u0E15\u0E48\u0E2D\u0E2A\u0E15\u0E23\u0E34\u0E07"
+    }, "\u2212"), React.createElement("span", {
+      className: "n"
+    }, serN), React.createElement("button", {
+      type: "button",
+      onClick: () => stepSer(1),
+      disabled: si < 0 || si >= asc.length - 1,
+      title: "\u0E40\u0E1E\u0E34\u0E48\u0E21\u0E08\u0E33\u0E19\u0E27\u0E19\u0E41\u0E1C\u0E07\u0E15\u0E48\u0E2D\u0E2A\u0E15\u0E23\u0E34\u0E07"
+    }, "+"), React.createElement("span", {
+      className: "u"
+    }, "\u0E41\u0E1C\u0E07", React.createElement("br", null), "\u0E44\u0E14\u0E49 ", range.min, "\u2013", range.max)), React.createElement("div", {
+      className: "su-dir",
+      title: "\u0E41\u0E19\u0E27\u0E40\u0E14\u0E34\u0E19\u0E2A\u0E32\u0E22\u0E02\u0E2D\u0E07\u0E41\u0E15\u0E48\u0E25\u0E30\u0E2A\u0E15\u0E23\u0E34\u0E07"
+    }, [["col", "↕ ตามแนวลาด"], ["row", "↔ ขวางลาด"]].map(([k, t]) => React.createElement("button", {
+      key: k,
+      type: "button",
+      "data-on": strDir === k ? "1" : "0",
+      onClick: () => set({
+        strDir: k
+      })
+    }, t)))), React.createElement("div", {
+      className: "su-sec"
+    }, React.createElement("div", {
+      className: "hd"
+    }, "\u0E01\u0E33\u0E25\u0E31\u0E07\u0E17\u0E33\u0E07\u0E32\u0E19\u0E01\u0E31\u0E1A"), React.createElement("div", {
+      className: "su-cur"
+    }, React.createElement("span", {
+      className: "sw",
+      style: {
+        background: activeStr ? suColor(activeStr) : "var(--tint-red-tx)"
+      }
+    }, activeStr ? activeStr : React.createElement(P3Icon, {
+      name: "trash",
+      size: 16
+    })), React.createElement("div", {
+      className: "t"
+    }, React.createElement("b", null, activeStr === 0 ? "เอาแผงออก" : "สตริง " + activeStr, activeStr !== 0 && !cur && React.createElement("span", {
+      className: "su-tag"
+    }, "\u0E43\u0E2B\u0E21\u0E48")), React.createElement("i", null, activeStr === 0 ? "แตะแผง = เอาออกจากสตริง" : cur ? cur.n + " แผง · " + (cur.addr || "ยังไม่มีขั้วว่าง") + " · " + (cur.chk.ok ? cur.chk.band : "ไม่ผ่าน") : "ยังไม่มีแผง — แตะแผงบนผังเพื่อเริ่ม"))), React.createElement("div", {
+      className: "su-row"
+    }, React.createElement("button", {
+      className: "p3-b sm",
+      onClick: () => setActiveStr(nextStr),
+      disabled: activeStr === nextStr,
+      title: "\u0E40\u0E23\u0E34\u0E48\u0E21\u0E2A\u0E15\u0E23\u0E34\u0E07\u0E43\u0E2B\u0E21\u0E48"
+    }, React.createElement(P3Icon, {
+      name: "plus",
+      size: 12
+    }), "\u0E2A\u0E15\u0E23\u0E34\u0E07\u0E43\u0E2B\u0E21\u0E48"), React.createElement("button", {
+      className: "p3-b sm" + (activeStr === 0 ? " pri" : ""),
+      onClick: () => setActiveStr(activeStr === 0 ? nextStr : 0),
+      title: "\u0E41\u0E15\u0E30\u0E41\u0E1C\u0E07\u0E40\u0E1E\u0E37\u0E48\u0E2D\u0E40\u0E2D\u0E32\u0E2D\u0E2D\u0E01\u0E08\u0E32\u0E01\u0E2A\u0E15\u0E23\u0E34\u0E07"
+    }, React.createElement(P3Icon, {
+      name: "trash",
+      size: 12
+    }), "\u0E40\u0E2D\u0E32\u0E2D\u0E2D\u0E01"), strHas(activeStr) && React.createElement("button", {
+      className: "p3-b sm",
+      onClick: () => dropStr(activeStr),
+      title: "\u0E1B\u0E25\u0E14\u0E41\u0E1C\u0E07\u0E17\u0E38\u0E01\u0E43\u0E1A\u0E2D\u0E2D\u0E01\u0E08\u0E32\u0E01\u0E2A\u0E15\u0E23\u0E34\u0E07\u0E19\u0E35\u0E49 (Delete)",
+      style: {
+        color: "var(--tint-red-tx)"
+      }
+    }, "\u0E1B\u0E25\u0E14\u0E2A\u0E15\u0E23\u0E34\u0E07\u0E19\u0E35\u0E49")), fillMsg && React.createElement("div", {
+      className: "su-msg"
+    }, React.createElement("span", {
+      style: {
+        flex: 1
+      }
+    }, fillMsg), React.createElement("button", {
+      type: "button",
+      className: "p3-b sm",
+      onClick: () => setFillMsg("")
+    }, "\u0E1B\u0E34\u0E14"))), React.createElement("div", {
+      className: "su-sec grow"
+    }, React.createElement("div", {
+      className: "hd"
+    }, "\u0E2A\u0E15\u0E23\u0E34\u0E07\u0E17\u0E31\u0E49\u0E07\u0E2B\u0E21\u0E14", React.createElement("span", {
+      className: "sp"
+    }), React.createElement("span", null, strs.length, " \u0E2A\u0E15\u0E23\u0E34\u0E07 \xB7 ", plan ? plan.panels : 0, " \u0E41\u0E1C\u0E07")), React.createElement("div", {
+      className: "su-slist",
+      ref: slistRef
+    }, strs.map(x => React.createElement("button", {
+      key: x.id,
+      type: "button",
+      className: "su-srow",
+      "data-on": activeStr === x.id ? "1" : "0",
+      onClick: () => setActiveStr(x.id),
+      title: x.chk.ok ? x.label : x.chk.fails.join(" · ")
+    }, React.createElement("span", {
+      className: "d",
+      style: {
+        background: suColor(x.id)
+      }
+    }), React.createElement("b", null, "#", x.id), React.createElement("span", {
+      className: "a"
+    }, x.n, " \u0E41\u0E1C\u0E07 \xB7 ", x.addr || "ไม่มีขั้ว", x.mixed ? " · ต่างทิศ" : ""), React.createElement("span", {
+      className: x.chk.ok ? "ok" : "bad"
+    }, x.chk.ok ? "✓" : "!"))), !strs.length && React.createElement("span", {
+      className: "su-hint"
+    }, "\u0E22\u0E31\u0E07\u0E44\u0E21\u0E48\u0E21\u0E35\u0E2A\u0E15\u0E23\u0E34\u0E07 \u2014 \u0E40\u0E25\u0E37\u0E2D\u0E01 \u25A6 \u0E41\u0E25\u0E49\u0E27\u0E41\u0E15\u0E30\u0E0A\u0E38\u0E14\u0E41\u0E1C\u0E07 \u0E2B\u0E23\u0E37\u0E2D \u21E3 \u0E41\u0E25\u0E49\u0E27\u0E41\u0E15\u0E30\u0E41\u0E1C\u0E07\u0E17\u0E35\u0E48\u0E08\u0E30\u0E40\u0E23\u0E34\u0E48\u0E21")), React.createElement("div", {
+      className: "su-row",
+      style: {
+        paddingTop: 2
+      }
+    }, isManual ? React.createElement("button", {
+      className: "p3-b sm",
+      onClick: () => set({
+        assign: {},
+        manual: false
+      }),
+      title: "\u0E17\u0E34\u0E49\u0E07\u0E17\u0E35\u0E48\u0E41\u0E01\u0E49\u0E40\u0E2D\u0E07\u0E17\u0E31\u0E49\u0E07\u0E2B\u0E21\u0E14 \u0E01\u0E25\u0E31\u0E1A\u0E44\u0E1B\u0E43\u0E0A\u0E49\u0E17\u0E35\u0E48\u0E23\u0E30\u0E1A\u0E1A\u0E08\u0E31\u0E14\u0E43\u0E2B\u0E49"
+    }, React.createElement(P3Icon, {
+      name: "reset",
+      size: 12
+    }), "\u0E04\u0E37\u0E19\u0E04\u0E48\u0E32\u0E17\u0E35\u0E48\u0E23\u0E30\u0E1A\u0E1A\u0E08\u0E31\u0E14") : React.createElement("button", {
+      className: "p3-b sm",
+      onClick: doAuto,
+      title: "\u0E22\u0E36\u0E14\u0E01\u0E32\u0E23\u0E08\u0E31\u0E14\u0E0A\u0E38\u0E14\u0E19\u0E35\u0E49\u0E44\u0E27\u0E49 \u0E41\u0E25\u0E49\u0E27\u0E40\u0E23\u0E34\u0E48\u0E21\u0E41\u0E01\u0E49\u0E40\u0E2D\u0E07"
+    }, React.createElement(P3Icon, {
+      name: "check",
+      size: 12
+    }), "\u0E22\u0E36\u0E14\u0E0A\u0E38\u0E14\u0E19\u0E35\u0E49\u0E44\u0E27\u0E49\u0E41\u0E01\u0E49\u0E40\u0E2D\u0E07"), Object.keys(effAssign || {}).length > 0 && React.createElement("button", {
+      className: "p3-b sm",
+      onClick: () => {
+        set({
+          assign: {},
+          manual: true
+        });
+        setActiveStr(1);
+      },
+      title: "\u0E40\u0E2D\u0E32\u0E41\u0E1C\u0E07\u0E2D\u0E2D\u0E01\u0E08\u0E32\u0E01\u0E2A\u0E15\u0E23\u0E34\u0E07\u0E17\u0E31\u0E49\u0E07\u0E2B\u0E21\u0E14 \u0E41\u0E25\u0E49\u0E27\u0E40\u0E23\u0E34\u0E48\u0E21\u0E08\u0E31\u0E14\u0E40\u0E2D\u0E07\u0E08\u0E32\u0E01\u0E1C\u0E31\u0E07\u0E27\u0E48\u0E32\u0E07",
+      style: {
+        color: "var(--tint-red-tx)"
+      }
+    }, React.createElement(P3Icon, {
+      name: "trash",
+      size: 12
+    }), "\u0E25\u0E49\u0E32\u0E07\u0E17\u0E31\u0E49\u0E07\u0E2B\u0E21\u0E14")))));
+  })(), !isMicro && plan && React.createElement("div", {
     className: "p3-card"
   }, React.createElement("span", {
     className: "p3-eb"
