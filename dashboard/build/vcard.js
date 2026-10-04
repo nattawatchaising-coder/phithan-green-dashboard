@@ -291,7 +291,7 @@ function VcCardBody({
       if (cvRef.current) setZoom(cvRef.current.toDataURL("image/png"));
     },
     style: {
-      borderRadius: 12,
+      borderRadius: "var(--r-chip)",
       overflow: "hidden",
       background: "#FFFFFF",
       cursor: ready ? "zoom-in" : "default",
@@ -339,7 +339,7 @@ function VcCardBody({
       gap: 9,
       alignItems: "flex-start",
       padding: "11px 13px",
-      borderRadius: 11,
+      borderRadius: "var(--r-chip)",
       background: "var(--tint-amber-bg)",
       border: "1px solid var(--tint-amber-bd)"
     }
@@ -367,7 +367,7 @@ function VcCardBody({
       alignItems: "center",
       gap: 7,
       padding: "10px 16px",
-      borderRadius: 10,
+      borderRadius: "var(--r-chip)",
       border: "none",
       background: "var(--primary)",
       color: "#fff",

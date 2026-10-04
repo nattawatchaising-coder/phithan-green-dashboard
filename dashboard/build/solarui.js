@@ -527,7 +527,7 @@ function SuVoltBand({
         gap: 9,
         border: "1px solid " + (on ? "var(--ac)" : "transparent"),
         background: on ? "var(--acs)" : "transparent",
-        borderRadius: 10,
+        borderRadius: "var(--r-chip)",
         padding: "5px 7px",
         width: "100%",
         textAlign: "left"
@@ -574,7 +574,7 @@ function SuVoltBand({
         width: Math.max(1.5, hi - lo) + "%",
         top: 4,
         height: 10,
-        borderRadius: 99,
+        borderRadius: "var(--r-pill)",
         background: r.ok ? "linear-gradient(90deg,#F59E0B,#1B9B75)" : "var(--tint-red-tx)",
         opacity: r.ok ? 1 : .55
       }
@@ -747,7 +747,7 @@ function SuDxfView({
       gap: 4,
       alignItems: "center",
       background: "var(--surface)",
-      borderRadius: 10,
+      borderRadius: "var(--r-chip)",
       padding: 4,
       boxShadow: "var(--shadow-sm)"
     }
@@ -3264,7 +3264,7 @@ function SuThermo({
     style: {
       position: "relative",
       height: 12,
-      borderRadius: 99,
+      borderRadius: "var(--r-pill)",
       background: "linear-gradient(90deg,#93C5FD,#FCD34D,#F87171)"
     }
   }, stops.map(s => React.createElement("span", {
@@ -3277,7 +3277,7 @@ function SuThermo({
       transform: "translateX(-50%)",
       width: 4,
       height: 18,
-      borderRadius: 99,
+      borderRadius: "var(--r-pill)",
       background: "#fff",
       boxShadow: "0 0 0 1.5px " + s.c
     }
@@ -3294,7 +3294,7 @@ function SuThermo({
     style: {
       width: 8,
       height: 8,
-      borderRadius: 99,
+      borderRadius: "var(--r-pill)",
       background: s.c,
       display: "inline-block"
     }
@@ -5697,7 +5697,7 @@ function SolarWorkspace({
       alignItems: "center",
       gap: 9,
       border: "1px solid var(--ln)",
-      borderRadius: 12,
+      borderRadius: "var(--r-chip)",
       padding: "8px 12px 8px 8px",
       minWidth: 168
     }
@@ -6034,7 +6034,7 @@ function SolarWorkspace({
     style: {
       width: 9,
       height: 9,
-      borderRadius: 99,
+      borderRadius: "var(--r-pill)",
       background: suColor(s.id || i + 1)
     }
   }), React.createElement("b", null, "#", s.id || i + 1))), React.createElement("td", null, React.createElement("b", null, s.n)), React.createElement("td", {
@@ -6356,7 +6356,7 @@ function SolarWorkspace({
     style: {
       width: 9,
       height: 9,
-      borderRadius: 99,
+      borderRadius: "var(--r-pill)",
       background: suColor(u.id)
     }
   }), React.createElement("b", null, "\u0E44\u0E21\u0E42\u0E04\u0E23 ", u.id))), React.createElement("td", null, u.n), React.createElement("td", {
@@ -7123,7 +7123,7 @@ function SolarWorkspace({
     style: {
       width: 9,
       height: 9,
-      borderRadius: 99,
+      borderRadius: "var(--r-pill)",
       background: suColor(r.u.sid || i + 1)
     }
   }), React.createElement("b", null, r.u.name))), React.createElement("td", null, React.createElement("b", null, isMicro ? r.u.count || r.u.n : r.u.n)), isMicro && React.createElement("td", null, r.u.n, " \u0E43\u0E1A"), React.createElement("td", null, r.a.cond.g), React.createElement("td", null, scR(r.a.cond.tc, 0), "\xB0C"), React.createElement("td", null, scR(r.a.exp.voc, 1)), React.createElement("td", null, scR(r.a.exp.isc, 2)), React.createElement("td", null, scR(r.a.exp.vmp, 1)), React.createElement("td", null, scR(r.a.exp.imp, 2)), React.createElement("td", null, React.createElement("b", null, scR(r.a.exp.pmax, 0)), " W"), isMicro && React.createElement("td", null, React.createElement("b", null, scR(r.a.exp.pmax * Math.max(1, Math.round((r.u.count || 1) / Math.max(1, r.u.n))), 0)), " W")))))), React.createElement("span", {
@@ -7211,7 +7211,7 @@ function SolarWorkspace({
     style: {
       width: 9,
       height: 9,
-      borderRadius: 99,
+      borderRadius: "var(--r-pill)",
       background: (famMode === "temp" ? SU_TRAMP : SU_GRAMP)[Math.min(i, 4)]
     }
   }), React.createElement("b", null, c.label))), React.createElement("td", null, c.voc, " V"), React.createElement("td", null, c.isc, " A"), React.createElement("td", null, c.vmp, " V"), React.createElement("td", null, c.imp, " A"), React.createElement("td", null, React.createElement("b", null, c.pmax >= 1000 ? scR(c.pmax / 1000, 2) + " kW" : c.pmax + " W")), React.createElement("td", null, c.ff, "%"), React.createElement("td", {
@@ -8666,7 +8666,7 @@ function SolarWorkspace({
       width: "100%",
       maxHeight: 260,
       objectFit: "contain",
-      borderRadius: 11,
+      borderRadius: "var(--r-chip)",
       border: "1px solid var(--ln)",
       background: "var(--surface2)",
       display: "block"
@@ -8782,7 +8782,7 @@ function SolarWorkspace({
     style: {
       width: 7,
       height: 7,
-      borderRadius: 99,
+      borderRadius: "var(--r-pill)",
       background: "#F59E0B",
       boxShadow: "0 0 0 3px rgba(245,158,11,.22)"
     }
@@ -8990,7 +8990,7 @@ function SolarWorkspace({
       flex: 1,
       minHeight: 0,
       margin: 12,
-      borderRadius: 12,
+      borderRadius: "var(--r-chip)",
       background: "#fff",
       boxShadow: "var(--shadow-inset)",
       overflow: "hidden",

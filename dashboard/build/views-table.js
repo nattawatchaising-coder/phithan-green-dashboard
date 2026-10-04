@@ -62,7 +62,7 @@ function MatCell({
       alignItems: "center",
       gap: 5,
       padding: "4px 10px",
-      borderRadius: 99,
+      borderRadius: "var(--r-pill)",
       background: m.soft,
       color: m.fg,
       fontWeight: 700,
@@ -77,7 +77,7 @@ function MatCell({
     style: {
       width: 6,
       height: 6,
-      borderRadius: 99,
+      borderRadius: "var(--r-pill)",
       background: m.color,
       flexShrink: 0
     }
@@ -227,7 +227,7 @@ function TableView({
     style: {
       background: "var(--surface)",
       border: "1px solid var(--border)",
-      borderRadius: 16,
+      borderRadius: "var(--r-tile)",
       overflow: "hidden",
       boxShadow: "var(--shadow-sm)"
     }
@@ -402,7 +402,7 @@ function TableView({
     style: {
       flex: 1,
       height: 7,
-      borderRadius: 99,
+      borderRadius: "var(--r-pill)",
       background: "var(--surface3)",
       overflow: "hidden",
       minWidth: 56
@@ -413,7 +413,7 @@ function TableView({
       height: "100%",
       width: j.matReadyPct + "%",
       background: j.matReadyPct >= 100 ? "var(--primary)" : j.matReadyPct > 0 ? "#F59E0B" : "transparent",
-      borderRadius: 99,
+      borderRadius: "var(--r-pill)",
       transition: "width .4s cubic-bezier(.2,.8,.2,1)"
     }
   })), React.createElement("span", {
@@ -445,7 +445,7 @@ function TableView({
         color: pc.color,
         background: pc.color + "14",
         border: "1px solid " + pc.color + "33",
-        borderRadius: 99,
+        borderRadius: "var(--r-pill)",
         padding: "5px 11px"
       }
     }, pc.th);
@@ -466,7 +466,7 @@ function TableView({
       color: stageOf(j.stage).fg,
       background: stageOf(j.stage).soft,
       border: "1px solid transparent",
-      borderRadius: 99,
+      borderRadius: "var(--r-pill)",
       padding: "5px 8px 5px 11px"
     }
   })), React.createElement("td", {
@@ -492,7 +492,7 @@ function TableView({
       color: "var(--tint-red-tx)",
       background: "rgba(217,48,37,.11)",
       padding: "2px 7px",
-      borderRadius: 99
+      borderRadius: "var(--r-pill)"
     }
   }, "\u0E25\u0E48\u0E32\u0E0A\u0E49\u0E32")) : React.createElement("span", {
     style: {
@@ -579,7 +579,7 @@ function StatusTabs({
         justifyContent: "center",
         gap: mob ? 5 : 7,
         padding: mob ? "8px 8px" : "8px 15px",
-        borderRadius: 99,
+        borderRadius: "var(--r-pill)",
         flex: mob ? "1 1 0" : "0 0 auto",
         minWidth: 0,
         border: "1px solid " + (active ? "var(--primary)" : "transparent"),
@@ -618,7 +618,7 @@ function StatusTabs({
       justifyContent: "center",
       gap: 6,
       padding: mob ? "8px 10px" : "8px 13px",
-      borderRadius: 99,
+      borderRadius: "var(--r-pill)",
       flexShrink: 0,
       border: "1px solid transparent",
       background: "var(--surface2)",
@@ -647,7 +647,7 @@ function StatusTabs({
       marginLeft: onOpenTrash ? 0 : "auto",
       flexShrink: 0,
       padding: mob ? "8px 12px" : "8px 15px",
-      borderRadius: 99,
+      borderRadius: "var(--r-pill)",
       fontSize: mob ? 12 : 13
     }
   }, React.createElement(Icon, {
@@ -765,7 +765,7 @@ function TableMobile({
       style: {
         background: j.delayed ? "#FEF7F7" : "var(--surface)",
         border: "1px solid " + (j.delayed ? "var(--tint-red-bd2)" : "var(--border)"),
-        borderRadius: 14,
+        borderRadius: "var(--r-tile)",
         padding: 13,
         borderLeft: "3px solid " + (j.delayed ? "var(--mark-danger)" : s.color),
         boxShadow: "var(--shadow-sm)"

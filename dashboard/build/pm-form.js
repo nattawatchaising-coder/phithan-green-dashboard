@@ -60,7 +60,7 @@ function PmField({
     style: {
       marginLeft: 6,
       padding: "1px 6px",
-      borderRadius: 99,
+      borderRadius: "var(--r-pill)",
       background: "var(--primary-soft)",
       color: "var(--primary-dark)",
       fontSize: 10,
@@ -109,7 +109,7 @@ function PmField({
     style: {
       marginTop: -5,
       padding: "3px 9px",
-      borderRadius: 99,
+      borderRadius: "var(--r-pill)",
       border: "1px dashed var(--border-strong)",
       background: "var(--surface)",
       color: "var(--text-3)",
@@ -282,7 +282,7 @@ function PmTableRow({
         padding: 11,
         border: "none",
         boxShadow: "var(--shadow-sm)",
-        borderRadius: 11,
+        borderRadius: "var(--r-chip)",
         background: "var(--surface)"
       }
     }, React.createElement("div", {
@@ -302,7 +302,7 @@ function PmTableRow({
     }, "\u0E41\u0E16\u0E27\u0E17\u0E35\u0E48 ", no), ok === null ? null : React.createElement("span", {
       style: {
         padding: "2px 8px",
-        borderRadius: 99,
+        borderRadius: "var(--r-pill)",
         fontSize: 10.5,
         fontWeight: 800,
         background: ok ? "var(--tint-ok-bg)" : "var(--tint-red-bg)",
@@ -389,7 +389,7 @@ function PmTableRow({
     style: {
       marginRight: 5,
       padding: "2px 7px",
-      borderRadius: 99,
+      borderRadius: "var(--r-pill)",
       fontSize: 10,
       fontWeight: 800,
       background: ok ? "var(--tint-ok-bg)" : "var(--tint-red-bg)",
@@ -431,7 +431,7 @@ function PmPhotoStrip({
       marginTop: 10,
       padding: "9px 11px",
       border: "1px solid var(--border)",
-      borderRadius: 10,
+      borderRadius: "var(--r-chip)",
       background: "var(--surface-2, var(--surface))"
     }
   }, React.createElement("input", {
@@ -697,7 +697,7 @@ function PmTableBlock({
     style: {
       padding: "14px 12px",
       border: "1px dashed var(--border-strong)",
-      borderRadius: 11,
+      borderRadius: "var(--r-chip)",
       textAlign: "center",
       fontSize: 12,
       color: "var(--text-3)",
@@ -708,7 +708,7 @@ function PmTableBlock({
     style: {
       marginBottom: 10,
       border: "1px solid var(--border)",
-      borderRadius: 11,
+      borderRadius: "var(--r-chip)",
       overflow: "hidden"
     }
   }, React.createElement("button", {
@@ -810,7 +810,7 @@ function PmSignRow({
       padding: 11,
       border: "none",
       boxShadow: "var(--shadow-sm)",
-      borderRadius: 10,
+      borderRadius: "var(--r-chip)",
       background: "var(--surface)"
     }
   }, React.createElement("div", {
@@ -1038,7 +1038,7 @@ function PmHandoverModal({
       style: {
         flexShrink: 0,
         padding: "8px 13px",
-        borderRadius: 99,
+        borderRadius: "var(--r-pill)",
         cursor: "pointer",
         fontFamily: "inherit",
         border: "1px solid " + (on ? "var(--primary)" : "var(--border-strong)"),
@@ -1097,7 +1097,7 @@ function PmHandoverModal({
     style: {
       width: 34,
       height: 34,
-      borderRadius: 10,
+      borderRadius: "var(--r-chip)",
       background: "#16A34A1c",
       display: "grid",
       placeItems: "center",
@@ -1134,7 +1134,7 @@ function PmHandoverModal({
       flexShrink: 0,
       width: 32,
       height: 32,
-      borderRadius: 10,
+      borderRadius: "var(--r-chip)",
       border: "1px solid var(--border-strong)",
       background: "var(--surface)",
       color: "var(--text-2)",
@@ -1165,7 +1165,7 @@ function PmHandoverModal({
     disabled: !window.FBDB,
     style: {
       padding: "11px 20px",
-      borderRadius: 11,
+      borderRadius: "var(--r-chip)",
       border: "1px solid var(--primary)",
       background: "var(--primary)",
       color: "#fff",
@@ -1213,7 +1213,7 @@ function PmHandoverModal({
   }), (rec.meta || {}).status === "signed" ? React.createElement("span", {
     style: {
       padding: "3px 9px",
-      borderRadius: 99,
+      borderRadius: "var(--r-pill)",
       background: "var(--tint-ok-bg)",
       border: "1px solid var(--tint-ok-bd)",
       color: "var(--tint-ok-tx)",
@@ -1223,7 +1223,7 @@ function PmHandoverModal({
   }, "\u0E2A\u0E48\u0E07\u0E21\u0E2D\u0E1A\u0E41\u0E25\u0E49\u0E27") : null), React.createElement("div", {
     style: {
       height: 6,
-      borderRadius: 99,
+      borderRadius: "var(--r-pill)",
       background: "var(--border)",
       overflow: "hidden"
     }
@@ -1231,7 +1231,7 @@ function PmHandoverModal({
     style: {
       width: prog.pct + "%",
       height: "100%",
-      borderRadius: 99,
+      borderRadius: "var(--r-pill)",
       background: prog.pct >= 100 ? "var(--tint-green-tx)" : "#F59E0B",
       transition: "width .2s"
     }
@@ -1279,7 +1279,7 @@ function PmHandoverModal({
     style: {
       flexShrink: 0,
       padding: "8px 13px",
-      borderRadius: 99,
+      borderRadius: "var(--r-pill)",
       cursor: "pointer",
       fontFamily: "inherit",
       border: "1px solid " + (tab === "home" ? "var(--primary)" : "var(--border-strong)"),
@@ -1305,7 +1305,7 @@ function PmHandoverModal({
     style: {
       flexShrink: 0,
       padding: "8px 13px",
-      borderRadius: 99,
+      borderRadius: "var(--r-pill)",
       cursor: "pointer",
       fontFamily: "inherit",
       border: "1px solid " + (tab === "photo" ? "var(--primary)" : "var(--border-strong)"),
@@ -1360,7 +1360,7 @@ function PmHandoverModal({
         textAlign: "left",
         marginBottom: 9,
         padding: "11px 13px",
-        borderRadius: 12,
+        borderRadius: "var(--r-chip)",
         border: "1px solid var(--border-strong)",
         background: "var(--surface)",
         cursor: "pointer",
@@ -1400,7 +1400,7 @@ function PmHandoverModal({
     }, st.total ? st.done + "/" + st.total + " · " + st.pct + "%" : "ไม่บังคับ")), st.total ? React.createElement("div", {
       style: {
         height: 5,
-        borderRadius: 99,
+        borderRadius: "var(--r-pill)",
         background: "var(--border)",
         overflow: "hidden",
         marginTop: 8
@@ -1409,7 +1409,7 @@ function PmHandoverModal({
       style: {
         width: st.pct + "%",
         height: "100%",
-        borderRadius: 99,
+        borderRadius: "var(--r-pill)",
         background: PM_STATE_COLOR[st.state] || "var(--border-strong)"
       }
     })) : null);
@@ -1420,7 +1420,7 @@ function PmHandoverModal({
       width: "100%",
       textAlign: "left",
       padding: "11px 13px",
-      borderRadius: 12,
+      borderRadius: "var(--r-chip)",
       border: "1px solid var(--border-strong)",
       background: "var(--surface)",
       cursor: "pointer",
@@ -1574,7 +1574,7 @@ function PmHandoverModal({
     style: {
       width: "100%",
       padding: "12px 16px",
-      borderRadius: 11,
+      borderRadius: "var(--r-chip)",
       border: "1px solid var(--primary)",
       background: "var(--primary)",
       color: "#fff",
@@ -1588,7 +1588,7 @@ function PmHandoverModal({
     style: {
       width: "100%",
       padding: "11px 16px",
-      borderRadius: 11,
+      borderRadius: "var(--r-chip)",
       border: "1px solid var(--border-strong)",
       background: "var(--surface)",
       color: "var(--text-2)",
@@ -1616,7 +1616,7 @@ function PmHandoverModal({
       width: "100%",
       marginBottom: 14,
       padding: "11px 16px",
-      borderRadius: 11,
+      borderRadius: "var(--r-chip)",
       border: "1px dashed var(--border-strong)",
       background: "var(--surface)",
       color: "var(--text-2)",
@@ -1648,7 +1648,7 @@ function PmHandoverModal({
     style: {
       border: "none",
       boxShadow: "var(--shadow-sm)",
-      borderRadius: 10,
+      borderRadius: "var(--r-chip)",
       padding: 9,
       background: "var(--surface)"
     }
@@ -1756,7 +1756,7 @@ function PmHandoverModal({
     style: {
       width: "100%",
       padding: "11px 16px",
-      borderRadius: 11,
+      borderRadius: "var(--r-chip)",
       border: "1px solid var(--primary)",
       background: "var(--primary-soft)",
       color: "var(--primary-dark)",

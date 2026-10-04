@@ -1214,7 +1214,7 @@ function Sidebar({ view, onNav, role, techId, jobs, stock, t, badges, open, onCl
       {/* ปุ่มย่อ/ขยาย — ลอยที่ขอบขวาของแถบ (เฉพาะเดสก์ท็อป) */}
       {!isMobile && (
         <button onClick={onToggleCollapsed} title={collapsed ? "ขยายแถบเมนู" : "ย่อแถบเมนู"} aria-label="ย่อ/ขยายแถบเมนู"
-          style={{ position: "absolute", top: "50%", right: -13, transform: "translateY(-50%)", width: 26, height: 26, borderRadius: 99,
+          style={{ position: "absolute", top: "50%", right: -13, transform: "translateY(-50%)", width: 26, height: 26, borderRadius: "var(--r-pill)",
             border: "2px solid var(--bg)", background: "var(--primary)", color: "#fff",
             cursor: "pointer", display: "grid", placeItems: "center", boxShadow: "0 2px 8px rgba(20,40,28,.18)", zIndex: 5, padding: 0 }}
           onMouseEnter={(e) => { e.currentTarget.style.background = "var(--primary-dark)"; }}
@@ -1343,7 +1343,7 @@ function SidebarSettings({ icons, view, onNav, settingsNav, canManageUsers, onMa
         <Icon name={icon} size={17} color={o.danger ? "#EF4444" : o.active ? "var(--primary-dark)" : "var(--text-2)"}
           style={o.flip ? { transform: "scaleX(-1)" } : null} />
         <span>{label}</span>
-        {o.dot && <span style={{ marginLeft: "auto", width: 7, height: 7, borderRadius: 99, flexShrink: 0,
+        {o.dot && <span style={{ marginLeft: "auto", width: 7, height: 7, borderRadius: "var(--r-pill)", flexShrink: 0,
           background: "var(--primary-bright)" }} />}
       </button>
     );
@@ -1362,7 +1362,7 @@ function SidebarSettings({ icons, view, onNav, settingsNav, canManageUsers, onMa
 
       {open && (
         <div style={{ position: "absolute", bottom: "calc(100% + 6px)", left: 0, minWidth: 232, zIndex: 60,
-          background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 13, padding: 6,
+          background: "var(--surface)", border: "1px solid var(--border)", borderRadius: "var(--r-tile)", padding: 6,
           boxShadow: "0 12px 36px rgba(20,40,28,.20)" }}>
           {canManageUsers && onManageUsers && row("users", "users", "จัดการผู้ใช้งาน", onManageUsers)}
           {canManageUsers && onManageTechs && row("techs", "wrench", "ทีมช่าง", onManageTechs)}
@@ -1421,14 +1421,14 @@ function TechFilter({ value, onChange, techs, counts, nameOf }) {
   const tally = (n) => ({ marginLeft: "auto", fontFamily: "var(--display)", fontSize: 11.5, fontWeight: 800,
     fontVariantNumeric: "tabular-nums", letterSpacing: "-.02em", color: "var(--text-3)", opacity: n ? 1 : .5 });
   const bead = (bg, txt) => (
-    <span style={{ width: 22, height: 22, borderRadius: 99, background: bg, color: "#fff", flexShrink: 0,
+    <span style={{ width: 22, height: 22, borderRadius: "var(--r-pill)", background: bg, color: "#fff", flexShrink: 0,
       display: "grid", placeItems: "center", fontSize: 9.5, fontWeight: 700 }}>{txt}</span>
   );
 
   return (
     <span ref={wrapRef} style={{ position: "relative", display: "inline-flex" }}>
       <button ref={btnRef} onClick={toggle} title="กรองตามช่างผู้รับผิดชอบ" className="hdr-pill" data-on={on ? "1" : "0"}
-        style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: isMobile ? "5px 10px" : "6px 13px", borderRadius: 99,
+        style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: isMobile ? "5px 10px" : "6px 13px", borderRadius: "var(--r-pill)",
           border: "none",
           background: on ? ((cur ? cur.color : "#1B9B75") + "24") : "transparent",
           color: on ? (cur ? cur.color : "var(--primary-dark)") : "var(--text-2)",
@@ -1448,7 +1448,7 @@ function TechFilter({ value, onChange, techs, counts, nameOf }) {
         <div ref={menuRef} style={{ position: "fixed", top: rect.bottom + 6,
           left: Math.max(12, Math.min(rect.left, window.innerWidth - 244 - 12)),
           zIndex: 200, width: 244, maxHeight: 340, overflowY: "auto",
-          background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 14, padding: 6,
+          background: "var(--surface)", border: "1px solid var(--border)", borderRadius: "var(--r-tile)", padding: 6,
           boxShadow: "var(--shadow-pop)" }}>
           <button className="tf-row" style={row(!value)} onClick={() => pick(null)}>
             {bead("var(--surface3)", "")}<span>ช่างทุกคน</span>
@@ -1492,7 +1492,7 @@ function HeaderTools({ hidden, showBell, unread, notifItems, lateAlerts, omAlert
           <button onClick={onBell} className="hdr-icon-btn" aria-label="การแจ้งเตือน" style={{ position: "relative" }}>
             <Icon name="bell" size={20} color="var(--text-2)" />
             {unread > 0 && (
-              <span style={{ position: "absolute", top: -5, right: -5, minWidth: 18, height: 18, padding: "0 5px", borderRadius: 99,
+              <span style={{ position: "absolute", top: -5, right: -5, minWidth: 18, height: 18, padding: "0 5px", borderRadius: "var(--r-pill)",
                 background: "#EF4444", color: "#fff", fontSize: 10.5, fontWeight: 700, display: "grid", placeItems: "center", border: "2px solid var(--bg)" }}>{unread}</span>
             )}
           </button>
@@ -1621,7 +1621,7 @@ function Header({ view, navList, plain, subtitle, ownOnly, count, total, search,
         <div className="header-actions">
           {searchPh && (compactSearch && !searchOpen ? (
             <button onClick={() => setSearchOpen(true)} title="ค้นหา" aria-label="ค้นหา"
-              style={{ width: 40, height: 40, borderRadius: 11, border: "none", background: "var(--primary)", color: "#fff",
+              style={{ width: 40, height: 40, borderRadius: "var(--r-chip)", border: "none", background: "var(--primary)", color: "#fff",
                 cursor: "pointer", display: "grid", placeItems: "center", flexShrink: 0 }}>
               <Icon name="search" size={18} color="#fff" />
             </button>
@@ -1664,7 +1664,7 @@ function DailyBriefing({ lateAlerts, todayTasks, onOpen, onClose }) {
   const today = window.SF.TODAY;
   const Row = ({ jobId, color, danger, title, sub }) => (
     <button onClick={() => onOpen(jobId)} style={{ display: "flex", alignItems: "center", gap: 11, padding: "11px 12px", width: "100%", textAlign: "left",
-      background: danger ? "var(--tint-red-bg)" : "var(--surface)", border: "1px solid " + (danger ? "var(--tint-red-bd)" : "var(--border)"), borderRadius: 12, cursor: "pointer", fontFamily: "inherit" }}>
+      background: danger ? "var(--tint-red-bg)" : "var(--surface)", border: "1px solid " + (danger ? "var(--tint-red-bd)" : "var(--border)"), borderRadius: "var(--r-chip)", cursor: "pointer", fontFamily: "inherit" }}>
       <span style={{ width: 32, height: 32, borderRadius: 9, flexShrink: 0, display: "grid", placeItems: "center", background: color, color: "#fff" }}><Icon name={danger ? "alert" : "wrench"} size={16} color="#fff" /></span>
       <span style={{ flex: 1, minWidth: 0 }}>
         <span style={{ display: "block", fontSize: 13.5, fontWeight: 700, color: "var(--text-1)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{title}</span>
@@ -1678,7 +1678,7 @@ function DailyBriefing({ lateAlerts, todayTasks, onOpen, onClose }) {
       <div onClick={(e) => e.stopPropagation()} style={{ background: "var(--bg)", borderRadius: isMobile ? "20px 20px 0 0" : 18, width: isMobile ? "100%" : "min(480px,100%)", maxHeight: isMobile ? "90dvh" : "88vh", display: "flex", flexDirection: "column", overflow: "hidden", boxShadow: "var(--shadow-modal)" }}>
         <div style={{ padding: "18px 20px", borderBottom: "1px solid var(--border)", background: "var(--surface)", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
           <div style={{ display: "flex", alignItems: "center", gap: 11 }}>
-            <span style={{ width: 38, height: 38, borderRadius: 11, background: "var(--primary-soft)", display: "grid", placeItems: "center" }}><Icon name="bell" size={19} color="var(--primary-dark)" /></span>
+            <span style={{ width: 38, height: 38, borderRadius: "var(--r-chip)", background: "var(--primary-soft)", display: "grid", placeItems: "center" }}><Icon name="bell" size={19} color="var(--primary-dark)" /></span>
             <div>
               <h2 style={{ fontSize: 16.5, fontWeight: 700, color: "var(--text-1)", margin: 0 }}>สรุปงานวันนี้</h2>
               <span style={{ fontSize: 12, color: "var(--text-3)" }}>{thDate(today, true)}</span>
@@ -1697,7 +1697,7 @@ function DailyBriefing({ lateAlerts, todayTasks, onOpen, onClose }) {
           ))}
         </div>
         <div style={{ padding: "12px 20px", paddingBottom: isMobile ? "calc(12px + env(safe-area-inset-bottom,0px))" : 12, borderTop: "1px solid var(--border)", background: "var(--surface)" }}>
-          <button onClick={onClose} style={{ width: "100%", padding: "12px", borderRadius: 11, border: "none", background: "var(--primary)", color: "#fff", fontWeight: 700, fontFamily: "inherit", fontSize: 14, cursor: "pointer" }}>รับทราบ</button>
+          <button onClick={onClose} style={{ width: "100%", padding: "12px", borderRadius: "var(--r-chip)", border: "none", background: "var(--primary)", color: "#fff", fontWeight: 700, fontFamily: "inherit", fontSize: 14, cursor: "pointer" }}>รับทราบ</button>
         </div>
       </div>
     </div>
@@ -1719,9 +1719,9 @@ function RevertJobAsk({ job, lead, onConfirm, onClose }) {
     <div {...bdClose} style={{ position: "fixed", inset: 0, background: "rgba(8,20,14,.5)", backdropFilter: "blur(3px)",
       zIndex: 125, display: "grid", placeItems: "center", padding: 20 }}>
       <div onClick={(e) => e.stopPropagation()} style={{ background: "var(--surface)", border: "1px solid var(--border)",
-        borderRadius: 16, width: "min(440px, 100%)", padding: 20, boxShadow: "var(--shadow-modal)" }}>
+        borderRadius: "var(--r-tile)", width: "min(440px, 100%)", padding: 20, boxShadow: "var(--shadow-modal)" }}>
         <div style={{ display: "flex", gap: 12, alignItems: "flex-start" }}>
-          <span style={{ width: 38, height: 38, borderRadius: 11, background: "var(--primary-soft)", display: "grid", placeItems: "center", flexShrink: 0 }}>
+          <span style={{ width: 38, height: 38, borderRadius: "var(--r-chip)", background: "var(--primary-soft)", display: "grid", placeItems: "center", flexShrink: 0 }}>
             <Icon name="undo" size={18} color="var(--primary-dark)" />
           </span>
           <div style={{ flex: 1, minWidth: 0 }}>
@@ -1738,9 +1738,9 @@ function RevertJobAsk({ job, lead, onConfirm, onClose }) {
           </div>
         </div>
         <div style={{ display: "flex", gap: 8, justifyContent: "flex-end", marginTop: 18 }}>
-          <button onClick={onClose} style={{ padding: "10px 16px", borderRadius: 10, border: "1px solid var(--border-strong)",
+          <button onClick={onClose} style={{ padding: "10px 16px", borderRadius: "var(--r-chip)", border: "1px solid var(--border-strong)",
             background: "var(--surface)", color: "var(--text-2)", fontFamily: "inherit", fontSize: 13, fontWeight: 700, cursor: "pointer" }}>ยกเลิก</button>
-          <button onClick={onConfirm} style={{ padding: "10px 16px", borderRadius: 10, border: "none",
+          <button onClick={onConfirm} style={{ padding: "10px 16px", borderRadius: "var(--r-chip)", border: "none",
             background: "var(--primary)", color: "#fff", fontFamily: "inherit", fontSize: 13, fontWeight: 700, cursor: "pointer" }}>ย้อนกลับเป็นงานขาย</button>
         </div>
       </div>
@@ -1754,9 +1754,9 @@ function DeleteJobAsk({ job, onConfirm, onClose }) {
     <div {...bdClose} style={{ position: "fixed", inset: 0, background: "rgba(8,20,14,.5)", backdropFilter: "blur(3px)",
       zIndex: 125, display: "grid", placeItems: "center", padding: 20 }}>
       <div onClick={(e) => e.stopPropagation()} style={{ background: "var(--surface)", border: "1px solid var(--border)",
-        borderRadius: 16, width: "min(420px, 100%)", padding: 20, boxShadow: "var(--shadow-modal)" }}>
+        borderRadius: "var(--r-tile)", width: "min(420px, 100%)", padding: 20, boxShadow: "var(--shadow-modal)" }}>
         <div style={{ display: "flex", gap: 12, alignItems: "flex-start" }}>
-          <span style={{ width: 38, height: 38, borderRadius: 11, background: "var(--tint-red-bg)", display: "grid", placeItems: "center", flexShrink: 0 }}>
+          <span style={{ width: 38, height: 38, borderRadius: "var(--r-chip)", background: "var(--tint-red-bg)", display: "grid", placeItems: "center", flexShrink: 0 }}>
             <Icon name="trash" size={18} color="#EF4444" />
           </span>
           <div style={{ flex: 1, minWidth: 0 }}>
@@ -1768,9 +1768,9 @@ function DeleteJobAsk({ job, onConfirm, onClose }) {
           </div>
         </div>
         <div style={{ display: "flex", gap: 8, justifyContent: "flex-end", marginTop: 18 }}>
-          <button onClick={onClose} style={{ padding: "10px 16px", borderRadius: 10, border: "1px solid var(--border-strong)",
+          <button onClick={onClose} style={{ padding: "10px 16px", borderRadius: "var(--r-chip)", border: "1px solid var(--border-strong)",
             background: "var(--surface)", color: "var(--text-2)", fontFamily: "inherit", fontSize: 13, fontWeight: 700, cursor: "pointer" }}>ยกเลิก</button>
-          <button onClick={onConfirm} style={{ padding: "10px 16px", borderRadius: 10, border: "none",
+          <button onClick={onConfirm} style={{ padding: "10px 16px", borderRadius: "var(--r-chip)", border: "none",
             background: "#EF4444", color: "#fff", fontFamily: "inherit", fontSize: 13, fontWeight: 700, cursor: "pointer" }}>ย้ายเข้าถังขยะ</button>
         </div>
       </div>
@@ -1806,7 +1806,7 @@ function TrashModal({ trash, me, onRestore, onPurge, onClose }) {
         display: "flex", flexDirection: "column", overflow: "hidden", boxShadow: "var(--shadow-modal)" }}>
         <div style={{ padding: "15px 18px", borderBottom: "1px solid var(--border)", background: "var(--surface)", display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10 }}>
           <div style={{ display: "flex", alignItems: "center", gap: 11, minWidth: 0 }}>
-            <span style={{ width: 36, height: 36, borderRadius: 10, background: "var(--tint-red-bg)", display: "grid", placeItems: "center", flexShrink: 0 }}><Icon name="trash" size={17} color="#EF4444" /></span>
+            <span style={{ width: 36, height: 36, borderRadius: "var(--r-chip)", background: "var(--tint-red-bg)", display: "grid", placeItems: "center", flexShrink: 0 }}><Icon name="trash" size={17} color="#EF4444" /></span>
             <div style={{ minWidth: 0 }}>
               <h2 style={{ fontSize: 16, fontWeight: 700, color: "var(--text-1)", margin: 0 }}>ถังขยะ</h2>
               <span style={{ fontSize: 11.5, color: "var(--text-3)" }}>{trash.length} งาน · กู้คืนได้ตลอด · ลบถาวรต้องใส่รหัสผ่าน</span>
@@ -1819,7 +1819,7 @@ function TrashModal({ trash, me, onRestore, onPurge, onClose }) {
             <div style={{ padding: 40, textAlign: "center", color: "var(--text-3)", fontSize: 13.5 }}>ถังขยะว่าง — ยังไม่มีงานที่ถูกลบ</div>
           )}
           {trash.map((j) => (
-            <div key={j.id} style={{ background: "var(--surface)", border: "none", boxShadow: "var(--shadow-sm)", borderRadius: 12, padding: 12 }}>
+            <div key={j.id} style={{ background: "var(--surface)", border: "none", boxShadow: "var(--shadow-sm)", borderRadius: "var(--r-chip)", padding: 12 }}>
               <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
                 <div style={{ flex: 1, minWidth: 150 }}>
                   <div style={{ fontSize: 13.5, fontWeight: 700, color: "var(--text-1)" }}>{j.name || "(ไม่มีชื่อ)"}</div>
@@ -1880,7 +1880,7 @@ function MapModal({ jobs, onOpen, onClose }) {
         display: "flex", flexDirection: "column", overflow: "hidden", boxShadow: "var(--shadow-modal)" }}>
         <div style={{ padding: "16px 20px", borderBottom: "1px solid var(--border)", background: "var(--surface)", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
           <div style={{ display: "flex", alignItems: "center", gap: 11 }}>
-            <span style={{ width: 38, height: 38, borderRadius: 11, background: "var(--primary-soft)", display: "grid", placeItems: "center" }}><Icon name="map" size={19} color="var(--primary-dark)" /></span>
+            <span style={{ width: 38, height: 38, borderRadius: "var(--r-chip)", background: "var(--primary-soft)", display: "grid", placeItems: "center" }}><Icon name="map" size={19} color="var(--primary-dark)" /></span>
             <div>
               <h2 style={{ fontSize: 16.5, fontWeight: 700, color: "var(--text-1)", margin: 0 }}>แผนที่งานติดตั้ง</h2>
               <span style={{ fontSize: 12, color: "var(--text-3)" }}>{jobs.length} งาน · คลิกหมุดเพื่อดูรายละเอียด</span>

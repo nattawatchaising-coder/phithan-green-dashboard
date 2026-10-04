@@ -41,7 +41,7 @@ function PmField({ field, value, prefilled, suggest, onCommit }) {
       {field.unit ? <span style={{ fontWeight: 400, color: "var(--text-3)" }}> · {field.unit}</span> : null}
       {field.req ? <span style={{ color: "var(--tint-red-tx2)" }}> *</span> : null}
       {prefilled && String(v).trim() !== "" ? (
-        <span style={{ marginLeft: 6, padding: "1px 6px", borderRadius: 99, background: "var(--primary-soft)",
+        <span style={{ marginLeft: 6, padding: "1px 6px", borderRadius: "var(--r-pill)", background: "var(--primary-soft)",
           color: "var(--primary-dark)", fontSize: 10, fontWeight: 700 }}>
           {window.PM_FROM_LABEL[field.from] || "เติมให้"}
         </span>
@@ -71,7 +71,7 @@ function PmField({ field, value, prefilled, suggest, onCommit }) {
           พารามิเตอร์การทดสอบที่ไม่มีใครอ่าน แต่ปรากฏในใบว่าวัดมาแล้ว คือเอกสารที่โกหก */}
       {suggest != null && suggest !== "" && String(v).trim() === "" ? (
         <button onClick={() => { setV(String(suggest)); ref.current = suggest; onCommit(field.key, String(suggest)); }}
-          style={{ marginTop: -5, padding: "3px 9px", borderRadius: 99, border: "1px dashed var(--border-strong)",
+          style={{ marginTop: -5, padding: "3px 9px", borderRadius: "var(--r-pill)", border: "1px dashed var(--border-strong)",
             background: "var(--surface)", color: "var(--text-3)", fontFamily: "inherit", fontSize: 10.5, fontWeight: 700,
             cursor: "pointer" }}>
           {(field.defTh || "ค่าที่ใช้ทั่วไป") + ": " + suggest + " · แตะเพื่อใส่"}
@@ -178,11 +178,11 @@ function PmTableRow({ table, hdr, row, no, mobile, secKey, photoIdx, photoBusy,
 
   if (mobile) {
     return (
-      <div style={{ marginBottom: 11, padding: 11, border: "none", boxShadow: "var(--shadow-sm)", borderRadius: 11, background: "var(--surface)" }}>
+      <div style={{ marginBottom: 11, padding: 11, border: "none", boxShadow: "var(--shadow-sm)", borderRadius: "var(--r-chip)", background: "var(--surface)" }}>
         <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
           <span style={{ flex: 1, fontSize: 12, fontWeight: 800, color: "var(--text-1)" }}>แถวที่ {no}</span>
           {ok === null ? null : (
-            <span style={{ padding: "2px 8px", borderRadius: 99, fontSize: 10.5, fontWeight: 800,
+            <span style={{ padding: "2px 8px", borderRadius: "var(--r-pill)", fontSize: 10.5, fontWeight: 800,
               background: ok ? "var(--tint-ok-bg)" : "var(--tint-red-bg)", color: ok ? "var(--tint-ok-tx)" : "#B91C1C" }}>
               {ok ? "ผ่าน" : "ยังไม่ผ่าน"}
             </span>
@@ -217,7 +217,7 @@ function PmTableRow({ table, hdr, row, no, mobile, secKey, photoIdx, photoBusy,
       ))}
       <td style={{ padding: "4px 5px", textAlign: "center", verticalAlign: "middle", whiteSpace: "nowrap" }}>
         {ok === null ? null : (
-          <span style={{ marginRight: 5, padding: "2px 7px", borderRadius: 99, fontSize: 10, fontWeight: 800,
+          <span style={{ marginRight: 5, padding: "2px 7px", borderRadius: "var(--r-pill)", fontSize: 10, fontWeight: 800,
             background: ok ? "var(--tint-ok-bg)" : "var(--tint-red-bg)", color: ok ? "var(--tint-ok-tx)" : "#B91C1C" }}>
             {ok ? "ผ่าน" : "NG"}
           </span>
@@ -243,7 +243,7 @@ function PmTableRow({ table, hdr, row, no, mobile, secKey, photoIdx, photoBusy,
 function PmPhotoStrip({ photos, busy, label, onAdd, onRemove, onCap }) {
   const ref = React.useRef(null);
   return (
-    <div style={{ marginTop: 10, padding: "9px 11px", border: "1px solid var(--border)", borderRadius: 10,
+    <div style={{ marginTop: 10, padding: "9px 11px", border: "1px solid var(--border)", borderRadius: "var(--r-chip)",
       background: "var(--surface-2, var(--surface))" }}>
       <input ref={ref} type="file" accept="image/*" multiple style={{ display: "none" }}
         onChange={(e) => { onAdd(e.target.files); e.target.value = ""; }} />
@@ -365,7 +365,7 @@ function PmTableBlock({ table, hdr, rows, mobile, job, sum, secKey, photoIdx, on
       ) : null}
 
       {!rows.length ? (
-        <div style={{ padding: "14px 12px", border: "1px dashed var(--border-strong)", borderRadius: 11, textAlign: "center",
+        <div style={{ padding: "14px 12px", border: "1px dashed var(--border-strong)", borderRadius: "var(--r-chip)", textAlign: "center",
           fontSize: 12, color: "var(--text-3)", marginBottom: 9 }}>
           ยังไม่มีแถวในตารางนี้
         </div>
@@ -373,7 +373,7 @@ function PmTableBlock({ table, hdr, rows, mobile, job, sum, secKey, photoIdx, on
         bodyOf(rows)
       ) : (
         groups.map((g, gi) => (
-          <div key={g.key} style={{ marginBottom: 10, border: "1px solid var(--border)", borderRadius: 11, overflow: "hidden" }}>
+          <div key={g.key} style={{ marginBottom: 10, border: "1px solid var(--border)", borderRadius: "var(--r-chip)", overflow: "hidden" }}>
             <button onClick={() => setShut(Object.assign({}, shut, { [g.key]: isOpen(g, gi) }))}
               style={{ width: "100%", display: "flex", alignItems: "center", gap: 8, padding: "9px 11px", border: "none",
                 background: "var(--bg)", color: "var(--text-1)", fontFamily: "inherit", fontSize: 12, fontWeight: 800,
@@ -424,7 +424,7 @@ function PmSignRow({ block, value, onCommit }) {
   const [date, setDate] = React.useState(v.date || "");
   React.useEffect(() => { setName((value || {}).name || ""); setDate((value || {}).date || ""); }, [value]);
   return (
-    <div style={{ marginBottom: 13, padding: 11, border: "none", boxShadow: "var(--shadow-sm)", borderRadius: 10, background: "var(--surface)" }}>
+    <div style={{ marginBottom: 13, padding: 11, border: "none", boxShadow: "var(--shadow-sm)", borderRadius: "var(--r-chip)", background: "var(--surface)" }}>
       <div style={{ fontSize: 12, fontWeight: 700, color: "var(--text-1)", marginBottom: 6 }}>
         {block.en} <span style={{ fontWeight: 400, color: "var(--text-3)" }}>({block.th})</span>
       </div>
@@ -587,7 +587,7 @@ function PmHandoverModal({ job, currentUser, onClose, onSummary }) {
     const on = tab === sec.key;
     return (
       <button key={sec.key} onClick={() => setTab(sec.key)}
-        style={{ flexShrink: 0, padding: "8px 13px", borderRadius: 99, cursor: "pointer", fontFamily: "inherit",
+        style={{ flexShrink: 0, padding: "8px 13px", borderRadius: "var(--r-pill)", cursor: "pointer", fontFamily: "inherit",
           border: "1px solid " + (on ? "var(--primary)" : "var(--border-strong)"),
           background: on ? "var(--primary-soft)" : "var(--surface)", textAlign: "left" }}>
         <span style={{ display: "block", fontSize: 12.5, fontWeight: 700, color: on ? "var(--primary-dark)" : "var(--text-1)" }}>
@@ -611,7 +611,7 @@ function PmHandoverModal({ job, currentUser, onClose, onSummary }) {
           {/* หัวหน้าต่าง */}
           <div style={{ flexShrink: 0, padding: "13px 16px", borderBottom: "1px solid var(--border)", background: "var(--surface)",
             display: "flex", alignItems: "center", gap: 10 }}>
-            <span style={{ width: 34, height: 34, borderRadius: 10, background: "#16A34A1c", display: "grid", placeItems: "center", flexShrink: 0 }}>
+            <span style={{ width: 34, height: 34, borderRadius: "var(--r-chip)", background: "#16A34A1c", display: "grid", placeItems: "center", flexShrink: 0 }}>
               <Icon name="check" size={17} color="#16A34A" />
             </span>
             <div style={{ flex: 1, minWidth: 0 }}>
@@ -620,7 +620,7 @@ function PmHandoverModal({ job, currentUser, onClose, onSummary }) {
                 {job.code} · {job.name}
               </div>
             </div>
-            <button className="x-close" onClick={onClose} aria-label="ปิด" style={{ flexShrink: 0, width: 32, height: 32, borderRadius: 10,
+            <button className="x-close" onClick={onClose} aria-label="ปิด" style={{ flexShrink: 0, width: 32, height: 32, borderRadius: "var(--r-chip)",
               border: "1px solid var(--border-strong)", background: "var(--surface)", color: "var(--text-2)", cursor: "pointer",
               fontFamily: "inherit", fontSize: 16, lineHeight: 1 }}>×</button>
           </div>
@@ -635,7 +635,7 @@ function PmHandoverModal({ job, currentUser, onClose, onSummary }) {
                 </span>
               </div>
               <button onClick={() => store.open(currentUser)} disabled={!window.FBDB}
-                style={{ padding: "11px 20px", borderRadius: 11, border: "1px solid var(--primary)", background: "var(--primary)",
+                style={{ padding: "11px 20px", borderRadius: "var(--r-chip)", border: "1px solid var(--primary)", background: "var(--primary)",
                   color: "#fff", fontFamily: "inherit", fontSize: 13.5, fontWeight: 800, cursor: window.FBDB ? "pointer" : "not-allowed",
                   opacity: window.FBDB ? 1 : .5 }}>
                 เปิดสมุดส่งมอบ
@@ -655,14 +655,14 @@ function PmHandoverModal({ job, currentUser, onClose, onSummary }) {
                   <span style={{ fontSize: 11.5, color: "var(--text-3)" }}>({prog.done}/{prog.total} รายการ)</span>
                   <span style={{ flex: 1 }} />
                   {(rec.meta || {}).status === "signed" ? (
-                    <span style={{ padding: "3px 9px", borderRadius: 99, background: "var(--tint-ok-bg)",
+                    <span style={{ padding: "3px 9px", borderRadius: "var(--r-pill)", background: "var(--tint-ok-bg)",
                       border: "1px solid var(--tint-ok-bd)", color: "var(--tint-ok-tx)", fontSize: 10.5, fontWeight: 800 }}>
                       ส่งมอบแล้ว
                     </span>
                   ) : null}
                 </div>
-                <div style={{ height: 6, borderRadius: 99, background: "var(--border)", overflow: "hidden" }}>
-                  <div style={{ width: prog.pct + "%", height: "100%", borderRadius: 99,
+                <div style={{ height: 6, borderRadius: "var(--r-pill)", background: "var(--border)", overflow: "hidden" }}>
+                  <div style={{ width: prog.pct + "%", height: "100%", borderRadius: "var(--r-pill)",
                     background: prog.pct >= 100 ? "var(--tint-green-tx)" : "#F59E0B", transition: "width .2s" }} />
                 </div>
               </div>
@@ -690,7 +690,7 @@ function PmHandoverModal({ job, currentUser, onClose, onSummary }) {
               <div style={{ flexShrink: 0, display: "flex", gap: 8, padding: "10px 16px", overflowX: "auto",
                 borderBottom: "1px solid var(--border)" }}>
                 <button onClick={() => setTab("home")}
-                  style={{ flexShrink: 0, padding: "8px 13px", borderRadius: 99, cursor: "pointer", fontFamily: "inherit",
+                  style={{ flexShrink: 0, padding: "8px 13px", borderRadius: "var(--r-pill)", cursor: "pointer", fontFamily: "inherit",
                     border: "1px solid " + (tab === "home" ? "var(--primary)" : "var(--border-strong)"),
                     background: tab === "home" ? "var(--primary-soft)" : "var(--surface)", textAlign: "left" }}>
                   <span style={{ display: "block", fontSize: 12.5, fontWeight: 700,
@@ -701,7 +701,7 @@ function PmHandoverModal({ job, currentUser, onClose, onSummary }) {
                 </button>
                 {secs.map(tabBtn)}
                 <button onClick={() => setTab("photo")}
-                  style={{ flexShrink: 0, padding: "8px 13px", borderRadius: 99, cursor: "pointer", fontFamily: "inherit",
+                  style={{ flexShrink: 0, padding: "8px 13px", borderRadius: "var(--r-pill)", cursor: "pointer", fontFamily: "inherit",
                     border: "1px solid " + (tab === "photo" ? "var(--primary)" : "var(--border-strong)"),
                     background: tab === "photo" ? "var(--primary-soft)" : "var(--surface)", textAlign: "left" }}>
                   <span style={{ display: "block", fontSize: 12.5, fontWeight: 700,
@@ -726,7 +726,7 @@ function PmHandoverModal({ job, currentUser, onClose, onSummary }) {
                       return (
                         <button key={sec.key} onClick={() => setTab(sec.key)}
                           style={{ display: "block", width: "100%", textAlign: "left", marginBottom: 9, padding: "11px 13px",
-                            borderRadius: 12, border: "1px solid var(--border-strong)", background: "var(--surface)",
+                            borderRadius: "var(--r-chip)", border: "1px solid var(--border-strong)", background: "var(--surface)",
                             cursor: "pointer", fontFamily: "inherit" }}>
                           <div style={{ display: "flex", alignItems: "baseline", gap: 9 }}>
                             <span style={{ flex: 1, minWidth: 0 }}>
@@ -738,8 +738,8 @@ function PmHandoverModal({ job, currentUser, onClose, onSummary }) {
                             </span>
                           </div>
                           {st.total ? (
-                            <div style={{ height: 5, borderRadius: 99, background: "var(--border)", overflow: "hidden", marginTop: 8 }}>
-                              <div style={{ width: st.pct + "%", height: "100%", borderRadius: 99,
+                            <div style={{ height: 5, borderRadius: "var(--r-pill)", background: "var(--border)", overflow: "hidden", marginTop: 8 }}>
+                              <div style={{ width: st.pct + "%", height: "100%", borderRadius: "var(--r-pill)",
                                 background: PM_STATE_COLOR[st.state] || "var(--border-strong)" }} />
                             </div>
                           ) : null}
@@ -747,7 +747,7 @@ function PmHandoverModal({ job, currentUser, onClose, onSummary }) {
                       );
                     })}
                     <button onClick={() => setTab("photo")}
-                      style={{ display: "block", width: "100%", textAlign: "left", padding: "11px 13px", borderRadius: 12,
+                      style={{ display: "block", width: "100%", textAlign: "left", padding: "11px 13px", borderRadius: "var(--r-chip)",
                         border: "1px solid var(--border-strong)", background: "var(--surface)", cursor: "pointer", fontFamily: "inherit" }}>
                       <span style={{ display: "block", fontSize: 13, fontWeight: 800, color: "var(--text-1)" }}>รูปประกอบ</span>
                       <span style={{ display: "block", fontSize: 11, color: "var(--text-3)" }}>Photos · {genPhotos.length} รูป</span>
@@ -825,13 +825,13 @@ function PmHandoverModal({ job, currentUser, onClose, onSummary }) {
                     ))}
                     {(rec.meta || {}).status !== "signed" ? (
                       <button onClick={signOff}
-                        style={{ width: "100%", padding: "12px 16px", borderRadius: 11, border: "1px solid var(--primary)",
+                        style={{ width: "100%", padding: "12px 16px", borderRadius: "var(--r-chip)", border: "1px solid var(--primary)",
                           background: "var(--primary)", color: "#fff", fontFamily: "inherit", fontSize: 13.5, fontWeight: 800, cursor: "pointer" }}>
                         ปิดเล่ม · บันทึกว่าส่งมอบแล้ว
                       </button>
                     ) : (
                       <button onClick={() => store.setStatus("draft", currentUser)}
-                        style={{ width: "100%", padding: "11px 16px", borderRadius: 11, border: "1px solid var(--border-strong)",
+                        style={{ width: "100%", padding: "11px 16px", borderRadius: "var(--r-chip)", border: "1px solid var(--border-strong)",
                           background: "var(--surface)", color: "var(--text-2)", fontFamily: "inherit", fontSize: 13, fontWeight: 700, cursor: "pointer" }}>
                         เปิดเล่มกลับมาแก้ไข
                       </button>
@@ -844,7 +844,7 @@ function PmHandoverModal({ job, currentUser, onClose, onSummary }) {
                     <input ref={fileRef} type="file" accept="image/*" multiple style={{ display: "none" }}
                       onChange={(e) => { addPhotos(e.target.files); e.target.value = ""; }} />
                     <button onClick={() => fileRef.current && fileRef.current.click()} disabled={busy}
-                      style={{ width: "100%", marginBottom: 14, padding: "11px 16px", borderRadius: 11,
+                      style={{ width: "100%", marginBottom: 14, padding: "11px 16px", borderRadius: "var(--r-chip)",
                         border: "1px dashed var(--border-strong)", background: "var(--surface)", color: "var(--text-2)",
                         fontFamily: "inherit", fontSize: 13, fontWeight: 700, cursor: busy ? "wait" : "pointer" }}>
                       {busy ? "กำลังย่อรูป…" : "＋ เพิ่มรูปประกอบการส่งมอบ"}
@@ -859,7 +859,7 @@ function PmHandoverModal({ job, currentUser, onClose, onSummary }) {
                     ) : (
                       <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr", gap: 10 }}>
                         {genPhotos.map((x, i) => (
-                          <div key={x.id} style={{ border: "none", boxShadow: "var(--shadow-sm)", borderRadius: 10, padding: 9, background: "var(--surface)" }}>
+                          <div key={x.id} style={{ border: "none", boxShadow: "var(--shadow-sm)", borderRadius: "var(--r-chip)", padding: 9, background: "var(--surface)" }}>
                             <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6 }}>
                               <span style={{ fontSize: 11.5, fontWeight: 800, color: "var(--text-2)" }}>#{i + 1}</span>
                               <span style={{ flex: 1, fontSize: 10.5, color: "var(--text-3)" }}>{x.byName || ""}</span>
@@ -906,7 +906,7 @@ function PmHandoverModal({ job, currentUser, onClose, onSummary }) {
                   </div>
                 )}
                 <button onClick={() => setPaper(true)}
-                  style={{ width: "100%", padding: "11px 16px", borderRadius: 11, border: "1px solid var(--primary)",
+                  style={{ width: "100%", padding: "11px 16px", borderRadius: "var(--r-chip)", border: "1px solid var(--primary)",
                     background: "var(--primary-soft)", color: "var(--primary-dark)", fontFamily: "inherit",
                     fontSize: 13, fontWeight: 800, cursor: "pointer" }}>
                   ดูรายงาน · บันทึก PDF / ออกไฟล์ Excel

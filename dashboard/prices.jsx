@@ -77,7 +77,7 @@ function PricePanel({ priceStore, stock, q = "", grp = "all" }) {
   const numStyle = Object.assign({}, inStyle, { textAlign: "right" });
 
   return (
-    <div style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 16, overflow: "hidden", boxShadow: "var(--shadow-sm)", display: "flex", flexDirection: "column" }}>
+    <div style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: "var(--r-tile)", overflow: "hidden", boxShadow: "var(--shadow-sm)", display: "flex", flexDirection: "column" }}>
       {/* toolbar: ตัวนับ (ค้นหา/หมวด/เพิ่มวัสดุ ย้ายไปอยู่บน header) */}
       <div style={{ padding: "12px 16px", borderBottom: "1px solid var(--border)", background: "var(--surface2)", fontSize: 11.5, color: "var(--text-3)" }}>ใส่ราคาแล้ว {pricedCount}/{cat.length} รายการ · บันทึกลงคลังสินค้า{dirtyCount > 0 && <span style={{ color: "#F59E0B", fontWeight: 700 }}> · ยังไม่บันทึก {dirtyCount}</span>}</div>
 
@@ -91,11 +91,11 @@ function PricePanel({ priceStore, stock, q = "", grp = "all" }) {
             <div key={c.name} style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr 1fr" : "1fr 150px 110px 34px", gap: isMobile ? 8 : 10, alignItems: "center", padding: "7px 8px", borderRadius: 9, background: dirty ? "var(--tint-amber-bg)" : "transparent", borderBottom: "1px solid var(--border)" }}>
               <div style={{ gridColumn: isMobile ? "1 / -1" : "auto", minWidth: 0 }}>
                 <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                  <span style={{ width: 6, height: 6, borderRadius: 99, background: PRICE_GROUP_COLOR[c.group] || "var(--text-3)", flexShrink: 0 }} />
+                  <span style={{ width: 6, height: 6, borderRadius: "var(--r-pill)", background: PRICE_GROUP_COLOR[c.group] || "var(--text-3)", flexShrink: 0 }} />
                   <span style={{ fontSize: 12.5, color: "var(--text-1)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{c.name}</span>
                   {inStock
-                    ? <span title="มีในคลังสินค้า" style={{ fontSize: 9.5, fontWeight: 700, color: "var(--tint-ok-tx)", background: "#1B9B7516", padding: "1px 6px", borderRadius: 99, flexShrink: 0 }}>คลัง</span>
-                    : <span title="ยังไม่มีในคลัง — บันทึกแล้วจะสร้างให้" style={{ fontSize: 9.5, fontWeight: 700, color: "var(--tint-amber-tx)", background: "var(--tint-amber-bg)", padding: "1px 6px", borderRadius: 99, flexShrink: 0 }}>ใหม่</span>}
+                    ? <span title="มีในคลังสินค้า" style={{ fontSize: 9.5, fontWeight: 700, color: "var(--tint-ok-tx)", background: "#1B9B7516", padding: "1px 6px", borderRadius: "var(--r-pill)", flexShrink: 0 }}>คลัง</span>
+                    : <span title="ยังไม่มีในคลัง — บันทึกแล้วจะสร้างให้" style={{ fontSize: 9.5, fontWeight: 700, color: "var(--tint-amber-tx)", background: "var(--tint-amber-bg)", padding: "1px 6px", borderRadius: "var(--r-pill)", flexShrink: 0 }}>ใหม่</span>}
                 </div>
                 <span style={{ fontSize: 10.5, color: "var(--text-3)", marginLeft: 12 }}>{(PRICE_GROUP_TH[c.group] || c.group)} · {c.unit || "-"}</span>
               </div>
@@ -115,12 +115,12 @@ function PricePanel({ priceStore, stock, q = "", grp = "all" }) {
         <div style={{ flex: 1, fontSize: 11.5, color: "var(--text-3)" }}>{newCount > 0 ? <span>มี <b style={{ color: "var(--tint-amber-tx)" }}>{newCount}</b> รายการยังไม่อยู่ในคลัง</span> : (dirtyCount > 0 ? <span style={{ color: "#F59E0B", fontWeight: 700 }}>ยังไม่บันทึก {dirtyCount} รายการ</span> : "บันทึกครบแล้ว")}</div>
         {newCount > 0 && (
           <button onClick={addAllNew}
-            style={{ flex: "0 0 auto", padding: "11px 18px", borderRadius: 11, border: "1px solid var(--primary)", background: "var(--surface)", color: "var(--primary-dark)", fontWeight: 700, fontFamily: "inherit", fontSize: 13, cursor: "pointer", display: "flex", alignItems: "center", gap: 6 }}>
+            style={{ flex: "0 0 auto", padding: "11px 18px", borderRadius: "var(--r-chip)", border: "1px solid var(--primary)", background: "var(--surface)", color: "var(--primary-dark)", fontWeight: 700, fontFamily: "inherit", fontSize: 13, cursor: "pointer", display: "flex", alignItems: "center", gap: 6 }}>
             <Icon name="plus" size={14} /> เพิ่มทั้งหมดลงคลัง ({newCount})
           </button>
         )}
         <button onClick={saveAll} disabled={dirtyCount === 0}
-          style={{ flex: "0 0 auto", padding: "11px 26px", borderRadius: 11, border: "none", background: dirtyCount ? "var(--primary)" : "var(--surface3)", color: dirtyCount ? "#fff" : "var(--text-3)", fontWeight: 700, fontFamily: "inherit", fontSize: 13.5, cursor: dirtyCount ? "pointer" : "default" }}>
+          style={{ flex: "0 0 auto", padding: "11px 26px", borderRadius: "var(--r-chip)", border: "none", background: dirtyCount ? "var(--primary)" : "var(--surface3)", color: dirtyCount ? "#fff" : "var(--text-3)", fontWeight: 700, fontFamily: "inherit", fontSize: 13.5, cursor: dirtyCount ? "pointer" : "default" }}>
           บันทึกราคา{dirtyCount > 0 ? " (" + dirtyCount + ")" : ""}
         </button>
       </div>
@@ -182,14 +182,14 @@ function AddPriceModal({ priceStore, stock, onClose }) {
             <label style={label}>รหัสวัสดุ (mat code)</label>
             <div style={{ display: "flex", gap: 6 }}>
               <input value={nf.code} onChange={(e) => setNF("code", e.target.value)} placeholder={suggestCode + " (อัตโนมัติ)"} style={Object.assign({}, inStyle, { flex: 1 })} />
-              <button type="button" onClick={() => setNF("code", suggestCode)} style={{ flexShrink: 0, padding: "0 12px", borderRadius: 10, border: "1px solid var(--border-strong)", background: "var(--surface2)", color: "var(--primary-dark)", fontFamily: "inherit", fontSize: 12, fontWeight: 700, cursor: "pointer" }}>auto</button>
+              <button type="button" onClick={() => setNF("code", suggestCode)} style={{ flexShrink: 0, padding: "0 12px", borderRadius: "var(--r-chip)", border: "1px solid var(--border-strong)", background: "var(--surface2)", color: "var(--primary-dark)", fontFamily: "inherit", fontSize: 12, fontWeight: 700, cursor: "pointer" }}>auto</button>
             </div>
           </div>
           <div><label style={label}>ราคา (บาท)</label><input type="number" value={nf.price} onChange={(e) => setNF("price", e.target.value)} placeholder="0" style={Object.assign({}, inStyle, { textAlign: "right" })} /></div>
         </div>
         <div style={{ padding: "12px 20px", paddingBottom: isMobile ? "calc(12px + env(safe-area-inset-bottom,0px))" : 12, borderTop: "1px solid var(--border)", background: "var(--surface)", display: "flex", gap: 10 }}>
-          <button onClick={onClose} style={{ flex: "0 0 auto", padding: "11px 16px", borderRadius: 11, border: "1px solid var(--border-strong)", background: "var(--surface)", color: "var(--text-2)", fontWeight: 600, fontFamily: "inherit", fontSize: 13.5, cursor: "pointer" }}>ยกเลิก</button>
-          <button onClick={save} style={{ flex: 1, padding: "11px 22px", borderRadius: 11, border: "none", background: "var(--primary)", color: "#fff", fontWeight: 700, fontFamily: "inherit", fontSize: 13.5, cursor: "pointer" }}>เพิ่มลงคลัง</button>
+          <button onClick={onClose} style={{ flex: "0 0 auto", padding: "11px 16px", borderRadius: "var(--r-chip)", border: "1px solid var(--border-strong)", background: "var(--surface)", color: "var(--text-2)", fontWeight: 600, fontFamily: "inherit", fontSize: 13.5, cursor: "pointer" }}>ยกเลิก</button>
+          <button onClick={save} style={{ flex: 1, padding: "11px 22px", borderRadius: "var(--r-chip)", border: "none", background: "var(--primary)", color: "#fff", fontWeight: 700, fontFamily: "inherit", fontSize: 13.5, cursor: "pointer" }}>เพิ่มลงคลัง</button>
         </div>
       </div>
     </div>

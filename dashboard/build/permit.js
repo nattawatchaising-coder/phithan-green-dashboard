@@ -694,7 +694,7 @@ function PermitSampleModal({
     style: {
       width: "min(420px, 100%)",
       background: "var(--surface)",
-      borderRadius: 18,
+      borderRadius: "var(--r-card)",
       border: "none",
       boxShadow: "var(--shadow-sm)",
       overflow: "hidden"
@@ -1231,7 +1231,7 @@ function FromSurveyTag() {
       gap: 3,
       marginLeft: 6,
       padding: "1px 6px",
-      borderRadius: 99,
+      borderRadius: "var(--r-pill)",
       background: "var(--tint-teal-bg, var(--primary-soft))",
       color: "#0F766E",
       fontSize: 9.5,
@@ -1310,7 +1310,7 @@ function PermitTypePicker({
         alignItems: "center",
         gap: 11,
         padding: "11px 13px",
-        borderRadius: 12,
+        borderRadius: "var(--r-chip)",
         cursor: "pointer",
         textAlign: "left",
         fontFamily: "inherit",
@@ -1322,7 +1322,7 @@ function PermitTypePicker({
       style: {
         width: 18,
         height: 18,
-        borderRadius: 99,
+        borderRadius: "var(--r-pill)",
         flexShrink: 0,
         display: "grid",
         placeItems: "center",
@@ -1332,7 +1332,7 @@ function PermitTypePicker({
       style: {
         width: 9,
         height: 9,
-        borderRadius: 99,
+        borderRadius: "var(--r-pill)",
         background: "var(--primary)"
       }
     })), React.createElement("span", {
@@ -1374,7 +1374,7 @@ function PermitShotCard({
   }), React.createElement("div", {
     style: {
       border: "1px solid " + (has ? "var(--border)" : "var(--border-strong)"),
-      borderRadius: 13,
+      borderRadius: "var(--r-tile)",
       padding: 11,
       borderLeft: "3px solid " + (has ? "var(--primary)" : slot.req ? "var(--tint-red-bd)" : "var(--surface3)"),
       background: has ? "var(--surface)" : "var(--surface2)",
@@ -1396,7 +1396,7 @@ function PermitShotCard({
     style: {
       width: 54,
       height: 54,
-      borderRadius: 10,
+      borderRadius: "var(--r-chip)",
       objectFit: "cover",
       border: "1px solid var(--border)"
     }
@@ -1676,7 +1676,7 @@ function PermitWizard({
     style: {
       width: 36,
       height: 36,
-      borderRadius: 11,
+      borderRadius: "var(--r-chip)",
       background: "#14B8A61c",
       display: "grid",
       placeItems: "center",
@@ -1732,7 +1732,7 @@ function PermitWizard({
     style: {
       flex: 1,
       height: 7,
-      borderRadius: 99,
+      borderRadius: "var(--r-pill)",
       background: "var(--surface3)",
       overflow: "hidden"
     }
@@ -1740,7 +1740,7 @@ function PermitWizard({
     style: {
       width: prog.pct + "%",
       height: "100%",
-      borderRadius: 99,
+      borderRadius: "var(--r-pill)",
       transition: "width .3s",
       background: prog.pct === 100 ? "var(--primary)" : "#F59E0B"
     }
@@ -1771,7 +1771,7 @@ function PermitWizard({
         alignItems: "center",
         gap: 6,
         padding: "6px 11px",
-        borderRadius: 99,
+        borderRadius: "var(--r-pill)",
         cursor: "pointer",
         fontFamily: "inherit",
         fontSize: 12,
@@ -1801,7 +1801,7 @@ function PermitWizard({
   }, step === 1 && React.createElement(React.Fragment, null, seedNames.length > 0 && React.createElement("div", {
     style: {
       padding: "11px 13px",
-      borderRadius: 12,
+      borderRadius: "var(--r-chip)",
       background: "var(--primary-soft)",
       border: "1px solid var(--primary)",
       fontSize: 12,
@@ -2181,7 +2181,7 @@ function PermitWizard({
       alignItems: "center",
       gap: 6,
       padding: "9px 14px",
-      borderRadius: 10,
+      borderRadius: "var(--r-chip)",
       border: "none",
       background: "var(--primary)",
       color: "#fff",
@@ -2224,7 +2224,7 @@ function PermitWizard({
   })))), step === 4 && React.createElement(React.Fragment, null, React.createElement("div", {
     style: {
       padding: "11px 13px",
-      borderRadius: 12,
+      borderRadius: "var(--r-chip)",
       background: "var(--tint-amber-bg)",
       border: "1px solid var(--tint-amber-bd)",
       fontSize: 12,
@@ -2283,7 +2283,7 @@ function PermitWizard({
       alignItems: "center",
       gap: 9,
       padding: "9px 11px",
-      borderRadius: 10,
+      borderRadius: "var(--r-chip)",
       cursor: "pointer",
       textAlign: "left",
       fontFamily: "inherit",
@@ -2323,7 +2323,7 @@ function PermitWizard({
     style: {
       width: "100%",
       padding: "13px 16px",
-      borderRadius: 12,
+      borderRadius: "var(--r-chip)",
       border: "none",
       marginTop: 4,
       background: prog.missing.length ? "var(--surface3)" : "var(--primary)",
@@ -2357,7 +2357,7 @@ function PermitWizard({
     disabled: step === 1,
     style: {
       padding: "11px 15px",
-      borderRadius: 11,
+      borderRadius: "var(--r-chip)",
       border: "1px solid var(--border-strong)",
       background: "var(--surface)",
       color: step === 1 ? "var(--text-3)" : "var(--text-2)",
@@ -2374,7 +2374,7 @@ function PermitWizard({
     style: {
       flex: 1,
       padding: "11px 15px",
-      borderRadius: 11,
+      borderRadius: "var(--r-chip)",
       border: "1px solid var(--border-strong)",
       background: "var(--surface)",
       color: "var(--text-2)",
@@ -2388,7 +2388,7 @@ function PermitWizard({
     disabled: step === 5,
     style: {
       padding: "11px 20px",
-      borderRadius: 11,
+      borderRadius: "var(--r-chip)",
       border: "none",
       background: step === 5 ? "var(--surface3)" : "var(--primary)",
       color: step === 5 ? "var(--text-3)" : "#fff",

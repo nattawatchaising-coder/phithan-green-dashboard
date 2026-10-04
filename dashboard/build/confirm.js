@@ -78,7 +78,7 @@ function ConfirmHost() {
     style: {
       background: "var(--surface)",
       border: "1px solid var(--border)",
-      borderRadius: 16,
+      borderRadius: "var(--r-tile)",
       width: "min(420px, 100%)",
       padding: 20,
       boxShadow: "var(--shadow-modal)"
@@ -93,7 +93,7 @@ function ConfirmHost() {
     style: {
       width: 38,
       height: 38,
-      borderRadius: 11,
+      borderRadius: "var(--r-chip)",
       flexShrink: 0,
       display: "grid",
       placeItems: "center",
@@ -151,7 +151,7 @@ function ConfirmHost() {
       boxSizing: "border-box",
       background: "var(--surface2)",
       border: "1px solid var(--border-strong)",
-      borderRadius: 10,
+      borderRadius: "var(--r-chip)",
       padding: "10px 12px",
       color: "var(--text-1)",
       fontFamily: "inherit",
@@ -169,7 +169,7 @@ function ConfirmHost() {
     onClick: () => done(false),
     style: {
       padding: "10px 16px",
-      borderRadius: 10,
+      borderRadius: "var(--r-chip)",
       border: "1px solid var(--border-strong)",
       background: "var(--surface)",
       color: "var(--text-2)",
@@ -184,7 +184,7 @@ function ConfirmHost() {
     onClick: () => done(true),
     style: {
       padding: "10px 16px",
-      borderRadius: 10,
+      borderRadius: "var(--r-chip)",
       border: "none",
       background: blocked ? "var(--border-strong)" : accent,
       color: "#fff",

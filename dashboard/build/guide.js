@@ -223,7 +223,7 @@ function GdLesson({
       background: "var(--surface)",
       border: "none",
       boxShadow: "var(--shadow-sm)",
-      borderRadius: 14,
+      borderRadius: "var(--r-tile)",
       overflow: "hidden"
     }
   }, React.createElement("button", {
@@ -310,7 +310,7 @@ function GdLesson({
       width: 19,
       height: 19,
       marginTop: 2,
-      borderRadius: 99,
+      borderRadius: "var(--r-pill)",
       display: "grid",
       placeItems: "center",
       background: "var(--surface2)",
@@ -323,7 +323,7 @@ function GdLesson({
     style: {
       marginTop: 12,
       padding: "10px 12px",
-      borderRadius: 11,
+      borderRadius: "var(--r-chip)",
       background: "var(--tint-amber-bg)",
       border: "1px solid var(--tint-amber-bd, var(--border))"
     }
@@ -380,7 +380,7 @@ function GdLesson({
       alignItems: "center",
       gap: 6,
       padding: "8px 13px",
-      borderRadius: 10,
+      borderRadius: "var(--r-chip)",
       border: "1px solid var(--border-strong)",
       background: "var(--surface)",
       cursor: "pointer",
@@ -447,7 +447,7 @@ function GdHandout({
     style: {
       width: 36,
       height: 36,
-      borderRadius: 10,
+      borderRadius: "var(--r-chip)",
       border: "1px solid var(--border-strong)",
       background: "var(--surface)",
       cursor: "pointer",
@@ -482,7 +482,7 @@ function GdHandout({
       alignItems: "center",
       gap: 7,
       padding: "11px 16px",
-      borderRadius: 11,
+      borderRadius: "var(--r-chip)",
       border: "none",
       background: "var(--primary)",
       color: "#fff",
@@ -632,7 +632,7 @@ function GuideView({
       background: "var(--surface)",
       border: "none",
       boxShadow: "var(--shadow-sm)",
-      borderRadius: 14,
+      borderRadius: "var(--r-tile)",
       padding: "14px 16px"
     }
   }, React.createElement("div", {
@@ -665,7 +665,7 @@ function GuideView({
     style: {
       marginTop: 10,
       padding: "10px 12px",
-      borderRadius: 11,
+      borderRadius: "var(--r-chip)",
       background: "var(--tint-red-bg)",
       border: "1px solid var(--tint-red-bd, var(--border))",
       fontSize: 12.5,
@@ -692,7 +692,7 @@ function GuideView({
         alignItems: "center",
         gap: 9,
         padding: "10px 14px",
-        borderRadius: 12,
+        borderRadius: "var(--r-chip)",
         cursor: "pointer",
         fontFamily: "inherit",
         textAlign: "left",
@@ -748,7 +748,7 @@ function GuideView({
       alignItems: "center",
       gap: 7,
       padding: "10px 15px",
-      borderRadius: 11,
+      borderRadius: "var(--r-chip)",
       border: "1px solid var(--border-strong)",
       background: "var(--surface)",
       cursor: "pointer",

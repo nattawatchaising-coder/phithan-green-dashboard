@@ -1455,7 +1455,7 @@ function OmTierTable({ kind, saved, onSave }) {
   return (
     <div style={{ background: "var(--surface)", boxShadow: "var(--shadow-sm)", borderRadius: "var(--r-tile)", overflow: "hidden" }}>
       <div style={{ padding: "10px 12px", display: "flex", alignItems: "center", gap: 8, background: "var(--surface2)", flexWrap: "wrap" }}>
-        <span style={{ width: 8, height: 8, borderRadius: 99, background: kind.color }} />
+        <span style={{ width: 8, height: 8, borderRadius: "var(--r-pill)", background: kind.color }} />
         <span style={{ fontSize: 13, fontWeight: 700 }}>{kind.th}</span>
         <span style={{ fontSize: 11, color: "var(--text-3)" }}>{kind.unit}{custom ? " · แก้จากค่าตั้งต้นแล้ว" : ""}</span>
         <span style={{ marginLeft: "auto", display: "flex", gap: 6 }}>

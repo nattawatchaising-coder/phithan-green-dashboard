@@ -80,7 +80,7 @@ function PermitCard({ job, onOpen, onDragStart, dragging, draggable }) {
       style={{ "--rail": st ? st.color : "var(--border-strong)" }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8, marginBottom: 6 }}>
         <span style={{ fontFamily: "var(--mono)", fontSize: 11, fontWeight: 600, color: "var(--text-3)" }}>{job.code}</span>
-        {late && <span style={{ fontSize: 10, fontWeight: 700, color: "var(--tint-red-tx2)", background: "var(--tint-red-bg2)", padding: "1px 7px", borderRadius: 99 }}>ค้าง {days} วัน</span>}
+        {late && <span style={{ fontSize: 10, fontWeight: 700, color: "var(--tint-red-tx2)", background: "var(--tint-red-bg2)", padding: "1px 7px", borderRadius: "var(--r-pill)" }}>ค้าง {days} วัน</span>}
       </div>
       <div style={{ fontSize: 14, fontWeight: 700, color: "var(--text-1)", lineHeight: 1.3, marginBottom: 3 }}>{job.name}</div>
       <div style={{ fontSize: 11.5, color: "var(--text-3)", marginBottom: 9, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
@@ -174,7 +174,7 @@ function PermitQueueView({ jobs, search, stock, onOpenJob, onOpenReview, onPatch
   const cardOpen = (j) => { onOpenJob && onOpenJob(j.id); };
 
   const modeSwitch = (
-    <div style={{ display: "flex", gap: 3, padding: 3, borderRadius: 10, background: "var(--surface2)", flexShrink: 0 }}>
+    <div style={{ display: "flex", gap: 3, padding: 3, borderRadius: "var(--r-chip)", background: "var(--surface2)", flexShrink: 0 }}>
       {[["board", "บอร์ด", "kanban"], ["list", "รายการ", "list"]].map((x) => (
         <button key={x[0]} onClick={() => setModeSave(x[0])}
           style={{ display: "inline-flex", alignItems: "center", gap: 5, padding: "6px 11px", borderRadius: 8, border: "none", cursor: "pointer",
@@ -221,14 +221,14 @@ function PermitQueueView({ jobs, search, stock, onOpenJob, onOpenReview, onPatch
                 onDragOver={(e) => { if (!ok) return; e.preventDefault(); setOver(c.key); }}
                 onDragLeave={() => setOver((o) => (o === c.key ? null : o))}
                 onDrop={() => onDrop(c.key)}
-                style={{ width: 268, flexShrink: 0, display: "flex", flexDirection: "column", borderRadius: 18,
+                style={{ width: 268, flexShrink: 0, display: "flex", flexDirection: "column", borderRadius: "var(--r-card)",
                   background: isOver ? c.soft : "var(--surface2)", border: "1px solid " + (isOver ? c.color : "var(--border)"),
                   opacity: drag && !ok ? .55 : 1, transition: "background .15s, border-color .15s, opacity .15s" }}>
                 <div style={{ padding: "13px 14px", display: "flex", alignItems: "center", justifyContent: "space-between",
                   borderBottom: "1px solid var(--border)", position: "sticky", top: 0, zIndex: 1,
                   background: isOver ? c.soft : "var(--surface2)", borderRadius: "17px 17px 0 0" }}>
                   <span style={{ display: "flex", alignItems: "center", gap: 8, minWidth: 0 }}>
-                    <span style={{ width: 7, height: 7, borderRadius: 99, background: c.color, flexShrink: 0 }} />
+                    <span style={{ width: 7, height: 7, borderRadius: "var(--r-pill)", background: c.color, flexShrink: 0 }} />
                     <span style={{ fontSize: 11.5, fontWeight: 700, letterSpacing: ".05em", color: "var(--text-2)",
                       whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{c.th}</span>
                   </span>
@@ -242,7 +242,7 @@ function PermitQueueView({ jobs, search, stock, onOpenJob, onOpenReview, onPatch
                       onDragStart={(e, job) => { setDrag(job.id); e.dataTransfer.effectAllowed = "move"; }} />
                   ))}
                   {col.length === 0 && (
-                    <div style={{ padding: "20px 0", textAlign: "center", fontSize: 12, color: "var(--text-3)", border: "1.5px dashed var(--border-strong)", borderRadius: 10 }}>
+                    <div style={{ padding: "20px 0", textAlign: "center", fontSize: 12, color: "var(--text-3)", border: "1.5px dashed var(--border-strong)", borderRadius: "var(--r-chip)" }}>
                       {isOver ? "วางที่นี่" : "ว่าง"}
                     </div>
                   )}
@@ -265,7 +265,7 @@ function PermitQueueView({ jobs, search, stock, onOpenJob, onOpenReview, onPatch
             const on = tab === t.key, st = PERMIT_STATUS[t.key];
             return (
               <button key={t.key} onClick={() => setTab(t.key)}
-                style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "7px 13px", borderRadius: 99, cursor: "pointer",
+                style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "7px 13px", borderRadius: "var(--r-pill)", cursor: "pointer",
                   fontFamily: "inherit", fontSize: 12.5, fontWeight: 700, whiteSpace: "nowrap", flexShrink: 0,
                   border: "1px solid " + (on ? "transparent" : "var(--border)"),
                   background: on ? st.color : "var(--surface)", color: on ? "#fff" : "var(--text-2)" }}>
@@ -279,7 +279,7 @@ function PermitQueueView({ jobs, search, stock, onOpenJob, onOpenReview, onPatch
       </div>
 
       {tab === "sent" && notStarted.length > 0 && (
-        <div style={{ padding: "12px 14px", borderRadius: 13, background: "var(--tint-amber-bg)", border: "1px solid var(--tint-amber-bd)" }}>
+        <div style={{ padding: "12px 14px", borderRadius: "var(--r-tile)", background: "var(--tint-amber-bg)", border: "1px solid var(--tint-amber-bd)" }}>
           <div style={{ fontSize: 12.5, fontWeight: 700, color: "var(--tint-amber-tx)" }}>
             มีงานติดตั้งเสร็จแล้ว {notStarted.length} งาน ที่ช่างยังไม่ได้เริ่มเก็บข้อมูลขออนุญาต
           </div>
@@ -291,7 +291,7 @@ function PermitQueueView({ jobs, search, stock, onOpenJob, onOpenReview, onPatch
 
       {shown.length === 0 && (
         <div style={{ padding: "48px 20px", textAlign: "center", color: "var(--text-3)", fontSize: 13.5,
-          background: "var(--surface)", border: "1px dashed var(--border-strong)", borderRadius: 16 }}>
+          background: "var(--surface)", border: "1px dashed var(--border-strong)", borderRadius: "var(--r-tile)" }}>
           ยังไม่มีงานในหมวดนี้
         </div>
       )}
@@ -314,18 +314,18 @@ function PermitBoardMobile({ cols, byCol, counts, onOpen }) {
         const col = byCol(c.key);
         const isOpen = openCol === c.key;
         return (
-          <div key={c.key} style={{ borderRadius: 14, background: "var(--surface2)", border: "none", boxShadow: "var(--shadow-sm)", overflow: "hidden" }}>
+          <div key={c.key} style={{ borderRadius: "var(--r-tile)", background: "var(--surface2)", border: "none", boxShadow: "var(--shadow-sm)", overflow: "hidden" }}>
             <button onClick={() => setOpenCol(isOpen ? null : c.key)}
               style={{ width: "100%", padding: "13px 14px", display: "flex", alignItems: "center", justifyContent: "space-between",
                 gap: 8, background: "none", border: "none", cursor: "pointer", fontFamily: "inherit", textAlign: "left",
                 borderBottom: isOpen ? "1px solid var(--border)" : "none" }}>
               <span style={{ display: "flex", alignItems: "center", gap: 9, minWidth: 0 }}>
-                <span style={{ width: 10, height: 10, borderRadius: 99, background: c.color, flexShrink: 0 }} />
+                <span style={{ width: 10, height: 10, borderRadius: "var(--r-pill)", background: c.color, flexShrink: 0 }} />
                 <span style={{ fontSize: 14, fontWeight: 700, color: "var(--text-1)" }}>{c.th}</span>
               </span>
               <span style={{ display: "flex", alignItems: "center", gap: 10, flexShrink: 0 }}>
                 <span style={{ fontFamily: "var(--mono)", fontSize: 12, fontWeight: 600, color: c.color, background: c.color + "1a",
-                  minWidth: 24, height: 24, borderRadius: 99, display: "grid", placeItems: "center", padding: "0 7px" }}>{counts[c.key] || 0}</span>
+                  minWidth: 24, height: 24, borderRadius: "var(--r-pill)", display: "grid", placeItems: "center", padding: "0 7px" }}>{counts[c.key] || 0}</span>
                 <Icon name="chevronDown" size={17} color="var(--text-3)" style={{ transform: isOpen ? "none" : "rotate(-90deg)", transition: "transform .18s" }} />
               </span>
             </button>
@@ -391,7 +391,7 @@ function PermitCatalogRow({ slot, sheets, missing, models }) {
     } catch (e) { window.open(sh.dataUrl, "_blank", "noopener"); }
   };
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 7, padding: "9px 11px", borderRadius: 11,
+    <div style={{ display: "flex", flexDirection: "column", gap: 7, padding: "9px 11px", borderRadius: "var(--r-chip)",
       border: "1px solid " + (has ? "var(--border)" : "var(--border-strong)"),
       borderLeft: "3px solid " + (has ? "var(--primary)" : "var(--tint-red-bd)"),
       background: has ? "var(--surface)" : "var(--surface2)" }}>
@@ -467,7 +467,7 @@ function PermitJobFiles({ jobId }) {
       {files.map((f) => {
         const k = KIND[f.kind] || KIND.other;
         return (
-          <div key={f.id} style={{ display: "flex", gap: 10, alignItems: "center", padding: "9px 11px", borderRadius: 11,
+          <div key={f.id} style={{ display: "flex", gap: 10, alignItems: "center", padding: "9px 11px", borderRadius: "var(--r-chip)",
             background: "var(--surface)", border: "none", boxShadow: "var(--shadow-sm)", borderLeft: "3px solid " + k.color }}>
             <span style={{ fontSize: 9.5, fontWeight: 800, color: k.color, background: k.color + "14", padding: "4px 8px", borderRadius: 6, flexShrink: 0 }}>{k.th}</span>
             <span style={{ flex: 1, minWidth: 0 }}>
@@ -492,7 +492,7 @@ function PermitDocRow({ slot, doc, busy, onPick, onRemove }) {
   const inputRef = React.useRef(null);
   const has = !!(doc && doc.dataUrl);
   return (
-    <div style={{ display: "flex", gap: 10, alignItems: "center", padding: "9px 11px", borderRadius: 11,
+    <div style={{ display: "flex", gap: 10, alignItems: "center", padding: "9px 11px", borderRadius: "var(--r-chip)",
       border: "1px solid " + (has ? "var(--border)" : "var(--border-strong)"),
       borderLeft: "3px solid " + (has ? "var(--primary)" : (slot.req ? "var(--tint-red-bd)" : "var(--surface3)")),
       background: has ? "var(--surface)" : "var(--surface2)" }}>
@@ -587,7 +587,7 @@ function PermitReview({ job, currentUser, stock, onClose, onPatch, onOpenJob }) 
         display: "flex", flexDirection: "column", overflow: "hidden", boxShadow: "var(--shadow-modal)" }}>
 
         <div style={{ padding: "16px 20px", borderBottom: "1px solid var(--border)", background: "var(--surface)", display: "flex", alignItems: "center", gap: 11, flexShrink: 0 }}>
-          <span style={{ width: 36, height: 36, borderRadius: 11, background: st.color + "1c", display: "grid", placeItems: "center", flexShrink: 0 }}>
+          <span style={{ width: 36, height: 36, borderRadius: "var(--r-chip)", background: st.color + "1c", display: "grid", placeItems: "center", flexShrink: 0 }}>
             <Icon name="file" size={18} color={st.color} />
           </span>
           <div style={{ flex: 1, minWidth: 0 }}>
@@ -599,13 +599,13 @@ function PermitReview({ job, currentUser, stock, onClose, onPatch, onOpenJob }) 
 
         <div style={{ flex: 1, overflowY: "auto", padding: 16, display: "flex", flexDirection: "column", gap: 13 }}>
           {prog.missing.length > 0 && (
-            <div style={{ padding: "11px 13px", borderRadius: 12, background: "var(--tint-red-bg)", border: "1px solid var(--tint-red-bd)",
+            <div style={{ padding: "11px 13px", borderRadius: "var(--r-chip)", background: "var(--tint-red-bg)", border: "1px solid var(--tint-red-bd)",
               fontSize: 12.5, fontWeight: 600, color: "var(--tint-red-tx)", lineHeight: 1.55 }}>
               ชุดนี้ยังไม่ครบ ({prog.pct}%) — ขาด: {prog.missing.map((m) => m.th).join(", ")}
             </div>
           )}
           {p.note && (
-            <div style={{ padding: "11px 13px", borderRadius: 12, background: "var(--tint-amber-bg)", border: "1px solid var(--tint-amber-bd)", fontSize: 12.5, color: "var(--tint-amber-tx)", lineHeight: 1.55 }}>
+            <div style={{ padding: "11px 13px", borderRadius: "var(--r-chip)", background: "var(--tint-amber-bg)", border: "1px solid var(--tint-amber-bd)", fontSize: 12.5, color: "var(--tint-amber-tx)", lineHeight: 1.55 }}>
               <b>หมายเหตุจากช่าง:</b> {p.note}
             </div>
           )}
@@ -654,7 +654,7 @@ function PermitReview({ job, currentUser, stock, onClose, onPatch, onOpenJob }) 
                 <a key={s.key} href={media.photos[s.key].dataUrl} target="_blank" rel="noreferrer"
                   style={{ display: "block", textDecoration: "none" }}>
                   <img src={media.photos[s.key].dataUrl} alt={s.label}
-                    style={{ width: "100%", aspectRatio: "4/3", objectFit: "cover", borderRadius: 10, border: "1px solid var(--border)" }} />
+                    style={{ width: "100%", aspectRatio: "4/3", objectFit: "cover", borderRadius: "var(--r-chip)", border: "1px solid var(--border)" }} />
                   <span style={{ display: "block", fontSize: 10.5, color: "var(--text-2)", marginTop: 4, lineHeight: 1.35 }}>{s.label}</span>
                 </a>
               ))}
@@ -669,7 +669,7 @@ function PermitReview({ job, currentUser, stock, onClose, onPatch, onOpenJob }) 
           <SurveyBlock title={"🗂 เอกสารจากออฟฟิศ " + (PERMIT_DOC_SLOTS.length - docMissing.length) + "/" + PERMIT_DOC_SLOTS.length}
             sub="ช่างเก็บให้ไม่ได้ ต้องขอจากลูกค้า/วิศวกร — แนบไว้ที่นี่ทีเดียว จะได้ไม่ต้องไล่หาในแชท">
             {docMissing.length > 0 && (
-              <div style={{ padding: "9px 12px", borderRadius: 10, background: "var(--tint-red-bg)", border: "1px solid var(--tint-red-bd)",
+              <div style={{ padding: "9px 12px", borderRadius: "var(--r-chip)", background: "var(--tint-red-bg)", border: "1px solid var(--tint-red-bd)",
                 fontSize: 12, fontWeight: 600, color: "var(--tint-red-tx)", lineHeight: 1.5 }}>
                 ยังขาดเอกสารบังคับ {docMissing.length} รายการ: {docMissing.map((d) => d.label).join(", ")}
               </div>
@@ -707,7 +707,7 @@ function PermitReview({ job, currentUser, stock, onClose, onPatch, onOpenJob }) 
           </SurveyBlock>
 
           {p.rejectReason && (
-            <div style={{ padding: "11px 13px", borderRadius: 12, background: "var(--tint-red-bg)", border: "1px solid var(--tint-red-bd)", fontSize: 12.5, color: "var(--tint-red-tx)", lineHeight: 1.55 }}>
+            <div style={{ padding: "11px 13px", borderRadius: "var(--r-chip)", background: "var(--tint-red-bg)", border: "1px solid var(--tint-red-bd)", fontSize: 12.5, color: "var(--tint-red-tx)", lineHeight: 1.55 }}>
               <b>เหตุผลที่ตีกลับ:</b> {p.rejectReason}
             </div>
           )}
@@ -721,19 +721,19 @@ function PermitReview({ job, currentUser, stock, onClose, onPatch, onOpenJob }) 
               <input autoFocus value={reason} onChange={(e) => setReason(e.target.value)} placeholder="ตีกลับเพราะอะไร — ช่างจะเห็นข้อความนี้"
                 style={Object.assign({}, P_INPUT, { flex: 1, minWidth: 180, fontSize: 13 })} />
               <button onClick={() => { stamp("rejected", { rejectReason: reason.trim() || "ต้องแก้ไขข้อมูล" }); setRejecting(false); }}
-                style={{ padding: "10px 16px", borderRadius: 10, border: "none", background: "#EF4444", color: "#fff", fontWeight: 700, fontFamily: "inherit", fontSize: 13, cursor: "pointer" }}>ตีกลับ</button>
+                style={{ padding: "10px 16px", borderRadius: "var(--r-chip)", border: "none", background: "#EF4444", color: "#fff", fontWeight: 700, fontFamily: "inherit", fontSize: 13, cursor: "pointer" }}>ตีกลับ</button>
               <button onClick={() => setRejecting(false)}
-                style={{ padding: "10px 16px", borderRadius: 10, border: "1px solid var(--border-strong)", background: "var(--surface)", color: "var(--text-2)", fontWeight: 600, fontFamily: "inherit", fontSize: 13, cursor: "pointer" }}>ยกเลิก</button>
+                style={{ padding: "10px 16px", borderRadius: "var(--r-chip)", border: "1px solid var(--border-strong)", background: "var(--surface)", color: "var(--text-2)", fontWeight: 600, fontFamily: "inherit", fontSize: 13, cursor: "pointer" }}>ยกเลิก</button>
             </div>
           ) : (
             <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
               <button onClick={() => setRepHtml(permitReportHTML(job, media.photos, files.docs, cat.sheets))}
-                style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "10px 15px", borderRadius: 10,
+                style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "10px 15px", borderRadius: "var(--r-chip)",
                   border: "1px solid var(--border-strong)", background: "var(--surface)", color: "var(--text-1)", fontWeight: 700, fontFamily: "inherit", fontSize: 13, cursor: "pointer" }}>
                 <Icon name="file" size={15} /> ออกเป็น PDF
               </button>
               <button onClick={onOpenJob}
-                style={{ padding: "10px 15px", borderRadius: 10, border: "1px solid var(--border-strong)", background: "var(--surface)", color: "var(--text-2)", fontWeight: 600, fontFamily: "inherit", fontSize: 13, cursor: "pointer" }}>เปิดงาน</button>
+                style={{ padding: "10px 15px", borderRadius: "var(--r-chip)", border: "1px solid var(--border-strong)", background: "var(--surface)", color: "var(--text-2)", fontWeight: 600, fontFamily: "inherit", fontSize: 13, cursor: "pointer" }}>เปิดงาน</button>
               {/* ย้อนกลับขั้น — กดพลาดแล้วต้องแก้เองได้ ไม่ต้องรอใครไปแก้ให้ในฐานข้อมูล */}
               {PERMIT_BACK[p.status] && (
                 <button onClick={() => {
@@ -745,7 +745,7 @@ function PermitReview({ job, currentUser, stock, onClose, onPatch, onOpenJob }) 
                     ok: "ย้อนกลับ", danger: false, icon: "alert",
                   }).then((ok) => { if (ok) stamp(to, PERMIT_BACK_CLEAR[to] || {}); });
                 }}
-                  style={{ padding: "10px 15px", borderRadius: 10, border: "1px solid var(--border-strong)", background: "var(--surface)",
+                  style={{ padding: "10px 15px", borderRadius: "var(--r-chip)", border: "1px solid var(--border-strong)", background: "var(--surface)",
                     color: "var(--text-2)", fontWeight: 600, fontFamily: "inherit", fontSize: 13, cursor: "pointer" }}>
                   ↩ ย้อนกลับขั้น
                 </button>
@@ -753,15 +753,15 @@ function PermitReview({ job, currentUser, stock, onClose, onPatch, onOpenJob }) 
               <span style={{ flex: 1 }} />
               {p.status !== "approved" && (
                 <button onClick={() => setRejecting(true)}
-                  style={{ padding: "10px 15px", borderRadius: 10, border: "1px solid var(--tint-red-bd)", background: "var(--tint-red-bg)", color: "var(--tint-red-tx)", fontWeight: 700, fontFamily: "inherit", fontSize: 13, cursor: "pointer" }}>ตีกลับให้ช่างแก้</button>
+                  style={{ padding: "10px 15px", borderRadius: "var(--r-chip)", border: "1px solid var(--tint-red-bd)", background: "var(--tint-red-bg)", color: "var(--tint-red-tx)", fontWeight: 700, fontFamily: "inherit", fontSize: 13, cursor: "pointer" }}>ตีกลับให้ช่างแก้</button>
               )}
               {(p.status === "sent" || p.status === "rejected") && (
                 <button onClick={() => stamp("filing", Object.assign({ rejectReason: null }, p.filedDate ? {} : { filedDate: new Date().toISOString().slice(0, 10) }))}
-                  style={{ padding: "10px 18px", borderRadius: 10, border: "none", background: "#3B82F6", color: "#fff", fontWeight: 700, fontFamily: "inherit", fontSize: 13, cursor: "pointer" }}>รับงาน · เริ่มยื่น</button>
+                  style={{ padding: "10px 18px", borderRadius: "var(--r-chip)", border: "none", background: "#3B82F6", color: "#fff", fontWeight: 700, fontFamily: "inherit", fontSize: 13, cursor: "pointer" }}>รับงาน · เริ่มยื่น</button>
               )}
               {p.status === "filing" && (
                 <button onClick={() => stamp("approved", p.approvedDate ? {} : { approvedDate: new Date().toISOString().slice(0, 10) })}
-                  style={{ padding: "10px 18px", borderRadius: 10, border: "none", background: "var(--primary)", color: "#fff", fontWeight: 700, fontFamily: "inherit", fontSize: 13, cursor: "pointer" }}>การไฟฟ้าอนุมัติแล้ว</button>
+                  style={{ padding: "10px 18px", borderRadius: "var(--r-chip)", border: "none", background: "var(--primary)", color: "#fff", fontWeight: 700, fontFamily: "inherit", fontSize: 13, cursor: "pointer" }}>การไฟฟ้าอนุมัติแล้ว</button>
               )}
             </div>
           )}

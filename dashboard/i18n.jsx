@@ -176,7 +176,7 @@ function LangPick({ value, onChange, label }) {
           const on = value === L.id;
           return (
             <button key={L.id} type="button" onClick={() => onChange(L.id)} title={"ออกเอกสารเป็นภาษา" + L.th}
-              style={{ padding: "5px 13px", borderRadius: 99, cursor: "pointer", fontFamily: "inherit",
+              style={{ padding: "5px 13px", borderRadius: "var(--r-pill)", cursor: "pointer", fontFamily: "inherit",
                 fontSize: 12, fontWeight: 700, transition: "background .15s, border-color .15s",
                 border: "1px solid " + (on ? "var(--primary)" : "var(--border-strong)"),
                 background: on ? "var(--primary-soft)" : "var(--surface)",

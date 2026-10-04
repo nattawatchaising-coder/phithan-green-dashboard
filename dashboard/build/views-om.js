@@ -39,7 +39,7 @@ function OmPill({
       fontWeight: 700,
       color: color,
       background: color + "1a",
-      borderRadius: 99,
+      borderRadius: "var(--r-pill)",
       padding: "3px 10px"
     }
   }, th, sub && React.createElement("span", {
@@ -66,7 +66,7 @@ function OmStat({
       minWidth: 108,
       textAlign: "left",
       padding: "11px 13px",
-      borderRadius: 12,
+      borderRadius: "var(--r-chip)",
       fontFamily: "inherit",
       background: on ? (color || "var(--primary)") + "14" : "var(--surface2)",
       border: "1px solid " + (on ? color || "var(--primary)" : "var(--border)"),
@@ -137,7 +137,7 @@ function OmStatRow({
       alignItems: "center",
       gap: 6,
       padding: "3px 9px 3px 5px",
-      borderRadius: 99,
+      borderRadius: "var(--r-pill)",
       border: "1px solid var(--border)",
       background: "var(--surface)",
       cursor: "pointer",
@@ -167,7 +167,7 @@ function OmStatRow({
         alignItems: "center",
         gap: 6,
         padding: "3px 10px",
-        borderRadius: 99,
+        borderRadius: "var(--r-pill)",
         border: "1px solid " + (p.on ? p.color || "var(--primary)" : "var(--border)"),
         background: p.on ? (p.color || "var(--primary)") + "16" : "var(--surface2)",
         cursor: p.onClick ? "pointer" : "default",
@@ -206,7 +206,7 @@ function OmWarrantyBar({
   return React.createElement("div", {
     style: {
       height: 6,
-      borderRadius: 99,
+      borderRadius: "var(--r-pill)",
       background: "var(--border)",
       overflow: "hidden"
     }
@@ -215,7 +215,7 @@ function OmWarrantyBar({
       height: "100%",
       width: (left * 100).toFixed(1) + "%",
       background: st.color,
-      borderRadius: 99
+      borderRadius: "var(--r-pill)"
     }
   }));
 }
@@ -270,7 +270,7 @@ function OmWarrantyTable({
       style: {
         border: "none",
         boxShadow: "var(--shadow-sm)",
-        borderRadius: 12,
+        borderRadius: "var(--r-chip)",
         background: "var(--surface)",
         padding: "11px 12px"
       }
@@ -286,7 +286,7 @@ function OmWarrantyTable({
       style: {
         width: 8,
         height: 8,
-        borderRadius: 99,
+        borderRadius: "var(--r-pill)",
         background: kind.color,
         flexShrink: 0
       }
@@ -529,7 +529,7 @@ function OmCleanVisits({
       flexWrap: "wrap",
       border: "1px solid " + cs.color + "40",
       background: cs.color + "12",
-      borderRadius: 11,
+      borderRadius: "var(--r-chip)",
       marginBottom: 12
     }
   }, React.createElement(Icon, {
@@ -581,7 +581,7 @@ function OmCleanVisits({
       style: {
         border: "none",
         boxShadow: "var(--shadow-sm)",
-        borderRadius: 12,
+        borderRadius: "var(--r-chip)",
         background: "var(--surface)",
         padding: "10px 12px",
         marginBottom: 9
@@ -598,7 +598,7 @@ function OmCleanVisits({
       style: {
         width: 8,
         height: 8,
-        borderRadius: 99,
+        borderRadius: "var(--r-pill)",
         background: s.color,
         flexShrink: 0
       }
@@ -895,7 +895,7 @@ function OmSiteModal({
     style: {
       width: 36,
       height: 36,
-      borderRadius: 10,
+      borderRadius: "var(--r-chip)",
       background: st.color + "1c",
       display: "grid",
       placeItems: "center",
@@ -957,7 +957,7 @@ function OmSiteModal({
       border: "none",
       boxShadow: "var(--shadow-sm)",
       background: "var(--surface2)",
-      borderRadius: 12
+      borderRadius: "var(--r-chip)"
     }
   }, React.createElement(Icon, {
     name: "lock",
@@ -977,7 +977,7 @@ function OmSiteModal({
       marginBottom: 14,
       border: "1px solid var(--tint-amber-bd)",
       background: "var(--tint-amber-bg)",
-      borderRadius: 12
+      borderRadius: "var(--r-chip)"
     }
   }, React.createElement(Icon, {
     name: "alert",
@@ -1149,7 +1149,7 @@ function OmSiteModal({
       padding: "10px 12px",
       border: "1px solid var(--tint-amber-bd)",
       background: "var(--tint-amber-bg)",
-      borderRadius: 11
+      borderRadius: "var(--r-chip)"
     }
   }, React.createElement(Icon, {
     name: "alert",
@@ -1208,7 +1208,7 @@ function OmSiteModal({
     }),
     style: {
       padding: "7px 13px",
-      borderRadius: 99,
+      borderRadius: "var(--r-pill)",
       cursor: disabled ? "default" : "pointer",
       fontFamily: "inherit",
       fontSize: 12.5,
@@ -1299,7 +1299,7 @@ function OmSiteModal({
         marginBottom: 7,
         border: "none",
         boxShadow: "var(--shadow-sm)",
-        borderRadius: 10,
+        borderRadius: "var(--r-chip)",
         background: "var(--surface)",
         cursor: "pointer",
         fontFamily: "inherit",
@@ -1393,7 +1393,7 @@ function OmSiteModal({
         marginBottom: 7,
         border: "none",
         boxShadow: "var(--shadow-sm)",
-        borderRadius: 10,
+        borderRadius: "var(--r-chip)",
         background: "var(--surface)",
         cursor: "pointer",
         fontFamily: "inherit",
@@ -1448,7 +1448,7 @@ function OmSiteModal({
       flexWrap: "wrap",
       border: "1px solid var(--tint-red-bd)",
       background: "var(--tint-red-bg)",
-      borderRadius: 12
+      borderRadius: "var(--r-chip)"
     }
   }, React.createElement("span", {
     style: {
@@ -1601,7 +1601,7 @@ function OmCleanView({
         border: "none",
         boxShadow: "var(--shadow-sm)",
         borderLeft: "3px solid " + c,
-        borderRadius: 11,
+        borderRadius: "var(--r-chip)",
         background: "var(--surface)",
         padding: "10px 12px"
       }
@@ -1770,7 +1770,7 @@ function OmCleanView({
       onClick: () => setSel(k),
       style: {
         minHeight: isMobile ? 62 : 92,
-        borderRadius: 11,
+        borderRadius: "var(--r-chip)",
         textAlign: "left",
         fontFamily: "inherit",
         cursor: "pointer",
@@ -1806,7 +1806,7 @@ function OmCleanView({
         style: {
           width: 6,
           height: 6,
-          borderRadius: 99,
+          borderRadius: "var(--r-pill)",
           background: c,
           flexShrink: 0,
           border: a.virtual ? "1px solid " + c : "none",
@@ -1848,7 +1848,7 @@ function OmCleanView({
     style: {
       width: 8,
       height: 8,
-      borderRadius: 99,
+      borderRadius: "var(--r-pill)",
       background: c
     }
   }), th)))), dayPanel);
@@ -2230,7 +2230,7 @@ function OmJobButton({
       background: "var(--surface)",
       border: "1px solid var(--border-strong)",
       borderLeft: "3px solid " + color,
-      borderRadius: 12,
+      borderRadius: "var(--r-chip)",
       cursor: "pointer",
       fontFamily: "inherit",
       textAlign: "left"
@@ -2533,7 +2533,7 @@ function OmView({
       alignItems: "center",
       gap: 6,
       padding: "8px 14px",
-      borderRadius: 99,
+      borderRadius: "var(--r-pill)",
       border: "1px solid " + (tab === k ? "var(--primary)" : "var(--border-strong)"),
       background: tab === k ? "var(--primary-soft)" : "var(--surface)",
       cursor: "pointer",
@@ -2574,7 +2574,7 @@ function OmView({
       flexWrap: "wrap",
       border: "1px solid #1B9B7540",
       background: "#1B9B7512",
-      borderRadius: 14
+      borderRadius: "var(--r-tile)"
     }
   }, React.createElement(Icon, {
     name: "wrench",
@@ -2601,7 +2601,7 @@ function OmView({
       alignItems: "center",
       gap: 6,
       padding: "8px 14px",
-      borderRadius: 10,
+      borderRadius: "var(--r-chip)",
       border: "none",
       background: "var(--primary)",
       color: "#fff",
@@ -2643,7 +2643,7 @@ function OmView({
       alignItems: "center",
       gap: 6,
       padding: "9px 14px",
-      borderRadius: 10,
+      borderRadius: "var(--r-chip)",
       border: "1px dashed var(--border-strong)",
       background: "var(--surface)",
       cursor: "pointer",
@@ -2663,7 +2663,7 @@ function OmView({
       alignItems: "center",
       gap: 6,
       padding: "9px 14px",
-      borderRadius: 10,
+      borderRadius: "var(--r-chip)",
       border: "1px solid var(--border-strong)",
       background: "var(--surface)",
       cursor: sitesK.length ? "pointer" : "not-allowed",
@@ -2680,7 +2680,7 @@ function OmView({
     style: {
       border: "none",
       boxShadow: "var(--shadow-sm)",
-      borderRadius: 14,
+      borderRadius: "var(--r-tile)",
       background: "var(--surface2)",
       overflow: "hidden"
     }
@@ -2722,7 +2722,7 @@ function OmView({
       style: {
         width: 8,
         height: 8,
-        borderRadius: 99,
+        borderRadius: "var(--r-pill)",
         background: r.st.color,
         flexShrink: 0
       }

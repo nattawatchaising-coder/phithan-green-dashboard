@@ -321,7 +321,7 @@ function JobForm({
     style: {
       width: 38,
       height: 38,
-      borderRadius: 11,
+      borderRadius: "var(--r-chip)",
       background: "var(--primary-soft)",
       display: "grid",
       placeItems: "center"
@@ -509,7 +509,7 @@ function JobForm({
       gap: 8,
       border: "1px solid var(--tint-amber-bd)",
       background: "var(--tint-amber-bg)",
-      borderRadius: 11,
+      borderRadius: "var(--r-chip)",
       padding: "9px 12px"
     }
   }, React.createElement(Icon, {
@@ -550,7 +550,7 @@ function JobForm({
         alignItems: "center",
         gap: 8,
         padding: "7px 13px 7px 7px",
-        borderRadius: 99,
+        borderRadius: "var(--r-pill)",
         border: "1.5px solid " + (sel ? t.color : "var(--border-strong)"),
         background: sel ? t.color + "14" : "var(--surface2)",
         cursor: "pointer",
@@ -561,7 +561,7 @@ function JobForm({
       style: {
         width: 26,
         height: 26,
-        borderRadius: 99,
+        borderRadius: "var(--r-pill)",
         background: t.color,
         color: "#fff",
         display: "grid",
@@ -607,7 +607,7 @@ function JobForm({
       alignItems: "center",
       gap: 6,
       padding: "9px 14px",
-      borderRadius: 99,
+      borderRadius: "var(--r-pill)",
       border: "1.5px dashed var(--border-strong)",
       background: "transparent",
       cursor: "pointer",
@@ -656,7 +656,7 @@ function JobForm({
       flexShrink: 0,
       width: 38,
       height: 38,
-      borderRadius: 10,
+      borderRadius: "var(--r-chip)",
       border: "1px solid var(--border-strong)",
       background: "var(--surface2)",
       cursor: "pointer",
@@ -903,7 +903,7 @@ function JobForm({
         style: {
           width: 28,
           height: 28,
-          borderRadius: 99,
+          borderRadius: "var(--r-pill)",
           flexShrink: 0,
           display: "grid",
           placeItems: "center",
@@ -959,7 +959,7 @@ function JobForm({
           color: s.color,
           background: s.soft || "var(--primary-soft)",
           padding: "2px 9px",
-          borderRadius: 99,
+          borderRadius: "var(--r-pill)",
           flexShrink: 0
         }
       }, "\u0E15\u0E2D\u0E19\u0E19\u0E35\u0E49"), passed && React.createElement("span", {
@@ -1100,7 +1100,7 @@ function JobForm({
         marginTop: 14,
         border: "none",
         boxShadow: "var(--shadow-sm)",
-        borderRadius: 12,
+        borderRadius: "var(--r-chip)",
         padding: 12,
         background: "var(--surface2)"
       }
@@ -1230,7 +1230,7 @@ function JobForm({
         style: {
           width: 5,
           height: 5,
-          borderRadius: 99,
+          borderRadius: "var(--r-pill)",
           background: "var(--primary)"
         }
       }));
@@ -1314,7 +1314,7 @@ function JobForm({
     style: {
       flex: isMobile ? "0 0 auto" : "none",
       padding: "11px 20px",
-      borderRadius: 11,
+      borderRadius: "var(--r-chip)",
       border: "1px solid var(--border-strong)",
       background: "var(--surface)",
       color: "var(--text-2)",
@@ -1328,7 +1328,7 @@ function JobForm({
     style: {
       flex: isMobile ? 1 : "none",
       padding: "11px 24px",
-      borderRadius: 11,
+      borderRadius: "var(--r-chip)",
       border: "none",
       background: "var(--primary)",
       color: "#fff",
@@ -1360,7 +1360,7 @@ function Section({
       background: "var(--surface)",
       border: "none",
       boxShadow: "var(--shadow-sm)",
-      borderRadius: 14,
+      borderRadius: "var(--r-tile)",
       padding: mob ? 14 : 18
     }
   }, React.createElement("div", {
@@ -1407,7 +1407,7 @@ function MatRow({
     style: {
       width: 7,
       height: 7,
-      borderRadius: 99,
+      borderRadius: "var(--r-pill)",
       flexShrink: 0,
       background: S[cur].color,
       opacity: off ? 0.45 : 1
@@ -1485,7 +1485,7 @@ function MatTally({
     style: {
       width: 54,
       height: 5,
-      borderRadius: 99,
+      borderRadius: "var(--r-pill)",
       background: "var(--surface3)",
       overflow: "hidden"
     }
@@ -1520,7 +1520,7 @@ function ToggleField({
       alignItems: "center",
       gap: 9,
       padding: "8px 11px",
-      borderRadius: 10,
+      borderRadius: "var(--r-chip)",
       border: "1px solid var(--border-strong)",
       background: "var(--surface2)",
       cursor: "pointer",
@@ -1531,7 +1531,7 @@ function ToggleField({
     style: {
       width: 38,
       height: 22,
-      borderRadius: 99,
+      borderRadius: "var(--r-pill)",
       background: on ? "var(--primary)" : "var(--surface3)",
       position: "relative",
       transition: "background .2s",
@@ -1544,7 +1544,7 @@ function ToggleField({
       left: on ? 19 : 3,
       width: 16,
       height: 16,
-      borderRadius: 99,
+      borderRadius: "var(--r-pill)",
       background: "#fff",
       transition: "left .2s",
       boxShadow: "0 1px 3px rgba(0,0,0,.2)"
@@ -1584,7 +1584,7 @@ function TechManager({
     onClick: e => e.stopPropagation(),
     style: {
       background: "var(--bg)",
-      borderRadius: 20,
+      borderRadius: "var(--r-card)",
       width: "min(560px,100%)",
       maxHeight: "90vh",
       display: "flex",
@@ -1611,7 +1611,7 @@ function TechManager({
     style: {
       width: 38,
       height: 38,
-      borderRadius: 11,
+      borderRadius: "var(--r-chip)",
       background: "var(--primary-soft)",
       display: "grid",
       placeItems: "center"
@@ -1667,13 +1667,13 @@ function TechManager({
       background: "var(--surface)",
       border: "none",
       boxShadow: "var(--shadow-sm)",
-      borderRadius: 12
+      borderRadius: "var(--r-chip)"
     }
   }, React.createElement("span", {
     style: {
       width: 36,
       height: 36,
-      borderRadius: 99,
+      borderRadius: "var(--r-pill)",
       background: t.color,
       color: "#fff",
       display: "grid",
@@ -1759,7 +1759,7 @@ function TechManager({
       alignItems: "center",
       gap: 7,
       padding: "10px 18px",
-      borderRadius: 11,
+      borderRadius: "var(--r-chip)",
       border: "none",
       background: "var(--primary)",
       color: "#fff",
@@ -1809,7 +1809,7 @@ function TechEditModal({
     onClick: e => e.stopPropagation(),
     style: {
       background: "var(--bg)",
-      borderRadius: 18,
+      borderRadius: "var(--r-card)",
       width: "min(420px,100%)",
       overflow: "hidden",
       boxShadow: "var(--shadow-modal)"
@@ -1863,7 +1863,7 @@ function TechEditModal({
     style: {
       width: 56,
       height: 56,
-      borderRadius: 99,
+      borderRadius: "var(--r-pill)",
       background: f.color,
       color: "#fff",
       display: "grid",
@@ -1917,7 +1917,7 @@ function TechEditModal({
     style: {
       width: 30,
       height: 30,
-      borderRadius: 99,
+      borderRadius: "var(--r-pill)",
       background: c,
       border: f.color === c ? "3px solid var(--text-1)" : "3px solid transparent",
       cursor: "pointer",
@@ -1936,7 +1936,7 @@ function TechEditModal({
     onClick: onClose,
     style: {
       padding: "10px 18px",
-      borderRadius: 11,
+      borderRadius: "var(--r-chip)",
       border: "1px solid var(--border-strong)",
       background: "var(--surface)",
       color: "var(--text-2)",
@@ -1957,7 +1957,7 @@ function TechEditModal({
     },
     style: {
       padding: "10px 22px",
-      borderRadius: 11,
+      borderRadius: "var(--r-chip)",
       border: "none",
       background: "var(--primary)",
       color: "#fff",
@@ -1990,7 +1990,7 @@ function BrandManager({
     onClick: e => e.stopPropagation(),
     style: {
       background: "var(--bg)",
-      borderRadius: 20,
+      borderRadius: "var(--r-card)",
       width: "min(560px,100%)",
       maxHeight: "90vh",
       display: "flex",
@@ -2017,7 +2017,7 @@ function BrandManager({
     style: {
       width: 38,
       height: 38,
-      borderRadius: 11,
+      borderRadius: "var(--r-chip)",
       background: "var(--primary-soft)",
       display: "grid",
       placeItems: "center"
@@ -2073,13 +2073,13 @@ function BrandManager({
       background: "var(--surface)",
       border: "none",
       boxShadow: "var(--shadow-sm)",
-      borderRadius: 12
+      borderRadius: "var(--r-chip)"
     }
   }, React.createElement("span", {
     style: {
       width: 36,
       height: 36,
-      borderRadius: 10,
+      borderRadius: "var(--r-chip)",
       background: "var(--surface2)",
       border: "none",
       boxShadow: "var(--shadow-sm)",
@@ -2187,7 +2187,7 @@ function BrandManager({
       alignItems: "center",
       gap: 7,
       padding: "10px 18px",
-      borderRadius: 11,
+      borderRadius: "var(--r-chip)",
       border: "none",
       background: "var(--primary)",
       color: "#fff",
@@ -2239,7 +2239,7 @@ function BrandEditModal({
     onClick: e => e.stopPropagation(),
     style: {
       background: "var(--bg)",
-      borderRadius: 18,
+      borderRadius: "var(--r-card)",
       width: "min(420px,100%)",
       overflow: "hidden",
       boxShadow: "var(--shadow-modal)"
@@ -2313,7 +2313,7 @@ function BrandEditModal({
     onClick: onClose,
     style: {
       padding: "10px 18px",
-      borderRadius: 11,
+      borderRadius: "var(--r-chip)",
       border: "1px solid var(--border-strong)",
       background: "var(--surface)",
       color: "var(--text-2)",
@@ -2339,7 +2339,7 @@ function BrandEditModal({
     },
     style: {
       padding: "10px 22px",
-      borderRadius: 11,
+      borderRadius: "var(--r-chip)",
       border: "none",
       background: "var(--primary)",
       color: "#fff",

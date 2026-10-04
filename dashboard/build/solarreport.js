@@ -1552,7 +1552,7 @@ function SuReportView({
     style: {
       width: 36,
       height: 36,
-      borderRadius: 10,
+      borderRadius: "var(--r-chip)",
       border: "1px solid var(--border-strong)",
       background: "var(--surface)",
       cursor: "pointer",
@@ -1590,7 +1590,7 @@ function SuReportView({
       alignItems: "center",
       gap: 7,
       padding: "11px 16px",
-      borderRadius: 11,
+      borderRadius: "var(--r-chip)",
       border: "none",
       background: ready ? "var(--primary)" : "var(--surface3)",
       color: ready ? "#fff" : "var(--text-3)",

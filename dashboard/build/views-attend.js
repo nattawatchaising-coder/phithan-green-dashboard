@@ -30,7 +30,7 @@ function TmPill({
   return React.createElement("span", {
     style: {
       padding: size === "sm" ? "2px 8px" : "3px 10px",
-      borderRadius: 99,
+      borderRadius: "var(--r-pill)",
       background: st.color + "1A",
       color: st.color,
       fontSize: size === "sm" ? 10.5 : 11.5,
@@ -56,7 +56,7 @@ function TmStat({
       minWidth: 165,
       textAlign: "left",
       padding: "12px 14px",
-      borderRadius: 13,
+      borderRadius: "var(--r-tile)",
       border: "1px solid " + (on ? "var(--primary)" : "var(--border)"),
       background: on ? "var(--primary-soft)" : "var(--surface)",
       cursor: onClick ? "pointer" : "default",
@@ -217,7 +217,7 @@ function TmDaySheet({
   }, window.drDateTH(date, true)), holiday ? React.createElement("span", {
     style: {
       padding: "3px 10px",
-      borderRadius: 99,
+      borderRadius: "var(--r-pill)",
       background: "var(--tint-red-bg)",
       color: "var(--tint-red-tx)",
       fontSize: 11.5,
@@ -226,7 +226,7 @@ function TmDaySheet({
   }, "\u0E27\u0E31\u0E19\u0E2B\u0E22\u0E38\u0E14 \xB7 ", window.tmWhNorm(cfg).holidays[date]) : !workday ? React.createElement("span", {
     style: {
       padding: "3px 10px",
-      borderRadius: 99,
+      borderRadius: "var(--r-pill)",
       background: "var(--surface3)",
       color: "var(--text-2)",
       fontSize: 11.5,
@@ -264,7 +264,7 @@ function TmDaySheet({
       overflowX: "auto",
       border: "none",
       boxShadow: "var(--shadow-sm)",
-      borderRadius: 13,
+      borderRadius: "var(--r-tile)",
       background: "var(--surface)"
     }
   }, React.createElement("table", {
@@ -504,7 +504,7 @@ function TmMonth({
       alignItems: "center",
       gap: 6,
       padding: "9px 15px",
-      borderRadius: 10,
+      borderRadius: "var(--r-chip)",
       border: "none",
       background: busy ? "var(--text-3)" : "var(--primary)",
       color: "#fff",
@@ -557,7 +557,7 @@ function TmMonth({
       overflowX: "auto",
       border: "none",
       boxShadow: "var(--shadow-sm)",
-      borderRadius: 13,
+      borderRadius: "var(--r-tile)",
       background: "var(--surface)"
     }
   }, React.createElement("table", {
@@ -1743,7 +1743,7 @@ function TmOtModal({
     style: {
       marginTop: 12,
       padding: "11px 13px",
-      borderRadius: 12,
+      borderRadius: "var(--r-chip)",
       background: "var(--surface2)",
       border: "none",
       boxShadow: "var(--shadow-sm)"
@@ -1902,7 +1902,7 @@ function TmOtModal({
     style: {
       marginTop: 10,
       padding: "10px 12px",
-      borderRadius: 11,
+      borderRadius: "var(--r-chip)",
       background: "var(--surface2)",
       fontSize: 12,
       color: "var(--text-2)"
@@ -1911,7 +1911,7 @@ function TmOtModal({
     style: {
       marginTop: 10,
       padding: "10px 12px",
-      borderRadius: 11,
+      borderRadius: "var(--r-chip)",
       background: "var(--surface2)",
       fontSize: 12,
       color: "var(--text-2)",
@@ -1938,7 +1938,7 @@ function TmOtModal({
     },
     style: {
       padding: "9px 16px",
-      borderRadius: 10,
+      borderRadius: "var(--r-chip)",
       border: "1px solid var(--border-strong)",
       background: "var(--surface)",
       cursor: "pointer",
@@ -1960,7 +1960,7 @@ function TmOtModal({
       },
       style: {
         padding: "9px 16px",
-        borderRadius: 10,
+        borderRadius: "var(--r-chip)",
         cursor: "pointer",
         fontFamily: "inherit",
         fontSize: 12.5,
@@ -1983,7 +1983,7 @@ function TmOtModal({
     style: {
       marginLeft: "auto",
       padding: "9px 14px",
-      borderRadius: 10,
+      borderRadius: "var(--r-chip)",
       border: "1px solid var(--border-strong)",
       background: "var(--surface)",
       cursor: "pointer",
@@ -2036,7 +2036,7 @@ function TmOtRow({
   }, window.tmNameOf(users, rec.userId, rec.userName)), React.createElement("span", {
     style: {
       padding: "2px 8px",
-      borderRadius: 99,
+      borderRadius: "var(--r-pill)",
       background: k.color + "1A",
       color: k.color,
       fontSize: 10.5,
@@ -2216,7 +2216,7 @@ function TmOfficeCfg({
     style: {
       marginTop: 11,
       padding: "11px 13px",
-      borderRadius: 12,
+      borderRadius: "var(--r-chip)",
       border: "1px solid " + (o.lock ? "#F59E0B66" : "var(--border)"),
       background: o.lock ? "rgba(245,158,11,.07)" : "var(--surface)"
     }
@@ -2236,7 +2236,7 @@ function TmOfficeCfg({
       position: "relative",
       width: 52,
       height: 30,
-      borderRadius: 99,
+      borderRadius: "var(--r-pill)",
       flexShrink: 0,
       border: "1px solid " + (o.lock ? "#F59E0B" : "var(--border-strong)"),
       background: !has ? "var(--surface2)" : o.lock ? "#F59E0B" : "var(--surface2)",
@@ -2250,7 +2250,7 @@ function TmOfficeCfg({
       left: o.lock ? 25 : 3,
       width: 22,
       height: 22,
-      borderRadius: 99,
+      borderRadius: "var(--r-pill)",
       background: "#fff",
       boxShadow: "0 1px 3px rgba(8,20,14,.3)",
       transition: "left .15s"
@@ -2285,7 +2285,7 @@ function TmOfficeCfg({
     style: {
       marginTop: 9,
       padding: "11px 13px",
-      borderRadius: 12,
+      borderRadius: "var(--r-chip)",
       background: "var(--surface2)",
       border: "none",
       boxShadow: "var(--shadow-sm)",
@@ -2433,7 +2433,7 @@ function TmWorkHours({
   }))), React.createElement("div", {
     style: {
       padding: "11px 13px",
-      borderRadius: 12,
+      borderRadius: "var(--r-chip)",
       background: "var(--surface2)",
       border: "none",
       boxShadow: "var(--shadow-sm)",
@@ -2448,7 +2448,7 @@ function TmWorkHours({
   }, window.tmWhNorm(f).cutoffDay ? "ใบ OT ของวันที่ " + window.tmWhNorm(f).cutoffDay + " นับเข้ารอบนี้ · วันที่ " + (window.tmWhNorm(f).cutoffDay + 1) + " เป็นต้นไปนับเข้ารอบถัดไป" : "ใส่ 0 = ใช้เดือนปฏิทิน (วันที่ 1 ถึงสิ้นเดือน) · ถ้าฝ่ายบุคคลปิดยอดวันที่ 25 ให้ใส่ 25", React.createElement("br", null), "\u0E15\u0E31\u0E49\u0E07\u0E44\u0E14\u0E49\u0E44\u0E21\u0E48\u0E40\u0E01\u0E34\u0E19\u0E27\u0E31\u0E19\u0E17\u0E35\u0E48 28 \u0E40\u0E1E\u0E23\u0E32\u0E30\u0E40\u0E14\u0E37\u0E2D\u0E19\u0E01\u0E38\u0E21\u0E20\u0E32\u0E1E\u0E31\u0E19\u0E18\u0E4C\u0E44\u0E21\u0E48\u0E21\u0E35\u0E27\u0E31\u0E19\u0E17\u0E35\u0E48 29-31 \u0E17\u0E38\u0E01\u0E1B\u0E35 \u0E23\u0E2D\u0E1A\u0E08\u0E30\u0E2B\u0E32\u0E22\u0E44\u0E1B\u0E40\u0E07\u0E35\u0E22\u0E1A \u0E46")), React.createElement("div", {
     style: {
       padding: "11px 13px",
-      borderRadius: 12,
+      borderRadius: "var(--r-chip)",
       background: "var(--surface2)",
       border: "none",
       boxShadow: "var(--shadow-sm)",
@@ -2527,7 +2527,7 @@ function TmWorkHours({
     style: {
       marginTop: 9,
       padding: "11px 13px",
-      borderRadius: 12,
+      borderRadius: "var(--r-chip)",
       background: "var(--surface2)",
       border: "none",
       boxShadow: "var(--shadow-sm)",
@@ -2560,7 +2560,7 @@ function TmWorkHours({
       style: {
         width: 46,
         padding: "8px 0",
-        borderRadius: 10,
+        borderRadius: "var(--r-chip)",
         cursor: "pointer",
         fontFamily: "inherit",
         fontSize: 12.5,
@@ -2608,7 +2608,7 @@ function TmWorkHours({
     },
     style: {
       padding: "9px 15px",
-      borderRadius: 10,
+      borderRadius: "var(--r-chip)",
       border: "none",
       background: hDate ? "var(--primary)" : "var(--surface3)",
       color: hDate ? "#fff" : "var(--text-3)",
@@ -2668,7 +2668,7 @@ function TmWorkHours({
     onClick: () => onSave(f),
     style: {
       padding: "10px 20px",
-      borderRadius: 11,
+      borderRadius: "var(--r-chip)",
       border: "none",
       background: "var(--primary)",
       color: "#fff",
@@ -2815,7 +2815,7 @@ function TmOtPeriod({
       overflowX: "auto",
       border: "none",
       boxShadow: "var(--shadow-sm)",
-      borderRadius: 13,
+      borderRadius: "var(--r-tile)",
       background: "var(--surface)"
     }
   }, React.createElement("table", {
@@ -3032,7 +3032,7 @@ function AttendView({
       flexWrap: "wrap",
       alignItems: "center",
       padding: "11px 13px",
-      borderRadius: 12,
+      borderRadius: "var(--r-chip)",
       background: "var(--surface2)",
       border: "none",
       boxShadow: "var(--shadow-sm)"
@@ -3051,7 +3051,7 @@ function AttendView({
       alignItems: "center",
       gap: 6,
       padding: "9px 15px",
-      borderRadius: 10,
+      borderRadius: "var(--r-chip)",
       border: "none",
       background: window.tmCanOt(role) ? "var(--primary)" : "var(--surface3)",
       color: window.tmCanOt(role) ? "#fff" : "var(--text-3)",
@@ -3083,7 +3083,7 @@ function AttendView({
       alignItems: "center",
       gap: 6,
       padding: "8px 14px",
-      borderRadius: 99,
+      borderRadius: "var(--r-pill)",
       border: "1px solid " + (tab === k ? "var(--primary)" : "var(--border-strong)"),
       background: tab === k ? "var(--primary-soft)" : "var(--surface)",
       cursor: "pointer",
@@ -3142,7 +3142,7 @@ function AttendView({
     style: {
       border: "none",
       boxShadow: "var(--shadow-sm)",
-      borderRadius: 13,
+      borderRadius: "var(--r-tile)",
       overflow: "hidden",
       background: "var(--surface)"
     }
@@ -3179,7 +3179,7 @@ function TmMyDays({
     style: {
       border: "none",
       boxShadow: "var(--shadow-sm)",
-      borderRadius: 13,
+      borderRadius: "var(--r-tile)",
       overflow: "hidden",
       background: "var(--surface)"
     }

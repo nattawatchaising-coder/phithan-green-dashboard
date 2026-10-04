@@ -981,7 +981,7 @@ function Meas3DModal({
       style: {
         border: "none",
         boxShadow: "var(--shadow-sm)",
-        borderRadius: 12,
+        borderRadius: "var(--r-chip)",
         padding: "10px 12px",
         background: "var(--surface)",
         display: "grid",
@@ -1003,7 +1003,7 @@ function Meas3DModal({
       style: {
         width: 8,
         height: 8,
-        borderRadius: 99,
+        borderRadius: "var(--r-pill)",
         background: col,
         flexShrink: 0
       }
@@ -1064,7 +1064,7 @@ function Meas3DModal({
       background: "var(--surface2)",
       border: "1px solid var(--border-strong)",
       color: "var(--text-2)",
-      borderRadius: 10,
+      borderRadius: "var(--r-chip)",
       padding: "9px 16px",
       fontWeight: 700,
       fontSize: 12.5,
@@ -1084,7 +1084,7 @@ function Meas3DModal({
       background: rows.length ? "var(--primary)" : "var(--surface3)",
       border: "none",
       color: rows.length ? "#fff" : "var(--text-3)",
-      borderRadius: 10,
+      borderRadius: "var(--r-chip)",
       padding: "9px 20px",
       fontWeight: 800,
       fontSize: 12.5,
@@ -1904,7 +1904,7 @@ function BOQEditor({
         padding: "9px 12px",
         background: "var(--tint-blue-bg, rgba(37,99,235,.08))",
         border: "1px solid rgba(37,99,235,.24)",
-        borderRadius: 11
+        borderRadius: "var(--r-chip)"
       }
     }, React.createElement(Icon, {
       name: "grid",
@@ -3618,7 +3618,7 @@ function BOQEditor({
           fontSize: 10,
           fontWeight: 700,
           padding: "2px 7px",
-          borderRadius: 99,
+          borderRadius: "var(--r-pill)",
           background: "var(--primary-soft)",
           color: "var(--primary-dark)"
         }
@@ -3665,7 +3665,7 @@ function BOQEditor({
         style: {
           border: "none",
           boxShadow: "var(--shadow-sm)",
-          borderRadius: 12,
+          borderRadius: "var(--r-chip)",
           padding: 9,
           background: "var(--surface2)"
         }
@@ -3951,7 +3951,7 @@ function BOQEditor({
         style: {
           border: "none",
           boxShadow: "var(--shadow-sm)",
-          borderRadius: 12,
+          borderRadius: "var(--r-chip)",
           padding: 9,
           background: "var(--surface2)"
         }
@@ -3987,7 +3987,7 @@ function BOQEditor({
           fontSize: 10,
           fontWeight: 700,
           padding: "2px 7px",
-          borderRadius: 99,
+          borderRadius: "var(--r-pill)",
           background: "var(--primary-soft)",
           color: "var(--primary-dark)"
         }
@@ -4071,7 +4071,7 @@ function BOQEditor({
           alignItems: "center",
           gap: 5,
           padding: "3px 10px",
-          borderRadius: 99,
+          borderRadius: "var(--r-pill)",
           cursor: "pointer",
           fontFamily: "inherit",
           fontSize: 11,
@@ -4094,7 +4094,7 @@ function BOQEditor({
           alignItems: "center",
           gap: 5,
           padding: "3px 10px",
-          borderRadius: 99,
+          borderRadius: "var(--r-pill)",
           cursor: "pointer",
           fontFamily: "inherit",
           fontSize: 11,
@@ -4594,7 +4594,7 @@ function BOQEditor({
     style: {
       border: "none",
       boxShadow: "var(--shadow-sm)",
-      borderRadius: 12,
+      borderRadius: "var(--r-chip)",
       padding: 12,
       background: "var(--surface2)"
     }
@@ -6207,7 +6207,7 @@ function BOQEditor({
       padding: "9px 12px",
       background: "var(--tint-red-bg)",
       border: "1px solid var(--tint-red-bd2)",
-      borderRadius: 10,
+      borderRadius: "var(--r-chip)",
       fontSize: 12.5,
       fontWeight: 700,
       color: "var(--tint-red-tx)"
@@ -6435,7 +6435,7 @@ function BOQEditor({
       padding: "10px 13px",
       background: "var(--tint-amber-bg)",
       border: "1px solid var(--tint-amber-bd)",
-      borderRadius: 10,
+      borderRadius: "var(--r-chip)",
       fontSize: 12.5,
       fontWeight: 600,
       color: "var(--tint-amber-tx2)"
@@ -6755,7 +6755,7 @@ function BOQEditor({
       gap: 7,
       padding: "9px 12px",
       background: "var(--primary-soft)",
-      borderRadius: 10,
+      borderRadius: "var(--r-chip)",
       fontSize: 12.5,
       fontWeight: 700,
       color: "var(--primary-dark)"
@@ -6775,7 +6775,7 @@ function BOQEditor({
       padding: "9px 12px",
       background: "var(--tint-red-bg)",
       border: "1px solid var(--tint-red-bd2)",
-      borderRadius: 10,
+      borderRadius: "var(--r-chip)",
       fontSize: 12.5,
       fontWeight: 700,
       color: "var(--tint-red-tx)"
@@ -6814,7 +6814,7 @@ function BOQEditor({
       padding: "9px 12px",
       background: "var(--tint-amber-bg)",
       border: "1px solid var(--tint-amber-bd)",
-      borderRadius: 10,
+      borderRadius: "var(--r-chip)",
       fontSize: 12.5,
       fontWeight: 700,
       color: "var(--tint-amber-tx)"
@@ -6854,7 +6854,7 @@ function BOQEditor({
       marginTop: 10,
       padding: 12,
       background: "var(--surface2)",
-      borderRadius: 10,
+      borderRadius: "var(--r-chip)",
       display: "grid",
       gridTemplateColumns: isMobile ? "minmax(0,1fr) minmax(0,1fr)" : "repeat(4, minmax(0,1fr))",
       gap: 10
@@ -7449,7 +7449,7 @@ function BOQEditor({
         border: "1px solid " + (own ? "var(--border-strong)" : "transparent"),
         background: own ? "var(--surface)" : "var(--surface2)",
         color: own ? "var(--text-2)" : "var(--text-3)",
-        borderRadius: 99,
+        borderRadius: "var(--r-pill)",
         padding: "3px 9px",
         fontSize: 10.5,
         fontWeight: 700,
@@ -7460,7 +7460,7 @@ function BOQEditor({
       style: {
         width: 5,
         height: 5,
-        borderRadius: 99,
+        borderRadius: "var(--r-pill)",
         background: "var(--primary)"
       }
     }), condTh, React.createElement(Icon, {
@@ -7778,7 +7778,7 @@ function BOQEditor({
         background: "var(--surface2)",
         border: "none",
         boxShadow: "var(--shadow-sm)",
-        borderRadius: 10
+        borderRadius: "var(--r-chip)"
       }
     }, React.createElement("div", {
       style: {
@@ -7964,7 +7964,7 @@ function BOQEditor({
         flexWrap: "wrap",
         alignItems: "center",
         padding: "10px 13px",
-        borderRadius: 11,
+        borderRadius: "var(--r-chip)",
         border: "1px solid " + (bad ? "#F59E0B55" : "var(--border)"),
         background: bad ? "#F59E0B12" : "var(--surface2)"
       }
@@ -8029,7 +8029,7 @@ function BOQEditor({
     key: r.i,
     style: {
       background: "var(--surface2)",
-      borderRadius: 12,
+      borderRadius: "var(--r-chip)",
       padding: "10px 12px",
       display: "flex",
       flexDirection: "column",
@@ -8617,7 +8617,7 @@ function BOQEditor({
         style: {
           border: "none",
           boxShadow: "var(--shadow-sm)",
-          borderRadius: 12,
+          borderRadius: "var(--r-chip)",
           padding: 10,
           background: "var(--surface2)",
           display: "flex",
@@ -9046,7 +9046,7 @@ function BOQEditor({
       flex: "1 1 180px",
       textAlign: "left",
       padding: "10px 13px",
-      borderRadius: 11,
+      borderRadius: "var(--r-chip)",
       cursor: "pointer",
       fontFamily: "inherit",
       border: "1px solid " + (laborMode === m.v ? "var(--primary)" : "var(--border-strong)"),
@@ -9525,7 +9525,7 @@ function BOQEditor({
     style: {
       width: 7,
       height: 7,
-      borderRadius: 99,
+      borderRadius: "var(--r-pill)",
       background: GROUP_COLOR[g.group] || "var(--text-3)",
       flexShrink: 0
     }
@@ -9570,7 +9570,7 @@ function BOQEditor({
   }, "\u0E3F", baht(g.perW), "/W"))))), React.createElement("div", {
     style: {
       border: "1px solid var(--border)",
-      borderRadius: 12,
+      borderRadius: "var(--r-chip)",
       overflow: "hidden"
     }
   }, priced.groups.map((g, gi) => React.createElement("div", {
@@ -9592,7 +9592,7 @@ function BOQEditor({
     style: {
       width: 7,
       height: 7,
-      borderRadius: 99,
+      borderRadius: "var(--r-pill)",
       background: GROUP_COLOR[g.group] || "var(--text-3)",
       flexShrink: 0
     }
@@ -9682,7 +9682,7 @@ function BOQEditor({
         alignItems: "center",
         gap: 4,
         padding: "1px 7px",
-        borderRadius: 99,
+        borderRadius: "var(--r-pill)",
         border: "1px solid " + (it.variantLabel ? "var(--border-strong)" : "transparent"),
         background: it.variantLabel ? "var(--surface2)" : "transparent",
         color: it.variantLabel ? "var(--text-2)" : "var(--text-3)",
@@ -10018,7 +10018,7 @@ function BOQEditor({
   })))), React.createElement("div", {
     style: {
       border: "1px solid var(--border)",
-      borderRadius: 12,
+      borderRadius: "var(--r-chip)",
       overflow: "hidden"
     }
   }, [{
@@ -10108,7 +10108,7 @@ function BOQEditor({
         gap: 16,
         flexWrap: "wrap",
         padding: "12px 14px",
-        borderRadius: 12,
+        borderRadius: "var(--r-chip)",
         background: good ? "var(--primary-soft)" : "var(--tint-amber-bg2)",
         border: "1px solid " + (good ? "var(--tint-ok-bd)" : "var(--tint-amber-bd)")
       }
@@ -10222,7 +10222,7 @@ function BOQEditor({
     style: {
       width: 7,
       height: 7,
-      borderRadius: 99,
+      borderRadius: "var(--r-pill)",
       background: "#F59E0B",
       boxShadow: "0 0 0 3px rgba(245,158,11,.22)"
     }
@@ -10326,7 +10326,7 @@ function SteelSpecBlock({
     style: {
       border: "none",
       boxShadow: "var(--shadow-sm)",
-      borderRadius: 12,
+      borderRadius: "var(--r-chip)",
       padding: open ? 12 : "10px 12px",
       background: "var(--surface2)"
     }
@@ -10416,7 +10416,7 @@ function SteelSpecBlock({
       style: {
         border: "none",
         boxShadow: "var(--shadow-sm)",
-        borderRadius: 10,
+        borderRadius: "var(--r-chip)",
         padding: "9px 10px",
         background: "var(--surface)"
       }
@@ -10657,7 +10657,7 @@ function MatVariantModal({
       cursor: "pointer",
       background: keepPrice ? "var(--primary-soft)" : "var(--surface2)",
       padding: "9px 11px",
-      borderRadius: 10,
+      borderRadius: "var(--r-chip)",
       border: "1px solid " + (keepPrice ? "var(--primary)" : "var(--border)")
     }
   }, React.createElement("input", {
@@ -10760,7 +10760,7 @@ function MatVariantModal({
         cursor: "pointer",
         fontFamily: "inherit",
         padding: "9px 11px",
-        borderRadius: 11,
+        borderRadius: "var(--r-chip)",
         border: "1px solid " + (on ? "var(--primary)" : "var(--border)"),
         background: on ? "var(--primary-soft)" : "var(--surface)"
       }
@@ -10768,7 +10768,7 @@ function MatVariantModal({
       style: {
         width: 8,
         height: 8,
-        borderRadius: 99,
+        borderRadius: "var(--r-pill)",
         flexShrink: 0,
         background: on ? "var(--primary)" : "var(--surface3)"
       }

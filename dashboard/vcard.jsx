@@ -332,7 +332,7 @@ function VcCardBody({ user }) {
       {/* กรอบรอบนามบัตรเป็นของหน้าจอ ไม่ได้ติดไปในไฟล์ — ไฟล์ที่ได้เป็นสี่เหลี่ยมเต็มใบ
           กดที่รูปแล้วกางเต็มจอ — บนมือถือนามบัตรกว้างแค่ความกว้างจอ ตัวหนังสือเล็กเกินกว่าจะยื่นให้ลูกค้าดูสด ๆ */}
       <div ref={box} onClick={() => { if (cvRef.current) setZoom(cvRef.current.toDataURL("image/png")); }}
-        style={{ borderRadius: 12, overflow: "hidden", background: "#FFFFFF", cursor: ready ? "zoom-in" : "default",
+        style={{ borderRadius: "var(--r-chip)", overflow: "hidden", background: "#FFFFFF", cursor: ready ? "zoom-in" : "default",
           border: "1px solid var(--border)", minHeight: 120, boxShadow: "var(--shadow-pop)" }} />
 
       {zoom && ReactDOM.createPortal(
@@ -354,7 +354,7 @@ function VcCardBody({ user }) {
         </div>, document.body)}
 
       {empty && (
-        <div style={{ display: "flex", gap: 9, alignItems: "flex-start", padding: "11px 13px", borderRadius: 11,
+        <div style={{ display: "flex", gap: 9, alignItems: "flex-start", padding: "11px 13px", borderRadius: "var(--r-chip)",
           background: "var(--tint-amber-bg)", border: "1px solid var(--tint-amber-bd)" }}>
           <Icon name="alert" size={15} color="#F59E0B" />
           <span style={{ fontSize: 12.5, color: "var(--text-1)", lineHeight: 1.5 }}>
@@ -366,7 +366,7 @@ function VcCardBody({ user }) {
 
       <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
         <button onClick={savePng} disabled={!ready}
-          style={{ display: "inline-flex", alignItems: "center", gap: 7, padding: "10px 16px", borderRadius: 10, border: "none",
+          style={{ display: "inline-flex", alignItems: "center", gap: 7, padding: "10px 16px", borderRadius: "var(--r-chip)", border: "none",
             background: "var(--primary)", color: "#fff", fontFamily: "inherit", fontSize: 12.5, fontWeight: 700,
             cursor: ready ? "pointer" : "default", opacity: ready ? 1 : .5 }}>
           <Icon name="image" size={14} color="#fff" /> บันทึกรูป

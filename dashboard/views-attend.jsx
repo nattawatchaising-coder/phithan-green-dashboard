@@ -29,14 +29,14 @@ function tmWdOf(d) {
 
 function TmPill({ s, size }) {
   const st = window.tmOtStatusOf(s);
-  return <span style={{ padding: size === "sm" ? "2px 8px" : "3px 10px", borderRadius: 99, background: st.color + "1A",
+  return <span style={{ padding: size === "sm" ? "2px 8px" : "3px 10px", borderRadius: "var(--r-pill)", background: st.color + "1A",
     color: st.color, fontSize: size === "sm" ? 10.5 : 11.5, fontWeight: 800, whiteSpace: "nowrap" }}>{st.th}</span>;
 }
 
 function TmStat({ label, value, unit, color, hint, on, onClick }) {
   return (
     <button onClick={onClick} disabled={!onClick}
-      style={{ flex: "1 1 180px", minWidth: 165, textAlign: "left", padding: "12px 14px", borderRadius: 13,
+      style={{ flex: "1 1 180px", minWidth: 165, textAlign: "left", padding: "12px 14px", borderRadius: "var(--r-tile)",
         border: "1px solid " + (on ? "var(--primary)" : "var(--border)"), background: on ? "var(--primary-soft)" : "var(--surface)",
         cursor: onClick ? "pointer" : "default", fontFamily: "inherit" }}>
       <div style={{ fontSize: 11.5, fontWeight: 700, color: "var(--text-3)" }}>{label}</div>
@@ -119,9 +119,9 @@ function TmDaySheet({ date, setDate, cfg, users, currentUser }) {
         <button onClick={() => setDate(window.drAddDays(date, 1))} style={Object.assign({}, TM_IN, { cursor: "pointer", fontWeight: 700 })}>ถัดไป ›</button>
         <button onClick={() => setDate(window.drToday())} style={Object.assign({}, TM_IN, { cursor: "pointer", fontWeight: 700 })}>วันนี้</button>
         <div style={{ fontSize: 13.5, fontWeight: 800, color: "var(--text-1)" }}>{window.drDateTH(date, true)}</div>
-        {holiday ? <span style={{ padding: "3px 10px", borderRadius: 99, background: "var(--tint-red-bg)", color: "var(--tint-red-tx)", fontSize: 11.5, fontWeight: 800 }}>
+        {holiday ? <span style={{ padding: "3px 10px", borderRadius: "var(--r-pill)", background: "var(--tint-red-bg)", color: "var(--tint-red-tx)", fontSize: 11.5, fontWeight: 800 }}>
           วันหยุด · {window.tmWhNorm(cfg).holidays[date]}</span>
-          : !workday ? <span style={{ padding: "3px 10px", borderRadius: 99, background: "var(--surface3)", color: "var(--text-2)", fontSize: 11.5, fontWeight: 800 }}>นอกวันทำงาน</span> : null}
+          : !workday ? <span style={{ padding: "3px 10px", borderRadius: "var(--r-pill)", background: "var(--surface3)", color: "var(--text-2)", fontSize: 11.5, fontWeight: 800 }}>นอกวันทำงาน</span> : null}
       </div>
 
       <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
@@ -133,7 +133,7 @@ function TmDaySheet({ date, setDate, cfg, users, currentUser }) {
         <TmStat label="ชั่วโมงรวม" value={Math.round(totalMins / 60)} unit="ชม." hint={noGps ? noGps + " ใบไม่มีพิกัด" : "ทุกใบมีพิกัด"} />
       </div>
 
-      <div style={{ overflowX: "auto", border: "none", boxShadow: "var(--shadow-sm)", borderRadius: 13, background: "var(--surface)" }}>
+      <div style={{ overflowX: "auto", border: "none", boxShadow: "var(--shadow-sm)", borderRadius: "var(--r-tile)", background: "var(--surface)" }}>
         <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
           <thead>
             <tr style={{ background: "var(--surface2)" }}>
@@ -239,7 +239,7 @@ function TmMonth({ cfg, users, ot }) {
           try { await tmExportMonthXlsx(rows, days, ym, (ot || {}).rows, users, cfg); }
           finally { setBusy(false); }
         }} disabled={busy}
-          style={{ marginLeft: "auto", display: "inline-flex", alignItems: "center", gap: 6, padding: "9px 15px", borderRadius: 10,
+          style={{ marginLeft: "auto", display: "inline-flex", alignItems: "center", gap: 6, padding: "9px 15px", borderRadius: "var(--r-chip)",
             border: "none", background: busy ? "var(--text-3)" : "var(--primary)", color: "#fff",
             cursor: busy ? "default" : "pointer", fontFamily: "inherit", fontSize: 12.5, fontWeight: 800 }}>
           <Icon name="file" size={14} color="#fff" /> {busy ? "กำลังเตรียมไฟล์…" : "ออกไฟล์ Excel"}
@@ -262,7 +262,7 @@ function TmMonth({ cfg, users, ot }) {
           hint={tot.noOut ? "ใบพวกนี้ชั่วโมงเป็นศูนย์ ต้องทักถามก่อนคิดค่าแรง" : ""} />
       </div>
 
-      <div style={{ overflowX: "auto", border: "none", boxShadow: "var(--shadow-sm)", borderRadius: 13, background: "var(--surface)" }}>
+      <div style={{ overflowX: "auto", border: "none", boxShadow: "var(--shadow-sm)", borderRadius: "var(--r-tile)", background: "var(--surface)" }}>
         <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
           <thead>
             <tr style={{ background: "var(--surface2)" }}>
@@ -733,7 +733,7 @@ function TmOtModal({ rec, cfg, jobs, users, role, currentUser, onSave, onMove, o
           </label>
         </div>
 
-        <div style={{ marginTop: 12, padding: "11px 13px", borderRadius: 12, background: "var(--surface2)", border: "none", boxShadow: "var(--shadow-sm)" }}>
+        <div style={{ marginTop: 12, padding: "11px 13px", borderRadius: "var(--r-chip)", background: "var(--surface2)", border: "none", boxShadow: "var(--shadow-sm)" }}>
           <div style={{ display: "flex", alignItems: "baseline", gap: 8, flexWrap: "wrap" }}>
             <span style={{ fontSize: 12, color: "var(--text-3)", fontWeight: 700 }}>นับเป็น OT</span>
             <span style={{ fontFamily: "var(--mono)", fontSize: 20, fontWeight: 800,
@@ -810,13 +810,13 @@ function TmOtModal({ rec, cfg, jobs, users, role, currentUser, onSave, onMove, o
           </div>
         )}
         {f.cancelledAt && (
-          <div style={{ marginTop: 10, padding: "10px 12px", borderRadius: 11, background: "var(--surface2)",
+          <div style={{ marginTop: 10, padding: "10px 12px", borderRadius: "var(--r-chip)", background: "var(--surface2)",
             fontSize: 12, color: "var(--text-2)" }}>
             ยกเลิกโดยเจ้าของใบ · {window.drShort(String(f.cancelledAt).slice(0, 10))}
           </div>
         )}
         {f.decidedAt && (
-          <div style={{ marginTop: 10, padding: "10px 12px", borderRadius: 11, background: "var(--surface2)", fontSize: 12, color: "var(--text-2)", lineHeight: 1.7 }}>
+          <div style={{ marginTop: 10, padding: "10px 12px", borderRadius: "var(--r-chip)", background: "var(--surface2)", fontSize: 12, color: "var(--text-2)", lineHeight: 1.7 }}>
             {window.tmOtStatusOf(f.status).th} โดย {f.decidedByName || "-"} · {window.drShort(String(f.decidedAt).slice(0, 10))}
             {f.decidedNote ? <div style={{ marginTop: 3 }}>“{f.decidedNote}”</div> : null}
           </div>
@@ -825,7 +825,7 @@ function TmOtModal({ rec, cfg, jobs, users, role, currentUser, onSave, onMove, o
         <div style={{ marginTop: 16, display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
           {editable && (
             <button onClick={() => { onSave(Object.assign({}, f, { mins })); onClose(); }}
-              style={{ padding: "9px 16px", borderRadius: 10, border: "1px solid var(--border-strong)", background: "var(--surface)",
+              style={{ padding: "9px 16px", borderRadius: "var(--r-chip)", border: "1px solid var(--border-strong)", background: "var(--surface)",
                 cursor: "pointer", fontFamily: "inherit", fontSize: 12.5, fontWeight: 800, color: "var(--text-1)" }}>บันทึกร่าง</button>
           )}
           {nexts.map((s) => {
@@ -839,7 +839,7 @@ function TmOtModal({ rec, cfg, jobs, users, role, currentUser, onSave, onMove, o
               : mine ? "เอากลับมาแก้" : "ตีกลับให้แก้";
             return (
               <button key={s.key} onClick={() => { onMove(Object.assign({}, f, { mins }), s.key); onClose(); }}
-                style={{ padding: "9px 16px", borderRadius: 10, cursor: "pointer", fontFamily: "inherit",
+                style={{ padding: "9px 16px", borderRadius: "var(--r-chip)", cursor: "pointer", fontFamily: "inherit",
                   fontSize: 12.5, fontWeight: 800,
                   border: soft ? "1px solid var(--border-strong)" : "none",
                   background: soft ? "var(--surface)" : s.color, color: soft ? s.color : "#fff" }}>
@@ -852,7 +852,7 @@ function TmOtModal({ rec, cfg, jobs, users, role, currentUser, onSave, onMove, o
           )}
           {mine && f.status === "draft" && onDelete && (
             <button onClick={() => { onDelete(f.id); onClose(); }}
-              style={{ marginLeft: "auto", padding: "9px 14px", borderRadius: 10, border: "1px solid var(--border-strong)",
+              style={{ marginLeft: "auto", padding: "9px 14px", borderRadius: "var(--r-chip)", border: "1px solid var(--border-strong)",
                 background: "var(--surface)", cursor: "pointer", fontFamily: "inherit", fontSize: 12.5, fontWeight: 700, color: "var(--tint-red-tx2)" }}>ลบใบนี้</button>
           )}
         </div>
@@ -870,7 +870,7 @@ function TmOtRow({ rec, users, onOpen }) {
       <div style={{ display: "flex", alignItems: "center", gap: 9, flexWrap: "wrap" }}>
         <span style={{ fontFamily: "var(--mono)", fontSize: 11.5, fontWeight: 700, color: "var(--text-3)" }}>{rec.no}</span>
         <span style={{ fontSize: 13.5, fontWeight: 800, color: "var(--text-1)" }}>{window.tmNameOf(users, rec.userId, rec.userName)}</span>
-        <span style={{ padding: "2px 8px", borderRadius: 99, background: k.color + "1A", color: k.color, fontSize: 10.5, fontWeight: 800 }}>{k.th}</span>
+        <span style={{ padding: "2px 8px", borderRadius: "var(--r-pill)", background: k.color + "1A", color: k.color, fontSize: 10.5, fontWeight: 800 }}>{k.th}</span>
         <TmPill s={rec.status} size="sm" />
         <span style={{ marginLeft: "auto", fontFamily: "var(--mono)", fontSize: 13, fontWeight: 800, color: "var(--text-1)" }}>{window.tmDur(rec.mins)}</span>
       </div>
@@ -955,18 +955,18 @@ function TmOfficeCfg({ office, onChange }) {
       {/* ── สวิตช์ล็อกพิกัด ──
           เปิดแล้วเปลี่ยนพฤติกรรมของทั้งบริษัท จึงต้องเห็นชัดว่าตอนนี้เปิดหรือปิด
           และต้องตั้งพิกัดก่อน ไม่งั้นจะล็อกเทียบกับ "ไม่มีที่ไหน" แล้วทุกคนกดเข้างานไม่ได้ */}
-      <div style={{ marginTop: 11, padding: "11px 13px", borderRadius: 12,
+      <div style={{ marginTop: 11, padding: "11px 13px", borderRadius: "var(--r-chip)",
         border: "1px solid " + (o.lock ? "#F59E0B66" : "var(--border)"),
         background: o.lock ? "rgba(245,158,11,.07)" : "var(--surface)" }}>
         <div style={{ display: "flex", alignItems: "center", gap: 11, flexWrap: "wrap" }}>
           <button onClick={() => has && set("lock", !o.lock)} disabled={!has}
             aria-pressed={!!o.lock}
             title={has ? "" : "ตั้งพิกัดออฟฟิศก่อนถึงจะเปิดล็อกได้"}
-            style={{ position: "relative", width: 52, height: 30, borderRadius: 99, flexShrink: 0,
+            style={{ position: "relative", width: 52, height: 30, borderRadius: "var(--r-pill)", flexShrink: 0,
               border: "1px solid " + (o.lock ? "#F59E0B" : "var(--border-strong)"),
               background: !has ? "var(--surface2)" : o.lock ? "#F59E0B" : "var(--surface2)",
               cursor: has ? "pointer" : "not-allowed", padding: 0 }}>
-            <span style={{ position: "absolute", top: 3, left: o.lock ? 25 : 3, width: 22, height: 22, borderRadius: 99,
+            <span style={{ position: "absolute", top: 3, left: o.lock ? 25 : 3, width: 22, height: 22, borderRadius: "var(--r-pill)",
               background: "#fff", boxShadow: "0 1px 3px rgba(8,20,14,.3)", transition: "left .15s" }} />
           </button>
           <span style={{ flex: 1, minWidth: 180 }}>
@@ -989,7 +989,7 @@ function TmOfficeCfg({ office, onChange }) {
         )}
       </div>
 
-      <div style={{ marginTop: 9, padding: "11px 13px", borderRadius: 12, background: "var(--surface2)",
+      <div style={{ marginTop: 9, padding: "11px 13px", borderRadius: "var(--r-chip)", background: "var(--surface2)",
         border: "none", boxShadow: "var(--shadow-sm)", fontSize: 11.5, color: "var(--text-2)", lineHeight: 1.8 }}>
         {has
           ? <span>ตั้งไว้ที่ <b style={{ fontFamily: "var(--mono)" }}>{(+o.lat).toFixed(6)}, {(+o.lng).toFixed(6)}</b>
@@ -1049,7 +1049,7 @@ function TmWorkHours({ cfg, onSave }) {
       </div>
 
       {/* วันตัดยอดเป็นค่าที่กรอกแล้วนึกภาพไม่ออกที่สุดในหน้านี้ — โชว์รอบปัจจุบันจริงให้ดูเลย */}
-      <div style={{ padding: "11px 13px", borderRadius: 12, background: "var(--surface2)",
+      <div style={{ padding: "11px 13px", borderRadius: "var(--r-chip)", background: "var(--surface2)",
         border: "none", boxShadow: "var(--shadow-sm)", fontSize: 12, color: "var(--text-2)", lineHeight: 1.8 }}>
         รอบตัดยอดตอนนี้ <b>{window.tmPeriodTH(window.tmPeriodOf(window.drToday(), f))}</b>
         <br /><span style={{ color: "var(--text-3)" }}>
@@ -1062,7 +1062,7 @@ function TmWorkHours({ cfg, onSave }) {
       </div>
 
       {/* ตัวอย่างจริงสองเคส — ค่าตั้งชุดนี้อ่านจากช่องเปล่า ๆ แล้วนึกภาพไม่ออกว่าแปลว่าอะไร */}
-      <div style={{ padding: "11px 13px", borderRadius: 12, background: "var(--surface2)",
+      <div style={{ padding: "11px 13px", borderRadius: "var(--r-chip)", background: "var(--surface2)",
         border: "none", boxShadow: "var(--shadow-sm)", fontSize: 12, color: "var(--text-2)", lineHeight: 1.8 }}>
         เข้า {f.startEarly} → เลิก <b>{window.tmWhNorm(f).end}</b>
         <span style={{ color: "var(--text-3)" }}> (ทำงาน {window.tmDur(f.workMins)} + พัก {window.tmDur(f.lunchMins)})</span>
@@ -1097,7 +1097,7 @@ function TmWorkHours({ cfg, onSave }) {
             </label>
           ))}
         </div>
-        <div style={{ marginTop: 9, padding: "11px 13px", borderRadius: 12, background: "var(--surface2)",
+        <div style={{ marginTop: 9, padding: "11px 13px", borderRadius: "var(--r-chip)", background: "var(--surface2)",
           border: "none", boxShadow: "var(--shadow-sm)", fontSize: 11.5, color: "var(--text-2)", lineHeight: 1.8 }}>
           ค่าตั้งต้นเป็นอัตราตามกฎหมายแรงงานไทย (พ.ร.บ.คุ้มครองแรงงาน ม.61-63) —
           ล่วงเวลาวันทำงาน 1.5 เท่า · ทำงานวันหยุด 2 เท่า · ล่วงเวลาในวันหยุด 3 เท่า
@@ -1119,7 +1119,7 @@ function TmWorkHours({ cfg, onSave }) {
             const on = f.days.indexOf(i) >= 0;
             return (
               <button key={i} onClick={() => set("days", on ? f.days.filter((x) => x !== i) : f.days.concat([i]).sort())}
-                style={{ width: 46, padding: "8px 0", borderRadius: 10, cursor: "pointer", fontFamily: "inherit", fontSize: 12.5, fontWeight: 800,
+                style={{ width: 46, padding: "8px 0", borderRadius: "var(--r-chip)", cursor: "pointer", fontFamily: "inherit", fontSize: 12.5, fontWeight: 800,
                   border: "1px solid " + (on ? "var(--primary)" : "var(--border-strong)"),
                   background: on ? "var(--primary-soft)" : "var(--surface)", color: on ? "var(--primary-dark)" : "var(--text-3)" }}>{d}</button>
             );
@@ -1134,7 +1134,7 @@ function TmWorkHours({ cfg, onSave }) {
           <input value={hName} onChange={(e) => setHName(e.target.value)} placeholder="ชื่อวันหยุด" style={Object.assign({}, TM_IN, { flex: 1, minWidth: 160 })} />
           <button disabled={!hDate}
             onClick={() => { set("holidays", Object.assign({}, f.holidays, { [hDate]: hName || "วันหยุด" })); setHDate(""); setHName(""); }}
-            style={{ padding: "9px 15px", borderRadius: 10, border: "none", background: hDate ? "var(--primary)" : "var(--surface3)",
+            style={{ padding: "9px 15px", borderRadius: "var(--r-chip)", border: "none", background: hDate ? "var(--primary)" : "var(--surface3)",
               color: hDate ? "#fff" : "var(--text-3)", cursor: hDate ? "pointer" : "default", fontFamily: "inherit", fontSize: 12.5, fontWeight: 800 }}>เพิ่ม</button>
         </div>
         {Object.keys(f.holidays || {}).sort().map((d) => (
@@ -1157,7 +1157,7 @@ function TmWorkHours({ cfg, onSave }) {
 
       <div>
         <button onClick={() => onSave(f)}
-          style={{ padding: "10px 20px", borderRadius: 11, border: "none", background: "var(--primary)", color: "#fff",
+          style={{ padding: "10px 20px", borderRadius: "var(--r-chip)", border: "none", background: "var(--primary)", color: "#fff",
             cursor: "pointer", fontFamily: "inherit", fontSize: 13, fontWeight: 800 }}>บันทึกเวลาทำงาน</button>
       </div>
     </div>
@@ -1220,7 +1220,7 @@ function TmOtPeriod({ cfg, users, jobs, rows, byName }) {
           hint={tot.waiting ? "ต้องกดอนุมัติในระบบก่อน ไม่ใช่แค่เซ็นบนกระดาษ" : ""} />
       </div>
 
-      <div style={{ overflowX: "auto", border: "none", boxShadow: "var(--shadow-sm)", borderRadius: 13, background: "var(--surface)" }}>
+      <div style={{ overflowX: "auto", border: "none", boxShadow: "var(--shadow-sm)", borderRadius: "var(--r-tile)", background: "var(--surface)" }}>
         <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
           <thead>
             <tr style={{ background: "var(--surface2)" }}>
@@ -1363,10 +1363,10 @@ function AttendView({ jobs, users, role, currentUser }) {
       </div>
 
       <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center",
-        padding: "11px 13px", borderRadius: 12, background: "var(--surface2)", border: "none", boxShadow: "var(--shadow-sm)" }}>
+        padding: "11px 13px", borderRadius: "var(--r-chip)", background: "var(--surface2)", border: "none", boxShadow: "var(--shadow-sm)" }}>
         <span style={{ fontSize: 12.5, fontWeight: 700, color: "var(--text-2)" }}>ขอทำงานล่วงเวลา</span>
         <button onClick={openNew} disabled={!window.tmCanOt(role)}
-          style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "9px 15px", borderRadius: 10, border: "none",
+          style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "9px 15px", borderRadius: "var(--r-chip)", border: "none",
             background: window.tmCanOt(role) ? "var(--primary)" : "var(--surface3)", color: window.tmCanOt(role) ? "#fff" : "var(--text-3)",
             cursor: window.tmCanOt(role) ? "pointer" : "default", fontFamily: "inherit", fontSize: 12.5, fontWeight: 800 }}>
           <Icon name="plus" size={14} color={window.tmCanOt(role) ? "#fff" : "var(--text-3)"} /> เปิดใบ OT
@@ -1377,7 +1377,7 @@ function AttendView({ jobs, users, role, currentUser }) {
       <div style={{ display: "flex", gap: 7, flexWrap: "wrap" }}>
         {TABS.map(([k, th, ic, n]) => (
           <button key={k} onClick={() => setTab(k)}
-            style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "8px 14px", borderRadius: 99,
+            style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "8px 14px", borderRadius: "var(--r-pill)",
               border: "1px solid " + (tab === k ? "var(--primary)" : "var(--border-strong)"),
               background: tab === k ? "var(--primary-soft)" : "var(--surface)", cursor: "pointer", fontFamily: "inherit",
               fontSize: 12.5, fontWeight: 700, color: tab === k ? "var(--primary-dark)" : "var(--text-2)" }}>
@@ -1405,7 +1405,7 @@ function AttendView({ jobs, users, role, currentUser }) {
             <Icon name="search" size={15} color="var(--text-3)" />
             <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="ค้นหา" />
           </div>
-          <div style={{ border: "none", boxShadow: "var(--shadow-sm)", borderRadius: 13, overflow: "hidden", background: "var(--surface)" }}>
+          <div style={{ border: "none", boxShadow: "var(--shadow-sm)", borderRadius: "var(--r-tile)", overflow: "hidden", background: "var(--surface)" }}>
             {list.length === 0
               ? <div style={{ padding: 34, textAlign: "center", color: "var(--text-3)", fontSize: 13 }}>
                   {tab === "inbox" ? "ไม่มีใบรอคุณอนุมัติ" : "ยังไม่มีใบ OT"}
@@ -1425,7 +1425,7 @@ function AttendView({ jobs, users, role, currentUser }) {
    ตั้งใจให้มี ไม่ใช่ซ่อนแท็บทิ้ง เพราะทุกคนต้องตรวจเวลาตัวเองย้อนหลังได้ */
 function TmMyDays({ rows, cfg }) {
   return (
-    <div style={{ border: "none", boxShadow: "var(--shadow-sm)", borderRadius: 13, overflow: "hidden", background: "var(--surface)" }}>
+    <div style={{ border: "none", boxShadow: "var(--shadow-sm)", borderRadius: "var(--r-tile)", overflow: "hidden", background: "var(--surface)" }}>
       {(rows || []).length === 0
         ? <div style={{ padding: 34, textAlign: "center", color: "var(--text-3)", fontSize: 13 }}>ยังไม่มีประวัติการลงเวลา — ลงเวลาได้จากแอปในไลน์</div>
         : (rows || []).map((r) => (

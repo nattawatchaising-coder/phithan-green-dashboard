@@ -388,14 +388,14 @@ function SuVoltBand({ rows, inv, sel, onPick }) {
         return (
           <button key={r.n} onClick={() => onPick && onPick(r.n)} title={r.ok ? "แรงดันทำงาน " + r.vmpHot + "–" + r.vmpCold + " V · Voc เย็น " + r.vocCold + " V" : r.fails.join(" · ")}
             style={{ display: "flex", alignItems: "center", gap: 9, border: "1px solid " + (on ? "var(--ac)" : "transparent"),
-              background: on ? "var(--acs)" : "transparent", borderRadius: 10, padding: "5px 7px", width: "100%", textAlign: "left" }}>
+              background: on ? "var(--acs)" : "transparent", borderRadius: "var(--r-chip)", padding: "5px 7px", width: "100%", textAlign: "left" }}>
             <span style={{ width: 30, fontSize: 11.5, fontWeight: 800, color: r.ok ? "var(--text-1)" : "var(--text-3)", flex: "0 0 auto" }}>{r.n}</span>
             <span style={{ position: "relative", flex: 1, height: 18, borderRadius: 6, background: "var(--surface2)", overflow: "hidden" }}>
               {/* ช่วงทำงาน MPPT = พื้นเขียวจาง */}
               <span style={{ position: "absolute", left: px(vmin) + "%", width: (px(vmax) - px(vmin)) + "%", top: 0, bottom: 0, background: "rgba(27,155,117,.14)" }} />
               {vdc ? <span style={{ position: "absolute", left: px(vdc) + "%", top: 0, bottom: 0, width: 2, background: "var(--tint-red-tx)" }} /> : null}
               {/* ช่วงแรงดันจริงของสตริงนี้ ร้อน→เย็น */}
-              <span style={{ position: "absolute", left: lo + "%", width: Math.max(1.5, hi - lo) + "%", top: 4, height: 10, borderRadius: 99,
+              <span style={{ position: "absolute", left: lo + "%", width: Math.max(1.5, hi - lo) + "%", top: 4, height: 10, borderRadius: "var(--r-pill)",
                 background: r.ok ? "linear-gradient(90deg,#F59E0B,#1B9B75)" : "var(--tint-red-tx)", opacity: r.ok ? 1 : .55 }} />
               {/* Voc ตอนอากาศเย็น = ขีดที่ห้ามเลยเส้นแดง */}
               <span style={{ position: "absolute", left: px(r.vocCold) + "%", top: 1, bottom: 1, width: 2, background: r.vocCold > vdc && vdc ? "var(--tint-red-tx)" : "var(--text-3)" }} />
@@ -471,7 +471,7 @@ function SuDxfView({ svg }) {
       onDoubleClick={(e) => { if (e.target.closest("button")) return; const r = box.current.getBoundingClientRect(); if (vRef.current.s > 1.05) setV({ s: 1, x: 0, y: 0 }); else zoomAt(e.clientX - r.left, e.clientY - r.top, 3); }}>
       <div className="su-dxf-svg" style={{ position: "absolute", inset: 8, transformOrigin: "0 0", transform: "translate(" + v.x + "px," + v.y + "px) scale(" + v.s + ")" }}
         dangerouslySetInnerHTML={{ __html: svg }} />
-      <div style={{ position: "absolute", right: 10, bottom: 10, display: "flex", gap: 4, alignItems: "center", background: "var(--surface)", borderRadius: 10, padding: 4, boxShadow: "var(--shadow-sm)" }}>
+      <div style={{ position: "absolute", right: 10, bottom: 10, display: "flex", gap: 4, alignItems: "center", background: "var(--surface)", borderRadius: "var(--r-chip)", padding: 4, boxShadow: "var(--shadow-sm)" }}>
         <button className="p3-b sm" onClick={() => mid(1 / 1.5)} title="ซูมออก">−</button>
         <span style={{ minWidth: 42, textAlign: "center", fontSize: 11, fontWeight: 700, color: "var(--text-2)" }}>{Math.round(v.s * 100)}%</span>
         <button className="p3-b sm" onClick={() => mid(1.5)} title="ซูมเข้า">+</button>
@@ -1687,15 +1687,15 @@ function SuThermo({ temp }) {
   const px = (v) => scClamp((v - lo) / (hi - lo) * 100, 0, 100);
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 9 }}>
-      <div style={{ position: "relative", height: 12, borderRadius: 99, background: "linear-gradient(90deg,#93C5FD,#FCD34D,#F87171)" }}>
+      <div style={{ position: "relative", height: 12, borderRadius: "var(--r-pill)", background: "linear-gradient(90deg,#93C5FD,#FCD34D,#F87171)" }}>
         {stops.map((s) => (
           <span key={s.lb} title={s.lb + " " + s.v + " °C"} style={{ position: "absolute", left: px(s.v) + "%", top: -3, transform: "translateX(-50%)",
-            width: 4, height: 18, borderRadius: 99, background: "#fff", boxShadow: "0 0 0 1.5px " + s.c }} />
+            width: 4, height: 18, borderRadius: "var(--r-pill)", background: "#fff", boxShadow: "0 0 0 1.5px " + s.c }} />
         ))}
       </div>
       <div style={{ display: "flex", gap: 14, flexWrap: "wrap" }}>
         {stops.map((s) => (
-          <span key={s.lb} className="p3-stat"><span style={{ width: 8, height: 8, borderRadius: 99, background: s.c, display: "inline-block" }} />
+          <span key={s.lb} className="p3-stat"><span style={{ width: 8, height: 8, borderRadius: "var(--r-pill)", background: s.c, display: "inline-block" }} />
             {s.lb} <b>{s.v}°C</b></span>
         ))}
         <span className="p3-stat" style={{ color: temp.rise > 30 ? "var(--tint-amber-tx)" : undefined }}>ร้อนกว่าอากาศ <b>+{temp.rise}°C</b></span>
@@ -2939,7 +2939,7 @@ function SolarWorkspace({ job, st, sys, onChange, onClose, snap }) {
                   <span className="p3-eb"><P3Icon name="roof" size={13} />กลุ่มทิศทางจากผัง 3 มิติ<span className="ln" /><span style={{ fontWeight: 600 }}>{groups.length} กลุ่ม</span></span>
                   <div style={{ display: "flex", gap: 9, flexWrap: "wrap" }}>
                     {groups.map((g) => (
-                      <div key={g.key} style={{ display: "flex", alignItems: "center", gap: 9, border: "1px solid var(--ln)", borderRadius: 12, padding: "8px 12px 8px 8px", minWidth: 168 }}>
+                      <div key={g.key} style={{ display: "flex", alignItems: "center", gap: 9, border: "1px solid var(--ln)", borderRadius: "var(--r-chip)", padding: "8px 12px 8px 8px", minWidth: 168 }}>
                         <SuFacing tilt={g.tilt} az={g.az} />
                         <div style={{ display: "flex", flexDirection: "column", gap: 1, minWidth: 0 }}>
                           <span style={{ fontSize: 12.5, fontWeight: 800, color: "var(--text-1)" }}>{g.count} แผง</span>
@@ -3117,7 +3117,7 @@ function SolarWorkspace({ job, st, sys, onChange, onClose, snap }) {
                             <tr key={i} data-on={s.id && activeStr === s.id ? "1" : "0"}>
                               <td>
                                 <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
-                                  <span style={{ width: 9, height: 9, borderRadius: 99, background: suColor(s.id || i + 1) }} />
+                                  <span style={{ width: 9, height: 9, borderRadius: "var(--r-pill)", background: suColor(s.id || i + 1) }} />
                                   <b>#{s.id || i + 1}</b>
                                 </span>
                               </td>
@@ -3336,7 +3336,7 @@ function SolarWorkspace({ job, st, sys, onChange, onClose, snap }) {
                                 .sort((a, z) => a.u.id - z.u.id).map(({ u, b }) => (
                                 <tr key={u.id}>
                                   <td><span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
-                                    <span style={{ width: 9, height: 9, borderRadius: 99, background: suColor(u.id) }} />
+                                    <span style={{ width: 9, height: 9, borderRadius: "var(--r-pill)", background: suColor(u.id) }} />
                                     <b>ไมโคร {u.id}</b></span></td>
                                   <td>{u.n}</td>
                                   <td style={{ maxWidth: 190 }}>{u.gLabel}</td>
@@ -3720,7 +3720,7 @@ function SolarWorkspace({ job, st, sys, onChange, onClose, snap }) {
                               onClick={() => setIvSel(ivSel === r.u.id ? null : r.u.id)}
                               title={ivSel === r.u.id ? "กดอีกครั้งเพื่อยกเลิก" : "กดเพื่อดูว่าเส้นนี้โดนเงาบังอยู่เท่าไหร่"}>
                               <td><span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
-                                <span style={{ width: 9, height: 9, borderRadius: 99, background: suColor(r.u.sid || i + 1) }} />
+                                <span style={{ width: 9, height: 9, borderRadius: "var(--r-pill)", background: suColor(r.u.sid || i + 1) }} />
                                 <b>{r.u.name}</b></span></td>
                               <td><b>{isMicro ? (r.u.count || r.u.n) : r.u.n}</b></td>
                               {isMicro && <td>{r.u.n} ใบ</td>}
@@ -3786,7 +3786,7 @@ function SolarWorkspace({ job, st, sys, onChange, onClose, snap }) {
                           {ivFam.map((c, i) => (
                             <tr key={c.key}>
                               <td><span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
-                                <span style={{ width: 9, height: 9, borderRadius: 99, background: (famMode === "temp" ? SU_TRAMP : SU_GRAMP)[Math.min(i, 4)] }} />
+                                <span style={{ width: 9, height: 9, borderRadius: "var(--r-pill)", background: (famMode === "temp" ? SU_TRAMP : SU_GRAMP)[Math.min(i, 4)] }} />
                                 <b>{c.label}</b></span></td>
                               <td>{c.voc} V</td><td>{c.isc} A</td><td>{c.vmp} V</td><td>{c.imp} A</td>
                               <td><b>{c.pmax >= 1000 ? scR(c.pmax / 1000, 2) + " kW" : c.pmax + " W"}</b></td>
@@ -4491,7 +4491,7 @@ function SolarWorkspace({ job, st, sys, onChange, onClose, snap }) {
                     <span style={{ fontWeight: 600 }}>{snapImg ? "พร้อมแนบ" : "ยังไม่มีภาพ"}</span></span>
                   {snapImg ? (
                     <img src={snapImg} alt="ผัง 3 มิติ" style={{ width: "100%", maxHeight: 260, objectFit: "contain",
-                      borderRadius: 11, border: "1px solid var(--ln)", background: "var(--surface2)", display: "block" }} />
+                      borderRadius: "var(--r-chip)", border: "1px solid var(--ln)", background: "var(--surface2)", display: "block" }} />
                   ) : (
                     <span className="p3-note" style={{ margin: 0 }}>ยังถ่ายภาพฉาก 3 มิติไม่ได้ — รายงานจะออกได้ปกติ แค่ไม่มีรูปประกอบ</span>
                   )}
@@ -4534,7 +4534,7 @@ function SolarWorkspace({ job, st, sys, onChange, onClose, snap }) {
         <span style={{ flex: 1 }} />
         {!!warns.length && (
           <span style={{ display: "inline-flex", alignItems: "center", gap: 7, fontSize: 11.5, fontWeight: 700, color: "var(--tint-amber-tx)", marginRight: 12 }}>
-            <span style={{ width: 7, height: 7, borderRadius: 99, background: "#F59E0B", boxShadow: "0 0 0 3px rgba(245,158,11,.22)" }} />
+            <span style={{ width: 7, height: 7, borderRadius: "var(--r-pill)", background: "#F59E0B", boxShadow: "0 0 0 3px rgba(245,158,11,.22)" }} />
             {warns.length} ข้อควรแก้
           </span>
         )}
@@ -4630,7 +4630,7 @@ function SolarWorkspace({ job, st, sys, onChange, onClose, snap }) {
                 </button>
               ))}
             </span></div>
-            <div style={{ flex: 1, minHeight: 0, margin: 12, borderRadius: 12, background: "#fff", boxShadow: "var(--shadow-inset)", overflow: "hidden", position: "relative", display: "grid", placeItems: "center" }}>
+            <div style={{ flex: 1, minHeight: 0, margin: 12, borderRadius: "var(--r-chip)", background: "#fff", boxShadow: "var(--shadow-inset)", overflow: "hidden", position: "relative", display: "grid", placeItems: "center" }}>
               {dxfSvg
                 ? <SuDxfView key={dxf.i} svg={dxfSvg} />
                 : <span className="p3-note keep">วาดแผ่นนี้ไม่สำเร็จ</span>}

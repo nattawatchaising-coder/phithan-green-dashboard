@@ -304,7 +304,7 @@ function InspectionListModal({
     style: {
       width: 34,
       height: 34,
-      borderRadius: 10,
+      borderRadius: "var(--r-chip)",
       background: "#0EA5E91c",
       display: "grid",
       placeItems: "center",
@@ -341,7 +341,7 @@ function InspectionListModal({
       flexShrink: 0,
       width: 32,
       height: 32,
-      borderRadius: 10,
+      borderRadius: "var(--r-chip)",
       border: "1px solid var(--border-strong)",
       background: "var(--surface)",
       color: "var(--text-2)",
@@ -371,7 +371,7 @@ function InspectionListModal({
       fontSize: 13,
       background: "var(--surface)",
       border: "1px dashed var(--border-strong)",
-      borderRadius: 14
+      borderRadius: "var(--r-tile)"
     }
   }, "\u0E22\u0E31\u0E07\u0E44\u0E21\u0E48\u0E21\u0E35\u0E43\u0E1A\u0E15\u0E23\u0E27\u0E08\u0E02\u0E2D\u0E07\u0E07\u0E32\u0E19\u0E19\u0E35\u0E49", React.createElement("br", null), "\u0E01\u0E14 \u201C\u0E2A\u0E23\u0E49\u0E32\u0E07\u0E43\u0E1A\u0E15\u0E23\u0E27\u0E08\u0E43\u0E2B\u0E21\u0E48\u201D \u0E41\u0E25\u0E49\u0E27\u0E40\u0E25\u0E37\u0E2D\u0E01\u0E27\u0E48\u0E32\u0E15\u0E23\u0E27\u0E08\u0E40\u0E23\u0E37\u0E48\u0E2D\u0E07\u0E2D\u0E30\u0E44\u0E23"), store.list.map(x => {
     const r = IR_RESULT_BY[x.result];
@@ -381,7 +381,7 @@ function InspectionListModal({
         border: "none",
         boxShadow: "var(--shadow-sm)",
         borderLeft: "3px solid " + (r ? r.color : "var(--border-strong)"),
-        borderRadius: 12,
+        borderRadius: "var(--r-chip)",
         background: "var(--surface)",
         overflow: "hidden"
       }
@@ -498,7 +498,7 @@ function InspectionListModal({
   }), picking && React.createElement("div", {
     style: {
       border: "1px solid var(--border-strong)",
-      borderRadius: 12,
+      borderRadius: "var(--r-chip)",
       padding: 12,
       background: "var(--surface)"
     }
@@ -521,7 +521,7 @@ function InspectionListModal({
     style: {
       textAlign: "left",
       padding: "10px 12px",
-      borderRadius: 10,
+      borderRadius: "var(--r-chip)",
       border: "none",
       boxShadow: "var(--shadow-sm)",
       background: "var(--surface2)",
@@ -536,7 +536,7 @@ function InspectionListModal({
     style: {
       textAlign: "left",
       padding: "10px 12px",
-      borderRadius: 10,
+      borderRadius: "var(--r-chip)",
       border: "1px dashed var(--border-strong)",
       background: "var(--surface)",
       color: "var(--text-2)",
@@ -558,7 +558,7 @@ function InspectionListModal({
     onClick: onClose,
     style: {
       padding: "12px 18px",
-      borderRadius: 11,
+      borderRadius: "var(--r-chip)",
       border: "1px solid var(--border-strong)",
       background: "var(--surface)",
       color: "var(--text-2)",
@@ -576,7 +576,7 @@ function InspectionListModal({
       justifyContent: "center",
       gap: 7,
       padding: 12,
-      borderRadius: 11,
+      borderRadius: "var(--r-chip)",
       border: "none",
       background: "var(--primary)",
       color: "#fff",
@@ -831,7 +831,7 @@ function InspectionFormModal({
       flexShrink: 0,
       width: 32,
       height: 32,
-      borderRadius: 10,
+      borderRadius: "var(--r-chip)",
       border: "1px solid var(--border-strong)",
       background: "var(--surface)",
       color: "var(--text-2)",
@@ -872,7 +872,7 @@ function InspectionFormModal({
       onClick: () => set("kind", k),
       style: {
         padding: "7px 12px",
-        borderRadius: 99,
+        borderRadius: "var(--r-pill)",
         cursor: "pointer",
         fontFamily: "inherit",
         fontSize: 11.5,
@@ -1077,7 +1077,7 @@ function InspectionFormModal({
     style: {
       border: "none",
       boxShadow: "var(--shadow-sm)",
-      borderRadius: 11,
+      borderRadius: "var(--r-chip)",
       background: "var(--surface)",
       overflow: "hidden"
     }
@@ -1123,7 +1123,7 @@ function InspectionFormModal({
         alignItems: "center",
         gap: 7,
         padding: "9px 14px",
-        borderRadius: 10,
+        borderRadius: "var(--r-chip)",
         cursor: "pointer",
         fontFamily: "inherit",
         fontSize: 12.5,
@@ -1261,7 +1261,7 @@ function InspectionFormModal({
     onClick: onClose,
     style: {
       padding: "12px 18px",
-      borderRadius: 11,
+      borderRadius: "var(--r-chip)",
       border: "1px solid var(--border-strong)",
       background: "var(--surface)",
       color: "var(--text-2)",
@@ -1277,7 +1277,7 @@ function InspectionFormModal({
       alignItems: "center",
       gap: 7,
       padding: "12px 16px",
-      borderRadius: 11,
+      borderRadius: "var(--r-chip)",
       border: "1px solid var(--border-strong)",
       background: "var(--surface)",
       color: "var(--primary-dark)",
@@ -1296,7 +1296,7 @@ function InspectionFormModal({
       flex: 1,
       minWidth: 150,
       padding: 12,
-      borderRadius: 11,
+      borderRadius: "var(--r-chip)",
       border: "none",
       background: saved ? "var(--tint-green-tx)" : "var(--primary)",
       color: "#fff",
@@ -1336,7 +1336,7 @@ function IrPhotoPicker({
       alignItems: "center",
       gap: 7,
       padding: "9px 14px",
-      borderRadius: 10,
+      borderRadius: "var(--r-chip)",
       border: "1px dashed var(--border-strong)",
       background: "var(--surface)",
       cursor: "pointer",
@@ -1367,7 +1367,7 @@ function IrPhotoPicker({
     style: {
       border: "none",
       boxShadow: "var(--shadow-sm)",
-      borderRadius: 11,
+      borderRadius: "var(--r-chip)",
       overflow: "hidden",
       background: "var(--surface)"
     }

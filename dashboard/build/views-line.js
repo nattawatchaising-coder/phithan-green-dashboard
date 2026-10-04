@@ -159,7 +159,7 @@ function LnWebSwitch({
   }, "\u0E2B\u0E19\u0E49\u0E32 ", React.createElement("b", null, "/liff.html"), " \u0E40\u0E1B\u0E34\u0E14\u0E1A\u0E19\u0E04\u0E2D\u0E21\u0E44\u0E14\u0E49\u0E14\u0E49\u0E27\u0E22\u0E0A\u0E37\u0E48\u0E2D\u0E1C\u0E39\u0E49\u0E43\u0E0A\u0E49\u0E01\u0E31\u0E1A\u0E23\u0E2B\u0E31\u0E2A\u0E40\u0E14\u0E34\u0E21 \u2014 \u0E21\u0E35\u0E44\u0E27\u0E49\u0E14\u0E39\u0E41\u0E25\u0E30\u0E41\u0E01\u0E49\u0E2B\u0E19\u0E49\u0E32\u0E08\u0E2D\u0E21\u0E37\u0E2D\u0E16\u0E37\u0E2D\u0E15\u0E2D\u0E19\u0E1E\u0E31\u0E12\u0E19\u0E32\u0E23\u0E30\u0E1A\u0E1A", React.createElement("br", null), "\u0E0A\u0E48\u0E32\u0E07\u0E44\u0E21\u0E48\u0E44\u0E14\u0E49\u0E43\u0E0A\u0E49\u0E17\u0E32\u0E07\u0E19\u0E35\u0E49 (\u0E40\u0E02\u0E32\u0E40\u0E02\u0E49\u0E32\u0E08\u0E32\u0E01\u0E40\u0E21\u0E19\u0E39\u0E43\u0E19\u0E41\u0E0A\u0E15) \u0E1B\u0E01\u0E15\u0E34\u0E08\u0E36\u0E07\u0E04\u0E27\u0E23\u0E1B\u0E34\u0E14\u0E44\u0E27\u0E49 \u0E41\u0E25\u0E49\u0E27\u0E40\u0E1B\u0E34\u0E14\u0E40\u0E09\u0E1E\u0E32\u0E30\u0E15\u0E2D\u0E19\u0E08\u0E30\u0E43\u0E0A\u0E49"), React.createElement("div", {
     style: {
       padding: "15px 17px",
-      borderRadius: 15,
+      borderRadius: "var(--r-tile)",
       background: "var(--surface)",
       border: "1px solid " + (gate.open ? tone : "var(--border)")
     }
@@ -193,7 +193,7 @@ function LnWebSwitch({
     style: {
       width: 46,
       height: 26,
-      borderRadius: 99,
+      borderRadius: "var(--r-pill)",
       border: "none",
       cursor: gate.loading ? "default" : "pointer",
       padding: 3,
@@ -206,7 +206,7 @@ function LnWebSwitch({
     style: {
       width: 20,
       height: 20,
-      borderRadius: 99,
+      borderRadius: "var(--r-pill)",
       background: "#fff",
       display: "block"
     }
@@ -232,7 +232,7 @@ function LnWebSwitch({
     },
     style: {
       padding: "5px 12px",
-      borderRadius: 99,
+      borderRadius: "var(--r-pill)",
       cursor: "pointer",
       fontFamily: "inherit",
       fontSize: 12,
@@ -340,7 +340,7 @@ function LineAdminView({
   }, "\u0E1C\u0E39\u0E01 LINE \u0E41\u0E25\u0E49\u0E27 ", bound, " \u0E04\u0E19", unbound.length ? " · ยังไม่ผูก " + unbound.length + " คน" : "")), React.createElement("div", {
     style: {
       padding: "16px 18px",
-      borderRadius: 15,
+      borderRadius: "var(--r-tile)",
       background: "var(--surface)",
       border: "none",
       boxShadow: "var(--shadow-sm)"
@@ -390,7 +390,7 @@ function LineAdminView({
     style: {
       marginTop: 11,
       height: 9,
-      borderRadius: 99,
+      borderRadius: "var(--r-pill)",
       background: "var(--surface3)",
       overflow: "hidden"
     }
@@ -458,7 +458,7 @@ function LineAdminView({
     style: {
       border: "none",
       boxShadow: "var(--shadow-sm)",
-      borderRadius: 13,
+      borderRadius: "var(--r-tile)",
       overflow: "hidden",
       background: "var(--surface)"
     }
@@ -520,7 +520,7 @@ function LineAdminView({
       style: {
         width: 46,
         height: 26,
-        borderRadius: 99,
+        borderRadius: "var(--r-pill)",
         border: "none",
         cursor: "pointer",
         padding: 3,
@@ -533,7 +533,7 @@ function LineAdminView({
       style: {
         width: 20,
         height: 20,
-        borderRadius: 99,
+        borderRadius: "var(--r-pill)",
         background: "#fff",
         display: "block"
       }
@@ -562,7 +562,7 @@ function LineAdminView({
     key: u.id,
     style: {
       padding: "5px 11px",
-      borderRadius: 99,
+      borderRadius: "var(--r-pill)",
       background: "var(--surface2)",
       border: "1px solid var(--border)",
       fontSize: 12,

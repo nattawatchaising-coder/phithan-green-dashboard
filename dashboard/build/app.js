@@ -1702,7 +1702,7 @@ function Sidebar({
       transform: "translateY(-50%)",
       width: 26,
       height: 26,
-      borderRadius: 99,
+      borderRadius: "var(--r-pill)",
       border: "2px solid var(--bg)",
       background: "var(--primary)",
       color: "#fff",
@@ -1881,7 +1881,7 @@ function SidebarSettings({
         marginLeft: "auto",
         width: 7,
         height: 7,
-        borderRadius: 99,
+        borderRadius: "var(--r-pill)",
         flexShrink: 0,
         background: "var(--primary-bright)"
       }
@@ -1931,7 +1931,7 @@ function SidebarSettings({
       zIndex: 60,
       background: "var(--surface)",
       border: "1px solid var(--border)",
-      borderRadius: 13,
+      borderRadius: "var(--r-tile)",
       padding: 6,
       boxShadow: "0 12px 36px rgba(20,40,28,.20)"
     }
@@ -2018,7 +2018,7 @@ function TechFilter({
     style: {
       width: 22,
       height: 22,
-      borderRadius: 99,
+      borderRadius: "var(--r-pill)",
       background: bg,
       color: "#fff",
       flexShrink: 0,
@@ -2045,7 +2045,7 @@ function TechFilter({
       alignItems: "center",
       gap: 6,
       padding: isMobile ? "5px 10px" : "6px 13px",
-      borderRadius: 99,
+      borderRadius: "var(--r-pill)",
       border: "none",
       background: on ? (cur ? cur.color : "#1B9B75") + "24" : "transparent",
       color: on ? cur ? cur.color : "var(--primary-dark)" : "var(--text-2)",
@@ -2079,7 +2079,7 @@ function TechFilter({
       overflowY: "auto",
       background: "var(--surface)",
       border: "1px solid var(--border)",
-      borderRadius: 14,
+      borderRadius: "var(--r-tile)",
       padding: 6,
       boxShadow: "var(--shadow-pop)"
     }
@@ -2171,7 +2171,7 @@ function HeaderTools({
       minWidth: 18,
       height: 18,
       padding: "0 5px",
-      borderRadius: 99,
+      borderRadius: "var(--r-pill)",
       background: "#EF4444",
       color: "#fff",
       fontSize: 10.5,
@@ -2365,7 +2365,7 @@ function Header({
     style: {
       width: 40,
       height: 40,
-      borderRadius: 11,
+      borderRadius: "var(--r-chip)",
       border: "none",
       background: "var(--primary)",
       color: "#fff",
@@ -2474,7 +2474,7 @@ function DailyBriefing({
       textAlign: "left",
       background: danger ? "var(--tint-red-bg)" : "var(--surface)",
       border: "1px solid " + (danger ? "var(--tint-red-bd)" : "var(--border)"),
-      borderRadius: 12,
+      borderRadius: "var(--r-chip)",
       cursor: "pointer",
       fontFamily: "inherit"
     }
@@ -2566,7 +2566,7 @@ function DailyBriefing({
     style: {
       width: 38,
       height: 38,
-      borderRadius: 11,
+      borderRadius: "var(--r-chip)",
       background: "var(--primary-soft)",
       display: "grid",
       placeItems: "center"
@@ -2656,7 +2656,7 @@ function DailyBriefing({
     style: {
       width: "100%",
       padding: "12px",
-      borderRadius: 11,
+      borderRadius: "var(--r-chip)",
       border: "none",
       background: "var(--primary)",
       color: "#fff",
@@ -2690,7 +2690,7 @@ function RevertJobAsk({
     style: {
       background: "var(--surface)",
       border: "1px solid var(--border)",
-      borderRadius: 16,
+      borderRadius: "var(--r-tile)",
       width: "min(440px, 100%)",
       padding: 20,
       boxShadow: "var(--shadow-modal)"
@@ -2705,7 +2705,7 @@ function RevertJobAsk({
     style: {
       width: 38,
       height: 38,
-      borderRadius: 11,
+      borderRadius: "var(--r-chip)",
       background: "var(--primary-soft)",
       display: "grid",
       placeItems: "center",
@@ -2752,7 +2752,7 @@ function RevertJobAsk({
     onClick: onClose,
     style: {
       padding: "10px 16px",
-      borderRadius: 10,
+      borderRadius: "var(--r-chip)",
       border: "1px solid var(--border-strong)",
       background: "var(--surface)",
       color: "var(--text-2)",
@@ -2765,7 +2765,7 @@ function RevertJobAsk({
     onClick: onConfirm,
     style: {
       padding: "10px 16px",
-      borderRadius: 10,
+      borderRadius: "var(--r-chip)",
       border: "none",
       background: "var(--primary)",
       color: "#fff",
@@ -2798,7 +2798,7 @@ function DeleteJobAsk({
     style: {
       background: "var(--surface)",
       border: "1px solid var(--border)",
-      borderRadius: 16,
+      borderRadius: "var(--r-tile)",
       width: "min(420px, 100%)",
       padding: 20,
       boxShadow: "var(--shadow-modal)"
@@ -2813,7 +2813,7 @@ function DeleteJobAsk({
     style: {
       width: 38,
       height: 38,
-      borderRadius: 11,
+      borderRadius: "var(--r-chip)",
       background: "var(--tint-red-bg)",
       display: "grid",
       placeItems: "center",
@@ -2852,7 +2852,7 @@ function DeleteJobAsk({
     onClick: onClose,
     style: {
       padding: "10px 16px",
-      borderRadius: 10,
+      borderRadius: "var(--r-chip)",
       border: "1px solid var(--border-strong)",
       background: "var(--surface)",
       color: "var(--text-2)",
@@ -2865,7 +2865,7 @@ function DeleteJobAsk({
     onClick: onConfirm,
     style: {
       padding: "10px 16px",
-      borderRadius: 10,
+      borderRadius: "var(--r-chip)",
       border: "none",
       background: "#EF4444",
       color: "#fff",
@@ -2947,7 +2947,7 @@ function TrashModal({
     style: {
       width: 36,
       height: 36,
-      borderRadius: 10,
+      borderRadius: "var(--r-chip)",
       background: "var(--tint-red-bg)",
       display: "grid",
       placeItems: "center",
@@ -3014,7 +3014,7 @@ function TrashModal({
       background: "var(--surface)",
       border: "none",
       boxShadow: "var(--shadow-sm)",
-      borderRadius: 12,
+      borderRadius: "var(--r-chip)",
       padding: 12
     }
   }, React.createElement("div", {
@@ -3211,7 +3211,7 @@ function MapModal({
     style: {
       width: 38,
       height: 38,
-      borderRadius: 11,
+      borderRadius: "var(--r-chip)",
       background: "var(--primary-soft)",
       display: "grid",
       placeItems: "center"

@@ -3809,7 +3809,7 @@ function OmTierTable({
     style: {
       width: 8,
       height: 8,
-      borderRadius: 99,
+      borderRadius: "var(--r-pill)",
       background: kind.color
     }
   }), React.createElement("span", {

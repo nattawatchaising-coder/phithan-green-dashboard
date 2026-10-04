@@ -170,7 +170,7 @@ function JobForm({ initial, isNew, onSave, onClose, onManageTechs, onManageBrand
         {/* header */}
         <div style={{ padding: "18px 24px", borderBottom: "1px solid var(--border)", background: "var(--surface)", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
           <div style={{ display: "flex", alignItems: "center", gap: 11 }}>
-            <span style={{ width: 38, height: 38, borderRadius: 11, background: "var(--primary-soft)", display: "grid", placeItems: "center" }}>
+            <span style={{ width: 38, height: 38, borderRadius: "var(--r-chip)", background: "var(--primary-soft)", display: "grid", placeItems: "center" }}>
               <Icon name={isNew ? "plus" : "settings"} size={19} color="var(--primary-dark)" />
             </span>
             <div>
@@ -235,7 +235,7 @@ function JobForm({ initial, isNew, onSave, onClose, onManageTechs, onManageBrand
               </Field>
               {!f.eeId && (
                 <div style={{ gridColumn: "1 / -1", display: "flex", alignItems: "flex-start", gap: 8,
-                  border: "1px solid var(--tint-amber-bd)", background: "var(--tint-amber-bg)", borderRadius: 11, padding: "9px 12px" }}>
+                  border: "1px solid var(--tint-amber-bd)", background: "var(--tint-amber-bg)", borderRadius: "var(--r-chip)", padding: "9px 12px" }}>
                   <Icon name="alert" size={15} color="#F59E0B" style={{ flexShrink: 0, marginTop: 1 }} />
                   <span style={{ fontSize: 12, color: "var(--text-2)", lineHeight: 1.45 }}>
                     ยังไม่ระบุวิศวกร — รายงานประจำวันของงานนี้จะส่งไปโดยไม่มีใครอนุมัติได้ (นอกจากแอดมิน)
@@ -249,10 +249,10 @@ function JobForm({ initial, isNew, onSave, onClose, onManageTechs, onManageBrand
                       const sel = f.tech === t.id;
                       return (
                         <button type="button" key={t.id} onClick={() => set("tech", t.id)}
-                          style={{ display: "inline-flex", alignItems: "center", gap: 8, padding: "7px 13px 7px 7px", borderRadius: 99,
+                          style={{ display: "inline-flex", alignItems: "center", gap: 8, padding: "7px 13px 7px 7px", borderRadius: "var(--r-pill)",
                             border: "1.5px solid " + (sel ? t.color : "var(--border-strong)"), background: sel ? t.color + "14" : "var(--surface2)",
                             cursor: "pointer", fontFamily: "inherit", transition: "all .14s" }}>
-                          <span style={{ width: 26, height: 26, borderRadius: 99, background: t.color, color: "#fff", display: "grid", placeItems: "center", fontWeight: 700, fontSize: 11, flexShrink: 0 }}>{t.nick.slice(0, 2)}</span>
+                          <span style={{ width: 26, height: 26, borderRadius: "var(--r-pill)", background: t.color, color: "#fff", display: "grid", placeItems: "center", fontWeight: 700, fontSize: 11, flexShrink: 0 }}>{t.nick.slice(0, 2)}</span>
                           <span style={{ display: "flex", flexDirection: "column", lineHeight: 1.2, textAlign: "left" }}>
                             <span style={{ fontSize: 12.5, fontWeight: 600, color: sel ? "var(--text-1)" : "var(--text-2)", whiteSpace: "nowrap" }}>{t.name}</span>
                             <span style={{ fontSize: 10, color: "var(--text-3)", whiteSpace: "nowrap" }}>{t.role}</span>
@@ -262,7 +262,7 @@ function JobForm({ initial, isNew, onSave, onClose, onManageTechs, onManageBrand
                       );
                     })}
                     <button type="button" onClick={onManageTechs}
-                      style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "9px 14px", borderRadius: 99,
+                      style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "9px 14px", borderRadius: "var(--r-pill)",
                         border: "1.5px dashed var(--border-strong)", background: "transparent", cursor: "pointer", fontFamily: "inherit",
                         color: "var(--text-2)", fontSize: 12.5, fontWeight: 600 }}>
                       <Icon name="settings" size={15} color="var(--text-2)" /> จัดการช่าง
@@ -280,7 +280,7 @@ function JobForm({ initial, isNew, onSave, onClose, onManageTechs, onManageBrand
                 <div style={{ display: "flex", gap: 6 }}>
                   <Dropdown value={f.brand} onChange={(v) => set("brand", v)} options={SF.BRANDS.map((b) => ({ value: b, label: b }))} style={{ flex: 1, minWidth: 0 }} />
                   <button type="button" onClick={onManageBrands} title="จัดการแบรนด์ / รุ่น"
-                    style={{ flexShrink: 0, width: 38, height: 38, borderRadius: 10, border: "1px solid var(--border-strong)",
+                    style={{ flexShrink: 0, width: 38, height: 38, borderRadius: "var(--r-chip)", border: "1px solid var(--border-strong)",
                       background: "var(--surface2)", cursor: "pointer", display: "grid", placeItems: "center", color: "var(--text-2)" }}>
                     <Icon name="settings" size={16} color="var(--text-2)" />
                   </button>
@@ -375,7 +375,7 @@ function JobForm({ initial, isNew, onSave, onClose, onManageTechs, onManageBrand
                       style={{ display: "flex", gap: 12, alignItems: "stretch", background: "none", border: "none", padding: 0, textAlign: "left", cursor: "pointer", fontFamily: "inherit" }}>
                       {/* rail */}
                       <div style={{ display: "flex", flexDirection: "column", alignItems: "center", flexShrink: 0, width: 28 }}>
-                        <span style={{ width: 28, height: 28, borderRadius: 99, flexShrink: 0, display: "grid", placeItems: "center", fontSize: 12.5, fontWeight: 800,
+                        <span style={{ width: 28, height: 28, borderRadius: "var(--r-pill)", flexShrink: 0, display: "grid", placeItems: "center", fontSize: 12.5, fontWeight: 800,
                           background: filled ? s.color : "var(--surface2)", border: "2px solid " + (filled ? s.color : "var(--border-strong)"),
                           color: filled ? "#fff" : "var(--text-3)", boxShadow: current ? "0 0 0 4px " + (s.soft || "var(--primary-soft)") : "none", transition: "all .15s" }}>
                           {passed ? <Icon name="check" size={14} color="#fff" sw={3} /> : (i + 1)}
@@ -386,7 +386,7 @@ function JobForm({ initial, isNew, onSave, onClose, onManageTechs, onManageBrand
                       <div style={{ flex: 1, paddingBottom: isLast ? 2 : 16, paddingTop: 3, minWidth: 0 }}>
                         <span style={{ display: "flex", alignItems: "center", gap: 7, fontSize: 13.5, fontWeight: current ? 800 : 600, color: current ? "var(--text-1)" : (passed ? "var(--text-2)" : "var(--text-3)") }}>
                           {s.th} <span style={{ fontWeight: 400, color: "var(--text-3)", fontFamily: "var(--mono)", fontSize: 11 }}>{s.en}</span>
-                          {current && <span style={{ marginLeft: "auto", fontSize: 10.5, fontWeight: 800, color: s.color, background: (s.soft || "var(--primary-soft)"), padding: "2px 9px", borderRadius: 99, flexShrink: 0 }}>ตอนนี้</span>}
+                          {current && <span style={{ marginLeft: "auto", fontSize: 10.5, fontWeight: 800, color: s.color, background: (s.soft || "var(--primary-soft)"), padding: "2px 9px", borderRadius: "var(--r-pill)", flexShrink: 0 }}>ตอนนี้</span>}
                           {passed && <span style={{ marginLeft: "auto", fontSize: 10.5, fontWeight: 600, color: "var(--text-3)", flexShrink: 0 }}>เสร็จแล้ว</span>}
                         </span>
                       </div>
@@ -444,7 +444,7 @@ function JobForm({ initial, isNew, onSave, onClose, onManageTechs, onManageBrand
               const fShift = (delta) => setFlowMonth((s) => { const n = new Date(s.y, s.m + delta, 1); return { y: n.getFullYear(), m: n.getMonth() }; });
               const navB = { width: 26, height: 26, borderRadius: 7, border: "1px solid var(--border-strong)", background: "var(--surface)", cursor: "pointer", display: "grid", placeItems: "center", color: "var(--text-2)" };
               return (
-                <div style={{ marginTop: 14, border: "none", boxShadow: "var(--shadow-sm)", borderRadius: 12, padding: 12, background: "var(--surface2)" }}>
+                <div style={{ marginTop: 14, border: "none", boxShadow: "var(--shadow-sm)", borderRadius: "var(--r-chip)", padding: 12, background: "var(--surface2)" }}>
                   <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 8, gap: 8 }}>
                     <span style={{ fontSize: 12, fontWeight: 700, color: "var(--text-1)", display: "flex", alignItems: "center", gap: 6, minWidth: 0 }}>
                       <Icon name="calendar" size={13} color="var(--primary)" /><span style={{ whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>ปฏิทินงานช่าง{techNick ? " " + techNick : ""} · {FLOW_MONTHS[fm.m]} {fm.y + 543}</span>
@@ -476,7 +476,7 @@ function JobForm({ initial, isNew, onSave, onClose, onManageTechs, onManageBrand
                             display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 1 }}>
                           <span style={{ fontSize: 11, fontWeight: isToday ? 800 : 600, color: col }}>{d}</span>
                           {!mine && cnt > 0 && <span style={{ fontSize: 8, fontWeight: 700, color: col, lineHeight: 1 }}>{cnt} งาน</span>}
-                          {mine && <span style={{ width: 5, height: 5, borderRadius: 99, background: "var(--primary)" }} />}
+                          {mine && <span style={{ width: 5, height: 5, borderRadius: "var(--r-pill)", background: "var(--primary)" }} />}
                         </button>
                       );
                     })}
@@ -495,8 +495,8 @@ function JobForm({ initial, isNew, onSave, onClose, onManageTechs, onManageBrand
 
         {/* footer */}
         <div style={{ padding: isMobile ? "14px 16px calc(14px + env(safe-area-inset-bottom, 0px))" : "16px 24px calc(16px + env(safe-area-inset-bottom, 0px))", borderTop: "1px solid var(--border)", background: "var(--surface)", display: "flex", justifyContent: "flex-end", gap: 10 }}>
-          <button onClick={onClose} style={{ flex: isMobile ? "0 0 auto" : "none", padding: "11px 20px", borderRadius: 11, border: "1px solid var(--border-strong)", background: "var(--surface)", color: "var(--text-2)", fontWeight: 600, fontFamily: "inherit", fontSize: 13.5, cursor: "pointer" }}>ยกเลิก</button>
-          <button onClick={save} style={{ flex: isMobile ? 1 : "none", padding: "11px 24px", borderRadius: 11, border: "none", background: "var(--primary)", color: "#fff", fontWeight: 700, fontFamily: "inherit", fontSize: 13.5, cursor: "pointer", display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 8 }}>
+          <button onClick={onClose} style={{ flex: isMobile ? "0 0 auto" : "none", padding: "11px 20px", borderRadius: "var(--r-chip)", border: "1px solid var(--border-strong)", background: "var(--surface)", color: "var(--text-2)", fontWeight: 600, fontFamily: "inherit", fontSize: 13.5, cursor: "pointer" }}>ยกเลิก</button>
+          <button onClick={save} style={{ flex: isMobile ? 1 : "none", padding: "11px 24px", borderRadius: "var(--r-chip)", border: "none", background: "var(--primary)", color: "#fff", fontWeight: 700, fontFamily: "inherit", fontSize: 13.5, cursor: "pointer", display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 8 }}>
             <Icon name="check" size={16} color="#fff" sw={2.5} /> บันทึกข้อมูล
           </button>
         </div>
@@ -508,7 +508,7 @@ function JobForm({ initial, isNew, onSave, onClose, onManageTechs, onManageBrand
 function Section({ title, icon, right, children }) {
   const mob = window.matchMedia("(max-width: 860px)").matches;
   return (
-    <div style={{ background: "var(--surface)", border: "none", boxShadow: "var(--shadow-sm)", borderRadius: 14, padding: mob ? 14 : 18 }}>
+    <div style={{ background: "var(--surface)", border: "none", boxShadow: "var(--shadow-sm)", borderRadius: "var(--r-tile)", padding: mob ? 14 : 18 }}>
       <div style={{ marginBottom: 14, display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
         <span style={{ fontSize: 11, fontWeight: 700, color: "var(--text-3)", display: "flex", alignItems: "center", gap: 7 }}>
           <Icon name={icon} size={14} color="var(--primary)" /> {title}
@@ -534,7 +534,7 @@ function MatRow({ m, value, onChange }) {
   const off = cur === "na";
   return (
     <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "9px 0", borderBottom: "1px solid var(--border)" }}>
-      <span style={{ width: 7, height: 7, borderRadius: 99, flexShrink: 0, background: S[cur].color, opacity: off ? 0.45 : 1 }} />
+      <span style={{ width: 7, height: 7, borderRadius: "var(--r-pill)", flexShrink: 0, background: S[cur].color, opacity: off ? 0.45 : 1 }} />
       <span style={{ flex: 1, minWidth: 0 }}>
         <span style={{ display: "block", fontSize: 13, fontWeight: 600, color: off ? "var(--text-3)" : "var(--text-1)",
           whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{m.th}</span>
@@ -566,7 +566,7 @@ function MatTally({ mat }) {
   const done = n("ready");
   return (
     <span style={{ display: "flex", alignItems: "center", gap: 8, flexShrink: 0 }}>
-      <span style={{ width: 54, height: 5, borderRadius: 99, background: "var(--surface3)", overflow: "hidden" }}>
+      <span style={{ width: 54, height: 5, borderRadius: "var(--r-pill)", background: "var(--surface3)", overflow: "hidden" }}>
         <span style={{ display: "block", height: "100%", width: (used.length ? (done / used.length) * 100 : 0) + "%",
           background: S.ready.color, transition: "width .2s" }} />
       </span>
@@ -579,10 +579,10 @@ function MatTally({ mat }) {
 
 function ToggleField({ on, onChange, labelOn, labelOff }) {
   return (
-    <button onClick={() => onChange(!on)} style={{ display: "flex", alignItems: "center", gap: 9, padding: "8px 11px", borderRadius: 10,
+    <button onClick={() => onChange(!on)} style={{ display: "flex", alignItems: "center", gap: 9, padding: "8px 11px", borderRadius: "var(--r-chip)",
       border: "1px solid var(--border-strong)", background: "var(--surface2)", cursor: "pointer", fontFamily: "inherit", height: 38 }}>
-      <span style={{ width: 38, height: 22, borderRadius: 99, background: on ? "var(--primary)" : "var(--surface3)", position: "relative", transition: "background .2s", flexShrink: 0 }}>
-        <span style={{ position: "absolute", top: 3, left: on ? 19 : 3, width: 16, height: 16, borderRadius: 99, background: "#fff", transition: "left .2s", boxShadow: "0 1px 3px rgba(0,0,0,.2)" }} />
+      <span style={{ width: 38, height: 22, borderRadius: "var(--r-pill)", background: on ? "var(--primary)" : "var(--surface3)", position: "relative", transition: "background .2s", flexShrink: 0 }}>
+        <span style={{ position: "absolute", top: 3, left: on ? 19 : 3, width: 16, height: 16, borderRadius: "var(--r-pill)", background: "#fff", transition: "left .2s", boxShadow: "0 1px 3px rgba(0,0,0,.2)" }} />
       </span>
       <span style={{ fontSize: 12.5, fontWeight: 600, color: on ? "var(--primary-dark)" : "var(--text-3)" }}>{on ? labelOn : labelOff}</span>
     </button>
@@ -601,10 +601,10 @@ function TechManager({ store, onClose }) {
 
   return (
     <div {...bdClose} style={{ position: "fixed", inset: 0, background: "rgba(8,20,14,.45)", backdropFilter: "blur(3px)", zIndex: 110, display: "grid", placeItems: "center", padding: 20 }}>
-      <div onClick={(e) => e.stopPropagation()} style={{ background: "var(--bg)", borderRadius: 20, width: "min(560px,100%)", maxHeight: "90vh", display: "flex", flexDirection: "column", overflow: "hidden", boxShadow: "var(--shadow-modal)" }}>
+      <div onClick={(e) => e.stopPropagation()} style={{ background: "var(--bg)", borderRadius: "var(--r-card)", width: "min(560px,100%)", maxHeight: "90vh", display: "flex", flexDirection: "column", overflow: "hidden", boxShadow: "var(--shadow-modal)" }}>
         <div style={{ padding: "18px 22px", borderBottom: "1px solid var(--border)", background: "var(--surface)", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
           <div style={{ display: "flex", alignItems: "center", gap: 11 }}>
-            <span style={{ width: 38, height: 38, borderRadius: 11, background: "var(--primary-soft)", display: "grid", placeItems: "center" }}><Icon name="users" size={19} color="var(--primary-dark)" /></span>
+            <span style={{ width: 38, height: 38, borderRadius: "var(--r-chip)", background: "var(--primary-soft)", display: "grid", placeItems: "center" }}><Icon name="users" size={19} color="var(--primary-dark)" /></span>
             <div>
               <h2 style={{ fontSize: 17, fontWeight: 700, color: "var(--text-1)", margin: 0 }}>จัดการทีมช่าง</h2>
               <span style={{ fontSize: 12, color: "var(--text-3)" }}>{techs.length} คน · เพิ่ม / แก้ไข / ลบ ได้</span>
@@ -615,8 +615,8 @@ function TechManager({ store, onClose }) {
 
         <div style={{ overflowY: "auto", padding: 18, display: "flex", flexDirection: "column", gap: 9 }}>
           {techs.map((t) => (
-            <div key={t.id} style={{ display: "flex", alignItems: "center", gap: 12, padding: "10px 13px", background: "var(--surface)", border: "none", boxShadow: "var(--shadow-sm)", borderRadius: 12 }}>
-              <span style={{ width: 36, height: 36, borderRadius: 99, background: t.color, color: "#fff", display: "grid", placeItems: "center", fontWeight: 700, fontSize: 13, flexShrink: 0 }}>{t.nick.slice(0, 2) || "?"}</span>
+            <div key={t.id} style={{ display: "flex", alignItems: "center", gap: 12, padding: "10px 13px", background: "var(--surface)", border: "none", boxShadow: "var(--shadow-sm)", borderRadius: "var(--r-chip)" }}>
+              <span style={{ width: 36, height: 36, borderRadius: "var(--r-pill)", background: t.color, color: "#fff", display: "grid", placeItems: "center", fontWeight: 700, fontSize: 13, flexShrink: 0 }}>{t.nick.slice(0, 2) || "?"}</span>
               <div style={{ flex: 1, minWidth: 0 }}>
                 <div style={{ fontSize: 14, fontWeight: 600, color: "var(--text-1)" }}>{t.name || "(ยังไม่ระบุชื่อ)"}</div>
                 <div style={{ fontSize: 11.5, color: "var(--text-3)" }}>{t.role}</div>
@@ -628,7 +628,7 @@ function TechManager({ store, onClose }) {
         </div>
 
         <div style={{ padding: "14px 22px", borderTop: "1px solid var(--border)", background: "var(--surface)", display: "flex", justifyContent: "flex-end", gap: 10 }}>
-          <button onClick={() => setEditing(store.blankTech())} style={{ display: "inline-flex", alignItems: "center", gap: 7, padding: "10px 18px", borderRadius: 11, border: "none", background: "var(--primary)", color: "#fff", fontWeight: 700, fontFamily: "inherit", fontSize: 13.5, cursor: "pointer" }}><Icon name="plus" size={16} color="#fff" sw={2.4} /> เพิ่มช่าง</button>
+          <button onClick={() => setEditing(store.blankTech())} style={{ display: "inline-flex", alignItems: "center", gap: 7, padding: "10px 18px", borderRadius: "var(--r-chip)", border: "none", background: "var(--primary)", color: "#fff", fontWeight: 700, fontFamily: "inherit", fontSize: 13.5, cursor: "pointer" }}><Icon name="plus" size={16} color="#fff" sw={2.4} /> เพิ่มช่าง</button>
         </div>
       </div>
 
@@ -644,14 +644,14 @@ function TechEditModal({ initial, colors, onSave, onClose }) {
   const isNew = !initial.name;
   return (
     <div {...bdClose} style={{ position: "fixed", inset: 0, background: "rgba(8,20,14,.4)", zIndex: 120, display: "grid", placeItems: "center", padding: 20 }}>
-      <div onClick={(e) => e.stopPropagation()} style={{ background: "var(--bg)", borderRadius: 18, width: "min(420px,100%)", overflow: "hidden", boxShadow: "var(--shadow-modal)" }}>
+      <div onClick={(e) => e.stopPropagation()} style={{ background: "var(--bg)", borderRadius: "var(--r-card)", width: "min(420px,100%)", overflow: "hidden", boxShadow: "var(--shadow-modal)" }}>
         <div style={{ padding: "16px 22px", borderBottom: "1px solid var(--border)", background: "var(--surface)", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
           <h3 style={{ fontSize: 16, fontWeight: 700, color: "var(--text-1)", margin: 0 }}>{isNew ? "เพิ่มช่างใหม่" : "แก้ไขข้อมูลช่าง"}</h3>
           <button className="x-close" onClick={onClose} style={{ width: 30, height: 30, borderRadius: 8, border: "1px solid var(--border)", background: "var(--surface)", cursor: "pointer", display: "grid", placeItems: "center", color: "var(--text-2)" }}><Icon name="x" size={15} /></button>
         </div>
         <div style={{ padding: 22, display: "flex", flexDirection: "column", gap: 14 }}>
           <div style={{ display: "flex", justifyContent: "center" }}>
-            <span style={{ width: 56, height: 56, borderRadius: 99, background: f.color, color: "#fff", display: "grid", placeItems: "center", fontWeight: 800, fontSize: 19 }}>{(f.nick || f.name).slice(0, 2) || "?"}</span>
+            <span style={{ width: 56, height: 56, borderRadius: "var(--r-pill)", background: f.color, color: "#fff", display: "grid", placeItems: "center", fontWeight: 800, fontSize: 19 }}>{(f.nick || f.name).slice(0, 2) || "?"}</span>
           </div>
           <Field label="ชื่อ-นามสกุล" required><input autoFocus style={inputStyle} value={f.name} onChange={(e) => set("name", e.target.value)} placeholder="เช่น สมชาย ตั้งใจ" /></Field>
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
@@ -663,15 +663,15 @@ function TechEditModal({ initial, colors, onSave, onClose }) {
           <Field label="สีประจำตัว">
             <div style={{ display: "flex", gap: 9, flexWrap: "wrap" }}>
               {colors.map((c) => (
-                <button type="button" key={c} onClick={() => set("color", c)} style={{ width: 30, height: 30, borderRadius: 99, background: c, border: f.color === c ? "3px solid var(--text-1)" : "3px solid transparent", cursor: "pointer", boxShadow: "0 0 0 1px var(--border)" }} />
+                <button type="button" key={c} onClick={() => set("color", c)} style={{ width: 30, height: 30, borderRadius: "var(--r-pill)", background: c, border: f.color === c ? "3px solid var(--text-1)" : "3px solid transparent", cursor: "pointer", boxShadow: "0 0 0 1px var(--border)" }} />
               ))}
             </div>
           </Field>
         </div>
         <div style={{ padding: "14px 22px", borderTop: "1px solid var(--border)", background: "var(--surface)", display: "flex", justifyContent: "flex-end", gap: 10 }}>
-          <button onClick={onClose} style={{ padding: "10px 18px", borderRadius: 11, border: "1px solid var(--border-strong)", background: "var(--surface)", color: "var(--text-2)", fontWeight: 600, fontFamily: "inherit", fontSize: 13.5, cursor: "pointer" }}>ยกเลิก</button>
+          <button onClick={onClose} style={{ padding: "10px 18px", borderRadius: "var(--r-chip)", border: "1px solid var(--border-strong)", background: "var(--surface)", color: "var(--text-2)", fontWeight: 600, fontFamily: "inherit", fontSize: 13.5, cursor: "pointer" }}>ยกเลิก</button>
           <button onClick={() => { if (!f.name.trim()) { alert("กรุณากรอกชื่อช่าง"); return; } const rec = Object.assign({}, f); if (!rec.nick.trim()) rec.nick = rec.name.trim().slice(0, 2); onSave(rec); }}
-            style={{ padding: "10px 22px", borderRadius: 11, border: "none", background: "var(--primary)", color: "#fff", fontWeight: 700, fontFamily: "inherit", fontSize: 13.5, cursor: "pointer" }}>บันทึก</button>
+            style={{ padding: "10px 22px", borderRadius: "var(--r-chip)", border: "none", background: "var(--primary)", color: "#fff", fontWeight: 700, fontFamily: "inherit", fontSize: 13.5, cursor: "pointer" }}>บันทึก</button>
         </div>
       </div>
     </div>
@@ -688,10 +688,10 @@ function BrandManager({ store, onClose }) {
 
   return (
     <div {...bdClose} style={{ position: "fixed", inset: 0, background: "rgba(8,20,14,.45)", backdropFilter: "blur(3px)", zIndex: 110, display: "grid", placeItems: "center", padding: 20 }}>
-      <div onClick={(e) => e.stopPropagation()} style={{ background: "var(--bg)", borderRadius: 20, width: "min(560px,100%)", maxHeight: "90vh", display: "flex", flexDirection: "column", overflow: "hidden", boxShadow: "var(--shadow-modal)" }}>
+      <div onClick={(e) => e.stopPropagation()} style={{ background: "var(--bg)", borderRadius: "var(--r-card)", width: "min(560px,100%)", maxHeight: "90vh", display: "flex", flexDirection: "column", overflow: "hidden", boxShadow: "var(--shadow-modal)" }}>
         <div style={{ padding: "18px 22px", borderBottom: "1px solid var(--border)", background: "var(--surface)", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
           <div style={{ display: "flex", alignItems: "center", gap: 11 }}>
-            <span style={{ width: 38, height: 38, borderRadius: 11, background: "var(--primary-soft)", display: "grid", placeItems: "center" }}><Icon name="sun" size={19} color="var(--primary-dark)" /></span>
+            <span style={{ width: 38, height: 38, borderRadius: "var(--r-chip)", background: "var(--primary-soft)", display: "grid", placeItems: "center" }}><Icon name="sun" size={19} color="var(--primary-dark)" /></span>
             <div>
               <h2 style={{ fontSize: 17, fontWeight: 700, color: "var(--text-1)", margin: 0 }}>จัดการแบรนด์ / รุ่นอินเวอร์เตอร์</h2>
               <span style={{ fontSize: 12, color: "var(--text-3)" }}>{brands.length} รายการ · เพิ่ม / แก้ไข / ลบ ได้</span>
@@ -702,8 +702,8 @@ function BrandManager({ store, onClose }) {
 
         <div style={{ overflowY: "auto", padding: 18, display: "flex", flexDirection: "column", gap: 9 }}>
           {brands.map((b) => (
-            <div key={b.name} style={{ display: "flex", alignItems: "center", gap: 12, padding: "11px 14px", background: "var(--surface)", border: "none", boxShadow: "var(--shadow-sm)", borderRadius: 12 }}>
-              <span style={{ width: 36, height: 36, borderRadius: 10, background: "var(--surface2)", border: "none", boxShadow: "var(--shadow-sm)", display: "grid", placeItems: "center", color: "var(--primary-dark)", flexShrink: 0 }}><Icon name="sun" size={17} color="var(--primary-dark)" /></span>
+            <div key={b.name} style={{ display: "flex", alignItems: "center", gap: 12, padding: "11px 14px", background: "var(--surface)", border: "none", boxShadow: "var(--shadow-sm)", borderRadius: "var(--r-chip)" }}>
+              <span style={{ width: 36, height: 36, borderRadius: "var(--r-chip)", background: "var(--surface2)", border: "none", boxShadow: "var(--shadow-sm)", display: "grid", placeItems: "center", color: "var(--primary-dark)", flexShrink: 0 }}><Icon name="sun" size={17} color="var(--primary-dark)" /></span>
               <div style={{ flex: 1, minWidth: 0 }}>
                 <div style={{ fontSize: 14, fontWeight: 700, color: "var(--text-1)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{b.name}</div>
                 <div style={{ fontSize: 11.5, color: b.battery ? "var(--primary-dark)" : "var(--text-3)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{b.battery ? "รองรับแบต/Backup" : "ไม่รองรับแบต/Backup"}</div>
@@ -715,7 +715,7 @@ function BrandManager({ store, onClose }) {
         </div>
 
         <div style={{ padding: "14px 22px", borderTop: "1px solid var(--border)", background: "var(--surface)", display: "flex", justifyContent: "flex-end", gap: 10 }}>
-          <button onClick={() => setEditing({ rec: { name: "", battery: true }, origName: null })} style={{ display: "inline-flex", alignItems: "center", gap: 7, padding: "10px 18px", borderRadius: 11, border: "none", background: "var(--primary)", color: "#fff", fontWeight: 700, fontFamily: "inherit", fontSize: 13.5, cursor: "pointer" }}><Icon name="plus" size={16} color="#fff" sw={2.4} /> เพิ่มแบรนด์ / รุ่น</button>
+          <button onClick={() => setEditing({ rec: { name: "", battery: true }, origName: null })} style={{ display: "inline-flex", alignItems: "center", gap: 7, padding: "10px 18px", borderRadius: "var(--r-chip)", border: "none", background: "var(--primary)", color: "#fff", fontWeight: 700, fontFamily: "inherit", fontSize: 13.5, cursor: "pointer" }}><Icon name="plus" size={16} color="#fff" sw={2.4} /> เพิ่มแบรนด์ / รุ่น</button>
         </div>
       </div>
 
@@ -732,7 +732,7 @@ function BrandEditModal({ initial, origName, existing, onSave, onClose }) {
   const isNew = origName == null;
   return (
     <div {...bdClose} style={{ position: "fixed", inset: 0, background: "rgba(8,20,14,.4)", zIndex: 120, display: "grid", placeItems: "center", padding: 20 }}>
-      <div onClick={(e) => e.stopPropagation()} style={{ background: "var(--bg)", borderRadius: 18, width: "min(420px,100%)", overflow: "hidden", boxShadow: "var(--shadow-modal)" }}>
+      <div onClick={(e) => e.stopPropagation()} style={{ background: "var(--bg)", borderRadius: "var(--r-card)", width: "min(420px,100%)", overflow: "hidden", boxShadow: "var(--shadow-modal)" }}>
         <div style={{ padding: "16px 22px", borderBottom: "1px solid var(--border)", background: "var(--surface)", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
           <h3 style={{ fontSize: 16, fontWeight: 700, color: "var(--text-1)", margin: 0 }}>{isNew ? "เพิ่มแบรนด์ / รุ่นใหม่" : "แก้ไขแบรนด์ / รุ่น"}</h3>
           <button className="x-close" onClick={onClose} style={{ width: 30, height: 30, borderRadius: 8, border: "1px solid var(--border)", background: "var(--surface)", cursor: "pointer", display: "grid", placeItems: "center", color: "var(--text-2)" }}><Icon name="x" size={15} /></button>
@@ -744,14 +744,14 @@ function BrandEditModal({ initial, origName, existing, onSave, onClose }) {
           </Field>
         </div>
         <div style={{ padding: "14px 22px", borderTop: "1px solid var(--border)", background: "var(--surface)", display: "flex", justifyContent: "flex-end", gap: 10 }}>
-          <button onClick={onClose} style={{ padding: "10px 18px", borderRadius: 11, border: "1px solid var(--border-strong)", background: "var(--surface)", color: "var(--text-2)", fontWeight: 600, fontFamily: "inherit", fontSize: 13.5, cursor: "pointer" }}>ยกเลิก</button>
+          <button onClick={onClose} style={{ padding: "10px 18px", borderRadius: "var(--r-chip)", border: "1px solid var(--border-strong)", background: "var(--surface)", color: "var(--text-2)", fontWeight: 600, fontFamily: "inherit", fontSize: 13.5, cursor: "pointer" }}>ยกเลิก</button>
           <button onClick={() => {
               const name = f.name.trim();
               if (!name) { alert("กรุณากรอกชื่อแบรนด์/รุ่น"); return; }
               if (existing.some((b) => b.name === name && name !== origName)) { alert("มีแบรนด์ชื่อนี้อยู่แล้ว"); return; }
               onSave(Object.assign({}, f, { name }));
             }}
-            style={{ padding: "10px 22px", borderRadius: 11, border: "none", background: "var(--primary)", color: "#fff", fontWeight: 700, fontFamily: "inherit", fontSize: 13.5, cursor: "pointer" }}>บันทึก</button>
+            style={{ padding: "10px 22px", borderRadius: "var(--r-chip)", border: "none", background: "var(--primary)", color: "#fff", fontWeight: 700, fontFamily: "inherit", fontSize: 13.5, cursor: "pointer" }}>บันทึก</button>
         </div>
       </div>
     </div>

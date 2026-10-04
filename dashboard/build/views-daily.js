@@ -66,7 +66,7 @@ function DrSection({
       marginBottom: 16,
       border: "none",
       boxShadow: "var(--shadow-sm)",
-      borderRadius: 14,
+      borderRadius: "var(--r-tile)",
       background: "var(--surface2)",
       overflow: "hidden"
     }
@@ -133,7 +133,7 @@ function DrChips({
       onClick: () => onChange(on ? "" : o.key),
       style: {
         padding: "7px 13px",
-        borderRadius: 99,
+        borderRadius: "var(--r-pill)",
         cursor: disabled ? "default" : "pointer",
         fontFamily: "inherit",
         fontSize: 12.5,
@@ -595,7 +595,7 @@ function DrPhotos({
       alignItems: "center",
       gap: 7,
       padding: "9px 14px",
-      borderRadius: 10,
+      borderRadius: "var(--r-chip)",
       border: "1px dashed var(--border-strong)",
       background: "var(--surface)",
       cursor: "pointer",
@@ -631,7 +631,7 @@ function DrPhotos({
     style: {
       border: "none",
       boxShadow: "var(--shadow-sm)",
-      borderRadius: 11,
+      borderRadius: "var(--r-chip)",
       overflow: "hidden",
       background: "var(--surface)"
     }
@@ -691,7 +691,7 @@ function DrSignSlot({
     style: {
       border: "none",
       boxShadow: "var(--shadow-sm)",
-      borderRadius: 12,
+      borderRadius: "var(--r-chip)",
       background: "var(--surface)",
       padding: "12px 13px"
     }
@@ -827,7 +827,7 @@ function DrModeSwitch({
       display: "inline-flex",
       padding: 2,
       gap: 2,
-      borderRadius: 99,
+      borderRadius: "var(--r-pill)",
       background: "var(--surface2)",
       border: "1px solid var(--border)"
     }
@@ -841,7 +841,7 @@ function DrModeSwitch({
       onClick: () => onChange(m.key),
       style: {
         padding: "3px 11px",
-        borderRadius: 99,
+        borderRadius: "var(--r-pill)",
         border: "none",
         fontFamily: "inherit",
         fontSize: 11.5,
@@ -1041,14 +1041,14 @@ function DailyReportModal({
       color: st.color,
       background: st.color + "1c",
       border: "1px solid " + st.color + "40",
-      borderRadius: 99,
+      borderRadius: "var(--r-pill)",
       padding: "2px 10px"
     }
   }, st.th), locked ? React.createElement("span", {
     style: {
       fontSize: 11,
       fontWeight: 700,
-      borderRadius: 99,
+      borderRadius: "var(--r-pill)",
       padding: "2px 9px",
       color: isProject ? "#7C5CFC" : "#F59E0B",
       background: (isProject ? "#7C5CFC" : "#F59E0B") + "1c"
@@ -1075,7 +1075,7 @@ function DailyReportModal({
     style: {
       width: 34,
       height: 34,
-      borderRadius: 10,
+      borderRadius: "var(--r-chip)",
       border: "1px solid var(--border-strong)",
       background: "var(--surface)",
       cursor: "pointer",
@@ -1176,7 +1176,7 @@ function DailyReportModal({
         alignItems: "center",
         gap: 5,
         padding: "5px 10px",
-        borderRadius: 99,
+        borderRadius: "var(--r-pill)",
         flexShrink: 0,
         border: "1px solid " + (on ? "var(--primary)" : "var(--border)"),
         background: on ? "var(--primary-soft)" : "var(--surface)",
@@ -1190,7 +1190,7 @@ function DailyReportModal({
       style: {
         width: 6,
         height: 6,
-        borderRadius: 99,
+        borderRadius: "var(--r-pill)",
         background: s.color
       }
     }), window.drShort(d));
@@ -1207,7 +1207,7 @@ function DailyReportModal({
       marginBottom: 14,
       border: "1px solid #10B98140",
       background: "#10B98114",
-      borderRadius: 12
+      borderRadius: "var(--r-chip)"
     }
   }, React.createElement(Icon, {
     name: "lock",
@@ -1465,7 +1465,7 @@ function DailyReportModal({
     }),
     style: {
       padding: "6px 11px",
-      borderRadius: 99,
+      borderRadius: "var(--r-pill)",
       border: "1px dashed var(--border-strong)",
       background: "var(--surface)",
       cursor: locked ? "default" : "pointer",
@@ -1577,7 +1577,7 @@ function DailyReportModal({
         alignItems: "center",
         gap: 6,
         padding: "7px 12px",
-        borderRadius: 99,
+        borderRadius: "var(--r-pill)",
         border: "1px solid " + (on ? "#10B981" : "var(--border-strong)"),
         background: on ? "#10B9811c" : "var(--surface)",
         cursor: locked ? "default" : "pointer",
@@ -1674,7 +1674,7 @@ function DailyReportModal({
       alignItems: "center",
       gap: 7,
       padding: "10px 15px",
-      borderRadius: 10,
+      borderRadius: "var(--r-chip)",
       border: "1px solid var(--border-strong)",
       background: "var(--surface)",
       cursor: "pointer",
@@ -1690,7 +1690,7 @@ function DailyReportModal({
       alignItems: "center",
       gap: 7,
       padding: "10px 16px",
-      borderRadius: 10,
+      borderRadius: "var(--r-chip)",
       border: "none",
       background: "#EF4444",
       color: "#fff",
@@ -1711,7 +1711,7 @@ function DailyReportModal({
       alignItems: "center",
       gap: 7,
       padding: "10px 13px",
-      borderRadius: 10,
+      borderRadius: "var(--r-chip)",
       border: "1px solid var(--tint-red-bd)",
       background: "var(--surface)",
       cursor: "pointer",
@@ -1734,7 +1734,7 @@ function DailyReportModal({
       alignItems: "center",
       gap: 7,
       padding: "10px 15px",
-      borderRadius: 10,
+      borderRadius: "var(--r-chip)",
       border: "1px solid var(--primary)",
       background: "var(--primary-soft)",
       cursor: "pointer",
@@ -1755,7 +1755,7 @@ function DailyReportModal({
       alignItems: "center",
       gap: 7,
       padding: "10px 16px",
-      borderRadius: 10,
+      borderRadius: "var(--r-chip)",
       border: "none",
       background: "var(--primary)",
       color: "#fff",
@@ -1792,7 +1792,7 @@ function DailyReportModal({
       alignItems: "center",
       gap: 7,
       padding: "10px 16px",
-      borderRadius: 10,
+      borderRadius: "var(--r-chip)",
       border: "none",
       background: "#10B981",
       color: "#fff",
@@ -1812,7 +1812,7 @@ function DailyReportModal({
       alignItems: "center",
       gap: 7,
       padding: "10px 15px",
-      borderRadius: 10,
+      borderRadius: "var(--r-chip)",
       border: "1px solid var(--border-strong)",
       background: "var(--surface)",
       cursor: "pointer",
@@ -1892,7 +1892,7 @@ function DrPBlock({
     style: {
       width: 5,
       height: 5,
-      borderRadius: 99,
+      borderRadius: "var(--r-pill)",
       background: "#1B9B75"
     }
   }), React.createElement("span", {
@@ -2107,7 +2107,7 @@ function DailyPaper({
     style: {
       width: 36,
       height: 36,
-      borderRadius: 10,
+      borderRadius: "var(--r-chip)",
       border: "1px solid var(--border-strong)",
       background: "var(--surface)",
       cursor: "pointer",
@@ -2155,7 +2155,7 @@ function DailyPaper({
       alignItems: "center",
       gap: 7,
       padding: "11px 16px",
-      borderRadius: 11,
+      borderRadius: "var(--r-chip)",
       border: "none",
       background: "var(--primary)",
       color: "#fff",
@@ -2236,7 +2236,7 @@ function DailyPaper({
       display: "inline-block",
       marginTop: 3,
       padding: "2px 9px",
-      borderRadius: 99,
+      borderRadius: "var(--r-pill)",
       background: st.color + "22",
       color: st.color,
       fontWeight: 700,
@@ -2295,7 +2295,7 @@ function DailyPaper({
       flex: 1,
       minWidth: 160,
       height: 9,
-      borderRadius: 99,
+      borderRadius: "var(--r-pill)",
       background: "#E8EEEA",
       overflow: "hidden"
     }
@@ -2837,7 +2837,7 @@ function DrJobSummary({
     style: {
       border: "none",
       boxShadow: "var(--shadow-sm)",
-      borderRadius: 14,
+      borderRadius: "var(--r-tile)",
       background: "var(--surface2)",
       overflow: "hidden"
     }
@@ -2921,7 +2921,7 @@ function DrJobSummary({
       style: {
         width: 8,
         height: 8,
-        borderRadius: 99,
+        borderRadius: "var(--r-pill)",
         background: st.color,
         flexShrink: 0
       }
@@ -2961,7 +2961,7 @@ function DrJobSummary({
         fontWeight: 700,
         color: st.color,
         background: st.color + "1a",
-        borderRadius: 99,
+        borderRadius: "var(--r-pill)",
         padding: "3px 9px",
         flexShrink: 0,
         whiteSpace: "nowrap"
@@ -3029,7 +3029,7 @@ function DrInbox({
       style: {
         width: 8,
         height: 8,
-        borderRadius: 99,
+        borderRadius: "var(--r-pill)",
         background: "#F59E0B",
         flexShrink: 0
       }
@@ -3065,7 +3065,7 @@ function DrInbox({
     }, (+r.rec.pct || 0) + "%"), late >= 2 && React.createElement("span", {
       style: {
         padding: "3px 9px",
-        borderRadius: 99,
+        borderRadius: "var(--r-pill)",
         background: "var(--tint-amber-bg)",
         color: "var(--tint-amber-tx)",
         fontSize: 11,
@@ -3137,7 +3137,7 @@ function DailyView({
       flex: 1,
       minWidth: 92,
       padding: "11px 13px",
-      borderRadius: 12,
+      borderRadius: "var(--r-chip)",
       background: "var(--surface2)",
       border: "none",
       boxShadow: "var(--shadow-sm)"
@@ -3179,7 +3179,7 @@ function DailyView({
       alignItems: "center",
       gap: 7,
       padding: "7px 14px",
-      borderRadius: 99,
+      borderRadius: "var(--r-pill)",
       border: "1px solid " + (mode === k ? "var(--primary)" : "var(--border-strong)"),
       background: mode === k ? "var(--primary-soft)" : "var(--surface)",
       cursor: "pointer",
@@ -3196,7 +3196,7 @@ function DailyView({
     style: {
       minWidth: 18,
       padding: "0 6px",
-      borderRadius: 99,
+      borderRadius: "var(--r-pill)",
       background: "#F59E0B",
       color: "#fff",
       fontFamily: "var(--mono)",
@@ -3207,7 +3207,7 @@ function DailyView({
     style: {
       border: "none",
       boxShadow: "var(--shadow-sm)",
-      borderRadius: 14,
+      borderRadius: "var(--r-tile)",
       background: "var(--surface)",
       overflow: "hidden"
     }
@@ -3233,7 +3233,7 @@ function DailyView({
     onClick: () => setDays(d),
     style: {
       padding: "6px 13px",
-      borderRadius: 99,
+      borderRadius: "var(--r-pill)",
       cursor: "pointer",
       fontFamily: "inherit",
       fontSize: 12,
@@ -3249,7 +3249,7 @@ function DailyView({
       alignItems: "center",
       gap: 6,
       padding: "6px 13px",
-      borderRadius: 99,
+      borderRadius: "var(--r-pill)",
       cursor: "pointer",
       fontFamily: "inherit",
       fontSize: 12,
@@ -3308,7 +3308,7 @@ function DailyView({
     style: {
       border: "none",
       boxShadow: "var(--shadow-sm)",
-      borderRadius: 14,
+      borderRadius: "var(--r-tile)",
       background: "var(--surface2)",
       overflow: "hidden",
       padding: pickedJob ? 0 : "12px 0 4px"
@@ -3403,7 +3403,7 @@ function DailyView({
     style: {
       border: "none",
       boxShadow: "var(--shadow-sm)",
-      borderRadius: 14,
+      borderRadius: "var(--r-tile)",
       background: "var(--surface2)",
       overflow: "hidden"
     }
@@ -3508,7 +3508,7 @@ function DailyView({
       style: {
         width: 8,
         height: 8,
-        borderRadius: 99,
+        borderRadius: "var(--r-pill)",
         background: s.color,
         flexShrink: 0
       }
@@ -3547,7 +3547,7 @@ function DailyView({
         fontWeight: 700,
         color: s.color,
         background: s.color + "1a",
-        borderRadius: 99,
+        borderRadius: "var(--r-pill)",
         padding: "3px 10px",
         flexShrink: 0,
         whiteSpace: "nowrap"
@@ -3594,7 +3594,7 @@ function DailyJobButton({
       background: "var(--surface)",
       border: "1px solid var(--border-strong)",
       borderLeft: "3px solid " + s.color,
-      borderRadius: 12,
+      borderRadius: "var(--r-chip)",
       cursor: "pointer",
       fontFamily: "inherit",
       textAlign: "left"

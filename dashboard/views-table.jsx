@@ -38,10 +38,10 @@ function MatCell({ status, onCycle }) {
   const m = window.SF.MAT_STATUS[status] || window.SF.MAT_STATUS.none;
   return (
     <button onClick={onCycle} title="คลิกเพื่อเปลี่ยนสถานะ"
-      style={{ display: "inline-flex", alignItems: "center", gap: 5, padding: "4px 10px", borderRadius: 99,
+      style={{ display: "inline-flex", alignItems: "center", gap: 5, padding: "4px 10px", borderRadius: "var(--r-pill)",
         background: m.soft, color: m.fg, fontWeight: 700, fontSize: 11, border: "1px solid transparent",
         cursor: "pointer", fontFamily: "inherit", minWidth: 58, justifyContent: "center" }}>
-      <span style={{ width: 6, height: 6, borderRadius: 99, background: m.color, flexShrink: 0 }} />{m.th}
+      <span style={{ width: 6, height: 6, borderRadius: "var(--r-pill)", background: m.color, flexShrink: 0 }} />{m.th}
     </button>
   );
 }
@@ -111,7 +111,7 @@ function TableView({ jobs, onOpen, onEdit, onDelete, onSetMat, onSetStage, trash
   return (
     <React.Fragment>
     <StatusTabs tab={tab} setTab={setTab} counts={counts} labels={tabLabels} trashCount={trashCount} onOpenTrash={onOpenTrash} onAdd={onAdd} />
-    <div style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 16, overflow: "hidden", boxShadow: "var(--shadow-sm)" }}>
+    <div style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: "var(--r-tile)", overflow: "hidden", boxShadow: "var(--shadow-sm)" }}>
       <div style={{ overflowX: "auto" }}>
         <table style={{ width: "100%", borderCollapse: "collapse", minWidth: 920 }}>
           <thead>
@@ -173,10 +173,10 @@ function TableView({ jobs, onOpen, onEdit, onDelete, onSetMat, onSetStage, trash
                 ) : (
                 <td style={{ padding: "13px 14px" }}>
                   <div style={{ display: "flex", alignItems: "center", gap: 9 }}>
-                    <span style={{ flex: 1, height: 7, borderRadius: 99, background: "var(--surface3)", overflow: "hidden", minWidth: 56 }}>
+                    <span style={{ flex: 1, height: 7, borderRadius: "var(--r-pill)", background: "var(--surface3)", overflow: "hidden", minWidth: 56 }}>
                       <span style={{ display: "block", height: "100%", width: j.matReadyPct + "%",
                         background: j.matReadyPct >= 100 ? "var(--primary)" : (j.matReadyPct > 0 ? "#F59E0B" : "transparent"),
-                        borderRadius: 99, transition: "width .4s cubic-bezier(.2,.8,.2,1)" }} />
+                        borderRadius: "var(--r-pill)", transition: "width .4s cubic-bezier(.2,.8,.2,1)" }} />
                     </span>
                     <span style={{ fontFamily: "var(--display)", fontSize: 12.5, fontWeight: 700, letterSpacing: "-.02em",
                       fontVariantNumeric: "tabular-nums", minWidth: 38, textAlign: "right",
@@ -196,7 +196,7 @@ function TableView({ jobs, onOpen, onEdit, onDelete, onSetMat, onSetStage, trash
                     return (
                       <span title={rejected && j.permit ? (j.permit.rejectReason || "") : ""}
                         style={{ display: "inline-block", maxWidth: 180, fontSize: 11.5, fontWeight: 700, color: pc.color,
-                          background: pc.color + "14", border: "1px solid " + pc.color + "33", borderRadius: 99, padding: "5px 11px" }}>
+                          background: pc.color + "14", border: "1px solid " + pc.color + "33", borderRadius: "var(--r-pill)", padding: "5px 11px" }}>
                         {pc.th}
                       </span>
                     );
@@ -205,7 +205,7 @@ function TableView({ jobs, onOpen, onEdit, onDelete, onSetMat, onSetStage, trash
                     options={SF.STAGES.map((s) => ({ value: s.key, label: s.th, sub: s.en }))}
                     style={{ width: "auto", display: "inline-flex", gap: 4, fontSize: 11.5, fontWeight: 700,
                       color: stageOf(j.stage).fg, background: stageOf(j.stage).soft,
-                      border: "1px solid transparent", borderRadius: 99, padding: "5px 8px 5px 11px" }} />
+                      border: "1px solid transparent", borderRadius: "var(--r-pill)", padding: "5px 8px 5px 11px" }} />
                   )}
                 </td>
                 {/* deadline */}
@@ -216,7 +216,7 @@ function TableView({ jobs, onOpen, onEdit, onDelete, onSetMat, onSetStage, trash
                       <div style={{ fontFamily: "var(--mono)", fontSize: 12, fontWeight: 600, letterSpacing: "-.01em",
                         color: j.delayed ? "#D93025" : "var(--text-2)" }}>{thDate(j.startDate, true)}{j.deadline && j.deadline !== j.startDate ? "–" + thDate(j.deadline, true) : ""}</div>
                       {j.delayed && <span style={{ display: "inline-block", marginTop: 3, fontSize: 9.5, fontWeight: 800, letterSpacing: ".02em",
-                        color: "var(--tint-red-tx)", background: "rgba(217,48,37,.11)", padding: "2px 7px", borderRadius: 99 }}>ล่าช้า</span>}
+                        color: "var(--tint-red-tx)", background: "rgba(217,48,37,.11)", padding: "2px 7px", borderRadius: "var(--r-pill)" }}>ล่าช้า</span>}
                     </React.Fragment>
                   ) : <span style={{ fontSize: 11, fontWeight: 600, color: "var(--text-3)" }}>ยังไม่นัด</span>}
                 </td>
@@ -258,7 +258,7 @@ function StatusTabs({ tab, setTab, counts, labels, trashCount, onOpenTrash, onAd
           <button key={o.key} onClick={() => setTab(o.key)}
             /* ชุดเดียวกับชิปกรองขั้นงานบนหัวหน้า: ไม่มีเส้นขอบ พื้นจาง ที่เลือกอยู่ค่อยเป็นเขียว */
             style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", gap: mob ? 5 : 7,
-              padding: mob ? "8px 8px" : "8px 15px", borderRadius: 99, flex: mob ? "1 1 0" : "0 0 auto", minWidth: 0,
+              padding: mob ? "8px 8px" : "8px 15px", borderRadius: "var(--r-pill)", flex: mob ? "1 1 0" : "0 0 auto", minWidth: 0,
               border: "1px solid " + (active ? "var(--primary)" : "transparent"),
               background: active ? "var(--primary-soft)" : "var(--surface2)",
               color: active ? "var(--primary-dark)" : "var(--text-2)", fontWeight: active ? 700 : 600,
@@ -274,7 +274,7 @@ function StatusTabs({ tab, setTab, counts, labels, trashCount, onOpenTrash, onAd
       {onOpenTrash && (
         <button onClick={onOpenTrash} title="งานที่ลบไปแล้ว — กู้คืนได้"
           style={{ marginLeft: "auto", display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 6,
-            padding: mob ? "8px 10px" : "8px 13px", borderRadius: 99, flexShrink: 0, border: "1px solid transparent",
+            padding: mob ? "8px 10px" : "8px 13px", borderRadius: "var(--r-pill)", flexShrink: 0, border: "1px solid transparent",
             background: "var(--surface2)", color: trashCount ? "#EF4444" : "var(--text-3)", fontWeight: 600,
             fontSize: mob ? 12 : 13, cursor: "pointer", fontFamily: "inherit", whiteSpace: "nowrap" }}>
           <Icon name="trash" size={14} />
@@ -287,7 +287,7 @@ function StatusTabs({ tab, setTab, counts, labels, trashCount, onOpenTrash, onAd
       {onAdd && (
         <button onClick={onAdd} className="btn-add" title="เปิดใบงานใหม่"
           style={{ marginLeft: onOpenTrash ? 0 : "auto", flexShrink: 0, padding: mob ? "8px 12px" : "8px 15px",
-            borderRadius: 99, fontSize: mob ? 12 : 13 }}>
+            borderRadius: "var(--r-pill)", fontSize: mob ? 12 : 13 }}>
           <Icon name="plus" size={15} color="#fff" sw={2.6} />{!mob && <span>เพิ่มงาน</span>}
         </button>
       )}
@@ -332,7 +332,7 @@ function TableMobile({ jobs, sort, setSort, onOpen, onEdit, onDelete, onSetStage
         const s = permitMode ? { color: pc.color, fg: pc.color, soft: pc.color + "14", th: pc.th } : stageOf(j.stage);
         return (
           <div key={j.id} style={{ background: j.delayed ? "#FEF7F7" : "var(--surface)",
-            border: "1px solid " + (j.delayed ? "var(--tint-red-bd2)" : "var(--border)"), borderRadius: 14, padding: 13,
+            border: "1px solid " + (j.delayed ? "var(--tint-red-bd2)" : "var(--border)"), borderRadius: "var(--r-tile)", padding: 13,
             borderLeft: "3px solid " + (j.delayed ? "var(--mark-danger)" : s.color), boxShadow: "var(--shadow-sm)" }}>
             {/* หัว: รหัส + ประเภท + ปุ่มจัดการ */}
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 8 }}>

@@ -88,10 +88,10 @@ function ConfirmHost() {
       style={{ position: "fixed", inset: 0, background: "rgba(8,20,14,.5)", backdropFilter: "blur(3px)",
         zIndex: 9000, display: "grid", placeItems: "center", padding: 20 }}>
       <div onClick={(e) => e.stopPropagation()} role="dialog" aria-modal="true"
-        style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 16,
+        style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: "var(--r-tile)",
           width: "min(420px, 100%)", padding: 20, boxShadow: "var(--shadow-modal)" }}>
         <div style={{ display: "flex", gap: 12, alignItems: "flex-start" }}>
-          <span style={{ width: 38, height: 38, borderRadius: 11, flexShrink: 0, display: "grid", placeItems: "center",
+          <span style={{ width: 38, height: 38, borderRadius: "var(--r-chip)", flexShrink: 0, display: "grid", placeItems: "center",
             background: danger ? "var(--tint-red-bg)" : "var(--primary-soft)" }}>
             <Icon name={icon} size={18} color={accent} />
           </span>
@@ -117,19 +117,19 @@ function ConfirmHost() {
             <input autoFocus value={text} maxLength={req.maxLength || 120} placeholder={req.placeholder || ""}
               onChange={(e) => setText(e.target.value)}
               style={{ width: "100%", boxSizing: "border-box", background: "var(--surface2)",
-                border: "1px solid var(--border-strong)", borderRadius: 10, padding: "10px 12px",
+                border: "1px solid var(--border-strong)", borderRadius: "var(--r-chip)", padding: "10px 12px",
                 color: "var(--text-1)", fontFamily: "inherit", fontSize: 14, outline: "none" }} />
           </div>
         )}
 
         <div style={{ display: "flex", gap: 8, justifyContent: "flex-end", marginTop: 18 }}>
           <button onClick={() => done(false)}
-            style={{ padding: "10px 16px", borderRadius: 10, border: "1px solid var(--border-strong)", background: "var(--surface)",
+            style={{ padding: "10px 16px", borderRadius: "var(--r-chip)", border: "1px solid var(--border-strong)", background: "var(--surface)",
               color: "var(--text-2)", fontFamily: "inherit", fontSize: 13, fontWeight: 700, cursor: "pointer" }}>
             {req.cancel || "ยกเลิก"}
           </button>
           <button autoFocus={!req.input} disabled={blocked} onClick={() => done(true)}
-            style={{ padding: "10px 16px", borderRadius: 10, border: "none",
+            style={{ padding: "10px 16px", borderRadius: "var(--r-chip)", border: "none",
               background: blocked ? "var(--border-strong)" : accent, color: "#fff",
               fontFamily: "inherit", fontSize: 13, fontWeight: 700,
               cursor: blocked ? "not-allowed" : "pointer" }}>

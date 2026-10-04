@@ -265,7 +265,7 @@ function InspectionListModal({ job, currentUser, onClose }) {
           maxHeight: isMobile ? "94dvh" : "90vh", display: "flex", flexDirection: "column", overflow: "hidden", boxShadow: "var(--shadow-modal)" }}>
 
           <div style={{ padding: "13px 16px", borderBottom: "1px solid var(--border)", background: "var(--surface)", display: "flex", alignItems: "center", gap: 10 }}>
-            <span style={{ width: 34, height: 34, borderRadius: 10, background: "#0EA5E91c", display: "grid", placeItems: "center", flexShrink: 0 }}>
+            <span style={{ width: 34, height: 34, borderRadius: "var(--r-chip)", background: "#0EA5E91c", display: "grid", placeItems: "center", flexShrink: 0 }}>
               <Icon name="list" size={17} color="#0284C7" />
             </span>
             <div style={{ flex: 1, minWidth: 0 }}>
@@ -274,7 +274,7 @@ function InspectionListModal({ job, currentUser, onClose }) {
                 {job.code} · {job.name}
               </div>
             </div>
-            <button className="x-close" onClick={onClose} aria-label="ปิด" style={{ flexShrink: 0, width: 32, height: 32, borderRadius: 10, border: "1px solid var(--border-strong)",
+            <button className="x-close" onClick={onClose} aria-label="ปิด" style={{ flexShrink: 0, width: 32, height: 32, borderRadius: "var(--r-chip)", border: "1px solid var(--border-strong)",
               background: "var(--surface)", color: "var(--text-2)", cursor: "pointer", fontFamily: "inherit", fontSize: 16, lineHeight: 1 }}>×</button>
           </div>
 
@@ -283,7 +283,7 @@ function InspectionListModal({ job, currentUser, onClose }) {
 
             {!store.loading && !store.list.length && (
               <div style={{ padding: 34, textAlign: "center", color: "var(--text-3)", fontSize: 13,
-                background: "var(--surface)", border: "1px dashed var(--border-strong)", borderRadius: 14 }}>
+                background: "var(--surface)", border: "1px dashed var(--border-strong)", borderRadius: "var(--r-tile)" }}>
                 ยังไม่มีใบตรวจของงานนี้<br />กด “สร้างใบตรวจใหม่” แล้วเลือกว่าตรวจเรื่องอะไร
               </div>
             )}
@@ -292,7 +292,7 @@ function InspectionListModal({ job, currentUser, onClose }) {
               const r = IR_RESULT_BY[x.result];
               return (
                 <div key={x.id} style={{ border: "none", boxShadow: "var(--shadow-sm)", borderLeft: "3px solid " + (r ? r.color : "var(--border-strong)"),
-                  borderRadius: 12, background: "var(--surface)", overflow: "hidden" }}>
+                  borderRadius: "var(--r-chip)", background: "var(--surface)", overflow: "hidden" }}>
                   <button onClick={() => setOpenId(x.id)}
                     style={{ width: "100%", display: "flex", alignItems: "center", gap: 10, padding: "12px 13px",
                       background: "none", border: "none", cursor: "pointer", fontFamily: "inherit", textAlign: "left" }}>
@@ -330,15 +330,15 @@ function InspectionListModal({ job, currentUser, onClose }) {
 
             {/* เลือกประเภทก่อนสร้าง — ตั้งชื่อใบให้ตรงเรื่องตั้งแต่แรก ดีกว่าสร้างเปล่าแล้วลืมแก้ */}
             {picking && (
-              <div style={{ border: "1px solid var(--border-strong)", borderRadius: 12, padding: 12, background: "var(--surface)" }}>
+              <div style={{ border: "1px solid var(--border-strong)", borderRadius: "var(--r-chip)", padding: 12, background: "var(--surface)" }}>
                 <div style={{ fontSize: 12, fontWeight: 700, color: "var(--text-2)", marginBottom: 9 }}>ตรวจเรื่องอะไร</div>
                 <div style={{ display: "flex", flexDirection: "column", gap: 7 }}>
                   {IR_KINDS.map((k) => (
-                    <button key={k} onClick={() => startNew(k)} style={{ textAlign: "left", padding: "10px 12px", borderRadius: 10,
+                    <button key={k} onClick={() => startNew(k)} style={{ textAlign: "left", padding: "10px 12px", borderRadius: "var(--r-chip)",
                       border: "none", boxShadow: "var(--shadow-sm)", background: "var(--surface2)", color: "var(--text-1)",
                       fontFamily: "inherit", fontSize: 12.5, fontWeight: 600, cursor: "pointer" }}>{k}</button>
                   ))}
-                  <button onClick={() => startNew("")} style={{ textAlign: "left", padding: "10px 12px", borderRadius: 10,
+                  <button onClick={() => startNew("")} style={{ textAlign: "left", padding: "10px 12px", borderRadius: "var(--r-chip)",
                     border: "1px dashed var(--border-strong)", background: "var(--surface)", color: "var(--text-2)",
                     fontFamily: "inherit", fontSize: 12.5, fontWeight: 600, cursor: "pointer" }}>อื่น ๆ — พิมพ์เองในใบ</button>
                 </div>
@@ -348,10 +348,10 @@ function InspectionListModal({ job, currentUser, onClose }) {
 
           <div style={{ padding: "12px 16px", paddingBottom: isMobile ? "calc(12px + env(safe-area-inset-bottom,0px))" : 12,
             borderTop: "1px solid var(--border)", background: "var(--surface)", display: "flex", gap: 10 }}>
-            <button onClick={onClose} style={{ padding: "12px 18px", borderRadius: 11, border: "1px solid var(--border-strong)",
+            <button onClick={onClose} style={{ padding: "12px 18px", borderRadius: "var(--r-chip)", border: "1px solid var(--border-strong)",
               background: "var(--surface)", color: "var(--text-2)", fontWeight: 700, fontFamily: "inherit", fontSize: 13.5, cursor: "pointer" }}>ปิด</button>
             <button onClick={() => setPicking((v) => !v)} style={{ flex: 1, display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 7,
-              padding: 12, borderRadius: 11, border: "none", background: "var(--primary)", color: "#fff", fontWeight: 700, fontFamily: "inherit", fontSize: 14, cursor: "pointer" }}>
+              padding: 12, borderRadius: "var(--r-chip)", border: "none", background: "var(--primary)", color: "#fff", fontWeight: 700, fontFamily: "inherit", fontSize: 14, cursor: "pointer" }}>
               <Icon name="plus" size={16} color="#fff" sw={2.4} /> {picking ? "ปิดรายการประเภท" : "สร้างใบตรวจใหม่"}
             </button>
           </div>
@@ -465,7 +465,7 @@ function InspectionFormModal({ job, rec, currentUser, onSave, onClose }) {
                 {job.code} · {job.name}
               </div>
             </div>
-            <button className="x-close" onClick={onClose} aria-label="ปิด" style={{ flexShrink: 0, width: 32, height: 32, borderRadius: 10, border: "1px solid var(--border-strong)",
+            <button className="x-close" onClick={onClose} aria-label="ปิด" style={{ flexShrink: 0, width: 32, height: 32, borderRadius: "var(--r-chip)", border: "1px solid var(--border-strong)",
               background: "var(--surface)", color: "var(--text-2)", cursor: "pointer", fontFamily: "inherit", fontSize: 16, lineHeight: 1 }}>×</button>
           </div>
 
@@ -479,7 +479,7 @@ function InspectionFormModal({ job, rec, currentUser, onSave, onClose }) {
                   const on = f.kind === k;
                   return (
                     <button key={k} type="button" onClick={() => set("kind", k)}
-                      style={{ padding: "7px 12px", borderRadius: 99, cursor: "pointer", fontFamily: "inherit", fontSize: 11.5, fontWeight: 700,
+                      style={{ padding: "7px 12px", borderRadius: "var(--r-pill)", cursor: "pointer", fontFamily: "inherit", fontSize: 11.5, fontWeight: 700,
                         border: "1px solid " + (on ? "var(--primary)" : "var(--border-strong)"),
                         background: on ? "var(--primary-soft)" : "var(--surface)", color: on ? "var(--primary-dark)" : "var(--text-2)" }}>{k}</button>
                   );
@@ -555,7 +555,7 @@ function InspectionFormModal({ job, rec, currentUser, onSave, onClose }) {
                 </button>
               </div>
 
-              <div style={{ border: "none", boxShadow: "var(--shadow-sm)", borderRadius: 11, background: "var(--surface)", overflow: "hidden" }}>
+              <div style={{ border: "none", boxShadow: "var(--shadow-sm)", borderRadius: "var(--r-chip)", background: "var(--surface)", overflow: "hidden" }}>
                 {!f.items.length ? (
                   <div style={{ padding: 20, textAlign: "center", fontSize: 12, color: "var(--text-3)" }}>
                     ยังไม่มีรายการตรวจ — กด “ใส่รายการมาตรฐานของประเภทนี้” แล้วแก้ทีหลังได้
@@ -575,7 +575,7 @@ function InspectionFormModal({ job, rec, currentUser, onSave, onClose }) {
                   const on = f.result === r.key;
                   return (
                     <button key={r.key} type="button" onClick={() => set("result", on ? "" : r.key)}
-                      style={{ display: "inline-flex", alignItems: "center", gap: 7, padding: "9px 14px", borderRadius: 10, cursor: "pointer",
+                      style={{ display: "inline-flex", alignItems: "center", gap: 7, padding: "9px 14px", borderRadius: "var(--r-chip)", cursor: "pointer",
                         fontFamily: "inherit", fontSize: 12.5, fontWeight: 700,
                         border: "1px solid " + (on ? r.color : "var(--border-strong)"),
                         background: on ? r.color + "16" : "var(--surface)", color: on ? r.color : "var(--text-2)" }}>
@@ -638,14 +638,14 @@ function InspectionFormModal({ job, rec, currentUser, onSave, onClose }) {
 
           <div style={{ padding: "12px 16px", paddingBottom: isMobile ? "calc(12px + env(safe-area-inset-bottom,0px))" : 12,
             borderTop: "1px solid var(--border)", background: "var(--surface)", display: "flex", gap: 10, flexWrap: "wrap" }}>
-            <button onClick={onClose} style={{ padding: "12px 18px", borderRadius: 11, border: "1px solid var(--border-strong)",
+            <button onClick={onClose} style={{ padding: "12px 18px", borderRadius: "var(--r-chip)", border: "1px solid var(--border-strong)",
               background: "var(--surface)", color: "var(--text-2)", fontWeight: 700, fontFamily: "inherit", fontSize: 13.5, cursor: "pointer" }}>ปิด</button>
-            <button onClick={() => setPaper(true)} style={{ display: "inline-flex", alignItems: "center", gap: 7, padding: "12px 16px", borderRadius: 11,
+            <button onClick={() => setPaper(true)} style={{ display: "inline-flex", alignItems: "center", gap: 7, padding: "12px 16px", borderRadius: "var(--r-chip)",
               border: "1px solid var(--border-strong)", background: "var(--surface)", color: "var(--primary-dark)",
               fontWeight: 700, fontFamily: "inherit", fontSize: 13.5, cursor: "pointer" }}>
               <Icon name="file" size={16} color="var(--primary-dark)" /> ดูเอกสาร · บันทึก PDF
             </button>
-            <button onClick={doSave} style={{ flex: 1, minWidth: 150, padding: 12, borderRadius: 11, border: "none",
+            <button onClick={doSave} style={{ flex: 1, minWidth: 150, padding: 12, borderRadius: "var(--r-chip)", border: "none",
               background: saved ? "var(--tint-green-tx)" : "var(--primary)", color: "#fff", fontWeight: 700, fontFamily: "inherit", fontSize: 14, cursor: "pointer" }}>
               {saved ? "บันทึกแล้ว" : "บันทึก"}
             </button>
@@ -678,7 +678,7 @@ function IrPhotoPicker({ store, currentUser }) {
 
   return (
     <div>
-      <label style={{ display: "inline-flex", alignItems: "center", gap: 7, padding: "9px 14px", borderRadius: 10,
+      <label style={{ display: "inline-flex", alignItems: "center", gap: 7, padding: "9px 14px", borderRadius: "var(--r-chip)",
         border: "1px dashed var(--border-strong)", background: "var(--surface)", cursor: "pointer",
         fontSize: 12.5, fontWeight: 700, color: "var(--text-2)", marginBottom: list.length ? 11 : 0 }}>
         <Icon name="camera" size={15} /> {busy ? "กำลังใส่รูป " + busy + " ใบ..." : "เพิ่มรูป (เลือกได้หลายใบ)"}
@@ -686,7 +686,7 @@ function IrPhotoPicker({ store, currentUser }) {
       </label>
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(144px, 1fr))", gap: 10 }}>
         {list.map((p) => (
-          <div key={p.id} style={{ border: "none", boxShadow: "var(--shadow-sm)", borderRadius: 11, overflow: "hidden", background: "var(--surface)" }}>
+          <div key={p.id} style={{ border: "none", boxShadow: "var(--shadow-sm)", borderRadius: "var(--r-chip)", overflow: "hidden", background: "var(--surface)" }}>
             <div style={{ position: "relative", background: "#0d1512" }}>
               <img src={p.dataUrl} alt={p.cap || "รูปการตรวจ"} style={{ width: "100%", height: 108, objectFit: "cover", display: "block" }} />
               <button type="button" onClick={() => store.remove(p.id)} title="ลบรูปนี้"

@@ -170,7 +170,7 @@ function PricePanel({
     style: {
       background: "var(--surface)",
       border: "1px solid var(--border)",
-      borderRadius: 16,
+      borderRadius: "var(--r-tile)",
       overflow: "hidden",
       boxShadow: "var(--shadow-sm)",
       display: "flex",
@@ -224,7 +224,7 @@ function PricePanel({
       style: {
         width: 6,
         height: 6,
-        borderRadius: 99,
+        borderRadius: "var(--r-pill)",
         background: PRICE_GROUP_COLOR[c.group] || "var(--text-3)",
         flexShrink: 0
       }
@@ -244,7 +244,7 @@ function PricePanel({
         color: "var(--tint-ok-tx)",
         background: "#1B9B7516",
         padding: "1px 6px",
-        borderRadius: 99,
+        borderRadius: "var(--r-pill)",
         flexShrink: 0
       }
     }, "\u0E04\u0E25\u0E31\u0E07") : React.createElement("span", {
@@ -255,7 +255,7 @@ function PricePanel({
         color: "var(--tint-amber-tx)",
         background: "var(--tint-amber-bg)",
         padding: "1px 6px",
-        borderRadius: 99,
+        borderRadius: "var(--r-pill)",
         flexShrink: 0
       }
     }, "\u0E43\u0E2B\u0E21\u0E48")), React.createElement("span", {
@@ -336,7 +336,7 @@ function PricePanel({
     style: {
       flex: "0 0 auto",
       padding: "11px 18px",
-      borderRadius: 11,
+      borderRadius: "var(--r-chip)",
       border: "1px solid var(--primary)",
       background: "var(--surface)",
       color: "var(--primary-dark)",
@@ -357,7 +357,7 @@ function PricePanel({
     style: {
       flex: "0 0 auto",
       padding: "11px 26px",
-      borderRadius: 11,
+      borderRadius: "var(--r-chip)",
       border: "none",
       background: dirtyCount ? "var(--primary)" : "var(--surface3)",
       color: dirtyCount ? "#fff" : "var(--text-3)",
@@ -575,7 +575,7 @@ function AddPriceModal({
     style: {
       flexShrink: 0,
       padding: "0 12px",
-      borderRadius: 10,
+      borderRadius: "var(--r-chip)",
       border: "1px solid var(--border-strong)",
       background: "var(--surface2)",
       color: "var(--primary-dark)",
@@ -608,7 +608,7 @@ function AddPriceModal({
     style: {
       flex: "0 0 auto",
       padding: "11px 16px",
-      borderRadius: 11,
+      borderRadius: "var(--r-chip)",
       border: "1px solid var(--border-strong)",
       background: "var(--surface)",
       color: "var(--text-2)",
@@ -622,7 +622,7 @@ function AddPriceModal({
     style: {
       flex: 1,
       padding: "11px 22px",
-      borderRadius: 11,
+      borderRadius: "var(--r-chip)",
       border: "none",
       background: "var(--primary)",
       color: "#fff",

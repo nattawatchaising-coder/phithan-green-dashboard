@@ -130,8 +130,8 @@ function StageBadge({ stageKey, size = "md" }) {
   const fs = size === "sm" ? 11 : 12.5;
   return (
     <span style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: pad,
-      borderRadius: 999, background: s.soft, color: s.fg, fontWeight: 600, fontSize: fs, whiteSpace: "nowrap" }}>
-      <span style={{ width: 6, height: 6, borderRadius: 99, background: s.color }} />
+      borderRadius: "var(--r-pill)", background: s.soft, color: s.fg, fontWeight: 600, fontSize: fs, whiteSpace: "nowrap" }}>
+      <span style={{ width: 6, height: 6, borderRadius: "var(--r-pill)", background: s.color }} />
       {s.th}
     </span>
   );
@@ -180,8 +180,8 @@ function MatChip({ status, label, compact }) {
     /* จุดสีแทนอีโมจิ — อีโมจิเรนเดอร์ไม่เหมือนกันทุกเครื่องและทำให้ความสูงบรรทัดกระตุก */
     <span title={label ? label + " · " + m.th : m.th}
       style={{ display: "inline-flex", alignItems: "center", gap: 5, padding: compact ? "2px 7px" : "3px 9px",
-        borderRadius: 99, background: m.soft, color: m.fg, fontWeight: 700, fontSize: compact ? 10.5 : 11, whiteSpace: "nowrap" }}>
-      <span style={{ width: 6, height: 6, borderRadius: 99, background: m.color, flexShrink: 0 }} />{!compact && (label || m.th)}
+        borderRadius: "var(--r-pill)", background: m.soft, color: m.fg, fontWeight: 700, fontSize: compact ? 10.5 : 11, whiteSpace: "nowrap" }}>
+      <span style={{ width: 6, height: 6, borderRadius: "var(--r-pill)", background: m.color, flexShrink: 0 }} />{!compact && (label || m.th)}
     </span>
   );
 }
@@ -193,7 +193,7 @@ function TechAvatar({ techId, size = 28, showName }) {
   const initial = t.nick.slice(0, 2);
   return (
     <span style={{ display: "inline-flex", alignItems: "center", gap: 8 }}>
-      <span style={{ width: size, height: size, borderRadius: 99, background: t.color,
+      <span style={{ width: size, height: size, borderRadius: "var(--r-pill)", background: t.color,
         color: "#fff", display: "grid", placeItems: "center", fontWeight: 700, fontSize: size * 0.4, flexShrink: 0 }}>{initial}</span>
       {showName && <span style={{ fontSize: 13, fontWeight: 500, color: "var(--text-1)" }}>{t.name}</span>}
     </span>
@@ -203,8 +203,8 @@ function TechAvatar({ techId, size = 28, showName }) {
 // ---------- Progress bar ----------
 function ProgressBar({ pct, color = "var(--primary)", height = 6 }) {
   return (
-    <div style={{ height, borderRadius: 99, background: "var(--surface3)", overflow: "hidden", width: "100%" }}>
-      <div style={{ width: pct + "%", height: "100%", borderRadius: 99, background: color, transition: "width .5s cubic-bezier(.2,.8,.2,1)" }} />
+    <div style={{ height, borderRadius: "var(--r-pill)", background: "var(--surface3)", overflow: "hidden", width: "100%" }}>
+      <div style={{ width: pct + "%", height: "100%", borderRadius: "var(--r-pill)", background: color, transition: "width .5s cubic-bezier(.2,.8,.2,1)" }} />
     </div>
   );
 }
@@ -221,7 +221,7 @@ function MatDots({ mat }) {
           style={{ width: 7, height: 7, borderRadius: 2, background: st.color }} />;
       })}
       {allReady && (
-        <span style={{ display: "inline-grid", placeItems: "center", width: 15, height: 15, borderRadius: 99, background: "var(--primary)", marginLeft: 2 }}>
+        <span style={{ display: "inline-grid", placeItems: "center", width: 15, height: 15, borderRadius: "var(--r-pill)", background: "var(--primary)", marginLeft: 2 }}>
           <Icon name="check" size={10} color="#fff" sw={3} />
         </span>
       )}
@@ -345,7 +345,7 @@ function Dropdown({ value, onChange, options, disabled, placeholder, style, adda
         <React.Fragment>
           <div onClick={() => setOpen(false)} style={{ position: "fixed", inset: 0, zIndex: 200, touchAction: "none" }} />
           <div ref={panelRef} style={{ position: "fixed", top: rect.top != null ? rect.top : undefined, bottom: rect.bottom != null ? rect.bottom : undefined, left: rect.left, width: rect.width, zIndex: 201,
-            background: "var(--bg)", borderRadius: 12, boxShadow: "var(--shadow-pop)",
+            background: "var(--bg)", borderRadius: "var(--r-chip)", boxShadow: "var(--shadow-pop)",
             maxHeight: rect.maxH || 320, display: "flex", flexDirection: "column", overflow: "hidden", padding: 5 }}>
             {hasSearch && (
               <div style={{ flexShrink: 0, padding: "1px 2px 7px" }}>
@@ -363,7 +363,7 @@ function Dropdown({ value, onChange, options, disabled, placeholder, style, adda
                   const on = cat === g;
                   return (
                     <button type="button" key={g || "__all"} onClick={(e) => { e.stopPropagation(); setCat(g); }}
-                      style={{ fontSize: 11.5, fontWeight: 700, padding: "4px 10px", borderRadius: 99, cursor: "pointer", fontFamily: "inherit",
+                      style={{ fontSize: 11.5, fontWeight: 700, padding: "4px 10px", borderRadius: "var(--r-pill)", cursor: "pointer", fontFamily: "inherit",
                         border: "1px solid " + (on ? "var(--primary)" : "var(--border-strong)"),
                         background: on ? "var(--primary)" : "var(--surface2)", color: on ? "#fff" : "var(--text-2)" }}>
                       {g || "ทั้งหมด"}
@@ -548,7 +548,7 @@ function SearchPick({ items, value, onChange, placeholder, emptyLabel, allowEmpt
         onFocus={() => { setQ(""); setHi(0); setOpen(true); }}
         onKeyDown={onKey}
         placeholder={placeholder || "พิมพ์เพื่อค้นหา"}
-        style={{ width: "100%", padding: "8px 10px", paddingRight: cur && !open ? 30 : 10, borderRadius: 10,
+        style={{ width: "100%", padding: "8px 10px", paddingRight: cur && !open ? 30 : 10, borderRadius: "var(--r-chip)",
           border: "1px solid var(--border-strong)", background: "var(--surface)", color: "var(--text-1)",
           fontFamily: "inherit", fontSize: 12.5, boxSizing: "border-box" }} />
       {cur && !open && (
@@ -561,7 +561,7 @@ function SearchPick({ items, value, onChange, placeholder, emptyLabel, allowEmpt
       {open && (
         <div style={{ position: "absolute", zIndex: 30, top: "calc(100% + 4px)", left: 0, right: 0, maxHeight: 280,
           overflowY: "auto", background: "var(--surface)", border: "1px solid var(--border-strong)",
-          borderRadius: 11, boxShadow: "0 12px 28px rgba(8,20,26,.18)" }}>
+          borderRadius: "var(--r-chip)", boxShadow: "0 12px 28px rgba(8,20,26,.18)" }}>
           {none && row(null, -1)}
           {list.map((it, i) => row(it, i))}
           {!list.length && (

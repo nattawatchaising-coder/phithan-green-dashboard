@@ -298,7 +298,7 @@ function LnBindScreen({
       background: "var(--surface)",
       border: "none",
       boxShadow: "var(--shadow-sm)",
-      borderRadius: 16,
+      borderRadius: "var(--r-tile)",
       padding: 18
     }
   }, React.createElement("label", {
@@ -360,7 +360,7 @@ function LnBindScreen({
       marginTop: 16,
       width: "100%",
       padding: "14px 16px",
-      borderRadius: 12,
+      borderRadius: "var(--r-chip)",
       border: "none",
       background: busy ? "var(--text-3)" : "var(--primary)",
       color: "#fff",
@@ -461,7 +461,7 @@ function LnWebShut() {
       background: "var(--surface)",
       border: "none",
       boxShadow: "var(--shadow-sm)",
-      borderRadius: 16
+      borderRadius: "var(--r-tile)"
     }
   }, React.createElement("div", {
     style: {
@@ -585,7 +585,7 @@ function LnWebForm({
       background: "var(--surface)",
       border: "none",
       boxShadow: "var(--shadow-sm)",
-      borderRadius: 16,
+      borderRadius: "var(--r-tile)",
       padding: 18
     }
   }, React.createElement("label", {
@@ -647,7 +647,7 @@ function LnWebForm({
       marginTop: 16,
       width: "100%",
       padding: "14px 16px",
-      borderRadius: 12,
+      borderRadius: "var(--r-chip)",
       border: "none",
       background: users ? "var(--primary)" : "var(--text-3)",
       color: "#fff",

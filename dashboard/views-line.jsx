@@ -127,7 +127,7 @@ function LnWebSwitch({ currentUser }) {
         <br />ช่างไม่ได้ใช้ทางนี้ (เขาเข้าจากเมนูในแชต) ปกติจึงควรปิดไว้ แล้วเปิดเฉพาะตอนจะใช้
       </div>
 
-      <div style={{ padding: "15px 17px", borderRadius: 15, background: "var(--surface)",
+      <div style={{ padding: "15px 17px", borderRadius: "var(--r-tile)", background: "var(--surface)",
         border: "1px solid " + (gate.open ? tone : "var(--border)") }}>
         <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
           <div style={{ flex: 1, minWidth: 0 }}>
@@ -145,10 +145,10 @@ function LnWebSwitch({ currentUser }) {
             </div>
           </div>
           <button onClick={() => (gate.open ? shut() : openIt(hours))} disabled={gate.loading}
-            style={{ width: 46, height: 26, borderRadius: 99, border: "none", cursor: gate.loading ? "default" : "pointer", padding: 3,
+            style={{ width: 46, height: 26, borderRadius: "var(--r-pill)", border: "none", cursor: gate.loading ? "default" : "pointer", padding: 3,
               background: gate.open ? tone : "var(--surface3)", display: "flex",
               justifyContent: gate.open ? "flex-end" : "flex-start", transition: "background .15s" }}>
-            <span style={{ width: 20, height: 20, borderRadius: 99, background: "#fff", display: "block" }} />
+            <span style={{ width: 20, height: 20, borderRadius: "var(--r-pill)", background: "#fff", display: "block" }} />
           </button>
         </div>
 
@@ -159,7 +159,7 @@ function LnWebSwitch({ currentUser }) {
           </span>
           {hrs.map((x) => (
             <button key={x.key} onClick={() => { setHours(x.key); if (gate.open) openIt(x.key); }}
-              style={{ padding: "5px 12px", borderRadius: 99, cursor: "pointer", fontFamily: "inherit", fontSize: 12, fontWeight: 700,
+              style={{ padding: "5px 12px", borderRadius: "var(--r-pill)", cursor: "pointer", fontFamily: "inherit", fontSize: 12, fontWeight: 700,
                 border: "1px solid " + (hours === x.key ? "var(--primary)" : "var(--border)"),
                 background: hours === x.key ? "var(--primary-soft)" : "var(--surface2)",
                 color: hours === x.key ? "var(--primary)" : "var(--text-2)" }}>{x.th}</button>
@@ -242,7 +242,7 @@ function LineAdminView({ users, currentUser }) {
       </div>
 
       {/* โควตา */}
-      <div style={{ padding: "16px 18px", borderRadius: 15, background: "var(--surface)", border: "none", boxShadow: "var(--shadow-sm)" }}>
+      <div style={{ padding: "16px 18px", borderRadius: "var(--r-tile)", background: "var(--surface)", border: "none", boxShadow: "var(--shadow-sm)" }}>
         <div style={{ display: "flex", alignItems: "baseline", gap: 9, flexWrap: "wrap" }}>
           <span style={{ fontFamily: "var(--mono)", fontSize: 32, fontWeight: 800, color: tone }}>{stat.sent}</span>
           <span style={{ fontSize: 14, fontWeight: 700, color: "var(--text-3)" }}>/ {quota} ข้อความในเดือนนี้</span>
@@ -254,7 +254,7 @@ function LineAdminView({ users, currentUser }) {
           </label>
         </div>
 
-        <div style={{ marginTop: 11, height: 9, borderRadius: 99, background: "var(--surface3)", overflow: "hidden" }}>
+        <div style={{ marginTop: 11, height: 9, borderRadius: "var(--r-pill)", background: "var(--surface3)", overflow: "hidden" }}>
           <div style={{ width: pct + "%", height: "100%", background: tone, transition: "width .25s" }} />
         </div>
 
@@ -294,7 +294,7 @@ function LineAdminView({ users, currentUser }) {
           <br />มีผลทันที ไม่ต้องอัปเว็บใหม่
         </div>
 
-        <div style={{ border: "none", boxShadow: "var(--shadow-sm)", borderRadius: 13, overflow: "hidden", background: "var(--surface)" }}>
+        <div style={{ border: "none", boxShadow: "var(--shadow-sm)", borderRadius: "var(--r-tile)", overflow: "hidden", background: "var(--surface)" }}>
           {LN_KIND.map((k) => {
             const on = isOn(k.key);
             const used = stat.byKind[k.key] || 0;
@@ -316,10 +316,10 @@ function LineAdminView({ users, currentUser }) {
                     base[k.key] = on ? 0 : 1;
                     save(Object.assign({}, cfg || {}, { kinds: base }));
                   }}
-                  style={{ width: 46, height: 26, borderRadius: 99, border: "none", cursor: "pointer", padding: 3,
+                  style={{ width: 46, height: 26, borderRadius: "var(--r-pill)", border: "none", cursor: "pointer", padding: 3,
                     background: on ? "var(--primary)" : "var(--surface3)", display: "flex",
                     justifyContent: on ? "flex-end" : "flex-start", transition: "background .15s" }}>
-                  <span style={{ width: 20, height: 20, borderRadius: 99, background: "#fff", display: "block" }} />
+                  <span style={{ width: 20, height: 20, borderRadius: "var(--r-pill)", background: "#fff", display: "block" }} />
                 </button>
               </div>
             );
@@ -337,7 +337,7 @@ function LineAdminView({ users, currentUser }) {
           </div>
           <div style={{ display: "flex", gap: 7, flexWrap: "wrap" }}>
             {unbound.map((u) => (
-              <span key={u.id} style={{ padding: "5px 11px", borderRadius: 99, background: "var(--surface2)",
+              <span key={u.id} style={{ padding: "5px 11px", borderRadius: "var(--r-pill)", background: "var(--surface2)",
                 border: "1px solid var(--border)", fontSize: 12, color: "var(--text-2)", fontWeight: 600 }}>{u.name}</span>
             ))}
           </div>

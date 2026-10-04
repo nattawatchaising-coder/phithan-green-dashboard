@@ -25,7 +25,7 @@ function OmPhotos({
       alignItems: "center",
       gap: 7,
       padding: "9px 14px",
-      borderRadius: 10,
+      borderRadius: "var(--r-chip)",
       border: "1px dashed var(--border-strong)",
       background: "var(--surface)",
       cursor: "pointer",
@@ -61,7 +61,7 @@ function OmPhotos({
     style: {
       border: "none",
       boxShadow: "var(--shadow-sm)",
-      borderRadius: 11,
+      borderRadius: "var(--r-chip)",
       overflow: "hidden",
       background: "var(--surface)"
     }
@@ -141,7 +141,7 @@ function OmTicketReport({
       padding: "9px 11px",
       border: "none",
       boxShadow: "var(--shadow-sm)",
-      borderRadius: 11,
+      borderRadius: "var(--r-chip)",
       background: "var(--surface)"
     }
   }, React.createElement(Icon, {
@@ -265,7 +265,7 @@ function OmTicketCard({
       border: "none",
       boxShadow: "var(--shadow-sm)",
       borderLeft: "3px solid " + sev.color,
-      borderRadius: 12,
+      borderRadius: "var(--r-chip)",
       background: "var(--surface)",
       padding: "11px 12px"
     }
@@ -369,7 +369,7 @@ function OmJobFacts({
       border: "none",
       boxShadow: "var(--shadow-sm)",
       background: "var(--surface)",
-      borderRadius: 13,
+      borderRadius: "var(--r-tile)",
       padding: isMobile ? 13 : 15,
       marginBottom: 16
     }
@@ -614,7 +614,7 @@ function OmTicketModal({
     style: {
       width: 36,
       height: 36,
-      borderRadius: 10,
+      borderRadius: "var(--r-chip)",
       background: st.color + "1c",
       display: "grid",
       placeItems: "center",
@@ -682,7 +682,7 @@ function OmTicketModal({
       alignItems: "center",
       gap: 6,
       padding: "8px 14px",
-      borderRadius: 10,
+      borderRadius: "var(--r-chip)",
       border: "none",
       background: n.color,
       color: "#fff",
@@ -763,7 +763,7 @@ function OmTicketModal({
       marginBottom: 14,
       border: "1px solid var(--tint-red-bd)",
       background: "var(--tint-red-bg)",
-      borderRadius: 12
+      borderRadius: "var(--r-chip)"
     }
   }, React.createElement(Icon, {
     name: "alert",
@@ -783,7 +783,7 @@ function OmTicketModal({
       marginBottom: 14,
       border: "1px solid #10B98140",
       background: "#10B98114",
-      borderRadius: 12
+      borderRadius: "var(--r-chip)"
     }
   }, React.createElement(Icon, {
     name: "lock",
@@ -893,7 +893,7 @@ function OmTicketModal({
       border: "none",
       boxShadow: "var(--shadow-sm)",
       background: "var(--surface)",
-      borderRadius: 11
+      borderRadius: "var(--r-chip)"
     }
   }, React.createElement(Icon, {
     name: "shield",
@@ -1085,7 +1085,7 @@ function OmTicketModal({
     onClick: () => setTab(k),
     style: {
       padding: "7px 14px",
-      borderRadius: 99,
+      borderRadius: "var(--r-pill)",
       cursor: "pointer",
       fontFamily: "inherit",
       fontSize: 12.5,
@@ -1163,7 +1163,7 @@ function OmTicketModal({
       marginTop: 7,
       border: "none",
       boxShadow: "var(--shadow-sm)",
-      borderRadius: 10,
+      borderRadius: "var(--r-chip)",
       background: "var(--surface)",
       cursor: "pointer",
       fontFamily: "inherit",
@@ -1212,7 +1212,7 @@ function OmTicketModal({
       style: {
         width: 8,
         height: 8,
-        borderRadius: 99,
+        borderRadius: "var(--r-pill)",
         background: to.color,
         marginTop: 5,
         flexShrink: 0
@@ -1251,7 +1251,7 @@ function OmTicketModal({
       flexWrap: "wrap",
       border: "1px solid var(--tint-red-bd)",
       background: "var(--tint-red-bg)",
-      borderRadius: 12
+      borderRadius: "var(--r-chip)"
     }
   }, React.createElement("span", {
     style: {
@@ -1392,7 +1392,7 @@ function OmTicketBoard({
       style: {
         width: 8,
         height: 8,
-        borderRadius: 99,
+        borderRadius: "var(--r-pill)",
         background: st.color
       }
     }), React.createElement("span", {
@@ -1414,7 +1414,7 @@ function OmTicketBoard({
     })), !list.length && React.createElement("div", {
       style: {
         border: "1px dashed var(--border)",
-        borderRadius: 11,
+        borderRadius: "var(--r-chip)",
         padding: "14px 8px",
         textAlign: "center",
         fontSize: 11.5,
@@ -1457,7 +1457,7 @@ function OmTicketBoard({
       border: "none",
       boxShadow: "var(--shadow-sm)",
       background: "var(--surface2)",
-      borderRadius: 12,
+      borderRadius: "var(--r-chip)",
       padding: "10px 12px"
     }
   }, React.createElement("span", {
@@ -1481,7 +1481,7 @@ function OmTicketBoard({
       alignItems: "center",
       gap: 6,
       padding: "8px 14px",
-      borderRadius: 10,
+      borderRadius: "var(--r-chip)",
       border: "none",
       background: newFor ? "var(--primary)" : "var(--surface3)",
       color: newFor ? "#fff" : "var(--text-3)",
@@ -1517,7 +1517,7 @@ function OmTicketBoard({
       alignItems: "center",
       gap: 7,
       padding: "8px 13px",
-      borderRadius: 10,
+      borderRadius: "var(--r-chip)",
       border: "1px solid var(--border-strong)",
       background: "var(--surface)",
       cursor: "pointer",

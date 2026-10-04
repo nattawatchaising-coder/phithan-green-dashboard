@@ -125,7 +125,7 @@ function StageBadge({
       alignItems: "center",
       gap: 6,
       padding: pad,
-      borderRadius: 999,
+      borderRadius: "var(--r-pill)",
       background: s.soft,
       color: s.fg,
       fontWeight: 600,
@@ -136,7 +136,7 @@ function StageBadge({
     style: {
       width: 6,
       height: 6,
-      borderRadius: 99,
+      borderRadius: "var(--r-pill)",
       background: s.color
     }
   }), s.th);
@@ -191,7 +191,7 @@ function MatChip({
       alignItems: "center",
       gap: 5,
       padding: compact ? "2px 7px" : "3px 9px",
-      borderRadius: 99,
+      borderRadius: "var(--r-pill)",
       background: m.soft,
       color: m.fg,
       fontWeight: 700,
@@ -202,7 +202,7 @@ function MatChip({
     style: {
       width: 6,
       height: 6,
-      borderRadius: 99,
+      borderRadius: "var(--r-pill)",
       background: m.color,
       flexShrink: 0
     }
@@ -226,7 +226,7 @@ function TechAvatar({
     style: {
       width: size,
       height: size,
-      borderRadius: 99,
+      borderRadius: "var(--r-pill)",
       background: t.color,
       color: "#fff",
       display: "grid",
@@ -251,7 +251,7 @@ function ProgressBar({
   return React.createElement("div", {
     style: {
       height,
-      borderRadius: 99,
+      borderRadius: "var(--r-pill)",
       background: "var(--surface3)",
       overflow: "hidden",
       width: "100%"
@@ -260,7 +260,7 @@ function ProgressBar({
     style: {
       width: pct + "%",
       height: "100%",
-      borderRadius: 99,
+      borderRadius: "var(--r-pill)",
       background: color,
       transition: "width .5s cubic-bezier(.2,.8,.2,1)"
     }
@@ -296,7 +296,7 @@ function MatDots({
       placeItems: "center",
       width: 15,
       height: 15,
-      borderRadius: 99,
+      borderRadius: "var(--r-pill)",
       background: "var(--primary)",
       marginLeft: 2
     }
@@ -500,7 +500,7 @@ function Dropdown({
       width: rect.width,
       zIndex: 201,
       background: "var(--bg)",
-      borderRadius: 12,
+      borderRadius: "var(--r-chip)",
       boxShadow: "var(--shadow-pop)",
       maxHeight: rect.maxH || 320,
       display: "flex",
@@ -559,7 +559,7 @@ function Dropdown({
         fontSize: 11.5,
         fontWeight: 700,
         padding: "4px 10px",
-        borderRadius: 99,
+        borderRadius: "var(--r-pill)",
         cursor: "pointer",
         fontFamily: "inherit",
         border: "1px solid " + (on ? "var(--primary)" : "var(--border-strong)"),
@@ -909,7 +909,7 @@ function SearchPick({
       width: "100%",
       padding: "8px 10px",
       paddingRight: cur && !open ? 30 : 10,
-      borderRadius: 10,
+      borderRadius: "var(--r-chip)",
       border: "1px solid var(--border-strong)",
       background: "var(--surface)",
       color: "var(--text-1)",
@@ -950,7 +950,7 @@ function SearchPick({
       overflowY: "auto",
       background: "var(--surface)",
       border: "1px solid var(--border-strong)",
-      borderRadius: 11,
+      borderRadius: "var(--r-chip)",
       boxShadow: "0 12px 28px rgba(8,20,26,.18)"
     }
   }, none && row(null, -1), list.map((it, i) => row(it, i)), !list.length && React.createElement("div", {

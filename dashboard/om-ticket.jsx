@@ -30,7 +30,7 @@ function OmPhotos({ ticketId, slot, currentUser, disabled }) {
   return (
     <div>
       {!disabled && (
-        <label style={{ display: "inline-flex", alignItems: "center", gap: 7, padding: "9px 14px", borderRadius: 10,
+        <label style={{ display: "inline-flex", alignItems: "center", gap: 7, padding: "9px 14px", borderRadius: "var(--r-chip)",
           border: "1px dashed var(--border-strong)", background: "var(--surface)", cursor: "pointer",
           fontSize: 12.5, fontWeight: 700, color: "var(--text-2)", marginBottom: list.length ? 11 : 0 }}>
           <Icon name="camera" size={15} /> {busy ? "กำลังใส่รูป " + busy + " ใบ..." : "เพิ่มรูป (เลือกได้หลายใบ)"}
@@ -40,7 +40,7 @@ function OmPhotos({ ticketId, slot, currentUser, disabled }) {
       {!list.length && disabled && <div style={{ fontSize: 12, color: "var(--text-3)" }}>ไม่มีรูป</div>}
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(144px, 1fr))", gap: 10 }}>
         {list.map((p) => (
-          <div key={p.id} style={{ border: "none", boxShadow: "var(--shadow-sm)", borderRadius: 11, overflow: "hidden", background: "var(--surface)" }}>
+          <div key={p.id} style={{ border: "none", boxShadow: "var(--shadow-sm)", borderRadius: "var(--r-chip)", overflow: "hidden", background: "var(--surface)" }}>
             <div style={{ position: "relative", background: "#0d1512" }}>
               <img src={p.dataUrl} alt={p.cap || "รูปหน้างาน"} style={{ width: "100%", height: 108, objectFit: "cover", display: "block" }} />
               {!disabled && (
@@ -85,7 +85,7 @@ function OmTicketReport({ ticket, site, role, currentUser, locked, onPatch, pape
   return (
     <React.Fragment>
       <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap", marginBottom: 12,
-        padding: "9px 11px", border: "none", boxShadow: "var(--shadow-sm)", borderRadius: 11, background: "var(--surface)" }}>
+        padding: "9px 11px", border: "none", boxShadow: "var(--shadow-sm)", borderRadius: "var(--r-chip)", background: "var(--surface)" }}>
         <Icon name="file" size={14} color="#1B9B75" />
         <span style={{ flex: 1, minWidth: 140, fontSize: 12, color: "var(--text-3)", lineHeight: 1.5 }}>
           เลขเอกสารคือเลขใบนี้ <b style={{ color: "var(--text-1)" }}>{t.no}</b>
@@ -148,7 +148,7 @@ function OmTicketCard({ t, onOpen }) {
   return (
     <button onClick={() => onOpen(t)}
       style={{ width: "100%", textAlign: "left", fontFamily: "inherit", cursor: "pointer", marginBottom: 9,
-        border: "none", boxShadow: "var(--shadow-sm)", borderLeft: "3px solid " + sev.color, borderRadius: 12,
+        border: "none", boxShadow: "var(--shadow-sm)", borderLeft: "3px solid " + sev.color, borderRadius: "var(--r-chip)",
         background: "var(--surface)", padding: "11px 12px" }}>
       <div style={{ display: "flex", alignItems: "center", gap: 7, marginBottom: 4 }}>
         <span style={{ fontFamily: "var(--mono)", fontSize: 11, color: "var(--text-3)" }}>{t.no}</span>
@@ -204,7 +204,7 @@ function OmJobFacts({ job, site }) {
 
   return (
     <React.Fragment>
-    <div style={{ border: "none", boxShadow: "var(--shadow-sm)", background: "var(--surface)", borderRadius: 13,
+    <div style={{ border: "none", boxShadow: "var(--shadow-sm)", background: "var(--surface)", borderRadius: "var(--r-tile)",
       padding: isMobile ? 13 : 15, marginBottom: 16 }}>
       <div style={{ display: "flex", alignItems: "center", gap: 7, marginBottom: 12, flexWrap: "wrap" }}>
         <Icon name="sun" size={14} color="var(--primary)" />
@@ -318,7 +318,7 @@ function OmTicketModal({ ticket, site, job, users, role, currentUser, visits, on
         <div style={{ position: "sticky", top: 0, zIndex: 2, background: "var(--bg)", borderBottom: "1px solid var(--border)",
           padding: isMobile ? "14px 13px" : "16px 20px" }}>
           <div style={{ display: "flex", alignItems: "flex-start", gap: 11 }}>
-            <span style={{ width: 36, height: 36, borderRadius: 10, background: st.color + "1c", display: "grid", placeItems: "center", flexShrink: 0 }}>
+            <span style={{ width: 36, height: 36, borderRadius: "var(--r-chip)", background: st.color + "1c", display: "grid", placeItems: "center", flexShrink: 0 }}>
               <Icon name="wrench" size={18} color={st.color} />
             </span>
             <div style={{ flex: 1, minWidth: 0 }}>
@@ -343,7 +343,7 @@ function OmTicketModal({ ticket, site, job, users, role, currentUser, visits, on
           <div style={{ display: "flex", gap: 7, marginTop: 11, flexWrap: "wrap", alignItems: "center" }}>
             {canWrite && nexts.map((n) => (
                 <button key={n.key} onClick={() => { onMove(t, n.key, moveNote); setMoveNote(""); }}
-                  style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "8px 14px", borderRadius: 10, border: "none",
+                  style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "8px 14px", borderRadius: "var(--r-chip)", border: "none",
                     background: n.color, color: "#fff", cursor: "pointer", fontFamily: "inherit", fontSize: 12.5, fontWeight: 700 }}>
                   <Icon name="arrowRight" size={14} color="#fff" /> {n.th}
                 </button>
@@ -373,7 +373,7 @@ function OmTicketModal({ ticket, site, job, users, role, currentUser, visits, on
         <div style={{ padding: isMobile ? "14px 13px 24px" : "18px 20px 26px" }}>
           {over && (
             <div style={{ display: "flex", alignItems: "center", gap: 9, padding: "11px 13px", marginBottom: 14,
-              border: "1px solid var(--tint-red-bd)", background: "var(--tint-red-bg)", borderRadius: 12 }}>
+              border: "1px solid var(--tint-red-bd)", background: "var(--tint-red-bg)", borderRadius: "var(--r-chip)" }}>
               <Icon name="alert" size={15} color="#EF4444" />
               <span style={{ fontSize: 12.5, color: "var(--text-1)" }}>
                 แจ้งมาแล้ว <b>{over.age} วัน</b> · ระดับ{(window.OM_SEVERITY_BY[t.severity] || {}).th} ควรปิดภายใน {over.limit} วัน
@@ -382,7 +382,7 @@ function OmTicketModal({ ticket, site, job, users, role, currentUser, visits, on
           )}
           {window.omTicketKey(t.status) === "closed" && (
             <div style={{ display: "flex", alignItems: "center", gap: 9, padding: "11px 13px", marginBottom: 14,
-              border: "1px solid #10B98140", background: "#10B98114", borderRadius: 12 }}>
+              border: "1px solid #10B98140", background: "#10B98114", borderRadius: "var(--r-chip)" }}>
               <Icon name="lock" size={15} color="#10B981" />
               <span style={{ fontSize: 12.5, color: "var(--text-1)" }}>
                 ปิดงานแล้วโดย <b>{t.closedByName || "-"}</b>
@@ -434,7 +434,7 @@ function OmTicketModal({ ticket, site, job, users, role, currentUser, visits, on
             hint={site ? "" : "ไม่พบทะเบียนไซต์ ตรวจประกันอัตโนมัติไม่ได้"}>
             {guess && guess.note && (
               <div style={{ display: "flex", alignItems: "center", gap: 9, padding: "10px 12px", marginBottom: 12,
-                border: "none", boxShadow: "var(--shadow-sm)", background: "var(--surface)", borderRadius: 11 }}>
+                border: "none", boxShadow: "var(--shadow-sm)", background: "var(--surface)", borderRadius: "var(--r-chip)" }}>
                 <Icon name="shield" size={15} color={window.omCoverTH(guess.cover).color} />
                 <span style={{ flex: 1, fontSize: 12.5, color: "var(--text-1)" }}>
                   ระบบตรวจให้: <b style={{ color: window.omCoverTH(guess.cover).color }}>{window.omCoverTH(guess.cover).th}</b>
@@ -521,7 +521,7 @@ function OmTicketModal({ ticket, site, job, users, role, currentUser, visits, on
             <div style={{ display: "flex", gap: 7, marginBottom: 12 }}>
               {[["before", "ก่อนซ่อม"], ["after", "หลังซ่อม"]].map(([k, th]) => (
                 <button key={k} type="button" onClick={() => setTab(k)}
-                  style={{ padding: "7px 14px", borderRadius: 99, cursor: "pointer", fontFamily: "inherit",
+                  style={{ padding: "7px 14px", borderRadius: "var(--r-pill)", cursor: "pointer", fontFamily: "inherit",
                     fontSize: 12.5, fontWeight: 700,
                     border: "1px solid " + (tab === k ? "var(--primary)" : "var(--border-strong)"),
                     background: tab === k ? "var(--primary-soft)" : "var(--surface)",
@@ -557,7 +557,7 @@ function OmTicketModal({ ticket, site, job, users, role, currentUser, visits, on
                 {vSorted.map((v) => (
                   <button key={v.id} type="button" onClick={() => onOpenVisit && onOpenVisit(v.id)}
                     style={{ width: "100%", display: "flex", alignItems: "center", gap: 9, padding: "9px 10px", marginTop: 7,
-                      border: "none", boxShadow: "var(--shadow-sm)", borderRadius: 10, background: "var(--surface)",
+                      border: "none", boxShadow: "var(--shadow-sm)", borderRadius: "var(--r-chip)", background: "var(--surface)",
                       cursor: "pointer", fontFamily: "inherit", textAlign: "left" }}>
                     <Icon name="file" size={14} color="var(--text-3)" />
                     <span style={{ flex: 1, minWidth: 0, fontSize: 12.5, fontWeight: 700, color: "var(--text-1)" }}>
@@ -580,7 +580,7 @@ function OmTicketModal({ ticket, site, job, users, role, currentUser, visits, on
               return (
                 <div key={i} style={{ display: "flex", alignItems: "flex-start", gap: 9, padding: "7px 0",
                   borderBottom: i < (t.hist || []).length - 1 ? "1px solid var(--border)" : "none" }}>
-                  <span style={{ width: 8, height: 8, borderRadius: 99, background: to.color, marginTop: 5, flexShrink: 0 }} />
+                  <span style={{ width: 8, height: 8, borderRadius: "var(--r-pill)", background: to.color, marginTop: 5, flexShrink: 0 }} />
                   <span style={{ flex: 1, minWidth: 0 }}>
                     <span style={{ display: "block", fontSize: 12.5, fontWeight: 700, color: "var(--text-1)" }}>
                       {to.th}{h.note ? <span style={{ fontWeight: 400, color: "var(--text-3)" }}> · {h.note}</span> : null}
@@ -598,7 +598,7 @@ function OmTicketModal({ ticket, site, job, users, role, currentUser, visits, on
           {canDelete && (
             delAsk ? (
               <div style={{ display: "flex", alignItems: "center", gap: 9, padding: "12px 13px", flexWrap: "wrap",
-                border: "1px solid var(--tint-red-bd)", background: "var(--tint-red-bg)", borderRadius: 12 }}>
+                border: "1px solid var(--tint-red-bd)", background: "var(--tint-red-bg)", borderRadius: "var(--r-chip)" }}>
                 <span style={{ flex: 1, minWidth: 160, fontSize: 12.5, fontWeight: 700, color: "var(--tint-red-tx2)" }}>
                   ลบใบ {t.no} ทั้งใบ? รูปและประวัติหายถาวร เรียกคืนไม่ได้
                 </span>
@@ -674,13 +674,13 @@ function OmTicketBoard({ sites, jobById, users, ticketStore, visitStore, role, c
     return (
       <div key={key} style={{ minWidth: isMobile ? 0 : 240, flex: 1, display: "flex", flexDirection: "column" }}>
         <div style={{ display: "flex", alignItems: "center", gap: 7, marginBottom: 9 }}>
-          <span style={{ width: 8, height: 8, borderRadius: 99, background: st.color }} />
+          <span style={{ width: 8, height: 8, borderRadius: "var(--r-pill)", background: st.color }} />
           <span style={{ fontSize: 12.5, fontWeight: 800, color: "var(--text-1)" }}>{st.th}</span>
           <span style={{ fontFamily: "var(--mono)", fontSize: 11.5, color: "var(--text-3)" }}>{list.length}</span>
         </div>
         {list.map((t) => <OmTicketCard key={t.id} t={t} onOpen={(x) => setOpenId(x.id)} />)}
         {!list.length && (
-          <div style={{ border: "1px dashed var(--border)", borderRadius: 11, padding: "14px 8px",
+          <div style={{ border: "1px dashed var(--border)", borderRadius: "var(--r-chip)", padding: "14px 8px",
             textAlign: "center", fontSize: 11.5, color: "var(--text-3)" }}>ไม่มี</div>
         )}
       </div>
@@ -700,14 +700,14 @@ function OmTicketBoard({ sites, jobById, users, ticketStore, visitStore, role, c
       {/* เปิดเรื่องใหม่ต้องเลือกไซต์ก่อนเสมอ — ใบแจ้งซ่อมที่ไม่ผูกไซต์ตรวจประกันไม่ได้ */}
       {canWrite && (
         <div style={{ display: "flex", alignItems: "center", gap: 9, flexWrap: "wrap",
-          border: "none", boxShadow: "var(--shadow-sm)", background: "var(--surface2)", borderRadius: 12, padding: "10px 12px" }}>
+          border: "none", boxShadow: "var(--shadow-sm)", background: "var(--surface2)", borderRadius: "var(--r-chip)", padding: "10px 12px" }}>
           <span style={{ fontSize: 12.5, fontWeight: 700, color: "var(--text-2)" }}>เปิดเรื่องใหม่ให้ไซต์</span>
           <window.SearchPick value={newFor} onChange={setNewFor} minWidth={180}
             items={(sites || []).slice().sort((a, b) => String(a.name || "").localeCompare(String(b.name || ""), "th"))}
             emptyLabel="— ยังไม่เลือกไซต์ —"
             placeholder="พิมพ์ชื่อลูกค้าหรือรหัสไซต์เพื่อค้นหา" />
           <button onClick={openNew} disabled={!newFor}
-            style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "8px 14px", borderRadius: 10, border: "none",
+            style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "8px 14px", borderRadius: "var(--r-chip)", border: "none",
               background: newFor ? "var(--primary)" : "var(--surface3)", color: newFor ? "#fff" : "var(--text-3)",
               cursor: newFor ? "pointer" : "default", fontFamily: "inherit", fontSize: 12.5, fontWeight: 700 }}>
             <Icon name="plus" size={14} color={newFor ? "#fff" : "var(--text-3)"} /> เปิดใบแจ้งซ่อม
@@ -725,7 +725,7 @@ function OmTicketBoard({ sites, jobById, users, ticketStore, visitStore, role, c
       {!!closed.length && (
         <div>
           <button onClick={() => setShowDone((v) => !v)}
-            style={{ display: "inline-flex", alignItems: "center", gap: 7, padding: "8px 13px", borderRadius: 10,
+            style={{ display: "inline-flex", alignItems: "center", gap: 7, padding: "8px 13px", borderRadius: "var(--r-chip)",
               border: "1px solid var(--border-strong)", background: "var(--surface)", cursor: "pointer",
               fontFamily: "inherit", fontSize: 12.5, fontWeight: 700, color: "var(--text-2)" }}>
             <Icon name="chevronDown" size={14} style={{ transform: showDone ? "none" : "rotate(-90deg)" }} />

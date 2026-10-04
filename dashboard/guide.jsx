@@ -384,7 +384,7 @@ function GdLesson({ n, lesson, color, onGo }) {
   const [open, setOpen] = React.useState(true);
   const L = lesson;
   return (
-    <div style={{ background: "var(--surface)", border: "none", boxShadow: "var(--shadow-sm)", borderRadius: 14, overflow: "hidden" }}>
+    <div style={{ background: "var(--surface)", border: "none", boxShadow: "var(--shadow-sm)", borderRadius: "var(--r-tile)", overflow: "hidden" }}>
       <button onClick={() => setOpen((v) => !v)}
         style={{ display: "flex", alignItems: "center", gap: 11, width: "100%", textAlign: "left", padding: "13px 15px",
           background: "none", border: "none", cursor: "pointer", fontFamily: "inherit" }}>
@@ -405,7 +405,7 @@ function GdLesson({ n, lesson, color, onGo }) {
           <ol style={{ margin: 0, padding: 0, listStyle: "none", display: "flex", flexDirection: "column", gap: 8 }}>
             {L.steps.map((s, i) => (
               <li key={i} style={{ display: "flex", gap: 9, fontSize: 13.5, lineHeight: 1.6, color: "var(--text-1)" }}>
-                <span style={{ flexShrink: 0, width: 19, height: 19, marginTop: 2, borderRadius: 99, display: "grid", placeItems: "center",
+                <span style={{ flexShrink: 0, width: 19, height: 19, marginTop: 2, borderRadius: "var(--r-pill)", display: "grid", placeItems: "center",
                   background: "var(--surface2)", color: "var(--text-2)", fontSize: 10.5, fontWeight: 800, fontFamily: "var(--mono)" }}>{i + 1}</span>
                 <span>{s}</span>
               </li>
@@ -414,7 +414,7 @@ function GdLesson({ n, lesson, color, onGo }) {
 
           {/* กฎ = ของที่ถ้าข้ามแล้วตัวเลขหรือเอกสารพัง ไม่ใช่คำแนะนำให้ทำถ้าว่าง */}
           {(L.rules || []).length > 0 && (
-            <div style={{ marginTop: 12, padding: "10px 12px", borderRadius: 11,
+            <div style={{ marginTop: 12, padding: "10px 12px", borderRadius: "var(--r-chip)",
               background: "var(--tint-amber-bg)", border: "1px solid var(--tint-amber-bd, var(--border))" }}>
               <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 6 }}>
                 <Icon name="alert" size={13} color="var(--tint-amber-tx)" />
@@ -440,7 +440,7 @@ function GdLesson({ n, lesson, color, onGo }) {
 
           {L.go && onGo && (
             <button onClick={() => onGo(L.go.view)}
-              style={{ marginTop: 12, display: "inline-flex", alignItems: "center", gap: 6, padding: "8px 13px", borderRadius: 10,
+              style={{ marginTop: 12, display: "inline-flex", alignItems: "center", gap: 6, padding: "8px 13px", borderRadius: "var(--r-chip)",
                 border: "1px solid var(--border-strong)", background: "var(--surface)", cursor: "pointer",
                 fontFamily: "inherit", fontSize: 12.5, fontWeight: 700, color: "var(--text-2)" }}>
               {L.go.th} <Icon name="arrowRight" size={14} color="var(--text-3)" />
@@ -476,7 +476,7 @@ function GdHandout({ track, onClose }) {
         padding: "11px 14px", background: "var(--surface)", borderBottom: "1px solid var(--border)",
         marginBottom: isMobile ? 0 : 16, borderRadius: isMobile ? 0 : 12, maxWidth: 900, marginLeft: "auto", marginRight: "auto",
         boxShadow: "var(--shadow-sm)" }}>
-        <button className="x-close" onClick={onClose} style={{ width: 36, height: 36, borderRadius: 10, border: "1px solid var(--border-strong)",
+        <button className="x-close" onClick={onClose} style={{ width: 36, height: 36, borderRadius: "var(--r-chip)", border: "1px solid var(--border-strong)",
           background: "var(--surface)", cursor: "pointer", display: "grid", placeItems: "center", color: "var(--text-2)", flexShrink: 0 }}>
           <Icon name="x" size={16} />
         </button>
@@ -484,7 +484,7 @@ function GdHandout({ track, onClose }) {
           <div style={{ fontSize: 13.5, fontWeight: 800, color: "var(--text-1)" }}>ใบแจก · {track.th}</div>
           <div style={{ fontSize: 11, color: "var(--text-3)" }}>กดปุ่มแล้วเลือกเครื่องพิมพ์ หรือ “บันทึกเป็น PDF”</div>
         </div>
-        <button onClick={doPrint} style={{ display: "inline-flex", alignItems: "center", gap: 7, padding: "11px 16px", borderRadius: 11,
+        <button onClick={doPrint} style={{ display: "inline-flex", alignItems: "center", gap: 7, padding: "11px 16px", borderRadius: "var(--r-chip)",
           border: "none", background: "var(--primary)", color: "#fff", fontFamily: "inherit", fontSize: 13.5, fontWeight: 700,
           cursor: "pointer", flexShrink: 0 }}>
           <Icon name="file" size={16} color="#fff" /> พิมพ์ใบแจก
@@ -551,7 +551,7 @@ function GuideView({ role, currentUser, onNav }) {
     <div style={{ display: "flex", flexDirection: "column", gap: 14, minHeight: 0 }}>
 
       {/* วิธีใช้คู่มือนี้สอน — เขียนถึง "คนสอน" ไม่ใช่คนเรียน */}
-      <div style={{ background: "var(--surface)", border: "none", boxShadow: "var(--shadow-sm)", borderRadius: 14, padding: "14px 16px" }}>
+      <div style={{ background: "var(--surface)", border: "none", boxShadow: "var(--shadow-sm)", borderRadius: "var(--r-tile)", padding: "14px 16px" }}>
         <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
           <Icon name="sparkle" size={16} color="var(--primary-dark)" />
           <b style={{ fontSize: 14.5, color: "var(--text-1)" }}>วิธีใช้คู่มือนี้สอน</b>
@@ -560,7 +560,7 @@ function GuideView({ role, currentUser, onNav }) {
           เลือกสายที่ตรงกับคนที่มาเรียน แล้วไล่ทีละบท — ให้ผู้เรียน<b style={{ color: "var(--text-1)" }}>ถือมือถือหรือนั่งหน้าจอเอง</b> แล้วกดตามทีละข้อ
           ดูแล้วจำไม่ได้เท่ากดเอง · ปุ่ม “พิมพ์ใบแจก” ทำเป็นกระดาษให้ถือกลับไปทวนได้ · ลิงก์ท้ายบทบางบทพาไปหน้าจริงให้ลองมือทันที
         </div>
-        <div style={{ marginTop: 10, padding: "10px 12px", borderRadius: 11, background: "var(--tint-red-bg)",
+        <div style={{ marginTop: 10, padding: "10px 12px", borderRadius: "var(--r-chip)", background: "var(--tint-red-bg)",
           border: "1px solid var(--tint-red-bd, var(--border))", fontSize: 12.5, lineHeight: 1.7, color: "var(--text-1)" }}>
           <b style={{ color: "var(--tint-red-tx)" }}>ก่อนเริ่มสอน:</b> ระบบนี้ไม่มีโหมดทดลอง ทุกปุ่มที่กดคือข้อมูลจริงของบริษัท
           ถ้าจะให้ผู้เรียนลองกดปุ่มที่บันทึกข้อมูล (ลงเวลา · ส่งใบเบิก · อนุมัติ · เดินขั้นงาน) ให้เตรียม<b>งานหรือใบที่กำหนดไว้สำหรับซ้อม</b>ไว้ก่อน
@@ -574,7 +574,7 @@ function GuideView({ role, currentUser, onNav }) {
           const on = t.key === tab;
           return (
             <button key={t.key} onClick={() => setTab(t.key)}
-              style={{ display: "flex", alignItems: "center", gap: 9, padding: "10px 14px", borderRadius: 12, cursor: "pointer",
+              style={{ display: "flex", alignItems: "center", gap: 9, padding: "10px 14px", borderRadius: "var(--r-chip)", cursor: "pointer",
                 fontFamily: "inherit", textAlign: "left",
                 background: on ? t.color + "14" : "var(--surface)",
                 border: "1px solid " + (on ? t.color : "var(--border)") }}>
@@ -595,7 +595,7 @@ function GuideView({ role, currentUser, onNav }) {
           <div style={{ fontSize: 12, color: "var(--text-3)", marginTop: 2 }}>{track.who} · {track.lessons.length} บท</div>
         </div>
         <button onClick={() => setSheet(track)}
-          style={{ display: "inline-flex", alignItems: "center", gap: 7, padding: "10px 15px", borderRadius: 11,
+          style={{ display: "inline-flex", alignItems: "center", gap: 7, padding: "10px 15px", borderRadius: "var(--r-chip)",
             border: "1px solid var(--border-strong)", background: "var(--surface)", cursor: "pointer",
             fontFamily: "inherit", fontSize: 13, fontWeight: 700, color: "var(--text-2)" }}>
           <Icon name="file" size={15} color="var(--text-3)" /> พิมพ์ใบแจก

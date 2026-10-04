@@ -128,7 +128,7 @@ function PermitCard({
         color: "var(--tint-red-tx2)",
         background: "var(--tint-red-bg2)",
         padding: "1px 7px",
-        borderRadius: 99
+        borderRadius: "var(--r-pill)"
       }
     }, "\u0E04\u0E49\u0E32\u0E07 ", days, " \u0E27\u0E31\u0E19")), React.createElement("div", {
       style: {
@@ -298,7 +298,7 @@ function PermitQueueView({
       display: "flex",
       gap: 3,
       padding: 3,
-      borderRadius: 10,
+      borderRadius: "var(--r-chip)",
       background: "var(--surface2)",
       flexShrink: 0
     }
@@ -410,7 +410,7 @@ function PermitQueueView({
           flexShrink: 0,
           display: "flex",
           flexDirection: "column",
-          borderRadius: 18,
+          borderRadius: "var(--r-card)",
           background: isOver ? c.soft : "var(--surface2)",
           border: "1px solid " + (isOver ? c.color : "var(--border)"),
           opacity: drag && !ok ? .55 : 1,
@@ -440,7 +440,7 @@ function PermitQueueView({
         style: {
           width: 7,
           height: 7,
-          borderRadius: 99,
+          borderRadius: "var(--r-pill)",
           background: c.color,
           flexShrink: 0
         }
@@ -490,7 +490,7 @@ function PermitQueueView({
           fontSize: 12,
           color: "var(--text-3)",
           border: "1.5px dashed var(--border-strong)",
-          borderRadius: 10
+          borderRadius: "var(--r-chip)"
         }
       }, isOver ? "วางที่นี่" : "ว่าง")));
     })), review);
@@ -528,7 +528,7 @@ function PermitQueueView({
         alignItems: "center",
         gap: 6,
         padding: "7px 13px",
-        borderRadius: 99,
+        borderRadius: "var(--r-pill)",
         cursor: "pointer",
         fontFamily: "inherit",
         fontSize: 12.5,
@@ -550,7 +550,7 @@ function PermitQueueView({
   })), modeSwitch), tab === "sent" && notStarted.length > 0 && React.createElement("div", {
     style: {
       padding: "12px 14px",
-      borderRadius: 13,
+      borderRadius: "var(--r-tile)",
       background: "var(--tint-amber-bg)",
       border: "1px solid var(--tint-amber-bd)"
     }
@@ -575,7 +575,7 @@ function PermitQueueView({
       fontSize: 13.5,
       background: "var(--surface)",
       border: "1px dashed var(--border-strong)",
-      borderRadius: 16
+      borderRadius: "var(--r-tile)"
     }
   }, "\u0E22\u0E31\u0E07\u0E44\u0E21\u0E48\u0E21\u0E35\u0E07\u0E32\u0E19\u0E43\u0E19\u0E2B\u0E21\u0E27\u0E14\u0E19\u0E35\u0E49"), React.createElement("div", {
     style: {
@@ -611,7 +611,7 @@ function PermitBoardMobile({
     return React.createElement("div", {
       key: c.key,
       style: {
-        borderRadius: 14,
+        borderRadius: "var(--r-tile)",
         background: "var(--surface2)",
         border: "none",
         boxShadow: "var(--shadow-sm)",
@@ -644,7 +644,7 @@ function PermitBoardMobile({
       style: {
         width: 10,
         height: 10,
-        borderRadius: 99,
+        borderRadius: "var(--r-pill)",
         background: c.color,
         flexShrink: 0
       }
@@ -670,7 +670,7 @@ function PermitBoardMobile({
         background: c.color + "1a",
         minWidth: 24,
         height: 24,
-        borderRadius: 99,
+        borderRadius: "var(--r-pill)",
         display: "grid",
         placeItems: "center",
         padding: "0 7px"
@@ -775,7 +775,7 @@ function PermitCatalogRow({
       flexDirection: "column",
       gap: 7,
       padding: "9px 11px",
-      borderRadius: 11,
+      borderRadius: "var(--r-chip)",
       border: "1px solid " + (has ? "var(--border)" : "var(--border-strong)"),
       borderLeft: "3px solid " + (has ? "var(--primary)" : "var(--tint-red-bd)"),
       background: has ? "var(--surface)" : "var(--surface2)"
@@ -971,7 +971,7 @@ function PermitJobFiles({
         gap: 10,
         alignItems: "center",
         padding: "9px 11px",
-        borderRadius: 11,
+        borderRadius: "var(--r-chip)",
         background: "var(--surface)",
         border: "none",
         boxShadow: "var(--shadow-sm)",
@@ -1041,7 +1041,7 @@ function PermitDocRow({
       gap: 10,
       alignItems: "center",
       padding: "9px 11px",
-      borderRadius: 11,
+      borderRadius: "var(--r-chip)",
       border: "1px solid " + (has ? "var(--border)" : "var(--border-strong)"),
       borderLeft: "3px solid " + (has ? "var(--primary)" : slot.req ? "var(--tint-red-bd)" : "var(--surface3)"),
       background: has ? "var(--surface)" : "var(--surface2)"
@@ -1260,7 +1260,7 @@ function PermitReview({
     style: {
       width: 36,
       height: 36,
-      borderRadius: 11,
+      borderRadius: "var(--r-chip)",
       background: st.color + "1c",
       display: "grid",
       placeItems: "center",
@@ -1325,7 +1325,7 @@ function PermitReview({
   }, prog.missing.length > 0 && React.createElement("div", {
     style: {
       padding: "11px 13px",
-      borderRadius: 12,
+      borderRadius: "var(--r-chip)",
       background: "var(--tint-red-bg)",
       border: "1px solid var(--tint-red-bd)",
       fontSize: 12.5,
@@ -1336,7 +1336,7 @@ function PermitReview({
   }, "\u0E0A\u0E38\u0E14\u0E19\u0E35\u0E49\u0E22\u0E31\u0E07\u0E44\u0E21\u0E48\u0E04\u0E23\u0E1A (", prog.pct, "%) \u2014 \u0E02\u0E32\u0E14: ", prog.missing.map(m => m.th).join(", ")), p.note && React.createElement("div", {
     style: {
       padding: "11px 13px",
-      borderRadius: 12,
+      borderRadius: "var(--r-chip)",
       background: "var(--tint-amber-bg)",
       border: "1px solid var(--tint-amber-bd)",
       fontSize: 12.5,
@@ -1376,7 +1376,7 @@ function PermitReview({
       width: "100%",
       aspectRatio: "4/3",
       objectFit: "cover",
-      borderRadius: 10,
+      borderRadius: "var(--r-chip)",
       border: "1px solid var(--border)"
     }
   }), React.createElement("span", {
@@ -1403,7 +1403,7 @@ function PermitReview({
   }, docMissing.length > 0 && React.createElement("div", {
     style: {
       padding: "9px 12px",
-      borderRadius: 10,
+      borderRadius: "var(--r-chip)",
       background: "var(--tint-red-bg)",
       border: "1px solid var(--tint-red-bd)",
       fontSize: 12,
@@ -1498,7 +1498,7 @@ function PermitReview({
   }, "\u0E2D\u0E31\u0E1B\u0E40\u0E14\u0E15\u0E2A\u0E16\u0E32\u0E19\u0E30\u0E25\u0E48\u0E32\u0E2A\u0E38\u0E14 ", p.statusAt ? thDate(String(p.statusAt).slice(0, 10), true) : "—", p.byAdmin ? " โดย " + p.byAdmin : "")), p.rejectReason && React.createElement("div", {
     style: {
       padding: "11px 13px",
-      borderRadius: 12,
+      borderRadius: "var(--r-chip)",
       background: "var(--tint-red-bg)",
       border: "1px solid var(--tint-red-bd)",
       fontSize: 12.5,
@@ -1539,7 +1539,7 @@ function PermitReview({
     },
     style: {
       padding: "10px 16px",
-      borderRadius: 10,
+      borderRadius: "var(--r-chip)",
       border: "none",
       background: "#EF4444",
       color: "#fff",
@@ -1552,7 +1552,7 @@ function PermitReview({
     onClick: () => setRejecting(false),
     style: {
       padding: "10px 16px",
-      borderRadius: 10,
+      borderRadius: "var(--r-chip)",
       border: "1px solid var(--border-strong)",
       background: "var(--surface)",
       color: "var(--text-2)",
@@ -1574,7 +1574,7 @@ function PermitReview({
       alignItems: "center",
       gap: 6,
       padding: "10px 15px",
-      borderRadius: 10,
+      borderRadius: "var(--r-chip)",
       border: "1px solid var(--border-strong)",
       background: "var(--surface)",
       color: "var(--text-1)",
@@ -1590,7 +1590,7 @@ function PermitReview({
     onClick: onOpenJob,
     style: {
       padding: "10px 15px",
-      borderRadius: 10,
+      borderRadius: "var(--r-chip)",
       border: "1px solid var(--border-strong)",
       background: "var(--surface)",
       color: "var(--text-2)",
@@ -1615,7 +1615,7 @@ function PermitReview({
     },
     style: {
       padding: "10px 15px",
-      borderRadius: 10,
+      borderRadius: "var(--r-chip)",
       border: "1px solid var(--border-strong)",
       background: "var(--surface)",
       color: "var(--text-2)",
@@ -1632,7 +1632,7 @@ function PermitReview({
     onClick: () => setRejecting(true),
     style: {
       padding: "10px 15px",
-      borderRadius: 10,
+      borderRadius: "var(--r-chip)",
       border: "1px solid var(--tint-red-bd)",
       background: "var(--tint-red-bg)",
       color: "var(--tint-red-tx)",
@@ -1649,7 +1649,7 @@ function PermitReview({
     })),
     style: {
       padding: "10px 18px",
-      borderRadius: 10,
+      borderRadius: "var(--r-chip)",
       border: "none",
       background: "#3B82F6",
       color: "#fff",
@@ -1664,7 +1664,7 @@ function PermitReview({
     }),
     style: {
       padding: "10px 18px",
-      borderRadius: 10,
+      borderRadius: "var(--r-chip)",
       border: "none",
       background: "var(--primary)",
       color: "#fff",

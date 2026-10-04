@@ -535,11 +535,11 @@ function Meas3DModal({ list, targets, defaultTarget, onApply, onClose }) {
             const col = MEAS_KIND_COLOR[m.kind] || MEAS_KIND_COLOR.other;
             const rise = Math.abs(+m.rise || 0);
             return (
-              <div key={m.id} style={{ border: "none", boxShadow: "var(--shadow-sm)", borderRadius: 12, padding: "10px 12px", background: "var(--surface)",
+              <div key={m.id} style={{ border: "none", boxShadow: "var(--shadow-sm)", borderRadius: "var(--r-chip)", padding: "10px 12px", background: "var(--surface)",
                 display: "grid", gridTemplateColumns: isMobile ? "1fr" : "minmax(0,1fr) 210px", gap: 10, alignItems: "center" }}>
                 <div style={{ minWidth: 0 }}>
                   <div style={{ display: "flex", alignItems: "center", gap: 7 }}>
-                    <span style={{ width: 8, height: 8, borderRadius: 99, background: col, flexShrink: 0 }} />
+                    <span style={{ width: 8, height: 8, borderRadius: "var(--r-pill)", background: col, flexShrink: 0 }} />
                     <span style={{ fontSize: 13, fontWeight: 700, color: "var(--text-1)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{m.name || "ระยะ"}</span>
                     <span style={{ fontSize: 13.5, fontWeight: 800, color: col, marginLeft: "auto", flexShrink: 0 }}>{measLen(m).toFixed(2)} ม.</span>
                   </div>
@@ -558,9 +558,9 @@ function Meas3DModal({ list, targets, defaultTarget, onApply, onClose }) {
             นำเข้า {rows.length} รายการ{rows.length ? " · รวม " + sum.toFixed(2) + " ม." : ""}
           </span>
           <span style={{ flex: 1 }} />
-          <button onClick={onClose} style={{ background: "var(--surface2)", border: "1px solid var(--border-strong)", color: "var(--text-2)", borderRadius: 10, padding: "9px 16px", fontWeight: 700, fontSize: 12.5, cursor: "pointer", fontFamily: "inherit" }}>ยกเลิก</button>
+          <button onClick={onClose} style={{ background: "var(--surface2)", border: "1px solid var(--border-strong)", color: "var(--text-2)", borderRadius: "var(--r-chip)", padding: "9px 16px", fontWeight: 700, fontSize: 12.5, cursor: "pointer", fontFamily: "inherit" }}>ยกเลิก</button>
           <button disabled={!rows.length} onClick={() => { onApply(rows.map((m) => ({ m: m, target: pick[m.id] }))); onClose(); }}
-            style={{ background: rows.length ? "var(--primary)" : "var(--surface3)", border: "none", color: rows.length ? "#fff" : "var(--text-3)", borderRadius: 10, padding: "9px 20px", fontWeight: 800, fontSize: 12.5, cursor: rows.length ? "pointer" : "default", fontFamily: "inherit" }}>
+            style={{ background: rows.length ? "var(--primary)" : "var(--surface3)", border: "none", color: rows.length ? "#fff" : "var(--text-3)", borderRadius: "var(--r-chip)", padding: "9px 20px", fontWeight: 800, fontSize: 12.5, cursor: rows.length ? "pointer" : "default", fontFamily: "inherit" }}>
             นำเข้า
           </button>
         </div>
@@ -992,7 +992,7 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
     const sum = Math.round(list.reduce((s, m) => s + measLen(m), 0) * 100) / 100;
     return (
       <div style={{ marginBottom: 12, display: "flex", alignItems: "center", flexWrap: "wrap", gap: 9, padding: "9px 12px",
-        background: "var(--tint-blue-bg, rgba(37,99,235,.08))", border: "1px solid rgba(37,99,235,.24)", borderRadius: 11 }}>
+        background: "var(--tint-blue-bg, rgba(37,99,235,.08))", border: "1px solid rgba(37,99,235,.24)", borderRadius: "var(--r-chip)" }}>
         <Icon name="grid" size={15} color="#2563EB" />
         <span style={{ fontSize: 12.5, fontWeight: 700, color: "#1D4ED8" }}>
           วัดไว้ในแบบ 3D {list.length} ระยะ · รวม {sum.toFixed(2)} ม.
@@ -2061,7 +2061,7 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
                 <span style={{ fontSize: 12.5, fontWeight: 800, color: "var(--text-1)" }}>{String(x.size || "").trim()}</span>
                 <span style={{ fontSize: 11.5, color: "var(--text-3)" }}>จาก {x.lab}{x.sets > 1 ? " · " + x.sets + " ท่อขนาน" : ""}</span>
                 <span style={{ marginLeft: "auto", fontSize: 12.5, fontWeight: 800, fontVariantNumeric: "tabular-nums", color: "var(--text-1)" }}>{x.length} ม.</span>
-                <span style={{ fontSize: 10, fontWeight: 700, padding: "2px 7px", borderRadius: 99, background: "var(--primary-soft)", color: "var(--primary-dark)" }}>อัตโนมัติ</span>
+                <span style={{ fontSize: 10, fontWeight: 700, padding: "2px 7px", borderRadius: "var(--r-pill)", background: "var(--primary-soft)", color: "var(--primary-dark)" }}>อัตโนมัติ</span>
               </div>
             ) : (
               <div style={{ display: "grid", gridTemplateColumns: "minmax(0,1fr) 78px 36px", gap: 8, alignItems: "center" }}>
@@ -2072,7 +2072,7 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
             );
             if (!check) return <div key={i}>{row}</div>;
             return (
-              <div key={i} style={{ border: "none", boxShadow: "var(--shadow-sm)", borderRadius: 12, padding: 9, background: "var(--surface2)" }}>
+              <div key={i} style={{ border: "none", boxShadow: "var(--shadow-sm)", borderRadius: "var(--r-chip)", padding: 9, background: "var(--surface2)" }}>
                 {row}
                 <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 7, flexWrap: "wrap" }}>
                   <button onClick={() => setCondOpen((p) => Object.assign({}, p, { [kind + i]: !open }))}
@@ -2174,13 +2174,13 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
             const open = trayOpen[kind + i];
             const any = cbs.length > 0;
             return (
-              <div key={i} style={{ border: "none", boxShadow: "var(--shadow-sm)", borderRadius: 12, padding: 9, background: "var(--surface2)" }}>
+              <div key={i} style={{ border: "none", boxShadow: "var(--shadow-sm)", borderRadius: "var(--r-chip)", padding: 9, background: "var(--surface2)" }}>
                 {x.auto ? (
                   <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap", minHeight: 36 }}>
                     <span style={{ fontSize: 12.5, fontWeight: 800, color: "var(--text-1)" }}>{String(x.size || "").trim()}</span>
                     <span style={{ fontSize: 11.5, color: "var(--text-3)" }}>จาก {x.lab}</span>
                     <span style={{ marginLeft: "auto", fontSize: 12.5, fontWeight: 800, fontVariantNumeric: "tabular-nums", color: "var(--text-1)" }}>{x.length} ม.</span>
-                    <span style={{ fontSize: 10, fontWeight: 700, padding: "2px 7px", borderRadius: 99, background: "var(--primary-soft)", color: "var(--primary-dark)" }}>อัตโนมัติ</span>
+                    <span style={{ fontSize: 10, fontWeight: 700, padding: "2px 7px", borderRadius: "var(--r-pill)", background: "var(--primary-soft)", color: "var(--primary-dark)" }}>อัตโนมัติ</span>
                   </div>
                 ) : (
                 <div style={{ display: "grid", gridTemplateColumns: "minmax(0,1fr) 78px 36px", gap: 8, alignItems: "center" }}>
@@ -2200,7 +2200,7 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
                   <button onClick={() => (x.auto ? setRace(x.from, { raceHdg: x.hdg ? null : 1 }) : setTrayRow(kind, i, "hdg", !x.hdg))}
                     title={x.hdg ? "ชุบกัลวาไนซ์แบบจุ่มร้อน — ตัวราง ข้อต่อ และขาแขวนของแถวนี้จะถอดเป็นของชุบ (HDG.)"
                       : "ยังไม่ชุบ — ถอดเป็นของธรรมดา (Pre-Zinc) กดเพื่อเปลี่ยนเป็นของชุบ HDG"}
-                    style={{ display: "inline-flex", alignItems: "center", gap: 5, padding: "3px 10px", borderRadius: 99, cursor: "pointer", fontFamily: "inherit",
+                    style={{ display: "inline-flex", alignItems: "center", gap: 5, padding: "3px 10px", borderRadius: "var(--r-pill)", cursor: "pointer", fontFamily: "inherit",
                       fontSize: 11, fontWeight: 800, border: "1px solid " + (x.hdg ? "var(--primary)" : "var(--border-strong)"),
                       background: x.hdg ? "var(--primary-soft)" : "var(--surface)", color: x.hdg ? "var(--primary-dark)" : "var(--text-3)" }}>
                     {x.hdg && <Icon name="check" size={11} color="var(--primary-dark)" />}ชุบ HDG
@@ -2213,7 +2213,7 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
                         ? "ขาล็อกวางบน Rail — ถอด T-BOLT KIT 2 ชุด/ขา + Rail รองใต้ขายาวชิ้นละ " + railCm(x.size)
                           + " ซม. (กว้างกว่ารางข้างละ 10 ซม.) · สั่งเป็นท่อน RAIL " + railTon + " M ตัดได้ท่อนละ " + railPer(x.size) + " ชิ้น"
                         : "ขาล็อกยึดเข้าโครง/ผนังตรง ๆ — ถอดพุ๊กเหล็ก 2 ตัว/ขา กดเพื่อเปลี่ยนเป็นวางบน Rail"}
-                      style={{ display: "inline-flex", alignItems: "center", gap: 5, padding: "3px 10px", borderRadius: 99, cursor: "pointer", fontFamily: "inherit",
+                      style={{ display: "inline-flex", alignItems: "center", gap: 5, padding: "3px 10px", borderRadius: "var(--r-pill)", cursor: "pointer", fontFamily: "inherit",
                         fontSize: 11, fontWeight: 800, border: "1px solid " + (x.rail ? "var(--primary)" : "var(--border-strong)"),
                         background: x.rail ? "var(--primary-soft)" : "var(--surface)", color: x.rail ? "var(--primary-dark)" : "var(--text-3)" }}>
                       {x.rail && <Icon name="check" size={11} color="var(--primary-dark)" />}
@@ -2393,7 +2393,7 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
 
   // บล็อกกรอกงานโครงสร้าง (LADDER/WALKWAY/GUARD RAIL) — แต่ละ "จุด/แนว" = 1 แถว
   const StructBlock = ({ kind, label, color, addLabel, cols, blank, extra, spare, onSpare, extraItems, onExtraAdd, onExtraChange, onExtraDel }) => (
-    <div style={{ border: "none", boxShadow: "var(--shadow-sm)", borderRadius: 12, padding: 12, background: "var(--surface2)" }}>
+    <div style={{ border: "none", boxShadow: "var(--shadow-sm)", borderRadius: "var(--r-chip)", padding: 12, background: "var(--surface2)" }}>
       <div style={{ display: "flex", alignItems: "center", gap: 7, marginBottom: 9 }}>
         <span style={{ width: 9, height: 9, borderRadius: 3, background: color }} />
         <span style={{ fontSize: 12.5, fontWeight: 800, color: "var(--text-1)" }}>{label}</span>
@@ -3103,7 +3103,7 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
                 </Field>
               </div>
               {pvOver && (
-                <div style={{ marginTop: 10, display: "flex", alignItems: "center", gap: 7, padding: "9px 12px", background: "var(--tint-red-bg)", border: "1px solid var(--tint-red-bd2)", borderRadius: 10, fontSize: 12.5, fontWeight: 700, color: "var(--tint-red-tx)" }}>
+                <div style={{ marginTop: 10, display: "flex", alignItems: "center", gap: 7, padding: "9px 12px", background: "var(--tint-red-bg)", border: "1px solid var(--tint-red-bd2)", borderRadius: "var(--r-chip)", fontSize: 12.5, fontWeight: 700, color: "var(--tint-red-tx)" }}>
                   <Icon name="alert" size={15} color="#EF4444" /> {acMaxTotal > 0
                     ? "กำลังแผง " + result.meta.kw + " kW คิดเป็น DC/AC " + dcAcRatio.toFixed(2) + " เท่า เกินเพดาน " + window.BOQ.DCAC_LIMIT
                       + " เท่า (กำลังออก AC สูงสุดรวม " + Math.round(acMaxTotal) + " kW = " + acBreak
@@ -3218,7 +3218,7 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
           {isStringInv && scfg && (
             <BoqSection title="สาย DC / การต่ออนุกรม String (PV1-F)" icon="bolt" {...secProps("dc")}>
               {!scfg.ready ? (
-                <div style={{ display: "flex", alignItems: "center", gap: 7, padding: "10px 13px", background: "var(--tint-amber-bg)", border: "1px solid var(--tint-amber-bd)", borderRadius: 10, fontSize: 12.5, fontWeight: 600, color: "var(--tint-amber-tx2)" }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 7, padding: "10px 13px", background: "var(--tint-amber-bg)", border: "1px solid var(--tint-amber-bd)", borderRadius: "var(--r-chip)", fontSize: 12.5, fontWeight: 600, color: "var(--tint-amber-tx2)" }}>
                   <Icon name="alert" size={15} color="#F59E0B" /> {scfg.warns.join(" · ")}
                 </div>
               ) : (
@@ -3375,18 +3375,18 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
 
             {/* สถานะวางแผงให้ครบ — กันพลาด */}
             {remaining === 0 ? (
-              <div style={{ marginTop: 10, display: "flex", alignItems: "center", gap: 7, padding: "9px 12px", background: "var(--primary-soft)", borderRadius: 10, fontSize: 12.5, fontWeight: 700, color: "var(--primary-dark)" }}>
+              <div style={{ marginTop: 10, display: "flex", alignItems: "center", gap: 7, padding: "9px 12px", background: "var(--primary-soft)", borderRadius: "var(--r-chip)", fontSize: 12.5, fontWeight: 700, color: "var(--primary-dark)" }}>
                 <Icon name="check" size={15} color="var(--primary-dark)" sw={2.6} /> วางแผงครบตามจำนวนแล้ว ({result.meta.panelCount} แผง)
               </div>
             ) : remaining > 0 ? (
-              <div style={{ marginTop: 10, display: "flex", alignItems: "center", flexWrap: "wrap", gap: 8, padding: "9px 12px", background: "var(--tint-red-bg)", border: "1px solid var(--tint-red-bd2)", borderRadius: 10, fontSize: 12.5, fontWeight: 700, color: "var(--tint-red-tx)" }}>
+              <div style={{ marginTop: 10, display: "flex", alignItems: "center", flexWrap: "wrap", gap: 8, padding: "9px 12px", background: "var(--tint-red-bg)", border: "1px solid var(--tint-red-bd2)", borderRadius: "var(--r-chip)", fontSize: 12.5, fontWeight: 700, color: "var(--tint-red-tx)" }}>
                 <Icon name="alert" size={15} color="#EF4444" /> ยังขาดอีก {remaining} แผง
                 <button onClick={() => fillRemaining(remaining)} style={{ marginLeft: "auto", display: "inline-flex", alignItems: "center", gap: 5, background: "#EF4444", color: "#fff", border: "none", borderRadius: 8, padding: "6px 11px", fontWeight: 700, fontSize: 12, cursor: "pointer", fontFamily: "inherit" }}>
                   <Icon name="plus" size={13} color="#fff" /> เพิ่มแถว {remaining} แผง
                 </button>
               </div>
             ) : (
-              <div style={{ marginTop: 10, display: "flex", alignItems: "center", gap: 7, padding: "9px 12px", background: "var(--tint-amber-bg)", border: "1px solid var(--tint-amber-bd)", borderRadius: 10, fontSize: 12.5, fontWeight: 700, color: "var(--tint-amber-tx)" }}>
+              <div style={{ marginTop: 10, display: "flex", alignItems: "center", gap: 7, padding: "9px 12px", background: "var(--tint-amber-bg)", border: "1px solid var(--tint-amber-bd)", borderRadius: "var(--r-chip)", fontSize: 12.5, fontWeight: 700, color: "var(--tint-amber-tx)" }}>
                 <Icon name="alert" size={15} color="#F59E0B" /> วางเกินจำนวนแผง {-remaining} แผง — ตรวจสอบจำนวนแผง/แถว
               </div>
             )}
@@ -3395,7 +3395,7 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
               <Icon name="settings" size={13} color="var(--text-2)" /> ตั้งค่าขั้นสูง (ราง / ระยะเผื่อ) <Icon name="chevronDown" size={14} color="var(--text-2)" style={{ transform: adv ? "rotate(180deg)" : "none" }} />
             </button>
             {adv && (
-              <div style={{ marginTop: 10, padding: 12, background: "var(--surface2)", borderRadius: 10, display: "grid", gridTemplateColumns: isMobile ? "minmax(0,1fr) minmax(0,1fr)" : "repeat(4, minmax(0,1fr))", gap: 10 }}>
+              <div style={{ marginTop: 10, padding: 12, background: "var(--surface2)", borderRadius: "var(--r-chip)", display: "grid", gridTemplateColumns: isMobile ? "minmax(0,1fr) minmax(0,1fr)" : "repeat(4, minmax(0,1fr))", gap: 10 }}>
                 <Field label="ขนาดราง"><Dropdown value={b.railSize} onChange={(v) => set("railSize", v)} options={[{ value: 4.2, label: "4.2 ม." }, { value: 4.8, label: "4.8 ม." }]} /></Field>
                 <Field label="เผื่อระหว่างแผง (ม.)"><input type="number" style={numStyle} value={b.gap} onChange={(e) => set("gap", e.target.value)} /></Field>
                 <Field label="เผื่อหัวท้าย (ม.)"><input type="number" style={numStyle} value={b.endSpare} onChange={(e) => set("endSpare", e.target.value)} /></Field>
@@ -3674,8 +3674,8 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
                           title={own ? "เส้นนี้ตั้งเงื่อนไขเอง — กดเพื่อแก้" : "ตามค่าตั้งต้นของงาน — กดเพื่อตั้งเฉพาะเส้นนี้"}
                           style={{ display: "inline-flex", alignItems: "center", gap: 5, border: "1px solid " + (own ? "var(--border-strong)" : "transparent"),
                             background: own ? "var(--surface)" : "var(--surface2)", color: own ? "var(--text-2)" : "var(--text-3)",
-                            borderRadius: 99, padding: "3px 9px", fontSize: 10.5, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>
-                          {own && <span style={{ width: 5, height: 5, borderRadius: 99, background: "var(--primary)" }} />}
+                            borderRadius: "var(--r-pill)", padding: "3px 9px", fontSize: 10.5, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>
+                          {own && <span style={{ width: 5, height: 5, borderRadius: "var(--r-pill)", background: "var(--primary)" }} />}
                           {condTh}
                           <Icon name="chevronDown" size={12} color="var(--text-3)" style={{ transform: open ? "rotate(180deg)" : "none" }} />
                         </button>
@@ -3844,7 +3844,7 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
                   })()}
                   {!power && showHint && open && (
                     <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap", padding: "8px 9px", marginTop: 1,
-                      background: "var(--surface2)", border: "none", boxShadow: "var(--shadow-sm)", borderRadius: 10 }}>
+                      background: "var(--surface2)", border: "none", boxShadow: "var(--shadow-sm)", borderRadius: "var(--r-chip)" }}>
                       <div style={{ width: isMobile ? "100%" : 206, flexShrink: 0 }}>
                         <Dropdown value={method} onChange={(v) => setCab(i, "method", v)} options={methodOptions} placeholder="วิธีเดินสาย" wrap style={cabSelStyle} />
                       </div>
@@ -3913,7 +3913,7 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
                 );
                 const bad = vdropSum.dc > L.dc || vdropSum.ac > L.ac || vdropSum.total > L.total;
                 return (
-                  <div style={{ display: "flex", gap: 18, flexWrap: "wrap", alignItems: "center", padding: "10px 13px", borderRadius: 11,
+                  <div style={{ display: "flex", gap: 18, flexWrap: "wrap", alignItems: "center", padding: "10px 13px", borderRadius: "var(--r-chip)",
                     border: "1px solid " + (bad ? "#F59E0B55" : "var(--border)"), background: bad ? "#F59E0B12" : "var(--surface2)" }}>
                     <span style={{ display: "inline-flex", alignItems: "center", gap: 6, fontSize: 11.5, fontWeight: 700, color: "var(--text-1)" }}>
                       <Icon name="bolt" size={12} color={bad ? "var(--tint-amber-tx)" : "var(--primary)"} />แรงดันตกรวม
@@ -3943,7 +3943,7 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
                 </div>
                 <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
                   {raceRuns.filter(Boolean).map((r) => (
-                    <div key={r.i} style={{ background: "var(--surface2)", borderRadius: 12, padding: "10px 12px", display: "flex", flexDirection: "column", gap: 8 }}>
+                    <div key={r.i} style={{ background: "var(--surface2)", borderRadius: "var(--r-chip)", padding: "10px 12px", display: "flex", flexDirection: "column", gap: 8 }}>
                       <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
                         <span style={{ fontSize: 12.5, fontWeight: 800, color: "var(--text-1)" }}>{r.label}</span>
                         <span style={{ fontSize: 11, color: "var(--text-3)", flex: 1, minWidth: 120 }}>
@@ -4158,7 +4158,7 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
                       {shown.length > 0 && (
                       <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "repeat(3, minmax(0,1fr))", gap: 9, alignItems: "start", marginBottom: hidden.length ? 12 : 0 }}>
                         {shown.map((bd) => (
-                          <div key={bd.key} style={{ border: "none", boxShadow: "var(--shadow-sm)", borderRadius: 12, padding: 10, background: "var(--surface2)",
+                          <div key={bd.key} style={{ border: "none", boxShadow: "var(--shadow-sm)", borderRadius: "var(--r-chip)", padding: 10, background: "var(--surface2)",
                             display: "flex", flexDirection: "column", gap: 9 }}>
                             {numBox({ key: bd.key, name: bd.name, unit: bd.unit,
                               ph: (() => { const a = (st[bd.extraKey] || []).find((x) => x.auto && x.name === bd.name); return a ? "อัตโนมัติ " + a.qty : "0"; })() })}
@@ -4346,7 +4346,7 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
                 <button key={m.v} type="button" onClick={() => setB((p) => Object.assign({}, p, { laborMode: m.v },
                     /* เลือกแยกรายการครั้งแรก — ลงรายการตั้งต้นไว้เลย ไม่งั้นเปิดใบใหม่จะถูกนับว่ายังไม่เลือกแล้วเด้งกลับเป็นเหมารวม */
                     m.v === "split" && p.labor == null ? { labor: window.BOQ.LABOR_PRESET.map((x) => Object.assign({}, x, { price: 0 })) } : {}))}
-                  style={{ flex: "1 1 180px", textAlign: "left", padding: "10px 13px", borderRadius: 11, cursor: "pointer", fontFamily: "inherit",
+                  style={{ flex: "1 1 180px", textAlign: "left", padding: "10px 13px", borderRadius: "var(--r-chip)", cursor: "pointer", fontFamily: "inherit",
                     border: "1px solid " + (laborMode === m.v ? "var(--primary)" : "var(--border-strong)"),
                     background: laborMode === m.v ? "var(--primary-soft)" : "var(--surface2)" }}>
                   <span style={{ display: "block", fontSize: 12.5, fontWeight: 800, color: laborMode === m.v ? "var(--primary-dark)" : "var(--text-1)" }}>{m.t}</span>
@@ -4525,7 +4525,7 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
                   {priced.groups.filter((g) => g.subtotal > 0).slice().sort((a, c) => c.subtotal - a.subtotal).map((g, i) => (
                     <div key={i} style={{ display: "grid", gridTemplateColumns: isMobile ? "minmax(0,1fr) 78px" : "150px 1fr 96px 84px", gap: 8, alignItems: "center" }}>
                       <span style={{ display: "flex", alignItems: "center", gap: 6, minWidth: 0 }}>
-                        <span style={{ width: 7, height: 7, borderRadius: 99, background: GROUP_COLOR[g.group] || "var(--text-3)", flexShrink: 0 }} />
+                        <span style={{ width: 7, height: 7, borderRadius: "var(--r-pill)", background: GROUP_COLOR[g.group] || "var(--text-3)", flexShrink: 0 }} />
                         <span style={{ fontSize: 11, fontWeight: 700, color: "var(--text-2)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{g.group}</span>
                       </span>
                       {!isMobile && (
@@ -4540,14 +4540,14 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
                 </div>
               </div>
             )}
-            <div style={{ border: "1px solid var(--border)", borderRadius: 12, overflow: "hidden" }}>
+            <div style={{ border: "1px solid var(--border)", borderRadius: "var(--r-chip)", overflow: "hidden" }}>
               {priced.groups.map((g, gi) => (
                 <div key={gi}>
                   {/* หัวหมวดลอยติดขอบบนตอนเลื่อน — รายการยาว ๆ จะได้รู้ตลอดว่าอ่านอยู่หมวดไหน */}
                   <div style={{ position: "sticky", top: 0, zIndex: 1, display: "flex", alignItems: "center", gap: 8,
                     padding: "9px 14px", background: "var(--surface2)", borderTop: gi ? "1px solid var(--border)" : "none",
                     boxShadow: "inset 0 -1px 0 var(--border)" }}>
-                    <span style={{ width: 7, height: 7, borderRadius: 99, background: GROUP_COLOR[g.group] || "var(--text-3)", flexShrink: 0 }} />
+                    <span style={{ width: 7, height: 7, borderRadius: "var(--r-pill)", background: GROUP_COLOR[g.group] || "var(--text-3)", flexShrink: 0 }} />
                     <span style={{ fontSize: 10.5, fontWeight: 800, color: "var(--text-2)", letterSpacing: ".09em" }}>{g.group}</span>
                     {/* ยอดรายหมวด + บาทต่อ kW — เห็นทันทีว่าหมวดไหนกินต้นทุนเท่าไรต่อกำลังติดตั้ง */}
                     <span style={{ marginLeft: "auto", fontSize: 10.5, fontWeight: 700, color: "var(--text-3)", fontVariantNumeric: "tabular-nums", whiteSpace: "nowrap" }}>
@@ -4579,7 +4579,7 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
                             return (
                               <button type="button" onClick={() => setEditVar({ name: it.name, group: g.group, unit: it.unit, rkey: window.BOQ.qtyKey(g.group, it.nameAuto || it.name), nameAuto: it.nameAuto || it.name, priceName: it.priceName || it.name })}
                                 title={n > 1 ? n + " ยี่ห้อ/รุ่นในคลัง — กดเพื่อเลือกหรือแก้" : "กดเพื่อระบุยี่ห้อ/รุ่น และแก้ราคา (บันทึกลงคลังสินค้า)"}
-                                style={{ display: "inline-flex", alignItems: "center", gap: 4, padding: "1px 7px", borderRadius: 99,
+                                style={{ display: "inline-flex", alignItems: "center", gap: 4, padding: "1px 7px", borderRadius: "var(--r-pill)",
                                   border: "1px solid " + (it.variantLabel ? "var(--border-strong)" : "transparent"),
                                   background: it.variantLabel ? "var(--surface2)" : "transparent",
                                   color: it.variantLabel ? "var(--text-2)" : "var(--text-3)",
@@ -4725,7 +4725,7 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
               ))}
             </div>
             {/* บันไดราคา — ไล่จากต้นทุนขึ้นไปถึงราคาสุทธิ ทุกขั้นมีทั้งก่อนและหลัง VAT */}
-            <div style={{ border: "1px solid var(--border)", borderRadius: 12, overflow: "hidden" }}>
+            <div style={{ border: "1px solid var(--border)", borderRadius: "var(--r-chip)", overflow: "hidden" }}>
               {[
                 { lb: "ต้นทุนวัสดุ (จาก BOQ)", v: pb.cost },
                 { lb: "ค่าแรงผู้รับเหมา (ค่าแรง + ขออนุญาต + ขนส่ง/บริหาร)", v: pb.contractor, dim: true },
@@ -4756,7 +4756,7 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
               const margin = pb.discount > 0 ? pb.netMargin : pb.margin;
               const good = profit > 0;
               return (
-                <div style={{ marginTop: 12, display: "flex", alignItems: "center", gap: 16, flexWrap: "wrap", padding: "12px 14px", borderRadius: 12,
+                <div style={{ marginTop: 12, display: "flex", alignItems: "center", gap: 16, flexWrap: "wrap", padding: "12px 14px", borderRadius: "var(--r-chip)",
                   background: good ? "var(--primary-soft)" : "var(--tint-amber-bg2)", border: "1px solid " + (good ? "var(--tint-ok-bd)" : "var(--tint-amber-bd)") }}>
                   <span style={{ display: "inline-flex", alignItems: "baseline", gap: 7 }}>
                     <span style={{ fontSize: 11, fontWeight: 800, letterSpacing: ".06em", color: good ? "var(--primary-dark)" : "var(--tint-amber-tx2)" }}>กำไร</span>
@@ -4801,7 +4801,7 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
         <span className="bq-gap" />
         {remaining !== 0 && (
           <span style={{ display: "inline-flex", alignItems: "center", gap: 7, fontSize: 11.5, fontWeight: 700, color: "var(--tint-amber-tx)", marginRight: 12, whiteSpace: "nowrap" }}>
-            <span style={{ width: 7, height: 7, borderRadius: 99, background: "#F59E0B", boxShadow: "0 0 0 3px rgba(245,158,11,.22)" }} />
+            <span style={{ width: 7, height: 7, borderRadius: "var(--r-pill)", background: "#F59E0B", boxShadow: "0 0 0 3px rgba(245,158,11,.22)" }} />
             ยังวางแผงไม่ครบ {Math.abs(remaining)} แผง
           </span>
         )}
@@ -4858,7 +4858,7 @@ function SteelSpecBlock({ st, setSteel }) {
         .map((k) => window.BOQ.steelName(k, sel[k])).join(" · ")
     : "ใช้ขนาดมาตรฐานทั้งหมด";
   return (
-    <div style={{ border: "none", boxShadow: "var(--shadow-sm)", borderRadius: 12, padding: open ? 12 : "10px 12px", background: "var(--surface2)" }}>
+    <div style={{ border: "none", boxShadow: "var(--shadow-sm)", borderRadius: "var(--r-chip)", padding: open ? 12 : "10px 12px", background: "var(--surface2)" }}>
       <div style={{ display: "flex", alignItems: "center", gap: 9 }}>
         <button type="button" onClick={() => setOpen((v) => !v)}
           style={{ display: "inline-flex", alignItems: "center", gap: 5, background: "none", border: "none", color: "var(--text-2)",
@@ -4888,7 +4888,7 @@ function SteelSpecBlock({ st, setSteel }) {
           const nm = window.BOQ.steelName(k, cur);
           const isLen = !!S.barLen;
           return (
-            <div key={k} style={{ border: "none", boxShadow: "var(--shadow-sm)", borderRadius: 10, padding: "9px 10px", background: "var(--surface)" }}>
+            <div key={k} style={{ border: "none", boxShadow: "var(--shadow-sm)", borderRadius: "var(--r-chip)", padding: "9px 10px", background: "var(--surface)" }}>
               <div style={{ fontSize: 11, fontWeight: 800, color: "var(--text-2)", marginBottom: 6 }}>{S.th}</div>
               <div style={{ display: "grid", gridTemplateColumns: S.thks.length ? (isLen ? "1fr 1fr 78px" : "1fr 1fr") : (isLen ? "1fr 78px" : "1fr"), gap: 6 }}>
                 <Dropdown value={cur.size == null || cur.size === "" ? S.dSize : cur.size}
@@ -4983,7 +4983,7 @@ function MatVariantModal({ item, stock, priceMap, matOptions, picked, onPick, re
                   {/* เปลี่ยนแค่คำที่พิมพ์บนใบ ไม่ได้เปลี่ยนของ → ล็อกราคาไว้ที่ของเดิม ต้นทุนไม่ขยับ */}
                   {onKeepPrice && (
                     <label style={{ display: "flex", alignItems: "flex-start", gap: 8, cursor: "pointer",
-                      background: keepPrice ? "var(--primary-soft)" : "var(--surface2)", padding: "9px 11px", borderRadius: 10,
+                      background: keepPrice ? "var(--primary-soft)" : "var(--surface2)", padding: "9px 11px", borderRadius: "var(--r-chip)",
                       border: "1px solid " + (keepPrice ? "var(--primary)" : "var(--border)") }}>
                       <input type="checkbox" checked={!!keepPrice} onChange={(e) => onKeepPrice(e.target.checked)}
                         style={{ width: 15, height: 15, marginTop: 1, accentColor: "var(--primary)", flexShrink: 0, cursor: "pointer" }} />
@@ -5032,9 +5032,9 @@ function MatVariantModal({ item, stock, priceMap, matOptions, picked, onPick, re
                 return (
                   <button key={v.id || v.sku} type="button" onClick={() => { onPick(v.sku); loadVariant(v); }}
                     style={{ display: "flex", alignItems: "center", gap: 10, textAlign: "left", cursor: "pointer", fontFamily: "inherit",
-                      padding: "9px 11px", borderRadius: 11, border: "1px solid " + (on ? "var(--primary)" : "var(--border)"),
+                      padding: "9px 11px", borderRadius: "var(--r-chip)", border: "1px solid " + (on ? "var(--primary)" : "var(--border)"),
                       background: on ? "var(--primary-soft)" : "var(--surface)" }}>
-                    <span style={{ width: 8, height: 8, borderRadius: 99, flexShrink: 0, background: on ? "var(--primary)" : "var(--surface3)" }} />
+                    <span style={{ width: 8, height: 8, borderRadius: "var(--r-pill)", flexShrink: 0, background: on ? "var(--primary)" : "var(--surface3)" }} />
                     <span style={{ flex: 1, minWidth: 0 }}>
                       <span style={{ display: "block", fontSize: 12.5, fontWeight: 700, color: "var(--text-1)" }}>{v.label || "(ยังไม่ระบุยี่ห้อ/รุ่น)"}</span>
                       <span style={{ fontFamily: "var(--mono)", fontSize: 10.5, color: "var(--text-3)" }}>{v.sku}</span>

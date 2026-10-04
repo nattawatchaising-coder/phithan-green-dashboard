@@ -550,21 +550,21 @@ function DrSignPad({ title, hint, saved, onSave, onClose, remember, onRemember }
   return ReactDOM.createPortal(
     <div style={{ position: "fixed", inset: 0, zIndex: 220, background: "rgba(8,20,14,.62)", display: "grid",
       placeItems: "center", padding: 14 }}>
-      <div style={{ width: "100%", maxWidth: 560, background: "var(--bg)", borderRadius: 16, overflow: "hidden",
+      <div style={{ width: "100%", maxWidth: 560, background: "var(--bg)", borderRadius: "var(--r-tile)", overflow: "hidden",
         boxShadow: "var(--shadow-modal)" }}>
         <div style={{ padding: "14px 16px", borderBottom: "1px solid var(--border)", display: "flex", alignItems: "center", gap: 10 }}>
           <div style={{ flex: 1, minWidth: 0 }}>
             <div style={{ fontSize: 15, fontWeight: 800, color: "var(--text-1)" }}>{title}</div>
             <div style={{ fontSize: 11.5, color: "var(--text-3)", marginTop: 2 }}>{hint || "เซ็นด้วยนิ้วหรือเมาส์ในกรอบด้านล่าง"}</div>
           </div>
-          <button className="x-close" onClick={onClose} style={{ width: 34, height: 34, borderRadius: 10, border: "1px solid var(--border-strong)",
+          <button className="x-close" onClick={onClose} style={{ width: 34, height: 34, borderRadius: "var(--r-chip)", border: "1px solid var(--border-strong)",
             background: "var(--surface)", cursor: "pointer", display: "grid", placeItems: "center", color: "var(--text-2)" }}>
             <Icon name="x" size={16} />
           </button>
         </div>
 
         <div ref={wrap} style={{ padding: "16px 16px 6px" }}>
-          <div style={{ position: "relative", border: "1px dashed var(--border-strong)", borderRadius: 12,
+          <div style={{ position: "relative", border: "1px dashed var(--border-strong)", borderRadius: "var(--r-chip)",
             background: "#fff", overflow: "hidden" }}>
             <canvas ref={cv}
               onPointerDown={start} onPointerMove={move} onPointerUp={end} onPointerLeave={end} onPointerCancel={end}
@@ -580,7 +580,7 @@ function DrSignPad({ title, hint, saved, onSave, onClose, remember, onRemember }
 
         {/* มีลายเซ็นที่บันทึกไว้ในตั้งค่าอยู่แล้ว — กดใช้ได้เลย ไม่ต้องเซ็นใหม่ */}
         {saved && saved.img && (
-          <div style={{ margin: "4px 16px 0", padding: "9px 11px", borderRadius: 11, border: "none", boxShadow: "var(--shadow-sm)",
+          <div style={{ margin: "4px 16px 0", padding: "9px 11px", borderRadius: "var(--r-chip)", border: "none", boxShadow: "var(--shadow-sm)",
             background: "var(--surface2)", display: "flex", alignItems: "center", gap: 11 }}>
             <img src={saved.img} alt="" style={{ height: 32, maxWidth: 120, objectFit: "contain" }} />
             <span style={{ flex: 1, minWidth: 0, fontSize: 11.5, color: "var(--text-3)" }}>ลายเซ็นที่บันทึกไว้</span>

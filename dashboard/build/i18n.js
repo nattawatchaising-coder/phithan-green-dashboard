@@ -154,7 +154,7 @@ function LangPick({
       title: "ออกเอกสารเป็นภาษา" + L.th,
       style: {
         padding: "5px 13px",
-        borderRadius: 99,
+        borderRadius: "var(--r-pill)",
         cursor: "pointer",
         fontFamily: "inherit",
         fontSize: 12,

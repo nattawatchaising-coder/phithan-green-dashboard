@@ -259,12 +259,12 @@ function DispatchView({ appts, jobs, techs, store, leadStore, onMenuOpen, onOpen
             <span style={{ fontSize: 15, fontWeight: 800, color: "var(--text-1)", marginLeft: 4 }}>{thDate(day, true)}</span>
           </React.Fragment>}
           <span style={{ flex: 1 }} />
-          {summary.map(({ s, n }) => <span key={s.key} style={{ fontSize: 11.5, fontWeight: 700, color: s.color, background: s.color + "16", padding: "4px 10px", borderRadius: 99 }}>{s.th} {n}</span>)}
+          {summary.map(({ s, n }) => <span key={s.key} style={{ fontSize: 11.5, fontWeight: 700, color: s.color, background: s.color + "16", padding: "4px 10px", borderRadius: "var(--r-pill)" }}>{s.th} {n}</span>)}
         </div>
 
         {mode === "all" ? (
           allGroups.length === 0 ? (
-            <div style={{ padding: 48, textAlign: "center", color: "var(--text-3)", fontSize: 14, background: "var(--surface)", border: "1px dashed var(--border-strong)", borderRadius: 16 }}>
+            <div style={{ padding: 48, textAlign: "center", color: "var(--text-3)", fontSize: 14, background: "var(--surface)", border: "1px dashed var(--border-strong)", borderRadius: "var(--r-tile)" }}>
               ยังไม่มีนัดสำรวจในระบบ · กด “นัดสำรวจ” เพื่อจ่ายงานให้วิศวกร
             </div>
           ) : allGroups.map((g) => (
@@ -277,19 +277,19 @@ function DispatchView({ appts, jobs, techs, store, leadStore, onMenuOpen, onOpen
                   const clash = allConflicts.has(a.id);
                   return (
                     <button key={a.id} onClick={() => setEdit(Object.assign({}, a))}
-                      style={{ textAlign: "left", cursor: "pointer", fontFamily: "inherit", width: "100%", padding: 13, borderRadius: 13,
+                      style={{ textAlign: "left", cursor: "pointer", fontFamily: "inherit", width: "100%", padding: 13, borderRadius: "var(--r-tile)",
                         background: "var(--surface)", border: "1px solid " + (clash ? "#EF4444" : "var(--border)"), boxShadow: clash ? "0 0 0 3px #EF444418" : "var(--shadow-sm)", display: "flex", flexDirection: "column", gap: 6 }}>
                       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
                         <span style={{ fontFamily: "var(--mono)", fontSize: 13.5, fontWeight: 800, color: "var(--text-1)" }}>{_hm(a.start)}–{_hm(a.end)}</span>
                         <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
-                          <span style={{ fontSize: 10, fontWeight: 700, color: stt.color, background: stt.color + "16", padding: "2px 8px", borderRadius: 99 }}>{stt.th}</span>
+                          <span style={{ fontSize: 10, fontWeight: 700, color: stt.color, background: stt.color + "16", padding: "2px 8px", borderRadius: "var(--r-pill)" }}>{stt.th}</span>
                           <Icon name="chevronRight" size={14} color="var(--text-3)" />
                         </span>
                       </div>
                       <div style={{ fontSize: 14, fontWeight: 700, color: "var(--text-1)" }}>{a.jobName || "—"}</div>
-                      <div style={{ fontSize: 11.5, color: "var(--text-3)" }}>{a.jobCode}{a.province ? " · " + a.province : ""}{a.leadId ? <span style={{ marginLeft: 6, fontSize: 10, fontWeight: 700, color: "#0EA5E9", background: "#0EA5E916", padding: "2px 7px", borderRadius: 99 }}>ลูกค้าสำรวจ</span> : null}</div>
+                      <div style={{ fontSize: 11.5, color: "var(--text-3)" }}>{a.jobCode}{a.province ? " · " + a.province : ""}{a.leadId ? <span style={{ marginLeft: 6, fontSize: 10, fontWeight: 700, color: "#0EA5E9", background: "#0EA5E916", padding: "2px 7px", borderRadius: "var(--r-pill)" }}>ลูกค้าสำรวจ</span> : null}</div>
                       <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12, color: "var(--text-2)", marginTop: 1 }}>
-                        <span style={{ width: 8, height: 8, borderRadius: 99, background: (t && t.color) || "#94A3B8", flexShrink: 0 }} />
+                        <span style={{ width: 8, height: 8, borderRadius: "var(--r-pill)", background: (t && t.color) || "#94A3B8", flexShrink: 0 }} />
                         {t ? t.name : "ยังไม่มอบหมาย"}
                       </div>
                       {clash && <div style={{ fontSize: 10.5, fontWeight: 700, color: "var(--tint-red-tx2)" }}>⚠ เวลาซ้อนทับกับนัดอื่นของวิศวกรคนนี้</div>}
@@ -300,7 +300,7 @@ function DispatchView({ appts, jobs, techs, store, leadStore, onMenuOpen, onOpen
             </div>
           ))
         ) : dayAppts.length === 0 ? (
-          <div style={{ padding: 48, textAlign: "center", color: "var(--text-3)", fontSize: 14, background: "var(--surface)", border: "1px dashed var(--border-strong)", borderRadius: 16 }}>
+          <div style={{ padding: 48, textAlign: "center", color: "var(--text-3)", fontSize: 14, background: "var(--surface)", border: "1px dashed var(--border-strong)", borderRadius: "var(--r-tile)" }}>
             ยังไม่มีนัดสำรวจในวันนี้ · กด “นัดสำรวจ” เพื่อจ่ายงานให้วิศวกร
           </div>
         ) : (
@@ -309,8 +309,8 @@ function DispatchView({ appts, jobs, techs, store, leadStore, onMenuOpen, onOpen
               const list = dayAppts.filter((a) => (a.engineerId || "") === col.id).sort((x, y) => new Date(x.start) - new Date(y.start));
               return (
                 <div key={col.id || "none"} style={{ flex: "0 0 auto", width: isMobile ? 240 : 270, display: "flex", flexDirection: "column", gap: 9 }}>
-                  <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "8px 11px", background: "var(--surface2)", borderRadius: 11, position: "sticky", top: 0 }}>
-                    <span style={{ width: 9, height: 9, borderRadius: 99, background: col.color }} />
+                  <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "8px 11px", background: "var(--surface2)", borderRadius: "var(--r-chip)", position: "sticky", top: 0 }}>
+                    <span style={{ width: 9, height: 9, borderRadius: "var(--r-pill)", background: col.color }} />
                     <span style={{ fontSize: 13, fontWeight: 800, color: "var(--text-1)", flex: 1, minWidth: 0, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{col.name}</span>
                     <span style={{ fontSize: 11, fontWeight: 700, color: "var(--text-3)", fontFamily: "var(--mono)" }}>{list.length}</span>
                   </div>
@@ -319,14 +319,14 @@ function DispatchView({ appts, jobs, techs, store, leadStore, onMenuOpen, onOpen
                     const clash = conflicts.has(a.id);
                     return (
                       <button key={a.id} onClick={() => setEdit(Object.assign({}, a))}
-                        style={{ textAlign: "left", cursor: "pointer", fontFamily: "inherit", padding: 11, borderRadius: 12,
+                        style={{ textAlign: "left", cursor: "pointer", fontFamily: "inherit", padding: 11, borderRadius: "var(--r-chip)",
                           background: "var(--surface)", border: "1px solid " + (clash ? "#EF4444" : "var(--border)"), boxShadow: clash ? "0 0 0 3px #EF444418" : "var(--shadow-sm)" }}>
                         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 6 }}>
                           <span style={{ fontFamily: "var(--mono)", fontSize: 13, fontWeight: 800, color: "var(--text-1)" }}>{_hm(a.start)}–{_hm(a.end)}</span>
-                          <span style={{ fontSize: 10, fontWeight: 700, color: stt.color, background: stt.color + "16", padding: "2px 8px", borderRadius: 99 }}>{stt.th}</span>
+                          <span style={{ fontSize: 10, fontWeight: 700, color: stt.color, background: stt.color + "16", padding: "2px 8px", borderRadius: "var(--r-pill)" }}>{stt.th}</span>
                         </div>
                         <div style={{ fontSize: 13, fontWeight: 700, color: "var(--text-1)", marginTop: 5, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{a.jobName || "—"}</div>
-                        <div style={{ fontSize: 11, color: "var(--text-3)", marginTop: 1 }}>{a.jobCode}{a.province ? " · " + a.province : ""}{a.leadId ? <span style={{ marginLeft: 5, fontSize: 9.5, fontWeight: 700, color: "#0EA5E9", background: "#0EA5E916", padding: "2px 6px", borderRadius: 99 }}>ลูกค้าสำรวจ</span> : null}</div>
+                        <div style={{ fontSize: 11, color: "var(--text-3)", marginTop: 1 }}>{a.jobCode}{a.province ? " · " + a.province : ""}{a.leadId ? <span style={{ marginLeft: 5, fontSize: 9.5, fontWeight: 700, color: "#0EA5E9", background: "#0EA5E916", padding: "2px 6px", borderRadius: "var(--r-pill)" }}>ลูกค้าสำรวจ</span> : null}</div>
                         {clash && <div style={{ fontSize: 10.5, fontWeight: 700, color: "var(--tint-red-tx2)", marginTop: 5 }}>⚠ เวลาซ้อนทับกับนัดอื่น</div>}
                         {a.notes && <div style={{ fontSize: 11, color: "var(--text-2)", marginTop: 5, background: "var(--surface2)", borderRadius: 7, padding: "5px 8px" }}>📝 {a.notes}</div>}
                       </button>
@@ -422,7 +422,7 @@ function SurveyApptModal({ initial, jobs, techs, appts, leads, blankLead, onClos
                     (leads || []).filter((l) => l.status !== "won").map((l) => ({ value: l.id, label: l.name + " · " + l.code + (l.province ? " · " + l.province : "") })))} />
               </div>
               {newLead && (
-                <div style={{ display: "flex", flexDirection: "column", gap: 11, padding: 13, borderRadius: 12, background: "var(--surface2)", border: "1px dashed var(--border-strong)" }}>
+                <div style={{ display: "flex", flexDirection: "column", gap: 11, padding: 13, borderRadius: "var(--r-chip)", background: "var(--surface2)", border: "1px dashed var(--border-strong)" }}>
                   <div style={{ fontSize: 11.5, color: "var(--text-3)" }}>บันทึกเป็น “ลูกค้าสำรวจ” ยังไม่นับเป็นงาน · ถ้าตกลงติดตั้งค่อยกดแปลงเป็นงานทีหลัง</div>
                   <div style={{ display: "flex", flexDirection: "column", gap: 5 }}><label style={lbl}>ชื่อลูกค้า *</label><input value={nl.name} onChange={(e) => setN("name", e.target.value)} placeholder="เช่น คุณสมชาย ใจดี" style={inputStyle} /></div>
                   <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 11 }}>
@@ -458,9 +458,9 @@ function SurveyApptModal({ initial, jobs, techs, appts, leads, blankLead, onClos
           </div>
         </div>
         <div style={{ padding: "12px 18px", paddingBottom: isMobile ? "calc(12px + env(safe-area-inset-bottom,0px))" : 12, borderTop: "1px solid var(--border)", background: "var(--surface)", display: "flex", gap: 10, alignItems: "center" }}>
-          {!isNew && <button onClick={() => onDelete(f.id)} style={{ flex: "0 0 auto", width: 44, height: 44, borderRadius: 11, border: "1px solid var(--tint-red-bd)", background: "var(--tint-red-bg)", color: "var(--tint-red-tx2)", cursor: "pointer", display: "grid", placeItems: "center" }}><Icon name="x" size={16} /></button>}
-          <button onClick={onClose} style={{ flex: "0 0 auto", padding: "12px 18px", borderRadius: 11, border: "1px solid var(--border-strong)", background: "var(--surface)", color: "var(--text-2)", fontWeight: 700, fontFamily: "inherit", fontSize: 13.5, cursor: "pointer" }}>ยกเลิก</button>
-          <button onClick={submit} style={{ flex: 1, padding: "12px", borderRadius: 11, border: "none", background: "var(--primary)", color: "#fff", fontWeight: 700, fontFamily: "inherit", fontSize: 14, cursor: "pointer" }}>บันทึกนัดหมาย</button>
+          {!isNew && <button onClick={() => onDelete(f.id)} style={{ flex: "0 0 auto", width: 44, height: 44, borderRadius: "var(--r-chip)", border: "1px solid var(--tint-red-bd)", background: "var(--tint-red-bg)", color: "var(--tint-red-tx2)", cursor: "pointer", display: "grid", placeItems: "center" }}><Icon name="x" size={16} /></button>}
+          <button onClick={onClose} style={{ flex: "0 0 auto", padding: "12px 18px", borderRadius: "var(--r-chip)", border: "1px solid var(--border-strong)", background: "var(--surface)", color: "var(--text-2)", fontWeight: 700, fontFamily: "inherit", fontSize: 13.5, cursor: "pointer" }}>ยกเลิก</button>
+          <button onClick={submit} style={{ flex: 1, padding: "12px", borderRadius: "var(--r-chip)", border: "none", background: "var(--primary)", color: "#fff", fontWeight: 700, fontFamily: "inherit", fontSize: 14, cursor: "pointer" }}>บันทึกนัดหมาย</button>
         </div>
       </div>
     </div>
@@ -491,12 +491,12 @@ function ApptFlow({ a, job, onStatus, onOpenSurvey }) {
         return (
           <div key={s.key} style={{ display: "flex", gap: 11 }}>
             <div style={{ display: "flex", flexDirection: "column", alignItems: "center" }}>
-              <span style={{ width: 22, height: 22, borderRadius: 99, flexShrink: 0, display: "grid", placeItems: "center",
+              <span style={{ width: 22, height: 22, borderRadius: "var(--r-pill)", flexShrink: 0, display: "grid", placeItems: "center",
                 background: reached ? "var(--primary)" : isNext ? "var(--surface)" : "var(--surface3)",
                 border: isNext ? "2px solid var(--primary)" : "2px solid transparent", color: "#fff" }}>
                 {reached ? <Icon name="check" size={12} color="#fff" sw={2.6} />
-                  : isNext ? <span style={{ width: 7, height: 7, borderRadius: 99, background: "var(--primary)" }} />
-                  : <span style={{ width: 6, height: 6, borderRadius: 99, background: "var(--text-3)" }} />}
+                  : isNext ? <span style={{ width: 7, height: 7, borderRadius: "var(--r-pill)", background: "var(--primary)" }} />
+                  : <span style={{ width: 6, height: 6, borderRadius: "var(--r-pill)", background: "var(--text-3)" }} />}
               </span>
               {!last && <span style={{ width: 2, flex: 1, minHeight: 18, background: i < idx ? "var(--primary)" : "var(--border)", margin: "2px 0" }} />}
             </div>
@@ -516,7 +516,7 @@ function ApptFlow({ a, job, onStatus, onOpenSurvey }) {
           </div>
         );
       })}
-      {a.status === "done" && job && <button onClick={() => onOpenSurvey(job, a)} style={{ width: "100%", marginTop: 4, display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 6, padding: "10px", borderRadius: 10, border: "1px solid var(--border-strong)", background: "var(--surface)", color: "var(--primary-dark)", fontWeight: 700, fontFamily: "inherit", fontSize: 13, cursor: "pointer" }}><Icon name="check" size={14} color="var(--primary-dark)" /> ดู / แก้ไขแบบสำรวจ</button>}
+      {a.status === "done" && job && <button onClick={() => onOpenSurvey(job, a)} style={{ width: "100%", marginTop: 4, display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 6, padding: "10px", borderRadius: "var(--r-chip)", border: "1px solid var(--border-strong)", background: "var(--surface)", color: "var(--primary-dark)", fontWeight: 700, fontFamily: "inherit", fontSize: 13, cursor: "pointer" }}><Icon name="check" size={14} color="var(--primary-dark)" /> ดู / แก้ไขแบบสำรวจ</button>}
     </div>
   );
 }
@@ -528,13 +528,13 @@ function ApptCard({ a, job, onStatus, onOpenSurvey }) {
   const sv = job && window.surveyStatus ? window.surveyStatus(job) : null;
   const mapHref = job && job.map ? job.map : (a.address ? "https://www.google.com/maps/search/?api=1&query=" + encodeURIComponent((a.address || "") + " " + (a.province || "")) : null);
   return (
-    <div style={{ background: "var(--surface)", border: "1px solid var(--border)", borderLeft: "4px solid " + stt.color, borderRadius: 14, boxShadow: "var(--shadow-sm)", overflow: "hidden" }}>
+    <div style={{ background: "var(--surface)", border: "1px solid var(--border)", borderLeft: "4px solid " + stt.color, borderRadius: "var(--r-tile)", boxShadow: "var(--shadow-sm)", overflow: "hidden" }}>
       <div style={{ padding: 14, display: "flex", flexDirection: "column", gap: 8 }}>
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
           <span style={{ display: "inline-flex", alignItems: "center", gap: 6, fontFamily: "var(--mono)", fontSize: 13.5, fontWeight: 800, color: "var(--text-1)" }}>
             <Icon name="clock" size={14} color="var(--text-3)" />{thDate(_ymdLocal(a.start), true)} · {_hm(a.start)}–{_hm(a.end)}
           </span>
-          <span style={{ fontSize: 10, fontWeight: 700, color: "#0EA5E9", background: "#0EA5E916", padding: "3px 9px", borderRadius: 99, whiteSpace: "nowrap" }}>{a.leadId ? "สำรวจ · ลูกค้าใหม่" : "สำรวจหน้างาน"}</span>
+          <span style={{ fontSize: 10, fontWeight: 700, color: "#0EA5E9", background: "#0EA5E916", padding: "3px 9px", borderRadius: "var(--r-pill)", whiteSpace: "nowrap" }}>{a.leadId ? "สำรวจ · ลูกค้าใหม่" : "สำรวจหน้างาน"}</span>
         </div>
         <div style={{ fontSize: 15, fontWeight: 800, color: "var(--text-1)" }}>{a.jobName || (job && job.name) || "—"}</div>
         <div style={{ fontSize: 12, color: "var(--text-2)", display: "flex", alignItems: "flex-start", gap: 6 }}>
@@ -587,12 +587,12 @@ function JobTaskCard({ job, stages, day, dayEnd, onOpen, onAdvance }) {
       ok: "เลื่อนขั้น", danger: false, icon: "check" }).then((ok) => { if (ok) onAdvance(job); });
   };
   return (
-    <div role="button" tabIndex={0} onClick={() => onOpen && onOpen(job)} style={{ textAlign: "left", cursor: "pointer", fontFamily: "inherit", width: "100%", background: "var(--surface)", border: "1px solid var(--border)", borderLeft: "4px solid " + color, borderRadius: 14, boxShadow: "var(--shadow-sm)", padding: 12, display: "flex", flexDirection: "column", gap: 6 }}>
+    <div role="button" tabIndex={0} onClick={() => onOpen && onOpen(job)} style={{ textAlign: "left", cursor: "pointer", fontFamily: "inherit", width: "100%", background: "var(--surface)", border: "1px solid var(--border)", borderLeft: "4px solid " + color, borderRadius: "var(--r-tile)", boxShadow: "var(--shadow-sm)", padding: 12, display: "flex", flexDirection: "column", gap: 6 }}>
       <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 8 }}>
         <span style={{ display: "inline-flex", alignItems: "center", gap: 6, flexWrap: "wrap", minWidth: 0 }}>
           {list.map((s) => (
-            <span key={(s.key || s.th) + (s.kind || "")} style={{ display: "inline-flex", alignItems: "center", gap: 5, padding: "3px 9px", borderRadius: 99, background: (s.color || "#64748B") + "16", color: s.color || "#64748B", fontSize: 12, fontWeight: 800, whiteSpace: "nowrap" }}>
-              <span style={{ width: 7, height: 7, borderRadius: 99, background: s.color || "#64748B" }} />{s.th}
+            <span key={(s.key || s.th) + (s.kind || "")} style={{ display: "inline-flex", alignItems: "center", gap: 5, padding: "3px 9px", borderRadius: "var(--r-pill)", background: (s.color || "#64748B") + "16", color: s.color || "#64748B", fontSize: 12, fontWeight: 800, whiteSpace: "nowrap" }}>
+              <span style={{ width: 7, height: 7, borderRadius: "var(--r-pill)", background: s.color || "#64748B" }} />{s.th}
               {s.kind && STAGE_KIND_TH[s.kind] && <span style={{ fontWeight: 600, opacity: .7 }}>· {STAGE_KIND_TH[s.kind]}</span>}
             </span>
           ))}
@@ -622,7 +622,7 @@ function JobTaskCard({ job, stages, day, dayEnd, onOpen, onAdvance }) {
               return (
                 <div key={s.key} title={s.th} style={{ flex: isLast ? "0 0 auto" : "1 1 0", display: "flex", flexDirection: "column", alignItems: "flex-start", minWidth: 0 }}>
                   <div style={{ display: "flex", alignItems: "center", alignSelf: "stretch" }}>
-                    <span style={{ width: current ? 13 : 9, height: current ? 13 : 9, borderRadius: 99, flexShrink: 0,
+                    <span style={{ width: current ? 13 : 9, height: current ? 13 : 9, borderRadius: "var(--r-pill)", flexShrink: 0,
                       background: filled ? s.color : "var(--surface)", border: current ? "2px solid " + s.color : (passed ? "none" : "1.5px solid var(--border-strong)"),
                       boxShadow: current ? "0 0 0 3px " + s.color + "33" : "none", display: "grid", placeItems: "center" }}>
                       {passed && <Icon name="check" size={6} color="#fff" sw={3.5} />}
@@ -642,11 +642,11 @@ function JobTaskCard({ job, stages, day, dayEnd, onOpen, onAdvance }) {
         {mapHref && <a href={mapHref} target="_blank" rel="noreferrer" onClick={(e) => e.stopPropagation()} style={{ flexShrink: 0, display: "inline-flex", alignItems: "center", gap: 3, color: "var(--primary-dark)", fontWeight: 700, fontSize: 11.5, textDecoration: "none" }}><Icon name="map" size={12} color="var(--primary-dark)" /> นำทาง</a>}
       </div>
       {canAdvance && ((advNoDate || advEarly) ? (
-        <div style={{ marginTop: 2, display: "flex", alignItems: "center", justifyContent: "center", gap: 6, padding: "9px", borderRadius: 10, background: "var(--surface3)", color: "var(--text-3)", fontWeight: 700, fontSize: 12.5 }}>
+        <div style={{ marginTop: 2, display: "flex", alignItems: "center", justifyContent: "center", gap: 6, padding: "9px", borderRadius: "var(--r-chip)", background: "var(--surface3)", color: "var(--text-3)", fontWeight: 700, fontSize: 12.5 }}>
           <Icon name="lock" size={13} color="var(--text-3)" /> {advNoDate ? "ยังไม่กำหนดวันนัดติดตั้ง" : "ติดตั้งวันที่ " + thDate(_instS, true) + (_instE && _instE !== _instS ? "–" + thDate(_instE, true) : "")}
         </div>
       ) : (
-        <button onClick={doAdvance} style={{ marginTop: 2, width: "100%", display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 6, padding: "10px", borderRadius: 10, border: "none", background: advOverdue ? "var(--tint-red-tx2)" : (curStage.color || "var(--primary)"), color: "#fff", fontWeight: 700, fontFamily: "inherit", fontSize: 13, cursor: "pointer" }}>
+        <button onClick={doAdvance} style={{ marginTop: 2, width: "100%", display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 6, padding: "10px", borderRadius: "var(--r-chip)", border: "none", background: advOverdue ? "var(--tint-red-tx2)" : (curStage.color || "var(--primary)"), color: "#fff", fontWeight: 700, fontFamily: "inherit", fontSize: 13, cursor: "pointer" }}>
           <Icon name={advOverdue ? "alert" : "check"} size={15} color="#fff" sw={2.5} /> {advOverdue ? "เลยกำหนด " + daysLate + " วัน · " : ""}เสร็จ “{curStage.th}” → {nextStage.th}
         </button>
       ))}
@@ -727,11 +727,11 @@ function MyScheduleView({ appts, jobs, leads, me, onMenuOpen, onStatus, onOpenSu
       <SchedHeader icon="list" title="ตารางงาน" onMenuOpen={onMenuOpen} sub={sub} />
       <div className="app-content">
         {!techId ? (
-          <div style={{ padding: 40, textAlign: "center", color: "var(--text-3)", fontSize: 14, background: "var(--surface)", border: "none", boxShadow: "var(--shadow-sm)", borderRadius: 14 }}>
+          <div style={{ padding: 40, textAlign: "center", color: "var(--text-3)", fontSize: 14, background: "var(--surface)", border: "none", boxShadow: "var(--shadow-sm)", borderRadius: "var(--r-tile)" }}>
             บัญชีของคุณยังไม่ได้ผูกกับข้อมูลพนักงาน · กรุณาให้แอดมินตั้งค่าในเมนูจัดการผู้ใช้งาน
           </div>
         ) : items.length === 0 ? (
-          <div style={{ padding: 44, textAlign: "center", color: "var(--text-3)", background: "var(--surface)", border: "none", boxShadow: "var(--shadow-sm)", borderRadius: 16 }}>
+          <div style={{ padding: 44, textAlign: "center", color: "var(--text-3)", background: "var(--surface)", border: "none", boxShadow: "var(--shadow-sm)", borderRadius: "var(--r-tile)" }}>
             <div style={{ fontSize: 30, marginBottom: 6 }}>🎉</div>
             <div style={{ fontSize: 14, fontWeight: 600 }}>ไม่มีงานในความรับผิดชอบตอนนี้</div>
           </div>

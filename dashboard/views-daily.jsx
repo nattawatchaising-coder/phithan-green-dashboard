@@ -32,7 +32,7 @@ function DrText({ value, onChange, rows, placeholder, disabled }) {
 
 function DrSection({ n, title, hint, children, tone }) {
   return (
-    <div style={{ marginBottom: 16, border: "none", boxShadow: "var(--shadow-sm)", borderRadius: 14, background: "var(--surface2)", overflow: "hidden" }}>
+    <div style={{ marginBottom: 16, border: "none", boxShadow: "var(--shadow-sm)", borderRadius: "var(--r-tile)", background: "var(--surface2)", overflow: "hidden" }}>
       <div style={{ display: "flex", alignItems: "center", gap: 9, padding: "11px 14px", borderBottom: "1px solid var(--border)" }}>
         <span style={{ width: 22, height: 22, borderRadius: 7, display: "grid", placeItems: "center", flexShrink: 0,
           background: (tone || "var(--primary)") + "1e", color: tone || "var(--primary-dark)",
@@ -55,7 +55,7 @@ function DrChips({ options, value, onChange, disabled }) {
         return (
           <button key={o.key} type="button" disabled={disabled}
             onClick={() => onChange(on ? "" : o.key)}
-            style={{ padding: "7px 13px", borderRadius: 99, cursor: disabled ? "default" : "pointer", fontFamily: "inherit",
+            style={{ padding: "7px 13px", borderRadius: "var(--r-pill)", cursor: disabled ? "default" : "pointer", fontFamily: "inherit",
               fontSize: 12.5, fontWeight: 700, opacity: disabled && !on ? 0.5 : 1,
               border: "1px solid " + (on ? c : "var(--border-strong)"),
               background: on ? c + "1e" : "var(--surface)", color: on ? c : "var(--text-2)" }}>
@@ -286,7 +286,7 @@ function DrPhotos({ jobId, date, currentUser, disabled }) {
   return (
     <div>
       {!disabled && (
-        <label style={{ display: "inline-flex", alignItems: "center", gap: 7, padding: "9px 14px", borderRadius: 10,
+        <label style={{ display: "inline-flex", alignItems: "center", gap: 7, padding: "9px 14px", borderRadius: "var(--r-chip)",
           border: "1px dashed var(--border-strong)", background: "var(--surface)", cursor: "pointer",
           fontSize: 12.5, fontWeight: 700, color: "var(--text-2)", marginBottom: photos.length ? 12 : 0 }}>
           <Icon name="camera" size={15} /> {busy ? "กำลังใส่รูป " + busy + " ใบ..." : "เพิ่มรูป (เลือกได้หลายใบ)"}
@@ -296,7 +296,7 @@ function DrPhotos({ jobId, date, currentUser, disabled }) {
       {!photos.length && disabled && <div style={{ fontSize: 12, color: "var(--text-3)" }}>ไม่มีรูปในรายงานวันนี้</div>}
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(150px, 1fr))", gap: 11 }}>
         {photos.map((p) => (
-          <div key={p.id} style={{ border: "none", boxShadow: "var(--shadow-sm)", borderRadius: 11, overflow: "hidden", background: "var(--surface)" }}>
+          <div key={p.id} style={{ border: "none", boxShadow: "var(--shadow-sm)", borderRadius: "var(--r-chip)", overflow: "hidden", background: "var(--surface)" }}>
             <div style={{ position: "relative", background: "#0d1512" }}>
               <img src={p.dataUrl} alt={p.cap || "รูปหน้างาน"} style={{ width: "100%", height: 112, objectFit: "cover", display: "block" }} />
               {!disabled && (
@@ -330,7 +330,7 @@ function DrPhotos({ jobId, date, currentUser, disabled }) {
 /* ช่องลายเซ็นในฟอร์ม — เซ็นแล้วเห็นภาพจริง ยังไม่เซ็นเห็นปุ่ม */
 function DrSignSlot({ title, sub, sig, canSign, onSign, onClear, saved, onUseSaved }) {
   return (
-    <div style={{ border: "none", boxShadow: "var(--shadow-sm)", borderRadius: 12, background: "var(--surface)", padding: "12px 13px" }}>
+    <div style={{ border: "none", boxShadow: "var(--shadow-sm)", borderRadius: "var(--r-chip)", background: "var(--surface)", padding: "12px 13px" }}>
       <div style={{ fontSize: 12, fontWeight: 800, color: "var(--text-2)" }}>{title}</div>
       <div style={{ fontSize: 11, color: "var(--text-3)", marginTop: 2 }}>{sub}</div>
       <div style={{ height: 76, marginTop: 9, borderRadius: 9, background: "var(--surface2)", border: "1px solid var(--border)",
@@ -388,13 +388,13 @@ function DrModeSwitch({ value, onChange, disabled }) {
   return (
     <span style={{ display: "inline-flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
       <span style={{ fontSize: 11, fontWeight: 700, color: "var(--text-3)" }}>แบบฟอร์ม</span>
-      <span style={{ display: "inline-flex", padding: 2, gap: 2, borderRadius: 99, background: "var(--surface2)", border: "1px solid var(--border)" }}>
+      <span style={{ display: "inline-flex", padding: 2, gap: 2, borderRadius: "var(--r-pill)", background: "var(--surface2)", border: "1px solid var(--border)" }}>
         {DR_MODES.map((m) => {
           const on = value === m.key;
           return (
             <button key={m.key} type="button" disabled={disabled} title={m.hint}
               onClick={() => onChange(m.key)}
-              style={{ padding: "3px 11px", borderRadius: 99, border: "none", fontFamily: "inherit",
+              style={{ padding: "3px 11px", borderRadius: "var(--r-pill)", border: "none", fontFamily: "inherit",
                 fontSize: 11.5, fontWeight: 800, cursor: disabled ? "default" : "pointer",
                 background: on ? "var(--primary)" : "transparent", color: on ? "#fff" : "var(--text-3)",
                 opacity: disabled && !on ? 0.45 : 1 }}>{m.th}</button>
@@ -542,10 +542,10 @@ function DailyReportModal({ job, role, currentUser, onClose, onNotify, openDate 
                 <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
                   <span style={{ fontSize: isMobile ? 15.5 : 17.5, fontWeight: 800, color: "var(--text-1)" }}>รายงานประจำวันหน้างาน</span>
                   <span style={{ fontSize: 11.5, fontWeight: 700, color: st.color, background: st.color + "1c",
-                    border: "1px solid " + st.color + "40", borderRadius: 99, padding: "2px 10px" }}>{st.th}</span>
+                    border: "1px solid " + st.color + "40", borderRadius: "var(--r-pill)", padding: "2px 10px" }}>{st.th}</span>
                   {/* ใบที่ล็อกแล้วแก้ไม่ได้ — โชว์เป็นป้ายบอกว่าใบนี้เขียนด้วยแบบไหน แทนปุ่มที่กดไม่ลง */}
                   {locked ? (
-                    <span style={{ fontSize: 11, fontWeight: 700, borderRadius: 99, padding: "2px 9px",
+                    <span style={{ fontSize: 11, fontWeight: 700, borderRadius: "var(--r-pill)", padding: "2px 9px",
                       color: isProject ? "#7C5CFC" : "#F59E0B", background: (isProject ? "#7C5CFC" : "#F59E0B") + "1c" }}>
                       {isProject ? "แบบจัดเต็ม" : "แบบปกติ"}
                     </span>
@@ -558,7 +558,7 @@ function DailyReportModal({ job, role, currentUser, onClose, onNotify, openDate 
                 </div>
               </div>
               <button className="x-close" onClick={() => { flush(); onClose(); }}
-                style={{ width: 34, height: 34, borderRadius: 10, border: "1px solid var(--border-strong)", background: "var(--surface)",
+                style={{ width: 34, height: 34, borderRadius: "var(--r-chip)", border: "1px solid var(--border-strong)", background: "var(--surface)",
                   cursor: "pointer", display: "grid", placeItems: "center", color: "var(--text-2)", flexShrink: 0 }}>
                 <Icon name="x" size={16} />
               </button>
@@ -591,11 +591,11 @@ function DailyReportModal({ job, role, currentUser, onClose, onNotify, openDate 
                   const on = d === date;
                   return (
                     <button key={d} onClick={() => setDate(d)}
-                      style={{ display: "inline-flex", alignItems: "center", gap: 5, padding: "5px 10px", borderRadius: 99, flexShrink: 0,
+                      style={{ display: "inline-flex", alignItems: "center", gap: 5, padding: "5px 10px", borderRadius: "var(--r-pill)", flexShrink: 0,
                         border: "1px solid " + (on ? "var(--primary)" : "var(--border)"), background: on ? "var(--primary-soft)" : "var(--surface)",
                         cursor: "pointer", fontFamily: "inherit", fontSize: 11.5, fontWeight: 700,
                         color: on ? "var(--primary-dark)" : "var(--text-2)" }}>
-                      <span style={{ width: 6, height: 6, borderRadius: 99, background: s.color }} />
+                      <span style={{ width: 6, height: 6, borderRadius: "var(--r-pill)", background: s.color }} />
                       {window.drShort(d)}
                     </button>
                   );
@@ -608,7 +608,7 @@ function DailyReportModal({ job, role, currentUser, onClose, onNotify, openDate 
           <div style={{ padding: isMobile ? "14px 13px 90px" : "18px 20px 100px" }}>
             {locked && (
               <div style={{ display: "flex", alignItems: "center", gap: 9, padding: "11px 13px", marginBottom: 14,
-                border: "1px solid #10B98140", background: "#10B98114", borderRadius: 12 }}>
+                border: "1px solid #10B98140", background: "#10B98114", borderRadius: "var(--r-chip)" }}>
                 <Icon name="lock" size={15} color="#10B981" />
                 <span style={{ fontSize: 12.5, color: "var(--text-1)" }}>
                   อนุมัติแล้วโดย <b>{form.appName || "-"}</b> · แก้ไขไม่ได้{canApprove ? " — หัวหน้ากดปลดล็อกได้ที่ปุ่มด้านล่าง" : ""}
@@ -704,7 +704,7 @@ function DailyReportModal({ job, role, currentUser, onClose, onNotify, openDate 
                     {window.DR_MANPOWER.map((m) => (
                       <button key={m.key} type="button" disabled={locked}
                         onClick={() => edit({ manpower: (form.manpower || []).concat([{ role: m.th, qty: "1" }]) })}
-                        style={{ padding: "6px 11px", borderRadius: 99, border: "1px dashed var(--border-strong)", background: "var(--surface)",
+                        style={{ padding: "6px 11px", borderRadius: "var(--r-pill)", border: "1px dashed var(--border-strong)", background: "var(--surface)",
                           cursor: locked ? "default" : "pointer", fontFamily: "inherit", fontSize: 11.5, fontWeight: 700,
                           color: "var(--text-2)", opacity: locked ? 0.5 : 1 }}>+ {m.th}</button>
                     ))}
@@ -736,7 +736,7 @@ function DailyReportModal({ job, role, currentUser, onClose, onNotify, openDate 
                         return (
                           <button key={c.key} type="button" disabled={locked}
                             onClick={() => edit({ clean: Object.assign({}, form.clean, { [c.key]: !on }) })}
-                            style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "7px 12px", borderRadius: 99,
+                            style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "7px 12px", borderRadius: "var(--r-pill)",
                               border: "1px solid " + (on ? "#10B981" : "var(--border-strong)"), background: on ? "#10B9811c" : "var(--surface)",
                               cursor: locked ? "default" : "pointer", fontFamily: "inherit", fontSize: 12.5, fontWeight: 700,
                               color: on ? "#10B981" : "var(--text-2)" }}>
@@ -780,32 +780,32 @@ function DailyReportModal({ job, role, currentUser, onClose, onNotify, openDate 
             {canDelete && saved && (delAsk ? (
               <React.Fragment>
                 <button onClick={() => setDelAsk(false)}
-                  style={{ display: "inline-flex", alignItems: "center", gap: 7, padding: "10px 15px", borderRadius: 10,
+                  style={{ display: "inline-flex", alignItems: "center", gap: 7, padding: "10px 15px", borderRadius: "var(--r-chip)",
                     border: "1px solid var(--border-strong)", background: "var(--surface)", cursor: "pointer",
                     fontFamily: "inherit", fontSize: 13, fontWeight: 700, color: "var(--text-2)" }}>ยกเลิก</button>
                 <button onClick={doDelete}
-                  style={{ display: "inline-flex", alignItems: "center", gap: 7, padding: "10px 16px", borderRadius: 10, border: "none",
+                  style={{ display: "inline-flex", alignItems: "center", gap: 7, padding: "10px 16px", borderRadius: "var(--r-chip)", border: "none",
                     background: "#EF4444", color: "#fff", cursor: "pointer", fontFamily: "inherit", fontSize: 13, fontWeight: 700 }}>
                   <Icon name="trash" size={15} color="#fff" /> ลบเลย
                 </button>
               </React.Fragment>
             ) : (
               <button onClick={() => setDelAsk(true)} title="ลบใบรายงานของวันนี้ (เฉพาะแอดมิน)"
-                style={{ display: "inline-flex", alignItems: "center", gap: 7, padding: "10px 13px", borderRadius: 10,
+                style={{ display: "inline-flex", alignItems: "center", gap: 7, padding: "10px 13px", borderRadius: "var(--r-chip)",
                   border: "1px solid var(--tint-red-bd)", background: "var(--surface)", cursor: "pointer",
                   fontFamily: "inherit", fontSize: 13, fontWeight: 700, color: "var(--tint-red-tx2)" }}>
                 <Icon name="trash" size={15} color="#EF4444" /> ลบใบนี้
               </button>
             ))}
             <button onClick={() => { flush(); setPaper(true); }}
-              style={{ display: "inline-flex", alignItems: "center", gap: 7, padding: "10px 15px", borderRadius: 10,
+              style={{ display: "inline-flex", alignItems: "center", gap: 7, padding: "10px 15px", borderRadius: "var(--r-chip)",
                 border: "1px solid var(--primary)", background: "var(--primary-soft)", cursor: "pointer",
                 fontFamily: "inherit", fontSize: 13, fontWeight: 700, color: "var(--primary-dark)" }}>
               <Icon name="file" size={15} color="var(--primary-dark)" /> ดูรายงาน · บันทึก PDF
             </button>
             {!locked && form.status !== "sent" && (
               <button onClick={send} title={noEe ? "งานนี้ยังไม่ระบุวิศวกรผู้รับผิดชอบ" : ("ส่งให้ " + (job.eeName || "วิศวกร"))}
-                style={{ display: "inline-flex", alignItems: "center", gap: 7, padding: "10px 16px", borderRadius: 10, border: "none",
+                style={{ display: "inline-flex", alignItems: "center", gap: 7, padding: "10px 16px", borderRadius: "var(--r-chip)", border: "none",
                   background: "var(--primary)", color: "#fff", cursor: "pointer", fontFamily: "inherit", fontSize: 13, fontWeight: 700 }}>
                 <Icon name="check" size={15} color="#fff" /> ส่งให้วิศวกร
               </button>
@@ -819,14 +819,14 @@ function DailyReportModal({ job, role, currentUser, onClose, onNotify, openDate 
             )}
             {canApprove && form.status === "sent" && (
               <button onClick={approve}
-                style={{ display: "inline-flex", alignItems: "center", gap: 7, padding: "10px 16px", borderRadius: 10, border: "none",
+                style={{ display: "inline-flex", alignItems: "center", gap: 7, padding: "10px 16px", borderRadius: "var(--r-chip)", border: "none",
                   background: "#10B981", color: "#fff", cursor: "pointer", fontFamily: "inherit", fontSize: 13, fontWeight: 700 }}>
                 <Icon name="check" size={15} color="#fff" /> อนุมัติ
               </button>
             )}
             {canApprove && form.status === "approved" && (
               <button onClick={reopen}
-                style={{ display: "inline-flex", alignItems: "center", gap: 7, padding: "10px 15px", borderRadius: 10,
+                style={{ display: "inline-flex", alignItems: "center", gap: 7, padding: "10px 15px", borderRadius: "var(--r-chip)",
                   border: "1px solid var(--border-strong)", background: "var(--surface)", cursor: "pointer",
                   fontFamily: "inherit", fontSize: 13, fontWeight: 700, color: "var(--text-2)" }}>
                 <Icon name="undo" size={15} /> ปลดล็อกให้แก้
@@ -870,7 +870,7 @@ function DrPBlock({ title, children, avoid }) {
   return (
     <div style={{ marginTop: 16, breakInside: avoid ? "avoid" : "auto" }}>
       <div style={{ display: "flex", alignItems: "center", gap: 7, borderBottom: "1px solid #DCE4DF", paddingBottom: 5, marginBottom: 8 }}>
-        <span style={{ width: 5, height: 5, borderRadius: 99, background: "#1B9B75" }} />
+        <span style={{ width: 5, height: 5, borderRadius: "var(--r-pill)", background: "#1B9B75" }} />
         <span style={{ fontSize: 12, fontWeight: 800, color: "#15211A" }}>{title}</span>
       </div>
       {children}
@@ -1030,7 +1030,7 @@ function DailyPaper({ job, rec, date, allDates, onClose }) {
         alignItems: "center", flexWrap: "wrap",
         padding: "11px 14px", background: "var(--surface)", borderBottom: "1px solid var(--border)",
         marginBottom: isMobile ? 0 : 16, borderRadius: isMobile ? 0 : 12, maxWidth: 900, marginLeft: "auto", marginRight: "auto", boxShadow: "var(--shadow-sm)" }}>
-        <button className="x-close" onClick={onClose} style={{ width: 36, height: 36, borderRadius: 10, border: "1px solid var(--border-strong)",
+        <button className="x-close" onClick={onClose} style={{ width: 36, height: 36, borderRadius: "var(--r-chip)", border: "1px solid var(--border-strong)",
           background: "var(--surface)", cursor: "pointer", display: "grid", placeItems: "center", color: "var(--text-2)", flexShrink: 0 }}><Icon name="x" size={16} /></button>
         <div style={{ flex: "1 1 170px", minWidth: 0 }}>
           <div style={{ fontSize: 13.5, fontWeight: 800, color: "var(--text-1)" }}>รายงานประจำวัน · {window.drDateTH(date)}</div>
@@ -1043,7 +1043,7 @@ function DailyPaper({ job, rec, date, allDates, onClose }) {
           {typeof window.LangPick === "function" && (
             <window.LangPick value={lang} onChange={pickLang} />
           )}
-          <button onClick={doPrint} style={{ display: "inline-flex", alignItems: "center", gap: 7, padding: "11px 16px", borderRadius: 11,
+          <button onClick={doPrint} style={{ display: "inline-flex", alignItems: "center", gap: 7, padding: "11px 16px", borderRadius: "var(--r-chip)",
             border: "none", background: "var(--primary)", color: "#fff", fontFamily: "inherit", fontSize: 13.5, fontWeight: 700, cursor: "pointer", flexShrink: 0 }}>
             <Icon name="file" size={16} color="#fff" /> บันทึก PDF
           </button>
@@ -1069,7 +1069,7 @@ function DailyPaper({ job, rec, date, allDates, onClose }) {
           <div style={{ textAlign: "right", fontSize: 11, color: "#4A5A51", lineHeight: 1.75 }}>
             <div style={{ fontFamily: "var(--mono)", fontWeight: 700, color: "#15211A" }}>{docNo}</div>
             <div>{DT(date)}</div>
-            <div style={{ display: "inline-block", marginTop: 3, padding: "2px 9px", borderRadius: 99,
+            <div style={{ display: "inline-block", marginTop: 3, padding: "2px 9px", borderRadius: "var(--r-pill)",
               background: st.color + "22", color: st.color, fontWeight: 700, fontSize: 10.5 }}>{T(st.th)}</div>
           </div>
         </div>
@@ -1089,7 +1089,7 @@ function DailyPaper({ job, rec, date, allDates, onClose }) {
         <div style={{ marginTop: 14, border: "1px solid #DCE4DF", borderRadius: 9, padding: "12px 14px", breakInside: "avoid" }}>
           <div style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
             <span style={{ fontSize: 11.5, fontWeight: 700, color: "#4A5A51" }}>{T("ความคืบหน้ารวม")}</span>
-            <div style={{ flex: 1, minWidth: 160, height: 9, borderRadius: 99, background: "#E8EEEA", overflow: "hidden" }}>
+            <div style={{ flex: 1, minWidth: 160, height: 9, borderRadius: "var(--r-pill)", background: "#E8EEEA", overflow: "hidden" }}>
               <div style={{ width: Math.max(0, Math.min(100, pct)) + "%", height: "100%", background: "#1B9B75" }} />
             </div>
             <span style={{ fontSize: 17, fontWeight: 800, fontFamily: "var(--mono)", color: "#15211A" }}>{pct}%</span>
@@ -1347,7 +1347,7 @@ function DrJobSummary({ job, all, onOpen, onBack }) {
   dates.forEach((d) => { const k = byDate[d].status || "draft"; n[k] = (n[k] || 0) + 1; });
 
   return (
-    <div style={{ border: "none", boxShadow: "var(--shadow-sm)", borderRadius: 14, background: "var(--surface2)", overflow: "hidden" }}>
+    <div style={{ border: "none", boxShadow: "var(--shadow-sm)", borderRadius: "var(--r-tile)", background: "var(--surface2)", overflow: "hidden" }}>
       <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "11px 14px", borderBottom: "1px solid var(--border)" }}>
         <button onClick={onBack} title="กลับไปตารางภาพรวม"
           style={{ width: 30, height: 30, borderRadius: 9, border: "1px solid var(--border-strong)", background: "var(--surface)",
@@ -1375,7 +1375,7 @@ function DrJobSummary({ job, all, onOpen, onBack }) {
             style={{ width: "100%", display: "flex", alignItems: "center", gap: 11, padding: "11px 14px",
               border: "none", borderBottom: "1px solid var(--border)", background: "none",
               cursor: "pointer", fontFamily: "inherit", textAlign: "left" }}>
-            <span style={{ width: 8, height: 8, borderRadius: 99, background: st.color, flexShrink: 0 }} />
+            <span style={{ width: 8, height: 8, borderRadius: "var(--r-pill)", background: st.color, flexShrink: 0 }} />
             <span style={{ fontFamily: "var(--mono)", fontSize: 11.5, color: "var(--text-2)", flexShrink: 0, width: 92 }}>
               {window.drShort(d)}
             </span>
@@ -1387,7 +1387,7 @@ function DrJobSummary({ job, all, onOpen, onBack }) {
               <span style={{ fontFamily: "var(--mono)", fontSize: 12.5, fontWeight: 700, color: "var(--text-2)", flexShrink: 0 }}>{+rec.pct || 0}%</span>
             )}
             <span style={{ fontSize: 11, fontWeight: 700, color: st.color, background: st.color + "1a",
-              borderRadius: 99, padding: "3px 9px", flexShrink: 0, whiteSpace: "nowrap" }}>{st.th}</span>
+              borderRadius: "var(--r-pill)", padding: "3px 9px", flexShrink: 0, whiteSpace: "nowrap" }}>{st.th}</span>
           </button>
         );
       })}
@@ -1434,7 +1434,7 @@ function DrInbox({ rows, onOpen }) {
             style={{ width: "100%", display: "flex", alignItems: "center", gap: 11, padding: "13px 16px",
               background: "none", border: "none", borderBottom: "1px solid var(--border)", cursor: "pointer",
               fontFamily: "inherit", textAlign: "left" }}>
-            <span style={{ width: 8, height: 8, borderRadius: 99, background: "#F59E0B", flexShrink: 0 }} />
+            <span style={{ width: 8, height: 8, borderRadius: "var(--r-pill)", background: "#F59E0B", flexShrink: 0 }} />
             <span style={{ flex: 1, minWidth: 0 }}>
               <span style={{ display: "block", fontSize: 13.5, fontWeight: 700, color: "var(--text-1)",
                 whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{r.job.name}</span>
@@ -1447,7 +1447,7 @@ function DrInbox({ rows, onOpen }) {
               {(+r.rec.pct || 0) + "%"}
             </span>
             {late >= 2 && (
-              <span style={{ padding: "3px 9px", borderRadius: 99, background: "var(--tint-amber-bg)", color: "var(--tint-amber-tx)",
+              <span style={{ padding: "3px 9px", borderRadius: "var(--r-pill)", background: "var(--tint-amber-bg)", color: "var(--tint-amber-tx)",
                 fontSize: 11, fontWeight: 800, flexShrink: 0 }}>ค้าง {late} วัน</span>
             )}
             <Icon name="chevronRight" size={15} />
@@ -1502,7 +1502,7 @@ function DailyView({ jobs, role, currentUser, onOpen }) {
   }, [rows]);
 
   const stat = (label, value, color) => (
-    <div style={{ flex: 1, minWidth: 92, padding: "11px 13px", borderRadius: 12, background: "var(--surface2)", border: "none", boxShadow: "var(--shadow-sm)" }}>
+    <div style={{ flex: 1, minWidth: 92, padding: "11px 13px", borderRadius: "var(--r-chip)", background: "var(--surface2)", border: "none", boxShadow: "var(--shadow-sm)" }}>
       <div style={{ fontSize: 11, color: "var(--text-3)", fontWeight: 700 }}>{label}</div>
       <div style={{ fontFamily: "var(--display)", fontSize: 22, fontWeight: 800, color: color, lineHeight: 1.2 }}>{value}</div>
     </div>
@@ -1513,7 +1513,7 @@ function DailyView({ jobs, role, currentUser, onOpen }) {
       <div style={{ display: "flex", alignItems: "center", gap: 7, flexWrap: "wrap" }}>
         {[["day", "รายวัน", "calendar"], ["grid", "ตารางภาพรวม", "table"], ["inbox", "รอฉันอนุมัติ", "check"]].map(([k, th, ic]) => (
           <button key={k} onClick={() => setMode(k)}
-            style={{ display: "inline-flex", alignItems: "center", gap: 7, padding: "7px 14px", borderRadius: 99,
+            style={{ display: "inline-flex", alignItems: "center", gap: 7, padding: "7px 14px", borderRadius: "var(--r-pill)",
               border: "1px solid " + (mode === k ? "var(--primary)" : "var(--border-strong)"),
               background: mode === k ? "var(--primary-soft)" : "var(--surface)", cursor: "pointer",
               fontFamily: "inherit", fontSize: 12.5, fontWeight: 700,
@@ -1521,7 +1521,7 @@ function DailyView({ jobs, role, currentUser, onOpen }) {
             <Icon name={ic} size={15} color={mode === k ? "var(--primary-dark)" : "var(--text-2)"} />
             {th}
             {k === "inbox" && inbox.length > 0 && (
-              <span style={{ minWidth: 18, padding: "0 6px", borderRadius: 99, background: "#F59E0B", color: "#fff",
+              <span style={{ minWidth: 18, padding: "0 6px", borderRadius: "var(--r-pill)", background: "#F59E0B", color: "#fff",
                 fontFamily: "var(--mono)", fontSize: 11, fontWeight: 800 }}>{inbox.length}</span>
             )}
           </button>
@@ -1529,7 +1529,7 @@ function DailyView({ jobs, role, currentUser, onOpen }) {
       </div>
 
       {mode === "inbox" ? (
-        <div style={{ border: "none", boxShadow: "var(--shadow-sm)", borderRadius: 14, background: "var(--surface)", overflow: "hidden" }}>
+        <div style={{ border: "none", boxShadow: "var(--shadow-sm)", borderRadius: "var(--r-tile)", background: "var(--surface)", overflow: "hidden" }}>
           {loading
             ? <div style={{ padding: 20, textAlign: "center", fontSize: 12.5, color: "var(--text-3)" }}>กำลังโหลด...</div>
             : <DrInbox rows={inbox} onOpen={onOpen} />}
@@ -1540,7 +1540,7 @@ function DailyView({ jobs, role, currentUser, onOpen }) {
             <div style={{ display: "flex", alignItems: "center", gap: 7, flexWrap: "wrap" }}>
               {[14, 30].map((d) => (
                 <button key={d} onClick={() => setDays(d)}
-                  style={{ padding: "6px 13px", borderRadius: 99, cursor: "pointer", fontFamily: "inherit",
+                  style={{ padding: "6px 13px", borderRadius: "var(--r-pill)", cursor: "pointer", fontFamily: "inherit",
                     fontSize: 12, fontWeight: 700,
                     border: "1px solid " + (days === d ? "var(--primary)" : "var(--border-strong)"),
                     background: days === d ? "var(--primary-soft)" : "var(--surface)",
@@ -1548,7 +1548,7 @@ function DailyView({ jobs, role, currentUser, onOpen }) {
               ))}
               {/* ตัวกรองนี้คือคิวงานของวิศวกร — ใบที่ค้างรอเซ็นทุกงานทุกวันมากองรวมกัน */}
               <button onClick={() => setSentOnly((v) => !v)}
-                style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "6px 13px", borderRadius: 99,
+                style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "6px 13px", borderRadius: "var(--r-pill)",
                   cursor: "pointer", fontFamily: "inherit", fontSize: 12, fontWeight: 700,
                   border: "1px solid " + (sentOnly ? "#F59E0B" : "var(--border-strong)"),
                   background: sentOnly ? "#F59E0B16" : "var(--surface)",
@@ -1568,7 +1568,7 @@ function DailyView({ jobs, role, currentUser, onOpen }) {
               </span>
             </div>
           )}
-          <div style={{ border: "none", boxShadow: "var(--shadow-sm)", borderRadius: 14, background: "var(--surface2)",
+          <div style={{ border: "none", boxShadow: "var(--shadow-sm)", borderRadius: "var(--r-tile)", background: "var(--surface2)",
             overflow: "hidden", padding: pickedJob ? 0 : "12px 0 4px" }}>
             {loading && <div style={{ padding: 20, textAlign: "center", fontSize: 12.5, color: "var(--text-3)" }}>กำลังโหลด...</div>}
             {!loading && (pickedJob
@@ -1603,7 +1603,7 @@ function DailyView({ jobs, role, currentUser, onOpen }) {
         {stat("ยังไม่เขียน", n.none, "#EF4444")}
       </div>
 
-      <div style={{ border: "none", boxShadow: "var(--shadow-sm)", borderRadius: 14, background: "var(--surface2)", overflow: "hidden" }}>
+      <div style={{ border: "none", boxShadow: "var(--shadow-sm)", borderRadius: "var(--r-tile)", background: "var(--surface2)", overflow: "hidden" }}>
         {loading && <div style={{ padding: 20, textAlign: "center", fontSize: 12.5, color: "var(--text-3)" }}>กำลังโหลด...</div>}
         {!loading && !rows.length && <div style={{ padding: 20, textAlign: "center", fontSize: 12.5, color: "var(--text-3)" }}>ไม่มีงานที่ต้องเขียนรายงานวันนี้</div>}
         {rows.map((r) => {
@@ -1631,7 +1631,7 @@ function DailyView({ jobs, role, currentUser, onOpen }) {
               style={{ flex: 1, minWidth: 0, display: "flex", alignItems: "center", gap: 11, padding: isMobile ? "11px 12px" : "13px 16px",
                 background: "none", border: "none", cursor: "pointer",
                 fontFamily: "inherit", textAlign: "left" }}>
-              <span style={{ width: 8, height: 8, borderRadius: 99, background: s.color, flexShrink: 0 }} />
+              <span style={{ width: 8, height: 8, borderRadius: "var(--r-pill)", background: s.color, flexShrink: 0 }} />
               <span style={{ flex: 1, minWidth: 0 }}>
                 <span style={{ display: "block", fontSize: 13.5, fontWeight: 700, color: "var(--text-1)",
                   whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{r.job.name}</span>
@@ -1644,7 +1644,7 @@ function DailyView({ jobs, role, currentUser, onOpen }) {
                 <span style={{ fontFamily: "var(--mono)", fontSize: 13, fontWeight: 700, color: "var(--text-2)", flexShrink: 0 }}>{+r.rec.pct || 0}%</span>
               )}
               <span style={{ fontSize: 11.5, fontWeight: 700, color: s.color, background: s.color + "1a",
-                borderRadius: 99, padding: "3px 10px", flexShrink: 0, whiteSpace: "nowrap" }}>{s.th}</span>
+                borderRadius: "var(--r-pill)", padding: "3px 10px", flexShrink: 0, whiteSpace: "nowrap" }}>{s.th}</span>
             </button>
             {canDelete && r.rec && (
               <button onClick={() => setDelAsk(r.job.id)} title="ลบใบรายงานของวันนี้ (เฉพาะแอดมิน)"
@@ -1674,7 +1674,7 @@ function DailyJobButton({ job, onOpen }) {
     <button onClick={onOpen}
       style={{ width: "100%", marginBottom: 10, display: "flex", alignItems: "center", gap: 10, padding: "12px 14px",
         background: "var(--surface)", border: "1px solid var(--border-strong)", borderLeft: "3px solid " + s.color,
-        borderRadius: 12, cursor: "pointer", fontFamily: "inherit", textAlign: "left" }}>
+        borderRadius: "var(--r-chip)", cursor: "pointer", fontFamily: "inherit", textAlign: "left" }}>
       <span style={{ width: 34, height: 34, borderRadius: 9, background: s.color + "1c", display: "grid", placeItems: "center", flexShrink: 0 }}>
         <Icon name="pen" size={17} color={s.color} />
       </span>

@@ -182,7 +182,7 @@ function LnBindScreen({ profile, onBind }) {
           </div>
         </div>
 
-        <div style={{ background: "var(--surface)", border: "none", boxShadow: "var(--shadow-sm)", borderRadius: 16, padding: 18 }}>
+        <div style={{ background: "var(--surface)", border: "none", boxShadow: "var(--shadow-sm)", borderRadius: "var(--r-tile)", padding: 18 }}>
           <label style={{ fontSize: 11, fontWeight: 700, color: "var(--text-3)", letterSpacing: ".04em" }}>ชื่อผู้ใช้</label>
           {/* autoCapitalize/autoCorrect ปิดไว้ — คีย์บอร์ดมือถือชอบขึ้นตัวใหญ่ให้เอง แล้วล็อกอินไม่ผ่านโดยไม่รู้ตัว */}
           <input value={u} onChange={(e) => { setU(e.target.value); setErr(""); }}
@@ -198,7 +198,7 @@ function LnBindScreen({ profile, onBind }) {
           {err && <div style={{ marginTop: 12, fontSize: 12.5, color: "var(--tint-red-tx2)", fontWeight: 600 }}>⚠ {err}</div>}
 
           <button onClick={submit} disabled={busy}
-            style={{ marginTop: 16, width: "100%", padding: "14px 16px", borderRadius: 12, border: "none",
+            style={{ marginTop: 16, width: "100%", padding: "14px 16px", borderRadius: "var(--r-chip)", border: "none",
               background: busy ? "var(--text-3)" : "var(--primary)", color: "#fff", fontWeight: 700,
               fontFamily: "inherit", fontSize: 15, cursor: busy ? "default" : "pointer" }}>
             {busy ? "กำลังเชื่อม…" : "เชื่อมบัญชี"}
@@ -280,7 +280,7 @@ function LnWebShut() {
       <div style={{ maxWidth: 400, width: "100%", margin: "0 auto", textAlign: "center" }}>
         {window.BrandLockup ? <window.BrandLockup size={30} /> : <div style={{ fontWeight: 800, fontSize: 22 }}>flash+solar</div>}
 
-        <div style={{ marginTop: 20, padding: "22px 20px", background: "var(--surface)", border: "none", boxShadow: "var(--shadow-sm)", borderRadius: 16 }}>
+        <div style={{ marginTop: 20, padding: "22px 20px", background: "var(--surface)", border: "none", boxShadow: "var(--shadow-sm)", borderRadius: "var(--r-tile)" }}>
           <div style={{ fontSize: 15, fontWeight: 800, color: "var(--text-1)" }}>ทางเข้านี้ปิดอยู่</div>
           <div style={{ marginTop: 9, fontSize: 12.5, color: "var(--text-2)", lineHeight: 1.75 }}>
             หน้าช่างเปิดได้จากแอป LINE — กดเมนูด้านล่างในแชต flash+solar
@@ -353,7 +353,7 @@ function LnWebForm({ reason, onDone }) {
           </div>
         </div>
 
-        <div style={{ background: "var(--surface)", border: "none", boxShadow: "var(--shadow-sm)", borderRadius: 16, padding: 18 }}>
+        <div style={{ background: "var(--surface)", border: "none", boxShadow: "var(--shadow-sm)", borderRadius: "var(--r-tile)", padding: 18 }}>
           <label style={{ fontSize: 11, fontWeight: 700, color: "var(--text-3)", letterSpacing: ".04em" }}>ชื่อผู้ใช้</label>
           <input value={u} onChange={(e) => { setU(e.target.value); setErr(""); }}
             autoCapitalize="none" autoCorrect="off" autoComplete="username" spellCheck={false}
@@ -368,7 +368,7 @@ function LnWebForm({ reason, onDone }) {
           {err && <div style={{ marginTop: 12, fontSize: 12.5, color: "var(--tint-red-tx2)", fontWeight: 600 }}>⚠ {err}</div>}
 
           <button onClick={submit} disabled={!users}
-            style={{ marginTop: 16, width: "100%", padding: "14px 16px", borderRadius: 12, border: "none",
+            style={{ marginTop: 16, width: "100%", padding: "14px 16px", borderRadius: "var(--r-chip)", border: "none",
               background: users ? "var(--primary)" : "var(--text-3)", color: "#fff", fontWeight: 700,
               fontFamily: "inherit", fontSize: 15, cursor: users ? "pointer" : "default" }}>
             {users ? "เข้าหน้าช่าง" : "กำลังโหลดรายชื่อ…"}

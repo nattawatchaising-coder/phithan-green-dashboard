@@ -409,7 +409,7 @@ function StickerPicker({ onPick, onClose }) {
                 border: "1px solid " + (manage ? "var(--primary)" : "var(--border-strong)"), background: manage ? "var(--primary-soft)" : "var(--surface)", color: manage ? "var(--primary-dark)" : "var(--text-2)" }}>
               {manage ? "เสร็จแล้ว" : "จัดการ"}
             </button>
-            <button className="x-close" onClick={onClose} style={{ width: 34, height: 34, borderRadius: 10, border: "none", boxShadow: "var(--shadow-sm)", background: "var(--surface)", cursor: "pointer", display: "grid", placeItems: "center", color: "var(--text-2)" }}><Icon name="x" size={16} /></button>
+            <button className="x-close" onClick={onClose} style={{ width: 34, height: 34, borderRadius: "var(--r-chip)", border: "none", boxShadow: "var(--shadow-sm)", background: "var(--surface)", cursor: "pointer", display: "grid", placeItems: "center", color: "var(--text-2)" }}><Icon name="x" size={16} /></button>
           </div>
         </div>
 
@@ -428,7 +428,7 @@ function StickerPicker({ onPick, onClose }) {
           </div>}
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(" + (isMobile ? 104 : 128) + "px,1fr))", gap: 10 }}>
             {shown.map((s) => (
-              <div key={s.id} style={{ position: "relative", background: "var(--surface)", border: "none", boxShadow: "var(--shadow-sm)", borderRadius: 12, padding: 8, display: "flex", flexDirection: "column", gap: 6 }}>
+              <div key={s.id} style={{ position: "relative", background: "var(--surface)", border: "none", boxShadow: "var(--shadow-sm)", borderRadius: "var(--r-chip)", padding: 8, display: "flex", flexDirection: "column", gap: 6 }}>
                 <button onClick={() => !manage && onPick(s)} disabled={manage}
                   style={{ border: "none", background: "var(--surface3)", borderRadius: 9, padding: 0, height: 76, cursor: manage ? "default" : "pointer", display: "grid", placeItems: "center", overflow: "hidden" }}>
                   <img src={s.src} alt={s.name} style={{ maxWidth: "100%", maxHeight: 76, objectFit: "contain" }} />
@@ -456,7 +456,7 @@ function StickerPicker({ onPick, onClose }) {
           <input ref={fileRef} type="file" accept="image/*" multiple style={{ display: "none" }}
             onChange={(e) => { addFiles(e.target.files); e.target.value = ""; }} />
           <button onClick={() => fileRef.current && fileRef.current.click()} disabled={!!busy}
-            style={{ flex: 1, padding: 12, borderRadius: 12, border: "none", background: "var(--primary)", color: "#fff", fontWeight: 700, fontFamily: "inherit", fontSize: 13.5, cursor: busy ? "default" : "pointer" }}>
+            style={{ flex: 1, padding: 12, borderRadius: "var(--r-chip)", border: "none", background: "var(--primary)", color: "#fff", fontWeight: 700, fontFamily: "inherit", fontSize: 13.5, cursor: busy ? "default" : "pointer" }}>
             {busy ? "กำลังเพิ่ม " + busy + "…" : "เพิ่มรูปเข้าคลัง" + (cat ? " › " + cat : "")}
           </button>
         </div>
@@ -681,14 +681,14 @@ function AnnEditor({ shot, onSave, onClose }) {
             <div style={{ fontSize: 15, fontWeight: 800, color: "var(--text-1)", letterSpacing: "-.01em" }}>เขียนบนรูป</div>
             <div style={{ fontSize: 11.5, color: "var(--text-3)", marginTop: 1 }}>{curTool.hint}</div>
           </div>
-          <button className="x-close" onClick={onClose} style={{ width: 34, height: 34, borderRadius: 10, border: "none", boxShadow: "var(--shadow-sm)", background: "var(--surface)", cursor: "pointer", display: "grid", placeItems: "center", color: "var(--text-2)", flexShrink: 0 }}><Icon name="x" size={16} /></button>
+          <button className="x-close" onClick={onClose} style={{ width: 34, height: 34, borderRadius: "var(--r-chip)", border: "none", boxShadow: "var(--shadow-sm)", background: "var(--surface)", cursor: "pointer", display: "grid", placeItems: "center", color: "var(--text-2)", flexShrink: 0 }}><Icon name="x" size={16} /></button>
         </div>
 
         <div style={{ flex: 1, overflow: "auto", padding: 14, background: "var(--surface2)", display: "grid", placeItems: "center" }}>
           <div style={{ position: "relative", maxWidth: "100%" }}>
             <div ref={boxRef} onMouseDown={down} onMouseMove={move} onMouseUp={up} onMouseLeave={up}
               onTouchStart={down} onTouchMove={move} onTouchEnd={up}
-              style={{ position: "relative", touchAction: "none", userSelect: "none", lineHeight: 0, borderRadius: 12, overflow: "hidden",
+              style={{ position: "relative", touchAction: "none", userSelect: "none", lineHeight: 0, borderRadius: "var(--r-chip)", overflow: "hidden",
                 border: "1px solid var(--border)", boxShadow: "var(--shadow-pop)",
                 cursor: tool === "s" ? (sel == null ? "default" : "move") : tool === "t" ? "text" : "crosshair" }}>
               <img src={shot.dataUrl} alt="" draggable={false} style={{ display: "block", maxWidth: "100%", maxHeight: isMobile ? "52dvh" : "58vh", width: "auto" }} />
@@ -698,12 +698,12 @@ function AnnEditor({ shot, onSave, onClose }) {
             {sel != null && selBox && !txt && (
               <button onClick={removeSel} title="ลบสิ่งที่เลือก"
                 style={{ position: "absolute", left: selBox.x, top: selBox.y, transform: "translate(-40%,-60%)", zIndex: 4,
-                  width: 30, height: 30, borderRadius: 99, border: "2px solid var(--surface)", background: "#EF4444", color: "#fff",
+                  width: 30, height: 30, borderRadius: "var(--r-pill)", border: "2px solid var(--surface)", background: "#EF4444", color: "#fff",
                   cursor: "pointer", display: "grid", placeItems: "center", fontSize: 13, boxShadow: "0 3px 10px rgba(0,0,0,.3)" }}>🗑</button>
             )}
             {/* กล่องพิมพ์ข้อความ — วางตรงจุดที่แตะ (ของเดิมใช้ prompt() ซึ่งเว็บแอปบล็อก เลยพิมพ์ไม่ได้เลย) */}
             {txt && (
-              <div style={{ position: "absolute", left: (txt.x * 100) + "%", top: (txt.y * 100) + "%", transform: "translate(-6px,-50%)", zIndex: 3, display: "flex", gap: 6, alignItems: "center", background: "var(--surface)", border: "1px solid var(--primary)", borderRadius: 10, padding: 5, boxShadow: "var(--shadow-pop)" }}>
+              <div style={{ position: "absolute", left: (txt.x * 100) + "%", top: (txt.y * 100) + "%", transform: "translate(-6px,-50%)", zIndex: 3, display: "flex", gap: 6, alignItems: "center", background: "var(--surface)", border: "1px solid var(--primary)", borderRadius: "var(--r-chip)", padding: 5, boxShadow: "var(--shadow-pop)" }}>
                 <input ref={txtRef} value={txt.v} onChange={(e) => setTxt(Object.assign({}, txt, { v: e.target.value }))}
                   onKeyDown={(e) => { if (e.key === "Enter") commitText(); if (e.key === "Escape") setTxt(null); }}
                   placeholder="พิมพ์ข้อความ…" style={{ width: 168, border: "none", outline: "none", background: "transparent", fontFamily: "inherit", fontSize: 13, color: "var(--text-1)" }} />
@@ -716,7 +716,7 @@ function AnnEditor({ shot, onSave, onClose }) {
 
         <div style={{ padding: "10px 14px", borderTop: "1px solid var(--border)", background: "var(--surface)", display: "flex", gap: 10, flexWrap: "wrap", alignItems: "center" }}>
           {/* เครื่องมือ — กลุ่มเดียวแบบ segmented ปุ่มเท่ากันหมด ไม่ยาวลากยาวเหมือนของเดิม */}
-          <div style={{ display: "inline-flex", background: "var(--surface3)", borderRadius: 11, padding: 3, gap: 2 }}>
+          <div style={{ display: "inline-flex", background: "var(--surface3)", borderRadius: "var(--r-chip)", padding: 3, gap: 2 }}>
             {ANN_TOOLS.map((t) => {
               const on = t.key === tool;
               return (
@@ -733,7 +733,7 @@ function AnnEditor({ shot, onSave, onClose }) {
           <span style={{ display: "inline-flex", gap: 5 }}>
             {ANN_COLORS.map((c) => (
               <button key={c} onClick={() => pickColor(c)} aria-label={"สี " + c}
-                style={{ width: 26, height: 26, borderRadius: 99, cursor: "pointer", background: c, transition: "transform .12s",
+                style={{ width: 26, height: 26, borderRadius: "var(--r-pill)", cursor: "pointer", background: c, transition: "transform .12s",
                   transform: color === c ? "scale(1.14)" : "none",
                   border: color === c ? "2.5px solid var(--primary-dark)" : "1px solid rgba(0,0,0,.18)" }} />
             ))}
@@ -744,8 +744,8 @@ function AnnEditor({ shot, onSave, onClose }) {
           <button onClick={() => { setAnn([]); setSel(null); }} disabled={!ann.length} style={Object.assign({}, ghost, { opacity: ann.length ? 1 : .4 })}>ล้าง</button>
         </div>
         <div style={{ padding: "12px 14px", paddingBottom: isMobile ? "calc(12px + env(safe-area-inset-bottom,0px))" : 12, borderTop: "1px solid var(--border)", background: "var(--surface)", display: "flex", gap: 10 }}>
-          <button onClick={onClose} style={{ padding: "12px 18px", borderRadius: 12, border: "1px solid var(--border-strong)", background: "var(--surface)", color: "var(--text-2)", fontWeight: 700, fontFamily: "inherit", fontSize: 13.5, cursor: "pointer" }}>ยกเลิก</button>
-          <button onClick={() => onSave(ann)} style={{ flex: 1, padding: 12, borderRadius: 12, border: "none", background: "var(--primary)", color: "#fff", fontWeight: 700, fontFamily: "inherit", fontSize: 14, cursor: "pointer", boxShadow: "0 4px 14px rgba(27,155,117,.3)" }}>บันทึกที่เขียน</button>
+          <button onClick={onClose} style={{ padding: "12px 18px", borderRadius: "var(--r-chip)", border: "1px solid var(--border-strong)", background: "var(--surface)", color: "var(--text-2)", fontWeight: 700, fontFamily: "inherit", fontSize: 13.5, cursor: "pointer" }}>ยกเลิก</button>
+          <button onClick={() => onSave(ann)} style={{ flex: 1, padding: 12, borderRadius: "var(--r-chip)", border: "none", background: "var(--primary)", color: "#fff", fontWeight: 700, fontFamily: "inherit", fontSize: 14, cursor: "pointer", boxShadow: "0 4px 14px rgba(27,155,117,.3)" }}>บันทึกที่เขียน</button>
         </div>
       </div>
       {picker && <StickerPicker onPick={useSticker} onClose={() => setPicker(false)} />}
@@ -778,7 +778,7 @@ function SurveyBlock({ icon, title, sub, children }) {
    แล้วปุ่มไปลอยอยู่ล่างสุดดูยาวผิดรูป · แบบแถวนี้กว้างเท่าไรก็ไม่เพี้ยน */
 function SurveyToggle({ label, hint, value, onChange, options }) {
   return (
-    <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, padding: "9px 12px", background: "var(--surface2)", borderRadius: 14, boxShadow: "var(--shadow-inset)" }}>
+    <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, padding: "9px 12px", background: "var(--surface2)", borderRadius: "var(--r-tile)", boxShadow: "var(--shadow-inset)" }}>
       <span style={{ minWidth: 0 }}>
         <span style={{ display: "block", fontSize: 12.5, fontWeight: 600, color: "var(--text-1)", lineHeight: 1.35 }}>{label}</span>
         {hint && <span style={{ display: "block", fontSize: 11, color: "var(--text-3)", marginTop: 1 }}>{hint}</span>}
@@ -795,19 +795,19 @@ function SurveyShotCard({ shot, slot, n, busy, onPick, onRemove, onAnn, onField,
   const req = !!slot;
   const mini = { width: 30, height: 30, borderRadius: "var(--r-pill)", border: "none", boxShadow: "var(--shadow-sm)", background: "var(--surface)", cursor: "pointer", display: "grid", placeItems: "center", color: "var(--text-2)", fontSize: 13, fontWeight: 800, flexShrink: 0 };
   return (
-    <div style={{ borderRadius: 14, padding: 11,
+    <div style={{ borderRadius: "var(--r-tile)", padding: 11,
       boxShadow: "inset 3px 0 0 " + (has ? "var(--primary)" : "var(--surface3)") + ", var(--shadow-sm)",
       background: "var(--surface)", display: "flex", flexDirection: "column", gap: 10, transition: "box-shadow .2s" }}>
       <div style={{ display: "flex", gap: 11, alignItems: "center" }}>
         {has ? (
           /* มีรูปแล้ว — โชว์รูปย่อพร้อมเลขลำดับมุมบนซ้าย แตะเพื่อเขียนทับได้ทันที */
           <span style={{ position: "relative", flexShrink: 0, lineHeight: 0 }}>
-            <img src={shot.dataUrl} alt="" onClick={() => onAnn && onAnn()} style={{ width: 54, height: 54, borderRadius: 12, objectFit: "cover", cursor: "pointer", boxShadow: "var(--shadow-sm)" }} />
-            <span style={{ position: "absolute", top: -5, left: -5, width: 20, height: 20, borderRadius: 99, display: "grid", placeItems: "center",
+            <img src={shot.dataUrl} alt="" onClick={() => onAnn && onAnn()} style={{ width: 54, height: 54, borderRadius: "var(--r-chip)", objectFit: "cover", cursor: "pointer", boxShadow: "var(--shadow-sm)" }} />
+            <span style={{ position: "absolute", top: -5, left: -5, width: 20, height: 20, borderRadius: "var(--r-pill)", display: "grid", placeItems: "center",
               background: "var(--primary)", color: "#fff", fontSize: 10.5, fontWeight: 800, fontFamily: "var(--mono)", border: "2px solid var(--surface)" }}>{n || "✓"}</span>
           </span>
         ) : (
-          <span style={{ width: 54, height: 54, borderRadius: 10, flexShrink: 0, display: "grid", placeItems: "center",
+          <span style={{ width: 54, height: 54, borderRadius: "var(--r-chip)", flexShrink: 0, display: "grid", placeItems: "center",
             background: "var(--surface2)", boxShadow: "var(--shadow-inset)" }}>
             <Icon name="image" size={17} color="var(--text-3)" />
           </span>
@@ -835,7 +835,7 @@ function SurveyShotCard({ shot, slot, n, busy, onPick, onRemove, onAnn, onField,
             <button type="button" onClick={onAnn} style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "7px 12px", borderRadius: "var(--r-pill)", border: "none", boxShadow: "var(--shadow-sm)",
               background: shot.ann && shot.ann.length ? "var(--primary-soft)" : "var(--surface2)", color: "var(--primary-dark)", fontFamily: "inherit", fontSize: 12, fontWeight: 700, cursor: "pointer" }}>
               ↗ เขียน / แปะรูปทับ
-              {shot.ann && shot.ann.length ? <span style={{ fontFamily: "var(--mono)", fontSize: 10.5, background: "var(--primary)", color: "#fff", borderRadius: 99, padding: "1px 6px" }}>{shot.ann.length}</span> : null}
+              {shot.ann && shot.ann.length ? <span style={{ fontFamily: "var(--mono)", fontSize: 10.5, background: "var(--primary)", color: "#fff", borderRadius: "var(--r-pill)", padding: "1px 6px" }}>{shot.ann.length}</span> : null}
             </button>
             {onMove && <React.Fragment>
               <button type="button" onClick={() => onMove(-1)} disabled={first} title="เลื่อนขึ้น" style={Object.assign({}, mini, { opacity: first ? .35 : 1 })}>↑</button>
@@ -866,7 +866,7 @@ function SurveyShotCard({ shot, slot, n, busy, onPick, onRemove, onAnn, onField,
    card() ส่งมาจากหน้าต่างสำรวจ เพราะการ์ดรูปต้องใช้ทั้งเลขลำดับรวม การเลื่อนขึ้นลง และการเขียนทับรูป */
 function SurveyNoteBox({ blk, value, onChange, shots, card, slotNode, count, busy, onAdd, onPaste }) {
   return (
-    <div style={{ margin: "-2px -3px 0", padding: "11px 12px 12px", borderRadius: 16, background: "var(--surface2)", boxShadow: "var(--shadow-inset)", display: "flex", flexDirection: "column", gap: 10 }}>
+    <div style={{ margin: "-2px -3px 0", padding: "11px 12px 12px", borderRadius: "var(--r-tile)", background: "var(--surface2)", boxShadow: "var(--shadow-inset)", display: "flex", flexDirection: "column", gap: 10 }}>
       <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", gap: 9 }}>
         <span style={{ fontSize: 11.5, fontWeight: 700, color: "var(--text-2)" }}>บันทึก &amp; รูปของหัวข้อนี้</span>
         <span style={{ fontSize: 10.5, fontWeight: 700, fontFamily: "var(--mono)", color: count ? "var(--primary-dark)" : "var(--text-3)" }}>
@@ -1114,9 +1114,9 @@ function SurveyWizard({ job, onClose, onSave, onReport, currentUser, stock }) {
             </div>
             <div style={{ display: "flex", alignItems: "center", gap: 9, flexShrink: 0 }}>
               {/* วงแหวนบอกความคืบหน้า — เห็นทีเดียวว่ากรอกไปกี่ % แล้ว */}
-              <span style={{ position: "relative", width: 38, height: 38, borderRadius: 99, display: "grid", placeItems: "center",
+              <span style={{ position: "relative", width: 38, height: 38, borderRadius: "var(--r-pill)", display: "grid", placeItems: "center",
                 background: "conic-gradient(" + st.color + " " + (st.pct * 3.6) + "deg, var(--surface3) 0deg)" }}>
-                <span style={{ position: "absolute", inset: 3.5, borderRadius: 99, background: "var(--surface)" }} />
+                <span style={{ position: "absolute", inset: 3.5, borderRadius: "var(--r-pill)", background: "var(--surface)" }} />
                 <span style={{ position: "relative", fontSize: 10.5, fontWeight: 800, color: st.color, fontFamily: "var(--mono)" }}>{st.pct}</span>
               </span>
               <button className="x-close" onClick={onClose} style={{ width: 34, height: 34, cursor: "pointer", display: "grid", placeItems: "center" }}><Icon name="x" size={16} /></button>
@@ -1136,7 +1136,7 @@ function SurveyWizard({ job, onClose, onSave, onReport, currentUser, stock }) {
                 </button>
                 {gpsErr && <div style={{ fontSize: 12, color: "var(--tint-red-tx2)", fontWeight: 600 }}>⚠ {gpsErr}</div>}
                 {f.gps && (
-                  <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10, padding: "10px 12px", background: "var(--surface2)", borderRadius: 12, boxShadow: "var(--shadow-inset)" }}>
+                  <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10, padding: "10px 12px", background: "var(--surface2)", borderRadius: "var(--r-chip)", boxShadow: "var(--shadow-inset)" }}>
                     <span style={{ fontFamily: "var(--mono)", fontSize: 12.5, color: "var(--text-1)" }}>
                       {f.gps.lat}, {f.gps.lng}{f.gps.acc ? <span style={{ color: "var(--text-3)" }}> · ±{f.gps.acc}m</span> : null}
                     </span>
@@ -1237,9 +1237,9 @@ function SurveyWizard({ job, onClose, onSave, onReport, currentUser, stock }) {
 
           {step === 5 && (
             <React.Fragment>
-              {!window.FBDB && <div style={{ fontSize: 12, color: "var(--tint-red-tx2)", background: "var(--tint-red-bg)", border: "1px solid var(--tint-red-bd)", borderRadius: 11, padding: "10px 12px" }}>⚠ ต้องเชื่อมต่อ Firebase จึงจะอัปโหลดรูปได้</div>}
+              {!window.FBDB && <div style={{ fontSize: 12, color: "var(--tint-red-tx2)", background: "var(--tint-red-bg)", border: "1px solid var(--tint-red-bd)", borderRadius: "var(--r-chip)", padding: "10px 12px" }}>⚠ ต้องเชื่อมต่อ Firebase จึงจะอัปโหลดรูปได้</div>}
               {missingSlots.length > 0 && (
-                <div style={{ display: "flex", gap: 9, alignItems: "flex-start", padding: "11px 13px", borderRadius: 13, background: "var(--tint-amber-bg, #FFF8F1)", border: "1px solid var(--tint-amber-bd, #F5E3D3)" }}>
+                <div style={{ display: "flex", gap: 9, alignItems: "flex-start", padding: "11px 13px", borderRadius: "var(--r-tile)", background: "var(--tint-amber-bg, #FFF8F1)", border: "1px solid var(--tint-amber-bd, #F5E3D3)" }}>
                   <span style={{ flexShrink: 0, paddingTop: 1 }}><Icon name="camera" size={15} color="#B45309" sw={1.9} /></span>
                   <span style={{ minWidth: 0, fontSize: 12, lineHeight: 1.6, color: "var(--text-1)" }}>
                     ยังขาดรูปบังคับ <b>{missingSlots.length}</b> รูป — {missingSlots.map((s) => s.label).join(" · ")}

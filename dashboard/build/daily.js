@@ -636,7 +636,7 @@ function DrSignPad({
       width: "100%",
       maxWidth: 560,
       background: "var(--bg)",
-      borderRadius: 16,
+      borderRadius: "var(--r-tile)",
       overflow: "hidden",
       boxShadow: "var(--shadow-modal)"
     }
@@ -671,7 +671,7 @@ function DrSignPad({
     style: {
       width: 34,
       height: 34,
-      borderRadius: 10,
+      borderRadius: "var(--r-chip)",
       border: "1px solid var(--border-strong)",
       background: "var(--surface)",
       cursor: "pointer",
@@ -691,7 +691,7 @@ function DrSignPad({
     style: {
       position: "relative",
       border: "1px dashed var(--border-strong)",
-      borderRadius: 12,
+      borderRadius: "var(--r-chip)",
       background: "#fff",
       overflow: "hidden"
     }
@@ -733,7 +733,7 @@ function DrSignPad({
     style: {
       margin: "4px 16px 0",
       padding: "9px 11px",
-      borderRadius: 11,
+      borderRadius: "var(--r-chip)",
       border: "none",
       boxShadow: "var(--shadow-sm)",
       background: "var(--surface2)",

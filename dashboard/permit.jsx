@@ -201,7 +201,7 @@ function PermitSampleModal({ slot, onClose }) {
   const tips = PERMIT_SAMPLE_TIPS[slot.key] || [];
   return (
     <div {...bdClose} style={{ position: "fixed", inset: 0, zIndex: 2400, background: "rgba(8,15,12,.55)", display: "grid", placeItems: "center", padding: 16 }}>
-      <div onClick={(e) => e.stopPropagation()} style={{ width: "min(420px, 100%)", background: "var(--surface)", borderRadius: 18, border: "none", boxShadow: "var(--shadow-sm)", overflow: "hidden" }}>
+      <div onClick={(e) => e.stopPropagation()} style={{ width: "min(420px, 100%)", background: "var(--surface)", borderRadius: "var(--r-card)", border: "none", boxShadow: "var(--shadow-sm)", overflow: "hidden" }}>
         <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "13px 15px", borderBottom: "1px solid var(--border)" }}>
           <Icon name="image" size={16} color="var(--primary)" />
           <span style={{ flex: 1, fontSize: 14, fontWeight: 800, color: "var(--text-1)" }}>ตัวอย่าง — {slot.label}</span>
@@ -471,7 +471,7 @@ const P_INPUT = {
 /* ป้ายเล็ก ๆ บอกว่าค่านี้ไม่ได้พิมพ์เอง แต่ดึงมาจากแบบสำรวจ — หายไปเองเมื่อช่างแก้ค่า */
 function FromSurveyTag() {
   return (
-    <span style={{ display: "inline-flex", alignItems: "center", gap: 3, marginLeft: 6, padding: "1px 6px", borderRadius: 99,
+    <span style={{ display: "inline-flex", alignItems: "center", gap: 3, marginLeft: 6, padding: "1px 6px", borderRadius: "var(--r-pill)",
       background: "var(--tint-teal-bg, var(--primary-soft))", color: "#0F766E", fontSize: 9.5, fontWeight: 800, letterSpacing: 0, verticalAlign: "middle" }}>
       จากแบบสำรวจ
     </span>
@@ -501,13 +501,13 @@ function PermitTypePicker({ value, onChange }) {
         const on = value === t.key;
         return (
           <button type="button" key={t.key} onClick={() => onChange(t.key)}
-            style={{ display: "flex", alignItems: "center", gap: 11, padding: "11px 13px", borderRadius: 12, cursor: "pointer",
+            style={{ display: "flex", alignItems: "center", gap: 11, padding: "11px 13px", borderRadius: "var(--r-chip)", cursor: "pointer",
               textAlign: "left", fontFamily: "inherit", width: "100%",
               border: "1px solid " + (on ? "var(--primary)" : "var(--border)"),
               background: on ? "var(--primary-soft)" : "var(--surface)" }}>
-            <span style={{ width: 18, height: 18, borderRadius: 99, flexShrink: 0, display: "grid", placeItems: "center",
+            <span style={{ width: 18, height: 18, borderRadius: "var(--r-pill)", flexShrink: 0, display: "grid", placeItems: "center",
               border: "2px solid " + (on ? "var(--primary)" : "var(--border-strong)") }}>
-              {on && <span style={{ width: 9, height: 9, borderRadius: 99, background: "var(--primary)" }} />}
+              {on && <span style={{ width: 9, height: 9, borderRadius: "var(--r-pill)", background: "var(--primary)" }} />}
             </span>
             <span style={{ flex: 1, minWidth: 0 }}>
               <span style={{ display: "block", fontSize: 13.5, fontWeight: 700, color: on ? "var(--primary-dark)" : "var(--text-1)" }}>{t.th}</span>
@@ -528,12 +528,12 @@ function PermitShotCard({ slot, shot, busy, onPick, onRemove }) {
   const warn = slot.hint.indexOf("⚠") === 0;
   return (<React.Fragment>
     {sample && <PermitSampleModal slot={slot} onClose={() => setSample(false)} />}
-    <div style={{ border: "1px solid " + (has ? "var(--border)" : "var(--border-strong)"), borderRadius: 13, padding: 11,
+    <div style={{ border: "1px solid " + (has ? "var(--border)" : "var(--border-strong)"), borderRadius: "var(--r-tile)", padding: 11,
       borderLeft: "3px solid " + (has ? "var(--primary)" : (slot.req ? "var(--tint-red-bd)" : "var(--surface3)")),
       background: has ? "var(--surface)" : "var(--surface2)", display: "flex", gap: 11, alignItems: "center" }}>
       {has ? (
         <a href={shot.dataUrl} target="_blank" rel="noreferrer" style={{ flexShrink: 0, lineHeight: 0 }}>
-          <img src={shot.dataUrl} alt="" style={{ width: 54, height: 54, borderRadius: 10, objectFit: "cover", border: "1px solid var(--border)" }} />
+          <img src={shot.dataUrl} alt="" style={{ width: 54, height: 54, borderRadius: "var(--r-chip)", objectFit: "cover", border: "1px solid var(--border)" }} />
         </a>
       ) : (
         /* ยังไม่ได้ถ่าย → โชว์ภาพตัวอย่างแทนกล่องเปล่า ช่างเห็นทันทีว่าต้องได้รูปหน้าตาแบบไหน */
@@ -670,7 +670,7 @@ function PermitWizard({ job, onClose, onSave, onSubmit, currentUser, stock, read
         {/* หัว + แถบความคืบหน้า */}
         <div style={{ padding: "15px 20px 0", background: "var(--surface)", borderBottom: "1px solid var(--border)", flexShrink: 0 }}>
           <div style={{ display: "flex", alignItems: "center", gap: 11 }}>
-            <span style={{ width: 36, height: 36, borderRadius: 11, background: "#14B8A61c", display: "grid", placeItems: "center", flexShrink: 0 }}>
+            <span style={{ width: 36, height: 36, borderRadius: "var(--r-chip)", background: "#14B8A61c", display: "grid", placeItems: "center", flexShrink: 0 }}>
               <Icon name="file" size={18} color="#14B8A6" />
             </span>
             <div style={{ flex: 1, minWidth: 0 }}>
@@ -681,8 +681,8 @@ function PermitWizard({ job, onClose, onSave, onSubmit, currentUser, stock, read
           </div>
 
           <div style={{ display: "flex", alignItems: "center", gap: 10, marginTop: 12 }}>
-            <div style={{ flex: 1, height: 7, borderRadius: 99, background: "var(--surface3)", overflow: "hidden" }}>
-              <div style={{ width: prog.pct + "%", height: "100%", borderRadius: 99, transition: "width .3s",
+            <div style={{ flex: 1, height: 7, borderRadius: "var(--r-pill)", background: "var(--surface3)", overflow: "hidden" }}>
+              <div style={{ width: prog.pct + "%", height: "100%", borderRadius: "var(--r-pill)", transition: "width .3s",
                 background: prog.pct === 100 ? "var(--primary)" : "#F59E0B" }} />
             </div>
             <span style={{ fontSize: 12, fontWeight: 800, fontFamily: "var(--mono)", color: prog.pct === 100 ? "var(--primary-dark)" : "var(--text-2)", flexShrink: 0 }}>{prog.pct}%</span>
@@ -693,7 +693,7 @@ function PermitWizard({ job, onClose, onSave, onSubmit, currentUser, stock, read
               const on = step === s.n;
               return (
                 <button key={s.n} onClick={() => setStep(s.n)}
-                  style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "6px 11px", borderRadius: 99, cursor: "pointer",
+                  style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "6px 11px", borderRadius: "var(--r-pill)", cursor: "pointer",
                     fontFamily: "inherit", fontSize: 12, fontWeight: 700, whiteSpace: "nowrap", flexShrink: 0,
                     border: "1px solid " + (on ? "transparent" : "var(--border)"),
                     background: on ? "var(--primary)" : "var(--surface)", color: on ? "#fff" : "var(--text-2)" }}>
@@ -711,7 +711,7 @@ function PermitWizard({ job, onClose, onSave, onSubmit, currentUser, stock, read
           {step === 1 && (
             <React.Fragment>
               {seedNames.length > 0 && (
-                <div style={{ padding: "11px 13px", borderRadius: 12, background: "var(--primary-soft)", border: "1px solid var(--primary)",
+                <div style={{ padding: "11px 13px", borderRadius: "var(--r-chip)", background: "var(--primary-soft)", border: "1px solid var(--primary)",
                   fontSize: 12, color: "var(--primary-dark)", lineHeight: 1.55 }}>
                   <span style={{ fontWeight: 800 }}>ดึงข้อมูลจากแบบสำรวจมาให้แล้ว {seedNames.length} ช่อง</span>
                   <span style={{ display: "block", marginTop: 2 }}>{seedNames.join(" · ")}</span>
@@ -866,7 +866,7 @@ function PermitWizard({ job, onClose, onSave, onSubmit, currentUser, stock, read
                 <PField label="พิกัดหน้างาน (GPS)" from={fromSurvey("gps")} hint="การไฟฟ้าขอพิกัดจุดติดตั้งประกอบคำขอ">
                   <div style={{ display: "flex", gap: 9, alignItems: "center", flexWrap: "wrap" }}>
                     <button type="button" onClick={captureGps} disabled={gpsBusy}
-                      style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "9px 14px", borderRadius: 10, border: "none",
+                      style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "9px 14px", borderRadius: "var(--r-chip)", border: "none",
                         background: "var(--primary)", color: "#fff", fontWeight: 700, fontFamily: "inherit", fontSize: 12.5, cursor: gpsBusy ? "wait" : "pointer" }}>
                       <Icon name="pin" size={14} color="#fff" /> {gpsBusy ? "กำลังจับพิกัด…" : (f.gps ? "จับพิกัดใหม่" : "จับพิกัดตรงนี้")}
                     </button>
@@ -883,7 +883,7 @@ function PermitWizard({ job, onClose, onSave, onSubmit, currentUser, stock, read
 
           {step === 4 && (
             <React.Fragment>
-              <div style={{ padding: "11px 13px", borderRadius: 12, background: "var(--tint-amber-bg)", border: "1px solid var(--tint-amber-bd)",
+              <div style={{ padding: "11px 13px", borderRadius: "var(--r-chip)", background: "var(--tint-amber-bg)", border: "1px solid var(--tint-amber-bd)",
                 fontSize: 12, color: "var(--tint-amber-tx)", fontWeight: 600, lineHeight: 1.5 }}>
                 ถ่ายกลางแดดจ้าแล้วเนมเพลทมักสะท้อนจนอ่านไม่ออก — ใช้มือบังเงาแล้วถ่ายใกล้ ๆ จะผ่านตั้งแต่รอบแรก
                 <span style={{ display: "block", marginTop: 3, fontWeight: 700 }}>ถ่ายแล้ว {photoDone}/{shownSlots.length} ช่อง</span>
@@ -917,7 +917,7 @@ function PermitWizard({ job, onClose, onSave, onSubmit, currentUser, stock, read
                   <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
                     {prog.missing.map((m, i) => (
                       <button key={i} onClick={() => setStep(m.step)}
-                        style={{ display: "flex", alignItems: "center", gap: 9, padding: "9px 11px", borderRadius: 10, cursor: "pointer",
+                        style={{ display: "flex", alignItems: "center", gap: 9, padding: "9px 11px", borderRadius: "var(--r-chip)", cursor: "pointer",
                           textAlign: "left", fontFamily: "inherit", width: "100%",
                           border: "1px solid var(--tint-red-bd)", background: "var(--tint-red-bg)" }}>
                         <Icon name={m.kind === "photo" ? "camera" : "pen"} size={14} color="var(--tint-red-tx)" />
@@ -935,7 +935,7 @@ function PermitWizard({ job, onClose, onSave, onSubmit, currentUser, stock, read
                   ลงนามวิศวกร, หนังสือรับรองโครงสร้าง และหนังสือ กกพ. เป็นงานที่ออฟฟิศจัดเตรียมต่อ
                 </div>
                 <button type="button" onClick={doSubmit} disabled={prog.missing.length > 0}
-                  style={{ width: "100%", padding: "13px 16px", borderRadius: 12, border: "none", marginTop: 4,
+                  style={{ width: "100%", padding: "13px 16px", borderRadius: "var(--r-chip)", border: "none", marginTop: 4,
                     background: prog.missing.length ? "var(--surface3)" : "var(--primary)",
                     color: prog.missing.length ? "var(--text-3)" : "#fff",
                     fontWeight: 700, fontFamily: "inherit", fontSize: 14, cursor: prog.missing.length ? "not-allowed" : "pointer",
@@ -952,13 +952,13 @@ function PermitWizard({ job, onClose, onSave, onSubmit, currentUser, stock, read
         <div style={{ padding: "12px 18px", paddingBottom: isMobile ? "calc(12px + env(safe-area-inset-bottom, 0px))" : 12,
           borderTop: "1px solid var(--border)", background: "var(--surface)", display: "flex", gap: 9, alignItems: "center", flexShrink: 0 }}>
           <button onClick={() => setStep((s) => Math.max(1, s - 1))} disabled={step === 1}
-            style={{ padding: "11px 15px", borderRadius: 11, border: "1px solid var(--border-strong)", background: "var(--surface)",
+            style={{ padding: "11px 15px", borderRadius: "var(--r-chip)", border: "1px solid var(--border-strong)", background: "var(--surface)",
               color: step === 1 ? "var(--text-3)" : "var(--text-2)", fontWeight: 600, fontFamily: "inherit", fontSize: 13, cursor: step === 1 ? "default" : "pointer" }}>ย้อน</button>
           <button onClick={() => { save(); onClose(); }}
-            style={{ flex: 1, padding: "11px 15px", borderRadius: 11, border: "1px solid var(--border-strong)", background: "var(--surface)",
+            style={{ flex: 1, padding: "11px 15px", borderRadius: "var(--r-chip)", border: "1px solid var(--border-strong)", background: "var(--surface)",
               color: "var(--text-2)", fontWeight: 700, fontFamily: "inherit", fontSize: 13, cursor: "pointer" }}>บันทึกร่าง</button>
           <button onClick={() => setStep((s) => Math.min(5, s + 1))} disabled={step === 5}
-            style={{ padding: "11px 20px", borderRadius: 11, border: "none",
+            style={{ padding: "11px 20px", borderRadius: "var(--r-chip)", border: "none",
               background: step === 5 ? "var(--surface3)" : "var(--primary)", color: step === 5 ? "var(--text-3)" : "#fff",
               fontWeight: 700, fontFamily: "inherit", fontSize: 13, cursor: step === 5 ? "default" : "pointer" }}>ถัดไป</button>
         </div>

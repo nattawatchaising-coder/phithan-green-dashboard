@@ -203,7 +203,7 @@ function CalendarView({
       title: "\u0E40\u0E25\u0E37\u0E2D\u0E01\u0E27\u0E31\u0E19\u0E40\u0E1E\u0E37\u0E48\u0E2D\u0E14\u0E39\u0E23\u0E32\u0E22\u0E25\u0E30\u0E40\u0E2D\u0E35\u0E22\u0E14",
       style: {
         height: 116,
-        borderRadius: 12,
+        borderRadius: "var(--r-chip)",
         textAlign: "left",
         fontFamily: "inherit",
         cursor: "pointer",
@@ -232,7 +232,7 @@ function CalendarView({
       style: {
         width: 6,
         height: 6,
-        borderRadius: 99,
+        borderRadius: "var(--r-pill)",
         background: "#EF4444",
         marginLeft: "auto"
       }
@@ -265,7 +265,7 @@ function CalendarView({
         style: {
           width: 7,
           height: 7,
-          borderRadius: 99,
+          borderRadius: "var(--r-pill)",
           flexShrink: 0,
           background: t.past ? "var(--text-3)" : c
         }
@@ -368,7 +368,7 @@ function DaySidebar({
       color: "var(--primary-dark)",
       background: "var(--primary-soft)",
       padding: "2px 7px",
-      borderRadius: 99
+      borderRadius: "var(--r-pill)"
     }
   }, "\u0E27\u0E31\u0E19\u0E19\u0E35\u0E49")), React.createElement("div", {
     style: {
@@ -423,7 +423,7 @@ function MobileCalendar({
     style: {
       background: "var(--surface)",
       border: "1px solid var(--border)",
-      borderRadius: 16,
+      borderRadius: "var(--r-tile)",
       padding: 14,
       boxShadow: "var(--shadow-sm)",
       display: "flex",
@@ -582,7 +582,7 @@ function MobileCalendar({
     style: {
       width: 38,
       height: 4,
-      borderRadius: 99,
+      borderRadius: "var(--r-pill)",
       background: "var(--border-strong)"
     }
   })), React.createElement("div", {
@@ -611,7 +611,7 @@ function MobileCalendar({
     style: {
       width: 34,
       height: 34,
-      borderRadius: 10,
+      borderRadius: "var(--r-chip)",
       border: "none",
       boxShadow: "var(--shadow-sm)",
       background: "var(--surface)",
@@ -661,7 +661,7 @@ function FlowLegend() {
       marginBottom: 16,
       padding: "10px 14px",
       background: "var(--surface2)",
-      borderRadius: 12,
+      borderRadius: "var(--r-chip)",
       border: "none",
       boxShadow: "var(--shadow-sm)",
       flexWrap: "wrap"
@@ -708,7 +708,7 @@ function NavBtn({
     style: {
       width: 34,
       height: 34,
-      borderRadius: 10,
+      borderRadius: "var(--r-chip)",
       border: "none",
       boxShadow: "var(--shadow-sm)",
       background: "var(--surface)",
@@ -861,7 +861,7 @@ function MapView({
     style: {
       width: 9,
       height: 9,
-      borderRadius: 99,
+      borderRadius: "var(--r-pill)",
       background: s.color,
       border: "1.5px solid #fff",
       boxShadow: "0 0 0 1px " + s.color
@@ -879,7 +879,7 @@ function MapView({
     style: {
       width: 9,
       height: 9,
-      borderRadius: 99,
+      borderRadius: "var(--r-pill)",
       background: "#EF4444"
     }
   }), " \u0E15\u0E34\u0E14\u0E1B\u0E31\u0E0D\u0E2B\u0E32")), React.createElement("div", {
@@ -888,7 +888,7 @@ function MapView({
       flex: isMobile ? "none" : 1,
       height: isMobile ? 320 : "auto",
       minHeight: isMobile ? 320 : 460,
-      borderRadius: 14,
+      borderRadius: "var(--r-tile)",
       overflow: "hidden",
       marginTop: 10,
       border: "1px solid var(--border)",
@@ -927,7 +927,7 @@ function MapView({
       key: prov,
       style: {
         border: "1px solid " + (open ? "var(--primary)" : "var(--border)"),
-        borderRadius: 12,
+        borderRadius: "var(--r-chip)",
         overflow: "hidden",
         transition: "border-color .15s",
         flexShrink: 0
@@ -984,7 +984,7 @@ function MapView({
         color: "var(--tint-red-tx2)",
         background: "var(--tint-red-bg2)",
         padding: "1px 6px",
-        borderRadius: 99,
+        borderRadius: "var(--r-pill)",
         flexShrink: 0
       }
     }, problems, "\u26A0")), React.createElement("span", {
@@ -1026,7 +1026,7 @@ function MapView({
       style: {
         width: 8,
         height: 8,
-        borderRadius: 99,
+        borderRadius: "var(--r-pill)",
         background: j.problem ? "#EF4444" : stageOf(j.stage).color,
         flexShrink: 0
       }

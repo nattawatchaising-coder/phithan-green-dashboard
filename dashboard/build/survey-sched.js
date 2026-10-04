@@ -467,7 +467,7 @@ function DispatchView({
       color: s.color,
       background: s.color + "16",
       padding: "4px 10px",
-      borderRadius: 99
+      borderRadius: "var(--r-pill)"
     }
   }, s.th, " ", n))), mode === "all" ? allGroups.length === 0 ? React.createElement("div", {
     style: {
@@ -477,7 +477,7 @@ function DispatchView({
       fontSize: 14,
       background: "var(--surface)",
       border: "1px dashed var(--border-strong)",
-      borderRadius: 16
+      borderRadius: "var(--r-tile)"
     }
   }, "\u0E22\u0E31\u0E07\u0E44\u0E21\u0E48\u0E21\u0E35\u0E19\u0E31\u0E14\u0E2A\u0E33\u0E23\u0E27\u0E08\u0E43\u0E19\u0E23\u0E30\u0E1A\u0E1A \xB7 \u0E01\u0E14 \u201C\u0E19\u0E31\u0E14\u0E2A\u0E33\u0E23\u0E27\u0E08\u201D \u0E40\u0E1E\u0E37\u0E48\u0E2D\u0E08\u0E48\u0E32\u0E22\u0E07\u0E32\u0E19\u0E43\u0E2B\u0E49\u0E27\u0E34\u0E28\u0E27\u0E01\u0E23") : allGroups.map(g => React.createElement("div", {
     key: g.day,
@@ -510,7 +510,7 @@ function DispatchView({
         fontFamily: "inherit",
         width: "100%",
         padding: 13,
-        borderRadius: 13,
+        borderRadius: "var(--r-tile)",
         background: "var(--surface)",
         border: "1px solid " + (clash ? "#EF4444" : "var(--border)"),
         boxShadow: clash ? "0 0 0 3px #EF444418" : "var(--shadow-sm)",
@@ -545,7 +545,7 @@ function DispatchView({
         color: stt.color,
         background: stt.color + "16",
         padding: "2px 8px",
-        borderRadius: 99
+        borderRadius: "var(--r-pill)"
       }
     }, stt.th), React.createElement(Icon, {
       name: "chevronRight",
@@ -570,7 +570,7 @@ function DispatchView({
         color: "#0EA5E9",
         background: "#0EA5E916",
         padding: "2px 7px",
-        borderRadius: 99
+        borderRadius: "var(--r-pill)"
       }
     }, "\u0E25\u0E39\u0E01\u0E04\u0E49\u0E32\u0E2A\u0E33\u0E23\u0E27\u0E08") : null), React.createElement("div", {
       style: {
@@ -585,7 +585,7 @@ function DispatchView({
       style: {
         width: 8,
         height: 8,
-        borderRadius: 99,
+        borderRadius: "var(--r-pill)",
         background: t && t.color || "#94A3B8",
         flexShrink: 0
       }
@@ -604,7 +604,7 @@ function DispatchView({
       fontSize: 14,
       background: "var(--surface)",
       border: "1px dashed var(--border-strong)",
-      borderRadius: 16
+      borderRadius: "var(--r-tile)"
     }
   }, "\u0E22\u0E31\u0E07\u0E44\u0E21\u0E48\u0E21\u0E35\u0E19\u0E31\u0E14\u0E2A\u0E33\u0E23\u0E27\u0E08\u0E43\u0E19\u0E27\u0E31\u0E19\u0E19\u0E35\u0E49 \xB7 \u0E01\u0E14 \u201C\u0E19\u0E31\u0E14\u0E2A\u0E33\u0E23\u0E27\u0E08\u201D \u0E40\u0E1E\u0E37\u0E48\u0E2D\u0E08\u0E48\u0E32\u0E22\u0E07\u0E32\u0E19\u0E43\u0E2B\u0E49\u0E27\u0E34\u0E28\u0E27\u0E01\u0E23") : React.createElement("div", {
     style: {
@@ -631,7 +631,7 @@ function DispatchView({
         gap: 8,
         padding: "8px 11px",
         background: "var(--surface2)",
-        borderRadius: 11,
+        borderRadius: "var(--r-chip)",
         position: "sticky",
         top: 0
       }
@@ -639,7 +639,7 @@ function DispatchView({
       style: {
         width: 9,
         height: 9,
-        borderRadius: 99,
+        borderRadius: "var(--r-pill)",
         background: col.color
       }
     }), React.createElement("span", {
@@ -671,7 +671,7 @@ function DispatchView({
           cursor: "pointer",
           fontFamily: "inherit",
           padding: 11,
-          borderRadius: 12,
+          borderRadius: "var(--r-chip)",
           background: "var(--surface)",
           border: "1px solid " + (clash ? "#EF4444" : "var(--border)"),
           boxShadow: clash ? "0 0 0 3px #EF444418" : "var(--shadow-sm)"
@@ -697,7 +697,7 @@ function DispatchView({
           color: stt.color,
           background: stt.color + "16",
           padding: "2px 8px",
-          borderRadius: 99
+          borderRadius: "var(--r-pill)"
         }
       }, stt.th)), React.createElement("div", {
         style: {
@@ -723,7 +723,7 @@ function DispatchView({
           color: "#0EA5E9",
           background: "#0EA5E916",
           padding: "2px 6px",
-          borderRadius: 99
+          borderRadius: "var(--r-pill)"
         }
       }, "\u0E25\u0E39\u0E01\u0E04\u0E49\u0E32\u0E2A\u0E33\u0E23\u0E27\u0E08") : null), clash && React.createElement("div", {
         style: {
@@ -1025,7 +1025,7 @@ function SurveyApptModal({
       flexDirection: "column",
       gap: 11,
       padding: 13,
-      borderRadius: 12,
+      borderRadius: "var(--r-chip)",
       background: "var(--surface2)",
       border: "1px dashed var(--border-strong)"
     }
@@ -1212,7 +1212,7 @@ function SurveyApptModal({
       flex: "0 0 auto",
       width: 44,
       height: 44,
-      borderRadius: 11,
+      borderRadius: "var(--r-chip)",
       border: "1px solid var(--tint-red-bd)",
       background: "var(--tint-red-bg)",
       color: "var(--tint-red-tx2)",
@@ -1228,7 +1228,7 @@ function SurveyApptModal({
     style: {
       flex: "0 0 auto",
       padding: "12px 18px",
-      borderRadius: 11,
+      borderRadius: "var(--r-chip)",
       border: "1px solid var(--border-strong)",
       background: "var(--surface)",
       color: "var(--text-2)",
@@ -1242,7 +1242,7 @@ function SurveyApptModal({
     style: {
       flex: 1,
       padding: "12px",
-      borderRadius: 11,
+      borderRadius: "var(--r-chip)",
       border: "none",
       background: "var(--primary)",
       color: "#fff",
@@ -1325,7 +1325,7 @@ function ApptFlow({
       style: {
         width: 22,
         height: 22,
-        borderRadius: 99,
+        borderRadius: "var(--r-pill)",
         flexShrink: 0,
         display: "grid",
         placeItems: "center",
@@ -1342,14 +1342,14 @@ function ApptFlow({
       style: {
         width: 7,
         height: 7,
-        borderRadius: 99,
+        borderRadius: "var(--r-pill)",
         background: "var(--primary)"
       }
     }) : React.createElement("span", {
       style: {
         width: 6,
         height: 6,
-        borderRadius: 99,
+        borderRadius: "var(--r-pill)",
         background: "var(--text-3)"
       }
     })), !last && React.createElement("span", {
@@ -1417,7 +1417,7 @@ function ApptFlow({
       justifyContent: "center",
       gap: 6,
       padding: "10px",
-      borderRadius: 10,
+      borderRadius: "var(--r-chip)",
       border: "1px solid var(--border-strong)",
       background: "var(--surface)",
       color: "var(--primary-dark)",
@@ -1447,7 +1447,7 @@ function ApptCard({
       background: "var(--surface)",
       border: "1px solid var(--border)",
       borderLeft: "4px solid " + stt.color,
-      borderRadius: 14,
+      borderRadius: "var(--r-tile)",
       boxShadow: "var(--shadow-sm)",
       overflow: "hidden"
     }
@@ -1486,7 +1486,7 @@ function ApptCard({
       color: "#0EA5E9",
       background: "#0EA5E916",
       padding: "3px 9px",
-      borderRadius: 99,
+      borderRadius: "var(--r-pill)",
       whiteSpace: "nowrap"
     }
   }, a.leadId ? "สำรวจ · ลูกค้าใหม่" : "สำรวจหน้างาน")), React.createElement("div", {
@@ -1644,7 +1644,7 @@ function JobTaskCard({
       background: "var(--surface)",
       border: "1px solid var(--border)",
       borderLeft: "4px solid " + color,
-      borderRadius: 14,
+      borderRadius: "var(--r-tile)",
       boxShadow: "var(--shadow-sm)",
       padding: 12,
       display: "flex",
@@ -1673,7 +1673,7 @@ function JobTaskCard({
       alignItems: "center",
       gap: 5,
       padding: "3px 9px",
-      borderRadius: 99,
+      borderRadius: "var(--r-pill)",
       background: (s.color || "#64748B") + "16",
       color: s.color || "#64748B",
       fontSize: 12,
@@ -1684,7 +1684,7 @@ function JobTaskCard({
     style: {
       width: 7,
       height: 7,
-      borderRadius: 99,
+      borderRadius: "var(--r-pill)",
       background: s.color || "#64748B"
     }
   }), s.th, s.kind && STAGE_KIND_TH[s.kind] && React.createElement("span", {
@@ -1779,7 +1779,7 @@ function JobTaskCard({
         style: {
           width: current ? 13 : 9,
           height: current ? 13 : 9,
-          borderRadius: 99,
+          borderRadius: "var(--r-pill)",
           flexShrink: 0,
           background: filled ? s.color : "var(--surface)",
           border: current ? "2px solid " + s.color : passed ? "none" : "1.5px solid var(--border-strong)",
@@ -1863,7 +1863,7 @@ function JobTaskCard({
       justifyContent: "center",
       gap: 6,
       padding: "9px",
-      borderRadius: 10,
+      borderRadius: "var(--r-chip)",
       background: "var(--surface3)",
       color: "var(--text-3)",
       fontWeight: 700,
@@ -1883,7 +1883,7 @@ function JobTaskCard({
       justifyContent: "center",
       gap: 6,
       padding: "10px",
-      borderRadius: 10,
+      borderRadius: "var(--r-chip)",
       border: "none",
       background: advOverdue ? "var(--tint-red-tx2)" : curStage.color || "var(--primary)",
       color: "#fff",
@@ -2016,7 +2016,7 @@ function MyScheduleView({
       background: "var(--surface)",
       border: "none",
       boxShadow: "var(--shadow-sm)",
-      borderRadius: 14
+      borderRadius: "var(--r-tile)"
     }
   }, "\u0E1A\u0E31\u0E0D\u0E0A\u0E35\u0E02\u0E2D\u0E07\u0E04\u0E38\u0E13\u0E22\u0E31\u0E07\u0E44\u0E21\u0E48\u0E44\u0E14\u0E49\u0E1C\u0E39\u0E01\u0E01\u0E31\u0E1A\u0E02\u0E49\u0E2D\u0E21\u0E39\u0E25\u0E1E\u0E19\u0E31\u0E01\u0E07\u0E32\u0E19 \xB7 \u0E01\u0E23\u0E38\u0E13\u0E32\u0E43\u0E2B\u0E49\u0E41\u0E2D\u0E14\u0E21\u0E34\u0E19\u0E15\u0E31\u0E49\u0E07\u0E04\u0E48\u0E32\u0E43\u0E19\u0E40\u0E21\u0E19\u0E39\u0E08\u0E31\u0E14\u0E01\u0E32\u0E23\u0E1C\u0E39\u0E49\u0E43\u0E0A\u0E49\u0E07\u0E32\u0E19") : items.length === 0 ? React.createElement("div", {
     style: {
@@ -2026,7 +2026,7 @@ function MyScheduleView({
       background: "var(--surface)",
       border: "none",
       boxShadow: "var(--shadow-sm)",
-      borderRadius: 16
+      borderRadius: "var(--r-tile)"
     }
   }, React.createElement("div", {
     style: {

@@ -658,7 +658,7 @@ function StickerPicker({
     style: {
       width: 34,
       height: 34,
-      borderRadius: 10,
+      borderRadius: "var(--r-chip)",
       border: "none",
       boxShadow: "var(--shadow-sm)",
       background: "var(--surface)",
@@ -732,7 +732,7 @@ function StickerPicker({
       background: "var(--surface)",
       border: "none",
       boxShadow: "var(--shadow-sm)",
-      borderRadius: 12,
+      borderRadius: "var(--r-chip)",
       padding: 8,
       display: "flex",
       flexDirection: "column",
@@ -854,7 +854,7 @@ function StickerPicker({
     style: {
       flex: 1,
       padding: 12,
-      borderRadius: 12,
+      borderRadius: "var(--r-chip)",
       border: "none",
       background: "var(--primary)",
       color: "#fff",
@@ -1285,7 +1285,7 @@ function AnnEditor({
     style: {
       width: 34,
       height: 34,
-      borderRadius: 10,
+      borderRadius: "var(--r-chip)",
       border: "none",
       boxShadow: "var(--shadow-sm)",
       background: "var(--surface)",
@@ -1326,7 +1326,7 @@ function AnnEditor({
       touchAction: "none",
       userSelect: "none",
       lineHeight: 0,
-      borderRadius: 12,
+      borderRadius: "var(--r-chip)",
       overflow: "hidden",
       border: "1px solid var(--border)",
       boxShadow: "var(--shadow-pop)",
@@ -1360,7 +1360,7 @@ function AnnEditor({
       zIndex: 4,
       width: 30,
       height: 30,
-      borderRadius: 99,
+      borderRadius: "var(--r-pill)",
       border: "2px solid var(--surface)",
       background: "#EF4444",
       color: "#fff",
@@ -1382,7 +1382,7 @@ function AnnEditor({
       alignItems: "center",
       background: "var(--surface)",
       border: "1px solid var(--primary)",
-      borderRadius: 10,
+      borderRadius: "var(--r-chip)",
       padding: 5,
       boxShadow: "var(--shadow-pop)"
     }
@@ -1446,7 +1446,7 @@ function AnnEditor({
     style: {
       display: "inline-flex",
       background: "var(--surface3)",
-      borderRadius: 11,
+      borderRadius: "var(--r-chip)",
       padding: 3,
       gap: 2
     }
@@ -1498,7 +1498,7 @@ function AnnEditor({
     style: {
       width: 26,
       height: 26,
-      borderRadius: 99,
+      borderRadius: "var(--r-pill)",
       cursor: "pointer",
       background: c,
       transition: "transform .12s",
@@ -1546,7 +1546,7 @@ function AnnEditor({
     onClick: onClose,
     style: {
       padding: "12px 18px",
-      borderRadius: 12,
+      borderRadius: "var(--r-chip)",
       border: "1px solid var(--border-strong)",
       background: "var(--surface)",
       color: "var(--text-2)",
@@ -1560,7 +1560,7 @@ function AnnEditor({
     style: {
       flex: 1,
       padding: 12,
-      borderRadius: 12,
+      borderRadius: "var(--r-chip)",
       border: "none",
       background: "var(--primary)",
       color: "#fff",
@@ -1650,7 +1650,7 @@ function SurveyToggle({
       gap: 12,
       padding: "9px 12px",
       background: "var(--surface2)",
-      borderRadius: 14,
+      borderRadius: "var(--r-tile)",
       boxShadow: "var(--shadow-inset)"
     }
   }, React.createElement("span", {
@@ -1716,7 +1716,7 @@ function SurveyShotCard({
   };
   return React.createElement("div", {
     style: {
-      borderRadius: 14,
+      borderRadius: "var(--r-tile)",
       padding: 11,
       boxShadow: "inset 3px 0 0 " + (has ? "var(--primary)" : "var(--surface3)") + ", var(--shadow-sm)",
       background: "var(--surface)",
@@ -1744,7 +1744,7 @@ function SurveyShotCard({
     style: {
       width: 54,
       height: 54,
-      borderRadius: 12,
+      borderRadius: "var(--r-chip)",
       objectFit: "cover",
       cursor: "pointer",
       boxShadow: "var(--shadow-sm)"
@@ -1756,7 +1756,7 @@ function SurveyShotCard({
       left: -5,
       width: 20,
       height: 20,
-      borderRadius: 99,
+      borderRadius: "var(--r-pill)",
       display: "grid",
       placeItems: "center",
       background: "var(--primary)",
@@ -1770,7 +1770,7 @@ function SurveyShotCard({
     style: {
       width: 54,
       height: 54,
-      borderRadius: 10,
+      borderRadius: "var(--r-chip)",
       flexShrink: 0,
       display: "grid",
       placeItems: "center",
@@ -1895,7 +1895,7 @@ function SurveyShotCard({
       fontSize: 10.5,
       background: "var(--primary)",
       color: "#fff",
-      borderRadius: 99,
+      borderRadius: "var(--r-pill)",
       padding: "1px 6px"
     }
   }, shot.ann.length) : null), onMove && React.createElement(React.Fragment, null, React.createElement("button", {
@@ -1957,7 +1957,7 @@ function SurveyNoteBox({
     style: {
       margin: "-2px -3px 0",
       padding: "11px 12px 12px",
-      borderRadius: 16,
+      borderRadius: "var(--r-tile)",
       background: "var(--surface2)",
       boxShadow: "var(--shadow-inset)",
       display: "flex",
@@ -2428,7 +2428,7 @@ function SurveyWizard({
       position: "relative",
       width: 38,
       height: 38,
-      borderRadius: 99,
+      borderRadius: "var(--r-pill)",
       display: "grid",
       placeItems: "center",
       background: "conic-gradient(" + st.color + " " + st.pct * 3.6 + "deg, var(--surface3) 0deg)"
@@ -2437,7 +2437,7 @@ function SurveyWizard({
     style: {
       position: "absolute",
       inset: 3.5,
-      borderRadius: 99,
+      borderRadius: "var(--r-pill)",
       background: "var(--surface)"
     }
   }), React.createElement("span", {
@@ -2513,7 +2513,7 @@ function SurveyWizard({
       gap: 10,
       padding: "10px 12px",
       background: "var(--surface2)",
-      borderRadius: 12,
+      borderRadius: "var(--r-chip)",
       boxShadow: "var(--shadow-inset)"
     }
   }, React.createElement("span", {
@@ -2787,7 +2787,7 @@ function SurveyWizard({
       color: "var(--tint-red-tx2)",
       background: "var(--tint-red-bg)",
       border: "1px solid var(--tint-red-bd)",
-      borderRadius: 11,
+      borderRadius: "var(--r-chip)",
       padding: "10px 12px"
     }
   }, "\u26A0 \u0E15\u0E49\u0E2D\u0E07\u0E40\u0E0A\u0E37\u0E48\u0E2D\u0E21\u0E15\u0E48\u0E2D Firebase \u0E08\u0E36\u0E07\u0E08\u0E30\u0E2D\u0E31\u0E1B\u0E42\u0E2B\u0E25\u0E14\u0E23\u0E39\u0E1B\u0E44\u0E14\u0E49"), missingSlots.length > 0 && React.createElement("div", {
@@ -2796,7 +2796,7 @@ function SurveyWizard({
       gap: 9,
       alignItems: "flex-start",
       padding: "11px 13px",
-      borderRadius: 13,
+      borderRadius: "var(--r-tile)",
       background: "var(--tint-amber-bg, #FFF8F1)",
       border: "1px solid var(--tint-amber-bd, #F5E3D3)"
     }

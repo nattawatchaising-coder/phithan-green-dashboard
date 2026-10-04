@@ -125,13 +125,13 @@ function CalendarView({ jobs, onOpen, onAdvance }) {
             const hasDelayed = tasks.some((t) => t.late);
             return (
               <button key={i} onClick={() => setSelDay(d)} title="เลือกวันเพื่อดูรายละเอียด"
-                style={{ height: 116, borderRadius: 12, textAlign: "left", fontFamily: "inherit", cursor: "pointer",
+                style={{ height: 116, borderRadius: "var(--r-chip)", textAlign: "left", fontFamily: "inherit", cursor: "pointer",
                   border: isSel ? "2px solid var(--primary)" : "1px solid " + (isToday ? "var(--primary)" : "var(--border)"),
                   background: isSel || isToday ? "var(--primary-soft)" : "var(--surface2)", padding: 8,
                   display: "flex", flexDirection: "column", gap: 4, overflow: "hidden" }}>
                 <span style={{ display: "flex", alignItems: "center", gap: 5, alignSelf: "stretch" }}>
                   <span style={{ fontSize: 12.5, fontWeight: isToday || isSel ? 800 : 600, color: isToday || isSel ? "var(--primary-dark)" : "var(--text-2)" }}>{d}</span>
-                  {hasDelayed && <span style={{ width: 6, height: 6, borderRadius: 99, background: "#EF4444", marginLeft: "auto" }} />}
+                  {hasDelayed && <span style={{ width: 6, height: 6, borderRadius: "var(--r-pill)", background: "#EF4444", marginLeft: "auto" }} />}
                 </span>
                 <div style={{ display: "flex", flexDirection: "column", gap: 3, overflow: "hidden" }}>
                   {tasks.slice(0, 4).map((t, k2) => {
@@ -145,7 +145,7 @@ function CalendarView({ jobs, onOpen, onAdvance }) {
                       <span key={t.job.id + t.stage.key + k2} title={t.stage.th + kindTxt + dayTxt + " · " + t.job.name}
                         style={{ display: "flex", alignItems: "center", gap: 4, borderRadius: 6, padding: "2px 5px", overflow: "hidden",
                           background: t.past ? "var(--surface3)" : c + "1f", opacity: t.past ? 0.75 : 1 }}>
-                        <span style={{ width: 7, height: 7, borderRadius: 99, flexShrink: 0,
+                        <span style={{ width: 7, height: 7, borderRadius: "var(--r-pill)", flexShrink: 0,
                           background: t.past ? "var(--text-3)" : c }} />
                         <span style={{ fontSize: 9.5, fontWeight: 600, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis",
                           color: t.late ? "#EF4444" : (t.past ? "var(--text-3)" : "var(--text-2)") }}>{t.job.name.replace("คุณ", "")}</span>
@@ -191,7 +191,7 @@ function DaySidebar({ day, ym, groups, todayKey, keyOf, onOpen, onAdvance }) {
             <div style={{ minWidth: 0 }}>
               <div style={{ display: "flex", alignItems: "center", gap: 7 }}>
                 <div style={{ fontSize: 17, fontWeight: 800, color: "var(--text-1)" }}>{day} {TH_MONTH_FULL[ym.m]} {ym.y + 543}</div>
-                {isToday && <span style={{ fontSize: 9.5, fontWeight: 800, color: "var(--primary-dark)", background: "var(--primary-soft)", padding: "2px 7px", borderRadius: 99 }}>วันนี้</span>}
+                {isToday && <span style={{ fontSize: 9.5, fontWeight: 800, color: "var(--primary-dark)", background: "var(--primary-soft)", padding: "2px 7px", borderRadius: "var(--r-pill)" }}>วันนี้</span>}
               </div>
               <div style={{ fontSize: 12, color: "var(--text-3)", marginTop: 1 }}>{list.length} งาน</div>
             </div>
@@ -220,7 +220,7 @@ function MobileCalendar({ ym, cells, tasksOn, groupsOn, keyOf, todayKey, shift, 
   const selGroups = selDay ? groupsOn(selDay) : [];
 
   return (
-    <div style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 16,
+    <div style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: "var(--r-tile)",
       padding: 14, boxShadow: "var(--shadow-sm)", display: "flex", flexDirection: "column", gap: 10 }}>
       {/* เดือน + ปุ่มเลื่อนเดือน */}
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
@@ -289,7 +289,7 @@ function MobileCalendar({ ym, cells, tasksOn, groupsOn, keyOf, todayKey, shift, 
             animation: "sheetUp .26s cubic-bezier(.3,.9,.3,1)" }}>
             {/* handle */}
             <div style={{ padding: "10px 0 4px", display: "flex", justifyContent: "center", flexShrink: 0 }}>
-              <span style={{ width: 38, height: 4, borderRadius: 99, background: "var(--border-strong)" }} />
+              <span style={{ width: 38, height: 4, borderRadius: "var(--r-pill)", background: "var(--border-strong)" }} />
             </div>
             {/* header */}
             <div style={{ padding: "6px 20px 12px", borderBottom: "1px solid var(--border)", display: "flex",
@@ -298,7 +298,7 @@ function MobileCalendar({ ym, cells, tasksOn, groupsOn, keyOf, todayKey, shift, 
                 <div style={{ fontSize: 16, fontWeight: 700, color: "var(--text-1)" }}>{selDay} {TH_MONTH_FULL[ym.m]} {ym.y + 543}</div>
                 <div style={{ fontSize: 12, color: "var(--text-3)" }}>{selGroups.length} งาน</div>
               </div>
-              <button className="x-close" onClick={() => setSelDay(null)} style={{ width: 34, height: 34, borderRadius: 10,
+              <button className="x-close" onClick={() => setSelDay(null)} style={{ width: 34, height: 34, borderRadius: "var(--r-chip)",
                 border: "none", boxShadow: "var(--shadow-sm)", background: "var(--surface)", cursor: "pointer",
                 display: "grid", placeItems: "center", color: "var(--text-2)" }}>
                 <Icon name="x" size={17} />
@@ -324,7 +324,7 @@ function MobileCalendar({ ym, cells, tasksOn, groupsOn, keyOf, todayKey, shift, 
 function FlowLegend() {
   const SF = window.SF;
   return (
-    <div style={{ display: "flex", alignItems: "center", gap: 14, marginBottom: 16, padding: "10px 14px", background: "var(--surface2)", borderRadius: 12, border: "none", boxShadow: "var(--shadow-sm)", flexWrap: "wrap" }}>
+    <div style={{ display: "flex", alignItems: "center", gap: 14, marginBottom: 16, padding: "10px 14px", background: "var(--surface2)", borderRadius: "var(--r-chip)", border: "none", boxShadow: "var(--shadow-sm)", flexWrap: "wrap" }}>
       <span style={{ fontSize: 11, fontWeight: 700, color: "var(--text-2)", display: "flex", alignItems: "center", gap: 6, letterSpacing: ".03em" }}>
         <Icon name="flow" size={14} color="var(--primary)" /> Flow การทำงาน:
       </span>
@@ -338,7 +338,7 @@ function FlowLegend() {
 }
 
 function NavBtn({ dir, onClick }) {
-  return (    <button onClick={onClick} style={{ width: 34, height: 34, borderRadius: 10, border: "none", boxShadow: "var(--shadow-sm)", background: "var(--surface)",
+  return (    <button onClick={onClick} style={{ width: 34, height: 34, borderRadius: "var(--r-chip)", border: "none", boxShadow: "var(--shadow-sm)", background: "var(--surface)",
       cursor: "pointer", display: "grid", placeItems: "center", color: "var(--text-2)" }}>
       <Icon name="chevronRight" size={17} style={{ transform: dir === "prev" ? "rotate(180deg)" : "none" }} />
     </button>
@@ -423,15 +423,15 @@ function MapView({ jobs, onOpen }) {
         <div style={{ display: "flex", alignItems: "center", gap: 14, flexWrap: "wrap", margin: "12px 0 4px" }}>
           {window.SF.STAGES.map((s) => (
             <span key={s.key} style={{ display: "inline-flex", alignItems: "center", gap: 5, fontSize: 11, fontWeight: 600, color: "var(--text-2)" }}>
-              <span style={{ width: 9, height: 9, borderRadius: 99, background: s.color, border: "1.5px solid #fff", boxShadow: "0 0 0 1px " + s.color }} />{s.th}
+              <span style={{ width: 9, height: 9, borderRadius: "var(--r-pill)", background: s.color, border: "1.5px solid #fff", boxShadow: "0 0 0 1px " + s.color }} />{s.th}
             </span>
           ))}
           <span style={{ display: "inline-flex", alignItems: "center", gap: 5, fontSize: 11, fontWeight: 600, color: "var(--tint-red-tx2)" }}>
-            <span style={{ width: 9, height: 9, borderRadius: 99, background: "#EF4444" }} /> ติดปัญหา
+            <span style={{ width: 9, height: 9, borderRadius: "var(--r-pill)", background: "#EF4444" }} /> ติดปัญหา
           </span>
         </div>
         <div ref={mapDiv} style={{ flex: isMobile ? "none" : 1, height: isMobile ? 320 : "auto",
-          minHeight: isMobile ? 320 : 460, borderRadius: 14, overflow: "hidden", marginTop: 10, border: "1px solid var(--border)", zIndex: 0 }} />
+          minHeight: isMobile ? 320 : 460, borderRadius: "var(--r-tile)", overflow: "hidden", marginTop: 10, border: "1px solid var(--border)", zIndex: 0 }} />
       </div>
       {/* province list */}
       <div className="pnl" style={{ display: "flex", flexDirection: "column", minHeight: isMobile ? "auto" : 0 }}>
@@ -443,14 +443,14 @@ function MapView({ jobs, onOpen }) {
             const open = openProv === prov;
             const problems = list.filter((j) => j.problem || j.delayed).length;
             return (
-              <div key={prov} style={{ border: "1px solid " + (open ? "var(--primary)" : "var(--border)"), borderRadius: 12, overflow: "hidden", transition: "border-color .15s", flexShrink: 0 }}>
+              <div key={prov} style={{ border: "1px solid " + (open ? "var(--primary)" : "var(--border)"), borderRadius: "var(--r-chip)", overflow: "hidden", transition: "border-color .15s", flexShrink: 0 }}>
                 <button onClick={() => { setOpenProv(open ? null : prov); flyToProv(prov); }}
                   style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 6, padding: "11px 13px",
                     background: open ? "var(--primary-soft)" : "var(--surface2)", border: "none", cursor: "pointer", fontFamily: "inherit", width: "100%", textAlign: "left" }}>
                   <span style={{ display: "flex", alignItems: "center", gap: 8, minWidth: 0, flex: 1 }}>
                     <Icon name="chevronRight" size={15} color="var(--text-3)" style={{ transform: open ? "rotate(90deg)" : "none", transition: "transform .18s", flexShrink: 0 }} />
                     <span style={{ fontSize: 13, fontWeight: 700, color: open ? "var(--primary-dark)" : "var(--text-1)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", minWidth: 0 }}>{prov}</span>
-                    {problems > 0 && <span style={{ fontSize: 10, fontWeight: 700, color: "var(--tint-red-tx2)", background: "var(--tint-red-bg2)", padding: "1px 6px", borderRadius: 99, flexShrink: 0 }}>{problems}⚠</span>}
+                    {problems > 0 && <span style={{ fontSize: 10, fontWeight: 700, color: "var(--tint-red-tx2)", background: "var(--tint-red-bg2)", padding: "1px 6px", borderRadius: "var(--r-pill)", flexShrink: 0 }}>{problems}⚠</span>}
                   </span>
                   <span style={{ fontFamily: "var(--mono)", fontSize: 12, fontWeight: 600, color: "var(--text-2)", flexShrink: 0, whiteSpace: "nowrap" }}>{list.length} งาน</span>
                 </button>
@@ -461,7 +461,7 @@ function MapView({ jobs, onOpen }) {
                         background: "none", border: "none", borderRadius: 8, cursor: "pointer", fontFamily: "inherit", width: "100%", textAlign: "left" }}
                         onMouseEnter={(e) => e.currentTarget.style.background = "var(--surface2)"}
                         onMouseLeave={(e) => e.currentTarget.style.background = "none"}>
-                        <span style={{ width: 8, height: 8, borderRadius: 99, background: j.problem ? "#EF4444" : stageOf(j.stage).color, flexShrink: 0 }} />
+                        <span style={{ width: 8, height: 8, borderRadius: "var(--r-pill)", background: j.problem ? "#EF4444" : stageOf(j.stage).color, flexShrink: 0 }} />
                         <span style={{ display: "flex", flexDirection: "column", flex: 1, minWidth: 0 }}>
                           <span style={{ fontSize: 12.5, fontWeight: 600, color: "var(--text-1)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{j.name}</span>
                           <span style={{ fontSize: 10.5, color: "var(--text-3)" }}>{stageOf(j.stage).th}</span>
