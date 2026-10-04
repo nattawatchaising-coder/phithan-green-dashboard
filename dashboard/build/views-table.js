@@ -719,7 +719,7 @@ function TableMobile({
       fontWeight: 600,
       color: "var(--text-1)",
       background: "var(--surface)",
-      border: "1px solid var(--border-strong)",
+      border: "none",
       borderRadius: 9,
       padding: "7px 10px",
       outline: "none"
@@ -738,7 +738,8 @@ function TableMobile({
       width: 36,
       height: 36,
       borderRadius: 9,
-      border: "1px solid var(--border-strong)",
+      border: "none",
+      boxShadow: "var(--shadow-sm)",
       background: "var(--surface)",
       cursor: "pointer",
       color: "var(--text-2)",

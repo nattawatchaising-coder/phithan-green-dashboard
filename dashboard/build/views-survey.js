@@ -2527,7 +2527,7 @@ function LeadDrawer({
       display: "flex",
       flexDirection: "column",
       overflow: "hidden",
-      boxShadow: "0 34px 60px -24px rgba(8,20,14,.45)"
+      boxShadow: "var(--shadow-sheet)"
     }
   }, React.createElement("div", {
     style: {

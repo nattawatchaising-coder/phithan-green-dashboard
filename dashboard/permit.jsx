@@ -466,7 +466,7 @@ function usePermitPhotos(jobId) {
    ================================================================ */
 const P_INPUT = {
   background: "var(--surface2)", border: "1px solid var(--border-strong)", color: "var(--text-1)",
-  fontFamily: "inherit", fontSize: 14, padding: "10px 12px", borderRadius: 10, outline: "none", width: "100%",
+  fontFamily: "inherit", fontSize: 14, padding: "10px 12px", borderRadius: "var(--r-chip)", outline: "none", width: "100%",
 };
 /* ป้ายเล็ก ๆ บอกว่าค่านี้ไม่ได้พิมพ์เอง แต่ดึงมาจากแบบสำรวจ — หายไปเองเมื่อช่างแก้ค่า */
 function FromSurveyTag() {
@@ -564,7 +564,7 @@ function PermitShotCard({ slot, shot, busy, onPick, onRemove }) {
         </button>
         {has && (
           <button type="button" onClick={onRemove} title="ลบรูป"
-            style={{ width: 30, height: 30, borderRadius: 9, border: "1px solid var(--border-strong)", background: "var(--surface)", color: "var(--tint-red-tx2)", cursor: "pointer", display: "grid", placeItems: "center" }}>
+            style={{ width: 30, height: 30, borderRadius: 9, border: "none", boxShadow: "var(--shadow-sm)", background: "var(--surface)", color: "var(--tint-red-tx2)", cursor: "pointer", display: "grid", placeItems: "center" }}>
             <Icon name="trash" size={14} />
           </button>
         )}
@@ -677,7 +677,7 @@ function PermitWizard({ job, onClose, onSave, onSubmit, currentUser, stock, read
               <h2 style={{ fontSize: 16, fontWeight: 700, color: "var(--text-1)", margin: 0 }}>ข้อมูลขออนุญาตการไฟฟ้า</h2>
               <span style={{ fontSize: 11.5, color: "var(--text-3)" }}>{job ? (job.code + " · " + (job.name || "")) : ""}</span>
             </div>
-            <button className="x-close" onClick={onClose} style={{ width: 32, height: 32, borderRadius: 9, border: "1px solid var(--border)", background: "var(--surface)", cursor: "pointer", display: "grid", placeItems: "center", color: "var(--text-2)", flexShrink: 0 }}><Icon name="x" size={16} /></button>
+            <button className="x-close" onClick={onClose} style={{ width: 32, height: 32, borderRadius: 9, border: "none", boxShadow: "var(--shadow-sm)", background: "var(--surface)", cursor: "pointer", display: "grid", placeItems: "center", color: "var(--text-2)", flexShrink: 0 }}><Icon name="x" size={16} /></button>
           </div>
 
           <div style={{ display: "flex", alignItems: "center", gap: 10, marginTop: 12 }}>
@@ -830,7 +830,7 @@ function PermitWizard({ job, onClose, onSave, onSubmit, currentUser, stock, read
                       </div>
                       {(f.invs || []).length > 1 && (
                         <button type="button" onClick={() => delInv(i)} title="ลบตัวนี้"
-                          style={{ width: 38, height: 38, borderRadius: 9, border: "1px solid var(--border-strong)", background: "var(--surface)", color: "var(--tint-red-tx2)", cursor: "pointer", display: "grid", placeItems: "center", flexShrink: 0 }}><Icon name="trash" size={14} /></button>
+                          style={{ width: 38, height: 38, borderRadius: 9, border: "none", boxShadow: "var(--shadow-sm)", background: "var(--surface)", color: "var(--tint-red-tx2)", cursor: "pointer", display: "grid", placeItems: "center", flexShrink: 0 }}><Icon name="trash" size={14} /></button>
                       )}
                     </div>
                   ))}

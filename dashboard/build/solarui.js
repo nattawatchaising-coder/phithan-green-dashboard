@@ -7,11 +7,11 @@ const SU_CSS = `
 .su-wrap{max-width:820px;margin:0 auto;display:flex;flex-direction:column;gap:16px}
 
 /* ---- ขั้นตอนด้านซ้าย ---- */
-.su-step{display:flex;gap:10px;align-items:flex-start;padding:10px 10px;border-radius:12px;border:none;
+.su-step{display:flex;gap:10px;align-items:flex-start;padding:10px 10px;border-radius:var(--r-chip);border:none;
   background:transparent;text-align:left;width:100%;transition:background .15s ease}
 .su-step:hover{background:var(--surface2)}
 .su-step[data-on="1"]{background:var(--acs)}
-.su-step .no{width:21px;height:21px;border-radius:99px;flex:0 0 auto;display:grid;place-items:center;
+.su-step .no{width:21px;height:21px;border-radius:var(--r-pill);flex:0 0 auto;display:grid;place-items:center;
   font-size:10.5px;font-weight:800;background:var(--surface3);color:var(--text-3);margin-top:1px}
 .su-step[data-on="1"] .no{background:var(--ac);color:#fff}
 .su-step[data-done="1"] .no{background:var(--acs);color:var(--acd)}
@@ -32,7 +32,7 @@ const SU_CSS = `
 /* ---- การ์ดเลือกโหมด ---- */
 .su-pick{display:flex;gap:10px}
 .su-pick button{flex:1;display:flex;flex-direction:column;gap:7px;align-items:flex-start;padding:13px 14px;
-  border-radius:14px;border:1.5px solid var(--ln2);background:var(--surface);text-align:left;transition:all .15s ease}
+  border-radius:var(--r-tile);border:1.5px solid var(--ln2);background:var(--surface);text-align:left;transition:all .15s ease}
 .su-pick button:hover{border-color:var(--text-3)}
 .su-pick button[data-on="1"]{border-color:var(--ac);background:var(--acs);box-shadow:0 0 0 3px var(--acs)}
 .su-pick .h{font-size:13px;font-weight:800;color:var(--text-1)}
@@ -65,16 +65,16 @@ const SU_CSS = `
 .su-strs[data-full="1"]{position:fixed;inset:0;z-index:9000;height:auto;background:var(--bg);padding:12px}
 .su-strs-map{position:relative;min-width:0;min-height:0}
 .su-mode{position:absolute;left:10px;top:10px;z-index:2;display:flex;align-items:center;gap:7px;pointer-events:none;
-  background:var(--surface);box-shadow:var(--shadow-sm);border-radius:99px;padding:6px 12px 6px 9px;font-size:11.5px;font-weight:800;color:var(--text-1)}
-.su-mode .d{width:12px;height:12px;border-radius:99px;flex:0 0 auto}
+  background:var(--surface);box-shadow:var(--shadow-sm);border-radius:var(--r-pill);padding:6px 12px 6px 9px;font-size:11.5px;font-weight:800;color:var(--text-1)}
+.su-mode .d{width:12px;height:12px;border-radius:var(--r-pill);flex:0 0 auto}
 .su-mode i{font-style:normal;font-weight:600;color:var(--text-3)}
 .su-strs-side{display:flex;flex-direction:column;gap:10px;min-height:0;overflow-y:auto}
-.su-sec{background:var(--surface);box-shadow:var(--shadow-sm);border-radius:14px;padding:11px 12px;display:flex;flex-direction:column;gap:8px}
+.su-sec{background:var(--surface);box-shadow:var(--shadow-sm);border-radius:var(--r-tile);padding:11px 12px;display:flex;flex-direction:column;gap:8px}
 .su-sec.grow{flex:1 1 220px;min-height:200px}
 .su-sec .hd{display:flex;align-items:center;gap:8px;font-size:11px;font-weight:800;color:var(--text-3)}
 .su-sec .hd b{font-size:13px;color:var(--text-1)}
 .su-sec .hd .sp{flex:1}
-.su-tools{display:grid;grid-template-columns:repeat(5,1fr);gap:4px;background:var(--surface2);box-shadow:var(--shadow-inset);border-radius:12px;padding:4px}
+.su-tools{display:grid;grid-template-columns:repeat(5,1fr);gap:4px;background:var(--surface2);box-shadow:var(--shadow-inset);border-radius:var(--r-chip);padding:4px}
 .su-tool{display:flex;flex-direction:column;align-items:center;gap:3px;padding:7px 2px 6px;border:none;border-radius:9px;background:transparent;
   cursor:pointer;font-family:inherit;color:var(--text-2);position:relative}
 .su-tool .g{font-size:17px;font-weight:800;line-height:1}
@@ -82,32 +82,32 @@ const SU_CSS = `
 .su-tool kbd{position:absolute;top:2px;right:4px;font-family:inherit;font-size:8.5px;font-weight:800;color:var(--text-3)}
 .su-tool:hover{color:var(--text-1)}
 .su-tool[data-on="1"]{background:var(--surface);box-shadow:var(--shadow-sm);color:var(--acd)}
-.su-dir{display:grid;grid-template-columns:1fr 1fr;gap:4px;background:var(--surface2);box-shadow:var(--shadow-inset);border-radius:11px;padding:4px}
+.su-dir{display:grid;grid-template-columns:1fr 1fr;gap:4px;background:var(--surface2);box-shadow:var(--shadow-inset);border-radius:var(--r-chip);padding:4px}
 .su-dir button{border:none;border-radius:8px;background:transparent;padding:7px 4px;font-family:inherit;font-size:11.5px;font-weight:700;color:var(--text-2);cursor:pointer}
 .su-dir button[data-on="1"]{background:var(--surface);box-shadow:var(--shadow-sm);color:var(--acd)}
 .su-tdesc{font-size:11px;line-height:1.5;color:var(--text-2)}
 .su-hint{font-size:10px;line-height:1.5;color:var(--text-3)}
 .su-step{display:flex;align-items:center;gap:8px}
-.su-step button{width:32px;height:32px;border-radius:10px;border:none;background:var(--surface2);box-shadow:var(--shadow-inset);
+.su-step button{width:32px;height:32px;border-radius:var(--r-chip);border:none;background:var(--surface2);box-shadow:var(--shadow-inset);
   font-size:17px;font-weight:800;color:var(--text-1);cursor:pointer;font-family:inherit}
 .su-step button:disabled{opacity:.35;cursor:default}
 .su-step .n{min-width:44px;text-align:center;font-size:22px;font-weight:800;color:var(--text-1);line-height:1}
 .su-step .u{font-size:11px;color:var(--text-3);font-weight:700}
 .su-cur{display:flex;gap:11px;align-items:center}
-.su-cur .sw{width:44px;height:44px;border-radius:13px;display:grid;place-items:center;color:#fff;font-weight:800;font-size:15px;flex:0 0 auto}
+.su-cur .sw{width:44px;height:44px;border-radius:var(--r-tile);display:grid;place-items:center;color:#fff;font-weight:800;font-size:15px;flex:0 0 auto}
 .su-cur .t{display:flex;flex-direction:column;gap:2px;min-width:0}
 .su-cur .t b{font-size:14px;color:var(--text-1);display:flex;align-items:center;gap:6px}
 .su-cur .t i{font-style:normal;font-size:11px;color:var(--text-3);line-height:1.4}
-.su-tag{font-size:9.5px;font-weight:800;border-radius:99px;padding:2px 7px;background:var(--acs);color:var(--acd)}
+.su-tag{font-size:9.5px;font-weight:800;border-radius:var(--r-pill);padding:2px 7px;background:var(--acs);color:var(--acd)}
 .su-row{display:flex;gap:6px;flex-wrap:wrap}
 .su-msg{font-size:11.5px;font-weight:700;color:var(--text-2);background:var(--surface2);box-shadow:var(--shadow-inset);
-  border-radius:10px;padding:7px 10px;display:flex;gap:8px;align-items:center}
+  border-radius:var(--r-chip);padding:7px 10px;display:flex;gap:8px;align-items:center}
 .su-slist{flex:1;min-height:0;overflow-y:auto;display:flex;flex-direction:column;gap:2px;margin:0 -6px;padding:0 6px}
 .su-srow{display:grid;grid-template-columns:10px 34px 1fr auto;gap:8px;align-items:center;padding:6px 8px;border:none;border-radius:9px;
   background:transparent;cursor:pointer;font-family:inherit;font-size:11.5px;color:var(--text-2);text-align:left}
 .su-srow:hover{background:var(--surface2)}
 .su-srow[data-on="1"]{background:var(--surface2);box-shadow:var(--shadow-inset);color:var(--text-1)}
-.su-srow .d{width:10px;height:10px;border-radius:99px}
+.su-srow .d{width:10px;height:10px;border-radius:var(--r-pill)}
 .su-srow .a{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:var(--text-3)}
 .su-srow .ok{font-weight:800;color:var(--acd)}
 .su-srow .bad{font-weight:800;color:var(--tint-red-tx)}
@@ -118,7 +118,7 @@ const SU_CSS = `
   display:grid;place-items:center;padding:26px;animation:suFade .16s ease}
 @keyframes suFade{from{opacity:0}to{opacity:1}}
 .su-sheet{width:min(560px,100%);max-height:100%;display:flex;flex-direction:column;background:var(--surface);
-  border:1px solid var(--ln2);border-radius:20px;box-shadow:0 26px 60px -18px rgba(11,25,20,.42);overflow:hidden}
+  border:1px solid var(--ln2);border-radius:var(--r-card);box-shadow:0 26px 60px -18px rgba(11,25,20,.42);overflow:hidden}
 .su-sheet-hd{display:flex;gap:12px;align-items:flex-start;padding:17px 20px 14px;border-bottom:1px solid var(--ln)}
 .su-sheet-hd h4{font-size:14px;font-weight:800;color:var(--text-1);margin:0 0 2px}
 .su-sheet-hd p{font-size:10.5px;color:var(--text-3);margin:0;line-height:1.5}
@@ -126,7 +126,7 @@ const SU_CSS = `
 .su-dxf-svg svg{width:100% !important;height:100% !important;display:block}
 .su-sheet-ft{display:flex;align-items:center;gap:8px;padding:13px 16px;border-top:1px solid var(--ln);background:var(--surface2)}
 /* แถวติ๊ก — ทั้งแถวกดได้ ไม่ต้องเล็งช่องสี่เหลี่ยม */
-.su-ck{display:flex;gap:11px;align-items:flex-start;width:100%;padding:9px 10px;border:0;border-radius:12px;
+.su-ck{display:flex;gap:11px;align-items:flex-start;width:100%;padding:9px 10px;border:0;border-radius:var(--r-chip);
   background:none;text-align:left;cursor:pointer;font-family:inherit;transition:background .13s}
 .su-ck:hover{background:var(--surface2)}
 .su-ck .bx{flex:0 0 auto;width:18px;height:18px;border-radius:6px;border:1.5px solid var(--ln2);margin-top:1px;
@@ -142,7 +142,7 @@ const SU_CSS = `
 .su-sheet-bd .grp+.grp{border-top:1px solid var(--ln)}
 
 /* ---- กรอบรายชื่อเส้น I-V + กำลัง ---- */
-.su-ivlegend{display:flex;flex-wrap:wrap;gap:5px 14px;border:1px solid var(--ln);border-radius:10px;
+.su-ivlegend{display:flex;flex-wrap:wrap;gap:5px 14px;border:1px solid var(--ln);border-radius:var(--r-chip);
   padding:8px 11px;font-size:10px}
 .su-ivlegend span{display:flex;align-items:center;gap:5px;font-weight:700;color:var(--text-2);white-space:nowrap}
 .su-ivlegend i{width:13px;height:3px;border-radius:2px;display:block;flex:0 0 auto}
@@ -152,7 +152,7 @@ const SU_CSS = `
 
 /* ---- แบ่งเฟส L1/L2/L3 ---- */
 .su-phgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:9px}
-.su-phcard{display:flex;flex-direction:column;gap:4px;padding:11px 13px;border-radius:13px;
+.su-phcard{display:flex;flex-direction:column;gap:4px;padding:11px 13px;border-radius:var(--r-tile);
   border:1px solid var(--ln2);background:var(--surface);position:relative;overflow:hidden}
 .su-phcard::before{content:"";position:absolute;left:0;top:0;bottom:0;width:3px}
 .su-phcard[data-ph="1"]::before{background:#D97706}
@@ -164,8 +164,8 @@ const SU_CSS = `
 .su-phcard .big{font-size:21px;font-weight:800;letter-spacing:-.5px;line-height:1.1}
 .su-phcard .big small{font-size:10px;font-weight:700;color:var(--text-3);margin-left:3px}
 .su-phcard .sub{font-size:9.5px;font-weight:650;color:var(--text-3)}
-.su-phcard .bar{display:block;height:4px;border-radius:99px;background:var(--surface3);overflow:hidden;margin-top:2px}
-.su-phcard .bar i{display:block;height:100%;border-radius:99px;background:currentColor;opacity:.75}
+.su-phcard .bar{display:block;height:4px;border-radius:var(--r-pill);background:var(--surface3);overflow:hidden;margin-top:2px}
+.su-phcard .bar i{display:block;height:100%;border-radius:var(--r-pill);background:currentColor;opacity:.75}
 .su-phcard[data-ph="1"] .bar i{background:#D97706}
 .su-phcard[data-ph="2"] .bar i{background:#2563EB}
 .su-phcard[data-ph="3"] .bar i{background:#148080}
@@ -183,14 +183,14 @@ const SU_CSS = `
 /* ---- ไมโครอินเวอร์เตอร์: การ์ดเลือกอัตราส่วน ---- */
 .su-mgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:10px}
 .su-mcard{display:flex;flex-direction:column;gap:7px;text-align:left;cursor:pointer;font-family:inherit;
-  padding:13px 14px;border-radius:14px;border:1.5px solid var(--ln2);background:var(--surface);
+  padding:13px 14px;border-radius:var(--r-tile);border:1.5px solid var(--ln2);background:var(--surface);
   color:var(--text-1);transition:border-color .15s,background .15s,box-shadow .15s}
 .su-mcard:hover{border-color:var(--ac)}
 .su-mcard[data-on="1"]{border-color:var(--ac);background:var(--acs);box-shadow:0 1px 3px rgba(13,23,20,.07)}
 .su-mcard[data-bad="1"]{border-color:rgba(185,28,28,.38)}
 .su-mcard .rt{display:flex;align-items:center;gap:9px}
 .su-mcard .rt b{font-size:13.5px;font-weight:800;letter-spacing:-.1px}
-.su-mcard .tag{margin-left:auto;font-size:8.5px;font-weight:800;padding:2px 7px;border-radius:99px;
+.su-mcard .tag{margin-left:auto;font-size:8.5px;font-weight:800;padding:2px 7px;border-radius:var(--r-pill);
   background:var(--ac);color:#fff;white-space:nowrap}
 .su-mcard .tag.bad{background:var(--dngr)}
 .su-mcard .mo{font-size:10px;color:var(--text-3);line-height:1.45;
@@ -202,14 +202,14 @@ const SU_CSS = `
 .su-mcard .wy{font-size:9.5px;font-weight:650;color:var(--text-3);line-height:1.45}
 .su-mcard[data-on="1"] .wy{color:var(--acd)}
 /* กล่องอธิบายหลักการทำงานของไมโคร */
-.su-mfact{display:flex;gap:10px;align-items:flex-start;padding:11px 13px;border-radius:12px;
+.su-mfact{display:flex;gap:10px;align-items:flex-start;padding:11px 13px;border-radius:var(--r-chip);
   background:var(--acs);border-left:3px solid var(--ac);font-size:10.5px;line-height:1.65;color:var(--text-2)}
 .su-mfact .ic{color:var(--acd);flex:0 0 auto;margin-top:1px}
 .su-mfact b{color:var(--text-1)}
 
 /* ---- แถวตัวเลขสรุป (ใช้ซ้ำได้ทุกการ์ด) ---- */
 .su-tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(132px,1fr));gap:9px}
-.su-tiles>div{display:flex;flex-direction:column;gap:2px;min-width:0;padding:10px 12px;border-radius:12px;
+.su-tiles>div{display:flex;flex-direction:column;gap:2px;min-width:0;padding:10px 12px;border-radius:var(--r-chip);
   background:var(--surface2);border:1px solid var(--ln)}
 .su-tiles .k{font-size:9.5px;font-weight:800;color:var(--text-3);letter-spacing:.02em}
 .su-tiles .v{font-size:18px;font-weight:800;letter-spacing:-.4px;color:var(--text-1);line-height:1.2;
@@ -235,7 +235,7 @@ const SU_CSS = `
 @media (max-width:820px){.su-h24{grid-template-columns:repeat(6,minmax(0,1fr))}}
 
 /* ---- ป้ายที่มาของค่า ---- */
-.su-src{font-size:8.5px;font-weight:800;padding:2px 6px;border-radius:99px;letter-spacing:.02em;white-space:nowrap}
+.su-src{font-size:8.5px;font-weight:800;padding:2px 6px;border-radius:var(--r-pill);letter-spacing:.02em;white-space:nowrap}
 .su-src.stock{background:var(--acs);color:var(--acd)}
 .su-src.def{background:var(--surface3);color:var(--text-3)}
 .su-src.edit{background:rgba(37,99,235,.12);color:#1D4ED8}
@@ -252,27 +252,27 @@ const SU_CSS = `
   .su-kpi{padding:0 11px}
 }
 
-.su-bar{height:8px;border-radius:99px;background:var(--surface3);overflow:hidden}
-.su-bar span{display:block;height:100%;border-radius:99px;transition:width .3s ease}
-.su-alert{display:flex;gap:8px;align-items:flex-start;font-size:11.5px;line-height:1.6;border-radius:11px;padding:9px 11px}
+.su-bar{height:8px;border-radius:var(--r-pill);background:var(--surface3);overflow:hidden}
+.su-bar span{display:block;height:100%;border-radius:var(--r-pill);transition:width .3s ease}
+.su-alert{display:flex;gap:8px;align-items:flex-start;font-size:11.5px;line-height:1.6;border-radius:var(--r-chip);padding:9px 11px}
 .su-alert.warn{background:rgba(245,158,11,.11);border:1px solid rgba(180,83,9,.22);color:#8A4408}
 .su-alert.bad{background:rgba(185,28,28,.08);border:1px solid rgba(185,28,28,.24);color:#991B1B}
 .su-alert.good{background:var(--acs);border:1px solid transparent;color:var(--acd)}
 .su-alert.info{background:rgba(37,99,235,.07);border:1px solid rgba(37,99,235,.18);color:#1D4ED8}
 
 /* ---- ปุ่มเดินดูทีละเดือน ---- */
-.su-mstep{display:inline-flex;align-items:center;gap:2px;border:1px solid var(--ln2);border-radius:99px;
+.su-mstep{display:inline-flex;align-items:center;gap:2px;border:1px solid var(--ln2);border-radius:var(--r-pill);
   padding:2px 3px;background:var(--surface)}
 .su-mstep b{font-size:10.5px;font-weight:700;color:var(--text-2);padding:0 6px;white-space:nowrap;
   min-width:118px;text-align:center}
-.su-mstep button{width:21px;height:21px;border:none;border-radius:99px;background:transparent;cursor:pointer;
+.su-mstep button{width:21px;height:21px;border:none;border-radius:var(--r-pill);background:transparent;cursor:pointer;
   display:grid;place-items:center;color:var(--text-3);padding:0;transition:background .12s ease,color .12s ease}
 .su-mstep button:hover{background:var(--acs);color:var(--acd)}
 .su-mstep button:first-child{transform:rotate(180deg)}
 
 /* ---- ผลกระทบต่อสิ่งแวดล้อม ---- */
 .su-env{display:grid;grid-template-columns:minmax(210px,.9fr) 2fr;gap:14px;align-items:stretch}
-.su-env .hero{display:flex;flex-direction:column;gap:5px;justify-content:center;padding:14px 15px;border-radius:14px;
+.su-env .hero{display:flex;flex-direction:column;gap:5px;justify-content:center;padding:14px 15px;border-radius:var(--r-tile);
   background:linear-gradient(140deg,var(--acs),transparent 78%);border:1px solid var(--ln2)}
 .su-env .hero .eb{font-size:9px;font-weight:800;letter-spacing:.14em;color:var(--acd);text-transform:uppercase}
 .su-env .hero .big{font-family:var(--font-num,inherit);font-size:38px;font-weight:800;letter-spacing:-.045em;
@@ -281,7 +281,7 @@ const SU_CSS = `
 .su-env .hero .sub{font-size:9.5px;line-height:1.6;color:var(--text-3)}
 .su-env .hero .sub b{color:var(--text-2)}
 .su-env .tiles{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:1px;
-  background:var(--ln);border:1px solid var(--ln);border-radius:14px;overflow:hidden}
+  background:var(--ln);border:1px solid var(--ln);border-radius:var(--r-tile);overflow:hidden}
 .su-env .tile{display:flex;flex-direction:column;gap:3px;padding:12px 13px;background:var(--surface);color:var(--acd)}
 .su-env .tile .v{font-family:var(--font-num,inherit);font-size:20px;font-weight:800;letter-spacing:-.03em;
   color:var(--text-1);line-height:1.05;font-variant-numeric:tabular-nums}
@@ -290,8 +290,8 @@ const SU_CSS = `
 .su-env .tile .sb{font-size:8.5px;color:var(--text-3);line-height:1.4}
 .su-env-pb{display:flex;align-items:center;gap:11px;padding-top:10px;border-top:1px solid var(--ln)}
 .su-env-pb .l{font-size:10.5px;font-weight:700;color:var(--text-2);white-space:nowrap}
-.su-env-pb .bar{flex:1;height:7px;border-radius:99px;background:var(--surface3);overflow:hidden}
-.su-env-pb .bar span{display:block;height:100%;border-radius:99px;background:linear-gradient(90deg,#1B9B75,#148080)}
+.su-env-pb .bar{flex:1;height:7px;border-radius:var(--r-pill);background:var(--surface3);overflow:hidden}
+.su-env-pb .bar span{display:block;height:100%;border-radius:var(--r-pill);background:linear-gradient(90deg,#1B9B75,#148080)}
 .su-env-pb .r{font-size:10px;font-weight:700;color:var(--text-3);white-space:nowrap}
 .su-env-pb .r b{font-family:var(--font-num,inherit);font-size:14px;color:var(--text-1);letter-spacing:-.3px}
 @media (max-width:720px){ .su-env{grid-template-columns:1fr} }

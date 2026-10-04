@@ -12,7 +12,7 @@
    คำนำหน้า tm / Tm / TM
    ============================================================ */
 
-const TM_IN = { padding: "9px 11px", borderRadius: 10, border: "1px solid var(--border-strong)",
+const TM_IN = { padding: "9px 11px", borderRadius: "var(--r-chip)", border: "1px solid var(--border-strong)",
   background: "var(--surface)", color: "var(--text-1)", fontFamily: "inherit", fontSize: 13, outline: "none" };
 /* สำหรับช่องที่อยู่ในตารางหลายคอลัมน์ — ต้องกว้างเต็มรางของตัวเอง ไม่ใช่กว้างตามความกว้างในตัวของ input
    (TM_IN เปล่า ๆ ยังใช้กับปุ่มและช่องในแถว flex ที่ควรกว้างตามเนื้อ จึงแยกเป็นคนละตัว) */
@@ -165,7 +165,7 @@ function TmDaySheet({ date, setDate, cfg, users, currentUser }) {
                   {/* ลบทั้งใบ ไม่ใช่แก้เวลาทีละช่อง — เวลาที่พิมพ์เองไม่ใช่หลักฐาน
                       ให้เจ้าตัวกดใหม่จะได้พิกัดกับเวลาจริงติดมาด้วยเหมือนเดิม */}
                   <button onClick={() => del(r)} title="ลบใบลงเวลาของคนนี้"
-                    style={{ padding: "5px 11px", borderRadius: 8, border: "1px solid var(--border-strong)",
+                    style={{ padding: "5px 11px", borderRadius: 8, border: "none", boxShadow: "var(--shadow-sm)",
                       background: "var(--surface)", color: "var(--tint-red-tx2)", cursor: "pointer", fontFamily: "inherit",
                       fontSize: 11.5, fontWeight: 700, whiteSpace: "nowrap" }}>ลบ</button>
                 </td>
@@ -287,7 +287,7 @@ function TmMonth({ cfg, users, ot }) {
                   <td style={{ padding: "9px 13px", textAlign: "right" }}>
                     {r.days > 0 && (
                       <button onClick={() => setPick(pick === r.userId ? null : r.userId)}
-                        style={{ padding: "6px 12px", borderRadius: 9, border: "1px solid var(--border-strong)", background: "var(--surface)",
+                        style={{ padding: "6px 12px", borderRadius: 9, border: "none", boxShadow: "var(--shadow-sm)", background: "var(--surface)",
                           cursor: "pointer", fontFamily: "inherit", fontSize: 12, fontWeight: 700, color: "var(--text-2)" }}>
                         {pick === r.userId ? "ซ่อนรายวัน" : "ดูรายวัน"}
                       </button>
@@ -935,7 +935,7 @@ function TmOfficeCfg({ office, onChange }) {
       <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap", marginTop: 9 }}>
         <button onClick={useHere} disabled={busy}
           style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "8px 14px", borderRadius: 9,
-            border: "1px solid var(--border-strong)", background: "var(--surface)", color: "var(--text-1)",
+            border: "none", boxShadow: "var(--shadow-sm)", background: "var(--surface)", color: "var(--text-1)",
             cursor: busy ? "default" : "pointer", fontFamily: "inherit", fontSize: 12, fontWeight: 800 }}>
           <Icon name="pin" size={13} /> {busy ? "กำลังจับพิกัด…" : "ใช้ตำแหน่งที่ยืนอยู่ตอนนี้"}
         </button>
@@ -945,7 +945,7 @@ function TmOfficeCfg({ office, onChange }) {
         )}
         {has && (
           <button onClick={() => onChange(Object.assign({}, o, { lat: null, lng: null }))}
-            style={{ padding: "7px 12px", borderRadius: 9, border: "1px solid var(--border-strong)",
+            style={{ padding: "7px 12px", borderRadius: 9, border: "none", boxShadow: "var(--shadow-sm)",
               background: "var(--surface)", color: "var(--tint-red-tx2)", cursor: "pointer", fontFamily: "inherit",
               fontSize: 11.5, fontWeight: 700 }}>ล้างพิกัด</button>
         )}

@@ -772,7 +772,7 @@ function DispatchView({
 const navBtn = {
   width: 36,
   height: 36,
-  borderRadius: 10,
+  borderRadius: "var(--r-chip)",
   border: "1px solid var(--border-strong)",
   background: "var(--surface)",
   cursor: "pointer",
@@ -948,7 +948,8 @@ function SurveyApptModal({
       width: 32,
       height: 32,
       borderRadius: 9,
-      border: "1px solid var(--border)",
+      border: "none",
+      boxShadow: "var(--shadow-sm)",
       background: "var(--surface)",
       cursor: "pointer",
       display: "grid",

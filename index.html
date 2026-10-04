@@ -13,7 +13,7 @@
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@400;500;600;700&family=Outfit:wght@500;600;700;800&family=Sora:wght@600;700;800&family=JetBrains+Mono:wght@500;600&display=swap" rel="stylesheet" />
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="anonymous" />
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin="anonymous"></script>
-<link rel="stylesheet" href="dashboard/tokens.css?v=12" />
+<link rel="stylesheet" href="dashboard/tokens.css?v=13" />
 <style>
 
 * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -95,7 +95,7 @@ label { min-width: 0; }
 .sidebar[data-mode="icons"] .sidebar-nav { width: 100%; align-items: center; }
 /* เมนู: หน้าที่เปิดอยู่ใช้ "ขีดเขียวด้านซ้าย + พื้นจาง" ชุดเดียวกับสารบัญในหน้า BOQ/ออกแบบ
    (เดิมทาพื้นเขียวทั้งปุ่ม ซึ่งเด่นกว่าเนื้อหาจริงบนหน้าจอ) */
-.nav-item { display: flex; align-items: center; gap: 12px; padding: 10px 13px; border-radius: 11px; border: none; background: none;
+.nav-item { display: flex; align-items: center; gap: 12px; padding: 10px 13px; border-radius: var(--r-chip); border: none; background: none;
   cursor: pointer; font-size: 13.5px; font-weight: 600; color: var(--text-2); width: 100%; text-align: left; position: relative;
   transition: background .15s, color .15s; white-space: nowrap; }
 .sidebar[data-mode="icons"] .nav-item { width: 48px; height: 48px; justify-content: center; padding: 0; }
@@ -146,14 +146,14 @@ label { min-width: 0; }
   content: ""; position: absolute; left: 4px; right: 4px; top: -7px; height: 1px; background: var(--border); }
 /* ตัวเลขข้างเมนู: พื้นแดงจาง+ตัวอักษรแดง อ่านง่ายแต่ไม่ตะโกนแข่งกับเนื้อหา */
 .nav-badge { margin-left: auto; background: rgba(239,68,68,.13); color: #D93025; font-size: 11px; font-weight: 800;
-  min-width: 21px; height: 20px; border-radius: 99px; display: grid; place-items: center; padding: 0 7px;
+  min-width: 21px; height: 20px; border-radius: var(--r-pill); display: grid; place-items: center; padding: 0 7px;
   font-variant-numeric: tabular-nums; letter-spacing: -.02em; }
 .nav-badge.warn { background: rgba(245,158,11,.16); color: #B45309; }
 /* ฟ้า = แค่บอกจำนวนของวันนี้ ไม่ใช่เรื่องค้าง จะได้ไม่กลืนกับเลขที่ต้องลงมือ */
 .nav-badge.info { background: rgba(14,165,233,.14); color: #0369A1; }
 /* ย่อแถบเมนูแล้วไม่มีที่ให้ตัวเลข — เหลือจุดมุมขวาบนของปุ่ม */
 .sidebar[data-mode="icons"] .nav-item { position: relative; }
-.nav-dot { position: absolute; top: 7px; right: 7px; width: 8px; height: 8px; border-radius: 99px;
+.nav-dot { position: absolute; top: 7px; right: 7px; width: 8px; height: 8px; border-radius: var(--r-pill);
   background: #D93025; box-shadow: 0 0 0 2px var(--surface); }
 .nav-dot.warn { background: #D97706; }
 .nav-dot.info { background: #0EA5E9; }
@@ -162,7 +162,7 @@ label { min-width: 0; }
 .role-label { font-size: 10px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--text-3); padding: 0 4px 9px; }
 .role-switch { display: flex; flex-direction: column; gap: 3px; }
 .role-switch.icons { align-items: center; }
-.role-btn { display: flex; align-items: center; gap: 10px; padding: 9px 11px; border-radius: 10px; border: none; background: none;
+.role-btn { display: flex; align-items: center; gap: 10px; padding: 9px 11px; border-radius: var(--r-chip); border: none; background: none;
   cursor: pointer; font-size: 12.5px; font-weight: 600; color: var(--text-2); width: 100%; text-align: left; transition: all .15s; white-space: nowrap; }
 .role-switch.icons .role-btn { width: 44px; height: 44px; justify-content: center; padding: 0; }
 .role-btn:hover { background: var(--surface2); }
@@ -192,7 +192,7 @@ label { min-width: 0; }
 .page-sub { font-size: 12.5px; color: var(--text-3); margin-top: 4px; font-variant-numeric: tabular-nums;
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .page-sub strong { color: var(--text-2); font-weight: 700; }
-.clear-chip { border: none; background: var(--surface3); color: var(--text-2); font-size: 11px; font-weight: 600; padding: 2px 8px; border-radius: 99px; cursor: pointer; margin-left: 4px; font-family: inherit; }
+.clear-chip { border: none; background: var(--surface3); color: var(--text-2); font-size: 11px; font-weight: 600; padding: 2px 8px; border-radius: var(--r-pill); cursor: pointer; margin-left: 4px; font-family: inherit; }
 
 /* align-self:center — .header-top ตั้ง align-items:flex-start ไว้ (ให้ชื่อหน้ากับบรรทัดรองเกาะขอบบน)
    กลุ่มปุ่มขวาจึงถูกดันไปชิดบนตามไปด้วย ขณะที่แถบตัวกรองมี align-self:center ของตัวเองอยู่แล้ว
@@ -259,14 +259,14 @@ html.theme-anim, html.theme-anim * { transition: background-color .34s ease, bor
   html.theme-anim, html.theme-anim * { transition: none !important; }
 }
 /* ชิปผู้ใช้ท้ายหัวจอ — บอกว่ากำลังใช้สิทธิ์ของใคร และเป็นทางเข้า "โปรไฟล์ของฉัน" (ย้ายมาจากก้นแถบเมนู) */
-.hdr-user { display: flex; align-items: center; gap: 10px; padding: 5px 10px 5px 5px; border-radius: 99px;
+.hdr-user { display: flex; align-items: center; gap: 10px; padding: 5px 10px 5px 5px; border-radius: var(--r-pill);
   background: none; border: none; flex-shrink: 0; max-width: 230px;
   font-family: inherit; text-align: left; cursor: pointer; }
 .hdr-user:hover { background: var(--surface2); }
 .hdr-user:disabled { cursor: default; }
 .hdr-user:disabled:hover { background: none; }
 .hdr-user-av img { width: 100%; height: 100%; object-fit: cover; }
-.hdr-user-av { width: 34px; height: 34px; border-radius: 99px; flex-shrink: 0; display: grid; place-items: center; overflow: hidden;
+.hdr-user-av { width: 34px; height: 34px; border-radius: var(--r-pill); flex-shrink: 0; display: grid; place-items: center; overflow: hidden;
   background: var(--primary); color: #fff; font-weight: 700; font-size: 14px; text-transform: uppercase; }
 .hdr-user-tx { min-width: 0; display: flex; flex-direction: column; line-height: 1.25; }
 .hdr-user-tx b { font-size: 12.5px; font-weight: 700; color: var(--text-1);
@@ -393,10 +393,10 @@ html.theme-anim, html.theme-anim * { transition: background-color .34s ease, bor
 .ld-tab.on::before { left: -12px; background: radial-gradient(circle at 0 0, transparent 11.5px, var(--surface) 12px); }
 .ld-tab.on::after { right: -12px; background: radial-gradient(circle at 100% 0, transparent 11.5px, var(--surface) 12px); }
 .ld-tab.on:first-child::before { display: none; }
-.ld-tab-n { font-size: 11px; font-weight: 700; padding: 1px 7px; border-radius: 999px;
+.ld-tab-n { font-size: 11px; font-weight: 700; padding: 1px 7px; border-radius: var(--r-pill);
   background: color-mix(in srgb, var(--tc) 12%, var(--surface)); color: var(--tc); }
 .ld-tab.on .ld-tab-n { background: var(--tc); color: #fff; }
-.ld-tab-dot { width: 7px; height: 7px; border-radius: 999px; background: #EF4444; box-shadow: 0 0 0 2px color-mix(in srgb, #EF4444 22%, transparent); }
+.ld-tab-dot { width: 7px; height: 7px; border-radius: var(--r-pill); background: #EF4444; box-shadow: 0 0 0 2px color-mix(in srgb, #EF4444 22%, transparent); }
 @media (max-width: 560px) { .ld-tab { padding: 0 11px; margin-right: 4px; font-size: 12.5px; gap: 5px; } }
 
 /* sidebar overlay backdrop */
@@ -532,7 +532,7 @@ html.theme-anim, html.theme-anim * { transition: background-color .34s ease, bor
   letter-spacing:-.03em;font-variant-numeric:tabular-nums}
 .permit-grid .pl{display:flex;align-items:center;gap:6px;min-width:0;font-size:11.5px;font-weight:600;
   color:var(--text-2);line-height:1.3}
-.permit-grid .pl i{width:7px;height:7px;border-radius:99px;flex:0 0 auto}
+.permit-grid .pl i{width:7px;height:7px;border-radius:var(--r-pill);flex:0 0 auto}
 .permit-grid>button[data-warn="1"]{background:color-mix(in srgb,#D93025 8%,var(--surface2));
   border-color:color-mix(in srgb,#D93025 28%,transparent)}
 
@@ -595,13 +595,13 @@ html.theme-anim, html.theme-anim * { transition: background-color .34s ease, bor
 .ov-cal-nav button:hover{background:var(--surface3)}
 .ov-cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:2px;margin-top:12px}
 .ov-cal-grid .hd{text-align:center;font-size:10.5px;font-weight:700;color:var(--text-3);padding-bottom:4px}
-.ov-cal-grid button{position:relative;aspect-ratio:1;border:none;background:none;border-radius:10px;
+.ov-cal-grid button{position:relative;aspect-ratio:1;border:none;background:none;border-radius:var(--r-chip);
   cursor:pointer;font-family:inherit;font-size:12px;color:var(--text-2);font-variant-numeric:tabular-nums}
 .ov-cal-grid button:hover{background:var(--surface3)}
 .ov-cal-grid button[data-today="1"]{font-weight:700;color:var(--primary)}
 .ov-cal-grid button[data-on="1"]{background:var(--primary);color:#fff;font-weight:700}
 .ov-cal-grid button i{position:absolute;left:50%;bottom:5px;transform:translateX(-50%);
-  width:4px;height:4px;border-radius:99px;background:var(--primary)}
+  width:4px;height:4px;border-radius:var(--r-pill);background:var(--primary)}
 .ov-cal-grid button[data-on="1"] i{background:#fff}
 /* ท้ายปฏิทิน — แถบเดียวบอกวันที่เลือก กดแล้วเปิดรายการงานของวันนั้นเป็นป๊อปอัป
    รายการเต็มเคยต่อท้ายตรงนี้ ซึ่งยืดปฏิทินยาวตามจำนวนงานของวันนั้นแบบไม่มีเพดาน */
@@ -611,7 +611,7 @@ html.theme-anim, html.theme-anim * { transition: background-color .34s ease, bor
    มีแต่ตัวหนังสือกับลูกศร ไม่มีทั้งกรอบและพื้น เพราะมันคือทางออกจากแผง ไม่ใช่ของอีกชิ้นในแผง
    ใส่พื้นเทาเต็มใบเมื่อไร มันจะหนักกว่าทุกแถวที่มันสรุปอยู่ทันที */
 .ov-cal-foot button,.pnl-more{display:flex;align-items:center;justify-content:space-between;gap:8px;width:100%;
-  padding:9px 11px;border-radius:11px;border:none;background:none;
+  padding:9px 11px;border-radius:var(--r-chip);border:none;background:none;
   font-family:inherit;font-size:12px;font-weight:650;color:var(--text-1);cursor:pointer;
   transition:background .14s,color .14s}
 .ov-cal-foot button:hover,.pnl-more:hover{background:var(--surface2);color:var(--primary-dark)}
@@ -652,7 +652,7 @@ html.theme-anim, html.theme-anim * { transition: background-color .34s ease, bor
 /* คำกำกับ: ไม่ uppercase ไม่ถ่างตัวอักษร ด้วยเหตุผลเดียวกับ .pnl-hd .t */
 .stat-rail .lb{display:flex;align-items:center;gap:7px;font-size:11.5px;font-weight:650;
   color:var(--text-3)}
-.stat-rail .lb .pip{width:6px;height:6px;border-radius:99px;flex:0 0 auto}
+.stat-rail .lb .pip{width:6px;height:6px;border-radius:var(--r-pill);flex:0 0 auto}
 .stat-rail .num{font-family:var(--display);font-size:40px;font-weight:700;line-height:1;
   letter-spacing:-.035em;color:var(--text-1);margin:13px 0 0;font-variant-numeric:tabular-nums}
 .stat-rail .num em{font-style:normal;font-family:var(--sans);font-size:13px;font-weight:600;
@@ -751,8 +751,8 @@ html.theme-anim, html.theme-anim * { transition: background-color .34s ease, bor
    แท่งสีตันบอกได้อย่างเดียวว่า "มาถึงตรงนี้" · การไล่เฉดบอกทิศทางที่มันวิ่งไปด้วย
    ปลายที่เข้มที่สุดคือหัวแถว ซึ่งเป็นจุดที่ตาไปหยุดพอดี
    สีส่งเข้ามาทาง --fill จากไฟล์ jsx — ประกาศคลาสนี้แทนการเขียน background ซ้ำทุกที่ */
-.mbar{border-radius:99px;background:var(--surface3);overflow:hidden;display:block}
-.mbar>i{display:block;height:100%;border-radius:99px;
+.mbar{border-radius:var(--r-pill);background:var(--surface3);overflow:hidden;display:block}
+.mbar>i{display:block;height:100%;border-radius:var(--r-pill);
   background:linear-gradient(90deg,color-mix(in srgb,var(--fill) 45%,transparent),var(--fill));
   transition:width .4s cubic-bezier(.2,.8,.2,1)}
 
@@ -769,7 +769,7 @@ html.theme-anim, html.theme-anim * { transition: background-color .34s ease, bor
 [data-theme="aurora"] .act-row:hover{background:var(--surface2)}
 @media (prefers-reduced-motion: reduce){.act-row:hover{transform:none}}
 /* ชิปไอคอนหน้าแถว — สี่เหลี่ยมมนจัด ไม่ใช่วงกลม วงกลมจะชนกับจุดสถานะกลม ๆ ที่ใช้ทั่วแอป */
-.ic-chip{width:38px;height:38px;border-radius:13px;display:grid;place-items:center;flex-shrink:0}
+.ic-chip{width:38px;height:38px;border-radius:var(--r-tile);display:grid;place-items:center;flex-shrink:0}
 
 /* ---- แผงเนื้อหาหน้าภาพรวม: หัวข้อคาดเส้นผม + รายการคั่นเส้น แทนกล่องซ้อนกล่อง ---- */
 .pnl{background:var(--surface);border:1px solid var(--card-bd);border-radius:var(--r-card);
@@ -799,7 +799,7 @@ html.theme-anim, html.theme-anim * { transition: background-color .34s ease, bor
    ใช้ border-top-color:transparent ไม่ใช่ border-top:0 — ถ้าลบเส้นทิ้งจริง แถวจะเตี้ยลง 1px
    แล้วทั้งรายการขยับทุกครั้งที่เมาส์ผ่าน */
 .rows>button:hover,.rows>button:hover+button{border-top-color:transparent}
-.rows .mk{width:9px;height:9px;border-radius:99px;flex:0 0 auto;margin-left:3px}
+.rows .mk{width:9px;height:9px;border-radius:var(--r-pill);flex:0 0 auto;margin-left:3px}
 .rows .bd{flex:1;min-width:0}
 .rows .nm{display:block;font-size:13.5px;font-weight:650;color:var(--text-1);
   white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
@@ -1049,7 +1049,7 @@ H-@G1I margin-top D'IC*D%L-1'@- 6H
 <!-- data (plain JS) -->
 <script src="dashboard/data.js?v=25"></script>
 <script src="dashboard/data-stock.js?v=24"></script>
-<script src="dashboard/boq.js?v=145"></script>
+<script src="dashboard/boq.js?v=146"></script>
 <!-- ตัวสร้างคิวอาร์ (qrcode-generator) — ใช้ในนามบัตรอิเล็กทรอนิกส์ (vcard.js)
      คืนค่าเป็นตารางโมดูล ไม่ผูกกับ DOM — vcard.js เอาไปวาดลงแคนวาสใบเดียวกับนามบัตรเอง -->
 <script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.js"></script>
@@ -1068,42 +1068,42 @@ H-@G1I margin-top D'IC*D%L-1'@- 6H
 <script src="dashboard/build/brand.js?v=11"></script>
 <!-- ภาษาของเอกสารที่พิมพ์ (ไทย/อังกฤษ/จีน) — ต้องโหลดก่อนไฟล์เอกสารทุกตัวที่เรียกใช้ -->
 <script src="dashboard/build/i18n.js?v=4"></script>
-<script src="dashboard/build/tweaks-panel.js?v=6"></script>
-<script src="dashboard/build/components.js?v=54"></script>
+<script src="dashboard/build/tweaks-panel.js?v=7"></script>
+<script src="dashboard/build/components.js?v=55"></script>
 <script src="dashboard/build/confirm.js?v=5"></script>
-<script src="dashboard/build/datepicker.js?v=1"></script>
+<script src="dashboard/build/datepicker.js?v=2"></script>
 <script src="dashboard/build/store.js?v=48"></script>
 <script src="dashboard/build/media.js?v=20"></script>
-<script src="dashboard/build/boq.js?v=248"></script>
-<script src="dashboard/build/prices.js?v=21"></script>
+<script src="dashboard/build/boq.js?v=249"></script>
+<script src="dashboard/build/prices.js?v=22"></script>
 <script src="dashboard/build/siteplan.js?v=53"></script>
 <script src="dashboard/build/solarcalc.js?v=38"></script>
 <script src="dashboard/build/solariv.js?v=21"></script>
 <script src="dashboard/build/solarreport.js?v=49"></script>
-<script src="dashboard/build/solarui.js?v=97"></script>
+<script src="dashboard/build/solarui.js?v=98"></script>
 <script src="dashboard/build/dxf.js?v=30"></script>
 <script src="dashboard/build/plan3d.js?v=136"></script>
-<script src="dashboard/build/plan3d2.js?v=94"></script>
-<script src="dashboard/build/inspect.js?v=11"></script>
+<script src="dashboard/build/plan3d2.js?v=95"></script>
+<script src="dashboard/build/inspect.js?v=12"></script>
 <script src="dashboard/build/inspect-paper.js?v=9"></script>
 <script src="dashboard/build/pm.js?v=12"></script>
 <script src="dashboard/build/pm-paper.js?v=12"></script>
-<script src="dashboard/build/pm-form.js?v=16"></script>
+<script src="dashboard/build/pm-form.js?v=17"></script>
 <script src="dashboard/build/drawer.js?v=81"></script>
 <script src="dashboard/build/views-overview.js?v=50"></script>
 <script src="dashboard/build/views-board.js?v=43"></script>
-<script src="dashboard/build/views-table.js?v=35"></script>
+<script src="dashboard/build/views-table.js?v=36"></script>
 <script src="dashboard/build/views-report.js?v=11"></script>
 <script src="dashboard/build/views-calendar.js?v=34"></script>
 <script src="dashboard/build/views-stock.js?v=122"></script>
-<script src="dashboard/build/form.js?v=43"></script>
-<script src="dashboard/build/survey.js?v=35"></script>
+<script src="dashboard/build/form.js?v=44"></script>
+<script src="dashboard/build/survey.js?v=37"></script>
 <script src="dashboard/build/survey-report.js?v=14"></script>
-<script src="dashboard/build/sales.js?v=80"></script>
-<script src="dashboard/build/views-survey.js?v=51"></script>
-<script src="dashboard/build/survey-sched.js?v=43"></script>
-<script src="dashboard/build/permit.js?v=12"></script>
-<script src="dashboard/build/views-permit.js?v=23"></script>
+<script src="dashboard/build/sales.js?v=81"></script>
+<script src="dashboard/build/views-survey.js?v=52"></script>
+<script src="dashboard/build/survey-sched.js?v=44"></script>
+<script src="dashboard/build/permit.js?v=13"></script>
+<script src="dashboard/build/views-permit.js?v=24"></script>
 <!-- เอกสารงวดงาน · วางบิล: ตรรกะ → กระดาษ → หน้าจอ -->
 <script src="dashboard/build/billing.js?v=5"></script>
 <script src="dashboard/build/bill-paper.js?v=7"></script>
@@ -1111,23 +1111,23 @@ H-@G1I margin-top D'IC*D%L-1'@- 6H
 <script src="dashboard/build/views-lead.js?v=21"></script>
 <script src="dashboard/build/views-flow.js?v=17"></script>
 <script src="dashboard/build/daily.js?v=17"></script>
-<script src="dashboard/build/views-daily.js?v=38"></script>
+<script src="dashboard/build/views-daily.js?v=39"></script>
 <script src="dashboard/build/om.js?v=13"></script>
-<script src="dashboard/build/views-om.js?v=22"></script>
-<script src="dashboard/build/om-ticket.js?v=23"></script>
+<script src="dashboard/build/views-om.js?v=23"></script>
+<script src="dashboard/build/om-ticket.js?v=24"></script>
 <script src="dashboard/build/om-paper.js?v=15"></script>
 <script src="dashboard/build/expense.js?v=17"></script>
 <script src="dashboard/build/views-expense.js?v=32"></script>
 <script src="dashboard/build/ec-paper.js?v=18"></script>
 <script src="dashboard/build/attend.js?v=12"></script>
-<script src="dashboard/build/auth.js?v=49"></script>
+<script src="dashboard/build/auth.js?v=50"></script>
 <!-- นามบัตรอิเล็กทรอนิกส์ — หลัง auth.js เพราะอ่าน ROLE_INFO/userRoles จากที่นั่น -->
-<script src="dashboard/build/vcard.js?v=20"></script>
-<script src="dashboard/build/line.js?v=8"></script>
-<script src="dashboard/build/views-attend.js?v=20"></script>
+<script src="dashboard/build/vcard.js?v=21"></script>
+<script src="dashboard/build/line.js?v=9"></script>
+<script src="dashboard/build/views-attend.js?v=21"></script>
 <script src="dashboard/build/ot-paper.js?v=7"></script>
 <script src="dashboard/build/views-line.js?v=4"></script>
 <script src="dashboard/build/guide.js?v=9"></script>
-<script src="dashboard/build/app.js?v=210"></script>
+<script src="dashboard/build/app.js?v=211"></script>
 </body>
 </html>

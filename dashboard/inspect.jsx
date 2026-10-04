@@ -315,12 +315,12 @@ function InspectionListModal({ job, currentUser, onClose }) {
                       </span>
                       <button onClick={() => { store.remove(x.id); setAsk(null); }} style={{ padding: "7px 13px", borderRadius: 9, border: "none",
                         background: "#EF4444", color: "#fff", fontFamily: "inherit", fontSize: 12, fontWeight: 700, cursor: "pointer" }}>ลบเลย</button>
-                      <button onClick={() => setAsk(null)} style={{ padding: "7px 13px", borderRadius: 9, border: "1px solid var(--border-strong)",
+                      <button onClick={() => setAsk(null)} style={{ padding: "7px 13px", borderRadius: 9, border: "none", boxShadow: "var(--shadow-sm)",
                         background: "var(--surface)", color: "var(--text-2)", fontFamily: "inherit", fontSize: 12, fontWeight: 700, cursor: "pointer" }}>ยกเลิก</button>
                     </div>
                   ) : (
                     <div style={{ padding: "0 13px 10px" }}>
-                      <button onClick={() => setAsk(x.id)} style={{ padding: "5px 10px", borderRadius: 8, border: "1px solid var(--border-strong)",
+                      <button onClick={() => setAsk(x.id)} style={{ padding: "5px 10px", borderRadius: 8, border: "none", boxShadow: "var(--shadow-sm)",
                         background: "var(--surface)", color: "var(--tint-red-tx2)", fontFamily: "inherit", fontSize: 11.5, fontWeight: 700, cursor: "pointer" }}>ลบใบนี้</button>
                     </div>
                   )}
@@ -413,7 +413,7 @@ function IrItemRow({ item, no, inp, onChange, onRemove, isMobile }) {
       <input value={item.note} onChange={(e) => onChange({ note: e.target.value })} placeholder="หมายเหตุ"
         style={Object.assign({}, inp, { flex: 1.4, minWidth: 0 })} />
       <button type="button" onClick={onRemove} title="ลบข้อนี้"
-        style={{ flexShrink: 0, width: 32, height: 32, borderRadius: 9, border: "1px solid var(--border-strong)",
+        style={{ flexShrink: 0, width: 32, height: 32, borderRadius: 9, border: "none", boxShadow: "var(--shadow-sm)",
           background: "var(--surface)", cursor: "pointer", display: "grid", placeItems: "center" }}>
         <Icon name="trash" size={13} color="#EF4444" />
       </button>
@@ -543,13 +543,13 @@ function InspectionFormModal({ job, rec, currentUser, onSave, onClose }) {
                 <span style={{ flex: 1 }} />
                 {!f.items.length && (
                   <button type="button" onClick={fillPreset}
-                    style={{ padding: "6px 11px", borderRadius: 9, border: "1px solid var(--border-strong)", background: "var(--surface)",
+                    style={{ padding: "6px 11px", borderRadius: 9, border: "none", boxShadow: "var(--shadow-sm)", background: "var(--surface)",
                       color: "var(--primary-dark)", fontFamily: "inherit", fontSize: 11.5, fontWeight: 700, cursor: "pointer" }}>
                     ใส่รายการมาตรฐานของประเภทนี้
                   </button>
                 )}
                 <button type="button" onClick={() => set("items", f.items.concat([irNewItem("")]))}
-                  style={{ padding: "6px 11px", borderRadius: 9, border: "1px solid var(--border-strong)", background: "var(--surface)",
+                  style={{ padding: "6px 11px", borderRadius: 9, border: "none", boxShadow: "var(--shadow-sm)", background: "var(--surface)",
                     color: "var(--text-2)", fontFamily: "inherit", fontSize: 11.5, fontWeight: 700, cursor: "pointer" }}>
                   + เพิ่มข้อ
                 </button>

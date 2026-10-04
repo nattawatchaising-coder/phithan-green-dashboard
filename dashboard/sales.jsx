@@ -1711,7 +1711,7 @@ function QuoteEditor({ quote, job, target, stock, onClose, onSave, onDelete, cur
           ))}
         </div>
         <div style={{ background: "var(--bg)", borderRadius: isMobile ? "0 20px 0 0" : "0 18px 18px 18px", flex: 1, minHeight: 0,
-          position: "relative", zIndex: 11, display: "flex", flexDirection: "column", overflow: "hidden", boxShadow: "0 34px 60px -24px rgba(8,20,14,.45)" }}>
+          position: "relative", zIndex: 11, display: "flex", flexDirection: "column", overflow: "hidden", boxShadow: "var(--shadow-sheet)" }}>
 
           {/* หัว */}
           <div style={{ padding: "15px 20px", boxShadow: "0 10px 18px -14px rgba(8,20,14,.45)", background: "var(--surface)",

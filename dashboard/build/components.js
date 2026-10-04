@@ -527,7 +527,7 @@ function Dropdown({
     style: {
       width: "100%",
       background: "var(--surface2)",
-      border: "1px solid var(--border-strong)",
+      border: "none",
       color: "var(--text-1)",
       fontFamily: "inherit",
       fontSize: 13,
@@ -681,7 +681,7 @@ function Dropdown({
       flex: 1,
       minWidth: 0,
       background: "var(--surface2)",
-      border: "1px solid var(--border-strong)",
+      border: "none",
       color: "var(--text-1)",
       fontFamily: "inherit",
       fontSize: 13,

@@ -436,9 +436,9 @@ function StickerPicker({ onPick, onClose }) {
                 {manage ? (
                   <React.Fragment>
                     <input value={s.name || ""} onChange={(e) => lib.patch(s.id, { name: e.target.value })}
-                      style={{ width: "100%", boxSizing: "border-box", border: "1px solid var(--border)", borderRadius: 7, padding: "4px 7px", fontFamily: "inherit", fontSize: 11.5, background: "var(--surface2)", color: "var(--text-1)" }} />
+                      style={{ width: "100%", boxSizing: "border-box", border: "none", borderRadius: 7, padding: "4px 7px", fontFamily: "inherit", fontSize: 11.5, background: "var(--surface2)", color: "var(--text-1)" }} />
                     <select value={s.cat || "อื่นๆ"} onChange={(e) => lib.patch(s.id, { cat: e.target.value })}
-                      style={{ width: "100%", boxSizing: "border-box", border: "1px solid var(--border)", borderRadius: 7, padding: "4px 5px", fontFamily: "inherit", fontSize: 11, background: "var(--surface2)", color: "var(--text-2)" }}>
+                      style={{ width: "100%", boxSizing: "border-box", border: "none", borderRadius: 7, padding: "4px 5px", fontFamily: "inherit", fontSize: 11, background: "var(--surface2)", color: "var(--text-2)" }}>
                       {cats.map((c) => <option key={c} value={c}>{c}</option>)}
                     </select>
                     <button onClick={() => { askConfirm({ title: "ลบออกจากคลังรูป?", body: s.name || "รูปนี้", ok: "ลบออกจากคลัง" }).then((ok) => { if (ok) lib.remove(s.id); }); }}
@@ -670,7 +670,7 @@ function AnnEditor({ shot, onSave, onClose }) {
     setPicker(false);
   };
 
-  const ghost = { display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 6, height: 38, padding: "0 14px", borderRadius: 10,
+  const ghost = { display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 6, height: 38, padding: "0 14px", borderRadius: "var(--r-chip)",
     border: "1px solid var(--border-strong)", background: "var(--surface)", color: "var(--text-2)", fontFamily: "inherit", fontSize: 12.5, fontWeight: 700, cursor: "pointer" };
 
   return (
@@ -1101,7 +1101,7 @@ function SurveyWizard({ job, onClose, onSave, onReport, currentUser, stock }) {
         })}
       </div>
       <div style={{ background: "var(--bg)", borderRadius: isMobile ? "0 20px 0 0" : "0 18px 18px 18px", flex: 1, minHeight: 0,
-        position: "relative", zIndex: 11, display: "flex", flexDirection: "column", overflow: "hidden", boxShadow: "0 34px 60px -24px rgba(8,20,14,.45)" }}>
+        position: "relative", zIndex: 11, display: "flex", flexDirection: "column", overflow: "hidden", boxShadow: "var(--shadow-sheet)" }}>
         {/* header — แยกจากเนื้อด้วยเงาฟุ้ง ไม่ใช้เส้นคาด */}
         <div style={{ padding: "15px 18px 14px", boxShadow: "0 10px 18px -14px rgba(8,20,14,.45)", background: "var(--surface)", position: "relative", zIndex: 1 }}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 12 }}>

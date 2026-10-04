@@ -16,7 +16,7 @@
 const PM_STATE_COLOR = { na: "#94A3B8", empty: "#94A3B8", partial: "#F59E0B", done: "var(--tint-green-tx)" };
 
 const pmInputStyle = {
-  width: "100%", padding: "9px 11px", borderRadius: 9, border: "1px solid var(--border-strong)",
+  width: "100%", padding: "9px 11px", borderRadius: 9, border: "none", boxShadow: "var(--shadow-sm)",
   background: "var(--surface)", color: "var(--text-1)", fontFamily: "inherit", fontSize: 13.5, boxSizing: "border-box",
 };
 
@@ -188,7 +188,7 @@ function PmTableRow({ table, hdr, row, no, mobile, secKey, photoIdx, photoBusy,
             </span>
           )}
           <button onClick={() => onRemove(row)} aria-label="ลบแถว"
-            style={{ width: 28, height: 28, borderRadius: 8, border: "1px solid var(--border-strong)", background: "var(--surface)",
+            style={{ width: 28, height: 28, borderRadius: 8, border: "none", boxShadow: "var(--shadow-sm)", background: "var(--surface)",
               color: "var(--text-3)", cursor: "pointer", fontFamily: "inherit", fontSize: 14, lineHeight: 1 }}>×</button>
         </div>
         {cols.map((c) => (
@@ -223,7 +223,7 @@ function PmTableRow({ table, hdr, row, no, mobile, secKey, photoIdx, photoBusy,
           </span>
         )}
         <button onClick={() => onRemove(row)} aria-label="ลบแถว"
-          style={{ width: 26, height: 26, borderRadius: 7, border: "1px solid var(--border-strong)", background: "var(--surface)",
+          style={{ width: 26, height: 26, borderRadius: 7, border: "none", boxShadow: "var(--shadow-sm)", background: "var(--surface)",
             color: "var(--text-3)", cursor: "pointer", fontFamily: "inherit", fontSize: 13, lineHeight: 1 }}>×</button>
       </td>
     </tr>
@@ -767,7 +767,7 @@ function PmHandoverModal({ job, currentUser, onClose, onSummary }) {
                           ซึ่งเป็นการย้ายข้อมูลที่คนกรอกไว้ข้ามช่อง ผิดพลาดแล้วกู้ไม่ได้ */}
                       {g.repeat && g.setNo === g.setCount && g.setCount > 1 ? (
                         <button onClick={() => removeSet(g)}
-                          style={{ flexShrink: 0, padding: "4px 9px", borderRadius: 8, border: "1px solid var(--border-strong)",
+                          style={{ flexShrink: 0, padding: "4px 9px", borderRadius: 8, border: "none", boxShadow: "var(--shadow-sm)",
                             background: "var(--surface)", color: "var(--text-3)", fontFamily: "inherit", fontSize: 11, fontWeight: 700,
                             cursor: "pointer" }}>
                           ลบชุดนี้
@@ -893,7 +893,7 @@ function PmHandoverModal({ job, currentUser, onClose, onSummary }) {
                       {prog.missing.map((m, i) => (
                         <button key={m.key + i} onClick={() => setTab(m.section)}
                           style={{ display: "block", width: "100%", textAlign: "left", padding: "5px 8px", marginBottom: 3,
-                            borderRadius: 7, border: "1px solid var(--border)", background: "var(--bg)", cursor: "pointer",
+                            borderRadius: 7, border: "none", boxShadow: "var(--shadow-sm)", background: "var(--bg)", cursor: "pointer",
                             fontFamily: "inherit", fontSize: 11.5, color: "var(--text-2)" }}>
                           <b style={{ color: "var(--text-3)", fontWeight: 700 }}>{m.secTh}</b> · {m.th}
                         </button>

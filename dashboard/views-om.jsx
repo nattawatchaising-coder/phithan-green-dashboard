@@ -9,7 +9,7 @@
    ============================================================ */
 
 const OM_INPUT = {
-  width: "100%", padding: "10px 12px", borderRadius: 10, border: "1px solid var(--border-strong)",
+  width: "100%", padding: "10px 12px", borderRadius: "var(--r-chip)", border: "1px solid var(--border-strong)",
   background: "var(--surface)", color: "var(--text-1)", fontFamily: "inherit", fontSize: 13.5, boxSizing: "border-box",
 };
 
@@ -152,7 +152,7 @@ function OmWarrantyTable({ site, disabled, onChange }) {
               <OmPill th={st.th} color={st.color} />
               {!disabled && (
                 <button type="button" onClick={() => del(w.id)} title="ลบรายการประกันนี้"
-                  style={{ width: 28, height: 28, borderRadius: 8, border: "1px solid var(--border)", background: "var(--surface2)",
+                  style={{ width: 28, height: 28, borderRadius: 8, border: "none", boxShadow: "var(--shadow-sm)", background: "var(--surface2)",
                     cursor: "pointer", display: "grid", placeItems: "center", color: "var(--text-3)" }}>
                   <Icon name="trash" size={13} />
                 </button>
@@ -272,7 +272,7 @@ function OmCleanVisits({ site, visits, store, disabled, siteVisits, onOpenVisit,
               <OmPill th={v.free ? "ล้างฟรีตามสัญญา" : "คิดค่าบริการ"} color={v.free ? "#10B981" : "#F59E0B"} />
               {!disabled && (
                 <button onClick={() => store.remove(site.id, v.id)} title="ลบใบนัดนี้"
-                  style={{ marginLeft: "auto", width: 28, height: 28, borderRadius: 8, border: "1px solid var(--border)",
+                  style={{ marginLeft: "auto", width: 28, height: 28, borderRadius: 8, border: "none", boxShadow: "var(--shadow-sm)",
                     background: "var(--surface2)", cursor: "pointer", display: "grid", placeItems: "center", color: "var(--text-3)" }}>
                   <Icon name="trash" size={13} />
                 </button>
@@ -301,12 +301,12 @@ function OmCleanVisits({ site, visits, store, disabled, siteVisits, onOpenVisit,
                     <Icon name="check" size={14} color="#fff" /> ล้างเสร็จแล้ว
                   </button>
                   <button onClick={() => setV(v, { free: !v.free })}
-                    style={{ padding: "7px 13px", borderRadius: 9, border: "1px solid var(--border-strong)", background: "var(--surface2)",
+                    style={{ padding: "7px 13px", borderRadius: 9, border: "none", boxShadow: "var(--shadow-sm)", background: "var(--surface2)",
                       cursor: "pointer", fontFamily: "inherit", fontSize: 12.5, fontWeight: 700, color: "var(--text-2)" }}>
                     {v.free ? "เปลี่ยนเป็นคิดเงิน" : "เปลี่ยนเป็นล้างฟรี"}
                   </button>
                   <button onClick={() => setV(v, { status: "skipped" })}
-                    style={{ padding: "7px 13px", borderRadius: 9, border: "1px solid var(--border-strong)", background: "var(--surface2)",
+                    style={{ padding: "7px 13px", borderRadius: 9, border: "none", boxShadow: "var(--shadow-sm)", background: "var(--surface2)",
                       cursor: "pointer", fontFamily: "inherit", fontSize: 12.5, fontWeight: 700, color: "var(--text-2)" }}>ข้ามรอบนี้</button>
                 </div>
               </React.Fragment>
@@ -319,7 +319,7 @@ function OmCleanVisits({ site, visits, store, disabled, siteVisits, onOpenVisit,
               svByClean[v.id] ? (
                 <button onClick={() => onOpenVisit && onOpenVisit(svByClean[v.id].id)}
                   style={{ marginTop: 8, display: "inline-flex", alignItems: "center", gap: 6, padding: "7px 12px", borderRadius: 9,
-                    border: "1px solid var(--border-strong)", background: "var(--surface2)", cursor: "pointer",
+                    border: "none", boxShadow: "var(--shadow-sm)", background: "var(--surface2)", cursor: "pointer",
                     fontFamily: "inherit", fontSize: 12, fontWeight: 700, color: "var(--text-2)" }}>
                   <Icon name="file" size={13} /> เปิดใบรายงาน {svByClean[v.id].no}
                 </button>
@@ -384,7 +384,7 @@ function OmSiteModal({ site, job, role, visits, cleanStore, tickets, siteVisits,
             </div>
             <OmPill th={st.th} color={st.color} />
             <button className="x-close" onClick={onClose} title="ปิด"
-              style={{ width: 32, height: 32, borderRadius: 9, border: "1px solid var(--border-strong)", background: "var(--surface)",
+              style={{ width: 32, height: 32, borderRadius: 9, border: "none", boxShadow: "var(--shadow-sm)", background: "var(--surface)",
                 cursor: "pointer", display: "grid", placeItems: "center", color: "var(--text-2)", flexShrink: 0 }}>
               <Icon name="x" size={15} />
             </button>
@@ -630,7 +630,7 @@ function OmSiteModal({ site, job, role, visits, cleanStore, tickets, siteVisits,
                   ลบทะเบียนบริการของ {site.code}? ประวัติประกันและรอบล้างแผงหายถาวร (ใบงานไม่ถูกแตะ)
                 </span>
                 <button onClick={() => setDelAsk(false)}
-                  style={{ padding: "7px 13px", borderRadius: 9, border: "1px solid var(--border-strong)", background: "var(--surface)",
+                  style={{ padding: "7px 13px", borderRadius: 9, border: "none", boxShadow: "var(--shadow-sm)", background: "var(--surface)",
                     cursor: "pointer", fontFamily: "inherit", fontSize: 12.5, fontWeight: 700, color: "var(--text-2)" }}>ยกเลิก</button>
                 <button onClick={() => { onRemove(site.id); onClose(); }}
                   style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "7px 13px", borderRadius: 9, border: "none",
@@ -641,7 +641,7 @@ function OmSiteModal({ site, job, role, visits, cleanStore, tickets, siteVisits,
             ) : (
               <button onClick={() => setDelAsk(true)}
                 style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "8px 13px", borderRadius: 9,
-                  border: "1px solid var(--border)", background: "var(--surface)", cursor: "pointer",
+                  border: "none", boxShadow: "var(--shadow-sm)", background: "var(--surface)", cursor: "pointer",
                   fontFamily: "inherit", fontSize: 12.5, fontWeight: 700, color: "var(--tint-red-tx2)" }}>
                 <Icon name="trash" size={14} color="#EF4444" /> ลบทะเบียนบริการนี้ (เฉพาะแอดมิน)
               </button>
@@ -731,7 +731,7 @@ function OmCleanView({ sites, cleanStore, role, onOpenSite }) {
                     cursor: "pointer", fontFamily: "inherit", fontSize: 12, fontWeight: 700 }}>จองคิววันนี้</button>
               )}
               <button onClick={() => onOpenSite(a.site.id)}
-                style={{ padding: "6px 12px", borderRadius: 9, border: "1px solid var(--border-strong)", background: "var(--surface2)",
+                style={{ padding: "6px 12px", borderRadius: 9, border: "none", boxShadow: "var(--shadow-sm)", background: "var(--surface2)",
                   cursor: "pointer", fontFamily: "inherit", fontSize: 12, fontWeight: 700, color: "var(--text-2)" }}>เปิดไซต์</button>
             </div>
           </div>
@@ -751,12 +751,12 @@ function OmCleanView({ sites, cleanStore, role, onOpenSite }) {
           </div>
           <div style={{ display: "flex", gap: 7 }}>
             <button onClick={() => shift(-1)} title="เดือนก่อน"
-              style={{ width: 32, height: 32, borderRadius: 9, border: "1px solid var(--border-strong)", background: "var(--surface)",
+              style={{ width: 32, height: 32, borderRadius: 9, border: "none", boxShadow: "var(--shadow-sm)", background: "var(--surface)",
                 cursor: "pointer", display: "grid", placeItems: "center", color: "var(--text-2)" }}>
               <Icon name="chevronRight" size={15} style={{ transform: "rotate(180deg)" }} />
             </button>
             <button onClick={() => shift(1)} title="เดือนถัดไป"
-              style={{ width: 32, height: 32, borderRadius: 9, border: "1px solid var(--border-strong)", background: "var(--surface)",
+              style={{ width: 32, height: 32, borderRadius: 9, border: "none", boxShadow: "var(--shadow-sm)", background: "var(--surface)",
                 cursor: "pointer", display: "grid", placeItems: "center", color: "var(--text-2)" }}>
               <Icon name="chevronRight" size={15} />
             </button>

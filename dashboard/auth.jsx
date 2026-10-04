@@ -453,7 +453,7 @@ function MyProfileModal({ user, onSave, onClose }) {
           <div style={{ padding: "16px 22px", borderBottom: "1px solid var(--border)", background: "var(--surface)",
             display: "flex", justifyContent: "space-between", alignItems: "center", flexShrink: 0 }}>
             <h3 style={{ fontSize: 16, fontWeight: 700, color: "var(--text-1)", margin: 0 }}>โปรไฟล์ของฉัน</h3>
-            <button className="x-close" onClick={onClose} style={{ width: 30, height: 30, borderRadius: 8, border: "1px solid var(--border)",
+            <button className="x-close" onClick={onClose} style={{ width: 30, height: 30, borderRadius: 8, border: "none", boxShadow: "var(--shadow-sm)",
               background: "var(--surface)", cursor: "pointer", display: "grid", placeItems: "center", color: "var(--text-2)" }}><Icon name="x" size={15} /></button>
           </div>
 
@@ -521,7 +521,7 @@ function MyProfileModal({ user, onSave, onClose }) {
                       _aref("users/" + user.id + "/lineUserId").remove();
                     }
                   }}
-                  style={{ padding: "8px 13px", borderRadius: 9, border: "1px solid var(--border-strong)", background: "var(--surface)",
+                  style={{ padding: "8px 13px", borderRadius: 9, border: "none", boxShadow: "var(--shadow-sm)", background: "var(--surface)",
                     color: "var(--text-2)", fontFamily: "inherit", fontSize: 12, fontWeight: 700, cursor: "pointer" }}>ปลดการเชื่อม</button>
               )}
             </div>
@@ -676,7 +676,7 @@ function useNotifStore() {
    ================================================================ */
 const A_INPUT = {
   background: "var(--surface2)", border: "1px solid var(--border-strong)", color: "var(--text-1)",
-  fontFamily: "inherit", fontSize: 14, padding: "10px 12px", borderRadius: 10, outline: "none", width: "100%",
+  fontFamily: "inherit", fontSize: 14, padding: "10px 12px", borderRadius: "var(--r-chip)", outline: "none", width: "100%",
 };
 function AField({ label, required, children, full }) {
   return (
@@ -1050,11 +1050,11 @@ function RolePermsEditor({ roleCfg }) {
             <button onClick={() => { roleCfg.resetAll(); setAskReset(false); }}
               style={{ padding: "8px 15px", borderRadius: 9, border: "none", background: "#EF4444", color: "#fff", fontWeight: 700, fontFamily: "inherit", fontSize: 12.5, cursor: "pointer" }}>คืนค่า</button>
             <button onClick={() => setAskReset(false)}
-              style={{ padding: "8px 15px", borderRadius: 9, border: "1px solid var(--border-strong)", background: "var(--surface)", color: "var(--text-2)", fontWeight: 600, fontFamily: "inherit", fontSize: 12.5, cursor: "pointer" }}>ยกเลิก</button>
+              style={{ padding: "8px 15px", borderRadius: 9, border: "none", boxShadow: "var(--shadow-sm)", background: "var(--surface)", color: "var(--text-2)", fontWeight: 600, fontFamily: "inherit", fontSize: 12.5, cursor: "pointer" }}>ยกเลิก</button>
           </React.Fragment>
         ) : (
           <button onClick={() => setAskReset(true)}
-            style={{ padding: "8px 15px", borderRadius: 9, border: "1px solid var(--border-strong)", background: "var(--surface)", color: "var(--text-2)", fontWeight: 600, fontFamily: "inherit", fontSize: 12.5, cursor: "pointer" }}>
+            style={{ padding: "8px 15px", borderRadius: 9, border: "none", boxShadow: "var(--shadow-sm)", background: "var(--surface)", color: "var(--text-2)", fontWeight: 600, fontFamily: "inherit", fontSize: 12.5, cursor: "pointer" }}>
             คืนค่าตั้งต้นทั้งหมด
           </button>
         )}
@@ -1131,7 +1131,7 @@ function UserManager({ authStore, onClose, roleCfg }) {
                 </span>
               </div>
             </div>
-            <button className="x-close" onClick={onClose} style={{ width: 34, height: 34, borderRadius: 9, border: "1px solid var(--border)", background: "var(--surface)", cursor: "pointer", display: "grid", placeItems: "center", color: "var(--text-2)" }}><Icon name="x" size={17} /></button>
+            <button className="x-close" onClick={onClose} style={{ width: 34, height: 34, borderRadius: 9, border: "none", boxShadow: "var(--shadow-sm)", background: "var(--surface)", cursor: "pointer", display: "grid", placeItems: "center", color: "var(--text-2)" }}><Icon name="x" size={17} /></button>
           </div>
 
           <div style={{ display: "flex", gap: 4, marginTop: 13, padding: 3, borderRadius: "var(--r-chip)", background: "var(--surface2)" }}>
@@ -1218,7 +1218,7 @@ function UserManager({ authStore, onClose, roleCfg }) {
                     <button onClick={() => { authStore.removeUser(u.id); setDelAsk(null); }}
                       style={{ padding: "8px 15px", borderRadius: 9, border: "none", background: "#EF4444", color: "#fff", fontWeight: 700, fontFamily: "inherit", fontSize: 12.5, cursor: "pointer" }}>ลบเลย</button>
                     <button onClick={() => setDelAsk(null)}
-                      style={{ padding: "8px 15px", borderRadius: 9, border: "1px solid var(--border-strong)", background: "var(--surface)", color: "var(--text-2)", fontWeight: 600, fontFamily: "inherit", fontSize: 12.5, cursor: "pointer" }}>ยกเลิก</button>
+                      style={{ padding: "8px 15px", borderRadius: 9, border: "none", boxShadow: "var(--shadow-sm)", background: "var(--surface)", color: "var(--text-2)", fontWeight: 600, fontFamily: "inherit", fontSize: 12.5, cursor: "pointer" }}>ยกเลิก</button>
                   </div>
                 )}
               </div>
@@ -1311,7 +1311,7 @@ function UserEditModal({ initial, existing, onSave, onClose }) {
       <div onClick={(e) => e.stopPropagation()} style={{ background: "var(--bg)", borderRadius: isMobile ? "20px 20px 0 0" : 18, width: isMobile ? "100%" : "min(460px,100%)", maxHeight: isMobile ? "94dvh" : "90vh", display: "flex", flexDirection: "column", overflow: "hidden", boxShadow: "var(--shadow-modal)" }}>
         <div style={{ padding: "16px 22px", borderBottom: "1px solid var(--border)", background: "var(--surface)", display: "flex", justifyContent: "space-between", alignItems: "center", flexShrink: 0 }}>
           <h3 style={{ fontSize: 16, fontWeight: 700, color: "var(--text-1)", margin: 0 }}>{isNew ? "เพิ่มผู้ใช้ใหม่" : "แก้ไขผู้ใช้"}</h3>
-          <button className="x-close" onClick={onClose} style={{ width: 30, height: 30, borderRadius: 8, border: "1px solid var(--border)", background: "var(--surface)", cursor: "pointer", display: "grid", placeItems: "center", color: "var(--text-2)" }}><Icon name="x" size={15} /></button>
+          <button className="x-close" onClick={onClose} style={{ width: 30, height: 30, borderRadius: 8, border: "none", boxShadow: "var(--shadow-sm)", background: "var(--surface)", cursor: "pointer", display: "grid", placeItems: "center", color: "var(--text-2)" }}><Icon name="x" size={15} /></button>
         </div>
         <div style={{ padding: 22, display: "flex", flexDirection: "column", gap: 14, overflowY: "auto" }}>
           <AField label="ชื่อ-สกุล (แสดงในระบบ)" required><input autoFocus style={A_INPUT} value={f.name} onChange={(e) => set("name", e.target.value)} placeholder="เช่น สมชาย ตั้งใจ" /></AField>

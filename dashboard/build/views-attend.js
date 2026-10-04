@@ -1,7 +1,7 @@
 function _extends() { return _extends = Object.assign ? Object.assign.bind() : function (n) { for (var e = 1; e < arguments.length; e++) { var t = arguments[e]; for (var r in t) ({}).hasOwnProperty.call(t, r) && (n[r] = t[r]); } return n; }, _extends.apply(null, arguments); }
 const TM_IN = {
   padding: "9px 11px",
-  borderRadius: 10,
+  borderRadius: "var(--r-chip)",
   border: "1px solid var(--border-strong)",
   background: "var(--surface)",
   color: "var(--text-1)",
@@ -362,7 +362,8 @@ function TmDaySheet({
     style: {
       padding: "5px 11px",
       borderRadius: 8,
-      border: "1px solid var(--border-strong)",
+      border: "none",
+      boxShadow: "var(--shadow-sm)",
       background: "var(--surface)",
       color: "var(--tint-red-tx2)",
       cursor: "pointer",
@@ -642,7 +643,8 @@ function TmMonth({
     style: {
       padding: "6px 12px",
       borderRadius: 9,
-      border: "1px solid var(--border-strong)",
+      border: "none",
+      boxShadow: "var(--shadow-sm)",
       background: "var(--surface)",
       cursor: "pointer",
       fontFamily: "inherit",
@@ -2170,7 +2172,8 @@ function TmOfficeCfg({
       gap: 6,
       padding: "8px 14px",
       borderRadius: 9,
-      border: "1px solid var(--border-strong)",
+      border: "none",
+      boxShadow: "var(--shadow-sm)",
       background: "var(--surface)",
       color: "var(--text-1)",
       cursor: busy ? "default" : "pointer",
@@ -2198,7 +2201,8 @@ function TmOfficeCfg({
     style: {
       padding: "7px 12px",
       borderRadius: 9,
-      border: "1px solid var(--border-strong)",
+      border: "none",
+      boxShadow: "var(--shadow-sm)",
       background: "var(--surface)",
       color: "var(--tint-red-tx2)",
       cursor: "pointer",

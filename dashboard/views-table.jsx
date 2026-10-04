@@ -312,11 +312,11 @@ function TableMobile({ jobs, sort, setSort, onOpen, onEdit, onDelete, onSetStage
         <span style={{ fontSize: 11.5, fontWeight: 600, color: "var(--text-3)", flexShrink: 0 }}>เรียงตาม</span>
         <select value={sort.key} onChange={(e) => setSort((s) => ({ key: e.target.value, dir: s.dir }))}
           style={{ flex: 1, fontFamily: "inherit", fontSize: 12.5, fontWeight: 600, color: "var(--text-1)",
-            background: "var(--surface)", border: "1px solid var(--border-strong)", borderRadius: 9, padding: "7px 10px", outline: "none" }}>
+            background: "var(--surface)", border: "none", borderRadius: 9, padding: "7px 10px", outline: "none" }}>
           {SORTS.map((o) => <option key={o.key} value={o.key}>{o.th}</option>)}
         </select>
         <button onClick={() => setSort((s) => ({ key: s.key, dir: -s.dir }))} title="สลับทิศ"
-          style={{ flexShrink: 0, width: 36, height: 36, borderRadius: 9, border: "1px solid var(--border-strong)",
+          style={{ flexShrink: 0, width: 36, height: 36, borderRadius: 9, border: "none", boxShadow: "var(--shadow-sm)",
             background: "var(--surface)", cursor: "pointer", color: "var(--text-2)", fontWeight: 700, fontSize: 15 }}>
           {sort.dir > 0 ? "↑" : "↓"}
         </button>

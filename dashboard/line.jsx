@@ -167,7 +167,7 @@ function LnBindScreen({ profile, onBind }) {
   };
 
   const inp = {
-    width: "100%", padding: "13px 14px", borderRadius: 12, border: "1px solid var(--border-strong)",
+    width: "100%", padding: "13px 14px", borderRadius: "var(--r-chip)", border: "1px solid var(--border-strong)",
     background: "var(--surface2)", color: "var(--text-1)", fontFamily: "inherit", fontSize: 16, outline: "none",
   };
 
@@ -339,7 +339,7 @@ function LnWebForm({ reason, onDone }) {
     onDone(m.user.id);
   };
 
-  const inp = { width: "100%", padding: "13px 14px", borderRadius: 12, border: "1px solid var(--border-strong)",
+  const inp = { width: "100%", padding: "13px 14px", borderRadius: "var(--r-chip)", border: "1px solid var(--border-strong)",
     background: "var(--surface2)", color: "var(--text-1)", fontFamily: "inherit", fontSize: 16, outline: "none" };
 
   return (

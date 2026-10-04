@@ -418,7 +418,7 @@ function PermitCatalogRow({ slot, sheets, missing, models }) {
           <span style={{ flex: 1, minWidth: 0, fontSize: 11.5, fontWeight: 600, color: "var(--text-2)",
             whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{sh.label}</span>
           <button onClick={() => openSheet(sh)}
-            style={{ flexShrink: 0, padding: "5px 11px", borderRadius: 8, border: "1px solid var(--border-strong)", background: "var(--surface)",
+            style={{ flexShrink: 0, padding: "5px 11px", borderRadius: 8, border: "none", boxShadow: "var(--shadow-sm)", background: "var(--surface)",
               color: "var(--text-2)", fontFamily: "inherit", fontSize: 11.5, fontWeight: 700, cursor: "pointer" }}>เปิดดู</button>
         </div>
       ))}
@@ -478,7 +478,7 @@ function PermitJobFiles({ jobId }) {
               </span>
             </span>
             <button onClick={() => open(f)}
-              style={{ flexShrink: 0, padding: "6px 13px", borderRadius: 9, border: "1px solid var(--border-strong)", background: "var(--surface)",
+              style={{ flexShrink: 0, padding: "6px 13px", borderRadius: 9, border: "none", boxShadow: "var(--shadow-sm)", background: "var(--surface)",
                 color: "var(--text-2)", fontFamily: "inherit", fontSize: 12, fontWeight: 700, cursor: "pointer" }}>เปิดดู</button>
           </div>
         );
@@ -514,7 +514,7 @@ function PermitDocRow({ slot, doc, busy, onPick, onRemove }) {
       <span style={{ display: "flex", gap: 6, flexShrink: 0 }}>
         {has && (
           <a href={doc.dataUrl} target="_blank" rel="noreferrer" download={doc.name || undefined}
-            style={{ padding: "6px 10px", borderRadius: 8, border: "1px solid var(--border-strong)", background: "var(--surface)",
+            style={{ padding: "6px 10px", borderRadius: 8, border: "none", boxShadow: "var(--shadow-sm)", background: "var(--surface)",
               color: "var(--text-2)", fontSize: 11.5, fontWeight: 700, textDecoration: "none" }}>เปิด</a>
         )}
         <button type="button" onClick={() => inputRef.current && inputRef.current.click()} disabled={busy}
@@ -524,7 +524,7 @@ function PermitDocRow({ slot, doc, busy, onPick, onRemove }) {
         </button>
         {has && (
           <button type="button" onClick={onRemove} title="ลบไฟล์"
-            style={{ width: 28, height: 28, borderRadius: 8, border: "1px solid var(--border-strong)", background: "var(--surface)", color: "var(--tint-red-tx2)", cursor: "pointer", display: "grid", placeItems: "center" }}>
+            style={{ width: 28, height: 28, borderRadius: 8, border: "none", boxShadow: "var(--shadow-sm)", background: "var(--surface)", color: "var(--tint-red-tx2)", cursor: "pointer", display: "grid", placeItems: "center" }}>
             <Icon name="trash" size={13} />
           </button>
         )}
@@ -594,7 +594,7 @@ function PermitReview({ job, currentUser, stock, onClose, onPatch, onOpenJob }) 
             <h2 style={{ fontSize: 16, fontWeight: 700, color: "var(--text-1)", margin: 0, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{job.name}</h2>
             <span style={{ fontSize: 11.5, color: "var(--text-3)" }}>{job.code} · <span style={{ color: st.color, fontWeight: 700 }}>{st.th}</span></span>
           </div>
-          <button className="x-close" onClick={onClose} style={{ width: 32, height: 32, borderRadius: 9, border: "1px solid var(--border)", background: "var(--surface)", cursor: "pointer", display: "grid", placeItems: "center", color: "var(--text-2)", flexShrink: 0 }}><Icon name="x" size={16} /></button>
+          <button className="x-close" onClick={onClose} style={{ width: 32, height: 32, borderRadius: 9, border: "none", boxShadow: "var(--shadow-sm)", background: "var(--surface)", cursor: "pointer", display: "grid", placeItems: "center", color: "var(--text-2)", flexShrink: 0 }}><Icon name="x" size={16} /></button>
         </div>
 
         <div style={{ flex: 1, overflowY: "auto", padding: 16, display: "flex", flexDirection: "column", gap: 13 }}>

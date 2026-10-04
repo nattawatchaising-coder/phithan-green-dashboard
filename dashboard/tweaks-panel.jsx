@@ -63,7 +63,7 @@ const __TWEAKS_STYLE = `
     transform:scale(var(--dc-inv-zoom,1));transform-origin:bottom right;
     background:rgba(250,249,247,.78);color:#29261b;
     -webkit-backdrop-filter:blur(24px) saturate(160%);backdrop-filter:blur(24px) saturate(160%);
-    border:.5px solid rgba(255,255,255,.6);border-radius:14px;
+    border:.5px solid rgba(255,255,255,.6);border-radius:var(--r-tile);
     box-shadow:0 1px 0 rgba(255,255,255,.5) inset,0 12px 40px rgba(0,0,0,.18);
     font:11.5px/1.4 ui-sans-serif,system-ui,-apple-system,sans-serif;overflow:hidden}
   .twk-hd{display:flex;align-items:center;justify-content:space-between;
@@ -101,7 +101,7 @@ const __TWEAKS_STYLE = `
     background-repeat:no-repeat;background-position:right 8px center}
 
   .twk-slider{appearance:none;-webkit-appearance:none;width:100%;height:4px;margin:6px 0;
-    border-radius:999px;background:rgba(0,0,0,.12);outline:none}
+    border-radius:var(--r-pill);background:rgba(0,0,0,.12);outline:none}
   .twk-slider::-webkit-slider-thumb{-webkit-appearance:none;appearance:none;
     width:14px;height:14px;border-radius:50%;background:#fff;
     border:.5px solid rgba(0,0,0,.12);box-shadow:0 1px 3px rgba(0,0,0,.2);cursor:default}
@@ -119,7 +119,7 @@ const __TWEAKS_STYLE = `
     border-radius:6px;cursor:default;padding:4px 6px;line-height:1.2;
     overflow-wrap:anywhere}
 
-  .twk-toggle{position:relative;width:32px;height:18px;border:0;border-radius:999px;
+  .twk-toggle{position:relative;width:32px;height:18px;border:0;border-radius:var(--r-pill);
     background:rgba(0,0,0,.15);transition:background .15s;cursor:default;padding:0}
   .twk-toggle[data-on="1"]{background:#34c759}
   .twk-toggle i{position:absolute;top:2px;left:2px;width:14px;height:14px;border-radius:50%;

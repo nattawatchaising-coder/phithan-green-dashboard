@@ -768,7 +768,7 @@ function StickerPicker({
     style: {
       width: "100%",
       boxSizing: "border-box",
-      border: "1px solid var(--border)",
+      border: "none",
       borderRadius: 7,
       padding: "4px 7px",
       fontFamily: "inherit",
@@ -784,7 +784,7 @@ function StickerPicker({
     style: {
       width: "100%",
       boxSizing: "border-box",
-      border: "1px solid var(--border)",
+      border: "none",
       borderRadius: 7,
       padding: "4px 5px",
       fontFamily: "inherit",
@@ -1221,7 +1221,7 @@ function AnnEditor({
     gap: 6,
     height: 38,
     padding: "0 14px",
-    borderRadius: 10,
+    borderRadius: "var(--r-chip)",
     border: "1px solid var(--border-strong)",
     background: "var(--surface)",
     color: "var(--text-2)",
@@ -2364,7 +2364,7 @@ function SurveyWizard({
       display: "flex",
       flexDirection: "column",
       overflow: "hidden",
-      boxShadow: "0 34px 60px -24px rgba(8,20,14,.45)"
+      boxShadow: "var(--shadow-sheet)"
     }
   }, React.createElement("div", {
     style: {

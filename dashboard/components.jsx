@@ -352,7 +352,7 @@ function Dropdown({ value, onChange, options, disabled, placeholder, style, adda
                 <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="พิมพ์ค้นหา…"
                   autoFocus={!window.matchMedia("(max-width: 860px)").matches}
                   onKeyDown={(e) => { if (e.key === "Escape") { e.preventDefault(); setOpen(false); } }}
-                  style={{ width: "100%", background: "var(--surface2)", border: "1px solid var(--border-strong)", color: "var(--text-1)",
+                  style={{ width: "100%", background: "var(--surface2)", border: "none", color: "var(--text-1)",
                     fontFamily: "inherit", fontSize: 13, padding: "8px 10px", borderRadius: 9, outline: "none" }} />
               </div>
             )}
@@ -410,7 +410,7 @@ function Dropdown({ value, onChange, options, disabled, placeholder, style, adda
                 <input autoFocus value={addText} placeholder="ชื่อตัวเลือกใหม่"
                   onChange={(e) => setAddText(e.target.value)}
                   onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); submitAdd(); } else if (e.key === "Escape") { setAdding(false); setAddText(""); } }}
-                  style={{ flex: 1, minWidth: 0, background: "var(--surface2)", border: "1px solid var(--border-strong)", color: "var(--text-1)", fontFamily: "inherit", fontSize: 13, padding: "8px 9px", borderRadius: 8, outline: "none" }} />
+                  style={{ flex: 1, minWidth: 0, background: "var(--surface2)", border: "none", color: "var(--text-1)", fontFamily: "inherit", fontSize: 13, padding: "8px 9px", borderRadius: 8, outline: "none" }} />
                 <button type="button" onClick={submitAdd} title="เพิ่ม" style={{ flexShrink: 0, display: "grid", placeItems: "center", width: 32, height: 32, background: "var(--primary)", color: "#fff", border: "none", borderRadius: 8, cursor: "pointer" }}><Icon name="check" size={15} color="#fff" sw={2.6} /></button>
               </div>
             ) : (

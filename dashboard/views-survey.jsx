@@ -1052,7 +1052,7 @@ function LeadDrawer({ lead, leadStore, appts, jobs, quotes, users, currentUser, 
         </div>
         <div style={{ background: "var(--bg)", borderRadius: isMobile ? "0 22px 0 0" : "0 var(--r-card) var(--r-card) var(--r-card)",
           flex: 1, minHeight: 0, position: "relative", zIndex: 11,
-          display: "flex", flexDirection: "column", overflow: "hidden", boxShadow: "0 34px 60px -24px rgba(8,20,14,.45)" }}>
+          display: "flex", flexDirection: "column", overflow: "hidden", boxShadow: "var(--shadow-sheet)" }}>
           {/* เงาตัวใบหดขอบ (spread -24) ให้ตกลงล่างอย่างเดียว ไม่ฟุ้งขึ้นไปทาทับแท็บ
               ⚠ ห้ามย้ายเงาไปเป็น filter: drop-shadow ที่กรอบนอก — filter ทำให้ position:fixed ข้างใน (BOQ เต็มจอ ฯลฯ) ถูกขังอยู่ในกรอบนี้ */}
           {/* หัวลิ้นชัก — แยกจากเนื้อด้วยเงาฟุ้ง ชุดเดียวกับแถบปุ่มล่าง ไม่ใช้เส้นคาด */}

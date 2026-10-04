@@ -18,7 +18,7 @@ function DrLabel({ children, hint }) {
 }
 
 const DR_INPUT = {
-  width: "100%", padding: "10px 12px", borderRadius: 10, border: "1px solid var(--border-strong)",
+  width: "100%", padding: "10px 12px", borderRadius: "var(--r-chip)", border: "1px solid var(--border-strong)",
   background: "var(--surface)", color: "var(--text-1)", fontFamily: "inherit", fontSize: 13.5, boxSizing: "border-box",
 };
 
@@ -106,7 +106,7 @@ function DrRows({ cols, rows, onChange, disabled, addLabel }) {
                 {!disabled && (
                   <td style={{ padding: "3px 3px", textAlign: "center" }}>
                     <button type="button" onClick={() => onChange(list.filter((_, x) => x !== i))} title="ลบแถวนี้"
-                      style={{ width: 26, height: 26, borderRadius: 7, border: "1px solid var(--border)", background: "var(--surface)",
+                      style={{ width: 26, height: 26, borderRadius: 7, border: "none", boxShadow: "var(--shadow-sm)", background: "var(--surface)",
                         cursor: "pointer", display: "grid", placeItems: "center", color: "var(--text-3)" }}>
                       <Icon name="trash" size={13} />
                     </button>
@@ -201,7 +201,7 @@ function DrStepTable({ steps, onChange, disabled, editable, onReset, plan, dates
                 {editable && !disabled && (
                   <td style={Object.assign({}, cell, { textAlign: "center" })}>
                     <button type="button" onClick={() => onChange(list.filter((_, x) => x !== i))} title="ลบขั้นนี้"
-                      style={{ width: 24, height: 24, borderRadius: 6, border: "1px solid var(--border)", background: "var(--surface)",
+                      style={{ width: 24, height: 24, borderRadius: 6, border: "none", boxShadow: "var(--shadow-sm)", background: "var(--surface)",
                         cursor: "pointer", display: "grid", placeItems: "center", color: "var(--text-3)" }}>
                       <Icon name="trash" size={12} />
                     </button>
@@ -233,7 +233,7 @@ function DrStepTable({ steps, onChange, disabled, editable, onReset, plan, dates
           </button>}
           <button type="button" onClick={() => onChange((onReset || window.drWhaSteps)())}
             style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "8px 13px", borderRadius: 9,
-              border: "1px solid var(--border-strong)", background: "var(--surface)", cursor: "pointer",
+              border: "none", boxShadow: "var(--shadow-sm)", background: "var(--surface)", cursor: "pointer",
               fontFamily: "inherit", fontSize: 12.5, fontWeight: 700, color: "var(--text-3)" }}>
             <Icon name="undo" size={14} /> คืนชุดมาตรฐาน
           </button>
@@ -333,7 +333,7 @@ function DrSignSlot({ title, sub, sig, canSign, onSign, onClear, saved, onUseSav
     <div style={{ border: "none", boxShadow: "var(--shadow-sm)", borderRadius: "var(--r-chip)", background: "var(--surface)", padding: "12px 13px" }}>
       <div style={{ fontSize: 12, fontWeight: 800, color: "var(--text-2)" }}>{title}</div>
       <div style={{ fontSize: 11, color: "var(--text-3)", marginTop: 2 }}>{sub}</div>
-      <div style={{ height: 76, marginTop: 9, borderRadius: 9, background: "var(--surface2)", border: "1px solid var(--border)",
+      <div style={{ height: 76, marginTop: 9, borderRadius: 9, background: "var(--surface2)", border: "none", boxShadow: "var(--shadow-sm)",
         display: "grid", placeItems: "center", overflow: "hidden" }}>
         {sig && sig.img
           ? <img src={sig.img} alt="ลายเซ็น" style={{ maxWidth: "94%", maxHeight: 66, objectFit: "contain" }} />
@@ -362,7 +362,7 @@ function DrSignSlot({ title, sub, sig, canSign, onSign, onClear, saved, onUseSav
         )}
         {canSign && sig && sig.img && (
           <button onClick={onClear}
-            style={{ padding: "7px 11px", borderRadius: 9, border: "1px solid var(--border-strong)", background: "var(--surface)",
+            style={{ padding: "7px 11px", borderRadius: 9, border: "none", boxShadow: "var(--shadow-sm)", background: "var(--surface)",
               color: "var(--text-3)", fontFamily: "inherit", fontSize: 12, fontWeight: 700, cursor: "pointer" }}>
             ลบ
           </button>
@@ -567,14 +567,14 @@ function DailyReportModal({ job, role, currentUser, onClose, onNotify, openDate 
             {/* เลือกวัน — วันไหนมีรายงานแล้วขึ้นจุดสี กดข้ามไปดู/แก้ได้ */}
             <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 11, flexWrap: "wrap" }}>
               <button onClick={() => setDate(window.drAddDays(date, -1))} title="วันก่อนหน้า"
-                style={{ width: 32, height: 32, borderRadius: 9, border: "1px solid var(--border-strong)", background: "var(--surface)",
+                style={{ width: 32, height: 32, borderRadius: 9, border: "none", boxShadow: "var(--shadow-sm)", background: "var(--surface)",
                   cursor: "pointer", display: "grid", placeItems: "center", color: "var(--text-2)" }}>
                 <Icon name="chevronRight" size={15} style={{ transform: "rotate(180deg)" }} />
               </button>
               <input type="date" value={date} max={window.drToday()} onChange={(e) => setDate(e.target.value || window.drToday())}
                 style={Object.assign({}, DR_INPUT, { width: "auto", padding: "7px 10px", fontFamily: "var(--mono)", fontSize: 12.5 })} />
               <button onClick={() => setDate(window.drAddDays(date, 1))} disabled={date >= window.drToday()} title="วันถัดไป"
-                style={{ width: 32, height: 32, borderRadius: 9, border: "1px solid var(--border-strong)", background: "var(--surface)",
+                style={{ width: 32, height: 32, borderRadius: 9, border: "none", boxShadow: "var(--shadow-sm)", background: "var(--surface)",
                   cursor: date >= window.drToday() ? "default" : "pointer", opacity: date >= window.drToday() ? 0.4 : 1,
                   display: "grid", placeItems: "center", color: "var(--text-2)" }}>
                 <Icon name="chevronRight" size={15} />
@@ -1350,7 +1350,7 @@ function DrJobSummary({ job, all, onOpen, onBack }) {
     <div style={{ border: "none", boxShadow: "var(--shadow-sm)", borderRadius: "var(--r-tile)", background: "var(--surface2)", overflow: "hidden" }}>
       <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "11px 14px", borderBottom: "1px solid var(--border)" }}>
         <button onClick={onBack} title="กลับไปตารางภาพรวม"
-          style={{ width: 30, height: 30, borderRadius: 9, border: "1px solid var(--border-strong)", background: "var(--surface)",
+          style={{ width: 30, height: 30, borderRadius: 9, border: "none", boxShadow: "var(--shadow-sm)", background: "var(--surface)",
             cursor: "pointer", display: "grid", placeItems: "center", color: "var(--text-2)", flexShrink: 0 }}>
           <Icon name="chevronRight" size={14} style={{ transform: "rotate(180deg)" }} />
         </button>
@@ -1581,14 +1581,14 @@ function DailyView({ jobs, role, currentUser, onOpen }) {
       <React.Fragment>
       <div style={{ display: "flex", alignItems: "center", gap: 9, flexWrap: "wrap" }}>
         <button onClick={() => setDate(window.drAddDays(date, -1))}
-          style={{ width: 32, height: 32, borderRadius: 9, border: "1px solid var(--border-strong)", background: "var(--surface)",
+          style={{ width: 32, height: 32, borderRadius: 9, border: "none", boxShadow: "var(--shadow-sm)", background: "var(--surface)",
             cursor: "pointer", display: "grid", placeItems: "center", color: "var(--text-2)" }}>
           <Icon name="chevronRight" size={15} style={{ transform: "rotate(180deg)" }} />
         </button>
         <input type="date" value={date} max={window.drToday()} onChange={(e) => setDate(e.target.value || window.drToday())}
           style={Object.assign({}, DR_INPUT, { width: "auto", padding: "7px 10px", fontFamily: "var(--mono)", fontSize: 12.5 })} />
         <button onClick={() => setDate(window.drAddDays(date, 1))} disabled={date >= window.drToday()}
-          style={{ width: 32, height: 32, borderRadius: 9, border: "1px solid var(--border-strong)", background: "var(--surface)",
+          style={{ width: 32, height: 32, borderRadius: 9, border: "none", boxShadow: "var(--shadow-sm)", background: "var(--surface)",
             cursor: date >= window.drToday() ? "default" : "pointer", opacity: date >= window.drToday() ? 0.4 : 1,
             display: "grid", placeItems: "center", color: "var(--text-2)" }}>
           <Icon name="chevronRight" size={15} />
@@ -1616,7 +1616,7 @@ function DailyView({ jobs, role, currentUser, onOpen }) {
                 ลบรายงาน {r.job.code} ของวันนี้ทั้งใบ? รูปและลายเซ็นหายไปด้วย เรียกคืนไม่ได้
               </span>
               <button onClick={() => setDelAsk(null)}
-                style={{ padding: "7px 13px", borderRadius: 9, border: "1px solid var(--border-strong)", background: "var(--surface)",
+                style={{ padding: "7px 13px", borderRadius: 9, border: "none", boxShadow: "var(--shadow-sm)", background: "var(--surface)",
                   cursor: "pointer", fontFamily: "inherit", fontSize: 12.5, fontWeight: 700, color: "var(--text-2)" }}>ยกเลิก</button>
               <button onClick={() => { window.drDeleteDay(r.job.id, date); setDelAsk(null); }}
                 style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "7px 13px", borderRadius: 9, border: "none",
@@ -1649,7 +1649,7 @@ function DailyView({ jobs, role, currentUser, onOpen }) {
             {canDelete && r.rec && (
               <button onClick={() => setDelAsk(r.job.id)} title="ลบใบรายงานของวันนี้ (เฉพาะแอดมิน)"
                 style={{ width: 34, height: 34, marginRight: isMobile ? 8 : 12, borderRadius: 9, flexShrink: 0,
-                  border: "1px solid var(--border)", background: "var(--surface)", cursor: "pointer", display: "grid", placeItems: "center" }}>
+                  border: "none", boxShadow: "var(--shadow-sm)", background: "var(--surface)", cursor: "pointer", display: "grid", placeItems: "center" }}>
                 <Icon name="trash" size={15} color="#EF4444" />
               </button>
             )}

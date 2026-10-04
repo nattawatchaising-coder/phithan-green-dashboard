@@ -34,14 +34,14 @@ const BQ_CSS = `
 .bq-prog .row{display:flex;align-items:baseline;justify-content:space-between;gap:8px;margin-bottom:7px}
 .bq-prog .k{font-size:11.5px;font-weight:700;color:var(--text-2)}
 .bq-prog .v{font-size:11.5px;font-weight:800;color:var(--primary-dark);font-family:var(--mono)}
-.bq-prog .bar{height:6px;border-radius:99px;background:var(--surface3);overflow:hidden}
-.bq-prog .bar>i{display:block;height:100%;border-radius:99px;background:var(--primary);transition:width .3s ease}
+.bq-prog .bar{height:6px;border-radius:var(--r-pill);background:var(--surface3);overflow:hidden}
+.bq-prog .bar>i{display:block;height:100%;border-radius:var(--r-pill);background:var(--primary);transition:width .3s ease}
 .bq-grp{font-size:10.5px;font-weight:700;color:var(--text-3);padding:12px 10px 5px}
-.bq-nav{display:flex;gap:9px;align-items:flex-start;padding:8px 10px;border-radius:12px;border:0;width:100%;
+.bq-nav{display:flex;gap:9px;align-items:flex-start;padding:8px 10px;border-radius:var(--r-chip);border:0;width:100%;
   background:none;text-align:left;cursor:pointer;font-family:inherit;transition:background .14s}
 .bq-nav:hover{background:var(--surface2)}
 .bq-nav[data-on="1"]{background:var(--primary-soft)}
-.bq-nav .dot{width:16px;height:16px;border-radius:99px;flex:0 0 auto;display:grid;place-items:center;margin-top:1px;
+.bq-nav .dot{width:16px;height:16px;border-radius:var(--r-pill);flex:0 0 auto;display:grid;place-items:center;margin-top:1px;
   box-shadow:inset 0 0 0 1.6px var(--surface3);color:#fff}
 .bq-nav .dot[data-st="ok"]{background:var(--primary);box-shadow:none}
 .bq-nav .dot[data-st="warn"]{background:#F59E0B;box-shadow:none;font-size:10px;font-weight:900;line-height:1}
@@ -52,7 +52,7 @@ const BQ_CSS = `
 .bq-nav .mt{display:block;font-size:11px;font-weight:600;color:var(--text-3);line-height:1.4;margin-top:2px}
 .bq-nav .mt.warn{color:var(--tint-amber-tx)}
 /* ปุ่มไปหัวข้อถัดไป ท้ายเนื้อหา — กรอกไล่ไปทีละหัวข้อได้โดยไม่ต้องกลับไปหาในแถบซ้าย */
-.bq-next{align-self:flex-end;display:inline-flex;align-items:center;gap:7px;padding:10px 16px;border-radius:999px;border:0;
+.bq-next{align-self:flex-end;display:inline-flex;align-items:center;gap:7px;padding:10px 16px;border-radius:var(--r-pill);border:0;
   background:var(--surface);box-shadow:var(--shadow-sm);color:var(--primary-dark);font-family:inherit;font-size:13px;font-weight:700;cursor:pointer}
 .bq-next:hover{background:var(--primary-soft)}
 .bq-next .k{color:var(--text-3);font-weight:600}
@@ -60,42 +60,42 @@ const BQ_CSS = `
 /* การ์ดเนื้อหา */
 .bq-card{background:var(--surface);border-radius:var(--r-card, 18px);padding:18px 20px 20px;box-shadow:var(--shadow-card)}
 .bq-card>.hd{display:flex;align-items:center;gap:9px;margin-bottom:16px}
-.bq-card>.hd>svg{box-sizing:content-box;padding:7px;border-radius:999px;background:var(--primary-soft)}
+.bq-card>.hd>svg{box-sizing:content-box;padding:7px;border-radius:var(--r-pill);background:var(--primary-soft)}
 .bq-card>.hd .t{font-size:13.5px;font-weight:700;color:var(--text-1);letter-spacing:-.01em}
 .bq-card>.hd .r{margin-left:auto;flex-shrink:0}
 
 /* คำอธิบายที่ซ่อนไว้ + ปุ่มเปิดอ่านที่หัวการ์ด */
 .bq-card .bq-hint{display:none}
 .bq-card[data-hint="1"] .bq-hint{display:block}
-.bq-i{display:inline-flex;align-items:center;gap:5px;border:0;background:none;padding:3px 8px 3px 4px;border-radius:999px;
+.bq-i{display:inline-flex;align-items:center;gap:5px;border:0;background:none;padding:3px 8px 3px 4px;border-radius:var(--r-pill);
   cursor:pointer;font-family:inherit;font-size:11px;font-weight:700;color:var(--text-3)}
 .bq-i:hover,.bq-i[data-on="1"]{background:var(--surface2);color:var(--primary-dark)}
-.bq-i .q{width:16px;height:16px;border-radius:99px;display:grid;place-items:center;font-size:10px;font-weight:800;
+.bq-i .q{width:16px;height:16px;border-radius:var(--r-pill);display:grid;place-items:center;font-size:10px;font-weight:800;
   background:var(--surface3);color:var(--text-2)}
 .bq-i[data-on="1"] .q{background:var(--primary);color:#fff}
 /* ปุ่มเพิ่มรายการที่ซ่อนไว้ (ตู้ไฟ · ปั๊ม · ถัง …) — ของที่งานนี้ไม่ได้ใช้ไม่ต้องโชว์ช่อง 0 ให้รก */
 .bq-chips{display:flex;flex-wrap:wrap;gap:7px}
-.bq-chip{display:inline-flex;align-items:center;gap:5px;border:0;border-radius:999px;padding:6px 12px;cursor:pointer;
+.bq-chip{display:inline-flex;align-items:center;gap:5px;border:0;border-radius:var(--r-pill);padding:6px 12px;cursor:pointer;
   font-family:inherit;font-size:12px;font-weight:700;color:var(--text-2);background:var(--surface2);box-shadow:var(--shadow-sm)}
 .bq-chip:hover{background:var(--primary-soft);color:var(--primary-dark)}
 /* กลุ่ม "สรุปผล" ในแถบซ้าย — หน้าที่ระบบคิดให้ ไม่ต้องกรอก จึงไม่นับในความคืบหน้า */
 .bq-nav[data-out="1"] .dot{box-shadow:none;background:var(--surface3);color:var(--text-2)}
 
 /* ป้ายสายที่ระบบเลือกให้ / ปุ่มเสนอเปลี่ยน (หมวดสายไฟ) */
-.bq-autopick{display:inline-flex;align-items:center;gap:4px;padding:2px 8px;border-radius:99px;font-size:10.5px;font-weight:800;
+.bq-autopick{display:inline-flex;align-items:center;gap:4px;padding:2px 8px;border-radius:var(--r-pill);font-size:10.5px;font-weight:800;
   background:color-mix(in srgb,#2563EB 10%,var(--surface));color:#1D4ED8}
-.bq-swap{display:inline-flex;align-items:center;gap:4px;border:0;border-radius:99px;padding:3px 10px;cursor:pointer;font-family:inherit;
+.bq-swap{display:inline-flex;align-items:center;gap:4px;border:0;border-radius:var(--r-pill);padding:3px 10px;cursor:pointer;font-family:inherit;
   font-size:10.5px;font-weight:800;background:var(--primary);color:#fff;box-shadow:var(--shadow-btn)}
 
 /* ออกแบบสายทีละเส้น: ① วิธีเดิน → ② ขนาดสาย THW/CV → ③ ชุด × เส้น + กราวด์ */
-.bq-cabx{display:flex;flex-direction:column;gap:8px;padding:10px 11px;margin-top:2px;border-radius:12px;background:var(--surface2)}
+.bq-cabx{display:flex;flex-direction:column;gap:8px;padding:10px 11px;margin-top:2px;border-radius:var(--r-chip);background:var(--surface2)}
 .bq-cabx-step{display:flex;align-items:center;gap:7px;flex-wrap:wrap}
-.bq-cabx-step > .n{width:18px;height:18px;flex-shrink:0;border-radius:99px;background:var(--primary);color:#fff;font-size:10.5px;font-weight:800;
+.bq-cabx-step > .n{width:18px;height:18px;flex-shrink:0;border-radius:var(--r-pill);background:var(--primary);color:#fff;font-size:10.5px;font-weight:800;
   display:inline-flex;align-items:center;justify-content:center}
 .bq-cabx-step > .lb{font-size:11px;font-weight:800;color:var(--text-2);min-width:66px}
 .bq-cabx-step .hint{font-size:10.5px;font-weight:700;color:var(--text-3)}
 .bq-cabx-opts{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:7px;flex:1;min-width:0}
-.bq-cabx-opt{display:flex;flex-direction:column;align-items:flex-start;gap:1px;text-align:left;border:0;border-radius:10px;padding:7px 10px;
+.bq-cabx-opt{display:flex;flex-direction:column;align-items:flex-start;gap:1px;text-align:left;border:0;border-radius:var(--r-chip);padding:7px 10px;
   cursor:pointer;font-family:inherit;background:var(--surface);box-shadow:var(--shadow-sm);color:var(--text-1);min-width:0}
 .bq-cabx-opt:hover:not(:disabled){background:var(--primary-soft)}
 .bq-cabx-opt:disabled{cursor:default;opacity:.55}
@@ -114,7 +114,7 @@ const BQ_CSS = `
 .bq-cabx-sum b{color:var(--text-1)}
 .bq-cab-hd{display:flex;align-items:center;gap:6px;font-size:11.5px;font-weight:800;color:var(--primary-dark);padding:2px 2px 0}
 .bq-cab-hd > span{font-size:10.5px;font-weight:700;color:var(--text-3)}
-.bq-cab-chip{border:0;border-radius:99px;padding:3px 9px;font-family:inherit;font-size:10.5px;font-weight:700;cursor:pointer;
+.bq-cab-chip{border:0;border-radius:var(--r-pill);padding:3px 9px;font-family:inherit;font-size:10.5px;font-weight:700;cursor:pointer;
   background:var(--surface2);color:var(--text-3);box-shadow:var(--shadow-sm)}
 .bq-cab-chip.on{background:var(--primary-soft);color:var(--primary-dark);box-shadow:inset 0 0 0 1.5px var(--primary)}
 @media (max-width:700px){.bq-cabx-opts{grid-template-columns:minmax(0,1fr)}.bq-cabx-step > .lb{min-width:0}}
@@ -132,7 +132,7 @@ const BQ_CSS = `
 .bq-p3{margin-bottom:14px;background:var(--surface);border-radius:var(--r-tile);box-shadow:var(--shadow-sm);overflow:hidden}
 .bq-p3-hd{display:flex;align-items:center;flex-wrap:wrap;gap:10px 12px;padding:12px 14px;background:color-mix(in srgb,#2563EB 7%,var(--surface))}
 .bq-p3[data-ok="1"] .bq-p3-hd{background:var(--primary-soft)}
-.bq-p3-hd .ic{width:30px;height:30px;border-radius:10px;display:grid;place-items:center;background:#2563EB;color:#fff;flex-shrink:0}
+.bq-p3-hd .ic{width:30px;height:30px;border-radius:var(--r-chip);display:grid;place-items:center;background:#2563EB;color:#fff;flex-shrink:0}
 .bq-p3[data-ok="1"] .bq-p3-hd .ic{background:var(--primary)}
 .bq-p3-hd .tt{display:flex;flex-direction:column;gap:1px;min-width:0;flex:1 1 180px}
 .bq-p3-hd .tt b{font-size:13px;color:var(--text-1)}
@@ -149,7 +149,7 @@ const BQ_CSS = `
 .bq-p3-tb .n{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
 .bq-p3-tb td b{color:var(--text-1);font-weight:800}
 .bq-p3-tb .bar{width:28%;padding-left:6px}
-.bq-p3-tb .bar span{display:block;height:6px;border-radius:99px;background:color-mix(in srgb,var(--primary) 55%,transparent)}
+.bq-p3-tb .bar span{display:block;height:6px;border-radius:var(--r-pill);background:color-mix(in srgb,var(--primary) 55%,transparent)}
 .bq-p3-tb tbody tr:hover td{background:var(--surface2)}
 .bq-p3 .ori{display:inline-flex;align-items:center;gap:7px;font-weight:700;color:var(--text-1)}
 .bq-p3 .ori i{display:inline-block;width:9px;height:14px;border-radius:2px;border:1.6px solid var(--primary);background:var(--primary-soft)}
@@ -182,7 +182,7 @@ const BQ_CSS = `
 /* ตารางสเปคจากคลัง + ตัวเลขที่คำนวณได้ — ช่องที่ยังไม่กรอกในคลังขึ้นสีส้มให้เห็นว่าต้องไปเติม */
 .bq-spec{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}
 /* ช่องสถิติ (ค่าที่ระบบคิดให้ อ่านอย่างเดียว) = พื้นจางแบน ไม่มีเงาหลุม — แยกออกจากช่องกรอกที่เป็นหลุมจม */
-.bq-spec>div{padding:9px 12px;border-radius:12px;background:var(--surface2);min-width:0}
+.bq-spec>div{padding:9px 12px;border-radius:var(--r-chip);background:var(--surface2);min-width:0}
 .bq-spec.c2{grid-template-columns:repeat(2,minmax(0,1fr))}
 .bq-spec .v .ok{color:var(--primary);margin-left:4px}
 /* ช่องกรอกที่มีหน่วยต่อท้าย — หน่วยอยู่ในหลุมเดียวกับตัวเลข ไม่ลอยอยู่นอกช่อง */
@@ -220,7 +220,7 @@ const BQ_CSS = `
 .bq-x{height:36px;width:100%;background:none;border:1px solid transparent;color:var(--text-3);
   border-radius:9px;cursor:pointer;display:grid;place-items:center;transition:background .12s,color .12s,border-color .12s}
 .bq-x:hover{background:#EF44441a;border-color:#EF444433;color:#EF4444}
-.bq-note{margin-top:9px;display:flex;align-items:flex-start;gap:7px;padding:9px 12px;border-radius:10px;
+.bq-note{margin-top:9px;display:flex;align-items:flex-start;gap:7px;padding:9px 12px;border-radius:var(--r-chip);
   font-size:12px;font-weight:600;line-height:1.5}
 .bq-note.warn{background:var(--tint-amber-bg);color:var(--tint-amber-tx2)}
 .bq-note.ok{background:var(--tint-ok-bg);color:var(--tint-ok-tx)}
@@ -294,7 +294,7 @@ const BQ_CSS = `
   .bq-nav{width:auto;flex:0 0 auto;min-width:0;padding:7px 11px;align-items:center}
   .bq-nav .mt{display:none}
   .bq-main{padding:13px 12px 22px}
-  .bq-card{padding:14px 14px 16px;border-radius:14px}
+  .bq-card{padding:14px 14px 16px;border-radius:var(--r-tile)}
   /* จอแคบ: ตัวเลขสรุปเลื่อนแนวนอนแถวบน · ปุ่มลงมาอยู่แถวล่างเต็มความกว้าง จะได้ไม่ทับกัน */
   .bq-foot{flex-wrap:wrap;gap:8px;padding:8px 12px calc(8px + env(safe-area-inset-bottom,0px))}
   .bq-kpis{width:100%;overflow-x:auto;padding-bottom:2px}
@@ -2104,7 +2104,7 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
                       </div>
                     ))}
                     {!x.auto && <button onClick={() => setCables(i, cbs.concat([{ type: odTypes[0], size: +(Object.keys(OD[odTypes[0]] || {})[0] || 2.5), qty: 1 }]))}
-                      style={{ alignSelf: "flex-start", display: "inline-flex", alignItems: "center", gap: 5, background: "var(--surface3)", color: "var(--text-2)", border: "1px solid var(--border-strong)", borderRadius: 9, padding: "6px 10px", fontWeight: 700, fontSize: 11.5, cursor: "pointer", fontFamily: "inherit" }}><Icon name="plus" size={12} color="var(--text-2)" /> เพิ่มสาย</button>}
+                      style={{ alignSelf: "flex-start", display: "inline-flex", alignItems: "center", gap: 5, background: "var(--surface3)", color: "var(--text-2)", border: "none", boxShadow: "var(--shadow-sm)", borderRadius: 9, padding: "6px 10px", fontWeight: 700, fontSize: 11.5, cursor: "pointer", fontFamily: "inherit" }}><Icon name="plus" size={12} color="var(--text-2)" /> เพิ่มสาย</button>}
                     {any && (
                       <>
                         <div className="bq-spec" style={{ marginTop: 2 }}>
@@ -2142,7 +2142,7 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
               </div>
             );
           })}
-          {!legacy && <button onClick={() => addCond(kind, check ? { size: sizes[0], [valKey]: 0, cables: [] } : { size: sizes[0], [valKey]: 0 })} style={{ alignSelf: "flex-start", display: "inline-flex", alignItems: "center", gap: 5, background: "var(--surface3)", color: "var(--text-2)", border: "1px solid var(--border-strong)", borderRadius: 9, padding: "7px 11px", fontWeight: 700, fontSize: 12, cursor: "pointer", fontFamily: "inherit" }}><Icon name="plus" size={13} color="var(--text-2)" /> เพิ่ม {label}</button>}
+          {!legacy && <button onClick={() => addCond(kind, check ? { size: sizes[0], [valKey]: 0, cables: [] } : { size: sizes[0], [valKey]: 0 })} style={{ alignSelf: "flex-start", display: "inline-flex", alignItems: "center", gap: 5, background: "var(--surface3)", color: "var(--text-2)", border: "none", boxShadow: "var(--shadow-sm)", borderRadius: 9, padding: "7px 11px", fontWeight: 700, fontSize: 12, cursor: "pointer", fontFamily: "inherit" }}><Icon name="plus" size={13} color="var(--text-2)" /> เพิ่ม {label}</button>}
         </div>
       </div>
     );
@@ -2244,7 +2244,7 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
                       </div>
                     ))}
                     {!x.auto && <button onClick={() => setCables(i, cbs.concat([{ type: odTypes[0], size: +(Object.keys(OD[odTypes[0]] || {})[0] || 2.5), qty: 1 }]))}
-                      style={{ alignSelf: "flex-start", display: "inline-flex", alignItems: "center", gap: 5, background: "var(--surface3)", color: "var(--text-2)", border: "1px solid var(--border-strong)", borderRadius: 9, padding: "6px 10px", fontWeight: 700, fontSize: 11.5, cursor: "pointer", fontFamily: "inherit" }}><Icon name="plus" size={12} color="var(--text-2)" /> เพิ่มสาย</button>}
+                      style={{ alignSelf: "flex-start", display: "inline-flex", alignItems: "center", gap: 5, background: "var(--surface3)", color: "var(--text-2)", border: "none", boxShadow: "var(--shadow-sm)", borderRadius: 9, padding: "6px 10px", fontWeight: 700, fontSize: 11.5, cursor: "pointer", fontFamily: "inherit" }}><Icon name="plus" size={12} color="var(--text-2)" /> เพิ่มสาย</button>}
                     {any && (
                       <>
                         <div className="bq-spec" style={{ marginTop: 2 }}>
@@ -2282,7 +2282,7 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
               </div>
             );
           })}
-          {false && <button onClick={() => addTrayRow(kind, { size: sizes[0], length: 0, cables: [] })} style={{ alignSelf: "flex-start", display: "inline-flex", alignItems: "center", gap: 5, background: "var(--surface3)", color: "var(--text-2)", border: "1px solid var(--border-strong)", borderRadius: 9, padding: "7px 11px", fontWeight: 700, fontSize: 12, cursor: "pointer", fontFamily: "inherit" }}><Icon name="plus" size={13} color="var(--text-2)" /> เพิ่ม {label}</button>}
+          {false && <button onClick={() => addTrayRow(kind, { size: sizes[0], length: 0, cables: [] })} style={{ alignSelf: "flex-start", display: "inline-flex", alignItems: "center", gap: 5, background: "var(--surface3)", color: "var(--text-2)", border: "none", boxShadow: "var(--shadow-sm)", borderRadius: 9, padding: "7px 11px", fontWeight: 700, fontSize: 12, cursor: "pointer", fontFamily: "inherit" }}><Icon name="plus" size={13} color="var(--text-2)" /> เพิ่ม {label}</button>}
         </div>
       </div>
     );
@@ -2320,7 +2320,7 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
               <button onClick={() => onChange(list.filter((_, j) => j !== i))} title="ลบ" style={{ height: 40, background: "var(--tint-red-bg)", border: "none", color: "var(--tint-red-tx2)", borderRadius: 9, cursor: "pointer", display: "grid", placeItems: "center" }}><Icon name="x" size={14} /></button>
             </div>
           ))}
-          {false && <button onClick={() => onChange(list.concat([{ name: "", qty: "", unit: (catalog[0] || {}).unit || "ชุด" }]))} style={{ alignSelf: "flex-start", display: "inline-flex", alignItems: "center", gap: 5, background: "var(--surface3)", color: "var(--text-2)", border: "1px solid var(--border-strong)", borderRadius: 9, padding: "7px 11px", fontWeight: 700, fontSize: 12, cursor: "pointer", fontFamily: "inherit" }}><Icon name="plus" size={13} color="var(--text-2)" /> เพิ่มข้อต่อ</button>}
+          {false && <button onClick={() => onChange(list.concat([{ name: "", qty: "", unit: (catalog[0] || {}).unit || "ชุด" }]))} style={{ alignSelf: "flex-start", display: "inline-flex", alignItems: "center", gap: 5, background: "var(--surface3)", color: "var(--text-2)", border: "none", boxShadow: "var(--shadow-sm)", borderRadius: 9, padding: "7px 11px", fontWeight: 700, fontSize: 12, cursor: "pointer", fontFamily: "inherit" }}><Icon name="plus" size={13} color="var(--text-2)" /> เพิ่มข้อต่อ</button>}
         </div>
       </div>
     );
@@ -2410,7 +2410,7 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
           </div>
         ))}
         <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-          <button onClick={() => addStruct(kind, Object.assign({}, blank))} style={{ display: "inline-flex", alignItems: "center", gap: 5, background: "var(--surface3)", color: "var(--text-2)", border: "1px solid var(--border-strong)", borderRadius: 9, padding: "7px 11px", fontWeight: 700, fontSize: 12, cursor: "pointer", fontFamily: "inherit" }}><Icon name="plus" size={13} color="var(--text-2)" /> {addLabel}</button>
+          <button onClick={() => addStruct(kind, Object.assign({}, blank))} style={{ display: "inline-flex", alignItems: "center", gap: 5, background: "var(--surface3)", color: "var(--text-2)", border: "none", boxShadow: "var(--shadow-sm)", borderRadius: 9, padding: "7px 11px", fontWeight: 700, fontSize: 12, cursor: "pointer", fontFamily: "inherit" }}><Icon name="plus" size={13} color="var(--text-2)" /> {addLabel}</button>
           <span style={{ marginLeft: "auto", display: "inline-flex", alignItems: "center", gap: 5 }}>
             <span style={{ fontSize: 10.5, fontWeight: 600, color: "var(--text-3)" }}>% เผื่อ</span>
             <input type="number" min={0} max={99} style={Object.assign({}, numStyle, { width: 58 })} value={spare != null ? spare : ""} placeholder="5" onChange={(e) => onSpare(e.target.value)} />
@@ -3053,7 +3053,7 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
                       <b style={{ color: "var(--tint-amber-tx)" }}>แผงไม่ตรงรุ่น</b> — ฐานข้อมูลระบุ {jobPanel}
                       <button type="button" onClick={() => set("panelModel", jobPanel)}
                         style={{ display: "block", marginTop: 5, padding: "5px 10px", borderRadius: 8, cursor: "pointer",
-                          border: "1px solid var(--border-strong)", background: "var(--surface)", fontFamily: "inherit",
+                          border: "none", boxShadow: "var(--shadow-sm)", background: "var(--surface)", fontFamily: "inherit",
                           fontSize: 11.5, fontWeight: 700, color: "var(--text-2)" }}>
                         ใช้รุ่นตามฐานข้อมูล
                       </button>
@@ -4312,7 +4312,7 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
           {!isHome && (
           <BoqSection title="โครงสร้างรองรับอุปกรณ์ (Inverter / ตู้ MDB)" icon="box" {...secProps("support")}
             right={<button onClick={() => { setSup("inv", supAuto); setSup("mdb", 1); }}
-              style={{ display: "inline-flex", alignItems: "center", gap: 5, background: "var(--surface3)", color: "var(--text-2)", border: "1px solid var(--border-strong)", borderRadius: 8, padding: "6px 11px", fontWeight: 700, fontSize: 12, cursor: "pointer", fontFamily: "inherit" }}
+              style={{ display: "inline-flex", alignItems: "center", gap: 5, background: "var(--surface3)", color: "var(--text-2)", border: "none", boxShadow: "var(--shadow-sm)", borderRadius: 8, padding: "6px 11px", fontWeight: 700, fontSize: 12, cursor: "pointer", fontFamily: "inherit" }}
               title={supAuto > 0 ? "ตั้งเป็นอินเวอร์เตอร์ " + supAuto + " ตัว + ตู้ 1 ใบ" : "ไมโครอินเวอร์เตอร์ยึดใต้แผงอยู่แล้ว — ตั้งเฉพาะตู้ 1 ใบ"}>ใช้ตามระบบ</button>}>
             <div className="bq-hint" style={{ fontSize: 11.5, color: "var(--text-3)", lineHeight: 1.5, marginBottom: 14 }}>
               อินเวอร์เตอร์ตัวใหญ่และตู้ MDB ต้องมีโครงเหล็กหรือฉากรองรับ ไม่ได้ยึดผนังเปล่า ๆ — ใส่ 0 ถ้างานนี้ไม่ต้องทำโครง
@@ -4444,7 +4444,7 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
           <BoqSection title="งานเพิ่มเติม (Input) — โครงสร้าง" icon="box" {...secProps("struct")}
             right={<span style={{ display: "inline-flex", alignItems: "center", gap: 9 }}>
               {structRows > 0 && <span style={{ fontSize: 12.5, fontWeight: 800, color: "var(--primary-dark)" }}>กรอกแล้ว {structRows} รายการ</span>}
-              <button onClick={() => setAdvS((v) => !v)} style={{ display: "inline-flex", alignItems: "center", gap: 5, background: "var(--surface3)", color: "var(--text-2)", border: "1px solid var(--border-strong)", borderRadius: 8, padding: "6px 11px", fontWeight: 700, fontSize: 12, cursor: "pointer", fontFamily: "inherit" }}><Icon name={advS ? "chevronDown" : "plus"} size={13} color="var(--text-2)" style={{ transform: advS ? "rotate(180deg)" : "none" }} /> {advS ? "ซ่อน" : "กรอกข้อมูล"}</button>
+              <button onClick={() => setAdvS((v) => !v)} style={{ display: "inline-flex", alignItems: "center", gap: 5, background: "var(--surface3)", color: "var(--text-2)", border: "none", boxShadow: "var(--shadow-sm)", borderRadius: 8, padding: "6px 11px", fontWeight: 700, fontSize: 12, cursor: "pointer", fontFamily: "inherit" }}><Icon name={advS ? "chevronDown" : "plus"} size={13} color="var(--text-2)" style={{ transform: advS ? "rotate(180deg)" : "none" }} /> {advS ? "ซ่อน" : "กรอกข้อมูล"}</button>
             </span>}>
             <div style={{ fontSize: 11.5, color: "var(--text-3)", lineHeight: 1.5 }}>
               เลือกกรอกเฉพาะงานที่มีในโครงการ — ระบบจะถอดวัสดุเพิ่มลงรายการ BOQ ให้อัตโนมัติ (งานที่ไม่กรอก จะไม่ถูกถอด)
@@ -4953,7 +4953,7 @@ function MatVariantModal({ item, stock, priceMap, matOptions, picked, onPick, re
     onClose();
   };
   const inp = { background: "var(--surface2)", border: "1px solid var(--border-strong)", color: "var(--text-1)",
-    fontFamily: "inherit", fontSize: 13, padding: "8px 10px", borderRadius: 10, outline: "none", width: "100%" };
+    fontFamily: "inherit", fontSize: 13, padding: "8px 10px", borderRadius: "var(--r-chip)", outline: "none", width: "100%" };
   return (
     <div {...bdClose} style={{ position: "fixed", inset: 0, background: "rgba(8,20,14,.45)", backdropFilter: "blur(3px)", zIndex: 120,
       display: "grid", placeItems: isMobile ? "end center" : "center", padding: isMobile ? 0 : 20 }}>

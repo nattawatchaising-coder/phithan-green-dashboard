@@ -1684,7 +1684,7 @@ function DailyBriefing({ lateAlerts, todayTasks, onOpen, onClose }) {
               <span style={{ fontSize: 12, color: "var(--text-3)" }}>{thDate(today, true)}</span>
             </div>
           </div>
-          <button className="x-close" onClick={onClose} style={{ width: 32, height: 32, borderRadius: 9, border: "1px solid var(--border)", background: "var(--surface)", cursor: "pointer", display: "grid", placeItems: "center", color: "var(--text-2)" }}><Icon name="x" size={16} /></button>
+          <button className="x-close" onClick={onClose} style={{ width: 32, height: 32, borderRadius: 9, border: "none", boxShadow: "var(--shadow-sm)", background: "var(--surface)", cursor: "pointer", display: "grid", placeItems: "center", color: "var(--text-2)" }}><Icon name="x" size={16} /></button>
         </div>
         <div style={{ overflowY: "auto", padding: 16, display: "flex", flexDirection: "column", gap: 8 }}>
           {lateAlerts.length > 0 && <div style={{ fontSize: 11, fontWeight: 800, color: "var(--tint-red-tx2)", padding: "2px 2px" }}>⚠ เลยกำหนด ({lateAlerts.length})</div>}
@@ -1812,7 +1812,7 @@ function TrashModal({ trash, me, onRestore, onPurge, onClose }) {
               <span style={{ fontSize: 11.5, color: "var(--text-3)" }}>{trash.length} งาน · กู้คืนได้ตลอด · ลบถาวรต้องใส่รหัสผ่าน</span>
             </div>
           </div>
-          <button className="x-close" onClick={onClose} style={{ width: 32, height: 32, borderRadius: 9, border: "1px solid var(--border)", background: "var(--surface)", cursor: "pointer", display: "grid", placeItems: "center", color: "var(--text-2)", flexShrink: 0 }}><Icon name="x" size={16} /></button>
+          <button className="x-close" onClick={onClose} style={{ width: 32, height: 32, borderRadius: 9, border: "none", boxShadow: "var(--shadow-sm)", background: "var(--surface)", cursor: "pointer", display: "grid", placeItems: "center", color: "var(--text-2)", flexShrink: 0 }}><Icon name="x" size={16} /></button>
         </div>
         <div style={{ flex: 1, minHeight: 0, overflowY: "auto", padding: 14, display: "flex", flexDirection: "column", gap: 9 }}>
           {trash.length === 0 && (
@@ -1832,7 +1832,7 @@ function TrashModal({ trash, me, onRestore, onPurge, onClose }) {
                 <button onClick={() => onRestore(j.id)} style={{ padding: "8px 13px", borderRadius: 9, border: "1px solid var(--primary)",
                   background: "var(--primary-soft)", color: "var(--primary-dark)", fontFamily: "inherit", fontSize: 12.5, fontWeight: 700, cursor: "pointer" }}>กู้คืน</button>
                 {isAdmin && ask !== j.id && (
-                  <button onClick={() => { setAsk(j.id); setPw(""); setErr(""); }} style={{ padding: "8px 13px", borderRadius: 9, border: "1px solid var(--border-strong)",
+                  <button onClick={() => { setAsk(j.id); setPw(""); setErr(""); }} style={{ padding: "8px 13px", borderRadius: 9, border: "none", boxShadow: "var(--shadow-sm)",
                     background: "var(--surface)", color: "var(--tint-red-tx2)", fontFamily: "inherit", fontSize: 12.5, fontWeight: 700, cursor: "pointer" }}>ลบถาวร</button>
                 )}
               </div>
@@ -1846,11 +1846,11 @@ function TrashModal({ trash, me, onRestore, onPurge, onClose }) {
                       onChange={(e) => { setPw(e.target.value); setErr(""); }}
                       onKeyDown={(e) => { if (e.key === "Enter") doPurge(j.id); }}
                       placeholder="รหัสผ่าน"
-                      style={{ flex: 1, minWidth: 130, background: "var(--surface2)", border: "1px solid var(--border-strong)", color: "var(--text-1)",
+                      style={{ flex: 1, minWidth: 130, background: "var(--surface2)", border: "none", color: "var(--text-1)",
                         fontFamily: "inherit", fontSize: 13, padding: "8px 10px", borderRadius: 9, outline: "none" }} />
                     <button onClick={() => doPurge(j.id)} style={{ padding: "8px 14px", borderRadius: 9, border: "none",
                       background: "#EF4444", color: "#fff", fontFamily: "inherit", fontSize: 12.5, fontWeight: 700, cursor: "pointer" }}>ลบถาวร</button>
-                    <button onClick={() => { setAsk(null); setPw(""); setErr(""); }} style={{ padding: "8px 13px", borderRadius: 9, border: "1px solid var(--border-strong)",
+                    <button onClick={() => { setAsk(null); setPw(""); setErr(""); }} style={{ padding: "8px 13px", borderRadius: 9, border: "none", boxShadow: "var(--shadow-sm)",
                       background: "var(--surface)", color: "var(--text-2)", fontFamily: "inherit", fontSize: 12.5, fontWeight: 700, cursor: "pointer" }}>ยกเลิก</button>
                   </div>
                   {err && <div style={{ marginTop: 6, fontSize: 11.5, fontWeight: 700, color: "var(--tint-red-tx2)" }}>{err}</div>}
@@ -1886,7 +1886,7 @@ function MapModal({ jobs, onOpen, onClose }) {
               <span style={{ fontSize: 12, color: "var(--text-3)" }}>{jobs.length} งาน · คลิกหมุดเพื่อดูรายละเอียด</span>
             </div>
           </div>
-          <button className="x-close" onClick={onClose} style={{ width: 32, height: 32, borderRadius: 9, border: "1px solid var(--border)", background: "var(--surface)", cursor: "pointer", display: "grid", placeItems: "center", color: "var(--text-2)" }}><Icon name="x" size={16} /></button>
+          <button className="x-close" onClick={onClose} style={{ width: 32, height: 32, borderRadius: 9, border: "none", boxShadow: "var(--shadow-sm)", background: "var(--surface)", cursor: "pointer", display: "grid", placeItems: "center", color: "var(--text-2)" }}><Icon name="x" size={16} /></button>
         </div>
         <div style={{ flex: 1, minHeight: 0, overflowY: isMobile ? "auto" : "hidden", padding: isMobile ? 14 : 18, display: "flex", flexDirection: "column" }}>
           <MapView jobs={jobs} onOpen={onOpen} />

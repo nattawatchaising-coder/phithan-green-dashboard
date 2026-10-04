@@ -178,7 +178,7 @@ function JobForm({ initial, isNew, onSave, onClose, onManageTechs, onManageBrand
               <span style={{ fontFamily: "var(--mono)", fontSize: 12, color: "var(--text-3)" }}>{f.code}</span>
             </div>
           </div>
-          <button className="x-close" onClick={onClose} style={{ width: 34, height: 34, borderRadius: 9, border: "1px solid var(--border)", background: "var(--surface)", cursor: "pointer", display: "grid", placeItems: "center", color: "var(--text-2)" }}>
+          <button className="x-close" onClick={onClose} style={{ width: 34, height: 34, borderRadius: 9, border: "none", boxShadow: "var(--shadow-sm)", background: "var(--surface)", cursor: "pointer", display: "grid", placeItems: "center", color: "var(--text-2)" }}>
             <Icon name="x" size={17} />
           </button>
         </div>
@@ -406,7 +406,7 @@ function JobForm({ initial, isNew, onSave, onClose, onManageTechs, onManageBrand
                 {installDate && (
                   <button type="button" onClick={clearInstall} title="ล้างวันนัดติดตั้งของงานนี้"
                     style={{ flexShrink: 0, display: "inline-flex", alignItems: "center", gap: 5, padding: "5px 10px", borderRadius: 8,
-                      border: "1px solid var(--border-strong)", background: "var(--surface2)", color: "var(--text-2)",
+                      border: "none", boxShadow: "var(--shadow-sm)", background: "var(--surface2)", color: "var(--text-2)",
                       fontFamily: "inherit", fontSize: 11.5, fontWeight: 700, cursor: "pointer" }}>
                     <Icon name="x" size={12} color="var(--text-3)" /> ยกเลิกวันนัด
                   </button>
@@ -442,7 +442,7 @@ function JobForm({ initial, isNew, onSave, onClose, onManageTechs, onManageBrand
               for (let d = 1; d <= fDays; d++) fCells.push(d);
               const fKey = (d) => fm.y + "-" + String(fm.m + 1).padStart(2, "0") + "-" + String(d).padStart(2, "0");
               const fShift = (delta) => setFlowMonth((s) => { const n = new Date(s.y, s.m + delta, 1); return { y: n.getFullYear(), m: n.getMonth() }; });
-              const navB = { width: 26, height: 26, borderRadius: 7, border: "1px solid var(--border-strong)", background: "var(--surface)", cursor: "pointer", display: "grid", placeItems: "center", color: "var(--text-2)" };
+              const navB = { width: 26, height: 26, borderRadius: 7, border: "none", boxShadow: "var(--shadow-sm)", background: "var(--surface)", cursor: "pointer", display: "grid", placeItems: "center", color: "var(--text-2)" };
               return (
                 <div style={{ marginTop: 14, border: "none", boxShadow: "var(--shadow-sm)", borderRadius: "var(--r-chip)", padding: 12, background: "var(--surface2)" }}>
                   <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 8, gap: 8 }}>
@@ -540,7 +540,7 @@ function MatRow({ m, value, onChange }) {
           whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{m.th}</span>
         <span style={{ display: "block", fontFamily: "var(--mono)", fontSize: 9.5, color: "var(--text-3)", letterSpacing: ".02em" }}>{m.en}</span>
       </span>
-      <span style={{ display: "flex", flexShrink: 0, border: "1px solid var(--border-strong)", borderRadius: 9, overflow: "hidden", background: "var(--surface2)" }}>
+      <span style={{ display: "flex", flexShrink: 0, border: "none", boxShadow: "var(--shadow-sm)", borderRadius: 9, overflow: "hidden", background: "var(--surface2)" }}>
         {MAT_ORDER.map((k, i) => {
           const on = k === cur;
           return (
@@ -610,7 +610,7 @@ function TechManager({ store, onClose }) {
               <span style={{ fontSize: 12, color: "var(--text-3)" }}>{techs.length} คน · เพิ่ม / แก้ไข / ลบ ได้</span>
             </div>
           </div>
-          <button className="x-close" onClick={onClose} style={{ width: 34, height: 34, borderRadius: 9, border: "1px solid var(--border)", background: "var(--surface)", cursor: "pointer", display: "grid", placeItems: "center", color: "var(--text-2)" }}><Icon name="x" size={17} /></button>
+          <button className="x-close" onClick={onClose} style={{ width: 34, height: 34, borderRadius: 9, border: "none", boxShadow: "var(--shadow-sm)", background: "var(--surface)", cursor: "pointer", display: "grid", placeItems: "center", color: "var(--text-2)" }}><Icon name="x" size={17} /></button>
         </div>
 
         <div style={{ overflowY: "auto", padding: 18, display: "flex", flexDirection: "column", gap: 9 }}>
@@ -647,7 +647,7 @@ function TechEditModal({ initial, colors, onSave, onClose }) {
       <div onClick={(e) => e.stopPropagation()} style={{ background: "var(--bg)", borderRadius: "var(--r-card)", width: "min(420px,100%)", overflow: "hidden", boxShadow: "var(--shadow-modal)" }}>
         <div style={{ padding: "16px 22px", borderBottom: "1px solid var(--border)", background: "var(--surface)", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
           <h3 style={{ fontSize: 16, fontWeight: 700, color: "var(--text-1)", margin: 0 }}>{isNew ? "เพิ่มช่างใหม่" : "แก้ไขข้อมูลช่าง"}</h3>
-          <button className="x-close" onClick={onClose} style={{ width: 30, height: 30, borderRadius: 8, border: "1px solid var(--border)", background: "var(--surface)", cursor: "pointer", display: "grid", placeItems: "center", color: "var(--text-2)" }}><Icon name="x" size={15} /></button>
+          <button className="x-close" onClick={onClose} style={{ width: 30, height: 30, borderRadius: 8, border: "none", boxShadow: "var(--shadow-sm)", background: "var(--surface)", cursor: "pointer", display: "grid", placeItems: "center", color: "var(--text-2)" }}><Icon name="x" size={15} /></button>
         </div>
         <div style={{ padding: 22, display: "flex", flexDirection: "column", gap: 14 }}>
           <div style={{ display: "flex", justifyContent: "center" }}>
@@ -697,7 +697,7 @@ function BrandManager({ store, onClose }) {
               <span style={{ fontSize: 12, color: "var(--text-3)" }}>{brands.length} รายการ · เพิ่ม / แก้ไข / ลบ ได้</span>
             </div>
           </div>
-          <button className="x-close" onClick={onClose} style={{ width: 34, height: 34, borderRadius: 9, border: "1px solid var(--border)", background: "var(--surface)", cursor: "pointer", display: "grid", placeItems: "center", color: "var(--text-2)" }}><Icon name="x" size={17} /></button>
+          <button className="x-close" onClick={onClose} style={{ width: 34, height: 34, borderRadius: 9, border: "none", boxShadow: "var(--shadow-sm)", background: "var(--surface)", cursor: "pointer", display: "grid", placeItems: "center", color: "var(--text-2)" }}><Icon name="x" size={17} /></button>
         </div>
 
         <div style={{ overflowY: "auto", padding: 18, display: "flex", flexDirection: "column", gap: 9 }}>
@@ -735,7 +735,7 @@ function BrandEditModal({ initial, origName, existing, onSave, onClose }) {
       <div onClick={(e) => e.stopPropagation()} style={{ background: "var(--bg)", borderRadius: "var(--r-card)", width: "min(420px,100%)", overflow: "hidden", boxShadow: "var(--shadow-modal)" }}>
         <div style={{ padding: "16px 22px", borderBottom: "1px solid var(--border)", background: "var(--surface)", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
           <h3 style={{ fontSize: 16, fontWeight: 700, color: "var(--text-1)", margin: 0 }}>{isNew ? "เพิ่มแบรนด์ / รุ่นใหม่" : "แก้ไขแบรนด์ / รุ่น"}</h3>
-          <button className="x-close" onClick={onClose} style={{ width: 30, height: 30, borderRadius: 8, border: "1px solid var(--border)", background: "var(--surface)", cursor: "pointer", display: "grid", placeItems: "center", color: "var(--text-2)" }}><Icon name="x" size={15} /></button>
+          <button className="x-close" onClick={onClose} style={{ width: 30, height: 30, borderRadius: 8, border: "none", boxShadow: "var(--shadow-sm)", background: "var(--surface)", cursor: "pointer", display: "grid", placeItems: "center", color: "var(--text-2)" }}><Icon name="x" size={15} /></button>
         </div>
         <div style={{ padding: 22, display: "flex", flexDirection: "column", gap: 16 }}>
           <Field label="ชื่อแบรนด์ / รุ่น" required><input autoFocus style={inputStyle} value={f.name} onChange={(e) => set("name", e.target.value)} placeholder="เช่น Deye, Growatt, SUN2000..." /></Field>

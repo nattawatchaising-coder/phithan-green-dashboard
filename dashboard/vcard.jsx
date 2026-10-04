@@ -321,7 +321,7 @@ function VcCardBody({ user }) {
     }, "image/png");
   };
 
-  const thin = { padding: "10px 15px", borderRadius: 10, border: "1px solid var(--border-strong)", background: "var(--surface)",
+  const thin = { padding: "10px 15px", borderRadius: "var(--r-chip)", border: "1px solid var(--border-strong)", background: "var(--surface)",
     color: "var(--text-2)", fontFamily: "inherit", fontSize: 12.5, fontWeight: 700, cursor: "pointer",
     display: "inline-flex", alignItems: "center", gap: 7 };
 
@@ -397,7 +397,7 @@ function VcCardModal({ user, onClose }) {
         <div style={{ padding: "16px 22px", borderBottom: "1px solid var(--border)", background: "var(--surface)",
           display: "flex", justifyContent: "space-between", alignItems: "center", flexShrink: 0 }}>
           <h3 style={{ fontSize: 16, fontWeight: 700, color: "var(--text-1)", margin: 0 }}>นามบัตรของฉัน</h3>
-          <button className="x-close" onClick={onClose} style={{ width: 30, height: 30, borderRadius: 8, border: "1px solid var(--border)",
+          <button className="x-close" onClick={onClose} style={{ width: 30, height: 30, borderRadius: 8, border: "none", boxShadow: "var(--shadow-sm)",
             background: "var(--surface)", cursor: "pointer", display: "grid", placeItems: "center", color: "var(--text-2)" }}>
             <Icon name="x" size={15} /></button>
         </div>

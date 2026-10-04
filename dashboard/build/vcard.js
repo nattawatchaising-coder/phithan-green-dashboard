@@ -272,7 +272,7 @@ function VcCardBody({
   };
   const thin = {
     padding: "10px 15px",
-    borderRadius: 10,
+    borderRadius: "var(--r-chip)",
     border: "1px solid var(--border-strong)",
     background: "var(--surface)",
     color: "var(--text-2)",
@@ -454,7 +454,8 @@ function VcCardModal({
       width: 30,
       height: 30,
       borderRadius: 8,
-      border: "1px solid var(--border)",
+      border: "none",
+      boxShadow: "var(--shadow-sm)",
       background: "var(--surface)",
       cursor: "pointer",
       display: "grid",

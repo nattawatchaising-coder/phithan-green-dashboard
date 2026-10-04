@@ -246,7 +246,7 @@ function LnBindScreen({
   const inp = {
     width: "100%",
     padding: "13px 14px",
-    borderRadius: 12,
+    borderRadius: "var(--r-chip)",
     border: "1px solid var(--border-strong)",
     background: "var(--surface2)",
     color: "var(--text-1)",
@@ -533,7 +533,7 @@ function LnWebForm({
   const inp = {
     width: "100%",
     padding: "13px 14px",
-    borderRadius: 12,
+    borderRadius: "var(--r-chip)",
     border: "1px solid var(--border-strong)",
     background: "var(--surface2)",
     color: "var(--text-1)",

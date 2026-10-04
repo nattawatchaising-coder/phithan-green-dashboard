@@ -218,14 +218,14 @@ function OmJobFacts({ job, site }) {
       <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 12 }}>
         {phone && (
           <a href={"tel:" + phone} style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "7px 12px", borderRadius: 9,
-            border: "1px solid var(--border-strong)", background: "var(--bg)", textDecoration: "none",
+            border: "none", boxShadow: "var(--shadow-sm)", background: "var(--bg)", textDecoration: "none",
             fontSize: 12.5, fontWeight: 700, color: "var(--text-1)", fontFamily: "var(--mono)" }}>
             <Icon name="phone" size={13} color="var(--text-3)" /> {phone}
           </a>
         )}
         {map && (
           <a href={map} target="_blank" rel="noreferrer" style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "7px 12px", borderRadius: 9,
-            border: "1px solid var(--border-strong)", background: "var(--bg)", textDecoration: "none", fontSize: 12.5, fontWeight: 700, color: "var(--primary-dark)" }}>
+            border: "none", boxShadow: "var(--shadow-sm)", background: "var(--bg)", textDecoration: "none", fontSize: 12.5, fontWeight: 700, color: "var(--primary-dark)" }}>
             <Icon name="pin" size={13} color="var(--primary-dark)" /> เปิดแผนที่
           </a>
         )}
@@ -239,7 +239,7 @@ function OmJobFacts({ job, site }) {
                 .then((ok) => { setFileBusy(false); if (!ok) setFileErr(true); });
             }}
             style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "7px 12px", borderRadius: 9,
-              border: "1px solid var(--border-strong)", background: "var(--bg)", cursor: fileBusy ? "wait" : "pointer",
+              border: "none", boxShadow: "var(--shadow-sm)", background: "var(--bg)", cursor: fileBusy ? "wait" : "pointer",
               fontFamily: "inherit", fontSize: 12.5, fontWeight: 700, color: "#2563EB", opacity: fileBusy ? .55 : 1 }}>
             <Icon name="file" size={13} color="#2563EB" /> {fileBusy ? "กำลังเปิดแบบ…" : "เปิดแบบ (PDF)"}
           </button>
@@ -331,7 +331,7 @@ function OmTicketModal({ ticket, site, job, users, role, currentUser, visits, on
             </div>
             <window.OmPill th={st.th} color={st.color} />
             <button className="x-close" onClick={onClose} title="ปิด"
-              style={{ width: 32, height: 32, borderRadius: 9, border: "1px solid var(--border-strong)", background: "var(--surface)",
+              style={{ width: 32, height: 32, borderRadius: 9, border: "none", boxShadow: "var(--shadow-sm)", background: "var(--surface)",
                 cursor: "pointer", display: "grid", placeItems: "center", color: "var(--text-2)", flexShrink: 0 }}>
               <Icon name="x" size={15} />
             </button>
@@ -355,7 +355,7 @@ function OmTicketModal({ ticket, site, job, users, role, currentUser, visits, on
                 <button key={n.key} title={drop ? "ตีตกเรื่องนี้ ไม่เข้าซ่อม" : "กดผิดขั้น — ถอยกลับไปขั้นก่อนหน้า"}
                   onClick={() => { onMove(t, n.key, moveNote); setMoveNote(""); }}
                   style={{ display: "inline-flex", alignItems: "center", gap: 5, padding: "7px 11px", borderRadius: 9,
-                    border: "1px solid var(--border-strong)", background: "var(--surface)", cursor: "pointer",
+                    border: "none", boxShadow: "var(--shadow-sm)", background: "var(--surface)", cursor: "pointer",
                     fontFamily: "inherit", fontSize: 11.5, fontWeight: 700, color: "var(--text-3)" }}>
                   <Icon name={drop ? "x" : "undo"} size={12} color="var(--text-3)" /> {label}
                 </button>
@@ -442,7 +442,7 @@ function OmTicketModal({ ticket, site, job, users, role, currentUser, visits, on
                 </span>
                 {!locked && t.cover !== guess.cover && (
                   <button onClick={() => set({ cover: guess.cover, coverWid: guess.wid, coverNote: guess.note })}
-                    style={{ padding: "6px 12px", borderRadius: 9, border: "1px solid var(--border-strong)", background: "var(--surface2)",
+                    style={{ padding: "6px 12px", borderRadius: 9, border: "none", boxShadow: "var(--shadow-sm)", background: "var(--surface2)",
                       cursor: "pointer", fontFamily: "inherit", fontSize: 12, fontWeight: 700, color: "var(--text-2)" }}>ใช้ค่านี้</button>
                 )}
               </div>
@@ -603,7 +603,7 @@ function OmTicketModal({ ticket, site, job, users, role, currentUser, visits, on
                   ลบใบ {t.no} ทั้งใบ? รูปและประวัติหายถาวร เรียกคืนไม่ได้
                 </span>
                 <button onClick={() => setDelAsk(false)}
-                  style={{ padding: "7px 13px", borderRadius: 9, border: "1px solid var(--border-strong)", background: "var(--surface)",
+                  style={{ padding: "7px 13px", borderRadius: 9, border: "none", boxShadow: "var(--shadow-sm)", background: "var(--surface)",
                     cursor: "pointer", fontFamily: "inherit", fontSize: 12.5, fontWeight: 700, color: "var(--text-2)" }}>ยกเลิก</button>
                 <button onClick={() => { onRemove(t.id); onClose(); }}
                   style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "7px 13px", borderRadius: 9, border: "none",
@@ -614,7 +614,7 @@ function OmTicketModal({ ticket, site, job, users, role, currentUser, visits, on
             ) : (
               <button onClick={() => setDelAsk(true)}
                 style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "8px 13px", borderRadius: 9,
-                  border: "1px solid var(--border)", background: "var(--surface)", cursor: "pointer",
+                  border: "none", boxShadow: "var(--shadow-sm)", background: "var(--surface)", cursor: "pointer",
                   fontFamily: "inherit", fontSize: 12.5, fontWeight: 700, color: "var(--tint-red-tx2)" }}>
                 <Icon name="trash" size={14} color="#EF4444" /> ลบใบแจ้งซ่อมนี้ (เฉพาะแอดมิน)
               </button>
