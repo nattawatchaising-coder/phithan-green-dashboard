@@ -113,7 +113,7 @@ function LoQueuePanel({
         display: "flex",
         gap: 14,
         padding: "12px 2px",
-        borderTop: "1px solid var(--border)"
+        borderTop: "1px solid var(--divider)"
       }
     }, React.createElement("div", {
       style: {
@@ -163,7 +163,8 @@ function LoQueuePanel({
           cursor: "pointer",
           fontFamily: "inherit",
           background: "var(--surface)",
-          border: "1px solid " + (bad ? "#FCA5A5" : "var(--border)"),
+          border: "none",
+          boxShadow: bad ? "inset 0 0 0 1px #FCA5A5" : "var(--shadow-sm)",
           borderRadius: "var(--r-tile)"
         },
         onMouseEnter: e => e.currentTarget.style.background = "var(--surface2)",
@@ -789,7 +790,7 @@ function LoMonthPanel({
     style: {
       marginTop: 14,
       paddingTop: 14,
-      borderTop: "1px solid var(--border)",
+      borderTop: "1px solid var(--divider)",
       fontSize: 12,
       color: "var(--text-3)"
     }

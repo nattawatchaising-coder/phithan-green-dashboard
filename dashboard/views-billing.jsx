@@ -56,7 +56,7 @@ function BlNote({ tone, children }) {
       : { bg: "var(--tint-amber-bg)", bd: "var(--tint-amber-bd)", tx: "var(--tint-amber-tx)" };
   return (
     <div style={{ margin: "0 12px 10px", padding: "8px 11px", borderRadius: "var(--r-tile)", background: c.bg,
-      border: "1px solid " + c.bd, color: c.tx, fontSize: 11.5, lineHeight: 1.55 }}>{children}</div>
+      border: "none", color: c.tx, fontSize: 11.5, lineHeight: 1.55 }}>{children}</div>
   );
 }
 
@@ -293,7 +293,7 @@ function BlJobCard({ job, quotes, leads, role, currentUser, readOnly, onOpen, on
       + " · รับแล้ว " + blMoney(S.collected) + " · คงค้าง " + blMoney(S.remain) + " บาท";
 
   return (
-    <div style={{ marginBottom: 22, border: "1px solid " + (S.overdue.length ? "var(--tint-amber-bd)" : "var(--border-strong)"),
+    <div style={{ marginBottom: 22, border: "none", boxShadow: S.overdue.length ? "inset 0 0 0 1px var(--tint-amber-bd)" : "var(--shadow-sm)",
       borderLeft: "3px solid " + (st ? st.color : (!S.has && quote ? "var(--primary)" : "var(--border-strong)")),
       borderRadius: "var(--r-tile)", overflow: "hidden", background: "var(--surface)" }}>
 
@@ -320,7 +320,7 @@ function BlJobCard({ job, quotes, leads, role, currentUser, readOnly, onOpen, on
 
       {/* งวดที่กำลังเดินอยู่ — บรรทัดเดียวที่บัญชีต้องอ่าน แล้วต่อด้วยปุ่มที่กดได้จริง */}
       {S.has && cur && (
-        <div style={{ borderTop: "1px solid var(--border)", padding: "10px 14px", background: "var(--surface2)" }}>
+        <div style={{ borderTop: "1px solid var(--divider)", padding: "10px 14px", background: "var(--surface2)" }}>
           <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap", marginBottom: ro ? 0 : 9 }}>
             <span style={{ fontSize: 12.5, fontWeight: 800, color: "var(--text-1)" }}>งวดที่ {cur.n}</span>
             <span style={{ fontSize: 12.5, color: "var(--text-2)", fontFamily: "var(--mono)" }}>{blMoney(cur.amount)} บาท</span>
@@ -435,14 +435,14 @@ function BlPhotoPick({ job, row, api, items, itemId, currentUser, onClose }) {
   const tabBtn = (id, label) => (
     <button onClick={() => setTab(id)}
       style={{ padding: "7px 12px", borderRadius: "var(--r-chip)", fontFamily: "inherit", fontSize: 12.5, fontWeight: 700, cursor: "pointer",
-        border: "1px solid " + (tab === id ? BL_ACCENT : "var(--border-strong)"),
+        border: "none", boxShadow: tab === id ? "inset 0 0 0 1px " + BL_ACCENT : "var(--shadow-sm)",
         background: tab === id ? BL_ACCENT + "18" : "var(--surface)", color: tab === id ? BL_ACCENT : "var(--text-2)" }}>{label}</button>
   );
 
   return (
     <div style={{ position: "fixed", inset: 0, zIndex: 190, background: "rgba(8,20,14,.5)", overflow: "auto", padding: "18px 12px" }}>
       <div style={{ maxWidth: 720, margin: "0 auto", background: "var(--surface)", borderRadius: "var(--r-tile)", boxShadow: "var(--shadow-lg)", overflow: "hidden" }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "13px 15px", borderBottom: "1px solid var(--border)" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "13px 15px", borderBottom: "1px solid var(--divider)" }}>
           <div style={{ flex: 1, minWidth: 0 }}>
             <div style={{ fontSize: 14, fontWeight: 800, color: "var(--text-1)" }}>
               รูปประกอบงวดที่ {(row || {}).n}{itemCap ? " · " + itemCap : ""}
@@ -488,7 +488,7 @@ function BlPhotoPick({ job, row, api, items, itemId, currentUser, onClose }) {
           )}
 
           {/* รูปที่เลือกไว้แล้ว — คำบรรยายของแต่ละรูปพิมพ์ใต้รูปบนกระดาษ */}
-          <div style={{ marginTop: 16, borderTop: "1px solid var(--border)", paddingTop: 12 }}>
+          <div style={{ marginTop: 16, borderTop: "1px solid var(--divider)", paddingTop: 12 }}>
             <div style={{ fontSize: 12, fontWeight: 800, color: "var(--text-2)", marginBottom: 8 }}>
               {itemId ? "รูปของรายการนี้" : "รูปที่ยังไม่ผูกกับรายการ"} ({mine.length})
             </div>
@@ -513,7 +513,7 @@ function BlPhotoPick({ job, row, api, items, itemId, currentUser, onClose }) {
           </div>
         </div>
 
-        <div style={{ padding: "12px 15px", borderTop: "1px solid var(--border)", textAlign: "right" }}>
+        <div style={{ padding: "12px 15px", borderTop: "1px solid var(--divider)", textAlign: "right" }}>
           <button onClick={onClose} style={{ padding: "10px 18px", borderRadius: "var(--r-tile)", border: "none", background: "var(--primary)",
             color: "#fff", fontFamily: "inherit", fontSize: 13.5, fontWeight: 700, cursor: "pointer" }}>เสร็จแล้ว</button>
         </div>
@@ -572,7 +572,7 @@ function BlRowDetail({ job, row, onPatch, currentUser, readOnly }) {
   );
 
   return (
-    <div style={{ padding: "12px 14px", background: "var(--surface2)", borderTop: "1px solid var(--border)" }}>
+    <div style={{ padding: "12px 14px", background: "var(--surface2)", borderTop: "1px solid var(--divider)" }}>
       <div style={{ display: "grid", gridTemplateColumns: "1fr", gap: 10 }}>
         <div>
           <div style={lbl}>เรื่อง (ว่างไว้ = ใช้ข้อความมาตรฐาน)</div>
@@ -790,11 +790,11 @@ function BlSetupModal({ job, quotes, leads, role, currentUser, readOnly, focusRo
   const modeBtn = (id, label) => (
     <button onClick={() => { put({ from: id }); if (id === "manual") setQid(""); else if (pick) setQid(pick.id); }} disabled={ro}
       style={{ padding: "8px 14px", borderRadius: "var(--r-tile)", fontFamily: "inherit", fontSize: 13, fontWeight: 700, cursor: ro ? "default" : "pointer",
-        border: "1px solid " + (bills.from === id ? BL_ACCENT : "var(--border-strong)"),
+        border: "none", boxShadow: bills.from === id ? "inset 0 0 0 1px " + BL_ACCENT : "var(--shadow-sm)",
         background: bills.from === id ? BL_ACCENT + "18" : "var(--surface)", color: bills.from === id ? BL_ACCENT : "var(--text-2)" }}>{label}</button>
   );
 
-  const cell = { padding: "7px 8px", fontSize: 12.5, color: "var(--text-1)", borderBottom: "1px solid var(--border)", verticalAlign: "top" };
+  const cell = { padding: "7px 8px", fontSize: 12.5, color: "var(--text-1)", borderBottom: "1px solid var(--divider)", verticalAlign: "top" };
   const head = { padding: "7px 8px", fontSize: 11, fontWeight: 700, color: "var(--text-3)", textAlign: "left",
     borderBottom: "1px solid var(--border-strong)", whiteSpace: "nowrap" };
 
@@ -802,7 +802,7 @@ function BlSetupModal({ job, quotes, leads, role, currentUser, readOnly, focusRo
     <div style={{ position: "fixed", inset: 0, zIndex: 180, background: "rgba(8,20,14,.5)", overflow: "auto", padding: "18px 12px" }}>
       <div style={{ maxWidth: 980, margin: "0 auto", background: "var(--surface)", borderRadius: "var(--r-tile)", boxShadow: "var(--shadow-lg)", overflow: "hidden" }}>
 
-        <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "13px 16px", borderBottom: "1px solid var(--border)" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "13px 16px", borderBottom: "1px solid var(--divider)" }}>
           <span style={{ width: 34, height: 34, borderRadius: "var(--r-chip)", background: BL_ACCENT + "1c", display: "grid", placeItems: "center", flexShrink: 0 }}>
             <Icon name="file" size={17} color={BL_ACCENT} />
           </span>
@@ -996,7 +996,7 @@ function BlSetupModal({ job, quotes, leads, role, currentUser, readOnly, focusRo
             </div>
 
             <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap", padding: "10px 12px",
-              borderTop: "1px solid var(--border)", background: "var(--surface2)" }}>
+              borderTop: "1px solid var(--divider)", background: "var(--surface2)" }}>
               {!ro && (
                 <button onClick={addRow} style={{ padding: "7px 12px", borderRadius: "var(--r-chip)", border: "1px dashed var(--border-strong)",
                   background: "none", color: "var(--text-2)", fontFamily: "inherit", fontSize: 12.5, fontWeight: 700, cursor: "pointer" }}>
@@ -1015,7 +1015,7 @@ function BlSetupModal({ job, quotes, leads, role, currentUser, readOnly, focusRo
           </div>
         </div>
 
-        <div style={{ display: "flex", gap: 8, justifyContent: "flex-end", padding: "12px 16px", borderTop: "1px solid var(--border)" }}>
+        <div style={{ display: "flex", gap: 8, justifyContent: "flex-end", padding: "12px 16px", borderTop: "1px solid var(--divider)" }}>
           {!ro && window.hasRole(role, "admin") && window.blHas(j) && (
             <button onClick={dropAll} title="ลบงวดงานทั้งชุดออกจากงานนี้ (เฉพาะแอดมิน)"
               style={{ marginRight: "auto", padding: "10px 14px", borderRadius: "var(--r-tile)", border: "1px solid var(--tint-red-bd)",
@@ -1141,13 +1141,13 @@ function BillingView({ jobs, quotes, leads, role, currentUser, onOpenJob, onSave
   const chip = (id, label) => (
     <button key={id} onClick={() => setFilter(id)}
       style={{ padding: "6px 12px", borderRadius: "var(--r-pill)", fontFamily: "inherit", fontSize: 12.5, fontWeight: 700, cursor: "pointer",
-        border: "1px solid " + (filter === id ? BL_ACCENT : "var(--border-strong)"),
+        border: "none", boxShadow: filter === id ? "inset 0 0 0 1px " + BL_ACCENT : "var(--shadow-sm)",
         background: filter === id ? BL_ACCENT + "18" : "var(--surface)", color: filter === id ? BL_ACCENT : "var(--text-2)" }}>{label}</button>
   );
 
   const head = { padding: "7px 9px", fontSize: 11, fontWeight: 700, color: "var(--text-3)", textAlign: "left",
-    borderBottom: "1px solid var(--border)", whiteSpace: "nowrap" };
-  const cell = { padding: "8px 9px", fontSize: 12.5, color: "var(--text-1)", borderBottom: "1px solid var(--border)", verticalAlign: "middle" };
+    borderBottom: "1px solid var(--divider)", whiteSpace: "nowrap" };
+  const cell = { padding: "8px 9px", fontSize: 12.5, color: "var(--text-1)", borderBottom: "1px solid var(--divider)", verticalAlign: "middle" };
 
   return (
     <div>
@@ -1183,7 +1183,7 @@ function BillingView({ jobs, quotes, leads, role, currentUser, onOpenJob, onSave
         return (
           <div key={j.id} style={{ boxShadow: "var(--shadow-sm)", borderRadius: "var(--r-tile)", overflow: "hidden", marginBottom: 12, background: "var(--surface)" }}>
             <div style={{ display: "flex", gap: 12, alignItems: "center", flexWrap: "wrap", padding: "11px 13px", background: "var(--surface2)",
-              borderBottom: "1px solid var(--border)" }}>
+              borderBottom: "1px solid var(--divider)" }}>
               <div style={{ minWidth: 0, flex: 1 }}>
                 <div style={{ fontSize: 13.5, fontWeight: 800, color: "var(--text-1)" }}>
                   {j.code} · {j.name}{+j.kw ? <span style={{ fontWeight: 600, color: "var(--text-3)" }}> · {j.kw} kW</span> : null}
@@ -1281,7 +1281,7 @@ function BillingView({ jobs, quotes, leads, role, currentUser, onOpenJob, onSave
               const qt = window.blPickQuote(quotes, j, leads);
               return (
                 <div key={j.id} style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap",
-                  padding: "10px 13px", borderBottom: "1px solid var(--border)" }}>
+                  padding: "10px 13px", borderBottom: "1px solid var(--divider)" }}>
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <div style={{ fontSize: 13, fontWeight: 700, color: "var(--text-1)" }}>{j.code} · {j.name}</div>
                     <div style={{ fontSize: 11.5, color: qt ? "var(--primary-dark)" : "var(--text-3)" }}>
@@ -1314,7 +1314,7 @@ function BillingView({ jobs, quotes, leads, role, currentUser, onOpenJob, onSave
           <div style={{ border: "1px dashed var(--border-strong)", borderRadius: "var(--r-tile)", overflow: "hidden" }}>
             {skipped.map((j) => (
               <div key={j.id} style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap",
-                padding: "9px 13px", borderBottom: "1px solid var(--border)" }}>
+                padding: "9px 13px", borderBottom: "1px solid var(--divider)" }}>
                 <div style={{ flex: 1, minWidth: 0, fontSize: 12.5, color: "var(--text-3)" }}>{j.code} · {j.name}</div>
                 <button onClick={() => skip(j, false)}
                   style={{ padding: "7px 12px", borderRadius: "var(--r-chip)", background: "var(--surface2)", boxShadow: "var(--shadow-sm)",

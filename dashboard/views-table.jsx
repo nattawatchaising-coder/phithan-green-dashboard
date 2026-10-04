@@ -27,7 +27,7 @@ function FileChip({ jobId, kind, has, th, color }) {
           .then((ok) => { setBusy(false); if (!ok) alert("เปิดไฟล์ไม่สำเร็จ — ลองเปิดจากใบงาน"); });
       }}
       style={{ display: "inline-flex", alignItems: "center", gap: 4, padding: "3px 9px", borderRadius: 7, marginRight: 4,
-        border: "1px solid " + color + "44", background: color + "12", color: color,
+        border: "none", background: color + "12", color: color,
         fontFamily: "inherit", fontSize: 10.5, fontWeight: 800, cursor: busy ? "wait" : "pointer", opacity: busy ? .5 : 1 }}>
       {th}
     </button>
@@ -115,7 +115,7 @@ function TableView({ jobs, onOpen, onEdit, onDelete, onSetMat, onSetStage, trash
       <div style={{ overflowX: "auto" }}>
         <table style={{ width: "100%", borderCollapse: "collapse", minWidth: 920 }}>
           <thead>
-            <tr style={{ borderBottom: "1px solid var(--border)" }}>
+            <tr style={{ borderBottom: "1px solid var(--divider)" }}>
               {th("ลูกค้า", "name")}
               {th("ประเภท", "type", true)}
               {th("แบรนด์ / สเปก", "brand")}
@@ -130,7 +130,7 @@ function TableView({ jobs, onOpen, onEdit, onDelete, onSetMat, onSetStage, trash
             {sorted.map((j) => (
               /* เดิมงานล่าช้าทาพื้นชมพูทั้งแถว — กวาดตาหายาก และสีตายตัวไม่เข้ากับโหมดกลางคืน
                  เปลี่ยนเป็นขีดแดงบาง ๆ ที่ต้นแถว เห็นชัดพอ ๆ กันแต่ไม่รบกวนการอ่านข้อมูล */
-              <tr key={j.id} style={{ borderBottom: "1px solid var(--border)", background: "transparent", transition: "background .12s" }}
+              <tr key={j.id} style={{ borderBottom: "1px solid var(--divider)", background: "transparent", transition: "background .12s" }}
                 onMouseEnter={(e) => { e.currentTarget.style.background = "var(--surface2)"; }}
                 onMouseLeave={(e) => { e.currentTarget.style.background = "transparent"; }}>
                 {/* customer */}
@@ -196,7 +196,7 @@ function TableView({ jobs, onOpen, onEdit, onDelete, onSetMat, onSetStage, trash
                     return (
                       <span title={rejected && j.permit ? (j.permit.rejectReason || "") : ""}
                         style={{ display: "inline-block", maxWidth: 180, fontSize: 11.5, fontWeight: 700, color: pc.color,
-                          background: pc.color + "14", border: "1px solid " + pc.color + "33", borderRadius: "var(--r-pill)", padding: "5px 11px" }}>
+                          background: pc.color + "14", border: "none", borderRadius: "var(--r-pill)", padding: "5px 11px" }}>
                         {pc.th}
                       </span>
                     );
@@ -259,7 +259,7 @@ function StatusTabs({ tab, setTab, counts, labels, trashCount, onOpenTrash, onAd
             /* ชุดเดียวกับชิปกรองขั้นงานบนหัวหน้า: ไม่มีเส้นขอบ พื้นจาง ที่เลือกอยู่ค่อยเป็นเขียว */
             style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", gap: mob ? 5 : 7,
               padding: mob ? "8px 8px" : "8px 15px", borderRadius: "var(--r-pill)", flex: mob ? "1 1 0" : "0 0 auto", minWidth: 0,
-              border: "1px solid " + (active ? "var(--primary)" : "transparent"),
+              border: "none", boxShadow: active ? "inset 0 0 0 1px var(--primary)" : "none",
               background: active ? "var(--primary-soft)" : "var(--surface2)",
               color: active ? "var(--primary-dark)" : "var(--text-2)", fontWeight: active ? 700 : 600,
               fontSize: mob ? 12 : 13, cursor: "pointer", fontFamily: "inherit", whiteSpace: "nowrap",
@@ -377,12 +377,12 @@ function TableMobile({ jobs, sort, setSort, onOpen, onEdit, onDelete, onSetStage
               {/* เมนูของแอปเองเหมือนฝั่งตาราง — ป้ายสีบนมือถือก็เจอปัญหารายการอ่านไม่ออกแบบเดียวกัน */}
               {permitMode ? (
                 <span style={{ display: "inline-block", fontSize: 12, fontWeight: 700, color: s.fg, background: s.soft,
-                  border: "1px solid " + s.color + "33", borderRadius: 8, padding: "6px 10px" }}>{s.th}</span>
+                  border: "none", borderRadius: 8, padding: "6px 10px" }}>{s.th}</span>
               ) : (
                 <Dropdown value={j.stage} onChange={(v) => onSetStage(j.id, v)}
                   options={SF.STAGES.map((st) => ({ value: st.key, label: st.th, sub: st.en }))}
                   style={{ width: "auto", display: "inline-flex", gap: 6, fontSize: 12, fontWeight: 600,
-                    color: s.fg, background: s.soft, border: "1px solid " + s.color + "33",
+                    color: s.fg, background: s.soft, border: "none",
                     borderRadius: 8, padding: "6px 8px 6px 9px" }} />
               )}
               {permitMode ? (

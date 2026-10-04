@@ -24,8 +24,8 @@ function RepCheck({ label, value }) {
         background: on ? "var(--primary)" : "transparent", border: on ? "none" : "1.4px solid #B9C4BD" }}>
         {on && <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6L9 17l-5-5" /></svg>}
       </span>
-      <span style={{ color: on ? "var(--text-1)" : "var(--text-3)" }}>
-        {label}{on && <span style={{ fontStyle: "italic", color: "var(--text-2)" }}> ({value})</span>}
+      <span style={{ color: on ? "var(--paper-ink)" : "var(--paper-mute)" }}>
+        {label}{on && <span style={{ fontStyle: "italic", color: "var(--paper-ink2)" }}> ({value})</span>}
       </span>
     </div>
   );
@@ -43,9 +43,9 @@ function RepGroup({ icon, title, children }) {
 function RepSection({ title, children }) {
   return (
     <div style={{ marginTop: 20 }}>
-      <div style={{ display: "flex", alignItems: "center", gap: 7, borderBottom: "1px solid var(--border)", paddingBottom: 6 }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 7, borderBottom: "1px solid var(--paper-line)", paddingBottom: 6 }}>
         <span style={{ width: 6, height: 6, borderRadius: 99, background: "var(--primary)" }} />
-        <span style={{ fontSize: 13, fontWeight: 800, color: "var(--text-1)" }}>{title}</span>
+        <span style={{ fontSize: 13, fontWeight: 800, color: "var(--paper-ink)" }}>{title}</span>
       </div>
       {children}
     </div>
@@ -54,8 +54,8 @@ function RepSection({ title, children }) {
 function RepCell({ k, v }) {
   return (
     <React.Fragment>
-      <div style={{ padding: "7px 10px", borderRight: "1px solid var(--border)", borderBottom: "1px solid var(--border)", fontSize: 11, fontWeight: 700, color: "var(--primary-dark)", background: "var(--surface2)" }}>{k}</div>
-      <div style={{ padding: "7px 10px", borderBottom: "1px solid var(--border)", fontSize: 11.5, color: "var(--text-1)" }}>{v || "-"}</div>
+      <div style={{ padding: "7px 10px", borderRight: "1px solid var(--paper-line)", borderBottom: "1px solid var(--paper-line)", fontSize: 11, fontWeight: 700, color: "var(--primary-dark)", background: "var(--paper-tint)" }}>{k}</div>
+      <div style={{ padding: "7px 10px", borderBottom: "1px solid var(--paper-line)", fontSize: 11.5, color: "var(--paper-ink)" }}>{v || "-"}</div>
     </React.Fragment>
   );
 }
@@ -172,7 +172,7 @@ function SurveyReport({ job, photos, docs, onClose }) {
   return (
     <div className="sv-rep-overlay" style={{ position: "fixed", inset: 0, zIndex: 140, background: "rgba(8,20,14,.55)", overflow: "auto", padding: isMobile ? 0 : "24px 16px" }}>
       {/* แถบปุ่ม — ไม่ติดไปในไฟล์ที่พิมพ์ */}
-      <div className="sv-rep-noprint" style={{ position: "sticky", top: 0, zIndex: 2, display: "flex", gap: 9, alignItems: "center", padding: "11px 14px", background: "var(--surface)", borderBottom: "1px solid var(--border)", marginBottom: isMobile ? 0 : 16, borderRadius: isMobile ? 0 : 12, maxWidth: 900, marginLeft: "auto", marginRight: "auto", boxShadow: "var(--shadow-sm)" }}>
+      <div className="sv-rep-noprint" style={{ position: "sticky", top: 0, zIndex: 2, display: "flex", gap: 9, alignItems: "center", padding: "11px 14px", background: "var(--surface)", borderBottom: "1px solid var(--divider)", marginBottom: isMobile ? 0 : 16, borderRadius: isMobile ? 0 : 12, maxWidth: 900, marginLeft: "auto", marginRight: "auto", boxShadow: "var(--shadow-sm)" }}>
         <button className="x-close" onClick={onClose} style={{ width: 36, height: 36, borderRadius: 10, border: "1px solid var(--border-strong)", background: "var(--surface)", cursor: "pointer", display: "grid", placeItems: "center", color: "var(--text-2)", flexShrink: 0 }}><Icon name="x" size={16} /></button>
         <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{ fontSize: 13.5, fontWeight: 800, color: "var(--text-1)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>รายงานผลสำรวจหน้างาน</div>
@@ -188,26 +188,26 @@ function SurveyReport({ job, photos, docs, onClose }) {
 
       {/* กระดาษรายงาน */}
       {/* ฟอนต์ไทยของแอปไม่มีตัวอักษรจีน — เลือกจีนแล้วต้องระบุชุดฟอนต์ที่มีจีนให้ชัด */}
-      <div className="sv-rep-paper" style={{ maxWidth: 900, margin: "0 auto", background: "#fff", color: "#15211A",
+      <div className="sv-rep-paper" style={{ maxWidth: 900, margin: "0 auto", background: "var(--paper-bg)", color: "var(--paper-ink)",
         fontFamily: lang === "zh" && window.pgFontStack ? window.pgFontStack("zh") : undefined,
         padding: isMobile ? "20px 16px" : "34px 38px", borderRadius: isMobile ? 0 : 12, boxShadow: "var(--shadow-modal)" }}>
         {/* หัวรายงาน */}
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", gap: 16, flexWrap: "wrap", borderBottom: "2px solid var(--primary)", paddingBottom: 12 }}>
           <div style={{ minWidth: 0 }}>
-            <div style={{ fontFamily: "var(--display)", fontSize: 22, fontWeight: 800, color: "var(--text-1)", letterSpacing: "-.01em" }}>{T("รายงานผลสำรวจหน้างาน")}</div>
-            <div style={{ fontSize: 10.5, fontWeight: 600, letterSpacing: ".12em", color: "var(--text-3)", marginTop: 3 }}>SOLAR SITE SURVEY REPORT</div>
+            <div style={{ fontFamily: "var(--display)", fontSize: 22, fontWeight: 800, color: "var(--paper-ink)", letterSpacing: "-.01em" }}>{T("รายงานผลสำรวจหน้างาน")}</div>
+            <div style={{ fontSize: 10.5, fontWeight: 600, letterSpacing: ".12em", color: "var(--paper-mute)", marginTop: 3 }}>SOLAR SITE SURVEY REPORT</div>
             <div style={{ display: "flex", alignItems: "center", gap: 7, marginTop: 6 }}>
               <window.BrandDoc height={44} />
             </div>
           </div>
-          <div style={{ textAlign: "right", fontSize: 11.5, color: "var(--text-2)", lineHeight: 1.7 }}>
+          <div style={{ textAlign: "right", fontSize: 11.5, color: "var(--paper-ink2)", lineHeight: 1.7 }}>
             <div>{T("สำรวจ:")} {DT(s.startedAt)}</div>
             <div>{T("รายงาน:")} {DT(s.completedAt || s.updatedAt || s.startedAt)}</div>
           </div>
         </div>
 
         {/* ตารางข้อมูลโครงการ */}
-        <div className="sv-rep-info" style={{ marginTop: 16, border: "1px solid var(--border)", borderRadius: 8, overflow: "hidden" }}>
+        <div className="sv-rep-info" style={{ marginTop: 16, border: "1px solid var(--paper-line)", borderRadius: 8, overflow: "hidden" }}>
           <RepCell k={T("โครงการ")} v={job.name} />
           <RepCell k={T("ลูกค้า")} v={job.name} />
           <RepCell k={T("ขนาด")} v={size} />
@@ -216,8 +216,8 @@ function SurveyReport({ job, photos, docs, onClose }) {
           <RepCell k="Monitoring" v={s.monitoring} />
           <RepCell k="Meter/CT" v={s.meterCt} />
           <RepCell k={T("รหัสงาน")} v={job.code} />
-          <div style={{ padding: "7px 10px", borderRight: "1px solid var(--border)", fontSize: 11, fontWeight: 700, color: "var(--primary-dark)", background: "var(--surface2)" }}>{T("ที่อยู่")}</div>
-          <div style={{ padding: "7px 10px", fontSize: 11.5, color: "var(--text-1)" }}>{[job.address, job.province].filter(Boolean).join(" ") || "-"}{job.phone ? " · " + T("โทร ") + job.phone : ""}</div>
+          <div style={{ padding: "7px 10px", borderRight: "1px solid var(--paper-line)", fontSize: 11, fontWeight: 700, color: "var(--primary-dark)", background: "var(--paper-tint)" }}>{T("ที่อยู่")}</div>
+          <div style={{ padding: "7px 10px", fontSize: 11.5, color: "var(--paper-ink)" }}>{[job.address, job.province].filter(Boolean).join(" ") || "-"}{job.phone ? " · " + T("โทร ") + job.phone : ""}</div>
         </div>
 
         {/* ผลการตรวจสอบ */}
@@ -262,7 +262,7 @@ function SurveyReport({ job, photos, docs, onClose }) {
             ของที่เขียนแยกหัวข้อติดชื่อหัวข้อนำหน้าไว้ รูปที่แนบคู่กันไปอยู่ในหมวดเดียวกันด้านล่าง */}
         {noteLines.length > 0 && (
           <RepSection title={T("หมายเหตุ")}>
-            <div style={{ marginTop: 10, background: "#FFF8F1", border: "1px solid #F5E3D3", borderRadius: 8, padding: "12px 14px", fontSize: 11.5, lineHeight: 1.75, whiteSpace: "pre-wrap", color: "var(--text-1)" }}>
+            <div style={{ marginTop: 10, background: "#FFF8F1", border: "1px solid #F5E3D3", borderRadius: 8, padding: "12px 14px", fontSize: 11.5, lineHeight: 1.75, whiteSpace: "pre-wrap", color: "var(--paper-ink)" }}>
               {noteLines.join("\n")}
             </div>
           </RepSection>
@@ -282,15 +282,15 @@ function SurveyReport({ job, photos, docs, onClose }) {
                 /* รูปแนวตั้งถ้าปล่อยเต็มความกว้างจะกินกระดาษทั้งหน้า — จำกัดความสูงแล้วจัดกลาง
                    กรอบ inline-block เพื่อให้เท่าขนาดรูปพอดี ลูกศรที่วาดทับจะได้ไม่เลื่อน */
                 <div key={sh.key} className="sv-rep-shot" data-p={sh.ah > sh.aw ? "1" : "0"}
-                  style={{ border: "1px solid var(--border)", borderRadius: 9, padding: 10, breakInside: "avoid" }}>
-                  <div style={{ fontSize: 11.5, fontWeight: 800, color: "var(--text-1)", marginBottom: 7 }}>{i + 1}. {window.shotTitle(sh)}</div>
+                  style={{ border: "1px solid var(--paper-line)", borderRadius: 9, padding: 10, breakInside: "avoid" }}>
+                  <div style={{ fontSize: 11.5, fontWeight: 800, color: "var(--paper-ink)", marginBottom: 7 }}>{i + 1}. {window.shotTitle(sh)}</div>
                   <div style={{ textAlign: "center" }}>
                     <div style={{ position: "relative", display: "inline-block", maxWidth: "100%", lineHeight: 0, borderRadius: 6, overflow: "hidden" }}>
                       <img src={sh.dataUrl} alt={window.shotTitle(sh)} />
                       <window.AnnOverlay ann={sh.ann} aw={sh.aw} ah={sh.ah} />
                     </div>
                   </div>
-                  {sh.caption && <div style={{ fontSize: 11, color: "var(--text-2)", marginTop: 7 }}>{sh.caption}</div>}
+                  {sh.caption && <div style={{ fontSize: 11, color: "var(--paper-ink2)", marginTop: 7 }}>{sh.caption}</div>}
                 </div>
                 ); })}
                 </React.Fragment>
@@ -305,15 +305,15 @@ function SurveyReport({ job, photos, docs, onClose }) {
           <React.Fragment>
             {(docs || []).map((d) => (
               <div key={d.role} className="sv-rep-ds" style={{ breakBefore: "page", pageBreakBefore: "always", marginTop: 22 }}>
-                <div style={{ display: "flex", alignItems: "center", gap: 7, borderBottom: "1px solid var(--border)", paddingBottom: 6, marginBottom: 12 }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 7, borderBottom: "1px solid var(--paper-line)", paddingBottom: 6, marginBottom: 12 }}>
                   <span style={{ width: 6, height: 6, borderRadius: 99, background: "var(--primary)" }} />
-                  <span style={{ fontSize: 13, fontWeight: 800, color: "var(--text-1)" }}>DATA SHEET — {d.role}</span>
-                  <span style={{ fontSize: 11.5, color: "var(--text-2)", marginLeft: "auto" }}>{d.name}</span>
+                  <span style={{ fontSize: 13, fontWeight: 800, color: "var(--paper-ink)" }}>DATA SHEET — {d.role}</span>
+                  <span style={{ fontSize: 11.5, color: "var(--paper-ink2)", marginLeft: "auto" }}>{d.name}</span>
                 </div>
                 {/^image\//.test(d.doc.type || "")
-                  ? <img src={d.doc.data} alt={d.name} style={{ width: "100%", display: "block", borderRadius: 8, border: "1px solid var(--border)" }} />
-                  : <div style={{ fontSize: 11.5, color: "var(--text-2)", background: "var(--surface2)", border: "1px solid var(--border)", borderRadius: 8, padding: "12px 14px" }}>
-                      {T("แนบไฟล์เอกสารแยก:")} <b style={{ color: "var(--text-1)" }}>{d.doc.name}</b> {T("(เปิดดูได้จากหน้าคลังสินค้า)")}
+                  ? <img src={d.doc.data} alt={d.name} style={{ width: "100%", display: "block", borderRadius: 8, border: "1px solid var(--paper-line)" }} />
+                  : <div style={{ fontSize: 11.5, color: "var(--paper-ink2)", background: "var(--paper-tint)", border: "1px solid var(--paper-line)", borderRadius: 8, padding: "12px 14px" }}>
+                      {T("แนบไฟล์เอกสารแยก:")} <b style={{ color: "var(--paper-ink)" }}>{d.doc.name}</b> {T("(เปิดดูได้จากหน้าคลังสินค้า)")}
                     </div>}
               </div>
             ))}
@@ -321,8 +321,8 @@ function SurveyReport({ job, photos, docs, onClose }) {
         )}
 
         {/* ท้ายรายงาน */}
-        <div style={{ marginTop: 22, paddingTop: 12, borderTop: "1px solid var(--border)", display: "flex", justifyContent: "space-between", gap: 14, flexWrap: "wrap", fontSize: 11, color: "var(--text-2)", breakInside: "avoid" }}>
-          <div>{T("ผู้สำรวจ:")} <b style={{ color: "var(--text-1)" }}>{s.byName || "-"}</b></div>
+        <div style={{ marginTop: 22, paddingTop: 12, borderTop: "1px solid var(--paper-line)", display: "flex", justifyContent: "space-between", gap: 14, flexWrap: "wrap", fontSize: 11, color: "var(--paper-ink2)", breakInside: "avoid" }}>
+          <div>{T("ผู้สำรวจ:")} <b style={{ color: "var(--paper-ink)" }}>{s.byName || "-"}</b></div>
           <div>{T("ออกรายงาน:")} {DT(new Date().toISOString())}</div>
         </div>
       </div>

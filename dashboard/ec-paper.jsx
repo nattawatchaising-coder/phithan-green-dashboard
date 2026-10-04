@@ -190,9 +190,9 @@ function EcVoucherPaper({ batch, claims, draft, payers, onClose }) {
     setTimeout(() => { document.title = old; }, 800);
   };
 
-  const th = { textAlign: "left", padding: "5px 7px", fontSize: 10, fontWeight: 700, color: "#5A6B62",
-    borderBottom: "1px solid #C9D5CE", whiteSpace: "nowrap" };
-  const td = { padding: "5px 7px", fontSize: 10.5, color: "#15211A", borderBottom: "1px solid #ECF1EE", verticalAlign: "top" };
+  const th = { textAlign: "left", padding: "5px 7px", fontSize: 10, fontWeight: 700, color: "var(--paper-ink3)",
+    borderBottom: "1px solid var(--paper-line2)", whiteSpace: "nowrap" };
+  const td = { padding: "5px 7px", fontSize: 10.5, color: "var(--paper-ink)", borderBottom: "1px solid var(--paper-line3)", verticalAlign: "top" };
   const num = Object.assign({}, td, { textAlign: "right", fontFamily: "var(--mono)" });
 
   return ReactDOM.createPortal((
@@ -200,7 +200,7 @@ function EcVoucherPaper({ batch, claims, draft, payers, onClose }) {
       overflow: "auto", padding: isMobile ? 0 : "24px 16px" }}>
 
       <div className="sv-rep-noprint" style={{ position: "sticky", top: 0, zIndex: 2, display: "flex", gap: 9, alignItems: "center",
-        padding: "11px 14px", background: "var(--surface)", borderBottom: "1px solid var(--border)",
+        padding: "11px 14px", background: "var(--surface)", borderBottom: "1px solid var(--divider)",
         marginBottom: isMobile ? 0 : 16, borderRadius: isMobile ? 0 : 12, maxWidth: 900, marginLeft: "auto", marginRight: "auto", boxShadow: "var(--shadow-sm)" }}>
         <button onClick={onClose} style={{ width: 36, height: 36, borderRadius: 10, border: "1px solid var(--border-strong)",
           background: "var(--surface)", cursor: "pointer", display: "grid", placeItems: "center", color: "var(--text-2)", flexShrink: 0 }}>
@@ -224,7 +224,7 @@ function EcVoucherPaper({ batch, claims, draft, payers, onClose }) {
       </div>
 
       {/* ฟอนต์ไทยของแอปไม่มีตัวอักษรจีน — เลือกจีนแล้วต้องระบุชุดฟอนต์ที่มีจีนให้ชัด */}
-      <div className="sv-rep-paper" style={{ maxWidth: 900, margin: "0 auto", background: "#fff", color: "#15211A",
+      <div className="sv-rep-paper" style={{ maxWidth: 900, margin: "0 auto", background: "var(--paper-bg)", color: "var(--paper-ink)",
         fontFamily: lang === "zh" && window.pgFontStack ? window.pgFontStack("zh") : undefined,
         padding: isMobile ? "20px 16px" : "30px 34px", borderRadius: isMobile ? 0 : 12, boxShadow: "var(--shadow-modal)" }}>
 
@@ -232,18 +232,18 @@ function EcVoucherPaper({ batch, claims, draft, payers, onClose }) {
 
         {/* หัวกระดาษ */}
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", gap: 16, flexWrap: "wrap",
-          borderBottom: "2px solid #1B9B75", paddingBottom: 11 }}>
+          borderBottom: "2px solid var(--paper-brand)", paddingBottom: 11 }}>
           <div style={{ minWidth: 0 }}>
             <div style={{ fontSize: 21, fontWeight: 800, letterSpacing: "-.01em" }}>{T(draft ? "ใบปะหน้าจ่ายเงิน" : "ใบสำคัญจ่าย")}</div>
-            <div style={{ fontSize: 10, fontWeight: 600, letterSpacing: ".12em", color: "#7A8A81", marginTop: 3 }}>
+            <div style={{ fontSize: 10, fontWeight: 600, letterSpacing: ".12em", color: "var(--paper-mute)", marginTop: 3 }}>
               {draft ? "PAYMENT COVER SHEET — FIELD EXPENSE REIMBURSEMENT" : "PAYMENT VOUCHER — FIELD EXPENSE REIMBURSEMENT"}
             </div>
             <div style={{ display: "flex", alignItems: "center", gap: 7, marginTop: 6 }}>
               <window.BrandDoc height={44} />
             </div>
           </div>
-          <div style={{ textAlign: "right", fontSize: 11, color: "#4A5A51", lineHeight: 1.75 }}>
-            <div style={{ fontFamily: "var(--mono)", fontWeight: 700, color: "#15211A" }}>{b.no || "-"}</div>
+          <div style={{ textAlign: "right", fontSize: 11, color: "var(--paper-ink2)", lineHeight: 1.75 }}>
+            <div style={{ fontFamily: "var(--mono)", fontWeight: 700, color: "var(--paper-ink)" }}>{b.no || "-"}</div>
             <div>{DT(b.date)}</div>
             <div style={{ display: "inline-block", marginTop: 3, padding: "2px 9px", borderRadius: 99,
               background: draft ? "#F59E0B22" : "#10B98122", color: draft ? "#B45309" : "#10B981",
@@ -253,7 +253,7 @@ function EcVoucherPaper({ batch, claims, draft, payers, onClose }) {
 
         {/* ผู้รับเงิน + ข้อมูลการจ่าย */}
         <div style={{ marginTop: 13, display: "grid", gridTemplateColumns: "auto 1fr auto 1fr",
-          border: "1px solid #DCE4DF", borderRadius: 7, overflow: "hidden" }}>
+          border: "1px solid var(--paper-line)", borderRadius: 7, overflow: "hidden" }}>
           <EcVPRow k={T("จ่ายให้")} v={b.toName || "-"} />
           <EcVPRow k={T("วันที่จ่าย")} v={DTs(b.date)} />
           <EcVPRow k={T("จำนวนใบเบิก")} v={(b.count || 0) + " " + T("ใบ")} />
@@ -263,14 +263,14 @@ function EcVoucherPaper({ batch, claims, draft, payers, onClose }) {
         </div>
 
         {/* ยอดเงิน — ตัวเลขคู่ตัวอักษร */}
-        <div style={{ marginTop: 14, border: "1px solid #1B9B75", borderRadius: 9, overflow: "hidden", breakInside: "avoid" }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap", padding: "11px 14px", background: "#F3F9F6" }}>
-            <span style={{ fontSize: 11.5, fontWeight: 700, color: "#4A5A51" }}>{T("จำนวนเงินที่จ่าย")}</span>
+        <div style={{ marginTop: 14, border: "1px solid var(--paper-brand)", borderRadius: 9, overflow: "hidden", breakInside: "avoid" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap", padding: "11px 14px", background: "var(--paper-tint)" }}>
+            <span style={{ fontSize: 11.5, fontWeight: 700, color: "var(--paper-ink2)" }}>{T("จำนวนเงินที่จ่าย")}</span>
             <span style={{ flex: 1, minWidth: 120 }} />
-            <span style={{ fontSize: 22, fontWeight: 800, fontFamily: "var(--mono)", color: "#0A4D68" }}>{window.ecBaht(total)}</span>
-            <span style={{ fontSize: 12, color: "#4A5A51" }}>{T("บาท")}</span>
+            <span style={{ fontSize: 22, fontWeight: 800, fontFamily: "var(--mono)", color: "var(--paper-brand-dk)" }}>{window.ecBaht(total)}</span>
+            <span style={{ fontSize: 12, color: "var(--paper-ink2)" }}>{T("บาท")}</span>
           </div>
-          <div style={{ padding: "8px 14px", fontSize: 12, color: "#15211A", borderTop: "1px solid #DCE4DF" }}>
+          <div style={{ padding: "8px 14px", fontSize: 12, color: "var(--paper-ink)", borderTop: "1px solid var(--paper-line)" }}>
             {T("ตัวอักษร")} <b>({ecBahtText(total)})</b>
           </div>
         </div>
@@ -292,7 +292,7 @@ function EcVoucherPaper({ batch, claims, draft, payers, onClose }) {
             <tbody>
               {list.map((c, i) => (
                 <tr key={c.id}>
-                  <td style={Object.assign({}, td, { fontFamily: "var(--mono)", color: "#7A8A81" })}>{i + 1}</td>
+                  <td style={Object.assign({}, td, { fontFamily: "var(--mono)", color: "var(--paper-mute)" })}>{i + 1}</td>
                   <td style={Object.assign({}, td, { fontFamily: "var(--mono)" })}>{c.no || "-"}</td>
                   <td style={Object.assign({}, td, { fontFamily: "var(--mono)", fontSize: 10 })}>{c.date ? (window.pgShort ? window.pgShort(c.date, lang) : window.drShort(c.date)) : "—"}</td>
                   <td style={td}>{T(window.ecKindOf(c.kind).th)}</td>
@@ -312,7 +312,7 @@ function EcVoucherPaper({ batch, claims, draft, payers, onClose }) {
           {/* ใบที่อยู่ในรอบแต่หาไม่เจอแล้ว (ถูกลบทีหลัง) ต้องบอกไว้บนกระดาษ ไม่ใช่เงียบ ๆ
              เพราะยอดรวมข้างบนจะไม่เท่ากับผลบวกของแถวที่พิมพ์ออกมา */}
           {missing && (
-            <div style={{ marginTop: 8, fontSize: 10.5, color: "#B45309" }}>
+            <div style={{ marginTop: 8, fontSize: 10.5, color: "var(--paper-warn-tx)" }}>
               หมายเหตุ: รอบนี้บันทึกไว้ {b.count || 0} ใบ แต่แสดงได้ {list.length} ใบ (ผลบวกที่แสดง {window.ecBaht(found)} บาท)
               — ใบที่เหลือถูกลบออกจากฐานข้อมูลภายหลัง ยอดที่จ่ายจริงยึดตามยอดรวมด้านบน
             </div>
@@ -321,7 +321,7 @@ function EcVoucherPaper({ batch, claims, draft, payers, onClose }) {
 
         {b.note ? (
           <EcPBlock title={T("หมายเหตุ")} avoid>
-            <div style={{ fontSize: 11.5, lineHeight: 1.65, color: "#15211A", whiteSpace: "pre-wrap" }}>{b.note}</div>
+            <div style={{ fontSize: 11.5, lineHeight: 1.65, color: "var(--paper-ink)", whiteSpace: "pre-wrap" }}>{b.note}</div>
           </EcPBlock>
         ) : null}
 
@@ -339,23 +339,23 @@ function EcVoucherPaper({ batch, claims, draft, payers, onClose }) {
             { t: T("ผู้อนุมัติ"), n: apprs.map((a) => a.name).join(" · "),
               img: apprs.length === 1 ? signs[apprs[0].id] : "",
               at: apprs.length === 1 ? apprs[0].at : "" }].map((s, i) => (
-            <div key={i} style={{ border: "1px solid #DCE4DF", borderRadius: 8, padding: "12px 14px" }}>
-              <div style={{ fontSize: 10.5, fontWeight: 700, color: "#5A6B62" }}>{s.t}</div>
-              <div style={{ height: 42, borderBottom: "1px solid #C9D5CE", marginTop: 6, display: "grid", placeItems: "center", overflow: "hidden" }}>
+            <div key={i} style={{ border: "1px solid var(--paper-line)", borderRadius: 8, padding: "12px 14px" }}>
+              <div style={{ fontSize: 10.5, fontWeight: 700, color: "var(--paper-ink3)" }}>{s.t}</div>
+              <div style={{ height: 42, borderBottom: "1px solid var(--paper-line2)", marginTop: 6, display: "grid", placeItems: "center", overflow: "hidden" }}>
                 {s.img ? <img src={s.img} alt="" style={{ maxWidth: "100%", maxHeight: 40, objectFit: "contain" }} /> : null}
               </div>
-              <div style={{ fontSize: 11, marginTop: 6, color: "#15211A" }}>{T("ชื่อ:")} <b>{s.n || "…………………………"}</b></div>
-              <div style={{ fontSize: 11, color: "#4A5A51" }}>{T("วันที่:")} {s.at ? DTs(s.at) : "…………………………"}</div>
+              <div style={{ fontSize: 11, marginTop: 6, color: "var(--paper-ink)" }}>{T("ชื่อ:")} <b>{s.n || "…………………………"}</b></div>
+              <div style={{ fontSize: 11, color: "var(--paper-ink2)" }}>{T("วันที่:")} {s.at ? DTs(s.at) : "…………………………"}</div>
             </div>
           ))}
         </div>
 
         {draft && (
-          <div style={{ marginTop: 12, fontSize: 10.5, color: "#B45309", textAlign: "center" }}>
+          <div style={{ marginTop: 12, fontSize: 10.5, color: "var(--paper-warn-tx)", textAlign: "center" }}>
             {T("ใบนี้เป็นใบปะหน้าสำหรับตรวจเอกสารก่อนโอน ยังไม่ใช่หลักฐานการจ่าย")}
           </div>
         )}
-        <div style={{ marginTop: 14, fontSize: 9.5, color: "#8A9A91", textAlign: "center" }}>
+        <div style={{ marginTop: 14, fontSize: 9.5, color: "var(--paper-mute2)", textAlign: "center" }}>
           {T("เอกสารนี้ออกจากระบบติดตามงานติดตั้ง")} flash+solar · {b.no || "-"} · {T("พิมพ์เมื่อ")} {DTs(window.drToday())}
         </div>
         </div>
@@ -364,7 +364,7 @@ function EcVoucherPaper({ batch, claims, draft, payers, onClose }) {
         {/* สลิปแผ่นสุดท้าย — เต็มหน้ากระดาษเหมือนบิลในใบเบิก ตัวเลขในสลิปต้องอ่านออก
             ไฟล์ PDF ฝังลงกระดาษไม่ได้ บอกไว้เป็นบรรทัดเดียวว่าแนบไว้ในระบบแล้ว */}
         {slip && slip.dataUrl && window.ecReceiptKind(slip) !== "pdf" && (
-          <div className="ec-sheet" style={{ marginTop: 20, paddingTop: 18, borderTop: "1px dashed #C9D5CE" }}>
+          <div className="ec-sheet" style={{ marginTop: 20, paddingTop: 18, borderTop: "1px dashed var(--paper-line2)" }}>
             <div style={{ fontSize: 12, fontWeight: 800, marginBottom: 9 }}>
               {T("สลิปโอนเงิน")} · {b.no || "-"}
             </div>
@@ -373,7 +373,7 @@ function EcVoucherPaper({ batch, claims, draft, payers, onClose }) {
           </div>
         )}
         {slip && window.ecReceiptKind(slip) === "pdf" && (
-          <div style={{ marginTop: 12, fontSize: 10, color: "#7A8A81", textAlign: "center" }}>
+          <div style={{ marginTop: 12, fontSize: 10, color: "var(--paper-mute)", textAlign: "center" }}>
             {T("สลิปแนบเป็นไฟล์ PDF")} · {slip.name || "slip.pdf"}
           </div>
         )}
@@ -430,9 +430,9 @@ function EcClaimPaper({ claim, job, user, onPrinted, onClose }) {
     });
   };
 
-  const th = { textAlign: "left", padding: "5px 7px", fontSize: 10, fontWeight: 700, color: "#5A6B62",
-    borderBottom: "1px solid #C9D5CE", whiteSpace: "nowrap" };
-  const td = { padding: "5px 7px", fontSize: 10.5, color: "#15211A", borderBottom: "1px solid #ECF1EE", verticalAlign: "top" };
+  const th = { textAlign: "left", padding: "5px 7px", fontSize: 10, fontWeight: 700, color: "var(--paper-ink3)",
+    borderBottom: "1px solid var(--paper-line2)", whiteSpace: "nowrap" };
+  const td = { padding: "5px 7px", fontSize: 10.5, color: "var(--paper-ink)", borderBottom: "1px solid var(--paper-line3)", verticalAlign: "top" };
   const num = Object.assign({}, td, { textAlign: "right", fontFamily: "var(--mono)" });
 
   /* ช่องเซ็น — คนที่ระบบรู้ว่ากดเมื่อไหร่ เติมชื่อ วันที่ และลายเซ็นที่บันทึกไว้ให้เลย
@@ -448,7 +448,7 @@ function EcClaimPaper({ claim, job, user, onPrinted, onClose }) {
       overflow: "auto", padding: isMobile ? 0 : "24px 16px" }}>
 
       <div className="sv-rep-noprint" style={{ position: "sticky", top: 0, zIndex: 2, display: "flex", gap: 9, alignItems: "center",
-        padding: "11px 14px", background: "var(--surface)", borderBottom: "1px solid var(--border)",
+        padding: "11px 14px", background: "var(--surface)", borderBottom: "1px solid var(--divider)",
         marginBottom: isMobile ? 0 : 16, borderRadius: isMobile ? 0 : 12, maxWidth: 900, marginLeft: "auto", marginRight: "auto", boxShadow: "var(--shadow-sm)" }}>
         <button onClick={onClose} style={{ width: 36, height: 36, borderRadius: 10, border: "1px solid var(--border-strong)",
           background: "var(--surface)", cursor: "pointer", display: "grid", placeItems: "center", color: "var(--text-2)", flexShrink: 0 }}>
@@ -484,23 +484,23 @@ function EcClaimPaper({ claim, job, user, onPrinted, onClose }) {
         </button>
       </div>
 
-      <div className="sv-rep-paper" style={{ maxWidth: 900, margin: "0 auto", background: "#fff", color: "#15211A",
+      <div className="sv-rep-paper" style={{ maxWidth: 900, margin: "0 auto", background: "var(--paper-bg)", color: "var(--paper-ink)",
         fontFamily: lang === "zh" && window.pgFontStack ? window.pgFontStack("zh") : undefined,
         padding: isMobile ? "20px 16px" : "30px 34px", borderRadius: isMobile ? 0 : 12, boxShadow: "var(--shadow-modal)" }}>
 
         <div className="ec-page">
 
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", gap: 16, flexWrap: "wrap",
-          borderBottom: "2px solid #1B9B75", paddingBottom: 11 }}>
+          borderBottom: "2px solid var(--paper-brand)", paddingBottom: 11 }}>
           <div style={{ minWidth: 0 }}>
             <div style={{ fontSize: 21, fontWeight: 800, letterSpacing: "-.01em" }}>{T("ใบเบิกเงินหน้างาน")}</div>
-            <div style={{ fontSize: 10, fontWeight: 600, letterSpacing: ".12em", color: "#7A8A81", marginTop: 3 }}>EXPENSE CLAIM — FIELD REIMBURSEMENT</div>
+            <div style={{ fontSize: 10, fontWeight: 600, letterSpacing: ".12em", color: "var(--paper-mute)", marginTop: 3 }}>EXPENSE CLAIM — FIELD REIMBURSEMENT</div>
             <div style={{ display: "flex", alignItems: "center", gap: 7, marginTop: 6 }}>
               <window.BrandDoc height={44} />
             </div>
           </div>
-          <div style={{ textAlign: "right", fontSize: 11, color: "#4A5A51", lineHeight: 1.75 }}>
-            <div style={{ fontFamily: "var(--mono)", fontWeight: 700, color: "#15211A" }}>{c.no || "-"}</div>
+          <div style={{ textAlign: "right", fontSize: 11, color: "var(--paper-ink2)", lineHeight: 1.75 }}>
+            <div style={{ fontFamily: "var(--mono)", fontWeight: 700, color: "var(--paper-ink)" }}>{c.no || "-"}</div>
             <div>{DTs(c.date)}</div>
             <div style={{ display: "inline-block", marginTop: 3, padding: "2px 9px", borderRadius: 99,
               background: st.color + "22", color: st.color, fontWeight: 700, fontSize: 10.5 }}>{T(st.th)}</div>
@@ -508,7 +508,7 @@ function EcClaimPaper({ claim, job, user, onPrinted, onClose }) {
         </div>
 
         <div style={{ marginTop: 13, display: "grid", gridTemplateColumns: "auto 1fr auto 1fr",
-          border: "1px solid #DCE4DF", borderRadius: 7, overflow: "hidden" }}>
+          border: "1px solid var(--paper-line)", borderRadius: 7, overflow: "hidden" }}>
           <EcVPRow k={T("ผู้ขอเบิก")} v={c.byName || "-"} />
           <EcVPRow k={T("วันที่ใช้จ่าย")} v={DTs(c.date)} />
           <EcVPRow k={T("หมวด")} v={T(kind.th)} />
@@ -519,14 +519,14 @@ function EcClaimPaper({ claim, job, user, onPrinted, onClose }) {
           <EcVPRow k={T("ผู้อนุมัติ")} v={c.decidedByName || (c.approverName || "—")} />
         </div>
 
-        <div style={{ marginTop: 14, border: "1px solid #1B9B75", borderRadius: 9, overflow: "hidden", breakInside: "avoid" }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap", padding: "11px 14px", background: "#F3F9F6" }}>
-            <span style={{ fontSize: 11.5, fontWeight: 700, color: "#4A5A51" }}>{T("ยอดที่ขอเบิก")}</span>
+        <div style={{ marginTop: 14, border: "1px solid var(--paper-brand)", borderRadius: 9, overflow: "hidden", breakInside: "avoid" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap", padding: "11px 14px", background: "var(--paper-tint)" }}>
+            <span style={{ fontSize: 11.5, fontWeight: 700, color: "var(--paper-ink2)" }}>{T("ยอดที่ขอเบิก")}</span>
             <span style={{ flex: 1, minWidth: 120 }} />
-            <span style={{ fontSize: 22, fontWeight: 800, fontFamily: "var(--mono)", color: "#0A4D68" }}>{window.ecBaht(total)}</span>
-            <span style={{ fontSize: 12, color: "#4A5A51" }}>{T("บาท")}</span>
+            <span style={{ fontSize: 22, fontWeight: 800, fontFamily: "var(--mono)", color: "var(--paper-brand-dk)" }}>{window.ecBaht(total)}</span>
+            <span style={{ fontSize: 12, color: "var(--paper-ink2)" }}>{T("บาท")}</span>
           </div>
-          <div style={{ padding: "8px 14px", fontSize: 12, color: "#15211A", borderTop: "1px solid #DCE4DF" }}>
+          <div style={{ padding: "8px 14px", fontSize: 12, color: "var(--paper-ink)", borderTop: "1px solid var(--paper-line)" }}>
             {T("ตัวอักษร")} <b>({ecBahtText(total)})</b>
           </div>
         </div>
@@ -546,7 +546,7 @@ function EcClaimPaper({ claim, job, user, onPrinted, onClose }) {
             <tbody>
               {items.map((r, i) => (
                 <tr key={i}>
-                  <td style={Object.assign({}, td, { fontFamily: "var(--mono)", color: "#7A8A81" })}>{i + 1}</td>
+                  <td style={Object.assign({}, td, { fontFamily: "var(--mono)", color: "var(--paper-mute)" })}>{i + 1}</td>
                   <td style={td}>{r.name || "—"}</td>
                   <td style={num}>{r.qty || ""}</td>
                   <td style={td}>{r.unit || ""}</td>
@@ -566,7 +566,7 @@ function EcClaimPaper({ claim, job, user, onPrinted, onClose }) {
 
         {c.note ? (
           <EcPBlock title={T("หมายเหตุ")} avoid>
-            <div style={{ fontSize: 11.5, lineHeight: 1.65, color: "#15211A", whiteSpace: "pre-wrap" }}>{c.note}</div>
+            <div style={{ fontSize: 11.5, lineHeight: 1.65, color: "var(--paper-ink)", whiteSpace: "pre-wrap" }}>{c.note}</div>
           </EcPBlock>
         ) : null}
 
@@ -574,9 +574,9 @@ function EcClaimPaper({ claim, job, user, onPrinted, onClose }) {
             ย่อรูปลงมาแปะในหน้าเดียวกับตาราง ตัวเลขในบิลจะอ่านไม่ออก ซึ่งทำให้บิลไม่มีประโยชน์ */}
         <EcPBlock title={T("บิล / ใบเสร็จ")} avoid>
           {imgs.length === 0 && pdfs.length === 0 ? (
-            <div style={{ fontSize: 11, color: "#B45309" }}>— {T("ยังไม่ได้แนบบิล")} —</div>
+            <div style={{ fontSize: 11, color: "var(--paper-warn-tx)" }}>— {T("ยังไม่ได้แนบบิล")} —</div>
           ) : (
-            <div style={{ fontSize: 11, color: "#5A6B62", lineHeight: 1.7 }}>
+            <div style={{ fontSize: 11, color: "var(--paper-ink3)", lineHeight: 1.7 }}>
               {imgs.length > 0 && (
                 <div>{T("แนบบิลไว้")} <b>{imgs.length}</b> {T("ใบ · อยู่แผ่นถัดไป")}</div>
               )}
@@ -593,18 +593,18 @@ function EcClaimPaper({ claim, job, user, onPrinted, onClose }) {
         <div className="ec-foot">
         <div style={{ marginTop: 22, display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 14, breakInside: "avoid" }}>
           {boxes.map((s, i) => (
-            <div key={i} style={{ border: "1px solid #DCE4DF", borderRadius: 8, padding: "12px 14px" }}>
-              <div style={{ fontSize: 10.5, fontWeight: 700, color: "#5A6B62" }}>{s.t}</div>
-              <div style={{ height: 42, borderBottom: "1px solid #C9D5CE", marginTop: 6, display: "grid", placeItems: "center", overflow: "hidden" }}>
+            <div key={i} style={{ border: "1px solid var(--paper-line)", borderRadius: 8, padding: "12px 14px" }}>
+              <div style={{ fontSize: 10.5, fontWeight: 700, color: "var(--paper-ink3)" }}>{s.t}</div>
+              <div style={{ height: 42, borderBottom: "1px solid var(--paper-line2)", marginTop: 6, display: "grid", placeItems: "center", overflow: "hidden" }}>
                 {s.img ? <img src={s.img} alt="" style={{ maxWidth: "100%", maxHeight: 40, objectFit: "contain" }} /> : null}
               </div>
-              <div style={{ fontSize: 11, marginTop: 6, color: "#15211A" }}>{T("ชื่อ:")} <b>{s.n || "…………………………"}</b></div>
-              <div style={{ fontSize: 11, color: "#4A5A51" }}>{T("วันที่:")} {s.at ? DTs(s.at) : "…………………………"}</div>
+              <div style={{ fontSize: 11, marginTop: 6, color: "var(--paper-ink)" }}>{T("ชื่อ:")} <b>{s.n || "…………………………"}</b></div>
+              <div style={{ fontSize: 11, color: "var(--paper-ink2)" }}>{T("วันที่:")} {s.at ? DTs(s.at) : "…………………………"}</div>
             </div>
           ))}
         </div>
 
-        <div style={{ marginTop: 14, fontSize: 9.5, color: "#8A9A91", textAlign: "center" }}>
+        <div style={{ marginTop: 14, fontSize: 9.5, color: "var(--paper-mute2)", textAlign: "center" }}>
           {T("เอกสารนี้ออกจากระบบติดตามงานติดตั้ง")} flash+solar · {c.no || "-"} · {T("พิมพ์เมื่อ")} {DTs(window.drToday())}
         </div>
         </div>
@@ -615,11 +615,11 @@ function EcClaimPaper({ claim, job, user, onPrinted, onClose }) {
             ec-sheet ขึ้นหน้าใหม่ตอนพิมพ์ (index.html) และคั่นด้วยเส้นประตอนดูบนจอ */}
         {imgs.map((s, i) => (
           <div key={s.id} className="ec-sheet"
-            style={{ marginTop: 20, paddingTop: 18, borderTop: "1px dashed #C9D5CE" }}>
+            style={{ marginTop: 20, paddingTop: 18, borderTop: "1px dashed var(--paper-line2)" }}>
             <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", gap: 12,
-              borderBottom: "1px solid #DCE4DF", paddingBottom: 6, marginBottom: 10 }}>
+              borderBottom: "1px solid var(--paper-line)", paddingBottom: 6, marginBottom: 10 }}>
               <span style={{ fontSize: 13, fontWeight: 800 }}>{T("บิล / ใบเสร็จ")}</span>
-              <span style={{ fontSize: 10.5, color: "#5A6B62", fontFamily: "var(--mono)" }}>
+              <span style={{ fontSize: 10.5, color: "var(--paper-ink3)", fontFamily: "var(--mono)" }}>
                 {c.no || "-"} · {T("แผ่น")} {i + 1}/{imgs.length}
               </span>
             </div>
@@ -635,9 +635,9 @@ function EcClaimPaper({ claim, job, user, onPrinted, onClose }) {
 function EcVPRow({ k, v }) {
   return (
     <React.Fragment>
-      <div style={{ padding: "6px 10px", fontSize: 10.5, fontWeight: 700, color: "#5A6B62",
-        background: "#F7FAF8", borderBottom: "1px solid #ECF1EE", whiteSpace: "nowrap" }}>{k}</div>
-      <div style={{ padding: "6px 10px", fontSize: 11.5, color: "#15211A", borderBottom: "1px solid #ECF1EE" }}>{v || "—"}</div>
+      <div style={{ padding: "6px 10px", fontSize: 10.5, fontWeight: 700, color: "var(--paper-ink3)",
+        background: "var(--paper-tint)", borderBottom: "1px solid var(--paper-line3)", whiteSpace: "nowrap" }}>{k}</div>
+      <div style={{ padding: "6px 10px", fontSize: 11.5, color: "var(--paper-ink)", borderBottom: "1px solid var(--paper-line3)" }}>{v || "—"}</div>
     </React.Fragment>
   );
 }
@@ -645,9 +645,9 @@ function EcVPRow({ k, v }) {
 function EcPBlock({ title, children, avoid }) {
   return (
     <div style={{ marginTop: 16, breakInside: avoid ? "avoid" : "auto" }}>
-      <div style={{ display: "flex", alignItems: "center", gap: 7, borderBottom: "1px solid #DCE4DF", paddingBottom: 5, marginBottom: 8 }}>
-        <span style={{ width: 5, height: 5, borderRadius: 99, background: "#1B9B75" }} />
-        <span style={{ fontSize: 12, fontWeight: 800, color: "#15211A" }}>{title}</span>
+      <div style={{ display: "flex", alignItems: "center", gap: 7, borderBottom: "1px solid var(--paper-line)", paddingBottom: 5, marginBottom: 8 }}>
+        <span style={{ width: 5, height: 5, borderRadius: 99, background: "var(--paper-brand)" }} />
+        <span style={{ fontSize: 12, fontWeight: 800, color: "var(--paper-ink)" }}>{title}</span>
       </div>
       {children}
     </div>

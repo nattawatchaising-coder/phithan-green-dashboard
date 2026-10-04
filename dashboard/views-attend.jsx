@@ -37,7 +37,7 @@ function TmStat({ label, value, unit, color, hint, on, onClick }) {
   return (
     <button onClick={onClick} disabled={!onClick}
       style={{ flex: "1 1 180px", minWidth: 165, textAlign: "left", padding: "12px 14px", borderRadius: "var(--r-tile)",
-        border: "1px solid " + (on ? "var(--primary)" : "var(--border)"), background: on ? "var(--primary-soft)" : "var(--surface)",
+        border: "none", boxShadow: on ? "inset 0 0 0 1px var(--primary)" : "var(--shadow-sm)", background: on ? "var(--primary-soft)" : "var(--surface)",
         cursor: onClick ? "pointer" : "default", fontFamily: "inherit" }}>
       <div style={{ fontSize: 11.5, fontWeight: 700, color: "var(--text-3)" }}>{label}</div>
       <div style={{ marginTop: 3, display: "flex", alignItems: "baseline", gap: 5 }}>
@@ -139,7 +139,7 @@ function TmDaySheet({ date, setDate, cfg, users, currentUser }) {
             <tr style={{ background: "var(--surface2)" }}>
               {["ชื่อ", "เข้า", "ออก", "ชั่วโมง", "งานที่แจ้ง", "พิกัด / ห่างจากออฟฟิศ", ""].map((h, i) => (
                 <th key={i} style={{ textAlign: i >= 1 && i <= 3 ? "center" : "left", padding: "10px 13px", fontSize: 11.5,
-                  fontWeight: 800, color: "var(--text-3)", borderBottom: "1px solid var(--border)", whiteSpace: "nowrap" }}>{h}</th>
+                  fontWeight: 800, color: "var(--text-3)", borderBottom: "1px solid var(--divider)", whiteSpace: "nowrap" }}>{h}</th>
               ))}
             </tr>
           </thead>
@@ -149,7 +149,7 @@ function TmDaySheet({ date, setDate, cfg, users, currentUser }) {
               <tr><td colSpan={7} style={{ padding: 26, textAlign: "center", color: "var(--text-3)" }}>ยังไม่มีใครลงเวลาในวันนี้</td></tr>
             )}
             {(day.rows || []).map((r) => (
-              <tr key={r.userId} style={{ borderBottom: "1px solid var(--border)" }}>
+              <tr key={r.userId} style={{ borderBottom: "1px solid var(--divider)" }}>
                 <td style={{ padding: "9px 13px", fontWeight: 700, color: "var(--text-1)" }}>{nameOf(r)}</td>
                 <td style={{ padding: "9px 13px", textAlign: "center", fontFamily: "var(--mono)", fontWeight: 700 }}>{r.in || "—"}</td>
                 <td style={{ padding: "9px 13px", textAlign: "center", fontFamily: "var(--mono)", fontWeight: 700,
@@ -172,7 +172,7 @@ function TmDaySheet({ date, setDate, cfg, users, currentUser }) {
               </tr>
             ))}
             {missing.map((u) => (
-              <tr key={u.id} style={{ borderBottom: "1px solid var(--border)", background: "var(--surface2)" }}>
+              <tr key={u.id} style={{ borderBottom: "1px solid var(--divider)", background: "var(--surface2)" }}>
                 <td style={{ padding: "9px 13px", fontWeight: 700, color: "var(--text-3)" }}>{u.name}</td>
                 <td colSpan={6} style={{ padding: "9px 13px", fontSize: 12, color: "var(--text-3)" }}>ยังไม่ได้ลงเวลา</td>
               </tr>
@@ -222,7 +222,7 @@ function TmMonth({ cfg, users, ot }) {
 
   const th = (t, align) => (
     <th key={t} style={{ textAlign: align || "left", padding: "10px 13px", fontSize: 11.5, fontWeight: 800,
-      color: "var(--text-3)", borderBottom: "1px solid var(--border)", whiteSpace: "nowrap" }}>{t}</th>
+      color: "var(--text-3)", borderBottom: "1px solid var(--divider)", whiteSpace: "nowrap" }}>{t}</th>
   );
 
   return (
@@ -277,7 +277,7 @@ function TmMonth({ cfg, users, ot }) {
             )}
             {!loading && rows.map((r) => (
               <React.Fragment key={r.userId}>
-                <tr style={{ borderBottom: "1px solid var(--border)", background: r.days ? "transparent" : "var(--surface2)" }}>
+                <tr style={{ borderBottom: "1px solid var(--divider)", background: r.days ? "transparent" : "var(--surface2)" }}>
                   <td style={{ padding: "9px 13px", fontWeight: 700, color: r.days ? "var(--text-1)" : "var(--text-3)" }}>{r.name}</td>
                   <td style={{ padding: "9px 13px", textAlign: "center", fontFamily: "var(--mono)", fontWeight: 700 }}>{r.days || "—"}</td>
                   <td style={{ padding: "9px 13px", textAlign: "center", fontFamily: "var(--mono)", fontWeight: 700 }}>{hrs(r.mins)}</td>
@@ -296,7 +296,7 @@ function TmMonth({ cfg, users, ot }) {
                 </tr>
                 {pick === r.userId && (
                   <tr>
-                    <td colSpan={7} style={{ padding: "10px 13px 14px", background: "var(--surface2)", borderBottom: "1px solid var(--border)" }}>
+                    <td colSpan={7} style={{ padding: "10px 13px 14px", background: "var(--surface2)", borderBottom: "1px solid var(--divider)" }}>
                       {/* เรียงเป็นปฏิทินจริง ๆ เจ็ดคอลัมน์ต่อสัปดาห์ — คนตรวจค่าแรงมองออกทันที
                           ว่าวันที่ขาดเป็นเสาร์อาทิตย์หรือเป็นวันทำงานที่ลืมปั๊มใบ
                           ช่องว่างหัวเดือนคือวันของเดือนก่อน ไม่ใช่วันที่ไม่มีใบ */}
@@ -866,7 +866,7 @@ function TmOtRow({ rec, users, onOpen }) {
   return (
     <button onClick={() => onOpen(rec)}
       style={{ display: "block", width: "100%", textAlign: "left", padding: "11px 14px", border: "none",
-        borderBottom: "1px solid var(--border)", background: "var(--surface)", cursor: "pointer", fontFamily: "inherit" }}>
+        borderBottom: "1px solid var(--divider)", background: "var(--surface)", cursor: "pointer", fontFamily: "inherit" }}>
       <div style={{ display: "flex", alignItems: "center", gap: 9, flexWrap: "wrap" }}>
         <span style={{ fontFamily: "var(--mono)", fontSize: 11.5, fontWeight: 700, color: "var(--text-3)" }}>{rec.no}</span>
         <span style={{ fontSize: 13.5, fontWeight: 800, color: "var(--text-1)" }}>{window.tmNameOf(users, rec.userId, rec.userName)}</span>
@@ -956,14 +956,14 @@ function TmOfficeCfg({ office, onChange }) {
           เปิดแล้วเปลี่ยนพฤติกรรมของทั้งบริษัท จึงต้องเห็นชัดว่าตอนนี้เปิดหรือปิด
           และต้องตั้งพิกัดก่อน ไม่งั้นจะล็อกเทียบกับ "ไม่มีที่ไหน" แล้วทุกคนกดเข้างานไม่ได้ */}
       <div style={{ marginTop: 11, padding: "11px 13px", borderRadius: "var(--r-chip)",
-        border: "1px solid " + (o.lock ? "#F59E0B66" : "var(--border)"),
+        border: "none", boxShadow: o.lock ? "inset 0 0 0 1px #F59E0B66" : "var(--shadow-sm)",
         background: o.lock ? "rgba(245,158,11,.07)" : "var(--surface)" }}>
         <div style={{ display: "flex", alignItems: "center", gap: 11, flexWrap: "wrap" }}>
           <button onClick={() => has && set("lock", !o.lock)} disabled={!has}
             aria-pressed={!!o.lock}
             title={has ? "" : "ตั้งพิกัดออฟฟิศก่อนถึงจะเปิดล็อกได้"}
             style={{ position: "relative", width: 52, height: 30, borderRadius: "var(--r-pill)", flexShrink: 0,
-              border: "1px solid " + (o.lock ? "#F59E0B" : "var(--border-strong)"),
+              border: "none", boxShadow: o.lock ? "inset 0 0 0 1px #F59E0B" : "var(--shadow-sm)",
               background: !has ? "var(--surface2)" : o.lock ? "#F59E0B" : "var(--surface2)",
               cursor: has ? "pointer" : "not-allowed", padding: 0 }}>
             <span style={{ position: "absolute", top: 3, left: o.lock ? 25 : 3, width: 22, height: 22, borderRadius: "var(--r-pill)",
@@ -1120,7 +1120,7 @@ function TmWorkHours({ cfg, onSave }) {
             return (
               <button key={i} onClick={() => set("days", on ? f.days.filter((x) => x !== i) : f.days.concat([i]).sort())}
                 style={{ width: 46, padding: "8px 0", borderRadius: "var(--r-chip)", cursor: "pointer", fontFamily: "inherit", fontSize: 12.5, fontWeight: 800,
-                  border: "1px solid " + (on ? "var(--primary)" : "var(--border-strong)"),
+                  border: "none", boxShadow: on ? "inset 0 0 0 1px var(--primary)" : "var(--shadow-sm)",
                   background: on ? "var(--primary-soft)" : "var(--surface)", color: on ? "var(--primary-dark)" : "var(--text-3)" }}>{d}</button>
             );
           })}
@@ -1138,7 +1138,7 @@ function TmWorkHours({ cfg, onSave }) {
               color: hDate ? "#fff" : "var(--text-3)", cursor: hDate ? "pointer" : "default", fontFamily: "inherit", fontSize: 12.5, fontWeight: 800 }}>เพิ่ม</button>
         </div>
         {Object.keys(f.holidays || {}).sort().map((d) => (
-          <div key={d} style={{ display: "flex", alignItems: "center", gap: 9, padding: "7px 11px", borderBottom: "1px solid var(--border)" }}>
+          <div key={d} style={{ display: "flex", alignItems: "center", gap: 9, padding: "7px 11px", borderBottom: "1px solid var(--divider)" }}>
             <span style={{ fontFamily: "var(--mono)", fontSize: 12, color: "var(--text-2)" }}>{window.drDateTH(d)}</span>
             <span style={{ fontSize: 12.5, color: "var(--text-1)" }}>{f.holidays[d]}</span>
             <button onClick={() => { const h = Object.assign({}, f.holidays); delete h[d]; set("holidays", h); }}
@@ -1191,7 +1191,7 @@ function TmOtPeriod({ cfg, users, jobs, rows, byName }) {
   const hrs = (m) => (!m ? "—" : (Math.round((m / 60) * 100) / 100).toFixed(2));
   const th = (t, align) => (
     <th key={t} style={{ textAlign: align || "left", padding: "10px 13px", fontSize: 11.5, fontWeight: 800,
-      color: "var(--text-3)", borderBottom: "1px solid var(--border)", whiteSpace: "nowrap" }}>{t}</th>
+      color: "var(--text-3)", borderBottom: "1px solid var(--divider)", whiteSpace: "nowrap" }}>{t}</th>
   );
 
   return (
@@ -1234,7 +1234,7 @@ function TmOtPeriod({ cfg, users, jobs, rows, byName }) {
               </td></tr>
             )}
             {people.map((g) => (
-              <tr key={g.id || g.name} style={{ borderBottom: "1px solid var(--border)" }}>
+              <tr key={g.id || g.name} style={{ borderBottom: "1px solid var(--divider)" }}>
                 <td style={{ padding: "9px 13px", fontWeight: 700, color: "var(--text-1)" }}>{g.name}</td>
                 <td style={{ padding: "9px 13px", textAlign: "center", fontFamily: "var(--mono)", fontWeight: 700 }}>{g.rows.length}</td>
                 <td style={{ padding: "9px 13px", textAlign: "center", fontFamily: "var(--mono)", fontWeight: 700 }}>{hrs(g.minsApproved)}</td>
@@ -1378,7 +1378,7 @@ function AttendView({ jobs, users, role, currentUser }) {
         {TABS.map(([k, th, ic, n]) => (
           <button key={k} onClick={() => setTab(k)}
             style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "8px 14px", borderRadius: "var(--r-pill)",
-              border: "1px solid " + (tab === k ? "var(--primary)" : "var(--border-strong)"),
+              border: "none", boxShadow: tab === k ? "inset 0 0 0 1px var(--primary)" : "var(--shadow-sm)",
               background: tab === k ? "var(--primary-soft)" : "var(--surface)", cursor: "pointer", fontFamily: "inherit",
               fontSize: 12.5, fontWeight: 700, color: tab === k ? "var(--primary-dark)" : "var(--text-2)" }}>
             <Icon name={ic} size={14} color={tab === k ? "var(--primary-dark)" : "var(--text-3)"} /> {th}
@@ -1429,7 +1429,7 @@ function TmMyDays({ rows, cfg }) {
       {(rows || []).length === 0
         ? <div style={{ padding: 34, textAlign: "center", color: "var(--text-3)", fontSize: 13 }}>ยังไม่มีประวัติการลงเวลา — ลงเวลาได้จากแอปในไลน์</div>
         : (rows || []).map((r) => (
-          <div key={r.date} style={{ display: "flex", alignItems: "center", gap: 12, padding: "10px 14px", borderBottom: "1px solid var(--border)" }}>
+          <div key={r.date} style={{ display: "flex", alignItems: "center", gap: 12, padding: "10px 14px", borderBottom: "1px solid var(--divider)" }}>
             <span style={{ fontSize: 12.5, fontWeight: 700, color: "var(--text-1)", minWidth: 130 }}>{window.drDateTH(r.date, true)}</span>
             <span style={{ fontFamily: "var(--mono)", fontSize: 13, fontWeight: 700 }}>
               {(r.in && r.in.hm) || "—"} → {(r.out && r.out.hm) || (r.in ? "ยังไม่ออก" : "—")}

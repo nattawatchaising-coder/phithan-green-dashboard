@@ -118,13 +118,13 @@ function BlDeliveryPaper({ job, bill, row, photos, onClose }) {
     }
   });
 
-  const paper = { maxWidth: 900, margin: "0 auto", background: "#fff", color: BP_INK,
+  const paper = { maxWidth: 900, margin: "0 auto", background: "var(--paper-bg)", color: BP_INK,
     padding: isMobile ? "20px 16px" : "30px 34px", borderRadius: isMobile ? 0 : 12, boxShadow: "var(--shadow-modal)" };
 
   const tab = (id, label) => (
     <button key={id} onClick={() => setPart(id)}
       style={{ padding: "7px 12px", borderRadius: 9, fontFamily: "inherit", fontSize: 12, fontWeight: 700, cursor: "pointer",
-        border: "1px solid " + (part === id ? BP_ACCENT : "var(--border-strong)"),
+        border: "none", boxShadow: part === id ? "inset 0 0 0 1px " + BP_ACCENT : "var(--shadow-sm)",
         background: part === id ? BP_ACCENT + "18" : "var(--surface)", color: part === id ? BP_ACCENT : "var(--text-2)" }}>
       {label}
     </button>
@@ -135,7 +135,7 @@ function BlDeliveryPaper({ job, bill, row, photos, onClose }) {
       overflow: "auto", padding: isMobile ? 0 : "24px 16px" }}>
 
       <div className="sv-rep-noprint" style={{ position: "sticky", top: 0, zIndex: 2, display: "flex", gap: 9, alignItems: "center", flexWrap: "wrap",
-        padding: "11px 14px", background: "var(--surface)", borderBottom: "1px solid var(--border)",
+        padding: "11px 14px", background: "var(--surface)", borderBottom: "1px solid var(--divider)",
         marginBottom: isMobile ? 0 : 16, borderRadius: isMobile ? 0 : 12, maxWidth: 900, marginLeft: "auto", marginRight: "auto", boxShadow: "var(--shadow-sm)" }}>
         <button onClick={onClose} style={{ width: 36, height: 36, borderRadius: 10, border: "1px solid var(--border-strong)",
           background: "var(--surface)", cursor: "pointer", display: "grid", placeItems: "center", color: "var(--text-2)", flexShrink: 0 }}>
@@ -175,7 +175,7 @@ function BlDeliveryPaper({ job, bill, row, photos, onClose }) {
               <div style={{ fontSize: 17, fontWeight: 800, color: BP_INK, letterSpacing: "-.2px" }}>
                 หนังสือแจ้งส่งมอบงานและวางบิล งวดที่ {r.n || 1}
               </div>
-              <div style={{ fontSize: 9.5, fontWeight: 600, letterSpacing: ".12em", color: "#7A8A81", marginTop: 3 }}>
+              <div style={{ fontSize: 9.5, fontWeight: 600, letterSpacing: ".12em", color: "var(--paper-mute)", marginTop: 3 }}>
                 WORK DELIVERY &amp; PAYMENT NOTICE
               </div>
             </div>
@@ -225,12 +225,12 @@ function BlDeliveryPaper({ job, bill, row, photos, onClose }) {
             <div className="bl-foot" style={{ breakInside: "avoid" }}>
             <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: 6 }}>
               <div style={{ minWidth: 262, border: "1px solid " + BP_LINE, borderRadius: 10, overflow: "hidden" }}>
-                <div style={{ display: "flex", justifyContent: "space-between", gap: 10, padding: "8px 12px", background: "#F7FAF9" }}>
+                <div style={{ display: "flex", justifyContent: "space-between", gap: 10, padding: "8px 12px", background: "var(--paper-tint)" }}>
                   <span style={{ fontSize: 11, fontWeight: 700, color: BP_INK }}>ยอดงวดนี้{rate > 0 ? " (รวมภาษีมูลค่าเพิ่ม " + rate + "%)" : ""}</span>
                   <span style={{ fontSize: 14, fontWeight: 800, color: BP_INK, fontFamily: "var(--mono)" }}>{window.sBaht(amount)}</span>
                 </div>
                 {rate > 0 && (
-                  <div style={{ padding: "6px 12px", fontSize: 9.5, color: BP_SOFT, lineHeight: 1.75, borderTop: "1px solid #ECF1EE" }}>
+                  <div style={{ padding: "6px 12px", fontSize: 9.5, color: BP_SOFT, lineHeight: 1.75, borderTop: "1px solid var(--paper-line3)" }}>
                     <div style={{ display: "flex", justifyContent: "space-between" }}><span>มูลค่างาน</span><span style={{ fontFamily: "var(--mono)" }}>{window.sBaht(base)}</span></div>
                     <div style={{ display: "flex", justifyContent: "space-between" }}><span>ภาษีมูลค่าเพิ่ม {rate}%</span><span style={{ fontFamily: "var(--mono)" }}>{window.sBaht(vat)}</span></div>
                   </div>
@@ -278,7 +278,7 @@ function BlDeliveryPaper({ job, bill, row, photos, onClose }) {
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 16 }}>
               {pg.shots.map((p) => (
                 <div key={p.id} className="bl-shot" style={{ breakInside: "avoid" }}>
-                  <div style={{ border: "1px solid " + BP_LINE, borderRadius: 8, overflow: "hidden", background: "#F3F6F5" }}>
+                  <div style={{ border: "1px solid " + BP_LINE, borderRadius: 8, overflow: "hidden", background: "var(--paper-tint)" }}>
                     <img src={p.dataUrl} alt={p.cap || ""} style={{ display: "block", width: "100%" }} />
                   </div>
                   {p.cap ? <div style={{ fontSize: 10, color: BP_SOFT, marginTop: 4, lineHeight: 1.5 }}>{p.cap}</div> : null}

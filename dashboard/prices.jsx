@@ -79,7 +79,7 @@ function PricePanel({ priceStore, stock, q = "", grp = "all" }) {
   return (
     <div style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: "var(--r-tile)", overflow: "hidden", boxShadow: "var(--shadow-sm)", display: "flex", flexDirection: "column" }}>
       {/* toolbar: ตัวนับ (ค้นหา/หมวด/เพิ่มวัสดุ ย้ายไปอยู่บน header) */}
-      <div style={{ padding: "12px 16px", borderBottom: "1px solid var(--border)", background: "var(--surface2)", fontSize: 11.5, color: "var(--text-3)" }}>ใส่ราคาแล้ว {pricedCount}/{cat.length} รายการ · บันทึกลงคลังสินค้า{dirtyCount > 0 && <span style={{ color: "#F59E0B", fontWeight: 700 }}> · ยังไม่บันทึก {dirtyCount}</span>}</div>
+      <div style={{ padding: "12px 16px", borderBottom: "1px solid var(--divider)", background: "var(--surface2)", fontSize: 11.5, color: "var(--text-3)" }}>ใส่ราคาแล้ว {pricedCount}/{cat.length} รายการ · บันทึกลงคลังสินค้า{dirtyCount > 0 && <span style={{ color: "#F59E0B", fontWeight: 700 }}> · ยังไม่บันทึก {dirtyCount}</span>}</div>
 
       {/* list */}
       <div style={{ padding: "8px 12px" }}>
@@ -88,7 +88,7 @@ function PricePanel({ priceStore, stock, q = "", grp = "all" }) {
           const dirty = isDirty(c);
           const inStock = !!stockByName[c.name];
           return (
-            <div key={c.name} style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr 1fr" : "1fr 150px 110px 34px", gap: isMobile ? 8 : 10, alignItems: "center", padding: "7px 8px", borderRadius: 9, background: dirty ? "var(--tint-amber-bg)" : "transparent", borderBottom: "1px solid var(--border)" }}>
+            <div key={c.name} style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr 1fr" : "1fr 150px 110px 34px", gap: isMobile ? 8 : 10, alignItems: "center", padding: "7px 8px", borderRadius: 9, background: dirty ? "var(--tint-amber-bg)" : "transparent", borderBottom: "1px solid var(--divider)" }}>
               <div style={{ gridColumn: isMobile ? "1 / -1" : "auto", minWidth: 0 }}>
                 <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
                   <span style={{ width: 6, height: 6, borderRadius: "var(--r-pill)", background: PRICE_GROUP_COLOR[c.group] || "var(--text-3)", flexShrink: 0 }} />
@@ -111,7 +111,7 @@ function PricePanel({ priceStore, stock, q = "", grp = "all" }) {
       </div>
 
       {/* sticky save bar */}
-      <div style={{ position: "sticky", bottom: 0, padding: "12px 16px", paddingBottom: isMobile ? "calc(12px + env(safe-area-inset-bottom,0px))" : 12, borderTop: "1px solid var(--border)", background: "var(--surface)", display: "flex", gap: 10, alignItems: "center" }}>
+      <div style={{ position: "sticky", bottom: 0, padding: "12px 16px", paddingBottom: isMobile ? "calc(12px + env(safe-area-inset-bottom,0px))" : 12, borderTop: "1px solid var(--divider)", background: "var(--surface)", display: "flex", gap: 10, alignItems: "center" }}>
         <div style={{ flex: 1, fontSize: 11.5, color: "var(--text-3)" }}>{newCount > 0 ? <span>มี <b style={{ color: "var(--tint-amber-tx)" }}>{newCount}</b> รายการยังไม่อยู่ในคลัง</span> : (dirtyCount > 0 ? <span style={{ color: "#F59E0B", fontWeight: 700 }}>ยังไม่บันทึก {dirtyCount} รายการ</span> : "บันทึกครบแล้ว")}</div>
         {newCount > 0 && (
           <button onClick={addAllNew}
@@ -157,7 +157,7 @@ function AddPriceModal({ priceStore, stock, onClose }) {
   return (
     <div {...bdClose} style={{ position: "fixed", inset: 0, background: "rgba(8,20,14,.45)", backdropFilter: "blur(3px)", zIndex: 115, display: "grid", placeItems: isMobile ? "end center" : "center", padding: isMobile ? 0 : 20 }}>
       <div onClick={(e) => e.stopPropagation()} style={{ background: "var(--bg)", borderRadius: isMobile ? "20px 20px 0 0" : 18, width: isMobile ? "100%" : "min(440px,100%)", maxHeight: isMobile ? "92dvh" : "90vh", display: "flex", flexDirection: "column", overflow: "hidden", boxShadow: "var(--shadow-modal)" }}>
-        <div style={{ padding: "16px 20px", borderBottom: "1px solid var(--border)", background: "var(--surface)", display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12 }}>
+        <div style={{ padding: "16px 20px", borderBottom: "1px solid var(--divider)", background: "var(--surface)", display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12 }}>
           <h2 style={{ fontSize: 16, fontWeight: 700, color: "var(--text-1)", margin: 0 }}>เพิ่มวัสดุ</h2>
           <button className="x-close" onClick={onClose} style={{ width: 32, height: 32, borderRadius: 9, border: "none", boxShadow: "var(--shadow-sm)", background: "var(--surface)", cursor: "pointer", display: "grid", placeItems: "center", color: "var(--text-2)", flexShrink: 0 }}><Icon name="x" size={16} /></button>
         </div>
@@ -187,7 +187,7 @@ function AddPriceModal({ priceStore, stock, onClose }) {
           </div>
           <div><label style={label}>ราคา (บาท)</label><input type="number" value={nf.price} onChange={(e) => setNF("price", e.target.value)} placeholder="0" style={Object.assign({}, inStyle, { textAlign: "right" })} /></div>
         </div>
-        <div style={{ padding: "12px 20px", paddingBottom: isMobile ? "calc(12px + env(safe-area-inset-bottom,0px))" : 12, borderTop: "1px solid var(--border)", background: "var(--surface)", display: "flex", gap: 10 }}>
+        <div style={{ padding: "12px 20px", paddingBottom: isMobile ? "calc(12px + env(safe-area-inset-bottom,0px))" : 12, borderTop: "1px solid var(--divider)", background: "var(--surface)", display: "flex", gap: 10 }}>
           <button onClick={onClose} style={{ flex: "0 0 auto", padding: "11px 16px", borderRadius: "var(--r-chip)", border: "1px solid var(--border-strong)", background: "var(--surface)", color: "var(--text-2)", fontWeight: 600, fontFamily: "inherit", fontSize: 13.5, cursor: "pointer" }}>ยกเลิก</button>
           <button onClick={save} style={{ flex: 1, padding: "11px 22px", borderRadius: "var(--r-chip)", border: "none", background: "var(--primary)", color: "#fff", fontWeight: 700, fontFamily: "inherit", fontSize: 13.5, cursor: "pointer" }}>เพิ่มลงคลัง</button>
         </div>

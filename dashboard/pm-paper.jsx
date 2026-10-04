@@ -38,7 +38,7 @@ const pmpDate = (v) => (!v ? "" : window.drDateTH ? window.drDateTH(String(v).sl
 
 const pmpTh = { textAlign: "left", padding: "5px 7px", fontSize: 10, fontWeight: 700, color: PM_SOFT,
   borderBottom: "1px solid " + PM_LINE, borderTop: "1px solid " + PM_LINE };
-const pmpTd = { padding: "5px 7px", fontSize: 10.5, color: PM_INK, borderBottom: "1px solid #ECF1EE",
+const pmpTd = { padding: "5px 7px", fontSize: 10.5, color: PM_INK, borderBottom: "1px solid var(--paper-line3)",
   verticalAlign: "top", wordBreak: "break-word" };
 
 /* ค่าที่จะพิมพ์ลงช่อง — พิกัดแปลงเป็นองศา-ลิปดา-ฟิลิปดาตามแบบฟอร์มต้นฉบับ วันที่เป็น พ.ศ. */
@@ -221,7 +221,7 @@ function PmHandoverPaper({ job, rec, sum, prog, photos, onClose }) {
                   {gHead !== null ? (
                     <tr>
                       <td colSpan={cols.length + 1 + (pmHasResult(tb) ? 1 : 0)}
-                        style={Object.assign({}, pmpTd, { background: "#F7FAF9", fontWeight: 700, fontSize: 9.5 })}>
+                        style={Object.assign({}, pmpTd, { background: "var(--paper-tint)", fontWeight: 700, fontSize: 9.5 })}>
                         {(tb.groupEn || "Inverter") + " " + (gHead || "—") + " · " + (tb.groupTh || "ชุดที่") + " " + (gHead || "—")}
                       </td>
                     </tr>
@@ -373,7 +373,7 @@ function PmHandoverPaper({ job, rec, sum, prog, photos, onClose }) {
       overflow: "auto", padding: isMobile ? 0 : "24px 16px" }}>
 
       <div className="sv-rep-noprint" style={{ position: "sticky", top: 0, zIndex: 2, display: "flex", gap: 9, alignItems: "center",
-        padding: "11px 14px", background: "var(--surface)", borderBottom: "1px solid var(--border)",
+        padding: "11px 14px", background: "var(--surface)", borderBottom: "1px solid var(--divider)",
         marginBottom: isMobile ? 0 : 16, borderRadius: isMobile ? 0 : 12, maxWidth: 900, marginLeft: "auto", marginRight: "auto",
         boxShadow: "var(--shadow-sm)" }}>
         <button onClick={onClose} style={{ width: 36, height: 36, borderRadius: 10, border: "1px solid var(--border-strong)",
@@ -398,7 +398,7 @@ function PmHandoverPaper({ job, rec, sum, prog, photos, onClose }) {
         </button>
       </div>
 
-      <div className="sv-rep-paper" style={{ maxWidth: 900, margin: "0 auto", background: "#fff", color: PM_INK,
+      <div className="sv-rep-paper" style={{ maxWidth: 900, margin: "0 auto", background: "var(--paper-bg)", color: PM_INK,
         padding: isMobile ? "18px 14px" : "26px 30px", borderRadius: isMobile ? 0 : 12, boxShadow: "var(--shadow-pop)" }}>
 
         {/* ── แผ่น Summary — แบ่งเองเป็นหน้า ๆ ที่ขอบกลุ่ม ── */}
@@ -491,8 +491,8 @@ function PmHandoverPaper({ job, rec, sum, prog, photos, onClose }) {
         {p.missing && p.missing.length ? (
           <div className="pm-sheet">
             {headBar("Outstanding Items", "รายการที่ยังขาด")}
-            <div style={{ border: "1.5px solid #DC2626", background: "#FEF2F2", borderRadius: 8, padding: "10px 12px", marginBottom: 12 }}>
-              <div style={{ fontSize: 12, fontWeight: 800, color: "#B91C1C" }}>
+            <div style={{ border: "1.5px solid var(--paper-bad-tx)", background: "var(--paper-bad-bg)", borderRadius: 8, padding: "10px 12px", marginBottom: 12 }}>
+              <div style={{ fontSize: 12, fontWeight: 800, color: "var(--paper-bad-tx)" }}>
                 เอกสารชุดนี้ยังไม่สมบูรณ์ — ยังขาดอีก {p.missing.length} รายการ
               </div>
               <div style={{ fontSize: 10, color: "#991B1B", marginTop: 2 }}>

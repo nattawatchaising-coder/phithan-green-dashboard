@@ -393,12 +393,12 @@ function StickerPicker({ onPick, onClose }) {
   }, [cat]);
 
   const chip = (on) => ({ padding: "6px 12px", borderRadius: 99, cursor: "pointer", fontFamily: "inherit", fontSize: 12, fontWeight: 600, whiteSpace: "nowrap",
-    border: "1px solid " + (on ? "var(--primary)" : "var(--border-strong)"), background: on ? "var(--primary-soft)" : "var(--surface)", color: on ? "var(--primary-dark)" : "var(--text-2)" });
+    border: "none", boxShadow: on ? "inset 0 0 0 1px var(--primary)" : "var(--shadow-sm)", background: on ? "var(--primary-soft)" : "var(--surface)", color: on ? "var(--primary-dark)" : "var(--text-2)" });
 
   return (
     <div style={{ position: "fixed", inset: 0, background: "rgba(8,20,14,.55)", backdropFilter: "blur(3px)", zIndex: 140, display: "grid", placeItems: isMobile ? "end center" : "center", padding: isMobile ? 0 : 20 }}>
       <div style={{ background: "var(--bg)", borderRadius: isMobile ? "20px 20px 0 0" : 20, width: isMobile ? "100%" : "min(720px,100%)", maxHeight: isMobile ? "92dvh" : "88vh", display: "flex", flexDirection: "column", overflow: "hidden", boxShadow: "var(--shadow-modal)" }}>
-        <div style={{ padding: "13px 16px", borderBottom: "1px solid var(--border)", background: "var(--surface)", display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10 }}>
+        <div style={{ padding: "13px 16px", borderBottom: "1px solid var(--divider)", background: "var(--surface)", display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10 }}>
           <div style={{ minWidth: 0 }}>
             <div style={{ fontSize: 15, fontWeight: 800, color: "var(--text-1)" }}>คลังรูปแปะ</div>
             <div style={{ fontSize: 11.5, color: "var(--text-3)", marginTop: 1 }}>กดรูปเพื่อแปะลงบนรูปหน้างาน · ลงรูปไว้ครั้งเดียวใช้ได้ทุกงาน</div>
@@ -406,14 +406,14 @@ function StickerPicker({ onPick, onClose }) {
           <div style={{ display: "flex", gap: 8, alignItems: "center", flexShrink: 0 }}>
             <button onClick={() => setManage((m) => !m)}
               style={{ height: 32, padding: "0 12px", borderRadius: 9, cursor: "pointer", fontFamily: "inherit", fontSize: 12, fontWeight: 700,
-                border: "1px solid " + (manage ? "var(--primary)" : "var(--border-strong)"), background: manage ? "var(--primary-soft)" : "var(--surface)", color: manage ? "var(--primary-dark)" : "var(--text-2)" }}>
+                border: "none", boxShadow: manage ? "inset 0 0 0 1px var(--primary)" : "var(--shadow-sm)", background: manage ? "var(--primary-soft)" : "var(--surface)", color: manage ? "var(--primary-dark)" : "var(--text-2)" }}>
               {manage ? "เสร็จแล้ว" : "จัดการ"}
             </button>
             <button className="x-close" onClick={onClose} style={{ width: 34, height: 34, borderRadius: "var(--r-chip)", border: "none", boxShadow: "var(--shadow-sm)", background: "var(--surface)", cursor: "pointer", display: "grid", placeItems: "center", color: "var(--text-2)" }}><Icon name="x" size={16} /></button>
           </div>
         </div>
 
-        <div style={{ padding: "10px 14px", borderBottom: "1px solid var(--border)", background: "var(--surface)", display: "flex", gap: 6, overflowX: "auto" }}>
+        <div style={{ padding: "10px 14px", borderBottom: "1px solid var(--divider)", background: "var(--surface)", display: "flex", gap: 6, overflowX: "auto" }}>
           <button onClick={() => setCat("")} style={chip(!cat)}>ทั้งหมด <span style={{ fontFamily: "var(--mono)", opacity: .7 }}>{lib.items.length}</span></button>
           {cats.map((c) => {
             const n = lib.items.filter((s) => (s.cat || "อื่นๆ") === c).length;
@@ -452,7 +452,7 @@ function StickerPicker({ onPick, onClose }) {
           </div>
         </div>
 
-        <div style={{ padding: "12px 14px", paddingBottom: isMobile ? "calc(12px + env(safe-area-inset-bottom,0px))" : 12, borderTop: "1px solid var(--border)", background: "var(--surface)", display: "flex", gap: 10, alignItems: "center" }}>
+        <div style={{ padding: "12px 14px", paddingBottom: isMobile ? "calc(12px + env(safe-area-inset-bottom,0px))" : 12, borderTop: "1px solid var(--divider)", background: "var(--surface)", display: "flex", gap: 10, alignItems: "center" }}>
           <input ref={fileRef} type="file" accept="image/*" multiple style={{ display: "none" }}
             onChange={(e) => { addFiles(e.target.files); e.target.value = ""; }} />
           <button onClick={() => fileRef.current && fileRef.current.click()} disabled={!!busy}
@@ -676,7 +676,7 @@ function AnnEditor({ shot, onSave, onClose }) {
   return (
     <div style={{ position: "fixed", inset: 0, background: "rgba(8,20,14,.62)", backdropFilter: "blur(3px)", zIndex: 130, display: "grid", placeItems: isMobile ? "end center" : "center", padding: isMobile ? 0 : 20 }}>
       <div style={{ background: "var(--bg)", borderRadius: isMobile ? "20px 20px 0 0" : 20, width: isMobile ? "100%" : "min(880px,100%)", maxHeight: isMobile ? "96dvh" : "94vh", display: "flex", flexDirection: "column", overflow: "hidden", boxShadow: "var(--shadow-modal)" }}>
-        <div style={{ padding: "13px 16px", borderBottom: "1px solid var(--border)", background: "var(--surface)", display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10 }}>
+        <div style={{ padding: "13px 16px", borderBottom: "1px solid var(--divider)", background: "var(--surface)", display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10 }}>
           <div style={{ minWidth: 0 }}>
             <div style={{ fontSize: 15, fontWeight: 800, color: "var(--text-1)", letterSpacing: "-.01em" }}>เขียนบนรูป</div>
             <div style={{ fontSize: 11.5, color: "var(--text-3)", marginTop: 1 }}>{curTool.hint}</div>
@@ -714,7 +714,7 @@ function AnnEditor({ shot, onSave, onClose }) {
           </div>
         </div>
 
-        <div style={{ padding: "10px 14px", borderTop: "1px solid var(--border)", background: "var(--surface)", display: "flex", gap: 10, flexWrap: "wrap", alignItems: "center" }}>
+        <div style={{ padding: "10px 14px", borderTop: "1px solid var(--divider)", background: "var(--surface)", display: "flex", gap: 10, flexWrap: "wrap", alignItems: "center" }}>
           {/* เครื่องมือ — กลุ่มเดียวแบบ segmented ปุ่มเท่ากันหมด ไม่ยาวลากยาวเหมือนของเดิม */}
           <div style={{ display: "inline-flex", background: "var(--surface3)", borderRadius: "var(--r-chip)", padding: 3, gap: 2 }}>
             {ANN_TOOLS.map((t) => {
@@ -743,7 +743,7 @@ function AnnEditor({ shot, onSave, onClose }) {
           <button onClick={() => { setAnn((a) => a.slice(0, -1)); setSel(null); }} disabled={!ann.length} style={Object.assign({}, ghost, { opacity: ann.length ? 1 : .4 })}>↶ เลิกทำ</button>
           <button onClick={() => { setAnn([]); setSel(null); }} disabled={!ann.length} style={Object.assign({}, ghost, { opacity: ann.length ? 1 : .4 })}>ล้าง</button>
         </div>
-        <div style={{ padding: "12px 14px", paddingBottom: isMobile ? "calc(12px + env(safe-area-inset-bottom,0px))" : 12, borderTop: "1px solid var(--border)", background: "var(--surface)", display: "flex", gap: 10 }}>
+        <div style={{ padding: "12px 14px", paddingBottom: isMobile ? "calc(12px + env(safe-area-inset-bottom,0px))" : 12, borderTop: "1px solid var(--divider)", background: "var(--surface)", display: "flex", gap: 10 }}>
           <button onClick={onClose} style={{ padding: "12px 18px", borderRadius: "var(--r-chip)", border: "1px solid var(--border-strong)", background: "var(--surface)", color: "var(--text-2)", fontWeight: 700, fontFamily: "inherit", fontSize: 13.5, cursor: "pointer" }}>ยกเลิก</button>
           <button onClick={() => onSave(ann)} style={{ flex: 1, padding: 12, borderRadius: "var(--r-chip)", border: "none", background: "var(--primary)", color: "#fff", fontWeight: 700, fontFamily: "inherit", fontSize: 14, cursor: "pointer", boxShadow: "0 4px 14px rgba(27,155,117,.3)" }}>บันทึกที่เขียน</button>
         </div>

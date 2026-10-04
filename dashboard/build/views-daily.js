@@ -76,7 +76,7 @@ function DrSection({
       alignItems: "center",
       gap: 9,
       padding: "11px 14px",
-      borderBottom: "1px solid var(--border)"
+      borderBottom: "1px solid var(--divider)"
     }
   }, React.createElement("span", {
     style: {
@@ -139,7 +139,8 @@ function DrChips({
         fontSize: 12.5,
         fontWeight: 700,
         opacity: disabled && !on ? 0.5 : 1,
-        border: "1px solid " + (on ? c : "var(--border-strong)"),
+        border: "none",
+        boxShadow: on ? "inset 0 0 0 1px " + c : "var(--shadow-sm)",
         background: on ? c + "1e" : "var(--surface)",
         color: on ? c : "var(--text-2)"
       }
@@ -302,7 +303,7 @@ function DrStepTable({
   }) : r));
   const cell = {
     padding: "5px 6px",
-    borderBottom: "1px solid var(--border)",
+    borderBottom: "1px solid var(--divider)",
     fontSize: 12
   };
   const dateBox = (i, k, r) => editable && !disabled ? React.createElement("input", {
@@ -540,7 +541,7 @@ function DrPhotoCap({
       display: "flex",
       alignItems: "center",
       gap: 6,
-      borderTop: "1px solid var(--border)",
+      borderTop: "1px solid var(--divider)",
       padding: "6px 8px",
       background: "var(--surface2)"
     }
@@ -1012,7 +1013,7 @@ function DailyReportModal({
       top: 0,
       zIndex: 3,
       background: "var(--surface)",
-      borderBottom: "1px solid var(--border)",
+      borderBottom: "1px solid var(--divider)",
       padding: isMobile ? "13px 14px" : "16px 20px"
     }
   }, React.createElement("div", {
@@ -1045,7 +1046,7 @@ function DailyReportModal({
       fontWeight: 700,
       color: st.color,
       background: st.color + "1c",
-      border: "1px solid " + st.color + "40",
+      border: "none",
       borderRadius: "var(--r-pill)",
       padding: "2px 10px"
     }
@@ -1185,7 +1186,8 @@ function DailyReportModal({
         padding: "5px 10px",
         borderRadius: "var(--r-pill)",
         flexShrink: 0,
-        border: "1px solid " + (on ? "var(--primary)" : "var(--border)"),
+        border: "none",
+        boxShadow: on ? "inset 0 0 0 1px var(--primary)" : "var(--shadow-sm)",
         background: on ? "var(--primary-soft)" : "var(--surface)",
         cursor: "pointer",
         fontFamily: "inherit",
@@ -1585,7 +1587,8 @@ function DailyReportModal({
         gap: 6,
         padding: "7px 12px",
         borderRadius: "var(--r-pill)",
-        border: "1px solid " + (on ? "#10B981" : "var(--border-strong)"),
+        border: "none",
+        boxShadow: on ? "inset 0 0 0 1px #10B981" : "var(--shadow-sm)",
         background: on ? "#10B9811c" : "var(--surface)",
         cursor: locked ? "default" : "pointer",
         fontFamily: "inherit",
@@ -1659,7 +1662,7 @@ function DailyReportModal({
       position: "sticky",
       bottom: 0,
       background: "var(--surface)",
-      borderTop: "1px solid var(--border)",
+      borderTop: "1px solid var(--divider)",
       padding: isMobile ? "11px 13px" : "13px 20px",
       display: "flex",
       gap: 9,
@@ -1860,19 +1863,19 @@ function DrPRow({
   return React.createElement(React.Fragment, null, React.createElement("div", {
     style: {
       padding: "6px 10px",
-      borderRight: "1px solid #DCE4DF",
-      borderBottom: "1px solid #DCE4DF",
+      borderRight: "1px solid var(--paper-line)",
+      borderBottom: "1px solid var(--paper-line)",
       fontSize: 10.5,
       fontWeight: 700,
-      color: "#0A4D68",
-      background: "#F3F7F4"
+      color: "var(--paper-brand-dk)",
+      background: "var(--paper-tint)"
     }
   }, k), React.createElement("div", {
     style: {
       padding: "6px 10px",
-      borderBottom: "1px solid #DCE4DF",
+      borderBottom: "1px solid var(--paper-line)",
       fontSize: 11,
-      color: "#15211A"
+      color: "var(--paper-ink)"
     }
   }, v || "-"));
 }
@@ -1891,7 +1894,7 @@ function DrPBlock({
       display: "flex",
       alignItems: "center",
       gap: 7,
-      borderBottom: "1px solid #DCE4DF",
+      borderBottom: "1px solid var(--paper-line)",
       paddingBottom: 5,
       marginBottom: 8
     }
@@ -1900,13 +1903,13 @@ function DrPBlock({
       width: 5,
       height: 5,
       borderRadius: "var(--r-pill)",
-      background: "#1B9B75"
+      background: "var(--paper-brand)"
     }
   }), React.createElement("span", {
     style: {
       fontSize: 12,
       fontWeight: 800,
-      color: "#15211A"
+      color: "var(--paper-ink)"
     }
   }, title)), children);
 }
@@ -1914,7 +1917,7 @@ const drPara = t => React.createElement("div", {
   style: {
     fontSize: 11.5,
     lineHeight: 1.65,
-    color: "#15211A",
+    color: "var(--paper-ink)",
     whiteSpace: "pre-wrap"
   }
 }, t || "—");
@@ -2042,15 +2045,15 @@ function DailyPaper({
     padding: "5px 7px",
     fontSize: 10,
     fontWeight: 700,
-    color: "#5A6B62",
-    borderBottom: "1px solid #C9D5CE",
+    color: "var(--paper-ink3)",
+    borderBottom: "1px solid var(--paper-line2)",
     whiteSpace: "nowrap"
   };
   const td = {
     padding: "5px 7px",
     fontSize: 10.5,
-    color: "#15211A",
-    borderBottom: "1px solid #ECF1EE",
+    color: "var(--paper-ink)",
+    borderBottom: "1px solid var(--paper-line3)",
     verticalAlign: "top"
   };
   const rowsTable = (title, cols, rows) => !rows || !rows.length ? null : React.createElement(DrPBlock, {
@@ -2072,7 +2075,7 @@ function DailyPaper({
   }, React.createElement("td", {
     style: Object.assign({}, td, {
       fontFamily: "var(--mono)",
-      color: "#7A8A81"
+      color: "var(--paper-mute)"
     })
   }, i + 1), cols.map(c => React.createElement("td", {
     key: c.k,
@@ -2100,7 +2103,7 @@ function DailyPaper({
       flexWrap: "wrap",
       padding: "11px 14px",
       background: "var(--surface)",
-      borderBottom: "1px solid var(--border)",
+      borderBottom: "1px solid var(--divider)",
       marginBottom: isMobile ? 0 : 16,
       borderRadius: isMobile ? 0 : 12,
       maxWidth: 900,
@@ -2181,8 +2184,8 @@ function DailyPaper({
     style: {
       maxWidth: 900,
       margin: "0 auto",
-      background: "#fff",
-      color: "#15211A",
+      background: "var(--paper-bg)",
+      color: "var(--paper-ink)",
       fontFamily: lang === "zh" && window.pgFontStack ? window.pgFontStack("zh") : undefined,
       padding: isMobile ? "20px 16px" : "30px 34px",
       borderRadius: isMobile ? 0 : 12,
@@ -2195,7 +2198,7 @@ function DailyPaper({
       alignItems: "flex-end",
       gap: 16,
       flexWrap: "wrap",
-      borderBottom: "2px solid #1B9B75",
+      borderBottom: "2px solid var(--paper-brand)",
       paddingBottom: 11
     }
   }, React.createElement("div", {
@@ -2213,7 +2216,7 @@ function DailyPaper({
       fontSize: 10,
       fontWeight: 600,
       letterSpacing: ".12em",
-      color: "#7A8A81",
+      color: "var(--paper-mute)",
       marginTop: 3
     }
   }, "PROJECT INSTALLATION \u2014 DAILY REPORT"), React.createElement("div", {
@@ -2229,14 +2232,14 @@ function DailyPaper({
     style: {
       textAlign: "right",
       fontSize: 11,
-      color: "#4A5A51",
+      color: "var(--paper-ink2)",
       lineHeight: 1.75
     }
   }, React.createElement("div", {
     style: {
       fontFamily: "var(--mono)",
       fontWeight: 700,
-      color: "#15211A"
+      color: "var(--paper-ink)"
     }
   }, docNo), React.createElement("div", null, DT(date)), React.createElement("div", {
     style: {
@@ -2254,7 +2257,7 @@ function DailyPaper({
       marginTop: 13,
       display: "grid",
       gridTemplateColumns: "auto 1fr auto 1fr",
-      border: "1px solid #DCE4DF",
+      border: "1px solid var(--paper-line)",
       borderRadius: 7,
       overflow: "hidden"
     }
@@ -2279,7 +2282,7 @@ function DailyPaper({
   })), React.createElement("div", {
     style: {
       marginTop: 14,
-      border: "1px solid #DCE4DF",
+      border: "1px solid var(--paper-line)",
       borderRadius: 9,
       padding: "12px 14px",
       breakInside: "avoid"
@@ -2295,7 +2298,7 @@ function DailyPaper({
     style: {
       fontSize: 11.5,
       fontWeight: 700,
-      color: "#4A5A51"
+      color: "var(--paper-ink2)"
     }
   }, T("ความคืบหน้ารวม")), React.createElement("div", {
     style: {
@@ -2303,40 +2306,40 @@ function DailyPaper({
       minWidth: 160,
       height: 9,
       borderRadius: "var(--r-pill)",
-      background: "#E8EEEA",
+      background: "var(--paper-line3)",
       overflow: "hidden"
     }
   }, React.createElement("div", {
     style: {
       width: Math.max(0, Math.min(100, pct)) + "%",
       height: "100%",
-      background: "#1B9B75"
+      background: "var(--paper-brand)"
     }
   })), React.createElement("span", {
     style: {
       fontSize: 17,
       fontWeight: 800,
       fontFamily: "var(--mono)",
-      color: "#15211A"
+      color: "var(--paper-ink)"
     }
   }, pct, "%"), rec.prevPct != null && React.createElement("span", {
     style: {
       fontSize: 11,
-      color: "#4A5A51"
+      color: "var(--paper-ink2)"
     }
   }, T("จากเมื่อวาน"), " ", rec.prevPct, "%")), (wAm || wPm) && React.createElement("div", {
     style: {
       marginTop: 9,
       fontSize: 11,
-      color: "#4A5A51"
+      color: "var(--paper-ink2)"
     }
   }, T("สภาพอากาศ · เช้า"), " ", React.createElement("b", {
     style: {
-      color: "#15211A"
+      color: "var(--paper-ink)"
     }
   }, wAm ? T(wAm.th) : "-"), " \xB7 ", T("บ่าย"), " ", React.createElement("b", {
     style: {
-      color: "#15211A"
+      color: "var(--paper-ink)"
     }
   }, wPm ? T(wPm.th) : "-"))), !!steps.length && React.createElement(DrPBlock, {
     title: T(isProject ? "ความคืบหน้าตามขั้นงาน" : "เนื้องานติดตั้งที่เดินไปแล้ว")
@@ -2408,7 +2411,7 @@ function DailyPaper({
     style: Object.assign({}, td, {
       textAlign: "right",
       fontFamily: "var(--mono)",
-      color: "#7A8A81"
+      color: "var(--paper-mute)"
     })
   }, r.w ? r.w + "%" : "—"), React.createElement("td", {
     style: Object.assign({}, td, {
@@ -2479,7 +2482,7 @@ function DailyPaper({
   }, React.createElement("div", {
     style: {
       fontSize: 11,
-      color: "#15211A",
+      color: "var(--paper-ink)",
       lineHeight: 1.9
     }
   }, React.createElement("div", null, T("ระดับความเสี่ยง (JSA):"), " ", React.createElement("b", null, jsa ? T(jsa.th) + " (" + jsa.range + ")" : "—")), React.createElement("div", null, T("ใบอนุญาตทำงานเย็น:"), " ", React.createElement("b", null, rec.permitCold === "yes" ? T("มี") : rec.permitCold === "no" ? T("ไม่มี") : "—"), "  ·  ", T("ใบอนุญาตทำงานร้อน:"), " ", React.createElement("b", null, rec.permitHot === "yes" ? T("มี") : rec.permitHot === "no" ? T("ไม่มี") : "—")), React.createElement("div", null, T("จัดเก็บพื้นที่:"), " ", React.createElement("b", null, (window.DR_CLEAN || []).filter(c => (rec.clean || {})[c.key]).map(c => T(c.th)).join(" · ") || "—"))), !!(rec.certs || []).length && React.createElement("table", {
@@ -2512,7 +2515,7 @@ function DailyPaper({
     className: "dr-shot",
     style: {
       breakInside: "avoid",
-      border: "1px solid #DCE4DF",
+      border: "1px solid var(--paper-line)",
       borderRadius: 7,
       overflow: "hidden"
     }
@@ -2522,18 +2525,18 @@ function DailyPaper({
     style: {
       width: "100%",
       display: "block",
-      background: "#F3F7F4"
+      background: "var(--paper-tint)"
     }
   }), React.createElement("div", {
     style: {
       padding: "5px 8px",
       fontSize: 10.5,
-      color: "#4A5A51",
-      borderTop: "1px solid #ECF1EE"
+      color: "var(--paper-ink2)",
+      borderTop: "1px solid var(--paper-line3)"
     }
   }, React.createElement("b", {
     style: {
-      color: "#0A4D68"
+      color: "var(--paper-brand-dk)"
     }
   }, T("รูปที่"), " ", i + 1), p.cap ? " · " + p.cap : ""))))), React.createElement("div", {
     style: {
@@ -2556,7 +2559,7 @@ function DailyPaper({
   }].map((s, i) => React.createElement("div", {
     key: i,
     style: {
-      border: "1px solid #DCE4DF",
+      border: "1px solid var(--paper-line)",
       borderRadius: 8,
       padding: "12px 14px"
     }
@@ -2564,12 +2567,12 @@ function DailyPaper({
     style: {
       fontSize: 10.5,
       fontWeight: 700,
-      color: "#5A6B62"
+      color: "var(--paper-ink3)"
     }
   }, s.t), React.createElement("div", {
     style: {
       height: 42,
-      borderBottom: "1px solid #C9D5CE",
+      borderBottom: "1px solid var(--paper-line2)",
       marginTop: 6,
       display: "flex",
       alignItems: "flex-end",
@@ -2588,24 +2591,24 @@ function DailyPaper({
     style: {
       fontSize: 11,
       marginTop: 6,
-      color: "#15211A"
+      color: "var(--paper-ink)"
     }
   }, T("ชื่อ:"), " ", React.createElement("b", null, s.g && s.g.name || s.n || "-")), React.createElement("div", {
     style: {
       fontSize: 11,
-      color: "#4A5A51"
+      color: "var(--paper-ink2)"
     }
   }, T("วันที่:"), " ", DTs(s.g ? window.drSignDay(s.g) : window.drLocalDay(s.d))), s.g && s.g.img && React.createElement("div", {
     style: {
       fontSize: 8.5,
-      color: "#8A9A91",
+      color: "var(--paper-mute2)",
       marginTop: 3
     }
   }, T("ลงลายมือชื่ออิเล็กทรอนิกส์ในระบบ"), " ", window.drSignTime(s.g) ? window.drSignTime(s.g) + (lang === "th" ? " น." : "") : "")))), React.createElement("div", {
     style: {
       marginTop: 14,
       fontSize: 9.5,
-      color: "#8A9A91",
+      color: "var(--paper-mute2)",
       textAlign: "center"
     }
   }, T("เอกสารนี้ออกจากระบบติดตามงานติดตั้ง"), " flash+solar \xB7 ", docNo, " \xB7 ", T("พิมพ์เมื่อ"), " ", DTs(window.drToday()))));
@@ -2687,7 +2690,7 @@ function DrGrid({
       alignItems: "flex-end",
       gap: 0,
       padding: "0 12px 6px",
-      borderBottom: "1px solid var(--border)"
+      borderBottom: "1px solid var(--divider)"
     }
   }, React.createElement("div", {
     style: {
@@ -2731,7 +2734,7 @@ function DrGrid({
       display: "flex",
       alignItems: "center",
       padding: "5px 12px",
-      borderBottom: "1px solid var(--border)"
+      borderBottom: "1px solid var(--divider)"
     }
   }, React.createElement("button", {
     onClick: () => onPickJob(r.job),
@@ -2854,7 +2857,7 @@ function DrJobSummary({
       alignItems: "center",
       gap: 10,
       padding: "11px 14px",
-      borderBottom: "1px solid var(--border)"
+      borderBottom: "1px solid var(--divider)"
     }
   }, React.createElement("button", {
     onClick: onBack,
@@ -2919,7 +2922,7 @@ function DrJobSummary({
         gap: 11,
         padding: "11px 14px",
         border: "none",
-        borderBottom: "1px solid var(--border)",
+        borderBottom: "1px solid var(--divider)",
         background: "none",
         cursor: "pointer",
         fontFamily: "inherit",
@@ -3028,7 +3031,7 @@ function DrInbox({
         padding: "13px 16px",
         background: "none",
         border: "none",
-        borderBottom: "1px solid var(--border)",
+        borderBottom: "1px solid var(--divider)",
         cursor: "pointer",
         fontFamily: "inherit",
         textAlign: "left"
@@ -3188,7 +3191,8 @@ function DailyView({
       gap: 7,
       padding: "7px 14px",
       borderRadius: "var(--r-pill)",
-      border: "1px solid " + (mode === k ? "var(--primary)" : "var(--border-strong)"),
+      border: "none",
+      boxShadow: mode === k ? "inset 0 0 0 1px var(--primary)" : "var(--shadow-sm)",
       background: mode === k ? "var(--primary-soft)" : "var(--surface)",
       cursor: "pointer",
       fontFamily: "inherit",
@@ -3246,7 +3250,8 @@ function DailyView({
       fontFamily: "inherit",
       fontSize: 12,
       fontWeight: 700,
-      border: "1px solid " + (days === d ? "var(--primary)" : "var(--border-strong)"),
+      border: "none",
+      boxShadow: days === d ? "inset 0 0 0 1px var(--primary)" : "var(--shadow-sm)",
       background: days === d ? "var(--primary-soft)" : "var(--surface)",
       color: days === d ? "var(--primary-dark)" : "var(--text-2)"
     }
@@ -3262,7 +3267,8 @@ function DailyView({
       fontFamily: "inherit",
       fontSize: 12,
       fontWeight: 700,
-      border: "1px solid " + (sentOnly ? "#F59E0B" : "var(--border-strong)"),
+      border: "none",
+      boxShadow: sentOnly ? "inset 0 0 0 1px #F59E0B" : "var(--shadow-sm)",
       background: sentOnly ? "#F59E0B16" : "var(--surface)",
       color: sentOnly ? "#B45309" : "var(--text-2)"
     }
@@ -3443,7 +3449,7 @@ function DailyView({
         alignItems: "center",
         gap: 9,
         padding: isMobile ? "11px 12px" : "13px 16px",
-        borderBottom: "1px solid var(--border)",
+        borderBottom: "1px solid var(--divider)",
         background: "var(--tint-red-bg)",
         flexWrap: "wrap"
       }
@@ -3498,7 +3504,7 @@ function DailyView({
       style: {
         display: "flex",
         alignItems: "center",
-        borderBottom: "1px solid var(--border)"
+        borderBottom: "1px solid var(--divider)"
       }
     }, React.createElement("button", {
       onClick: () => onOpen(r.job),

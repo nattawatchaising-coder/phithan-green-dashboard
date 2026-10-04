@@ -140,7 +140,8 @@ function PmDocRow({
         fontFamily: "inherit",
         fontSize: 15,
         fontWeight: 800,
-        border: "1px solid " + (on ? color : "var(--border-strong)"),
+        border: "none",
+        boxShadow: on ? "inset 0 0 0 1px " + color : "var(--shadow-sm)",
         background: on ? color : "var(--surface)",
         color: on ? "#fff" : "var(--text-3)"
       }
@@ -152,7 +153,7 @@ function PmDocRow({
       alignItems: "center",
       gap: 8,
       padding: "7px 0",
-      borderBottom: "1px solid var(--border)"
+      borderBottom: "1px solid var(--divider)"
     }
   }, React.createElement("span", {
     style: {
@@ -651,7 +652,7 @@ function PmTableBlock({
       gap: 8,
       marginBottom: 9,
       paddingBottom: 4,
-      borderBottom: "1px solid var(--border)"
+      borderBottom: "1px solid var(--divider)"
     }
   }, React.createElement("span", {
     style: {
@@ -1044,7 +1045,8 @@ function PmHandoverModal({
         borderRadius: "var(--r-pill)",
         cursor: "pointer",
         fontFamily: "inherit",
-        border: "1px solid " + (on ? "var(--primary)" : "var(--border-strong)"),
+        border: "none",
+        boxShadow: on ? "inset 0 0 0 1px var(--primary)" : "var(--shadow-sm)",
         background: on ? "var(--primary-soft)" : "var(--surface)",
         textAlign: "left"
       }
@@ -1090,7 +1092,7 @@ function PmHandoverModal({
     style: {
       flexShrink: 0,
       padding: "13px 16px",
-      borderBottom: "1px solid var(--border)",
+      borderBottom: "1px solid var(--divider)",
       background: "var(--surface)",
       display: "flex",
       alignItems: "center",
@@ -1189,7 +1191,7 @@ function PmHandoverModal({
       flexShrink: 0,
       padding: "10px 16px",
       background: "var(--surface)",
-      borderBottom: "1px solid var(--border)"
+      borderBottom: "1px solid var(--divider)"
     }
   }, React.createElement("div", {
     style: {
@@ -1275,7 +1277,7 @@ function PmHandoverModal({
       gap: 8,
       padding: "10px 16px",
       overflowX: "auto",
-      borderBottom: "1px solid var(--border)"
+      borderBottom: "1px solid var(--divider)"
     }
   }, React.createElement("button", {
     onClick: () => setTab("home"),
@@ -1285,7 +1287,8 @@ function PmHandoverModal({
       borderRadius: "var(--r-pill)",
       cursor: "pointer",
       fontFamily: "inherit",
-      border: "1px solid " + (tab === "home" ? "var(--primary)" : "var(--border-strong)"),
+      border: "none",
+      boxShadow: tab === "home" ? "inset 0 0 0 1px var(--primary)" : "var(--shadow-sm)",
       background: tab === "home" ? "var(--primary-soft)" : "var(--surface)",
       textAlign: "left"
     }
@@ -1311,7 +1314,8 @@ function PmHandoverModal({
       borderRadius: "var(--r-pill)",
       cursor: "pointer",
       fontFamily: "inherit",
-      border: "1px solid " + (tab === "photo" ? "var(--primary)" : "var(--border-strong)"),
+      border: "none",
+      boxShadow: tab === "photo" ? "inset 0 0 0 1px var(--primary)" : "var(--shadow-sm)",
       background: tab === "photo" ? "var(--primary-soft)" : "var(--surface)",
       textAlign: "left"
     }
@@ -1454,7 +1458,7 @@ function PmHandoverModal({
       gap: 8,
       marginBottom: 9,
       paddingBottom: 4,
-      borderBottom: "1px solid var(--border)"
+      borderBottom: "1px solid var(--divider)"
     }
   }, React.createElement("span", {
     style: {
@@ -1527,7 +1531,7 @@ function PmHandoverModal({
       color: "var(--text-1)",
       marginBottom: 4,
       paddingBottom: 4,
-      borderBottom: "1px solid var(--border)"
+      borderBottom: "1px solid var(--divider)"
     }
   }, g.en, " ", React.createElement("span", {
     style: {
@@ -1705,7 +1709,7 @@ function PmHandoverModal({
   }, "\u0E23\u0E39\u0E1B\u0E16\u0E39\u0E01\u0E22\u0E48\u0E2D\u0E01\u0E48\u0E2D\u0E19\u0E40\u0E01\u0E47\u0E1A\u0E40\u0E1E\u0E37\u0E48\u0E2D\u0E44\u0E21\u0E48\u0E43\u0E2B\u0E49\u0E40\u0E1B\u0E25\u0E37\u0E2D\u0E07\u0E40\u0E19\u0E47\u0E15\u0E02\u0E2D\u0E07\u0E0A\u0E48\u0E32\u0E07\u0E2B\u0E19\u0E49\u0E32\u0E07\u0E32\u0E19 \xB7 \u0E44\u0E1F\u0E25\u0E4C Excel \u0E1D\u0E31\u0E07\u0E23\u0E39\u0E1B\u0E44\u0E21\u0E48\u0E44\u0E14\u0E49 \u0E41\u0E1C\u0E48\u0E19 Photos \u0E43\u0E19\u0E19\u0E31\u0E49\u0E19\u0E40\u0E1B\u0E47\u0E19\u0E2A\u0E32\u0E23\u0E1A\u0E31\u0E0D\u0E17\u0E35\u0E48\u0E2D\u0E49\u0E32\u0E07\u0E40\u0E25\u0E02\u0E23\u0E39\u0E1B\u0E0A\u0E38\u0E14\u0E40\u0E14\u0E35\u0E22\u0E27\u0E01\u0E31\u0E1A\u0E43\u0E19 PDF"))), React.createElement("div", {
     style: {
       flexShrink: 0,
-      borderTop: "1px solid var(--border)",
+      borderTop: "1px solid var(--divider)",
       background: "var(--surface)",
       padding: "11px 16px"
     }

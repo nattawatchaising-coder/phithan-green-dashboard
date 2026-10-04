@@ -22,7 +22,7 @@ const pmpTd = {
   padding: "5px 7px",
   fontSize: 10.5,
   color: PM_INK,
-  borderBottom: "1px solid #ECF1EE",
+  borderBottom: "1px solid var(--paper-line3)",
   verticalAlign: "top",
   wordBreak: "break-word"
 };
@@ -305,7 +305,7 @@ function PmHandoverPaper({
       }, gHead !== null ? React.createElement("tr", null, React.createElement("td", {
         colSpan: cols.length + 1 + (pmHasResult(tb) ? 1 : 0),
         style: Object.assign({}, pmpTd, {
-          background: "#F7FAF9",
+          background: "var(--paper-tint)",
           fontWeight: 700,
           fontSize: 9.5
         })
@@ -550,7 +550,7 @@ function PmHandoverPaper({
       alignItems: "center",
       padding: "11px 14px",
       background: "var(--surface)",
-      borderBottom: "1px solid var(--border)",
+      borderBottom: "1px solid var(--divider)",
       marginBottom: isMobile ? 0 : 16,
       borderRadius: isMobile ? 0 : 12,
       maxWidth: 900,
@@ -625,7 +625,7 @@ function PmHandoverPaper({
     style: {
       maxWidth: 900,
       margin: "0 auto",
-      background: "#fff",
+      background: "var(--paper-bg)",
       color: PM_INK,
       padding: isMobile ? "18px 14px" : "26px 30px",
       borderRadius: isMobile ? 0 : 12,
@@ -756,8 +756,8 @@ function PmHandoverPaper({
     className: "pm-sheet"
   }, headBar("Outstanding Items", "รายการที่ยังขาด"), React.createElement("div", {
     style: {
-      border: "1.5px solid #DC2626",
-      background: "#FEF2F2",
+      border: "1.5px solid var(--paper-bad-tx)",
+      background: "var(--paper-bad-bg)",
       borderRadius: 8,
       padding: "10px 12px",
       marginBottom: 12
@@ -766,7 +766,7 @@ function PmHandoverPaper({
     style: {
       fontSize: 12,
       fontWeight: 800,
-      color: "#B91C1C"
+      color: "var(--paper-bad-tx)"
     }
   }, "\u0E40\u0E2D\u0E01\u0E2A\u0E32\u0E23\u0E0A\u0E38\u0E14\u0E19\u0E35\u0E49\u0E22\u0E31\u0E07\u0E44\u0E21\u0E48\u0E2A\u0E21\u0E1A\u0E39\u0E23\u0E13\u0E4C \u2014 \u0E22\u0E31\u0E07\u0E02\u0E32\u0E14\u0E2D\u0E35\u0E01 ", p.missing.length, " \u0E23\u0E32\u0E22\u0E01\u0E32\u0E23"), React.createElement("div", {
     style: {

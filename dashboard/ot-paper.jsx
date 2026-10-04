@@ -78,8 +78,8 @@ function TmOtPaper({ person, period, rows, jobs, users, cfg, byName, onClose }) 
   };
 
   const th = { textAlign: "center", padding: "6px 7px", fontSize: 10, fontWeight: 700, color: "#FFFFFF",
-    background: "#1B9B75", border: "1px solid #C9D5CE", whiteSpace: "nowrap" };
-  const td = { padding: "6px 7px", fontSize: 10.5, color: "#15211A", border: "1px solid #DCE4DF",
+    background: "var(--paper-brand)", border: "1px solid var(--paper-line2)", whiteSpace: "nowrap" };
+  const td = { padding: "6px 7px", fontSize: 10.5, color: "var(--paper-ink)", border: "1px solid var(--paper-line)",
     textAlign: "center", verticalAlign: "middle" };
   const tdL = Object.assign({}, td, { textAlign: "left" });
 
@@ -88,7 +88,7 @@ function TmOtPaper({ person, period, rows, jobs, users, cfg, byName, onClose }) 
       overflow: "auto", padding: isMobile ? 0 : "24px 16px" }}>
 
       <div className="sv-rep-noprint" style={{ position: "sticky", top: 0, zIndex: 2, display: "flex", gap: 9, alignItems: "center",
-        padding: "11px 14px", background: "var(--surface)", borderBottom: "1px solid var(--border)",
+        padding: "11px 14px", background: "var(--surface)", borderBottom: "1px solid var(--divider)",
         marginBottom: isMobile ? 0 : 16, borderRadius: isMobile ? 0 : 12, maxWidth: 900, marginLeft: "auto", marginRight: "auto", boxShadow: "var(--shadow-sm)" }}>
         <button onClick={onClose} style={{ width: 36, height: 36, borderRadius: 10, border: "1px solid var(--border-strong)",
           background: "var(--surface)", cursor: "pointer", display: "grid", placeItems: "center", color: "var(--text-2)", flexShrink: 0 }}>
@@ -106,21 +106,21 @@ function TmOtPaper({ person, period, rows, jobs, users, cfg, byName, onClose }) 
         </button>
       </div>
 
-      <div className="sv-rep-paper" style={{ maxWidth: 900, margin: "0 auto", background: "#fff", color: "#15211A",
+      <div className="sv-rep-paper" style={{ maxWidth: 900, margin: "0 auto", background: "var(--paper-bg)", color: "var(--paper-ink)",
         padding: isMobile ? "20px 16px" : "30px 34px", borderRadius: isMobile ? 0 : 12, boxShadow: "var(--shadow-modal)" }}>
 
         {/* หัวกระดาษ */}
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", gap: 16, flexWrap: "wrap",
-          borderBottom: "2px solid #1B9B75", paddingBottom: 11 }}>
+          borderBottom: "2px solid var(--paper-brand)", paddingBottom: 11 }}>
           <div style={{ minWidth: 0 }}>
             <div style={{ fontSize: 21, fontWeight: 800, letterSpacing: "-.01em" }}>ใบสรุปการทำงานล่วงเวลา</div>
-            <div style={{ fontSize: 10, fontWeight: 600, letterSpacing: ".12em", color: "#7A8A81", marginTop: 3 }}>OVERTIME SUMMARY — FOR SUPERVISOR APPROVAL</div>
+            <div style={{ fontSize: 10, fontWeight: 600, letterSpacing: ".12em", color: "var(--paper-mute)", marginTop: 3 }}>OVERTIME SUMMARY — FOR SUPERVISOR APPROVAL</div>
             <div style={{ display: "flex", alignItems: "center", gap: 7, marginTop: 6 }}>
               <window.BrandDoc height={44} />
             </div>
           </div>
-          <div style={{ textAlign: "right", fontSize: 11, color: "#4A5A51", lineHeight: 1.75 }}>
-            <div style={{ fontSize: 13, fontWeight: 800, color: "#15211A" }}>{(person || {}).name || "-"}</div>
+          <div style={{ textAlign: "right", fontSize: 11, color: "var(--paper-ink2)", lineHeight: 1.75 }}>
+            <div style={{ fontSize: 13, fontWeight: 800, color: "var(--paper-ink)" }}>{(person || {}).name || "-"}</div>
             <div>รอบ {window.tmPeriodTH(period)}</div>
             <div style={{ fontFamily: "var(--mono)" }}>{list.length} ใบ</div>
           </div>
@@ -128,7 +128,7 @@ function TmOtPaper({ person, period, rows, jobs, users, cfg, byName, onClose }) 
 
         {/* ข้อมูลหัวใบ */}
         <div style={{ marginTop: 13, display: "grid", gridTemplateColumns: "auto 1fr auto 1fr",
-          border: "1px solid #DCE4DF", borderRadius: 7, overflow: "hidden" }}>
+          border: "1px solid var(--paper-line)", borderRadius: 7, overflow: "hidden" }}>
           <TmPRow k="ชื่อ-สกุล" v={(person || {}).name || "-"} />
           <TmPRow k="รอบตัดยอด" v={window.tmPeriodTH(period)} />
           <TmPRow k="รวมชั่วโมงที่อนุมัติแล้ว" v={window.tmDur(sum.approved) + "  (" + tmHrDec(sum.approved) + " ชม.)"} />
@@ -140,9 +140,9 @@ function TmOtPaper({ person, period, rows, jobs, users, cfg, byName, onClose }) 
 
         {/* รายการ OT */}
         <div style={{ marginTop: 16 }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 7, borderBottom: "1px solid #DCE4DF", paddingBottom: 5, marginBottom: 8 }}>
-            <span style={{ width: 5, height: 5, borderRadius: 99, background: "#1B9B75" }} />
-            <span style={{ fontSize: 12, fontWeight: 800, color: "#15211A" }}>รายการทำงานล่วงเวลาในรอบนี้</span>
+          <div style={{ display: "flex", alignItems: "center", gap: 7, borderBottom: "1px solid var(--paper-line)", paddingBottom: 5, marginBottom: 8 }}>
+            <span style={{ width: 5, height: 5, borderRadius: 99, background: "var(--paper-brand)" }} />
+            <span style={{ fontSize: 12, fontWeight: 800, color: "var(--paper-ink)" }}>รายการทำงานล่วงเวลาในรอบนี้</span>
           </div>
           <table style={{ width: "100%", borderCollapse: "collapse" }}>
             <thead>
@@ -162,13 +162,13 @@ function TmOtPaper({ person, period, rows, jobs, users, cfg, byName, onClose }) 
             </thead>
             <tbody>
               {list.length === 0 && (
-                <tr><td colSpan={11} style={Object.assign({}, td, { padding: 20, color: "#7A8A81" })}>ไม่มีใบ OT ในรอบนี้</td></tr>
+                <tr><td colSpan={11} style={Object.assign({}, td, { padding: 20, color: "var(--paper-mute)" })}>ไม่มีใบ OT ในรอบนี้</td></tr>
               )}
               {list.map((o, i) => {
                 const nm = jobName(o);
                 const rt = window.tmOtRate(o, cfg);
                 return (
-                  <tr key={o.id} style={i % 2 ? { background: "#F7FAF8" } : undefined}>
+                  <tr key={o.id} style={i % 2 ? { background: "var(--paper-tint)" } : undefined}>
                     <td style={td}>{i + 1}</td>
                     <td style={td}>{window.drDateTH(o.date)}</td>
                     <td style={Object.assign({}, td, { fontFamily: "var(--mono)" })}>{o.from || "—"}</td>
@@ -178,8 +178,8 @@ function TmOtPaper({ person, period, rows, jobs, users, cfg, byName, onClose }) 
                     <td style={Object.assign({}, td, { fontFamily: "var(--mono)" })}>×{Math.round(rt * 100) / 100}</td>
                     <td style={Object.assign({}, td, { fontFamily: "var(--mono)", fontWeight: 700 })}>{tmHrDec((+o.mins || 0) * rt)}</td>
                     <td style={tdL}>
-                      {o.jobCode ? <span style={{ fontFamily: "var(--mono)", fontWeight: 700 }}>{o.jobCode}</span> : <span style={{ color: "#7A8A81" }}>ไม่ระบุงาน</span>}
-                      {nm && <span style={{ display: "block", color: "#4A5A51" }}>{nm}</span>}
+                      {o.jobCode ? <span style={{ fontFamily: "var(--mono)", fontWeight: 700 }}>{o.jobCode}</span> : <span style={{ color: "var(--paper-mute)" }}>ไม่ระบุงาน</span>}
+                      {nm && <span style={{ display: "block", color: "var(--paper-ink2)" }}>{nm}</span>}
                     </td>
                     <td style={tdL}>{o.reason || <span style={{ color: "#B04A3A" }}>— ไม่ได้กรอก —</span>}</td>
                     <td style={Object.assign({}, td, { fontWeight: 700,
@@ -192,11 +192,11 @@ function TmOtPaper({ person, period, rows, jobs, users, cfg, byName, onClose }) 
             </tbody>
             <tfoot>
               <tr>
-                <td colSpan={4} style={Object.assign({}, td, { textAlign: "right", fontWeight: 800, background: "#0A4D68", color: "#fff" })}>รวมที่อนุมัติแล้วในระบบ</td>
-                <td style={Object.assign({}, td, { fontFamily: "var(--mono)", fontWeight: 800, background: "#0A4D68", color: "#fff" })}>{tmHrDec(sum.approved)}</td>
-                <td colSpan={2} style={Object.assign({}, td, { textAlign: "right", background: "#0A4D68", color: "#fff" })}>รวมชั่วโมงคิดค่าแรง</td>
-                <td style={Object.assign({}, td, { fontFamily: "var(--mono)", fontWeight: 800, background: "#0A4D68", color: "#fff" })}>{tmHrDec(sum.payApproved)}</td>
-                <td colSpan={3} style={Object.assign({}, td, { textAlign: "left", background: "#0A4D68", color: "#fff" })}>ชั่วโมง (ชั่วโมงจริง {window.tmDur(sum.approved)})</td>
+                <td colSpan={4} style={Object.assign({}, td, { textAlign: "right", fontWeight: 800, background: "var(--paper-brand-dk)", color: "#fff" })}>รวมที่อนุมัติแล้วในระบบ</td>
+                <td style={Object.assign({}, td, { fontFamily: "var(--mono)", fontWeight: 800, background: "var(--paper-brand-dk)", color: "#fff" })}>{tmHrDec(sum.approved)}</td>
+                <td colSpan={2} style={Object.assign({}, td, { textAlign: "right", background: "var(--paper-brand-dk)", color: "#fff" })}>รวมชั่วโมงคิดค่าแรง</td>
+                <td style={Object.assign({}, td, { fontFamily: "var(--mono)", fontWeight: 800, background: "var(--paper-brand-dk)", color: "#fff" })}>{tmHrDec(sum.payApproved)}</td>
+                <td colSpan={3} style={Object.assign({}, td, { textAlign: "left", background: "var(--paper-brand-dk)", color: "#fff" })}>ชั่วโมง (ชั่วโมงจริง {window.tmDur(sum.approved)})</td>
               </tr>
               {/* ยอดที่ยังรออนุมัติต้องแยกบรรทัด ไม่ใช่บวกรวมกับยอดที่อนุมัติแล้ว
                   ไม่งั้นกระดาษใบนี้จะกลายเป็นยอดจ่ายที่ยังไม่มีใครอนุมัติ */}
@@ -224,16 +224,16 @@ function TmOtPaper({ person, period, rows, jobs, users, cfg, byName, onClose }) 
             { t: "หัวหน้างานผู้อนุมัติ", n: "" },
             { t: "ฝ่ายบุคคล / ผู้ตรวจสอบ", n: "" }].map((s) => (
             <div key={s.t}>
-              <div style={{ fontSize: 10.5, fontWeight: 700, color: "#5A6B62" }}>{s.t}</div>
-              <div style={{ height: 42, borderBottom: "1px solid #C9D5CE", marginTop: 6 }} />
-              <div style={{ fontSize: 11, marginTop: 6, color: "#15211A" }}>ชื่อ: <b>{s.n || "…………………………"}</b></div>
-              <div style={{ fontSize: 11, color: "#4A5A51" }}>วันที่: …………………………</div>
+              <div style={{ fontSize: 10.5, fontWeight: 700, color: "var(--paper-ink3)" }}>{s.t}</div>
+              <div style={{ height: 42, borderBottom: "1px solid var(--paper-line2)", marginTop: 6 }} />
+              <div style={{ fontSize: 11, marginTop: 6, color: "var(--paper-ink)" }}>ชื่อ: <b>{s.n || "…………………………"}</b></div>
+              <div style={{ fontSize: 11, color: "var(--paper-ink2)" }}>วันที่: …………………………</div>
             </div>
           ))}
         </div>
 
-        <div style={{ marginTop: 16, padding: "9px 12px", background: "#F7FAF8", border: "1px solid #DCE4DF", borderRadius: 7,
-          fontSize: 9.5, color: "#5A6B62", lineHeight: 1.8 }}>
+        <div style={{ marginTop: 16, padding: "9px 12px", background: "var(--paper-tint)", border: "1px solid var(--paper-line)", borderRadius: 7,
+          fontSize: 9.5, color: "var(--paper-ink3)", lineHeight: 1.8 }}>
           เวลาในใบนี้เป็นเวลาที่ผู้ขอกรอกเอง ไม่ใช่เวลาที่ระบบจับได้ — ถ้าไม่แน่ใจให้เทียบกับแผ่น “เวลาทำงาน” ของวันนั้น
           <br />การเซ็นบนกระดาษไม่ได้เปลี่ยนสถานะในระบบ ใบที่ยังรออนุมัติต้องกดอนุมัติในระบบด้วย
           <br />“ชม.คิดค่าแรง” = ชั่วโมงจริง × อัตราของประเภทนั้น ตามที่บริษัทตั้งไว้ในระบบ ณ วันที่เปิดใบ
@@ -242,7 +242,7 @@ function TmOtPaper({ person, period, rows, jobs, users, cfg, byName, onClose }) 
           — ฝ่ายบุคคลต้องคูณอัตราค่าจ้างของพนักงานคนนี้อีกที
         </div>
 
-        <div style={{ marginTop: 12, fontSize: 9.5, color: "#8A9A91", textAlign: "center" }}>
+        <div style={{ marginTop: 12, fontSize: 9.5, color: "var(--paper-mute2)", textAlign: "center" }}>
           เอกสารนี้ออกจากระบบติดตามงานติดตั้ง flash+solar · พิมพ์เมื่อ {window.drDateTH(window.drToday())}
         </div>
       </div>
@@ -254,9 +254,9 @@ function TmOtPaper({ person, period, rows, jobs, users, cfg, byName, onClose }) 
 function TmPRow({ k, v }) {
   return (
     <React.Fragment>
-      <div style={{ padding: "6px 10px", fontSize: 10.5, fontWeight: 700, color: "#5A6B62",
-        background: "#F7FAF8", borderBottom: "1px solid #ECF1EE", whiteSpace: "nowrap" }}>{k}</div>
-      <div style={{ padding: "6px 10px", fontSize: 11.5, color: "#15211A", borderBottom: "1px solid #ECF1EE" }}>{v || "—"}</div>
+      <div style={{ padding: "6px 10px", fontSize: 10.5, fontWeight: 700, color: "var(--paper-ink3)",
+        background: "var(--paper-tint)", borderBottom: "1px solid var(--paper-line3)", whiteSpace: "nowrap" }}>{k}</div>
+      <div style={{ padding: "6px 10px", fontSize: 11.5, color: "var(--paper-ink)", borderBottom: "1px solid var(--paper-line3)" }}>{v || "—"}</div>
     </React.Fragment>
   );
 }

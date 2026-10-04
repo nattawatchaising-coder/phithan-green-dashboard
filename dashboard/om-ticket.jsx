@@ -315,7 +315,7 @@ function OmTicketModal({ ticket, site, job, users, role, currentUser, visits, on
           background: "var(--bg)", border: "1px solid var(--border)",
           borderRadius: isMobile ? "18px 18px 0 0" : 18, boxShadow: "0 24px 60px rgba(0,0,0,.28)" }}>
 
-        <div style={{ position: "sticky", top: 0, zIndex: 2, background: "var(--bg)", borderBottom: "1px solid var(--border)",
+        <div style={{ position: "sticky", top: 0, zIndex: 2, background: "var(--bg)", borderBottom: "1px solid var(--divider)",
           padding: isMobile ? "14px 13px" : "16px 20px" }}>
           <div style={{ display: "flex", alignItems: "flex-start", gap: 11 }}>
             <span style={{ width: 36, height: 36, borderRadius: "var(--r-chip)", background: st.color + "1c", display: "grid", placeItems: "center", flexShrink: 0 }}>
@@ -523,7 +523,7 @@ function OmTicketModal({ ticket, site, job, users, role, currentUser, visits, on
                 <button key={k} type="button" onClick={() => setTab(k)}
                   style={{ padding: "7px 14px", borderRadius: "var(--r-pill)", cursor: "pointer", fontFamily: "inherit",
                     fontSize: 12.5, fontWeight: 700,
-                    border: "1px solid " + (tab === k ? "var(--primary)" : "var(--border-strong)"),
+                    border: "none", boxShadow: tab === k ? "inset 0 0 0 1px var(--primary)" : "var(--shadow-sm)",
                     background: tab === k ? "var(--primary-soft)" : "var(--surface)",
                     color: tab === k ? "var(--primary-dark)" : "var(--text-2)" }}>{th}</button>
               ))}

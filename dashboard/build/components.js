@@ -170,8 +170,8 @@ function TypeBadge({
     style: {
       fontSize: 11,
       fontWeight: 600,
-      color: t.color,
-      background: t.color + "1A",
+      color: "var(--type-" + t.key + "-fg, " + t.color + ")",
+      background: "var(--type-" + t.key + "-bg, " + t.color + "1A)",
       padding: "3px 8px",
       borderRadius: "var(--r-chip)",
       whiteSpace: "nowrap"
@@ -445,7 +445,8 @@ function Dropdown({
       gap: 8,
       width: "100%",
       background: "var(--surface2)",
-      border: "1px solid " + (open ? "var(--primary)" : "var(--border-strong)"),
+      border: "none",
+      boxShadow: open ? "inset 0 0 0 1px var(--primary)" : "var(--shadow-sm)",
       color: "var(--text-1)",
       fontFamily: "inherit",
       fontSize: 13.5,
@@ -543,7 +544,7 @@ function Dropdown({
       gap: 5,
       padding: "1px 2px 8px",
       background: "var(--bg)",
-      borderBottom: "1px solid var(--border)",
+      borderBottom: "1px solid var(--divider)",
       marginBottom: 4
     }
   }, [null].concat(groupList).map(g => {
@@ -562,7 +563,8 @@ function Dropdown({
         borderRadius: "var(--r-pill)",
         cursor: "pointer",
         fontFamily: "inherit",
-        border: "1px solid " + (on ? "var(--primary)" : "var(--border-strong)"),
+        border: "none",
+        boxShadow: on ? "inset 0 0 0 1px var(--primary)" : "var(--shadow-sm)",
         background: on ? "var(--primary)" : "var(--surface2)",
         color: on ? "#fff" : "var(--text-2)"
       }
@@ -661,7 +663,7 @@ function Dropdown({
       gap: 6,
       padding: "6px 7px",
       marginTop: 2,
-      borderTop: "1px solid var(--border)"
+      borderTop: "1px solid var(--divider)"
     }
   }, React.createElement("input", {
     autoFocus: true,
@@ -726,7 +728,7 @@ function Dropdown({
       borderRadius: 9,
       border: "none",
       marginTop: 2,
-      borderTop: "1px solid var(--border)",
+      borderTop: "1px solid var(--divider)",
       background: "transparent",
       cursor: "pointer",
       fontFamily: "inherit",

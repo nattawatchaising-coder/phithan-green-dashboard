@@ -462,7 +462,7 @@ function LnJobFiles({
     style: {
       marginTop: 14,
       paddingTop: 12,
-      borderTop: "1px solid var(--border)"
+      borderTop: "1px solid var(--divider)"
     }
   }, React.createElement("div", {
     style: {
@@ -645,7 +645,7 @@ function LnJobSheet({
       display: "flex",
       gap: 12,
       padding: "9px 0",
-      borderTop: "1px solid var(--border)"
+      borderTop: "1px solid var(--divider)"
     }
   }, React.createElement("div", {
     style: {
@@ -797,7 +797,7 @@ function LnClock({
     style: {
       marginTop: 10,
       paddingTop: 10,
-      borderTop: "1px solid var(--border)"
+      borderTop: "1px solid var(--divider)"
     }
   }, React.createElement("div", {
     style: {
@@ -937,7 +937,8 @@ function LnClock({
       fontFamily: "inherit",
       fontSize: 14,
       fontWeight: 800,
-      border: "1px solid " + (place === p.key ? "var(--primary)" : "var(--border-strong)"),
+      border: "none",
+      boxShadow: place === p.key ? "inset 0 0 0 1px var(--primary)" : "var(--shadow-sm)",
       background: place === p.key ? "var(--primary-soft)" : "var(--surface)",
       color: place === p.key ? "var(--primary-dark)" : "var(--text-2)"
     }
@@ -980,7 +981,8 @@ function LnClock({
       fontFamily: "inherit",
       fontSize: 12.5,
       fontWeight: 800,
-      border: "1px solid " + (jobType === t.key ? "var(--primary)" : "var(--border-strong)"),
+      border: "none",
+      boxShadow: jobType === t.key ? "inset 0 0 0 1px var(--primary)" : "var(--shadow-sm)",
       background: jobType === t.key ? "var(--primary-soft)" : "var(--surface)",
       color: jobType === t.key ? "var(--primary-dark)" : "var(--text-2)"
     }
@@ -1205,7 +1207,8 @@ function LnClockCal({
         padding: "7px 0 13px",
         borderRadius: 12,
         cursor: "pointer",
-        border: isToday && !on ? "1px solid var(--primary)" : "1px solid transparent",
+        border: "none",
+        boxShadow: isToday && !on ? "inset 0 0 0 1px var(--primary)" : "none",
         background: on ? "var(--primary)" : "transparent",
         fontFamily: "inherit",
         fontSize: 12.5,
@@ -1236,7 +1239,7 @@ function LnClockCal({
     style: {
       marginTop: 8,
       paddingTop: 10,
-      borderTop: "1px solid var(--border)"
+      borderTop: "1px solid var(--divider)"
     }
   }, React.createElement("div", {
     style: {
@@ -1754,7 +1757,8 @@ function LnPick({
         fontSize: 12.5,
         fontWeight: 700,
         whiteSpace: "nowrap",
-        border: "1px solid " + (on ? "var(--primary)" : "var(--border-strong)"),
+        border: "none",
+        boxShadow: on ? "inset 0 0 0 1px var(--primary)" : "var(--shadow-sm)",
         background: on ? "var(--primary-soft)" : "var(--surface2)",
         color: on ? "var(--primary-dark)" : "var(--text-2)"
       }
@@ -2633,7 +2637,8 @@ function LnApp() {
         cursor: "pointer"
       }, LN_CARD, {
         background: n.read ? "var(--surface)" : k.color + "12",
-        border: "1px solid " + (n.read ? "var(--border)" : k.color + "33")
+        border: "none",
+        boxShadow: n.read ? "var(--shadow-sm)" : "inset 0 0 0 1px " + k.color + "33"
       })
     }, React.createElement("div", {
       style: {

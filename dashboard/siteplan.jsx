@@ -1332,7 +1332,7 @@ function SitePlanEditor({ job, onClose, currentUser }) {
     <div {...bdClose} style={{ position: "fixed", inset: 0, background: "rgba(8,20,14,.5)", backdropFilter: "blur(3px)", zIndex: 120, display: "grid", placeItems: isMobile ? "end center" : "center", padding: isMobile ? 0 : 18 }}>
       <div onClick={(e) => e.stopPropagation()} style={{ background: "var(--bg)", borderRadius: isMobile ? "18px 18px 0 0" : 18, width: isMobile ? "100%" : "min(920px,100%)", maxHeight: isMobile ? "97dvh" : "95vh", display: "flex", flexDirection: "column", overflow: "hidden", boxShadow: "var(--shadow-modal)" }}>
         {/* header */}
-        <div style={{ padding: "14px 18px", borderBottom: "1px solid var(--border)", background: "var(--surface)", display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12, flexShrink: 0 }}>
+        <div style={{ padding: "14px 18px", borderBottom: "1px solid var(--divider)", background: "var(--surface)", display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12, flexShrink: 0 }}>
           <div style={{ minWidth: 0 }}>
             <div style={{ fontSize: 11.5, color: "var(--text-3)", fontWeight: 600 }}>ผังหน้างาน · {job ? job.code : ""}</div>
             <h2 style={{ fontSize: 16.5, fontWeight: 800, color: "var(--text-1)", margin: "2px 0 0", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{job ? job.name : ""}</h2>
@@ -1350,7 +1350,7 @@ function SitePlanEditor({ job, onClose, currentUser }) {
                 return (
                   <div key={p.id} onClick={() => gotoPage(i)}
                     style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "6px 10px", borderRadius: 9, cursor: "pointer", whiteSpace: "nowrap", flexShrink: 0,
-                      border: "1px solid " + (on ? "var(--primary)" : "var(--border-strong)"), background: on ? "var(--primary-soft)" : "var(--surface)", color: on ? "var(--primary-dark)" : "var(--text-2)", fontSize: 12.5, fontWeight: 700 }}>
+                      border: "none", boxShadow: on ? "inset 0 0 0 1px var(--primary)" : "var(--shadow-sm)", background: on ? "var(--primary-soft)" : "var(--surface)", color: on ? "var(--primary-dark)" : "var(--text-2)", fontSize: 12.5, fontWeight: 700 }}>
                     <Icon name={hasImg ? "image" : "plus"} size={12} color="currentColor" />
                     <span>{p.name || ("รูป " + (i + 1))}</span>
                     {on && <span onClick={(e) => { e.stopPropagation(); renamePage(i); }} title="เปลี่ยนชื่อหน้า" style={{ opacity: 0.55, marginLeft: 1 }}>✎</span>}
@@ -1398,7 +1398,7 @@ function SitePlanEditor({ job, onClose, currentUser }) {
                 </button>
                 <button onClick={() => setShowGrid((v) => !v)} title="กริดช่วยจัดวางให้ตรง"
                   style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "7px 12px", borderRadius: 10, cursor: "pointer", fontFamily: "inherit", fontSize: 13, fontWeight: 700,
-                    border: "1px solid " + (showGrid ? "var(--primary)" : "var(--border-strong)"), background: showGrid ? "var(--primary)" : "var(--surface)", color: showGrid ? "#fff" : "var(--text-2)" }}>
+                    border: "none", boxShadow: showGrid ? "inset 0 0 0 1px var(--primary)" : "var(--shadow-sm)", background: showGrid ? "var(--primary)" : "var(--surface)", color: showGrid ? "#fff" : "var(--text-2)" }}>
                   <Icon name="gridDots" size={14} color={showGrid ? "#fff" : "var(--text-3)"} />กริด
                 </button>
                 <button onClick={() => exportPlanImage("download")} disabled={exporting} title="โหลดเป็นรูปแบบติดตั้ง (รูปหน้างาน + เส้น/จุด/ป้าย)"
@@ -1435,13 +1435,13 @@ function SitePlanEditor({ job, onClose, currentUser }) {
                   {PLAN_LINE_KINDS.map((k) => (
                     <button key={k.key} onClick={() => setLineKind(k.key)}
                       style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "5px 11px", borderRadius: 99, cursor: "pointer", fontFamily: "inherit", fontSize: 12, fontWeight: 700,
-                        border: "1px solid " + (lineKind === k.key ? k.color : "var(--border-strong)"), background: lineKind === k.key ? k.color + "18" : "var(--surface)", color: lineKind === k.key ? k.color : "var(--text-2)" }}>
+                        border: "none", boxShadow: lineKind === k.key ? "inset 0 0 0 1px " + k.color : "var(--shadow-sm)", background: lineKind === k.key ? k.color + "18" : "var(--surface)", color: lineKind === k.key ? k.color : "var(--text-2)" }}>
                       <span style={{ width: 12, height: 3, borderRadius: 2, background: k.color }} />{k.label}
                     </button>
                   ))}
                   <button onClick={() => setSnapStraight((v) => !v)} title="ล็อกให้เส้นตรงแนวนอน/แนวตั้ง ไม่เอียง"
                     style={{ display: "inline-flex", alignItems: "center", gap: 5, padding: "5px 11px", borderRadius: 99, cursor: "pointer", fontFamily: "inherit", fontSize: 12, fontWeight: 700,
-                      border: "1px solid " + (snapStraight ? "var(--primary)" : "var(--border-strong)"), background: snapStraight ? "var(--primary)18" : "var(--surface)", color: snapStraight ? "var(--primary)" : "var(--text-2)" }}>
+                      border: "none", boxShadow: snapStraight ? "inset 0 0 0 1px var(--primary)" : "var(--shadow-sm)", background: snapStraight ? "var(--primary)18" : "var(--surface)", color: snapStraight ? "var(--primary)" : "var(--text-2)" }}>
                     📐 แนวตรง {snapStraight ? "ON" : "OFF"}
                   </button>
                   <span style={{ flex: 1 }} />
@@ -1479,7 +1479,7 @@ function SitePlanEditor({ job, onClose, currentUser }) {
                   {PLAN_MARKER_KINDS.map((k) => (
                     <button key={k.key} onClick={() => setMarkerKind(k.key)}
                       style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "5px 11px", borderRadius: 99, cursor: "pointer", fontFamily: "inherit", fontSize: 12, fontWeight: 700,
-                        border: "1px solid " + (markerKind === k.key ? k.color : "var(--border-strong)"), background: markerKind === k.key ? k.color + "18" : "var(--surface)", color: markerKind === k.key ? k.color : "var(--text-2)" }}>
+                        border: "none", boxShadow: markerKind === k.key ? "inset 0 0 0 1px " + k.color : "var(--shadow-sm)", background: markerKind === k.key ? k.color + "18" : "var(--surface)", color: markerKind === k.key ? k.color : "var(--text-2)" }}>
                       <Icon name={k.icon} size={13} color={k.color} />{k.label}
                     </button>
                   ))}
@@ -1487,7 +1487,7 @@ function SitePlanEditor({ job, onClose, currentUser }) {
                     { key: "micro", label: "ไมโครฯ", color: PLAN_MICRO_COLOR, icon: "bolt" }].map((k) => (
                     <button key={k.key} onClick={() => setMarkerKind(k.key)}
                       style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "5px 11px", borderRadius: 99, cursor: "pointer", fontFamily: "inherit", fontSize: 12, fontWeight: 700,
-                        border: "1px solid " + (markerKind === k.key ? k.color : "var(--border-strong)"), background: markerKind === k.key ? k.color + "18" : "var(--surface)", color: markerKind === k.key ? k.color : "var(--text-2)" }}>
+                        border: "none", boxShadow: markerKind === k.key ? "inset 0 0 0 1px " + k.color : "var(--shadow-sm)", background: markerKind === k.key ? k.color + "18" : "var(--surface)", color: markerKind === k.key ? k.color : "var(--text-2)" }}>
                       <Icon name={k.icon} size={13} color={k.color} />{k.label}
                     </button>
                   ))}
@@ -1577,7 +1577,7 @@ function SitePlanEditor({ job, onClose, currentUser }) {
                   </span>
                   <button onClick={() => setSnapStraight((v) => !v)} title="วางไมโครให้เรียงเป็นแถวตรงเดียวกันอัตโนมัติ"
                     style={{ display: "inline-flex", alignItems: "center", gap: 5, padding: "5px 11px", borderRadius: 99, cursor: "pointer", fontFamily: "inherit", fontSize: 12, fontWeight: 700,
-                      border: "1px solid " + (snapStraight ? "var(--primary)" : "var(--border-strong)"), background: snapStraight ? "var(--primary)18" : "var(--surface)", color: snapStraight ? "var(--primary)" : "var(--text-2)" }}>
+                      border: "none", boxShadow: snapStraight ? "inset 0 0 0 1px var(--primary)" : "var(--shadow-sm)", background: snapStraight ? "var(--primary)18" : "var(--surface)", color: snapStraight ? "var(--primary)" : "var(--text-2)" }}>
                     📐 เรียงแถว {snapStraight ? "ON" : "OFF"}
                   </button>
                   <span style={{ color: "var(--text-3)", fontSize: 10.5, width: "100%" }}>แตะรูปเพื่อวางไมโครอินเวอร์เตอร์ (แต่ละตัวรับ {microN} แผง) · <b>เรียงแถว ON</b> = แตะใกล้แถวเดิมแล้ว snap ให้ตรงกันเอง · จากนั้นใช้ 🔗 เชื่อมสาย</span>
@@ -2362,7 +2362,7 @@ function SitePlanEditor({ job, onClose, currentUser }) {
               {!photoDraw && ps.length > 1 && (
                 <div onClick={(e) => e.stopPropagation()} style={{ display: "flex", gap: 6, maxWidth: "90vw", overflowX: "auto", padding: "2px 0" }}>
                   {ps.map((p, i) => (
-                    <img key={i} src={p} onClick={() => setPhotoIdx(i)} alt="" style={{ width: 46, height: 46, objectFit: "cover", borderRadius: 7, cursor: "pointer", flexShrink: 0, border: i === idx ? "2px solid var(--primary)" : "2px solid rgba(255,255,255,.25)" }} />
+                    <img key={i} src={p} onClick={() => setPhotoIdx(i)} alt="" style={{ width: 46, height: 46, objectFit: "cover", borderRadius: 7, cursor: "pointer", flexShrink: 0, border: "none", boxShadow: i === idx ? "inset 0 0 0 2px var(--primary)" : "inset 0 0 0 2px rgba(255,255,255,.25)" }} />
                   ))}
                 </div>
               )}
@@ -2396,7 +2396,7 @@ function SitePlanEditor({ job, onClose, currentUser }) {
         })()}
 
         {/* footer */}
-        <div style={{ display: "flex", gap: 10, padding: "12px 16px", paddingBottom: isMobile ? "calc(12px + env(safe-area-inset-bottom,0px))" : 12, borderTop: "1px solid var(--border)", background: "var(--surface)", flexShrink: 0 }}>
+        <div style={{ display: "flex", gap: 10, padding: "12px 16px", paddingBottom: isMobile ? "calc(12px + env(safe-area-inset-bottom,0px))" : 12, borderTop: "1px solid var(--divider)", background: "var(--surface)", flexShrink: 0 }}>
           <button onClick={onClose} style={{ flex: "0 0 auto", padding: "11px 18px", borderRadius: 11, border: "1px solid var(--border-strong)", background: "var(--surface)", color: "var(--text-2)", fontWeight: 700, fontFamily: "inherit", fontSize: 13.5, cursor: "pointer" }}>ปิด</button>
           {(() => { const canSave = !!image || pages.some((p) => p.image); return (
           <button onClick={doSave} disabled={!canSave}

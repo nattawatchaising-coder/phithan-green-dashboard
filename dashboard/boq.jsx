@@ -518,7 +518,7 @@ function Meas3DModal({ list, targets, defaultTarget, onApply, onClose }) {
       <div onClick={(e) => e.stopPropagation()} style={{ background: "var(--bg)", borderRadius: isMobile ? "20px 20px 0 0" : 18,
         width: isMobile ? "100%" : "min(620px,100%)", maxHeight: isMobile ? "92dvh" : "88vh", display: "flex", flexDirection: "column",
         overflow: "hidden", boxShadow: "0 30px 80px rgba(0,0,0,.45)" }}>
-        <div style={{ padding: "16px 20px", borderBottom: "1px solid var(--border)", background: "var(--surface)", flexShrink: 0 }}>
+        <div style={{ padding: "16px 20px", borderBottom: "1px solid var(--divider)", background: "var(--surface)", flexShrink: 0 }}>
           <div style={{ fontSize: 10.5, fontWeight: 800, color: "var(--text-3)" }}>ระยะจากแบบ 3D</div>
           <div style={{ fontSize: 14.5, fontWeight: 700, color: "var(--text-1)", marginTop: 3 }}>เลือกว่าแต่ละระยะจะลงช่องไหน</div>
         </div>
@@ -550,7 +550,7 @@ function Meas3DModal({ list, targets, defaultTarget, onApply, onClose }) {
             );
           })}
         </div>
-        <div style={{ padding: "12px 16px", borderTop: "1px solid var(--border)", background: "var(--surface)", display: "flex", alignItems: "center", gap: 10, flexShrink: 0 }}>
+        <div style={{ padding: "12px 16px", borderTop: "1px solid var(--divider)", background: "var(--surface)", display: "flex", alignItems: "center", gap: 10, flexShrink: 0 }}>
           <span style={{ fontSize: 12, color: "var(--text-3)", fontWeight: 600 }}>
             นำเข้า {rows.length} รายการ{rows.length ? " · รวม " + sum.toFixed(2) + " ม." : ""}
           </span>
@@ -2198,7 +2198,7 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
                     title={x.hdg ? "ชุบกัลวาไนซ์แบบจุ่มร้อน — ตัวราง ข้อต่อ และขาแขวนของแถวนี้จะถอดเป็นของชุบ (HDG.)"
                       : "ยังไม่ชุบ — ถอดเป็นของธรรมดา (Pre-Zinc) กดเพื่อเปลี่ยนเป็นของชุบ HDG"}
                     style={{ display: "inline-flex", alignItems: "center", gap: 5, padding: "3px 10px", borderRadius: "var(--r-pill)", cursor: "pointer", fontFamily: "inherit",
-                      fontSize: 11, fontWeight: 800, border: "1px solid " + (x.hdg ? "var(--primary)" : "var(--border-strong)"),
+                      fontSize: 11, fontWeight: 800, border: "none", boxShadow: x.hdg ? "inset 0 0 0 1px var(--primary)" : "var(--shadow-sm)",
                       background: x.hdg ? "var(--primary-soft)" : "var(--surface)", color: x.hdg ? "var(--primary-dark)" : "var(--text-3)" }}>
                     {x.hdg && <Icon name="check" size={11} color="var(--primary-dark)" />}ชุบ HDG
                   </button>
@@ -2211,7 +2211,7 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
                           + " ซม. (กว้างกว่ารางข้างละ 10 ซม.) · สั่งเป็นท่อน RAIL " + railTon + " M ตัดได้ท่อนละ " + railPer(x.size) + " ชิ้น"
                         : "ขาล็อกยึดเข้าโครง/ผนังตรง ๆ — ถอดพุ๊กเหล็ก 2 ตัว/ขา กดเพื่อเปลี่ยนเป็นวางบน Rail"}
                       style={{ display: "inline-flex", alignItems: "center", gap: 5, padding: "3px 10px", borderRadius: "var(--r-pill)", cursor: "pointer", fontFamily: "inherit",
-                        fontSize: 11, fontWeight: 800, border: "1px solid " + (x.rail ? "var(--primary)" : "var(--border-strong)"),
+                        fontSize: 11, fontWeight: 800, border: "none", boxShadow: x.rail ? "inset 0 0 0 1px var(--primary)" : "var(--shadow-sm)",
                         background: x.rail ? "var(--primary-soft)" : "var(--surface)", color: x.rail ? "var(--primary-dark)" : "var(--text-3)" }}>
                       {x.rail && <Icon name="check" size={11} color="var(--primary-dark)" />}
                       ยึดบน Rail{x.rail && x.size ? " " + railCm(x.size) + " ซม." : ""}
@@ -2415,7 +2415,7 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
         </div>
       </div>
       {(extraItems && extraItems.length > 0) && (
-        <div style={{ marginTop: 10, paddingTop: 10, borderTop: "1px solid var(--border)", display: "flex", flexDirection: "column", gap: 6 }}>
+        <div style={{ marginTop: 10, paddingTop: 10, borderTop: "1px solid var(--divider)", display: "flex", flexDirection: "column", gap: 6 }}>
           <span style={{ fontSize: 10, fontWeight: 700, color: "var(--text-3)" }}>วัสดุเพิ่ม (นอกระบบ)</span>
           {extraItems.map((x, i) => (
             <div key={i} style={{ display: "grid", gridTemplateColumns: "minmax(0,1fr) 64px 52px 36px", gap: 6, alignItems: "center" }}>
@@ -3669,7 +3669,7 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
                       {showHint && (
                         <button type="button" onClick={() => setCabOpen((p) => Object.assign({}, p, { [i]: !open }))}
                           title={own ? "เส้นนี้ตั้งเงื่อนไขเอง — กดเพื่อแก้" : "ตามค่าตั้งต้นของงาน — กดเพื่อตั้งเฉพาะเส้นนี้"}
-                          style={{ display: "inline-flex", alignItems: "center", gap: 5, border: "1px solid " + (own ? "var(--border-strong)" : "transparent"),
+                          style={{ display: "inline-flex", alignItems: "center", gap: 5, border: "none", boxShadow: own ? "var(--shadow-sm)" : "none",
                             background: own ? "var(--surface)" : "var(--surface2)", color: own ? "var(--text-2)" : "var(--text-3)",
                             borderRadius: "var(--r-pill)", padding: "3px 9px", fontSize: 10.5, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>
                           {own && <span style={{ width: 5, height: 5, borderRadius: "var(--r-pill)", background: "var(--primary)" }} />}
@@ -3911,7 +3911,7 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
                 const bad = vdropSum.dc > L.dc || vdropSum.ac > L.ac || vdropSum.total > L.total;
                 return (
                   <div style={{ display: "flex", gap: 18, flexWrap: "wrap", alignItems: "center", padding: "10px 13px", borderRadius: "var(--r-chip)",
-                    border: "1px solid " + (bad ? "#F59E0B55" : "var(--border)"), background: bad ? "#F59E0B12" : "var(--surface2)" }}>
+                    border: "none", boxShadow: bad ? "inset 0 0 0 1px #F59E0B55" : "var(--shadow-sm)", background: bad ? "#F59E0B12" : "var(--surface2)" }}>
                     <span style={{ display: "inline-flex", alignItems: "center", gap: 6, fontSize: 11.5, fontWeight: 700, color: "var(--text-1)" }}>
                       <Icon name="bolt" size={12} color={bad ? "var(--tint-amber-tx)" : "var(--primary)"} />แรงดันตกรวม
                     </span>
@@ -4136,7 +4136,7 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
                 };
                 return (
                   /* แต่ละหมวดเป็นบล็อกของตัวเอง คั่นเส้นให้ชัด — ระบบน้ำ/ถัง/ท่อ เป็นคนละเรื่องกับตู้ไฟ */
-                  <div key={k.key} style={ki === 0 ? null : { paddingTop: 16, borderTop: "1px solid var(--border)" }}>
+                  <div key={k.key} style={ki === 0 ? null : { paddingTop: 16, borderTop: "1px solid var(--divider)" }}>
                     {/* หมวดเดียวในหัวข้อ = ชื่อซ้ำกับหัวข้อ ไม่ต้องขึ้นอีกรอบ */}
                     {sc.kits.length > 1 && (
                       <React.Fragment>
@@ -4344,7 +4344,7 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
                     /* เลือกแยกรายการครั้งแรก — ลงรายการตั้งต้นไว้เลย ไม่งั้นเปิดใบใหม่จะถูกนับว่ายังไม่เลือกแล้วเด้งกลับเป็นเหมารวม */
                     m.v === "split" && p.labor == null ? { labor: window.BOQ.LABOR_PRESET.map((x) => Object.assign({}, x, { price: 0 })) } : {}))}
                   style={{ flex: "1 1 180px", textAlign: "left", padding: "10px 13px", borderRadius: "var(--r-chip)", cursor: "pointer", fontFamily: "inherit",
-                    border: "1px solid " + (laborMode === m.v ? "var(--primary)" : "var(--border-strong)"),
+                    border: "none", boxShadow: laborMode === m.v ? "inset 0 0 0 1px var(--primary)" : "var(--shadow-sm)",
                     background: laborMode === m.v ? "var(--primary-soft)" : "var(--surface2)" }}>
                   <span style={{ display: "block", fontSize: 12.5, fontWeight: 800, color: laborMode === m.v ? "var(--primary-dark)" : "var(--text-1)" }}>{m.t}</span>
                   <span style={{ display: "block", fontSize: 10.5, color: "var(--text-3)", marginTop: 1 }}>{m.d}</span>
@@ -4556,7 +4556,7 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
                   {g.items.length === 0 ? (
                     <div style={{ padding: "9px 14px", fontSize: 12, color: "var(--text-3)" }}>—</div>
                   ) : g.items.map((it, ii) => (
-                    <div key={ii} style={{ display: "grid", gridTemplateColumns: isMobile ? (priced.grandTotal > 0 ? "minmax(0,1fr) 56px 64px" : "minmax(0,1fr) 56px") : "1fr 68px 84px", gap: 8, padding: "9px 14px", borderTop: "1px solid var(--border)", alignItems: "center" }}>
+                    <div key={ii} style={{ display: "grid", gridTemplateColumns: isMobile ? (priced.grandTotal > 0 ? "minmax(0,1fr) 56px 64px" : "minmax(0,1fr) 56px") : "1fr 68px 84px", gap: 8, padding: "9px 14px", borderTop: "1px solid var(--divider)", alignItems: "center" }}>
                       <span style={{ minWidth: 0 }}>
                         <span style={{ display: "block", fontSize: 12.5, color: "var(--text-1)", lineHeight: 1.35 }}>{(it.name || "").trim()}</span>
                         {/* เปลี่ยนชื่อแล้วบอกชื่อเดิมไว้ด้วย — จำนวนยังถอดจากชื่อเดิม เปลี่ยนชื่อไม่กระทบตัวเลข */}
@@ -4577,7 +4577,7 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
                               <button type="button" onClick={() => setEditVar({ name: it.name, group: g.group, unit: it.unit, rkey: window.BOQ.qtyKey(g.group, it.nameAuto || it.name), nameAuto: it.nameAuto || it.name, priceName: it.priceName || it.name })}
                                 title={n > 1 ? n + " ยี่ห้อ/รุ่นในคลัง — กดเพื่อเลือกหรือแก้" : "กดเพื่อระบุยี่ห้อ/รุ่น และแก้ราคา (บันทึกลงคลังสินค้า)"}
                                 style={{ display: "inline-flex", alignItems: "center", gap: 4, padding: "1px 7px", borderRadius: "var(--r-pill)",
-                                  border: "1px solid " + (it.variantLabel ? "var(--border-strong)" : "transparent"),
+                                  border: "none", boxShadow: it.variantLabel ? "var(--shadow-sm)" : "none",
                                   background: it.variantLabel ? "var(--surface2)" : "transparent",
                                   color: it.variantLabel ? "var(--text-2)" : "var(--text-3)",
                                   fontFamily: "inherit", fontSize: 10.5, fontWeight: 700, cursor: "pointer" }}>
@@ -4658,7 +4658,7 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
               ))}
               {priced.grandTotal > 0 && (
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", padding: "13px 14px",
-                  background: "var(--primary-soft)", borderTop: "1px solid var(--border)" }}>
+                  background: "var(--primary-soft)", borderTop: "1px solid var(--divider)" }}>
                   <span style={{ fontSize: 11, fontWeight: 800, letterSpacing: ".08em", color: "var(--primary-dark)" }}>ต้นทุนรวม</span>
                   <span style={{ fontFamily: "var(--display)", fontSize: 20, fontWeight: 700, letterSpacing: "-.035em",
                     fontVariantNumeric: "tabular-nums", color: "var(--primary-dark)" }}>฿{baht(priced.grandTotal)}</span>
@@ -4754,7 +4754,7 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
               const good = profit > 0;
               return (
                 <div style={{ marginTop: 12, display: "flex", alignItems: "center", gap: 16, flexWrap: "wrap", padding: "12px 14px", borderRadius: "var(--r-chip)",
-                  background: good ? "var(--primary-soft)" : "var(--tint-amber-bg2)", border: "1px solid " + (good ? "var(--tint-ok-bd)" : "var(--tint-amber-bd)") }}>
+                  background: good ? "var(--primary-soft)" : "var(--tint-amber-bg2)", border: "none", boxShadow: good ? "inset 0 0 0 1px var(--tint-ok-bd)" : "inset 0 0 0 1px var(--tint-amber-bd)" }}>
                   <span style={{ display: "inline-flex", alignItems: "baseline", gap: 7 }}>
                     <span style={{ fontSize: 11, fontWeight: 800, letterSpacing: ".06em", color: good ? "var(--primary-dark)" : "var(--tint-amber-tx2)" }}>กำไร</span>
                     <span style={{ fontFamily: "var(--display)", fontSize: 20, fontWeight: 700, letterSpacing: "-.035em",
@@ -4957,7 +4957,7 @@ function MatVariantModal({ item, stock, priceMap, matOptions, picked, onPick, re
       <div onClick={(e) => e.stopPropagation()} style={{ background: "var(--bg)", borderRadius: isMobile ? "20px 20px 0 0" : 18,
         width: isMobile ? "100%" : "min(520px,100%)", maxHeight: isMobile ? "92dvh" : "88vh", display: "flex", flexDirection: "column",
         overflow: "hidden", boxShadow: "0 30px 80px rgba(0,0,0,.45)" }}>
-        <div style={{ padding: "16px 20px", borderBottom: "1px solid var(--border)", background: "var(--surface)", flexShrink: 0 }}>
+        <div style={{ padding: "16px 20px", borderBottom: "1px solid var(--divider)", background: "var(--surface)", flexShrink: 0 }}>
           <div style={{ fontSize: 10.5, fontWeight: 800, color: "var(--text-3)" }}>ยี่ห้อ · รุ่น · ราคา</div>
           <div style={{ fontSize: 14.5, fontWeight: 700, color: "var(--text-1)", marginTop: 3 }}>{item.name}</div>
         </div>
@@ -4981,7 +4981,7 @@ function MatVariantModal({ item, stock, priceMap, matOptions, picked, onPick, re
                   {onKeepPrice && (
                     <label style={{ display: "flex", alignItems: "flex-start", gap: 8, cursor: "pointer",
                       background: keepPrice ? "var(--primary-soft)" : "var(--surface2)", padding: "9px 11px", borderRadius: "var(--r-chip)",
-                      border: "1px solid " + (keepPrice ? "var(--primary)" : "var(--border)") }}>
+                      border: "none", boxShadow: keepPrice ? "inset 0 0 0 1px var(--primary)" : "var(--shadow-sm)" }}>
                       <input type="checkbox" checked={!!keepPrice} onChange={(e) => onKeepPrice(e.target.checked)}
                         style={{ width: 15, height: 15, marginTop: 1, accentColor: "var(--primary)", flexShrink: 0, cursor: "pointer" }} />
                       <span style={{ minWidth: 0 }}>
@@ -5029,7 +5029,7 @@ function MatVariantModal({ item, stock, priceMap, matOptions, picked, onPick, re
                 return (
                   <button key={v.id || v.sku} type="button" onClick={() => { onPick(v.sku); loadVariant(v); }}
                     style={{ display: "flex", alignItems: "center", gap: 10, textAlign: "left", cursor: "pointer", fontFamily: "inherit",
-                      padding: "9px 11px", borderRadius: "var(--r-chip)", border: "1px solid " + (on ? "var(--primary)" : "var(--border)"),
+                      padding: "9px 11px", borderRadius: "var(--r-chip)", border: "none", boxShadow: on ? "inset 0 0 0 1px var(--primary)" : "var(--shadow-sm)",
                       background: on ? "var(--primary-soft)" : "var(--surface)" }}>
                     <span style={{ width: 8, height: 8, borderRadius: "var(--r-pill)", flexShrink: 0, background: on ? "var(--primary)" : "var(--surface3)" }} />
                     <span style={{ flex: 1, minWidth: 0 }}>
@@ -5097,7 +5097,7 @@ function MatVariantModal({ item, stock, priceMap, matOptions, picked, onPick, re
             {variants.length > 1 ? " · ส่วน “งานนี้ใช้ตัวไหน” เก็บไว้ที่งานนี้งานเดียว" : ""}
           </div>
         </div>
-        <div style={{ padding: "13px 20px", borderTop: "1px solid var(--border)", background: "var(--surface)", display: "flex", gap: 8, justifyContent: "flex-end", flexShrink: 0 }}>
+        <div style={{ padding: "13px 20px", borderTop: "1px solid var(--divider)", background: "var(--surface)", display: "flex", gap: 8, justifyContent: "flex-end", flexShrink: 0 }}>
           <button className="bq-btn" onClick={onClose}>ยกเลิก</button>
           <button className="bq-btn pri" onClick={save}><Icon name="check" size={15} color="#fff" /> บันทึก</button>
         </div>

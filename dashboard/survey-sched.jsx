@@ -396,7 +396,7 @@ function SurveyApptModal({ initial, jobs, techs, appts, leads, blankLead, onClos
   return (
     <div {...bdClose} style={{ position: "fixed", inset: 0, background: "rgba(8,20,14,.45)", backdropFilter: "blur(3px)", zIndex: 118, display: "grid", placeItems: isMobile ? "end center" : "center", padding: isMobile ? 0 : 20 }}>
       <div onClick={(e) => e.stopPropagation()} style={{ background: "var(--bg)", borderRadius: isMobile ? "20px 20px 0 0" : 18, width: isMobile ? "100%" : "min(520px,100%)", maxHeight: isMobile ? "94dvh" : "90vh", display: "flex", flexDirection: "column", overflow: "hidden", boxShadow: "var(--shadow-modal)" }}>
-        <div style={{ padding: "16px 20px", borderBottom: "1px solid var(--border)", background: "var(--surface)", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+        <div style={{ padding: "16px 20px", borderBottom: "1px solid var(--divider)", background: "var(--surface)", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
           <h2 style={{ fontSize: 16.5, fontWeight: 800, color: "var(--text-1)", margin: 0 }}>{isNew ? "นัดสำรวจใหม่" : "แก้ไขนัดสำรวจ"}</h2>
           <button className="x-close" onClick={onClose} style={{ width: 32, height: 32, borderRadius: 9, border: "none", boxShadow: "var(--shadow-sm)", background: "var(--surface)", cursor: "pointer", display: "grid", placeItems: "center", color: "var(--text-2)" }}><Icon name="x" size={16} /></button>
         </div>
@@ -457,7 +457,7 @@ function SurveyApptModal({ initial, jobs, techs, appts, leads, blankLead, onClos
             <textarea value={f.notes} onChange={(e) => set("notes", e.target.value)} rows={2} placeholder='เช่น "ลูกค้าสะดวกช่วงบ่ายเท่านั้น"' style={Object.assign({}, inputStyle, { resize: "vertical", lineHeight: 1.5 })} />
           </div>
         </div>
-        <div style={{ padding: "12px 18px", paddingBottom: isMobile ? "calc(12px + env(safe-area-inset-bottom,0px))" : 12, borderTop: "1px solid var(--border)", background: "var(--surface)", display: "flex", gap: 10, alignItems: "center" }}>
+        <div style={{ padding: "12px 18px", paddingBottom: isMobile ? "calc(12px + env(safe-area-inset-bottom,0px))" : 12, borderTop: "1px solid var(--divider)", background: "var(--surface)", display: "flex", gap: 10, alignItems: "center" }}>
           {!isNew && <button onClick={() => onDelete(f.id)} style={{ flex: "0 0 auto", width: 44, height: 44, borderRadius: "var(--r-chip)", border: "1px solid var(--tint-red-bd)", background: "var(--tint-red-bg)", color: "var(--tint-red-tx2)", cursor: "pointer", display: "grid", placeItems: "center" }}><Icon name="x" size={16} /></button>}
           <button onClick={onClose} style={{ flex: "0 0 auto", padding: "12px 18px", borderRadius: "var(--r-chip)", border: "1px solid var(--border-strong)", background: "var(--surface)", color: "var(--text-2)", fontWeight: 700, fontFamily: "inherit", fontSize: 13.5, cursor: "pointer" }}>ยกเลิก</button>
           <button onClick={submit} style={{ flex: 1, padding: "12px", borderRadius: "var(--r-chip)", border: "none", background: "var(--primary)", color: "#fff", fontWeight: 700, fontFamily: "inherit", fontSize: 14, cursor: "pointer" }}>บันทึกนัดหมาย</button>
@@ -493,7 +493,7 @@ function ApptFlow({ a, job, onStatus, onOpenSurvey }) {
             <div style={{ display: "flex", flexDirection: "column", alignItems: "center" }}>
               <span style={{ width: 22, height: 22, borderRadius: "var(--r-pill)", flexShrink: 0, display: "grid", placeItems: "center",
                 background: reached ? "var(--primary)" : isNext ? "var(--surface)" : "var(--surface3)",
-                border: isNext ? "2px solid var(--primary)" : "2px solid transparent", color: "#fff" }}>
+                border: "none", boxShadow: isNext ? "inset 0 0 0 2px var(--primary)" : "none", color: "#fff" }}>
                 {reached ? <Icon name="check" size={12} color="#fff" sw={2.6} />
                   : isNext ? <span style={{ width: 7, height: 7, borderRadius: "var(--r-pill)", background: "var(--primary)" }} />
                   : <span style={{ width: 6, height: 6, borderRadius: "var(--r-pill)", background: "var(--text-3)" }} />}
@@ -546,7 +546,7 @@ function ApptCard({ a, job, onStatus, onOpenSurvey }) {
         {a.notes && <div style={{ fontSize: 12, color: "var(--text-2)", background: "var(--surface2)", borderRadius: 8, padding: "7px 10px" }}>📝 {a.notes}</div>}
         {a.status === "done" && sv && <div style={{ fontSize: 12, color: "var(--primary-dark)", fontWeight: 700 }}>แบบสำรวจ: {sv.label} · {sv.pct}%</div>}
       </div>
-      <div style={{ borderTop: "1px solid var(--border)", padding: "13px 14px", background: "var(--surface2)" }}>
+      <div style={{ borderTop: "1px solid var(--divider)", padding: "13px 14px", background: "var(--surface2)" }}>
         {idx >= 0
           ? <ApptFlow a={a} job={job} onStatus={onStatus} onOpenSurvey={onOpenSurvey} />
           : <div style={{ fontSize: 12.5, fontWeight: 700, color: stt.color }}>{stt.th}</div>}

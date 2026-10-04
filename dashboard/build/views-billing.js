@@ -82,7 +82,7 @@ function BlNote({
       padding: "8px 11px",
       borderRadius: "var(--r-tile)",
       background: c.bg,
-      border: "1px solid " + c.bd,
+      border: "none",
       color: c.tx,
       fontSize: 11.5,
       lineHeight: 1.55
@@ -576,7 +576,8 @@ function BlJobCard({
   return React.createElement("div", {
     style: {
       marginBottom: 22,
-      border: "1px solid " + (S.overdue.length ? "var(--tint-amber-bd)" : "var(--border-strong)"),
+      border: "none",
+      boxShadow: S.overdue.length ? "inset 0 0 0 1px var(--tint-amber-bd)" : "var(--shadow-sm)",
       borderLeft: "3px solid " + (st ? st.color : !S.has && quote ? "var(--primary)" : "var(--border-strong)"),
       borderRadius: "var(--r-tile)",
       overflow: "hidden",
@@ -647,7 +648,7 @@ function BlJobCard({
     S: S
   })), S.has && cur && React.createElement("div", {
     style: {
-      borderTop: "1px solid var(--border)",
+      borderTop: "1px solid var(--divider)",
       padding: "10px 14px",
       background: "var(--surface2)"
     }
@@ -851,7 +852,8 @@ function BlPhotoPick({
       fontSize: 12.5,
       fontWeight: 700,
       cursor: "pointer",
-      border: "1px solid " + (tab === id ? BL_ACCENT : "var(--border-strong)"),
+      border: "none",
+      boxShadow: tab === id ? "inset 0 0 0 1px " + BL_ACCENT : "var(--shadow-sm)",
       background: tab === id ? BL_ACCENT + "18" : "var(--surface)",
       color: tab === id ? BL_ACCENT : "var(--text-2)"
     }
@@ -880,7 +882,7 @@ function BlPhotoPick({
       alignItems: "center",
       gap: 10,
       padding: "13px 15px",
-      borderBottom: "1px solid var(--border)"
+      borderBottom: "1px solid var(--divider)"
     }
   }, React.createElement("div", {
     style: {
@@ -972,7 +974,7 @@ function BlPhotoPick({
   }, err)), React.createElement("div", {
     style: {
       marginTop: 16,
-      borderTop: "1px solid var(--border)",
+      borderTop: "1px solid var(--divider)",
       paddingTop: 12
     }
   }, React.createElement("div", {
@@ -1045,7 +1047,7 @@ function BlPhotoPick({
   }, "\u0E22\u0E31\u0E07\u0E44\u0E21\u0E48\u0E44\u0E14\u0E49\u0E40\u0E25\u0E37\u0E2D\u0E01\u0E23\u0E39\u0E1B"))), React.createElement("div", {
     style: {
       padding: "12px 15px",
-      borderTop: "1px solid var(--border)",
+      borderTop: "1px solid var(--divider)",
       textAlign: "right"
     }
   }, React.createElement("button", {
@@ -1165,7 +1167,7 @@ function BlRowDetail({
     style: {
       padding: "12px 14px",
       background: "var(--surface2)",
-      borderTop: "1px solid var(--border)"
+      borderTop: "1px solid var(--divider)"
     }
   }, React.createElement("div", {
     style: {
@@ -1561,7 +1563,8 @@ function BlSetupModal({
       fontSize: 13,
       fontWeight: 700,
       cursor: ro ? "default" : "pointer",
-      border: "1px solid " + (bills.from === id ? BL_ACCENT : "var(--border-strong)"),
+      border: "none",
+      boxShadow: bills.from === id ? "inset 0 0 0 1px " + BL_ACCENT : "var(--shadow-sm)",
       background: bills.from === id ? BL_ACCENT + "18" : "var(--surface)",
       color: bills.from === id ? BL_ACCENT : "var(--text-2)"
     }
@@ -1570,7 +1573,7 @@ function BlSetupModal({
     padding: "7px 8px",
     fontSize: 12.5,
     color: "var(--text-1)",
-    borderBottom: "1px solid var(--border)",
+    borderBottom: "1px solid var(--divider)",
     verticalAlign: "top"
   };
   const head = {
@@ -1606,7 +1609,7 @@ function BlSetupModal({
       alignItems: "center",
       gap: 10,
       padding: "13px 16px",
-      borderBottom: "1px solid var(--border)"
+      borderBottom: "1px solid var(--divider)"
     }
   }, React.createElement("span", {
     style: {
@@ -2063,7 +2066,7 @@ function BlSetupModal({
       gap: 10,
       flexWrap: "wrap",
       padding: "10px 12px",
-      borderTop: "1px solid var(--border)",
+      borderTop: "1px solid var(--divider)",
       background: "var(--surface2)"
     }
   }, !ro && React.createElement("button", {
@@ -2108,7 +2111,7 @@ function BlSetupModal({
       gap: 8,
       justifyContent: "flex-end",
       padding: "12px 16px",
-      borderTop: "1px solid var(--border)"
+      borderTop: "1px solid var(--divider)"
     }
   }, !ro && window.hasRole(role, "admin") && window.blHas(j) && React.createElement("button", {
     onClick: dropAll,
@@ -2290,7 +2293,8 @@ function BillingView({
       fontSize: 12.5,
       fontWeight: 700,
       cursor: "pointer",
-      border: "1px solid " + (filter === id ? BL_ACCENT : "var(--border-strong)"),
+      border: "none",
+      boxShadow: filter === id ? "inset 0 0 0 1px " + BL_ACCENT : "var(--shadow-sm)",
       background: filter === id ? BL_ACCENT + "18" : "var(--surface)",
       color: filter === id ? BL_ACCENT : "var(--text-2)"
     }
@@ -2301,14 +2305,14 @@ function BillingView({
     fontWeight: 700,
     color: "var(--text-3)",
     textAlign: "left",
-    borderBottom: "1px solid var(--border)",
+    borderBottom: "1px solid var(--divider)",
     whiteSpace: "nowrap"
   };
   const cell = {
     padding: "8px 9px",
     fontSize: 12.5,
     color: "var(--text-1)",
-    borderBottom: "1px solid var(--border)",
+    borderBottom: "1px solid var(--divider)",
     verticalAlign: "middle"
   };
   return React.createElement("div", null, React.createElement("div", {
@@ -2391,7 +2395,7 @@ function BillingView({
         flexWrap: "wrap",
         padding: "11px 13px",
         background: "var(--surface2)",
-        borderBottom: "1px solid var(--border)"
+        borderBottom: "1px solid var(--divider)"
       }
     }, React.createElement("div", {
       style: {
@@ -2621,7 +2625,7 @@ function BillingView({
         alignItems: "center",
         flexWrap: "wrap",
         padding: "10px 13px",
-        borderBottom: "1px solid var(--border)"
+        borderBottom: "1px solid var(--divider)"
       }
     }, React.createElement("div", {
       style: {
@@ -2692,7 +2696,7 @@ function BillingView({
       alignItems: "center",
       flexWrap: "wrap",
       padding: "9px 13px",
-      borderBottom: "1px solid var(--border)"
+      borderBottom: "1px solid var(--divider)"
     }
   }, React.createElement("div", {
     style: {

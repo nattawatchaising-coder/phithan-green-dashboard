@@ -604,7 +604,7 @@ function OmTicketModal({
       top: 0,
       zIndex: 2,
       background: "var(--bg)",
-      borderBottom: "1px solid var(--border)",
+      borderBottom: "1px solid var(--divider)",
       padding: isMobile ? "14px 13px" : "16px 20px"
     }
   }, React.createElement("div", {
@@ -1096,7 +1096,8 @@ function OmTicketModal({
       fontFamily: "inherit",
       fontSize: 12.5,
       fontWeight: 700,
-      border: "1px solid " + (tab === k ? "var(--primary)" : "var(--border-strong)"),
+      border: "none",
+      boxShadow: tab === k ? "inset 0 0 0 1px var(--primary)" : "var(--shadow-sm)",
       background: tab === k ? "var(--primary-soft)" : "var(--surface)",
       color: tab === k ? "var(--primary-dark)" : "var(--text-2)"
     }

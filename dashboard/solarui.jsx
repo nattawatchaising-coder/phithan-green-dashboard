@@ -387,7 +387,7 @@ function SuVoltBand({ rows, inv, sel, onPick }) {
         const on = sel === r.n;
         return (
           <button key={r.n} onClick={() => onPick && onPick(r.n)} title={r.ok ? "แรงดันทำงาน " + r.vmpHot + "–" + r.vmpCold + " V · Voc เย็น " + r.vocCold + " V" : r.fails.join(" · ")}
-            style={{ display: "flex", alignItems: "center", gap: 9, border: "1px solid " + (on ? "var(--ac)" : "transparent"),
+            style={{ display: "flex", alignItems: "center", gap: 9, border: "none", boxShadow: on ? "inset 0 0 0 1px var(--ac)" : "none",
               background: on ? "var(--acs)" : "transparent", borderRadius: "var(--r-chip)", padding: "5px 7px", width: "100%", textAlign: "left" }}>
             <span style={{ width: 30, fontSize: 11.5, fontWeight: 800, color: r.ok ? "var(--text-1)" : "var(--text-3)", flex: "0 0 auto" }}>{r.n}</span>
             <span style={{ position: "relative", flex: 1, height: 18, borderRadius: 6, background: "var(--surface2)", overflow: "hidden" }}>
@@ -653,7 +653,7 @@ function SuLayout2D({ foot, assign, active, onPaint, onPaintMany, height, labels
   });
 
   const btn = (on) => ({ width: 30, height: 30, borderRadius: 8, display: "grid", placeItems: "center",
-    border: "1px solid " + (on ? "var(--acd, #15803D)" : "var(--ln2)"), background: on ? "var(--acd, #15803D)" : "var(--surface)",
+    border: "none", boxShadow: on ? "inset 0 0 0 1px var(--acd, #15803D)" : "inset 0 0 0 1px var(--ln2)", background: on ? "var(--acd, #15803D)" : "var(--surface)",
     color: on ? "#fff" : "var(--text-2)", cursor: "pointer", fontFamily: "inherit", fontSize: 14, fontWeight: 800, lineHeight: 1 });
 
   return (

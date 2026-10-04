@@ -694,7 +694,7 @@ function BrandPanel({ jobs }) {
             <div key={t.key} style={{ flex: 1, minWidth: 0, padding: i ? "2px 0 2px 18px" : "2px 18px 2px 0",
               borderLeft: i ? "1px solid var(--border)" : "none" }}>
               <div style={{ display: "flex", alignItems: "center", gap: 7 }}>
-                <span style={{ width: 7, height: 7, borderRadius: "var(--r-pill)", background: t.color, flexShrink: 0 }} />
+                <span style={{ width: 7, height: 7, borderRadius: "var(--r-pill)", background: "var(--type-" + t.key + "-fg, " + t.color + ")", flexShrink: 0 }} />
                 <span style={{ fontSize: 11.5, fontWeight: 600, color: "var(--text-2)" }}>{t.th}</span>
               </div>
               <div style={{ fontFamily: "var(--display)", fontSize: 30, fontWeight: 700, color: "var(--text-1)",

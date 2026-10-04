@@ -473,7 +473,7 @@ function GdHandout({ track, onClose }) {
       overflow: "auto", padding: isMobile ? 0 : "24px 16px" }}>
 
       <div className="sv-rep-noprint" style={{ position: "sticky", top: 0, zIndex: 2, display: "flex", gap: 9, alignItems: "center",
-        padding: "11px 14px", background: "var(--surface)", borderBottom: "1px solid var(--border)",
+        padding: "11px 14px", background: "var(--surface)", borderBottom: "1px solid var(--divider)",
         marginBottom: isMobile ? 0 : 16, borderRadius: isMobile ? 0 : 12, maxWidth: 900, marginLeft: "auto", marginRight: "auto",
         boxShadow: "var(--shadow-sm)" }}>
         <button className="x-close" onClick={onClose} style={{ width: 36, height: 36, borderRadius: "var(--r-chip)", border: "1px solid var(--border-strong)",
@@ -491,14 +491,14 @@ function GdHandout({ track, onClose }) {
         </button>
       </div>
 
-      <div className="sv-rep-paper" style={{ maxWidth: 900, margin: "0 auto", background: "#fff", color: "#15211A",
+      <div className="sv-rep-paper" style={{ maxWidth: 900, margin: "0 auto", background: "var(--paper-bg)", color: "var(--paper-ink)",
         padding: isMobile ? "20px 16px" : "30px 34px", borderRadius: isMobile ? 0 : 12, boxShadow: "var(--shadow-modal)" }}>
 
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", gap: 16, flexWrap: "wrap",
-          borderBottom: "2px solid #1B9B75", paddingBottom: 11 }}>
+          borderBottom: "2px solid var(--paper-brand)", paddingBottom: 11 }}>
           <div style={{ minWidth: 0 }}>
             <div style={{ fontSize: 21, fontWeight: 800, letterSpacing: "-.01em" }}>คู่มือการใช้งาน · {track.th}</div>
-            <div style={{ fontSize: 10.5, color: "#7A8A81", marginTop: 4 }}>{track.who}</div>
+            <div style={{ fontSize: 10.5, color: "var(--paper-mute)", marginTop: 4 }}>{track.who}</div>
           </div>
           <div style={{ display: "flex", alignItems: "center", gap: 7 }}>
             <window.BrandDoc height={44} />
@@ -508,15 +508,15 @@ function GdHandout({ track, onClose }) {
         {track.lessons.map((L, i) => (
           <div key={i} className={i > 0 && i % 3 === 0 ? "ec-sheet" : ""} style={{ marginTop: 18 }}>
             <div style={{ fontSize: 14.5, fontWeight: 800 }}>{i + 1}. {L.t}</div>
-            <div style={{ fontSize: 10.5, color: "#5A6B62", marginTop: 2 }}>
+            <div style={{ fontSize: 10.5, color: "var(--paper-ink3)", marginTop: 2 }}>
               {L.where}{L.when ? " · ใช้ตอน: " + L.when : ""}
             </div>
             <ol style={{ margin: "8px 0 0", paddingLeft: 20, fontSize: 11.5, lineHeight: 1.75 }}>
               {L.steps.map((s, k) => <li key={k}>{s}</li>)}
             </ol>
             {(L.rules || []).length > 0 && (
-              <div style={{ marginTop: 7, padding: "7px 10px", border: "1px solid #C9D5CE", borderRadius: 6 }}>
-                <div style={{ fontSize: 10, fontWeight: 800, color: "#5A6B62", marginBottom: 3 }}>กฎที่ห้ามข้าม</div>
+              <div style={{ marginTop: 7, padding: "7px 10px", border: "1px solid var(--paper-line2)", borderRadius: 6 }}>
+                <div style={{ fontSize: 10, fontWeight: 800, color: "var(--paper-ink3)", marginBottom: 3 }}>กฎที่ห้ามข้าม</div>
                 {L.rules.map((r, k) => (
                   <div key={k} style={{ fontSize: 11, lineHeight: 1.65 }}>— {r}</div>
                 ))}
@@ -526,13 +526,13 @@ function GdHandout({ track, onClose }) {
               <div key={k} style={{ fontSize: 11, lineHeight: 1.65, marginTop: 5 }}><b>ถ้า{q}:</b> {a}</div>
             ))}
             {/* ที่ว่างให้จดตอนสอน — ใบแจกที่ไม่มีที่จด ผู้เรียนจะจดหลังกระดาษแล้วหาไม่เจอ */}
-            <div style={{ marginTop: 8, borderTop: "1px dashed #C9D5CE", paddingTop: 4, fontSize: 9.5, color: "#9AA8A1" }}>
+            <div style={{ marginTop: 8, borderTop: "1px dashed var(--paper-line2)", paddingTop: 4, fontSize: 9.5, color: "var(--paper-mute2)" }}>
               จดเพิ่ม: ______________________________________________________________________
             </div>
           </div>
         ))}
 
-        <div style={{ marginTop: 20, borderTop: "1px solid #C9D5CE", paddingTop: 8, fontSize: 9.5, color: "#7A8A81" }}>
+        <div style={{ marginTop: 20, borderTop: "1px solid var(--paper-line2)", paddingTop: 8, fontSize: 9.5, color: "var(--paper-mute)" }}>
           พิมพ์เมื่อ {window.drDateTH ? window.drDateTH(new Date().toISOString().slice(0, 10)) : new Date().toLocaleDateString("th-TH")}
           {" · "}ข้อมูลในระบบเป็นของจริงทั้งหมด ไม่มีโหมดทดลอง — ซ้อมกดปุ่มที่บันทึกข้อมูลเฉพาะกับงานที่ผู้สอนกำหนดให้เท่านั้น
         </div>
@@ -577,7 +577,7 @@ function GuideView({ role, currentUser, onNav }) {
               style={{ display: "flex", alignItems: "center", gap: 9, padding: "10px 14px", borderRadius: "var(--r-chip)", cursor: "pointer",
                 fontFamily: "inherit", textAlign: "left",
                 background: on ? t.color + "14" : "var(--surface)",
-                border: "1px solid " + (on ? t.color : "var(--border)") }}>
+                border: "none", boxShadow: on ? "inset 0 0 0 1px " + t.color : "var(--shadow-sm)" }}>
               <Icon name={t.icon} size={17} color={on ? t.color : "var(--text-3)"} />
               <span>
                 <span style={{ display: "block", fontSize: 13.5, fontWeight: 800, color: on ? t.color : "var(--text-1)" }}>{t.th}</span>

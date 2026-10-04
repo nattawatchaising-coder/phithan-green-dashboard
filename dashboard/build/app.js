@@ -2112,7 +2112,7 @@ function TechFilter({
   }), none > 0 && React.createElement("button", {
     className: "tf-row",
     style: Object.assign(row(value === "__none"), {
-      borderTop: "1px solid var(--border)",
+      borderTop: "1px solid var(--divider)",
       borderRadius: 0,
       marginTop: 4,
       paddingTop: 10
@@ -2473,7 +2473,8 @@ function DailyBriefing({
       width: "100%",
       textAlign: "left",
       background: danger ? "var(--tint-red-bg)" : "var(--surface)",
-      border: "1px solid " + (danger ? "var(--tint-red-bd)" : "var(--border)"),
+      border: "none",
+      boxShadow: danger ? "inset 0 0 0 1px var(--tint-red-bd)" : "var(--shadow-sm)",
       borderRadius: "var(--r-chip)",
       cursor: "pointer",
       fontFamily: "inherit"
@@ -2550,7 +2551,7 @@ function DailyBriefing({
   }, React.createElement("div", {
     style: {
       padding: "18px 20px",
-      borderBottom: "1px solid var(--border)",
+      borderBottom: "1px solid var(--divider)",
       background: "var(--surface)",
       display: "flex",
       justifyContent: "space-between",
@@ -2649,7 +2650,7 @@ function DailyBriefing({
     style: {
       padding: "12px 20px",
       paddingBottom: isMobile ? "calc(12px + env(safe-area-inset-bottom,0px))" : 12,
-      borderTop: "1px solid var(--border)",
+      borderTop: "1px solid var(--divider)",
       background: "var(--surface)"
     }
   }, React.createElement("button", {
@@ -2930,7 +2931,7 @@ function TrashModal({
   }, React.createElement("div", {
     style: {
       padding: "15px 18px",
-      borderBottom: "1px solid var(--border)",
+      borderBottom: "1px solid var(--divider)",
       background: "var(--surface)",
       display: "flex",
       justifyContent: "space-between",
@@ -3159,7 +3160,7 @@ function TrashModal({
   }, err))))), !isAdmin && trash.length > 0 && React.createElement("div", {
     style: {
       padding: "10px 16px",
-      borderTop: "1px solid var(--border)",
+      borderTop: "1px solid var(--divider)",
       background: "var(--surface)",
       fontSize: 11.5,
       color: "var(--text-3)"
@@ -3199,7 +3200,7 @@ function MapModal({
   }, React.createElement("div", {
     style: {
       padding: "16px 20px",
-      borderBottom: "1px solid var(--border)",
+      borderBottom: "1px solid var(--divider)",
       background: "var(--surface)",
       display: "flex",
       justifyContent: "space-between",

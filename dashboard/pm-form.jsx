@@ -92,14 +92,14 @@ function PmDocRow({ item, job, value, onSet }) {
     return (
       <button onClick={() => onSet(item.key, on ? null : val)}
         style={{ width: 38, height: 32, borderRadius: 8, cursor: "pointer", fontFamily: "inherit", fontSize: 15, fontWeight: 800,
-          border: "1px solid " + (on ? color : "var(--border-strong)"),
+          border: "none", boxShadow: on ? "inset 0 0 0 1px " + color : "var(--shadow-sm)",
           background: on ? color : "var(--surface)", color: on ? "#fff" : "var(--text-3)" }}>
         {text}
       </button>
     );
   };
   return (
-    <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "7px 0", borderBottom: "1px solid var(--border)" }}>
+    <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "7px 0", borderBottom: "1px solid var(--divider)" }}>
       <span style={{ flex: 1, minWidth: 0 }}>
         <span style={{ display: "block", fontSize: 12.5, fontWeight: 600, color: "var(--text-1)" }}>{lb.en}</span>
         <span style={{ display: "block", fontSize: 11, color: "var(--text-3)" }}>{lb.th}</span>
@@ -343,7 +343,7 @@ function PmTableBlock({ table, hdr, rows, mobile, job, sum, secKey, photoIdx, on
   return (
     <div style={{ marginBottom: 22 }}>
       <div style={{ display: "flex", alignItems: "baseline", gap: 8, marginBottom: 9, paddingBottom: 4,
-        borderBottom: "1px solid var(--border)" }}>
+        borderBottom: "1px solid var(--divider)" }}>
         <span style={{ flex: 1, minWidth: 0, fontSize: 12.5, fontWeight: 800, color: "var(--text-1)" }}>
           {table.code ? <span style={{ color: "var(--text-3)" }}>{table.code} · </span> : null}
           {table.en} <span style={{ fontWeight: 400, color: "var(--text-3)" }}>({table.th})</span>
@@ -588,7 +588,7 @@ function PmHandoverModal({ job, currentUser, onClose, onSummary }) {
     return (
       <button key={sec.key} onClick={() => setTab(sec.key)}
         style={{ flexShrink: 0, padding: "8px 13px", borderRadius: "var(--r-pill)", cursor: "pointer", fontFamily: "inherit",
-          border: "1px solid " + (on ? "var(--primary)" : "var(--border-strong)"),
+          border: "none", boxShadow: on ? "inset 0 0 0 1px var(--primary)" : "var(--shadow-sm)",
           background: on ? "var(--primary-soft)" : "var(--surface)", textAlign: "left" }}>
         <span style={{ display: "block", fontSize: 12.5, fontWeight: 700, color: on ? "var(--primary-dark)" : "var(--text-1)" }}>
           {sec.th}
@@ -609,7 +609,7 @@ function PmHandoverModal({ job, currentUser, onClose, onSummary }) {
           boxShadow: "var(--shadow-modal)" }}>
 
           {/* หัวหน้าต่าง */}
-          <div style={{ flexShrink: 0, padding: "13px 16px", borderBottom: "1px solid var(--border)", background: "var(--surface)",
+          <div style={{ flexShrink: 0, padding: "13px 16px", borderBottom: "1px solid var(--divider)", background: "var(--surface)",
             display: "flex", alignItems: "center", gap: 10 }}>
             <span style={{ width: 34, height: 34, borderRadius: "var(--r-chip)", background: "#16A34A1c", display: "grid", placeItems: "center", flexShrink: 0 }}>
               <Icon name="check" size={17} color="#16A34A" />
@@ -647,7 +647,7 @@ function PmHandoverModal({ job, currentUser, onClose, onSummary }) {
           ) : (
             <React.Fragment>
               {/* แถบความครบ */}
-              <div style={{ flexShrink: 0, padding: "10px 16px", background: "var(--surface)", borderBottom: "1px solid var(--border)" }}>
+              <div style={{ flexShrink: 0, padding: "10px 16px", background: "var(--surface)", borderBottom: "1px solid var(--divider)" }}>
                 <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 6 }}>
                   <span style={{ fontSize: 12.5, fontWeight: 800, color: "var(--text-1)" }}>
                     กรอกแล้ว {prog.pct}%
@@ -688,10 +688,10 @@ function PmHandoverModal({ job, currentUser, onClose, onSummary }) {
                   ถ้าไม่ห้ามหด เบราว์เซอร์จะบีบแถบหมวดจนบรรทัด "14/26 · 54%" ถูกตัดหายไปครึ่งตัว
                   พอเนื้อหาข้างในยาว (ซึ่งยาวเสมอ) */}
               <div style={{ flexShrink: 0, display: "flex", gap: 8, padding: "10px 16px", overflowX: "auto",
-                borderBottom: "1px solid var(--border)" }}>
+                borderBottom: "1px solid var(--divider)" }}>
                 <button onClick={() => setTab("home")}
                   style={{ flexShrink: 0, padding: "8px 13px", borderRadius: "var(--r-pill)", cursor: "pointer", fontFamily: "inherit",
-                    border: "1px solid " + (tab === "home" ? "var(--primary)" : "var(--border-strong)"),
+                    border: "none", boxShadow: tab === "home" ? "inset 0 0 0 1px var(--primary)" : "var(--shadow-sm)",
                     background: tab === "home" ? "var(--primary-soft)" : "var(--surface)", textAlign: "left" }}>
                   <span style={{ display: "block", fontSize: 12.5, fontWeight: 700,
                     color: tab === "home" ? "var(--primary-dark)" : "var(--text-1)" }}>ภาพรวม</span>
@@ -702,7 +702,7 @@ function PmHandoverModal({ job, currentUser, onClose, onSummary }) {
                 {secs.map(tabBtn)}
                 <button onClick={() => setTab("photo")}
                   style={{ flexShrink: 0, padding: "8px 13px", borderRadius: "var(--r-pill)", cursor: "pointer", fontFamily: "inherit",
-                    border: "1px solid " + (tab === "photo" ? "var(--primary)" : "var(--border-strong)"),
+                    border: "none", boxShadow: tab === "photo" ? "inset 0 0 0 1px var(--primary)" : "var(--shadow-sm)",
                     background: tab === "photo" ? "var(--primary-soft)" : "var(--surface)", textAlign: "left" }}>
                   <span style={{ display: "block", fontSize: 12.5, fontWeight: 700,
                     color: tab === "photo" ? "var(--primary-dark)" : "var(--text-1)" }}>รูปประกอบ</span>
@@ -758,7 +758,7 @@ function PmHandoverModal({ job, currentUser, onClose, onSummary }) {
                 {cur && cur.kind === "fields" && window.pmGroupsOf(cur, sum).map((g) => (
                   <div key={g.key} style={{ marginBottom: 18 }}>
                     <div style={{ display: "flex", alignItems: "baseline", gap: 8, marginBottom: 9,
-                      paddingBottom: 4, borderBottom: "1px solid var(--border)" }}>
+                      paddingBottom: 4, borderBottom: "1px solid var(--divider)" }}>
                       <span style={{ flex: 1, minWidth: 0, fontSize: 12, fontWeight: 800, color: "var(--text-1)" }}>
                         {g.en} <span style={{ fontWeight: 400, color: "var(--text-3)" }}>({g.th})</span>
                         {g.optional ? <span style={{ fontWeight: 400, color: "var(--text-3)" }}> · ไม่บังคับ</span> : null}
@@ -796,7 +796,7 @@ function PmHandoverModal({ job, currentUser, onClose, onSummary }) {
                 {cur && cur.kind === "checklist" && (cur.groups || []).map((g) => (
                   <div key={g.key} style={{ marginBottom: 18 }}>
                     <div style={{ fontSize: 12, fontWeight: 800, color: "var(--text-1)", marginBottom: 4,
-                      paddingBottom: 4, borderBottom: "1px solid var(--border)" }}>
+                      paddingBottom: 4, borderBottom: "1px solid var(--divider)" }}>
                       {g.en} <span style={{ fontWeight: 400, color: "var(--text-3)" }}>({g.th})</span>
                     </div>
                     {(g.items || []).map((it) => (
@@ -883,7 +883,7 @@ function PmHandoverModal({ job, currentUser, onClose, onSummary }) {
               </div>
 
               {/* รายการที่ยังขาด + ปุ่มออกรายงาน */}
-              <div style={{ flexShrink: 0, borderTop: "1px solid var(--border)", background: "var(--surface)", padding: "11px 16px" }}>
+              <div style={{ flexShrink: 0, borderTop: "1px solid var(--divider)", background: "var(--surface)", padding: "11px 16px" }}>
                 {prog.missing.length ? (
                   <details style={{ marginBottom: 10 }}>
                     <summary style={{ cursor: "pointer", fontSize: 12.5, fontWeight: 700, color: "var(--tint-amber-tx)" }}>

@@ -223,7 +223,7 @@ function P3MapPicker({
   }, React.createElement("div", {
     style: {
       padding: 10,
-      borderBottom: "1px solid var(--border)",
+      borderBottom: "1px solid var(--divider)",
       display: "flex",
       gap: 8,
       alignItems: "center",
@@ -313,7 +313,7 @@ function P3MapPicker({
   }, err)), React.createElement("div", {
     style: {
       padding: 10,
-      borderTop: "1px solid var(--border)",
+      borderTop: "1px solid var(--divider)",
       display: "flex",
       gap: 8,
       alignItems: "center"
@@ -384,7 +384,7 @@ function P3SetPreview({
   }, React.createElement("div", {
     style: {
       padding: 10,
-      borderBottom: "1px solid var(--border)",
+      borderBottom: "1px solid var(--divider)",
       display: "flex",
       gap: 8,
       alignItems: "center",
@@ -435,7 +435,7 @@ function P3SetPreview({
   })), React.createElement("div", {
     style: {
       padding: "7px 12px",
-      borderTop: "1px solid var(--border)",
+      borderTop: "1px solid var(--divider)",
       fontSize: 11.5,
       color: "var(--text-2)"
     }

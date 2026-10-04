@@ -130,7 +130,7 @@ function JobMaterialUsage({ job, stock, currentUser }) {
 
       {rows.length > 0 && (
       <div style={{ background: "var(--surface)", boxShadow: "var(--shadow-sm)", borderRadius: "var(--r-tile)", overflow: "hidden" }}>
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 42px 42px 64px", gap: 8, padding: "9px 14px", background: "var(--surface2)", borderBottom: "1px solid var(--border)" }}>
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 42px 42px 64px", gap: 8, padding: "9px 14px", background: "var(--surface2)", borderBottom: "1px solid var(--divider)" }}>
           <Cell head left color="var(--text-3)">อุปกรณ์</Cell>
           <Cell head color="#6645e0">เบิก</Cell>
           <Cell head color="#0784b8">คืน</Cell>
@@ -239,7 +239,7 @@ function StockShopModal({ stock, job, byName, onClose }) {
     const max = it.qty;
     const out = max <= 0;
     return (
-      <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "9px 8px", borderBottom: "1px solid var(--border)" }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "9px 8px", borderBottom: "1px solid var(--divider)" }}>
         <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{ fontSize: 13, fontWeight: 600, color: "var(--text-1)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{it.name}</div>
           <div style={{ fontSize: 11, color: out ? "#EF4444" : "var(--text-3)", marginTop: 1 }}>{sub}</div>
@@ -263,7 +263,7 @@ function StockShopModal({ stock, job, byName, onClose }) {
   return (
     <div {...bdClose} style={{ position: "fixed", inset: 0, background: "rgba(8,20,14,.45)", backdropFilter: "blur(3px)", zIndex: 115, display: "grid", placeItems: isMobile ? "end center" : "center", padding: isMobile ? 0 : 20 }}>
       <div onClick={(e) => e.stopPropagation()} style={{ background: "var(--bg)", borderRadius: isMobile ? "20px 20px 0 0" : 18, width: isMobile ? "100%" : "min(580px,100%)", maxHeight: isMobile ? "94dvh" : "90vh", display: "flex", flexDirection: "column", overflow: "hidden", boxShadow: "var(--shadow-modal)" }}>
-        <div style={{ padding: "16px 20px", borderBottom: "1px solid var(--border)", background: "var(--surface)", flexShrink: 0 }}>
+        <div style={{ padding: "16px 20px", borderBottom: "1px solid var(--divider)", background: "var(--surface)", flexShrink: 0 }}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12 }}>
             <div style={{ minWidth: 0 }}>
               <div style={{ fontSize: 11.5, color: "var(--text-3)" }}>เบิกของเข้างาน · {job.code}</div>
@@ -308,7 +308,7 @@ function StockShopModal({ stock, job, byName, onClose }) {
           {extraItems.length === 0 && <div style={{ padding: 24, textAlign: "center", color: "var(--text-3)", fontSize: 12.5 }}>ไม่พบอุปกรณ์อื่นในคลัง</div>}
         </div>
 
-        <div style={{ padding: "12px 20px", paddingBottom: isMobile ? "calc(12px + env(safe-area-inset-bottom,0px))" : 12, borderTop: "1px solid var(--border)", background: "var(--surface)", display: "flex", gap: 10, flexShrink: 0 }}>
+        <div style={{ padding: "12px 20px", paddingBottom: isMobile ? "calc(12px + env(safe-area-inset-bottom,0px))" : 12, borderTop: "1px solid var(--divider)", background: "var(--surface)", display: "flex", gap: 10, flexShrink: 0 }}>
           <button onClick={onClose} style={{ flex: "0 0 auto", padding: "11px 16px", borderRadius: "var(--r-tile)", boxShadow: "var(--shadow-sm)", background: "var(--surface)", color: "var(--text-2)", fontWeight: 600, fontFamily: "inherit", fontSize: 13.5, cursor: "pointer" }}>ปิด</button>
           <button onClick={confirm} disabled={!cartIds.length}
             style={{ flex: 1, padding: "11px 22px", borderRadius: "var(--r-tile)", border: "none", background: cartIds.length ? "var(--primary)" : "var(--surface3)", color: cartIds.length ? "#fff" : "var(--text-3)", fontWeight: 700, fontFamily: "inherit", fontSize: 13.5, cursor: cartIds.length ? "pointer" : "default" }}>
@@ -435,7 +435,7 @@ function PermitJobSummary({ job, onOpenReview }) {
         ) : blockers.map((b, i) => {
           const t = TONE[b.tone];
           return (
-            <div key={i} style={{ marginBottom: 7, padding: "10px 12px", borderRadius: "var(--r-tile)", background: t.bg, border: "1px solid " + t.bd }}>
+            <div key={i} style={{ marginBottom: 7, padding: "10px 12px", borderRadius: "var(--r-tile)", background: t.bg, border: "none" }}>
               <div style={{ fontSize: 12.5, fontWeight: 800, color: t.tx }}>{b.th}</div>
               <div style={{ fontSize: 12, color: t.tx, marginTop: 3, lineHeight: 1.55 }}>{b.detail}</div>
             </div>
@@ -494,7 +494,7 @@ function DrToolGroup({ alert, children }) {
     <div style={{ marginBottom: open ? 0 : 22 }}>
       <button onClick={toggle} aria-expanded={open}
         style={{ width: "100%", display: "flex", alignItems: "center", gap: 7, marginBottom: open ? 12 : 0,
-          padding: "9px 4px", background: "none", border: "none", borderBottom: "1px solid var(--border)",
+          padding: "9px 4px", background: "none", border: "none", borderBottom: "1px solid var(--divider)",
           cursor: "pointer", fontFamily: "inherit", textAlign: "left" }}>
         <Icon name={open ? "chevronDown" : "chevronRight"} size={14} color="var(--text-2)" />
         <span style={{ fontSize: 11.5, fontWeight: 700, color: "var(--text-3)" }}>
@@ -557,7 +557,7 @@ function DetailDrawer({ job, onClose, onAdvance, onSetMat, onEdit, currentUser, 
         {job && (
           <React.Fragment>
             {/* header */}
-            <div style={{ padding: isMobile ? "15px 16px" : "20px 24px", borderBottom: "1px solid var(--border)", background: "var(--surface)", flexShrink: 0 }}>
+            <div style={{ padding: isMobile ? "15px 16px" : "20px 24px", borderBottom: "1px solid var(--divider)", background: "var(--surface)", flexShrink: 0 }}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 12 }}>
                 <div>
                   <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6 }}>
@@ -584,7 +584,7 @@ function DetailDrawer({ job, onClose, onAdvance, onSetMat, onEdit, currentUser, 
                   const c = pst ? pst.color : "#94A3B8";
                   return (
                     <React.Fragment>
-                      <span style={{ fontSize: 12, fontWeight: 700, color: c, background: c + "16", border: "1px solid " + c + "33",
+                      <span style={{ fontSize: 12, fontWeight: 700, color: c, background: c + "16", border: "none",
                         borderRadius: "var(--r-pill)", padding: "4px 11px", whiteSpace: "nowrap" }}>{pst ? pst.th : "ยังไม่เริ่มเก็บข้อมูล"}</span>
                       <div style={{ flex: 1 }}><ProgressBar pct={pct} color={c} /></div>
                       <span style={{ fontFamily: "var(--mono)", fontSize: 13, fontWeight: 600, color: "var(--text-2)" }}>{pct}%</span>
@@ -821,7 +821,7 @@ function DetailDrawer({ job, onClose, onAdvance, onSetMat, onEdit, currentUser, 
                   const idx = window.permitFlowIdx ? window.permitFlowIdx(job) : -1;
                   const rejected = !!(pm && pm.status === "rejected");
                   return (
-                    <div style={{ marginBottom: 22, border: "1px solid " + (rejected ? "var(--tint-red-bd)" : "var(--border-strong)"),
+                    <div style={{ marginBottom: 22, border: "none", boxShadow: rejected ? "inset 0 0 0 1px var(--tint-red-bd)" : "var(--shadow-sm)",
                       borderLeft: "3px solid " + (pst ? pst.color : "var(--border-strong)"), borderRadius: "var(--r-tile)", overflow: "hidden",
                       background: "var(--surface)" }}>
                       <button onClick={onPermit}
@@ -967,7 +967,7 @@ function DetailDrawer({ job, onClose, onAdvance, onSetMat, onEdit, currentUser, 
             {/* footer action — เผื่อ safe-area ด้านล่าง กันแถบเบราว์เซอร์มือถือบังปุ่ม
                มือถือ: ปุ่ม ปิด/แก้ไข เป็นไอคอนล้วน ให้ปุ่มเลื่อนขั้นกว้างพอแสดงบรรทัดเดียว */}
             <div style={{ padding: isMobile ? "12px 16px" : "14px 24px", paddingBottom: "calc(" + (isMobile ? 12 : 14) + "px + env(safe-area-inset-bottom, 0px))",
-              borderTop: "1px solid var(--border)", background: "var(--surface)", display: "flex", gap: isMobile ? 8 : 10, flexShrink: 0 }}>
+              borderTop: "1px solid var(--divider)", background: "var(--surface)", display: "flex", gap: isMobile ? 8 : 10, flexShrink: 0 }}>
               <button className="x-close" onClick={onClose} title="ปิด" aria-label="ปิด"
                 style={{ flex: "0 0 auto", padding: isMobile ? 0 : "11px 16px", width: isMobile ? 42 : "auto", height: isMobile ? 42 : "auto",
                   borderRadius: "var(--r-tile)", boxShadow: "var(--shadow-sm)", background: "var(--surface)", color: "var(--text-2)",

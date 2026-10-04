@@ -305,7 +305,7 @@ function JobForm({
   }, React.createElement("div", {
     style: {
       padding: "18px 24px",
-      borderBottom: "1px solid var(--border)",
+      borderBottom: "1px solid var(--divider)",
       background: "var(--surface)",
       display: "flex",
       justifyContent: "space-between",
@@ -552,7 +552,8 @@ function JobForm({
         gap: 8,
         padding: "7px 13px 7px 7px",
         borderRadius: "var(--r-pill)",
-        border: "1.5px solid " + (sel ? t.color : "var(--border-strong)"),
+        border: "none",
+        boxShadow: sel ? "inset 0 0 0 1.5px " + t.color : "var(--shadow-sm)",
         background: sel ? t.color + "14" : "var(--surface2)",
         cursor: "pointer",
         fontFamily: "inherit",
@@ -1306,7 +1307,7 @@ function JobForm({
   })())), React.createElement("div", {
     style: {
       padding: isMobile ? "14px 16px calc(14px + env(safe-area-inset-bottom, 0px))" : "16px 24px calc(16px + env(safe-area-inset-bottom, 0px))",
-      borderTop: "1px solid var(--border)",
+      borderTop: "1px solid var(--divider)",
       background: "var(--surface)",
       display: "flex",
       justifyContent: "flex-end",
@@ -1404,7 +1405,7 @@ function MatRow({
       alignItems: "center",
       gap: 10,
       padding: "9px 0",
-      borderBottom: "1px solid var(--border)"
+      borderBottom: "1px solid var(--divider)"
     }
   }, React.createElement("span", {
     style: {
@@ -1599,7 +1600,7 @@ function TechManager({
   }, React.createElement("div", {
     style: {
       padding: "18px 22px",
-      borderBottom: "1px solid var(--border)",
+      borderBottom: "1px solid var(--divider)",
       background: "var(--surface)",
       display: "flex",
       justifyContent: "space-between",
@@ -1751,7 +1752,7 @@ function TechManager({
   }))))), React.createElement("div", {
     style: {
       padding: "14px 22px",
-      borderTop: "1px solid var(--border)",
+      borderTop: "1px solid var(--divider)",
       background: "var(--surface)",
       display: "flex",
       justifyContent: "flex-end",
@@ -1822,7 +1823,7 @@ function TechEditModal({
   }, React.createElement("div", {
     style: {
       padding: "16px 22px",
-      borderBottom: "1px solid var(--border)",
+      borderBottom: "1px solid var(--divider)",
       background: "var(--surface)",
       display: "flex",
       justifyContent: "space-between",
@@ -1932,7 +1933,7 @@ function TechEditModal({
   }))))), React.createElement("div", {
     style: {
       padding: "14px 22px",
-      borderTop: "1px solid var(--border)",
+      borderTop: "1px solid var(--divider)",
       background: "var(--surface)",
       display: "flex",
       justifyContent: "flex-end",
@@ -2007,7 +2008,7 @@ function BrandManager({
   }, React.createElement("div", {
     style: {
       padding: "18px 22px",
-      borderBottom: "1px solid var(--border)",
+      borderBottom: "1px solid var(--divider)",
       background: "var(--surface)",
       display: "flex",
       justifyContent: "space-between",
@@ -2175,7 +2176,7 @@ function BrandManager({
   }))))), React.createElement("div", {
     style: {
       padding: "14px 22px",
-      borderTop: "1px solid var(--border)",
+      borderTop: "1px solid var(--divider)",
       background: "var(--surface)",
       display: "flex",
       justifyContent: "flex-end",
@@ -2254,7 +2255,7 @@ function BrandEditModal({
   }, React.createElement("div", {
     style: {
       padding: "16px 22px",
-      borderBottom: "1px solid var(--border)",
+      borderBottom: "1px solid var(--divider)",
       background: "var(--surface)",
       display: "flex",
       justifyContent: "space-between",
@@ -2311,7 +2312,7 @@ function BrandEditModal({
   }))), React.createElement("div", {
     style: {
       padding: "14px 22px",
-      borderTop: "1px solid var(--border)",
+      borderTop: "1px solid var(--divider)",
       background: "var(--surface)",
       display: "flex",
       justifyContent: "flex-end",

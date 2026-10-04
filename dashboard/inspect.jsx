@@ -264,7 +264,7 @@ function InspectionListModal({ job, currentUser, onClose }) {
         <div style={{ background: "var(--bg)", borderRadius: isMobile ? "20px 20px 0 0" : 18, width: isMobile ? "100%" : "min(680px,100%)",
           maxHeight: isMobile ? "94dvh" : "90vh", display: "flex", flexDirection: "column", overflow: "hidden", boxShadow: "var(--shadow-modal)" }}>
 
-          <div style={{ padding: "13px 16px", borderBottom: "1px solid var(--border)", background: "var(--surface)", display: "flex", alignItems: "center", gap: 10 }}>
+          <div style={{ padding: "13px 16px", borderBottom: "1px solid var(--divider)", background: "var(--surface)", display: "flex", alignItems: "center", gap: 10 }}>
             <span style={{ width: 34, height: 34, borderRadius: "var(--r-chip)", background: "#0EA5E91c", display: "grid", placeItems: "center", flexShrink: 0 }}>
               <Icon name="list" size={17} color="#0284C7" />
             </span>
@@ -309,7 +309,7 @@ function InspectionListModal({ job, currentUser, onClose }) {
                     <Icon name="arrowRight" size={16} color="var(--text-3)" />
                   </button>
                   {ask === x.id ? (
-                    <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap", padding: "10px 13px", borderTop: "1px solid var(--border)" }}>
+                    <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap", padding: "10px 13px", borderTop: "1px solid var(--divider)" }}>
                       <span style={{ flex: 1, minWidth: 150, fontSize: 12, fontWeight: 700, color: "var(--tint-red-tx2)", lineHeight: 1.5 }}>
                         ลบใบ {x.no} ? รูปที่แนบไว้จะยังอยู่ แต่ใบนี้จะหายไป
                       </span>
@@ -347,7 +347,7 @@ function InspectionListModal({ job, currentUser, onClose }) {
           </div>
 
           <div style={{ padding: "12px 16px", paddingBottom: isMobile ? "calc(12px + env(safe-area-inset-bottom,0px))" : 12,
-            borderTop: "1px solid var(--border)", background: "var(--surface)", display: "flex", gap: 10 }}>
+            borderTop: "1px solid var(--divider)", background: "var(--surface)", display: "flex", gap: 10 }}>
             <button onClick={onClose} style={{ padding: "12px 18px", borderRadius: "var(--r-chip)", border: "1px solid var(--border-strong)",
               background: "var(--surface)", color: "var(--text-2)", fontWeight: 700, fontFamily: "inherit", fontSize: 13.5, cursor: "pointer" }}>ปิด</button>
             <button onClick={() => setPicking((v) => !v)} style={{ flex: 1, display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 7,
@@ -389,7 +389,7 @@ function IrField({ label, thai, wide, lbl, sub, children }) {
 function IrItemRow({ item, no, inp, onChange, onRemove, isMobile }) {
   return (
     <div style={{ display: "flex", gap: 8, alignItems: isMobile ? "stretch" : "center", flexDirection: isMobile ? "column" : "row",
-      padding: "9px 10px", borderTop: "1px solid var(--border)" }}>
+      padding: "9px 10px", borderTop: "1px solid var(--divider)" }}>
       <span style={{ flexShrink: 0, fontSize: 11, fontFamily: "var(--mono)", color: "var(--text-3)", minWidth: 20 }}>{no}.</span>
       <input value={item.name} onChange={(e) => onChange({ name: e.target.value })} placeholder="หัวข้อที่ตรวจ"
         style={Object.assign({}, inp, { flex: 2, minWidth: 0 })} />
@@ -403,7 +403,7 @@ function IrItemRow({ item, no, inp, onChange, onRemove, isMobile }) {
               title={r.th + " (" + r.en + ")"} aria-label={r.th}
               style={{ width: 34, height: 34, borderRadius: 9, cursor: "pointer", fontFamily: "inherit", fontSize: 14, fontWeight: 800,
                 display: "grid", placeItems: "center", lineHeight: 1,
-                border: "1px solid " + (on ? r.color : "var(--border-strong)"),
+                border: "none", boxShadow: on ? "inset 0 0 0 1px " + r.color : "var(--shadow-sm)",
                 background: on ? r.color + "16" : "var(--surface)", color: on ? r.color : "var(--text-3)" }}>
               {r.mark}
             </button>
@@ -455,7 +455,7 @@ function InspectionFormModal({ job, rec, currentUser, onSave, onClose }) {
         <div style={{ background: "var(--bg)", borderRadius: isMobile ? "20px 20px 0 0" : 18, width: isMobile ? "100%" : "min(860px,100%)",
           maxHeight: isMobile ? "94dvh" : "92vh", display: "flex", flexDirection: "column", overflow: "hidden", boxShadow: "var(--shadow-modal)" }}>
 
-          <div style={{ padding: "13px 16px", borderBottom: "1px solid var(--border)", background: "var(--surface)", display: "flex", alignItems: "center", gap: 10 }}>
+          <div style={{ padding: "13px 16px", borderBottom: "1px solid var(--divider)", background: "var(--surface)", display: "flex", alignItems: "center", gap: 10 }}>
             <div style={{ flex: 1, minWidth: 0 }}>
               <div style={{ fontSize: 14.5, fontWeight: 800, color: "var(--text-1)" }}>
                 <span style={{ fontFamily: "var(--mono)", color: "var(--text-3)", fontSize: 12, marginRight: 7 }}>{f.no}</span>
@@ -480,7 +480,7 @@ function InspectionFormModal({ job, rec, currentUser, onSave, onClose }) {
                   return (
                     <button key={k} type="button" onClick={() => set("kind", k)}
                       style={{ padding: "7px 12px", borderRadius: "var(--r-pill)", cursor: "pointer", fontFamily: "inherit", fontSize: 11.5, fontWeight: 700,
-                        border: "1px solid " + (on ? "var(--primary)" : "var(--border-strong)"),
+                        border: "none", boxShadow: on ? "inset 0 0 0 1px var(--primary)" : "var(--shadow-sm)",
                         background: on ? "var(--primary-soft)" : "var(--surface)", color: on ? "var(--primary-dark)" : "var(--text-2)" }}>{k}</button>
                   );
                 })}
@@ -577,9 +577,9 @@ function InspectionFormModal({ job, rec, currentUser, onSave, onClose }) {
                     <button key={r.key} type="button" onClick={() => set("result", on ? "" : r.key)}
                       style={{ display: "inline-flex", alignItems: "center", gap: 7, padding: "9px 14px", borderRadius: "var(--r-chip)", cursor: "pointer",
                         fontFamily: "inherit", fontSize: 12.5, fontWeight: 700,
-                        border: "1px solid " + (on ? r.color : "var(--border-strong)"),
+                        border: "none", boxShadow: on ? "inset 0 0 0 1px " + r.color : "var(--shadow-sm)",
                         background: on ? r.color + "16" : "var(--surface)", color: on ? r.color : "var(--text-2)" }}>
-                      <span style={{ width: 13, height: 13, borderRadius: 4, flexShrink: 0, border: "1.5px solid " + (on ? r.color : "var(--border-strong)"),
+                      <span style={{ width: 13, height: 13, borderRadius: 4, flexShrink: 0, border: "none", boxShadow: on ? "inset 0 0 0 1.5px " + r.color : "var(--shadow-inset)",
                         background: on ? r.color : "transparent" }} />
                       {r.en} ({r.th})
                     </button>
@@ -637,7 +637,7 @@ function InspectionFormModal({ job, rec, currentUser, onSave, onClose }) {
           </div>
 
           <div style={{ padding: "12px 16px", paddingBottom: isMobile ? "calc(12px + env(safe-area-inset-bottom,0px))" : 12,
-            borderTop: "1px solid var(--border)", background: "var(--surface)", display: "flex", gap: 10, flexWrap: "wrap" }}>
+            borderTop: "1px solid var(--divider)", background: "var(--surface)", display: "flex", gap: 10, flexWrap: "wrap" }}>
             <button onClick={onClose} style={{ padding: "12px 18px", borderRadius: "var(--r-chip)", border: "1px solid var(--border-strong)",
               background: "var(--surface)", color: "var(--text-2)", fontWeight: 700, fontFamily: "inherit", fontSize: 13.5, cursor: "pointer" }}>ปิด</button>
             <button onClick={() => setPaper(true)} style={{ display: "inline-flex", alignItems: "center", gap: 7, padding: "12px 16px", borderRadius: "var(--r-chip)",

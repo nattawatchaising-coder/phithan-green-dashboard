@@ -38,7 +38,7 @@ function FileChip({
       padding: "3px 9px",
       borderRadius: 7,
       marginRight: 4,
-      border: "1px solid " + color + "44",
+      border: "none",
       background: color + "12",
       color: color,
       fontFamily: "inherit",
@@ -243,12 +243,12 @@ function TableView({
     }
   }, React.createElement("thead", null, React.createElement("tr", {
     style: {
-      borderBottom: "1px solid var(--border)"
+      borderBottom: "1px solid var(--divider)"
     }
   }, th("ลูกค้า", "name"), th("ประเภท", "type", true), th("แบรนด์ / สเปก", "brand"), th("ขนาด", "kw", true), permitMode ? th("แบบ / BOQ", null, true) : th("ความพร้อมวัสดุ", "matReadyPct", true), th(permitMode ? "ขั้นขออนุญาต" : "ขั้นตอน", "stage", true), th("วันติดตั้ง", "deadline", true), th("จัดการ", null, true))), React.createElement("tbody", null, sorted.map(j => React.createElement("tr", {
     key: j.id,
     style: {
-      borderBottom: "1px solid var(--border)",
+      borderBottom: "1px solid var(--divider)",
       background: "transparent",
       transition: "background .12s"
     },
@@ -444,7 +444,7 @@ function TableView({
         fontWeight: 700,
         color: pc.color,
         background: pc.color + "14",
-        border: "1px solid " + pc.color + "33",
+        border: "none",
         borderRadius: "var(--r-pill)",
         padding: "5px 11px"
       }
@@ -582,7 +582,8 @@ function StatusTabs({
         borderRadius: "var(--r-pill)",
         flex: mob ? "1 1 0" : "0 0 auto",
         minWidth: 0,
-        border: "1px solid " + (active ? "var(--primary)" : "transparent"),
+        border: "none",
+        boxShadow: active ? "inset 0 0 0 1px var(--primary)" : "none",
         background: active ? "var(--primary-soft)" : "var(--surface2)",
         color: active ? "var(--primary-dark)" : "var(--text-2)",
         fontWeight: active ? 700 : 600,
@@ -929,7 +930,7 @@ function TableMobile({
         fontWeight: 700,
         color: s.fg,
         background: s.soft,
-        border: "1px solid " + s.color + "33",
+        border: "none",
         borderRadius: 8,
         padding: "6px 10px"
       }
@@ -949,7 +950,7 @@ function TableMobile({
         fontWeight: 600,
         color: s.fg,
         background: s.soft,
-        border: "1px solid " + s.color + "33",
+        border: "none",
         borderRadius: 8,
         padding: "6px 8px 6px 9px"
       }

@@ -294,7 +294,7 @@ function InspectionListModal({
   }, React.createElement("div", {
     style: {
       padding: "13px 16px",
-      borderBottom: "1px solid var(--border)",
+      borderBottom: "1px solid var(--divider)",
       background: "var(--surface)",
       display: "flex",
       alignItems: "center",
@@ -437,7 +437,7 @@ function InspectionListModal({
         alignItems: "center",
         flexWrap: "wrap",
         padding: "10px 13px",
-        borderTop: "1px solid var(--border)"
+        borderTop: "1px solid var(--divider)"
       }
     }, React.createElement("span", {
       style: {
@@ -551,7 +551,7 @@ function InspectionListModal({
     style: {
       padding: "12px 16px",
       paddingBottom: isMobile ? "calc(12px + env(safe-area-inset-bottom,0px))" : 12,
-      borderTop: "1px solid var(--border)",
+      borderTop: "1px solid var(--divider)",
       background: "var(--surface)",
       display: "flex",
       gap: 10
@@ -637,7 +637,7 @@ function IrItemRow({
       alignItems: isMobile ? "stretch" : "center",
       flexDirection: isMobile ? "column" : "row",
       padding: "9px 10px",
-      borderTop: "1px solid var(--border)"
+      borderTop: "1px solid var(--divider)"
     }
   }, React.createElement("span", {
     style: {
@@ -684,7 +684,8 @@ function IrItemRow({
         display: "grid",
         placeItems: "center",
         lineHeight: 1,
-        border: "1px solid " + (on ? r.color : "var(--border-strong)"),
+        border: "none",
+        boxShadow: on ? "inset 0 0 0 1px " + r.color : "var(--shadow-sm)",
         background: on ? r.color + "16" : "var(--surface)",
         color: on ? r.color : "var(--text-3)"
       }
@@ -794,7 +795,7 @@ function InspectionFormModal({
   }, React.createElement("div", {
     style: {
       padding: "13px 16px",
-      borderBottom: "1px solid var(--border)",
+      borderBottom: "1px solid var(--divider)",
       background: "var(--surface)",
       display: "flex",
       alignItems: "center",
@@ -880,7 +881,8 @@ function InspectionFormModal({
         fontFamily: "inherit",
         fontSize: 11.5,
         fontWeight: 700,
-        border: "1px solid " + (on ? "var(--primary)" : "var(--border-strong)"),
+        border: "none",
+        boxShadow: on ? "inset 0 0 0 1px var(--primary)" : "var(--shadow-sm)",
         background: on ? "var(--primary-soft)" : "var(--surface)",
         color: on ? "var(--primary-dark)" : "var(--text-2)"
       }
@@ -1133,7 +1135,8 @@ function InspectionFormModal({
         fontFamily: "inherit",
         fontSize: 12.5,
         fontWeight: 700,
-        border: "1px solid " + (on ? r.color : "var(--border-strong)"),
+        border: "none",
+        boxShadow: on ? "inset 0 0 0 1px " + r.color : "var(--shadow-sm)",
         background: on ? r.color + "16" : "var(--surface)",
         color: on ? r.color : "var(--text-2)"
       }
@@ -1143,7 +1146,8 @@ function InspectionFormModal({
         height: 13,
         borderRadius: 4,
         flexShrink: 0,
-        border: "1.5px solid " + (on ? r.color : "var(--border-strong)"),
+        border: "none",
+        boxShadow: on ? "inset 0 0 0 1.5px " + r.color : "var(--shadow-inset)",
         background: on ? r.color : "transparent"
       }
     }), r.en, " (", r.th, ")");
@@ -1256,7 +1260,7 @@ function InspectionFormModal({
     style: {
       padding: "12px 16px",
       paddingBottom: isMobile ? "calc(12px + env(safe-area-inset-bottom,0px))" : 12,
-      borderTop: "1px solid var(--border)",
+      borderTop: "1px solid var(--divider)",
       background: "var(--surface)",
       display: "flex",
       gap: 10,

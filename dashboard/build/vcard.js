@@ -433,7 +433,7 @@ function VcCardModal({
   }, React.createElement("div", {
     style: {
       padding: "16px 22px",
-      borderBottom: "1px solid var(--border)",
+      borderBottom: "1px solid var(--divider)",
       background: "var(--surface)",
       display: "flex",
       justifyContent: "space-between",

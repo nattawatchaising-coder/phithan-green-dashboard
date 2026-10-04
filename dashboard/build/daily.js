@@ -643,7 +643,7 @@ function DrSignPad({
   }, React.createElement("div", {
     style: {
       padding: "14px 16px",
-      borderBottom: "1px solid var(--border)",
+      borderBottom: "1px solid var(--divider)",
       display: "flex",
       alignItems: "center",
       gap: 10
@@ -794,7 +794,8 @@ function DrSignPad({
       display: "grid",
       placeItems: "center",
       background: remember ? "var(--primary)" : "transparent",
-      border: "1.5px solid " + (remember ? "var(--primary)" : "var(--border-strong)")
+      border: "none",
+      boxShadow: remember ? "inset 0 0 0 1.5px var(--primary)" : "var(--shadow-sm)"
     }
   }, remember && React.createElement(Icon, {
     name: "check",

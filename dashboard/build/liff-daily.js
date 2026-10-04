@@ -211,7 +211,7 @@ function LnDailyForm({
       alignItems: "center",
       gap: 9,
       padding: "9px 11px",
-      borderBottom: "1px solid var(--border)",
+      borderBottom: "1px solid var(--divider)",
       background: r.head && form.mode === "project" && !r.no.includes(".") ? "var(--surface2)" : "var(--surface)"
     }
   }, React.createElement("span", {

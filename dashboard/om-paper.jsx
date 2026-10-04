@@ -121,7 +121,7 @@ function OmVisitModal({ visit, site, siteVisits, role, currentUser, onClose, onP
             background: "var(--bg)", border: "1px solid var(--border)",
             borderRadius: isMobile ? "18px 18px 0 0" : 18, boxShadow: "0 24px 60px rgba(0,0,0,.28)" }}>
 
-          <div style={{ position: "sticky", top: 0, zIndex: 2, background: "var(--bg)", borderBottom: "1px solid var(--border)",
+          <div style={{ position: "sticky", top: 0, zIndex: 2, background: "var(--bg)", borderBottom: "1px solid var(--divider)",
             padding: isMobile ? "14px 13px" : "16px 20px" }}>
             <div style={{ display: "flex", alignItems: "flex-start", gap: 11 }}>
               <span style={{ width: 36, height: 36, borderRadius: 10, background: kind.color + "1c", display: "grid", placeItems: "center", flexShrink: 0 }}>
@@ -255,7 +255,7 @@ function OmVisitModal({ visit, site, siteVisits, role, currentUser, onClose, onP
                   <button key={k} type="button" onClick={() => setTab(k)}
                     style={{ padding: "7px 14px", borderRadius: 99, cursor: "pointer", fontFamily: "inherit",
                       fontSize: 12.5, fontWeight: 700,
-                      border: "1px solid " + (tab === k ? "var(--primary)" : "var(--border-strong)"),
+                      border: "none", boxShadow: tab === k ? "inset 0 0 0 1px var(--primary)" : "var(--shadow-sm)",
                       background: tab === k ? "var(--primary-soft)" : "var(--surface)",
                       color: tab === k ? "var(--primary-dark)" : "var(--text-2)" }}>{th}</button>
                 ))}
@@ -283,7 +283,7 @@ function OmVisitModal({ visit, site, siteVisits, role, currentUser, onClose, onP
               delAsk ? (
                 <div style={{ display: "flex", alignItems: "center", gap: 9, padding: "12px 13px", flexWrap: "wrap",
                   border: "1px solid #EF444440", background: "#EF44440e", borderRadius: 12 }}>
-                  <span style={{ flex: 1, minWidth: 160, fontSize: 12.5, fontWeight: 700, color: "#EF4444" }}>
+                  <span style={{ flex: 1, minWidth: 160, fontSize: 12.5, fontWeight: 700, color: "var(--paper-bad)" }}>
                     ลบใบ {v.no} ทั้งใบ? รูปและลายเซ็นหายถาวร เรียกคืนไม่ได้
                   </span>
                   <button onClick={() => setDelAsk(false)} style={btn("var(--surface)", "var(--text-2)", "1px solid var(--border-strong)")}>ยกเลิก</button>
@@ -382,25 +382,25 @@ const OM_PAPER_I18N = {
 function OmPRow({ k, v }) {
   return (
     <React.Fragment>
-      <div style={{ padding: "6px 10px", borderRight: "1px solid #DCE4DF", borderBottom: "1px solid #DCE4DF",
-        fontSize: 10.5, fontWeight: 700, color: "#0A4D68", background: "#F3F7F4" }}>{k}</div>
-      <div style={{ padding: "6px 10px", borderBottom: "1px solid #DCE4DF", fontSize: 11, color: "#15211A" }}>{v || "-"}</div>
+      <div style={{ padding: "6px 10px", borderRight: "1px solid var(--paper-line)", borderBottom: "1px solid var(--paper-line)",
+        fontSize: 10.5, fontWeight: 700, color: "var(--paper-brand-dk)", background: "var(--paper-tint)" }}>{k}</div>
+      <div style={{ padding: "6px 10px", borderBottom: "1px solid var(--paper-line)", fontSize: 11, color: "var(--paper-ink)" }}>{v || "-"}</div>
     </React.Fragment>
   );
 }
 function OmPBlock({ title, children, avoid }) {
   return (
     <div style={{ marginTop: 16, breakInside: avoid ? "avoid" : "auto" }}>
-      <div style={{ display: "flex", alignItems: "center", gap: 7, borderBottom: "1px solid #DCE4DF", paddingBottom: 5, marginBottom: 8 }}>
-        <span style={{ width: 5, height: 5, borderRadius: 99, background: "#1B9B75" }} />
-        <span style={{ fontSize: 12, fontWeight: 800, color: "#15211A" }}>{title}</span>
+      <div style={{ display: "flex", alignItems: "center", gap: 7, borderBottom: "1px solid var(--paper-line)", paddingBottom: 5, marginBottom: 8 }}>
+        <span style={{ width: 5, height: 5, borderRadius: 99, background: "var(--paper-brand)" }} />
+        <span style={{ fontSize: 12, fontWeight: 800, color: "var(--paper-ink)" }}>{title}</span>
       </div>
       {children}
     </div>
   );
 }
 const omPara = (t) => (
-  <div style={{ fontSize: 11.5, lineHeight: 1.65, color: "#15211A", whiteSpace: "pre-wrap" }}>{t || "—"}</div>
+  <div style={{ fontSize: 11.5, lineHeight: 1.65, color: "var(--paper-ink)", whiteSpace: "pre-wrap" }}>{t || "—"}</div>
 );
 
 /* สัดส่วนช่องรูปของทั้งใบ — รูปจากมือถือมีทั้งแนวตั้งแนวนอนปนกัน
@@ -446,9 +446,9 @@ function OmShot({ p, n, ratio, tune, onFrame, T }) {
   const up = () => { if (dr.current) { dr.current = null; save(f); } };
 
   return (
-    <div className="om-shot" style={{ breakInside: "avoid", border: "1px solid #DCE4DF", borderRadius: 7, overflow: "hidden", background: "#fff" }}>
+    <div className="om-shot" style={{ breakInside: "avoid", border: "1px solid var(--paper-line)", borderRadius: 7, overflow: "hidden", background: "var(--paper-bg)" }}>
       <div ref={box} onPointerDown={down} onPointerMove={move} onPointerUp={up} onPointerCancel={up}
-        style={{ position: "relative", width: "100%", aspectRatio: ratio, overflow: "hidden", background: "#F3F7F4",
+        style={{ position: "relative", width: "100%", aspectRatio: ratio, overflow: "hidden", background: "var(--paper-tint)",
           cursor: live ? "move" : "default", touchAction: live ? "none" : "auto" }}>
         <img src={p.dataUrl} alt={p.cap || ""} draggable={false}
           style={{ width: "100%", height: "100%", display: "block", objectFit: f.full ? "contain" : "cover",
@@ -477,8 +477,8 @@ function OmShot({ p, n, ratio, tune, onFrame, T }) {
           </div>
         )}
       </div>
-      <div style={{ padding: "5px 8px", fontSize: 10.5, color: "#4A5A51", borderTop: "1px solid #ECF1EE" }}>
-        <b style={{ color: "#0A4D68" }}>{T("รูปที่")} {n}</b>{p.cap ? " · " + p.cap : ""}
+      <div style={{ padding: "5px 8px", fontSize: 10.5, color: "var(--paper-ink2)", borderTop: "1px solid var(--paper-line3)" }}>
+        <b style={{ color: "var(--paper-brand-dk)" }}>{T("รูปที่")} {n}</b>{p.cap ? " · " + p.cap : ""}
       </div>
     </div>
   );
@@ -491,8 +491,8 @@ function OmPSheet({ title, sub, head, children }) {
     <div className="om-sheet" style={{ marginTop: 30 }}>
       {head}
       <div style={{ display: "flex", alignItems: "baseline", gap: 10, flexWrap: "wrap", marginBottom: 12 }}>
-        <div style={{ fontSize: 20, fontWeight: 800, letterSpacing: "-.01em", color: "#15211A" }}>{title}</div>
-        <div style={{ fontSize: 11, color: "#7A8A81" }}>{sub}</div>
+        <div style={{ fontSize: 20, fontWeight: 800, letterSpacing: "-.01em", color: "var(--paper-ink)" }}>{title}</div>
+        <div style={{ fontSize: 11, color: "var(--paper-mute)" }}>{sub}</div>
       </div>
       {children}
     </div>
@@ -543,23 +543,23 @@ function OmVisitPaper({ visit, site, signs, photos, onFrame, onClose }) {
     setTimeout(() => { document.title = old; }, 800);
   };
 
-  const th = { textAlign: "left", padding: "5px 7px", fontSize: 10, fontWeight: 700, color: "#5A6B62",
-    borderBottom: "1px solid #C9D5CE", whiteSpace: "nowrap" };
-  const td = { padding: "5px 7px", fontSize: 10.5, color: "#15211A", borderBottom: "1px solid #ECF1EE", verticalAlign: "top" };
+  const th = { textAlign: "left", padding: "5px 7px", fontSize: 10, fontWeight: 700, color: "var(--paper-ink3)",
+    borderBottom: "1px solid var(--paper-line2)", whiteSpace: "nowrap" };
+  const td = { padding: "5px 7px", fontSize: 10.5, color: "var(--paper-ink)", borderBottom: "1px solid var(--paper-line3)", verticalAlign: "top" };
 
   /* หัวกระดาษย่อของแผ่นที่สองเป็นต้นไป — แผ่นรูปหลุดออกจากแผ่นแรกไปแล้ว
      ถ้าไม่มีหัว เอกสารที่ปริ้นออกมาแล้วกระจายบนโต๊ะจะบอกไม่ได้ว่าแผ่นไหนของใบไหน */
   const sheetHead = (
     <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", gap: 16, flexWrap: "wrap",
-      borderBottom: "2px solid #1B9B75", paddingBottom: 9, marginBottom: 16 }}>
+      borderBottom: "2px solid var(--paper-brand)", paddingBottom: 9, marginBottom: 16 }}>
       <div style={{ minWidth: 0 }}>
         <div style={{ display: "flex", alignItems: "center", gap: 7 }}>
           <window.BrandDoc height={38} />
         </div>
-        <div style={{ fontSize: 9.5, fontWeight: 600, letterSpacing: ".12em", color: "#7A8A81", marginTop: 5 }}>SOLAR O&amp;M — SERVICE VISIT REPORT</div>
+        <div style={{ fontSize: 9.5, fontWeight: 600, letterSpacing: ".12em", color: "var(--paper-mute)", marginTop: 5 }}>SOLAR O&amp;M — SERVICE VISIT REPORT</div>
       </div>
-      <div style={{ textAlign: "right", fontSize: 10.5, color: "#4A5A51", lineHeight: 1.7 }}>
-        <div style={{ fontFamily: "var(--mono)", fontWeight: 700, color: "#15211A" }}>{v.no}</div>
+      <div style={{ textAlign: "right", fontSize: 10.5, color: "var(--paper-ink2)", lineHeight: 1.7 }}>
+        <div style={{ fontFamily: "var(--mono)", fontWeight: 700, color: "var(--paper-ink)" }}>{v.no}</div>
         <div>{DT(v.date)}</div>
       </div>
     </div>
@@ -583,7 +583,7 @@ function OmVisitPaper({ visit, site, signs, photos, onFrame, onClose }) {
   return ReactDOM.createPortal((
     <div className="sv-rep-overlay" style={{ position: "fixed", inset: 0, zIndex: 160, background: "rgba(8,20,14,.55)", overflow: "auto", padding: isMobile ? 0 : "24px 16px" }}>
       <div className="sv-rep-noprint" style={{ position: "sticky", top: 0, zIndex: 2, display: "flex", gap: 9, alignItems: "center", flexWrap: "wrap",
-        padding: "11px 14px", background: "var(--surface)", borderBottom: "1px solid var(--border)",
+        padding: "11px 14px", background: "var(--surface)", borderBottom: "1px solid var(--divider)",
         marginBottom: isMobile ? 0 : 16, borderRadius: isMobile ? 0 : 12, maxWidth: 900, marginLeft: "auto", marginRight: "auto", boxShadow: "var(--shadow-sm)" }}>
         <button onClick={onClose} style={{ width: 36, height: 36, borderRadius: 10, border: "1px solid var(--border-strong)",
           background: "var(--surface)", cursor: "pointer", display: "grid", placeItems: "center", color: "var(--text-2)", flexShrink: 0 }}><Icon name="x" size={16} /></button>
@@ -594,7 +594,7 @@ function OmVisitPaper({ visit, site, signs, photos, onFrame, onClose }) {
         {!!photoList.length && !!frameSet && (
           <button onClick={() => setTune(!tune)} title="เลือกว่าจะให้เห็นส่วนไหนของรูป"
             style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "10px 13px", borderRadius: 11,
-              border: "1px solid " + (tune ? "var(--primary)" : "var(--border-strong)"),
+              border: "none", boxShadow: tune ? "inset 0 0 0 1px var(--primary)" : "var(--shadow-sm)",
               background: tune ? "var(--primary)" : "var(--surface)", color: tune ? "#fff" : "var(--text-2)",
               fontFamily: "inherit", fontSize: 12.5, fontWeight: 700, cursor: "pointer", flexShrink: 0 }}>
             <Icon name="image" size={14} color={tune ? "#fff" : "var(--text-2)"} /> จัดกรอบรูป
@@ -621,7 +621,7 @@ function OmVisitPaper({ visit, site, signs, photos, onFrame, onClose }) {
           {OM_SHOT_RATIOS.map((r) => (
             <button key={r.k} onClick={() => setFit(r.k)}
               style={{ padding: "7px 12px", borderRadius: 9, cursor: "pointer", fontFamily: "inherit", fontSize: 11.5, fontWeight: 700,
-                border: "1px solid " + (fit === r.k ? "var(--primary)" : "var(--border-strong)"),
+                border: "none", boxShadow: fit === r.k ? "inset 0 0 0 1px var(--primary)" : "var(--shadow-sm)",
                 background: fit === r.k ? "var(--primary)" : "var(--surface)", color: fit === r.k ? "#fff" : "var(--text-2)" }}>
               {r.th}
             </button>
@@ -630,7 +630,7 @@ function OmVisitPaper({ visit, site, signs, photos, onFrame, onClose }) {
       )}
 
       {/* ฟอนต์ไทยของแอปไม่มีตัวอักษรจีน — เลือกจีนแล้วต้องระบุชุดฟอนต์ที่มีจีนให้ชัด ไม่งั้นเสี่ยงได้สี่เหลี่ยม */}
-      <div className="sv-rep-paper" style={{ maxWidth: 900, margin: "0 auto", background: "#fff", color: "#15211A",
+      <div className="sv-rep-paper" style={{ maxWidth: 900, margin: "0 auto", background: "var(--paper-bg)", color: "var(--paper-ink)",
         fontFamily: lang === "zh" && window.pgFontStack ? window.pgFontStack("zh") : undefined,
         padding: isMobile ? "20px 16px" : "30px 34px", borderRadius: isMobile ? 0 : 12, boxShadow: "var(--shadow-modal)" }}>
 
@@ -639,22 +639,22 @@ function OmVisitPaper({ visit, site, signs, photos, onFrame, onClose }) {
         <div className="om-page">
 
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", gap: 16, flexWrap: "wrap",
-          borderBottom: "2px solid #1B9B75", paddingBottom: 11 }}>
+          borderBottom: "2px solid var(--paper-brand)", paddingBottom: 11 }}>
           <div style={{ minWidth: 0 }}>
             <div style={{ fontSize: 21, fontWeight: 800, letterSpacing: "-.01em" }}>{T("ใบรายงานเข้าบริการ")}</div>
-            <div style={{ fontSize: 10, fontWeight: 600, letterSpacing: ".12em", color: "#7A8A81", marginTop: 3 }}>SOLAR O&amp;M — SERVICE VISIT REPORT</div>
+            <div style={{ fontSize: 10, fontWeight: 600, letterSpacing: ".12em", color: "var(--paper-mute)", marginTop: 3 }}>SOLAR O&amp;M — SERVICE VISIT REPORT</div>
             <div style={{ display: "flex", alignItems: "center", gap: 7, marginTop: 6 }}>
               <window.BrandDoc height={44} />
             </div>
           </div>
-          <div style={{ textAlign: "right", fontSize: 11, color: "#4A5A51", lineHeight: 1.75 }}>
-            <div style={{ fontFamily: "var(--mono)", fontWeight: 700, color: "#15211A" }}>{v.no}</div>
+          <div style={{ textAlign: "right", fontSize: 11, color: "var(--paper-ink2)", lineHeight: 1.75 }}>
+            <div style={{ fontFamily: "var(--mono)", fontWeight: 700, color: "var(--paper-ink)" }}>{v.no}</div>
             <div>{DT(v.date)}</div>
           </div>
         </div>
 
         <div style={{ marginTop: 13, display: "grid", gridTemplateColumns: "auto 1fr auto 1fr",
-          border: "1px solid #DCE4DF", borderRadius: 7, overflow: "hidden" }}>
+          border: "1px solid var(--paper-line)", borderRadius: 7, overflow: "hidden" }}>
           <OmPRow k={T("ชื่อไซต์")} v={v.siteName || (site || {}).name} />
           <OmPRow k={T("รหัสไซต์")} v={v.siteCode} />
           <OmPRow k={T("ประเภทงาน")} v={T(kind.th)} />
@@ -666,14 +666,14 @@ function OmVisitPaper({ visit, site, signs, photos, onFrame, onClose }) {
         </div>
 
         {/* ในประกันหรือคิดเงิน — คำถามแรกที่ลูกค้าถามเสมอ ต้องอยู่บนสุดของใบ */}
-        <div style={{ marginTop: 14, border: "1px solid #DCE4DF", borderRadius: 9, padding: "12px 14px", breakInside: "avoid",
+        <div style={{ marginTop: 14, border: "1px solid var(--paper-line)", borderRadius: 9, padding: "12px 14px", breakInside: "avoid",
           display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
-          <span style={{ fontSize: 11.5, fontWeight: 700, color: "#4A5A51" }}>{T("สถานะค่าบริการ")}</span>
+          <span style={{ fontSize: 11.5, fontWeight: 700, color: "var(--paper-ink2)" }}>{T("สถานะค่าบริการ")}</span>
           <span style={{ padding: "3px 11px", borderRadius: 99, fontSize: 11.5, fontWeight: 800,
             background: cov.color + "22", color: cov.color }}>{T(cov.th)}</span>
           <span style={{ flex: 1 }} />
-          <span style={{ fontSize: 11.5, color: "#4A5A51" }}>{T("ยอดเรียกเก็บ")}</span>
-          <span style={{ fontFamily: "var(--mono)", fontSize: 17, fontWeight: 800, color: "#15211A" }}>
+          <span style={{ fontSize: 11.5, color: "var(--paper-ink2)" }}>{T("ยอดเรียกเก็บ")}</span>
+          <span style={{ fontFamily: "var(--mono)", fontSize: 17, fontWeight: 800, color: "var(--paper-ink)" }}>
             {v.charge == null ? "—" : Number(v.charge).toLocaleString("th-TH") + " " + T("บาท")}
           </span>
         </div>
@@ -692,7 +692,7 @@ function OmVisitPaper({ visit, site, signs, photos, onFrame, onClose }) {
               <tbody>
                 {parts.map((p, i) => (
                   <tr key={i}>
-                    <td style={Object.assign({}, td, { fontFamily: "var(--mono)", color: "#7A8A81" })}>{i + 1}</td>
+                    <td style={Object.assign({}, td, { fontFamily: "var(--mono)", color: "var(--paper-mute)" })}>{i + 1}</td>
                     <td style={td}>{p.name || "-"}</td>
                     <td style={Object.assign({}, td, { fontFamily: "var(--mono)" })}>{p.qty || "-"}</td>
                     <td style={td}>{p.unit || "-"}</td>
@@ -708,7 +708,7 @@ function OmVisitPaper({ visit, site, signs, photos, onFrame, onClose }) {
           <OmPBlock title={T("คำแนะนำ / นัดครั้งถัดไป")} avoid>
             {omPara(v.advice)}
             {v.nextDue && (
-              <div style={{ marginTop: 6, fontSize: 11.5, color: "#15211A" }}>
+              <div style={{ marginTop: 6, fontSize: 11.5, color: "var(--paper-ink)" }}>
                 {T("นัดครั้งถัดไป:")} <b>{DT(v.nextDue)}</b>
               </div>
             )}
@@ -720,17 +720,17 @@ function OmVisitPaper({ visit, site, signs, photos, onFrame, onClose }) {
         <div className="om-sign" style={{ marginTop: 22, display: "grid", gridTemplateColumns: "1fr 1fr", gap: 18, breakInside: "avoid" }}>
           {[{ t: T("ช่างผู้ให้บริการ"), n: v.byName, d: v.sentAt || v.updatedAt || v.createdAt, s: g.tech },
             { t: T("ลูกค้าผู้รับบริการ"), n: v.siteName, d: v.date, s: g.cust }].map((x, i) => (
-            <div key={i} style={{ border: "1px solid #DCE4DF", borderRadius: 8, padding: "12px 14px" }}>
-              <div style={{ fontSize: 10.5, fontWeight: 700, color: "#5A6B62" }}>{x.t}</div>
-              <div style={{ height: 42, borderBottom: "1px solid #C9D5CE", marginTop: 6, display: "flex",
+            <div key={i} style={{ border: "1px solid var(--paper-line)", borderRadius: 8, padding: "12px 14px" }}>
+              <div style={{ fontSize: 10.5, fontWeight: 700, color: "var(--paper-ink3)" }}>{x.t}</div>
+              <div style={{ height: 42, borderBottom: "1px solid var(--paper-line2)", marginTop: 6, display: "flex",
                 alignItems: "flex-end", justifyContent: "center", overflow: "hidden" }}>
                 {x.s && x.s.img && <img src={x.s.img} alt="" style={{ maxWidth: "88%", maxHeight: 40, objectFit: "contain" }} />}
               </div>
               {/* ไม่กรอกวันที่ให้ — คนที่เซ็นเป็นคนลงวันเอง ส่วนใบที่เซ็นในระบบแล้ว
                   มีวันเวลาที่ลงลายมือชื่ออยู่ในบรรทัดล่างสุดของช่องอยู่แล้ว */}
-              <div style={{ fontSize: 11, marginTop: 6, color: "#15211A" }}>{T("ชื่อ:")} <b>{(x.s && x.s.name) || x.n || "-"}</b></div>
+              <div style={{ fontSize: 11, marginTop: 6, color: "var(--paper-ink)" }}>{T("ชื่อ:")} <b>{(x.s && x.s.name) || x.n || "-"}</b></div>
               {x.s && x.s.img && (
-                <div style={{ fontSize: 8.5, color: "#8A9A91", marginTop: 3 }}>
+                <div style={{ fontSize: 8.5, color: "var(--paper-mute2)", marginTop: 3 }}>
                   {T("ลงลายมือชื่ออิเล็กทรอนิกส์ในระบบ")} {window.drSignTime(x.s) ? window.drSignTime(x.s) + (lang === "th" ? " น." : "") : ""}
                 </div>
               )}
@@ -739,13 +739,13 @@ function OmVisitPaper({ visit, site, signs, photos, onFrame, onClose }) {
         </div>
 
         {v.status === "approved" && (
-          <div style={{ marginTop: 10, fontSize: 10, color: "#4A5A51", textAlign: "right" }}>
-            {T("อนุมัติโดย")} <b style={{ color: "#15211A" }}>{v.appName || "-"}</b>
+          <div style={{ marginTop: 10, fontSize: 10, color: "var(--paper-ink2)", textAlign: "right" }}>
+            {T("อนุมัติโดย")} <b style={{ color: "var(--paper-ink)" }}>{v.appName || "-"}</b>
             {v.approvedAt ? " · " + DTs(window.drLocalDay(v.approvedAt)) : ""}
           </div>
         )}
 
-        <div style={{ marginTop: 14, fontSize: 9.5, color: "#8A9A91", textAlign: "center" }}>
+        <div style={{ marginTop: 14, fontSize: 9.5, color: "var(--paper-mute2)", textAlign: "center" }}>
           {T("เอกสารนี้ออกจากระบบงานบริการหลังการขาย")} flash+solar · {v.no} · {T("พิมพ์เมื่อ")} {DTs(window.drToday())}
         </div>
 
@@ -813,7 +813,7 @@ function OmVisitList({ sites, visitStore, role, currentUser }) {
           return (
             <button key={v.id} onClick={() => setOpenId(v.id)}
               style={{ width: "100%", display: "flex", alignItems: "center", gap: 11, padding: isMobile ? "11px 12px" : "13px 16px",
-                borderBottom: "1px solid var(--border)", background: "none", border: "none", borderTop: "none",
+                borderBottom: "1px solid var(--divider)", background: "none", border: "none", borderTop: "none",
                 cursor: "pointer", fontFamily: "inherit", textAlign: "left" }}>
               <Icon name={k.icon} size={16} color={k.color} />
               <span style={{ flex: 1, minWidth: 0 }}>

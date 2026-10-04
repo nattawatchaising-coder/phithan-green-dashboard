@@ -450,7 +450,7 @@ function MyProfileModal({ user, onSave, onClose }) {
           width: isMobile ? "100%" : "min(480px,100%)", maxHeight: isMobile ? "94dvh" : "90vh", display: "flex", flexDirection: "column",
           overflow: "hidden", boxShadow: "var(--shadow-modal)" }}>
 
-          <div style={{ padding: "16px 22px", borderBottom: "1px solid var(--border)", background: "var(--surface)",
+          <div style={{ padding: "16px 22px", borderBottom: "1px solid var(--divider)", background: "var(--surface)",
             display: "flex", justifyContent: "space-between", alignItems: "center", flexShrink: 0 }}>
             <h3 style={{ fontSize: 16, fontWeight: 700, color: "var(--text-1)", margin: 0 }}>โปรไฟล์ของฉัน</h3>
             <button className="x-close" onClick={onClose} style={{ width: 30, height: 30, borderRadius: 8, border: "none", boxShadow: "var(--shadow-sm)",
@@ -505,7 +505,7 @@ function MyProfileModal({ user, onSave, onClose }) {
                 ปลดแล้วต้องไปกรอกชื่อผู้ใช้/รหัสผ่านในแอป LINE ใหม่อีกครั้ง */}
             <div style={{ gridColumn: "1 / -1", padding: "11px 13px", borderRadius: "var(--r-chip)",
               background: user.lineUserId ? "var(--tint-ok-bg)" : "var(--surface2)",
-              border: "1px solid " + (user.lineUserId ? "var(--tint-ok-bd)" : "var(--border)"),
+              border: "none", boxShadow: user.lineUserId ? "inset 0 0 0 1px var(--tint-ok-bd)" : "var(--shadow-sm)",
               display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
               <span style={{ flex: 1, minWidth: 160, fontSize: 12.5, fontWeight: 600,
                 color: user.lineUserId ? "var(--tint-ok-tx)" : "var(--text-3)" }}>
@@ -595,7 +595,7 @@ function MyProfileModal({ user, onSave, onClose }) {
           </div>
 
           <div style={{ padding: "14px 22px", paddingBottom: isMobile ? "calc(14px + env(safe-area-inset-bottom, 0px))" : 14,
-            borderTop: "1px solid var(--border)", background: "var(--surface)", display: "flex", alignItems: "center", gap: 10, flexShrink: 0 }}>
+            borderTop: "1px solid var(--divider)", background: "var(--surface)", display: "flex", alignItems: "center", gap: 10, flexShrink: 0 }}>
             {/* รูปกับลายเซ็นเซฟทันทีที่เลือก ปุ่มนี้เซฟเฉพาะช่องข้อความ — บอกไว้กันงง */}
             <span style={{ flex: 1, fontSize: 11, color: saved ? "var(--primary-dark)" : "var(--text-3)" }}>
               {saved ? "บันทึกแล้ว" : "รูปและลายเซ็นบันทึกทันทีที่เลือก"}
@@ -828,7 +828,7 @@ function NotifPanel({ items, lateAlerts, omAlerts, onOpenOm, onClose, onOpenJob,
         : { position: "absolute", top: "calc(100% + 8px)", right: 0, zIndex: 96, width: 340, background: "var(--bg)",
             border: "1px solid var(--border)", borderRadius: 14, boxShadow: "0 18px 50px rgba(8,20,14,.22)",
             maxHeight: 440, display: "flex", flexDirection: "column", overflow: "hidden" }}>
-        <div style={{ padding: "13px 16px", borderBottom: "1px solid var(--border)", display: "flex", alignItems: "center", justifyContent: "space-between", flexShrink: 0 }}>
+        <div style={{ padding: "13px 16px", borderBottom: "1px solid var(--divider)", display: "flex", alignItems: "center", justifyContent: "space-between", flexShrink: 0 }}>
           <span style={{ fontSize: 14, fontWeight: 700, color: "var(--text-1)", display: "flex", alignItems: "center", gap: 7 }}>
             <Icon name="bell" size={15} color="var(--primary)" /> การแจ้งเตือน
           </span>
@@ -866,7 +866,7 @@ function NotifPanel({ items, lateAlerts, omAlerts, onOpenOm, onClose, onOpenJob,
               {oms.map((a) => (
                 <button key={a.key} onClick={() => onOpenOm(a)}
                   style={{ display: "flex", gap: 10, padding: "11px 12px", width: "100%", textAlign: "left", cursor: "pointer", fontFamily: "inherit",
-                    background: a.color + "12", border: "1px solid " + a.color + "55", borderRadius: "var(--r-chip)" }}>
+                    background: a.color + "12", border: "none", borderRadius: "var(--r-chip)" }}>
                   <span style={{ width: 30, height: 30, borderRadius: 8, flexShrink: 0, display: "grid", placeItems: "center", background: a.color, color: "#fff" }}><Icon name={a.icon} size={15} color="#fff" /></span>
                   <span style={{ flex: 1, minWidth: 0 }}>
                     <span style={{ display: "block", fontSize: 13, fontWeight: 700, color: "var(--text-1)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{a.title}</span>
@@ -887,7 +887,7 @@ function NotifPanel({ items, lateAlerts, omAlerts, onOpenOm, onClose, onOpenJob,
               <button key={n.id} onClick={() => onOpenJob(Object.assign({}, n, { ids: g.ids }))}
                 style={{ display: "flex", gap: 10, padding: "11px 12px", width: "100%", textAlign: "left", cursor: "pointer", fontFamily: "inherit",
                   background: g.unread ? k.color + "12" : "var(--surface)",
-                  border: "1px solid " + (g.unread ? k.color + "55" : "var(--border)"), borderRadius: "var(--r-chip)" }}>
+                  border: "none", boxShadow: g.unread ? "inset 0 0 0 1px " + k.color + "55" : "var(--shadow-sm)", borderRadius: "var(--r-chip)" }}>
                 <span style={{ width: 30, height: 30, borderRadius: 8, flexShrink: 0, display: "grid", placeItems: "center",
                   background: k.color, color: "#fff" }}><Icon name={k.icon} size={15} color="#fff" /></span>
                 <span style={{ flex: 1, minWidth: 0 }}>
@@ -953,7 +953,7 @@ function RolePermsEditor({ roleCfg }) {
         const nPerm = Object.keys(PERMS[r] || {}).length;
         const scLabel = (SCOPE_MODES.find((m) => m.key === sc.mode) || SCOPE_MODES[0]).th;
         return (
-          <div key={r} style={{ borderRadius: "var(--r-tile)", border: "1px solid " + (on ? "var(--primary)" : "var(--border)"), background: "var(--surface)", overflow: "hidden" }}>
+          <div key={r} style={{ borderRadius: "var(--r-tile)", border: "none", boxShadow: on ? "inset 0 0 0 1px var(--primary)" : "var(--shadow-sm)", background: "var(--surface)", overflow: "hidden" }}>
             <button onClick={() => setOpen(on ? null : r)}
               style={{ width: "100%", display: "flex", alignItems: "center", gap: 11, padding: "11px 13px", border: "none",
                 background: on ? "var(--primary-soft)" : "var(--surface)", cursor: "pointer", fontFamily: "inherit", textAlign: "left" }}>
@@ -968,7 +968,7 @@ function RolePermsEditor({ roleCfg }) {
             </button>
 
             {on && (
-              <div style={{ padding: "4px 13px 14px", display: "flex", flexDirection: "column", gap: 13, borderTop: "1px solid var(--border)" }}>
+              <div style={{ padding: "4px 13px 14px", display: "flex", flexDirection: "column", gap: 13, borderTop: "1px solid var(--divider)" }}>
                 <div>
                   <div style={{ fontSize: 10.5, fontWeight: 800, letterSpacing: ".04em", color: "var(--text-3)", margin: "12px 0 7px" }}>เห็นงานแบบไหน</div>
                   <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
@@ -978,10 +978,10 @@ function RolePermsEditor({ roleCfg }) {
                         <button key={m.key} onClick={() => setScope(r, m.key)}
                           style={{ display: "flex", gap: 10, alignItems: "flex-start", padding: "9px 11px", borderRadius: "var(--r-chip)", cursor: "pointer",
                             fontFamily: "inherit", textAlign: "left", width: "100%",
-                            border: "1px solid " + (sel ? "var(--primary)" : "var(--border)"),
+                            border: "none", boxShadow: sel ? "inset 0 0 0 1px var(--primary)" : "var(--shadow-sm)",
                             background: sel ? "var(--primary-soft)" : "var(--surface2)" }}>
                           <span style={{ width: 16, height: 16, borderRadius: "var(--r-pill)", flexShrink: 0, marginTop: 1, display: "grid", placeItems: "center",
-                            border: "2px solid " + (sel ? "var(--primary)" : "var(--border-strong)") }}>
+                            border: "none", boxShadow: sel ? "inset 0 0 0 2px var(--primary)" : "var(--shadow-inset)" }}>
                             {sel && <span style={{ width: 8, height: 8, borderRadius: "var(--r-pill)", background: "var(--primary)" }} />}
                           </span>
                           <span style={{ flex: 1, minWidth: 0 }}>
@@ -999,7 +999,7 @@ function RolePermsEditor({ roleCfg }) {
                         return (
                           <button key={s.key} onClick={() => toggleStage(r, s.key)}
                             style={{ padding: "6px 12px", borderRadius: "var(--r-pill)", cursor: "pointer", fontFamily: "inherit", fontSize: 11.5, fontWeight: 700,
-                              border: "1px solid " + (sel ? "transparent" : "var(--border)"),
+                              border: "none", boxShadow: sel ? "none" : "var(--shadow-sm)",
                               background: sel ? s.color : "var(--surface2)", color: sel ? "#fff" : "var(--text-2)" }}>{s.th}</button>
                         );
                       })}
@@ -1020,10 +1020,10 @@ function RolePermsEditor({ roleCfg }) {
                         <button key={p.key} onClick={() => !locked && togglePerm(r, p.key)} disabled={locked}
                           style={{ display: "flex", gap: 10, alignItems: "flex-start", padding: "8px 11px", borderRadius: "var(--r-chip)",
                             cursor: locked ? "default" : "pointer", fontFamily: "inherit", textAlign: "left", width: "100%",
-                            border: "1px solid " + (sel ? "var(--primary)" : "var(--border)"),
+                            border: "none", boxShadow: sel ? "inset 0 0 0 1px var(--primary)" : "var(--shadow-sm)",
                             background: sel ? "var(--primary-soft)" : "var(--surface2)", opacity: locked ? .65 : 1 }}>
                           <span style={{ width: 17, height: 17, borderRadius: 5, flexShrink: 0, marginTop: 1, display: "grid", placeItems: "center",
-                            background: sel ? "var(--primary)" : "var(--surface)", border: "1px solid " + (sel ? "var(--primary)" : "var(--border-strong)") }}>
+                            background: sel ? "var(--primary)" : "var(--surface)", border: "none", boxShadow: sel ? "inset 0 0 0 1px var(--primary)" : "var(--shadow-inset)" }}>
                             {sel && <Icon name="check" size={11} color="#fff" sw={3} />}
                           </span>
                           <span style={{ flex: 1, minWidth: 0 }}>
@@ -1105,7 +1105,7 @@ function UserManager({ authStore, onClose, roleCfg }) {
     <button key={key} onClick={() => setFilter(key)}
       style={{ display: "inline-flex", alignItems: "center", gap: 5, padding: "5px 11px", borderRadius: "var(--r-pill)", cursor: "pointer",
         fontFamily: "inherit", fontSize: 12, fontWeight: 700, whiteSpace: "nowrap",
-        border: "1px solid " + (filter === key ? "transparent" : "var(--border)"),
+        border: "none", boxShadow: filter === key ? "none" : "var(--shadow-sm)",
         background: filter === key ? "var(--primary)" : "var(--surface)",
         color: filter === key ? "#fff" : "var(--text-2)" }}>
       {label}
@@ -1161,11 +1161,11 @@ function UserManager({ authStore, onClose, roleCfg }) {
         </div>
 
         {tab === "perms" ? (
-          <div style={{ overflowY: "auto", padding: 16, borderTop: "1px solid var(--border)" }}>
+          <div style={{ overflowY: "auto", padding: 16, borderTop: "1px solid var(--divider)" }}>
             <RolePermsEditor roleCfg={roleCfg || { saveRole: () => {}, resetAll: () => {}, custom: false }} />
           </div>
         ) : (
-        <div style={{ overflowY: "auto", padding: 16, display: "flex", flexDirection: "column", gap: 8, borderTop: "1px solid var(--border)" }}>
+        <div style={{ overflowY: "auto", padding: 16, display: "flex", flexDirection: "column", gap: 8, borderTop: "1px solid var(--divider)" }}>
           {shown.length === 0 && (
             <div style={{ padding: "34px 0", textAlign: "center", color: "var(--text-3)", fontSize: 13 }}>ไม่พบบัญชีที่ตรงกับที่ค้นหา</div>
           )}
@@ -1175,7 +1175,7 @@ function UserManager({ authStore, onClose, roleCfg }) {
             const asking = delAsk === u.id;
             return (
               <div key={u.id} style={{ padding: "11px 13px", background: "var(--surface)", borderRadius: "var(--r-chip)",
-                border: "1px solid " + (asking ? "var(--tint-red-bd)" : "var(--border)"),
+                border: "none", boxShadow: asking ? "inset 0 0 0 1px var(--tint-red-bd)" : "var(--shadow-sm)",
                 opacity: u.active === false && !asking ? 0.55 : 1 }}>
                 <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
                   <span style={{ width: 38, height: 38, borderRadius: "var(--r-pill)", flexShrink: 0, display: "grid", placeItems: "center",
@@ -1235,7 +1235,7 @@ function UserManager({ authStore, onClose, roleCfg }) {
         )}
 
         {tab === "users" && (
-        <div style={{ padding: "14px 22px", paddingBottom: isMobile ? "calc(14px + env(safe-area-inset-bottom, 0px))" : 14, borderTop: "1px solid var(--border)", background: "var(--surface)", display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12, flexShrink: 0 }}>
+        <div style={{ padding: "14px 22px", paddingBottom: isMobile ? "calc(14px + env(safe-area-inset-bottom, 0px))" : 14, borderTop: "1px solid var(--divider)", background: "var(--surface)", display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12, flexShrink: 0 }}>
           <span style={{ fontSize: 11.5, color: "var(--text-3)" }}>แสดง {shown.length} จาก {users.length}</span>
           <button onClick={() => setEditing(authStore.blankUser())} style={{ display: "inline-flex", alignItems: "center", gap: 7, padding: "11px 18px", borderRadius: "var(--r-chip)", border: "none", background: "var(--primary)", color: "#fff", fontWeight: 700, fontFamily: "inherit", fontSize: 13.5, cursor: "pointer" }}><Icon name="plus" size={16} color="#fff" sw={2.4} /> เพิ่มผู้ใช้</button>
         </div>
@@ -1260,10 +1260,10 @@ function RolePicker({ value, onChange }) {
           <button type="button" key={k} onClick={() => toggle(k)}
             style={{ display: "flex", alignItems: "center", gap: 10, padding: "9px 11px", borderRadius: "var(--r-chip)", cursor: "pointer",
               textAlign: "left", fontFamily: "inherit", width: "100%",
-              border: "1px solid " + (on ? r.color : "var(--border)"),
+              border: "none", boxShadow: on ? "inset 0 0 0 1px " + r.color : "var(--shadow-sm)",
               background: on ? r.color + "14" : "var(--surface)" }}>
             <span style={{ width: 18, height: 18, borderRadius: 6, flexShrink: 0, display: "grid", placeItems: "center",
-              background: on ? r.color : "transparent", border: "1.5px solid " + (on ? r.color : "var(--border-strong)") }}>
+              background: on ? r.color : "transparent", border: "none", boxShadow: on ? "inset 0 0 0 1.5px " + r.color : "var(--shadow-inset)" }}>
               {on && <Icon name="check" size={12} color="#fff" sw={3} />}
             </span>
             <Icon name={r.icon} size={15} color={on ? r.color : "var(--text-3)"} />
@@ -1309,7 +1309,7 @@ function UserEditModal({ initial, existing, onSave, onClose }) {
   return (
     <div {...bdClose} style={{ position: "fixed", inset: 0, background: "rgba(8,20,14,.4)", zIndex: 120, display: "grid", placeItems: isMobile ? "end center" : "center", padding: isMobile ? 0 : 20 }}>
       <div onClick={(e) => e.stopPropagation()} style={{ background: "var(--bg)", borderRadius: isMobile ? "20px 20px 0 0" : 18, width: isMobile ? "100%" : "min(460px,100%)", maxHeight: isMobile ? "94dvh" : "90vh", display: "flex", flexDirection: "column", overflow: "hidden", boxShadow: "var(--shadow-modal)" }}>
-        <div style={{ padding: "16px 22px", borderBottom: "1px solid var(--border)", background: "var(--surface)", display: "flex", justifyContent: "space-between", alignItems: "center", flexShrink: 0 }}>
+        <div style={{ padding: "16px 22px", borderBottom: "1px solid var(--divider)", background: "var(--surface)", display: "flex", justifyContent: "space-between", alignItems: "center", flexShrink: 0 }}>
           <h3 style={{ fontSize: 16, fontWeight: 700, color: "var(--text-1)", margin: 0 }}>{isNew ? "เพิ่มผู้ใช้ใหม่" : "แก้ไขผู้ใช้"}</h3>
           <button className="x-close" onClick={onClose} style={{ width: 30, height: 30, borderRadius: 8, border: "none", boxShadow: "var(--shadow-sm)", background: "var(--surface)", cursor: "pointer", display: "grid", placeItems: "center", color: "var(--text-2)" }}><Icon name="x" size={15} /></button>
         </div>
@@ -1354,7 +1354,7 @@ function UserEditModal({ initial, existing, onSave, onClose }) {
           {can(f.roles, "expenseApprove") && (
             <AField label="อนุมัติใบเบิกของตัวเอง">
               <button type="button" onClick={() => set("selfApprove", !f.selfApprove)}
-                style={{ display: "flex", alignItems: "center", gap: 9, padding: "9px 11px", borderRadius: "var(--r-chip)", border: "1px solid " + (f.selfApprove ? "#F59E0B" : "var(--border-strong)"), background: "var(--surface2)", cursor: "pointer", fontFamily: "inherit" }}>
+                style={{ display: "flex", alignItems: "center", gap: 9, padding: "9px 11px", borderRadius: "var(--r-chip)", border: "none", boxShadow: f.selfApprove ? "inset 0 0 0 1px #F59E0B" : "var(--shadow-sm)", background: "var(--surface2)", cursor: "pointer", fontFamily: "inherit" }}>
                 <span style={{ width: 38, height: 22, borderRadius: "var(--r-pill)", background: f.selfApprove ? "#F59E0B" : "var(--surface3)", position: "relative", flexShrink: 0 }}>
                   <span style={{ position: "absolute", top: 3, left: f.selfApprove ? 19 : 3, width: 16, height: 16, borderRadius: "var(--r-pill)", background: "#fff", transition: "left .2s", boxShadow: "0 1px 3px rgba(0,0,0,.2)" }} />
                 </span>
@@ -1397,7 +1397,7 @@ function UserEditModal({ initial, existing, onSave, onClose }) {
           </AField>
           {err && <div style={{ fontSize: 12.5, fontWeight: 600, color: "var(--tint-red-tx2)" }}>⚠ {err}</div>}
         </div>
-        <div style={{ padding: "14px 22px", paddingBottom: isMobile ? "calc(14px + env(safe-area-inset-bottom, 0px))" : 14, borderTop: "1px solid var(--border)", background: "var(--surface)", display: "flex", justifyContent: "flex-end", gap: 10, flexShrink: 0 }}>
+        <div style={{ padding: "14px 22px", paddingBottom: isMobile ? "calc(14px + env(safe-area-inset-bottom, 0px))" : 14, borderTop: "1px solid var(--divider)", background: "var(--surface)", display: "flex", justifyContent: "flex-end", gap: 10, flexShrink: 0 }}>
           <button onClick={onClose} style={{ flex: isMobile ? "0 0 auto" : "none", padding: "11px 18px", borderRadius: "var(--r-chip)", border: "1px solid var(--border-strong)", background: "var(--surface)", color: "var(--text-2)", fontWeight: 600, fontFamily: "inherit", fontSize: 13.5, cursor: "pointer" }}>ยกเลิก</button>
           <button onClick={save}
             style={{ flex: isMobile ? 1 : "none", padding: "11px 22px", borderRadius: "var(--r-chip)", border: "none", background: "var(--primary)", color: "#fff", fontWeight: 700, fontFamily: "inherit", fontSize: 13.5, cursor: "pointer" }}>บันทึก</button>

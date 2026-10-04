@@ -99,7 +99,7 @@ function PermitCard({ job, onOpen, onDragStart, dragging, draggable }) {
         <div style={{ marginTop: 9, fontSize: 11, lineHeight: 1.45, color: "var(--tint-red-tx)", background: "var(--tint-red-bg)", borderRadius: 8, padding: "6px 8px",
           display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden" }}>↩ {p.rejectReason}</div>
       )}
-      <div style={{ marginTop: 9, paddingTop: 9, borderTop: "1px solid var(--border)", fontSize: 10.5, color: "var(--text-3)" }}>
+      <div style={{ marginTop: 9, paddingTop: 9, borderTop: "1px solid var(--divider)", fontSize: 10.5, color: "var(--text-3)" }}>
         {!p.status ? "ติดตั้งเสร็จแล้ว · ยังไม่มีชุดข้อมูลขออนุญาต"
           : p.status === "approved" ? "อนุมัติ " + (p.approvedDate ? thDate(p.approvedDate, true) : "—")
           : p.status === "filing"   ? "ยื่นเมื่อ " + (p.filedDate ? thDate(p.filedDate, true) : "—")
@@ -222,10 +222,10 @@ function PermitQueueView({ jobs, search, stock, onOpenJob, onOpenReview, onPatch
                 onDragLeave={() => setOver((o) => (o === c.key ? null : o))}
                 onDrop={() => onDrop(c.key)}
                 style={{ width: 268, flexShrink: 0, display: "flex", flexDirection: "column", borderRadius: "var(--r-card)",
-                  background: isOver ? c.soft : "var(--surface2)", border: "1px solid " + (isOver ? c.color : "var(--border)"),
+                  background: isOver ? c.soft : "var(--surface2)", border: "none", boxShadow: isOver ? "inset 0 0 0 1px " + c.color : "var(--shadow-sm)",
                   opacity: drag && !ok ? .55 : 1, transition: "background .15s, border-color .15s, opacity .15s" }}>
                 <div style={{ padding: "13px 14px", display: "flex", alignItems: "center", justifyContent: "space-between",
-                  borderBottom: "1px solid var(--border)", position: "sticky", top: 0, zIndex: 1,
+                  borderBottom: "1px solid var(--divider)", position: "sticky", top: 0, zIndex: 1,
                   background: isOver ? c.soft : "var(--surface2)", borderRadius: "17px 17px 0 0" }}>
                   <span style={{ display: "flex", alignItems: "center", gap: 8, minWidth: 0 }}>
                     <span style={{ width: 7, height: 7, borderRadius: "var(--r-pill)", background: c.color, flexShrink: 0 }} />
@@ -267,7 +267,7 @@ function PermitQueueView({ jobs, search, stock, onOpenJob, onOpenReview, onPatch
               <button key={t.key} onClick={() => setTab(t.key)}
                 style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "7px 13px", borderRadius: "var(--r-pill)", cursor: "pointer",
                   fontFamily: "inherit", fontSize: 12.5, fontWeight: 700, whiteSpace: "nowrap", flexShrink: 0,
-                  border: "1px solid " + (on ? "transparent" : "var(--border)"),
+                  border: "none", boxShadow: on ? "none" : "var(--shadow-sm)",
                   background: on ? st.color : "var(--surface)", color: on ? "#fff" : "var(--text-2)" }}>
                 {t.th}
                 <span style={{ fontSize: 11, fontFamily: "var(--mono)", fontWeight: 800, opacity: .8 }}>{counts[t.key] || 0}</span>
@@ -392,7 +392,7 @@ function PermitCatalogRow({ slot, sheets, missing, models }) {
   };
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 7, padding: "9px 11px", borderRadius: "var(--r-chip)",
-      border: "1px solid " + (has ? "var(--border)" : "var(--border-strong)"),
+      border: "none", boxShadow: "var(--shadow-sm)",
       borderLeft: "3px solid " + (has ? "var(--primary)" : "var(--tint-red-bd)"),
       background: has ? "var(--surface)" : "var(--surface2)" }}>
       <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
@@ -493,7 +493,7 @@ function PermitDocRow({ slot, doc, busy, onPick, onRemove }) {
   const has = !!(doc && doc.dataUrl);
   return (
     <div style={{ display: "flex", gap: 10, alignItems: "center", padding: "9px 11px", borderRadius: "var(--r-chip)",
-      border: "1px solid " + (has ? "var(--border)" : "var(--border-strong)"),
+      border: "none", boxShadow: "var(--shadow-sm)",
       borderLeft: "3px solid " + (has ? "var(--primary)" : (slot.req ? "var(--tint-red-bd)" : "var(--surface3)")),
       background: has ? "var(--surface)" : "var(--surface2)" }}>
       <span style={{ width: 30, height: 30, borderRadius: 9, flexShrink: 0, display: "grid", placeItems: "center",
@@ -586,7 +586,7 @@ function PermitReview({ job, currentUser, stock, onClose, onPatch, onOpenJob }) 
         width: isMobile ? "100%" : "min(820px,100%)", height: isMobile ? "96dvh" : "min(900px, 92vh)",
         display: "flex", flexDirection: "column", overflow: "hidden", boxShadow: "var(--shadow-modal)" }}>
 
-        <div style={{ padding: "16px 20px", borderBottom: "1px solid var(--border)", background: "var(--surface)", display: "flex", alignItems: "center", gap: 11, flexShrink: 0 }}>
+        <div style={{ padding: "16px 20px", borderBottom: "1px solid var(--divider)", background: "var(--surface)", display: "flex", alignItems: "center", gap: 11, flexShrink: 0 }}>
           <span style={{ width: 36, height: 36, borderRadius: "var(--r-chip)", background: st.color + "1c", display: "grid", placeItems: "center", flexShrink: 0 }}>
             <Icon name="file" size={18} color={st.color} />
           </span>
@@ -715,7 +715,7 @@ function PermitReview({ job, currentUser, stock, onClose, onPatch, onOpenJob }) 
 
         {/* ปุ่มเดินสถานะ */}
         <div style={{ padding: "12px 18px", paddingBottom: isMobile ? "calc(12px + env(safe-area-inset-bottom, 0px))" : 12,
-          borderTop: "1px solid var(--border)", background: "var(--surface)", flexShrink: 0 }}>
+          borderTop: "1px solid var(--divider)", background: "var(--surface)", flexShrink: 0 }}>
           {rejecting ? (
             <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
               <input autoFocus value={reason} onChange={(e) => setReason(e.target.value)} placeholder="ตีกลับเพราะอะไร — ช่างจะเห็นข้อความนี้"

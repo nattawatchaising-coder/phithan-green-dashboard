@@ -90,6 +90,19 @@
   --kind-design: #2563EB; --kind-boq: #0D9488; --kind-other: #64748B;
   /* ขีดสีที่ขอบการ์ด (มีปัญหา/ล่าช้า) — บนพื้นมืดต้องหรี่ลง ไม่งั้นเป็นเส้นนีออนแย่งสายตา */
   --mark-danger: #EF4444; --mark-warn: #F59E0B;
+  /* ป้ายชนิดงาน (TypeBadge) — บ้าน/โครงการ */
+  --type-home-fg: #D97706; --type-home-bg: rgba(245,158,11,.12);
+  --type-project-fg: #7C5CFC; --type-project-bg: rgba(124,92,252,.11);
+  /* เส้นแบ่งแถวในตาราง/รายการ — อ่อนกว่า --border */
+  --divider: #EAEFEE;
+  /* สีกระดาษ/เอกสารพิมพ์ (ใบงาน ใบเสร็จ รายงาน) — ห้ามกำหนดซ้ำใน aurora เพื่อให้พิมพ์เป็นสีสว่างเสมอ */
+  --paper-bg: #FFFFFF; --paper-ink: #15211A; --paper-ink2: #4A5A51; --paper-ink3: #5A6B62;
+  --paper-mute: #7A8A81; --paper-mute2: #8A9A91;
+  --paper-line: #DCE4DF; --paper-line2: #C9D5CE; --paper-line3: #ECF1EE; --paper-tint: #F7FAF8;
+  --paper-brand: #1B9B75; --paper-brand-dk: #0A4D68;
+  --paper-ok: #10B981; --paper-ok-tx: #15803D;
+  --paper-warn: #F59E0B; --paper-warn-tx: #B45309; --paper-warn-tx2: #92400E; --paper-warn-bg: #FEF3C7;
+  --paper-bad: #EF4444; --paper-bad-tx: #B91C1C; --paper-bad-bg: #FEF2F2;
 }
 /* ── โหมดกราไฟต์ (GRAPHITE) ───────────────────────────────────
    สกินพิเศษโทนเทาเข้ม แนวทางเดียวกับ iOS: พื้นเทาไล่ระดับความสว่าง
@@ -148,6 +161,9 @@
   --mat-na-soft: rgba(148,163,184,.20);    --mat-na-fg: #A9B7C6;
   --kind-design: #7DB4FF; --kind-boq: #4FD1C5; --kind-other: #A9B7C6;
   --mark-danger: rgba(255,69,58,.55); --mark-warn: rgba(255,159,10,.5);
+  --type-home-fg: #FFC46B; --type-home-bg: rgba(245,158,11,.18);
+  --type-project-fg: #B9A6FF; --type-project-bg: rgba(124,92,252,.22);
+  --divider: rgba(255,255,255,.06);
   --brand-ink: #F2F2F7; --brand-muted: rgba(235,235,245,.45);
   /* ตราสัญลักษณ์บนพื้นมืด — ใช้เฉดสว่างขึ้นทั้งหกด้าน สายฟ้าเป็นสีเข้มเจาะกลาง ตามตัวอย่างในไฟล์ออกแบบ */
   --fx-1: #2E9BC4; --fx-2: #37B0C4; --fx-3: #3DC4B4;

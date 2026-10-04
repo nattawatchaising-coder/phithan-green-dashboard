@@ -38,7 +38,7 @@ function OmStat({ label, value, color, hint, on, onClick }) {
     <button type="button" onClick={onClick} disabled={!onClick}
       style={{ flex: 1, minWidth: 108, textAlign: "left", padding: "11px 13px", borderRadius: "var(--r-chip)", fontFamily: "inherit",
         background: on ? (color || "var(--primary)") + "14" : "var(--surface2)",
-        border: "1px solid " + (on ? (color || "var(--primary)") : "var(--border)"),
+        border: "none", boxShadow: on ? "inset 0 0 0 1px " + (color || "var(--primary)") : "var(--shadow-sm)",
         cursor: onClick ? "pointer" : "default" }}>
       <div style={{ fontSize: 11, color: "var(--text-3)", fontWeight: 700 }}>{label}</div>
       <div style={{ fontFamily: "var(--display)", fontSize: 22, fontWeight: 800, color: color, lineHeight: 1.2 }}>{value}</div>
@@ -84,7 +84,7 @@ function OmStatRow({ id, title, children }) {
             <button key={i} type="button" onClick={p.onClick} disabled={!p.onClick}
               title={p.hint || p.label}
               style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "3px 10px", borderRadius: "var(--r-pill)",
-                border: "1px solid " + (p.on ? (p.color || "var(--primary)") : "var(--border)"),
+                border: "none", boxShadow: p.on ? "inset 0 0 0 1px " + (p.color || "var(--primary)") : "var(--shadow-sm)",
                 background: p.on ? (p.color || "var(--primary)") + "16" : "var(--surface2)",
                 cursor: p.onClick ? "pointer" : "default", fontFamily: "inherit", fontSize: 11.5,
                 fontWeight: 700, color: "var(--text-2)" }}>
@@ -236,7 +236,7 @@ function OmCleanVisits({ site, visits, store, disabled, siteVisits, onOpenVisit,
   return (
     <div style={{ marginTop: 14 }}>
       <div style={{ display: "flex", alignItems: "center", gap: 9, padding: "10px 12px", flexWrap: "wrap",
-        border: "1px solid " + cs.color + "40", background: cs.color + "12", borderRadius: "var(--r-chip)", marginBottom: 12 }}>
+        border: "none", background: cs.color + "12", borderRadius: "var(--r-chip)", marginBottom: 12 }}>
         <Icon name="panel" size={16} color={cs.color} />
         <span style={{ flex: 1, minWidth: 150, fontSize: 12.5, color: "var(--text-1)" }}>
           <b style={{ color: cs.color }}>{cs.th}</b>
@@ -369,7 +369,7 @@ function OmSiteModal({ site, job, role, visits, cleanStore, tickets, siteVisits,
           borderRadius: isMobile ? "18px 18px 0 0" : 18, boxShadow: "0 24px 60px rgba(0,0,0,.28)" }}>
 
         {/* หัวแผง */}
-        <div style={{ position: "sticky", top: 0, zIndex: 2, background: "var(--bg)", borderBottom: "1px solid var(--border)",
+        <div style={{ position: "sticky", top: 0, zIndex: 2, background: "var(--bg)", borderBottom: "1px solid var(--divider)",
           padding: isMobile ? "14px 13px" : "16px 20px" }}>
           <div style={{ display: "flex", alignItems: "flex-start", gap: 11 }}>
             <span style={{ width: 36, height: 36, borderRadius: "var(--r-chip)", background: st.color + "1c", display: "grid", placeItems: "center", flexShrink: 0 }}>
@@ -506,7 +506,7 @@ function OmSiteModal({ site, job, role, visits, cleanStore, tickets, siteVisits,
               <button type="button" disabled={disabled} onClick={() => setClean({ on: !clean.on })}
                 style={{ padding: "7px 13px", borderRadius: "var(--r-pill)", cursor: disabled ? "default" : "pointer", fontFamily: "inherit",
                   fontSize: 12.5, fontWeight: 700,
-                  border: "1px solid " + (clean.on ? "#0EA5E9" : "var(--border-strong)"),
+                  border: "none", boxShadow: clean.on ? "inset 0 0 0 1px #0EA5E9" : "var(--shadow-sm)",
                   background: clean.on ? "#0EA5E91e" : "var(--surface)", color: clean.on ? "#0EA5E9" : "var(--text-2)" }}>
                 {clean.on ? "อยู่ในรอบล้างแผง" : "ไม่อยู่ในรอบล้างแผง"}
               </button>
@@ -591,7 +591,7 @@ function OmSiteModal({ site, job, role, visits, cleanStore, tickets, siteVisits,
                 ไม่มีปุ่มออกใบใหม่แล้ว งานซ่อมออกจากใบแจ้งซ่อม งานล้างออกจากหมวดรอบล้างแผง
                 แต่ของเก่าต้องเปิดดูได้ตลอด เอกสารที่ลูกค้าเซ็นไปแล้วหายไม่ได้ */}
             {!!(siteVisits || []).length && (
-              <div style={{ marginTop: 15, paddingTop: 13, borderTop: "1px solid var(--border)" }}>
+              <div style={{ marginTop: 15, paddingTop: 13, borderTop: "1px solid var(--divider)" }}>
                 <window.DrLabel hint="งานซ่อมใช้ใบแจ้งซ่อมเป็นรายงานแล้ว">ใบรายงานเข้าบริการที่เคยออกไว้</window.DrLabel>
                 <div style={{ marginTop: 7 }} />
                 {(siteVisits || []).map((v) => {
@@ -1115,7 +1115,7 @@ function OmView({ jobs, users, role, currentUser, focus }) {
           ["sites", "ทะเบียนไซต์", "list"], ["clean", "ปฏิทินล้างแผง", "calendar"]].map(([k, th, ic]) => (
           <button key={k} onClick={() => setTab(k)}
             style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "8px 14px", borderRadius: "var(--r-pill)",
-              border: "1px solid " + (tab === k ? "var(--primary)" : "var(--border-strong)"),
+              border: "none", boxShadow: tab === k ? "inset 0 0 0 1px var(--primary)" : "var(--shadow-sm)",
               background: tab === k ? "var(--primary-soft)" : "var(--surface)", cursor: "pointer", fontFamily: "inherit",
               fontSize: 12.5, fontWeight: 700, color: tab === k ? "var(--primary-dark)" : "var(--text-2)" }}>
             <Icon name={ic} size={14} color={tab === k ? "var(--primary-dark)" : "var(--text-3)"} /> {th}
@@ -1199,7 +1199,7 @@ function OmView({ jobs, users, role, currentUser, focus }) {
           return (
             <button key={s.id} onClick={() => setOpen(s.id)}
               style={{ width: "100%", display: "flex", alignItems: "center", gap: 11, padding: isMobile ? "11px 12px" : "13px 16px",
-                borderBottom: "1px solid var(--border)", background: "none", border: "none", borderTop: "none",
+                borderBottom: "1px solid var(--divider)", background: "none", border: "none", borderTop: "none",
                 cursor: "pointer", fontFamily: "inherit", textAlign: "left" }}>
               <span style={{ width: 8, height: 8, borderRadius: "var(--r-pill)", background: r.st.color, flexShrink: 0 }} />
               <span style={{ flex: 1, minWidth: 0 }}>

@@ -292,7 +292,7 @@ function MobileCalendar({ ym, cells, tasksOn, groupsOn, keyOf, todayKey, shift, 
               <span style={{ width: 38, height: 4, borderRadius: "var(--r-pill)", background: "var(--border-strong)" }} />
             </div>
             {/* header */}
-            <div style={{ padding: "6px 20px 12px", borderBottom: "1px solid var(--border)", display: "flex",
+            <div style={{ padding: "6px 20px 12px", borderBottom: "1px solid var(--divider)", display: "flex",
               justifyContent: "space-between", alignItems: "center", flexShrink: 0 }}>
               <div>
                 <div style={{ fontSize: 16, fontWeight: 700, color: "var(--text-1)" }}>{selDay} {TH_MONTH_FULL[ym.m]} {ym.y + 543}</div>
@@ -443,7 +443,7 @@ function MapView({ jobs, onOpen }) {
             const open = openProv === prov;
             const problems = list.filter((j) => j.problem || j.delayed).length;
             return (
-              <div key={prov} style={{ border: "1px solid " + (open ? "var(--primary)" : "var(--border)"), borderRadius: "var(--r-chip)", overflow: "hidden", transition: "border-color .15s", flexShrink: 0 }}>
+              <div key={prov} style={{ border: "none", boxShadow: open ? "inset 0 0 0 1px var(--primary)" : "var(--shadow-sm)", borderRadius: "var(--r-chip)", overflow: "hidden", transition: "border-color .15s", flexShrink: 0 }}>
                 <button onClick={() => { setOpenProv(open ? null : prov); flyToProv(prov); }}
                   style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 6, padding: "11px 13px",
                     background: open ? "var(--primary-soft)" : "var(--surface2)", border: "none", cursor: "pointer", fontFamily: "inherit", width: "100%", textAlign: "left" }}>
@@ -455,7 +455,7 @@ function MapView({ jobs, onOpen }) {
                   <span style={{ fontFamily: "var(--mono)", fontSize: 12, fontWeight: 600, color: "var(--text-2)", flexShrink: 0, whiteSpace: "nowrap" }}>{list.length} งาน</span>
                 </button>
                 {open && (
-                  <div style={{ padding: 8, display: "flex", flexDirection: "column", gap: 3, borderTop: "1px solid var(--border)" }}>
+                  <div style={{ padding: 8, display: "flex", flexDirection: "column", gap: 3, borderTop: "1px solid var(--divider)" }}>
                     {list.map((j) => (
                       <button key={j.id} onClick={() => focusJob(j)} style={{ display: "flex", alignItems: "center", gap: 9, padding: "8px 8px",
                         background: "none", border: "none", borderRadius: 8, cursor: "pointer", fontFamily: "inherit", width: "100%", textAlign: "left" }}

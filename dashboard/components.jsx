@@ -167,7 +167,9 @@ function TypeBadge({ type }) {
   const t = window.SF.TYPES.find((x) => x.key === key) || window.SF.TYPES[0];
   if (!t) return null;
   return (
-    <span style={{ fontSize: 11, fontWeight: 600, color: t.color, background: t.color + "1A",
+    /* สีจาก token --type-* (มีชุดของธีมมืด) — ชนิดที่ไม่มี token ถอยไปใช้สีใน TYPES */
+    <span style={{ fontSize: 11, fontWeight: 600, color: "var(--type-" + t.key + "-fg, " + t.color + ")",
+      background: "var(--type-" + t.key + "-bg, " + t.color + "1A)",
       padding: "3px 8px", borderRadius: "var(--r-chip)", whiteSpace: "nowrap" }}>{t.th}</span>
   );
 }
@@ -330,7 +332,7 @@ function Dropdown({ value, onChange, options, disabled, placeholder, style, adda
       <button type="button" ref={btnRef} onClick={openMenu} disabled={disabled}
         style={Object.assign({
           display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8, width: "100%",
-          background: "var(--surface2)", border: "1px solid " + (open ? "var(--primary)" : "var(--border-strong)"),
+          background: "var(--surface2)", border: "none", boxShadow: open ? "inset 0 0 0 1px var(--primary)" : "var(--shadow-sm)",
           color: "var(--text-1)", fontFamily: "inherit", fontSize: 13.5, padding: "9px 11px", borderRadius: 10,
           outline: "none", cursor: disabled ? "default" : "pointer", textAlign: "left", opacity: disabled ? 0.55 : 1,
         }, style || {})}>
@@ -358,13 +360,13 @@ function Dropdown({ value, onChange, options, disabled, placeholder, style, adda
             )}
             {hasGroups && (
               <div style={{ flexShrink: 0, display: "flex", flexWrap: "wrap", gap: 5, padding: "1px 2px 8px",
-                background: "var(--bg)", borderBottom: "1px solid var(--border)", marginBottom: 4 }}>
+                background: "var(--bg)", borderBottom: "1px solid var(--divider)", marginBottom: 4 }}>
                 {[null].concat(groupList).map((g) => {
                   const on = cat === g;
                   return (
                     <button type="button" key={g || "__all"} onClick={(e) => { e.stopPropagation(); setCat(g); }}
                       style={{ fontSize: 11.5, fontWeight: 700, padding: "4px 10px", borderRadius: "var(--r-pill)", cursor: "pointer", fontFamily: "inherit",
-                        border: "1px solid " + (on ? "var(--primary)" : "var(--border-strong)"),
+                        border: "none", boxShadow: on ? "inset 0 0 0 1px var(--primary)" : "var(--shadow-sm)",
                         background: on ? "var(--primary)" : "var(--surface2)", color: on ? "#fff" : "var(--text-2)" }}>
                       {g || "ทั้งหมด"}
                     </button>
@@ -406,7 +408,7 @@ function Dropdown({ value, onChange, options, disabled, placeholder, style, adda
             </div>
             {/* ปุ่มพิมพ์ชื่อเอง ตรึงไว้ท้ายเมนู ไม่ต้องเลื่อนผ่านตัวเลือกทั้งหมดถึงจะเจอ */}
             {addable && (adding ? (
-              <div style={{ flexShrink: 0, display: "flex", alignItems: "center", gap: 6, padding: "6px 7px", marginTop: 2, borderTop: "1px solid var(--border)" }}>
+              <div style={{ flexShrink: 0, display: "flex", alignItems: "center", gap: 6, padding: "6px 7px", marginTop: 2, borderTop: "1px solid var(--divider)" }}>
                 <input autoFocus value={addText} placeholder="ชื่อตัวเลือกใหม่"
                   onChange={(e) => setAddText(e.target.value)}
                   onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); submitAdd(); } else if (e.key === "Escape") { setAdding(false); setAddText(""); } }}
@@ -415,7 +417,7 @@ function Dropdown({ value, onChange, options, disabled, placeholder, style, adda
               </div>
             ) : (
               <button type="button" onClick={() => { setAdding(true); if (q.trim()) setAddText(q.trim()); }}
-                style={{ flexShrink: 0, width: "100%", display: "flex", alignItems: "center", gap: 7, padding: "10px 11px", borderRadius: 9, border: "none", marginTop: 2, borderTop: "1px solid var(--border)",
+                style={{ flexShrink: 0, width: "100%", display: "flex", alignItems: "center", gap: 7, padding: "10px 11px", borderRadius: 9, border: "none", marginTop: 2, borderTop: "1px solid var(--divider)",
                   background: "transparent", cursor: "pointer", fontFamily: "inherit", textAlign: "left", fontSize: 13, fontWeight: 700, color: "var(--primary-dark)" }}>
                 <Icon name="plus" size={14} color="var(--primary-dark)" /> {q.trim() ? "ใช้ชื่อ “" + q.trim() + "”" : "พิมพ์ชื่อเอง"}
               </button>

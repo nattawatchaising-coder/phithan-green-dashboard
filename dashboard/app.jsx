@@ -1466,7 +1466,7 @@ function TechFilter({ value, onChange, techs, counts, nameOf }) {
             );
           })}
           {none > 0 && (
-            <button className="tf-row" style={Object.assign(row(value === "__none"), { borderTop: "1px solid var(--border)", borderRadius: 0, marginTop: 4, paddingTop: 10 })}
+            <button className="tf-row" style={Object.assign(row(value === "__none"), { borderTop: "1px solid var(--divider)", borderRadius: 0, marginTop: 4, paddingTop: 10 })}
               onClick={() => pick(value === "__none" ? null : "__none")}>
               {bead("var(--surface3)", "?")}<span style={{ color: "var(--text-2)" }}>ยังไม่มอบหมาย</span>
               <span style={tally(none)}>{none}</span>
@@ -1664,7 +1664,7 @@ function DailyBriefing({ lateAlerts, todayTasks, onOpen, onClose }) {
   const today = window.SF.TODAY;
   const Row = ({ jobId, color, danger, title, sub }) => (
     <button onClick={() => onOpen(jobId)} style={{ display: "flex", alignItems: "center", gap: 11, padding: "11px 12px", width: "100%", textAlign: "left",
-      background: danger ? "var(--tint-red-bg)" : "var(--surface)", border: "1px solid " + (danger ? "var(--tint-red-bd)" : "var(--border)"), borderRadius: "var(--r-chip)", cursor: "pointer", fontFamily: "inherit" }}>
+      background: danger ? "var(--tint-red-bg)" : "var(--surface)", border: "none", boxShadow: danger ? "inset 0 0 0 1px var(--tint-red-bd)" : "var(--shadow-sm)", borderRadius: "var(--r-chip)", cursor: "pointer", fontFamily: "inherit" }}>
       <span style={{ width: 32, height: 32, borderRadius: 9, flexShrink: 0, display: "grid", placeItems: "center", background: color, color: "#fff" }}><Icon name={danger ? "alert" : "wrench"} size={16} color="#fff" /></span>
       <span style={{ flex: 1, minWidth: 0 }}>
         <span style={{ display: "block", fontSize: 13.5, fontWeight: 700, color: "var(--text-1)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{title}</span>
@@ -1676,7 +1676,7 @@ function DailyBriefing({ lateAlerts, todayTasks, onOpen, onClose }) {
   return (
     <div onClick={onClose} style={{ position: "fixed", inset: 0, background: "rgba(8,20,14,.5)", backdropFilter: "blur(3px)", zIndex: 120, display: "grid", placeItems: isMobile ? "end center" : "center", padding: isMobile ? 0 : 20 }}>
       <div onClick={(e) => e.stopPropagation()} style={{ background: "var(--bg)", borderRadius: isMobile ? "20px 20px 0 0" : 18, width: isMobile ? "100%" : "min(480px,100%)", maxHeight: isMobile ? "90dvh" : "88vh", display: "flex", flexDirection: "column", overflow: "hidden", boxShadow: "var(--shadow-modal)" }}>
-        <div style={{ padding: "18px 20px", borderBottom: "1px solid var(--border)", background: "var(--surface)", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+        <div style={{ padding: "18px 20px", borderBottom: "1px solid var(--divider)", background: "var(--surface)", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
           <div style={{ display: "flex", alignItems: "center", gap: 11 }}>
             <span style={{ width: 38, height: 38, borderRadius: "var(--r-chip)", background: "var(--primary-soft)", display: "grid", placeItems: "center" }}><Icon name="bell" size={19} color="var(--primary-dark)" /></span>
             <div>
@@ -1696,7 +1696,7 @@ function DailyBriefing({ lateAlerts, todayTasks, onOpen, onClose }) {
             <Row key={"t" + i} jobId={e.job.id} color={e.stage.color} title={e.job.name} sub={({ start: "เริ่ม", progress: "กำลังดำเนินการ", end: "ส่งมอบ/เสร็จ", both: "เริ่ม–เสร็จ" }[e.kind]) + " · " + e.stage.th} />
           ))}
         </div>
-        <div style={{ padding: "12px 20px", paddingBottom: isMobile ? "calc(12px + env(safe-area-inset-bottom,0px))" : 12, borderTop: "1px solid var(--border)", background: "var(--surface)" }}>
+        <div style={{ padding: "12px 20px", paddingBottom: isMobile ? "calc(12px + env(safe-area-inset-bottom,0px))" : 12, borderTop: "1px solid var(--divider)", background: "var(--surface)" }}>
           <button onClick={onClose} style={{ width: "100%", padding: "12px", borderRadius: "var(--r-chip)", border: "none", background: "var(--primary)", color: "#fff", fontWeight: 700, fontFamily: "inherit", fontSize: 14, cursor: "pointer" }}>รับทราบ</button>
         </div>
       </div>
@@ -1804,7 +1804,7 @@ function TrashModal({ trash, me, onRestore, onPurge, onClose }) {
       <div onClick={(e) => e.stopPropagation()} style={{ background: "var(--bg)", borderRadius: isMobile ? 0 : 18,
         width: isMobile ? "100%" : "min(640px, 100%)", maxHeight: isMobile ? "100%" : "84vh",
         display: "flex", flexDirection: "column", overflow: "hidden", boxShadow: "var(--shadow-modal)" }}>
-        <div style={{ padding: "15px 18px", borderBottom: "1px solid var(--border)", background: "var(--surface)", display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10 }}>
+        <div style={{ padding: "15px 18px", borderBottom: "1px solid var(--divider)", background: "var(--surface)", display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10 }}>
           <div style={{ display: "flex", alignItems: "center", gap: 11, minWidth: 0 }}>
             <span style={{ width: 36, height: 36, borderRadius: "var(--r-chip)", background: "var(--tint-red-bg)", display: "grid", placeItems: "center", flexShrink: 0 }}><Icon name="trash" size={17} color="#EF4444" /></span>
             <div style={{ minWidth: 0 }}>
@@ -1860,7 +1860,7 @@ function TrashModal({ trash, me, onRestore, onPurge, onClose }) {
           ))}
         </div>
         {!isAdmin && trash.length > 0 && (
-          <div style={{ padding: "10px 16px", borderTop: "1px solid var(--border)", background: "var(--surface)", fontSize: 11.5, color: "var(--text-3)" }}>
+          <div style={{ padding: "10px 16px", borderTop: "1px solid var(--divider)", background: "var(--surface)", fontSize: 11.5, color: "var(--text-3)" }}>
             ลบถาวรได้เฉพาะแอดมิน — งานในถังขยะจะอยู่ตรงนี้จนกว่าแอดมินจะจัดการ
           </div>
         )}
@@ -1878,7 +1878,7 @@ function MapModal({ jobs, onOpen, onClose }) {
       <div onClick={(e) => e.stopPropagation()} style={{ background: "var(--bg)", borderRadius: isMobile ? 0 : 20,
         width: isMobile ? "100%" : "min(1120px, 100%)", height: isMobile ? "100%" : "88vh",
         display: "flex", flexDirection: "column", overflow: "hidden", boxShadow: "var(--shadow-modal)" }}>
-        <div style={{ padding: "16px 20px", borderBottom: "1px solid var(--border)", background: "var(--surface)", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+        <div style={{ padding: "16px 20px", borderBottom: "1px solid var(--divider)", background: "var(--surface)", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
           <div style={{ display: "flex", alignItems: "center", gap: 11 }}>
             <span style={{ width: 38, height: 38, borderRadius: "var(--r-chip)", background: "var(--primary-soft)", display: "grid", placeItems: "center" }}><Icon name="map" size={19} color="var(--primary-dark)" /></span>
             <div>

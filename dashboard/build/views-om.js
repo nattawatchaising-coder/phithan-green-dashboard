@@ -69,7 +69,8 @@ function OmStat({
       borderRadius: "var(--r-chip)",
       fontFamily: "inherit",
       background: on ? (color || "var(--primary)") + "14" : "var(--surface2)",
-      border: "1px solid " + (on ? color || "var(--primary)" : "var(--border)"),
+      border: "none",
+      boxShadow: on ? "inset 0 0 0 1px " + (color || "var(--primary)") : "var(--shadow-sm)",
       cursor: onClick ? "pointer" : "default"
     }
   }, React.createElement("div", {
@@ -168,7 +169,8 @@ function OmStatRow({
         gap: 6,
         padding: "3px 10px",
         borderRadius: "var(--r-pill)",
-        border: "1px solid " + (p.on ? p.color || "var(--primary)" : "var(--border)"),
+        border: "none",
+        boxShadow: p.on ? "inset 0 0 0 1px " + (p.color || "var(--primary)") : "var(--shadow-sm)",
         background: p.on ? (p.color || "var(--primary)") + "16" : "var(--surface2)",
         cursor: p.onClick ? "pointer" : "default",
         fontFamily: "inherit",
@@ -528,7 +530,7 @@ function OmCleanVisits({
       gap: 9,
       padding: "10px 12px",
       flexWrap: "wrap",
-      border: "1px solid " + cs.color + "40",
+      border: "none",
       background: cs.color + "12",
       borderRadius: "var(--r-chip)",
       marginBottom: 12
@@ -887,7 +889,7 @@ function OmSiteModal({
       top: 0,
       zIndex: 2,
       background: "var(--bg)",
-      borderBottom: "1px solid var(--border)",
+      borderBottom: "1px solid var(--divider)",
       padding: isMobile ? "14px 13px" : "16px 20px"
     }
   }, React.createElement("div", {
@@ -1219,7 +1221,8 @@ function OmSiteModal({
       fontFamily: "inherit",
       fontSize: 12.5,
       fontWeight: 700,
-      border: "1px solid " + (clean.on ? "#0EA5E9" : "var(--border-strong)"),
+      border: "none",
+      boxShadow: clean.on ? "inset 0 0 0 1px #0EA5E9" : "var(--shadow-sm)",
       background: clean.on ? "#0EA5E91e" : "var(--surface)",
       color: clean.on ? "#0EA5E9" : "var(--text-2)"
     }
@@ -1375,7 +1378,7 @@ function OmSiteModal({
     style: {
       marginTop: 15,
       paddingTop: 13,
-      borderTop: "1px solid var(--border)"
+      borderTop: "1px solid var(--divider)"
     }
   }, React.createElement(window.DrLabel, {
     hint: "\u0E07\u0E32\u0E19\u0E0B\u0E48\u0E2D\u0E21\u0E43\u0E0A\u0E49\u0E43\u0E1A\u0E41\u0E08\u0E49\u0E07\u0E0B\u0E48\u0E2D\u0E21\u0E40\u0E1B\u0E47\u0E19\u0E23\u0E32\u0E22\u0E07\u0E32\u0E19\u0E41\u0E25\u0E49\u0E27"
@@ -2545,7 +2548,8 @@ function OmView({
       gap: 6,
       padding: "8px 14px",
       borderRadius: "var(--r-pill)",
-      border: "1px solid " + (tab === k ? "var(--primary)" : "var(--border-strong)"),
+      border: "none",
+      boxShadow: tab === k ? "inset 0 0 0 1px var(--primary)" : "var(--shadow-sm)",
       background: tab === k ? "var(--primary-soft)" : "var(--surface)",
       cursor: "pointer",
       fontFamily: "inherit",
@@ -2721,7 +2725,7 @@ function OmView({
         alignItems: "center",
         gap: 11,
         padding: isMobile ? "11px 12px" : "13px 16px",
-        borderBottom: "1px solid var(--border)",
+        borderBottom: "1px solid var(--divider)",
         background: "none",
         border: "none",
         borderTop: "none",

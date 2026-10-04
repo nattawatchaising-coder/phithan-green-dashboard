@@ -15,7 +15,7 @@ const rpTd = {
   padding: "5px 7px",
   fontSize: 10.5,
   color: RP_INK,
-  borderBottom: "1px solid #ECF1EE",
+  borderBottom: "1px solid var(--paper-line3)",
   verticalAlign: "top",
   wordBreak: "break-word"
 };
@@ -245,7 +245,7 @@ function InspectionPaper({
       alignItems: "center",
       padding: "11px 14px",
       background: "var(--surface)",
-      borderBottom: "1px solid var(--border)",
+      borderBottom: "1px solid var(--divider)",
       marginBottom: isMobile ? 0 : 16,
       borderRadius: isMobile ? 0 : 12,
       maxWidth: 900,
@@ -312,7 +312,7 @@ function InspectionPaper({
     style: {
       maxWidth: 900,
       margin: "0 auto",
-      background: "#fff",
+      background: "var(--paper-bg)",
       color: RP_INK,
       padding: isMobile ? "20px 16px" : "30px 34px",
       borderRadius: isMobile ? 0 : 12,
@@ -538,7 +538,7 @@ function InspectionPaper({
       fontSize: 11,
       whiteSpace: "pre-wrap",
       lineHeight: 1.7,
-      background: "#F7FAF9"
+      background: "var(--paper-tint)"
     }
   }, r.summary)) : null, React.createElement("div", {
     style: {
@@ -636,7 +636,7 @@ function InspectionPaper({
       height: 186,
       objectFit: "cover",
       display: "block",
-      background: "#EEF3F3"
+      background: "var(--paper-tint)"
     }
   }), React.createElement("div", {
     style: {

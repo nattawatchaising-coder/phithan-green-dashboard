@@ -552,7 +552,7 @@ function DrSignPad({ title, hint, saved, onSave, onClose, remember, onRemember }
       placeItems: "center", padding: 14 }}>
       <div style={{ width: "100%", maxWidth: 560, background: "var(--bg)", borderRadius: "var(--r-tile)", overflow: "hidden",
         boxShadow: "var(--shadow-modal)" }}>
-        <div style={{ padding: "14px 16px", borderBottom: "1px solid var(--border)", display: "flex", alignItems: "center", gap: 10 }}>
+        <div style={{ padding: "14px 16px", borderBottom: "1px solid var(--divider)", display: "flex", alignItems: "center", gap: 10 }}>
           <div style={{ flex: 1, minWidth: 0 }}>
             <div style={{ fontSize: 15, fontWeight: 800, color: "var(--text-1)" }}>{title}</div>
             <div style={{ fontSize: 11.5, color: "var(--text-3)", marginTop: 2 }}>{hint || "เซ็นด้วยนิ้วหรือเมาส์ในกรอบด้านล่าง"}</div>
@@ -598,7 +598,7 @@ function DrSignPad({ title, hint, saved, onSave, onClose, remember, onRemember }
               background: "none", border: "none", padding: 0, fontFamily: "inherit", textAlign: "left" }}>
             <span style={{ width: 19, height: 19, borderRadius: 6, flexShrink: 0, display: "grid", placeItems: "center",
               background: remember ? "var(--primary)" : "transparent",
-              border: "1.5px solid " + (remember ? "var(--primary)" : "var(--border-strong)") }}>
+              border: "none", boxShadow: remember ? "inset 0 0 0 1.5px var(--primary)" : "var(--shadow-sm)" }}>
               {remember && <Icon name="check" size={12} color="#fff" sw={3} />}
             </span>
             <span style={{ fontSize: 12.5, color: "var(--text-2)" }}>จำลายเซ็นนี้ไว้ ใช้ครั้งต่อไปได้เลย</span>

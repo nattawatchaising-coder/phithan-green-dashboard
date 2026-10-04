@@ -272,7 +272,7 @@ function EcClaimModal({ claim, job, users, role, currentUser, onClose, onPatch, 
 
         {/* หัว */}
         <div style={{ display: "flex", alignItems: "center", gap: 10, padding: isMobile ? "13px 14px" : "15px 18px",
-          borderBottom: "1px solid var(--border)", background: "var(--surface)" }}>
+          borderBottom: "1px solid var(--divider)", background: "var(--surface)" }}>
           <span style={{ width: 34, height: 34, borderRadius: "var(--r-tile)", display: "grid", placeItems: "center", flexShrink: 0,
             background: kind.color + "1a" }}>
             <Icon name="wallet" size={17} color={kind.color} />
@@ -479,7 +479,7 @@ function EcClaimModal({ claim, job, users, role, currentUser, onClose, onPatch, 
                   {nexts.map((s) => (
                     <button key={s.key} onClick={() => { onMove(c, s.key, { text: note, ref: payRef }); setNote(""); setPayRef(""); }}
                       style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "9px 16px", borderRadius: "var(--r-tile)",
-                        border: "1px solid " + s.color, background: s.color + "16", cursor: "pointer",
+                        border: "none", boxShadow: "inset 0 0 0 1px " + s.color, background: s.color + "16", cursor: "pointer",
                         fontFamily: "inherit", fontSize: 13, fontWeight: 800, color: s.color }}>
                       <Icon name="arrowRight" size={14} color={s.color} /> {s.th}
                     </button>
@@ -501,7 +501,7 @@ function EcClaimModal({ claim, job, users, role, currentUser, onClose, onPatch, 
                 color: "var(--text-3)", marginBottom: 8 }}>ประวัติ</div>
               {(c.hist || []).slice().reverse().map((h, i) => (
                 <div key={i} style={{ display: "flex", gap: 9, alignItems: "baseline", fontSize: 12, color: "var(--text-2)",
-                  padding: "5px 0", borderBottom: "1px solid var(--border)" }}>
+                  padding: "5px 0", borderBottom: "1px solid var(--divider)" }}>
                   <span style={{ fontFamily: "var(--mono)", fontSize: 10.5, color: "var(--text-3)", flexShrink: 0 }}>
                     {window.drDateTH(String(h.at).slice(0, 10))}
                   </span>
@@ -541,7 +541,7 @@ function EcDocMark({ th, doneTh, at, byName, color, can, mine, onSet, onClear })
   if (at) {
     return (
       <span style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "7px 12px", borderRadius: "var(--r-pill)",
-        background: color + "16", border: "1px solid " + color + "55", fontSize: 12, fontWeight: 700, color: color }}>
+        background: color + "16", border: "none", fontSize: 12, fontWeight: 700, color: color }}>
         <Icon name="check" size={13} color={color} />
         {doneTh} · {window.drDateTH(String(at).slice(0, 10))}{byName ? " · " + byName : ""}
         {mine && (
@@ -702,7 +702,7 @@ function EcPersonTable({ claims, users, onPick, onPay, onCover, canPay, canCover
       <div style={{ overflowX: "auto" }}>
         <table style={{ width: "100%", minWidth: 560, borderCollapse: "collapse" }}>
           <thead>
-            <tr style={{ borderBottom: "1px solid var(--border)" }}>
+            <tr style={{ borderBottom: "1px solid var(--divider)" }}>
               <th style={Object.assign({}, th, { textAlign: "left" })}>ชื่อ</th>
               <th style={th}>ร่าง</th>
               <th style={th}>รออนุมัติ</th>
@@ -717,7 +717,7 @@ function EcPersonTable({ claims, users, onPick, onPay, onCover, canPay, canCover
               const u = (users || []).find((x) => x.id === r.id);
               return (
                 <tr key={r.id} onClick={() => onPick && onPick(r)}
-                  style={{ borderBottom: "1px solid var(--border)", cursor: onPick ? "pointer" : "default" }}>
+                  style={{ borderBottom: "1px solid var(--divider)", cursor: onPick ? "pointer" : "default" }}>
                   <td style={{ padding: "10px", fontSize: 13, fontWeight: 700, color: "var(--text-1)" }}>
                     {r.name}
                     {u && !u.active && <span style={{ fontSize: 10.5, color: "var(--text-3)", fontWeight: 500 }}> · ปิดบัญชีแล้ว</span>}
@@ -774,7 +774,7 @@ function EcPersonTable({ claims, users, onPick, onPay, onCover, canPay, canCover
           </tfoot>
         </table>
       </div>
-      <div style={{ padding: "9px 12px", fontSize: 11, color: "var(--text-3)", lineHeight: 1.55, borderTop: "1px solid var(--border)" }}>
+      <div style={{ padding: "9px 12px", fontSize: 11, color: "var(--text-3)", lineHeight: 1.55, borderTop: "1px solid var(--divider)" }}>
         “ค้างจ่าย” นับเฉพาะใบที่อนุมัติแล้วและพนักงานออกเงินตัวเองไปก่อน —
         ใบที่จ่ายด้วยเงินสดกองกลางหรือบัญชีบริษัทไม่ใช่หนี้ที่ต้องคืนใคร จึงไม่ถูกนับ
         {onPick ? " · กดที่ชื่อเพื่อดูใบของคนนั้น" : ""}
@@ -849,7 +849,7 @@ function EcPayModal({ person, claims, batches, currentUser, role, payers, onClos
         style={{ background: "var(--bg)", borderRadius: isMobile ? "16px 16px 0 0" : 18, width: "min(560px, 100%)",
           maxHeight: isMobile ? "94dvh" : "90dvh", display: "flex", flexDirection: "column", overflow: "hidden" }}>
         <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "15px 18px",
-          borderBottom: "1px solid var(--border)", background: "var(--surface)" }}>
+          borderBottom: "1px solid var(--divider)", background: "var(--surface)" }}>
           <span style={{ width: 34, height: 34, borderRadius: "var(--r-tile)", display: "grid", placeItems: "center", background: "#10B9811a" }}>
             <Icon name="wallet" size={17} color="#10B981" />
           </span>
@@ -874,7 +874,7 @@ function EcPayModal({ person, claims, batches, currentUser, role, payers, onClos
           <div style={{ background: "var(--surface)", boxShadow: "var(--shadow-sm)", borderRadius: "var(--r-tile)", overflow: "hidden", marginBottom: 15 }}>
             {list.map((c) => (
               <div key={c.id} style={{ display: "flex", alignItems: "center", gap: 10, padding: "9px 12px",
-                borderBottom: "1px solid var(--border)", background: "var(--surface)" }}>
+                borderBottom: "1px solid var(--divider)", background: "var(--surface)" }}>
                 <span style={{ flex: 1, minWidth: 0 }}>
                   <span style={{ display: "block", fontSize: 12.5, fontWeight: 700, color: "var(--text-1)" }}>
                     {window.ecKindOf(c.kind).th}
@@ -956,7 +956,7 @@ function EcPayModal({ person, claims, batches, currentUser, role, payers, onClos
           )}
         </div>
 
-        <div style={{ display: "flex", gap: 9, padding: "13px 18px", borderTop: "1px solid var(--border)", background: "var(--surface)" }}>
+        <div style={{ display: "flex", gap: 9, padding: "13px 18px", borderTop: "1px solid var(--divider)", background: "var(--surface)" }}>
           <button onClick={onClose}
             style={{ padding: "10px 18px", borderRadius: "var(--r-tile)", boxShadow: "var(--shadow-sm)",
               background: "var(--surface)", cursor: "pointer", fontFamily: "inherit", fontSize: 13, fontWeight: 700, color: "var(--text-2)" }}>
@@ -1353,7 +1353,7 @@ function ExpenseView({ jobs, users, role, currentUser, focus }) {
         {TABS.map(([k, th, ic, n]) => (
           <button key={k} onClick={() => setTab(k)}
             style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "8px 14px", borderRadius: "var(--r-pill)",
-              border: "1px solid " + (tab === k ? "var(--primary)" : "transparent"),
+              border: "none", boxShadow: tab === k ? "inset 0 0 0 1px var(--primary)" : "none",
               background: tab === k ? "var(--primary-soft)" : "var(--surface)", cursor: "pointer", fontFamily: "inherit",
               fontSize: 12.5, fontWeight: 700, color: tab === k ? "var(--primary-dark)" : "var(--text-2)" }}>
             <Icon name={ic} size={14} color={tab === k ? "var(--primary-dark)" : "var(--text-3)"} /> {th}

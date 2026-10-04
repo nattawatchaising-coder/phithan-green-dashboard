@@ -179,7 +179,7 @@ function PricePanel({
   }, React.createElement("div", {
     style: {
       padding: "12px 16px",
-      borderBottom: "1px solid var(--border)",
+      borderBottom: "1px solid var(--divider)",
       background: "var(--surface2)",
       fontSize: 11.5,
       color: "var(--text-3)"
@@ -207,7 +207,7 @@ function PricePanel({
         padding: "7px 8px",
         borderRadius: 9,
         background: dirty ? "var(--tint-amber-bg)" : "transparent",
-        borderBottom: "1px solid var(--border)"
+        borderBottom: "1px solid var(--divider)"
       }
     }, React.createElement("div", {
       style: {
@@ -310,7 +310,7 @@ function PricePanel({
       bottom: 0,
       padding: "12px 16px",
       paddingBottom: isMobile ? "calc(12px + env(safe-area-inset-bottom,0px))" : 12,
-      borderTop: "1px solid var(--border)",
+      borderTop: "1px solid var(--divider)",
       background: "var(--surface)",
       display: "flex",
       gap: 10,
@@ -477,7 +477,7 @@ function AddPriceModal({
   }, React.createElement("div", {
     style: {
       padding: "16px 20px",
-      borderBottom: "1px solid var(--border)",
+      borderBottom: "1px solid var(--divider)",
       background: "var(--surface)",
       display: "flex",
       justifyContent: "space-between",
@@ -599,7 +599,7 @@ function AddPriceModal({
     style: {
       padding: "12px 20px",
       paddingBottom: isMobile ? "calc(12px + env(safe-area-inset-bottom,0px))" : 12,
-      borderTop: "1px solid var(--border)",
+      borderTop: "1px solid var(--divider)",
       background: "var(--surface)",
       display: "flex",
       gap: 10

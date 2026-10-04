@@ -217,7 +217,7 @@ function PermitCard({
       style: {
         marginTop: 9,
         paddingTop: 9,
-        borderTop: "1px solid var(--border)",
+        borderTop: "1px solid var(--divider)",
         fontSize: 10.5,
         color: "var(--text-3)"
       }
@@ -412,7 +412,8 @@ function PermitQueueView({
           flexDirection: "column",
           borderRadius: "var(--r-card)",
           background: isOver ? c.soft : "var(--surface2)",
-          border: "1px solid " + (isOver ? c.color : "var(--border)"),
+          border: "none",
+          boxShadow: isOver ? "inset 0 0 0 1px " + c.color : "var(--shadow-sm)",
           opacity: drag && !ok ? .55 : 1,
           transition: "background .15s, border-color .15s, opacity .15s"
         }
@@ -422,7 +423,7 @@ function PermitQueueView({
           display: "flex",
           alignItems: "center",
           justifyContent: "space-between",
-          borderBottom: "1px solid var(--border)",
+          borderBottom: "1px solid var(--divider)",
           position: "sticky",
           top: 0,
           zIndex: 1,
@@ -535,7 +536,8 @@ function PermitQueueView({
         fontWeight: 700,
         whiteSpace: "nowrap",
         flexShrink: 0,
-        border: "1px solid " + (on ? "transparent" : "var(--border)"),
+        border: "none",
+        boxShadow: on ? "none" : "var(--shadow-sm)",
         background: on ? st.color : "var(--surface)",
         color: on ? "#fff" : "var(--text-2)"
       }
@@ -776,7 +778,8 @@ function PermitCatalogRow({
       gap: 7,
       padding: "9px 11px",
       borderRadius: "var(--r-chip)",
-      border: "1px solid " + (has ? "var(--border)" : "var(--border-strong)"),
+      border: "none",
+      boxShadow: "var(--shadow-sm)",
       borderLeft: "3px solid " + (has ? "var(--primary)" : "var(--tint-red-bd)"),
       background: has ? "var(--surface)" : "var(--surface2)"
     }
@@ -1044,7 +1047,8 @@ function PermitDocRow({
       alignItems: "center",
       padding: "9px 11px",
       borderRadius: "var(--r-chip)",
-      border: "1px solid " + (has ? "var(--border)" : "var(--border-strong)"),
+      border: "none",
+      boxShadow: "var(--shadow-sm)",
       borderLeft: "3px solid " + (has ? "var(--primary)" : slot.req ? "var(--tint-red-bd)" : "var(--surface3)"),
       background: has ? "var(--surface)" : "var(--surface2)"
     }
@@ -1253,7 +1257,7 @@ function PermitReview({
   }, React.createElement("div", {
     style: {
       padding: "16px 20px",
-      borderBottom: "1px solid var(--border)",
+      borderBottom: "1px solid var(--divider)",
       background: "var(--surface)",
       display: "flex",
       alignItems: "center",
@@ -1514,7 +1518,7 @@ function PermitReview({
     style: {
       padding: "12px 18px",
       paddingBottom: isMobile ? "calc(12px + env(safe-area-inset-bottom, 0px))" : 12,
-      borderTop: "1px solid var(--border)",
+      borderTop: "1px solid var(--divider)",
       background: "var(--surface)",
       flexShrink: 0
     }

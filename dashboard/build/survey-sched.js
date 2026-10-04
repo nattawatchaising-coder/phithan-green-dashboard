@@ -928,7 +928,7 @@ function SurveyApptModal({
   }, React.createElement("div", {
     style: {
       padding: "16px 20px",
-      borderBottom: "1px solid var(--border)",
+      borderBottom: "1px solid var(--divider)",
       background: "var(--surface)",
       display: "flex",
       justifyContent: "space-between",
@@ -1201,7 +1201,7 @@ function SurveyApptModal({
     style: {
       padding: "12px 18px",
       paddingBottom: isMobile ? "calc(12px + env(safe-area-inset-bottom,0px))" : 12,
-      borderTop: "1px solid var(--border)",
+      borderTop: "1px solid var(--divider)",
       background: "var(--surface)",
       display: "flex",
       gap: 10,
@@ -1331,7 +1331,8 @@ function ApptFlow({
         display: "grid",
         placeItems: "center",
         background: reached ? "var(--primary)" : isNext ? "var(--surface)" : "var(--surface3)",
-        border: isNext ? "2px solid var(--primary)" : "2px solid transparent",
+        border: "none",
+        boxShadow: isNext ? "inset 0 0 0 2px var(--primary)" : "none",
         color: "#fff"
       }
     }, reached ? React.createElement(Icon, {
@@ -1570,7 +1571,7 @@ function ApptCard({
     }
   }, "\u0E41\u0E1A\u0E1A\u0E2A\u0E33\u0E23\u0E27\u0E08: ", sv.label, " \xB7 ", sv.pct, "%")), React.createElement("div", {
     style: {
-      borderTop: "1px solid var(--border)",
+      borderTop: "1px solid var(--divider)",
       padding: "13px 14px",
       background: "var(--surface2)"
     }

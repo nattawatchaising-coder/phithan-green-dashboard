@@ -332,7 +332,7 @@ function LnJobFiles({ jobId }) {
   if (flags === null) return null;                 /* ยังอ่านไม่เสร็จ — อย่าเพิ่งโชว์ว่าไม่มีไฟล์ */
 
   return (
-    <div style={{ marginTop: 14, paddingTop: 12, borderTop: "1px solid var(--border)" }}>
+    <div style={{ marginTop: 14, paddingTop: 12, borderTop: "1px solid var(--divider)" }}>
       <div style={{ fontSize: 12, fontWeight: 800, color: "var(--text-3)", marginBottom: 8 }}>ไฟล์แนบ</div>
 
       {have.length === 0
@@ -419,7 +419,7 @@ function LnJobSheet({ job, techs, onClose }) {
         </div>
 
         {rows.map(([k, v]) => (
-          <div key={k} style={{ display: "flex", gap: 12, padding: "9px 0", borderTop: "1px solid var(--border)" }}>
+          <div key={k} style={{ display: "flex", gap: 12, padding: "9px 0", borderTop: "1px solid var(--divider)" }}>
             <div style={{ width: 116, flexShrink: 0, fontSize: 12, color: "var(--text-3)" }}>{k}</div>
             <div style={{ flex: 1, fontSize: 13.5, color: "var(--text-1)", fontWeight: 600, wordBreak: "break-word" }}>{v}</div>
           </div>
@@ -531,7 +531,7 @@ function LnClock({ me, cfg, jobs, ot, onAskOt }) {
             คำถามที่ช่างเปิดแอปมาถามบ่อยที่สุดคือ "เลิกได้กี่โมง" ไม่ใช่ "เข้ามากี่โมง"
             เวลาเลิกไม่ตายตัว เพราะนับ 8 ชม. + พัก 1 ชม. จากเวลาที่กดเข้าจริง */}
         {today && today.in && (
-          <div style={{ marginTop: 10, paddingTop: 10, borderTop: "1px solid var(--border)" }}>
+          <div style={{ marginTop: 10, paddingTop: 10, borderTop: "1px solid var(--divider)" }}>
             <div style={{ fontFamily: "var(--mono)", fontSize: 30, fontWeight: 800, color: "var(--text-1)", lineHeight: 1.1 }}>
               {window.tmDur(worked)}
             </div>
@@ -611,7 +611,7 @@ function LnClock({ me, cfg, jobs, ot, onAskOt }) {
               style={{ flex: 1, display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 7,
                 padding: "13px 10px", borderRadius: 18, cursor: "pointer", fontFamily: "inherit",
                 fontSize: 14, fontWeight: 800,
-                border: "1px solid " + (place === p.key ? "var(--primary)" : "var(--border-strong)"),
+                border: "none", boxShadow: place === p.key ? "inset 0 0 0 1px var(--primary)" : "var(--shadow-sm)",
                 background: place === p.key ? "var(--primary-soft)" : "var(--surface)",
                 color: place === p.key ? "var(--primary-dark)" : "var(--text-2)" }}>
               <Icon name={p.icon} size={16} color={place === p.key ? "var(--primary-dark)" : "var(--text-3)"} />
@@ -636,7 +636,7 @@ function LnClock({ me, cfg, jobs, ot, onAskOt }) {
               }}
                 style={{ flex: 1, padding: "8px 6px", borderRadius: 13, cursor: "pointer", fontFamily: "inherit",
                   fontSize: 12.5, fontWeight: 800,
-                  border: "1px solid " + (jobType === t.key ? "var(--primary)" : "var(--border-strong)"),
+                  border: "none", boxShadow: jobType === t.key ? "inset 0 0 0 1px var(--primary)" : "var(--shadow-sm)",
                   background: jobType === t.key ? "var(--primary-soft)" : "var(--surface)",
                   color: jobType === t.key ? "var(--primary-dark)" : "var(--text-2)" }}>
                 {t.th}
@@ -797,7 +797,7 @@ function LnClockCal({ rows, cfg, ot, onAskOt }) {
             return (
               <button key={k} onClick={() => setPick(k)}
                 style={{ position: "relative", padding: "7px 0 13px", borderRadius: 12, cursor: "pointer",
-                  border: isToday && !on ? "1px solid var(--primary)" : "1px solid transparent",
+                  border: "none", boxShadow: isToday && !on ? "inset 0 0 0 1px var(--primary)" : "none",
                   background: on ? "var(--primary)" : "transparent",
                   fontFamily: "inherit", fontSize: 12.5, fontWeight: on || isToday ? 800 : 600,
                   color: on ? "#fff" : r ? "var(--text-1)" : "var(--text-3)" }}>
@@ -813,7 +813,7 @@ function LnClockCal({ rows, cfg, ot, onAskOt }) {
           })}
         </div>
 
-        <div style={{ marginTop: 8, paddingTop: 10, borderTop: "1px solid var(--border)" }}>
+        <div style={{ marginTop: 8, paddingTop: 10, borderTop: "1px solid var(--divider)" }}>
           <div style={{ display: "flex", alignItems: "center", gap: 10, minHeight: 24 }}>
             <span style={{ fontSize: 12, color: "var(--text-2)" }}>{lnCalDateTH(pick)}</span>
             {rec ? (
@@ -1152,7 +1152,7 @@ function LnPick({ items, value, onPick }) {
           <button key={it.key} onClick={() => onPick(it.key)}
             style={{ padding: "7px 13px", borderRadius: 99, cursor: "pointer", fontFamily: "inherit",
               fontSize: 12.5, fontWeight: 700, whiteSpace: "nowrap",
-              border: "1px solid " + (on ? "var(--primary)" : "var(--border-strong)"),
+              border: "none", boxShadow: on ? "inset 0 0 0 1px var(--primary)" : "var(--shadow-sm)",
               background: on ? "var(--primary-soft)" : "var(--surface2)",
               color: on ? "var(--primary-dark)" : "var(--text-2)" }}>
             {it.th}{it.n != null ? " " + it.n : ""}
@@ -1673,7 +1673,7 @@ function LnApp() {
                     /* ยังไม่อ่าน = พื้นอ่อน ๆ สีของเรื่องนั้น อ่านแล้วเหลือแค่ไอคอนสี
                        เส้นขีดข้างซ้ายถูกตัดออก — บนการ์ดที่มุมมนใหญ่มันกลายเป็นเศษเส้นที่มุม */
                     background: n.read ? "var(--surface)" : k.color + "12",
-                    border: "1px solid " + (n.read ? "var(--border)" : k.color + "33") })}>
+                    border: "none", boxShadow: n.read ? "var(--shadow-sm)" : "inset 0 0 0 1px " + k.color + "33" })}>
                   <div style={{ flexShrink: 0, width: 32, height: 32, borderRadius: 99, display: "grid",
                     placeItems: "center", background: k.color + "1F" }}>
                     <Icon name={k.icon} size={16} color={k.color} />

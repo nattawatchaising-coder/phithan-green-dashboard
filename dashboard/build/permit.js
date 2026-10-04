@@ -705,7 +705,7 @@ function PermitSampleModal({
       alignItems: "center",
       gap: 10,
       padding: "13px 15px",
-      borderBottom: "1px solid var(--border)"
+      borderBottom: "1px solid var(--divider)"
     }
   }, React.createElement(Icon, {
     name: "image",
@@ -1315,7 +1315,8 @@ function PermitTypePicker({
         textAlign: "left",
         fontFamily: "inherit",
         width: "100%",
-        border: "1px solid " + (on ? "var(--primary)" : "var(--border)"),
+        border: "none",
+        boxShadow: on ? "inset 0 0 0 1px var(--primary)" : "var(--shadow-sm)",
         background: on ? "var(--primary-soft)" : "var(--surface)"
       }
     }, React.createElement("span", {
@@ -1326,7 +1327,8 @@ function PermitTypePicker({
         flexShrink: 0,
         display: "grid",
         placeItems: "center",
-        border: "2px solid " + (on ? "var(--primary)" : "var(--border-strong)")
+        border: "none",
+        boxShadow: on ? "inset 0 0 0 2px var(--primary)" : "var(--shadow-inset)"
       }
     }, on && React.createElement("span", {
       style: {
@@ -1373,7 +1375,8 @@ function PermitShotCard({
     onClose: () => setSample(false)
   }), React.createElement("div", {
     style: {
-      border: "1px solid " + (has ? "var(--border)" : "var(--border-strong)"),
+      border: "none",
+      boxShadow: "var(--shadow-sm)",
       borderRadius: "var(--r-tile)",
       padding: 11,
       borderLeft: "3px solid " + (has ? "var(--primary)" : slot.req ? "var(--tint-red-bd)" : "var(--surface3)"),
@@ -1664,7 +1667,7 @@ function PermitWizard({
     style: {
       padding: "15px 20px 0",
       background: "var(--surface)",
-      borderBottom: "1px solid var(--border)",
+      borderBottom: "1px solid var(--divider)",
       flexShrink: 0
     }
   }, React.createElement("div", {
@@ -1780,7 +1783,8 @@ function PermitWizard({
         fontWeight: 700,
         whiteSpace: "nowrap",
         flexShrink: 0,
-        border: "1px solid " + (on ? "transparent" : "var(--border)"),
+        border: "none",
+        boxShadow: on ? "none" : "var(--shadow-sm)",
         background: on ? "var(--primary)" : "var(--surface)",
         color: on ? "#fff" : "var(--text-2)"
       }
@@ -2348,7 +2352,7 @@ function PermitWizard({
     style: {
       padding: "12px 18px",
       paddingBottom: isMobile ? "calc(12px + env(safe-area-inset-bottom, 0px))" : 12,
-      borderTop: "1px solid var(--border)",
+      borderTop: "1px solid var(--divider)",
       background: "var(--surface)",
       display: "flex",
       gap: 9,

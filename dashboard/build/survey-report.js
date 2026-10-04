@@ -49,12 +49,12 @@ function RepCheck({
     d: "M20 6L9 17l-5-5"
   }))), React.createElement("span", {
     style: {
-      color: on ? "var(--text-1)" : "var(--text-3)"
+      color: on ? "var(--paper-ink)" : "var(--paper-mute)"
     }
   }, label, on && React.createElement("span", {
     style: {
       fontStyle: "italic",
-      color: "var(--text-2)"
+      color: "var(--paper-ink2)"
     }
   }, " (", value, ")")));
 }
@@ -95,7 +95,7 @@ function RepSection({
       display: "flex",
       alignItems: "center",
       gap: 7,
-      borderBottom: "1px solid var(--border)",
+      borderBottom: "1px solid var(--paper-line)",
       paddingBottom: 6
     }
   }, React.createElement("span", {
@@ -109,7 +109,7 @@ function RepSection({
     style: {
       fontSize: 13,
       fontWeight: 800,
-      color: "var(--text-1)"
+      color: "var(--paper-ink)"
     }
   }, title)), children);
 }
@@ -120,19 +120,19 @@ function RepCell({
   return React.createElement(React.Fragment, null, React.createElement("div", {
     style: {
       padding: "7px 10px",
-      borderRight: "1px solid var(--border)",
-      borderBottom: "1px solid var(--border)",
+      borderRight: "1px solid var(--paper-line)",
+      borderBottom: "1px solid var(--paper-line)",
       fontSize: 11,
       fontWeight: 700,
       color: "var(--primary-dark)",
-      background: "var(--surface2)"
+      background: "var(--paper-tint)"
     }
   }, k), React.createElement("div", {
     style: {
       padding: "7px 10px",
-      borderBottom: "1px solid var(--border)",
+      borderBottom: "1px solid var(--paper-line)",
       fontSize: 11.5,
-      color: "var(--text-1)"
+      color: "var(--paper-ink)"
     }
   }, v || "-"));
 }
@@ -263,7 +263,7 @@ function SurveyReport({
       alignItems: "center",
       padding: "11px 14px",
       background: "var(--surface)",
-      borderBottom: "1px solid var(--border)",
+      borderBottom: "1px solid var(--divider)",
       marginBottom: isMobile ? 0 : 16,
       borderRadius: isMobile ? 0 : 12,
       maxWidth: 900,
@@ -337,8 +337,8 @@ function SurveyReport({
     style: {
       maxWidth: 900,
       margin: "0 auto",
-      background: "#fff",
-      color: "#15211A",
+      background: "var(--paper-bg)",
+      color: "var(--paper-ink)",
       fontFamily: lang === "zh" && window.pgFontStack ? window.pgFontStack("zh") : undefined,
       padding: isMobile ? "20px 16px" : "34px 38px",
       borderRadius: isMobile ? 0 : 12,
@@ -363,7 +363,7 @@ function SurveyReport({
       fontFamily: "var(--display)",
       fontSize: 22,
       fontWeight: 800,
-      color: "var(--text-1)",
+      color: "var(--paper-ink)",
       letterSpacing: "-.01em"
     }
   }, T("รายงานผลสำรวจหน้างาน")), React.createElement("div", {
@@ -371,7 +371,7 @@ function SurveyReport({
       fontSize: 10.5,
       fontWeight: 600,
       letterSpacing: ".12em",
-      color: "var(--text-3)",
+      color: "var(--paper-mute)",
       marginTop: 3
     }
   }, "SOLAR SITE SURVEY REPORT"), React.createElement("div", {
@@ -387,14 +387,14 @@ function SurveyReport({
     style: {
       textAlign: "right",
       fontSize: 11.5,
-      color: "var(--text-2)",
+      color: "var(--paper-ink2)",
       lineHeight: 1.7
     }
   }, React.createElement("div", null, T("สำรวจ:"), " ", DT(s.startedAt)), React.createElement("div", null, T("รายงาน:"), " ", DT(s.completedAt || s.updatedAt || s.startedAt)))), React.createElement("div", {
     className: "sv-rep-info",
     style: {
       marginTop: 16,
-      border: "1px solid var(--border)",
+      border: "1px solid var(--paper-line)",
       borderRadius: 8,
       overflow: "hidden"
     }
@@ -425,17 +425,17 @@ function SurveyReport({
   }), React.createElement("div", {
     style: {
       padding: "7px 10px",
-      borderRight: "1px solid var(--border)",
+      borderRight: "1px solid var(--paper-line)",
       fontSize: 11,
       fontWeight: 700,
       color: "var(--primary-dark)",
-      background: "var(--surface2)"
+      background: "var(--paper-tint)"
     }
   }, T("ที่อยู่")), React.createElement("div", {
     style: {
       padding: "7px 10px",
       fontSize: 11.5,
-      color: "var(--text-1)"
+      color: "var(--paper-ink)"
     }
   }, [job.address, job.province].filter(Boolean).join(" ") || "-", job.phone ? " · " + T("โทร ") + job.phone : "")), React.createElement(RepSection, {
     title: T("ผลการตรวจสอบ")
@@ -519,7 +519,7 @@ function SurveyReport({
       fontSize: 11.5,
       lineHeight: 1.75,
       whiteSpace: "pre-wrap",
-      color: "var(--text-1)"
+      color: "var(--paper-ink)"
     }
   }, noteLines.join("\n"))), shots.length > 0 && React.createElement(RepSection, {
     title: T("ภาพประกอบการสำรวจ") + " (" + shots.length + " " + T("รูป") + ")"
@@ -547,7 +547,7 @@ function SurveyReport({
         className: "sv-rep-shot",
         "data-p": sh.ah > sh.aw ? "1" : "0",
         style: {
-          border: "1px solid var(--border)",
+          border: "1px solid var(--paper-line)",
           borderRadius: 9,
           padding: 10,
           breakInside: "avoid"
@@ -556,7 +556,7 @@ function SurveyReport({
         style: {
           fontSize: 11.5,
           fontWeight: 800,
-          color: "var(--text-1)",
+          color: "var(--paper-ink)",
           marginBottom: 7
         }
       }, i + 1, ". ", window.shotTitle(sh)), React.createElement("div", {
@@ -582,7 +582,7 @@ function SurveyReport({
       }))), sh.caption && React.createElement("div", {
         style: {
           fontSize: 11,
-          color: "var(--text-2)",
+          color: "var(--paper-ink2)",
           marginTop: 7
         }
       }, sh.caption))
@@ -600,7 +600,7 @@ function SurveyReport({
       display: "flex",
       alignItems: "center",
       gap: 7,
-      borderBottom: "1px solid var(--border)",
+      borderBottom: "1px solid var(--paper-line)",
       paddingBottom: 6,
       marginBottom: 12
     }
@@ -615,12 +615,12 @@ function SurveyReport({
     style: {
       fontSize: 13,
       fontWeight: 800,
-      color: "var(--text-1)"
+      color: "var(--paper-ink)"
     }
   }, "DATA SHEET \u2014 ", d.role), React.createElement("span", {
     style: {
       fontSize: 11.5,
-      color: "var(--text-2)",
+      color: "var(--paper-ink2)",
       marginLeft: "auto"
     }
   }, d.name)), /^image\//.test(d.doc.type || "") ? React.createElement("img", {
@@ -630,37 +630,37 @@ function SurveyReport({
       width: "100%",
       display: "block",
       borderRadius: 8,
-      border: "1px solid var(--border)"
+      border: "1px solid var(--paper-line)"
     }
   }) : React.createElement("div", {
     style: {
       fontSize: 11.5,
-      color: "var(--text-2)",
-      background: "var(--surface2)",
-      border: "1px solid var(--border)",
+      color: "var(--paper-ink2)",
+      background: "var(--paper-tint)",
+      border: "1px solid var(--paper-line)",
       borderRadius: 8,
       padding: "12px 14px"
     }
   }, T("แนบไฟล์เอกสารแยก:"), " ", React.createElement("b", {
     style: {
-      color: "var(--text-1)"
+      color: "var(--paper-ink)"
     }
   }, d.doc.name), " ", T("(เปิดดูได้จากหน้าคลังสินค้า)"))))), React.createElement("div", {
     style: {
       marginTop: 22,
       paddingTop: 12,
-      borderTop: "1px solid var(--border)",
+      borderTop: "1px solid var(--paper-line)",
       display: "flex",
       justifyContent: "space-between",
       gap: 14,
       flexWrap: "wrap",
       fontSize: 11,
-      color: "var(--text-2)",
+      color: "var(--paper-ink2)",
       breakInside: "avoid"
     }
   }, React.createElement("div", null, T("ผู้สำรวจ:"), " ", React.createElement("b", {
     style: {
-      color: "var(--text-1)"
+      color: "var(--paper-ink)"
     }
   }, s.byName || "-")), React.createElement("div", null, T("ออกรายงาน:"), " ", DT(new Date().toISOString())))));
 }

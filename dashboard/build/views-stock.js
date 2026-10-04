@@ -936,7 +936,7 @@ function StockView({
     }
   }, React.createElement("thead", null, React.createElement("tr", {
     style: {
-      borderBottom: "1px solid var(--border)"
+      borderBottom: "1px solid var(--divider)"
     }
   }, ["รายการอุปกรณ์", "ราคา/หน่วย", "คงเหลือ", "ขั้นต่ำ", "ที่จัดเก็บ", "จัดการ"].map((h, i) => React.createElement("th", {
     key: h,
@@ -957,7 +957,7 @@ function StockView({
       onClick: () => setDetailItem(it),
       title: "\u0E01\u0E14\u0E40\u0E1E\u0E37\u0E48\u0E2D\u0E14\u0E39\u0E23\u0E32\u0E22\u0E25\u0E30\u0E40\u0E2D\u0E35\u0E22\u0E14 \xB7 \u0E23\u0E31\u0E1A / \u0E40\u0E1A\u0E34\u0E01 / \u0E04\u0E37\u0E19",
       style: {
-        borderBottom: "1px solid var(--border)",
+        borderBottom: "1px solid var(--divider)",
         cursor: "pointer",
         background: st === "out" ? "rgba(239,68,68,.07)" : "transparent"
       }
@@ -1218,7 +1218,7 @@ function MovesModal({
   }, React.createElement("div", {
     style: {
       padding: "16px 20px",
-      borderBottom: "1px solid var(--border)",
+      borderBottom: "1px solid var(--divider)",
       background: "var(--surface)",
       flexShrink: 0
     }
@@ -1592,7 +1592,7 @@ function StockCardList({
       style: {
         marginTop: 12,
         paddingTop: 11,
-        borderTop: "1px solid var(--border)",
+        borderTop: "1px solid var(--divider)",
         display: "flex",
         alignItems: "center",
         gap: 7
@@ -1989,7 +1989,7 @@ function MoveModal({
     style: {
       padding: "14px 22px",
       paddingBottom: isMobile ? "calc(14px + env(safe-area-inset-bottom, 0px))" : 14,
-      borderTop: "1px solid var(--border)",
+      borderTop: "1px solid var(--divider)",
       background: "var(--surface)",
       display: "flex",
       justifyContent: "flex-end",
@@ -2236,7 +2236,7 @@ function ItemModal({
   }, React.createElement("div", {
     style: {
       padding: "18px 22px",
-      borderBottom: "1px solid var(--border)",
+      borderBottom: "1px solid var(--divider)",
       background: "var(--surface)",
       display: "flex",
       justifyContent: "space-between",
@@ -3258,7 +3258,7 @@ function ItemModal({
     style: {
       padding: "14px 22px",
       paddingBottom: isMobile ? "calc(14px + env(safe-area-inset-bottom, 0px))" : 14,
-      borderTop: "1px solid var(--border)",
+      borderTop: "1px solid var(--divider)",
       background: "var(--surface)",
       display: "flex",
       justifyContent: "flex-end",
@@ -3402,7 +3402,7 @@ function ConduitDefaultsEditor({
   const nEdited = COND_DEF_ROWS.filter(r => (saved.per || {})[r.key] != null || (saved.spare || {})[r.key] != null).length + ((saved.spare || {}).tray != null && (saved.spare || {}).tray !== "" ? 1 : 0) + RULE_ROWS.filter(r => (saved.rule || {})[r.key] != null && (saved.rule || {})[r.key] !== "").length;
   const cell = {
     padding: "7px 9px",
-    borderBottom: "1px solid var(--border)",
+    borderBottom: "1px solid var(--divider)",
     fontSize: 12.5
   };
   const numBase = {
@@ -3760,7 +3760,7 @@ function OmTierTable({
   };
   const cell = {
     padding: "7px 10px",
-    borderBottom: "1px solid var(--border)",
+    borderBottom: "1px solid var(--divider)",
     fontSize: 12.5
   };
   const inp = {
@@ -4146,7 +4146,7 @@ function AmpacityEditor({
     textAlign: "center",
     whiteSpace: "nowrap",
     background: "var(--surface2)",
-    borderBottom: "1px solid var(--border)"
+    borderBottom: "1px solid var(--divider)"
   };
   return React.createElement("div", null, React.createElement("div", {
     style: {
@@ -4365,7 +4365,7 @@ function AmpacityEditor({
   }, lf.cTh))))), React.createElement("tbody", null, sizes.map(sz => React.createElement("tr", {
     key: sz,
     style: {
-      borderBottom: "1px solid var(--border)"
+      borderBottom: "1px solid var(--divider)"
     }
   }, React.createElement("td", {
     style: {
@@ -4703,7 +4703,7 @@ function ItemDetailModal({
   }, React.createElement("div", {
     style: {
       padding: "12px 18px",
-      borderBottom: "1px solid var(--border)",
+      borderBottom: "1px solid var(--divider)",
       background: "var(--surface)",
       flexShrink: 0,
       display: "flex",
@@ -4866,7 +4866,8 @@ function ItemDetailModal({
         fontFamily: "inherit",
         fontSize: 12.5,
         fontWeight: 700,
-        border: "1px solid " + (on ? "var(--primary)" : "transparent"),
+        border: "none",
+        boxShadow: on ? "inset 0 0 0 1px var(--primary)" : "none",
         background: on ? "var(--primary)18" : "var(--surface)",
         color: on ? "var(--primary-dark)" : vs === "out" ? "var(--text-3)" : "var(--text-2)",
         textDecoration: vs === "out" ? "line-through" : "none"
@@ -4961,7 +4962,7 @@ function ItemDetailModal({
         gap: 3,
         padding: "13px 8px",
         borderRadius: "var(--r-tile)",
-        border: "1px solid " + mt.accent + "44",
+        border: "none",
         background: mt.bg,
         color: mt.color,
         fontFamily: "inherit",
@@ -5202,7 +5203,7 @@ function ItemDetailModal({
   }))), React.createElement("div", {
     style: {
       padding: "13px 22px",
-      borderTop: "1px solid var(--border)",
+      borderTop: "1px solid var(--divider)",
       background: "var(--surface)",
       display: "flex",
       gap: 8,
@@ -5301,7 +5302,7 @@ function FillVariantModal({
   }, React.createElement("div", {
     style: {
       padding: "16px 20px",
-      borderBottom: "1px solid var(--border)",
+      borderBottom: "1px solid var(--divider)",
       background: "var(--surface)",
       flexShrink: 0
     }
@@ -5336,7 +5337,7 @@ function FillVariantModal({
       gap: 10,
       alignItems: "center",
       padding: "9px 20px",
-      borderBottom: "1px solid var(--border)",
+      borderBottom: "1px solid var(--divider)",
       cursor: "pointer"
     }
   }, React.createElement("input", {
@@ -5393,7 +5394,7 @@ function FillVariantModal({
   }, r.g.model))))), React.createElement("div", {
     style: {
       padding: "13px 20px",
-      borderTop: "1px solid var(--border)",
+      borderTop: "1px solid var(--divider)",
       background: "var(--surface)",
       display: "flex",
       gap: 8,
@@ -5863,7 +5864,8 @@ function CatCard({
       display: "grid",
       placeItems: "center",
       background: img ? "var(--surface2)" : c.color + "16",
-      border: "1px solid " + (img ? "transparent" : c.color + "33")
+      border: "none",
+      boxShadow: img ? "none" : "inset 0 0 0 1px " + c.color + "33"
     }
   }, img ? React.createElement("img", {
     src: img,

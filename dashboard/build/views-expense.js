@@ -538,7 +538,7 @@ function EcClaimModal({
       alignItems: "center",
       gap: 10,
       padding: isMobile ? "13px 14px" : "15px 18px",
-      borderBottom: "1px solid var(--border)",
+      borderBottom: "1px solid var(--divider)",
       background: "var(--surface)"
     }
   }, React.createElement("span", {
@@ -986,7 +986,8 @@ function EcClaimModal({
       gap: 6,
       padding: "9px 16px",
       borderRadius: "var(--r-tile)",
-      border: "1px solid " + s.color,
+      border: "none",
+      boxShadow: "inset 0 0 0 1px " + s.color,
       background: s.color + "16",
       cursor: "pointer",
       fontFamily: "inherit",
@@ -1023,7 +1024,7 @@ function EcClaimModal({
       fontSize: 12,
       color: "var(--text-2)",
       padding: "5px 0",
-      borderBottom: "1px solid var(--border)"
+      borderBottom: "1px solid var(--divider)"
     }
   }, React.createElement("span", {
     style: {
@@ -1093,7 +1094,7 @@ function EcDocMark({
         padding: "7px 12px",
         borderRadius: "var(--r-pill)",
         background: color + "16",
-        border: "1px solid " + color + "55",
+        border: "none",
         fontSize: 12,
         fontWeight: 700,
         color: color
@@ -1443,7 +1444,7 @@ function EcPersonTable({
     }
   }, React.createElement("thead", null, React.createElement("tr", {
     style: {
-      borderBottom: "1px solid var(--border)"
+      borderBottom: "1px solid var(--divider)"
     }
   }, React.createElement("th", {
     style: Object.assign({}, th, {
@@ -1467,7 +1468,7 @@ function EcPersonTable({
       key: r.id,
       onClick: () => onPick && onPick(r),
       style: {
-        borderBottom: "1px solid var(--border)",
+        borderBottom: "1px solid var(--divider)",
         cursor: onPick ? "pointer" : "default"
       }
     }, React.createElement("td", {
@@ -1590,7 +1591,7 @@ function EcPersonTable({
       fontSize: 11,
       color: "var(--text-3)",
       lineHeight: 1.55,
-      borderTop: "1px solid var(--border)"
+      borderTop: "1px solid var(--divider)"
     }
   }, "\u201C\u0E04\u0E49\u0E32\u0E07\u0E08\u0E48\u0E32\u0E22\u201D \u0E19\u0E31\u0E1A\u0E40\u0E09\u0E1E\u0E32\u0E30\u0E43\u0E1A\u0E17\u0E35\u0E48\u0E2D\u0E19\u0E38\u0E21\u0E31\u0E15\u0E34\u0E41\u0E25\u0E49\u0E27\u0E41\u0E25\u0E30\u0E1E\u0E19\u0E31\u0E01\u0E07\u0E32\u0E19\u0E2D\u0E2D\u0E01\u0E40\u0E07\u0E34\u0E19\u0E15\u0E31\u0E27\u0E40\u0E2D\u0E07\u0E44\u0E1B\u0E01\u0E48\u0E2D\u0E19 \u2014 \u0E43\u0E1A\u0E17\u0E35\u0E48\u0E08\u0E48\u0E32\u0E22\u0E14\u0E49\u0E27\u0E22\u0E40\u0E07\u0E34\u0E19\u0E2A\u0E14\u0E01\u0E2D\u0E07\u0E01\u0E25\u0E32\u0E07\u0E2B\u0E23\u0E37\u0E2D\u0E1A\u0E31\u0E0D\u0E0A\u0E35\u0E1A\u0E23\u0E34\u0E29\u0E31\u0E17\u0E44\u0E21\u0E48\u0E43\u0E0A\u0E48\u0E2B\u0E19\u0E35\u0E49\u0E17\u0E35\u0E48\u0E15\u0E49\u0E2D\u0E07\u0E04\u0E37\u0E19\u0E43\u0E04\u0E23 \u0E08\u0E36\u0E07\u0E44\u0E21\u0E48\u0E16\u0E39\u0E01\u0E19\u0E31\u0E1A", onPick ? " · กดที่ชื่อเพื่อดูใบของคนนั้น" : ""));
 }
@@ -1693,7 +1694,7 @@ function EcPayModal({
       alignItems: "center",
       gap: 10,
       padding: "15px 18px",
-      borderBottom: "1px solid var(--border)",
+      borderBottom: "1px solid var(--divider)",
       background: "var(--surface)"
     }
   }, React.createElement("span", {
@@ -1783,7 +1784,7 @@ function EcPayModal({
       alignItems: "center",
       gap: 10,
       padding: "9px 12px",
-      borderBottom: "1px solid var(--border)",
+      borderBottom: "1px solid var(--divider)",
       background: "var(--surface)"
     }
   }, React.createElement("span", {
@@ -1984,7 +1985,7 @@ function EcPayModal({
       display: "flex",
       gap: 9,
       padding: "13px 18px",
-      borderTop: "1px solid var(--border)",
+      borderTop: "1px solid var(--divider)",
       background: "var(--surface)"
     }
   }, React.createElement("button", {
@@ -2663,7 +2664,8 @@ function ExpenseView({
       gap: 6,
       padding: "8px 14px",
       borderRadius: "var(--r-pill)",
-      border: "1px solid " + (tab === k ? "var(--primary)" : "transparent"),
+      border: "none",
+      boxShadow: tab === k ? "inset 0 0 0 1px var(--primary)" : "none",
       background: tab === k ? "var(--primary-soft)" : "var(--surface)",
       cursor: "pointer",
       fontFamily: "inherit",

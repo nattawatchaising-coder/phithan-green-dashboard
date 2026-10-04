@@ -317,7 +317,7 @@ function JobMaterialUsage({
       gap: 8,
       padding: "9px 14px",
       background: "var(--surface2)",
-      borderBottom: "1px solid var(--border)"
+      borderBottom: "1px solid var(--divider)"
     }
   }, React.createElement(Cell, {
     head: true,
@@ -506,7 +506,7 @@ function StockShopModal({
         alignItems: "center",
         gap: 10,
         padding: "9px 8px",
-        borderBottom: "1px solid var(--border)"
+        borderBottom: "1px solid var(--divider)"
       }
     }, React.createElement("div", {
       style: {
@@ -623,7 +623,7 @@ function StockShopModal({
   }, React.createElement("div", {
     style: {
       padding: "16px 20px",
-      borderBottom: "1px solid var(--border)",
+      borderBottom: "1px solid var(--divider)",
       background: "var(--surface)",
       flexShrink: 0
     }
@@ -787,7 +787,7 @@ function StockShopModal({
     style: {
       padding: "12px 20px",
       paddingBottom: isMobile ? "calc(12px + env(safe-area-inset-bottom,0px))" : 12,
-      borderTop: "1px solid var(--border)",
+      borderTop: "1px solid var(--divider)",
       background: "var(--surface)",
       display: "flex",
       gap: 10,
@@ -1089,7 +1089,7 @@ function PermitJobSummary({
         padding: "10px 12px",
         borderRadius: "var(--r-tile)",
         background: t.bg,
-        border: "1px solid " + t.bd
+        border: "none"
       }
     }, React.createElement("div", {
       style: {
@@ -1175,7 +1175,7 @@ function DrToolGroup({
       padding: "9px 4px",
       background: "none",
       border: "none",
-      borderBottom: "1px solid var(--border)",
+      borderBottom: "1px solid var(--divider)",
       cursor: "pointer",
       fontFamily: "inherit",
       textAlign: "left"
@@ -1310,7 +1310,7 @@ function DetailDrawer({
   }, job && React.createElement(React.Fragment, null, React.createElement("div", {
     style: {
       padding: isMobile ? "15px 16px" : "20px 24px",
-      borderBottom: "1px solid var(--border)",
+      borderBottom: "1px solid var(--divider)",
       background: "var(--surface)",
       flexShrink: 0
     }
@@ -1394,7 +1394,7 @@ function DetailDrawer({
         fontWeight: 700,
         color: c,
         background: c + "16",
-        border: "1px solid " + c + "33",
+        border: "none",
         borderRadius: "var(--r-pill)",
         padding: "4px 11px",
         whiteSpace: "nowrap"
@@ -1896,7 +1896,8 @@ function DetailDrawer({
     return React.createElement("div", {
       style: {
         marginBottom: 22,
-        border: "1px solid " + (rejected ? "var(--tint-red-bd)" : "var(--border-strong)"),
+        border: "none",
+        boxShadow: rejected ? "inset 0 0 0 1px var(--tint-red-bd)" : "var(--shadow-sm)",
         borderLeft: "3px solid " + (pst ? pst.color : "var(--border-strong)"),
         borderRadius: "var(--r-tile)",
         overflow: "hidden",
@@ -2208,7 +2209,7 @@ function DetailDrawer({
     style: {
       padding: isMobile ? "12px 16px" : "14px 24px",
       paddingBottom: "calc(" + (isMobile ? 12 : 14) + "px + env(safe-area-inset-bottom, 0px))",
-      borderTop: "1px solid var(--border)",
+      borderTop: "1px solid var(--divider)",
       background: "var(--surface)",
       display: "flex",
       gap: isMobile ? 8 : 10,

@@ -202,7 +202,7 @@ function PermitSampleModal({ slot, onClose }) {
   return (
     <div {...bdClose} style={{ position: "fixed", inset: 0, zIndex: 2400, background: "rgba(8,15,12,.55)", display: "grid", placeItems: "center", padding: 16 }}>
       <div onClick={(e) => e.stopPropagation()} style={{ width: "min(420px, 100%)", background: "var(--surface)", borderRadius: "var(--r-card)", border: "none", boxShadow: "var(--shadow-sm)", overflow: "hidden" }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "13px 15px", borderBottom: "1px solid var(--border)" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "13px 15px", borderBottom: "1px solid var(--divider)" }}>
           <Icon name="image" size={16} color="var(--primary)" />
           <span style={{ flex: 1, fontSize: 14, fontWeight: 800, color: "var(--text-1)" }}>ตัวอย่าง — {slot.label}</span>
           <button className="x-close" onClick={onClose} style={{ width: 28, height: 28, borderRadius: 8, border: "none", background: "var(--surface3)", color: "var(--text-2)", cursor: "pointer", display: "grid", placeItems: "center" }}>
@@ -503,10 +503,10 @@ function PermitTypePicker({ value, onChange }) {
           <button type="button" key={t.key} onClick={() => onChange(t.key)}
             style={{ display: "flex", alignItems: "center", gap: 11, padding: "11px 13px", borderRadius: "var(--r-chip)", cursor: "pointer",
               textAlign: "left", fontFamily: "inherit", width: "100%",
-              border: "1px solid " + (on ? "var(--primary)" : "var(--border)"),
+              border: "none", boxShadow: on ? "inset 0 0 0 1px var(--primary)" : "var(--shadow-sm)",
               background: on ? "var(--primary-soft)" : "var(--surface)" }}>
             <span style={{ width: 18, height: 18, borderRadius: "var(--r-pill)", flexShrink: 0, display: "grid", placeItems: "center",
-              border: "2px solid " + (on ? "var(--primary)" : "var(--border-strong)") }}>
+              border: "none", boxShadow: on ? "inset 0 0 0 2px var(--primary)" : "var(--shadow-inset)" }}>
               {on && <span style={{ width: 9, height: 9, borderRadius: "var(--r-pill)", background: "var(--primary)" }} />}
             </span>
             <span style={{ flex: 1, minWidth: 0 }}>
@@ -528,7 +528,7 @@ function PermitShotCard({ slot, shot, busy, onPick, onRemove }) {
   const warn = slot.hint.indexOf("⚠") === 0;
   return (<React.Fragment>
     {sample && <PermitSampleModal slot={slot} onClose={() => setSample(false)} />}
-    <div style={{ border: "1px solid " + (has ? "var(--border)" : "var(--border-strong)"), borderRadius: "var(--r-tile)", padding: 11,
+    <div style={{ border: "none", boxShadow: "var(--shadow-sm)", borderRadius: "var(--r-tile)", padding: 11,
       borderLeft: "3px solid " + (has ? "var(--primary)" : (slot.req ? "var(--tint-red-bd)" : "var(--surface3)")),
       background: has ? "var(--surface)" : "var(--surface2)", display: "flex", gap: 11, alignItems: "center" }}>
       {has ? (
@@ -668,7 +668,7 @@ function PermitWizard({ job, onClose, onSave, onSubmit, currentUser, stock, read
         display: "flex", flexDirection: "column", overflow: "hidden", boxShadow: "var(--shadow-modal)" }}>
 
         {/* หัว + แถบความคืบหน้า */}
-        <div style={{ padding: "15px 20px 0", background: "var(--surface)", borderBottom: "1px solid var(--border)", flexShrink: 0 }}>
+        <div style={{ padding: "15px 20px 0", background: "var(--surface)", borderBottom: "1px solid var(--divider)", flexShrink: 0 }}>
           <div style={{ display: "flex", alignItems: "center", gap: 11 }}>
             <span style={{ width: 36, height: 36, borderRadius: "var(--r-chip)", background: "#14B8A61c", display: "grid", placeItems: "center", flexShrink: 0 }}>
               <Icon name="file" size={18} color="#14B8A6" />
@@ -695,7 +695,7 @@ function PermitWizard({ job, onClose, onSave, onSubmit, currentUser, stock, read
                 <button key={s.n} onClick={() => setStep(s.n)}
                   style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "6px 11px", borderRadius: "var(--r-pill)", cursor: "pointer",
                     fontFamily: "inherit", fontSize: 12, fontWeight: 700, whiteSpace: "nowrap", flexShrink: 0,
-                    border: "1px solid " + (on ? "transparent" : "var(--border)"),
+                    border: "none", boxShadow: on ? "none" : "var(--shadow-sm)",
                     background: on ? "var(--primary)" : "var(--surface)", color: on ? "#fff" : "var(--text-2)" }}>
                   <Icon name={s.icon} size={13} color={on ? "#fff" : "var(--text-3)"} /> {s.th}
                 </button>
@@ -950,7 +950,7 @@ function PermitWizard({ job, onClose, onSave, onSubmit, currentUser, stock, read
 
         {/* ท้าย: ย้อน/ถัดไป + บันทึกร่าง */}
         <div style={{ padding: "12px 18px", paddingBottom: isMobile ? "calc(12px + env(safe-area-inset-bottom, 0px))" : 12,
-          borderTop: "1px solid var(--border)", background: "var(--surface)", display: "flex", gap: 9, alignItems: "center", flexShrink: 0 }}>
+          borderTop: "1px solid var(--divider)", background: "var(--surface)", display: "flex", gap: 9, alignItems: "center", flexShrink: 0 }}>
           <button onClick={() => setStep((s) => Math.max(1, s - 1))} disabled={step === 1}
             style={{ padding: "11px 15px", borderRadius: "var(--r-chip)", border: "1px solid var(--border-strong)", background: "var(--surface)",
               color: step === 1 ? "var(--text-3)" : "var(--text-2)", fontWeight: 600, fontFamily: "inherit", fontSize: 13, cursor: step === 1 ? "default" : "pointer" }}>ย้อน</button>

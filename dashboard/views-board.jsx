@@ -73,7 +73,7 @@ function KanbanCard({ job, onOpen, onDragStart, dragging }) {
         const rejected = job.permit.status === "rejected";
         return (
           <div style={{ marginBottom: 10, padding: "7px 10px", borderRadius: "var(--r-tile)", background: pst.color + "14",
-            border: "1px solid " + pst.color + (rejected ? "" : "33") }}>
+            border: "none", boxShadow: "inset 0 0 0 1px " + pst.color + (rejected ? "" : "33") }}>
             <div style={{ fontSize: 10.5, fontWeight: 800, color: pst.color }}>
               <Icon name="shield" size={10} color={pst.color} style={{ verticalAlign: -1 }} /> ขออนุญาต · {pst.th}
             </div>
@@ -93,7 +93,7 @@ function KanbanCard({ job, onOpen, onDragStart, dragging }) {
         const st = cur ? window.blStatusOf(cur.status) : null;
         const c = S.allPaid ? "#10B981" : (S.overdue.length ? "#EF4444" : (st ? st.color : "#6366F1"));
         return (
-          <div style={{ marginBottom: 10, padding: "6px 9px", borderRadius: "var(--r-chip)", background: c + "14", border: "1px solid " + c + "33" }}>
+          <div style={{ marginBottom: 10, padding: "6px 9px", borderRadius: "var(--r-chip)", background: c + "14", border: "none" }}>
             <div style={{ fontSize: 10.5, fontWeight: 800, color: c, display: "flex", gap: 6, alignItems: "center", flexWrap: "wrap" }}>
               <Icon name="file" size={10} color={c} style={{ verticalAlign: -1 }} />
               งวดงาน · {S.allPaid ? "เก็บเงินครบแล้ว" : "งวด " + (S.doneCount + 1) + "/" + S.count + (st ? " · " + st.short : "")}
@@ -132,7 +132,7 @@ function KanbanCard({ job, onOpen, onDragStart, dragging }) {
         )}
       </div>
       <InstallSpanBar job={job} />
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", paddingTop: 10, borderTop: "1px solid var(--border)", gap: 8, flexWrap: "wrap" }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", paddingTop: 10, borderTop: "1px solid var(--divider)", gap: 8, flexWrap: "wrap" }}>
         <span style={{ display: "inline-flex", alignItems: "center", gap: 6, minWidth: 0 }}>
           <TechAvatar techId={job.tech} size={24} />
           {job.startDate
@@ -227,7 +227,7 @@ function DocViewer({ job, kind, label, color, onClose }) {
     <div onClick={onClose} style={{ position: "fixed", inset: 0, background: "rgba(8,20,14,.5)", backdropFilter: "blur(3px)", zIndex: 130, display: "grid", placeItems: isMobile ? "stretch" : "center", padding: isMobile ? 0 : 20 }}>
       <div onClick={(e) => e.stopPropagation()} style={{ background: "var(--bg)", borderRadius: isMobile ? 0 : 16, width: isMobile ? "100%" : "min(900px,96vw)", height: isMobile ? "100%" : "92vh", display: "flex", flexDirection: "column", overflow: "hidden", boxShadow: "var(--shadow-modal)" }}>
         {/* header */}
-        <div style={{ padding: "12px 16px", borderBottom: "1px solid var(--border)", background: "var(--surface)", display: "flex", alignItems: "center", gap: 10, flexShrink: 0 }}>
+        <div style={{ padding: "12px 16px", borderBottom: "1px solid var(--divider)", background: "var(--surface)", display: "flex", alignItems: "center", gap: 10, flexShrink: 0 }}>
           <span style={{ width: 30, height: 30, borderRadius: "var(--r-chip)", background: color + "16", display: "grid", placeItems: "center", flexShrink: 0 }}><Icon name="file" size={16} color={color} /></span>
           <div style={{ minWidth: 0, flex: 1 }}>
             <div style={{ fontSize: 10.5, fontWeight: 700, color: color, letterSpacing: ".04em" }}>{label} · {job.code}</div>
@@ -241,10 +241,10 @@ function DocViewer({ job, kind, label, color, onClose }) {
         </div>
         {/* แท็บไฟล์ (กรณีแนบหลายไฟล์) */}
         {files.length > 1 && (
-          <div style={{ display: "flex", gap: 6, padding: "8px 12px", borderBottom: "1px solid var(--border)", background: "var(--surface)", overflowX: "auto", flexShrink: 0 }}>
+          <div style={{ display: "flex", gap: 6, padding: "8px 12px", borderBottom: "1px solid var(--divider)", background: "var(--surface)", overflowX: "auto", flexShrink: 0 }}>
             {files.map((f, i) => (
               <button key={f.id} onClick={() => setIdx(i)} style={{ flexShrink: 0, padding: "5px 11px", borderRadius: "var(--r-chip)", fontSize: 11.5, fontWeight: 600, fontFamily: "inherit", cursor: "pointer",
-                border: "1px solid " + (i === idx ? color : "var(--border-strong)"), background: i === idx ? color + "14" : "var(--surface)", color: i === idx ? color : "var(--text-2)", maxWidth: 160, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{f.name}</button>
+                border: "none", boxShadow: i === idx ? "inset 0 0 0 1px " + color : "var(--shadow-sm)", background: i === idx ? color + "14" : "var(--surface)", color: i === idx ? color : "var(--text-2)", maxWidth: 160, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{f.name}</button>
             ))}
           </div>
         )}
@@ -258,7 +258,7 @@ function DocViewer({ job, kind, label, color, onClose }) {
               </div>}
         </div>
         {isMobile && blobUrl && (
-          <div style={{ padding: "10px 14px calc(10px + env(safe-area-inset-bottom,0px))", borderTop: "1px solid var(--border)", background: "var(--surface)", display: "flex", gap: 10, flexShrink: 0 }}>
+          <div style={{ padding: "10px 14px calc(10px + env(safe-area-inset-bottom,0px))", borderTop: "1px solid var(--divider)", background: "var(--surface)", display: "flex", gap: 10, flexShrink: 0 }}>
             <button onClick={() => window.open(blobUrl, "_blank", "noopener")} style={{ flex: 1, padding: "11px", borderRadius: "var(--r-tile)", border: "none", background: color, color: "#fff", fontWeight: 700, fontFamily: "inherit", fontSize: 13.5, cursor: "pointer", display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 7 }}><Icon name="link" size={16} color="#fff" /> เปิดเต็มจอ</button>
             <button onClick={download} style={{ flex: "0 0 auto", padding: "11px 16px", borderRadius: "var(--r-tile)", boxShadow: "var(--shadow-sm)", background: "var(--surface)", color: "var(--text-2)", fontWeight: 600, fontFamily: "inherit", fontSize: 13.5, cursor: "pointer", display: "inline-flex", alignItems: "center", gap: 7 }}><Icon name="download" size={16} color="var(--text-2)" /></button>
           </div>
@@ -300,11 +300,11 @@ function KanbanView({ jobs, onOpen, onMoveStage }) {
             onDragLeave={() => setOver((o) => (o === s.key ? null : o))}
             onDrop={() => onDrop(s.key)}
             style={{ width: 264, flexShrink: 0, display: "flex", flexDirection: "column", borderRadius: "var(--r-card)",
-              background: isOver ? s.soft : "var(--surface2)", border: "1px solid " + (isOver ? s.color : "var(--border)"),
+              background: isOver ? s.soft : "var(--surface2)", border: "none", boxShadow: isOver ? "inset 0 0 0 1px " + s.color : "var(--shadow-sm)",
               transition: "background .15s, border-color .15s" }}>
             {/* หัวคอลัมน์ค้างอยู่บนสุดเวลาเลื่อน ต้องมีพื้นทึบ ไม่งั้นการ์ดที่เลื่อนลอดใต้หัวจะทะลุขึ้นมาซ้อนตัวหนังสือ */}
             <div style={{ padding: "13px 14px", display: "flex", alignItems: "center", justifyContent: "space-between",
-              borderBottom: "1px solid var(--border)", position: "sticky", top: 0, zIndex: 1,
+              borderBottom: "1px solid var(--divider)", position: "sticky", top: 0, zIndex: 1,
               background: isOver ? s.soft : "var(--surface2)", borderRadius: "17px 17px 0 0",
               transition: "background .15s" }}>
               <span style={{ display: "flex", alignItems: "center", gap: 8, minWidth: 0 }}>

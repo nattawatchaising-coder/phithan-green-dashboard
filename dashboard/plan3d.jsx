@@ -159,7 +159,7 @@ function P3MapPicker({ initial, initialQuery, onPick, onClose }) {
   return (
     <div style={{ position: "fixed", inset: 0, zIndex: 200, background: "rgba(8,20,14,.55)", display: "flex", padding: 12 }}>
       <div style={{ flex: 1, minHeight: 0, background: "var(--surface)", borderRadius: 14, overflow: "hidden", display: "flex", flexDirection: "column", boxShadow: "0 20px 60px rgba(0,0,0,.4)" }}>
-        <div style={{ padding: 10, borderBottom: "1px solid var(--border)", display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
+        <div style={{ padding: 10, borderBottom: "1px solid var(--divider)", display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
           <span style={{ fontWeight: 800, fontSize: 13.5, color: "var(--text-1)", whiteSpace: "nowrap" }}>🗺️ เลือกพื้นที่จากแผนที่</span>
           <input value={q} onChange={(e) => setQ(e.target.value)} onKeyDown={(e) => e.key === "Enter" && search()} placeholder="ค้นหาที่อยู่…"
             style={{ flex: 1, minWidth: 130, padding: "8px 10px", border: "1px solid var(--border-strong)", borderRadius: 9, fontFamily: "inherit", fontSize: 13, background: "var(--surface2)", color: "var(--text-1)", outline: "none" }} />
@@ -172,7 +172,7 @@ function P3MapPicker({ initial, initialQuery, onPick, onClose }) {
           {!ready && !err && <div style={{ position: "absolute", inset: 0, display: "grid", placeItems: "center", color: "var(--text-2)", fontSize: 13, fontWeight: 600 }}>กำลังโหลดแผนที่…</div>}
           {err && <div style={{ position: "absolute", left: 10, bottom: 10, background: "var(--tint-red-tx)", color: "#fff", padding: "6px 10px", borderRadius: 8, fontSize: 12, zIndex: 600, maxWidth: "80%" }}>{err}</div>}
         </div>
-        <div style={{ padding: 10, borderTop: "1px solid var(--border)", display: "flex", gap: 8, alignItems: "center" }}>
+        <div style={{ padding: 10, borderTop: "1px solid var(--divider)", display: "flex", gap: 8, alignItems: "center" }}>
           <span style={{ fontSize: 11.5, color: "var(--text-3)", flex: 1, lineHeight: 1.4 }}>เลื่อน/ซูมให้เป้า <b style={{ color: "#ff3b30" }}>⌖</b> อยู่กลางบ้าน แล้วกด "ใช้พื้นที่นี้" · ทิศเหนือ = ด้านบนเสมอ · ซูมเยอะ = ละเอียด</span>
           <button onClick={use} disabled={busy || !ready}
             style={{ padding: "10px 20px", borderRadius: 10, border: "none", background: (busy || !ready) ? "var(--surface3)" : "var(--primary)", color: "#fff", fontWeight: 800, fontFamily: "inherit", fontSize: 14, cursor: (busy || !ready) ? "default" : "pointer", whiteSpace: "nowrap" }}>{busy ? "กำลังจับภาพ…" : "✓ ใช้พื้นที่นี้"}</button>
@@ -196,7 +196,7 @@ function P3SetPreview({ prep, onClose, onDownload, busy }) {
   return (
     <div style={{ position: "fixed", inset: 0, zIndex: 220, background: "rgba(8,20,14,.6)", display: "flex", padding: 12 }}>
       <div style={{ flex: 1, minHeight: 0, background: "var(--surface)", borderRadius: 14, overflow: "hidden", display: "flex", flexDirection: "column", boxShadow: "0 20px 60px rgba(0,0,0,.4)" }}>
-        <div style={{ padding: 10, borderBottom: "1px solid var(--border)", display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
+        <div style={{ padding: 10, borderBottom: "1px solid var(--divider)", display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
           <span style={{ fontWeight: 800, fontSize: 13.5, color: "var(--text-1)", whiteSpace: "nowrap" }}>ตัวอย่างแบบผังติดตั้ง</span>
           <span style={{ flex: 1 }} />
           <button className="p3-b" onClick={onDownload} disabled={!!busy}>
@@ -207,7 +207,7 @@ function P3SetPreview({ prep, onClose, onDownload, busy }) {
           <div style={{ width: "100%", maxWidth: 1400, boxShadow: "var(--shadow-pop)" }}
             dangerouslySetInnerHTML={{ __html: svg }} />
         </div>
-        <div style={{ padding: "7px 12px", borderTop: "1px solid var(--border)", fontSize: 11.5, color: "var(--text-2)" }}>
+        <div style={{ padding: "7px 12px", borderTop: "1px solid var(--divider)", fontSize: 11.5, color: "var(--text-2)" }}>
           A3 แนวนอน 420 × 297 มม. · ตั้งค่าสั่งพิมพ์มาให้แล้ว เปิดใน AutoCAD กด Ctrl+P ได้เลย
           {prep && prep.files.length ? " · มีไฟล์ภาพแนบ " + prep.files.length + " ไฟล์ ต้องเก็บไว้โฟลเดอร์เดียวกับ .dxf" : ""}
         </div>

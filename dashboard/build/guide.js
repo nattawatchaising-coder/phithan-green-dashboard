@@ -433,7 +433,7 @@ function GdHandout({
       alignItems: "center",
       padding: "11px 14px",
       background: "var(--surface)",
-      borderBottom: "1px solid var(--border)",
+      borderBottom: "1px solid var(--divider)",
       marginBottom: isMobile ? 0 : 16,
       borderRadius: isMobile ? 0 : 12,
       maxWidth: 900,
@@ -501,8 +501,8 @@ function GdHandout({
     style: {
       maxWidth: 900,
       margin: "0 auto",
-      background: "#fff",
-      color: "#15211A",
+      background: "var(--paper-bg)",
+      color: "var(--paper-ink)",
       padding: isMobile ? "20px 16px" : "30px 34px",
       borderRadius: isMobile ? 0 : 12,
       boxShadow: "var(--shadow-modal)"
@@ -514,7 +514,7 @@ function GdHandout({
       alignItems: "flex-end",
       gap: 16,
       flexWrap: "wrap",
-      borderBottom: "2px solid #1B9B75",
+      borderBottom: "2px solid var(--paper-brand)",
       paddingBottom: 11
     }
   }, React.createElement("div", {
@@ -530,7 +530,7 @@ function GdHandout({
   }, "\u0E04\u0E39\u0E48\u0E21\u0E37\u0E2D\u0E01\u0E32\u0E23\u0E43\u0E0A\u0E49\u0E07\u0E32\u0E19 \xB7 ", track.th), React.createElement("div", {
     style: {
       fontSize: 10.5,
-      color: "#7A8A81",
+      color: "var(--paper-mute)",
       marginTop: 4
     }
   }, track.who)), React.createElement("div", {
@@ -555,7 +555,7 @@ function GdHandout({
   }, i + 1, ". ", L.t), React.createElement("div", {
     style: {
       fontSize: 10.5,
-      color: "#5A6B62",
+      color: "var(--paper-ink3)",
       marginTop: 2
     }
   }, L.where, L.when ? " · ใช้ตอน: " + L.when : ""), React.createElement("ol", {
@@ -571,14 +571,14 @@ function GdHandout({
     style: {
       marginTop: 7,
       padding: "7px 10px",
-      border: "1px solid #C9D5CE",
+      border: "1px solid var(--paper-line2)",
       borderRadius: 6
     }
   }, React.createElement("div", {
     style: {
       fontSize: 10,
       fontWeight: 800,
-      color: "#5A6B62",
+      color: "var(--paper-ink3)",
       marginBottom: 3
     }
   }, "\u0E01\u0E0E\u0E17\u0E35\u0E48\u0E2B\u0E49\u0E32\u0E21\u0E02\u0E49\u0E32\u0E21"), L.rules.map((r, k) => React.createElement("div", {
@@ -597,18 +597,18 @@ function GdHandout({
   }, React.createElement("b", null, "\u0E16\u0E49\u0E32", q, ":"), " ", a)), React.createElement("div", {
     style: {
       marginTop: 8,
-      borderTop: "1px dashed #C9D5CE",
+      borderTop: "1px dashed var(--paper-line2)",
       paddingTop: 4,
       fontSize: 9.5,
-      color: "#9AA8A1"
+      color: "var(--paper-mute2)"
     }
   }, "\u0E08\u0E14\u0E40\u0E1E\u0E34\u0E48\u0E21: ______________________________________________________________________"))), React.createElement("div", {
     style: {
       marginTop: 20,
-      borderTop: "1px solid #C9D5CE",
+      borderTop: "1px solid var(--paper-line2)",
       paddingTop: 8,
       fontSize: 9.5,
-      color: "#7A8A81"
+      color: "var(--paper-mute)"
     }
   }, "\u0E1E\u0E34\u0E21\u0E1E\u0E4C\u0E40\u0E21\u0E37\u0E48\u0E2D ", window.drDateTH ? window.drDateTH(new Date().toISOString().slice(0, 10)) : new Date().toLocaleDateString("th-TH"), " · ", "\u0E02\u0E49\u0E2D\u0E21\u0E39\u0E25\u0E43\u0E19\u0E23\u0E30\u0E1A\u0E1A\u0E40\u0E1B\u0E47\u0E19\u0E02\u0E2D\u0E07\u0E08\u0E23\u0E34\u0E07\u0E17\u0E31\u0E49\u0E07\u0E2B\u0E21\u0E14 \u0E44\u0E21\u0E48\u0E21\u0E35\u0E42\u0E2B\u0E21\u0E14\u0E17\u0E14\u0E25\u0E2D\u0E07 \u2014 \u0E0B\u0E49\u0E2D\u0E21\u0E01\u0E14\u0E1B\u0E38\u0E48\u0E21\u0E17\u0E35\u0E48\u0E1A\u0E31\u0E19\u0E17\u0E36\u0E01\u0E02\u0E49\u0E2D\u0E21\u0E39\u0E25\u0E40\u0E09\u0E1E\u0E32\u0E30\u0E01\u0E31\u0E1A\u0E07\u0E32\u0E19\u0E17\u0E35\u0E48\u0E1C\u0E39\u0E49\u0E2A\u0E2D\u0E19\u0E01\u0E33\u0E2B\u0E19\u0E14\u0E43\u0E2B\u0E49\u0E40\u0E17\u0E48\u0E32\u0E19\u0E31\u0E49\u0E19"))), document.body);
 }
@@ -697,7 +697,8 @@ function GuideView({
         fontFamily: "inherit",
         textAlign: "left",
         background: on ? t.color + "14" : "var(--surface)",
-        border: "1px solid " + (on ? t.color : "var(--border)")
+        border: "none",
+        boxShadow: on ? "inset 0 0 0 1px " + t.color : "var(--shadow-sm)"
       }
     }, React.createElement(Icon, {
       name: t.icon,

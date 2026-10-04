@@ -91,15 +91,15 @@ function TmOtPaper({
     fontSize: 10,
     fontWeight: 700,
     color: "#FFFFFF",
-    background: "#1B9B75",
-    border: "1px solid #C9D5CE",
+    background: "var(--paper-brand)",
+    border: "1px solid var(--paper-line2)",
     whiteSpace: "nowrap"
   };
   const td = {
     padding: "6px 7px",
     fontSize: 10.5,
-    color: "#15211A",
-    border: "1px solid #DCE4DF",
+    color: "var(--paper-ink)",
+    border: "1px solid var(--paper-line)",
     textAlign: "center",
     verticalAlign: "middle"
   };
@@ -127,7 +127,7 @@ function TmOtPaper({
       alignItems: "center",
       padding: "11px 14px",
       background: "var(--surface)",
-      borderBottom: "1px solid var(--border)",
+      borderBottom: "1px solid var(--divider)",
       marginBottom: isMobile ? 0 : 16,
       borderRadius: isMobile ? 0 : 12,
       maxWidth: 900,
@@ -194,8 +194,8 @@ function TmOtPaper({
     style: {
       maxWidth: 900,
       margin: "0 auto",
-      background: "#fff",
-      color: "#15211A",
+      background: "var(--paper-bg)",
+      color: "var(--paper-ink)",
       padding: isMobile ? "20px 16px" : "30px 34px",
       borderRadius: isMobile ? 0 : 12,
       boxShadow: "var(--shadow-modal)"
@@ -207,7 +207,7 @@ function TmOtPaper({
       alignItems: "flex-end",
       gap: 16,
       flexWrap: "wrap",
-      borderBottom: "2px solid #1B9B75",
+      borderBottom: "2px solid var(--paper-brand)",
       paddingBottom: 11
     }
   }, React.createElement("div", {
@@ -225,7 +225,7 @@ function TmOtPaper({
       fontSize: 10,
       fontWeight: 600,
       letterSpacing: ".12em",
-      color: "#7A8A81",
+      color: "var(--paper-mute)",
       marginTop: 3
     }
   }, "OVERTIME SUMMARY \u2014 FOR SUPERVISOR APPROVAL"), React.createElement("div", {
@@ -241,14 +241,14 @@ function TmOtPaper({
     style: {
       textAlign: "right",
       fontSize: 11,
-      color: "#4A5A51",
+      color: "var(--paper-ink2)",
       lineHeight: 1.75
     }
   }, React.createElement("div", {
     style: {
       fontSize: 13,
       fontWeight: 800,
-      color: "#15211A"
+      color: "var(--paper-ink)"
     }
   }, (person || {}).name || "-"), React.createElement("div", null, "\u0E23\u0E2D\u0E1A ", window.tmPeriodTH(period)), React.createElement("div", {
     style: {
@@ -259,7 +259,7 @@ function TmOtPaper({
       marginTop: 13,
       display: "grid",
       gridTemplateColumns: "auto 1fr auto 1fr",
-      border: "1px solid #DCE4DF",
+      border: "1px solid var(--paper-line)",
       borderRadius: 7,
       overflow: "hidden"
     }
@@ -293,7 +293,7 @@ function TmOtPaper({
       display: "flex",
       alignItems: "center",
       gap: 7,
-      borderBottom: "1px solid #DCE4DF",
+      borderBottom: "1px solid var(--paper-line)",
       paddingBottom: 5,
       marginBottom: 8
     }
@@ -302,13 +302,13 @@ function TmOtPaper({
       width: 5,
       height: 5,
       borderRadius: 99,
-      background: "#1B9B75"
+      background: "var(--paper-brand)"
     }
   }), React.createElement("span", {
     style: {
       fontSize: 12,
       fontWeight: 800,
-      color: "#15211A"
+      color: "var(--paper-ink)"
     }
   }, "\u0E23\u0E32\u0E22\u0E01\u0E32\u0E23\u0E17\u0E33\u0E07\u0E32\u0E19\u0E25\u0E48\u0E27\u0E07\u0E40\u0E27\u0E25\u0E32\u0E43\u0E19\u0E23\u0E2D\u0E1A\u0E19\u0E35\u0E49")), React.createElement("table", {
     style: {
@@ -363,7 +363,7 @@ function TmOtPaper({
     colSpan: 11,
     style: Object.assign({}, td, {
       padding: 20,
-      color: "#7A8A81"
+      color: "var(--paper-mute)"
     })
   }, "\u0E44\u0E21\u0E48\u0E21\u0E35\u0E43\u0E1A OT \u0E43\u0E19\u0E23\u0E2D\u0E1A\u0E19\u0E35\u0E49")), list.map((o, i) => {
     const nm = jobName(o);
@@ -371,7 +371,7 @@ function TmOtPaper({
     return React.createElement("tr", {
       key: o.id,
       style: i % 2 ? {
-        background: "#F7FAF8"
+        background: "var(--paper-tint)"
       } : undefined
     }, React.createElement("td", {
       style: td
@@ -410,12 +410,12 @@ function TmOtPaper({
       }
     }, o.jobCode) : React.createElement("span", {
       style: {
-        color: "#7A8A81"
+        color: "var(--paper-mute)"
       }
     }, "\u0E44\u0E21\u0E48\u0E23\u0E30\u0E1A\u0E38\u0E07\u0E32\u0E19"), nm && React.createElement("span", {
       style: {
         display: "block",
-        color: "#4A5A51"
+        color: "var(--paper-ink2)"
       }
     }, nm)), React.createElement("td", {
       style: tdL
@@ -434,35 +434,35 @@ function TmOtPaper({
     style: Object.assign({}, td, {
       textAlign: "right",
       fontWeight: 800,
-      background: "#0A4D68",
+      background: "var(--paper-brand-dk)",
       color: "#fff"
     })
   }, "\u0E23\u0E27\u0E21\u0E17\u0E35\u0E48\u0E2D\u0E19\u0E38\u0E21\u0E31\u0E15\u0E34\u0E41\u0E25\u0E49\u0E27\u0E43\u0E19\u0E23\u0E30\u0E1A\u0E1A"), React.createElement("td", {
     style: Object.assign({}, td, {
       fontFamily: "var(--mono)",
       fontWeight: 800,
-      background: "#0A4D68",
+      background: "var(--paper-brand-dk)",
       color: "#fff"
     })
   }, tmHrDec(sum.approved)), React.createElement("td", {
     colSpan: 2,
     style: Object.assign({}, td, {
       textAlign: "right",
-      background: "#0A4D68",
+      background: "var(--paper-brand-dk)",
       color: "#fff"
     })
   }, "\u0E23\u0E27\u0E21\u0E0A\u0E31\u0E48\u0E27\u0E42\u0E21\u0E07\u0E04\u0E34\u0E14\u0E04\u0E48\u0E32\u0E41\u0E23\u0E07"), React.createElement("td", {
     style: Object.assign({}, td, {
       fontFamily: "var(--mono)",
       fontWeight: 800,
-      background: "#0A4D68",
+      background: "var(--paper-brand-dk)",
       color: "#fff"
     })
   }, tmHrDec(sum.payApproved)), React.createElement("td", {
     colSpan: 3,
     style: Object.assign({}, td, {
       textAlign: "left",
-      background: "#0A4D68",
+      background: "var(--paper-brand-dk)",
       color: "#fff"
     })
   }, "\u0E0A\u0E31\u0E48\u0E27\u0E42\u0E21\u0E07 (\u0E0A\u0E31\u0E48\u0E27\u0E42\u0E21\u0E07\u0E08\u0E23\u0E34\u0E07 ", window.tmDur(sum.approved), ")")), React.createElement("tr", null, React.createElement("td", {
@@ -524,41 +524,41 @@ function TmOtPaper({
     style: {
       fontSize: 10.5,
       fontWeight: 700,
-      color: "#5A6B62"
+      color: "var(--paper-ink3)"
     }
   }, s.t), React.createElement("div", {
     style: {
       height: 42,
-      borderBottom: "1px solid #C9D5CE",
+      borderBottom: "1px solid var(--paper-line2)",
       marginTop: 6
     }
   }), React.createElement("div", {
     style: {
       fontSize: 11,
       marginTop: 6,
-      color: "#15211A"
+      color: "var(--paper-ink)"
     }
   }, "\u0E0A\u0E37\u0E48\u0E2D: ", React.createElement("b", null, s.n || "…………………………")), React.createElement("div", {
     style: {
       fontSize: 11,
-      color: "#4A5A51"
+      color: "var(--paper-ink2)"
     }
   }, "\u0E27\u0E31\u0E19\u0E17\u0E35\u0E48: \u2026\u2026\u2026\u2026\u2026\u2026\u2026\u2026\u2026\u2026")))), React.createElement("div", {
     style: {
       marginTop: 16,
       padding: "9px 12px",
-      background: "#F7FAF8",
-      border: "1px solid #DCE4DF",
+      background: "var(--paper-tint)",
+      border: "1px solid var(--paper-line)",
       borderRadius: 7,
       fontSize: 9.5,
-      color: "#5A6B62",
+      color: "var(--paper-ink3)",
       lineHeight: 1.8
     }
   }, "\u0E40\u0E27\u0E25\u0E32\u0E43\u0E19\u0E43\u0E1A\u0E19\u0E35\u0E49\u0E40\u0E1B\u0E47\u0E19\u0E40\u0E27\u0E25\u0E32\u0E17\u0E35\u0E48\u0E1C\u0E39\u0E49\u0E02\u0E2D\u0E01\u0E23\u0E2D\u0E01\u0E40\u0E2D\u0E07 \u0E44\u0E21\u0E48\u0E43\u0E0A\u0E48\u0E40\u0E27\u0E25\u0E32\u0E17\u0E35\u0E48\u0E23\u0E30\u0E1A\u0E1A\u0E08\u0E31\u0E1A\u0E44\u0E14\u0E49 \u2014 \u0E16\u0E49\u0E32\u0E44\u0E21\u0E48\u0E41\u0E19\u0E48\u0E43\u0E08\u0E43\u0E2B\u0E49\u0E40\u0E17\u0E35\u0E22\u0E1A\u0E01\u0E31\u0E1A\u0E41\u0E1C\u0E48\u0E19 \u201C\u0E40\u0E27\u0E25\u0E32\u0E17\u0E33\u0E07\u0E32\u0E19\u201D \u0E02\u0E2D\u0E07\u0E27\u0E31\u0E19\u0E19\u0E31\u0E49\u0E19", React.createElement("br", null), "\u0E01\u0E32\u0E23\u0E40\u0E0B\u0E47\u0E19\u0E1A\u0E19\u0E01\u0E23\u0E30\u0E14\u0E32\u0E29\u0E44\u0E21\u0E48\u0E44\u0E14\u0E49\u0E40\u0E1B\u0E25\u0E35\u0E48\u0E22\u0E19\u0E2A\u0E16\u0E32\u0E19\u0E30\u0E43\u0E19\u0E23\u0E30\u0E1A\u0E1A \u0E43\u0E1A\u0E17\u0E35\u0E48\u0E22\u0E31\u0E07\u0E23\u0E2D\u0E2D\u0E19\u0E38\u0E21\u0E31\u0E15\u0E34\u0E15\u0E49\u0E2D\u0E07\u0E01\u0E14\u0E2D\u0E19\u0E38\u0E21\u0E31\u0E15\u0E34\u0E43\u0E19\u0E23\u0E30\u0E1A\u0E1A\u0E14\u0E49\u0E27\u0E22", React.createElement("br", null), "\u201C\u0E0A\u0E21.\u0E04\u0E34\u0E14\u0E04\u0E48\u0E32\u0E41\u0E23\u0E07\u201D = \u0E0A\u0E31\u0E48\u0E27\u0E42\u0E21\u0E07\u0E08\u0E23\u0E34\u0E07 \xD7 \u0E2D\u0E31\u0E15\u0E23\u0E32\u0E02\u0E2D\u0E07\u0E1B\u0E23\u0E30\u0E40\u0E20\u0E17\u0E19\u0E31\u0E49\u0E19 \u0E15\u0E32\u0E21\u0E17\u0E35\u0E48\u0E1A\u0E23\u0E34\u0E29\u0E31\u0E17\u0E15\u0E31\u0E49\u0E07\u0E44\u0E27\u0E49\u0E43\u0E19\u0E23\u0E30\u0E1A\u0E1A \u0E13 \u0E27\u0E31\u0E19\u0E17\u0E35\u0E48\u0E40\u0E1B\u0E34\u0E14\u0E43\u0E1A (\u0E41\u0E15\u0E48\u0E25\u0E30\u0E43\u0E1A\u0E15\u0E23\u0E36\u0E07\u0E2D\u0E31\u0E15\u0E23\u0E32\u0E02\u0E2D\u0E07\u0E15\u0E31\u0E27\u0E40\u0E2D\u0E07\u0E44\u0E27\u0E49 \u0E01\u0E32\u0E23\u0E41\u0E01\u0E49\u0E2D\u0E31\u0E15\u0E23\u0E32\u0E17\u0E35\u0E2B\u0E25\u0E31\u0E07\u0E44\u0E21\u0E48\u0E22\u0E49\u0E2D\u0E19\u0E21\u0E32\u0E40\u0E1B\u0E25\u0E35\u0E48\u0E22\u0E19\u0E43\u0E1A\u0E19\u0E35\u0E49)", React.createElement("br", null), "\u0E43\u0E1A\u0E19\u0E35\u0E49\u0E2A\u0E23\u0E38\u0E1B\u0E16\u0E36\u0E07\u0E0A\u0E31\u0E48\u0E27\u0E42\u0E21\u0E07\u0E04\u0E34\u0E14\u0E04\u0E48\u0E32\u0E41\u0E23\u0E07\u0E40\u0E17\u0E48\u0E32\u0E19\u0E31\u0E49\u0E19 \u0E22\u0E31\u0E07\u0E44\u0E21\u0E48\u0E43\u0E0A\u0E48\u0E08\u0E33\u0E19\u0E27\u0E19\u0E40\u0E07\u0E34\u0E19 \u0E40\u0E1E\u0E23\u0E32\u0E30\u0E2D\u0E31\u0E15\u0E23\u0E32\u0E04\u0E48\u0E32\u0E08\u0E49\u0E32\u0E07\u0E23\u0E32\u0E22\u0E04\u0E19\u0E44\u0E21\u0E48\u0E44\u0E14\u0E49\u0E2D\u0E22\u0E39\u0E48\u0E43\u0E19\u0E23\u0E30\u0E1A\u0E1A\u0E19\u0E35\u0E49 \u2014 \u0E1D\u0E48\u0E32\u0E22\u0E1A\u0E38\u0E04\u0E04\u0E25\u0E15\u0E49\u0E2D\u0E07\u0E04\u0E39\u0E13\u0E2D\u0E31\u0E15\u0E23\u0E32\u0E04\u0E48\u0E32\u0E08\u0E49\u0E32\u0E07\u0E02\u0E2D\u0E07\u0E1E\u0E19\u0E31\u0E01\u0E07\u0E32\u0E19\u0E04\u0E19\u0E19\u0E35\u0E49\u0E2D\u0E35\u0E01\u0E17\u0E35"), React.createElement("div", {
     style: {
       marginTop: 12,
       fontSize: 9.5,
-      color: "#8A9A91",
+      color: "var(--paper-mute2)",
       textAlign: "center"
     }
   }, "\u0E40\u0E2D\u0E01\u0E2A\u0E32\u0E23\u0E19\u0E35\u0E49\u0E2D\u0E2D\u0E01\u0E08\u0E32\u0E01\u0E23\u0E30\u0E1A\u0E1A\u0E15\u0E34\u0E14\u0E15\u0E32\u0E21\u0E07\u0E32\u0E19\u0E15\u0E34\u0E14\u0E15\u0E31\u0E49\u0E07 flash+solar \xB7 \u0E1E\u0E34\u0E21\u0E1E\u0E4C\u0E40\u0E21\u0E37\u0E48\u0E2D ", window.drDateTH(window.drToday()))));
@@ -572,17 +572,17 @@ function TmPRow({
       padding: "6px 10px",
       fontSize: 10.5,
       fontWeight: 700,
-      color: "#5A6B62",
-      background: "#F7FAF8",
-      borderBottom: "1px solid #ECF1EE",
+      color: "var(--paper-ink3)",
+      background: "var(--paper-tint)",
+      borderBottom: "1px solid var(--paper-line3)",
       whiteSpace: "nowrap"
     }
   }, k), React.createElement("div", {
     style: {
       padding: "6px 10px",
       fontSize: 11.5,
-      color: "#15211A",
-      borderBottom: "1px solid #ECF1EE"
+      color: "var(--paper-ink)",
+      borderBottom: "1px solid var(--paper-line3)"
     }
   }, v || "—"));
 }

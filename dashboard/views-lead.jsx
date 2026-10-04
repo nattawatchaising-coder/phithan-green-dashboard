@@ -110,7 +110,7 @@ function LoQueuePanel({ jobs, onOpen }) {
             const dt = parseDate(day.d);
             const isToday = day.d === today;
             return (
-              <div key={day.d} style={{ display: "flex", gap: 14, padding: "12px 2px", borderTop: "1px solid var(--border)" }}>
+              <div key={day.d} style={{ display: "flex", gap: 14, padding: "12px 2px", borderTop: "1px solid var(--divider)" }}>
                 <div style={{ width: 54, flexShrink: 0, textAlign: "center" }}>
                   <div style={{ fontSize: 10.5, fontWeight: 650, color: isToday ? "var(--primary-dark)" : "var(--text-3)" }}>
                     {window.TH_DAYS[dt.getDay()]}
@@ -125,7 +125,7 @@ function LoQueuePanel({ jobs, onOpen }) {
                     return (
                       <button key={j.id} onClick={() => onOpen(j)} style={{ display: "flex", alignItems: "center", gap: 10,
                         padding: "7px 10px", width: "100%", textAlign: "left", cursor: "pointer", fontFamily: "inherit",
-                        background: "var(--surface)", border: "1px solid " + (bad ? "#FCA5A5" : "var(--border)"), borderRadius: "var(--r-tile)" }}
+                        background: "var(--surface)", border: "none", boxShadow: bad ? "inset 0 0 0 1px #FCA5A5" : "var(--shadow-sm)", borderRadius: "var(--r-tile)" }}
                         onMouseEnter={(e) => e.currentTarget.style.background = "var(--surface2)"}
                         onMouseLeave={(e) => e.currentTarget.style.background = "var(--surface)"}>
                         <TechAvatar techId={j.tech} size={24} />
@@ -452,7 +452,7 @@ function LoMonthPanel({ jobs }) {
         <div style={{ marginTop: 8, fontSize: 12.5, color: "var(--text-2)" }}>
           รวม <b>{Math.round(n.curKw * 10) / 10}</b> kW
         </div>
-        <div style={{ marginTop: 14, paddingTop: 14, borderTop: "1px solid var(--border)", fontSize: 12, color: "var(--text-3)" }}>
+        <div style={{ marginTop: 14, paddingTop: 14, borderTop: "1px solid var(--divider)", fontSize: 12, color: "var(--text-3)" }}>
           {pct == null
             ? "เดือนก่อนไม่มีงานปิดจบ จึงยังเทียบไม่ได้"
             : (<React.Fragment>

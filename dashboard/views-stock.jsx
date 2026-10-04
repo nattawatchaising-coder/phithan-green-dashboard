@@ -485,7 +485,7 @@ function StockView({ stock, onResetAll, onMenuOpen, currentUser, jobs, priceStor
             <div style={{ overflowX: "auto" }}>
               <table style={{ width: "100%", borderCollapse: "collapse", minWidth: 640 }}>
                 <thead>
-                  <tr style={{ borderBottom: "1px solid var(--border)" }}>
+                  <tr style={{ borderBottom: "1px solid var(--divider)" }}>
                     {/* ไม่มีคอลัมน์ "หมวด" แล้ว เพราะกรองหมวดจากชิปด้านบนได้อยู่แล้ว
                         เอาที่ว่างมาใส่ราคาที่ต้องดูบ่อยกว่าแทน */}
                     {["รายการอุปกรณ์", "ราคา/หน่วย", "คงเหลือ", "ขั้นต่ำ", "ที่จัดเก็บ", "จัดการ"].map((h, i) => (
@@ -501,7 +501,7 @@ function StockView({ stock, onResetAll, onMenuOpen, currentUser, jobs, priceStor
                     return (
                       /* กดที่แถวเพื่อเปิดรายละเอียด — รับ/เบิก/คืน อยู่ข้างในนั้น จะได้ไม่กดพลาดจากหน้าตาราง */
                       <tr key={it.id} onClick={() => setDetailItem(it)} title="กดเพื่อดูรายละเอียด · รับ / เบิก / คืน"
-                        style={{ borderBottom: "1px solid var(--border)", cursor: "pointer",
+                        style={{ borderBottom: "1px solid var(--divider)", cursor: "pointer",
                           background: st === "out" ? "rgba(239,68,68,.07)" : "transparent" }}>
                         {/* ใต้ชื่อเอาแค่ "ยี่ห้อ" — ชื่อรุ่นมักเขียนอยู่ในชื่อรายการอยู่แล้ว ใส่ซ้ำก็อ่านซ้ำเปล่า ๆ
                             (รุ่นเต็ม ๆ ดูได้ในหน้ารายละเอียด และใช้กรองจากแถบด้านบนได้) */}
@@ -581,7 +581,7 @@ function MovesModal({ moves, items, jobs, onClose }) {
   return (
     <div {...bdClose} style={{ position: "fixed", inset: 0, background: "rgba(8,20,14,.45)", backdropFilter: "blur(3px)", zIndex: 110, display: "grid", placeItems: isMobile ? "end center" : "center", padding: isMobile ? 0 : 20 }}>
       <div onClick={(e) => e.stopPropagation()} style={{ background: "var(--bg)", borderRadius: isMobile ? "20px 20px 0 0" : 18, width: isMobile ? "100%" : "min(680px,100%)", maxHeight: isMobile ? "92dvh" : "90vh", display: "flex", flexDirection: "column", overflow: "hidden", boxShadow: "var(--shadow-modal)" }}>
-        <div style={{ padding: "16px 20px", borderBottom: "1px solid var(--border)", background: "var(--surface)", flexShrink: 0 }}>
+        <div style={{ padding: "16px 20px", borderBottom: "1px solid var(--divider)", background: "var(--surface)", flexShrink: 0 }}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12 }}>
             <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
               <Icon name="history" size={17} color="var(--text-2)" />
@@ -682,7 +682,7 @@ function StockCardList({ rows, imgs, onOpen, onEdit, onRemove }) {
             </div>
 
             {/* ปุ่ม — รับ/เบิก/คืน อยู่ข้างในหน้ารายละเอียด กดเข้าไปก่อน */}
-            <div style={{ marginTop: 12, paddingTop: 11, borderTop: "1px solid var(--border)", display: "flex", alignItems: "center", gap: 7 }}>
+            <div style={{ marginTop: 12, paddingTop: 11, borderTop: "1px solid var(--divider)", display: "flex", alignItems: "center", gap: 7 }}>
               <button onClick={() => onOpen(it)}
                 style={{ flex: 1, display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 5, background: "var(--primary-soft)",
                   border: "none", color: "var(--primary-dark)", fontWeight: 700, fontSize: 12.5, padding: "9px 6px", borderRadius: "var(--r-chip)",
@@ -814,7 +814,7 @@ function MoveModal({ info, onSave, onClose, byName, jobs, lockedJob, maxQty }) {
             ผู้ทำรายการ: <strong style={{ color: "var(--text-1)" }}>{byName || "-"}</strong>
           </div>
         </div>
-        <div style={{ padding: "14px 22px", paddingBottom: isMobile ? "calc(14px + env(safe-area-inset-bottom, 0px))" : 14, borderTop: "1px solid var(--border)", background: "var(--surface)", display: "flex", justifyContent: "flex-end", gap: 10, flexShrink: 0 }}>
+        <div style={{ padding: "14px 22px", paddingBottom: isMobile ? "calc(14px + env(safe-area-inset-bottom, 0px))" : 14, borderTop: "1px solid var(--divider)", background: "var(--surface)", display: "flex", justifyContent: "flex-end", gap: 10, flexShrink: 0 }}>
           <button onClick={onClose} style={{ flex: isMobile ? "0 0 auto" : "none", padding: "11px 18px", borderRadius: "var(--r-tile)", background: "var(--surface2)", boxShadow: "var(--shadow-sm)", color: "var(--text-2)", fontWeight: 600, fontFamily: "inherit", fontSize: 13.5, cursor: "pointer" }}>ยกเลิก</button>
           <button onClick={submit}
             style={{ flex: isMobile ? 1 : "none", padding: "11px 22px", borderRadius: "var(--r-tile)", border: "none", background: accent, color: "#fff", fontWeight: 700, fontFamily: "inherit", fontSize: 13.5, cursor: "pointer" }}>
@@ -912,7 +912,7 @@ function ItemModal({ initial, isNew, items, onSave, onClose, onAddCat, onRemoveC
   return (
     <div {...bdClose} style={{ position: "fixed", inset: 0, background: "rgba(8,20,14,.4)", backdropFilter: "blur(3px)", zIndex: 100, display: "grid", placeItems: isMobile ? "end center" : "center", padding: isMobile ? 0 : 20 }}>
       <div onClick={(e) => e.stopPropagation()} style={{ background: "var(--bg)", borderRadius: isMobile ? "20px 20px 0 0" : 18, width: isMobile ? "100%" : "min(560px,100%)", maxHeight: isMobile ? "94dvh" : "90vh", display: "flex", flexDirection: "column", overflow: "hidden", boxShadow: "var(--shadow-modal)" }}>
-        <div style={{ padding: "18px 22px", borderBottom: "1px solid var(--border)", background: "var(--surface)", display: "flex", justifyContent: "space-between", alignItems: "center", flexShrink: 0 }}>
+        <div style={{ padding: "18px 22px", borderBottom: "1px solid var(--divider)", background: "var(--surface)", display: "flex", justifyContent: "space-between", alignItems: "center", flexShrink: 0 }}>
           <h2 style={{ fontSize: 17, fontWeight: 700, color: "var(--text-1)", margin: 0 }}>{isNew ? "เพิ่มรายการอุปกรณ์" : "แก้ไขรายการ"}</h2>
           <button className="x-close" onClick={onClose} style={{ width: 32, height: 32, borderRadius: "var(--r-chip)", background: "var(--surface2)", boxShadow: "var(--shadow-sm)", cursor: "pointer", display: "grid", placeItems: "center", color: "var(--text-2)" }}><Icon name="x" size={16} /></button>
         </div>
@@ -1199,7 +1199,7 @@ function ItemModal({ initial, isNew, items, onSave, onClose, onAddCat, onRemoveC
             </div>
           )}
         </div>
-        <div style={{ padding: "14px 22px", paddingBottom: isMobile ? "calc(14px + env(safe-area-inset-bottom, 0px))" : 14, borderTop: "1px solid var(--border)", background: "var(--surface)", display: "flex", justifyContent: "flex-end", gap: 10, flexShrink: 0 }}>
+        <div style={{ padding: "14px 22px", paddingBottom: isMobile ? "calc(14px + env(safe-area-inset-bottom, 0px))" : 14, borderTop: "1px solid var(--divider)", background: "var(--surface)", display: "flex", justifyContent: "flex-end", gap: 10, flexShrink: 0 }}>
           <button onClick={onClose} style={{ flex: isMobile ? "0 0 auto" : "none", padding: "11px 18px", borderRadius: "var(--r-tile)", background: "var(--surface2)", boxShadow: "var(--shadow-sm)", color: "var(--text-2)", fontWeight: 600, fontFamily: "inherit", fontSize: 13.5, cursor: "pointer" }}>ยกเลิก</button>
           <button onClick={submitItem}
             style={{ flex: isMobile ? 1 : "none", padding: "11px 22px", borderRadius: "var(--r-tile)", border: "none", background: "var(--primary)", color: "#fff", fontWeight: 700, fontFamily: "inherit", fontSize: 13.5, cursor: "pointer" }}>บันทึก</button>
@@ -1278,7 +1278,7 @@ function ConduitDefaultsEditor({ condStore }) {
   const nEdited = COND_DEF_ROWS.filter((r) => (saved.per || {})[r.key] != null || (saved.spare || {})[r.key] != null).length
     + ((saved.spare || {}).tray != null && (saved.spare || {}).tray !== "" ? 1 : 0)
     + RULE_ROWS.filter((r) => (saved.rule || {})[r.key] != null && (saved.rule || {})[r.key] !== "").length;
-  const cell = { padding: "7px 9px", borderBottom: "1px solid var(--border)", fontSize: 12.5 };
+  const cell = { padding: "7px 9px", borderBottom: "1px solid var(--divider)", fontSize: 12.5 };
   const numBase = { background: "var(--surface2)", boxShadow: "var(--shadow-sm)", color: "var(--text-1)",
     fontFamily: "inherit", fontSize: 13, padding: "7px 9px", borderRadius: "var(--r-chip)", outline: "none", width: "100%", textAlign: "right" };
   /* ตอนยังไม่กดแก้ไข ช่องกรอกต้องดูเหมือน "ค่าที่ตั้งไว้" ไม่ใช่ช่องที่กดแล้วไม่มีอะไรเกิดขึ้น */
@@ -1446,7 +1446,7 @@ function OmTierTable({ kind, saved, onSave }) {
     if (!n) { window.askConfirm({ title: "ตารางว่าง", body: "ต้องมีอย่างน้อยหนึ่งแถวที่กรอกขนาดและราคา", ok: "ตกลง", danger: false }); return; }
     onSave(n); setDraft(null);
   };
-  const cell = { padding: "7px 10px", borderBottom: "1px solid var(--border)", fontSize: 12.5 };
+  const cell = { padding: "7px 10px", borderBottom: "1px solid var(--divider)", fontSize: 12.5 };
   const inp = { background: "var(--surface2)", boxShadow: "var(--shadow-sm)", color: "var(--text-1)", border: "none",
     fontFamily: "inherit", fontSize: 13, padding: "6px 9px", borderRadius: "var(--r-chip)", outline: "none", width: "100%", textAlign: "right" };
   const btn = (on) => ({ padding: "6px 13px", borderRadius: "var(--r-tile)", fontFamily: "inherit", fontSize: 12, fontWeight: 700, cursor: "pointer",
@@ -1606,7 +1606,7 @@ function AmpacityEditor({ ampStore }) {
   const leaf = [];
   groups.forEach((g) => { const cs = groupCores(g); nconds.forEach((n, ni) => cs.forEach((c, ci) => leaf.push({ g: g.key, n: n.key, c: c.key, cTh: c.th, first: ni === 0 && ci === 0 }))); });
   const cellStyle = { width: 58, height: 32, padding: "0 4px", textAlign: "center", borderRadius: "var(--r-chip)", boxShadow: "var(--shadow-sm)", background: "var(--surface)", color: "var(--text-1)", fontFamily: "var(--mono)", fontSize: 12 };
-  const thBase = { fontSize: 10.5, fontWeight: 700, color: "var(--text-2)", textAlign: "center", whiteSpace: "nowrap", background: "var(--surface2)", borderBottom: "1px solid var(--border)" };
+  const thBase = { fontSize: 10.5, fontWeight: 700, color: "var(--text-2)", textAlign: "center", whiteSpace: "nowrap", background: "var(--surface2)", borderBottom: "1px solid var(--divider)" };
 
   return (
     <div>
@@ -1688,7 +1688,7 @@ function AmpacityEditor({ ampStore }) {
             </thead>
             <tbody>
               {sizes.map((sz) => (
-                <tr key={sz} style={{ borderBottom: "1px solid var(--border)" }}>
+                <tr key={sz} style={{ borderBottom: "1px solid var(--divider)" }}>
                   <td style={{ padding: "6px 12px", fontWeight: 700, fontSize: 13, color: "var(--text-1)", whiteSpace: "nowrap", background: "var(--surface)", position: "sticky", left: 0, fontFamily: "var(--mono)" }}>{sz}</td>
                   {leaf.map((lf, idx) => (
                     <td key={idx} style={{ padding: "4px 5px", textAlign: "center", borderLeft: lf.first ? "1px solid var(--border)" : "none" }}>
@@ -1859,7 +1859,7 @@ function ItemDetailModal({ item, img, variants, loadDoc, setDoc, onMove, onEdit,
         overflow: "hidden", boxShadow: "0 30px 80px rgba(0,0,0,.45)" }}>
 
         {/* หัว — เหลือแค่ทางเดินของหมวด ชื่อสินค้าไปอยู่ตัวใหญ่ข้างใน */}
-        <div style={{ padding: "12px 18px", borderBottom: "1px solid var(--border)", background: "var(--surface)", flexShrink: 0,
+        <div style={{ padding: "12px 18px", borderBottom: "1px solid var(--divider)", background: "var(--surface)", flexShrink: 0,
           display: "flex", alignItems: "center", gap: 10 }}>
           <span style={{ minWidth: 0, flex: 1, fontSize: 12, color: "var(--text-3)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
             <span style={{ color: mainCat.color, fontWeight: 700 }}>{mainCat.th}</span>
@@ -1912,7 +1912,7 @@ function ItemDetailModal({ item, img, variants, loadDoc, setDoc, onMove, onEdit,
                         <button key={v.it.id} onClick={() => !on && onPickVariant && onPickVariant(v.it)}
                           title={v.it.name + (vs === "out" ? " · หมดสต็อก" : "")}
                           style={{ padding: "6px 13px", borderRadius: "var(--r-chip)", cursor: on ? "default" : "pointer", fontFamily: "inherit",
-                            fontSize: 12.5, fontWeight: 700, border: "1px solid " + (on ? "var(--primary)" : "transparent"),
+                            fontSize: 12.5, fontWeight: 700, border: "none", boxShadow: on ? "inset 0 0 0 1px var(--primary)" : "none",
                             background: on ? "var(--primary)18" : "var(--surface)",
                             color: on ? "var(--primary-dark)" : (vs === "out" ? "var(--text-3)" : "var(--text-2)"),
                             textDecoration: vs === "out" ? "line-through" : "none" }}>
@@ -1956,7 +1956,7 @@ function ItemDetailModal({ item, img, variants, loadDoc, setDoc, onMove, onEdit,
                   return (
                     <button key={k} onClick={() => onMove(k)}
                       style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 3, padding: "13px 8px", borderRadius: "var(--r-tile)",
-                        border: "1px solid " + mt.accent + "44", background: mt.bg, color: mt.color,
+                        border: "none", background: mt.bg, color: mt.color,
                         fontFamily: "inherit", fontSize: 13, fontWeight: 700, cursor: "pointer" }}>
                       <span style={{ fontSize: 19, lineHeight: 1 }}>{mt.sym}</span>
                       {mt.label}
@@ -2031,7 +2031,7 @@ function ItemDetailModal({ item, img, variants, loadDoc, setDoc, onMove, onEdit,
           </div>
         </div>
 
-        <div style={{ padding: "13px 22px", borderTop: "1px solid var(--border)", background: "var(--surface)", display: "flex",
+        <div style={{ padding: "13px 22px", borderTop: "1px solid var(--divider)", background: "var(--surface)", display: "flex",
           gap: 8, justifyContent: "flex-end", flexShrink: 0 }}>
           {/* เพิ่มขนาดใหม่ให้ของชิ้นนี้ — ก๊อปชื่อ/หมวด/ยี่ห้อ/หน่วยไปให้แล้ว เหลือแก้ตัวเลขขนาดกับราคา */}
           {onAddSize && (
@@ -2074,7 +2074,7 @@ function FillVariantModal({ items, onApply, onClose }) {
       <div onClick={(e) => e.stopPropagation()} style={{ background: "var(--bg)", borderRadius: isMobile ? "20px 20px 0 0" : 18,
         width: isMobile ? "100%" : "min(720px,100%)", maxHeight: isMobile ? "92dvh" : "88vh", display: "flex", flexDirection: "column",
         overflow: "hidden", boxShadow: "0 30px 80px rgba(0,0,0,.45)" }}>
-        <div style={{ padding: "16px 20px", borderBottom: "1px solid var(--border)", background: "var(--surface)", flexShrink: 0 }}>
+        <div style={{ padding: "16px 20px", borderBottom: "1px solid var(--divider)", background: "var(--surface)", flexShrink: 0 }}>
           <div style={{ fontSize: 16, fontWeight: 700, color: "var(--text-1)" }}>เติมยี่ห้อ/รุ่นจากชื่อวัสดุ</div>
           <div style={{ fontSize: 11.5, color: "var(--text-3)", marginTop: 4, lineHeight: 1.5 }}>
             อ่านยี่ห้อกับรุ่นจากชื่อที่มีอยู่แล้ว — ดูให้ครบก่อนกดบันทึก อันไหนไม่ถูกติ๊กออกได้
@@ -2086,7 +2086,7 @@ function FillVariantModal({ items, onApply, onClose }) {
             <div style={{ fontSize: 13, color: "var(--text-2)" }}>ไม่มีรายการที่อ่านยี่ห้อ/รุ่นจากชื่อได้ — กรอกเองได้ที่ปุ่มแก้ไขของแต่ละรายการ</div>
           ) : rows.map((r) => (
             <label key={r.it.id} style={{ display: "grid", gridTemplateColumns: "26px minmax(0,1.5fr) minmax(0,1fr)", gap: 10,
-              alignItems: "center", padding: "9px 20px", borderBottom: "1px solid var(--border)", cursor: "pointer" }}>
+              alignItems: "center", padding: "9px 20px", borderBottom: "1px solid var(--divider)", cursor: "pointer" }}>
               <input type="checkbox" checked={on(r.it.id)} onChange={() => toggle(r.it.id)} style={{ width: 16, height: 16, accentColor: "var(--primary)" }} />
               <span style={{ minWidth: 0 }}>
                 <span style={{ display: "block", fontSize: 12.5, color: "var(--text-1)", lineHeight: 1.35 }}>{r.it.name}</span>
@@ -2099,7 +2099,7 @@ function FillVariantModal({ items, onApply, onClose }) {
             </label>
           ))}
         </div>
-        <div style={{ padding: "13px 20px", borderTop: "1px solid var(--border)", background: "var(--surface)", display: "flex",
+        <div style={{ padding: "13px 20px", borderTop: "1px solid var(--divider)", background: "var(--surface)", display: "flex",
           gap: 8, alignItems: "center", flexShrink: 0 }}>
           <span style={{ fontSize: 12, fontWeight: 700, color: "var(--text-2)" }}>เลือกไว้ {picked.length} / {rows.length} รายการ</span>
           <span style={{ marginLeft: "auto", display: "flex", gap: 8 }}>
@@ -2272,7 +2272,7 @@ function CatCard({ c, n, lowN, img, onPick, onImage }) {
       style={{ position: "relative", background: "var(--surface)", borderRadius: "var(--r-tile)",
         cursor: "pointer", display: "flex", alignItems: "center", gap: 13, padding: 14, boxShadow: "var(--shadow-sm)" }}>
       <span style={{ width: 76, height: 76, borderRadius: "var(--r-tile)", flexShrink: 0, overflow: "hidden", display: "grid", placeItems: "center",
-        background: img ? "var(--surface2)" : c.color + "16", border: "1px solid " + (img ? "transparent" : c.color + "33") }}>
+        background: img ? "var(--surface2)" : c.color + "16", border: "none", boxShadow: img ? "none" : "inset 0 0 0 1px " + c.color + "33" }}>
         {img
           ? <img src={img} alt="" loading="lazy" style={{ width: "100%", height: "100%", objectFit: "contain", display: "block" }} />
           : <Icon name={c.icon || "box"} size={30} color={c.color} />}

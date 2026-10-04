@@ -2598,7 +2598,7 @@ function SitePlanEditor({
   }, React.createElement("div", {
     style: {
       padding: "14px 18px",
-      borderBottom: "1px solid var(--border)",
+      borderBottom: "1px solid var(--divider)",
       background: "var(--surface)",
       display: "flex",
       justifyContent: "space-between",
@@ -2678,7 +2678,8 @@ function SitePlanEditor({
         cursor: "pointer",
         whiteSpace: "nowrap",
         flexShrink: 0,
-        border: "1px solid " + (on ? "var(--primary)" : "var(--border-strong)"),
+        border: "none",
+        boxShadow: on ? "inset 0 0 0 1px var(--primary)" : "var(--shadow-sm)",
         background: on ? "var(--primary-soft)" : "var(--surface)",
         color: on ? "var(--primary-dark)" : "var(--text-2)",
         fontSize: 12.5,
@@ -2864,7 +2865,8 @@ function SitePlanEditor({
       fontFamily: "inherit",
       fontSize: 13,
       fontWeight: 700,
-      border: "1px solid " + (showGrid ? "var(--primary)" : "var(--border-strong)"),
+      border: "none",
+      boxShadow: showGrid ? "inset 0 0 0 1px var(--primary)" : "var(--shadow-sm)",
       background: showGrid ? "var(--primary)" : "var(--surface)",
       color: showGrid ? "#fff" : "var(--text-2)"
     }
@@ -2991,7 +2993,8 @@ function SitePlanEditor({
       fontFamily: "inherit",
       fontSize: 12,
       fontWeight: 700,
-      border: "1px solid " + (lineKind === k.key ? k.color : "var(--border-strong)"),
+      border: "none",
+      boxShadow: lineKind === k.key ? "inset 0 0 0 1px " + k.color : "var(--shadow-sm)",
       background: lineKind === k.key ? k.color + "18" : "var(--surface)",
       color: lineKind === k.key ? k.color : "var(--text-2)"
     }
@@ -3015,7 +3018,8 @@ function SitePlanEditor({
       fontFamily: "inherit",
       fontSize: 12,
       fontWeight: 700,
-      border: "1px solid " + (snapStraight ? "var(--primary)" : "var(--border-strong)"),
+      border: "none",
+      boxShadow: snapStraight ? "inset 0 0 0 1px var(--primary)" : "var(--shadow-sm)",
       background: snapStraight ? "var(--primary)18" : "var(--surface)",
       color: snapStraight ? "var(--primary)" : "var(--text-2)"
     }
@@ -3135,7 +3139,8 @@ function SitePlanEditor({
       fontFamily: "inherit",
       fontSize: 12,
       fontWeight: 700,
-      border: "1px solid " + (markerKind === k.key ? k.color : "var(--border-strong)"),
+      border: "none",
+      boxShadow: markerKind === k.key ? "inset 0 0 0 1px " + k.color : "var(--shadow-sm)",
       background: markerKind === k.key ? k.color + "18" : "var(--surface)",
       color: markerKind === k.key ? k.color : "var(--text-2)"
     }
@@ -3166,7 +3171,8 @@ function SitePlanEditor({
       fontFamily: "inherit",
       fontSize: 12,
       fontWeight: 700,
-      border: "1px solid " + (markerKind === k.key ? k.color : "var(--border-strong)"),
+      border: "none",
+      boxShadow: markerKind === k.key ? "inset 0 0 0 1px " + k.color : "var(--shadow-sm)",
       background: markerKind === k.key ? k.color + "18" : "var(--surface)",
       color: markerKind === k.key ? k.color : "var(--text-2)"
     }
@@ -3471,7 +3477,8 @@ function SitePlanEditor({
       fontFamily: "inherit",
       fontSize: 12,
       fontWeight: 700,
-      border: "1px solid " + (snapStraight ? "var(--primary)" : "var(--border-strong)"),
+      border: "none",
+      boxShadow: snapStraight ? "inset 0 0 0 1px var(--primary)" : "var(--shadow-sm)",
       background: snapStraight ? "var(--primary)18" : "var(--surface)",
       color: snapStraight ? "var(--primary)" : "var(--text-2)"
     }
@@ -6231,7 +6238,8 @@ function SitePlanEditor({
         borderRadius: 7,
         cursor: "pointer",
         flexShrink: 0,
-        border: i === idx ? "2px solid var(--primary)" : "2px solid rgba(255,255,255,.25)"
+        border: "none",
+        boxShadow: i === idx ? "inset 0 0 0 2px var(--primary)" : "inset 0 0 0 2px rgba(255,255,255,.25)"
       }
     }))), photoDraw ? React.createElement("div", {
       onClick: e => e.stopPropagation(),
@@ -6415,7 +6423,7 @@ function SitePlanEditor({
       gap: 10,
       padding: "12px 16px",
       paddingBottom: isMobile ? "calc(12px + env(safe-area-inset-bottom,0px))" : 12,
-      borderTop: "1px solid var(--border)",
+      borderTop: "1px solid var(--divider)",
       background: "var(--surface)",
       flexShrink: 0
     }

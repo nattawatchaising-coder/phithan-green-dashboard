@@ -174,7 +174,7 @@ function BlDeliveryPaper({
   const paper = {
     maxWidth: 900,
     margin: "0 auto",
-    background: "#fff",
+    background: "var(--paper-bg)",
     color: BP_INK,
     padding: isMobile ? "20px 16px" : "30px 34px",
     borderRadius: isMobile ? 0 : 12,
@@ -190,7 +190,8 @@ function BlDeliveryPaper({
       fontSize: 12,
       fontWeight: 700,
       cursor: "pointer",
-      border: "1px solid " + (part === id ? BP_ACCENT : "var(--border-strong)"),
+      border: "none",
+      boxShadow: part === id ? "inset 0 0 0 1px " + BP_ACCENT : "var(--shadow-sm)",
       background: part === id ? BP_ACCENT + "18" : "var(--surface)",
       color: part === id ? BP_ACCENT : "var(--text-2)"
     }
@@ -217,7 +218,7 @@ function BlDeliveryPaper({
       flexWrap: "wrap",
       padding: "11px 14px",
       background: "var(--surface)",
-      borderBottom: "1px solid var(--border)",
+      borderBottom: "1px solid var(--divider)",
       marginBottom: isMobile ? 0 : 16,
       borderRadius: isMobile ? 0 : 12,
       maxWidth: 900,
@@ -329,7 +330,7 @@ function BlDeliveryPaper({
       fontSize: 9.5,
       fontWeight: 600,
       letterSpacing: ".12em",
-      color: "#7A8A81",
+      color: "var(--paper-mute)",
       marginTop: 3
     }
   }, "WORK DELIVERY & PAYMENT NOTICE")), React.createElement("div", {
@@ -443,7 +444,7 @@ function BlDeliveryPaper({
       justifyContent: "space-between",
       gap: 10,
       padding: "8px 12px",
-      background: "#F7FAF9"
+      background: "var(--paper-tint)"
     }
   }, React.createElement("span", {
     style: {
@@ -464,7 +465,7 @@ function BlDeliveryPaper({
       fontSize: 9.5,
       color: BP_SOFT,
       lineHeight: 1.75,
-      borderTop: "1px solid #ECF1EE"
+      borderTop: "1px solid var(--paper-line3)"
     }
   }, React.createElement("div", {
     style: {
@@ -563,7 +564,7 @@ function BlDeliveryPaper({
       border: "1px solid " + BP_LINE,
       borderRadius: 8,
       overflow: "hidden",
-      background: "#F3F6F5"
+      background: "var(--paper-tint)"
     }
   }, React.createElement("img", {
     src: p.dataUrl,

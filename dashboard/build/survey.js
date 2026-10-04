@@ -579,7 +579,8 @@ function StickerPicker({
     fontSize: 12,
     fontWeight: 600,
     whiteSpace: "nowrap",
-    border: "1px solid " + (on ? "var(--primary)" : "var(--border-strong)"),
+    border: "none",
+    boxShadow: on ? "inset 0 0 0 1px var(--primary)" : "var(--shadow-sm)",
     background: on ? "var(--primary-soft)" : "var(--surface)",
     color: on ? "var(--primary-dark)" : "var(--text-2)"
   });
@@ -608,7 +609,7 @@ function StickerPicker({
   }, React.createElement("div", {
     style: {
       padding: "13px 16px",
-      borderBottom: "1px solid var(--border)",
+      borderBottom: "1px solid var(--divider)",
       background: "var(--surface)",
       display: "flex",
       justifyContent: "space-between",
@@ -648,7 +649,8 @@ function StickerPicker({
       fontFamily: "inherit",
       fontSize: 12,
       fontWeight: 700,
-      border: "1px solid " + (manage ? "var(--primary)" : "var(--border-strong)"),
+      border: "none",
+      boxShadow: manage ? "inset 0 0 0 1px var(--primary)" : "var(--shadow-sm)",
       background: manage ? "var(--primary-soft)" : "var(--surface)",
       color: manage ? "var(--primary-dark)" : "var(--text-2)"
     }
@@ -673,7 +675,7 @@ function StickerPicker({
   })))), React.createElement("div", {
     style: {
       padding: "10px 14px",
-      borderBottom: "1px solid var(--border)",
+      borderBottom: "1px solid var(--divider)",
       background: "var(--surface)",
       display: "flex",
       gap: 6,
@@ -830,7 +832,7 @@ function StickerPicker({
     style: {
       padding: "12px 14px",
       paddingBottom: isMobile ? "calc(12px + env(safe-area-inset-bottom,0px))" : 12,
-      borderTop: "1px solid var(--border)",
+      borderTop: "1px solid var(--divider)",
       background: "var(--surface)",
       display: "flex",
       gap: 10,
@@ -1255,7 +1257,7 @@ function AnnEditor({
   }, React.createElement("div", {
     style: {
       padding: "13px 16px",
-      borderBottom: "1px solid var(--border)",
+      borderBottom: "1px solid var(--divider)",
       background: "var(--surface)",
       display: "flex",
       justifyContent: "space-between",
@@ -1435,7 +1437,7 @@ function AnnEditor({
   }, "\u2715")))), React.createElement("div", {
     style: {
       padding: "10px 14px",
-      borderTop: "1px solid var(--border)",
+      borderTop: "1px solid var(--divider)",
       background: "var(--surface)",
       display: "flex",
       gap: 10,
@@ -1537,7 +1539,7 @@ function AnnEditor({
     style: {
       padding: "12px 14px",
       paddingBottom: isMobile ? "calc(12px + env(safe-area-inset-bottom,0px))" : 12,
-      borderTop: "1px solid var(--border)",
+      borderTop: "1px solid var(--divider)",
       background: "var(--surface)",
       display: "flex",
       gap: 10

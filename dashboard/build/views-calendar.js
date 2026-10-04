@@ -588,7 +588,7 @@ function MobileCalendar({
   })), React.createElement("div", {
     style: {
       padding: "6px 20px 12px",
-      borderBottom: "1px solid var(--border)",
+      borderBottom: "1px solid var(--divider)",
       display: "flex",
       justifyContent: "space-between",
       alignItems: "center",
@@ -926,7 +926,8 @@ function MapView({
     return React.createElement("div", {
       key: prov,
       style: {
-        border: "1px solid " + (open ? "var(--primary)" : "var(--border)"),
+        border: "none",
+        boxShadow: open ? "inset 0 0 0 1px var(--primary)" : "var(--shadow-sm)",
         borderRadius: "var(--r-chip)",
         overflow: "hidden",
         transition: "border-color .15s",
@@ -1002,7 +1003,7 @@ function MapView({
         display: "flex",
         flexDirection: "column",
         gap: 3,
-        borderTop: "1px solid var(--border)"
+        borderTop: "1px solid var(--divider)"
       }
     }, list.map(j => React.createElement("button", {
       key: j.id,

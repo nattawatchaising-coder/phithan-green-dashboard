@@ -394,7 +394,7 @@ function VcCardModal({ user, onClose }) {
         width: isMobile ? "100%" : "min(640px,100%)", maxHeight: isMobile ? "94dvh" : "90vh", display: "flex", flexDirection: "column",
         overflow: "hidden", boxShadow: "var(--shadow-modal)" }}>
 
-        <div style={{ padding: "16px 22px", borderBottom: "1px solid var(--border)", background: "var(--surface)",
+        <div style={{ padding: "16px 22px", borderBottom: "1px solid var(--divider)", background: "var(--surface)",
           display: "flex", justifyContent: "space-between", alignItems: "center", flexShrink: 0 }}>
           <h3 style={{ fontSize: 16, fontWeight: 700, color: "var(--text-1)", margin: 0 }}>นามบัตรของฉัน</h3>
           <button className="x-close" onClick={onClose} style={{ width: 30, height: 30, borderRadius: 8, border: "none", boxShadow: "var(--shadow-sm)",

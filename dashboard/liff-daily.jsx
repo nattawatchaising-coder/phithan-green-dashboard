@@ -157,7 +157,7 @@ function LnDailyForm({ me, role, job, date, store, notify }) {
         <div style={{ border: "1px solid var(--border)", boxShadow: "var(--soft)", borderRadius: 16, overflow: "hidden", background: "var(--surface)" }}>
           {(form.steps || []).map((r, i) => (
             <div key={i} style={{ display: "flex", alignItems: "center", gap: 9, padding: "9px 11px",
-              borderBottom: "1px solid var(--border)", background: r.head && form.mode === "project" && !r.no.includes(".")
+              borderBottom: "1px solid var(--divider)", background: r.head && form.mode === "project" && !r.no.includes(".")
                 ? "var(--surface2)" : "var(--surface)" }}>
               <span style={{ fontFamily: "var(--mono)", fontSize: 11, color: "var(--text-3)", minWidth: 26 }}>{r.no}</span>
               <span style={{ flex: 1, minWidth: 0, fontSize: 12.5, color: "var(--text-1)" }}>{r.th}</span>

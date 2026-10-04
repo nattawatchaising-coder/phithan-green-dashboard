@@ -88,7 +88,8 @@ function SurveyView({
         fontSize: 12.5,
         fontWeight: 600,
         whiteSpace: "nowrap",
-        border: "1px solid " + (active ? ff.color : "var(--border-strong)"),
+        border: "none",
+        boxShadow: active ? "inset 0 0 0 1px " + ff.color : "var(--shadow-sm)",
         background: active ? ff.color + "16" : "var(--surface)",
         color: active ? ff.color : "var(--text-2)"
       }
@@ -438,7 +439,8 @@ function LeadsView({
         fontSize: 12.5,
         fontWeight: 600,
         whiteSpace: "nowrap",
-        border: "1px solid " + (active ? ff.color : "var(--border-strong)"),
+        border: "none",
+        boxShadow: active ? "inset 0 0 0 1px " + ff.color : "var(--shadow-sm)",
         background: active ? ff.color + "16" : "var(--surface)",
         color: active ? ff.color : "var(--text-2)"
       }
@@ -653,7 +655,7 @@ function ContactLogModal({
   }, React.createElement("div", {
     style: {
       padding: "16px 20px",
-      borderBottom: "1px solid var(--border)",
+      borderBottom: "1px solid var(--divider)",
       background: "var(--surface)",
       display: "flex",
       justifyContent: "space-between",
@@ -821,7 +823,7 @@ function ContactLogModal({
     style: {
       padding: "12px 18px",
       paddingBottom: isMobile ? "calc(12px + env(safe-area-inset-bottom,0px))" : 12,
-      borderTop: "1px solid var(--border)",
+      borderTop: "1px solid var(--divider)",
       background: "var(--surface)",
       display: "flex",
       gap: 10
@@ -1108,7 +1110,7 @@ function LeadModal({
   }, React.createElement("div", {
     style: {
       padding: "16px 20px",
-      borderBottom: "1px solid var(--border)",
+      borderBottom: "1px solid var(--divider)",
       background: "var(--surface)",
       display: "flex",
       justifyContent: "space-between",
@@ -1242,7 +1244,7 @@ function LeadModal({
     }]
   })), React.createElement("div", {
     style: {
-      borderTop: "1px solid var(--border)",
+      borderTop: "1px solid var(--divider)",
       paddingTop: 14,
       display: "flex",
       flexDirection: "column",
@@ -1374,7 +1376,7 @@ function LeadModal({
     style: {
       padding: "12px 18px",
       paddingBottom: isMobile ? "calc(12px + env(safe-area-inset-bottom,0px))" : 12,
-      borderTop: "1px solid var(--border)",
+      borderTop: "1px solid var(--divider)",
       background: "var(--surface)",
       display: "flex",
       gap: 10

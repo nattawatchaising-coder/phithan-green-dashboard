@@ -33,7 +33,7 @@ function DrText({ value, onChange, rows, placeholder, disabled }) {
 function DrSection({ n, title, hint, children, tone }) {
   return (
     <div style={{ marginBottom: 16, border: "none", boxShadow: "var(--shadow-sm)", borderRadius: "var(--r-tile)", background: "var(--surface2)", overflow: "hidden" }}>
-      <div style={{ display: "flex", alignItems: "center", gap: 9, padding: "11px 14px", borderBottom: "1px solid var(--border)" }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 9, padding: "11px 14px", borderBottom: "1px solid var(--divider)" }}>
         <span style={{ width: 22, height: 22, borderRadius: 7, display: "grid", placeItems: "center", flexShrink: 0,
           background: (tone || "var(--primary)") + "1e", color: tone || "var(--primary-dark)",
           fontSize: 11.5, fontWeight: 800, fontFamily: "var(--mono)" }}>{n}</span>
@@ -57,7 +57,7 @@ function DrChips({ options, value, onChange, disabled }) {
             onClick={() => onChange(on ? "" : o.key)}
             style={{ padding: "7px 13px", borderRadius: "var(--r-pill)", cursor: disabled ? "default" : "pointer", fontFamily: "inherit",
               fontSize: 12.5, fontWeight: 700, opacity: disabled && !on ? 0.5 : 1,
-              border: "1px solid " + (on ? c : "var(--border-strong)"),
+              border: "none", boxShadow: on ? "inset 0 0 0 1px " + c : "var(--shadow-sm)",
               background: on ? c + "1e" : "var(--surface)", color: on ? c : "var(--text-2)" }}>
             {o.th}{o.range && <span style={{ fontFamily: "var(--mono)", fontSize: 11, opacity: 0.75 }}> {o.range}</span>}
           </button>
@@ -140,7 +140,7 @@ function DrRows({ cols, rows, onChange, disabled, addLabel }) {
 function DrStepTable({ steps, onChange, disabled, editable, onReset, plan, dates, weight, rename }) {
   const list = steps || [];
   const set = (i, k, v) => onChange(list.map((r, x) => (x === i ? Object.assign({}, r, { [k]: v }) : r)));
-  const cell = { padding: "5px 6px", borderBottom: "1px solid var(--border)", fontSize: 12 };
+  const cell = { padding: "5px 6px", borderBottom: "1px solid var(--divider)", fontSize: 12 };
   /* แก้ไม่ได้ก็ไม่ต้องขึ้นเป็นช่องกรอก — งานบ้านมีวันแผนแค่ขั้นติดตั้ง
      ถ้าโชว์ช่องว่างที่กดไม่ได้ทั้งตาราง จะดูเหมือนฟอร์มเสียมากกว่าเป็นข้อมูล */
   const dateBox = (i, k, r) => (editable && !disabled ? (
@@ -258,7 +258,7 @@ function DrPhotoCap({ value, disabled, onSave }) {
   };
   const flush = () => { clearTimeout(timer.current); typing.current = false; onSave(v); };
   return (
-    <div style={{ display: "flex", alignItems: "center", gap: 6, borderTop: "1px solid var(--border)",
+    <div style={{ display: "flex", alignItems: "center", gap: 6, borderTop: "1px solid var(--divider)",
       padding: "6px 8px", background: "var(--surface2)" }}>
       <Icon name="pen" size={12} color={v ? "var(--primary-dark)" : "var(--text-3)"} />
       <input value={v} disabled={disabled} placeholder="พิมพ์คำบรรยายรูปนี้…"
@@ -536,13 +536,13 @@ function DailyReportModal({ job, role, currentUser, onClose, onNotify, openDate 
           minHeight: isMobile ? "100dvh" : 0, overflow: "hidden", boxShadow: "var(--shadow-modal)" }}>
 
           {/* หัวฟอร์ม */}
-          <div style={{ position: "sticky", top: 0, zIndex: 3, background: "var(--surface)", borderBottom: "1px solid var(--border)", padding: isMobile ? "13px 14px" : "16px 20px" }}>
+          <div style={{ position: "sticky", top: 0, zIndex: 3, background: "var(--surface)", borderBottom: "1px solid var(--divider)", padding: isMobile ? "13px 14px" : "16px 20px" }}>
             <div style={{ display: "flex", alignItems: "flex-start", gap: 11 }}>
               <div style={{ flex: 1, minWidth: 0 }}>
                 <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
                   <span style={{ fontSize: isMobile ? 15.5 : 17.5, fontWeight: 800, color: "var(--text-1)" }}>รายงานประจำวันหน้างาน</span>
                   <span style={{ fontSize: 11.5, fontWeight: 700, color: st.color, background: st.color + "1c",
-                    border: "1px solid " + st.color + "40", borderRadius: "var(--r-pill)", padding: "2px 10px" }}>{st.th}</span>
+                    border: "none", borderRadius: "var(--r-pill)", padding: "2px 10px" }}>{st.th}</span>
                   {/* ใบที่ล็อกแล้วแก้ไม่ได้ — โชว์เป็นป้ายบอกว่าใบนี้เขียนด้วยแบบไหน แทนปุ่มที่กดไม่ลง */}
                   {locked ? (
                     <span style={{ fontSize: 11, fontWeight: 700, borderRadius: "var(--r-pill)", padding: "2px 9px",
@@ -592,7 +592,7 @@ function DailyReportModal({ job, role, currentUser, onClose, onNotify, openDate 
                   return (
                     <button key={d} onClick={() => setDate(d)}
                       style={{ display: "inline-flex", alignItems: "center", gap: 5, padding: "5px 10px", borderRadius: "var(--r-pill)", flexShrink: 0,
-                        border: "1px solid " + (on ? "var(--primary)" : "var(--border)"), background: on ? "var(--primary-soft)" : "var(--surface)",
+                        border: "none", boxShadow: on ? "inset 0 0 0 1px var(--primary)" : "var(--shadow-sm)", background: on ? "var(--primary-soft)" : "var(--surface)",
                         cursor: "pointer", fontFamily: "inherit", fontSize: 11.5, fontWeight: 700,
                         color: on ? "var(--primary-dark)" : "var(--text-2)" }}>
                       <span style={{ width: 6, height: 6, borderRadius: "var(--r-pill)", background: s.color }} />
@@ -737,7 +737,7 @@ function DailyReportModal({ job, role, currentUser, onClose, onNotify, openDate 
                           <button key={c.key} type="button" disabled={locked}
                             onClick={() => edit({ clean: Object.assign({}, form.clean, { [c.key]: !on }) })}
                             style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "7px 12px", borderRadius: "var(--r-pill)",
-                              border: "1px solid " + (on ? "#10B981" : "var(--border-strong)"), background: on ? "#10B9811c" : "var(--surface)",
+                              border: "none", boxShadow: on ? "inset 0 0 0 1px #10B981" : "var(--shadow-sm)", background: on ? "#10B9811c" : "var(--surface)",
                               cursor: locked ? "default" : "pointer", fontFamily: "inherit", fontSize: 12.5, fontWeight: 700,
                               color: on ? "#10B981" : "var(--text-2)" }}>
                             {on && <Icon name="check" size={13} color="#10B981" />}{c.th}
@@ -772,7 +772,7 @@ function DailyReportModal({ job, role, currentUser, onClose, onNotify, openDate 
           </div>
 
           {/* แถบปุ่มล่าง */}
-          <div style={{ position: "sticky", bottom: 0, background: "var(--surface)", borderTop: "1px solid var(--border)",
+          <div style={{ position: "sticky", bottom: 0, background: "var(--surface)", borderTop: "1px solid var(--divider)",
             padding: isMobile ? "11px 13px" : "13px 20px", display: "flex", gap: 9, alignItems: "center", flexWrap: "wrap" }}>
             <span style={{ fontSize: 11.5, color: delAsk ? "#EF4444" : "var(--text-3)", fontWeight: delAsk ? 700 : 400, flex: 1, minWidth: 100 }}>
               {delAsk ? "ลบใบของวันนี้ทั้งใบ (รูปและลายเซ็นด้วย) เรียกคืนไม่ได้" : locked ? "เอกสารถูกล็อกแล้ว" : "บันทึกอัตโนมัติ ไม่ต้องกดเซฟ"}
@@ -860,25 +860,25 @@ function DailyReportModal({ job, role, currentUser, onClose, onNotify, openDate 
 function DrPRow({ k, v }) {
   return (
     <React.Fragment>
-      <div style={{ padding: "6px 10px", borderRight: "1px solid #DCE4DF", borderBottom: "1px solid #DCE4DF",
-        fontSize: 10.5, fontWeight: 700, color: "#0A4D68", background: "#F3F7F4" }}>{k}</div>
-      <div style={{ padding: "6px 10px", borderBottom: "1px solid #DCE4DF", fontSize: 11, color: "#15211A" }}>{v || "-"}</div>
+      <div style={{ padding: "6px 10px", borderRight: "1px solid var(--paper-line)", borderBottom: "1px solid var(--paper-line)",
+        fontSize: 10.5, fontWeight: 700, color: "var(--paper-brand-dk)", background: "var(--paper-tint)" }}>{k}</div>
+      <div style={{ padding: "6px 10px", borderBottom: "1px solid var(--paper-line)", fontSize: 11, color: "var(--paper-ink)" }}>{v || "-"}</div>
     </React.Fragment>
   );
 }
 function DrPBlock({ title, children, avoid }) {
   return (
     <div style={{ marginTop: 16, breakInside: avoid ? "avoid" : "auto" }}>
-      <div style={{ display: "flex", alignItems: "center", gap: 7, borderBottom: "1px solid #DCE4DF", paddingBottom: 5, marginBottom: 8 }}>
-        <span style={{ width: 5, height: 5, borderRadius: "var(--r-pill)", background: "#1B9B75" }} />
-        <span style={{ fontSize: 12, fontWeight: 800, color: "#15211A" }}>{title}</span>
+      <div style={{ display: "flex", alignItems: "center", gap: 7, borderBottom: "1px solid var(--paper-line)", paddingBottom: 5, marginBottom: 8 }}>
+        <span style={{ width: 5, height: 5, borderRadius: "var(--r-pill)", background: "var(--paper-brand)" }} />
+        <span style={{ fontSize: 12, fontWeight: 800, color: "var(--paper-ink)" }}>{title}</span>
       </div>
       {children}
     </div>
   );
 }
 const drPara = (t) => (
-  <div style={{ fontSize: 11.5, lineHeight: 1.65, color: "#15211A", whiteSpace: "pre-wrap" }}>{t || "—"}</div>
+  <div style={{ fontSize: 11.5, lineHeight: 1.65, color: "var(--paper-ink)", whiteSpace: "pre-wrap" }}>{t || "—"}</div>
 );
 
 /* ── พจนานุกรมใบรายงานประจำวัน (ไทย → [อังกฤษ, จีน]) ──
@@ -1001,9 +1001,9 @@ function DailyPaper({ job, rec, date, allDates, onClose }) {
     setTimeout(() => { document.title = old; }, 800);
   };
 
-  const th = { textAlign: "left", padding: "5px 7px", fontSize: 10, fontWeight: 700, color: "#5A6B62",
-    borderBottom: "1px solid #C9D5CE", whiteSpace: "nowrap" };
-  const td = { padding: "5px 7px", fontSize: 10.5, color: "#15211A", borderBottom: "1px solid #ECF1EE", verticalAlign: "top" };
+  const th = { textAlign: "left", padding: "5px 7px", fontSize: 10, fontWeight: 700, color: "var(--paper-ink3)",
+    borderBottom: "1px solid var(--paper-line2)", whiteSpace: "nowrap" };
+  const td = { padding: "5px 7px", fontSize: 10.5, color: "var(--paper-ink)", borderBottom: "1px solid var(--paper-line3)", verticalAlign: "top" };
 
   const rowsTable = (title, cols, rows) => (
     !rows || !rows.length ? null : (
@@ -1012,7 +1012,7 @@ function DailyPaper({ job, rec, date, allDates, onClose }) {
           <thead><tr><th style={Object.assign({}, th, { width: 26 })}>#</th>{cols.map((c) => <th key={c.k} style={th}>{T(c.th)}</th>)}</tr></thead>
           <tbody>
             {rows.map((r, i) => (
-              <tr key={i}><td style={Object.assign({}, td, { fontFamily: "var(--mono)", color: "#7A8A81" })}>{i + 1}</td>
+              <tr key={i}><td style={Object.assign({}, td, { fontFamily: "var(--mono)", color: "var(--paper-mute)" })}>{i + 1}</td>
                 {cols.map((c) => <td key={c.k} style={td}>{r[c.k] || "-"}</td>)}</tr>
             ))}
           </tbody>
@@ -1028,7 +1028,7 @@ function DailyPaper({ job, rec, date, allDates, onClose }) {
           ตัดทีละตัวอักษร ดันแถบสูงเป็นสามร้อยกว่าพิกเซล — flexBasis กันไม่ให้แคบกว่าอ่านออก */}
       <div className="sv-rep-noprint" style={{ position: "sticky", top: 0, zIndex: 2, display: "flex", gap: 9,
         alignItems: "center", flexWrap: "wrap",
-        padding: "11px 14px", background: "var(--surface)", borderBottom: "1px solid var(--border)",
+        padding: "11px 14px", background: "var(--surface)", borderBottom: "1px solid var(--divider)",
         marginBottom: isMobile ? 0 : 16, borderRadius: isMobile ? 0 : 12, maxWidth: 900, marginLeft: "auto", marginRight: "auto", boxShadow: "var(--shadow-sm)" }}>
         <button className="x-close" onClick={onClose} style={{ width: 36, height: 36, borderRadius: "var(--r-chip)", border: "1px solid var(--border-strong)",
           background: "var(--surface)", cursor: "pointer", display: "grid", placeItems: "center", color: "var(--text-2)", flexShrink: 0 }}><Icon name="x" size={16} /></button>
@@ -1051,23 +1051,23 @@ function DailyPaper({ job, rec, date, allDates, onClose }) {
       </div>
 
       {/* ฟอนต์ไทยของแอปไม่มีตัวอักษรจีน — เลือกจีนแล้วต้องระบุชุดฟอนต์ที่มีจีนให้ชัด */}
-      <div className="sv-rep-paper" style={{ maxWidth: 900, margin: "0 auto", background: "#fff", color: "#15211A",
+      <div className="sv-rep-paper" style={{ maxWidth: 900, margin: "0 auto", background: "var(--paper-bg)", color: "var(--paper-ink)",
         fontFamily: lang === "zh" && window.pgFontStack ? window.pgFontStack("zh") : undefined,
         padding: isMobile ? "20px 16px" : "30px 34px", borderRadius: isMobile ? 0 : 12, boxShadow: "var(--shadow-modal)" }}>
 
         {/* หัวกระดาษ — พิมพ์ครั้งเดียว ไม่ซ้ำทุกหน้าเหมือนฟอร์ม Excel เดิม */}
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", gap: 16, flexWrap: "wrap",
-          borderBottom: "2px solid #1B9B75", paddingBottom: 11 }}>
+          borderBottom: "2px solid var(--paper-brand)", paddingBottom: 11 }}>
           <div style={{ minWidth: 0 }}>
             <div style={{ fontSize: 21, fontWeight: 800, letterSpacing: "-.01em" }}>{T("รายงานประจำวันหน้างาน")}</div>
-            <div style={{ fontSize: 10, fontWeight: 600, letterSpacing: ".12em", color: "#7A8A81", marginTop: 3 }}>PROJECT INSTALLATION — DAILY REPORT</div>
+            <div style={{ fontSize: 10, fontWeight: 600, letterSpacing: ".12em", color: "var(--paper-mute)", marginTop: 3 }}>PROJECT INSTALLATION — DAILY REPORT</div>
             {/* ตราสัญลักษณ์บริษัท — หกเหลี่ยม + ชื่อในโลโก้ ให้ใบที่พิมพ์ออกมาเป็นเอกสารของบริษัทจริง */}
             <div style={{ display: "flex", alignItems: "center", gap: 7, marginTop: 6 }}>
               <window.BrandDoc height={44} />
             </div>
           </div>
-          <div style={{ textAlign: "right", fontSize: 11, color: "#4A5A51", lineHeight: 1.75 }}>
-            <div style={{ fontFamily: "var(--mono)", fontWeight: 700, color: "#15211A" }}>{docNo}</div>
+          <div style={{ textAlign: "right", fontSize: 11, color: "var(--paper-ink2)", lineHeight: 1.75 }}>
+            <div style={{ fontFamily: "var(--mono)", fontWeight: 700, color: "var(--paper-ink)" }}>{docNo}</div>
             <div>{DT(date)}</div>
             <div style={{ display: "inline-block", marginTop: 3, padding: "2px 9px", borderRadius: "var(--r-pill)",
               background: st.color + "22", color: st.color, fontWeight: 700, fontSize: 10.5 }}>{T(st.th)}</div>
@@ -1076,7 +1076,7 @@ function DailyPaper({ job, rec, date, allDates, onClose }) {
 
         {/* ข้อมูลงาน */}
         <div style={{ marginTop: 13, display: "grid", gridTemplateColumns: "auto 1fr auto 1fr",
-          border: "1px solid #DCE4DF", borderRadius: 7, overflow: "hidden" }}>
+          border: "1px solid var(--paper-line)", borderRadius: 7, overflow: "hidden" }}>
           <DrPRow k={T("ชื่องาน")} v={job.name} />
           <DrPRow k={T("รหัสงาน")} v={job.code} />
           <DrPRow k={T("ประเภท")} v={T(isProject ? "งานโครงการ" : "งานบ้าน")} />
@@ -1086,18 +1086,18 @@ function DailyPaper({ job, rec, date, allDates, onClose }) {
         </div>
 
         {/* ความคืบหน้า — ตัวเลขที่ฟอร์มเดิมไม่ได้เทียบให้ */}
-        <div style={{ marginTop: 14, border: "1px solid #DCE4DF", borderRadius: 9, padding: "12px 14px", breakInside: "avoid" }}>
+        <div style={{ marginTop: 14, border: "1px solid var(--paper-line)", borderRadius: 9, padding: "12px 14px", breakInside: "avoid" }}>
           <div style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
-            <span style={{ fontSize: 11.5, fontWeight: 700, color: "#4A5A51" }}>{T("ความคืบหน้ารวม")}</span>
-            <div style={{ flex: 1, minWidth: 160, height: 9, borderRadius: "var(--r-pill)", background: "#E8EEEA", overflow: "hidden" }}>
-              <div style={{ width: Math.max(0, Math.min(100, pct)) + "%", height: "100%", background: "#1B9B75" }} />
+            <span style={{ fontSize: 11.5, fontWeight: 700, color: "var(--paper-ink2)" }}>{T("ความคืบหน้ารวม")}</span>
+            <div style={{ flex: 1, minWidth: 160, height: 9, borderRadius: "var(--r-pill)", background: "var(--paper-line3)", overflow: "hidden" }}>
+              <div style={{ width: Math.max(0, Math.min(100, pct)) + "%", height: "100%", background: "var(--paper-brand)" }} />
             </div>
-            <span style={{ fontSize: 17, fontWeight: 800, fontFamily: "var(--mono)", color: "#15211A" }}>{pct}%</span>
-            {rec.prevPct != null && <span style={{ fontSize: 11, color: "#4A5A51" }}>{T("จากเมื่อวาน")} {rec.prevPct}%</span>}
+            <span style={{ fontSize: 17, fontWeight: 800, fontFamily: "var(--mono)", color: "var(--paper-ink)" }}>{pct}%</span>
+            {rec.prevPct != null && <span style={{ fontSize: 11, color: "var(--paper-ink2)" }}>{T("จากเมื่อวาน")} {rec.prevPct}%</span>}
           </div>
           {(wAm || wPm) && (
-            <div style={{ marginTop: 9, fontSize: 11, color: "#4A5A51" }}>
-              {T("สภาพอากาศ · เช้า")} <b style={{ color: "#15211A" }}>{wAm ? T(wAm.th) : "-"}</b> · {T("บ่าย")} <b style={{ color: "#15211A" }}>{wPm ? T(wPm.th) : "-"}</b>
+            <div style={{ marginTop: 9, fontSize: 11, color: "var(--paper-ink2)" }}>
+              {T("สภาพอากาศ · เช้า")} <b style={{ color: "var(--paper-ink)" }}>{wAm ? T(wAm.th) : "-"}</b> · {T("บ่าย")} <b style={{ color: "var(--paper-ink)" }}>{wPm ? T(wPm.th) : "-"}</b>
             </div>
           )}
         </div>
@@ -1127,7 +1127,7 @@ function DailyPaper({ job, rec, date, allDates, onClose }) {
                     {isProject && <td style={Object.assign({}, td, { fontFamily: "var(--mono)", fontSize: 10 })}>{r.planEnd ? (window.pgShort ? window.pgShort(r.planEnd, lang) : window.drShort(r.planEnd)) : "—"}</td>}
                     {isProject && <td style={Object.assign({}, td, { fontFamily: "var(--mono)", fontSize: 10 })}>{r.actStart ? (window.pgShort ? window.pgShort(r.actStart, lang) : window.drShort(r.actStart)) : "—"}</td>}
                     {isProject && <td style={Object.assign({}, td, { fontFamily: "var(--mono)", fontSize: 10 })}>{r.actEnd ? (window.pgShort ? window.pgShort(r.actEnd, lang) : window.drShort(r.actEnd)) : "—"}</td>}
-                    {!isProject && <td style={Object.assign({}, td, { textAlign: "right", fontFamily: "var(--mono)", color: "#7A8A81" })}>{r.w ? r.w + "%" : "—"}</td>}
+                    {!isProject && <td style={Object.assign({}, td, { textAlign: "right", fontFamily: "var(--mono)", color: "var(--paper-mute)" })}>{r.w ? r.w + "%" : "—"}</td>}
                     <td style={Object.assign({}, td, { textAlign: "right", fontFamily: "var(--mono)", fontWeight: 700 })}>{r.pct ? r.pct + "%" : "—"}</td>
                   </tr>
                 ))}
@@ -1149,7 +1149,7 @@ function DailyPaper({ job, rec, date, allDates, onClose }) {
             {rowsTable("กำลังคน", [{ k: "role", th: "ตำแหน่ง" }, { k: "qty", th: "จำนวน" }, { k: "name", th: "ชื่อผู้ปฏิบัติงาน" }, { k: "note", th: "หมายเหตุ" }], rec.manpower)}
             {(jsa || rec.permitCold || rec.permitHot || Object.keys(rec.clean || {}).length || (rec.certs || []).length) && (
               <DrPBlock title={T("ความปลอดภัย & สิ่งแวดล้อม")} avoid>
-                <div style={{ fontSize: 11, color: "#15211A", lineHeight: 1.9 }}>
+                <div style={{ fontSize: 11, color: "var(--paper-ink)", lineHeight: 1.9 }}>
                   <div>{T("ระดับความเสี่ยง (JSA):")} <b>{jsa ? T(jsa.th) + " (" + jsa.range + ")" : "—"}</b></div>
                   <div>{T("ใบอนุญาตทำงานเย็น:")} <b>{rec.permitCold === "yes" ? T("มี") : rec.permitCold === "no" ? T("ไม่มี") : "—"}</b>
                     {"  ·  "}{T("ใบอนุญาตทำงานร้อน:")} <b>{rec.permitHot === "yes" ? T("มี") : rec.permitHot === "no" ? T("ไม่มี") : "—"}</b></div>
@@ -1172,10 +1172,10 @@ function DailyPaper({ job, rec, date, allDates, onClose }) {
             {/* alignItems:start — ไม่งั้นรูปนอนถูกยืดสูงเท่ารูปตั้งในแถวเดียวกัน เหลือช่องว่างใต้รูป */}
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, alignItems: "start" }}>
               {photos.map((p, i) => (
-                <div key={p.id} className="dr-shot" style={{ breakInside: "avoid", border: "1px solid #DCE4DF", borderRadius: 7, overflow: "hidden" }}>
-                  <img src={p.dataUrl} alt={p.cap || ""} style={{ width: "100%", display: "block", background: "#F3F7F4" }} />
-                  <div style={{ padding: "5px 8px", fontSize: 10.5, color: "#4A5A51", borderTop: "1px solid #ECF1EE" }}>
-                    <b style={{ color: "#0A4D68" }}>{T("รูปที่")} {i + 1}</b>{p.cap ? " · " + p.cap : ""}
+                <div key={p.id} className="dr-shot" style={{ breakInside: "avoid", border: "1px solid var(--paper-line)", borderRadius: 7, overflow: "hidden" }}>
+                  <img src={p.dataUrl} alt={p.cap || ""} style={{ width: "100%", display: "block", background: "var(--paper-tint)" }} />
+                  <div style={{ padding: "5px 8px", fontSize: 10.5, color: "var(--paper-ink2)", borderTop: "1px solid var(--paper-line3)" }}>
+                    <b style={{ color: "var(--paper-brand-dk)" }}>{T("รูปที่")} {i + 1}</b>{p.cap ? " · " + p.cap : ""}
                   </div>
                 </div>
               ))}
@@ -1188,18 +1188,18 @@ function DailyPaper({ job, rec, date, allDates, onClose }) {
         <div style={{ marginTop: 22, display: "grid", gridTemplateColumns: "1fr 1fr", gap: 18, breakInside: "avoid" }}>
           {[{ t: T("ผู้บันทึก (ช่างหน้างาน)"), n: rec.byName, d: rec.sentAt || rec.updatedAt || rec.createdAt, g: signs.by },
             { t: T("ผู้อนุมัติ (หัวหน้างาน)"), n: rec.appName, d: rec.approvedAt, g: signs.app }].map((s, i) => (
-            <div key={i} style={{ border: "1px solid #DCE4DF", borderRadius: 8, padding: "12px 14px" }}>
-              <div style={{ fontSize: 10.5, fontWeight: 700, color: "#5A6B62" }}>{s.t}</div>
-              <div style={{ height: 42, borderBottom: "1px solid #C9D5CE", marginTop: 6, display: "flex",
+            <div key={i} style={{ border: "1px solid var(--paper-line)", borderRadius: 8, padding: "12px 14px" }}>
+              <div style={{ fontSize: 10.5, fontWeight: 700, color: "var(--paper-ink3)" }}>{s.t}</div>
+              <div style={{ height: 42, borderBottom: "1px solid var(--paper-line2)", marginTop: 6, display: "flex",
                 alignItems: "flex-end", justifyContent: "center", overflow: "hidden" }}>
                 {s.g && s.g.img && <img src={s.g.img} alt="" style={{ maxWidth: "88%", maxHeight: 40, objectFit: "contain" }} />}
               </div>
-              <div style={{ fontSize: 11, marginTop: 6, color: "#15211A" }}>{T("ชื่อ:")} <b>{(s.g && s.g.name) || s.n || "-"}</b></div>
-              <div style={{ fontSize: 11, color: "#4A5A51" }}>
+              <div style={{ fontSize: 11, marginTop: 6, color: "var(--paper-ink)" }}>{T("ชื่อ:")} <b>{(s.g && s.g.name) || s.n || "-"}</b></div>
+              <div style={{ fontSize: 11, color: "var(--paper-ink2)" }}>
                 {T("วันที่:")} {DTs(s.g ? window.drSignDay(s.g) : window.drLocalDay(s.d))}
               </div>
               {s.g && s.g.img && (
-                <div style={{ fontSize: 8.5, color: "#8A9A91", marginTop: 3 }}>
+                <div style={{ fontSize: 8.5, color: "var(--paper-mute2)", marginTop: 3 }}>
                   {T("ลงลายมือชื่ออิเล็กทรอนิกส์ในระบบ")} {window.drSignTime(s.g) ? window.drSignTime(s.g) + (lang === "th" ? " น." : "") : ""}
                 </div>
               )}
@@ -1207,7 +1207,7 @@ function DailyPaper({ job, rec, date, allDates, onClose }) {
           ))}
         </div>
 
-        <div style={{ marginTop: 14, fontSize: 9.5, color: "#8A9A91", textAlign: "center" }}>
+        <div style={{ marginTop: 14, fontSize: 9.5, color: "var(--paper-mute2)", textAlign: "center" }}>
           {T("เอกสารนี้ออกจากระบบติดตามงานติดตั้ง")} flash+solar · {docNo} · {T("พิมพ์เมื่อ")} {DTs(window.drToday())}
         </div>
       </div>
@@ -1274,7 +1274,7 @@ function DrGrid({ jobs, all, days, onOpen, onPickJob, sentOnly }) {
       <div style={{ minWidth: nameW + cols.length * cw + 108, width: "max-content" }}>
         {/* หัวคอลัมน์ — ขึ้นเลขวันที่เฉพาะวันจันทร์กับวันที่ 1 ไม่งั้นตัวเลขชนกันจนอ่านไม่ออก */}
         <div style={{ display: "flex", alignItems: "flex-end", gap: 0, padding: "0 12px 6px",
-          borderBottom: "1px solid var(--border)" }}>
+          borderBottom: "1px solid var(--divider)" }}>
           {/* ชื่องานต้องค้างอยู่กับที่ตอนเลื่อนดูวันย้อนหลัง ไม่งั้นเลื่อนไปแล้วไม่รู้ว่าแถวไหนของใคร */}
           <div style={{ width: nameW, flexShrink: 0, fontSize: 10.5, fontWeight: 700, color: "var(--text-3)",
             position: "sticky", left: 0, background: "var(--surface2)", zIndex: 2 }}>งาน</div>
@@ -1294,7 +1294,7 @@ function DrGrid({ jobs, all, days, onOpen, onPickJob, sentOnly }) {
 
         {rows.map((r) => (
           <div key={r.job.id} style={{ display: "flex", alignItems: "center", padding: "5px 12px",
-            borderBottom: "1px solid var(--border)" }}>
+            borderBottom: "1px solid var(--divider)" }}>
             <button onClick={() => onPickJob(r.job)} title="ดูรายงานทุกวันของงานนี้"
               style={{ width: nameW, flexShrink: 0, textAlign: "left", border: "none",
                 cursor: "pointer", fontFamily: "inherit", padding: "2px 6px 2px 0", minWidth: 0,
@@ -1348,7 +1348,7 @@ function DrJobSummary({ job, all, onOpen, onBack }) {
 
   return (
     <div style={{ border: "none", boxShadow: "var(--shadow-sm)", borderRadius: "var(--r-tile)", background: "var(--surface2)", overflow: "hidden" }}>
-      <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "11px 14px", borderBottom: "1px solid var(--border)" }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "11px 14px", borderBottom: "1px solid var(--divider)" }}>
         <button onClick={onBack} title="กลับไปตารางภาพรวม"
           style={{ width: 30, height: 30, borderRadius: 9, border: "none", boxShadow: "var(--shadow-sm)", background: "var(--surface)",
             cursor: "pointer", display: "grid", placeItems: "center", color: "var(--text-2)", flexShrink: 0 }}>
@@ -1373,7 +1373,7 @@ function DrJobSummary({ job, all, onOpen, onBack }) {
         return (
           <button key={d} onClick={() => onOpen(job, d)}
             style={{ width: "100%", display: "flex", alignItems: "center", gap: 11, padding: "11px 14px",
-              border: "none", borderBottom: "1px solid var(--border)", background: "none",
+              border: "none", borderBottom: "1px solid var(--divider)", background: "none",
               cursor: "pointer", fontFamily: "inherit", textAlign: "left" }}>
             <span style={{ width: 8, height: 8, borderRadius: "var(--r-pill)", background: st.color, flexShrink: 0 }} />
             <span style={{ fontFamily: "var(--mono)", fontSize: 11.5, color: "var(--text-2)", flexShrink: 0, width: 92 }}>
@@ -1432,7 +1432,7 @@ function DrInbox({ rows, onOpen }) {
         return (
           <button key={r.job.id + "|" + r.date} onClick={() => onOpen(r.job, r.date)}
             style={{ width: "100%", display: "flex", alignItems: "center", gap: 11, padding: "13px 16px",
-              background: "none", border: "none", borderBottom: "1px solid var(--border)", cursor: "pointer",
+              background: "none", border: "none", borderBottom: "1px solid var(--divider)", cursor: "pointer",
               fontFamily: "inherit", textAlign: "left" }}>
             <span style={{ width: 8, height: 8, borderRadius: "var(--r-pill)", background: "#F59E0B", flexShrink: 0 }} />
             <span style={{ flex: 1, minWidth: 0 }}>
@@ -1514,7 +1514,7 @@ function DailyView({ jobs, role, currentUser, onOpen }) {
         {[["day", "รายวัน", "calendar"], ["grid", "ตารางภาพรวม", "table"], ["inbox", "รอฉันอนุมัติ", "check"]].map(([k, th, ic]) => (
           <button key={k} onClick={() => setMode(k)}
             style={{ display: "inline-flex", alignItems: "center", gap: 7, padding: "7px 14px", borderRadius: "var(--r-pill)",
-              border: "1px solid " + (mode === k ? "var(--primary)" : "var(--border-strong)"),
+              border: "none", boxShadow: mode === k ? "inset 0 0 0 1px var(--primary)" : "var(--shadow-sm)",
               background: mode === k ? "var(--primary-soft)" : "var(--surface)", cursor: "pointer",
               fontFamily: "inherit", fontSize: 12.5, fontWeight: 700,
               color: mode === k ? "var(--primary-dark)" : "var(--text-2)" }}>
@@ -1542,7 +1542,7 @@ function DailyView({ jobs, role, currentUser, onOpen }) {
                 <button key={d} onClick={() => setDays(d)}
                   style={{ padding: "6px 13px", borderRadius: "var(--r-pill)", cursor: "pointer", fontFamily: "inherit",
                     fontSize: 12, fontWeight: 700,
-                    border: "1px solid " + (days === d ? "var(--primary)" : "var(--border-strong)"),
+                    border: "none", boxShadow: days === d ? "inset 0 0 0 1px var(--primary)" : "var(--shadow-sm)",
                     background: days === d ? "var(--primary-soft)" : "var(--surface)",
                     color: days === d ? "var(--primary-dark)" : "var(--text-2)" }}>{d} วันล่าสุด</button>
               ))}
@@ -1550,7 +1550,7 @@ function DailyView({ jobs, role, currentUser, onOpen }) {
               <button onClick={() => setSentOnly((v) => !v)}
                 style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "6px 13px", borderRadius: "var(--r-pill)",
                   cursor: "pointer", fontFamily: "inherit", fontSize: 12, fontWeight: 700,
-                  border: "1px solid " + (sentOnly ? "#F59E0B" : "var(--border-strong)"),
+                  border: "none", boxShadow: sentOnly ? "inset 0 0 0 1px #F59E0B" : "var(--shadow-sm)",
                   background: sentOnly ? "#F59E0B16" : "var(--surface)",
                   color: sentOnly ? "#B45309" : "var(--text-2)" }}>
                 <span style={{ width: 8, height: 8, borderRadius: 3, background: "#F59E0B" }} />
@@ -1611,7 +1611,7 @@ function DailyView({ jobs, role, currentUser, onOpen }) {
           /* แถวที่กำลังถามยืนยันลบ — ทับทั้งแถวไปเลย จะได้ไม่มีทางกดพลาดโดนปุ่มอื่น */
           if (canDelete && delAsk === r.job.id) return (
             <div key={r.job.id} style={{ display: "flex", alignItems: "center", gap: 9, padding: isMobile ? "11px 12px" : "13px 16px",
-              borderBottom: "1px solid var(--border)", background: "var(--tint-red-bg)", flexWrap: "wrap" }}>
+              borderBottom: "1px solid var(--divider)", background: "var(--tint-red-bg)", flexWrap: "wrap" }}>
               <span style={{ flex: 1, minWidth: 140, fontSize: 12.5, fontWeight: 700, color: "var(--tint-red-tx2)" }}>
                 ลบรายงาน {r.job.code} ของวันนี้ทั้งใบ? รูปและลายเซ็นหายไปด้วย เรียกคืนไม่ได้
               </span>
@@ -1626,7 +1626,7 @@ function DailyView({ jobs, role, currentUser, onOpen }) {
             </div>
           );
           return (
-            <div key={r.job.id} style={{ display: "flex", alignItems: "center", borderBottom: "1px solid var(--border)" }}>
+            <div key={r.job.id} style={{ display: "flex", alignItems: "center", borderBottom: "1px solid var(--divider)" }}>
             <button onClick={() => onOpen(r.job)}
               style={{ flex: 1, minWidth: 0, display: "flex", alignItems: "center", gap: 11, padding: isMobile ? "11px 12px" : "13px 16px",
                 background: "none", border: "none", cursor: "pointer",

@@ -144,7 +144,7 @@ function ReportBlock({ job, onOpen }) {
         <div style={{ display: "flex", gap: 6, flexShrink: 0 }}>
           <button onClick={copy} title="คัดลอกงานนี้"
             style={{ display: "inline-flex", alignItems: "center", gap: 5, padding: "5px 10px", borderRadius: "var(--r-chip)",
-              border: "1px solid " + (copied ? "var(--primary)" : "var(--border-strong)"),
+              border: "none", boxShadow: copied ? "inset 0 0 0 1px var(--primary)" : "var(--shadow-sm)",
               background: copied ? "var(--primary-soft)" : "var(--surface2)",
               color: copied ? "var(--primary-dark)" : "var(--text-2)", fontSize: 11.5, fontWeight: 600,
               cursor: "pointer", fontFamily: "inherit", whiteSpace: "nowrap" }}>
@@ -219,7 +219,7 @@ function ReportView({ jobs, onOpen }) {
           <button onClick={() => setHideDone((v) => !v)}
             style={btn({ background: hideDone ? "var(--primary-soft)" : "var(--surface2)",
               color: hideDone ? "var(--primary-dark)" : "var(--text-2)",
-              border: "1px solid " + (hideDone ? "var(--primary)" : "var(--border-strong)") })}>
+              border: "none", boxShadow: hideDone ? "inset 0 0 0 1px var(--primary)" : "var(--shadow-sm)" })}>
             <Icon name={hideDone ? "eyeOff" : "check"} size={16} color={hideDone ? "var(--primary-dark)" : "var(--text-2)"} />
             {hideDone ? "ซ่อนงานเสร็จสิ้นอยู่" : "ซ่อนงานเสร็จสิ้น"}
           </button>

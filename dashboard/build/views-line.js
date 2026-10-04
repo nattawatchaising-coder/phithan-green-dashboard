@@ -161,7 +161,8 @@ function LnWebSwitch({
       padding: "15px 17px",
       borderRadius: "var(--r-tile)",
       background: "var(--surface)",
-      border: "1px solid " + (gate.open ? tone : "var(--border)")
+      border: "none",
+      boxShadow: gate.open ? "inset 0 0 0 1px " + tone : "var(--shadow-sm)"
     }
   }, React.createElement("div", {
     style: {
@@ -237,7 +238,8 @@ function LnWebSwitch({
       fontFamily: "inherit",
       fontSize: 12,
       fontWeight: 700,
-      border: "1px solid " + (hours === x.key ? "var(--primary)" : "var(--border)"),
+      border: "none",
+      boxShadow: hours === x.key ? "inset 0 0 0 1px var(--primary)" : "var(--shadow-sm)",
       background: hours === x.key ? "var(--primary-soft)" : "var(--surface2)",
       color: hours === x.key ? "var(--primary)" : "var(--text-2)"
     }
@@ -472,7 +474,7 @@ function LineAdminView({
         alignItems: "center",
         gap: 12,
         padding: "11px 14px",
-        borderBottom: "1px solid var(--border)"
+        borderBottom: "1px solid var(--divider)"
       }
     }, React.createElement("span", {
       style: {

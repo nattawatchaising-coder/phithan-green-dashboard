@@ -10,7 +10,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@400;500;600;700&family=Outfit:wght@500;600;700;800&family=JetBrains+Mono:wght@500;600&display=swap" rel="stylesheet" />
 <!-- ตัวแปรสี/ระยะชุดเดียวกับเว็บเดสก์ท็อป — แก้ที่ไฟล์เดียว ทั้งสองหน้าเปลี่ยนตาม -->
-<link rel="stylesheet" href="dashboard/tokens.css?v=13" />
+<link rel="stylesheet" href="dashboard/tokens.css?v=14" />
 <style>
 * { box-sizing: border-box; margin: 0; padding: 0; }
 html, body { height: 100%; }
@@ -110,17 +110,17 @@ window.LN_LIFF_ID = "2011577974-yzS9mgQQ";
      ⚠ ลำดับสำคัญ และเลข ?v= ต้องตรงกับ index.html เสมอ
         (มีตัวเช็กที่ tools/check-versions.mjs — รันก่อน deploy ทุกครั้ง) -->
 <script src="dashboard/build/brand.js?v=11"></script>
-<script src="dashboard/build/components.js?v=55"></script>
+<script src="dashboard/build/components.js?v=56"></script>
 <script src="dashboard/build/confirm.js?v=5"></script>
 <script src="dashboard/build/datepicker.js?v=2"></script>
 <script src="dashboard/build/store.js?v=48"></script>
 <script src="dashboard/build/media.js?v=20"></script>
-<script src="dashboard/build/daily.js?v=17"></script>
-<script src="dashboard/build/auth.js?v=50"></script>
+<script src="dashboard/build/daily.js?v=18"></script>
+<script src="dashboard/build/auth.js?v=51"></script>
 <!-- ตัวสร้างคิวอาร์ + นามบัตรอิเล็กทรอนิกส์ — หลัง auth.js เพราะอ่าน ROLE_INFO/userRoles/useUserAvatar จากที่นั่น
      น้ำหนักที่เพิ่มมาสองตัวนี้คุ้มกับการได้นามบัตรในไลน์ ซึ่งเป็นที่ที่ช่างอยู่ตอนส่งจริง -->
 <script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.js"></script>
-<script src="dashboard/build/vcard.js?v=21"></script>
+<script src="dashboard/build/vcard.js?v=22"></script>
 <script src="dashboard/build/attend.js?v=12"></script>
 <script src="dashboard/build/expense.js?v=17"></script>
 <!-- om.js เข้ามาเพราะแท็บ "ซ่อม" ใช้ใบแจ้งซ่อมชุดเดียวกับหน้า O&M บนเดสก์ท็อป
@@ -133,8 +133,8 @@ window.LN_LIFF_ID = "2011577974-yzS9mgQQ";
         const ระดับบนที่ชื่อชนกัน = จอขาวทั้งแอป โดย error ชี้ไปที่ไฟล์ที่สอง ไม่ใช่ต้นเหตุ -->
 <script src="dashboard/build/liff-ui.js?v=2"></script>
 <script src="dashboard/build/liff-ec.js?v=7"></script>
-<script src="dashboard/build/liff-daily.js?v=6"></script>
-<script src="dashboard/build/liff-app.js?v=26"></script>
+<script src="dashboard/build/liff-daily.js?v=7"></script>
+<script src="dashboard/build/liff-app.js?v=27"></script>
 <!-- แท็บอนุมัติ โหลดหลัง liff-app เพราะใช้ LnPick จากไฟล์นั้น -->
 <script src="dashboard/build/liff-approve.js?v=5"></script>
 

@@ -128,7 +128,7 @@ function LnWebSwitch({ currentUser }) {
       </div>
 
       <div style={{ padding: "15px 17px", borderRadius: "var(--r-tile)", background: "var(--surface)",
-        border: "1px solid " + (gate.open ? tone : "var(--border)") }}>
+        border: "none", boxShadow: gate.open ? "inset 0 0 0 1px " + tone : "var(--shadow-sm)" }}>
         <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
           <div style={{ flex: 1, minWidth: 0 }}>
             <div style={{ fontSize: 14, fontWeight: 800, color: gate.open ? tone : "var(--text-2)" }}>
@@ -160,7 +160,7 @@ function LnWebSwitch({ currentUser }) {
           {hrs.map((x) => (
             <button key={x.key} onClick={() => { setHours(x.key); if (gate.open) openIt(x.key); }}
               style={{ padding: "5px 12px", borderRadius: "var(--r-pill)", cursor: "pointer", fontFamily: "inherit", fontSize: 12, fontWeight: 700,
-                border: "1px solid " + (hours === x.key ? "var(--primary)" : "var(--border)"),
+                border: "none", boxShadow: hours === x.key ? "inset 0 0 0 1px var(--primary)" : "var(--shadow-sm)",
                 background: hours === x.key ? "var(--primary-soft)" : "var(--surface2)",
                 color: hours === x.key ? "var(--primary)" : "var(--text-2)" }}>{x.th}</button>
           ))}
@@ -299,7 +299,7 @@ function LineAdminView({ users, currentUser }) {
             const on = isOn(k.key);
             const used = stat.byKind[k.key] || 0;
             return (
-              <div key={k.key} style={{ display: "flex", alignItems: "center", gap: 12, padding: "11px 14px", borderBottom: "1px solid var(--border)" }}>
+              <div key={k.key} style={{ display: "flex", alignItems: "center", gap: 12, padding: "11px 14px", borderBottom: "1px solid var(--divider)" }}>
                 <span style={{ fontSize: 17, width: 22, textAlign: "center" }}>{k.icon}</span>
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{ fontSize: 13.5, fontWeight: 700, color: "var(--text-1)" }}>{k.th}</div>

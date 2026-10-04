@@ -160,7 +160,8 @@ function LangPick({
         fontSize: 12,
         fontWeight: 700,
         transition: "background .15s, border-color .15s",
-        border: "1px solid " + (on ? "var(--primary)" : "var(--border-strong)"),
+        border: "none",
+        boxShadow: on ? "inset 0 0 0 1px var(--primary)" : "var(--shadow-sm)",
         background: on ? "var(--primary-soft)" : "var(--surface)",
         color: on ? "var(--primary-dark)" : "var(--text-2)"
       }

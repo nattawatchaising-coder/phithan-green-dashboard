@@ -171,15 +171,15 @@ function EcVoucherPaper({
     padding: "5px 7px",
     fontSize: 10,
     fontWeight: 700,
-    color: "#5A6B62",
-    borderBottom: "1px solid #C9D5CE",
+    color: "var(--paper-ink3)",
+    borderBottom: "1px solid var(--paper-line2)",
     whiteSpace: "nowrap"
   };
   const td = {
     padding: "5px 7px",
     fontSize: 10.5,
-    color: "#15211A",
-    borderBottom: "1px solid #ECF1EE",
+    color: "var(--paper-ink)",
+    borderBottom: "1px solid var(--paper-line3)",
     verticalAlign: "top"
   };
   const num = Object.assign({}, td, {
@@ -207,7 +207,7 @@ function EcVoucherPaper({
       alignItems: "center",
       padding: "11px 14px",
       background: "var(--surface)",
-      borderBottom: "1px solid var(--border)",
+      borderBottom: "1px solid var(--divider)",
       marginBottom: isMobile ? 0 : 16,
       borderRadius: isMobile ? 0 : 12,
       maxWidth: 900,
@@ -277,8 +277,8 @@ function EcVoucherPaper({
     style: {
       maxWidth: 900,
       margin: "0 auto",
-      background: "#fff",
-      color: "#15211A",
+      background: "var(--paper-bg)",
+      color: "var(--paper-ink)",
       fontFamily: lang === "zh" && window.pgFontStack ? window.pgFontStack("zh") : undefined,
       padding: isMobile ? "20px 16px" : "30px 34px",
       borderRadius: isMobile ? 0 : 12,
@@ -293,7 +293,7 @@ function EcVoucherPaper({
       alignItems: "flex-end",
       gap: 16,
       flexWrap: "wrap",
-      borderBottom: "2px solid #1B9B75",
+      borderBottom: "2px solid var(--paper-brand)",
       paddingBottom: 11
     }
   }, React.createElement("div", {
@@ -311,7 +311,7 @@ function EcVoucherPaper({
       fontSize: 10,
       fontWeight: 600,
       letterSpacing: ".12em",
-      color: "#7A8A81",
+      color: "var(--paper-mute)",
       marginTop: 3
     }
   }, draft ? "PAYMENT COVER SHEET — FIELD EXPENSE REIMBURSEMENT" : "PAYMENT VOUCHER — FIELD EXPENSE REIMBURSEMENT"), React.createElement("div", {
@@ -327,14 +327,14 @@ function EcVoucherPaper({
     style: {
       textAlign: "right",
       fontSize: 11,
-      color: "#4A5A51",
+      color: "var(--paper-ink2)",
       lineHeight: 1.75
     }
   }, React.createElement("div", {
     style: {
       fontFamily: "var(--mono)",
       fontWeight: 700,
-      color: "#15211A"
+      color: "var(--paper-ink)"
     }
   }, b.no || "-"), React.createElement("div", null, DT(b.date)), React.createElement("div", {
     style: {
@@ -352,7 +352,7 @@ function EcVoucherPaper({
       marginTop: 13,
       display: "grid",
       gridTemplateColumns: "auto 1fr auto 1fr",
-      border: "1px solid #DCE4DF",
+      border: "1px solid var(--paper-line)",
       borderRadius: 7,
       overflow: "hidden"
     }
@@ -377,7 +377,7 @@ function EcVoucherPaper({
   })), React.createElement("div", {
     style: {
       marginTop: 14,
-      border: "1px solid #1B9B75",
+      border: "1px solid var(--paper-brand)",
       borderRadius: 9,
       overflow: "hidden",
       breakInside: "avoid"
@@ -389,13 +389,13 @@ function EcVoucherPaper({
       gap: 12,
       flexWrap: "wrap",
       padding: "11px 14px",
-      background: "#F3F9F6"
+      background: "var(--paper-tint)"
     }
   }, React.createElement("span", {
     style: {
       fontSize: 11.5,
       fontWeight: 700,
-      color: "#4A5A51"
+      color: "var(--paper-ink2)"
     }
   }, T("จำนวนเงินที่จ่าย")), React.createElement("span", {
     style: {
@@ -407,19 +407,19 @@ function EcVoucherPaper({
       fontSize: 22,
       fontWeight: 800,
       fontFamily: "var(--mono)",
-      color: "#0A4D68"
+      color: "var(--paper-brand-dk)"
     }
   }, window.ecBaht(total)), React.createElement("span", {
     style: {
       fontSize: 12,
-      color: "#4A5A51"
+      color: "var(--paper-ink2)"
     }
   }, T("บาท"))), React.createElement("div", {
     style: {
       padding: "8px 14px",
       fontSize: 12,
-      color: "#15211A",
-      borderTop: "1px solid #DCE4DF"
+      color: "var(--paper-ink)",
+      borderTop: "1px solid var(--paper-line)"
     }
   }, T("ตัวอักษร"), " ", React.createElement("b", null, "(", ecBahtText(total), ")"))), React.createElement(EcPBlock, {
     title: T("ใบเบิกที่ปิดในรอบนี้") + " (" + list.length + " " + T("ใบ") + ")"
@@ -452,7 +452,7 @@ function EcVoucherPaper({
   }, React.createElement("td", {
     style: Object.assign({}, td, {
       fontFamily: "var(--mono)",
-      color: "#7A8A81"
+      color: "var(--paper-mute)"
     })
   }, i + 1), React.createElement("td", {
     style: Object.assign({}, td, {
@@ -490,7 +490,7 @@ function EcVoucherPaper({
     style: {
       marginTop: 8,
       fontSize: 10.5,
-      color: "#B45309"
+      color: "var(--paper-warn-tx)"
     }
   }, "\u0E2B\u0E21\u0E32\u0E22\u0E40\u0E2B\u0E15\u0E38: \u0E23\u0E2D\u0E1A\u0E19\u0E35\u0E49\u0E1A\u0E31\u0E19\u0E17\u0E36\u0E01\u0E44\u0E27\u0E49 ", b.count || 0, " \u0E43\u0E1A \u0E41\u0E15\u0E48\u0E41\u0E2A\u0E14\u0E07\u0E44\u0E14\u0E49 ", list.length, " \u0E43\u0E1A (\u0E1C\u0E25\u0E1A\u0E27\u0E01\u0E17\u0E35\u0E48\u0E41\u0E2A\u0E14\u0E07 ", window.ecBaht(found), " \u0E1A\u0E32\u0E17) \u2014 \u0E43\u0E1A\u0E17\u0E35\u0E48\u0E40\u0E2B\u0E25\u0E37\u0E2D\u0E16\u0E39\u0E01\u0E25\u0E1A\u0E2D\u0E2D\u0E01\u0E08\u0E32\u0E01\u0E10\u0E32\u0E19\u0E02\u0E49\u0E2D\u0E21\u0E39\u0E25\u0E20\u0E32\u0E22\u0E2B\u0E25\u0E31\u0E07 \u0E22\u0E2D\u0E14\u0E17\u0E35\u0E48\u0E08\u0E48\u0E32\u0E22\u0E08\u0E23\u0E34\u0E07\u0E22\u0E36\u0E14\u0E15\u0E32\u0E21\u0E22\u0E2D\u0E14\u0E23\u0E27\u0E21\u0E14\u0E49\u0E32\u0E19\u0E1A\u0E19")), b.note ? React.createElement(EcPBlock, {
     title: T("หมายเหตุ"),
@@ -499,7 +499,7 @@ function EcVoucherPaper({
     style: {
       fontSize: 11.5,
       lineHeight: 1.65,
-      color: "#15211A",
+      color: "var(--paper-ink)",
       whiteSpace: "pre-wrap"
     }
   }, b.note)) : null, React.createElement("div", {
@@ -528,7 +528,7 @@ function EcVoucherPaper({
   }].map((s, i) => React.createElement("div", {
     key: i,
     style: {
-      border: "1px solid #DCE4DF",
+      border: "1px solid var(--paper-line)",
       borderRadius: 8,
       padding: "12px 14px"
     }
@@ -536,12 +536,12 @@ function EcVoucherPaper({
     style: {
       fontSize: 10.5,
       fontWeight: 700,
-      color: "#5A6B62"
+      color: "var(--paper-ink3)"
     }
   }, s.t), React.createElement("div", {
     style: {
       height: 42,
-      borderBottom: "1px solid #C9D5CE",
+      borderBottom: "1px solid var(--paper-line2)",
       marginTop: 6,
       display: "grid",
       placeItems: "center",
@@ -559,25 +559,25 @@ function EcVoucherPaper({
     style: {
       fontSize: 11,
       marginTop: 6,
-      color: "#15211A"
+      color: "var(--paper-ink)"
     }
   }, T("ชื่อ:"), " ", React.createElement("b", null, s.n || "…………………………")), React.createElement("div", {
     style: {
       fontSize: 11,
-      color: "#4A5A51"
+      color: "var(--paper-ink2)"
     }
   }, T("วันที่:"), " ", s.at ? DTs(s.at) : "…………………………")))), draft && React.createElement("div", {
     style: {
       marginTop: 12,
       fontSize: 10.5,
-      color: "#B45309",
+      color: "var(--paper-warn-tx)",
       textAlign: "center"
     }
   }, T("ใบนี้เป็นใบปะหน้าสำหรับตรวจเอกสารก่อนโอน ยังไม่ใช่หลักฐานการจ่าย")), React.createElement("div", {
     style: {
       marginTop: 14,
       fontSize: 9.5,
-      color: "#8A9A91",
+      color: "var(--paper-mute2)",
       textAlign: "center"
     }
   }, T("เอกสารนี้ออกจากระบบติดตามงานติดตั้ง"), " flash+solar \xB7 ", b.no || "-", " \xB7 ", T("พิมพ์เมื่อ"), " ", DTs(window.drToday())))), slip && slip.dataUrl && window.ecReceiptKind(slip) !== "pdf" && React.createElement("div", {
@@ -585,7 +585,7 @@ function EcVoucherPaper({
     style: {
       marginTop: 20,
       paddingTop: 18,
-      borderTop: "1px dashed #C9D5CE"
+      borderTop: "1px dashed var(--paper-line2)"
     }
   }, React.createElement("div", {
     style: {
@@ -607,7 +607,7 @@ function EcVoucherPaper({
     style: {
       marginTop: 12,
       fontSize: 10,
-      color: "#7A8A81",
+      color: "var(--paper-mute)",
       textAlign: "center"
     }
   }, T("สลิปแนบเป็นไฟล์ PDF"), " \xB7 ", slip.name || "slip.pdf"))), document.body);
@@ -661,15 +661,15 @@ function EcClaimPaper({
     padding: "5px 7px",
     fontSize: 10,
     fontWeight: 700,
-    color: "#5A6B62",
-    borderBottom: "1px solid #C9D5CE",
+    color: "var(--paper-ink3)",
+    borderBottom: "1px solid var(--paper-line2)",
     whiteSpace: "nowrap"
   };
   const td = {
     padding: "5px 7px",
     fontSize: 10.5,
-    color: "#15211A",
-    borderBottom: "1px solid #ECF1EE",
+    color: "var(--paper-ink)",
+    borderBottom: "1px solid var(--paper-line3)",
     verticalAlign: "top"
   };
   const num = Object.assign({}, td, {
@@ -713,7 +713,7 @@ function EcClaimPaper({
       alignItems: "center",
       padding: "11px 14px",
       background: "var(--surface)",
-      borderBottom: "1px solid var(--border)",
+      borderBottom: "1px solid var(--divider)",
       marginBottom: isMobile ? 0 : 16,
       borderRadius: isMobile ? 0 : 12,
       maxWidth: 900,
@@ -823,8 +823,8 @@ function EcClaimPaper({
     style: {
       maxWidth: 900,
       margin: "0 auto",
-      background: "#fff",
-      color: "#15211A",
+      background: "var(--paper-bg)",
+      color: "var(--paper-ink)",
       fontFamily: lang === "zh" && window.pgFontStack ? window.pgFontStack("zh") : undefined,
       padding: isMobile ? "20px 16px" : "30px 34px",
       borderRadius: isMobile ? 0 : 12,
@@ -839,7 +839,7 @@ function EcClaimPaper({
       alignItems: "flex-end",
       gap: 16,
       flexWrap: "wrap",
-      borderBottom: "2px solid #1B9B75",
+      borderBottom: "2px solid var(--paper-brand)",
       paddingBottom: 11
     }
   }, React.createElement("div", {
@@ -857,7 +857,7 @@ function EcClaimPaper({
       fontSize: 10,
       fontWeight: 600,
       letterSpacing: ".12em",
-      color: "#7A8A81",
+      color: "var(--paper-mute)",
       marginTop: 3
     }
   }, "EXPENSE CLAIM \u2014 FIELD REIMBURSEMENT"), React.createElement("div", {
@@ -873,14 +873,14 @@ function EcClaimPaper({
     style: {
       textAlign: "right",
       fontSize: 11,
-      color: "#4A5A51",
+      color: "var(--paper-ink2)",
       lineHeight: 1.75
     }
   }, React.createElement("div", {
     style: {
       fontFamily: "var(--mono)",
       fontWeight: 700,
-      color: "#15211A"
+      color: "var(--paper-ink)"
     }
   }, c.no || "-"), React.createElement("div", null, DTs(c.date)), React.createElement("div", {
     style: {
@@ -898,7 +898,7 @@ function EcClaimPaper({
       marginTop: 13,
       display: "grid",
       gridTemplateColumns: "auto 1fr auto 1fr",
-      border: "1px solid #DCE4DF",
+      border: "1px solid var(--paper-line)",
       borderRadius: 7,
       overflow: "hidden"
     }
@@ -923,7 +923,7 @@ function EcClaimPaper({
   })), React.createElement("div", {
     style: {
       marginTop: 14,
-      border: "1px solid #1B9B75",
+      border: "1px solid var(--paper-brand)",
       borderRadius: 9,
       overflow: "hidden",
       breakInside: "avoid"
@@ -935,13 +935,13 @@ function EcClaimPaper({
       gap: 12,
       flexWrap: "wrap",
       padding: "11px 14px",
-      background: "#F3F9F6"
+      background: "var(--paper-tint)"
     }
   }, React.createElement("span", {
     style: {
       fontSize: 11.5,
       fontWeight: 700,
-      color: "#4A5A51"
+      color: "var(--paper-ink2)"
     }
   }, T("ยอดที่ขอเบิก")), React.createElement("span", {
     style: {
@@ -953,19 +953,19 @@ function EcClaimPaper({
       fontSize: 22,
       fontWeight: 800,
       fontFamily: "var(--mono)",
-      color: "#0A4D68"
+      color: "var(--paper-brand-dk)"
     }
   }, window.ecBaht(total)), React.createElement("span", {
     style: {
       fontSize: 12,
-      color: "#4A5A51"
+      color: "var(--paper-ink2)"
     }
   }, T("บาท"))), React.createElement("div", {
     style: {
       padding: "8px 14px",
       fontSize: 12,
-      color: "#15211A",
-      borderTop: "1px solid #DCE4DF"
+      color: "var(--paper-ink)",
+      borderTop: "1px solid var(--paper-line)"
     }
   }, T("ตัวอักษร"), " ", React.createElement("b", null, "(", ecBahtText(total), ")"))), React.createElement(EcPBlock, {
     title: T("รายการที่จ่าย")
@@ -1004,7 +1004,7 @@ function EcClaimPaper({
   }, React.createElement("td", {
     style: Object.assign({}, td, {
       fontFamily: "var(--mono)",
-      color: "#7A8A81"
+      color: "var(--paper-mute)"
     })
   }, i + 1), React.createElement("td", {
     style: td
@@ -1038,7 +1038,7 @@ function EcClaimPaper({
     style: {
       fontSize: 11.5,
       lineHeight: 1.65,
-      color: "#15211A",
+      color: "var(--paper-ink)",
       whiteSpace: "pre-wrap"
     }
   }, c.note)) : null, React.createElement(EcPBlock, {
@@ -1047,12 +1047,12 @@ function EcClaimPaper({
   }, imgs.length === 0 && pdfs.length === 0 ? React.createElement("div", {
     style: {
       fontSize: 11,
-      color: "#B45309"
+      color: "var(--paper-warn-tx)"
     }
   }, "\u2014 ", T("ยังไม่ได้แนบบิล"), " \u2014") : React.createElement("div", {
     style: {
       fontSize: 11,
-      color: "#5A6B62",
+      color: "var(--paper-ink3)",
       lineHeight: 1.7
     }
   }, imgs.length > 0 && React.createElement("div", null, T("แนบบิลไว้"), " ", React.createElement("b", null, imgs.length), " ", T("ใบ · อยู่แผ่นถัดไป")), pdfs.length > 0 && React.createElement("div", null, pdfs.length, " ", T("ไฟล์ PDF แนบไว้ในระบบ"), pdfs.map(p => p.name).filter(Boolean).length ? " · " + pdfs.map(p => p.name).filter(Boolean).join(" · ") : ""))), React.createElement("div", {
@@ -1068,7 +1068,7 @@ function EcClaimPaper({
   }, boxes.map((s, i) => React.createElement("div", {
     key: i,
     style: {
-      border: "1px solid #DCE4DF",
+      border: "1px solid var(--paper-line)",
       borderRadius: 8,
       padding: "12px 14px"
     }
@@ -1076,12 +1076,12 @@ function EcClaimPaper({
     style: {
       fontSize: 10.5,
       fontWeight: 700,
-      color: "#5A6B62"
+      color: "var(--paper-ink3)"
     }
   }, s.t), React.createElement("div", {
     style: {
       height: 42,
-      borderBottom: "1px solid #C9D5CE",
+      borderBottom: "1px solid var(--paper-line2)",
       marginTop: 6,
       display: "grid",
       placeItems: "center",
@@ -1099,18 +1099,18 @@ function EcClaimPaper({
     style: {
       fontSize: 11,
       marginTop: 6,
-      color: "#15211A"
+      color: "var(--paper-ink)"
     }
   }, T("ชื่อ:"), " ", React.createElement("b", null, s.n || "…………………………")), React.createElement("div", {
     style: {
       fontSize: 11,
-      color: "#4A5A51"
+      color: "var(--paper-ink2)"
     }
   }, T("วันที่:"), " ", s.at ? DTs(s.at) : "…………………………")))), React.createElement("div", {
     style: {
       marginTop: 14,
       fontSize: 9.5,
-      color: "#8A9A91",
+      color: "var(--paper-mute2)",
       textAlign: "center"
     }
   }, T("เอกสารนี้ออกจากระบบติดตามงานติดตั้ง"), " flash+solar \xB7 ", c.no || "-", " \xB7 ", T("พิมพ์เมื่อ"), " ", DTs(window.drToday())))), imgs.map((s, i) => React.createElement("div", {
@@ -1119,7 +1119,7 @@ function EcClaimPaper({
     style: {
       marginTop: 20,
       paddingTop: 18,
-      borderTop: "1px dashed #C9D5CE"
+      borderTop: "1px dashed var(--paper-line2)"
     }
   }, React.createElement("div", {
     style: {
@@ -1127,7 +1127,7 @@ function EcClaimPaper({
       alignItems: "baseline",
       justifyContent: "space-between",
       gap: 12,
-      borderBottom: "1px solid #DCE4DF",
+      borderBottom: "1px solid var(--paper-line)",
       paddingBottom: 6,
       marginBottom: 10
     }
@@ -1139,7 +1139,7 @@ function EcClaimPaper({
   }, T("บิล / ใบเสร็จ")), React.createElement("span", {
     style: {
       fontSize: 10.5,
-      color: "#5A6B62",
+      color: "var(--paper-ink3)",
       fontFamily: "var(--mono)"
     }
   }, c.no || "-", " \xB7 ", T("แผ่น"), " ", i + 1, "/", imgs.length)), React.createElement("img", {
@@ -1162,17 +1162,17 @@ function EcVPRow({
       padding: "6px 10px",
       fontSize: 10.5,
       fontWeight: 700,
-      color: "#5A6B62",
-      background: "#F7FAF8",
-      borderBottom: "1px solid #ECF1EE",
+      color: "var(--paper-ink3)",
+      background: "var(--paper-tint)",
+      borderBottom: "1px solid var(--paper-line3)",
       whiteSpace: "nowrap"
     }
   }, k), React.createElement("div", {
     style: {
       padding: "6px 10px",
       fontSize: 11.5,
-      color: "#15211A",
-      borderBottom: "1px solid #ECF1EE"
+      color: "var(--paper-ink)",
+      borderBottom: "1px solid var(--paper-line3)"
     }
   }, v || "—"));
 }
@@ -1191,7 +1191,7 @@ function EcPBlock({
       display: "flex",
       alignItems: "center",
       gap: 7,
-      borderBottom: "1px solid #DCE4DF",
+      borderBottom: "1px solid var(--paper-line)",
       paddingBottom: 5,
       marginBottom: 8
     }
@@ -1200,13 +1200,13 @@ function EcPBlock({
       width: 5,
       height: 5,
       borderRadius: 99,
-      background: "#1B9B75"
+      background: "var(--paper-brand)"
     }
   }), React.createElement("span", {
     style: {
       fontSize: 12,
       fontWeight: 800,
-      color: "#15211A"
+      color: "var(--paper-ink)"
     }
   }, title)), children);
 }

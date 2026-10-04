@@ -178,7 +178,7 @@ function LangPick({ value, onChange, label }) {
             <button key={L.id} type="button" onClick={() => onChange(L.id)} title={"ออกเอกสารเป็นภาษา" + L.th}
               style={{ padding: "5px 13px", borderRadius: "var(--r-pill)", cursor: "pointer", fontFamily: "inherit",
                 fontSize: 12, fontWeight: 700, transition: "background .15s, border-color .15s",
-                border: "1px solid " + (on ? "var(--primary)" : "var(--border-strong)"),
+                border: "none", boxShadow: on ? "inset 0 0 0 1px var(--primary)" : "var(--shadow-sm)",
                 background: on ? "var(--primary-soft)" : "var(--surface)",
                 color: on ? "var(--primary-dark)" : "var(--text-2)" }}>
               {L.label}

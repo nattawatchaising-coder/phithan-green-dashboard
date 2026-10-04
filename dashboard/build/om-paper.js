@@ -217,7 +217,7 @@ function OmVisitModal({
       top: 0,
       zIndex: 2,
       background: "var(--bg)",
-      borderBottom: "1px solid var(--border)",
+      borderBottom: "1px solid var(--divider)",
       padding: isMobile ? "14px 13px" : "16px 20px"
     }
   }, React.createElement("div", {
@@ -557,7 +557,8 @@ function OmVisitModal({
       fontFamily: "inherit",
       fontSize: 12.5,
       fontWeight: 700,
-      border: "1px solid " + (tab === k ? "var(--primary)" : "var(--border-strong)"),
+      border: "none",
+      boxShadow: tab === k ? "inset 0 0 0 1px var(--primary)" : "var(--shadow-sm)",
       background: tab === k ? "var(--primary-soft)" : "var(--surface)",
       color: tab === k ? "var(--primary-dark)" : "var(--text-2)"
     }
@@ -617,7 +618,7 @@ function OmVisitModal({
       minWidth: 160,
       fontSize: 12.5,
       fontWeight: 700,
-      color: "#EF4444"
+      color: "var(--paper-bad)"
     }
   }, "\u0E25\u0E1A\u0E43\u0E1A ", v.no, " \u0E17\u0E31\u0E49\u0E07\u0E43\u0E1A? \u0E23\u0E39\u0E1B\u0E41\u0E25\u0E30\u0E25\u0E32\u0E22\u0E40\u0E0B\u0E47\u0E19\u0E2B\u0E32\u0E22\u0E16\u0E32\u0E27\u0E23 \u0E40\u0E23\u0E35\u0E22\u0E01\u0E04\u0E37\u0E19\u0E44\u0E21\u0E48\u0E44\u0E14\u0E49"), React.createElement("button", {
     onClick: () => setDelAsk(false),
@@ -714,19 +715,19 @@ function OmPRow({
   return React.createElement(React.Fragment, null, React.createElement("div", {
     style: {
       padding: "6px 10px",
-      borderRight: "1px solid #DCE4DF",
-      borderBottom: "1px solid #DCE4DF",
+      borderRight: "1px solid var(--paper-line)",
+      borderBottom: "1px solid var(--paper-line)",
       fontSize: 10.5,
       fontWeight: 700,
-      color: "#0A4D68",
-      background: "#F3F7F4"
+      color: "var(--paper-brand-dk)",
+      background: "var(--paper-tint)"
     }
   }, k), React.createElement("div", {
     style: {
       padding: "6px 10px",
-      borderBottom: "1px solid #DCE4DF",
+      borderBottom: "1px solid var(--paper-line)",
       fontSize: 11,
-      color: "#15211A"
+      color: "var(--paper-ink)"
     }
   }, v || "-"));
 }
@@ -745,7 +746,7 @@ function OmPBlock({
       display: "flex",
       alignItems: "center",
       gap: 7,
-      borderBottom: "1px solid #DCE4DF",
+      borderBottom: "1px solid var(--paper-line)",
       paddingBottom: 5,
       marginBottom: 8
     }
@@ -754,13 +755,13 @@ function OmPBlock({
       width: 5,
       height: 5,
       borderRadius: 99,
-      background: "#1B9B75"
+      background: "var(--paper-brand)"
     }
   }), React.createElement("span", {
     style: {
       fontSize: 12,
       fontWeight: 800,
-      color: "#15211A"
+      color: "var(--paper-ink)"
     }
   }, title)), children);
 }
@@ -768,7 +769,7 @@ const omPara = t => React.createElement("div", {
   style: {
     fontSize: 11.5,
     lineHeight: 1.65,
-    color: "#15211A",
+    color: "var(--paper-ink)",
     whiteSpace: "pre-wrap"
   }
 }, t || "—");
@@ -849,10 +850,10 @@ function OmShot({
     className: "om-shot",
     style: {
       breakInside: "avoid",
-      border: "1px solid #DCE4DF",
+      border: "1px solid var(--paper-line)",
       borderRadius: 7,
       overflow: "hidden",
-      background: "#fff"
+      background: "var(--paper-bg)"
     }
   }, React.createElement("div", {
     ref: box,
@@ -865,7 +866,7 @@ function OmShot({
       width: "100%",
       aspectRatio: ratio,
       overflow: "hidden",
-      background: "#F3F7F4",
+      background: "var(--paper-tint)",
       cursor: live ? "move" : "default",
       touchAction: live ? "none" : "auto"
     }
@@ -973,12 +974,12 @@ function OmShot({
     style: {
       padding: "5px 8px",
       fontSize: 10.5,
-      color: "#4A5A51",
-      borderTop: "1px solid #ECF1EE"
+      color: "var(--paper-ink2)",
+      borderTop: "1px solid var(--paper-line3)"
     }
   }, React.createElement("b", {
     style: {
-      color: "#0A4D68"
+      color: "var(--paper-brand-dk)"
     }
   }, T("รูปที่"), " ", n), p.cap ? " · " + p.cap : ""));
 }
@@ -1006,12 +1007,12 @@ function OmPSheet({
       fontSize: 20,
       fontWeight: 800,
       letterSpacing: "-.01em",
-      color: "#15211A"
+      color: "var(--paper-ink)"
     }
   }, title), React.createElement("div", {
     style: {
       fontSize: 11,
-      color: "#7A8A81"
+      color: "var(--paper-mute)"
     }
   }, sub)), children);
 }
@@ -1061,15 +1062,15 @@ function OmVisitPaper({
     padding: "5px 7px",
     fontSize: 10,
     fontWeight: 700,
-    color: "#5A6B62",
-    borderBottom: "1px solid #C9D5CE",
+    color: "var(--paper-ink3)",
+    borderBottom: "1px solid var(--paper-line2)",
     whiteSpace: "nowrap"
   };
   const td = {
     padding: "5px 7px",
     fontSize: 10.5,
-    color: "#15211A",
-    borderBottom: "1px solid #ECF1EE",
+    color: "var(--paper-ink)",
+    borderBottom: "1px solid var(--paper-line3)",
     verticalAlign: "top"
   };
   const sheetHead = React.createElement("div", {
@@ -1079,7 +1080,7 @@ function OmVisitPaper({
       alignItems: "flex-end",
       gap: 16,
       flexWrap: "wrap",
-      borderBottom: "2px solid #1B9B75",
+      borderBottom: "2px solid var(--paper-brand)",
       paddingBottom: 9,
       marginBottom: 16
     }
@@ -1100,21 +1101,21 @@ function OmVisitPaper({
       fontSize: 9.5,
       fontWeight: 600,
       letterSpacing: ".12em",
-      color: "#7A8A81",
+      color: "var(--paper-mute)",
       marginTop: 5
     }
   }, "SOLAR O&M \u2014 SERVICE VISIT REPORT")), React.createElement("div", {
     style: {
       textAlign: "right",
       fontSize: 10.5,
-      color: "#4A5A51",
+      color: "var(--paper-ink2)",
       lineHeight: 1.7
     }
   }, React.createElement("div", {
     style: {
       fontFamily: "var(--mono)",
       fontWeight: 700,
-      color: "#15211A"
+      color: "var(--paper-ink)"
     }
   }, v.no), React.createElement("div", null, DT(v.date))));
   const shots = (title, list) => !list.length ? null : React.createElement(OmPSheet, {
@@ -1159,7 +1160,7 @@ function OmVisitPaper({
       flexWrap: "wrap",
       padding: "11px 14px",
       background: "var(--surface)",
-      borderBottom: "1px solid var(--border)",
+      borderBottom: "1px solid var(--divider)",
       marginBottom: isMobile ? 0 : 16,
       borderRadius: isMobile ? 0 : 12,
       maxWidth: 900,
@@ -1209,7 +1210,8 @@ function OmVisitPaper({
       gap: 6,
       padding: "10px 13px",
       borderRadius: 11,
-      border: "1px solid " + (tune ? "var(--primary)" : "var(--border-strong)"),
+      border: "none",
+      boxShadow: tune ? "inset 0 0 0 1px var(--primary)" : "var(--shadow-sm)",
       background: tune ? "var(--primary)" : "var(--surface)",
       color: tune ? "#fff" : "var(--text-2)",
       fontFamily: "inherit",
@@ -1284,7 +1286,8 @@ function OmVisitPaper({
       fontFamily: "inherit",
       fontSize: 11.5,
       fontWeight: 700,
-      border: "1px solid " + (fit === r.k ? "var(--primary)" : "var(--border-strong)"),
+      border: "none",
+      boxShadow: fit === r.k ? "inset 0 0 0 1px var(--primary)" : "var(--shadow-sm)",
       background: fit === r.k ? "var(--primary)" : "var(--surface)",
       color: fit === r.k ? "#fff" : "var(--text-2)"
     }
@@ -1293,8 +1296,8 @@ function OmVisitPaper({
     style: {
       maxWidth: 900,
       margin: "0 auto",
-      background: "#fff",
-      color: "#15211A",
+      background: "var(--paper-bg)",
+      color: "var(--paper-ink)",
       fontFamily: lang === "zh" && window.pgFontStack ? window.pgFontStack("zh") : undefined,
       padding: isMobile ? "20px 16px" : "30px 34px",
       borderRadius: isMobile ? 0 : 12,
@@ -1309,7 +1312,7 @@ function OmVisitPaper({
       alignItems: "flex-end",
       gap: 16,
       flexWrap: "wrap",
-      borderBottom: "2px solid #1B9B75",
+      borderBottom: "2px solid var(--paper-brand)",
       paddingBottom: 11
     }
   }, React.createElement("div", {
@@ -1327,7 +1330,7 @@ function OmVisitPaper({
       fontSize: 10,
       fontWeight: 600,
       letterSpacing: ".12em",
-      color: "#7A8A81",
+      color: "var(--paper-mute)",
       marginTop: 3
     }
   }, "SOLAR O&M \u2014 SERVICE VISIT REPORT"), React.createElement("div", {
@@ -1343,21 +1346,21 @@ function OmVisitPaper({
     style: {
       textAlign: "right",
       fontSize: 11,
-      color: "#4A5A51",
+      color: "var(--paper-ink2)",
       lineHeight: 1.75
     }
   }, React.createElement("div", {
     style: {
       fontFamily: "var(--mono)",
       fontWeight: 700,
-      color: "#15211A"
+      color: "var(--paper-ink)"
     }
   }, v.no), React.createElement("div", null, DT(v.date)))), React.createElement("div", {
     style: {
       marginTop: 13,
       display: "grid",
       gridTemplateColumns: "auto 1fr auto 1fr",
-      border: "1px solid #DCE4DF",
+      border: "1px solid var(--paper-line)",
       borderRadius: 7,
       overflow: "hidden"
     }
@@ -1388,7 +1391,7 @@ function OmVisitPaper({
   })), React.createElement("div", {
     style: {
       marginTop: 14,
-      border: "1px solid #DCE4DF",
+      border: "1px solid var(--paper-line)",
       borderRadius: 9,
       padding: "12px 14px",
       breakInside: "avoid",
@@ -1401,7 +1404,7 @@ function OmVisitPaper({
     style: {
       fontSize: 11.5,
       fontWeight: 700,
-      color: "#4A5A51"
+      color: "var(--paper-ink2)"
     }
   }, T("สถานะค่าบริการ")), React.createElement("span", {
     style: {
@@ -1419,14 +1422,14 @@ function OmVisitPaper({
   }), React.createElement("span", {
     style: {
       fontSize: 11.5,
-      color: "#4A5A51"
+      color: "var(--paper-ink2)"
     }
   }, T("ยอดเรียกเก็บ")), React.createElement("span", {
     style: {
       fontFamily: "var(--mono)",
       fontSize: 17,
       fontWeight: 800,
-      color: "#15211A"
+      color: "var(--paper-ink)"
     }
   }, v.charge == null ? "—" : Number(v.charge).toLocaleString("th-TH") + " " + T("บาท"))), React.createElement(OmPBlock, {
     title: T("ตรวจพบ"),
@@ -1461,7 +1464,7 @@ function OmVisitPaper({
   }, React.createElement("td", {
     style: Object.assign({}, td, {
       fontFamily: "var(--mono)",
-      color: "#7A8A81"
+      color: "var(--paper-mute)"
     })
   }, i + 1), React.createElement("td", {
     style: td
@@ -1480,7 +1483,7 @@ function OmVisitPaper({
     style: {
       marginTop: 6,
       fontSize: 11.5,
-      color: "#15211A"
+      color: "var(--paper-ink)"
     }
   }, T("นัดครั้งถัดไป:"), " ", React.createElement("b", null, DT(v.nextDue)))), React.createElement("div", {
     className: "om-sign",
@@ -1504,7 +1507,7 @@ function OmVisitPaper({
   }].map((x, i) => React.createElement("div", {
     key: i,
     style: {
-      border: "1px solid #DCE4DF",
+      border: "1px solid var(--paper-line)",
       borderRadius: 8,
       padding: "12px 14px"
     }
@@ -1512,12 +1515,12 @@ function OmVisitPaper({
     style: {
       fontSize: 10.5,
       fontWeight: 700,
-      color: "#5A6B62"
+      color: "var(--paper-ink3)"
     }
   }, x.t), React.createElement("div", {
     style: {
       height: 42,
-      borderBottom: "1px solid #C9D5CE",
+      borderBottom: "1px solid var(--paper-line2)",
       marginTop: 6,
       display: "flex",
       alignItems: "flex-end",
@@ -1536,30 +1539,30 @@ function OmVisitPaper({
     style: {
       fontSize: 11,
       marginTop: 6,
-      color: "#15211A"
+      color: "var(--paper-ink)"
     }
   }, T("ชื่อ:"), " ", React.createElement("b", null, x.s && x.s.name || x.n || "-")), x.s && x.s.img && React.createElement("div", {
     style: {
       fontSize: 8.5,
-      color: "#8A9A91",
+      color: "var(--paper-mute2)",
       marginTop: 3
     }
   }, T("ลงลายมือชื่ออิเล็กทรอนิกส์ในระบบ"), " ", window.drSignTime(x.s) ? window.drSignTime(x.s) + (lang === "th" ? " น." : "") : "")))), v.status === "approved" && React.createElement("div", {
     style: {
       marginTop: 10,
       fontSize: 10,
-      color: "#4A5A51",
+      color: "var(--paper-ink2)",
       textAlign: "right"
     }
   }, T("อนุมัติโดย"), " ", React.createElement("b", {
     style: {
-      color: "#15211A"
+      color: "var(--paper-ink)"
     }
   }, v.appName || "-"), v.approvedAt ? " · " + DTs(window.drLocalDay(v.approvedAt)) : ""), React.createElement("div", {
     style: {
       marginTop: 14,
       fontSize: 9.5,
-      color: "#8A9A91",
+      color: "var(--paper-mute2)",
       textAlign: "center"
     }
   }, T("เอกสารนี้ออกจากระบบงานบริการหลังการขาย"), " flash+solar \xB7 ", v.no, " \xB7 ", T("พิมพ์เมื่อ"), " ", DTs(window.drToday()))), shots("รูปก่อนทำงาน", before), shots("รูปหลังทำงาน", after))), document.body);
@@ -1678,7 +1681,7 @@ function OmVisitList({
         alignItems: "center",
         gap: 11,
         padding: isMobile ? "11px 12px" : "13px 16px",
-        borderBottom: "1px solid var(--border)",
+        borderBottom: "1px solid var(--divider)",
         background: "none",
         border: "none",
         borderTop: "none",

@@ -21,7 +21,7 @@ const RP_SOFT = "#5A6B62";
 /* ช่องตารางรายการตรวจ — เส้นบาง ตัวเล็ก ให้ลงกระดาษ A4 ได้หลายข้อโดยยังอ่านออก */
 const rpTh = { textAlign: "left", padding: "5px 7px", fontSize: 10, fontWeight: 700, color: RP_SOFT,
   borderBottom: "1px solid " + RP_LINE, borderTop: "1px solid " + RP_LINE, whiteSpace: "nowrap" };
-const rpTd = { padding: "5px 7px", fontSize: 10.5, color: RP_INK, borderBottom: "1px solid #ECF1EE",
+const rpTd = { padding: "5px 7px", fontSize: 10.5, color: RP_INK, borderBottom: "1px solid var(--paper-line3)",
   verticalAlign: "top", wordBreak: "break-word" };
 
 /* วันที่บนเอกสาร — ใบนี้เป็นเอกสารที่ส่งให้ลูกค้าและผู้จัดการโครงการซึ่งอ่านไทย
@@ -119,7 +119,7 @@ function InspectionPaper({ job, rec, photos, onClose }) {
       overflow: "auto", padding: isMobile ? 0 : "24px 16px" }}>
 
       <div className="sv-rep-noprint" style={{ position: "sticky", top: 0, zIndex: 2, display: "flex", gap: 9, alignItems: "center",
-        padding: "11px 14px", background: "var(--surface)", borderBottom: "1px solid var(--border)",
+        padding: "11px 14px", background: "var(--surface)", borderBottom: "1px solid var(--divider)",
         marginBottom: isMobile ? 0 : 16, borderRadius: isMobile ? 0 : 12, maxWidth: 900, marginLeft: "auto", marginRight: "auto", boxShadow: "var(--shadow-sm)" }}>
         <button onClick={onClose} style={{ width: 36, height: 36, borderRadius: 10, border: "1px solid var(--border-strong)",
           background: "var(--surface)", cursor: "pointer", display: "grid", placeItems: "center", color: "var(--text-2)", flexShrink: 0 }}>
@@ -137,7 +137,7 @@ function InspectionPaper({ job, rec, photos, onClose }) {
         </button>
       </div>
 
-      <div className="sv-rep-paper" style={{ maxWidth: 900, margin: "0 auto", background: "#fff", color: RP_INK,
+      <div className="sv-rep-paper" style={{ maxWidth: 900, margin: "0 auto", background: "var(--paper-bg)", color: RP_INK,
         padding: isMobile ? "20px 16px" : "30px 34px", borderRadius: isMobile ? 0 : 12, boxShadow: "var(--shadow-modal)" }}>
 
         {/* ══ หน้าแรก — ใบขอตรวจรับมอบ ══ */}
@@ -238,7 +238,7 @@ function InspectionPaper({ job, rec, photos, onClose }) {
               Summary <span style={{ fontSize: 10, color: RP_SOFT, fontWeight: 500 }}>(สรุปผลการตรวจ)</span>
             </div>
             <div style={{ border: "1px solid " + RP_LINE, borderRadius: 4, padding: "9px 11px", fontSize: 11,
-              whiteSpace: "pre-wrap", lineHeight: 1.7, background: "#F7FAF9" }}>
+              whiteSpace: "pre-wrap", lineHeight: 1.7, background: "var(--paper-tint)" }}>
               {r.summary}
             </div>
           </div>
@@ -273,7 +273,7 @@ function InspectionPaper({ job, rec, photos, onClose }) {
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
               {page.map((p, i) => (
                 <div key={p.id} style={{ border: "1px solid " + RP_LINE, borderRadius: 4, overflow: "hidden", breakInside: "avoid", pageBreakInside: "avoid" }}>
-                  <img src={p.dataUrl} alt={p.cap || "รูปประกอบการตรวจ"} style={{ width: "100%", height: 186, objectFit: "cover", display: "block", background: "#EEF3F3" }} />
+                  <img src={p.dataUrl} alt={p.cap || "รูปประกอบการตรวจ"} style={{ width: "100%", height: 186, objectFit: "cover", display: "block", background: "var(--paper-tint)" }} />
                   <div style={{ padding: "6px 9px", fontSize: 10, color: RP_INK, borderTop: "1px solid " + RP_LINE, minHeight: 26 }}>
                     <b style={{ color: RP_SOFT }}>{pi * 6 + i + 1}.</b> {p.cap || " "}
                   </div>

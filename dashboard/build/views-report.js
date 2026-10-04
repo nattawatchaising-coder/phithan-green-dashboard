@@ -188,7 +188,8 @@ function ReportBlock({
       gap: 5,
       padding: "5px 10px",
       borderRadius: "var(--r-chip)",
-      border: "1px solid " + (copied ? "var(--primary)" : "var(--border-strong)"),
+      border: "none",
+      boxShadow: copied ? "inset 0 0 0 1px var(--primary)" : "var(--shadow-sm)",
       background: copied ? "var(--primary-soft)" : "var(--surface2)",
       color: copied ? "var(--primary-dark)" : "var(--text-2)",
       fontSize: 11.5,
@@ -335,7 +336,8 @@ function ReportView({
     style: btn({
       background: hideDone ? "var(--primary-soft)" : "var(--surface2)",
       color: hideDone ? "var(--primary-dark)" : "var(--text-2)",
-      border: "1px solid " + (hideDone ? "var(--primary)" : "var(--border-strong)")
+      border: "none",
+      boxShadow: hideDone ? "inset 0 0 0 1px var(--primary)" : "var(--shadow-sm)"
     })
   }, React.createElement(Icon, {
     name: hideDone ? "eyeOff" : "check",

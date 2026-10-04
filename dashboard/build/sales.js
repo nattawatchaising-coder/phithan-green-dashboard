@@ -1215,7 +1215,8 @@ function QuotePagePick({
         marginTop: 1,
         display: "grid",
         placeItems: "center",
-        border: "1.5px solid " + (on ? "var(--primary)" : "var(--border-strong)"),
+        border: "none",
+        boxShadow: on ? "inset 0 0 0 1.5px var(--primary)" : "var(--shadow-inset)",
         background: on ? "var(--primary)" : "transparent"
       }
     }, on && React.createElement(Icon, {
@@ -1298,7 +1299,8 @@ function QuoteRowPic({
       overflow: "hidden",
       display: "grid",
       placeItems: "center",
-      border: "1px solid " + (cur ? "var(--primary)" : "var(--border-strong)"),
+      border: "none",
+      boxShadow: cur ? "inset 0 0 0 1px var(--primary)" : "var(--shadow-sm)",
       background: "var(--surface)",
       cursor: locked ? "default" : "pointer"
     }
@@ -1364,7 +1366,8 @@ function QuoteRowPic({
       display: "block",
       cursor: "pointer",
       borderRadius: "var(--r-chip)",
-      border: "2px solid " + (p.id === id ? "var(--primary)" : "transparent")
+      border: "none",
+      boxShadow: p.id === id ? "inset 0 0 0 2px var(--primary)" : "none"
     }
   }))), cur && React.createElement("button", {
     type: "button",
@@ -1602,7 +1605,7 @@ function QuoteRoiEdit({
       flexWrap: "wrap",
       gap: "6px 18px",
       paddingTop: 4,
-      borderTop: "1px solid var(--border)"
+      borderTop: "1px solid var(--divider)"
     }
   }, [["ผลิตไฟรายปี", Math.round(R.yearKwh).toLocaleString() + " หน่วย"], ["คืนทุน", R.payback ? R.payback.y + " ปี" + (R.payback.m ? " " + R.payback.m + " เดือน" : "") : "เกิน " + cfg.years + " ปี"], ["ลดค่าไฟเดือนละ", "฿" + sBaht(R.month1)], ["กำไร " + cfg.years + " ปี", "฿" + Math.round(R.profit).toLocaleString()]].map(x => React.createElement("span", {
     key: x[0],
@@ -1762,7 +1765,7 @@ function QuotePicPick({
       style: {
         width: "100%",
         border: "none",
-        borderTop: "1px solid var(--border)",
+        borderTop: "1px solid var(--divider)",
         background: "transparent",
         padding: "6px 8px",
         fontFamily: "inherit",
@@ -1865,7 +1868,8 @@ function QuoteSheetPick({
         gap: 9,
         padding: "8px 10px",
         borderRadius: "var(--r-tile)",
-        border: "1px solid " + (on ? "var(--primary)" : "var(--border)"),
+        border: "none",
+        boxShadow: on ? "inset 0 0 0 1px var(--primary)" : "var(--shadow-sm)",
         background: on ? "var(--primary-soft)" : "var(--surface)",
         cursor: locked ? "default" : "pointer",
         fontFamily: "inherit",
@@ -1879,7 +1883,8 @@ function QuoteSheetPick({
         flexShrink: 0,
         display: "grid",
         placeItems: "center",
-        border: "1.5px solid " + (on ? "var(--primary)" : "var(--border-strong)"),
+        border: "none",
+        boxShadow: on ? "inset 0 0 0 1.5px var(--primary)" : "var(--shadow-inset)",
         background: on ? "var(--primary)" : "transparent"
       }
     }, on && React.createElement(Icon, {
@@ -3243,7 +3248,7 @@ function SalesCard({
       style: {
         marginTop: 9,
         paddingTop: 9,
-        borderTop: "1px solid var(--border)",
+        borderTop: "1px solid var(--divider)",
         display: "flex",
         alignItems: "center",
         gap: 7,
@@ -3873,14 +3878,14 @@ function SalesKpiView({
     color: "var(--text-3)",
     textAlign: "right",
     whiteSpace: "nowrap",
-    borderBottom: "1px solid var(--border)"
+    borderBottom: "1px solid var(--divider)"
   };
   const td = {
     padding: "11px",
     fontSize: 13,
     textAlign: "right",
     fontVariantNumeric: "tabular-nums",
-    borderBottom: "1px solid var(--border)",
+    borderBottom: "1px solid var(--divider)",
     whiteSpace: "nowrap"
   };
   const pill = (text, color) => React.createElement("span", {
@@ -3952,7 +3957,8 @@ function SalesKpiView({
       fontFamily: "inherit",
       fontSize: 12,
       fontWeight: 700,
-      border: "1px solid " + (month ? "var(--border)" : "transparent"),
+      border: "none",
+      boxShadow: month ? "var(--shadow-sm)" : "none",
       background: month ? "var(--surface)" : "var(--primary)",
       color: month ? "var(--text-2)" : "#fff"
     }
@@ -4617,7 +4623,7 @@ function SalesJobSummary({
       fontSize: 12.5,
       color: b.color,
       background: b.color + "12",
-      border: "1px solid " + b.color + "33",
+      border: "none",
       borderRadius: "var(--r-tile)",
       padding: "9px 12px",
       marginBottom: 6,

@@ -1498,7 +1498,7 @@ function BrandPanel({
       width: 7,
       height: 7,
       borderRadius: "var(--r-pill)",
-      background: t.color,
+      background: "var(--type-" + t.key + "-fg, " + t.color + ")",
       flexShrink: 0
     }
   }), React.createElement("span", {

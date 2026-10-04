@@ -937,7 +937,7 @@ function Meas3DModal({
   }, React.createElement("div", {
     style: {
       padding: "16px 20px",
-      borderBottom: "1px solid var(--border)",
+      borderBottom: "1px solid var(--divider)",
       background: "var(--surface)",
       flexShrink: 0
     }
@@ -1038,7 +1038,7 @@ function Meas3DModal({
   })), React.createElement("div", {
     style: {
       padding: "12px 16px",
-      borderTop: "1px solid var(--border)",
+      borderTop: "1px solid var(--divider)",
       background: "var(--surface)",
       display: "flex",
       alignItems: "center",
@@ -4075,7 +4075,8 @@ function BOQEditor({
           fontFamily: "inherit",
           fontSize: 11,
           fontWeight: 800,
-          border: "1px solid " + (x.hdg ? "var(--primary)" : "var(--border-strong)"),
+          border: "none",
+          boxShadow: x.hdg ? "inset 0 0 0 1px var(--primary)" : "var(--shadow-sm)",
           background: x.hdg ? "var(--primary-soft)" : "var(--surface)",
           color: x.hdg ? "var(--primary-dark)" : "var(--text-3)"
         }
@@ -4098,7 +4099,8 @@ function BOQEditor({
           fontFamily: "inherit",
           fontSize: 11,
           fontWeight: 800,
-          border: "1px solid " + (x.rail ? "var(--primary)" : "var(--border-strong)"),
+          border: "none",
+          boxShadow: x.rail ? "inset 0 0 0 1px var(--primary)" : "var(--shadow-sm)",
           background: x.rail ? "var(--primary-soft)" : "var(--surface)",
           color: x.rail ? "var(--primary-dark)" : "var(--text-3)"
         }
@@ -4715,7 +4717,7 @@ function BOQEditor({
     style: {
       marginTop: 10,
       paddingTop: 10,
-      borderTop: "1px solid var(--border)",
+      borderTop: "1px solid var(--divider)",
       display: "flex",
       flexDirection: "column",
       gap: 6
@@ -7450,7 +7452,8 @@ function BOQEditor({
         display: "inline-flex",
         alignItems: "center",
         gap: 5,
-        border: "1px solid " + (own ? "var(--border-strong)" : "transparent"),
+        border: "none",
+        boxShadow: own ? "var(--shadow-sm)" : "none",
         background: own ? "var(--surface)" : "var(--surface2)",
         color: own ? "var(--text-2)" : "var(--text-3)",
         borderRadius: "var(--r-pill)",
@@ -7969,7 +7972,8 @@ function BOQEditor({
         alignItems: "center",
         padding: "10px 13px",
         borderRadius: "var(--r-chip)",
-        border: "1px solid " + (bad ? "#F59E0B55" : "var(--border)"),
+        border: "none",
+        boxShadow: bad ? "inset 0 0 0 1px #F59E0B55" : "var(--shadow-sm)",
         background: bad ? "#F59E0B12" : "var(--surface2)"
       }
     }, React.createElement("span", {
@@ -8588,7 +8592,7 @@ function BOQEditor({
       key: k.key,
       style: ki === 0 ? null : {
         paddingTop: 16,
-        borderTop: "1px solid var(--border)"
+        borderTop: "1px solid var(--divider)"
       }
     }, sc.kits.length > 1 && React.createElement(React.Fragment, null, React.createElement("div", {
       style: {
@@ -9054,7 +9058,8 @@ function BOQEditor({
       borderRadius: "var(--r-chip)",
       cursor: "pointer",
       fontFamily: "inherit",
-      border: "1px solid " + (laborMode === m.v ? "var(--primary)" : "var(--border-strong)"),
+      border: "none",
+      boxShadow: laborMode === m.v ? "inset 0 0 0 1px var(--primary)" : "var(--shadow-sm)",
       background: laborMode === m.v ? "var(--primary-soft)" : "var(--surface2)"
     }
   }, React.createElement("span", {
@@ -9631,7 +9636,7 @@ function BOQEditor({
       gridTemplateColumns: isMobile ? priced.grandTotal > 0 ? "minmax(0,1fr) 56px 64px" : "minmax(0,1fr) 56px" : "1fr 68px 84px",
       gap: 8,
       padding: "9px 14px",
-      borderTop: "1px solid var(--border)",
+      borderTop: "1px solid var(--divider)",
       alignItems: "center"
     }
   }, React.createElement("span", {
@@ -9689,7 +9694,8 @@ function BOQEditor({
         gap: 4,
         padding: "1px 7px",
         borderRadius: "var(--r-pill)",
-        border: "1px solid " + (it.variantLabel ? "var(--border-strong)" : "transparent"),
+        border: "none",
+        boxShadow: it.variantLabel ? "var(--shadow-sm)" : "none",
         background: it.variantLabel ? "var(--surface2)" : "transparent",
         color: it.variantLabel ? "var(--text-2)" : "var(--text-3)",
         fontFamily: "inherit",
@@ -9867,7 +9873,7 @@ function BOQEditor({
       alignItems: "baseline",
       padding: "13px 14px",
       background: "var(--primary-soft)",
-      borderTop: "1px solid var(--border)"
+      borderTop: "1px solid var(--divider)"
     }
   }, React.createElement("span", {
     style: {
@@ -10116,7 +10122,8 @@ function BOQEditor({
         padding: "12px 14px",
         borderRadius: "var(--r-chip)",
         background: good ? "var(--primary-soft)" : "var(--tint-amber-bg2)",
-        border: "1px solid " + (good ? "var(--tint-ok-bd)" : "var(--tint-amber-bd)")
+        border: "none",
+        boxShadow: good ? "inset 0 0 0 1px var(--tint-ok-bd)" : "inset 0 0 0 1px var(--tint-amber-bd)"
       }
     }, React.createElement("span", {
       style: {
@@ -10584,7 +10591,7 @@ function MatVariantModal({
   }, React.createElement("div", {
     style: {
       padding: "16px 20px",
-      borderBottom: "1px solid var(--border)",
+      borderBottom: "1px solid var(--divider)",
       background: "var(--surface)",
       flexShrink: 0
     }
@@ -10664,7 +10671,8 @@ function MatVariantModal({
       background: keepPrice ? "var(--primary-soft)" : "var(--surface2)",
       padding: "9px 11px",
       borderRadius: "var(--r-chip)",
-      border: "1px solid " + (keepPrice ? "var(--primary)" : "var(--border)")
+      border: "none",
+      boxShadow: keepPrice ? "inset 0 0 0 1px var(--primary)" : "var(--shadow-sm)"
     }
   }, React.createElement("input", {
     type: "checkbox",
@@ -10767,7 +10775,8 @@ function MatVariantModal({
         fontFamily: "inherit",
         padding: "9px 11px",
         borderRadius: "var(--r-chip)",
-        border: "1px solid " + (on ? "var(--primary)" : "var(--border)"),
+        border: "none",
+        boxShadow: on ? "inset 0 0 0 1px var(--primary)" : "var(--shadow-sm)",
         background: on ? "var(--primary-soft)" : "var(--surface)"
       }
     }, React.createElement("span", {
@@ -10961,7 +10970,7 @@ function MatVariantModal({
   }, "* \u0E41\u0E01\u0E49\u0E17\u0E35\u0E48\u0E19\u0E35\u0E48 = \u0E41\u0E01\u0E49\u0E43\u0E19\u0E04\u0E25\u0E31\u0E07\u0E2A\u0E34\u0E19\u0E04\u0E49\u0E32\u0E40\u0E25\u0E22 \u0E40\u0E2B\u0E47\u0E19\u0E15\u0E23\u0E07\u0E01\u0E31\u0E19\u0E17\u0E31\u0E49\u0E07\u0E2B\u0E19\u0E49\u0E32\u0E04\u0E25\u0E31\u0E07 \u0E2B\u0E19\u0E49\u0E32\u0E23\u0E32\u0E04\u0E32 BOQ \u0E41\u0E25\u0E30\u0E17\u0E38\u0E01\u0E07\u0E32\u0E19\u0E17\u0E35\u0E48\u0E43\u0E0A\u0E49\u0E02\u0E2D\u0E07\u0E0A\u0E34\u0E49\u0E19\u0E19\u0E35\u0E49", variants.length > 1 ? " · ส่วน “งานนี้ใช้ตัวไหน” เก็บไว้ที่งานนี้งานเดียว" : "")), React.createElement("div", {
     style: {
       padding: "13px 20px",
-      borderTop: "1px solid var(--border)",
+      borderTop: "1px solid var(--divider)",
       background: "var(--surface)",
       display: "flex",
       gap: 8,

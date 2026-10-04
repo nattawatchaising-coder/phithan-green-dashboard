@@ -781,7 +781,7 @@ function MyProfileModal({
   }, React.createElement("div", {
     style: {
       padding: "16px 22px",
-      borderBottom: "1px solid var(--border)",
+      borderBottom: "1px solid var(--divider)",
       background: "var(--surface)",
       display: "flex",
       justifyContent: "space-between",
@@ -941,7 +941,8 @@ function MyProfileModal({
       padding: "11px 13px",
       borderRadius: "var(--r-chip)",
       background: user.lineUserId ? "var(--tint-ok-bg)" : "var(--surface2)",
-      border: "1px solid " + (user.lineUserId ? "var(--tint-ok-bd)" : "var(--border)"),
+      border: "none",
+      boxShadow: user.lineUserId ? "inset 0 0 0 1px var(--tint-ok-bd)" : "var(--shadow-sm)",
       display: "flex",
       alignItems: "center",
       gap: 10,
@@ -1206,7 +1207,7 @@ function MyProfileModal({
     style: {
       padding: "14px 22px",
       paddingBottom: isMobile ? "calc(14px + env(safe-area-inset-bottom, 0px))" : 14,
-      borderTop: "1px solid var(--border)",
+      borderTop: "1px solid var(--divider)",
       background: "var(--surface)",
       display: "flex",
       alignItems: "center",
@@ -1680,7 +1681,7 @@ function NotifPanel({
   }, React.createElement("div", {
     style: {
       padding: "13px 16px",
-      borderBottom: "1px solid var(--border)",
+      borderBottom: "1px solid var(--divider)",
       display: "flex",
       alignItems: "center",
       justifyContent: "space-between",
@@ -1820,7 +1821,7 @@ function NotifPanel({
       cursor: "pointer",
       fontFamily: "inherit",
       background: a.color + "12",
-      border: "1px solid " + a.color + "55",
+      border: "none",
       borderRadius: "var(--r-chip)"
     }
   }, React.createElement("span", {
@@ -1894,7 +1895,8 @@ function NotifPanel({
         cursor: "pointer",
         fontFamily: "inherit",
         background: g.unread ? k.color + "12" : "var(--surface)",
-        border: "1px solid " + (g.unread ? k.color + "55" : "var(--border)"),
+        border: "none",
+        boxShadow: g.unread ? "inset 0 0 0 1px " + k.color + "55" : "var(--shadow-sm)",
         borderRadius: "var(--r-chip)"
       }
     }, React.createElement("span", {
@@ -2044,7 +2046,8 @@ function RolePermsEditor({
       key: r,
       style: {
         borderRadius: "var(--r-tile)",
-        border: "1px solid " + (on ? "var(--primary)" : "var(--border)"),
+        border: "none",
+        boxShadow: on ? "inset 0 0 0 1px var(--primary)" : "var(--shadow-sm)",
         background: "var(--surface)",
         overflow: "hidden"
       }
@@ -2110,7 +2113,7 @@ function RolePermsEditor({
         display: "flex",
         flexDirection: "column",
         gap: 13,
-        borderTop: "1px solid var(--border)"
+        borderTop: "1px solid var(--divider)"
       }
     }, React.createElement("div", null, React.createElement("div", {
       style: {
@@ -2141,7 +2144,8 @@ function RolePermsEditor({
           fontFamily: "inherit",
           textAlign: "left",
           width: "100%",
-          border: "1px solid " + (sel ? "var(--primary)" : "var(--border)"),
+          border: "none",
+          boxShadow: sel ? "inset 0 0 0 1px var(--primary)" : "var(--shadow-sm)",
           background: sel ? "var(--primary-soft)" : "var(--surface2)"
         }
       }, React.createElement("span", {
@@ -2153,7 +2157,8 @@ function RolePermsEditor({
           marginTop: 1,
           display: "grid",
           placeItems: "center",
-          border: "2px solid " + (sel ? "var(--primary)" : "var(--border-strong)")
+          border: "none",
+          boxShadow: sel ? "inset 0 0 0 2px var(--primary)" : "var(--shadow-inset)"
         }
       }, sel && React.createElement("span", {
         style: {
@@ -2202,7 +2207,8 @@ function RolePermsEditor({
           fontFamily: "inherit",
           fontSize: 11.5,
           fontWeight: 700,
-          border: "1px solid " + (sel ? "transparent" : "var(--border)"),
+          border: "none",
+          boxShadow: sel ? "none" : "var(--shadow-sm)",
           background: sel ? s.color : "var(--surface2)",
           color: sel ? "#fff" : "var(--text-2)"
         }
@@ -2245,7 +2251,8 @@ function RolePermsEditor({
           fontFamily: "inherit",
           textAlign: "left",
           width: "100%",
-          border: "1px solid " + (sel ? "var(--primary)" : "var(--border)"),
+          border: "none",
+          boxShadow: sel ? "inset 0 0 0 1px var(--primary)" : "var(--shadow-sm)",
           background: sel ? "var(--primary-soft)" : "var(--surface2)",
           opacity: locked ? .65 : 1
         }
@@ -2259,7 +2266,8 @@ function RolePermsEditor({
           display: "grid",
           placeItems: "center",
           background: sel ? "var(--primary)" : "var(--surface)",
-          border: "1px solid " + (sel ? "var(--primary)" : "var(--border-strong)")
+          border: "none",
+          boxShadow: sel ? "inset 0 0 0 1px var(--primary)" : "var(--shadow-inset)"
         }
       }, sel && React.createElement(Icon, {
         name: "check",
@@ -2414,7 +2422,8 @@ function UserManager({
       fontSize: 12,
       fontWeight: 700,
       whiteSpace: "nowrap",
-      border: "1px solid " + (filter === key ? "transparent" : "var(--border)"),
+      border: "none",
+      boxShadow: filter === key ? "none" : "var(--shadow-sm)",
       background: filter === key ? "var(--primary)" : "var(--surface)",
       color: filter === key ? "#fff" : "var(--text-2)"
     }
@@ -2565,7 +2574,7 @@ function UserManager({
     style: {
       overflowY: "auto",
       padding: 16,
-      borderTop: "1px solid var(--border)"
+      borderTop: "1px solid var(--divider)"
     }
   }, React.createElement(RolePermsEditor, {
     roleCfg: roleCfg || {
@@ -2580,7 +2589,7 @@ function UserManager({
       display: "flex",
       flexDirection: "column",
       gap: 8,
-      borderTop: "1px solid var(--border)"
+      borderTop: "1px solid var(--divider)"
     }
   }, shown.length === 0 && React.createElement("div", {
     style: {
@@ -2599,7 +2608,8 @@ function UserManager({
         padding: "11px 13px",
         background: "var(--surface)",
         borderRadius: "var(--r-chip)",
-        border: "1px solid " + (asking ? "var(--tint-red-bd)" : "var(--border)"),
+        border: "none",
+        boxShadow: asking ? "inset 0 0 0 1px var(--tint-red-bd)" : "var(--shadow-sm)",
         opacity: u.active === false && !asking ? 0.55 : 1
       }
     }, React.createElement("div", {
@@ -2791,7 +2801,7 @@ function UserManager({
     style: {
       padding: "14px 22px",
       paddingBottom: isMobile ? "calc(14px + env(safe-area-inset-bottom, 0px))" : 14,
-      borderTop: "1px solid var(--border)",
+      borderTop: "1px solid var(--divider)",
       background: "var(--surface)",
       display: "flex",
       justifyContent: "space-between",
@@ -2864,7 +2874,8 @@ function RolePicker({
         textAlign: "left",
         fontFamily: "inherit",
         width: "100%",
-        border: "1px solid " + (on ? r.color : "var(--border)"),
+        border: "none",
+        boxShadow: on ? "inset 0 0 0 1px " + r.color : "var(--shadow-sm)",
         background: on ? r.color + "14" : "var(--surface)"
       }
     }, React.createElement("span", {
@@ -2876,7 +2887,8 @@ function RolePicker({
         display: "grid",
         placeItems: "center",
         background: on ? r.color : "transparent",
-        border: "1.5px solid " + (on ? r.color : "var(--border-strong)")
+        border: "none",
+        boxShadow: on ? "inset 0 0 0 1.5px " + r.color : "var(--shadow-inset)"
       }
     }, on && React.createElement(Icon, {
       name: "check",
@@ -2996,7 +3008,7 @@ function UserEditModal({
   }, React.createElement("div", {
     style: {
       padding: "16px 22px",
-      borderBottom: "1px solid var(--border)",
+      borderBottom: "1px solid var(--divider)",
       background: "var(--surface)",
       display: "flex",
       justifyContent: "space-between",
@@ -3114,7 +3126,8 @@ function UserEditModal({
       gap: 9,
       padding: "9px 11px",
       borderRadius: "var(--r-chip)",
-      border: "1px solid " + (f.selfApprove ? "#F59E0B" : "var(--border-strong)"),
+      border: "none",
+      boxShadow: f.selfApprove ? "inset 0 0 0 1px #F59E0B" : "var(--shadow-sm)",
       background: "var(--surface2)",
       cursor: "pointer",
       fontFamily: "inherit"
@@ -3233,7 +3246,7 @@ function UserEditModal({
     style: {
       padding: "14px 22px",
       paddingBottom: isMobile ? "calc(14px + env(safe-area-inset-bottom, 0px))" : 14,
-      borderTop: "1px solid var(--border)",
+      borderTop: "1px solid var(--divider)",
       background: "var(--surface)",
       display: "flex",
       justifyContent: "flex-end",

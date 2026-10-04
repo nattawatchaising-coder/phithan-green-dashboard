@@ -185,7 +185,8 @@ function KanbanCard({
           padding: "7px 10px",
           borderRadius: "var(--r-tile)",
           background: pst.color + "14",
-          border: "1px solid " + pst.color + (rejected ? "" : "33")
+          border: "none",
+          boxShadow: "inset 0 0 0 1px " + pst.color + (rejected ? "" : "33")
         }
       }, React.createElement("div", {
         style: {
@@ -223,7 +224,7 @@ function KanbanCard({
           padding: "6px 9px",
           borderRadius: "var(--r-chip)",
           background: c + "14",
-          border: "1px solid " + c + "33"
+          border: "none"
         }
       }, React.createElement("div", {
         style: {
@@ -332,7 +333,7 @@ function KanbanCard({
         justifyContent: "space-between",
         alignItems: "center",
         paddingTop: 10,
-        borderTop: "1px solid var(--border)",
+        borderTop: "1px solid var(--divider)",
         gap: 8,
         flexWrap: "wrap"
       }
@@ -558,7 +559,7 @@ function DocViewer({
   }, React.createElement("div", {
     style: {
       padding: "12px 16px",
-      borderBottom: "1px solid var(--border)",
+      borderBottom: "1px solid var(--divider)",
       background: "var(--surface)",
       display: "flex",
       alignItems: "center",
@@ -660,7 +661,7 @@ function DocViewer({
       display: "flex",
       gap: 6,
       padding: "8px 12px",
-      borderBottom: "1px solid var(--border)",
+      borderBottom: "1px solid var(--divider)",
       background: "var(--surface)",
       overflowX: "auto",
       flexShrink: 0
@@ -676,7 +677,8 @@ function DocViewer({
       fontWeight: 600,
       fontFamily: "inherit",
       cursor: "pointer",
-      border: "1px solid " + (i === idx ? color : "var(--border-strong)"),
+      border: "none",
+      boxShadow: i === idx ? "inset 0 0 0 1px " + color : "var(--shadow-sm)",
       background: i === idx ? color + "14" : "var(--surface)",
       color: i === idx ? color : "var(--text-2)",
       maxWidth: 160,
@@ -729,7 +731,7 @@ function DocViewer({
   }), "\u0E01\u0E33\u0E25\u0E31\u0E07\u0E42\u0E2B\u0E25\u0E14\u0E44\u0E1F\u0E25\u0E4C\u2026"))), isMobile && blobUrl && React.createElement("div", {
     style: {
       padding: "10px 14px calc(10px + env(safe-area-inset-bottom,0px))",
-      borderTop: "1px solid var(--border)",
+      borderTop: "1px solid var(--divider)",
       background: "var(--surface)",
       display: "flex",
       gap: 10,
@@ -852,7 +854,8 @@ function KanbanView({
         flexDirection: "column",
         borderRadius: "var(--r-card)",
         background: isOver ? s.soft : "var(--surface2)",
-        border: "1px solid " + (isOver ? s.color : "var(--border)"),
+        border: "none",
+        boxShadow: isOver ? "inset 0 0 0 1px " + s.color : "var(--shadow-sm)",
         transition: "background .15s, border-color .15s"
       }
     }, React.createElement("div", {
@@ -861,7 +864,7 @@ function KanbanView({
         display: "flex",
         alignItems: "center",
         justifyContent: "space-between",
-        borderBottom: "1px solid var(--border)",
+        borderBottom: "1px solid var(--divider)",
         position: "sticky",
         top: 0,
         zIndex: 1,

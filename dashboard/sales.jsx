@@ -1150,7 +1150,7 @@ function QuotePagePick({ q, locked, onToggle, onAll, warn }) {
                 background: on ? "var(--primary-soft)" : "var(--surface)", cursor: dis ? "default" : "pointer",
                 fontFamily: "inherit", textAlign: "left", opacity: dis && !on ? .55 : 1 }}>
               <span style={{ width: 17, height: 17, borderRadius: 5, flexShrink: 0, marginTop: 1, display: "grid", placeItems: "center",
-                border: "1.5px solid " + (on ? "var(--primary)" : "var(--border-strong)"),
+                border: "none", boxShadow: on ? "inset 0 0 0 1.5px var(--primary)" : "var(--shadow-inset)",
                 background: on ? "var(--primary)" : "transparent" }}>
                 {on && <Icon name="check" size={11} color="#fff" sw={3} />}
               </span>
@@ -1187,7 +1187,7 @@ function QuoteRowPic({ lib, id, locked, onPick }) {
       <button type="button" disabled={locked} title={cur ? cur.name || "เปลี่ยนรูป" : "เลือกรูปจากคลัง"}
         onClick={() => setOpen((v) => !v)}
         style={{ width: "100%", height: 34, padding: 0, borderRadius: "var(--r-chip)", overflow: "hidden", display: "grid", placeItems: "center",
-          border: "1px solid " + (cur ? "var(--primary)" : "var(--border-strong)"), background: "var(--surface)",
+          border: "none", boxShadow: cur ? "inset 0 0 0 1px var(--primary)" : "var(--shadow-sm)", background: "var(--surface)",
           cursor: locked ? "default" : "pointer" }}>
         {cur ? <img src={cur.thumb} alt="" style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} />
           : <Icon name="image" size={14} color="var(--text-3)" />}
@@ -1207,7 +1207,7 @@ function QuoteRowPic({ lib, id, locked, onPick }) {
                   <img key={p.id} src={p.thumb} alt="" title={p.name || ""}
                     onClick={() => { onPick(p.id); setOpen(false); }}
                     style={{ width: "100%", height: 44, objectFit: "cover", display: "block", cursor: "pointer", borderRadius: "var(--r-chip)",
-                      border: "2px solid " + (p.id === id ? "var(--primary)" : "transparent") }} />
+                      border: "none", boxShadow: p.id === id ? "inset 0 0 0 2px var(--primary)" : "none" }} />
                 ))}
               </div>
             )}
@@ -1307,7 +1307,7 @@ function QuoteRoiEdit({ q, locked, onChange }) {
         ))}
       </div>
       {R ? (
-        <div style={{ display: "flex", flexWrap: "wrap", gap: "6px 18px", paddingTop: 4, borderTop: "1px solid var(--border)" }}>
+        <div style={{ display: "flex", flexWrap: "wrap", gap: "6px 18px", paddingTop: 4, borderTop: "1px solid var(--divider)" }}>
           {[["ผลิตไฟรายปี", Math.round(R.yearKwh).toLocaleString() + " หน่วย"],
             ["คืนทุน", R.payback ? R.payback.y + " ปี" + (R.payback.m ? " " + R.payback.m + " เดือน" : "") : "เกิน " + cfg.years + " ปี"],
             ["ลดค่าไฟเดือนละ", "฿" + sBaht(R.month1)],
@@ -1383,7 +1383,7 @@ function QuotePicPick({ lib, locked }) {
                 </div>
                 <input value={p.name || ""} disabled={locked} placeholder="ชื่อใต้รูป"
                   onChange={(e) => lib.rename(p.id, e.target.value)}
-                  style={{ width: "100%", border: "none", borderTop: "1px solid var(--border)", background: "transparent",
+                  style={{ width: "100%", border: "none", borderTop: "1px solid var(--divider)", background: "transparent",
                     padding: "6px 8px", fontFamily: "inherit", fontSize: 11, color: "var(--text-2)", textAlign: "center" }} />
               </div>
             );
@@ -1441,11 +1441,11 @@ function QuoteSheetPick({ ids, items, hintText, locked, onChange }) {
               return (
                 <button key={x.it.id} type="button" onClick={() => toggle(x.it.id)} disabled={locked}
                   style={{ display: "flex", alignItems: "center", gap: 9, padding: "8px 10px", borderRadius: "var(--r-tile)",
-                    border: "1px solid " + (on ? "var(--primary)" : "var(--border)"),
+                    border: "none", boxShadow: on ? "inset 0 0 0 1px var(--primary)" : "var(--shadow-sm)",
                     background: on ? "var(--primary-soft)" : "var(--surface)", cursor: locked ? "default" : "pointer",
                     fontFamily: "inherit", textAlign: "left" }}>
                   <span style={{ width: 17, height: 17, borderRadius: 5, flexShrink: 0, display: "grid", placeItems: "center",
-                    border: "1.5px solid " + (on ? "var(--primary)" : "var(--border-strong)"),
+                    border: "none", boxShadow: on ? "inset 0 0 0 1.5px var(--primary)" : "var(--shadow-inset)",
                     background: on ? "var(--primary)" : "transparent" }}>
                     {on && <Icon name="check" size={11} color="#fff" sw={3} />}
                   </span>
@@ -2047,7 +2047,7 @@ function SalesCard({ lead, quotes, onOpen, onDragStart, dragging }) {
           </span>
         ); })()}
       </div>
-      <div style={{ marginTop: 9, paddingTop: 9, borderTop: "1px solid var(--border)", display: "flex", alignItems: "center", gap: 7, fontSize: 10.5, color: late ? "#EF4444" : "var(--text-3)" }}>
+      <div style={{ marginTop: 9, paddingTop: 9, borderTop: "1px solid var(--divider)", display: "flex", alignItems: "center", gap: 7, fontSize: 10.5, color: late ? "#EF4444" : "var(--text-3)" }}>
         <span style={{ flex: 1, minWidth: 0, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
           {lead.nextFollow ? (late ? "เลยวันติดตาม " : "ติดตาม ") + thDate(lead.nextFollow, true) : "ยังไม่ได้ตั้งวันติดตาม"}
         </span>
@@ -2384,8 +2384,8 @@ function SalesKpiView({ leads, quotes, appts, techs, currentUser, onMenuOpen, on
       {sub && <div style={{ fontSize: 11, color: "var(--text-3)", marginTop: 2 }}>{sub}</div>}
     </div>
   );
-  const th = { padding: "9px 11px", fontSize: 11, fontWeight: 700, color: "var(--text-3)", textAlign: "right", whiteSpace: "nowrap", borderBottom: "1px solid var(--border)" };
-  const td = { padding: "11px", fontSize: 13, textAlign: "right", fontVariantNumeric: "tabular-nums", borderBottom: "1px solid var(--border)", whiteSpace: "nowrap" };
+  const th = { padding: "9px 11px", fontSize: 11, fontWeight: 700, color: "var(--text-3)", textAlign: "right", whiteSpace: "nowrap", borderBottom: "1px solid var(--divider)" };
+  const td = { padding: "11px", fontSize: 13, textAlign: "right", fontVariantNumeric: "tabular-nums", borderBottom: "1px solid var(--divider)", whiteSpace: "nowrap" };
   const pill = (text, color) => (
     <span style={{ display: "inline-block", padding: "2px 9px", borderRadius: "var(--r-pill)", fontSize: 11, fontWeight: 700,
       background: color + "18", color: color, whiteSpace: "nowrap" }}>{text}</span>
@@ -2413,7 +2413,7 @@ function SalesKpiView({ leads, quotes, appts, techs, currentUser, onMenuOpen, on
               ชื่อนี้ไม่ใช่ "ทั้งหมด" เพราะตัวกรองประเภทงานที่อยู่แถวเดียวกันก็ชื่อนั้น สองคำเหมือนกันในแถวเดียวอ่านไม่ออกว่าอันไหนกรองอะไร */}
           <button onClick={() => setMonth(month ? "" : thisMonth)}
             style={{ padding: "6px 12px", borderRadius: "var(--r-pill)", cursor: "pointer", fontFamily: "inherit", fontSize: 12, fontWeight: 700,
-              border: "1px solid " + (month ? "var(--border)" : "transparent"),
+              border: "none", boxShadow: month ? "var(--shadow-sm)" : "none",
               background: month ? "var(--surface)" : "var(--primary)", color: month ? "var(--text-2)" : "#fff" }}>ทุกเดือน</button>
 
           {/* แยกงานบ้าน / งานโครงการ — กรองทั้งหน้า ตัวเลขในการ์ดสรุปเปลี่ยนตามที่เลือกด้วย
@@ -2791,7 +2791,7 @@ function SalesJobSummary({ job, quotes, leads, onOpenQuote }) {
             ไม่ติดอะไร · งานเดินตามแผน
           </div>
         ) : blockers.map((b, i) => (
-          <div key={i} style={{ fontSize: 12.5, color: b.color, background: b.color + "12", border: "1px solid " + b.color + "33",
+          <div key={i} style={{ fontSize: 12.5, color: b.color, background: b.color + "12", border: "none",
             borderRadius: "var(--r-tile)", padding: "9px 12px", marginBottom: 6, lineHeight: 1.5 }}>⚠ {b.th}</div>
         ))}
       </div>
