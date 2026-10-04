@@ -13,7 +13,7 @@
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@400;500;600;700&family=Outfit:wght@500;600;700;800&family=Sora:wght@600;700;800&family=JetBrains+Mono:wght@500;600&display=swap" rel="stylesheet" />
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="anonymous" />
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin="anonymous"></script>
-<link rel="stylesheet" href="dashboard/tokens.css?v=6" />
+<link rel="stylesheet" href="dashboard/tokens.css?v=7" />
 <style>
 
 * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -545,8 +545,8 @@ html.theme-anim, html.theme-anim * { transition: background-color .34s ease, bor
    ไม่งั้นความ "ยกตัวรับเมาส์" ของแต่ละแผงจะหนักเบาไม่เท่ากันภายในไม่กี่เดือน */
 :root{--hov-sh:0 0 0 1px rgba(8,20,14,.05),0 2px 2px -1px rgba(8,20,14,.055),0 5px 5px -2.5px rgba(8,20,14,.055),0 10px 10px -5px rgba(8,20,14,.055),0 20px 20px -10px rgba(8,20,14,.055);
   --hov-sh-lg:0 0 0 1px rgba(8,20,14,.055),0 3px 3px -1.5px rgba(8,20,14,.06),0 7px 7px -3.5px rgba(8,20,14,.06),0 14px 14px -7px rgba(8,20,14,.06),0 28px 28px -14px rgba(8,20,14,.06),0 56px 56px -28px rgba(8,20,14,.06)}
-[data-theme="aurora"]{--hov-sh:0 0 0 1px rgba(0,0,0,.4),0 2px 2px -1px rgba(0,0,0,.3),0 5px 5px -2.5px rgba(0,0,0,.3),0 10px 10px -5px rgba(0,0,0,.3),0 20px 20px -10px rgba(0,0,0,.3);
-  --hov-sh-lg:0 0 0 1px rgba(0,0,0,.45),0 3px 3px -1.5px rgba(0,0,0,.34),0 7px 7px -3.5px rgba(0,0,0,.34),0 14px 14px -7px rgba(0,0,0,.34),0 28px 28px -14px rgba(0,0,0,.34),0 56px 56px -28px rgba(0,0,0,.34)}
+[data-theme="aurora"]{--hov-sh:0 0 0 1px transparent,0 2px 2px -1px rgba(0,0,0,.3),0 5px 5px -2.5px rgba(0,0,0,.3),0 10px 10px -5px rgba(0,0,0,.3),0 20px 20px -10px rgba(0,0,0,.3);
+  --hov-sh-lg:0 0 0 1px transparent,0 3px 3px -1.5px rgba(0,0,0,.34),0 7px 7px -3.5px rgba(0,0,0,.34),0 14px 14px -7px rgba(0,0,0,.34),0 28px 28px -14px rgba(0,0,0,.34),0 56px 56px -28px rgba(0,0,0,.34)}
 
 /* แผงภาระงานต่อช่างมีกรอบเลื่อน (maxHeight+overflowY เขียนไว้ในไฟล์ jsx) — overflow-y:auto
    ทำให้แกนนอนถูกตัดไปด้วยโดยอัตโนมัติ เงาซ้าย/ขวาของแถวจึงโดนเฉือนหายที่ขอบกล่องพอดี
