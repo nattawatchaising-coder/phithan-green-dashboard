@@ -22,7 +22,7 @@ deploy อัตโนมัติด้วย Vercel จาก `master` บน 
 - ไฟล์เป็น CRLF — แก้หลายจุดด้วยสคริปต์ node ที่แปลง CRLF→LF ก่อนแทนที่แล้วแปลงกลับ
 
 ## สไตล์ UI
-ยึดหน้าใบเสนอราคา (`dashboard/sales.jsx` QuoteEditor): ไม่มีเส้นขอบ · แผ่น `var(--surface)` + `var(--shadow-sm)` · ช่องกรอก/ดรอปดาวน์เป็นหลุม `--surface2` + `--shadow-inset` · การ์ด `--shadow-card` บนพื้น `--bg` — ไม่ใช่ neumorphism เต็มตัว
+**ทำ/แก้หน้าตา UI อ่าน `DESIGN.md` ก่อน** (token · ชิ้นส่วนมาตรฐาน · ข้อห้าม · จุดที่ของเก่ายังไม่ตรง) — สรุปสั้น: ยึดหน้าใบเสนอราคา (`dashboard/sales.jsx` QuoteEditor): ไม่มีเส้นขอบ · แผ่น `var(--surface)` + `var(--shadow-sm)` · ช่องกรอก/ดรอปดาวน์เป็นหลุม `--surface2` + `--shadow-inset` · การ์ด `--shadow-card` บนพื้น `--bg` — ไม่ใช่ neumorphism เต็มตัว
 
 ## ออกแบบหลังคา/วางแผง (`plan3d/{jobId}`)
 - **ตัวแก้ตัวเดียว** `dashboard/plan3d2.jsx` `Plan3DStudio` — แก้บนผัง 2D (SVG) ทับภาพดาวเทียม/โดรน · 3D ไว้ดูผลและเงาเท่านั้น · ใช้ helper เรขาคณิตของ plan3d.jsx ทั้งหมด จึงต้องโหลด **หลัง** plan3d.js · ชื่อระดับโลกใช้คำนำหน้า `p3s`/`P3S`
