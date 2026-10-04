@@ -531,7 +531,7 @@ function StockView({ stock, onResetAll, onMenuOpen, currentUser, jobs, priceStor
                         {/* เหลือแค่ แก้ไข/ลบ — รับ/เบิก/คืน ย้ายไปอยู่ในหน้ารายละเอียด */}
                         <td style={{ padding: "11px 12px", whiteSpace: "nowrap" }} onClick={(e) => e.stopPropagation()}>
                           <button onClick={() => setItemForm({ item: it, isNew: false })} title="แก้ไข" style={{ background: "#3B82F614", border: "none", color: "#3B82F6", width: 28, height: 28, borderRadius: "var(--r-chip)", cursor: "pointer", verticalAlign: "middle" }}><Icon name="settings" size={14} /></button>
-                          <button onClick={() => { askConfirm({ title: "ลบ “" + it.name + "” ออกจากคลัง?" }).then((ok) => { if (ok) stock.removeItem(it.id); }); }} title="ลบ" style={{ background: "#EF444414", border: "none", color: "#EF4444", width: 28, height: 28, borderRadius: "var(--r-chip)", cursor: "pointer", marginLeft: 4, verticalAlign: "middle" }}><Icon name="x" size={14} /></button>
+                          <button onClick={() => { askConfirm({ title: "ลบ “" + it.name + "” ออกจากคลัง?" }).then((ok) => { if (ok) stock.removeItem(it.id); }); }} title="ลบ" style={{ background: "var(--tint-red-bg)", border: "none", color: "var(--tint-red-tx2)", width: 28, height: 28, borderRadius: "var(--r-chip)", cursor: "pointer", marginLeft: 4, verticalAlign: "middle" }}><Icon name="x" size={14} /></button>
                         </td>
                       </tr>
                     );
@@ -691,7 +691,7 @@ function StockCardList({ rows, imgs, onOpen, onEdit, onRemove }) {
               {!g && <button onClick={() => onEdit(it)} title="แก้ไข" aria-label="แก้ไข"
                 style={{ flexShrink: 0, background: "#3B82F614", border: "none", color: "#3B82F6", width: 44, height: 36, borderRadius: "var(--r-chip)", cursor: "pointer", display: "grid", placeItems: "center" }}><Icon name="settings" size={16} /></button>}
               {!g && <button onClick={() => { askConfirm({ title: "ลบ “" + it.name + "” ออกจากคลัง?" }).then((ok) => { if (ok) onRemove(it.id); }); }} title="ลบ" aria-label="ลบ"
-                style={{ flexShrink: 0, background: "#EF444414", border: "none", color: "#EF4444", width: 44, height: 36, borderRadius: "var(--r-chip)", cursor: "pointer", display: "grid", placeItems: "center" }}><Icon name="x" size={16} /></button>}
+                style={{ flexShrink: 0, background: "var(--tint-red-bg)", border: "none", color: "var(--tint-red-tx2)", width: 44, height: 36, borderRadius: "var(--r-chip)", cursor: "pointer", display: "grid", placeItems: "center" }}><Icon name="x" size={16} /></button>}
             </div>
           </div>
         );
@@ -979,7 +979,7 @@ function ItemModal({ initial, isNew, items, onSave, onClose, onAddCat, onRemoveC
                   askConfirm({ title: "ลบหมวด “" + c.th + "” ?", ok: "ลบหมวด",
                     body: (c.parent ? "" : "หมวดย่อยใต้หมวดนี้จะถูกลบด้วย\n") + "ของที่อยู่ในหมวดนี้จะไปแสดงเป็น “อื่นๆ”",
                   }).then((ok) => { if (!ok) return; onRemoveCat(f.cat); set("cat", c.parent || "other"); }); }}
-                style={{ border: 0, background: "none", padding: 0, cursor: "pointer", fontFamily: "inherit", fontSize: 11.5, fontWeight: 700, color: "#EF4444", textDecoration: "underline", textUnderlineOffset: 3 }}>
+                style={{ border: 0, background: "none", padding: 0, cursor: "pointer", fontFamily: "inherit", fontSize: 11.5, fontWeight: 700, color: "var(--tint-red-tx2)", textDecoration: "underline", textUnderlineOffset: 3 }}>
                 ลบหมวด “{(SF.STOCK_CAT_BY[f.cat] || {}).th}” ที่สร้างเอง
               </button>
             </div>
@@ -1503,7 +1503,7 @@ function OmTierTable({ kind, saved, onSave }) {
                 <td style={Object.assign({}, cell, { width: 100, textAlign: "right", color: "var(--text-3)" })}>{rate ? rate.toLocaleString() : "—"}</td>
                 {edit && <td style={Object.assign({}, cell, { width: 40 })}>
                   <button onClick={() => setDraft((p) => p.filter((x, k) => k !== i))} title="ลบแถว"
-                    style={{ background: "#EF444414", border: "none", color: "#EF4444", width: 26, height: 26, borderRadius: "var(--r-chip)", cursor: "pointer" }}>✕</button>
+                    style={{ background: "var(--tint-red-bg)", border: "none", color: "var(--tint-red-tx2)", width: 26, height: 26, borderRadius: "var(--r-chip)", cursor: "pointer" }}>✕</button>
                 </td>}
               </tr>
             );
@@ -2000,7 +2000,7 @@ function ItemDetailModal({ item, img, variants, loadDoc, setDoc, onMove, onEdit,
               <div style={{ display: "flex", alignItems: "center", gap: 11, padding: "11px 13px", borderRadius: "var(--r-tile)",
                 background: "var(--surface2)", boxShadow: "var(--shadow-sm)" }}>
                 <span style={{ width: 38, height: 38, borderRadius: "var(--r-chip)", flexShrink: 0, display: "grid", placeItems: "center",
-                  background: "#EF444414", color: "#EF4444", fontSize: 10, fontWeight: 800 }}>PDF</span>
+                  background: "var(--tint-red-bg)", color: "var(--tint-red-tx2)", fontSize: 10, fontWeight: 800 }}>PDF</span>
                 <span style={{ minWidth: 0, flex: 1 }}>
                   <span style={{ display: "block", fontSize: 13, fontWeight: 600, color: "var(--text-1)", overflow: "hidden",
                     textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{doc.name}</span>
@@ -2010,7 +2010,7 @@ function ItemDetailModal({ item, img, variants, loadDoc, setDoc, onMove, onEdit,
                   background: "var(--surface)", color: "var(--text-2)", fontFamily: "inherit", fontSize: 12.5, fontWeight: 700, cursor: "pointer" }}>เปิดเต็มจอ</button>
                 <button onClick={() => { askConfirm({ title: "ลบเอกสารนี้?", body: "DATA SHEET ที่แนบไว้กับรายการนี้จะหายไป", ok: "ลบเอกสาร" }).then((ok) => { if (ok) { setDoc(item.id, null); setDocState(null); } }); }}
                   title="ลบ" style={{ flexShrink: 0, width: 32, height: 32, borderRadius: "var(--r-chip)", boxShadow: "var(--shadow-sm)",
-                    background: "var(--surface)", color: "#EF4444", cursor: "pointer", display: "grid", placeItems: "center" }}><Icon name="x" size={14} /></button>
+                    background: "var(--surface)", color: "var(--tint-red-tx2)", cursor: "pointer", display: "grid", placeItems: "center" }}><Icon name="x" size={14} /></button>
               </div>
             ) : (
               <button onClick={() => fileRef.current && fileRef.current.click()} disabled={busy}
@@ -2191,7 +2191,7 @@ function StockGrid({ rows, imgs, onOpen, onEdit, onRemove, lowState }) {
               ) : (
                 <div onClick={(e) => e.stopPropagation()} style={{ display: "flex", gap: 5, marginTop: 7 }}>
                   <button onClick={() => onEdit(it)} title="แก้ไข" style={{ flex: 1, height: 28, background: "#3B82F614", border: "none", color: "#3B82F6", borderRadius: "var(--r-chip)", cursor: "pointer", display: "grid", placeItems: "center" }}><Icon name="settings" size={13} /></button>
-                  <button onClick={() => { askConfirm({ title: "ลบ “" + it.name + "” ออกจากคลัง?" }).then((ok) => { if (ok) onRemove(it.id); }); }} title="ลบ" style={{ width: 32, height: 28, background: "#EF444414", border: "none", color: "#EF4444", borderRadius: "var(--r-chip)", cursor: "pointer", display: "grid", placeItems: "center" }}><Icon name="x" size={13} /></button>
+                  <button onClick={() => { askConfirm({ title: "ลบ “" + it.name + "” ออกจากคลัง?" }).then((ok) => { if (ok) onRemove(it.id); }); }} title="ลบ" style={{ width: 32, height: 28, background: "var(--tint-red-bg)", border: "none", color: "var(--tint-red-tx2)", borderRadius: "var(--r-chip)", cursor: "pointer", display: "grid", placeItems: "center" }}><Icon name="x" size={13} /></button>
                 </div>
               )}
             </div>
@@ -2237,7 +2237,7 @@ function MatImagePicker({ src, item, onPick, onClear }) {
           {src && (
             <button type="button" onClick={onClear}
               style={{ padding: "7px 11px", borderRadius: "var(--r-chip)", boxShadow: "var(--shadow-sm)", background: "var(--surface2)", boxShadow: "var(--shadow-sm)",
-                color: "#EF4444", fontFamily: "inherit", fontSize: 12.5, fontWeight: 700, cursor: "pointer" }}>ลบรูป</button>
+                color: "var(--tint-red-tx2)", fontFamily: "inherit", fontSize: 12.5, fontWeight: 700, cursor: "pointer" }}>ลบรูป</button>
           )}
         </div>
         <span style={{ fontSize: 10.5, color: "var(--text-3)", lineHeight: 1.45 }}>
@@ -2281,7 +2281,7 @@ function CatCard({ c, n, lowN, img, onPick, onImage }) {
         <span style={{ display: "block", fontSize: 14.5, fontWeight: 700, color: "var(--text-1)", lineHeight: 1.3 }}>{c.th}</span>
         <span style={{ display: "block", fontSize: 12, color: "var(--text-3)", marginTop: 3 }}>
           {(n || 0).toLocaleString()} รายการ
-          {lowN ? <span style={{ color: "#EF4444", fontWeight: 700 }}>{" · ของขาด " + lowN}</span> : null}
+          {lowN ? <span style={{ color: "var(--tint-red-tx2)", fontWeight: 700 }}>{" · ของขาด " + lowN}</span> : null}
         </span>
         {/* ปุ่มรูป — กดแล้วไม่เข้าไปในหมวด (stopPropagation) */}
         <span onClick={(e) => e.stopPropagation()} style={{ display: "flex", gap: 5, marginTop: 7 }}>

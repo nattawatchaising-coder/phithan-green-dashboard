@@ -10,7 +10,7 @@ function Field({ label, required, children, span }) {
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 5, gridColumn: gc }}>
       <label style={{ fontSize: 10.5, fontWeight: 700, color: "var(--text-3)" }}>
-        {label}{required && <span style={{ color: "#EF4444" }}> *</span>}
+        {label}{required && <span style={{ color: "var(--tint-red-tx2)" }}> *</span>}
       </label>
       {children}
     </div>
@@ -235,7 +235,7 @@ function JobForm({ initial, isNew, onSave, onClose, onManageTechs, onManageBrand
               </Field>
               {!f.eeId && (
                 <div style={{ gridColumn: "1 / -1", display: "flex", alignItems: "flex-start", gap: 8,
-                  border: "1px solid #F59E0B55", background: "#F59E0B14", borderRadius: 11, padding: "9px 12px" }}>
+                  border: "1px solid var(--tint-amber-bd)", background: "var(--tint-amber-bg)", borderRadius: 11, padding: "9px 12px" }}>
                   <Icon name="alert" size={15} color="#F59E0B" style={{ flexShrink: 0, marginTop: 1 }} />
                   <span style={{ fontSize: 12, color: "var(--text-2)", lineHeight: 1.45 }}>
                     ยังไม่ระบุวิศวกร — รายงานประจำวันของงานนี้จะส่งไปโดยไม่มีใครอนุมัติได้ (นอกจากแอดมิน)
@@ -425,7 +425,7 @@ function JobForm({ initial, isNew, onSave, onClose, onManageTechs, onManageBrand
                 const clash = days.reduce((n, d) => n + (otherCountByDay[d] || 0), 0);
                 if (!clash) return null;
                 return (
-                  <div style={{ marginTop: 8, fontSize: 11.5, fontWeight: 700, color: "var(--tint-amber-tx)", background: "var(--tint-amber-bg2)", border: "1px solid #FCD34D", borderRadius: 8, padding: "7px 10px", display: "flex", alignItems: "center", gap: 6 }}>
+                  <div style={{ marginTop: 8, fontSize: 11.5, fontWeight: 700, color: "var(--tint-amber-tx)", background: "var(--tint-amber-bg2)", border: "1px solid var(--tint-amber-bd)", borderRadius: 8, padding: "7px 10px", display: "flex", alignItems: "center", gap: 6 }}>
                     <Icon name="alert" size={13} color="var(--tint-amber-tx)" /> ช่าง{techNick} มีงานอื่นในช่วงนี้ {clash} งาน — เช็กว่าซ้อนกันไหม
                   </div>
                 );
@@ -483,8 +483,8 @@ function JobForm({ initial, isNew, onSave, onClose, onManageTechs, onManageBrand
                   </div>
                   <div style={{ display: "flex", gap: 12, marginTop: 9, flexWrap: "wrap", fontSize: 10, color: "var(--text-3)" }}>
                     <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}><span style={{ width: 10, height: 10, borderRadius: 3, border: "1px solid var(--border)", background: "var(--surface)" }} /> ว่าง</span>
-                    <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}><span style={{ width: 10, height: 10, borderRadius: 3, background: "var(--tint-amber-bg2)", border: "1px solid #FCD34D" }} /> มี 1 งาน</span>
-                    <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}><span style={{ width: 10, height: 10, borderRadius: 3, background: "var(--tint-red-bg2)", border: "1px solid #FCA5A5" }} /> 2+ งาน</span>
+                    <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}><span style={{ width: 10, height: 10, borderRadius: 3, background: "var(--tint-amber-bg2)", border: "1px solid var(--tint-amber-bd)" }} /> มี 1 งาน</span>
+                    <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}><span style={{ width: 10, height: 10, borderRadius: 3, background: "var(--tint-red-bg2)", border: "1px solid var(--tint-red-bd)" }} /> 2+ งาน</span>
                     <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}><span style={{ width: 10, height: 10, borderRadius: 3, background: "var(--primary-soft)", border: "1px solid var(--primary)" }} /> วันติดตั้งงานนี้</span>
                   </div>
                 </div>
@@ -622,7 +622,7 @@ function TechManager({ store, onClose }) {
                 <div style={{ fontSize: 11.5, color: "var(--text-3)" }}>{t.role}</div>
               </div>
               <button onClick={() => setEditing(Object.assign({}, t))} title="แก้ไข" style={{ background: "#3B82F614", border: "none", color: "#3B82F6", width: 32, height: 32, borderRadius: 8, cursor: "pointer", display: "grid", placeItems: "center" }}><Icon name="settings" size={15} /></button>
-              <button onClick={() => { if (techs.length <= 1) { alert("ต้องมีช่างอย่างน้อย 1 คน"); return; } askConfirm({ title: "ลบช่าง “" + t.name + "” ?", ok: "ลบช่าง" }).then((ok) => { if (ok) store.remove(t.id); }); }} title="ลบ" style={{ background: "#EF444414", border: "none", color: "#EF4444", width: 32, height: 32, borderRadius: 8, cursor: "pointer", display: "grid", placeItems: "center" }}><Icon name="x" size={15} /></button>
+              <button onClick={() => { if (techs.length <= 1) { alert("ต้องมีช่างอย่างน้อย 1 คน"); return; } askConfirm({ title: "ลบช่าง “" + t.name + "” ?", ok: "ลบช่าง" }).then((ok) => { if (ok) store.remove(t.id); }); }} title="ลบ" style={{ background: "var(--tint-red-bg)", border: "none", color: "var(--tint-red-tx2)", width: 32, height: 32, borderRadius: 8, cursor: "pointer", display: "grid", placeItems: "center" }}><Icon name="x" size={15} /></button>
             </div>
           ))}
         </div>
@@ -709,7 +709,7 @@ function BrandManager({ store, onClose }) {
                 <div style={{ fontSize: 11.5, color: b.battery ? "var(--primary-dark)" : "var(--text-3)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{b.battery ? "รองรับแบต/Backup" : "ไม่รองรับแบต/Backup"}</div>
               </div>
               <button onClick={() => setEditing({ rec: Object.assign({}, b), origName: b.name })} title="แก้ไข" style={{ flexShrink: 0, background: "#3B82F614", border: "none", color: "#3B82F6", width: 32, height: 32, borderRadius: 8, cursor: "pointer", display: "grid", placeItems: "center" }}><Icon name="settings" size={15} /></button>
-              <button onClick={() => { if (brands.length <= 1) { alert("ต้องมีแบรนด์อย่างน้อย 1 รายการ"); return; } askConfirm({ title: "ลบแบรนด์ “" + b.name + "” ?", body: "งานที่ใช้แบรนด์นี้อยู่จะยังคงค่าเดิมไว้", ok: "ลบแบรนด์" }).then((ok) => { if (ok) store.remove(b.name); }); }} title="ลบ" style={{ flexShrink: 0, background: "#EF444414", border: "none", color: "#EF4444", width: 32, height: 32, borderRadius: 8, cursor: "pointer", display: "grid", placeItems: "center" }}><Icon name="x" size={15} /></button>
+              <button onClick={() => { if (brands.length <= 1) { alert("ต้องมีแบรนด์อย่างน้อย 1 รายการ"); return; } askConfirm({ title: "ลบแบรนด์ “" + b.name + "” ?", body: "งานที่ใช้แบรนด์นี้อยู่จะยังคงค่าเดิมไว้", ok: "ลบแบรนด์" }).then((ok) => { if (ok) store.remove(b.name); }); }} title="ลบ" style={{ flexShrink: 0, background: "var(--tint-red-bg)", border: "none", color: "var(--tint-red-tx2)", width: 32, height: 32, borderRadius: 8, cursor: "pointer", display: "grid", placeItems: "center" }}><Icon name="x" size={15} /></button>
             </div>
           ))}
         </div>

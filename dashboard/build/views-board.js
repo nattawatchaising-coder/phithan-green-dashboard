@@ -363,7 +363,7 @@ function KanbanCard({
         fontWeight: 700,
         color: "var(--tint-amber-tx)",
         background: "var(--tint-amber-bg2)",
-        border: "1px solid #FCD34D",
+        border: "1px solid var(--tint-amber-bd)",
         padding: "2px 7px",
         borderRadius: "var(--r-pill)",
         whiteSpace: "nowrap"
@@ -1000,7 +1000,7 @@ function KanbanMobile({
       style: {
         fontSize: 10,
         fontWeight: 700,
-        color: "#EF4444",
+        color: "var(--tint-red-tx2)",
         background: "var(--tint-red-bg2)",
         padding: "1px 6px",
         borderRadius: "var(--r-pill)",

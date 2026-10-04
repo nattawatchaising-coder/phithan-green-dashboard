@@ -708,7 +708,7 @@ function StickerPicker({
   }, !window.FBDB && React.createElement("div", {
     style: {
       fontSize: 12,
-      color: "#EF4444",
+      color: "var(--tint-red-tx2)",
       marginBottom: 10
     }
   }, "\u26A0 \u0E15\u0E49\u0E2D\u0E07\u0E40\u0E0A\u0E37\u0E48\u0E2D\u0E21\u0E15\u0E48\u0E2D\u0E10\u0E32\u0E19\u0E02\u0E49\u0E2D\u0E21\u0E39\u0E25\u0E01\u0E48\u0E2D\u0E19\u0E08\u0E36\u0E07\u0E08\u0E30\u0E40\u0E01\u0E47\u0E1A\u0E23\u0E39\u0E1B\u0E40\u0E02\u0E49\u0E32\u0E04\u0E25\u0E31\u0E07\u0E44\u0E14\u0E49"), !shown.length && React.createElement("div", {
@@ -805,8 +805,8 @@ function StickerPicker({
     },
     style: {
       border: "none",
-      background: "#EF444414",
-      color: "#EF4444",
+      background: "var(--tint-red-bg)",
+      color: "var(--tint-red-tx2)",
       borderRadius: 8,
       padding: "5px 0",
       fontFamily: "inherit",
@@ -1792,7 +1792,7 @@ function SurveyShotCard({
     }
   }, req ? slot.label : shot && shot.title || "รูปเพิ่มเติม", req && React.createElement("span", {
     style: {
-      color: "#EF4444"
+      color: "var(--tint-red-tx2)"
     }
   }, " *")), React.createElement("span", {
     style: {
@@ -1852,8 +1852,8 @@ function SurveyShotCard({
       height: 32,
       borderRadius: "var(--r-pill)",
       border: "none",
-      background: "#EF444414",
-      color: "#EF4444",
+      background: "var(--tint-red-bg)",
+      color: "var(--tint-red-tx2)",
       cursor: "pointer",
       display: "grid",
       placeItems: "center"
@@ -2210,7 +2210,7 @@ function SurveyWizard({
     style: labelStyle
   }, label, req && React.createElement("span", {
     style: {
-      color: "#EF4444"
+      color: "var(--tint-red-tx2)"
     }
   }, " *")), child);
   const two = {
@@ -2499,7 +2499,7 @@ function SurveyWizard({
   }), gpsBusy ? "กำลังจับพิกัด..." : f.gps ? "จับพิกัดใหม่" : "จับพิกัด GPS ปัจจุบัน"), gpsErr && React.createElement("div", {
     style: {
       fontSize: 12,
-      color: "#EF4444",
+      color: "var(--tint-red-tx2)",
       fontWeight: 600
     }
   }, "\u26A0 ", gpsErr), f.gps && React.createElement("div", {
@@ -2781,7 +2781,7 @@ function SurveyWizard({
   }))), step === 5 && React.createElement(React.Fragment, null, !window.FBDB && React.createElement("div", {
     style: {
       fontSize: 12,
-      color: "#EF4444",
+      color: "var(--tint-red-tx2)",
       background: "var(--tint-red-bg)",
       border: "1px solid var(--tint-red-bd)",
       borderRadius: 11,

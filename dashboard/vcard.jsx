@@ -355,7 +355,7 @@ function VcCardBody({ user }) {
 
       {empty && (
         <div style={{ display: "flex", gap: 9, alignItems: "flex-start", padding: "11px 13px", borderRadius: 11,
-          background: "#F59E0B14", border: "1px solid #F59E0B40" }}>
+          background: "var(--tint-amber-bg)", border: "1px solid var(--tint-amber-bd)" }}>
           <Icon name="alert" size={15} color="#F59E0B" />
           <span style={{ fontSize: 12.5, color: "var(--text-1)", lineHeight: 1.5 }}>
             ยังไม่ได้กรอกเบอร์โทร อีเมล หรือไลน์ไอดี — นามบัตรจะขึ้นเบอร์บริษัทแทน

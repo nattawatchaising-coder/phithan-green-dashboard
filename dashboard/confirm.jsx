@@ -111,7 +111,7 @@ function ConfirmHost() {
           <div style={{ marginTop: 14 }}>
             {req.label && (
               <div style={{ fontSize: 11, fontWeight: 700, color: "var(--text-3)", marginBottom: 5 }}>
-                {req.label}{req.required && <span style={{ color: "#EF4444" }}> *</span>}
+                {req.label}{req.required && <span style={{ color: "var(--tint-red-tx2)" }}> *</span>}
               </div>
             )}
             <input autoFocus value={text} maxLength={req.maxLength || 120} placeholder={req.placeholder || ""}

@@ -1165,7 +1165,7 @@ function QuotePagePick({ q, locked, onToggle, onAll, warn }) {
         })}
       </div>
       {warn && (
-        <div style={{ fontSize: 11.5, color: "#B45309", background: "var(--tint-amber-bg)", border: "1px solid #F59E0B55",
+        <div style={{ fontSize: 11.5, color: "var(--tint-amber-tx)", background: "var(--tint-amber-bg)", border: "1px solid var(--tint-amber-bd)",
           borderRadius: "var(--r-tile)", padding: "8px 11px", lineHeight: 1.6 }}>{warn}</div>
       )}
     </div>
@@ -1318,7 +1318,7 @@ function QuoteRoiEdit({ q, locked, onChange }) {
           ))}
         </div>
       ) : (
-        <div style={{ fontSize: 11.5, color: "#B45309" }}>ต้องมีทั้งขนาดระบบ (kWp) และราคาในใบ ระบบจึงจะคิดผลตอบแทนได้</div>
+        <div style={{ fontSize: 11.5, color: "var(--tint-amber-tx)" }}>ต้องมีทั้งขนาดระบบ (kWp) และราคาในใบ ระบบจึงจะคิดผลตอบแทนได้</div>
       )}
     </div>
   );
@@ -1854,7 +1854,7 @@ function QuoteEditor({ quote, job, target, stock, onClose, onSave, onDelete, cur
                   <span style={{ flex: 1 }}>
                     ลดแล้ว{T.discMode === "pct" ? " (" + T.discPct + "% ของ ฿" + sBaht(T.sub) + ")" : ""}
                   </span>
-                  <b style={{ fontVariantNumeric: "tabular-nums", color: "#EF4444" }}>− ฿{sBaht(T.disc)}</b>
+                  <b style={{ fontVariantNumeric: "tabular-nums", color: "var(--tint-red-tx2)" }}>− ฿{sBaht(T.disc)}</b>
                 </div>
               )}
               <div style={{ display: "flex", alignItems: "center", gap: 10, fontSize: 13, color: "var(--text-2)" }}>

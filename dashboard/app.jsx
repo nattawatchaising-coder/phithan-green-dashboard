@@ -1687,7 +1687,7 @@ function DailyBriefing({ lateAlerts, todayTasks, onOpen, onClose }) {
           <button className="x-close" onClick={onClose} style={{ width: 32, height: 32, borderRadius: 9, border: "1px solid var(--border)", background: "var(--surface)", cursor: "pointer", display: "grid", placeItems: "center", color: "var(--text-2)" }}><Icon name="x" size={16} /></button>
         </div>
         <div style={{ overflowY: "auto", padding: 16, display: "flex", flexDirection: "column", gap: 8 }}>
-          {lateAlerts.length > 0 && <div style={{ fontSize: 11, fontWeight: 800, color: "#EF4444", padding: "2px 2px" }}>⚠ เลยกำหนด ({lateAlerts.length})</div>}
+          {lateAlerts.length > 0 && <div style={{ fontSize: 11, fontWeight: 800, color: "var(--tint-red-tx2)", padding: "2px 2px" }}>⚠ เลยกำหนด ({lateAlerts.length})</div>}
           {lateAlerts.map((a, i) => (
             <Row key={"l" + i} jobId={a.jobId} color="#EF4444" danger title={a.jobName} sub={'ขั้น "' + a.stage.th + '" เลยกำหนด ' + a.stage.daysLate + " วัน"} />
           ))}
@@ -1833,7 +1833,7 @@ function TrashModal({ trash, me, onRestore, onPurge, onClose }) {
                   background: "var(--primary-soft)", color: "var(--primary-dark)", fontFamily: "inherit", fontSize: 12.5, fontWeight: 700, cursor: "pointer" }}>กู้คืน</button>
                 {isAdmin && ask !== j.id && (
                   <button onClick={() => { setAsk(j.id); setPw(""); setErr(""); }} style={{ padding: "8px 13px", borderRadius: 9, border: "1px solid var(--border-strong)",
-                    background: "var(--surface)", color: "#EF4444", fontFamily: "inherit", fontSize: 12.5, fontWeight: 700, cursor: "pointer" }}>ลบถาวร</button>
+                    background: "var(--surface)", color: "var(--tint-red-tx2)", fontFamily: "inherit", fontSize: 12.5, fontWeight: 700, cursor: "pointer" }}>ลบถาวร</button>
                 )}
               </div>
               {ask === j.id && (
@@ -1853,7 +1853,7 @@ function TrashModal({ trash, me, onRestore, onPurge, onClose }) {
                     <button onClick={() => { setAsk(null); setPw(""); setErr(""); }} style={{ padding: "8px 13px", borderRadius: 9, border: "1px solid var(--border-strong)",
                       background: "var(--surface)", color: "var(--text-2)", fontFamily: "inherit", fontSize: 12.5, fontWeight: 700, cursor: "pointer" }}>ยกเลิก</button>
                   </div>
-                  {err && <div style={{ marginTop: 6, fontSize: 11.5, fontWeight: 700, color: "#EF4444" }}>{err}</div>}
+                  {err && <div style={{ marginTop: 6, fontSize: 11.5, fontWeight: 700, color: "var(--tint-red-tx2)" }}>{err}</div>}
                 </div>
               )}
             </div>

@@ -792,8 +792,8 @@ function DailyReportModal({ job, role, currentUser, onClose, onNotify, openDate 
             ) : (
               <button onClick={() => setDelAsk(true)} title="ลบใบรายงานของวันนี้ (เฉพาะแอดมิน)"
                 style={{ display: "inline-flex", alignItems: "center", gap: 7, padding: "10px 13px", borderRadius: 10,
-                  border: "1px solid #EF444455", background: "var(--surface)", cursor: "pointer",
-                  fontFamily: "inherit", fontSize: 13, fontWeight: 700, color: "#EF4444" }}>
+                  border: "1px solid var(--tint-red-bd)", background: "var(--surface)", cursor: "pointer",
+                  fontFamily: "inherit", fontSize: 13, fontWeight: 700, color: "var(--tint-red-tx2)" }}>
                 <Icon name="trash" size={15} color="#EF4444" /> ลบใบนี้
               </button>
             ))}
@@ -1611,8 +1611,8 @@ function DailyView({ jobs, role, currentUser, onOpen }) {
           /* แถวที่กำลังถามยืนยันลบ — ทับทั้งแถวไปเลย จะได้ไม่มีทางกดพลาดโดนปุ่มอื่น */
           if (canDelete && delAsk === r.job.id) return (
             <div key={r.job.id} style={{ display: "flex", alignItems: "center", gap: 9, padding: isMobile ? "11px 12px" : "13px 16px",
-              borderBottom: "1px solid var(--border)", background: "#EF44440e", flexWrap: "wrap" }}>
-              <span style={{ flex: 1, minWidth: 140, fontSize: 12.5, fontWeight: 700, color: "#EF4444" }}>
+              borderBottom: "1px solid var(--border)", background: "var(--tint-red-bg)", flexWrap: "wrap" }}>
+              <span style={{ flex: 1, minWidth: 140, fontSize: 12.5, fontWeight: 700, color: "var(--tint-red-tx2)" }}>
                 ลบรายงาน {r.job.code} ของวันนี้ทั้งใบ? รูปและลายเซ็นหายไปด้วย เรียกคืนไม่ได้
               </span>
               <button onClick={() => setDelAsk(null)}

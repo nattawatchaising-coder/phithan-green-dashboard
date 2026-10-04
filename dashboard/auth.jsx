@@ -682,7 +682,7 @@ function AField({ label, required, children, full }) {
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 5, gridColumn: full ? "1 / -1" : "auto" }}>
       <label style={{ fontSize: 10.5, fontWeight: 700, color: "var(--text-3)" }}>
-        {label}{required && <span style={{ color: "#EF4444" }}> *</span>}
+        {label}{required && <span style={{ color: "var(--tint-red-tx2)" }}> *</span>}
       </label>
       {children}
     </div>
@@ -764,7 +764,7 @@ function LoginScreen({ authStore }) {
               </div>
             </AField>
           </div>
-          {err && <div style={{ marginTop: 12, fontSize: 12.5, color: "#EF4444", fontWeight: 600, textAlign: "center" }}>⚠ {err}</div>}
+          {err && <div style={{ marginTop: 12, fontSize: 12.5, color: "var(--tint-red-tx2)", fontWeight: 600, textAlign: "center" }}>⚠ {err}</div>}
           <button onClick={submit}
             style={{ marginTop: 18, width: "100%", padding: "13px 16px", borderRadius: 12, border: "none",
               background: "var(--primary)", color: "#fff", fontWeight: 700, fontFamily: "inherit", fontSize: 14.5, cursor: "pointer",
@@ -843,7 +843,7 @@ function NotifPanel({ items, lateAlerts, omAlerts, onOpenOm, onClose, onOpenJob,
           {/* งานล่าช้าตามขั้น (Flow) — คำนวณสด */}
           {alerts.length > 0 && (
             <React.Fragment>
-              <div style={{ fontSize: 10.5, fontWeight: 700, color: "#EF4444", padding: "2px 4px" }}>⚠ งานล่าช้ากว่ากำหนด ({alerts.length})</div>
+              <div style={{ fontSize: 10.5, fontWeight: 700, color: "var(--tint-red-tx2)", padding: "2px 4px" }}>⚠ งานล่าช้ากว่ากำหนด ({alerts.length})</div>
               {alerts.map((a, i) => (
                 <button key={a.jobId + a.stage.key + i} onClick={() => onOpenJob({ jobId: a.jobId })}
                   style={{ display: "flex", gap: 10, padding: "11px 12px", width: "100%", textAlign: "left", cursor: "pointer", fontFamily: "inherit",
@@ -1184,7 +1184,7 @@ function UserManager({ authStore, onClose, roleCfg }) {
                     <div style={{ fontSize: 14, fontWeight: 700, color: "var(--text-1)" }}>
                       {u.name || "(ยังไม่ระบุชื่อ)"}
                       {u.username && <span style={{ fontSize: 11.5, color: "var(--text-3)", fontWeight: 600, fontFamily: "var(--mono)" }}> · @{u.username}</span>}
-                      {u.active === false && <span style={{ fontSize: 10.5, color: "#EF4444", fontWeight: 600 }}> · ระงับ</span>}
+                      {u.active === false && <span style={{ fontSize: 10.5, color: "var(--tint-red-tx2)", fontWeight: 600 }}> · ระงับ</span>}
                     </div>
                     <div style={{ marginTop: 4, display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
                       <RoleBadges roles={rs} short />
@@ -1207,7 +1207,7 @@ function UserManager({ authStore, onClose, roleCfg }) {
                       <button onClick={() => {
                           if (hasRole(rs, "admin") && users.filter((x) => hasRole(userRoles(x), "admin")).length <= 1) { setEditing(null); setDelAsk("__lastadmin"); return; }
                           setDelAsk(u.id);
-                        }} title="ลบ" style={{ background: "#EF444414", border: "none", color: "#EF4444", width: 32, height: 32, borderRadius: 8, cursor: "pointer", display: "grid", placeItems: "center", flexShrink: 0 }}><Icon name="x" size={15} /></button>
+                        }} title="ลบ" style={{ background: "var(--tint-red-bg)", border: "none", color: "var(--tint-red-tx2)", width: 32, height: 32, borderRadius: 8, cursor: "pointer", display: "grid", placeItems: "center", flexShrink: 0 }}><Icon name="x" size={15} /></button>
                     </React.Fragment>
                   )}
                 </div>
@@ -1395,7 +1395,7 @@ function UserEditModal({ initial, existing, onSave, onClose }) {
               <span style={{ fontSize: 12.5, fontWeight: 600, color: f.active === false ? "var(--text-3)" : "var(--primary-dark)" }}>{f.active === false ? "ระงับการใช้งาน" : "ใช้งานได้"}</span>
             </button>
           </AField>
-          {err && <div style={{ fontSize: 12.5, fontWeight: 600, color: "#EF4444" }}>⚠ {err}</div>}
+          {err && <div style={{ fontSize: 12.5, fontWeight: 600, color: "var(--tint-red-tx2)" }}>⚠ {err}</div>}
         </div>
         <div style={{ padding: "14px 22px", paddingBottom: isMobile ? "calc(14px + env(safe-area-inset-bottom, 0px))" : 14, borderTop: "1px solid var(--border)", background: "var(--surface)", display: "flex", justifyContent: "flex-end", gap: 10, flexShrink: 0 }}>
           <button onClick={onClose} style={{ flex: isMobile ? "0 0 auto" : "none", padding: "11px 18px", borderRadius: 11, border: "1px solid var(--border-strong)", background: "var(--surface)", color: "var(--text-2)", fontWeight: 600, fontFamily: "inherit", fontSize: 13.5, cursor: "pointer" }}>ยกเลิก</button>

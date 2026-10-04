@@ -142,7 +142,7 @@ function AlertsPanel({ jobs, onOpen }) {
             <div style={{ flex: 1, minWidth: 0 }}>
               <div style={{ display: "flex", alignItems: "center", gap: 8, minWidth: 0 }}>
                 <span style={{ fontSize: 13.5, fontWeight: 700, color: "var(--text-1)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", flex: "0 1 auto" }}>{j.name}</span>
-                {j.delayed && <span style={{ fontSize: 10, fontWeight: 800, letterSpacing: ".02em", color: "#D93025", background: "rgba(217,48,37,.11)", padding: "2px 7px", borderRadius: "var(--r-pill)", flexShrink: 0 }}>ล่าช้า</span>}
+                {j.delayed && <span style={{ fontSize: 10, fontWeight: 800, letterSpacing: ".02em", color: "var(--tint-red-tx)", background: "rgba(217,48,37,.11)", padding: "2px 7px", borderRadius: "var(--r-pill)", flexShrink: 0 }}>ล่าช้า</span>}
               </div>
               <div style={{ fontSize: 12, color: "var(--text-2)", marginTop: 3, lineHeight: 1.4, overflow: "hidden", textOverflow: "ellipsis", display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical" }}>
                 {j.problem || ("เลยกำหนดวันนัด " + thDate(j.deadline))}
@@ -201,7 +201,7 @@ function SchedulePanel({ jobs, onOpen }) {
                 <div style={{ fontSize: 11.5, color: "var(--text-3)", marginTop: 2, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{j.province} · {j.kw} kW · {j.brand}</div>
                 <div style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 6 }}>
                   <StageBadge stageKey={j.stage} size="sm" />
-                  {j.delayed && <span style={{ fontSize: 10.5, fontWeight: 700, color: "#EF4444" }}>ล่าช้า</span>}
+                  {j.delayed && <span style={{ fontSize: 10.5, fontWeight: 700, color: "var(--tint-red-tx2)" }}>ล่าช้า</span>}
                 </div>
               </div>
               <TechAvatar techId={j.tech} size={26} />

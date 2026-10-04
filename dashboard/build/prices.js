@@ -253,7 +253,7 @@ function PricePanel({
         fontSize: 9.5,
         fontWeight: 700,
         color: "var(--tint-amber-tx)",
-        background: "#F59E0B1f",
+        background: "var(--tint-amber-bg)",
         padding: "1px 6px",
         borderRadius: 99,
         flexShrink: 0
@@ -286,9 +286,9 @@ function PricePanel({
       title: "\u0E25\u0E1A",
       style: {
         height: 32,
-        background: "#EF444414",
+        background: "var(--tint-red-bg)",
         border: "none",
-        color: "#EF4444",
+        color: "var(--tint-red-tx2)",
         borderRadius: 8,
         cursor: "pointer",
         display: "grid",

@@ -125,7 +125,7 @@ function PermitCard({
       style: {
         fontSize: 10,
         fontWeight: 700,
-        color: "#EF4444",
+        color: "var(--tint-red-tx2)",
         background: "var(--tint-red-bg2)",
         padding: "1px 7px",
         borderRadius: 99
@@ -813,7 +813,7 @@ function PermitCatalogRow({
     }
   }, slot.label, React.createElement("span", {
     style: {
-      color: "#EF4444"
+      color: "var(--tint-red-tx2)"
     }
   }, " *")), React.createElement("span", {
     style: {
@@ -1072,7 +1072,7 @@ function PermitDocRow({
     }
   }, slot.label, slot.req && React.createElement("span", {
     style: {
-      color: "#EF4444"
+      color: "var(--tint-red-tx2)"
     }
   }, " *")), React.createElement("span", {
     style: {
@@ -1143,7 +1143,7 @@ function PermitDocRow({
       borderRadius: 8,
       border: "1px solid var(--border-strong)",
       background: "var(--surface)",
-      color: "#EF4444",
+      color: "var(--tint-red-tx2)",
       cursor: "pointer",
       display: "grid",
       placeItems: "center"
@@ -1412,7 +1412,7 @@ function PermitReview({
   }, "\u0E22\u0E31\u0E07\u0E02\u0E32\u0E14\u0E40\u0E2D\u0E01\u0E2A\u0E32\u0E23\u0E1A\u0E31\u0E07\u0E04\u0E31\u0E1A ", docMissing.length, " \u0E23\u0E32\u0E22\u0E01\u0E32\u0E23: ", docMissing.map(d => d.label).join(", ")), docErr && React.createElement("div", {
     style: {
       fontSize: 12,
-      color: "#EF4444",
+      color: "var(--tint-red-tx2)",
       fontWeight: 600
     }
   }, "\u26A0 ", docErr), React.createElement("div", {

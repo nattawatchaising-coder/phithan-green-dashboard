@@ -481,7 +481,7 @@ function PField({ label, hint, required, children, full, from }) {
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 5, gridColumn: full ? "1 / -1" : "auto", minWidth: 0 }}>
       <label style={{ fontSize: 10.5, fontWeight: 700, letterSpacing: ".04em", color: "var(--text-3)" }}>
-        {label}{required && <span style={{ color: "#EF4444" }}> *</span>}{from && <FromSurveyTag />}
+        {label}{required && <span style={{ color: "var(--tint-red-tx2)" }}> *</span>}{from && <FromSurveyTag />}
       </label>
       {children}
       {hint && <span style={{ fontSize: 10.5, color: "var(--text-3)", lineHeight: 1.4 }}>{hint}</span>}
@@ -544,7 +544,7 @@ function PermitShotCard({ slot, shot, busy, onPick, onRemove }) {
       )}
       <span style={{ flex: 1, minWidth: 0 }}>
         <span style={{ display: "block", fontSize: 13, fontWeight: 700, color: "var(--text-1)" }}>
-          {slot.label}{slot.req && <span style={{ color: "#EF4444" }}> *</span>}
+          {slot.label}{slot.req && <span style={{ color: "var(--tint-red-tx2)" }}> *</span>}
         </span>
         <span style={{ display: "block", fontSize: 11, marginTop: 1, lineHeight: 1.4, color: warn ? "var(--tint-red-tx)" : "var(--text-3)", fontWeight: warn ? 600 : 400 }}>{slot.hint}</span>
         <button type="button" onClick={() => setSample(true)}
@@ -564,7 +564,7 @@ function PermitShotCard({ slot, shot, busy, onPick, onRemove }) {
         </button>
         {has && (
           <button type="button" onClick={onRemove} title="ลบรูป"
-            style={{ width: 30, height: 30, borderRadius: 9, border: "1px solid var(--border-strong)", background: "var(--surface)", color: "#EF4444", cursor: "pointer", display: "grid", placeItems: "center" }}>
+            style={{ width: 30, height: 30, borderRadius: 9, border: "1px solid var(--border-strong)", background: "var(--surface)", color: "var(--tint-red-tx2)", cursor: "pointer", display: "grid", placeItems: "center" }}>
             <Icon name="trash" size={14} />
           </button>
         )}
@@ -830,7 +830,7 @@ function PermitWizard({ job, onClose, onSave, onSubmit, currentUser, stock, read
                       </div>
                       {(f.invs || []).length > 1 && (
                         <button type="button" onClick={() => delInv(i)} title="ลบตัวนี้"
-                          style={{ width: 38, height: 38, borderRadius: 9, border: "1px solid var(--border-strong)", background: "var(--surface)", color: "#EF4444", cursor: "pointer", display: "grid", placeItems: "center", flexShrink: 0 }}><Icon name="trash" size={14} /></button>
+                          style={{ width: 38, height: 38, borderRadius: 9, border: "1px solid var(--border-strong)", background: "var(--surface)", color: "var(--tint-red-tx2)", cursor: "pointer", display: "grid", placeItems: "center", flexShrink: 0 }}><Icon name="trash" size={14} /></button>
                       )}
                     </div>
                   ))}
@@ -871,7 +871,7 @@ function PermitWizard({ job, onClose, onSave, onSubmit, currentUser, stock, read
                       <Icon name="pin" size={14} color="#fff" /> {gpsBusy ? "กำลังจับพิกัด…" : (f.gps ? "จับพิกัดใหม่" : "จับพิกัดตรงนี้")}
                     </button>
                     {f.gps && <span style={{ fontSize: 12, fontFamily: "var(--mono)", color: "var(--text-2)" }}>{f.gps.lat}, {f.gps.lng} <span style={{ color: "var(--text-3)" }}>±{f.gps.acc}m</span></span>}
-                    {gpsErr && <span style={{ fontSize: 12, color: "#EF4444", fontWeight: 600 }}>{gpsErr}</span>}
+                    {gpsErr && <span style={{ fontSize: 12, color: "var(--tint-red-tx2)", fontWeight: 600 }}>{gpsErr}</span>}
                   </div>
                 </PField>
                 <PField label="หมายเหตุถึงฝ่ายขออนุญาต" hint="เช่น มิเตอร์เป็นชื่อคนอื่น / ลูกค้าขอเลื่อนวันตรวจ">

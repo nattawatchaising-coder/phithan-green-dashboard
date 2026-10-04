@@ -166,7 +166,7 @@ function TmDaySheet({ date, setDate, cfg, users, currentUser }) {
                       ให้เจ้าตัวกดใหม่จะได้พิกัดกับเวลาจริงติดมาด้วยเหมือนเดิม */}
                   <button onClick={() => del(r)} title="ลบใบลงเวลาของคนนี้"
                     style={{ padding: "5px 11px", borderRadius: 8, border: "1px solid var(--border-strong)",
-                      background: "var(--surface)", color: "#EF4444", cursor: "pointer", fontFamily: "inherit",
+                      background: "var(--surface)", color: "var(--tint-red-tx2)", cursor: "pointer", fontFamily: "inherit",
                       fontSize: 11.5, fontWeight: 700, whiteSpace: "nowrap" }}>ลบ</button>
                 </td>
               </tr>
@@ -853,7 +853,7 @@ function TmOtModal({ rec, cfg, jobs, users, role, currentUser, onSave, onMove, o
           {mine && f.status === "draft" && onDelete && (
             <button onClick={() => { onDelete(f.id); onClose(); }}
               style={{ marginLeft: "auto", padding: "9px 14px", borderRadius: 10, border: "1px solid var(--border-strong)",
-                background: "var(--surface)", cursor: "pointer", fontFamily: "inherit", fontSize: 12.5, fontWeight: 700, color: "#EF4444" }}>ลบใบนี้</button>
+                background: "var(--surface)", cursor: "pointer", fontFamily: "inherit", fontSize: 12.5, fontWeight: 700, color: "var(--tint-red-tx2)" }}>ลบใบนี้</button>
           )}
         </div>
       </div>
@@ -946,10 +946,10 @@ function TmOfficeCfg({ office, onChange }) {
         {has && (
           <button onClick={() => onChange(Object.assign({}, o, { lat: null, lng: null }))}
             style={{ padding: "7px 12px", borderRadius: 9, border: "1px solid var(--border-strong)",
-              background: "var(--surface)", color: "#EF4444", cursor: "pointer", fontFamily: "inherit",
+              background: "var(--surface)", color: "var(--tint-red-tx2)", cursor: "pointer", fontFamily: "inherit",
               fontSize: 11.5, fontWeight: 700 }}>ล้างพิกัด</button>
         )}
-        {err && <span style={{ fontSize: 11.5, fontWeight: 700, color: "#EF4444" }}>{err}</span>}
+        {err && <span style={{ fontSize: 11.5, fontWeight: 700, color: "var(--tint-red-tx2)" }}>{err}</span>}
       </div>
 
       {/* ── สวิตช์ล็อกพิกัด ──
@@ -981,7 +981,7 @@ function TmOfficeCfg({ office, onChange }) {
           </span>
         </div>
         {o.lock && (
-          <div style={{ marginTop: 9, fontSize: 11.5, color: "#B45309", lineHeight: 1.75 }}>
+          <div style={{ marginTop: 9, fontSize: 11.5, color: "var(--tint-amber-tx)", lineHeight: 1.75 }}>
             <b>เปิดแล้วต้องรู้ไว้</b> — GPS ในอาคารคลาดเคลื่อนได้เป็นร้อยเมตร คนที่มาทำงานจริงอาจกดเข้างานไม่ได้
             ถ้าเจอบ่อยให้เพิ่มรัศมีแทนการปิดทิ้ง · คนที่ไม่ให้สิทธิ์ตำแหน่งจะกดเข้างานไม่ได้เลย
             <br />การ<b>กดออกงานไม่เคยถูกล็อก</b> — คนที่ออกจากออฟฟิศไปแล้วต้องปิดกะได้เสมอ ไม่งั้นจะเหลือกะค้างให้ตามแก้
@@ -994,7 +994,7 @@ function TmOfficeCfg({ office, onChange }) {
         {has
           ? <span>ตั้งไว้ที่ <b style={{ fontFamily: "var(--mono)" }}>{(+o.lat).toFixed(6)}, {(+o.lng).toFixed(6)}</b>
               {" "}· ปั๊มที่อยู่ในรัศมี <b>{o.radius == null ? 150 : o.radius} ม.</b> จะขึ้นว่า “ถึงออฟฟิศ”</span>
-          : <b style={{ color: "#B45309" }}>ยังไม่ได้ตั้งพิกัดออฟฟิศ — แผ่นเวลาจะไม่แสดงระยะห่าง</b>}
+          : <b style={{ color: "var(--tint-amber-tx)" }}>ยังไม่ได้ตั้งพิกัดออฟฟิศ — แผ่นเวลาจะไม่แสดงระยะห่าง</b>}
         <br /><span style={{ color: "var(--text-3)" }}>
           กดปุ่ม “ใช้ตำแหน่งที่ยืนอยู่ตอนนี้” ได้เฉพาะตอนที่ยืนอยู่ที่ออฟฟิศจริง —
           กดจากที่บ้านแล้วพิกัดออฟฟิศจะกลายเป็นบ้าน โดยที่ไม่มีอะไรเตือน
@@ -1142,7 +1142,7 @@ function TmWorkHours({ cfg, onSave }) {
             <span style={{ fontFamily: "var(--mono)", fontSize: 12, color: "var(--text-2)" }}>{window.drDateTH(d)}</span>
             <span style={{ fontSize: 12.5, color: "var(--text-1)" }}>{f.holidays[d]}</span>
             <button onClick={() => { const h = Object.assign({}, f.holidays); delete h[d]; set("holidays", h); }}
-              style={{ marginLeft: "auto", border: "none", background: "none", cursor: "pointer", color: "#EF4444", fontFamily: "inherit", fontSize: 12, fontWeight: 700 }}>ลบ</button>
+              style={{ marginLeft: "auto", border: "none", background: "none", cursor: "pointer", color: "var(--tint-red-tx2)", fontFamily: "inherit", fontSize: 12, fontWeight: 700 }}>ลบ</button>
           </div>
         ))}
         {Object.keys(f.holidays || {}).length === 0 && <div style={{ fontSize: 12, color: "var(--text-3)" }}>ยังไม่ได้ประกาศวันหยุดพิเศษ</div>}

@@ -107,7 +107,7 @@ function EcReceipts({ claimId, currentUser, disabled, count, big, onBig }) {
         </div>
       )}
       {err && (
-        <div style={{ fontSize: 12, color: "#EF4444", margin: "6px 0" }}>{err}</div>
+        <div style={{ fontSize: 12, color: "var(--tint-red-tx2)", margin: "6px 0" }}>{err}</div>
       )}
       {!shots.length && (
         <div style={{ fontSize: 12, color: disabled ? "var(--text-3)" : "#F59E0B", marginTop: disabled ? 0 : 4 }}>
@@ -124,7 +124,7 @@ function EcReceipts({ claimId, currentUser, disabled, count, big, onBig }) {
                   display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 7,
                   padding: "8px 10px", fontFamily: "inherit" }}>
                 <span style={{ width: 36, height: 36, borderRadius: "var(--r-tile)", display: "grid", placeItems: "center",
-                  background: "#EF44441a" }}>
+                  background: "var(--tint-red-bg)" }}>
                   <Icon name="file" size={18} color="#EF4444" />
                 </span>
                 <span style={{ fontSize: 11.5, fontWeight: 700, color: "var(--text-1)", textAlign: "center",
@@ -902,7 +902,7 @@ function EcPayModal({ person, claims, batches, currentUser, role, payers, onClos
               boxShadow: "var(--shadow-sm)", borderRadius: "var(--r-tile)", background: "var(--surface)" }}>
               {slip.kind === "pdf" ? (
                 <span style={{ width: 54, height: 54, flexShrink: 0, borderRadius: "var(--r-chip)", display: "grid", placeItems: "center",
-                  background: "#EF44441a" }}>
+                  background: "var(--tint-red-bg)" }}>
                   <Icon name="file" size={20} color="#EF4444" />
                 </span>
               ) : (
@@ -938,7 +938,7 @@ function EcPayModal({ person, claims, batches, currentUser, role, payers, onClos
               </label>
             </div>
           )}
-          {slipErr && <div style={{ fontSize: 12, color: "#EF4444", margin: "-6px 0 10px" }}>{slipErr}</div>}
+          {slipErr && <div style={{ fontSize: 12, color: "var(--tint-red-tx2)", margin: "-6px 0 10px" }}>{slipErr}</div>}
 
           <window.DrLabel hint="ไม่บังคับ">หมายเหตุ</window.DrLabel>
           <input value={note} onChange={(e) => setNote(e.target.value)}

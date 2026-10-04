@@ -138,7 +138,7 @@ function KanbanCard({ job, onOpen, onDragStart, dragging }) {
           {job.startDate
             ? <span style={{ fontFamily: "var(--mono)", fontSize: 11.5, fontWeight: 600, letterSpacing: "-.01em",
                 color: job.delayed ? "#D93025" : "var(--text-2)" }}>{thDate(job.startDate)}</span>
-            : <span style={{ display: "inline-flex", alignItems: "center", gap: 3, fontSize: 10, fontWeight: 700, color: "var(--tint-amber-tx)", background: "var(--tint-amber-bg2)", border: "1px solid #FCD34D", padding: "2px 7px", borderRadius: "var(--r-pill)", whiteSpace: "nowrap" }}><Icon name="alert" size={10} color="var(--tint-amber-tx)" /> ยังไม่ระบุวันติดตั้ง</span>}
+            : <span style={{ display: "inline-flex", alignItems: "center", gap: 3, fontSize: 10, fontWeight: 700, color: "var(--tint-amber-tx)", background: "var(--tint-amber-bg2)", border: "1px solid var(--tint-amber-bd)", padding: "2px 7px", borderRadius: "var(--r-pill)", whiteSpace: "nowrap" }}><Icon name="alert" size={10} color="var(--tint-amber-tx)" /> ยังไม่ระบุวันติดตั้ง</span>}
         </span>
         <span style={{ display: "inline-flex", alignItems: "center", gap: 6, flexShrink: 0 }}>
           <MatDots mat={job.mat} />
@@ -351,7 +351,7 @@ function KanbanMobile({ jobs, onOpen }) {
               <span style={{ display: "flex", alignItems: "center", gap: 9, minWidth: 0 }}>
                 <span style={{ width: 10, height: 10, borderRadius: "var(--r-pill)", background: s.color, flexShrink: 0 }} />
                 <span style={{ fontSize: 14, fontWeight: 700, color: "var(--text-1)" }}>{s.th}</span>
-                {problems > 0 && <span style={{ fontSize: 10, fontWeight: 700, color: "#EF4444", background: "var(--tint-red-bg2)", padding: "1px 6px", borderRadius: "var(--r-pill)", flexShrink: 0 }}>{problems}⚠</span>}
+                {problems > 0 && <span style={{ fontSize: 10, fontWeight: 700, color: "var(--tint-red-tx2)", background: "var(--tint-red-bg2)", padding: "1px 6px", borderRadius: "var(--r-pill)", flexShrink: 0 }}>{problems}⚠</span>}
               </span>
               <span style={{ display: "flex", alignItems: "center", gap: 10, flexShrink: 0 }}>
                 <span style={{ fontFamily: "var(--mono)", fontSize: 12, fontWeight: 600, color: s.fg, background: s.soft,

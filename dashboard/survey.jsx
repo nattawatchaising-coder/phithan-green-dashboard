@@ -422,7 +422,7 @@ function StickerPicker({ onPick, onClose }) {
         </div>
 
         <div style={{ flex: 1, overflowY: "auto", padding: 14, background: "var(--surface2)" }}>
-          {!window.FBDB && <div style={{ fontSize: 12, color: "#EF4444", marginBottom: 10 }}>⚠ ต้องเชื่อมต่อฐานข้อมูลก่อนจึงจะเก็บรูปเข้าคลังได้</div>}
+          {!window.FBDB && <div style={{ fontSize: 12, color: "var(--tint-red-tx2)", marginBottom: 10 }}>⚠ ต้องเชื่อมต่อฐานข้อมูลก่อนจึงจะเก็บรูปเข้าคลังได้</div>}
           {!shown.length && <div style={{ padding: "28px 10px", textAlign: "center", color: "var(--text-3)", fontSize: 12.5 }}>
             ยังไม่มีรูปในหมวดนี้ — กด “เพิ่มรูปเข้าคลัง” ด้านล่าง หรือก๊อปรูปมาแล้วกด Ctrl+V ได้เลย
           </div>}
@@ -442,7 +442,7 @@ function StickerPicker({ onPick, onClose }) {
                       {cats.map((c) => <option key={c} value={c}>{c}</option>)}
                     </select>
                     <button onClick={() => { askConfirm({ title: "ลบออกจากคลังรูป?", body: s.name || "รูปนี้", ok: "ลบออกจากคลัง" }).then((ok) => { if (ok) lib.remove(s.id); }); }}
-                      style={{ border: "none", background: "#EF444414", color: "#EF4444", borderRadius: 8, padding: "5px 0", fontFamily: "inherit", fontSize: 11.5, fontWeight: 700, cursor: "pointer" }}>🗑 ลบออกจากคลัง</button>
+                      style={{ border: "none", background: "var(--tint-red-bg)", color: "var(--tint-red-tx2)", borderRadius: 8, padding: "5px 0", fontFamily: "inherit", fontSize: 11.5, fontWeight: 700, cursor: "pointer" }}>🗑 ลบออกจากคลัง</button>
                   </React.Fragment>
                 ) : (
                   <span style={{ fontSize: 11.5, fontWeight: 600, color: "var(--text-2)", textAlign: "center", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{s.name}</span>
@@ -813,7 +813,7 @@ function SurveyShotCard({ shot, slot, n, busy, onPick, onRemove, onAnn, onField,
           </span>
         )}
         <span style={{ flex: 1, minWidth: 0 }}>
-          <span style={{ display: "block", fontSize: 13, fontWeight: 700, color: "var(--text-1)" }}>{req ? slot.label : (shot && shot.title) || "รูปเพิ่มเติม"}{req && <span style={{ color: "#EF4444" }}> *</span>}</span>
+          <span style={{ display: "block", fontSize: 13, fontWeight: 700, color: "var(--text-1)" }}>{req ? slot.label : (shot && shot.title) || "รูปเพิ่มเติม"}{req && <span style={{ color: "var(--tint-red-tx2)" }}> *</span>}</span>
           <span style={{ display: "block", fontSize: 11, color: "var(--text-3)" }}>{req ? slot.hint : hideCat ? "ตั้งชื่อรูปและคำบรรยายได้ด้านล่าง" : "ตั้งชื่อหัวข้อและคำบรรยายได้ด้านล่าง"}</span>
         </span>
         <input ref={inputRef} type="file" accept="image/*" capture="environment" style={{ display: "none" }}
@@ -826,7 +826,7 @@ function SurveyShotCard({ shot, slot, n, busy, onPick, onRemove, onAnn, onField,
             <Icon name="image" size={13} color={has ? "var(--text-2)" : "#fff"} />{busy ? "..." : has ? "ถ่ายใหม่" : "ถ่าย/อัปโหลด"}
           </button>
           {has && <button type="button" onClick={onRemove} title="ลบรูป"
-            style={{ width: 32, height: 32, borderRadius: "var(--r-pill)", border: "none", background: "#EF444414", color: "#EF4444", cursor: "pointer", display: "grid", placeItems: "center" }}><Icon name="x" size={13} /></button>}
+            style={{ width: 32, height: 32, borderRadius: "var(--r-pill)", border: "none", background: "var(--tint-red-bg)", color: "var(--tint-red-tx2)", cursor: "pointer", display: "grid", placeItems: "center" }}><Icon name="x" size={13} /></button>}
         </div>
       </div>
       {has && (
@@ -1029,7 +1029,7 @@ function SurveyWizard({ job, onClose, onSave, onReport, currentUser, stock }) {
   const labelStyle = { fontSize: 11.5, fontWeight: 600, color: "var(--text-3)", lineHeight: 1.3 };
   const fld = (label, child, req) => (
     <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-      <label style={labelStyle}>{label}{req && <span style={{ color: "#EF4444" }}> *</span>}</label>
+      <label style={labelStyle}>{label}{req && <span style={{ color: "var(--tint-red-tx2)" }}> *</span>}</label>
       {child}
     </div>
   );
@@ -1134,7 +1134,7 @@ function SurveyWizard({ job, onClose, onSave, onReport, currentUser, stock }) {
                     background: "var(--primary)", color: "#fff", fontFamily: "inherit", fontSize: 13.5, fontWeight: 700, cursor: gpsBusy ? "default" : "pointer" }}>
                   <Icon name="pin" size={16} color="#fff" />{gpsBusy ? "กำลังจับพิกัด..." : f.gps ? "จับพิกัดใหม่" : "จับพิกัด GPS ปัจจุบัน"}
                 </button>
-                {gpsErr && <div style={{ fontSize: 12, color: "#EF4444", fontWeight: 600 }}>⚠ {gpsErr}</div>}
+                {gpsErr && <div style={{ fontSize: 12, color: "var(--tint-red-tx2)", fontWeight: 600 }}>⚠ {gpsErr}</div>}
                 {f.gps && (
                   <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10, padding: "10px 12px", background: "var(--surface2)", borderRadius: 12, boxShadow: "var(--shadow-inset)" }}>
                     <span style={{ fontFamily: "var(--mono)", fontSize: 12.5, color: "var(--text-1)" }}>
@@ -1237,7 +1237,7 @@ function SurveyWizard({ job, onClose, onSave, onReport, currentUser, stock }) {
 
           {step === 5 && (
             <React.Fragment>
-              {!window.FBDB && <div style={{ fontSize: 12, color: "#EF4444", background: "var(--tint-red-bg)", border: "1px solid var(--tint-red-bd)", borderRadius: 11, padding: "10px 12px" }}>⚠ ต้องเชื่อมต่อ Firebase จึงจะอัปโหลดรูปได้</div>}
+              {!window.FBDB && <div style={{ fontSize: 12, color: "var(--tint-red-tx2)", background: "var(--tint-red-bg)", border: "1px solid var(--tint-red-bd)", borderRadius: 11, padding: "10px 12px" }}>⚠ ต้องเชื่อมต่อ Firebase จึงจะอัปโหลดรูปได้</div>}
               {missingSlots.length > 0 && (
                 <div style={{ display: "flex", gap: 9, alignItems: "flex-start", padding: "11px 13px", borderRadius: 13, background: "var(--tint-amber-bg, #FFF8F1)", border: "1px solid var(--tint-amber-bd, #F5E3D3)" }}>
                   <span style={{ flexShrink: 0, paddingTop: 1 }}><Icon name="camera" size={15} color="#B45309" sw={1.9} /></span>

@@ -972,8 +972,8 @@ function OmSiteModal({
       gap: 9,
       padding: "11px 13px",
       marginBottom: 14,
-      border: "1px solid #F59E0B40",
-      background: "#F59E0B14",
+      border: "1px solid var(--tint-amber-bd)",
+      background: "var(--tint-amber-bg)",
       borderRadius: 12
     }
   }, React.createElement(Icon, {
@@ -1011,7 +1011,7 @@ function OmSiteModal({
     style: {
       fontSize: 11,
       fontWeight: 700,
-      color: "#B45309",
+      color: "var(--tint-amber-tx)",
       marginTop: 5
     }
   }, "\u0E22\u0E31\u0E07\u0E44\u0E21\u0E48\u0E21\u0E35\u0E0A\u0E37\u0E48\u0E2D \u2014 \u0E44\u0E0B\u0E15\u0E4C\u0E19\u0E35\u0E49\u0E08\u0E30\u0E02\u0E36\u0E49\u0E19\u0E40\u0E1B\u0E47\u0E19\u0E23\u0E2B\u0E31\u0E2A\u0E40\u0E1B\u0E25\u0E48\u0E32\u0E43\u0E19\u0E23\u0E32\u0E22\u0E01\u0E32\u0E23\u0E41\u0E25\u0E30\u0E43\u0E19\u0E41\u0E08\u0E49\u0E07\u0E40\u0E15\u0E37\u0E2D\u0E19 LINE")), React.createElement("div", null, React.createElement(window.DrLabel, null, "\u0E40\u0E1A\u0E2D\u0E23\u0E4C\u0E15\u0E34\u0E14\u0E15\u0E48\u0E2D"), React.createElement("input", {
@@ -1144,8 +1144,8 @@ function OmSiteModal({
       gap: 9,
       marginTop: 11,
       padding: "10px 12px",
-      border: "1px solid #F59E0B40",
-      background: "#F59E0B14",
+      border: "1px solid var(--tint-amber-bd)",
+      background: "var(--tint-amber-bg)",
       borderRadius: 11
     }
   }, React.createElement(Icon, {
@@ -1441,8 +1441,8 @@ function OmSiteModal({
       gap: 9,
       padding: "12px 13px",
       flexWrap: "wrap",
-      border: "1px solid #EF444440",
-      background: "#EF44440e",
+      border: "1px solid var(--tint-red-bd)",
+      background: "var(--tint-red-bg)",
       borderRadius: 12
     }
   }, React.createElement("span", {
@@ -1451,7 +1451,7 @@ function OmSiteModal({
       minWidth: 160,
       fontSize: 12.5,
       fontWeight: 700,
-      color: "#EF4444"
+      color: "var(--tint-red-tx2)"
     }
   }, "\u0E25\u0E1A\u0E17\u0E30\u0E40\u0E1A\u0E35\u0E22\u0E19\u0E1A\u0E23\u0E34\u0E01\u0E32\u0E23\u0E02\u0E2D\u0E07 ", site.code, "? \u0E1B\u0E23\u0E30\u0E27\u0E31\u0E15\u0E34\u0E1B\u0E23\u0E30\u0E01\u0E31\u0E19\u0E41\u0E25\u0E30\u0E23\u0E2D\u0E1A\u0E25\u0E49\u0E32\u0E07\u0E41\u0E1C\u0E07\u0E2B\u0E32\u0E22\u0E16\u0E32\u0E27\u0E23 (\u0E43\u0E1A\u0E07\u0E32\u0E19\u0E44\u0E21\u0E48\u0E16\u0E39\u0E01\u0E41\u0E15\u0E30)"), React.createElement("button", {
     onClick: () => setDelAsk(false),
@@ -1503,7 +1503,7 @@ function OmSiteModal({
       fontFamily: "inherit",
       fontSize: 12.5,
       fontWeight: 700,
-      color: "#EF4444"
+      color: "var(--tint-red-tx2)"
     }
   }, React.createElement(Icon, {
     name: "trash",
@@ -2597,7 +2597,7 @@ function OmView({
       padding: "8px 14px",
       borderRadius: 10,
       border: "none",
-      background: "#1B9B75",
+      background: "var(--primary)",
       color: "#fff",
       cursor: "pointer",
       fontFamily: "inherit",

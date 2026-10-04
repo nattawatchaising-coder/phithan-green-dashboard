@@ -426,7 +426,7 @@ function MapView({ jobs, onOpen }) {
               <span style={{ width: 9, height: 9, borderRadius: 99, background: s.color, border: "1.5px solid #fff", boxShadow: "0 0 0 1px " + s.color }} />{s.th}
             </span>
           ))}
-          <span style={{ display: "inline-flex", alignItems: "center", gap: 5, fontSize: 11, fontWeight: 600, color: "#EF4444" }}>
+          <span style={{ display: "inline-flex", alignItems: "center", gap: 5, fontSize: 11, fontWeight: 600, color: "var(--tint-red-tx2)" }}>
             <span style={{ width: 9, height: 9, borderRadius: 99, background: "#EF4444" }} /> ติดปัญหา
           </span>
         </div>
@@ -450,7 +450,7 @@ function MapView({ jobs, onOpen }) {
                   <span style={{ display: "flex", alignItems: "center", gap: 8, minWidth: 0, flex: 1 }}>
                     <Icon name="chevronRight" size={15} color="var(--text-3)" style={{ transform: open ? "rotate(90deg)" : "none", transition: "transform .18s", flexShrink: 0 }} />
                     <span style={{ fontSize: 13, fontWeight: 700, color: open ? "var(--primary-dark)" : "var(--text-1)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", minWidth: 0 }}>{prov}</span>
-                    {problems > 0 && <span style={{ fontSize: 10, fontWeight: 700, color: "#EF4444", background: "var(--tint-red-bg2)", padding: "1px 6px", borderRadius: 99, flexShrink: 0 }}>{problems}⚠</span>}
+                    {problems > 0 && <span style={{ fontSize: 10, fontWeight: 700, color: "var(--tint-red-tx2)", background: "var(--tint-red-bg2)", padding: "1px 6px", borderRadius: 99, flexShrink: 0 }}>{problems}⚠</span>}
                   </span>
                   <span style={{ fontFamily: "var(--mono)", fontSize: 12, fontWeight: 600, color: "var(--text-2)", flexShrink: 0, whiteSpace: "nowrap" }}>{list.length} งาน</span>
                 </button>

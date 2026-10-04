@@ -403,7 +403,7 @@ function OmSiteModal({ site, job, role, visits, cleanStore, tickets, siteVisits,
           {/* งานที่ผูกอยู่ถูกลบจากฐานข้อมูลแล้ว — ตั้งใจให้ไซต์ค้างอยู่ เพราะภาระประกันยังอยู่ */}
           {site.source === "job" && !job && (
             <div style={{ display: "flex", alignItems: "center", gap: 9, padding: "11px 13px", marginBottom: 14,
-              border: "1px solid #F59E0B40", background: "#F59E0B14", borderRadius: 12 }}>
+              border: "1px solid var(--tint-amber-bd)", background: "var(--tint-amber-bg)", borderRadius: 12 }}>
               <Icon name="alert" size={15} color="#F59E0B" />
               <span style={{ fontSize: 12.5, color: "var(--text-1)" }}>ใบงานต้นทางถูกลบจากฐานข้อมูลแล้ว · ทะเบียนบริการยังอยู่ต่อเพราะประกันยังไม่หมด</span>
             </div>
@@ -422,7 +422,7 @@ function OmSiteModal({ site, job, role, visits, cleanStore, tickets, siteVisits,
                 {/* ลบชื่อจนว่างคือทางที่สองที่พาไปสภาพเดียวกับไซต์เปล่า — ไม่บล็อกการพิมพ์
                     (แผงนี้บันทึกทุกตัวอักษร บล็อกแล้วจะลบเพื่อพิมพ์ใหม่ไม่ได้) แต่ต้องเห็นว่าผิดปกติ */}
                 {!String(site.name || "").trim() && (
-                  <div style={{ fontSize: 11, fontWeight: 700, color: "#B45309", marginTop: 5 }}>
+                  <div style={{ fontSize: 11, fontWeight: 700, color: "var(--tint-amber-tx)", marginTop: 5 }}>
                     ยังไม่มีชื่อ — ไซต์นี้จะขึ้นเป็นรหัสเปล่าในรายการและในแจ้งเตือน LINE
                   </div>
                 )}
@@ -481,7 +481,7 @@ function OmSiteModal({ site, job, role, visits, cleanStore, tickets, siteVisits,
             </div>
             {window.omComUnsure(site) && (
               <div style={{ display: "flex", alignItems: "center", gap: 9, marginTop: 11, padding: "10px 12px",
-                border: "1px solid #F59E0B40", background: "#F59E0B14", borderRadius: 11 }}>
+                border: "1px solid var(--tint-amber-bd)", background: "var(--tint-amber-bg)", borderRadius: 11 }}>
                 <Icon name="alert" size={15} color="#F59E0B" />
                 <span style={{ flex: 1, fontSize: 12.5, color: "var(--text-1)" }}>
                   วันรับมอบเป็นค่าประมาณ ({window.OM_COMSRC_TH[site.comSrc] || "ไม่ทราบที่มา"}) กรุณายืนยัน
@@ -625,8 +625,8 @@ function OmSiteModal({ site, job, role, visits, cleanStore, tickets, siteVisits,
           {canDelete && (
             delAsk ? (
               <div style={{ display: "flex", alignItems: "center", gap: 9, padding: "12px 13px", flexWrap: "wrap",
-                border: "1px solid #EF444440", background: "#EF44440e", borderRadius: 12 }}>
-                <span style={{ flex: 1, minWidth: 160, fontSize: 12.5, fontWeight: 700, color: "#EF4444" }}>
+                border: "1px solid var(--tint-red-bd)", background: "var(--tint-red-bg)", borderRadius: 12 }}>
+                <span style={{ flex: 1, minWidth: 160, fontSize: 12.5, fontWeight: 700, color: "var(--tint-red-tx2)" }}>
                   ลบทะเบียนบริการของ {site.code}? ประวัติประกันและรอบล้างแผงหายถาวร (ใบงานไม่ถูกแตะ)
                 </span>
                 <button onClick={() => setDelAsk(false)}
@@ -642,7 +642,7 @@ function OmSiteModal({ site, job, role, visits, cleanStore, tickets, siteVisits,
               <button onClick={() => setDelAsk(true)}
                 style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "8px 13px", borderRadius: 9,
                   border: "1px solid var(--border)", background: "var(--surface)", cursor: "pointer",
-                  fontFamily: "inherit", fontSize: 12.5, fontWeight: 700, color: "#EF4444" }}>
+                  fontFamily: "inherit", fontSize: 12.5, fontWeight: 700, color: "var(--tint-red-tx2)" }}>
                 <Icon name="trash" size={14} color="#EF4444" /> ลบทะเบียนบริการนี้ (เฉพาะแอดมิน)
               </button>
             )
@@ -1151,7 +1151,7 @@ function OmView({ jobs, users, role, currentUser, focus }) {
           {canWrite && (
             <button onClick={enrollAll} disabled={enrolling}
               style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "8px 14px", borderRadius: 10, border: "none",
-                background: "#1B9B75", color: "#fff", cursor: "pointer", fontFamily: "inherit", fontSize: 12.5, fontWeight: 700 }}>
+                background: "var(--primary)", color: "#fff", cursor: "pointer", fontFamily: "inherit", fontSize: 12.5, fontWeight: 700 }}>
               <Icon name="plus" size={14} color="#fff" /> ขึ้นทะเบียนทั้งหมด
             </button>
           )}

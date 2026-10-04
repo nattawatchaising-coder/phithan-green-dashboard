@@ -349,7 +349,7 @@ function LnBindScreen({
     style: {
       marginTop: 12,
       fontSize: 12.5,
-      color: "#EF4444",
+      color: "var(--tint-red-tx2)",
       fontWeight: 600
     }
   }, "\u26A0 ", err), React.createElement("button", {
@@ -634,7 +634,7 @@ function LnWebForm({
     style: {
       marginTop: 12,
       fontSize: 12.5,
-      color: "#EF4444",
+      color: "var(--tint-red-tx2)",
       fontWeight: 600
     }
   }, "\u26A0 ", err), React.createElement("button", {

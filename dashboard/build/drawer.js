@@ -159,7 +159,7 @@ function FlowTimeline({
       }), React.createElement("span", null, "\u0E19\u0E31\u0E14\u0E15\u0E34\u0E14\u0E15\u0E31\u0E49\u0E07 ", thDate(st, true), en && en !== st ? "–" + thDate(en, true) : ""), late && React.createElement("span", {
         style: {
           fontWeight: 700,
-          color: "#EF4444",
+          color: "var(--tint-red-tx2)",
           background: "var(--tint-red-bg2)",
           padding: "1px 6px",
           borderRadius: "var(--r-pill)"
@@ -700,7 +700,7 @@ function StockShopModal({
         }
       }, l.qty), " ", l.unit, " \xB7 ", it.qty <= 0 ? React.createElement("span", {
         style: {
-          color: "#EF4444"
+          color: "var(--tint-red-tx2)"
         }
       }, "\u0E2B\u0E21\u0E14\u0E2A\u0E15\u0E47\u0E2D\u0E01") : React.createElement("span", null, "\u0E04\u0E07\u0E40\u0E2B\u0E25\u0E37\u0E2D ", it.qty.toLocaleString(), " ", it.unit), it.sku ? " · " + it.sku : "", short && it.qty > 0 ? React.createElement("span", {
         style: {
@@ -773,7 +773,7 @@ function StockShopModal({
     it: it,
     sub: React.createElement("span", null, it.qty <= 0 ? React.createElement("span", {
       style: {
-        color: "#EF4444"
+        color: "var(--tint-red-tx2)"
       }
     }, "\u0E2B\u0E21\u0E14\u0E2A\u0E15\u0E47\u0E2D\u0E01") : "คงเหลือ " + it.qty.toLocaleString() + " " + it.unit, it.sku ? " · " + it.sku : "")
   })), extraItems.length === 0 && React.createElement("div", {
@@ -1344,7 +1344,7 @@ function DetailDrawer({
     style: {
       fontSize: 11,
       fontWeight: 700,
-      color: "#EF4444",
+      color: "var(--tint-red-tx2)",
       background: "var(--tint-red-bg2)",
       padding: "2px 8px",
       borderRadius: 6

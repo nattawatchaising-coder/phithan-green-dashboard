@@ -153,7 +153,7 @@ function OmTicketCard({ t, onOpen }) {
       <div style={{ display: "flex", alignItems: "center", gap: 7, marginBottom: 4 }}>
         <span style={{ fontFamily: "var(--mono)", fontSize: 11, color: "var(--text-3)" }}>{t.no}</span>
         {over && (
-          <span style={{ display: "inline-flex", alignItems: "center", gap: 4, fontSize: 10.5, fontWeight: 800, color: "#EF4444" }}>
+          <span style={{ display: "inline-flex", alignItems: "center", gap: 4, fontSize: 10.5, fontWeight: 800, color: "var(--tint-red-tx2)" }}>
             <Icon name="alert" size={11} color="#EF4444" /> เกินกำหนด {over.over} วัน
           </span>
         )}
@@ -364,7 +364,7 @@ function OmTicketModal({ ticket, site, job, users, role, currentUser, visits, on
             <span style={{ flex: 1 }} />
             <button type="button" onClick={() => setPaper(true)} title={"ออกใบรายงานเข้าบริการ " + t.no + " เป็น A4 / PDF"}
               style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "8px 14px", borderRadius: 9, border: "none",
-                background: "#1B9B75", color: "#fff", cursor: "pointer", fontFamily: "inherit", fontSize: 12.5, fontWeight: 700 }}>
+                background: "var(--primary)", color: "#fff", cursor: "pointer", fontFamily: "inherit", fontSize: 12.5, fontWeight: 700 }}>
               <Icon name="file" size={14} color="#fff" /> ออก Report (A4)
             </button>
           </div>
@@ -373,7 +373,7 @@ function OmTicketModal({ ticket, site, job, users, role, currentUser, visits, on
         <div style={{ padding: isMobile ? "14px 13px 24px" : "18px 20px 26px" }}>
           {over && (
             <div style={{ display: "flex", alignItems: "center", gap: 9, padding: "11px 13px", marginBottom: 14,
-              border: "1px solid #EF444440", background: "#EF44440e", borderRadius: 12 }}>
+              border: "1px solid var(--tint-red-bd)", background: "var(--tint-red-bg)", borderRadius: 12 }}>
               <Icon name="alert" size={15} color="#EF4444" />
               <span style={{ fontSize: 12.5, color: "var(--text-1)" }}>
                 แจ้งมาแล้ว <b>{over.age} วัน</b> · ระดับ{(window.OM_SEVERITY_BY[t.severity] || {}).th} ควรปิดภายใน {over.limit} วัน
@@ -598,8 +598,8 @@ function OmTicketModal({ ticket, site, job, users, role, currentUser, visits, on
           {canDelete && (
             delAsk ? (
               <div style={{ display: "flex", alignItems: "center", gap: 9, padding: "12px 13px", flexWrap: "wrap",
-                border: "1px solid #EF444440", background: "#EF44440e", borderRadius: 12 }}>
-                <span style={{ flex: 1, minWidth: 160, fontSize: 12.5, fontWeight: 700, color: "#EF4444" }}>
+                border: "1px solid var(--tint-red-bd)", background: "var(--tint-red-bg)", borderRadius: 12 }}>
+                <span style={{ flex: 1, minWidth: 160, fontSize: 12.5, fontWeight: 700, color: "var(--tint-red-tx2)" }}>
                   ลบใบ {t.no} ทั้งใบ? รูปและประวัติหายถาวร เรียกคืนไม่ได้
                 </span>
                 <button onClick={() => setDelAsk(false)}
@@ -615,7 +615,7 @@ function OmTicketModal({ ticket, site, job, users, role, currentUser, visits, on
               <button onClick={() => setDelAsk(true)}
                 style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "8px 13px", borderRadius: 9,
                   border: "1px solid var(--border)", background: "var(--surface)", cursor: "pointer",
-                  fontFamily: "inherit", fontSize: 12.5, fontWeight: 700, color: "#EF4444" }}>
+                  fontFamily: "inherit", fontSize: 12.5, fontWeight: 700, color: "var(--tint-red-tx2)" }}>
                 <Icon name="trash" size={14} color="#EF4444" /> ลบใบแจ้งซ่อมนี้ (เฉพาะแอดมิน)
               </button>
             )

@@ -444,7 +444,7 @@ function InspectionListModal({
         minWidth: 150,
         fontSize: 12,
         fontWeight: 700,
-        color: "#EF4444",
+        color: "var(--tint-red-tx2)",
         lineHeight: 1.5
       }
     }, "\u0E25\u0E1A\u0E43\u0E1A ", x.no, " ? \u0E23\u0E39\u0E1B\u0E17\u0E35\u0E48\u0E41\u0E19\u0E1A\u0E44\u0E27\u0E49\u0E08\u0E30\u0E22\u0E31\u0E07\u0E2D\u0E22\u0E39\u0E48 \u0E41\u0E15\u0E48\u0E43\u0E1A\u0E19\u0E35\u0E49\u0E08\u0E30\u0E2B\u0E32\u0E22\u0E44\u0E1B"), React.createElement("button", {
@@ -487,7 +487,7 @@ function InspectionListModal({
         borderRadius: 8,
         border: "1px solid var(--border-strong)",
         background: "var(--surface)",
-        color: "#EF4444",
+        color: "var(--tint-red-tx2)",
         fontFamily: "inherit",
         fontSize: 11.5,
         fontWeight: 700,
@@ -1029,11 +1029,11 @@ function InspectionFormModal({
     }
   }, React.createElement("span", {
     style: {
-      color: "#16A34A"
+      color: "var(--tint-green-tx)"
     }
   }, "\u0E1C\u0E48\u0E32\u0E19 ", tally.pass), tally.fail ? React.createElement("span", {
     style: {
-      color: "#EF4444"
+      color: "var(--tint-red-tx2)"
     }
   }, " \xB7 \u0E44\u0E21\u0E48\u0E1C\u0E48\u0E32\u0E19 ", tally.fail) : null, tally.blank ? React.createElement("span", {
     style: {

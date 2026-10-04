@@ -1252,9 +1252,9 @@ function QuotePagePick({
   })), warn && React.createElement("div", {
     style: {
       fontSize: 11.5,
-      color: "#B45309",
+      color: "var(--tint-amber-tx)",
       background: "var(--tint-amber-bg)",
-      border: "1px solid #F59E0B55",
+      border: "1px solid var(--tint-amber-bd)",
       borderRadius: "var(--r-tile)",
       padding: "8px 11px",
       lineHeight: 1.6
@@ -1618,7 +1618,7 @@ function QuoteRoiEdit({
   }, x[1])))) : React.createElement("div", {
     style: {
       fontSize: 11.5,
-      color: "#B45309"
+      color: "var(--tint-amber-tx)"
     }
   }, "\u0E15\u0E49\u0E2D\u0E07\u0E21\u0E35\u0E17\u0E31\u0E49\u0E07\u0E02\u0E19\u0E32\u0E14\u0E23\u0E30\u0E1A\u0E1A (kWp) \u0E41\u0E25\u0E30\u0E23\u0E32\u0E04\u0E32\u0E43\u0E19\u0E43\u0E1A \u0E23\u0E30\u0E1A\u0E1A\u0E08\u0E36\u0E07\u0E08\u0E30\u0E04\u0E34\u0E14\u0E1C\u0E25\u0E15\u0E2D\u0E1A\u0E41\u0E17\u0E19\u0E44\u0E14\u0E49"));
 }
@@ -2788,7 +2788,7 @@ function QuoteEditor({
   }, "\u0E25\u0E14\u0E41\u0E25\u0E49\u0E27", T.discMode === "pct" ? " (" + T.discPct + "% ของ ฿" + sBaht(T.sub) + ")" : ""), React.createElement("b", {
     style: {
       fontVariantNumeric: "tabular-nums",
-      color: "#EF4444"
+      color: "var(--tint-red-tx2)"
     }
   }, "\u2212 \u0E3F", sBaht(T.disc))), React.createElement("div", {
     style: {

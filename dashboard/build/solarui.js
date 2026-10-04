@@ -612,7 +612,7 @@ function SuVoltBand({
     }
   }, "\u25A0"), " \u0E41\u0E1C\u0E07\u0E23\u0E49\u0E2D\u0E19 (\u0E41\u0E23\u0E07\u0E14\u0E31\u0E19\u0E15\u0E48\u0E33\u0E2A\u0E38\u0E14)"), React.createElement("span", null, React.createElement("b", {
     style: {
-      color: "#1B9B75"
+      color: "var(--primary)"
     }
   }, "\u25A0"), " \u0E2D\u0E32\u0E01\u0E32\u0E28\u0E40\u0E22\u0E47\u0E19 (\u0E41\u0E23\u0E07\u0E14\u0E31\u0E19\u0E2A\u0E39\u0E07\u0E2A\u0E38\u0E14)"), React.createElement("span", null, React.createElement("b", {
     style: {
@@ -1764,7 +1764,7 @@ function SuDayLight({
     }
   }, "\u2505"), " \u0E41\u0E2A\u0E07\u0E1A\u0E19\u0E1E\u0E37\u0E49\u0E19\u0E23\u0E32\u0E1A"), React.createElement("span", null, React.createElement("b", {
     style: {
-      color: "#1B9B75"
+      color: "var(--primary)"
     }
   }, "\u2501"), " \u0E41\u0E2A\u0E07\u0E1A\u0E19\u0E2B\u0E19\u0E49\u0E32\u0E41\u0E1C\u0E07\u0E08\u0E23\u0E34\u0E07 (\u0E2B\u0E25\u0E31\u0E07\u0E2B\u0E31\u0E01\u0E40\u0E07\u0E32)"), sim.shadeFrom != null && React.createElement("span", null, React.createElement("b", {
     style: {
@@ -6563,7 +6563,7 @@ function SolarWorkspace({
     }
   }, React.createElement("span", null, React.createElement("b", {
     style: {
-      color: "#1B9B75"
+      color: "var(--primary)"
     }
   }, "\u2505"), " \u0E01\u0E33\u0E25\u0E31\u0E07 DC \u0E08\u0E32\u0E01\u0E41\u0E1C\u0E07"), React.createElement("span", null, React.createElement("b", {
     style: {

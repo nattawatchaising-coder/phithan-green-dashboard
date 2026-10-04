@@ -63,7 +63,7 @@ function FlowTimeline({ job }) {
                   <div style={{ fontSize: 11.5, color: late ? "#EF4444" : "var(--text-3)", marginTop: 3, display: "flex", alignItems: "center", gap: 5, flexWrap: "wrap" }}>
                     <Icon name={late ? "alert" : "calendar"} size={11} color={late ? "#EF4444" : "var(--text-3)"} />
                     <span>นัดติดตั้ง {thDate(st, true)}{en && en !== st ? "–" + thDate(en, true) : ""}</span>
-                    {late && <span style={{ fontWeight: 700, color: "#EF4444", background: "var(--tint-red-bg2)", padding: "1px 6px", borderRadius: "var(--r-pill)" }}>เลยกำหนด {late.daysLate} วัน</span>}
+                    {late && <span style={{ fontWeight: 700, color: "var(--tint-red-tx2)", background: "var(--tint-red-bg2)", padding: "1px 6px", borderRadius: "var(--r-pill)" }}>เลยกำหนด {late.daysLate} วัน</span>}
                   </div>
                 );
               })()}
@@ -282,7 +282,7 @@ function StockShopModal({ stock, job, byName, onClose }) {
                 const it = l.stockItem;
                 const short = l.qty > it.qty;
                 return <Stepper key={"b" + it.id} it={it}
-                  sub={<span>BOQ <b style={{ color: "var(--text-2)" }}>{l.qty}</b> {l.unit} · {it.qty <= 0 ? <span style={{ color: "#EF4444" }}>หมดสต็อก</span> : <span>คงเหลือ {it.qty.toLocaleString()} {it.unit}</span>}{it.sku ? " · " + it.sku : ""}{short && it.qty > 0 ? <span style={{ color: "#F59E0B" }}> · ไม่พอตาม BOQ</span> : ""}</span>} />;
+                  sub={<span>BOQ <b style={{ color: "var(--text-2)" }}>{l.qty}</b> {l.unit} · {it.qty <= 0 ? <span style={{ color: "var(--tint-red-tx2)" }}>หมดสต็อก</span> : <span>คงเหลือ {it.qty.toLocaleString()} {it.unit}</span>}{it.sku ? " · " + it.sku : ""}{short && it.qty > 0 ? <span style={{ color: "#F59E0B" }}> · ไม่พอตาม BOQ</span> : ""}</span>} />;
               })}
               {boqMissing.length > 0 && (
                 <div style={{ margin: "8px 8px 0", padding: "10px 12px", background: "var(--tint-amber-bg)", border: "1px dashed var(--tint-amber-bd)", borderRadius: "var(--r-tile)", fontSize: 11.5, color: "var(--tint-amber-tx)", lineHeight: 1.55 }}>
@@ -303,7 +303,7 @@ function StockShopModal({ stock, job, byName, onClose }) {
             {extraCats.map((c) => <CatChip key={c.key} active={cat === c.key} onClick={() => setCat(c.key)} label={c.th} color={c.color} />)}
           </div>
           {extraItems.map((it) => (
-            <Stepper key={"x" + it.id} it={it} sub={<span>{it.qty <= 0 ? <span style={{ color: "#EF4444" }}>หมดสต็อก</span> : "คงเหลือ " + it.qty.toLocaleString() + " " + it.unit}{it.sku ? " · " + it.sku : ""}</span>} />
+            <Stepper key={"x" + it.id} it={it} sub={<span>{it.qty <= 0 ? <span style={{ color: "var(--tint-red-tx2)" }}>หมดสต็อก</span> : "คงเหลือ " + it.qty.toLocaleString() + " " + it.unit}{it.sku ? " · " + it.sku : ""}</span>} />
           ))}
           {extraItems.length === 0 && <div style={{ padding: 24, textAlign: "center", color: "var(--text-3)", fontSize: 12.5 }}>ไม่พบอุปกรณ์อื่นในคลัง</div>}
         </div>
@@ -564,7 +564,7 @@ function DetailDrawer({ job, onClose, onAdvance, onSetMat, onEdit, currentUser, 
                     <span style={{ fontFamily: "var(--mono)", fontSize: 12, fontWeight: 600, color: "var(--primary-dark)",
                       background: "var(--primary-soft)", padding: "2px 8px", borderRadius: 6 }}>{job.code}</span>
                     <TypeBadge type={job.type} />
-                    {job.delayed && <span style={{ fontSize: 11, fontWeight: 700, color: "#EF4444", background: "var(--tint-red-bg2)", padding: "2px 8px", borderRadius: 6 }}>⚠ ล่าช้า</span>}
+                    {job.delayed && <span style={{ fontSize: 11, fontWeight: 700, color: "var(--tint-red-tx2)", background: "var(--tint-red-bg2)", padding: "2px 8px", borderRadius: 6 }}>⚠ ล่าช้า</span>}
                   </div>
                   <h2 style={{ fontSize: isMobile ? 17 : 20, fontWeight: 700, color: "var(--text-1)", margin: 0, lineHeight: 1.25 }}>{job.name}</h2>
                 </div>

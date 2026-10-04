@@ -870,7 +870,7 @@ function MapView({
       gap: 5,
       fontSize: 11,
       fontWeight: 600,
-      color: "#EF4444"
+      color: "var(--tint-red-tx2)"
     }
   }, React.createElement("span", {
     style: {
@@ -978,7 +978,7 @@ function MapView({
       style: {
         fontSize: 10,
         fontWeight: 700,
-        color: "#EF4444",
+        color: "var(--tint-red-tx2)",
         background: "var(--tint-red-bg2)",
         padding: "1px 6px",
         borderRadius: 99,

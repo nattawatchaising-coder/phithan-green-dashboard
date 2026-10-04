@@ -2616,7 +2616,7 @@ function DailyBriefing({
     style: {
       fontSize: 11,
       fontWeight: 800,
-      color: "#EF4444",
+      color: "var(--tint-red-tx2)",
       padding: "2px 2px"
     }
   }, "\u26A0 \u0E40\u0E25\u0E22\u0E01\u0E33\u0E2B\u0E19\u0E14 (", lateAlerts.length, ")"), lateAlerts.map((a, i) => React.createElement(Row, {
@@ -3064,7 +3064,7 @@ function TrashModal({
       borderRadius: 9,
       border: "1px solid var(--border-strong)",
       background: "var(--surface)",
-      color: "#EF4444",
+      color: "var(--tint-red-tx2)",
       fontFamily: "inherit",
       fontSize: 12.5,
       fontWeight: 700,
@@ -3149,7 +3149,7 @@ function TrashModal({
       marginTop: 6,
       fontSize: 11.5,
       fontWeight: 700,
-      color: "#EF4444"
+      color: "var(--tint-red-tx2)"
     }
   }, err))))), !isAdmin && trash.length > 0 && React.createElement("div", {
     style: {

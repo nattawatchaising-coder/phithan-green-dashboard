@@ -1265,7 +1265,7 @@ function PField({
     }
   }, label, required && React.createElement("span", {
     style: {
-      color: "#EF4444"
+      color: "var(--tint-red-tx2)"
     }
   }, " *"), from && React.createElement(FromSurveyTag, null)), children, hint && React.createElement("span", {
     style: {
@@ -1428,7 +1428,7 @@ function PermitShotCard({
     }
   }, slot.label, slot.req && React.createElement("span", {
     style: {
-      color: "#EF4444"
+      color: "var(--tint-red-tx2)"
     }
   }, " *")), React.createElement("span", {
     style: {
@@ -1511,7 +1511,7 @@ function PermitShotCard({
       borderRadius: 9,
       border: "1px solid var(--border-strong)",
       background: "var(--surface)",
-      color: "#EF4444",
+      color: "var(--tint-red-tx2)",
       cursor: "pointer",
       display: "grid",
       placeItems: "center"
@@ -2080,7 +2080,7 @@ function PermitWizard({
       borderRadius: 9,
       border: "1px solid var(--border-strong)",
       background: "var(--surface)",
-      color: "#EF4444",
+      color: "var(--tint-red-tx2)",
       cursor: "pointer",
       display: "grid",
       placeItems: "center",
@@ -2206,7 +2206,7 @@ function PermitWizard({
   }, "\xB1", f.gps.acc, "m")), gpsErr && React.createElement("span", {
     style: {
       fontSize: 12,
-      color: "#EF4444",
+      color: "var(--tint-red-tx2)",
       fontWeight: 600
     }
   }, gpsErr))), React.createElement(PField, {

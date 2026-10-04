@@ -54,7 +54,7 @@ function PmField({
     }
   }, " \xB7 ", field.unit) : null, field.req ? React.createElement("span", {
     style: {
-      color: "#DC2626"
+      color: "var(--tint-red-tx2)"
     }
   }, " *") : null, prefilled && String(v).trim() !== "" ? React.createElement("span", {
     style: {
@@ -347,7 +347,7 @@ function PmTableRow({
       }
     }, " \xB7 ", c.unit) : null, c.req ? React.createElement("span", {
       style: {
-        color: "#DC2626"
+        color: "var(--tint-red-tx2)"
       }
     }, " *") : null), React.createElement(PmCell, {
       col: c,
@@ -582,7 +582,7 @@ function PmTableBlock({
     }
   }, c.en, c.req ? React.createElement("span", {
     style: {
-      color: "#DC2626"
+      color: "var(--tint-red-tx2)"
     }
   }, " *") : null, React.createElement("span", {
     style: {
@@ -1711,7 +1711,7 @@ function PmHandoverModal({
       cursor: "pointer",
       fontSize: 12.5,
       fontWeight: 700,
-      color: "#B45309"
+      color: "var(--tint-amber-tx)"
     }
   }, "\u26A0\uFE0F \u0E22\u0E31\u0E07\u0E02\u0E32\u0E14\u0E2D\u0E35\u0E01 ", prog.missing.length, " \u0E23\u0E32\u0E22\u0E01\u0E32\u0E23 \xB7 \u0E41\u0E15\u0E30\u0E40\u0E1E\u0E37\u0E48\u0E2D\u0E14\u0E39"), React.createElement("div", {
     style: {

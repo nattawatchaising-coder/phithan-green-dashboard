@@ -138,7 +138,7 @@ function ConfirmHost() {
     }
   }, req.label, req.required && React.createElement("span", {
     style: {
-      color: "#EF4444"
+      color: "var(--tint-red-tx2)"
     }
   }, " *")), React.createElement("input", {
     autoFocus: true,

@@ -310,7 +310,7 @@ function InspectionListModal({ job, currentUser, onClose }) {
                   </button>
                   {ask === x.id ? (
                     <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap", padding: "10px 13px", borderTop: "1px solid var(--border)" }}>
-                      <span style={{ flex: 1, minWidth: 150, fontSize: 12, fontWeight: 700, color: "#EF4444", lineHeight: 1.5 }}>
+                      <span style={{ flex: 1, minWidth: 150, fontSize: 12, fontWeight: 700, color: "var(--tint-red-tx2)", lineHeight: 1.5 }}>
                         ลบใบ {x.no} ? รูปที่แนบไว้จะยังอยู่ แต่ใบนี้จะหายไป
                       </span>
                       <button onClick={() => { store.remove(x.id); setAsk(null); }} style={{ padding: "7px 13px", borderRadius: 9, border: "none",
@@ -321,7 +321,7 @@ function InspectionListModal({ job, currentUser, onClose }) {
                   ) : (
                     <div style={{ padding: "0 13px 10px" }}>
                       <button onClick={() => setAsk(x.id)} style={{ padding: "5px 10px", borderRadius: 8, border: "1px solid var(--border-strong)",
-                        background: "var(--surface)", color: "#EF4444", fontFamily: "inherit", fontSize: 11.5, fontWeight: 700, cursor: "pointer" }}>ลบใบนี้</button>
+                        background: "var(--surface)", color: "var(--tint-red-tx2)", fontFamily: "inherit", fontSize: 11.5, fontWeight: 700, cursor: "pointer" }}>ลบใบนี้</button>
                     </div>
                   )}
                 </div>
@@ -535,8 +535,8 @@ function InspectionFormModal({ job, rec, currentUser, onSave, onClose }) {
                 </span>
                 {tally.total > 0 && (
                   <span style={{ fontSize: 11.5, fontWeight: 700, color: "var(--text-2)" }}>
-                    <span style={{ color: "#16A34A" }}>ผ่าน {tally.pass}</span>
-                    {tally.fail ? <span style={{ color: "#EF4444" }}> · ไม่ผ่าน {tally.fail}</span> : null}
+                    <span style={{ color: "var(--tint-green-tx)" }}>ผ่าน {tally.pass}</span>
+                    {tally.fail ? <span style={{ color: "var(--tint-red-tx2)" }}> · ไม่ผ่าน {tally.fail}</span> : null}
                     {tally.blank ? <span style={{ color: "var(--text-3)" }}> · ยังไม่ได้ติ๊ก {tally.blank}</span> : null}
                   </span>
                 )}

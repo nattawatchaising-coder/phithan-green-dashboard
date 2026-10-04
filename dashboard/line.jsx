@@ -195,7 +195,7 @@ function LnBindScreen({ profile, onBind }) {
             onKeyDown={(e) => { if (e.key === "Enter") submit(); }}
             style={Object.assign({ marginTop: 6 }, inp)} placeholder="••••••" />
 
-          {err && <div style={{ marginTop: 12, fontSize: 12.5, color: "#EF4444", fontWeight: 600 }}>⚠ {err}</div>}
+          {err && <div style={{ marginTop: 12, fontSize: 12.5, color: "var(--tint-red-tx2)", fontWeight: 600 }}>⚠ {err}</div>}
 
           <button onClick={submit} disabled={busy}
             style={{ marginTop: 16, width: "100%", padding: "14px 16px", borderRadius: 12, border: "none",
@@ -365,7 +365,7 @@ function LnWebForm({ reason, onDone }) {
             onKeyDown={(e) => { if (e.key === "Enter") submit(); }}
             style={Object.assign({ marginTop: 6 }, inp)} placeholder="••••••" />
 
-          {err && <div style={{ marginTop: 12, fontSize: 12.5, color: "#EF4444", fontWeight: 600 }}>⚠ {err}</div>}
+          {err && <div style={{ marginTop: 12, fontSize: 12.5, color: "var(--tint-red-tx2)", fontWeight: 600 }}>⚠ {err}</div>}
 
           <button onClick={submit} disabled={!users}
             style={{ marginTop: 16, width: "100%", padding: "14px 16px", borderRadius: 12, border: "none",

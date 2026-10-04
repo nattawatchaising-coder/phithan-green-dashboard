@@ -340,8 +340,8 @@ function VcCardBody({
       alignItems: "flex-start",
       padding: "11px 13px",
       borderRadius: 11,
-      background: "#F59E0B14",
-      border: "1px solid #F59E0B40"
+      background: "var(--tint-amber-bg)",
+      border: "1px solid var(--tint-amber-bd)"
     }
   }, React.createElement(Icon, {
     name: "alert",

@@ -337,7 +337,7 @@ function AlertsPanel({
       fontSize: 10,
       fontWeight: 800,
       letterSpacing: ".02em",
-      color: "#D93025",
+      color: "var(--tint-red-tx)",
       background: "rgba(217,48,37,.11)",
       padding: "2px 7px",
       borderRadius: "var(--r-pill)",
@@ -496,7 +496,7 @@ function SchedulePanel({
       style: {
         fontSize: 10.5,
         fontWeight: 700,
-        color: "#EF4444"
+        color: "var(--tint-red-tx2)"
       }
     }, "\u0E25\u0E48\u0E32\u0E0A\u0E49\u0E32"))), React.createElement(TechAvatar, {
       techId: j.tech,

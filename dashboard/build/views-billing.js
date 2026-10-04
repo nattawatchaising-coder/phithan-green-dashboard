@@ -394,7 +394,7 @@ function BlPayModal({
       borderRadius: "var(--r-chip)",
       display: "grid",
       placeItems: "center",
-      background: "#EF44441a"
+      background: "var(--tint-red-bg)"
     }
   }, React.createElement(Icon, {
     name: "file",
@@ -1382,7 +1382,7 @@ function BlRowDetail({
       borderRadius: "var(--r-chip)",
       display: "grid",
       placeItems: "center",
-      background: "#EF44441a"
+      background: "var(--tint-red-bg)"
     }
   }, React.createElement(Icon, {
     name: "file",

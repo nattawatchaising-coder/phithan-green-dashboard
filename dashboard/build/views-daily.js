@@ -1709,13 +1709,13 @@ function DailyReportModal({
       gap: 7,
       padding: "10px 13px",
       borderRadius: 10,
-      border: "1px solid #EF444455",
+      border: "1px solid var(--tint-red-bd)",
       background: "var(--surface)",
       cursor: "pointer",
       fontFamily: "inherit",
       fontSize: 13,
       fontWeight: 700,
-      color: "#EF4444"
+      color: "var(--tint-red-tx2)"
     }
   }, React.createElement(Icon, {
     name: "trash",
@@ -3426,7 +3426,7 @@ function DailyView({
         gap: 9,
         padding: isMobile ? "11px 12px" : "13px 16px",
         borderBottom: "1px solid var(--border)",
-        background: "#EF44440e",
+        background: "var(--tint-red-bg)",
         flexWrap: "wrap"
       }
     }, React.createElement("span", {
@@ -3435,7 +3435,7 @@ function DailyView({
         minWidth: 140,
         fontSize: 12.5,
         fontWeight: 700,
-        color: "#EF4444"
+        color: "var(--tint-red-tx2)"
       }
     }, "\u0E25\u0E1A\u0E23\u0E32\u0E22\u0E07\u0E32\u0E19 ", r.job.code, " \u0E02\u0E2D\u0E07\u0E27\u0E31\u0E19\u0E19\u0E35\u0E49\u0E17\u0E31\u0E49\u0E07\u0E43\u0E1A? \u0E23\u0E39\u0E1B\u0E41\u0E25\u0E30\u0E25\u0E32\u0E22\u0E40\u0E0B\u0E47\u0E19\u0E2B\u0E32\u0E22\u0E44\u0E1B\u0E14\u0E49\u0E27\u0E22 \u0E40\u0E23\u0E35\u0E22\u0E01\u0E04\u0E37\u0E19\u0E44\u0E21\u0E48\u0E44\u0E14\u0E49"), React.createElement("button", {
       onClick: () => setDelAsk(null),

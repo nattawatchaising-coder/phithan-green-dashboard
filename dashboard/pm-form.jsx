@@ -39,7 +39,7 @@ function PmField({ field, value, prefilled, suggest, onCommit }) {
       {field.en}
       <span style={{ fontWeight: 400, color: "var(--text-3)" }}> ({field.th})</span>
       {field.unit ? <span style={{ fontWeight: 400, color: "var(--text-3)" }}> · {field.unit}</span> : null}
-      {field.req ? <span style={{ color: "#DC2626" }}> *</span> : null}
+      {field.req ? <span style={{ color: "var(--tint-red-tx2)" }}> *</span> : null}
       {prefilled && String(v).trim() !== "" ? (
         <span style={{ marginLeft: 6, padding: "1px 6px", borderRadius: 99, background: "var(--primary-soft)",
           color: "var(--primary-dark)", fontSize: 10, fontWeight: 700 }}>
@@ -196,7 +196,7 @@ function PmTableRow({ table, hdr, row, no, mobile, secKey, photoIdx, photoBusy,
             <label style={{ display: "block", fontSize: 11, fontWeight: 700, color: "var(--text-2)", marginBottom: 3 }}>
               {c.en} <span style={{ fontWeight: 400, color: "var(--text-3)" }}>({c.th})</span>
               {c.unit ? <span style={{ fontWeight: 400, color: "var(--text-3)" }}> · {c.unit}</span> : null}
-              {c.req ? <span style={{ color: "#DC2626" }}> *</span> : null}
+              {c.req ? <span style={{ color: "var(--tint-red-tx2)" }}> *</span> : null}
             </label>
             <PmCell col={c} value={row[c.key]} onCommit={set} mobile={true} calcText={calcOf(c)} />
           </div>
@@ -310,7 +310,7 @@ function PmTableBlock({ table, hdr, rows, mobile, job, sum, secKey, photoIdx, on
         <th style={{ width: 28, padding: "4px 5px", fontSize: 10.5, fontWeight: 700, color: "var(--text-3)" }}>#</th>
         {cols.map((c) => (
           <th key={c.key} style={{ padding: "4px 5px", textAlign: "left", fontSize: 10.5, fontWeight: 700, color: "var(--text-2)" }}>
-            {c.en}{c.req ? <span style={{ color: "#DC2626" }}> *</span> : null}
+            {c.en}{c.req ? <span style={{ color: "var(--tint-red-tx2)" }}> *</span> : null}
             <span style={{ display: "block", fontWeight: 400, color: "var(--text-3)" }}>
               {c.th}{c.unit ? " · " + c.unit : ""}
             </span>
@@ -886,7 +886,7 @@ function PmHandoverModal({ job, currentUser, onClose, onSummary }) {
               <div style={{ flexShrink: 0, borderTop: "1px solid var(--border)", background: "var(--surface)", padding: "11px 16px" }}>
                 {prog.missing.length ? (
                   <details style={{ marginBottom: 10 }}>
-                    <summary style={{ cursor: "pointer", fontSize: 12.5, fontWeight: 700, color: "#B45309" }}>
+                    <summary style={{ cursor: "pointer", fontSize: 12.5, fontWeight: 700, color: "var(--tint-amber-tx)" }}>
                       ⚠️ ยังขาดอีก {prog.missing.length} รายการ · แตะเพื่อดู
                     </summary>
                     <div style={{ maxHeight: 170, overflowY: "auto", marginTop: 8 }}>

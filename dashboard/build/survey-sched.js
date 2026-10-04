@@ -381,7 +381,7 @@ function DispatchView({
     onMenuOpen: onMenuOpen,
     sub: React.createElement("span", null, scopeAppts.length, " \u0E19\u0E31\u0E14", mode === "day" ? " (วันนี้)" : " (ทั้งหมด)", " \xB7 ", conflictScope.size > 0 ? React.createElement("span", {
       style: {
-        color: "#EF4444",
+        color: "var(--tint-red-tx2)",
         fontWeight: 700
       }
     }, "\u26A0 \u0E0B\u0E49\u0E2D\u0E19\u0E17\u0E31\u0E1A ", conflictScope.size / 2 | 0, " \u0E04\u0E39\u0E48") : "ไม่มีเวลาซ้อนทับ"),
@@ -593,7 +593,7 @@ function DispatchView({
       style: {
         fontSize: 10.5,
         fontWeight: 700,
-        color: "#EF4444"
+        color: "var(--tint-red-tx2)"
       }
     }, "\u26A0 \u0E40\u0E27\u0E25\u0E32\u0E0B\u0E49\u0E2D\u0E19\u0E17\u0E31\u0E1A\u0E01\u0E31\u0E1A\u0E19\u0E31\u0E14\u0E2D\u0E37\u0E48\u0E19\u0E02\u0E2D\u0E07\u0E27\u0E34\u0E28\u0E27\u0E01\u0E23\u0E04\u0E19\u0E19\u0E35\u0E49"));
   })))) : dayAppts.length === 0 ? React.createElement("div", {
@@ -729,7 +729,7 @@ function DispatchView({
         style: {
           fontSize: 10.5,
           fontWeight: 700,
-          color: "#EF4444",
+          color: "var(--tint-red-tx2)",
           marginTop: 5
         }
       }, "\u26A0 \u0E40\u0E27\u0E25\u0E32\u0E0B\u0E49\u0E2D\u0E19\u0E17\u0E31\u0E1A\u0E01\u0E31\u0E1A\u0E19\u0E31\u0E14\u0E2D\u0E37\u0E48\u0E19"), a.notes && React.createElement("div", {
@@ -1215,7 +1215,7 @@ function SurveyApptModal({
       borderRadius: 11,
       border: "1px solid var(--tint-red-bd)",
       background: "var(--tint-red-bg)",
-      color: "#EF4444",
+      color: "var(--tint-red-tx2)",
       cursor: "pointer",
       display: "grid",
       placeItems: "center"
@@ -1395,7 +1395,7 @@ function ApptFlow({
     }), " ", s.enterCta) : React.createElement("div", {
       style: {
         fontSize: 11.5,
-        color: "#EF4444",
+        color: "var(--tint-red-tx2)",
         marginTop: 6,
         fontWeight: 600
       }

@@ -95,14 +95,14 @@ function PricePanel({ priceStore, stock, q = "", grp = "all" }) {
                   <span style={{ fontSize: 12.5, color: "var(--text-1)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{c.name}</span>
                   {inStock
                     ? <span title="มีในคลังสินค้า" style={{ fontSize: 9.5, fontWeight: 700, color: "var(--tint-ok-tx)", background: "#1B9B7516", padding: "1px 6px", borderRadius: 99, flexShrink: 0 }}>คลัง</span>
-                    : <span title="ยังไม่มีในคลัง — บันทึกแล้วจะสร้างให้" style={{ fontSize: 9.5, fontWeight: 700, color: "var(--tint-amber-tx)", background: "#F59E0B1f", padding: "1px 6px", borderRadius: 99, flexShrink: 0 }}>ใหม่</span>}
+                    : <span title="ยังไม่มีในคลัง — บันทึกแล้วจะสร้างให้" style={{ fontSize: 9.5, fontWeight: 700, color: "var(--tint-amber-tx)", background: "var(--tint-amber-bg)", padding: "1px 6px", borderRadius: 99, flexShrink: 0 }}>ใหม่</span>}
                 </div>
                 <span style={{ fontSize: 10.5, color: "var(--text-3)", marginLeft: 12 }}>{(PRICE_GROUP_TH[c.group] || c.group)} · {c.unit || "-"}</span>
               </div>
               <input value={l.code} onChange={(e) => set(c.name, "code", e.target.value)} placeholder="รหัส (auto)" style={inStyle} />
               <input type="number" value={l.price} onChange={(e) => set(c.name, "price", e.target.value)} placeholder="0" style={numStyle} />
               {!isMobile && (c.custom && !inStock
-                ? <button onClick={() => { askConfirm({ title: "ลบ “" + c.name + "” ?" }).then((ok) => { if (ok) priceStore.removePrice(c.name); }); }} title="ลบ" style={{ height: 32, background: "#EF444414", border: "none", color: "#EF4444", borderRadius: 8, cursor: "pointer", display: "grid", placeItems: "center" }}><Icon name="x" size={13} /></button>
+                ? <button onClick={() => { askConfirm({ title: "ลบ “" + c.name + "” ?" }).then((ok) => { if (ok) priceStore.removePrice(c.name); }); }} title="ลบ" style={{ height: 32, background: "var(--tint-red-bg)", border: "none", color: "var(--tint-red-tx2)", borderRadius: 8, cursor: "pointer", display: "grid", placeItems: "center" }}><Icon name="x" size={13} /></button>
                 : <span />)}
             </div>
           );

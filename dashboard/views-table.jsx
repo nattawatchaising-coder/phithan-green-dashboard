@@ -216,7 +216,7 @@ function TableView({ jobs, onOpen, onEdit, onDelete, onSetMat, onSetStage, trash
                       <div style={{ fontFamily: "var(--mono)", fontSize: 12, fontWeight: 600, letterSpacing: "-.01em",
                         color: j.delayed ? "#D93025" : "var(--text-2)" }}>{thDate(j.startDate, true)}{j.deadline && j.deadline !== j.startDate ? "–" + thDate(j.deadline, true) : ""}</div>
                       {j.delayed && <span style={{ display: "inline-block", marginTop: 3, fontSize: 9.5, fontWeight: 800, letterSpacing: ".02em",
-                        color: "#D93025", background: "rgba(217,48,37,.11)", padding: "2px 7px", borderRadius: 99 }}>ล่าช้า</span>}
+                        color: "var(--tint-red-tx)", background: "rgba(217,48,37,.11)", padding: "2px 7px", borderRadius: 99 }}>ล่าช้า</span>}
                     </React.Fragment>
                   ) : <span style={{ fontSize: 11, fontWeight: 600, color: "var(--text-3)" }}>ยังไม่นัด</span>}
                 </td>

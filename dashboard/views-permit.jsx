@@ -80,7 +80,7 @@ function PermitCard({ job, onOpen, onDragStart, dragging, draggable }) {
       style={{ "--rail": st ? st.color : "var(--border-strong)" }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8, marginBottom: 6 }}>
         <span style={{ fontFamily: "var(--mono)", fontSize: 11, fontWeight: 600, color: "var(--text-3)" }}>{job.code}</span>
-        {late && <span style={{ fontSize: 10, fontWeight: 700, color: "#EF4444", background: "var(--tint-red-bg2)", padding: "1px 7px", borderRadius: 99 }}>ค้าง {days} วัน</span>}
+        {late && <span style={{ fontSize: 10, fontWeight: 700, color: "var(--tint-red-tx2)", background: "var(--tint-red-bg2)", padding: "1px 7px", borderRadius: 99 }}>ค้าง {days} วัน</span>}
       </div>
       <div style={{ fontSize: 14, fontWeight: 700, color: "var(--text-1)", lineHeight: 1.3, marginBottom: 3 }}>{job.name}</div>
       <div style={{ fontSize: 11.5, color: "var(--text-3)", marginBottom: 9, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
@@ -402,7 +402,7 @@ function PermitCatalogRow({ slot, sheets, missing, models }) {
         </span>
         <span style={{ flex: 1, minWidth: 0 }}>
           <span style={{ display: "block", fontSize: 12.5, fontWeight: 700, color: "var(--text-1)" }}>
-            {slot.label}<span style={{ color: "#EF4444" }}> *</span>
+            {slot.label}<span style={{ color: "var(--tint-red-tx2)" }}> *</span>
           </span>
           <span style={{ display: "block", fontSize: 10.5, color: "var(--text-3)", marginTop: 1, lineHeight: 1.4 }}>
             {has ? "ดึงจาก DATA SHEET ในคลังให้อัตโนมัติ" : (models.length ? "ยังไม่ได้แนบ DATA SHEET ของรุ่นนี้ไว้ในคลัง" : "ยังไม่ได้ระบุรุ่นแผง/อินเวอร์เตอร์ในชุดข้อมูล")}
@@ -502,7 +502,7 @@ function PermitDocRow({ slot, doc, busy, onPick, onRemove }) {
       </span>
       <span style={{ flex: 1, minWidth: 0 }}>
         <span style={{ display: "block", fontSize: 12.5, fontWeight: 700, color: "var(--text-1)" }}>
-          {slot.label}{slot.req && <span style={{ color: "#EF4444" }}> *</span>}
+          {slot.label}{slot.req && <span style={{ color: "var(--tint-red-tx2)" }}> *</span>}
         </span>
         <span style={{ display: "block", fontSize: 10.5, color: "var(--text-3)", marginTop: 1, lineHeight: 1.4,
           whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
@@ -524,7 +524,7 @@ function PermitDocRow({ slot, doc, busy, onPick, onRemove }) {
         </button>
         {has && (
           <button type="button" onClick={onRemove} title="ลบไฟล์"
-            style={{ width: 28, height: 28, borderRadius: 8, border: "1px solid var(--border-strong)", background: "var(--surface)", color: "#EF4444", cursor: "pointer", display: "grid", placeItems: "center" }}>
+            style={{ width: 28, height: 28, borderRadius: 8, border: "1px solid var(--border-strong)", background: "var(--surface)", color: "var(--tint-red-tx2)", cursor: "pointer", display: "grid", placeItems: "center" }}>
             <Icon name="trash" size={13} />
           </button>
         )}
@@ -674,7 +674,7 @@ function PermitReview({ job, currentUser, stock, onClose, onPatch, onOpenJob }) 
                 ยังขาดเอกสารบังคับ {docMissing.length} รายการ: {docMissing.map((d) => d.label).join(", ")}
               </div>
             )}
-            {docErr && <div style={{ fontSize: 12, color: "#EF4444", fontWeight: 600 }}>⚠ {docErr}</div>}
+            {docErr && <div style={{ fontSize: 12, color: "var(--tint-red-tx2)", fontWeight: 600 }}>⚠ {docErr}</div>}
             <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
               {PERMIT_DOC_SLOTS.map((d) => (d.key === "catalog"
                 ? <PermitCatalogRow key={d.key} slot={d} sheets={cat.sheets} missing={cat.missing} models={cat.models} />

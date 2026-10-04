@@ -246,7 +246,7 @@ function DispatchView({ appts, jobs, techs, store, leadStore, onMenuOpen, onOpen
           คนอ่านจะได้รู้ว่ายังอยู่เมนูเดิม แค่คนละมุม (ท่าเดียวกับหน้างานขาย บอร์ด/รายการ)
           ว่าอยู่มุมไหนดูที่แท็บ ส่วนบรรทัดรองยังบอกรายละเอียดของมุมนั้นเหมือนเดิม */}
       <SchedHeader icon="calendar" title="ตารางงาน" onMenuOpen={onMenuOpen}
-        sub={<span>{scopeAppts.length} นัด{mode === "day" ? " (วันนี้)" : " (ทั้งหมด)"} · {conflictScope.size > 0 ? <span style={{ color: "#EF4444", fontWeight: 700 }}>⚠ ซ้อนทับ {conflictScope.size / 2 | 0} คู่</span> : "ไม่มีเวลาซ้อนทับ"}</span>}
+        sub={<span>{scopeAppts.length} นัด{mode === "day" ? " (วันนี้)" : " (ทั้งหมด)"} · {conflictScope.size > 0 ? <span style={{ color: "var(--tint-red-tx2)", fontWeight: 700 }}>⚠ ซ้อนทับ {conflictScope.size / 2 | 0} คู่</span> : "ไม่มีเวลาซ้อนทับ"}</span>}
         right={<button onClick={() => setEdit(Object.assign(blankAppt(), { start: _composeISO(mode === "day" ? day : _ymdLocal(new Date()), "09:00"), end: _composeISO(mode === "day" ? day : _ymdLocal(new Date()), "11:00") }))} className="btn-add"><Icon name="plus" size={17} color="#fff" sw={2.4} /><span>นัดสำรวจ</span></button>} />
       <div className="app-content">
         {/* สลับมุมมอง รายวัน / ทั้งหมด */}
@@ -292,7 +292,7 @@ function DispatchView({ appts, jobs, techs, store, leadStore, onMenuOpen, onOpen
                         <span style={{ width: 8, height: 8, borderRadius: 99, background: (t && t.color) || "#94A3B8", flexShrink: 0 }} />
                         {t ? t.name : "ยังไม่มอบหมาย"}
                       </div>
-                      {clash && <div style={{ fontSize: 10.5, fontWeight: 700, color: "#EF4444" }}>⚠ เวลาซ้อนทับกับนัดอื่นของวิศวกรคนนี้</div>}
+                      {clash && <div style={{ fontSize: 10.5, fontWeight: 700, color: "var(--tint-red-tx2)" }}>⚠ เวลาซ้อนทับกับนัดอื่นของวิศวกรคนนี้</div>}
                     </button>
                   );
                 })}
@@ -327,7 +327,7 @@ function DispatchView({ appts, jobs, techs, store, leadStore, onMenuOpen, onOpen
                         </div>
                         <div style={{ fontSize: 13, fontWeight: 700, color: "var(--text-1)", marginTop: 5, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{a.jobName || "—"}</div>
                         <div style={{ fontSize: 11, color: "var(--text-3)", marginTop: 1 }}>{a.jobCode}{a.province ? " · " + a.province : ""}{a.leadId ? <span style={{ marginLeft: 5, fontSize: 9.5, fontWeight: 700, color: "#0EA5E9", background: "#0EA5E916", padding: "2px 6px", borderRadius: 99 }}>ลูกค้าสำรวจ</span> : null}</div>
-                        {clash && <div style={{ fontSize: 10.5, fontWeight: 700, color: "#EF4444", marginTop: 5 }}>⚠ เวลาซ้อนทับกับนัดอื่น</div>}
+                        {clash && <div style={{ fontSize: 10.5, fontWeight: 700, color: "var(--tint-red-tx2)", marginTop: 5 }}>⚠ เวลาซ้อนทับกับนัดอื่น</div>}
                         {a.notes && <div style={{ fontSize: 11, color: "var(--text-2)", marginTop: 5, background: "var(--surface2)", borderRadius: 7, padding: "5px 8px" }}>📝 {a.notes}</div>}
                       </button>
                     );
@@ -458,7 +458,7 @@ function SurveyApptModal({ initial, jobs, techs, appts, leads, blankLead, onClos
           </div>
         </div>
         <div style={{ padding: "12px 18px", paddingBottom: isMobile ? "calc(12px + env(safe-area-inset-bottom,0px))" : 12, borderTop: "1px solid var(--border)", background: "var(--surface)", display: "flex", gap: 10, alignItems: "center" }}>
-          {!isNew && <button onClick={() => onDelete(f.id)} style={{ flex: "0 0 auto", width: 44, height: 44, borderRadius: 11, border: "1px solid var(--tint-red-bd)", background: "var(--tint-red-bg)", color: "#EF4444", cursor: "pointer", display: "grid", placeItems: "center" }}><Icon name="x" size={16} /></button>}
+          {!isNew && <button onClick={() => onDelete(f.id)} style={{ flex: "0 0 auto", width: 44, height: 44, borderRadius: 11, border: "1px solid var(--tint-red-bd)", background: "var(--tint-red-bg)", color: "var(--tint-red-tx2)", cursor: "pointer", display: "grid", placeItems: "center" }}><Icon name="x" size={16} /></button>}
           <button onClick={onClose} style={{ flex: "0 0 auto", padding: "12px 18px", borderRadius: 11, border: "1px solid var(--border-strong)", background: "var(--surface)", color: "var(--text-2)", fontWeight: 700, fontFamily: "inherit", fontSize: 13.5, cursor: "pointer" }}>ยกเลิก</button>
           <button onClick={submit} style={{ flex: 1, padding: "12px", borderRadius: 11, border: "none", background: "var(--primary)", color: "#fff", fontWeight: 700, fontFamily: "inherit", fontSize: 14, cursor: "pointer" }}>บันทึกนัดหมาย</button>
         </div>
@@ -509,7 +509,7 @@ function ApptFlow({ a, job, onStatus, onOpenSurvey }) {
               {isNext && (
                 s.key === "done"
                   ? (job ? <button onClick={() => onOpenSurvey(job, a)} style={flowCta("var(--primary)")}><Icon name={s.enterIcon} size={14} color="#fff" /> {s.enterCta}</button>
-                         : <div style={{ fontSize: 11.5, color: "#EF4444", marginTop: 6, fontWeight: 600 }}>ไม่พบงานที่ผูกไว้</div>)
+                         : <div style={{ fontSize: 11.5, color: "var(--tint-red-tx2)", marginTop: 6, fontWeight: 600 }}>ไม่พบงานที่ผูกไว้</div>)
                   : <button onClick={() => onStatus(a.id, s.key)} style={flowCta((APPT_STATUS_BY[s.key] || {}).color || "var(--primary)")}><Icon name={s.enterIcon} size={14} color="#fff" /> {s.enterCta}</button>
               )}
             </div>

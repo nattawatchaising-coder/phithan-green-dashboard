@@ -2067,7 +2067,7 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
               <div style={{ display: "grid", gridTemplateColumns: "minmax(0,1fr) 78px 36px", gap: 8, alignItems: "center" }}>
                 <Dropdown value={x.size} onChange={(v) => setCond(kind, i, "size", v)} options={opt(sizes)} placeholder="เลือกขนาด" />
                 <input type="number" style={numStyle} value={x[valKey]} placeholder={unitText} onChange={(e) => setCond(kind, i, valKey, e.target.value)} />
-                <button onClick={() => delCond(kind, i)} title="ลบ" style={{ height: 40, background: "#EF444414", border: "none", color: "#EF4444", borderRadius: 9, cursor: "pointer", display: "grid", placeItems: "center" }}><Icon name="x" size={14} /></button>
+                <button onClick={() => delCond(kind, i)} title="ลบ" style={{ height: 40, background: "var(--tint-red-bg)", border: "none", color: "var(--tint-red-tx2)", borderRadius: 9, cursor: "pointer", display: "grid", placeItems: "center" }}><Icon name="x" size={14} /></button>
               </div>
             );
             if (!check) return <div key={i}>{row}</div>;
@@ -2100,7 +2100,7 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
                         <Dropdown value={c.type} onChange={(v) => setCables(i, cbs.map((y, k) => k === j ? Object.assign({}, y, { type: v, size: +(Object.keys(OD[v] || {})[0] || 2.5) }) : y))} options={opt(odTypes)} />
                         <Dropdown value={String(c.size)} onChange={(v) => setCables(i, cbs.map((y, k) => k === j ? Object.assign({}, y, { size: +v }) : y))} options={Object.keys(OD[c.type] || {}).map((s) => ({ value: s, label: s + " mm²" }))} />
                         <input type="number" min={1} style={numStyle} value={c.qty} placeholder="เส้น" onChange={(e) => setCables(i, cbs.map((y, k) => k === j ? Object.assign({}, y, { qty: e.target.value }) : y))} />
-                        <button onClick={() => setCables(i, cbs.filter((_, k) => k !== j))} title="ลบ" style={{ height: 38, background: "#EF444414", border: "none", color: "#EF4444", borderRadius: 9, cursor: "pointer", display: "grid", placeItems: "center" }}><Icon name="x" size={13} /></button>
+                        <button onClick={() => setCables(i, cbs.filter((_, k) => k !== j))} title="ลบ" style={{ height: 38, background: "var(--tint-red-bg)", border: "none", color: "var(--tint-red-tx2)", borderRadius: 9, cursor: "pointer", display: "grid", placeItems: "center" }}><Icon name="x" size={13} /></button>
                       </div>
                     ))}
                     {!x.auto && <button onClick={() => setCables(i, cbs.concat([{ type: odTypes[0], size: +(Object.keys(OD[odTypes[0]] || {})[0] || 2.5), qty: 1 }]))}
@@ -2186,7 +2186,7 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
                 <div style={{ display: "grid", gridTemplateColumns: "minmax(0,1fr) 78px 36px", gap: 8, alignItems: "center" }}>
                   <Dropdown value={x.size} onChange={(v) => setTrayRow(kind, i, "size", v)} options={opt(sizes)} placeholder="เลือกขนาด" />
                   <input type="number" style={numStyle} value={x.length} placeholder="ม." onChange={(e) => setTrayRow(kind, i, "length", e.target.value)} />
-                  <button onClick={() => delTrayRow(kind, i)} title="ลบ" style={{ height: 40, background: "#EF444414", border: "none", color: "#EF4444", borderRadius: 9, cursor: "pointer", display: "grid", placeItems: "center" }}><Icon name="x" size={14} /></button>
+                  <button onClick={() => delTrayRow(kind, i)} title="ลบ" style={{ height: 40, background: "var(--tint-red-bg)", border: "none", color: "var(--tint-red-tx2)", borderRadius: 9, cursor: "pointer", display: "grid", placeItems: "center" }}><Icon name="x" size={14} /></button>
                 </div>
                 )}
                 <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 7, flexWrap: "wrap" }}>
@@ -2240,7 +2240,7 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
                         <Dropdown value={c.type} onChange={(v) => setCables(i, cbs.map((y, k) => k === j ? Object.assign({}, y, { type: v, size: +(Object.keys(OD[v] || {})[0] || 2.5) }) : y))} options={opt(odTypes)} />
                         <Dropdown value={String(c.size)} onChange={(v) => setCables(i, cbs.map((y, k) => k === j ? Object.assign({}, y, { size: +v }) : y))} options={Object.keys(OD[c.type] || {}).map((s) => ({ value: s, label: s + " mm²" }))} />
                         <input type="number" min={1} style={numStyle} value={c.qty} placeholder="เส้น" onChange={(e) => setCables(i, cbs.map((y, k) => k === j ? Object.assign({}, y, { qty: e.target.value }) : y))} />
-                        <button onClick={() => setCables(i, cbs.filter((_, k) => k !== j))} title="ลบ" style={{ height: 38, background: "#EF444414", border: "none", color: "#EF4444", borderRadius: 9, cursor: "pointer", display: "grid", placeItems: "center" }}><Icon name="x" size={13} /></button>
+                        <button onClick={() => setCables(i, cbs.filter((_, k) => k !== j))} title="ลบ" style={{ height: 38, background: "var(--tint-red-bg)", border: "none", color: "var(--tint-red-tx2)", borderRadius: 9, cursor: "pointer", display: "grid", placeItems: "center" }}><Icon name="x" size={13} /></button>
                       </div>
                     ))}
                     {!x.auto && <button onClick={() => setCables(i, cbs.concat([{ type: odTypes[0], size: +(Object.keys(OD[odTypes[0]] || {})[0] || 2.5), qty: 1 }]))}
@@ -2317,7 +2317,7 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
                 onChange={(v) => set(i, { name: v, unit: x.unit || unitOf(v) || "ชุด" })} />
               <input type="number" style={numStyle} value={x.qty != null ? x.qty : ""} placeholder="จำนวน" onChange={(e) => set(i, { qty: e.target.value })} />
               <input value={x.unit || ""} placeholder="หน่วย" style={inputStyle} onChange={(e) => set(i, { unit: e.target.value })} />
-              <button onClick={() => onChange(list.filter((_, j) => j !== i))} title="ลบ" style={{ height: 40, background: "#EF444414", border: "none", color: "#EF4444", borderRadius: 9, cursor: "pointer", display: "grid", placeItems: "center" }}><Icon name="x" size={14} /></button>
+              <button onClick={() => onChange(list.filter((_, j) => j !== i))} title="ลบ" style={{ height: 40, background: "var(--tint-red-bg)", border: "none", color: "var(--tint-red-tx2)", borderRadius: 9, cursor: "pointer", display: "grid", placeItems: "center" }}><Icon name="x" size={14} /></button>
             </div>
           ))}
           {false && <button onClick={() => onChange(list.concat([{ name: "", qty: "", unit: (catalog[0] || {}).unit || "ชุด" }]))} style={{ alignSelf: "flex-start", display: "inline-flex", alignItems: "center", gap: 5, background: "var(--surface3)", color: "var(--text-2)", border: "1px solid var(--border-strong)", borderRadius: 9, padding: "7px 11px", fontWeight: 700, fontSize: 12, cursor: "pointer", fontFamily: "inherit" }}><Icon name="plus" size={13} color="var(--text-2)" /> เพิ่มข้อต่อ</button>}
@@ -2406,7 +2406,7 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
               <input key={c.k} type="number" style={numStyle} value={x[c.k] != null ? x[c.k] : ""} placeholder={c.ph}
                 onChange={(e) => setStruct(kind, i, c.k, e.target.value)} />
             ))}
-            <button onClick={() => delStruct(kind, i)} title="ลบ" style={{ height: 40, background: "#EF444414", border: "none", color: "#EF4444", borderRadius: 9, cursor: "pointer", display: "grid", placeItems: "center" }}><Icon name="x" size={14} /></button>
+            <button onClick={() => delStruct(kind, i)} title="ลบ" style={{ height: 40, background: "var(--tint-red-bg)", border: "none", color: "var(--tint-red-tx2)", borderRadius: 9, cursor: "pointer", display: "grid", placeItems: "center" }}><Icon name="x" size={14} /></button>
           </div>
         ))}
         <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
@@ -2425,7 +2425,7 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
               <input value={x.name || ""} onChange={(e) => onExtraChange(i, "name", e.target.value)} placeholder="ชื่อวัสดุ" style={inputStyle} />
               <input type="number" value={x.qty || ""} onChange={(e) => onExtraChange(i, "qty", e.target.value)} placeholder="จำนวน" style={numStyle} />
               <input value={x.unit || ""} onChange={(e) => onExtraChange(i, "unit", e.target.value)} placeholder="หน่วย" style={inputStyle} />
-              <button onClick={() => onExtraDel(i)} style={{ height: 40, background: "#EF444414", border: "none", color: "#EF4444", borderRadius: 9, cursor: "pointer", display: "grid", placeItems: "center" }}><Icon name="x" size={14} /></button>
+              <button onClick={() => onExtraDel(i)} style={{ height: 40, background: "var(--tint-red-bg)", border: "none", color: "var(--tint-red-tx2)", borderRadius: 9, cursor: "pointer", display: "grid", placeItems: "center" }}><Icon name="x" size={14} /></button>
             </div>
           ))}
         </div>

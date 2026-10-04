@@ -1333,7 +1333,7 @@ function AField({
     }
   }, label, required && React.createElement("span", {
     style: {
-      color: "#EF4444"
+      color: "var(--tint-red-tx2)"
     }
   }, " *")), children);
 }
@@ -1524,7 +1524,7 @@ function LoginScreen({
     style: {
       marginTop: 12,
       fontSize: 12.5,
-      color: "#EF4444",
+      color: "var(--tint-red-tx2)",
       fontWeight: 600,
       textAlign: "center"
     }
@@ -1724,7 +1724,7 @@ function NotifPanel({
     style: {
       fontSize: 10.5,
       fontWeight: 700,
-      color: "#EF4444",
+      color: "var(--tint-red-tx2)",
       padding: "2px 4px"
     }
   }, "\u26A0 \u0E07\u0E32\u0E19\u0E25\u0E48\u0E32\u0E0A\u0E49\u0E32\u0E01\u0E27\u0E48\u0E32\u0E01\u0E33\u0E2B\u0E19\u0E14 (", alerts.length, ")"), alerts.map((a, i) => React.createElement("button", {
@@ -2633,7 +2633,7 @@ function UserManager({
     }, " \xB7 @", u.username), u.active === false && React.createElement("span", {
       style: {
         fontSize: 10.5,
-        color: "#EF4444",
+        color: "var(--tint-red-tx2)",
         fontWeight: 600
       }
     }, " \xB7 \u0E23\u0E30\u0E07\u0E31\u0E1A")), React.createElement("div", {
@@ -2687,9 +2687,9 @@ function UserManager({
       },
       title: "\u0E25\u0E1A",
       style: {
-        background: "#EF444414",
+        background: "var(--tint-red-bg)",
         border: "none",
-        color: "#EF4444",
+        color: "var(--tint-red-tx2)",
         width: 32,
         height: 32,
         borderRadius: 8,
@@ -3216,7 +3216,7 @@ function UserEditModal({
     style: {
       fontSize: 12.5,
       fontWeight: 600,
-      color: "#EF4444"
+      color: "var(--tint-red-tx2)"
     }
   }, "\u26A0 ", err)), React.createElement("div", {
     style: {

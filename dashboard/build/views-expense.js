@@ -196,7 +196,7 @@ function EcReceipts({
   }))), err && React.createElement("div", {
     style: {
       fontSize: 12,
-      color: "#EF4444",
+      color: "var(--tint-red-tx2)",
       margin: "6px 0"
     }
   }, err), !shots.length && React.createElement("div", {
@@ -246,7 +246,7 @@ function EcReceipts({
       borderRadius: "var(--r-tile)",
       display: "grid",
       placeItems: "center",
-      background: "#EF44441a"
+      background: "var(--tint-red-bg)"
     }
   }, React.createElement(Icon, {
     name: "file",
@@ -1838,7 +1838,7 @@ function EcPayModal({
       borderRadius: "var(--r-chip)",
       display: "grid",
       placeItems: "center",
-      background: "#EF44441a"
+      background: "var(--tint-red-bg)"
     }
   }, React.createElement(Icon, {
     name: "file",
@@ -1951,7 +1951,7 @@ function EcPayModal({
   }))), slipErr && React.createElement("div", {
     style: {
       fontSize: 12,
-      color: "#EF4444",
+      color: "var(--tint-red-tx2)",
       margin: "-6px 0 10px"
     }
   }, slipErr), React.createElement(window.DrLabel, {

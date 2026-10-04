@@ -407,7 +407,7 @@ function SuVoltBand({ rows, inv, sel, onPick }) {
       })}
       <div style={{ display: "flex", gap: 14, flexWrap: "wrap", fontSize: 9.5, color: "var(--text-3)", paddingLeft: 39 }}>
         <span><b style={{ color: "#F59E0B" }}>■</b> แผงร้อน (แรงดันต่ำสุด)</span>
-        <span><b style={{ color: "#1B9B75" }}>■</b> อากาศเย็น (แรงดันสูงสุด)</span>
+        <span><b style={{ color: "var(--primary)" }}>■</b> อากาศเย็น (แรงดันสูงสุด)</span>
         <span><b style={{ color: "var(--tint-red-tx)" }}>│</b> เพดาน Voc</span>
       </div>
     </div>
@@ -1005,7 +1005,7 @@ function SuDayLight({ sim, groups, hour, onHour }) {
       </svg>
       <div style={{ display: "flex", gap: 14, flexWrap: "wrap", fontSize: 9.5, color: "var(--text-3)", fontWeight: 700, paddingLeft: 44 }}>
         <span><b style={{ color: "var(--text-3)" }}>┅</b> แสงบนพื้นราบ</span>
-        <span><b style={{ color: "#1B9B75" }}>━</b> แสงบนหน้าแผงจริง (หลังหักเงา)</span>
+        <span><b style={{ color: "var(--primary)" }}>━</b> แสงบนหน้าแผงจริง (หลังหักเงา)</span>
         {sim.shadeFrom != null && <span><b style={{ color: "#475569" }}>▨</b> ส่วนที่เงาบังกินไป</span>}
       </div>
     </div>
@@ -3444,7 +3444,7 @@ function SolarWorkspace({ job, st, sys, onChange, onClose, snap }) {
                       <span style={{ fontWeight: 600 }}>สูงสุด {sim.peak ? scR(sim.peak.ac, 2) : 0} kW ตอน {ivHM(sim.peak ? sim.peak.h : null)}</span></span>
                     <SuDayPower sim={sim} groups={groups} acKw={acKw} hour={simHour} onHour={(h) => setSite({ hour: scR(h, 2) })} />
                     <div style={{ display: "flex", gap: 14, flexWrap: "wrap", fontSize: 9.5, color: "var(--text-3)", fontWeight: 700 }}>
-                      <span><b style={{ color: "#1B9B75" }}>┅</b> กำลัง DC จากแผง</span>
+                      <span><b style={{ color: "var(--primary)" }}>┅</b> กำลัง DC จากแผง</span>
                       <span><b style={{ color: "#148080" }}>━</b> กำลัง AC ที่ออกจากอินเวอร์เตอร์จริง</span>
                       <span><b style={{ color: "var(--tint-red-tx2)" }}>━</b> อุณหภูมิเซลล์ (แกนขวา)</span>
                     </div>

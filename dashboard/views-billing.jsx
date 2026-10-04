@@ -204,7 +204,7 @@ function BlPayModal({ row, onCancel, onOk }) {
             <div key={i} style={{ display: "flex", alignItems: "center", gap: 11, padding: 9, marginBottom: 8,
               borderRadius: "var(--r-tile)", background: "var(--surface2)" }}>
               {s.fileKind === "pdf" ? (
-                <span style={{ width: 48, height: 48, flexShrink: 0, borderRadius: "var(--r-chip)", display: "grid", placeItems: "center", background: "#EF44441a" }}>
+                <span style={{ width: 48, height: 48, flexShrink: 0, borderRadius: "var(--r-chip)", display: "grid", placeItems: "center", background: "var(--tint-red-bg)" }}>
                   <Icon name="file" size={19} color="#EF4444" />
                 </span>
               ) : (
@@ -660,7 +660,7 @@ function BlRowDetail({ job, row, onPatch, currentUser, readOnly }) {
                     title={(p.name || "สลิป") + " — กดเพื่อเปิด/บันทึก"}
                     style={{ display: "inline-flex", alignItems: "center", gap: 7, textDecoration: "none", color: "var(--text-2)" }}>
                     {p.fileKind === "pdf"
-                      ? <span style={{ width: 34, height: 34, borderRadius: "var(--r-chip)", display: "grid", placeItems: "center", background: "#EF44441a" }}>
+                      ? <span style={{ width: 34, height: 34, borderRadius: "var(--r-chip)", display: "grid", placeItems: "center", background: "var(--tint-red-bg)" }}>
                           <Icon name="file" size={15} color="#EF4444" />
                         </span>
                       : <img src={p.dataUrl} alt="" style={{ width: 34, height: 34, objectFit: "cover", borderRadius: "var(--r-chip)" }} />}

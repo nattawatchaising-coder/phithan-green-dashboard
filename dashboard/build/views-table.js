@@ -489,7 +489,7 @@ function TableView({
       fontSize: 9.5,
       fontWeight: 800,
       letterSpacing: ".02em",
-      color: "#D93025",
+      color: "var(--tint-red-tx)",
       background: "rgba(217,48,37,.11)",
       padding: "2px 7px",
       borderRadius: 99

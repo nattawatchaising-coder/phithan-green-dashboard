@@ -1088,9 +1088,9 @@ function StockView({
       },
       title: "\u0E25\u0E1A",
       style: {
-        background: "#EF444414",
+        background: "var(--tint-red-bg)",
         border: "none",
-        color: "#EF4444",
+        color: "var(--tint-red-tx2)",
         width: 28,
         height: 28,
         borderRadius: "var(--r-chip)",
@@ -1646,9 +1646,9 @@ function StockCardList({
       "aria-label": "\u0E25\u0E1A",
       style: {
         flexShrink: 0,
-        background: "#EF444414",
+        background: "var(--tint-red-bg)",
         border: "none",
-        color: "#EF4444",
+        color: "var(--tint-red-tx2)",
         width: 44,
         height: 36,
         borderRadius: "var(--r-chip)",
@@ -2461,7 +2461,7 @@ function ItemModal({
       fontFamily: "inherit",
       fontSize: 11.5,
       fontWeight: 700,
-      color: "#EF4444",
+      color: "var(--tint-red-tx2)",
       textDecoration: "underline",
       textUnderlineOffset: 3
     }
@@ -3928,9 +3928,9 @@ function OmTierTable({
       onClick: () => setDraft(p => p.filter((x, k) => k !== i)),
       title: "\u0E25\u0E1A\u0E41\u0E16\u0E27",
       style: {
-        background: "#EF444414",
+        background: "var(--tint-red-bg)",
         border: "none",
-        color: "#EF4444",
+        color: "var(--tint-red-tx2)",
         width: 26,
         height: 26,
         borderRadius: "var(--r-chip)",
@@ -5083,8 +5083,8 @@ function ItemDetailModal({
       flexShrink: 0,
       display: "grid",
       placeItems: "center",
-      background: "#EF444414",
-      color: "#EF4444",
+      background: "var(--tint-red-bg)",
+      color: "var(--tint-red-tx2)",
       fontSize: 10,
       fontWeight: 800
     }
@@ -5145,7 +5145,7 @@ function ItemDetailModal({
       borderRadius: "var(--r-chip)",
       boxShadow: "var(--shadow-sm)",
       background: "var(--surface)",
-      color: "#EF4444",
+      color: "var(--tint-red-tx2)",
       cursor: "pointer",
       display: "grid",
       placeItems: "center"
@@ -5685,9 +5685,9 @@ function StockGrid({
       style: {
         width: 32,
         height: 28,
-        background: "#EF444414",
+        background: "var(--tint-red-bg)",
         border: "none",
-        color: "#EF4444",
+        color: "var(--tint-red-tx2)",
         borderRadius: "var(--r-chip)",
         cursor: "pointer",
         display: "grid",
@@ -5783,7 +5783,7 @@ function MatImagePicker({
       boxShadow: "var(--shadow-sm)",
       background: "var(--surface2)",
       boxShadow: "var(--shadow-sm)",
-      color: "#EF4444",
+      color: "var(--tint-red-tx2)",
       fontFamily: "inherit",
       fontSize: 12.5,
       fontWeight: 700,
@@ -5901,7 +5901,7 @@ function CatCard({
     }
   }, (n || 0).toLocaleString(), " \u0E23\u0E32\u0E22\u0E01\u0E32\u0E23", lowN ? React.createElement("span", {
     style: {
-      color: "#EF4444",
+      color: "var(--tint-red-tx2)",
       fontWeight: 700
     }
   }, " · ของขาด " + lowN) : null), React.createElement("span", {

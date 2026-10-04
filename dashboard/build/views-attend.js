@@ -363,7 +363,7 @@ function TmDaySheet({
       borderRadius: 8,
       border: "1px solid var(--border-strong)",
       background: "var(--surface)",
-      color: "#EF4444",
+      color: "var(--tint-red-tx2)",
       cursor: "pointer",
       fontFamily: "inherit",
       fontSize: 11.5,
@@ -1986,7 +1986,7 @@ function TmOtModal({
       fontFamily: "inherit",
       fontSize: 12.5,
       fontWeight: 700,
-      color: "#EF4444"
+      color: "var(--tint-red-tx2)"
     }
   }, "\u0E25\u0E1A\u0E43\u0E1A\u0E19\u0E35\u0E49"))));
 }
@@ -2196,7 +2196,7 @@ function TmOfficeCfg({
       borderRadius: 9,
       border: "1px solid var(--border-strong)",
       background: "var(--surface)",
-      color: "#EF4444",
+      color: "var(--tint-red-tx2)",
       cursor: "pointer",
       fontFamily: "inherit",
       fontSize: 11.5,
@@ -2206,7 +2206,7 @@ function TmOfficeCfg({
     style: {
       fontSize: 11.5,
       fontWeight: 700,
-      color: "#EF4444"
+      color: "var(--tint-red-tx2)"
     }
   }, err)), React.createElement("div", {
     style: {
@@ -2274,7 +2274,7 @@ function TmOfficeCfg({
     style: {
       marginTop: 9,
       fontSize: 11.5,
-      color: "#B45309",
+      color: "var(--tint-amber-tx)",
       lineHeight: 1.75
     }
   }, React.createElement("b", null, "\u0E40\u0E1B\u0E34\u0E14\u0E41\u0E25\u0E49\u0E27\u0E15\u0E49\u0E2D\u0E07\u0E23\u0E39\u0E49\u0E44\u0E27\u0E49"), " \u2014 GPS \u0E43\u0E19\u0E2D\u0E32\u0E04\u0E32\u0E23\u0E04\u0E25\u0E32\u0E14\u0E40\u0E04\u0E25\u0E37\u0E48\u0E2D\u0E19\u0E44\u0E14\u0E49\u0E40\u0E1B\u0E47\u0E19\u0E23\u0E49\u0E2D\u0E22\u0E40\u0E21\u0E15\u0E23 \u0E04\u0E19\u0E17\u0E35\u0E48\u0E21\u0E32\u0E17\u0E33\u0E07\u0E32\u0E19\u0E08\u0E23\u0E34\u0E07\u0E2D\u0E32\u0E08\u0E01\u0E14\u0E40\u0E02\u0E49\u0E32\u0E07\u0E32\u0E19\u0E44\u0E21\u0E48\u0E44\u0E14\u0E49 \u0E16\u0E49\u0E32\u0E40\u0E08\u0E2D\u0E1A\u0E48\u0E2D\u0E22\u0E43\u0E2B\u0E49\u0E40\u0E1E\u0E34\u0E48\u0E21\u0E23\u0E31\u0E28\u0E21\u0E35\u0E41\u0E17\u0E19\u0E01\u0E32\u0E23\u0E1B\u0E34\u0E14\u0E17\u0E34\u0E49\u0E07 \xB7 \u0E04\u0E19\u0E17\u0E35\u0E48\u0E44\u0E21\u0E48\u0E43\u0E2B\u0E49\u0E2A\u0E34\u0E17\u0E18\u0E34\u0E4C\u0E15\u0E33\u0E41\u0E2B\u0E19\u0E48\u0E07\u0E08\u0E30\u0E01\u0E14\u0E40\u0E02\u0E49\u0E32\u0E07\u0E32\u0E19\u0E44\u0E21\u0E48\u0E44\u0E14\u0E49\u0E40\u0E25\u0E22", React.createElement("br", null), "\u0E01\u0E32\u0E23", React.createElement("b", null, "\u0E01\u0E14\u0E2D\u0E2D\u0E01\u0E07\u0E32\u0E19\u0E44\u0E21\u0E48\u0E40\u0E04\u0E22\u0E16\u0E39\u0E01\u0E25\u0E47\u0E2D\u0E01"), " \u2014 \u0E04\u0E19\u0E17\u0E35\u0E48\u0E2D\u0E2D\u0E01\u0E08\u0E32\u0E01\u0E2D\u0E2D\u0E1F\u0E1F\u0E34\u0E28\u0E44\u0E1B\u0E41\u0E25\u0E49\u0E27\u0E15\u0E49\u0E2D\u0E07\u0E1B\u0E34\u0E14\u0E01\u0E30\u0E44\u0E14\u0E49\u0E40\u0E2A\u0E21\u0E2D \u0E44\u0E21\u0E48\u0E07\u0E31\u0E49\u0E19\u0E08\u0E30\u0E40\u0E2B\u0E25\u0E37\u0E2D\u0E01\u0E30\u0E04\u0E49\u0E32\u0E07\u0E43\u0E2B\u0E49\u0E15\u0E32\u0E21\u0E41\u0E01\u0E49")), React.createElement("div", {
@@ -2294,7 +2294,7 @@ function TmOfficeCfg({
     }
   }, (+o.lat).toFixed(6), ", ", (+o.lng).toFixed(6)), " ", "\xB7 \u0E1B\u0E31\u0E4A\u0E21\u0E17\u0E35\u0E48\u0E2D\u0E22\u0E39\u0E48\u0E43\u0E19\u0E23\u0E31\u0E28\u0E21\u0E35 ", React.createElement("b", null, o.radius == null ? 150 : o.radius, " \u0E21."), " \u0E08\u0E30\u0E02\u0E36\u0E49\u0E19\u0E27\u0E48\u0E32 \u201C\u0E16\u0E36\u0E07\u0E2D\u0E2D\u0E1F\u0E1F\u0E34\u0E28\u201D") : React.createElement("b", {
     style: {
-      color: "#B45309"
+      color: "var(--tint-amber-tx)"
     }
   }, "\u0E22\u0E31\u0E07\u0E44\u0E21\u0E48\u0E44\u0E14\u0E49\u0E15\u0E31\u0E49\u0E07\u0E1E\u0E34\u0E01\u0E31\u0E14\u0E2D\u0E2D\u0E1F\u0E1F\u0E34\u0E28 \u2014 \u0E41\u0E1C\u0E48\u0E19\u0E40\u0E27\u0E25\u0E32\u0E08\u0E30\u0E44\u0E21\u0E48\u0E41\u0E2A\u0E14\u0E07\u0E23\u0E30\u0E22\u0E30\u0E2B\u0E48\u0E32\u0E07"), React.createElement("br", null), React.createElement("span", {
     style: {
@@ -2640,7 +2640,7 @@ function TmWorkHours({
       border: "none",
       background: "none",
       cursor: "pointer",
-      color: "#EF4444",
+      color: "var(--tint-red-tx2)",
       fontFamily: "inherit",
       fontSize: 12,
       fontWeight: 700

@@ -22,7 +22,7 @@ function Field({
     }
   }, label, required && React.createElement("span", {
     style: {
-      color: "#EF4444"
+      color: "var(--tint-red-tx2)"
     }
   }, " *")), children);
 }
@@ -507,8 +507,8 @@ function JobForm({
       display: "flex",
       alignItems: "flex-start",
       gap: 8,
-      border: "1px solid #F59E0B55",
-      background: "#F59E0B14",
+      border: "1px solid var(--tint-amber-bd)",
+      background: "var(--tint-amber-bg)",
       borderRadius: 11,
       padding: "9px 12px"
     }
@@ -1057,7 +1057,7 @@ function JobForm({
         fontWeight: 700,
         color: "var(--tint-amber-tx)",
         background: "var(--tint-amber-bg2)",
-        border: "1px solid #FCD34D",
+        border: "1px solid var(--tint-amber-bd)",
         borderRadius: 8,
         padding: "7px 10px",
         display: "flex",
@@ -1268,7 +1268,7 @@ function JobForm({
         height: 10,
         borderRadius: 3,
         background: "var(--tint-amber-bg2)",
-        border: "1px solid #FCD34D"
+        border: "1px solid var(--tint-amber-bd)"
       }
     }), " \u0E21\u0E35 1 \u0E07\u0E32\u0E19"), React.createElement("span", {
       style: {
@@ -1282,7 +1282,7 @@ function JobForm({
         height: 10,
         borderRadius: 3,
         background: "var(--tint-red-bg2)",
-        border: "1px solid #FCA5A5"
+        border: "1px solid var(--tint-red-bd)"
       }
     }), " 2+ \u0E07\u0E32\u0E19"), React.createElement("span", {
       style: {
@@ -1727,9 +1727,9 @@ function TechManager({
     },
     title: "\u0E25\u0E1A",
     style: {
-      background: "#EF444414",
+      background: "var(--tint-red-bg)",
       border: "none",
-      color: "#EF4444",
+      color: "var(--tint-red-tx2)",
       width: 32,
       height: 32,
       borderRadius: 8,
@@ -2147,9 +2147,9 @@ function BrandManager({
     title: "\u0E25\u0E1A",
     style: {
       flexShrink: 0,
-      background: "#EF444414",
+      background: "var(--tint-red-bg)",
       border: "none",
-      color: "#EF4444",
+      color: "var(--tint-red-tx2)",
       width: 32,
       height: 32,
       borderRadius: 8,
