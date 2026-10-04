@@ -399,7 +399,7 @@ function PmHandoverPaper({ job, rec, sum, prog, photos, onClose }) {
       </div>
 
       <div className="sv-rep-paper" style={{ maxWidth: 900, margin: "0 auto", background: "#fff", color: PM_INK,
-        padding: isMobile ? "18px 14px" : "26px 30px", borderRadius: isMobile ? 0 : 12, boxShadow: "0 8px 30px rgba(0,0,0,.18)" }}>
+        padding: isMobile ? "18px 14px" : "26px 30px", borderRadius: isMobile ? 0 : 12, boxShadow: "var(--shadow-pop)" }}>
 
         {/* ── แผ่น Summary — แบ่งเองเป็นหน้า ๆ ที่ขอบกลุ่ม ── */}
         {sumPages.map((groups, pi) => (

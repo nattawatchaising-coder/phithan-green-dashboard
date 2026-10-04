@@ -107,7 +107,7 @@ function TmOtPaper({ person, period, rows, jobs, users, cfg, byName, onClose }) 
       </div>
 
       <div className="sv-rep-paper" style={{ maxWidth: 900, margin: "0 auto", background: "#fff", color: "#15211A",
-        padding: isMobile ? "20px 16px" : "30px 34px", borderRadius: isMobile ? 0 : 12, boxShadow: "0 20px 60px rgba(8,20,14,.28)" }}>
+        padding: isMobile ? "20px 16px" : "30px 34px", borderRadius: isMobile ? 0 : 12, boxShadow: "var(--shadow-modal)" }}>
 
         {/* หัวกระดาษ */}
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", gap: 16, flexWrap: "wrap",

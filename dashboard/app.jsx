@@ -1449,7 +1449,7 @@ function TechFilter({ value, onChange, techs, counts, nameOf }) {
           left: Math.max(12, Math.min(rect.left, window.innerWidth - 244 - 12)),
           zIndex: 200, width: 244, maxHeight: 340, overflowY: "auto",
           background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 14, padding: 6,
-          boxShadow: "0 14px 40px rgba(8,20,14,.18)" }}>
+          boxShadow: "var(--shadow-pop)" }}>
           <button className="tf-row" style={row(!value)} onClick={() => pick(null)}>
             {bead("var(--surface3)", "")}<span>ช่างทุกคน</span>
             <span style={tally(1)}>{(counts && counts.__all) || 0}</span>
@@ -1675,7 +1675,7 @@ function DailyBriefing({ lateAlerts, todayTasks, onOpen, onClose }) {
   );
   return (
     <div onClick={onClose} style={{ position: "fixed", inset: 0, background: "rgba(8,20,14,.5)", backdropFilter: "blur(3px)", zIndex: 120, display: "grid", placeItems: isMobile ? "end center" : "center", padding: isMobile ? 0 : 20 }}>
-      <div onClick={(e) => e.stopPropagation()} style={{ background: "var(--bg)", borderRadius: isMobile ? "20px 20px 0 0" : 18, width: isMobile ? "100%" : "min(480px,100%)", maxHeight: isMobile ? "90dvh" : "88vh", display: "flex", flexDirection: "column", overflow: "hidden", boxShadow: "0 30px 80px rgba(8,20,14,.3)" }}>
+      <div onClick={(e) => e.stopPropagation()} style={{ background: "var(--bg)", borderRadius: isMobile ? "20px 20px 0 0" : 18, width: isMobile ? "100%" : "min(480px,100%)", maxHeight: isMobile ? "90dvh" : "88vh", display: "flex", flexDirection: "column", overflow: "hidden", boxShadow: "var(--shadow-modal)" }}>
         <div style={{ padding: "18px 20px", borderBottom: "1px solid var(--border)", background: "var(--surface)", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
           <div style={{ display: "flex", alignItems: "center", gap: 11 }}>
             <span style={{ width: 38, height: 38, borderRadius: 11, background: "var(--primary-soft)", display: "grid", placeItems: "center" }}><Icon name="bell" size={19} color="var(--primary-dark)" /></span>
@@ -1719,7 +1719,7 @@ function RevertJobAsk({ job, lead, onConfirm, onClose }) {
     <div {...bdClose} style={{ position: "fixed", inset: 0, background: "rgba(8,20,14,.5)", backdropFilter: "blur(3px)",
       zIndex: 125, display: "grid", placeItems: "center", padding: 20 }}>
       <div onClick={(e) => e.stopPropagation()} style={{ background: "var(--surface)", border: "1px solid var(--border)",
-        borderRadius: 16, width: "min(440px, 100%)", padding: 20, boxShadow: "0 30px 80px rgba(8,20,14,.3)" }}>
+        borderRadius: 16, width: "min(440px, 100%)", padding: 20, boxShadow: "var(--shadow-modal)" }}>
         <div style={{ display: "flex", gap: 12, alignItems: "flex-start" }}>
           <span style={{ width: 38, height: 38, borderRadius: 11, background: "var(--primary-soft)", display: "grid", placeItems: "center", flexShrink: 0 }}>
             <Icon name="undo" size={18} color="var(--primary-dark)" />
@@ -1754,7 +1754,7 @@ function DeleteJobAsk({ job, onConfirm, onClose }) {
     <div {...bdClose} style={{ position: "fixed", inset: 0, background: "rgba(8,20,14,.5)", backdropFilter: "blur(3px)",
       zIndex: 125, display: "grid", placeItems: "center", padding: 20 }}>
       <div onClick={(e) => e.stopPropagation()} style={{ background: "var(--surface)", border: "1px solid var(--border)",
-        borderRadius: 16, width: "min(420px, 100%)", padding: 20, boxShadow: "0 30px 80px rgba(8,20,14,.3)" }}>
+        borderRadius: 16, width: "min(420px, 100%)", padding: 20, boxShadow: "var(--shadow-modal)" }}>
         <div style={{ display: "flex", gap: 12, alignItems: "flex-start" }}>
           <span style={{ width: 38, height: 38, borderRadius: 11, background: "var(--tint-red-bg)", display: "grid", placeItems: "center", flexShrink: 0 }}>
             <Icon name="trash" size={18} color="#EF4444" />
@@ -1803,7 +1803,7 @@ function TrashModal({ trash, me, onRestore, onPurge, onClose }) {
       zIndex: 125, display: "grid", placeItems: isMobile ? "stretch" : "center", padding: isMobile ? 0 : 20 }}>
       <div onClick={(e) => e.stopPropagation()} style={{ background: "var(--bg)", borderRadius: isMobile ? 0 : 18,
         width: isMobile ? "100%" : "min(640px, 100%)", maxHeight: isMobile ? "100%" : "84vh",
-        display: "flex", flexDirection: "column", overflow: "hidden", boxShadow: "0 30px 80px rgba(8,20,14,.3)" }}>
+        display: "flex", flexDirection: "column", overflow: "hidden", boxShadow: "var(--shadow-modal)" }}>
         <div style={{ padding: "15px 18px", borderBottom: "1px solid var(--border)", background: "var(--surface)", display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10 }}>
           <div style={{ display: "flex", alignItems: "center", gap: 11, minWidth: 0 }}>
             <span style={{ width: 36, height: 36, borderRadius: 10, background: "var(--tint-red-bg)", display: "grid", placeItems: "center", flexShrink: 0 }}><Icon name="trash" size={17} color="#EF4444" /></span>
@@ -1877,7 +1877,7 @@ function MapModal({ jobs, onOpen, onClose }) {
       zIndex: 95, display: "grid", placeItems: isMobile ? "stretch" : "center", padding: isMobile ? 0 : 20 }}>
       <div onClick={(e) => e.stopPropagation()} style={{ background: "var(--bg)", borderRadius: isMobile ? 0 : 20,
         width: isMobile ? "100%" : "min(1120px, 100%)", height: isMobile ? "100%" : "88vh",
-        display: "flex", flexDirection: "column", overflow: "hidden", boxShadow: "0 30px 80px rgba(8,20,14,.3)" }}>
+        display: "flex", flexDirection: "column", overflow: "hidden", boxShadow: "var(--shadow-modal)" }}>
         <div style={{ padding: "16px 20px", borderBottom: "1px solid var(--border)", background: "var(--surface)", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
           <div style={{ display: "flex", alignItems: "center", gap: 11 }}>
             <span style={{ width: 38, height: 38, borderRadius: 11, background: "var(--primary-soft)", display: "grid", placeItems: "center" }}><Icon name="map" size={19} color="var(--primary-dark)" /></span>

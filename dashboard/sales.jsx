@@ -1146,7 +1146,7 @@ function QuotePagePick({ q, locked, onToggle, onAll, warn }) {
           return (
             <button key={p.key} type="button" disabled={dis} onClick={() => onToggle(p.key)}
               style={{ display: "flex", alignItems: "flex-start", gap: 9, padding: "9px 11px", borderRadius: "var(--r-tile)",
-                border: "1px solid " + (on ? "var(--primary)" : "var(--border)"),
+                border: "none", boxShadow: on ? "inset 0 0 0 1.5px var(--primary)" : "var(--shadow-sm)",
                 background: on ? "var(--primary-soft)" : "var(--surface)", cursor: dis ? "default" : "pointer",
                 fontFamily: "inherit", textAlign: "left", opacity: dis && !on ? .55 : 1 }}>
               <span style={{ width: 17, height: 17, borderRadius: 5, flexShrink: 0, marginTop: 1, display: "grid", placeItems: "center",
@@ -1196,7 +1196,7 @@ function QuoteRowPic({ lib, id, locked, onPick }) {
         <React.Fragment>
           <div onClick={() => setOpen(false)} style={{ position: "fixed", inset: 0, zIndex: 40 }} />
           <div style={{ position: "absolute", zIndex: 41, top: 38, left: 0, width: 232, padding: 8, borderRadius: "var(--r-tile)",
-            background: "var(--surface)", boxShadow: "0 18px 44px rgba(8,20,14,.22)" }}>
+            background: "var(--surface)", boxShadow: "var(--shadow-pop)" }}>
             {pics.length === 0 ? (
               <div style={{ fontSize: 11, color: "var(--text-3)", lineHeight: 1.6 }}>
                 คลังยังว่าง — เพิ่มรูปที่หัวข้อ “คลังรูปอุปกรณ์” ด้านล่างก่อน
@@ -2243,7 +2243,7 @@ function SalesMonthPick({ month, thisMonth, onShift, onPick }) {
         <div style={{ position: "absolute", top: "calc(100% + 8px)", left: 0,
           zIndex: 30, width: 272, maxWidth: "min(272px, 88vw)",
           background: "var(--surface)", boxShadow: "var(--shadow-sm)", borderRadius: "var(--r-tile)",
-          padding: "14px 16px 16px", boxShadow: "0 14px 36px rgba(8,20,14,.16)" }}>
+          padding: "14px 16px 16px", boxShadow: "var(--shadow-pop)" }}>
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 13 }}>
             <button onClick={() => setYr((v) => v - 1)} aria-label="ปีก่อนหน้า"
               style={{ width: 28, height: 28, minWidth: 28, borderRadius: "var(--r-chip)", border: "none", background: "none",

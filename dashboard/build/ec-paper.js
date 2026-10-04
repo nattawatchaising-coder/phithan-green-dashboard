@@ -282,7 +282,7 @@ function EcVoucherPaper({
       fontFamily: lang === "zh" && window.pgFontStack ? window.pgFontStack("zh") : undefined,
       padding: isMobile ? "20px 16px" : "30px 34px",
       borderRadius: isMobile ? 0 : 12,
-      boxShadow: "0 20px 60px rgba(8,20,14,.28)"
+      boxShadow: "var(--shadow-modal)"
     }
   }, React.createElement("div", {
     className: "ec-page"
@@ -828,7 +828,7 @@ function EcClaimPaper({
       fontFamily: lang === "zh" && window.pgFontStack ? window.pgFontStack("zh") : undefined,
       padding: isMobile ? "20px 16px" : "30px 34px",
       borderRadius: isMobile ? 0 : 12,
-      boxShadow: "0 20px 60px rgba(8,20,14,.28)"
+      boxShadow: "var(--shadow-modal)"
     }
   }, React.createElement("div", {
     className: "ec-page"

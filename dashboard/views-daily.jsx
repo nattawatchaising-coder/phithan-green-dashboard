@@ -533,7 +533,7 @@ function DailyReportModal({ job, role, currentUser, onClose, onNotify, openDate 
       <div style={{ position: "fixed", inset: 0, zIndex: 150, background: "rgba(8,20,14,.55)", overflow: "auto",
         padding: isMobile ? 0 : "24px 16px" }}>
         <div style={{ maxWidth: 880, margin: "0 auto", background: "var(--bg)", borderRadius: isMobile ? 0 : 16,
-          minHeight: isMobile ? "100dvh" : 0, overflow: "hidden", boxShadow: "0 24px 70px rgba(8,20,14,.32)" }}>
+          minHeight: isMobile ? "100dvh" : 0, overflow: "hidden", boxShadow: "var(--shadow-modal)" }}>
 
           {/* หัวฟอร์ม */}
           <div style={{ position: "sticky", top: 0, zIndex: 3, background: "var(--surface)", borderBottom: "1px solid var(--border)", padding: isMobile ? "13px 14px" : "16px 20px" }}>
@@ -1053,7 +1053,7 @@ function DailyPaper({ job, rec, date, allDates, onClose }) {
       {/* ฟอนต์ไทยของแอปไม่มีตัวอักษรจีน — เลือกจีนแล้วต้องระบุชุดฟอนต์ที่มีจีนให้ชัด */}
       <div className="sv-rep-paper" style={{ maxWidth: 900, margin: "0 auto", background: "#fff", color: "#15211A",
         fontFamily: lang === "zh" && window.pgFontStack ? window.pgFontStack("zh") : undefined,
-        padding: isMobile ? "20px 16px" : "30px 34px", borderRadius: isMobile ? 0 : 12, boxShadow: "0 20px 60px rgba(8,20,14,.28)" }}>
+        padding: isMobile ? "20px 16px" : "30px 34px", borderRadius: isMobile ? 0 : 12, boxShadow: "var(--shadow-modal)" }}>
 
         {/* หัวกระดาษ — พิมพ์ครั้งเดียว ไม่ซ้ำทุกหน้าเหมือนฟอร์ม Excel เดิม */}
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", gap: 16, flexWrap: "wrap",

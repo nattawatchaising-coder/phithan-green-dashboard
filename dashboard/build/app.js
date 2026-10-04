@@ -2081,7 +2081,7 @@ function TechFilter({
       border: "1px solid var(--border)",
       borderRadius: 14,
       padding: 6,
-      boxShadow: "0 14px 40px rgba(8,20,14,.18)"
+      boxShadow: "var(--shadow-pop)"
     }
   }, React.createElement("button", {
     className: "tf-row",
@@ -2545,7 +2545,7 @@ function DailyBriefing({
       display: "flex",
       flexDirection: "column",
       overflow: "hidden",
-      boxShadow: "0 30px 80px rgba(8,20,14,.3)"
+      boxShadow: "var(--shadow-modal)"
     }
   }, React.createElement("div", {
     style: {
@@ -2693,7 +2693,7 @@ function RevertJobAsk({
       borderRadius: 16,
       width: "min(440px, 100%)",
       padding: 20,
-      boxShadow: "0 30px 80px rgba(8,20,14,.3)"
+      boxShadow: "var(--shadow-modal)"
     }
   }, React.createElement("div", {
     style: {
@@ -2801,7 +2801,7 @@ function DeleteJobAsk({
       borderRadius: 16,
       width: "min(420px, 100%)",
       padding: 20,
-      boxShadow: "0 30px 80px rgba(8,20,14,.3)"
+      boxShadow: "var(--shadow-modal)"
     }
   }, React.createElement("div", {
     style: {
@@ -2924,7 +2924,7 @@ function TrashModal({
       display: "flex",
       flexDirection: "column",
       overflow: "hidden",
-      boxShadow: "0 30px 80px rgba(8,20,14,.3)"
+      boxShadow: "var(--shadow-modal)"
     }
   }, React.createElement("div", {
     style: {
@@ -3189,7 +3189,7 @@ function MapModal({
       display: "flex",
       flexDirection: "column",
       overflow: "hidden",
-      boxShadow: "0 30px 80px rgba(8,20,14,.3)"
+      boxShadow: "var(--shadow-modal)"
     }
   }, React.createElement("div", {
     style: {

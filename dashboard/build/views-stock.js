@@ -1213,7 +1213,7 @@ function MovesModal({
       display: "flex",
       flexDirection: "column",
       overflow: "hidden",
-      boxShadow: "0 30px 80px rgba(8,20,14,.3)"
+      boxShadow: "var(--shadow-modal)"
     }
   }, React.createElement("div", {
     style: {
@@ -1744,7 +1744,7 @@ function CatDropdown({
       zIndex: 61,
       background: "var(--bg)",
       borderRadius: "var(--r-tile)",
-      boxShadow: "0 14px 40px rgba(8,20,14,.2)",
+      boxShadow: "var(--shadow-pop)",
       maxHeight: "58dvh",
       overflowY: "auto",
       padding: 6
@@ -1871,7 +1871,7 @@ function MoveModal({
       display: "flex",
       flexDirection: "column",
       overflow: "hidden",
-      boxShadow: "0 30px 80px rgba(8,20,14,.3)"
+      boxShadow: "var(--shadow-modal)"
     }
   }, React.createElement("div", {
     style: {
@@ -2231,7 +2231,7 @@ function ItemModal({
       display: "flex",
       flexDirection: "column",
       overflow: "hidden",
-      boxShadow: "0 30px 80px rgba(8,20,14,.3)"
+      boxShadow: "var(--shadow-modal)"
     }
   }, React.createElement("div", {
     style: {

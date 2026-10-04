@@ -606,7 +606,7 @@ function PmHandoverModal({ job, currentUser, onClose, onSummary }) {
         display: "grid", placeItems: isMobile ? "end center" : "center", padding: isMobile ? 0 : 20 }}>
         <div style={{ background: "var(--bg)", borderRadius: isMobile ? "20px 20px 0 0" : 18, width: isMobile ? "100%" : "min(760px,100%)",
           maxHeight: isMobile ? "94dvh" : "92vh", display: "flex", flexDirection: "column", overflow: "hidden",
-          boxShadow: "0 30px 80px rgba(8,20,14,.3)" }}>
+          boxShadow: "var(--shadow-modal)" }}>
 
           {/* หัวหน้าต่าง */}
           <div style={{ flexShrink: 0, padding: "13px 16px", borderBottom: "1px solid var(--border)", background: "var(--surface)",

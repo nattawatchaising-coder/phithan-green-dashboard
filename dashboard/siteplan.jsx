@@ -1330,7 +1330,7 @@ function SitePlanEditor({ job, onClose, currentUser }) {
 
   return (
     <div {...bdClose} style={{ position: "fixed", inset: 0, background: "rgba(8,20,14,.5)", backdropFilter: "blur(3px)", zIndex: 120, display: "grid", placeItems: isMobile ? "end center" : "center", padding: isMobile ? 0 : 18 }}>
-      <div onClick={(e) => e.stopPropagation()} style={{ background: "var(--bg)", borderRadius: isMobile ? "18px 18px 0 0" : 18, width: isMobile ? "100%" : "min(920px,100%)", maxHeight: isMobile ? "97dvh" : "95vh", display: "flex", flexDirection: "column", overflow: "hidden", boxShadow: "0 30px 80px rgba(8,20,14,.35)" }}>
+      <div onClick={(e) => e.stopPropagation()} style={{ background: "var(--bg)", borderRadius: isMobile ? "18px 18px 0 0" : 18, width: isMobile ? "100%" : "min(920px,100%)", maxHeight: isMobile ? "97dvh" : "95vh", display: "flex", flexDirection: "column", overflow: "hidden", boxShadow: "var(--shadow-modal)" }}>
         {/* header */}
         <div style={{ padding: "14px 18px", borderBottom: "1px solid var(--border)", background: "var(--surface)", display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12, flexShrink: 0 }}>
           <div style={{ minWidth: 0 }}>

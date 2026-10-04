@@ -632,7 +632,7 @@ function OmVisitPaper({ visit, site, signs, photos, onFrame, onClose }) {
       {/* ฟอนต์ไทยของแอปไม่มีตัวอักษรจีน — เลือกจีนแล้วต้องระบุชุดฟอนต์ที่มีจีนให้ชัด ไม่งั้นเสี่ยงได้สี่เหลี่ยม */}
       <div className="sv-rep-paper" style={{ maxWidth: 900, margin: "0 auto", background: "#fff", color: "#15211A",
         fontFamily: lang === "zh" && window.pgFontStack ? window.pgFontStack("zh") : undefined,
-        padding: isMobile ? "20px 16px" : "30px 34px", borderRadius: isMobile ? 0 : 12, boxShadow: "0 20px 60px rgba(8,20,14,.28)" }}>
+        padding: isMobile ? "20px 16px" : "30px 34px", borderRadius: isMobile ? 0 : 12, boxShadow: "var(--shadow-modal)" }}>
 
         {/* แผ่นแรกสูงเต็มหน้ากระดาษเสมอ ช่องเซ็นจึงถูกดันลงไปติดขอบล่าง (.om-page ใน index.html)
             ไม่งั้นใบที่เนื้อหาสั้นจะมีลายเซ็นลอยอยู่กลางหน้าแล้วเหลือพื้นที่ขาวยาวใต้ลงไป */}

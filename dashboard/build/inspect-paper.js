@@ -316,7 +316,7 @@ function InspectionPaper({
       color: RP_INK,
       padding: isMobile ? "20px 16px" : "30px 34px",
       borderRadius: isMobile ? 0 : 12,
-      boxShadow: "0 20px 60px rgba(8,20,14,.28)"
+      boxShadow: "var(--shadow-modal)"
     }
   }, headBar("Inspection Report", "00"), React.createElement("div", {
     style: {

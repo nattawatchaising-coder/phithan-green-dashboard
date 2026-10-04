@@ -190,7 +190,7 @@ function SurveyReport({ job, photos, docs, onClose }) {
       {/* ฟอนต์ไทยของแอปไม่มีตัวอักษรจีน — เลือกจีนแล้วต้องระบุชุดฟอนต์ที่มีจีนให้ชัด */}
       <div className="sv-rep-paper" style={{ maxWidth: 900, margin: "0 auto", background: "#fff", color: "#15211A",
         fontFamily: lang === "zh" && window.pgFontStack ? window.pgFontStack("zh") : undefined,
-        padding: isMobile ? "20px 16px" : "34px 38px", borderRadius: isMobile ? 0 : 12, boxShadow: "0 20px 60px rgba(8,20,14,.28)" }}>
+        padding: isMobile ? "20px 16px" : "34px 38px", borderRadius: isMobile ? 0 : 12, boxShadow: "var(--shadow-modal)" }}>
         {/* หัวรายงาน */}
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", gap: 16, flexWrap: "wrap", borderBottom: "2px solid var(--primary)", paddingBottom: 12 }}>
           <div style={{ minWidth: 0 }}>

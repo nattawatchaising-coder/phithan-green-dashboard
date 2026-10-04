@@ -397,7 +397,7 @@ function StickerPicker({ onPick, onClose }) {
 
   return (
     <div style={{ position: "fixed", inset: 0, background: "rgba(8,20,14,.55)", backdropFilter: "blur(3px)", zIndex: 140, display: "grid", placeItems: isMobile ? "end center" : "center", padding: isMobile ? 0 : 20 }}>
-      <div style={{ background: "var(--bg)", borderRadius: isMobile ? "20px 20px 0 0" : 20, width: isMobile ? "100%" : "min(720px,100%)", maxHeight: isMobile ? "92dvh" : "88vh", display: "flex", flexDirection: "column", overflow: "hidden", boxShadow: "0 30px 90px rgba(8,20,14,.4)" }}>
+      <div style={{ background: "var(--bg)", borderRadius: isMobile ? "20px 20px 0 0" : 20, width: isMobile ? "100%" : "min(720px,100%)", maxHeight: isMobile ? "92dvh" : "88vh", display: "flex", flexDirection: "column", overflow: "hidden", boxShadow: "var(--shadow-modal)" }}>
         <div style={{ padding: "13px 16px", borderBottom: "1px solid var(--border)", background: "var(--surface)", display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10 }}>
           <div style={{ minWidth: 0 }}>
             <div style={{ fontSize: 15, fontWeight: 800, color: "var(--text-1)" }}>คลังรูปแปะ</div>
@@ -675,7 +675,7 @@ function AnnEditor({ shot, onSave, onClose }) {
 
   return (
     <div style={{ position: "fixed", inset: 0, background: "rgba(8,20,14,.62)", backdropFilter: "blur(3px)", zIndex: 130, display: "grid", placeItems: isMobile ? "end center" : "center", padding: isMobile ? 0 : 20 }}>
-      <div style={{ background: "var(--bg)", borderRadius: isMobile ? "20px 20px 0 0" : 20, width: isMobile ? "100%" : "min(880px,100%)", maxHeight: isMobile ? "96dvh" : "94vh", display: "flex", flexDirection: "column", overflow: "hidden", boxShadow: "0 30px 90px rgba(8,20,14,.4)" }}>
+      <div style={{ background: "var(--bg)", borderRadius: isMobile ? "20px 20px 0 0" : 20, width: isMobile ? "100%" : "min(880px,100%)", maxHeight: isMobile ? "96dvh" : "94vh", display: "flex", flexDirection: "column", overflow: "hidden", boxShadow: "var(--shadow-modal)" }}>
         <div style={{ padding: "13px 16px", borderBottom: "1px solid var(--border)", background: "var(--surface)", display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10 }}>
           <div style={{ minWidth: 0 }}>
             <div style={{ fontSize: 15, fontWeight: 800, color: "var(--text-1)", letterSpacing: "-.01em" }}>เขียนบนรูป</div>
@@ -689,7 +689,7 @@ function AnnEditor({ shot, onSave, onClose }) {
             <div ref={boxRef} onMouseDown={down} onMouseMove={move} onMouseUp={up} onMouseLeave={up}
               onTouchStart={down} onTouchMove={move} onTouchEnd={up}
               style={{ position: "relative", touchAction: "none", userSelect: "none", lineHeight: 0, borderRadius: 12, overflow: "hidden",
-                border: "1px solid var(--border)", boxShadow: "0 6px 24px rgba(8,20,14,.14)",
+                border: "1px solid var(--border)", boxShadow: "var(--shadow-pop)",
                 cursor: tool === "s" ? (sel == null ? "default" : "move") : tool === "t" ? "text" : "crosshair" }}>
               <img src={shot.dataUrl} alt="" draggable={false} style={{ display: "block", maxWidth: "100%", maxHeight: isMobile ? "52dvh" : "58vh", width: "auto" }} />
               <AnnOverlay ann={drag ? ann.concat([drag]) : ann} aw={W} ah={H} edit sel={sel} svgRef={svgRef} />
@@ -703,7 +703,7 @@ function AnnEditor({ shot, onSave, onClose }) {
             )}
             {/* กล่องพิมพ์ข้อความ — วางตรงจุดที่แตะ (ของเดิมใช้ prompt() ซึ่งเว็บแอปบล็อก เลยพิมพ์ไม่ได้เลย) */}
             {txt && (
-              <div style={{ position: "absolute", left: (txt.x * 100) + "%", top: (txt.y * 100) + "%", transform: "translate(-6px,-50%)", zIndex: 3, display: "flex", gap: 6, alignItems: "center", background: "var(--surface)", border: "1px solid var(--primary)", borderRadius: 10, padding: 5, boxShadow: "0 8px 24px rgba(8,20,14,.25)" }}>
+              <div style={{ position: "absolute", left: (txt.x * 100) + "%", top: (txt.y * 100) + "%", transform: "translate(-6px,-50%)", zIndex: 3, display: "flex", gap: 6, alignItems: "center", background: "var(--surface)", border: "1px solid var(--primary)", borderRadius: 10, padding: 5, boxShadow: "var(--shadow-pop)" }}>
                 <input ref={txtRef} value={txt.v} onChange={(e) => setTxt(Object.assign({}, txt, { v: e.target.value }))}
                   onKeyDown={(e) => { if (e.key === "Enter") commitText(); if (e.key === "Escape") setTxt(null); }}
                   placeholder="พิมพ์ข้อความ…" style={{ width: 168, border: "none", outline: "none", background: "transparent", fontFamily: "inherit", fontSize: 13, color: "var(--text-1)" }} />
@@ -1107,7 +1107,7 @@ function SurveyWizard({ job, onClose, onSave, onReport, currentUser, stock }) {
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 12 }}>
             <div style={{ minWidth: 0 }}>
               <div style={{ display: "flex", alignItems: "center", gap: 7, fontSize: 11, color: "var(--text-3)", fontWeight: 600 }}>
-                <span style={{ fontFamily: "var(--mono)", fontSize: 10.5, fontWeight: 700, color: "var(--primary-dark)", background: "var(--primary-soft)", padding: "2px 7px", borderRadius: 6 }}>{job ? job.code : ""}</span>
+                <span style={{ fontFamily: "var(--mono)", fontSize: 10.5, fontWeight: 700, color: "var(--primary-dark)", background: "var(--primary-soft)", padding: "2px 7px", borderRadius: "var(--r-chip)" }}>{job ? job.code : ""}</span>
                 แบบสำรวจหน้างาน
               </div>
               <h2 style={{ fontSize: 17.5, fontWeight: 800, color: "var(--text-1)", margin: "4px 0 0", letterSpacing: "-.015em", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", fontFamily: "var(--display)" }}>{job ? job.name : ""}</h2>
@@ -1219,11 +1219,11 @@ function SurveyWizard({ job, onClose, onSave, onReport, currentUser, stock }) {
                     <input value={v} onChange={(e) => set("specials", (f.specials || []).map((x, k) => k === i ? e.target.value : x))}
                       placeholder={"ข้อ " + (i + 1) + " เช่น เปลี่ยนลูก CB10A ตำแหน่ง 13 เป็น CB30A"} style={Object.assign({}, inputStyle, { flex: 1 })} />
                     <button type="button" onClick={() => set("specials", (f.specials || []).filter((x, k) => k !== i))}
-                      style={{ width: 42, borderRadius: 10, border: "none", background: "#EF444414", color: "#EF4444", cursor: "pointer", flexShrink: 0 }}><Icon name="x" size={14} /></button>
+                      style={{ width: 42, borderRadius: "var(--r-chip)", border: "none", background: "var(--tint-red-bg)", color: "var(--tint-red-tx2)", cursor: "pointer", flexShrink: 0 }}><Icon name="x" size={14} /></button>
                   </div>
                 ))}
                 <button type="button" onClick={() => set("specials", (f.specials || []).concat([""]))}
-                  style={{ alignSelf: "flex-start", display: "inline-flex", alignItems: "center", gap: 6, padding: "8px 13px", borderRadius: 10, border: "1px dashed var(--border-strong)", background: "var(--surface)", color: "var(--text-2)", fontFamily: "inherit", fontSize: 12.5, fontWeight: 700, cursor: "pointer" }}>
+                  style={{ alignSelf: "flex-start", display: "inline-flex", alignItems: "center", gap: 6, padding: "8px 13px", borderRadius: "var(--r-chip)", border: "1px dashed var(--border-strong)", background: "var(--surface)", color: "var(--text-2)", fontFamily: "inherit", fontSize: 12.5, fontWeight: 700, cursor: "pointer" }}>
                   <Icon name="plus" size={14} color="var(--text-2)" /> เพิ่มข้อ
                 </button>
               </SurveyBlock>

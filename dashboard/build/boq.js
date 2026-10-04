@@ -181,7 +181,7 @@ const BQ_CSS = `
 /* ช่องกรอกที่มีหน่วยต่อท้าย — หน่วยอยู่ในหลุมเดียวกับตัวเลข ไม่ลอยอยู่นอกช่อง */
 .bq-fld{display:flex;align-items:center;gap:6px;height:42px;box-sizing:border-box;padding:0 12px;border-radius:var(--r-tile);
   background:var(--surface2);box-shadow:var(--shadow-inset);min-width:0}
-.bq-fld:focus-within{box-shadow:inset 0 0 0 1.5px var(--primary)}
+.bq-fld:focus-within{box-shadow:inset 0 0 0 1px var(--primary),0 0 0 3px var(--primary-soft)}
 .bq-fld input{flex:1;min-width:0;height:100%;border:0;outline:none;padding:0;background:transparent !important;box-shadow:none !important;
   font-family:inherit;font-size:13.5px;color:var(--text-1);text-align:right;font-variant-numeric:tabular-nums}
 .bq-fld .u{font-size:11.5px;color:var(--text-3);flex-shrink:0}

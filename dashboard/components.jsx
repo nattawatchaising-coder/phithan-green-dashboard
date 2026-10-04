@@ -168,7 +168,7 @@ function TypeBadge({ type }) {
   if (!t) return null;
   return (
     <span style={{ fontSize: 11, fontWeight: 600, color: t.color, background: t.color + "1A",
-      padding: "3px 8px", borderRadius: 6, whiteSpace: "nowrap" }}>{t.th}</span>
+      padding: "3px 8px", borderRadius: "var(--r-chip)", whiteSpace: "nowrap" }}>{t.th}</span>
   );
 }
 
@@ -345,7 +345,7 @@ function Dropdown({ value, onChange, options, disabled, placeholder, style, adda
         <React.Fragment>
           <div onClick={() => setOpen(false)} style={{ position: "fixed", inset: 0, zIndex: 200, touchAction: "none" }} />
           <div ref={panelRef} style={{ position: "fixed", top: rect.top != null ? rect.top : undefined, bottom: rect.bottom != null ? rect.bottom : undefined, left: rect.left, width: rect.width, zIndex: 201,
-            background: "var(--bg)", border: "1px solid var(--border)", borderRadius: 12, boxShadow: "0 14px 40px rgba(8,20,14,.22)",
+            background: "var(--bg)", borderRadius: 12, boxShadow: "var(--shadow-pop)",
             maxHeight: rect.maxH || 320, display: "flex", flexDirection: "column", overflow: "hidden", padding: 5 }}>
             {hasSearch && (
               <div style={{ flexShrink: 0, padding: "1px 2px 7px" }}>

@@ -119,7 +119,7 @@ function BlDeliveryPaper({ job, bill, row, photos, onClose }) {
   });
 
   const paper = { maxWidth: 900, margin: "0 auto", background: "#fff", color: BP_INK,
-    padding: isMobile ? "20px 16px" : "30px 34px", borderRadius: isMobile ? 0 : 12, boxShadow: "0 20px 60px rgba(8,20,14,.28)" };
+    padding: isMobile ? "20px 16px" : "30px 34px", borderRadius: isMobile ? 0 : 12, boxShadow: "var(--shadow-modal)" };
 
   const tab = (id, label) => (
     <button key={id} onClick={() => setPart(id)}

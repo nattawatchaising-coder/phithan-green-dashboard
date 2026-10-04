@@ -551,7 +551,7 @@ function DrSignPad({ title, hint, saved, onSave, onClose, remember, onRemember }
     <div style={{ position: "fixed", inset: 0, zIndex: 220, background: "rgba(8,20,14,.62)", display: "grid",
       placeItems: "center", padding: 14 }}>
       <div style={{ width: "100%", maxWidth: 560, background: "var(--bg)", borderRadius: 16, overflow: "hidden",
-        boxShadow: "0 24px 70px rgba(8,20,14,.4)" }}>
+        boxShadow: "var(--shadow-modal)" }}>
         <div style={{ padding: "14px 16px", borderBottom: "1px solid var(--border)", display: "flex", alignItems: "center", gap: 10 }}>
           <div style={{ flex: 1, minWidth: 0 }}>
             <div style={{ fontSize: 15, fontWeight: 800, color: "var(--text-1)" }}>{title}</div>

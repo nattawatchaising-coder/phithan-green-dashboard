@@ -4649,7 +4649,7 @@ function SolarWorkspace({ job, st, sys, onChange, onClose, snap }) {
       )}
       {dxfBusy && !dxf && (
         <div style={{ position: "fixed", left: 0, right: 0, bottom: 18, display: "grid", placeItems: "center", zIndex: 90, pointerEvents: "none" }}>
-          <div className="p3-card" style={{ padding: "11px 14px", boxShadow: "0 10px 30px rgba(0,0,0,.18)" }}>
+          <div className="p3-card" style={{ padding: "11px 14px", boxShadow: "var(--shadow-pop)" }}>
             <span className="p3-eb"><P3Icon name="layers" size={12} />{dxfBusy}…</span>
           </div>
         </div>
@@ -4659,7 +4659,7 @@ function SolarWorkspace({ job, st, sys, onChange, onClose, snap }) {
       {repBusy && (
         <div style={{ position: "fixed", left: 0, right: 0, bottom: 18, display: "grid", placeItems: "center", zIndex: 90, pointerEvents: "none" }}>
           <div className="p3-card" style={{ pointerEvents: "auto", maxWidth: 420, gap: 5, padding: "11px 14px",
-            boxShadow: "0 10px 30px rgba(0,0,0,.18)" }}>
+            boxShadow: "var(--shadow-pop)" }}>
             <span className="p3-eb"><P3Icon name="doc" size={12} />{repBusy}…</span>
             <span className="p3-note">รายงานจะเปิดขึ้นเองเมื่อตัวเลขครบ ระหว่างนี้ใช้งานหน้านี้ต่อได้ตามปกติ</span>
           </div>

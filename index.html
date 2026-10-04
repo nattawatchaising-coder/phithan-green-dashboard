@@ -13,7 +13,7 @@
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@400;500;600;700&family=Outfit:wght@500;600;700;800&family=Sora:wght@600;700;800&family=JetBrains+Mono:wght@500;600&display=swap" rel="stylesheet" />
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="anonymous" />
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin="anonymous"></script>
-<link rel="stylesheet" href="dashboard/tokens.css?v=11" />
+<link rel="stylesheet" href="dashboard/tokens.css?v=12" />
 <style>
 
 * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -543,10 +543,7 @@ html.theme-anim, html.theme-anim * { transition: background-color .34s ease, bor
    สองระดับเท่านั้น — แถวในรายการใช้ระดับเล็ก การ์ดใช้ระดับใหญ่
    ใครจะทำของที่กดได้ชิ้นใหม่ ให้หยิบสองตัวนี้ไปใช้ อย่าคิดเลขเงาเองใหม่ทุกครั้ง
    ไม่งั้นความ "ยกตัวรับเมาส์" ของแต่ละแผงจะหนักเบาไม่เท่ากันภายในไม่กี่เดือน */
-:root{--hov-sh:0 0 0 1px rgba(8,20,14,.05),0 2px 2px -1px rgba(8,20,14,.055),0 5px 5px -2.5px rgba(8,20,14,.055),0 10px 10px -5px rgba(8,20,14,.055),0 20px 20px -10px rgba(8,20,14,.055);
-  --hov-sh-lg:0 0 0 1px rgba(8,20,14,.055),0 3px 3px -1.5px rgba(8,20,14,.06),0 7px 7px -3.5px rgba(8,20,14,.06),0 14px 14px -7px rgba(8,20,14,.06),0 28px 28px -14px rgba(8,20,14,.06),0 56px 56px -28px rgba(8,20,14,.06)}
-[data-theme="aurora"]{--hov-sh:0 0 0 1px transparent,0 2px 2px -1px rgba(0,0,0,.3),0 5px 5px -2.5px rgba(0,0,0,.3),0 10px 10px -5px rgba(0,0,0,.3),0 20px 20px -10px rgba(0,0,0,.3);
-  --hov-sh-lg:0 0 0 1px transparent,0 3px 3px -1.5px rgba(0,0,0,.34),0 7px 7px -3.5px rgba(0,0,0,.34),0 14px 14px -7px rgba(0,0,0,.34),0 28px 28px -14px rgba(0,0,0,.34),0 56px 56px -28px rgba(0,0,0,.34)}
+/* ตัวแปรย้ายไปอยู่ dashboard/tokens.css แล้ว (หน้า LIFF ใช้ด้วย) */
 
 /* แผงภาระงานต่อช่างมีกรอบเลื่อน (maxHeight+overflowY เขียนไว้ในไฟล์ jsx) — overflow-y:auto
    ทำให้แกนนอนถูกตัดไปด้วยโดยอัตโนมัติ เงาซ้าย/ขวาของแถวจึงโดนเฉือนหายที่ขอบกล่องพอดี
@@ -593,8 +590,8 @@ html.theme-anim, html.theme-anim * { transition: background-color .34s ease, bor
 
 .ov-cal-nav{display:inline-flex;align-items:center;gap:6px}
 .ov-cal-nav b{font-size:12px;font-weight:700;color:var(--text-2);min-width:96px;text-align:center}
-.ov-cal-nav button{width:24px;height:24px;border-radius:8px;border:1px solid var(--border);
-  background:var(--surface);cursor:pointer;display:grid;place-items:center;padding:0}
+.ov-cal-nav button{width:24px;height:24px;border-radius:8px;border:none;box-shadow:var(--shadow-sm);
+  background:var(--surface2);cursor:pointer;display:grid;place-items:center;padding:0}
 .ov-cal-nav button:hover{background:var(--surface3)}
 .ov-cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:2px;margin-top:12px}
 .ov-cal-grid .hd{text-align:center;font-size:10.5px;font-weight:700;color:var(--text-3);padding-bottom:4px}
@@ -1052,7 +1049,7 @@ H-@G1I margin-top D'IC*D%L-1'@- 6H
 <!-- data (plain JS) -->
 <script src="dashboard/data.js?v=25"></script>
 <script src="dashboard/data-stock.js?v=24"></script>
-<script src="dashboard/boq.js?v=141"></script>
+<script src="dashboard/boq.js?v=142"></script>
 <!-- ตัวสร้างคิวอาร์ (qrcode-generator) — ใช้ในนามบัตรอิเล็กทรอนิกส์ (vcard.js)
      คืนค่าเป็นตารางโมดูล ไม่ผูกกับ DOM — vcard.js เอาไปวาดลงแคนวาสใบเดียวกับนามบัตรเอง -->
 <script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.js"></script>
@@ -1072,65 +1069,65 @@ H-@G1I margin-top D'IC*D%L-1'@- 6H
 <!-- ภาษาของเอกสารที่พิมพ์ (ไทย/อังกฤษ/จีน) — ต้องโหลดก่อนไฟล์เอกสารทุกตัวที่เรียกใช้ -->
 <script src="dashboard/build/i18n.js?v=3"></script>
 <script src="dashboard/build/tweaks-panel.js?v=6"></script>
-<script src="dashboard/build/components.js?v=52"></script>
-<script src="dashboard/build/confirm.js?v=2"></script>
+<script src="dashboard/build/components.js?v=53"></script>
+<script src="dashboard/build/confirm.js?v=3"></script>
 <script src="dashboard/build/datepicker.js?v=1"></script>
 <script src="dashboard/build/store.js?v=48"></script>
-<script src="dashboard/build/media.js?v=19"></script>
-<script src="dashboard/build/boq.js?v=244"></script>
-<script src="dashboard/build/prices.js?v=18"></script>
-<script src="dashboard/build/siteplan.js?v=52"></script>
+<script src="dashboard/build/media.js?v=20"></script>
+<script src="dashboard/build/boq.js?v=245"></script>
+<script src="dashboard/build/prices.js?v=19"></script>
+<script src="dashboard/build/siteplan.js?v=53"></script>
 <script src="dashboard/build/solarcalc.js?v=38"></script>
 <script src="dashboard/build/solariv.js?v=21"></script>
 <script src="dashboard/build/solarreport.js?v=48"></script>
-<script src="dashboard/build/solarui.js?v=94"></script>
+<script src="dashboard/build/solarui.js?v=95"></script>
 <script src="dashboard/build/dxf.js?v=30"></script>
-<script src="dashboard/build/plan3d.js?v=135"></script>
+<script src="dashboard/build/plan3d.js?v=136"></script>
 <script src="dashboard/build/plan3d2.js?v=94"></script>
-<script src="dashboard/build/inspect.js?v=7"></script>
-<script src="dashboard/build/inspect-paper.js?v=8"></script>
+<script src="dashboard/build/inspect.js?v=8"></script>
+<script src="dashboard/build/inspect-paper.js?v=9"></script>
 <script src="dashboard/build/pm.js?v=12"></script>
-<script src="dashboard/build/pm-paper.js?v=11"></script>
-<script src="dashboard/build/pm-form.js?v=12"></script>
-<script src="dashboard/build/drawer.js?v=79"></script>
+<script src="dashboard/build/pm-paper.js?v=12"></script>
+<script src="dashboard/build/pm-form.js?v=13"></script>
+<script src="dashboard/build/drawer.js?v=80"></script>
 <script src="dashboard/build/views-overview.js?v=49"></script>
-<script src="dashboard/build/views-board.js?v=41"></script>
+<script src="dashboard/build/views-board.js?v=42"></script>
 <script src="dashboard/build/views-table.js?v=33"></script>
 <script src="dashboard/build/views-report.js?v=11"></script>
 <script src="dashboard/build/views-calendar.js?v=31"></script>
-<script src="dashboard/build/views-stock.js?v=119"></script>
-<script src="dashboard/build/form.js?v=39"></script>
-<script src="dashboard/build/survey.js?v=31"></script>
-<script src="dashboard/build/survey-report.js?v=13"></script>
-<script src="dashboard/build/sales.js?v=78"></script>
-<script src="dashboard/build/views-survey.js?v=50"></script>
-<script src="dashboard/build/survey-sched.js?v=39"></script>
-<script src="dashboard/build/permit.js?v=8"></script>
-<script src="dashboard/build/views-permit.js?v=19"></script>
+<script src="dashboard/build/views-stock.js?v=120"></script>
+<script src="dashboard/build/form.js?v=40"></script>
+<script src="dashboard/build/survey.js?v=32"></script>
+<script src="dashboard/build/survey-report.js?v=14"></script>
+<script src="dashboard/build/sales.js?v=79"></script>
+<script src="dashboard/build/views-survey.js?v=51"></script>
+<script src="dashboard/build/survey-sched.js?v=40"></script>
+<script src="dashboard/build/permit.js?v=9"></script>
+<script src="dashboard/build/views-permit.js?v=20"></script>
 <!-- เอกสารงวดงาน · วางบิล: ตรรกะ → กระดาษ → หน้าจอ -->
 <script src="dashboard/build/billing.js?v=5"></script>
-<script src="dashboard/build/bill-paper.js?v=6"></script>
+<script src="dashboard/build/bill-paper.js?v=7"></script>
 <script src="dashboard/build/views-billing.js?v=12"></script>
-<script src="dashboard/build/views-lead.js?v=20"></script>
+<script src="dashboard/build/views-lead.js?v=21"></script>
 <script src="dashboard/build/views-flow.js?v=17"></script>
-<script src="dashboard/build/daily.js?v=14"></script>
-<script src="dashboard/build/views-daily.js?v=34"></script>
+<script src="dashboard/build/daily.js?v=15"></script>
+<script src="dashboard/build/views-daily.js?v=35"></script>
 <script src="dashboard/build/om.js?v=13"></script>
 <script src="dashboard/build/views-om.js?v=19"></script>
 <script src="dashboard/build/om-ticket.js?v=20"></script>
-<script src="dashboard/build/om-paper.js?v=14"></script>
+<script src="dashboard/build/om-paper.js?v=15"></script>
 <script src="dashboard/build/expense.js?v=17"></script>
 <script src="dashboard/build/views-expense.js?v=31"></script>
-<script src="dashboard/build/ec-paper.js?v=17"></script>
+<script src="dashboard/build/ec-paper.js?v=18"></script>
 <script src="dashboard/build/attend.js?v=12"></script>
-<script src="dashboard/build/auth.js?v=45"></script>
+<script src="dashboard/build/auth.js?v=46"></script>
 <!-- นามบัตรอิเล็กทรอนิกส์ — หลัง auth.js เพราะอ่าน ROLE_INFO/userRoles จากที่นั่น -->
-<script src="dashboard/build/vcard.js?v=17"></script>
+<script src="dashboard/build/vcard.js?v=18"></script>
 <script src="dashboard/build/line.js?v=5"></script>
 <script src="dashboard/build/views-attend.js?v=17"></script>
-<script src="dashboard/build/ot-paper.js?v=6"></script>
+<script src="dashboard/build/ot-paper.js?v=7"></script>
 <script src="dashboard/build/views-line.js?v=2"></script>
-<script src="dashboard/build/guide.js?v=6"></script>
-<script src="dashboard/build/app.js?v=206"></script>
+<script src="dashboard/build/guide.js?v=7"></script>
+<script src="dashboard/build/app.js?v=207"></script>
 </body>
 </html>

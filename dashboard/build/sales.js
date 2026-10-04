@@ -1198,7 +1198,8 @@ function QuotePagePick({
         gap: 9,
         padding: "9px 11px",
         borderRadius: "var(--r-tile)",
-        border: "1px solid " + (on ? "var(--primary)" : "var(--border)"),
+        border: "none",
+        boxShadow: on ? "inset 0 0 0 1.5px var(--primary)" : "var(--shadow-sm)",
         background: on ? "var(--primary-soft)" : "var(--surface)",
         cursor: dis ? "default" : "pointer",
         fontFamily: "inherit",
@@ -1331,7 +1332,7 @@ function QuoteRowPic({
       padding: 8,
       borderRadius: "var(--r-tile)",
       background: "var(--surface)",
-      boxShadow: "0 18px 44px rgba(8,20,14,.22)"
+      boxShadow: "var(--shadow-pop)"
     }
   }, pics.length === 0 ? React.createElement("div", {
     style: {
@@ -3624,7 +3625,7 @@ function SalesMonthPick({
         boxShadow: "var(--shadow-sm)",
         borderRadius: "var(--r-tile)",
         padding: "14px 16px 16px",
-        boxShadow: "0 14px 36px rgba(8,20,14,.16)"
+        boxShadow: "var(--shadow-pop)"
       }
     }, React.createElement("div", {
       style: {

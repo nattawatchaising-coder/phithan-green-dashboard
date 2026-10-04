@@ -638,7 +638,7 @@ function DrSignPad({
       background: "var(--bg)",
       borderRadius: 16,
       overflow: "hidden",
-      boxShadow: "0 24px 70px rgba(8,20,14,.4)"
+      boxShadow: "var(--shadow-modal)"
     }
   }, React.createElement("div", {
     style: {

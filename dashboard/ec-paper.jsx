@@ -226,7 +226,7 @@ function EcVoucherPaper({ batch, claims, draft, payers, onClose }) {
       {/* ฟอนต์ไทยของแอปไม่มีตัวอักษรจีน — เลือกจีนแล้วต้องระบุชุดฟอนต์ที่มีจีนให้ชัด */}
       <div className="sv-rep-paper" style={{ maxWidth: 900, margin: "0 auto", background: "#fff", color: "#15211A",
         fontFamily: lang === "zh" && window.pgFontStack ? window.pgFontStack("zh") : undefined,
-        padding: isMobile ? "20px 16px" : "30px 34px", borderRadius: isMobile ? 0 : 12, boxShadow: "0 20px 60px rgba(8,20,14,.28)" }}>
+        padding: isMobile ? "20px 16px" : "30px 34px", borderRadius: isMobile ? 0 : 12, boxShadow: "var(--shadow-modal)" }}>
 
         <div className="ec-page">
 
@@ -486,7 +486,7 @@ function EcClaimPaper({ claim, job, user, onPrinted, onClose }) {
 
       <div className="sv-rep-paper" style={{ maxWidth: 900, margin: "0 auto", background: "#fff", color: "#15211A",
         fontFamily: lang === "zh" && window.pgFontStack ? window.pgFontStack("zh") : undefined,
-        padding: isMobile ? "20px 16px" : "30px 34px", borderRadius: isMobile ? 0 : 12, boxShadow: "0 20px 60px rgba(8,20,14,.28)" }}>
+        padding: isMobile ? "20px 16px" : "30px 34px", borderRadius: isMobile ? 0 : 12, boxShadow: "var(--shadow-modal)" }}>
 
         <div className="ec-page">
 

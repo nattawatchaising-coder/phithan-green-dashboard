@@ -315,7 +315,7 @@ function JobFileViewer({ file, onClose }) {
        วาดทั้งจอใหม่ทุกเฟรมที่เลื่อน PDF จนกระตุก (ตัวอ่าน PDF เลื่อนเองในชั้นของมัน ปล่อยให้มันลื่น) */
     <div onClick={onClose} style={{ position: "fixed", inset: 0, background: "rgba(8,20,14,.62)", zIndex: 140, display: "grid", placeItems: isMobile ? "stretch" : "center", padding: isMobile ? 0 : 20 }}>
       <div onClick={(e) => e.stopPropagation()} style={{ background: "var(--bg)", borderRadius: isMobile ? 0 : 18, width: isMobile ? "100%" : "min(900px,96vw)", height: isMobile ? "100%" : "92vh",
-        display: "flex", flexDirection: "column", boxShadow: "0 30px 80px rgba(8,20,14,.3)" }}>
+        display: "flex", flexDirection: "column", boxShadow: "var(--shadow-modal)" }}>
         <div style={{ padding: "12px 16px", background: "var(--surface)", borderRadius: isMobile ? 0 : "18px 18px 0 0", position: "relative", display: "flex", alignItems: "center", gap: 10, flexShrink: 0 }}>
           <Icon name="file" size={17} color="var(--primary)" />
           <div style={{ flex: 1, minWidth: 0, fontSize: 13.5, fontWeight: 700, color: "var(--text-1)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{file.name}</div>

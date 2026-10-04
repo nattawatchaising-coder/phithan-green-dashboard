@@ -584,7 +584,7 @@ function PermitReview({ job, currentUser, stock, onClose, onPatch, onOpenJob }) 
       zIndex: 118, display: "grid", placeItems: isMobile ? "end center" : "center", padding: isMobile ? 0 : 20 }}>
       <div onClick={(e) => e.stopPropagation()} style={{ background: "var(--bg)", borderRadius: isMobile ? "20px 20px 0 0" : 20,
         width: isMobile ? "100%" : "min(820px,100%)", height: isMobile ? "96dvh" : "min(900px, 92vh)",
-        display: "flex", flexDirection: "column", overflow: "hidden", boxShadow: "0 30px 80px rgba(8,20,14,.35)" }}>
+        display: "flex", flexDirection: "column", overflow: "hidden", boxShadow: "var(--shadow-modal)" }}>
 
         <div style={{ padding: "16px 20px", borderBottom: "1px solid var(--border)", background: "var(--surface)", display: "flex", alignItems: "center", gap: 11, flexShrink: 0 }}>
           <span style={{ width: 36, height: 36, borderRadius: 11, background: st.color + "1c", display: "grid", placeItems: "center", flexShrink: 0 }}>

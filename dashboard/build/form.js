@@ -300,7 +300,7 @@ function JobForm({
       display: "flex",
       flexDirection: "column",
       overflow: "hidden",
-      boxShadow: "0 30px 80px rgba(8,20,14,.3)"
+      boxShadow: "var(--shadow-modal)"
     }
   }, React.createElement("div", {
     style: {
@@ -1588,7 +1588,7 @@ function TechManager({
       display: "flex",
       flexDirection: "column",
       overflow: "hidden",
-      boxShadow: "0 30px 80px rgba(8,20,14,.3)"
+      boxShadow: "var(--shadow-modal)"
     }
   }, React.createElement("div", {
     style: {
@@ -1809,7 +1809,7 @@ function TechEditModal({
       borderRadius: 18,
       width: "min(420px,100%)",
       overflow: "hidden",
-      boxShadow: "0 30px 80px rgba(8,20,14,.35)"
+      boxShadow: "var(--shadow-modal)"
     }
   }, React.createElement("div", {
     style: {
@@ -1993,7 +1993,7 @@ function BrandManager({
       display: "flex",
       flexDirection: "column",
       overflow: "hidden",
-      boxShadow: "0 30px 80px rgba(8,20,14,.3)"
+      boxShadow: "var(--shadow-modal)"
     }
   }, React.createElement("div", {
     style: {
@@ -2237,7 +2237,7 @@ function BrandEditModal({
       borderRadius: 18,
       width: "min(420px,100%)",
       overflow: "hidden",
-      boxShadow: "0 30px 80px rgba(8,20,14,.35)"
+      boxShadow: "var(--shadow-modal)"
     }
   }, React.createElement("div", {
     style: {

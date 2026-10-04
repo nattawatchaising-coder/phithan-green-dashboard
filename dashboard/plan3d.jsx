@@ -204,7 +204,7 @@ function P3SetPreview({ prep, onClose, onDownload, busy }) {
           <button className="p3-b" onClick={onClose} disabled={!!busy}>ปิด</button>
         </div>
         <div style={{ flex: 1, minHeight: 0, overflow: "auto", background: "#4a4a4a", padding: 14, display: "flex", justifyContent: "center", alignItems: "flex-start" }}>
-          <div style={{ width: "100%", maxWidth: 1400, boxShadow: "0 6px 24px rgba(0,0,0,.5)" }}
+          <div style={{ width: "100%", maxWidth: 1400, boxShadow: "var(--shadow-pop)" }}
             dangerouslySetInnerHTML={{ __html: svg }} />
         </div>
         <div style={{ padding: "7px 12px", borderTop: "1px solid var(--border)", fontSize: 11.5, color: "var(--text-2)" }}>

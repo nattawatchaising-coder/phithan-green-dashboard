@@ -590,7 +590,7 @@ function JobFileViewer({
       height: isMobile ? "100%" : "92vh",
       display: "flex",
       flexDirection: "column",
-      boxShadow: "0 30px 80px rgba(8,20,14,.3)"
+      boxShadow: "var(--shadow-modal)"
     }
   }, React.createElement("div", {
     style: {

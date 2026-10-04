@@ -297,7 +297,7 @@ function VcCardBody({
       cursor: ready ? "zoom-in" : "default",
       border: "1px solid var(--border)",
       minHeight: 120,
-      boxShadow: "0 8px 26px rgba(8,20,14,.12)"
+      boxShadow: "var(--shadow-pop)"
     }
   }), zoom && ReactDOM.createPortal(React.createElement("div", {
     onClick: () => setZoom(""),
@@ -428,7 +428,7 @@ function VcCardModal({
       display: "flex",
       flexDirection: "column",
       overflow: "hidden",
-      boxShadow: "0 30px 80px rgba(8,20,14,.35)"
+      boxShadow: "var(--shadow-modal)"
     }
   }, React.createElement("div", {
     style: {

@@ -603,7 +603,7 @@ function StickerPicker({
       display: "flex",
       flexDirection: "column",
       overflow: "hidden",
-      boxShadow: "0 30px 90px rgba(8,20,14,.4)"
+      boxShadow: "var(--shadow-modal)"
     }
   }, React.createElement("div", {
     style: {
@@ -1248,7 +1248,7 @@ function AnnEditor({
       display: "flex",
       flexDirection: "column",
       overflow: "hidden",
-      boxShadow: "0 30px 90px rgba(8,20,14,.4)"
+      boxShadow: "var(--shadow-modal)"
     }
   }, React.createElement("div", {
     style: {
@@ -1326,7 +1326,7 @@ function AnnEditor({
       borderRadius: 12,
       overflow: "hidden",
       border: "1px solid var(--border)",
-      boxShadow: "0 6px 24px rgba(8,20,14,.14)",
+      boxShadow: "var(--shadow-pop)",
       cursor: tool === "s" ? sel == null ? "default" : "move" : tool === "t" ? "text" : "crosshair"
     }
   }, React.createElement("img", {
@@ -1381,7 +1381,7 @@ function AnnEditor({
       border: "1px solid var(--primary)",
       borderRadius: 10,
       padding: 5,
-      boxShadow: "0 8px 24px rgba(8,20,14,.25)"
+      boxShadow: "var(--shadow-pop)"
     }
   }, React.createElement("input", {
     ref: txtRef,
@@ -2399,7 +2399,7 @@ function SurveyWizard({
       color: "var(--primary-dark)",
       background: "var(--primary-soft)",
       padding: "2px 7px",
-      borderRadius: 6
+      borderRadius: "var(--r-chip)"
     }
   }, job ? job.code : ""), "\u0E41\u0E1A\u0E1A\u0E2A\u0E33\u0E23\u0E27\u0E08\u0E2B\u0E19\u0E49\u0E32\u0E07\u0E32\u0E19"), React.createElement("h2", {
     style: {
@@ -2733,10 +2733,10 @@ function SurveyWizard({
     onClick: () => set("specials", (f.specials || []).filter((x, k) => k !== i)),
     style: {
       width: 42,
-      borderRadius: 10,
+      borderRadius: "var(--r-chip)",
       border: "none",
-      background: "#EF444414",
-      color: "#EF4444",
+      background: "var(--tint-red-bg)",
+      color: "var(--tint-red-tx2)",
       cursor: "pointer",
       flexShrink: 0
     }
@@ -2752,7 +2752,7 @@ function SurveyWizard({
       alignItems: "center",
       gap: 6,
       padding: "8px 13px",
-      borderRadius: 10,
+      borderRadius: "var(--r-chip)",
       border: "1px dashed var(--border-strong)",
       background: "var(--surface)",
       color: "var(--text-2)",

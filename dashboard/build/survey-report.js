@@ -342,7 +342,7 @@ function SurveyReport({
       fontFamily: lang === "zh" && window.pgFontStack ? window.pgFontStack("zh") : undefined,
       padding: isMobile ? "20px 16px" : "34px 38px",
       borderRadius: isMobile ? 0 : 12,
-      boxShadow: "0 20px 60px rgba(8,20,14,.28)"
+      boxShadow: "var(--shadow-modal)"
     }
   }, React.createElement("div", {
     style: {

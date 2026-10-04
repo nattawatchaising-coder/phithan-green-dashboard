@@ -629,7 +629,7 @@ function PmHandoverPaper({
       color: PM_INK,
       padding: isMobile ? "18px 14px" : "26px 30px",
       borderRadius: isMobile ? 0 : 12,
-      boxShadow: "0 8px 30px rgba(0,0,0,.18)"
+      boxShadow: "var(--shadow-pop)"
     }
   }, sumPages.map((groups, pi) => React.createElement("div", {
     className: "pm-sheet",

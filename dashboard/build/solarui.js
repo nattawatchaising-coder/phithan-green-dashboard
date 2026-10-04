@@ -9040,7 +9040,7 @@ function SolarWorkspace({
     className: "p3-card",
     style: {
       padding: "11px 14px",
-      boxShadow: "0 10px 30px rgba(0,0,0,.18)"
+      boxShadow: "var(--shadow-pop)"
     }
   }, React.createElement("span", {
     className: "p3-eb"
@@ -9065,7 +9065,7 @@ function SolarWorkspace({
       maxWidth: 420,
       gap: 5,
       padding: "11px 14px",
-      boxShadow: "0 10px 30px rgba(0,0,0,.18)"
+      boxShadow: "var(--shadow-pop)"
     }
   }, React.createElement("span", {
     className: "p3-eb"

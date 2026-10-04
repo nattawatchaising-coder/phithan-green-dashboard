@@ -173,7 +173,7 @@ function TypeBadge({
       color: t.color,
       background: t.color + "1A",
       padding: "3px 8px",
-      borderRadius: 6,
+      borderRadius: "var(--r-chip)",
       whiteSpace: "nowrap"
     }
   }, t.th);
@@ -500,9 +500,8 @@ function Dropdown({
       width: rect.width,
       zIndex: 201,
       background: "var(--bg)",
-      border: "1px solid var(--border)",
       borderRadius: 12,
-      boxShadow: "0 14px 40px rgba(8,20,14,.22)",
+      boxShadow: "var(--shadow-pop)",
       maxHeight: rect.maxH || 320,
       display: "flex",
       flexDirection: "column",

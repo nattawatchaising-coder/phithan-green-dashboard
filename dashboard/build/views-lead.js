@@ -91,7 +91,7 @@ function LoQueuePanel({
   return React.createElement("div", {
     className: "pnl",
     style: clashDays ? {
-      borderLeft: "3px solid #D93025"
+      borderLeft: "3px solid var(--mark-danger)"
     } : null
   }, React.createElement(PanelTitle, {
     title: "\u0E04\u0E34\u0E27\u0E15\u0E34\u0E14\u0E15\u0E31\u0E49\u0E07 14 \u0E27\u0E31\u0E19\u0E02\u0E49\u0E32\u0E07\u0E2B\u0E19\u0E49\u0E32",
@@ -201,7 +201,7 @@ function LoQueuePanel({
           flexShrink: 0,
           fontSize: 10.5,
           fontWeight: 800,
-          color: "#D93025",
+          color: "var(--tint-red-tx)",
           background: "rgba(217,48,37,.11)",
           padding: "3px 8px",
           borderRadius: "var(--r-pill)"
@@ -331,7 +331,7 @@ function LoTechLoadPanel({
       display: "block",
       height: "100%",
       width: Math.max(r.n / max * 100, r.n ? 5 : 0) + "%",
-      background: r.late ? "#D93025" : r.color,
+      background: r.late ? "var(--mark-danger)" : r.color,
       borderRadius: "var(--r-pill)",
       transition: "width .6s cubic-bezier(.2,.8,.2,1)"
     }
@@ -398,7 +398,7 @@ function LoStalePanel({
       th: j.stage,
       color: "var(--text-3)"
     };
-    const col = r.days == null ? "var(--text-3)" : r.days >= 14 ? "#D93025" : r.days >= 7 ? "#F59E0B" : st.color;
+    const col = r.days == null ? "var(--text-3)" : r.days >= 14 ? "var(--mark-danger)" : r.days >= 7 ? "var(--mark-warn)" : st.color;
     return React.createElement("button", {
       key: j.id,
       onClick: () => onOpen(j)
@@ -416,7 +416,7 @@ function LoStalePanel({
     }, [j.code, st.th, j.tech ? null : "ยังไม่มอบหมายช่าง"].filter(Boolean).join(" · "))), React.createElement("span", {
       className: "when when-1l",
       style: r.days != null && r.days >= 14 ? {
-        color: "#D93025"
+        color: "var(--tint-red-tx)"
       } : null
     }, React.createElement("b", null, "\u0E04\u0E49\u0E32\u0E07\u0E02\u0E31\u0E49\u0E19\u0E19\u0E35\u0E49"), r.days == null ? "ไม่ทราบ" : r.days + " วัน"));
   })), list.length > PNL_MAX && React.createElement(PnlMore, {
@@ -511,7 +511,7 @@ function LoBottleneckPanel({
       display: "block",
       fontSize: 11,
       marginTop: 4,
-      color: r.med != null && r.med >= 14 ? "#D93025" : "var(--text-3)"
+      color: r.med != null && r.med >= 14 ? "var(--tint-red-tx)" : "var(--text-3)"
     }
   }, r.n === 0 ? "ไม่มีงานค้างขั้นนี้" : r.med == null ? "ไม่ทราบระยะเวลาที่ค้าง" : "ค้างมาแล้วราว " + r.med + " วัน (ค่ากลาง)")), React.createElement("span", {
     style: {
@@ -554,7 +554,7 @@ function LoPermitPanel({
     k: "todo",
     th: "ติดตั้งเสร็จแต่ยังไม่เริ่มเก็บข้อมูล",
     v: n.todo,
-    color: "#D93025"
+    color: "var(--mark-danger)"
   }, {
     k: "draft",
     th: "กำลังเก็บข้อมูลหน้างาน",
@@ -574,7 +574,7 @@ function LoPermitPanel({
     k: "rejected",
     th: "ถูกตีกลับ ต้องแก้",
     v: n.rejected,
-    color: "#D93025"
+    color: "var(--mark-danger)"
   }, {
     k: "approved",
     th: "การไฟฟ้าอนุมัติ",
@@ -598,7 +598,7 @@ function LoPermitPanel({
   }, React.createElement("span", {
     className: "pv",
     style: {
-      color: r.v ? r.k === "todo" || r.k === "rejected" ? "#D93025" : "var(--text-1)" : "var(--text-3)"
+      color: r.v ? r.k === "todo" || r.k === "rejected" ? "var(--tint-red-tx)" : "var(--text-1)" : "var(--text-3)"
     }
   }, r.v), React.createElement("span", {
     className: "pl"
@@ -799,7 +799,7 @@ function LoMonthPanel({
     }
   }, n.prev), " \u0E07\u0E32\u0E19 (", Math.round(n.prevKw * 10) / 10, " kW) \xB7", " ", React.createElement("span", {
     style: {
-      color: pct >= 0 ? "var(--primary-dark)" : "#D93025",
+      color: pct >= 0 ? "var(--primary-dark)" : "var(--tint-red-tx)",
       fontWeight: 700
     }
   }, pct >= 0 ? "+" : "", pct, "%")))));

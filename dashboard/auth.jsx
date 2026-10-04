@@ -448,7 +448,7 @@ function MyProfileModal({ user, onSave, onClose }) {
         placeItems: isMobile ? "end center" : "center", padding: isMobile ? 0 : 20 }}>
         <div onClick={(e) => e.stopPropagation()} style={{ background: "var(--bg)", borderRadius: isMobile ? "20px 20px 0 0" : 18,
           width: isMobile ? "100%" : "min(480px,100%)", maxHeight: isMobile ? "94dvh" : "90vh", display: "flex", flexDirection: "column",
-          overflow: "hidden", boxShadow: "0 30px 80px rgba(8,20,14,.35)" }}>
+          overflow: "hidden", boxShadow: "var(--shadow-modal)" }}>
 
           <div style={{ padding: "16px 22px", borderBottom: "1px solid var(--border)", background: "var(--surface)",
             display: "flex", justifyContent: "space-between", alignItems: "center", flexShrink: 0 }}>
@@ -1118,7 +1118,7 @@ function UserManager({ authStore, onClose, roleCfg }) {
       zIndex: 110, display: "grid", placeItems: isMobile ? "end center" : "center", padding: isMobile ? 0 : 20 }}>
       <div onClick={(e) => e.stopPropagation()} style={{ background: "var(--bg)", borderRadius: isMobile ? "20px 20px 0 0" : 20,
         width: isMobile ? "100%" : "min(720px,100%)", maxHeight: isMobile ? "94dvh" : "90vh", display: "flex", flexDirection: "column",
-        overflow: "hidden", boxShadow: "0 30px 80px rgba(8,20,14,.3)" }}>
+        overflow: "hidden", boxShadow: "var(--shadow-modal)" }}>
 
         <div style={{ padding: "18px 22px 0", background: "var(--surface)", flexShrink: 0 }}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
@@ -1308,7 +1308,7 @@ function UserEditModal({ initial, existing, onSave, onClose }) {
 
   return (
     <div {...bdClose} style={{ position: "fixed", inset: 0, background: "rgba(8,20,14,.4)", zIndex: 120, display: "grid", placeItems: isMobile ? "end center" : "center", padding: isMobile ? 0 : 20 }}>
-      <div onClick={(e) => e.stopPropagation()} style={{ background: "var(--bg)", borderRadius: isMobile ? "20px 20px 0 0" : 18, width: isMobile ? "100%" : "min(460px,100%)", maxHeight: isMobile ? "94dvh" : "90vh", display: "flex", flexDirection: "column", overflow: "hidden", boxShadow: "0 30px 80px rgba(8,20,14,.35)" }}>
+      <div onClick={(e) => e.stopPropagation()} style={{ background: "var(--bg)", borderRadius: isMobile ? "20px 20px 0 0" : 18, width: isMobile ? "100%" : "min(460px,100%)", maxHeight: isMobile ? "94dvh" : "90vh", display: "flex", flexDirection: "column", overflow: "hidden", boxShadow: "var(--shadow-modal)" }}>
         <div style={{ padding: "16px 22px", borderBottom: "1px solid var(--border)", background: "var(--surface)", display: "flex", justifyContent: "space-between", alignItems: "center", flexShrink: 0 }}>
           <h3 style={{ fontSize: 16, fontWeight: 700, color: "var(--text-1)", margin: 0 }}>{isNew ? "เพิ่มผู้ใช้ใหม่" : "แก้ไขผู้ใช้"}</h3>
           <button className="x-close" onClick={onClose} style={{ width: 30, height: 30, borderRadius: 8, border: "1px solid var(--border)", background: "var(--surface)", cursor: "pointer", display: "grid", placeItems: "center", color: "var(--text-2)" }}><Icon name="x" size={15} /></button>

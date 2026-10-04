@@ -333,7 +333,7 @@ function VcCardBody({ user }) {
           กดที่รูปแล้วกางเต็มจอ — บนมือถือนามบัตรกว้างแค่ความกว้างจอ ตัวหนังสือเล็กเกินกว่าจะยื่นให้ลูกค้าดูสด ๆ */}
       <div ref={box} onClick={() => { if (cvRef.current) setZoom(cvRef.current.toDataURL("image/png")); }}
         style={{ borderRadius: 12, overflow: "hidden", background: "#FFFFFF", cursor: ready ? "zoom-in" : "default",
-          border: "1px solid var(--border)", minHeight: 120, boxShadow: "0 8px 26px rgba(8,20,14,.12)" }} />
+          border: "1px solid var(--border)", minHeight: 120, boxShadow: "var(--shadow-pop)" }} />
 
       {zoom && ReactDOM.createPortal(
         /* ตะแคงเมื่อจอตั้ง — นามบัตรเป็นแนวนอน วางตามจอตั้งจะได้ความกว้างแค่ครึ่งเดียวของที่จอมีจริง
@@ -392,7 +392,7 @@ function VcCardModal({ user, onClose }) {
       placeItems: isMobile ? "end center" : "center", padding: isMobile ? 0 : 20 }}>
       <div onClick={(e) => e.stopPropagation()} style={{ background: "var(--bg)", borderRadius: isMobile ? "20px 20px 0 0" : 18,
         width: isMobile ? "100%" : "min(640px,100%)", maxHeight: isMobile ? "94dvh" : "90vh", display: "flex", flexDirection: "column",
-        overflow: "hidden", boxShadow: "0 30px 80px rgba(8,20,14,.35)" }}>
+        overflow: "hidden", boxShadow: "var(--shadow-modal)" }}>
 
         <div style={{ padding: "16px 22px", borderBottom: "1px solid var(--border)", background: "var(--surface)",
           display: "flex", justifyContent: "space-between", alignItems: "center", flexShrink: 0 }}>

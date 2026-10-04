@@ -101,7 +101,7 @@ function LoQueuePanel({ jobs, onOpen }) {
   }, [days]);
 
   return (
-    <div className="pnl" style={clashDays ? { borderLeft: "3px solid #D93025" } : null}>
+    <div className="pnl" style={clashDays ? { borderLeft: "3px solid var(--mark-danger)" } : null}>
       <PanelTitle title="คิวติดตั้ง 14 วันข้างหน้า"
         sub={total ? (total + " งาน" + (clashDays ? " · มี " + clashDays + " วันที่ช่างชนคิว" : " · ไม่มีคิวชน")) : "ยังไม่มีงานลงคิวในช่วงนี้"} />
       {days.length === 0 ? <Empty text="ไม่มีงานติดตั้งในสองสัปดาห์ข้างหน้า" /> : (
@@ -137,7 +137,7 @@ function LoQueuePanel({ jobs, onOpen }) {
                             {[j.province, j.kw ? j.kw + " kW" : "", j.tech ? "" : "ยังไม่มอบหมายช่าง"].filter(Boolean).join(" · ")}
                           </span>
                         </span>
-                        {bad && <span style={{ flexShrink: 0, fontSize: 10.5, fontWeight: 800, color: "#D93025",
+                        {bad && <span style={{ flexShrink: 0, fontSize: 10.5, fontWeight: 800, color: "var(--tint-red-tx)",
                           background: "rgba(217,48,37,.11)", padding: "3px 8px", borderRadius: "var(--r-pill)" }}>ช่างชนคิว</span>}
                       </button>
                     );
@@ -194,7 +194,7 @@ function LoTechLoadPanel({ jobs, techs, onTech }) {
               <span style={{ flex: 1, minWidth: 0 }}>
                 <span style={{ display: "block", height: 10, background: "var(--surface3)", borderRadius: "var(--r-pill)", overflow: "hidden" }}>
                   <span style={{ display: "block", height: "100%", width: Math.max((r.n / max) * 100, r.n ? 5 : 0) + "%",
-                    background: r.late ? "#D93025" : r.color, borderRadius: "var(--r-pill)", transition: "width .6s cubic-bezier(.2,.8,.2,1)" }} />
+                    background: r.late ? "var(--mark-danger)" : r.color, borderRadius: "var(--r-pill)", transition: "width .6s cubic-bezier(.2,.8,.2,1)" }} />
                 </span>
                 <span style={{ display: "block", fontSize: 11, color: "var(--text-3)", marginTop: 4 }}>
                   {r.n === 0 ? "ว่าง — ยังไม่มีงานค้าง" : [
@@ -252,7 +252,7 @@ function LoStalePanel({ jobs, onOpen }) {
           {shown.map((r) => {
             const j = r.job;
             const st = (SF.STAGES || []).find((x) => x.key === j.stage) || { th: j.stage, color: "var(--text-3)" };
-            const col = r.days == null ? "var(--text-3)" : (r.days >= 14 ? "#D93025" : (r.days >= 7 ? "#F59E0B" : st.color));
+            const col = r.days == null ? "var(--text-3)" : (r.days >= 14 ? "var(--mark-danger)" : (r.days >= 7 ? "var(--mark-warn)" : st.color));
             return (
               <button key={j.id} onClick={() => onOpen(j)}>
                 <span className="mk" style={{ background: col }} />
@@ -261,7 +261,7 @@ function LoStalePanel({ jobs, onOpen }) {
                   <span className="mt">{[j.code, st.th, j.tech ? null : "ยังไม่มอบหมายช่าง"].filter(Boolean).join(" · ")}</span>
                 </span>
                 {/* คำกับจำนวนวันอยู่บรรทัดเดียวกัน (when-1l) — สองบรรทัดทำให้แถวสูงขึ้นโดยไม่ได้ข้อมูลเพิ่ม */}
-                <span className="when when-1l" style={r.days != null && r.days >= 14 ? { color: "#D93025" } : null}>
+                <span className="when when-1l" style={r.days != null && r.days >= 14 ? { color: "var(--tint-red-tx)" } : null}>
                   <b>ค้างขั้นนี้</b>
                   {r.days == null ? "ไม่ทราบ" : r.days + " วัน"}
                 </span>
@@ -309,7 +309,7 @@ function LoBottleneckPanel({ jobs, onStage }) {
                   background: r.s.color, borderRadius: "var(--r-pill)", transition: "width .6s cubic-bezier(.2,.8,.2,1)" }} />
               </span>
               <span style={{ display: "block", fontSize: 11, marginTop: 4,
-                color: r.med != null && r.med >= 14 ? "#D93025" : "var(--text-3)" }}>
+                color: r.med != null && r.med >= 14 ? "var(--tint-red-tx)" : "var(--text-3)" }}>
                 {r.n === 0 ? "ไม่มีงานค้างขั้นนี้" : (r.med == null ? "ไม่ทราบระยะเวลาที่ค้าง" : "ค้างมาแล้วราว " + r.med + " วัน (ค่ากลาง)")}
               </span>
             </span>
@@ -336,11 +336,11 @@ function LoPermitPanel({ jobs, onGoPermit }) {
     return c;
   }, [jobs]);
   const rows = [
-    { k: "todo", th: "ติดตั้งเสร็จแต่ยังไม่เริ่มเก็บข้อมูล", v: n.todo, color: "#D93025" },
+    { k: "todo", th: "ติดตั้งเสร็จแต่ยังไม่เริ่มเก็บข้อมูล", v: n.todo, color: "var(--mark-danger)" },
     { k: "draft", th: "กำลังเก็บข้อมูลหน้างาน", v: n.draft, color: "#94A3B8" },
     { k: "sent", th: "รอฝ่ายขออนุญาตรับงาน", v: n.sent, color: "#F59E0B" },
     { k: "filing", th: "ยื่นการไฟฟ้าแล้ว", v: n.filing, color: "#0EA5E9" },
-    { k: "rejected", th: "ถูกตีกลับ ต้องแก้", v: n.rejected, color: "#D93025" },
+    { k: "rejected", th: "ถูกตีกลับ ต้องแก้", v: n.rejected, color: "var(--mark-danger)" },
     { k: "approved", th: "การไฟฟ้าอนุมัติ", v: n.approved, color: "var(--primary)" },
   ];
   const stuck = n.todo + n.rejected;
@@ -354,7 +354,7 @@ function LoPermitPanel({ jobs, onGoPermit }) {
         {rows.map((r) => (
           <button key={r.k} onClick={() => onGoPermit && onGoPermit()}
             data-warn={r.v && (r.k === "todo" || r.k === "rejected") ? "1" : "0"}>
-            <span className="pv" style={{ color: r.v ? (r.k === "todo" || r.k === "rejected" ? "#D93025" : "var(--text-1)") : "var(--text-3)" }}>{r.v}</span>
+            <span className="pv" style={{ color: r.v ? (r.k === "todo" || r.k === "rejected" ? "var(--tint-red-tx)" : "var(--text-1)") : "var(--text-3)" }}>{r.v}</span>
             <span className="pl"><i style={{ background: r.color }} />{r.th}</span>
           </button>
         ))}
@@ -457,7 +457,7 @@ function LoMonthPanel({ jobs }) {
             ? "เดือนก่อนไม่มีงานปิดจบ จึงยังเทียบไม่ได้"
             : (<React.Fragment>
                 เดือนก่อน <b style={{ color: "var(--text-2)" }}>{n.prev}</b> งาน ({Math.round(n.prevKw * 10) / 10} kW) ·{" "}
-                <span style={{ color: pct >= 0 ? "var(--primary-dark)" : "#D93025", fontWeight: 700 }}>
+                <span style={{ color: pct >= 0 ? "var(--primary-dark)" : "var(--tint-red-tx)", fontWeight: 700 }}>
                   {pct >= 0 ? "+" : ""}{pct}%
                 </span>
               </React.Fragment>)}

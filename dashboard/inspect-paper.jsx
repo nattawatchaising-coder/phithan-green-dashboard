@@ -138,7 +138,7 @@ function InspectionPaper({ job, rec, photos, onClose }) {
       </div>
 
       <div className="sv-rep-paper" style={{ maxWidth: 900, margin: "0 auto", background: "#fff", color: RP_INK,
-        padding: isMobile ? "20px 16px" : "30px 34px", borderRadius: isMobile ? 0 : 12, boxShadow: "0 20px 60px rgba(8,20,14,.28)" }}>
+        padding: isMobile ? "20px 16px" : "30px 34px", borderRadius: isMobile ? 0 : 12, boxShadow: "var(--shadow-modal)" }}>
 
         {/* ══ หน้าแรก — ใบขอตรวจรับมอบ ══ */}
         {headBar("Inspection Report", "00")}

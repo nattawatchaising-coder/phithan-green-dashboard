@@ -89,7 +89,7 @@ function ConfirmHost() {
         zIndex: 9000, display: "grid", placeItems: "center", padding: 20 }}>
       <div onClick={(e) => e.stopPropagation()} role="dialog" aria-modal="true"
         style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 16,
-          width: "min(420px, 100%)", padding: 20, boxShadow: "0 30px 80px rgba(8,20,14,.3)" }}>
+          width: "min(420px, 100%)", padding: 20, boxShadow: "var(--shadow-modal)" }}>
         <div style={{ display: "flex", gap: 12, alignItems: "flex-start" }}>
           <span style={{ width: 38, height: 38, borderRadius: 11, flexShrink: 0, display: "grid", placeItems: "center",
             background: danger ? "var(--tint-red-bg)" : "var(--primary-soft)" }}>

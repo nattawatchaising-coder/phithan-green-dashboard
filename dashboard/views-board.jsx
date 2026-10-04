@@ -225,7 +225,7 @@ function DocViewer({ job, kind, label, color, onClose }) {
 
   return (
     <div onClick={onClose} style={{ position: "fixed", inset: 0, background: "rgba(8,20,14,.5)", backdropFilter: "blur(3px)", zIndex: 130, display: "grid", placeItems: isMobile ? "stretch" : "center", padding: isMobile ? 0 : 20 }}>
-      <div onClick={(e) => e.stopPropagation()} style={{ background: "var(--bg)", borderRadius: isMobile ? 0 : 16, width: isMobile ? "100%" : "min(900px,96vw)", height: isMobile ? "100%" : "92vh", display: "flex", flexDirection: "column", overflow: "hidden", boxShadow: "0 30px 80px rgba(8,20,14,.3)" }}>
+      <div onClick={(e) => e.stopPropagation()} style={{ background: "var(--bg)", borderRadius: isMobile ? 0 : 16, width: isMobile ? "100%" : "min(900px,96vw)", height: isMobile ? "100%" : "92vh", display: "flex", flexDirection: "column", overflow: "hidden", boxShadow: "var(--shadow-modal)" }}>
         {/* header */}
         <div style={{ padding: "12px 16px", borderBottom: "1px solid var(--border)", background: "var(--surface)", display: "flex", alignItems: "center", gap: 10, flexShrink: 0 }}>
           <span style={{ width: 30, height: 30, borderRadius: "var(--r-chip)", background: color + "16", display: "grid", placeItems: "center", flexShrink: 0 }}><Icon name="file" size={16} color={color} /></span>

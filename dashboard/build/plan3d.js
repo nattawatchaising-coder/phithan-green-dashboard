@@ -427,7 +427,7 @@ function P3SetPreview({
     style: {
       width: "100%",
       maxWidth: 1400,
-      boxShadow: "0 6px 24px rgba(0,0,0,.5)"
+      boxShadow: "var(--shadow-pop)"
     },
     dangerouslySetInnerHTML: {
       __html: svg

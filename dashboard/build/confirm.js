@@ -81,7 +81,7 @@ function ConfirmHost() {
       borderRadius: 16,
       width: "min(420px, 100%)",
       padding: 20,
-      boxShadow: "0 30px 80px rgba(8,20,14,.3)"
+      boxShadow: "var(--shadow-modal)"
     }
   }, React.createElement("div", {
     style: {

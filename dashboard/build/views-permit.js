@@ -1242,7 +1242,7 @@ function PermitReview({
       display: "flex",
       flexDirection: "column",
       overflow: "hidden",
-      boxShadow: "0 30px 80px rgba(8,20,14,.35)"
+      boxShadow: "var(--shadow-modal)"
     }
   }, React.createElement("div", {
     style: {
