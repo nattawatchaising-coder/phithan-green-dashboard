@@ -2000,7 +2000,7 @@ function suPrintReport(D) {
 function SuReportView({ html, title, onClose }) {
   const ref = React.useRef(null);
   const [ready, setReady] = React.useState(false);
-  const isMobile = typeof window !== "undefined" && window.innerWidth < 760;
+  const isMobile = typeof window !== "undefined" && window.innerWidth <= 860;
 
   /* รอฟอนต์ + รูป (โลโก้/ภาพ 3 มิติ) ในกรอบให้เสร็จก่อนเปิดปุ่มพิมพ์
      ไม่งั้นตัวอักษรไทยจะเลื่อน หรือได้ PDF ที่ช่องรูปว่างเปล่า */

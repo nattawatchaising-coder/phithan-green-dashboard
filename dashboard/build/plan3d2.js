@@ -2828,13 +2828,13 @@ const P3S_CSS = `
 .p3s-ttl{flex:1;min-width:0}
 .p3s-ttl .k{font-size:10px;font-weight:800;letter-spacing:.12em;color:var(--text-3)}
 .p3s-ttl .n{font-size:14.5px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.p3s-btn{height:38px;padding:0 13px;border-radius:var(--r-chip);border:0;background:var(--surface2);color:var(--text-1);font-size:13px;font-weight:700;display:inline-flex;align-items:center;justify-content:center;gap:7px;cursor:pointer;white-space:nowrap;flex:0 0 auto;transition:background .15s}
+.p3s-btn{height:38px;padding:0 13px;border-radius:var(--r-tile);border:0;background:var(--surface2);box-shadow:var(--shadow-sm);color:var(--text-1);font-size:13px;font-weight:700;display:inline-flex;align-items:center;justify-content:center;gap:7px;cursor:pointer;white-space:nowrap;flex:0 0 auto;transition:background .15s}
 .p3s-btn:hover{background:var(--surface3)}
 .p3s-btn:disabled{opacity:.4;cursor:default}
-.p3s-btn.pri{background:var(--primary);color:#fff}
+.p3s-btn.pri{background:var(--primary);color:#fff;box-shadow:var(--shadow-btn)}
 .p3s-btn.pri:hover{filter:brightness(1.06)}
-.p3s-btn.pri:disabled{background:var(--surface2);color:var(--text-3);opacity:1}
-.p3s-btn.ghost{background:transparent}
+.p3s-btn.pri:disabled{background:var(--surface2);color:var(--text-3);opacity:1;box-shadow:none}
+.p3s-btn.ghost{background:transparent;box-shadow:none}
 .p3s-btn.ghost:hover{background:var(--surface2)}
 .p3s-btn.dngr{color:var(--tint-red-tx,#b91c1c)}
 .p3s-btn.ico{width:38px;padding:0}
@@ -2913,7 +2913,7 @@ const P3S_CSS = `
 .p3s-wiz .wd{font-size:12px;color:var(--text-2);line-height:1.5}
 .p3s-wiz .wd b{color:var(--text)}
 .p3s-wiz .chips{display:flex;flex-wrap:wrap;gap:5px}
-.p3s-wiz .chips .p3s-btn{height:28px;font-size:11.5px;padding:0 9px}
+.p3s-wiz .chips .p3s-btn{height:28px;font-size:11.5px;padding:0 9px;border-radius:var(--r-chip)}
 .p3s-tool[data-dim="1"]{opacity:.28;cursor:not-allowed}
 .p3s-wiznav{position:sticky;bottom:-14px;margin:auto -14px -14px;padding:10px 14px 14px;background:var(--bg);box-shadow:0 -6px 14px rgba(0,0,0,.06);display:flex;flex-direction:column;gap:6px;z-index:4}
 .p3s-wiznav .p3s-row{gap:8px}
@@ -2990,11 +2990,11 @@ const P3S_CSS = `
 .p3s-v3bar button.shot:hover{background:var(--primary);filter:brightness(1.06);color:#fff}
 .p3s-v3bar button.stop{flex-direction:row;gap:9px;padding:0 18px;font-size:13px;color:var(--tint-red-tx,#b91c1c);background:var(--tint-red-bg,#fee2e2)}
 .p3s-v3bar button.stop:hover{color:var(--tint-red-tx,#b91c1c);background:var(--tint-red-bg,#fee2e2);filter:brightness(.97)}
-@media (max-width:640px){.p3s-v3bar button span{display:none}.p3s-v3bar button.shot span,.p3s-v3bar button.stop{display:flex}.p3s-v3top .b span{display:none}.p3s-v3top .b{padding:0 10px}}
+@media (max-width:860px){.p3s-v3bar button span{display:none}.p3s-v3bar button.shot span,.p3s-v3bar button.stop{display:flex}.p3s-v3top .b span{display:none}.p3s-v3top .b{padding:0 10px}}
 .p3s-monnav{display:flex;align-items:center;gap:8px}
 .p3s-monnav .p3s-btn{width:36px;height:36px;padding:0;flex:0 0 36px;font-size:20px;justify-content:center}
 .p3s-monnav b{flex:1;text-align:center;font-size:15px;font-weight:800}
-.p3s-mon .p3s-btn{padding:0;height:30px;font-size:12px;justify-content:center}
+.p3s-mon .p3s-btn{padding:0;height:30px;font-size:12px;justify-content:center;border-radius:var(--r-chip)}
 .p3s-hint{position:absolute;left:12px;bottom:12px;z-index:2;max-width:calc(100% - 90px);background:rgba(15,23,42,.82);color:#fff;font-size:12.5px;font-weight:600;border-radius:var(--r-chip);padding:8px 12px;line-height:1.45;pointer-events:none;backdrop-filter:blur(6px)}
 .p3s-hint b{color:#86efac;font-weight:800}
 .p3s-hint kbd{font:700 11px inherit;background:rgba(255,255,255,.16);border-radius:5px;padding:1px 5px;margin:0 1px}
@@ -3020,7 +3020,7 @@ const P3S_CSS = `
 .p3s-kspan .p3s-btn:not(.pri){width:36px;padding:0;justify-content:center;font-size:18px}
 .p3s-kpick .k small{font-size:10.5px;color:var(--text-3);text-align:center;line-height:1.3}
 .p3s-kpick .k[data-on="1"]{background:var(--surface);box-shadow:0 0 0 2.5px var(--primary),var(--shadow-sm)}
-@media (max-width:620px){.p3s-kpick .gr{grid-template-columns:repeat(2,1fr)}}
+@media (max-width:860px){.p3s-kpick .gr{grid-template-columns:repeat(2,1fr)}}
 .p3s-range{width:100%;accent-color:var(--primary);height:26px;margin:0;box-shadow:none!important;background:transparent!important}
 .p3s-mbar{display:none}
 .p3s-sheetbar{display:none}

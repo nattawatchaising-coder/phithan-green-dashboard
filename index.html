@@ -288,8 +288,21 @@ html.theme-anim, html.theme-anim * { transition: background-color .34s ease, bor
 /* ปุ่มสั่งงานมนเต็มใบเหมือนช่องค้นหา — ในแถบเครื่องมือแถวเดียวกัน ถ้าความมนไม่เท่ากัน
    สายตาจะอ่านว่าเป็นของคนละชุด ทั้งที่อยู่ติดกันและระดับเดียวกัน */
 .btn-add { display: flex; align-items: center; gap: 7px; background: var(--primary); color: #fff; border: none; padding: 10px 20px;
-  border-radius: var(--r-pill); font-size: 13.5px; font-weight: 700; cursor: pointer; box-shadow: 0 2px 10px -2px rgba(27,155,117,.4); transition: transform .12s, box-shadow .12s; white-space: nowrap; }
-.btn-add:hover { transform: translateY(-1px); box-shadow: 0 6px 18px -4px rgba(27,155,117,.5); }
+  border-radius: var(--r-pill); font-size: 13.5px; font-weight: 700; cursor: pointer; box-shadow: var(--shadow-btn); transition: transform .12s, filter .12s; white-space: nowrap; }
+.btn-add:hover { transform: translateY(-1px); filter: brightness(1.06); }
+/* ── ปุ่มกลาง — โค้ดใหม่ใช้คลาสนี้ ค่าเดียวกับ qBtn() ใน sales.jsx (สูง ~38px · --r-tile · 13px/700) ──
+   .btn-pri ทึบ (แถวละตัวเดียว) · .btn-soft เขียวจาง · .btn-dngr รอง ตัวอักษรแดง · .btn-sm ชิปเล็ก · ไม่ใส่อะไร = ปุ่มรอง */
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;padding:10px 15px;border:none;border-radius:var(--r-tile);
+  font-family:inherit;font-size:13px;font-weight:700;cursor:pointer;white-space:nowrap;background:var(--surface2);color:var(--text-1);
+  box-shadow:var(--shadow-sm);transition:background .15s,filter .15s}
+.btn:hover{background:var(--surface3)}
+.btn:disabled{opacity:.45;cursor:default}
+.btn.btn-pri{background:var(--primary);color:#fff;box-shadow:var(--shadow-btn)}
+.btn.btn-pri:hover{filter:brightness(1.06)}
+.btn.btn-soft{background:var(--primary-soft);color:var(--primary-dark)}
+.btn.btn-soft:hover{filter:brightness(.97)}
+.btn.btn-dngr{color:var(--tint-red-tx)}
+.btn.btn-sm{padding:6px 12px;font-size:12px;border-radius:var(--r-chip)}
 
 .header-filters { display: flex; align-items: center; gap: 12px; padding: 14px 0; flex-wrap: wrap; }
 /* ตัวกรองที่อยู่ในเนื้อหา ไม่ใช่ในหัวจอ (เช่น แถวแท็บของคลังสินค้า)
@@ -324,7 +337,7 @@ html.theme-anim, html.theme-anim * { transition: background-color .34s ease, bor
   padding: 7px 14px; border-radius: var(--r-pill); font-size: 12.5px; font-weight: 600; cursor: pointer; transition: all .15s; white-space: nowrap; }
 .ghost-btn:hover { background: var(--surface2); color: var(--text-2); }
 
-@media (max-width: 1080px) {
+@media (max-width: 1100px) {
   .search-box { width: 190px; }
 }
 
@@ -491,7 +504,7 @@ html.theme-anim, html.theme-anim * { transition: background-color .34s ease, bor
 .ov-hero>*{position:relative;z-index:1}
 /* ตัวเลขสามช่องวางทับภาพพอดี เบลอพื้นหลังใต้ช่องไว้ไม่ให้เลขจมไปกับแผงโซลาร์ในภาพ */
 .ov-hero-fig{backdrop-filter:blur(4px)}
-@media(max-width:700px){.ov-hero{background-position:72% center}}
+@media(max-width:860px){.ov-hero{background-position:72% center}}
 .ov-hero-tx h2{font-family:var(--display);font-size:23px;font-weight:700;color:#fff;letter-spacing:-.03em;line-height:1.2}
 .ov-hero-tx p{margin-top:5px;font-size:12.5px;color:rgba(255,255,255,.82)}
 .ov-hero-figs{display:flex;gap:10px;flex-wrap:wrap}
@@ -950,7 +963,7 @@ html.theme-anim, html.theme-anim * { transition: background-color .34s ease, bor
   /* กระดาษเป็นพื้นขาวเสมอ ตราสัญลักษณ์จึงต้องกลับมาเป็นชุดสีพื้นสว่าง แม้ตอนนั้นจอเปิดโหมดกราไฟต์อยู่ */
   --fx-1: #0A4D68; --fx-2: #0E6478; --fx-3: #148080;
   --fx-4: #1B9B75; --fx-5: #22B36A; --fx-6: #147A8C; --fx-cut: #FFFFFF; color-scheme: light; }
-@media (max-width: 700px) {
+@media (max-width: 860px) {
   .sv-rep-grid2 { grid-template-columns: 1fr; }
   .sv-rep-info { grid-template-columns: 84px 1fr; }
   .sv-rep-info > :nth-child(2n) { border-right: none; }
@@ -965,24 +978,24 @@ H-@G1I margin-top D'IC*D%L-1'@- 6H
 5@*!- */
 .om-page > .om-sign { margin-top: auto !important; }
 /* บนมือถือไม่มีกระดาษ มีแต่จอ — บังคับสูงเท่า A4 แล้วจะได้ที่ว่างยาวเปล่า ๆ ให้เลื่อนผ่าน */
-@media (max-width: 700px) { .om-page { min-height: 0; } }
+@media (max-width: 860px) { .om-page { min-height: 0; } }
 
 /* แผ่นแรกของใบเบิกเงินหน้างานสูงเต็มหน้า A4 — ช่องเซ็นถูกดันไปติดขอบล่าง
    ใบที่มีไม่กี่รายการจะได้ไม่มีลายเซ็นลอยกลางหน้าแล้วเหลือที่ว่างยาวใต้ลงไป (กฎเดียวกับ .om-page) */
 .ec-page { display: flex; flex-direction: column; min-height: 262mm; }
 .ec-page > .ec-foot { margin-top: auto; }
-@media (max-width: 700px) { .ec-page { min-height: 0; } }
+@media (max-width: 860px) { .ec-page { min-height: 0; } }
 
 /* ชุดเอกสารงวดงาน — ช่องเซ็นถูกดันไปติดขอบล่างของหน้า A4 เหมือนใบอื่น
    ใบแจ้งส่งมอบงานของบางงวดมีรายการไม่กี่ข้อ ถ้าไม่ดันลง ลายเซ็นจะลอยกลางหน้า */
 .bl-page { display: flex; flex-direction: column; min-height: 262mm; }
 .bl-page > .bl-foot { margin-top: auto; }
-@media (max-width: 700px) { .bl-page { min-height: 0; } }
+@media (max-width: 860px) { .bl-page { min-height: 0; } }
 
 /* สมุดส่งมอบ — ช่องลงนามสี่ช่องต้องติดขอบล่างของแผ่นรายการเอกสาร (กฎเดียวกับ .bl-page) */
 .pm-page { display: flex; flex-direction: column; min-height: 262mm; }
 .pm-page > .pm-foot { margin-top: auto; }
-@media (max-width: 700px) { .pm-page { min-height: 0; } }
+@media (max-width: 860px) { .pm-page { min-height: 0; } }
 
 /* รูปในรายงาน — แนวนอนเต็มความกว้าง · แนวตั้งจำกัดความสูงแล้วจัดกลาง ไม่งั้นกินกระดาษทั้งหน้า */
 .sv-rep-shot img { display: block; width: 100%; max-width: 100%; }
@@ -1049,7 +1062,7 @@ H-@G1I margin-top D'IC*D%L-1'@- 6H
 <!-- data (plain JS) -->
 <script src="dashboard/data.js?v=25"></script>
 <script src="dashboard/data-stock.js?v=24"></script>
-<script src="dashboard/boq.js?v=146"></script>
+<script src="dashboard/boq.js?v=147"></script>
 <!-- ตัวสร้างคิวอาร์ (qrcode-generator) — ใช้ในนามบัตรอิเล็กทรอนิกส์ (vcard.js)
      คืนค่าเป็นตารางโมดูล ไม่ผูกกับ DOM — vcard.js เอาไปวาดลงแคนวาสใบเดียวกับนามบัตรเอง -->
 <script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.js"></script>
@@ -1074,16 +1087,16 @@ H-@G1I margin-top D'IC*D%L-1'@- 6H
 <script src="dashboard/build/datepicker.js?v=2"></script>
 <script src="dashboard/build/store.js?v=48"></script>
 <script src="dashboard/build/media.js?v=20"></script>
-<script src="dashboard/build/boq.js?v=249"></script>
+<script src="dashboard/build/boq.js?v=250"></script>
 <script src="dashboard/build/prices.js?v=22"></script>
 <script src="dashboard/build/siteplan.js?v=53"></script>
 <script src="dashboard/build/solarcalc.js?v=38"></script>
 <script src="dashboard/build/solariv.js?v=21"></script>
-<script src="dashboard/build/solarreport.js?v=49"></script>
-<script src="dashboard/build/solarui.js?v=98"></script>
+<script src="dashboard/build/solarreport.js?v=50"></script>
+<script src="dashboard/build/solarui.js?v=99"></script>
 <script src="dashboard/build/dxf.js?v=30"></script>
 <script src="dashboard/build/plan3d.js?v=136"></script>
-<script src="dashboard/build/plan3d2.js?v=95"></script>
+<script src="dashboard/build/plan3d2.js?v=96"></script>
 <script src="dashboard/build/inspect.js?v=12"></script>
 <script src="dashboard/build/inspect-paper.js?v=9"></script>
 <script src="dashboard/build/pm.js?v=12"></script>

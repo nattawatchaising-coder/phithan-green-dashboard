@@ -116,7 +116,7 @@ const SU_CSS = `
 .su-srow .a{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:var(--text-3)}
 .su-srow .ok{font-weight:800;color:var(--acd)}
 .su-srow .bad{font-weight:800;color:var(--tint-red-tx)}
-@media (max-width:900px){.su-strs{grid-template-columns:1fr;height:auto}.su-strs-map{height:460px}.su-strs[data-full="1"] .su-strs-map{height:60vh}}
+@media (max-width:860px){.su-strs{grid-template-columns:1fr;height:auto}.su-strs-map{height:460px}.su-strs[data-full="1"] .su-strs-map{height:60vh}}
 
 /* ---- แผ่นเลือกเนื้อหารายงาน ---- */
 .su-sheet-bg{position:absolute;inset:0;z-index:40;background:rgba(11,25,20,.42);backdrop-filter:blur(2px);
@@ -237,7 +237,7 @@ const SU_CSS = `
 .su-h24 input{width:100%;padding:4px 2px;text-align:center;font-size:10.5px;font-weight:700;
   border:1px solid var(--ln2);border-radius:7px;background:var(--surface);color:var(--text-1);font-family:inherit}
 .su-h24 input:focus{outline:none;border-color:var(--ac)}
-@media (max-width:820px){.su-h24{grid-template-columns:repeat(6,minmax(0,1fr))}}
+@media (max-width:860px){.su-h24{grid-template-columns:repeat(6,minmax(0,1fr))}}
 
 /* ---- ป้ายที่มาของค่า ---- */
 .su-src{font-size:8.5px;font-weight:800;padding:2px 6px;border-radius:var(--r-pill);letter-spacing:.02em;white-space:nowrap}
@@ -246,7 +246,7 @@ const SU_CSS = `
 .su-src.edit{background:rgba(37,99,235,.12);color:#1D4ED8}
 
 /* ---- จอแคบ: ขั้นตอนย้ายมาเป็นแถบนอนด้านบน ---- */
-@media (max-width:820px){
+@media (max-width:860px){
   .su-body{flex-direction:column}
   .su-rail{width:100%;flex-direction:row;gap:6px;overflow-x:auto;padding:10px 12px;border-right:none;border-bottom:1px solid var(--border)}
   .su-rail>.p3-eb,.su-rail>div:last-child{display:none}
@@ -299,7 +299,7 @@ const SU_CSS = `
 .su-env-pb .bar span{display:block;height:100%;border-radius:var(--r-pill);background:linear-gradient(90deg,#1B9B75,#148080)}
 .su-env-pb .r{font-size:10px;font-weight:700;color:var(--text-3);white-space:nowrap}
 .su-env-pb .r b{font-family:var(--font-num,inherit);font-size:14px;color:var(--text-1);letter-spacing:-.3px}
-@media (max-width:720px){ .su-env{grid-template-columns:1fr} }
+@media (max-width:860px){ .su-env{grid-template-columns:1fr} }
 
 /* ---- คำอธิบายระดับเงาบนแผนที่ดวงอาทิตย์ ---- */
 .su-isolg{display:flex;flex-wrap:wrap;gap:5px 12px;align-items:center}

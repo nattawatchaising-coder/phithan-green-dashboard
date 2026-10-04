@@ -1501,7 +1501,7 @@ function SuReportView({
 }) {
   const ref = React.useRef(null);
   const [ready, setReady] = React.useState(false);
-  const isMobile = typeof window !== "undefined" && window.innerWidth < 760;
+  const isMobile = typeof window !== "undefined" && window.innerWidth <= 860;
   const onLoad = () => {
     const w = ref.current && ref.current.contentWindow;
     if (!w) {

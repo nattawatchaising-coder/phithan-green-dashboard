@@ -75,9 +75,6 @@ const BQ_CSS = `
 .bq-i[data-on="1"] .q{background:var(--primary);color:#fff}
 /* ปุ่มเพิ่มรายการที่ซ่อนไว้ (ตู้ไฟ · ปั๊ม · ถัง …) — ของที่งานนี้ไม่ได้ใช้ไม่ต้องโชว์ช่อง 0 ให้รก */
 .bq-chips{display:flex;flex-wrap:wrap;gap:7px}
-.bq-chip{display:inline-flex;align-items:center;gap:5px;border:0;border-radius:var(--r-pill);padding:6px 12px;cursor:pointer;
-  font-family:inherit;font-size:12px;font-weight:700;color:var(--text-2);background:var(--surface2);box-shadow:var(--shadow-sm)}
-.bq-chip:hover{background:var(--primary-soft);color:var(--primary-dark)}
 /* กลุ่ม "สรุปผล" ในแถบซ้าย — หน้าที่ระบบคิดให้ ไม่ต้องกรอก จึงไม่นับในความคืบหน้า */
 .bq-nav[data-out="1"] .dot{box-shadow:none;background:var(--surface3);color:var(--text-2)}
 
@@ -117,7 +114,7 @@ const BQ_CSS = `
 .bq-cab-chip{border:0;border-radius:var(--r-pill);padding:3px 9px;font-family:inherit;font-size:10.5px;font-weight:700;cursor:pointer;
   background:var(--surface2);color:var(--text-3);box-shadow:var(--shadow-sm)}
 .bq-cab-chip.on{background:var(--primary-soft);color:var(--primary-dark);box-shadow:inset 0 0 0 1.5px var(--primary)}
-@media (max-width:700px){.bq-cabx-opts{grid-template-columns:minmax(0,1fr)}.bq-cabx-step > .lb{min-width:0}}
+@media (max-width:860px){.bq-cabx-opts{grid-template-columns:minmax(0,1fr)}.bq-cabx-step > .lb{min-width:0}}
 
 /* ตารางกรอกการจัดวางแผง */
 .bq-rw{display:grid;grid-template-columns:150px minmax(0,1fr) minmax(0,1fr) 90px 40px;gap:8px;align-items:center}
@@ -281,7 +278,7 @@ const BQ_CSS = `
 .bq-tbl .r.sum .t{color:var(--primary-dark);font-family:var(--display);font-size:16px;font-weight:700}
 .bq-tbl .m2{display:flex;align-items:center;gap:4px;font-size:12px;color:var(--text-3)}
 .bq-chip{display:inline-flex;align-items:center;gap:5px;background:var(--surface2);box-shadow:var(--shadow-sm);border:0;border-radius:var(--r-chip);
-  padding:7px 12px;cursor:pointer;font-family:inherit;font-size:12px;font-weight:700;color:var(--text-2)}
+  padding:6px 12px;cursor:pointer;font-family:inherit;font-size:12px;font-weight:700;color:var(--text-2)}
 .bq-chip:hover{background:var(--surface3)}
 .bq-chip.pri{color:var(--primary-dark)}
 
