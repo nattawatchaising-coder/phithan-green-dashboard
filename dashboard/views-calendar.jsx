@@ -299,7 +299,7 @@ function MobileCalendar({ ym, cells, tasksOn, groupsOn, keyOf, todayKey, shift, 
                 <div style={{ fontSize: 12, color: "var(--text-3)" }}>{selGroups.length} งาน</div>
               </div>
               <button className="x-close" onClick={() => setSelDay(null)} style={{ width: 34, height: 34, borderRadius: 10,
-                border: "1px solid var(--border)", background: "var(--surface)", cursor: "pointer",
+                border: "none", boxShadow: "var(--shadow-sm)", background: "var(--surface)", cursor: "pointer",
                 display: "grid", placeItems: "center", color: "var(--text-2)" }}>
                 <Icon name="x" size={17} />
               </button>
@@ -324,7 +324,7 @@ function MobileCalendar({ ym, cells, tasksOn, groupsOn, keyOf, todayKey, shift, 
 function FlowLegend() {
   const SF = window.SF;
   return (
-    <div style={{ display: "flex", alignItems: "center", gap: 14, marginBottom: 16, padding: "10px 14px", background: "var(--surface2)", borderRadius: 12, border: "1px solid var(--border)", flexWrap: "wrap" }}>
+    <div style={{ display: "flex", alignItems: "center", gap: 14, marginBottom: 16, padding: "10px 14px", background: "var(--surface2)", borderRadius: 12, border: "none", boxShadow: "var(--shadow-sm)", flexWrap: "wrap" }}>
       <span style={{ fontSize: 11, fontWeight: 700, color: "var(--text-2)", display: "flex", alignItems: "center", gap: 6, letterSpacing: ".03em" }}>
         <Icon name="flow" size={14} color="var(--primary)" /> Flow การทำงาน:
       </span>
@@ -338,7 +338,7 @@ function FlowLegend() {
 }
 
 function NavBtn({ dir, onClick }) {
-  return (    <button onClick={onClick} style={{ width: 34, height: 34, borderRadius: 10, border: "1px solid var(--border)", background: "var(--surface)",
+  return (    <button onClick={onClick} style={{ width: 34, height: 34, borderRadius: 10, border: "none", boxShadow: "var(--shadow-sm)", background: "var(--surface)",
       cursor: "pointer", display: "grid", placeItems: "center", color: "var(--text-2)" }}>
       <Icon name="chevronRight" size={17} style={{ transform: dir === "prev" ? "rotate(180deg)" : "none" }} />
     </button>

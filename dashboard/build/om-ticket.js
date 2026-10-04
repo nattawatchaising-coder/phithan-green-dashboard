@@ -59,7 +59,8 @@ function OmPhotos({
   }, list.map(p => React.createElement("div", {
     key: p.id,
     style: {
-      border: "1px solid var(--border)",
+      border: "none",
+      boxShadow: "var(--shadow-sm)",
       borderRadius: 11,
       overflow: "hidden",
       background: "var(--surface)"
@@ -138,7 +139,8 @@ function OmTicketReport({
       flexWrap: "wrap",
       marginBottom: 12,
       padding: "9px 11px",
-      border: "1px solid var(--border)",
+      border: "none",
+      boxShadow: "var(--shadow-sm)",
       borderRadius: 11,
       background: "var(--surface)"
     }
@@ -260,7 +262,8 @@ function OmTicketCard({
       fontFamily: "inherit",
       cursor: "pointer",
       marginBottom: 9,
-      border: "1px solid var(--border)",
+      border: "none",
+      boxShadow: "var(--shadow-sm)",
       borderLeft: "3px solid " + sev.color,
       borderRadius: 12,
       background: "var(--surface)",
@@ -363,7 +366,8 @@ function OmJobFacts({
   }, value));
   return React.createElement(React.Fragment, null, React.createElement("div", {
     style: {
-      border: "1px solid var(--border)",
+      border: "none",
+      boxShadow: "var(--shadow-sm)",
       background: "var(--surface)",
       borderRadius: 13,
       padding: isMobile ? 13 : 15,
@@ -886,7 +890,8 @@ function OmTicketModal({
       gap: 9,
       padding: "10px 12px",
       marginBottom: 12,
-      border: "1px solid var(--border)",
+      border: "none",
+      boxShadow: "var(--shadow-sm)",
       background: "var(--surface)",
       borderRadius: 11
     }
@@ -1156,7 +1161,8 @@ function OmTicketModal({
       gap: 9,
       padding: "9px 10px",
       marginTop: 7,
-      border: "1px solid var(--border)",
+      border: "none",
+      boxShadow: "var(--shadow-sm)",
       borderRadius: 10,
       background: "var(--surface)",
       cursor: "pointer",
@@ -1448,7 +1454,8 @@ function OmTicketBoard({
       alignItems: "center",
       gap: 9,
       flexWrap: "wrap",
-      border: "1px solid var(--border)",
+      border: "none",
+      boxShadow: "var(--shadow-sm)",
       background: "var(--surface2)",
       borderRadius: 12,
       padding: "10px 12px"

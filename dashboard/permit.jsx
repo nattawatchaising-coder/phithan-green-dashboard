@@ -201,7 +201,7 @@ function PermitSampleModal({ slot, onClose }) {
   const tips = PERMIT_SAMPLE_TIPS[slot.key] || [];
   return (
     <div {...bdClose} style={{ position: "fixed", inset: 0, zIndex: 2400, background: "rgba(8,15,12,.55)", display: "grid", placeItems: "center", padding: 16 }}>
-      <div onClick={(e) => e.stopPropagation()} style={{ width: "min(420px, 100%)", background: "var(--surface)", borderRadius: 18, border: "1px solid var(--border)", overflow: "hidden" }}>
+      <div onClick={(e) => e.stopPropagation()} style={{ width: "min(420px, 100%)", background: "var(--surface)", borderRadius: 18, border: "none", boxShadow: "var(--shadow-sm)", overflow: "hidden" }}>
         <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "13px 15px", borderBottom: "1px solid var(--border)" }}>
           <Icon name="image" size={16} color="var(--primary)" />
           <span style={{ flex: 1, fontSize: 14, fontWeight: 800, color: "var(--text-1)" }}>ตัวอย่าง — {slot.label}</span>

@@ -1819,7 +1819,7 @@ function TrashModal({ trash, me, onRestore, onPurge, onClose }) {
             <div style={{ padding: 40, textAlign: "center", color: "var(--text-3)", fontSize: 13.5 }}>ถังขยะว่าง — ยังไม่มีงานที่ถูกลบ</div>
           )}
           {trash.map((j) => (
-            <div key={j.id} style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 12, padding: 12 }}>
+            <div key={j.id} style={{ background: "var(--surface)", border: "none", boxShadow: "var(--shadow-sm)", borderRadius: 12, padding: 12 }}>
               <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
                 <div style={{ flex: 1, minWidth: 150 }}>
                   <div style={{ fontSize: 13.5, fontWeight: 700, color: "var(--text-1)" }}>{j.name || "(ไม่มีชื่อ)"}</div>

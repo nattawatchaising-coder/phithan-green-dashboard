@@ -242,7 +242,7 @@ function LineAdminView({ users, currentUser }) {
       </div>
 
       {/* โควตา */}
-      <div style={{ padding: "16px 18px", borderRadius: 15, background: "var(--surface)", border: "1px solid var(--border)" }}>
+      <div style={{ padding: "16px 18px", borderRadius: 15, background: "var(--surface)", border: "none", boxShadow: "var(--shadow-sm)" }}>
         <div style={{ display: "flex", alignItems: "baseline", gap: 9, flexWrap: "wrap" }}>
           <span style={{ fontFamily: "var(--mono)", fontSize: 32, fontWeight: 800, color: tone }}>{stat.sent}</span>
           <span style={{ fontSize: 14, fontWeight: 700, color: "var(--text-3)" }}>/ {quota} ข้อความในเดือนนี้</span>
@@ -294,7 +294,7 @@ function LineAdminView({ users, currentUser }) {
           <br />มีผลทันที ไม่ต้องอัปเว็บใหม่
         </div>
 
-        <div style={{ border: "1px solid var(--border)", borderRadius: 13, overflow: "hidden", background: "var(--surface)" }}>
+        <div style={{ border: "none", boxShadow: "var(--shadow-sm)", borderRadius: 13, overflow: "hidden", background: "var(--surface)" }}>
           {LN_KIND.map((k) => {
             const on = isOn(k.key);
             const used = stat.byKind[k.key] || 0;

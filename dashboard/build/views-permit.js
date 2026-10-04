@@ -613,7 +613,8 @@ function PermitBoardMobile({
       style: {
         borderRadius: 14,
         background: "var(--surface2)",
-        border: "1px solid var(--border)",
+        border: "none",
+        boxShadow: "var(--shadow-sm)",
         overflow: "hidden"
       }
     }, React.createElement("button", {
@@ -972,7 +973,8 @@ function PermitJobFiles({
         padding: "9px 11px",
         borderRadius: 11,
         background: "var(--surface)",
-        border: "1px solid var(--border)",
+        border: "none",
+        boxShadow: "var(--shadow-sm)",
         borderLeft: "3px solid " + k.color
       }
     }, React.createElement("span", {

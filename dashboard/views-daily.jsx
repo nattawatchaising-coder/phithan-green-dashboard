@@ -32,7 +32,7 @@ function DrText({ value, onChange, rows, placeholder, disabled }) {
 
 function DrSection({ n, title, hint, children, tone }) {
   return (
-    <div style={{ marginBottom: 16, border: "1px solid var(--border)", borderRadius: 14, background: "var(--surface2)", overflow: "hidden" }}>
+    <div style={{ marginBottom: 16, border: "none", boxShadow: "var(--shadow-sm)", borderRadius: 14, background: "var(--surface2)", overflow: "hidden" }}>
       <div style={{ display: "flex", alignItems: "center", gap: 9, padding: "11px 14px", borderBottom: "1px solid var(--border)" }}>
         <span style={{ width: 22, height: 22, borderRadius: 7, display: "grid", placeItems: "center", flexShrink: 0,
           background: (tone || "var(--primary)") + "1e", color: tone || "var(--primary-dark)",
@@ -296,7 +296,7 @@ function DrPhotos({ jobId, date, currentUser, disabled }) {
       {!photos.length && disabled && <div style={{ fontSize: 12, color: "var(--text-3)" }}>ไม่มีรูปในรายงานวันนี้</div>}
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(150px, 1fr))", gap: 11 }}>
         {photos.map((p) => (
-          <div key={p.id} style={{ border: "1px solid var(--border)", borderRadius: 11, overflow: "hidden", background: "var(--surface)" }}>
+          <div key={p.id} style={{ border: "none", boxShadow: "var(--shadow-sm)", borderRadius: 11, overflow: "hidden", background: "var(--surface)" }}>
             <div style={{ position: "relative", background: "#0d1512" }}>
               <img src={p.dataUrl} alt={p.cap || "รูปหน้างาน"} style={{ width: "100%", height: 112, objectFit: "cover", display: "block" }} />
               {!disabled && (
@@ -330,7 +330,7 @@ function DrPhotos({ jobId, date, currentUser, disabled }) {
 /* ช่องลายเซ็นในฟอร์ม — เซ็นแล้วเห็นภาพจริง ยังไม่เซ็นเห็นปุ่ม */
 function DrSignSlot({ title, sub, sig, canSign, onSign, onClear, saved, onUseSaved }) {
   return (
-    <div style={{ border: "1px solid var(--border)", borderRadius: 12, background: "var(--surface)", padding: "12px 13px" }}>
+    <div style={{ border: "none", boxShadow: "var(--shadow-sm)", borderRadius: 12, background: "var(--surface)", padding: "12px 13px" }}>
       <div style={{ fontSize: 12, fontWeight: 800, color: "var(--text-2)" }}>{title}</div>
       <div style={{ fontSize: 11, color: "var(--text-3)", marginTop: 2 }}>{sub}</div>
       <div style={{ height: 76, marginTop: 9, borderRadius: 9, background: "var(--surface2)", border: "1px solid var(--border)",
@@ -1347,7 +1347,7 @@ function DrJobSummary({ job, all, onOpen, onBack }) {
   dates.forEach((d) => { const k = byDate[d].status || "draft"; n[k] = (n[k] || 0) + 1; });
 
   return (
-    <div style={{ border: "1px solid var(--border)", borderRadius: 14, background: "var(--surface2)", overflow: "hidden" }}>
+    <div style={{ border: "none", boxShadow: "var(--shadow-sm)", borderRadius: 14, background: "var(--surface2)", overflow: "hidden" }}>
       <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "11px 14px", borderBottom: "1px solid var(--border)" }}>
         <button onClick={onBack} title="กลับไปตารางภาพรวม"
           style={{ width: 30, height: 30, borderRadius: 9, border: "1px solid var(--border-strong)", background: "var(--surface)",
@@ -1502,7 +1502,7 @@ function DailyView({ jobs, role, currentUser, onOpen }) {
   }, [rows]);
 
   const stat = (label, value, color) => (
-    <div style={{ flex: 1, minWidth: 92, padding: "11px 13px", borderRadius: 12, background: "var(--surface2)", border: "1px solid var(--border)" }}>
+    <div style={{ flex: 1, minWidth: 92, padding: "11px 13px", borderRadius: 12, background: "var(--surface2)", border: "none", boxShadow: "var(--shadow-sm)" }}>
       <div style={{ fontSize: 11, color: "var(--text-3)", fontWeight: 700 }}>{label}</div>
       <div style={{ fontFamily: "var(--display)", fontSize: 22, fontWeight: 800, color: color, lineHeight: 1.2 }}>{value}</div>
     </div>
@@ -1529,7 +1529,7 @@ function DailyView({ jobs, role, currentUser, onOpen }) {
       </div>
 
       {mode === "inbox" ? (
-        <div style={{ border: "1px solid var(--border)", borderRadius: 14, background: "var(--surface)", overflow: "hidden" }}>
+        <div style={{ border: "none", boxShadow: "var(--shadow-sm)", borderRadius: 14, background: "var(--surface)", overflow: "hidden" }}>
           {loading
             ? <div style={{ padding: 20, textAlign: "center", fontSize: 12.5, color: "var(--text-3)" }}>กำลังโหลด...</div>
             : <DrInbox rows={inbox} onOpen={onOpen} />}
@@ -1568,7 +1568,7 @@ function DailyView({ jobs, role, currentUser, onOpen }) {
               </span>
             </div>
           )}
-          <div style={{ border: "1px solid var(--border)", borderRadius: 14, background: "var(--surface2)",
+          <div style={{ border: "none", boxShadow: "var(--shadow-sm)", borderRadius: 14, background: "var(--surface2)",
             overflow: "hidden", padding: pickedJob ? 0 : "12px 0 4px" }}>
             {loading && <div style={{ padding: 20, textAlign: "center", fontSize: 12.5, color: "var(--text-3)" }}>กำลังโหลด...</div>}
             {!loading && (pickedJob
@@ -1603,7 +1603,7 @@ function DailyView({ jobs, role, currentUser, onOpen }) {
         {stat("ยังไม่เขียน", n.none, "#EF4444")}
       </div>
 
-      <div style={{ border: "1px solid var(--border)", borderRadius: 14, background: "var(--surface2)", overflow: "hidden" }}>
+      <div style={{ border: "none", boxShadow: "var(--shadow-sm)", borderRadius: 14, background: "var(--surface2)", overflow: "hidden" }}>
         {loading && <div style={{ padding: 20, textAlign: "center", fontSize: 12.5, color: "var(--text-3)" }}>กำลังโหลด...</div>}
         {!loading && !rows.length && <div style={{ padding: 20, textAlign: "center", fontSize: 12.5, color: "var(--text-3)" }}>ไม่มีงานที่ต้องเขียนรายงานวันนี้</div>}
         {rows.map((r) => {

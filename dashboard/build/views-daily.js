@@ -64,7 +64,8 @@ function DrSection({
   return React.createElement("div", {
     style: {
       marginBottom: 16,
-      border: "1px solid var(--border)",
+      border: "none",
+      boxShadow: "var(--shadow-sm)",
       borderRadius: 14,
       background: "var(--surface2)",
       overflow: "hidden"
@@ -628,7 +629,8 @@ function DrPhotos({
   }, photos.map(p => React.createElement("div", {
     key: p.id,
     style: {
-      border: "1px solid var(--border)",
+      border: "none",
+      boxShadow: "var(--shadow-sm)",
       borderRadius: 11,
       overflow: "hidden",
       background: "var(--surface)"
@@ -687,7 +689,8 @@ function DrSignSlot({
 }) {
   return React.createElement("div", {
     style: {
-      border: "1px solid var(--border)",
+      border: "none",
+      boxShadow: "var(--shadow-sm)",
       borderRadius: 12,
       background: "var(--surface)",
       padding: "12px 13px"
@@ -2832,7 +2835,8 @@ function DrJobSummary({
   });
   return React.createElement("div", {
     style: {
-      border: "1px solid var(--border)",
+      border: "none",
+      boxShadow: "var(--shadow-sm)",
       borderRadius: 14,
       background: "var(--surface2)",
       overflow: "hidden"
@@ -3135,7 +3139,8 @@ function DailyView({
       padding: "11px 13px",
       borderRadius: 12,
       background: "var(--surface2)",
-      border: "1px solid var(--border)"
+      border: "none",
+      boxShadow: "var(--shadow-sm)"
     }
   }, React.createElement("div", {
     style: {
@@ -3200,7 +3205,8 @@ function DailyView({
     }
   }, inbox.length)))), mode === "inbox" ? React.createElement("div", {
     style: {
-      border: "1px solid var(--border)",
+      border: "none",
+      boxShadow: "var(--shadow-sm)",
       borderRadius: 14,
       background: "var(--surface)",
       overflow: "hidden"
@@ -3300,7 +3306,8 @@ function DailyView({
     }
   }), "\u0E22\u0E31\u0E07\u0E44\u0E21\u0E48\u0E40\u0E02\u0E35\u0E22\u0E19"))), React.createElement("div", {
     style: {
-      border: "1px solid var(--border)",
+      border: "none",
+      boxShadow: "var(--shadow-sm)",
       borderRadius: 14,
       background: "var(--surface2)",
       overflow: "hidden",
@@ -3394,7 +3401,8 @@ function DailyView({
     }
   }, stat("รออนุมัติ", n.sent, "#F59E0B"), stat("อนุมัติแล้ว", n.approved, "#10B981"), stat("ยังเป็นร่าง", n.draft, "#94A3B8"), stat("ยังไม่เขียน", n.none, "#EF4444")), React.createElement("div", {
     style: {
-      border: "1px solid var(--border)",
+      border: "none",
+      boxShadow: "var(--shadow-sm)",
       borderRadius: 14,
       background: "var(--surface2)",
       overflow: "hidden"

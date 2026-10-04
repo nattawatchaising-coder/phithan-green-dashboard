@@ -984,7 +984,8 @@ function MyProfileModal({
       padding: "11px 13px",
       borderRadius: 11,
       background: "var(--surface2)",
-      border: "1px solid var(--border)"
+      border: "none",
+      boxShadow: "var(--shadow-sm)"
     }
   }, React.createElement("div", {
     style: {
@@ -1017,7 +1018,8 @@ function MyProfileModal({
       padding: "12px 14px",
       borderRadius: 12,
       textAlign: "left",
-      border: "1px solid var(--border)",
+      border: "none",
+      boxShadow: "var(--shadow-sm)",
       background: "var(--surface)",
       cursor: "pointer",
       fontFamily: "inherit"
@@ -1064,7 +1066,8 @@ function MyProfileModal({
       padding: "13px 14px",
       borderRadius: 12,
       background: "var(--surface)",
-      border: "1px solid var(--border)"
+      border: "none",
+      boxShadow: "var(--shadow-sm)"
     }
   }, React.createElement("div", {
     style: {
@@ -1089,7 +1092,8 @@ function MyProfileModal({
       marginTop: 10,
       borderRadius: 10,
       background: "var(--surface2)",
-      border: "1px solid var(--border)",
+      border: "none",
+      boxShadow: "var(--shadow-sm)",
       display: "grid",
       placeItems: "center",
       overflow: "hidden"

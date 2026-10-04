@@ -291,7 +291,7 @@ function InspectionListModal({ job, currentUser, onClose }) {
             {store.list.map((x) => {
               const r = IR_RESULT_BY[x.result];
               return (
-                <div key={x.id} style={{ border: "1px solid var(--border)", borderLeft: "3px solid " + (r ? r.color : "var(--border-strong)"),
+                <div key={x.id} style={{ border: "none", boxShadow: "var(--shadow-sm)", borderLeft: "3px solid " + (r ? r.color : "var(--border-strong)"),
                   borderRadius: 12, background: "var(--surface)", overflow: "hidden" }}>
                   <button onClick={() => setOpenId(x.id)}
                     style={{ width: "100%", display: "flex", alignItems: "center", gap: 10, padding: "12px 13px",
@@ -335,7 +335,7 @@ function InspectionListModal({ job, currentUser, onClose }) {
                 <div style={{ display: "flex", flexDirection: "column", gap: 7 }}>
                   {IR_KINDS.map((k) => (
                     <button key={k} onClick={() => startNew(k)} style={{ textAlign: "left", padding: "10px 12px", borderRadius: 10,
-                      border: "1px solid var(--border)", background: "var(--surface2)", color: "var(--text-1)",
+                      border: "none", boxShadow: "var(--shadow-sm)", background: "var(--surface2)", color: "var(--text-1)",
                       fontFamily: "inherit", fontSize: 12.5, fontWeight: 600, cursor: "pointer" }}>{k}</button>
                   ))}
                   <button onClick={() => startNew("")} style={{ textAlign: "left", padding: "10px 12px", borderRadius: 10,
@@ -555,7 +555,7 @@ function InspectionFormModal({ job, rec, currentUser, onSave, onClose }) {
                 </button>
               </div>
 
-              <div style={{ border: "1px solid var(--border)", borderRadius: 11, background: "var(--surface)", overflow: "hidden" }}>
+              <div style={{ border: "none", boxShadow: "var(--shadow-sm)", borderRadius: 11, background: "var(--surface)", overflow: "hidden" }}>
                 {!f.items.length ? (
                   <div style={{ padding: 20, textAlign: "center", fontSize: 12, color: "var(--text-3)" }}>
                     ยังไม่มีรายการตรวจ — กด “ใส่รายการมาตรฐานของประเภทนี้” แล้วแก้ทีหลังได้
@@ -686,7 +686,7 @@ function IrPhotoPicker({ store, currentUser }) {
       </label>
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(144px, 1fr))", gap: 10 }}>
         {list.map((p) => (
-          <div key={p.id} style={{ border: "1px solid var(--border)", borderRadius: 11, overflow: "hidden", background: "var(--surface)" }}>
+          <div key={p.id} style={{ border: "none", boxShadow: "var(--shadow-sm)", borderRadius: 11, overflow: "hidden", background: "var(--surface)" }}>
             <div style={{ position: "relative", background: "#0d1512" }}>
               <img src={p.dataUrl} alt={p.cap || "รูปการตรวจ"} style={{ width: "100%", height: 108, objectFit: "cover", display: "block" }} />
               <button type="button" onClick={() => store.remove(p.id)} title="ลบรูปนี้"

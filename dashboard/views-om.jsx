@@ -143,7 +143,7 @@ function OmWarrantyTable({ site, disabled, onChange }) {
         const st = window.omWarrantyState(w);
         const kind = window.OM_WARRANTY_KIND_BY[w.kind] || window.OM_WARRANTY_KIND_BY.other;
         return (
-          <div key={w.id} style={{ border: "1px solid var(--border)", borderRadius: 12, background: "var(--surface)", padding: "11px 12px" }}>
+          <div key={w.id} style={{ border: "none", boxShadow: "var(--shadow-sm)", borderRadius: 12, background: "var(--surface)", padding: "11px 12px" }}>
             <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 9, flexWrap: "wrap" }}>
               <span style={{ width: 8, height: 8, borderRadius: 99, background: kind.color, flexShrink: 0 }} />
               <input value={w.label || ""} disabled={disabled} placeholder="ชื่อรายการประกัน"
@@ -260,7 +260,7 @@ function OmCleanVisits({ site, visits, store, disabled, siteVisits, onOpenVisit,
         const s = window.omCleanStatusOf(v.status);
         const lock = disabled || v.status === "done";
         return (
-          <div key={v.id} style={{ border: "1px solid var(--border)", borderRadius: 12, background: "var(--surface)",
+          <div key={v.id} style={{ border: "none", boxShadow: "var(--shadow-sm)", borderRadius: 12, background: "var(--surface)",
             padding: "10px 12px", marginBottom: 9 }}>
             <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: lock ? 0 : 9, flexWrap: "wrap" }}>
               <span style={{ width: 8, height: 8, borderRadius: 99, background: s.color, flexShrink: 0 }} />
@@ -394,7 +394,7 @@ function OmSiteModal({ site, job, role, visits, cleanStore, tickets, siteVisits,
         <div style={{ padding: isMobile ? "14px 13px 24px" : "18px 20px 26px" }}>
           {disabled && (
             <div style={{ display: "flex", alignItems: "center", gap: 9, padding: "11px 13px", marginBottom: 14,
-              border: "1px solid var(--border)", background: "var(--surface2)", borderRadius: 12 }}>
+              border: "none", boxShadow: "var(--shadow-sm)", background: "var(--surface2)", borderRadius: 12 }}>
               <Icon name="lock" size={15} color="var(--text-3)" />
               <span style={{ fontSize: 12.5, color: "var(--text-2)" }}>ดูได้อย่างเดียว — ไม่มีสิทธิ์แก้งานบริการหลังการขาย</span>
             </div>
@@ -557,7 +557,7 @@ function OmSiteModal({ site, job, role, visits, cleanStore, tickets, siteVisits,
               return (
                 <button key={t.id} type="button" onClick={() => onOpenTicket && onOpenTicket(t.id)}
                   style={{ width: "100%", display: "flex", alignItems: "center", gap: 9, padding: "9px 10px", marginBottom: 7,
-                    border: "1px solid var(--border)", borderRadius: 10, background: "var(--surface)",
+                    border: "none", boxShadow: "var(--shadow-sm)", borderRadius: 10, background: "var(--surface)",
                     cursor: "pointer", fontFamily: "inherit", textAlign: "left" }}>
                   <span style={{ fontFamily: "var(--mono)", fontSize: 11, color: "var(--text-3)", flexShrink: 0 }}>{t.no}</span>
                   <span style={{ flex: 1, minWidth: 0, fontSize: 12.5, fontWeight: 700, color: "var(--text-1)" }}>
@@ -600,7 +600,7 @@ function OmSiteModal({ site, job, role, visits, cleanStore, tickets, siteVisits,
               return (
                 <button key={v.id} type="button" onClick={() => onOpenVisit && onOpenVisit(v.id)}
                   style={{ width: "100%", display: "flex", alignItems: "center", gap: 9, padding: "9px 10px", marginBottom: 7,
-                    border: "1px solid var(--border)", borderRadius: 10, background: "var(--surface)",
+                    border: "none", boxShadow: "var(--shadow-sm)", borderRadius: 10, background: "var(--surface)",
                     cursor: "pointer", fontFamily: "inherit", textAlign: "left" }}>
                   <Icon name={vk.icon} size={14} color={vk.color} />
                   <span style={{ flex: 1, minWidth: 0, fontSize: 12.5, fontWeight: 700, color: "var(--text-1)" }}>
@@ -715,7 +715,7 @@ function OmCleanView({ sites, cleanStore, role, onOpenSite }) {
       {selList.map((a, i) => {
         const c = toneOf(a);
         return (
-          <div key={a.site.id + "-" + i} style={{ border: "1px solid var(--border)", borderLeft: "3px solid " + c,
+          <div key={a.site.id + "-" + i} style={{ border: "none", boxShadow: "var(--shadow-sm)", borderLeft: "3px solid " + c,
             borderRadius: 11, background: "var(--surface)", padding: "10px 12px" }}>
             <div style={{ fontSize: 13, fontWeight: 700, color: "var(--text-1)" }}>{a.site.name || a.site.code}</div>
             <div style={{ fontSize: 11.5, color: "var(--text-3)", marginBottom: 7 }}>
@@ -1184,7 +1184,7 @@ function OmView({ jobs, users, role, currentUser, focus }) {
       )}
 
       {tab === "sites" && (
-      <div style={{ border: "1px solid var(--border)", borderRadius: 14, background: "var(--surface2)", overflow: "hidden" }}>
+      <div style={{ border: "none", boxShadow: "var(--shadow-sm)", borderRadius: 14, background: "var(--surface2)", overflow: "hidden" }}>
         {loading && <div style={{ padding: 20, textAlign: "center", fontSize: 12.5, color: "var(--text-3)" }}>กำลังโหลด...</div>}
         {!loading && !rows.length && (
           <div style={{ padding: 24, textAlign: "center", fontSize: 12.5, color: "var(--text-3)" }}>

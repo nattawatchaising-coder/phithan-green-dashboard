@@ -527,7 +527,7 @@ function MyProfileModal({ user, onSave, onClose }) {
             </div>
 
             {/* ตำแหน่ง/ชื่อผู้ใช้ — แก้เองไม่ได้ ต้องให้แอดมินเปลี่ยน เพราะผูกกับสิทธิ์และการมอบหมายงาน */}
-            <div style={{ padding: "11px 13px", borderRadius: 11, background: "var(--surface2)", border: "1px solid var(--border)" }}>
+            <div style={{ padding: "11px 13px", borderRadius: 11, background: "var(--surface2)", border: "none", boxShadow: "var(--shadow-sm)" }}>
               <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
                 <RoleBadges roles={rs} short />
                 {user.username && <span style={{ fontSize: 11.5, color: "var(--text-3)", fontFamily: "var(--mono)" }}>@{user.username}</span>}
@@ -540,7 +540,7 @@ function MyProfileModal({ user, onSave, onClose }) {
             {window.VcCardModal && (
               <button onClick={() => setCard(true)}
                 style={{ display: "flex", alignItems: "center", gap: 11, padding: "12px 14px", borderRadius: 12, textAlign: "left",
-                  border: "1px solid var(--border)", background: "var(--surface)", cursor: "pointer", fontFamily: "inherit" }}>
+                  border: "none", boxShadow: "var(--shadow-sm)", background: "var(--surface)", cursor: "pointer", fontFamily: "inherit" }}>
                 <span style={{ width: 34, height: 34, borderRadius: 10, flexShrink: 0, display: "grid", placeItems: "center",
                   background: "var(--primary-soft)" }}><Icon name="user" size={16} color="var(--primary-dark)" /></span>
                 <span style={{ flex: 1, minWidth: 0 }}>
@@ -554,12 +554,12 @@ function MyProfileModal({ user, onSave, onClose }) {
             )}
 
             {/* ลายเซ็น — ใช้ในใบรายงานประจำวัน */}
-            <div style={{ padding: "13px 14px", borderRadius: 12, background: "var(--surface)", border: "1px solid var(--border)" }}>
+            <div style={{ padding: "13px 14px", borderRadius: 12, background: "var(--surface)", border: "none", boxShadow: "var(--shadow-sm)" }}>
               <div style={{ display: "flex", alignItems: "baseline", gap: 8 }}>
                 <span style={{ fontSize: 12.5, fontWeight: 800, color: "var(--text-2)" }}>ลายเซ็นของฉัน</span>
                 <span style={{ fontSize: 11, color: "var(--text-3)" }}>ใช้เซ็นใบรายงานประจำวัน · เซ็นบนจอหรือแนบรูปลายเซ็นก็ได้</span>
               </div>
-              <div style={{ height: 92, marginTop: 10, borderRadius: 10, background: "var(--surface2)", border: "1px solid var(--border)",
+              <div style={{ height: 92, marginTop: 10, borderRadius: 10, background: "var(--surface2)", border: "none", boxShadow: "var(--shadow-sm)",
                 display: "grid", placeItems: "center", overflow: "hidden" }}>
                 {sig.sign && sig.sign.img
                   ? <img src={sig.sign.img} alt="ลายเซ็น" style={{ maxWidth: "88%", maxHeight: 80, objectFit: "contain" }} />

@@ -444,7 +444,7 @@ function JobForm({ initial, isNew, onSave, onClose, onManageTechs, onManageBrand
               const fShift = (delta) => setFlowMonth((s) => { const n = new Date(s.y, s.m + delta, 1); return { y: n.getFullYear(), m: n.getMonth() }; });
               const navB = { width: 26, height: 26, borderRadius: 7, border: "1px solid var(--border-strong)", background: "var(--surface)", cursor: "pointer", display: "grid", placeItems: "center", color: "var(--text-2)" };
               return (
-                <div style={{ marginTop: 14, border: "1px solid var(--border)", borderRadius: 12, padding: 12, background: "var(--surface2)" }}>
+                <div style={{ marginTop: 14, border: "none", boxShadow: "var(--shadow-sm)", borderRadius: 12, padding: 12, background: "var(--surface2)" }}>
                   <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 8, gap: 8 }}>
                     <span style={{ fontSize: 12, fontWeight: 700, color: "var(--text-1)", display: "flex", alignItems: "center", gap: 6, minWidth: 0 }}>
                       <Icon name="calendar" size={13} color="var(--primary)" /><span style={{ whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>ปฏิทินงานช่าง{techNick ? " " + techNick : ""} · {FLOW_MONTHS[fm.m]} {fm.y + 543}</span>
@@ -508,7 +508,7 @@ function JobForm({ initial, isNew, onSave, onClose, onManageTechs, onManageBrand
 function Section({ title, icon, right, children }) {
   const mob = window.matchMedia("(max-width: 860px)").matches;
   return (
-    <div style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 14, padding: mob ? 14 : 18 }}>
+    <div style={{ background: "var(--surface)", border: "none", boxShadow: "var(--shadow-sm)", borderRadius: 14, padding: mob ? 14 : 18 }}>
       <div style={{ marginBottom: 14, display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
         <span style={{ fontSize: 11, fontWeight: 700, color: "var(--text-3)", display: "flex", alignItems: "center", gap: 7 }}>
           <Icon name={icon} size={14} color="var(--primary)" /> {title}
@@ -615,7 +615,7 @@ function TechManager({ store, onClose }) {
 
         <div style={{ overflowY: "auto", padding: 18, display: "flex", flexDirection: "column", gap: 9 }}>
           {techs.map((t) => (
-            <div key={t.id} style={{ display: "flex", alignItems: "center", gap: 12, padding: "10px 13px", background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 12 }}>
+            <div key={t.id} style={{ display: "flex", alignItems: "center", gap: 12, padding: "10px 13px", background: "var(--surface)", border: "none", boxShadow: "var(--shadow-sm)", borderRadius: 12 }}>
               <span style={{ width: 36, height: 36, borderRadius: 99, background: t.color, color: "#fff", display: "grid", placeItems: "center", fontWeight: 700, fontSize: 13, flexShrink: 0 }}>{t.nick.slice(0, 2) || "?"}</span>
               <div style={{ flex: 1, minWidth: 0 }}>
                 <div style={{ fontSize: 14, fontWeight: 600, color: "var(--text-1)" }}>{t.name || "(ยังไม่ระบุชื่อ)"}</div>
@@ -702,8 +702,8 @@ function BrandManager({ store, onClose }) {
 
         <div style={{ overflowY: "auto", padding: 18, display: "flex", flexDirection: "column", gap: 9 }}>
           {brands.map((b) => (
-            <div key={b.name} style={{ display: "flex", alignItems: "center", gap: 12, padding: "11px 14px", background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 12 }}>
-              <span style={{ width: 36, height: 36, borderRadius: 10, background: "var(--surface2)", border: "1px solid var(--border)", display: "grid", placeItems: "center", color: "var(--primary-dark)", flexShrink: 0 }}><Icon name="sun" size={17} color="var(--primary-dark)" /></span>
+            <div key={b.name} style={{ display: "flex", alignItems: "center", gap: 12, padding: "11px 14px", background: "var(--surface)", border: "none", boxShadow: "var(--shadow-sm)", borderRadius: 12 }}>
+              <span style={{ width: 36, height: 36, borderRadius: 10, background: "var(--surface2)", border: "none", boxShadow: "var(--shadow-sm)", display: "grid", placeItems: "center", color: "var(--primary-dark)", flexShrink: 0 }}><Icon name="sun" size={17} color="var(--primary-dark)" /></span>
               <div style={{ flex: 1, minWidth: 0 }}>
                 <div style={{ fontSize: 14, fontWeight: 700, color: "var(--text-1)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{b.name}</div>
                 <div style={{ fontSize: 11.5, color: b.battery ? "var(--primary-dark)" : "var(--text-3)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{b.battery ? "รองรับแบต/Backup" : "ไม่รองรับแบต/Backup"}</div>

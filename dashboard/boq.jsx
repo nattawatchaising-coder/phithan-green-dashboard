@@ -535,7 +535,7 @@ function Meas3DModal({ list, targets, defaultTarget, onApply, onClose }) {
             const col = MEAS_KIND_COLOR[m.kind] || MEAS_KIND_COLOR.other;
             const rise = Math.abs(+m.rise || 0);
             return (
-              <div key={m.id} style={{ border: "1px solid var(--border)", borderRadius: 12, padding: "10px 12px", background: "var(--surface)",
+              <div key={m.id} style={{ border: "none", boxShadow: "var(--shadow-sm)", borderRadius: 12, padding: "10px 12px", background: "var(--surface)",
                 display: "grid", gridTemplateColumns: isMobile ? "1fr" : "minmax(0,1fr) 210px", gap: 10, alignItems: "center" }}>
                 <div style={{ minWidth: 0 }}>
                   <div style={{ display: "flex", alignItems: "center", gap: 7 }}>
@@ -2072,7 +2072,7 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
             );
             if (!check) return <div key={i}>{row}</div>;
             return (
-              <div key={i} style={{ border: "1px solid var(--border)", borderRadius: 12, padding: 9, background: "var(--surface2)" }}>
+              <div key={i} style={{ border: "none", boxShadow: "var(--shadow-sm)", borderRadius: 12, padding: 9, background: "var(--surface2)" }}>
                 {row}
                 <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 7, flexWrap: "wrap" }}>
                   <button onClick={() => setCondOpen((p) => Object.assign({}, p, { [kind + i]: !open }))}
@@ -2174,7 +2174,7 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
             const open = trayOpen[kind + i];
             const any = cbs.length > 0;
             return (
-              <div key={i} style={{ border: "1px solid var(--border)", borderRadius: 12, padding: 9, background: "var(--surface2)" }}>
+              <div key={i} style={{ border: "none", boxShadow: "var(--shadow-sm)", borderRadius: 12, padding: 9, background: "var(--surface2)" }}>
                 {x.auto ? (
                   <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap", minHeight: 36 }}>
                     <span style={{ fontSize: 12.5, fontWeight: 800, color: "var(--text-1)" }}>{String(x.size || "").trim()}</span>
@@ -2393,7 +2393,7 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
 
   // บล็อกกรอกงานโครงสร้าง (LADDER/WALKWAY/GUARD RAIL) — แต่ละ "จุด/แนว" = 1 แถว
   const StructBlock = ({ kind, label, color, addLabel, cols, blank, extra, spare, onSpare, extraItems, onExtraAdd, onExtraChange, onExtraDel }) => (
-    <div style={{ border: "1px solid var(--border)", borderRadius: 12, padding: 12, background: "var(--surface2)" }}>
+    <div style={{ border: "none", boxShadow: "var(--shadow-sm)", borderRadius: 12, padding: 12, background: "var(--surface2)" }}>
       <div style={{ display: "flex", alignItems: "center", gap: 7, marginBottom: 9 }}>
         <span style={{ width: 9, height: 9, borderRadius: 3, background: color }} />
         <span style={{ fontSize: 12.5, fontWeight: 800, color: "var(--text-1)" }}>{label}</span>
@@ -3844,7 +3844,7 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
                   })()}
                   {!power && showHint && open && (
                     <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap", padding: "8px 9px", marginTop: 1,
-                      background: "var(--surface2)", border: "1px solid var(--border)", borderRadius: 10 }}>
+                      background: "var(--surface2)", border: "none", boxShadow: "var(--shadow-sm)", borderRadius: 10 }}>
                       <div style={{ width: isMobile ? "100%" : 206, flexShrink: 0 }}>
                         <Dropdown value={method} onChange={(v) => setCab(i, "method", v)} options={methodOptions} placeholder="วิธีเดินสาย" wrap style={cabSelStyle} />
                       </div>
@@ -4158,7 +4158,7 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
                       {shown.length > 0 && (
                       <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "repeat(3, minmax(0,1fr))", gap: 9, alignItems: "start", marginBottom: hidden.length ? 12 : 0 }}>
                         {shown.map((bd) => (
-                          <div key={bd.key} style={{ border: "1px solid var(--border)", borderRadius: 12, padding: 10, background: "var(--surface2)",
+                          <div key={bd.key} style={{ border: "none", boxShadow: "var(--shadow-sm)", borderRadius: 12, padding: 10, background: "var(--surface2)",
                             display: "flex", flexDirection: "column", gap: 9 }}>
                             {numBox({ key: bd.key, name: bd.name, unit: bd.unit,
                               ph: (() => { const a = (st[bd.extraKey] || []).find((x) => x.auto && x.name === bd.name); return a ? "อัตโนมัติ " + a.qty : "0"; })() })}
@@ -4858,7 +4858,7 @@ function SteelSpecBlock({ st, setSteel }) {
         .map((k) => window.BOQ.steelName(k, sel[k])).join(" · ")
     : "ใช้ขนาดมาตรฐานทั้งหมด";
   return (
-    <div style={{ border: "1px solid var(--border)", borderRadius: 12, padding: open ? 12 : "10px 12px", background: "var(--surface2)" }}>
+    <div style={{ border: "none", boxShadow: "var(--shadow-sm)", borderRadius: 12, padding: open ? 12 : "10px 12px", background: "var(--surface2)" }}>
       <div style={{ display: "flex", alignItems: "center", gap: 9 }}>
         <button type="button" onClick={() => setOpen((v) => !v)}
           style={{ display: "inline-flex", alignItems: "center", gap: 5, background: "none", border: "none", color: "var(--text-2)",
@@ -4888,7 +4888,7 @@ function SteelSpecBlock({ st, setSteel }) {
           const nm = window.BOQ.steelName(k, cur);
           const isLen = !!S.barLen;
           return (
-            <div key={k} style={{ border: "1px solid var(--border)", borderRadius: 10, padding: "9px 10px", background: "var(--surface)" }}>
+            <div key={k} style={{ border: "none", boxShadow: "var(--shadow-sm)", borderRadius: 10, padding: "9px 10px", background: "var(--surface)" }}>
               <div style={{ fontSize: 11, fontWeight: 800, color: "var(--text-2)", marginBottom: 6 }}>{S.th}</div>
               <div style={{ display: "grid", gridTemplateColumns: S.thks.length ? (isLen ? "1fr 1fr 78px" : "1fr 1fr") : (isLen ? "1fr 78px" : "1fr"), gap: 6 }}>
                 <Dropdown value={cur.size == null || cur.size === "" ? S.dSize : cur.size}

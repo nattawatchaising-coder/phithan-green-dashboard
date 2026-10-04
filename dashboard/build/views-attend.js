@@ -262,7 +262,8 @@ function TmDaySheet({
   })), React.createElement("div", {
     style: {
       overflowX: "auto",
-      border: "1px solid var(--border)",
+      border: "none",
+      boxShadow: "var(--shadow-sm)",
       borderRadius: 13,
       background: "var(--surface)"
     }
@@ -554,7 +555,8 @@ function TmMonth({
   })), React.createElement("div", {
     style: {
       overflowX: "auto",
-      border: "1px solid var(--border)",
+      border: "none",
+      boxShadow: "var(--shadow-sm)",
       borderRadius: 13,
       background: "var(--surface)"
     }
@@ -1631,7 +1633,8 @@ function TmOtModal({
       maxHeight: "90vh",
       overflow: "auto",
       background: "var(--surface)",
-      border: "1px solid var(--border)",
+      border: "none",
+      boxShadow: "var(--shadow-sm)",
       borderRadius: 17,
       padding: 20
     }
@@ -1742,7 +1745,8 @@ function TmOtModal({
       padding: "11px 13px",
       borderRadius: 12,
       background: "var(--surface2)",
-      border: "1px solid var(--border)"
+      border: "none",
+      boxShadow: "var(--shadow-sm)"
     }
   }, React.createElement("div", {
     style: {
@@ -2283,7 +2287,8 @@ function TmOfficeCfg({
       padding: "11px 13px",
       borderRadius: 12,
       background: "var(--surface2)",
-      border: "1px solid var(--border)",
+      border: "none",
+      boxShadow: "var(--shadow-sm)",
       fontSize: 11.5,
       color: "var(--text-2)",
       lineHeight: 1.8
@@ -2430,7 +2435,8 @@ function TmWorkHours({
       padding: "11px 13px",
       borderRadius: 12,
       background: "var(--surface2)",
-      border: "1px solid var(--border)",
+      border: "none",
+      boxShadow: "var(--shadow-sm)",
       fontSize: 12,
       color: "var(--text-2)",
       lineHeight: 1.8
@@ -2444,7 +2450,8 @@ function TmWorkHours({
       padding: "11px 13px",
       borderRadius: 12,
       background: "var(--surface2)",
-      border: "1px solid var(--border)",
+      border: "none",
+      boxShadow: "var(--shadow-sm)",
       fontSize: 12,
       color: "var(--text-2)",
       lineHeight: 1.8
@@ -2522,7 +2529,8 @@ function TmWorkHours({
       padding: "11px 13px",
       borderRadius: 12,
       background: "var(--surface2)",
-      border: "1px solid var(--border)",
+      border: "none",
+      boxShadow: "var(--shadow-sm)",
       fontSize: 11.5,
       color: "var(--text-2)",
       lineHeight: 1.8
@@ -2805,7 +2813,8 @@ function TmOtPeriod({
   })), React.createElement("div", {
     style: {
       overflowX: "auto",
-      border: "1px solid var(--border)",
+      border: "none",
+      boxShadow: "var(--shadow-sm)",
       borderRadius: 13,
       background: "var(--surface)"
     }
@@ -3025,7 +3034,8 @@ function AttendView({
       padding: "11px 13px",
       borderRadius: 12,
       background: "var(--surface2)",
-      border: "1px solid var(--border)"
+      border: "none",
+      boxShadow: "var(--shadow-sm)"
     }
   }, React.createElement("span", {
     style: {
@@ -3130,7 +3140,8 @@ function AttendView({
     placeholder: "\u0E04\u0E49\u0E19\u0E2B\u0E32"
   })), React.createElement("div", {
     style: {
-      border: "1px solid var(--border)",
+      border: "none",
+      boxShadow: "var(--shadow-sm)",
       borderRadius: 13,
       overflow: "hidden",
       background: "var(--surface)"
@@ -3166,7 +3177,8 @@ function TmMyDays({
 }) {
   return React.createElement("div", {
     style: {
-      border: "1px solid var(--border)",
+      border: "none",
+      boxShadow: "var(--shadow-sm)",
       borderRadius: 13,
       overflow: "hidden",
       background: "var(--surface)"

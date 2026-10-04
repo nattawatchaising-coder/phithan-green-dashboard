@@ -1098,7 +1098,8 @@ function JobForm({
     return React.createElement("div", {
       style: {
         marginTop: 14,
-        border: "1px solid var(--border)",
+        border: "none",
+        boxShadow: "var(--shadow-sm)",
         borderRadius: 12,
         padding: 12,
         background: "var(--surface2)"
@@ -1357,7 +1358,8 @@ function Section({
   return React.createElement("div", {
     style: {
       background: "var(--surface)",
-      border: "1px solid var(--border)",
+      border: "none",
+      boxShadow: "var(--shadow-sm)",
       borderRadius: 14,
       padding: mob ? 14 : 18
     }
@@ -1663,7 +1665,8 @@ function TechManager({
       gap: 12,
       padding: "10px 13px",
       background: "var(--surface)",
-      border: "1px solid var(--border)",
+      border: "none",
+      boxShadow: "var(--shadow-sm)",
       borderRadius: 12
     }
   }, React.createElement("span", {
@@ -2068,7 +2071,8 @@ function BrandManager({
       gap: 12,
       padding: "11px 14px",
       background: "var(--surface)",
-      border: "1px solid var(--border)",
+      border: "none",
+      boxShadow: "var(--shadow-sm)",
       borderRadius: 12
     }
   }, React.createElement("span", {
@@ -2077,7 +2081,8 @@ function BrandManager({
       height: 36,
       borderRadius: 10,
       background: "var(--surface2)",
-      border: "1px solid var(--border)",
+      border: "none",
+      boxShadow: "var(--shadow-sm)",
       display: "grid",
       placeItems: "center",
       color: "var(--primary-dark)",

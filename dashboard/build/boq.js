@@ -979,7 +979,8 @@ function Meas3DModal({
     return React.createElement("div", {
       key: m.id,
       style: {
-        border: "1px solid var(--border)",
+        border: "none",
+        boxShadow: "var(--shadow-sm)",
         borderRadius: 12,
         padding: "10px 12px",
         background: "var(--surface)",
@@ -3662,7 +3663,8 @@ function BOQEditor({
       return React.createElement("div", {
         key: i,
         style: {
-          border: "1px solid var(--border)",
+          border: "none",
+          boxShadow: "var(--shadow-sm)",
           borderRadius: 12,
           padding: 9,
           background: "var(--surface2)"
@@ -3947,7 +3949,8 @@ function BOQEditor({
       return React.createElement("div", {
         key: i,
         style: {
-          border: "1px solid var(--border)",
+          border: "none",
+          boxShadow: "var(--shadow-sm)",
           borderRadius: 12,
           padding: 9,
           background: "var(--surface2)"
@@ -4589,7 +4592,8 @@ function BOQEditor({
     onExtraDel
   }) => React.createElement("div", {
     style: {
-      border: "1px solid var(--border)",
+      border: "none",
+      boxShadow: "var(--shadow-sm)",
       borderRadius: 12,
       padding: 12,
       background: "var(--surface2)"
@@ -7772,7 +7776,8 @@ function BOQEditor({
         padding: "8px 9px",
         marginTop: 1,
         background: "var(--surface2)",
-        border: "1px solid var(--border)",
+        border: "none",
+        boxShadow: "var(--shadow-sm)",
         borderRadius: 10
       }
     }, React.createElement("div", {
@@ -8610,7 +8615,8 @@ function BOQEditor({
       }, shown.map(bd => React.createElement("div", {
         key: bd.key,
         style: {
-          border: "1px solid var(--border)",
+          border: "none",
+          boxShadow: "var(--shadow-sm)",
           borderRadius: 12,
           padding: 10,
           background: "var(--surface2)",
@@ -10318,7 +10324,8 @@ function SteelSpecBlock({
   const summary = changed ? KINDS.filter(k => (sel[k] || {}).size || (sel[k] || {}).thk || (sel[k] || {}).barLen).map(k => window.BOQ.steelName(k, sel[k])).join(" · ") : "ใช้ขนาดมาตรฐานทั้งหมด";
   return React.createElement("div", {
     style: {
-      border: "1px solid var(--border)",
+      border: "none",
+      boxShadow: "var(--shadow-sm)",
       borderRadius: 12,
       padding: open ? 12 : "10px 12px",
       background: "var(--surface2)"
@@ -10407,7 +10414,8 @@ function SteelSpecBlock({
     return React.createElement("div", {
       key: k,
       style: {
-        border: "1px solid var(--border)",
+        border: "none",
+        boxShadow: "var(--shadow-sm)",
         borderRadius: 10,
         padding: "9px 10px",
         background: "var(--surface)"

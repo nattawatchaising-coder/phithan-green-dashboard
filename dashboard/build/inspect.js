@@ -378,7 +378,8 @@ function InspectionListModal({
     return React.createElement("div", {
       key: x.id,
       style: {
-        border: "1px solid var(--border)",
+        border: "none",
+        boxShadow: "var(--shadow-sm)",
         borderLeft: "3px solid " + (r ? r.color : "var(--border-strong)"),
         borderRadius: 12,
         background: "var(--surface)",
@@ -521,7 +522,8 @@ function InspectionListModal({
       textAlign: "left",
       padding: "10px 12px",
       borderRadius: 10,
-      border: "1px solid var(--border)",
+      border: "none",
+      boxShadow: "var(--shadow-sm)",
       background: "var(--surface2)",
       color: "var(--text-1)",
       fontFamily: "inherit",
@@ -1073,7 +1075,8 @@ function InspectionFormModal({
     }
   }, "+ \u0E40\u0E1E\u0E34\u0E48\u0E21\u0E02\u0E49\u0E2D")), React.createElement("div", {
     style: {
-      border: "1px solid var(--border)",
+      border: "none",
+      boxShadow: "var(--shadow-sm)",
       borderRadius: 11,
       background: "var(--surface)",
       overflow: "hidden"
@@ -1362,7 +1365,8 @@ function IrPhotoPicker({
   }, list.map(p => React.createElement("div", {
     key: p.id,
     style: {
-      border: "1px solid var(--border)",
+      border: "none",
+      boxShadow: "var(--shadow-sm)",
       borderRadius: 11,
       overflow: "hidden",
       background: "var(--surface)"

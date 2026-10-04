@@ -409,7 +409,7 @@ function StickerPicker({ onPick, onClose }) {
                 border: "1px solid " + (manage ? "var(--primary)" : "var(--border-strong)"), background: manage ? "var(--primary-soft)" : "var(--surface)", color: manage ? "var(--primary-dark)" : "var(--text-2)" }}>
               {manage ? "เสร็จแล้ว" : "จัดการ"}
             </button>
-            <button className="x-close" onClick={onClose} style={{ width: 34, height: 34, borderRadius: 10, border: "1px solid var(--border)", background: "var(--surface)", cursor: "pointer", display: "grid", placeItems: "center", color: "var(--text-2)" }}><Icon name="x" size={16} /></button>
+            <button className="x-close" onClick={onClose} style={{ width: 34, height: 34, borderRadius: 10, border: "none", boxShadow: "var(--shadow-sm)", background: "var(--surface)", cursor: "pointer", display: "grid", placeItems: "center", color: "var(--text-2)" }}><Icon name="x" size={16} /></button>
           </div>
         </div>
 
@@ -428,7 +428,7 @@ function StickerPicker({ onPick, onClose }) {
           </div>}
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(" + (isMobile ? 104 : 128) + "px,1fr))", gap: 10 }}>
             {shown.map((s) => (
-              <div key={s.id} style={{ position: "relative", background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 12, padding: 8, display: "flex", flexDirection: "column", gap: 6 }}>
+              <div key={s.id} style={{ position: "relative", background: "var(--surface)", border: "none", boxShadow: "var(--shadow-sm)", borderRadius: 12, padding: 8, display: "flex", flexDirection: "column", gap: 6 }}>
                 <button onClick={() => !manage && onPick(s)} disabled={manage}
                   style={{ border: "none", background: "var(--surface3)", borderRadius: 9, padding: 0, height: 76, cursor: manage ? "default" : "pointer", display: "grid", placeItems: "center", overflow: "hidden" }}>
                   <img src={s.src} alt={s.name} style={{ maxWidth: "100%", maxHeight: 76, objectFit: "contain" }} />
@@ -681,7 +681,7 @@ function AnnEditor({ shot, onSave, onClose }) {
             <div style={{ fontSize: 15, fontWeight: 800, color: "var(--text-1)", letterSpacing: "-.01em" }}>เขียนบนรูป</div>
             <div style={{ fontSize: 11.5, color: "var(--text-3)", marginTop: 1 }}>{curTool.hint}</div>
           </div>
-          <button className="x-close" onClick={onClose} style={{ width: 34, height: 34, borderRadius: 10, border: "1px solid var(--border)", background: "var(--surface)", cursor: "pointer", display: "grid", placeItems: "center", color: "var(--text-2)", flexShrink: 0 }}><Icon name="x" size={16} /></button>
+          <button className="x-close" onClick={onClose} style={{ width: 34, height: 34, borderRadius: 10, border: "none", boxShadow: "var(--shadow-sm)", background: "var(--surface)", cursor: "pointer", display: "grid", placeItems: "center", color: "var(--text-2)", flexShrink: 0 }}><Icon name="x" size={16} /></button>
         </div>
 
         <div style={{ flex: 1, overflow: "auto", padding: 14, background: "var(--surface2)", display: "grid", placeItems: "center" }}>

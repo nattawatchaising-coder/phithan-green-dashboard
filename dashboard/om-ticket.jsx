@@ -40,7 +40,7 @@ function OmPhotos({ ticketId, slot, currentUser, disabled }) {
       {!list.length && disabled && <div style={{ fontSize: 12, color: "var(--text-3)" }}>ไม่มีรูป</div>}
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(144px, 1fr))", gap: 10 }}>
         {list.map((p) => (
-          <div key={p.id} style={{ border: "1px solid var(--border)", borderRadius: 11, overflow: "hidden", background: "var(--surface)" }}>
+          <div key={p.id} style={{ border: "none", boxShadow: "var(--shadow-sm)", borderRadius: 11, overflow: "hidden", background: "var(--surface)" }}>
             <div style={{ position: "relative", background: "#0d1512" }}>
               <img src={p.dataUrl} alt={p.cap || "รูปหน้างาน"} style={{ width: "100%", height: 108, objectFit: "cover", display: "block" }} />
               {!disabled && (
@@ -85,7 +85,7 @@ function OmTicketReport({ ticket, site, role, currentUser, locked, onPatch, pape
   return (
     <React.Fragment>
       <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap", marginBottom: 12,
-        padding: "9px 11px", border: "1px solid var(--border)", borderRadius: 11, background: "var(--surface)" }}>
+        padding: "9px 11px", border: "none", boxShadow: "var(--shadow-sm)", borderRadius: 11, background: "var(--surface)" }}>
         <Icon name="file" size={14} color="#1B9B75" />
         <span style={{ flex: 1, minWidth: 140, fontSize: 12, color: "var(--text-3)", lineHeight: 1.5 }}>
           เลขเอกสารคือเลขใบนี้ <b style={{ color: "var(--text-1)" }}>{t.no}</b>
@@ -148,7 +148,7 @@ function OmTicketCard({ t, onOpen }) {
   return (
     <button onClick={() => onOpen(t)}
       style={{ width: "100%", textAlign: "left", fontFamily: "inherit", cursor: "pointer", marginBottom: 9,
-        border: "1px solid var(--border)", borderLeft: "3px solid " + sev.color, borderRadius: 12,
+        border: "none", boxShadow: "var(--shadow-sm)", borderLeft: "3px solid " + sev.color, borderRadius: 12,
         background: "var(--surface)", padding: "11px 12px" }}>
       <div style={{ display: "flex", alignItems: "center", gap: 7, marginBottom: 4 }}>
         <span style={{ fontFamily: "var(--mono)", fontSize: 11, color: "var(--text-3)" }}>{t.no}</span>
@@ -204,7 +204,7 @@ function OmJobFacts({ job, site }) {
 
   return (
     <React.Fragment>
-    <div style={{ border: "1px solid var(--border)", background: "var(--surface)", borderRadius: 13,
+    <div style={{ border: "none", boxShadow: "var(--shadow-sm)", background: "var(--surface)", borderRadius: 13,
       padding: isMobile ? 13 : 15, marginBottom: 16 }}>
       <div style={{ display: "flex", alignItems: "center", gap: 7, marginBottom: 12, flexWrap: "wrap" }}>
         <Icon name="sun" size={14} color="var(--primary)" />
@@ -434,7 +434,7 @@ function OmTicketModal({ ticket, site, job, users, role, currentUser, visits, on
             hint={site ? "" : "ไม่พบทะเบียนไซต์ ตรวจประกันอัตโนมัติไม่ได้"}>
             {guess && guess.note && (
               <div style={{ display: "flex", alignItems: "center", gap: 9, padding: "10px 12px", marginBottom: 12,
-                border: "1px solid var(--border)", background: "var(--surface)", borderRadius: 11 }}>
+                border: "none", boxShadow: "var(--shadow-sm)", background: "var(--surface)", borderRadius: 11 }}>
                 <Icon name="shield" size={15} color={window.omCoverTH(guess.cover).color} />
                 <span style={{ flex: 1, fontSize: 12.5, color: "var(--text-1)" }}>
                   ระบบตรวจให้: <b style={{ color: window.omCoverTH(guess.cover).color }}>{window.omCoverTH(guess.cover).th}</b>
@@ -557,7 +557,7 @@ function OmTicketModal({ ticket, site, job, users, role, currentUser, visits, on
                 {vSorted.map((v) => (
                   <button key={v.id} type="button" onClick={() => onOpenVisit && onOpenVisit(v.id)}
                     style={{ width: "100%", display: "flex", alignItems: "center", gap: 9, padding: "9px 10px", marginTop: 7,
-                      border: "1px solid var(--border)", borderRadius: 10, background: "var(--surface)",
+                      border: "none", boxShadow: "var(--shadow-sm)", borderRadius: 10, background: "var(--surface)",
                       cursor: "pointer", fontFamily: "inherit", textAlign: "left" }}>
                     <Icon name="file" size={14} color="var(--text-3)" />
                     <span style={{ flex: 1, minWidth: 0, fontSize: 12.5, fontWeight: 700, color: "var(--text-1)" }}>
@@ -700,7 +700,7 @@ function OmTicketBoard({ sites, jobById, users, ticketStore, visitStore, role, c
       {/* เปิดเรื่องใหม่ต้องเลือกไซต์ก่อนเสมอ — ใบแจ้งซ่อมที่ไม่ผูกไซต์ตรวจประกันไม่ได้ */}
       {canWrite && (
         <div style={{ display: "flex", alignItems: "center", gap: 9, flexWrap: "wrap",
-          border: "1px solid var(--border)", background: "var(--surface2)", borderRadius: 12, padding: "10px 12px" }}>
+          border: "none", boxShadow: "var(--shadow-sm)", background: "var(--surface2)", borderRadius: 12, padding: "10px 12px" }}>
           <span style={{ fontSize: 12.5, fontWeight: 700, color: "var(--text-2)" }}>เปิดเรื่องใหม่ให้ไซต์</span>
           <window.SearchPick value={newFor} onChange={setNewFor} minWidth={180}
             items={(sites || []).slice().sort((a, b) => String(a.name || "").localeCompare(String(b.name || ""), "th"))}

@@ -280,7 +280,8 @@ function PmTableRow({
       style: {
         marginBottom: 11,
         padding: 11,
-        border: "1px solid var(--border)",
+        border: "none",
+        boxShadow: "var(--shadow-sm)",
         borderRadius: 11,
         background: "var(--surface)"
       }
@@ -807,7 +808,8 @@ function PmSignRow({
     style: {
       marginBottom: 13,
       padding: 11,
-      border: "1px solid var(--border)",
+      border: "none",
+      boxShadow: "var(--shadow-sm)",
       borderRadius: 10,
       background: "var(--surface)"
     }
@@ -1644,7 +1646,8 @@ function PmHandoverModal({
   }, genPhotos.map((x, i) => React.createElement("div", {
     key: x.id,
     style: {
-      border: "1px solid var(--border)",
+      border: "none",
+      boxShadow: "var(--shadow-sm)",
       borderRadius: 10,
       padding: 9,
       background: "var(--surface)"

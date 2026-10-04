@@ -3012,7 +3012,8 @@ function TrashModal({
     key: j.id,
     style: {
       background: "var(--surface)",
-      border: "1px solid var(--border)",
+      border: "none",
+      boxShadow: "var(--shadow-sm)",
       borderRadius: 12,
       padding: 12
     }

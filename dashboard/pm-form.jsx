@@ -178,7 +178,7 @@ function PmTableRow({ table, hdr, row, no, mobile, secKey, photoIdx, photoBusy,
 
   if (mobile) {
     return (
-      <div style={{ marginBottom: 11, padding: 11, border: "1px solid var(--border)", borderRadius: 11, background: "var(--surface)" }}>
+      <div style={{ marginBottom: 11, padding: 11, border: "none", boxShadow: "var(--shadow-sm)", borderRadius: 11, background: "var(--surface)" }}>
         <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
           <span style={{ flex: 1, fontSize: 12, fontWeight: 800, color: "var(--text-1)" }}>แถวที่ {no}</span>
           {ok === null ? null : (
@@ -424,7 +424,7 @@ function PmSignRow({ block, value, onCommit }) {
   const [date, setDate] = React.useState(v.date || "");
   React.useEffect(() => { setName((value || {}).name || ""); setDate((value || {}).date || ""); }, [value]);
   return (
-    <div style={{ marginBottom: 13, padding: 11, border: "1px solid var(--border)", borderRadius: 10, background: "var(--surface)" }}>
+    <div style={{ marginBottom: 13, padding: 11, border: "none", boxShadow: "var(--shadow-sm)", borderRadius: 10, background: "var(--surface)" }}>
       <div style={{ fontSize: 12, fontWeight: 700, color: "var(--text-1)", marginBottom: 6 }}>
         {block.en} <span style={{ fontWeight: 400, color: "var(--text-3)" }}>({block.th})</span>
       </div>
@@ -859,7 +859,7 @@ function PmHandoverModal({ job, currentUser, onClose, onSummary }) {
                     ) : (
                       <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr", gap: 10 }}>
                         {genPhotos.map((x, i) => (
-                          <div key={x.id} style={{ border: "1px solid var(--border)", borderRadius: 10, padding: 9, background: "var(--surface)" }}>
+                          <div key={x.id} style={{ border: "none", boxShadow: "var(--shadow-sm)", borderRadius: 10, padding: 9, background: "var(--surface)" }}>
                             <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6 }}>
                               <span style={{ fontSize: 11.5, fontWeight: 800, color: "var(--text-2)" }}>#{i + 1}</span>
                               <span style={{ flex: 1, fontSize: 10.5, color: "var(--text-3)" }}>{x.byName || ""}</span>

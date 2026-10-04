@@ -133,7 +133,7 @@ function TmDaySheet({ date, setDate, cfg, users, currentUser }) {
         <TmStat label="ชั่วโมงรวม" value={Math.round(totalMins / 60)} unit="ชม." hint={noGps ? noGps + " ใบไม่มีพิกัด" : "ทุกใบมีพิกัด"} />
       </div>
 
-      <div style={{ overflowX: "auto", border: "1px solid var(--border)", borderRadius: 13, background: "var(--surface)" }}>
+      <div style={{ overflowX: "auto", border: "none", boxShadow: "var(--shadow-sm)", borderRadius: 13, background: "var(--surface)" }}>
         <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
           <thead>
             <tr style={{ background: "var(--surface2)" }}>
@@ -262,7 +262,7 @@ function TmMonth({ cfg, users, ot }) {
           hint={tot.noOut ? "ใบพวกนี้ชั่วโมงเป็นศูนย์ ต้องทักถามก่อนคิดค่าแรง" : ""} />
       </div>
 
-      <div style={{ overflowX: "auto", border: "1px solid var(--border)", borderRadius: 13, background: "var(--surface)" }}>
+      <div style={{ overflowX: "auto", border: "none", boxShadow: "var(--shadow-sm)", borderRadius: 13, background: "var(--surface)" }}>
         <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
           <thead>
             <tr style={{ background: "var(--surface2)" }}>
@@ -699,7 +699,7 @@ function TmOtModal({ rec, cfg, jobs, users, role, currentUser, onSave, onMove, o
   return (
     <div style={{ position: "fixed", inset: 0, zIndex: 90, background: "rgba(15,23,42,.45)", display: "grid", placeItems: "center", padding: 18 }} {...box}>
       <div style={{ width: "min(620px,100%)", maxHeight: "90vh", overflow: "auto", background: "var(--surface)",
-        border: "1px solid var(--border)", borderRadius: 17, padding: 20 }}>
+        border: "none", boxShadow: "var(--shadow-sm)", borderRadius: 17, padding: 20 }}>
 
         <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
           <div style={{ flex: 1 }}>
@@ -733,7 +733,7 @@ function TmOtModal({ rec, cfg, jobs, users, role, currentUser, onSave, onMove, o
           </label>
         </div>
 
-        <div style={{ marginTop: 12, padding: "11px 13px", borderRadius: 12, background: "var(--surface2)", border: "1px solid var(--border)" }}>
+        <div style={{ marginTop: 12, padding: "11px 13px", borderRadius: 12, background: "var(--surface2)", border: "none", boxShadow: "var(--shadow-sm)" }}>
           <div style={{ display: "flex", alignItems: "baseline", gap: 8, flexWrap: "wrap" }}>
             <span style={{ fontSize: 12, color: "var(--text-3)", fontWeight: 700 }}>นับเป็น OT</span>
             <span style={{ fontFamily: "var(--mono)", fontSize: 20, fontWeight: 800,
@@ -990,7 +990,7 @@ function TmOfficeCfg({ office, onChange }) {
       </div>
 
       <div style={{ marginTop: 9, padding: "11px 13px", borderRadius: 12, background: "var(--surface2)",
-        border: "1px solid var(--border)", fontSize: 11.5, color: "var(--text-2)", lineHeight: 1.8 }}>
+        border: "none", boxShadow: "var(--shadow-sm)", fontSize: 11.5, color: "var(--text-2)", lineHeight: 1.8 }}>
         {has
           ? <span>ตั้งไว้ที่ <b style={{ fontFamily: "var(--mono)" }}>{(+o.lat).toFixed(6)}, {(+o.lng).toFixed(6)}</b>
               {" "}· ปั๊มที่อยู่ในรัศมี <b>{o.radius == null ? 150 : o.radius} ม.</b> จะขึ้นว่า “ถึงออฟฟิศ”</span>
@@ -1050,7 +1050,7 @@ function TmWorkHours({ cfg, onSave }) {
 
       {/* วันตัดยอดเป็นค่าที่กรอกแล้วนึกภาพไม่ออกที่สุดในหน้านี้ — โชว์รอบปัจจุบันจริงให้ดูเลย */}
       <div style={{ padding: "11px 13px", borderRadius: 12, background: "var(--surface2)",
-        border: "1px solid var(--border)", fontSize: 12, color: "var(--text-2)", lineHeight: 1.8 }}>
+        border: "none", boxShadow: "var(--shadow-sm)", fontSize: 12, color: "var(--text-2)", lineHeight: 1.8 }}>
         รอบตัดยอดตอนนี้ <b>{window.tmPeriodTH(window.tmPeriodOf(window.drToday(), f))}</b>
         <br /><span style={{ color: "var(--text-3)" }}>
           {window.tmWhNorm(f).cutoffDay
@@ -1063,7 +1063,7 @@ function TmWorkHours({ cfg, onSave }) {
 
       {/* ตัวอย่างจริงสองเคส — ค่าตั้งชุดนี้อ่านจากช่องเปล่า ๆ แล้วนึกภาพไม่ออกว่าแปลว่าอะไร */}
       <div style={{ padding: "11px 13px", borderRadius: 12, background: "var(--surface2)",
-        border: "1px solid var(--border)", fontSize: 12, color: "var(--text-2)", lineHeight: 1.8 }}>
+        border: "none", boxShadow: "var(--shadow-sm)", fontSize: 12, color: "var(--text-2)", lineHeight: 1.8 }}>
         เข้า {f.startEarly} → เลิก <b>{window.tmWhNorm(f).end}</b>
         <span style={{ color: "var(--text-3)" }}> (ทำงาน {window.tmDur(f.workMins)} + พัก {window.tmDur(f.lunchMins)})</span>
         <br />เข้า {f.startLate} → เลิก <b>{window.tmDayWindow({ in: { hm: f.startLate } }, f).end}</b>
@@ -1098,7 +1098,7 @@ function TmWorkHours({ cfg, onSave }) {
           ))}
         </div>
         <div style={{ marginTop: 9, padding: "11px 13px", borderRadius: 12, background: "var(--surface2)",
-          border: "1px solid var(--border)", fontSize: 11.5, color: "var(--text-2)", lineHeight: 1.8 }}>
+          border: "none", boxShadow: "var(--shadow-sm)", fontSize: 11.5, color: "var(--text-2)", lineHeight: 1.8 }}>
           ค่าตั้งต้นเป็นอัตราตามกฎหมายแรงงานไทย (พ.ร.บ.คุ้มครองแรงงาน ม.61-63) —
           ล่วงเวลาวันทำงาน 1.5 เท่า · ทำงานวันหยุด 2 เท่า · ล่วงเวลาในวันหยุด 3 เท่า
           <br /><span style={{ color: "var(--text-3)" }}>
@@ -1220,7 +1220,7 @@ function TmOtPeriod({ cfg, users, jobs, rows, byName }) {
           hint={tot.waiting ? "ต้องกดอนุมัติในระบบก่อน ไม่ใช่แค่เซ็นบนกระดาษ" : ""} />
       </div>
 
-      <div style={{ overflowX: "auto", border: "1px solid var(--border)", borderRadius: 13, background: "var(--surface)" }}>
+      <div style={{ overflowX: "auto", border: "none", boxShadow: "var(--shadow-sm)", borderRadius: 13, background: "var(--surface)" }}>
         <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
           <thead>
             <tr style={{ background: "var(--surface2)" }}>
@@ -1363,7 +1363,7 @@ function AttendView({ jobs, users, role, currentUser }) {
       </div>
 
       <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center",
-        padding: "11px 13px", borderRadius: 12, background: "var(--surface2)", border: "1px solid var(--border)" }}>
+        padding: "11px 13px", borderRadius: 12, background: "var(--surface2)", border: "none", boxShadow: "var(--shadow-sm)" }}>
         <span style={{ fontSize: 12.5, fontWeight: 700, color: "var(--text-2)" }}>ขอทำงานล่วงเวลา</span>
         <button onClick={openNew} disabled={!window.tmCanOt(role)}
           style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "9px 15px", borderRadius: 10, border: "none",
@@ -1405,7 +1405,7 @@ function AttendView({ jobs, users, role, currentUser }) {
             <Icon name="search" size={15} color="var(--text-3)" />
             <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="ค้นหา" />
           </div>
-          <div style={{ border: "1px solid var(--border)", borderRadius: 13, overflow: "hidden", background: "var(--surface)" }}>
+          <div style={{ border: "none", boxShadow: "var(--shadow-sm)", borderRadius: 13, overflow: "hidden", background: "var(--surface)" }}>
             {list.length === 0
               ? <div style={{ padding: 34, textAlign: "center", color: "var(--text-3)", fontSize: 13 }}>
                   {tab === "inbox" ? "ไม่มีใบรอคุณอนุมัติ" : "ยังไม่มีใบ OT"}
@@ -1425,7 +1425,7 @@ function AttendView({ jobs, users, role, currentUser }) {
    ตั้งใจให้มี ไม่ใช่ซ่อนแท็บทิ้ง เพราะทุกคนต้องตรวจเวลาตัวเองย้อนหลังได้ */
 function TmMyDays({ rows, cfg }) {
   return (
-    <div style={{ border: "1px solid var(--border)", borderRadius: 13, overflow: "hidden", background: "var(--surface)" }}>
+    <div style={{ border: "none", boxShadow: "var(--shadow-sm)", borderRadius: 13, overflow: "hidden", background: "var(--surface)" }}>
       {(rows || []).length === 0
         ? <div style={{ padding: 34, textAlign: "center", color: "var(--text-3)", fontSize: 13 }}>ยังไม่มีประวัติการลงเวลา — ลงเวลาได้จากแอปในไลน์</div>
         : (rows || []).map((r) => (

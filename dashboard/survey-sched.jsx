@@ -727,11 +727,11 @@ function MyScheduleView({ appts, jobs, leads, me, onMenuOpen, onStatus, onOpenSu
       <SchedHeader icon="list" title="ตารางงาน" onMenuOpen={onMenuOpen} sub={sub} />
       <div className="app-content">
         {!techId ? (
-          <div style={{ padding: 40, textAlign: "center", color: "var(--text-3)", fontSize: 14, background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 14 }}>
+          <div style={{ padding: 40, textAlign: "center", color: "var(--text-3)", fontSize: 14, background: "var(--surface)", border: "none", boxShadow: "var(--shadow-sm)", borderRadius: 14 }}>
             บัญชีของคุณยังไม่ได้ผูกกับข้อมูลพนักงาน · กรุณาให้แอดมินตั้งค่าในเมนูจัดการผู้ใช้งาน
           </div>
         ) : items.length === 0 ? (
-          <div style={{ padding: 44, textAlign: "center", color: "var(--text-3)", background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 16 }}>
+          <div style={{ padding: 44, textAlign: "center", color: "var(--text-3)", background: "var(--surface)", border: "none", boxShadow: "var(--shadow-sm)", borderRadius: 16 }}>
             <div style={{ fontSize: 30, marginBottom: 6 }}>🎉</div>
             <div style={{ fontSize: 14, fontWeight: 600 }}>ไม่มีงานในความรับผิดชอบตอนนี้</div>
           </div>

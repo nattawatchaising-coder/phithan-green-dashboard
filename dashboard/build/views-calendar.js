@@ -612,7 +612,8 @@ function MobileCalendar({
       width: 34,
       height: 34,
       borderRadius: 10,
-      border: "1px solid var(--border)",
+      border: "none",
+      boxShadow: "var(--shadow-sm)",
       background: "var(--surface)",
       cursor: "pointer",
       display: "grid",
@@ -661,7 +662,8 @@ function FlowLegend() {
       padding: "10px 14px",
       background: "var(--surface2)",
       borderRadius: 12,
-      border: "1px solid var(--border)",
+      border: "none",
+      boxShadow: "var(--shadow-sm)",
       flexWrap: "wrap"
     }
   }, React.createElement("span", {
@@ -707,7 +709,8 @@ function NavBtn({
       width: 34,
       height: 34,
       borderRadius: 10,
-      border: "1px solid var(--border)",
+      border: "none",
+      boxShadow: "var(--shadow-sm)",
       background: "var(--surface)",
       cursor: "pointer",
       display: "grid",

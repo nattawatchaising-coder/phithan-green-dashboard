@@ -384,7 +384,7 @@ function GdLesson({ n, lesson, color, onGo }) {
   const [open, setOpen] = React.useState(true);
   const L = lesson;
   return (
-    <div style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 14, overflow: "hidden" }}>
+    <div style={{ background: "var(--surface)", border: "none", boxShadow: "var(--shadow-sm)", borderRadius: 14, overflow: "hidden" }}>
       <button onClick={() => setOpen((v) => !v)}
         style={{ display: "flex", alignItems: "center", gap: 11, width: "100%", textAlign: "left", padding: "13px 15px",
           background: "none", border: "none", cursor: "pointer", fontFamily: "inherit" }}>
@@ -551,7 +551,7 @@ function GuideView({ role, currentUser, onNav }) {
     <div style={{ display: "flex", flexDirection: "column", gap: 14, minHeight: 0 }}>
 
       {/* วิธีใช้คู่มือนี้สอน — เขียนถึง "คนสอน" ไม่ใช่คนเรียน */}
-      <div style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 14, padding: "14px 16px" }}>
+      <div style={{ background: "var(--surface)", border: "none", boxShadow: "var(--shadow-sm)", borderRadius: 14, padding: "14px 16px" }}>
         <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
           <Icon name="sparkle" size={16} color="var(--primary-dark)" />
           <b style={{ fontSize: 14.5, color: "var(--text-1)" }}>วิธีใช้คู่มือนี้สอน</b>

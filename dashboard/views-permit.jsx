@@ -314,7 +314,7 @@ function PermitBoardMobile({ cols, byCol, counts, onOpen }) {
         const col = byCol(c.key);
         const isOpen = openCol === c.key;
         return (
-          <div key={c.key} style={{ borderRadius: 14, background: "var(--surface2)", border: "1px solid var(--border)", overflow: "hidden" }}>
+          <div key={c.key} style={{ borderRadius: 14, background: "var(--surface2)", border: "none", boxShadow: "var(--shadow-sm)", overflow: "hidden" }}>
             <button onClick={() => setOpenCol(isOpen ? null : c.key)}
               style={{ width: "100%", padding: "13px 14px", display: "flex", alignItems: "center", justifyContent: "space-between",
                 gap: 8, background: "none", border: "none", cursor: "pointer", fontFamily: "inherit", textAlign: "left",
@@ -468,7 +468,7 @@ function PermitJobFiles({ jobId }) {
         const k = KIND[f.kind] || KIND.other;
         return (
           <div key={f.id} style={{ display: "flex", gap: 10, alignItems: "center", padding: "9px 11px", borderRadius: 11,
-            background: "var(--surface)", border: "1px solid var(--border)", borderLeft: "3px solid " + k.color }}>
+            background: "var(--surface)", border: "none", boxShadow: "var(--shadow-sm)", borderLeft: "3px solid " + k.color }}>
             <span style={{ fontSize: 9.5, fontWeight: 800, color: k.color, background: k.color + "14", padding: "4px 8px", borderRadius: 6, flexShrink: 0 }}>{k.th}</span>
             <span style={{ flex: 1, minWidth: 0 }}>
               <span style={{ display: "block", fontSize: 12.5, fontWeight: 700, color: "var(--text-1)",

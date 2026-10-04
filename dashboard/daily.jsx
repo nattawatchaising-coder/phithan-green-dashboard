@@ -580,7 +580,7 @@ function DrSignPad({ title, hint, saved, onSave, onClose, remember, onRemember }
 
         {/* มีลายเซ็นที่บันทึกไว้ในตั้งค่าอยู่แล้ว — กดใช้ได้เลย ไม่ต้องเซ็นใหม่ */}
         {saved && saved.img && (
-          <div style={{ margin: "4px 16px 0", padding: "9px 11px", borderRadius: 11, border: "1px solid var(--border)",
+          <div style={{ margin: "4px 16px 0", padding: "9px 11px", borderRadius: 11, border: "none", boxShadow: "var(--shadow-sm)",
             background: "var(--surface2)", display: "flex", alignItems: "center", gap: 11 }}>
             <img src={saved.img} alt="" style={{ height: 32, maxWidth: 120, objectFit: "contain" }} />
             <span style={{ flex: 1, minWidth: 0, fontSize: 11.5, color: "var(--text-3)" }}>ลายเซ็นที่บันทึกไว้</span>

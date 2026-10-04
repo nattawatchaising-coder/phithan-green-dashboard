@@ -695,7 +695,8 @@ function PermitSampleModal({
       width: "min(420px, 100%)",
       background: "var(--surface)",
       borderRadius: 18,
-      border: "1px solid var(--border)",
+      border: "none",
+      boxShadow: "var(--shadow-sm)",
       overflow: "hidden"
     }
   }, React.createElement("div", {

@@ -268,7 +268,8 @@ function OmWarrantyTable({
     return React.createElement("div", {
       key: w.id,
       style: {
-        border: "1px solid var(--border)",
+        border: "none",
+        boxShadow: "var(--shadow-sm)",
         borderRadius: 12,
         background: "var(--surface)",
         padding: "11px 12px"
@@ -578,7 +579,8 @@ function OmCleanVisits({
     return React.createElement("div", {
       key: v.id,
       style: {
-        border: "1px solid var(--border)",
+        border: "none",
+        boxShadow: "var(--shadow-sm)",
         borderRadius: 12,
         background: "var(--surface)",
         padding: "10px 12px",
@@ -952,7 +954,8 @@ function OmSiteModal({
       gap: 9,
       padding: "11px 13px",
       marginBottom: 14,
-      border: "1px solid var(--border)",
+      border: "none",
+      boxShadow: "var(--shadow-sm)",
       background: "var(--surface2)",
       borderRadius: 12
     }
@@ -1294,7 +1297,8 @@ function OmSiteModal({
         gap: 9,
         padding: "9px 10px",
         marginBottom: 7,
-        border: "1px solid var(--border)",
+        border: "none",
+        boxShadow: "var(--shadow-sm)",
         borderRadius: 10,
         background: "var(--surface)",
         cursor: "pointer",
@@ -1387,7 +1391,8 @@ function OmSiteModal({
         gap: 9,
         padding: "9px 10px",
         marginBottom: 7,
-        border: "1px solid var(--border)",
+        border: "none",
+        boxShadow: "var(--shadow-sm)",
         borderRadius: 10,
         background: "var(--surface)",
         cursor: "pointer",
@@ -1593,7 +1598,8 @@ function OmCleanView({
     return React.createElement("div", {
       key: a.site.id + "-" + i,
       style: {
-        border: "1px solid var(--border)",
+        border: "none",
+        boxShadow: "var(--shadow-sm)",
         borderLeft: "3px solid " + c,
         borderRadius: 11,
         background: "var(--surface)",
@@ -2672,7 +2678,8 @@ function OmView({
     size: 14
   }), " \u0E2D\u0E2D\u0E01 Excel")), tab === "sites" && React.createElement("div", {
     style: {
-      border: "1px solid var(--border)",
+      border: "none",
+      boxShadow: "var(--shadow-sm)",
       borderRadius: 14,
       background: "var(--surface2)",
       overflow: "hidden"

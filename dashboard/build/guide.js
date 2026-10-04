@@ -221,7 +221,8 @@ function GdLesson({
   return React.createElement("div", {
     style: {
       background: "var(--surface)",
-      border: "1px solid var(--border)",
+      border: "none",
+      boxShadow: "var(--shadow-sm)",
       borderRadius: 14,
       overflow: "hidden"
     }
@@ -629,7 +630,8 @@ function GuideView({
   }, React.createElement("div", {
     style: {
       background: "var(--surface)",
-      border: "1px solid var(--border)",
+      border: "none",
+      boxShadow: "var(--shadow-sm)",
       borderRadius: 14,
       padding: "14px 16px"
     }
