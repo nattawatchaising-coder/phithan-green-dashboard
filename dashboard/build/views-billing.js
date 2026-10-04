@@ -807,7 +807,9 @@ function BlPhotoPick({
       disabled: on,
       style: {
         padding: 0,
-        border: "2px solid " + (on ? "var(--primary)" : "var(--border)"),
+        border: "none",
+        outline: on ? "2px solid var(--primary)" : "none",
+        outlineOffset: -2,
         borderRadius: "var(--r-tile)",
         overflow: "hidden",
         background: "var(--surface2)",

@@ -60,9 +60,9 @@ function StockKpi({ label, value, unit, icon, accent, sub, active, onClick }) {
   return (
     <div onClick={onClick} onMouseEnter={() => setHov(true)} onMouseLeave={() => setHov(false)}
       style={{ background: active ? accent + "0e" : "var(--surface)",
-        border: "1px solid " + (active || hov ? accent : "transparent"),
+        border: "none",
         borderRadius: mob ? 14 : 16, padding: mob ? 14 : 18,
-        boxShadow: active ? "0 0 0 3px " + accent + "22" : hov ? "0 4px 12px rgba(0,0,0,.08)" : "var(--shadow-sm)",
+        boxShadow: active ? "inset 0 0 0 1px " + accent + ", 0 0 0 3px " + accent + "22" : hov ? "inset 0 0 0 1px " + accent + ", 0 4px 12px rgba(0,0,0,.08)" : "var(--shadow-sm)",
         position: "relative", overflow: "hidden", cursor: onClick ? "pointer" : "default",
         transform: hov && onClick ? "translateY(-2px)" : "none",
         transition: "transform .14s, border-color .14s, box-shadow .14s, background .14s" }}>
@@ -628,7 +628,7 @@ function CatChip({ active, onClick, label, color, count }) {
   const mob = window.matchMedia("(max-width: 860px)").matches;
   return (
     <button onClick={onClick} style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: mob ? "5px 11px" : "6px 13px", borderRadius: "var(--r-pill)",
-      border: "1px solid " + (active ? color : "transparent"), background: active ? color + "16" : "var(--surface)", boxShadow: active ? "none" : "var(--shadow-sm)",
+      border: "none", background: active ? color + "16" : "var(--surface)", boxShadow: active ? "inset 0 0 0 1px " + color : "var(--shadow-sm)",
       color: active ? color : "var(--text-2)", fontSize: mob ? 11.5 : 12.5, fontWeight: 600, cursor: "pointer", fontFamily: "inherit", whiteSpace: "nowrap", flexShrink: 0 }}>
       {label}
       {count != null && <span style={{ fontSize: mob ? 10 : 10.5, fontWeight: 700, lineHeight: 1.5, color: active ? color : "var(--text-3)",
@@ -652,7 +652,7 @@ function StockCardList({ rows, imgs, onOpen, onEdit, onRemove }) {
         const st = g ? g.st : lowState(it);
         return (
           <div key={it.id} style={{ background: st === "out" ? "rgba(239,68,68,.07)" : "var(--surface)",
-            border: "1px solid " + (st === "out" ? "rgba(239,68,68,.22)" : "transparent"), borderRadius: "var(--r-tile)", padding: 13,
+            border: "none", borderRadius: "var(--r-tile)", padding: 13,
             borderLeft: "3px solid " + STOCK_COLORS[st], boxShadow: "var(--shadow-sm)" }}>
             {/* หัว: ชื่อ + SKU + หมวด */}
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 8 }}>
@@ -711,7 +711,7 @@ function CatDropdown({ cat, setCat, items, cats }) {
     <div style={{ position: "relative", width: "100%" }}>
       <button onClick={() => setOpen((v) => !v)}
         style={{ width: "100%", display: "flex", alignItems: "center", gap: 9, fontFamily: "inherit", fontSize: 13.5, fontWeight: 600,
-          color: "var(--text-1)", background: "var(--surface)", border: "1px solid " + (open ? "var(--primary)" : "transparent"), boxShadow: open ? "none" : "var(--shadow-sm)",
+          color: "var(--text-1)", background: "var(--surface)", border: "none", boxShadow: open ? "inset 0 0 0 1px var(--primary)" : "var(--shadow-sm)",
           borderRadius: "var(--r-tile)", padding: "10px 13px", outline: "none", cursor: "pointer" }}>
         <span style={{ width: 9, height: 9, borderRadius: "var(--r-pill)", background: cur.color, flexShrink: 0 }} />
         <span>{cur.th}</span>

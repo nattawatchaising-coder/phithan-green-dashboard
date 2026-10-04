@@ -476,7 +476,7 @@ function GdHandout({ track, onClose }) {
         padding: "11px 14px", background: "var(--surface)", borderBottom: "1px solid var(--divider)",
         marginBottom: isMobile ? 0 : 16, borderRadius: isMobile ? 0 : 12, maxWidth: 900, marginLeft: "auto", marginRight: "auto",
         boxShadow: "var(--shadow-sm)" }}>
-        <button className="x-close" onClick={onClose} style={{ width: 36, height: 36, borderRadius: "var(--r-chip)", border: "1px solid var(--border-strong)",
+        <button className="x-close" onClick={onClose} style={{ width: 36, height: 36, borderRadius: "var(--r-chip)", border: "none", boxShadow: "var(--shadow-sm)",
           background: "var(--surface)", cursor: "pointer", display: "grid", placeItems: "center", color: "var(--text-2)", flexShrink: 0 }}>
           <Icon name="x" size={16} />
         </button>

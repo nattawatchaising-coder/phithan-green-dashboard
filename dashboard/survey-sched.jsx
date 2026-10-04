@@ -278,7 +278,7 @@ function DispatchView({ appts, jobs, techs, store, leadStore, onMenuOpen, onOpen
                   return (
                     <button key={a.id} onClick={() => setEdit(Object.assign({}, a))}
                       style={{ textAlign: "left", cursor: "pointer", fontFamily: "inherit", width: "100%", padding: 13, borderRadius: "var(--r-tile)",
-                        background: "var(--surface)", border: "1px solid " + (clash ? "#EF4444" : "var(--border)"), boxShadow: clash ? "0 0 0 3px #EF444418" : "var(--shadow-sm)", display: "flex", flexDirection: "column", gap: 6 }}>
+                        background: "var(--surface)", border: "none", boxShadow: clash ? "inset 0 0 0 1px var(--mark-danger), 0 0 0 3px var(--tint-red-bg)" : "var(--shadow-sm)", display: "flex", flexDirection: "column", gap: 6 }}>
                       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
                         <span style={{ fontFamily: "var(--mono)", fontSize: 13.5, fontWeight: 800, color: "var(--text-1)" }}>{_hm(a.start)}–{_hm(a.end)}</span>
                         <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
@@ -320,7 +320,7 @@ function DispatchView({ appts, jobs, techs, store, leadStore, onMenuOpen, onOpen
                     return (
                       <button key={a.id} onClick={() => setEdit(Object.assign({}, a))}
                         style={{ textAlign: "left", cursor: "pointer", fontFamily: "inherit", padding: 11, borderRadius: "var(--r-chip)",
-                          background: "var(--surface)", border: "1px solid " + (clash ? "#EF4444" : "var(--border)"), boxShadow: clash ? "0 0 0 3px #EF444418" : "var(--shadow-sm)" }}>
+                          background: "var(--surface)", border: "none", boxShadow: clash ? "inset 0 0 0 1px var(--mark-danger), 0 0 0 3px var(--tint-red-bg)" : "var(--shadow-sm)" }}>
                         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 6 }}>
                           <span style={{ fontFamily: "var(--mono)", fontSize: 13, fontWeight: 800, color: "var(--text-1)" }}>{_hm(a.start)}–{_hm(a.end)}</span>
                           <span style={{ fontSize: 10, fontWeight: 700, color: stt.color, background: stt.color + "16", padding: "2px 8px", borderRadius: "var(--r-pill)" }}>{stt.th}</span>

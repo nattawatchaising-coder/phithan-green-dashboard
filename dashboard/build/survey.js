@@ -1505,7 +1505,8 @@ function AnnEditor({
       background: c,
       transition: "transform .12s",
       transform: color === c ? "scale(1.14)" : "none",
-      border: color === c ? "2.5px solid var(--primary-dark)" : "1px solid rgba(0,0,0,.18)"
+      border: "none",
+      boxShadow: color === c ? "0 0 0 2px var(--surface), 0 0 0 4px var(--primary-dark)" : "inset 0 0 0 1px rgba(0,0,0,.18)"
     }
   }))), React.createElement("span", {
     style: {

@@ -5,9 +5,9 @@
    ตั้งใจไม่พึ่งไลบรารีนอก เพราะรายงานต้องออกได้แม้เน็ตหน้างานไม่ดี
    ตัวเลขทุกตัวรับมาจากหน้าจอที่คำนวณไว้แล้ว ไม่คำนวณซ้ำ — รายงานกับหน้าจอจึงตรงกันเสมอ
 
-   สีในไฟล์นี้เขียนเป็นรหัสสีตรง ๆ ไม่ใช้ var(--…) เพราะหน้าต่างรายงานเป็นเอกสารคนละใบ
-   ไม่ได้โหลด CSS ของแอป ตัวแปรจึงไม่มีค่า → fill/stroke ตกกลับเป็นสีดำหมด
-   (สีแดงในแผนภาพค่าสูญเสียเคยกลายเป็นสีดำเพราะเรื่องนี้)
+   หน้าต่างรายงานเป็นเอกสารคนละใบ ไม่ได้โหลด CSS ของแอป — สีกระดาษ --paper-* จึงประกาศซ้ำไว้ใน :root ของ RP_CSS
+   ใช้ var(--paper-*) ได้เฉพาะใน CSS (RP_CSS และ style="…") · แอตทริบิวต์ SVG fill="…"/stroke="…" ไม่รับ var()
+   ต้องเป็นรหัสสีตรง ๆ (ไม่งั้นตกเป็นสีดำ — สีแดงในแผนภาพค่าสูญเสียเคยเป็นแบบนี้)
    ส่วนสีที่หลุดมาจากไฟล์อื่น (เช่นชุดสีสตริงใน solarui) กันไว้อีกชั้นด้วย :root ใน RP_CSS
    ============================================================ */
 const RP_ESC = (s) => String(s == null ? "" : s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
@@ -173,7 +173,7 @@ function rpDayLight(sim, groups) {
     '<path d="' + path(net) + '" fill="none" stroke="#1B9B75" stroke-width="2"/>' +
     ticks.map((h) => '<text x="' + X(h).toFixed(1) + '" y="' + (H - B + 13) + '" text-anchor="middle" font-size="8.5" fill="#8A968F">' + h + ":00</text>").join("") +
     '<text x="' + (L - 6) + '" y="' + (T - 2) + '" text-anchor="end" font-size="8" fill="#8A968F">W/m²</text></svg>' +
-    '<p class="legend"><b style="color:#A8B4AE">┅</b> แสงบนพื้นราบ &nbsp;&nbsp; <b style="color:#1B9B75">━</b> แสงบนหน้าแผงจริง (หลังหักเงา)' +
+    '<p class="legend"><b style="color:#A8B4AE">┅</b> แสงบนพื้นราบ &nbsp;&nbsp; <b style="color:var(--paper-brand)">━</b> แสงบนหน้าแผงจริง (หลังหักเงา)' +
     (sim.shadeFrom != null ? ' &nbsp;&nbsp; <b style="color:#475569">▨</b> ส่วนที่เงาบังกินไป' : "") + "</p>" +
     /* แถบเงารายชั่วโมงรายกลุ่ม */
     (sim.shadeFrom != null
@@ -186,8 +186,8 @@ function rpDayLight(sim, groups) {
           }).join("") + "</span></td></tr>").join("") +
         "</table>" +
         '<p class="legend"><span style="float:left">' + ivHM(h0) + '</span><span style="float:right">' + ivHM(h1) + "</span>" +
-        '<b style="color:#EDF1EF">■</b> ไม่มีเงา &nbsp; <b style="color:#FDE68A">■</b> บังบางส่วน &nbsp; ' +
-        '<b style="color:#F59E0B">■</b> บังมาก &nbsp; <b style="color:#DC2626">■</b> บังเกือบหมด</p>'
+        '<b style="color:var(--paper-line3)">■</b> ไม่มีเงา &nbsp; <b style="color:#FDE68A">■</b> บังบางส่วน &nbsp; ' +
+        '<b style="color:var(--paper-warn)">■</b> บังมาก &nbsp; <b style="color:var(--paper-bad-tx)">■</b> บังเกือบหมด</p>'
       : "");
 }
 
@@ -240,7 +240,7 @@ function rpDayPower(mo, acKw) {
       '<text x="' + X(h).toFixed(1) + '" y="' + (H - B + 13) + '" text-anchor="middle" font-size="8.5" fill="#8A968F">' + h + ":00</text>").join("") +
     "</svg>" +
     '<p class="legend"><b style="color:#148080">━</b> กำลังไฟที่ออกจากอินเวอร์เตอร์ (AC) &nbsp;&nbsp; ' +
-    '<b style="color:#1B9B75">┅</b> กำลังไฟจากแผง (DC) &nbsp;&nbsp; <b style="color:#C4342B">━</b> อุณหภูมิเซลล์ (แกนขวา)</p>';
+    '<b style="color:var(--paper-brand)">┅</b> กำลังไฟจากแผง (DC) &nbsp;&nbsp; <b style="color:#C4342B">━</b> อุณหภูมิเซลล์ (แกนขวา)</p>';
 }
 
 /* ── แผนที่ทั้งปี เดือน × ชั่วโมง ──
@@ -265,8 +265,8 @@ function rpYearMap(year, mode) {
   }).join("");
   const legend = mode === "shade"
     ? '<b style="color:#E8F5ED">■</b> ไม่มีเงา &nbsp; <b style="color:#FDE68A">■</b> บังบางส่วน &nbsp; ' +
-      '<b style="color:#F59E0B">■</b> บังมาก &nbsp; <b style="color:#DC2626">■</b> บังเกือบหมด &nbsp;·&nbsp; ขวาสุด = เสียไปกี่ % ของเดือนนั้น'
-    : 'อ่อน = แดดน้อย &nbsp; <b style="color:#4AB37A">■</b> ปานกลาง &nbsp; <b style="color:#F59E0B">■</b> แรงสุด ' +
+      '<b style="color:var(--paper-warn)">■</b> บังมาก &nbsp; <b style="color:var(--paper-bad-tx)">■</b> บังเกือบหมด &nbsp;·&nbsp; ขวาสุด = เสียไปกี่ % ของเดือนนั้น'
+    : 'อ่อน = แดดน้อย &nbsp; <b style="color:#4AB37A">■</b> ปานกลาง &nbsp; <b style="color:var(--paper-warn)">■</b> แรงสุด ' +
       year.maxPoa + " W/m² &nbsp;·&nbsp; ขวาสุด = ผลผลิตทั้งเดือน (kWh)";
   return '<table class="ymap"><tr><td class="mo"></td><td><span class="hm hdr">' + hdr + '</span></td><td class="mv"></td></tr>' +
     rows + '</table><p class="legend">' + legend + "</p>";
@@ -1816,11 +1816,19 @@ const RP_CSS = `
   --bg:#F4F6F5; --surface:#fff; --surface2:#F7FAF8; --surface3:#EDF1EF;
   --border:#E3E9E6; --border-strong:#D8E0DB; --ln:#E3E9E6;
   --mono:'IBM Plex Mono',ui-monospace,monospace;
+  /* สีกระดาษชุดเดียวกับ tokens.css (--paper-*) — หน้าต่างนี้ไม่โหลด tokens.css จึงต้องประกาศซ้ำ ค่าต้องตรงกัน */
+  --paper-bg:#FFFFFF; --paper-ink:#15211A; --paper-ink2:#4A5A51; --paper-ink3:#5A6B62;
+  --paper-mute:#7A8A81; --paper-mute2:#8A9A91;
+  --paper-line:#DCE4DF; --paper-line2:#C9D5CE; --paper-line3:#ECF1EE; --paper-tint:#F7FAF8;
+  --paper-brand:#1B9B75; --paper-brand-dk:#0A4D68;
+  --paper-ok:#10B981; --paper-ok-tx:#15803D;
+  --paper-warn:#F59E0B; --paper-warn-tx:#B45309; --paper-warn-tx2:#92400E; --paper-warn-bg:#FEF3C7;
+  --paper-bad:#EF4444; --paper-bad-tx:#B91C1C; --paper-bad-bg:#FEF2F2;
 }
 *{box-sizing:border-box;margin:0;padding:0}
-body{font-family:'IBM Plex Sans Thai','Sarabun','Noto Sans Thai','Segoe UI',sans-serif;color:#16211D;background:#F4F6F5;
+body{font-family:'IBM Plex Sans Thai','Sarabun','Noto Sans Thai','Segoe UI',sans-serif;color:var(--paper-ink);background:#F4F6F5;
   font-size:11.5px;line-height:1.6;-webkit-print-color-adjust:exact;print-color-adjust:exact}
-.sec,.foot{background:#fff;max-width:820px;margin:0 auto 14px;padding:24px 30px}
+.sec,.foot{background:var(--paper-bg);max-width:820px;margin:0 auto 14px;padding:24px 30px}
 
 /* ── หน้าปก: เขียวเข้มเต็มหน้า ตัวเลขเด่นตัวเดียว แล้วค่อยเป็นภาพจริง ── */
 .cover{max-width:820px;margin:0 auto 14px;background:#0A3B29;color:#fff;position:relative;overflow:hidden;
@@ -1833,9 +1841,9 @@ body{font-family:'IBM Plex Sans Thai','Sarabun','Noto Sans Thai','Segoe UI',sans
 .cv-bar{display:flex;align-items:center;justify-content:space-between;gap:16px;
   padding-bottom:16px;border-bottom:1px solid rgba(255,255,255,.16)}
 .brand{display:flex;align-items:center;gap:11px}
-.brand .mark{width:36px;height:36px;object-fit:contain;display:block;background:#fff;border-radius:9px;padding:4px}
+.brand .mark{width:36px;height:36px;object-fit:contain;display:block;background:var(--paper-bg);border-radius:9px;padding:4px}
 /* โลโก้เต็มชุดบนแถบเข้ม — ตัวหนังสือในรูปเป็นสีเขียวเข้ม ต้องมีแผ่นขาวรองถึงจะอ่านออก */
-.brand .lock{height:34px;width:auto;display:block;background:#fff;border-radius:9px;padding:4px}
+.brand .lock{height:34px;width:auto;display:block;background:var(--paper-bg);border-radius:9px;padding:4px}
 /* ชื่อแบรนด์ต้องอยู่บรรทัดเดียว — เครื่องหมาย + ห่อด้วย <span> เพื่อให้เป็นสีเขียว
    กฎ .brand span เดิมจับ span ตัวนั้นด้วย จึงดัน + เป็นบล็อก แล้วหักเป็น flash / + / solar สามบรรทัด
    ต้องเจาะจงเฉพาะบรรทัดคำโปรยที่เป็นลูกตรงของ div และกัน nowrap ไว้อีกชั้น */
@@ -1868,11 +1876,11 @@ h1{font-size:33px;font-weight:700;letter-spacing:-.6px;line-height:1.28}
 .cv-meta i{font-style:normal;font-size:8.5px;font-weight:600;color:#63D89B;letter-spacing:.14em;text-transform:uppercase}
 
 .kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:9px}
-.kpi{border:1px solid #E3E8E6;border-radius:9px;padding:10px 12px;display:flex;flex-direction:column;gap:2px}
+.kpi{border:1px solid var(--paper-line);border-radius:9px;padding:10px 12px;display:flex;flex-direction:column;gap:2px}
 .kpi.hi{background:#F0F9F4;border-color:#BFE3CE}
-.kpi .k{font-size:9.5px;font-weight:600;color:#7A8781}
+.kpi .k{font-size:9.5px;font-weight:600;color:var(--paper-mute)}
 .kpi .v{font-size:17px;font-weight:700;letter-spacing:-.3px}
-.kpi .v small{font-size:9.5px;font-weight:600;color:#8A968F;margin-left:3px}
+.kpi .v small{font-size:9.5px;font-weight:600;color:var(--paper-mute2);margin-left:3px}
 /* ตัดหน้าให้สวยตอนพิมพ์: ห้ามหัวข้ออยู่ท้ายหน้าโดด ๆ · ห้ามแถวตารางถูกผ่ากลาง · หัวตารางซ้ำทุกหน้า */
 h2,h3{break-after:avoid;page-break-after:avoid}
 .kpis,.ivbox,.two,.note,.ok-box,ul.find li,.legend,table.ymap{break-inside:avoid;page-break-inside:avoid}
@@ -1880,65 +1888,65 @@ table.t tr{break-inside:avoid;page-break-inside:avoid}
 table.t thead{display:table-header-group}
 /* กราฟกับคำอธิบายใต้กราฟต้องอยู่หน้าเดียวกัน ไม่ให้เส้นกราฟค้างท้ายหน้าแล้วคำอธิบายไปหน้าใหม่ */
 .chart{break-inside:avoid;page-break-inside:avoid;break-after:avoid;page-break-after:avoid}
-h2{font-size:14.5px;font-weight:700;display:flex;align-items:center;gap:9px;padding-bottom:9px;margin-bottom:13px;border-bottom:2px solid #16211D}
-h2 .no{width:20px;height:20px;border-radius:99px;background:#1B9B75;color:#fff;display:grid;place-items:center;font-size:10.5px;font-weight:700}
-h2 small{margin-left:auto;font-size:10px;font-weight:600;color:#7A8781}
-h3{font-size:11.5px;font-weight:700;margin:15px 0 7px;color:#3A4A43}
+h2{font-size:14.5px;font-weight:700;display:flex;align-items:center;gap:9px;padding-bottom:9px;margin-bottom:13px;border-bottom:2px solid var(--paper-ink)}
+h2 .no{width:20px;height:20px;border-radius:99px;background:var(--paper-brand);color:#fff;display:grid;place-items:center;font-size:10.5px;font-weight:700}
+h2 small{margin-left:auto;font-size:10px;font-weight:600;color:var(--paper-mute)}
+h3{font-size:11.5px;font-weight:700;margin:15px 0 7px;color:var(--paper-ink2)}
 .two{display:grid;grid-template-columns:1fr 1fr;gap:16px}
 table.t{width:100%;border-collapse:collapse;font-size:10.5px;margin-bottom:4px}
-table.t th{text-align:left;font-size:9px;font-weight:700;color:#7A8781;text-transform:uppercase;letter-spacing:.04em;
-  padding:0 7px 5px;border-bottom:1px solid #C9D3CD;white-space:nowrap}
-table.t td{padding:4.5px 7px;border-bottom:1px solid #EEF1F0;font-variant-numeric:tabular-nums;vertical-align:top}
-table.t tbody tr:nth-child(even){background:#FAFBFB}
+table.t th{text-align:left;font-size:9px;font-weight:700;color:var(--paper-mute);text-transform:uppercase;letter-spacing:.04em;
+  padding:0 7px 5px;border-bottom:1px solid var(--paper-line2);white-space:nowrap}
+table.t td{padding:4.5px 7px;border-bottom:1px solid var(--paper-line3);font-variant-numeric:tabular-nums;vertical-align:top}
+table.t tbody tr:nth-child(even){background:var(--paper-tint)}
 td.ok{color:#12794A;font-weight:700}
 td.warn{color:#A35A08;font-weight:700}
 td.bad{color:#B3261E;font-weight:700}
-.note{font-size:9.5px;line-height:1.65;color:#6C7A74;margin-top:7px;padding-left:9px;border-left:2px solid #E3E8E6}
+.note{font-size:9.5px;line-height:1.65;color:var(--paper-mute);margin-top:7px;padding-left:9px;border-left:2px solid var(--paper-line)}
 .chart{width:100%;display:block;margin:6px 0 10px}
-.legend{font-size:9px;color:#6C7A74;margin:-4px 0 10px;overflow:hidden}
-.lgd{display:flex;flex-wrap:wrap;gap:4px 14px;align-items:center;font-size:9px;color:#3A4A43;margin:-4px 0 10px}
+.legend{font-size:9px;color:var(--paper-mute);margin:-4px 0 10px;overflow:hidden}
+.lgd{display:flex;flex-wrap:wrap;gap:4px 14px;align-items:center;font-size:9px;color:var(--paper-ink2);margin:-4px 0 10px}
 .lgd span{display:inline-flex;align-items:center;gap:5px;font-weight:600}
 .lgd i{width:9px;height:9px;border-radius:2px;flex:0 0 auto}
 .lgd i.dash{width:14px;height:0;border-radius:0;border-top:1.5px dashed #0F172A;opacity:.6}
 table.strip{width:100%;border-collapse:collapse;font-size:9.5px;margin-bottom:2px}
 table.strip td{padding:2px 6px 2px 0;vertical-align:middle}
-table.strip td:first-child{width:150px;color:#3A4A43;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+table.strip td:first-child{width:150px;color:var(--paper-ink2);font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .bar{display:flex;height:12px;border-radius:4px;overflow:hidden}
 .bar i{flex:1;display:block}
 td .dot{display:inline-block;width:7px;height:7px;border-radius:99px;margin-right:6px;vertical-align:middle}
 /* แผนที่ทั้งปี: เดือน × ชั่วโมง */
 table.ymap{width:100%;border-collapse:collapse;margin:6px 0 2px}
 table.ymap td{padding:1.5px 0;vertical-align:middle;border:0}
-table.ymap td.mo{width:30px;font-size:9px;font-weight:700;color:#6C7A74;text-align:right;padding-right:7px;white-space:nowrap}
-table.ymap td.mv{width:44px;font-size:9px;font-weight:700;color:#3A4A43;text-align:right;padding-left:7px;white-space:nowrap}
+table.ymap td.mo{width:30px;font-size:9px;font-weight:700;color:var(--paper-mute);text-align:right;padding-right:7px;white-space:nowrap}
+table.ymap td.mv{width:44px;font-size:9px;font-weight:700;color:var(--paper-ink2);text-align:right;padding-left:7px;white-space:nowrap}
 table.ymap td.mv.warn{color:#A35A08}
 table.ymap td.mv.bad{color:#B3261E}
 .hm{display:flex;gap:.6px;height:12px;border-radius:3px;overflow:hidden}
 .hm i{flex:1;display:block}
 .hm.hdr{height:11px;background:none;gap:.6px}
-.hm.hdr i{font-size:7.5px;font-style:normal;font-weight:700;color:#8A968F;text-align:center;line-height:11px}
+.hm.hdr i{font-size:7.5px;font-style:normal;font-weight:700;color:var(--paper-mute2);text-align:center;line-height:11px}
 /* กรอบรายชื่อเส้น + กำลัง — แทนตัวเลขลอยบนกราฟที่ทับกันเวลามีหลายเส้น */
-.ivlegend{display:flex;flex-wrap:wrap;gap:4px 14px;border:1px solid #E3E8E6;border-radius:9px;
+.ivlegend{display:flex;flex-wrap:wrap;gap:4px 14px;border:1px solid var(--paper-line);border-radius:9px;
   padding:8px 11px;margin:2px 0 8px;font-size:9.5px;break-inside:avoid;page-break-inside:avoid}
-.ivlegend span{display:flex;align-items:center;gap:5px;font-weight:650;color:#3A4A43;white-space:nowrap}
+.ivlegend span{display:flex;align-items:center;gap:5px;font-weight:650;color:var(--paper-ink2);white-space:nowrap}
 .ivlegend i{width:12px;height:3px;border-radius:2px;display:block;flex:0 0 auto}
 .ivlegend i.dash{background:repeating-linear-gradient(90deg,#A8B4AE 0 4px,transparent 4px 7px)}
-.ivlegend b{font-weight:800;color:#16211D;font-variant-numeric:tabular-nums}
-.ivlegend .stc{color:#8A968F;font-weight:600}
+.ivlegend b{font-weight:800;color:var(--paper-ink);font-variant-numeric:tabular-nums}
+.ivlegend .stc{color:var(--paper-mute2);font-weight:600}
 .ivgrid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:10px}
-.ivbox{border:1px solid #E3E8E6;border-radius:9px;padding:8px 10px}
+.ivbox{border:1px solid var(--paper-line);border-radius:9px;padding:8px 10px}
 .ivh{font-size:10.5px;font-weight:700;margin-bottom:2px}
 .ivh b{color:#12794A}
 ul.find{list-style:none;display:flex;flex-direction:column;gap:7px;margin-top:6px}
 ul.find li{font-size:10.5px;line-height:1.6;padding:8px 11px;border-radius:8px;border-left:3px solid}
 ul.find li.warn{background:#FDF7EC;border-color:#D9911F}
 ul.find li.bad{background:#FCF0EF;border-color:#B3261E}
-ul.find li i{color:#6C7A74}
-.ok-box{font-size:10.5px;font-weight:600;color:#12794A;background:#F0F9F4;border-left:3px solid #1B9B75;border-radius:8px;padding:8px 11px;margin-top:6px}
-.foot{font-size:9.5px;color:#6C7A74;line-height:1.7}
-.foot .sig{margin-top:22px;padding-top:14px;border-top:1px solid #E3E8E6;font-size:10.5px;color:#16211D}
+ul.find li i{color:var(--paper-mute)}
+.ok-box{font-size:10.5px;font-weight:600;color:#12794A;background:#F0F9F4;border-left:3px solid var(--paper-brand);border-radius:8px;padding:8px 11px;margin-top:6px}
+.foot{font-size:9.5px;color:var(--paper-mute);line-height:1.7}
+.foot .sig{margin-top:22px;padding-top:14px;border-top:1px solid var(--paper-line);font-size:10.5px;color:var(--paper-ink)}
 @media print{
-  body{background:#fff;font-size:10.5px}
+  body{background:var(--paper-bg);font-size:10.5px}
   .sec,.foot{max-width:none;margin:0;padding:0 0 10px;page-break-after:auto}
   .sec{padding-top:10px}
   /* หน้าปกสีเขียวกินเต็มแผ่น ไม่มีขอบขาว — ตั้งขอบกระดาษเป็น 0 เฉพาะหน้าปก ด้วย @page ที่ตั้งชื่อไว้
@@ -2024,8 +2032,8 @@ function SuReportView({ html, title, onClose }) {
 
   return (
     <div style={{ position: "fixed", inset: 0, zIndex: 260, background: "rgba(8,20,14,.62)", display: "flex", flexDirection: "column" }}>
-      <div style={{ display: "flex", gap: 9, alignItems: "center", padding: "11px 14px", background: "var(--surface)", borderBottom: "1px solid var(--border)", flexShrink: 0 }}>
-        <button className="x-close" onClick={onClose} title="ปิด" style={{ width: 36, height: 36, borderRadius: "var(--r-chip)", border: "1px solid var(--border-strong)", background: "var(--surface)", cursor: "pointer", display: "grid", placeItems: "center", color: "var(--text-2)", fontSize: 16, lineHeight: 1, flexShrink: 0 }}>✕</button>
+      <div style={{ display: "flex", gap: 9, alignItems: "center", padding: "11px 14px", background: "var(--surface)", borderBottom: "1px solid var(--divider)", flexShrink: 0 }}>
+        <button className="x-close" onClick={onClose} title="ปิด" style={{ width: 36, height: 36, borderRadius: "var(--r-chip)", border: "none", boxShadow: "var(--shadow-sm)", background: "var(--surface)", cursor: "pointer", display: "grid", placeItems: "center", color: "var(--text-2)", fontSize: 16, lineHeight: 1, flexShrink: 0 }}>✕</button>
         <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{ fontSize: 13.5, fontWeight: 800, color: "var(--text-1)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{title || "รายงานออกแบบระบบ"}</div>
           <div style={{ fontSize: 11, color: "var(--text-3)" }}>{ready ? "กดปุ่มแล้วเลือก “บันทึกเป็น PDF”" : "กำลังจัดหน้ารายงาน…"}</div>

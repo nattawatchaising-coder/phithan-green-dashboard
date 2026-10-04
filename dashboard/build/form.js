@@ -912,9 +912,9 @@ function JobForm({
           fontSize: 12.5,
           fontWeight: 800,
           background: filled ? s.color : "var(--surface2)",
-          border: "2px solid " + (filled ? s.color : "var(--border-strong)"),
+          border: "none",
           color: filled ? "#fff" : "var(--text-3)",
-          boxShadow: current ? "0 0 0 4px " + (s.soft || "var(--primary-soft)") : "none",
+          boxShadow: current ? "0 0 0 4px " + (s.soft || "var(--primary-soft)") : filled ? "none" : "var(--shadow-inset)",
           transition: "all .15s"
         }
       }, passed ? React.createElement(Icon, {
@@ -1926,9 +1926,9 @@ function TechEditModal({
       height: 30,
       borderRadius: "var(--r-pill)",
       background: c,
-      border: f.color === c ? "3px solid var(--text-1)" : "3px solid transparent",
+      border: "none",
       cursor: "pointer",
-      boxShadow: "0 0 0 1px var(--border)"
+      boxShadow: f.color === c ? "0 0 0 2px var(--surface), 0 0 0 4px var(--text-1)" : "none"
     }
   }))))), React.createElement("div", {
     style: {

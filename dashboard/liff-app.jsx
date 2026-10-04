@@ -262,7 +262,7 @@ function LnBellFab({ unread, on, onClick }) {
         /* ตอนเปิดอยู่ใช้เขียวเข้ม (--primary-dark) ไม่ใช่เขียวสด (--primary)
            เพราะเขียวสดเป็นสีของ "ปุ่มกดแล้วมีอะไรเกิดขึ้น" ทั้งแอป
            ปุ่มนี้แค่สลับหน้า ทาสีเดียวกันแล้วมันแย่งสายตาไปจากปุ่มจริง ๆ และดูจัดจ้านเกิน */
-        border: "1px solid " + (on ? "var(--primary-dark)" : "var(--border)"),
+        border: "none",
         background: on ? "var(--primary-dark)" : "var(--surface)",
         boxShadow: moving ? "0 12px 28px rgba(8,20,14,.3)" : "0 6px 20px rgba(8,20,14,.2)",
         display: "grid", placeItems: "center",
@@ -954,7 +954,7 @@ function LnOtForm({ me, users, cfg, jobs, otStore, limit, onClose }) {
             ตัวที่กันจริงคือ tmOtInLimit ที่ปิดปุ่มส่ง — บรรทัดนี้บอกว่าทำไมถึงกด */}
         {locked && (
           <div style={{ padding: "11px 14px", borderRadius: 16, fontSize: 11.5, lineHeight: 1.7,
-            border: "1px solid " + (inLimit ? "var(--border)" : "transparent"),
+            border: "none",
             background: inLimit ? "var(--surface)" : "var(--tint-amber-bg)",
             boxShadow: inLimit ? "var(--soft)" : "none",
             color: inLimit ? "var(--text-3)" : "var(--tint-amber-tx)" }}>

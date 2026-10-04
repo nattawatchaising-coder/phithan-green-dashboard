@@ -337,7 +337,7 @@ function LnBellFab({
       cursor: moving ? "grabbing" : "grab",
       touchAction: "none",
       WebkitTapHighlightColor: "transparent",
-      border: "1px solid " + (on ? "var(--primary-dark)" : "var(--border)"),
+      border: "none",
       background: on ? "var(--primary-dark)" : "var(--surface)",
       boxShadow: moving ? "0 12px 28px rgba(8,20,14,.3)" : "0 6px 20px rgba(8,20,14,.2)",
       display: "grid",
@@ -1443,7 +1443,7 @@ function LnOtForm({
       borderRadius: 16,
       fontSize: 11.5,
       lineHeight: 1.7,
-      border: "1px solid " + (inLimit ? "var(--border)" : "transparent"),
+      border: "none",
       background: inLimit ? "var(--surface)" : "var(--tint-amber-bg)",
       boxShadow: inLimit ? "var(--soft)" : "none",
       color: inLimit ? "var(--text-3)" : "var(--tint-amber-tx)"

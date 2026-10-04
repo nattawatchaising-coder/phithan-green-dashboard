@@ -331,8 +331,8 @@ function TableMobile({ jobs, sort, setSort, onOpen, onEdit, onDelete, onSetStage
         const pc = permitMode ? permitCellOf(j) : null;
         const s = permitMode ? { color: pc.color, fg: pc.color, soft: pc.color + "14", th: pc.th } : stageOf(j.stage);
         return (
-          <div key={j.id} style={{ background: j.delayed ? "#FEF7F7" : "var(--surface)",
-            border: "1px solid " + (j.delayed ? "var(--tint-red-bd2)" : "var(--border)"), borderRadius: "var(--r-tile)", padding: 13,
+          <div key={j.id} style={{ background: j.delayed ? "var(--tint-red-bg)" : "var(--surface)",
+            border: "none", borderRadius: "var(--r-tile)", padding: 13,
             borderLeft: "3px solid " + (j.delayed ? "var(--mark-danger)" : s.color), boxShadow: "var(--shadow-sm)" }}>
             {/* หัว: รหัส + ประเภท + ปุ่มจัดการ */}
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 8 }}>

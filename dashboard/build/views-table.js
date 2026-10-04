@@ -765,8 +765,8 @@ function TableMobile({
     return React.createElement("div", {
       key: j.id,
       style: {
-        background: j.delayed ? "#FEF7F7" : "var(--surface)",
-        border: "1px solid " + (j.delayed ? "var(--tint-red-bd2)" : "var(--border)"),
+        background: j.delayed ? "var(--tint-red-bg)" : "var(--surface)",
+        border: "none",
         borderRadius: "var(--r-tile)",
         padding: 13,
         borderLeft: "3px solid " + (j.delayed ? "var(--mark-danger)" : s.color),

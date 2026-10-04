@@ -777,7 +777,7 @@ function OmCleanView({ sites, cleanStore, role, onOpenSite }) {
               return (
                 <button key={i} onClick={() => setSel(k)}
                   style={{ minHeight: isMobile ? 62 : 92, borderRadius: "var(--r-chip)", textAlign: "left", fontFamily: "inherit", cursor: "pointer",
-                    border: isSel ? "2px solid var(--primary)" : "1px solid " + (isToday ? "var(--primary)" : "var(--border)"),
+                    border: "none", boxShadow: isSel ? "inset 0 0 0 2px var(--primary)" : isToday ? "inset 0 0 0 1px var(--primary)" : "none",
                     background: isSel || isToday ? "var(--primary-soft)" : "var(--surface2)", padding: 7,
                     display: "flex", flexDirection: "column", gap: 3, overflow: "hidden" }}>
                   <span style={{ fontSize: 12, fontWeight: isToday || isSel ? 800 : 600,

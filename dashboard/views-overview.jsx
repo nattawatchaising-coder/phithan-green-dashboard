@@ -29,9 +29,9 @@ function KpiCard({ label, value, unit, icon, accent, sub, alert, onClick }) {
   const mob = window.matchMedia("(max-width: 860px)").matches;
   return (
     <div onClick={onClick}
-      style={{ background: "var(--surface)", border: "1px solid " + (alert ? "#FCA5A5" : "var(--border)"),
+      style={{ background: "var(--surface)", border: "none",
       borderRadius: mob ? 14 : 16, padding: mob ? 14 : 20, position: "relative", overflow: "hidden",
-      cursor: onClick ? "pointer" : "default", boxShadow: "var(--shadow-sm)" }}>
+      cursor: onClick ? "pointer" : "default", boxShadow: alert ? "inset 0 0 0 1px var(--tint-red-bd), var(--shadow-sm)" : "var(--shadow-sm)" }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 8 }}>
         <span style={{ fontSize: mob ? 11 : 12, fontWeight: 600, color: "var(--text-2)", lineHeight: 1.3, minWidth: 0 }}>{label}</span>
         <span style={{ width: mob ? 28 : 34, height: mob ? 28 : 34, borderRadius: mob ? 8 : 10, background: accent + "16", display: "grid", placeItems: "center", flexShrink: 0 }}>

@@ -376,8 +376,8 @@ function JobForm({ initial, isNew, onSave, onClose, onManageTechs, onManageBrand
                       {/* rail */}
                       <div style={{ display: "flex", flexDirection: "column", alignItems: "center", flexShrink: 0, width: 28 }}>
                         <span style={{ width: 28, height: 28, borderRadius: "var(--r-pill)", flexShrink: 0, display: "grid", placeItems: "center", fontSize: 12.5, fontWeight: 800,
-                          background: filled ? s.color : "var(--surface2)", border: "2px solid " + (filled ? s.color : "var(--border-strong)"),
-                          color: filled ? "#fff" : "var(--text-3)", boxShadow: current ? "0 0 0 4px " + (s.soft || "var(--primary-soft)") : "none", transition: "all .15s" }}>
+                          background: filled ? s.color : "var(--surface2)", border: "none",
+                          color: filled ? "#fff" : "var(--text-3)", boxShadow: current ? "0 0 0 4px " + (s.soft || "var(--primary-soft)") : filled ? "none" : "var(--shadow-inset)", transition: "all .15s" }}>
                           {passed ? <Icon name="check" size={14} color="#fff" sw={3} /> : (i + 1)}
                         </span>
                         {!isLast && <span style={{ flex: 1, width: 2, minHeight: 18, background: passed ? s.color : "var(--border)", margin: "3px 0" }} />}
@@ -663,7 +663,7 @@ function TechEditModal({ initial, colors, onSave, onClose }) {
           <Field label="สีประจำตัว">
             <div style={{ display: "flex", gap: 9, flexWrap: "wrap" }}>
               {colors.map((c) => (
-                <button type="button" key={c} onClick={() => set("color", c)} style={{ width: 30, height: 30, borderRadius: "var(--r-pill)", background: c, border: f.color === c ? "3px solid var(--text-1)" : "3px solid transparent", cursor: "pointer", boxShadow: "0 0 0 1px var(--border)" }} />
+                <button type="button" key={c} onClick={() => set("color", c)} style={{ width: 30, height: 30, borderRadius: "var(--r-pill)", background: c, border: "none", cursor: "pointer", boxShadow: f.color === c ? "0 0 0 2px var(--surface), 0 0 0 4px var(--text-1)" : "none" }} />
               ))}
             </div>
           </Field>

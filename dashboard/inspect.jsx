@@ -274,7 +274,7 @@ function InspectionListModal({ job, currentUser, onClose }) {
                 {job.code} · {job.name}
               </div>
             </div>
-            <button className="x-close" onClick={onClose} aria-label="ปิด" style={{ flexShrink: 0, width: 32, height: 32, borderRadius: "var(--r-chip)", border: "1px solid var(--border-strong)",
+            <button className="x-close" onClick={onClose} aria-label="ปิด" style={{ flexShrink: 0, width: 32, height: 32, borderRadius: "var(--r-chip)", border: "none", boxShadow: "var(--shadow-sm)",
               background: "var(--surface)", color: "var(--text-2)", cursor: "pointer", fontFamily: "inherit", fontSize: 16, lineHeight: 1 }}>×</button>
           </div>
 
@@ -465,7 +465,7 @@ function InspectionFormModal({ job, rec, currentUser, onSave, onClose }) {
                 {job.code} · {job.name}
               </div>
             </div>
-            <button className="x-close" onClick={onClose} aria-label="ปิด" style={{ flexShrink: 0, width: 32, height: 32, borderRadius: "var(--r-chip)", border: "1px solid var(--border-strong)",
+            <button className="x-close" onClick={onClose} aria-label="ปิด" style={{ flexShrink: 0, width: 32, height: 32, borderRadius: "var(--r-chip)", border: "none", boxShadow: "var(--shadow-sm)",
               background: "var(--surface)", color: "var(--text-2)", cursor: "pointer", fontFamily: "inherit", fontSize: 16, lineHeight: 1 }}>×</button>
           </div>
 

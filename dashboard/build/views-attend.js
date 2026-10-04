@@ -693,7 +693,8 @@ function TmMonth({
         borderRadius: 9,
         minHeight: 58,
         background: wk && !x ? "var(--surface2)" : "var(--surface)",
-        border: "1px solid " + (open ? "var(--tint-red-bd)" : x ? "var(--border)" : "transparent"),
+        border: "none",
+        boxShadow: open ? "inset 0 0 0 1px var(--tint-red-bd)" : x ? "var(--shadow-sm)" : "none",
         opacity: x ? 1 : 0.45
       }
     }, React.createElement("div", {

@@ -47,13 +47,13 @@ function KpiCard({
     onClick: onClick,
     style: {
       background: "var(--surface)",
-      border: "1px solid " + (alert ? "#FCA5A5" : "var(--border)"),
+      border: "none",
       borderRadius: mob ? 14 : 16,
       padding: mob ? 14 : 20,
       position: "relative",
       overflow: "hidden",
       cursor: onClick ? "pointer" : "default",
-      boxShadow: "var(--shadow-sm)"
+      boxShadow: alert ? "inset 0 0 0 1px var(--tint-red-bd), var(--shadow-sm)" : "var(--shadow-sm)"
     }
   }, React.createElement("div", {
     style: {

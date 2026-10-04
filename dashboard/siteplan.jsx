@@ -1302,9 +1302,9 @@ function SitePlanEditor({ job, onClose, currentUser }) {
         title={label}
         style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "8px 13px", borderRadius: 10, cursor: "pointer", fontFamily: "inherit",
           fontSize: 12.5, fontWeight: 700, whiteSpace: "nowrap", transition: "background .14s, color .14s, border-color .14s",
-          border: "1px solid " + (on ? "var(--primary)" : "var(--border)"),
+          border: "none",
           background: on ? "var(--primary)" : "var(--surface)", color: on ? "#fff" : "var(--text-2)",
-          boxShadow: on ? "0 2px 8px rgba(27,155,117,.28)" : "none" }}>
+          boxShadow: on ? "0 2px 8px rgba(27,155,117,.28)" : "var(--shadow-sm)" }}>
         <Icon name={icon} size={14} color={on ? "#fff" : "var(--text-3)"} />{label}
       </button>
     );
@@ -1588,7 +1588,7 @@ function SitePlanEditor({ job, onClose, currentUser }) {
                   <span style={{ color: "var(--text-2)", fontWeight: 700 }}>สีสตริง</span>
                   {PLAN_LINK_COLORS.map((c) => (
                     <button key={c} onClick={() => setLinkColor(c)} title={c}
-                      style={{ width: 22, height: 22, borderRadius: 6, cursor: "pointer", background: c, border: linkColor === c ? "2px solid var(--text-1)" : "2px solid transparent", boxShadow: linkColor === c ? "0 0 0 1px #fff inset" : "none" }} />
+                      style={{ width: 22, height: 22, borderRadius: 6, cursor: "pointer", background: c, border: "none", boxShadow: linkColor === c ? "0 0 0 2px var(--surface), 0 0 0 4px var(--text-1)" : "none" }} />
                   ))}
                   <span style={{ display: "inline-flex", alignItems: "center", gap: 5, color: "var(--text-2)", fontWeight: 700 }}>
                     <span style={{ width: 22, height: 4, borderRadius: 2, background: PLAN_AC_TRUNK_COLOR }} /> AC เมน (→ คอมบายเนอร์)
@@ -2370,12 +2370,12 @@ function SitePlanEditor({ job, onClose, currentUser }) {
                 <div onClick={(e) => e.stopPropagation()} style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center", justifyContent: "center" }}>
                   {[["free", "✏️ ปากกา"], ["line", "📏 เส้นสายไฟ"], ["text", "🆎 ข้อความ"]].map(([mo, lb]) => (
                     <button key={mo} onClick={() => setPenMode(mo)}
-                      style={{ padding: "8px 12px", borderRadius: 10, cursor: "pointer", fontFamily: "inherit", fontSize: 12.5, fontWeight: 700, border: penMode === mo ? "2px solid #fff" : "1px solid rgba(255,255,255,.35)", background: penMode === mo ? "var(--primary)" : "transparent", color: "#fff" }}>{lb}</button>
+                      style={{ padding: "8px 12px", borderRadius: 10, cursor: "pointer", fontFamily: "inherit", fontSize: 12.5, fontWeight: 700, border: "none", boxShadow: penMode === mo ? "inset 0 0 0 2px #fff" : "inset 0 0 0 1px rgba(255,255,255,.35)", background: penMode === mo ? "var(--primary)" : "transparent", color: "#fff" }}>{lb}</button>
                   ))}
                   <span style={{ width: 1, height: 22, background: "rgba(255,255,255,.25)" }} />
                   {["#EF4444", "#3B82F6", "#FACC15", "#22C55E", "#FFFFFF", "#111827"].map((c) => (
                     <button key={c} onClick={() => setPenColor(c)} title={c}
-                      style={{ width: 26, height: 26, borderRadius: 99, cursor: "pointer", background: c, border: penColor === c ? "3px solid #fff" : "2px solid rgba(255,255,255,.4)", boxShadow: penColor === c ? "0 0 0 2px var(--primary)" : "none" }} />
+                      style={{ width: 26, height: 26, borderRadius: 99, cursor: "pointer", background: c, border: "none", boxShadow: penColor === c ? "inset 0 0 0 3px #fff, 0 0 0 2px var(--primary)" : "inset 0 0 0 2px rgba(255,255,255,.4)" }} />
                   ))}
                   <span style={{ width: 1, height: 22, background: "rgba(255,255,255,.25)" }} />
                   <button onClick={() => setStrokes((arr) => arr.slice(0, -1))} disabled={!strokes.length} style={{ padding: "9px 14px", borderRadius: 10, border: "1px solid rgba(255,255,255,.35)", background: "transparent", color: "#fff", fontFamily: "inherit", fontSize: 13, fontWeight: 700, cursor: strokes.length ? "pointer" : "default", opacity: strokes.length ? 1 : 0.4 }}>↩ เลิกทำ</button>

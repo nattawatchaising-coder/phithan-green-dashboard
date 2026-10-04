@@ -314,7 +314,7 @@ function TmMonth({ cfg, users, ot }) {
                             <div key={d} title={d}
                               style={{ minWidth: 0, padding: "7px 9px", borderRadius: 9, minHeight: 58,
                                 background: wk && !x ? "var(--surface2)" : "var(--surface)",
-                                border: "1px solid " + (open ? "var(--tint-red-bd)" : x ? "var(--border)" : "transparent"),
+                                border: "none", boxShadow: open ? "inset 0 0 0 1px var(--tint-red-bd)" : x ? "var(--shadow-sm)" : "none",
                                 opacity: x ? 1 : 0.45 }}>
                               <div style={{ fontSize: 10.5, color: "var(--text-3)", fontWeight: 700 }}>{+d.slice(8)}</div>
                               <div style={{ fontFamily: "var(--mono)", fontSize: 11.5, fontWeight: 700,

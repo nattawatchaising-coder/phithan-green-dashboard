@@ -29,8 +29,8 @@ function EcStat({ label, value, unit, color, hint, on, onClick }) {
     <button type="button" onClick={onClick} disabled={!onClick}
       style={{ flex: 1, minWidth: 130, textAlign: "left", padding: "11px 13px", borderRadius: "var(--r-tile)", fontFamily: "inherit",
         background: on ? (color || "var(--primary)") + "14" : "var(--surface2)",
-        border: "1px solid " + (on ? (color || "var(--primary)") : "transparent"),
-        boxShadow: on ? "none" : "var(--shadow-sm)",
+        border: "none",
+        boxShadow: on ? "inset 0 0 0 1px " + (color || "var(--primary)") : "var(--shadow-sm)",
         cursor: onClick ? "pointer" : "default" }}>
       <div style={{ fontSize: 11, color: "var(--text-3)", fontWeight: 700 }}>{label}</div>
       <div style={{ fontFamily: "var(--display)", fontSize: 21, fontWeight: 800, color: color, lineHeight: 1.25 }}>

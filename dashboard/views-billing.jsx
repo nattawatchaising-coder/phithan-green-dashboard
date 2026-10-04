@@ -420,7 +420,7 @@ function BlPhotoPick({ job, row, api, items, itemId, currentUser, onClose }) {
         const on = has(sr);
         return (
           <button key={p.id} onClick={() => take(p, src, sr)} disabled={on}
-            style={{ padding: 0, border: "2px solid " + (on ? "var(--primary)" : "var(--border)"), borderRadius: "var(--r-tile)",
+            style={{ padding: 0, border: "none", outline: on ? "2px solid var(--primary)" : "none", outlineOffset: -2, borderRadius: "var(--r-tile)",
               overflow: "hidden", background: "var(--surface2)", boxShadow: "var(--shadow-sm)", cursor: on ? "default" : "pointer", position: "relative" }}>
             <img src={p.dataUrl} alt="" style={{ display: "block", width: "100%", height: 78, objectFit: "cover", opacity: on ? 0.45 : 1 }} />
             {on && <span style={{ position: "absolute", inset: 0, display: "grid", placeItems: "center",

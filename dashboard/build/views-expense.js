@@ -55,8 +55,8 @@ function EcStat({
       borderRadius: "var(--r-tile)",
       fontFamily: "inherit",
       background: on ? (color || "var(--primary)") + "14" : "var(--surface2)",
-      border: "1px solid " + (on ? color || "var(--primary)" : "transparent"),
-      boxShadow: on ? "none" : "var(--shadow-sm)",
+      border: "none",
+      boxShadow: on ? "inset 0 0 0 1px " + (color || "var(--primary)") : "var(--shadow-sm)",
       cursor: onClick ? "pointer" : "default"
     }
   }, React.createElement("div", {

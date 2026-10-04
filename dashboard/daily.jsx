@@ -557,7 +557,7 @@ function DrSignPad({ title, hint, saved, onSave, onClose, remember, onRemember }
             <div style={{ fontSize: 15, fontWeight: 800, color: "var(--text-1)" }}>{title}</div>
             <div style={{ fontSize: 11.5, color: "var(--text-3)", marginTop: 2 }}>{hint || "เซ็นด้วยนิ้วหรือเมาส์ในกรอบด้านล่าง"}</div>
           </div>
-          <button className="x-close" onClick={onClose} style={{ width: 34, height: 34, borderRadius: "var(--r-chip)", border: "1px solid var(--border-strong)",
+          <button className="x-close" onClick={onClose} style={{ width: 34, height: 34, borderRadius: "var(--r-chip)", border: "none", boxShadow: "var(--shadow-sm)",
             background: "var(--surface)", cursor: "pointer", display: "grid", placeItems: "center", color: "var(--text-2)" }}>
             <Icon name="x" size={16} />
           </button>

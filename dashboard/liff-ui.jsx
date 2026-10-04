@@ -46,9 +46,9 @@ const LN_BTN = {
 const lnChip = (on, color) => ({
   padding: "9px 14px", borderRadius: 99, cursor: "pointer", fontFamily: "inherit",
   fontSize: 13, fontWeight: 700, whiteSpace: "nowrap",
-  border: "1px solid " + (on ? (color || "var(--primary)") : "var(--border)"),
+  border: "none",
   background: on ? (color ? color + "16" : "var(--primary-soft)") : "var(--surface)",
-  boxShadow: on ? "none" : "var(--soft)",
+  boxShadow: on ? "inset 0 0 0 1px " + (color || "var(--primary)") : "var(--soft)",
   color: on ? (color || "var(--primary-dark)") : "var(--text-2)",
 });
 

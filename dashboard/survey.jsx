@@ -735,7 +735,7 @@ function AnnEditor({ shot, onSave, onClose }) {
               <button key={c} onClick={() => pickColor(c)} aria-label={"สี " + c}
                 style={{ width: 26, height: 26, borderRadius: "var(--r-pill)", cursor: "pointer", background: c, transition: "transform .12s",
                   transform: color === c ? "scale(1.14)" : "none",
-                  border: color === c ? "2.5px solid var(--primary-dark)" : "1px solid rgba(0,0,0,.18)" }} />
+                  border: "none", boxShadow: color === c ? "0 0 0 2px var(--surface), 0 0 0 4px var(--primary-dark)" : "inset 0 0 0 1px rgba(0,0,0,.18)" }} />
             ))}
           </span>
           <span style={{ flex: 1 }} />

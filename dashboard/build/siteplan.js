@@ -2499,10 +2499,10 @@ function SitePlanEditor({
         fontWeight: 700,
         whiteSpace: "nowrap",
         transition: "background .14s, color .14s, border-color .14s",
-        border: "1px solid " + (on ? "var(--primary)" : "var(--border)"),
+        border: "none",
         background: on ? "var(--primary)" : "var(--surface)",
         color: on ? "#fff" : "var(--text-2)",
-        boxShadow: on ? "0 2px 8px rgba(27,155,117,.28)" : "none"
+        boxShadow: on ? "0 2px 8px rgba(27,155,117,.28)" : "var(--shadow-sm)"
       }
     }, React.createElement(Icon, {
       name: icon,
@@ -3515,8 +3515,8 @@ function SitePlanEditor({
       borderRadius: 6,
       cursor: "pointer",
       background: c,
-      border: linkColor === c ? "2px solid var(--text-1)" : "2px solid transparent",
-      boxShadow: linkColor === c ? "0 0 0 1px #fff inset" : "none"
+      border: "none",
+      boxShadow: linkColor === c ? "0 0 0 2px var(--surface), 0 0 0 4px var(--text-1)" : "none"
     }
   })), React.createElement("span", {
     style: {
@@ -6260,7 +6260,8 @@ function SitePlanEditor({
         fontFamily: "inherit",
         fontSize: 12.5,
         fontWeight: 700,
-        border: penMode === mo ? "2px solid #fff" : "1px solid rgba(255,255,255,.35)",
+        border: "none",
+        boxShadow: penMode === mo ? "inset 0 0 0 2px #fff" : "inset 0 0 0 1px rgba(255,255,255,.35)",
         background: penMode === mo ? "var(--primary)" : "transparent",
         color: "#fff"
       }
@@ -6280,8 +6281,8 @@ function SitePlanEditor({
         borderRadius: 99,
         cursor: "pointer",
         background: c,
-        border: penColor === c ? "3px solid #fff" : "2px solid rgba(255,255,255,.4)",
-        boxShadow: penColor === c ? "0 0 0 2px var(--primary)" : "none"
+        border: "none",
+        boxShadow: penColor === c ? "inset 0 0 0 3px #fff, 0 0 0 2px var(--primary)" : "inset 0 0 0 2px rgba(255,255,255,.4)"
       }
     })), React.createElement("span", {
       style: {

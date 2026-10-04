@@ -512,8 +512,8 @@ function DispatchView({
         padding: 13,
         borderRadius: "var(--r-tile)",
         background: "var(--surface)",
-        border: "1px solid " + (clash ? "#EF4444" : "var(--border)"),
-        boxShadow: clash ? "0 0 0 3px #EF444418" : "var(--shadow-sm)",
+        border: "none",
+        boxShadow: clash ? "inset 0 0 0 1px var(--mark-danger), 0 0 0 3px var(--tint-red-bg)" : "var(--shadow-sm)",
         display: "flex",
         flexDirection: "column",
         gap: 6
@@ -673,8 +673,8 @@ function DispatchView({
           padding: 11,
           borderRadius: "var(--r-chip)",
           background: "var(--surface)",
-          border: "1px solid " + (clash ? "#EF4444" : "var(--border)"),
-          boxShadow: clash ? "0 0 0 3px #EF444418" : "var(--shadow-sm)"
+          border: "none",
+          boxShadow: clash ? "inset 0 0 0 1px var(--mark-danger), 0 0 0 3px var(--tint-red-bg)" : "var(--shadow-sm)"
         }
       }, React.createElement("div", {
         style: {

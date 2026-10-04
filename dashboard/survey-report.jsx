@@ -173,7 +173,7 @@ function SurveyReport({ job, photos, docs, onClose }) {
     <div className="sv-rep-overlay" style={{ position: "fixed", inset: 0, zIndex: 140, background: "rgba(8,20,14,.55)", overflow: "auto", padding: isMobile ? 0 : "24px 16px" }}>
       {/* แถบปุ่ม — ไม่ติดไปในไฟล์ที่พิมพ์ */}
       <div className="sv-rep-noprint" style={{ position: "sticky", top: 0, zIndex: 2, display: "flex", gap: 9, alignItems: "center", padding: "11px 14px", background: "var(--surface)", borderBottom: "1px solid var(--divider)", marginBottom: isMobile ? 0 : 16, borderRadius: isMobile ? 0 : 12, maxWidth: 900, marginLeft: "auto", marginRight: "auto", boxShadow: "var(--shadow-sm)" }}>
-        <button className="x-close" onClick={onClose} style={{ width: 36, height: 36, borderRadius: 10, border: "1px solid var(--border-strong)", background: "var(--surface)", cursor: "pointer", display: "grid", placeItems: "center", color: "var(--text-2)", flexShrink: 0 }}><Icon name="x" size={16} /></button>
+        <button className="x-close" onClick={onClose} style={{ width: 36, height: 36, borderRadius: 10, border: "none", boxShadow: "var(--shadow-sm)", background: "var(--surface)", cursor: "pointer", display: "grid", placeItems: "center", color: "var(--text-2)", flexShrink: 0 }}><Icon name="x" size={16} /></button>
         <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{ fontSize: 13.5, fontWeight: 800, color: "var(--text-1)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>รายงานผลสำรวจหน้างาน</div>
           <div style={{ fontSize: 11, color: "var(--text-3)" }}>{shots.length} รูป{(docs || []).length ? " · DATA SHEET " + docs.length + " ใบ" : ""} · กดปุ่มแล้วเลือก “บันทึกเป็น PDF”</div>
