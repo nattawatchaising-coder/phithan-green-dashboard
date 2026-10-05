@@ -839,6 +839,7 @@
      เหมือนฝั่งท่อ คือขึ้นกับรูปทรงจริง กรอกเอง แต่เลือกจากรายการได้ทุกขนาด
      แยกกลุ่ม Wireway กับ Cable Tray บันได เพราะของคนละแบบ ใช้แทนกันไม่ได้ */
   const WAY_FIT_KINDS = [
+    "ข้องอ 90° แนวราบ", "ข้องอ 45° แนวราบ",
     "ข้องอ 90° เปิดนอก", "ข้องอ 90° เปิดใน", "ข้องอ เปิดบน (ขึ้น)", "ข้องอลง",
     "สามทาง", "สี่ทาง", "ข้อลด", "ข้อต่อลงตู้", "แผ่นปิดหัว-ท้าย",
   ];
@@ -1230,6 +1231,69 @@
       it("tap", "ก๊อกบอลสนาม " + g.size, g.taps, "ตัว");
     });
     return { sizes: sizes.map((g) => ({ size: g.size, len: Math.round(g.len * 10) / 10, pipes: g.pipes, taps: g.taps })), items };
+  }
+  /* ── รางไฟจากแบบ 3D (plan3d.obstacles ชนิด tray) ──
+     ทุกเส้นวางบนหลังคา (บน Rail ขวาง + L-feet ในแบบ 3D) → แถวรางต่อขนาด ติด rail: true (เฉพาะรางที่มีขาล็อก)
+     ขนาด = รางขนาดแรกของชนิดนั้นที่กว้าง ≥ ความกว้างที่วาด (o.d ม.) · กว้างเกินทุกขนาด = ขนาดใหญ่สุด
+     ข้อต่อ: มุมเลี้ยว ≥ 60° = ข้องอ 90° แนวราบ · 15–60° = 45° · แผ่นปิดหัว-ท้าย 2 ต่อเส้น
+     ตัวราง/ชุดข้อต่อ/ขาล็อก/T-BOLT/Rail ถอดต่อจาก wayItems ตามแถวเหมือนรางที่มาจากสายไฟ */
+  // ── ทางเดิน (WALKWAY) จากแบบ 3D — obstacles p3sType "walkway" (เส้นหลายจุด pts สัมพัทธ์ x/z · ของเก่า = เส้นตรงตาม w/rot)
+  //    ได้แถว struct.walkway แนวละแถว { len, p3: 1 } แล้วสูตร WALKWAY เดิมใน calcStructures คิดแผ่น/END CLAMP/RAIL/ชุดยึดต่อ
+  function walkFromPlan(plan) {
+    const obs = ((plan && plan.obstacles) || []).filter((o) => o && o.p3sType === "walkway");
+    const rows = [];
+    let total = 0;
+    obs.forEach((o) => {
+      const x = +o.x || 0, z = +o.z || 0;
+      let P;
+      if (Array.isArray(o.pts) && o.pts.length >= 2) P = o.pts.map((q) => ({ x: x + (+q.x || 0), z: z + (+q.z || 0) }));
+      else { const L = (+o.w || 1) / 2, a = (+o.rot || 0) * Math.PI / 180; P = [{ x: x - Math.cos(a) * L, z: z - Math.sin(a) * L }, { x: x + Math.cos(a) * L, z: z + Math.sin(a) * L }]; }
+      let len = 0;
+      for (let i = 1; i < P.length; i++) len += Math.hypot(P[i].x - P[i - 1].x, P[i].z - P[i - 1].z);
+      if (len < 0.05) return;
+      len = Math.ceil(len * 10) / 10;                                   // ปัดขึ้นทีละ 10 ซม.
+      rows.push({ len, p3: 1, segs: P.length - 1 });
+      total += len;
+    });
+    if (!rows.length) return null;
+    return { rows, runs: rows.length, total: Math.round(total * 10) / 10, sheets: rows.reduce((t, r) => t + Math.ceil(r.len / 2.44), 0) };
+  }
+
+  function trayFromPlan(plan, kind, hdg) {
+    const obs = ((plan && plan.obstacles) || []).filter((o) => o && o.p3sType === "tray");
+    if (!obs.length) return null;
+    const spec = trayKindOf(kind);
+    const pick = (wMm) => spec.sizes.find((nm) => trayDim(nm).w >= wMm - 0.5) || spec.sizes[spec.sizes.length - 1];
+    const by = {}, fit = {};
+    let total = 0, bends = 0;
+    const addFit = (k, sz, q) => { if (q <= 0) return; const nm = hdgName(k + " " + spec.brief + " " + sz, hdg); fit[nm] = (fit[nm] || 0) + q; };
+    obs.forEach((o) => {
+      const x = +o.x || 0, z = +o.z || 0;
+      let P;
+      if (Array.isArray(o.pts) && o.pts.length >= 2) P = o.pts.map((q) => ({ x: x + (+q.x || 0), z: z + (+q.z || 0) }));
+      else { const L = (+o.w || 1) / 2, a = (+o.rot || 0) * Math.PI / 180; P = [{ x: x - Math.cos(a) * L, z: z - Math.sin(a) * L }, { x: x + Math.cos(a) * L, z: z + Math.sin(a) * L }]; }
+      let len = 0, e90 = 0, e45 = 0;
+      for (let i = 1; i < P.length; i++) len += Math.hypot(P[i].x - P[i - 1].x, P[i].z - P[i - 1].z);
+      for (let i = 1; i < P.length - 1; i++) {
+        const ax = P[i].x - P[i - 1].x, az = P[i].z - P[i - 1].z, bx = P[i + 1].x - P[i].x, bz = P[i + 1].z - P[i].z;
+        const la = Math.hypot(ax, az), lb = Math.hypot(bx, bz); if (la < 1e-3 || lb < 1e-3) continue;
+        const t = Math.acos(Math.max(-1, Math.min(1, (ax * bx + az * bz) / (la * lb)))) * 180 / Math.PI;
+        if (t >= 60) e90++; else if (t >= 15) e45++;
+      }
+      if (len < 0.05) return;
+      const wMm = Math.round((+o.d || 0.1) * 1000), sz = pick(wMm), suf = traySuffix(sz);
+      const g = by[sz] || (by[sz] = { size: sz, wMm, len: 0, runs: 0 });
+      g.len += len; g.runs++; total += len; bends += e90 + e45;
+      addFit("ข้องอ 90° แนวราบ", suf, e90);
+      addFit("ข้องอ 45° แนวราบ", suf, e45);
+      addFit("แผ่นปิดหัว-ท้าย", suf, 2);
+    });
+    const rows = spec.sizes.filter((nm) => by[nm]).map((nm) => Object.assign({ size: nm, length: Math.round(by[nm].len * 10) / 10, p3: 1 },
+      hdg ? { hdg: true } : {}, spec.hanger ? { rail: true } : {}));
+    if (!rows.length) return null;
+    const fits = Object.keys(fit).map((nm) => ({ name: nm, qty: fit[nm], unit: "ชุด", p3: 1 }));
+    return { kind: spec.key, rows, fits, runs: obs.length, total: Math.round(total * 10) / 10, bends,
+      sizes: rows.map((r) => ({ size: r.size, len: r.length, runs: by[r.size].runs })) };
   }
   /* แปลง boards → items แบนราบ ให้ calcBOQ/catalog ใช้เหมือนหมวดอื่น
      ตัวตู้เองก็เป็นรายการหนึ่ง (key เดียวกับตู้) แล้วตามด้วยอุปกรณ์ในตู้นั้น */
@@ -2457,7 +2521,7 @@
   window.BOQ = { PANELS, MICRO, INVERTERS, OPTIMIZERS, setOptimizers, findOptimizer, ROOF_HOOKS, ROOF_OPTIONS, CABLE_TYPES, CABLE_GROUPS, cableCategory, MATERIAL_SUBGROUPS, materialSubGroup, CABLE_POINTS, DEFAULT_CABLES, STRING_CABLE_POINTS, MICRO_CABLE_NAMES, DEFAULT_STRING_CABLES, IMC_SIZES, UPVC_SIZES, PULLBOX_SIZES, CABLE_OD, HDPE_TABLE, IMC_CONDUIT, WIRE_SIZES, WIRE_METHODS, INS_CLASSES, AMP_GROUPS, AMP_NCOND, AMP_CORES, ampColKey, DEFAULT_AMPACITY, AMPACITY, setAmpacity, WIRE_METHOD_BASE, ampTableFor, cableInsClass, cableCoreType, cableSizeNum, ampacityOf, pickWireSize, PV_WIRE_SIZES, PV_WIRE_AMP, PV_WIRE_MIN, pickPvWireSize, calcVdrop, VD_LIMIT, findPanel, findInverter, stringConfig, stringPlan, wireArea, calcWireWay, calcConduitSize, blankBOQ, mergeBOQ, setConduitDefaults, conduitDefaults, CONDUIT_SPARE_FIXED, IMC_RULE, IMC_RULE_DEF, imcRule, calcBOQ, calcStructures, matKey, qtyKey, catalog, isPvDcCable, PV_DC_COLORS, PV_DC_SPARE, pvDcLength, applyPrices, setPanels, setInverters,
     WAY_SIZES, TRAY_SIZES, PERF_SIZES, TRAY_KINDS, TRAY_KIND_KEYS, trayKindOf, trayNorm, trayAlias, hdgName,
     optimizerQty, optimizerFits, DCAC_LIMIT, WAY_PIPE_LEN, TRAY_PIPE_LEN, trayLenTxt, railLenCm, railPerTon, railName, SUPPORT_KINDS, LABOR_PRESET, PERMIT_PRESET, permitPresetFor, permitGridFee, gridAuthOf, PERMIT_ENG_TIERS, PERMIT_GRID_FEE, PERMIT_GRID_NAME,
-    COND_FIT_KINDS, WAY_FIT_KINDS, condFittings, trayFittings, PPR_SIZES, PPR_FIT_KINDS, pipeFittings, pipeFromPlan,
+    COND_FIT_KINDS, WAY_FIT_KINDS, condFittings, trayFittings, PPR_SIZES, PPR_FIT_KINDS, pipeFittings, pipeFromPlan, trayFromPlan, walkFromPlan,
     STEEL_SPECS, steelName, steelBarLen, steelSel, steelOf,
     TRANSPORT_PRESET, MANAGE_PRESET, G_TRANSPORT, G_MANAGE, PROJECT_KITS, normProject, kitExtraKeys, ACC_ALLOW_PCT, ACC_ALLOW_PCT_HOME, accAllowDef, accAllowPct, VAT_RATE, PROFIT_PCT_DEF, priceBreakdown,
     TRAY_FILL_LIMIT, TRAY_DERATE, trayDerate, trayDim, trayCheck, cableCores,
