@@ -94,10 +94,14 @@ function erModel(st, job, cfg) {
     model2: inv.model2 || "",
     invs: kws.map((kw, i) => {
       const f2 = froms[i] === 2,
-        sp = erInvSpec(f2 ? inv.spec2 : inv.spec, kw, DM[f2 ? "inv2" : "inv"]);
+        spc = (f2 ? inv.spec2 : inv.spec) || {},
+        sp = erInvSpec(spc, kw, DM[f2 ? "inv2" : "inv"]);
+      const real = M && Array.isArray(M.strs) ? M.strs.filter(x => x && x.inv === i).length : 0;
+      const nStr = Math.max(1, Math.min(12, real || (+spc.inputs || (kw <= 4 ? 1 : 2)) * (+spc.strPerMppt || (kw <= 20 ? 1 : 2))));
       return {
         i,
         kw,
+        nStr,
         from: f2 ? 2 : 1,
         model: (f2 ? inv.model2 : inv.model) || "",
         dim: sp.dim,
@@ -184,31 +188,62 @@ function erLayout(md, cfg) {
       d: +o.d || d
     };
   };
-  const mdbN = md.home ? 0 : md.mainA <= 250 ? 2 : md.mainA <= 630 ? 3 : 4;
+  const mdbN = md.home ? 0 : md.mainA <= 500 ? 1 : md.mainA <= 800 ? 2 : md.mainA <= 1250 ? 1 : md.mainA <= 2500 ? 3 : 4;
+  const mdbTall = !md.home && md.mainA > 800 && md.mainA <= 1250;
   L.def = {
     mdb: md.home ? {
       w: 0.42,
       h: 0.55,
       d: 0.14
+    } : mdbTall ? {
+      w: 0.9,
+      h: 2.0,
+      d: 0.7
+    } : mdbN === 1 ? {
+      w: 0.8,
+      h: 1.4,
+      d: 0.25
     } : {
       w: mdbN * 0.8,
       h: 2.0,
-      d: 0.6
+      d: 0.7
     },
     ac: md.home ? {
       w: 0.45,
       h: 0.6,
       d: 0.18
+    } : md.mainA <= 160 ? {
+      w: 0.63,
+      h: 0.9,
+      d: 0.25
     } : {
       w: 0.8,
-      h: 1.25,
-      d: 0.35
+      h: 1.4,
+      d: 0.3
     },
-    dc: {
-      w: 0.3,
-      h: 0.36,
-      d: 0.14
-    }
+    dc: null
+  };
+  const nsMax = Math.max(1, ...md.invs.map(v => v.nStr || 1));
+  L.def.dc = nsMax > 8 ? {
+    w: 0.8,
+    h: 0.6,
+    d: 0.2
+  } : nsMax > 4 ? {
+    w: 0.6,
+    h: 0.45,
+    d: 0.15
+  } : nsMax > 2 ? {
+    w: 0.45,
+    h: 0.35,
+    d: 0.15
+  } : nsMax > 1 ? {
+    w: 0.46,
+    h: 0.36,
+    d: 0.13
+  } : {
+    w: 0.3,
+    h: 0.33,
+    d: 0.13
   };
   const mb = dm("mdb", L.def.mdb.w, L.def.mdb.h, L.def.mdb.d);
   if (md.home) {
@@ -231,21 +266,22 @@ function erLayout(md, cfg) {
       w: mb.w,
       h: mb.h,
       d: mb.d,
-      y: 0,
-      n: Math.max(1, Math.min(mdbN, Math.round(mb.w / 0.55)))
+      y: mb.h < 1.7 ? 0.45 : 0,
+      n: mb.w < 1.25 ? 1 : Math.max(2, Math.min(4, Math.round(mb.w / 0.8)))
     });
     G("mdb", "ตู้ MDB", x, x + mb.w, mb.d + 0.12);
     x += mb.w + 0.7;
   }
   const ab = dm("ac", L.def.ac.w, L.def.ac.h, L.def.ac.d);
-  const ac = md.home ? {
+  const acWall = md.home || ab.h < 1.1;
+  const ac = acWall ? {
     t: "ac",
     g: "ac",
     x,
     w: ab.w,
     h: ab.h,
     d: ab.d,
-    y: 1.25
+    y: md.home ? 1.25 : Math.max(0.6, 1.9 - ab.h)
   } : {
     t: "ac",
     g: "ac",
@@ -256,7 +292,7 @@ function erLayout(md, cfg) {
     y: 0.45
   };
   L.items.push(ac);
-  G("ac", "ตู้ AC", x - (md.home ? 0 : 0.03), x + ac.w + (md.home ? 0 : 0.03), md.home ? ab.d + 0.02 : ab.d + 0.21, md.home);
+  G("ac", "ตู้ AC", x - (acWall ? 0 : 0.03), x + ac.w + (acWall ? 0 : 0.03), acWall ? ab.d + 0.02 : ab.d + 0.21, acWall);
   x += ac.w + 0.25;
   L.items.push({
     t: "log",
@@ -442,76 +478,152 @@ function erInvFace(THREE, brand, wM, hM) {
   t.anisotropy = 4;
   return _erTx[key] = t;
 }
-function erMdbFace(THREE, n, mainA) {
-  const key = "mdb|" + n + "|" + mainA;
+function erMdbFace(THREE, n, mainA, wM, hM) {
+  wM = wM || n * 0.8;
+  hM = hM || 2.0;
+  const key = "mdb2|" + n + "|" + mainA + "|" + wM + "x" + hM;
   if (_erTx[key]) return _erTx[key];
-  const P = 220,
-    W = Math.round(n * 0.8 * P),
-    H = Math.round(2.0 * P);
+  const P = 260,
+    W = Math.round(wM * P),
+    H = Math.round(hM * P),
+    sw = W / n;
   const c = erCanvas(W, H, g => {
-    g.fillStyle = "#f3f4f6";
+    const ln = Math.max(3, sw * 0.012);
+    g.fillStyle = "#dcd8cc";
     g.fillRect(0, 0, W, H);
-    const sw = W / n;
-    for (let s = 0; s < n; s++) {
-      const x0 = s * sw;
-      g.strokeStyle = "#c7cbd2";
+    const meter = (x, y, z) => {
+      g.fillStyle = "#3a3d42";
+      g.fillRect(x - z / 2, y - z / 2, z, z);
+      g.fillStyle = "#b9c9bd";
+      g.fillRect(x - z * 0.38, y - z * 0.38, z * 0.76, z * 0.45);
+    };
+    const lamps = (x, y, r) => ["#ef4444", "#facc15", "#3b82f6"].forEach((col, i) => {
+      g.fillStyle = "#eee";
+      g.beginPath();
+      g.arc(x + (i - 1) * r * 3, y, r * 1.4, 0, 7);
+      g.fill();
+      g.fillStyle = col;
+      g.beginPath();
+      g.arc(x + (i - 1) * r * 3, y, r, 0, 7);
+      g.fill();
+    });
+    const handle = (x, y) => {
+      g.fillStyle = "#a9adb3";
+      g.fillRect(x, y, sw * 0.04, H * 0.06);
+      g.fillStyle = "#6b7078";
+      g.fillRect(x + sw * 0.01, y + H * 0.012, sw * 0.02, H * 0.036);
+    };
+    const brk = (x, y, w, h) => {
+      g.fillStyle = "#e9efe9";
+      g.fillRect(x - w / 2, y - h / 2, w, h);
+      g.fillStyle = "#16a34a";
+      g.fillRect(x - w * 0.35, y - h * 0.15, w * 0.7, h * 0.3);
+    };
+    const line = pts => {
+      g.strokeStyle = "#232529";
+      g.lineWidth = ln;
+      g.beginPath();
+      pts.forEach(([x, y], i) => i ? g.lineTo(x, y) : g.moveTo(x, y));
+      g.stroke();
+    };
+    const plate = (x, y, t) => {
+      g.fillStyle = "#f8f7f2";
+      g.fillRect(x - sw * 0.16, y - H * 0.012, sw * 0.32, H * 0.024);
+      g.fillStyle = "#333";
+      g.font = "bold " + Math.round(H * 0.013) + "px sans-serif";
+      g.textAlign = "center";
+      g.fillText(t, x, y + H * 0.005);
+    };
+    const sticker = (x, y) => {
+      g.fillStyle = "#fff";
+      g.fillRect(x, y, sw * 0.04, H * 0.025);
+      g.fillStyle = "#dc2626";
+      g.fillRect(x, y + H * 0.013, sw * 0.04, H * 0.012);
+    };
+    for (let k = 0; k < n; k++) {
+      const x0 = k * sw,
+        cx = x0 + sw / 2,
+        top = H * (n === 1 ? 0.27 : 0.22),
+        B = H - top;
+      g.strokeStyle = "#b8b3a5";
       g.lineWidth = 3;
-      g.strokeRect(x0 + 3, 3, sw - 6, H - 6);
-      const doors = s === 0 ? [0.06, 0.34, 0.62] : s === 1 ? [0.06, 0.3, 0.5, 0.7] : [0.06, 0.5];
-      doors.forEach((d0, i) => {
-        const d1 = doors[i + 1] || 0.95,
-          y0 = d0 * H,
-          y1 = d1 * H - 8;
-        g.strokeStyle = "#cfd3d9";
-        g.lineWidth = 2;
-        g.strokeRect(x0 + 12, y0, sw - 24, y1 - y0);
-        g.fillStyle = "#9aa1ab";
-        g.fillRect(x0 + sw - 30, (y0 + y1) / 2 - 14, 6, 28);
-      });
-      if (s === 0) {
-        g.fillStyle = "#2b3038";
-        g.fillRect(x0 + sw * 0.3, H * 0.4, sw * 0.4, H * 0.14);
-        g.fillStyle = "#e4e7eb";
-        g.fillRect(x0 + sw * 0.42, H * 0.43, sw * 0.16, H * 0.08);
-        g.fillStyle = "#1f2937";
-        g.font = "700 16px Arial";
-        g.textAlign = "center";
-        g.fillText(mainA + "A", x0 + sw / 2, H * 0.58);
-        ["#ef4444", "#f59e0b", "#22c55e"].forEach((col, i) => {
-          g.fillStyle = col;
+      g.strokeRect(x0 + 4, 4, sw - 8, top - 8);
+      g.strokeRect(x0 + 4, top, sw - 8, B - 4);
+      handle(x0 + sw * 0.05, top * 0.35);
+      handle(x0 + sw * 0.05, top + B * 0.45);
+      sticker(x0 + sw * 0.05, top * 0.7);
+      sticker(x0 + sw * 0.05, H * 0.9);
+      if (n === 1) {
+        plate(cx, top * 0.12, "MDB " + mainA + "A");
+        lamps(cx, top * 0.36, sw * 0.022);
+        meter(cx, top * 0.68, sw * 0.14);
+        const by = top + B * 0.22;
+        g.fillStyle = "#26282c";
+        g.fillRect(cx - sw * 0.05, by, sw * 0.1, H * 0.08);
+        line([[cx, top + B * 0.06], [cx, by]]);
+        line([[cx, by + H * 0.08], [cx, H * 0.86]]);
+        const nr = hM > 1.7 ? 6 : 3;
+        for (let r = 0; r < nr; r++) {
+          const y = top + B * (nr > 3 ? 0.45 + r * 0.085 : 0.6 + r * 0.1);
+          line([[cx - sw * 0.3, y], [cx + sw * 0.3, y]]);
+          brk(cx - sw * 0.3, y, sw * 0.07, H * 0.05);
+          brk(cx + sw * 0.3, y, sw * 0.07, H * 0.05);
+        }
+        continue;
+      }
+      const role = k === 0 ? "cap" : n >= 3 && k === n - 1 ? "pv" : "main";
+      plate(cx, top * 0.1, role === "pv" ? "SOLAR" : role === "cap" ? "CAPACITOR" : "MDB " + mainA + "A");
+      if (role === "main") {
+        lamps(cx, top * 0.3, sw * 0.02);
+        meter(cx, top * 0.62, sw * 0.14);
+      } else meter(cx, top * 0.55, sw * 0.14);
+      const yb = top + B * 0.62;
+      if (role === "cap") {
+        for (let r = 0; r < 4; r++) for (let q = 0; q < 6; q++) {
+          g.fillStyle = r % 2 ? "#ef4444" : "#22c55e";
           g.beginPath();
-          g.arc(x0 + sw * 0.32 + i * 26, H * 0.13, 7, 0, 7);
-          g.fill();
-        });
-        for (let r = 0; r < 3; r++) for (let k = 0; k < 4; k++) {
-          g.fillStyle = ["#ef4444", "#22c55e", "#f59e0b"][(r + k) % 3];
-          g.beginPath();
-          g.arc(x0 + sw * 0.25 + k * 22, H * 0.7 + r * 22, 6, 0, 7);
+          g.arc(x0 + sw * (0.22 + q * 0.07), top + B * (0.12 + r * 0.06), sw * 0.017, 0, 7);
           g.fill();
         }
-      } else if (s === 1) {
-        [0, 1, 2].forEach(i => {
-          g.fillStyle = "#fff";
-          g.strokeStyle = "#6b7280";
-          g.lineWidth = 2;
-          g.beginPath();
-          g.arc(x0 + sw * 0.3 + i * sw * 0.2, H * 0.17, 14, 0, 7);
-          g.fill();
-          g.stroke();
-        });
-        g.fillStyle = "#1f2937";
-        g.fillRect(x0 + sw * 0.38, H * 0.36, sw * 0.24, H * 0.07);
-        g.fillStyle = "#34d399";
-        g.fillRect(x0 + sw * 0.4, H * 0.37, sw * 0.2, H * 0.05);
-      } else {
-        g.fillStyle = "#d1d5db";
-        g.fillRect(x0 + sw * 0.35, H * 0.2, sw * 0.3, H * 0.12);
-        g.fillStyle = "#1f2937";
-        g.fillRect(x0 + sw * 0.43, H * 0.23, sw * 0.14, H * 0.06);
+        line([[x0 + sw * 0.08, top + B * 0.04], [cx + sw * 0.25, top + B * 0.04], [cx + sw * 0.25, top + B * 0.45], [cx - sw * 0.1, top + B * 0.45], [cx - sw * 0.1, top + B * 0.6]]);
+        g.strokeStyle = "#232529";
+        g.strokeRect(cx - sw * 0.12, top + B * 0.6, sw * 0.04, B * 0.06);
+        line([[cx - sw * 0.1, top + B * 0.66], [cx - sw * 0.1, top + B * 0.74], [cx - sw * 0.04, top + B * 0.8]]);
+        line([[cx - sw * 0.1, top + B * 0.82], [cx - sw * 0.1, top + B * 0.9]]);
+        line([[cx - sw * 0.16, top + B * 0.9], [cx - sw * 0.04, top + B * 0.9]]);
+        line([[cx - sw * 0.16, top + B * 0.92], [cx - sw * 0.04, top + B * 0.92]]);
+        continue;
       }
-      for (let v = 0; v < 5; v++) {
-        g.fillStyle = "rgba(0,0,0,.18)";
-        g.fillRect(x0 + sw * 0.2, H * 0.965 - v * 6, sw * 0.6, 2);
+      const big = role === "main" && n >= 3,
+        nf = role === "pv" || n === 2 ? 5 : 3;
+      g.fillStyle = "#2a2c30";
+      g.fillRect(cx - sw * (big ? 0.15 : 0.08), top + B * 0.15, sw * (big ? 0.3 : 0.16), B * (big ? 0.2 : 0.13));
+      if (big) {
+        g.fillStyle = "#f97316";
+        g.fillRect(cx - sw * 0.12, top + B * 0.2, sw * 0.24, B * 0.02);
+      } else {
+        g.fillStyle = "#facc15";
+        g.fillRect(cx - sw * 0.05, top + B * 0.19, sw * 0.1, B * 0.035);
+      }
+      line([[cx, top + B * 0.02], [cx, top + B * 0.15]]);
+      line([[cx, top + B * (big ? 0.35 : 0.28)], [cx, yb]]);
+      if (role === "pv") {
+        g.fillStyle = "#232529";
+        g.beginPath();
+        g.moveTo(cx - sw * 0.04, top + B * 0.07);
+        g.lineTo(cx, top + B * 0.02);
+        g.lineTo(cx + sw * 0.04, top + B * 0.07);
+        g.fill();
+      }
+      if (n === 2) line([[x0 + 4, top + B * 0.42], [cx, top + B * 0.42]]);
+      line([[x0 + sw * 0.18, yb], [x0 + sw * 0.82, yb]]);
+      for (let q = 0; q < nf; q++) {
+        const x = x0 + sw * (0.2 + q * 0.6 / (nf - 1));
+        line([[x, yb], [x, yb + B * 0.12]]);
+        g.fillStyle = "#e9efe9";
+        g.beginPath();
+        g.arc(x, yb + B * 0.14, sw * 0.02, 0, 7);
+        g.fill();
       }
     }
   });
@@ -577,6 +689,415 @@ function erAcFace(THREE, wM, hM) {
     g.fill();
     g.fillStyle = "#8f96a0";
     g.fillRect(W * 0.9, H * 0.45, 7, H * 0.1);
+  });
+  const t = new THREE.CanvasTexture(c);
+  t.encoding = THREE.sRGBEncoding;
+  t.anisotropy = 4;
+  return _erTx[key] = t;
+}
+function erDcFace(THREE, wM, hM, nStr) {
+  const key = "dc|" + wM + "x" + hM + "|" + nStr;
+  if (_erTx[key]) return _erTx[key];
+  const P = 400,
+    W = Math.round(wM * P),
+    H = Math.round(hM * P);
+  const rr = (g, x, y, w, h, r) => {
+    g.beginPath();
+    g.moveTo(x + r, y);
+    g.arcTo(x + w, y, x + w, y + h, r);
+    g.arcTo(x + w, y + h, x, y + h, r);
+    g.arcTo(x, y + h, x, y, r);
+    g.arcTo(x, y, x + w, y, r);
+    g.closePath();
+  };
+  const c = erCanvas(W, H, g => {
+    g.fillStyle = "#dcd8cc";
+    g.fillRect(0, 0, W, H);
+    g.strokeStyle = "#cfcdc6";
+    g.lineWidth = 3;
+    g.strokeRect(4, 4, W - 8, H - 8);
+    const wx = W * 0.1,
+      wy = H * 0.1,
+      ww = W * 0.72,
+      wh = H * 0.78,
+      r = Math.min(ww, wh) * 0.1;
+    g.fillStyle = "#14171c";
+    rr(g, wx - 7, wy - 7, ww + 14, wh + 14, r + 6);
+    g.fill();
+    g.fillStyle = "#c9c6bb";
+    rr(g, wx, wy, ww, wh, r);
+    g.fill();
+    g.save();
+    rr(g, wx, wy, ww, wh, r);
+    g.clip();
+    g.fillStyle = "#d6d3c8";
+    g.fillRect(wx + ww * 0.04, wy + wh * 0.05, ww * 0.92, wh * 0.9);
+    const rows = nStr > 10 ? 2 : 1,
+      perRow = Math.ceil(nStr / rows);
+    for (let ri = 0; ri < rows; ri++) {
+      const ry = wy + wh * (rows === 2 ? ri ? 0.56 : 0.14 : 0.3),
+        rh = wh * (rows === 2 ? 0.3 : 0.4);
+      g.fillStyle = "#b9bec4";
+      g.fillRect(wx + ww * 0.06, ry + rh * 0.42, ww * 0.88, rh * 0.12);
+      const n = Math.min(perRow, nStr - ri * perRow),
+        slots = n * 2 + 2,
+        mw = ww * 0.84 / slots;
+      for (let k = 0; k < slots; k++) {
+        const mx = wx + ww * 0.08 + k * mw,
+          spd = k >= slots - 2;
+        g.fillStyle = spd ? "#8a8f94" : "#9ea3a8";
+        g.fillRect(mx + 1, ry, mw - 2, rh);
+        g.fillStyle = "#3aa37a";
+        g.fillRect(mx + 1, ry + rh * 0.62, mw - 2, rh * 0.1);
+        g.fillStyle = "#7c8186";
+        g.fillRect(mx + 1, ry, mw - 2, rh * 0.16);
+        g.fillRect(mx + 1, ry + rh * 0.84, mw - 2, rh * 0.16);
+        g.fillStyle = "#d8dcd9";
+        g.fillRect(mx + mw * 0.3, ry + rh * 0.3, mw * 0.4, rh * 0.1);
+      }
+      g.strokeStyle = "rgba(200,40,40,.8)";
+      g.lineWidth = 2;
+      for (let k = 0; k < n * 2; k += 2) {
+        const lx = wx + ww * 0.08 + (k + 0.5) * mw;
+        g.beginPath();
+        g.moveTo(lx, ry + rh);
+        g.lineTo(lx, ry + rh + wh * 0.06);
+        g.stroke();
+      }
+    }
+    g.restore();
+    g.save();
+    const tx = wx * 0.5,
+      ty = wy + wh * 0.15,
+      ts = Math.min(wx * 0.32, wh * 0.06);
+    g.fillStyle = "#facc15";
+    g.beginPath();
+    g.moveTo(tx, ty - ts);
+    g.lineTo(tx + ts, ty + ts * 0.75);
+    g.lineTo(tx - ts, ty + ts * 0.75);
+    g.closePath();
+    g.fill();
+    g.strokeStyle = "#111";
+    g.lineWidth = 2;
+    g.stroke();
+    g.fillStyle = "#111";
+    g.beginPath();
+    g.moveTo(tx + ts * 0.1, ty - ts * 0.5);
+    g.lineTo(tx - ts * 0.25, ty + ts * 0.15);
+    g.lineTo(tx + ts * 0.02, ty + ts * 0.12);
+    g.lineTo(tx - ts * 0.12, ty + ts * 0.6);
+    g.lineTo(tx + ts * 0.25, ty - ts * 0.05);
+    g.lineTo(tx - ts * 0.02, ty - ts * 0.02);
+    g.closePath();
+    g.fill();
+    rr(g, wx, wy, ww, wh, r);
+    g.clip();
+    const gr = g.createLinearGradient(wx, wy, wx + ww, wy + wh);
+    gr.addColorStop(0, "rgba(255,255,255,.22)");
+    gr.addColorStop(0.35, "rgba(255,255,255,.05)");
+    gr.addColorStop(0.6, "rgba(255,255,255,0)");
+    gr.addColorStop(1, "rgba(255,255,255,.08)");
+    g.fillStyle = gr;
+    g.fillRect(wx, wy, ww, wh);
+    g.restore();
+    const kx = W * 0.905,
+      ky = H * 0.5,
+      kr = Math.max(6, W * 0.028);
+    g.fillStyle = "#9aa1a9";
+    g.beginPath();
+    g.arc(kx, ky, kr * 1.35, 0, 7);
+    g.fill();
+    g.fillStyle = "#d9dde1";
+    g.beginPath();
+    g.arc(kx, ky, kr, 0, 7);
+    g.fill();
+    g.fillStyle = "#3a3f46";
+    g.fillRect(kx - kr * 0.15, ky - kr * 0.55, kr * 0.3, kr * 1.1);
+  });
+  const t = new THREE.CanvasTexture(c);
+  t.encoding = THREE.sRGBEncoding;
+  t.anisotropy = 4;
+  return _erTx[key] = t;
+}
+const ER_MOD_U = {
+  fuse: 1,
+  dcmcb: 2,
+  dcmcb4: 4,
+  dcspd: 1,
+  acmcb: 2,
+  acspd: 1
+};
+function erPlasticFace(THREE, wM, hM, mods) {
+  const key = "pl|" + wM + "x" + hM + "|" + mods.join(",");
+  if (_erTx[key]) return _erTx[key];
+  const P = 500,
+    W = Math.round(wM * P),
+    H = Math.round(hM * P);
+  const c = erCanvas(W, H, g => {
+    g.fillStyle = "#eef0f1";
+    g.fillRect(0, 0, W, H);
+    g.fillStyle = "#f6f7f8";
+    g.fillRect(0, 0, W, H * 0.24);
+    g.fillStyle = "#c9cdd1";
+    g.fillRect(0, H * 0.24, W, 3);
+    const px = W * 0.06,
+      py = H * 0.3,
+      pw = W * 0.88,
+      ph = H * 0.62;
+    g.fillStyle = "#e3e6e8";
+    g.fillRect(px, py, pw, ph);
+    g.fillStyle = "#2a2e33";
+    [[px + 10, py + 10], [px + pw - 10, py + 10], [px + 10, py + ph - 10], [px + pw - 10, py + ph - 10]].forEach(([x, y]) => {
+      g.beginPath();
+      g.arc(x, y, Math.max(3, W * 0.009), 0, 7);
+      g.fill();
+    });
+    const ry = py + ph * 0.2,
+      rh = ph * 0.6,
+      rx = px + pw * 0.05,
+      rw = pw * 0.9;
+    g.fillStyle = "#f4f5f6";
+    g.fillRect(rx, ry - rh * 0.25, rw, rh * 1.5);
+    const units = (() => {
+        const n = mods.reduce((a, m) => a + (ER_MOD_U[m] || 1), 0);
+        return n <= 12 ? 12 : Math.max(18, n);
+      })(),
+      uw = rw / units;
+    let x = rx;
+    mods.forEach(m => {
+      const w = (ER_MOD_U[m] || 1) * uw;
+      const body = m === "fuse" ? "#5d6268" : m === "dcspd" ? "#4b5157" : "#fafafa";
+      g.fillStyle = body;
+      g.fillRect(x + 1.5, ry, w - 3, rh);
+      g.fillStyle = "rgba(0,0,0,.18)";
+      g.fillRect(x + 1.5, ry, w - 3, rh * 0.12);
+      g.fillRect(x + 1.5, ry + rh * 0.88, w - 3, rh * 0.12);
+      if (m === "dcmcb" || m === "dcmcb4" || m === "acmcb") {
+        g.fillStyle = "#16a34a";
+        g.fillRect(x + w * 0.12, ry + rh * 0.42, w * 0.76, rh * 0.2);
+        g.fillStyle = "#0f7a37";
+        g.fillRect(x + w * 0.12, ry + rh * 0.58, w * 0.76, rh * 0.04);
+        if (m !== "acmcb") {
+          g.fillStyle = "#16a34a";
+          g.fillRect(x + w * 0.12, ry + rh * 0.16, w * 0.76, rh * 0.07);
+        }
+      } else if (m === "dcspd" || m === "acspd") {
+        g.fillStyle = "#22c55e";
+        g.fillRect(x + w * 0.25, ry + rh * 0.3, w * 0.5, rh * 0.1);
+      } else {
+        g.fillStyle = "#dc2626";
+        g.fillRect(x + w * 0.3, ry + rh * 0.3, w * 0.4, rh * 0.06);
+        g.fillStyle = "#3d4247";
+        g.fillRect(x + w * 0.15, ry + rh * 0.5, w * 0.7, rh * 0.26);
+      }
+      x += w;
+    });
+    for (; x < rx + rw - 1; x += uw) {
+      g.fillStyle = "#e9ebed";
+      g.fillRect(x + 1, ry, uw - 2, rh);
+    }
+    g.fillStyle = "rgba(70,80,92,.16)";
+    g.fillRect(px + 4, py + 4, pw - 8, ph - 8);
+    const gr = g.createLinearGradient(px, py, px + pw, py + ph);
+    gr.addColorStop(0, "rgba(255,255,255,.28)");
+    gr.addColorStop(0.4, "rgba(255,255,255,0)");
+    gr.addColorStop(1, "rgba(255,255,255,.1)");
+    g.fillStyle = gr;
+    g.fillRect(px + 4, py + 4, pw - 8, ph - 8);
+    g.strokeStyle = "#8d969f";
+    g.lineWidth = 3;
+    g.strokeRect(px + 4, py + 4, pw - 8, ph - 8);
+  });
+  const t = new THREE.CanvasTexture(c);
+  t.encoding = THREE.sRGBEncoding;
+  t.anisotropy = 4;
+  return _erTx[key] = t;
+}
+function erAcPanelFace(THREE, wM, hM, mainA) {
+  const key = "acp|" + wM + "x" + hM + "|" + mainA;
+  if (_erTx[key]) return _erTx[key];
+  const P = 300,
+    W = Math.round(wM * P),
+    H = Math.round(hM * P);
+  const c = erCanvas(W, H, g => {
+    g.fillStyle = "#dcd8cc";
+    g.fillRect(0, 0, W, H);
+    const top = H * 0.36,
+      m = W * 0.03;
+    g.strokeStyle = "#b8b3a5";
+    g.lineWidth = 3;
+    g.strokeRect(m, m, W - 2 * m, top - 1.5 * m);
+    g.strokeRect(m, top + m * 0.5, W - 2 * m, H - top - 1.5 * m);
+    g.fillStyle = "#f8f7f2";
+    g.fillRect(W * 0.3, top * 0.12, W * 0.4, top * 0.08);
+    g.fillStyle = "#333";
+    g.font = "bold " + Math.round(top * 0.045) + "px sans-serif";
+    g.textAlign = "center";
+    g.fillText("AC SOLAR PANEL", W * 0.5, top * 0.18);
+    ["#ef4444", "#facc15", "#3b82f6"].forEach((col, i) => {
+      const x = W * (0.42 + i * 0.08),
+        y = top * 0.34;
+      g.fillStyle = "#e6e6e6";
+      g.beginPath();
+      g.arc(x, y, W * 0.028, 0, 7);
+      g.fill();
+      g.fillStyle = col;
+      g.beginPath();
+      g.arc(x, y, W * 0.017, 0, 7);
+      g.fill();
+    });
+    g.fillStyle = "#3a3d42";
+    g.fillRect(W * 0.34, top * 0.48, W * 0.13, W * 0.13);
+    g.fillStyle = "#9fb4a6";
+    g.fillRect(W * 0.355, top * 0.5, W * 0.1, W * 0.07);
+    g.fillStyle = "#1c1d20";
+    g.fillRect(W * 0.53, top * 0.48, W * 0.13, W * 0.13);
+    const hd = y => {
+      g.fillStyle = "#a9adb3";
+      g.fillRect(W * 0.07, y, W * 0.035, H * 0.07);
+      g.fillStyle = "#6b7078";
+      g.fillRect(W * 0.078, y + H * 0.015, W * 0.019, H * 0.04);
+    };
+    hd(top * 0.3);
+    hd(top + (H - top) * 0.1);
+    const st = (x, y) => {
+      g.fillStyle = "#fff";
+      g.fillRect(x, y, W * 0.035, H * 0.03);
+      g.fillStyle = "#dc2626";
+      g.fillRect(x, y + H * 0.018, W * 0.035, H * 0.012);
+    };
+    st(W * 0.07, top * 0.65);
+    st(W * 0.07, top + (H - top) * 0.3);
+    st(W * 0.07, H * 0.87);
+    const cx = W * 0.5,
+      y0 = top + (H - top) * 0.12,
+      y1 = H * 0.86;
+    g.strokeStyle = "#2b2d31";
+    g.lineWidth = Math.max(3, W * 0.008);
+    g.beginPath();
+    g.moveTo(cx, y0);
+    g.lineTo(cx, y1);
+    g.moveTo(W * 0.24, y1);
+    g.lineTo(W * 0.76, y1);
+    g.stroke();
+    g.fillStyle = "#2b2d31";
+    g.beginPath();
+    g.moveTo(cx - W * 0.03, y0 + H * 0.03);
+    g.lineTo(cx, y0);
+    g.lineTo(cx + W * 0.03, y0 + H * 0.03);
+    g.fill();
+    g.fillStyle = "#26282c";
+    g.fillRect(cx - W * 0.05, top + (H - top) * 0.4, W * 0.1, H * 0.1);
+    g.fillStyle = "#55595f";
+    g.fillRect(cx - W * 0.018, top + (H - top) * 0.4 + H * 0.02, W * 0.036, H * 0.05);
+    g.fillStyle = "#f3f3f3";
+    [W * 0.24, W * 0.7].forEach(x => g.fillRect(x, y1 - H * 0.008, W * 0.06, H * 0.016));
+  });
+  const t = new THREE.CanvasTexture(c);
+  t.encoding = THREE.sRGBEncoding;
+  t.anisotropy = 4;
+  return _erTx[key] = t;
+}
+function erAcGlassFace(THREE, wM, hM) {
+  const key = "acg|" + wM + "x" + hM;
+  if (_erTx[key]) return _erTx[key];
+  const P = 400,
+    W = Math.round(wM * P),
+    H = Math.round(hM * P);
+  const rr = (g, x, y, w, h, r) => {
+    g.beginPath();
+    g.moveTo(x + r, y);
+    g.arcTo(x + w, y, x + w, y + h, r);
+    g.arcTo(x + w, y + h, x, y + h, r);
+    g.arcTo(x, y + h, x, y, r);
+    g.arcTo(x, y, x + w, y, r);
+    g.closePath();
+  };
+  const c = erCanvas(W, H, g => {
+    g.fillStyle = "#dcd8cc";
+    g.fillRect(0, 0, W, H);
+    g.fillStyle = "#f8f7f2";
+    g.fillRect(W * 0.4, H * 0.03, W * 0.2, H * 0.035);
+    g.fillStyle = "#222";
+    g.font = "bold " + Math.round(H * 0.025) + "px serif";
+    g.textAlign = "center";
+    g.fillText("SOLAR MDB", W * 0.5, H * 0.057);
+    g.fillStyle = "#facc15";
+    g.beginPath();
+    g.moveTo(W * 0.06, H * 0.13);
+    g.lineTo(W * 0.1, H * 0.07);
+    g.lineTo(W * 0.14, H * 0.13);
+    g.fill();
+    g.fillStyle = "#fff";
+    [0.17, 0.8].forEach(y => {
+      g.fillRect(W * 0.06, H * y, W * 0.07, H * 0.05);
+      g.fillStyle = "#dc2626";
+      g.fillRect(W * 0.06, H * (y + 0.035), W * 0.07, H * 0.015);
+      g.fillStyle = "#fff";
+    });
+    g.fillStyle = "#2a2d31";
+    [0.3, 0.93].forEach(y => {
+      g.beginPath();
+      g.arc(W * 0.1, H * y, W * 0.02, 0, 7);
+      g.fill();
+    });
+    const wx = W * 0.2,
+      wy = H * 0.1,
+      ww = W * 0.62,
+      wh = H * 0.82,
+      r = ww * 0.12;
+    g.fillStyle = "#16181c";
+    rr(g, wx - 8, wy - 8, ww + 16, wh + 16, r + 6);
+    g.fill();
+    g.fillStyle = "#c9c9bf";
+    rr(g, wx, wy, ww, wh, r);
+    g.fill();
+    g.save();
+    rr(g, wx, wy, ww, wh, r);
+    g.clip();
+    ["#ef4444", "#facc15", "#3b82f6"].forEach((col, i) => {
+      g.fillStyle = "#eee";
+      g.beginPath();
+      g.arc(W * (0.42 + i * 0.08), wy + wh * 0.06, W * 0.025, 0, 7);
+      g.fill();
+    });
+    const cx = W * 0.5,
+      ln = Math.max(4, W * 0.012);
+    g.fillStyle = "#2f3236";
+    g.fillRect(cx - W * 0.07, wy + wh * 0.12, W * 0.14, W * 0.14);
+    g.fillStyle = "#b9c9bd";
+    g.fillRect(cx - W * 0.05, wy + wh * 0.12 + W * 0.02, W * 0.1, W * 0.06);
+    g.fillStyle = "#f3f3f3";
+    g.fillRect(cx - W * 0.06, wy + wh * 0.29, W * 0.12, wh * 0.025);
+    g.strokeStyle = "#202226";
+    g.lineWidth = ln;
+    g.beginPath();
+    g.moveTo(cx, wy + wh * 0.36);
+    g.lineTo(cx, wy + wh * 0.8);
+    g.moveTo(cx - ww * 0.36, wy + wh * 0.8);
+    g.lineTo(cx + ww * 0.36, wy + wh * 0.8);
+    g.stroke();
+    g.fillStyle = "#202226";
+    g.beginPath();
+    g.moveTo(cx - W * 0.04, wy + wh * 0.4);
+    g.lineTo(cx, wy + wh * 0.34);
+    g.lineTo(cx + W * 0.04, wy + wh * 0.4);
+    g.fill();
+    g.fillStyle = "#26282c";
+    g.fillRect(cx - W * 0.03, wy + wh * 0.5, W * 0.06, wh * 0.07);
+    [0.8].forEach(y => [-1, 1].forEach(sd => {
+      g.fillStyle = "#33363b";
+      g.fillRect(cx + sd * ww * 0.36 - W * 0.04, wy + wh * y - wh * 0.02, W * 0.08, wh * 0.04);
+      g.fillStyle = "#e5e7eb";
+      g.fillRect(cx + sd * ww * 0.36 - W * 0.012, wy + wh * y - wh * 0.01, W * 0.024, wh * 0.02);
+    }));
+    const gr = g.createLinearGradient(wx, wy, wx + ww, wy + wh);
+    gr.addColorStop(0, "rgba(255,255,255,.3)");
+    gr.addColorStop(0.4, "rgba(255,255,255,.04)");
+    gr.addColorStop(1, "rgba(255,255,255,.12)");
+    g.fillStyle = gr;
+    g.fillRect(wx, wy, ww, wh);
+    g.restore();
   });
   const t = new THREE.CanvasTexture(c);
   t.encoding = THREE.sRGBEncoding;
@@ -696,6 +1217,11 @@ function erBuild3D(THREE, grp, md, L, cfg) {
     black: std({
       color: 0x1b1d21,
       roughness: 0.55
+    }),
+    encl: std({
+      color: 0xdcd8cc,
+      roughness: 0.5,
+      metalness: 0.1
     })
   };
   const box = (w, h, d, mat, x, y, z, sh) => {
@@ -731,14 +1257,25 @@ function erBuild3D(THREE, grp, md, L, cfg) {
   L.items.forEach(it => {
     useG(it.g);
     if (it.t === "mdb") {
-      box(it.w, 0.1, it.d - 0.04, M.dark, it.x, 0, 0.12);
-      faced(it.w, it.h - 0.1, it.d, M.white, erMdbFace(THREE, it.n, md.mainA), it.x, 0.1, 0.1);
+      if (it.y > 0.3) {
+        [[0.03, 0.06], [it.w - 0.07, 0.06], [0.03, it.d + 0.02], [it.w - 0.07, it.d + 0.02]].forEach(([dx, dz]) => box(0.04, it.y, 0.04, M.encl, it.x + dx, 0, dz));
+        [0.15, it.y - 0.06].forEach(yy => {
+          box(it.w - 0.06, 0.04, 0.04, M.encl, it.x + 0.03, yy, 0.06);
+          box(it.w - 0.06, 0.04, 0.04, M.encl, it.x + 0.03, yy, it.d + 0.02);
+        });
+        faced(it.w, it.h, it.d, M.encl, erMdbFace(THREE, 1, md.mainA, it.w, it.h), it.x, it.y, 0.06);
+      } else {
+        box(it.w, 0.1, it.d - 0.04, M.dark, it.x, 0, 0.12);
+        faced(it.w, it.h - 0.1, it.d, M.encl, erMdbFace(THREE, it.n, md.mainA, it.w, it.h - 0.1), it.x, 0.1, 0.1);
+      }
     } else if (it.t === "cu") {
       faced(it.w, it.h, it.d, M.white, erMdbFace(THREE, 1, md.mainA), it.x, it.y, 0);
     } else if (it.t === "ac") {
-      const face = erAcFace(THREE, it.w, it.h);
-      faced(it.w, it.h, it.d, M.gray, face, it.x, it.y, 0.08);
-      if (it.y > 0.3) {
+      if (md.home) faced(it.w, it.h, it.d, M.white, erPlasticFace(THREE, it.w, it.h, ["acmcb", "acmcb", "acspd", "acspd"]), it.x, it.y, 0.08);else if (it.h < 1.1) {
+        faced(it.w, it.h, it.d, M.encl, erAcGlassFace(THREE, it.w, it.h), it.x, it.y, 0);
+        box(it.w + 0.04, 0.03, it.d + 0.06, M.encl, it.x - 0.02, it.y + it.h, 0);
+      } else faced(it.w, it.h, it.d, M.encl, erAcPanelFace(THREE, it.w, it.h, md.mainA), it.x, it.y, 0.08);
+      if (!md.home && it.h >= 1.1 && it.y > 0.3) {
         [[0.08, 0.1], [it.w - 0.14, 0.1], [0.08, it.d - 0.02], [it.w - 0.14, it.d - 0.02]].forEach(([dx, dz]) => box(0.06, it.y, 0.06, M.dark, it.x + dx, 0, dz));
         [0, it.w - 0.2].forEach(dx => box(0.26, 0.012, it.d + 0.2, M.dark, it.x + dx - 0.03, 0, 0.0));
       }
@@ -785,7 +1322,42 @@ function erBuild3D(THREE, grp, md, L, cfg) {
       for (let k = 0; k < 5; k++) box(0.012, d.h * 0.7, d.d * 0.75, M.gray, ix + d.w + 0.004 + k * 0.016, iy + d.h * 0.15, iz + 0.05);
       const dx = s.x + 0.12,
         dy = iy + d.h - s.dc.h;
-      faced(s.dc.w, s.dc.h, s.dc.d, M.gray, erAcFace(THREE, s.dc.w, s.dc.h), dx, dy, zR + 0.04);
+      const ns = s.iv.nStr || 2,
+        small = ns <= 2;
+      if (small) {
+        const mods = [];
+        if (md.home) {
+          for (let k = 0; k < ns; k++) mods.push("fuse", "fuse", "dcmcb", "dcspd", "dcspd");
+          mods.push("acmcb", "acspd", "acspd");
+        } else {
+          for (let k = 0; k < ns * 2; k++) mods.push("fuse");
+          for (let k = 0; k < ns; k++) mods.push("dcmcb4", "dcspd", "dcspd", "dcspd");
+        }
+        faced(s.dc.w, s.dc.h, s.dc.d, M.white, erPlasticFace(THREE, s.dc.w, s.dc.h, mods), dx, dy, zR + 0.04);
+        const mc = (k, right) => box(0.022, 0.05, 0.022, M.black, right ? dx + s.dc.w - 0.062 - k * 0.032 : dx + 0.04 + k * 0.032, dy - 0.05, zR + 0.04 + s.dc.d * 0.45);
+        for (let k = 0; k < ns; k++) {
+          mc(k, false);
+          if (md.home) mc(ns + k, false);else mc(k, true);
+        }
+        const nGl = ns + 1,
+          gx0 = dx + s.dc.w * 0.5 - (nGl - 1) * 0.025;
+        for (let k = 0; k < nGl; k++) {
+          const gm = add(new THREE.Mesh(new THREE.CylinderGeometry(0.016, 0.018, 0.04, 12), M.white));
+          gm.position.set((md.home ? dx + s.dc.w * 0.62 - (nGl - 1) * 0.025 : gx0) + k * 0.05, dy - 0.02, zR + 0.04 + s.dc.d * 0.5);
+        }
+      } else {
+        faced(s.dc.w, s.dc.h, s.dc.d, M.encl, erDcFace(THREE, s.dc.w, s.dc.h, ns), dx, dy, zR + 0.04);
+        const nAll = ns * 2 + 1,
+          perRow = Math.max(1, Math.floor((s.dc.w - 0.06) / 0.035)),
+          gRows = Math.min(Math.ceil(nAll / perRow), Math.max(1, Math.floor(s.dc.d / 0.045)));
+        for (let r = 0; r < gRows; r++) {
+          const nG = Math.min(perRow, nAll - r * perRow);
+          for (let k = 0; k < nG; k++) {
+            const gm = add(new THREE.Mesh(new THREE.CylinderGeometry(0.011, 0.013, 0.035, 10), M.black));
+            gm.position.set(dx + 0.03 + (k + 0.5) * ((s.dc.w - 0.06) / nG), dy - 0.017, zR + 0.04 + s.dc.d * (0.75 - r * 0.45 / Math.max(1, gRows - 1) * (gRows > 1 ? 1 : 0)) - (gRows > 1 ? 0 : s.dc.d * 0.25));
+          }
+        }
+      }
       const by = iy,
         fz = iz + 0.02 + d.d * 0.55;
       box(d.w * 0.22, 0.09, d.d * 0.4, M.black, ix + d.w * 0.62, by - 0.09, fz - d.d * 0.2);
@@ -1696,6 +2268,10 @@ function ErRoomCard({
 }
 Object.assign(window, {
   ER_DEF,
+  erDcFace,
+  erPlasticFace,
+  erAcPanelFace,
+  erAcGlassFace,
   erInvDim,
   erInvSpec,
   erModel,
