@@ -399,7 +399,7 @@ function useDesignVersions({ job, activeBoq, currentUser, patchActive, BoqEditor
   /* ยังไม่มี BOQ เลย = เปิดใบแรกตรง ๆ (ยังไม่ต้องมีเวอร์ชัน) */
   const newBoq = () => { if (!vers.list.length) setEd({ ver: "1", boq: null, vers }); else setPick("boq-new"); };
   return { boqSub, p3Sub, openBoq, openP3, ui, nBoq: vers.list.length, nP3: p3.list.length,
-    p3List: p3.list, boqVers: vers, boqLinks, openP3Ver, openBoqVer, newP3, newBoq,
+    jobId, p3List: p3.list, boqVers: vers, boqLinks, openP3Ver, openBoqVer, newP3, newBoq,
     manageP3: () => setPick("p3"), manageBoq: () => setPick("boq") };
 }
 
@@ -438,6 +438,10 @@ const DVC_CSS = `
 .dvc-row{width:100%;display:flex;align-items:center;gap:10px;padding:10px 12px;background:var(--surface);box-shadow:var(--shadow-sm);border:none;border-radius:var(--r-tile);cursor:pointer;font-family:inherit;text-align:left}
 .dvc-row[data-on="1"]{background:var(--surface2)}
 .dvc-row:hover{box-shadow:var(--shadow-card)}
+.dvc-row:focus-visible{outline:2px solid var(--primary);outline-offset:2px}
+.dvc-del{width:28px;height:28px;border-radius:8px;border:none;background:transparent;color:var(--text-3);display:grid;place-items:center;cursor:pointer;flex-shrink:0}
+.dvc-del:hover{background:var(--tint-red-bg,#FDECEC);color:var(--tint-red-tx,#C0392B)}
+.dvc-del:disabled{opacity:.3;cursor:default;background:transparent;color:var(--text-3)}
 .dvc-no{font-size:10.5px;font-weight:800;color:var(--text-2);background:var(--surface2);padding:2px 7px;border-radius:var(--r-pill);font-family:var(--mono)}
 .dvc-row[data-on="1"] .dvc-no{background:var(--primary-soft);color:var(--primary-dark)}
 .dvc-nm{font-size:12.5px;font-weight:700;color:var(--text-1)}
@@ -454,6 +458,7 @@ function DvVerCard({ kind, dvs, title, sub, icon, color, canNew }) {
   const vers = dvs.boqVers || { list: [] };
   const list = isP3 ? p3List : vers.list;
   const nfmt = (n) => (+n || 0).toLocaleString();
+  const many = list.length > 1;
   const rows = list.map((v) => {
     if (isP3) {
       const s = v.sum, links = (dvs.boqLinks || {})[v.id] || [];
@@ -461,19 +466,27 @@ function DvVerCard({ kind, dvs, title, sub, icon, color, canNew }) {
         meta: [v.id === "1" ? "แบบแรกของงานนี้" : v.from ? "คัดลอกจาก " + dvP3Name(p3List, v.from) : "",
           s && s.at ? "บันทึก " + dvWhen(s.at) : v.at ? "สร้าง " + dvWhen(v.at) : "", v.byName || ""].filter(Boolean).join(" · "),
         val: s && s.panels ? nfmt(s.panels) + " แผง · " + s.kwp + " kWp" : s ? "ยังไม่มีแผง" : "",
-        pill: links.length ? { th: "BOQ · " + links.join(", "), c: "#4F46E5" } : null };
+        pill: links.length ? { th: "BOQ · " + links.join(", "), c: "#4F46E5" } : null,
+        /* ลบได้ทุกแบบยกเว้นต้นแบบ · มี BOQ ผูกอยู่ = ปุ่มจาง (ย้าย BOQ ไปแบบอื่นก่อน) */
+        del: v.id === "1" ? null : links.length ? { off: "มี BOQ ใช้แบบนี้อยู่ (" + links.join(", ") + ") — เปลี่ยนแบบ 3D ใน BOQ นั้นก่อนจึงลบได้" } : {} };
     }
     const b = v.boq || {}, on = v.id === vers.active;
     const sell = b.pricing && +b.pricing.sell > 0 ? +b.pricing.sell : 0;
     return { id: v.id, on, name: v.name, tag: on ? "ใช้งาน" : null,
       meta: ["แบบ 3D: " + dvP3Name(p3List, b.plan3d), +b.panels > 0 ? nfmt(b.panels) + " แผง" : "", v.at ? dvWhen(v.at) : "", v.byName || ""].filter(Boolean).join(" · "),
       val: sell ? "฿" + nfmt(Math.round(sell)) : "",
-      pill: on ? { th: "ใบเสนอราคาดึงใบนี้", c: "#0F7A5C" } : null };
+      pill: on ? { th: "ใบเสนอราคาดึงใบนี้", c: "#0F7A5C" } : null,
+      /* ใบที่ใช้งานลบไม่ได้ (ใบเสนอราคาดึงอยู่) — กด "ใช้ใบนี้" ที่ใบอื่นใน "จัดการ" ก่อน */
+      del: !vers.real || !many ? null : on ? { off: "ใบนี้ใช้งานอยู่ — เลือกใบอื่นเป็นใบที่ใช้งานก่อน (ปุ่ม จัดการ)" } : {} };
   });
   /* ตัวบนสุด = ต้นแบบ / ใบที่ใช้งาน · ที่เหลือใหม่สุดก่อน (แบบเดียวกับรายการใบเสนอราคา) */
   const ordered = rows.filter((r) => r.on).concat(rows.filter((r) => !r.on).sort((a, b) => +b.id - +a.id));
-  const many = list.length > 1;
   const open = (id) => (isP3 ? dvs.openP3Ver(id) : dvs.openBoqVer(id));
+  const jobId = dvs.jobId;
+  const remove = (r) => {
+    if (!window.confirm("ลบ " + (isP3 ? "แบบ 3D" : "BOQ") + " \"V" + r.id + " · " + r.name + "\"?\nกู้คืนไม่ได้ — เวอร์ชันอื่นไม่ถูกแตะ")) return;
+    (isP3 ? dvP3Delete(jobId, r.id) : dvBoqDelete(jobId, r.id)).catch(() => window.alert("ลบไม่สำเร็จ ลองใหม่อีกครั้ง"));
+  };
   return (
     <div className="dvc">
       <style>{DVC_CSS}</style>
@@ -495,7 +508,8 @@ function DvVerCard({ kind, dvs, title, sub, icon, color, canNew }) {
       ) : (
         <div className="dvc-list">
           {ordered.map((r) => (
-            <button key={r.id} className="dvc-row" data-on={r.on && many ? "1" : "0"} onClick={() => open(r.id)}>
+            <div key={r.id} className="dvc-row" role="button" tabIndex={0} data-on={r.on && many ? "1" : "0"} onClick={() => open(r.id)}
+              onKeyDown={(e) => { if (e.key === "Enter") open(r.id); }}>
               <span style={{ flex: 1, minWidth: 0 }}>
                 <span style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
                   <span className="dvc-no">V{r.id}</span>
@@ -506,8 +520,12 @@ function DvVerCard({ kind, dvs, title, sub, icon, color, canNew }) {
               </span>
               {r.val && <span className="dvc-v">{r.val}</span>}
               {many && r.pill && <span className="dvc-pill" style={{ color: r.pill.c, background: "color-mix(in srgb," + r.pill.c + " 11%,transparent)" }}>{r.pill.th}</span>}
+              {canNew && r.del && (
+                <button className="dvc-del" disabled={!!r.del.off} title={r.del.off || "ลบเวอร์ชันนี้"}
+                  onClick={(e) => { e.stopPropagation(); remove(r); }}><Icon name="trash" size={14} /></button>
+              )}
               <Icon name="arrowRight" size={15} color="var(--text-3)" />
-            </button>
+            </div>
           ))}
         </div>
       )}

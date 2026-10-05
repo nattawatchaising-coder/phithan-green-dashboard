@@ -705,6 +705,7 @@ function useDesignVersions({
     ui,
     nBoq: vers.list.length,
     nP3: p3.list.length,
+    jobId,
     p3List: p3.list,
     boqVers: vers,
     boqLinks,
@@ -775,6 +776,10 @@ const DVC_CSS = `
 .dvc-row{width:100%;display:flex;align-items:center;gap:10px;padding:10px 12px;background:var(--surface);box-shadow:var(--shadow-sm);border:none;border-radius:var(--r-tile);cursor:pointer;font-family:inherit;text-align:left}
 .dvc-row[data-on="1"]{background:var(--surface2)}
 .dvc-row:hover{box-shadow:var(--shadow-card)}
+.dvc-row:focus-visible{outline:2px solid var(--primary);outline-offset:2px}
+.dvc-del{width:28px;height:28px;border-radius:8px;border:none;background:transparent;color:var(--text-3);display:grid;place-items:center;cursor:pointer;flex-shrink:0}
+.dvc-del:hover{background:var(--tint-red-bg,#FDECEC);color:var(--tint-red-tx,#C0392B)}
+.dvc-del:disabled{opacity:.3;cursor:default;background:transparent;color:var(--text-3)}
 .dvc-no{font-size:10.5px;font-weight:800;color:var(--text-2);background:var(--surface2);padding:2px 7px;border-radius:var(--r-pill);font-family:var(--mono)}
 .dvc-row[data-on="1"] .dvc-no{background:var(--primary-soft);color:var(--primary-dark)}
 .dvc-nm{font-size:12.5px;font-weight:700;color:var(--text-1)}
@@ -801,6 +806,7 @@ function DvVerCard({
   };
   const list = isP3 ? p3List : vers.list;
   const nfmt = n => (+n || 0).toLocaleString();
+  const many = list.length > 1;
   const rows = list.map(v => {
     if (isP3) {
       const s = v.sum,
@@ -815,7 +821,10 @@ function DvVerCard({
         pill: links.length ? {
           th: "BOQ · " + links.join(", "),
           c: "#4F46E5"
-        } : null
+        } : null,
+        del: v.id === "1" ? null : links.length ? {
+          off: "มี BOQ ใช้แบบนี้อยู่ (" + links.join(", ") + ") — เปลี่ยนแบบ 3D ใน BOQ นั้นก่อนจึงลบได้"
+        } : {}
       };
     }
     const b = v.boq || {},
@@ -831,12 +840,19 @@ function DvVerCard({
       pill: on ? {
         th: "ใบเสนอราคาดึงใบนี้",
         c: "#0F7A5C"
-      } : null
+      } : null,
+      del: !vers.real || !many ? null : on ? {
+        off: "ใบนี้ใช้งานอยู่ — เลือกใบอื่นเป็นใบที่ใช้งานก่อน (ปุ่ม จัดการ)"
+      } : {}
     };
   });
   const ordered = rows.filter(r => r.on).concat(rows.filter(r => !r.on).sort((a, b) => +b.id - +a.id));
-  const many = list.length > 1;
   const open = id => isP3 ? dvs.openP3Ver(id) : dvs.openBoqVer(id);
+  const jobId = dvs.jobId;
+  const remove = r => {
+    if (!window.confirm("ลบ " + (isP3 ? "แบบ 3D" : "BOQ") + " \"V" + r.id + " · " + r.name + "\"?\nกู้คืนไม่ได้ — เวอร์ชันอื่นไม่ถูกแตะ")) return;
+    (isP3 ? dvP3Delete(jobId, r.id) : dvBoqDelete(jobId, r.id)).catch(() => window.alert("ลบไม่สำเร็จ ลองใหม่อีกครั้ง"));
+  };
   return React.createElement("div", {
     className: "dvc"
   }, React.createElement("style", null, DVC_CSS), React.createElement("div", {
@@ -874,11 +890,16 @@ function DvVerCard({
     className: "dvc-empty"
   }, "\u0E22\u0E31\u0E07\u0E44\u0E21\u0E48\u0E21\u0E35 BOQ \u0E02\u0E2D\u0E07\u0E07\u0E32\u0E19\u0E19\u0E35\u0E49") : React.createElement("div", {
     className: "dvc-list"
-  }, ordered.map(r => React.createElement("button", {
+  }, ordered.map(r => React.createElement("div", {
     key: r.id,
     className: "dvc-row",
+    role: "button",
+    tabIndex: 0,
     "data-on": r.on && many ? "1" : "0",
-    onClick: () => open(r.id)
+    onClick: () => open(r.id),
+    onKeyDown: e => {
+      if (e.key === "Enter") open(r.id);
+    }
   }, React.createElement("span", {
     style: {
       flex: 1,
@@ -907,7 +928,18 @@ function DvVerCard({
       color: r.pill.c,
       background: "color-mix(in srgb," + r.pill.c + " 11%,transparent)"
     }
-  }, r.pill.th), React.createElement(Icon, {
+  }, r.pill.th), canNew && r.del && React.createElement("button", {
+    className: "dvc-del",
+    disabled: !!r.del.off,
+    title: r.del.off || "ลบเวอร์ชันนี้",
+    onClick: e => {
+      e.stopPropagation();
+      remove(r);
+    }
+  }, React.createElement(Icon, {
+    name: "trash",
+    size: 14
+  })), React.createElement(Icon, {
     name: "arrowRight",
     size: 15,
     color: "var(--text-3)"
