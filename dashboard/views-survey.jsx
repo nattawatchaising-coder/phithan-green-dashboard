@@ -883,18 +883,12 @@ function LeadDetail({ l, ctx, tab }) {
          ออกแบบระบบ/ผลผลิต ไม่มีแถวของตัวเอง — กลับไปอยู่ในจอ 3 มิติตามเดิม
          เพราะมันกินทิศกับมุมของแผงจากผังนั้นตรง ๆ เปิดแยกจะกลายเป็นสองทางที่ทำเรื่องเดียวกัน */}
       {onPlan3d && (
-        <window.DvRowWrap n={dvs.nP3} onVers={() => dvs.openP3(true)}>
-          <LeadActionRow icon="panel" color="#4F46E5" title="วางแผง 3D"
-            sub={dvs.p3Sub || "ปั้นผังหลังคา · ดึงจำนวนแผงเข้าใบเสนอราคา · ออกแบบระบบ + ผลผลิต อยู่ในจอเดียวกัน"}
-            onClick={() => dvs.openP3()} />
-        </window.DvRowWrap>
+        <window.DvVerCard kind="p3" dvs={dvs} icon="panel" color="#4F46E5" canNew
+          title="วางแผง 3D" sub="ปั้นผังหลังคา · ดึงจำนวนแผงเข้าใบเสนอราคา · ออกแบบระบบ + ผลผลิต" />
       )}
       {asJob && window.BOQEditor && (
-        <window.DvRowWrap n={dvs.nBoq} onVers={onSaveBoq ? () => dvs.openBoq(true) : null}>
-          <LeadActionRow icon="box" color="var(--primary-dark)" title="ถอดวัสดุ BOQ"
-            sub={dvs.boqSub || ((job ? job.boq : l.boq) ? "มีรายการแล้ว · แตะเพื่อแก้ไข / ดาวน์โหลด" : "คำนวณปริมาณวัสดุเพื่อคิดราคาไปเสนอ")}
-            onClick={() => dvs.openBoq()} />
-        </window.DvRowWrap>
+        <window.DvVerCard kind="boq" dvs={dvs} icon="box" color="var(--primary-dark)" canNew={!!onSaveBoq}
+          title="ถอดวัสดุ BOQ" sub="แต่ละใบผูกกับแบบ 3D ของตัวเอง · ใบที่ใช้งาน = ใบที่ใบเสนอราคาดึง" />
       )}
       {/* ไฟล์แบบ / BOQ ที่แนบไว้ — ไฟล์ตามไปกับงานเองตอนกดแปลงเป็นงาน (moveJobFiles) */}
       {media && window.JobFiles && (

@@ -1828,81 +1828,23 @@ function DetailDrawer({
     name: "arrowRight",
     size: 16,
     color: "var(--text-3)"
-  })), window.Plan3DEntry && !roMode && React.createElement(window.DvRowWrap, {
-    n: dvs.nP3,
-    onVers: () => dvs.openP3(true)
-  }, React.createElement("button", {
-    onClick: () => dvs.openP3(),
-    className: "act-row"
-  }, React.createElement("span", {
-    className: "ic-chip",
-    style: {
-      background: "#6366F11c"
-    }
-  }, React.createElement(Icon, {
-    name: "panel",
-    size: 17,
-    color: "#4F46E5"
-  })), React.createElement("span", {
-    style: {
-      flex: 1,
-      minWidth: 0
-    }
-  }, React.createElement("span", {
-    style: {
-      display: "block",
-      fontSize: 13.5,
-      fontWeight: 700,
-      color: "var(--text-1)"
-    }
-  }, "\u0E27\u0E32\u0E07\u0E41\u0E1C\u0E07 3D (\u0E42\u0E21\u0E40\u0E14\u0E25\u0E2B\u0E25\u0E31\u0E07\u0E04\u0E32 + \u0E40\u0E07\u0E32\u0E41\u0E14\u0E14)"), React.createElement("span", {
-    style: {
-      display: "block",
-      fontSize: 11.5,
-      color: "var(--text-3)"
-    }
-  }, dvs.p3Sub || "ปั้นหลังคาตามรูปโดรน · วางแผง · เงาดวงอาทิตย์ · ออกแบบระบบ + ผลผลิต อยู่ในจอเดียวกัน")), React.createElement(Icon, {
-    name: "arrowRight",
-    size: 16,
-    color: "var(--text-3)"
-  }))), !roMode && React.createElement(window.DvRowWrap, {
-    n: dvs.nBoq,
-    onVers: onSaveBOQ ? () => dvs.openBoq(true) : null
-  }, React.createElement("button", {
-    onClick: () => dvs.openBoq(),
-    className: "act-row"
-  }, React.createElement("span", {
-    className: "ic-chip",
-    style: {
-      background: "var(--primary-soft)"
-    }
-  }, React.createElement(Icon, {
-    name: "box",
-    size: 17,
-    color: "var(--primary-dark)"
-  })), React.createElement("span", {
-    style: {
-      flex: 1,
-      minWidth: 0
-    }
-  }, React.createElement("span", {
-    style: {
-      display: "block",
-      fontSize: 13.5,
-      fontWeight: 700,
-      color: "var(--text-1)"
-    }
-  }, "\u0E16\u0E2D\u0E14\u0E27\u0E31\u0E2A\u0E14\u0E38 BOQ"), React.createElement("span", {
-    style: {
-      display: "block",
-      fontSize: 11.5,
-      color: "var(--text-3)"
-    }
-  }, dvs.boqSub || (job.boq ? "มีรายการแล้ว · แตะเพื่อแก้ไข / ดาวน์โหลด" : "คำนวณปริมาณวัสดุของงานนี้"))), React.createElement(Icon, {
-    name: "arrowRight",
-    size: 16,
-    color: "var(--text-3)"
-  }))), onPermit && (() => {
+  })), window.Plan3DEntry && !roMode && React.createElement(window.DvVerCard, {
+    kind: "p3",
+    dvs: dvs,
+    icon: "panel",
+    color: "#4F46E5",
+    canNew: true,
+    title: "\u0E27\u0E32\u0E07\u0E41\u0E1C\u0E07 3D (\u0E42\u0E21\u0E40\u0E14\u0E25\u0E2B\u0E25\u0E31\u0E07\u0E04\u0E32 + \u0E40\u0E07\u0E32\u0E41\u0E14\u0E14)",
+    sub: "\u0E1B\u0E31\u0E49\u0E19\u0E2B\u0E25\u0E31\u0E07\u0E04\u0E32\u0E15\u0E32\u0E21\u0E23\u0E39\u0E1B\u0E42\u0E14\u0E23\u0E19 \xB7 \u0E27\u0E32\u0E07\u0E41\u0E1C\u0E07 \xB7 \u0E40\u0E07\u0E32\u0E41\u0E14\u0E14 \xB7 \u0E2D\u0E2D\u0E01\u0E41\u0E1A\u0E1A\u0E23\u0E30\u0E1A\u0E1A + \u0E1C\u0E25\u0E1C\u0E25\u0E34\u0E15"
+  }), !roMode && React.createElement(window.DvVerCard, {
+    kind: "boq",
+    dvs: dvs,
+    icon: "box",
+    color: "var(--primary-dark)",
+    canNew: !!onSaveBOQ,
+    title: "\u0E16\u0E2D\u0E14\u0E27\u0E31\u0E2A\u0E14\u0E38 BOQ",
+    sub: "\u0E41\u0E15\u0E48\u0E25\u0E30\u0E43\u0E1A\u0E1C\u0E39\u0E01\u0E01\u0E31\u0E1A\u0E41\u0E1A\u0E1A 3D \u0E02\u0E2D\u0E07\u0E15\u0E31\u0E27\u0E40\u0E2D\u0E07 \xB7 \u0E43\u0E1A\u0E17\u0E35\u0E48\u0E43\u0E0A\u0E49\u0E07\u0E32\u0E19 = \u0E43\u0E1A\u0E17\u0E35\u0E48\u0E43\u0E1A\u0E40\u0E2A\u0E19\u0E2D\u0E23\u0E32\u0E04\u0E32\u0E14\u0E36\u0E07"
+  }), onPermit && (() => {
     const pm = job.permit || null;
     const pst = window.permitStatusOf ? window.permitStatusOf(job) : null;
     const FLOW = window.PERMIT_FLOW || [];

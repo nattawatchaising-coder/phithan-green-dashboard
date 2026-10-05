@@ -191,7 +191,8 @@ function DvName({ value, onSave, ro }) {
 
 /* ── เลือก/สร้างเวอร์ชันแบบ 3D ──
    boqLinks = { "<ver แบบ 3D>": ["ชื่อ BOQ", …] } — บอกว่า BOQ ไหนใช้แบบนี้อยู่ (ลบไม่ได้ถ้ามี) */
-function P3VerModal({ job, currentUser, boqLinks, onOpen, onClose, ro }) {
+function P3VerModal({ job, currentUser, boqLinks, onOpen, onClose, ro, mode }) {
+  const only = mode === "new";
   const jobId = job && job.id;
   const { list, loading } = useP3Vers(jobId);
   const [from, setFrom] = React.useState("1");
@@ -209,8 +210,8 @@ function P3VerModal({ job, currentUser, boqLinks, onOpen, onClose, ro }) {
     dvP3Delete(jobId, v.id).catch(() => setErr("ลบไม่สำเร็จ"));
   };
   return (
-    <DvShell k={"วางแผง 3D" + (job && job.code ? " · " + job.code : "")} t="เลือกเวอร์ชันแบบ" onClose={onClose}>
-      <div className="dv-list">
+    <DvShell k={"วางแผง 3D" + (job && job.code ? " · " + job.code : "")} t={only ? "ทำแบบ 3D ใหม่" : "จัดการเวอร์ชันแบบ"} onClose={onClose}>
+      {!only && <div className="dv-list">
         {list.map((v) => {
           const links = (boqLinks || {})[v.id] || [];
           const s = v.sum;
@@ -237,10 +238,10 @@ function P3VerModal({ job, currentUser, boqLinks, onOpen, onClose, ro }) {
             </div>
           );
         })}
-      </div>
+      </div>}
       {!ro && !loading && (
-        <div className="dv-new">
-          <div className="lb">สร้างเวอร์ชันใหม่</div>
+        <div className="dv-new" style={only ? { marginTop: 14 } : null}>
+          {!only && <div className="lb">สร้างเวอร์ชันใหม่</div>}
           <label className="dv-f"><span>คัดลอกจาก</span>
             <Dropdown value={from} onChange={(v) => setFrom(v)} options={list.map((v) => ({ value: v.id, label: (v.id === "1" ? "V1 · " : "V" + v.id + " · ") + v.name }))} />
           </label>
@@ -259,7 +260,8 @@ function P3VerModal({ job, currentUser, boqLinks, onOpen, onClose, ro }) {
 
 /* ── เลือก/สร้างเวอร์ชัน BOQ ──
    patchActive(boq) = เขียน job.boq/lead.boq ของผู้เรียก (ใบที่ใช้งาน — ใบเสนอราคาดึงจากใบนี้) */
-function BoqVerModal({ job, activeBoq, currentUser, patchActive, onOpen, onClose, ro }) {
+function BoqVerModal({ job, activeBoq, currentUser, patchActive, onOpen, onClose, ro, mode }) {
+  const only = mode === "new";
   const jobId = job && job.id;
   const vers = useBoqVers(jobId, activeBoq);
   const p3 = useP3Vers(jobId);
@@ -288,8 +290,8 @@ function BoqVerModal({ job, activeBoq, currentUser, patchActive, onOpen, onClose
   };
   const sell = (b) => (b && b.pricing && +b.pricing.sell > 0 ? "ราคาขาย ฿" + Math.round(+b.pricing.sell).toLocaleString() : "");
   return (
-    <DvShell k={"ถอดวัสดุ BOQ" + (job && job.code ? " · " + job.code : "")} t="เลือกเวอร์ชัน BOQ" onClose={onClose}>
-      <div className="dv-list">
+    <DvShell k={"ถอดวัสดุ BOQ" + (job && job.code ? " · " + job.code : "")} t={only ? "ทำ BOQ ใบใหม่" : "จัดการเวอร์ชัน BOQ"} onClose={onClose}>
+      {!only && <div className="dv-list">
         {vers.list.length === 0 && <div style={{ padding: 14, textAlign: "center", fontSize: 12.5, color: "var(--text-3)" }}>ยังไม่มี BOQ — สร้างใบแรกด้านล่าง</div>}
         {vers.list.map((v) => {
           const on = v.id === vers.active;
@@ -319,10 +321,10 @@ function BoqVerModal({ job, activeBoq, currentUser, patchActive, onOpen, onClose
             </div>
           );
         })}
-      </div>
+      </div>}
       {!ro && !vers.loading && (
-        <div className="dv-new">
-          <div className="lb">{vers.list.length ? "สร้าง BOQ เวอร์ชันใหม่" : "สร้าง BOQ"}</div>
+        <div className="dv-new" style={only ? { marginTop: 14 } : null}>
+          {!only && <div className="lb">{vers.list.length ? "สร้าง BOQ เวอร์ชันใหม่" : "สร้าง BOQ"}</div>}
           {vers.list.length > 0 && (
             <label className="dv-f"><span>เริ่มจาก</span>
               <Dropdown value={fromDef} onChange={(v) => { setFrom(v); setPlan(null); }}
@@ -351,7 +353,7 @@ function useDesignVersions({ job, activeBoq, currentUser, patchActive, BoqEditor
   const jobId = job && job.id;
   const p3 = useP3Vers(jobId);
   const vers = useBoqVers(jobId, activeBoq);
-  const [pick, setPick] = React.useState(null);        // "boq" | "p3" | null
+  const [pick, setPick] = React.useState(null);        // "boq" | "p3" | "boq-new" | "p3-new" | null
   const [ed, setEd] = React.useState(null);            // { ver, boq, vers } BOQ ที่เปิดแก้อยู่
   const [p3Ver, setP3Ver] = React.useState(null);      // เวอร์ชันแบบ 3D ที่เปิดอยู่
   React.useEffect(() => { setPick(null); setEd(null); setP3Ver(null); }, [jobId]);
@@ -378,9 +380,9 @@ function useDesignVersions({ job, activeBoq, currentUser, patchActive, BoqEditor
   const edVers = ed ? (vers.list.some((x) => x.id === ed.ver) ? vers : ed.vers) : null;
   const ui = (
     <React.Fragment>
-      {pick === "p3" && <P3VerModal job={job} currentUser={currentUser} boqLinks={boqLinks} ro={ro} onClose={() => setPick(null)}
+      {(pick === "p3" || pick === "p3-new") && <P3VerModal mode={pick === "p3-new" ? "new" : null} job={job} currentUser={currentUser} boqLinks={boqLinks} ro={ro} onClose={() => setPick(null)}
         onOpen={(v) => { setPick(null); if (onP3Open) onP3Open(v); else setP3Ver(v); }} />}
-      {pick === "boq" && <BoqVerModal job={job} activeBoq={activeBoq} currentUser={currentUser} patchActive={patchActive} ro={ro} onClose={() => setPick(null)}
+      {(pick === "boq" || pick === "boq-new") && <BoqVerModal mode={pick === "boq-new" ? "new" : null} job={job} activeBoq={activeBoq} currentUser={currentUser} patchActive={patchActive} ro={ro} onClose={() => setPick(null)}
         onOpen={(v, b, vs) => { setPick(null); setEd({ ver: v, boq: b, vers: vs }); }} />}
       {ed && BoqEditor && (
         <BoqEditor {...editorProps} job={edJob} ver={ed.ver} verName={(edVers.list.find((x) => x.id === ed.ver) || {}).name || "เวอร์ชัน " + ed.ver}
@@ -390,7 +392,15 @@ function useDesignVersions({ job, activeBoq, currentUser, patchActive, BoqEditor
       {p3Ver && P3Entry && <P3Entry job={job} ver={p3Ver} verName={dvP3Name(p3.list, p3Ver)} currentUser={currentUser} onClose={() => setP3Ver(null)} />}
     </React.Fragment>
   );
-  return { boqSub, p3Sub, openBoq, openP3, ui, nBoq: vers.list.length, nP3: p3.list.length };
+  /* สำหรับการ์ดรายการ (DvVerCard) — เปิดเวอร์ชันตรง ๆ / ทำใหม่ / จัดการ */
+  const openP3Ver = (v) => { if (onP3Open) onP3Open(v); else setP3Ver(v); };
+  const openBoqVer = (id) => { const v = vers.list.find((x) => x.id === id); setEd({ ver: id, boq: v ? v.boq : null, vers }); };
+  const newP3 = () => setPick("p3-new");
+  /* ยังไม่มี BOQ เลย = เปิดใบแรกตรง ๆ (ยังไม่ต้องมีเวอร์ชัน) */
+  const newBoq = () => { if (!vers.list.length) setEd({ ver: "1", boq: null, vers }); else setPick("boq-new"); };
+  return { boqSub, p3Sub, openBoq, openP3, ui, nBoq: vers.list.length, nP3: p3.list.length,
+    p3List: p3.list, boqVers: vers, boqLinks, openP3Ver, openBoqVer, newP3, newBoq,
+    manageP3: () => setPick("p3"), manageBoq: () => setPick("boq") };
 }
 
 Object.assign(window, { dvP3Key, dvP3Split, dvP3Saved, dvP3Name, useP3Vers, useBoqVers, dvBoqSave, P3VerModal, BoqVerModal, useDesignVersions });
@@ -411,3 +421,97 @@ function DvRowWrap({ n, onVers, children }) {
   );
 }
 Object.assign(window, { DvRowWrap });
+
+/* ── การ์ดรายการเวอร์ชัน — หน้าตาแบบรายการใบเสนอราคา (SalesQuoteList) ──
+   หัวการ์ด + ปุ่ม "ทำใหม่" · แถวละเวอร์ชัน แตะ = เปิดเวอร์ชันนั้นตรง ๆ · ตัวบน (ต้นแบบ / ใบที่ใช้งาน) พื้นเข้ม
+   kind "p3" = แบบ 3D · "boq" = BOQ · dvs = ผลของ useDesignVersions */
+const DVC_CSS = `
+.dvc{background:var(--surface);box-shadow:var(--shadow-sm);border-radius:var(--r-tile);padding:14px 16px;margin-bottom:10px}
+.dvc-hd{display:flex;align-items:center;gap:9px}
+.dvc-ic{width:30px;height:30px;border-radius:9px;display:grid;place-items:center;flex-shrink:0}
+.dvc-t{display:block;font-size:13.5px;font-weight:700;color:var(--text-1)}
+.dvc-s{display:block;font-size:11px;color:var(--text-3);margin-top:1px}
+.dvc-btn{display:inline-flex;align-items:center;gap:4px;background:var(--surface2);box-shadow:var(--shadow-sm);border:none;border-radius:var(--r-chip);padding:5px 10px;cursor:pointer;font-family:inherit;font-size:11.5px;font-weight:700;color:var(--primary-dark);white-space:nowrap}
+.dvc-btn.ghost{background:transparent;box-shadow:none;color:var(--text-3)}
+.dvc-btn.ghost:hover{color:var(--text-1);background:var(--surface2)}
+.dvc-list{margin-top:9px;display:flex;flex-direction:column;gap:6px}
+.dvc-row{width:100%;display:flex;align-items:center;gap:10px;padding:10px 12px;background:var(--surface);box-shadow:var(--shadow-sm);border:none;border-radius:var(--r-tile);cursor:pointer;font-family:inherit;text-align:left}
+.dvc-row[data-on="1"]{background:var(--surface2)}
+.dvc-row:hover{box-shadow:var(--shadow-card)}
+.dvc-no{font-size:10.5px;font-weight:800;color:var(--text-2);background:var(--surface2);padding:2px 7px;border-radius:var(--r-pill);font-family:var(--mono)}
+.dvc-row[data-on="1"] .dvc-no{background:var(--primary-soft);color:var(--primary-dark)}
+.dvc-nm{font-size:12.5px;font-weight:700;color:var(--text-1)}
+.dvc-tag{font-size:10px;font-weight:800;color:var(--primary-dark);background:var(--primary-soft);padding:1px 7px;border-radius:var(--r-pill)}
+.dvc-mt{display:block;font-size:11px;color:var(--text-3);margin-top:1px}
+.dvc-v{font-size:13px;font-weight:800;color:var(--text-1);font-variant-numeric:tabular-nums;white-space:nowrap}
+.dvc-pill{font-size:10.5px;font-weight:700;padding:3px 9px;border-radius:var(--r-pill);white-space:nowrap}
+.dvc-empty{font-size:12.5px;color:var(--text-3);margin-top:8px}
+@media (max-width:560px){.dvc-pill{display:none}}
+`;
+function DvVerCard({ kind, dvs, title, sub, icon, color, canNew }) {
+  const isP3 = kind === "p3";
+  const p3List = dvs.p3List || [];
+  const vers = dvs.boqVers || { list: [] };
+  const list = isP3 ? p3List : vers.list;
+  const nfmt = (n) => (+n || 0).toLocaleString();
+  const rows = list.map((v) => {
+    if (isP3) {
+      const s = v.sum, links = (dvs.boqLinks || {})[v.id] || [];
+      return { id: v.id, on: v.id === "1", name: v.name, tag: v.id === "1" ? "ต้นแบบ" : null,
+        meta: [v.id === "1" ? "แบบแรกของงานนี้" : v.from ? "คัดลอกจาก " + dvP3Name(p3List, v.from) : "",
+          s && s.at ? "บันทึก " + dvWhen(s.at) : v.at ? "สร้าง " + dvWhen(v.at) : "", v.byName || ""].filter(Boolean).join(" · "),
+        val: s && s.panels ? nfmt(s.panels) + " แผง · " + s.kwp + " kWp" : s ? "ยังไม่มีแผง" : "",
+        pill: links.length ? { th: "BOQ · " + links.join(", "), c: "#4F46E5" } : null };
+    }
+    const b = v.boq || {}, on = v.id === vers.active;
+    const sell = b.pricing && +b.pricing.sell > 0 ? +b.pricing.sell : 0;
+    return { id: v.id, on, name: v.name, tag: on ? "ใช้งาน" : null,
+      meta: ["แบบ 3D: " + dvP3Name(p3List, b.plan3d), +b.panels > 0 ? nfmt(b.panels) + " แผง" : "", v.at ? dvWhen(v.at) : "", v.byName || ""].filter(Boolean).join(" · "),
+      val: sell ? "฿" + nfmt(Math.round(sell)) : "",
+      pill: on ? { th: "ใบเสนอราคาดึงใบนี้", c: "#0F7A5C" } : null };
+  });
+  /* ตัวบนสุด = ต้นแบบ / ใบที่ใช้งาน · ที่เหลือใหม่สุดก่อน (แบบเดียวกับรายการใบเสนอราคา) */
+  const ordered = rows.filter((r) => r.on).concat(rows.filter((r) => !r.on).sort((a, b) => +b.id - +a.id));
+  const many = list.length > 1;
+  const open = (id) => (isP3 ? dvs.openP3Ver(id) : dvs.openBoqVer(id));
+  return (
+    <div className="dvc">
+      <style>{DVC_CSS}</style>
+      <div className="dvc-hd">
+        <span className="dvc-ic" style={{ background: "color-mix(in srgb," + color + " 13%,transparent)" }}><Icon name={icon} size={16} color={color} /></span>
+        <span style={{ flex: 1, minWidth: 0 }}>
+          <span className="dvc-t">{title}</span>
+          {sub && <span className="dvc-s">{sub}</span>}
+        </span>
+        {canNew && many && <button className="dvc-btn ghost" onClick={isP3 ? dvs.manageP3 : dvs.manageBoq} title="เปลี่ยนชื่อ · ลบ · เลือกใบที่ใช้งาน">จัดการ</button>}
+        {canNew && (
+          <button className="dvc-btn" onClick={isP3 ? dvs.newP3 : dvs.newBoq}>
+            <Icon name="plus" size={13} color="var(--primary-dark)" /> {isP3 ? "ทำแบบใหม่" : list.length ? "ทำใบใหม่" : "ถอด BOQ"}
+          </button>
+        )}
+      </div>
+      {!ordered.length ? (
+        <div className="dvc-empty">ยังไม่มี BOQ ของงานนี้</div>
+      ) : (
+        <div className="dvc-list">
+          {ordered.map((r) => (
+            <button key={r.id} className="dvc-row" data-on={r.on && many ? "1" : "0"} onClick={() => open(r.id)}>
+              <span style={{ flex: 1, minWidth: 0 }}>
+                <span style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
+                  <span className="dvc-no">V{r.id}</span>
+                  <span className="dvc-nm">{r.name}</span>
+                  {many && r.tag && <span className="dvc-tag">{r.tag}</span>}
+                </span>
+                {r.meta && <span className="dvc-mt">{r.meta}</span>}
+              </span>
+              {r.val && <span className="dvc-v">{r.val}</span>}
+              {many && r.pill && <span className="dvc-pill" style={{ color: r.pill.c, background: "color-mix(in srgb," + r.pill.c + " 11%,transparent)" }}>{r.pill.th}</span>}
+              <Icon name="arrowRight" size={15} color="var(--text-3)" />
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+Object.assign(window, { DvVerCard });

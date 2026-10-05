@@ -292,8 +292,10 @@ function P3VerModal({
   boqLinks,
   onOpen,
   onClose,
-  ro
+  ro,
+  mode
 }) {
+  const only = mode === "new";
   const jobId = job && job.id;
   const {
     list,
@@ -320,9 +322,9 @@ function P3VerModal({
   };
   return React.createElement(DvShell, {
     k: "วางแผง 3D" + (job && job.code ? " · " + job.code : ""),
-    t: "\u0E40\u0E25\u0E37\u0E2D\u0E01\u0E40\u0E27\u0E2D\u0E23\u0E4C\u0E0A\u0E31\u0E19\u0E41\u0E1A\u0E1A",
+    t: only ? "ทำแบบ 3D ใหม่" : "จัดการเวอร์ชันแบบ",
     onClose: onClose
-  }, React.createElement("div", {
+  }, !only && React.createElement("div", {
     className: "dv-list"
   }, list.map(v => {
     const links = (boqLinks || {})[v.id] || [];
@@ -372,8 +374,11 @@ function P3VerModal({
       color: "var(--text-3)"
     }));
   })), !ro && !loading && React.createElement("div", {
-    className: "dv-new"
-  }, React.createElement("div", {
+    className: "dv-new",
+    style: only ? {
+      marginTop: 14
+    } : null
+  }, !only && React.createElement("div", {
     className: "lb"
   }, "\u0E2A\u0E23\u0E49\u0E32\u0E07\u0E40\u0E27\u0E2D\u0E23\u0E4C\u0E0A\u0E31\u0E19\u0E43\u0E2B\u0E21\u0E48"), React.createElement("label", {
     className: "dv-f"
@@ -415,8 +420,10 @@ function BoqVerModal({
   patchActive,
   onOpen,
   onClose,
-  ro
+  ro,
+  mode
 }) {
+  const only = mode === "new";
   const jobId = job && job.id;
   const vers = useBoqVers(jobId, activeBoq);
   const p3 = useP3Vers(jobId);
@@ -458,9 +465,9 @@ function BoqVerModal({
   const sell = b => b && b.pricing && +b.pricing.sell > 0 ? "ราคาขาย ฿" + Math.round(+b.pricing.sell).toLocaleString() : "";
   return React.createElement(DvShell, {
     k: "ถอดวัสดุ BOQ" + (job && job.code ? " · " + job.code : ""),
-    t: "\u0E40\u0E25\u0E37\u0E2D\u0E01\u0E40\u0E27\u0E2D\u0E23\u0E4C\u0E0A\u0E31\u0E19 BOQ",
+    t: only ? "ทำ BOQ ใบใหม่" : "จัดการเวอร์ชัน BOQ",
     onClose: onClose
-  }, React.createElement("div", {
+  }, !only && React.createElement("div", {
     className: "dv-list"
   }, vers.list.length === 0 && React.createElement("div", {
     style: {
@@ -524,8 +531,11 @@ function BoqVerModal({
       color: "var(--text-3)"
     }));
   })), !ro && !vers.loading && React.createElement("div", {
-    className: "dv-new"
-  }, React.createElement("div", {
+    className: "dv-new",
+    style: only ? {
+      marginTop: 14
+    } : null
+  }, !only && React.createElement("div", {
     className: "lb"
   }, vers.list.length ? "สร้าง BOQ เวอร์ชันใหม่" : "สร้าง BOQ"), vers.list.length > 0 && React.createElement("label", {
     className: "dv-f"
@@ -624,7 +634,8 @@ function useDesignVersions({
     boq: ed.boq || null
   }) : null;
   const edVers = ed ? vers.list.some(x => x.id === ed.ver) ? vers : ed.vers : null;
-  const ui = React.createElement(React.Fragment, null, pick === "p3" && React.createElement(P3VerModal, {
+  const ui = React.createElement(React.Fragment, null, (pick === "p3" || pick === "p3-new") && React.createElement(P3VerModal, {
+    mode: pick === "p3-new" ? "new" : null,
     job: job,
     currentUser: currentUser,
     boqLinks: boqLinks,
@@ -634,7 +645,8 @@ function useDesignVersions({
       setPick(null);
       if (onP3Open) onP3Open(v);else setP3Ver(v);
     }
-  }), pick === "boq" && React.createElement(BoqVerModal, {
+  }), (pick === "boq" || pick === "boq-new") && React.createElement(BoqVerModal, {
+    mode: pick === "boq-new" ? "new" : null,
     job: job,
     activeBoq: activeBoq,
     currentUser: currentUser,
@@ -666,6 +678,25 @@ function useDesignVersions({
     currentUser: currentUser,
     onClose: () => setP3Ver(null)
   }));
+  const openP3Ver = v => {
+    if (onP3Open) onP3Open(v);else setP3Ver(v);
+  };
+  const openBoqVer = id => {
+    const v = vers.list.find(x => x.id === id);
+    setEd({
+      ver: id,
+      boq: v ? v.boq : null,
+      vers
+    });
+  };
+  const newP3 = () => setPick("p3-new");
+  const newBoq = () => {
+    if (!vers.list.length) setEd({
+      ver: "1",
+      boq: null,
+      vers
+    });else setPick("boq-new");
+  };
   return {
     boqSub,
     p3Sub,
@@ -673,7 +704,16 @@ function useDesignVersions({
     openP3,
     ui,
     nBoq: vers.list.length,
-    nP3: p3.list.length
+    nP3: p3.list.length,
+    p3List: p3.list,
+    boqVers: vers,
+    boqLinks,
+    openP3Ver,
+    openBoqVer,
+    newP3,
+    newBoq,
+    manageP3: () => setPick("p3"),
+    manageBoq: () => setPick("boq")
   };
 }
 Object.assign(window, {
@@ -721,4 +761,158 @@ function DvRowWrap({
 }
 Object.assign(window, {
   DvRowWrap
+});
+const DVC_CSS = `
+.dvc{background:var(--surface);box-shadow:var(--shadow-sm);border-radius:var(--r-tile);padding:14px 16px;margin-bottom:10px}
+.dvc-hd{display:flex;align-items:center;gap:9px}
+.dvc-ic{width:30px;height:30px;border-radius:9px;display:grid;place-items:center;flex-shrink:0}
+.dvc-t{display:block;font-size:13.5px;font-weight:700;color:var(--text-1)}
+.dvc-s{display:block;font-size:11px;color:var(--text-3);margin-top:1px}
+.dvc-btn{display:inline-flex;align-items:center;gap:4px;background:var(--surface2);box-shadow:var(--shadow-sm);border:none;border-radius:var(--r-chip);padding:5px 10px;cursor:pointer;font-family:inherit;font-size:11.5px;font-weight:700;color:var(--primary-dark);white-space:nowrap}
+.dvc-btn.ghost{background:transparent;box-shadow:none;color:var(--text-3)}
+.dvc-btn.ghost:hover{color:var(--text-1);background:var(--surface2)}
+.dvc-list{margin-top:9px;display:flex;flex-direction:column;gap:6px}
+.dvc-row{width:100%;display:flex;align-items:center;gap:10px;padding:10px 12px;background:var(--surface);box-shadow:var(--shadow-sm);border:none;border-radius:var(--r-tile);cursor:pointer;font-family:inherit;text-align:left}
+.dvc-row[data-on="1"]{background:var(--surface2)}
+.dvc-row:hover{box-shadow:var(--shadow-card)}
+.dvc-no{font-size:10.5px;font-weight:800;color:var(--text-2);background:var(--surface2);padding:2px 7px;border-radius:var(--r-pill);font-family:var(--mono)}
+.dvc-row[data-on="1"] .dvc-no{background:var(--primary-soft);color:var(--primary-dark)}
+.dvc-nm{font-size:12.5px;font-weight:700;color:var(--text-1)}
+.dvc-tag{font-size:10px;font-weight:800;color:var(--primary-dark);background:var(--primary-soft);padding:1px 7px;border-radius:var(--r-pill)}
+.dvc-mt{display:block;font-size:11px;color:var(--text-3);margin-top:1px}
+.dvc-v{font-size:13px;font-weight:800;color:var(--text-1);font-variant-numeric:tabular-nums;white-space:nowrap}
+.dvc-pill{font-size:10.5px;font-weight:700;padding:3px 9px;border-radius:var(--r-pill);white-space:nowrap}
+.dvc-empty{font-size:12.5px;color:var(--text-3);margin-top:8px}
+@media (max-width:560px){.dvc-pill{display:none}}
+`;
+function DvVerCard({
+  kind,
+  dvs,
+  title,
+  sub,
+  icon,
+  color,
+  canNew
+}) {
+  const isP3 = kind === "p3";
+  const p3List = dvs.p3List || [];
+  const vers = dvs.boqVers || {
+    list: []
+  };
+  const list = isP3 ? p3List : vers.list;
+  const nfmt = n => (+n || 0).toLocaleString();
+  const rows = list.map(v => {
+    if (isP3) {
+      const s = v.sum,
+        links = (dvs.boqLinks || {})[v.id] || [];
+      return {
+        id: v.id,
+        on: v.id === "1",
+        name: v.name,
+        tag: v.id === "1" ? "ต้นแบบ" : null,
+        meta: [v.id === "1" ? "แบบแรกของงานนี้" : v.from ? "คัดลอกจาก " + dvP3Name(p3List, v.from) : "", s && s.at ? "บันทึก " + dvWhen(s.at) : v.at ? "สร้าง " + dvWhen(v.at) : "", v.byName || ""].filter(Boolean).join(" · "),
+        val: s && s.panels ? nfmt(s.panels) + " แผง · " + s.kwp + " kWp" : s ? "ยังไม่มีแผง" : "",
+        pill: links.length ? {
+          th: "BOQ · " + links.join(", "),
+          c: "#4F46E5"
+        } : null
+      };
+    }
+    const b = v.boq || {},
+      on = v.id === vers.active;
+    const sell = b.pricing && +b.pricing.sell > 0 ? +b.pricing.sell : 0;
+    return {
+      id: v.id,
+      on,
+      name: v.name,
+      tag: on ? "ใช้งาน" : null,
+      meta: ["แบบ 3D: " + dvP3Name(p3List, b.plan3d), +b.panels > 0 ? nfmt(b.panels) + " แผง" : "", v.at ? dvWhen(v.at) : "", v.byName || ""].filter(Boolean).join(" · "),
+      val: sell ? "฿" + nfmt(Math.round(sell)) : "",
+      pill: on ? {
+        th: "ใบเสนอราคาดึงใบนี้",
+        c: "#0F7A5C"
+      } : null
+    };
+  });
+  const ordered = rows.filter(r => r.on).concat(rows.filter(r => !r.on).sort((a, b) => +b.id - +a.id));
+  const many = list.length > 1;
+  const open = id => isP3 ? dvs.openP3Ver(id) : dvs.openBoqVer(id);
+  return React.createElement("div", {
+    className: "dvc"
+  }, React.createElement("style", null, DVC_CSS), React.createElement("div", {
+    className: "dvc-hd"
+  }, React.createElement("span", {
+    className: "dvc-ic",
+    style: {
+      background: "color-mix(in srgb," + color + " 13%,transparent)"
+    }
+  }, React.createElement(Icon, {
+    name: icon,
+    size: 16,
+    color: color
+  })), React.createElement("span", {
+    style: {
+      flex: 1,
+      minWidth: 0
+    }
+  }, React.createElement("span", {
+    className: "dvc-t"
+  }, title), sub && React.createElement("span", {
+    className: "dvc-s"
+  }, sub)), canNew && many && React.createElement("button", {
+    className: "dvc-btn ghost",
+    onClick: isP3 ? dvs.manageP3 : dvs.manageBoq,
+    title: "\u0E40\u0E1B\u0E25\u0E35\u0E48\u0E22\u0E19\u0E0A\u0E37\u0E48\u0E2D \xB7 \u0E25\u0E1A \xB7 \u0E40\u0E25\u0E37\u0E2D\u0E01\u0E43\u0E1A\u0E17\u0E35\u0E48\u0E43\u0E0A\u0E49\u0E07\u0E32\u0E19"
+  }, "\u0E08\u0E31\u0E14\u0E01\u0E32\u0E23"), canNew && React.createElement("button", {
+    className: "dvc-btn",
+    onClick: isP3 ? dvs.newP3 : dvs.newBoq
+  }, React.createElement(Icon, {
+    name: "plus",
+    size: 13,
+    color: "var(--primary-dark)"
+  }), " ", isP3 ? "ทำแบบใหม่" : list.length ? "ทำใบใหม่" : "ถอด BOQ")), !ordered.length ? React.createElement("div", {
+    className: "dvc-empty"
+  }, "\u0E22\u0E31\u0E07\u0E44\u0E21\u0E48\u0E21\u0E35 BOQ \u0E02\u0E2D\u0E07\u0E07\u0E32\u0E19\u0E19\u0E35\u0E49") : React.createElement("div", {
+    className: "dvc-list"
+  }, ordered.map(r => React.createElement("button", {
+    key: r.id,
+    className: "dvc-row",
+    "data-on": r.on && many ? "1" : "0",
+    onClick: () => open(r.id)
+  }, React.createElement("span", {
+    style: {
+      flex: 1,
+      minWidth: 0
+    }
+  }, React.createElement("span", {
+    style: {
+      display: "flex",
+      alignItems: "center",
+      gap: 6,
+      flexWrap: "wrap"
+    }
+  }, React.createElement("span", {
+    className: "dvc-no"
+  }, "V", r.id), React.createElement("span", {
+    className: "dvc-nm"
+  }, r.name), many && r.tag && React.createElement("span", {
+    className: "dvc-tag"
+  }, r.tag)), r.meta && React.createElement("span", {
+    className: "dvc-mt"
+  }, r.meta)), r.val && React.createElement("span", {
+    className: "dvc-v"
+  }, r.val), many && r.pill && React.createElement("span", {
+    className: "dvc-pill",
+    style: {
+      color: r.pill.c,
+      background: "color-mix(in srgb," + r.pill.c + " 11%,transparent)"
+    }
+  }, r.pill.th), React.createElement(Icon, {
+    name: "arrowRight",
+    size: 15,
+    color: "var(--text-3)"
+  })))));
+}
+Object.assign(window, {
+  DvVerCard
 });

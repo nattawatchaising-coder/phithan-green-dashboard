@@ -791,29 +791,14 @@ function DetailDrawer({ job, onClose, onAdvance, onSetMat, onEdit, currentUser, 
                    กันแค่ roMode ไม่กัน canDesign — ตอนยุบสองแถวเข้าด้วยกัน ถ้ากัน canDesign ต่อ
                    คนที่เคยเข้าหน้าออกแบบระบบได้จะหมดทางเข้าไปเฉย ๆ ซึ่งเป็นการตัดสิทธิ์โดยบังเอิญ */}
                 {window.Plan3DEntry && !roMode && (
-                <window.DvRowWrap n={dvs.nP3} onVers={() => dvs.openP3(true)}>
-                <button onClick={() => dvs.openP3()}
-                  className="act-row">
-                  <span className="ic-chip" style={{ background: "#6366F11c" }}><Icon name="panel" size={17} color="#4F46E5" /></span>
-                  <span style={{ flex: 1, minWidth: 0 }}>
-                    <span style={{ display: "block", fontSize: 13.5, fontWeight: 700, color: "var(--text-1)" }}>วางแผง 3D (โมเดลหลังคา + เงาแดด)</span>
-                    <span style={{ display: "block", fontSize: 11.5, color: "var(--text-3)" }}>{dvs.p3Sub || "ปั้นหลังคาตามรูปโดรน · วางแผง · เงาดวงอาทิตย์ · ออกแบบระบบ + ผลผลิต อยู่ในจอเดียวกัน"}</span>
-                  </span>
-                  <Icon name="arrowRight" size={16} color="var(--text-3)" />
-                </button>
-                </window.DvRowWrap>
+                /* รายการเวอร์ชันแบบเดียวกับรายการใบเสนอราคา — แตะแถว = เปิดแบบนั้น · "ทำแบบใหม่" = คัดลอกจากต้นแบบ */
+                <window.DvVerCard kind="p3" dvs={dvs} icon="panel" color="#4F46E5" canNew
+                  title="วางแผง 3D (โมเดลหลังคา + เงาแดด)" sub="ปั้นหลังคาตามรูปโดรน · วางแผง · เงาแดด · ออกแบบระบบ + ผลผลิต" />
                 )}
 
                 {/* ถอดวัสดุ BOQ */}
-                {!roMode && <window.DvRowWrap n={dvs.nBoq} onVers={onSaveBOQ ? () => dvs.openBoq(true) : null}><button onClick={() => dvs.openBoq()}
-                  className="act-row">
-                  <span className="ic-chip" style={{ background: "var(--primary-soft)" }}><Icon name="box" size={17} color="var(--primary-dark)" /></span>
-                  <span style={{ flex: 1, minWidth: 0 }}>
-                    <span style={{ display: "block", fontSize: 13.5, fontWeight: 700, color: "var(--text-1)" }}>ถอดวัสดุ BOQ</span>
-                    <span style={{ display: "block", fontSize: 11.5, color: "var(--text-3)" }}>{dvs.boqSub || (job.boq ? "มีรายการแล้ว · แตะเพื่อแก้ไข / ดาวน์โหลด" : "คำนวณปริมาณวัสดุของงานนี้")}</span>
-                  </span>
-                  <Icon name="arrowRight" size={16} color="var(--text-3)" />
-                </button></window.DvRowWrap>}
+                {!roMode && <window.DvVerCard kind="boq" dvs={dvs} icon="box" color="var(--primary-dark)" canNew={!!onSaveBOQ}
+                  title="ถอดวัสดุ BOQ" sub="แต่ละใบผูกกับแบบ 3D ของตัวเอง · ใบที่ใช้งาน = ใบที่ใบเสนอราคาดึง" />}
 
                 {/* เก็บข้อมูลขออนุญาตการไฟฟ้า — ช่างกรอกหน้างาน แล้วส่งต่อฝ่ายขออนุญาต
                     วางท้ายสุดของกลุ่มเครื่องมือ เพราะเป็นงานที่เดินต่อหลังงานติดตั้งจบแล้ว

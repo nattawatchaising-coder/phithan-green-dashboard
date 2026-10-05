@@ -2197,25 +2197,23 @@ function LeadDetail({
     name: "file",
     size: 15,
     color: "var(--primary-dark)"
-  }), " \u0E14\u0E39\u0E23\u0E32\u0E22\u0E07\u0E32\u0E19\u0E1C\u0E25\u0E2A\u0E33\u0E23\u0E27\u0E08 \xB7 \u0E1A\u0E31\u0E19\u0E17\u0E36\u0E01 PDF"), onPlan3d && React.createElement(window.DvRowWrap, {
-    n: dvs.nP3,
-    onVers: () => dvs.openP3(true)
-  }, React.createElement(LeadActionRow, {
+  }), " \u0E14\u0E39\u0E23\u0E32\u0E22\u0E07\u0E32\u0E19\u0E1C\u0E25\u0E2A\u0E33\u0E23\u0E27\u0E08 \xB7 \u0E1A\u0E31\u0E19\u0E17\u0E36\u0E01 PDF"), onPlan3d && React.createElement(window.DvVerCard, {
+    kind: "p3",
+    dvs: dvs,
     icon: "panel",
     color: "#4F46E5",
+    canNew: true,
     title: "\u0E27\u0E32\u0E07\u0E41\u0E1C\u0E07 3D",
-    sub: dvs.p3Sub || "ปั้นผังหลังคา · ดึงจำนวนแผงเข้าใบเสนอราคา · ออกแบบระบบ + ผลผลิต อยู่ในจอเดียวกัน",
-    onClick: () => dvs.openP3()
-  })), asJob && window.BOQEditor && React.createElement(window.DvRowWrap, {
-    n: dvs.nBoq,
-    onVers: onSaveBoq ? () => dvs.openBoq(true) : null
-  }, React.createElement(LeadActionRow, {
+    sub: "\u0E1B\u0E31\u0E49\u0E19\u0E1C\u0E31\u0E07\u0E2B\u0E25\u0E31\u0E07\u0E04\u0E32 \xB7 \u0E14\u0E36\u0E07\u0E08\u0E33\u0E19\u0E27\u0E19\u0E41\u0E1C\u0E07\u0E40\u0E02\u0E49\u0E32\u0E43\u0E1A\u0E40\u0E2A\u0E19\u0E2D\u0E23\u0E32\u0E04\u0E32 \xB7 \u0E2D\u0E2D\u0E01\u0E41\u0E1A\u0E1A\u0E23\u0E30\u0E1A\u0E1A + \u0E1C\u0E25\u0E1C\u0E25\u0E34\u0E15"
+  }), asJob && window.BOQEditor && React.createElement(window.DvVerCard, {
+    kind: "boq",
+    dvs: dvs,
     icon: "box",
     color: "var(--primary-dark)",
+    canNew: !!onSaveBoq,
     title: "\u0E16\u0E2D\u0E14\u0E27\u0E31\u0E2A\u0E14\u0E38 BOQ",
-    sub: dvs.boqSub || ((job ? job.boq : l.boq) ? "มีรายการแล้ว · แตะเพื่อแก้ไข / ดาวน์โหลด" : "คำนวณปริมาณวัสดุเพื่อคิดราคาไปเสนอ"),
-    onClick: () => dvs.openBoq()
-  })), media && window.JobFiles && React.createElement(window.JobFiles, {
+    sub: "\u0E41\u0E15\u0E48\u0E25\u0E30\u0E43\u0E1A\u0E1C\u0E39\u0E01\u0E01\u0E31\u0E1A\u0E41\u0E1A\u0E1A 3D \u0E02\u0E2D\u0E07\u0E15\u0E31\u0E27\u0E40\u0E2D\u0E07 \xB7 \u0E43\u0E1A\u0E17\u0E35\u0E48\u0E43\u0E0A\u0E49\u0E07\u0E32\u0E19 = \u0E43\u0E1A\u0E17\u0E35\u0E48\u0E43\u0E1A\u0E40\u0E2A\u0E19\u0E2D\u0E23\u0E32\u0E04\u0E32\u0E14\u0E36\u0E07"
+  }), media && window.JobFiles && React.createElement(window.JobFiles, {
     media: media,
     currentUser: currentUser,
     canManage: canManage !== false
