@@ -2646,10 +2646,14 @@ function P3SObsPrev({ type, at }) {
 /* ============================================================
    Plan3DStudio — ตัวแก้หลัก
    ============================================================ */
-function Plan3DStudio({ job, onClose, currentUser }) {
+function Plan3DStudio({ job, ver, onClose, currentUser }) {
   const isMobile = p3sUseMedia("(max-width: 860px)");
   const coarse = p3sUseMedia("(pointer: coarse)");
-  const { saved, loading, save } = usePlan3d(job ? job.id : null);
+  /* หลายเวอร์ชัน (versions.jsx): ต้นแบบ = plan3d/{jobId} · เวอร์ชัน n = plan3d/{jobId}~n — ตัวแก้ไม่ต้องรู้อะไรเพิ่ม แค่เปิดคนละคีย์ */
+  const planKey = job ? (window.dvP3Key ? window.dvP3Key(job.id, ver) : job.id) : null;
+  const p3Vers = window.useP3Vers ? window.useP3Vers(job ? job.id : null) : { list: [] };
+  const verName = window.dvP3Name ? window.dvP3Name(p3Vers.list, ver) : "";
+  const { saved, loading, save } = usePlan3d(planKey);
 
   const [st, setStRaw] = React.useState(null);
   const stRef = React.useRef(null); stRef.current = st;
@@ -2723,7 +2727,7 @@ function Plan3DStudio({ job, onClose, currentUser }) {
   const [sheetMin, setSheetMin] = React.useState(false);
   /* โหมดพาทำทีละขั้น — เปิด/ปิดจำไว้ในเครื่อง · ขั้นที่ผ่านแล้ว (ขั้นที่ข้ามได้) จำแยกตามงาน */
   const wiz = true;   // ทำตามขั้นเสมอ ข้ามไม่ได้ ย้อนกลับได้อย่างเดียว
-  const wizKey = "p3s_wiz2_" + (job ? job.id : "");
+  const wizKey = "p3s_wiz2_" + (planKey || "");
   const [wizSeen, setWizSeenRaw] = React.useState(() => { try { return JSON.parse(localStorage.getItem(wizKey) || "{}") || {}; } catch (e) { return {}; } });
   const markSeen = (i) => setWizSeenRaw((o) => { if (o[i]) return o; const n = Object.assign({}, o, { [i]: 1 }); try { localStorage.setItem(wizKey, JSON.stringify(n)); } catch (e) {} return n; });
   const [wizStep, setWizStep] = React.useState(null);  // null = ขั้นแรกที่ยังไม่เสร็จ
@@ -5629,7 +5633,7 @@ function Plan3DStudio({ job, onClose, currentUser }) {
         <button className="p3s-btn ico ghost" onClick={tryClose} title="ปิด"><P3SIcon name="back" size={18} /></button>
         <div className="p3s-ttl">
           <div className="k">ออกแบบหลังคา & วางแผง{job && job.code ? " · " + job.code : ""}</div>
-          <div className="n">{job ? job.name : ""}</div>
+          <div className="n">{job ? job.name : ""}{p3Vers.list.length > 1 || (ver && ver !== "1") ? <span className="p3s-badge" style={{ marginLeft: 8, verticalAlign: 2 }}>{(ver && ver !== "1" ? "V" + ver : "V1") + " · " + verName}</span> : null}</div>
         </div>
         {!isMobile && (
           <div style={{ display: "flex", alignItems: "center", gap: 14, marginRight: 6 }}>

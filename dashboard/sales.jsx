@@ -1585,7 +1585,9 @@ function QuoteEditor({ quote, job, target, stock, onClose, onSave, onDelete, cur
   /* แบบผูกกับเลข id — ลูกค้าที่แปลงเป็นงานแล้ว แบบจะย้ายไปอยู่ที่เลขงาน (ดู movePlan3d)
      จึงถามเลขงานก่อนเสมอ ถ้ายังไม่เป็นงานค่อยใช้เลขลูกค้า */
   const planId = (job && job.id) || (specSrc && specSrc.id) || null;
-  const plan3d = useQuotePlan3d(planId);
+  /* หลายเวอร์ชัน: ใช้แบบ 3D ที่ BOQ ใบที่ใช้งานอยู่ผูกไว้ (boq.plan3d · ไม่มี = ต้นแบบ) */
+  const planBoq = ((job && job.boq) || (specSrc && specSrc.boq) || {});
+  const plan3d = useQuotePlan3d(planId && window.dvP3Key ? window.dvP3Key(planId, planBoq.plan3d) : planId);
   const planSum = window.p3PlanSummary ? window.p3PlanSummary(plan3d.saved) : null;
   const pullPlan = () => {
     if (!planSum) return;

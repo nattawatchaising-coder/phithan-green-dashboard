@@ -5946,16 +5946,22 @@ function P3SObsPrev({
 }
 function Plan3DStudio({
   job,
+  ver,
   onClose,
   currentUser
 }) {
   const isMobile = p3sUseMedia("(max-width: 860px)");
   const coarse = p3sUseMedia("(pointer: coarse)");
+  const planKey = job ? window.dvP3Key ? window.dvP3Key(job.id, ver) : job.id : null;
+  const p3Vers = window.useP3Vers ? window.useP3Vers(job ? job.id : null) : {
+    list: []
+  };
+  const verName = window.dvP3Name ? window.dvP3Name(p3Vers.list, ver) : "";
   const {
     saved,
     loading,
     save
-  } = usePlan3d(job ? job.id : null);
+  } = usePlan3d(planKey);
   const [st, setStRaw] = React.useState(null);
   const stRef = React.useRef(null);
   stRef.current = st;
@@ -6059,7 +6065,7 @@ function Plan3DStudio({
   const [mapOpen, setMapOpen] = React.useState(false);
   const [sheetMin, setSheetMin] = React.useState(false);
   const wiz = true;
-  const wizKey = "p3s_wiz2_" + (job ? job.id : "");
+  const wizKey = "p3s_wiz2_" + (planKey || "");
   const [wizSeen, setWizSeenRaw] = React.useState(() => {
     try {
       return JSON.parse(localStorage.getItem(wizKey) || "{}") || {};
@@ -13800,7 +13806,13 @@ function Plan3DStudio({
     className: "k"
   }, "\u0E2D\u0E2D\u0E01\u0E41\u0E1A\u0E1A\u0E2B\u0E25\u0E31\u0E07\u0E04\u0E32 & \u0E27\u0E32\u0E07\u0E41\u0E1C\u0E07", job && job.code ? " · " + job.code : ""), React.createElement("div", {
     className: "n"
-  }, job ? job.name : "")), !isMobile && React.createElement("div", {
+  }, job ? job.name : "", p3Vers.list.length > 1 || ver && ver !== "1" ? React.createElement("span", {
+    className: "p3s-badge",
+    style: {
+      marginLeft: 8,
+      verticalAlign: 2
+    }
+  }, (ver && ver !== "1" ? "V" + ver : "V1") + " · " + verName) : null)), !isMobile && React.createElement("div", {
     style: {
       display: "flex",
       alignItems: "center",

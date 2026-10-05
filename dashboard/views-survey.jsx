@@ -602,10 +602,10 @@ function LeadCard({ l, ctx }) {
 }
 
 /* ── แถวปุ่มงานแบบเดียวกับในใบงาน (ไอคอน · หัวข้อ · บรรทัดรอง · ลูกศร) ── */
-function LeadActionRow({ icon, color, title, sub, onClick }) {
+function LeadActionRow({ icon, color, title, sub, onClick, style }) {
   return (
     /* หน้าตาอยู่ในคลาส .act-row / .ic-chip (index.html) — ชุดเดียวกับแถวเครื่องมือฝั่งใบงาน */
-    <button onClick={onClick} className="act-row">
+    <button onClick={onClick} className="act-row" style={style}>
       {/* color-mix แทน color + "1c" — ต่อท้ายเลขฐานสิบหกใช้ได้กับ #hex เท่านั้น
           ถ้าส่งมาเป็น var(--primary) จะได้ "var(--primary)1c" ซึ่งไม่ใช่สี ชิปหายไปทั้งก้อน */}
       <span className="ic-chip" style={{ background: "color-mix(in srgb, " + color + " 11%, transparent)" }}>
@@ -693,7 +693,6 @@ function LeadDetail({ l, ctx, tab }) {
           canManage, canDesign, onSaveBoq,
           onOpenSurvey, onReport, onOpenQuote, onPlan3d, onConvert, canConvert, setEdit, setLog, setStage } = ctx;
   const [ask, setAsk] = React.useState(null);   // { kind: "del" | "conv" }
-  const [boqOpen, setBoqOpen] = React.useState(false);
   const [delC, setDelC] = React.useState(null);   // บันทึกการติดต่อที่กำลังจะลบ (ถามยืนยันก่อน)
 
   const st = window.surveyStatus({ survey: l.survey });
@@ -708,6 +707,10 @@ function LeadDetail({ l, ctx, tab }) {
      ถ้าเปิดด้วยเลขลูกค้าจะได้ของเปล่าทั้งที่ทำไว้แล้ว */
   const asJob = job || (window.leadAsJob ? window.leadAsJob(l) : null);
   const media = window.useJobMedia ? window.useJobMedia(asJob ? asJob.id : null) : null;
+  /* หลายเวอร์ชัน (versions.jsx) — แบบ 3D และ BOQ · มีเวอร์ชันเดียวแตะแถวแล้วเปิดตรงเหมือนเดิม */
+  const dvs = window.useDesignVersions({ job: asJob, activeBoq: (asJob && asJob.boq) || null, currentUser,
+    patchActive: onSaveBoq ? (b) => onSaveBoq(asJob, b) : null, BoqEditor: window.BOQEditor, editorProps: { priceMap, stock },
+    onP3Open: onPlan3d ? (v) => onPlan3d(job || window.leadAsJob(l), v) : null, ro: !onSaveBoq });
   /* ประวัติการติดต่อเรียงครั้งล่าสุดไว้บน — เปิดมาต้องเห็นว่าคุยอะไรไปล่าสุดก่อน */
   const contacts = (l.contacts || []).slice().reverse();
   const lastC = contacts[0] || null;
@@ -880,14 +883,18 @@ function LeadDetail({ l, ctx, tab }) {
          ออกแบบระบบ/ผลผลิต ไม่มีแถวของตัวเอง — กลับไปอยู่ในจอ 3 มิติตามเดิม
          เพราะมันกินทิศกับมุมของแผงจากผังนั้นตรง ๆ เปิดแยกจะกลายเป็นสองทางที่ทำเรื่องเดียวกัน */}
       {onPlan3d && (
-        <LeadActionRow icon="panel" color="#4F46E5" title="วางแผง 3D"
-          sub="ปั้นผังหลังคา · ดึงจำนวนแผงเข้าใบเสนอราคา · ออกแบบระบบ + ผลผลิต อยู่ในจอเดียวกัน"
-          onClick={() => onPlan3d(job || window.leadAsJob(l))} />
+        <window.DvRowWrap n={dvs.nP3} onVers={() => dvs.openP3(true)}>
+          <LeadActionRow icon="panel" color="#4F46E5" title="วางแผง 3D"
+            sub={dvs.p3Sub || "ปั้นผังหลังคา · ดึงจำนวนแผงเข้าใบเสนอราคา · ออกแบบระบบ + ผลผลิต อยู่ในจอเดียวกัน"}
+            onClick={() => dvs.openP3()} />
+        </window.DvRowWrap>
       )}
       {asJob && window.BOQEditor && (
-        <LeadActionRow icon="box" color="var(--primary-dark)" title="ถอดวัสดุ BOQ"
-          sub={(job ? job.boq : l.boq) ? "มีรายการแล้ว · แตะเพื่อแก้ไข / ดาวน์โหลด" : "คำนวณปริมาณวัสดุเพื่อคิดราคาไปเสนอ"}
-          onClick={() => setBoqOpen(true)} />
+        <window.DvRowWrap n={dvs.nBoq} onVers={onSaveBoq ? () => dvs.openBoq(true) : null}>
+          <LeadActionRow icon="box" color="var(--primary-dark)" title="ถอดวัสดุ BOQ"
+            sub={dvs.boqSub || ((job ? job.boq : l.boq) ? "มีรายการแล้ว · แตะเพื่อแก้ไข / ดาวน์โหลด" : "คำนวณปริมาณวัสดุเพื่อคิดราคาไปเสนอ")}
+            onClick={() => dvs.openBoq()} />
+        </window.DvRowWrap>
       )}
       {/* ไฟล์แบบ / BOQ ที่แนบไว้ — ไฟล์ตามไปกับงานเองตอนกดแปลงเป็นงาน (moveJobFiles) */}
       {media && window.JobFiles && (
@@ -975,10 +982,7 @@ function LeadDetail({ l, ctx, tab }) {
         )}
       </div>
 
-      {boqOpen && asJob && window.BOQEditor && (
-        <window.BOQEditor job={asJob} priceMap={priceMap} stock={stock} onClose={() => setBoqOpen(false)}
-          onSave={onSaveBoq ? (boq) => { onSaveBoq(asJob, boq); setBoqOpen(false); } : null} />
-      )}
+      {dvs.ui}
     </React.Fragment>
   );
 }

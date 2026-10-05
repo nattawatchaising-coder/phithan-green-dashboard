@@ -233,7 +233,7 @@ function usePlan3d(jobId) {
   }, [jobId]);
   const save = React.useCallback((data) => {
     if (!jobId) return;
-    if (window.FBDB) window.FBDB.ref("plan3d/" + jobId).set(data);
+    if (window.FBDB) { window.FBDB.ref("plan3d/" + jobId).set(data); if (window.dvP3Saved) window.dvP3Saved(jobId, data); }
     else { try { localStorage.setItem(KEY, JSON.stringify(data)); } catch (e) {} setSaved(data); }
   }, [jobId]);
   return { saved, loading, save };
@@ -318,11 +318,24 @@ function movePlan3d(fromId, toId) {
     } catch (e) {}
     return Promise.resolve();
   }
-  return window.FBDB.ref("plan3d/" + fromId).once("value").then((s) => {
+  const db = window.FBDB;
+  const mv = (a, b) => db.ref(a).once("value").then((s) => {
     const v = s.val();
     if (!v) return null;
-    return window.FBDB.ref("plan3d/" + toId).set(v).then(() => window.FBDB.ref("plan3d/" + fromId).remove());
+    return db.ref(b).set(v).then(() => db.ref(a).remove());
   }).catch(() => null);
+  /* หลายเวอร์ชัน (versions.jsx): แบบ 3D เวอร์ชัน n อยู่ที่ plan3d/{id}~n + ดัชนี plan3dVers/{id} · BOQ ทุกเวอร์ชันที่ boqVers/{id}
+     ต้องย้ายไปด้วยกันทั้งหมด ไม่งั้นแปลงเป็นงานแล้วเหลือแค่ต้นแบบ */
+  return Promise.all([
+    mv("plan3d/" + fromId, "plan3d/" + toId),
+    db.ref("plan3dVers/" + fromId).once("value").then((s) => {
+      const idx = s.val();
+      if (!idx) return null;
+      return Promise.all(Object.keys(idx).filter((k) => k !== "1").map((k) => mv("plan3d/" + fromId + "~" + k, "plan3d/" + toId + "~" + k)))
+        .then(() => mv("plan3dVers/" + fromId, "plan3dVers/" + toId));
+    }).catch(() => null),
+    mv("boqVers/" + fromId, "boqVers/" + toId),
+  ]);
 }
 
 let _p3Seq = 0;

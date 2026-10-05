@@ -11,6 +11,9 @@ const BQ_CSS = `
 .bq-head .nm{font-size:14.5px;font-weight:700;color:var(--text-1);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .bq-head .x{width:32px;height:32px;border-radius:9px;border:1px solid var(--border);background:var(--surface);
   cursor:pointer;display:grid;place-items:center;color:var(--text-2);flex-shrink:0}
+.bq-head .bq-ver{font-size:11.5px;font-weight:700;color:var(--text-2);background:var(--surface2);box-shadow:var(--shadow-inset);padding:5px 10px;border-radius:8px;white-space:nowrap}
+.bq-head .bq-p3link{display:flex;align-items:center;gap:6px;font-size:11.5px;color:var(--text-3);font-weight:600;min-width:200px}
+@media (max-width:700px){.bq-head .bq-ver{display:none}.bq-head .bq-p3link{min-width:0}.bq-head .bq-p3link>span{display:none}}
 .bq-head .x:hover{background:var(--surface2);color:var(--text-1)}
 
 .bq-body{flex:1;min-height:0;display:flex}
@@ -1095,7 +1098,10 @@ function BOQEditor({
   onClose,
   onSave,
   priceMap,
-  stock
+  stock,
+  ver,
+  verName,
+  p3Vers
 }) {
   const bdClose = window.useBackdropClose(onClose);
   const baht = n => (Math.round((+n || 0) * 100) / 100).toLocaleString(undefined, {
@@ -1748,7 +1754,9 @@ function BOQEditor({
     onToggle: () => setOpenSec(bqPageOf(key))
   });
   const [advU, setAdvU] = React.useState(false);
-  const plan3d = usePlan3dRO(job ? job.id : null);
+  const p3VersOwn = window.useP3Vers ? window.useP3Vers(p3Vers ? null : job ? job.id : null) : null;
+  const p3List = p3Vers || p3VersOwn && p3VersOwn.list || [];
+  const plan3d = usePlan3dRO(job ? window.dvP3Key ? window.dvP3Key(job.id, b.plan3d) : job.id : null);
   const TRAY_KEYS3 = window.BOQ.TRAY_KIND_KEYS;
   const tray3dHas = TRAY_KEYS3.find(k => (tw[k] || []).some(x => x.p3));
   const tray3dW = (plan3d && plan3d.obstacles || []).filter(o => o && o.p3sType === "tray").map(o => +o.d || 0.1);
@@ -5915,7 +5923,21 @@ function BOQEditor({
     className: "eb"
   }, "\u0E16\u0E2D\u0E14\u0E27\u0E31\u0E2A\u0E14\u0E38 BOQ", job && job.code ? " · " + job.code : ""), React.createElement("div", {
     className: "nm"
-  }, job ? job.name : "งาน")), React.createElement("button", {
+  }, job ? job.name : "งาน")), verName && React.createElement("span", {
+    className: "bq-ver"
+  }, "\u0E40\u0E27\u0E2D\u0E23\u0E4C\u0E0A\u0E31\u0E19: ", verName), p3List.length > 1 && React.createElement("label", {
+    className: "bq-p3link",
+    title: "\u0E41\u0E1A\u0E1A 3D \u0E17\u0E35\u0E48\u0E43\u0E1A\u0E19\u0E35\u0E49\u0E43\u0E0A\u0E49 \u2014 \u0E23\u0E32\u0E07\u0E44\u0E1F \u0E17\u0E32\u0E07\u0E40\u0E14\u0E34\u0E19 \u0E17\u0E48\u0E2D\u0E19\u0E49\u0E33 \u0E14\u0E36\u0E07\u0E08\u0E32\u0E01\u0E41\u0E1A\u0E1A\u0E19\u0E35\u0E49"
+  }, React.createElement("span", null, "\u0E41\u0E1A\u0E1A 3D"), React.createElement(window.Dropdown, {
+    value: String(b.plan3d || "1"),
+    onChange: v => setB(o => Object.assign({}, o, {
+      plan3d: v === "1" ? null : v
+    })),
+    options: p3List.map(v => ({
+      value: v.id,
+      label: "V" + v.id + " · " + v.name
+    }))
+  })), React.createElement("button", {
     className: "x x-close",
     onClick: onClose,
     title: "\u0E1B\u0E34\u0E14"

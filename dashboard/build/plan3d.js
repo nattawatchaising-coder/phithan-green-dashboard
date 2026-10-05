@@ -469,7 +469,10 @@ function usePlan3d(jobId) {
   }, [jobId]);
   const save = React.useCallback(data => {
     if (!jobId) return;
-    if (window.FBDB) window.FBDB.ref("plan3d/" + jobId).set(data);else {
+    if (window.FBDB) {
+      window.FBDB.ref("plan3d/" + jobId).set(data);
+      if (window.dvP3Saved) window.dvP3Saved(jobId, data);
+    } else {
       try {
         localStorage.setItem(KEY, JSON.stringify(data));
       } catch (e) {}
@@ -572,11 +575,17 @@ function movePlan3d(fromId, toId) {
     } catch (e) {}
     return Promise.resolve();
   }
-  return window.FBDB.ref("plan3d/" + fromId).once("value").then(s => {
+  const db = window.FBDB;
+  const mv = (a, b) => db.ref(a).once("value").then(s => {
     const v = s.val();
     if (!v) return null;
-    return window.FBDB.ref("plan3d/" + toId).set(v).then(() => window.FBDB.ref("plan3d/" + fromId).remove());
+    return db.ref(b).set(v).then(() => db.ref(a).remove());
   }).catch(() => null);
+  return Promise.all([mv("plan3d/" + fromId, "plan3d/" + toId), db.ref("plan3dVers/" + fromId).once("value").then(s => {
+    const idx = s.val();
+    if (!idx) return null;
+    return Promise.all(Object.keys(idx).filter(k => k !== "1").map(k => mv("plan3d/" + fromId + "~" + k, "plan3d/" + toId + "~" + k))).then(() => mv("plan3dVers/" + fromId, "plan3dVers/" + toId));
+  }).catch(() => null), mv("boqVers/" + fromId, "boqVers/" + toId)]);
 }
 let _p3Seq = 0;
 const p3Id = p => (p || "x") + Date.now().toString(36) + _p3Seq++;

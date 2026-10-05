@@ -1257,15 +1257,24 @@ function DetailDrawer({
   const open = !!job;
   const isMobile = window.matchMedia("(max-width: 860px)").matches;
   const media = useJobMedia(job ? job.id : null);
-  const [boqOpen, setBoqOpen] = React.useState(false);
+  const dvs = window.useDesignVersions({
+    job,
+    activeBoq: job && job.boq || null,
+    currentUser,
+    patchActive: onSaveBOQ && job ? b => onSaveBOQ(job.id, b) : null,
+    BoqEditor: BOQEditor,
+    editorProps: {
+      priceMap,
+      stock
+    },
+    P3Entry: window.Plan3DEntry,
+    ro: !onSaveBOQ
+  });
   const [planOpen, setPlanOpen] = React.useState(false);
-  const [plan3dOpen, setPlan3dOpen] = React.useState(false);
   const [irOpen, setIrOpen] = React.useState(false);
   const inspections = useDrInspections(job ? job.id : null);
   React.useEffect(() => {
-    setBoqOpen(false);
     setPlanOpen(false);
-    setPlan3dOpen(false);
     setIrOpen(false);
   }, [job ? job.id : null]);
   const [advancing, setAdvancing] = React.useState(false);
@@ -1819,8 +1828,11 @@ function DetailDrawer({
     name: "arrowRight",
     size: 16,
     color: "var(--text-3)"
-  })), window.Plan3DEntry && !roMode && React.createElement("button", {
-    onClick: () => setPlan3dOpen(true),
+  })), window.Plan3DEntry && !roMode && React.createElement(window.DvRowWrap, {
+    n: dvs.nP3,
+    onVers: () => dvs.openP3(true)
+  }, React.createElement("button", {
+    onClick: () => dvs.openP3(),
     className: "act-row"
   }, React.createElement("span", {
     className: "ic-chip",
@@ -1849,12 +1861,15 @@ function DetailDrawer({
       fontSize: 11.5,
       color: "var(--text-3)"
     }
-  }, "\u0E1B\u0E31\u0E49\u0E19\u0E2B\u0E25\u0E31\u0E07\u0E04\u0E32\u0E15\u0E32\u0E21\u0E23\u0E39\u0E1B\u0E42\u0E14\u0E23\u0E19 \xB7 \u0E27\u0E32\u0E07\u0E41\u0E1C\u0E07 \xB7 \u0E40\u0E07\u0E32\u0E14\u0E27\u0E07\u0E2D\u0E32\u0E17\u0E34\u0E15\u0E22\u0E4C \xB7 \u0E2D\u0E2D\u0E01\u0E41\u0E1A\u0E1A\u0E23\u0E30\u0E1A\u0E1A + \u0E1C\u0E25\u0E1C\u0E25\u0E34\u0E15 \u0E2D\u0E22\u0E39\u0E48\u0E43\u0E19\u0E08\u0E2D\u0E40\u0E14\u0E35\u0E22\u0E27\u0E01\u0E31\u0E19")), React.createElement(Icon, {
+  }, dvs.p3Sub || "ปั้นหลังคาตามรูปโดรน · วางแผง · เงาดวงอาทิตย์ · ออกแบบระบบ + ผลผลิต อยู่ในจอเดียวกัน")), React.createElement(Icon, {
     name: "arrowRight",
     size: 16,
     color: "var(--text-3)"
-  })), !roMode && React.createElement("button", {
-    onClick: () => setBoqOpen(true),
+  }))), !roMode && React.createElement(window.DvRowWrap, {
+    n: dvs.nBoq,
+    onVers: onSaveBOQ ? () => dvs.openBoq(true) : null
+  }, React.createElement("button", {
+    onClick: () => dvs.openBoq(),
     className: "act-row"
   }, React.createElement("span", {
     className: "ic-chip",
@@ -1883,11 +1898,11 @@ function DetailDrawer({
       fontSize: 11.5,
       color: "var(--text-3)"
     }
-  }, job.boq ? "มีรายการแล้ว · แตะเพื่อแก้ไข / ดาวน์โหลด" : "คำนวณปริมาณวัสดุของงานนี้")), React.createElement(Icon, {
+  }, dvs.boqSub || (job.boq ? "มีรายการแล้ว · แตะเพื่อแก้ไข / ดาวน์โหลด" : "คำนวณปริมาณวัสดุของงานนี้"))), React.createElement(Icon, {
     name: "arrowRight",
     size: 16,
     color: "var(--text-3)"
-  })), onPermit && (() => {
+  }))), onPermit && (() => {
     const pm = job.permit || null;
     const pst = window.permitStatusOf ? window.permitStatusOf(job) : null;
     const FLOW = window.PERMIT_FLOW || [];
@@ -2327,23 +2342,10 @@ function DetailDrawer({
     style: {
       flexShrink: 0
     }
-  })))))), boqOpen && job && React.createElement(BOQEditor, {
-    job: job,
-    onClose: () => setBoqOpen(false),
-    priceMap: priceMap,
-    stock: stock,
-    onSave: onSaveBOQ ? boq => {
-      onSaveBOQ(job.id, boq);
-      setBoqOpen(false);
-    } : null
-  }), planOpen && job && window.SitePlanEditor && React.createElement(window.SitePlanEditor, {
+  })))))), job && dvs.ui, planOpen && job && window.SitePlanEditor && React.createElement(window.SitePlanEditor, {
     job: job,
     currentUser: currentUser,
     onClose: () => setPlanOpen(false)
-  }), plan3dOpen && job && window.Plan3DEntry && React.createElement(window.Plan3DEntry, {
-    job: job,
-    currentUser: currentUser,
-    onClose: () => setPlan3dOpen(false)
   }), irOpen && job && window.InspectionListModal && React.createElement(window.InspectionListModal, {
     job: job,
     currentUser: currentUser,

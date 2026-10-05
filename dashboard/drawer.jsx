@@ -524,13 +524,15 @@ function DetailDrawer({ job, onClose, onAdvance, onSetMat, onEdit, currentUser, 
   const open = !!job;
   const isMobile = window.matchMedia("(max-width: 860px)").matches;
   const media = useJobMedia(job ? job.id : null); // รูป + คอมเมนต์ของงานนี้
-  const [boqOpen, setBoqOpen] = React.useState(false);
+  /* หลายเวอร์ชัน (versions.jsx) — แบบ 3D และ BOQ · มีเวอร์ชันเดียวแตะแถวแล้วเปิดตรงเหมือนเดิม */
+  const dvs = window.useDesignVersions({ job, activeBoq: (job && job.boq) || null, currentUser,
+    patchActive: onSaveBOQ && job ? (b) => onSaveBOQ(job.id, b) : null, BoqEditor: BOQEditor, editorProps: { priceMap, stock },
+    P3Entry: window.Plan3DEntry, ro: !onSaveBOQ });
   const [planOpen, setPlanOpen] = React.useState(false);
-  const [plan3dOpen, setPlan3dOpen] = React.useState(false);
   const [irOpen, setIrOpen] = React.useState(false);            // รายการใบตรวจสอบงาน
   /* อ่านรายการใบตรวจไว้ตั้งแต่เปิดใบงาน เพื่อโชว์จำนวนใบกับผลล่าสุดบนปุ่มโดยไม่ต้องกดเข้าไปดู */
   const inspections = useDrInspections(job ? job.id : null);
-  React.useEffect(() => { setBoqOpen(false); setPlanOpen(false); setPlan3dOpen(false); setIrOpen(false); }, [job ? job.id : null]);
+  React.useEffect(() => { setPlanOpen(false); setIrOpen(false); }, [job ? job.id : null]);
 
   /* loading state — กดปุ่มแล้วแสดง "กำลังบันทึก..." ทันที
      reset เมื่อ Firebase confirm แล้ว (job.stage เปลี่ยน) */
@@ -789,27 +791,29 @@ function DetailDrawer({ job, onClose, onAdvance, onSetMat, onEdit, currentUser, 
                    กันแค่ roMode ไม่กัน canDesign — ตอนยุบสองแถวเข้าด้วยกัน ถ้ากัน canDesign ต่อ
                    คนที่เคยเข้าหน้าออกแบบระบบได้จะหมดทางเข้าไปเฉย ๆ ซึ่งเป็นการตัดสิทธิ์โดยบังเอิญ */}
                 {window.Plan3DEntry && !roMode && (
-                <button onClick={() => setPlan3dOpen(true)}
+                <window.DvRowWrap n={dvs.nP3} onVers={() => dvs.openP3(true)}>
+                <button onClick={() => dvs.openP3()}
                   className="act-row">
                   <span className="ic-chip" style={{ background: "#6366F11c" }}><Icon name="panel" size={17} color="#4F46E5" /></span>
                   <span style={{ flex: 1, minWidth: 0 }}>
                     <span style={{ display: "block", fontSize: 13.5, fontWeight: 700, color: "var(--text-1)" }}>วางแผง 3D (โมเดลหลังคา + เงาแดด)</span>
-                    <span style={{ display: "block", fontSize: 11.5, color: "var(--text-3)" }}>ปั้นหลังคาตามรูปโดรน · วางแผง · เงาดวงอาทิตย์ · ออกแบบระบบ + ผลผลิต อยู่ในจอเดียวกัน</span>
+                    <span style={{ display: "block", fontSize: 11.5, color: "var(--text-3)" }}>{dvs.p3Sub || "ปั้นหลังคาตามรูปโดรน · วางแผง · เงาดวงอาทิตย์ · ออกแบบระบบ + ผลผลิต อยู่ในจอเดียวกัน"}</span>
                   </span>
                   <Icon name="arrowRight" size={16} color="var(--text-3)" />
                 </button>
+                </window.DvRowWrap>
                 )}
 
                 {/* ถอดวัสดุ BOQ */}
-                {!roMode && <button onClick={() => setBoqOpen(true)}
+                {!roMode && <window.DvRowWrap n={dvs.nBoq} onVers={onSaveBOQ ? () => dvs.openBoq(true) : null}><button onClick={() => dvs.openBoq()}
                   className="act-row">
                   <span className="ic-chip" style={{ background: "var(--primary-soft)" }}><Icon name="box" size={17} color="var(--primary-dark)" /></span>
                   <span style={{ flex: 1, minWidth: 0 }}>
                     <span style={{ display: "block", fontSize: 13.5, fontWeight: 700, color: "var(--text-1)" }}>ถอดวัสดุ BOQ</span>
-                    <span style={{ display: "block", fontSize: 11.5, color: "var(--text-3)" }}>{job.boq ? "มีรายการแล้ว · แตะเพื่อแก้ไข / ดาวน์โหลด" : "คำนวณปริมาณวัสดุของงานนี้"}</span>
+                    <span style={{ display: "block", fontSize: 11.5, color: "var(--text-3)" }}>{dvs.boqSub || (job.boq ? "มีรายการแล้ว · แตะเพื่อแก้ไข / ดาวน์โหลด" : "คำนวณปริมาณวัสดุของงานนี้")}</span>
                   </span>
                   <Icon name="arrowRight" size={16} color="var(--text-3)" />
-                </button>}
+                </button></window.DvRowWrap>}
 
                 {/* เก็บข้อมูลขออนุญาตการไฟฟ้า — ช่างกรอกหน้างาน แล้วส่งต่อฝ่ายขออนุญาต
                     วางท้ายสุดของกลุ่มเครื่องมือ เพราะเป็นงานที่เดินต่อหลังงานติดตั้งจบแล้ว
@@ -1017,10 +1021,8 @@ function DetailDrawer({ job, onClose, onAdvance, onSetMat, onEdit, currentUser, 
           </React.Fragment>
         )}
       </aside>
-      {boqOpen && job && <BOQEditor job={job} onClose={() => setBoqOpen(false)} priceMap={priceMap} stock={stock}
-        onSave={onSaveBOQ ? (boq) => { onSaveBOQ(job.id, boq); setBoqOpen(false); } : null} />}
+      {job && dvs.ui}
       {planOpen && job && window.SitePlanEditor && <window.SitePlanEditor job={job} currentUser={currentUser} onClose={() => setPlanOpen(false)} />}
-      {plan3dOpen && job && window.Plan3DEntry && <window.Plan3DEntry job={job} currentUser={currentUser} onClose={() => setPlan3dOpen(false)} />}
       {irOpen && job && window.InspectionListModal && <window.InspectionListModal job={job} currentUser={currentUser} onClose={() => setIrOpen(false)} />}
     </React.Fragment>
   );

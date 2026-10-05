@@ -2091,7 +2091,8 @@ function QuoteEditor({
     });
   };
   const planId = job && job.id || specSrc && specSrc.id || null;
-  const plan3d = useQuotePlan3d(planId);
+  const planBoq = job && job.boq || specSrc && specSrc.boq || {};
+  const plan3d = useQuotePlan3d(planId && window.dvP3Key ? window.dvP3Key(planId, planBoq.plan3d) : planId);
   const planSum = window.p3PlanSummary ? window.p3PlanSummary(plan3d.saved) : null;
   const pullPlan = () => {
     if (!planSum) return;

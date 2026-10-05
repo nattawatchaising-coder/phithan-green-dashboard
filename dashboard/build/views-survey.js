@@ -1682,11 +1682,13 @@ function LeadActionRow({
   color,
   title,
   sub,
-  onClick
+  onClick,
+  style
 }) {
   return React.createElement("button", {
     onClick: onClick,
-    className: "act-row"
+    className: "act-row",
+    style: style
   }, React.createElement("span", {
     className: "ic-chip",
     style: {
@@ -1886,7 +1888,6 @@ function LeadDetail({
     setStage
   } = ctx;
   const [ask, setAsk] = React.useState(null);
-  const [boqOpen, setBoqOpen] = React.useState(false);
   const [delC, setDelC] = React.useState(null);
   const st = window.surveyStatus({
     survey: l.survey
@@ -1902,6 +1903,19 @@ function LeadDetail({
   const late = window.sOverdue && window.sOverdue(l.nextFollow) && sKey !== "won" && sKey !== "lost";
   const asJob = job || (window.leadAsJob ? window.leadAsJob(l) : null);
   const media = window.useJobMedia ? window.useJobMedia(asJob ? asJob.id : null) : null;
+  const dvs = window.useDesignVersions({
+    job: asJob,
+    activeBoq: asJob && asJob.boq || null,
+    currentUser,
+    patchActive: onSaveBoq ? b => onSaveBoq(asJob, b) : null,
+    BoqEditor: window.BOQEditor,
+    editorProps: {
+      priceMap,
+      stock
+    },
+    onP3Open: onPlan3d ? v => onPlan3d(job || window.leadAsJob(l), v) : null,
+    ro: !onSaveBoq
+  });
   const contacts = (l.contacts || []).slice().reverse();
   const lastC = contacts[0] || null;
   const wayOf = k => (window.CONTACT_WAYS || []).find(x => x.key === k) || {
@@ -2183,19 +2197,25 @@ function LeadDetail({
     name: "file",
     size: 15,
     color: "var(--primary-dark)"
-  }), " \u0E14\u0E39\u0E23\u0E32\u0E22\u0E07\u0E32\u0E19\u0E1C\u0E25\u0E2A\u0E33\u0E23\u0E27\u0E08 \xB7 \u0E1A\u0E31\u0E19\u0E17\u0E36\u0E01 PDF"), onPlan3d && React.createElement(LeadActionRow, {
+  }), " \u0E14\u0E39\u0E23\u0E32\u0E22\u0E07\u0E32\u0E19\u0E1C\u0E25\u0E2A\u0E33\u0E23\u0E27\u0E08 \xB7 \u0E1A\u0E31\u0E19\u0E17\u0E36\u0E01 PDF"), onPlan3d && React.createElement(window.DvRowWrap, {
+    n: dvs.nP3,
+    onVers: () => dvs.openP3(true)
+  }, React.createElement(LeadActionRow, {
     icon: "panel",
     color: "#4F46E5",
     title: "\u0E27\u0E32\u0E07\u0E41\u0E1C\u0E07 3D",
-    sub: "\u0E1B\u0E31\u0E49\u0E19\u0E1C\u0E31\u0E07\u0E2B\u0E25\u0E31\u0E07\u0E04\u0E32 \xB7 \u0E14\u0E36\u0E07\u0E08\u0E33\u0E19\u0E27\u0E19\u0E41\u0E1C\u0E07\u0E40\u0E02\u0E49\u0E32\u0E43\u0E1A\u0E40\u0E2A\u0E19\u0E2D\u0E23\u0E32\u0E04\u0E32 \xB7 \u0E2D\u0E2D\u0E01\u0E41\u0E1A\u0E1A\u0E23\u0E30\u0E1A\u0E1A + \u0E1C\u0E25\u0E1C\u0E25\u0E34\u0E15 \u0E2D\u0E22\u0E39\u0E48\u0E43\u0E19\u0E08\u0E2D\u0E40\u0E14\u0E35\u0E22\u0E27\u0E01\u0E31\u0E19",
-    onClick: () => onPlan3d(job || window.leadAsJob(l))
-  }), asJob && window.BOQEditor && React.createElement(LeadActionRow, {
+    sub: dvs.p3Sub || "ปั้นผังหลังคา · ดึงจำนวนแผงเข้าใบเสนอราคา · ออกแบบระบบ + ผลผลิต อยู่ในจอเดียวกัน",
+    onClick: () => dvs.openP3()
+  })), asJob && window.BOQEditor && React.createElement(window.DvRowWrap, {
+    n: dvs.nBoq,
+    onVers: onSaveBoq ? () => dvs.openBoq(true) : null
+  }, React.createElement(LeadActionRow, {
     icon: "box",
     color: "var(--primary-dark)",
     title: "\u0E16\u0E2D\u0E14\u0E27\u0E31\u0E2A\u0E14\u0E38 BOQ",
-    sub: (job ? job.boq : l.boq) ? "มีรายการแล้ว · แตะเพื่อแก้ไข / ดาวน์โหลด" : "คำนวณปริมาณวัสดุเพื่อคิดราคาไปเสนอ",
-    onClick: () => setBoqOpen(true)
-  }), media && window.JobFiles && React.createElement(window.JobFiles, {
+    sub: dvs.boqSub || ((job ? job.boq : l.boq) ? "มีรายการแล้ว · แตะเพื่อแก้ไข / ดาวน์โหลด" : "คำนวณปริมาณวัสดุเพื่อคิดราคาไปเสนอ"),
+    onClick: () => dvs.openBoq()
+  })), media && window.JobFiles && React.createElement(window.JobFiles, {
     media: media,
     currentUser: currentUser,
     canManage: canManage !== false
@@ -2381,16 +2401,7 @@ function LeadDetail({
     size: 14,
     color: "#fff",
     sw: 2.4
-  }), " \u0E41\u0E1B\u0E25\u0E07\u0E40\u0E1B\u0E47\u0E19\u0E07\u0E32\u0E19\u0E15\u0E34\u0E14\u0E15\u0E31\u0E49\u0E07"))), boqOpen && asJob && window.BOQEditor && React.createElement(window.BOQEditor, {
-    job: asJob,
-    priceMap: priceMap,
-    stock: stock,
-    onClose: () => setBoqOpen(false),
-    onSave: onSaveBoq ? boq => {
-      onSaveBoq(asJob, boq);
-      setBoqOpen(false);
-    } : null
-  }));
+  }), " \u0E41\u0E1B\u0E25\u0E07\u0E40\u0E1B\u0E47\u0E19\u0E07\u0E32\u0E19\u0E15\u0E34\u0E14\u0E15\u0E31\u0E49\u0E07"))), dvs.ui);
 }
 function LeadDrawer({
   lead,

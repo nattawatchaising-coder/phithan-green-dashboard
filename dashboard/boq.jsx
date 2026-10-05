@@ -18,6 +18,9 @@ const BQ_CSS = `
 .bq-head .nm{font-size:14.5px;font-weight:700;color:var(--text-1);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .bq-head .x{width:32px;height:32px;border-radius:9px;border:1px solid var(--border);background:var(--surface);
   cursor:pointer;display:grid;place-items:center;color:var(--text-2);flex-shrink:0}
+.bq-head .bq-ver{font-size:11.5px;font-weight:700;color:var(--text-2);background:var(--surface2);box-shadow:var(--shadow-inset);padding:5px 10px;border-radius:8px;white-space:nowrap}
+.bq-head .bq-p3link{display:flex;align-items:center;gap:6px;font-size:11.5px;color:var(--text-3);font-weight:600;min-width:200px}
+@media (max-width:700px){.bq-head .bq-ver{display:none}.bq-head .bq-p3link{min-width:0}.bq-head .bq-p3link>span{display:none}}
 .bq-head .x:hover{background:var(--surface2);color:var(--text-1)}
 
 .bq-body{flex:1;min-height:0;display:flex}
@@ -566,7 +569,7 @@ function Meas3DModal({ list, targets, defaultTarget, onApply, onClose }) {
   );
 }
 
-function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
+function BOQEditor({ job, onClose, onSave, priceMap, stock, ver, verName, p3Vers }) {
   const bdClose = window.useBackdropClose(onClose);
   const baht = (n) => (Math.round((+n || 0) * 100) / 100).toLocaleString(undefined, { maximumFractionDigits: 2 });
   const isMobile = window.matchMedia("(max-width: 860px)").matches;
@@ -921,7 +924,10 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
   /* ── ระยะจากแบบ 3D ──
      3D วัดบนผังดาวเทียมที่รู้สเกลจริง จึงเอาเมตรมากรอกช่องความยาวได้ตรง ๆ
      แทนที่จะกะเอาหรือเดินวัดหน้างานซ้ำ (เส้นวัดผูกกับงานเดียวกัน จึงไม่มีทางหยิบของงานอื่นมาปน) */
-  const plan3d = usePlan3dRO(job ? job.id : null);
+  /* ใบนี้ผูกแบบ 3D เวอร์ชันไหน (b.plan3d · ไม่มี = ต้นแบบ) — รางไฟ/ทางเดิน/ท่อดึงจากแบบนั้น */
+  const p3VersOwn = window.useP3Vers ? window.useP3Vers(p3Vers ? null : (job ? job.id : null)) : null;
+  const p3List = p3Vers || (p3VersOwn && p3VersOwn.list) || [];
+  const plan3d = usePlan3dRO(job ? (window.dvP3Key ? window.dvP3Key(job.id, b.plan3d) : job.id) : null);
   /* ── รางไฟจากแบบ 3D (obstacles p3sType tray) — แถว p3: 1 ในราง + ข้อต่อใน extra ──
      ชนิดราง/ชุบ เลือกในแถบ · ค่าเริ่ม: ใช้ชนิดของแถวที่เคยกดใช้ · ไม่มี = รางกว้างทุกเส้น ≥ 15 ซม. → Perforated ไม่งั้น Wireway */
   const TRAY_KEYS3 = window.BOQ.TRAY_KIND_KEYS;
@@ -2964,6 +2970,14 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
           <div className="eb">ถอดวัสดุ BOQ{job && job.code ? " · " + job.code : ""}</div>
           <div className="nm">{job ? job.name : "งาน"}</div>
         </div>
+        {verName && <span className="bq-ver">เวอร์ชัน: {verName}</span>}
+        {p3List.length > 1 && (
+          <label className="bq-p3link" title="แบบ 3D ที่ใบนี้ใช้ — รางไฟ ทางเดิน ท่อน้ำ ดึงจากแบบนี้">
+            <span>แบบ 3D</span>
+            <window.Dropdown value={String(b.plan3d || "1")} onChange={(v) => setB((o) => Object.assign({}, o, { plan3d: v === "1" ? null : v }))}
+              options={p3List.map((v) => ({ value: v.id, label: "V" + v.id + " · " + v.name }))} />
+          </label>
+        )}
         <button className="x x-close" onClick={onClose} title="ปิด"><Icon name="x" size={16} /></button>
       </div>
 
