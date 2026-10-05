@@ -24,6 +24,11 @@ const LN_KIND = [{
   icon: "⏱️",
   hint: "ขออนุมัติ · ผลการอนุมัติ"
 }, {
+  key: "leave",
+  th: "ใบลา",
+  icon: "🌴",
+  hint: "ขออนุมัติการลา · ผลการอนุมัติ"
+}, {
   key: "permit",
   th: "งานขออนุญาต",
   icon: "📄",
@@ -37,7 +42,7 @@ const LN_KIND = [{
   key: "attend",
   th: "เตือนเรื่องลงเวลา",
   icon: "📍",
-  hint: "สรุปตอนเย็น — ยังไม่ออกงาน · ยังไม่ส่งรายงาน"
+  hint: "18:00 เตือนลืมออกงาน · 20:30 สรุปใบที่รอคุณอนุมัติ"
 }, {
   key: "info",
   th: "อื่น ๆ",
@@ -265,7 +270,7 @@ function LineAdminView({
   const [month, setMonth] = React.useState(window.drToday().slice(0, 7));
   const quota = Math.max(1, +(cfg || {}).quota || LN_QUOTA_DEFAULT);
   const kinds = cfg && cfg.kinds || null;
-  const isOn = k => kinds ? !!kinds[k] : true;
+  const isOn = k => kinds ? !!(kinds[k] !== undefined ? kinds[k] : k === "leave" ? kinds.ot : 0) : true;
   const months = React.useMemo(() => {
     const set = {};
     (log.rows || []).forEach(r => {

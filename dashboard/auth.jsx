@@ -59,15 +59,15 @@ function userRoles(u) {
    viewAll ดูงานทั้งหมด · doSurvey ทำแบบสำรวจหน้างาน · dispatch จัดตารางสำรวจ
    design ออกแบบ/ออกไฟล์แบบ · permit เอกสารขออนุญาต · price เห็นราคา-ต้นทุน · leads หน้าลูกค้าสำรวจ */
 const DEFAULT_PERMS = {
-  admin:  { viewAll: 1, addJob: 1, editJob: 1, delJob: 1, stock: 1, manageUsers: 1, dispatch: 1, doSurvey: 1, design: 1, permit: 1, price: 1, leads: 1, om: 1, handover: 1, billing: 1, expense: 1, expenseApprove: 1, expensePay: 1, expenseCover: 1, attend: 1, attendAll: 1, ot: 1, otApprove: 1 },
-  lead:   { viewAll: 1, addJob: 1, editJob: 1, delJob: 1, stock: 1,                 dispatch: 1, doSurvey: 1, design: 1, permit: 1, price: 1, leads: 1, om: 1, handover: 1, billing: 1, expense: 1, expenseApprove: 1,                expenseCover: 1, attend: 1, attendAll: 1, ot: 1, otApprove: 1 },
-  ee:     { viewAll: 1,            editJob: 1,            stock: 1,                 dispatch: 1, doSurvey: 1, design: 1, permit: 1,                    om: 1, handover: 1, expense: 1,                                   attend: 1,               ot: 1 },
-  draft:  { viewAll: 1,            editJob: 1,            stock: 1,                                           design: 1,                                                                                     attend: 1,               ot: 1 },
-  tech:   {                        editJob: 1,            stock: 1,                              doSurvey: 1,                                         om: 1, handover: 1, expense: 1,                                   attend: 1,               ot: 1 },
-  permit: { viewAll: 1,            editJob: 1,                                                                            permit: 1,                                                                         attend: 1,               ot: 1 },
-  sales:  { viewAll: 1, addJob: 1,                                                  dispatch: 1, doSurvey: 1,                       price: 1, leads: 1,                                                      attend: 1,               ot: 1 },
+  admin:  { viewAll: 1, addJob: 1, editJob: 1, delJob: 1, stock: 1, manageUsers: 1, dispatch: 1, doSurvey: 1, design: 1, permit: 1, price: 1, leads: 1, om: 1, handover: 1, billing: 1, expense: 1, expenseApprove: 1, expensePay: 1, expenseCover: 1, attend: 1, attendAll: 1, ot: 1, otApprove: 1, leave: 1, leaveApprove: 1 },
+  lead:   { viewAll: 1, addJob: 1, editJob: 1, delJob: 1, stock: 1,                 dispatch: 1, doSurvey: 1, design: 1, permit: 1, price: 1, leads: 1, om: 1, handover: 1, billing: 1, expense: 1, expenseApprove: 1,                expenseCover: 1, attend: 1, attendAll: 1, ot: 1, otApprove: 1, leave: 1, leaveApprove: 1 },
+  ee:     { viewAll: 1,            editJob: 1,            stock: 1,                 dispatch: 1, doSurvey: 1, design: 1, permit: 1,                    om: 1, handover: 1, expense: 1,                                   attend: 1,               ot: 1, leave: 1 },
+  draft:  { viewAll: 1,            editJob: 1,            stock: 1,                                           design: 1,                                                                                     attend: 1,               ot: 1, leave: 1 },
+  tech:   {                        editJob: 1,            stock: 1,                              doSurvey: 1,                                         om: 1, handover: 1, expense: 1,                                   attend: 1,               ot: 1, leave: 1 },
+  permit: { viewAll: 1,            editJob: 1,                                                                            permit: 1,                                                                         attend: 1,               ot: 1, leave: 1 },
+  sales:  { viewAll: 1, addJob: 1,                                                  dispatch: 1, doSurvey: 1,                       price: 1, leads: 1,                                                      attend: 1,               ot: 1, leave: 1 },
   /* HR ดูแลคน ไม่ได้ดูแลงาน — เปิดเฉพาะเวลาทำงานกับ OT ไม่ให้เห็นงานหรือราคา */
-  hr:     {                                                                                                                                                                                                attend: 1, attendAll: 1, ot: 1, otApprove: 1 },
+  hr:     {                                                                                                                                                                                                attend: 1, attendAll: 1, ot: 1, otApprove: 1, leave: 1, leaveApprove: 1 },
 };
 
 
@@ -99,6 +99,8 @@ const PERM_LIST = [
   { key: "attendAll",   th: "ดูเวลาทำงานของทุกคน", desc: "แผ่นเวลารายวันทั้งบริษัท · เวลาทำงานของคนอื่นเป็นข้อมูลส่วนบุคคล เปิดเท่าที่จำเป็น" },
   { key: "ot",          th: "ขอ OT นอกเวลางาน", desc: "เปิดใบขอทำงานล่วงเวลา — เห็นเฉพาะใบของตัวเอง" },
   { key: "otApprove",   th: "อนุมัติใบ OT", desc: "เห็นใบ OT ของทุกคนและตัดสิน · อนุมัติใบของตัวเองไม่ได้เสมอ" },
+  { key: "leave",       th: "ขอลา", desc: "ยื่นใบลาและดูยอดวันลาคงเหลือของตัวเอง (เว็บและแอปในไลน์)" },
+  { key: "leaveApprove", th: "อนุมัติใบลา", desc: "เห็นใบลาของทุกคนและตัดสิน · อนุมัติใบของตัวเองไม่ได้ · คู่กับ \"ดูเวลาทำงานของทุกคน\" = กำหนดยอดวันลารายคนได้" },
   { key: "stock",       th: "คลังสินค้า",                   desc: "ดูและตัดสต๊อก" },
   { key: "manageUsers", th: "จัดการผู้ใช้และสิทธิ์",          desc: "เพิ่ม/ลบบัญชี และแก้ตารางสิทธิ์นี้" },
 ];
@@ -789,6 +791,7 @@ const NOTIF_KINDS = {
   om:      { icon: "wrench", color: "#7C5CFC", th: "งานบริการหลังการขาย" },
   daily:   { icon: "pen",    color: "#F59E0B", th: "รายงานประจำวัน" },
   expense: { icon: "wallet", color: "#0EA5E9", th: "ใบเบิกเงิน" },
+  leave:   { icon: "calendar", color: "#0EA5E9", th: "การลา" },
   info:    { icon: "bell",   color: "#1B9B75", th: "แจ้งเตือน" },
 };
 function notifKindKey(n) {

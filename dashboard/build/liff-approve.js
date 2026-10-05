@@ -13,6 +13,11 @@ const LN_AP_KIND = [{
   th: "โอที",
   icon: "clock",
   color: "#6366F1"
+}, {
+  key: "leave",
+  th: "การลา",
+  icon: "calendar",
+  color: "#0EA5E9"
 }];
 const LN_AP_KIND_BY = {};
 LN_AP_KIND.forEach(k => {

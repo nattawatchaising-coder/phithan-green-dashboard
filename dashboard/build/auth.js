@@ -133,7 +133,9 @@ const DEFAULT_PERMS = {
     attend: 1,
     attendAll: 1,
     ot: 1,
-    otApprove: 1
+    otApprove: 1,
+    leave: 1,
+    leaveApprove: 1
   },
   lead: {
     viewAll: 1,
@@ -156,7 +158,9 @@ const DEFAULT_PERMS = {
     attend: 1,
     attendAll: 1,
     ot: 1,
-    otApprove: 1
+    otApprove: 1,
+    leave: 1,
+    leaveApprove: 1
   },
   ee: {
     viewAll: 1,
@@ -170,7 +174,8 @@ const DEFAULT_PERMS = {
     handover: 1,
     expense: 1,
     attend: 1,
-    ot: 1
+    ot: 1,
+    leave: 1
   },
   draft: {
     viewAll: 1,
@@ -178,7 +183,8 @@ const DEFAULT_PERMS = {
     stock: 1,
     design: 1,
     attend: 1,
-    ot: 1
+    ot: 1,
+    leave: 1
   },
   tech: {
     editJob: 1,
@@ -188,14 +194,16 @@ const DEFAULT_PERMS = {
     handover: 1,
     expense: 1,
     attend: 1,
-    ot: 1
+    ot: 1,
+    leave: 1
   },
   permit: {
     viewAll: 1,
     editJob: 1,
     permit: 1,
     attend: 1,
-    ot: 1
+    ot: 1,
+    leave: 1
   },
   sales: {
     viewAll: 1,
@@ -205,13 +213,16 @@ const DEFAULT_PERMS = {
     price: 1,
     leads: 1,
     attend: 1,
-    ot: 1
+    ot: 1,
+    leave: 1
   },
   hr: {
     attend: 1,
     attendAll: 1,
     ot: 1,
-    otApprove: 1
+    otApprove: 1,
+    leave: 1,
+    leaveApprove: 1
   }
 };
 const PERM_LIST = [{
@@ -298,6 +309,14 @@ const PERM_LIST = [{
   key: "otApprove",
   th: "อนุมัติใบ OT",
   desc: "เห็นใบ OT ของทุกคนและตัดสิน · อนุมัติใบของตัวเองไม่ได้เสมอ"
+}, {
+  key: "leave",
+  th: "ขอลา",
+  desc: "ยื่นใบลาและดูยอดวันลาคงเหลือของตัวเอง (เว็บและแอปในไลน์)"
+}, {
+  key: "leaveApprove",
+  th: "อนุมัติใบลา",
+  desc: "เห็นใบลาของทุกคนและตัดสิน · อนุมัติใบของตัวเองไม่ได้ · คู่กับ \"ดูเวลาทำงานของทุกคน\" = กำหนดยอดวันลารายคนได้"
 }, {
   key: "stock",
   th: "คลังสินค้า",
@@ -1590,6 +1609,11 @@ const NOTIF_KINDS = {
     icon: "wallet",
     color: "#0EA5E9",
     th: "ใบเบิกเงิน"
+  },
+  leave: {
+    icon: "calendar",
+    color: "#0EA5E9",
+    th: "การลา"
   },
   info: {
     icon: "bell",

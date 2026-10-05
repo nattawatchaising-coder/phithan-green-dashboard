@@ -20,13 +20,14 @@ import { flexNotif, pushCard } from "../_lib/flex.mjs";
    ทุกวันนี้มีที่เดียวที่ใช้ toPerm คือ "permit" (app.jsx ตอนส่งข้อมูลขออนุญาต)
    ถ้าเพิ่ม toPerm ค่าใหม่ ต้องมาเติมตารางนี้ด้วย ไม่งั้นคนที่ควรได้จะไม่ได้ */
 const DEFAULT_PERMS = {
-  admin:  { permit: 1, om: 1, expense: 1, expenseApprove: 1, expensePay: 1, billing: 1 },
-  lead:   { permit: 1, om: 1, expense: 1, expenseApprove: 1, billing: 1 },
+  admin:  { permit: 1, om: 1, expense: 1, expenseApprove: 1, expensePay: 1, billing: 1, leaveApprove: 1 },
+  lead:   { permit: 1, om: 1, expense: 1, expenseApprove: 1, billing: 1, leaveApprove: 1 },
   ee:     { permit: 1, om: 1, expense: 1 },
   draft:  {},
   tech:   { om: 1, expense: 1 },
   permit: { permit: 1 },
   sales:  {},
+  hr:     { leaveApprove: 1 },
 };
 const ROLE_ALIAS = { manager: "lead", survey: "ee", office: "admin" };
 /* สิทธิ์ที่มีอยู่ก่อนจะเริ่มบันทึกช่อง known — ตรงกับ PERM_KEYS_V1 ใน auth.jsx */
@@ -51,17 +52,18 @@ function canDo(user, key, cfg) {
 
 /* ชนิดของแจ้งเตือน — ตรงกับ notifKindKey (auth.jsx) */
 function kindOf(n) {
-  if (n.event && ["reject", "permit", "assign", "om", "daily", "expense", "ot", "attend", "info"].indexOf(n.event) >= 0) return n.event;
+  if (n.event && ["reject", "permit", "assign", "om", "daily", "expense", "ot", "leave", "attend", "info"].indexOf(n.event) >= 0) return n.event;
   if (n.type === "daily") return "daily";
   if (n.type === "om") return "om";
   if (n.type === "expense") return "expense";
   if (n.type === "ot") return "ot";
+  if (n.type === "leave") return "leave";
   if (n.type === "attend") return "attend";
   if (n.type === "assign") return "assign";
   if (n.type === "permit") return /ตีกลับ|แก้ไข/.test(n.title || "") ? "reject" : "permit";
   return "info";
 }
-const KIND_ICON = { reject: "⚠️", permit: "📄", assign: "🔧", om: "🛠️", daily: "📝", expense: "💸", ot: "⏱️", attend: "📍", info: "🔔" };
+const KIND_ICON = { reject: "⚠️", permit: "📄", assign: "🔧", om: "🛠️", daily: "📝", expense: "💸", ot: "⏱️", leave: "🌴", attend: "📍", info: "🔔" };
 
 /* ── เติมชื่องานให้ใบแจ้งเตือน ──
    ใบส่วนใหญ่ไม่ได้พกชื่องานมาด้วย พกแค่ id (omNotify ส่ง omSiteId · บางที่ส่ง jobId)
@@ -124,7 +126,9 @@ export async function POST(request) {
   const kind = kindOf(n);
   const allow = await rtdbGet("config/linePush").catch(() => null);
   /* ยังไม่ตั้งค่า = ส่งทุกชนิด · ตั้งแล้วให้ยึดตามนั้น (ปรับได้โดยไม่ต้อง deploy ใหม่) */
-  if (allow && allow.kinds && !allow.kinds[kind]) return json({ sent: 0, skipped: "kind:" + kind });
+  /* "leave" มาทีหลัง — ค่าตั้งที่บันทึกไว้ก่อนมีชนิดนี้ไม่มีคีย์ leave ให้ตามสวิตช์ใบ OT ไปก่อน */
+  const kOn = allow && allow.kinds ? (allow.kinds[kind] !== undefined ? allow.kinds[kind] : kind === "leave" ? allow.kinds.ot : undefined) : 1;
+  if (allow && allow.kinds && !kOn) return json({ sent: 0, skipped: "kind:" + kind });
 
   let users = null, cfg = null;
   try {

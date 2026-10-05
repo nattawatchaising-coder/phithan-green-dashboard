@@ -38,6 +38,7 @@ export const LN_KIND = {
   daily:   { th: "รายงานประจำวัน",  icon: "📝", color: "#0EA5E9", tab: "daily" },
   expense: { th: "ใบเบิกเงิน",      icon: "💸", color: "#8B5CF6", tab: "ec"    },
   ot:      { th: "ใบขอ OT",        icon: "⏱️", color: "#6366F1", tab: "time"  },
+  leave:   { th: "ใบลา",           icon: "🌴", color: "#0EA5E9", tab: "leave" },
   attend:  { th: "ลงเวลาทำงาน",    icon: "📍", color: "#10B981", tab: "time"  },
   info:    { th: "แจ้งเตือน",       icon: "🔔", color: "#94A3B8", tab: "bell"  },
 };
@@ -135,7 +136,8 @@ export function flexNotif(kind, n) {
    การ์ดสรุปตอนเย็นของ cron — หลายบรรทัดในใบเดียว
    lines = ข้อความล้วน บรรทัดละเรื่อง (ขึ้นต้นด้วย • หรือ – อยู่แล้ว)
    ================================================================ */
-export function flexDigest(dateTH, lines) {
+export function flexDigest(dateTH, lines, title) {
+  const head = title || "📍  สรุปตอนเย็น";
   const k = LN_KIND.attend;
   const url = liffUrl("time");
   /* กรองบรรทัดว่างทิ้งก่อน แล้วค่อยตัดที่ 12 — กล่องที่ contents ว่าง
@@ -147,13 +149,13 @@ export function flexDigest(dateTH, lines) {
 
   return {
     type: "flex",
-    altText: clip("📍 สรุปตอนเย็น " + dateTH + " — " + (lines || []).join(" · "), 380),
+    altText: clip(head.replace(/s+/g, " ") + " " + dateTH + " — " + (lines || []).join(" · "), 380),
     contents: {
       type: "bubble", size: "kilo",
       header: {
         type: "box", layout: "vertical", backgroundColor: k.color, paddingAll: "13px",
         contents: [
-          { type: "text", text: "📍  สรุปตอนเย็น", color: "#FFFFFF", size: "sm", weight: "bold" },
+          { type: "text", text: head, color: "#FFFFFF", size: "sm", weight: "bold" },
           { type: "text", text: dateTH, color: "#DFF5EB", size: "xs", margin: "xs" },
         ],
       },

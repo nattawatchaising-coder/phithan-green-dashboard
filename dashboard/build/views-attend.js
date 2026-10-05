@@ -105,6 +105,9 @@ function TmDaySheet({
   users,
   currentUser
 }) {
+  const lvRows = window.useLeaves().rows;
+  const lvTypes = window.useLeaveTypes().types;
+  const onLeave = React.useMemo(() => window.lvOnDay(lvRows, date), [lvRows, date]);
   const day = window.useAttendDay(date);
   const admin = window.useAttendAdmin(currentUser);
   const [msg, setMsg] = React.useState("");
@@ -168,8 +171,9 @@ function TmDaySheet({
     (day.rows || []).forEach(r => {
       have[r.userId] = 1;
     });
-    return (users || []).filter(u => u && u.active !== false && window.can(window.userRoles(u), "attend") && !have[u.id]);
-  }, [day.rows, users, workday]);
+    return (users || []).filter(u => u && u.active !== false && window.can(window.userRoles(u), "attend") && !have[u.id] && !onLeave[u.id]);
+  }, [day.rows, users, workday, onLeave]);
+  const leaving = (users || []).filter(u => u && onLeave[u.id] && !(day.rows || []).some(r => r.userId === u.id));
   const totalMins = (day.rows || []).reduce((a, r) => a + (+r.mins || 0), 0);
   const noGps = (day.rows || []).filter(r => !r.gps).length;
   const stillIn = (day.rows || []).filter(r => r.in && !r.out).length;
@@ -249,6 +253,11 @@ function TmDaySheet({
     unit: "\u0E04\u0E19",
     color: missing.length ? "#F59E0B" : "var(--text-1)",
     hint: workday ? "" : "วันนี้ไม่ใช่วันทำงานมาตรฐาน"
+  }), leaving.length > 0 && React.createElement(TmStat, {
+    label: "\u0E25\u0E32",
+    value: leaving.length,
+    unit: "\u0E04\u0E19",
+    color: "#0EA5E9"
   }), React.createElement(TmStat, {
     label: "\u0E22\u0E31\u0E07\u0E44\u0E21\u0E48\u0E2D\u0E2D\u0E01\u0E07\u0E32\u0E19",
     value: stillIn,
@@ -373,7 +382,30 @@ function TmDaySheet({
       fontWeight: 700,
       whiteSpace: "nowrap"
     }
-  }, "\u0E25\u0E1A")))), missing.map(u => React.createElement("tr", {
+  }, "\u0E25\u0E1A")))), leaving.map(u => {
+    const lr = onLeave[u.id],
+      lt = window.lvTypeOf(lvTypes, lr.type);
+    return React.createElement("tr", {
+      key: "lv" + u.id,
+      style: {
+        borderBottom: "1px solid var(--divider)"
+      }
+    }, React.createElement("td", {
+      style: {
+        padding: "9px 13px",
+        fontWeight: 700,
+        color: "var(--text-2)"
+      }
+    }, u.name), React.createElement("td", {
+      colSpan: 6,
+      style: {
+        padding: "9px 13px",
+        fontSize: 12,
+        fontWeight: 700,
+        color: lt.color
+      }
+    }, lt.th, " \xB7 ", window.lvRangeTH(lr), " \xB7 ", lr.no));
+  }), missing.map(u => React.createElement("tr", {
     key: u.id,
     style: {
       borderBottom: "1px solid var(--divider)",
@@ -2995,7 +3027,7 @@ function AttendView({
       });
     }
   };
-  const TABS = [["day", "แผ่นเวลารายวัน", "calendar", 0]].concat(canAll ? [["month", "สรุปรายเดือน", "table", 0]] : []).concat([["mine", "ใบ OT ของฉัน", "pen", roll.mineOpen]]).concat(canApprove ? [["inbox", "รอฉันอนุมัติ", "check", roll.waitingMine]] : []).concat(canApprove || canAll ? [["all", "ใบ OT ทั้งหมด", "list", 0]] : []).concat([["otsum", "สรุป OT รายคน", "file", 0]]).concat(window.can(role, "manageUsers") ? [["cfg", "ตั้งค่าเวลาทำงาน", "settings", 0]] : []);
+  const TABS = [["day", "แผ่นเวลารายวัน", "calendar", 0]].concat(canAll ? [["month", "สรุปรายเดือน", "table", 0]] : []).concat([["mine", "ใบ OT ของฉัน", "pen", roll.mineOpen]]).concat(canApprove ? [["inbox", "รอฉันอนุมัติ", "check", roll.waitingMine]] : []).concat(canApprove || canAll ? [["all", "ใบ OT ทั้งหมด", "list", 0]] : []).concat([["otsum", "สรุป OT รายคน", "file", 0]]).concat(window.LeaveTab ? [["leave", "การลา", "calendar", 0]] : []).concat(window.can(role, "manageUsers") ? [["cfg", "ตั้งค่าเวลาทำงาน", "settings", 0]] : []);
   const cur = (ot.rows || []).find(r => r.id === open) || null;
   const jobSorted = React.useMemo(() => (jobs || []).slice().sort((a, b) => String(a.code || "").localeCompare(String(b.code || ""))), [jobs]);
   return React.createElement("div", {
@@ -3134,6 +3166,11 @@ function AttendView({
   }), tab === "cfg" && React.createElement(TmWorkHours, {
     cfg: wh.cfg,
     onSave: wh.save
+  }), tab === "leave" && window.LeaveTab && React.createElement(window.LeaveTab, {
+    users: users,
+    role: role,
+    currentUser: currentUser,
+    cfg: wh.cfg
   }), (tab === "mine" || tab === "inbox" || tab === "all") && React.createElement(React.Fragment, null, React.createElement("div", {
     className: "search-box",
     style: {

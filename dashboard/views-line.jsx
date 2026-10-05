@@ -24,9 +24,10 @@ const LN_KIND = [
   { key: "om",      th: "งานบริการหลังการขาย", icon: "🛠️", hint: "ใบแจ้งซ่อม · มอบหมายงานบริการ" },
   { key: "expense", th: "ใบเบิกเงิน",         icon: "💸", hint: "ส่งขออนุมัติ · อนุมัติ · จ่ายคืน" },
   { key: "ot",      th: "ใบขอ OT",            icon: "⏱️", hint: "ขออนุมัติ · ผลการอนุมัติ" },
+  { key: "leave",   th: "ใบลา",               icon: "🌴", hint: "ขออนุมัติการลา · ผลการอนุมัติ" },
   { key: "permit",  th: "งานขออนุญาต",        icon: "📄", hint: "เอกสารพร้อมยื่น" },
   { key: "daily",   th: "รายงานประจำวัน",     icon: "📝", hint: "ส่งรายงาน · อนุมัติรายงาน" },
-  { key: "attend",  th: "เตือนเรื่องลงเวลา",  icon: "📍", hint: "สรุปตอนเย็น — ยังไม่ออกงาน · ยังไม่ส่งรายงาน" },
+  { key: "attend",  th: "เตือนเรื่องลงเวลา",  icon: "📍", hint: "18:00 เตือนลืมออกงาน · 20:30 สรุปใบที่รอคุณอนุมัติ" },
   { key: "info",    th: "อื่น ๆ",             icon: "🔔", hint: "แจ้งเตือนที่ไม่เข้าชนิดไหนเลย" },
 ];
 
@@ -185,7 +186,8 @@ function LineAdminView({ users, currentUser }) {
   const quota = Math.max(1, +((cfg || {}).quota) || LN_QUOTA_DEFAULT);
   /* ยังไม่เคยตั้งค่า = เปิดทุกชนิด (เหมือนที่เซิร์ฟเวอร์ตีความ) — ต้องให้หน้าจอตรงกับพฤติกรรมจริง */
   const kinds = (cfg && cfg.kinds) || null;
-  const isOn = (k) => (kinds ? !!kinds[k] : true);
+  /* leave มาทีหลัง — ค่าตั้งเก่าไม่มีคีย์นี้ ให้ตามสวิตช์ใบ OT (ตรงกับ api/line/push.mjs) */
+  const isOn = (k) => (kinds ? !!(kinds[k] !== undefined ? kinds[k] : k === "leave" ? kinds.ot : 0) : true);
 
   const months = React.useMemo(() => {
     const set = {};

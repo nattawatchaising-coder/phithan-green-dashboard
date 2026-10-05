@@ -56,6 +56,7 @@ const LN_NOTIF_KIND = {
   assign:  { th: "งานติดตั้ง",  icon: "wrench", color: "#1B9B75" },
   om:      { th: "งานซ่อม",    icon: "alert",  color: "#F59E0B" },
   ot:      { th: "โอที",       icon: "clock",  color: "#6366F1" },
+  leave:   { th: "การลา",      icon: "calendar", color: "#0EA5E9" },
   daily:   { th: "รายงาน",     icon: "pen",    color: "#0EA5E9" },
   expense: { th: "เบิกเงิน",    icon: "wallet", color: "#8B5CF6" },
   permit:  { th: "ขออนุญาต",   icon: "file",   color: "#64748B" },
@@ -72,6 +73,8 @@ const LN_START = (() => {
   try { t = new URLSearchParams(window.location.search).get("tab") || ""; } catch (e) { t = ""; }
   const at = (tab, sub, extra) => Object.assign({ tab: tab, sub: sub || "", ot: false, me: false }, extra || {});
   if (t === "ot")    return at("time", "", { ot: true });
+  /* ปุ่ม "ขอลา" บนเมนูล่างของไลน์ → หัวข้อการลา · ลิงก์ในแจ้งเตือนใบลาก็มาทางนี้ */
+  if (t === "leave") return at("time", "leave");
   /* คีย์เก่าจากตอนที่ยังมีเจ็ดแท็บ — ปุ่มในเมนูล่างของไลน์ที่ตั้งไว้แล้วต้องไม่พัง
      พาไปที่หัวข้อย่อยที่เรื่องนั้นย้ายไปอยู่ ไม่ใช่ตกลงหน้าแรกเฉย ๆ */
   if (t === "fix")   return at("jobs", "fix");
@@ -1045,10 +1048,19 @@ function LnTimeTab({ me, users, role, jobs, startOt, startSub }) {
      ⚠ ไม่มีการ subscribe เพิ่มเลย — otStore ข้างบนคือโหนดเดียวกับที่รายการรออนุมัติใช้
        นี่คือเหตุผลหลักที่ย้ายมาอยู่ตรงนี้: ของอยู่ในมืออยู่แล้ว แค่ก่อนหน้านี้ไปเปิดซ้ำอีกแท็บ
      และคนอนุมัติมักอยากดูปฏิทินลงเวลาของวันนั้นก่อนตัดสิน ซึ่งอยู่หน้าเดียวกันแล้วตอนนี้ */
-  const canAppr = !!window.tmCanOtApprove && window.tmCanOtApprove(role);
-  const [sub, setSub] = React.useState(startSub === "appr" && canAppr ? "appr" : "mine");
-  const apprN = React.useMemo(() => !canAppr ? 0 : (otStore.rows || []).filter((r) =>
-    r && r.status === "sent" && window.tmOtApproveCheck(r, me, role).ok).length, [canAppr, otStore.rows, me, role]);
+  const canApprOt = !!window.tmCanOtApprove && window.tmCanOtApprove(role);
+  /* ใบลาใช้หัวข้อ "รออนุมัติ" เดียวกับใบ OT — คนอนุมัติเป็นคนกลุ่มเดียวกัน (หัวหน้า · HR) */
+  const canApprLv = !!window.lvCanApprove && window.lvCanApprove(role);
+  const canAppr = canApprOt || canApprLv;
+  const lvStore = window.useLeaves();
+  const lvTypes = window.useLeaveTypes().types;
+  const canLeave = !!window.lvCanLeave && window.lvCanLeave(role);
+  const [sub, setSub] = React.useState(startSub === "appr" && canAppr ? "appr" : startSub === "leave" ? "leave" : "mine");
+  const apprN = React.useMemo(() => (!canApprOt ? 0 : (otStore.rows || []).filter((r) =>
+    r && r.status === "sent" && window.tmOtApproveCheck(r, me, role).ok).length)
+    + (!canApprLv ? 0 : (lvStore.rows || []).filter((r) =>
+    r && r.status === "sent" && window.lvApproveCheck(r, me, role).ok).length),
+    [canApprOt, canApprLv, otStore.rows, lvStore.rows, me, role]);
 
   const cancelOt = (r) => {
     const next = window.tmOtMove(r, "cancelled", me, "");
@@ -1068,15 +1080,21 @@ function LnTimeTab({ me, users, role, jobs, startOt, startSub }) {
 
   return (
     <React.Fragment>
-      {canAppr && (
-        <LnSub items={[{ key: "mine", th: "ลงเวลาของฉัน" }, { key: "appr", th: "รออนุมัติ", n: apprN }]}
-          value={sub} onPick={setSub} />
-      )}
+      <LnSub items={[{ key: "mine", th: "ลงเวลา" }, canLeave && window.LnLeavePanel ? { key: "leave", th: "การลา" } : null,
+        canAppr ? { key: "appr", th: "รออนุมัติ", n: apprN } : null]}
+        value={sub} onPick={setSub} />
 
       {sub === "appr" && canAppr
-        ? (window.LnApOtList
-            ? <window.LnApOtList me={me} role={role} store={otStore} />
-            : <div style={{ padding: 40, textAlign: "center", color: "var(--text-3)", fontSize: 13.5 }}>กำลังโหลด…</div>)
+        ? (
+          <React.Fragment>
+            {canApprLv && window.LnApLeaveList && <window.LnApLeaveList me={me} role={role} store={lvStore} types={lvTypes} />}
+            {canApprOt && (window.LnApOtList
+              ? <window.LnApOtList me={me} role={role} store={otStore} />
+              : <div style={{ padding: 40, textAlign: "center", color: "var(--text-3)", fontSize: 13.5 }}>กำลังโหลด…</div>)}
+            {!canApprOt && apprN === 0 && <div style={{ padding: 40, textAlign: "center", color: "var(--text-3)", fontSize: 13.5 }}>ไม่มีใบลารออนุมัติ</div>}
+          </React.Fragment>)
+        : sub === "leave" && window.LnLeavePanel
+        ? <window.LnLeavePanel me={me} users={users} role={role} cfg={wh.cfg} />
         : (
         <React.Fragment>
           {window.tmCanAttend(role)
@@ -1663,7 +1681,7 @@ function LnApp() {
                     /* เรื่องซ่อมพาไปหัวข้อซ่อม เรื่องงานพาไปใบงาน — แจ้งเตือนที่กดแล้วไม่ไปไหน
                        คือแจ้งเตือนที่อ่านแล้วต้องไปหาเองอยู่ดี */
                     if (n.type === "om") { setTab("jobs"); setJobSub("fix"); return; }
-                    if (n.type === "ot") { setTab("time"); return; }
+                    if (n.type === "ot" || n.type === "leave") { setTab("time"); return; }
                     if (n.type === "expense") { setTab("ec"); return; }
                     const j = (store.jobs || []).find((x) => x.id === n.jobId);
                     if (j) { setOpen(j); setTab("jobs"); setJobSub("list"); }

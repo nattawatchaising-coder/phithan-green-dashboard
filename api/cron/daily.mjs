@@ -47,16 +47,16 @@ export async function GET(request) {
   const done = await rtdbGet("cronRun/" + date).catch(() => null);
   if (done) return json({ skipped: "already", date });
 
-  let users = null, day = null, ot = null;
+  let users = null, ot = null, lv = null;
   try {
     users = await rtdbGet("users");
-    day   = await rtdbGet("attendDay/" + date).catch(() => null);
     ot    = await rtdbGet("tmOt").catch(() => null);
+    lv    = await rtdbGet("tmLeave").catch(() => null);
   } catch (e) { return json({ error: "db" }, 502); }
 
   const list = (users && typeof users === "object" ? Object.values(users) : [])
     .filter((u) => u && u.active !== false && u.lineUserId);
-  const dayRows = (day && typeof day === "object") ? day : {};
+  const lvRows = (lv && typeof lv === "object") ? Object.values(lv) : [];
   const otRows = (ot && typeof ot === "object") ? Object.values(ot) : [];
 
   /* ── ชนิดนี้ถูกปิดไว้ไหม ── อ่านจาก config/linePush ตัวเดียวกับที่หน้าแอดมินเขียน
@@ -71,9 +71,17 @@ export async function GET(request) {
   for (const u of list) {
     const lines = [];
 
-    /* 1. เข้างานแล้วยังไม่ได้ออกงาน — เวลาที่หายไปแก้ย้อนหลังยากกว่ากดตอนนี้มาก */
-    const d = dayRows[u.id];
-    if (d && d.in && !d.out) lines.push("• ยังไม่ได้ลงเวลาออกงาน (เข้างาน " + d.in + ")");
+    /* 1. ลืมออกงาน — ย้ายไปเตือนแยกตอน 18:00 แล้ว (api/cron/clockout.mjs) ตอนนั้นยังแก้ทัน
+          ไม่ซ้ำที่นี่ เพราะโควตา OA แผนฟรีมีจำกัด */
+
+    /* 1.5 ใบลาที่รอ "คนนี้" ตัดสิน */
+    const lvWait = lvRows.filter((r) => r && r.status === "sent" && r.approverId === u.id);
+    if (lvWait.length) {
+      lines.push("• มีใบลารออนุมัติ " + lvWait.length + " ใบ");
+      lvWait.slice(0, 3).forEach((r) => {
+        lines.push("   – " + (r.userName || "") + " · " + shortTH(r.from) + (r.to && r.to !== r.from ? "–" + shortTH(r.to) : "") + " · " + (+r.days || 0) + " วัน");
+      });
+    }
 
     /* 2. ใบ OT ที่รอ "คนนี้" ตัดสิน — ใบค้างเงียบคือปัญหาของคนขอ ไม่ใช่ของคนอนุมัติ */
     const waiting = otRows.filter((r) => r && r.status === "sent" && r.approverId === u.id);

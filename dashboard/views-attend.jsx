@@ -51,6 +51,10 @@ function TmStat({ label, value, unit, color, hint, on, onClick }) {
 
 /* ── แผ่นเวลารายวัน ── */
 function TmDaySheet({ date, setDate, cfg, users, currentUser }) {
+  /* คนที่ลา (อนุมัติแล้ว) ไม่ได้ "ขาด" — แยกออกจากรายการยังไม่ได้ลงเวลา */
+  const lvRows = window.useLeaves().rows;
+  const lvTypes = window.useLeaveTypes().types;
+  const onLeave = React.useMemo(() => window.lvOnDay(lvRows, date), [lvRows, date]);
   const day = window.useAttendDay(date);
   const admin = window.useAttendAdmin(currentUser);
   /* ข้อความผลลัพธ์ของการลบ — ลบแล้วแถวหายไปเฉย ๆ อ่านเหมือนกดพลาดแล้วจอเพี้ยน
@@ -104,8 +108,9 @@ function TmDaySheet({ date, setDate, cfg, users, currentUser }) {
   const missing = React.useMemo(() => {
     if (!workday) return [];
     const have = {}; (day.rows || []).forEach((r) => { have[r.userId] = 1; });
-    return (users || []).filter((u) => u && u.active !== false && window.can(window.userRoles(u), "attend") && !have[u.id]);
-  }, [day.rows, users, workday]);
+    return (users || []).filter((u) => u && u.active !== false && window.can(window.userRoles(u), "attend") && !have[u.id] && !onLeave[u.id]);
+  }, [day.rows, users, workday, onLeave]);
+  const leaving = (users || []).filter((u) => u && onLeave[u.id] && !(day.rows || []).some((r) => r.userId === u.id));
 
   const totalMins = (day.rows || []).reduce((a, r) => a + (+r.mins || 0), 0);
   const noGps = (day.rows || []).filter((r) => !r.gps).length;
@@ -128,6 +133,7 @@ function TmDaySheet({ date, setDate, cfg, users, currentUser }) {
         <TmStat label="ลงเวลาแล้ว" value={(day.rows || []).length} unit="คน" />
         <TmStat label="ยังไม่ได้ลงเวลา" value={missing.length} unit="คน" color={missing.length ? "#F59E0B" : "var(--text-1)"}
           hint={workday ? "" : "วันนี้ไม่ใช่วันทำงานมาตรฐาน"} />
+        {leaving.length > 0 && <TmStat label="ลา" value={leaving.length} unit="คน" color="#0EA5E9" />}
         <TmStat label="ยังไม่ออกงาน" value={stillIn} unit="คน" color={stillIn ? "#EF4444" : "var(--text-1)"}
           hint={stillIn ? "อาจลืมกดออก — ทักถามก่อนหักเวลา" : ""} />
         <TmStat label="ชั่วโมงรวม" value={Math.round(totalMins / 60)} unit="ชม." hint={noGps ? noGps + " ใบไม่มีพิกัด" : "ทุกใบมีพิกัด"} />
@@ -171,6 +177,17 @@ function TmDaySheet({ date, setDate, cfg, users, currentUser }) {
                 </td>
               </tr>
             ))}
+            {leaving.map((u) => {
+              const lr = onLeave[u.id], lt = window.lvTypeOf(lvTypes, lr.type);
+              return (
+                <tr key={"lv" + u.id} style={{ borderBottom: "1px solid var(--divider)" }}>
+                  <td style={{ padding: "9px 13px", fontWeight: 700, color: "var(--text-2)" }}>{u.name}</td>
+                  <td colSpan={6} style={{ padding: "9px 13px", fontSize: 12, fontWeight: 700, color: lt.color }}>
+                    {lt.th} · {window.lvRangeTH(lr)} · {lr.no}
+                  </td>
+                </tr>
+              );
+            })}
             {missing.map((u) => (
               <tr key={u.id} style={{ borderBottom: "1px solid var(--divider)", background: "var(--surface2)" }}>
                 <td style={{ padding: "9px 13px", fontWeight: 700, color: "var(--text-3)" }}>{u.name}</td>
@@ -1340,6 +1357,7 @@ function AttendView({ jobs, users, role, currentUser }) {
     .concat(canApprove ? [["inbox", "รอฉันอนุมัติ", "check", roll.waitingMine]] : [])
     .concat(canApprove || canAll ? [["all", "ใบ OT ทั้งหมด", "list", 0]] : [])
     .concat([["otsum", "สรุป OT รายคน", "file", 0]])
+    .concat(window.LeaveTab ? [["leave", "การลา", "calendar", 0]] : [])
     .concat(window.can(role, "manageUsers") ? [["cfg", "ตั้งค่าเวลาทำงาน", "settings", 0]] : []);
 
   const cur = (ot.rows || []).find((r) => r.id === open) || null;
@@ -1397,6 +1415,8 @@ function AttendView({ jobs, users, role, currentUser }) {
         byName={(currentUser || {}).name || ""} />}
 
       {tab === "cfg" && <TmWorkHours cfg={wh.cfg} onSave={wh.save} />}
+
+      {tab === "leave" && window.LeaveTab && <window.LeaveTab users={users} role={role} currentUser={currentUser} cfg={wh.cfg} />}
 
       {(tab === "mine" || tab === "inbox" || tab === "all") && (
         <React.Fragment>

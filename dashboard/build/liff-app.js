@@ -37,6 +37,11 @@ const LN_NOTIF_KIND = {
     icon: "clock",
     color: "#6366F1"
   },
+  leave: {
+    th: "การลา",
+    icon: "calendar",
+    color: "#0EA5E9"
+  },
   daily: {
     th: "รายงาน",
     icon: "pen",
@@ -75,6 +80,7 @@ const LN_START = (() => {
   if (t === "ot") return at("time", "", {
     ot: true
   });
+  if (t === "leave") return at("time", "leave");
   if (t === "fix") return at("jobs", "fix");
   if (t === "daily") return at("jobs", "daily");
   if (t === "appr") return at("time", "appr");
@@ -1559,9 +1565,14 @@ function LnTimeTab({
     setForm(false);
     setLimit(null);
   };
-  const canAppr = !!window.tmCanOtApprove && window.tmCanOtApprove(role);
-  const [sub, setSub] = React.useState(startSub === "appr" && canAppr ? "appr" : "mine");
-  const apprN = React.useMemo(() => !canAppr ? 0 : (otStore.rows || []).filter(r => r && r.status === "sent" && window.tmOtApproveCheck(r, me, role).ok).length, [canAppr, otStore.rows, me, role]);
+  const canApprOt = !!window.tmCanOtApprove && window.tmCanOtApprove(role);
+  const canApprLv = !!window.lvCanApprove && window.lvCanApprove(role);
+  const canAppr = canApprOt || canApprLv;
+  const lvStore = window.useLeaves();
+  const lvTypes = window.useLeaveTypes().types;
+  const canLeave = !!window.lvCanLeave && window.lvCanLeave(role);
+  const [sub, setSub] = React.useState(startSub === "appr" && canAppr ? "appr" : startSub === "leave" ? "leave" : "mine");
+  const apprN = React.useMemo(() => (!canApprOt ? 0 : (otStore.rows || []).filter(r => r && r.status === "sent" && window.tmOtApproveCheck(r, me, role).ok).length) + (!canApprLv ? 0 : (lvStore.rows || []).filter(r => r && r.status === "sent" && window.lvApproveCheck(r, me, role).ok).length), [canApprOt, canApprLv, otStore.rows, lvStore.rows, me, role]);
   const cancelOt = r => {
     const next = window.tmOtMove(r, "cancelled", me, "");
     if (!next) return;
@@ -1575,18 +1586,26 @@ function LnTimeTab({
     }
   };
   const myOt = React.useMemo(() => (otStore.rows || []).filter(r => r && r.userId === (me || {}).id), [otStore.rows, me]);
-  return React.createElement(React.Fragment, null, canAppr && React.createElement(LnSub, {
+  return React.createElement(React.Fragment, null, React.createElement(LnSub, {
     items: [{
       key: "mine",
-      th: "ลงเวลาของฉัน"
-    }, {
+      th: "ลงเวลา"
+    }, canLeave && window.LnLeavePanel ? {
+      key: "leave",
+      th: "การลา"
+    } : null, canAppr ? {
       key: "appr",
       th: "รออนุมัติ",
       n: apprN
-    }],
+    } : null],
     value: sub,
     onPick: setSub
-  }), sub === "appr" && canAppr ? window.LnApOtList ? React.createElement(window.LnApOtList, {
+  }), sub === "appr" && canAppr ? React.createElement(React.Fragment, null, canApprLv && window.LnApLeaveList && React.createElement(window.LnApLeaveList, {
+    me: me,
+    role: role,
+    store: lvStore,
+    types: lvTypes
+  }), canApprOt && (window.LnApOtList ? React.createElement(window.LnApOtList, {
     me: me,
     role: role,
     store: otStore
@@ -1597,7 +1616,19 @@ function LnTimeTab({
       color: "var(--text-3)",
       fontSize: 13.5
     }
-  }, "\u0E01\u0E33\u0E25\u0E31\u0E07\u0E42\u0E2B\u0E25\u0E14\u2026") : React.createElement(React.Fragment, null, window.tmCanAttend(role) ? React.createElement(LnClock, {
+  }, "\u0E01\u0E33\u0E25\u0E31\u0E07\u0E42\u0E2B\u0E25\u0E14\u2026")), !canApprOt && apprN === 0 && React.createElement("div", {
+    style: {
+      padding: 40,
+      textAlign: "center",
+      color: "var(--text-3)",
+      fontSize: 13.5
+    }
+  }, "\u0E44\u0E21\u0E48\u0E21\u0E35\u0E43\u0E1A\u0E25\u0E32\u0E23\u0E2D\u0E2D\u0E19\u0E38\u0E21\u0E31\u0E15\u0E34")) : sub === "leave" && window.LnLeavePanel ? React.createElement(window.LnLeavePanel, {
+    me: me,
+    users: users,
+    role: role,
+    cfg: wh.cfg
+  }) : React.createElement(React.Fragment, null, window.tmCanAttend(role) ? React.createElement(LnClock, {
     me: me,
     cfg: wh.cfg,
     jobs: jobs,
@@ -2614,7 +2645,7 @@ function LnApp() {
           setJobSub("fix");
           return;
         }
-        if (n.type === "ot") {
+        if (n.type === "ot" || n.type === "leave") {
           setTab("time");
           return;
         }
