@@ -820,7 +820,8 @@ function LeadOverview({
   onGoSales,
   onGoOm,
   omCount,
-  me
+  me,
+  showValue
 }) {
   const SF = window.SF;
   const isMobile = window.matchMedia("(max-width: 860px)").matches;
@@ -894,7 +895,10 @@ function LeadOverview({
     }
   }, React.createElement(window.OvHero, {
     me: me,
-    jobs: allJobs || J
+    jobs: allJobs || J,
+    quotes: quotes,
+    leads: leads,
+    showValue: showValue
   }), React.createElement(window.OvLayout, {
     main: main,
     rail: React.createElement(React.Fragment, null, React.createElement(window.OvCalendar, {

@@ -1198,6 +1198,7 @@ function App() {
     quotes: quoteStore.quotes,
     stock: stock,
     techs: techStore.techs,
+    showValue: can(role, "price"),
     me: auth.current,
     onOpen: openJob,
     onStage: goStage,

@@ -461,14 +461,27 @@ function MaterialShortagePanel({ jobs, stock, onOpen }) {
 /* สามตัวเลขบนแถบต้อนรับ — ขนาดของกิจการทั้งหมด ไม่ใช่คิวของสัปดาห์นี้
    นับเฉพาะใบงาน — ใบลูกค้าฝั่งขายไม่นับ แม้จะมีโอกาสกลายเป็นงานก็ตาม
    งานที่ลูกค้าตกลงแล้วเท่านั้นที่เป็นขนาดจริงของกิจการ ท่อขายที่ยังไล่อยู่มีแผงของตัวเองในหน้างานขาย */
-function OvHero({ me, jobs }) {
+/* มูลค่าของงานหนึ่งงาน (รวม VAT) — ยอดสัญญาที่ตั้งงวดไว้ก่อน (bills.grand) → ใบเสนอราคาที่ลูกค้าตกลง → ราคาขายใน BOQ
+   นับแต่ใบงาน ใบลูกค้าที่ยังไม่แปลงเป็นงานไม่เข้ามาในนี้ */
+function ovJobValue(j, quotes, leads) {
+  if (j.bills && +j.bills.grand > 0) return +j.bills.grand;
+  if (quotes && window.quotesOfJob && window.quoteTotals) {
+    const q = window.quotesOfJob(quotes, j, leads || []).find((x) => x.status === "accepted");
+    if (q) return window.quoteTotals(q).grand || 0;
+  }
+  const p = j.boq && j.boq.pricing;
+  return p && +p.sell > 0 ? +p.sell : 0;
+}
+function OvHero({ me, jobs, quotes, leads, showValue }) {
   const SF = window.SF;
   const J = jobs || [];
   const today = SF.TODAY;
   const hh = new Date().getHours();
   const greet = hh < 12 ? "สวัสดีตอนเช้า" : hh < 17 ? "สวัสดีตอนบ่าย" : "สวัสดีตอนเย็น";
-  const homeN = J.filter((j) => j.type !== "project").length;
-  const projN = J.filter((j) => j.type === "project").length;
+  /* งานบ้าน + งานโครงการ รวมเป็นช่องเดียว (ผู้ใช้ขอ) — ช่องที่ว่างไปใช้บอกมูลค่างานติดตั้ง */
+  const jobN = J.length;
+  /* ล้านบาท ทศนิยมสองตำแหน่ง — เลขเต็มหลักล้านล้นกล่องกว้าง 92px เหมือนกำลังผลิต */
+  const valN = showValue ? Math.round(J.reduce((s, j) => s + ovJobValue(j, quotes, leads), 0) / 1e6 * 100) / 100 : 0;
   /* หน่วยเป็น MW — กำลังรวมทั้งกิจการเป็นหน่วยที่คนพูดกันจริง และเลขห้าหลักจะล้นกล่องกว้าง 92px
      เก็บทศนิยมสองตำแหน่ง ไม่งั้นงานบ้านห้าหลังจะหายไปใน 0 ทั้งที่มีอยู่จริง */
   const mwN = Math.round(J.reduce((s, j) => s + (+j.kw || 0), 0) / 1000 * 100) / 100;
@@ -484,8 +497,8 @@ function OvHero({ me, jobs }) {
         <p>{window.drDateTH ? window.drDateTH(today) : today} · ระบบบริหารงานติดตั้ง flash+solar</p>
       </div>
       <div className="ov-hero-figs">
-        {fig(homeN, "งานบ้าน")}
-        {fig(projN, "งานโครงการ")}
+        {fig(jobN, "งานติดตั้ง")}
+        {showValue && fig(valN, "มูลค่า ล้านบาท")}
         {fig(mwN, "กำลังผลิต MW")}
       </div>
     </div>

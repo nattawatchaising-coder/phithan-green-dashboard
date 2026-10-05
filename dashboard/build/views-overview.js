@@ -1089,17 +1089,29 @@ function MaterialShortagePanel({
     }
   }, "* \u0E40\u0E17\u0E35\u0E22\u0E1A BOQ \u0E17\u0E35\u0E48\u0E16\u0E2D\u0E14\u0E44\u0E14\u0E49\u0E01\u0E31\u0E1A\u0E04\u0E25\u0E31\u0E07 (\u0E2B\u0E31\u0E01\u0E02\u0E2D\u0E07\u0E17\u0E35\u0E48\u0E40\u0E1A\u0E34\u0E01\u0E40\u0E02\u0E49\u0E32\u0E07\u0E32\u0E19\u0E41\u0E25\u0E49\u0E27) \u2014 \u0E40\u0E1B\u0E34\u0E14\u0E07\u0E32\u0E19\u0E40\u0E1E\u0E37\u0E48\u0E2D\u0E14\u0E39/\u0E40\u0E1A\u0E34\u0E01\u0E02\u0E2D\u0E07 \xB7 \u0E1B\u0E38\u0E48\u0E21 \u201C\u0E44\u0E1F\u0E25\u0E4C\u201D = \u0E14\u0E32\u0E27\u0E19\u0E4C\u0E42\u0E2B\u0E25\u0E14\u0E23\u0E32\u0E22\u0E01\u0E32\u0E23\u0E2A\u0E31\u0E48\u0E07\u0E0B\u0E37\u0E49\u0E2D Excel (\u0E41\u0E22\u0E01\u0E2B\u0E21\u0E27\u0E14)"));
 }
+function ovJobValue(j, quotes, leads) {
+  if (j.bills && +j.bills.grand > 0) return +j.bills.grand;
+  if (quotes && window.quotesOfJob && window.quoteTotals) {
+    const q = window.quotesOfJob(quotes, j, leads || []).find(x => x.status === "accepted");
+    if (q) return window.quoteTotals(q).grand || 0;
+  }
+  const p = j.boq && j.boq.pricing;
+  return p && +p.sell > 0 ? +p.sell : 0;
+}
 function OvHero({
   me,
-  jobs
+  jobs,
+  quotes,
+  leads,
+  showValue
 }) {
   const SF = window.SF;
   const J = jobs || [];
   const today = SF.TODAY;
   const hh = new Date().getHours();
   const greet = hh < 12 ? "สวัสดีตอนเช้า" : hh < 17 ? "สวัสดีตอนบ่าย" : "สวัสดีตอนเย็น";
-  const homeN = J.filter(j => j.type !== "project").length;
-  const projN = J.filter(j => j.type === "project").length;
+  const jobN = J.length;
+  const valN = showValue ? Math.round(J.reduce((s, j) => s + ovJobValue(j, quotes, leads), 0) / 1e6 * 100) / 100 : 0;
   const mwN = Math.round(J.reduce((s, j) => s + (+j.kw || 0), 0) / 1000 * 100) / 100;
   const fig = (n, lb, warn) => React.createElement("div", {
     className: "ov-hero-fig",
@@ -1111,7 +1123,7 @@ function OvHero({
     className: "ov-hero-tx"
   }, React.createElement("h2", null, greet, me && me.name ? " คุณ" + me.name : ""), React.createElement("p", null, window.drDateTH ? window.drDateTH(today) : today, " \xB7 \u0E23\u0E30\u0E1A\u0E1A\u0E1A\u0E23\u0E34\u0E2B\u0E32\u0E23\u0E07\u0E32\u0E19\u0E15\u0E34\u0E14\u0E15\u0E31\u0E49\u0E07 flash+solar")), React.createElement("div", {
     className: "ov-hero-figs"
-  }, fig(homeN, "งานบ้าน"), fig(projN, "งานโครงการ"), fig(mwN, "กำลังผลิต MW")));
+  }, fig(jobN, "งานติดตั้ง"), showValue && fig(valN, "มูลค่า ล้านบาท"), fig(mwN, "กำลังผลิต MW")));
 }
 function OvDayModal({
   date,
