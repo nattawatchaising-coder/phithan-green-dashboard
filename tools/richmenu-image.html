@@ -1,0 +1,186 @@
+<!doctype html>
+<html lang="th">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Rich menu image</title>
+<!--
+  วาดรูปเมนูล่าง LINE OA (2500×1686 ×2 หน้า) ด้วย canvas — แทน richmenu-image.py (เครื่องที่ใช้งานไม่มี Python)
+  สี/ฟอนต์/ความมนยกมาจาก dashboard/tokens.css ธีมปกติ ให้เมนูในไลน์หน้าตาเดียวกับเว็บ
+  เปิดผ่านเซิร์ฟเวอร์ทดสอบ: http://localhost:8765/tools/richmenu-image.html → กดดาวน์โหลด
+  แล้วเอาไฟล์ไปแทน tools/richmenu-p1.png / p2.png → node tools/richmenu.mjs
+  ⚠ ตำแหน่งช่องต้องตรงกับ tools/richmenu.mjs (W H BAR · 2×2 ช่อง + แถบล่าง)
+-->
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@500;600;700&family=Outfit:wght@700&display=swap" rel="stylesheet" />
+<style>
+  body { margin: 0; padding: 16px; background: #F0F4F4; font-family: 'IBM Plex Sans Thai', sans-serif; color: #0F2B33; }
+  .bar { display: flex; gap: 8px; margin-bottom: 12px; flex-wrap: wrap; }
+  button { font: inherit; font-weight: 700; border: none; border-radius: 999px; padding: 9px 18px; cursor: pointer;
+    background: #1B9B75; color: #fff; }
+  canvas { width: 100%; max-width: 900px; height: auto; display: block; margin-bottom: 16px;
+    border-radius: 12px; box-shadow: 0 4px 18px rgba(15,43,51,.12); }
+</style>
+</head>
+<body>
+<div class="bar">
+  <button onclick="save(1)">ดาวน์โหลด richmenu-p1.png</button>
+  <button onclick="save(2)">ดาวน์โหลด richmenu-p2.png</button>
+</div>
+<canvas id="c1" width="2500" height="1686"></canvas>
+<canvas id="c2" width="2500" height="1686"></canvas>
+<script>
+const W = 2500, H = 1686, BAR = 300, CW = W / 2, CH = (H - BAR) / 2;
+
+/* tokens.css ธีมปกติ */
+const T = {
+  bg: "#F0F4F4", surface: "#FFFFFF", ink: "#0F2B33", text2: "#55686C", text3: "#8FA1A3",
+  primary: "#1B9B75", primaryDark: "#0A4D68", primarySoft: "#E3F4EE",
+};
+const SANS = "'IBM Plex Sans Thai', sans-serif", BRAND = "'Outfit', sans-serif";
+
+/* สีไอคอน = ชุดสีขั้นงานของเว็บ (--st-*-fg / -soft) */
+const PAGES = {
+  1: [
+    { th: "ลงเวลา", sub: "เข้า-ออกงาน", fg: "#1B9B75", soft: "#E3F4EE", icon: "clock" },
+    { th: "งานของฉัน", sub: "ค้นหา · รายละเอียด", fg: "#3B82F6", soft: "#E5EFFF", icon: "search" },
+    { th: "รายงานประจำวัน", sub: "ส่งใบรายงานหน้างาน", fg: "#7C5CFC", soft: "#EEE9FF", icon: "pen" },
+    { th: "หน้าถัดไป", sub: "ขอ OT · เบิกเงิน · ลา", icon: "next", nav: true },
+  ],
+  2: [
+    { th: "ขอ OT", sub: "ทำงานล่วงเวลา", fg: "#F59E0B", soft: "#FEF1D8", icon: "plus" },
+    { th: "เบิกเงิน", sub: "ค่าใช้จ่ายหน้างาน", fg: "#10B981", soft: "#D6F5E6", icon: "wallet" },
+    { th: "ขอลา", sub: "ลาป่วย · ลากิจ · พักร้อน", fg: "#0D9488", soft: "#DCF3F0", icon: "calendar" },
+    { th: "ย้อนกลับ", sub: "ลงเวลา · งาน · รายงาน", icon: "back", nav: true },
+  ],
+};
+
+function rr(g, x, y, w, h, r) {
+  g.beginPath(); g.moveTo(x + r, y); g.arcTo(x + w, y, x + w, y + h, r); g.arcTo(x + w, y + h, x, y + h, r);
+  g.arcTo(x, y + h, x, y, r); g.arcTo(x, y, x + w, y, r); g.closePath();
+}
+
+/* ไอคอนเส้นแบบเดียวกับชุดไอคอนในเว็บ (เส้นมน ปลายมน) — กรอบ 100×100 รอบจุดกลาง */
+function icon(g, kind, cx, cy, s, col) {
+  g.save(); g.translate(cx, cy); g.scale(s / 100, s / 100);
+  g.strokeStyle = col; g.fillStyle = col; g.lineWidth = 8.5; g.lineCap = "round"; g.lineJoin = "round";
+  const L = (pts) => { g.beginPath(); pts.forEach((p, i) => (i ? g.lineTo(p[0], p[1]) : g.moveTo(p[0], p[1]))); g.stroke(); };
+  if (kind === "clock") {
+    g.beginPath(); g.arc(0, 0, 40, 0, Math.PI * 2); g.stroke(); L([[0, -22], [0, 0], [17, 11]]);
+  } else if (kind === "search") {
+    g.beginPath(); g.arc(-8, -8, 30, 0, Math.PI * 2); g.stroke(); L([[14, 14], [40, 40]]);
+  } else if (kind === "pen") {
+    L([[24, -38], [38, -24], [-14, 28], [-34, 34], [-28, 14], [24, -38]]); L([[12, -26], [26, -12]]);
+    L([[2, 40], [40, 40]]);
+  } else if (kind === "plus") {
+    g.beginPath(); g.arc(0, 0, 40, 0, Math.PI * 2); g.stroke(); L([[-18, 0], [18, 0]]); L([[0, -18], [0, 18]]);
+  } else if (kind === "wallet") {
+    rr(g, -42, -30, 84, 64, 12); g.stroke(); L([[-42, -12], [42, -12]]);
+    g.beginPath(); g.arc(22, 12, 6, 0, Math.PI * 2); g.fill();
+  } else if (kind === "calendar") {
+    rr(g, -38, -30, 76, 70, 12); g.stroke(); L([[-38, -10], [38, -10]]); L([[-18, -42], [-18, -22]]); L([[18, -42], [18, -22]]);
+    L([[-15, 13], [-4, 24], [17, 2]]);
+  } else if (kind === "next" || kind === "back") {
+    const d = kind === "next" ? 1 : -1;
+    L([[-30 * d, 0], [30 * d, 0]]); L([[8 * d, -22], [30 * d, 0], [8 * d, 22]]);
+  }
+  g.restore();
+}
+
+/* เงาการ์ด ≈ --shadow-card (วงแหวนจาง + เงาฟุ้งลงล่าง) ขยายตามสเกลรูป */
+function card(g, x, y, w, h, r, fill) {
+  g.save();
+  g.shadowColor = "rgba(15,43,51,.10)"; g.shadowBlur = 54; g.shadowOffsetY = 16;
+  rr(g, x, y, w, h, r); g.fillStyle = fill; g.fill();
+  g.restore();
+  g.save(); rr(g, x, y, w, h, r); g.strokeStyle = "rgba(15,43,51,.06)"; g.lineWidth = 3; g.stroke(); g.restore();
+}
+
+function cell(g, c, i) {
+  const col = i % 2, row = Math.floor(i / 2);
+  const M = 44, G = 22;                       /* ขอบนอก · ครึ่งช่องไฟ */
+  const x = col * CW + (col ? G : M), y = row * CH + (row ? G : M);
+  const w = CW - M - G, h = CH - M - G;
+  const cx = x + w / 2;
+  card(g, x, y, w, h, 64, c.nav ? T.primarySoft : T.surface);
+
+  /* ไทล์ไอคอน — พื้นย้อมจางของสีนั้น (ปุ่มนำทาง = เขียวทึบ ไอคอนขาว แบบปุ่มหลักของเว็บ) */
+  const ts = 204, ty = y + 78;
+  g.save();
+  if (c.nav) { g.shadowColor = "rgba(27,155,117,.35)"; g.shadowBlur = 30; g.shadowOffsetY = 10; }
+  rr(g, cx - ts / 2, ty, ts, ts, 56); g.fillStyle = c.nav ? T.primary : c.soft; g.fill();
+  g.restore();
+  icon(g, c.icon, cx, ty + ts / 2, 116, c.nav ? "#fff" : c.fg);
+
+  g.textAlign = "center"; g.textBaseline = "alphabetic";
+  g.fillStyle = c.nav ? T.primaryDark : T.ink;
+  g.font = "700 104px " + SANS; g.fillText(c.th, cx, y + 430);
+  g.fillStyle = c.nav ? "#3E7F78" : T.text2;
+  g.font = "500 56px " + SANS; g.fillText(c.sub, cx, y + 520);
+}
+
+function bar(g, page, logo) {
+  const y0 = H - BAR;
+  /* แถบล่าง = แผ่นขาวเต็มกว้าง มีเงาทอดขึ้นบาง ๆ แยกจากพื้น */
+  g.save(); g.shadowColor = "rgba(15,43,51,.10)"; g.shadowBlur = 40; g.shadowOffsetY = -8;
+  g.fillStyle = T.surface; g.fillRect(0, y0, W, BAR); g.restore();
+
+  const cy = y0 + BAR / 2, mark = 132, gap = 34;
+  g.font = "700 96px " + BRAND; const ww = g.measureText("flash+solar").width;
+  g.font = "700 54px " + SANS; const pill = "เปิดเว็บเต็มจอ"; const pw = g.measureText(pill).width + 96 + 60;
+  const total = mark + gap + ww + 70 + pw;
+  let x = (W - total) / 2;
+
+  if (logo) g.drawImage(logo, x, cy - mark / 2, mark, mark);
+  x += mark + gap;
+  g.textAlign = "left"; g.textBaseline = "middle";
+  g.fillStyle = T.ink; g.font = "700 96px " + BRAND; g.fillText("flash+solar", x, cy + 4);
+  x += ww + 70;
+
+  /* ปุ่มยาวสีเขียว = .btn-add ของเว็บ */
+  const ph = 124;
+  g.save(); g.shadowColor = "rgba(27,155,117,.35)"; g.shadowBlur = 28; g.shadowOffsetY = 10;
+  rr(g, x, cy - ph / 2, pw, ph, ph / 2); g.fillStyle = T.primary; g.fill(); g.restore();
+  g.fillStyle = "#fff"; g.font = "700 54px " + SANS; g.fillText(pill, x + 48, cy + 3);
+  /* ลูกศรออกนอก ↗ */
+  const ax = x + pw - 74, ay = cy;
+  g.save(); g.strokeStyle = "#fff"; g.lineWidth = 8; g.lineCap = "round"; g.lineJoin = "round";
+  g.beginPath(); g.moveTo(ax - 14, ay + 14); g.lineTo(ax + 14, ay - 14); g.moveTo(ax - 8, ay - 14); g.lineTo(ax + 14, ay - 14); g.lineTo(ax + 14, ay + 8); g.stroke();
+  g.restore();
+
+  /* จุดบอกหน้า */
+  for (const i of [1, 2]) {
+    const on = i === page;
+    const dx = W - 190 + (i - 1) * 60;
+    g.beginPath();
+    if (on) rr(g, dx - 26, cy - 12, 52, 24, 12); else g.arc(dx, cy, 12, 0, Math.PI * 2);
+    g.fillStyle = on ? T.primary : "#C9D6D6"; g.fill();
+  }
+}
+
+function draw(page, logo) {
+  const g = document.getElementById("c" + page).getContext("2d");
+  g.fillStyle = T.bg; g.fillRect(0, 0, W, H);
+  PAGES[page].forEach((c, i) => cell(g, c, i));
+  bar(g, page, logo);
+}
+
+function save(page) {
+  const a = document.createElement("a");
+  a.download = "richmenu-p" + page + ".png";
+  a.href = document.getElementById("c" + page).toDataURL("image/png");
+  a.click();
+}
+
+(async () => {
+  await Promise.all([document.fonts.load("700 104px 'IBM Plex Sans Thai'"), document.fonts.load("500 56px 'IBM Plex Sans Thai'"),
+    document.fonts.load("700 96px 'Outfit'")]);
+  const logo = await new Promise((ok) => { const im = new Image(); im.onload = () => ok(im); im.onerror = () => ok(null);
+    im.src = "../dashboard/assets/flash-mark.svg"; });
+  draw(1, logo); draw(2, logo);
+  window.__rmReady = true;
+})();
+</script>
+</body>
+</html>

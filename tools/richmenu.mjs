@@ -42,7 +42,7 @@ const TAG   = "flashsolar-v3";   /* ขึ้นต้นชื่อเมน�
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const img  = (n) => path.join(root, "tools", "richmenu-" + n + ".png");
 
-/* ต้องตรงกับ tools/richmenu-image.py เป๊ะ — ถ้าสองไฟล์นี้หลุดจากกัน
+/* ต้องตรงกับ tools/richmenu-image.html เป๊ะ — ถ้าสองไฟล์นี้หลุดจากกัน
    ปุ่มจะพาไปคนละที่กับที่รูปเขียนไว้ ซึ่งเป็นบั๊กที่มองไม่เห็นจากโค้ด */
 const W = 2500, H = 1686, BAR = 300;
 const CW = W / 2, CH = (H - BAR) / 2;
@@ -97,7 +97,7 @@ async function aliases() {
 async function createPage(page) {
   const file = img(page.file);
   if (!fs.existsSync(file)) {
-    console.error("ไม่พบไฟล์รูป " + file + " — สร้างด้วย  python tools/richmenu-image.py");
+    console.error("ไม่พบไฟล์รูป " + file + " — สร้างด้วย  tools/richmenu-image.html (เปิดผ่าน localhost:8765 แล้วกดดาวน์โหลด)");
     process.exit(1);
   }
   const cr = await apiJson("/richmenu", "POST", {
