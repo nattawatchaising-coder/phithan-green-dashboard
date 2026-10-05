@@ -103,7 +103,7 @@ function erLayout(md, cfg) {
   const dm = (k, w, h, d) => { const o = DM[k] || {}; return { w: +o.w || w, h: +o.h || h, d: +o.d || d }; };
   const mdbN = md.home ? 0 : md.mainA <= 500 ? 1 : md.mainA <= 800 ? 2 : md.mainA <= 1250 ? 1 : md.mainA <= 2500 ? 3 : 4;
   const mdbTall = !md.home && md.mainA > 800 && md.mainA <= 1250;
-  L.def = { mdb: md.home ? { w: 0.42, h: 0.55, d: 0.14 } : (mdbTall ? { w: 0.9, h: 2.0, d: 0.7 } : mdbN === 1 ? { w: 0.8, h: 1.4, d: 0.25 } : { w: mdbN * 0.8, h: 2.0, d: 0.7 }), ac: md.home ? { w: 0.45, h: 0.6, d: 0.18 } : md.mainA <= 160 ? { w: 0.63, h: 0.9, d: 0.25 } : { w: 0.8, h: 1.4, d: 0.3 }, dc: null };
+  L.def = { mdb: md.home ? (md.nPh === 3 ? { w: 0.6, h: 0.26, d: 0.11 } : { w: 0.32, h: 0.26, d: 0.11 }) : (mdbTall ? { w: 0.9, h: 2.0, d: 0.7 } : mdbN === 1 ? { w: 0.8, h: 1.4, d: 0.25 } : { w: mdbN * 0.8, h: 2.0, d: 0.7 }), ac: md.home ? { w: 0.45, h: 0.6, d: 0.18 } : md.mainA <= 160 ? { w: 0.63, h: 0.9, d: 0.25 } : { w: 0.8, h: 1.4, d: 0.3 }, dc: null };
   const nsMax = Math.max(1, ...md.invs.map((v) => v.nStr || 1));
   L.def.dc = nsMax > 8 ? { w: 0.8, h: 0.6, d: 0.2 } : nsMax > 4 ? { w: 0.6, h: 0.45, d: 0.15 } : nsMax > 2 ? { w: 0.45, h: 0.35, d: 0.15 } : nsMax > 1 ? { w: 0.46, h: 0.36, d: 0.13 } : { w: 0.3, h: 0.33, d: 0.13 };
   const mb = dm("mdb", L.def.mdb.w, L.def.mdb.h, L.def.mdb.d);
@@ -463,6 +463,52 @@ function erAcGlassFace(THREE, wM, hM) {
   return (_erTx[key] = t);
 }
 
+/* ตู้คอนซูมเมอร์งานบ้าน (รูปอ้างอิง 1 เฟส 6 ช่อง): พลาสติกขาว ฝาใส ขอบล่างยื่นมีช่องจับ
+   ซ้าย = เมน 2P + กันดูด · ขวา = ลูกย่อยดำคันโยกเขียว n ช่อง · แถบป้ายเขียวเลขช่องใต้ลูกย่อย */
+function erCuFace(THREE, wM, hM, ways) {
+  const key = "cu|" + wM + "x" + hM + "|" + ways;
+  if (_erTx[key]) return _erTx[key];
+  const P = 500, W = Math.round(wM * P), H = Math.round(hM * P);
+  const c = erCanvas(W, H, (g) => {
+    g.fillStyle = "#f4f5f6"; g.fillRect(0, 0, W, H);
+    g.fillStyle = "#e6e8ea"; for (let k = 0; k < 4; k++) { g.beginPath(); g.arc(W * (0.2 + k * 0.2), H * 0.08, W * 0.03, 0, 7); g.fill(); }
+    g.fillStyle = "#c4c8cc"; g.fillRect(W * 0.05, H * 0.17, W * 0.9, 2);
+    /* ช่องอุปกรณ์หลังฝาใส */
+    const px = W * 0.08, py = H * 0.22, pw = W * 0.84, ph = H * 0.52;
+    g.fillStyle = "#dde0e3"; g.fillRect(px, py, pw, ph);
+    const units = 2 + 2 + 1 + ways, uw = (pw * 0.94) / units, ry = py + ph * 0.14, rh = ph * 0.62;
+    let x = px + pw * 0.03;
+    const mod = (u, main) => {
+      const w = u * uw;
+      g.fillStyle = "#1f2226"; g.fillRect(x + 1.5, ry, w - 3, rh);
+      g.fillStyle = "#3a3e44"; g.fillRect(x + 1.5, ry, w - 3, rh * 0.14);
+      g.fillStyle = "#e8ecef"; g.fillRect(x + w * 0.15, ry + rh * 0.2, w * 0.7, rh * 0.14);
+      g.fillStyle = main ? "#2b2f34" : "#16a34a"; g.fillRect(x + w * 0.2, ry + rh * 0.45, w * 0.6, rh * 0.18);
+      g.fillStyle = "#16a34a"; g.fillRect(x + w * 0.3, ry + rh * 0.78, w * 0.4, rh * 0.06);
+      x += w;
+    };
+    mod(2, true); mod(2, true);
+    g.fillStyle = "#cfd3d6"; g.fillRect(x + 2, ry, uw - 4, rh); x += uw;   // ช่องว่างคั่นเมนกับลูกย่อย
+    const x0 = x;
+    for (let k = 0; k < ways; k++) mod(1, false);
+    /* แถบป้ายเขียวเลขช่อง */
+    g.fillStyle = "#22a05a"; g.fillRect(x0, ry + rh + ph * 0.06, x - x0, ph * 0.07);
+    g.fillStyle = "#fff"; g.font = "bold " + Math.round(ph * 0.055) + "px sans-serif"; g.textAlign = "center";
+    for (let k = 0; k < ways; k++) g.fillText(String(k + 1), x0 + (k + 0.5) * uw, ry + rh + ph * 0.115);
+    /* ฝาใส */
+    const gr = g.createLinearGradient(px, py, px + pw, py + ph);
+    gr.addColorStop(0, "rgba(255,255,255,.35)"); gr.addColorStop(0.45, "rgba(255,255,255,.05)"); gr.addColorStop(1, "rgba(255,255,255,.18)");
+    g.fillStyle = gr; g.fillRect(px, py, pw, ph);
+    g.strokeStyle = "#b9bec3"; g.lineWidth = 3; g.strokeRect(px, py, pw, ph);
+    /* ขอบล่างยื่น + ช่องจับ */
+    g.fillStyle = "#e9ebed"; g.fillRect(0, H * 0.8, W, H * 0.2);
+    g.fillStyle = "#cdd1d5"; g.fillRect(0, H * 0.8, W, 3);
+    g.fillStyle = "#d7dadd"; g.fillRect(W * 0.38, H * 0.8, W * 0.24, H * 0.06);
+  });
+  const t = new THREE.CanvasTexture(c); t.encoding = THREE.sRGBEncoding; t.anisotropy = 4;
+  return (_erTx[key] = t);
+}
+
 /* ── ประกอบฉาก ── grp ว่างก่อนเรียก · ห้อง: ผนังหลัง z=0 ผนังซ้าย x=0 พื้น y=0 อุปกรณ์หันหน้า +z */
 function erBuild3D(THREE, grp, md, L, cfg) {
   let cur = grp;   // ที่ใส่ชิ้นงาน — กลุ่มอุปกรณ์ที่กำลังสร้าง หรือฉากหลัก
@@ -536,7 +582,7 @@ function erBuild3D(THREE, grp, md, L, cfg) {
         faced(it.w, it.h - 0.1, it.d, M.encl, erMdbFace(THREE, it.n, md.mainA, it.w, it.h - 0.1), it.x, 0.1, 0.1);
       }
     } else if (it.t === "cu") {
-      faced(it.w, it.h, it.d, M.white, erMdbFace(THREE, 1, md.mainA), it.x, it.y, 0);
+      faced(it.w, it.h, it.d, M.white, erCuFace(THREE, it.w, it.h, it.w <= 0.36 ? 6 : it.w <= 0.48 ? 12 : 18), it.x, it.y, 0);
     } else if (it.t === "ac") {
       if (md.home) faced(it.w, it.h, it.d, M.white, erPlasticFace(THREE, it.w, it.h, ["acmcb", "acmcb", "acspd", "acspd"]), it.x, it.y, 0.08);
       else if (it.h < 1.1) {   // ตู้ติดผนังหน้ากระจก + หลังคากันฝน
@@ -1102,4 +1148,4 @@ function ErRoomCard({ job, p3List, canEdit }) {
   );
 }
 
-Object.assign(window, { ER_DEF, erDcFace, erPlasticFace, erAcPanelFace, erAcGlassFace, erInvDim, erInvSpec, erModel, erGBox, erSnap, erLayout, erBuild3D, ErRoomView, ErRoomStudio, ErRoomCard });
+Object.assign(window, { ER_DEF, erDcFace, erPlasticFace, erAcPanelFace, erAcGlassFace, erCuFace, erInvDim, erInvSpec, erModel, erGBox, erSnap, erLayout, erBuild3D, ErRoomView, ErRoomStudio, ErRoomCard });
