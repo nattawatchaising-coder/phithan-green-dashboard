@@ -1,0 +1,861 @@
+/* ================================================================
+   ห้องอุปกรณ์ 3D (ห้องอินเวอร์เตอร์ · ตู้ไฟ) — prefix er / Er
+   สร้างจากข้อมูลออกแบบระบบของแบบ 3D เวอร์ชันนั้น (p3SldModel ตัวเดียวกับ SLD)
+   ไม่ต้องปั้นเองทีละงาน: อินเวอร์เตอร์ 3 ตัว = 3 ตัวบนราง · เมนใหญ่ = ตู้ MDB หลายช่อง
+   ตั้งค่าห้องเก็บที่ eroom/{jobId}/{ver} (ver = เวอร์ชันแบบ 3D) — ย้ายตามตอนแปลงลูกค้าเป็นงาน (movePlan3d)
+   โหลดหลัง plan3d.js (ใช้ p3LoadThree · p3SldModel) และ versions.js (useP3Vers · dvP3Key)
+   ================================================================ */
+
+const ER_DEF = { w: 0, d: 4.2, h: 3.2, tray: true, inv: 0 };   // w 0 = กว้างตามอุปกรณ์
+
+/* ขนาดอินเวอร์เตอร์ตามกำลัง (คลังยังไม่มีขนาดตัวเครื่อง) — กว้าง × สูง × ลึก เมตร */
+function erInvDim(kw) {
+  if (kw <= 12) return { w: 0.42, h: 0.50, d: 0.17 };
+  if (kw <= 30) return { w: 0.52, h: 0.48, d: 0.22 };
+  if (kw <= 60) return { w: 0.62, h: 0.58, d: 0.26 };
+  if (kw <= 125) return { w: 0.98, h: 0.66, d: 0.30 };
+  return { w: 1.05, h: 0.75, d: 0.36 };
+}
+
+/* ขนาด/แบบติดตั้งของอินเวอร์เตอร์ต่อรุ่น: ที่ตั้งในห้อง (cfg.dims.inv / inv2 เมตร) → คลัง (dim มม. · mount) → ประมาณจาก kW
+   ตั้งพื้น (mount "floor" — ตู้ใหญ่/เซ็นทรัล) = วางพื้นเป็นกลุ่มของตัวเอง ไม่ขึ้นราง ไม่มีตู้ DC แยก */
+function erInvSpec(spec, kw, ov) {
+  const c = spec && spec.dim ? { w: spec.dim.w / 1000, h: spec.dim.h / 1000, d: spec.dim.d / 1000 } : null;
+  const base = c || erInvDim(kw);
+  const o = ov || {};
+  return {
+    dim: { w: +o.w || base.w, h: +o.h || base.h, d: +o.d || base.d },
+    src: +o.w || +o.h || +o.d ? "ห้อง" : c ? "คลัง" : "ประมาณ",
+    floor: (o.mount || (spec && spec.mount) || "") === "floor",
+  };
+}
+
+/* ── ข้อมูลอุปกรณ์จากแบบ ── ใช้ p3SldModel ตัวเดียวกับแบบไฟฟ้า ตัวเลขจึงตรงกับ SLD เสมอ */
+function erModel(st, job, cfg) {
+  let M = null;
+  try { if (st && window.p3SldModel) M = window.p3SldModel(st, job, null); } catch (e) { M = null; }
+  const micro = !!M && M.mode === "micro";
+  const units = M && M.units ? M.units : [];
+  const inv = (M && M.inv) || {};
+  let kws = micro ? [] : units.map((u) => (+u.w || +inv.w || 5000) / 1000);
+  let froms = micro ? [] : units.map((u) => u.from === 2 ? 2 : 1);
+  if (!M) { const kw = +(job && job.kw) || 10; kws = [Math.max(3, Math.round(kw))]; froms = [1]; }
+  const nWant = Math.round(+(cfg && cfg.inv) || 0);
+  if (!micro && nWant > 0 && kws.length !== nWant) {
+    const k0 = kws[0] || 10;
+    kws = Array.from({ length: nWant }, (_, i) => kws[i] || k0);
+    froms = kws.map((_, i) => froms[i] || 1);
+  }
+  const DM = (cfg && cfg.dims) || {};
+  const acKw = (micro ? units.reduce((a, u) => a + (+u.w || +inv.w || 0), 0) / 1000 : 0) + kws.reduce((a, b) => a + b, 0);
+  const nPh = (M && M.phase) || 3;
+  const home = job && job.type ? job.type === "home" : acKw <= 20;
+  const totA = acKw * 1000 / ((nPh === 3 ? 400 : 230) * (nPh === 3 ? Math.sqrt(3) : 1));
+  const mainTxt = (M && M.mccb && M.mccb[0]) || "";
+  const mainA = +(/(\d+)A/.exec(mainTxt) || [])[1] || Math.ceil(totA * 1.25);
+  return {
+    M, micro, home, nPh, mainA, acKw,
+    brand: inv.brand || (job && job.brand) || "", model: inv.model || "",
+    model2: inv.model2 || "",
+    invs: kws.map((kw, i) => {
+      const f2 = froms[i] === 2, sp = erInvSpec(f2 ? inv.spec2 : inv.spec, kw, DM[f2 ? "inv2" : "inv"]);
+      return { i, kw, from: f2 ? 2 : 1, model: (f2 ? inv.model2 : inv.model) || "", dim: sp.dim, src: sp.src, floor: sp.floor };
+    }),
+    nMicro: micro ? units.length : 0,
+    batt: M && M.batt ? M.batt : null,
+    fromPlan: !!M, nPlan: micro ? 0 : units.length,
+  };
+}
+
+/* ── จัดวาง ── ค่าเริ่ม: เรียงชิดผนังหลังจากซ้าย MDB → ตู้ AC → (แบต) → รางอินเวอร์เตอร์
+   อุปกรณ์แบ่งเป็นกลุ่ม (L.groups) ย้าย/หมุนได้ทีละกลุ่มตามหน้างานจริง — ตำแหน่งเก็บที่ cfg.pos[k] = {x, z, r}
+   (จุดกลางบนพื้น เมตร · r องศา 0/90/180/270 · 0 = หันหน้าออกจากผนังหลัง) ไม่มี = ตำแหน่งที่เรียงให้
+   พิกัดในกลุ่มยังเป็นพิกัดเรียงเดิม (x0..x1 · z0..z1) erBuild3D เลื่อน/หมุนทั้งก้อนรอบจุดกลาง
+   ห้องเล็กกว่าอุปกรณ์ = ขยายเอง (ตั้งเล็กกว่าที่วางได้ ห้องก็ไม่บีบอุปกรณ์) */
+function erGBox(g, p) {
+  let hw = (g.x1 - g.x0) / 2, hd = (g.z1 - g.z0) / 2;
+  if (p.r % 180) { const t = hw; hw = hd; hd = t; }
+  return { x0: p.x - hw, x1: p.x + hw, z0: p.z - hd, z1: p.z + hd };
+}
+/* ปัดตำแหน่ง 5 ซม. · ตู้ติดผนังอยู่บนผนังหลังหรือผนังซ้ายเสมอ (ตามที่ใกล้กว่า) · mag = ลากมาใกล้ผนัง < 15 ซม. ดูดชิด */
+function erSnap(g, x, z, r, mag) {
+  r = ((Math.round((+r || 0) / 90) * 90) % 360 + 360) % 360;
+  const sn = (v) => Math.round(v / 0.05) * 0.05, f3 = (v) => +v.toFixed(3);
+  let hw = (g.x1 - g.x0) / 2, hd = (g.z1 - g.z0) / 2;
+  if (g.wall) {
+    if (x < z) return { x: f3(hd), z: f3(Math.max(hw, sn(z))), r: 90 };
+    return { x: f3(Math.max(hw, sn(x))), z: f3(hd), r: 0 };
+  }
+  if (r % 180) { const t = hw; hw = hd; hd = t; }
+  x = sn(x); z = sn(z);
+  const lim = mag ? 0.15 : 0;
+  if (x - hw < lim) x = hw; if (z - hd < lim) z = hd;
+  return { x: f3(Math.max(hw, x)), z: f3(Math.max(hd, z)), r };
+}
+function erLayout(md, cfg) {
+  const L = { items: [], groups: [] };
+  const G = (k, th, x0, x1, z1, wall) => L.groups.push({ k, th, x0, x1, z0: 0, z1, wall: !!wall });
+  let x = 0.45;
+  /* ขนาดตู้: ค่าที่ตั้งในห้อง (cfg.dims.mdb/ac/dc เมตร) ทับค่ามาตรฐาน — ตู้จริงหน้างานไม่เท่ากันทุกงาน */
+  const DM = (cfg && cfg.dims) || {};
+  const dm = (k, w, h, d) => { const o = DM[k] || {}; return { w: +o.w || w, h: +o.h || h, d: +o.d || d }; };
+  const mdbN = md.home ? 0 : md.mainA <= 250 ? 2 : md.mainA <= 630 ? 3 : 4;
+  L.def = { mdb: md.home ? { w: 0.42, h: 0.55, d: 0.14 } : { w: mdbN * 0.8, h: 2.0, d: 0.6 }, ac: md.home ? { w: 0.45, h: 0.6, d: 0.18 } : { w: 0.8, h: 1.25, d: 0.35 }, dc: { w: 0.3, h: 0.36, d: 0.14 } };
+  const mb = dm("mdb", L.def.mdb.w, L.def.mdb.h, L.def.mdb.d);
+  if (md.home) { L.items.push({ t: "cu", g: "mdb", x, w: mb.w, h: mb.h, d: mb.d, y: 1.3 }); G("mdb", "ตู้เมน", x, x + mb.w, mb.d + 0.02, true); x += mb.w + 0.45; }
+  else { L.items.push({ t: "mdb", g: "mdb", x, w: mb.w, h: mb.h, d: mb.d, y: 0, n: Math.max(1, Math.min(mdbN, Math.round(mb.w / 0.55))) }); G("mdb", "ตู้ MDB", x, x + mb.w, mb.d + 0.12); x += mb.w + 0.7; }
+  const ab = dm("ac", L.def.ac.w, L.def.ac.h, L.def.ac.d);
+  const ac = md.home ? { t: "ac", g: "ac", x, w: ab.w, h: ab.h, d: ab.d, y: 1.25 } : { t: "ac", g: "ac", x, w: ab.w, h: ab.h, d: ab.d, y: 0.45 };
+  L.items.push(ac); G("ac", "ตู้ AC", x - (md.home ? 0 : 0.03), x + ac.w + (md.home ? 0 : 0.03), md.home ? ab.d + 0.02 : ab.d + 0.21, md.home); x += ac.w + 0.25;
+  L.items.push({ t: "log", g: "ac", x: ac.x + ac.w / 2 - 0.15, w: 0.3, h: 0.36, d: 0.13, y: ac.y + ac.h + 0.25 });
+  if (md.batt) { L.items.push({ t: "bat", g: "bat", x, w: 0.62, h: 1.1, d: 0.32, y: 0 }); G("bat", "แบตเตอรี่", x, x + 0.62, 0.4); x += 0.62 + 0.4; }
+  /* อินเวอร์เตอร์ตั้งพื้น: กลุ่มละตัว ย้ายแยกกันได้ */
+  md.invs.filter((iv) => iv.floor).forEach((iv) => {
+    const d = iv.dim, k = "inv" + iv.i;
+    L.items.push({ t: "invF", g: k, x, w: d.w, h: d.h, d: d.d, y: 0.1, iv });
+    G(k, "อินเวอร์เตอร์ " + (iv.i + 1), x, x + d.w, d.d + 0.12); x += d.w + 0.5;
+  });
+  const rack = { x0: x + 0.18, slots: [] };   // เผื่อซ้าย 18 ซม. ให้รางเดินสายแนวตั้ง
+  x = rack.x0;
+  const dcb = dm("dc", L.def.dc.w, L.def.dc.h, L.def.dc.d);
+  md.invs.filter((iv) => !iv.floor).forEach((iv) => {
+    const dc = dcb;
+    const slotW = iv.dim.w + dc.w + 0.32;
+    rack.slots.push({ x, w: slotW, iv, dc });
+    x += slotW;
+  });
+  rack.x1 = x;
+  if (rack.slots.length) {
+    L.rack = rack;
+    const dz = Math.max.apply(null, rack.slots.map((s) => s.iv.dim.d));
+    G("rack", "รางอินเวอร์เตอร์", rack.x0 - 0.3, rack.x1 + 0.12, 0.28 + dz + 0.1);
+  }
+  const P = (cfg && cfg.pos) || {};
+  let mx = 0, mz = 0;
+  L.groups.forEach((g) => {
+    g.cx = (g.x0 + g.x1) / 2; g.cz = (g.z0 + g.z1) / 2;
+    const p = P[g.k];
+    g.moved = !!(p && isFinite(+p.x) && isFinite(+p.z));
+    g.pos = g.moved ? { x: +p.x, z: +p.z, r: ((Math.round((+p.r || 0) / 90) * 90) % 360 + 360) % 360 } : { x: g.cx, z: g.cz, r: 0 };
+    g.box = erGBox(g, g.pos);
+    mx = Math.max(mx, g.box.x1); mz = Math.max(mz, g.box.z1);
+  });
+  L.G = {}; L.groups.forEach((g) => { L.G[g.k] = g; });
+  /* ของตั้งพื้นทับกัน (ตู้ติดผนังลอยสูงไม่นับ) */
+  L.clash = [];
+  const fl = L.groups.filter((g) => !g.wall);
+  fl.forEach((g, i) => fl.slice(i + 1).forEach((h) => {
+    const A = g.box, B = h.box;
+    if (A.x0 < B.x1 - 0.02 && B.x0 < A.x1 - 0.02 && A.z0 < B.z1 - 0.02 && B.z0 < A.z1 - 0.02) L.clash.push(g.th + " ทับ " + h.th);
+  }));
+  const need = Math.max(4, mx + 0.5), needD = Math.max(2.6, mz + 1.0);
+  L.W = Math.max(need, +cfg.w || 0);
+  L.D = Math.max(needD, +cfg.d || ER_DEF.d);
+  L.H = Math.max(2.5, +cfg.h || ER_DEF.h);
+  L.grew = (+cfg.w > 0 && need > +cfg.w) || (+cfg.d > 0 && needD > +cfg.d);
+  L.ac = ac;
+  L.mdb = L.items[0];
+  return L;
+}
+
+/* ── ลายแคนวาส ── */
+const _erTx = {};
+function erCanvas(w, h, draw) { const c = document.createElement("canvas"); c.width = w; c.height = h; draw(c.getContext("2d"), w, h); return c; }
+function erNoiseTex(THREE, key, base, spread, rep) {
+  if (_erTx[key]) return _erTx[key];
+  const c = erCanvas(512, 512, (g, w, h) => {
+    g.fillStyle = base; g.fillRect(0, 0, w, h);
+    for (let i = 0; i < 9000; i++) {
+      const v = (Math.random() - 0.5) * spread;
+      g.fillStyle = v > 0 ? "rgba(255,255,255," + v + ")" : "rgba(0,0,0," + (-v) + ")";
+      const s = Math.random() < 0.08 ? 3 + Math.random() * 7 : 1 + Math.random() * 2;
+      g.fillRect(Math.random() * w, Math.random() * h, s, s);
+    }
+  });
+  const t = new THREE.CanvasTexture(c); t.wrapS = t.wrapT = THREE.RepeatWrapping; t.repeat.set(rep, rep);
+  t.encoding = THREE.sRGBEncoding; t.anisotropy = 4;
+  return (_erTx[key] = t);
+}
+const erRR = (g, x, y, w, h, r) => { g.beginPath(); g.moveTo(x + r, y); g.arcTo(x + w, y, x + w, y + h, r); g.arcTo(x + w, y + h, x, y + h, r); g.arcTo(x, y + h, x, y, r); g.arcTo(x, y, x + w, y, r); g.closePath(); };
+
+/* หน้าอินเวอร์เตอร์: ขาวด้าน ป้ายยี่ห้อเม็ดยาสีเข้ม + ไฟสถานะ */
+function erInvFace(THREE, brand, wM, hM) {
+  const key = "inv|" + brand + "|" + wM + "x" + hM;
+  if (_erTx[key]) return _erTx[key];
+  const P = 400, W = Math.round(wM * P), H = Math.round(hM * P);
+  const c = erCanvas(W, H, (g) => {
+    const gr = g.createLinearGradient(0, 0, 0, H); gr.addColorStop(0, "#fbfbfc"); gr.addColorStop(1, "#eceef1");
+    g.fillStyle = gr; g.fillRect(0, 0, W, H);
+    g.strokeStyle = "rgba(0,0,0,.08)"; g.lineWidth = 3; g.strokeRect(6, 6, W - 12, H - 12);
+    const pw = Math.min(W * 0.34, 150), ph = pw * 0.3, px = W / 2 - pw / 2, py = H * 0.36;
+    g.fillStyle = "#16181c"; erRR(g, px, py, pw, ph, ph / 2); g.fill();
+    g.fillStyle = "#e8eaee"; g.font = "700 " + Math.round(ph * 0.42) + "px Outfit, Arial, sans-serif"; g.textAlign = "center"; g.textBaseline = "middle";
+    g.fillText(String(brand || "INVERTER").toUpperCase().slice(0, 12), W / 2, py + ph * 0.55);
+    ["#22c55e", "#22c55e", "#3b82f6"].forEach((col, i) => { g.fillStyle = col; g.beginPath(); g.arc(W / 2 - 14 + i * 14, py - 12, 3.5, 0, 7); g.fill(); });
+    g.fillStyle = "#c9ced6"; [[14, 14], [W - 14, 14], [14, H - 14], [W - 14, H - 14]].forEach(([a, b]) => { g.beginPath(); g.arc(a, b, 5, 0, 7); g.fill(); });
+  });
+  const t = new THREE.CanvasTexture(c); t.encoding = THREE.sRGBEncoding; t.anisotropy = 4;
+  return (_erTx[key] = t);
+}
+/* หน้าตู้ MDB: แบ่งช่องตามจำนวน section · ช่องแรกเมนเบรกเกอร์ · มิเตอร์ · ไฟสัญญาณ */
+function erMdbFace(THREE, n, mainA) {
+  const key = "mdb|" + n + "|" + mainA;
+  if (_erTx[key]) return _erTx[key];
+  const P = 220, W = Math.round(n * 0.8 * P), H = Math.round(2.0 * P);
+  const c = erCanvas(W, H, (g) => {
+    g.fillStyle = "#f3f4f6"; g.fillRect(0, 0, W, H);
+    const sw = W / n;
+    for (let s = 0; s < n; s++) {
+      const x0 = s * sw;
+      g.strokeStyle = "#c7cbd2"; g.lineWidth = 3; g.strokeRect(x0 + 3, 3, sw - 6, H - 6);
+      const doors = s === 0 ? [0.06, 0.34, 0.62] : s === 1 ? [0.06, 0.3, 0.5, 0.7] : [0.06, 0.5];
+      doors.forEach((d0, i) => {
+        const d1 = doors[i + 1] || 0.95, y0 = d0 * H, y1 = d1 * H - 8;
+        g.strokeStyle = "#cfd3d9"; g.lineWidth = 2; g.strokeRect(x0 + 12, y0, sw - 24, y1 - y0);
+        g.fillStyle = "#9aa1ab"; g.fillRect(x0 + sw - 30, (y0 + y1) / 2 - 14, 6, 28);
+      });
+      if (s === 0) {
+        g.fillStyle = "#2b3038"; g.fillRect(x0 + sw * 0.3, H * 0.4, sw * 0.4, H * 0.14);
+        g.fillStyle = "#e4e7eb"; g.fillRect(x0 + sw * 0.42, H * 0.43, sw * 0.16, H * 0.08);
+        g.fillStyle = "#1f2937"; g.font = "700 16px Arial"; g.textAlign = "center"; g.fillText(mainA + "A", x0 + sw / 2, H * 0.58);
+        ["#ef4444", "#f59e0b", "#22c55e"].forEach((col, i) => { g.fillStyle = col; g.beginPath(); g.arc(x0 + sw * 0.32 + i * 26, H * 0.13, 7, 0, 7); g.fill(); });
+        for (let r = 0; r < 3; r++) for (let k = 0; k < 4; k++) { g.fillStyle = ["#ef4444", "#22c55e", "#f59e0b"][(r + k) % 3]; g.beginPath(); g.arc(x0 + sw * 0.25 + k * 22, H * 0.7 + r * 22, 6, 0, 7); g.fill(); }
+      } else if (s === 1) {
+        [0, 1, 2].forEach((i) => { g.fillStyle = "#fff"; g.strokeStyle = "#6b7280"; g.lineWidth = 2; g.beginPath(); g.arc(x0 + sw * 0.3 + i * sw * 0.2, H * 0.17, 14, 0, 7); g.fill(); g.stroke(); });
+        g.fillStyle = "#1f2937"; g.fillRect(x0 + sw * 0.38, H * 0.36, sw * 0.24, H * 0.07);
+        g.fillStyle = "#34d399"; g.fillRect(x0 + sw * 0.4, H * 0.37, sw * 0.2, H * 0.05);
+      } else {
+        g.fillStyle = "#d1d5db"; g.fillRect(x0 + sw * 0.35, H * 0.2, sw * 0.3, H * 0.12);
+        g.fillStyle = "#1f2937"; g.fillRect(x0 + sw * 0.43, H * 0.23, sw * 0.14, H * 0.06);
+      }
+      for (let v = 0; v < 5; v++) { g.fillStyle = "rgba(0,0,0,.18)"; g.fillRect(x0 + sw * 0.2, H * 0.965 - v * 6, sw * 0.6, 2); }
+    }
+  });
+  const t = new THREE.CanvasTexture(c); t.encoding = THREE.sRGBEncoding; t.anisotropy = 4;
+  return (_erTx[key] = t);
+}
+/* หน้าตู้ AC: จอเล็ก · พัดลมระบาย · สัญลักษณ์เส้นเดียว (แบบรูปอ้างอิง) */
+function erAcFace(THREE, wM, hM) {
+  const key = "ac|" + wM + "x" + hM;
+  if (_erTx[key]) return _erTx[key];
+  const P = 300, W = Math.round(wM * P), H = Math.round(hM * P);
+  const c = erCanvas(W, H, (g) => {
+    g.fillStyle = "#c3c8cf"; g.fillRect(0, 0, W, H);
+    g.strokeStyle = "#a6acb5"; g.lineWidth = 3; g.strokeRect(8, 8, W - 16, H - 16);
+    g.fillStyle = "#1f2937"; g.fillRect(W * 0.12, H * 0.08, W * 0.14, H * 0.1);
+    g.fillStyle = "#60a5fa"; g.fillRect(W * 0.135, H * 0.095, W * 0.11, H * 0.06);
+    g.fillStyle = "#eef0f3"; g.fillRect(W * 0.72, H * 0.07, W * 0.16, W * 0.16);
+    g.strokeStyle = "#8b929c"; g.lineWidth = 2; for (let i = 1; i < 5; i++) { g.beginPath(); g.arc(W * 0.8, H * 0.07 + W * 0.08, i * W * 0.016, 0, 7); g.stroke(); }
+    g.strokeStyle = "#262b33"; g.lineWidth = 3; const cx = W * 0.4;
+    g.beginPath(); g.moveTo(cx, H * 0.22); g.lineTo(cx, H * 0.75); g.stroke();
+    [0.42, 0.6].forEach((yy) => { g.beginPath(); g.moveTo(cx - W * 0.16, H * yy); g.lineTo(cx + W * 0.16, H * yy); g.stroke(); g.beginPath(); g.arc(cx - W * 0.16, H * yy, 4, 0, 7); g.arc(cx + W * 0.16, H * yy, 4, 0, 7); g.fill(); });
+    g.beginPath(); g.moveTo(cx - 10, H * 0.3); g.lineTo(cx, H * 0.26); g.lineTo(cx + 10, H * 0.3); g.stroke();
+    g.fillStyle = "#f8fafc"; g.fillRect(W * 0.66, H * 0.72, W * 0.18, H * 0.1);
+    g.fillStyle = "#f59e0b"; g.beginPath(); g.moveTo(W * 0.14, H * 0.83); g.lineTo(W * 0.2, H * 0.83); g.lineTo(W * 0.17, H * 0.78); g.fill();
+    g.fillStyle = "#8f96a0"; g.fillRect(W * 0.9, H * 0.45, 7, H * 0.1);
+  });
+  const t = new THREE.CanvasTexture(c); t.encoding = THREE.sRGBEncoding; t.anisotropy = 4;
+  return (_erTx[key] = t);
+}
+
+/* ── ประกอบฉาก ── grp ว่างก่อนเรียก · ห้อง: ผนังหลัง z=0 ผนังซ้าย x=0 พื้น y=0 อุปกรณ์หันหน้า +z */
+function erBuild3D(THREE, grp, md, L, cfg) {
+  let cur = grp;   // ที่ใส่ชิ้นงาน — กลุ่มอุปกรณ์ที่กำลังสร้าง หรือฉากหลัก
+  const add = (m, sh) => { m.castShadow = sh !== false; m.receiveShadow = true; cur.add(m); return m; };
+  /* กลุ่มอุปกรณ์: outer อยู่ที่ตำแหน่ง/มุมจริง · inner เลื่อนพิกัดเรียงเดิมให้จุดกลางกลุ่มอยู่ที่ 0 */
+  const outs = {};
+  const useG = (k) => {
+    const g = L.G && L.G[k]; if (!g) { cur = grp; return; }
+    if (!outs[k]) {
+      const o = new THREE.Group(), inner = new THREE.Group();
+      inner.position.set(-g.cx, 0, -g.cz); o.add(inner);
+      o.position.set(g.pos.x, 0, g.pos.z); o.rotation.y = g.pos.r * Math.PI / 180;
+      /* กรอบส้มบนพื้นตอนเลือก */
+      const hl = new THREE.Mesh(new THREE.PlaneGeometry(g.x1 - g.x0 + 0.12, g.z1 - g.z0 + 0.12),
+        new THREE.MeshBasicMaterial({ color: 0xf59e0b, transparent: true, opacity: 0.35, depthWrite: false }));
+      hl.rotation.x = -Math.PI / 2; hl.position.set(0, 0.006, 0); hl.visible = false; o.add(hl);
+      o.userData.gk = k; o.userData.hl = hl; grp.add(o);
+      outs[k] = inner;
+    }
+    cur = outs[k];
+  };
+  /* จุดในพิกัดเรียงของกลุ่ม → พิกัดห้องจริง */
+  const wpt = (k, lx, lz) => {
+    const g = L.G && L.G[k]; if (!g) return { x: lx, z: lz, r: 0 };
+    const t = g.pos.r * Math.PI / 180, dx = lx - g.cx, dz = lz - g.cz;
+    return { x: g.pos.x + dx * Math.cos(t) + dz * Math.sin(t), z: g.pos.z - dx * Math.sin(t) + dz * Math.cos(t), r: g.pos.r };
+  };
+  const inG = (x, z, r, fn) => { const o = new THREE.Group(); o.position.set(x, 0, z); o.rotation.y = r * Math.PI / 180; grp.add(o); cur = o; fn(); cur = grp; };
+  const std = (o) => new THREE.MeshStandardMaterial(o);
+  const M = {
+    wall: std({ color: 0xffffff, map: erNoiseTex(THREE, "wall", "#aeb3ba", 0.1, 2), roughness: 0.92, envMapIntensity: 0.25 }),
+    floor: std({ color: 0xffffff, map: erNoiseTex(THREE, "floor", "#c4c8ce", 0.12, 3), roughness: 0.7, envMapIntensity: 0.3 }),
+    edge: std({ color: 0xa9adb5, roughness: 0.8 }),
+    steel: std({ color: 0xaeb5bd, metalness: 0.65, roughness: 0.38 }),
+    dark: std({ color: 0x24272c, roughness: 0.6 }),
+    white: std({ color: 0xf4f5f7, roughness: 0.45, metalness: 0.05 }),
+    gray: std({ color: 0xbfc4cb, roughness: 0.5, metalness: 0.1 }),
+    flex: std({ color: 0xc7ccd3, roughness: 0.55, metalness: 0.15 }),
+    red: std({ color: 0xc8202a, roughness: 0.5 }),
+    black: std({ color: 0x1b1d21, roughness: 0.55 }),
+  };
+  const box = (w, h, d, mat, x, y, z, sh) => { const m = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), mat); m.position.set(x + w / 2, y + h / 2, z + d / 2); return add(m, sh); };
+  const faced = (w, h, d, side, face, x, y, z) => {
+    const fm = std({ map: face, roughness: 0.45, metalness: 0.05 });
+    const m = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), [side, side, side, side, fm, side]);
+    m.position.set(x + w / 2, y + h / 2, z + d / 2); return add(m);
+  };
+  const tube = (pts, r, mat) => {
+    const cv = new THREE.CatmullRomCurve3(pts.map((p) => new THREE.Vector3(p[0], p[1], p[2])), false, "centripetal");
+    return add(new THREE.Mesh(new THREE.TubeGeometry(cv, 40, r, 10, false), mat));
+  };
+  const { W, D, H } = L, T = 0.2;
+  /* ห้องตัดเปิด: พื้นหนา + ผนังหลัง + ผนังซ้าย (ด้านหน้า/ขวาเปิดให้มองเข้า) */
+  box(W + T, 0.18, D + T, M.floor, -T, -0.18, -T, false);
+  box(W + T, H, T, M.wall, -T, 0, -T, false);
+  box(T, H, D, M.wall, -T, 0, 0, false);
+  box(W + T, 0.02, 0.02, M.edge, -T, H - 0.01, -T, false);
+  /* คิ้วผนังบนสุดอ่อนลงเล็กน้อย ให้รูปทรงห้องชัดในมุมไอโซ */
+  box(0.02, 0.02, D + T, M.edge, -T, H - 0.01, -T, false);
+
+  L.items.forEach((it) => {
+    useG(it.g);
+    if (it.t === "mdb") {
+      box(it.w, 0.1, it.d - 0.04, M.dark, it.x, 0, 0.12);
+      faced(it.w, it.h - 0.1, it.d, M.white, erMdbFace(THREE, it.n, md.mainA), it.x, 0.1, 0.1);
+    } else if (it.t === "cu") {
+      faced(it.w, it.h, it.d, M.white, erMdbFace(THREE, 1, md.mainA), it.x, it.y, 0);
+    } else if (it.t === "ac") {
+      const face = erAcFace(THREE, it.w, it.h);
+      faced(it.w, it.h, it.d, M.gray, face, it.x, it.y, 0.08);
+      if (it.y > 0.3) {   // ตู้ตั้งพื้นบนขาเหล็ก
+        [[0.08, 0.1], [it.w - 0.14, 0.1], [0.08, it.d - 0.02], [it.w - 0.14, it.d - 0.02]].forEach(([dx, dz]) => box(0.06, it.y, 0.06, M.dark, it.x + dx, 0, dz));
+        [0, it.w - 0.2].forEach((dx) => box(0.26, 0.012, it.d + 0.2, M.dark, it.x + dx - 0.03, 0, 0.0));
+      }
+    } else if (it.t === "log") {
+      faced(it.w, it.h, it.d, M.white, erAcFace(THREE, it.w, it.h), it.x, it.y, 0);
+    } else if (it.t === "invF") {
+      /* อินเวอร์เตอร์ตั้งพื้น: ฐานเหล็ก + ตัวตู้ + ครีบระบายอากาศด้านข้าง */
+      box(it.w, 0.1, it.d - 0.04, M.dark, it.x, 0, 0.12);
+      faced(it.w, it.h, it.d, M.white, erInvFace(THREE, md.brand, it.w, Math.min(it.h, it.w * 1.2)), it.x, it.y, 0.1);
+      for (let k = 0; k < 6; k++) box(0.014, it.h * 0.5, 0.012, M.gray, it.x + it.w, it.y + it.h * 0.25, 0.1 + it.d * 0.15 + k * it.d * 0.13);
+    } else if (it.t === "bat") {
+      faced(it.w, it.h, it.d, M.white, erInvFace(THREE, (md.batt && md.batt.brand) || "BATTERY", it.w, it.h), it.x, it.y, 0.05);
+    }
+    cur = grp;
+  });
+  const tw = 0.3, yT = Math.min(H - 0.3, 2.65), trayOn = cfg.tray !== false;
+
+  /* ── รางยูนิสตรัทยึดอินเวอร์เตอร์ (ตั้งพื้น ห่างผนัง) ── */
+  const R = L.rack;
+  const zR = 0.28;   // แนวรางยึด
+  if (R) {
+    useG("rack");
+    const posts = [R.x0].concat(R.slots.map((s) => s.x + s.w));
+    posts.forEach((px) => {
+      box(0.042, 2.05, 0.042, M.steel, px - 0.021, 0, zR - 0.021);
+      box(0.2, 0.012, 0.2, M.dark, px - 0.1, 0, zR - 0.1);
+      box(0.012, 0.12, 0.16, M.dark, px - 0.006, 0.012, zR - 0.08);
+      box(0.16, 0.12, 0.012, M.dark, px - 0.08, 0.012, zR - 0.006);
+      box(0.042, 0.042, zR, M.steel, px - 0.021, 1.98, 0);   // ค้ำยันเข้าผนัง
+    });
+    const span = R.x1 - R.x0 + 0.2;
+    [0.95, 1.72].forEach((y) => box(span, 0.042, 0.042, M.steel, R.x0 - 0.1, y, zR - 0.021));
+    /* รางเดินสาย (wireway) ล่าง วิ่งตลอดราง แล้วขึ้นแนวตั้งที่ปลายซ้ายไปรางเคเบิลเหนือศีรษะ (ไปตู้ AC) */
+    const wy = 0.32, wxL = R.x0 - 0.26;
+    box(R.x1 - wxL + 0.1, 0.12, 0.14, M.steel, wxL, wy, zR - 0.07);
+    box(0.14, (trayOn ? yT : 2.1) - wy - 0.12, 0.14, M.steel, wxL, wy + 0.12, zR - 0.07);
+
+    R.slots.forEach((s) => {
+      const d = s.iv.dim, ix = s.x + 0.16 + s.dc.w + 0.08, iy = Math.max(0.55, Math.min(1.02, 1.98 - d.h)), iz = zR + 0.04;
+      /* ขายึดหลังเครื่อง + ตัวเครื่อง */
+      box(d.w * 0.8, d.h * 0.85, 0.03, M.dark, ix + d.w * 0.1, iy + d.h * 0.07, zR + 0.021);
+      const body = faced(d.w, d.h, d.d, M.white, erInvFace(THREE, md.brand, d.w, d.h), ix, iy, iz + 0.02);
+      body.userData.inv = s.iv.i;
+      /* ครีบระบายความร้อนด้านข้าง */
+      for (let k = 0; k < 5; k++) box(0.012, d.h * 0.7, d.d * 0.75, M.gray, ix + d.w + 0.004 + k * 0.016, iy + d.h * 0.15, iz + 0.05);
+      /* ตู้ DC (กล่องเล็กข้างเครื่อง) */
+      const dx = s.x + 0.12, dy = iy + d.h - s.dc.h;
+      faced(s.dc.w, s.dc.h, s.dc.d, M.gray, erAcFace(THREE, s.dc.w, s.dc.h), dx, dy, zR + 0.04);
+      /* ขั้วต่อใต้เครื่อง + สาย DC สีแดงจากตู้ DC + ท่ออ่อน AC ลงรางเดินสาย */
+      const by = iy, fz = iz + 0.02 + d.d * 0.55;
+      box(d.w * 0.22, 0.09, d.d * 0.4, M.black, ix + d.w * 0.62, by - 0.09, fz - d.d * 0.2);
+      for (let k = 0; k < 4; k++) {
+        const cx = ix + d.w * 0.18 + k * 0.035;
+        box(0.022, 0.05, 0.022, M.black, cx - 0.011, by - 0.05, fz - 0.011);
+        tube([[dx + s.dc.w * 0.3 + k * 0.03, dy, zR + 0.11], [dx + s.dc.w * 0.35 + k * 0.03, dy - 0.25, zR + 0.13], [cx - 0.02, by - 0.3, fz], [cx, by - 0.05, fz]], 0.007, M.red);
+      }
+      const ax = ix + d.w * 0.73;
+      tube([[ax, by - 0.09, fz], [ax, by - 0.3, fz + 0.02], [ax, 0.75, fz + 0.06], [ax + 0.03, 0.52, zR + 0.1], [ax + 0.05, wy + 0.13, zR]], 0.024, M.flex);
+      box(0.07, 0.04, 0.07, M.black, ax + 0.015, wy + 0.1, zR - 0.035);
+    });
+    cur = grp;
+  }
+
+  /* ── รางเคเบิลแบบขั้นบันไดเหนือศีรษะ: ตู้ AC → MDB · รางอินเวอร์เตอร์ → ตู้ AC ──
+     เดินตามตำแหน่งอุปกรณ์จริง: ขึ้นแนวตั้งจากหลังตู้ แล้ววิ่งราบเป็นตัว L (แกน x ก่อน แล้วแกน z) */
+  if (trayOn && L.mdb) {
+    const vSeg = (y0, y1) => {   // แนวตั้งที่จุด 0,0 ของ cur แผ่นราบหันหน้า +z
+      [-tw / 2, tw / 2 - 0.03].forEach((o) => box(0.03, y1 - y0, 0.07, M.steel, o, y0, -0.035));
+      for (let y = y0 + 0.1; y < y1 - 0.05; y += 0.25) box(tw, 0.02, 0.025, M.steel, -tw / 2, y, -0.012);
+    };
+    const hLen = (len) => {   // แนวนอนวางราบ จาก 0 ไปตามแกน x ของ cur
+      [-tw / 2, tw / 2 - 0.03].forEach((o) => box(len, 0.07, 0.03, M.steel, 0, yT, o));
+      for (let x = 0.1; x < len - 0.05; x += 0.25) box(0.025, 0.02, tw, M.steel, x, yT, -tw / 2);
+      for (let x = 0.6; x < len - 0.2; x += 1.2) box(0.012, H - yT, 0.012, M.steel, x, yT + 0.07, -tw / 2 - 0.02);
+    };
+    const leg = (p, q) => {   // ช่วงตรงตามแกน ยื่นเลยมุมครึ่งความกว้าง ให้มุมต่อกันเต็ม
+      const dx = q.x - p.x, dz = q.z - p.z;
+      if (Math.abs(dx) > 0.01) inG(Math.min(p.x, q.x) - tw / 2, p.z, 0, () => hLen(Math.abs(dx) + tw));
+      else if (Math.abs(dz) > 0.01) inG(p.x, Math.min(p.z, q.z) - tw / 2, -90, () => hLen(Math.abs(dz) + tw));
+    };
+    const route = (p, q) => { const m = { x: q.x, z: p.z }; leg(p, m); leg(m, q); };
+    const zl = md.home ? 0.12 : 0.25;
+    const A = wpt("ac", L.ac.x + L.ac.w / 2, zl), ay = L.ac.y + L.ac.h;
+    const Bm = wpt("mdb", L.mdb.x + L.mdb.w / 2, zl), my = L.mdb.y + L.mdb.h;
+    if (yT > ay + 0.15) inG(A.x, A.z, A.r, () => vSeg(ay, yT + 0.07));
+    if (yT > my + 0.15) inG(Bm.x, Bm.z, Bm.r, () => vSeg(my, yT + 0.07));
+    route(A, Bm);
+    if (R) route(wpt("rack", R.x0 - 0.19, zR), A);
+    L.items.filter((it) => it.t === "invF").forEach((it) => {
+      const P = wpt(it.g, it.x + it.w / 2, 0.25), top = it.y + it.h;
+      if (yT > top + 0.15) inG(P.x, P.z, P.r, () => vSeg(top, yT + 0.07));
+      route(P, A);
+    });
+  }
+}
+
+/* ── จอ 3D ── api: view(k) · shot() · ready() */
+function ErRoomView({ md, L, cfg, api, bg, edit, sel, onPick, onMove }) {
+  const mountRef = React.useRef(null);
+  const T = React.useRef({});
+  const cbRef = React.useRef({});
+  cbRef.current = { edit, onPick, onMove };
+  const [ready, setReady] = React.useState(false);
+  const [err, setErr] = React.useState("");
+  React.useEffect(() => { window.p3LoadThree().then(() => setReady(true)).catch((e) => setErr(e.message)); }, []);
+  React.useEffect(() => {
+    if (!ready) return;
+    const THREE = window.THREE, el = mountRef.current;
+    const renderer = new THREE.WebGLRenderer({ antialias: true, preserveDrawingBuffer: true });
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+    renderer.shadowMap.enabled = true; renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+    renderer.outputEncoding = THREE.sRGBEncoding;
+    renderer.toneMapping = THREE.ACESFilmicToneMapping; renderer.toneMappingExposure = 0.78;
+    el.appendChild(renderer.domElement); renderer.domElement.style.display = "block"; renderer.domElement.style.touchAction = "none";
+    const scene = new THREE.Scene();
+    const camera = new THREE.PerspectiveCamera(32, 1, 0.05, 400);
+    const controls = new THREE.OrbitControls(camera, renderer.domElement);
+    controls.enableDamping = true; controls.dampingFactor = 0.12; controls.maxPolarAngle = Math.PI * 0.495;
+    /* แสงในห้อง: ฟ้า/พื้นอ่อน + แสงหลักทแยงจากหน้าขวาให้เงาตกบนผนังหลังแบบรูปอ้างอิง */
+    scene.add(new THREE.HemisphereLight(0xf4f7ff, 0x8a8478, 0.3));
+    const key = new THREE.DirectionalLight(0xfff8ee, 1.55); key.castShadow = true;
+    key.shadow.mapSize.set(4096, 4096); key.shadow.bias = -0.0003; key.shadow.radius = 3;
+    scene.add(key); scene.add(key.target);
+    const fill = new THREE.DirectionalLight(0xdfe8ff, 0.35); scene.add(fill);
+    try { const pm = new THREE.PMREMGenerator(renderer); const es = new THREE.Scene(); es.background = new THREE.Color(0xe9edf2);
+      const g = new THREE.SphereGeometry(20, 24, 12), col = [], pos = g.attributes.position;
+      for (let i = 0; i < pos.count; i++) { const y = pos.getY(i) / 20, c = new THREE.Color(0xc7cdd6).lerp(new THREE.Color(0xffffff), Math.max(0, y)); col.push(c.r, c.g, c.b); }
+      g.setAttribute("color", new THREE.Float32BufferAttribute(col, 3));
+      es.add(new THREE.Mesh(g, new THREE.MeshBasicMaterial({ vertexColors: true, side: THREE.BackSide })));
+      scene.environment = pm.fromScene(es, 0.04).texture; scene.environment.encoding = THREE.sRGBEncoding; } catch (e) {}
+    const grp = new THREE.Group(); scene.add(grp);
+    Object.assign(T.current, { THREE, renderer, scene, camera, controls, key, fill, grp, el });
+    const onResize = () => { const w = el.clientWidth || 1, h = el.clientHeight || 1; renderer.setSize(w, h); camera.aspect = w / h; camera.updateProjectionMatrix(); };
+    onResize();
+    const ro = new ResizeObserver(onResize); ro.observe(el);
+    let raf = 0, fly = null;
+    const loop = (t) => {
+      raf = requestAnimationFrame(loop);
+      if (fly) {
+        const k = Math.min(1, (t - fly.t0) / 700), e = k < 0.5 ? 2 * k * k : 1 - Math.pow(-2 * k + 2, 2) / 2;
+        camera.position.lerpVectors(fly.p0, fly.p1, e); controls.target.lerpVectors(fly.c0, fly.c1, e);
+        camera.fov = fly.f0 + (fly.f1 - fly.f0) * e; camera.updateProjectionMatrix();
+        if (k >= 1) fly = null;
+      }
+      controls.update(); renderer.render(scene, camera);
+    };
+    raf = requestAnimationFrame(loop);
+    T.current.flyTo = (p, c, f) => { fly = { t0: performance.now(), p0: camera.position.clone(), p1: p, c0: controls.target.clone(), c1: c, f0: camera.fov, f1: f || camera.fov }; };
+    /* ลากอุปกรณ์บนพื้น: จับที่ el แบบ capture ก่อน OrbitControls — โดนอุปกรณ์ = ปิดหมุนกล้องระหว่างลาก
+       ลากเลื่อน Group ตรง ๆ (ไม่สร้างฉากใหม่) ปล่อยแล้วส่ง onMove ให้พาเรนต์ปัด/บันทึก */
+    const ray = new THREE.Raycaster(), pl = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0), v2 = new THREE.Vector2(), hp = new THREE.Vector3();
+    const aim = (e) => { const r = renderer.domElement.getBoundingClientRect(); v2.set(((e.clientX - r.left) / r.width) * 2 - 1, -((e.clientY - r.top) / r.height) * 2 + 1); ray.setFromCamera(v2, camera); };
+    const hitG = (e) => {
+      aim(e);
+      const h = ray.intersectObjects(grp.children.filter((o) => o.userData.gk), true)[0];
+      let o = h && h.object; while (o && !o.userData.gk) o = o.parent;
+      return o || null;
+    };
+    let drag = null;
+    const down = (e) => {
+      if (e.button !== 0 || !cbRef.current.edit) return;
+      const o = hitG(e);
+      if (!o) { drag = { none: true, sx: e.clientX, sy: e.clientY }; return; }
+      controls.enabled = false;
+      ray.ray.intersectPlane(pl, hp);
+      drag = { o, sx: e.clientX, sy: e.clientY, ox: o.position.x - hp.x, oz: o.position.z - hp.z, moved: false };
+    };
+    const move = (e) => {
+      if (!drag) { if (cbRef.current.edit && !e.buttons) renderer.domElement.style.cursor = hitG(e) ? "grab" : ""; return; }
+      if (drag.none) return;
+      if (!drag.moved && Math.hypot(e.clientX - drag.sx, e.clientY - drag.sy) < 4) return;
+      drag.moved = true; renderer.domElement.style.cursor = "grabbing";
+      aim(e);
+      if (ray.ray.intersectPlane(pl, hp)) { drag.o.position.x = hp.x + drag.ox; drag.o.position.z = hp.z + drag.oz; }
+    };
+    const up = (e) => {
+      const d = drag; drag = null; controls.enabled = true;
+      if (!d) return;
+      const cb = cbRef.current;
+      if (d.none) { if (Math.hypot(e.clientX - d.sx, e.clientY - d.sy) < 4 && cb.onPick) cb.onPick(null); return; }
+      renderer.domElement.style.cursor = "grab";
+      if (cb.onPick) cb.onPick(d.o.userData.gk);
+      if (d.moved && cb.onMove) cb.onMove(d.o.userData.gk, d.o.position.x, d.o.position.z);
+    };
+    el.addEventListener("pointerdown", down, true);
+    window.addEventListener("pointermove", move);
+    window.addEventListener("pointerup", up);
+    return () => { el.removeEventListener("pointerdown", down, true); window.removeEventListener("pointermove", move); window.removeEventListener("pointerup", up);
+      cancelAnimationFrame(raf); ro.disconnect(); controls.dispose(); renderer.dispose(); if (renderer.domElement.parentNode) renderer.domElement.parentNode.removeChild(renderer.domElement); T.current = {}; };
+  }, [ready]);
+
+  /* มุมกล้องสำเร็จรูป */
+  const camOf = (k) => {
+    const THREE = T.current.THREE, { W, D, H } = L, V = (x, y, z) => new THREE.Vector3(x, y, z);
+    const R = L.rack, rx = R ? (R.x0 + R.x1) / 2 : W / 2;
+    if (k === "eye") return [V(W * 0.62, 1.55, D + 2.4), V(W * 0.5, 1.15, 0.3), 42];
+    if (k === "inv" && R) { const span = R.x1 - R.x0; return [V(rx + span * 0.35, 1.45, Math.max(2.4, span * 0.75)), V(rx - span * 0.05, 1.05, 0.3), 46]; }
+    if (k === "top") return [V(W / 2, Math.max(W, D) * 2.4, D * 0.56), V(W / 2, 0, D * 0.5), 32];
+    /* iso: ถอยกล้องให้ทรงกลมที่ครอบห้องพอดีจอ (ทั้งแนวตั้งและแนวนอน) — ห้องยาวไม่ล้นขอบ */
+    const cam = T.current.camera, f = 30, r = Math.sqrt(W * W + D * D + H * H) / 2;
+    const vh = Math.tan(f * Math.PI / 360), hh = vh * ((cam && cam.aspect) || 1.6);
+    const dist = r / Math.min(vh, hh) * 1.02, dir = new THREE.Vector3(0.55, 0.62, 0.8).normalize();
+    const c = V(W * 0.5, H * 0.3, D * 0.45);
+    return [c.clone().add(dir.multiplyScalar(dist)), c, f];   // iso
+  };
+  /* สร้างฉากใหม่ทุกครั้งที่ข้อมูล/ตั้งค่าเปลี่ยน */
+  React.useEffect(() => {
+    const t = T.current; if (!t.THREE) return;
+    const { THREE, grp, key, fill, scene } = t;
+    grp.children.slice().forEach((c) => { grp.remove(c); c.traverse((o) => { if (o.geometry) o.geometry.dispose(); if (o.material) [].concat(o.material).forEach((m) => m.dispose()); }); });
+    erBuild3D(THREE, grp, md, L, cfg);
+    const { W, D, H } = L, S = Math.max(W, D, H);
+    key.position.set(W * 0.85, H * 2.4, D + S * 0.9); key.target.position.set(W * 0.45, 0.6, D * 0.3);
+    Object.assign(key.shadow.camera, { left: -S, right: S, top: S, bottom: -S, near: 0.5, far: S * 5 }); key.shadow.camera.updateProjectionMatrix();
+    fill.position.set(-S, H * 1.5, D + S);
+    scene.background = new THREE.Color(bg === "white" ? 0xffffff : 0xe8ecf0);
+    if (!t.fitted) { const [p, c, f] = camOf("iso"); t.camera.position.copy(p); t.controls.target.copy(c); t.camera.fov = f; t.camera.updateProjectionMatrix(); t.fitted = true; }
+  }, [ready, md, L, cfg, bg]);
+  /* กรอบส้มใต้กลุ่มที่เลือก (หลังสร้างฉาก) */
+  React.useEffect(() => {
+    const t = T.current; if (!t.grp) return;
+    t.grp.children.forEach((o) => { if (o.userData.hl) o.userData.hl.visible = !!edit && o.userData.gk === sel; });
+  }, [ready, md, L, cfg, bg, sel, edit]);
+
+  if (api) api.current = {
+    ready: () => !!T.current.THREE,
+    three: () => T.current,   // ทดสอบจากคอนโซล (กล้อง/ฉาก)
+    view: (k) => { const t = T.current; if (!t.THREE) return; const [p, c, f] = camOf(k); t.flyTo(p, c, f); },
+    /* ถ่ายภาพ 16:9 3840×2160 ไม่ขึ้นกับขนาดจอ แล้วคืนค่าเดิม */
+    shot: () => {
+      const t = T.current; if (!t.THREE) return null;
+      const { renderer, camera, scene, el } = t;
+      const w0 = el.clientWidth, h0 = el.clientHeight, pr = renderer.getPixelRatio(), a0 = camera.aspect;
+      const gl = renderer.capabilities.maxTextureSize || 4096, OW = Math.min(3840, gl), OH = Math.round(OW * 9 / 16);
+      const hls = []; t.grp.children.forEach((o) => { if (o.userData.hl && o.userData.hl.visible) { hls.push(o.userData.hl); o.userData.hl.visible = false; } });
+      renderer.setPixelRatio(1); renderer.setSize(OW, OH, false); camera.aspect = OW / OH; camera.updateProjectionMatrix();
+      renderer.render(scene, camera);
+      hls.forEach((h) => { h.visible = true; });
+      const url = renderer.domElement.toDataURL("image/png");
+      renderer.setPixelRatio(pr); renderer.setSize(w0, h0); camera.aspect = a0; camera.updateProjectionMatrix();
+      return url;
+    },
+  };
+  return (
+    <div ref={mountRef} style={{ position: "absolute", inset: 0 }}>
+      {!ready && !err && <div className="er-msg">กำลังโหลดตัวแสดงผล 3 มิติ…</div>}
+      {err && <div className="er-msg">โหลด 3D ไม่สำเร็จ: {err}</div>}
+    </div>
+  );
+}
+
+const ER_CSS = `
+.er{position:fixed;inset:0;z-index:130;background:var(--bg);display:flex;flex-direction:column;color:var(--text-1)}
+.er-top{display:flex;align-items:center;gap:10px;padding:10px 14px;background:var(--surface);box-shadow:var(--shadow-sm);z-index:2}
+.er-top b{font-size:14.5px}.er-top small{display:block;font-size:11.5px;color:var(--text-3);font-weight:500}
+.er-body{flex:1;min-height:0;display:flex}
+.er-stage{position:relative;flex:1;min-width:0}
+.er-side{width:310px;flex-shrink:0;overflow-y:auto;padding:14px;display:flex;flex-direction:column;gap:12px}
+.er-card{background:var(--surface);box-shadow:var(--shadow-sm);border-radius:var(--r-tile);padding:13px 14px}
+.er-h{font-size:12.5px;font-weight:700;margin-bottom:9px;display:flex;align-items:center;gap:6px}
+.er-row{display:flex;align-items:center;gap:8px;margin-top:7px;font-size:12.5px;color:var(--text-2)}
+.er-row>span{flex:1}
+.er-in{width:86px;padding:7px 9px;border:none;border-radius:var(--r-chip);background:var(--surface2);box-shadow:var(--shadow-inset);font-family:inherit;font-size:13px;color:var(--text-1);text-align:right}
+.er-in:focus{outline:none;box-shadow:inset 0 0 0 1px var(--primary),0 0 0 3px var(--primary-soft)}
+.er-sel{width:100%;padding:8px 10px;border:none;border-radius:var(--r-chip);background:var(--surface2);box-shadow:var(--shadow-inset);font-family:inherit;font-size:13px;color:var(--text-1)}
+.er-cams{display:grid;grid-template-columns:1fr 1fr;gap:6px;padding:5px;border-radius:var(--r-tile);background:var(--surface2);box-shadow:var(--shadow-inset)}
+.er-cams button{border:none;background:transparent;border-radius:var(--r-chip);padding:9px 4px;font-family:inherit;font-size:12px;font-weight:600;color:var(--text-2);cursor:pointer}
+.er-cams button[data-on="1"]{background:var(--surface);box-shadow:var(--shadow-sm);color:var(--primary-dark)}
+.er-cta{width:100%;border:none;border-radius:var(--r-tile);padding:12px;background:var(--primary);color:#fff;font-family:inherit;font-size:13.5px;font-weight:700;cursor:pointer;box-shadow:var(--shadow-sm);display:flex;align-items:center;justify-content:center;gap:7px}
+.er-btn{border:none;border-radius:var(--r-chip);padding:7px 12px;background:var(--surface);box-shadow:var(--shadow-sm);font-family:inherit;font-size:12.5px;font-weight:600;color:var(--text-1);cursor:pointer}
+.er-eq{display:flex;justify-content:space-between;gap:8px;font-size:12px;padding:6px 0;border-top:1px solid var(--border)}
+.er-eq:first-of-type{border-top:none}.er-eq b{font-weight:600}.er-eq span{color:var(--text-3);text-align:right}
+.er-note{font-size:11.5px;color:var(--text-3);margin-top:7px;line-height:1.5}
+.er-warn{font-size:11.5px;color:var(--tint-amber-tx,#b45309);background:color-mix(in srgb,#f59e0b 12%,transparent);border-radius:var(--r-chip);padding:7px 9px;margin-top:8px;line-height:1.45}
+.er-msg{position:absolute;inset:0;display:grid;place-items:center;color:var(--text-3);font-size:13px}
+.er-chips{display:flex;flex-wrap:wrap;gap:6px}
+.er-chips button{border:none;border-radius:var(--r-pill);padding:6px 11px;background:var(--surface2);box-shadow:var(--shadow-inset);font-family:inherit;font-size:12px;font-weight:600;color:var(--text-2);cursor:pointer}
+.er-chips button[data-on="1"]{background:#f59e0b;box-shadow:var(--shadow-sm);color:#fff}
+.er-chips button i{font-style:normal;font-weight:500;opacity:.75;margin-left:4px}
+.er-dim{display:grid;grid-template-columns:1fr 52px 52px 52px;gap:5px;align-items:center;margin-top:6px;font-size:12px;color:var(--text-2)}
+.er-dim .er-in{width:100%;padding:6px 6px;font-size:12.5px}
+.er-dimh{margin-top:0}.er-dimh i{font-style:normal;font-size:10.5px;color:var(--text-3);text-align:center}
+.er-btns{display:flex;flex-wrap:wrap;gap:6px;margin-top:9px}
+.er-tg{display:flex;align-items:center;gap:8px;margin-top:8px;font-size:12.5px;color:var(--text-2);cursor:pointer}
+@media (max-width:760px){.er-body{flex-direction:column}.er-stage{flex:none;height:52vh}.er-side{width:auto;flex:1}}
+`;
+
+/* ── ตัวแก้ห้องอุปกรณ์ (เต็มจอ) ── */
+function ErRoomStudio({ job, ver: ver0, canEdit, onClose }) {
+  const jobId = job && job.id;
+  const p3 = window.useP3Vers ? window.useP3Vers(jobId) : { list: [{ id: "1", name: "ต้นแบบ" }] };
+  const [ver, setVer] = React.useState(String(ver0 || "1"));
+  const [st, setSt] = React.useState(undefined);
+  const [saved, setSaved] = React.useState(undefined);
+  const [cfg, setCfg] = React.useState(ER_DEF);
+  const [cam, setCam] = React.useState("iso");
+  const [bg, setBg] = React.useState("white");
+  const [msg, setMsg] = React.useState("");
+  const [sel, setSel] = React.useState(null);
+  const api = React.useRef(null);
+  const saveT = React.useRef(null);
+
+  /* แบบ 3D (อ่านครั้งเดียว) + ตั้งค่าห้องของเวอร์ชันนั้น */
+  React.useEffect(() => {
+    if (!jobId || !window.FBDB) { setSt(null); setSaved(null); return; }
+    setSt(undefined); setSaved(undefined);
+    const key = window.dvP3Key ? window.dvP3Key(jobId, ver) : jobId;
+    window.FBDB.ref("plan3d/" + key).once("value").then((s) => setSt(s.val() || null)).catch(() => setSt(null));
+    window.FBDB.ref("eroom/" + jobId + "/" + ver).once("value").then((s) => { const v = s.val(); setSaved(v); setCfg(Object.assign({}, ER_DEF, v || {})); }).catch(() => setSaved(null));
+  }, [jobId, ver]);
+
+  const md = React.useMemo(() => (st === undefined ? null : erModel(st, job, cfg)), [st, job, cfg.inv, cfg.dims]);
+  const L = React.useMemo(() => (md ? erLayout(md, cfg) : null), [md, cfg.w, cfg.d, cfg.h, cfg.pos, cfg.dims]);
+  const cfgV = React.useMemo(() => ({ tray: cfg.tray }), [cfg.tray]);
+
+  const put = (patch) => {
+    setCfg((c) => {
+      const n = Object.assign({}, c, patch);
+      if (canEdit && window.FBDB && jobId) {
+        clearTimeout(saveT.current);
+        saveT.current = setTimeout(() => {
+          const o = { w: +n.w || 0, d: +n.d || ER_DEF.d, h: +n.h || ER_DEF.h, tray: n.tray !== false, inv: Math.round(+n.inv || 0), pos: n.pos && Object.keys(n.pos).length ? n.pos : null, dims: n.dims && Object.keys(n.dims).length ? n.dims : null, at: Date.now() };
+          window.FBDB.ref("eroom/" + jobId + "/" + ver).set(o).catch(() => setMsg("บันทึกการตั้งค่าห้องไม่สำเร็จ"));
+        }, 800);
+      }
+      return n;
+    });
+  };
+  React.useEffect(() => () => clearTimeout(saveT.current), []);
+  React.useEffect(() => {
+    const k = (e) => { if (e.key === "Escape") onClose(); };
+    window.addEventListener("keydown", k); return () => window.removeEventListener("keydown", k);
+  }, [onClose]);
+
+  /* ตำแหน่งอุปกรณ์ */
+  const setPos = (k, p) => { const n = Object.assign({}, cfg.pos || {}); if (p) n[k] = p; else delete n[k]; put({ pos: n }); };
+  const onMove = (k, x, z) => { const g = L && L.G[k]; if (g) setPos(k, erSnap(g, x, z, g.pos.r, true)); };
+  const gSel = L && sel ? L.G[sel] : null;
+  const rot = () => {
+    const g = gSel; if (!g) return;
+    if (g.wall) setPos(g.k, g.pos.r ? erSnap(g, g.pos.z, 0, 0) : erSnap(g, 0, g.pos.x, 90));   // สลับผนังหลัง ⇄ ผนังซ้าย
+    else setPos(g.k, erSnap(g, g.pos.x, g.pos.z, g.pos.r + 90));
+  };
+  const edgeIn = (axis) => {   // ระยะขอบอุปกรณ์ถึงผนัง (ซ้าย = x0 · หลัง = z0)
+    const g = gSel, v = axis === "x" ? g.box.x0 : g.box.z0;
+    return <input className="er-in" type="number" step="0.05" min="0" value={+v.toFixed(2)} disabled={!canEdit}
+      onChange={(e) => { const d = Math.max(0, +e.target.value || 0);
+        const x = axis === "x" ? g.pos.x - g.box.x0 + d : g.pos.x, z = axis === "z" ? g.pos.z - g.box.z0 + d : g.pos.z;
+        setPos(g.k, erSnap(g, x, z, g.pos.r)); }} />;
+  };
+  React.useEffect(() => { if (sel && L && !L.G[sel]) setSel(null); }, [L, sel]);
+  /* ขนาดอุปกรณ์ (ซม. บนจอ · เก็บเมตร) — ว่าง = ตามคลัง/มาตรฐาน */
+  const setDim = (k, f, v) => {
+    const all = Object.assign({}, cfg.dims || {}), o = Object.assign({}, all[k] || {});
+    if (v === "" || v == null) delete o[f]; else o[f] = v;
+    if (Object.keys(o).length) all[k] = o; else delete all[k];
+    put({ dims: all });
+  };
+  const dimRow = (k, th, ph) => {
+    const o = (cfg.dims || {})[k] || {};
+    return (
+      <div className="er-dim" key={k}>
+        <span>{th}</span>
+        {["w", "h", "d"].map((f) => (
+          <input key={f} className="er-in" type="number" step="1" min="0" disabled={!canEdit} title={{ w: "กว้าง", h: "สูง", d: "ลึก" }[f] + " (ซม.)"}
+            value={o[f] ? Math.round(o[f] * 100) : ""} placeholder={ph ? String(Math.round(ph[f] * 100)) : ""}
+            onChange={(e) => setDim(k, f, e.target.value === "" ? "" : Math.max(0.05, +e.target.value / 100))} />
+        ))}
+      </div>
+    );
+  };
+  const invOf = (from) => md && md.invs.find((v) => v.from === from);
+  const mountSel = (k, iv) => (
+    <select className="er-sel" disabled={!canEdit} style={{ marginTop: 6 }} value={((cfg.dims || {})[k] || {}).mount || ""}
+      onChange={(e) => setDim(k, "mount", e.target.value || "")}>
+      <option value="">ติดตั้งตามคลัง ({iv && iv.floor && !((cfg.dims || {})[k] || {}).mount ? "ตั้งพื้น" : "ติดราง"})</option>
+      <option value="wall">ติดราง/ผนัง</option>
+      <option value="floor">ตั้งพื้น (ตู้)</option>
+    </select>
+  );
+  const go = (k) => { setCam(k); if (api.current) api.current.view(k); };
+  const shot = () => {
+    if (!api.current) return;
+    try {
+      const url = api.current.shot(); if (!url) return;
+      const a = document.createElement("a"); a.href = url;
+      a.download = "ห้องอุปกรณ์-" + ((job && (job.code || job.id)) || "") + "-" + cam + ".png";
+      document.body.appendChild(a); a.click(); a.remove();
+    } catch (e) { setMsg("ถ่ายภาพไม่ได้: " + e.message); }
+  };
+  const numIn = (k, ph, step) => (
+    <input className="er-in" type="number" step={step || 0.1} min="0" value={cfg[k] || ""} placeholder={ph} disabled={!canEdit}
+      onChange={(e) => put({ [k]: e.target.value === "" ? 0 : +e.target.value })} />
+  );
+  const eq = md ? [
+    !md.home && { n: "ตู้ MDB", v: (L && L.mdb ? L.mdb.n : 0) + " ช่อง · เมน " + md.mainA + "A" },
+    md.home && { n: "ตู้เมน (Consumer Unit)", v: "เมน " + md.mainA + "A" },
+    { n: "ตู้ AC (Combiner)", v: md.home ? "ติดผนัง" : "ตั้งพื้นบนขาเหล็ก" },
+    md.invs.length && { n: "อินเวอร์เตอร์", v: md.invs.length + " ตัว · " + Array.from(new Set(md.invs.map((x) => x.kw + " kW"))).join(" / ") + (md.model ? " · " + md.model : "") },
+    md.invs.length && { n: "ตู้ DC", v: md.invs.length + " ตู้ (ตัวละ 1)" },
+    md.micro && { n: "ไมโครอินเวอร์เตอร์", v: md.nMicro + " ตัว (อยู่บนหลังคา ไม่อยู่ในห้อง)" },
+    md.batt && { n: "แบตเตอรี่", v: md.batt.kwh + " kWh" },
+    { n: "Data Logger", v: md.brand || "—" },
+  ].filter(Boolean) : [];
+
+  return ReactDOM.createPortal(
+    <div className="er">
+      <style>{ER_CSS}</style>
+      <div className="er-top">
+        <button className="x-close" onClick={onClose} title="ปิด (Esc)" style={{ width: 32, height: 32, cursor: "pointer" }}><Icon name="x" size={15} /></button>
+        <span style={{ flex: 1, minWidth: 0 }}><b>ห้องอุปกรณ์ 3D</b><small>{(job && (job.code || job.id)) || ""} · {(job && job.name) || ""}</small></span>
+      </div>
+      <div className="er-body">
+        <div className="er-stage">
+          {md && L ? <ErRoomView md={md} L={L} cfg={cfgV} api={api} bg={bg} edit={canEdit} sel={sel} onPick={setSel} onMove={onMove} /> : <div className="er-msg">กำลังโหลดแบบ…</div>}
+        </div>
+        <div className="er-side">
+          <div className="er-card">
+            <div className="er-h"><Icon name="panel" size={14} color="#4F46E5" /> อุปกรณ์ตามแบบ</div>
+            {p3.list.length > 1 && (
+              <select className="er-sel" value={ver} onChange={(e) => setVer(e.target.value)} style={{ marginBottom: 8 }}>
+                {p3.list.map((v) => <option key={v.id} value={v.id}>V{v.id} · {v.name}</option>)}
+              </select>
+            )}
+            {eq.map((e) => <div key={e.n} className="er-eq"><b>{e.n}</b><span>{e.v}</span></div>)}
+            {md && !md.fromPlan && <div className="er-warn">แบบนี้ยังไม่ได้ออกแบบระบบ — ใช้อินเวอร์เตอร์ 1 ตัวตามขนาดงาน ({md.acKw} kW) ไปก่อน</div>}
+          </div>
+          <div className="er-card">
+            <div className="er-h"><Icon name="ruler" size={14} color="var(--primary-dark)" /> ขนาดห้อง (เมตร)</div>
+            <div className="er-row"><span>กว้าง</span>{numIn("w", L ? L.W.toFixed(1) : "อัตโนมัติ")}</div>
+            <div className="er-row"><span>ลึก</span>{numIn("d", String(ER_DEF.d))}</div>
+            <div className="er-row"><span>สูง</span>{numIn("h", String(ER_DEF.h))}</div>
+            {md && !md.micro && <div className="er-row"><span>จำนวนอินเวอร์เตอร์</span>{numIn("inv", String(md.nPlan || md.invs.length), 1)}</div>}
+            <label className="er-tg"><input type="checkbox" checked={cfg.tray !== false} disabled={!canEdit} onChange={(e) => put({ tray: e.target.checked })} /> รางเคเบิลเหนือศีรษะ (ตู้ AC → MDB)</label>
+            {L && L.grew && <div className="er-warn">อุปกรณ์เกินขนาดที่ตั้ง — ขยายห้องเป็น {L.W.toFixed(1)} × {L.D.toFixed(1)} ม.</div>}
+            <div className="er-note">เว้นว่าง = ตามแบบ/ขนาดพอดีอุปกรณ์{canEdit ? " · บันทึกเอง" : " · ดูอย่างเดียว"}</div>
+          </div>
+          {L && L.groups.length > 0 && (
+            <div className="er-card">
+              <div className="er-h"><Icon name="hand" size={14} color="#F59E0B" /> ตำแหน่งอุปกรณ์</div>
+              <div className="er-chips">
+                {L.groups.map((g) => <button key={g.k} data-on={sel === g.k ? "1" : "0"} onClick={() => setSel(sel === g.k ? null : g.k)}>{g.th}{g.moved && <i>· ย้ายแล้ว</i>}</button>)}
+              </div>
+              {gSel && (
+                <React.Fragment>
+                  {gSel.wall
+                    ? <div className="er-row"><span>ติดผนัง{gSel.pos.r ? "ซ้าย · ห่างผนังหลัง" : "หลัง · ห่างผนังซ้าย"}</span>{edgeIn(gSel.pos.r ? "z" : "x")}</div>
+                    : <React.Fragment>
+                        <div className="er-row"><span>ห่างผนังซ้าย (ม.)</span>{edgeIn("x")}</div>
+                        <div className="er-row"><span>ห่างผนังหลัง (ม.)</span>{edgeIn("z")}</div>
+                      </React.Fragment>}
+                  {canEdit && <div className="er-btns">
+                    <button className="er-btn" onClick={rot}>{gSel.wall ? (gSel.pos.r ? "ย้ายไปผนังหลัง" : "ย้ายไปผนังซ้าย") : "หมุน 90°"}</button>
+                    {gSel.moved && <button className="er-btn" onClick={() => setPos(gSel.k, null)}>คืนตำแหน่งเดิม</button>}
+                  </div>}
+                </React.Fragment>
+              )}
+              {L.clash.length > 0 && <div className="er-warn">{L.clash.join(" · ")} — ย้ายให้ห่างกัน</div>}
+              {canEdit && L.groups.some((g) => g.moved) && <div className="er-btns"><button className="er-btn" onClick={() => { put({ pos: null }); setSel(null); }}>จัดเรียงใหม่ทั้งหมด</button></div>}
+              <div className="er-note">{canEdit ? "ลากอุปกรณ์ในภาพ 3D เพื่อย้าย (ปัดทีละ 5 ซม. · ใกล้ผนังดูดชิด) · ตู้ติดผนังอยู่บนผนังหลังหรือซ้าย · รางเคเบิลเดินตามเอง" : "ดูอย่างเดียว"}</div>
+            </div>
+          )}
+          {md && L && (
+            <div className="er-card">
+              <div className="er-h"><Icon name="box" size={14} color="#4F46E5" /> ขนาดอุปกรณ์ (ซม.)</div>
+              <div className="er-dim er-dimh"><span /><i>กว้าง</i><i>สูง</i><i>ลึก</i></div>
+              {invOf(1) && dimRow("inv", "อินเวอร์เตอร์" + (md.model2 ? " · " + (md.model || "รุ่น 1") : ""), invOf(1).dim)}
+              {invOf(1) && mountSel("inv", invOf(1))}
+              {invOf(2) && dimRow("inv2", "อินเวอร์เตอร์ · " + md.model2, invOf(2).dim)}
+              {invOf(2) && mountSel("inv2", invOf(2))}
+              {L.rack && dimRow("dc", "ตู้ DC", L.def.dc)}
+              {dimRow("ac", "ตู้ AC", L.def.ac)}
+              {dimRow("mdb", md.home ? "ตู้เมน" : "ตู้ MDB", L.def.mdb)}
+              {invOf(1) && <div className="er-note">ขนาดอินเวอร์เตอร์: {invOf(1).src === "คลัง" ? "จากคลัง (รุ่น " + (md.model || "-") + ")" : invOf(1).src === "ห้อง" ? "ตั้งเองในห้องนี้" : "ประมาณจาก kW — กรอกขนาดตัวเครื่องในคลังสินค้าเพื่อให้ตรงทุกงาน"}</div>}
+              <div className="er-note">ช่องว่าง = ค่ามาตรฐาน (ตัวเลขจาง) · กรอกตามตู้จริงหน้างาน</div>
+            </div>
+          )}
+          <div className="er-card">
+            <div className="er-h"><Icon name="camera" size={14} color="var(--primary-dark)" /> มุมกล้อง · ภาพ</div>
+            <div className="er-cams">
+              {[["iso", "มุมไอโซ"], ["eye", "ระดับสายตา"], ["inv", "ใกล้อินเวอร์เตอร์"], ["top", "มุมบน"]].map(([k, th]) => (
+                <button key={k} data-on={cam === k ? "1" : "0"} disabled={k === "inv" && md && !md.invs.length} onClick={() => go(k)}>{th}</button>
+              ))}
+            </div>
+            <label className="er-tg"><input type="checkbox" checked={bg === "white"} onChange={(e) => setBg(e.target.checked ? "white" : "gray")} /> พื้นหลังขาว (สำหรับใส่เอกสาร)</label>
+            <button className="er-cta" style={{ marginTop: 10 }} onClick={shot}><Icon name="camera" size={15} color="#fff" /> ถ่ายภาพ 4K</button>
+            {msg && <div className="er-warn">{msg}</div>}
+          </div>
+        </div>
+      </div>
+    </div>,
+    document.body
+  );
+}
+
+/* ── การ์ดในใบลูกค้า/ใบงาน ── แถวละเวอร์ชันแบบ 3D · แตะ = เปิดห้องของแบบนั้น (ตัวแก้เปิดเองผ่าน portal ไม่ต้องต่อสายที่ app) */
+function ErRoomCard({ job, p3List, canEdit }) {
+  const [open, setOpen] = React.useState(null);
+  const list = (p3List && p3List.length ? p3List : [{ id: "1", name: "ต้นแบบ" }]);
+  const many = list.length > 1;
+  return (
+    <div className="dvc">
+      <div className="dvc-hd">
+        <span className="dvc-ic" style={{ background: "color-mix(in srgb,#0EA5E9 13%,transparent)" }}><Icon name="power" size={16} color="#0EA5E9" /></span>
+        <span style={{ flex: 1, minWidth: 0 }}>
+          <span className="dvc-t">ห้องอุปกรณ์ 3D</span>
+          <span className="dvc-s">ตู้ MDB · ตู้ AC/DC · อินเวอร์เตอร์บนราง — สร้างจากการออกแบบระบบของแบบ 3D</span>
+        </span>
+      </div>
+      <div className="dvc-list">
+        {list.map((v) => (
+          <div key={v.id} className="dvc-row" role="button" tabIndex={0} onClick={() => setOpen(v.id)}
+            onKeyDown={(e) => { if (e.key === "Enter") setOpen(v.id); }}>
+            <span style={{ flex: 1, minWidth: 0 }}>
+              <span style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                <span className="dvc-no">V{v.id}</span>
+                <span className="dvc-nm">{many ? "ห้องอุปกรณ์ · " + v.name : "ห้องอุปกรณ์"}</span>
+              </span>
+              <span className="dvc-mt">จากแบบ 3D {v.name}{v.sum && v.sum.kwp ? " · " + v.sum.kwp + " kWp" : ""}</span>
+            </span>
+            <Icon name="arrowRight" size={15} color="var(--text-3)" />
+          </div>
+        ))}
+      </div>
+      {open && <ErRoomStudio job={job} ver={open} canEdit={canEdit} onClose={() => setOpen(null)} />}
+    </div>
+  );
+}
+
+Object.assign(window, { ER_DEF, erInvDim, erInvSpec, erModel, erGBox, erSnap, erLayout, erBuild3D, ErRoomView, ErRoomStudio, ErRoomCard });

@@ -621,7 +621,11 @@ function App() {
       effEuro: s.invEffEuro,
       vStart: s.vStart,
       vRated: s.vRated,
-      maxAcKw: s.invMaxAcKw
+      maxAcKw: s.invMaxAcKw,
+      dimW: s.invDimW,
+      dimH: s.invDimH,
+      dimD: s.invDimD,
+      mount: s.invMount
     })));
     if (window.BOQ.setOptimizers) window.BOQ.setOptimizers((stock.items || []).filter(s => window.SF.isOptimizerCat(s.cat) && s.name).map(s => ({
       model: s.name,

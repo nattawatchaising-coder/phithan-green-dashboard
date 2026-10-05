@@ -2987,7 +2987,60 @@ function ItemModal({
     value: f.invOutA != null ? f.invOutA : "",
     onChange: e => set("invOutA", parseFloat(e.target.value) || 0),
     placeholder: "25 / 16.9"
-  }))), (f.invType === "string" || f.invType === "hybrid") && React.createElement("div", {
+  }))), React.createElement("div", {
+    style: {
+      marginTop: 12,
+      paddingTop: 12,
+      borderTop: "1px dashed var(--border-strong)"
+    }
+  }, React.createElement("div", {
+    style: {
+      fontSize: 11,
+      fontWeight: 700,
+      color: "var(--text-2)",
+      marginBottom: 8
+    }
+  }, "\u0E02\u0E19\u0E32\u0E14\u0E15\u0E31\u0E27\u0E40\u0E04\u0E23\u0E37\u0E48\u0E2D\u0E07 (\u0E43\u0E0A\u0E49\u0E27\u0E32\u0E14\u0E2B\u0E49\u0E2D\u0E07\u0E2D\u0E38\u0E1B\u0E01\u0E23\u0E13\u0E4C 3D \xB7 \u0E14\u0E39\u0E08\u0E32\u0E01\u0E14\u0E32\u0E15\u0E49\u0E32\u0E0A\u0E35\u0E15)"), React.createElement("div", {
+    style: {
+      display: "grid",
+      gridTemplateColumns: isMobile ? "1fr 1fr" : "repeat(4, 1fr)",
+      gap: 12
+    }
+  }, React.createElement(Field, {
+    label: "\u0E01\u0E27\u0E49\u0E32\u0E07 (\u0E21\u0E21.)"
+  }, React.createElement("input", {
+    type: "number",
+    style: inputStyle,
+    value: f.invDimW || "",
+    onChange: e => set("invDimW", parseFloat(e.target.value) || 0),
+    placeholder: "640"
+  })), React.createElement(Field, {
+    label: "\u0E2A\u0E39\u0E07 (\u0E21\u0E21.)"
+  }, React.createElement("input", {
+    type: "number",
+    style: inputStyle,
+    value: f.invDimH || "",
+    onChange: e => set("invDimH", parseFloat(e.target.value) || 0),
+    placeholder: "530"
+  })), React.createElement(Field, {
+    label: "\u0E25\u0E36\u0E01 (\u0E21\u0E21.)"
+  }, React.createElement("input", {
+    type: "number",
+    style: inputStyle,
+    value: f.invDimD || "",
+    onChange: e => set("invDimD", parseFloat(e.target.value) || 0),
+    placeholder: "270"
+  })), React.createElement(Field, {
+    label: "\u0E01\u0E32\u0E23\u0E15\u0E34\u0E14\u0E15\u0E31\u0E49\u0E07"
+  }, React.createElement("select", {
+    style: inputStyle,
+    value: f.invMount || "",
+    onChange: e => set("invMount", e.target.value)
+  }, React.createElement("option", {
+    value: ""
+  }, "\u0E15\u0E34\u0E14\u0E1C\u0E19\u0E31\u0E07 / \u0E23\u0E32\u0E07"), React.createElement("option", {
+    value: "floor"
+  }, "\u0E15\u0E31\u0E49\u0E07\u0E1E\u0E37\u0E49\u0E19 (\u0E15\u0E39\u0E49)"))))), (f.invType === "string" || f.invType === "hybrid") && React.createElement("div", {
     style: {
       marginTop: 12,
       paddingTop: 12,

@@ -1115,6 +1115,21 @@ function ItemModal({ initial, isNew, items, onSave, onClose, onAddCat, onRemoveC
                 <Field label="อินพุตต่อ 1 ช่อง MPPT"><input type="number" style={inputStyle} value={f.invStrPerMppt != null ? f.invStrPerMppt : ""} onChange={(e) => set("invStrPerMppt", parseInt(e.target.value) || 0)} placeholder="2" /></Field>
                 <Field label="กระแสออก (A)"><input type="number" style={inputStyle} value={f.invOutA != null ? f.invOutA : ""} onChange={(e) => set("invOutA", parseFloat(e.target.value) || 0)} placeholder="25 / 16.9" /></Field>
               </div>
+              {/* ขนาดตัวเครื่อง — ห้องอุปกรณ์ 3D (eroom.jsx) วาดตามนี้ · ไม่กรอก = ประมาณจาก kW */}
+              <div style={{ marginTop: 12, paddingTop: 12, borderTop: "1px dashed var(--border-strong)" }}>
+                <div style={{ fontSize: 11, fontWeight: 700, color: "var(--text-2)", marginBottom: 8 }}>ขนาดตัวเครื่อง (ใช้วาดห้องอุปกรณ์ 3D · ดูจากดาต้าชีต)</div>
+                <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr 1fr" : "repeat(4, 1fr)", gap: 12 }}>
+                  <Field label="กว้าง (มม.)"><input type="number" style={inputStyle} value={f.invDimW || ""} onChange={(e) => set("invDimW", parseFloat(e.target.value) || 0)} placeholder="640" /></Field>
+                  <Field label="สูง (มม.)"><input type="number" style={inputStyle} value={f.invDimH || ""} onChange={(e) => set("invDimH", parseFloat(e.target.value) || 0)} placeholder="530" /></Field>
+                  <Field label="ลึก (มม.)"><input type="number" style={inputStyle} value={f.invDimD || ""} onChange={(e) => set("invDimD", parseFloat(e.target.value) || 0)} placeholder="270" /></Field>
+                  <Field label="การติดตั้ง">
+                    <select style={inputStyle} value={f.invMount || ""} onChange={(e) => set("invMount", e.target.value)}>
+                      <option value="">ติดผนัง / ราง</option>
+                      <option value="floor">ตั้งพื้น (ตู้)</option>
+                    </select>
+                  </Field>
+                </div>
+              </div>
               {(f.invType === "string" || f.invType === "hybrid") && (
                 <div style={{ marginTop: 12, paddingTop: 12, borderTop: "1px dashed var(--border-strong)" }}>
                   <div style={{ fontSize: 11, fontWeight: 700, color: "var(--text-2)", marginBottom: 8 }}>ช่วงแรงดัน DC / MPPT (สำหรับคำนวณ String)</div>

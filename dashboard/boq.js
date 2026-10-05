@@ -2465,6 +2465,9 @@
       if (+p.strPerMppt > 0) row.strPerMppt = Math.round(+p.strPerMppt);
       if (+p.eff > 0) row.eff = +p.eff;
       if (+p.effEuro > 0) row.effEuro = +p.effEuro;
+      /* ขนาดตัวเครื่อง (มม.) + ตั้งพื้น — ห้องอุปกรณ์ 3D (eroom.jsx) */
+      if (+p.dimW > 0 && +p.dimH > 0) row.dim = { w: +p.dimW, h: +p.dimH, d: +p.dimD || 250 };
+      if (p.mount === "floor") row.mount = "floor";
     });
     INVERTERS.length = 0;
     out.forEach((x) => INVERTERS.push(x));

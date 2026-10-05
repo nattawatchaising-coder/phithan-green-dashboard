@@ -335,6 +335,7 @@ function movePlan3d(fromId, toId) {
         .then(() => mv("plan3dVers/" + fromId, "plan3dVers/" + toId));
     }).catch(() => null),
     mv("boqVers/" + fromId, "boqVers/" + toId),
+    mv("eroom/" + fromId, "eroom/" + toId),   // ห้องอุปกรณ์ 3D (eroom.jsx) ตั้งค่าต่อเวอร์ชันแบบ
   ]);
 }
 
