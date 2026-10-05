@@ -603,8 +603,14 @@ function pgTimeFix(raw, min, max) {
   if (h > 23) { h = 23; m = 59; }
   const p2 = (x) => (x < 10 ? "0" : "") + x;
   let out = p2(Math.max(0, h)) + ":" + p2(Math.max(0, Math.min(59, m)));
-  if (min && out < min) out = min;
-  if (max && out > max) out = max;
+  if (min && max && max < min) {
+    /* ช่วงข้ามเที่ยงคืน เช่น ลงเวลา 08:30 ถึง 02:00 — 22:00 ก็อยู่ในช่วง
+       เดิมบีบด้วย min/max ตรง ๆ ทุกค่ากลายเป็น 02:00 ขอ OT ข้ามคืนไม่ได้ */
+    if (out < min && out > max) out = max;
+  } else {
+    if (min && out < min) out = min;
+    if (max && out > max) out = max;
+  }
   return out;
 }
 function PgTime({ value, onChange, disabled, min, max, style, placeholder, ariaLabel }) {

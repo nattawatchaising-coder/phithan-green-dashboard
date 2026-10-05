@@ -986,8 +986,12 @@ function pgTimeFix(raw, min, max) {
   }
   const p2 = x => (x < 10 ? "0" : "") + x;
   let out = p2(Math.max(0, h)) + ":" + p2(Math.max(0, Math.min(59, m)));
-  if (min && out < min) out = min;
-  if (max && out > max) out = max;
+  if (min && max && max < min) {
+    if (out < min && out > max) out = max;
+  } else {
+    if (min && out < min) out = min;
+    if (max && out > max) out = max;
+  }
   return out;
 }
 function PgTime({

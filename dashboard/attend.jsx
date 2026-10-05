@@ -359,6 +359,23 @@ function tmLastHM(rec, nowHM) {
   return (rec.out && rec.out.hm) || nowHM || "";
 }
 
+/* ── กะข้ามเที่ยงคืน ──
+   ทำ OT 22:00 ถึง 02:00 แล้วกดออกตอนตีสอง — วันที่ในเครื่องเปลี่ยนไปแล้ว เดิมระบบจึงไปหาใบ "วันใหม่"
+   ซึ่งยังไม่มีเวลาเข้า กดออกไม่ได้ ใบเมื่อวานค้างเปิด และขอ OT ช่วงหลังเที่ยงคืนไม่ได้
+   ก่อน TM_NIGHT_CUT ถ้าวันนี้ยังไม่ได้ลงเวลาเข้า แต่ใบเมื่อวานยังเปิดอยู่ (หรือเพิ่งปิดหลังเที่ยงคืน)
+   ถือว่ายังอยู่ในวันทำงานของเมื่อวาน — กดออก/แก้เวลาออก/ขอ OT ลงใบเมื่อวาน
+   หลัง 06:00 ไม่โยง เพราะนั่นคือ "ลืมกดออก" ไม่ใช่ทำงานข้ามคืน (มีเตือน 18:00 อยู่แล้ว) */
+const TM_NIGHT_CUT = "06:00";
+function tmCarryOver(todayRec, yestRec, nowHM) {
+  if ((nowHM || tmNowHM()) >= TM_NIGHT_CUT) return false;
+  if (todayRec && todayRec.in && todayRec.in.hm) return false;
+  if (!yestRec || !yestRec.in || !yestRec.in.hm) return false;
+  if (tmOpen(yestRec)) return true;
+  const last = tmLastHM(yestRec);
+  /* เวลาออกน้อยกว่าเวลาเข้า = ปิดหลังเที่ยงคืน */
+  return !!last && last < yestRec.in.hm && last < TM_NIGHT_CUT;
+}
+
 /* ── OT ที่ "ทำไปแล้วจริง" ของวันนั้น ตามใบลงเวลา ──
    คืนเป็นช่วงเวลา ไม่ใช่แค่จำนวนนาที เพราะฟอร์มขอ OT ต้องเอาไปล็อกไม่ให้ขอเกินที่ทำจริง
    ระบบ **ไม่เปิดใบให้เอง** — ทำเกินเวลาแล้วจะขอหรือไม่ขอเป็นสิทธิ์ของเจ้าตัว
@@ -716,7 +733,11 @@ function useAttend(userId, days) {
     return () => ref.off("value", h);
   }, [userId, n]);
 
-  return { rows, loading, today: rows.find((r) => r.date === window.drToday()) || null };
+  /* ก่อน 06:00 "วันนี้" อาจเป็นใบเมื่อวานที่กะยังไม่จบ (ทำ OT ข้ามเที่ยงคืน) — ดู tmCarryOver */
+  const td = window.drToday(), yd = window.drAddDays(td, -1);
+  const t = rows.find((r) => r.date === td) || null;
+  const y = rows.find((r) => r.date === yd) || null;
+  return { rows, loading, today: tmCarryOver(t, y) ? y : t };
 }
 
 /* แผ่นเวลารายวันของทั้งบริษัท — อ่านจากดัชนีเบา ไม่ใช่ต้นไม้ใบเต็ม */
@@ -744,7 +765,7 @@ function useAttendWriter(user, cfg) {
   const punch = React.useCallback(async (which, opt) => {
     if (!uid || !_TMFB()) return { ok: false, why: "ยังเชื่อมต่อฐานข้อมูลไม่ได้" };
     const o = opt || {};
-    const date = window.drToday();
+    let date = window.drToday();
     const gps = o.skipGps ? { err: "skipped" } : await window.captureGps();
     const p = tmPunch(gps, o.src || "web", o.place);
 
@@ -755,7 +776,15 @@ function useAttendWriter(user, cfg) {
     }
 
     const snap = await _tmRef("attend/" + uid + "/" + date).once("value").catch(() => null);
-    const cur = (snap && snap.val()) || tmAttendBlank(user, date);
+    let have = (snap && snap.val()) || null;
+    /* กะข้ามเที่ยงคืน — ก่อน 06:00 ลงใบเมื่อวานถ้ากะเมื่อวานยังเปิดอยู่ (tmCarryOver) */
+    if (tmNowHM() < TM_NIGHT_CUT) {
+      const yd = window.drAddDays(date, -1);
+      const ys = await _tmRef("attend/" + uid + "/" + yd).once("value").catch(() => null);
+      const yv = (ys && ys.val()) || null;
+      if (tmCarryOver(have, yv ? Object.assign({ date: yd }, yv) : null)) { date = yd; have = yv; }
+    }
+    const cur = have || tmAttendBlank(user, date);
     const rec = Object.assign({}, tmAttendBlank(user, date), cur);
 
     if (which === "in") {
@@ -1014,7 +1043,7 @@ function tmMonthRollup(byDate, users, cfg, otRows, ym) {
 Object.assign(window, { tmNameOf,
   tmNotify,
   TM_ROOT, TM_WH_DEFAULT, TM_OT_KIND, TM_OT_STATUS, TM_PLACE,
-  tmHM, tmHHMM, tmNowHM, tmSpanMins, tmDur, tmWhNorm, tmIsHoliday, tmIsWorkday,
+  tmHM, tmHHMM, tmNowHM, tmSpanMins, TM_NIGHT_CUT, tmCarryOver, tmDur, tmWhNorm, tmIsHoliday, tmIsWorkday,
   tmOtKindOf, tmOtKindGuess, tmOtMinutes, tmDayWindow, tmOtEarned, tmOtInLimit, tmLastHM,
   tmOtRate, tmOtPayMins, tmRateTH,
   tmWorkedMins, tmOpen, tmAttendBlank, tmPunch, tmDayIndex, tmPlaceOf,

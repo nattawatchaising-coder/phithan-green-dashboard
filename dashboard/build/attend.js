@@ -283,6 +283,15 @@ function tmLastHM(rec, nowHM) {
   if (last && last.in && last.in.hm) return last.out && last.out.hm || nowHM || "";
   return rec.out && rec.out.hm || nowHM || "";
 }
+const TM_NIGHT_CUT = "06:00";
+function tmCarryOver(todayRec, yestRec, nowHM) {
+  if ((nowHM || tmNowHM()) >= TM_NIGHT_CUT) return false;
+  if (todayRec && todayRec.in && todayRec.in.hm) return false;
+  if (!yestRec || !yestRec.in || !yestRec.in.hm) return false;
+  if (tmOpen(yestRec)) return true;
+  const last = tmLastHM(yestRec);
+  return !!last && last < yestRec.in.hm && last < TM_NIGHT_CUT;
+}
 function tmOtEarned(rec, cfg, nowHM) {
   const c = tmWhNorm(cfg);
   const none = {
@@ -656,10 +665,14 @@ function useAttend(userId, days) {
     }, () => setLoading(false));
     return () => ref.off("value", h);
   }, [userId, n]);
+  const td = window.drToday(),
+    yd = window.drAddDays(td, -1);
+  const t = rows.find(r => r.date === td) || null;
+  const y = rows.find(r => r.date === yd) || null;
   return {
     rows,
     loading,
-    today: rows.find(r => r.date === window.drToday()) || null
+    today: tmCarryOver(t, y) ? y : t
   };
 }
 function useAttendDay(dateISO) {
@@ -696,7 +709,7 @@ function useAttendWriter(user, cfg) {
       why: "ยังเชื่อมต่อฐานข้อมูลไม่ได้"
     };
     const o = opt || {};
-    const date = window.drToday();
+    let date = window.drToday();
     const gps = o.skipGps ? {
       err: "skipped"
     } : await window.captureGps();
@@ -709,7 +722,19 @@ function useAttendWriter(user, cfg) {
       };
     }
     const snap = await _tmRef("attend/" + uid + "/" + date).once("value").catch(() => null);
-    const cur = snap && snap.val() || tmAttendBlank(user, date);
+    let have = snap && snap.val() || null;
+    if (tmNowHM() < TM_NIGHT_CUT) {
+      const yd = window.drAddDays(date, -1);
+      const ys = await _tmRef("attend/" + uid + "/" + yd).once("value").catch(() => null);
+      const yv = ys && ys.val() || null;
+      if (tmCarryOver(have, yv ? Object.assign({
+        date: yd
+      }, yv) : null)) {
+        date = yd;
+        have = yv;
+      }
+    }
+    const cur = have || tmAttendBlank(user, date);
     const rec = Object.assign({}, tmAttendBlank(user, date), cur);
     if (which === "in") {
       if (tmOpen(rec)) return {
@@ -1015,6 +1040,8 @@ Object.assign(window, {
   tmHHMM,
   tmNowHM,
   tmSpanMins,
+  TM_NIGHT_CUT,
+  tmCarryOver,
   tmDur,
   tmWhNorm,
   tmIsHoliday,
