@@ -498,8 +498,8 @@ function OvHero({ me, jobs, quotes, leads, showValue }) {
       </div>
       <div className="ov-hero-figs">
         {fig(jobN, "งานติดตั้ง")}
-        {showValue && fig(valN, "มูลค่า ล้านบาท")}
         {fig(mwN, "กำลังผลิต MW")}
+        {showValue && fig(valN, "มูลค่า ล้านบาท")}
       </div>
     </div>
   );

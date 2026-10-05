@@ -1123,7 +1123,7 @@ function OvHero({
     className: "ov-hero-tx"
   }, React.createElement("h2", null, greet, me && me.name ? " คุณ" + me.name : ""), React.createElement("p", null, window.drDateTH ? window.drDateTH(today) : today, " \xB7 \u0E23\u0E30\u0E1A\u0E1A\u0E1A\u0E23\u0E34\u0E2B\u0E32\u0E23\u0E07\u0E32\u0E19\u0E15\u0E34\u0E14\u0E15\u0E31\u0E49\u0E07 flash+solar")), React.createElement("div", {
     className: "ov-hero-figs"
-  }, fig(jobN, "งานติดตั้ง"), showValue && fig(valN, "มูลค่า ล้านบาท"), fig(mwN, "กำลังผลิต MW")));
+  }, fig(jobN, "งานติดตั้ง"), fig(mwN, "กำลังผลิต MW"), showValue && fig(valN, "มูลค่า ล้านบาท")));
 }
 function OvDayModal({
   date,
