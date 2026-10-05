@@ -121,16 +121,22 @@ function LnLvForm({
   }, React.createElement("div", {
     style: {
       display: "flex",
-      gap: 7,
-      flexWrap: "wrap"
+      gap: 5,
+      flexWrap: "nowrap",
+      overflowX: "auto",
+      scrollbarWidth: "none"
     }
   }, bal.filter(b => b.quota !== 0).map(b => React.createElement("button", {
     key: b.type.key,
     onClick: () => set("type", b.type.key),
-    style: lnChip(f.type === b.type.key, b.type.color)
+    style: Object.assign(lnChip(f.type === b.type.key, b.type.color), {
+      padding: "8px 9px",
+      fontSize: 12.5,
+      flexShrink: 0
+    })
   }, b.type.th, React.createElement("span", {
     style: {
-      marginLeft: 5,
+      marginLeft: 4,
       fontFamily: "var(--mono)",
       fontSize: 11,
       opacity: .8
@@ -205,7 +211,8 @@ function LnLvForm({
       lineHeight: 1.6
     })
   })), React.createElement(LnField, {
-    label: "\u0E2A\u0E48\u0E07\u0E43\u0E2B\u0E49\u0E43\u0E04\u0E23\u0E2D\u0E19\u0E38\u0E21\u0E31\u0E15\u0E34"
+    label: "\u0E1C\u0E39\u0E49\u0E2D\u0E19\u0E38\u0E21\u0E31\u0E15\u0E34",
+    req: true
   }, React.createElement("select", {
     value: f.approverId || "",
     style: LN_FIELD,
@@ -217,8 +224,9 @@ function LnLvForm({
       }));
     }
   }, React.createElement("option", {
-    value: ""
-  }, "\u2014 \u0E43\u0E04\u0E23\u0E01\u0E47\u0E44\u0E14\u0E49\u0E17\u0E35\u0E48\u0E21\u0E35\u0E2A\u0E34\u0E17\u0E18\u0E34\u0E4C\u0E2D\u0E19\u0E38\u0E21\u0E31\u0E15\u0E34 \u2014"), approvers.map(u => React.createElement("option", {
+    value: "",
+    disabled: true
+  }, "\u2014 \u0E40\u0E25\u0E37\u0E2D\u0E01\u0E1C\u0E39\u0E49\u0E2D\u0E19\u0E38\u0E21\u0E31\u0E15\u0E34 \u2014"), approvers.map(u => React.createElement("option", {
     key: u.id,
     value: u.id
   }, u.name)))), f.type && React.createElement("div", {

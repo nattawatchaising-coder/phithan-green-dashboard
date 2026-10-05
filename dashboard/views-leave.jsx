@@ -62,7 +62,8 @@ function LvModal({ rec, cfg, types, users, rows, quota, role, currentUser, onSav
   if (!f) return null;
 
   const mine = currentUser && f.userId === currentUser.id;
-  const editable = mine && f.status === "draft";
+  /* ยื่นใบลาได้ทางไลน์อย่างเดียว (ผู้ใช้ขอ) — บนเว็บไม่มีการแก้ใบ เจ้าของยกเลิกได้อย่างเดียว */
+  const editable = false;
   const set = (k, v) => setF((p) => {
     const n = Object.assign({}, p, { [k]: v });
     if (k === "from" && (!n.to || n.to < v)) n.to = v;
@@ -72,7 +73,8 @@ function LvModal({ rec, cfg, types, users, rows, quota, role, currentUser, onSav
   });
   const bal = window.lvBalance(rows, quota, f.userId, window.lvYearOf(f.from), types);
   const why = window.lvSendWhy(f, bal);
-  const nexts = window.lvNext(f, role, currentUser).filter((s) => s.key !== "sent" || !why);
+  /* ไม่มี "ส่ง" และ "ตีกลับให้แก้" บนเว็บ — ใบร่างแก้ในไลน์ไม่ได้ ตีกลับแล้วจะค้าง ให้ไม่อนุมัติพร้อมเหตุผลแทน */
+  const nexts = window.lvNext(f, role, currentUser).filter((s) => s.key !== "sent" && s.key !== "draft");
   const apprWhy = window.lvApproveCheck(f, currentUser, role).why;
   const one = f.from === (f.to || f.from);
   /* ประเภทที่เลือกได้ = มียอด (หรือไม่จำกัด) — ลาคลอดที่ยอด 0 ไม่ต้องขึ้นให้ทุกคน */
@@ -158,10 +160,10 @@ function LvModal({ rec, cfg, types, users, rows, quota, role, currentUser, onSav
                 const u = (users || []).find((x) => x.id === e.target.value);
                 setF((p) => Object.assign({}, p, { approverId: u ? u.id : null, approverName: u ? u.name : "" }));
               }}>
-              <option value="">— ใครก็ได้ที่มีสิทธิ์อนุมัติ —</option>
+              <option value="">— เลือกผู้อนุมัติ —</option>
               {window.lvApprovers(users, { id: f.userId }).map((u) => <option key={u.id} value={u.id}>{u.name}</option>)}
             </select>
-          ) : <span style={{ fontSize: 12.5, fontWeight: 700, color: "var(--text-1)" }}>{f.approverName || "ใครก็ได้ที่มีสิทธิ์"}</span>}
+          ) : <span style={{ fontSize: 12.5, fontWeight: 700, color: "var(--text-1)" }}>{f.approverName || "—"}</span>}
         </label>
 
         {f.decidedAt && (
@@ -374,10 +376,6 @@ function LeaveTab({ users, role, currentUser, cfg }) {
     return out;
   }, [sub, visible, waiting, uid, year, q, types]);
 
-  const openNew = () => {
-    const rec = window.lvBlank(currentUser, users, lv.rows, cfg);
-    lv.save(rec); setOpen(rec.id); setSub("mine");
-  };
   const move = (rec, to, note) => {
     const next = window.lvMove(Object.assign({}, rec, { days: window.lvCountDays(rec.from, rec.to, rec.part, cfg) }), to, currentUser, note || "");
     if (!next) return;
@@ -402,10 +400,9 @@ function LeaveTab({ users, role, currentUser, cfg }) {
           <span style={{ fontFamily: "var(--mono)", fontSize: 13, fontWeight: 800, minWidth: 56, textAlign: "center" }}>ปี {year + 543}</span>
           <button onClick={() => setYear(year + 1)} style={lvBtn(false)}>›</button>
         </div>
-        <button onClick={openNew} disabled={!can} style={Object.assign(lvBtn(can), { marginLeft: "auto", opacity: can ? 1 : .5 })}>
-          <Icon name="plus" size={14} color={can ? "#fff" : "var(--text-3)"} /> ขอลา
-        </button>
-        <span style={{ fontSize: 11.5, color: "var(--text-3)" }}>ขอลาจากแอปในไลน์ได้เหมือนกัน (แท็บเวลา → การลา)</span>
+        {can && <span style={{ marginLeft: "auto", fontSize: 12, color: "var(--text-3)", fontWeight: 700 }}>
+          ยื่นใบลาได้ทางแอปไลน์เท่านั้น — ปุ่ม "ขอลา" ที่เมนูล่าง หรือแท็บเวลา → การลา
+        </span>}
       </div>
 
       <LvBalanceCards bal={myBal} />

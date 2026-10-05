@@ -69,11 +69,13 @@ function LnLvForm({ me, users, rows, quota, types, cfg, onSave, onClose }) {
       <LnSheetHead title="ขอลา" no={f.no} onClose={onClose} />
       <div style={{ padding: "4px 16px 24px", display: "grid", gap: 14 }}>
         <LnField label="ประเภทการลา" req>
-          <div style={{ display: "flex", gap: 7, flexWrap: "wrap" }}>
+          {/* แถวเดียวเสมอ (ผู้ใช้ขอ) — ชิปเล็กลง ไม่พอก็เลื่อนข้าง ไม่ตกบรรทัด */}
+          <div style={{ display: "flex", gap: 5, flexWrap: "nowrap", overflowX: "auto", scrollbarWidth: "none" }}>
             {bal.filter((b) => b.quota !== 0).map((b) => (
-              <button key={b.type.key} onClick={() => set("type", b.type.key)} style={lnChip(f.type === b.type.key, b.type.color)}>
+              <button key={b.type.key} onClick={() => set("type", b.type.key)}
+                style={Object.assign(lnChip(f.type === b.type.key, b.type.color), { padding: "8px 9px", fontSize: 12.5, flexShrink: 0 })}>
                 {b.type.th}
-                <span style={{ marginLeft: 5, fontFamily: "var(--mono)", fontSize: 11, opacity: .8 }}>
+                <span style={{ marginLeft: 4, fontFamily: "var(--mono)", fontSize: 11, opacity: .8 }}>
                   {b.left == null ? "∞" : Math.round(b.left * 10) / 10}
                 </span>
               </button>
@@ -109,13 +111,13 @@ function LnLvForm({ me, users, rows, quota, types, cfg, onSave, onClose }) {
             placeholder="เช่น ไม่สบาย มีไข้ · ไปทำธุระที่อำเภอ"
             style={Object.assign({}, LN_FIELD, { resize: "vertical", lineHeight: 1.6 })} />
         </LnField>
-        <LnField label="ส่งให้ใครอนุมัติ">
+        <LnField label="ผู้อนุมัติ" req>
           <select value={f.approverId || ""} style={LN_FIELD}
             onChange={(e) => {
               const u = approvers.find((x) => x.id === e.target.value);
               setF((p) => Object.assign({}, p, { approverId: u ? u.id : null, approverName: u ? u.name : "" }));
             }}>
-            <option value="">— ใครก็ได้ที่มีสิทธิ์อนุมัติ —</option>
+            <option value="" disabled>— เลือกผู้อนุมัติ —</option>
             {approvers.map((u) => <option key={u.id} value={u.id}>{u.name}</option>)}
           </select>
         </LnField>

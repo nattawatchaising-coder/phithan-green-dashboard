@@ -128,7 +128,7 @@ function LvModal({
   const box = window.useBackdropClose ? window.useBackdropClose(onClose) : {};
   if (!f) return null;
   const mine = currentUser && f.userId === currentUser.id;
-  const editable = mine && f.status === "draft";
+  const editable = false;
   const set = (k, v) => setF(p => {
     const n = Object.assign({}, p, {
       [k]: v
@@ -140,7 +140,7 @@ function LvModal({
   });
   const bal = window.lvBalance(rows, quota, f.userId, window.lvYearOf(f.from), types);
   const why = window.lvSendWhy(f, bal);
-  const nexts = window.lvNext(f, role, currentUser).filter(s => s.key !== "sent" || !why);
+  const nexts = window.lvNext(f, role, currentUser).filter(s => s.key !== "sent" && s.key !== "draft");
   const apprWhy = window.lvApproveCheck(f, currentUser, role).why;
   const one = f.from === (f.to || f.from);
   const pickable = bal.filter(b => b.quota !== 0 || b.type.key === f.type);
@@ -360,7 +360,7 @@ function LvModal({
     }
   }, React.createElement("option", {
     value: ""
-  }, "\u2014 \u0E43\u0E04\u0E23\u0E01\u0E47\u0E44\u0E14\u0E49\u0E17\u0E35\u0E48\u0E21\u0E35\u0E2A\u0E34\u0E17\u0E18\u0E34\u0E4C\u0E2D\u0E19\u0E38\u0E21\u0E31\u0E15\u0E34 \u2014"), window.lvApprovers(users, {
+  }, "\u2014 \u0E40\u0E25\u0E37\u0E2D\u0E01\u0E1C\u0E39\u0E49\u0E2D\u0E19\u0E38\u0E21\u0E31\u0E15\u0E34 \u2014"), window.lvApprovers(users, {
     id: f.userId
   }).map(u => React.createElement("option", {
     key: u.id,
@@ -371,7 +371,7 @@ function LvModal({
       fontWeight: 700,
       color: "var(--text-1)"
     }
-  }, f.approverName || "ใครก็ได้ที่มีสิทธิ์")), f.decidedAt && React.createElement("div", {
+  }, f.approverName || "—")), f.decidedAt && React.createElement("div", {
     style: {
       marginTop: 10,
       padding: "10px 12px",
@@ -838,12 +838,6 @@ function LeaveTab({
     if (kw) out = out.filter(r => [r.no, r.userName, r.reason, window.lvTypeOf(types, r.type).th].some(v => String(v || "").toLowerCase().includes(kw)));
     return out;
   }, [sub, visible, waiting, uid, year, q, types]);
-  const openNew = () => {
-    const rec = window.lvBlank(currentUser, users, lv.rows, cfg);
-    lv.save(rec);
-    setOpen(rec.id);
-    setSub("mine");
-  };
   const move = (rec, to, note) => {
     const next = window.lvMove(Object.assign({}, rec, {
       days: window.lvCountDays(rec.from, rec.to, rec.part, cfg)
@@ -894,23 +888,14 @@ function LeaveTab({
   }, "\u0E1B\u0E35 ", year + 543), React.createElement("button", {
     onClick: () => setYear(year + 1),
     style: lvBtn(false)
-  }, "\u203A")), React.createElement("button", {
-    onClick: openNew,
-    disabled: !can,
-    style: Object.assign(lvBtn(can), {
-      marginLeft: "auto",
-      opacity: can ? 1 : .5
-    })
-  }, React.createElement(Icon, {
-    name: "plus",
-    size: 14,
-    color: can ? "#fff" : "var(--text-3)"
-  }), " \u0E02\u0E2D\u0E25\u0E32"), React.createElement("span", {
+  }, "\u203A")), can && React.createElement("span", {
     style: {
-      fontSize: 11.5,
-      color: "var(--text-3)"
+      marginLeft: "auto",
+      fontSize: 12,
+      color: "var(--text-3)",
+      fontWeight: 700
     }
-  }, "\u0E02\u0E2D\u0E25\u0E32\u0E08\u0E32\u0E01\u0E41\u0E2D\u0E1B\u0E43\u0E19\u0E44\u0E25\u0E19\u0E4C\u0E44\u0E14\u0E49\u0E40\u0E2B\u0E21\u0E37\u0E2D\u0E19\u0E01\u0E31\u0E19 (\u0E41\u0E17\u0E47\u0E1A\u0E40\u0E27\u0E25\u0E32 \u2192 \u0E01\u0E32\u0E23\u0E25\u0E32)")), React.createElement(LvBalanceCards, {
+  }, "\u0E22\u0E37\u0E48\u0E19\u0E43\u0E1A\u0E25\u0E32\u0E44\u0E14\u0E49\u0E17\u0E32\u0E07\u0E41\u0E2D\u0E1B\u0E44\u0E25\u0E19\u0E4C\u0E40\u0E17\u0E48\u0E32\u0E19\u0E31\u0E49\u0E19 \u2014 \u0E1B\u0E38\u0E48\u0E21 \"\u0E02\u0E2D\u0E25\u0E32\" \u0E17\u0E35\u0E48\u0E40\u0E21\u0E19\u0E39\u0E25\u0E48\u0E32\u0E07 \u0E2B\u0E23\u0E37\u0E2D\u0E41\u0E17\u0E47\u0E1A\u0E40\u0E27\u0E25\u0E32 \u2192 \u0E01\u0E32\u0E23\u0E25\u0E32")), React.createElement(LvBalanceCards, {
     bal: myBal
   }), React.createElement("div", {
     style: {

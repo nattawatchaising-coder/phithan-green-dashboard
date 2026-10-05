@@ -134,6 +134,7 @@ function lvSendWhy(f, bal) {
   if ((f.to || f.from) < f.from) return "วันสิ้นสุดต้องไม่ก่อนวันเริ่ม";
   if (!(+f.days > 0)) return "ช่วงนี้ไม่มีวันทำงาน — ไม่ต้องลา";
   if (!String(f.reason || "").trim()) return "กรอกเหตุผลการลา";
+  if (!f.approverId) return "เลือกผู้อนุมัติ";
   const b = (bal || []).find(x => x.type.key === f.type);
   if (b) {
     const lead = lvLeadDays(f.from);
