@@ -938,6 +938,8 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
   const walk3d = React.useMemo(() => (window.BOQ.walkFromPlan ? window.BOQ.walkFromPlan(plan3d) : null), [plan3d]);
   const walk3dHas = ((b.struct || {}).walkway || []).filter((r) => r.p3);
   const walk3dSame = !!walk3d && JSON.stringify(walk3dHas.map((r) => +r.len)) === JSON.stringify(walk3d.rows.map((r) => r.len));
+  // งานบ้านปกติไม่มีหัวข้อโครงสร้าง — แต่ถ้าแบบ 3D วาดทางเดินไว้ ให้มีหัวข้อนี้เฉพาะส่วน WALKWAY
+  const walkHome = isHome && (!!walk3d || walk3dHas.length > 0);
   const applyWalk3d = (drop) => setB((p) => {
     const s = Object.assign({}, STRUCT_DEF, p.struct);
     s.walkway = (s.walkway || []).filter((r) => !r.p3).concat(!drop && walk3d ? walk3d.rows.map((r) => ({ len: r.len, p3: 1 })) : []);
@@ -2897,8 +2899,8 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
       meta: siteTotal > 0 ? "฿" + baht(siteTotal) : "ยังไม่ได้กรอก", tone: siteTotal > 0 ? "ok" : "" },
     !isHome ? { key: "support", icon: "box", title: "โครงสร้างรองรับอุปกรณ์",
       meta: sup.inv + sup.mdb > 0 ? "อินเวอร์เตอร์ " + sup.inv + " · ตู้ " + sup.mdb : "ยังไม่ได้ถอด", tone: sup.inv + sup.mdb > 0 ? "ok" : "" } : null,
-    !isHome ? { key: "struct", icon: "box", title: "งานเพิ่มเติม — โครงสร้าง",
-      meta: structRows > 0 ? "กรอกแล้ว " + structRows + " รายการ" : "บันได · ทางเดิน · ราวกันตก",
+    !isHome || walkHome ? { key: "struct", icon: "box", title: isHome ? "ทางเดิน (Walkway)" : "งานเพิ่มเติม — โครงสร้าง",
+      meta: isHome ? ((st.walkway || []).length > 0 ? "กรอกแล้ว " + (st.walkway || []).length + " แนว" : "มีทางเดินในแบบ 3D") : structRows > 0 ? "กรอกแล้ว " + structRows + " รายการ" : "บันได · ทางเดิน · ราวกันตก",
       tone: structRows > 0 ? "ok" : "" } : null,
     { key: "acc", icon: "box", title: "Accessories Allowance " + accPct + "%",
           meta: accAllow > 0 ? "฿" + baht(accAllow) + " (" + accPct + "% ของ ฿" + baht(accBase) + ")" : "ยังไม่มีราคาทุน",
@@ -4512,8 +4514,8 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
 
 
           {/* ── งานเพิ่มเติม (Input): โครงสร้างบนหลังคา — เฉพาะงานโครงการ ไม่แสดงงานบ้าน ── */}
-          {!isHome && (
-          <BoqSection title="งานเพิ่มเติม (Input) — โครงสร้าง" icon="box" {...secProps("struct")}
+          {(!isHome || walkHome) && (
+          <BoqSection title={isHome ? "ทางเดิน (Walkway)" : "งานเพิ่มเติม (Input) — โครงสร้าง"} icon="box" {...secProps("struct")}
             right={<span style={{ display: "inline-flex", alignItems: "center", gap: 9 }}>
               {structRows > 0 && <span style={{ fontSize: 12.5, fontWeight: 800, color: "var(--primary-dark)" }}>กรอกแล้ว {structRows} รายการ</span>}
               <button onClick={() => setAdvS((v) => !v)} style={{ display: "inline-flex", alignItems: "center", gap: 5, background: "var(--surface3)", color: "var(--text-2)", border: "none", boxShadow: "var(--shadow-sm)", borderRadius: 8, padding: "6px 11px", fontWeight: 700, fontSize: 12, cursor: "pointer", fontFamily: "inherit" }}><Icon name={advS ? "chevronDown" : "plus"} size={13} color="var(--text-2)" style={{ transform: advS ? "rotate(180deg)" : "none" }} /> {advS ? "ซ่อน" : "กรอกข้อมูล"}</button>
@@ -4553,9 +4555,9 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
             </div>
             {advS && (
               <div style={{ display: "flex", flexDirection: "column", gap: 14, marginTop: 14 }}>
-                <MeasBar kinds={["ladder", "walkway", "guardrail"]} />
-                <SteelSpecBlock st={st} setSteel={setSteel} />
-                {StructBlock({ kind: "ladder", label: "LADDER (บันไดลิง)", color: "#0D9488", addLabel: "เพิ่มจุด",
+                <MeasBar kinds={isHome ? ["walkway"] : ["ladder", "walkway", "guardrail"]} />
+                {!isHome && <SteelSpecBlock st={st} setSteel={setSteel} />}
+                {!isHome && StructBlock({ kind: "ladder", label: "LADDER (บันไดลิง)", color: "#0D9488", addLabel: "เพิ่มจุด",
                   cols: [{ k: "h", ph: "ความสูง (m)" }], blank: { h: "" },
                   spare: st.ladderSpare != null ? st.ladderSpare : 5, onSpare: (v) => setStructVal("ladderSpare", +v),
                   extraItems: st.ladderExtra || [],
@@ -4573,7 +4575,7 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock }) {
                   onExtraAdd: () => addStructExtra("walkway"),
                   onExtraChange: (i, k, v) => setStructExtra("walkway", i, k, v),
                   onExtraDel: (i) => delStructExtra("walkway", i) })}
-                {StructBlock({ kind: "guardrail", label: "GUARD RAIL", color: "#DB2777", addLabel: "เพิ่มจุด",
+                {!isHome && StructBlock({ kind: "guardrail", label: "GUARD RAIL", color: "#DB2777", addLabel: "เพิ่มจุด",
                   cols: [{ k: "len", ph: "ความยาว layout (m)" }, { k: "corners", ph: "จำนวนมุม" }], blank: { len: "", corners: "" },
                   spare: st.guardrailSpare != null ? st.guardrailSpare : 5, onSpare: (v) => setStructVal("guardrailSpare", +v),
                   extraItems: st.guardrailExtra || [],

@@ -2069,6 +2069,10 @@
 
     // งานเพิ่มเติม (Input) — LADDER / WALKWAY / GUARD RAIL (งานโครงการเท่านั้น ไม่นับงานบ้าน)
     if ((b.jobType || "") !== "home") calcStructures(b).forEach((g) => groups.push(g));
+    else if (b.struct && (b.struct.walkway || []).length) {           // งานบ้าน: คิดเฉพาะ WALKWAY (มาจากแบบ 3D) — บันได/ราวกันตกที่ค้างในข้อมูลไม่นับ
+      const s0 = b.struct;
+      calcStructures(Object.assign({}, b, { struct: { walkway: s0.walkway, walkwayThk: s0.walkwayThk, walkwaySpare: s0.walkwaySpare, walkwayExtra: s0.walkwayExtra } })).forEach((g) => groups.push(g));
+    }
 
     // ── ตาข่ายกันนก (BIRD NET) — ถอดวัสดุให้อัตโนมัติเมื่อบ้านติดตาข่ายกันนก ──
     if (b.birdnet) {

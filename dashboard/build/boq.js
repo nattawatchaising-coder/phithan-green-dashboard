@@ -1766,6 +1766,7 @@ function BOQEditor({
   const walk3d = React.useMemo(() => window.BOQ.walkFromPlan ? window.BOQ.walkFromPlan(plan3d) : null, [plan3d]);
   const walk3dHas = ((b.struct || {}).walkway || []).filter(r => r.p3);
   const walk3dSame = !!walk3d && JSON.stringify(walk3dHas.map(r => +r.len)) === JSON.stringify(walk3d.rows.map(r => r.len));
+  const walkHome = isHome && (!!walk3d || walk3dHas.length > 0);
   const applyWalk3d = drop => setB(p => {
     const s = Object.assign({}, STRUCT_DEF, p.struct);
     s.walkway = (s.walkway || []).filter(r => !r.p3).concat(!drop && walk3d ? walk3d.rows.map(r => ({
@@ -5804,11 +5805,11 @@ function BOQEditor({
     title: "โครงสร้างรองรับอุปกรณ์",
     meta: sup.inv + sup.mdb > 0 ? "อินเวอร์เตอร์ " + sup.inv + " · ตู้ " + sup.mdb : "ยังไม่ได้ถอด",
     tone: sup.inv + sup.mdb > 0 ? "ok" : ""
-  } : null, !isHome ? {
+  } : null, !isHome || walkHome ? {
     key: "struct",
     icon: "box",
-    title: "งานเพิ่มเติม — โครงสร้าง",
-    meta: structRows > 0 ? "กรอกแล้ว " + structRows + " รายการ" : "บันได · ทางเดิน · ราวกันตก",
+    title: isHome ? "ทางเดิน (Walkway)" : "งานเพิ่มเติม — โครงสร้าง",
+    meta: isHome ? (st.walkway || []).length > 0 ? "กรอกแล้ว " + (st.walkway || []).length + " แนว" : "มีทางเดินในแบบ 3D" : structRows > 0 ? "กรอกแล้ว " + structRows + " รายการ" : "บันได · ทางเดิน · ราวกันตก",
     tone: structRows > 0 ? "ok" : ""
   } : null, {
     key: "acc",
@@ -9404,8 +9405,8 @@ function BOQEditor({
       lineHeight: 1.55,
       marginTop: 8
     }
-  }, "\u0E15\u0E48\u0E2D\u0E1B\u0E35: \u0E25\u0E49\u0E32\u0E07 ", omC.o.perYear, " \u0E04\u0E23\u0E31\u0E49\u0E07 \xD7 \u0E3F", baht(omC.visit), " + \u0E07\u0E32\u0E19 O&M \u0E3F", baht(omC.svc), " = \u0E3F", baht(omC.year), " · ", "\u0E23\u0E27\u0E21\u0E43\u0E19\u0E07\u0E32\u0E19\u0E19\u0E35\u0E49: ", omC.o.years, " \u0E1B\u0E35 \xD7 \u0E3F", baht(omC.year), " = \u0E3F", baht(omC.included))), !isHome && React.createElement(BoqSection, _extends({
-    title: "\u0E07\u0E32\u0E19\u0E40\u0E1E\u0E34\u0E48\u0E21\u0E40\u0E15\u0E34\u0E21 (Input) \u2014 \u0E42\u0E04\u0E23\u0E07\u0E2A\u0E23\u0E49\u0E32\u0E07",
+  }, "\u0E15\u0E48\u0E2D\u0E1B\u0E35: \u0E25\u0E49\u0E32\u0E07 ", omC.o.perYear, " \u0E04\u0E23\u0E31\u0E49\u0E07 \xD7 \u0E3F", baht(omC.visit), " + \u0E07\u0E32\u0E19 O&M \u0E3F", baht(omC.svc), " = \u0E3F", baht(omC.year), " · ", "\u0E23\u0E27\u0E21\u0E43\u0E19\u0E07\u0E32\u0E19\u0E19\u0E35\u0E49: ", omC.o.years, " \u0E1B\u0E35 \xD7 \u0E3F", baht(omC.year), " = \u0E3F", baht(omC.included))), (!isHome || walkHome) && React.createElement(BoqSection, _extends({
+    title: isHome ? "ทางเดิน (Walkway)" : "งานเพิ่มเติม (Input) — โครงสร้าง",
     icon: "box"
   }, secProps("struct"), {
     right: React.createElement("span", {
@@ -9505,11 +9506,11 @@ function BOQEditor({
       marginTop: 14
     }
   }, React.createElement(MeasBar, {
-    kinds: ["ladder", "walkway", "guardrail"]
-  }), React.createElement(SteelSpecBlock, {
+    kinds: isHome ? ["walkway"] : ["ladder", "walkway", "guardrail"]
+  }), !isHome && React.createElement(SteelSpecBlock, {
     st: st,
     setSteel: setSteel
-  }), StructBlock({
+  }), !isHome && StructBlock({
     kind: "ladder",
     label: "LADDER (บันไดลิง)",
     color: "#0D9488",
@@ -9572,7 +9573,7 @@ function BOQEditor({
     onExtraAdd: () => addStructExtra("walkway"),
     onExtraChange: (i, k, v) => setStructExtra("walkway", i, k, v),
     onExtraDel: i => delStructExtra("walkway", i)
-  }), StructBlock({
+  }), !isHome && StructBlock({
     kind: "guardrail",
     label: "GUARD RAIL",
     color: "#DB2777",
