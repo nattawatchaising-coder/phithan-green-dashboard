@@ -5,6 +5,7 @@
 
 ต้นแบบ: ตัวแก้ใบเสนอราคา `dashboard/sales.jsx` (`QuoteEditor`) และหน้า BOQ `dashboard/boq.jsx` (`.bq-fld` `.bq-ro` `.bq-spec`)
 ค่าทั้งหมดประกาศที่ `dashboard/tokens.css` (ใช้ร่วมกับ `liff.html`) · กฎกลางอยู่ใน `<style>` ของ `index.html`
+- **หน้าแอปไลน์ (LIFF) ใช้กฎชุดเดียวกับเว็บ** (ต.ค. 2026): ไม่มีสกินทับตัวแปรแล้ว · `--soft`/`--soft-lg` ใน liff.html เป็นชื่อเดิมที่ชี้ไป `--shadow-sm`/`--shadow-card` · `LN_CARD` = `--shadow-card` + `--r-card` · `LN_FIELD`/ช่องกรอกทุกช่อง = หลุม `--surface2` + `--shadow-inset` · ห้ามใส่ `border: 1px solid var(--border)` ในไฟล์ liff-*.jsx (เส้นคั่นแถว borderTop ได้)
 
 ---
 

@@ -154,7 +154,7 @@ function LnDailyForm({ me, role, job, date, store, notify }) {
           </span>
           {prev && <span style={{ fontSize: 11, color: "var(--text-3)" }}>เมื่อวาน {(+prev.pct || 0)}%</span>}
         </div>
-        <div style={{ border: "1px solid var(--border)", boxShadow: "var(--soft)", borderRadius: 16, overflow: "hidden", background: "var(--surface)" }}>
+        <div style={{ boxShadow: "var(--soft)", borderRadius: 16, overflow: "hidden", background: "var(--surface)" }}>
           {(form.steps || []).map((r, i) => (
             <div key={i} style={{ display: "flex", alignItems: "center", gap: 9, padding: "9px 11px",
               borderBottom: "1px solid var(--divider)", background: r.head && form.mode === "project" && !r.no.includes(".")
@@ -166,8 +166,8 @@ function LnDailyForm({ me, role, job, date, store, notify }) {
                 /* ⚠ fontSize 16 ที่นี่เท่ากับ iOS ซูมหน้าทุกครั้งที่แตะช่องในตาราง
                    ช่องนี้จึงเป็นข้อยกเว้นเดียวที่ยอมให้เล็กกว่า — ตัวเลขสองหลักไม่ต้องอ่านยาก
                    และตารางนี้มีหลายสิบแถว ช่อง 16px จะดันแถวสูงจนเลื่อนหาไม่เจอ */
-                style={{ width: 58, padding: "7px 8px", borderRadius: 12, border: "1px solid var(--border)",
-                  background: locked ? "var(--surface3)" : "var(--surface)", boxShadow: locked ? "none" : "var(--soft)",
+                style={{ width: 58, padding: "7px 8px", borderRadius: "var(--r-chip)", border: "none",
+                  background: locked ? "var(--surface3)" : "var(--surface2)", boxShadow: locked ? "none" : "var(--shadow-inset)",
                   color: "var(--text-1)", fontFamily: "var(--mono)", fontSize: 13,
                   textAlign: "right", outline: "none" }} />
               <span style={{ fontSize: 11, color: "var(--text-3)" }}>%</span>
@@ -209,7 +209,7 @@ function LnDailyForm({ me, role, job, date, store, notify }) {
               <div style={{ position: "relative", flexShrink: 0 }}>
                 <img src={p.dataUrl} alt="" onClick={() => setZoom(p.dataUrl)}
                   style={{ width: 84, height: 84, objectFit: "cover", borderRadius: 16,
-                    border: "1px solid var(--border)", boxShadow: "var(--soft)" }} />
+                    boxShadow: "var(--soft)" }} />
                 {!locked && (
                   <button onClick={() => photos.remove(p.id)}
                     style={{ position: "absolute", top: -6, right: -6, width: 24, height: 24, borderRadius: 99, border: "none",
@@ -257,7 +257,7 @@ function LnDailyForm({ me, role, job, date, store, notify }) {
           </button>
           <button onClick={saveDraft} disabled={busy}
             style={Object.assign({}, LN_BTN, { padding: "13px 18px", fontSize: 14,
-              border: "1px solid var(--border)", boxShadow: "var(--soft)",
+              boxShadow: "var(--soft)",
               background: "var(--surface)", color: "var(--text-2)" })}>
             เก็บเป็นร่างไว้ก่อน
           </button>
@@ -271,7 +271,7 @@ function LnDailyForm({ me, role, job, date, store, notify }) {
 
       {locked && sigs.signs.by && sigs.signs.by.img && (
         <div style={{ display: "flex", alignItems: "center", gap: 11, padding: "11px 13px", borderRadius: 16,
-          border: "1px solid var(--border)", boxShadow: "var(--soft)", background: "var(--surface)" }}>
+          boxShadow: "var(--soft)", background: "var(--surface)" }}>
           <img src={sigs.signs.by.img} alt="" style={{ height: 34, maxWidth: 130, objectFit: "contain" }} />
           <div style={{ fontSize: 11.5, color: "var(--text-3)", lineHeight: 1.5 }}>
             ผู้บันทึก {sigs.signs.by.name || ""}

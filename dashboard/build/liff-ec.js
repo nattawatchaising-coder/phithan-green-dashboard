@@ -335,7 +335,6 @@ function LnEcForm({
       height: 84,
       objectFit: "cover",
       borderRadius: 16,
-      border: "1px solid var(--border)",
       boxShadow: "var(--soft)"
     }
   }), !locked && React.createElement("button", {
@@ -408,7 +407,6 @@ function LnEcForm({
     style: Object.assign({}, LN_BTN, {
       padding: "13px 18px",
       fontSize: 14,
-      border: "1px solid var(--border)",
       boxShadow: "var(--soft)",
       background: "var(--surface)",
       color: "var(--text-2)"
@@ -521,7 +519,6 @@ function LnEcTab({
       padding: "13px 15px",
       borderRadius: 18,
       background: "var(--surface)",
-      border: "1px solid var(--border)",
       boxShadow: "var(--soft)",
       display: "flex",
       alignItems: "baseline",

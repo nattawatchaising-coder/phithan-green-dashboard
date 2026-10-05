@@ -1,8 +1,8 @@
 const LN_CARD = {
   background: "var(--surface)",
-  border: "1px solid var(--border)",
-  boxShadow: "var(--soft)",
-  borderRadius: 20
+  border: "1px solid var(--card-bd)",
+  boxShadow: "var(--shadow-card)",
+  borderRadius: "var(--r-card)"
 };
 const LN_LIST_PAD = {
   padding: "0 14px 6px"
@@ -19,10 +19,10 @@ const lnCardBtn = extra => Object.assign({}, LN_CARD, {
 const LN_FIELD = {
   width: "100%",
   padding: "13px 15px",
-  borderRadius: 16,
-  border: "1px solid var(--border)",
-  boxShadow: "var(--soft)",
-  background: "var(--surface)",
+  borderRadius: "var(--r-tile)",
+  border: "none",
+  boxShadow: "var(--shadow-inset)",
+  background: "var(--surface2)",
   color: "var(--text-1)",
   fontFamily: "inherit",
   fontSize: 16,
@@ -36,7 +36,7 @@ const LN_LABEL = {
 const LN_BTN = {
   width: "100%",
   padding: "16px 18px",
-  borderRadius: 20,
+  borderRadius: "var(--r-tile)",
   border: "none",
   fontFamily: "inherit",
   fontSize: 16,
@@ -53,7 +53,7 @@ const lnChip = (on, color) => ({
   whiteSpace: "nowrap",
   border: "none",
   background: on ? color ? color + "16" : "var(--primary-soft)" : "var(--surface)",
-  boxShadow: on ? "inset 0 0 0 1px " + (color || "var(--primary)") : "var(--soft)",
+  boxShadow: on ? "inset 0 0 0 1px " + (color || "var(--primary)") : "var(--shadow-sm)",
   color: on ? color || "var(--primary-dark)" : "var(--text-2)"
 });
 function LnField({
@@ -119,8 +119,8 @@ function LnSheetHead({
       borderRadius: 99,
       padding: 0,
       cursor: "pointer",
-      border: "1px solid var(--border)",
-      boxShadow: "var(--soft)",
+      border: "none",
+      boxShadow: "var(--shadow-sm)",
       background: "var(--surface)",
       display: "grid",
       placeItems: "center"
@@ -157,7 +157,7 @@ function LnSub({
       gap: 4,
       padding: 4,
       margin: "0 14px 12px",
-      borderRadius: 18,
+      borderRadius: "var(--r-tile)",
       background: "var(--surface3)"
     }
   }, use.map(it => {
@@ -169,11 +169,11 @@ function LnSub({
         flex: 1,
         minWidth: 0,
         padding: "9px 4px",
-        borderRadius: 14,
+        borderRadius: "var(--r-chip)",
         border: "none",
         cursor: "pointer",
         background: on ? "var(--surface)" : "transparent",
-        boxShadow: on ? "var(--soft)" : "none",
+        boxShadow: on ? "var(--shadow-sm)" : "none",
         fontFamily: "inherit",
         fontSize: 12.5,
         fontWeight: 800,

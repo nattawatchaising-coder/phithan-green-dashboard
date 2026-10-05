@@ -14,8 +14,8 @@
 /* ── การ์ด ──
    ของทุกชิ้นเป็นการ์ดลอยบนพื้นนวล ไม่ใช่แถวในตารางที่คั่นด้วยเส้น */
 const LN_CARD = {
-  background: "var(--surface)", border: "1px solid var(--border)",
-  boxShadow: "var(--soft)", borderRadius: 20,
+  background: "var(--surface)", border: "1px solid var(--card-bd)",
+  boxShadow: "var(--shadow-card)", borderRadius: "var(--r-card)",
 };
 const LN_LIST_PAD = { padding: "0 14px 6px" };
 const lnCardBtn = (extra) => Object.assign({}, LN_CARD, {
@@ -30,15 +30,16 @@ const lnCardBtn = (extra) => Object.assign({}, LN_CARD, {
 
    ⚠ fontSize 16 ห้ามลด — Safari บน iOS ซูมทั้งหน้าอัตโนมัติเมื่อโฟกัสช่องที่เล็กกว่า 16px
      แล้วผู้ใช้ต้องถ่างนิ้วย่อกลับเองทุกครั้ง */
+/* หลุมแบบช่องกรอกของเว็บ (DESIGN.md) — ไม่มีเส้นขอบ เงาเข้าข้างใน */
 const LN_FIELD = {
-  width: "100%", padding: "13px 15px", borderRadius: 16,
-  border: "1px solid var(--border)", boxShadow: "var(--soft)",
-  background: "var(--surface)", color: "var(--text-1)",
+  width: "100%", padding: "13px 15px", borderRadius: "var(--r-tile)",
+  border: "none", boxShadow: "var(--shadow-inset)",
+  background: "var(--surface2)", color: "var(--text-1)",
   fontFamily: "inherit", fontSize: 16, outline: "none",
 };
 const LN_LABEL = { fontSize: 11.5, fontWeight: 800, color: "var(--text-3)" };
 const LN_BTN = {
-  width: "100%", padding: "16px 18px", borderRadius: 20, border: "none",
+  width: "100%", padding: "16px 18px", borderRadius: "var(--r-tile)", border: "none",
   fontFamily: "inherit", fontSize: 16, fontWeight: 800, cursor: "pointer",
 };
 
@@ -48,7 +49,7 @@ const lnChip = (on, color) => ({
   fontSize: 13, fontWeight: 700, whiteSpace: "nowrap",
   border: "none",
   background: on ? (color ? color + "16" : "var(--primary-soft)") : "var(--surface)",
-  boxShadow: on ? "inset 0 0 0 1px " + (color || "var(--primary)") : "var(--soft)",
+  boxShadow: on ? "inset 0 0 0 1px " + (color || "var(--primary)") : "var(--shadow-sm)",
   color: on ? (color || "var(--primary-dark)") : "var(--text-2)",
 });
 
@@ -80,7 +81,7 @@ function LnSheetHead({ title, no, onClose, right }) {
       paddingTop: "calc(14px + env(safe-area-inset-top, 0px))" }}>
       <button className="x-close" onClick={onClose} aria-label="ปิด"
         style={{ flexShrink: 0, width: 34, height: 34, borderRadius: 99, padding: 0, cursor: "pointer",
-          border: "1px solid var(--border)", boxShadow: "var(--soft)", background: "var(--surface)",
+          border: "none", boxShadow: "var(--shadow-sm)", background: "var(--surface)",
           display: "grid", placeItems: "center" }}>
         <Icon name="x" size={18} color="var(--text-2)" />
       </button>
@@ -101,13 +102,13 @@ function LnSub({ items, value, onPick }) {
   if (use.length < 2) return null;
   return (
     <div style={{ display: "flex", gap: 4, padding: 4, margin: "0 14px 12px",
-      borderRadius: 18, background: "var(--surface3)" }}>
+      borderRadius: "var(--r-tile)", background: "var(--surface3)" }}>
       {use.map((it) => {
         const on = value === it.key;
         return (
           <button key={it.key} onClick={() => onPick(it.key)}
-            style={{ flex: 1, minWidth: 0, padding: "9px 4px", borderRadius: 14, border: "none", cursor: "pointer",
-              background: on ? "var(--surface)" : "transparent", boxShadow: on ? "var(--soft)" : "none",
+            style={{ flex: 1, minWidth: 0, padding: "9px 4px", borderRadius: "var(--r-chip)", border: "none", cursor: "pointer",
+              background: on ? "var(--surface)" : "transparent", boxShadow: on ? "var(--shadow-sm)" : "none",
               fontFamily: "inherit", fontSize: 12.5, fontWeight: 800, whiteSpace: "nowrap",
               color: on ? "var(--primary-dark)" : "var(--text-3)" }}>
             {it.th}

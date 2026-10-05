@@ -108,7 +108,7 @@ function LnHead({ me, onMe }) {
         {me && (
           <button onClick={onMe} aria-label="ข้อมูลของฉัน"
             style={{ marginLeft: "auto", flexShrink: 0, width: 38, height: 38, borderRadius: 99, padding: 0,
-              border: "1px solid var(--border)", boxShadow: "var(--soft)", background: "var(--surface)",
+              boxShadow: "var(--soft)", background: "var(--surface)",
               color: "var(--primary-dark)", fontFamily: "inherit", fontSize: 15, fontWeight: 800,
               cursor: "pointer", display: "grid", placeItems: "center" }}>
             {nm ? nm.slice(0, 1) : <Icon name="user" size={17} color="var(--text-3)" />}
@@ -163,7 +163,7 @@ function LnTabs({ tab, setTab, tabs }) {
     <div style={{ position: "fixed", zIndex: 20, background: "var(--surface)",
       left: LN_TABBAR_GAP, right: LN_TABBAR_GAP,
       bottom: "calc(" + LN_TABBAR_GAP + "px + env(safe-area-inset-bottom, 0px))",
-      borderRadius: 26, border: "1px solid var(--border)", boxShadow: "var(--soft-lg)", overflow: "hidden" }}>
+      borderRadius: 26, boxShadow: "var(--soft-lg)", overflow: "hidden" }}>
       <div style={{ display: "flex", padding: 5, gap: 3 }}>
         {list.map((t) => {
           const on = tab === t.key;
@@ -357,7 +357,7 @@ function LnJobFiles({ jobId }) {
 
       {got && (
         <div style={{ marginTop: 10, padding: "11px 13px", borderRadius: 16, background: "var(--surface2)",
-          border: "1px solid var(--border)" }}>
+          border: "none" }}>
           <div style={{ fontSize: 12.5, fontWeight: 700, color: "var(--text-1)", wordBreak: "break-all" }}>{got.name}</div>
           <div style={{ marginTop: 2, fontSize: 11.5, color: "var(--text-3)" }}>
             {got.size ? (got.size / 1048576).toFixed(1) + " MB" : ""} · โหลดเสร็จแล้ว
@@ -512,7 +512,7 @@ function LnClock({ me, cfg, jobs, ot, onAskOt }) {
   return (
     <div style={{ padding: 18 }}>
       <div style={{ padding: "18px 16px", borderRadius: 22, background: "var(--surface)",
-        border: "1px solid var(--border)", boxShadow: "var(--soft)", textAlign: "center" }}>
+        boxShadow: "var(--soft)", textAlign: "center" }}>
         <div style={{ fontSize: 12.5, color: "var(--text-3)", fontWeight: 700 }}>{window.drDateTH(window.drToday())}</div>
         <div style={{ marginTop: 9, display: "flex", justifyContent: "center", gap: 26 }}>
           <div>
@@ -770,7 +770,7 @@ function LnClockCal({ rows, cfg, ot, onAskOt }) {
   const otg = otDay[pick];
   const navBtn = {
     width: 28, height: 28, display: "grid", placeItems: "center", borderRadius: 12, cursor: "pointer",
-    border: "1px solid var(--border)", background: "var(--surface)", padding: 0,
+    background: "var(--surface)", padding: 0,
   };
 
   return (
@@ -788,7 +788,7 @@ function LnClockCal({ rows, cfg, ot, onAskOt }) {
         </div>
       </div>
 
-      <div style={{ border: "1px solid var(--border)", boxShadow: "var(--soft)", borderRadius: 18, overflow: "hidden", background: "var(--surface)", padding: "12px 10px 10px" }}>
+      <div style={{ boxShadow: "var(--soft)", borderRadius: 18, overflow: "hidden", background: "var(--surface)", padding: "12px 10px 10px" }}>
         <div style={{ display: "grid", gridTemplateColumns: "repeat(7, 1fr)", gap: 2 }}>
           {["อา", "จ", "อ", "พ", "พฤ", "ศ", "ส"].map((d) => (
             <span key={d} style={{ textAlign: "center", fontSize: 11, fontWeight: 700, color: "var(--text-3)", padding: "2px 0 6px" }}>{d}</span>
@@ -857,7 +857,7 @@ function LnClockCal({ rows, cfg, ot, onAskOt }) {
           {onAskOt && (
             <button onClick={() => onAskOt({ date: pick })}
               style={{ marginTop: 9, width: "100%", padding: "10px 0", borderRadius: 14, cursor: "pointer",
-                border: "1px solid var(--border)", background: "var(--surface2)",
+                background: "var(--surface2)",
                 fontFamily: "inherit", fontSize: 12.5, fontWeight: 800, color: "var(--primary-dark)" }}>
               + ขอ OT วันที่ {lnCalDateTH(pick)}
             </button>
@@ -1442,7 +1442,7 @@ function LnFixSheet({ t, role, onMove, onClose }) {
         </div>
         <div style={{ fontSize: 18, fontWeight: 800, color: "var(--text-1)", margin: "4px 0 12px" }}>{t.title || "ไม่ได้ระบุอาการ"}</div>
 
-        <div style={{ border: "1px solid var(--border)", boxShadow: "var(--soft)", borderRadius: 18, overflow: "hidden" }}>
+        <div style={{ boxShadow: "var(--soft)", borderRadius: 18, overflow: "hidden" }}>
           {rows.map((r, i) => (
             <div key={r[0]} style={{ display: "flex", gap: 10, padding: "10px 13px",
               borderTop: i ? "1px solid var(--border)" : "none", background: i % 2 ? "var(--surface2)" : "var(--surface)" }}>
@@ -1594,9 +1594,9 @@ function LnApp() {
                 <input value={q} onChange={(e) => setQ(e.target.value)}
                   autoCapitalize="none" autoCorrect="off" spellCheck={false}
                   placeholder="ค้นหา"
-                  style={{ width: "100%", padding: "13px 15px", borderRadius: 18, border: "1px solid var(--border)",
-                    boxShadow: "var(--soft)",
-                    background: "var(--surface)", color: "var(--text-1)", fontFamily: "inherit", fontSize: 15, outline: "none" }} />
+                  style={{ width: "100%", padding: "13px 15px", borderRadius: "var(--r-pill)", border: "none",
+                    boxShadow: "var(--shadow-inset)",
+                    background: "var(--surface2)", color: "var(--text-1)", fontFamily: "inherit", fontSize: 15, outline: "none" }} />
                 {/* แยกงานติดตั้งตามประเภท — งานบ้านกับงานโครงการทำกันคนละแบบ
                     ของที่ต้องเตรียมและคนที่ต้องคุยด้วยคนละชุด ปนกันแล้วไล่หายาก */}
                 <div style={{ marginTop: 9 }}>
@@ -1666,7 +1666,7 @@ function LnApp() {
                   style={{ marginLeft: "auto", display: "flex", alignItems: "center", gap: 6,
                     padding: "8px 14px", borderRadius: 99, cursor: "pointer", fontFamily: "inherit",
                     fontSize: 12.5, fontWeight: 800, whiteSpace: "nowrap",
-                    border: "1px solid var(--border)", boxShadow: "var(--soft)",
+                    boxShadow: "var(--soft)",
                     background: "var(--surface)", color: "var(--primary-dark)" }}>
                   <Icon name="check" size={14} color="var(--primary-dark)" />
                   อ่านทั้งหมด

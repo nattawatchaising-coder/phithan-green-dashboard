@@ -52,31 +52,18 @@ input[type="month"]::-webkit-date-and-time-value {
 html, body { overflow-x: hidden; }
 a { color: var(--primary-dark); }
 
-/* ══ สกินของหน้า LIFF เท่านั้น ══
-   ทับตัวแปรจาก tokens.css ได้เพราะ <style> นี้อยู่หลัง <link> ของไฟล์นั้น
-   และ index.html ไม่ได้โหลดบล็อกนี้ เว็บเดสก์ท็อปจึงไม่เปลี่ยนตาม — ตามที่ตกลงกันว่าเอาแอปไลน์ก่อน
-   ถ้าวันหนึ่งจะให้เว็บเป็นโทนเดียวกัน ให้ย้ายค่าชุดนี้ไป tokens.css แล้วลบบล็อกนี้ทิ้ง
-
-   แนวทาง: พื้นนวลอมเขียว · การ์ดขาวลอยด้วย "เงานุ่ม" ไม่ใช่เส้นขอบคม · มุมมนใหญ่ · ที่ว่างเยอะ
-   เส้นขอบไม่ได้ถูกลบทิ้ง แต่หรี่ลงเหลือเกือบมองไม่เห็น — ยังทำหน้าที่คั่นแถวในตารางอยู่
-   ถ้าลบจริงแถวในรายการจะติดกันเป็นพืด ซึ่งเป็นคนละเรื่องกับการ์ดที่ควรลอย */
-:root {
-  --bg: #EEF2EF;
-  --surface: #FFFFFF;
-  --surface2: #F5F8F5;
-  --surface3: #E7EDE8;
-  --border: rgba(15,43,51,.055);
-  --border-strong: rgba(15,43,51,.12);
-  --primary-soft: #E6F3EC;
-  /* เงาสองชั้น: ชั้นแคบให้ขอบคม ชั้นกว้างให้ลอย — ชั้นเดียวจะได้อย่างใดอย่างหนึ่งเท่านั้น */
-  --soft:    0 2px 8px rgba(22,52,44,.045), 0 8px 24px rgba(22,52,44,.05);
-  --soft-lg: 0 4px 14px rgba(22,52,44,.06), 0 16px 40px rgba(22,52,44,.09);
-  --shadow-sm: var(--soft);
-}
-/* ช่องกรอกไม่เอาวงแหวนฟ้าของเบราว์เซอร์ ใช้สีหลักจาง ๆ แทน ให้เข้ากับโทนที่เหลือ */
-input:focus-visible, select:focus-visible, textarea:focus-visible {
-  outline: none; box-shadow: 0 0 0 3px rgba(27,155,117,.16);
-}
+/* ══ หน้าตาเดียวกับเว็บ (ผู้ใช้ขอ ต.ค. 2026) ══
+   เดิมมีสกินเฉพาะ LIFF ทับตัวแปร (พื้นนวลอมเขียว · การ์ดมีเส้นขอบ · ช่องกรอกพื้นขาว) — ถอดออกแล้ว
+   ตอนนี้ใช้ tokens.css ชุดเดียวกับ index.html ทั้งหมด · กฎตาม DESIGN.md: การ์ดไม่มีเส้นขอบ ลอยด้วยเงา
+   ช่องกรอก = หลุม (--surface2 + --shadow-inset) · --soft/--soft-lg เป็นชื่อเดิมที่โค้ด LIFF ใช้อยู่ ชี้ไปเงาของเว็บ */
+:root { --soft: var(--shadow-sm); --soft-lg: var(--shadow-card); }
+input, textarea, select { background: var(--surface2); color: var(--text-1); border: none; }
+input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="color"]):not([type="file"]),
+textarea, select { box-shadow: var(--shadow-inset); }
+input:focus, textarea:focus, select:focus { outline: none; }
+input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="color"]):not([type="file"]):focus-visible,
+textarea:focus-visible, select:focus-visible {
+  box-shadow: inset 0 0 0 1px var(--primary), 0 0 0 3px var(--primary-soft); }
 /* ปุ่มปิด (กากบาท) — ชุดเดียวกับหน้าเว็บ ดูคำอธิบายที่ index.html */
 .x-close { border: none !important; border-radius: 999px !important;
   background: var(--primary-soft) !important; color: var(--primary) !important;
@@ -132,13 +119,13 @@ window.LN_LIFF_ID = "2011577974-yzS9mgQQ";
      สคริปต์ชุดนี้ใช้ขอบเขตร่วมกัน ของที่ประกาศในนี้จึงถูกไฟล์ที่โหลดทีหลังเรียกใช้ได้ตรง ๆ
      ⚠ ห้ามประกาศ LN_CARD / LN_FIELD / LN_BTN / LnSub ซ้ำในไฟล์อื่นอีก
         const ระดับบนที่ชื่อชนกัน = จอขาวทั้งแอป โดย error ชี้ไปที่ไฟล์ที่สอง ไม่ใช่ต้นเหตุ -->
-<script src="dashboard/build/liff-ui.js?v=3"></script>
-<script src="dashboard/build/liff-ec.js?v=7"></script>
-<script src="dashboard/build/liff-daily.js?v=7"></script>
-<script src="dashboard/build/liff-app.js?v=29"></script>
+<script src="dashboard/build/liff-ui.js?v=4"></script>
+<script src="dashboard/build/liff-ec.js?v=8"></script>
+<script src="dashboard/build/liff-daily.js?v=8"></script>
+<script src="dashboard/build/liff-app.js?v=30"></script>
 <!-- แท็บอนุมัติ โหลดหลัง liff-app เพราะใช้ LnPick จากไฟล์นั้น -->
-<script src="dashboard/build/liff-approve.js?v=6"></script>
-<script src="dashboard/build/liff-leave.js?v=3"></script>
+<script src="dashboard/build/liff-approve.js?v=7"></script>
+<script src="dashboard/build/liff-leave.js?v=4"></script>
 
 <script>
 (function () {

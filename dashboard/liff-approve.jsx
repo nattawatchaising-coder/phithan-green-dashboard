@@ -44,7 +44,7 @@ function LnApRows({ rows }) {
   const use = (rows || []).filter((r) => r[1] != null && r[1] !== "");
   if (!use.length) return null;
   return (
-    <div style={{ border: "1px solid var(--border)", boxShadow: "var(--soft)", borderRadius: 18, overflow: "hidden" }}>
+    <div style={{ boxShadow: "var(--soft)", borderRadius: 18, overflow: "hidden" }}>
       {use.map((r, i) => (
         <div key={r[0]} style={{ display: "flex", gap: 10, padding: "10px 13px",
           borderTop: i ? "1px solid var(--border)" : "none", background: i % 2 ? "var(--surface2)" : "var(--surface)" }}>
@@ -73,7 +73,7 @@ function LnApHead({ kind, no, title, sub, onClose }) {
       </div>
       <button className="x-close" onClick={onClose} aria-label="ปิด"
         style={{ flexShrink: 0, width: 34, height: 34, borderRadius: 99, padding: 0, cursor: "pointer",
-          border: "1px solid var(--border)", boxShadow: "var(--soft)", background: "var(--surface)",
+          boxShadow: "var(--soft)", background: "var(--surface)",
           display: "grid", placeItems: "center" }}>
         <Icon name="x" size={18} color="var(--text-2)" />
       </button>
@@ -97,7 +97,7 @@ function LnApDecide({ okText, noText, hint, onOk, onNo, busy }) {
           placeholder="เช่น ยอดไม่ตรงบิล · ขอรูปหน้างานเพิ่ม · เวลาที่ขอไม่ตรงกับใบลงเวลา" style={LN_AP_NOTE} />
         <div style={{ display: "flex", gap: 8 }}>
           <button onClick={() => { setNoting(false); setNote(""); }}
-            style={{ flex: 1, padding: "13px 14px", borderRadius: 16, border: "1px solid var(--border)",
+            style={{ flex: 1, padding: "13px 14px", borderRadius: 16, border: "none",
               boxShadow: "var(--soft)",
               background: "var(--surface)", color: "var(--text-2)", fontFamily: "inherit", fontSize: 13.5, fontWeight: 800, cursor: "pointer" }}>
             ย้อนกลับ
@@ -222,7 +222,7 @@ function LnApprDrSheet({ me, role, job, date, rec, notify, onClose }) {
             {photos.photos.map((p) => (
               <div key={p.id} style={{ display: "flex", gap: 9, alignItems: "flex-start" }}>
                 <img src={p.dataUrl} alt="" onClick={() => setZoom(p.dataUrl)}
-                  style={{ width: 84, height: 84, objectFit: "cover", borderRadius: 13, border: "1px solid var(--border)", flexShrink: 0 }} />
+                  style={{ width: 84, height: 84, objectFit: "cover", borderRadius: 13, flexShrink: 0 }} />
                 <div style={{ flex: 1, minWidth: 0, fontSize: 12.5, lineHeight: 1.6,
                   color: p.cap ? "var(--text-1)" : "var(--text-3)" }}>
                   {p.cap || "ไม่ได้เขียนคำอธิบายไว้"}
@@ -234,7 +234,7 @@ function LnApprDrSheet({ me, role, job, date, rec, notify, onClose }) {
 
         {sigs.signs.by && sigs.signs.by.img && (
           <div style={{ display: "flex", alignItems: "center", gap: 11, padding: "11px 13px", borderRadius: 16,
-            border: "1px solid var(--border)", boxShadow: "var(--soft)", background: "var(--surface)" }}>
+            boxShadow: "var(--soft)", background: "var(--surface)" }}>
             <img src={sigs.signs.by.img} alt="" style={{ height: 34, maxWidth: 130, objectFit: "contain" }} />
             <div style={{ fontSize: 11.5, color: "var(--text-3)", lineHeight: 1.5 }}>
               ผู้บันทึก {sigs.signs.by.name || ""}
@@ -292,7 +292,7 @@ function LnApPdf({ shot }) {
   }, [shot.dataUrl]);
   return (
     <a href={url} target="_blank" rel="noopener"
-      style={{ width: 96, height: 96, borderRadius: 13, border: "1px solid var(--border)", background: "var(--surface2)",
+      style={{ width: 96, height: 96, borderRadius: 13, background: "var(--surface2)",
         display: "grid", placeItems: "center", gap: 4, textDecoration: "none", color: "var(--text-2)",
         fontSize: 10.5, fontWeight: 700, textAlign: "center", padding: 6 }}>
       <Icon name="file" size={20} color="var(--text-3)" />
@@ -347,7 +347,7 @@ function LnApprEcSheet({ me, role, claim, store, onClose }) {
 
         {/* รายการย่อยในใบ — ยอดรวมอย่างเดียวไม่พอสำหรับตัดสิน ต้องเห็นว่าไปกับอะไรบ้าง */}
         {(cur.items || []).length > 0 && (
-          <div style={{ border: "1px solid var(--border)", boxShadow: "var(--soft)", borderRadius: 18, overflow: "hidden", background: "var(--surface)" }}>
+          <div style={{ boxShadow: "var(--soft)", borderRadius: 18, overflow: "hidden", background: "var(--surface)" }}>
             {(cur.items || []).map((it, i) => (
               <div key={i} style={{ display: "flex", gap: 10, padding: "10px 13px",
                 borderTop: i ? "1px solid var(--border)" : "none" }}>
@@ -378,7 +378,7 @@ function LnApprEcSheet({ me, role, claim, store, onClose }) {
                 {rec.shots.map((sh, i) => (window.ecReceiptKind(sh) === "pdf"
                   ? <LnApPdf key={i} shot={sh} />
                   : <img key={i} src={sh.dataUrl} alt="" onClick={() => setZoom(sh.dataUrl)}
-                      style={{ width: 96, height: 96, objectFit: "cover", borderRadius: 13, border: "1px solid var(--border)" }} />
+                      style={{ width: 96, height: 96, objectFit: "cover", borderRadius: 13, border: "none" }} />
                 ))}
               </div>}
         </div>
@@ -521,7 +521,7 @@ function lnCanApprDaily(role, jobs, me) {
    ใบที่รออนุมัติคือของที่ต้อง "หยิบขึ้นมาตัดสิน" ทีละใบ ทรงต้องบอกแบบนั้น */
 function LnApCard({ kind, title, sub, right, onClick }) {
   const k = LN_AP_KIND_BY[kind] || LN_AP_KIND[0];
-  const card = window.LN_CARD || { background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 20 };
+  const card = window.LN_CARD || { background: "var(--surface)", borderRadius: 20 };
   return (
     <div onClick={onClick}
       style={Object.assign({ display: "flex", gap: 11, alignItems: "center", padding: "13px 14px",

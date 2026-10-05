@@ -122,7 +122,6 @@ function LnHead({
         height: 38,
         borderRadius: 99,
         padding: 0,
-        border: "1px solid var(--border)",
         boxShadow: "var(--soft)",
         background: "var(--surface)",
         color: "var(--primary-dark)",
@@ -205,7 +204,6 @@ function LnTabs({
       right: LN_TABBAR_GAP,
       bottom: "calc(" + LN_TABBAR_GAP + "px + env(safe-area-inset-bottom, 0px))",
       borderRadius: 26,
-      border: "1px solid var(--border)",
       boxShadow: "var(--soft-lg)",
       overflow: "hidden"
     }
@@ -519,7 +517,7 @@ function LnJobFiles({
       padding: "11px 13px",
       borderRadius: 16,
       background: "var(--surface2)",
-      border: "1px solid var(--border)"
+      border: "none"
     }
   }, React.createElement("div", {
     style: {
@@ -756,7 +754,6 @@ function LnClock({
       padding: "18px 16px",
       borderRadius: 22,
       background: "var(--surface)",
-      border: "1px solid var(--border)",
       boxShadow: "var(--soft)",
       textAlign: "center"
     }
@@ -1118,7 +1115,6 @@ function LnClockCal({
     placeItems: "center",
     borderRadius: 12,
     cursor: "pointer",
-    border: "1px solid var(--border)",
     background: "var(--surface)",
     padding: 0
   };
@@ -1171,7 +1167,6 @@ function LnClockCal({
     color: "var(--text-2)"
   })))), React.createElement("div", {
     style: {
-      border: "1px solid var(--border)",
       boxShadow: "var(--soft)",
       borderRadius: 18,
       overflow: "hidden",
@@ -1313,7 +1308,6 @@ function LnClockCal({
       padding: "10px 0",
       borderRadius: 14,
       cursor: "pointer",
-      border: "1px solid var(--border)",
       background: "var(--surface2)",
       fontFamily: "inherit",
       fontSize: 12.5,
@@ -2286,7 +2280,6 @@ function LnFixSheet({
     }
   }, t.title || "ไม่ได้ระบุอาการ"), React.createElement("div", {
     style: {
-      border: "1px solid var(--border)",
       boxShadow: "var(--soft)",
       borderRadius: 18,
       overflow: "hidden"
@@ -2504,10 +2497,10 @@ function LnApp() {
     style: {
       width: "100%",
       padding: "13px 15px",
-      borderRadius: 18,
-      border: "1px solid var(--border)",
-      boxShadow: "var(--soft)",
-      background: "var(--surface)",
+      borderRadius: "var(--r-pill)",
+      border: "none",
+      boxShadow: "var(--shadow-inset)",
+      background: "var(--surface2)",
       color: "var(--text-1)",
       fontFamily: "inherit",
       fontSize: 15,
@@ -2623,7 +2616,6 @@ function LnApp() {
       fontSize: 12.5,
       fontWeight: 800,
       whiteSpace: "nowrap",
-      border: "1px solid var(--border)",
       boxShadow: "var(--soft)",
       background: "var(--surface)",
       color: "var(--primary-dark)"

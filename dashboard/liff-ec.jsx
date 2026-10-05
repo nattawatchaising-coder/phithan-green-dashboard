@@ -200,7 +200,7 @@ function LnEcForm({ me, users, role, jobs, store, claim, onClose }) {
                     ถ้าใช้ window.open ปุ่มจะกดแล้วเงียบ โดยไม่มี error ให้เห็น */}
                 <img src={s.dataUrl} alt="" onClick={() => setZoom(s.dataUrl)}
                   style={{ width: 84, height: 84, objectFit: "cover", borderRadius: 16,
-                    border: "1px solid var(--border)", boxShadow: "var(--soft)" }} />
+                    boxShadow: "var(--soft)" }} />
                 {!locked && (
                   <button onClick={() => rec.remove(s.id)}
                     style={{ position: "absolute", top: -6, right: -6, width: 24, height: 24, borderRadius: 99, border: "none",
@@ -233,7 +233,7 @@ function LnEcForm({ me, users, role, jobs, store, claim, onClose }) {
             </button>
             <button onClick={saveDraft} disabled={busy}
               style={Object.assign({}, LN_BTN, { padding: "13px 18px", fontSize: 14,
-                border: "1px solid var(--border)", boxShadow: "var(--soft)",
+                boxShadow: "var(--soft)",
                 background: "var(--surface)", color: "var(--text-2)" })}>
               เก็บเป็นร่างไว้ก่อน
             </button>
@@ -330,7 +330,7 @@ function LnEcTab({ me, users, role, jobs }) {
     <div style={{ padding: "0 18px 18px" }}>
       {subBar && <div style={{ margin: "0 -4px" }}>{subBar}</div>}
       {owed > 0 && (
-        <div style={{ padding: "13px 15px", borderRadius: 18, background: "var(--surface)", border: "1px solid var(--border)", boxShadow: "var(--soft)",
+        <div style={{ padding: "13px 15px", borderRadius: 18, background: "var(--surface)", boxShadow: "var(--soft)",
           display: "flex", alignItems: "baseline", gap: 8, marginBottom: 13 }}>
           <span style={{ fontSize: 12.5, color: "var(--text-3)", fontWeight: 700 }}>บริษัทติดเงินคุณอยู่</span>
           <span style={{ marginLeft: "auto", fontFamily: "var(--mono)", fontSize: 20, fontWeight: 800, color: "#EF4444" }}>

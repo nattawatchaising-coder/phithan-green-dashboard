@@ -41,7 +41,6 @@ function LnApRows({
   if (!use.length) return null;
   return React.createElement("div", {
     style: {
-      border: "1px solid var(--border)",
       boxShadow: "var(--soft)",
       borderRadius: 18,
       overflow: "hidden"
@@ -142,7 +141,6 @@ function LnApHead({
       borderRadius: 99,
       padding: 0,
       cursor: "pointer",
-      border: "1px solid var(--border)",
       boxShadow: "var(--soft)",
       background: "var(--surface)",
       display: "grid",
@@ -193,7 +191,7 @@ function LnApDecide({
         flex: 1,
         padding: "13px 14px",
         borderRadius: 16,
-        border: "1px solid var(--border)",
+        border: "none",
         boxShadow: "var(--soft)",
         background: "var(--surface)",
         color: "var(--text-2)",
@@ -404,7 +402,6 @@ function LnApprDrSheet({
       height: 84,
       objectFit: "cover",
       borderRadius: 13,
-      border: "1px solid var(--border)",
       flexShrink: 0
     }
   }), React.createElement("div", {
@@ -422,7 +419,6 @@ function LnApprDrSheet({
       gap: 11,
       padding: "11px 13px",
       borderRadius: 16,
-      border: "1px solid var(--border)",
       boxShadow: "var(--soft)",
       background: "var(--surface)"
     }
@@ -534,7 +530,6 @@ function LnApPdf({
       width: 96,
       height: 96,
       borderRadius: 13,
-      border: "1px solid var(--border)",
       background: "var(--surface2)",
       display: "grid",
       placeItems: "center",
@@ -626,7 +621,6 @@ function LnApprEcSheet({
     rows: [["งาน/ไซต์", [cur.siteCode, cur.siteName].filter(Boolean).join(" · ")], ["เหตุผล", cur.note], ["ส่งถึง", cur.approverName]]
   }), (cur.items || []).length > 0 && React.createElement("div", {
     style: {
-      border: "1px solid var(--border)",
       boxShadow: "var(--soft)",
       borderRadius: 18,
       overflow: "hidden",
@@ -694,7 +688,7 @@ function LnApprEcSheet({
       height: 96,
       objectFit: "cover",
       borderRadius: 13,
-      border: "1px solid var(--border)"
+      border: "none"
     }
   })))), msg ? React.createElement("div", {
     style: {
@@ -910,7 +904,6 @@ function LnApCard({
   const k = LN_AP_KIND_BY[kind] || LN_AP_KIND[0];
   const card = window.LN_CARD || {
     background: "var(--surface)",
-    border: "1px solid var(--border)",
     borderRadius: 20
   };
   return React.createElement("div", {

@@ -198,7 +198,6 @@ function LnDailyForm({
     }
   }, "\u0E40\u0E21\u0E37\u0E48\u0E2D\u0E27\u0E32\u0E19 ", +prev.pct || 0, "%")), React.createElement("div", {
     style: {
-      border: "1px solid var(--border)",
       boxShadow: "var(--soft)",
       borderRadius: 16,
       overflow: "hidden",
@@ -237,10 +236,10 @@ function LnDailyForm({
     style: {
       width: 58,
       padding: "7px 8px",
-      borderRadius: 12,
-      border: "1px solid var(--border)",
-      background: locked ? "var(--surface3)" : "var(--surface)",
-      boxShadow: locked ? "none" : "var(--soft)",
+      borderRadius: "var(--r-chip)",
+      border: "none",
+      background: locked ? "var(--surface3)" : "var(--surface2)",
+      boxShadow: locked ? "none" : "var(--shadow-inset)",
       color: "var(--text-1)",
       fontFamily: "var(--mono)",
       fontSize: 13,
@@ -334,7 +333,6 @@ function LnDailyForm({
       height: 84,
       objectFit: "cover",
       borderRadius: 16,
-      border: "1px solid var(--border)",
       boxShadow: "var(--soft)"
     }
   }), !locked && React.createElement("button", {
@@ -429,7 +427,6 @@ function LnDailyForm({
     style: Object.assign({}, LN_BTN, {
       padding: "13px 18px",
       fontSize: 14,
-      border: "1px solid var(--border)",
       boxShadow: "var(--soft)",
       background: "var(--surface)",
       color: "var(--text-2)"
@@ -447,7 +444,6 @@ function LnDailyForm({
       gap: 11,
       padding: "11px 13px",
       borderRadius: 16,
-      border: "1px solid var(--border)",
       boxShadow: "var(--soft)",
       background: "var(--surface)"
     }
