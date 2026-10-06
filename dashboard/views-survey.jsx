@@ -887,7 +887,7 @@ function LeadDetail({ l, ctx, tab }) {
           title="วางแผง 3D" sub="ปั้นผังหลังคา · ดึงจำนวนแผงเข้าใบเสนอราคา · ออกแบบระบบ + ผลผลิต" />
       )}
       {/* ห้องอุปกรณ์ 3D (eroom.jsx) — สร้างจากการออกแบบระบบของแบบ 3D แต่ละเวอร์ชัน */}
-      {onPlan3d && asJob && window.ErRoomCard && <window.ErRoomCard job={asJob} p3List={dvs.p3List} canEdit />}
+      {onPlan3d && asJob && window.ErRoomCard && window.hasRole(window.userRoles(currentUser), "admin") && <window.ErRoomCard job={asJob} p3List={dvs.p3List} canEdit />}
       {asJob && window.BOQEditor && (
         <window.DvVerCard kind="boq" dvs={dvs} icon="box" color="var(--primary-dark)" canNew={!!onSaveBoq}
           title="ถอดวัสดุ BOQ" sub="แต่ละใบผูกกับแบบ 3D ของตัวเอง · ใบที่ใช้งาน = ใบที่ใบเสนอราคาดึง" />

@@ -796,7 +796,7 @@ function DetailDrawer({ job, onClose, onAdvance, onSetMat, onEdit, currentUser, 
                   title="วางแผง 3D (โมเดลหลังคา + เงาแดด)" sub="ปั้นหลังคาตามรูปโดรน · วางแผง · เงาแดด · ออกแบบระบบ + ผลผลิต" />
                 )}
                 {/* ห้องอุปกรณ์ 3D (eroom.jsx) — ตู้ไฟ/อินเวอร์เตอร์จากการออกแบบระบบ */}
-                {window.Plan3DEntry && window.ErRoomCard && !roMode && <window.ErRoomCard job={job} p3List={dvs.p3List} canEdit />}
+                {window.Plan3DEntry && window.ErRoomCard && !roMode && window.hasRole(window.userRoles(currentUser), "admin") && <window.ErRoomCard job={job} p3List={dvs.p3List} canEdit />}
 
                 {/* ถอดวัสดุ BOQ */}
                 {!roMode && <window.DvVerCard kind="boq" dvs={dvs} icon="box" color="var(--primary-dark)" canNew={!!onSaveBOQ}
