@@ -1838,24 +1838,31 @@ function BoqRuleSec({ sec, rulesStore, type }) {
   const cur = (d) => BOQ.ruleVal(d, str(view, d.key));
   const isDef = (d) => BOQ.ruleTxt(d, cur(d)) === txt(d);
   const save = () => { dirty.forEach((d) => rulesStore.setCell(brPath(d, type), str(view, d.key).trim())); setDraft(null); };
-  const resetAll = () => window.askConfirm({ title: "คืนค่าตั้งต้น · " + sec.th + "?", body: "ค่าที่ตั้งไว้ " + nEdited + " ช่อง จะกลับไปใช้ค่าตั้งต้นของระบบ", ok: "คืนค่าตั้งต้น", danger: true })
-    .then((ok) => { if (ok) { setDraft(null); defs.forEach((d) => {
+  /* คืนค่าตั้งต้นทีละกลุ่ม: rows = ทั้งหัวข้อ / ของที่มีขาย / เงื่อนไข · nm = ชื่อกลุ่มบนกล่องยืนยัน */
+  const resetAll = (rows, nm) => { rows = rows || defs; const n = rows.filter((d) => brChanged(d, all, type)).length;
+    return window.askConfirm({ title: "คืนค่าตั้งต้น · " + (nm || sec.th) + "?", body: "ค่าที่ตั้งไว้ " + n + " ช่อง จะกลับไปใช้ค่าตั้งต้นของระบบ", ok: "คืนค่าตั้งต้น", danger: true })
+    .then((ok) => { if (ok) { setDraft((p) => { if (!p) return null; const q = Object.assign({}, p); rows.forEach((d) => { delete q[d.key]; if (saved[d.key] != null) q[d.key] = saved[d.key]; });
+      return defs.some((d) => str(saved, d.key) !== str(q, d.key)) ? q : null; }); rows.forEach((d) => {
       if (!brChanged(d, all, type)) return;
       /* แถวใช้ร่วมที่ค่าก่อนแยก (boqRules/<key>) ยังตั้งอยู่ — ลบคีย์ของประเภทนี้ไม่พอ ต้องเขียนค่าตั้งต้นทับ */
       const flat = !BOQ.ruleOnly(d) && ((all[d.key] != null && all[d.key] !== "") || (d.legacy || []).some((k) => all[k] != null && all[k] !== ""));
       rulesStore.setCell(brPath(d, type), flat ? txt(d) : "");
-    }); } });
+    }); } }); };
   /* ค่าที่กรอกแล้วระบบไม่รับ (ติดลบ เกินช่วง ไม่ใช่ตัวเลข) จะถูกใช้เป็นค่าตั้งต้น — บอกไว้ตรงช่อง */
   const bad = (d) => { const v = str(view, d.key).trim(); return !!v && !d.type && BOQ.ruleVal(d, v) === d.def && +v !== d.def; };
   const card = { background: "var(--surface)", boxShadow: "var(--shadow-card)", borderRadius: "var(--r-card)", padding: "14px 16px" };
-  const blockHd = (ic, t, s) => (
-    <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10 }}>
-      <span style={{ width: 28, height: 28, borderRadius: "var(--r-chip)", background: "var(--primary-soft)", display: "grid", placeItems: "center" }}>
-        <Icon name={ic} size={14} color="var(--primary-dark)" /></span>
-      <span style={{ fontSize: 13.5, fontWeight: 700 }}>{t}</span>
-      <span style={{ fontSize: 11.5, color: "var(--text-3)" }}>{s}</span>
-    </div>
-  );
+  const blockHd = (ic, t, s, rows) => {
+    const n = rows ? rows.filter((d) => brChanged(d, all, type)).length : 0;
+    return (
+      <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10 }}>
+        <span style={{ width: 28, height: 28, borderRadius: "var(--r-chip)", background: "var(--primary-soft)", display: "grid", placeItems: "center", flex: "none" }}>
+          <Icon name={ic} size={14} color="var(--primary-dark)" /></span>
+        <span style={{ fontSize: 13.5, fontWeight: 700 }}>{t}</span>
+        <span style={{ fontSize: 11.5, color: "var(--text-3)", flex: 1, minWidth: 0 }}>{s}</span>
+        {n > 0 && !ro && <button className="btn btn-sm" onClick={() => resetAll(rows, sec.th + " · " + t)}><Icon name="undo" size={12} /> คืนค่าตั้งต้น ({n})</button>}
+      </div>
+    );
+  };
   const resetBtn = (d) => !isDef(d) && !ro && (
     <button type="button" title={"คืนค่าตั้งต้น " + txt(d)} onClick={() => set(d.key, d.type ? txt(d) : String(d.def))}
       style={{ border: "none", background: "transparent", cursor: "pointer", padding: 4, display: "inline-flex", borderRadius: "var(--r-chip)" }}>
@@ -1872,12 +1879,12 @@ function BoqRuleSec({ sec, rulesStore, type }) {
           <div style={{ fontSize: 16, fontWeight: 800, color: "var(--text-1)" }}>{sec.th}</div>
           <div style={{ fontSize: 12, color: "var(--text-3)", marginTop: 2 }}>{sec.sub}</div>
         </div>
-        {nEdited > 0 && !ro && <button className="btn btn-sm" onClick={resetAll}><Icon name="undo" size={12} /> คืนค่าตั้งต้นทั้งหัวข้อ ({nEdited})</button>}
+        {nEdited > 0 && !ro && <button className="btn btn-sm" onClick={() => resetAll()}><Icon name="undo" size={12} /> คืนค่าตั้งต้นทั้งหัวข้อ ({nEdited})</button>}
       </div>
 
       {stockRows.length > 0 && (
         <div style={card}>
-          {blockHd("box", "ของที่มีขาย", "ระบบเลือกได้เฉพาะขนาดในนี้")}
+          {blockHd("box", "ของที่มีขาย", "ระบบเลือกได้เฉพาะขนาดในนี้", stockRows)}
           <div style={{ display: "flex", flexDirection: "column" }}>
             {stockRows.map((d, i) => (
               <div key={d.key} style={{ padding: "12px 0", borderTop: i ? "1px solid var(--divider)" : "none" }}>
@@ -1898,7 +1905,7 @@ function BoqRuleSec({ sec, rulesStore, type }) {
 
       {condRows.length > 0 && (
         <div style={card}>
-          {blockHd("settings", "เงื่อนไขการเลือก", stockRows.length ? "ใช้เลือกจากของที่มีขายด้านบน" : "")}
+          {blockHd("settings", "เงื่อนไขการเลือก", stockRows.length ? "ใช้เลือกจากของที่มีขายด้านบน" : "", condRows)}
           <div style={{ display: "flex", flexDirection: "column" }}>
             {condRows.map((d, i) => {
               const head = gOf(d) && (i === 0 || gOf(condRows[i - 1]) !== gOf(d));

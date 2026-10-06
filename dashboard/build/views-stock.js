@@ -4779,21 +4779,33 @@ function BoqRuleSec({
     dirty.forEach(d => rulesStore.setCell(brPath(d, type), str(view, d.key).trim()));
     setDraft(null);
   };
-  const resetAll = () => window.askConfirm({
-    title: "คืนค่าตั้งต้น · " + sec.th + "?",
-    body: "ค่าที่ตั้งไว้ " + nEdited + " ช่อง จะกลับไปใช้ค่าตั้งต้นของระบบ",
-    ok: "คืนค่าตั้งต้น",
-    danger: true
-  }).then(ok => {
-    if (ok) {
-      setDraft(null);
-      defs.forEach(d => {
-        if (!brChanged(d, all, type)) return;
-        const flat = !BOQ.ruleOnly(d) && (all[d.key] != null && all[d.key] !== "" || (d.legacy || []).some(k => all[k] != null && all[k] !== ""));
-        rulesStore.setCell(brPath(d, type), flat ? txt(d) : "");
-      });
-    }
-  });
+  const resetAll = (rows, nm) => {
+    rows = rows || defs;
+    const n = rows.filter(d => brChanged(d, all, type)).length;
+    return window.askConfirm({
+      title: "คืนค่าตั้งต้น · " + (nm || sec.th) + "?",
+      body: "ค่าที่ตั้งไว้ " + n + " ช่อง จะกลับไปใช้ค่าตั้งต้นของระบบ",
+      ok: "คืนค่าตั้งต้น",
+      danger: true
+    }).then(ok => {
+      if (ok) {
+        setDraft(p => {
+          if (!p) return null;
+          const q = Object.assign({}, p);
+          rows.forEach(d => {
+            delete q[d.key];
+            if (saved[d.key] != null) q[d.key] = saved[d.key];
+          });
+          return defs.some(d => str(saved, d.key) !== str(q, d.key)) ? q : null;
+        });
+        rows.forEach(d => {
+          if (!brChanged(d, all, type)) return;
+          const flat = !BOQ.ruleOnly(d) && (all[d.key] != null && all[d.key] !== "" || (d.legacy || []).some(k => all[k] != null && all[k] !== ""));
+          rulesStore.setCell(brPath(d, type), flat ? txt(d) : "");
+        });
+      }
+    });
+  };
   const bad = d => {
     const v = str(view, d.key).trim();
     return !!v && !d.type && BOQ.ruleVal(d, v) === d.def && +v !== d.def;
@@ -4804,37 +4816,49 @@ function BoqRuleSec({
     borderRadius: "var(--r-card)",
     padding: "14px 16px"
   };
-  const blockHd = (ic, t, s) => React.createElement("div", {
-    style: {
-      display: "flex",
-      alignItems: "center",
-      gap: 8,
-      marginBottom: 10
-    }
-  }, React.createElement("span", {
-    style: {
-      width: 28,
-      height: 28,
-      borderRadius: "var(--r-chip)",
-      background: "var(--primary-soft)",
-      display: "grid",
-      placeItems: "center"
-    }
-  }, React.createElement(Icon, {
-    name: ic,
-    size: 14,
-    color: "var(--primary-dark)"
-  })), React.createElement("span", {
-    style: {
-      fontSize: 13.5,
-      fontWeight: 700
-    }
-  }, t), React.createElement("span", {
-    style: {
-      fontSize: 11.5,
-      color: "var(--text-3)"
-    }
-  }, s));
+  const blockHd = (ic, t, s, rows) => {
+    const n = rows ? rows.filter(d => brChanged(d, all, type)).length : 0;
+    return React.createElement("div", {
+      style: {
+        display: "flex",
+        alignItems: "center",
+        gap: 8,
+        marginBottom: 10
+      }
+    }, React.createElement("span", {
+      style: {
+        width: 28,
+        height: 28,
+        borderRadius: "var(--r-chip)",
+        background: "var(--primary-soft)",
+        display: "grid",
+        placeItems: "center",
+        flex: "none"
+      }
+    }, React.createElement(Icon, {
+      name: ic,
+      size: 14,
+      color: "var(--primary-dark)"
+    })), React.createElement("span", {
+      style: {
+        fontSize: 13.5,
+        fontWeight: 700
+      }
+    }, t), React.createElement("span", {
+      style: {
+        fontSize: 11.5,
+        color: "var(--text-3)",
+        flex: 1,
+        minWidth: 0
+      }
+    }, s), n > 0 && !ro && React.createElement("button", {
+      className: "btn btn-sm",
+      onClick: () => resetAll(rows, sec.th + " · " + t)
+    }, React.createElement(Icon, {
+      name: "undo",
+      size: 12
+    }), " \u0E04\u0E37\u0E19\u0E04\u0E48\u0E32\u0E15\u0E31\u0E49\u0E07\u0E15\u0E49\u0E19 (", n, ")"));
+  };
   const resetBtn = d => !isDef(d) && !ro && React.createElement("button", {
     type: "button",
     title: "คืนค่าตั้งต้น " + txt(d),
@@ -4896,13 +4920,13 @@ function BoqRuleSec({
     }
   }, sec.sub)), nEdited > 0 && !ro && React.createElement("button", {
     className: "btn btn-sm",
-    onClick: resetAll
+    onClick: () => resetAll()
   }, React.createElement(Icon, {
     name: "undo",
     size: 12
   }), " \u0E04\u0E37\u0E19\u0E04\u0E48\u0E32\u0E15\u0E31\u0E49\u0E07\u0E15\u0E49\u0E19\u0E17\u0E31\u0E49\u0E07\u0E2B\u0E31\u0E27\u0E02\u0E49\u0E2D (", nEdited, ")")), stockRows.length > 0 && React.createElement("div", {
     style: card
-  }, blockHd("box", "ของที่มีขาย", "ระบบเลือกได้เฉพาะขนาดในนี้"), React.createElement("div", {
+  }, blockHd("box", "ของที่มีขาย", "ระบบเลือกได้เฉพาะขนาดในนี้", stockRows), React.createElement("div", {
     style: {
       display: "flex",
       flexDirection: "column"
@@ -4948,7 +4972,7 @@ function BoqRuleSec({
     onChange: L => set(d.key, BOQ.ruleTxt(d, BOQ.ruleVal(d, L.join(", "))))
   }))))), condRows.length > 0 && React.createElement("div", {
     style: card
-  }, blockHd("settings", "เงื่อนไขการเลือก", stockRows.length ? "ใช้เลือกจากของที่มีขายด้านบน" : ""), React.createElement("div", {
+  }, blockHd("settings", "เงื่อนไขการเลือก", stockRows.length ? "ใช้เลือกจากของที่มีขายด้านบน" : "", condRows), React.createElement("div", {
     style: {
       display: "flex",
       flexDirection: "column"
