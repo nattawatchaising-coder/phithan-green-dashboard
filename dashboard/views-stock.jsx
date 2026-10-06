@@ -1579,20 +1579,43 @@ function BoqRulesPage({ ampStore, condStore, omStore, rulesStore, isMobile }) {
   const secs = (BOQ.RULE_SECS || []).concat(BR_FIXED_SECS);
   const [sec, setSec] = React.useState(() => { try { return localStorage.getItem("br_sec") || "dcBoard"; } catch (e) { return "board"; } });
   const pick = (k) => { setSec(k); try { localStorage.setItem("br_sec", k); } catch (e) {} };
+  /* งานบ้าน / งานโครงการ ตั้งแยกกัน — แถวที่ใช้ทั้งสองประเภทเก็บที่ boqRules/home|proj/<key> (ดู ruleOnly/ruleRaw ใน boq.js) */
+  const [type, setTypeS] = React.useState(() => { try { return localStorage.getItem("br_type") === "home" ? "home" : "proj"; } catch (e) { return "proj"; } });
+  const setType = (t) => { setTypeS(t); try { localStorage.setItem("br_type", t); } catch (e) {} };
   const saved = (rulesStore && rulesStore.val) || {};
-  const nSet = (k) => (BOQ.RULE_DEFS || []).filter((d) => d.sec === k && saved[d.key] != null && saved[d.key] !== "").length;
+  const nSet = (k) => (BOQ.RULE_DEFS || []).filter((d) => d.sec === k && brRuleOn(d, type) && brChanged(d, saved, type)).length;
   const cur = secs.find((x) => x.k === sec) || secs[0];
+  const typeBar = (
+    <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap", marginBottom: 14 }}>
+      <div style={{ display: "inline-flex", gap: 4, padding: 4, borderRadius: "var(--r-pill)", background: "var(--surface2)", boxShadow: "var(--shadow-inset)" }}>
+        {[["home", "งานบ้าน", "home"], ["proj", "งานโครงการ", "building"]].map(([k, th, ic]) => (
+          <button key={k} onClick={() => setType(k)}
+            style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "7px 16px", border: "none", cursor: "pointer", fontFamily: "inherit",
+              fontSize: 13, fontWeight: 700, borderRadius: "var(--r-pill)",
+              background: type === k ? "var(--surface)" : "transparent", boxShadow: type === k ? "var(--shadow-sm)" : "none",
+              color: type === k ? "var(--primary-dark)" : "var(--text-3)" }}>
+            <Icon name={ic} size={14} color={type === k ? "var(--primary-dark)" : "var(--text-3)"} /> {th}
+          </button>
+        ))}
+      </div>
+      <span style={{ fontSize: 11.5, color: "var(--text-3)" }}>ค่าของ{type === "home" ? "งานบ้าน" : "งานโครงการ"} · ใบ BOQ ใช้ชุดตามประเภทงานของใบนั้น</span>
+    </div>
+  );
   const body = sec === "amp" ? <AmpacityEditor ampStore={ampStore} />
     : sec === "cond" ? <ConduitDefaultsEditor condStore={condStore} />
     : sec === "om" ? <OmTierEditor omStore={omStore} />
-    : <BoqRuleSec sec={cur} rulesStore={rulesStore} />;
+    : <BoqRuleSec key={type} sec={cur} rulesStore={rulesStore} type={type} />;
+  const fixed = sec === "amp" || sec === "cond" || sec === "om";
   if (isMobile) return (
     <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+      {!fixed && typeBar}
       <Dropdown value={cur.k} onChange={pick} options={secs.map((x) => ({ value: x.k, group: x.grp, label: x.th + (nSet(x.k) ? " · แก้แล้ว " + nSet(x.k) : "") }))} />
       {body}
     </div>
   );
   return (
+    <div>
+    {typeBar}
     <div style={{ display: "grid", gridTemplateColumns: "250px minmax(0,1fr)", gap: 18, alignItems: "start" }}>
       <nav style={{ position: "sticky", top: 12, background: "var(--surface)", boxShadow: "var(--shadow-card)", borderRadius: "var(--r-card)", padding: 8, display: "flex", flexDirection: "column", gap: 2 }}>
         {secs.map((x, i) => {
@@ -1613,17 +1636,33 @@ function BoqRulesPage({ ampStore, condStore, omStore, rulesStore, isMobile }) {
           );
         })}
       </nav>
-      <div style={{ minWidth: 0 }}>{body}</div>
+      <div style={{ minWidth: 0 }}>
+        {fixed && <div style={{ fontSize: 11.5, color: "var(--text-3)", marginBottom: 10 }}>ตารางนี้ใช้ร่วมกันทั้งงานบ้านและงานโครงการ</div>}
+        {body}
+      </div>
+    </div>
     </div>
   );
 }
 
+/* แถวนี้โชว์ในแท็บประเภทงานนี้ไหม · ค่าที่ใช้จริงต่างจากค่าตั้งต้นไหม · เก็บที่คีย์ไหน */
+const brRuleOn = (d, type) => { const o = window.BOQ.ruleOnly(d); return !o || o === type; };
+const brChanged = (d, saved, type) => {
+  const B = window.BOQ, raw = B.ruleRaw(saved, d, type);
+  if (raw == null || raw === "") return false;
+  return B.ruleTxt(d, B.ruleVal(d, raw)) !== B.ruleTxt(d, d.def);
+};
+const brPath = (d, type) => (window.BOQ.ruleOnly(d) ? d.key : type + "/" + d.key);
+
 /* หัวข้อหนึ่งของ RULE_DEFS — กดแก้ไข → แก้ในร่าง → บันทึกเฉพาะช่องที่เปลี่ยน (ท่าเดียวกับ ConduitDefaultsEditor)
    ช่องว่าง = ใช้ค่าตั้งต้นของระบบ (โชว์เป็น placeholder) */
-function BoqRuleSec({ sec, rulesStore }) {
+function BoqRuleSec({ sec, rulesStore, type }) {
   const BOQ = window.BOQ || {};
-  const defs = (BOQ.RULE_DEFS || []).filter((d) => d.sec === sec.k);
-  const saved = (rulesStore && rulesStore.val) || {};
+  const defs = (BOQ.RULE_DEFS || []).filter((d) => d.sec === sec.k && brRuleOn(d, type));
+  const all = (rulesStore && rulesStore.val) || {};
+  /* ค่าที่ใช้กับประเภทงานนี้ เรียงเป็น {key: ข้อความ} — แถวใช้ร่วมที่ยังไม่ตั้งแยก = ค่าก่อนแยก (boqRules/<key>) */
+  const saved = {};
+  defs.forEach((d) => { const r = BOQ.ruleRaw(all, d, type); if (r != null && r !== "") saved[d.key] = r; });
   const [draft, setDraft] = React.useState(null);
   React.useEffect(() => { setDraft(null); }, [sec.k]);
   const edit = !!draft;
@@ -1631,16 +1670,21 @@ function BoqRuleSec({ sec, rulesStore }) {
   const txt = (d) => BOQ.ruleTxt ? BOQ.ruleTxt(d, d.def) : String(d.def);
   const str = (o, k) => (o[k] != null ? String(o[k]) : "");
   const dirty = defs.filter((d) => str(saved, d.key) !== str(draft || saved, d.key));
-  const nEdited = defs.filter((d) => str(saved, d.key) !== "").length;
+  const nEdited = defs.filter((d) => brChanged(d, all, type)).length;
   const set = (k, v) => setDraft((p) => { const n = Object.assign({}, p); if (v === "") delete n[k]; else n[k] = v; return n; });
-  const save = () => { dirty.forEach((d) => rulesStore && rulesStore.setCell(d.key, str(draft, d.key).trim())); setDraft(null); };
+  const save = () => { dirty.forEach((d) => rulesStore && rulesStore.setCell(brPath(d, type), str(draft, d.key).trim())); setDraft(null); };
   const cancel = () => {
     if (!dirty.length) { setDraft(null); return; }
     window.askConfirm({ title: "ทิ้งที่แก้ไว้?", body: "ค่าที่แก้ไว้ " + dirty.length + " ช่อง จะไม่ถูกบันทึก", ok: "ทิ้ง", danger: true })
       .then((ok) => { if (ok) setDraft(null); });
   };
   const resetAll = () => window.askConfirm({ title: "คืนค่าตั้งต้น · " + sec.th + "?", body: "ค่าที่ตั้งไว้ " + nEdited + " ช่อง จะกลับไปใช้ค่าตั้งต้นของระบบ", ok: "คืนค่าตั้งต้น" })
-    .then((ok) => { if (ok) defs.forEach((d) => { if (str(saved, d.key) !== "") rulesStore.setCell(d.key, ""); }); });
+    .then((ok) => { if (ok) defs.forEach((d) => {
+      if (!brChanged(d, all, type)) return;
+      /* แถวใช้ร่วมที่ค่าก่อนแยก (boqRules/<key>) ยังตั้งอยู่ — ลบคีย์ของประเภทนี้ไม่พอ ต้องเขียนค่าตั้งต้นทับ (อีกประเภทไม่ขยับ) */
+      const flat = !BOQ.ruleOnly(d) && all[d.key] != null && all[d.key] !== "";
+      rulesStore.setCell(brPath(d, type), flat ? txt(d) : "");
+    }); });
   /* ค่าที่กรอกแล้วระบบไม่รับ (ติดลบ เกินช่วง ไม่ใช่ตัวเลข) จะถูกใช้เป็นค่าตั้งต้น — บอกไว้ตรงช่องเลย */
   const bad = (d) => { const v = str(view, d.key); if (!v || !BOQ.ruleVal) return false; return BOQ.ruleVal(d, v) === d.def && v.replace(/\s/g, "") !== txt(d).replace(/\s/g, ""); };
   const btn = (on) => ({ padding: "7px 14px", borderRadius: "var(--r-tile)", fontFamily: "inherit", fontSize: 12.5, fontWeight: 700, cursor: "pointer",
@@ -1666,11 +1710,11 @@ function BoqRuleSec({ sec, rulesStore }) {
         )}
       </div>
       <div style={{ background: "var(--surface)", boxShadow: "var(--shadow-card)", borderRadius: "var(--r-card)", padding: "6px 16px" }}>
-        <div style={{ padding: "10px 0 8px", fontSize: 14, fontWeight: 700 }}>{sec.th}
+        <div style={{ padding: "10px 0 8px", fontSize: 14, fontWeight: 700 }}>{sec.th} <span style={{ fontSize: 11, fontWeight: 700, padding: "1px 8px", borderRadius: "var(--r-pill)", background: "var(--primary-soft)", color: "var(--primary-dark)", verticalAlign: 2 }}>{type === "home" ? "งานบ้าน" : "งานโครงการ"}</span>
           <span style={{ display: "block", fontSize: 11.5, fontWeight: 500, color: "var(--text-3)", marginTop: 2 }}>{sec.sub}</span>
         </div>
         {defs.map((d, i) => {
-          const v = str(view, d.key), own = str(saved, d.key) !== "";
+          const v = str(view, d.key), own = brChanged(d, all, type);
           const wide = !!d.type;
           const head = d.g && (i === 0 || defs[i - 1].g !== d.g);
           return (

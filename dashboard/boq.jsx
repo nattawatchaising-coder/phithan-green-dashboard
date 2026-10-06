@@ -596,6 +596,7 @@ const BQQ_CSS = `
 @media (max-width:560px){.bqq-bd{padding:0;place-items:end stretch}.bqq-card{max-height:96vh;border-radius:var(--r-card) var(--r-card) 0 0}.bqq-grid{grid-template-columns:minmax(0,1fr)}.bqq-ft{flex-wrap:wrap}.bqq-ft .btn{flex:1;justify-content:center}}
 `;
 function BOQEditor({ job, onClose, onSave, priceMap, stock, ver, verName, p3Vers, quick, quickNew }) {
+  window.BOQ.useRuleType(job && job.type === "home" ? "home" : "proj");   // ตั้งค่าคำนวณแยกงานบ้าน/งานโครงการ — RU/WK ที่อ่านตรงในหน้านี้ต้องเป็นชุดของงานนี้
   const bdClose = window.useBackdropClose(onClose);
   const baht = (n) => (Math.round((+n || 0) * 100) / 100).toLocaleString(undefined, { maximumFractionDigits: 2 });
   const isMobile = window.matchMedia("(max-width: 860px)").matches;

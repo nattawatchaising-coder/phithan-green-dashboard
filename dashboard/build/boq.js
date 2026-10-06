@@ -1130,6 +1130,7 @@ function BOQEditor({
   quick,
   quickNew
 }) {
+  window.BOQ.useRuleType(job && job.type === "home" ? "home" : "proj");
   const bdClose = window.useBackdropClose(onClose);
   const baht = n => (Math.round((+n || 0) * 100) / 100).toLocaleString(undefined, {
     maximumFractionDigits: 2

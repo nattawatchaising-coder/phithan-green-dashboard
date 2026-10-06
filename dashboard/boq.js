@@ -117,9 +117,9 @@
     { sec: "permit", key: "eng2Kw", th: "ค่าวิศวกร ขั้นที่ 2 · ระบบไม่เกิน", unit: "kWp", def: 100 },
     { sec: "permit", key: "eng2", th: "ค่าวิศวกร ขั้นที่ 2", unit: "บาท", def: 10000 },
     { sec: "permit", key: "eng3", th: "ค่าวิศวกร ใหญ่กว่าขั้นที่ 2", unit: "บาท", def: 15000 },
-    { sec: "price", key: "accHome", th: "Accessories เผื่อ · งานบ้าน (% ของทุนวัสดุ)", unit: "%", def: 10, max: 100 },
-    { sec: "price", key: "accQuick", th: "Accessories เผื่อ · BOQ ด่วน (งานบ้าน) (% ของทุนวัสดุ)", unit: "%", def: 15, max: 100 },
-    { sec: "price", key: "accProj", th: "Accessories เผื่อ · งานโครงการ (% ของทุนวัสดุ)", unit: "%", def: 5, max: 100 },
+    { sec: "price", only: "home", key: "accHome", th: "Accessories เผื่อ · งานบ้าน (% ของทุนวัสดุ)", unit: "%", def: 10, max: 100 },
+    { sec: "price", only: "home", key: "accQuick", th: "Accessories เผื่อ · BOQ ด่วน (% ของทุนวัสดุ)", unit: "%", def: 15, max: 100 },
+    { sec: "price", only: "proj", key: "accProj", th: "Accessories เผื่อ · งานโครงการ (% ของทุนวัสดุ)", unit: "%", def: 5, max: 100 },
     { sec: "price", key: "profitPct", th: "กำไรเริ่มต้น (% ของราคาขาย)", unit: "%", def: 15, max: 90 },
     { sec: "price", key: "vat", th: "ภาษีมูลค่าเพิ่ม", unit: "%", def: 7, max: 30 },
     { sec: "price", key: "omYears", th: "O&M ฟรี · ปีที่แถม", unit: "ปี", def: 2 },
@@ -147,13 +147,30 @@
     if (!isFinite(v) || v < (d.min != null ? d.min : 0) || (d.max != null && v > d.max)) return d.def;
     return v;
   }
-  function setRules(v) {
-    const src = v || {};
-    RULE_DEFS.forEach((d) => { RULES[d.key] = ruleVal(d, src[d.key]); });
+  /* ── แยกค่า งานบ้าน / งานโครงการ ──
+     แถวที่ใช้กับงานประเภทเดียว (หัวย่อย g "งานบ้าน"/"งานโครงการ" หรือ only) มีค่าเดียว เก็บที่ boqRules/<key>
+     แถวที่ใช้ทั้งสองประเภท ตั้งแยกกันได้ที่ boqRules/home/<key> · boqRules/proj/<key> — ไม่ตั้ง = boqRules/<key> (ค่าก่อนแยก) → ค่าตั้งต้น
+     RULES = ชุดของประเภทงานที่กำลังคิด (useRuleType) · ฟังก์ชันที่ส่งออกทุกตัวสลับชุดเองเมื่อได้ใบ/งานที่บอกประเภท (ห่อท้ายไฟล์) */
+  const ruleOnly = (d) => d.only || (d.g === "งานบ้าน" ? "home" : d.g === "งานโครงการ" ? "proj" : null);
+  const ruleRaw = (src, d, t) => {
+    const s = src || {}, own = !ruleOnly(d) && s[t] ? s[t][d.key] : null;
+    return own != null && own !== "" ? own : s[d.key];
+  };
+  const RULES_T = { home: {}, proj: {} };
+  let ruleType = "proj";
+  function useRuleType(t) {
+    t = t === "home" ? "home" : "proj";
+    ruleType = t;
+    Object.assign(RULES, RULES_T[t]);
     /* ค่าที่ส่งออกเป็นตัวเลขตรง ๆ (หน้าอื่นอ่าน window.BOQ.VAT_RATE) ต้องตามด้วย */
     if (window.BOQ) Object.assign(window.BOQ, { VAT_RATE: RULES.vat, PROFIT_PCT_DEF: RULES.profitPct, PV_DC_SPARE: RULES.pvSpare,
-      ACC_ALLOW_PCT: RULES.accProj, ACC_ALLOW_PCT_HOME: RULES.accHome,
+      ACC_ALLOW_PCT: RULES_T.proj.accProj, ACC_ALLOW_PCT_HOME: RULES_T.home.accHome,
       PERMIT_GRID_FEE: { MEA: RULES.gridMEA, PEA: RULES.gridPEA }, DCAC_LIMIT: RULES.dcacMax });
+    return t;
+  }
+  function setRules(v) {
+    ["home", "proj"].forEach((t) => RULE_DEFS.forEach((d) => { RULES_T[t][d.key] = ruleVal(d, ruleRaw(v, d, t)); }));
+    useRuleType(ruleType);
   }
   setRules(null);
   const ruleTxt = (d, v) => (Array.isArray(v) ? v.join(", ") : String(v));
@@ -2688,6 +2705,24 @@
     UPVC_CONDUIT, conduitFillLimit, conduitDim, conduitCheck,
     AMP_CORE_LABEL, ampGroupMeta, ampCoresFor, ampCoreKey, WIRE_METHOD_LEGACY, normWireMethod,
     G_TRAY, G_SUPPORT, G_LABOR, G_PERMIT, G_OM, OM_DEF, OM_CLEAN_TIERS, OM_SVC_TIERS, OM_CLEAN_DEF, OM_SVC_DEF, omTierNorm, setOmTiers, omTierPrice, omDefaults, omCalc, SERVICE_GROUPS, mergeItems,
-    RULE_SECS, RULE_DEFS, RULES, setRules, ruleVal, ruleTxt };
+    RULE_SECS, RULE_DEFS, RULES, RULES_T, setRules, ruleVal, ruleTxt, ruleOnly, ruleRaw };
+  /* ห่อฟังก์ชันที่ส่งออก: เจออาร์กิวเมนต์ที่เป็นใบ BOQ (jobType) หรืองาน (type) = สลับ RULES เป็นชุดของประเภทนั้นก่อนคิด
+     ฟังก์ชันข้างในเรียกกันตรง ๆ (ไม่ผ่านตัวห่อ) จึงใช้ชุดเดียวกันตลอดการคิดหนึ่งครั้ง */
+  const typeHint = (a) => {
+    if (!a || typeof a !== "object" || Array.isArray(a)) return null;
+    if (a.jobType) return a.jobType === "home" ? "home" : "proj";
+    if (a.type === "home" || a.type === "project") return a.type === "home" ? "home" : "proj";
+    return null;
+  };
+  Object.keys(window.BOQ).forEach((k) => {
+    const fn = window.BOQ[k];
+    if (typeof fn !== "function" || /^(set|rule)/.test(k)) return;
+    window.BOQ[k] = function () {
+      for (let i = 0; i < arguments.length; i++) { const t = typeHint(arguments[i]); if (t) { if (t !== ruleType) useRuleType(t); break; } }
+      return fn.apply(this, arguments);
+    };
+  });
+  window.BOQ.useRuleType = useRuleType;
+  window.BOQ.ruleTypeNow = () => ruleType;
   setRules(null);
 })();

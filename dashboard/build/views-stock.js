@@ -4133,9 +4133,67 @@ function BoqRulesPage({
       localStorage.setItem("br_sec", k);
     } catch (e) {}
   };
+  const [type, setTypeS] = React.useState(() => {
+    try {
+      return localStorage.getItem("br_type") === "home" ? "home" : "proj";
+    } catch (e) {
+      return "proj";
+    }
+  });
+  const setType = t => {
+    setTypeS(t);
+    try {
+      localStorage.setItem("br_type", t);
+    } catch (e) {}
+  };
   const saved = rulesStore && rulesStore.val || {};
-  const nSet = k => (BOQ.RULE_DEFS || []).filter(d => d.sec === k && saved[d.key] != null && saved[d.key] !== "").length;
+  const nSet = k => (BOQ.RULE_DEFS || []).filter(d => d.sec === k && brRuleOn(d, type) && brChanged(d, saved, type)).length;
   const cur = secs.find(x => x.k === sec) || secs[0];
+  const typeBar = React.createElement("div", {
+    style: {
+      display: "flex",
+      alignItems: "center",
+      gap: 10,
+      flexWrap: "wrap",
+      marginBottom: 14
+    }
+  }, React.createElement("div", {
+    style: {
+      display: "inline-flex",
+      gap: 4,
+      padding: 4,
+      borderRadius: "var(--r-pill)",
+      background: "var(--surface2)",
+      boxShadow: "var(--shadow-inset)"
+    }
+  }, [["home", "งานบ้าน", "home"], ["proj", "งานโครงการ", "building"]].map(([k, th, ic]) => React.createElement("button", {
+    key: k,
+    onClick: () => setType(k),
+    style: {
+      display: "inline-flex",
+      alignItems: "center",
+      gap: 6,
+      padding: "7px 16px",
+      border: "none",
+      cursor: "pointer",
+      fontFamily: "inherit",
+      fontSize: 13,
+      fontWeight: 700,
+      borderRadius: "var(--r-pill)",
+      background: type === k ? "var(--surface)" : "transparent",
+      boxShadow: type === k ? "var(--shadow-sm)" : "none",
+      color: type === k ? "var(--primary-dark)" : "var(--text-3)"
+    }
+  }, React.createElement(Icon, {
+    name: ic,
+    size: 14,
+    color: type === k ? "var(--primary-dark)" : "var(--text-3)"
+  }), " ", th))), React.createElement("span", {
+    style: {
+      fontSize: 11.5,
+      color: "var(--text-3)"
+    }
+  }, "\u0E04\u0E48\u0E32\u0E02\u0E2D\u0E07", type === "home" ? "งานบ้าน" : "งานโครงการ", " \xB7 \u0E43\u0E1A BOQ \u0E43\u0E0A\u0E49\u0E0A\u0E38\u0E14\u0E15\u0E32\u0E21\u0E1B\u0E23\u0E30\u0E40\u0E20\u0E17\u0E07\u0E32\u0E19\u0E02\u0E2D\u0E07\u0E43\u0E1A\u0E19\u0E31\u0E49\u0E19"));
   const body = sec === "amp" ? React.createElement(AmpacityEditor, {
     ampStore: ampStore
   }) : sec === "cond" ? React.createElement(ConduitDefaultsEditor, {
@@ -4143,16 +4201,19 @@ function BoqRulesPage({
   }) : sec === "om" ? React.createElement(OmTierEditor, {
     omStore: omStore
   }) : React.createElement(BoqRuleSec, {
+    key: type,
     sec: cur,
-    rulesStore: rulesStore
+    rulesStore: rulesStore,
+    type: type
   });
+  const fixed = sec === "amp" || sec === "cond" || sec === "om";
   if (isMobile) return React.createElement("div", {
     style: {
       display: "flex",
       flexDirection: "column",
       gap: 12
     }
-  }, React.createElement(Dropdown, {
+  }, !fixed && typeBar, React.createElement(Dropdown, {
     value: cur.k,
     onChange: pick,
     options: secs.map(x => ({
@@ -4161,7 +4222,7 @@ function BoqRulesPage({
       label: x.th + (nSet(x.k) ? " · แก้แล้ว " + nSet(x.k) : "")
     }))
   }), body);
-  return React.createElement("div", {
+  return React.createElement("div", null, typeBar, React.createElement("div", {
     style: {
       display: "grid",
       gridTemplateColumns: "250px minmax(0,1fr)",
@@ -4240,15 +4301,38 @@ function BoqRulesPage({
     style: {
       minWidth: 0
     }
-  }, body));
+  }, fixed && React.createElement("div", {
+    style: {
+      fontSize: 11.5,
+      color: "var(--text-3)",
+      marginBottom: 10
+    }
+  }, "\u0E15\u0E32\u0E23\u0E32\u0E07\u0E19\u0E35\u0E49\u0E43\u0E0A\u0E49\u0E23\u0E48\u0E27\u0E21\u0E01\u0E31\u0E19\u0E17\u0E31\u0E49\u0E07\u0E07\u0E32\u0E19\u0E1A\u0E49\u0E32\u0E19\u0E41\u0E25\u0E30\u0E07\u0E32\u0E19\u0E42\u0E04\u0E23\u0E07\u0E01\u0E32\u0E23"), body)));
 }
+const brRuleOn = (d, type) => {
+  const o = window.BOQ.ruleOnly(d);
+  return !o || o === type;
+};
+const brChanged = (d, saved, type) => {
+  const B = window.BOQ,
+    raw = B.ruleRaw(saved, d, type);
+  if (raw == null || raw === "") return false;
+  return B.ruleTxt(d, B.ruleVal(d, raw)) !== B.ruleTxt(d, d.def);
+};
+const brPath = (d, type) => window.BOQ.ruleOnly(d) ? d.key : type + "/" + d.key;
 function BoqRuleSec({
   sec,
-  rulesStore
+  rulesStore,
+  type
 }) {
   const BOQ = window.BOQ || {};
-  const defs = (BOQ.RULE_DEFS || []).filter(d => d.sec === sec.k);
-  const saved = rulesStore && rulesStore.val || {};
+  const defs = (BOQ.RULE_DEFS || []).filter(d => d.sec === sec.k && brRuleOn(d, type));
+  const all = rulesStore && rulesStore.val || {};
+  const saved = {};
+  defs.forEach(d => {
+    const r = BOQ.ruleRaw(all, d, type);
+    if (r != null && r !== "") saved[d.key] = r;
+  });
   const [draft, setDraft] = React.useState(null);
   React.useEffect(() => {
     setDraft(null);
@@ -4258,14 +4342,14 @@ function BoqRuleSec({
   const txt = d => BOQ.ruleTxt ? BOQ.ruleTxt(d, d.def) : String(d.def);
   const str = (o, k) => o[k] != null ? String(o[k]) : "";
   const dirty = defs.filter(d => str(saved, d.key) !== str(draft || saved, d.key));
-  const nEdited = defs.filter(d => str(saved, d.key) !== "").length;
+  const nEdited = defs.filter(d => brChanged(d, all, type)).length;
   const set = (k, v) => setDraft(p => {
     const n = Object.assign({}, p);
     if (v === "") delete n[k];else n[k] = v;
     return n;
   });
   const save = () => {
-    dirty.forEach(d => rulesStore && rulesStore.setCell(d.key, str(draft, d.key).trim()));
+    dirty.forEach(d => rulesStore && rulesStore.setCell(brPath(d, type), str(draft, d.key).trim()));
     setDraft(null);
   };
   const cancel = () => {
@@ -4288,7 +4372,9 @@ function BoqRuleSec({
     ok: "คืนค่าตั้งต้น"
   }).then(ok => {
     if (ok) defs.forEach(d => {
-      if (str(saved, d.key) !== "") rulesStore.setCell(d.key, "");
+      if (!brChanged(d, all, type)) return;
+      const flat = !BOQ.ruleOnly(d) && all[d.key] != null && all[d.key] !== "";
+      rulesStore.setCell(brPath(d, type), flat ? txt(d) : "");
     });
   });
   const bad = d => {
@@ -4372,7 +4458,17 @@ function BoqRuleSec({
       fontSize: 14,
       fontWeight: 700
     }
-  }, sec.th, React.createElement("span", {
+  }, sec.th, " ", React.createElement("span", {
+    style: {
+      fontSize: 11,
+      fontWeight: 700,
+      padding: "1px 8px",
+      borderRadius: "var(--r-pill)",
+      background: "var(--primary-soft)",
+      color: "var(--primary-dark)",
+      verticalAlign: 2
+    }
+  }, type === "home" ? "งานบ้าน" : "งานโครงการ"), React.createElement("span", {
     style: {
       display: "block",
       fontSize: 11.5,
@@ -4382,7 +4478,7 @@ function BoqRuleSec({
     }
   }, sec.sub)), defs.map((d, i) => {
     const v = str(view, d.key),
-      own = str(saved, d.key) !== "";
+      own = brChanged(d, all, type);
     const wide = !!d.type;
     const head = d.g && (i === 0 || defs[i - 1].g !== d.g);
     return React.createElement(React.Fragment, {
