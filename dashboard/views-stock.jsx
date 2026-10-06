@@ -1652,6 +1652,9 @@ const brChanged = (d, saved, type) => {
   if (raw == null || raw === "") return false;
   return B.ruleTxt(d, B.ruleVal(d, raw)) !== B.ruleTxt(d, d.def);
 };
+/* แถวรายการของที่มีขาย (ขนาด/แรงดัน/อัตราส่วนที่มีจริง) — ขึ้นก่อนเงื่อนไขในแต่ละหัวข้อ */
+const brStockRow = (d) => d.type === "nums";
+const BR_TYPE_G = { "ทุกงาน": 1, "งานบ้าน": 1, "งานโครงการ": 1 };
 const brPath = (d, type) => (window.BOQ.ruleOnly(d) ? d.key : type + "/" + d.key);
 
 /* หัวข้อหนึ่งของ RULE_DEFS — กดแก้ไข → แก้ในร่าง → บันทึกเฉพาะช่องที่เปลี่ยน (ท่าเดียวกับ ConduitDefaultsEditor)
@@ -1659,6 +1662,7 @@ const brPath = (d, type) => (window.BOQ.ruleOnly(d) ? d.key : type + "/" + d.key
 function BoqRuleSec({ sec, rulesStore, type }) {
   const BOQ = window.BOQ || {};
   const defs = (BOQ.RULE_DEFS || []).filter((d) => d.sec === sec.k && brRuleOn(d, type));
+  const rows = defs.filter(brStockRow).concat(defs.filter((d) => !brStockRow(d))), mixed = rows.some(brStockRow) && rows.some((d) => !brStockRow(d));
   const all = (rulesStore && rulesStore.val) || {};
   /* ค่าที่ใช้กับประเภทงานนี้ เรียงเป็น {key: ข้อความ} — แถวใช้ร่วมที่ยังไม่ตั้งแยก = ค่าก่อนแยก (boqRules/<key>) */
   const saved = {};
@@ -1713,12 +1717,18 @@ function BoqRuleSec({ sec, rulesStore, type }) {
         <div style={{ padding: "10px 0 8px", fontSize: 14, fontWeight: 700 }}>{sec.th} <span style={{ fontSize: 11, fontWeight: 700, padding: "1px 8px", borderRadius: "var(--r-pill)", background: "var(--primary-soft)", color: "var(--primary-dark)", verticalAlign: 2 }}>{type === "home" ? "งานบ้าน" : "งานโครงการ"}</span>
           <span style={{ display: "block", fontSize: 11.5, fontWeight: 500, color: "var(--text-3)", marginTop: 2 }}>{sec.sub}</span>
         </div>
-        {defs.map((d, i) => {
+        {rows.map((d, i) => {
           const v = str(view, d.key), own = brChanged(d, all, type);
           const wide = !!d.type;
-          const head = d.g && (i === 0 || defs[i - 1].g !== d.g);
+          const blk = brStockRow(d), blkHead = mixed && (i === 0 || brStockRow(rows[i - 1]) !== blk);
+          /* หัวย่อยที่บอกประเภทงาน (ทุกงาน/งานบ้าน/งานโครงการ) ไม่โชว์ — แท็บบนสุดแยกประเภทให้แล้ว · กลุ่มของที่มีขายไม่มีหัวย่อย */
+          const gOf = (x) => (x && x.g && !BR_TYPE_G[x.g] && !brStockRow(x) ? x.g : null);
+          const head = gOf(d) && (blkHead || i === 0 || gOf(rows[i - 1]) !== gOf(d));
           return (
             <React.Fragment key={d.key}>
+            {blkHead && <div style={{ padding: i ? "18px 0 6px" : "6px 0 6px", fontSize: 12.5, fontWeight: 800, color: "var(--text-1)", display: "flex", alignItems: "center", gap: 6 }}>
+              <Icon name={blk ? "box" : "settings"} size={14} color="var(--primary-dark)" />{blk ? "1 · ของที่มีขาย" : "2 · เงื่อนไขการเลือก"}
+              <span style={{ fontSize: 11, fontWeight: 500, color: "var(--text-3)" }}>{blk ? "ระบบเลือกได้เฉพาะขนาดในรายการนี้" : "ใช้เลือกจากของที่มีขายด้านบน"}</span></div>}
             {head && <div style={{ padding: "12px 0 4px", borderTop: i ? "1px solid var(--divider)" : "none", fontSize: 11.5, fontWeight: 700, color: "var(--primary-dark)" }}>{d.g}</div>}
             <div style={{ display: "grid", gridTemplateColumns: wide ? "minmax(0,1fr)" : "minmax(0,1fr) 150px 52px", gap: wide ? 6 : 10,
               alignItems: "center", padding: "10px 0", borderTop: "1px solid var(--divider)" }}>

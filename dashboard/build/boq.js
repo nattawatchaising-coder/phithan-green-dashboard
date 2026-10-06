@@ -3142,7 +3142,8 @@ function BOQEditor({
   const DCF_A = RU.dcFuseA;
   const DCF_V = RU.dcFuseV,
     SPD_V = RU.dcSpdV;
-  const DCMCB_A = RU.dcMcbA;
+  const DCMCB_A = RU.dcMcbA,
+    DCMCB_V = RU.dcMcbV;
   const r1 = x => Math.round(x * 10) / 10;
   const cabIz = c => {
     if (!c || !c.type) return null;
@@ -3431,14 +3432,15 @@ function BOQEditor({
     if (isHome && nStr > 0 && isc > 0) {
       const need = isc * RU.dcMcbK,
         A = DCMCB_A.find(x => x >= need) || DCMCB_A[DCMCB_A.length - 1];
-      const vOk = voc <= 800;
+      const MV = vPick(DCMCB_V),
+        vOk = MV >= voc;
       out.dc.push({
-        name: "DC MCB " + A + "A 2P 800VDC",
+        name: "DC MCB " + A + "A 2P " + MV + "VDC",
         qty: nStr,
         unit: "ตัว",
         auto: 1,
         ok: vOk,
-        why: "สตริงละ 1 ตัว · Isc " + r1(isc) + " A × " + RU.dcMcbK + " = " + r1(need) + " A → " + A + " A" + (vOk ? "" : " · Voc " + r1(voc) + " V เกิน 800 VDC ต้องใช้รุ่นแรงดันสูงกว่า")
+        why: "สตริงละ 1 ตัว · Isc " + r1(isc) + " A × " + RU.dcMcbK + " = " + r1(need) + " A → " + A + " A · " + vTxtOf(MV) + (vOk ? "" : " · เกินรุ่นที่มีขาย ต้องใช้รุ่นแรงดันสูงกว่า")
       });
     }
     if (nStr > 0 && !lps) out.dc.push({

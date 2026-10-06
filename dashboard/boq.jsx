@@ -1863,7 +1863,7 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock, ver, verName, p3Vers
        แรงดันพิกัด ≥ Voc สตริง × 1.1 (เผื่อแรงดันขึ้นตอนแผงเย็น) */
   const DCF_A = RU.dcFuseA;
   const DCF_V = RU.dcFuseV, SPD_V = RU.dcSpdV;
-  const DCMCB_A = RU.dcMcbA;   // DC MCB 2P 800VDC (งานบ้าน — ตัดวงจรสตริงหลังฟิวส์)   // แรงดันพิกัดที่มีขายจริง (ฟิวส์ gPV / SPD DC)
+  const DCMCB_A = RU.dcMcbA, DCMCB_V = RU.dcMcbV;   // DC MCB 2P (งานบ้าน — ตัดวงจรสตริงหลังฟิวส์) · ขนาด A และแรงดันพิกัดที่มีขาย
   const r1 = (x) => Math.round(x * 10) / 10;
   const cabIz = (c) => {
     if (!c || !c.type) return null;
@@ -2001,12 +2001,13 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock, ver, verName, p3Vers
     } else if (nStr > 0) {
       out.dc.push({ name: "DC FUSE HOLDER", qty: nStr * 2, unit: "ตัว", auto: 1, ok: false, why: "ยังไม่รู้ Isc — กรอกสเปคแผงหรือ maxIscA ของอินเวอร์เตอร์ในคลัง แล้วระบบจะเลือกฟิวส์ให้" });
     }
-    /* งานบ้าน: DC MCB สตริงละ 1 ตัว ไว้ตัด/เปิดวงจรตอนซ่อม · ขนาดแรก ≥ 1.25 × Isc · 2P 800VDC (Voc สตริงงานบ้านไม่ถึง 800 V) */
+    /* งานบ้าน: DC MCB สตริงละ 1 ตัว ไว้ตัด/เปิดวงจรตอนซ่อม · ขนาดแรก ≥ dcMcbK × Isc · แรงดันพิกัดแรก ≥ Voc สตริง × vocK (dcMcbV) */
     if (isHome && nStr > 0 && isc > 0) {
       const need = isc * RU.dcMcbK, A = DCMCB_A.find((x) => x >= need) || DCMCB_A[DCMCB_A.length - 1];
-      const vOk = voc <= 800;
-      out.dc.push({ name: "DC MCB " + A + "A 2P 800VDC", qty: nStr, unit: "ตัว", auto: 1, ok: vOk,
-        why: "สตริงละ 1 ตัว · Isc " + r1(isc) + " A × " + RU.dcMcbK + " = " + r1(need) + " A → " + A + " A" + (vOk ? "" : " · Voc " + r1(voc) + " V เกิน 800 VDC ต้องใช้รุ่นแรงดันสูงกว่า") });
+      const MV = vPick(DCMCB_V), vOk = MV >= voc;
+      out.dc.push({ name: "DC MCB " + A + "A 2P " + MV + "VDC", qty: nStr, unit: "ตัว", auto: 1, ok: vOk,
+        why: "สตริงละ 1 ตัว · Isc " + r1(isc) + " A × " + RU.dcMcbK + " = " + r1(need) + " A → " + A + " A · " + vTxtOf(MV)
+          + (vOk ? "" : " · เกินรุ่นที่มีขาย ต้องใช้รุ่นแรงดันสูงกว่า") });
     }
     if (nStr > 0 && !lps) out.dc.push({ name: "DC SPD 2P " + SV + "VDC 20-40KA", qty: nStr, unit: "ตัว", auto: 1, why: "สตริงละ 1 ตัว · " + lpsTxt + " · " + vTxtOf(SV) });
     if (nStr > 0 && lps) {

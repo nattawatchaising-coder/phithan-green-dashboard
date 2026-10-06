@@ -10,9 +10,9 @@
      type: num (ตัวเลข) · nums (รายการตัวเลขคั่นจุลภาค เรียงน้อยไปมาก) · words (รายการคำคั่นจุลภาค) */
   /* grp = หัวกลุ่มในแถบซ้าย · แถว RULE_DEFS ที่มี g = หัวย่อยในหน้าหัวข้อ */
   const RULE_SECS = [
-    { k: "dcBoard", grp: "ฝั่ง DC", th: "ตู้ไฟ DC", sub: "ฟิวส์ gPV · DC SPD · แรงดันพิกัด · DC MCB งานบ้าน" },
+    { k: "dcBoard", grp: "ฝั่ง DC", th: "ตู้ไฟ DC", sub: "ฟิวส์ gPV · DC SPD · แรงดันพิกัด · DC MCB (งานบ้าน)" },
     { k: "dcWire", grp: "ฝั่ง DC", th: "สาย DC (PV)", sub: "ตัวคูณเลือกขนาดสาย PV · เผื่อความยาว · แรงดันตก DC" },
-    { k: "acBoard", grp: "ฝั่ง AC", th: "ตู้ไฟ AC", sub: "MCCB/ACB · Ground Fault · ZCT · ฟิวส์กันหลัง SPD · CT · RCBO งานบ้าน" },
+    { k: "acBoard", grp: "ฝั่ง AC", th: "ตู้ไฟ AC", sub: "MCCB/ACB · Ground Fault · ZCT · ฟิวส์กันหลัง SPD · CT · RCBO (งานบ้าน)" },
     { k: "acWire", grp: "ฝั่ง AC", th: "สาย AC", sub: "ตัวคูณเลือกขนาดสาย · แรงดันตก AC / รวม" },
     { k: "tray", grp: "งานติดตั้ง", th: "รางไฟ · ท่อร้อยสาย", sub: "ขาล็อก · ตัวยึด · Rail รอง · ข้อต่อ · % บรรจุสาย · รางจากแบบ 3D · อุปกรณ์ uPVC" },
     { k: "gnd", grp: "งานติดตั้ง", th: "กราวด์", sub: "แท่งกราวด์ · เทอร์โมเวล ตามขนาดระบบ" },
@@ -26,11 +26,12 @@
     { sec: "dcBoard", g: "ทุกงาน", key: "dcFuseK", th: "ฟิวส์ DC gPV = Isc ×", unit: "เท่า", def: 1.5, min: 1 },
     { sec: "dcBoard", g: "ทุกงาน", key: "dcFuseMaxK", th: "ฟิวส์ DC ไม่เกิน Isc × (เกินขึ้นเตือน)", unit: "เท่า", def: 2.4, min: 1 },
     { sec: "dcBoard", g: "ทุกงาน", key: "dcFuseA", th: "ขนาดฟิวส์ DC ที่มีขาย", unit: "A", type: "nums", def: [10, 12, 15, 16, 20, 25, 30, 32] },
-    { sec: "dcBoard", g: "ทุกงาน", key: "vocK", th: "แรงดันพิกัดฟิวส์/SPD ≥ Voc สตริง ×", unit: "เท่า", def: 1.1, min: 1 },
+    { sec: "dcBoard", g: "ทุกงาน", key: "vocK", th: "แรงดันพิกัดฟิวส์/SPD/DC MCB ≥ Voc สตริง ×", unit: "เท่า", def: 1.1, min: 1 },
     { sec: "dcBoard", g: "ทุกงาน", key: "dcFuseV", th: "แรงดันพิกัดฟิวส์ DC ที่มีขาย", unit: "VDC", type: "nums", def: [1000, 1500] },
     { sec: "dcBoard", g: "ทุกงาน", key: "dcSpdV", th: "แรงดันพิกัด DC SPD ที่มีขาย", unit: "VDC", type: "nums", def: [800, 1000, 1500] },
     { sec: "dcBoard", g: "งานบ้าน", key: "dcMcbK", th: "DC MCB ต่อสตริง = Isc ×", unit: "เท่า", def: 1.25, min: 1 },
     { sec: "dcBoard", g: "งานบ้าน", key: "dcMcbA", th: "ขนาด DC MCB ที่มีขาย", unit: "A", type: "nums", def: [10, 16, 20, 25, 32, 40, 50, 63] },
+    { sec: "dcBoard", g: "งานบ้าน", key: "dcMcbV", th: "แรงดันพิกัด DC MCB ที่มีขาย", unit: "VDC", type: "nums", def: [500, 800, 1000] },
     { sec: "dcBoard", g: "อินเวอร์เตอร์", key: "dcacMax", th: "เพดานอัตรา DC/AC (กำลังแผง ÷ กำลัง AC อินเวอร์เตอร์)", unit: "เท่า", def: 1.2, min: 0.5, max: 3 },
     /* ── สาย DC ── */
     { sec: "dcWire", key: "pvWireK", th: "สาย PV DC เลือกขนาดจาก Isc ×", unit: "เท่า", def: 1.25, min: 1 },

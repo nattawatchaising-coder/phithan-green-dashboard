@@ -4319,6 +4319,12 @@ const brChanged = (d, saved, type) => {
   if (raw == null || raw === "") return false;
   return B.ruleTxt(d, B.ruleVal(d, raw)) !== B.ruleTxt(d, d.def);
 };
+const brStockRow = d => d.type === "nums";
+const BR_TYPE_G = {
+  "ทุกงาน": 1,
+  "งานบ้าน": 1,
+  "งานโครงการ": 1
+};
 const brPath = (d, type) => window.BOQ.ruleOnly(d) ? d.key : type + "/" + d.key;
 function BoqRuleSec({
   sec,
@@ -4327,6 +4333,8 @@ function BoqRuleSec({
 }) {
   const BOQ = window.BOQ || {};
   const defs = (BOQ.RULE_DEFS || []).filter(d => d.sec === sec.k && brRuleOn(d, type));
+  const rows = defs.filter(brStockRow).concat(defs.filter(d => !brStockRow(d))),
+    mixed = rows.some(brStockRow) && rows.some(d => !brStockRow(d));
   const all = rulesStore && rulesStore.val || {};
   const saved = {};
   defs.forEach(d => {
@@ -4476,14 +4484,37 @@ function BoqRuleSec({
       color: "var(--text-3)",
       marginTop: 2
     }
-  }, sec.sub)), defs.map((d, i) => {
+  }, sec.sub)), rows.map((d, i) => {
     const v = str(view, d.key),
       own = brChanged(d, all, type);
     const wide = !!d.type;
-    const head = d.g && (i === 0 || defs[i - 1].g !== d.g);
+    const blk = brStockRow(d),
+      blkHead = mixed && (i === 0 || brStockRow(rows[i - 1]) !== blk);
+    const gOf = x => x && x.g && !BR_TYPE_G[x.g] && !brStockRow(x) ? x.g : null;
+    const head = gOf(d) && (blkHead || i === 0 || gOf(rows[i - 1]) !== gOf(d));
     return React.createElement(React.Fragment, {
       key: d.key
-    }, head && React.createElement("div", {
+    }, blkHead && React.createElement("div", {
+      style: {
+        padding: i ? "18px 0 6px" : "6px 0 6px",
+        fontSize: 12.5,
+        fontWeight: 800,
+        color: "var(--text-1)",
+        display: "flex",
+        alignItems: "center",
+        gap: 6
+      }
+    }, React.createElement(Icon, {
+      name: blk ? "box" : "settings",
+      size: 14,
+      color: "var(--primary-dark)"
+    }), blk ? "1 · ของที่มีขาย" : "2 · เงื่อนไขการเลือก", React.createElement("span", {
+      style: {
+        fontSize: 11,
+        fontWeight: 500,
+        color: "var(--text-3)"
+      }
+    }, blk ? "ระบบเลือกได้เฉพาะขนาดในรายการนี้" : "ใช้เลือกจากของที่มีขายด้านบน")), head && React.createElement("div", {
       style: {
         padding: "12px 0 4px",
         borderTop: i ? "1px solid var(--divider)" : "none",
