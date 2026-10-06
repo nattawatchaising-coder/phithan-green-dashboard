@@ -103,7 +103,7 @@ function erLayout(md, cfg) {
   const dm = (k, w, h, d) => { const o = DM[k] || {}; return { w: +o.w || w, h: +o.h || h, d: +o.d || d }; };
   const mdbN = md.home ? 0 : md.mainA <= 500 ? 1 : md.mainA <= 800 ? 2 : md.mainA <= 1250 ? 1 : md.mainA <= 2500 ? 3 : 4;
   const mdbTall = !md.home && md.mainA > 800 && md.mainA <= 1250;
-  L.def = { mdb: md.home ? (md.nPh === 3 ? { w: 0.6, h: 0.26, d: 0.11 } : { w: 0.32, h: 0.26, d: 0.11 }) : (mdbTall ? { w: 0.9, h: 2.0, d: 0.7 } : mdbN === 1 ? { w: 0.8, h: 1.4, d: 0.25 } : { w: mdbN * 0.8, h: 2.0, d: 0.7 }), ac: md.home ? { w: 0.45, h: 0.6, d: 0.18 } : md.mainA <= 160 ? { w: 0.63, h: 0.9, d: 0.25 } : { w: 0.8, h: 1.4, d: 0.3 }, dc: null };
+  L.def = { mdb: md.home ? (md.nPh === 3 ? { w: 0.45, h: 0.55, d: 0.12 } : { w: 0.32, h: 0.26, d: 0.11 }) : (mdbTall ? { w: 0.9, h: 2.0, d: 0.7 } : mdbN === 1 ? { w: 0.8, h: 1.4, d: 0.25 } : { w: mdbN * 0.8, h: 2.0, d: 0.7 }), ac: md.home ? { w: 0.45, h: 0.6, d: 0.18 } : md.mainA <= 160 ? { w: 0.63, h: 0.9, d: 0.25 } : { w: 0.8, h: 1.4, d: 0.3 }, dc: null };
   const nsMax = Math.max(1, ...md.invs.map((v) => v.nStr || 1));
   L.def.dc = nsMax > 8 ? { w: 0.8, h: 0.6, d: 0.2 } : nsMax > 4 ? { w: 0.6, h: 0.45, d: 0.15 } : nsMax > 2 ? { w: 0.45, h: 0.35, d: 0.15 } : nsMax > 1 ? { w: 0.46, h: 0.36, d: 0.13 } : { w: 0.3, h: 0.33, d: 0.13 };
   const mb = dm("mdb", L.def.mdb.w, L.def.mdb.h, L.def.mdb.d);
@@ -509,6 +509,32 @@ function erCuFace(THREE, wM, hM, ways) {
   return (_erTx[key] = t);
 }
 
+/* ตู้คอนซูมเมอร์ 3 เฟส (รูปอ้างอิง 30 ช่อง): ตู้เหล็กพ่นสีขาว ฝาทึบ · แถบป้ายเขียวบน/ล่าง · ตัวล็อกดำขวา */
+function erCuSteelFace(THREE, wM, hM) {
+  const key = "cus|" + wM + "x" + hM;
+  if (_erTx[key]) return _erTx[key];
+  const P = 500, W = Math.round(wM * P), H = Math.round(hM * P);
+  const c = erCanvas(W, H, (g) => {
+    g.fillStyle = "#eceef0"; g.fillRect(0, 0, W, H);
+    /* ฝาประตู */
+    const dx = W * 0.04, dy = H * 0.03, dw = W * 0.92, dh = H * 0.94;
+    const gr = g.createLinearGradient(dx, dy, dx + dw, dy + dh);
+    gr.addColorStop(0, "#fbfbfc"); gr.addColorStop(1, "#eef0f2");
+    g.fillStyle = gr; g.fillRect(dx, dy, dw, dh);
+    g.strokeStyle = "#cfd3d7"; g.lineWidth = 3; g.strokeRect(dx, dy, dw, dh);
+    /* แถบป้ายเขียว บน/ล่าง */
+    g.fillStyle = "#1f9d55"; g.fillRect(W * 0.3, H * 0.1, W * 0.4, H * 0.035); g.fillRect(W * 0.36, H * 0.86, W * 0.28, H * 0.03);
+    g.fillStyle = "#e8f5ee"; g.fillRect(W * 0.34, H * 0.112, W * 0.32, H * 0.01); g.fillRect(W * 0.4, H * 0.871, W * 0.2, H * 0.008);
+    /* ตัวล็อกขวา */
+    g.fillStyle = "#1c1e21"; g.fillRect(W * 0.86, H * 0.44, W * 0.035, H * 0.12);
+    g.fillStyle = "#3a3d42"; g.fillRect(W * 0.866, H * 0.47, W * 0.023, H * 0.06);
+    /* บานพับซ้าย */
+    g.fillStyle = "#c4c8cc"; [0.18, 0.8].forEach((y) => g.fillRect(dx - 2, H * y, W * 0.015, H * 0.05));
+  });
+  const t = new THREE.CanvasTexture(c); t.encoding = THREE.sRGBEncoding; t.anisotropy = 4;
+  return (_erTx[key] = t);
+}
+
 /* ── ประกอบฉาก ── grp ว่างก่อนเรียก · ห้อง: ผนังหลัง z=0 ผนังซ้าย x=0 พื้น y=0 อุปกรณ์หันหน้า +z */
 function erBuild3D(THREE, grp, md, L, cfg) {
   let cur = grp;   // ที่ใส่ชิ้นงาน — กลุ่มอุปกรณ์ที่กำลังสร้าง หรือฉากหลัก
@@ -582,7 +608,7 @@ function erBuild3D(THREE, grp, md, L, cfg) {
         faced(it.w, it.h - 0.1, it.d, M.encl, erMdbFace(THREE, it.n, md.mainA, it.w, it.h - 0.1), it.x, 0.1, 0.1);
       }
     } else if (it.t === "cu") {
-      faced(it.w, it.h, it.d, M.white, erCuFace(THREE, it.w, it.h, it.w <= 0.36 ? 6 : it.w <= 0.48 ? 12 : 18), it.x, it.y, 0);
+      faced(it.w, it.h, it.d, M.white, md.nPh === 3 ? erCuSteelFace(THREE, it.w, it.h) : erCuFace(THREE, it.w, it.h, it.w <= 0.36 ? 6 : it.w <= 0.48 ? 12 : 18), it.x, it.y, 0);
     } else if (it.t === "ac") {
       if (md.home) faced(it.w, it.h, it.d, M.white, erPlasticFace(THREE, it.w, it.h, ["acmcb", "acmcb", "acspd", "acspd"]), it.x, it.y, 0.08);
       else if (it.h < 1.1) {   // ตู้ติดผนังหน้ากระจก + หลังคากันฝน
@@ -1148,4 +1174,4 @@ function ErRoomCard({ job, p3List, canEdit }) {
   );
 }
 
-Object.assign(window, { ER_DEF, erDcFace, erPlasticFace, erAcPanelFace, erAcGlassFace, erCuFace, erInvDim, erInvSpec, erModel, erGBox, erSnap, erLayout, erBuild3D, ErRoomView, ErRoomStudio, ErRoomCard });
+Object.assign(window, { ER_DEF, erDcFace, erPlasticFace, erAcPanelFace, erAcGlassFace, erCuFace, erCuSteelFace, erInvDim, erInvSpec, erModel, erGBox, erSnap, erLayout, erBuild3D, ErRoomView, ErRoomStudio, ErRoomCard });

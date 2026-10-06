@@ -192,9 +192,9 @@ function erLayout(md, cfg) {
   const mdbTall = !md.home && md.mainA > 800 && md.mainA <= 1250;
   L.def = {
     mdb: md.home ? md.nPh === 3 ? {
-      w: 0.6,
-      h: 0.26,
-      d: 0.11
+      w: 0.45,
+      h: 0.55,
+      d: 0.12
     } : {
       w: 0.32,
       h: 0.26,
@@ -1184,6 +1184,45 @@ function erCuFace(THREE, wM, hM, ways) {
   t.anisotropy = 4;
   return _erTx[key] = t;
 }
+function erCuSteelFace(THREE, wM, hM) {
+  const key = "cus|" + wM + "x" + hM;
+  if (_erTx[key]) return _erTx[key];
+  const P = 500,
+    W = Math.round(wM * P),
+    H = Math.round(hM * P);
+  const c = erCanvas(W, H, g => {
+    g.fillStyle = "#eceef0";
+    g.fillRect(0, 0, W, H);
+    const dx = W * 0.04,
+      dy = H * 0.03,
+      dw = W * 0.92,
+      dh = H * 0.94;
+    const gr = g.createLinearGradient(dx, dy, dx + dw, dy + dh);
+    gr.addColorStop(0, "#fbfbfc");
+    gr.addColorStop(1, "#eef0f2");
+    g.fillStyle = gr;
+    g.fillRect(dx, dy, dw, dh);
+    g.strokeStyle = "#cfd3d7";
+    g.lineWidth = 3;
+    g.strokeRect(dx, dy, dw, dh);
+    g.fillStyle = "#1f9d55";
+    g.fillRect(W * 0.3, H * 0.1, W * 0.4, H * 0.035);
+    g.fillRect(W * 0.36, H * 0.86, W * 0.28, H * 0.03);
+    g.fillStyle = "#e8f5ee";
+    g.fillRect(W * 0.34, H * 0.112, W * 0.32, H * 0.01);
+    g.fillRect(W * 0.4, H * 0.871, W * 0.2, H * 0.008);
+    g.fillStyle = "#1c1e21";
+    g.fillRect(W * 0.86, H * 0.44, W * 0.035, H * 0.12);
+    g.fillStyle = "#3a3d42";
+    g.fillRect(W * 0.866, H * 0.47, W * 0.023, H * 0.06);
+    g.fillStyle = "#c4c8cc";
+    [0.18, 0.8].forEach(y => g.fillRect(dx - 2, H * y, W * 0.015, H * 0.05));
+  });
+  const t = new THREE.CanvasTexture(c);
+  t.encoding = THREE.sRGBEncoding;
+  t.anisotropy = 4;
+  return _erTx[key] = t;
+}
 function erBuild3D(THREE, grp, md, L, cfg) {
   let cur = grp;
   const add = (m, sh) => {
@@ -1349,7 +1388,7 @@ function erBuild3D(THREE, grp, md, L, cfg) {
         faced(it.w, it.h - 0.1, it.d, M.encl, erMdbFace(THREE, it.n, md.mainA, it.w, it.h - 0.1), it.x, 0.1, 0.1);
       }
     } else if (it.t === "cu") {
-      faced(it.w, it.h, it.d, M.white, erCuFace(THREE, it.w, it.h, it.w <= 0.36 ? 6 : it.w <= 0.48 ? 12 : 18), it.x, it.y, 0);
+      faced(it.w, it.h, it.d, M.white, md.nPh === 3 ? erCuSteelFace(THREE, it.w, it.h) : erCuFace(THREE, it.w, it.h, it.w <= 0.36 ? 6 : it.w <= 0.48 ? 12 : 18), it.x, it.y, 0);
     } else if (it.t === "ac") {
       if (md.home) faced(it.w, it.h, it.d, M.white, erPlasticFace(THREE, it.w, it.h, ["acmcb", "acmcb", "acspd", "acspd"]), it.x, it.y, 0.08);else if (it.h < 1.1) {
         faced(it.w, it.h, it.d, M.encl, erAcGlassFace(THREE, it.w, it.h), it.x, it.y, 0);
@@ -2353,6 +2392,7 @@ Object.assign(window, {
   erAcPanelFace,
   erAcGlassFace,
   erCuFace,
+  erCuSteelFace,
   erInvDim,
   erInvSpec,
   erModel,
