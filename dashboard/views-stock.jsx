@@ -1724,7 +1724,13 @@ const brChanged = (d, saved, type) => {
 /* แถวรายการของที่มีขาย (ขนาด/แรงดัน/อัตราส่วนที่มีจริง) — ขึ้นก่อนเงื่อนไขในแต่ละหัวข้อ */
 const brStockRow = (d) => d.type === "nums" || d.type === "pairs";
 const BR_TYPE_G = { "ทุกงาน": 1, "งานบ้าน": 1, "งานโครงการ": 1 };
-const brPath = (d, type) => (window.BOQ.ruleOnly(d) ? d.key : type + "/" + d.key);
+const brPath = (d, type) => (window.BOQ.ruleFlat(d) ? d.key : type + "/" + d.key);
+/* ของที่มีขายใช้ค่าเดียวทั้งสองประเภท — บันทึก/คืนค่าแล้วล้างค่าที่เคยตั้งแยก home/proj ทิ้งด้วย ไม่งั้นค้างเป็นค่าสำรอง */
+const brShared = (d) => window.BOQ.ruleFlat(d) && !window.BOQ.ruleOnly(d);
+const brClearSplit = (rulesStore, d) => ["home", "proj"].forEach((t) => {
+  const o = ((rulesStore.val || {})[t] || {})[d.key];
+  if (o != null && o !== "") rulesStore.setCell(t + "/" + d.key, "");
+});
 
 /* ชิปรายการตัวเลข/คำ — แตะ × เอาออก · พิมพ์ในช่อง "+ เพิ่ม" แล้ว Enter (ใส่หลายค่าคั่นจุลภาคได้) · ตัวสุดท้ายเอาออกไม่ได้ */
 function BrChips({ list, unit, onChange, disabled, words }) {
@@ -1837,7 +1843,7 @@ function BoqRuleSec({ sec, rulesStore, type }) {
   const set = (k, v) => setDraft((p) => { const n = Object.assign({}, p || saved); if (v === "") delete n[k]; else n[k] = v; return n; });
   const cur = (d) => BOQ.ruleVal(d, str(view, d.key));
   const isDef = (d) => BOQ.ruleTxt(d, cur(d)) === txt(d);
-  const save = () => { dirty.forEach((d) => rulesStore.setCell(brPath(d, type), str(view, d.key).trim())); setDraft(null); };
+  const save = () => { dirty.forEach((d) => { rulesStore.setCell(brPath(d, type), str(view, d.key).trim()); if (brShared(d)) brClearSplit(rulesStore, d); }); setDraft(null); };
   /* คืนค่าตั้งต้นทีละกลุ่ม: rows = ทั้งหัวข้อ / ของที่มีขาย / เงื่อนไข · nm = ชื่อกลุ่มบนกล่องยืนยัน */
   const resetAll = (rows, nm) => { rows = rows || defs; const n = rows.filter((d) => brChanged(d, all, type)).length;
     return window.askConfirm({ title: "คืนค่าตั้งต้น · " + (nm || sec.th) + "?", body: "ค่าที่ตั้งไว้ " + n + " ช่อง จะกลับไปใช้ค่าตั้งต้นของระบบ", ok: "คืนค่าตั้งต้น", danger: true })
@@ -1845,6 +1851,8 @@ function BoqRuleSec({ sec, rulesStore, type }) {
       return defs.some((d) => str(saved, d.key) !== str(q, d.key)) ? q : null; }); rows.forEach((d) => {
       if (!brChanged(d, all, type)) return;
       /* แถวใช้ร่วมที่ค่าก่อนแยก (boqRules/<key>) ยังตั้งอยู่ — ลบคีย์ของประเภทนี้ไม่พอ ต้องเขียนค่าตั้งต้นทับ */
+      if (brShared(d)) { const lg = (d.legacy || []).concat(d.legacyV ? [d.legacyV] : []).some((k) => all[k] != null && all[k] !== "");
+        rulesStore.setCell(d.key, lg ? txt(d) : ""); brClearSplit(rulesStore, d); return; }
       const flat = !BOQ.ruleOnly(d) && ((all[d.key] != null && all[d.key] !== "") || (d.legacy || []).some((k) => all[k] != null && all[k] !== ""));
       rulesStore.setCell(brPath(d, type), flat ? txt(d) : "");
     }); } }); };
@@ -1884,7 +1892,7 @@ function BoqRuleSec({ sec, rulesStore, type }) {
 
       {stockRows.length > 0 && (
         <div style={card}>
-          {blockHd("box", "ของที่มีขาย", "ระบบเลือกได้เฉพาะขนาดในนี้", stockRows)}
+          {blockHd("box", "ของที่มีขาย", "ระบบเลือกได้เฉพาะขนาดในนี้ · " + (stockRows.some(brShared) ? "ใช้ร่วมกันทั้งงานบ้านและงานโครงการ" : "เฉพาะ" + (type === "home" ? "งานบ้าน" : "งานโครงการ")), stockRows)}
           <div style={{ display: "flex", flexDirection: "column" }}>
             {stockRows.map((d, i) => (
               <div key={d.key} style={{ padding: "12px 0", borderTop: i ? "1px solid var(--divider)" : "none" }}>

@@ -183,18 +183,25 @@
      แถวที่ใช้ทั้งสองประเภท ตั้งแยกกันได้ที่ boqRules/home/<key> · boqRules/proj/<key> — ไม่ตั้ง = boqRules/<key> (ค่าก่อนแยก) → ค่าตั้งต้น
      RULES = ชุดของประเภทงานที่กำลังคิด (useRuleType) · ฟังก์ชันที่ส่งออกทุกตัวสลับชุดเองเมื่อได้ใบ/งานที่บอกประเภท (ห่อท้ายไฟล์) */
   const ruleOnly = (d) => d.only || (d.g === "งานบ้าน" ? "home" : d.g === "งานโครงการ" ? "proj" : null);
+  /* "ของที่มีขาย" (รายการขนาด/แรงดันที่มีจริง · type nums/pairs) เป็นของชิ้นเดียวกันทั้งงานบ้านและงานโครงการ
+     → เก็บค่าเดียวที่ boqRules/<key> เหมือนแถวประเภทเดียว · ค่าที่เคยตั้งแยก home/proj ไว้ใช้เมื่อยังไม่มีค่ากลาง */
+  const ruleFlat = (d) => !!ruleOnly(d) || d.type === "nums" || d.type === "pairs";
   const ruleRaw = (src, d, t) => {
-    const s = src || {}, own = !ruleOnly(d) && s[t] ? s[t][d.key] : null;
-    const r = own != null && own !== "" ? own : s[d.key];
+    const s = src || {};
+    const has = (x) => x != null && x !== "";
+    const pick = (k) => { const o = s[t] ? s[t][k] : null, f = s[k];
+      if (ruleOnly(d)) return f;
+      if (ruleFlat(d)) return has(f) ? f : has(o) ? o : (s[t === "home" ? "proj" : "home"] || {})[k];
+      return has(o) ? o : f; };
+    const r = pick(d.key);
     if ((r == null || r === "") && d.legacyV) {
-      const o = !ruleOnly(d) && s[t] ? s[t][d.legacyV] : null, rv = o != null && o !== "" ? o : s[d.legacyV];
+      const rv = pick(d.legacyV);
       if (rv == null || rv === "") return r;
       const V = ruleVal({ type: "nums", def: d.def.map((p) => p.v) }, rv);
       return V.map((v) => v + " " + d.poleDef + ": " + d.def[0].a.join(", ")).join("; ");
     }
     if ((r == null || r === "") && d.legacy) {
       /* ค่าเก่าที่ตั้งเป็นรายการ A กับรายการ V แยกกัน → ทุกแรงดันมีทุกขนาด (เหมือนที่ระบบเคยคิด) จนกว่าจะบันทึกแบบคู่ */
-      const pick = (k) => { const o = !ruleOnly(d) && s[t] ? s[t][k] : null; return o != null && o !== "" ? o : s[k]; };
       const ra = pick(d.legacy[0]), rv = pick(d.legacy[1]);
       if ((ra == null || ra === "") && (rv == null || rv === "")) return r;
       const nums = (x, def) => ruleVal({ type: "nums", def: def }, x);
@@ -2790,7 +2797,7 @@
     UPVC_CONDUIT, conduitFillLimit, conduitDim, conduitCheck,
     AMP_CORE_LABEL, ampGroupMeta, ampCoresFor, ampCoreKey, WIRE_METHOD_LEGACY, normWireMethod,
     G_TRAY, G_SUPPORT, G_LABOR, G_PERMIT, G_OM, OM_DEF, OM_CLEAN_TIERS, OM_SVC_TIERS, OM_CLEAN_DEF, OM_SVC_DEF, omTierNorm, setOmTiers, omTierPrice, omDefaults, omCalc, SERVICE_GROUPS, mergeItems,
-    RULE_SECS, RULE_DEFS, RULES, RULES_T, setRules, ruleVal, ruleTxt, ruleOnly, ruleRaw, pairPick, spdName, isHwInv };
+    RULE_SECS, RULE_DEFS, RULES, RULES_T, setRules, ruleVal, ruleTxt, ruleOnly, ruleFlat, ruleRaw, pairPick, spdName, isHwInv };
   /* ห่อฟังก์ชันที่ส่งออก: เจออาร์กิวเมนต์ที่เป็นใบ BOQ (jobType) หรืองาน (type) = สลับ RULES เป็นชุดของประเภทนั้นก่อนคิด
      ฟังก์ชันข้างในเรียกกันตรง ๆ (ไม่ผ่านตัวห่อ) จึงใช้ชุดเดียวกันตลอดการคิดหนึ่งครั้ง */
   const typeHint = (a) => {

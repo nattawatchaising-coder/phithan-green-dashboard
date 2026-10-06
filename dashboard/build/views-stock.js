@@ -4494,7 +4494,12 @@ const BR_TYPE_G = {
   "งานบ้าน": 1,
   "งานโครงการ": 1
 };
-const brPath = (d, type) => window.BOQ.ruleOnly(d) ? d.key : type + "/" + d.key;
+const brPath = (d, type) => window.BOQ.ruleFlat(d) ? d.key : type + "/" + d.key;
+const brShared = d => window.BOQ.ruleFlat(d) && !window.BOQ.ruleOnly(d);
+const brClearSplit = (rulesStore, d) => ["home", "proj"].forEach(t => {
+  const o = ((rulesStore.val || {})[t] || {})[d.key];
+  if (o != null && o !== "") rulesStore.setCell(t + "/" + d.key, "");
+});
 function BrChips({
   list,
   unit,
@@ -4776,7 +4781,10 @@ function BoqRuleSec({
   const cur = d => BOQ.ruleVal(d, str(view, d.key));
   const isDef = d => BOQ.ruleTxt(d, cur(d)) === txt(d);
   const save = () => {
-    dirty.forEach(d => rulesStore.setCell(brPath(d, type), str(view, d.key).trim()));
+    dirty.forEach(d => {
+      rulesStore.setCell(brPath(d, type), str(view, d.key).trim());
+      if (brShared(d)) brClearSplit(rulesStore, d);
+    });
     setDraft(null);
   };
   const resetAll = (rows, nm) => {
@@ -4800,6 +4808,12 @@ function BoqRuleSec({
         });
         rows.forEach(d => {
           if (!brChanged(d, all, type)) return;
+          if (brShared(d)) {
+            const lg = (d.legacy || []).concat(d.legacyV ? [d.legacyV] : []).some(k => all[k] != null && all[k] !== "");
+            rulesStore.setCell(d.key, lg ? txt(d) : "");
+            brClearSplit(rulesStore, d);
+            return;
+          }
           const flat = !BOQ.ruleOnly(d) && (all[d.key] != null && all[d.key] !== "" || (d.legacy || []).some(k => all[k] != null && all[k] !== ""));
           rulesStore.setCell(brPath(d, type), flat ? txt(d) : "");
         });
@@ -4926,7 +4940,7 @@ function BoqRuleSec({
     size: 12
   }), " \u0E04\u0E37\u0E19\u0E04\u0E48\u0E32\u0E15\u0E31\u0E49\u0E07\u0E15\u0E49\u0E19\u0E17\u0E31\u0E49\u0E07\u0E2B\u0E31\u0E27\u0E02\u0E49\u0E2D (", nEdited, ")")), stockRows.length > 0 && React.createElement("div", {
     style: card
-  }, blockHd("box", "ของที่มีขาย", "ระบบเลือกได้เฉพาะขนาดในนี้", stockRows), React.createElement("div", {
+  }, blockHd("box", "ของที่มีขาย", "ระบบเลือกได้เฉพาะขนาดในนี้ · " + (stockRows.some(brShared) ? "ใช้ร่วมกันทั้งงานบ้านและงานโครงการ" : "เฉพาะ" + (type === "home" ? "งานบ้าน" : "งานโครงการ")), stockRows), React.createElement("div", {
     style: {
       display: "flex",
       flexDirection: "column"
