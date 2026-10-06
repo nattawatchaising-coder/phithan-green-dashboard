@@ -668,7 +668,8 @@ function StockView({
     condStore: condStore,
     omStore: omStore,
     rulesStore: rulesStore,
-    isMobile: isMobile
+    isMobile: isMobile,
+    stock: stock
   })) : isPrices ? React.createElement("div", {
     className: "app-content"
   }, filterBar, React.createElement(PricePanel, {
@@ -4111,12 +4112,178 @@ const BR_FIXED_SECS = [{
   th: "ราคา O&M · ล้างแผง",
   sub: "ตารางราคาตามขนาดระบบ (kWp)"
 }];
+function brStockNeeds() {
+  const B = window.BOQ || {},
+    T = B.RULES_T || {},
+    H = T.home || {},
+    P = T.proj || {};
+  const out = [],
+    seen = {};
+  const add = (name, spec) => {
+    if (!seen[name]) {
+      seen[name] = 1;
+      out.push(Object.assign({
+        name: name
+      }, spec));
+    }
+  };
+  const L = k => Array.from(new Set([].concat(H[k] || [], P[k] || []))).sort((a, b) => a - b);
+  L("dcFuseV").forEach(v => {
+    L("dcFuseA").forEach(a => add("DC FUSE " + a + "A " + v + "VDC", {
+      elecType: "Fuse",
+      amp: a
+    }));
+    add("DC SPD 2P " + v + "VDC TYPE I+II Iimp6.25KA", {
+      elecType: "SPD",
+      poles: "2P"
+    });
+  });
+  L("dcSpdV").forEach(v => add("DC SPD 2P " + v + "VDC 20-40KA", {
+    elecType: "SPD",
+    poles: "2P"
+  }));
+  (H.dcMcbV || []).forEach(v => (H.dcMcbA || []).forEach(a => add("DC MCB " + a + "A 2P " + v + "VDC", {
+    elecType: "MCB",
+    poles: "2P",
+    amp: a
+  })));
+  (H.rcbo2P || []).forEach(a => add("RCBO " + a + "A 2P 100mA", {
+    elecType: "RCBO",
+    poles: "2P",
+    amp: a
+  }));
+  (H.rcbo3P || []).forEach(a => add("RCBO " + a + "A 3P+N 100mA", {
+    elecType: "RCBO",
+    poles: "3P+N",
+    amp: a
+  }));
+  (P.ctR || []).forEach(r => add("CT " + r + "/5A", {}));
+  (P.zctD || []).forEach(d => add("ZCT Φ" + d + "mm", {}));
+  return out;
+}
+function BrStockGap({
+  stock
+}) {
+  const [open, setOpen] = React.useState(false);
+  const [busy, setBusy] = React.useState(false);
+  const items = stock && stock.items || [];
+  const mk = window.BOQ && window.BOQ.matKey || (x => String(x || "").trim());
+  const have = {};
+  items.forEach(s => {
+    if (s.name) have[mk(s.name)] = 1;
+  });
+  const miss = brStockNeeds().filter(x => !have[mk(x.name)]);
+  if (!stock || !stock.upsertItem || !miss.length) return null;
+  const addAll = () => {
+    const SF = window.SF || {};
+    window.askConfirm({
+      title: "เพิ่ม " + miss.length + " รายการลงคลัง?",
+      body: "หมวดอุปกรณ์ไฟฟ้า · ราคา 0 · ไม่มียี่ห้อ/รุ่น — ไปกรอกราคาและแยกรุ่นต่อในหน้าคลัง",
+      ok: "เพิ่มลงคลัง",
+      icon: "plus"
+    }).then(ok => {
+      if (!ok) return;
+      setBusy(true);
+      let maxId = 0;
+      items.forEach(it => {
+        const n = parseInt(String(it.id || "").replace(/\D/g, ""), 10);
+        if (!isNaN(n) && n > maxId) maxId = n;
+      });
+      const used = items.map(s => s.sku).filter(Boolean);
+      miss.forEach(x => {
+        maxId += 1;
+        const sku = SF.genMatCode ? SF.genMatCode("electrical", items, used) : "";
+        used.push(sku);
+        const rec = {
+          id: "IV-" + String(maxId).padStart(2, "0"),
+          name: x.name,
+          sku: sku,
+          cat: "electrical",
+          unit: "ตัว",
+          qty: 0,
+          min: 0,
+          loc: "",
+          price: 0
+        };
+        if (x.elecType) rec.elecType = x.elecType;
+        if (x.poles) rec.poles = x.poles;
+        if (x.amp) rec.amp = x.amp;
+        stock.upsertItem(rec);
+      });
+      setBusy(false);
+      setOpen(false);
+    });
+  };
+  return React.createElement("div", {
+    style: {
+      marginBottom: 14,
+      padding: "10px 14px",
+      borderRadius: "var(--r-card)",
+      background: "var(--tint-amber-bg, #FFF7E6)",
+      boxShadow: "var(--shadow-sm)"
+    }
+  }, React.createElement("div", {
+    style: {
+      display: "flex",
+      alignItems: "center",
+      gap: 10,
+      flexWrap: "wrap"
+    }
+  }, React.createElement(Icon, {
+    name: "box",
+    size: 16,
+    color: "var(--tint-amber-tx)"
+  }), React.createElement("span", {
+    style: {
+      fontSize: 12.5,
+      fontWeight: 700,
+      color: "var(--tint-amber-tx)"
+    }
+  }, "\u0E02\u0E2D\u0E07\u0E17\u0E35\u0E48\u0E21\u0E35\u0E02\u0E32\u0E22 ", miss.length, " \u0E23\u0E32\u0E22\u0E01\u0E32\u0E23\u0E22\u0E31\u0E07\u0E44\u0E21\u0E48\u0E21\u0E35\u0E43\u0E19\u0E04\u0E25\u0E31\u0E07"), React.createElement("span", {
+    style: {
+      fontSize: 11.5,
+      color: "var(--text-3)"
+    }
+  }, "BOQ \u0E08\u0E30\u0E40\u0E25\u0E37\u0E2D\u0E01\u0E44\u0E14\u0E49\u0E41\u0E15\u0E48\u0E44\u0E21\u0E48\u0E21\u0E35\u0E23\u0E32\u0E04\u0E32"), React.createElement("span", {
+    style: {
+      flex: 1
+    }
+  }), React.createElement("button", {
+    className: "btn btn-sm btn-soft",
+    onClick: () => setOpen(!open)
+  }, open ? "ซ่อนรายการ" : "ดูรายการ"), React.createElement("button", {
+    className: "btn btn-sm btn-primary",
+    disabled: busy,
+    onClick: addAll
+  }, React.createElement(Icon, {
+    name: "plus",
+    size: 13,
+    color: "#fff"
+  }), " \u0E40\u0E1E\u0E34\u0E48\u0E21\u0E25\u0E07\u0E04\u0E25\u0E31\u0E07\u0E17\u0E31\u0E49\u0E07\u0E2B\u0E21\u0E14")), open && React.createElement("div", {
+    style: {
+      marginTop: 8,
+      display: "flex",
+      flexWrap: "wrap",
+      gap: 6
+    }
+  }, miss.map(x => React.createElement("span", {
+    key: x.name,
+    style: {
+      fontSize: 11.5,
+      padding: "3px 9px",
+      borderRadius: "var(--r-pill)",
+      background: "var(--surface)",
+      color: "var(--text-2)"
+    }
+  }, x.name))));
+}
 function BoqRulesPage({
   ampStore,
   condStore,
   omStore,
   rulesStore,
-  isMobile
+  isMobile,
+  stock
 }) {
   const BOQ = window.BOQ || {};
   const secs = (BOQ.RULE_SECS || []).concat(BR_FIXED_SECS);
@@ -4213,7 +4380,9 @@ function BoqRulesPage({
       flexDirection: "column",
       gap: 12
     }
-  }, !fixed && typeBar, React.createElement(Dropdown, {
+  }, React.createElement(BrStockGap, {
+    stock: stock
+  }), !fixed && typeBar, React.createElement(Dropdown, {
     value: cur.k,
     onChange: pick,
     options: secs.map(x => ({
@@ -4222,7 +4391,9 @@ function BoqRulesPage({
       label: x.th + (nSet(x.k) ? " · แก้แล้ว " + nSet(x.k) : "")
     }))
   }), body);
-  return React.createElement("div", null, typeBar, React.createElement("div", {
+  return React.createElement("div", null, React.createElement(BrStockGap, {
+    stock: stock
+  }), typeBar, React.createElement("div", {
     style: {
       display: "grid",
       gridTemplateColumns: "250px minmax(0,1fr)",

@@ -372,7 +372,7 @@ function StockView({ stock, onResetAll, onMenuOpen, currentUser, jobs, priceStor
       {isRules ? (
         <div className="app-content">
           {filterBar}
-          <BoqRulesPage ampStore={ampStore} condStore={condStore} omStore={omStore} rulesStore={rulesStore} isMobile={isMobile} />
+          <BoqRulesPage ampStore={ampStore} condStore={condStore} omStore={omStore} rulesStore={rulesStore} isMobile={isMobile} stock={stock} />
         </div>
       ) : isPrices ? (
         <div className="app-content">
@@ -1574,7 +1574,76 @@ const BR_FIXED_SECS = [
   { k: "cond", grp: "ตาราง", th: "อุปกรณ์ท่อ / รางไฟ", sub: "กฎคิดจำนวนอุปกรณ์ IMC/uPVC · % เผื่อ" },
   { k: "om", grp: "ตาราง", th: "ราคา O&M · ล้างแผง", sub: "ตารางราคาตามขนาดระบบ (kWp)" },
 ];
-function BoqRulesPage({ ampStore, condStore, omStore, rulesStore, isMobile }) {
+/* ชื่อรายการที่ BOQ จะสร้างจาก "ของที่มีขาย" ทุกขนาด (ชื่อต้องตรงกับที่ boq.jsx ตั้งทุกตัวอักษร ราคาถึงดึงจากคลังได้)
+   คิดจากทั้งชุดงานบ้านและงานโครงการ · MCCB/ACB ไม่อยู่ในนี้ (ชื่อผูกกับค่าตั้ง Ir) */
+function brStockNeeds() {
+  const B = window.BOQ || {}, T = B.RULES_T || {}, H = T.home || {}, P = T.proj || {};
+  const out = [], seen = {};
+  const add = (name, spec) => { if (!seen[name]) { seen[name] = 1; out.push(Object.assign({ name: name }, spec)); } };
+  const L = (k) => Array.from(new Set([].concat(H[k] || [], P[k] || []))).sort((a, b) => a - b);
+  L("dcFuseV").forEach((v) => {
+    L("dcFuseA").forEach((a) => add("DC FUSE " + a + "A " + v + "VDC", { elecType: "Fuse", amp: a }));
+    add("DC SPD 2P " + v + "VDC TYPE I+II Iimp6.25KA", { elecType: "SPD", poles: "2P" });
+  });
+  L("dcSpdV").forEach((v) => add("DC SPD 2P " + v + "VDC 20-40KA", { elecType: "SPD", poles: "2P" }));
+  (H.dcMcbV || []).forEach((v) => (H.dcMcbA || []).forEach((a) => add("DC MCB " + a + "A 2P " + v + "VDC", { elecType: "MCB", poles: "2P", amp: a })));
+  (H.rcbo2P || []).forEach((a) => add("RCBO " + a + "A 2P 100mA", { elecType: "RCBO", poles: "2P", amp: a }));
+  (H.rcbo3P || []).forEach((a) => add("RCBO " + a + "A 3P+N 100mA", { elecType: "RCBO", poles: "3P+N", amp: a }));
+  (P.ctR || []).forEach((r) => add("CT " + r + "/5A", {}));
+  (P.zctD || []).forEach((d) => add("ZCT Φ" + d + "mm", {}));
+  return out;
+}
+
+/* แถบบนหน้าตั้งค่า: ของที่มีขายที่ยังไม่มีในคลัง → ปุ่มเพิ่มทีเดียว (ราคา 0 ไม่มียี่ห้อ/รุ่น ไปกรอกต่อในคลัง) */
+function BrStockGap({ stock }) {
+  const [open, setOpen] = React.useState(false);
+  const [busy, setBusy] = React.useState(false);
+  const items = (stock && stock.items) || [];
+  const mk = (window.BOQ && window.BOQ.matKey) || ((x) => String(x || "").trim());
+  const have = {};
+  items.forEach((s) => { if (s.name) have[mk(s.name)] = 1; });
+  const miss = brStockNeeds().filter((x) => !have[mk(x.name)]);
+  if (!stock || !stock.upsertItem || !miss.length) return null;
+  const addAll = () => {
+    const SF = window.SF || {};
+    window.askConfirm({ title: "เพิ่ม " + miss.length + " รายการลงคลัง?", body: "หมวดอุปกรณ์ไฟฟ้า · ราคา 0 · ไม่มียี่ห้อ/รุ่น — ไปกรอกราคาและแยกรุ่นต่อในหน้าคลัง", ok: "เพิ่มลงคลัง", icon: "plus" })
+      .then((ok) => {
+        if (!ok) return;
+        setBusy(true);
+        let maxId = 0;
+        items.forEach((it) => { const n = parseInt(String(it.id || "").replace(/\D/g, ""), 10); if (!isNaN(n) && n > maxId) maxId = n; });
+        const used = items.map((s) => s.sku).filter(Boolean);
+        miss.forEach((x) => {
+          maxId += 1;
+          const sku = SF.genMatCode ? SF.genMatCode("electrical", items, used) : "";
+          used.push(sku);
+          const rec = { id: "IV-" + String(maxId).padStart(2, "0"), name: x.name, sku: sku, cat: "electrical", unit: "ตัว", qty: 0, min: 0, loc: "", price: 0 };
+          if (x.elecType) rec.elecType = x.elecType;
+          if (x.poles) rec.poles = x.poles;
+          if (x.amp) rec.amp = x.amp;
+          stock.upsertItem(rec);
+        });
+        setBusy(false); setOpen(false);
+      });
+  };
+  return (
+    <div style={{ marginBottom: 14, padding: "10px 14px", borderRadius: "var(--r-card)", background: "var(--tint-amber-bg, #FFF7E6)", boxShadow: "var(--shadow-sm)" }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
+        <Icon name="box" size={16} color="var(--tint-amber-tx)" />
+        <span style={{ fontSize: 12.5, fontWeight: 700, color: "var(--tint-amber-tx)" }}>ของที่มีขาย {miss.length} รายการยังไม่มีในคลัง</span>
+        <span style={{ fontSize: 11.5, color: "var(--text-3)" }}>BOQ จะเลือกได้แต่ไม่มีราคา</span>
+        <span style={{ flex: 1 }} />
+        <button className="btn btn-sm btn-soft" onClick={() => setOpen(!open)}>{open ? "ซ่อนรายการ" : "ดูรายการ"}</button>
+        <button className="btn btn-sm btn-primary" disabled={busy} onClick={addAll}><Icon name="plus" size={13} color="#fff" /> เพิ่มลงคลังทั้งหมด</button>
+      </div>
+      {open && <div style={{ marginTop: 8, display: "flex", flexWrap: "wrap", gap: 6 }}>
+        {miss.map((x) => <span key={x.name} style={{ fontSize: 11.5, padding: "3px 9px", borderRadius: "var(--r-pill)", background: "var(--surface)", color: "var(--text-2)" }}>{x.name}</span>)}
+      </div>}
+    </div>
+  );
+}
+
+function BoqRulesPage({ ampStore, condStore, omStore, rulesStore, isMobile, stock }) {
   const BOQ = window.BOQ || {};
   const secs = (BOQ.RULE_SECS || []).concat(BR_FIXED_SECS);
   const [sec, setSec] = React.useState(() => { try { return localStorage.getItem("br_sec") || "dcBoard"; } catch (e) { return "board"; } });
@@ -1608,6 +1677,7 @@ function BoqRulesPage({ ampStore, condStore, omStore, rulesStore, isMobile }) {
   const fixed = sec === "amp" || sec === "cond" || sec === "om";
   if (isMobile) return (
     <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+      <BrStockGap stock={stock} />
       {!fixed && typeBar}
       <Dropdown value={cur.k} onChange={pick} options={secs.map((x) => ({ value: x.k, group: x.grp, label: x.th + (nSet(x.k) ? " · แก้แล้ว " + nSet(x.k) : "") }))} />
       {body}
@@ -1615,6 +1685,7 @@ function BoqRulesPage({ ampStore, condStore, omStore, rulesStore, isMobile }) {
   );
   return (
     <div>
+    <BrStockGap stock={stock} />
     {typeBar}
     <div style={{ display: "grid", gridTemplateColumns: "250px minmax(0,1fr)", gap: 18, alignItems: "start" }}>
       <nav style={{ position: "sticky", top: 12, background: "var(--surface)", boxShadow: "var(--shadow-card)", borderRadius: "var(--r-card)", padding: 8, display: "flex", flexDirection: "column", gap: 2 }}>
