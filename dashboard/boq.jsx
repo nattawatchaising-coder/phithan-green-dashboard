@@ -4746,7 +4746,7 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock, ver, verName, p3Vers
                   cols: [{ k: "len", ph: "ความยาวแนว (m)" }], blank: { len: "" },
                   extra: <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
                     <span style={{ fontSize: 10.5, fontWeight: 700, color: "var(--text-3)" }}>END CLAMP</span>
-                    <span style={{ width: 96 }}><Dropdown value={st.walkwayThk || 35} onChange={(v) => setStructVal("walkwayThk", +v)} options={[{ value: 30, label: "30mm." }, { value: 35, label: "35mm." }]} /></span>
+                    <span style={{ width: 96 }}><Dropdown value={st.walkwayThk != null && st.walkwayThk !== "" ? +st.walkwayThk : 35} onChange={(v) => setStructVal("walkwayThk", +v)} options={[{ value: 0, label: "ไม่ใช้" }, { value: 30, label: "30mm." }, { value: 35, label: "35mm." }]} /></span>
                   </span>,
                   spare: st.walkwaySpare != null ? st.walkwaySpare : window.BOQ.RULES.walkSpare, onSpare: (v) => setStructVal("walkwaySpare", +v),
                   extraItems: st.walkwayExtra || [],

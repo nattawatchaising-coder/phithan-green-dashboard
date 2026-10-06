@@ -1913,11 +1913,12 @@
         const M = Math.ceil((D * (RULES.walkRailPts * RULES.walkRailLen)) / 4.2);   // RAIL (3 จุด × 1.5m ÷ 4.2m)
         dT += D; fT += F; hT += H; mT += M;
       });
-      const thk = +(st.walkwayThk) || 35;                               // ความหนา walkway → ขนาด END CLAMP KIT
+      // ความหนา walkway → ขนาด END CLAMP KIT · 0 = รุ่นที่ไม่ใช้ END CLAMP (ไม่มีค่า = 35 ใบเก่า) — ชุดยึด Rail กับหลังคายังคิดตามเดิม
+      const thk = st.walkwayThk != null && st.walkwayThk !== "" ? +st.walkwayThk : 35;
       const it = [];
       // JOINER มาพร้อมแผ่น WALKWAY อยู่แล้ว จึงเป็นรายการเดียวกัน ไม่แยกบรรทัด
       if (dT) it.push({ name: "WALKWAY+JOINER", qty: dT, unit: "แผ่น" });
-      if (hT) it.push({ name: END_CLAMP[thk] || ("END CLAMP KIT " + thk + "mm."), qty: sp(hT, wlkSp), unit: "ชุด" });
+      if (hT && thk > 0) it.push({ name: END_CLAMP[thk] || ("END CLAMP KIT " + thk + "mm."), qty: sp(hT, wlkSp), unit: "ชุด" });
       if (mT) it.push({ name: "RAIL 4.2 M", qty: sp(mT, wlkSp), unit: "เส้น" });
       // ชื่อชุดยึด WALKWAY ตรงกับ L FEET ที่เลือกไว้ใน MOUNTING (เปลี่ยนตามประเภทหลังคา)
       if (hT) it.push({ name: roofHookModel, qty: sp(hT, wlkSp), unit: "SET" });

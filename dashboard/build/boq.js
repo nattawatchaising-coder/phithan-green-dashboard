@@ -9864,9 +9864,12 @@ function BOQEditor({
         width: 96
       }
     }, React.createElement(Dropdown, {
-      value: st.walkwayThk || 35,
+      value: st.walkwayThk != null && st.walkwayThk !== "" ? +st.walkwayThk : 35,
       onChange: v => setStructVal("walkwayThk", +v),
       options: [{
+        value: 0,
+        label: "ไม่ใช้"
+      }, {
         value: 30,
         label: "30mm."
       }, {
