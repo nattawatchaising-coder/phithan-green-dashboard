@@ -664,11 +664,22 @@ function useDesignVersions({
   }), ed && BoqEditor && React.createElement(BoqEditor, _extends({}, editorProps, {
     job: edJob,
     ver: ed.ver,
-    verName: (edVers.list.find(x => x.id === ed.ver) || {}).name || "เวอร์ชัน " + ed.ver,
+    verName: ed.quickNew ? "ใบใหม่ (BOQ ด่วน)" : (edVers.list.find(x => x.id === ed.ver) || {}).name || "เวอร์ชัน " + ed.ver,
     p3Vers: p3.list,
     onClose: () => setEd(null),
-    onSave: ro || !patchActive ? null : b => {
-      dvBoqSave(jobId, ed.ver, b, edVers, patchActive);
+    quick: !!ed.quick,
+    quickNew: !!ed.quickNew,
+    onSave: ro || !patchActive ? null : (b, o) => {
+      if (ed.quickNew) {
+        dvBoqCreate(jobId, ed.vers, {
+          from: "",
+          plan3d: b && b.plan3d || "1",
+          name: "BOQ ด่วน"
+        }, currentUser).then(r => dvBoqSave(jobId, r.id, b, {
+          real: true,
+          active: o && o.use ? r.id : ed.vers.active
+        }, patchActive)).catch(() => window.alert("บันทึก BOQ ด่วนไม่สำเร็จ ลองใหม่อีกครั้ง"));
+      } else dvBoqSave(jobId, ed.ver, b, edVers, patchActive);
       setEd(null);
     }
   })), p3Ver && P3Entry && React.createElement(P3Entry, {
@@ -697,6 +708,26 @@ function useDesignVersions({
       vers
     });else setPick("boq-new");
   };
+  const quickBoq = () => {
+    const linked = vers.list.map(x => String((x.boq || {}).plan3d || "1"));
+    const free = p3.list.filter(v => linked.indexOf(v.id) < 0);
+    const plan = free.length ? free[free.length - 1].id : "1";
+    const seed = plan !== "1" && window.BOQ ? Object.assign(window.BOQ.blankBOQ(job), {
+      plan3d: plan
+    }) : null;
+    if (!vers.list.length) setEd({
+      ver: "1",
+      boq: seed,
+      vers,
+      quick: true
+    });else setEd({
+      ver: "new",
+      boq: seed,
+      vers,
+      quick: true,
+      quickNew: true
+    });
+  };
   return {
     boqSub,
     p3Sub,
@@ -713,6 +744,7 @@ function useDesignVersions({
     openBoqVer,
     newP3,
     newBoq,
+    quickBoq,
     manageP3: () => setPick("p3"),
     manageBoq: () => setPick("boq")
   };
@@ -879,7 +911,15 @@ function DvVerCard({
     className: "dvc-btn ghost",
     onClick: isP3 ? dvs.manageP3 : dvs.manageBoq,
     title: "\u0E40\u0E1B\u0E25\u0E35\u0E48\u0E22\u0E19\u0E0A\u0E37\u0E48\u0E2D \xB7 \u0E25\u0E1A \xB7 \u0E40\u0E25\u0E37\u0E2D\u0E01\u0E43\u0E1A\u0E17\u0E35\u0E48\u0E43\u0E0A\u0E49\u0E07\u0E32\u0E19"
-  }, "\u0E08\u0E31\u0E14\u0E01\u0E32\u0E23"), canNew && React.createElement("button", {
+  }, "\u0E08\u0E31\u0E14\u0E01\u0E32\u0E23"), canNew && !isP3 && dvs.quickBoq && React.createElement("button", {
+    className: "dvc-btn",
+    onClick: dvs.quickBoq,
+    title: "\u0E1B\u0E4A\u0E2D\u0E1B\u0E40\u0E14\u0E35\u0E22\u0E27: \u0E02\u0E19\u0E32\u0E14 \xB7 \u0E41\u0E1C\u0E07 \xB7 \u0E2D\u0E34\u0E19\u0E40\u0E27\u0E2D\u0E23\u0E4C\u0E40\u0E15\u0E2D\u0E23\u0E4C \xB7 \u0E2B\u0E25\u0E31\u0E07\u0E04\u0E32 \xB7 \u0E04\u0E48\u0E32\u0E41\u0E23\u0E07 \u0E3F/W \xB7 \u0E01\u0E33\u0E44\u0E23 % \u2192 \u0E44\u0E14\u0E49\u0E23\u0E32\u0E04\u0E32\u0E02\u0E32\u0E22\u0E17\u0E31\u0E19\u0E17\u0E35"
+  }, React.createElement(Icon, {
+    name: "bolt",
+    size: 13,
+    color: "var(--primary-dark)"
+  }), " BOQ \u0E14\u0E48\u0E27\u0E19"), canNew && React.createElement("button", {
     className: "dvc-btn",
     onClick: isP3 ? dvs.newP3 : dvs.newBoq
   }, React.createElement(Icon, {

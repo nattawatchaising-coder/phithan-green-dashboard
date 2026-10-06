@@ -569,7 +569,33 @@ function Meas3DModal({ list, targets, defaultTarget, onApply, onClose }) {
   );
 }
 
-function BOQEditor({ job, onClose, onSave, priceMap, stock, ver, verName, p3Vers }) {
+/* ป๊อป BOQ ด่วน — แผ่นเดียวกลางจอ ใช้ชิ้นส่วนเดียวกับตัวแก้เต็ม (.bq-fld / .bq-ro / .btn) */
+const BQQ_CSS = `
+.bqq-bd{position:fixed;inset:0;z-index:120;background:rgba(8,20,14,.45);backdrop-filter:blur(3px);display:grid;place-items:center;padding:20px}
+.bqq-card{background:var(--bg);border-radius:var(--r-card);width:min(640px,100%);max-height:92vh;display:flex;flex-direction:column;overflow:hidden;box-shadow:var(--shadow-modal)}
+.bqq-hd{flex-shrink:0;display:flex;align-items:center;gap:10px;padding:14px 18px;background:var(--surface);box-shadow:var(--shadow-sm);position:relative;z-index:1}
+.bqq-hd .eb{font-size:11.5px;font-weight:700;color:var(--text-3)}
+.bqq-hd .nm{font-size:16.5px;font-weight:800;color:var(--text-1);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.bqq-body{flex:1;min-height:0;overflow:auto;padding:16px 18px;display:flex;flex-direction:column;gap:12px}
+.bqq-sec{background:var(--surface);box-shadow:var(--shadow-sm);border-radius:var(--r-tile);padding:12px 14px}
+.bqq-sec .tt{font-size:12.5px;font-weight:800;color:var(--text-1);margin-bottom:9px}
+.bqq-sec .tt span{font-weight:600;font-size:11px;color:var(--text-3);margin-left:6px}
+.bqq-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px 12px}
+.bqq-grid .full{grid-column:1/-1}
+.bqq-sum{background:var(--surface);box-shadow:var(--shadow-sm);border-radius:var(--r-tile);overflow:hidden}
+.bqq-sum .r{display:flex;align-items:center;gap:10px;padding:7px 12px;font-size:12px;color:var(--text-2)}
+.bqq-sum .r+.r{box-shadow:inset 0 1px 0 var(--divider)}
+.bqq-sum .r span{flex:1;min-width:0}
+.bqq-sum .r b{font-family:var(--mono);font-size:12.5px;font-weight:800;color:var(--text-1);min-width:96px;text-align:right}
+.bqq-sum .r.hi{background:var(--primary-soft)}
+.bqq-sum .r.hi span{font-weight:800;color:var(--primary-dark)}
+.bqq-sum .r.hi b{font-size:15px;color:var(--primary-dark)}
+.bqq-warn{background:var(--tint-amber-bg);border-radius:var(--r-tile);padding:9px 12px;font-size:11.5px;line-height:1.6;color:var(--tint-amber-tx);font-weight:600}
+.bqq-ft{flex-shrink:0;display:flex;align-items:center;gap:10px;padding:11px 18px;background:var(--surface);box-shadow:0 -10px 18px -16px rgba(8,20,14,.35)}
+.bqq-use{display:inline-flex;align-items:center;gap:6px;font-size:12px;font-weight:700;color:var(--text-2);cursor:pointer;white-space:nowrap}
+@media (max-width:560px){.bqq-bd{padding:0;place-items:end stretch}.bqq-card{max-height:96vh;border-radius:var(--r-card) var(--r-card) 0 0}.bqq-grid{grid-template-columns:minmax(0,1fr)}.bqq-ft{flex-wrap:wrap}.bqq-ft .btn{flex:1;justify-content:center}}
+`;
+function BOQEditor({ job, onClose, onSave, priceMap, stock, ver, verName, p3Vers, quick, quickNew }) {
   const bdClose = window.useBackdropClose(onClose);
   const baht = (n) => (Math.round((+n || 0) * 100) / 100).toLocaleString(undefined, { maximumFractionDigits: 2 });
   const isMobile = window.matchMedia("(max-width: 860px)").matches;
@@ -2332,12 +2358,13 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock, ver, verName, p3Vers
     const list = rows || [];
     const set = (i, patch) => onChange(list.map((y, j) => j === i ? Object.assign({}, y, patch) : y));
     // ชื่อที่พิมพ์เองไว้ (ไม่อยู่ในรายการ) ต้องใส่กลับเข้าตัวเลือกด้วย ไม่งั้นปุ่มจะโชว์ว่างเปล่า
-    const options = React.useMemo(() => {
+    /* เรียกเป็นฟังก์ชันในตัวแก้ (ไม่ใช่คอมโพเนนต์) ห้ามมี hook — โหมด BOQ ด่วนไม่ render ส่วนนี้ hook จะนับไม่ตรง */
+    const options = (() => {
       const base = catalog.map((f) => ({ value: f.name, label: f.name, group: f.group }));
       const known = new Set(base.map((o) => o.value));
       list.forEach((x) => { const n = (x.name || "").trim(); if (n && !known.has(n)) { known.add(n); base.push({ value: n, label: n, group: "พิมพ์เอง" }); } });
       return base;
-    }, [catalog, list]);
+    })();
     const unitOf = (n) => { const f = catalog.find((x) => x.name === n); return f ? f.unit : ""; };
     if (!list.length) return null;
     return (
@@ -2962,6 +2989,136 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock, ver, verName, p3Vers
   const secIdx = navPages.findIndex((x) => x.key === curPage);
   const nextSec = secIdx >= 0 ? navPages[secIdx + 1] : null;
   const goSec = (k) => { setOpenSec(k); const m = document.querySelector(".bq-main"); if (m) m.scrollTop = 0; };
+
+  /* ── BOQ ด่วน (quick) — ตัวแก้ตัวเดียวกันทุกอย่าง (state · เอฟเฟกต์เติมสาย/ตู้ไฟอัตโนมัติ · สูตร · ราคา)
+     แค่ย่อหน้าจอเหลือป๊อปเดียว: ขนาด · รุ่นแผง · อินเวอร์เตอร์ · หลังคา · ระยะสาย · ค่าแรงเหมา ฿/W · กำไร %
+     แถวแผงจัดให้เอง (จากแบบ 3D ถ้าจำนวนตรง ไม่งั้นแถวละ 12 แผง) · กด "เปิดแบบละเอียด" = ใบเดียวกันในหน้าเต็ม */
+  const [qOn, setQOn] = React.useState(!!quick);
+  const [qKw, setQKw] = React.useState("");
+  const [qUse, setQUse] = React.useState(true);
+  const qPanEdit = isLead || !(job && +job.panels > 0);
+  const qWp = +((selPanel || {}).wp || 0);
+  React.useEffect(() => {
+    if (!qOn) return;
+    const n = Math.max(0, +b.panels || 0);
+    const sumOf = (rs) => (rs || []).reduce((a, r) => a + (+r.panels || 0) * (+r.count || 0), 0);
+    if (sumOf(b.rows) === n) return;
+    let rows;
+    if (rail3d && sumOf(rail3d.rows) === n) rows = rail3d.rows.map((r) => (r.orient === "landscape" ? { panels: r.panels, count: r.count, orient: "landscape" } : { panels: r.panels, count: r.count }));
+    else {
+      const per = Math.min(n, 12);
+      rows = !n ? [{ panels: 0, count: 1 }] : [{ panels: per, count: Math.floor(n / per) }].concat(n % per ? [{ panels: n % per, count: 1 }] : []);
+    }
+    setB((p) => Object.assign({}, p, { rows }));
+  }, [qOn, b.panels, rail3d]); // eslint-disable-line
+  /* ค่าแรงเหมาเป็น ฿/W เสมอในโหมดด่วน · เรตเริ่มจากที่ใช้ครั้งล่าสุดในเครื่องนี้ */
+  React.useEffect(() => {
+    if (!qOn) return;
+    let rate = +lump.rate || 0;
+    if (!(rate > 0)) { try { rate = +localStorage.getItem("boq_quick_rate") || 0; } catch (e) { rate = 0; } }
+    setB((p) => Object.assign({}, p, { laborMode: "lump", laborLump: Object.assign({}, LUMP_DEF, p.laborLump, { basis: "w", rate: rate > 0 ? rate : (p.laborLump || {}).rate || 0 }) }));
+  }, [qOn]); // eslint-disable-line
+  const savePayload = () => Object.assign({}, b, { project: project,
+    pricing: Object.assign({}, b.pricing || {}, { sell: pb.sell }, pb.mode !== "sell" ? { profitMode: pb.mode } : {}) });
+
+  if (qOn) {
+    const CAB_TH = { "PV-INVERTER": "สาย DC แผง → อินเวอร์เตอร์", "INVERTER-MCB_SOLAR": "อินเวอร์เตอร์ → เบรกเกอร์โซลาร์",
+      "MCB_SOLAR-MDB": "เบรกเกอร์โซลาร์ → ตู้เมน", "MICRO-MICRO": "ไมโคร ↔ ไมโคร", "MICRO-COMBINER": "ไมโคร → ตู้ Combiner",
+      "COMBINER-MCB": "Combiner → เบรกเกอร์", "COMBINER-BAT.": "Combiner → แบตเตอรี่", "COMBINER-BACKUP": "Combiner → Backup",
+      GROUND: "สายดิน", LAN: "สาย LAN" };
+    const unpriced = (priced.groups || []).filter((g) => !g.service && !g.allowance)
+      .reduce((n, g) => n + g.items.filter((it) => +it.qty > 0 && !(+it.price > 0)).length, 0);
+    const profitV = pricing.profitPct === "" || pricing.profitPct == null ? "" : pricing.profitPct;
+    const qRows = [
+      ["วัสดุ & อุปกรณ์", priced.matTotal], ["ค่าแรงติดตั้ง", priced.laborTotal], ["ค่าขออนุญาต & วิศวกร", priced.permitTotal],
+      ["O&M · ล้างแผง", priced.omTotal],
+    ];
+    const qSave = () => {
+      try { if (+lump.rate > 0) localStorage.setItem("boq_quick_rate", String(+lump.rate)); } catch (e) { /* ไม่มีที่เก็บก็ไม่เป็นไร */ }
+      onSave(savePayload(), { use: !quickNew || qUse });
+    };
+    const qFld = (val, on, unit, ph, step) => (
+      <div className="bq-fld"><input type="number" min={0} step={step || "any"} value={val} placeholder={ph} onChange={(e) => on(e.target.value)} /><span className="u">{unit}</span></div>
+    );
+    return (
+      <div className="bqq-bd" {...bdClose}>
+        <style>{BQ_CSS + BQQ_CSS}</style>
+        <div className="bqq-card">
+          <div className="bqq-hd">
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div className="eb">BOQ ด่วน{job && job.code ? " · " + job.code : ""}{quickNew ? " · ใบใหม่" : ""}</div>
+              <div className="nm">{job ? job.name : "งาน"}</div>
+            </div>
+            <button className="x x-close" onClick={onClose} title="ปิด"><Icon name="x" size={16} /></button>
+          </div>
+          <div className="bqq-body">
+            <div className="bqq-sec">
+              <div className="tt">ระบบ</div>
+              <div className="bqq-grid">
+                {qPanEdit && <Field label="ขนาดที่ต้องการ">{qFld(qKw, (v) => { setQKw(v); if (qWp > 0) set("panels", +v > 0 ? Math.ceil((+v * 1000) / qWp) : 0); }, "kWp", result.meta.kw ? String(result.meta.kw) : "เช่น 10")}</Field>}
+                <Field label="จำนวนแผง">
+                  {qPanEdit ? qFld(b.panels || "", (v) => { setQKw(""); set("panels", Math.max(0, parseInt(v) || 0)); }, "แผง", "0", 1)
+                    : <BoqLocked value={b.panels} unit="แผง" num />}
+                </Field>
+                <div className="full"><Field label="รุ่นแผง">
+                  <Dropdown value={b.panelModel} onChange={(v) => { set("panelModel", v); const w = +((window.BOQ.findPanel(v) || {}).wp || 0); if (qPanEdit && +qKw > 0 && w > 0) set("panels", Math.ceil((+qKw * 1000) / w)); }}
+                    options={window.BOQ.PANELS.map((p) => ({ value: p.model, label: p.model, sub: p.wp ? p.wp + "W" : "", group: p.group || "" }))} />
+                </Field></div>
+                <Field label={"อินเวอร์เตอร์" + (jobBrand ? " · " + jobBrand : "")}>
+                  <Dropdown value={b.inverterModel || ""} onChange={(v) => set("inverterModel", v)} options={invOptions} />
+                </Field>
+                {!b.inverterModel
+                  ? <Field label="อัตราไมโคร"><Dropdown value={b.microRatio} onChange={(v) => set("microRatio", v)} options={[{ value: "1:1", label: "1:1 (1 แผง/ตัว)" }, { value: "2:1", label: "2:1 (2 แผง/ตัว)" }]} /></Field>
+                  : <Field label="จำนวนอินเวอร์เตอร์"><BoqInvCount value={b.invCount} auto={result.meta.invAuto} onChange={(v) => set("invCount", v)} style={numStyle} /></Field>}
+                <Field label="ประเภทหลังคา"><Dropdown value={b.roof} onChange={(v) => set("roof", v)} options={opt(window.BOQ.ROOF_OPTIONS)} /></Field>
+                <Field label="ระบบไฟฟ้า (ตามงาน)">
+                  <div className="bq-ro"><Icon name="lock" size={13} color="var(--text-3)" />
+                    <span className="v tx">{String(b.phase) === "3" ? "3 เฟส" : "1 เฟส"}{+b.batteryKwh > 0 ? " · แบต " + b.batteryKwh + " kWh" : ""}</span></div>
+                </Field>
+              </div>
+            </div>
+            <div className="bqq-sec">
+              <div className="tt">ระยะสายโดยประมาณ <span>เว้นว่าง = ไม่คิดสายเส้นนั้น · ชนิด/ขนาดสายระบบเลือกให้</span></div>
+              <div className="bqq-grid">
+                {(b.cables || []).map((c, i) => (c.name ? (
+                  <Field key={i} label={CAB_TH[c.name] || c.name}>{qFld(c.length, (v) => setCab(i, "length", v), "ม.", "0")}</Field>
+                ) : null))}
+              </div>
+            </div>
+            <div className="bqq-sec">
+              <div className="tt">ค่าแรง & กำไร</div>
+              <div className="bqq-grid">
+                <Field label="ค่าแรงติดตั้งเหมา">{qFld(lump.rate || "", (v) => setLump("rate", v), "฿/W", "0")}</Field>
+                <Field label="กำไร (% ของราคาขาย)">{qFld(profitV, (v) => setProfit("pct", "profitPct", v), "%", String(window.BOQ.RULES.profitPct))}</Field>
+              </div>
+            </div>
+            <div className="bqq-sum">
+              {qRows.map(([k, v]) => <div key={k} className="r"><span>{k}</span><b>{v > 0 ? "฿" + baht(v) : "—"}</b></div>)}
+              <div className="r t"><span>ต้นทุนรวม</span><b>{pb.totalCost > 0 ? "฿" + baht(pb.totalCost) : "—"}</b></div>
+              <div className="r"><span>กำไร {pb.margin}%</span><b>{pb.profit > 0 ? "฿" + baht(pb.profit) : "—"}</b></div>
+              <div className="r hi"><span>ราคาขาย (ก่อน VAT){pb.sellPerW > 0 ? " · ฿" + baht(pb.sellPerW) + "/W" : ""}</span><b>{pb.sell > 0 ? "฿" + baht(pb.sell) : "—"}</b></div>
+              <div className="r"><span>รวม VAT {pb.vat}%</span><b>{pb.sellVat > 0 ? "฿" + baht(pb.sellVat) : "—"}</b></div>
+            </div>
+            {(unpriced > 0 || !(priced.laborTotal > 0) || !(b.panels > 0)) && (
+              <div className="bqq-warn">
+                {!(b.panels > 0) && <div>ยังไม่มีจำนวนแผง — กรอกขนาด kWp หรือจำนวนแผง</div>}
+                {!(priced.laborTotal > 0) && <div>ยังไม่ได้ใส่ค่าแรงเหมา ฿/W</div>}
+                {unpriced > 0 && <div>{unpriced} รายการยังไม่มีราคาในคลัง — ราคาขายต่ำกว่าจริง (ดูได้ใน "เปิดแบบละเอียด")</div>}
+              </div>
+            )}
+          </div>
+          <div className="bqq-ft">
+            <button className="btn" onClick={() => setQOn(false)}><Icon name="list" size={14} /> เปิดแบบละเอียด</button>
+            <span style={{ flex: 1 }} />
+            {quickNew && onSave && (
+              <label className="bqq-use"><input type="checkbox" checked={qUse} onChange={(e) => setQUse(e.target.checked)} /> ใบเสนอราคาใช้ใบนี้</label>
+            )}
+            {onSave && <button className="btn btn-pri" disabled={!(b.panels > 0)} onClick={() => guardRun(qSave)}><Icon name="check" size={14} color="#fff" /> บันทึก BOQ</button>}
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="bq">

@@ -1093,6 +1093,31 @@ function Meas3DModal({
     }
   }, "\u0E19\u0E33\u0E40\u0E02\u0E49\u0E32"))));
 }
+const BQQ_CSS = `
+.bqq-bd{position:fixed;inset:0;z-index:120;background:rgba(8,20,14,.45);backdrop-filter:blur(3px);display:grid;place-items:center;padding:20px}
+.bqq-card{background:var(--bg);border-radius:var(--r-card);width:min(640px,100%);max-height:92vh;display:flex;flex-direction:column;overflow:hidden;box-shadow:var(--shadow-modal)}
+.bqq-hd{flex-shrink:0;display:flex;align-items:center;gap:10px;padding:14px 18px;background:var(--surface);box-shadow:var(--shadow-sm);position:relative;z-index:1}
+.bqq-hd .eb{font-size:11.5px;font-weight:700;color:var(--text-3)}
+.bqq-hd .nm{font-size:16.5px;font-weight:800;color:var(--text-1);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.bqq-body{flex:1;min-height:0;overflow:auto;padding:16px 18px;display:flex;flex-direction:column;gap:12px}
+.bqq-sec{background:var(--surface);box-shadow:var(--shadow-sm);border-radius:var(--r-tile);padding:12px 14px}
+.bqq-sec .tt{font-size:12.5px;font-weight:800;color:var(--text-1);margin-bottom:9px}
+.bqq-sec .tt span{font-weight:600;font-size:11px;color:var(--text-3);margin-left:6px}
+.bqq-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px 12px}
+.bqq-grid .full{grid-column:1/-1}
+.bqq-sum{background:var(--surface);box-shadow:var(--shadow-sm);border-radius:var(--r-tile);overflow:hidden}
+.bqq-sum .r{display:flex;align-items:center;gap:10px;padding:7px 12px;font-size:12px;color:var(--text-2)}
+.bqq-sum .r+.r{box-shadow:inset 0 1px 0 var(--divider)}
+.bqq-sum .r span{flex:1;min-width:0}
+.bqq-sum .r b{font-family:var(--mono);font-size:12.5px;font-weight:800;color:var(--text-1);min-width:96px;text-align:right}
+.bqq-sum .r.hi{background:var(--primary-soft)}
+.bqq-sum .r.hi span{font-weight:800;color:var(--primary-dark)}
+.bqq-sum .r.hi b{font-size:15px;color:var(--primary-dark)}
+.bqq-warn{background:var(--tint-amber-bg);border-radius:var(--r-tile);padding:9px 12px;font-size:11.5px;line-height:1.6;color:var(--tint-amber-tx);font-weight:600}
+.bqq-ft{flex-shrink:0;display:flex;align-items:center;gap:10px;padding:11px 18px;background:var(--surface);box-shadow:0 -10px 18px -16px rgba(8,20,14,.35)}
+.bqq-use{display:inline-flex;align-items:center;gap:6px;font-size:12px;font-weight:700;color:var(--text-2);cursor:pointer;white-space:nowrap}
+@media (max-width:560px){.bqq-bd{padding:0;place-items:end stretch}.bqq-card{max-height:96vh;border-radius:var(--r-card) var(--r-card) 0 0}.bqq-grid{grid-template-columns:minmax(0,1fr)}.bqq-ft{flex-wrap:wrap}.bqq-ft .btn{flex:1;justify-content:center}}
+`;
 function BOQEditor({
   job,
   onClose,
@@ -1101,7 +1126,9 @@ function BOQEditor({
   stock,
   ver,
   verName,
-  p3Vers
+  p3Vers,
+  quick,
+  quickNew
 }) {
   const bdClose = window.useBackdropClose(onClose);
   const baht = n => (Math.round((+n || 0) * 100) / 100).toLocaleString(undefined, {
@@ -4364,7 +4391,7 @@ function BOQEditor({
   }) => {
     const list = rows || [];
     const set = (i, patch) => onChange(list.map((y, j) => j === i ? Object.assign({}, y, patch) : y));
-    const options = React.useMemo(() => {
+    const options = (() => {
       const base = catalog.map(f => ({
         value: f.name,
         label: f.name,
@@ -4383,7 +4410,7 @@ function BOQEditor({
         }
       });
       return base;
-    }, [catalog, list]);
+    })();
     const unitOf = n => {
       const f = catalog.find(x => x.name === n);
       return f ? f.unit : "";
@@ -5907,6 +5934,267 @@ function BOQEditor({
     const m = document.querySelector(".bq-main");
     if (m) m.scrollTop = 0;
   };
+  const [qOn, setQOn] = React.useState(!!quick);
+  const [qKw, setQKw] = React.useState("");
+  const [qUse, setQUse] = React.useState(true);
+  const qPanEdit = isLead || !(job && +job.panels > 0);
+  const qWp = +((selPanel || {}).wp || 0);
+  React.useEffect(() => {
+    if (!qOn) return;
+    const n = Math.max(0, +b.panels || 0);
+    const sumOf = rs => (rs || []).reduce((a, r) => a + (+r.panels || 0) * (+r.count || 0), 0);
+    if (sumOf(b.rows) === n) return;
+    let rows;
+    if (rail3d && sumOf(rail3d.rows) === n) rows = rail3d.rows.map(r => r.orient === "landscape" ? {
+      panels: r.panels,
+      count: r.count,
+      orient: "landscape"
+    } : {
+      panels: r.panels,
+      count: r.count
+    });else {
+      const per = Math.min(n, 12);
+      rows = !n ? [{
+        panels: 0,
+        count: 1
+      }] : [{
+        panels: per,
+        count: Math.floor(n / per)
+      }].concat(n % per ? [{
+        panels: n % per,
+        count: 1
+      }] : []);
+    }
+    setB(p => Object.assign({}, p, {
+      rows
+    }));
+  }, [qOn, b.panels, rail3d]);
+  React.useEffect(() => {
+    if (!qOn) return;
+    let rate = +lump.rate || 0;
+    if (!(rate > 0)) {
+      try {
+        rate = +localStorage.getItem("boq_quick_rate") || 0;
+      } catch (e) {
+        rate = 0;
+      }
+    }
+    setB(p => Object.assign({}, p, {
+      laborMode: "lump",
+      laborLump: Object.assign({}, LUMP_DEF, p.laborLump, {
+        basis: "w",
+        rate: rate > 0 ? rate : (p.laborLump || {}).rate || 0
+      })
+    }));
+  }, [qOn]);
+  const savePayload = () => Object.assign({}, b, {
+    project: project,
+    pricing: Object.assign({}, b.pricing || {}, {
+      sell: pb.sell
+    }, pb.mode !== "sell" ? {
+      profitMode: pb.mode
+    } : {})
+  });
+  if (qOn) {
+    const CAB_TH = {
+      "PV-INVERTER": "สาย DC แผง → อินเวอร์เตอร์",
+      "INVERTER-MCB_SOLAR": "อินเวอร์เตอร์ → เบรกเกอร์โซลาร์",
+      "MCB_SOLAR-MDB": "เบรกเกอร์โซลาร์ → ตู้เมน",
+      "MICRO-MICRO": "ไมโคร ↔ ไมโคร",
+      "MICRO-COMBINER": "ไมโคร → ตู้ Combiner",
+      "COMBINER-MCB": "Combiner → เบรกเกอร์",
+      "COMBINER-BAT.": "Combiner → แบตเตอรี่",
+      "COMBINER-BACKUP": "Combiner → Backup",
+      GROUND: "สายดิน",
+      LAN: "สาย LAN"
+    };
+    const unpriced = (priced.groups || []).filter(g => !g.service && !g.allowance).reduce((n, g) => n + g.items.filter(it => +it.qty > 0 && !(+it.price > 0)).length, 0);
+    const profitV = pricing.profitPct === "" || pricing.profitPct == null ? "" : pricing.profitPct;
+    const qRows = [["วัสดุ & อุปกรณ์", priced.matTotal], ["ค่าแรงติดตั้ง", priced.laborTotal], ["ค่าขออนุญาต & วิศวกร", priced.permitTotal], ["O&M · ล้างแผง", priced.omTotal]];
+    const qSave = () => {
+      try {
+        if (+lump.rate > 0) localStorage.setItem("boq_quick_rate", String(+lump.rate));
+      } catch (e) {}
+      onSave(savePayload(), {
+        use: !quickNew || qUse
+      });
+    };
+    const qFld = (val, on, unit, ph, step) => React.createElement("div", {
+      className: "bq-fld"
+    }, React.createElement("input", {
+      type: "number",
+      min: 0,
+      step: step || "any",
+      value: val,
+      placeholder: ph,
+      onChange: e => on(e.target.value)
+    }), React.createElement("span", {
+      className: "u"
+    }, unit));
+    return React.createElement("div", _extends({
+      className: "bqq-bd"
+    }, bdClose), React.createElement("style", null, BQ_CSS + BQQ_CSS), React.createElement("div", {
+      className: "bqq-card"
+    }, React.createElement("div", {
+      className: "bqq-hd"
+    }, React.createElement("div", {
+      style: {
+        flex: 1,
+        minWidth: 0
+      }
+    }, React.createElement("div", {
+      className: "eb"
+    }, "BOQ \u0E14\u0E48\u0E27\u0E19", job && job.code ? " · " + job.code : "", quickNew ? " · ใบใหม่" : ""), React.createElement("div", {
+      className: "nm"
+    }, job ? job.name : "งาน")), React.createElement("button", {
+      className: "x x-close",
+      onClick: onClose,
+      title: "\u0E1B\u0E34\u0E14"
+    }, React.createElement(Icon, {
+      name: "x",
+      size: 16
+    }))), React.createElement("div", {
+      className: "bqq-body"
+    }, React.createElement("div", {
+      className: "bqq-sec"
+    }, React.createElement("div", {
+      className: "tt"
+    }, "\u0E23\u0E30\u0E1A\u0E1A"), React.createElement("div", {
+      className: "bqq-grid"
+    }, qPanEdit && React.createElement(Field, {
+      label: "\u0E02\u0E19\u0E32\u0E14\u0E17\u0E35\u0E48\u0E15\u0E49\u0E2D\u0E07\u0E01\u0E32\u0E23"
+    }, qFld(qKw, v => {
+      setQKw(v);
+      if (qWp > 0) set("panels", +v > 0 ? Math.ceil(+v * 1000 / qWp) : 0);
+    }, "kWp", result.meta.kw ? String(result.meta.kw) : "เช่น 10")), React.createElement(Field, {
+      label: "\u0E08\u0E33\u0E19\u0E27\u0E19\u0E41\u0E1C\u0E07"
+    }, qPanEdit ? qFld(b.panels || "", v => {
+      setQKw("");
+      set("panels", Math.max(0, parseInt(v) || 0));
+    }, "แผง", "0", 1) : React.createElement(BoqLocked, {
+      value: b.panels,
+      unit: "\u0E41\u0E1C\u0E07",
+      num: true
+    })), React.createElement("div", {
+      className: "full"
+    }, React.createElement(Field, {
+      label: "\u0E23\u0E38\u0E48\u0E19\u0E41\u0E1C\u0E07"
+    }, React.createElement(Dropdown, {
+      value: b.panelModel,
+      onChange: v => {
+        set("panelModel", v);
+        const w = +((window.BOQ.findPanel(v) || {}).wp || 0);
+        if (qPanEdit && +qKw > 0 && w > 0) set("panels", Math.ceil(+qKw * 1000 / w));
+      },
+      options: window.BOQ.PANELS.map(p => ({
+        value: p.model,
+        label: p.model,
+        sub: p.wp ? p.wp + "W" : "",
+        group: p.group || ""
+      }))
+    }))), React.createElement(Field, {
+      label: "อินเวอร์เตอร์" + (jobBrand ? " · " + jobBrand : "")
+    }, React.createElement(Dropdown, {
+      value: b.inverterModel || "",
+      onChange: v => set("inverterModel", v),
+      options: invOptions
+    })), !b.inverterModel ? React.createElement(Field, {
+      label: "\u0E2D\u0E31\u0E15\u0E23\u0E32\u0E44\u0E21\u0E42\u0E04\u0E23"
+    }, React.createElement(Dropdown, {
+      value: b.microRatio,
+      onChange: v => set("microRatio", v),
+      options: [{
+        value: "1:1",
+        label: "1:1 (1 แผง/ตัว)"
+      }, {
+        value: "2:1",
+        label: "2:1 (2 แผง/ตัว)"
+      }]
+    })) : React.createElement(Field, {
+      label: "\u0E08\u0E33\u0E19\u0E27\u0E19\u0E2D\u0E34\u0E19\u0E40\u0E27\u0E2D\u0E23\u0E4C\u0E40\u0E15\u0E2D\u0E23\u0E4C"
+    }, React.createElement(BoqInvCount, {
+      value: b.invCount,
+      auto: result.meta.invAuto,
+      onChange: v => set("invCount", v),
+      style: numStyle
+    })), React.createElement(Field, {
+      label: "\u0E1B\u0E23\u0E30\u0E40\u0E20\u0E17\u0E2B\u0E25\u0E31\u0E07\u0E04\u0E32"
+    }, React.createElement(Dropdown, {
+      value: b.roof,
+      onChange: v => set("roof", v),
+      options: opt(window.BOQ.ROOF_OPTIONS)
+    })), React.createElement(Field, {
+      label: "\u0E23\u0E30\u0E1A\u0E1A\u0E44\u0E1F\u0E1F\u0E49\u0E32 (\u0E15\u0E32\u0E21\u0E07\u0E32\u0E19)"
+    }, React.createElement("div", {
+      className: "bq-ro"
+    }, React.createElement(Icon, {
+      name: "lock",
+      size: 13,
+      color: "var(--text-3)"
+    }), React.createElement("span", {
+      className: "v tx"
+    }, String(b.phase) === "3" ? "3 เฟส" : "1 เฟส", +b.batteryKwh > 0 ? " · แบต " + b.batteryKwh + " kWh" : ""))))), React.createElement("div", {
+      className: "bqq-sec"
+    }, React.createElement("div", {
+      className: "tt"
+    }, "\u0E23\u0E30\u0E22\u0E30\u0E2A\u0E32\u0E22\u0E42\u0E14\u0E22\u0E1B\u0E23\u0E30\u0E21\u0E32\u0E13 ", React.createElement("span", null, "\u0E40\u0E27\u0E49\u0E19\u0E27\u0E48\u0E32\u0E07 = \u0E44\u0E21\u0E48\u0E04\u0E34\u0E14\u0E2A\u0E32\u0E22\u0E40\u0E2A\u0E49\u0E19\u0E19\u0E31\u0E49\u0E19 \xB7 \u0E0A\u0E19\u0E34\u0E14/\u0E02\u0E19\u0E32\u0E14\u0E2A\u0E32\u0E22\u0E23\u0E30\u0E1A\u0E1A\u0E40\u0E25\u0E37\u0E2D\u0E01\u0E43\u0E2B\u0E49")), React.createElement("div", {
+      className: "bqq-grid"
+    }, (b.cables || []).map((c, i) => c.name ? React.createElement(Field, {
+      key: i,
+      label: CAB_TH[c.name] || c.name
+    }, qFld(c.length, v => setCab(i, "length", v), "ม.", "0")) : null))), React.createElement("div", {
+      className: "bqq-sec"
+    }, React.createElement("div", {
+      className: "tt"
+    }, "\u0E04\u0E48\u0E32\u0E41\u0E23\u0E07 & \u0E01\u0E33\u0E44\u0E23"), React.createElement("div", {
+      className: "bqq-grid"
+    }, React.createElement(Field, {
+      label: "\u0E04\u0E48\u0E32\u0E41\u0E23\u0E07\u0E15\u0E34\u0E14\u0E15\u0E31\u0E49\u0E07\u0E40\u0E2B\u0E21\u0E32"
+    }, qFld(lump.rate || "", v => setLump("rate", v), "฿/W", "0")), React.createElement(Field, {
+      label: "\u0E01\u0E33\u0E44\u0E23 (% \u0E02\u0E2D\u0E07\u0E23\u0E32\u0E04\u0E32\u0E02\u0E32\u0E22)"
+    }, qFld(profitV, v => setProfit("pct", "profitPct", v), "%", String(window.BOQ.RULES.profitPct))))), React.createElement("div", {
+      className: "bqq-sum"
+    }, qRows.map(([k, v]) => React.createElement("div", {
+      key: k,
+      className: "r"
+    }, React.createElement("span", null, k), React.createElement("b", null, v > 0 ? "฿" + baht(v) : "—"))), React.createElement("div", {
+      className: "r t"
+    }, React.createElement("span", null, "\u0E15\u0E49\u0E19\u0E17\u0E38\u0E19\u0E23\u0E27\u0E21"), React.createElement("b", null, pb.totalCost > 0 ? "฿" + baht(pb.totalCost) : "—")), React.createElement("div", {
+      className: "r"
+    }, React.createElement("span", null, "\u0E01\u0E33\u0E44\u0E23 ", pb.margin, "%"), React.createElement("b", null, pb.profit > 0 ? "฿" + baht(pb.profit) : "—")), React.createElement("div", {
+      className: "r hi"
+    }, React.createElement("span", null, "\u0E23\u0E32\u0E04\u0E32\u0E02\u0E32\u0E22 (\u0E01\u0E48\u0E2D\u0E19 VAT)", pb.sellPerW > 0 ? " · ฿" + baht(pb.sellPerW) + "/W" : ""), React.createElement("b", null, pb.sell > 0 ? "฿" + baht(pb.sell) : "—")), React.createElement("div", {
+      className: "r"
+    }, React.createElement("span", null, "\u0E23\u0E27\u0E21 VAT ", pb.vat, "%"), React.createElement("b", null, pb.sellVat > 0 ? "฿" + baht(pb.sellVat) : "—"))), (unpriced > 0 || !(priced.laborTotal > 0) || !(b.panels > 0)) && React.createElement("div", {
+      className: "bqq-warn"
+    }, !(b.panels > 0) && React.createElement("div", null, "\u0E22\u0E31\u0E07\u0E44\u0E21\u0E48\u0E21\u0E35\u0E08\u0E33\u0E19\u0E27\u0E19\u0E41\u0E1C\u0E07 \u2014 \u0E01\u0E23\u0E2D\u0E01\u0E02\u0E19\u0E32\u0E14 kWp \u0E2B\u0E23\u0E37\u0E2D\u0E08\u0E33\u0E19\u0E27\u0E19\u0E41\u0E1C\u0E07"), !(priced.laborTotal > 0) && React.createElement("div", null, "\u0E22\u0E31\u0E07\u0E44\u0E21\u0E48\u0E44\u0E14\u0E49\u0E43\u0E2A\u0E48\u0E04\u0E48\u0E32\u0E41\u0E23\u0E07\u0E40\u0E2B\u0E21\u0E32 \u0E3F/W"), unpriced > 0 && React.createElement("div", null, unpriced, " \u0E23\u0E32\u0E22\u0E01\u0E32\u0E23\u0E22\u0E31\u0E07\u0E44\u0E21\u0E48\u0E21\u0E35\u0E23\u0E32\u0E04\u0E32\u0E43\u0E19\u0E04\u0E25\u0E31\u0E07 \u2014 \u0E23\u0E32\u0E04\u0E32\u0E02\u0E32\u0E22\u0E15\u0E48\u0E33\u0E01\u0E27\u0E48\u0E32\u0E08\u0E23\u0E34\u0E07 (\u0E14\u0E39\u0E44\u0E14\u0E49\u0E43\u0E19 \"\u0E40\u0E1B\u0E34\u0E14\u0E41\u0E1A\u0E1A\u0E25\u0E30\u0E40\u0E2D\u0E35\u0E22\u0E14\")"))), React.createElement("div", {
+      className: "bqq-ft"
+    }, React.createElement("button", {
+      className: "btn",
+      onClick: () => setQOn(false)
+    }, React.createElement(Icon, {
+      name: "list",
+      size: 14
+    }), " \u0E40\u0E1B\u0E34\u0E14\u0E41\u0E1A\u0E1A\u0E25\u0E30\u0E40\u0E2D\u0E35\u0E22\u0E14"), React.createElement("span", {
+      style: {
+        flex: 1
+      }
+    }), quickNew && onSave && React.createElement("label", {
+      className: "bqq-use"
+    }, React.createElement("input", {
+      type: "checkbox",
+      checked: qUse,
+      onChange: e => setQUse(e.target.checked)
+    }), " \u0E43\u0E1A\u0E40\u0E2A\u0E19\u0E2D\u0E23\u0E32\u0E04\u0E32\u0E43\u0E0A\u0E49\u0E43\u0E1A\u0E19\u0E35\u0E49"), onSave && React.createElement("button", {
+      className: "btn btn-pri",
+      disabled: !(b.panels > 0),
+      onClick: () => guardRun(qSave)
+    }, React.createElement(Icon, {
+      name: "check",
+      size: 14,
+      color: "#fff"
+    }), " \u0E1A\u0E31\u0E19\u0E17\u0E36\u0E01 BOQ"))));
+  }
   return React.createElement("div", {
     className: "bq"
   }, React.createElement("style", null, BQ_CSS), React.createElement("div", {

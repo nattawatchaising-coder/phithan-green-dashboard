@@ -385,9 +385,19 @@ function useDesignVersions({ job, activeBoq, currentUser, patchActive, BoqEditor
       {(pick === "boq" || pick === "boq-new") && <BoqVerModal mode={pick === "boq-new" ? "new" : null} job={job} activeBoq={activeBoq} currentUser={currentUser} patchActive={patchActive} ro={ro} onClose={() => setPick(null)}
         onOpen={(v, b, vs) => { setPick(null); setEd({ ver: v, boq: b, vers: vs }); }} />}
       {ed && BoqEditor && (
-        <BoqEditor {...editorProps} job={edJob} ver={ed.ver} verName={(edVers.list.find((x) => x.id === ed.ver) || {}).name || "เวอร์ชัน " + ed.ver}
+        <BoqEditor {...editorProps} job={edJob} ver={ed.ver} verName={ed.quickNew ? "ใบใหม่ (BOQ ด่วน)" : (edVers.list.find((x) => x.id === ed.ver) || {}).name || "เวอร์ชัน " + ed.ver}
           p3Vers={p3.list} onClose={() => setEd(null)}
-          onSave={ro || !patchActive ? null : (b) => { dvBoqSave(jobId, ed.ver, b, edVers, patchActive); setEd(null); }} />
+          quick={!!ed.quick} quickNew={!!ed.quickNew}
+          onSave={ro || !patchActive ? null : (b, o) => {
+            /* BOQ ด่วนบนงานที่มีใบอยู่แล้ว = สร้างเวอร์ชันใหม่ตอนกดบันทึก (ปิดป๊อปทิ้ง = ไม่มีอะไรถูกเขียน)
+               ติ๊ก "ใบเสนอราคาใช้ใบนี้" = เป็นใบที่ใช้งานด้วย */
+            if (ed.quickNew) {
+              dvBoqCreate(jobId, ed.vers, { from: "", plan3d: (b && b.plan3d) || "1", name: "BOQ ด่วน" }, currentUser)
+                .then((r) => dvBoqSave(jobId, r.id, b, { real: true, active: o && o.use ? r.id : ed.vers.active }, patchActive))
+                .catch(() => window.alert("บันทึก BOQ ด่วนไม่สำเร็จ ลองใหม่อีกครั้ง"));
+            } else dvBoqSave(jobId, ed.ver, b, edVers, patchActive);
+            setEd(null);
+          }} />
       )}
       {p3Ver && P3Entry && <P3Entry job={job} ver={p3Ver} verName={dvP3Name(p3.list, p3Ver)} currentUser={currentUser} onClose={() => setP3Ver(null)} />}
     </React.Fragment>
@@ -398,8 +408,17 @@ function useDesignVersions({ job, activeBoq, currentUser, patchActive, BoqEditor
   const newP3 = () => setPick("p3-new");
   /* ยังไม่มี BOQ เลย = เปิดใบแรกตรง ๆ (ยังไม่ต้องมีเวอร์ชัน) */
   const newBoq = () => { if (!vers.list.length) setEd({ ver: "1", boq: null, vers }); else setPick("boq-new"); };
+  /* BOQ ด่วน — ป๊อปเดียวไว้ตีราคาเสนอ · แบบ 3D = แบบใหม่สุดที่ยังไม่มี BOQ ผูก (ไม่มีก็ต้นแบบ) */
+  const quickBoq = () => {
+    const linked = vers.list.map((x) => String((x.boq || {}).plan3d || "1"));
+    const free = p3.list.filter((v) => linked.indexOf(v.id) < 0);
+    const plan = free.length ? free[free.length - 1].id : "1";
+    const seed = plan !== "1" && window.BOQ ? Object.assign(window.BOQ.blankBOQ(job), { plan3d: plan }) : null;   // ใบเต็มจาก blankBOQ — mergeBOQ เห็นใบที่มีแค่ plan3d เป็นใบเก่า (conduitRule = null)
+    if (!vers.list.length) setEd({ ver: "1", boq: seed, vers, quick: true });
+    else setEd({ ver: "new", boq: seed, vers, quick: true, quickNew: true });
+  };
   return { boqSub, p3Sub, openBoq, openP3, ui, nBoq: vers.list.length, nP3: p3.list.length,
-    jobId, p3List: p3.list, boqVers: vers, boqLinks, openP3Ver, openBoqVer, newP3, newBoq,
+    jobId, p3List: p3.list, boqVers: vers, boqLinks, openP3Ver, openBoqVer, newP3, newBoq, quickBoq,
     manageP3: () => setPick("p3"), manageBoq: () => setPick("boq") };
 }
 
@@ -497,6 +516,11 @@ function DvVerCard({ kind, dvs, title, sub, icon, color, canNew }) {
           {sub && <span className="dvc-s">{sub}</span>}
         </span>
         {canNew && many && <button className="dvc-btn ghost" onClick={isP3 ? dvs.manageP3 : dvs.manageBoq} title="เปลี่ยนชื่อ · ลบ · เลือกใบที่ใช้งาน">จัดการ</button>}
+        {canNew && !isP3 && dvs.quickBoq && (
+          <button className="dvc-btn" onClick={dvs.quickBoq} title="ป๊อปเดียว: ขนาด · แผง · อินเวอร์เตอร์ · หลังคา · ค่าแรง ฿/W · กำไร % → ได้ราคาขายทันที">
+            <Icon name="bolt" size={13} color="var(--primary-dark)" /> BOQ ด่วน
+          </button>
+        )}
         {canNew && (
           <button className="dvc-btn" onClick={isP3 ? dvs.newP3 : dvs.newBoq}>
             <Icon name="plus" size={13} color="var(--primary-dark)" /> {isP3 ? "ทำแบบใหม่" : list.length ? "ทำใบใหม่" : "ถอด BOQ"}
