@@ -1570,14 +1570,14 @@ function OmTierEditor({ omStore }) {
    สามหัวข้อแรกเป็นตัวแก้เดิม (ตารางพิกัดสาย · อุปกรณ์ท่อ · ราคา O&M) ที่เหลือมาจาก BOQ.RULE_SECS/RULE_DEFS
    ตัวเลขที่เคยฝังอยู่ในสูตร — เพิ่มเงื่อนไขใหม่ = เพิ่มแถวใน RULE_DEFS แล้วอ่าน RULES.<key> ในสูตร หน้านี้ขึ้นช่องให้เอง */
 const BR_FIXED_SECS = [
-  { k: "amp", th: "พิกัดสาย วสท.", sub: "ตารางพิกัดกระแสตามฉนวน × วิธีเดินสาย × ขนาด" },
-  { k: "cond", th: "อุปกรณ์ท่อ / รางไฟ", sub: "กฎคิดจำนวนอุปกรณ์ IMC/uPVC · % เผื่อ" },
-  { k: "om", th: "ราคา O&M · ล้างแผง", sub: "ตารางราคาตามขนาดระบบ (kWp)" },
+  { k: "amp", grp: "ตาราง", th: "พิกัดสาย วสท.", sub: "ตารางพิกัดกระแสตามฉนวน × วิธีเดินสาย × ขนาด" },
+  { k: "cond", grp: "ตาราง", th: "อุปกรณ์ท่อ / รางไฟ", sub: "กฎคิดจำนวนอุปกรณ์ IMC/uPVC · % เผื่อ" },
+  { k: "om", grp: "ตาราง", th: "ราคา O&M · ล้างแผง", sub: "ตารางราคาตามขนาดระบบ (kWp)" },
 ];
 function BoqRulesPage({ ampStore, condStore, omStore, rulesStore, isMobile }) {
   const BOQ = window.BOQ || {};
   const secs = (BOQ.RULE_SECS || []).concat(BR_FIXED_SECS);
-  const [sec, setSec] = React.useState(() => { try { return localStorage.getItem("br_sec") || "board"; } catch (e) { return "board"; } });
+  const [sec, setSec] = React.useState(() => { try { return localStorage.getItem("br_sec") || "dcBoard"; } catch (e) { return "board"; } });
   const pick = (k) => { setSec(k); try { localStorage.setItem("br_sec", k); } catch (e) {} };
   const saved = (rulesStore && rulesStore.val) || {};
   const nSet = (k) => (BOQ.RULE_DEFS || []).filter((d) => d.sec === k && saved[d.key] != null && saved[d.key] !== "").length;
@@ -1588,7 +1588,7 @@ function BoqRulesPage({ ampStore, condStore, omStore, rulesStore, isMobile }) {
     : <BoqRuleSec sec={cur} rulesStore={rulesStore} />;
   if (isMobile) return (
     <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-      <Dropdown value={cur.k} onChange={pick} options={secs.map((x) => ({ value: x.k, label: x.th + (nSet(x.k) ? " · แก้แล้ว " + nSet(x.k) : "") }))} />
+      <Dropdown value={cur.k} onChange={pick} options={secs.map((x) => ({ value: x.k, group: x.grp, label: x.th + (nSet(x.k) ? " · แก้แล้ว " + nSet(x.k) : "") }))} />
       {body}
     </div>
   );
@@ -1599,7 +1599,7 @@ function BoqRulesPage({ ampStore, condStore, omStore, rulesStore, isMobile }) {
           const on = x.k === cur.k, n = nSet(x.k);
           return (
             <React.Fragment key={x.k}>
-              {i === (BOQ.RULE_SECS || []).length && <div style={{ fontSize: 10.5, fontWeight: 700, color: "var(--text-3)", padding: "10px 10px 4px" }}>ตาราง</div>}
+              {x.grp && (i === 0 || secs[i - 1].grp !== x.grp) && <div style={{ fontSize: 10.5, fontWeight: 700, color: "var(--text-3)", padding: (i ? "10px" : "4px") + " 10px 4px" }}>{x.grp}</div>}
               <button onClick={() => pick(x.k)}
                 style={{ textAlign: "left", border: "none", cursor: "pointer", fontFamily: "inherit", padding: "9px 11px", borderRadius: "var(--r-tile)",
                   background: on ? "var(--primary-soft)" : "transparent", color: on ? "var(--primary-dark)" : "var(--text-1)" }}>
@@ -1642,7 +1642,7 @@ function BoqRuleSec({ sec, rulesStore }) {
   const resetAll = () => window.askConfirm({ title: "คืนค่าตั้งต้น · " + sec.th + "?", body: "ค่าที่ตั้งไว้ " + nEdited + " ช่อง จะกลับไปใช้ค่าตั้งต้นของระบบ", ok: "คืนค่าตั้งต้น" })
     .then((ok) => { if (ok) defs.forEach((d) => { if (str(saved, d.key) !== "") rulesStore.setCell(d.key, ""); }); });
   /* ค่าที่กรอกแล้วระบบไม่รับ (ติดลบ เกินช่วง ไม่ใช่ตัวเลข) จะถูกใช้เป็นค่าตั้งต้น — บอกไว้ตรงช่องเลย */
-  const bad = (d) => { const v = str(view, d.key); if (!v || !BOQ.ruleVal) return false; return BOQ.ruleVal(d, v) === d.def && v.replace(/s/g, "") !== txt(d).replace(/s/g, ""); };
+  const bad = (d) => { const v = str(view, d.key); if (!v || !BOQ.ruleVal) return false; return BOQ.ruleVal(d, v) === d.def && v.replace(/\s/g, "") !== txt(d).replace(/\s/g, ""); };
   const btn = (on) => ({ padding: "7px 14px", borderRadius: "var(--r-tile)", fontFamily: "inherit", fontSize: 12.5, fontWeight: 700, cursor: "pointer",
     border: "none", background: on ? "var(--primary)" : "var(--surface2)", color: on ? "#fff" : "var(--text-2)", boxShadow: on ? "var(--shadow-btn)" : "var(--shadow-sm)" });
   const fld = (d) => ({ width: "100%", boxSizing: "border-box", border: "none", outline: "none", fontFamily: "inherit", fontSize: 13, padding: "8px 10px",
@@ -1672,8 +1672,11 @@ function BoqRuleSec({ sec, rulesStore }) {
         {defs.map((d, i) => {
           const v = str(view, d.key), own = str(saved, d.key) !== "";
           const wide = !!d.type;
+          const head = d.g && (i === 0 || defs[i - 1].g !== d.g);
           return (
-            <div key={d.key} style={{ display: "grid", gridTemplateColumns: wide ? "minmax(0,1fr)" : "minmax(0,1fr) 150px 52px", gap: wide ? 6 : 10,
+            <React.Fragment key={d.key}>
+            {head && <div style={{ padding: "12px 0 4px", borderTop: i ? "1px solid var(--divider)" : "none", fontSize: 11.5, fontWeight: 700, color: "var(--primary-dark)" }}>{d.g}</div>}
+            <div style={{ display: "grid", gridTemplateColumns: wide ? "minmax(0,1fr)" : "minmax(0,1fr) 150px 52px", gap: wide ? 6 : 10,
               alignItems: "center", padding: "10px 0", borderTop: "1px solid var(--divider)" }}>
               <div style={{ minWidth: 0 }}>
                 <div style={{ fontSize: 13, fontWeight: 600, color: "var(--text-1)" }}>{d.th}{wide && d.unit ? " (" + d.unit + ")" : ""}
@@ -1691,11 +1694,12 @@ function BoqRuleSec({ sec, rulesStore }) {
               )}
               {!wide && <span style={{ fontSize: 11.5, color: "var(--text-3)" }}>{d.unit}</span>}
             </div>
+            </React.Fragment>
           );
         })}
       </div>
       <div style={{ fontSize: 11.5, color: "var(--text-3)", lineHeight: 1.6 }}>
-        รายการที่ระบบคิดให้อัตโนมัติ (ตู้ไฟ · สายไฟ · ของจากแบบ 3D) คิดใหม่ตามค่านี้เมื่อเปิดใบ BOQ ·
+        รายการที่ระบบคิดให้อัตโนมัติ (ตู้ไฟ · สายไฟ · รางไฟ · ทางเดิน · ของจากแบบ 3D) คิดใหม่ตามค่านี้เมื่อเปิดใบ BOQ ·
         ค่าขออนุญาต/วิศวกร และ % เผื่อ/กำไร ที่ใบกรอกไว้เองแล้วไม่ขยับตาม
       </div>
     </div>

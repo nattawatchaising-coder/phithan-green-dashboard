@@ -4097,14 +4097,17 @@ function OmTierEditor({
 }
 const BR_FIXED_SECS = [{
   k: "amp",
+  grp: "ตาราง",
   th: "พิกัดสาย วสท.",
   sub: "ตารางพิกัดกระแสตามฉนวน × วิธีเดินสาย × ขนาด"
 }, {
   k: "cond",
+  grp: "ตาราง",
   th: "อุปกรณ์ท่อ / รางไฟ",
   sub: "กฎคิดจำนวนอุปกรณ์ IMC/uPVC · % เผื่อ"
 }, {
   k: "om",
+  grp: "ตาราง",
   th: "ราคา O&M · ล้างแผง",
   sub: "ตารางราคาตามขนาดระบบ (kWp)"
 }];
@@ -4119,7 +4122,7 @@ function BoqRulesPage({
   const secs = (BOQ.RULE_SECS || []).concat(BR_FIXED_SECS);
   const [sec, setSec] = React.useState(() => {
     try {
-      return localStorage.getItem("br_sec") || "board";
+      return localStorage.getItem("br_sec") || "dcBoard";
     } catch (e) {
       return "board";
     }
@@ -4154,6 +4157,7 @@ function BoqRulesPage({
     onChange: pick,
     options: secs.map(x => ({
       value: x.k,
+      group: x.grp,
       label: x.th + (nSet(x.k) ? " · แก้แล้ว " + nSet(x.k) : "")
     }))
   }), body);
@@ -4181,14 +4185,14 @@ function BoqRulesPage({
       n = nSet(x.k);
     return React.createElement(React.Fragment, {
       key: x.k
-    }, i === (BOQ.RULE_SECS || []).length && React.createElement("div", {
+    }, x.grp && (i === 0 || secs[i - 1].grp !== x.grp) && React.createElement("div", {
       style: {
         fontSize: 10.5,
         fontWeight: 700,
         color: "var(--text-3)",
-        padding: "10px 10px 4px"
+        padding: (i ? "10px" : "4px") + " 10px 4px"
       }
-    }, "\u0E15\u0E32\u0E23\u0E32\u0E07"), React.createElement("button", {
+    }, x.grp), React.createElement("button", {
       onClick: () => pick(x.k),
       style: {
         textAlign: "left",
@@ -4290,7 +4294,7 @@ function BoqRuleSec({
   const bad = d => {
     const v = str(view, d.key);
     if (!v || !BOQ.ruleVal) return false;
-    return BOQ.ruleVal(d, v) === d.def && v.replace(/s/g, "") !== txt(d).replace(/s/g, "");
+    return BOQ.ruleVal(d, v) === d.def && v.replace(/\s/g, "") !== txt(d).replace(/\s/g, "");
   };
   const btn = on => ({
     padding: "7px 14px",
@@ -4380,8 +4384,18 @@ function BoqRuleSec({
     const v = str(view, d.key),
       own = str(saved, d.key) !== "";
     const wide = !!d.type;
-    return React.createElement("div", {
-      key: d.key,
+    const head = d.g && (i === 0 || defs[i - 1].g !== d.g);
+    return React.createElement(React.Fragment, {
+      key: d.key
+    }, head && React.createElement("div", {
+      style: {
+        padding: "12px 0 4px",
+        borderTop: i ? "1px solid var(--divider)" : "none",
+        fontSize: 11.5,
+        fontWeight: 700,
+        color: "var(--primary-dark)"
+      }
+    }, d.g), React.createElement("div", {
       style: {
         display: "grid",
         gridTemplateColumns: wide ? "minmax(0,1fr)" : "minmax(0,1fr) 150px 52px",
@@ -4436,14 +4450,14 @@ function BoqRuleSec({
         fontSize: 11.5,
         color: "var(--text-3)"
       }
-    }, d.unit));
+    }, d.unit)));
   })), React.createElement("div", {
     style: {
       fontSize: 11.5,
       color: "var(--text-3)",
       lineHeight: 1.6
     }
-  }, "\u0E23\u0E32\u0E22\u0E01\u0E32\u0E23\u0E17\u0E35\u0E48\u0E23\u0E30\u0E1A\u0E1A\u0E04\u0E34\u0E14\u0E43\u0E2B\u0E49\u0E2D\u0E31\u0E15\u0E42\u0E19\u0E21\u0E31\u0E15\u0E34 (\u0E15\u0E39\u0E49\u0E44\u0E1F \xB7 \u0E2A\u0E32\u0E22\u0E44\u0E1F \xB7 \u0E02\u0E2D\u0E07\u0E08\u0E32\u0E01\u0E41\u0E1A\u0E1A 3D) \u0E04\u0E34\u0E14\u0E43\u0E2B\u0E21\u0E48\u0E15\u0E32\u0E21\u0E04\u0E48\u0E32\u0E19\u0E35\u0E49\u0E40\u0E21\u0E37\u0E48\u0E2D\u0E40\u0E1B\u0E34\u0E14\u0E43\u0E1A BOQ \xB7 \u0E04\u0E48\u0E32\u0E02\u0E2D\u0E2D\u0E19\u0E38\u0E0D\u0E32\u0E15/\u0E27\u0E34\u0E28\u0E27\u0E01\u0E23 \u0E41\u0E25\u0E30 % \u0E40\u0E1C\u0E37\u0E48\u0E2D/\u0E01\u0E33\u0E44\u0E23 \u0E17\u0E35\u0E48\u0E43\u0E1A\u0E01\u0E23\u0E2D\u0E01\u0E44\u0E27\u0E49\u0E40\u0E2D\u0E07\u0E41\u0E25\u0E49\u0E27\u0E44\u0E21\u0E48\u0E02\u0E22\u0E31\u0E1A\u0E15\u0E32\u0E21"));
+  }, "\u0E23\u0E32\u0E22\u0E01\u0E32\u0E23\u0E17\u0E35\u0E48\u0E23\u0E30\u0E1A\u0E1A\u0E04\u0E34\u0E14\u0E43\u0E2B\u0E49\u0E2D\u0E31\u0E15\u0E42\u0E19\u0E21\u0E31\u0E15\u0E34 (\u0E15\u0E39\u0E49\u0E44\u0E1F \xB7 \u0E2A\u0E32\u0E22\u0E44\u0E1F \xB7 \u0E23\u0E32\u0E07\u0E44\u0E1F \xB7 \u0E17\u0E32\u0E07\u0E40\u0E14\u0E34\u0E19 \xB7 \u0E02\u0E2D\u0E07\u0E08\u0E32\u0E01\u0E41\u0E1A\u0E1A 3D) \u0E04\u0E34\u0E14\u0E43\u0E2B\u0E21\u0E48\u0E15\u0E32\u0E21\u0E04\u0E48\u0E32\u0E19\u0E35\u0E49\u0E40\u0E21\u0E37\u0E48\u0E2D\u0E40\u0E1B\u0E34\u0E14\u0E43\u0E1A BOQ \xB7 \u0E04\u0E48\u0E32\u0E02\u0E2D\u0E2D\u0E19\u0E38\u0E0D\u0E32\u0E15/\u0E27\u0E34\u0E28\u0E27\u0E01\u0E23 \u0E41\u0E25\u0E30 % \u0E40\u0E1C\u0E37\u0E48\u0E2D/\u0E01\u0E33\u0E44\u0E23 \u0E17\u0E35\u0E48\u0E43\u0E1A\u0E01\u0E23\u0E2D\u0E01\u0E44\u0E27\u0E49\u0E40\u0E2D\u0E07\u0E41\u0E25\u0E49\u0E27\u0E44\u0E21\u0E48\u0E02\u0E22\u0E31\u0E1A\u0E15\u0E32\u0E21"));
 }
 function AmpacityEditor({
   ampStore

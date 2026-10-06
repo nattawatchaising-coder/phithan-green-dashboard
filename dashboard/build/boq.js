@@ -1551,7 +1551,7 @@ function BOQEditor({
     way: [],
     tray: [],
     perf: [],
-    spare: 10,
+    spare: window.BOQ.RULES.traySpare,
     extra: []
   };
   const TRAY_POOLS = window.BOQ.TRAY_KIND_KEYS.map(k => [k, window.BOQ.TRAY_KINDS[k].sizes]);
@@ -1663,9 +1663,9 @@ function BOQEditor({
     walkway: [],
     walkwayThk: 35,
     guardrail: [],
-    ladderSpare: 5,
-    walkwaySpare: 10,
-    guardrailSpare: 5,
+    ladderSpare: window.BOQ.RULES.ladderSpare,
+    walkwaySpare: window.BOQ.RULES.walkSpare,
+    guardrailSpare: window.BOQ.RULES.railSpare,
     ladderExtra: [],
     walkwayExtra: [],
     guardrailExtra: [],
@@ -1763,7 +1763,7 @@ function BOQEditor({
   const tray3dHas = TRAY_KEYS3.find(k => (tw[k] || []).some(x => x.p3));
   const tray3dW = (plan3d && plan3d.obstacles || []).filter(o => o && o.p3sType === "tray").map(o => +o.d || 0.1);
   const [tray3dOpt, setTray3dOpt] = React.useState(null);
-  const tray3dKind = tray3dOpt && tray3dOpt.kind || tray3dHas || (tray3dW.length && tray3dW.every(w => w >= 0.149) ? "perf" : "way");
+  const tray3dKind = tray3dOpt && tray3dOpt.kind || tray3dHas || (tray3dW.length && tray3dW.every(w => w >= window.BOQ.RULES.trayPerfW / 100 - 0.001) ? "perf" : "way");
   const tray3dHdg = tray3dOpt ? !!tray3dOpt.hdg : tray3dHas ? (tw[tray3dHas] || []).some(x => x.p3 && x.hdg) : true;
   const tray3d = React.useMemo(() => window.BOQ.trayFromPlan ? window.BOQ.trayFromPlan(plan3d, tray3dKind, tray3dHdg) : null, [plan3d, tray3dKind, tray3dHdg]);
   const tray3dKey = (rows, fits) => JSON.stringify([rows.map(r => [r.k, r.size, +r.length, !!r.hdg, !!r.rail]).sort(), fits.map(x => [window.BOQ.matKey(x.name), +x.qty]).sort()]);
@@ -3110,8 +3110,8 @@ function BOQEditor({
     });
   }, [raceKey]);
   const DCF_A = RU.dcFuseA;
-  const DCF_V = [1000, 1500],
-    SPD_V = [800, 1000, 1500];
+  const DCF_V = RU.dcFuseV,
+    SPD_V = RU.dcSpdV;
   const DCMCB_A = RU.dcMcbA;
   const r1 = x => Math.round(x * 10) / 10;
   const cabIz = c => {
@@ -3324,7 +3324,7 @@ function BOQEditor({
         });
       }
       if (bOn("pm") && mainAt > 0) {
-        const CT_R = [100, 150, 200, 250, 300, 400, 500, 600, 800, 1000, 1200, 1250, 1500, 1600, 2000, 2500, 3000, 4000];
+        const CT_R = RU.ctR;
         const ct = CT_R.find(x => x >= mainAt) || CT_R[CT_R.length - 1];
         out.ac.push({
           name: "POWER METER SCHNEIDER PM2230",
@@ -3344,7 +3344,7 @@ function BOQEditor({
       const gfSep = bOn("gf") && mainAt < GF_IN_AT,
         pmOn = bOn("pm");
       if ((gfSep || pmOn) && mainAt > 0) out.ac.push({
-        name: "MCB " + pole + " 6A",
+        name: "MCB " + pole + " " + RU.pmMcb + "A",
         qty: 1,
         unit: "ตัว",
         auto: 1,
@@ -9546,7 +9546,7 @@ function BOQEditor({
     blank: {
       h: ""
     },
-    spare: st.ladderSpare != null ? st.ladderSpare : 5,
+    spare: st.ladderSpare != null ? st.ladderSpare : window.BOQ.RULES.ladderSpare,
     onSpare: v => setStructVal("ladderSpare", +v),
     extraItems: st.ladderExtra || [],
     onExtraAdd: () => addStructExtra("ladder"),
@@ -9591,7 +9591,7 @@ function BOQEditor({
         label: "35mm."
       }]
     }))),
-    spare: st.walkwaySpare != null ? st.walkwaySpare : 10,
+    spare: st.walkwaySpare != null ? st.walkwaySpare : window.BOQ.RULES.walkSpare,
     onSpare: v => setStructVal("walkwaySpare", +v),
     extraItems: st.walkwayExtra || [],
     onExtraAdd: () => addStructExtra("walkway"),
@@ -9613,7 +9613,7 @@ function BOQEditor({
       len: "",
       corners: ""
     },
-    spare: st.guardrailSpare != null ? st.guardrailSpare : 5,
+    spare: st.guardrailSpare != null ? st.guardrailSpare : window.BOQ.RULES.railSpare,
     onSpare: v => setStructVal("guardrailSpare", +v),
     extraItems: st.guardrailExtra || [],
     onExtraAdd: () => addStructExtra("guardrail"),

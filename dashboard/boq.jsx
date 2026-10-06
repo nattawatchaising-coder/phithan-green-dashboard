@@ -760,7 +760,7 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock, ver, verName, p3Vers
     const m = cab && typeof cab === "object" ? +cab.minA || 0 : 0;   // ใช้สายตามเบรกเกอร์ในตู้ AC (กดเลือกเอง)
     return r && m > r ? m : r;
   };
-  // กระแสใช้งานจริง (ใช้คิดแรงดันตก) — สายอินเวอร์เตอร์/เมนตู้ AC = กระแสออกจริง · จุดอื่น = กระแสที่ต้องรับ ÷ 1.25
+  // กระแสใช้งานจริง (ใช้คิดแรงดันตก) — สายอินเวอร์เตอร์/เมนตู้ AC = กระแสออกจริง · จุดอื่น = กระแสที่ต้องรับ ÷ WK
   const runAmpFor = (cab) => {
     const row = cab && typeof cab === "object" ? cab : null;
     const n = ((row ? row.name : cab) || "").toUpperCase();
@@ -840,7 +840,7 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock, ver, verName, p3Vers
   const condBad = condPools.reduce((n, [k, sizes]) =>
     n + (cond[k] || []).filter((x) => (x.cables || []).length && !window.BOQ.conduitCheck(x.size, x.cables, sizes).ok).length, 0);
   // ── รางไฟ (WIREWAY / CABLE TRAY) — โครงสร้างข้อมูลเหมือนท่อร้อยสาย: {size, length} ต่อแถว ──
-  const TRAY_DEF = { way: [], tray: [], perf: [], spare: 10, extra: [] };
+  const TRAY_DEF = { way: [], tray: [], perf: [], spare: window.BOQ.RULES.traySpare, extra: [] };
   const TRAY_POOLS = window.BOQ.TRAY_KIND_KEYS.map((k) => [k, window.BOQ.TRAY_KINDS[k].sizes]);
   /* trayNorm แปลงชื่อรางรุ่นเก่า ("Cable Tray บันได") ให้ตรงรายการใหม่ ตั้งแต่ตอนอ่านขึ้นมา
      ไม่งั้นดรอปดาวน์ขึ้นเป็นของนอกรายการ และตารางตรวจสายหาขนาดรางไม่เจอ */
@@ -891,7 +891,7 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock, ver, verName, p3Vers
   const setLump = (k, v) => setB((p) => Object.assign({}, p, { laborLump: Object.assign({}, LUMP_DEF, p.laborLump, { [k]: v }) }));
 
   // งานเพิ่มเติม (Input) — โครงสร้างบนหลังคา
-  const STRUCT_DEF = { ladder: [], walkway: [], walkwayThk: 35, guardrail: [], ladderSpare: 5, walkwaySpare: 10, guardrailSpare: 5, ladderExtra: [], walkwayExtra: [], guardrailExtra: [], steel: {} };
+  const STRUCT_DEF = { ladder: [], walkway: [], walkwayThk: 35, guardrail: [], ladderSpare: window.BOQ.RULES.ladderSpare, walkwaySpare: window.BOQ.RULES.walkSpare, guardrailSpare: window.BOQ.RULES.railSpare, ladderExtra: [], walkwayExtra: [], guardrailExtra: [], steel: {} };
   /* ขนาด/ความหนาเหล็ก — ใช้ร่วมกันทั้ง บันไดลิง · ราวกันตก · โครงรองรับอุปกรณ์
      ว่าง = ใช้ค่าตั้งต้น (ได้ชื่อเดิม ของในคลังยังผูกราคาได้เหมือนเดิม) */
   const setSteel = (kind, k, v) => setB((p) => {
@@ -936,7 +936,7 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock, ver, verName, p3Vers
   const tray3dHas = TRAY_KEYS3.find((k) => (tw[k] || []).some((x) => x.p3));
   const tray3dW = ((plan3d && plan3d.obstacles) || []).filter((o) => o && o.p3sType === "tray").map((o) => +o.d || 0.1);
   const [tray3dOpt, setTray3dOpt] = React.useState(null);
-  const tray3dKind = (tray3dOpt && tray3dOpt.kind) || tray3dHas || (tray3dW.length && tray3dW.every((w) => w >= 0.149) ? "perf" : "way");
+  const tray3dKind = (tray3dOpt && tray3dOpt.kind) || tray3dHas || (tray3dW.length && tray3dW.every((w) => w >= window.BOQ.RULES.trayPerfW / 100 - 0.001) ? "perf" : "way");
   const tray3dHdg = tray3dOpt ? !!tray3dOpt.hdg : tray3dHas ? (tw[tray3dHas] || []).some((x) => x.p3 && x.hdg) : true;
   const tray3d = React.useMemo(() => (window.BOQ.trayFromPlan ? window.BOQ.trayFromPlan(plan3d, tray3dKind, tray3dHdg) : null), [plan3d, tray3dKind, tray3dHdg]);
   const tray3dKey = (rows, fits) => JSON.stringify([rows.map((r) => [r.k, r.size, +r.length, !!r.hdg, !!r.rail]).sort(), fits.map((x) => [window.BOQ.matKey(x.name), +x.qty]).sort()]);
@@ -1832,7 +1832,7 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock, ver, verName, p3Vers
      ฝั่ง DC ต่อสตริง: ฟิวส์ gPV ขั้ว + และ − (IEC 62548: 1.5·Isc ≤ In ≤ 2.4·Isc) · SPD DC Type 2 สตริงละ 1 ตัว
        แรงดันพิกัด ≥ Voc สตริง × 1.1 (เผื่อแรงดันขึ้นตอนแผงเย็น) */
   const DCF_A = RU.dcFuseA;
-  const DCF_V = [1000, 1500], SPD_V = [800, 1000, 1500];
+  const DCF_V = RU.dcFuseV, SPD_V = RU.dcSpdV;
   const DCMCB_A = RU.dcMcbA;   // DC MCB 2P 800VDC (งานบ้าน — ตัดวงจรสตริงหลังฟิวส์)   // แรงดันพิกัดที่มีขายจริง (ฟิวส์ gPV / SPD DC)
   const r1 = (x) => Math.round(x * 10) / 10;
   const cabIz = (c) => {
@@ -1938,14 +1938,14 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock, ver, verName, p3Vers
       }
       /* Power Meter PM2230 — CT ตามขนาดเมน (อัตราส่วนมาตรฐานแรกที่ ≥ In ของ MCCB เมน /5A) เฟสละ 1 ตัว */
       if (bOn("pm") && mainAt > 0) {
-        const CT_R = [100, 150, 200, 250, 300, 400, 500, 600, 800, 1000, 1200, 1250, 1500, 1600, 2000, 2500, 3000, 4000];
+        const CT_R = RU.ctR;
         const ct = CT_R.find((x) => x >= mainAt) || CT_R[CT_R.length - 1];
         out.ac.push({ name: "POWER METER SCHNEIDER PM2230", qty: 1, unit: "ตัว", auto: 1, why: tag + "วัดพลังงาน/กระแส/แรงดันที่เมนตู้" });
         out.ac.push({ name: "CT " + ct + "/5A", qty: ph, unit: "ตัว", auto: 1, why: tag + "เฟสละ 1 ตัว · อัตราส่วน ≥ MCCB เมน " + mainAt + " AT" });
       }
       const gfSep = bOn("gf") && mainAt < GF_IN_AT, pmOn = bOn("pm");
       if ((gfSep || pmOn) && mainAt > 0)
-        out.ac.push({ name: "MCB " + pole + " 6A", qty: 1, unit: "ตัว", auto: 1,
+        out.ac.push({ name: "MCB " + pole + " " + RU.pmMcb + "A", qty: 1, unit: "ตัว", auto: 1,
           why: tag + "กันสายวัดแรงดัน" + (pmOn ? " PM2230" : "") + (gfSep ? (pmOn ? " และ" : "") + "ไฟเลี้ยง GFR / Shunt trip" : "") });
     });
     // ── DC ──
@@ -4575,7 +4575,7 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock, ver, verName, p3Vers
                 {!isHome && <SteelSpecBlock st={st} setSteel={setSteel} />}
                 {!isHome && StructBlock({ kind: "ladder", label: "LADDER (บันไดลิง)", color: "#0D9488", addLabel: "เพิ่มจุด",
                   cols: [{ k: "h", ph: "ความสูง (m)" }], blank: { h: "" },
-                  spare: st.ladderSpare != null ? st.ladderSpare : 5, onSpare: (v) => setStructVal("ladderSpare", +v),
+                  spare: st.ladderSpare != null ? st.ladderSpare : window.BOQ.RULES.ladderSpare, onSpare: (v) => setStructVal("ladderSpare", +v),
                   extraItems: st.ladderExtra || [],
                   onExtraAdd: () => addStructExtra("ladder"),
                   onExtraChange: (i, k, v) => setStructExtra("ladder", i, k, v),
@@ -4586,14 +4586,14 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock, ver, verName, p3Vers
                     <span style={{ fontSize: 10.5, fontWeight: 700, color: "var(--text-3)" }}>END CLAMP</span>
                     <span style={{ width: 96 }}><Dropdown value={st.walkwayThk || 35} onChange={(v) => setStructVal("walkwayThk", +v)} options={[{ value: 30, label: "30mm." }, { value: 35, label: "35mm." }]} /></span>
                   </span>,
-                  spare: st.walkwaySpare != null ? st.walkwaySpare : 10, onSpare: (v) => setStructVal("walkwaySpare", +v),
+                  spare: st.walkwaySpare != null ? st.walkwaySpare : window.BOQ.RULES.walkSpare, onSpare: (v) => setStructVal("walkwaySpare", +v),
                   extraItems: st.walkwayExtra || [],
                   onExtraAdd: () => addStructExtra("walkway"),
                   onExtraChange: (i, k, v) => setStructExtra("walkway", i, k, v),
                   onExtraDel: (i) => delStructExtra("walkway", i) })}
                 {!isHome && StructBlock({ kind: "guardrail", label: "GUARD RAIL", color: "#DB2777", addLabel: "เพิ่มจุด",
                   cols: [{ k: "len", ph: "ความยาว layout (m)" }, { k: "corners", ph: "จำนวนมุม" }], blank: { len: "", corners: "" },
-                  spare: st.guardrailSpare != null ? st.guardrailSpare : 5, onSpare: (v) => setStructVal("guardrailSpare", +v),
+                  spare: st.guardrailSpare != null ? st.guardrailSpare : window.BOQ.RULES.railSpare, onSpare: (v) => setStructVal("guardrailSpare", +v),
                   extraItems: st.guardrailExtra || [],
                   onExtraAdd: () => addStructExtra("guardrail"),
                   onExtraChange: (i, k, v) => setStructExtra("guardrail", i, k, v),

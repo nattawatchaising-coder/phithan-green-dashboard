@@ -8,35 +8,72 @@
      เดิมตัวเลขพวกนี้ฝังอยู่ในสูตร แก้ได้แค่คนเขียนโค้ด · เก็บที่ RTDB boqRules/<key> = ข้อความ (ไม่มีคีย์ = ค่าตั้งต้นด้านล่าง)
      RULES เป็นอ็อบเจกต์ตัวเดิมตลอด setRules แทนค่าข้างใน — สูตรอ่าน RULES.x ตอนคำนวณ จึงเห็นค่าใหม่เสมอ
      type: num (ตัวเลข) · nums (รายการตัวเลขคั่นจุลภาค เรียงน้อยไปมาก) · words (รายการคำคั่นจุลภาค) */
+  /* grp = หัวกลุ่มในแถบซ้าย · แถว RULE_DEFS ที่มี g = หัวย่อยในหน้าหัวข้อ */
   const RULE_SECS = [
-    { k: "board", th: "ตู้ไฟ · งานโครงการ", sub: "เบรกเกอร์ MCCB/ACB · Ground Fault · ฟิวส์กันหลัง SPD · ฟิวส์ DC" },
-    { k: "home", th: "ตู้ไฟ · งานบ้าน", sub: "RCBO · DC MCB · MCB กันหลัง SPD" },
-    { k: "cable", th: "สายไฟ", sub: "ตัวคูณเลือกขนาดสาย · เผื่อความยาวสาย PV" },
-    { k: "permit", th: "ค่าขออนุญาต & วิศวกร", sub: "ค่าขนานไฟ MEA/PEA · เงื่อนไข กกพ./พค.2/อ.1 · ค่าวิศวกรตามขนาด" },
-    { k: "price", th: "เผื่อ · กำไร · O&M", sub: "Accessories % · กำไรเริ่มต้น · VAT · ปีที่แถม O&M" },
-    { k: "plan", th: "ของจากแบบ 3D", sub: "ท่อ PPR · มุมเลี้ยวของท่อ/รางไฟ" },
+    { k: "dcBoard", grp: "ฝั่ง DC", th: "ตู้ไฟ DC", sub: "ฟิวส์ gPV · DC SPD · แรงดันพิกัด · DC MCB งานบ้าน" },
+    { k: "dcWire", grp: "ฝั่ง DC", th: "สาย DC (PV)", sub: "ตัวคูณเลือกขนาดสาย PV · เผื่อความยาว · แรงดันตก DC" },
+    { k: "acBoard", grp: "ฝั่ง AC", th: "ตู้ไฟ AC", sub: "MCCB/ACB · Ground Fault · ฟิวส์กันหลัง SPD · CT · RCBO งานบ้าน" },
+    { k: "acWire", grp: "ฝั่ง AC", th: "สาย AC", sub: "ตัวคูณเลือกขนาดสาย · แรงดันตก AC / รวม" },
+    { k: "tray", grp: "งานติดตั้ง", th: "รางไฟ", sub: "ขาล็อก · ตัวยึด · Rail รอง · ข้อต่อ · % บรรจุสาย · รางจากแบบ 3D" },
+    { k: "walk", grp: "งานติดตั้ง", th: "ทางเดิน · บันได · ราวกันตก", sub: "แผ่น WALKWAY · END CLAMP · RAIL · % เผื่อเริ่มต้น" },
+    { k: "plan", grp: "งานติดตั้ง", th: "ท่อน้ำ PPR", sub: "ความยาวเส้น · เผื่อ · ก๊อก · แคลมป์ · มุมเลี้ยว" },
+    { k: "permit", grp: "ค่าบริการ & ราคา", th: "ค่าขออนุญาต & วิศวกร", sub: "ค่าขนานไฟ MEA/PEA · เงื่อนไข กกพ./พค.2/อ.1 · ค่าวิศวกรตามขนาด" },
+    { k: "price", grp: "ค่าบริการ & ราคา", th: "เผื่อ · กำไร · O&M", sub: "Accessories % · กำไรเริ่มต้น · VAT · ปีที่แถม O&M" },
   ];
   const RULE_DEFS = [
-    { sec: "board", key: "mccbIrK", th: "MCCB ตั้งกระแส Ir = กระแสออก ×", unit: "เท่า", def: 1.05, min: 1 },
-    { sec: "board", key: "mccbStep", th: "ปัด Ir ขึ้นทีละ", unit: "A", def: 5, min: 1 },
-    { sec: "board", key: "mccbAt", th: "ขนาดเฟรม MCCB ที่มีขาย", unit: "AT", type: "nums", def: [16, 20, 25, 32, 40, 50, 63, 80, 100, 125, 160, 200, 225, 250, 320, 400, 500, 630, 800, 1000, 1250] },
-    { sec: "board", key: "acbAt", th: "ขนาด ACB (ใช้เมื่อเกิน MCCB ตัวใหญ่สุด)", unit: "AT", type: "nums", def: [1600, 2000, 2500, 3200, 4000] },
-    { sec: "board", key: "gfLsigAt", th: "เมนตั้งแต่กี่ AT ใช้ trip unit LSIG แทน GFR + ZCT + Shunt trip", unit: "AT", def: 1000, min: 1 },
-    { sec: "board", key: "nhT2", th: "ฟิวส์ NH00 กันหลัง AC SPD Type 2", unit: "A", def: 32, min: 1 },
-    { sec: "board", key: "nhT12", th: "ฟิวส์ NH00 กันหลัง AC SPD Type 1+2 (เมนไม่เกินค่านี้ไม่ต้องมีฟิวส์)", unit: "A", def: 125, min: 1 },
-    { sec: "board", key: "dcFuseK", th: "ฟิวส์ DC gPV = Isc ×", unit: "เท่า", def: 1.5, min: 1 },
-    { sec: "board", key: "dcFuseMaxK", th: "ฟิวส์ DC ไม่เกิน Isc × (เกินขึ้นเตือน)", unit: "เท่า", def: 2.4, min: 1 },
-    { sec: "board", key: "dcFuseA", th: "ขนาดฟิวส์ DC ที่มีขาย", unit: "A", type: "nums", def: [10, 12, 15, 16, 20, 25, 30, 32] },
-    { sec: "board", key: "vocK", th: "แรงดันพิกัดฟิวส์/SPD ≥ Voc สตริง ×", unit: "เท่า", def: 1.1, min: 1 },
-    { sec: "home", key: "fixK", th: "RCBO / MCB (ปรับตั้งไม่ได้) เลือกขนาดแรกที่ ≥ กระแส ×", unit: "เท่า", def: 1.25, min: 1 },
-    { sec: "home", key: "rcbo2P", th: "RCBO 2P (1 เฟส) ที่มีขาย — เกินตัวใหญ่สุดใช้ MCCB", unit: "A", type: "nums", def: [16, 20, 25, 32, 50] },
-    { sec: "home", key: "rcbo3P", th: "RCBO 3P+N (3 เฟส) ที่มีขาย — เกินตัวใหญ่สุดใช้ MCCB", unit: "A", type: "nums", def: [16, 20, 25, 32, 50, 63] },
-    { sec: "home", key: "dcMcbK", th: "DC MCB ต่อสตริง = Isc ×", unit: "เท่า", def: 1.25, min: 1 },
-    { sec: "home", key: "dcMcbA", th: "ขนาด DC MCB ที่มีขาย", unit: "A", type: "nums", def: [10, 16, 20, 25, 32, 40, 50, 63] },
-    { sec: "home", key: "homeSpdMcb", th: "MCB กันหลัง AC SPD", unit: "A", def: 32, min: 1 },
-    { sec: "cable", key: "wireK", th: "สาย AC เลือกขนาดจากกระแส × (โหลดต่อเนื่อง)", unit: "เท่า", def: 1.25, min: 1 },
-    { sec: "cable", key: "pvWireK", th: "สาย PV DC เลือกขนาดจาก Isc ×", unit: "เท่า", def: 1.25, min: 1 },
-    { sec: "cable", key: "pvSpare", th: "สาย PV เผื่อความยาว (ระยะไกลสุด × สตริง × ค่านี้)", unit: "เท่า", def: 1.2, min: 1 },
+    /* ── ตู้ไฟ DC ── */
+    { sec: "dcBoard", g: "ทุกงาน", key: "dcFuseK", th: "ฟิวส์ DC gPV = Isc ×", unit: "เท่า", def: 1.5, min: 1 },
+    { sec: "dcBoard", g: "ทุกงาน", key: "dcFuseMaxK", th: "ฟิวส์ DC ไม่เกิน Isc × (เกินขึ้นเตือน)", unit: "เท่า", def: 2.4, min: 1 },
+    { sec: "dcBoard", g: "ทุกงาน", key: "dcFuseA", th: "ขนาดฟิวส์ DC ที่มีขาย", unit: "A", type: "nums", def: [10, 12, 15, 16, 20, 25, 30, 32] },
+    { sec: "dcBoard", g: "ทุกงาน", key: "vocK", th: "แรงดันพิกัดฟิวส์/SPD ≥ Voc สตริง ×", unit: "เท่า", def: 1.1, min: 1 },
+    { sec: "dcBoard", g: "ทุกงาน", key: "dcFuseV", th: "แรงดันพิกัดฟิวส์ DC ที่มีขาย", unit: "VDC", type: "nums", def: [1000, 1500] },
+    { sec: "dcBoard", g: "ทุกงาน", key: "dcSpdV", th: "แรงดันพิกัด DC SPD ที่มีขาย", unit: "VDC", type: "nums", def: [800, 1000, 1500] },
+    { sec: "dcBoard", g: "งานบ้าน", key: "dcMcbK", th: "DC MCB ต่อสตริง = Isc ×", unit: "เท่า", def: 1.25, min: 1 },
+    { sec: "dcBoard", g: "งานบ้าน", key: "dcMcbA", th: "ขนาด DC MCB ที่มีขาย", unit: "A", type: "nums", def: [10, 16, 20, 25, 32, 40, 50, 63] },
+    /* ── สาย DC ── */
+    { sec: "dcWire", key: "pvWireK", th: "สาย PV DC เลือกขนาดจาก Isc ×", unit: "เท่า", def: 1.25, min: 1 },
+    { sec: "dcWire", key: "pvSpare", th: "สาย PV เผื่อความยาว (ระยะไกลสุด × สตริง × ค่านี้)", unit: "เท่า", def: 1.2, min: 1 },
+    { sec: "dcWire", key: "vdDc", th: "แรงดันตกฝั่ง DC ไม่เกิน", unit: "%", def: 2, min: 0.1, max: 20 },
+    /* ── ตู้ไฟ AC ── */
+    { sec: "acBoard", g: "งานโครงการ", key: "mccbIrK", th: "MCCB ตั้งกระแส Ir = กระแสออก ×", unit: "เท่า", def: 1.05, min: 1 },
+    { sec: "acBoard", g: "งานโครงการ", key: "mccbStep", th: "ปัด Ir ขึ้นทีละ", unit: "A", def: 5, min: 1 },
+    { sec: "acBoard", g: "งานโครงการ", key: "mccbAt", th: "ขนาดเฟรม MCCB ที่มีขาย", unit: "AT", type: "nums", def: [16, 20, 25, 32, 40, 50, 63, 80, 100, 125, 160, 200, 225, 250, 320, 400, 500, 630, 800, 1000, 1250] },
+    { sec: "acBoard", g: "งานโครงการ", key: "acbAt", th: "ขนาด ACB (ใช้เมื่อเกิน MCCB ตัวใหญ่สุด)", unit: "AT", type: "nums", def: [1600, 2000, 2500, 3200, 4000] },
+    { sec: "acBoard", g: "งานโครงการ", key: "gfLsigAt", th: "เมนตั้งแต่กี่ AT ใช้ trip unit LSIG แทน GFR + ZCT + Shunt trip", unit: "AT", def: 1000, min: 1 },
+    { sec: "acBoard", g: "งานโครงการ", key: "nhT2", th: "ฟิวส์ NH00 กันหลัง AC SPD Type 2", unit: "A", def: 32, min: 1 },
+    { sec: "acBoard", g: "งานโครงการ", key: "nhT12", th: "ฟิวส์ NH00 กันหลัง AC SPD Type 1+2 (เมนไม่เกินค่านี้ไม่ต้องมีฟิวส์)", unit: "A", def: 125, min: 1 },
+    { sec: "acBoard", g: "งานโครงการ", key: "ctR", th: "อัตราส่วน CT ของ Power Meter ที่มีขาย (/5A · เลือกตัวแรกที่ ≥ เมน)", unit: "A", type: "nums", def: [100, 150, 200, 250, 300, 400, 500, 600, 800, 1000, 1200, 1250, 1500, 1600, 2000, 2500, 3000, 4000] },
+    { sec: "acBoard", g: "งานโครงการ", key: "pmMcb", th: "MCB กันสายวัดแรงดัน PM2230 / ไฟเลี้ยง GFR", unit: "A", def: 6, min: 1 },
+    { sec: "acBoard", g: "งานบ้าน", key: "fixK", th: "RCBO / MCB (ปรับตั้งไม่ได้) เลือกขนาดแรกที่ ≥ กระแส ×", unit: "เท่า", def: 1.25, min: 1 },
+    { sec: "acBoard", g: "งานบ้าน", key: "rcbo2P", th: "RCBO 2P (1 เฟส) ที่มีขาย — เกินตัวใหญ่สุดใช้ MCCB", unit: "A", type: "nums", def: [16, 20, 25, 32, 50] },
+    { sec: "acBoard", g: "งานบ้าน", key: "rcbo3P", th: "RCBO 3P+N (3 เฟส) ที่มีขาย — เกินตัวใหญ่สุดใช้ MCCB", unit: "A", type: "nums", def: [16, 20, 25, 32, 50, 63] },
+    { sec: "acBoard", g: "งานบ้าน", key: "homeSpdMcb", th: "MCB กันหลัง AC SPD", unit: "A", def: 32, min: 1 },
+    /* ── สาย AC ── */
+    { sec: "acWire", key: "wireK", th: "สาย AC เลือกขนาดจากกระแส × (โหลดต่อเนื่อง)", unit: "เท่า", def: 1.25, min: 1 },
+    { sec: "acWire", key: "vdAc", th: "แรงดันตกฝั่ง AC ไม่เกิน", unit: "%", def: 3, min: 0.1, max: 20 },
+    { sec: "acWire", key: "vdTotal", th: "แรงดันตกรวม DC + AC ไม่เกิน", unit: "%", def: 5, min: 0.1, max: 30 },
+    /* ── รางไฟ ── */
+    { sec: "tray", g: "ถอดวัสดุ", key: "traySpare", th: "% เผื่ออุปกรณ์ประกอบรางไฟ (ใบที่ยังไม่ได้ตั้ง)", unit: "%", def: 10, max: 100 },
+    { sec: "tray", g: "ถอดวัสดุ", key: "trayHanger", th: "ขาล็อกรางไฟ ทุก", unit: "ม.", def: 1.5, min: 0.1 },
+    { sec: "tray", g: "ถอดวัสดุ", key: "trayAnchor", th: "ตัวยึด (พุ๊ก / T-BOLT) ต่อขาล็อก", unit: "ตัว", def: 2 },
+    { sec: "tray", g: "ถอดวัสดุ", key: "trayRailSide", th: "Rail รองขาล็อก ยื่นพ้นรางข้างละ", unit: "มม.", def: 100 },
+    { sec: "tray", g: "ถอดวัสดุ", key: "trayJointX", th: "ชุดข้อต่อราง เผื่อนอกจากรอยต่อ (หัว-ท้าย)", unit: "ชุด", def: 2 },
+    { sec: "tray", g: "ถอดวัสดุ", key: "wayFill", th: "Wireway บรรจุสายได้ไม่เกิน (พื้นที่หน้าตัด)", unit: "%", def: 20, min: 1, max: 100 },
+    { sec: "tray", g: "ถอดวัสดุ", key: "trayFill", th: "Cable Tray บรรจุสายได้ไม่เกิน (พื้นที่หน้าตัด)", unit: "%", def: 50, min: 1, max: 100 },
+    { sec: "tray", g: "จากแบบ 3D", key: "trayTurn90", th: "มุมเลี้ยวตั้งแต่กี่องศานับเป็นข้องอ 90° (น้อยกว่า = 45°)", unit: "°", def: 60, max: 180 },
+    { sec: "tray", g: "จากแบบ 3D", key: "trayTurn45", th: "มุมเลี้ยวน้อยกว่านี้ไม่นับข้องอ", unit: "°", def: 15, max: 180 },
+    { sec: "tray", g: "จากแบบ 3D", key: "trayEnd", th: "แผ่นปิดหัว-ท้าย ต่อเส้น", unit: "ชุด", def: 2 },
+    { sec: "tray", g: "จากแบบ 3D", key: "trayPerfW", th: "ทุกเส้นกว้างตั้งแต่เท่านี้ เลือก Perforated ให้ (แคบกว่า = Wireway)", unit: "ซม.", def: 15, min: 1 },
+    /* ── ทางเดิน · บันได · ราวกันตก ── */
+    { sec: "walk", g: "ทางเดิน (WALKWAY)", key: "walkSheet", th: "แผ่น WALKWAY ยาว", unit: "ม.", def: 2.44, min: 0.1 },
+    { sec: "walk", g: "ทางเดิน (WALKWAY)", key: "walkClamp", th: "END CLAMP + ชุดยึด ต่อแผ่น", unit: "ชุด", def: 6 },
+    { sec: "walk", g: "ทางเดิน (WALKWAY)", key: "walkRailPts", th: "RAIL รองใต้แผ่น ต่อแผ่น", unit: "เส้น", def: 3 },
+    { sec: "walk", g: "ทางเดิน (WALKWAY)", key: "walkRailLen", th: "RAIL รองใต้แผ่น ยาวเส้นละ (ตัดจาก RAIL 4.2 ม.)", unit: "ม.", def: 1.5, min: 0.1, max: 4.2 },
+    { sec: "walk", g: "ทางเดิน (WALKWAY)", key: "walkRound", th: "ความยาวทางเดินจากแบบ 3D ปัดขึ้นทีละ", unit: "ม.", def: 0.1, min: 0.01 },
+    { sec: "walk", g: "% เผื่อเริ่มต้นของใบใหม่", key: "walkSpare", th: "ทางเดิน", unit: "%", def: 10, max: 100 },
+    { sec: "walk", g: "% เผื่อเริ่มต้นของใบใหม่", key: "ladderSpare", th: "บันไดลิง", unit: "%", def: 5, max: 100 },
+    { sec: "walk", g: "% เผื่อเริ่มต้นของใบใหม่", key: "railSpare", th: "ราวกันตก", unit: "%", def: 5, max: 100 },
+    /* ── ค่าขออนุญาต ── */
     { sec: "permit", key: "gridMEA", th: "ค่าเชื่อมต่อระบบขนานไฟ · MEA (นครหลวง)", unit: "บาท", def: 2140 },
     { sec: "permit", key: "gridPEA", th: "ค่าเชื่อมต่อระบบขนานไฟ · PEA (ภูมิภาค)", unit: "บาท", def: 3745 },
     { sec: "permit", key: "meaProv", th: "จังหวัดที่เป็นเขต MEA (คำที่อยู่ในชื่อจังหวัด)", unit: "", type: "words", def: ["กรุงเทพ", "กทม", "bangkok", "นนทบุรี", "nonthaburi", "สมุทรปราการ", "samut prakan"] },
@@ -61,7 +98,7 @@
     { sec: "plan", key: "pprTap", th: "ท่อเพิ่มต่อก๊อก 1 จุด", unit: "ม.", def: 0.2 },
     { sec: "plan", key: "pprClamp", th: "แคลมป์รัดท่อ ทุก", unit: "ม.", def: 1.2, min: 0.1 },
     { sec: "plan", key: "turn90", th: "มุมเลี้ยวตั้งแต่กี่องศานับเป็นข้องอ 90° (น้อยกว่า = 45°)", unit: "°", def: 60, max: 180 },
-    { sec: "plan", key: "turn45", th: "มุมเลี้ยวน้อยกว่านี้ไม่นับข้องอ (ท่อ PPR)", unit: "°", def: 15, max: 180 },
+    { sec: "plan", key: "turn45", th: "มุมเลี้ยวน้อยกว่านี้ไม่นับข้องอ", unit: "°", def: 15, max: 180 },
   ];
   const RULES = {};
   /* แปลงค่าที่เก็บ (ข้อความ) → ค่าที่ใช้ · ผิดรูป/ว่าง/นอกช่วง = ค่าตั้งต้น */
@@ -689,7 +726,8 @@
   //     PVC 70°C ≈ 0.0206 · XLPE/PV1-F 90°C ≈ 0.0219 Ω·mm²/m (α ทองแดง 0.00393/°C)
   // เกณฑ์ออกแบบ: ฝั่ง DC ≤ 2% · ฝั่ง AC ≤ 3% · รวมทั้งเส้นทางไม่เกิน 5%
   const VD_RHO = { pvc: 0.0206, xlpe: 0.0219 };
-  const VD_LIMIT = { dc: 2, ac: 3, total: 5 };
+  /* เกณฑ์อ่านจาก RULES (ตั้งค่าคำนวณ BOQ → สาย DC / สาย AC) — getter เพราะ RULES เปลี่ยนค่าได้ทีหลัง */
+  const VD_LIMIT = { get dc() { return RULES.vdDc; }, get ac() { return RULES.vdAc; }, get total() { return RULES.vdTotal; } };
   function calcVdrop(o) {
     o = o || {};
     const L = +o.length || 0, I = +o.amp || 0, A = +o.size || 0, V = +o.volts || 0;
@@ -831,15 +869,14 @@
      เกิน 1.2 เท่าเมื่อไหร่ค่อยเตือน เพราะเลยจุดนั้นแล้ว clip ช่วงเที่ยงจะกินกำลังที่ได้เพิ่ม */
   const DCAC_LIMIT = 1.2;
 
-  const WAY_PIPE_LEN = 2.4, TRAY_PIPE_LEN = 2.44, WAY_HANGER_STEP = 1.5;
+  const WAY_PIPE_LEN = 2.4, TRAY_PIPE_LEN = 2.44;   // ความยาวท่อนอยู่ในชื่อรายการ (ผูกราคาคลัง) จึงไม่ให้ตั้งค่า
   /* Rail ที่รองใต้ขาล็อก ต้องยื่นพ้นรางไฟข้างละ 10 ซม. ไว้ให้ขาล็อกจับ — สั้นกว่านี้ไม่มีที่ยึด
      คิดจากความกว้างรางในชื่อรุ่น เช่น 100x50 → 100 + 100 + 100 = 300 mm = 30 ซม. */
-  const RAIL_SIDE_MM = 100;
-  const RAIL_ANCHOR = 2;                                          // ตัวยึด (พุ๊ก / T-BOLT) 2 ตัวต่อขา
+  // RULES.trayRailSide (100 มม.) · ตัวยึดต่อขา RULES.trayAnchor (2)
   /* T-BOLT KIT ใช้ทั้งยึดขาล็อกรางไฟกับ Rail และยึดตัวคุมแผงเข้ากับราง — ของชิ้นเดียวกัน
      ชื่อจึงไม่ผูกกับงานใดงานหนึ่ง ตั้งราคาที่เดียวแล้วใช้ได้ทั้งสองหมวด */
   const TBOLT_NAME = "T-BOLT KIT";
-  const railLenCm = (name) => Math.round((trayDim(name).w + RAIL_SIDE_MM * 2) / 10);
+  const railLenCm = (name) => Math.round((trayDim(name).w + RULES.trayRailSide * 2) / 10);
   /* กี่ชิ้นต่อท่อน — ปัดลง เพราะเศษท้ายท่อนที่สั้นกว่า 1 ชิ้นเอาไปรองขาไม่ได้
      ชิ้นยาวกว่าท่อน (ไม่น่าเกิดกับรางที่มีในรายการ) ให้เป็น 0 แล้วไปคิดแบบต่อท่อนข้างล่าง */
   const railPerTon = (name, tonLen) => Math.floor((+tonLen || 4.2) * 100 / Math.max(1, railLenCm(name)));
@@ -870,9 +907,9 @@
      hanger   = แขวนด้วยขาแขวนสำเร็จ (Wireway ยึดพุ๊กเข้าโครงตรง ๆ)
      oneLayer = ควรวางสายชั้นเดียว จึงต้องเช็คผลรวมเส้นผ่านศูนย์กลางเทียบความกว้างรางด้วย */
   const TRAY_KINDS = {
-    way:  { key: "way",  brief: "Wireway",               label: "Wireway เหล็กมีฝา",     sizes: WAY_SIZES,  pipeLen: WAY_PIPE_LEN,  fill: 20, hanger: false, oneLayer: false },
-    tray: { key: "tray", brief: "Cable Tray Ladder",     label: "Cable Tray Ladder",     sizes: TRAY_SIZES, pipeLen: TRAY_PIPE_LEN, fill: 50, hanger: true,  oneLayer: true },
-    perf: { key: "perf", brief: "Cable Tray Perforated", label: "Cable Tray Perforated", sizes: PERF_SIZES, pipeLen: TRAY_PIPE_LEN, fill: 50, hanger: true,  oneLayer: true },
+    way:  { key: "way",  brief: "Wireway",               label: "Wireway เหล็กมีฝา",     sizes: WAY_SIZES,  pipeLen: WAY_PIPE_LEN,  get fill() { return RULES.wayFill; }, hanger: false, oneLayer: false },
+    tray: { key: "tray", brief: "Cable Tray Ladder",     label: "Cable Tray Ladder",     sizes: TRAY_SIZES, pipeLen: TRAY_PIPE_LEN, get fill() { return RULES.trayFill; }, hanger: true,  oneLayer: true },
+    perf: { key: "perf", brief: "Cable Tray Perforated", label: "Cable Tray Perforated", sizes: PERF_SIZES, pipeLen: TRAY_PIPE_LEN, get fill() { return RULES.trayFill; }, hanger: true,  oneLayer: true },
   };
   const TRAY_KIND_KEYS = ["way", "tray", "perf"];
   /* รับได้ทั้งคีย์ชนิด ("way"/"tray"/"perf") และ boolean isTray แบบเดิม — ที่เรียกด้วย true/false อยู่จึงไม่พัง */
@@ -896,8 +933,8 @@
     const up = (v) => Math.ceil(v * (1 + (+pct || 0) / 100));
     const pipeLen = spec.pipeLen;
     const pcs = Math.ceil(len / pipeLen);
-    const joint = Math.max(0, pcs - 1) + 2;                       // ทุกรอยต่อ + เผื่อหัวท้าย
-    const hanger = Math.ceil(len / WAY_HANGER_STEP);              // ขาล็อกทุก 1.5 ม.
+    const joint = Math.max(0, pcs - 1) + RULES.trayJointX;        // ทุกรอยต่อ + เผื่อหัวท้าย
+    const hanger = Math.ceil(len / RULES.trayHanger);             // ขาล็อกทุก 1.5 ม. (ตั้งค่าได้)
     const z = (nm) => hdgName(nm, hdg);                           // ของที่สั่งชุบมาทั้งชิ้น — ตัวราง ข้อต่อ ขาล็อก
     const onRail = !!rail && spec.hanger;                         // Wireway ยึดพุ๊กเข้าโครงตรง ๆ ไม่มีขาล็อกให้วางบน Rail
     const out = [
@@ -911,11 +948,11 @@
     /* ตัวยึดขา — ของมาตรฐานที่ใช้ร่วมกับงานอื่นทั้งใบ ไม่ต่อท้าย (HDG.) ไม่งั้นบรรทัดเดียวแตกเป็นสองบรรทัด
        Rail ก็เช่นกัน เป็นรางอะลูมิเนียมตัวเดียวกับงานโครงยึดแผง ไม่ได้ชุบ */
     if (onRail) {
-      out.push({ name: TBOLT_NAME, qty: up(hanger * RAIL_ANCHOR), unit: "ชุด" });
+      out.push({ name: TBOLT_NAME, qty: up(hanger * RULES.trayAnchor), unit: "ชุด" });
       /* เผื่อที่ระดับ "ชิ้น" ก่อนค่อยแปลงเป็นท่อน — เผื่อทีหลังจะได้เศษท่อนที่ตัดใช้ไม่ได้จริง */
       out.push({ name: railName(tonLen), qty: railTon(name, up(hanger), tonLen), unit: "เส้น" });
     } else {
-      out.push({ name: 'พุ๊กเหล็ก 3/8"', qty: up(hanger * RAIL_ANCHOR), unit: "ตัว" });
+      out.push({ name: 'พุ๊กเหล็ก 3/8"', qty: up(hanger * RULES.trayAnchor), unit: "ตัว" });
     }
     return out;
   }
@@ -950,7 +987,7 @@
      Cable Tray (รางบันได): ≤ 50% ของพื้นที่ราง และควรวางชั้นเดียว คือผลรวมเส้นผ่านศูนย์กลาง ≤ ความกว้างราง
      ตัวคูณลดกระแส: ยิ่งมีตัวนำนำกระแสในรางเดียวกันมาก แต่ละเส้นยิ่งรับกระแสได้น้อยลง
      (ตารางตัวคูณตามจำนวนตัวนำ — แก้ตัวเลขได้ที่นี่ถ้าใช้เกณฑ์ของโครงการอื่น) */
-  const TRAY_FILL_LIMIT = { way: TRAY_KINDS.way.fill, tray: TRAY_KINDS.tray.fill, perf: TRAY_KINDS.perf.fill };
+  const TRAY_FILL_LIMIT = { get way() { return TRAY_KINDS.way.fill; }, get tray() { return TRAY_KINDS.tray.fill; }, get perf() { return TRAY_KINDS.perf.fill; } };
   const TRAY_DERATE = [
     { max: 3, f: 1.00 }, { max: 6, f: 0.80 }, { max: 9, f: 0.70 }, { max: 20, f: 0.50 },
     { max: 30, f: 0.45 }, { max: 40, f: 0.40 }, { max: Infinity, f: 0.35 },
@@ -1008,7 +1045,7 @@
   /* ใบถอดของที่บันทึกไว้ก่อนแยกชนิดราง — แปลงชื่อขนาดให้ตรงรายการใหม่
      ไม่แปลงแล้วดรอปดาวน์จะขึ้นเป็นของนอกรายการ และตารางตรวจสายหาขนาดรางไม่เจอ */
   function trayNorm(tray) {
-    const t = Object.assign({ way: [], tray: [], perf: [], spare: 10, extra: [] }, tray);
+    const t = Object.assign({ way: [], tray: [], perf: [], spare: RULES.traySpare, extra: [] }, tray);
     TRAY_KIND_KEYS.forEach((k) => {
       t[k] = (t[k] || []).map((r) => Object.assign({}, r, { size: trayAlias(r.size || "") }));
     });
@@ -1336,12 +1373,12 @@
       let len = 0;
       for (let i = 1; i < P.length; i++) len += Math.hypot(P[i].x - P[i - 1].x, P[i].z - P[i - 1].z);
       if (len < 0.05) return;
-      len = Math.ceil(len * 10) / 10;                                   // ปัดขึ้นทีละ 10 ซม.
+      len = Math.round(Math.ceil(len / RULES.walkRound - 1e-9) * RULES.walkRound * 100) / 100;   // ปัดขึ้นทีละ 10 ซม. (ตั้งค่าได้)
       rows.push({ len, p3: 1, segs: P.length - 1 });
       total += len;
     });
     if (!rows.length) return null;
-    return { rows, runs: rows.length, total: Math.round(total * 10) / 10, sheets: rows.reduce((t, r) => t + Math.ceil(r.len / 2.44), 0) };
+    return { rows, runs: rows.length, total: Math.round(total * 10) / 10, sheets: rows.reduce((t, r) => t + Math.ceil(r.len / RULES.walkSheet), 0) };
   }
 
   function trayFromPlan(plan, kind, hdg) {
@@ -1363,7 +1400,7 @@
         const ax = P[i].x - P[i - 1].x, az = P[i].z - P[i - 1].z, bx = P[i + 1].x - P[i].x, bz = P[i + 1].z - P[i].z;
         const la = Math.hypot(ax, az), lb = Math.hypot(bx, bz); if (la < 1e-3 || lb < 1e-3) continue;
         const t = Math.acos(Math.max(-1, Math.min(1, (ax * bx + az * bz) / (la * lb)))) * 180 / Math.PI;
-        if (t >= 60) e90++; else if (t >= 15) e45++;
+        if (t >= RULES.trayTurn90) e90++; else if (t >= RULES.trayTurn45) e45++;
       }
       if (len < 0.05) return;
       const wMm = Math.round((+o.d || 0.1) * 1000), sz = pick(wMm), suf = traySuffix(sz);
@@ -1371,7 +1408,7 @@
       g.len += len; g.runs++; total += len; bends += e90 + e45;
       addFit("ข้องอ 90° แนวราบ", suf, e90);
       addFit("ข้องอ 45° แนวราบ", suf, e45);
-      addFit("แผ่นปิดหัว-ท้าย", suf, 2);
+      addFit("แผ่นปิดหัว-ท้าย", suf, RULES.trayEnd);
     });
     const rows = spec.sizes.filter((nm) => by[nm]).map((nm) => Object.assign({ size: nm, length: Math.round(by[nm].len * 10) / 10, p3: 1 },
       hdg ? { hdg: true } : {}, spec.hanger ? { rail: true } : {}));
@@ -1672,7 +1709,7 @@
       // งานเพิ่มเติม (Input) — โครงสร้างบนหลังคา ถอดวัสดุตามสูตร (ว่าง = ไม่ใช้/ไม่ถอด)
       struct: {
         ladder: [], walkway: [], walkwayThk: 35, guardrail: [],
-        ladderSpare: 5, walkwaySpare: 10, guardrailSpare: 5,
+        ladderSpare: RULES.ladderSpare, walkwaySpare: RULES.walkSpare, guardrailSpare: RULES.railSpare,
         ladderExtra: [], walkwayExtra: [], guardrailExtra: [],
       },
       jobType: (job && job.type) || "",
@@ -1691,9 +1728,9 @@
     // ชื่อขายึด L FEET ตามประเภทหลังคาที่เลือก — ใช้เป็นชื่อ "ชุดยึด WALKWAY" ด้วย
     const roofHookModel = (ROOF_HOOKS.find((r) => r.roof === (b && b.roof)) || ROOF_HOOKS[0]).model;
     // % เผื่อที่ผู้ใช้กำหนด (ค่า default ถ้าไม่ได้ตั้ง)
-    const ladSp = +(st.ladderSpare != null ? st.ladderSpare : 5);
-    const wlkSp = +(st.walkwaySpare != null ? st.walkwaySpare : 10);
-    const grlSp = +(st.guardrailSpare != null ? st.guardrailSpare : 5);
+    const ladSp = +(st.ladderSpare != null ? st.ladderSpare : RULES.ladderSpare);
+    const wlkSp = +(st.walkwaySpare != null ? st.walkwaySpare : RULES.walkSpare);
+    const grlSp = +(st.guardrailSpare != null ? st.guardrailSpare : RULES.railSpare);
 
     // LADDER (บันไดลิง) — ต่อจุด: ความสูง h (m)
     const lad = (st.ladder || []).filter((p) => (+p.h || 0) > 0);
@@ -1725,15 +1762,15 @@
       if (it.length) out.push({ group: "LADDER (บันไดลิง)", items: it });
     }
 
-    // WALKWAY — ต่อแนว: ความยาว len (m). แผ่นยาว 2.44m, RAIL 4.2m
+    // WALKWAY — ต่อแนว: ความยาว len (m). แผ่นยาว RULES.walkSheet (2.44m), RAIL 4.2m
     const wlk = (st.walkway || []).filter((r) => (+r.len || 0) > 0);
     if (wlk.length) {
       let dT = 0, fT = 0, hT = 0, mT = 0;
       wlk.forEach((r) => {
-        const D = Math.ceil((+r.len) / 2.44);
+        const D = Math.ceil((+r.len) / RULES.walkSheet);
         const E = D - 1, F = (E >= 1 ? E : 0) * 2;
-        const H = D * 6;                                        // End Clamp 6/แผ่น
-        const M = Math.ceil((D * (3 * 1.5)) / 4.2);             // RAIL (3 จุด × 1.5m ÷ 4.2m)
+        const H = D * RULES.walkClamp;                          // End Clamp 6/แผ่น
+        const M = Math.ceil((D * (RULES.walkRailPts * RULES.walkRailLen)) / 4.2);   // RAIL (3 จุด × 1.5m ÷ 4.2m)
         dT += D; fT += F; hT += H; mT += M;
       });
       const thk = +(st.walkwayThk) || 35;                               // ความหนา walkway → ขนาด END CLAMP KIT
@@ -2066,7 +2103,7 @@
 
     // ── รางไฟ (WIREWAY / CABLE TRAY) ──
     const tw = trayNorm(b.tray);
-    const waySpare = tw.spare != null ? +tw.spare : 10;
+    const waySpare = tw.spare != null ? +tw.spare : RULES.traySpare;
     let wayTotalLen = 0;
     const wayRows = [];
     /* รวมแถวขนาดเดียวกันเข้าด้วยกัน แต่ต้องแยกชุบ/ไม่ชุบ — เป็นของคนละตัว คนละราคา รวมบรรทัดกันไม่ได้ */
