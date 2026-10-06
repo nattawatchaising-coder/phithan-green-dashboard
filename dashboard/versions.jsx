@@ -216,8 +216,9 @@ function P3VerModal({ job, currentUser, boqLinks, onOpen, onClose, ro, mode }) {
       .catch((e) => { setBusy(false); setErr("สร้างไม่สำเร็จ — " + (e && e.message ? e.message : "ลองใหม่อีกครั้ง")); });
   };
   const del = (v) => {
-    if (!window.confirm("ลบ \"" + v.name + "\" ทั้งแบบ?\nกู้คืนไม่ได้ — ต้นแบบและเวอร์ชันอื่นไม่ถูกแตะ")) return;
-    dvP3Delete(jobId, v.id).catch(() => setErr("ลบไม่สำเร็จ"));
+    /* askConfirm แทน confirm() — คนที่เคยกดปิดกล่องของเบราว์เซอร์ confirm() คืน false เงียบ ๆ ปุ่มลบจึงกดไม่ติด */
+    window.askConfirm({ title: "ลบแบบ 3D \"" + v.name + "\"?", body: "กู้คืนไม่ได้ — เวอร์ชันอื่นไม่ถูกแตะ", ok: "ลบแบบนี้", danger: true, icon: "trash" })
+      .then((ok) => { if (ok) dvP3Delete(jobId, v.id).catch(() => setErr("ลบไม่สำเร็จ")); });
   };
   return (
     <DvShell k={"วางแผง 3D" + (job && job.code ? " · " + job.code : "")} t={only ? "ทำแบบ 3D ใหม่" : "จัดการเวอร์ชันแบบ"} onClose={onClose}>
@@ -292,8 +293,9 @@ function BoqVerModal({ job, activeBoq, currentUser, patchActive, onOpen, onClose
       .catch((e) => { setBusy(false); setErr("สร้างไม่สำเร็จ — " + (e && e.message ? e.message : "ลองใหม่อีกครั้ง")); });
   };
   const del = (v) => {
-    if (!window.confirm("ลบ BOQ \"" + v.name + "\"?\nกู้คืนไม่ได้ — เวอร์ชันอื่นไม่ถูกแตะ")) return;
-    dvBoqRemove(jobId, vers, v.id, patchActive).catch(() => setErr("ลบไม่สำเร็จ"));
+    /* askConfirm แทน confirm() — คนที่เคยกดปิดกล่องของเบราว์เซอร์ confirm() คืน false เงียบ ๆ ปุ่มลบจึงกดไม่ติด */
+    window.askConfirm({ title: "ลบ BOQ \"" + v.name + "\"?", body: "กู้คืนไม่ได้ — เวอร์ชันอื่นไม่ถูกแตะ", ok: "ลบ BOQ", danger: true, icon: "trash" })
+      .then((ok) => { if (ok) dvBoqRemove(jobId, vers, v.id, patchActive).catch(() => setErr("ลบไม่สำเร็จ")); });
   };
   const sell = (b) => (b && b.pricing && +b.pricing.sell > 0 ? "ราคาขาย ฿" + Math.round(+b.pricing.sell).toLocaleString() : "");
   return (
@@ -507,8 +509,9 @@ function DvVerCard({ kind, dvs, title, sub, icon, color, canNew }) {
   const open = (id) => (isP3 ? dvs.openP3Ver(id) : dvs.openBoqVer(id));
   const jobId = dvs.jobId;
   const remove = (r) => {
-    if (!window.confirm("ลบ " + (isP3 ? "แบบ 3D" : "BOQ") + " \"V" + r.id + " · " + r.name + "\"?\nกู้คืนไม่ได้ — เวอร์ชันอื่นไม่ถูกแตะ")) return;
-    (isP3 ? dvP3Delete(jobId, r.id) : dvs.removeBoq(r.id)).catch(() => window.alert("ลบไม่สำเร็จ ลองใหม่อีกครั้ง"));
+    /* askConfirm แทน confirm() — คนที่เคยกดปิดกล่องของเบราว์เซอร์ confirm() คืน false เงียบ ๆ ปุ่มลบจึงกดไม่ติด */
+    window.askConfirm({ title: "ลบ " + (isP3 ? "แบบ 3D" : "BOQ") + " V" + r.id + " · " + r.name + "?", body: "กู้คืนไม่ได้ — เวอร์ชันอื่นไม่ถูกแตะ", ok: "ลบ", danger: true, icon: "trash" })
+      .then((ok) => { if (ok) (isP3 ? dvP3Delete(jobId, r.id) : dvs.removeBoq(r.id)).catch(() => window.alert("ลบไม่สำเร็จ ลองใหม่อีกครั้ง")); });
   };
   return (
     <div className="dvc">

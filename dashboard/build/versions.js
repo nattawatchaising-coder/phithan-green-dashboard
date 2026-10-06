@@ -328,8 +328,15 @@ function P3VerModal({
     });
   };
   const del = v => {
-    if (!window.confirm("ลบ \"" + v.name + "\" ทั้งแบบ?\nกู้คืนไม่ได้ — ต้นแบบและเวอร์ชันอื่นไม่ถูกแตะ")) return;
-    dvP3Delete(jobId, v.id).catch(() => setErr("ลบไม่สำเร็จ"));
+    window.askConfirm({
+      title: "ลบแบบ 3D \"" + v.name + "\"?",
+      body: "กู้คืนไม่ได้ — เวอร์ชันอื่นไม่ถูกแตะ",
+      ok: "ลบแบบนี้",
+      danger: true,
+      icon: "trash"
+    }).then(ok => {
+      if (ok) dvP3Delete(jobId, v.id).catch(() => setErr("ลบไม่สำเร็จ"));
+    });
   };
   return React.createElement(DvShell, {
     k: "วางแผง 3D" + (job && job.code ? " · " + job.code : ""),
@@ -465,8 +472,15 @@ function BoqVerModal({
     });
   };
   const del = v => {
-    if (!window.confirm("ลบ BOQ \"" + v.name + "\"?\nกู้คืนไม่ได้ — เวอร์ชันอื่นไม่ถูกแตะ")) return;
-    dvBoqRemove(jobId, vers, v.id, patchActive).catch(() => setErr("ลบไม่สำเร็จ"));
+    window.askConfirm({
+      title: "ลบ BOQ \"" + v.name + "\"?",
+      body: "กู้คืนไม่ได้ — เวอร์ชันอื่นไม่ถูกแตะ",
+      ok: "ลบ BOQ",
+      danger: true,
+      icon: "trash"
+    }).then(ok => {
+      if (ok) dvBoqRemove(jobId, vers, v.id, patchActive).catch(() => setErr("ลบไม่สำเร็จ"));
+    });
   };
   const sell = b => b && b.pricing && +b.pricing.sell > 0 ? "ราคาขาย ฿" + Math.round(+b.pricing.sell).toLocaleString() : "";
   return React.createElement(DvShell, {
@@ -875,8 +889,15 @@ function DvVerCard({
   const open = id => isP3 ? dvs.openP3Ver(id) : dvs.openBoqVer(id);
   const jobId = dvs.jobId;
   const remove = r => {
-    if (!window.confirm("ลบ " + (isP3 ? "แบบ 3D" : "BOQ") + " \"V" + r.id + " · " + r.name + "\"?\nกู้คืนไม่ได้ — เวอร์ชันอื่นไม่ถูกแตะ")) return;
-    (isP3 ? dvP3Delete(jobId, r.id) : dvs.removeBoq(r.id)).catch(() => window.alert("ลบไม่สำเร็จ ลองใหม่อีกครั้ง"));
+    window.askConfirm({
+      title: "ลบ " + (isP3 ? "แบบ 3D" : "BOQ") + " V" + r.id + " · " + r.name + "?",
+      body: "กู้คืนไม่ได้ — เวอร์ชันอื่นไม่ถูกแตะ",
+      ok: "ลบ",
+      danger: true,
+      icon: "trash"
+    }).then(ok => {
+      if (ok) (isP3 ? dvP3Delete(jobId, r.id) : dvs.removeBoq(r.id)).catch(() => window.alert("ลบไม่สำเร็จ ลองใหม่อีกครั้ง"));
+    });
   };
   return React.createElement("div", {
     className: "dvc"
