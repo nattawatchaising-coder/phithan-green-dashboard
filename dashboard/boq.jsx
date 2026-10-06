@@ -1931,7 +1931,8 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock, ver, verName, p3Vers
       /* ระบบ Ground Fault — รีเลย์ตรวจกระแสรั่วลงดิน (GFR) + ZCT ร้อยสายเฟส+N ทั้งชุด → สั่ง Shunt trip ให้ MCCB เมนตัด
          ZCT เลือกขนาดรูตามเมน (สายใหญ่ขึ้นรูต้องใหญ่ขึ้น) — ตรวจกับขนาดสายจริงอีกครั้ง */
       if (bOn("gf") && mainAt > 0 && mainAt < GF_IN_AT) {
-        const zd = mainAt <= 125 ? 60 : mainAt <= 250 ? 80 : mainAt <= 630 ? 120 : 200;
+        const zi = RU.zctAt.findIndex((a) => mainAt <= a);   // ขั้นเมน → ขนาดรู (ตั้งค่าคำนวณ BOQ → ตู้ไฟ AC)
+        const zd = RU.zctD[Math.min(zi < 0 ? RU.zctAt.length : zi, RU.zctD.length - 1)];
         out.ac.push({ name: "GROUND FAULT RELAY (GFR)", qty: 1, unit: "ตัว", auto: 1, why: tag + "ตรวจกระแสรั่วลงดิน สั่งตัด MCCB เมน" });
         out.ac.push({ name: "ZCT Φ" + zd + "mm", qty: 1, unit: "ตัว", auto: 1, why: tag + "ร้อยสายเฟส + N ของเมน " + mainAt + " AT ทั้งชุด (รูต้องใหญ่พอกับสายจริง)" });
         out.ac.push({ name: "SHUNT TRIP 220VAC", qty: 1, unit: "ตัว", auto: 1, why: tag + "คอยล์สั่งตัด MCCB เมน " + mainAt + " AT รับสัญญาณจาก GFR (สั่งให้ตรงรุ่น/เฟรมของ MCCB)" });

@@ -12,10 +12,10 @@
   const RULE_SECS = [
     { k: "dcBoard", grp: "ฝั่ง DC", th: "ตู้ไฟ DC", sub: "ฟิวส์ gPV · DC SPD · แรงดันพิกัด · DC MCB งานบ้าน" },
     { k: "dcWire", grp: "ฝั่ง DC", th: "สาย DC (PV)", sub: "ตัวคูณเลือกขนาดสาย PV · เผื่อความยาว · แรงดันตก DC" },
-    { k: "acBoard", grp: "ฝั่ง AC", th: "ตู้ไฟ AC", sub: "MCCB/ACB · Ground Fault · ฟิวส์กันหลัง SPD · CT · RCBO งานบ้าน" },
+    { k: "acBoard", grp: "ฝั่ง AC", th: "ตู้ไฟ AC", sub: "MCCB/ACB · Ground Fault · ZCT · ฟิวส์กันหลัง SPD · CT · RCBO งานบ้าน" },
     { k: "acWire", grp: "ฝั่ง AC", th: "สาย AC", sub: "ตัวคูณเลือกขนาดสาย · แรงดันตก AC / รวม" },
     { k: "tray", grp: "งานติดตั้ง", th: "รางไฟ", sub: "ขาล็อก · ตัวยึด · Rail รอง · ข้อต่อ · % บรรจุสาย · รางจากแบบ 3D" },
-    { k: "walk", grp: "งานติดตั้ง", th: "ทางเดิน · บันได · ราวกันตก", sub: "แผ่น WALKWAY · END CLAMP · RAIL · % เผื่อเริ่มต้น" },
+    { k: "walk", grp: "งานติดตั้ง", th: "ทางเดิน · บันได · ราวกันตก", sub: "แผ่น WALKWAY · END CLAMP · RAIL · สูตรบันไดลิง/ราวสลิง · % เผื่อเริ่มต้น" },
     { k: "plan", grp: "งานติดตั้ง", th: "ท่อน้ำ PPR", sub: "ความยาวเส้น · เผื่อ · ก๊อก · แคลมป์ · มุมเลี้ยว" },
     { k: "permit", grp: "ค่าบริการ & ราคา", th: "ค่าขออนุญาต & วิศวกร", sub: "ค่าขนานไฟ MEA/PEA · เงื่อนไข กกพ./พค.2/อ.1 · ค่าวิศวกรตามขนาด" },
     { k: "price", grp: "ค่าบริการ & ราคา", th: "เผื่อ · กำไร · O&M", sub: "Accessories % · กำไรเริ่มต้น · VAT · ปีที่แถม O&M" },
@@ -44,6 +44,8 @@
     { sec: "acBoard", g: "งานโครงการ", key: "nhT12", th: "ฟิวส์ NH00 กันหลัง AC SPD Type 1+2 (เมนไม่เกินค่านี้ไม่ต้องมีฟิวส์)", unit: "A", def: 125, min: 1 },
     { sec: "acBoard", g: "งานโครงการ", key: "ctR", th: "อัตราส่วน CT ของ Power Meter ที่มีขาย (/5A · เลือกตัวแรกที่ ≥ เมน)", unit: "A", type: "nums", def: [100, 150, 200, 250, 300, 400, 500, 600, 800, 1000, 1200, 1250, 1500, 1600, 2000, 2500, 3000, 4000] },
     { sec: "acBoard", g: "งานโครงการ", key: "pmMcb", th: "MCB กันสายวัดแรงดัน PM2230 / ไฟเลี้ยง GFR", unit: "A", def: 6, min: 1 },
+    { sec: "acBoard", g: "งานโครงการ", key: "zctAt", th: "ZCT · ขนาดเมนแต่ละขั้น (ไม่เกิน)", unit: "AT", type: "nums", def: [125, 250, 630] },
+    { sec: "acBoard", g: "งานโครงการ", key: "zctD", th: "ZCT · ขนาดรูของแต่ละขั้น (ตัวสุดท้าย = เมนใหญ่กว่าขั้นสุดท้าย)", unit: "มม.", type: "nums", def: [60, 80, 120, 200] },
     { sec: "acBoard", g: "งานบ้าน", key: "fixK", th: "RCBO / MCB (ปรับตั้งไม่ได้) เลือกขนาดแรกที่ ≥ กระแส ×", unit: "เท่า", def: 1.25, min: 1 },
     { sec: "acBoard", g: "งานบ้าน", key: "rcbo2P", th: "RCBO 2P (1 เฟส) ที่มีขาย — เกินตัวใหญ่สุดใช้ MCCB", unit: "A", type: "nums", def: [16, 20, 25, 32, 50] },
     { sec: "acBoard", g: "งานบ้าน", key: "rcbo3P", th: "RCBO 3P+N (3 เฟส) ที่มีขาย — เกินตัวใหญ่สุดใช้ MCCB", unit: "A", type: "nums", def: [16, 20, 25, 32, 50, 63] },
@@ -73,6 +75,18 @@
     { sec: "walk", g: "% เผื่อเริ่มต้นของใบใหม่", key: "walkSpare", th: "ทางเดิน", unit: "%", def: 10, max: 100 },
     { sec: "walk", g: "% เผื่อเริ่มต้นของใบใหม่", key: "ladderSpare", th: "บันไดลิง", unit: "%", def: 5, max: 100 },
     { sec: "walk", g: "% เผื่อเริ่มต้นของใบใหม่", key: "railSpare", th: "ราวกันตก", unit: "%", def: 5, max: 100 },
+    { sec: "walk", g: "บันไดลิง", key: "ladTop", th: "ยื่นเหนือขอบหลังคา", unit: "ม.", def: 1 },
+    { sec: "walk", g: "บันไดลิง", key: "ladRung", th: "ขั้นบันไดห่างกัน", unit: "ม.", def: 0.35, min: 0.1 },
+    { sec: "walk", g: "บันไดลิง", key: "ladRungW", th: "ขั้นบันไดกว้าง (เหล็กกลม)", unit: "ม.", def: 0.5, min: 0.1 },
+    { sec: "walk", g: "บันไดลิง", key: "ladCageAt", th: "มีครอบหลัง (กรง) เมื่อยาวรวมตั้งแต่", unit: "ม.", def: 5 },
+    { sec: "walk", g: "บันไดลิง", key: "ladCageFrom", th: "ครอบหลังเริ่มที่ความสูง", unit: "ม.", def: 2.5 },
+    { sec: "walk", g: "บันไดลิง", key: "ladCageV", th: "ครอบหลัง · เหล็กแบนแนวตั้ง", unit: "เส้น", def: 3 },
+    { sec: "walk", g: "บันไดลิง", key: "ladRing", th: "ครอบหลัง · ห่วงทุก", unit: "ม.", def: 0.5, min: 0.1 },
+    { sec: "walk", g: "บันไดลิง", key: "ladBrkAt", th: "ขายึดผนัง 2 จุดเมื่อสูงตั้งแต่ (ต่ำกว่า = 1 จุด)", unit: "ม.", def: 3 },
+    { sec: "walk", g: "บันไดลิง", key: "ladAnchor", th: "พุ๊กต่อแผ่นยึด", unit: "ตัว", def: 4 },
+    { sec: "walk", g: "ราวกันตก (สลิง)", key: "grlPost", th: "เสาเหล็กฉากทุก", unit: "ม.", def: 3, min: 0.5 },
+    { sec: "walk", g: "ราวกันตก (สลิง)", key: "grlSlingX", th: "สลิง 2 เส้น + เผื่อต่อจุด", unit: "ม.", def: 20 },
+    { sec: "walk", g: "ราวกันตก (สลิง)", key: "grlCorner", th: "เกลียวเร่ง/ปลอก ต่อมุม (กิ๊บ × 2)", unit: "ตัว", def: 4 },
     /* ── ค่าขออนุญาต ── */
     { sec: "permit", key: "gridMEA", th: "ค่าเชื่อมต่อระบบขนานไฟ · MEA (นครหลวง)", unit: "บาท", def: 2140 },
     { sec: "permit", key: "gridPEA", th: "ค่าเชื่อมต่อระบบขนานไฟ · PEA (ภูมิภาค)", unit: "บาท", def: 3745 },
@@ -1741,15 +1755,15 @@
       const lFlat = steelBarLen("flat", steelSel(b, "flat"));
       let boxF = 0, flatPcs = 0, roundLen = 0, plate = 0, anchor = 0;
       lad.forEach((p) => {
-        const B = +p.h, C = B + 1;
+        const B = +p.h, C = B + RULES.ladTop;
         boxF += Math.ceil((C * 2) / lBox);                       // เหล็กกล่อง (2 ราง ÷ ความยาวท่อน)
-        const G = C >= 5 ? C - 2.5 : 0;                          // ครอบหลัง เมื่อสูง ≥5m
-        const K = G * 3 + (G / 0.5) * 2;
+        const G = C >= RULES.ladCageAt ? C - RULES.ladCageFrom : 0;   // ครอบหลัง เมื่อสูง ≥5m
+        const K = G * RULES.ladCageV + (G / RULES.ladRing) * 2;
         flatPcs += Math.ceil(K / lFlat);                        // เหล็กแบน (÷ ความยาวท่อน)
-        const rungs = Math.ceil(B / 0.35);
-        roundLen += 0.5 * rungs;                                // ความยาวรวมเหล็กกลม (ขั้นละ 0.5m)
-        const Q = B >= 3 ? 2 : 1, R = roundLen > 0 ? Q * 2 : 0;
-        plate += R; anchor += R * 4;
+        const rungs = Math.ceil(B / RULES.ladRung);
+        roundLen += RULES.ladRungW * rungs;                                // ความยาวรวมเหล็กกลม (ขั้นละ 0.5m)
+        const Q = B >= RULES.ladBrkAt ? 2 : 1, R = roundLen > 0 ? Q * 2 : 0;
+        plate += R; anchor += R * RULES.ladAnchor;
       });
       const roundPcs = Math.ceil(roundLen / lRound);
       const it = [];
@@ -1793,9 +1807,9 @@
       grl.forEach((p) => {
         const B = +p.len || 0, D = +p.corners || 0;
         // เหล็กฉาก — support ทุก 3m, 1 ท่อน (ยาว lAng) ทำได้ lAng/3 support
-        angle += Math.ceil((B / 3) / Math.max(1, Math.floor(lAng / 3)));
-        sling += B > 0 ? B * 2 + 20 : 0;                        // สลิง = layout ×2 + เผื่อ 20m/จุด
-        const L = D * 4; turnb += L; clip += L * 2; sleeve += L;
+        angle += Math.ceil((B / RULES.grlPost) / Math.max(1, Math.floor(lAng / RULES.grlPost)));
+        sling += B > 0 ? B * 2 + RULES.grlSlingX : 0;                        // สลิง = layout ×2 + เผื่อ 20m/จุด
+        const L = D * RULES.grlCorner; turnb += L; clip += L * 2; sleeve += L;
       });
       const it = [];
       if (angle) it.push({ name: steelOf(b, "angle"), qty: sp(angle + 1, grlSp), unit: "เส้น" });

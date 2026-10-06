@@ -3300,7 +3300,8 @@ function BOQEditor({
         });
       }
       if (bOn("gf") && mainAt > 0 && mainAt < GF_IN_AT) {
-        const zd = mainAt <= 125 ? 60 : mainAt <= 250 ? 80 : mainAt <= 630 ? 120 : 200;
+        const zi = RU.zctAt.findIndex(a => mainAt <= a);
+        const zd = RU.zctD[Math.min(zi < 0 ? RU.zctAt.length : zi, RU.zctD.length - 1)];
         out.ac.push({
           name: "GROUND FAULT RELAY (GFR)",
           qty: 1,
