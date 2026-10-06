@@ -614,7 +614,10 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock, ver, verName, p3Vers
     const base = window.BOQ.mergeBOQ(job);
     // สเปคหลักดึงจากข้อมูลงานเสมอ (ฐานข้อมูลเป็นตัวตั้ง) — แบต/Backup/ออฟติไมเซอร์/จำนวนแผง
     if (job) {
-      if (job.panels != null && job.panels !== "") base.panels = job.panels;
+      /* ใบลูกค้า (lead): จำนวนแผงใน lead เป็นแค่ "ที่คาด" (leadAsJob ส่ง 0 มาเมื่อไม่ได้กรอก) — ใบ BOQ ที่บันทึกแล้วต้องชนะ
+         ไม่งั้นแก้จำนวนแผงแล้วบันทึก เปิดใหม่ค่าเด้งกลับเป็นค่าที่คิดจาก kWp */
+      if (job.__lead) { if (!(+base.panels > 0) && +job.panels > 0) base.panels = job.panels; }
+      else if (job.panels != null && job.panels !== "") base.panels = job.panels;
       /* ใบลูกค้า (lead) ยังไม่มีจำนวนแผงจริง มีแต่ "ขนาดที่คาด" (kWp) ที่เซลล์กรอกไว้ในสเปคที่เสนอ
          ถอดราคาจากศูนย์แผงไม่ได้ จึงแปลงกลับเป็นจำนวนแผงด้วย Wp ของรุ่นที่เลือก — แก้ทับได้ตามปกติ
          ทำเฉพาะตอนยังไม่มีจำนวนแผง จะได้ไม่ไปทับของใบที่ถอดไว้แล้ว */

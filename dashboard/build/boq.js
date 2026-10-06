@@ -1148,7 +1148,9 @@ function BOQEditor({
   const [b, setB] = React.useState(() => {
     const base = window.BOQ.mergeBOQ(job);
     if (job) {
-      if (job.panels != null && job.panels !== "") base.panels = job.panels;
+      if (job.__lead) {
+        if (!(+base.panels > 0) && +job.panels > 0) base.panels = job.panels;
+      } else if (job.panels != null && job.panels !== "") base.panels = job.panels;
       if (!(+base.panels > 0) && +job.kw > 0) {
         const pw = +((window.BOQ.findPanel && window.BOQ.findPanel(base.panelModel) || {}).wp || 0);
         if (pw > 0) base.panels = Math.ceil(+job.kw * 1000 / pw);
