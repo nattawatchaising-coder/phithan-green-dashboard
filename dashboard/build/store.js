@@ -1053,6 +1053,41 @@ function useOmTiers() {
     save
   };
 }
+const SF_RULES_KEY = "solarflow_boq_rules_v1";
+function _rulesLsGet() {
+  try {
+    const s = localStorage.getItem(SF_RULES_KEY);
+    return s ? JSON.parse(s) || {} : {};
+  } catch (e) {
+    return {};
+  }
+}
+function useBoqRules() {
+  const [val, setVal] = React.useState(() => _FB() ? {} : _rulesLsGet());
+  React.useEffect(() => {
+    if (!_FB()) return;
+    const ref = _fbr("boqRules");
+    const h = ref.on("value", snap => setVal(snap.val() || {}));
+    return () => ref.off("value", h);
+  }, []);
+  const setCell = React.useCallback((key, v) => {
+    const blank = v === "" || v === null || v === undefined;
+    if (_FB()) {
+      if (blank) _fbRem("boqRules/" + key);else _fbSet("boqRules/" + key, String(v));
+      return;
+    }
+    setVal(p => {
+      const next = Object.assign({}, p);
+      if (blank) delete next[key];else next[key] = String(v);
+      _lsSet(SF_RULES_KEY, next);
+      return next;
+    });
+  }, []);
+  return {
+    val,
+    setCell
+  };
+}
 function jobMatchQ(j, q) {
   if (!q) return true;
   return ((j.name || "") + (j.code || "") + (j.province || "") + (j.phone || "") + (j.brand || "") + (j.address || "")).toLowerCase().includes(q);
@@ -1066,6 +1101,7 @@ Object.assign(window, {
   useAmpacityStore,
   useConduitDefaults,
   useOmTiers,
+  useBoqRules,
   blankJob,
   blankItem,
   blankTech,

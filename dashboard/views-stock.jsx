@@ -80,15 +80,16 @@ function StockKpi({ label, value, unit, icon, accent, sub, active, onClick }) {
   );
 }
 
-function StockView({ stock, onResetAll, onMenuOpen, currentUser, jobs, priceStore, ampStore, condStore, omStore, canManagePrices }) {
+function StockView({ stock, onResetAll, onMenuOpen, currentUser, jobs, priceStore, ampStore, condStore, omStore, rulesStore, canManagePrices }) {
   const SF = window.SF;
   const isMobile = window.matchMedia("(max-width: 860px)").matches;
   const byName = (currentUser && currentUser.name) || "-";
-  const [tab, setTab] = React.useState("stock"); // "stock" | "prices" | "amp" | "cond" | "om"
+  const [tab, setTab] = React.useState("stock"); // "stock" | "prices" | "rules"
   const isPrices = tab === "prices" && canManagePrices;
-  const isAmp = tab === "amp" && canManagePrices;
-  const isCond = tab === "cond" && canManagePrices;
-  const isOm = tab === "om" && canManagePrices;
+  /* แท็บ "ตั้งค่าคำนวณ BOQ" รวมพิกัดสาย · ท่อ/รางไฟ · O&M และเงื่อนไขที่เคยฝังในโค้ด ไว้หน้าเดียว
+     isAmp/isCond/isOm คงชื่อเดิมไว้ซ่อนตัวกรองหมวด/ปุ่มบนหัวจอ (ทั้งสามเป็นจริงพร้อมกันเมื่ออยู่แท็บนี้) */
+  const isRules = tab === "rules" && canManagePrices;
+  const isAmp = isRules, isCond = isRules, isOm = isRules;
   const [cat, setCat] = React.useState("all");
   const [sub, setSub] = React.useState("all");   // หมวดย่อยภายในหมวดหลักที่เลือก
   const [view, setView] = React.useState(() => localStorage.getItem("sf_stock_view") || "grid");   // grid = การ์ดมีรูป · table = ตาราง
@@ -254,9 +255,7 @@ function StockView({ stock, onResetAll, onMenuOpen, currentUser, jobs, priceStor
               <React.Fragment>
                 <CatChip active={tab === "stock"} onClick={() => setTab("stock")} label="สต็อก" color="#3B82F6" />
                 <CatChip active={tab === "prices"} onClick={() => setTab("prices")} label="ราคา BOQ" color="#EC4899" />
-                <CatChip active={tab === "amp"} onClick={() => setTab("amp")} label="พิกัดสาย วสท." color="#F59E0B" />
-                <CatChip active={tab === "cond"} onClick={() => setTab("cond")} label="อุปกรณ์ท่อ / รางไฟ" color="#0EA5E9" />
-                <CatChip active={tab === "om"} onClick={() => setTab("om")} label="ราคา O&M · ล้างแผง" color="#10B981" />
+                <CatChip active={tab === "rules"} onClick={() => setTab("rules")} label="ตั้งค่าคำนวณ BOQ" color="#F59E0B" />
               </React.Fragment>
             )}
             {!isMobile && !isAmp && !isCond && !isOm && (
@@ -317,11 +316,9 @@ function StockView({ stock, onResetAll, onMenuOpen, currentUser, jobs, priceStor
             <Icon name="menu" size={18} color="var(--text-2)" />
           </button>
           <div style={{ flex: 1, minWidth: 0 }}>
-            <h1 className="page-title">{isAmp ? "พิกัดกระแสสายไฟ (วสท.)" : isOm ? "ราคา O&M · ล้างแผง" : isPrices ? "ราคาวัสดุ (BOQ)" : "คลังสินค้า / สต็อก"}</h1>
-            {isOm ? (
-              <p className="page-sub">ราคางานตามขนาดระบบ (kWp) — ใบ BOQ ทุกใบคิดค่า O&amp;M จากตารางนี้</p>
-            ) : isAmp ? (
-              <p className="page-sub">ตารางพิกัดกระแส วสท. — แยกตามฉนวน × วิธีเดินสาย × ขนาด (ใช้คำนวณ/เตือนขนาดสายใน BOQ)</p>
+            <h1 className="page-title">{isRules ? "ตั้งค่าคำนวณ BOQ" : isPrices ? "ราคาวัสดุ (BOQ)" : "คลังสินค้า / สต็อก"}</h1>
+            {isRules ? (
+              <p className="page-sub">เงื่อนไขและตารางที่ใบ BOQ ใช้คิดอุปกรณ์ ราคา และค่าบริการ — ตั้งครั้งเดียวใช้ทั้งบริษัท</p>
             ) : isPrices ? (
               <p className="page-sub">รหัส / ราคา / หน่วย สำหรับคำนวณต้นทุน BOQ</p>
             ) : (
@@ -372,20 +369,10 @@ function StockView({ stock, onResetAll, onMenuOpen, currentUser, jobs, priceStor
         </div>
       </header>
 
-      {isAmp ? (
+      {isRules ? (
         <div className="app-content">
           {filterBar}
-          <AmpacityEditor ampStore={ampStore} />
-        </div>
-      ) : isCond ? (
-        <div className="app-content">
-          {filterBar}
-          <ConduitDefaultsEditor condStore={condStore} />
-        </div>
-      ) : isOm ? (
-        <div className="app-content">
-          {filterBar}
-          <OmTierEditor omStore={omStore} />
+          <BoqRulesPage ampStore={ampStore} condStore={condStore} omStore={omStore} rulesStore={rulesStore} isMobile={isMobile} />
         </div>
       ) : isPrices ? (
         <div className="app-content">
@@ -1547,7 +1534,7 @@ function OmTierEditor({ omStore }) {
   const k = +kw || 0;
   const clean = BOQ.omTierPrice ? BOQ.omTierPrice(BOQ.OM_CLEAN_TIERS || [], k) : 0;
   const svc = BOQ.omTierPrice ? BOQ.omTierPrice(BOQ.OM_SVC_TIERS || [], k) : 0;
-  const yr = clean + svc;
+  const yr = ((BOQ.RULES || {}).omPerYear || 1) * clean + svc;
   const box = (label, v, hi) => (
     <div style={{ background: "var(--surface2)", borderRadius: "var(--r-tile)", padding: "9px 12px", minWidth: 0 }}>
       <div style={{ fontSize: 10.5, fontWeight: 700, color: "var(--text-3)" }}>{label}</div>
@@ -1562,18 +1549,155 @@ function OmTierEditor({ omStore }) {
           <span style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12.5, color: "var(--text-2)" }}>ระบบ
             <input type="number" min={0} step="any" value={kw} onChange={(e) => setKw(e.target.value)}
               style={{ width: 100, background: "var(--surface2)", boxShadow: "var(--shadow-sm)", border: "none", borderRadius: "var(--r-chip)", padding: "6px 9px", fontFamily: "inherit", fontSize: 13, textAlign: "right", color: "var(--text-1)", outline: "none" }} /> kWp</span>
-          <span style={{ fontSize: 11, color: "var(--text-3)" }}>ค่าฐาน: แถม 2 ปี · ล้างแผงปีละ 1 ครั้ง</span>
+          <span style={{ fontSize: 11, color: "var(--text-3)" }}>ค่าฐาน: แถม {(BOQ.RULES || {}).omYears} ปี · ล้างแผงปีละ {(BOQ.RULES || {}).omPerYear} ครั้ง (แก้ในหัวข้อ เผื่อ · กำไร · O&amp;M)</span>
         </div>
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(140px, 1fr))", gap: 8 }}>
           {box("ล้างแผง / ครั้ง", clean)}
           {box("งาน O&M / ปี", svc)}
           {box("ต่อปี (ลูกค้าต่อเอง)", yr, true)}
-          {box("รวมในราคาติดตั้ง 2 ปี", yr * 2, true)}
+          {box("รวมในราคาติดตั้ง " + ((BOQ.RULES || {}).omYears || 2) + " ปี", yr * ((BOQ.RULES || {}).omYears || 2), true)}
         </div>
       </div>
       {OM_TIER_KINDS.map((kd) => (
         <OmTierTable key={kd.key} kind={kd} saved={val[kd.key]} onSave={(rows) => omStore && omStore.save(kd.key, rows)} />
       ))}
+    </div>
+  );
+}
+
+/* ── ตั้งค่าคำนวณ BOQ: หน้ารวมทุกเงื่อนไขที่ใบ BOQ ใช้ ──
+   ซ้าย = หัวข้อ (มือถือเป็นดรอปดาวน์) · ขวา = ตัวแก้ของหัวข้อนั้น
+   สามหัวข้อแรกเป็นตัวแก้เดิม (ตารางพิกัดสาย · อุปกรณ์ท่อ · ราคา O&M) ที่เหลือมาจาก BOQ.RULE_SECS/RULE_DEFS
+   ตัวเลขที่เคยฝังอยู่ในสูตร — เพิ่มเงื่อนไขใหม่ = เพิ่มแถวใน RULE_DEFS แล้วอ่าน RULES.<key> ในสูตร หน้านี้ขึ้นช่องให้เอง */
+const BR_FIXED_SECS = [
+  { k: "amp", th: "พิกัดสาย วสท.", sub: "ตารางพิกัดกระแสตามฉนวน × วิธีเดินสาย × ขนาด" },
+  { k: "cond", th: "อุปกรณ์ท่อ / รางไฟ", sub: "กฎคิดจำนวนอุปกรณ์ IMC/uPVC · % เผื่อ" },
+  { k: "om", th: "ราคา O&M · ล้างแผง", sub: "ตารางราคาตามขนาดระบบ (kWp)" },
+];
+function BoqRulesPage({ ampStore, condStore, omStore, rulesStore, isMobile }) {
+  const BOQ = window.BOQ || {};
+  const secs = (BOQ.RULE_SECS || []).concat(BR_FIXED_SECS);
+  const [sec, setSec] = React.useState(() => { try { return localStorage.getItem("br_sec") || "board"; } catch (e) { return "board"; } });
+  const pick = (k) => { setSec(k); try { localStorage.setItem("br_sec", k); } catch (e) {} };
+  const saved = (rulesStore && rulesStore.val) || {};
+  const nSet = (k) => (BOQ.RULE_DEFS || []).filter((d) => d.sec === k && saved[d.key] != null && saved[d.key] !== "").length;
+  const cur = secs.find((x) => x.k === sec) || secs[0];
+  const body = sec === "amp" ? <AmpacityEditor ampStore={ampStore} />
+    : sec === "cond" ? <ConduitDefaultsEditor condStore={condStore} />
+    : sec === "om" ? <OmTierEditor omStore={omStore} />
+    : <BoqRuleSec sec={cur} rulesStore={rulesStore} />;
+  if (isMobile) return (
+    <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+      <Dropdown value={cur.k} onChange={pick} options={secs.map((x) => ({ value: x.k, label: x.th + (nSet(x.k) ? " · แก้แล้ว " + nSet(x.k) : "") }))} />
+      {body}
+    </div>
+  );
+  return (
+    <div style={{ display: "grid", gridTemplateColumns: "250px minmax(0,1fr)", gap: 18, alignItems: "start" }}>
+      <nav style={{ position: "sticky", top: 12, background: "var(--surface)", boxShadow: "var(--shadow-card)", borderRadius: "var(--r-card)", padding: 8, display: "flex", flexDirection: "column", gap: 2 }}>
+        {secs.map((x, i) => {
+          const on = x.k === cur.k, n = nSet(x.k);
+          return (
+            <React.Fragment key={x.k}>
+              {i === (BOQ.RULE_SECS || []).length && <div style={{ fontSize: 10.5, fontWeight: 700, color: "var(--text-3)", padding: "10px 10px 4px" }}>ตาราง</div>}
+              <button onClick={() => pick(x.k)}
+                style={{ textAlign: "left", border: "none", cursor: "pointer", fontFamily: "inherit", padding: "9px 11px", borderRadius: "var(--r-tile)",
+                  background: on ? "var(--primary-soft)" : "transparent", color: on ? "var(--primary-dark)" : "var(--text-1)" }}>
+                <span style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 13, fontWeight: 700 }}>
+                  <span style={{ flex: 1, minWidth: 0 }}>{x.th}</span>
+                  {n > 0 && <span title="ค่าที่แก้จากค่าตั้งต้น" style={{ fontSize: 10.5, fontWeight: 700, padding: "1px 7px", borderRadius: "var(--r-pill)", background: "var(--tint-amber-bg)", color: "var(--tint-amber-tx)" }}>{n}</span>}
+                </span>
+                <span style={{ display: "block", fontSize: 11, color: "var(--text-3)", marginTop: 2, lineHeight: 1.4 }}>{x.sub}</span>
+              </button>
+            </React.Fragment>
+          );
+        })}
+      </nav>
+      <div style={{ minWidth: 0 }}>{body}</div>
+    </div>
+  );
+}
+
+/* หัวข้อหนึ่งของ RULE_DEFS — กดแก้ไข → แก้ในร่าง → บันทึกเฉพาะช่องที่เปลี่ยน (ท่าเดียวกับ ConduitDefaultsEditor)
+   ช่องว่าง = ใช้ค่าตั้งต้นของระบบ (โชว์เป็น placeholder) */
+function BoqRuleSec({ sec, rulesStore }) {
+  const BOQ = window.BOQ || {};
+  const defs = (BOQ.RULE_DEFS || []).filter((d) => d.sec === sec.k);
+  const saved = (rulesStore && rulesStore.val) || {};
+  const [draft, setDraft] = React.useState(null);
+  React.useEffect(() => { setDraft(null); }, [sec.k]);
+  const edit = !!draft;
+  const view = draft || saved;
+  const txt = (d) => BOQ.ruleTxt ? BOQ.ruleTxt(d, d.def) : String(d.def);
+  const str = (o, k) => (o[k] != null ? String(o[k]) : "");
+  const dirty = defs.filter((d) => str(saved, d.key) !== str(draft || saved, d.key));
+  const nEdited = defs.filter((d) => str(saved, d.key) !== "").length;
+  const set = (k, v) => setDraft((p) => { const n = Object.assign({}, p); if (v === "") delete n[k]; else n[k] = v; return n; });
+  const save = () => { dirty.forEach((d) => rulesStore && rulesStore.setCell(d.key, str(draft, d.key).trim())); setDraft(null); };
+  const cancel = () => {
+    if (!dirty.length) { setDraft(null); return; }
+    window.askConfirm({ title: "ทิ้งที่แก้ไว้?", body: "ค่าที่แก้ไว้ " + dirty.length + " ช่อง จะไม่ถูกบันทึก", ok: "ทิ้ง", danger: true })
+      .then((ok) => { if (ok) setDraft(null); });
+  };
+  const resetAll = () => window.askConfirm({ title: "คืนค่าตั้งต้น · " + sec.th + "?", body: "ค่าที่ตั้งไว้ " + nEdited + " ช่อง จะกลับไปใช้ค่าตั้งต้นของระบบ", ok: "คืนค่าตั้งต้น" })
+    .then((ok) => { if (ok) defs.forEach((d) => { if (str(saved, d.key) !== "") rulesStore.setCell(d.key, ""); }); });
+  /* ค่าที่กรอกแล้วระบบไม่รับ (ติดลบ เกินช่วง ไม่ใช่ตัวเลข) จะถูกใช้เป็นค่าตั้งต้น — บอกไว้ตรงช่องเลย */
+  const bad = (d) => { const v = str(view, d.key); if (!v || !BOQ.ruleVal) return false; return BOQ.ruleVal(d, v) === d.def && v.replace(/s/g, "") !== txt(d).replace(/s/g, ""); };
+  const btn = (on) => ({ padding: "7px 14px", borderRadius: "var(--r-tile)", fontFamily: "inherit", fontSize: 12.5, fontWeight: 700, cursor: "pointer",
+    border: "none", background: on ? "var(--primary)" : "var(--surface2)", color: on ? "#fff" : "var(--text-2)", boxShadow: on ? "var(--shadow-btn)" : "var(--shadow-sm)" });
+  const fld = (d) => ({ width: "100%", boxSizing: "border-box", border: "none", outline: "none", fontFamily: "inherit", fontSize: 13, padding: "8px 10px",
+    borderRadius: "var(--r-chip)", color: "var(--text-1)", textAlign: d.type ? "left" : "right", fontVariantNumeric: "tabular-nums",
+    background: edit ? "var(--surface2)" : "transparent", boxShadow: edit ? "var(--shadow-inset)" : "none" });
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: 12, maxWidth: 860 }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+        {edit ? (
+          <React.Fragment>
+            <button onClick={save} style={btn(true)}>บันทึก{dirty.length ? " (" + dirty.length + ")" : ""}</button>
+            <button onClick={cancel} style={btn(false)}>ยกเลิก</button>
+            <span style={{ fontSize: 11.5, color: "var(--text-3)" }}>{dirty.length ? "แก้ไว้ " + dirty.length + " ช่อง ยังไม่ได้บันทึก" : "กำลังแก้ไข · เว้นว่าง = ใช้ค่าตั้งต้น"}</span>
+          </React.Fragment>
+        ) : (
+          <React.Fragment>
+            <button onClick={() => setDraft(Object.assign({}, saved))} style={btn(false)} disabled={!rulesStore}>แก้ไข</button>
+            <button onClick={resetAll} disabled={!nEdited} style={Object.assign(btn(false), { color: nEdited ? "var(--text-2)" : "var(--text-3)", cursor: nEdited ? "pointer" : "default" })}>
+              คืนค่าตั้งต้น{nEdited ? " (" + nEdited + ")" : ""}</button>
+          </React.Fragment>
+        )}
+      </div>
+      <div style={{ background: "var(--surface)", boxShadow: "var(--shadow-card)", borderRadius: "var(--r-card)", padding: "6px 16px" }}>
+        <div style={{ padding: "10px 0 8px", fontSize: 14, fontWeight: 700 }}>{sec.th}
+          <span style={{ display: "block", fontSize: 11.5, fontWeight: 500, color: "var(--text-3)", marginTop: 2 }}>{sec.sub}</span>
+        </div>
+        {defs.map((d, i) => {
+          const v = str(view, d.key), own = str(saved, d.key) !== "";
+          const wide = !!d.type;
+          return (
+            <div key={d.key} style={{ display: "grid", gridTemplateColumns: wide ? "minmax(0,1fr)" : "minmax(0,1fr) 150px 52px", gap: wide ? 6 : 10,
+              alignItems: "center", padding: "10px 0", borderTop: "1px solid var(--divider)" }}>
+              <div style={{ minWidth: 0 }}>
+                <div style={{ fontSize: 13, fontWeight: 600, color: "var(--text-1)" }}>{d.th}{wide && d.unit ? " (" + d.unit + ")" : ""}
+                  {own && !edit && <span style={{ marginLeft: 6, fontSize: 10.5, fontWeight: 700, color: "var(--tint-amber-tx)" }}>แก้แล้ว</span>}</div>
+                <div style={{ fontSize: 11, color: bad(d) ? "var(--tint-red-tx)" : "var(--text-3)", marginTop: 2 }}>
+                  {bad(d) ? "ค่านี้ใช้ไม่ได้ — ระบบใช้ค่าตั้งต้น " : "ค่าตั้งต้น "}{txt(d)}{wide ? "" : " " + d.unit}
+                  {wide && d.type === "nums" ? " · คั่นด้วยจุลภาค" : wide ? " · คั่นด้วยจุลภาค" : ""}</div>
+              </div>
+              {wide ? (
+                <textarea rows={txt(d).length > 70 ? 2 : 1} disabled={!edit} placeholder={edit ? txt(d) : ""} style={Object.assign(fld(d), { resize: "vertical", lineHeight: 1.5 })}
+                  value={edit ? v : (v || txt(d))} onChange={(e) => set(d.key, e.target.value)} />
+              ) : (
+                <input type="number" step="any" disabled={!edit} placeholder={edit ? txt(d) : ""} style={fld(d)}
+                  value={edit ? v : (v || txt(d))} onChange={(e) => set(d.key, e.target.value)} />
+              )}
+              {!wide && <span style={{ fontSize: 11.5, color: "var(--text-3)" }}>{d.unit}</span>}
+            </div>
+          );
+        })}
+      </div>
+      <div style={{ fontSize: 11.5, color: "var(--text-3)", lineHeight: 1.6 }}>
+        รายการที่ระบบคิดให้อัตโนมัติ (ตู้ไฟ · สายไฟ · ของจากแบบ 3D) คิดใหม่ตามค่านี้เมื่อเปิดใบ BOQ ·
+        ค่าขออนุญาต/วิศวกร และ % เผื่อ/กำไร ที่ใบกรอกไว้เองแล้วไม่ขยับตาม
+      </div>
     </div>
   );
 }
@@ -2345,4 +2469,4 @@ function CatBrowser({ list, count, low, imgs, title, hint, allLabel, onPick, onA
   );
 }
 
-Object.assign(window, { StockView });
+Object.assign(window, { StockView, BoqRulesPage });

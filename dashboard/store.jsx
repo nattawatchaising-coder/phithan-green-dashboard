@@ -856,6 +856,35 @@ function useOmTiers() {
 }
 
 /* ================================================================
+   useBoqRules — เงื่อนไขการคำนวณ BOQ ของบริษัท (ตัวคูณเบรกเกอร์ ฟิวส์ ค่าขออนุญาต % เผื่อ ฯลฯ)
+   เก็บที่ boqRules/<key> = ข้อความ · ไม่มีคีย์ = ค่าตั้งต้นใน boq.js (BOQ.RULE_DEFS)
+   บันทึกทีละคีย์ที่เปลี่ยน (ท่าเดียวกับ useConduitDefaults) — คนอื่นแก้คีย์อื่นพร้อมกันไม่ทับกัน
+   ================================================================ */
+const SF_RULES_KEY = "solarflow_boq_rules_v1";
+function _rulesLsGet() { try { const s = localStorage.getItem(SF_RULES_KEY); return s ? (JSON.parse(s) || {}) : {}; } catch (e) { return {}; } }
+function useBoqRules() {
+  const [val, setVal] = React.useState(() => (_FB() ? {} : _rulesLsGet()));
+  React.useEffect(() => {
+    if (!_FB()) return;
+    const ref = _fbr("boqRules");
+    const h = ref.on("value", (snap) => setVal(snap.val() || {}));
+    return () => ref.off("value", h);
+  }, []);
+  /* ค่าว่าง = ลบคีย์ (กลับไปใช้ค่าตั้งต้น) */
+  const setCell = React.useCallback((key, v) => {
+    const blank = v === "" || v === null || v === undefined;
+    if (_FB()) { if (blank) _fbRem("boqRules/" + key); else _fbSet("boqRules/" + key, String(v)); return; }
+    setVal((p) => {
+      const next = Object.assign({}, p);
+      if (blank) delete next[key]; else next[key] = String(v);
+      _lsSet(SF_RULES_KEY, next);
+      return next;
+    });
+  }, []);
+  return { val, setCell };
+}
+
+/* ================================================================
    Export to window (same pattern as original)
    ================================================================ */
 /* ── คำค้นหนึ่งคำ ตรงกับงานใบนี้ไหม ──
@@ -869,7 +898,7 @@ function jobMatchQ(j, q) {
 }
 
 Object.assign(window, {
-  useJobStore, useStockStore, useTechStore, useBrandStore, usePriceStore, useAmpacityStore, useConduitDefaults, useOmTiers,
+  useJobStore, useStockStore, useTechStore, useBrandStore, usePriceStore, useAmpacityStore, useConduitDefaults, useOmTiers, useBoqRules,
   blankJob, blankItem, blankTech, nextCode, jobMatchQ,
   SF_STORE_KEY,
 });

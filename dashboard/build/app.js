@@ -303,6 +303,7 @@ function App() {
   const ampStore = useAmpacityStore();
   const condStore = useConduitDefaults();
   const omStore = useOmTiers();
+  const rulesStore = useBoqRules();
   const apptStore = useSurveyApptStore();
   const leadStore = useSurveyLeadStore();
   const quoteStore = useQuoteStore();
@@ -654,6 +655,9 @@ function App() {
   React.useEffect(() => {
     if (window.BOQ && window.BOQ.setOmTiers) window.BOQ.setOmTiers(omStore.val);
   }, [omStore.val]);
+  React.useEffect(() => {
+    if (window.BOQ && window.BOQ.setRules) window.BOQ.setRules(rulesStore.val);
+  }, [rulesStore.val]);
   const closeSidebar = () => setSidebarOpen(false);
   const openJob = j => setSelected(j.id);
   const openSurvey = (j, appt) => {
@@ -1107,6 +1111,7 @@ function App() {
     ampStore: ampStore,
     condStore: condStore,
     omStore: omStore,
+    rulesStore: rulesStore,
     canManagePrices: can(role, "price")
   }) : view === "dispatch" ? React.createElement(DispatchView, {
     appts: apptStore.appts,

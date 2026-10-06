@@ -187,6 +187,7 @@ function StockView({
   ampStore,
   condStore,
   omStore,
+  rulesStore,
   canManagePrices
 }) {
   const SF = window.SF;
@@ -194,9 +195,10 @@ function StockView({
   const byName = currentUser && currentUser.name || "-";
   const [tab, setTab] = React.useState("stock");
   const isPrices = tab === "prices" && canManagePrices;
-  const isAmp = tab === "amp" && canManagePrices;
-  const isCond = tab === "cond" && canManagePrices;
-  const isOm = tab === "om" && canManagePrices;
+  const isRules = tab === "rules" && canManagePrices;
+  const isAmp = isRules,
+    isCond = isRules,
+    isOm = isRules;
   const [cat, setCat] = React.useState("all");
   const [sub, setSub] = React.useState("all");
   const [view, setView] = React.useState(() => localStorage.getItem("sf_stock_view") || "grid");
@@ -427,20 +429,10 @@ function StockView({
     label: "\u0E23\u0E32\u0E04\u0E32 BOQ",
     color: "#EC4899"
   }), React.createElement(CatChip, {
-    active: tab === "amp",
-    onClick: () => setTab("amp"),
-    label: "\u0E1E\u0E34\u0E01\u0E31\u0E14\u0E2A\u0E32\u0E22 \u0E27\u0E2A\u0E17.",
+    active: tab === "rules",
+    onClick: () => setTab("rules"),
+    label: "\u0E15\u0E31\u0E49\u0E07\u0E04\u0E48\u0E32\u0E04\u0E33\u0E19\u0E27\u0E13 BOQ",
     color: "#F59E0B"
-  }), React.createElement(CatChip, {
-    active: tab === "cond",
-    onClick: () => setTab("cond"),
-    label: "\u0E2D\u0E38\u0E1B\u0E01\u0E23\u0E13\u0E4C\u0E17\u0E48\u0E2D / \u0E23\u0E32\u0E07\u0E44\u0E1F",
-    color: "#0EA5E9"
-  }), React.createElement(CatChip, {
-    active: tab === "om",
-    onClick: () => setTab("om"),
-    label: "\u0E23\u0E32\u0E04\u0E32 O&M \xB7 \u0E25\u0E49\u0E32\u0E07\u0E41\u0E1C\u0E07",
-    color: "#10B981"
   })), !isMobile && !isAmp && !isCond && !isOm && React.createElement("button", {
     onClick: toggleCat,
     title: catOpen ? "ซ่อนตัวกรองหมวด" : "แสดงตัวกรองหมวด",
@@ -588,11 +580,9 @@ function StockView({
     }
   }, React.createElement("h1", {
     className: "page-title"
-  }, isAmp ? "พิกัดกระแสสายไฟ (วสท.)" : isOm ? "ราคา O&M · ล้างแผง" : isPrices ? "ราคาวัสดุ (BOQ)" : "คลังสินค้า / สต็อก"), isOm ? React.createElement("p", {
+  }, isRules ? "ตั้งค่าคำนวณ BOQ" : isPrices ? "ราคาวัสดุ (BOQ)" : "คลังสินค้า / สต็อก"), isRules ? React.createElement("p", {
     className: "page-sub"
-  }, "\u0E23\u0E32\u0E04\u0E32\u0E07\u0E32\u0E19\u0E15\u0E32\u0E21\u0E02\u0E19\u0E32\u0E14\u0E23\u0E30\u0E1A\u0E1A (kWp) \u2014 \u0E43\u0E1A BOQ \u0E17\u0E38\u0E01\u0E43\u0E1A\u0E04\u0E34\u0E14\u0E04\u0E48\u0E32 O&M \u0E08\u0E32\u0E01\u0E15\u0E32\u0E23\u0E32\u0E07\u0E19\u0E35\u0E49") : isAmp ? React.createElement("p", {
-    className: "page-sub"
-  }, "\u0E15\u0E32\u0E23\u0E32\u0E07\u0E1E\u0E34\u0E01\u0E31\u0E14\u0E01\u0E23\u0E30\u0E41\u0E2A \u0E27\u0E2A\u0E17. \u2014 \u0E41\u0E22\u0E01\u0E15\u0E32\u0E21\u0E09\u0E19\u0E27\u0E19 \xD7 \u0E27\u0E34\u0E18\u0E35\u0E40\u0E14\u0E34\u0E19\u0E2A\u0E32\u0E22 \xD7 \u0E02\u0E19\u0E32\u0E14 (\u0E43\u0E0A\u0E49\u0E04\u0E33\u0E19\u0E27\u0E13/\u0E40\u0E15\u0E37\u0E2D\u0E19\u0E02\u0E19\u0E32\u0E14\u0E2A\u0E32\u0E22\u0E43\u0E19 BOQ)") : isPrices ? React.createElement("p", {
+  }, "\u0E40\u0E07\u0E37\u0E48\u0E2D\u0E19\u0E44\u0E02\u0E41\u0E25\u0E30\u0E15\u0E32\u0E23\u0E32\u0E07\u0E17\u0E35\u0E48\u0E43\u0E1A BOQ \u0E43\u0E0A\u0E49\u0E04\u0E34\u0E14\u0E2D\u0E38\u0E1B\u0E01\u0E23\u0E13\u0E4C \u0E23\u0E32\u0E04\u0E32 \u0E41\u0E25\u0E30\u0E04\u0E48\u0E32\u0E1A\u0E23\u0E34\u0E01\u0E32\u0E23 \u2014 \u0E15\u0E31\u0E49\u0E07\u0E04\u0E23\u0E31\u0E49\u0E07\u0E40\u0E14\u0E35\u0E22\u0E27\u0E43\u0E0A\u0E49\u0E17\u0E31\u0E49\u0E07\u0E1A\u0E23\u0E34\u0E29\u0E31\u0E17") : isPrices ? React.createElement("p", {
     className: "page-sub"
   }, "\u0E23\u0E2B\u0E31\u0E2A / \u0E23\u0E32\u0E04\u0E32 / \u0E2B\u0E19\u0E48\u0E27\u0E22 \u0E2A\u0E33\u0E2B\u0E23\u0E31\u0E1A\u0E04\u0E33\u0E19\u0E27\u0E13\u0E15\u0E49\u0E19\u0E17\u0E38\u0E19 BOQ") : React.createElement("p", {
     className: "page-sub"
@@ -671,18 +661,14 @@ function StockView({
     size: 17,
     color: "#fff",
     sw: 2.4
-  }), React.createElement("span", null, "\u0E40\u0E1E\u0E34\u0E48\u0E21\u0E23\u0E32\u0E22\u0E01\u0E32\u0E23")))))), isAmp ? React.createElement("div", {
+  }), React.createElement("span", null, "\u0E40\u0E1E\u0E34\u0E48\u0E21\u0E23\u0E32\u0E22\u0E01\u0E32\u0E23")))))), isRules ? React.createElement("div", {
     className: "app-content"
-  }, filterBar, React.createElement(AmpacityEditor, {
-    ampStore: ampStore
-  })) : isCond ? React.createElement("div", {
-    className: "app-content"
-  }, filterBar, React.createElement(ConduitDefaultsEditor, {
-    condStore: condStore
-  })) : isOm ? React.createElement("div", {
-    className: "app-content"
-  }, filterBar, React.createElement(OmTierEditor, {
-    omStore: omStore
+  }, filterBar, React.createElement(BoqRulesPage, {
+    ampStore: ampStore,
+    condStore: condStore,
+    omStore: omStore,
+    rulesStore: rulesStore,
+    isMobile: isMobile
   })) : isPrices ? React.createElement("div", {
     className: "app-content"
   }, filterBar, React.createElement(PricePanel, {
@@ -4015,7 +4001,7 @@ function OmTierEditor({
   const k = +kw || 0;
   const clean = BOQ.omTierPrice ? BOQ.omTierPrice(BOQ.OM_CLEAN_TIERS || [], k) : 0;
   const svc = BOQ.omTierPrice ? BOQ.omTierPrice(BOQ.OM_SVC_TIERS || [], k) : 0;
-  const yr = clean + svc;
+  const yr = ((BOQ.RULES || {}).omPerYear || 1) * clean + svc;
   const box = (label, v, hi) => React.createElement("div", {
     style: {
       background: "var(--surface2)",
@@ -4096,18 +4082,368 @@ function OmTierEditor({
       fontSize: 11,
       color: "var(--text-3)"
     }
-  }, "\u0E04\u0E48\u0E32\u0E10\u0E32\u0E19: \u0E41\u0E16\u0E21 2 \u0E1B\u0E35 \xB7 \u0E25\u0E49\u0E32\u0E07\u0E41\u0E1C\u0E07\u0E1B\u0E35\u0E25\u0E30 1 \u0E04\u0E23\u0E31\u0E49\u0E07")), React.createElement("div", {
+  }, "\u0E04\u0E48\u0E32\u0E10\u0E32\u0E19: \u0E41\u0E16\u0E21 ", (BOQ.RULES || {}).omYears, " \u0E1B\u0E35 \xB7 \u0E25\u0E49\u0E32\u0E07\u0E41\u0E1C\u0E07\u0E1B\u0E35\u0E25\u0E30 ", (BOQ.RULES || {}).omPerYear, " \u0E04\u0E23\u0E31\u0E49\u0E07 (\u0E41\u0E01\u0E49\u0E43\u0E19\u0E2B\u0E31\u0E27\u0E02\u0E49\u0E2D \u0E40\u0E1C\u0E37\u0E48\u0E2D \xB7 \u0E01\u0E33\u0E44\u0E23 \xB7 O&M)")), React.createElement("div", {
     style: {
       display: "grid",
       gridTemplateColumns: "repeat(auto-fit, minmax(140px, 1fr))",
       gap: 8
     }
-  }, box("ล้างแผง / ครั้ง", clean), box("งาน O&M / ปี", svc), box("ต่อปี (ลูกค้าต่อเอง)", yr, true), box("รวมในราคาติดตั้ง 2 ปี", yr * 2, true))), OM_TIER_KINDS.map(kd => React.createElement(OmTierTable, {
+  }, box("ล้างแผง / ครั้ง", clean), box("งาน O&M / ปี", svc), box("ต่อปี (ลูกค้าต่อเอง)", yr, true), box("รวมในราคาติดตั้ง " + ((BOQ.RULES || {}).omYears || 2) + " ปี", yr * ((BOQ.RULES || {}).omYears || 2), true))), OM_TIER_KINDS.map(kd => React.createElement(OmTierTable, {
     key: kd.key,
     kind: kd,
     saved: val[kd.key],
     onSave: rows => omStore && omStore.save(kd.key, rows)
   })));
+}
+const BR_FIXED_SECS = [{
+  k: "amp",
+  th: "พิกัดสาย วสท.",
+  sub: "ตารางพิกัดกระแสตามฉนวน × วิธีเดินสาย × ขนาด"
+}, {
+  k: "cond",
+  th: "อุปกรณ์ท่อ / รางไฟ",
+  sub: "กฎคิดจำนวนอุปกรณ์ IMC/uPVC · % เผื่อ"
+}, {
+  k: "om",
+  th: "ราคา O&M · ล้างแผง",
+  sub: "ตารางราคาตามขนาดระบบ (kWp)"
+}];
+function BoqRulesPage({
+  ampStore,
+  condStore,
+  omStore,
+  rulesStore,
+  isMobile
+}) {
+  const BOQ = window.BOQ || {};
+  const secs = (BOQ.RULE_SECS || []).concat(BR_FIXED_SECS);
+  const [sec, setSec] = React.useState(() => {
+    try {
+      return localStorage.getItem("br_sec") || "board";
+    } catch (e) {
+      return "board";
+    }
+  });
+  const pick = k => {
+    setSec(k);
+    try {
+      localStorage.setItem("br_sec", k);
+    } catch (e) {}
+  };
+  const saved = rulesStore && rulesStore.val || {};
+  const nSet = k => (BOQ.RULE_DEFS || []).filter(d => d.sec === k && saved[d.key] != null && saved[d.key] !== "").length;
+  const cur = secs.find(x => x.k === sec) || secs[0];
+  const body = sec === "amp" ? React.createElement(AmpacityEditor, {
+    ampStore: ampStore
+  }) : sec === "cond" ? React.createElement(ConduitDefaultsEditor, {
+    condStore: condStore
+  }) : sec === "om" ? React.createElement(OmTierEditor, {
+    omStore: omStore
+  }) : React.createElement(BoqRuleSec, {
+    sec: cur,
+    rulesStore: rulesStore
+  });
+  if (isMobile) return React.createElement("div", {
+    style: {
+      display: "flex",
+      flexDirection: "column",
+      gap: 12
+    }
+  }, React.createElement(Dropdown, {
+    value: cur.k,
+    onChange: pick,
+    options: secs.map(x => ({
+      value: x.k,
+      label: x.th + (nSet(x.k) ? " · แก้แล้ว " + nSet(x.k) : "")
+    }))
+  }), body);
+  return React.createElement("div", {
+    style: {
+      display: "grid",
+      gridTemplateColumns: "250px minmax(0,1fr)",
+      gap: 18,
+      alignItems: "start"
+    }
+  }, React.createElement("nav", {
+    style: {
+      position: "sticky",
+      top: 12,
+      background: "var(--surface)",
+      boxShadow: "var(--shadow-card)",
+      borderRadius: "var(--r-card)",
+      padding: 8,
+      display: "flex",
+      flexDirection: "column",
+      gap: 2
+    }
+  }, secs.map((x, i) => {
+    const on = x.k === cur.k,
+      n = nSet(x.k);
+    return React.createElement(React.Fragment, {
+      key: x.k
+    }, i === (BOQ.RULE_SECS || []).length && React.createElement("div", {
+      style: {
+        fontSize: 10.5,
+        fontWeight: 700,
+        color: "var(--text-3)",
+        padding: "10px 10px 4px"
+      }
+    }, "\u0E15\u0E32\u0E23\u0E32\u0E07"), React.createElement("button", {
+      onClick: () => pick(x.k),
+      style: {
+        textAlign: "left",
+        border: "none",
+        cursor: "pointer",
+        fontFamily: "inherit",
+        padding: "9px 11px",
+        borderRadius: "var(--r-tile)",
+        background: on ? "var(--primary-soft)" : "transparent",
+        color: on ? "var(--primary-dark)" : "var(--text-1)"
+      }
+    }, React.createElement("span", {
+      style: {
+        display: "flex",
+        alignItems: "center",
+        gap: 6,
+        fontSize: 13,
+        fontWeight: 700
+      }
+    }, React.createElement("span", {
+      style: {
+        flex: 1,
+        minWidth: 0
+      }
+    }, x.th), n > 0 && React.createElement("span", {
+      title: "\u0E04\u0E48\u0E32\u0E17\u0E35\u0E48\u0E41\u0E01\u0E49\u0E08\u0E32\u0E01\u0E04\u0E48\u0E32\u0E15\u0E31\u0E49\u0E07\u0E15\u0E49\u0E19",
+      style: {
+        fontSize: 10.5,
+        fontWeight: 700,
+        padding: "1px 7px",
+        borderRadius: "var(--r-pill)",
+        background: "var(--tint-amber-bg)",
+        color: "var(--tint-amber-tx)"
+      }
+    }, n)), React.createElement("span", {
+      style: {
+        display: "block",
+        fontSize: 11,
+        color: "var(--text-3)",
+        marginTop: 2,
+        lineHeight: 1.4
+      }
+    }, x.sub)));
+  })), React.createElement("div", {
+    style: {
+      minWidth: 0
+    }
+  }, body));
+}
+function BoqRuleSec({
+  sec,
+  rulesStore
+}) {
+  const BOQ = window.BOQ || {};
+  const defs = (BOQ.RULE_DEFS || []).filter(d => d.sec === sec.k);
+  const saved = rulesStore && rulesStore.val || {};
+  const [draft, setDraft] = React.useState(null);
+  React.useEffect(() => {
+    setDraft(null);
+  }, [sec.k]);
+  const edit = !!draft;
+  const view = draft || saved;
+  const txt = d => BOQ.ruleTxt ? BOQ.ruleTxt(d, d.def) : String(d.def);
+  const str = (o, k) => o[k] != null ? String(o[k]) : "";
+  const dirty = defs.filter(d => str(saved, d.key) !== str(draft || saved, d.key));
+  const nEdited = defs.filter(d => str(saved, d.key) !== "").length;
+  const set = (k, v) => setDraft(p => {
+    const n = Object.assign({}, p);
+    if (v === "") delete n[k];else n[k] = v;
+    return n;
+  });
+  const save = () => {
+    dirty.forEach(d => rulesStore && rulesStore.setCell(d.key, str(draft, d.key).trim()));
+    setDraft(null);
+  };
+  const cancel = () => {
+    if (!dirty.length) {
+      setDraft(null);
+      return;
+    }
+    window.askConfirm({
+      title: "ทิ้งที่แก้ไว้?",
+      body: "ค่าที่แก้ไว้ " + dirty.length + " ช่อง จะไม่ถูกบันทึก",
+      ok: "ทิ้ง",
+      danger: true
+    }).then(ok => {
+      if (ok) setDraft(null);
+    });
+  };
+  const resetAll = () => window.askConfirm({
+    title: "คืนค่าตั้งต้น · " + sec.th + "?",
+    body: "ค่าที่ตั้งไว้ " + nEdited + " ช่อง จะกลับไปใช้ค่าตั้งต้นของระบบ",
+    ok: "คืนค่าตั้งต้น"
+  }).then(ok => {
+    if (ok) defs.forEach(d => {
+      if (str(saved, d.key) !== "") rulesStore.setCell(d.key, "");
+    });
+  });
+  const bad = d => {
+    const v = str(view, d.key);
+    if (!v || !BOQ.ruleVal) return false;
+    return BOQ.ruleVal(d, v) === d.def && v.replace(/s/g, "") !== txt(d).replace(/s/g, "");
+  };
+  const btn = on => ({
+    padding: "7px 14px",
+    borderRadius: "var(--r-tile)",
+    fontFamily: "inherit",
+    fontSize: 12.5,
+    fontWeight: 700,
+    cursor: "pointer",
+    border: "none",
+    background: on ? "var(--primary)" : "var(--surface2)",
+    color: on ? "#fff" : "var(--text-2)",
+    boxShadow: on ? "var(--shadow-btn)" : "var(--shadow-sm)"
+  });
+  const fld = d => ({
+    width: "100%",
+    boxSizing: "border-box",
+    border: "none",
+    outline: "none",
+    fontFamily: "inherit",
+    fontSize: 13,
+    padding: "8px 10px",
+    borderRadius: "var(--r-chip)",
+    color: "var(--text-1)",
+    textAlign: d.type ? "left" : "right",
+    fontVariantNumeric: "tabular-nums",
+    background: edit ? "var(--surface2)" : "transparent",
+    boxShadow: edit ? "var(--shadow-inset)" : "none"
+  });
+  return React.createElement("div", {
+    style: {
+      display: "flex",
+      flexDirection: "column",
+      gap: 12,
+      maxWidth: 860
+    }
+  }, React.createElement("div", {
+    style: {
+      display: "flex",
+      alignItems: "center",
+      gap: 8,
+      flexWrap: "wrap"
+    }
+  }, edit ? React.createElement(React.Fragment, null, React.createElement("button", {
+    onClick: save,
+    style: btn(true)
+  }, "\u0E1A\u0E31\u0E19\u0E17\u0E36\u0E01", dirty.length ? " (" + dirty.length + ")" : ""), React.createElement("button", {
+    onClick: cancel,
+    style: btn(false)
+  }, "\u0E22\u0E01\u0E40\u0E25\u0E34\u0E01"), React.createElement("span", {
+    style: {
+      fontSize: 11.5,
+      color: "var(--text-3)"
+    }
+  }, dirty.length ? "แก้ไว้ " + dirty.length + " ช่อง ยังไม่ได้บันทึก" : "กำลังแก้ไข · เว้นว่าง = ใช้ค่าตั้งต้น")) : React.createElement(React.Fragment, null, React.createElement("button", {
+    onClick: () => setDraft(Object.assign({}, saved)),
+    style: btn(false),
+    disabled: !rulesStore
+  }, "\u0E41\u0E01\u0E49\u0E44\u0E02"), React.createElement("button", {
+    onClick: resetAll,
+    disabled: !nEdited,
+    style: Object.assign(btn(false), {
+      color: nEdited ? "var(--text-2)" : "var(--text-3)",
+      cursor: nEdited ? "pointer" : "default"
+    })
+  }, "\u0E04\u0E37\u0E19\u0E04\u0E48\u0E32\u0E15\u0E31\u0E49\u0E07\u0E15\u0E49\u0E19", nEdited ? " (" + nEdited + ")" : ""))), React.createElement("div", {
+    style: {
+      background: "var(--surface)",
+      boxShadow: "var(--shadow-card)",
+      borderRadius: "var(--r-card)",
+      padding: "6px 16px"
+    }
+  }, React.createElement("div", {
+    style: {
+      padding: "10px 0 8px",
+      fontSize: 14,
+      fontWeight: 700
+    }
+  }, sec.th, React.createElement("span", {
+    style: {
+      display: "block",
+      fontSize: 11.5,
+      fontWeight: 500,
+      color: "var(--text-3)",
+      marginTop: 2
+    }
+  }, sec.sub)), defs.map((d, i) => {
+    const v = str(view, d.key),
+      own = str(saved, d.key) !== "";
+    const wide = !!d.type;
+    return React.createElement("div", {
+      key: d.key,
+      style: {
+        display: "grid",
+        gridTemplateColumns: wide ? "minmax(0,1fr)" : "minmax(0,1fr) 150px 52px",
+        gap: wide ? 6 : 10,
+        alignItems: "center",
+        padding: "10px 0",
+        borderTop: "1px solid var(--divider)"
+      }
+    }, React.createElement("div", {
+      style: {
+        minWidth: 0
+      }
+    }, React.createElement("div", {
+      style: {
+        fontSize: 13,
+        fontWeight: 600,
+        color: "var(--text-1)"
+      }
+    }, d.th, wide && d.unit ? " (" + d.unit + ")" : "", own && !edit && React.createElement("span", {
+      style: {
+        marginLeft: 6,
+        fontSize: 10.5,
+        fontWeight: 700,
+        color: "var(--tint-amber-tx)"
+      }
+    }, "\u0E41\u0E01\u0E49\u0E41\u0E25\u0E49\u0E27")), React.createElement("div", {
+      style: {
+        fontSize: 11,
+        color: bad(d) ? "var(--tint-red-tx)" : "var(--text-3)",
+        marginTop: 2
+      }
+    }, bad(d) ? "ค่านี้ใช้ไม่ได้ — ระบบใช้ค่าตั้งต้น " : "ค่าตั้งต้น ", txt(d), wide ? "" : " " + d.unit, wide && d.type === "nums" ? " · คั่นด้วยจุลภาค" : wide ? " · คั่นด้วยจุลภาค" : "")), wide ? React.createElement("textarea", {
+      rows: txt(d).length > 70 ? 2 : 1,
+      disabled: !edit,
+      placeholder: edit ? txt(d) : "",
+      style: Object.assign(fld(d), {
+        resize: "vertical",
+        lineHeight: 1.5
+      }),
+      value: edit ? v : v || txt(d),
+      onChange: e => set(d.key, e.target.value)
+    }) : React.createElement("input", {
+      type: "number",
+      step: "any",
+      disabled: !edit,
+      placeholder: edit ? txt(d) : "",
+      style: fld(d),
+      value: edit ? v : v || txt(d),
+      onChange: e => set(d.key, e.target.value)
+    }), !wide && React.createElement("span", {
+      style: {
+        fontSize: 11.5,
+        color: "var(--text-3)"
+      }
+    }, d.unit));
+  })), React.createElement("div", {
+    style: {
+      fontSize: 11.5,
+      color: "var(--text-3)",
+      lineHeight: 1.6
+    }
+  }, "\u0E23\u0E32\u0E22\u0E01\u0E32\u0E23\u0E17\u0E35\u0E48\u0E23\u0E30\u0E1A\u0E1A\u0E04\u0E34\u0E14\u0E43\u0E2B\u0E49\u0E2D\u0E31\u0E15\u0E42\u0E19\u0E21\u0E31\u0E15\u0E34 (\u0E15\u0E39\u0E49\u0E44\u0E1F \xB7 \u0E2A\u0E32\u0E22\u0E44\u0E1F \xB7 \u0E02\u0E2D\u0E07\u0E08\u0E32\u0E01\u0E41\u0E1A\u0E1A 3D) \u0E04\u0E34\u0E14\u0E43\u0E2B\u0E21\u0E48\u0E15\u0E32\u0E21\u0E04\u0E48\u0E32\u0E19\u0E35\u0E49\u0E40\u0E21\u0E37\u0E48\u0E2D\u0E40\u0E1B\u0E34\u0E14\u0E43\u0E1A BOQ \xB7 \u0E04\u0E48\u0E32\u0E02\u0E2D\u0E2D\u0E19\u0E38\u0E0D\u0E32\u0E15/\u0E27\u0E34\u0E28\u0E27\u0E01\u0E23 \u0E41\u0E25\u0E30 % \u0E40\u0E1C\u0E37\u0E48\u0E2D/\u0E01\u0E33\u0E44\u0E23 \u0E17\u0E35\u0E48\u0E43\u0E1A\u0E01\u0E23\u0E2D\u0E01\u0E44\u0E27\u0E49\u0E40\u0E2D\u0E07\u0E41\u0E25\u0E49\u0E27\u0E44\u0E21\u0E48\u0E02\u0E22\u0E31\u0E1A\u0E15\u0E32\u0E21"));
 }
 function AmpacityEditor({
   ampStore
@@ -6089,5 +6425,6 @@ function CatBrowser({
   }))));
 }
 Object.assign(window, {
-  StockView
+  StockView,
+  BoqRulesPage
 });

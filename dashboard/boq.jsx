@@ -689,7 +689,8 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock, ver, verName, p3Vers
   const corePick = wcalc.core || "single";
   const calcCore = (window.BOQ.ampCoreKey || (() => "single"))(calcGroup, corePick, corePick);
   // เลือกขนาดสายให้รับ กระแส×1.25 (โหลดต่อเนื่อง) — ตามพิกัด วสท. (ฉนวน+วิธี+กลุ่ม+จำนวนตัวนำ+แกน) แล้วหักตัวคูณลดกระแส
-  const pickWire = (amp, nc) => window.BOQ.pickWireSize((+amp || 0) * 1.25, calcIns, { method: calcMethod, group: calcGroup, ncond: nc || calcNCond, core: calcCore, derate: calcDerate });
+  const WK = window.BOQ.RULES.wireK;   // ตัวคูณเลือกขนาดสาย (ตั้งค่าคำนวณ BOQ → สายไฟ)
+  const pickWire = (amp, nc) => window.BOQ.pickWireSize((+amp || 0) * WK, calcIns, { method: calcMethod, group: calcGroup, ncond: nc || calcNCond, core: calcCore, derate: calcDerate });
   // ตารางพิกัดของวิธีที่เลือกมีจริงไหม / ยืมมาจากวิธีอื่นไหม — ไว้บอกผู้ใช้ตรง ๆ
   const ampSrc = window.BOQ.ampTableFor
     ? window.BOQ.ampTableFor(calcIns, calcMethod, window.BOQ.ampColKey(calcGroup, calcNCond, calcCore))
@@ -742,11 +743,12 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock, ver, verName, p3Vers
   /* MCCB ปรับตั้งกระแสได้ (Ir = 0.8–1.0 × In) — ไม่ต้องเผื่อถึง 1.25×
      Ir = กระแสออก × 1.05 ปัดขึ้นทีละ 5 A (84 A → 90 A) · In = ขนาดเฟรมมาตรฐานเล็กสุดที่ ≥ Ir (90 A → 100 AT ตั้งที่ 0.9)
      สายไฟคิดจาก Ir — สายรับ ≥ Ir เบรกเกอร์ตัดก่อนสายร้อนเสมอ */
-  const BRK_AT = [16, 20, 25, 32, 40, 50, 63, 80, 100, 125, 160, 200, 225, 250, 320, 400, 500, 630, 800, 1000, 1250];
-  const ACB_AT = [1600, 2000, 2500, 3200, 4000];           // เกิน MCCB 1250 AT → ACB
-  const GF_IN_AT = 1000;   // เมนตั้งแต่ขนาดนี้ใช้ trip unit LSIG (Ground Fault ในตัว) — วสท. บังคับ GFP ที่เมน ≥ 1000 A
+  const RU = window.BOQ.RULES;   // ตั้งค่าคำนวณ BOQ (หน้าคลัง) — ค่าตั้งต้นเท่ากับตัวเลขเดิมในคอมเมนต์
+  const BRK_AT = RU.mccbAt;
+  const ACB_AT = RU.acbAt;           // เกิน MCCB ตัวใหญ่สุด → ACB
+  const GF_IN_AT = RU.gfLsigAt;   // เมนตั้งแต่ขนาดนี้ใช้ trip unit LSIG (Ground Fault ในตัว) — วสท. บังคับ GFP ที่เมน ≥ 1000 A
   const brkSet = (ib) => {
-    let ir = Math.ceil((ib * 1.05) / 5) * 5;
+    let ir = Math.ceil((ib * RU.mccbIrK) / RU.mccbStep) * RU.mccbStep;
     const acb = ir > BRK_AT[BRK_AT.length - 1];
     const L = acb ? ACB_AT : BRK_AT;
     const at = L.find((x) => x >= ir) || L[L.length - 1];
@@ -765,7 +767,7 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock, ver, verName, p3Vers
     if (invUnits.length && /MCB_SOLAR-MDB/.test(n)) return mcbInvsOf(row).reduce((s, no) => s + ((invUnits[no - 1] || {}).outA || 0), 0) || null;
     if (invUnits.length && /INVERTER-MCB_SOLAR/.test(n)) { const u = invUnits[((row && +row.inv) || 1) - 1] || invUnits[0]; return u.outA || null; }
     const r = reqAmpBase(cab);
-    return r ? r / 1.25 : null;
+    return r ? r / WK : null;
   };
   const reqAmpBase = (cab) => {
     const homeJob = !!(job && job.type === "home");   // งานบ้าน = คิดสาย 1.25 × กระแสแบบเดิม · งานโครงการ = ตามกระแสตั้ง MCCB
@@ -777,26 +779,26 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock, ver, verName, p3Vers
     if (invUnits.length) {
       if (/MCB_SOLAR-MDB/.test(n)) {                                         // รวมเฉพาะตัวที่อยู่ตู้นี้ → ตู้เมน
         const a = mcbInvsOf(row).reduce((s, no) => s + ((invUnits[no - 1] || {}).outA || 0), 0);
-        return a ? (homeJob ? a * 1.25 : brkSet(a).ir) : null;                                      // ตามกระแสตั้งของ MCCB เมน
+        return a ? (homeJob ? a * WK : brkSet(a).ir) : null;                                      // ตามกระแสตั้งของ MCCB เมน
       }
       if (/INVERTER-MCB_SOLAR/.test(n)) {                                    // อินเวอร์เตอร์ตัวของแถวนี้
         const u = invUnits[((row && +row.inv) || 1) - 1] || invUnits[0];
-        return u.outA ? (homeJob ? u.outA * 1.25 : brkSet(u.outA).ir) : null;                           // ตามกระแสตั้งของ MCCB อินเวอร์เตอร์
+        return u.outA ? (homeJob ? u.outA * WK : brkSet(u.outA).ir) : null;                           // ตามกระแสตั้งของ MCCB อินเวอร์เตอร์
       }
     }
     const invAcPer = selInv ? (+selInv.outA || 0) : 0;                       // กระแสออก AC ต่ออินเวอร์เตอร์ 1 ตัว
     const invCnt = (result && result.meta && result.meta.invCount) || 1;
-    if (/MCB_SOLAR-MDB/.test(n)) return invAcPer ? invAcPer * invCnt * 1.25 : null;   // รวมทุกตัว → ตู้เมน
-    if (/INVERTER-MCB_SOLAR/.test(n)) return invAcPer ? invAcPer * 1.25 : null;       // ต่ออินเวอร์เตอร์ 1 ตัว
+    if (/MCB_SOLAR-MDB/.test(n)) return invAcPer ? invAcPer * invCnt * WK : null;   // รวมทุกตัว → ตู้เมน
+    if (/INVERTER-MCB_SOLAR/.test(n)) return invAcPer ? invAcPer * WK : null;       // ต่ออินเวอร์เตอร์ 1 ตัว
     const microRow = wireCalcRows.find((r) => r.kind === "micromicro");
     const mainRow = wireCalcRows.find((r) => r.kind === "main") || wireCalcRows[0];
     const mcbRow = wireCalcRows.find((r) => r.kind === "mcb") || mainRow;
     const backupRow = wireCalcRows.find((r) => r.kind === "backup");
-    if (/MICRO[\s-]*MICRO/.test(n)) return microRow ? microRow.ampTotal * 1.25 : 0;   // ไมโคร 1 ตัว
-    if (/MICRO/.test(n)) return mainRow.ampString * 1.25;                              // MICRO-COMBINER = ต่อสตริง
-    if (/BACKUP|สำรอง/.test(n)) return backupRow && backupRow.ampTotal ? backupRow.ampTotal * 1.25 : null;  // ตามเมนที่ Backup
-    if (/BAT|แบต/.test(n)) return mcbRow.battAmp ? mcbRow.battAmp * 1.25 : null;        // กระแสแบต
-    return mcbRow.ampTotal * 1.25;                                                      // COMBINER → MCB = รวม MICRO+BAT
+    if (/MICRO[\s-]*MICRO/.test(n)) return microRow ? microRow.ampTotal * WK : 0;   // ไมโคร 1 ตัว
+    if (/MICRO/.test(n)) return mainRow.ampString * WK;                              // MICRO-COMBINER = ต่อสตริง
+    if (/BACKUP|สำรอง/.test(n)) return backupRow && backupRow.ampTotal ? backupRow.ampTotal * WK : null;  // ตามเมนที่ Backup
+    if (/BAT|แบต/.test(n)) return mcbRow.battAmp ? mcbRow.battAmp * WK : null;        // กระแสแบต
+    return mcbRow.ampTotal * WK;                                                      // COMBINER → MCB = รวม MICRO+BAT
   };
 
   // ชื่อจุดเดินสาย: ตัวเลือกตั้งต้น + ที่ผู้ใช้เพิ่มเอง (เก็บใน localStorage ใช้ซ้ำได้)
@@ -1083,11 +1085,11 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock, ver, verName, p3Vers
   const KIT_SECS = [
     { key: "project", sec: "board", icon: "box", title: "ตู้ไฟ",
       hint: "ตู้ไฟของงานโครงการ — อินเวอร์เตอร์สตริง/ไฮบริด ระบบคิดอุปกรณ์ในตู้ AC / DC ให้จากอินเวอร์เตอร์ สตริง และสายไฟ (ตู้ AC 1 ตู้ต่อสายเมน 1 เส้น · ตู้ DC 1 ตู้ต่ออินเวอร์เตอร์) · "
-        + "เบรกเกอร์: MCCB ปรับตั้งกระแสได้ ตั้งที่กระแสออก × 1.05 ปัดขึ้นทีละ 5 A (เช่น 84 A → 100 AT ปรับตั้ง 90 A) แล้วคิดขนาดสายจากกระแสตั้ง — ถ้าเลือกสายเองเล็กกว่านั้น จะขึ้นคำแนะนำในหัวข้อสายไฟ · "
-        + "ที่เมนตู้ AC มีระบบ Ground Fault (เมน < 1000 AT = GFR + ZCT + Shunt trip · เมน ≥ 1000 AT = เบรกเกอร์ LSIG มีในตัว) และ Power Meter PM2230 + CT ตามขนาดเมน + MCB 6A กันสายวัด — ปิดแยกได้ · "
+        + "เบรกเกอร์: MCCB ปรับตั้งกระแสได้ ตั้งที่กระแสออก × " + RU.mccbIrK + " ปัดขึ้นทีละ " + RU.mccbStep + " A แล้วคิดขนาดสายจากกระแสตั้ง — ถ้าเลือกสายเองเล็กกว่านั้น จะขึ้นคำแนะนำในหัวข้อสายไฟ · "
+        + "ที่เมนตู้ AC มีระบบ Ground Fault (เมน < " + GF_IN_AT + " AT = GFR + ZCT + Shunt trip · เมน ≥ " + GF_IN_AT + " AT = เบรกเกอร์ LSIG มีในตัว) และ Power Meter PM2230 + CT ตามขนาดเมน + MCB 6A กันสายวัด — ปิดแยกได้ · "
         + "ระบบล่อฟ้า: ถ้าแผงอยู่ใกล้ล่อฟ้า (ต่อถึงกันหรือห่างไม่ถึงระยะปลอดภัย) SPD ทั้ง AC และ DC เปลี่ยนเป็น Type 1+2 · "
-        + "ฟิวส์กันหลัง SPD ฝั่ง AC เป็นฟิวส์ใบมีด NH00 gG เส้นไฟละ 1 ตัว — Type 2 ใช้ 32 A · Type 1+2 ใช้ 125 A (ไม่ต้องมีถ้า MCCB เมนตู้ ≤ 125 AT) · "
-        + "ฟิวส์ DC แบบ gPV ขั้ว + และ − ทุกสตริง (1.5–2.4 × Isc) · กรอกจำนวนตู้เองได้ และปิดรายการอัตโนมัติรายตู้ได้ · ราคาดึงจากคลังเหมือนวัสดุอื่น" },
+        + "ฟิวส์กันหลัง SPD ฝั่ง AC เป็นฟิวส์ใบมีด NH00 gG เส้นไฟละ 1 ตัว — Type 2 ใช้ " + RU.nhT2 + " A · Type 1+2 ใช้ " + RU.nhT12 + " A (ไม่ต้องมีถ้า MCCB เมนตู้ ≤ " + RU.nhT12 + " AT) · "
+        + "ฟิวส์ DC แบบ gPV ขั้ว + และ − ทุกสตริง (" + RU.dcFuseK + "–" + RU.dcFuseMaxK + " × Isc) · ตัวเลขเหล่านี้แก้ได้ที่หน้าคลัง → ตั้งค่าคำนวณ BOQ · กรอกจำนวนตู้เองได้ และปิดรายการอัตโนมัติรายตู้ได้ · ราคาดึงจากคลังเหมือนวัสดุอื่น" },
     { key: "watersys", sec: "water", icon: "power", title: "ระบบน้ำ (ปั๊ม · ถัง · ท่อ)",
       hint: "ระบบล้างแผง — กรอกเฉพาะที่งานนี้มี ที่เหลือปล่อยว่าง · ราคาดึงจากคลังเหมือนวัสดุอื่น" },
   ];
@@ -1097,7 +1099,7 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock, ver, verName, p3Vers
   });
   // งานบ้านมีเฉพาะหมวดตู้ไฟ (คิดอุปกรณ์อัตโนมัติแบบงานโครงการ) · ระบบน้ำมีแต่งานโครงการ
   const kitShown = isHome ? kitSections.filter((sc) => sc.sec === "board" || (sc.sec === "water" && pipe3dRaw))
-    .map((sc) => Object.assign({}, sc, { hint: "ตู้ไฟของงานบ้าน — คิดแบบงานโครงการ: เบรกเกอร์ตามกระแสอินเวอร์เตอร์ (RCBO 100mA ขนาดแรกที่ ≥ 1.25 × กระแส — 1 เฟสถึง 50 A · 3 เฟสถึง 63 A เกินนั้นใช้ MCCB · อินเวอร์เตอร์ตัวเดียวไม่มีเมนแยก) · SPD Type 2 กันหลังด้วย MCB 32A · ฟิวส์ DC ตาม Isc/Voc ของสตริง · ราคาดึงจากคลังเหมือนวัสดุอื่น" })) : kitSections;
+    .map((sc) => Object.assign({}, sc, { hint: "ตู้ไฟของงานบ้าน — คิดแบบงานโครงการ: เบรกเกอร์ตามกระแสอินเวอร์เตอร์ (RCBO 100mA ขนาดแรกที่ ≥ " + RU.fixK + " × กระแส — 1 เฟสถึง " + RU.rcbo2P[RU.rcbo2P.length - 1] + " A · 3 เฟสถึง " + RU.rcbo3P[RU.rcbo3P.length - 1] + " A เกินนั้นใช้ MCCB · อินเวอร์เตอร์ตัวเดียวไม่มีเมนแยก) · SPD Type 2 กันหลังด้วย MCB " + RU.homeSpdMcb + "A · ฟิวส์ DC ตาม Isc/Voc ของสตริง · ราคาดึงจากคลังเหมือนวัสดุอื่น" })) : kitSections;
 
   // ── ราคาขาย & ส่วนลด ──
   const PRICE_DEF = { discount: 0, vat: window.BOQ.VAT_RATE };
@@ -1320,7 +1322,7 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock, ver, verName, p3Vers
     const ph = wcPhase === 3 && !/MICRO[\s-]*MICRO/.test(n) ? 3 : 1;
     const volts = ph === 3 ? (+wcVolt || 400) : (wcPhase === 3 ? 230 : (+wcVolt || 230));
     // เดินขนานหลายชุด = แต่ละชุดรับกระแส ÷ จำนวนชุด
-    return window.BOQ.calcVdrop({ length: len, amp: (runAmpFor(c) || req / 1.25) / Math.max(1, +c.sets || 1), size, volts, ins, phase: ph, dc: false });
+    return window.BOQ.calcVdrop({ length: len, amp: (runAmpFor(c) || req / WK) / Math.max(1, +c.sets || 1), size, volts, ins, phase: ph, dc: false });
   };
   /* รวมเส้นทางไฟ: DC สูงสุด + AC สูงสุด — มาตรฐานคุมทั้งเส้นทางไม่ให้เกิน 5% */
   const vdropSum = React.useMemo(() => {
@@ -1620,7 +1622,7 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock, ver, verName, p3Vers
       if (amp == null || amp * sets < req) continue;
       let vd = null;
       if (len > 0 && window.BOQ.calcVdrop) {
-        vd = window.BOQ.calcVdrop({ length: len, amp: (runAmpFor(c) || req / 1.25) / sets, size: sz, volts: cabVolts(ph), ins: window.BOQ.cableInsClass(gen), phase: ph, dc: false });
+        vd = window.BOQ.calcVdrop({ length: len, amp: (runAmpFor(c) || req / WK) / sets, size: sz, volts: cabVolts(ph), ins: window.BOQ.cableInsClass(gen), phase: ph, dc: false });
         if (vd && !vd.ok) continue;
       }
       const stock = cabStockName[cabNorm(gen)];
@@ -1829,9 +1831,9 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock, ver, verName, p3Vers
      SPD AC Type 2 ตู้ละ 1 ตัว + ฟิวส์ใบมีด NH00 gG 32A กันหลัง SPD ทุกเส้นไฟ (L)
      ฝั่ง DC ต่อสตริง: ฟิวส์ gPV ขั้ว + และ − (IEC 62548: 1.5·Isc ≤ In ≤ 2.4·Isc) · SPD DC Type 2 สตริงละ 1 ตัว
        แรงดันพิกัด ≥ Voc สตริง × 1.1 (เผื่อแรงดันขึ้นตอนแผงเย็น) */
-  const DCF_A = [10, 12, 15, 16, 20, 25, 30, 32];
+  const DCF_A = RU.dcFuseA;
   const DCF_V = [1000, 1500], SPD_V = [800, 1000, 1500];
-  const DCMCB_A = [10, 16, 20, 25, 32, 40, 50, 63];   // DC MCB 2P 800VDC (งานบ้าน — ตัดวงจรสตริงหลังฟิวส์)   // แรงดันพิกัดที่มีขายจริง (ฟิวส์ gPV / SPD DC)
+  const DCMCB_A = RU.dcMcbA;   // DC MCB 2P 800VDC (งานบ้าน — ตัดวงจรสตริงหลังฟิวส์)   // แรงดันพิกัดที่มีขายจริง (ฟิวส์ gPV / SPD DC)
   const r1 = (x) => Math.round(x * 10) / 10;
   const cabIz = (c) => {
     if (!c || !c.type) return null;
@@ -1854,12 +1856,12 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock, ver, verName, p3Vers
   };
   /* งานบ้าน: RCBO 100mA (RCCB + MCB ในตัวเดียว) ขนาดตามที่มีขาย — 2P (1 เฟส) ถึง 50 A · 4P (3 เฟส) ถึง 63 A
      ปรับตั้งไม่ได้ จึงเลือกขนาดแรกที่ ≥ 1.25 × กระแส · เกินขนาดใหญ่สุด ใช้ MCCB แบบงานโครงการ */
-  const RCBO_AT = { "2P": [16, 20, 25, 32, 50], "3P": [16, 20, 25, 32, 50, 63] };
+  const RCBO_AT = { "2P": RU.rcbo2P, "3P": RU.rcbo3P };
   const brkPickHome = (ib, c, pole) => {
-    const need = ib * 1.25, a = (RCBO_AT[pole] || RCBO_AT["2P"]).find((x) => x >= need);
+    const need = ib * RU.fixK, a = (RCBO_AT[pole] || RCBO_AT["2P"]).find((x) => x >= need);
     if (!a) { const k = brkPick(ib, c); return Object.assign(k, { nm: k.kind + " " + pole + " " + k.at + "AT" }); }
     const iz = cabIz(c), nm = "RCBO " + a + "A " + (pole === "3P" ? "3P+N" : "2P") + " 100mA";
-    const base = r1(ib) + " A × 1.25 = " + r1(need) + " A → RCBO " + a + " A 100mA (งานบ้าน กันไฟรั่ว + กระแสเกินในตัวเดียว)";
+    const base = r1(ib) + " A × " + RU.fixK + " = " + r1(need) + " A → RCBO " + a + " A 100mA (งานบ้าน กันไฟรั่ว + กระแสเกินในตัวเดียว)";
     if (!iz) return { at: a, ir: a, kind: "RCBO", nm, ok: true, txt: base + " · ยังไม่ได้เลือกสาย ตรวจพิกัดสายไม่ได้" };
     if (a <= iz) return { at: a, ir: a, kind: "RCBO", nm, ok: true, txt: base + " ≤ สายรับ " + iz + " A ✓" };
     const rec = cabFit(c, famOfCab(c), Math.max(1, Math.round(+c.sets || 1)), a);
@@ -1910,20 +1912,20 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock, ver, verName, p3Vers
       });
       // ฟิวส์กันหลัง SPD = ฟิวส์ใบมีด NH00 gG — Type 2 = 32 A · Type 1+2 = 125 A (ต้องทนกระแสฟ้าผ่า)
       // Type 1+2: MCCB เมนตู้ ≤ 125 AT กันหลัง SPD ได้เอง ไม่ต้องมีฟิวส์
-      const fA = lps ? 125 : 32;
-      const noFuse = lps && mainAt > 0 && mainAt <= 125;
+      const fA = lps ? RU.nhT12 : RU.nhT2;
+      const noFuse = lps && mainAt > 0 && mainAt <= RU.nhT12;
       out.ac.push(lps
         ? { name: ph === 3 ? "AC SPD TYPE I+II 3P+N Uc385V Iimp12.5kA" : "AC SPD TYPE I+II 2P Uc275V Iimp12.5kA", qty: 1, unit: "ตัว", auto: 1,
             why: tag + "กันฟ้าผ่าฝั่ง AC ตู้ละ 1 ตัว (" + lpsTxt + " · Iimp 12.5 kA/ขั้ว)" }
         : { name: ph === 3 ? "AC SPD TYPE II 3P+N Uc385V In20Ka/Imax40Ka" : "AC SPD TYPE II 2P Uc275V In20Ka/Imax40Ka", qty: 1, unit: "ตัว", auto: 1,
             why: tag + "กันฟ้าผ่า/แรงดันกระชากฝั่ง AC ตู้ละ 1 ตัว (" + lpsTxt + " · Uc " + (ph === 3 ? "385" : "275") + " V)" });
-      if (noFuse) out.ac[out.ac.length - 1].why += " · เบรกเกอร์" + (homeOne ? "" : "เมน") + " " + mainAt + " A ≤ 125 A ใช้กันหลัง SPD ได้ ไม่ต้องมีฟิวส์";
+      if (noFuse) out.ac[out.ac.length - 1].why += " · เบรกเกอร์" + (homeOne ? "" : "เมน") + " " + mainAt + " A ≤ " + RU.nhT12 + " A ใช้กันหลัง SPD ได้ ไม่ต้องมีฟิวส์";
       else if (isHome && !lps) {
-        out.ac.push({ name: "MCB " + pole + " 32A", qty: 1, unit: "ตัว", auto: 1, why: tag + "กันหลัง SPD (ตัด SPD ออกได้เมื่อเสีย ไม่กระทบระบบ) — งานบ้านใช้ MCB แทนฟิวส์ · ไม่เกิน max backup ในสเปค SPD" });
+        out.ac.push({ name: "MCB " + pole + " " + RU.homeSpdMcb + "A", qty: 1, unit: "ตัว", auto: 1, why: tag + "กันหลัง SPD (ตัด SPD ออกได้เมื่อเสีย ไม่กระทบระบบ) — งานบ้านใช้ MCB แทนฟิวส์ · ไม่เกิน max backup ในสเปค SPD" });
       } else {
         out.ac.push({ name: "AC FUSE gG " + fA + "A NH00", qty: ph, unit: "ตัว", auto: 1,
           why: tag + "ฟิวส์ใบมีดกันหลัง SPD เส้นไฟละ 1 ตัว (ไม่ใส่ที่ N)"
-            + (lps ? " — Type 1+2 ต้องทนกระแสฟ้าผ่า จึงใช้ 125 A (ตรวจ max backup fuse ในสเปค SPD)" : " — Type 2 ใช้ 32 A (ไม่เกิน max backup fuse ในสเปค SPD)") });
+            + (lps ? " — Type 1+2 ต้องทนกระแสฟ้าผ่า จึงใช้ " + fA + " A (ตรวจ max backup fuse ในสเปค SPD)" : " — Type 2 ใช้ " + fA + " A (ไม่เกิน max backup fuse ในสเปค SPD)") });
         out.ac.push({ name: "FUSE BASE NH00 1P", qty: ph, unit: "ตัว", auto: 1, why: tag + "ฐานฟิวส์ใบมีด NH00" });
       }
       /* ระบบ Ground Fault — รีเลย์ตรวจกระแสรั่วลงดิน (GFR) + ZCT ร้อยสายเฟส+N ทั้งชุด → สั่ง Shunt trip ให้ MCCB เมนตัด
@@ -1952,28 +1954,28 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock, ver, verName, p3Vers
     const pIsc = selPanel && +selPanel.isc > 0 ? +selPanel.isc : 0;
     const iIsc = +selInv.maxIscA > 0 ? +selInv.maxIscA / Math.max(1, Math.round(+selInv.strPerMppt || 1)) : 0;
     const isc = pIsc || iIsc;
-    const voc = scfg && scfg.stringVoc ? scfg.stringVoc * 1.1 : (+selInv.maxVdc || 1000);
+    const voc = scfg && scfg.stringVoc ? scfg.stringVoc * RU.vocK : (+selInv.maxVdc || 1000);
     const vPick = (L) => L.find((x) => x >= voc) || L[L.length - 1];
     const V = vPick(DCF_V), SV = vPick(SPD_V);
-    const vTxtOf = (v) => (scfg && scfg.stringVoc ? "Voc สตริง " + r1(scfg.stringVoc) + " V × 1.1 = " + r1(voc) + " V → " + v + " VDC"
+    const vTxtOf = (v) => (scfg && scfg.stringVoc ? "Voc สตริง " + r1(scfg.stringVoc) + " V × " + RU.vocK + " = " + r1(voc) + " V → " + v + " VDC"
       : "ยังไม่รู้ Voc สตริง ใช้แรงดันสูงสุดของอินเวอร์เตอร์ → " + v + " VDC");
     const vTxt = vTxtOf(V);
     if (nStr > 0 && isc > 0) {
-      const need = isc * 1.5, A = DCF_A.find((x) => x >= need) || DCF_A[DCF_A.length - 1];
-      const ok = A <= isc * 2.4;
+      const need = isc * RU.dcFuseK, A = DCF_A.find((x) => x >= need) || DCF_A[DCF_A.length - 1];
+      const ok = A <= isc * RU.dcFuseMaxK;
       out.dc.push({ name: "DC FUSE " + A + "A " + V + "VDC", qty: nStr * 2, unit: "ตัว", auto: 1, ok,
-        why: nStr + " สตริง × 2 ขั้ว · Isc " + (pIsc ? "แผง " : "จากสเปคอินเวอร์เตอร์ ") + r1(isc) + " A × 1.5 = " + r1(need) + " A → " + A + " A"
-          + (ok ? "" : " เกิน 2.4 × Isc") + " · " + vTxt });
+        why: nStr + " สตริง × 2 ขั้ว · Isc " + (pIsc ? "แผง " : "จากสเปคอินเวอร์เตอร์ ") + r1(isc) + " A × " + RU.dcFuseK + " = " + r1(need) + " A → " + A + " A"
+          + (ok ? "" : " เกิน " + RU.dcFuseMaxK + " × Isc") + " · " + vTxt });
       out.dc.push({ name: "DC FUSE HOLDER", qty: nStr * 2, unit: "ตัว", auto: 1, why: "ฐานฟิวส์ สตริงละ 2 ตัว" });
     } else if (nStr > 0) {
       out.dc.push({ name: "DC FUSE HOLDER", qty: nStr * 2, unit: "ตัว", auto: 1, ok: false, why: "ยังไม่รู้ Isc — กรอกสเปคแผงหรือ maxIscA ของอินเวอร์เตอร์ในคลัง แล้วระบบจะเลือกฟิวส์ให้" });
     }
     /* งานบ้าน: DC MCB สตริงละ 1 ตัว ไว้ตัด/เปิดวงจรตอนซ่อม · ขนาดแรก ≥ 1.25 × Isc · 2P 800VDC (Voc สตริงงานบ้านไม่ถึง 800 V) */
     if (isHome && nStr > 0 && isc > 0) {
-      const need = isc * 1.25, A = DCMCB_A.find((x) => x >= need) || DCMCB_A[DCMCB_A.length - 1];
+      const need = isc * RU.dcMcbK, A = DCMCB_A.find((x) => x >= need) || DCMCB_A[DCMCB_A.length - 1];
       const vOk = voc <= 800;
       out.dc.push({ name: "DC MCB " + A + "A 2P 800VDC", qty: nStr, unit: "ตัว", auto: 1, ok: vOk,
-        why: "สตริงละ 1 ตัว · Isc " + r1(isc) + " A × 1.25 = " + r1(need) + " A → " + A + " A" + (vOk ? "" : " · Voc " + r1(voc) + " V เกิน 800 VDC ต้องใช้รุ่นแรงดันสูงกว่า") });
+        why: "สตริงละ 1 ตัว · Isc " + r1(isc) + " A × " + RU.dcMcbK + " = " + r1(need) + " A → " + A + " A" + (vOk ? "" : " · Voc " + r1(voc) + " V เกิน 800 VDC ต้องใช้รุ่นแรงดันสูงกว่า") });
     }
     if (nStr > 0 && !lps) out.dc.push({ name: "DC SPD 2P " + SV + "VDC 20-40KA", qty: nStr, unit: "ตัว", auto: 1, why: "สตริงละ 1 ตัว · " + lpsTxt + " · " + vTxtOf(SV) });
     if (nStr > 0 && lps) {

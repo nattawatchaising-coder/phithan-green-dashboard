@@ -4,6 +4,91 @@
    สูตรอ้างอิงจากไฟล์ "BOM REV.02.xlsx" (ADD DATA + CAL-MOUNTING + ATMOCE)
    ============================================================ */
 (function () {
+  /* ── เงื่อนไขการคำนวณที่ตั้งค่าได้ (หน้าคลัง → "ตั้งค่าคำนวณ BOQ") ──
+     เดิมตัวเลขพวกนี้ฝังอยู่ในสูตร แก้ได้แค่คนเขียนโค้ด · เก็บที่ RTDB boqRules/<key> = ข้อความ (ไม่มีคีย์ = ค่าตั้งต้นด้านล่าง)
+     RULES เป็นอ็อบเจกต์ตัวเดิมตลอด setRules แทนค่าข้างใน — สูตรอ่าน RULES.x ตอนคำนวณ จึงเห็นค่าใหม่เสมอ
+     type: num (ตัวเลข) · nums (รายการตัวเลขคั่นจุลภาค เรียงน้อยไปมาก) · words (รายการคำคั่นจุลภาค) */
+  const RULE_SECS = [
+    { k: "board", th: "ตู้ไฟ · งานโครงการ", sub: "เบรกเกอร์ MCCB/ACB · Ground Fault · ฟิวส์กันหลัง SPD · ฟิวส์ DC" },
+    { k: "home", th: "ตู้ไฟ · งานบ้าน", sub: "RCBO · DC MCB · MCB กันหลัง SPD" },
+    { k: "cable", th: "สายไฟ", sub: "ตัวคูณเลือกขนาดสาย · เผื่อความยาวสาย PV" },
+    { k: "permit", th: "ค่าขออนุญาต & วิศวกร", sub: "ค่าขนานไฟ MEA/PEA · เงื่อนไข กกพ./พค.2/อ.1 · ค่าวิศวกรตามขนาด" },
+    { k: "price", th: "เผื่อ · กำไร · O&M", sub: "Accessories % · กำไรเริ่มต้น · VAT · ปีที่แถม O&M" },
+    { k: "plan", th: "ของจากแบบ 3D", sub: "ท่อ PPR · มุมเลี้ยวของท่อ/รางไฟ" },
+  ];
+  const RULE_DEFS = [
+    { sec: "board", key: "mccbIrK", th: "MCCB ตั้งกระแส Ir = กระแสออก ×", unit: "เท่า", def: 1.05, min: 1 },
+    { sec: "board", key: "mccbStep", th: "ปัด Ir ขึ้นทีละ", unit: "A", def: 5, min: 1 },
+    { sec: "board", key: "mccbAt", th: "ขนาดเฟรม MCCB ที่มีขาย", unit: "AT", type: "nums", def: [16, 20, 25, 32, 40, 50, 63, 80, 100, 125, 160, 200, 225, 250, 320, 400, 500, 630, 800, 1000, 1250] },
+    { sec: "board", key: "acbAt", th: "ขนาด ACB (ใช้เมื่อเกิน MCCB ตัวใหญ่สุด)", unit: "AT", type: "nums", def: [1600, 2000, 2500, 3200, 4000] },
+    { sec: "board", key: "gfLsigAt", th: "เมนตั้งแต่กี่ AT ใช้ trip unit LSIG แทน GFR + ZCT + Shunt trip", unit: "AT", def: 1000, min: 1 },
+    { sec: "board", key: "nhT2", th: "ฟิวส์ NH00 กันหลัง AC SPD Type 2", unit: "A", def: 32, min: 1 },
+    { sec: "board", key: "nhT12", th: "ฟิวส์ NH00 กันหลัง AC SPD Type 1+2 (เมนไม่เกินค่านี้ไม่ต้องมีฟิวส์)", unit: "A", def: 125, min: 1 },
+    { sec: "board", key: "dcFuseK", th: "ฟิวส์ DC gPV = Isc ×", unit: "เท่า", def: 1.5, min: 1 },
+    { sec: "board", key: "dcFuseMaxK", th: "ฟิวส์ DC ไม่เกิน Isc × (เกินขึ้นเตือน)", unit: "เท่า", def: 2.4, min: 1 },
+    { sec: "board", key: "dcFuseA", th: "ขนาดฟิวส์ DC ที่มีขาย", unit: "A", type: "nums", def: [10, 12, 15, 16, 20, 25, 30, 32] },
+    { sec: "board", key: "vocK", th: "แรงดันพิกัดฟิวส์/SPD ≥ Voc สตริง ×", unit: "เท่า", def: 1.1, min: 1 },
+    { sec: "home", key: "fixK", th: "RCBO / MCB (ปรับตั้งไม่ได้) เลือกขนาดแรกที่ ≥ กระแส ×", unit: "เท่า", def: 1.25, min: 1 },
+    { sec: "home", key: "rcbo2P", th: "RCBO 2P (1 เฟส) ที่มีขาย — เกินตัวใหญ่สุดใช้ MCCB", unit: "A", type: "nums", def: [16, 20, 25, 32, 50] },
+    { sec: "home", key: "rcbo3P", th: "RCBO 3P+N (3 เฟส) ที่มีขาย — เกินตัวใหญ่สุดใช้ MCCB", unit: "A", type: "nums", def: [16, 20, 25, 32, 50, 63] },
+    { sec: "home", key: "dcMcbK", th: "DC MCB ต่อสตริง = Isc ×", unit: "เท่า", def: 1.25, min: 1 },
+    { sec: "home", key: "dcMcbA", th: "ขนาด DC MCB ที่มีขาย", unit: "A", type: "nums", def: [10, 16, 20, 25, 32, 40, 50, 63] },
+    { sec: "home", key: "homeSpdMcb", th: "MCB กันหลัง AC SPD", unit: "A", def: 32, min: 1 },
+    { sec: "cable", key: "wireK", th: "สาย AC เลือกขนาดจากกระแส × (โหลดต่อเนื่อง)", unit: "เท่า", def: 1.25, min: 1 },
+    { sec: "cable", key: "pvWireK", th: "สาย PV DC เลือกขนาดจาก Isc ×", unit: "เท่า", def: 1.25, min: 1 },
+    { sec: "cable", key: "pvSpare", th: "สาย PV เผื่อความยาว (ระยะไกลสุด × สตริง × ค่านี้)", unit: "เท่า", def: 1.2, min: 1 },
+    { sec: "permit", key: "gridMEA", th: "ค่าเชื่อมต่อระบบขนานไฟ · MEA (นครหลวง)", unit: "บาท", def: 2140 },
+    { sec: "permit", key: "gridPEA", th: "ค่าเชื่อมต่อระบบขนานไฟ · PEA (ภูมิภาค)", unit: "บาท", def: 3745 },
+    { sec: "permit", key: "meaProv", th: "จังหวัดที่เป็นเขต MEA (คำที่อยู่ในชื่อจังหวัด)", unit: "", type: "words", def: ["กรุงเทพ", "กทม", "bangkok", "นนทบุรี", "nonthaburi", "สมุทรปราการ", "samut prakan"] },
+    { sec: "permit", key: "ercMin", th: "กกพ. จดแจ้งยกเว้น / พค.2 เมื่อระบบเกิน", unit: "kWp", def: 10 },
+    { sec: "permit", key: "ercLic", th: "ตั้งแต่ขนาดนี้ต้องขอใบอนุญาตผลิตไฟฟ้า (กกพ.)", unit: "kWp", def: 1000 },
+    { sec: "permit", key: "pk2Max", th: "พค.2 (พพ.) ถึงขนาด", unit: "kWp", def: 200 },
+    { sec: "permit", key: "areaPerKw", th: "พื้นที่แผงโดยประมาณ ต่อ kWp", unit: "ตร.ม.", def: 4.5, min: 0.1 },
+    { sec: "permit", key: "a1Area", th: "ต้องขอ อ.1 เมื่อพื้นที่แผงเกิน", unit: "ตร.ม.", def: 160 },
+    { sec: "permit", key: "eng1Kw", th: "ค่าวิศวกร ขั้นที่ 1 · ระบบไม่เกิน", unit: "kWp", def: 10 },
+    { sec: "permit", key: "eng1", th: "ค่าวิศวกร ขั้นที่ 1", unit: "บาท", def: 5000 },
+    { sec: "permit", key: "eng2Kw", th: "ค่าวิศวกร ขั้นที่ 2 · ระบบไม่เกิน", unit: "kWp", def: 100 },
+    { sec: "permit", key: "eng2", th: "ค่าวิศวกร ขั้นที่ 2", unit: "บาท", def: 10000 },
+    { sec: "permit", key: "eng3", th: "ค่าวิศวกร ใหญ่กว่าขั้นที่ 2", unit: "บาท", def: 15000 },
+    { sec: "price", key: "accHome", th: "Accessories เผื่อ · งานบ้าน (% ของทุนวัสดุ)", unit: "%", def: 10, max: 100 },
+    { sec: "price", key: "accProj", th: "Accessories เผื่อ · งานโครงการ (% ของทุนวัสดุ)", unit: "%", def: 5, max: 100 },
+    { sec: "price", key: "profitPct", th: "กำไรเริ่มต้น (% ของราคาขาย)", unit: "%", def: 15, max: 90 },
+    { sec: "price", key: "vat", th: "ภาษีมูลค่าเพิ่ม", unit: "%", def: 7, max: 30 },
+    { sec: "price", key: "omYears", th: "O&M ฟรี · ปีที่แถม", unit: "ปี", def: 2 },
+    { sec: "price", key: "omPerYear", th: "O&M ฟรี · ล้างแผงปีละ", unit: "ครั้ง", def: 1 },
+    { sec: "plan", key: "pprLen", th: "ท่อ PPR 1 เส้นยาว", unit: "ม.", def: 4, min: 0.5 },
+    { sec: "plan", key: "pprSpare", th: "ท่อ PPR เผื่อ", unit: "%", def: 10 },
+    { sec: "plan", key: "pprTap", th: "ท่อเพิ่มต่อก๊อก 1 จุด", unit: "ม.", def: 0.2 },
+    { sec: "plan", key: "pprClamp", th: "แคลมป์รัดท่อ ทุก", unit: "ม.", def: 1.2, min: 0.1 },
+    { sec: "plan", key: "turn90", th: "มุมเลี้ยวตั้งแต่กี่องศานับเป็นข้องอ 90° (น้อยกว่า = 45°)", unit: "°", def: 60, max: 180 },
+    { sec: "plan", key: "turn45", th: "มุมเลี้ยวน้อยกว่านี้ไม่นับข้องอ (ท่อ PPR)", unit: "°", def: 15, max: 180 },
+  ];
+  const RULES = {};
+  /* แปลงค่าที่เก็บ (ข้อความ) → ค่าที่ใช้ · ผิดรูป/ว่าง/นอกช่วง = ค่าตั้งต้น */
+  function ruleVal(d, raw) {
+    if (raw === "" || raw == null) return d.def;
+    if (d.type === "nums") {
+      const a = String(raw).split(/[,\s]+/).map(Number).filter((x) => isFinite(x) && x > 0).sort((x, y) => x - y);
+      return a.length ? a.filter((x, i) => i === 0 || x !== a[i - 1]) : d.def;
+    }
+    if (d.type === "words") {
+      const a = String(raw).split(",").map((x) => x.trim().toLowerCase()).filter(Boolean);
+      return a.length ? a : d.def;
+    }
+    const v = +raw;
+    if (!isFinite(v) || v < (d.min != null ? d.min : 0) || (d.max != null && v > d.max)) return d.def;
+    return v;
+  }
+  function setRules(v) {
+    const src = v || {};
+    RULE_DEFS.forEach((d) => { RULES[d.key] = ruleVal(d, src[d.key]); });
+    /* ค่าที่ส่งออกเป็นตัวเลขตรง ๆ (หน้าอื่นอ่าน window.BOQ.VAT_RATE) ต้องตามด้วย */
+    if (window.BOQ) Object.assign(window.BOQ, { VAT_RATE: RULES.vat, PROFIT_PCT_DEF: RULES.profitPct, PV_DC_SPARE: RULES.pvSpare,
+      ACC_ALLOW_PCT: RULES.accProj, ACC_ALLOW_PCT_HOME: RULES.accHome,
+      PERMIT_GRID_FEE: { MEA: RULES.gridMEA, PEA: RULES.gridPEA } });
+  }
+  setRules(null);
+  const ruleTxt = (d, v) => (Array.isArray(v) ? v.join(", ") : String(v));
   // ── ตารางรุ่นแผง: Wp, ความหนาเฟรม(mm), ความกว้างแผงด้านวางราง(m) ──
   // width = ค่าคอลัมน์ L ในชีต DATA (ด้านสั้นที่เรียงชิดกันบนราง)
   // สเปคเริ่มต้น (fallback) สำหรับรุ่นที่ระบบรู้จัก — ถ้าคลังยังไม่กรอกสเปคจะใช้ค่านี้
@@ -78,7 +163,7 @@
   };
   const RCBO_SIZES = [16, 20, 25, 32, 40, 50, 63, 100];
   // เลือกขนาด RCBO จากกระแสออก × 1.25 ปัดขึ้นไปขนาดมาตรฐานถัดไป
-  function rcboAmp(outA) { const v = (+outA || 0) * 1.25; for (let i = 0; i < RCBO_SIZES.length; i++) { if (RCBO_SIZES[i] >= v) return RCBO_SIZES[i]; } return RCBO_SIZES[RCBO_SIZES.length - 1]; }
+  function rcboAmp(outA) { const v = (+outA || 0) * RULES.fixK; for (let i = 0; i < RCBO_SIZES.length; i++) { if (RCBO_SIZES[i] >= v) return RCBO_SIZES[i]; } return RCBO_SIZES[RCBO_SIZES.length - 1]; }
   function rcboName(outA, phase) { return "RCBO " + rcboAmp(outA) + "A " + (phase === 3 ? "3P+N" : "2P") + " 100mA FEEO"; }
 
   const COMBINER = { 1: "M-Combiner 1P (MC-100)", 3: "M-Combiner 3P (MC-100T)" };
@@ -90,7 +175,7 @@
 
   // ── ขนาดเบรกเกอร์มาตรฐาน (AT) — เลือกจากกระแส × 1.25 ปัดขึ้นขนาดถัดไป ──
   const BREAKER_AT = [6, 10, 16, 20, 25, 32, 40, 50, 63, 80, 100, 125, 160, 200, 225, 250, 320, 400, 500, 630];
-  function pickBreakerAT(amp) { const v = (+amp || 0) * 1.25; for (let i = 0; i < BREAKER_AT.length; i++) { if (BREAKER_AT[i] >= v) return BREAKER_AT[i]; } return BREAKER_AT[BREAKER_AT.length - 1]; }
+  function pickBreakerAT(amp) { const v = (+amp || 0) * RULES.fixK; for (let i = 0; i < BREAKER_AT.length; i++) { if (BREAKER_AT[i] >= v) return BREAKER_AT[i]; } return BREAKER_AT[BREAKER_AT.length - 1]; }
 
   // ── ATMOCE "ตู้ประกอบ" (assembled): อุปกรณ์ในตู้รายชิ้น — รองรับ 1 เฟส (2P) และ 3 เฟส (4P/3P+N) ──
   // ตัวตู้ (enclosure) — ใช้ร่วมทั้ง 1 เฟส/3 เฟส
@@ -275,12 +360,12 @@
      ไม่ใช่ระยะรวมทั้งงาน เพราะระยะไกลสุดคือตัวที่ใช้เช็กแรงดันตกอยู่แล้ว กรอกที่เดียวได้ทั้งสองอย่าง
      ปริมาณของ = ระยะไกลสุด × จำนวนสตริง × เผื่อ 1.2 → ได้ระยะต่อ 1 ขั้ว
      แล้วถอดเป็น 2 สี แดง(+) กับ ดำ(−) เท่ากันทั้งคู่ (ไป-กลับของแต่ละสตริง) */
-  const PV_DC_SPARE = 1.2;
+  const PV_DC_SPARE = 1.2;   // ค่าตั้งต้น — ใช้จริง RULES.pvSpare
   function pvDcLength(farthest, strings) {
     const L = Math.max(0, +farthest || 0);
     const n = Math.max(1, Math.round(+strings || 1));
-    const perPole = Math.round(L * n * PV_DC_SPARE * 100) / 100;
-    return { farthest: L, strings: n, spare: PV_DC_SPARE, perPole: perPole, total: Math.round(perPole * 2 * 100) / 100 };
+    const perPole = Math.round(L * n * RULES.pvSpare * 100) / 100;
+    return { farthest: L, strings: n, spare: RULES.pvSpare, perPole: perPole, total: Math.round(perPole * 2 * 100) / 100 };
   }
 
   // ── พิกัดกระแสสายไฟ (อ้างอิงมาตรฐาน วสท. — ตัวนำทองแดง แรงดัน 0.6/1 kV) ──
@@ -659,7 +744,7 @@
     if (!out.inRange) out.warns.push("แรงดันทำงานรวม " + out.stringVop + " V อยู่นอกช่วง MPPT " + vmin + "–" + vmax + " V");
     if (out.overMaxVdc) out.warns.push("Voc รวม " + out.stringVoc + " V เกินแรงดันระบบสูงสุด " + maxVdc + " V");
     // กระแส DC = Isc × 1.25 (ป้องกันกระแสเกินตามมาตรฐาน) → เลือกขนาดสาย PV1-F
-    out.dcAmp = Math.round(isc * 1.25 * 100) / 100;
+    out.dcAmp = Math.round(isc * RULES.pvWireK * 100) / 100;
     out.dcWire = isc > 0 ? pickPvWireSize(out.dcAmp) : "—";
     if (maxInA > 0 && isc > maxInA) out.warns.push("Isc " + isc + " A เกินกระแส input สูงสุด/สตริง " + maxInA + " A");
     return out;
@@ -1037,14 +1122,14 @@
   const PERMIT_PRESET = [
     { name: "ค่าเชื่อมต่อระบบขนานไฟฟ้า", unit: "งาน" },
     // กกพ.: ไม่เกิน 10 kW ไม่ต้องยื่น · เกิน 10 ถึงต่ำกว่า 1,000 kW จดแจ้งยกเว้น · ตั้งแต่ 1,000 kW ขึ้นไปต้องขอใบอนุญาตผลิตไฟฟ้า
-    { name: "ค่าจดแจ้งยกเว้นใบอนุญาต (กกพ.)", unit: "งาน", when: (k) => k > 10 && k < 1000 },
-    { name: "ใบอนุญาตผลิตไฟฟ้า (กกพ.)", unit: "ฉบับ", when: (k) => k >= 1000 },
+    { name: "ค่าจดแจ้งยกเว้นใบอนุญาต (กกพ.)", unit: "งาน", when: (k) => k > RULES.ercMin && k < RULES.ercLic },
+    { name: "ใบอนุญาตผลิตไฟฟ้า (กกพ.)", unit: "ฉบับ", when: (k) => k >= RULES.ercLic },
     // พค.2 จาก พพ.: เกิน 10 ถึง 200 kW · ไม่มีค่าธรรมเนียม
-    { name: "ใบรับรองการแจ้งผลิตพลังงานควบคุม (พค.2) — พพ. ไม่มีค่าธรรมเนียม", unit: "ฉบับ", when: (k) => k > 10 && k <= 200 },
+    { name: "ใบรับรองการแจ้งผลิตพลังงานควบคุม (พค.2) — พพ. ไม่มีค่าธรรมเนียม", unit: "ฉบับ", when: (k) => k > RULES.ercMin && k <= RULES.pk2Max },
     // งานวิศวกรรมรวมเป็นบรรทัดเดียว ยอดรวม 5,000–15,000 ตามขนาดระบบ (เดิมแยก 4 บรรทัด — ใบเก่าที่บันทึกไว้ยังเห็น 4 บรรทัดเดิม)
     { name: "ค่าวิศวกร — เซ็นรับรองแบบไฟฟ้า/โครงสร้าง · คำนวณโครงสร้าง · แบบ As-built", unit: "งาน" },
     // อ.1: พื้นที่แผงบนหลังคาเกิน 160 ตร.ม. (ประมาณจาก kWp)
-    { name: "ค่าขออนุญาตดัดแปลงอาคาร (อ.1)", unit: "งาน", when: (k) => k * PERMIT_AREA_PER_KW > 160 },
+    { name: "ค่าขออนุญาตดัดแปลงอาคาร (อ.1)", unit: "งาน", when: (k) => k * RULES.areaPerKw > RULES.a1Area },
   ];
   /* ราคาตั้งต้นของใบใหม่ (ใบที่บันทึกรายการไว้แล้วไม่ขยับตาม) — ตัวเลขจากผู้ใช้
      ค่าบริการขนานไฟ ตามการไฟฟ้า (ทุกประเภทงาน): MEA นครหลวง 2,140 · PEA ภูมิภาค 3,745 · ยังไม่รู้การไฟฟ้า = 0
@@ -1055,16 +1140,16 @@
   const MEA_PROVINCES = ["กรุงเทพ", "กทม", "bangkok", "นนทบุรี", "nonthaburi", "สมุทรปราการ", "samut prakan"];
   function gridAuthOf(job) {
     const pv = String((job && job.province) || "").trim().toLowerCase();
-    if (pv) return MEA_PROVINCES.some((x) => pv.indexOf(x) >= 0) ? "MEA" : "PEA";
+    if (pv) return RULES.meaProv.some((x) => pv.indexOf(x) >= 0) ? "MEA" : "PEA";
     // ไม่มีจังหวัด → ถอยไปดูที่เลือกไว้ในใบขออนุญาต / แบบสำรวจ
     return (job && ((job.permit && job.permit.auth) || (job.survey && job.survey.meterAuth))) || "";
   }
   const PERMIT_ENG_NAMES = ["ค่าวิศวกร — เซ็นรับรองแบบไฟฟ้า/โครงสร้าง · คำนวณโครงสร้าง · แบบ As-built"];
   const PERMIT_ENG_TIERS = [[10, 5000], [100, 10000], [Infinity, 15000]];
-  const permitGridFee = (b) => PERMIT_GRID_FEE[(b && b.gridAuth) || ""] || 0;   // ทุกประเภทงาน
+  const permitGridFee = (b) => ({ MEA: RULES.gridMEA, PEA: RULES.gridPEA })[(b && b.gridAuth) || ""] || 0;   // ทุกประเภทงาน
   function permitPresetFor(b, kw) {
     const k = +kw || 0;
-    const eng = k > 0 ? PERMIT_ENG_TIERS.find((t) => k <= t[0])[1] : 0;
+    const eng = k <= 0 ? 0 : k <= RULES.eng1Kw ? RULES.eng1 : k <= RULES.eng2Kw ? RULES.eng2 : RULES.eng3;
     return PERMIT_PRESET.filter((p) => !p.when || p.when(k, b)).map((p) => ({ name: p.name, unit: p.unit, qty: 1,
       price: PERMIT_ENG_NAMES.indexOf(p.name) >= 0 ? eng : p.name === PERMIT_GRID_NAME ? permitGridFee(b) : 0 }));
   }
@@ -1122,13 +1207,13 @@
     return Math.ceil((k * last[1] / last[0]) / 500) * 500;
   }
   const OM_DEF = { years: 2, perYear: 1 };
-  function omDefaults(b, kw) { return Object.assign({}, OM_DEF, { visit: omTierPrice(OM_CLEAN_TIERS, kw), svc: omTierPrice(OM_SVC_TIERS, kw) }); }
+  function omDefaults(b, kw) { return Object.assign({}, OM_DEF, { years: RULES.omYears, perYear: RULES.omPerYear, visit: omTierPrice(OM_CLEAN_TIERS, kw), svc: omTierPrice(OM_SVC_TIERS, kw) }); }
   /* O&M รวมในราคาติดตั้งทุกใบ (ไม่มีตัวเลือกไม่รวม) · แก้ต่อใบได้แค่ ปีรับประกัน กับ ล้างแผงปีละกี่ครั้ง
      ราคาล้าง/ครั้ง กับงาน O&M/ปี มาจากตารางเสมอ — ใบเก่าที่เคยเก็บ visit/svc/off ไว้ ไม่ถูกอ่านแล้ว */
   function omCalc(b, panels, kw) {
     const d = omDefaults(b, kw), raw = (b && b.om) || {};
     const o = Object.assign({}, d);
-    Object.keys(OM_DEF).forEach((k) => { const v = raw[k]; o[k] = v === "" || v == null || !isFinite(+v) ? d[k] : Math.max(0, +v); });
+    ["years", "perYear"].forEach((k) => { const v = raw[k]; o[k] = v === "" || v == null || !isFinite(+v) ? d[k] : Math.max(0, +v); });
     const visit = d.visit, svc = d.svc;
     const year = o.perYear * visit + svc;   // ค่าบริการต่อปี = ล้าง × ครั้ง + งาน O&M
     return { o, def: d, visit, svc, year, included: o.years * year, renew: year, renew3: year * 3, off: false };
@@ -1211,16 +1296,16 @@
         const ax = P[i].x - P[i - 1].x, az = P[i].z - P[i - 1].z, bx = P[i + 1].x - P[i].x, bz = P[i + 1].z - P[i].z;
         const la = Math.hypot(ax, az), lb = Math.hypot(bx, bz); if (la < 1e-3 || lb < 1e-3) continue;
         const t = Math.acos(Math.max(-1, Math.min(1, (ax * bx + az * bz) / (la * lb)))) * 180 / Math.PI;
-        if (t >= 60) e90++; else if (t >= 15) e45++;
+        if (t >= RULES.turn90) e90++; else if (t >= RULES.turn45) e45++;
       }
       const g = by[sz] || (by[sz] = { size: sz, len: 0, pipes: 0, taps: 0, e90: 0, e45: 0, joints: 0, clamps: 0 });
       g.len += len; g.pipes++; g.taps += (o.taps || []).length; g.e90 += e90; g.e45 += e45;
-      g.joints += Math.max(0, Math.ceil(len / 4) - 1); g.clamps += Math.ceil(len / 1.2) + 1;
+      g.joints += Math.max(0, Math.ceil(len / RULES.pprLen) - 1); g.clamps += Math.ceil(len / RULES.pprClamp) + 1;
     });
     const sizes = PPR_SIZES.filter((s) => by[s]).map((s) => by[s]), items = [];
     sizes.forEach((g) => {
       const it = (kind, name, qty, unit) => { if (qty > 0) items.push({ kind, size: g.size, name, qty, unit }); };
-      it("pipe", "ท่อ PPR " + g.size, Math.ceil((g.len + g.taps * 0.2) * 1.1 / 4), "เส้น");
+      it("pipe", "ท่อ PPR " + g.size, Math.ceil((g.len + g.taps * RULES.pprTap) * (1 + RULES.pprSpare / 100) / RULES.pprLen), "เส้น");
       it("e90", "ข้องอ 90° PPR " + g.size, g.e90, "ชิ้น");
       it("e45", "ข้องอ 45° PPR " + g.size, g.e45, "ชิ้น");
       it("joint", "ข้อต่อตรง PPR " + g.size, g.joints, "ชิ้น");
@@ -1345,7 +1430,7 @@
      ฐานคิด = ทุกหมวดวัสดุ ยกเว้นหมวดค่าแรง/ค่าธรรมเนียม/ขนส่ง/บริหาร และยกเว้นตัวเอง */
   const ACC_ALLOW_PCT = 5;
   const ACC_ALLOW_PCT_HOME = 10;   // งานบ้านของจุกจิกต่อเงินวัสดุมากกว่า
-  const accAllowDef = (b) => (b && b.jobType === "home" ? ACC_ALLOW_PCT_HOME : ACC_ALLOW_PCT);
+  const accAllowDef = (b) => (b && b.jobType === "home" ? RULES.accHome : RULES.accProj);
   /* 5% เป็นค่ามาตรฐาน ไม่ใช่ค่าตายตัว — งานที่ของจุกจิกเยอะ (หลังคาหลายผืน เดินสายไกล)
      ต้องเผื่อมากกว่านี้ ปล่อยให้ตั้งเองได้ต่อใบ · เว้นว่าง = กลับไปใช้ 5%
      คุมไว้ 0–100% กันพิมพ์ผิดแล้วเงินเผื่อบานเกินราคาวัสดุทั้งงาน */
@@ -2380,14 +2465,14 @@
   const PROFIT_PCT_DEF = 15;
   function priceBreakdown(cost, p, watt, contractorAmt) {
     p = p || {};
-    const vat = +p.vat >= 0 && p.vat !== "" && p.vat != null ? +p.vat : VAT_RATE;
+    const vat = +p.vat >= 0 && p.vat !== "" && p.vat != null ? +p.vat : RULES.vat;
     const r2 = (v) => Math.round(v * 100) / 100;
     const addVat = (v) => r2(v * (1 + vat / 100));
     const totalCost = Math.max(0, +cost || 0);
     const contractor = Math.min(totalCost, Math.max(0, +contractorAmt || 0));
     const base = totalCost - contractor;
     const mode = p.profitMode === "pct" || p.profitMode === "baht" ? p.profitMode : +p.sell > 0 ? "sell" : "pct";
-    const profitPct = p.profitPct === "" || p.profitPct == null || !isFinite(+p.profitPct) ? PROFIT_PCT_DEF : Math.min(90, Math.max(0, +p.profitPct));
+    const profitPct = p.profitPct === "" || p.profitPct == null || !isFinite(+p.profitPct) ? RULES.profitPct : Math.min(90, Math.max(0, +p.profitPct));
     const profitBaht = Math.max(0, +p.profitBaht || 0);
     const sell = totalCost <= 0 && mode !== "sell" ? 0
       : mode === "sell" ? Math.max(0, +p.sell || 0)
@@ -2534,5 +2619,7 @@
     TRAY_FILL_LIMIT, TRAY_DERATE, trayDerate, trayDim, trayCheck, cableCores,
     UPVC_CONDUIT, conduitFillLimit, conduitDim, conduitCheck,
     AMP_CORE_LABEL, ampGroupMeta, ampCoresFor, ampCoreKey, WIRE_METHOD_LEGACY, normWireMethod,
-    G_TRAY, G_SUPPORT, G_LABOR, G_PERMIT, G_OM, OM_DEF, OM_CLEAN_TIERS, OM_SVC_TIERS, OM_CLEAN_DEF, OM_SVC_DEF, omTierNorm, setOmTiers, omTierPrice, omDefaults, omCalc, SERVICE_GROUPS, mergeItems };
+    G_TRAY, G_SUPPORT, G_LABOR, G_PERMIT, G_OM, OM_DEF, OM_CLEAN_TIERS, OM_SVC_TIERS, OM_CLEAN_DEF, OM_SVC_DEF, omTierNorm, setOmTiers, omTierPrice, omDefaults, omCalc, SERVICE_GROUPS, mergeItems,
+    RULE_SECS, RULE_DEFS, RULES, setRules, ruleVal, ruleTxt };
+  setRules(null);
 })();

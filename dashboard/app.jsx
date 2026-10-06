@@ -246,6 +246,7 @@ function App() {
   const ampStore = useAmpacityStore();
   const condStore = useConduitDefaults();   // ค่าตั้งต้นอุปกรณ์ท่อร้อยสายของบริษัท
   const omStore = useOmTiers();             // ตารางราคาล้างแผง / งาน O&M ตามขนาดระบบ
+  const rulesStore = useBoqRules();         // เงื่อนไขการคำนวณ BOQ (ตั้งค่าคำนวณ BOQ ในหน้าคลัง)
   const apptStore = useSurveyApptStore();
   const leadStore = useSurveyLeadStore();   // ลูกค้าที่ขอให้ไปสำรวจ — แยกจากฐานข้อมูลงาน
   const quoteStore = useQuoteStore();       // ใบเสนอราคา — แขวนได้ทั้งกับลูกค้าสำรวจและกับงาน
@@ -551,6 +552,10 @@ function App() {
   React.useEffect(() => {
     if (window.BOQ && window.BOQ.setOmTiers) window.BOQ.setOmTiers(omStore.val);
   }, [omStore.val]);
+  /* เงื่อนไขการคำนวณ BOQ → ตัวคูณเบรกเกอร์/ฟิวส์/ค่าขออนุญาต/% เผื่อ ที่สูตรใน boq.js · boq.jsx อ่าน */
+  React.useEffect(() => {
+    if (window.BOQ && window.BOQ.setRules) window.BOQ.setRules(rulesStore.val);
+  }, [rulesStore.val]);
 
   const closeSidebar = () => setSidebarOpen(false);
   const openJob = (j) => setSelected(j.id);
@@ -907,7 +912,7 @@ function App() {
       <main className="app-main">
         {view === "stock" ? (
           <StockView stock={stock} onMenuOpen={() => setSidebarOpen(true)} currentUser={auth.current} jobs={jobs}
-            priceStore={priceStore} ampStore={ampStore} condStore={condStore} omStore={omStore} canManagePrices={can(role, "price")} />
+            priceStore={priceStore} ampStore={ampStore} condStore={condStore} omStore={omStore} rulesStore={rulesStore} canManagePrices={can(role, "price")} />
         ) : view === "dispatch" ? (
           <DispatchView appts={apptStore.appts} jobs={jobs} techs={techStore.techs} store={apptStore} leadStore={leadStore}
             onMenuOpen={() => setSidebarOpen(true)} onOpenJob={openJob} />
