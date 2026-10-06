@@ -14,7 +14,8 @@
     { k: "dcWire", grp: "ฝั่ง DC", th: "สาย DC (PV)", sub: "ตัวคูณเลือกขนาดสาย PV · เผื่อความยาว · แรงดันตก DC" },
     { k: "acBoard", grp: "ฝั่ง AC", th: "ตู้ไฟ AC", sub: "MCCB/ACB · Ground Fault · ZCT · ฟิวส์กันหลัง SPD · CT · RCBO งานบ้าน" },
     { k: "acWire", grp: "ฝั่ง AC", th: "สาย AC", sub: "ตัวคูณเลือกขนาดสาย · แรงดันตก AC / รวม" },
-    { k: "tray", grp: "งานติดตั้ง", th: "รางไฟ", sub: "ขาล็อก · ตัวยึด · Rail รอง · ข้อต่อ · % บรรจุสาย · รางจากแบบ 3D" },
+    { k: "tray", grp: "งานติดตั้ง", th: "รางไฟ · ท่อร้อยสาย", sub: "ขาล็อก · ตัวยึด · Rail รอง · ข้อต่อ · % บรรจุสาย · รางจากแบบ 3D · อุปกรณ์ uPVC" },
+    { k: "gnd", grp: "งานติดตั้ง", th: "กราวด์", sub: "แท่งกราวด์ · เทอร์โมเวล ตามขนาดระบบ" },
     { k: "walk", grp: "งานติดตั้ง", th: "ทางเดิน · บันได · ราวกันตก", sub: "แผ่น WALKWAY · END CLAMP · RAIL · สูตรบันไดลิง/ราวสลิง · % เผื่อเริ่มต้น" },
     { k: "plan", grp: "งานติดตั้ง", th: "ท่อน้ำ PPR", sub: "ความยาวเส้น · เผื่อ · ก๊อก · แคลมป์ · มุมเลี้ยว" },
     { k: "permit", grp: "ค่าบริการ & ราคา", th: "ค่าขออนุญาต & วิศวกร", sub: "ค่าขนานไฟ MEA/PEA · เงื่อนไข กกพ./พค.2/อ.1 · ค่าวิศวกรตามขนาด" },
@@ -30,6 +31,7 @@
     { sec: "dcBoard", g: "ทุกงาน", key: "dcSpdV", th: "แรงดันพิกัด DC SPD ที่มีขาย", unit: "VDC", type: "nums", def: [800, 1000, 1500] },
     { sec: "dcBoard", g: "งานบ้าน", key: "dcMcbK", th: "DC MCB ต่อสตริง = Isc ×", unit: "เท่า", def: 1.25, min: 1 },
     { sec: "dcBoard", g: "งานบ้าน", key: "dcMcbA", th: "ขนาด DC MCB ที่มีขาย", unit: "A", type: "nums", def: [10, 16, 20, 25, 32, 40, 50, 63] },
+    { sec: "dcBoard", g: "อินเวอร์เตอร์", key: "dcacMax", th: "เพดานอัตรา DC/AC (กำลังแผง ÷ กำลัง AC อินเวอร์เตอร์)", unit: "เท่า", def: 1.2, min: 0.5, max: 3 },
     /* ── สาย DC ── */
     { sec: "dcWire", key: "pvWireK", th: "สาย PV DC เลือกขนาดจาก Isc ×", unit: "เท่า", def: 1.25, min: 1 },
     { sec: "dcWire", key: "pvSpare", th: "สาย PV เผื่อความยาว (ระยะไกลสุด × สตริง × ค่านี้)", unit: "เท่า", def: 1.2, min: 1 },
@@ -66,6 +68,20 @@
     { sec: "tray", g: "จากแบบ 3D", key: "trayTurn45", th: "มุมเลี้ยวน้อยกว่านี้ไม่นับข้องอ", unit: "°", def: 15, max: 180 },
     { sec: "tray", g: "จากแบบ 3D", key: "trayEnd", th: "แผ่นปิดหัว-ท้าย ต่อเส้น", unit: "ชุด", def: 2 },
     { sec: "tray", g: "จากแบบ 3D", key: "trayPerfW", th: "ทุกเส้นกว้างตั้งแต่เท่านี้ เลือก Perforated ให้ (แคบกว่า = Wireway)", unit: "ซม.", def: 15, min: 1 },
+    { sec: "tray", g: "ท่อร้อยสาย", key: "condFill1", th: "บรรจุสายในท่อ · สาย 1 เส้น ไม่เกิน", unit: "%", def: 53, min: 1, max: 100 },
+    { sec: "tray", g: "ท่อร้อยสาย", key: "condFill2", th: "บรรจุสายในท่อ · สาย 2 เส้น ไม่เกิน", unit: "%", def: 31, min: 1, max: 100 },
+    { sec: "tray", g: "ท่อร้อยสาย", key: "condFill3", th: "บรรจุสายในท่อ · 3 เส้นขึ้นไป ไม่เกิน", unit: "%", def: 40, min: 1, max: 100 },
+    { sec: "tray", g: "ท่อร้อยสาย", key: "upStraightX", th: "uPVC ข้อต่อตรง = จำนวนท่อน +", unit: "ตัว", def: 4 },
+    { sec: "tray", g: "ท่อร้อยสาย", key: "upClamp", th: "uPVC แคลมป์ก้ามปู ทุก", unit: "ม.", def: 0.6, min: 0.1 },
+    { sec: "tray", g: "ท่อร้อยสาย", key: "upConn", th: "uPVC คอนเน็ตเตอร์ ต่อขนาด (พื้นฐาน)", unit: "ตัว", def: 8 },
+    { sec: "tray", g: "ท่อร้อยสาย", key: "upConnBat", th: "uPVC คอนเน็ตเตอร์ เพิ่มเมื่อมีแบต / Backup (อย่างละ)", unit: "ตัว", def: 4 },
+    { sec: "tray", g: "ท่อร้อยสาย", key: "upConnPb", th: "uPVC คอนเน็ตเตอร์ เพิ่มต่อ Pull box", unit: "ตัว", def: 3 },
+    /* ── กราวด์ ── */
+    { sec: "gnd", key: "gndBigKw", th: "ไซต์ใหญ่ตั้งแต่ (เพิ่มแท่งกราวด์ · เทอร์โมเวล 3 ทาง · Test box)", unit: "kW", def: 30 },
+    { sec: "gnd", g: "ไซต์เล็ก", key: "gndRodS", th: "แท่งกราวด์", unit: "แท่ง", def: 1 },
+    { sec: "gnd", g: "ไซต์เล็ก", key: "gndWeldS", th: "เทอร์โมเวล 2 ทาง", unit: "ชุด", def: 1 },
+    { sec: "gnd", g: "ไซต์ใหญ่", key: "gndRodB", th: "แท่งกราวด์", unit: "แท่ง", def: 3 },
+    { sec: "gnd", g: "ไซต์ใหญ่", key: "gndWeldB", th: "เทอร์โมเวล 2 ทาง", unit: "ชุด", def: 2 },
     /* ── ทางเดิน · บันได · ราวกันตก ── */
     { sec: "walk", g: "ทางเดิน (WALKWAY)", key: "walkSheet", th: "แผ่น WALKWAY ยาว", unit: "ม.", def: 2.44, min: 0.1 },
     { sec: "walk", g: "ทางเดิน (WALKWAY)", key: "walkClamp", th: "END CLAMP + ชุดยึด ต่อแผ่น", unit: "ชุด", def: 6 },
@@ -136,7 +152,7 @@
     /* ค่าที่ส่งออกเป็นตัวเลขตรง ๆ (หน้าอื่นอ่าน window.BOQ.VAT_RATE) ต้องตามด้วย */
     if (window.BOQ) Object.assign(window.BOQ, { VAT_RATE: RULES.vat, PROFIT_PCT_DEF: RULES.profitPct, PV_DC_SPARE: RULES.pvSpare,
       ACC_ALLOW_PCT: RULES.accProj, ACC_ALLOW_PCT_HOME: RULES.accHome,
-      PERMIT_GRID_FEE: { MEA: RULES.gridMEA, PEA: RULES.gridPEA } });
+      PERMIT_GRID_FEE: { MEA: RULES.gridMEA, PEA: RULES.gridPEA }, DCAC_LIMIT: RULES.dcacMax });
   }
   setRules(null);
   const ruleTxt = (d, v) => (Array.isArray(v) ? v.join(", ") : String(v));
@@ -1523,7 +1539,7 @@
   /* ── ตรวจสายในท่อร้อยสาย ──
      เกณฑ์ % เติมเต็มของท่อ ไม่ใช่ค่าเดียว วสท./NEC ให้ตามจำนวนเส้นที่ร้อยในท่อเดียวกัน
      1 เส้น ≤ 53% · 2 เส้น ≤ 31% · ตั้งแต่ 3 เส้นขึ้นไป ≤ 40% */
-  function conduitFillLimit(n) { const k = Math.max(0, Math.round(+n || 0)); return k === 1 ? 53 : k === 2 ? 31 : 40; }
+  function conduitFillLimit(n) { const k = Math.max(0, Math.round(+n || 0)); return k === 1 ? RULES.condFill1 : k === 2 ? RULES.condFill2 : RULES.condFill3; }
   // รูในของท่อจากชื่อ เช่น 'IMC 2"' → 57.52 · "ท่อขาว uPVC 25mm. (สีขาว)" → 21.4
   function conduitDim(name) {
     const s = String(name || "");
@@ -1576,7 +1592,7 @@
     (cables || []).forEach(function (c) { total += wireArea(c.type, c.size) * (+c.qty || 0); });
     const area = (+wayW || 0) * (+wayH || 0);
     const pct = area > 0 ? (total / area) * 100 : 0;
-    return { totalArea: total, wayArea: area, fillPct: pct, ok: pct <= 20 };
+    return { totalArea: total, wayArea: area, fillPct: pct, ok: pct <= RULES.wayFill };
   }
   // หาขนาดท่อขั้นต่ำที่รับสายได้ fill ≤ 40%
   function calcConduitSize(cables) {
@@ -1585,7 +1601,7 @@
     function find(table, keyFn) {
       for (var i = 0; i < table.length; i++) {
         var r = table[i]; var a = Math.PI * (r.id / 2) * (r.id / 2);
-        if (a * 0.40 >= total) return { label: keyFn(r), fillPct: total / a * 100 };
+        if (a * RULES.condFill3 / 100 >= total) return { label: keyFn(r), fillPct: total / a * 100 };
       }
       return null;
     }
@@ -2097,9 +2113,9 @@
       const mm = (nm.match(/(\d+)\s*mm/) || [])[1] || "";
       const suf = mm ? (mm + "mm. (สีขาว)") : "";
       const pipes = Math.ceil(len / 2.9);                 // 2.90m/ท่อน
-      const straight = cqty("upStraight", pipes, pipes + 4, cs.upStraight);  // อัตโนมัติ ท่อน + 4
-      const clamp = cqty("upClamp", pipes, len / 0.6, cs.upClamp);            // อัตโนมัติ ทุก 60cm
-      const connector = cqty("upConnector", pipes, 8 + (hasBat ? 4 : 0) + (hasBk ? 4 : 0) + 3 * pbUpvc, cs.upConnector);
+      const straight = cqty("upStraight", pipes, pipes + RULES.upStraightX, cs.upStraight);  // อัตโนมัติ ท่อน + 4
+      const clamp = cqty("upClamp", pipes, len / RULES.upClamp, cs.upClamp);            // อัตโนมัติ ทุก 60cm
+      const connector = cqty("upConnector", pipes, RULES.upConn + (hasBat ? RULES.upConnBat : 0) + (hasBk ? RULES.upConnBat : 0) + RULES.upConnPb * pbUpvc, cs.upConnector);
       const flex = (upFlexMap[nm] != null && upFlexMap[nm] !== "") ? Math.round(+upFlexMap[nm] || 0) : 1;
       race.push({ name: nm + " (2.9m/ท่อน)", qty: pipes, unit: "pcs" });
       race.push({ name: "ข้อต่อตรง uPVC " + suf, qty: straight, unit: "pcs" });
@@ -2161,10 +2177,10 @@
 
     // GROUNDING (ระบบกราวด์) — ตามขนาดติดตั้ง (kW); ไซต์ใหญ่ตั้งแต่ 30 kW เพิ่มอุปกรณ์
     if (panelCount > 0) {
-      const big = kw >= 30;
+      const big = kw >= RULES.gndBigKw;
       const gnd = [
-        { name: 'แท่งกราวด์ชุบทองแดง 5/8" ยาว 2.4 m', qty: big ? 3 : 1, unit: "pcs" },
-        { name: 'อุปกรณ์เชื่อมสายกราวด์เทอร์โมเวล 2 ทาง 16 sq.mm Rod 5/8"', qty: big ? 2 : 1, unit: "pcs" },
+        { name: 'แท่งกราวด์ชุบทองแดง 5/8" ยาว 2.4 m', qty: big ? RULES.gndRodB : RULES.gndRodS, unit: "pcs" },
+        { name: 'อุปกรณ์เชื่อมสายกราวด์เทอร์โมเวล 2 ทาง 16 sq.mm Rod 5/8"', qty: big ? RULES.gndWeldB : RULES.gndWeldS, unit: "pcs" },
       ];
       if (big) {
         gnd.push({ name: 'อุปกรณ์เชื่อมสายกราวด์เทอร์โมเวล 3 ทาง 16 sq.mm Rod 5/8"', qty: 1, unit: "pcs" });
