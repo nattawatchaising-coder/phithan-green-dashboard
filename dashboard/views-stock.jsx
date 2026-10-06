@@ -1025,6 +1025,11 @@ function ItemModal({ initial, isNew, items, onSave, onClose, onAddCat, onRemoveC
                   <Field label="เสื่อมปีถัดไป (%/ปี)"><input type="number" step="0.01" style={inputStyle} value={f.degY != null ? f.degY : ""} onChange={(e) => set("degY", parseFloat(e.target.value) || 0)} placeholder="0.4" /></Field>
                   <Field label="จำนวนเซลล์อนุกรม"><input type="number" style={inputStyle} value={f.cells != null ? f.cells : ""} onChange={(e) => set("cells", parseInt(e.target.value) || 0)} placeholder="72 / 144" /></Field>
                   <Field label="ฟิวส์สูงสุดของแผง (A)"><input type="number" style={inputStyle} value={f.fuseA != null ? f.fuseA : ""} onChange={(e) => set("fuseA", parseFloat(e.target.value) || 0)} placeholder="25 / 30" /></Field>
+                  <Field label="แผงสองหน้า (Bifacial)">
+                    <select style={inputStyle} value={f.bifacial === true ? "1" : f.bifacial === false ? "0" : ""}
+                      onChange={(e) => set("bifacial", e.target.value === "" ? null : e.target.value === "1")}>
+                      <option value="">ดูจากชื่อรุ่น</option><option value="1">สองหน้า</option><option value="0">หน้าเดียว</option>
+                    </select></Field>
                   <Field label="ชนิดเซลล์">
                     <select style={inputStyle} value={f.halfCut === true ? "1" : f.halfCut === false ? "0" : ""}
                       onChange={(e) => set("halfCut", e.target.value === "" ? null : e.target.value === "1")}>

@@ -17,6 +17,7 @@
     { k: "acBoard", grp: "ฝั่ง AC", th: "ตู้ไฟ AC", sub: "MCCB/ACB · Ground Fault · ZCT · ฟิวส์กันหลัง SPD · CT · RCBO (งานบ้าน)" },
     { k: "acWire", grp: "ฝั่ง AC", th: "สาย AC", sub: "ตัวคูณเลือกขนาดสาย · แรงดันตก AC / รวม" },
     { k: "tray", grp: "งานติดตั้ง", th: "รางไฟ · ท่อร้อยสาย", sub: "ขาล็อก · ตัวยึด · Rail รอง · ข้อต่อ · % บรรจุสาย · รางจากแบบ 3D · อุปกรณ์ uPVC" },
+    { k: "mount", grp: "งานติดตั้ง", th: "โครงยึดแผง (MOUNTING)", sub: "EARTHING CLIP · น็อต M8 · L-FEET ตามระยะแป" },
     { k: "gnd", grp: "งานติดตั้ง", th: "กราวด์", sub: "แท่งกราวด์ · เทอร์โมเวล ตามขนาดระบบ" },
     { k: "walk", grp: "งานติดตั้ง", th: "ทางเดิน · บันได · ราวกันตก", sub: "แผ่น WALKWAY · END CLAMP · RAIL · สูตรบันไดลิง/ราวสลิง · % เผื่อเริ่มต้น" },
     { k: "plan", grp: "งานติดตั้ง", th: "ท่อน้ำ PPR", sub: "ความยาวเส้น · เผื่อ · ก๊อก · แคลมป์ · มุมเลี้ยว" },
@@ -32,6 +33,8 @@
     { sec: "dcBoard", g: "ทุกงาน", key: "dcFuse", th: "ฟิวส์ DC gPV ที่มีขาย", unit: "VDC", unitA: "A", type: "pairs", holder: "ฐานฟิวส์", legacy: ["dcFuseA", "dcFuseV"],
       def: [{ v: 1000, h: "SRD-30", a: [10, 12, 15, 16, 20, 25, 30, 32] }, { v: 1500, h: "SRD-50H", a: [10, 12, 15, 16, 20, 25, 30, 32] }] },
     { sec: "dcBoard", g: "ทุกงาน", key: "tMin", th: "อุณหภูมิต่ำสุดหน้างาน (คิด Voc สตริงตอนเช้าที่หนาวสุด · ใช้ทั้ง BOQ/ออกแบบระบบ/SLD)", unit: "°C", def: 15, min: -20, max: 40 },
+    { sec: "dcBoard", g: "ทุกงาน", key: "tCellHot", th: "อุณหภูมิเซลล์ตอนร้อนสุด (Vmp ตก · เช็กว่าแรงดันสตริงไม่หลุดใต้ MPPT · ใช้ทั้ง BOQ/ออกแบบระบบ)", unit: "°C", def: 65, min: 30, max: 100 },
+    { sec: "dcBoard", g: "ทุกงาน", key: "bifacialK", th: "แผงสองหน้า (Bifacial) · Isc ใช้เลือกฟิวส์/DC MCB/สาย = Isc × (แสงสะท้อนด้านหลัง)", unit: "เท่า", def: 1.1, min: 1, max: 1.5 },
     { sec: "dcBoard", g: "ทุกงาน", key: "vocK", th: "แรงดันพิกัดฟิวส์/SPD/DC MCB ≥ Voc สตริง (ที่อุณหภูมิต่ำสุด) × เผื่อ", unit: "เท่า", def: 1.1, min: 1 },
     { sec: "dcBoard", g: "ทุกงาน", key: "dcSpd2", th: "DC SPD Type II ที่มีขาย", unit: "VDC", unitA: "kA Imax", type: "pairs", poles: ["1P", "2P", "3P", "4P"], poleDef: "2P", legacyV: "dcSpdV",
       def: [{ v: 800, p: "2P", a: [40] }, { v: 1000, p: "2P", a: [40] }, { v: 1500, p: "2P", a: [40] }] },
@@ -42,9 +45,13 @@
     { sec: "dcBoard", g: "งานบ้าน", key: "dcMcbK", th: "DC MCB ต่อสตริง = Isc × (IEC 62548 ≥ 1.5)", unit: "เท่า", def: 1.5, min: 1 },
     { sec: "dcBoard", g: "งานบ้าน", key: "dcMcb", th: "DC MCB ที่มีขาย", unit: "VDC", unitA: "A", type: "pairs", poles: ["1P", "2P", "3P", "4P"], poleDef: "2P", legacy: ["dcMcbA", "dcMcbV"],
       def: [{ v: 500, p: "2P", a: [10, 16, 20, 25, 32, 40, 50, 63] }, { v: 800, p: "2P", a: [10, 16, 20, 25, 32, 40, 50, 63] }, { v: 1000, p: "2P", a: [10, 16, 20, 25, 32, 40, 50, 63] }] },
+    { sec: "dcBoard", g: "อินเวอร์เตอร์", key: "battS1Kwh", th: "แบต Huawei LUNA2000-S1 · ความจุต่อก้อน", unit: "kWh", def: 7, min: 1 },
+    { sec: "dcBoard", g: "อินเวอร์เตอร์", key: "battS1Per", th: "แบต LUNA2000-S1 · ก้อนสูงสุดต่อ Power Module 1 ตัว", unit: "ก้อน", def: 3, min: 1 },
     { sec: "dcBoard", g: "อินเวอร์เตอร์", key: "dcacMax", th: "เพดานอัตรา DC/AC (กำลังแผง ÷ กำลัง AC อินเวอร์เตอร์)", unit: "เท่า", def: 1.2, min: 0.5, max: 3 },
     /* ── สาย DC ── */
     { sec: "dcWire", key: "pvWireK", th: "สาย PV DC เลือกขนาดจาก Isc ×", unit: "เท่า", def: 1.25, min: 1 },
+    { sec: "dcWire", key: "pvWireMin", th: "สาย PV ขนาดเล็กสุดที่ใช้ (วสท.)", unit: "mm²", def: 6, min: 2.5, max: 16 },
+    { sec: "dcWire", key: "pvWireTempK", th: "ตัวคูณลดพิกัดสาย PV ตามอุณหภูมิ (ตารางอ้างอิงอากาศ 60°C · ร้อนกว่านี้ใส่ต่ำกว่า 1)", unit: "เท่า", def: 1, min: 0.3, max: 1.2 },
     { sec: "dcWire", key: "pvSpare", th: "สาย PV เผื่อความยาว (ระยะไกลสุด × สตริง × ค่านี้)", unit: "เท่า", def: 1.2, min: 1 },
     { sec: "dcWire", key: "vdDc", th: "แรงดันตกฝั่ง DC ไม่เกิน", unit: "%", def: 2, min: 0.1, max: 20 },
     /* ── ตู้ไฟ AC ── */
@@ -72,6 +79,7 @@
     { sec: "acBoard", g: "งานบ้าน", key: "homeSpdMcb", th: "MCB กันหลัง AC SPD", unit: "A", def: 32, min: 1 },
     /* ── สาย AC ── */
     { sec: "acWire", key: "wireK", th: "สาย AC เลือกขนาดจากกระแส × (โหลดต่อเนื่อง)", unit: "เท่า", def: 1.25, min: 1 },
+    { sec: "acWire", key: "acTempK", th: "ตัวคูณลดพิกัดสาย AC ตามอุณหภูมิแวดล้อม (ตาราง วสท. อ้างอิง 40°C · ใต้หลังคาร้อน ~0.87)", unit: "เท่า", def: 1, min: 0.3, max: 1.2 },
     { sec: "acWire", key: "vdAc", th: "แรงดันตกฝั่ง AC ไม่เกิน", unit: "%", def: 3, min: 0.1, max: 20 },
     { sec: "acWire", key: "vdTotal", th: "แรงดันตกรวม DC + AC ไม่เกิน", unit: "%", def: 5, min: 0.1, max: 30 },
     /* ── รางไฟ ── */
@@ -94,6 +102,10 @@
     { sec: "tray", g: "ท่อร้อยสาย", key: "upConn", th: "uPVC คอนเน็ตเตอร์ ต่อขนาด (พื้นฐาน)", unit: "ตัว", def: 8 },
     { sec: "tray", g: "ท่อร้อยสาย", key: "upConnBat", th: "uPVC คอนเน็ตเตอร์ เพิ่มเมื่อมีแบต / Backup (อย่างละ)", unit: "ตัว", def: 4 },
     { sec: "tray", g: "ท่อร้อยสาย", key: "upConnPb", th: "uPVC คอนเน็ตเตอร์ เพิ่มต่อ Pull box", unit: "ตัว", def: 3 },
+    /* ── โครงยึดแผง ── */
+    { sec: "mount", key: "earthClipPer", th: "EARTHING CLIP ต่อแผง", unit: "ตัว", def: 1, max: 10 },
+    { sec: "mount", key: "boltPerLug", th: "BOLT&N2 NUT M8 ต่อ GROUNDING LUG", unit: "ชุด", def: 1, max: 10 },
+    { sec: "mount", key: "purlinSpan", th: "ระยะแปเริ่มต้น (ใบที่เลือกคิด L-FEET ตามระยะแป)", unit: "ม.", def: 1.2, min: 0.3, max: 6 },
     /* ── กราวด์ ── */
     { sec: "gnd", key: "gndBigKw", th: "ไซต์ใหญ่ตั้งแต่ (เพิ่มแท่งกราวด์ · เทอร์โมเวล 3 ทาง · Test box)", unit: "kW", def: 30 },
     { sec: "gnd", g: "ไซต์เล็ก", key: "gndRodS", th: "แท่งกราวด์", unit: "แท่ง", def: 1 },
@@ -812,6 +824,7 @@
   function cableCoreType(type) { const m = /(\d+)\s*C\s*x/i.exec(type || ""); return m && +m[1] >= 2 ? "multi" : "single"; }
   // ขนาดตัวนำ (sq.mm) จากชื่อสาย เช่น "CV-FD 1Cx2.5 SQ.MM." → 2.5
   function cableSizeNum(type) { const m = /(\d+(?:\.\d+)?)\s*sq/i.exec(type || ""); return m ? +m[1] : null; }
+  const acTk = () => (+RULES.acTempK > 0 ? +RULES.acTempK : 1);
   // พิกัดกระแสของสาย (A) — opts = { method, group, ncond } · ฉนวน/แกน/ขนาด อ่านจากชื่อ · ไม่มีข้อมูล = null
   function ampacityOf(type, opts) {
     opts = opts || {};
@@ -824,7 +837,7 @@
     const base = tbl[sz];
     if (base == null) return null;
     // ตัวคูณลดกระแส (หลายวงจรในช่องเดียวกัน) — 1 = ไม่ลด
-    const d = +opts.derate > 0 ? +opts.derate : 1;
+    const d = (+opts.derate > 0 ? +opts.derate : 1) * acTk();
     return Math.round(base * d * 10) / 10;
   }
   // เลือกขนาดสายเล็กสุดที่รับกระแส "ที่ต้องการ" ได้ (ผู้เรียกคูณ 1.25 มาก่อนแล้ว) — opts = { method, group, ncond, core }
@@ -835,7 +848,7 @@
     const tbl = ampTableFor(insClass, opts.method, col).tbl;
     /* ตัวคูณลดกระแส = สายในช่องเดียวกันหลายวงจรจะระบายความร้อนได้แย่ลง
        พิกัดที่ใช้ได้จริง = พิกัดตาราง × ตัวคูณ · จึงเทียบกับกระแสที่ต้องการโดยตรง */
-    const d = +opts.derate > 0 ? +opts.derate : 1;
+    const d = (+opts.derate > 0 ? +opts.derate : 1) * acTk();   // × ตัวคูณอุณหภูมิแวดล้อม (กฎ acTempK)
     for (let i = 0; i < WIRE_SIZES.length; i++) { const sz = WIRE_SIZES[i]; if ((tbl[sz] || 0) * d >= needAmp) return sz + " mm²"; }
     const sizesWithData = WIRE_SIZES.filter((s) => tbl[s] != null);
     if (!sizesWithData.length) return "—";   // ยังไม่มีตารางพิกัดสำหรับเงื่อนไขนี้
@@ -849,8 +862,11 @@
   const PV_WIRE_SIZES = [2.5, 4, 6, 10, 16];
   const PV_WIRE_AMP = { 2.5: 41, 4: 55, 6: 70, 10: 98, 16: 132 };
   // เลือกขนาดสาย DC จากกระแสที่ต้องการ (ผู้เรียกคูณ factor มาก่อนแล้ว) — ไม่ต่ำกว่า PV_WIRE_MIN
+  /* ขนาดเล็กสุด/ตัวคูณอุณหภูมิอ่านจากกฎ (สาย DC) — ตาราง PV_WIRE_AMP เป็นพิกัดที่อากาศ 60°C */
+  const pvMin = () => (+RULES.pvWireMin > 0 ? +RULES.pvWireMin : PV_WIRE_MIN);
   function pickPvWireSize(needAmp) {
-    for (let i = 0; i < PV_WIRE_SIZES.length; i++) { const sz = PV_WIRE_SIZES[i]; if (sz >= PV_WIRE_MIN && PV_WIRE_AMP[sz] >= needAmp) return sz + " mm²"; }
+    const k = +RULES.pvWireTempK > 0 ? +RULES.pvWireTempK : 1;
+    for (let i = 0; i < PV_WIRE_SIZES.length; i++) { const sz = PV_WIRE_SIZES[i]; if (sz >= pvMin() && PV_WIRE_AMP[sz] * k >= needAmp) return sz + " mm²"; }
     return "มากกว่า " + PV_WIRE_SIZES[PV_WIRE_SIZES.length - 1] + " mm²";
   }
   // ── แรงดันตกในสาย (voltage drop) ──
@@ -874,7 +890,7 @@
     const need = k * L * I * rho / (lim / 100 * V);
     const pool = o.dc ? PV_WIRE_SIZES : WIRE_SIZES;
     let minSize = null;
-    for (let i = 0; i < pool.length; i++) { if (pool[i] >= need && (!o.dc || pool[i] >= PV_WIRE_MIN)) { minSize = pool[i]; break; } }
+    for (let i = 0; i < pool.length; i++) { if (pool[i] >= need && (!o.dc || pool[i] >= pvMin())) { minSize = pool[i]; break; } }
     return { dv: Math.round(dv * 100) / 100, pct: Math.round(pct * 100) / 100, lim,
       ok: pct <= lim, size: A, need: Math.round(need * 100) / 100, minSize, volts: V, amp: I, length: L,
       phase: +o.phase === 3 ? 3 : 1 };
@@ -897,14 +913,22 @@
     const vocCold = voc * (1 + tc / 100 * (tMin - 25));
     const vmin = +inv.mpptVmin || 0, vmax = +inv.mpptVmax || 0, maxVdc = +inv.maxVdc || 0, maxInA = +inv.maxInA || 0;
     const vRef = vmp > 0 ? vmp : voc;   // จุดทำงาน: ใช้ Vmp ถ้ามี ไม่งั้นใช้ Voc
-    const out = { voc, vocCold: Math.round(vocCold * 100) / 100, tMin, tcVoc: tc, isc, vmp, imp, vmin, vmax, maxVdc, maxInA, vRef, warns: [], ready: false };
+    /* Vmp ตกเมื่อเซลล์ร้อน (tcVmp · ไม่มี = tcVoc) — จำนวนแผงขั้นต่ำต้องคิดตอนร้อนสุด ไม่งั้นบ่ายแดดจัดแรงดันหลุดใต้ MPPT */
+    const tHot = RULES.tCellHot, tcV = +panel.tcVmp < 0 ? +panel.tcVmp : tc;
+    /* แผงสองหน้า: ด้านหลังรับแสงสะท้อนเพิ่มกระแส — ใช้ Isc × bifacialK เลือกฟิวส์/สาย (ช่อง "แผงสองหน้า" ในคลัง · ไม่ระบุ = เดาจากชื่อรุ่น) */
+    const bif = panel.bifacial === true || (panel.bifacial == null && /bifacial|BDV|BDB|HBD|DEG\d|JAM\d+D\d/i.test(String(panel.model || "")));
+    const iscD = isc * (bif ? RULES.bifacialK : 1);
+    const maxMpptA = +inv.maxMpptA || 0, maxIscA = +inv.maxIscA || 0, spm = Math.max(1, Math.round(+inv.strPerMppt || 1));
+    const out = { voc, vocCold: Math.round(vocCold * 100) / 100, tMin, tcVoc: tc, tHot, isc, iscD: Math.round(iscD * 100) / 100, bifacial: bif, vmp, imp, vmin, vmax, maxVdc, maxInA, maxMpptA, maxIscA, strPerMppt: spm, vRef, warns: [], ready: false };
     if (!voc || !vmin || !vmax) {
       if (!voc) out.warns.push("ยังไม่ระบุ Voc ของแผง — เพิ่มได้ที่หน้าคลัง › สเปคแผง");
       if (!vmin || !vmax) out.warns.push("ยังไม่ระบุช่วงแรงดันทำงาน MPPT ของอินเวอร์เตอร์ — เพิ่มได้ที่หน้าคลัง");
       return out;
     }
     out.ready = true;
-    out.minSeries = Math.max(1, Math.ceil(vmin / vRef));         // ขั้นต่ำ ให้แรงดันถึง Vmin
+    const vHot = vRef * (1 + tcV / 100 * (tHot - 25));
+    out.vmpHot = Math.round(vHot * 100) / 100;
+    out.minSeries = Math.max(1, Math.ceil(vmin / vHot));          // ขั้นต่ำ ให้แรงดันตอนเซลล์ร้อนสุดยังถึง Vmin
     const maxByOp = Math.floor(vmax / vRef);                      // สูงสุด ให้แรงดันทำงานไม่เกิน Vmax
     const maxByVoc = maxVdc > 0 ? Math.floor(maxVdc / vocCold) : maxByOp;  // Voc รวมตอนหนาวสุด ต้องไม่เกินแรงดันระบบสูงสุด
     out.maxByOp = maxByOp; out.maxByVoc = maxByVoc;
@@ -917,14 +941,22 @@
     out.stringVoc = Math.round(series * vocCold * 100) / 100;    // แรงดันเปิดวงจรรวมตอนหนาวสุด (tMin) — ใช้เลือกแรงดันพิกัดอุปกรณ์
     out.stringVoc25 = Math.round(series * voc * 100) / 100;      // ที่ 25°C (ไว้แสดงเทียบ)
     out.stringVop = Math.round(series * vRef * 100) / 100;       // แรงดันทำงานรวม (โดยประมาณ)
+    out.stringVopHot = Math.round(series * vHot * 100) / 100;    // แรงดันทำงานตอนเซลล์ร้อนสุด (tCellHot)
+    out.hotLow = out.stringVopHot < vmin;
     out.inRange = out.stringVop >= vmin && out.stringVop <= vmax;
     out.overMaxVdc = maxVdc > 0 && out.stringVoc > maxVdc;
     if (!out.inRange) out.warns.push("แรงดันทำงานรวม " + out.stringVop + " V อยู่นอกช่วง MPPT " + vmin + "–" + vmax + " V");
+    if (out.inRange && out.hotLow) out.warns.push("ตอนเซลล์ร้อน " + tHot + "°C แรงดันทำงาน " + out.stringVopHot + " V ต่ำกว่า MPPT " + vmin + " V — ต้องต่ออนุกรมอย่างน้อย " + out.minSeries + " แผง");
     if (out.overMaxVdc) out.warns.push("Voc รวมที่ " + tMin + "°C " + out.stringVoc + " V เกินแรงดันระบบสูงสุด " + maxVdc + " V");
     // กระแส DC = Isc × 1.25 (ป้องกันกระแสเกินตามมาตรฐาน) → เลือกขนาดสาย PV1-F
-    out.dcAmp = Math.round(isc * RULES.pvWireK * 100) / 100;
+    out.dcAmp = Math.round(iscD * RULES.pvWireK * 100) / 100;
     out.dcWire = isc > 0 ? pickPvWireSize(out.dcAmp) : "—";
-    if (maxInA > 0 && isc > maxInA) out.warns.push("Isc " + isc + " A เกินกระแส input สูงสุด/สตริง " + maxInA + " A");
+    /* กระแสเทียบสเปคอินเวอร์เตอร์ (ตรงกับหน้าออกแบบระบบ scCurrent):
+       Imp 1 สตริง ≤ กระแสเข้าสูงสุดต่อขั้ว · Imp × สตริง/MPPT ≤ ต่อช่อง MPPT · Isc × 1.25 × สตริง/MPPT ≤ Isc สูงสุดต่อ MPPT */
+    const iOp = imp || isc, limOp = maxMpptA || maxInA, r2 = (x) => Math.round(x * 100) / 100;
+    if (maxInA > 0 && iOp > maxInA) out.warns.push("กระแสทำงาน 1 สตริง " + r2(iOp) + " A เกินกระแสเข้าสูงสุดต่อขั้ว " + maxInA + " A");
+    if (limOp > 0 && spm > 1 && iOp * spm > limOp) out.warns.push("กระแสทำงานรวม " + r2(iOp * spm) + " A (" + spm + " สตริง/MPPT) เกินกระแสเข้าสูงสุดต่อ MPPT " + limOp + " A");
+    if (maxIscA > 0 && isc > 0 && iscD * 1.25 * spm > maxIscA) out.warns.push("Isc" + (bif ? " (สองหน้า ×" + RULES.bifacialK + ")" : "") + " × 1.25" + (spm > 1 ? " × " + spm + " สตริง" : "") + " = " + r2(iscD * 1.25 * spm) + " A เกินกระแสลัดวงจรสูงสุดต่อ MPPT " + maxIscA + " A");
     return out;
   }
 
@@ -1972,6 +2004,8 @@
     const gap = +b.gap || 0;
     const endSpare = +b.endSpare || 0;
     const lfeetPerRail = +b.lfeetPerRail || 0;
+    const lfeetBy = b.lfeetBy === "purlin" ? "purlin" : "rail";
+    const purlin = +b.purlin > 0 ? +b.purlin : RULES.purlinSpan;
 
     // กรอกจำนวนแผงโดยตรง → คำนวณขนาดติดตั้ง (kW) ย้อนกลับ
     // (รองรับข้อมูลเก่าที่เก็บเป็น kw)
@@ -1995,7 +2029,8 @@
       joinerSum   += nr * ((tonRow - 1) * 2);
       midSum      += nr * ((pr - 1) * 2);
       endSum      += nr * 4;
-      lbracketSum += (nr * railx2) * lfeetPerRail;
+      /* L-FEET: ต่อท่อนราง (เดิม) หรือ ตามระยะแป = จุดยึดทุกแปตลอดแนวราง + 1 · ราง 2 แนวต่อแถว */
+      lbracketSum += lfeetBy === "purlin" ? nr * 2 * (Math.ceil(Math.max(0, lenRow - endSpare) / purlin) + 1) : (nr * railx2) * lfeetPerRail;
       earthlugSum += nr * 2;
     });
     const pct = (v, p) => Math.round(v * (1 + (+p || 0) / 100));
@@ -2063,8 +2098,8 @@
           if (!/SUN2000-10K-LC0|SUN2000-5K-LB0/i.test(selInv.model)) invItems.push({ name: HW.dongle, qty: 1, unit: "ชุด" });
         }
         if (hw && (+b.batteryKwh || 0) > 0) {
-          const s1 = Math.ceil((+b.batteryKwh || 0) / 7);   // แบต S1 ก้อนละ 7 kWh
-          const c1 = Math.ceil(s1 / 3);                      // Power Module 1 ตัว/แสตก (สูงสุด 3 ก้อน)
+          const s1 = Math.ceil((+b.batteryKwh || 0) / RULES.battS1Kwh);   // แบต S1 ก้อนละ battS1Kwh kWh
+          const c1 = Math.ceil(s1 / RULES.battS1Per);                       // Power Module 1 ตัว/แสตก (สูงสุด battS1Per ก้อน)
           invItems.push({ name: HW.lunaC1, qty: c1, unit: "ตัว" });
           invItems.push({ name: HW.lunaS1, qty: s1, unit: "ก้อน" });
         }
@@ -2150,8 +2185,8 @@
     groups.push({ group: "MOUNTING", items: [
       { name: RAIL[railSize] || ("RAIL " + railSize + " M"), qty: rail, unit: "SET" },
       { name: "RAIL SPLICE KIT", qty: joiner, unit: "SET" },
-      { name: "BOLT&N2 NUT M8 20mm.", qty: Math.round(invTotalAll * 2), unit: "SET" },
-      { name: "EARTHING CLIP", qty: Math.round(lfeet / 2), unit: "SET" },
+      { name: "BOLT&N2 NUT M8 20mm.", qty: Math.ceil(groundlug * RULES.boltPerLug), unit: "SET" },   // ยึด GROUNDING LUG กับราง
+      { name: "EARTHING CLIP", qty: Math.ceil(rowsSum * RULES.earthClipPer), unit: "SET" },          // ต่อแผง (เดิม L-FEET ÷ 2)
       { name: "GROUNDING LUG COPPER LINES", qty: groundlug, unit: "SET" },
       { name: MID_CLAMP[panel.frame] || ("MID CLAME KIT " + panel.frame + "mm."), qty: mid, unit: "SET" },
       { name: END_CLAMP[panel.frame] || ("END CLAMP KIT " + panel.frame + "mm."), qty: end, unit: "SET" },
@@ -2715,6 +2750,7 @@
         if (p[k] !== "" && p[k] != null && !isNaN(+p[k]) && +p[k] !== 0) row[k] = +p[k];
       });
       if (p.halfCut === true || p.halfCut === false) row.halfCut = p.halfCut;
+      if (p.bifacial === true || p.bifacial === false) row.bifacial = p.bifacial;   // ไม่ระบุ = stringConfig เดาจากชื่อรุ่น
     });
     // คลังยังไม่โหลด/ไม่มีแผง → คงค่าเริ่มต้นไว้ กันดรอปดาวน์ว่าง
     const next = out.length ? out : DEFAULT_PANELS.map((d) => Object.assign({}, d));

@@ -18,6 +18,11 @@ const SC_ENV = {
   tCellHot: 65,
   albedo: 0.2
 };
+function scTHot(env) {
+  const R = typeof window !== "undefined" && window.BOQ && window.BOQ.RULES;
+  if (R && R.tCellHot != null && isFinite(+R.tCellHot)) return +R.tCellHot;
+  return env && env.tCellHot != null ? +env.tCellHot : SC_ENV.tCellHot;
+}
 function scTMin(env) {
   const R = typeof window !== "undefined" && window.BOQ && window.BOQ.RULES;
   if (R && R.tMin != null && isFinite(+R.tMin)) return +R.tMin;
@@ -293,7 +298,7 @@ function scStringCheck(panel, inv, n, env, opt) {
   env = Object.assign({}, SC_ENV, env || {});
   const tMin = scTMin(env);
   const vocCold = scVocAt(panel, tMin) * n;
-  const vmpHot = scVmpAt(panel, env.tCellHot) * n;
+  const vmpHot = scVmpAt(panel, scTHot(env)) * n;
   const vmpCold = scVmpAt(panel, tMin) * n;
   const vmpNom = scNum(panel.vmp) * n;
   const maxVdc = scNum(inv.maxVdc),

@@ -2724,6 +2724,18 @@ function ItemModal({
     onChange: e => set("fuseA", parseFloat(e.target.value) || 0),
     placeholder: "25 / 30"
   })), React.createElement(Field, {
+    label: "\u0E41\u0E1C\u0E07\u0E2A\u0E2D\u0E07\u0E2B\u0E19\u0E49\u0E32 (Bifacial)"
+  }, React.createElement("select", {
+    style: inputStyle,
+    value: f.bifacial === true ? "1" : f.bifacial === false ? "0" : "",
+    onChange: e => set("bifacial", e.target.value === "" ? null : e.target.value === "1")
+  }, React.createElement("option", {
+    value: ""
+  }, "\u0E14\u0E39\u0E08\u0E32\u0E01\u0E0A\u0E37\u0E48\u0E2D\u0E23\u0E38\u0E48\u0E19"), React.createElement("option", {
+    value: "1"
+  }, "\u0E2A\u0E2D\u0E07\u0E2B\u0E19\u0E49\u0E32"), React.createElement("option", {
+    value: "0"
+  }, "\u0E2B\u0E19\u0E49\u0E32\u0E40\u0E14\u0E35\u0E22\u0E27"))), React.createElement(Field, {
     label: "\u0E0A\u0E19\u0E34\u0E14\u0E40\u0E0B\u0E25\u0E25\u0E4C"
   }, React.createElement("select", {
     style: inputStyle,

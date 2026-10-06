@@ -3395,7 +3395,7 @@ function BOQEditor({
     });
     const pIsc = selPanel && +selPanel.isc > 0 ? +selPanel.isc : 0;
     const iIsc = +selInv.maxIscA > 0 ? +selInv.maxIscA / Math.max(1, Math.round(+selInv.strPerMppt || 1)) : 0;
-    const isc = pIsc || iIsc;
+    const isc = pIsc ? scfg && scfg.iscD ? scfg.iscD : pIsc : iIsc;
     const voc = scfg && scfg.stringVoc ? scfg.stringVoc * RU.vocK : +selInv.maxVdc || 1000;
     const vTxtOf = v => scfg && scfg.stringVoc ? "Voc สตริงที่ " + scfg.tMin + "°C " + r1(scfg.stringVoc) + " V × " + RU.vocK + " = " + r1(voc) + " V → " + v + " VDC" : "ยังไม่รู้ Voc สตริง ใช้แรงดันสูงสุดของอินเวอร์เตอร์ → " + v + " VDC";
     if (nStr > 0 && isc > 0) {
@@ -3410,7 +3410,7 @@ function BOQEditor({
         unit: "ตัว",
         auto: 1,
         ok,
-        why: nStr + " สตริง × 2 ขั้ว · Isc " + (pIsc ? "แผง " : "จากสเปคอินเวอร์เตอร์ ") + r1(isc) + " A × " + RU.dcFuseK + " = " + r1(need) + " A → " + A + " A" + (A > isc * RU.dcFuseMaxK ? " เกิน " + RU.dcFuseMaxK + " × Isc" : "") + " · " + vTxtOf(V) + (!F.okA ? " · ฟิวส์ " + V + " VDC ที่มีขายไม่ถึง " + r1(need) + " A" : "") + (!F.okV ? " · ไม่มีฟิวส์แรงดันพิกัดพอ" : "")
+        why: nStr + " สตริง × 2 ขั้ว · Isc " + (pIsc ? scfg && scfg.bifacial ? "แผงสองหน้า " + r1(pIsc) + " × " + RU.bifacialK + " = " : "แผง " : "จากสเปคอินเวอร์เตอร์ ") + r1(isc) + " A × " + RU.dcFuseK + " = " + r1(need) + " A → " + A + " A" + (A > isc * RU.dcFuseMaxK ? " เกิน " + RU.dcFuseMaxK + " × Isc" : "") + " · " + vTxtOf(V) + (!F.okA ? " · ฟิวส์ " + V + " VDC ที่มีขายไม่ถึง " + r1(need) + " A" : "") + (!F.okV ? " · ไม่มีฟิวส์แรงดันพิกัดพอ" : "")
       });
       out.dc.push({
         name: "DC FUSE HOLDER" + (F.h ? " " + F.h : ""),
@@ -7237,6 +7237,26 @@ function BOQEditor({
     value: b.endSpare,
     onChange: e => set("endSpare", e.target.value)
   })), React.createElement(Field, {
+    label: "\u0E04\u0E34\u0E14 L-FEET \u0E08\u0E32\u0E01"
+  }, React.createElement(Dropdown, {
+    value: b.lfeetBy === "purlin" ? "purlin" : "rail",
+    onChange: v => set("lfeetBy", v),
+    options: [{
+      value: "rail",
+      label: "จำนวนต่อท่อนราง"
+    }, {
+      value: "purlin",
+      label: "ระยะแป"
+    }]
+  })), b.lfeetBy === "purlin" ? React.createElement(Field, {
+    label: "\u0E23\u0E30\u0E22\u0E30\u0E41\u0E1B (\u0E21.)"
+  }, React.createElement("input", {
+    type: "number",
+    step: "0.05",
+    style: numStyle,
+    value: b.purlin != null && b.purlin !== "" ? b.purlin : RU.purlinSpan,
+    onChange: e => set("purlin", e.target.value)
+  })) : React.createElement(Field, {
     label: "L-FEET/\u0E23\u0E32\u0E07"
   }, React.createElement("input", {
     type: "number",

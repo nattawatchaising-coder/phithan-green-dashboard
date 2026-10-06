@@ -1386,7 +1386,7 @@ function suReportHTML(D) {
     : "";
   const wiringNote = D.plan
     ? '<p class="note">ตรวจแรงดันครบทั้งสองด้าน: ตอนอากาศเย็น ' + scNum((S.env || {}).tMin, 15) + "°C แรงดันวงจรเปิดต้องไม่เกินพิกัดอินเวอร์เตอร์ · " +
-      "ตอนแผงร้อน " + scNum((S.env || {}).tCellHot, 65) + "°C แรงดันทำงานต้องไม่หลุดต่ำกว่าช่วง MPPT · DC/AC = " + D.plan.dcAc + "</p>"
+      "ตอนแผงร้อน " + scTHot(S.env) + "°C แรงดันทำงานต้องไม่หลุดต่ำกว่าช่วง MPPT · DC/AC = " + D.plan.dcAc + "</p>"
     : "";
 
   /* 4 · ผลตรวจวัด */

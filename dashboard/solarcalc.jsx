@@ -32,6 +32,11 @@ const SC_INV_EXTRA = { eff: 97.5, strPerMppt: 2 };
 const SC_ENV = { tMin: 15, tCellHot: 65, albedo: 0.2 };
 /* อุณหภูมิต่ำสุดที่ใช้คิด Voc สตริง — ยึดกฎ BOQ (หน้าคลัง → ตั้งค่าคำนวณ BOQ · tMin) ให้ BOQ/ออกแบบระบบ/SLD ตรงกัน
    ไม่มี BOQ (Web Worker) = ค่าในงาน/ค่าตั้งต้น */
+function scTHot(env) {
+  const R = typeof window !== "undefined" && window.BOQ && window.BOQ.RULES;
+  if (R && R.tCellHot != null && isFinite(+R.tCellHot)) return +R.tCellHot;
+  return env && env.tCellHot != null ? +env.tCellHot : SC_ENV.tCellHot;
+}
 function scTMin(env) {
   const R = typeof window !== "undefined" && window.BOQ && window.BOQ.RULES;
   if (R && R.tMin != null && isFinite(+R.tMin)) return +R.tMin;
@@ -226,7 +231,7 @@ function scStringCheck(panel, inv, n, env, opt) {
   env = Object.assign({}, SC_ENV, env || {});
   const tMin = scTMin(env);
   const vocCold = scVocAt(panel, tMin) * n;
-  const vmpHot = scVmpAt(panel, env.tCellHot) * n;
+  const vmpHot = scVmpAt(panel, scTHot(env)) * n;
   const vmpCold = scVmpAt(panel, tMin) * n;
   const vmpNom = scNum(panel.vmp) * n;
   const maxVdc = scNum(inv.maxVdc), vmin = scNum(inv.mpptVmin), vmax = scNum(inv.mpptVmax);

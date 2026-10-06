@@ -3200,7 +3200,7 @@ function SolarWorkspace({ job, st, sys, onChange, onClose, snap }) {
                           {microSel.chk.checks.map((c) => (
                             <tr key={c.k}>
                               <td>{c.k === "voc" ? "Voc ตอนอากาศเย็น " + scTMin(S.env) + "°C"
-                                : c.k === "hot" ? "Vmp ตอนแผงร้อน " + scNum((S.env || {}).tCellHot, 65) + "°C"
+                                : c.k === "hot" ? "Vmp ตอนแผงร้อน " + scTHot(S.env) + "°C"
                                 : "Vmp ตอนอากาศเย็น"}</td>
                               <td><b>{scR(c.v, 1)}</b> V</td>
                               <td>{c.k === "hot" ? "≥ " : "≤ "}{c.lim} V</td>
