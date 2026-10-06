@@ -11024,6 +11024,18 @@ function MatVariantModal({
     id: "",
     isNew: true
   });
+  const [allCat, setAllCat] = React.useState(false);
+  const myCat = React.useMemo(() => {
+    const mk = window.BOQ.matKey,
+      SF = window.SF || {};
+    const k0 = mk(item.nameAuto || item.name),
+      k1 = mk(item.name);
+    const hit = (matOptions || []).find(o => mk(o.value) === k0) || (matOptions || []).find(o => mk(o.value) === k1);
+    if (hit) return hit.group;
+    const ck = (SF.BOQ_GROUP_TO_CAT || {})[item.group];
+    return ck && SF.STOCK_CAT_BY && SF.STOCK_CAT_BY[ck] ? SF.STOCK_CAT_BY[ck].th : null;
+  }, [item.nameAuto, item.name, item.group, matOptions]);
+  const catOpts = !myCat || allCat ? matOptions || [] : (matOptions || []).filter(o => o.group === myCat);
   const save = () => {
     const id = window.saveMatPrice(stock, {
       name: priceSrc,
@@ -11116,15 +11128,33 @@ function MatVariantModal({
   }, "\u0E0A\u0E37\u0E48\u0E2D\u0E23\u0E32\u0E22\u0E01\u0E32\u0E23\u0E43\u0E19\u0E43\u0E1A\u0E16\u0E2D\u0E14\u0E02\u0E2D\u0E07"), React.createElement(Dropdown, {
     value: item.name,
     onChange: v => onRename(v === (item.nameAuto || item.name) ? "" : v),
-    options: (matOptions || []).some(o => o.value === item.name) ? matOptions : [{
+    options: catOpts.some(o => o.value === item.name) ? catOpts : [{
       value: item.name,
       label: item.name,
       group: "ชื่อปัจจุบัน"
-    }].concat(matOptions || []),
+    }].concat(catOpts),
     addable: true,
     onAdd: v => onRename(v),
-    placeholder: "\u0E40\u0E25\u0E37\u0E2D\u0E01\u0E27\u0E31\u0E2A\u0E14\u0E38\u0E08\u0E32\u0E01\u0E04\u0E25\u0E31\u0E07"
-  }), renamed ? React.createElement(React.Fragment, null, React.createElement("span", {
+    placeholder: myCat && !allCat ? "เลือกวัสดุหมวด " + myCat : "เลือกวัสดุจากคลัง"
+  }), myCat && React.createElement("label", {
+    style: {
+      display: "flex",
+      alignItems: "center",
+      gap: 6,
+      fontSize: 11,
+      color: "var(--text-3)",
+      cursor: "pointer",
+      marginTop: -2
+    }
+  }, React.createElement("input", {
+    type: "checkbox",
+    checked: allCat,
+    onChange: e => setAllCat(e.target.checked),
+    style: {
+      accentColor: "var(--primary)",
+      cursor: "pointer"
+    }
+  }), "\u0E41\u0E2A\u0E14\u0E07\u0E17\u0E38\u0E01\u0E2B\u0E21\u0E27\u0E14 (\u0E15\u0E2D\u0E19\u0E19\u0E35\u0E49\u0E42\u0E0A\u0E27\u0E4C\u0E40\u0E09\u0E1E\u0E32\u0E30\u0E2B\u0E21\u0E27\u0E14 ", myCat, " \xB7 ", catOpts.length, " \u0E23\u0E32\u0E22\u0E01\u0E32\u0E23)"), renamed ? React.createElement(React.Fragment, null, React.createElement("span", {
     style: {
       display: "flex",
       alignItems: "center",
@@ -11225,7 +11255,7 @@ function MatVariantModal({
   }), React.createElement("span", null, "\u0E0A\u0E37\u0E48\u0E2D\u0E19\u0E35\u0E49\u0E22\u0E31\u0E07\u0E44\u0E21\u0E48\u0E21\u0E35\u0E43\u0E19\u0E04\u0E25\u0E31\u0E07 \u0E23\u0E32\u0E04\u0E32\u0E08\u0E36\u0E07\u0E40\u0E1B\u0E47\u0E19 0 \u2014 \u0E16\u0E49\u0E32\u0E40\u0E1B\u0E25\u0E35\u0E48\u0E22\u0E19\u0E0A\u0E37\u0E48\u0E2D\u0E02\u0E2D\u0E07\u0E43\u0E19\u0E04\u0E25\u0E31\u0E07\u0E44\u0E1B\u0E41\u0E25\u0E49\u0E27 \u0E43\u0E2B\u0E49\u0E1C\u0E39\u0E01\u0E0A\u0E37\u0E48\u0E2D\u0E19\u0E35\u0E49\u0E40\u0E02\u0E49\u0E32\u0E01\u0E31\u0E1A\u0E02\u0E2D\u0E07\u0E15\u0E31\u0E27\u0E19\u0E31\u0E49\u0E19 \u0E2B\u0E23\u0E37\u0E2D\u0E01\u0E23\u0E2D\u0E01\u0E23\u0E32\u0E04\u0E32\u0E14\u0E49\u0E32\u0E19\u0E25\u0E48\u0E32\u0E07\u0E40\u0E1E\u0E37\u0E48\u0E2D\u0E40\u0E1E\u0E34\u0E48\u0E21\u0E40\u0E1B\u0E47\u0E19\u0E02\u0E2D\u0E07\u0E43\u0E2B\u0E21\u0E48")), stock && stock.linkAlias && React.createElement(Dropdown, {
     value: "",
     placeholder: "\u0E1C\u0E39\u0E01\u0E0A\u0E37\u0E48\u0E2D\u0E19\u0E35\u0E49\u0E40\u0E02\u0E49\u0E32\u0E01\u0E31\u0E1A\u0E02\u0E2D\u0E07\u0E43\u0E19\u0E04\u0E25\u0E31\u0E07 (\u0E23\u0E2B\u0E31\u0E2A\u0E2D\u0E38\u0E1B\u0E01\u0E23\u0E13\u0E4C)\u2026",
-    options: matOptions || [],
+    options: catOpts,
     onChange: v => {
       const t = (stock.items || []).find(s => s.name && window.BOQ.matKey(s.name) === window.BOQ.matKey(v));
       if (t) stock.linkAlias(t.id, priceSrc);

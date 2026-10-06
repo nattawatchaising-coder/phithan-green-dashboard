@@ -5224,6 +5224,18 @@ function MatVariantModal({ item, stock, priceMap, matOptions, picked, onPick, re
       price: cur && cur.price > 0 ? String(cur.price) : "", id: curId, isNew: false });
   }, [curId, key]);
   const startNew = () => setF({ brand: "", model: "", price: "", id: "", isNew: true });
+  /* ตัวเลือกเปลี่ยนของ = เฉพาะหมวดเดียวกับบรรทัดนี้ (แผงเห็นแค่แผง) — หมวดดูจากของเดิมในรายการ ไม่เจอใช้หมวดของกลุ่ม BOQ
+     ติ๊ก "ทุกหมวด" ได้ถ้าต้องการของข้ามหมวดจริง ๆ */
+  const [allCat, setAllCat] = React.useState(false);
+  const myCat = React.useMemo(() => {
+    const mk = window.BOQ.matKey, SF = window.SF || {};
+    const k0 = mk(item.nameAuto || item.name), k1 = mk(item.name);
+    const hit = (matOptions || []).find((o) => mk(o.value) === k0) || (matOptions || []).find((o) => mk(o.value) === k1);
+    if (hit) return hit.group;
+    const ck = (SF.BOQ_GROUP_TO_CAT || {})[item.group];
+    return ck && SF.STOCK_CAT_BY && SF.STOCK_CAT_BY[ck] ? SF.STOCK_CAT_BY[ck].th : null;
+  }, [item.nameAuto, item.name, item.group, matOptions]);
+  const catOpts = !myCat || allCat ? (matOptions || []) : (matOptions || []).filter((o) => o.group === myCat);
   const save = () => {
     const id = window.saveMatPrice(stock, { name: priceSrc, group: item.group, unit: item.unit,
       brand: f.brand, model: f.model, price: +f.price || 0, id: f.isNew ? "" : f.id, forceNew: f.isNew });
@@ -5251,8 +5263,14 @@ function MatVariantModal({ item, stock, priceMap, matOptions, picked, onPick, re
             <div style={{ display: "flex", flexDirection: "column", gap: 7 }}>
               <span style={{ fontSize: 10.5, fontWeight: 800, color: "var(--text-3)" }}>ชื่อรายการในใบถอดของ</span>
               <Dropdown value={item.name} onChange={(v) => onRename(v === (item.nameAuto || item.name) ? "" : v)}
-                options={(matOptions || []).some((o) => o.value === item.name) ? matOptions : [{ value: item.name, label: item.name, group: "ชื่อปัจจุบัน" }].concat(matOptions || [])}
-                addable onAdd={(v) => onRename(v)} placeholder="เลือกวัสดุจากคลัง" />
+                options={catOpts.some((o) => o.value === item.name) ? catOpts : [{ value: item.name, label: item.name, group: "ชื่อปัจจุบัน" }].concat(catOpts)}
+                addable onAdd={(v) => onRename(v)} placeholder={myCat && !allCat ? "เลือกวัสดุหมวด " + myCat : "เลือกวัสดุจากคลัง"} />
+              {myCat && (
+                <label style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 11, color: "var(--text-3)", cursor: "pointer", marginTop: -2 }}>
+                  <input type="checkbox" checked={allCat} onChange={(e) => setAllCat(e.target.checked)} style={{ accentColor: "var(--primary)", cursor: "pointer" }} />
+                  แสดงทุกหมวด (ตอนนี้โชว์เฉพาะหมวด {myCat} · {catOpts.length} รายการ)
+                </label>
+              )}
               {renamed ? (
                 <React.Fragment>
                   <span style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 11, color: "var(--text-3)" }}>
@@ -5295,7 +5313,7 @@ function MatVariantModal({ item, stock, priceMap, matOptions, picked, onPick, re
                   {/* ผูกชื่อ → เขียนลงคลังเป็นชื่อพ้อง แก้ครั้งเดียวทุกงานที่เรียกชื่อนี้หาราคาเจอหมด */}
                   {stock && stock.linkAlias && (
                     <Dropdown value="" placeholder="ผูกชื่อนี้เข้ากับของในคลัง (รหัสอุปกรณ์)…"
-                      options={matOptions || []}
+                      options={catOpts}
                       onChange={(v) => {
                         const t = (stock.items || []).find((s) => s.name && window.BOQ.matKey(s.name) === window.BOQ.matKey(v));
                         if (t) stock.linkAlias(t.id, priceSrc);
