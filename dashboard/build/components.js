@@ -363,9 +363,11 @@ function Dropdown({
   style,
   addable,
   onAdd,
-  wrap
+  wrap,
+  renderHover
 }) {
   const [open, setOpen] = React.useState(false);
+  const [hov, setHov] = React.useState(null);
   const [rect, setRect] = React.useState(null);
   const [adding, setAdding] = React.useState(false);
   const [addText, setAddText] = React.useState("");
@@ -433,8 +435,12 @@ function Dropdown({
       setAddText("");
       setCat(null);
       setQ("");
+      setHov(null);
     }
   }, [open]);
+  const hovCard = open && rect && hov && renderHover ? renderHover(hov.o) : null;
+  const HW = 280,
+    hRight = rect && rect.left + rect.width + 8 + HW <= window.innerWidth;
   return React.createElement(React.Fragment, null, React.createElement("button", {
     type: "button",
     ref: btnRef,
@@ -599,6 +605,11 @@ function Dropdown({
         onChange(o.value);
         setOpen(false);
       },
+      onMouseEnter: renderHover ? e => setHov({
+        o: o,
+        y: e.currentTarget.getBoundingClientRect().top
+      }) : undefined,
+      onMouseLeave: renderHover ? () => setHov(h => h && h.o === o ? null : h) : undefined,
       style: {
         width: "100%",
         display: "flex",
@@ -743,7 +754,20 @@ function Dropdown({
     name: "plus",
     size: 14,
     color: "var(--primary-dark)"
-  }), " ", q.trim() ? "ใช้ชื่อ “" + q.trim() + "”" : "พิมพ์ชื่อเอง")))), document.body));
+  }), " ", q.trim() ? "ใช้ชื่อ “" + q.trim() + "”" : "พิมพ์ชื่อเอง"))), hovCard && React.createElement("div", {
+    style: {
+      position: "fixed",
+      zIndex: 202,
+      width: HW,
+      pointerEvents: "none",
+      left: hRight ? rect.left + rect.width + 8 : Math.max(8, rect.left - HW - 8),
+      top: Math.max(8, Math.min(hov.y - 10, window.innerHeight - 360)),
+      background: "var(--surface)",
+      borderRadius: "var(--r-card)",
+      boxShadow: "var(--shadow-pop)",
+      overflow: "hidden"
+    }
+  }, hovCard)), document.body));
 }
 function useBackdropClose(onClose) {
   const down = React.useRef(false);

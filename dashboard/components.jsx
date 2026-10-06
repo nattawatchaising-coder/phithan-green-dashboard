@@ -265,8 +265,10 @@ function Segmented({ options, value, onChange, flat }) {
    ใช้ fixed-position สำหรับเมนู เพื่อไม่ให้ถูก modal ที่เลื่อนได้ตัดขอบ
    options: [{ value, label }] ── */
 /* wrap = ให้ข้อความบนปุ่มตัดบรรทัดได้ถึง 2 บรรทัด (ชื่อยาว ๆ อย่างวิธีเดินสายตาม วสท. ถ้าตัดด้วย ... จะอ่านไม่รู้เรื่อง) */
-function Dropdown({ value, onChange, options, disabled, placeholder, style, addable, onAdd, wrap }) {
+/* renderHover(o) = การ์ดข้อมูลลอยข้างเมนูตอนชี้ตัวเลือก (รูป/ราคา ฯลฯ) — คืน null = ไม่มีการ์ด · ใช้กับเมาส์เท่านั้น */
+function Dropdown({ value, onChange, options, disabled, placeholder, style, addable, onAdd, wrap, renderHover }) {
   const [open, setOpen] = React.useState(false);
+  const [hov, setHov] = React.useState(null);   // { o, y } ตัวเลือกที่ชี้อยู่
   const [rect, setRect] = React.useState(null);
   const [adding, setAdding] = React.useState(false);
   const [addText, setAddText] = React.useState("");
@@ -327,7 +329,9 @@ function Dropdown({ value, onChange, options, disabled, placeholder, style, adda
     return () => { clearTimeout(t); window.removeEventListener("scroll", close, true); window.removeEventListener("resize", close); };
   }, [open]);
 
-  React.useEffect(() => { if (!open) { setAdding(false); setAddText(""); setCat(null); setQ(""); } }, [open]);
+  React.useEffect(() => { if (!open) { setAdding(false); setAddText(""); setCat(null); setQ(""); setHov(null); } }, [open]);
+  const hovCard = open && rect && hov && renderHover ? renderHover(hov.o) : null;
+  const HW = 280, hRight = rect && rect.left + rect.width + 8 + HW <= window.innerWidth;
 
   return (
     <React.Fragment>
@@ -388,6 +392,8 @@ function Dropdown({ value, onChange, options, disabled, placeholder, style, adda
                   {head}
                   {/* o.sub = คำอธิบายบรรทัดที่สอง — ไว้ใช้ตอนชื่อสั้นแต่ต้องบอกรายละเอียดเพิ่ม (เช่น วิธีเดินสายตาม วสท.) */}
                   <button type="button" onClick={() => { onChange(o.value); setOpen(false); }}
+                    onMouseEnter={renderHover ? (e) => setHov({ o: o, y: e.currentTarget.getBoundingClientRect().top }) : undefined}
+                    onMouseLeave={renderHover ? () => setHov((h) => (h && h.o === o ? null : h)) : undefined}
                     style={{ width: "100%", display: "flex", alignItems: o.sub ? "flex-start" : "center", gap: 8, padding: "10px 11px", borderRadius: 9, border: "none",
                       background: active ? "var(--primary-soft)" : "transparent", cursor: "pointer", fontFamily: "inherit", textAlign: "left",
                       fontSize: 13.5, fontWeight: active ? 700 : 500, color: active ? "var(--primary-dark)" : "var(--text-1)" }}>
@@ -425,6 +431,14 @@ function Dropdown({ value, onChange, options, disabled, placeholder, style, adda
               </button>
             ))}
           </div>
+          {hovCard && (
+            <div style={{ position: "fixed", zIndex: 202, width: HW, pointerEvents: "none",
+              left: hRight ? rect.left + rect.width + 8 : Math.max(8, rect.left - HW - 8),
+              top: Math.max(8, Math.min(hov.y - 10, window.innerHeight - 360)),
+              background: "var(--surface)", borderRadius: "var(--r-card)", boxShadow: "var(--shadow-pop)", overflow: "hidden" }}>
+              {hovCard}
+            </div>
+          )}
         </React.Fragment>
       ), document.body)}
     </React.Fragment>

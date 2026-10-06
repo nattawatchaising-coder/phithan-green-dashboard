@@ -11035,7 +11035,145 @@ function MatVariantModal({
     const ck = (SF.BOQ_GROUP_TO_CAT || {})[item.group];
     return ck && SF.STOCK_CAT_BY && SF.STOCK_CAT_BY[ck] ? SF.STOCK_CAT_BY[ck].th : null;
   }, [item.nameAuto, item.name, item.group, matOptions]);
-  const catOpts = !myCat || allCat ? matOptions || [] : (matOptions || []).filter(o => o.group === myCat);
+  const stockByKey = React.useMemo(() => {
+    const m = {},
+      mk = window.BOQ.matKey;
+    (stock && stock.items || []).forEach(s => {
+      if (s.name) (m[mk(s.name)] = m[mk(s.name)] || []).push(s);
+    });
+    return m;
+  }, [stock && stock.items]);
+  const typeOf = s => {
+    const SF = window.SF || {},
+      c = SF.STOCK_CAT_BY && SF.STOCK_CAT_BY[s.cat];
+    if (c && c.parent) return c.th;
+    if (s.elecType) return s.elecType;
+    if (s.brand) return s.brand;
+    return "ไม่ระบุประเภท";
+  };
+  const catOpts = React.useMemo(() => {
+    const base = !myCat || allCat ? matOptions || [] : (matOptions || []).filter(o => o.group === myCat);
+    if (allCat || !myCat) return base;
+    const out = base.map(o => {
+      const ss = stockByKey[window.BOQ.matKey(o.value)] || [];
+      const vs = ss.map(s => [s.brand, s.model].filter(Boolean).join(" · ")).filter(Boolean);
+      const pr = ss.map(s => +s.price || 0).filter(p => p > 0);
+      const sub = [vs.length ? vs.slice(0, 2).join(" / ") + (vs.length > 2 ? " +" + (vs.length - 2) : "") : "", pr.length ? "฿" + baht(Math.min.apply(null, pr)) + (pr.length > 1 && Math.max.apply(null, pr) !== Math.min.apply(null, pr) ? "–" + baht(Math.max.apply(null, pr)) : "") : "ยังไม่มีราคา"].filter(Boolean).join(" · ");
+      return Object.assign({}, o, {
+        group: ss.length ? typeOf(ss[0]) : "ยังไม่มีในคลัง",
+        sub: sub,
+        ss: ss
+      });
+    });
+    const miss = o => o.group === "ยังไม่มีในคลัง" ? 1 : 0;
+    return out.sort((a, z) => miss(a) - miss(z) || a.group.localeCompare(z.group, "th") || String(a.label).localeCompare(String(z.label), "th"));
+  }, [matOptions, myCat, allCat, stockByKey]);
+  const [imgs, setImgs] = React.useState({});
+  const wantImg = id => {
+    if (!id || id in imgs || !window.FBDB) return;
+    setImgs(p => Object.assign({}, p, {
+      [id]: null
+    }));
+    window.FBDB.ref("stockImg/" + id).once("value").then(sn => setImgs(p => Object.assign({}, p, {
+      [id]: sn.val() || ""
+    }))).catch(() => {});
+  };
+  const hoverCard = o => {
+    const ss = o.ss || stockByKey[window.BOQ.matKey(o.value)] || [];
+    const s0 = ss.find(s => s.img) || ss[0];
+    const pre = s0 && stock && stock.imgs && stock.imgs[s0.id];
+    if (s0 && !pre) wantImg(s0.id);
+    const src = pre || s0 && imgs[s0.id];
+    const spec = s0 ? [s0.elecType, s0.poles, s0.amp ? s0.amp + " A" : "", s0.watt ? s0.watt + " W" : ""].filter(Boolean).join(" · ") : "";
+    return React.createElement("div", null, React.createElement("div", {
+      style: {
+        height: 150,
+        background: "var(--surface2)",
+        display: "grid",
+        placeItems: "center"
+      }
+    }, src ? React.createElement("img", {
+      src: src,
+      alt: "",
+      style: {
+        maxWidth: "100%",
+        maxHeight: 150,
+        objectFit: "contain",
+        display: "block"
+      }
+    }) : React.createElement("span", {
+      style: {
+        fontSize: 11.5,
+        color: "var(--text-3)"
+      }
+    }, s0 && !pre && imgs[s0.id] == null ? "กำลังโหลดรูป…" : "ไม่มีรูป")), React.createElement("div", {
+      style: {
+        padding: "10px 12px 12px",
+        display: "flex",
+        flexDirection: "column",
+        gap: 6
+      }
+    }, React.createElement("div", {
+      style: {
+        fontSize: 12.5,
+        fontWeight: 700,
+        color: "var(--text-1)",
+        lineHeight: 1.35
+      }
+    }, o.label), spec && React.createElement("div", {
+      style: {
+        fontSize: 11,
+        color: "var(--text-3)"
+      }
+    }, spec), !ss.length && React.createElement("div", {
+      style: {
+        fontSize: 11.5,
+        color: "var(--tint-amber-tx)"
+      }
+    }, "\u0E22\u0E31\u0E07\u0E44\u0E21\u0E48\u0E21\u0E35\u0E43\u0E19\u0E04\u0E25\u0E31\u0E07 \u2014 \u0E23\u0E32\u0E04\u0E32\u0E40\u0E1B\u0E47\u0E19 0"), ss.map(s => React.createElement("div", {
+      key: s.id,
+      style: {
+        display: "flex",
+        alignItems: "baseline",
+        gap: 8,
+        padding: "6px 8px",
+        borderRadius: 8,
+        background: "var(--surface2)"
+      }
+    }, React.createElement("span", {
+      style: {
+        flex: 1,
+        minWidth: 0
+      }
+    }, React.createElement("span", {
+      style: {
+        display: "block",
+        fontSize: 11.5,
+        fontWeight: 700,
+        color: "var(--text-2)"
+      }
+    }, [s.brand, s.model].filter(Boolean).join(" · ") || "(ยังไม่ระบุยี่ห้อ/รุ่น)"), React.createElement("span", {
+      style: {
+        fontFamily: "var(--mono)",
+        fontSize: 10,
+        color: "var(--text-3)"
+      }
+    }, s.sku, s.qty ? " · คงเหลือ " + s.qty + " " + (s.unit || "") : "")), React.createElement("span", {
+      style: {
+        fontFamily: "var(--mono)",
+        fontSize: 12.5,
+        fontWeight: 700,
+        color: +s.price > 0 ? "var(--text-1)" : "var(--text-3)",
+        whiteSpace: "nowrap"
+      }
+    }, +s.price > 0 ? "฿" + baht(s.price) : "–", s.unit ? React.createElement("span", {
+      style: {
+        fontSize: 10,
+        fontWeight: 500,
+        color: "var(--text-3)"
+      }
+    }, "/", s.unit) : null)))));
+  };
   const save = () => {
     const id = window.saveMatPrice(stock, {
       name: priceSrc,
@@ -11135,7 +11273,8 @@ function MatVariantModal({
     }].concat(catOpts),
     addable: true,
     onAdd: v => onRename(v),
-    placeholder: myCat && !allCat ? "เลือกวัสดุหมวด " + myCat : "เลือกวัสดุจากคลัง"
+    placeholder: myCat && !allCat ? "เลือกวัสดุหมวด " + myCat : "เลือกวัสดุจากคลัง",
+    renderHover: hoverCard
   }), myCat && React.createElement("label", {
     style: {
       display: "flex",
@@ -11256,6 +11395,7 @@ function MatVariantModal({
     value: "",
     placeholder: "\u0E1C\u0E39\u0E01\u0E0A\u0E37\u0E48\u0E2D\u0E19\u0E35\u0E49\u0E40\u0E02\u0E49\u0E32\u0E01\u0E31\u0E1A\u0E02\u0E2D\u0E07\u0E43\u0E19\u0E04\u0E25\u0E31\u0E07 (\u0E23\u0E2B\u0E31\u0E2A\u0E2D\u0E38\u0E1B\u0E01\u0E23\u0E13\u0E4C)\u2026",
     options: catOpts,
+    renderHover: hoverCard,
     onChange: v => {
       const t = (stock.items || []).find(s => s.name && window.BOQ.matKey(s.name) === window.BOQ.matKey(v));
       if (t) stock.linkAlias(t.id, priceSrc);

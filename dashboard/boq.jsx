@@ -5235,7 +5235,74 @@ function MatVariantModal({ item, stock, priceMap, matOptions, picked, onPick, re
     const ck = (SF.BOQ_GROUP_TO_CAT || {})[item.group];
     return ck && SF.STOCK_CAT_BY && SF.STOCK_CAT_BY[ck] ? SF.STOCK_CAT_BY[ck].th : null;
   }, [item.nameAuto, item.name, item.group, matOptions]);
-  const catOpts = !myCat || allCat ? (matOptions || []) : (matOptions || []).filter((o) => o.group === myCat);
+  /* ในหมวดเดียวกัน แยกกลุ่มตาม "ประเภท" (หมวดย่อยในคลัง → ชนิดอุปกรณ์ไฟฟ้า → ยี่ห้อ) · บรรทัดรองบอกยี่ห้อ/รุ่น/ราคา
+     ของชื่อเดียวมีได้หลายยี่ห้อ/รุ่น (variants) — การ์ดตอนชี้โชว์ทุกตัว */
+  const stockByKey = React.useMemo(() => {
+    const m = {}, mk = window.BOQ.matKey;
+    ((stock && stock.items) || []).forEach((s) => { if (s.name) (m[mk(s.name)] = m[mk(s.name)] || []).push(s); });
+    return m;
+  }, [stock && stock.items]);
+  const typeOf = (s) => {
+    const SF = window.SF || {}, c = SF.STOCK_CAT_BY && SF.STOCK_CAT_BY[s.cat];
+    if (c && c.parent) return c.th;
+    if (s.elecType) return s.elecType;
+    if (s.brand) return s.brand;
+    return "ไม่ระบุประเภท";
+  };
+  const catOpts = React.useMemo(() => {
+    const base = !myCat || allCat ? (matOptions || []) : (matOptions || []).filter((o) => o.group === myCat);
+    if (allCat || !myCat) return base;
+    const out = base.map((o) => {
+      const ss = stockByKey[window.BOQ.matKey(o.value)] || [];
+      const vs = ss.map((s) => [s.brand, s.model].filter(Boolean).join(" · ")).filter(Boolean);
+      const pr = ss.map((s) => +s.price || 0).filter((p) => p > 0);
+      const sub = [vs.length ? vs.slice(0, 2).join(" / ") + (vs.length > 2 ? " +" + (vs.length - 2) : "") : "",
+        pr.length ? "฿" + baht(Math.min.apply(null, pr)) + (pr.length > 1 && Math.max.apply(null, pr) !== Math.min.apply(null, pr) ? "–" + baht(Math.max.apply(null, pr)) : "") : "ยังไม่มีราคา"].filter(Boolean).join(" · ");
+      return Object.assign({}, o, { group: ss.length ? typeOf(ss[0]) : "ยังไม่มีในคลัง", sub: sub, ss: ss });
+    });
+    const miss = (o) => (o.group === "ยังไม่มีในคลัง" ? 1 : 0);   // ของที่ยังไม่มีในคลังไว้ท้ายสุด
+    return out.sort((a, z) => miss(a) - miss(z) || a.group.localeCompare(z.group, "th") || String(a.label).localeCompare(String(z.label), "th"));
+  }, [matOptions, myCat, allCat, stockByKey]);
+  /* รูปในคลังเก็บแยกโหนด stockImg/{id} (ไม่โหลดมากับรายการ) — โหลดทีละรูปตอนชี้ แล้วจำไว้ · อ่านอย่างเดียว */
+  const [imgs, setImgs] = React.useState({});
+  const wantImg = (id) => {
+    if (!id || id in imgs || !window.FBDB) return;
+    setImgs((p) => Object.assign({}, p, { [id]: null }));
+    window.FBDB.ref("stockImg/" + id).once("value").then((sn) => setImgs((p) => Object.assign({}, p, { [id]: sn.val() || "" }))).catch(() => {});
+  };
+  const hoverCard = (o) => {
+    const ss = o.ss || stockByKey[window.BOQ.matKey(o.value)] || [];
+    const s0 = ss.find((s) => s.img) || ss[0];
+    // ธง img ของรายการเก่าอาจไม่ได้ตั้ง → ลองโหลดทุกตัว (ครั้งเดียวต่อรายการ) · หน้าคลังโหลดไว้แล้วใช้ stock.imgs เลย
+    const pre = s0 && stock && stock.imgs && stock.imgs[s0.id];
+    if (s0 && !pre) wantImg(s0.id);
+    const src = pre || (s0 && imgs[s0.id]);
+    const spec = s0 ? [s0.elecType, s0.poles, s0.amp ? s0.amp + " A" : "", s0.watt ? s0.watt + " W" : ""].filter(Boolean).join(" · ") : "";
+    return (
+      <div>
+        <div style={{ height: 150, background: "var(--surface2)", display: "grid", placeItems: "center" }}>
+          {src ? <img src={src} alt="" style={{ maxWidth: "100%", maxHeight: 150, objectFit: "contain", display: "block" }} />
+            : <span style={{ fontSize: 11.5, color: "var(--text-3)" }}>{s0 && !pre && imgs[s0.id] == null ? "กำลังโหลดรูป…" : "ไม่มีรูป"}</span>}
+        </div>
+        <div style={{ padding: "10px 12px 12px", display: "flex", flexDirection: "column", gap: 6 }}>
+          <div style={{ fontSize: 12.5, fontWeight: 700, color: "var(--text-1)", lineHeight: 1.35 }}>{o.label}</div>
+          {spec && <div style={{ fontSize: 11, color: "var(--text-3)" }}>{spec}</div>}
+          {!ss.length && <div style={{ fontSize: 11.5, color: "var(--tint-amber-tx)" }}>ยังไม่มีในคลัง — ราคาเป็น 0</div>}
+          {ss.map((s) => (
+            <div key={s.id} style={{ display: "flex", alignItems: "baseline", gap: 8, padding: "6px 8px", borderRadius: 8, background: "var(--surface2)" }}>
+              <span style={{ flex: 1, minWidth: 0 }}>
+                <span style={{ display: "block", fontSize: 11.5, fontWeight: 700, color: "var(--text-2)" }}>{[s.brand, s.model].filter(Boolean).join(" · ") || "(ยังไม่ระบุยี่ห้อ/รุ่น)"}</span>
+                <span style={{ fontFamily: "var(--mono)", fontSize: 10, color: "var(--text-3)" }}>{s.sku}{s.qty ? " · คงเหลือ " + s.qty + " " + (s.unit || "") : ""}</span>
+              </span>
+              <span style={{ fontFamily: "var(--mono)", fontSize: 12.5, fontWeight: 700, color: +s.price > 0 ? "var(--text-1)" : "var(--text-3)", whiteSpace: "nowrap" }}>
+                {+s.price > 0 ? "฿" + baht(s.price) : "–"}{s.unit ? <span style={{ fontSize: 10, fontWeight: 500, color: "var(--text-3)" }}>/{s.unit}</span> : null}
+              </span>
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  };
   const save = () => {
     const id = window.saveMatPrice(stock, { name: priceSrc, group: item.group, unit: item.unit,
       brand: f.brand, model: f.model, price: +f.price || 0, id: f.isNew ? "" : f.id, forceNew: f.isNew });
@@ -5264,7 +5331,7 @@ function MatVariantModal({ item, stock, priceMap, matOptions, picked, onPick, re
               <span style={{ fontSize: 10.5, fontWeight: 800, color: "var(--text-3)" }}>ชื่อรายการในใบถอดของ</span>
               <Dropdown value={item.name} onChange={(v) => onRename(v === (item.nameAuto || item.name) ? "" : v)}
                 options={catOpts.some((o) => o.value === item.name) ? catOpts : [{ value: item.name, label: item.name, group: "ชื่อปัจจุบัน" }].concat(catOpts)}
-                addable onAdd={(v) => onRename(v)} placeholder={myCat && !allCat ? "เลือกวัสดุหมวด " + myCat : "เลือกวัสดุจากคลัง"} />
+                addable onAdd={(v) => onRename(v)} placeholder={myCat && !allCat ? "เลือกวัสดุหมวด " + myCat : "เลือกวัสดุจากคลัง"} renderHover={hoverCard} />
               {myCat && (
                 <label style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 11, color: "var(--text-3)", cursor: "pointer", marginTop: -2 }}>
                   <input type="checkbox" checked={allCat} onChange={(e) => setAllCat(e.target.checked)} style={{ accentColor: "var(--primary)", cursor: "pointer" }} />
@@ -5313,7 +5380,7 @@ function MatVariantModal({ item, stock, priceMap, matOptions, picked, onPick, re
                   {/* ผูกชื่อ → เขียนลงคลังเป็นชื่อพ้อง แก้ครั้งเดียวทุกงานที่เรียกชื่อนี้หาราคาเจอหมด */}
                   {stock && stock.linkAlias && (
                     <Dropdown value="" placeholder="ผูกชื่อนี้เข้ากับของในคลัง (รหัสอุปกรณ์)…"
-                      options={catOpts}
+                      options={catOpts} renderHover={hoverCard}
                       onChange={(v) => {
                         const t = (stock.items || []).find((s) => s.name && window.BOQ.matKey(s.name) === window.BOQ.matKey(v));
                         if (t) stock.linkAlias(t.id, priceSrc);
