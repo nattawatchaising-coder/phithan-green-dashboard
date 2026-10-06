@@ -1988,7 +1988,7 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock, ver, verName, p3Vers
     const iIsc = +selInv.maxIscA > 0 ? +selInv.maxIscA / Math.max(1, Math.round(+selInv.strPerMppt || 1)) : 0;
     const isc = pIsc || iIsc;
     const voc = scfg && scfg.stringVoc ? scfg.stringVoc * RU.vocK : (+selInv.maxVdc || 1000);
-    const vTxtOf = (v) => (scfg && scfg.stringVoc ? "Voc สตริง " + r1(scfg.stringVoc) + " V × " + RU.vocK + " = " + r1(voc) + " V → " + v + " VDC"
+    const vTxtOf = (v) => (scfg && scfg.stringVoc ? "Voc สตริงที่ " + scfg.tMin + "°C " + r1(scfg.stringVoc) + " V × " + RU.vocK + " = " + r1(voc) + " V → " + v + " VDC"
       : "ยังไม่รู้ Voc สตริง ใช้แรงดันสูงสุดของอินเวอร์เตอร์ → " + v + " VDC");
     if (nStr > 0 && isc > 0) {
       const need = isc * RU.dcFuseK, F = window.BOQ.pairPick(DCF_P, voc, need), A = F.a, V = F.v;
@@ -3280,13 +3280,13 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock, ver, verName, p3Vers
                   <input type="number" style={numStyle} value={b.strings || (plan ? plan.perInv : selInv.inputs)} min={1} max={capPerInv}
                     onChange={(e) => set("strings", Math.min(Math.max(parseInt(e.target.value) || 0, 0), capPerInv))} />
                 </Field>
-                <Field label="ระบบสำรองไฟ">
+                {window.BOQ.isHwInv(selInv.model) && <Field label="ระบบสำรองไฟ">
                   <Dropdown value={b.hwBackup || "none"} onChange={(v) => set("hwBackup", v)} options={[
                     { value: "none", label: "ไม่ติดตั้ง" },
                     { value: "smartguard", label: "SmartGuard" },
                     { value: "backupbox", label: "Backup Box" },
                   ]} />
-                </Field>
+                </Field>}
                 <Field label="Optimizer / ตัวคุมแผง">
                   <Dropdown value={optModel} placeholder="ไม่ใช้" options={optOptions}
                     onChange={(v) => setB((p) => Object.assign({}, p, { optimizerModel: v, hwOptimizer: !!v }))} />
@@ -3450,7 +3450,7 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock, ver, verName, p3Vers
                   <div className="bq-spec">
                     {[
                       { l: "แรงดันทำงานรวม", v: scfg.stringVop + " V", ok: scfg.inRange },
-                      { l: "Voc รวม (เปิดวงจร)", v: scfg.stringVoc + " V", ok: !scfg.overMaxVdc },
+                      { l: "Voc รวมที่ " + scfg.tMin + "°C (เปิดวงจร)", v: scfg.stringVoc + " V", ok: !scfg.overMaxVdc },
                       { l: "กระแส DC (Isc×1.25)", v: scfg.dcAmp + " A", ok: null },
                       { l: "ขนาดสาย DC PV1-F", v: scfg.dcWire, ok: null, hi: true },
                     ].map((c, i) => (

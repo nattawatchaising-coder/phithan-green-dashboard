@@ -1407,7 +1407,7 @@ function pgSldPro(doc, sheet, M) {
           const tw = X.dc1 - X.dc0 - 2;
           /* ตัดบรรทัดตามความหมาย: ชนิด+แรงดัน | กระแส */
           const brk = (t, re) => t.split(re).filter(Boolean).reduce((o, p) => o.concat(wrapT(p.trim(), TS.spec, tw)), []);
-          const lines = brk(P.dcSpdFull, / (?=In )/).concat(brk(P.dcDev.tag, / (?=[0-9]+VDC)/));
+          const lines = brk(P.dcSpdFull, / (?=In |Iimp )/).concat(brk(P.dcDev.tag, / (?=[0-9]+VDC)/));
           const pitch = Math.min(1.7, 6.2 / Math.max(1, lines.length));
           lines.slice().reverse().forEach((t, i) => pen.text(T, X.dc0 + 1, y + 2.4 + i * pitch, TS.spec, t, { valign: 1 }));
         }

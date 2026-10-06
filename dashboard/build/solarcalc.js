@@ -18,6 +18,11 @@ const SC_ENV = {
   tCellHot: 65,
   albedo: 0.2
 };
+function scTMin(env) {
+  const R = typeof window !== "undefined" && window.BOQ && window.BOQ.RULES;
+  if (R && R.tMin != null && isFinite(+R.tMin)) return +R.tMin;
+  return env && env.tMin != null ? +env.tMin : SC_ENV.tMin;
+}
 const SC_LOSS = {
   soil: 3,
   mismatch: 2,
@@ -286,9 +291,10 @@ function scOptStringCheck(panel, inv, n, opt) {
 function scStringCheck(panel, inv, n, env, opt) {
   if (opt && opt.per > 0) return scOptStringCheck(panel, inv, n, opt);
   env = Object.assign({}, SC_ENV, env || {});
-  const vocCold = scVocAt(panel, env.tMin) * n;
+  const tMin = scTMin(env);
+  const vocCold = scVocAt(panel, tMin) * n;
   const vmpHot = scVmpAt(panel, env.tCellHot) * n;
-  const vmpCold = scVmpAt(panel, env.tMin) * n;
+  const vmpCold = scVmpAt(panel, tMin) * n;
   const vmpNom = scNum(panel.vmp) * n;
   const maxVdc = scNum(inv.maxVdc),
     vmin = scNum(inv.mpptVmin),

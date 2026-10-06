@@ -30,6 +30,13 @@ const SC_INV_EXTRA = { eff: 97.5, strPerMppt: 2 };
 /* อุณหภูมิออกแบบ: ไทยพื้นราบต่ำสุดราว 15 °C (ภาคเหนือ/อีสานหนาวจัดกว่านี้ ปรับได้)
    tCellHot = อุณหภูมิเซลล์ตอนบ่ายแดดจัด ใช้เช็คว่าแรงดันไม่ตกหลุด MPPT */
 const SC_ENV = { tMin: 15, tCellHot: 65, albedo: 0.2 };
+/* อุณหภูมิต่ำสุดที่ใช้คิด Voc สตริง — ยึดกฎ BOQ (หน้าคลัง → ตั้งค่าคำนวณ BOQ · tMin) ให้ BOQ/ออกแบบระบบ/SLD ตรงกัน
+   ไม่มี BOQ (Web Worker) = ค่าในงาน/ค่าตั้งต้น */
+function scTMin(env) {
+  const R = typeof window !== "undefined" && window.BOQ && window.BOQ.RULES;
+  if (R && R.tMin != null && isFinite(+R.tMin)) return +R.tMin;
+  return env && env.tMin != null ? +env.tMin : SC_ENV.tMin;
+}
 
 /* ค่าสูญเสียระบบ (%) — ค่ากลางที่ใช้กันในการออกแบบ ปรับได้ทุกตัว */
 const SC_LOSS = { soil: 3, mismatch: 2, wire: 2, shade: 0, avail: 1 };
@@ -217,9 +224,10 @@ function scOptStringCheck(panel, inv, n, opt) {
 function scStringCheck(panel, inv, n, env, opt) {
   if (opt && opt.per > 0) return scOptStringCheck(panel, inv, n, opt);
   env = Object.assign({}, SC_ENV, env || {});
-  const vocCold = scVocAt(panel, env.tMin) * n;
+  const tMin = scTMin(env);
+  const vocCold = scVocAt(panel, tMin) * n;
   const vmpHot = scVmpAt(panel, env.tCellHot) * n;
-  const vmpCold = scVmpAt(panel, env.tMin) * n;
+  const vmpCold = scVmpAt(panel, tMin) * n;
   const vmpNom = scNum(panel.vmp) * n;
   const maxVdc = scNum(inv.maxVdc), vmin = scNum(inv.mpptVmin), vmax = scNum(inv.mpptVmax);
   const checks = [];

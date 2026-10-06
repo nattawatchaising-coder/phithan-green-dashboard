@@ -29,14 +29,15 @@
     { sec: "dcBoard", g: "ทุกงาน", key: "dcFuseMaxK", th: "ฟิวส์ DC ไม่เกิน Isc × (เกินขึ้นเตือน)", unit: "เท่า", def: 2.4, min: 1 },
     { sec: "dcBoard", g: "ทุกงาน", key: "dcFuse", th: "ฟิวส์ DC gPV ที่มีขาย", unit: "VDC", unitA: "A", type: "pairs", legacy: ["dcFuseA", "dcFuseV"],
       def: [{ v: 1000, a: [10, 12, 15, 16, 20, 25, 30, 32] }, { v: 1500, a: [10, 12, 15, 16, 20, 25, 30, 32] }] },
-    { sec: "dcBoard", g: "ทุกงาน", key: "vocK", th: "แรงดันพิกัดฟิวส์/SPD/DC MCB ≥ Voc สตริง ×", unit: "เท่า", def: 1.1, min: 1 },
+    { sec: "dcBoard", g: "ทุกงาน", key: "tMin", th: "อุณหภูมิต่ำสุดหน้างาน (คิด Voc สตริงตอนเช้าที่หนาวสุด · ใช้ทั้ง BOQ/ออกแบบระบบ/SLD)", unit: "°C", def: 15, min: -20, max: 40 },
+    { sec: "dcBoard", g: "ทุกงาน", key: "vocK", th: "แรงดันพิกัดฟิวส์/SPD/DC MCB ≥ Voc สตริง (ที่อุณหภูมิต่ำสุด) × เผื่อ", unit: "เท่า", def: 1.1, min: 1 },
     { sec: "dcBoard", g: "ทุกงาน", key: "dcSpd2", th: "DC SPD Type II ที่มีขาย", unit: "VDC", unitA: "kA Imax", type: "pairs", poles: ["1P", "2P", "3P", "4P"], poleDef: "2P", legacyV: "dcSpdV",
       def: [{ v: 800, p: "2P", a: [40] }, { v: 1000, p: "2P", a: [40] }, { v: 1500, p: "2P", a: [40] }] },
     { sec: "dcBoard", g: "ทุกงาน", key: "dcSpd12", th: "DC SPD Type I+II ที่มีขาย (ระบบล่อฟ้า · แผงใกล้)", unit: "VDC", unitA: "kA Iimp", type: "pairs", poles: ["1P", "2P", "3P", "4P"], poleDef: "2P",
       def: [{ v: 1000, p: "2P", a: [6.25] }, { v: 1500, p: "2P", a: [6.25] }] },
     { sec: "dcBoard", g: "ทุกงาน", key: "spdImax", th: "SPD Type II · Imax ไม่ต่ำกว่า (ทั้ง AC/DC)", unit: "kA", def: 40, min: 1 },
     { sec: "dcBoard", g: "ทุกงาน", key: "dcIimp", th: "DC SPD Type I+II · Iimp ไม่ต่ำกว่า", unit: "kA", def: 6.25, min: 0.1 },
-    { sec: "dcBoard", g: "งานบ้าน", key: "dcMcbK", th: "DC MCB ต่อสตริง = Isc ×", unit: "เท่า", def: 1.25, min: 1 },
+    { sec: "dcBoard", g: "งานบ้าน", key: "dcMcbK", th: "DC MCB ต่อสตริง = Isc × (IEC 62548 ≥ 1.5)", unit: "เท่า", def: 1.5, min: 1 },
     { sec: "dcBoard", g: "งานบ้าน", key: "dcMcb", th: "DC MCB ที่มีขาย", unit: "VDC", unitA: "A", type: "pairs", poles: ["1P", "2P", "3P", "4P"], poleDef: "2P", legacy: ["dcMcbA", "dcMcbV"],
       def: [{ v: 500, p: "2P", a: [10, 16, 20, 25, 32, 40, 50, 63] }, { v: 800, p: "2P", a: [10, 16, 20, 25, 32, 40, 50, 63] }, { v: 1000, p: "2P", a: [10, 16, 20, 25, 32, 40, 50, 63] }] },
     { sec: "dcBoard", g: "อินเวอร์เตอร์", key: "dcacMax", th: "เพดานอัตรา DC/AC (กำลังแผง ÷ กำลัง AC อินเวอร์เตอร์)", unit: "เท่า", def: 1.2, min: 0.5, max: 3 },
@@ -869,6 +870,8 @@
 
   // หาแผง / อินเวอร์เตอร์จากชื่อรุ่น (สะท้อนคลัง)
   function findPanel(model) { return PANELS.find((p) => p.model === model) || null; }
+  /* อินเวอร์เตอร์ Huawei (SUN2000 / LUNA) — อุปกรณ์เสริมในชุด HW ใช้ได้เฉพาะยี่ห้อนี้ */
+  function isHwInv(model) { return /huawei|sun2000|luna2000/i.test(String(model || "")); }
   function findInverter(model) { return INVERTERS.find((x) => x.model === model) || null; }
   // ── คำนวณการต่ออนุกรมแผง (String) + สาย DC ──
   // panel = { voc, isc, vmp, imp } · inv = { mpptVmin, mpptVmax, maxVdc, maxInA }
@@ -876,9 +879,13 @@
   function stringConfig(panel, inv, opts) {
     opts = opts || {}; panel = panel || {}; inv = inv || {};
     const voc = +panel.voc || 0, isc = +panel.isc || 0, vmp = +panel.vmp || 0, imp = +panel.imp || 0;
+    /* Voc สูงขึ้นเมื่ออากาศเย็น (tcVoc ติดลบ %/°C · ไม่มีในคลัง = −0.25 ค่ากลางของแผงซิลิคอน)
+       จำนวนแผงต่อสตริงต้องคิดจาก Voc ที่อุณหภูมิต่ำสุด ไม่ใช่ 25°C — ตรงกับหน้าออกแบบระบบ (scVocAt) และ SLD */
+    const tMin = RULES.tMin, tc = +panel.tcVoc < 0 ? +panel.tcVoc : -0.25;
+    const vocCold = voc * (1 + tc / 100 * (tMin - 25));
     const vmin = +inv.mpptVmin || 0, vmax = +inv.mpptVmax || 0, maxVdc = +inv.maxVdc || 0, maxInA = +inv.maxInA || 0;
     const vRef = vmp > 0 ? vmp : voc;   // จุดทำงาน: ใช้ Vmp ถ้ามี ไม่งั้นใช้ Voc
-    const out = { voc, isc, vmp, imp, vmin, vmax, maxVdc, maxInA, vRef, warns: [], ready: false };
+    const out = { voc, vocCold: Math.round(vocCold * 100) / 100, tMin, tcVoc: tc, isc, vmp, imp, vmin, vmax, maxVdc, maxInA, vRef, warns: [], ready: false };
     if (!voc || !vmin || !vmax) {
       if (!voc) out.warns.push("ยังไม่ระบุ Voc ของแผง — เพิ่มได้ที่หน้าคลัง › สเปคแผง");
       if (!vmin || !vmax) out.warns.push("ยังไม่ระบุช่วงแรงดันทำงาน MPPT ของอินเวอร์เตอร์ — เพิ่มได้ที่หน้าคลัง");
@@ -887,7 +894,7 @@
     out.ready = true;
     out.minSeries = Math.max(1, Math.ceil(vmin / vRef));         // ขั้นต่ำ ให้แรงดันถึง Vmin
     const maxByOp = Math.floor(vmax / vRef);                      // สูงสุด ให้แรงดันทำงานไม่เกิน Vmax
-    const maxByVoc = maxVdc > 0 ? Math.floor(maxVdc / voc) : maxByOp;  // Voc รวม ต้องไม่เกินแรงดันระบบสูงสุด
+    const maxByVoc = maxVdc > 0 ? Math.floor(maxVdc / vocCold) : maxByOp;  // Voc รวมตอนหนาวสุด ต้องไม่เกินแรงดันระบบสูงสุด
     out.maxByOp = maxByOp; out.maxByVoc = maxByVoc;
     out.maxSeries = Math.min(maxByOp, maxByVoc);
     out.recSeries = out.maxSeries >= out.minSeries ? out.maxSeries : out.minSeries;  // เลือกมากสุดที่อยู่ในช่วง (กระแสรวมต่ำสุด)
@@ -895,12 +902,13 @@
     // สถานะของจำนวนที่เลือกใช้ (ถ้าระบุ series มา)
     const series = Math.max(1, Math.round(+opts.series || out.recSeries));
     out.series = series;
-    out.stringVoc = Math.round(series * voc * 100) / 100;        // แรงดันเปิดวงจรรวม (เย็น/ไม่มีโหลด)
+    out.stringVoc = Math.round(series * vocCold * 100) / 100;    // แรงดันเปิดวงจรรวมตอนหนาวสุด (tMin) — ใช้เลือกแรงดันพิกัดอุปกรณ์
+    out.stringVoc25 = Math.round(series * voc * 100) / 100;      // ที่ 25°C (ไว้แสดงเทียบ)
     out.stringVop = Math.round(series * vRef * 100) / 100;       // แรงดันทำงานรวม (โดยประมาณ)
     out.inRange = out.stringVop >= vmin && out.stringVop <= vmax;
     out.overMaxVdc = maxVdc > 0 && out.stringVoc > maxVdc;
     if (!out.inRange) out.warns.push("แรงดันทำงานรวม " + out.stringVop + " V อยู่นอกช่วง MPPT " + vmin + "–" + vmax + " V");
-    if (out.overMaxVdc) out.warns.push("Voc รวม " + out.stringVoc + " V เกินแรงดันระบบสูงสุด " + maxVdc + " V");
+    if (out.overMaxVdc) out.warns.push("Voc รวมที่ " + tMin + "°C " + out.stringVoc + " V เกินแรงดันระบบสูงสุด " + maxVdc + " V");
     // กระแส DC = Isc × 1.25 (ป้องกันกระแสเกินตามมาตรฐาน) → เลือกขนาดสาย PV1-F
     out.dcAmp = Math.round(isc * RULES.pvWireK * 100) / 100;
     out.dcWire = isc > 0 ? pickPvWireSize(out.dcAmp) : "—";
@@ -1998,6 +2006,7 @@
       if (selInv.inputs > 0) {
         // ── Huawei (string/hybrid) ── INVERTER = ตัวหลัก/แบต/สำรอง · COMBINER BOX = ตู้+อุปกรณ์ป้องกัน
         const ph = selInv.phase === 3 ? 3 : 1;
+        const hw = isHwInv(selInv.model);   // อุปกรณ์มอนิเตอร์/แบต/สำรองไฟของ Huawei ใช้ได้กับ Huawei เท่านั้น
         /* จำนวนสตริงรวม — เอาจากแผนสตริงจริง (แผงทั้งงาน ÷ แผงต่ออนุกรม) ไม่ใช่เดาจากจำนวนช่อง MPPT
            ของเดิมใช้ "ช่องต่อตัว × จำนวนตัว" ซึ่งได้ 4 สตริงสำหรับงาน 155 แผง — น้อยกว่าจริงมาก
            ระบุเองได้ที่ b.strings (สตริงต่อตัว · 0 = อัตโนมัติ) */
@@ -2019,25 +2028,29 @@
         /* ── อุปกรณ์มอนิเตอร์ระดับระบบ: 1 ชุด/งาน ──
            งานโครงการใช้ SmartLogger รวมศูนย์ตัวเดียว (อ่านหลายอินเวอร์เตอร์ผ่าน RS485) ไม่ใช้ Smart Meter + Dongle
            งานบ้านใช้ Smart Meter วัดที่จุดต่อกริด + Dongle 1 ตัว */
-        if (isProject) {
+        if (!hw) {
+          // ยี่ห้ออื่น: ยังไม่มีชุดมอนิเตอร์/มิเตอร์ของยี่ห้อนั้นในระบบ — ให้เพิ่มเองในใบ · แบตใช้รุ่นกลางเดิม
+          if (battCount > 0) invItems.push({ name: BATTERY_MODEL, qty: battCount, unit: "SET" });
+        } else if (isProject) {
           invItems.push({ name: HW.logger, qty: 1, unit: "ตัว" });
         } else {
           invItems.push({ name: ph === 3 ? HW.meter3 : HW.meter1, qty: 1, unit: "ชุด" });
           // 2 รุ่นนี้มี dongle ในตัว (SUN2000-10K-LC0, SUN2000-5K-LB0) — ไม่ต้องถอด Smart Dongle เพิ่ม
           if (!/SUN2000-10K-LC0|SUN2000-5K-LB0/i.test(selInv.model)) invItems.push({ name: HW.dongle, qty: 1, unit: "ชุด" });
         }
-        if ((+b.batteryKwh || 0) > 0) {
+        if (hw && (+b.batteryKwh || 0) > 0) {
           const s1 = Math.ceil((+b.batteryKwh || 0) / 7);   // แบต S1 ก้อนละ 7 kWh
           const c1 = Math.ceil(s1 / 3);                      // Power Module 1 ตัว/แสตก (สูงสุด 3 ก้อน)
           invItems.push({ name: HW.lunaC1, qty: c1, unit: "ตัว" });
           invItems.push({ name: HW.lunaS1, qty: s1, unit: "ก้อน" });
         }
         // ระบบสำรองไฟ 1 ชุด/งาน
-        if (b.hwBackup === "smartguard") invItems.push({ name: ph === 3 ? HW.smartguard3 : HW.smartguard1, qty: 1, unit: "ตัว" });
+        if (!hw) { /* ระบบสำรองไฟ SmartGuard/Backup Box เป็นของ Huawei */ }
+        else if (b.hwBackup === "smartguard") invItems.push({ name: ph === 3 ? HW.smartguard3 : HW.smartguard1, qty: 1, unit: "ตัว" });
         else if (b.hwBackup === "backupbox") invItems.push({ name: ph === 3 ? HW.backupbox3 : HW.backupbox1, qty: 1, unit: "ตัว" });
         /* ตัวคุมแผง — เลือกรุ่นจากคลัง ใบเก่าที่ติ๊กแค่ "ใช้" ไว้ (hwOptimizer) ยังถอดรุ่นเดิมแบบ 1:1 ต่อไป
            ไม่งั้นใบที่เคยเสนอราคาไปแล้วจะมีของหายไปเฉย ๆ ตอนเปิดดูย้อนหลัง */
-        const optModel = String(b.optimizerModel || "").trim() || (b.hwOptimizer ? HW.optimizer : "");
+        const optModel = String(b.optimizerModel || "").trim() || (hw && b.hwOptimizer ? HW.optimizer : "");
         if (optModel) {
           const optQty = optimizerQty(optModel, panelCount);
           invItems.push({ name: optModel, qty: optQty, unit: "ตัว" });
@@ -2777,7 +2790,7 @@
     UPVC_CONDUIT, conduitFillLimit, conduitDim, conduitCheck,
     AMP_CORE_LABEL, ampGroupMeta, ampCoresFor, ampCoreKey, WIRE_METHOD_LEGACY, normWireMethod,
     G_TRAY, G_SUPPORT, G_LABOR, G_PERMIT, G_OM, OM_DEF, OM_CLEAN_TIERS, OM_SVC_TIERS, OM_CLEAN_DEF, OM_SVC_DEF, omTierNorm, setOmTiers, omTierPrice, omDefaults, omCalc, SERVICE_GROUPS, mergeItems,
-    RULE_SECS, RULE_DEFS, RULES, RULES_T, setRules, ruleVal, ruleTxt, ruleOnly, ruleRaw, pairPick, spdName };
+    RULE_SECS, RULE_DEFS, RULES, RULES_T, setRules, ruleVal, ruleTxt, ruleOnly, ruleRaw, pairPick, spdName, isHwInv };
   /* ห่อฟังก์ชันที่ส่งออก: เจออาร์กิวเมนต์ที่เป็นใบ BOQ (jobType) หรืองาน (type) = สลับ RULES เป็นชุดของประเภทนั้นก่อนคิด
      ฟังก์ชันข้างในเรียกกันตรง ๆ (ไม่ผ่านตัวห่อ) จึงใช้ชุดเดียวกันตลอดการคิดหนึ่งครั้ง */
   const typeHint = (a) => {

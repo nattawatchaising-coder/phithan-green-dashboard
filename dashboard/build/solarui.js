@@ -6157,7 +6157,7 @@ function SolarWorkspace({
     className: "su-tb"
   }, React.createElement("thead", null, React.createElement("tr", null, React.createElement("th", null, "\u0E23\u0E32\u0E22\u0E01\u0E32\u0E23\u0E15\u0E23\u0E27\u0E08"), React.createElement("th", null, "\u0E44\u0E14\u0E49"), React.createElement("th", null, "\u0E1E\u0E34\u0E01\u0E31\u0E14"), React.createElement("th", null, "\u0E1C\u0E25"))), React.createElement("tbody", null, microSel.chk.checks.map(c => React.createElement("tr", {
     key: c.k
-  }, React.createElement("td", null, c.k === "voc" ? "Voc ตอนอากาศเย็น " + scNum((S.env || {}).tMin, 15) + "°C" : c.k === "hot" ? "Vmp ตอนแผงร้อน " + scNum((S.env || {}).tCellHot, 65) + "°C" : "Vmp ตอนอากาศเย็น"), React.createElement("td", null, React.createElement("b", null, scR(c.v, 1)), " V"), React.createElement("td", null, c.k === "hot" ? "≥ " : "≤ ", c.lim, " V"), React.createElement("td", {
+  }, React.createElement("td", null, c.k === "voc" ? "Voc ตอนอากาศเย็น " + scTMin(S.env) + "°C" : c.k === "hot" ? "Vmp ตอนแผงร้อน " + scNum((S.env || {}).tCellHot, 65) + "°C" : "Vmp ตอนอากาศเย็น"), React.createElement("td", null, React.createElement("b", null, scR(c.v, 1)), " V"), React.createElement("td", null, c.k === "hot" ? "≥ " : "≤ ", c.lim, " V"), React.createElement("td", {
     style: {
       color: c.ok ? "#12794A" : "var(--tint-red-tx)",
       fontWeight: 800

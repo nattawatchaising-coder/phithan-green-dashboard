@@ -3397,7 +3397,7 @@ function BOQEditor({
     const iIsc = +selInv.maxIscA > 0 ? +selInv.maxIscA / Math.max(1, Math.round(+selInv.strPerMppt || 1)) : 0;
     const isc = pIsc || iIsc;
     const voc = scfg && scfg.stringVoc ? scfg.stringVoc * RU.vocK : +selInv.maxVdc || 1000;
-    const vTxtOf = v => scfg && scfg.stringVoc ? "Voc สตริง " + r1(scfg.stringVoc) + " V × " + RU.vocK + " = " + r1(voc) + " V → " + v + " VDC" : "ยังไม่รู้ Voc สตริง ใช้แรงดันสูงสุดของอินเวอร์เตอร์ → " + v + " VDC";
+    const vTxtOf = v => scfg && scfg.stringVoc ? "Voc สตริงที่ " + scfg.tMin + "°C " + r1(scfg.stringVoc) + " V × " + RU.vocK + " = " + r1(voc) + " V → " + v + " VDC" : "ยังไม่รู้ Voc สตริง ใช้แรงดันสูงสุดของอินเวอร์เตอร์ → " + v + " VDC";
     if (nStr > 0 && isc > 0) {
       const need = isc * RU.dcFuseK,
         F = window.BOQ.pairPick(DCF_P, voc, need),
@@ -6508,7 +6508,7 @@ function BOQEditor({
     min: 1,
     max: capPerInv,
     onChange: e => set("strings", Math.min(Math.max(parseInt(e.target.value) || 0, 0), capPerInv))
-  })), React.createElement(Field, {
+  })), window.BOQ.isHwInv(selInv.model) && React.createElement(Field, {
     label: "\u0E23\u0E30\u0E1A\u0E1A\u0E2A\u0E33\u0E23\u0E2D\u0E07\u0E44\u0E1F"
   }, React.createElement(Dropdown, {
     value: b.hwBackup || "none",
@@ -6851,7 +6851,7 @@ function BOQEditor({
     v: scfg.stringVop + " V",
     ok: scfg.inRange
   }, {
-    l: "Voc รวม (เปิดวงจร)",
+    l: "Voc รวมที่ " + scfg.tMin + "°C (เปิดวงจร)",
     v: scfg.stringVoc + " V",
     ok: !scfg.overMaxVdc
   }, {

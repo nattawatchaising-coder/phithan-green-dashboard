@@ -3392,16 +3392,21 @@ function p3SldModel(st, job, design) {
   }
   if (M.mppt && M.mppt.rows.length && !micro) {
     const PS = typeof scPanelSpec === "function" ? scPanelSpec(sys) : {};
-    const env = Object.assign({
-      tMin: 15
-    }, typeof SC_ENV !== "undefined" ? SC_ENV : {}, sys.env || {});
-    const tMin = Math.round(+env.tMin || 15);
-    const vocAt = n => Math.round((typeof scVocAt === "function" && PS.voc ? scVocAt(PS, tMin) : +PS.voc || 0) * n);
-    const isc = +PS.isc || 0;
     const ivSp = inv.spec || {};
     const unitKw = Math.max.apply(null, units.map(u => (+u.w || unitW) / 1000));
     const home = job && job.type ? job.type === "home" : unitKw <= 20;
     const small = unitKw <= 20;
+    const BQ = window.BOQ || {};
+    const R = BQ.RULES_T ? BQ.RULES_T[home ? "home" : "proj"] : null;
+    const pick = (P, v, a, pole) => R && BQ.pairPick && P && P.length ? BQ.pairPick(P, v, a, pole) : null;
+    const kk = x => Math.round(x * 100) / 100;
+    const lps = !home && (((job && job.boq || {}).project || {}).board || {}).lps === "near";
+    const env = Object.assign({
+      tMin: 15
+    }, typeof SC_ENV !== "undefined" ? SC_ENV : {}, sys.env || {});
+    const tMin = Math.round(typeof scTMin === "function" ? scTMin(env) : +env.tMin || 15);
+    const vocAt = n => Math.round((typeof scVocAt === "function" && PS.voc ? scVocAt(PS, tMin) : +PS.voc || 0) * n);
+    const isc = +PS.isc || 0;
     const maxVdc = +ivSp.maxVdc || 1000;
     const SS = design.strings || [];
     const nStr = SS.length;
@@ -3409,17 +3414,27 @@ function p3SldModel(st, job, design) {
     const nMin = Math.min.apply(null, ns),
       nMax = Math.max.apply(null, ns);
     const vocMax = vocAt(nMax);
-    const dcV = maxVdc > 1000 ? 1500 : 1000;
-    const fuseA = [10, 12, 15, 16, 20, 25, 30, 32, 40].find(a => a >= isc * 1.5) || 40;
-    const mcbA = [10, 16, 20, 25, 32, 40, 50, 63].find(a => a >= isc * 1.25) || 63;
-    const ucpv = [600, 800, 1000, 1200, 1500].find(v => v >= Math.max(vocMax, 1)) || 1500;
+    const vNeed = Math.max(vocMax, 1) * (R ? R.vocK : 1);
+    const fz = pick(R && R.dcFuse, vNeed, isc * (R ? R.dcFuseK : 1.5));
+    const dcV = fz ? fz.v : maxVdc > 1000 ? 1500 : 1000;
+    const fuseA = fz ? fz.a : [10, 12, 15, 16, 20, 25, 30, 32, 40].find(a => a >= isc * 1.5) || 40;
+    const mz = pick(R && R.dcMcb, vNeed, isc * (R ? R.dcMcbK : 1.5));
+    const mcbA = mz ? mz.a : [10, 16, 20, 25, 32, 40, 50, 63].find(a => a >= isc * 1.5) || 63;
+    const mcbV = mz ? mz.v : maxVdc > 800 ? 1000 : 800,
+      mcbP = mz && mz.p || "2P";
+    const sz = pick(R && (lps ? R.dcSpd12 : R.dcSpd2), vNeed, R ? lps ? R.dcIimp : R.spdImax : 40);
+    const ucpv = sz ? sz.v : [600, 800, 1000, 1200, 1500].find(v => v >= Math.max(vocMax, 1)) || 1500;
+    const spdKa = sz ? sz.a : 40;
+    const dcSpdKa = lps ? "Iimp " + kk(spdKa) + "kA" : "In " + kk(spdKa / 2) + "kA Imax " + kk(spdKa) + "kA";
+    const az = pick(R && (lps ? R.acSpd12 : R.acSpd2), R ? nPh === 3 ? R.acUc3 : R.acUc1 : 0, R ? lps ? R.acIimp : R.spdImax : 40, p => nPh === 3 ? p === "3P+N" || p === "4P" : p === "2P" || p === "1P+N");
+    const acSpd = az ? lps ? ["AC SPD TYPE I+II " + az.p, "Uc " + az.v + "V", "Iimp " + kk(az.a) + "kA"] : ["AC SPD TYPE II " + az.p, "Uc " + az.v + "V In " + kk(az.a / 2) + "kA", "Imax " + kk(az.a) + "kA"] : nPh === 3 ? ["AC SPD TYPE II 4P", "Uc 385V In 20kA", "Imax 40kA"] : ["AC SPD TYPE II 2P", "Uc 275V In 20kA", "Imax 40kA"];
     const auth = window.BOQ && window.BOQ.gridAuthOf && job ? window.BOQ.gridAuthOf(job) : "";
     const P2 = nPh === 3 ? "4P " : "2P ";
     const mainA = p3At(totA * 1.25);
     const gf = !(home && mainA <= 63);
     const lsig = mainA >= 1000;
     const pm = !home;
-    const spdBk = mainA > 125 ? "AC FUSE NH00 gG 32A" : home ? "MCB " + (nPh === 3 ? "3P" : "2P") + " 32A" : "";
+    const spdBk = !R ? mainA > 125 ? "AC FUSE NH00 gG 32A" : home ? "MCB " + (nPh === 3 ? "3P" : "2P") + " 32A" : "" : home && !lps ? "MCB " + (nPh === 3 ? "3P" : "2P") + " " + R.homeSpdMcb + "A" : lps && mainA <= R.nhT12 ? "" : "AC FUSE NH00 gG " + (lps ? R.nhT12 : R.nhT2) + "A";
     const earthCu = mainA <= 100 ? 10 : mainA <= 200 ? 16 : mainA <= 400 ? 25 : mainA <= 500 ? 35 : mainA <= 800 ? 50 : mainA <= 1000 ? 70 : 95;
     const pmt = job && job.permit || {},
       sv = job && job.survey || {};
@@ -3428,9 +3443,9 @@ function p3SldModel(st, job, design) {
       const a = p3At(aOfUnit(u) * 1.25);
       return home && a <= 63 ? "RCBO " + P2 + a + "A 100mA" : (a > 125 ? "MCCB " : "MCB ") + P2 + a + "AT";
     });
-    const dcDev = small ? {
+    const dcDev = (R ? home : small) ? {
       k: "mcb",
-      tag: "DC MCB 2P " + mcbA + "A " + (maxVdc > 800 ? 1000 : 800) + "VDC"
+      tag: "DC MCB " + mcbP + " " + mcbA + "A " + mcbV + "VDC"
     } : {
       k: "fuse",
       tag: "DC FUSE gPV " + fuseA + "A " + dcV + "VDC (+/-)"
@@ -3446,11 +3461,12 @@ function p3SldModel(st, job, design) {
       vocAt,
       vocMax,
       auth: auth || "MEA/PEA",
+      lps,
       dcDev,
-      dcSpdTag: "SPD T2 " + ucpv + "VDC",
-      dcSpdFull: "DC SPD T2 Ucpv " + ucpv + "VDC In 20kA Imax 40kA",
+      dcSpdTag: "SPD " + (lps ? "T1+T2 " : "T2 ") + ucpv + "VDC",
+      dcSpdFull: "DC SPD " + (lps ? "T1+T2" : "T2") + " Ucpv " + ucpv + "VDC " + dcSpdKa,
       dcCable: "PV1-F (H1Z2Z2-K) 1x" + (isc * 1.56 > 40 ? 6 : 4) + " mm2 1.5kV DC",
-      acSpd: nPh === 3 ? ["AC SPD TYPE II 4P", "Uc 385V In 20kA", "Imax 40kA"] : ["AC SPD TYPE II 2P", "Uc 275V In 20kA", "Imax 40kA"],
+      acSpd,
       spdBk,
       ivBrk,
       mainA,
@@ -3476,7 +3492,7 @@ function p3SldModel(st, job, design) {
     S.push(["INVERTER", inv.model + " " + unitKw + "kW " + (nPh === 3 ? "3PH" : "1PH"), nInv]);
     S.push(["DC BOX", "IP65 ENCLOSURE c/w PE BAR", nInv]);
     S.push(dcDev.k === "fuse" ? ["DC STRING FUSE", "gPV (IEC 60269-6) " + fuseA + "A " + dcV + "VDC " + (dcV > 1000 ? "10x85" : "10x38") + " + DC FUSE HOLDER", nStr * 2] : ["DC MCB", dcDev.tag.replace(/^DC MCB /, ""), nStr]);
-    S.push(["DC SPD", "TYPE II Ucpv " + ucpv + "VDC In 20kA Imax 40kA", nStr]);
+    S.push(["DC SPD", (lps ? "TYPE I+II" : "TYPE II") + " Ucpv " + ucpv + "VDC " + dcSpdKa, nStr]);
     S.push(["MC4 CONNECTOR", "1500VDC IP68 (PAIR)", nStr * 2]);
     if (nInv > 1) S.push(["AC BREAKER (INV.)", ivBrk[0], nInv]);
     S.push(["AC SPD", M.pro.acSpd.join(" ").replace(/^AC SPD /, ""), 1]);
@@ -3930,21 +3946,21 @@ function p3DcSheet(st, job, media) {
       align: 1,
       valign: 3
     });
-    pen.text(T, mx, yF + 0.9, PG_TS.body, fuse ? "DC FUSE gPV (+/-)" : "DC MCB 2P", {
+    pen.text(T, mx, yF + 0.9, PG_TS.body, fuse ? "DC FUSE gPV (+/-)" : P.dcDev.tag.split(" ").slice(0, 3).join(" "), {
       align: 1,
       valign: 1
     });
-    pen.text(T, mx, yF - 0.9, PG_TS.cell, P.dcDev.tag.replace(/^DC (FUSE gPV|MCB 2P) /, "").replace(/ \(\+\/-\)$/, ""), {
+    pen.text(T, mx, yF - 0.9, PG_TS.cell, P.dcDev.tag.replace(/^DC (FUSE gPV|MCB \S+) /, "").replace(/ \(\+\/-\)$/, ""), {
       align: 1,
       valign: 3
     });
     pen.text(T, mx + 3, yS - 1.0, PG_TS.body, "DC SPD", {
       valign: 3
     });
-    pen.text(T, mx + 3, yS - 4.0, PG_TS.cell, P.dcSpdFull.replace(/^DC SPD /, "").replace(/ In .*/, ""), {
+    pen.text(T, mx + 3, yS - 4.0, PG_TS.cell, P.dcSpdFull.replace(/^DC SPD /, "").replace(/ (In|Iimp) .*/, ""), {
       valign: 3
     });
-    pen.text(T, mx + 3, yS - 6.6, PG_TS.cell, (P.dcSpdFull.match(/In .*/) || [""])[0], {
+    pen.text(T, mx + 3, yS - 6.6, PG_TS.cell, (P.dcSpdFull.match(/(In|Iimp) .*/) || [""])[0], {
       valign: 3
     });
     pen.text(T, s.lx + 2, bB + 1.6, PG_TS.cell, "DC CABLE : " + P.dcCable.replace(/ \(H1Z2Z2-K\)/, ""), {
