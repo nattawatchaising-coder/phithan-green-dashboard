@@ -31,13 +31,14 @@ input, textarea, select { background: var(--surface2); color: var(--text-1); }
    พื้นช่องต่างจากพื้นการ์ดแค่ 10/255 ลำพังพื้นจึงกลืนไปกับแผ่นที่รองอยู่
    เขียนเป็น box-shadow ไม่ใช่ border เพราะไม่กินที่เพิ่ม ไม่ขยับ layout
    และเบราว์เซอร์รีเซ็ต border ทับไม่ได้ ซึ่งเป็นบั๊กที่เพิ่งเจอมาสองรอบ
-   ⚠ ไม่ครอบ checkbox/radio/range/color/file — พวกนั้นเบราว์เซอร์วาดเอง วงแหวนจะเลอะ */
-input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="color"]):not([type="file"]),
+   ⚠ ไม่ครอบ checkbox/radio/range/color/file — พวกนั้นเบราว์เซอร์วาดเอง วงแหวนจะเลอะ
+   ⚠ ครอบ :not() ด้วย :where() ให้น้ำหนักเท่าแท็ก input เปล่า ๆ — ไม่งั้น :not() ห้าตัวชนะกฎของคลาส
+     (.search-box input { box-shadow: none } แพ้ ช่องค้นหาบนหัวหน้าเลยมีกรอบสี่เหลี่ยมซ้อนในกล่องโค้ง) */
+input:where(:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="color"]):not([type="file"])),
 textarea, select { box-shadow: var(--shadow-inset); }
 input:focus, textarea:focus, select:focus { outline: none; }
-/* ⚠ กฎโฟกัสต้องลาก :not() ชุดเดียวกันมาด้วย ไม่ใช่เขียน input:focus-visible สั้น ๆ
-   กฎด้านบนมี :not() ห้าตัว น้ำหนักจึงสูงกว่า ถ้าเขียนสั้นกว่าจะแพ้และโฟกัสไม่ขึ้นเลย */
-input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="color"]):not([type="file"]):focus-visible,
+/* กฎโฟกัสใช้ :where() ชุดเดียวกัน — ช่องที่คลาสปิดเงาไว้ (เช่นช่องค้นหา) ให้กล่องที่ครอบโชว์โฟกัสแทน */
+input:where(:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="color"]):not([type="file"])):focus-visible,
 textarea:focus-visible, select:focus-visible {
   box-shadow: inset 0 0 0 1px var(--primary), 0 0 0 3px var(--primary-soft); }
 input, select, textarea { font-family: inherit; }
