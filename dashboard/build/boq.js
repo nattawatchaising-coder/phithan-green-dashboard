@@ -3139,11 +3139,10 @@ function BOQEditor({
       }) : p;
     });
   }, [raceKey]);
-  const DCF_A = RU.dcFuseA;
-  const DCF_V = RU.dcFuseV,
+  const DCF_P = RU.dcFuse,
     SPD_V = RU.dcSpdV;
-  const DCMCB_A = RU.dcMcbA,
-    DCMCB_V = RU.dcMcbV;
+  const DCF_V = DCF_P.map(p => p.v);
+  const DCMCB_P = RU.dcMcb;
   const r1 = x => Math.round(x * 10) / 10;
   const cabIz = c => {
     if (!c || !c.type) return null;
@@ -3396,21 +3395,21 @@ function BOQEditor({
     const isc = pIsc || iIsc;
     const voc = scfg && scfg.stringVoc ? scfg.stringVoc * RU.vocK : +selInv.maxVdc || 1000;
     const vPick = L => L.find(x => x >= voc) || L[L.length - 1];
-    const V = vPick(DCF_V),
-      SV = vPick(SPD_V);
+    const SV = vPick(SPD_V);
     const vTxtOf = v => scfg && scfg.stringVoc ? "Voc สตริง " + r1(scfg.stringVoc) + " V × " + RU.vocK + " = " + r1(voc) + " V → " + v + " VDC" : "ยังไม่รู้ Voc สตริง ใช้แรงดันสูงสุดของอินเวอร์เตอร์ → " + v + " VDC";
-    const vTxt = vTxtOf(V);
     if (nStr > 0 && isc > 0) {
       const need = isc * RU.dcFuseK,
-        A = DCF_A.find(x => x >= need) || DCF_A[DCF_A.length - 1];
-      const ok = A <= isc * RU.dcFuseMaxK;
+        F = window.BOQ.pairPick(DCF_P, voc, need),
+        A = F.a,
+        V = F.v;
+      const ok = F.okV && F.okA && A <= isc * RU.dcFuseMaxK;
       out.dc.push({
         name: "DC FUSE " + A + "A " + V + "VDC",
         qty: nStr * 2,
         unit: "ตัว",
         auto: 1,
         ok,
-        why: nStr + " สตริง × 2 ขั้ว · Isc " + (pIsc ? "แผง " : "จากสเปคอินเวอร์เตอร์ ") + r1(isc) + " A × " + RU.dcFuseK + " = " + r1(need) + " A → " + A + " A" + (ok ? "" : " เกิน " + RU.dcFuseMaxK + " × Isc") + " · " + vTxt
+        why: nStr + " สตริง × 2 ขั้ว · Isc " + (pIsc ? "แผง " : "จากสเปคอินเวอร์เตอร์ ") + r1(isc) + " A × " + RU.dcFuseK + " = " + r1(need) + " A → " + A + " A" + (A > isc * RU.dcFuseMaxK ? " เกิน " + RU.dcFuseMaxK + " × Isc" : "") + " · " + vTxtOf(V) + (!F.okA ? " · ฟิวส์ " + V + " VDC ที่มีขายไม่ถึง " + r1(need) + " A" : "") + (!F.okV ? " · ไม่มีฟิวส์แรงดันพิกัดพอ" : "")
       });
       out.dc.push({
         name: "DC FUSE HOLDER",
@@ -3431,16 +3430,16 @@ function BOQEditor({
     }
     if (isHome && nStr > 0 && isc > 0) {
       const need = isc * RU.dcMcbK,
-        A = DCMCB_A.find(x => x >= need) || DCMCB_A[DCMCB_A.length - 1];
-      const MV = vPick(DCMCB_V),
-        vOk = MV >= voc;
+        M = window.BOQ.pairPick(DCMCB_P, voc, need),
+        A = M.a,
+        MV = M.v;
       out.dc.push({
         name: "DC MCB " + A + "A 2P " + MV + "VDC",
         qty: nStr,
         unit: "ตัว",
         auto: 1,
-        ok: vOk,
-        why: "สตริงละ 1 ตัว · Isc " + r1(isc) + " A × " + RU.dcMcbK + " = " + r1(need) + " A → " + A + " A · " + vTxtOf(MV) + (vOk ? "" : " · เกินรุ่นที่มีขาย ต้องใช้รุ่นแรงดันสูงกว่า")
+        ok: M.okV && M.okA,
+        why: "สตริงละ 1 ตัว · Isc " + r1(isc) + " A × " + RU.dcMcbK + " = " + r1(need) + " A → " + A + " A · " + vTxtOf(MV) + (!M.okA ? " · รุ่น " + MV + " VDC ที่มีขายไม่ถึง " + r1(need) + " A" : "") + (!M.okV ? " · เกินรุ่นที่มีขาย ต้องใช้รุ่นแรงดันสูงกว่า" : "")
       });
     }
     if (nStr > 0 && !lps) out.dc.push({

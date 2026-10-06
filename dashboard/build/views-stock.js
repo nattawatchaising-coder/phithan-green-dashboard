@@ -4128,8 +4128,19 @@ function brStockNeeds() {
     }
   };
   const L = k => Array.from(new Set([].concat(H[k] || [], P[k] || []))).sort((a, b) => a - b);
-  L("dcFuseV").forEach(v => {
-    L("dcFuseA").forEach(a => add("DC FUSE " + a + "A " + v + "VDC", {
+  const PV = k => {
+    const m = {};
+    [].concat(H[k] || [], P[k] || []).forEach(p => {
+      m[p.v] = Array.from(new Set((m[p.v] || []).concat(p.a))).sort((a, b) => a - b);
+    });
+    return Object.keys(m).map(Number).sort((a, b) => a - b).map(v => ({
+      v: v,
+      a: m[v]
+    }));
+  };
+  PV("dcFuse").forEach(p => {
+    const v = p.v;
+    p.a.forEach(a => add("DC FUSE " + a + "A " + v + "VDC", {
       elecType: "Fuse",
       amp: a
     }));
@@ -4142,7 +4153,7 @@ function brStockNeeds() {
     elecType: "SPD",
     poles: "2P"
   }));
-  (H.dcMcbV || []).forEach(v => (H.dcMcbA || []).forEach(a => add("DC MCB " + a + "A 2P " + v + "VDC", {
+  (H.dcMcb || []).forEach(p => p.a.forEach(a => add("DC MCB " + a + "A 2P " + p.v + "VDC", {
     elecType: "MCB",
     poles: "2P",
     amp: a
@@ -4490,13 +4501,215 @@ const brChanged = (d, saved, type) => {
   if (raw == null || raw === "") return false;
   return B.ruleTxt(d, B.ruleVal(d, raw)) !== B.ruleTxt(d, d.def);
 };
-const brStockRow = d => d.type === "nums";
+const brStockRow = d => d.type === "nums" || d.type === "pairs";
 const BR_TYPE_G = {
   "ทุกงาน": 1,
   "งานบ้าน": 1,
   "งานโครงการ": 1
 };
 const brPath = (d, type) => window.BOQ.ruleOnly(d) ? d.key : type + "/" + d.key;
+function BrChips({
+  list,
+  unit,
+  onChange,
+  disabled,
+  words
+}) {
+  const [t, setT] = React.useState("");
+  const add = () => {
+    const vs = t.split(/[,\s]+/).map(x => words ? x.trim() : +x).filter(x => words ? x : isFinite(x) && x > 0);
+    setT("");
+    if (vs.length) onChange(list.concat(vs));
+  };
+  return React.createElement("div", {
+    style: {
+      display: "flex",
+      flexWrap: "wrap",
+      gap: 6,
+      alignItems: "center"
+    }
+  }, list.map((x, i) => React.createElement("span", {
+    key: x + "|" + i,
+    style: {
+      display: "inline-flex",
+      alignItems: "center",
+      gap: 4,
+      padding: "5px 6px 5px 10px",
+      borderRadius: "var(--r-chip)",
+      background: "var(--surface)",
+      boxShadow: "var(--shadow-sm)",
+      fontSize: 12.5,
+      fontWeight: 700,
+      color: "var(--text-1)",
+      fontVariantNumeric: "tabular-nums"
+    }
+  }, x, unit ? React.createElement("span", {
+    style: {
+      fontSize: 10.5,
+      fontWeight: 600,
+      color: "var(--text-3)"
+    }
+  }, unit) : null, React.createElement("button", {
+    type: "button",
+    disabled: disabled || list.length < 2,
+    onClick: () => onChange(list.filter((_, j) => j !== i)),
+    title: "\u0E40\u0E2D\u0E32\u0E2D\u0E2D\u0E01",
+    style: {
+      border: "none",
+      background: "transparent",
+      padding: "0 2px",
+      cursor: disabled || list.length < 2 ? "default" : "pointer",
+      color: "var(--text-3)",
+      opacity: disabled || list.length < 2 ? 0.3 : 1,
+      display: "inline-flex"
+    }
+  }, React.createElement(Icon, {
+    name: "x",
+    size: 12,
+    color: "var(--text-3)"
+  })))), !disabled && React.createElement("input", {
+    value: t,
+    onChange: e => setT(e.target.value),
+    onBlur: add,
+    placeholder: "+ \u0E40\u0E1E\u0E34\u0E48\u0E21",
+    onKeyDown: e => {
+      if (e.key === "Enter") {
+        e.preventDefault();
+        add();
+      }
+    },
+    style: {
+      width: 76,
+      border: "none",
+      outline: "none",
+      fontFamily: "inherit",
+      fontSize: 12.5,
+      padding: "6px 9px",
+      borderRadius: "var(--r-chip)",
+      background: "var(--surface2)",
+      boxShadow: "var(--shadow-inset)",
+      color: "var(--text-1)"
+    }
+  }));
+}
+function BrPairs({
+  list,
+  d,
+  onChange,
+  disabled
+}) {
+  const [nv, setNv] = React.useState("");
+  const addV = () => {
+    const v = +String(nv).replace(/[^\d.]/g, "");
+    setNv("");
+    if (!(v > 0) || list.some(p => p.v === v)) return;
+    const last = list[list.length - 1];
+    onChange(list.concat([{
+      v: v,
+      a: last ? last.a.slice() : [10]
+    }]).sort((x, y) => x.v - y.v));
+  };
+  return React.createElement("div", {
+    style: {
+      display: "flex",
+      flexDirection: "column",
+      gap: 6
+    }
+  }, list.map((p, i) => React.createElement("div", {
+    key: p.v,
+    style: {
+      display: "grid",
+      gridTemplateColumns: "112px minmax(0,1fr)",
+      gap: 10,
+      alignItems: "start",
+      padding: "8px 10px",
+      borderRadius: "var(--r-tile)",
+      background: "var(--surface2)",
+      boxShadow: "var(--shadow-inset)"
+    }
+  }, React.createElement("div", {
+    style: {
+      display: "flex",
+      alignItems: "center",
+      gap: 4,
+      paddingTop: 5
+    }
+  }, React.createElement("span", {
+    style: {
+      fontSize: 13,
+      fontWeight: 800,
+      color: "var(--primary-dark)",
+      fontVariantNumeric: "tabular-nums"
+    }
+  }, p.v), React.createElement("span", {
+    style: {
+      fontSize: 10.5,
+      fontWeight: 700,
+      color: "var(--text-3)"
+    }
+  }, d.unit), !disabled && list.length > 1 && React.createElement("button", {
+    type: "button",
+    title: "เอาแรงดัน " + p.v + " ออก",
+    onClick: () => onChange(list.filter((_, j) => j !== i)),
+    style: {
+      border: "none",
+      background: "transparent",
+      cursor: "pointer",
+      padding: 2,
+      display: "inline-flex",
+      marginLeft: 2
+    }
+  }, React.createElement(Icon, {
+    name: "trash",
+    size: 12,
+    color: "var(--text-3)"
+  }))), React.createElement(BrChips, {
+    list: p.a,
+    unit: d.unitA,
+    disabled: disabled,
+    onChange: a => onChange(list.map((q, j) => j === i ? {
+      v: q.v,
+      a: a
+    } : q))
+  }))), !disabled && React.createElement("div", {
+    style: {
+      display: "flex",
+      alignItems: "center",
+      gap: 8
+    }
+  }, React.createElement("input", {
+    value: nv,
+    onChange: e => setNv(e.target.value),
+    onKeyDown: e => {
+      if (e.key === "Enter") {
+        e.preventDefault();
+        addV();
+      }
+    },
+    placeholder: "แรงดันใหม่ (" + d.unit + ")",
+    inputMode: "decimal",
+    style: {
+      width: 150,
+      border: "none",
+      outline: "none",
+      fontFamily: "inherit",
+      fontSize: 12.5,
+      padding: "7px 10px",
+      borderRadius: "var(--r-chip)",
+      background: "var(--surface2)",
+      boxShadow: "var(--shadow-inset)",
+      color: "var(--text-1)"
+    }
+  }), React.createElement("button", {
+    type: "button",
+    className: "btn btn-sm",
+    onClick: addV,
+    disabled: !nv
+  }, React.createElement(Icon, {
+    name: "plus",
+    size: 12
+  }), " \u0E40\u0E1E\u0E34\u0E48\u0E21\u0E41\u0E23\u0E07\u0E14\u0E31\u0E19")));
+}
 function BoqRuleSec({
   sec,
   rulesStore,
@@ -4504,8 +4717,8 @@ function BoqRuleSec({
 }) {
   const BOQ = window.BOQ || {};
   const defs = (BOQ.RULE_DEFS || []).filter(d => d.sec === sec.k && brRuleOn(d, type));
-  const rows = defs.filter(brStockRow).concat(defs.filter(d => !brStockRow(d))),
-    mixed = rows.some(brStockRow) && rows.some(d => !brStockRow(d));
+  const stockRows = defs.filter(brStockRow),
+    condRows = defs.filter(d => !brStockRow(d));
   const all = rulesStore && rulesStore.val || {};
   const saved = {};
   defs.forEach(d => {
@@ -4516,246 +4729,352 @@ function BoqRuleSec({
   React.useEffect(() => {
     setDraft(null);
   }, [sec.k]);
-  const edit = !!draft;
   const view = draft || saved;
-  const txt = d => BOQ.ruleTxt ? BOQ.ruleTxt(d, d.def) : String(d.def);
+  const ro = !rulesStore;
+  const txt = d => BOQ.ruleTxt(d, d.def);
   const str = (o, k) => o[k] != null ? String(o[k]) : "";
-  const dirty = defs.filter(d => str(saved, d.key) !== str(draft || saved, d.key));
+  const dirty = defs.filter(d => str(saved, d.key) !== str(view, d.key));
   const nEdited = defs.filter(d => brChanged(d, all, type)).length;
   const set = (k, v) => setDraft(p => {
-    const n = Object.assign({}, p);
+    const n = Object.assign({}, p || saved);
     if (v === "") delete n[k];else n[k] = v;
     return n;
   });
+  const cur = d => BOQ.ruleVal(d, str(view, d.key));
+  const isDef = d => BOQ.ruleTxt(d, cur(d)) === txt(d);
   const save = () => {
-    dirty.forEach(d => rulesStore && rulesStore.setCell(brPath(d, type), str(draft, d.key).trim()));
+    dirty.forEach(d => rulesStore.setCell(brPath(d, type), str(view, d.key).trim()));
     setDraft(null);
-  };
-  const cancel = () => {
-    if (!dirty.length) {
-      setDraft(null);
-      return;
-    }
-    window.askConfirm({
-      title: "ทิ้งที่แก้ไว้?",
-      body: "ค่าที่แก้ไว้ " + dirty.length + " ช่อง จะไม่ถูกบันทึก",
-      ok: "ทิ้ง",
-      danger: true
-    }).then(ok => {
-      if (ok) setDraft(null);
-    });
   };
   const resetAll = () => window.askConfirm({
     title: "คืนค่าตั้งต้น · " + sec.th + "?",
     body: "ค่าที่ตั้งไว้ " + nEdited + " ช่อง จะกลับไปใช้ค่าตั้งต้นของระบบ",
-    ok: "คืนค่าตั้งต้น"
+    ok: "คืนค่าตั้งต้น",
+    danger: true
   }).then(ok => {
-    if (ok) defs.forEach(d => {
-      if (!brChanged(d, all, type)) return;
-      const flat = !BOQ.ruleOnly(d) && all[d.key] != null && all[d.key] !== "";
-      rulesStore.setCell(brPath(d, type), flat ? txt(d) : "");
-    });
+    if (ok) {
+      setDraft(null);
+      defs.forEach(d => {
+        if (!brChanged(d, all, type)) return;
+        const flat = !BOQ.ruleOnly(d) && (all[d.key] != null && all[d.key] !== "" || (d.legacy || []).some(k => all[k] != null && all[k] !== ""));
+        rulesStore.setCell(brPath(d, type), flat ? txt(d) : "");
+      });
+    }
   });
   const bad = d => {
-    const v = str(view, d.key);
-    if (!v || !BOQ.ruleVal) return false;
-    return BOQ.ruleVal(d, v) === d.def && v.replace(/\s/g, "") !== txt(d).replace(/\s/g, "");
+    const v = str(view, d.key).trim();
+    return !!v && !d.type && BOQ.ruleVal(d, v) === d.def && +v !== d.def;
   };
-  const btn = on => ({
-    padding: "7px 14px",
-    borderRadius: "var(--r-tile)",
-    fontFamily: "inherit",
-    fontSize: 12.5,
-    fontWeight: 700,
-    cursor: "pointer",
-    border: "none",
-    background: on ? "var(--primary)" : "var(--surface2)",
-    color: on ? "#fff" : "var(--text-2)",
-    boxShadow: on ? "var(--shadow-btn)" : "var(--shadow-sm)"
+  const card = {
+    background: "var(--surface)",
+    boxShadow: "var(--shadow-card)",
+    borderRadius: "var(--r-card)",
+    padding: "14px 16px"
+  };
+  const blockHd = (ic, t, s) => React.createElement("div", {
+    style: {
+      display: "flex",
+      alignItems: "center",
+      gap: 8,
+      marginBottom: 10
+    }
+  }, React.createElement("span", {
+    style: {
+      width: 28,
+      height: 28,
+      borderRadius: "var(--r-chip)",
+      background: "var(--primary-soft)",
+      display: "grid",
+      placeItems: "center"
+    }
+  }, React.createElement(Icon, {
+    name: ic,
+    size: 14,
+    color: "var(--primary-dark)"
+  })), React.createElement("span", {
+    style: {
+      fontSize: 13.5,
+      fontWeight: 700
+    }
+  }, t), React.createElement("span", {
+    style: {
+      fontSize: 11.5,
+      color: "var(--text-3)"
+    }
+  }, s));
+  const resetBtn = d => !isDef(d) && !ro && React.createElement("button", {
+    type: "button",
+    title: "คืนค่าตั้งต้น " + txt(d),
+    onClick: () => set(d.key, d.type ? txt(d) : String(d.def)),
+    style: {
+      border: "none",
+      background: "transparent",
+      cursor: "pointer",
+      padding: 4,
+      display: "inline-flex",
+      borderRadius: "var(--r-chip)"
+    }
+  }, React.createElement(Icon, {
+    name: "undo",
+    size: 13,
+    color: "var(--text-3)"
+  }));
+  const changedDot = d => !isDef(d) && React.createElement("span", {
+    title: "\u0E15\u0E48\u0E32\u0E07\u0E08\u0E32\u0E01\u0E04\u0E48\u0E32\u0E15\u0E31\u0E49\u0E07\u0E15\u0E49\u0E19",
+    style: {
+      width: 6,
+      height: 6,
+      borderRadius: 99,
+      background: "var(--tint-amber-tx)",
+      flex: "none"
+    }
   });
-  const fld = d => ({
-    width: "100%",
-    boxSizing: "border-box",
-    border: "none",
-    outline: "none",
-    fontFamily: "inherit",
-    fontSize: 13,
-    padding: "8px 10px",
-    borderRadius: "var(--r-chip)",
-    color: "var(--text-1)",
-    textAlign: d.type ? "left" : "right",
-    fontVariantNumeric: "tabular-nums",
-    background: edit ? "var(--surface2)" : "transparent",
-    boxShadow: edit ? "var(--shadow-inset)" : "none"
-  });
+  const gOf = x => x && x.g && !BR_TYPE_G[x.g] ? x.g : null;
   return React.createElement("div", {
     style: {
       display: "flex",
       flexDirection: "column",
-      gap: 12,
-      maxWidth: 860
+      gap: 14,
+      maxWidth: 860,
+      paddingBottom: dirty.length ? 64 : 0
+    }
+  }, React.createElement("div", {
+    style: {
+      display: "flex",
+      alignItems: "flex-start",
+      gap: 10
+    }
+  }, React.createElement("div", {
+    style: {
+      flex: 1,
+      minWidth: 0
+    }
+  }, React.createElement("div", {
+    style: {
+      fontSize: 16,
+      fontWeight: 800,
+      color: "var(--text-1)"
+    }
+  }, sec.th), React.createElement("div", {
+    style: {
+      fontSize: 12,
+      color: "var(--text-3)",
+      marginTop: 2
+    }
+  }, sec.sub)), nEdited > 0 && !ro && React.createElement("button", {
+    className: "btn btn-sm",
+    onClick: resetAll
+  }, React.createElement(Icon, {
+    name: "undo",
+    size: 12
+  }), " \u0E04\u0E37\u0E19\u0E04\u0E48\u0E32\u0E15\u0E31\u0E49\u0E07\u0E15\u0E49\u0E19\u0E17\u0E31\u0E49\u0E07\u0E2B\u0E31\u0E27\u0E02\u0E49\u0E2D (", nEdited, ")")), stockRows.length > 0 && React.createElement("div", {
+    style: card
+  }, blockHd("box", "ของที่มีขาย", "ระบบเลือกได้เฉพาะขนาดในนี้"), React.createElement("div", {
+    style: {
+      display: "flex",
+      flexDirection: "column"
+    }
+  }, stockRows.map((d, i) => React.createElement("div", {
+    key: d.key,
+    style: {
+      padding: "12px 0",
+      borderTop: i ? "1px solid var(--divider)" : "none"
     }
   }, React.createElement("div", {
     style: {
       display: "flex",
       alignItems: "center",
-      gap: 8,
-      flexWrap: "wrap"
+      gap: 6,
+      marginBottom: 8
     }
-  }, edit ? React.createElement(React.Fragment, null, React.createElement("button", {
-    onClick: save,
-    style: btn(true)
-  }, "\u0E1A\u0E31\u0E19\u0E17\u0E36\u0E01", dirty.length ? " (" + dirty.length + ")" : ""), React.createElement("button", {
-    onClick: cancel,
-    style: btn(false)
-  }, "\u0E22\u0E01\u0E40\u0E25\u0E34\u0E01"), React.createElement("span", {
+  }, React.createElement("span", {
     style: {
-      fontSize: 11.5,
-      color: "var(--text-3)"
+      fontSize: 13,
+      fontWeight: 700,
+      color: "var(--text-1)"
     }
-  }, dirty.length ? "แก้ไว้ " + dirty.length + " ช่อง ยังไม่ได้บันทึก" : "กำลังแก้ไข · เว้นว่าง = ใช้ค่าตั้งต้น")) : React.createElement(React.Fragment, null, React.createElement("button", {
-    onClick: () => setDraft(Object.assign({}, saved)),
-    style: btn(false),
-    disabled: !rulesStore
-  }, "\u0E41\u0E01\u0E49\u0E44\u0E02"), React.createElement("button", {
-    onClick: resetAll,
-    disabled: !nEdited,
-    style: Object.assign(btn(false), {
-      color: nEdited ? "var(--text-2)" : "var(--text-3)",
-      cursor: nEdited ? "pointer" : "default"
-    })
-  }, "\u0E04\u0E37\u0E19\u0E04\u0E48\u0E32\u0E15\u0E31\u0E49\u0E07\u0E15\u0E49\u0E19", nEdited ? " (" + nEdited + ")" : ""))), React.createElement("div", {
-    style: {
-      background: "var(--surface)",
-      boxShadow: "var(--shadow-card)",
-      borderRadius: "var(--r-card)",
-      padding: "6px 16px"
-    }
-  }, React.createElement("div", {
-    style: {
-      padding: "10px 0 8px",
-      fontSize: 14,
-      fontWeight: 700
-    }
-  }, sec.th, " ", React.createElement("span", {
+  }, d.th), d.type === "pairs" && React.createElement("span", {
     style: {
       fontSize: 11,
-      fontWeight: 700,
-      padding: "1px 8px",
-      borderRadius: "var(--r-pill)",
-      background: "var(--primary-soft)",
-      color: "var(--primary-dark)",
-      verticalAlign: 2
+      color: "var(--text-3)"
     }
-  }, type === "home" ? "งานบ้าน" : "งานโครงการ"), React.createElement("span", {
+  }, "\xB7 \u0E41\u0E23\u0E07\u0E14\u0E31\u0E19\u0E41\u0E15\u0E48\u0E25\u0E30\u0E23\u0E38\u0E48\u0E19\u0E21\u0E35\u0E02\u0E19\u0E32\u0E14 ", d.unitA, " \u0E44\u0E21\u0E48\u0E40\u0E17\u0E48\u0E32\u0E01\u0E31\u0E19"), changedDot(d), React.createElement("span", {
     style: {
-      display: "block",
-      fontSize: 11.5,
-      fontWeight: 500,
-      color: "var(--text-3)",
-      marginTop: 2
+      flex: 1
     }
-  }, sec.sub)), rows.map((d, i) => {
-    const v = str(view, d.key),
-      own = brChanged(d, all, type);
-    const wide = !!d.type;
-    const blk = brStockRow(d),
-      blkHead = mixed && (i === 0 || brStockRow(rows[i - 1]) !== blk);
-    const gOf = x => x && x.g && !BR_TYPE_G[x.g] && !brStockRow(x) ? x.g : null;
-    const head = gOf(d) && (blkHead || i === 0 || gOf(rows[i - 1]) !== gOf(d));
+  }), resetBtn(d)), d.type === "pairs" ? React.createElement(BrPairs, {
+    list: cur(d),
+    d: d,
+    disabled: ro,
+    onChange: L => set(d.key, BOQ.ruleTxt(d, L))
+  }) : React.createElement(BrChips, {
+    list: cur(d),
+    unit: d.unit,
+    words: d.type === "words",
+    disabled: ro,
+    onChange: L => set(d.key, BOQ.ruleTxt(d, BOQ.ruleVal(d, L.join(", "))))
+  }))))), condRows.length > 0 && React.createElement("div", {
+    style: card
+  }, blockHd("settings", "เงื่อนไขการเลือก", stockRows.length ? "ใช้เลือกจากของที่มีขายด้านบน" : ""), React.createElement("div", {
+    style: {
+      display: "flex",
+      flexDirection: "column"
+    }
+  }, condRows.map((d, i) => {
+    const head = gOf(d) && (i === 0 || gOf(condRows[i - 1]) !== gOf(d));
+    const v = str(view, d.key);
     return React.createElement(React.Fragment, {
       key: d.key
-    }, blkHead && React.createElement("div", {
+    }, head && React.createElement("div", {
       style: {
-        padding: i ? "18px 0 6px" : "6px 0 6px",
-        fontSize: 12.5,
-        fontWeight: 800,
-        color: "var(--text-1)",
-        display: "flex",
-        alignItems: "center",
-        gap: 6
-      }
-    }, React.createElement(Icon, {
-      name: blk ? "box" : "settings",
-      size: 14,
-      color: "var(--primary-dark)"
-    }), blk ? "1 · ของที่มีขาย" : "2 · เงื่อนไขการเลือก", React.createElement("span", {
-      style: {
-        fontSize: 11,
-        fontWeight: 500,
-        color: "var(--text-3)"
-      }
-    }, blk ? "ระบบเลือกได้เฉพาะขนาดในรายการนี้" : "ใช้เลือกจากของที่มีขายด้านบน")), head && React.createElement("div", {
-      style: {
-        padding: "12px 0 4px",
-        borderTop: i ? "1px solid var(--divider)" : "none",
+        padding: i ? "16px 0 4px" : "0 0 4px",
         fontSize: 11.5,
         fontWeight: 700,
         color: "var(--primary-dark)"
       }
     }, d.g), React.createElement("div", {
       style: {
-        display: "grid",
-        gridTemplateColumns: wide ? "minmax(0,1fr)" : "minmax(0,1fr) 150px 52px",
-        gap: wide ? 6 : 10,
+        display: "flex",
         alignItems: "center",
-        padding: "10px 0",
-        borderTop: "1px solid var(--divider)"
+        gap: 10,
+        flexWrap: "wrap",
+        padding: "9px 0",
+        borderTop: head ? "none" : i ? "1px solid var(--divider)" : "none"
       }
     }, React.createElement("div", {
       style: {
+        flex: "1 1 260px",
         minWidth: 0
       }
     }, React.createElement("div", {
       style: {
+        display: "flex",
+        alignItems: "center",
+        gap: 6,
         fontSize: 13,
         fontWeight: 600,
         color: "var(--text-1)"
       }
-    }, d.th, wide && d.unit ? " (" + d.unit + ")" : "", own && !edit && React.createElement("span", {
-      style: {
-        marginLeft: 6,
-        fontSize: 10.5,
-        fontWeight: 700,
-        color: "var(--tint-amber-tx)"
-      }
-    }, "\u0E41\u0E01\u0E49\u0E41\u0E25\u0E49\u0E27")), React.createElement("div", {
+    }, d.th, changedDot(d)), React.createElement("div", {
       style: {
         fontSize: 11,
         color: bad(d) ? "var(--tint-red-tx)" : "var(--text-3)",
         marginTop: 2
       }
-    }, bad(d) ? "ค่านี้ใช้ไม่ได้ — ระบบใช้ค่าตั้งต้น " : "ค่าตั้งต้น ", txt(d), wide ? "" : " " + d.unit, wide && d.type === "nums" ? " · คั่นด้วยจุลภาค" : wide ? " · คั่นด้วยจุลภาค" : "")), wide ? React.createElement("textarea", {
-      rows: txt(d).length > 70 ? 2 : 1,
-      disabled: !edit,
-      placeholder: edit ? txt(d) : "",
-      style: Object.assign(fld(d), {
-        resize: "vertical",
-        lineHeight: 1.5
-      }),
-      value: edit ? v : v || txt(d),
-      onChange: e => set(d.key, e.target.value)
-    }) : React.createElement("input", {
+    }, bad(d) ? "ค่านี้ใช้ไม่ได้ — ระบบใช้ค่าตั้งต้น " : "ค่าตั้งต้น ", txt(d), d.type ? "" : " " + d.unit)), d.type ? React.createElement("textarea", {
+      rows: 1,
+      disabled: ro,
+      value: v || txt(d),
+      onChange: e => set(d.key, e.target.value),
+      style: {
+        flex: "1 1 300px",
+        boxSizing: "border-box",
+        border: "none",
+        outline: "none",
+        fontFamily: "inherit",
+        fontSize: 13,
+        padding: "8px 10px",
+        borderRadius: "var(--r-chip)",
+        background: "var(--surface2)",
+        boxShadow: "var(--shadow-inset)",
+        color: "var(--text-1)",
+        resize: "vertical"
+      }
+    }) : React.createElement("label", {
+      style: {
+        display: "inline-flex",
+        alignItems: "center",
+        gap: 6,
+        width: 168,
+        boxSizing: "border-box",
+        padding: "0 10px 0 0",
+        borderRadius: "var(--r-chip)",
+        background: "var(--surface2)",
+        boxShadow: bad(d) ? "var(--shadow-inset), 0 0 0 1.5px var(--tint-red-tx)" : "var(--shadow-inset)"
+      }
+    }, React.createElement("input", {
       type: "number",
       step: "any",
-      disabled: !edit,
-      placeholder: edit ? txt(d) : "",
-      style: fld(d),
-      value: edit ? v : v || txt(d),
-      onChange: e => set(d.key, e.target.value)
-    }), !wide && React.createElement("span", {
+      disabled: ro,
+      value: v !== "" ? v : String(d.def),
+      onChange: e => set(d.key, e.target.value),
+      style: {
+        flex: 1,
+        minWidth: 0,
+        border: "none",
+        outline: "none",
+        background: "transparent",
+        fontFamily: "inherit",
+        fontSize: 13.5,
+        fontWeight: 700,
+        padding: "8px 4px 8px 10px",
+        textAlign: "right",
+        fontVariantNumeric: "tabular-nums",
+        color: "var(--text-1)"
+      }
+    }), React.createElement("span", {
       style: {
         fontSize: 11.5,
-        color: "var(--text-3)"
+        color: "var(--text-3)",
+        whiteSpace: "nowrap",
+        maxWidth: 70,
+        overflow: "hidden",
+        textOverflow: "ellipsis"
       }
-    }, d.unit)));
-  })), React.createElement("div", {
+    }, d.unit)), React.createElement("span", {
+      style: {
+        width: 24,
+        display: "inline-flex",
+        justifyContent: "center"
+      }
+    }, resetBtn(d))));
+  }))), React.createElement("div", {
     style: {
       fontSize: 11.5,
       color: "var(--text-3)",
       lineHeight: 1.6
     }
-  }, "\u0E23\u0E32\u0E22\u0E01\u0E32\u0E23\u0E17\u0E35\u0E48\u0E23\u0E30\u0E1A\u0E1A\u0E04\u0E34\u0E14\u0E43\u0E2B\u0E49\u0E2D\u0E31\u0E15\u0E42\u0E19\u0E21\u0E31\u0E15\u0E34 (\u0E15\u0E39\u0E49\u0E44\u0E1F \xB7 \u0E2A\u0E32\u0E22\u0E44\u0E1F \xB7 \u0E23\u0E32\u0E07\u0E44\u0E1F \xB7 \u0E17\u0E32\u0E07\u0E40\u0E14\u0E34\u0E19 \xB7 \u0E02\u0E2D\u0E07\u0E08\u0E32\u0E01\u0E41\u0E1A\u0E1A 3D) \u0E04\u0E34\u0E14\u0E43\u0E2B\u0E21\u0E48\u0E15\u0E32\u0E21\u0E04\u0E48\u0E32\u0E19\u0E35\u0E49\u0E40\u0E21\u0E37\u0E48\u0E2D\u0E40\u0E1B\u0E34\u0E14\u0E43\u0E1A BOQ \xB7 \u0E04\u0E48\u0E32\u0E02\u0E2D\u0E2D\u0E19\u0E38\u0E0D\u0E32\u0E15/\u0E27\u0E34\u0E28\u0E27\u0E01\u0E23 \u0E41\u0E25\u0E30 % \u0E40\u0E1C\u0E37\u0E48\u0E2D/\u0E01\u0E33\u0E44\u0E23 \u0E17\u0E35\u0E48\u0E43\u0E1A\u0E01\u0E23\u0E2D\u0E01\u0E44\u0E27\u0E49\u0E40\u0E2D\u0E07\u0E41\u0E25\u0E49\u0E27\u0E44\u0E21\u0E48\u0E02\u0E22\u0E31\u0E1A\u0E15\u0E32\u0E21"));
+  }, "\u0E23\u0E32\u0E22\u0E01\u0E32\u0E23\u0E17\u0E35\u0E48\u0E23\u0E30\u0E1A\u0E1A\u0E04\u0E34\u0E14\u0E43\u0E2B\u0E49\u0E2D\u0E31\u0E15\u0E42\u0E19\u0E21\u0E31\u0E15\u0E34 (\u0E15\u0E39\u0E49\u0E44\u0E1F \xB7 \u0E2A\u0E32\u0E22\u0E44\u0E1F \xB7 \u0E23\u0E32\u0E07\u0E44\u0E1F \xB7 \u0E17\u0E32\u0E07\u0E40\u0E14\u0E34\u0E19 \xB7 \u0E02\u0E2D\u0E07\u0E08\u0E32\u0E01\u0E41\u0E1A\u0E1A 3D) \u0E04\u0E34\u0E14\u0E43\u0E2B\u0E21\u0E48\u0E15\u0E32\u0E21\u0E04\u0E48\u0E32\u0E19\u0E35\u0E49\u0E40\u0E21\u0E37\u0E48\u0E2D\u0E40\u0E1B\u0E34\u0E14\u0E43\u0E1A BOQ \xB7 \u0E04\u0E48\u0E32\u0E02\u0E2D\u0E2D\u0E19\u0E38\u0E0D\u0E32\u0E15/\u0E27\u0E34\u0E28\u0E27\u0E01\u0E23 \u0E41\u0E25\u0E30 % \u0E40\u0E1C\u0E37\u0E48\u0E2D/\u0E01\u0E33\u0E44\u0E23 \u0E17\u0E35\u0E48\u0E43\u0E1A\u0E01\u0E23\u0E2D\u0E01\u0E44\u0E27\u0E49\u0E40\u0E2D\u0E07\u0E41\u0E25\u0E49\u0E27\u0E44\u0E21\u0E48\u0E02\u0E22\u0E31\u0E1A\u0E15\u0E32\u0E21"), dirty.length > 0 && React.createElement("div", {
+    style: {
+      position: "sticky",
+      bottom: 12,
+      zIndex: 5,
+      display: "flex",
+      alignItems: "center",
+      gap: 10,
+      flexWrap: "wrap",
+      padding: "10px 14px",
+      borderRadius: "var(--r-card)",
+      background: "var(--surface)",
+      boxShadow: "var(--shadow-pop)"
+    }
+  }, React.createElement("span", {
+    style: {
+      width: 8,
+      height: 8,
+      borderRadius: 99,
+      background: "var(--tint-amber-tx)"
+    }
+  }), React.createElement("span", {
+    style: {
+      fontSize: 12.5,
+      fontWeight: 700,
+      color: "var(--text-1)",
+      flex: 1,
+      minWidth: 0
+    }
+  }, "\u0E41\u0E01\u0E49\u0E44\u0E27\u0E49 ", dirty.length, " \u0E0A\u0E48\u0E2D\u0E07 \u0E22\u0E31\u0E07\u0E44\u0E21\u0E48\u0E44\u0E14\u0E49\u0E1A\u0E31\u0E19\u0E17\u0E36\u0E01", React.createElement("span", {
+    style: {
+      fontWeight: 500,
+      color: "var(--text-3)"
+    }
+  }, " \xB7 ", dirty.map(d => d.th).slice(0, 3).join(" · "), dirty.length > 3 ? " …" : "")), React.createElement("button", {
+    className: "btn btn-sm",
+    onClick: () => setDraft(null)
+  }, "\u0E22\u0E01\u0E40\u0E25\u0E34\u0E01"), React.createElement("button", {
+    className: "btn btn-sm btn-pri",
+    onClick: save
+  }, "\u0E1A\u0E31\u0E19\u0E17\u0E36\u0E01")));
 }
 function AmpacityEditor({
   ampStore

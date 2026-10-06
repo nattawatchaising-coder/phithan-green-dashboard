@@ -1861,9 +1861,9 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock, ver, verName, p3Vers
      SPD AC Type 2 ตู้ละ 1 ตัว + ฟิวส์ใบมีด NH00 gG 32A กันหลัง SPD ทุกเส้นไฟ (L)
      ฝั่ง DC ต่อสตริง: ฟิวส์ gPV ขั้ว + และ − (IEC 62548: 1.5·Isc ≤ In ≤ 2.4·Isc) · SPD DC Type 2 สตริงละ 1 ตัว
        แรงดันพิกัด ≥ Voc สตริง × 1.1 (เผื่อแรงดันขึ้นตอนแผงเย็น) */
-  const DCF_A = RU.dcFuseA;
-  const DCF_V = RU.dcFuseV, SPD_V = RU.dcSpdV;
-  const DCMCB_A = RU.dcMcbA, DCMCB_V = RU.dcMcbV;   // DC MCB 2P (งานบ้าน — ตัดวงจรสตริงหลังฟิวส์) · ขนาด A และแรงดันพิกัดที่มีขาย
+  const DCF_P = RU.dcFuse, SPD_V = RU.dcSpdV;   // ฟิวส์ gPV ที่มีขายเป็นคู่ แรงดัน ↔ ขนาด A
+  const DCF_V = DCF_P.map((p) => p.v);
+  const DCMCB_P = RU.dcMcb;   // DC MCB 2P (งานบ้าน — ตัดวงจรสตริงหลังฟิวส์) · คู่ แรงดัน ↔ ขนาด A ที่มีขาย
   const r1 = (x) => Math.round(x * 10) / 10;
   const cabIz = (c) => {
     if (!c || !c.type) return null;
@@ -1987,27 +1987,26 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock, ver, verName, p3Vers
     const isc = pIsc || iIsc;
     const voc = scfg && scfg.stringVoc ? scfg.stringVoc * RU.vocK : (+selInv.maxVdc || 1000);
     const vPick = (L) => L.find((x) => x >= voc) || L[L.length - 1];
-    const V = vPick(DCF_V), SV = vPick(SPD_V);
+    const SV = vPick(SPD_V);
     const vTxtOf = (v) => (scfg && scfg.stringVoc ? "Voc สตริง " + r1(scfg.stringVoc) + " V × " + RU.vocK + " = " + r1(voc) + " V → " + v + " VDC"
       : "ยังไม่รู้ Voc สตริง ใช้แรงดันสูงสุดของอินเวอร์เตอร์ → " + v + " VDC");
-    const vTxt = vTxtOf(V);
     if (nStr > 0 && isc > 0) {
-      const need = isc * RU.dcFuseK, A = DCF_A.find((x) => x >= need) || DCF_A[DCF_A.length - 1];
-      const ok = A <= isc * RU.dcFuseMaxK;
+      const need = isc * RU.dcFuseK, F = window.BOQ.pairPick(DCF_P, voc, need), A = F.a, V = F.v;
+      const ok = F.okV && F.okA && A <= isc * RU.dcFuseMaxK;
       out.dc.push({ name: "DC FUSE " + A + "A " + V + "VDC", qty: nStr * 2, unit: "ตัว", auto: 1, ok,
         why: nStr + " สตริง × 2 ขั้ว · Isc " + (pIsc ? "แผง " : "จากสเปคอินเวอร์เตอร์ ") + r1(isc) + " A × " + RU.dcFuseK + " = " + r1(need) + " A → " + A + " A"
-          + (ok ? "" : " เกิน " + RU.dcFuseMaxK + " × Isc") + " · " + vTxt });
+          + (A > isc * RU.dcFuseMaxK ? " เกิน " + RU.dcFuseMaxK + " × Isc" : "") + " · " + vTxtOf(V)
+          + (!F.okA ? " · ฟิวส์ " + V + " VDC ที่มีขายไม่ถึง " + r1(need) + " A" : "") + (!F.okV ? " · ไม่มีฟิวส์แรงดันพิกัดพอ" : "") });
       out.dc.push({ name: "DC FUSE HOLDER", qty: nStr * 2, unit: "ตัว", auto: 1, why: "ฐานฟิวส์ สตริงละ 2 ตัว" });
     } else if (nStr > 0) {
       out.dc.push({ name: "DC FUSE HOLDER", qty: nStr * 2, unit: "ตัว", auto: 1, ok: false, why: "ยังไม่รู้ Isc — กรอกสเปคแผงหรือ maxIscA ของอินเวอร์เตอร์ในคลัง แล้วระบบจะเลือกฟิวส์ให้" });
     }
     /* งานบ้าน: DC MCB สตริงละ 1 ตัว ไว้ตัด/เปิดวงจรตอนซ่อม · ขนาดแรก ≥ dcMcbK × Isc · แรงดันพิกัดแรก ≥ Voc สตริง × vocK (dcMcbV) */
     if (isHome && nStr > 0 && isc > 0) {
-      const need = isc * RU.dcMcbK, A = DCMCB_A.find((x) => x >= need) || DCMCB_A[DCMCB_A.length - 1];
-      const MV = vPick(DCMCB_V), vOk = MV >= voc;
-      out.dc.push({ name: "DC MCB " + A + "A 2P " + MV + "VDC", qty: nStr, unit: "ตัว", auto: 1, ok: vOk,
+      const need = isc * RU.dcMcbK, M = window.BOQ.pairPick(DCMCB_P, voc, need), A = M.a, MV = M.v;
+      out.dc.push({ name: "DC MCB " + A + "A 2P " + MV + "VDC", qty: nStr, unit: "ตัว", auto: 1, ok: M.okV && M.okA,
         why: "สตริงละ 1 ตัว · Isc " + r1(isc) + " A × " + RU.dcMcbK + " = " + r1(need) + " A → " + A + " A · " + vTxtOf(MV)
-          + (vOk ? "" : " · เกินรุ่นที่มีขาย ต้องใช้รุ่นแรงดันสูงกว่า") });
+          + (!M.okA ? " · รุ่น " + MV + " VDC ที่มีขายไม่ถึง " + r1(need) + " A" : "") + (!M.okV ? " · เกินรุ่นที่มีขาย ต้องใช้รุ่นแรงดันสูงกว่า" : "") });
     }
     if (nStr > 0 && !lps) out.dc.push({ name: "DC SPD 2P " + SV + "VDC 20-40KA", qty: nStr, unit: "ตัว", auto: 1, why: "สตริงละ 1 ตัว · " + lpsTxt + " · " + vTxtOf(SV) });
     if (nStr > 0 && lps) {

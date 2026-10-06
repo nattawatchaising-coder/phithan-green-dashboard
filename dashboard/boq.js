@@ -7,7 +7,8 @@
   /* ── เงื่อนไขการคำนวณที่ตั้งค่าได้ (หน้าคลัง → "ตั้งค่าคำนวณ BOQ") ──
      เดิมตัวเลขพวกนี้ฝังอยู่ในสูตร แก้ได้แค่คนเขียนโค้ด · เก็บที่ RTDB boqRules/<key> = ข้อความ (ไม่มีคีย์ = ค่าตั้งต้นด้านล่าง)
      RULES เป็นอ็อบเจกต์ตัวเดิมตลอด setRules แทนค่าข้างใน — สูตรอ่าน RULES.x ตอนคำนวณ จึงเห็นค่าใหม่เสมอ
-     type: num (ตัวเลข) · nums (รายการตัวเลขคั่นจุลภาค เรียงน้อยไปมาก) · words (รายการคำคั่นจุลภาค) */
+     type: num (ตัวเลข) · nums (รายการตัวเลขคั่นจุลภาค เรียงน้อยไปมาก) · words (รายการคำคั่นจุลภาค)
+       · pairs (ของที่ขายเป็นคู่ แรงดัน ↔ ขนาด A: ข้อความ "1000: 10, 16, 20; 1500: 10, 16" → [{v, a:[…]}] · legacy = คีย์ [A, V] แบบแยกเดิม) */
   /* grp = หัวกลุ่มในแถบซ้าย · แถว RULE_DEFS ที่มี g = หัวย่อยในหน้าหัวข้อ */
   const RULE_SECS = [
     { k: "dcBoard", grp: "ฝั่ง DC", th: "ตู้ไฟ DC", sub: "ฟิวส์ gPV · DC SPD · แรงดันพิกัด · DC MCB (งานบ้าน)" },
@@ -25,13 +26,13 @@
     /* ── ตู้ไฟ DC ── */
     { sec: "dcBoard", g: "ทุกงาน", key: "dcFuseK", th: "ฟิวส์ DC gPV = Isc ×", unit: "เท่า", def: 1.5, min: 1 },
     { sec: "dcBoard", g: "ทุกงาน", key: "dcFuseMaxK", th: "ฟิวส์ DC ไม่เกิน Isc × (เกินขึ้นเตือน)", unit: "เท่า", def: 2.4, min: 1 },
-    { sec: "dcBoard", g: "ทุกงาน", key: "dcFuseA", th: "ขนาดฟิวส์ DC ที่มีขาย", unit: "A", type: "nums", def: [10, 12, 15, 16, 20, 25, 30, 32] },
+    { sec: "dcBoard", g: "ทุกงาน", key: "dcFuse", th: "ฟิวส์ DC gPV ที่มีขาย", unit: "VDC", unitA: "A", type: "pairs", legacy: ["dcFuseA", "dcFuseV"],
+      def: [{ v: 1000, a: [10, 12, 15, 16, 20, 25, 30, 32] }, { v: 1500, a: [10, 12, 15, 16, 20, 25, 30, 32] }] },
     { sec: "dcBoard", g: "ทุกงาน", key: "vocK", th: "แรงดันพิกัดฟิวส์/SPD/DC MCB ≥ Voc สตริง ×", unit: "เท่า", def: 1.1, min: 1 },
-    { sec: "dcBoard", g: "ทุกงาน", key: "dcFuseV", th: "แรงดันพิกัดฟิวส์ DC ที่มีขาย", unit: "VDC", type: "nums", def: [1000, 1500] },
     { sec: "dcBoard", g: "ทุกงาน", key: "dcSpdV", th: "แรงดันพิกัด DC SPD ที่มีขาย", unit: "VDC", type: "nums", def: [800, 1000, 1500] },
     { sec: "dcBoard", g: "งานบ้าน", key: "dcMcbK", th: "DC MCB ต่อสตริง = Isc ×", unit: "เท่า", def: 1.25, min: 1 },
-    { sec: "dcBoard", g: "งานบ้าน", key: "dcMcbA", th: "ขนาด DC MCB ที่มีขาย", unit: "A", type: "nums", def: [10, 16, 20, 25, 32, 40, 50, 63] },
-    { sec: "dcBoard", g: "งานบ้าน", key: "dcMcbV", th: "แรงดันพิกัด DC MCB ที่มีขาย", unit: "VDC", type: "nums", def: [500, 800, 1000] },
+    { sec: "dcBoard", g: "งานบ้าน", key: "dcMcb", th: "DC MCB 2P ที่มีขาย", unit: "VDC", unitA: "A", type: "pairs", legacy: ["dcMcbA", "dcMcbV"],
+      def: [{ v: 500, a: [10, 16, 20, 25, 32, 40, 50, 63] }, { v: 800, a: [10, 16, 20, 25, 32, 40, 50, 63] }, { v: 1000, a: [10, 16, 20, 25, 32, 40, 50, 63] }] },
     { sec: "dcBoard", g: "อินเวอร์เตอร์", key: "dcacMax", th: "เพดานอัตรา DC/AC (กำลังแผง ÷ กำลัง AC อินเวอร์เตอร์)", unit: "เท่า", def: 1.2, min: 0.5, max: 3 },
     /* ── สาย DC ── */
     { sec: "dcWire", key: "pvWireK", th: "สาย PV DC เลือกขนาดจาก Isc ×", unit: "เท่า", def: 1.25, min: 1 },
@@ -140,6 +141,18 @@
       const a = String(raw).split(/[,\s]+/).map(Number).filter((x) => isFinite(x) && x > 0).sort((x, y) => x - y);
       return a.length ? a.filter((x, i) => i === 0 || x !== a[i - 1]) : d.def;
     }
+    if (d.type === "pairs") {
+      const m = {};
+      String(raw).split(/[;\n]+/).forEach((ln) => {
+        const p = ln.split(":"); if (p.length < 2) return;
+        const v = +p[0].replace(/[^\d.]/g, ""); if (!(v > 0)) return;
+        const a = p[1].split(/[,\s]+/).map(Number).filter((x) => isFinite(x) && x > 0);
+        m[v] = (m[v] || []).concat(a);
+      });
+      const out = Object.keys(m).map(Number).sort((x, y) => x - y)
+        .map((v) => ({ v: v, a: Array.from(new Set(m[v])).sort((x, y) => x - y) })).filter((p) => p.a.length);
+      return out.length ? out : d.def;
+    }
     if (d.type === "words") {
       const a = String(raw).split(",").map((x) => x.trim().toLowerCase()).filter(Boolean);
       return a.length ? a : d.def;
@@ -155,7 +168,17 @@
   const ruleOnly = (d) => d.only || (d.g === "งานบ้าน" ? "home" : d.g === "งานโครงการ" ? "proj" : null);
   const ruleRaw = (src, d, t) => {
     const s = src || {}, own = !ruleOnly(d) && s[t] ? s[t][d.key] : null;
-    return own != null && own !== "" ? own : s[d.key];
+    const r = own != null && own !== "" ? own : s[d.key];
+    if ((r == null || r === "") && d.legacy) {
+      /* ค่าเก่าที่ตั้งเป็นรายการ A กับรายการ V แยกกัน → ทุกแรงดันมีทุกขนาด (เหมือนที่ระบบเคยคิด) จนกว่าจะบันทึกแบบคู่ */
+      const pick = (k) => { const o = !ruleOnly(d) && s[t] ? s[t][k] : null; return o != null && o !== "" ? o : s[k]; };
+      const ra = pick(d.legacy[0]), rv = pick(d.legacy[1]);
+      if ((ra == null || ra === "") && (rv == null || rv === "")) return r;
+      const nums = (x, def) => ruleVal({ type: "nums", def: def }, x);
+      const A = nums(ra, d.def[0].a), V = nums(rv, d.def.map((p) => p.v));
+      return V.map((v) => v + ": " + A.join(", ")).join("; ");
+    }
+    return r;
   };
   const RULES_T = { home: {}, proj: {} };
   let ruleType = "proj";
@@ -174,7 +197,19 @@
     useRuleType(ruleType);
   }
   setRules(null);
-  const ruleTxt = (d, v) => (Array.isArray(v) ? v.join(", ") : String(v));
+  const ruleTxt = (d, v) => (d && d.type === "pairs" && Array.isArray(v) ? v.map((p) => p.v + ": " + p.a.join(", ")).join("; ")
+    : Array.isArray(v) ? v.join(", ") : String(v));
+  /* เลือกจากของที่ขายเป็นคู่: แรงดันต่ำสุดที่ ≥ needV และมีขนาด ≥ needA → ขนาดแรกที่ ≥ needA
+     ไม่มีคู่ที่ผ่านทั้งสอง = ยึดแรงดันก่อน (ขนาดใหญ่สุดของแรงดันนั้น okA false) · แรงดันไม่พอเลย = แรงดันสูงสุด (okV false) */
+  function pairPick(P, needV, needA) {
+    P = P || [];
+    for (const p of P) if (p.v >= needV) { const a = p.a.find((x) => x >= needA); if (a != null) return { v: p.v, a: a, okV: true, okA: true }; }
+    const vOk = P.filter((p) => p.v >= needV);
+    if (vOk.length) { const p = vOk.reduce((m, q) => (q.a[q.a.length - 1] > m.a[m.a.length - 1] ? q : m)); return { v: p.v, a: p.a[p.a.length - 1], okV: true, okA: false }; }
+    const p = P[P.length - 1]; if (!p) return { v: 0, a: 0, okV: false, okA: false };
+    const a = p.a.find((x) => x >= needA);
+    return { v: p.v, a: a != null ? a : p.a[p.a.length - 1], okV: false, okA: a != null };
+  }
   // ── ตารางรุ่นแผง: Wp, ความหนาเฟรม(mm), ความกว้างแผงด้านวางราง(m) ──
   // width = ค่าคอลัมน์ L ในชีต DATA (ด้านสั้นที่เรียงชิดกันบนราง)
   // สเปคเริ่มต้น (fallback) สำหรับรุ่นที่ระบบรู้จัก — ถ้าคลังยังไม่กรอกสเปคจะใช้ค่านี้
@@ -2706,7 +2741,7 @@
     UPVC_CONDUIT, conduitFillLimit, conduitDim, conduitCheck,
     AMP_CORE_LABEL, ampGroupMeta, ampCoresFor, ampCoreKey, WIRE_METHOD_LEGACY, normWireMethod,
     G_TRAY, G_SUPPORT, G_LABOR, G_PERMIT, G_OM, OM_DEF, OM_CLEAN_TIERS, OM_SVC_TIERS, OM_CLEAN_DEF, OM_SVC_DEF, omTierNorm, setOmTiers, omTierPrice, omDefaults, omCalc, SERVICE_GROUPS, mergeItems,
-    RULE_SECS, RULE_DEFS, RULES, RULES_T, setRules, ruleVal, ruleTxt, ruleOnly, ruleRaw };
+    RULE_SECS, RULE_DEFS, RULES, RULES_T, setRules, ruleVal, ruleTxt, ruleOnly, ruleRaw, pairPick };
   /* ห่อฟังก์ชันที่ส่งออก: เจออาร์กิวเมนต์ที่เป็นใบ BOQ (jobType) หรืองาน (type) = สลับ RULES เป็นชุดของประเภทนั้นก่อนคิด
      ฟังก์ชันข้างในเรียกกันตรง ๆ (ไม่ผ่านตัวห่อ) จึงใช้ชุดเดียวกันตลอดการคิดหนึ่งครั้ง */
   const typeHint = (a) => {
