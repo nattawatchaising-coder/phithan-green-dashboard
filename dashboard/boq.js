@@ -27,8 +27,10 @@
     /* ── ตู้ไฟ DC ── */
     { sec: "dcBoard", g: "ทุกงาน", key: "dcFuseK", th: "ฟิวส์ DC gPV = Isc ×", unit: "เท่า", def: 1.5, min: 1 },
     { sec: "dcBoard", g: "ทุกงาน", key: "dcFuseMaxK", th: "ฟิวส์ DC ไม่เกิน Isc × (เกินขึ้นเตือน)", unit: "เท่า", def: 2.4, min: 1 },
-    { sec: "dcBoard", g: "ทุกงาน", key: "dcFuse", th: "ฟิวส์ DC gPV ที่มีขาย", unit: "VDC", unitA: "A", type: "pairs", legacy: ["dcFuseA", "dcFuseV"],
-      def: [{ v: 1000, a: [10, 12, 15, 16, 20, 25, 30, 32] }, { v: 1500, a: [10, 12, 15, 16, 20, 25, 30, 32] }] },
+    /* holder = แต่ละแรงดันใช้ฐานฟิวส์คนละรุ่น (ขนาดลูกฟิวส์ต่างกัน 10x38 / 10x85) — Suntree: 1000V SRD-30 · 1500V SRD-50H
+       ข้อความ "1000 [SRD-30]: 10, 12" · ไม่กรอกรุ่น = รุ่นตั้งต้นของแรงดันนั้น (ถ้ามี) */
+    { sec: "dcBoard", g: "ทุกงาน", key: "dcFuse", th: "ฟิวส์ DC gPV ที่มีขาย", unit: "VDC", unitA: "A", type: "pairs", holder: "ฐานฟิวส์", legacy: ["dcFuseA", "dcFuseV"],
+      def: [{ v: 1000, h: "SRD-30", a: [10, 12, 15, 16, 20, 25, 30, 32] }, { v: 1500, h: "SRD-50H", a: [10, 12, 15, 16, 20, 25, 30, 32] }] },
     { sec: "dcBoard", g: "ทุกงาน", key: "tMin", th: "อุณหภูมิต่ำสุดหน้างาน (คิด Voc สตริงตอนเช้าที่หนาวสุด · ใช้ทั้ง BOQ/ออกแบบระบบ/SLD)", unit: "°C", def: 15, min: -20, max: 40 },
     { sec: "dcBoard", g: "ทุกงาน", key: "vocK", th: "แรงดันพิกัดฟิวส์/SPD/DC MCB ≥ Voc สตริง (ที่อุณหภูมิต่ำสุด) × เผื่อ", unit: "เท่า", def: 1.1, min: 1 },
     { sec: "dcBoard", g: "ทุกงาน", key: "dcSpd2", th: "DC SPD Type II ที่มีขาย", unit: "VDC", unitA: "kA Imax", type: "pairs", poles: ["1P", "2P", "3P", "4P"], poleDef: "2P", legacyV: "dcSpdV",
@@ -159,14 +161,17 @@
       const m = {};
       String(raw).split(/[;\n]+/).forEach((ln) => {
         const p = ln.split(":"); if (p.length < 2) return;
-        const lm = p[0].trim().match(/^([\d.]+)\s*(?:V(?:DC)?)?\s*(.*)$/i); if (!lm) return;
+        let h = ""; const left = p[0].replace(/\[([^\]]*)\]/, (_, x) => { h = x.trim(); return " "; });
+        const lm = left.trim().match(/^([\d.]+)\s*(?:V(?:DC)?)?\s*(.*)$/i); if (!lm) return;
         const v = +lm[1]; if (!(v > 0)) return;
         const pole = d.poles ? (lm[2].trim().toUpperCase().replace(/\s+/g, "") || d.poleDef) : "";
         const a = p[1].split(/[,\s]+/).map(Number).filter((x) => isFinite(x) && x > 0);
         const k = v + "|" + pole;
-        m[k] = { v: v, p: pole, a: ((m[k] && m[k].a) || []).concat(a) };
+        m[k] = { v: v, p: pole, h: h || (m[k] && m[k].h) || "", a: ((m[k] && m[k].a) || []).concat(a) };
       });
-      const out = Object.keys(m).map((k) => m[k]).map((r) => Object.assign({ v: r.v }, d.poles ? { p: r.p } : {}, { a: Array.from(new Set(r.a)).sort((x, y) => x - y) }))
+      const hDef = (v) => { const q = d.holder && Array.isArray(d.def) ? d.def.find((x) => x.v === v) : null; return (q && q.h) || ""; };
+      const out = Object.keys(m).map((k) => m[k]).map((r) => Object.assign({ v: r.v }, d.poles ? { p: r.p } : {},
+        d.holder && (r.h || hDef(r.v)) ? { h: r.h || hDef(r.v) } : {}, { a: Array.from(new Set(r.a)).sort((x, y) => x - y) }))
         .filter((r) => r.a.length).sort((x, y) => x.v - y.v || String(x.p || "").localeCompare(String(y.p || "")));
       return out.length ? out : d.def;
     }
@@ -227,7 +232,7 @@
     useRuleType(ruleType);
   }
   setRules(null);
-  const ruleTxt = (d, v) => (d && d.type === "pairs" && Array.isArray(v) ? v.map((p) => p.v + (p.p ? " " + p.p : "") + ": " + p.a.join(", ")).join("; ")
+  const ruleTxt = (d, v) => (d && d.type === "pairs" && Array.isArray(v) ? v.map((p) => p.v + (p.p ? " " + p.p : "") + (p.h ? " [" + p.h + "]" : "") + ": " + p.a.join(", ")).join("; ")
     : Array.isArray(v) ? v.join(", ") : String(v));
   /* เลือกจากของที่ขายเป็นคู่: แรงดันต่ำสุดที่ ≥ needV และมีขนาด ≥ needA → ขนาดแรกที่ ≥ needA
      ไม่มีคู่ที่ผ่านทั้งสอง = ยึดแรงดันก่อน (ขนาดใหญ่สุดของแรงดันนั้น okA false) · แรงดันไม่พอเลย = แรงดันสูงสุด (okV false) */
@@ -247,12 +252,12 @@
     return "AC SPD TYPE I+II " + s.p + " Uc" + s.v + "V Iimp" + k(s.a) + "kA";
   }
   function pairPick0(P, needV, needA) {
-    for (const p of P) if (p.v >= needV) { const a = p.a.find((x) => x >= needA); if (a != null) return { v: p.v, p: p.p, a: a, okV: true, okA: true }; }
+    for (const p of P) if (p.v >= needV) { const a = p.a.find((x) => x >= needA); if (a != null) return { v: p.v, p: p.p, h: p.h, a: a, okV: true, okA: true }; }
     const vOk = P.filter((p) => p.v >= needV);
-    if (vOk.length) { const p = vOk.reduce((m, q) => (q.a[q.a.length - 1] > m.a[m.a.length - 1] ? q : m)); return { v: p.v, p: p.p, a: p.a[p.a.length - 1], okV: true, okA: false }; }
+    if (vOk.length) { const p = vOk.reduce((m, q) => (q.a[q.a.length - 1] > m.a[m.a.length - 1] ? q : m)); return { v: p.v, p: p.p, h: p.h, a: p.a[p.a.length - 1], okV: true, okA: false }; }
     const p = P[P.length - 1]; if (!p) return { v: 0, a: 0, okV: false, okA: false };
     const a = p.a.find((x) => x >= needA);
-    return { v: p.v, p: p.p, a: a != null ? a : p.a[p.a.length - 1], okV: false, okA: a != null };
+    return { v: p.v, p: p.p, h: p.h, a: a != null ? a : p.a[p.a.length - 1], okV: false, okA: a != null };
   }
   // ── ตารางรุ่นแผง: Wp, ความหนาเฟรม(mm), ความกว้างแผงด้านวางราง(m) ──
   // width = ค่าคอลัมน์ L ในชีต DATA (ด้านสั้นที่เรียงชิดกันบนราง)

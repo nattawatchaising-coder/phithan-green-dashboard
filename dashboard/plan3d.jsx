@@ -2218,7 +2218,7 @@ function p3SldModel(st, job, design) {
     S.push(["PV MODULE", panel.model + " " + wp + "Wp", nPanel]);
     S.push(["INVERTER", inv.model + " " + unitKw + "kW " + (nPh === 3 ? "3PH" : "1PH"), nInv]);
     S.push(["DC BOX", "IP65 ENCLOSURE c/w PE BAR", nInv]);
-    S.push(dcDev.k === "fuse" ? ["DC STRING FUSE", "gPV (IEC 60269-6) " + fuseA + "A " + dcV + "VDC " + (dcV > 1000 ? "10x85" : "10x38") + " + DC FUSE HOLDER", nStr * 2]
+    S.push(dcDev.k === "fuse" ? ["DC STRING FUSE", "gPV (IEC 60269-6) " + fuseA + "A " + dcV + "VDC " + (dcV > 1000 ? "10x85" : "10x38") + " + DC FUSE HOLDER" + (fz && fz.h ? " " + fz.h : ""), nStr * 2]
       : ["DC MCB", dcDev.tag.replace(/^DC MCB /, ""), nStr]);
     S.push(["DC SPD", (lps ? "TYPE I+II" : "TYPE II") + " Ucpv " + ucpv + "VDC " + dcSpdKa, nStr]);
     S.push(["MC4 CONNECTOR", "1500VDC IP68 (PAIR)", nStr * 2]);

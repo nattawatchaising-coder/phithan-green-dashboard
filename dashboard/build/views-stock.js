@@ -4128,10 +4128,15 @@ function brStockNeeds() {
     }
   };
   const both = k => [].concat(H[k] || [], P[k] || []);
-  both("dcFuse").forEach(p => p.a.forEach(a => add("DC FUSE " + a + "A " + p.v + "VDC", {
-    elecType: "Fuse",
-    amp: a
-  })));
+  both("dcFuse").forEach(p => {
+    p.a.forEach(a => add("DC FUSE " + a + "A " + p.v + "VDC", {
+      elecType: "Fuse",
+      amp: a
+    }));
+    if (p.h) add("DC FUSE HOLDER " + p.h, {
+      elecType: "Fuse holder"
+    });
+  });
   [["dcSpd2", "dc2"], ["dcSpd12", "dc12"], ["acSpd2", "ac2"], ["acSpd12", "ac12"]].forEach(([k, kind]) => both(k).forEach(r => r.a.forEach(a => add(B.spdName(kind, {
     v: r.v,
     p: r.p,
@@ -4705,11 +4710,42 @@ function BrPairs({
     list: p.a,
     unit: d.unitA,
     disabled: disabled,
-    onChange: a => onChange(list.map((q, j) => j === i ? {
-      v: q.v,
+    onChange: a => onChange(list.map((q, j) => j === i ? Object.assign({}, q, {
       a: a
-    } : q))
-  }))), !disabled && React.createElement("div", {
+    }) : q))
+  }), d.holder && React.createElement("label", {
+    style: {
+      gridColumn: 2,
+      display: "inline-flex",
+      alignItems: "center",
+      gap: 6,
+      fontSize: 11.5,
+      color: "var(--text-3)"
+    }
+  }, d.holder, React.createElement("input", {
+    value: p.h || "",
+    disabled: disabled,
+    placeholder: "\u0E23\u0E38\u0E48\u0E19 \u0E40\u0E0A\u0E48\u0E19 SRD-30",
+    onChange: e => {
+      const h = e.target.value.replace(/[[]:;]/g, "");
+      onChange(list.map((q, j) => j === i ? Object.assign({}, q, {
+        h: h
+      }) : q));
+    },
+    style: {
+      width: 150,
+      border: "none",
+      outline: "none",
+      fontFamily: "inherit",
+      fontSize: 12.5,
+      fontWeight: 700,
+      padding: "5px 9px",
+      borderRadius: "var(--r-chip)",
+      background: "var(--surface)",
+      boxShadow: "var(--shadow-sm)",
+      color: "var(--text-1)"
+    }
+  })))), !disabled && React.createElement("div", {
     style: {
       display: "flex",
       alignItems: "center",

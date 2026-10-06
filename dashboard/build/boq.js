@@ -3413,11 +3413,11 @@ function BOQEditor({
         why: nStr + " สตริง × 2 ขั้ว · Isc " + (pIsc ? "แผง " : "จากสเปคอินเวอร์เตอร์ ") + r1(isc) + " A × " + RU.dcFuseK + " = " + r1(need) + " A → " + A + " A" + (A > isc * RU.dcFuseMaxK ? " เกิน " + RU.dcFuseMaxK + " × Isc" : "") + " · " + vTxtOf(V) + (!F.okA ? " · ฟิวส์ " + V + " VDC ที่มีขายไม่ถึง " + r1(need) + " A" : "") + (!F.okV ? " · ไม่มีฟิวส์แรงดันพิกัดพอ" : "")
       });
       out.dc.push({
-        name: "DC FUSE HOLDER",
+        name: "DC FUSE HOLDER" + (F.h ? " " + F.h : ""),
         qty: nStr * 2,
         unit: "ตัว",
         auto: 1,
-        why: "ฐานฟิวส์ สตริงละ 2 ตัว"
+        why: "ฐานฟิวส์ สตริงละ 2 ตัว" + (F.h ? " · รุ่นที่ใช้กับฟิวส์ " + V + " VDC" : "")
       });
     } else if (nStr > 0) {
       out.dc.push({

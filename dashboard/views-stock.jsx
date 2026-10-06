@@ -1581,7 +1581,8 @@ function brStockNeeds() {
   const out = [], seen = {};
   const add = (name, spec) => { if (!seen[name]) { seen[name] = 1; out.push(Object.assign({ name: name }, spec)); } };
   const both = (k) => [].concat(H[k] || [], P[k] || []);   // ชุดที่มีขายของทั้งสองประเภทงาน (ชื่อซ้ำ add กันเอง)
-  both("dcFuse").forEach((p) => p.a.forEach((a) => add("DC FUSE " + a + "A " + p.v + "VDC", { elecType: "Fuse", amp: a })));
+  both("dcFuse").forEach((p) => { p.a.forEach((a) => add("DC FUSE " + a + "A " + p.v + "VDC", { elecType: "Fuse", amp: a }));
+    if (p.h) add("DC FUSE HOLDER " + p.h, { elecType: "Fuse holder" }); });
   [["dcSpd2", "dc2"], ["dcSpd12", "dc12"], ["acSpd2", "ac2"], ["acSpd12", "ac12"]].forEach(([k, kind]) =>
     both(k).forEach((r) => r.a.forEach((a) => add(B.spdName(kind, { v: r.v, p: r.p, a: a }), { elecType: "SPD", poles: r.p }))));
   (H.dcMcb || []).forEach((p) => p.a.forEach((a) => add("DC MCB " + a + "A " + (p.p || "2P") + " " + p.v + "VDC", { elecType: "MCB", poles: p.p || "2P", amp: a })));
@@ -1805,7 +1806,16 @@ function BrPairs({ list, d, onChange, disabled }) {
             )}
           </div>
           <BrChips list={p.a} unit={d.unitA} disabled={disabled}
-            onChange={(a) => onChange(list.map((q, j) => (j === i ? { v: q.v, a: a } : q)))} />
+            onChange={(a) => onChange(list.map((q, j) => (j === i ? Object.assign({}, q, { a: a }) : q)))} />
+          {d.holder && (
+            <label style={{ gridColumn: 2, display: "inline-flex", alignItems: "center", gap: 6, fontSize: 11.5, color: "var(--text-3)" }}>
+              {d.holder}
+              <input value={p.h || ""} disabled={disabled} placeholder="รุ่น เช่น SRD-30"
+                onChange={(e) => { const h = e.target.value.replace(/[[]:;]/g, ""); onChange(list.map((q, j) => (j === i ? Object.assign({}, q, { h: h }) : q))); }}
+                style={{ width: 150, border: "none", outline: "none", fontFamily: "inherit", fontSize: 12.5, fontWeight: 700, padding: "5px 9px", borderRadius: "var(--r-chip)",
+                  background: "var(--surface)", boxShadow: "var(--shadow-sm)", color: "var(--text-1)" }} />
+            </label>
+          )}
         </div>
       ))}
       {!disabled && (
