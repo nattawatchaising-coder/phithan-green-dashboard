@@ -9772,7 +9772,7 @@ function BOQEditor({
     className: "tt"
   }, React.createElement("b", null, "\u0E17\u0E32\u0E07\u0E40\u0E14\u0E34\u0E19 (Walkway) \u0E08\u0E32\u0E01\u0E41\u0E1A\u0E1A 3D"), React.createElement("span", null, !walk3d ? "แบบ 3D ไม่มีทางเดินแล้ว แต่ใบนี้ยังมีแนวที่ดึงมาจากแบบ" : walk3dSame ? "แนวทางเดินในใบถอดของตรงกับแบบแล้ว" : "ความยาวทุกแนวที่วาดบนหลังคา — กดใช้แล้วระบบคิดแผ่น WALKWAY · END CLAMP · RAIL · ชุดยึด ให้ตามสูตรเดิม")), walk3d && React.createElement("div", {
     className: "sum"
-  }, walk3d.runs, " \u0E41\u0E19\u0E27", React.createElement("i", null, "\xB7"), React.createElement("b", null, walk3d.total.toLocaleString()), " \u0E21.", React.createElement("i", null, "\xB7"), "\u2248 ", React.createElement("b", null, walk3d.sheets), " \u0E41\u0E1C\u0E48\u0E19"), walk3d && !walk3dSame && React.createElement("button", {
+  }, walk3d.runs, " \u0E41\u0E19\u0E27", React.createElement("i", null, "\xB7"), React.createElement("b", null, walk3d.total.toLocaleString()), " \u0E21.", React.createElement("i", null, "\xB7"), "\u2248 ", React.createElement("b", null, walk3d.rows.reduce((t, r) => t + Math.ceil(r.len / window.BOQ.walkLenOf(st)), 0)), " \u0E41\u0E1C\u0E48\u0E19"), walk3d && !walk3dSame && React.createElement("button", {
     type: "button",
     className: "go",
     onClick: () => {
@@ -9851,9 +9851,27 @@ function BOQEditor({
       style: {
         display: "inline-flex",
         alignItems: "center",
-        gap: 6
+        gap: 6,
+        flexWrap: "wrap"
       }
     }, React.createElement("span", {
+      style: {
+        fontSize: 10.5,
+        fontWeight: 700,
+        color: "var(--text-3)"
+      }
+    }, "\u0E22\u0E32\u0E27\u0E41\u0E1C\u0E48\u0E19"), React.createElement("span", {
+      style: {
+        width: 96
+      }
+    }, React.createElement(Dropdown, {
+      value: window.BOQ.walkLenOf(st),
+      onChange: v => setStructVal("walkwayLen", +v),
+      options: window.BOQ.walkLens().map(l => ({
+        value: l,
+        label: l + " ม."
+      }))
+    })), React.createElement("span", {
       style: {
         fontSize: 10.5,
         fontWeight: 700,

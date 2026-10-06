@@ -101,7 +101,7 @@
     { sec: "gnd", g: "ไซต์ใหญ่", key: "gndRodB", th: "แท่งกราวด์", unit: "แท่ง", def: 3 },
     { sec: "gnd", g: "ไซต์ใหญ่", key: "gndWeldB", th: "เทอร์โมเวล 2 ทาง", unit: "ชุด", def: 2 },
     /* ── ทางเดิน · บันได · ราวกันตก ── */
-    { sec: "walk", g: "ทางเดิน (WALKWAY)", key: "walkSheet", th: "แผ่น WALKWAY ยาว", unit: "ม.", def: 2.44, min: 0.1 },
+    { sec: "walk", g: "ทางเดิน (WALKWAY)", key: "walkSheet", th: "ความยาวแผ่น WALKWAY ที่มีขาย (เลือกต่อใบในหัวข้อทางเดิน)", unit: "ม.", type: "nums", def: [2.44] },
     { sec: "walk", g: "ทางเดิน (WALKWAY)", key: "walkClamp", th: "END CLAMP + ชุดยึด ต่อแผ่น", unit: "ชุด", def: 6 },
     { sec: "walk", g: "ทางเดิน (WALKWAY)", key: "walkRailPts", th: "RAIL รองใต้แผ่น ต่อแผ่น", unit: "เส้น", def: 3 },
     { sec: "walk", g: "ทางเดิน (WALKWAY)", key: "walkRailLen", th: "RAIL รองใต้แผ่น ยาวเส้นละ (ตัดจาก RAIL 4.2 ม.)", unit: "ม.", def: 1.5, min: 0.1, max: 4.2 },
@@ -1501,6 +1501,16 @@
      ตัวราง/ชุดข้อต่อ/ขาล็อก/T-BOLT/Rail ถอดต่อจาก wayItems ตามแถวเหมือนรางที่มาจากสายไฟ */
   // ── ทางเดิน (WALKWAY) จากแบบ 3D — obstacles p3sType "walkway" (เส้นหลายจุด pts สัมพัทธ์ x/z · ของเก่า = เส้นตรงตาม w/rot)
   //    ได้แถว struct.walkway แนวละแถว { len, p3: 1 } แล้วสูตร WALKWAY เดิมใน calcStructures คิดแผ่น/END CLAMP/RAIL/ชุดยึดต่อ
+  /* ความยาวแผ่น WALKWAY: เลือกต่อใบ (st.walkwayLen) จากรายการที่มีขาย (RULES.walkSheet)
+     ไม่ได้เลือก/เลือกไว้แต่เอาออกจากรายการแล้ว = 2.44 ถ้ามีขาย ไม่งั้นตัวแรก
+     ชื่อ: 2.44 ม. = "WALKWAY+JOINER" (ชื่อเดิมในคลัง) · ยาวอื่น = "WALKWAY+JOINER 3M" */
+  const WALK_STD = 2.44;
+  function walkLens() { const a = RULES.walkSheet; return Array.isArray(a) && a.length ? a : [+a > 0 ? +a : WALK_STD]; }
+  function walkLenOf(st) {
+    const L = walkLens(), v = st && +st.walkwayLen;
+    return v > 0 && L.indexOf(v) >= 0 ? v : L.indexOf(WALK_STD) >= 0 ? WALK_STD : L[0];
+  }
+  function walkName(len) { return "WALKWAY+JOINER" + (+len === WALK_STD ? "" : " " + (+len) + "M"); }
   function walkFromPlan(plan) {
     const obs = ((plan && plan.obstacles) || []).filter((o) => o && o.p3sType === "walkway");
     const rows = [];
@@ -1518,7 +1528,7 @@
       total += len;
     });
     if (!rows.length) return null;
-    return { rows, runs: rows.length, total: Math.round(total * 10) / 10, sheets: rows.reduce((t, r) => t + Math.ceil(r.len / RULES.walkSheet), 0) };
+    return { rows, runs: rows.length, total: Math.round(total * 10) / 10, sheets: rows.reduce((t, r) => t + Math.ceil(r.len / walkLenOf(null)), 0) };
   }
 
   function trayFromPlan(plan, kind, hdg) {
@@ -1902,12 +1912,13 @@
       if (it.length) out.push({ group: "LADDER (บันไดลิง)", items: it });
     }
 
-    // WALKWAY — ต่อแนว: ความยาว len (m). แผ่นยาว RULES.walkSheet (2.44m), RAIL 4.2m
+    // WALKWAY — ต่อแนว: ความยาว len (m). แผ่นยาวตามที่เลือกในใบ (walkLenOf · ค่าเริ่ม 2.44m), RAIL 4.2m
     const wlk = (st.walkway || []).filter((r) => (+r.len || 0) > 0);
     if (wlk.length) {
       let dT = 0, fT = 0, hT = 0, mT = 0;
+      const wLen = walkLenOf(st);
       wlk.forEach((r) => {
-        const D = Math.ceil((+r.len) / RULES.walkSheet);
+        const D = Math.ceil((+r.len) / wLen);
         const E = D - 1, F = (E >= 1 ? E : 0) * 2;
         const H = D * RULES.walkClamp;                          // End Clamp 6/แผ่น
         const M = Math.ceil((D * (RULES.walkRailPts * RULES.walkRailLen)) / 4.2);   // RAIL (3 จุด × 1.5m ÷ 4.2m)
@@ -1917,7 +1928,7 @@
       const thk = st.walkwayThk != null && st.walkwayThk !== "" ? +st.walkwayThk : 35;
       const it = [];
       // JOINER มาพร้อมแผ่น WALKWAY อยู่แล้ว จึงเป็นรายการเดียวกัน ไม่แยกบรรทัด
-      if (dT) it.push({ name: "WALKWAY+JOINER", qty: dT, unit: "แผ่น" });
+      if (dT) it.push({ name: walkName(wLen), qty: dT, unit: "แผ่น" });
       if (hT && thk > 0) it.push({ name: END_CLAMP[thk] || ("END CLAMP KIT " + thk + "mm."), qty: sp(hT, wlkSp), unit: "ชุด" });
       if (mT) it.push({ name: "RAIL 4.2 M", qty: sp(mT, wlkSp), unit: "เส้น" });
       // ชื่อชุดยึด WALKWAY ตรงกับ L FEET ที่เลือกไว้ใน MOUNTING (เปลี่ยนตามประเภทหลังคา)
@@ -2339,7 +2350,7 @@
     if ((b.jobType || "") !== "home") calcStructures(b).forEach((g) => groups.push(g));
     else if (b.struct && (b.struct.walkway || []).length) {           // งานบ้าน: คิดเฉพาะ WALKWAY (มาจากแบบ 3D) — บันได/ราวกันตกที่ค้างในข้อมูลไม่นับ
       const s0 = b.struct;
-      calcStructures(Object.assign({}, b, { struct: { walkway: s0.walkway, walkwayThk: s0.walkwayThk, walkwaySpare: s0.walkwaySpare, walkwayExtra: s0.walkwayExtra } })).forEach((g) => groups.push(g));
+      calcStructures(Object.assign({}, b, { struct: { walkway: s0.walkway, walkwayThk: s0.walkwayThk, walkwayLen: s0.walkwayLen, walkwaySpare: s0.walkwaySpare, walkwayExtra: s0.walkwayExtra } })).forEach((g) => groups.push(g));
     }
 
     // ── ตาข่ายกันนก (BIRD NET) — ถอดวัสดุให้อัตโนมัติเมื่อบ้านติดตาข่ายกันนก ──
@@ -2550,7 +2561,7 @@
     // ชื่อเหล็กมาจาก steelName() ตัวเดียวกับที่ถอดใช้ — ขนาดตั้งต้นจึงตรงกันเสมอ ไม่หลุดจากกัน
     ["box", "round", "flat", "plate", "anchor"].forEach((k) =>
       add("LADDER (บันไดลิง)", steelName(k), STEEL_SPECS[k].unit));
-    add("WALKWAY", "WALKWAY+JOINER", "แผ่น");
+    walkLens().forEach((l) => add("WALKWAY", walkName(l), "แผ่น"));
     add("GUARD RAIL", steelName("angle"), STEEL_SPECS.angle.unit);
     add("GUARD RAIL", "สลิงสแตนเลส 6 มม.", "ม.");
     add("GUARD RAIL", "เกลียวเร่งสแตนเลส 8 มม.", "ตัว");
@@ -2796,7 +2807,7 @@
   window.BOQ = { PANELS, MICRO, INVERTERS, OPTIMIZERS, setOptimizers, findOptimizer, ROOF_HOOKS, ROOF_OPTIONS, CABLE_TYPES, CABLE_GROUPS, cableCategory, MATERIAL_SUBGROUPS, materialSubGroup, CABLE_POINTS, DEFAULT_CABLES, STRING_CABLE_POINTS, MICRO_CABLE_NAMES, DEFAULT_STRING_CABLES, IMC_SIZES, UPVC_SIZES, PULLBOX_SIZES, CABLE_OD, HDPE_TABLE, IMC_CONDUIT, WIRE_SIZES, WIRE_METHODS, INS_CLASSES, AMP_GROUPS, AMP_NCOND, AMP_CORES, ampColKey, DEFAULT_AMPACITY, AMPACITY, setAmpacity, WIRE_METHOD_BASE, ampTableFor, cableInsClass, cableCoreType, cableSizeNum, ampacityOf, pickWireSize, PV_WIRE_SIZES, PV_WIRE_AMP, PV_WIRE_MIN, pickPvWireSize, calcVdrop, VD_LIMIT, findPanel, findInverter, stringConfig, stringPlan, wireArea, calcWireWay, calcConduitSize, blankBOQ, mergeBOQ, setConduitDefaults, conduitDefaults, CONDUIT_SPARE_FIXED, IMC_RULE, IMC_RULE_DEF, imcRule, calcBOQ, calcStructures, matKey, qtyKey, catalog, isPvDcCable, PV_DC_COLORS, PV_DC_SPARE, pvDcLength, applyPrices, setPanels, setInverters,
     WAY_SIZES, TRAY_SIZES, PERF_SIZES, TRAY_KINDS, TRAY_KIND_KEYS, trayKindOf, trayNorm, trayAlias, hdgName,
     optimizerQty, optimizerFits, DCAC_LIMIT, WAY_PIPE_LEN, TRAY_PIPE_LEN, trayLenTxt, railLenCm, railPerTon, railName, SUPPORT_KINDS, LABOR_PRESET, PERMIT_PRESET, permitPresetFor, permitGridFee, gridAuthOf, PERMIT_ENG_TIERS, PERMIT_GRID_FEE, PERMIT_GRID_NAME,
-    COND_FIT_KINDS, WAY_FIT_KINDS, condFittings, trayFittings, PPR_SIZES, PPR_FIT_KINDS, pipeFittings, pipeFromPlan, trayFromPlan, walkFromPlan,
+    COND_FIT_KINDS, WAY_FIT_KINDS, condFittings, trayFittings, PPR_SIZES, PPR_FIT_KINDS, pipeFittings, pipeFromPlan, trayFromPlan, walkFromPlan, walkLens, walkLenOf, walkName,
     STEEL_SPECS, steelName, steelBarLen, steelSel, steelOf,
     TRANSPORT_PRESET, MANAGE_PRESET, G_TRANSPORT, G_MANAGE, PROJECT_KITS, normProject, kitExtraKeys, ACC_ALLOW_PCT, ACC_ALLOW_PCT_HOME, accAllowDef, accAllowPct, VAT_RATE, PROFIT_PCT_DEF, priceBreakdown,
     TRAY_FILL_LIMIT, TRAY_DERATE, trayDerate, trayDim, trayCheck, cableCores,

@@ -4708,7 +4708,7 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock, ver, verName, p3Vers
                       : walk3dSame ? "แนวทางเดินในใบถอดของตรงกับแบบแล้ว"
                       : "ความยาวทุกแนวที่วาดบนหลังคา — กดใช้แล้วระบบคิดแผ่น WALKWAY · END CLAMP · RAIL · ชุดยึด ให้ตามสูตรเดิม"}</span>
                   </div>
-                  {walk3d && <div className="sum">{walk3d.runs} แนว<i>·</i><b>{walk3d.total.toLocaleString()}</b> ม.<i>·</i>≈ <b>{walk3d.sheets}</b> แผ่น</div>}
+                  {walk3d && <div className="sum">{walk3d.runs} แนว<i>·</i><b>{walk3d.total.toLocaleString()}</b> ม.<i>·</i>≈ <b>{walk3d.rows.reduce((t, r) => t + Math.ceil(r.len / window.BOQ.walkLenOf(st)), 0)}</b> แผ่น</div>}
                   {walk3d && !walk3dSame && (
                     <button type="button" className="go" onClick={() => { applyWalk3d(false); setAdvS(true); }}>
                       <Icon name="download" size={13} color="#fff" /> ใช้รายการนี้
@@ -4744,7 +4744,10 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock, ver, verName, p3Vers
                   onExtraDel: (i) => delStructExtra("ladder", i) })}
                 {StructBlock({ kind: "walkway", label: "WALKWAY", color: "#D97706", addLabel: "เพิ่มแนว",
                   cols: [{ k: "len", ph: "ความยาวแนว (m)" }], blank: { len: "" },
-                  extra: <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
+                  extra: <span style={{ display: "inline-flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
+                    <span style={{ fontSize: 10.5, fontWeight: 700, color: "var(--text-3)" }}>ยาวแผ่น</span>
+                    <span style={{ width: 96 }}><Dropdown value={window.BOQ.walkLenOf(st)} onChange={(v) => setStructVal("walkwayLen", +v)}
+                      options={window.BOQ.walkLens().map((l) => ({ value: l, label: l + " ม." }))} /></span>
                     <span style={{ fontSize: 10.5, fontWeight: 700, color: "var(--text-3)" }}>END CLAMP</span>
                     <span style={{ width: 96 }}><Dropdown value={st.walkwayThk != null && st.walkwayThk !== "" ? +st.walkwayThk : 35} onChange={(v) => setStructVal("walkwayThk", +v)} options={[{ value: 0, label: "ไม่ใช้" }, { value: 30, label: "30mm." }, { value: 35, label: "35mm." }]} /></span>
                   </span>,
