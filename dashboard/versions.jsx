@@ -122,6 +122,16 @@ function dvBoqCreate(jobId, vers, opt, user) {
 }
 const dvBoqRename = (jobId, ver, name) => window.FBDB.ref("boqVers/" + jobId + "/" + ver + "/name").set((name || "").trim() || "เวอร์ชัน " + ver);
 const dvBoqDelete = (jobId, ver) => window.FBDB.ref("boqVers/" + jobId + "/" + ver).remove();
+/* ลบ BOQ ใบไหนก็ได้ (ไม่ต้องเลือกใบที่ใช้งานก่อน) — ลบใบที่ใช้งานอยู่ = ใบใหม่สุดที่เหลือขึ้นมาแทน · ใบสุดท้ายลบไม่ได้ */
+function dvBoqRemove(jobId, vers, id, patchActive) {
+  const rest = (vers.list || []).filter((x) => x.id !== id);
+  if (!rest.length) return Promise.resolve();
+  return dvBoqDelete(jobId, id).then(() => {
+    if (id !== vers.active || !patchActive) return;
+    const nx = rest.slice().sort((a, b) => +b.id - +a.id)[0];
+    patchActive(Object.assign({}, nx.boq, { ver: nx.id }));
+  });
+}
 
 /* ── หน้าตาโมดัล — ชุดเดียวกับโมดัลอื่นในระบบ (แผ่น --surface · เงา · ช่องกรอกหลุม inset) ── */
 const DV_CSS = `
@@ -281,12 +291,9 @@ function BoqVerModal({ job, activeBoq, currentUser, patchActive, onOpen, onClose
       .then((r) => { setBusy(false); onOpen(r.id, r.boq, Object.assign({}, vers, { real: true })); })
       .catch((e) => { setBusy(false); setErr("สร้างไม่สำเร็จ — " + (e && e.message ? e.message : "ลองใหม่อีกครั้ง")); });
   };
-  const use = (v) => {
-    patchActive(Object.assign({}, v.boq, { ver: v.id }));
-  };
   const del = (v) => {
     if (!window.confirm("ลบ BOQ \"" + v.name + "\"?\nกู้คืนไม่ได้ — เวอร์ชันอื่นไม่ถูกแตะ")) return;
-    dvBoqDelete(jobId, v.id).catch(() => setErr("ลบไม่สำเร็จ"));
+    dvBoqRemove(jobId, vers, v.id, patchActive).catch(() => setErr("ลบไม่สำเร็จ"));
   };
   const sell = (b) => (b && b.pricing && +b.pricing.sell > 0 ? "ราคาขาย ฿" + Math.round(+b.pricing.sell).toLocaleString() : "");
   return (
@@ -297,12 +304,11 @@ function BoqVerModal({ job, activeBoq, currentUser, patchActive, onOpen, onClose
           const on = v.id === vers.active;
           const b = v.boq || {};
           return (
-            <div key={v.id} className="dv-row" data-on={on ? "1" : "0"} style={{ cursor: "pointer" }} onClick={() => onOpen(v.id, b, vers)}>
+            <div key={v.id} className="dv-row" style={{ cursor: "pointer" }} onClick={() => onOpen(v.id, b, vers)}>
               <span className="no">V{v.id}</span>
               <div style={{ flex: 1, minWidth: 0 }}>
                 <div className="nm">
                   {vers.real ? <DvName value={v.name} ro={ro} onSave={(n) => dvBoqRename(jobId, v.id, n)} /> : v.name}
-                  {on && <span className="dv-tag">ใช้งาน · ใบเสนอราคาดึงใบนี้</span>}
                 </div>
                 <div className="mt">
                   แบบ 3D: <b style={{ color: "#4F46E5" }}>{dvP3Name(p3.list, b.plan3d)}</b>
@@ -311,10 +317,7 @@ function BoqVerModal({ job, activeBoq, currentUser, patchActive, onOpen, onClose
                   {v.at ? " · " + dvWhen(v.at) : ""}
                 </div>
               </div>
-              {!ro && !on && (
-                <button className="btn btn-sm btn-soft" title="ให้ใบเสนอราคา/งาน ใช้ BOQ เวอร์ชันนี้" onClick={(e) => { e.stopPropagation(); use(v); }}>ใช้ใบนี้</button>
-              )}
-              {!ro && !on && vers.real && (
+              {!ro && vers.real && vers.list.length > 1 && (
                 <button className="dv-ic" title="ลบเวอร์ชันนี้" onClick={(e) => { e.stopPropagation(); del(v); }}><Icon name="trash" size={14} /></button>
               )}
               <Icon name="arrowRight" size={16} color="var(--text-3)" />
@@ -388,12 +391,12 @@ function useDesignVersions({ job, activeBoq, currentUser, patchActive, BoqEditor
         <BoqEditor {...editorProps} job={edJob} ver={ed.ver} verName={ed.quickNew ? "ใบใหม่ (BOQ ด่วน)" : (edVers.list.find((x) => x.id === ed.ver) || {}).name || "เวอร์ชัน " + ed.ver}
           p3Vers={p3.list} onClose={() => setEd(null)}
           quick={!!ed.quick} quickNew={!!ed.quickNew}
-          onSave={ro || !patchActive ? null : (b, o) => {
+          onSave={ro || !patchActive ? null : (b) => {
             /* BOQ ด่วนบนงานที่มีใบอยู่แล้ว = สร้างเวอร์ชันใหม่ตอนกดบันทึก (ปิดป๊อปทิ้ง = ไม่มีอะไรถูกเขียน)
-               ติ๊ก "ใบเสนอราคาใช้ใบนี้" = เป็นใบที่ใช้งานด้วย */
+               และเป็นใบที่ใช้งานเลย (ผู้ใช้ไม่ต้องเลือกว่าใบเสนอราคาดึงใบไหน) */
             if (ed.quickNew) {
               dvBoqCreate(jobId, ed.vers, { from: "", plan3d: (b && b.plan3d) || "1", name: "BOQ ด่วน" }, currentUser)
-                .then((r) => dvBoqSave(jobId, r.id, b, { real: true, active: o && o.use ? r.id : ed.vers.active }, patchActive))
+                .then((r) => dvBoqSave(jobId, r.id, b, { real: true, active: r.id }, patchActive))
                 .catch(() => window.alert("บันทึก BOQ ด่วนไม่สำเร็จ ลองใหม่อีกครั้ง"));
             } else dvBoqSave(jobId, ed.ver, b, edVers, patchActive);
             setEd(null);
@@ -406,10 +409,11 @@ function useDesignVersions({ job, activeBoq, currentUser, patchActive, BoqEditor
   const openP3Ver = (v) => { if (onP3Open) onP3Open(v); else setP3Ver(v); };
   const openBoqVer = (id) => { const v = vers.list.find((x) => x.id === id); setEd({ ver: id, boq: v ? v.boq : null, vers }); };
   const newP3 = () => setPick("p3-new");
+  const removeBoq = (id) => dvBoqRemove(jobId, vers, id, patchActive);
   /* ยังไม่มี BOQ เลย = เปิดใบแรกตรง ๆ (ยังไม่ต้องมีเวอร์ชัน) */
   const newBoq = () => { if (!vers.list.length) setEd({ ver: "1", boq: null, vers }); else setPick("boq-new"); };
   /* BOQ ด่วน — ป๊อปเดียวไว้ตีราคาเสนอ · แบบ 3D = แบบใหม่สุดที่ยังไม่มี BOQ ผูก (ไม่มีก็ต้นแบบ) */
-  const quickBoq = () => {
+  const quickBoq = !job || job.type !== "home" ? null : () => {   // งานบ้านเท่านั้น · งานโครงการถอดแบบละเอียดตามเดิม
     const linked = vers.list.map((x) => String((x.boq || {}).plan3d || "1"));
     const free = p3.list.filter((v) => linked.indexOf(v.id) < 0);
     const plan = free.length ? free[free.length - 1].id : "1";
@@ -418,7 +422,7 @@ function useDesignVersions({ job, activeBoq, currentUser, patchActive, BoqEditor
     else setEd({ ver: "new", boq: seed, vers, quick: true, quickNew: true });
   };
   return { boqSub, p3Sub, openBoq, openP3, ui, nBoq: vers.list.length, nP3: p3.list.length,
-    jobId, p3List: p3.list, boqVers: vers, boqLinks, openP3Ver, openBoqVer, newP3, newBoq, quickBoq,
+    jobId, p3List: p3.list, boqVers: vers, boqLinks, openP3Ver, openBoqVer, newP3, newBoq, quickBoq, removeBoq,
     manageP3: () => setPick("p3"), manageBoq: () => setPick("boq") };
 }
 
@@ -491,20 +495,20 @@ function DvVerCard({ kind, dvs, title, sub, icon, color, canNew }) {
     }
     const b = v.boq || {}, on = v.id === vers.active;
     const sell = b.pricing && +b.pricing.sell > 0 ? +b.pricing.sell : 0;
-    return { id: v.id, on, name: v.name, tag: on ? "ใช้งาน" : null,
+    return { id: v.id, on, name: v.name, tag: null,
       meta: ["แบบ 3D: " + dvP3Name(p3List, b.plan3d), +b.panels > 0 ? nfmt(b.panels) + " แผง" : "", v.at ? dvWhen(v.at) : "", v.byName || ""].filter(Boolean).join(" · "),
       val: sell ? "฿" + nfmt(Math.round(sell)) : "",
-      pill: on ? { th: "ใบเสนอราคาดึงใบนี้", c: "#0F7A5C" } : null,
-      /* ใบที่ใช้งานลบไม่ได้ (ใบเสนอราคาดึงอยู่) — กด "ใช้ใบนี้" ที่ใบอื่นใน "จัดการ" ก่อน */
-      del: !vers.real || !many ? null : on ? { off: "ใบนี้ใช้งานอยู่ — เลือกใบอื่นเป็นใบที่ใช้งานก่อน (ปุ่ม จัดการ)" } : {} };
+      pill: null,
+      /* ลบได้ทุกใบเมื่อมี > 1 ใบ (ใบที่ใช้งานโดนลบ = ใบใหม่สุดที่เหลือแทน · removeBoq) */
+      del: !vers.real || !many ? null : {} };
   });
   /* ตัวบนสุด = ต้นแบบ / ใบที่ใช้งาน · ที่เหลือใหม่สุดก่อน (แบบเดียวกับรายการใบเสนอราคา) */
-  const ordered = rows.filter((r) => r.on).concat(rows.filter((r) => !r.on).sort((a, b) => +b.id - +a.id));
+  const ordered = isP3 ? rows.filter((r) => r.on).concat(rows.filter((r) => !r.on).sort((a, b) => +b.id - +a.id)) : rows.slice().sort((a, b) => +b.id - +a.id);
   const open = (id) => (isP3 ? dvs.openP3Ver(id) : dvs.openBoqVer(id));
   const jobId = dvs.jobId;
   const remove = (r) => {
     if (!window.confirm("ลบ " + (isP3 ? "แบบ 3D" : "BOQ") + " \"V" + r.id + " · " + r.name + "\"?\nกู้คืนไม่ได้ — เวอร์ชันอื่นไม่ถูกแตะ")) return;
-    (isP3 ? dvP3Delete(jobId, r.id) : dvBoqDelete(jobId, r.id)).catch(() => window.alert("ลบไม่สำเร็จ ลองใหม่อีกครั้ง"));
+    (isP3 ? dvP3Delete(jobId, r.id) : dvs.removeBoq(r.id)).catch(() => window.alert("ลบไม่สำเร็จ ลองใหม่อีกครั้ง"));
   };
   return (
     <div className="dvc">
@@ -515,7 +519,7 @@ function DvVerCard({ kind, dvs, title, sub, icon, color, canNew }) {
           <span className="dvc-t">{title}</span>
           {sub && <span className="dvc-s">{sub}</span>}
         </span>
-        {canNew && many && <button className="dvc-btn ghost" onClick={isP3 ? dvs.manageP3 : dvs.manageBoq} title="เปลี่ยนชื่อ · ลบ · เลือกใบที่ใช้งาน">จัดการ</button>}
+        {canNew && many && <button className="dvc-btn ghost" onClick={isP3 ? dvs.manageP3 : dvs.manageBoq} title="เปลี่ยนชื่อ · ลบ">จัดการ</button>}
         {canNew && !isP3 && dvs.quickBoq && (
           <button className="dvc-btn" onClick={dvs.quickBoq} title="ป๊อปเดียว: ขนาด · แผง · อินเวอร์เตอร์ · หลังคา · ค่าแรง ฿/W · กำไร % → ได้ราคาขายทันที">
             <Icon name="bolt" size={13} color="var(--primary-dark)" /> BOQ ด่วน
@@ -532,7 +536,7 @@ function DvVerCard({ kind, dvs, title, sub, icon, color, canNew }) {
       ) : (
         <div className="dvc-list">
           {ordered.map((r) => (
-            <div key={r.id} className="dvc-row" role="button" tabIndex={0} data-on={r.on && many ? "1" : "0"} onClick={() => open(r.id)}
+            <div key={r.id} className="dvc-row" role="button" tabIndex={0} data-on={r.on && many && isP3 ? "1" : "0"} onClick={() => open(r.id)}
               onKeyDown={(e) => { if (e.key === "Enter") open(r.id); }}>
               <span style={{ flex: 1, minWidth: 0 }}>
                 <span style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>

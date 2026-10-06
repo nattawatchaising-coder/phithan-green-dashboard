@@ -2998,7 +2998,6 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock, ver, verName, p3Vers
      แถวแผงจัดให้เอง (จากแบบ 3D ถ้าจำนวนตรง ไม่งั้นแถวละ 12 แผง) · กด "เปิดแบบละเอียด" = ใบเดียวกันในหน้าเต็ม */
   const [qOn, setQOn] = React.useState(!!quick);
   const [qKw, setQKw] = React.useState("");
-  const [qUse, setQUse] = React.useState(true);
   const qPanEdit = isLead || !(job && +job.panels > 0);
   const qWp = +((selPanel || {}).wp || 0);
   React.useEffect(() => {
@@ -3019,7 +3018,9 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock, ver, verName, p3Vers
     if (!qOn) return;
     let rate = +lump.rate || 0;
     if (!(rate > 0)) { try { rate = +localStorage.getItem("boq_quick_rate") || 0; } catch (e) { rate = 0; } }
-    setB((p) => Object.assign({}, p, { laborMode: "lump", laborLump: Object.assign({}, LUMP_DEF, p.laborLump, { basis: "w", rate: rate > 0 ? rate : (p.laborLump || {}).rate || 0 }) }));
+    /* BOQ ด่วน (งานบ้าน) เผื่อ Accessories มากกว่าใบละเอียด (ไม่ได้ไล่ถอดอะไรเลย) — ใบที่ตั้ง % ไว้แล้วไม่ทับ */
+    const accQ = +window.BOQ.RULES.accQuick;
+    setB((p) => Object.assign({}, p, (p.accAllowPct === "" || p.accAllowPct == null) && accQ >= 0 ? { accAllowPct: accQ } : {}, { laborMode: "lump", laborLump: Object.assign({}, LUMP_DEF, p.laborLump, { basis: "w", rate: rate > 0 ? rate : (p.laborLump || {}).rate || 0 }) }));
   }, [qOn]); // eslint-disable-line
   const savePayload = () => Object.assign({}, b, { project: project,
     pricing: Object.assign({}, b.pricing || {}, { sell: pb.sell }, pb.mode !== "sell" ? { profitMode: pb.mode } : {}) });
@@ -3033,12 +3034,12 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock, ver, verName, p3Vers
       .reduce((n, g) => n + g.items.filter((it) => +it.qty > 0 && !(+it.price > 0)).length, 0);
     const profitV = pricing.profitPct === "" || pricing.profitPct == null ? "" : pricing.profitPct;
     const qRows = [
-      ["วัสดุ & อุปกรณ์", priced.matTotal], ["ค่าแรงติดตั้ง", priced.laborTotal], ["ค่าขออนุญาต & วิศวกร", priced.permitTotal],
+      ["วัสดุ & อุปกรณ์ (รวม Accessories " + accPct + "%)", priced.matTotal], ["ค่าแรงติดตั้ง", priced.laborTotal], ["ค่าขออนุญาต & วิศวกร", priced.permitTotal],
       ["O&M · ล้างแผง", priced.omTotal],
     ];
     const qSave = () => {
       try { if (+lump.rate > 0) localStorage.setItem("boq_quick_rate", String(+lump.rate)); } catch (e) { /* ไม่มีที่เก็บก็ไม่เป็นไร */ }
-      onSave(savePayload(), { use: !quickNew || qUse });
+      onSave(savePayload());
     };
     const qFld = (val, on, unit, ph, step) => (
       <div className="bq-fld"><input type="number" min={0} step={step || "any"} value={val} placeholder={ph} onChange={(e) => on(e.target.value)} /><span className="u">{unit}</span></div>
@@ -3113,9 +3114,6 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock, ver, verName, p3Vers
           <div className="bqq-ft">
             <button className="btn" onClick={() => setQOn(false)}><Icon name="list" size={14} /> เปิดแบบละเอียด</button>
             <span style={{ flex: 1 }} />
-            {quickNew && onSave && (
-              <label className="bqq-use"><input type="checkbox" checked={qUse} onChange={(e) => setQUse(e.target.checked)} /> ใบเสนอราคาใช้ใบนี้</label>
-            )}
             {onSave && <button className="btn btn-pri" disabled={!(b.panels > 0)} onClick={() => guardRun(qSave)}><Icon name="check" size={14} color="#fff" /> บันทึก BOQ</button>}
           </div>
         </div>

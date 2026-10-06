@@ -5938,7 +5938,6 @@ function BOQEditor({
   };
   const [qOn, setQOn] = React.useState(!!quick);
   const [qKw, setQKw] = React.useState("");
-  const [qUse, setQUse] = React.useState(true);
   const qPanEdit = isLead || !(job && +job.panels > 0);
   const qWp = +((selPanel || {}).wp || 0);
   React.useEffect(() => {
@@ -5981,7 +5980,10 @@ function BOQEditor({
         rate = 0;
       }
     }
-    setB(p => Object.assign({}, p, {
+    const accQ = +window.BOQ.RULES.accQuick;
+    setB(p => Object.assign({}, p, (p.accAllowPct === "" || p.accAllowPct == null) && accQ >= 0 ? {
+      accAllowPct: accQ
+    } : {}, {
       laborMode: "lump",
       laborLump: Object.assign({}, LUMP_DEF, p.laborLump, {
         basis: "w",
@@ -6012,14 +6014,12 @@ function BOQEditor({
     };
     const unpriced = (priced.groups || []).filter(g => !g.service && !g.allowance).reduce((n, g) => n + g.items.filter(it => +it.qty > 0 && !(+it.price > 0)).length, 0);
     const profitV = pricing.profitPct === "" || pricing.profitPct == null ? "" : pricing.profitPct;
-    const qRows = [["วัสดุ & อุปกรณ์", priced.matTotal], ["ค่าแรงติดตั้ง", priced.laborTotal], ["ค่าขออนุญาต & วิศวกร", priced.permitTotal], ["O&M · ล้างแผง", priced.omTotal]];
+    const qRows = [["วัสดุ & อุปกรณ์ (รวม Accessories " + accPct + "%)", priced.matTotal], ["ค่าแรงติดตั้ง", priced.laborTotal], ["ค่าขออนุญาต & วิศวกร", priced.permitTotal], ["O&M · ล้างแผง", priced.omTotal]];
     const qSave = () => {
       try {
         if (+lump.rate > 0) localStorage.setItem("boq_quick_rate", String(+lump.rate));
       } catch (e) {}
-      onSave(savePayload(), {
-        use: !quickNew || qUse
-      });
+      onSave(savePayload());
     };
     const qFld = (val, on, unit, ph, step) => React.createElement("div", {
       className: "bq-fld"
@@ -6181,13 +6181,7 @@ function BOQEditor({
       style: {
         flex: 1
       }
-    }), quickNew && onSave && React.createElement("label", {
-      className: "bqq-use"
-    }, React.createElement("input", {
-      type: "checkbox",
-      checked: qUse,
-      onChange: e => setQUse(e.target.checked)
-    }), " \u0E43\u0E1A\u0E40\u0E2A\u0E19\u0E2D\u0E23\u0E32\u0E04\u0E32\u0E43\u0E0A\u0E49\u0E43\u0E1A\u0E19\u0E35\u0E49"), onSave && React.createElement("button", {
+    }), onSave && React.createElement("button", {
       className: "btn btn-pri",
       disabled: !(b.panels > 0),
       onClick: () => guardRun(qSave)

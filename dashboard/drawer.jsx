@@ -800,7 +800,7 @@ function DetailDrawer({ job, onClose, onAdvance, onSetMat, onEdit, currentUser, 
 
                 {/* ถอดวัสดุ BOQ */}
                 {!roMode && <window.DvVerCard kind="boq" dvs={dvs} icon="box" color="var(--primary-dark)" canNew={!!onSaveBOQ}
-                  title="ถอดวัสดุ BOQ" sub="แต่ละใบผูกกับแบบ 3D ของตัวเอง · ใบที่ใช้งาน = ใบที่ใบเสนอราคาดึง" />}
+                  title="ถอดวัสดุ BOQ" sub="แต่ละใบผูกกับแบบ 3D ของตัวเอง" />}
 
                 {/* เก็บข้อมูลขออนุญาตการไฟฟ้า — ช่างกรอกหน้างาน แล้วส่งต่อฝ่ายขออนุญาต
                     วางท้ายสุดของกลุ่มเครื่องมือ เพราะเป็นงานที่เดินต่อหลังงานติดตั้งจบแล้ว

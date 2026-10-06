@@ -165,6 +165,17 @@ function dvBoqCreate(jobId, vers, opt, user) {
 }
 const dvBoqRename = (jobId, ver, name) => window.FBDB.ref("boqVers/" + jobId + "/" + ver + "/name").set((name || "").trim() || "เวอร์ชัน " + ver);
 const dvBoqDelete = (jobId, ver) => window.FBDB.ref("boqVers/" + jobId + "/" + ver).remove();
+function dvBoqRemove(jobId, vers, id, patchActive) {
+  const rest = (vers.list || []).filter(x => x.id !== id);
+  if (!rest.length) return Promise.resolve();
+  return dvBoqDelete(jobId, id).then(() => {
+    if (id !== vers.active || !patchActive) return;
+    const nx = rest.slice().sort((a, b) => +b.id - +a.id)[0];
+    patchActive(Object.assign({}, nx.boq, {
+      ver: nx.id
+    }));
+  });
+}
 const DV_CSS = `
 .dv-bd{position:fixed;inset:0;background:rgba(8,20,14,.45);backdrop-filter:blur(3px);z-index:125;display:grid;place-items:center;padding:20px}
 .dv-card{background:var(--bg);border-radius:18px;width:min(560px,100%);max-height:88vh;display:flex;flex-direction:column;overflow:hidden;box-shadow:0 30px 80px rgba(0,0,0,.45)}
@@ -453,14 +464,9 @@ function BoqVerModal({
       setErr("สร้างไม่สำเร็จ — " + (e && e.message ? e.message : "ลองใหม่อีกครั้ง"));
     });
   };
-  const use = v => {
-    patchActive(Object.assign({}, v.boq, {
-      ver: v.id
-    }));
-  };
   const del = v => {
     if (!window.confirm("ลบ BOQ \"" + v.name + "\"?\nกู้คืนไม่ได้ — เวอร์ชันอื่นไม่ถูกแตะ")) return;
-    dvBoqDelete(jobId, v.id).catch(() => setErr("ลบไม่สำเร็จ"));
+    dvBoqRemove(jobId, vers, v.id, patchActive).catch(() => setErr("ลบไม่สำเร็จ"));
   };
   const sell = b => b && b.pricing && +b.pricing.sell > 0 ? "ราคาขาย ฿" + Math.round(+b.pricing.sell).toLocaleString() : "";
   return React.createElement(DvShell, {
@@ -482,7 +488,6 @@ function BoqVerModal({
     return React.createElement("div", {
       key: v.id,
       className: "dv-row",
-      "data-on": on ? "1" : "0",
       style: {
         cursor: "pointer"
       },
@@ -500,22 +505,13 @@ function BoqVerModal({
       value: v.name,
       ro: ro,
       onSave: n => dvBoqRename(jobId, v.id, n)
-    }) : v.name, on && React.createElement("span", {
-      className: "dv-tag"
-    }, "\u0E43\u0E0A\u0E49\u0E07\u0E32\u0E19 \xB7 \u0E43\u0E1A\u0E40\u0E2A\u0E19\u0E2D\u0E23\u0E32\u0E04\u0E32\u0E14\u0E36\u0E07\u0E43\u0E1A\u0E19\u0E35\u0E49")), React.createElement("div", {
+    }) : v.name), React.createElement("div", {
       className: "mt"
     }, "\u0E41\u0E1A\u0E1A 3D: ", React.createElement("b", {
       style: {
         color: "#4F46E5"
       }
-    }, dvP3Name(p3.list, b.plan3d)), +b.panels > 0 ? " · " + b.panels + " แผง" : "", sell(b) ? " · " + sell(b) : "", v.at ? " · " + dvWhen(v.at) : "")), !ro && !on && React.createElement("button", {
-      className: "btn btn-sm btn-soft",
-      title: "\u0E43\u0E2B\u0E49\u0E43\u0E1A\u0E40\u0E2A\u0E19\u0E2D\u0E23\u0E32\u0E04\u0E32/\u0E07\u0E32\u0E19 \u0E43\u0E0A\u0E49 BOQ \u0E40\u0E27\u0E2D\u0E23\u0E4C\u0E0A\u0E31\u0E19\u0E19\u0E35\u0E49",
-      onClick: e => {
-        e.stopPropagation();
-        use(v);
-      }
-    }, "\u0E43\u0E0A\u0E49\u0E43\u0E1A\u0E19\u0E35\u0E49"), !ro && !on && vers.real && React.createElement("button", {
+    }, dvP3Name(p3.list, b.plan3d)), +b.panels > 0 ? " · " + b.panels + " แผง" : "", sell(b) ? " · " + sell(b) : "", v.at ? " · " + dvWhen(v.at) : "")), !ro && vers.real && vers.list.length > 1 && React.createElement("button", {
       className: "dv-ic",
       title: "\u0E25\u0E1A\u0E40\u0E27\u0E2D\u0E23\u0E4C\u0E0A\u0E31\u0E19\u0E19\u0E35\u0E49",
       onClick: e => {
@@ -669,7 +665,7 @@ function useDesignVersions({
     onClose: () => setEd(null),
     quick: !!ed.quick,
     quickNew: !!ed.quickNew,
-    onSave: ro || !patchActive ? null : (b, o) => {
+    onSave: ro || !patchActive ? null : b => {
       if (ed.quickNew) {
         dvBoqCreate(jobId, ed.vers, {
           from: "",
@@ -677,7 +673,7 @@ function useDesignVersions({
           name: "BOQ ด่วน"
         }, currentUser).then(r => dvBoqSave(jobId, r.id, b, {
           real: true,
-          active: o && o.use ? r.id : ed.vers.active
+          active: r.id
         }, patchActive)).catch(() => window.alert("บันทึก BOQ ด่วนไม่สำเร็จ ลองใหม่อีกครั้ง"));
       } else dvBoqSave(jobId, ed.ver, b, edVers, patchActive);
       setEd(null);
@@ -701,6 +697,7 @@ function useDesignVersions({
     });
   };
   const newP3 = () => setPick("p3-new");
+  const removeBoq = id => dvBoqRemove(jobId, vers, id, patchActive);
   const newBoq = () => {
     if (!vers.list.length) setEd({
       ver: "1",
@@ -708,7 +705,7 @@ function useDesignVersions({
       vers
     });else setPick("boq-new");
   };
-  const quickBoq = () => {
+  const quickBoq = !job || job.type !== "home" ? null : () => {
     const linked = vers.list.map(x => String((x.boq || {}).plan3d || "1"));
     const free = p3.list.filter(v => linked.indexOf(v.id) < 0);
     const plan = free.length ? free[free.length - 1].id : "1";
@@ -745,6 +742,7 @@ function useDesignVersions({
     newP3,
     newBoq,
     quickBoq,
+    removeBoq,
     manageP3: () => setPick("p3"),
     manageBoq: () => setPick("boq")
   };
@@ -866,24 +864,19 @@ function DvVerCard({
       id: v.id,
       on,
       name: v.name,
-      tag: on ? "ใช้งาน" : null,
+      tag: null,
       meta: ["แบบ 3D: " + dvP3Name(p3List, b.plan3d), +b.panels > 0 ? nfmt(b.panels) + " แผง" : "", v.at ? dvWhen(v.at) : "", v.byName || ""].filter(Boolean).join(" · "),
       val: sell ? "฿" + nfmt(Math.round(sell)) : "",
-      pill: on ? {
-        th: "ใบเสนอราคาดึงใบนี้",
-        c: "#0F7A5C"
-      } : null,
-      del: !vers.real || !many ? null : on ? {
-        off: "ใบนี้ใช้งานอยู่ — เลือกใบอื่นเป็นใบที่ใช้งานก่อน (ปุ่ม จัดการ)"
-      } : {}
+      pill: null,
+      del: !vers.real || !many ? null : {}
     };
   });
-  const ordered = rows.filter(r => r.on).concat(rows.filter(r => !r.on).sort((a, b) => +b.id - +a.id));
+  const ordered = isP3 ? rows.filter(r => r.on).concat(rows.filter(r => !r.on).sort((a, b) => +b.id - +a.id)) : rows.slice().sort((a, b) => +b.id - +a.id);
   const open = id => isP3 ? dvs.openP3Ver(id) : dvs.openBoqVer(id);
   const jobId = dvs.jobId;
   const remove = r => {
     if (!window.confirm("ลบ " + (isP3 ? "แบบ 3D" : "BOQ") + " \"V" + r.id + " · " + r.name + "\"?\nกู้คืนไม่ได้ — เวอร์ชันอื่นไม่ถูกแตะ")) return;
-    (isP3 ? dvP3Delete(jobId, r.id) : dvBoqDelete(jobId, r.id)).catch(() => window.alert("ลบไม่สำเร็จ ลองใหม่อีกครั้ง"));
+    (isP3 ? dvP3Delete(jobId, r.id) : dvs.removeBoq(r.id)).catch(() => window.alert("ลบไม่สำเร็จ ลองใหม่อีกครั้ง"));
   };
   return React.createElement("div", {
     className: "dvc"
@@ -910,7 +903,7 @@ function DvVerCard({
   }, sub)), canNew && many && React.createElement("button", {
     className: "dvc-btn ghost",
     onClick: isP3 ? dvs.manageP3 : dvs.manageBoq,
-    title: "\u0E40\u0E1B\u0E25\u0E35\u0E48\u0E22\u0E19\u0E0A\u0E37\u0E48\u0E2D \xB7 \u0E25\u0E1A \xB7 \u0E40\u0E25\u0E37\u0E2D\u0E01\u0E43\u0E1A\u0E17\u0E35\u0E48\u0E43\u0E0A\u0E49\u0E07\u0E32\u0E19"
+    title: "\u0E40\u0E1B\u0E25\u0E35\u0E48\u0E22\u0E19\u0E0A\u0E37\u0E48\u0E2D \xB7 \u0E25\u0E1A"
   }, "\u0E08\u0E31\u0E14\u0E01\u0E32\u0E23"), canNew && !isP3 && dvs.quickBoq && React.createElement("button", {
     className: "dvc-btn",
     onClick: dvs.quickBoq,
@@ -935,7 +928,7 @@ function DvVerCard({
     className: "dvc-row",
     role: "button",
     tabIndex: 0,
-    "data-on": r.on && many ? "1" : "0",
+    "data-on": r.on && many && isP3 ? "1" : "0",
     onClick: () => open(r.id),
     onKeyDown: e => {
       if (e.key === "Enter") open(r.id);

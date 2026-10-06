@@ -118,6 +118,7 @@
     { sec: "permit", key: "eng2", th: "ค่าวิศวกร ขั้นที่ 2", unit: "บาท", def: 10000 },
     { sec: "permit", key: "eng3", th: "ค่าวิศวกร ใหญ่กว่าขั้นที่ 2", unit: "บาท", def: 15000 },
     { sec: "price", key: "accHome", th: "Accessories เผื่อ · งานบ้าน (% ของทุนวัสดุ)", unit: "%", def: 10, max: 100 },
+    { sec: "price", key: "accQuick", th: "Accessories เผื่อ · BOQ ด่วน (งานบ้าน) (% ของทุนวัสดุ)", unit: "%", def: 15, max: 100 },
     { sec: "price", key: "accProj", th: "Accessories เผื่อ · งานโครงการ (% ของทุนวัสดุ)", unit: "%", def: 5, max: 100 },
     { sec: "price", key: "profitPct", th: "กำไรเริ่มต้น (% ของราคาขาย)", unit: "%", def: 15, max: 90 },
     { sec: "price", key: "vat", th: "ภาษีมูลค่าเพิ่ม", unit: "%", def: 7, max: 30 },
