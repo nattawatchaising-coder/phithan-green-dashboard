@@ -3139,9 +3139,7 @@ function BOQEditor({
       }) : p;
     });
   }, [raceKey]);
-  const DCF_P = RU.dcFuse,
-    SPD_V = RU.dcSpdV;
-  const DCF_V = DCF_P.map(p => p.v);
+  const DCF_P = RU.dcFuse;
   const DCMCB_P = RU.dcMcb;
   const r1 = x => Math.round(x * 10) / 10;
   const cabIz = c => {
@@ -3292,18 +3290,23 @@ function BOQEditor({
       });
       const fA = lps ? RU.nhT12 : RU.nhT2;
       const noFuse = lps && mainAt > 0 && mainAt <= RU.nhT12;
-      out.ac.push(lps ? {
-        name: ph === 3 ? "AC SPD TYPE I+II 3P+N Uc385V Iimp12.5kA" : "AC SPD TYPE I+II 2P Uc275V Iimp12.5kA",
-        qty: 1,
-        unit: "ตัว",
-        auto: 1,
-        why: tag + "กันฟ้าผ่าฝั่ง AC ตู้ละ 1 ตัว (" + lpsTxt + " · Iimp 12.5 kA/ขั้ว)"
+      const ucNeed = ph === 3 ? RU.acUc3 : RU.acUc1,
+        kaNeed = lps ? RU.acIimp : RU.spdImax;
+      const poleSet = ph === 3 ? {
+        "3P+N": 1,
+        "4P": 1
       } : {
-        name: ph === 3 ? "AC SPD TYPE II 3P+N Uc385V In20Ka/Imax40Ka" : "AC SPD TYPE II 2P Uc275V In20Ka/Imax40Ka",
+        "2P": 1,
+        "1P+N": 1
+      };
+      const S = window.BOQ.pairPick(lps ? RU.acSpd12 : RU.acSpd2, ucNeed, kaNeed, p => !!poleSet[p]);
+      out.ac.push({
+        name: window.BOQ.spdName(lps ? "ac12" : "ac2", S),
         qty: 1,
         unit: "ตัว",
         auto: 1,
-        why: tag + "กันฟ้าผ่า/แรงดันกระชากฝั่ง AC ตู้ละ 1 ตัว (" + lpsTxt + " · Uc " + (ph === 3 ? "385" : "275") + " V)"
+        ok: S.okV && S.okA && S.okP,
+        why: tag + (lps ? "กันฟ้าผ่าฝั่ง AC" : "กันฟ้าผ่า/แรงดันกระชากฝั่ง AC") + " ตู้ละ 1 ตัว (" + lpsTxt + ") · " + (ph === 3 ? "3 เฟส" : "1 เฟส") + " " + S.p + " · Uc ≥ " + ucNeed + " V → " + S.v + " V · " + (lps ? "Iimp" : "Imax") + " ≥ " + kaNeed + " kA → " + S.a + " kA" + (!S.okP ? " · ไม่มีรุ่นขั้ว" + (ph === 3 ? " 3P+N/4P" : " 2P/1P+N") + " ในรายการที่มีขาย" : "") + (!S.okV ? " · Uc ที่มีขายไม่ถึง" : "") + (!S.okA ? " · kA ที่มีขายไม่ถึง" : "")
       });
       if (noFuse) out.ac[out.ac.length - 1].why += " · เบรกเกอร์" + (homeOne ? "" : "เมน") + " " + mainAt + " A ≤ " + RU.nhT12 + " A ใช้กันหลัง SPD ได้ ไม่ต้องมีฟิวส์";else if (isHome && !lps) {
         out.ac.push({
@@ -3394,8 +3397,6 @@ function BOQEditor({
     const iIsc = +selInv.maxIscA > 0 ? +selInv.maxIscA / Math.max(1, Math.round(+selInv.strPerMppt || 1)) : 0;
     const isc = pIsc || iIsc;
     const voc = scfg && scfg.stringVoc ? scfg.stringVoc * RU.vocK : +selInv.maxVdc || 1000;
-    const vPick = L => L.find(x => x >= voc) || L[L.length - 1];
-    const SV = vPick(SPD_V);
     const vTxtOf = v => scfg && scfg.stringVoc ? "Voc สตริง " + r1(scfg.stringVoc) + " V × " + RU.vocK + " = " + r1(voc) + " V → " + v + " VDC" : "ยังไม่รู้ Voc สตริง ใช้แรงดันสูงสุดของอินเวอร์เตอร์ → " + v + " VDC";
     if (nStr > 0 && isc > 0) {
       const need = isc * RU.dcFuseK,
@@ -3434,7 +3435,7 @@ function BOQEditor({
         A = M.a,
         MV = M.v;
       out.dc.push({
-        name: "DC MCB " + A + "A 2P " + MV + "VDC",
+        name: "DC MCB " + A + "A " + (M.p || "2P") + " " + MV + "VDC",
         qty: nStr,
         unit: "ตัว",
         auto: 1,
@@ -3442,21 +3443,16 @@ function BOQEditor({
         why: "สตริงละ 1 ตัว · Isc " + r1(isc) + " A × " + RU.dcMcbK + " = " + r1(need) + " A → " + A + " A · " + vTxtOf(MV) + (!M.okA ? " · รุ่น " + MV + " VDC ที่มีขายไม่ถึง " + r1(need) + " A" : "") + (!M.okV ? " · เกินรุ่นที่มีขาย ต้องใช้รุ่นแรงดันสูงกว่า" : "")
       });
     }
-    if (nStr > 0 && !lps) out.dc.push({
-      name: "DC SPD 2P " + SV + "VDC 20-40KA",
-      qty: nStr,
-      unit: "ตัว",
-      auto: 1,
-      why: "สตริงละ 1 ตัว · " + lpsTxt + " · " + vTxtOf(SV)
-    });
-    if (nStr > 0 && lps) {
-      const TV = vPick(DCF_V);
+    if (nStr > 0) {
+      const kaNeed = lps ? RU.dcIimp : RU.spdImax,
+        S = window.BOQ.pairPick(lps ? RU.dcSpd12 : RU.dcSpd2, voc, kaNeed);
       out.dc.push({
-        name: "DC SPD 2P " + TV + "VDC TYPE I+II Iimp6.25KA",
+        name: window.BOQ.spdName(lps ? "dc12" : "dc2", S),
         qty: nStr,
         unit: "ตัว",
         auto: 1,
-        why: "สตริงละ 1 ตัว · " + lpsTxt + " · " + vTxtOf(TV)
+        ok: S.okV && S.okA,
+        why: "สตริงละ 1 ตัว · " + lpsTxt + " · " + vTxtOf(S.v) + " · " + S.p + " · " + (lps ? "Iimp" : "Imax") + " ≥ " + kaNeed + " kA → " + S.a + " kA" + (!S.okV ? " · แรงดันที่มีขายไม่ถึง" : "") + (!S.okA ? " · kA ที่มีขายไม่ถึง" : "")
       });
     }
     return out;

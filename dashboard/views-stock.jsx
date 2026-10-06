@@ -1580,15 +1580,11 @@ function brStockNeeds() {
   const B = window.BOQ || {}, T = B.RULES_T || {}, H = T.home || {}, P = T.proj || {};
   const out = [], seen = {};
   const add = (name, spec) => { if (!seen[name]) { seen[name] = 1; out.push(Object.assign({ name: name }, spec)); } };
-  const L = (k) => Array.from(new Set([].concat(H[k] || [], P[k] || []))).sort((a, b) => a - b);
-  const PV = (k) => { const m = {}; [].concat(H[k] || [], P[k] || []).forEach((p) => { m[p.v] = Array.from(new Set((m[p.v] || []).concat(p.a))).sort((a, b) => a - b); }); return Object.keys(m).map(Number).sort((a, b) => a - b).map((v) => ({ v: v, a: m[v] })); };
-  PV("dcFuse").forEach((p) => {
-    const v = p.v;
-    p.a.forEach((a) => add("DC FUSE " + a + "A " + v + "VDC", { elecType: "Fuse", amp: a }));
-    add("DC SPD 2P " + v + "VDC TYPE I+II Iimp6.25KA", { elecType: "SPD", poles: "2P" });
-  });
-  L("dcSpdV").forEach((v) => add("DC SPD 2P " + v + "VDC 20-40KA", { elecType: "SPD", poles: "2P" }));
-  (H.dcMcb || []).forEach((p) => p.a.forEach((a) => add("DC MCB " + a + "A 2P " + p.v + "VDC", { elecType: "MCB", poles: "2P", amp: a })));
+  const both = (k) => [].concat(H[k] || [], P[k] || []);   // ชุดที่มีขายของทั้งสองประเภทงาน (ชื่อซ้ำ add กันเอง)
+  both("dcFuse").forEach((p) => p.a.forEach((a) => add("DC FUSE " + a + "A " + p.v + "VDC", { elecType: "Fuse", amp: a })));
+  [["dcSpd2", "dc2"], ["dcSpd12", "dc12"], ["acSpd2", "ac2"], ["acSpd12", "ac12"]].forEach(([k, kind]) =>
+    both(k).forEach((r) => r.a.forEach((a) => add(B.spdName(kind, { v: r.v, p: r.p, a: a }), { elecType: "SPD", poles: r.p }))));
+  (H.dcMcb || []).forEach((p) => p.a.forEach((a) => add("DC MCB " + a + "A " + (p.p || "2P") + " " + p.v + "VDC", { elecType: "MCB", poles: p.p || "2P", amp: a })));
   (H.rcbo2P || []).forEach((a) => add("RCBO " + a + "A 2P 100mA", { elecType: "RCBO", poles: "2P", amp: a }));
   (H.rcbo3P || []).forEach((a) => add("RCBO " + a + "A 3P+N 100mA", { elecType: "RCBO", poles: "3P+N", amp: a }));
   (P.ctR || []).forEach((r) => add("CT " + r + "/5A", {}));
@@ -1764,20 +1760,37 @@ function BrChips({ list, unit, onChange, disabled, words }) {
 /* ของที่ขายเป็นคู่ แรงดัน ↔ ขนาด A — แถวละแรงดัน ชิปขนาดที่มีของแรงดันนั้น */
 function BrPairs({ list, d, onChange, disabled }) {
   const [nv, setNv] = React.useState("");
+  const [np, setNp] = React.useState(d.poleDef || "");
+  const sortL = (L) => L.sort((x, y) => x.v - y.v || String(x.p || "").localeCompare(String(y.p || "")));
+  const same = (p, v, pole) => p.v === v && (!d.poles || p.p === pole);
   const addV = () => {
     const v = +String(nv).replace(/[^\d.]/g, ""); setNv("");
-    if (!(v > 0) || list.some((p) => p.v === v)) return;
+    if (!(v > 0) || list.some((p) => same(p, v, np))) return;
     const last = list[list.length - 1];
-    onChange(list.concat([{ v: v, a: last ? last.a.slice() : [10] }]).sort((x, y) => x.v - y.v));
+    onChange(sortL(list.concat([Object.assign({ v: v }, d.poles ? { p: np } : {}, { a: last ? last.a.slice() : [10] })])));
   };
+  /* เปลี่ยนขั้วของแถว — ชนกับแถวที่มีอยู่ = รวมขนาดเข้าแถวนั้น */
+  const setPole = (i, pole) => {
+    const r = list[i], hit = list.findIndex((q, j) => j !== i && same(q, r.v, pole));
+    if (hit < 0) { onChange(sortL(list.map((q, j) => (j === i ? Object.assign({}, q, { p: pole }) : q)))); return; }
+    onChange(sortL(list.filter((_, j) => j !== i).map((q) => (same(q, r.v, pole) ? Object.assign({}, q, { a: Array.from(new Set(q.a.concat(r.a))).sort((x, y) => x - y) }) : q))));
+  };
+  const poleSel = (val, on, w) => (
+    <select value={val} disabled={disabled} onChange={(e) => on(e.target.value)} title="จำนวนขั้ว"
+      style={{ width: w, border: "none", outline: "none", fontFamily: "inherit", fontSize: 12, fontWeight: 700, padding: "4px 6px", borderRadius: "var(--r-chip)",
+        background: "var(--surface)", boxShadow: "var(--shadow-sm)", color: "var(--text-1)", cursor: disabled ? "default" : "pointer" }}>
+      {d.poles.map((p) => <option key={p} value={p}>{p}</option>)}
+    </select>
+  );
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
       {list.map((p, i) => (
-        <div key={p.v} style={{ display: "grid", gridTemplateColumns: "112px minmax(0,1fr)", gap: 10, alignItems: "start", padding: "8px 10px",
+        <div key={p.v + "|" + (p.p || "")} style={{ display: "grid", gridTemplateColumns: (d.poles ? 176 : 112) + "px minmax(0,1fr)", gap: 10, alignItems: "start", padding: "8px 10px",
           borderRadius: "var(--r-tile)", background: "var(--surface2)", boxShadow: "var(--shadow-inset)" }}>
           <div style={{ display: "flex", alignItems: "center", gap: 4, paddingTop: 5 }}>
             <span style={{ fontSize: 13, fontWeight: 800, color: "var(--primary-dark)", fontVariantNumeric: "tabular-nums" }}>{p.v}</span>
             <span style={{ fontSize: 10.5, fontWeight: 700, color: "var(--text-3)" }}>{d.unit}</span>
+            {d.poles && <span style={{ marginLeft: 4 }}>{poleSel(p.p || d.poleDef, (v) => setPole(i, v), 62)}</span>}
             {!disabled && list.length > 1 && (
               <button type="button" title={"เอาแรงดัน " + p.v + " ออก"} onClick={() => onChange(list.filter((_, j) => j !== i))}
                 style={{ border: "none", background: "transparent", cursor: "pointer", padding: 2, display: "inline-flex", marginLeft: 2 }}>
@@ -1795,7 +1808,8 @@ function BrPairs({ list, d, onChange, disabled }) {
             placeholder={"แรงดันใหม่ (" + d.unit + ")"} inputMode="decimal"
             style={{ width: 150, border: "none", outline: "none", fontFamily: "inherit", fontSize: 12.5, padding: "7px 10px", borderRadius: "var(--r-chip)",
               background: "var(--surface2)", boxShadow: "var(--shadow-inset)", color: "var(--text-1)" }} />
-          <button type="button" className="btn btn-sm" onClick={addV} disabled={!nv}><Icon name="plus" size={12} /> เพิ่มแรงดัน</button>
+          {d.poles && poleSel(np, setNp, 70)}
+          <button type="button" className="btn btn-sm" onClick={addV} disabled={!nv}><Icon name="plus" size={12} /> {d.poles ? "เพิ่มรุ่น" : "เพิ่มแรงดัน"}</button>
         </div>
       )}
     </div>
@@ -1869,7 +1883,7 @@ function BoqRuleSec({ sec, rulesStore, type }) {
               <div key={d.key} style={{ padding: "12px 0", borderTop: i ? "1px solid var(--divider)" : "none" }}>
                 <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 8 }}>
                   <span style={{ fontSize: 13, fontWeight: 700, color: "var(--text-1)" }}>{d.th}</span>
-                  {d.type === "pairs" && <span style={{ fontSize: 11, color: "var(--text-3)" }}>· แรงดันแต่ละรุ่นมีขนาด {d.unitA} ไม่เท่ากัน</span>}
+                  {d.type === "pairs" && <span style={{ fontSize: 11, color: "var(--text-3)" }}>· {d.poles ? "แถวละแรงดัน + จำนวนขั้ว" : "แถวละแรงดัน"} ชิป = {d.unitA} ที่มีของรุ่นนั้น</span>}
                   {changedDot(d)}<span style={{ flex: 1 }} />{resetBtn(d)}
                 </div>
                 {d.type === "pairs"

@@ -4127,35 +4127,22 @@ function brStockNeeds() {
       }, spec));
     }
   };
-  const L = k => Array.from(new Set([].concat(H[k] || [], P[k] || []))).sort((a, b) => a - b);
-  const PV = k => {
-    const m = {};
-    [].concat(H[k] || [], P[k] || []).forEach(p => {
-      m[p.v] = Array.from(new Set((m[p.v] || []).concat(p.a))).sort((a, b) => a - b);
-    });
-    return Object.keys(m).map(Number).sort((a, b) => a - b).map(v => ({
-      v: v,
-      a: m[v]
-    }));
-  };
-  PV("dcFuse").forEach(p => {
-    const v = p.v;
-    p.a.forEach(a => add("DC FUSE " + a + "A " + v + "VDC", {
-      elecType: "Fuse",
-      amp: a
-    }));
-    add("DC SPD 2P " + v + "VDC TYPE I+II Iimp6.25KA", {
-      elecType: "SPD",
-      poles: "2P"
-    });
-  });
-  L("dcSpdV").forEach(v => add("DC SPD 2P " + v + "VDC 20-40KA", {
+  const both = k => [].concat(H[k] || [], P[k] || []);
+  both("dcFuse").forEach(p => p.a.forEach(a => add("DC FUSE " + a + "A " + p.v + "VDC", {
+    elecType: "Fuse",
+    amp: a
+  })));
+  [["dcSpd2", "dc2"], ["dcSpd12", "dc12"], ["acSpd2", "ac2"], ["acSpd12", "ac12"]].forEach(([k, kind]) => both(k).forEach(r => r.a.forEach(a => add(B.spdName(kind, {
+    v: r.v,
+    p: r.p,
+    a: a
+  }), {
     elecType: "SPD",
-    poles: "2P"
-  }));
-  (H.dcMcb || []).forEach(p => p.a.forEach(a => add("DC MCB " + a + "A 2P " + p.v + "VDC", {
+    poles: r.p
+  }))));
+  (H.dcMcb || []).forEach(p => p.a.forEach(a => add("DC MCB " + a + "A " + (p.p || "2P") + " " + p.v + "VDC", {
     elecType: "MCB",
-    poles: "2P",
+    poles: p.p || "2P",
     amp: a
   })));
   (H.rcbo2P || []).forEach(a => add("RCBO " + a + "A 2P 100mA", {
@@ -4599,16 +4586,58 @@ function BrPairs({
   disabled
 }) {
   const [nv, setNv] = React.useState("");
+  const [np, setNp] = React.useState(d.poleDef || "");
+  const sortL = L => L.sort((x, y) => x.v - y.v || String(x.p || "").localeCompare(String(y.p || "")));
+  const same = (p, v, pole) => p.v === v && (!d.poles || p.p === pole);
   const addV = () => {
     const v = +String(nv).replace(/[^\d.]/g, "");
     setNv("");
-    if (!(v > 0) || list.some(p => p.v === v)) return;
+    if (!(v > 0) || list.some(p => same(p, v, np))) return;
     const last = list[list.length - 1];
-    onChange(list.concat([{
-      v: v,
+    onChange(sortL(list.concat([Object.assign({
+      v: v
+    }, d.poles ? {
+      p: np
+    } : {}, {
       a: last ? last.a.slice() : [10]
-    }]).sort((x, y) => x.v - y.v));
+    })])));
   };
+  const setPole = (i, pole) => {
+    const r = list[i],
+      hit = list.findIndex((q, j) => j !== i && same(q, r.v, pole));
+    if (hit < 0) {
+      onChange(sortL(list.map((q, j) => j === i ? Object.assign({}, q, {
+        p: pole
+      }) : q)));
+      return;
+    }
+    onChange(sortL(list.filter((_, j) => j !== i).map(q => same(q, r.v, pole) ? Object.assign({}, q, {
+      a: Array.from(new Set(q.a.concat(r.a))).sort((x, y) => x - y)
+    }) : q)));
+  };
+  const poleSel = (val, on, w) => React.createElement("select", {
+    value: val,
+    disabled: disabled,
+    onChange: e => on(e.target.value),
+    title: "\u0E08\u0E33\u0E19\u0E27\u0E19\u0E02\u0E31\u0E49\u0E27",
+    style: {
+      width: w,
+      border: "none",
+      outline: "none",
+      fontFamily: "inherit",
+      fontSize: 12,
+      fontWeight: 700,
+      padding: "4px 6px",
+      borderRadius: "var(--r-chip)",
+      background: "var(--surface)",
+      boxShadow: "var(--shadow-sm)",
+      color: "var(--text-1)",
+      cursor: disabled ? "default" : "pointer"
+    }
+  }, d.poles.map(p => React.createElement("option", {
+    key: p,
+    value: p
+  }, p)));
   return React.createElement("div", {
     style: {
       display: "flex",
@@ -4616,10 +4645,10 @@ function BrPairs({
       gap: 6
     }
   }, list.map((p, i) => React.createElement("div", {
-    key: p.v,
+    key: p.v + "|" + (p.p || ""),
     style: {
       display: "grid",
-      gridTemplateColumns: "112px minmax(0,1fr)",
+      gridTemplateColumns: (d.poles ? 176 : 112) + "px minmax(0,1fr)",
       gap: 10,
       alignItems: "start",
       padding: "8px 10px",
@@ -4647,7 +4676,11 @@ function BrPairs({
       fontWeight: 700,
       color: "var(--text-3)"
     }
-  }, d.unit), !disabled && list.length > 1 && React.createElement("button", {
+  }, d.unit), d.poles && React.createElement("span", {
+    style: {
+      marginLeft: 4
+    }
+  }, poleSel(p.p || d.poleDef, v => setPole(i, v), 62)), !disabled && list.length > 1 && React.createElement("button", {
     type: "button",
     title: "เอาแรงดัน " + p.v + " ออก",
     onClick: () => onChange(list.filter((_, j) => j !== i)),
@@ -4700,7 +4733,7 @@ function BrPairs({
       boxShadow: "var(--shadow-inset)",
       color: "var(--text-1)"
     }
-  }), React.createElement("button", {
+  }), d.poles && poleSel(np, setNp, 70), React.createElement("button", {
     type: "button",
     className: "btn btn-sm",
     onClick: addV,
@@ -4708,7 +4741,7 @@ function BrPairs({
   }, React.createElement(Icon, {
     name: "plus",
     size: 12
-  }), " \u0E40\u0E1E\u0E34\u0E48\u0E21\u0E41\u0E23\u0E07\u0E14\u0E31\u0E19")));
+  }), " ", d.poles ? "เพิ่มรุ่น" : "เพิ่มแรงดัน")));
 }
 function BoqRuleSec({
   sec,
@@ -4898,7 +4931,7 @@ function BoqRuleSec({
       fontSize: 11,
       color: "var(--text-3)"
     }
-  }, "\xB7 \u0E41\u0E23\u0E07\u0E14\u0E31\u0E19\u0E41\u0E15\u0E48\u0E25\u0E30\u0E23\u0E38\u0E48\u0E19\u0E21\u0E35\u0E02\u0E19\u0E32\u0E14 ", d.unitA, " \u0E44\u0E21\u0E48\u0E40\u0E17\u0E48\u0E32\u0E01\u0E31\u0E19"), changedDot(d), React.createElement("span", {
+  }, "\xB7 ", d.poles ? "แถวละแรงดัน + จำนวนขั้ว" : "แถวละแรงดัน", " \u0E0A\u0E34\u0E1B = ", d.unitA, " \u0E17\u0E35\u0E48\u0E21\u0E35\u0E02\u0E2D\u0E07\u0E23\u0E38\u0E48\u0E19\u0E19\u0E31\u0E49\u0E19"), changedDot(d), React.createElement("span", {
     style: {
       flex: 1
     }

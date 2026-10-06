@@ -8,7 +8,8 @@
      เดิมตัวเลขพวกนี้ฝังอยู่ในสูตร แก้ได้แค่คนเขียนโค้ด · เก็บที่ RTDB boqRules/<key> = ข้อความ (ไม่มีคีย์ = ค่าตั้งต้นด้านล่าง)
      RULES เป็นอ็อบเจกต์ตัวเดิมตลอด setRules แทนค่าข้างใน — สูตรอ่าน RULES.x ตอนคำนวณ จึงเห็นค่าใหม่เสมอ
      type: num (ตัวเลข) · nums (รายการตัวเลขคั่นจุลภาค เรียงน้อยไปมาก) · words (รายการคำคั่นจุลภาค)
-       · pairs (ของที่ขายเป็นคู่ แรงดัน ↔ ขนาด A: ข้อความ "1000: 10, 16, 20; 1500: 10, 16" → [{v, a:[…]}] · legacy = คีย์ [A, V] แบบแยกเดิม) */
+       · pairs (ของที่ขายเป็นชุด แรงดัน (+ จำนวนขั้ว) ↔ ขนาด: ข้อความ "1000: 10, 16; 1500: 10" หรือ "1000 2P: 40; 1500 3P: 40" → [{v, p?, a:[…]}]
+         poles = รายการขั้วให้เลือก (มี = แถวละแรงดัน+ขั้ว) · legacy = คีย์ [A, V] แบบแยกเดิม · legacyV = คีย์รายการแรงดันเดิม (ขนาด/ขั้วตามค่าตั้งต้น)) */
   /* grp = หัวกลุ่มในแถบซ้าย · แถว RULE_DEFS ที่มี g = หัวย่อยในหน้าหัวข้อ */
   const RULE_SECS = [
     { k: "dcBoard", grp: "ฝั่ง DC", th: "ตู้ไฟ DC", sub: "ฟิวส์ gPV · DC SPD · แรงดันพิกัด · DC MCB (งานบ้าน)" },
@@ -29,10 +30,15 @@
     { sec: "dcBoard", g: "ทุกงาน", key: "dcFuse", th: "ฟิวส์ DC gPV ที่มีขาย", unit: "VDC", unitA: "A", type: "pairs", legacy: ["dcFuseA", "dcFuseV"],
       def: [{ v: 1000, a: [10, 12, 15, 16, 20, 25, 30, 32] }, { v: 1500, a: [10, 12, 15, 16, 20, 25, 30, 32] }] },
     { sec: "dcBoard", g: "ทุกงาน", key: "vocK", th: "แรงดันพิกัดฟิวส์/SPD/DC MCB ≥ Voc สตริง ×", unit: "เท่า", def: 1.1, min: 1 },
-    { sec: "dcBoard", g: "ทุกงาน", key: "dcSpdV", th: "แรงดันพิกัด DC SPD ที่มีขาย", unit: "VDC", type: "nums", def: [800, 1000, 1500] },
+    { sec: "dcBoard", g: "ทุกงาน", key: "dcSpd2", th: "DC SPD Type II ที่มีขาย", unit: "VDC", unitA: "kA Imax", type: "pairs", poles: ["1P", "2P", "3P", "4P"], poleDef: "2P", legacyV: "dcSpdV",
+      def: [{ v: 800, p: "2P", a: [40] }, { v: 1000, p: "2P", a: [40] }, { v: 1500, p: "2P", a: [40] }] },
+    { sec: "dcBoard", g: "ทุกงาน", key: "dcSpd12", th: "DC SPD Type I+II ที่มีขาย (ระบบล่อฟ้า · แผงใกล้)", unit: "VDC", unitA: "kA Iimp", type: "pairs", poles: ["1P", "2P", "3P", "4P"], poleDef: "2P",
+      def: [{ v: 1000, p: "2P", a: [6.25] }, { v: 1500, p: "2P", a: [6.25] }] },
+    { sec: "dcBoard", g: "ทุกงาน", key: "spdImax", th: "SPD Type II · Imax ไม่ต่ำกว่า (ทั้ง AC/DC)", unit: "kA", def: 40, min: 1 },
+    { sec: "dcBoard", g: "ทุกงาน", key: "dcIimp", th: "DC SPD Type I+II · Iimp ไม่ต่ำกว่า", unit: "kA", def: 6.25, min: 0.1 },
     { sec: "dcBoard", g: "งานบ้าน", key: "dcMcbK", th: "DC MCB ต่อสตริง = Isc ×", unit: "เท่า", def: 1.25, min: 1 },
-    { sec: "dcBoard", g: "งานบ้าน", key: "dcMcb", th: "DC MCB 2P ที่มีขาย", unit: "VDC", unitA: "A", type: "pairs", legacy: ["dcMcbA", "dcMcbV"],
-      def: [{ v: 500, a: [10, 16, 20, 25, 32, 40, 50, 63] }, { v: 800, a: [10, 16, 20, 25, 32, 40, 50, 63] }, { v: 1000, a: [10, 16, 20, 25, 32, 40, 50, 63] }] },
+    { sec: "dcBoard", g: "งานบ้าน", key: "dcMcb", th: "DC MCB ที่มีขาย", unit: "VDC", unitA: "A", type: "pairs", poles: ["1P", "2P", "3P", "4P"], poleDef: "2P", legacy: ["dcMcbA", "dcMcbV"],
+      def: [{ v: 500, p: "2P", a: [10, 16, 20, 25, 32, 40, 50, 63] }, { v: 800, p: "2P", a: [10, 16, 20, 25, 32, 40, 50, 63] }, { v: 1000, p: "2P", a: [10, 16, 20, 25, 32, 40, 50, 63] }] },
     { sec: "dcBoard", g: "อินเวอร์เตอร์", key: "dcacMax", th: "เพดานอัตรา DC/AC (กำลังแผง ÷ กำลัง AC อินเวอร์เตอร์)", unit: "เท่า", def: 1.2, min: 0.5, max: 3 },
     /* ── สาย DC ── */
     { sec: "dcWire", key: "pvWireK", th: "สาย PV DC เลือกขนาดจาก Isc ×", unit: "เท่า", def: 1.25, min: 1 },
@@ -44,6 +50,13 @@
     { sec: "acBoard", g: "งานโครงการ", key: "mccbAt", th: "ขนาดเฟรม MCCB ที่มีขาย", unit: "AT", type: "nums", def: [16, 20, 25, 32, 40, 50, 63, 80, 100, 125, 160, 200, 225, 250, 320, 400, 500, 630, 800, 1000, 1250] },
     { sec: "acBoard", g: "งานโครงการ", key: "acbAt", th: "ขนาด ACB (ใช้เมื่อเกิน MCCB ตัวใหญ่สุด)", unit: "AT", type: "nums", def: [1600, 2000, 2500, 3200, 4000] },
     { sec: "acBoard", g: "งานโครงการ", key: "gfLsigAt", th: "เมนตั้งแต่กี่ AT ใช้ trip unit LSIG แทน GFR + ZCT + Shunt trip", unit: "AT", def: 1000, min: 1 },
+    { sec: "acBoard", g: "ทุกงาน", key: "acSpd2", th: "AC SPD Type II ที่มีขาย", unit: "V Uc", unitA: "kA Imax", type: "pairs", poles: ["2P", "1P+N", "3P", "3P+N", "4P"], poleDef: "2P",
+      def: [{ v: 275, p: "2P", a: [40] }, { v: 385, p: "3P+N", a: [40] }] },
+    { sec: "acBoard", g: "งานโครงการ", key: "acSpd12", th: "AC SPD Type I+II ที่มีขาย (ระบบล่อฟ้า · แผงใกล้)", unit: "V Uc", unitA: "kA Iimp", type: "pairs", poles: ["2P", "1P+N", "3P", "3P+N", "4P"], poleDef: "2P",
+      def: [{ v: 275, p: "2P", a: [12.5] }, { v: 385, p: "3P+N", a: [12.5] }] },
+    { sec: "acBoard", g: "ทุกงาน", key: "acUc1", th: "AC SPD 1 เฟส · Uc ไม่ต่ำกว่า (ขั้ว 2P / 1P+N)", unit: "V", def: 275, min: 1 },
+    { sec: "acBoard", g: "ทุกงาน", key: "acUc3", th: "AC SPD 3 เฟส · Uc ไม่ต่ำกว่า (ขั้ว 3P+N / 4P)", unit: "V", def: 385, min: 1 },
+    { sec: "acBoard", g: "งานโครงการ", key: "acIimp", th: "AC SPD Type I+II · Iimp ไม่ต่ำกว่า (ต่อขั้ว)", unit: "kA", def: 12.5, min: 0.1 },
     { sec: "acBoard", g: "งานโครงการ", key: "nhT2", th: "ฟิวส์ NH00 กันหลัง AC SPD Type 2", unit: "A", def: 32, min: 1 },
     { sec: "acBoard", g: "งานโครงการ", key: "nhT12", th: "ฟิวส์ NH00 กันหลัง AC SPD Type 1+2 (เมนไม่เกินค่านี้ไม่ต้องมีฟิวส์)", unit: "A", def: 125, min: 1 },
     { sec: "acBoard", g: "งานโครงการ", key: "ctR", th: "อัตราส่วน CT ของ Power Meter ที่มีขาย (/5A · เลือกตัวแรกที่ ≥ เมน)", unit: "A", type: "nums", def: [100, 150, 200, 250, 300, 400, 500, 600, 800, 1000, 1200, 1250, 1500, 1600, 2000, 2500, 3000, 4000] },
@@ -145,12 +158,15 @@
       const m = {};
       String(raw).split(/[;\n]+/).forEach((ln) => {
         const p = ln.split(":"); if (p.length < 2) return;
-        const v = +p[0].replace(/[^\d.]/g, ""); if (!(v > 0)) return;
+        const lm = p[0].trim().match(/^([\d.]+)\s*(?:V(?:DC)?)?\s*(.*)$/i); if (!lm) return;
+        const v = +lm[1]; if (!(v > 0)) return;
+        const pole = d.poles ? (lm[2].trim().toUpperCase().replace(/\s+/g, "") || d.poleDef) : "";
         const a = p[1].split(/[,\s]+/).map(Number).filter((x) => isFinite(x) && x > 0);
-        m[v] = (m[v] || []).concat(a);
+        const k = v + "|" + pole;
+        m[k] = { v: v, p: pole, a: ((m[k] && m[k].a) || []).concat(a) };
       });
-      const out = Object.keys(m).map(Number).sort((x, y) => x - y)
-        .map((v) => ({ v: v, a: Array.from(new Set(m[v])).sort((x, y) => x - y) })).filter((p) => p.a.length);
+      const out = Object.keys(m).map((k) => m[k]).map((r) => Object.assign({ v: r.v }, d.poles ? { p: r.p } : {}, { a: Array.from(new Set(r.a)).sort((x, y) => x - y) }))
+        .filter((r) => r.a.length).sort((x, y) => x.v - y.v || String(x.p || "").localeCompare(String(y.p || "")));
       return out.length ? out : d.def;
     }
     if (d.type === "words") {
@@ -169,6 +185,12 @@
   const ruleRaw = (src, d, t) => {
     const s = src || {}, own = !ruleOnly(d) && s[t] ? s[t][d.key] : null;
     const r = own != null && own !== "" ? own : s[d.key];
+    if ((r == null || r === "") && d.legacyV) {
+      const o = !ruleOnly(d) && s[t] ? s[t][d.legacyV] : null, rv = o != null && o !== "" ? o : s[d.legacyV];
+      if (rv == null || rv === "") return r;
+      const V = ruleVal({ type: "nums", def: d.def.map((p) => p.v) }, rv);
+      return V.map((v) => v + " " + d.poleDef + ": " + d.def[0].a.join(", ")).join("; ");
+    }
     if ((r == null || r === "") && d.legacy) {
       /* ค่าเก่าที่ตั้งเป็นรายการ A กับรายการ V แยกกัน → ทุกแรงดันมีทุกขนาด (เหมือนที่ระบบเคยคิด) จนกว่าจะบันทึกแบบคู่ */
       const pick = (k) => { const o = !ruleOnly(d) && s[t] ? s[t][k] : null; return o != null && o !== "" ? o : s[k]; };
@@ -176,7 +198,7 @@
       if ((ra == null || ra === "") && (rv == null || rv === "")) return r;
       const nums = (x, def) => ruleVal({ type: "nums", def: def }, x);
       const A = nums(ra, d.def[0].a), V = nums(rv, d.def.map((p) => p.v));
-      return V.map((v) => v + ": " + A.join(", ")).join("; ");
+      return V.map((v) => v + (d.poles ? " " + d.poleDef : "") + ": " + A.join(", ")).join("; ");
     }
     return r;
   };
@@ -197,18 +219,32 @@
     useRuleType(ruleType);
   }
   setRules(null);
-  const ruleTxt = (d, v) => (d && d.type === "pairs" && Array.isArray(v) ? v.map((p) => p.v + ": " + p.a.join(", ")).join("; ")
+  const ruleTxt = (d, v) => (d && d.type === "pairs" && Array.isArray(v) ? v.map((p) => p.v + (p.p ? " " + p.p : "") + ": " + p.a.join(", ")).join("; ")
     : Array.isArray(v) ? v.join(", ") : String(v));
   /* เลือกจากของที่ขายเป็นคู่: แรงดันต่ำสุดที่ ≥ needV และมีขนาด ≥ needA → ขนาดแรกที่ ≥ needA
      ไม่มีคู่ที่ผ่านทั้งสอง = ยึดแรงดันก่อน (ขนาดใหญ่สุดของแรงดันนั้น okA false) · แรงดันไม่พอเลย = แรงดันสูงสุด (okV false) */
-  function pairPick(P, needV, needA) {
+  function pairPick(P, needV, needA, poleOk) {
     P = P || [];
-    for (const p of P) if (p.v >= needV) { const a = p.a.find((x) => x >= needA); if (a != null) return { v: p.v, a: a, okV: true, okA: true }; }
+    /* poleOk(p) = ขั้วที่ใช้ได้ (ไม่ส่ง = ขั้วไหนก็ได้) · ไม่มีขั้วที่ใช้ได้เลย = เลือกจากทั้งหมดแล้ว okP false */
+    let okP = true;
+    if (poleOk) { const Q = P.filter((p) => poleOk(p.p)); if (Q.length) P = Q; else okP = false; }
+    const r = pairPick0(P, needV, needA); r.okP = okP; return r;
+  }
+  /* ชื่อ SPD ตามที่เลือกได้ (ต้องตรงกับชื่อในคลัง) · Type II In = Imax/2 */
+  function spdName(kind, s) {
+    const k = (x) => Math.round(x * 100) / 100;
+    if (kind === "dc2") return "DC SPD " + s.p + " " + s.v + "VDC " + k(s.a / 2) + "-" + k(s.a) + "KA";
+    if (kind === "dc12") return "DC SPD " + s.p + " " + s.v + "VDC TYPE I+II Iimp" + k(s.a) + "KA";
+    if (kind === "ac2") return "AC SPD TYPE II " + s.p + " Uc" + s.v + "V In" + k(s.a / 2) + "Ka/Imax" + k(s.a) + "Ka";
+    return "AC SPD TYPE I+II " + s.p + " Uc" + s.v + "V Iimp" + k(s.a) + "kA";
+  }
+  function pairPick0(P, needV, needA) {
+    for (const p of P) if (p.v >= needV) { const a = p.a.find((x) => x >= needA); if (a != null) return { v: p.v, p: p.p, a: a, okV: true, okA: true }; }
     const vOk = P.filter((p) => p.v >= needV);
-    if (vOk.length) { const p = vOk.reduce((m, q) => (q.a[q.a.length - 1] > m.a[m.a.length - 1] ? q : m)); return { v: p.v, a: p.a[p.a.length - 1], okV: true, okA: false }; }
+    if (vOk.length) { const p = vOk.reduce((m, q) => (q.a[q.a.length - 1] > m.a[m.a.length - 1] ? q : m)); return { v: p.v, p: p.p, a: p.a[p.a.length - 1], okV: true, okA: false }; }
     const p = P[P.length - 1]; if (!p) return { v: 0, a: 0, okV: false, okA: false };
     const a = p.a.find((x) => x >= needA);
-    return { v: p.v, a: a != null ? a : p.a[p.a.length - 1], okV: false, okA: a != null };
+    return { v: p.v, p: p.p, a: a != null ? a : p.a[p.a.length - 1], okV: false, okA: a != null };
   }
   // ── ตารางรุ่นแผง: Wp, ความหนาเฟรม(mm), ความกว้างแผงด้านวางราง(m) ──
   // width = ค่าคอลัมน์ L ในชีต DATA (ด้านสั้นที่เรียงชิดกันบนราง)
@@ -2741,7 +2777,7 @@
     UPVC_CONDUIT, conduitFillLimit, conduitDim, conduitCheck,
     AMP_CORE_LABEL, ampGroupMeta, ampCoresFor, ampCoreKey, WIRE_METHOD_LEGACY, normWireMethod,
     G_TRAY, G_SUPPORT, G_LABOR, G_PERMIT, G_OM, OM_DEF, OM_CLEAN_TIERS, OM_SVC_TIERS, OM_CLEAN_DEF, OM_SVC_DEF, omTierNorm, setOmTiers, omTierPrice, omDefaults, omCalc, SERVICE_GROUPS, mergeItems,
-    RULE_SECS, RULE_DEFS, RULES, RULES_T, setRules, ruleVal, ruleTxt, ruleOnly, ruleRaw, pairPick };
+    RULE_SECS, RULE_DEFS, RULES, RULES_T, setRules, ruleVal, ruleTxt, ruleOnly, ruleRaw, pairPick, spdName };
   /* ห่อฟังก์ชันที่ส่งออก: เจออาร์กิวเมนต์ที่เป็นใบ BOQ (jobType) หรืองาน (type) = สลับ RULES เป็นชุดของประเภทนั้นก่อนคิด
      ฟังก์ชันข้างในเรียกกันตรง ๆ (ไม่ผ่านตัวห่อ) จึงใช้ชุดเดียวกันตลอดการคิดหนึ่งครั้ง */
   const typeHint = (a) => {

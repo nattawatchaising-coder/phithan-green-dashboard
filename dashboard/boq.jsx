@@ -1861,8 +1861,7 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock, ver, verName, p3Vers
      SPD AC Type 2 ตู้ละ 1 ตัว + ฟิวส์ใบมีด NH00 gG 32A กันหลัง SPD ทุกเส้นไฟ (L)
      ฝั่ง DC ต่อสตริง: ฟิวส์ gPV ขั้ว + และ − (IEC 62548: 1.5·Isc ≤ In ≤ 2.4·Isc) · SPD DC Type 2 สตริงละ 1 ตัว
        แรงดันพิกัด ≥ Voc สตริง × 1.1 (เผื่อแรงดันขึ้นตอนแผงเย็น) */
-  const DCF_P = RU.dcFuse, SPD_V = RU.dcSpdV;   // ฟิวส์ gPV ที่มีขายเป็นคู่ แรงดัน ↔ ขนาด A
-  const DCF_V = DCF_P.map((p) => p.v);
+  const DCF_P = RU.dcFuse;   // ฟิวส์ gPV ที่มีขายเป็นคู่ แรงดัน ↔ ขนาด A · SPD/DC MCB เป็นชุด แรงดัน + ขั้ว ↔ kA/A (RU.dcSpd2 ฯลฯ)
   const DCMCB_P = RU.dcMcb;   // DC MCB 2P (งานบ้าน — ตัดวงจรสตริงหลังฟิวส์) · คู่ แรงดัน ↔ ขนาด A ที่มีขาย
   const r1 = (x) => Math.round(x * 10) / 10;
   const cabIz = (c) => {
@@ -1944,11 +1943,14 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock, ver, verName, p3Vers
       // Type 1+2: MCCB เมนตู้ ≤ 125 AT กันหลัง SPD ได้เอง ไม่ต้องมีฟิวส์
       const fA = lps ? RU.nhT12 : RU.nhT2;
       const noFuse = lps && mainAt > 0 && mainAt <= RU.nhT12;
-      out.ac.push(lps
-        ? { name: ph === 3 ? "AC SPD TYPE I+II 3P+N Uc385V Iimp12.5kA" : "AC SPD TYPE I+II 2P Uc275V Iimp12.5kA", qty: 1, unit: "ตัว", auto: 1,
-            why: tag + "กันฟ้าผ่าฝั่ง AC ตู้ละ 1 ตัว (" + lpsTxt + " · Iimp 12.5 kA/ขั้ว)" }
-        : { name: ph === 3 ? "AC SPD TYPE II 3P+N Uc385V In20Ka/Imax40Ka" : "AC SPD TYPE II 2P Uc275V In20Ka/Imax40Ka", qty: 1, unit: "ตัว", auto: 1,
-            why: tag + "กันฟ้าผ่า/แรงดันกระชากฝั่ง AC ตู้ละ 1 ตัว (" + lpsTxt + " · Uc " + (ph === 3 ? "385" : "275") + " V)" });
+      /* AC SPD เลือกจากชุดที่มีขาย: ขั้วตามเฟส (1 เฟส 2P/1P+N · 3 เฟส 3P+N/4P) · Uc ≥ acUc1/acUc3 · kA ≥ Imax (Type II) / Iimp (Type I+II) */
+      const ucNeed = ph === 3 ? RU.acUc3 : RU.acUc1, kaNeed = lps ? RU.acIimp : RU.spdImax;
+      const poleSet = ph === 3 ? { "3P+N": 1, "4P": 1 } : { "2P": 1, "1P+N": 1 };
+      const S = window.BOQ.pairPick(lps ? RU.acSpd12 : RU.acSpd2, ucNeed, kaNeed, (p) => !!poleSet[p]);
+      out.ac.push({ name: window.BOQ.spdName(lps ? "ac12" : "ac2", S), qty: 1, unit: "ตัว", auto: 1, ok: S.okV && S.okA && S.okP,
+        why: tag + (lps ? "กันฟ้าผ่าฝั่ง AC" : "กันฟ้าผ่า/แรงดันกระชากฝั่ง AC") + " ตู้ละ 1 ตัว (" + lpsTxt + ") · " + (ph === 3 ? "3 เฟส" : "1 เฟส") + " " + S.p
+          + " · Uc ≥ " + ucNeed + " V → " + S.v + " V · " + (lps ? "Iimp" : "Imax") + " ≥ " + kaNeed + " kA → " + S.a + " kA"
+          + (!S.okP ? " · ไม่มีรุ่นขั้ว" + (ph === 3 ? " 3P+N/4P" : " 2P/1P+N") + " ในรายการที่มีขาย" : "") + (!S.okV ? " · Uc ที่มีขายไม่ถึง" : "") + (!S.okA ? " · kA ที่มีขายไม่ถึง" : "") });
       if (noFuse) out.ac[out.ac.length - 1].why += " · เบรกเกอร์" + (homeOne ? "" : "เมน") + " " + mainAt + " A ≤ " + RU.nhT12 + " A ใช้กันหลัง SPD ได้ ไม่ต้องมีฟิวส์";
       else if (isHome && !lps) {
         out.ac.push({ name: "MCB " + pole + " " + RU.homeSpdMcb + "A", qty: 1, unit: "ตัว", auto: 1, why: tag + "กันหลัง SPD (ตัด SPD ออกได้เมื่อเสีย ไม่กระทบระบบ) — งานบ้านใช้ MCB แทนฟิวส์ · ไม่เกิน max backup ในสเปค SPD" });
@@ -1986,8 +1988,6 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock, ver, verName, p3Vers
     const iIsc = +selInv.maxIscA > 0 ? +selInv.maxIscA / Math.max(1, Math.round(+selInv.strPerMppt || 1)) : 0;
     const isc = pIsc || iIsc;
     const voc = scfg && scfg.stringVoc ? scfg.stringVoc * RU.vocK : (+selInv.maxVdc || 1000);
-    const vPick = (L) => L.find((x) => x >= voc) || L[L.length - 1];
-    const SV = vPick(SPD_V);
     const vTxtOf = (v) => (scfg && scfg.stringVoc ? "Voc สตริง " + r1(scfg.stringVoc) + " V × " + RU.vocK + " = " + r1(voc) + " V → " + v + " VDC"
       : "ยังไม่รู้ Voc สตริง ใช้แรงดันสูงสุดของอินเวอร์เตอร์ → " + v + " VDC");
     if (nStr > 0 && isc > 0) {
@@ -2004,14 +2004,16 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock, ver, verName, p3Vers
     /* งานบ้าน: DC MCB สตริงละ 1 ตัว ไว้ตัด/เปิดวงจรตอนซ่อม · ขนาดแรก ≥ dcMcbK × Isc · แรงดันพิกัดแรก ≥ Voc สตริง × vocK (dcMcbV) */
     if (isHome && nStr > 0 && isc > 0) {
       const need = isc * RU.dcMcbK, M = window.BOQ.pairPick(DCMCB_P, voc, need), A = M.a, MV = M.v;
-      out.dc.push({ name: "DC MCB " + A + "A 2P " + MV + "VDC", qty: nStr, unit: "ตัว", auto: 1, ok: M.okV && M.okA,
+      out.dc.push({ name: "DC MCB " + A + "A " + (M.p || "2P") + " " + MV + "VDC", qty: nStr, unit: "ตัว", auto: 1, ok: M.okV && M.okA,
         why: "สตริงละ 1 ตัว · Isc " + r1(isc) + " A × " + RU.dcMcbK + " = " + r1(need) + " A → " + A + " A · " + vTxtOf(MV)
           + (!M.okA ? " · รุ่น " + MV + " VDC ที่มีขายไม่ถึง " + r1(need) + " A" : "") + (!M.okV ? " · เกินรุ่นที่มีขาย ต้องใช้รุ่นแรงดันสูงกว่า" : "") });
     }
-    if (nStr > 0 && !lps) out.dc.push({ name: "DC SPD 2P " + SV + "VDC 20-40KA", qty: nStr, unit: "ตัว", auto: 1, why: "สตริงละ 1 ตัว · " + lpsTxt + " · " + vTxtOf(SV) });
-    if (nStr > 0 && lps) {
-      const TV = vPick(DCF_V);   // SPD DC Type 1+2 มีขาย 1000 / 1500 VDC
-      out.dc.push({ name: "DC SPD 2P " + TV + "VDC TYPE I+II Iimp6.25KA", qty: nStr, unit: "ตัว", auto: 1, why: "สตริงละ 1 ตัว · " + lpsTxt + " · " + vTxtOf(TV) });
+    /* DC SPD เลือกจากชุดที่มีขาย: แรงดันต่ำสุดที่ ≥ Voc สตริง × vocK และ kA ≥ Imax (Type II) / Iimp (Type I+II) · ขั้วตามที่มีในรายการ */
+    if (nStr > 0) {
+      const kaNeed = lps ? RU.dcIimp : RU.spdImax, S = window.BOQ.pairPick(lps ? RU.dcSpd12 : RU.dcSpd2, voc, kaNeed);
+      out.dc.push({ name: window.BOQ.spdName(lps ? "dc12" : "dc2", S), qty: nStr, unit: "ตัว", auto: 1, ok: S.okV && S.okA,
+        why: "สตริงละ 1 ตัว · " + lpsTxt + " · " + vTxtOf(S.v) + " · " + S.p + " · " + (lps ? "Iimp" : "Imax") + " ≥ " + kaNeed + " kA → " + S.a + " kA"
+          + (!S.okV ? " · แรงดันที่มีขายไม่ถึง" : "") + (!S.okA ? " · kA ที่มีขายไม่ถึง" : "") });
     }
     return out;
   })();
