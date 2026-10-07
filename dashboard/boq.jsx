@@ -3123,7 +3123,7 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock, ver, verName, p3Vers
             )}
           </div>
           <div className="bqq-ft">
-            <button className="btn" onClick={() => { setQPick({ pan: true, inv: true }); setQOn(false); }}><Icon name="list" size={14} /> เปิดแบบละเอียด</button>
+            <button className="btn" onClick={() => setQOn(false)}><Icon name="list" size={14} /> เปิดแบบละเอียด</button>
             <span style={{ flex: 1 }} />
             {onSave && <button className="btn btn-pri" disabled={!(b.panels > 0) || !qReady} onClick={() => guardRun(qSave)}><Icon name="check" size={14} color="#fff" /> บันทึก BOQ</button>}
           </div>
@@ -3257,9 +3257,9 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock, ver, verName, p3Vers
               )}
               <div style={{ gridColumn: isMobile ? "1 / -1" : "auto" }}>
                 <Field label={"รุ่นแผง" + (jobPanel ? " · ตามฐานข้อมูล" : "")}>
-                  <Dropdown value={b.panelModel} onChange={(v) => set("panelModel", v)}
+                  <Dropdown value={qPick.pan ? b.panelModel : "__unset"} placeholder="— เลือกรุ่นแผง —" onChange={(v) => { setQPick((o) => Object.assign({}, o, { pan: true })); set("panelModel", v); }}
                     options={window.BOQ.PANELS.map((p) => ({ value: p.model, label: p.model, sub: p.wp ? p.wp + "W" : "", group: p.group || "" }))} />
-                  {panelOff && (
+                  {panelOff && qPick.pan && (
                     <div style={{ marginTop: 6, padding: "7px 9px", borderRadius: 9, background: "var(--tint-amber-bg)",
                       border: "1px solid var(--tint-amber-bd)", fontSize: 11.5, lineHeight: 1.55, color: "var(--text-1)" }}>
                       <b style={{ color: "var(--tint-amber-tx)" }}>แผงไม่ตรงรุ่น</b> — ฐานข้อมูลระบุ {jobPanel}
@@ -5104,7 +5104,8 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock, ver, verName, p3Vers
         <button className="bq-btn" style={{ marginRight: 8 }} onClick={onClose}>ปิด</button>
         <button className="bq-btn gh" style={{ marginRight: 8 }} onClick={() => guardRun(exportXlsx)} title="ใบถอดวัสดุฉบับเต็ม มีราคาต้นทุนทุกรายการ — ใช้ภายใน"><Icon name="box" size={15} color="var(--primary-dark)" /> Excel</button>
         <button className="bq-btn gh" style={{ marginRight: 8 }} onClick={() => guardRun(() => exportXlsx({ customer: true }))} title="ฉบับส่งลูกค้า — รายการอุปกรณ์ + จำนวน ไม่มีราคาต่อชิ้น ปิดท้ายด้วยราคารวม"><Icon name="box" size={15} color="var(--primary-dark)" /> BOQ ลูกค้า</button>
-        {onSave && <button className="bq-btn pri" onClick={() => guardRun(() => onSave(Object.assign({}, b, { project: project,
+        {onSave && !qReady && <span style={{ fontSize: 12, fontWeight: 700, color: "var(--tint-amber-tx)", marginRight: 10 }}>เลือก{!qPick.pan ? "รุ่นแผง" : ""}{!qPick.pan && !qPick.inv ? "และ" : ""}{!qPick.inv ? "อินเวอร์เตอร์" : ""}ก่อนบันทึก</span>}
+        {onSave && <button className="bq-btn pri" disabled={!qReady} style={!qReady ? { opacity: .5, cursor: "not-allowed" } : null} onClick={() => guardRun(() => onSave(Object.assign({}, b, { project: project,
           pricing: Object.assign({}, b.pricing || {}, { sell: pb.sell }, pb.mode !== "sell" ? { profitMode: pb.mode } : {}) })))}><Icon name="check" size={15} color="#fff" /> บันทึก BOQ</button>}
       </div>
       {measOpen && (

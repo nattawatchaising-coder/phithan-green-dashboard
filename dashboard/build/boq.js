@@ -6189,13 +6189,7 @@ function BOQEditor({
       className: "bqq-ft"
     }, React.createElement("button", {
       className: "btn",
-      onClick: () => {
-        setQPick({
-          pan: true,
-          inv: true
-        });
-        setQOn(false);
-      }
+      onClick: () => setQOn(false)
     }, React.createElement(Icon, {
       name: "list",
       size: 14
@@ -6452,15 +6446,21 @@ function BOQEditor({
   }, React.createElement(Field, {
     label: "รุ่นแผง" + (jobPanel ? " · ตามฐานข้อมูล" : "")
   }, React.createElement(Dropdown, {
-    value: b.panelModel,
-    onChange: v => set("panelModel", v),
+    value: qPick.pan ? b.panelModel : "__unset",
+    placeholder: "\u2014 \u0E40\u0E25\u0E37\u0E2D\u0E01\u0E23\u0E38\u0E48\u0E19\u0E41\u0E1C\u0E07 \u2014",
+    onChange: v => {
+      setQPick(o => Object.assign({}, o, {
+        pan: true
+      }));
+      set("panelModel", v);
+    },
     options: window.BOQ.PANELS.map(p => ({
       value: p.model,
       label: p.model,
       sub: p.wp ? p.wp + "W" : "",
       group: p.group || ""
     }))
-  }), panelOff && React.createElement("div", {
+  }), panelOff && qPick.pan && React.createElement("div", {
     style: {
       marginTop: 6,
       padding: "7px 9px",
@@ -10820,8 +10820,20 @@ function BOQEditor({
     name: "box",
     size: 15,
     color: "var(--primary-dark)"
-  }), " BOQ \u0E25\u0E39\u0E01\u0E04\u0E49\u0E32"), onSave && React.createElement("button", {
+  }), " BOQ \u0E25\u0E39\u0E01\u0E04\u0E49\u0E32"), onSave && !qReady && React.createElement("span", {
+    style: {
+      fontSize: 12,
+      fontWeight: 700,
+      color: "var(--tint-amber-tx)",
+      marginRight: 10
+    }
+  }, "\u0E40\u0E25\u0E37\u0E2D\u0E01", !qPick.pan ? "รุ่นแผง" : "", !qPick.pan && !qPick.inv ? "และ" : "", !qPick.inv ? "อินเวอร์เตอร์" : "", "\u0E01\u0E48\u0E2D\u0E19\u0E1A\u0E31\u0E19\u0E17\u0E36\u0E01"), onSave && React.createElement("button", {
     className: "bq-btn pri",
+    disabled: !qReady,
+    style: !qReady ? {
+      opacity: .5,
+      cursor: "not-allowed"
+    } : null,
     onClick: () => guardRun(() => onSave(Object.assign({}, b, {
       project: project,
       pricing: Object.assign({}, b.pricing || {}, {
