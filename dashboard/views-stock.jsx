@@ -409,20 +409,6 @@ function StockView({ stock, onResetAll, onMenuOpen, currentUser, jobs, priceStor
       ) : (
       <div className="app-content">
         {filterBar}
-        {!isMobile && (
-        /* ใช้แผงตัวเลขชุดเดียวกับหน้าภาพรวม — ช่องที่กำลังกรองอยู่จะมีเส้นใต้เขียวคาดไว้ */
-        <div style={{ marginBottom: 18 }}>
-          <StatRail items={[
-            { label: "รายการทั้งหมด", value: items.length, unit: "ชนิด", accent: "#3B82F6",
-              sub: "ชนิดอุปกรณ์ในคลัง", active: kpiFilter === null, onClick: () => setKpiFilter(null) },
-            { label: "ใกล้หมด / ต่ำกว่าขั้นต่ำ", value: lowCount, unit: "รายการ", accent: "#F59E0B", alert: lowCount > 0,
-              sub: "ควรสั่งเพิ่ม", active: kpiFilter === "low", onClick: () => setKpiFilter((f) => (f === "low" ? null : "low")) },
-            { label: "ความเคลื่อนไหวล่าสุด", value: stock.moves.length, unit: "รายการ", accent: "var(--primary)",
-              sub: "แตะดูทั้งหมด", active: movesOpen, onClick: () => setMovesOpen(true) },
-          ]} />
-        </div>
-        )}
-
         {/* ── เลือกยี่ห้อ ── วางติดกับรายการเลย เลื่อนมาดูของแล้วยังกดเปลี่ยนได้ ไม่ต้องเลื่อนกลับขึ้นหัวเพจ
             หน้าแรก (เลือกหมวด) ไม่ต้องขึ้น — ยี่ห้อทั้งคลังมี 14 ยี่ห้อ รกเปล่า ๆ กดเข้าหมวดก่อนค่อยโผล่ */}
         {brandList.length > 0 && !showCatHome && (
@@ -2884,7 +2870,6 @@ function CatCard({ c, n, lowN, img, onPick, onImage }) {
         <span style={{ display: "block", fontSize: 14.5, fontWeight: 700, color: "var(--text-1)", lineHeight: 1.3 }}>{c.th}</span>
         <span style={{ display: "block", fontSize: 12, color: "var(--text-3)", marginTop: 3 }}>
           {(n || 0).toLocaleString()} รายการ
-          {lowN ? <span style={{ color: "var(--tint-red-tx2)", fontWeight: 700 }}>{" · ของขาด " + lowN}</span> : null}
         </span>
         {/* ปุ่มรูป — กดแล้วไม่เข้าไปในหมวด (stopPropagation) */}
         <span onClick={(e) => e.stopPropagation()} style={{ display: "flex", gap: 5, marginTop: 7 }}>

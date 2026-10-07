@@ -726,38 +726,7 @@ function StockView({
     grp: priceGrp
   })) : React.createElement("div", {
     className: "app-content"
-  }, filterBar, !isMobile && React.createElement("div", {
-    style: {
-      marginBottom: 18
-    }
-  }, React.createElement(StatRail, {
-    items: [{
-      label: "รายการทั้งหมด",
-      value: items.length,
-      unit: "ชนิด",
-      accent: "#3B82F6",
-      sub: "ชนิดอุปกรณ์ในคลัง",
-      active: kpiFilter === null,
-      onClick: () => setKpiFilter(null)
-    }, {
-      label: "ใกล้หมด / ต่ำกว่าขั้นต่ำ",
-      value: lowCount,
-      unit: "รายการ",
-      accent: "#F59E0B",
-      alert: lowCount > 0,
-      sub: "ควรสั่งเพิ่ม",
-      active: kpiFilter === "low",
-      onClick: () => setKpiFilter(f => f === "low" ? null : "low")
-    }, {
-      label: "ความเคลื่อนไหวล่าสุด",
-      value: stock.moves.length,
-      unit: "รายการ",
-      accent: "var(--primary)",
-      sub: "แตะดูทั้งหมด",
-      active: movesOpen,
-      onClick: () => setMovesOpen(true)
-    }]
-  })), brandList.length > 0 && !showCatHome && React.createElement("div", {
+  }, filterBar, brandList.length > 0 && !showCatHome && React.createElement("div", {
     style: {
       marginBottom: 12,
       display: "flex",
@@ -7483,12 +7452,7 @@ function CatCard({
       color: "var(--text-3)",
       marginTop: 3
     }
-  }, (n || 0).toLocaleString(), " \u0E23\u0E32\u0E22\u0E01\u0E32\u0E23", lowN ? React.createElement("span", {
-    style: {
-      color: "var(--tint-red-tx2)",
-      fontWeight: 700
-    }
-  }, " · ของขาด " + lowN) : null), React.createElement("span", {
+  }, (n || 0).toLocaleString(), " \u0E23\u0E32\u0E22\u0E01\u0E32\u0E23"), React.createElement("span", {
     onClick: e => e.stopPropagation(),
     style: {
       display: "flex",
