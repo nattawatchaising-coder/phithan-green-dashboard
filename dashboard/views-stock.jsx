@@ -541,6 +541,7 @@ function StockView({ stock, onResetAll, onMenuOpen, currentUser, jobs, priceStor
         onSave={(rec) => { stock.upsertItem(rec); setItemForm(null); }} onClose={() => setItemForm(null)} />}
       {detailItem && <ItemDetailModal item={(stock.items || []).find((x) => x.id === detailItem.id) || detailItem} img={imgs[detailItem.id]}
         variants={variantsOf(detailItem)} onPickVariant={setDetailItem}
+        items={stock.items || []} imgs={imgs} onOpen={setDetailItem}
         loadDoc={stock.loadDoc} setDoc={stock.setDoc}
         onMove={(type) => { setMoveItem({ item: detailItem, type: type }); setDetailItem(null); }}
         onEdit={() => { setItemForm({ item: detailItem, isNew: false }); setDetailItem(null); }}
@@ -864,6 +865,58 @@ function StkOptPairs({ pairs, invNames, onChange, isMobile }) {
   );
 }
 
+/* ── อุปกรณ์เสริมที่ใช้คู่กัน (มิเตอร์ · ดองเกิล · แบต · กล่องสำรองไฟ ฯลฯ) ──
+   เก็บเป็น accIds = [id ในคลัง] บนตัวอินเวอร์เตอร์ — อ้างด้วย id ไม่ใช่ชื่อ เปลี่ยนชื่อสินค้าแล้วไม่หลุด
+   ตัวเลือกไม่รวมอินเวอร์เตอร์ตัวอื่น (ของที่มี invKw) · ยี่ห้อเดียวกันขึ้นก่อน */
+function StkAccPick({ ids, self, items, onChange }) {
+  const SF = window.SF;
+  const list = Array.isArray(ids) ? ids : [];
+  const byId = {}; (items || []).forEach((x) => { if (x && x.id) byId[x.id] = x; });
+  const lo = (x) => String(x || "").toLowerCase().trim();
+  const br = lo(self.brand);
+  const cand = (items || []).filter((x) => x && x.id && x.name && x.id !== self.id && !(+x.invKw > 0) && list.indexOf(x.id) < 0);
+  const same = br ? cand.filter((x) => lo(x.brand) === br || lo(x.name).indexOf(br) !== -1) : [];
+  const rest = cand.filter((x) => same.indexOf(x) < 0);
+  const nm = (a) => a.slice().sort((x, z) => String(x.name).localeCompare(String(z.name), "th"));
+  const catTh = (x) => { const c = SF.STOCK_CAT_BY && SF.STOCK_CAT_BY[x.cat]; return c ? c.th : ""; };
+  return (
+    <div style={{ gridColumn: "1 / -1", marginTop: 2, padding: 14, background: "var(--surface2)", border: "1px dashed var(--border-strong)", borderRadius: "var(--r-tile)" }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 11.5, fontWeight: 700, color: "var(--text-2)", marginBottom: 10 }}>
+        <Icon name="link" size={14} color="var(--primary-dark)" /> อุปกรณ์เสริมที่ใช้คู่กัน
+        <span style={{ fontWeight: 400, color: "var(--text-3)" }}>· {list.length} รายการ</span>
+      </div>
+      {list.length > 0 && (
+        <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 9 }}>
+          {list.map((id) => {
+            const x = byId[id];
+            return (
+              <span key={id} style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "5px 6px 5px 10px", borderRadius: "var(--r-chip)",
+                background: "var(--surface)", boxShadow: "var(--shadow-sm)", fontSize: 11.5, fontWeight: 600, color: x ? "var(--text-1)" : "var(--text-3)" }}>
+                {x ? x.name : id + " (ไม่มีในคลังแล้ว)"}
+                <button type="button" title="เอาออก" onClick={() => onChange(list.filter((k) => k !== id))}
+                  style={{ width: 20, height: 20, borderRadius: 99, border: "none", background: "var(--surface2)", cursor: "pointer", display: "grid", placeItems: "center" }}>
+                  <Icon name="x" size={11} color="var(--text-3)" />
+                </button>
+              </span>
+            );
+          })}
+        </div>
+      )}
+      <select style={inputStyle} value="" onChange={(e) => { if (e.target.value) onChange(list.concat([e.target.value])); }}>
+        <option value="">+ เพิ่มอุปกรณ์เสริมจากคลัง…</option>
+        {same.length > 0 && (
+          <optgroup label={"ยี่ห้อ " + self.brand}>
+            {nm(same).map((x) => <option key={x.id} value={x.id}>{x.name}{catTh(x) ? " · " + catTh(x) : ""}</option>)}
+          </optgroup>
+        )}
+        <optgroup label={same.length ? "ยี่ห้ออื่น" : "ทั้งคลัง"}>
+          {nm(rest).map((x) => <option key={x.id} value={x.id}>{x.name}{catTh(x) ? " · " + catTh(x) : ""}</option>)}
+        </optgroup>
+      </select>
+    </div>
+  );
+}
+
 function ItemModal({ initial, isNew, items, onSave, onClose, onAddCat, onRemoveCat, img, onImage, hint }) {
   const SF = window.SF;
   const isMobile = window.matchMedia("(max-width: 860px)").matches;
@@ -1159,6 +1212,9 @@ function ItemModal({ initial, isNew, items, onSave, onClose, onAddCat, onRemoveC
                 ตั้งเป็น String/Hybrid → เลือกในหน้าถอด BOQ ได้ คิดจำนวนตัว = ปัดขึ้น(กำลังแผงรวม ÷ MAX PV ต่อตัว) · MAX PV = กำลังแผงสูงสุดที่ใส่ได้ · จำนวนช่อง MPPT × อินพุตต่อช่อง = สตริงที่เสียบได้ทั้งตัว (เช่น 2 ช่อง × 2 อินพุต = 4 สตริง · ไม่กรอกถือว่า 2 อินพุต/ช่อง) · กระแสออก (A) = ใช้คำนวณ RCBO และขนาดสาย AC จุด INVERTER-MCB_SOLAR / MCB_SOLAR-MDB (×1.25) · ช่วง MPPT/Voc แผง → คำนวณจำนวนแผงต่ออนุกรม + สาย DC
               </div>
             </div>
+          )}
+          {mainCat === "inverter" && +f.invKw > 0 && (
+            <StkAccPick ids={f.accIds} self={f} items={items} onChange={(v) => set("accIds", v)} />
           )}
           {mainCat === "electrical" && (
             <div style={{ gridColumn: "1 / -1", marginTop: 2, padding: 14, background: "var(--surface2)", border: "1px dashed var(--border-strong)", borderRadius: "var(--r-tile)" }}>
@@ -2224,7 +2280,37 @@ function stkLinkify(t) {
       style={{ color: "var(--primary-dark)", fontWeight: 700, textDecoration: "underline", textUnderlineOffset: 3 }}>{/\.pdf(\?|$)/i.test(x) ? "เปิดไฟล์ PDF" : host} ↗</a>;
   });
 }
-function ItemDetailModal({ item, img, variants, loadDoc, setDoc, onMove, onEdit, onClose, onPickVariant, onAddSize }) {
+/* ช่องอุปกรณ์ที่ผูกกัน — แตะ = เปิดรายละเอียดของชิ้นนั้น */
+function StkLinkTiles({ title, list, imgs, onOpen }) {
+  if (!list.length) return null;
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+      <span style={{ fontSize: 10.5, fontWeight: 800, color: "var(--text-3)" }}>{title}</span>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(190px, 1fr))", gap: 8 }}>
+        {list.map((x) => (
+          <button key={x.id} type="button" onClick={() => onOpen && onOpen(x)}
+            style={{ display: "flex", alignItems: "center", gap: 9, padding: 7, borderRadius: "var(--r-tile)", border: "none", textAlign: "left",
+              background: "var(--surface)", boxShadow: "var(--shadow-sm)", cursor: onOpen ? "pointer" : "default", fontFamily: "inherit" }}>
+            <span style={{ width: 44, height: 44, flexShrink: 0, borderRadius: "var(--r-chip)", overflow: "hidden", background: "#fff",
+              display: "grid", placeItems: "center" }}>
+              {imgs && imgs[x.id] ? <img src={imgs[x.id]} alt="" style={{ width: "100%", height: "100%", objectFit: "contain" }} />
+                : <Icon name="box" size={16} color="var(--text-3)" />}
+            </span>
+            <span style={{ minWidth: 0, flex: 1 }}>
+              <span style={{ display: "block", fontSize: 12, fontWeight: 700, color: "var(--text-1)", lineHeight: 1.35,
+                overflow: "hidden", display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical" }}>{x.name}</span>
+              <span style={{ display: "block", fontSize: 10.5, color: "var(--text-3)", marginTop: 1 }}>
+                {+x.price > 0 ? "฿" + Number(x.price).toLocaleString("th-TH") : "ยังไม่มีราคา"}
+              </span>
+            </span>
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function ItemDetailModal({ item, img, variants, loadDoc, setDoc, onMove, onEdit, onClose, onPickVariant, onAddSize, items, imgs, onOpen }) {
   const SF = window.SF;
   const bdClose = window.useBackdropClose(onClose);
   const isMobile = window.matchMedia("(max-width: 860px)").matches;
@@ -2442,6 +2528,12 @@ function ItemDetailModal({ item, img, variants, loadDoc, setDoc, onMove, onEdit,
               </div>
             </div>
           )}
+
+          {/* อุปกรณ์เสริมที่ใช้คู่กัน · กลับด้าน = อุปกรณ์เสริมชิ้นนี้ใช้กับอินเวอร์เตอร์รุ่นไหน */}
+          <StkLinkTiles title="อุปกรณ์เสริมที่ใช้คู่กัน" imgs={imgs} onOpen={onOpen}
+            list={(item.accIds || []).map((id) => (items || []).find((x) => x && x.id === id)).filter(Boolean)} />
+          <StkLinkTiles title="ใช้คู่กับอินเวอร์เตอร์" imgs={imgs} onOpen={onOpen}
+            list={(items || []).filter((x) => x && Array.isArray(x.accIds) && x.accIds.indexOf(item.id) !== -1)} />
 
           {/* DATA SHEET — แนบไฟล์ PDF ของผู้ผลิต ไว้เปิดดูหน้างานได้เลย */}
           <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>

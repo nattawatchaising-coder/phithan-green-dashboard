@@ -1127,6 +1127,9 @@ function StockView({
     img: imgs[detailItem.id],
     variants: variantsOf(detailItem),
     onPickVariant: setDetailItem,
+    items: stock.items || [],
+    imgs: imgs,
+    onOpen: setDetailItem,
     loadDoc: stock.loadDoc,
     setDoc: stock.setDoc,
     onMove: type => {
@@ -2152,6 +2155,118 @@ function StkOptPairs({
       lineHeight: 1.7
     }
   }, "\u0E15\u0E48\u0E33\u0E2A\u0E38\u0E14/\u0E2A\u0E39\u0E07\u0E2A\u0E38\u0E14 = \u0E08\u0E33\u0E19\u0E27\u0E19", React.createElement("b", null, "\u0E15\u0E31\u0E27\u0E04\u0E38\u0E21"), "\u0E15\u0E48\u0E2D\u0E2A\u0E15\u0E23\u0E34\u0E07 (\u0E44\u0E21\u0E48\u0E43\u0E0A\u0E48\u0E08\u0E33\u0E19\u0E27\u0E19\u0E41\u0E1C\u0E07) \xB7 W/\u0E2A\u0E15\u0E23\u0E34\u0E07 = \u0E01\u0E33\u0E25\u0E31\u0E07 DC \u0E2A\u0E39\u0E07\u0E2A\u0E38\u0E14\u0E15\u0E48\u0E2D\u0E2A\u0E15\u0E23\u0E34\u0E07\u0E15\u0E32\u0E21\u0E04\u0E39\u0E48\u0E21\u0E37\u0E2D"));
+}
+function StkAccPick({
+  ids,
+  self,
+  items,
+  onChange
+}) {
+  const SF = window.SF;
+  const list = Array.isArray(ids) ? ids : [];
+  const byId = {};
+  (items || []).forEach(x => {
+    if (x && x.id) byId[x.id] = x;
+  });
+  const lo = x => String(x || "").toLowerCase().trim();
+  const br = lo(self.brand);
+  const cand = (items || []).filter(x => x && x.id && x.name && x.id !== self.id && !(+x.invKw > 0) && list.indexOf(x.id) < 0);
+  const same = br ? cand.filter(x => lo(x.brand) === br || lo(x.name).indexOf(br) !== -1) : [];
+  const rest = cand.filter(x => same.indexOf(x) < 0);
+  const nm = a => a.slice().sort((x, z) => String(x.name).localeCompare(String(z.name), "th"));
+  const catTh = x => {
+    const c = SF.STOCK_CAT_BY && SF.STOCK_CAT_BY[x.cat];
+    return c ? c.th : "";
+  };
+  return React.createElement("div", {
+    style: {
+      gridColumn: "1 / -1",
+      marginTop: 2,
+      padding: 14,
+      background: "var(--surface2)",
+      border: "1px dashed var(--border-strong)",
+      borderRadius: "var(--r-tile)"
+    }
+  }, React.createElement("div", {
+    style: {
+      display: "flex",
+      alignItems: "center",
+      gap: 6,
+      fontSize: 11.5,
+      fontWeight: 700,
+      color: "var(--text-2)",
+      marginBottom: 10
+    }
+  }, React.createElement(Icon, {
+    name: "link",
+    size: 14,
+    color: "var(--primary-dark)"
+  }), " \u0E2D\u0E38\u0E1B\u0E01\u0E23\u0E13\u0E4C\u0E40\u0E2A\u0E23\u0E34\u0E21\u0E17\u0E35\u0E48\u0E43\u0E0A\u0E49\u0E04\u0E39\u0E48\u0E01\u0E31\u0E19", React.createElement("span", {
+    style: {
+      fontWeight: 400,
+      color: "var(--text-3)"
+    }
+  }, "\xB7 ", list.length, " \u0E23\u0E32\u0E22\u0E01\u0E32\u0E23")), list.length > 0 && React.createElement("div", {
+    style: {
+      display: "flex",
+      flexWrap: "wrap",
+      gap: 6,
+      marginBottom: 9
+    }
+  }, list.map(id => {
+    const x = byId[id];
+    return React.createElement("span", {
+      key: id,
+      style: {
+        display: "inline-flex",
+        alignItems: "center",
+        gap: 6,
+        padding: "5px 6px 5px 10px",
+        borderRadius: "var(--r-chip)",
+        background: "var(--surface)",
+        boxShadow: "var(--shadow-sm)",
+        fontSize: 11.5,
+        fontWeight: 600,
+        color: x ? "var(--text-1)" : "var(--text-3)"
+      }
+    }, x ? x.name : id + " (ไม่มีในคลังแล้ว)", React.createElement("button", {
+      type: "button",
+      title: "\u0E40\u0E2D\u0E32\u0E2D\u0E2D\u0E01",
+      onClick: () => onChange(list.filter(k => k !== id)),
+      style: {
+        width: 20,
+        height: 20,
+        borderRadius: 99,
+        border: "none",
+        background: "var(--surface2)",
+        cursor: "pointer",
+        display: "grid",
+        placeItems: "center"
+      }
+    }, React.createElement(Icon, {
+      name: "x",
+      size: 11,
+      color: "var(--text-3)"
+    })));
+  })), React.createElement("select", {
+    style: inputStyle,
+    value: "",
+    onChange: e => {
+      if (e.target.value) onChange(list.concat([e.target.value]));
+    }
+  }, React.createElement("option", {
+    value: ""
+  }, "+ \u0E40\u0E1E\u0E34\u0E48\u0E21\u0E2D\u0E38\u0E1B\u0E01\u0E23\u0E13\u0E4C\u0E40\u0E2A\u0E23\u0E34\u0E21\u0E08\u0E32\u0E01\u0E04\u0E25\u0E31\u0E07\u2026"), same.length > 0 && React.createElement("optgroup", {
+    label: "ยี่ห้อ " + self.brand
+  }, nm(same).map(x => React.createElement("option", {
+    key: x.id,
+    value: x.id
+  }, x.name, catTh(x) ? " · " + catTh(x) : ""))), React.createElement("optgroup", {
+    label: same.length ? "ยี่ห้ออื่น" : "ทั้งคลัง"
+  }, nm(rest).map(x => React.createElement("option", {
+    key: x.id,
+    value: x.id
+  }, x.name, catTh(x) ? " · " + catTh(x) : "")))));
 }
 function ItemModal({
   initial,
@@ -3204,7 +3319,12 @@ function ItemModal({
       color: "var(--text-3)",
       lineHeight: 1.5
     }
-  }, "\u0E15\u0E31\u0E49\u0E07\u0E40\u0E1B\u0E47\u0E19 String/Hybrid \u2192 \u0E40\u0E25\u0E37\u0E2D\u0E01\u0E43\u0E19\u0E2B\u0E19\u0E49\u0E32\u0E16\u0E2D\u0E14 BOQ \u0E44\u0E14\u0E49 \u0E04\u0E34\u0E14\u0E08\u0E33\u0E19\u0E27\u0E19\u0E15\u0E31\u0E27 = \u0E1B\u0E31\u0E14\u0E02\u0E36\u0E49\u0E19(\u0E01\u0E33\u0E25\u0E31\u0E07\u0E41\u0E1C\u0E07\u0E23\u0E27\u0E21 \xF7 MAX PV \u0E15\u0E48\u0E2D\u0E15\u0E31\u0E27) \xB7 MAX PV = \u0E01\u0E33\u0E25\u0E31\u0E07\u0E41\u0E1C\u0E07\u0E2A\u0E39\u0E07\u0E2A\u0E38\u0E14\u0E17\u0E35\u0E48\u0E43\u0E2A\u0E48\u0E44\u0E14\u0E49 \xB7 \u0E08\u0E33\u0E19\u0E27\u0E19\u0E0A\u0E48\u0E2D\u0E07 MPPT \xD7 \u0E2D\u0E34\u0E19\u0E1E\u0E38\u0E15\u0E15\u0E48\u0E2D\u0E0A\u0E48\u0E2D\u0E07 = \u0E2A\u0E15\u0E23\u0E34\u0E07\u0E17\u0E35\u0E48\u0E40\u0E2A\u0E35\u0E22\u0E1A\u0E44\u0E14\u0E49\u0E17\u0E31\u0E49\u0E07\u0E15\u0E31\u0E27 (\u0E40\u0E0A\u0E48\u0E19 2 \u0E0A\u0E48\u0E2D\u0E07 \xD7 2 \u0E2D\u0E34\u0E19\u0E1E\u0E38\u0E15 = 4 \u0E2A\u0E15\u0E23\u0E34\u0E07 \xB7 \u0E44\u0E21\u0E48\u0E01\u0E23\u0E2D\u0E01\u0E16\u0E37\u0E2D\u0E27\u0E48\u0E32 2 \u0E2D\u0E34\u0E19\u0E1E\u0E38\u0E15/\u0E0A\u0E48\u0E2D\u0E07) \xB7 \u0E01\u0E23\u0E30\u0E41\u0E2A\u0E2D\u0E2D\u0E01 (A) = \u0E43\u0E0A\u0E49\u0E04\u0E33\u0E19\u0E27\u0E13 RCBO \u0E41\u0E25\u0E30\u0E02\u0E19\u0E32\u0E14\u0E2A\u0E32\u0E22 AC \u0E08\u0E38\u0E14 INVERTER-MCB_SOLAR / MCB_SOLAR-MDB (\xD71.25) \xB7 \u0E0A\u0E48\u0E27\u0E07 MPPT/Voc \u0E41\u0E1C\u0E07 \u2192 \u0E04\u0E33\u0E19\u0E27\u0E13\u0E08\u0E33\u0E19\u0E27\u0E19\u0E41\u0E1C\u0E07\u0E15\u0E48\u0E2D\u0E2D\u0E19\u0E38\u0E01\u0E23\u0E21 + \u0E2A\u0E32\u0E22 DC")), mainCat === "electrical" && React.createElement("div", {
+  }, "\u0E15\u0E31\u0E49\u0E07\u0E40\u0E1B\u0E47\u0E19 String/Hybrid \u2192 \u0E40\u0E25\u0E37\u0E2D\u0E01\u0E43\u0E19\u0E2B\u0E19\u0E49\u0E32\u0E16\u0E2D\u0E14 BOQ \u0E44\u0E14\u0E49 \u0E04\u0E34\u0E14\u0E08\u0E33\u0E19\u0E27\u0E19\u0E15\u0E31\u0E27 = \u0E1B\u0E31\u0E14\u0E02\u0E36\u0E49\u0E19(\u0E01\u0E33\u0E25\u0E31\u0E07\u0E41\u0E1C\u0E07\u0E23\u0E27\u0E21 \xF7 MAX PV \u0E15\u0E48\u0E2D\u0E15\u0E31\u0E27) \xB7 MAX PV = \u0E01\u0E33\u0E25\u0E31\u0E07\u0E41\u0E1C\u0E07\u0E2A\u0E39\u0E07\u0E2A\u0E38\u0E14\u0E17\u0E35\u0E48\u0E43\u0E2A\u0E48\u0E44\u0E14\u0E49 \xB7 \u0E08\u0E33\u0E19\u0E27\u0E19\u0E0A\u0E48\u0E2D\u0E07 MPPT \xD7 \u0E2D\u0E34\u0E19\u0E1E\u0E38\u0E15\u0E15\u0E48\u0E2D\u0E0A\u0E48\u0E2D\u0E07 = \u0E2A\u0E15\u0E23\u0E34\u0E07\u0E17\u0E35\u0E48\u0E40\u0E2A\u0E35\u0E22\u0E1A\u0E44\u0E14\u0E49\u0E17\u0E31\u0E49\u0E07\u0E15\u0E31\u0E27 (\u0E40\u0E0A\u0E48\u0E19 2 \u0E0A\u0E48\u0E2D\u0E07 \xD7 2 \u0E2D\u0E34\u0E19\u0E1E\u0E38\u0E15 = 4 \u0E2A\u0E15\u0E23\u0E34\u0E07 \xB7 \u0E44\u0E21\u0E48\u0E01\u0E23\u0E2D\u0E01\u0E16\u0E37\u0E2D\u0E27\u0E48\u0E32 2 \u0E2D\u0E34\u0E19\u0E1E\u0E38\u0E15/\u0E0A\u0E48\u0E2D\u0E07) \xB7 \u0E01\u0E23\u0E30\u0E41\u0E2A\u0E2D\u0E2D\u0E01 (A) = \u0E43\u0E0A\u0E49\u0E04\u0E33\u0E19\u0E27\u0E13 RCBO \u0E41\u0E25\u0E30\u0E02\u0E19\u0E32\u0E14\u0E2A\u0E32\u0E22 AC \u0E08\u0E38\u0E14 INVERTER-MCB_SOLAR / MCB_SOLAR-MDB (\xD71.25) \xB7 \u0E0A\u0E48\u0E27\u0E07 MPPT/Voc \u0E41\u0E1C\u0E07 \u2192 \u0E04\u0E33\u0E19\u0E27\u0E13\u0E08\u0E33\u0E19\u0E27\u0E19\u0E41\u0E1C\u0E07\u0E15\u0E48\u0E2D\u0E2D\u0E19\u0E38\u0E01\u0E23\u0E21 + \u0E2A\u0E32\u0E22 DC")), mainCat === "inverter" && +f.invKw > 0 && React.createElement(StkAccPick, {
+    ids: f.accIds,
+    self: f,
+    items: items,
+    onChange: v => set("accIds", v)
+  }), mainCat === "electrical" && React.createElement("div", {
     style: {
       gridColumn: "1 / -1",
       marginTop: 2,
@@ -5695,6 +5815,97 @@ function stkLinkify(t) {
     }, /\.pdf(\?|$)/i.test(x) ? "เปิดไฟล์ PDF" : host, " \u2197");
   });
 }
+function StkLinkTiles({
+  title,
+  list,
+  imgs,
+  onOpen
+}) {
+  if (!list.length) return null;
+  return React.createElement("div", {
+    style: {
+      display: "flex",
+      flexDirection: "column",
+      gap: 8
+    }
+  }, React.createElement("span", {
+    style: {
+      fontSize: 10.5,
+      fontWeight: 800,
+      color: "var(--text-3)"
+    }
+  }, title), React.createElement("div", {
+    style: {
+      display: "grid",
+      gridTemplateColumns: "repeat(auto-fill, minmax(190px, 1fr))",
+      gap: 8
+    }
+  }, list.map(x => React.createElement("button", {
+    key: x.id,
+    type: "button",
+    onClick: () => onOpen && onOpen(x),
+    style: {
+      display: "flex",
+      alignItems: "center",
+      gap: 9,
+      padding: 7,
+      borderRadius: "var(--r-tile)",
+      border: "none",
+      textAlign: "left",
+      background: "var(--surface)",
+      boxShadow: "var(--shadow-sm)",
+      cursor: onOpen ? "pointer" : "default",
+      fontFamily: "inherit"
+    }
+  }, React.createElement("span", {
+    style: {
+      width: 44,
+      height: 44,
+      flexShrink: 0,
+      borderRadius: "var(--r-chip)",
+      overflow: "hidden",
+      background: "#fff",
+      display: "grid",
+      placeItems: "center"
+    }
+  }, imgs && imgs[x.id] ? React.createElement("img", {
+    src: imgs[x.id],
+    alt: "",
+    style: {
+      width: "100%",
+      height: "100%",
+      objectFit: "contain"
+    }
+  }) : React.createElement(Icon, {
+    name: "box",
+    size: 16,
+    color: "var(--text-3)"
+  })), React.createElement("span", {
+    style: {
+      minWidth: 0,
+      flex: 1
+    }
+  }, React.createElement("span", {
+    style: {
+      display: "block",
+      fontSize: 12,
+      fontWeight: 700,
+      color: "var(--text-1)",
+      lineHeight: 1.35,
+      overflow: "hidden",
+      display: "-webkit-box",
+      WebkitLineClamp: 2,
+      WebkitBoxOrient: "vertical"
+    }
+  }, x.name), React.createElement("span", {
+    style: {
+      display: "block",
+      fontSize: 10.5,
+      color: "var(--text-3)",
+      marginTop: 1
+    }
+  }, +x.price > 0 ? "฿" + Number(x.price).toLocaleString("th-TH") : "ยังไม่มีราคา"))))));
+}
 function ItemDetailModal({
   item,
   img,
@@ -5705,7 +5916,10 @@ function ItemDetailModal({
   onEdit,
   onClose,
   onPickVariant,
-  onAddSize
+  onAddSize,
+  items,
+  imgs,
+  onOpen
 }) {
   const SF = window.SF;
   const bdClose = window.useBackdropClose(onClose);
@@ -6277,7 +6491,17 @@ function ItemDetailModal({
       color: "var(--text-1)",
       marginTop: 2
     }
-  }, item[f.k]))))), React.createElement("div", {
+  }, item[f.k]))))), React.createElement(StkLinkTiles, {
+    title: "\u0E2D\u0E38\u0E1B\u0E01\u0E23\u0E13\u0E4C\u0E40\u0E2A\u0E23\u0E34\u0E21\u0E17\u0E35\u0E48\u0E43\u0E0A\u0E49\u0E04\u0E39\u0E48\u0E01\u0E31\u0E19",
+    imgs: imgs,
+    onOpen: onOpen,
+    list: (item.accIds || []).map(id => (items || []).find(x => x && x.id === id)).filter(Boolean)
+  }), React.createElement(StkLinkTiles, {
+    title: "\u0E43\u0E0A\u0E49\u0E04\u0E39\u0E48\u0E01\u0E31\u0E1A\u0E2D\u0E34\u0E19\u0E40\u0E27\u0E2D\u0E23\u0E4C\u0E40\u0E15\u0E2D\u0E23\u0E4C",
+    imgs: imgs,
+    onOpen: onOpen,
+    list: (items || []).filter(x => x && Array.isArray(x.accIds) && x.accIds.indexOf(item.id) !== -1)
+  }), React.createElement("div", {
     style: {
       display: "flex",
       flexDirection: "column",
