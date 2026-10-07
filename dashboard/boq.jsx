@@ -575,6 +575,7 @@ const BQQ_CSS = `
 .bqq-card{background:var(--bg);border-radius:var(--r-card);width:min(640px,100%);max-height:92vh;display:flex;flex-direction:column;overflow:hidden;box-shadow:var(--shadow-modal)}
 .bqq-hd{flex-shrink:0;display:flex;align-items:center;gap:10px;padding:14px 18px;background:var(--surface);box-shadow:var(--shadow-sm);position:relative;z-index:1}
 .bqq-hd .eb{font-size:11.5px;font-weight:700;color:var(--text-3)}
+.bqq-hd .x{display:grid;place-items:center;flex-shrink:0;width:30px;height:30px;padding:0}
 .bqq-hd .nm{font-size:16.5px;font-weight:800;color:var(--text-1);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .bqq-body{flex:1;min-height:0;overflow:auto;padding:16px 18px;display:flex;flex-direction:column;gap:12px}
 .bqq-sec{background:var(--surface);box-shadow:var(--shadow-sm);border-radius:var(--r-tile);padding:12px 14px}
@@ -3001,6 +3002,10 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock, ver, verName, p3Vers
      แถวแผงจัดให้เอง (จากแบบ 3D ถ้าจำนวนตรง ไม่งั้นแถวละ 12 แผง) · กด "เปิดแบบละเอียด" = ใบเดียวกันในหน้าเต็ม */
   const [qOn, setQOn] = React.useState(!!quick);
   const [qKw, setQKw] = React.useState("");
+  /* ใบใหม่ไม่เลือกรุ่นแผง/อินเวอร์เตอร์ให้ก่อน (ผู้ใช้ขอ) — ข้างในยังมีค่าตั้งต้นให้สูตรคิดได้ แต่ซ่อนราคาและกันบันทึกจนกว่าจะเลือกเองทั้งสองช่อง
+     ("" ของอินเวอร์เตอร์ = ไมโคร จึงใช้ธงแยก ไม่ใช่ค่าว่าง) */
+  const [qPick, setQPick] = React.useState({ pan: !quickNew, inv: !quickNew });
+  const qReady = qPick.pan && qPick.inv;
   const qPanEdit = isLead || !(job && +job.panels > 0);
   const qWp = +((selPanel || {}).wp || 0);
   React.useEffect(() => {
@@ -3068,13 +3073,13 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock, ver, verName, p3Vers
                     : <BoqLocked value={b.panels} unit="แผง" num />}
                 </Field>
                 <div className="full"><Field label="รุ่นแผง">
-                  <Dropdown value={b.panelModel} onChange={(v) => { set("panelModel", v); const w = +((window.BOQ.findPanel(v) || {}).wp || 0); if (qPanEdit && +qKw > 0 && w > 0) set("panels", Math.ceil((+qKw * 1000) / w)); }}
+                  <Dropdown value={qPick.pan ? b.panelModel : "__unset"} placeholder="— เลือกรุ่นแผง —" onChange={(v) => { setQPick((o) => Object.assign({}, o, { pan: true })); set("panelModel", v); const w = +((window.BOQ.findPanel(v) || {}).wp || 0); if (qPanEdit && +qKw > 0 && w > 0) set("panels", Math.ceil((+qKw * 1000) / w)); }}
                     options={window.BOQ.PANELS.map((p) => ({ value: p.model, label: p.model, sub: p.wp ? p.wp + "W" : "", group: p.group || "" }))} />
                 </Field></div>
                 <Field label={"อินเวอร์เตอร์" + (jobBrand ? " · " + jobBrand : "")}>
-                  <Dropdown value={b.inverterModel || ""} onChange={(v) => set("inverterModel", v)} options={invOptions} />
+                  <Dropdown value={qPick.inv ? (b.inverterModel || "") : "__unset"} placeholder="— เลือกอินเวอร์เตอร์ —" onChange={(v) => { setQPick((o) => Object.assign({}, o, { inv: true })); set("inverterModel", v); }} options={invOptions} />
                 </Field>
-                {!b.inverterModel
+                {!qPick.inv ? <div /> : !b.inverterModel
                   ? <Field label="อัตราไมโคร"><Dropdown value={b.microRatio} onChange={(v) => set("microRatio", v)} options={[{ value: "1:1", label: "1:1 (1 แผง/ตัว)" }, { value: "2:1", label: "2:1 (2 แผง/ตัว)" }]} /></Field>
                   : <Field label="จำนวนอินเวอร์เตอร์"><BoqInvCount value={b.invCount} auto={result.meta.invAuto} onChange={(v) => set("invCount", v)} style={numStyle} /></Field>}
                 <Field label="ประเภทหลังคา"><Dropdown value={b.roof} onChange={(v) => set("roof", v)} options={opt(window.BOQ.ROOF_OPTIONS)} /></Field>
@@ -3100,24 +3105,27 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock, ver, verName, p3Vers
               </div>
             </div>
             <div className="bqq-sum">
-              {qRows.map(([k, v]) => <div key={k} className="r"><span>{k}</span><b>{v > 0 ? "฿" + baht(v) : "—"}</b></div>)}
-              <div className="r t"><span>ต้นทุนรวม</span><b>{pb.totalCost > 0 ? "฿" + baht(pb.totalCost) : "—"}</b></div>
-              <div className="r"><span>กำไร {pb.margin}%</span><b>{pb.profit > 0 ? "฿" + baht(pb.profit) : "—"}</b></div>
-              <div className="r hi"><span>ราคาขาย (ก่อน VAT){pb.sellPerW > 0 ? " · ฿" + baht(pb.sellPerW) + "/W" : ""}</span><b>{pb.sell > 0 ? "฿" + baht(pb.sell) : "—"}</b></div>
-              <div className="r"><span>รวม VAT {pb.vat}%</span><b>{pb.sellVat > 0 ? "฿" + baht(pb.sellVat) : "—"}</b></div>
+              {!qReady && <div className="r"><span>เลือกรุ่นแผงและอินเวอร์เตอร์ก่อน ราคาจะขึ้น</span><b>—</b></div>}
+              {qReady && qRows.map(([k, v]) => <div key={k} className="r"><span>{k}</span><b>{v > 0 ? "฿" + baht(v) : "—"}</b></div>)}
+              <div className="r t"><span>ต้นทุนรวม</span><b>{qReady && pb.totalCost > 0 ? "฿" + baht(pb.totalCost) : "—"}</b></div>
+              <div className="r"><span>กำไร {pb.margin}%</span><b>{qReady && pb.profit > 0 ? "฿" + baht(pb.profit) : "—"}</b></div>
+              <div className="r hi"><span>ราคาขาย (ก่อน VAT){qReady && pb.sellPerW > 0 ? " · ฿" + baht(pb.sellPerW) + "/W" : ""}</span><b>{qReady && pb.sell > 0 ? "฿" + baht(pb.sell) : "—"}</b></div>
+              <div className="r"><span>รวม VAT {pb.vat}%</span><b>{qReady && pb.sellVat > 0 ? "฿" + baht(pb.sellVat) : "—"}</b></div>
             </div>
-            {(unpriced > 0 || !(priced.laborTotal > 0) || !(b.panels > 0)) && (
+            {(!qReady || unpriced > 0 || !(priced.laborTotal > 0) || !(b.panels > 0)) && (
               <div className="bqq-warn">
+                {!qPick.pan && <div>ยังไม่ได้เลือกรุ่นแผง</div>}
+                {!qPick.inv && <div>ยังไม่ได้เลือกอินเวอร์เตอร์</div>}
                 {!(b.panels > 0) && <div>ยังไม่มีจำนวนแผง — กรอกขนาด kWp หรือจำนวนแผง</div>}
                 {!(priced.laborTotal > 0) && <div>ยังไม่ได้ใส่ค่าแรงเหมา ฿/W</div>}
-                {unpriced > 0 && <div>{unpriced} รายการยังไม่มีราคาในคลัง — ราคาขายต่ำกว่าจริง (ดูได้ใน "เปิดแบบละเอียด")</div>}
+                {qReady && unpriced > 0 && <div>{unpriced} รายการยังไม่มีราคาในคลัง — ราคาขายต่ำกว่าจริง (ดูได้ใน "เปิดแบบละเอียด")</div>}
               </div>
             )}
           </div>
           <div className="bqq-ft">
-            <button className="btn" onClick={() => setQOn(false)}><Icon name="list" size={14} /> เปิดแบบละเอียด</button>
+            <button className="btn" onClick={() => { setQPick({ pan: true, inv: true }); setQOn(false); }}><Icon name="list" size={14} /> เปิดแบบละเอียด</button>
             <span style={{ flex: 1 }} />
-            {onSave && <button className="btn btn-pri" disabled={!(b.panels > 0)} onClick={() => guardRun(qSave)}><Icon name="check" size={14} color="#fff" /> บันทึก BOQ</button>}
+            {onSave && <button className="btn btn-pri" disabled={!(b.panels > 0) || !qReady} onClick={() => guardRun(qSave)}><Icon name="check" size={14} color="#fff" /> บันทึก BOQ</button>}
           </div>
         </div>
       </div>
@@ -3211,9 +3219,9 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock, ver, verName, p3Vers
                   ที่นี่คือที่เดียวที่กรอก — กรอบ "ระบบ On-grid/Hybrid" ของแต่ละตัวดึงค่าจากตรงนี้ไปแสดง */}
               <div style={{ gridColumn: "1 / -1", display: "grid", gridTemplateColumns: isMobile ? "minmax(0,1fr)" : "minmax(0,2fr) minmax(0,1fr)", gap: 12 }}>
                 <Field label={"อินเวอร์เตอร์" + (selInv2 ? " ตัวที่ 1" : "") + (jobBrand ? " · " + jobBrand : "")}>
-                  <Dropdown value={b.inverterModel || ""} onChange={(v) => set("inverterModel", v)} options={invOptions} />
+                  <Dropdown value={qPick.inv ? (b.inverterModel || "") : "__unset"} placeholder="— เลือกอินเวอร์เตอร์ —" onChange={(v) => { setQPick((o) => Object.assign({}, o, { inv: true })); set("inverterModel", v); }} options={invOptions} />
                 </Field>
-                {!b.inverterModel
+                {!qPick.inv ? <div /> : !b.inverterModel
                   ? <Field label="อัตราไมโคร"><Dropdown value={b.microRatio} onChange={(v) => set("microRatio", v)} options={[{ value: "1:1", label: "1:1 (1 แผง/ตัว)" }, { value: "2:1", label: "2:1 (2 แผง/ตัว)" }]} /></Field>
                   : <Field label="จำนวน (แก้ไขได้)"><BoqInvCount value={b.invCount} auto={result.meta.invAuto} onChange={(v) => set("invCount", v)} style={numStyle} /></Field>}
               </div>

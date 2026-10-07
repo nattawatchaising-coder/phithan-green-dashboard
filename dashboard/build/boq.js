@@ -1098,6 +1098,7 @@ const BQQ_CSS = `
 .bqq-card{background:var(--bg);border-radius:var(--r-card);width:min(640px,100%);max-height:92vh;display:flex;flex-direction:column;overflow:hidden;box-shadow:var(--shadow-modal)}
 .bqq-hd{flex-shrink:0;display:flex;align-items:center;gap:10px;padding:14px 18px;background:var(--surface);box-shadow:var(--shadow-sm);position:relative;z-index:1}
 .bqq-hd .eb{font-size:11.5px;font-weight:700;color:var(--text-3)}
+.bqq-hd .x{display:grid;place-items:center;flex-shrink:0;width:30px;height:30px;padding:0}
 .bqq-hd .nm{font-size:16.5px;font-weight:800;color:var(--text-1);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .bqq-body{flex:1;min-height:0;overflow:auto;padding:16px 18px;display:flex;flex-direction:column;gap:12px}
 .bqq-sec{background:var(--surface);box-shadow:var(--shadow-sm);border-radius:var(--r-tile);padding:12px 14px}
@@ -5936,6 +5937,11 @@ function BOQEditor({
   };
   const [qOn, setQOn] = React.useState(!!quick);
   const [qKw, setQKw] = React.useState("");
+  const [qPick, setQPick] = React.useState({
+    pan: !quickNew,
+    inv: !quickNew
+  });
+  const qReady = qPick.pan && qPick.inv;
   const qPanEdit = isLead || !(job && +job.panels > 0);
   const qWp = +((selPanel || {}).wp || 0);
   React.useEffect(() => {
@@ -6080,8 +6086,12 @@ function BOQEditor({
     }, React.createElement(Field, {
       label: "\u0E23\u0E38\u0E48\u0E19\u0E41\u0E1C\u0E07"
     }, React.createElement(Dropdown, {
-      value: b.panelModel,
+      value: qPick.pan ? b.panelModel : "__unset",
+      placeholder: "\u2014 \u0E40\u0E25\u0E37\u0E2D\u0E01\u0E23\u0E38\u0E48\u0E19\u0E41\u0E1C\u0E07 \u2014",
       onChange: v => {
+        setQPick(o => Object.assign({}, o, {
+          pan: true
+        }));
         set("panelModel", v);
         const w = +((window.BOQ.findPanel(v) || {}).wp || 0);
         if (qPanEdit && +qKw > 0 && w > 0) set("panels", Math.ceil(+qKw * 1000 / w));
@@ -6095,10 +6105,16 @@ function BOQEditor({
     }))), React.createElement(Field, {
       label: "อินเวอร์เตอร์" + (jobBrand ? " · " + jobBrand : "")
     }, React.createElement(Dropdown, {
-      value: b.inverterModel || "",
-      onChange: v => set("inverterModel", v),
+      value: qPick.inv ? b.inverterModel || "" : "__unset",
+      placeholder: "\u2014 \u0E40\u0E25\u0E37\u0E2D\u0E01\u0E2D\u0E34\u0E19\u0E40\u0E27\u0E2D\u0E23\u0E4C\u0E40\u0E15\u0E2D\u0E23\u0E4C \u2014",
+      onChange: v => {
+        setQPick(o => Object.assign({}, o, {
+          inv: true
+        }));
+        set("inverterModel", v);
+      },
       options: invOptions
-    })), !b.inverterModel ? React.createElement(Field, {
+    })), !qPick.inv ? React.createElement("div", null) : !b.inverterModel ? React.createElement(Field, {
       label: "\u0E2D\u0E31\u0E15\u0E23\u0E32\u0E44\u0E21\u0E42\u0E04\u0E23"
     }, React.createElement(Dropdown, {
       value: b.microRatio,
@@ -6154,24 +6170,32 @@ function BOQEditor({
       label: "\u0E01\u0E33\u0E44\u0E23 (% \u0E02\u0E2D\u0E07\u0E23\u0E32\u0E04\u0E32\u0E02\u0E32\u0E22)"
     }, qFld(profitV, v => setProfit("pct", "profitPct", v), "%", String(window.BOQ.RULES.profitPct))))), React.createElement("div", {
       className: "bqq-sum"
-    }, qRows.map(([k, v]) => React.createElement("div", {
+    }, !qReady && React.createElement("div", {
+      className: "r"
+    }, React.createElement("span", null, "\u0E40\u0E25\u0E37\u0E2D\u0E01\u0E23\u0E38\u0E48\u0E19\u0E41\u0E1C\u0E07\u0E41\u0E25\u0E30\u0E2D\u0E34\u0E19\u0E40\u0E27\u0E2D\u0E23\u0E4C\u0E40\u0E15\u0E2D\u0E23\u0E4C\u0E01\u0E48\u0E2D\u0E19 \u0E23\u0E32\u0E04\u0E32\u0E08\u0E30\u0E02\u0E36\u0E49\u0E19"), React.createElement("b", null, "\u2014")), qReady && qRows.map(([k, v]) => React.createElement("div", {
       key: k,
       className: "r"
     }, React.createElement("span", null, k), React.createElement("b", null, v > 0 ? "฿" + baht(v) : "—"))), React.createElement("div", {
       className: "r t"
-    }, React.createElement("span", null, "\u0E15\u0E49\u0E19\u0E17\u0E38\u0E19\u0E23\u0E27\u0E21"), React.createElement("b", null, pb.totalCost > 0 ? "฿" + baht(pb.totalCost) : "—")), React.createElement("div", {
+    }, React.createElement("span", null, "\u0E15\u0E49\u0E19\u0E17\u0E38\u0E19\u0E23\u0E27\u0E21"), React.createElement("b", null, qReady && pb.totalCost > 0 ? "฿" + baht(pb.totalCost) : "—")), React.createElement("div", {
       className: "r"
-    }, React.createElement("span", null, "\u0E01\u0E33\u0E44\u0E23 ", pb.margin, "%"), React.createElement("b", null, pb.profit > 0 ? "฿" + baht(pb.profit) : "—")), React.createElement("div", {
+    }, React.createElement("span", null, "\u0E01\u0E33\u0E44\u0E23 ", pb.margin, "%"), React.createElement("b", null, qReady && pb.profit > 0 ? "฿" + baht(pb.profit) : "—")), React.createElement("div", {
       className: "r hi"
-    }, React.createElement("span", null, "\u0E23\u0E32\u0E04\u0E32\u0E02\u0E32\u0E22 (\u0E01\u0E48\u0E2D\u0E19 VAT)", pb.sellPerW > 0 ? " · ฿" + baht(pb.sellPerW) + "/W" : ""), React.createElement("b", null, pb.sell > 0 ? "฿" + baht(pb.sell) : "—")), React.createElement("div", {
+    }, React.createElement("span", null, "\u0E23\u0E32\u0E04\u0E32\u0E02\u0E32\u0E22 (\u0E01\u0E48\u0E2D\u0E19 VAT)", qReady && pb.sellPerW > 0 ? " · ฿" + baht(pb.sellPerW) + "/W" : ""), React.createElement("b", null, qReady && pb.sell > 0 ? "฿" + baht(pb.sell) : "—")), React.createElement("div", {
       className: "r"
-    }, React.createElement("span", null, "\u0E23\u0E27\u0E21 VAT ", pb.vat, "%"), React.createElement("b", null, pb.sellVat > 0 ? "฿" + baht(pb.sellVat) : "—"))), (unpriced > 0 || !(priced.laborTotal > 0) || !(b.panels > 0)) && React.createElement("div", {
+    }, React.createElement("span", null, "\u0E23\u0E27\u0E21 VAT ", pb.vat, "%"), React.createElement("b", null, qReady && pb.sellVat > 0 ? "฿" + baht(pb.sellVat) : "—"))), (!qReady || unpriced > 0 || !(priced.laborTotal > 0) || !(b.panels > 0)) && React.createElement("div", {
       className: "bqq-warn"
-    }, !(b.panels > 0) && React.createElement("div", null, "\u0E22\u0E31\u0E07\u0E44\u0E21\u0E48\u0E21\u0E35\u0E08\u0E33\u0E19\u0E27\u0E19\u0E41\u0E1C\u0E07 \u2014 \u0E01\u0E23\u0E2D\u0E01\u0E02\u0E19\u0E32\u0E14 kWp \u0E2B\u0E23\u0E37\u0E2D\u0E08\u0E33\u0E19\u0E27\u0E19\u0E41\u0E1C\u0E07"), !(priced.laborTotal > 0) && React.createElement("div", null, "\u0E22\u0E31\u0E07\u0E44\u0E21\u0E48\u0E44\u0E14\u0E49\u0E43\u0E2A\u0E48\u0E04\u0E48\u0E32\u0E41\u0E23\u0E07\u0E40\u0E2B\u0E21\u0E32 \u0E3F/W"), unpriced > 0 && React.createElement("div", null, unpriced, " \u0E23\u0E32\u0E22\u0E01\u0E32\u0E23\u0E22\u0E31\u0E07\u0E44\u0E21\u0E48\u0E21\u0E35\u0E23\u0E32\u0E04\u0E32\u0E43\u0E19\u0E04\u0E25\u0E31\u0E07 \u2014 \u0E23\u0E32\u0E04\u0E32\u0E02\u0E32\u0E22\u0E15\u0E48\u0E33\u0E01\u0E27\u0E48\u0E32\u0E08\u0E23\u0E34\u0E07 (\u0E14\u0E39\u0E44\u0E14\u0E49\u0E43\u0E19 \"\u0E40\u0E1B\u0E34\u0E14\u0E41\u0E1A\u0E1A\u0E25\u0E30\u0E40\u0E2D\u0E35\u0E22\u0E14\")"))), React.createElement("div", {
+    }, !qPick.pan && React.createElement("div", null, "\u0E22\u0E31\u0E07\u0E44\u0E21\u0E48\u0E44\u0E14\u0E49\u0E40\u0E25\u0E37\u0E2D\u0E01\u0E23\u0E38\u0E48\u0E19\u0E41\u0E1C\u0E07"), !qPick.inv && React.createElement("div", null, "\u0E22\u0E31\u0E07\u0E44\u0E21\u0E48\u0E44\u0E14\u0E49\u0E40\u0E25\u0E37\u0E2D\u0E01\u0E2D\u0E34\u0E19\u0E40\u0E27\u0E2D\u0E23\u0E4C\u0E40\u0E15\u0E2D\u0E23\u0E4C"), !(b.panels > 0) && React.createElement("div", null, "\u0E22\u0E31\u0E07\u0E44\u0E21\u0E48\u0E21\u0E35\u0E08\u0E33\u0E19\u0E27\u0E19\u0E41\u0E1C\u0E07 \u2014 \u0E01\u0E23\u0E2D\u0E01\u0E02\u0E19\u0E32\u0E14 kWp \u0E2B\u0E23\u0E37\u0E2D\u0E08\u0E33\u0E19\u0E27\u0E19\u0E41\u0E1C\u0E07"), !(priced.laborTotal > 0) && React.createElement("div", null, "\u0E22\u0E31\u0E07\u0E44\u0E21\u0E48\u0E44\u0E14\u0E49\u0E43\u0E2A\u0E48\u0E04\u0E48\u0E32\u0E41\u0E23\u0E07\u0E40\u0E2B\u0E21\u0E32 \u0E3F/W"), qReady && unpriced > 0 && React.createElement("div", null, unpriced, " \u0E23\u0E32\u0E22\u0E01\u0E32\u0E23\u0E22\u0E31\u0E07\u0E44\u0E21\u0E48\u0E21\u0E35\u0E23\u0E32\u0E04\u0E32\u0E43\u0E19\u0E04\u0E25\u0E31\u0E07 \u2014 \u0E23\u0E32\u0E04\u0E32\u0E02\u0E32\u0E22\u0E15\u0E48\u0E33\u0E01\u0E27\u0E48\u0E32\u0E08\u0E23\u0E34\u0E07 (\u0E14\u0E39\u0E44\u0E14\u0E49\u0E43\u0E19 \"\u0E40\u0E1B\u0E34\u0E14\u0E41\u0E1A\u0E1A\u0E25\u0E30\u0E40\u0E2D\u0E35\u0E22\u0E14\")"))), React.createElement("div", {
       className: "bqq-ft"
     }, React.createElement("button", {
       className: "btn",
-      onClick: () => setQOn(false)
+      onClick: () => {
+        setQPick({
+          pan: true,
+          inv: true
+        });
+        setQOn(false);
+      }
     }, React.createElement(Icon, {
       name: "list",
       size: 14
@@ -6181,7 +6205,7 @@ function BOQEditor({
       }
     }), onSave && React.createElement("button", {
       className: "btn btn-pri",
-      disabled: !(b.panels > 0),
+      disabled: !(b.panels > 0) || !qReady,
       onClick: () => guardRun(qSave)
     }, React.createElement(Icon, {
       name: "check",
@@ -6351,10 +6375,16 @@ function BOQEditor({
   }, React.createElement(Field, {
     label: "อินเวอร์เตอร์" + (selInv2 ? " ตัวที่ 1" : "") + (jobBrand ? " · " + jobBrand : "")
   }, React.createElement(Dropdown, {
-    value: b.inverterModel || "",
-    onChange: v => set("inverterModel", v),
+    value: qPick.inv ? b.inverterModel || "" : "__unset",
+    placeholder: "\u2014 \u0E40\u0E25\u0E37\u0E2D\u0E01\u0E2D\u0E34\u0E19\u0E40\u0E27\u0E2D\u0E23\u0E4C\u0E40\u0E15\u0E2D\u0E23\u0E4C \u2014",
+    onChange: v => {
+      setQPick(o => Object.assign({}, o, {
+        inv: true
+      }));
+      set("inverterModel", v);
+    },
     options: invOptions
-  })), !b.inverterModel ? React.createElement(Field, {
+  })), !qPick.inv ? React.createElement("div", null) : !b.inverterModel ? React.createElement(Field, {
     label: "\u0E2D\u0E31\u0E15\u0E23\u0E32\u0E44\u0E21\u0E42\u0E04\u0E23"
   }, React.createElement(Dropdown, {
     value: b.microRatio,
