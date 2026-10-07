@@ -2894,6 +2894,46 @@ function CatCard({ c, n, lowN, img, onPick, onImage }) {
 /* แถบยี่ห้อเลื่อนวนบนหน้าแรกของคลัง — แตะยี่ห้อ = ดูของยี่ห้อนั้นทุกหมวด
    รูปยี่ห้อ = รูปที่ตั้งไว้บนการ์ดยี่ห้อ (cat_brand_<ยี่ห้อ>) หรือรูปหมวดย่อยที่ชื่อตรงกัน ไม่มี = ตัวหนังสือ
    รายการซ้ำสองชุดแล้วเลื่อนครึ่งความยาว ภาพจึงวนต่อเนื่องไม่กระตุก · ชี้เมาส์ = หยุด */
+// ยี่ห้อที่ไม่มีรูป = พื้นไล่สีอ่อน สีตามชื่อยี่ห้อ (คงที่ทุกครั้ง) ไม่ให้ช่องขาวเรียงกันจืด ๆ
+const bmTint = (b) => {
+  let h = 0; for (let i = 0; i < b.length; i++) h = (h * 31 + b.charCodeAt(i)) % 360;
+  return { width: "100%", height: "100%", boxSizing: "border-box", display: "flex", alignItems: "center", justifyContent: "center",
+    background: "linear-gradient(135deg, hsl(" + h + " 70% 94%), hsl(" + ((h + 40) % 360) + " 65% 84%))", color: "hsl(" + h + " 55% 28%)" };
+};
+/* รูปยี่ห้อส่วนมากเป็นโลโก้เล็ก ๆ กลางพื้นขาวสี่เหลี่ยมจัตุรัส — ตัดพื้นขาวรอบโลโก้ออกก่อน แล้วขยายให้เต็มช่อง
+   (object-fit cover ตรง ๆ ตัดโลโก้ทรงกว้างขาด) · รูปที่ไม่มีพื้นขาว (รูปถ่าย) = เต็มช่องแบบ cover */
+const _bmTrim = {};
+function bmTrim(src) {
+  if (_bmTrim[src]) return _bmTrim[src];
+  return (_bmTrim[src] = new Promise((done) => {
+    const im = new Image();
+    im.onload = () => {
+      try {
+        const W = im.naturalWidth, H = im.naturalHeight, c = document.createElement("canvas");
+        c.width = W; c.height = H; const g = c.getContext("2d"); g.drawImage(im, 0, 0);
+        const d = g.getImageData(0, 0, W, H).data; let x0 = W, y0 = H, x1 = -1, y1 = -1;
+        for (let y = 0; y < H; y += 2) for (let x = 0; x < W; x += 2) {
+          const i = (y * W + x) * 4;
+          if (d[i + 3] > 20 && Math.min(d[i], d[i + 1], d[i + 2]) < 235) { if (x < x0) x0 = x; if (x > x1) x1 = x; if (y < y0) y0 = y; if (y > y1) y1 = y; }
+        }
+        if (x1 < 0 || ((x1 - x0) > W * 0.9 && (y1 - y0) > H * 0.9)) return done({ src: src, cover: true });
+        const w = x1 - x0 + 3, h = y1 - y0 + 3, o = document.createElement("canvas");
+        o.width = w; o.height = h; o.getContext("2d").drawImage(im, x0 - 1, y0 - 1, w, h, 0, 0, w, h);
+        done({ src: o.toDataURL("image/png"), cover: false });
+      } catch (e) { done({ src: src, cover: true }); }
+    };
+    im.onerror = () => done({ src: src, cover: true });
+    im.src = src;
+  }));
+}
+function BmImg({ src, alt }) {
+  const [t, setT] = React.useState(null);
+  React.useEffect(() => { let on = true; bmTrim(src).then((r) => { if (on) setT(r); }); return () => { on = false; }; }, [src]);
+  if (!t) return null;
+  return t.cover
+    ? <img src={t.src} alt={alt} />
+    : <span className="bm-logo"><img src={t.src} alt={alt} /></span>;
+}
 function BrandMarquee({ items, imgs, onPick }) {
   const list = React.useMemo(() => {
     const m = {};
@@ -2911,9 +2951,8 @@ function BrandMarquee({ items, imgs, onPick }) {
     <button key={(dup ? "d" : "") + x.b} type="button" className="bm-item" tabIndex={dup ? -1 : 0} aria-hidden={dup || undefined}
       title={x.b + " · " + x.n + " รายการ"} onClick={() => onPick(x.b)}>
       {x.img
-        ? <img src={x.img} alt={x.b} loading="lazy" />
-        : <span className="bm-word">{x.b}</span>}
-      <span className="bm-n">{x.n}</span>
+        ? <BmImg src={x.img} alt={x.b} />
+        : <span className="bm-word" style={bmTint(x.b)}>{x.b}</span>}
     </button>
   );
   return (

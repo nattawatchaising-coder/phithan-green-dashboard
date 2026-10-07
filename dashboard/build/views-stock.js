@@ -7496,6 +7496,101 @@ function CatCard({
     }
   }));
 }
+const bmTint = b => {
+  let h = 0;
+  for (let i = 0; i < b.length; i++) h = (h * 31 + b.charCodeAt(i)) % 360;
+  return {
+    width: "100%",
+    height: "100%",
+    boxSizing: "border-box",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    background: "linear-gradient(135deg, hsl(" + h + " 70% 94%), hsl(" + (h + 40) % 360 + " 65% 84%))",
+    color: "hsl(" + h + " 55% 28%)"
+  };
+};
+const _bmTrim = {};
+function bmTrim(src) {
+  if (_bmTrim[src]) return _bmTrim[src];
+  return _bmTrim[src] = new Promise(done => {
+    const im = new Image();
+    im.onload = () => {
+      try {
+        const W = im.naturalWidth,
+          H = im.naturalHeight,
+          c = document.createElement("canvas");
+        c.width = W;
+        c.height = H;
+        const g = c.getContext("2d");
+        g.drawImage(im, 0, 0);
+        const d = g.getImageData(0, 0, W, H).data;
+        let x0 = W,
+          y0 = H,
+          x1 = -1,
+          y1 = -1;
+        for (let y = 0; y < H; y += 2) for (let x = 0; x < W; x += 2) {
+          const i = (y * W + x) * 4;
+          if (d[i + 3] > 20 && Math.min(d[i], d[i + 1], d[i + 2]) < 235) {
+            if (x < x0) x0 = x;
+            if (x > x1) x1 = x;
+            if (y < y0) y0 = y;
+            if (y > y1) y1 = y;
+          }
+        }
+        if (x1 < 0 || x1 - x0 > W * 0.9 && y1 - y0 > H * 0.9) return done({
+          src: src,
+          cover: true
+        });
+        const w = x1 - x0 + 3,
+          h = y1 - y0 + 3,
+          o = document.createElement("canvas");
+        o.width = w;
+        o.height = h;
+        o.getContext("2d").drawImage(im, x0 - 1, y0 - 1, w, h, 0, 0, w, h);
+        done({
+          src: o.toDataURL("image/png"),
+          cover: false
+        });
+      } catch (e) {
+        done({
+          src: src,
+          cover: true
+        });
+      }
+    };
+    im.onerror = () => done({
+      src: src,
+      cover: true
+    });
+    im.src = src;
+  });
+}
+function BmImg({
+  src,
+  alt
+}) {
+  const [t, setT] = React.useState(null);
+  React.useEffect(() => {
+    let on = true;
+    bmTrim(src).then(r => {
+      if (on) setT(r);
+    });
+    return () => {
+      on = false;
+    };
+  }, [src]);
+  if (!t) return null;
+  return t.cover ? React.createElement("img", {
+    src: t.src,
+    alt: alt
+  }) : React.createElement("span", {
+    className: "bm-logo"
+  }, React.createElement("img", {
+    src: t.src,
+    alt: alt
+  }));
+}
 function BrandMarquee({
   items,
   imgs,
@@ -7529,15 +7624,13 @@ function BrandMarquee({
     "aria-hidden": dup || undefined,
     title: x.b + " · " + x.n + " รายการ",
     onClick: () => onPick(x.b)
-  }, x.img ? React.createElement("img", {
+  }, x.img ? React.createElement(BmImg, {
     src: x.img,
-    alt: x.b,
-    loading: "lazy"
+    alt: x.b
   }) : React.createElement("span", {
-    className: "bm-word"
-  }, x.b), React.createElement("span", {
-    className: "bm-n"
-  }, x.n));
+    className: "bm-word",
+    style: bmTint(x.b)
+  }, x.b));
   return React.createElement("div", {
     className: "bm-wrap",
     style: {
