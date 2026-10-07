@@ -146,6 +146,7 @@ function StockView({ stock, onResetAll, onMenuOpen, currentUser, jobs, priceStor
   }, [items]);
   /* ย้อนกลับทีละชั้น: หมวดย่อย → หมวดหลัก → หน้าเลือกหมวด */
   const goBack = () => {
+    if (brand !== "all" && !search.trim() && !kpiFilter) { setBrand("all"); setBrowse(true); return; }
     if (sub !== "all") { setSub("all"); setBrowse(true); return; }
     if (cat !== "all") { setCat("all"); setBrowse(true); return; }
     setBrowse(true); setKpiFilter(null); setSearch(""); setBrand("all");
@@ -163,12 +164,13 @@ function StockView({ stock, onResetAll, onMenuOpen, currentUser, jobs, priceStor
   const brandCount = React.useMemo(() => {
     const m = {};
     items.forEach((it) => {
-      if (cat !== "all" && it.cat !== cat) return;
-      const b = (it.brand || "").trim(); if (!b) return;
+      if (cat !== "all" && it.cat !== cat && SF.mainCatOf(it.cat) !== cat) return;
+      if (sub !== "all" && it.cat !== sub) return;
+      const b = it.brand || ""; if (!b.trim()) return;
       m[b] = (m[b] || 0) + 1;
     });
     return m;
-  }, [items, cat]);
+  }, [items, cat, sub]);
   const brandList = React.useMemo(() => Object.keys(brandCount).sort((a, z) => a.localeCompare(z, "th")), [brandCount]);
   React.useEffect(() => { if (brand !== "all" && !brandCount[brand]) setBrand("all"); }, [brandCount]);
   const thisMonth = SF.TODAY.slice(0, 7);
@@ -244,6 +246,30 @@ function StockView({ stock, onResetAll, onMenuOpen, currentUser, jobs, priceStor
   };
   // ของที่อยู่ในหมวดหลักตรง ๆ (ไม่ได้ใส่หมวดย่อยไว้) — เอาไปต่อท้ายหน้าเลือกหมวดย่อย
   const directItems = showSubHome ? filtered.filter((it) => it.cat === cat) : [];
+  /* ชั้นยี่ห้อ — ใต้หมวดย่อย (หรือหมวดหลักที่ไม่มีหมวดย่อย) ที่มีของ ≥ 2 ยี่ห้อ ขึ้นการ์ดยี่ห้อก่อนถึงรายการ
+     เหมือนหน้าเลือกหมวด · ไม่ใช่หมวดชั้นที่ 3 ในข้อมูล (ระบบรู้จักหมวดแค่ หลัก › ย่อย) คิดจากช่องยี่ห้อของสินค้า
+     ของที่ไม่ระบุยี่ห้อต่อท้ายหน้าเป็นรายการ */
+  const brandHome = React.useMemo(() => {
+    if (!browsing || cat === "all" || showSubHome) return null;
+    const m = {}, low = {}, none = [];
+    filtered.forEach((it) => {
+      const b = it.brand || "";
+      if (!b.trim()) { none.push(it); return; }
+      m[b] = (m[b] || 0) + 1;
+      if (lowState(it) !== "ok") low[b] = (low[b] || 0) + 1;
+    });
+    const keys = Object.keys(m).sort((a, z) => a.localeCompare(z, "th"));
+    if (keys.length < 2) return null;
+    // รูปการ์ดยี่ห้อ: ตั้งเองที่ cat_brand_<ยี่ห้อ> · ไม่มี = รูปหมวดที่ชื่อตรงกับยี่ห้อ (เช่นหมวดย่อย HUAWEI ใต้อินเวอร์เตอร์)
+    const catByName = {};
+    SF.STOCK_CATS.concat(Object.keys(SF.STOCK_SUB_BY_CAT || {}).reduce((a, k) => a.concat(SF.STOCK_SUB_BY_CAT[k] || []), []))
+      .forEach((c) => { if (c && c.th && imgs["cat_" + c.key]) catByName[String(c.th).trim().toLowerCase()] = imgs["cat_" + c.key]; });
+    const list = keys.map((b) => {
+      const k = "brand_" + b.trim().toLowerCase().replace(/[.#$\[\]\/\s]+/g, "_");
+      return { key: b, th: b, color: "#0EA5E9", icon: "box", imgKey: k, img: imgs["cat_" + k] || catByName[b.trim().toLowerCase()] || "" };
+    });
+    return { list: list, count: m, low: low, none: none };
+  }, [browsing, cat, showSubHome, filtered, imgs]);
 
   /* แถวแท็บกับหมวด — อยู่ในเนื้อหา ไม่ใช่ในหัวจอ
      หัวจอเก็บแค่ชื่อหน้ากับเครื่องมือของหน้า ส่วนตัวกรองอยู่ติดกับของที่มันกรอง
@@ -416,7 +442,7 @@ function StockView({ stock, onResetAll, onMenuOpen, currentUser, jobs, priceStor
 
         <div>
           {/* เส้นทางที่อยู่ + ปุ่มย้อนกลับ — เข้าไปดูของในหมวดแล้วต้องกลับออกมาได้เสมอ */}
-          {!isPrices && !isAmp && !showCatHome && !showSubHome && (
+          {!isPrices && !isAmp && !showCatHome && !showSubHome && !brandHome && (
             <div style={{ display: "flex", alignItems: "center", gap: 9, marginBottom: 12, flexWrap: "wrap" }}>
               <button onClick={goBack} title="ย้อนกลับ"
                 style={{ display: "flex", alignItems: "center", gap: 4, padding: "6px 11px", borderRadius: "var(--r-chip)", boxShadow: "var(--shadow-sm)",
@@ -428,7 +454,9 @@ function StockView({ stock, onResetAll, onMenuOpen, currentUser, jobs, priceStor
                   style={{ cursor: "pointer", fontWeight: 700, color: "var(--text-2)" }}>คลังทั้งหมด</span>
                 {cat !== "all" && <span> › <span style={{ fontWeight: 700, color: sub === "all" ? "var(--text-1)" : "var(--text-2)", cursor: "pointer" }}
                   onClick={() => { setSub("all"); setBrowse(true); }}>{(SF.STOCK_CAT_BY[cat] || {}).th || ""}</span></span>}
-                {sub !== "all" && <span> › <span style={{ fontWeight: 700, color: "var(--text-1)" }}>{(SF.STOCK_CAT_BY[sub] || {}).th || ""}</span></span>}
+                {sub !== "all" && <span> › <span style={{ fontWeight: 700, color: brand === "all" ? "var(--text-1)" : "var(--text-2)", cursor: "pointer" }}
+                  onClick={() => { setBrand("all"); setBrowse(true); }}>{(SF.STOCK_CAT_BY[sub] || {}).th || ""}</span></span>}
+                {brand !== "all" && <span> › <span style={{ fontWeight: 700, color: "var(--text-1)" }}>{brand}</span></span>}
                 <span> · {filtered.length.toLocaleString()} รายการ</span>
               </span>
             </div>
@@ -454,22 +482,43 @@ function StockView({ stock, onResetAll, onMenuOpen, currentUser, jobs, priceStor
                     <span style={{ fontSize: 13.5, fontWeight: 800, color: "var(--text-1)" }}>รายการในหมวดนี้</span>
                     <span style={{ fontSize: 11.5, color: "var(--text-3)" }}>ยังไม่ได้อยู่ในหมวดย่อย · {directItems.length.toLocaleString()} รายการ</span>
                   </div>
-                  <StkBrandSplit list={directItems} on={brand === "all"} onPick={setBrand}
-                    render={(l) => (isMobile
-                      ? <StockCardList rows={rowsOf(l)} imgs={imgs} onOpen={setDetailItem}
-                          onEdit={(it) => setItemForm({ item: it, isNew: false })} onRemove={stock.removeItem} />
-                      : <StockGrid rows={rowsOf(l)} imgs={imgs} lowState={lowState} onOpen={setDetailItem}
-                          onEdit={(it) => setItemForm({ item: it, isNew: false })} onRemove={stock.removeItem} />)} />
+                  {isMobile
+                    ? <StockCardList rows={rowsOf(directItems)} imgs={imgs} onOpen={setDetailItem}
+                        onEdit={(it) => setItemForm({ item: it, isNew: false })} onRemove={stock.removeItem} />
+                    : <StockGrid rows={rowsOf(directItems)} imgs={imgs} lowState={lowState} onOpen={setDetailItem}
+                        onEdit={(it) => setItemForm({ item: it, isNew: false })} onRemove={stock.removeItem} />}
                 </div>
               )}
             </React.Fragment>
-          ) : (isMobile || view === "grid") ? (
-            <StkBrandSplit list={filtered} on={brand === "all" && cat !== "all"} onPick={setBrand}
-              render={(l) => (isMobile
-                ? <StockCardList rows={rowsOf(l)} imgs={imgs} onOpen={setDetailItem}
-                    onEdit={(it) => setItemForm({ item: it, isNew: false })} onRemove={stock.removeItem} />
-                : <StockGrid rows={rowsOf(l)} imgs={imgs} lowState={lowState} onOpen={setDetailItem}
-                    onEdit={(it) => setItemForm({ item: it, isNew: false })} onRemove={stock.removeItem} />)} />
+          ) : brandHome ? (
+            <React.Fragment>
+              <CatBrowser list={brandHome.list} count={brandHome.count} low={brandHome.low}
+                imgs={brandHome.list.reduce((m, b) => { m["cat_" + b.key] = b.img; return m; }, {})}
+                title={(SF.STOCK_CAT_BY[sub !== "all" ? sub : cat] || {}).th || ""}
+                hint={brandHome.list.length + " ยี่ห้อ · " + filtered.length.toLocaleString() + " รายการ"}
+                allLabel="ดูทุกรายการในหมวดนี้"
+                onPick={(b) => setBrand(b)} onAll={() => setBrowse(false)} onBack={goBack}
+                onSetImage={(b, d) => { const x = brandHome.list.find((y) => y.key === b); if (x) stock.setImage("cat_" + x.imgKey, d); }} />
+              {brandHome.none.length > 0 && (
+                <div style={{ marginTop: 24 }}>
+                  <div style={{ display: "flex", alignItems: "baseline", gap: 9, marginBottom: 10, flexWrap: "wrap" }}>
+                    <span style={{ fontSize: 13.5, fontWeight: 800, color: "var(--text-1)" }}>ไม่ระบุยี่ห้อ</span>
+                    <span style={{ fontSize: 11.5, color: "var(--text-3)" }}>{brandHome.none.length.toLocaleString()} รายการ</span>
+                  </div>
+                  {isMobile
+                    ? <StockCardList rows={rowsOf(brandHome.none)} imgs={imgs} onOpen={setDetailItem}
+                        onEdit={(it) => setItemForm({ item: it, isNew: false })} onRemove={stock.removeItem} />
+                    : <StockGrid rows={rowsOf(brandHome.none)} imgs={imgs} lowState={lowState} onOpen={setDetailItem}
+                        onEdit={(it) => setItemForm({ item: it, isNew: false })} onRemove={stock.removeItem} />}
+                </div>
+              )}
+            </React.Fragment>
+          ) : isMobile ? (
+            <StockCardList rows={rowsOf(filtered)} imgs={imgs} onOpen={setDetailItem}
+              onEdit={(it) => setItemForm({ item: it, isNew: false })} onRemove={stock.removeItem} />
+          ) : view === "grid" ? (
+            <StockGrid rows={rowsOf(filtered)} imgs={imgs} lowState={lowState} onOpen={setDetailItem}
+              onEdit={(it) => setItemForm({ item: it, isNew: false })} onRemove={stock.removeItem} />
           ) : (
           <div style={{ background: "var(--surface)", borderRadius: "var(--r-card)", overflow: "hidden", boxShadow: "var(--shadow-sm)" }}>
             <div style={{ overflowX: "auto" }}>
@@ -2664,33 +2713,6 @@ function FillVariantModal({ items, onApply, onClose }) {
 
 /* ── รูปสินค้า ──
    ไม่มีรูป = แสดงกล่องสีของหมวด + ตัวอักษรแรกของชื่อ ให้ยังกวาดตาหาของเจอ ไม่ใช่ช่องว่างเปล่า */
-/* ── แยกรายการเป็นกลุ่มตามยี่ห้อ (ชั้นย่อยของหมวดย่อย) ──
-   คิดจากช่องยี่ห้อของสินค้าเอง ไม่ได้สร้างหมวดชั้นที่ 3 ในข้อมูล — โค้ดทั้งระบบถือว่าหมวดมีแค่ หลัก › ย่อย
-   (SF.mainCatOf ดูพ่อชั้นเดียว) · มียี่ห้อเดียว/เลือกยี่ห้ออยู่แล้ว = โชว์รายการเฉย ๆ */
-function StkBrandSplit({ list, on, render, onPick }) {
-  const groups = React.useMemo(() => {
-    const m = {};
-    (list || []).forEach((it) => { const b = String(it.brand || "").trim() || "ไม่ระบุยี่ห้อ"; (m[b] = m[b] || []).push(it); });
-    return Object.keys(m).sort((a, z) => (a === "ไม่ระบุยี่ห้อ") - (z === "ไม่ระบุยี่ห้อ") || a.localeCompare(z, "th")).map((b) => ({ b: b, l: m[b] }));
-  }, [list]);
-  if (!on || groups.length < 2) return render(list || []);
-  return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 22 }}>
-      {groups.map((g) => (
-        <div key={g.b}>
-          <div style={{ display: "flex", alignItems: "center", gap: 9, marginBottom: 10 }}>
-            <span onClick={() => g.b !== "ไม่ระบุยี่ห้อ" && onPick && onPick(g.b)} title="ดูเฉพาะยี่ห้อนี้"
-              style={{ padding: "4px 12px", borderRadius: "var(--r-pill)", background: "var(--surface)", boxShadow: "var(--shadow-sm)",
-                fontSize: 12.5, fontWeight: 800, color: "var(--text-1)", cursor: g.b !== "ไม่ระบุยี่ห้อ" ? "pointer" : "default" }}>{g.b}</span>
-            <span style={{ fontSize: 11.5, color: "var(--text-3)" }}>{g.l.length.toLocaleString()} รายการ</span>
-          </div>
-          {render(g.l)}
-        </div>
-      ))}
-    </div>
-  );
-}
-
 function MatThumb({ src, item, size, radius }) {
   const SF = window.SF;
   const s = size || 44;

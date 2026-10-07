@@ -271,6 +271,11 @@ function StockView({
     return m;
   }, [items]);
   const goBack = () => {
+    if (brand !== "all" && !search.trim() && !kpiFilter) {
+      setBrand("all");
+      setBrowse(true);
+      return;
+    }
     if (sub !== "all") {
       setSub("all");
       setBrowse(true);
@@ -302,13 +307,14 @@ function StockView({
   const brandCount = React.useMemo(() => {
     const m = {};
     items.forEach(it => {
-      if (cat !== "all" && it.cat !== cat) return;
-      const b = (it.brand || "").trim();
-      if (!b) return;
+      if (cat !== "all" && it.cat !== cat && SF.mainCatOf(it.cat) !== cat) return;
+      if (sub !== "all" && it.cat !== sub) return;
+      const b = it.brand || "";
+      if (!b.trim()) return;
       m[b] = (m[b] || 0) + 1;
     });
     return m;
-  }, [items, cat]);
+  }, [items, cat, sub]);
   const brandList = React.useMemo(() => Object.keys(brandCount).sort((a, z) => a.localeCompare(z, "th")), [brandCount]);
   React.useEffect(() => {
     if (brand !== "all" && !brandCount[brand]) setBrand("all");
@@ -412,6 +418,44 @@ function StockView({
     })).sort((a, b) => sizeNum(a.size) - sizeNum(b.size) || a.size.localeCompare(b.size));
   };
   const directItems = showSubHome ? filtered.filter(it => it.cat === cat) : [];
+  const brandHome = React.useMemo(() => {
+    if (!browsing || cat === "all" || showSubHome) return null;
+    const m = {},
+      low = {},
+      none = [];
+    filtered.forEach(it => {
+      const b = it.brand || "";
+      if (!b.trim()) {
+        none.push(it);
+        return;
+      }
+      m[b] = (m[b] || 0) + 1;
+      if (lowState(it) !== "ok") low[b] = (low[b] || 0) + 1;
+    });
+    const keys = Object.keys(m).sort((a, z) => a.localeCompare(z, "th"));
+    if (keys.length < 2) return null;
+    const catByName = {};
+    SF.STOCK_CATS.concat(Object.keys(SF.STOCK_SUB_BY_CAT || {}).reduce((a, k) => a.concat(SF.STOCK_SUB_BY_CAT[k] || []), [])).forEach(c => {
+      if (c && c.th && imgs["cat_" + c.key]) catByName[String(c.th).trim().toLowerCase()] = imgs["cat_" + c.key];
+    });
+    const list = keys.map(b => {
+      const k = "brand_" + b.trim().toLowerCase().replace(/[.#$\[\]\/\s]+/g, "_");
+      return {
+        key: b,
+        th: b,
+        color: "#0EA5E9",
+        icon: "box",
+        imgKey: k,
+        img: imgs["cat_" + k] || catByName[b.trim().toLowerCase()] || ""
+      };
+    });
+    return {
+      list: list,
+      count: m,
+      low: low,
+      none: none
+    };
+  }, [browsing, cat, showSubHome, filtered, imgs]);
   const filterBar = React.createElement("div", {
     className: "content-filters"
   }, React.createElement("div", {
@@ -760,7 +804,7 @@ function StockView({
     label: b,
     color: "#0EA5E9",
     count: brandCount[b]
-  })))), React.createElement("div", null, !isPrices && !isAmp && !showCatHome && !showSubHome && React.createElement("div", {
+  })))), React.createElement("div", null, !isPrices && !isAmp && !showCatHome && !showSubHome && !brandHome && React.createElement("div", {
     style: {
       display: "flex",
       alignItems: "center",
@@ -822,9 +866,19 @@ function StockView({
   }, (SF.STOCK_CAT_BY[cat] || {}).th || "")), sub !== "all" && React.createElement("span", null, " \u203A ", React.createElement("span", {
     style: {
       fontWeight: 700,
+      color: brand === "all" ? "var(--text-1)" : "var(--text-2)",
+      cursor: "pointer"
+    },
+    onClick: () => {
+      setBrand("all");
+      setBrowse(true);
+    }
+  }, (SF.STOCK_CAT_BY[sub] || {}).th || "")), brand !== "all" && React.createElement("span", null, " \u203A ", React.createElement("span", {
+    style: {
+      fontWeight: 700,
       color: "var(--text-1)"
     }
-  }, (SF.STOCK_CAT_BY[sub] || {}).th || "")), React.createElement("span", null, " \xB7 ", filtered.length.toLocaleString(), " \u0E23\u0E32\u0E22\u0E01\u0E32\u0E23"))), showCatHome ? React.createElement(CatBrowser, {
+  }, brand)), React.createElement("span", null, " \xB7 ", filtered.length.toLocaleString(), " \u0E23\u0E32\u0E22\u0E01\u0E32\u0E23"))), showCatHome ? React.createElement(CatBrowser, {
     list: SF.STOCK_CATS.filter(c => catCount[c.key]),
     count: catCount,
     low: catLow,
@@ -869,54 +923,104 @@ function StockView({
       fontSize: 11.5,
       color: "var(--text-3)"
     }
-  }, "\u0E22\u0E31\u0E07\u0E44\u0E21\u0E48\u0E44\u0E14\u0E49\u0E2D\u0E22\u0E39\u0E48\u0E43\u0E19\u0E2B\u0E21\u0E27\u0E14\u0E22\u0E48\u0E2D\u0E22 \xB7 ", directItems.length.toLocaleString(), " \u0E23\u0E32\u0E22\u0E01\u0E32\u0E23")), React.createElement(StkBrandSplit, {
-    list: directItems,
-    on: brand === "all",
-    onPick: setBrand,
-    render: l => isMobile ? React.createElement(StockCardList, {
-      rows: rowsOf(l),
-      imgs: imgs,
-      onOpen: setDetailItem,
-      onEdit: it => setItemForm({
-        item: it,
-        isNew: false
-      }),
-      onRemove: stock.removeItem
-    }) : React.createElement(StockGrid, {
-      rows: rowsOf(l),
-      imgs: imgs,
-      lowState: lowState,
-      onOpen: setDetailItem,
-      onEdit: it => setItemForm({
-        item: it,
-        isNew: false
-      }),
-      onRemove: stock.removeItem
-    })
-  }))) : isMobile || view === "grid" ? React.createElement(StkBrandSplit, {
-    list: filtered,
-    on: brand === "all" && cat !== "all",
-    onPick: setBrand,
-    render: l => isMobile ? React.createElement(StockCardList, {
-      rows: rowsOf(l),
-      imgs: imgs,
-      onOpen: setDetailItem,
-      onEdit: it => setItemForm({
-        item: it,
-        isNew: false
-      }),
-      onRemove: stock.removeItem
-    }) : React.createElement(StockGrid, {
-      rows: rowsOf(l),
-      imgs: imgs,
-      lowState: lowState,
-      onOpen: setDetailItem,
-      onEdit: it => setItemForm({
-        item: it,
-        isNew: false
-      }),
-      onRemove: stock.removeItem
-    })
+  }, "\u0E22\u0E31\u0E07\u0E44\u0E21\u0E48\u0E44\u0E14\u0E49\u0E2D\u0E22\u0E39\u0E48\u0E43\u0E19\u0E2B\u0E21\u0E27\u0E14\u0E22\u0E48\u0E2D\u0E22 \xB7 ", directItems.length.toLocaleString(), " \u0E23\u0E32\u0E22\u0E01\u0E32\u0E23")), isMobile ? React.createElement(StockCardList, {
+    rows: rowsOf(directItems),
+    imgs: imgs,
+    onOpen: setDetailItem,
+    onEdit: it => setItemForm({
+      item: it,
+      isNew: false
+    }),
+    onRemove: stock.removeItem
+  }) : React.createElement(StockGrid, {
+    rows: rowsOf(directItems),
+    imgs: imgs,
+    lowState: lowState,
+    onOpen: setDetailItem,
+    onEdit: it => setItemForm({
+      item: it,
+      isNew: false
+    }),
+    onRemove: stock.removeItem
+  }))) : brandHome ? React.createElement(React.Fragment, null, React.createElement(CatBrowser, {
+    list: brandHome.list,
+    count: brandHome.count,
+    low: brandHome.low,
+    imgs: brandHome.list.reduce((m, b) => {
+      m["cat_" + b.key] = b.img;
+      return m;
+    }, {}),
+    title: (SF.STOCK_CAT_BY[sub !== "all" ? sub : cat] || {}).th || "",
+    hint: brandHome.list.length + " ยี่ห้อ · " + filtered.length.toLocaleString() + " รายการ",
+    allLabel: "\u0E14\u0E39\u0E17\u0E38\u0E01\u0E23\u0E32\u0E22\u0E01\u0E32\u0E23\u0E43\u0E19\u0E2B\u0E21\u0E27\u0E14\u0E19\u0E35\u0E49",
+    onPick: b => setBrand(b),
+    onAll: () => setBrowse(false),
+    onBack: goBack,
+    onSetImage: (b, d) => {
+      const x = brandHome.list.find(y => y.key === b);
+      if (x) stock.setImage("cat_" + x.imgKey, d);
+    }
+  }), brandHome.none.length > 0 && React.createElement("div", {
+    style: {
+      marginTop: 24
+    }
+  }, React.createElement("div", {
+    style: {
+      display: "flex",
+      alignItems: "baseline",
+      gap: 9,
+      marginBottom: 10,
+      flexWrap: "wrap"
+    }
+  }, React.createElement("span", {
+    style: {
+      fontSize: 13.5,
+      fontWeight: 800,
+      color: "var(--text-1)"
+    }
+  }, "\u0E44\u0E21\u0E48\u0E23\u0E30\u0E1A\u0E38\u0E22\u0E35\u0E48\u0E2B\u0E49\u0E2D"), React.createElement("span", {
+    style: {
+      fontSize: 11.5,
+      color: "var(--text-3)"
+    }
+  }, brandHome.none.length.toLocaleString(), " \u0E23\u0E32\u0E22\u0E01\u0E32\u0E23")), isMobile ? React.createElement(StockCardList, {
+    rows: rowsOf(brandHome.none),
+    imgs: imgs,
+    onOpen: setDetailItem,
+    onEdit: it => setItemForm({
+      item: it,
+      isNew: false
+    }),
+    onRemove: stock.removeItem
+  }) : React.createElement(StockGrid, {
+    rows: rowsOf(brandHome.none),
+    imgs: imgs,
+    lowState: lowState,
+    onOpen: setDetailItem,
+    onEdit: it => setItemForm({
+      item: it,
+      isNew: false
+    }),
+    onRemove: stock.removeItem
+  }))) : isMobile ? React.createElement(StockCardList, {
+    rows: rowsOf(filtered),
+    imgs: imgs,
+    onOpen: setDetailItem,
+    onEdit: it => setItemForm({
+      item: it,
+      isNew: false
+    }),
+    onRemove: stock.removeItem
+  }) : view === "grid" ? React.createElement(StockGrid, {
+    rows: rowsOf(filtered),
+    imgs: imgs,
+    lowState: lowState,
+    onOpen: setDetailItem,
+    onEdit: it => setItemForm({
+      item: it,
+      isNew: false
+    }),
+    onRemove: stock.removeItem
   }) : React.createElement("div", {
     style: {
       background: "var(--surface)",
@@ -6906,59 +7010,6 @@ function FillVariantModal({
     size: 15,
     color: "#fff"
   }), " \u0E1A\u0E31\u0E19\u0E17\u0E36\u0E01 ", picked.length, " \u0E23\u0E32\u0E22\u0E01\u0E32\u0E23")))));
-}
-function StkBrandSplit({
-  list,
-  on,
-  render,
-  onPick
-}) {
-  const groups = React.useMemo(() => {
-    const m = {};
-    (list || []).forEach(it => {
-      const b = String(it.brand || "").trim() || "ไม่ระบุยี่ห้อ";
-      (m[b] = m[b] || []).push(it);
-    });
-    return Object.keys(m).sort((a, z) => (a === "ไม่ระบุยี่ห้อ") - (z === "ไม่ระบุยี่ห้อ") || a.localeCompare(z, "th")).map(b => ({
-      b: b,
-      l: m[b]
-    }));
-  }, [list]);
-  if (!on || groups.length < 2) return render(list || []);
-  return React.createElement("div", {
-    style: {
-      display: "flex",
-      flexDirection: "column",
-      gap: 22
-    }
-  }, groups.map(g => React.createElement("div", {
-    key: g.b
-  }, React.createElement("div", {
-    style: {
-      display: "flex",
-      alignItems: "center",
-      gap: 9,
-      marginBottom: 10
-    }
-  }, React.createElement("span", {
-    onClick: () => g.b !== "ไม่ระบุยี่ห้อ" && onPick && onPick(g.b),
-    title: "\u0E14\u0E39\u0E40\u0E09\u0E1E\u0E32\u0E30\u0E22\u0E35\u0E48\u0E2B\u0E49\u0E2D\u0E19\u0E35\u0E49",
-    style: {
-      padding: "4px 12px",
-      borderRadius: "var(--r-pill)",
-      background: "var(--surface)",
-      boxShadow: "var(--shadow-sm)",
-      fontSize: 12.5,
-      fontWeight: 800,
-      color: "var(--text-1)",
-      cursor: g.b !== "ไม่ระบุยี่ห้อ" ? "pointer" : "default"
-    }
-  }, g.b), React.createElement("span", {
-    style: {
-      fontSize: 11.5,
-      color: "var(--text-3)"
-    }
-  }, g.l.length.toLocaleString(), " \u0E23\u0E32\u0E22\u0E01\u0E32\u0E23")), render(g.l))));
 }
 function MatThumb({
   src,
