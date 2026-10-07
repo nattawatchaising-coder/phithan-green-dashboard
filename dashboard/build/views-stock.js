@@ -390,7 +390,10 @@ function StockView({
       desc: it.desc || "",
       qty: 0,
       price: 0,
-      sku: ""
+      sku: "",
+      warY: +it.warY || 0,
+      warPerfY: +it.warPerfY || 0,
+      warNote: it.warNote || ""
     });
     setDetailItem(null);
     setItemForm({
@@ -2502,7 +2505,35 @@ function ItemModal({
     value: f.loc,
     onChange: e => set("loc", e.target.value),
     placeholder: "\u0E04\u0E25\u0E31\u0E07 A-01"
+  })), React.createElement(Field, {
+    label: "\u0E23\u0E31\u0E1A\u0E1B\u0E23\u0E30\u0E01\u0E31\u0E19\u0E2A\u0E34\u0E19\u0E04\u0E49\u0E32 (\u0E1B\u0E35)"
+  }, React.createElement("input", {
+    type: "number",
+    step: "0.5",
+    style: inputStyle,
+    value: f.warY || "",
+    onChange: e => set("warY", parseFloat(e.target.value) || 0),
+    placeholder: mainCat === "panel" ? "12 / 15" : "5 / 10"
+  })), mainCat === "panel" && React.createElement(Field, {
+    label: "\u0E23\u0E31\u0E1A\u0E1B\u0E23\u0E30\u0E01\u0E31\u0E19\u0E1B\u0E23\u0E30\u0E2A\u0E34\u0E17\u0E18\u0E34\u0E20\u0E32\u0E1E (\u0E1B\u0E35)"
+  }, React.createElement("input", {
+    type: "number",
+    style: inputStyle,
+    value: f.warPerfY || "",
+    onChange: e => set("warPerfY", parseFloat(e.target.value) || 0),
+    placeholder: "25 / 30"
   })), React.createElement("div", {
+    style: {
+      gridColumn: mainCat === "panel" ? "1 / -1" : "auto"
+    }
+  }, React.createElement(Field, {
+    label: "\u0E40\u0E07\u0E37\u0E48\u0E2D\u0E19\u0E44\u0E02\u0E01\u0E32\u0E23\u0E23\u0E31\u0E1A\u0E1B\u0E23\u0E30\u0E01\u0E31\u0E19"
+  }, React.createElement("input", {
+    style: inputStyle,
+    value: f.warNote || "",
+    onChange: e => set("warNote", e.target.value),
+    placeholder: "\u0E40\u0E0A\u0E48\u0E19 \u0E02\u0E22\u0E32\u0E22\u0E40\u0E1B\u0E47\u0E19 10 \u0E1B\u0E35\u0E40\u0E21\u0E37\u0E48\u0E2D\u0E25\u0E07\u0E17\u0E30\u0E40\u0E1A\u0E35\u0E22\u0E19 \xB7 \u0E40\u0E04\u0E25\u0E21\u0E1C\u0E48\u0E32\u0E19\u0E15\u0E31\u0E27\u0E41\u0E17\u0E19"
+  }))), React.createElement("div", {
     style: {
       gridColumn: "1 / -1"
     }
@@ -5808,6 +5839,7 @@ function ItemDetailModal({
     k: "ชื่อเดิม / ชื่อพ้อง",
     v: (item.aka || []).join(" · ") || "—"
   }];
+  const warTxt = [+item.warY > 0 ? "รับประกัน " + +item.warY + " ปี" : "", +item.warPerfY > 0 ? "ประสิทธิภาพ " + +item.warPerfY + " ปี" : ""].filter(Boolean).join(" · ");
   const priceTxt = +item.price > 0 ? (+item.price).toLocaleString(undefined, {
     maximumFractionDigits: 2
   }) : null;
@@ -5958,7 +5990,37 @@ function ItemDetailModal({
       color: "var(--text-2)",
       fontWeight: 600
     }
-  }, "\u0E23\u0E38\u0E48\u0E19 ", item.model), (item.desc || "").trim() && React.createElement("p", {
+  }, "\u0E23\u0E38\u0E48\u0E19 ", item.model), warTxt && React.createElement("div", {
+    style: {
+      display: "flex",
+      alignItems: "flex-start",
+      gap: 8,
+      alignSelf: "flex-start",
+      padding: "7px 12px",
+      borderRadius: "var(--r-tile)",
+      background: "var(--surface)",
+      boxShadow: "var(--shadow-sm)"
+    }
+  }, React.createElement(Icon, {
+    name: "shield",
+    size: 15,
+    color: "var(--primary-dark)"
+  }), React.createElement("span", {
+    style: {
+      fontSize: 12.5,
+      lineHeight: 1.5
+    }
+  }, React.createElement("b", {
+    style: {
+      color: "var(--primary-dark)"
+    }
+  }, warTxt), (item.warNote || "").trim() && React.createElement("span", {
+    style: {
+      display: "block",
+      fontSize: 11.5,
+      color: "var(--text-3)"
+    }
+  }, item.warNote))), (item.desc || "").trim() && React.createElement("p", {
     style: {
       margin: 0,
       fontSize: 13,

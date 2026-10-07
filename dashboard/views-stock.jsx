@@ -230,6 +230,7 @@ function StockView({ stock, onResetAll, onMenuOpen, currentUser, jobs, priceStor
     const rec = Object.assign(stock.blankItem(), {
       name: it.name || "", cat: it.cat, brand: it.brand || "", unit: it.unit || "ชิ้น",
       min: +it.min || 0, loc: it.loc || "", desc: it.desc || "", qty: 0, price: 0, sku: "",
+      warY: +it.warY || 0, warPerfY: +it.warPerfY || 0, warNote: it.warNote || "",
     });
     setDetailItem(null);
     setItemForm({ item: rec, isNew: true, sizeOf: it.name });
@@ -979,6 +980,14 @@ function ItemModal({ initial, isNew, items, onSave, onClose, onAddCat, onRemoveC
           <Field label="ขั้นต่ำ (แจ้งเตือน)"><input type="number" style={inputStyle} value={f.min} onChange={(e) => set("min", parseInt(e.target.value) || 0)} /></Field>
           <Field label="ราคา/หน่วย (บาท)"><input type="number" style={inputStyle} value={f.price != null ? f.price : 0} onChange={(e) => set("price", parseFloat(e.target.value) || 0)} placeholder="0" /></Field>
           <Field label="ที่จัดเก็บ"><input style={inputStyle} value={f.loc} onChange={(e) => set("loc", e.target.value)} placeholder="คลัง A-01" /></Field>
+          {/* การรับประกันของผู้ผลิต — ใช้ตอบลูกค้า/ตั้งประกันในงาน O&M · แผงแยกประกันวัสดุกับประสิทธิภาพ */}
+          <Field label="รับประกันสินค้า (ปี)"><input type="number" step="0.5" style={inputStyle} value={f.warY || ""} onChange={(e) => set("warY", parseFloat(e.target.value) || 0)} placeholder={mainCat === "panel" ? "12 / 15" : "5 / 10"} /></Field>
+          {mainCat === "panel" && (
+            <Field label="รับประกันประสิทธิภาพ (ปี)"><input type="number" style={inputStyle} value={f.warPerfY || ""} onChange={(e) => set("warPerfY", parseFloat(e.target.value) || 0)} placeholder="25 / 30" /></Field>
+          )}
+          <div style={{ gridColumn: mainCat === "panel" ? "1 / -1" : "auto" }}>
+            <Field label="เงื่อนไขการรับประกัน"><input style={inputStyle} value={f.warNote || ""} onChange={(e) => set("warNote", e.target.value)} placeholder="เช่น ขยายเป็น 10 ปีเมื่อลงทะเบียน · เคลมผ่านตัวแทน" /></Field>
+          </div>
           {/* คำอธิบาย — ขึ้นในหน้ารายละเอียดสินค้า เอาไว้กันจำสเปคสำคัญผิด */}
           <div style={{ gridColumn: "1 / -1" }}>
             <Field label="คำอธิบายสินค้า">
@@ -2269,6 +2278,8 @@ function ItemDetailModal({ item, img, variants, loadDoc, setDoc, onMove, onEdit,
     { k: "ที่จัดเก็บ", v: item.loc || "—" },
     { k: "ชื่อเดิม / ชื่อพ้อง", v: (item.aka || []).join(" · ") || "—" },
   ];
+  const warTxt = [+item.warY > 0 ? "รับประกัน " + (+item.warY) + " ปี" : "",
+    +item.warPerfY > 0 ? "ประสิทธิภาพ " + (+item.warPerfY) + " ปี" : ""].filter(Boolean).join(" · ");
   const priceTxt = +item.price > 0 ? (+item.price).toLocaleString(undefined, { maximumFractionDigits: 2 }) : null;
   const sectionLabel = { fontSize: 10.5, fontWeight: 800, color: "var(--text-3)" };
   return (
@@ -2311,6 +2322,16 @@ function ItemDetailModal({ item, img, variants, loadDoc, setDoc, onMove, onEdit,
               <h2 style={{ margin: 0, fontSize: isMobile ? 20 : 25, fontWeight: 700, color: "var(--text-1)", lineHeight: 1.3, letterSpacing: "-.01em" }}>{item.name}</h2>
               {(item.model || "").trim() && (
                 <div style={{ fontSize: 13.5, color: "var(--text-2)", fontWeight: 600 }}>รุ่น {item.model}</div>
+              )}
+              {warTxt && (
+                <div style={{ display: "flex", alignItems: "flex-start", gap: 8, alignSelf: "flex-start", padding: "7px 12px", borderRadius: "var(--r-tile)",
+                  background: "var(--surface)", boxShadow: "var(--shadow-sm)" }}>
+                  <Icon name="shield" size={15} color="var(--primary-dark)" />
+                  <span style={{ fontSize: 12.5, lineHeight: 1.5 }}>
+                    <b style={{ color: "var(--primary-dark)" }}>{warTxt}</b>
+                    {(item.warNote || "").trim() && <span style={{ display: "block", fontSize: 11.5, color: "var(--text-3)" }}>{item.warNote}</span>}
+                  </span>
+                </div>
               )}
               {(item.desc || "").trim() && (
                 <p style={{ margin: 0, fontSize: 13, color: "var(--text-2)", lineHeight: 1.7, whiteSpace: "pre-wrap" }}>{item.desc}</p>
