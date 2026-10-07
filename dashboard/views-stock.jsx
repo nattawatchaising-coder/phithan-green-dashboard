@@ -409,6 +409,8 @@ function StockView({ stock, onResetAll, onMenuOpen, currentUser, jobs, priceStor
       ) : (
       <div className="app-content">
         {filterBar}
+        {showCatHome && <BrandMarquee items={items} imgs={imgs} onPick={setBrand} />}
+
         {/* ── เลือกยี่ห้อ ── วางติดกับรายการเลย เลื่อนมาดูของแล้วยังกดเปลี่ยนได้ ไม่ต้องเลื่อนกลับขึ้นหัวเพจ
             หน้าแรก (เลือกหมวด) ไม่ต้องขึ้น — ยี่ห้อทั้งคลังมี 14 ยี่ห้อ รกเปล่า ๆ กดเข้าหมวดก่อนค่อยโผล่ */}
         {brandList.length > 0 && !showCatHome && (
@@ -2889,6 +2891,41 @@ function CatCard({ c, n, lowN, img, onPick, onImage }) {
 
 /* ── หน้าเลือกหมวด ──
    ใช้ทั้งชั้นหมวดหลัก และชั้นหมวดย่อย (กดหมวดหลักที่มีหมวดย่อย → เจอหน้านี้อีกที) */
+/* แถบยี่ห้อเลื่อนวนบนหน้าแรกของคลัง — แตะยี่ห้อ = ดูของยี่ห้อนั้นทุกหมวด
+   รูปยี่ห้อ = รูปที่ตั้งไว้บนการ์ดยี่ห้อ (cat_brand_<ยี่ห้อ>) หรือรูปหมวดย่อยที่ชื่อตรงกัน ไม่มี = ตัวหนังสือ
+   รายการซ้ำสองชุดแล้วเลื่อนครึ่งความยาว ภาพจึงวนต่อเนื่องไม่กระตุก · ชี้เมาส์ = หยุด */
+function BrandMarquee({ items, imgs, onPick }) {
+  const list = React.useMemo(() => {
+    const m = {};
+    items.forEach((it) => { const b = (it.brand || "").trim(); if (b) m[b] = (m[b] || 0) + 1; });
+    const byName = {};
+    SF.STOCK_CATS.concat(Object.keys(SF.STOCK_SUB_BY_CAT || {}).reduce((a, k) => a.concat(SF.STOCK_SUB_BY_CAT[k] || []), []))
+      .forEach((c) => { if (c && c.th && imgs["cat_" + c.key]) byName[String(c.th).trim().toLowerCase()] = imgs["cat_" + c.key]; });
+    return Object.keys(m).sort((a, z) => m[z] - m[a] || a.localeCompare(z)).map((b) => {
+      const k = "brand_" + b.toLowerCase().replace(/[.#$\[\]\/\s]+/g, "_");
+      return { b: b, n: m[b], img: imgs["cat_" + k] || byName[b.toLowerCase()] || "" };
+    });
+  }, [items, imgs]);
+  if (!list.length) return null;
+  const one = (x, i, dup) => (
+    <button key={(dup ? "d" : "") + x.b} type="button" className="bm-item" tabIndex={dup ? -1 : 0} aria-hidden={dup || undefined}
+      title={x.b + " · " + x.n + " รายการ"} onClick={() => onPick(x.b)}>
+      {x.img
+        ? <img src={x.img} alt={x.b} loading="lazy" />
+        : <span className="bm-word">{x.b}</span>}
+      <span className="bm-n">{x.n}</span>
+    </button>
+  );
+  return (
+    <div className="bm-wrap" style={{ marginBottom: 18 }}>
+      <div className="bm-track" style={{ animationDuration: Math.max(20, list.length * 3.2) + "s" }}>
+        {list.map((x, i) => one(x, i, false))}
+        {list.map((x, i) => one(x, i, true))}
+      </div>
+    </div>
+  );
+}
+
 function CatBrowser({ list, count, low, imgs, title, hint, allLabel, onPick, onAll, onBack, onSetImage }) {
   const shown = list || [];
   return (

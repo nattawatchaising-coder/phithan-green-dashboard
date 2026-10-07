@@ -58,6 +58,18 @@ label { min-width: 0; }
 /* แถบชิปหมวดหมู่ (คลังสินค้า) — เลื่อนแนวนอนบรรทัดเดียว สกอลล์บาร์บาง */
 .cat-chip-row { scrollbar-width: thin; }
 .cat-chip-row::-webkit-scrollbar { height: 6px; }
+/* แถบยี่ห้อเลื่อนวน (หน้าคลัง) */
+.bm-wrap { overflow: hidden; padding: 6px 0 10px; -webkit-mask-image: linear-gradient(90deg, transparent, #000 6%, #000 94%, transparent); mask-image: linear-gradient(90deg, transparent, #000 6%, #000 94%, transparent); }
+.bm-track { display: flex; gap: 12px; width: max-content; animation: bmScroll 60s linear infinite; }
+.bm-wrap:hover .bm-track, .bm-wrap:focus-within .bm-track { animation-play-state: paused; }
+@keyframes bmScroll { to { transform: translateX(calc(-50% - 6px)); } }
+.bm-item { position: relative; flex: none; display: flex; align-items: center; justify-content: center; width: 150px; height: 72px; padding: 10px 16px;
+  border: none; border-radius: 16px; background: var(--surface); box-shadow: var(--shadow-sm); cursor: pointer; font-family: inherit; transition: transform .15s, box-shadow .15s; }
+.bm-item:hover { transform: translateY(-2px); box-shadow: var(--shadow-card); }
+.bm-item img { max-width: 100%; max-height: 100%; object-fit: contain; display: block; }
+.bm-word { font-size: 15px; font-weight: 800; letter-spacing: .02em; color: var(--text-1); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
+.bm-n { position: absolute; top: 6px; right: 8px; font-size: 10px; font-weight: 700; color: var(--text-3); }
+@media (prefers-reduced-motion: reduce) { .bm-track { animation: none; } .bm-wrap { overflow-x: auto; } }
 
 /* ---------- layout ---------- */
 /* ระยะขอบซ้าย/ขวาของทั้งหน้า — ปกติ 26px แต่บนจอกว้างจะโตขึ้นเองจนเนื้อหากว้างไม่เกิน --page-w
@@ -1111,7 +1123,7 @@ H-@G1I margin-top D'IC*D%L-1'@- 6H
 <script src="dashboard/build/views-table.js?v=38"></script>
 <script src="dashboard/build/views-report.js?v=12"></script>
 <script src="dashboard/build/views-calendar.js?v=36"></script>
-<script src="dashboard/build/views-stock.js?v=146"></script>
+<script src="dashboard/build/views-stock.js?v=147"></script>
 <script src="dashboard/build/form.js?v=46"></script>
 <script src="dashboard/build/survey.js?v=39"></script>
 <script src="dashboard/build/survey-report.js?v=16"></script>

@@ -726,7 +726,11 @@ function StockView({
     grp: priceGrp
   })) : React.createElement("div", {
     className: "app-content"
-  }, filterBar, brandList.length > 0 && !showCatHome && React.createElement("div", {
+  }, filterBar, showCatHome && React.createElement(BrandMarquee, {
+    items: items,
+    imgs: imgs,
+    onPick: setBrand
+  }), brandList.length > 0 && !showCatHome && React.createElement("div", {
     style: {
       marginBottom: 12,
       display: "flex",
@@ -7491,6 +7495,60 @@ function CatCard({
       e.target.value = "";
     }
   }));
+}
+function BrandMarquee({
+  items,
+  imgs,
+  onPick
+}) {
+  const list = React.useMemo(() => {
+    const m = {};
+    items.forEach(it => {
+      const b = (it.brand || "").trim();
+      if (b) m[b] = (m[b] || 0) + 1;
+    });
+    const byName = {};
+    SF.STOCK_CATS.concat(Object.keys(SF.STOCK_SUB_BY_CAT || {}).reduce((a, k) => a.concat(SF.STOCK_SUB_BY_CAT[k] || []), [])).forEach(c => {
+      if (c && c.th && imgs["cat_" + c.key]) byName[String(c.th).trim().toLowerCase()] = imgs["cat_" + c.key];
+    });
+    return Object.keys(m).sort((a, z) => m[z] - m[a] || a.localeCompare(z)).map(b => {
+      const k = "brand_" + b.toLowerCase().replace(/[.#$\[\]\/\s]+/g, "_");
+      return {
+        b: b,
+        n: m[b],
+        img: imgs["cat_" + k] || byName[b.toLowerCase()] || ""
+      };
+    });
+  }, [items, imgs]);
+  if (!list.length) return null;
+  const one = (x, i, dup) => React.createElement("button", {
+    key: (dup ? "d" : "") + x.b,
+    type: "button",
+    className: "bm-item",
+    tabIndex: dup ? -1 : 0,
+    "aria-hidden": dup || undefined,
+    title: x.b + " · " + x.n + " รายการ",
+    onClick: () => onPick(x.b)
+  }, x.img ? React.createElement("img", {
+    src: x.img,
+    alt: x.b,
+    loading: "lazy"
+  }) : React.createElement("span", {
+    className: "bm-word"
+  }, x.b), React.createElement("span", {
+    className: "bm-n"
+  }, x.n));
+  return React.createElement("div", {
+    className: "bm-wrap",
+    style: {
+      marginBottom: 18
+    }
+  }, React.createElement("div", {
+    className: "bm-track",
+    style: {
+      animationDuration: Math.max(20, list.length * 3.2) + "s"
+    }
+  }, list.map((x, i) => one(x, i, false)), list.map((x, i) => one(x, i, true))));
 }
 function CatBrowser({
   list,
