@@ -869,44 +869,54 @@ function StockView({
       fontSize: 11.5,
       color: "var(--text-3)"
     }
-  }, "\u0E22\u0E31\u0E07\u0E44\u0E21\u0E48\u0E44\u0E14\u0E49\u0E2D\u0E22\u0E39\u0E48\u0E43\u0E19\u0E2B\u0E21\u0E27\u0E14\u0E22\u0E48\u0E2D\u0E22 \xB7 ", directItems.length.toLocaleString(), " \u0E23\u0E32\u0E22\u0E01\u0E32\u0E23")), isMobile ? React.createElement(StockCardList, {
-    rows: rowsOf(directItems),
-    imgs: imgs,
-    onOpen: setDetailItem,
-    onEdit: it => setItemForm({
-      item: it,
-      isNew: false
-    }),
-    onRemove: stock.removeItem
-  }) : React.createElement(StockGrid, {
-    rows: rowsOf(directItems),
-    imgs: imgs,
-    lowState: lowState,
-    onOpen: setDetailItem,
-    onEdit: it => setItemForm({
-      item: it,
-      isNew: false
-    }),
-    onRemove: stock.removeItem
-  }))) : isMobile ? React.createElement(StockCardList, {
-    rows: rowsOf(filtered),
-    imgs: imgs,
-    onOpen: setDetailItem,
-    onEdit: it => setItemForm({
-      item: it,
-      isNew: false
-    }),
-    onRemove: stock.removeItem
-  }) : view === "grid" ? React.createElement(StockGrid, {
-    rows: rowsOf(filtered),
-    imgs: imgs,
-    lowState: lowState,
-    onOpen: setDetailItem,
-    onEdit: it => setItemForm({
-      item: it,
-      isNew: false
-    }),
-    onRemove: stock.removeItem
+  }, "\u0E22\u0E31\u0E07\u0E44\u0E21\u0E48\u0E44\u0E14\u0E49\u0E2D\u0E22\u0E39\u0E48\u0E43\u0E19\u0E2B\u0E21\u0E27\u0E14\u0E22\u0E48\u0E2D\u0E22 \xB7 ", directItems.length.toLocaleString(), " \u0E23\u0E32\u0E22\u0E01\u0E32\u0E23")), React.createElement(StkBrandSplit, {
+    list: directItems,
+    on: brand === "all",
+    onPick: setBrand,
+    render: l => isMobile ? React.createElement(StockCardList, {
+      rows: rowsOf(l),
+      imgs: imgs,
+      onOpen: setDetailItem,
+      onEdit: it => setItemForm({
+        item: it,
+        isNew: false
+      }),
+      onRemove: stock.removeItem
+    }) : React.createElement(StockGrid, {
+      rows: rowsOf(l),
+      imgs: imgs,
+      lowState: lowState,
+      onOpen: setDetailItem,
+      onEdit: it => setItemForm({
+        item: it,
+        isNew: false
+      }),
+      onRemove: stock.removeItem
+    })
+  }))) : isMobile || view === "grid" ? React.createElement(StkBrandSplit, {
+    list: filtered,
+    on: brand === "all" && cat !== "all",
+    onPick: setBrand,
+    render: l => isMobile ? React.createElement(StockCardList, {
+      rows: rowsOf(l),
+      imgs: imgs,
+      onOpen: setDetailItem,
+      onEdit: it => setItemForm({
+        item: it,
+        isNew: false
+      }),
+      onRemove: stock.removeItem
+    }) : React.createElement(StockGrid, {
+      rows: rowsOf(l),
+      imgs: imgs,
+      lowState: lowState,
+      onOpen: setDetailItem,
+      onEdit: it => setItemForm({
+        item: it,
+        isNew: false
+      }),
+      onRemove: stock.removeItem
+    })
   }) : React.createElement("div", {
     style: {
       background: "var(--surface)",
@@ -6896,6 +6906,59 @@ function FillVariantModal({
     size: 15,
     color: "#fff"
   }), " \u0E1A\u0E31\u0E19\u0E17\u0E36\u0E01 ", picked.length, " \u0E23\u0E32\u0E22\u0E01\u0E32\u0E23")))));
+}
+function StkBrandSplit({
+  list,
+  on,
+  render,
+  onPick
+}) {
+  const groups = React.useMemo(() => {
+    const m = {};
+    (list || []).forEach(it => {
+      const b = String(it.brand || "").trim() || "ไม่ระบุยี่ห้อ";
+      (m[b] = m[b] || []).push(it);
+    });
+    return Object.keys(m).sort((a, z) => (a === "ไม่ระบุยี่ห้อ") - (z === "ไม่ระบุยี่ห้อ") || a.localeCompare(z, "th")).map(b => ({
+      b: b,
+      l: m[b]
+    }));
+  }, [list]);
+  if (!on || groups.length < 2) return render(list || []);
+  return React.createElement("div", {
+    style: {
+      display: "flex",
+      flexDirection: "column",
+      gap: 22
+    }
+  }, groups.map(g => React.createElement("div", {
+    key: g.b
+  }, React.createElement("div", {
+    style: {
+      display: "flex",
+      alignItems: "center",
+      gap: 9,
+      marginBottom: 10
+    }
+  }, React.createElement("span", {
+    onClick: () => g.b !== "ไม่ระบุยี่ห้อ" && onPick && onPick(g.b),
+    title: "\u0E14\u0E39\u0E40\u0E09\u0E1E\u0E32\u0E30\u0E22\u0E35\u0E48\u0E2B\u0E49\u0E2D\u0E19\u0E35\u0E49",
+    style: {
+      padding: "4px 12px",
+      borderRadius: "var(--r-pill)",
+      background: "var(--surface)",
+      boxShadow: "var(--shadow-sm)",
+      fontSize: 12.5,
+      fontWeight: 800,
+      color: "var(--text-1)",
+      cursor: g.b !== "ไม่ระบุยี่ห้อ" ? "pointer" : "default"
+    }
+  }, g.b), React.createElement("span", {
+    style: {
+      fontSize: 11.5,
+      color: "var(--text-3)"
+    }
+  }, g.l.length.toLocaleString(), " \u0E23\u0E32\u0E22\u0E01\u0E32\u0E23")), render(g.l))));
 }
 function MatThumb({
   src,

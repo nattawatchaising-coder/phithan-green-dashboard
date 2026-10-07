@@ -454,20 +454,22 @@ function StockView({ stock, onResetAll, onMenuOpen, currentUser, jobs, priceStor
                     <span style={{ fontSize: 13.5, fontWeight: 800, color: "var(--text-1)" }}>รายการในหมวดนี้</span>
                     <span style={{ fontSize: 11.5, color: "var(--text-3)" }}>ยังไม่ได้อยู่ในหมวดย่อย · {directItems.length.toLocaleString()} รายการ</span>
                   </div>
-                  {isMobile
-                    ? <StockCardList rows={rowsOf(directItems)} imgs={imgs} onOpen={setDetailItem}
-                        onEdit={(it) => setItemForm({ item: it, isNew: false })} onRemove={stock.removeItem} />
-                    : <StockGrid rows={rowsOf(directItems)} imgs={imgs} lowState={lowState} onOpen={setDetailItem}
-                        onEdit={(it) => setItemForm({ item: it, isNew: false })} onRemove={stock.removeItem} />}
+                  <StkBrandSplit list={directItems} on={brand === "all"} onPick={setBrand}
+                    render={(l) => (isMobile
+                      ? <StockCardList rows={rowsOf(l)} imgs={imgs} onOpen={setDetailItem}
+                          onEdit={(it) => setItemForm({ item: it, isNew: false })} onRemove={stock.removeItem} />
+                      : <StockGrid rows={rowsOf(l)} imgs={imgs} lowState={lowState} onOpen={setDetailItem}
+                          onEdit={(it) => setItemForm({ item: it, isNew: false })} onRemove={stock.removeItem} />)} />
                 </div>
               )}
             </React.Fragment>
-          ) : isMobile ? (
-            <StockCardList rows={rowsOf(filtered)} imgs={imgs} onOpen={setDetailItem}
-              onEdit={(it) => setItemForm({ item: it, isNew: false })} onRemove={stock.removeItem} />
-          ) : view === "grid" ? (
-            <StockGrid rows={rowsOf(filtered)} imgs={imgs} lowState={lowState} onOpen={setDetailItem}
-              onEdit={(it) => setItemForm({ item: it, isNew: false })} onRemove={stock.removeItem} />
+          ) : (isMobile || view === "grid") ? (
+            <StkBrandSplit list={filtered} on={brand === "all" && cat !== "all"} onPick={setBrand}
+              render={(l) => (isMobile
+                ? <StockCardList rows={rowsOf(l)} imgs={imgs} onOpen={setDetailItem}
+                    onEdit={(it) => setItemForm({ item: it, isNew: false })} onRemove={stock.removeItem} />
+                : <StockGrid rows={rowsOf(l)} imgs={imgs} lowState={lowState} onOpen={setDetailItem}
+                    onEdit={(it) => setItemForm({ item: it, isNew: false })} onRemove={stock.removeItem} />)} />
           ) : (
           <div style={{ background: "var(--surface)", borderRadius: "var(--r-card)", overflow: "hidden", boxShadow: "var(--shadow-sm)" }}>
             <div style={{ overflowX: "auto" }}>
@@ -2662,6 +2664,33 @@ function FillVariantModal({ items, onApply, onClose }) {
 
 /* ── รูปสินค้า ──
    ไม่มีรูป = แสดงกล่องสีของหมวด + ตัวอักษรแรกของชื่อ ให้ยังกวาดตาหาของเจอ ไม่ใช่ช่องว่างเปล่า */
+/* ── แยกรายการเป็นกลุ่มตามยี่ห้อ (ชั้นย่อยของหมวดย่อย) ──
+   คิดจากช่องยี่ห้อของสินค้าเอง ไม่ได้สร้างหมวดชั้นที่ 3 ในข้อมูล — โค้ดทั้งระบบถือว่าหมวดมีแค่ หลัก › ย่อย
+   (SF.mainCatOf ดูพ่อชั้นเดียว) · มียี่ห้อเดียว/เลือกยี่ห้ออยู่แล้ว = โชว์รายการเฉย ๆ */
+function StkBrandSplit({ list, on, render, onPick }) {
+  const groups = React.useMemo(() => {
+    const m = {};
+    (list || []).forEach((it) => { const b = String(it.brand || "").trim() || "ไม่ระบุยี่ห้อ"; (m[b] = m[b] || []).push(it); });
+    return Object.keys(m).sort((a, z) => (a === "ไม่ระบุยี่ห้อ") - (z === "ไม่ระบุยี่ห้อ") || a.localeCompare(z, "th")).map((b) => ({ b: b, l: m[b] }));
+  }, [list]);
+  if (!on || groups.length < 2) return render(list || []);
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: 22 }}>
+      {groups.map((g) => (
+        <div key={g.b}>
+          <div style={{ display: "flex", alignItems: "center", gap: 9, marginBottom: 10 }}>
+            <span onClick={() => g.b !== "ไม่ระบุยี่ห้อ" && onPick && onPick(g.b)} title="ดูเฉพาะยี่ห้อนี้"
+              style={{ padding: "4px 12px", borderRadius: "var(--r-pill)", background: "var(--surface)", boxShadow: "var(--shadow-sm)",
+                fontSize: 12.5, fontWeight: 800, color: "var(--text-1)", cursor: g.b !== "ไม่ระบุยี่ห้อ" ? "pointer" : "default" }}>{g.b}</span>
+            <span style={{ fontSize: 11.5, color: "var(--text-3)" }}>{g.l.length.toLocaleString()} รายการ</span>
+          </div>
+          {render(g.l)}
+        </div>
+      ))}
+    </div>
+  );
+}
+
 function MatThumb({ src, item, size, radius }) {
   const SF = window.SF;
   const s = size || 44;

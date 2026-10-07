@@ -1293,6 +1293,7 @@ function qStkImg(id) {
   if (!QSTK.wait[id]) QSTK.wait[id] = window.FBDB.ref("stockImg/" + id).once("value").then(sn => QSTK.img[id] = sn.val() || "").catch(() => "");
   return QSTK.wait[id];
 }
+const QSTK_STOP = ["module", "power", "smart", "watt", "system", "inverter", "hybrid", "phase", "lot", "and"];
 function qStkRank(items, rowName, query) {
   const lo = x => String(x || "").toLowerCase();
   const q = lo(query).trim();
@@ -1301,9 +1302,13 @@ function qStkRank(items, rowName, query) {
   const score = it => {
     if (q) return q.split(/\s+/).every(w => txt(it).indexOf(w) !== -1) ? 1 : 0;
     let n = 0;
-    lo([it.name, it.model].join(" ")).split(/[\s/()]+/).forEach(w => {
-      if (w.length >= 3 && row.indexOf(w) !== -1) n += w.length;
+    const sp = x => x.split(/[^a-z0-9฀-๿]+/);
+    const rw = sp(row).filter(w => w.length >= 3 && QSTK_STOP.indexOf(w) < 0);
+    const iw = sp(lo([it.name, it.model].join(" ")));
+    rw.forEach(w => {
+      if (iw.indexOf(w) !== -1) n += w.length;
     });
+    if (it.brand && rw.indexOf(lo(it.brand).trim()) !== -1) n += 20;
     if (it.model && row.indexOf(lo(it.model)) !== -1) n += 50;
     return n;
   };
@@ -1311,20 +1316,42 @@ function qStkRank(items, rowName, query) {
     it: it,
     sc: score(it)
   }));
-  return (q ? a.filter(x => x.sc > 0) : a).sort((x, z) => z.sc - x.sc || String(x.it.name).localeCompare(String(z.it.name), "th")).slice(0, 30).map(x => x.it);
+  return (q ? a.filter(x => x.sc > 0) : a).sort((x, z) => z.sc - x.sc || String(x.it.name).localeCompare(String(z.it.name), "th")).map(x => x.it);
 }
 function QStkThumb({
   id,
   h
 }) {
   const [src, setSrc] = React.useState(QSTK.img[id]);
+  const ref = React.useRef(null);
   React.useEffect(() => {
     let on = true;
-    if (id in QSTK.img) setSrc(QSTK.img[id]);else qStkImg(id).then(v => {
+    if (id in QSTK.img) {
+      setSrc(QSTK.img[id]);
+      return;
+    }
+    const go = () => qStkImg(id).then(v => {
       if (on) setSrc(v);
     });
+    const el = ref.current;
+    if (!el || !window.IntersectionObserver) {
+      go();
+      return () => {
+        on = false;
+      };
+    }
+    const ob = new IntersectionObserver(es => {
+      if (es.some(e => e.isIntersecting)) {
+        ob.disconnect();
+        go();
+      }
+    }, {
+      rootMargin: "120px"
+    });
+    ob.observe(el);
     return () => {
       on = false;
+      ob.disconnect();
     };
   }, [id]);
   return src ? React.createElement("img", {
@@ -1338,6 +1365,7 @@ function QStkThumb({
       background: "#fff"
     }
   }) : React.createElement("span", {
+    ref: ref,
     style: {
       display: "block",
       height: h,

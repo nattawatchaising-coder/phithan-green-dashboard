@@ -1197,6 +1197,7 @@ function qStkImg(id) {
   return QSTK.wait[id];
 }
 /* เรียงของในคลังตามความใกล้กับชื่อแถว — คำในชื่อ/รุ่นสินค้าที่โผล่ในชื่อแถวยิ่งเยอะยิ่งขึ้นก่อน */
+const QSTK_STOP = ["module", "power", "smart", "watt", "system", "inverter", "hybrid", "phase", "lot", "and"];
 function qStkRank(items, rowName, query) {
   const lo = (x) => String(x || "").toLowerCase();
   const q = lo(query).trim();
@@ -1205,24 +1206,36 @@ function qStkRank(items, rowName, query) {
   const score = (it) => {
     if (q) return q.split(/\s+/).every((w) => txt(it).indexOf(w) !== -1) ? 1 : 0;
     let n = 0;
-    lo([it.name, it.model].join(" ")).split(/[\s/()]+/).forEach((w) => { if (w.length >= 3 && row.indexOf(w) !== -1) n += w.length; });
+    /* คำกลาง ๆ (module/power/smart …) ไม่นับ — เดิมแถว "PV Module Aiko" ไปเจอ LUNA (Power Module) ก่อนแผง Aiko */
+    const sp = (x) => x.split(/[^a-z0-9฀-๿]+/);
+    const rw = sp(row).filter((w) => w.length >= 3 && QSTK_STOP.indexOf(w) < 0);
+    const iw = sp(lo([it.name, it.model].join(" ")));
+    rw.forEach((w) => { if (iw.indexOf(w) !== -1) n += w.length; });
+    if (it.brand && rw.indexOf(lo(it.brand).trim()) !== -1) n += 20;
     if (it.model && row.indexOf(lo(it.model)) !== -1) n += 50;
     return n;
   };
   const a = items.map((it) => ({ it: it, sc: score(it) }));
   return (q ? a.filter((x) => x.sc > 0) : a)
     .sort((x, z) => z.sc - x.sc || String(x.it.name).localeCompare(String(z.it.name), "th"))
-    .slice(0, 30).map((x) => x.it);
+    .map((x) => x.it);
 }
+/* ไม่ตัดรายการทิ้ง (เดิมตัดที่ 30 ชิ้น ของที่มีรูปจริงหายไปครึ่งหนึ่ง) — โหลดรูปเฉพาะช่องที่เลื่อนมาเห็น */
 function QStkThumb({ id, h }) {
   const [src, setSrc] = React.useState(QSTK.img[id]);
+  const ref = React.useRef(null);
   React.useEffect(() => {
     let on = true;
-    if (id in QSTK.img) setSrc(QSTK.img[id]); else qStkImg(id).then((v) => { if (on) setSrc(v); });
-    return () => { on = false; };
+    if (id in QSTK.img) { setSrc(QSTK.img[id]); return; }
+    const go = () => qStkImg(id).then((v) => { if (on) setSrc(v); });
+    const el = ref.current;
+    if (!el || !window.IntersectionObserver) { go(); return () => { on = false; }; }
+    const ob = new IntersectionObserver((es) => { if (es.some((e) => e.isIntersecting)) { ob.disconnect(); go(); } }, { rootMargin: "120px" });
+    ob.observe(el);
+    return () => { on = false; ob.disconnect(); };
   }, [id]);
   return src ? <img src={src} alt="" style={{ width: "100%", height: h, objectFit: "contain", display: "block", background: "#fff" }} />
-    : <span style={{ display: "block", height: h, background: "var(--surface2)" }} />;
+    : <span ref={ref} style={{ display: "block", height: h, background: "var(--surface2)" }} />;
 }
 
 function QuoteRowPic({ lib, id, locked, onPick, stockItems, rowName }) {
