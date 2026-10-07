@@ -596,7 +596,7 @@ const BQQ_CSS = `
 .bqq-use{display:inline-flex;align-items:center;gap:6px;font-size:12px;font-weight:700;color:var(--text-2);cursor:pointer;white-space:nowrap}
 @media (max-width:560px){.bqq-bd{padding:0;place-items:end stretch}.bqq-card{max-height:96vh;border-radius:var(--r-card) var(--r-card) 0 0}.bqq-grid{grid-template-columns:minmax(0,1fr)}.bqq-ft{flex-wrap:wrap}.bqq-ft .btn{flex:1;justify-content:center}}
 `;
-function BOQEditor({ job, onClose, onSave, priceMap, stock, ver, verName, p3Vers, quick, quickNew }) {
+function BOQEditor({ job, onClose, onSave, priceMap, stock, ver, verName, p3Vers, quick, quickNew, fresh }) {
   window.BOQ.useRuleType(job && job.type === "home" ? "home" : "proj");   // ตั้งค่าคำนวณแยกงานบ้าน/งานโครงการ — RU/WK ที่อ่านตรงในหน้านี้ต้องเป็นชุดของงานนี้
   const bdClose = window.useBackdropClose(onClose);
   const baht = (n) => (Math.round((+n || 0) * 100) / 100).toLocaleString(undefined, { maximumFractionDigits: 2 });
@@ -3002,9 +3002,9 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock, ver, verName, p3Vers
      แถวแผงจัดให้เอง (จากแบบ 3D ถ้าจำนวนตรง ไม่งั้นแถวละ 12 แผง) · กด "เปิดแบบละเอียด" = ใบเดียวกันในหน้าเต็ม */
   const [qOn, setQOn] = React.useState(!!quick);
   const [qKw, setQKw] = React.useState("");
-  /* ใบใหม่ไม่เลือกรุ่นแผง/อินเวอร์เตอร์ให้ก่อน (ผู้ใช้ขอ) — ข้างในยังมีค่าตั้งต้นให้สูตรคิดได้ แต่ซ่อนราคาและกันบันทึกจนกว่าจะเลือกเองทั้งสองช่อง
+  /* ใบใหม่ (BOQ ด่วนใบใหม่ หรือใบแรกของงาน — fresh จาก versions.jsx) ไม่เลือกรุ่นแผง/อินเวอร์เตอร์ให้ก่อน (ผู้ใช้ขอ) — ข้างในยังมีค่าตั้งต้นให้สูตรคิดได้ แต่ซ่อนราคาและกันบันทึกจนกว่าจะเลือกเองทั้งสองช่อง
      ("" ของอินเวอร์เตอร์ = ไมโคร จึงใช้ธงแยก ไม่ใช่ค่าว่าง) */
-  const [qPick, setQPick] = React.useState({ pan: !quickNew, inv: !quickNew });
+  const [qPick, setQPick] = React.useState(() => { const f = !!(quickNew || fresh); return { pan: !f, inv: !f }; });
   const qReady = qPick.pan && qPick.inv;
   const qPanEdit = isLead || !(job && +job.panels > 0);
   const qWp = +((selPanel || {}).wp || 0);

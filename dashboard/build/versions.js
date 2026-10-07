@@ -679,6 +679,7 @@ function useDesignVersions({
     onClose: () => setEd(null),
     quick: !!ed.quick,
     quickNew: !!ed.quickNew,
+    fresh: !!ed.quickNew || !vers.list.length,
     onSave: ro || !patchActive ? null : b => {
       if (ed.quickNew) {
         dvBoqCreate(jobId, ed.vers, {

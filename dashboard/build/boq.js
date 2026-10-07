@@ -1129,7 +1129,8 @@ function BOQEditor({
   verName,
   p3Vers,
   quick,
-  quickNew
+  quickNew,
+  fresh
 }) {
   window.BOQ.useRuleType(job && job.type === "home" ? "home" : "proj");
   const bdClose = window.useBackdropClose(onClose);
@@ -5937,9 +5938,12 @@ function BOQEditor({
   };
   const [qOn, setQOn] = React.useState(!!quick);
   const [qKw, setQKw] = React.useState("");
-  const [qPick, setQPick] = React.useState({
-    pan: !quickNew,
-    inv: !quickNew
+  const [qPick, setQPick] = React.useState(() => {
+    const f = !!(quickNew || fresh);
+    return {
+      pan: !f,
+      inv: !f
+    };
   });
   const qReady = qPick.pan && qPick.inv;
   const qPanEdit = isLead || !(job && +job.panels > 0);

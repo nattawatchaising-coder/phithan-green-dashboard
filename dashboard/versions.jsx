@@ -392,7 +392,7 @@ function useDesignVersions({ job, activeBoq, currentUser, patchActive, BoqEditor
       {ed && BoqEditor && (
         <BoqEditor {...editorProps} job={edJob} ver={ed.ver} verName={ed.quickNew ? "ใบใหม่ (BOQ ด่วน)" : (edVers.list.find((x) => x.id === ed.ver) || {}).name || "เวอร์ชัน " + ed.ver}
           p3Vers={p3.list} onClose={() => setEd(null)}
-          quick={!!ed.quick} quickNew={!!ed.quickNew}
+          quick={!!ed.quick} quickNew={!!ed.quickNew} fresh={!!ed.quickNew || !vers.list.length}
           onSave={ro || !patchActive ? null : (b) => {
             /* BOQ ด่วนบนงานที่มีใบอยู่แล้ว = สร้างเวอร์ชันใหม่ตอนกดบันทึก (ปิดป๊อปทิ้ง = ไม่มีอะไรถูกเขียน)
                และเป็นใบที่ใช้งานเลย (ผู้ใช้ไม่ต้องเลือกว่าใบเสนอราคาดึงใบไหน) */
