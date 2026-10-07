@@ -1273,15 +1273,126 @@ const pgQuick = {
   fontWeight: 700,
   color: "var(--text-2)"
 };
+const QSTK = {
+  keys: null,
+  img: {},
+  wait: {}
+};
+function qStkKeys() {
+  if (QSTK.keys) return QSTK.keys;
+  if (!window.FBDB) return Promise.resolve([]);
+  QSTK.keys = fetch(window.FBDB.ref("stockImg").toString() + ".json?shallow=true").then(r => r.json()).then(o => Object.keys(o || {})).catch(() => {
+    QSTK.keys = null;
+    return [];
+  });
+  return QSTK.keys;
+}
+function qStkImg(id) {
+  if (id in QSTK.img) return Promise.resolve(QSTK.img[id]);
+  if (!window.FBDB) return Promise.resolve("");
+  if (!QSTK.wait[id]) QSTK.wait[id] = window.FBDB.ref("stockImg/" + id).once("value").then(sn => QSTK.img[id] = sn.val() || "").catch(() => "");
+  return QSTK.wait[id];
+}
+function qStkRank(items, rowName, query) {
+  const lo = x => String(x || "").toLowerCase();
+  const q = lo(query).trim();
+  const row = lo(rowName);
+  const txt = it => lo([it.name, it.brand, it.model, it.sku].join(" "));
+  const score = it => {
+    if (q) return q.split(/\s+/).every(w => txt(it).indexOf(w) !== -1) ? 1 : 0;
+    let n = 0;
+    lo([it.name, it.model].join(" ")).split(/[\s/()]+/).forEach(w => {
+      if (w.length >= 3 && row.indexOf(w) !== -1) n += w.length;
+    });
+    if (it.model && row.indexOf(lo(it.model)) !== -1) n += 50;
+    return n;
+  };
+  const a = items.map(it => ({
+    it: it,
+    sc: score(it)
+  }));
+  return (q ? a.filter(x => x.sc > 0) : a).sort((x, z) => z.sc - x.sc || String(x.it.name).localeCompare(String(z.it.name), "th")).slice(0, 30).map(x => x.it);
+}
+function QStkThumb({
+  id,
+  h
+}) {
+  const [src, setSrc] = React.useState(QSTK.img[id]);
+  React.useEffect(() => {
+    let on = true;
+    if (id in QSTK.img) setSrc(QSTK.img[id]);else qStkImg(id).then(v => {
+      if (on) setSrc(v);
+    });
+    return () => {
+      on = false;
+    };
+  }, [id]);
+  return src ? React.createElement("img", {
+    src: src,
+    alt: "",
+    style: {
+      width: "100%",
+      height: h,
+      objectFit: "contain",
+      display: "block",
+      background: "#fff"
+    }
+  }) : React.createElement("span", {
+    style: {
+      display: "block",
+      height: h,
+      background: "var(--surface2)"
+    }
+  });
+}
 function QuoteRowPic({
   lib,
   id,
   locked,
-  onPick
+  onPick,
+  stockItems,
+  rowName
 }) {
   const [open, setOpen] = React.useState(false);
   const pics = lib && lib.pics || [];
-  const cur = pics.find(p => p.id === id);
+  const stkId = String(id || "").indexOf("stk:") === 0 ? id.slice(4) : "";
+  const cur = stkId ? null : pics.find(p => p.id === id);
+  const stkCur = stkId ? (stockItems || []).find(x => x.id === stkId) || {
+    id: stkId,
+    name: stkId
+  } : null;
+  const canStk = !!(stockItems && stockItems.length && window.FBDB);
+  const [tab, setTab] = React.useState(canStk ? "stk" : "lib");
+  const [keys, setKeys] = React.useState(null);
+  const [qy, setQy] = React.useState("");
+  React.useEffect(() => {
+    if (open && canStk && keys === null) qStkKeys().then(k => setKeys(k));
+  }, [open]);
+  const stkList = React.useMemo(() => {
+    if (!keys) return [];
+    const has = {};
+    keys.forEach(k => {
+      has[k] = 1;
+    });
+    return qStkRank((stockItems || []).filter(it => it && has[it.id]), rowName, qy);
+  }, [keys, stockItems, rowName, qy]);
+  const tabBtn = (k, t) => React.createElement("button", {
+    type: "button",
+    onClick: () => setTab(k),
+    style: {
+      flex: 1,
+      padding: "5px 6px",
+      borderRadius: "var(--r-chip)",
+      border: "none",
+      fontFamily: "inherit",
+      fontSize: 11,
+      fontWeight: 700,
+      cursor: "pointer",
+      background: tab === k ? "var(--surface)" : "transparent",
+      boxShadow: tab === k ? "var(--shadow-sm)" : "none",
+      color: tab === k ? "var(--text-1)" : "var(--text-3)"
+    }
+  }, t);
   return React.createElement("div", {
     style: {
       position: "relative"
@@ -1289,7 +1400,7 @@ function QuoteRowPic({
   }, React.createElement("button", {
     type: "button",
     disabled: locked,
-    title: cur ? cur.name || "เปลี่ยนรูป" : "เลือกรูปจากคลัง",
+    title: cur ? cur.name || "เปลี่ยนรูป" : stkCur ? stkCur.name : "เลือกรูปจากคลัง",
     onClick: () => setOpen(v => !v),
     style: {
       width: "100%",
@@ -1300,7 +1411,7 @@ function QuoteRowPic({
       display: "grid",
       placeItems: "center",
       border: "none",
-      boxShadow: cur ? "inset 0 0 0 1px var(--primary)" : "var(--shadow-sm)",
+      boxShadow: cur || stkCur ? "inset 0 0 0 1px var(--primary)" : "var(--shadow-sm)",
       background: "var(--surface)",
       cursor: locked ? "default" : "pointer"
     }
@@ -1313,6 +1424,9 @@ function QuoteRowPic({
       objectFit: "cover",
       display: "block"
     }
+  }) : stkCur ? React.createElement(QStkThumb, {
+    id: stkId,
+    h: 34
   }) : React.createElement(Icon, {
     name: "image",
     size: 14,
@@ -1330,13 +1444,95 @@ function QuoteRowPic({
       zIndex: 41,
       top: 38,
       left: 0,
-      width: 232,
+      width: 280,
       padding: 8,
       borderRadius: "var(--r-tile)",
       background: "var(--surface)",
       boxShadow: "var(--shadow-pop)"
     }
-  }, pics.length === 0 ? React.createElement("div", {
+  }, canStk && React.createElement("div", {
+    style: {
+      display: "flex",
+      gap: 3,
+      padding: 3,
+      marginBottom: 7,
+      borderRadius: "var(--r-chip)",
+      background: "var(--surface2)",
+      boxShadow: "var(--shadow-inset)"
+    }
+  }, tabBtn("stk", "คลังสินค้า"), tabBtn("lib", "คลังรูปใบเสนอราคา")), tab === "stk" && canStk ? React.createElement(React.Fragment, null, React.createElement("input", {
+    value: qy,
+    onChange: e => setQy(e.target.value),
+    placeholder: "\u0E04\u0E49\u0E19\u0E0A\u0E37\u0E48\u0E2D / \u0E23\u0E38\u0E48\u0E19 / \u0E22\u0E35\u0E48\u0E2B\u0E49\u0E2D",
+    autoFocus: true,
+    style: {
+      width: "100%",
+      boxSizing: "border-box",
+      marginBottom: 6,
+      padding: "6px 9px",
+      borderRadius: "var(--r-chip)",
+      border: "none",
+      background: "var(--surface2)",
+      boxShadow: "var(--shadow-inset)",
+      fontFamily: "inherit",
+      fontSize: 11.5,
+      color: "var(--text-1)"
+    }
+  }), keys === null ? React.createElement("div", {
+    style: {
+      fontSize: 11,
+      color: "var(--text-3)",
+      padding: "6px 2px"
+    }
+  }, "\u0E01\u0E33\u0E25\u0E31\u0E07\u0E42\u0E2B\u0E25\u0E14\u0E23\u0E32\u0E22\u0E01\u0E32\u0E23\u0E23\u0E39\u0E1B\u2026") : stkList.length === 0 ? React.createElement("div", {
+    style: {
+      fontSize: 11,
+      color: "var(--text-3)",
+      lineHeight: 1.6,
+      padding: "6px 2px"
+    }
+  }, "\u0E44\u0E21\u0E48\u0E40\u0E08\u0E2D\u0E2A\u0E34\u0E19\u0E04\u0E49\u0E32\u0E17\u0E35\u0E48\u0E21\u0E35\u0E23\u0E39\u0E1B\u0E15\u0E23\u0E07\u0E04\u0E33\u0E04\u0E49\u0E19") : React.createElement("div", {
+    style: {
+      display: "grid",
+      gridTemplateColumns: "repeat(3,1fr)",
+      gap: 5,
+      maxHeight: 236,
+      overflowY: "auto"
+    }
+  }, stkList.map(it => React.createElement("button", {
+    key: it.id,
+    type: "button",
+    title: it.name,
+    onClick: () => {
+      onPick("stk:" + it.id);
+      setOpen(false);
+    },
+    style: {
+      padding: 0,
+      border: "none",
+      cursor: "pointer",
+      borderRadius: "var(--r-chip)",
+      overflow: "hidden",
+      background: "#fff",
+      fontFamily: "inherit",
+      boxShadow: stkId === it.id ? "inset 0 0 0 2px var(--primary)" : "var(--shadow-sm)"
+    }
+  }, React.createElement(QStkThumb, {
+    id: it.id,
+    h: 52
+  }), React.createElement("span", {
+    style: {
+      display: "block",
+      padding: "2px 3px 3px",
+      fontSize: 9,
+      lineHeight: 1.25,
+      color: "var(--text-2)",
+      height: 23,
+      overflow: "hidden",
+      textAlign: "left",
+      background: "var(--surface)"
+    }
+  }, it.model || it.name))))) : pics.length === 0 ? React.createElement("div", {
     style: {
       fontSize: 11,
       color: "var(--text-3)",
@@ -1369,7 +1565,7 @@ function QuoteRowPic({
       border: "none",
       boxShadow: p.id === id ? "inset 0 0 0 2px var(--primary)" : "none"
     }
-  }))), cur && React.createElement("button", {
+  }))), (cur || stkCur) && React.createElement("button", {
     type: "button",
     onClick: () => {
       onPick("");
@@ -1390,7 +1586,8 @@ function QuoteRowsEdit({
   onChange,
   onSeed,
   seedLabel,
-  picLib
+  picLib,
+  stockItems
 }) {
   const a = rows || [];
   const grid = cols.map(c => c.w).join(" ") + (locked ? "" : " 30px");
@@ -1458,7 +1655,9 @@ function QuoteRowsEdit({
     lib: picLib,
     id: r[c.key] || "",
     locked: locked,
-    onPick: v => setCell(i, c.key, v)
+    onPick: v => setCell(i, c.key, v),
+    stockItems: stockItems,
+    rowName: r.name
   }) : React.createElement("input", {
     key: c.key,
     value: r[c.key] == null ? "" : r[c.key],
@@ -1998,6 +2197,15 @@ function QuoteEditor({
     if (quotePageOn(q, "wty")) (q.wtyRows || []).forEach(r => push(r && r.pic));
     if (!ids.length) return Promise.resolve([]);
     return Promise.all(ids.map(id => {
+      if (id.indexOf("stk:") === 0) {
+        const sid = id.slice(4);
+        const it = (stock && stock.items || []).find(x => x.id === sid);
+        return qStkImg(sid).then(d => d ? {
+          id: id,
+          name: it ? it.name : sid,
+          data: d
+        } : null);
+      }
       const meta = picLib.pics.find(p => p.id === id);
       if (!meta) return null;
       return Promise.resolve(picLib.load(id)).then(d => d ? {
@@ -2931,6 +3139,7 @@ function QuoteEditor({
     locked: locked,
     onChange: v => set("wtyRows", v),
     picLib: picLib,
+    stockItems: stock && stock.items || [],
     onSeed: () => set("wtyRows", quoteWtySeed(specSrc || q))
   }), (pageOn("cash") || pageOn("payback")) && React.createElement(QuoteRoiEdit, {
     q: q,

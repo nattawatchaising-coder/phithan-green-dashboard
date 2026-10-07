@@ -1178,26 +1178,120 @@ const pgQuick = { padding: "5px 10px", borderRadius: "var(--r-chip)", boxShadow:
    คอลัมน์ไม่เหมือนกัน แต่การแก้เหมือนกันหมด จึงเขียนตัวเดียวแล้วส่ง cols เข้าไป */
 /* รูปประจำแถวในตารางรับประกัน — หยิบจากคลังกลางใบเดียวกับแผ่นรูป ไม่ได้อัปแยก
    กดที่ช่องแล้วเลือกจากคลัง ไม่มีรูปที่อยากได้ค่อยไปเพิ่มที่หัวข้อ "รูปอุปกรณ์" */
-function QuoteRowPic({ lib, id, locked, onPick }) {
+/* รูปจากคลังสินค้า (stockImg/{id}) ก็หยิบมาใส่ช่องรูปได้ — เก็บค่าในแถวเป็น "stk:<id>"
+   รูปคลังไม่ได้โหลดมากับรายการ: ขอรายชื่อแบบ shallow ครั้งเดียว แล้วโหลดทีละรูปเฉพาะที่โชว์ในป๊อป */
+const QSTK = { keys: null, img: {}, wait: {} };
+function qStkKeys() {
+  if (QSTK.keys) return QSTK.keys;
+  if (!window.FBDB) return Promise.resolve([]);
+  QSTK.keys = fetch(window.FBDB.ref("stockImg").toString() + ".json?shallow=true")
+    .then((r) => r.json()).then((o) => Object.keys(o || {}))
+    .catch(() => { QSTK.keys = null; return []; });
+  return QSTK.keys;
+}
+function qStkImg(id) {
+  if (id in QSTK.img) return Promise.resolve(QSTK.img[id]);
+  if (!window.FBDB) return Promise.resolve("");
+  if (!QSTK.wait[id]) QSTK.wait[id] = window.FBDB.ref("stockImg/" + id).once("value")
+    .then((sn) => (QSTK.img[id] = sn.val() || "")).catch(() => "");
+  return QSTK.wait[id];
+}
+/* เรียงของในคลังตามความใกล้กับชื่อแถว — คำในชื่อ/รุ่นสินค้าที่โผล่ในชื่อแถวยิ่งเยอะยิ่งขึ้นก่อน */
+function qStkRank(items, rowName, query) {
+  const lo = (x) => String(x || "").toLowerCase();
+  const q = lo(query).trim();
+  const row = lo(rowName);
+  const txt = (it) => lo([it.name, it.brand, it.model, it.sku].join(" "));
+  const score = (it) => {
+    if (q) return q.split(/\s+/).every((w) => txt(it).indexOf(w) !== -1) ? 1 : 0;
+    let n = 0;
+    lo([it.name, it.model].join(" ")).split(/[\s/()]+/).forEach((w) => { if (w.length >= 3 && row.indexOf(w) !== -1) n += w.length; });
+    if (it.model && row.indexOf(lo(it.model)) !== -1) n += 50;
+    return n;
+  };
+  const a = items.map((it) => ({ it: it, sc: score(it) }));
+  return (q ? a.filter((x) => x.sc > 0) : a)
+    .sort((x, z) => z.sc - x.sc || String(x.it.name).localeCompare(String(z.it.name), "th"))
+    .slice(0, 30).map((x) => x.it);
+}
+function QStkThumb({ id, h }) {
+  const [src, setSrc] = React.useState(QSTK.img[id]);
+  React.useEffect(() => {
+    let on = true;
+    if (id in QSTK.img) setSrc(QSTK.img[id]); else qStkImg(id).then((v) => { if (on) setSrc(v); });
+    return () => { on = false; };
+  }, [id]);
+  return src ? <img src={src} alt="" style={{ width: "100%", height: h, objectFit: "contain", display: "block", background: "#fff" }} />
+    : <span style={{ display: "block", height: h, background: "var(--surface2)" }} />;
+}
+
+function QuoteRowPic({ lib, id, locked, onPick, stockItems, rowName }) {
   const [open, setOpen] = React.useState(false);
   const pics = (lib && lib.pics) || [];
-  const cur = pics.find((p) => p.id === id);
+  const stkId = String(id || "").indexOf("stk:") === 0 ? id.slice(4) : "";
+  const cur = stkId ? null : pics.find((p) => p.id === id);
+  const stkCur = stkId ? ((stockItems || []).find((x) => x.id === stkId) || { id: stkId, name: stkId }) : null;
+  const canStk = !!(stockItems && stockItems.length && window.FBDB);
+  const [tab, setTab] = React.useState(canStk ? "stk" : "lib");
+  const [keys, setKeys] = React.useState(null);
+  const [qy, setQy] = React.useState("");
+  React.useEffect(() => { if (open && canStk && keys === null) qStkKeys().then((k) => setKeys(k)); }, [open]);
+  const stkList = React.useMemo(() => {
+    if (!keys) return [];
+    const has = {}; keys.forEach((k) => { has[k] = 1; });
+    return qStkRank((stockItems || []).filter((it) => it && has[it.id]), rowName, qy);
+  }, [keys, stockItems, rowName, qy]);
+  const tabBtn = (k, t) => (
+    <button type="button" onClick={() => setTab(k)}
+      style={{ flex: 1, padding: "5px 6px", borderRadius: "var(--r-chip)", border: "none", fontFamily: "inherit", fontSize: 11, fontWeight: 700,
+        cursor: "pointer", background: tab === k ? "var(--surface)" : "transparent", boxShadow: tab === k ? "var(--shadow-sm)" : "none",
+        color: tab === k ? "var(--text-1)" : "var(--text-3)" }}>{t}</button>
+  );
   return (
     <div style={{ position: "relative" }}>
-      <button type="button" disabled={locked} title={cur ? cur.name || "เปลี่ยนรูป" : "เลือกรูปจากคลัง"}
+      <button type="button" disabled={locked} title={cur ? cur.name || "เปลี่ยนรูป" : stkCur ? stkCur.name : "เลือกรูปจากคลัง"}
         onClick={() => setOpen((v) => !v)}
         style={{ width: "100%", height: 34, padding: 0, borderRadius: "var(--r-chip)", overflow: "hidden", display: "grid", placeItems: "center",
-          border: "none", boxShadow: cur ? "inset 0 0 0 1px var(--primary)" : "var(--shadow-sm)", background: "var(--surface)",
+          border: "none", boxShadow: cur || stkCur ? "inset 0 0 0 1px var(--primary)" : "var(--shadow-sm)", background: "var(--surface)",
           cursor: locked ? "default" : "pointer" }}>
         {cur ? <img src={cur.thumb} alt="" style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} />
+          : stkCur ? <QStkThumb id={stkId} h={34} />
           : <Icon name="image" size={14} color="var(--text-3)" />}
       </button>
       {open && !locked && (
         <React.Fragment>
           <div onClick={() => setOpen(false)} style={{ position: "fixed", inset: 0, zIndex: 40 }} />
-          <div style={{ position: "absolute", zIndex: 41, top: 38, left: 0, width: 232, padding: 8, borderRadius: "var(--r-tile)",
+          <div style={{ position: "absolute", zIndex: 41, top: 38, left: 0, width: 280, padding: 8, borderRadius: "var(--r-tile)",
             background: "var(--surface)", boxShadow: "var(--shadow-pop)" }}>
-            {pics.length === 0 ? (
+            {canStk && (
+              <div style={{ display: "flex", gap: 3, padding: 3, marginBottom: 7, borderRadius: "var(--r-chip)", background: "var(--surface2)", boxShadow: "var(--shadow-inset)" }}>
+                {tabBtn("stk", "คลังสินค้า")}{tabBtn("lib", "คลังรูปใบเสนอราคา")}
+              </div>
+            )}
+            {tab === "stk" && canStk ? (
+              <React.Fragment>
+                <input value={qy} onChange={(e) => setQy(e.target.value)} placeholder="ค้นชื่อ / รุ่น / ยี่ห้อ" autoFocus
+                  style={{ width: "100%", boxSizing: "border-box", marginBottom: 6, padding: "6px 9px", borderRadius: "var(--r-chip)", border: "none",
+                    background: "var(--surface2)", boxShadow: "var(--shadow-inset)", fontFamily: "inherit", fontSize: 11.5, color: "var(--text-1)" }} />
+                {keys === null ? (
+                  <div style={{ fontSize: 11, color: "var(--text-3)", padding: "6px 2px" }}>กำลังโหลดรายการรูป…</div>
+                ) : stkList.length === 0 ? (
+                  <div style={{ fontSize: 11, color: "var(--text-3)", lineHeight: 1.6, padding: "6px 2px" }}>ไม่เจอสินค้าที่มีรูปตรงคำค้น</div>
+                ) : (
+                  <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 5, maxHeight: 236, overflowY: "auto" }}>
+                    {stkList.map((it) => (
+                      <button key={it.id} type="button" title={it.name} onClick={() => { onPick("stk:" + it.id); setOpen(false); }}
+                        style={{ padding: 0, border: "none", cursor: "pointer", borderRadius: "var(--r-chip)", overflow: "hidden", background: "#fff",
+                          fontFamily: "inherit", boxShadow: stkId === it.id ? "inset 0 0 0 2px var(--primary)" : "var(--shadow-sm)" }}>
+                        <QStkThumb id={it.id} h={52} />
+                        <span style={{ display: "block", padding: "2px 3px 3px", fontSize: 9, lineHeight: 1.25, color: "var(--text-2)", height: 23,
+                          overflow: "hidden", textAlign: "left", background: "var(--surface)" }}>{it.model || it.name}</span>
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </React.Fragment>
+            ) : pics.length === 0 ? (
               <div style={{ fontSize: 11, color: "var(--text-3)", lineHeight: 1.6 }}>
                 คลังยังว่าง — เพิ่มรูปที่หัวข้อ “คลังรูปอุปกรณ์” ด้านล่างก่อน
               </div>
@@ -1211,7 +1305,7 @@ function QuoteRowPic({ lib, id, locked, onPick }) {
                 ))}
               </div>
             )}
-            {cur && (
+            {(cur || stkCur) && (
               <button type="button" onClick={() => { onPick(""); setOpen(false); }}
                 style={Object.assign({}, pgQuick, { marginTop: 7, width: "100%" })}>เอารูปออก</button>
             )}
@@ -1222,7 +1316,7 @@ function QuoteRowPic({ lib, id, locked, onPick }) {
   );
 }
 
-function QuoteRowsEdit({ title, hint, cols, rows, locked, onChange, onSeed, seedLabel, picLib }) {
+function QuoteRowsEdit({ title, hint, cols, rows, locked, onChange, onSeed, seedLabel, picLib, stockItems }) {
   const a = rows || [];
   const grid = cols.map((c) => c.w).join(" ") + (locked ? "" : " 30px");
   const setCell = (i, k, v) => onChange(a.map((r, j) => j === i ? Object.assign({}, r, { [k]: v }) : r));
@@ -1245,7 +1339,8 @@ function QuoteRowsEdit({ title, hint, cols, rows, locked, onChange, onSeed, seed
         {a.map((r, i) => (
           <div key={i} style={{ display: "grid", gridTemplateColumns: grid, gap: 6, alignItems: "center" }}>
             {cols.map((c) => (c.pic ? (
-              <QuoteRowPic key={c.key} lib={picLib} id={r[c.key] || ""} locked={locked} onPick={(v) => setCell(i, c.key, v)} />
+              <QuoteRowPic key={c.key} lib={picLib} id={r[c.key] || ""} locked={locked} onPick={(v) => setCell(i, c.key, v)}
+                stockItems={stockItems} rowName={r.name} />
             ) : (
               <input key={c.key} value={r[c.key] == null ? "" : r[c.key]} disabled={locked} placeholder={c.ph || ""}
                 type={c.num ? "number" : "text"}
@@ -1532,6 +1627,11 @@ function QuoteEditor({ quote, job, target, stock, onClose, onSave, onDelete, cur
     if (quotePageOn(q, "wty")) (q.wtyRows || []).forEach((r) => push(r && r.pic));
     if (!ids.length) return Promise.resolve([]);
     return Promise.all(ids.map((id) => {
+      if (id.indexOf("stk:") === 0) {
+        const sid = id.slice(4);
+        const it = ((stock && stock.items) || []).find((x) => x.id === sid);
+        return qStkImg(sid).then((d) => (d ? { id: id, name: it ? it.name : sid, data: d } : null));
+      }
       const meta = picLib.pics.find((p) => p.id === id);
       if (!meta) return null;
       return Promise.resolve(picLib.load(id)).then((d) => (d ? { id: id, name: meta.name, data: d } : null));
@@ -1905,6 +2005,7 @@ function QuoteEditor({ quote, job, target, stock, onClose, onSave, onDelete, cur
                   { key: "qty", w: "62px", num: true },
                   { key: "unit", w: "72px", ph: "หน่วย" }, { key: "yr", w: "170px", ph: "5 ปี · 30 ปี (ประสิทธิภาพ)" }]}
                 rows={q.wtyRows || []} locked={locked} onChange={(v) => set("wtyRows", v)} picLib={picLib}
+                stockItems={(stock && stock.items) || []}
                 onSeed={() => set("wtyRows", quoteWtySeed(specSrc || q))} />
             )}
             {(pageOn("cash") || pageOn("payback")) && (
