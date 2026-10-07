@@ -2215,6 +2215,15 @@ function PdfPreview({ data, onOpen }) {
 /* ── รายละเอียดอุปกรณ์ 1 รายการ ──
    รับ / เบิก / คืน ย้ายมาอยู่ในนี้ ต้องกดเข้ามาก่อนถึงจะทำได้
    จากหน้าตารางเดิมปุ่มอยู่ติดกันในแถวแคบ ๆ กดพลาดข้ามรายการได้ง่าย */
+/* ลิงก์ในคำอธิบาย (ดาต้าชีตผู้ผลิต ฯลฯ) — URL ยาวเป็นพรืดอ่านไม่ออก แสดงเป็นชื่อโดเมนกดเปิดแท็บใหม่ */
+function stkLinkify(t) {
+  return String(t || "").split(/(https?:\/\/[^\s]+)/g).map((x, i) => {
+    if (!/^https?:\/\//.test(x)) return x;
+    let host = x; try { host = new URL(x).hostname.replace(/^www\./, ""); } catch (e) {}
+    return <a key={i} href={x} target="_blank" rel="noopener noreferrer"
+      style={{ color: "var(--primary-dark)", fontWeight: 700, textDecoration: "underline", textUnderlineOffset: 3 }}>{/\.pdf(\?|$)/i.test(x) ? "เปิดไฟล์ PDF" : host} ↗</a>;
+  });
+}
 function ItemDetailModal({ item, img, variants, loadDoc, setDoc, onMove, onEdit, onClose, onPickVariant, onAddSize }) {
   const SF = window.SF;
   const bdClose = window.useBackdropClose(onClose);
@@ -2334,7 +2343,7 @@ function ItemDetailModal({ item, img, variants, loadDoc, setDoc, onMove, onEdit,
                 </div>
               )}
               {(item.desc || "").trim() && (
-                <p style={{ margin: 0, fontSize: 13, color: "var(--text-2)", lineHeight: 1.7, whiteSpace: "pre-wrap" }}>{item.desc}</p>
+                <p style={{ margin: 0, fontSize: 13, color: "var(--text-2)", lineHeight: 1.7, whiteSpace: "pre-wrap", overflowWrap: "anywhere" }}>{stkLinkify(item.desc)}</p>
               )}
               <div style={{ fontFamily: "var(--mono)", fontSize: 12, color: "var(--text-3)" }}>รหัสวัสดุ : {item.sku || "—"}</div>
 

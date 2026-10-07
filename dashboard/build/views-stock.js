@@ -5674,6 +5674,27 @@ function PdfPreview({
     ref: wrap
   }));
 }
+function stkLinkify(t) {
+  return String(t || "").split(/(https?:\/\/[^\s]+)/g).map((x, i) => {
+    if (!/^https?:\/\//.test(x)) return x;
+    let host = x;
+    try {
+      host = new URL(x).hostname.replace(/^www\./, "");
+    } catch (e) {}
+    return React.createElement("a", {
+      key: i,
+      href: x,
+      target: "_blank",
+      rel: "noopener noreferrer",
+      style: {
+        color: "var(--primary-dark)",
+        fontWeight: 700,
+        textDecoration: "underline",
+        textUnderlineOffset: 3
+      }
+    }, /\.pdf(\?|$)/i.test(x) ? "เปิดไฟล์ PDF" : host, " \u2197");
+  });
+}
 function ItemDetailModal({
   item,
   img,
@@ -6026,9 +6047,10 @@ function ItemDetailModal({
       fontSize: 13,
       color: "var(--text-2)",
       lineHeight: 1.7,
-      whiteSpace: "pre-wrap"
+      whiteSpace: "pre-wrap",
+      overflowWrap: "anywhere"
     }
-  }, item.desc), React.createElement("div", {
+  }, stkLinkify(item.desc)), React.createElement("div", {
     style: {
       fontFamily: "var(--mono)",
       fontSize: 12,
