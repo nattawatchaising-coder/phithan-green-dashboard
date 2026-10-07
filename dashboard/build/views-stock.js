@@ -6720,6 +6720,11 @@ function MatThumb({
     }
   }, ch));
 }
+const STK_INV_TYPE = {
+  hybrid: "Hybrid",
+  string: "On-grid",
+  micro: "Micro"
+};
 function StockGrid({
   rows,
   imgs,
@@ -6821,7 +6826,23 @@ function StockGrid({
         WebkitBoxOrient: "vertical",
         overflow: "hidden"
       }
-    }, g ? baseLabel(it.name) : it.name), React.createElement("div", {
+    }, g ? baseLabel(it.name) : it.name), window.SF.mainCatOf(it.cat) === "inverter" && (it.invType || +it.invPhase > 0) && React.createElement("div", {
+      style: {
+        display: "flex",
+        gap: 4,
+        flexWrap: "wrap"
+      }
+    }, [STK_INV_TYPE[it.invType], +it.invPhase > 0 ? it.invPhase + " เฟส" : ""].filter(Boolean).map(t => React.createElement("span", {
+      key: t,
+      style: {
+        fontSize: 10,
+        fontWeight: 700,
+        padding: "2px 7px",
+        borderRadius: "var(--r-chip)",
+        background: t === "Hybrid" ? "#F59E0B1c" : "var(--surface2)",
+        color: t === "Hybrid" ? "#B45309" : "var(--text-2)"
+      }
+    }, t))), React.createElement("div", {
       style: {
         fontFamily: "var(--mono)",
         fontSize: 10.5,

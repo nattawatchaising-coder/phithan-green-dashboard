@@ -2588,6 +2588,7 @@ function MatThumb({ src, item, size, radius }) {
 }
 
 /* ── มุมมองการ์ด (เดสก์ท็อป) ── หน้าตาแบบแคตตาล็อกร้านวัสดุ: รูป · ยี่ห้อ · ชื่อ · รหัส · ราคา */
+const STK_INV_TYPE = { hybrid: "Hybrid", string: "On-grid", micro: "Micro" };
 function StockGrid({ rows, imgs, onOpen, onEdit, onRemove, lowState }) {
   const SF = window.SF;
   const baht = (v) => "฿" + (+v).toLocaleString(undefined, { maximumFractionDigits: 2 });
@@ -2617,6 +2618,15 @@ function StockGrid({ rows, imgs, onOpen, onEdit, onRemove, lowState }) {
               {(it.brand || "").trim() && <div style={{ fontSize: 10.5, fontWeight: 800, color: c.color || "var(--text-2)", letterSpacing: ".03em" }}>{it.brand}</div>}
               <div style={{ fontSize: 12.5, fontWeight: 600, color: "var(--text-1)", lineHeight: 1.35,
                 display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden" }}>{g ? baseLabel(it.name) : it.name}</div>
+              {/* อินเวอร์เตอร์: ชนิด + เฟส — สองอย่างที่ต้องรู้ก่อนเลือกรุ่น ไม่ต้องกดเข้าไปดู */}
+              {window.SF.mainCatOf(it.cat) === "inverter" && (it.invType || +it.invPhase > 0) && (
+                <div style={{ display: "flex", gap: 4, flexWrap: "wrap" }}>
+                  {[STK_INV_TYPE[it.invType], +it.invPhase > 0 ? it.invPhase + " เฟส" : ""].filter(Boolean).map((t) => (
+                    <span key={t} style={{ fontSize: 10, fontWeight: 700, padding: "2px 7px", borderRadius: "var(--r-chip)",
+                      background: t === "Hybrid" ? "#F59E0B1c" : "var(--surface2)", color: t === "Hybrid" ? "#B45309" : "var(--text-2)" }}>{t}</span>
+                  ))}
+                </div>
+              )}
               {/* กลุ่มขนาด: โชว์ขนาดที่มีแทนรหัสวัสดุ (แต่ละขนาดคนละรหัสอยู่แล้ว) */}
               <div style={{ fontFamily: "var(--mono)", fontSize: 10.5, color: "var(--text-3)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
                 {g ? g.sizes.join(" · ") : it.sku}
