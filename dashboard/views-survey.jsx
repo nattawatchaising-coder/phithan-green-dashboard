@@ -993,6 +993,7 @@ function LeadDrawer({ lead, leadStore, appts, jobs, quotes, users, currentUser, 
   const bdClose = window.useBackdropClose(onClose);
   const [edit, setEdit] = React.useState(null);
   const [log, setLog] = React.useState(null);
+  const [poster, setPoster] = React.useState(false);   // รูปแพ็คเกจขาย (pkgposter.jsx)
   /* แท็บแฟ้ม — เปลี่ยนลูกค้าแล้วกลับไปหน้าภาพรวมเสมอ ไม่ค้างแท็บของรายก่อน */
   const [tab, setTab] = React.useState("ov");
   React.useEffect(() => { setTab("ov"); }, [lead && lead.id]);
@@ -1062,6 +1063,10 @@ function LeadDrawer({ lead, leadStore, appts, jobs, quotes, users, currentUser, 
               <div style={{ fontSize: 14.5, fontWeight: 800, color: "var(--text-1)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}><AdminOnlyMark rec={lead} />{lead.name || "(ไม่ระบุชื่อ)"}</div>
               <div style={{ fontSize: 11, color: "var(--text-3)", marginTop: 1, display: "flex", alignItems: "center", gap: 8 }}>{lead.code}<AdminHideBtn rec={lead} path={"surveyLeads/" + lead.id} /></div>
             </div>
+            {lead.boq && lead.boq.panelModel && window.PkPosterModal && (
+              <button className="btn btn-soft" onClick={() => setPoster(true)} title="ทำรูปแพ็คเกจขายจาก BOQ ของลูกค้านี้"
+                style={{ flexShrink: 0, padding: "7px 12px", fontSize: 12.5 }}>🖼 รูปแพ็คเกจ</button>
+            )}
             <button className="x-close" onClick={onClose} aria-label="ปิด" style={{ flexShrink: 0, width: 32, height: 32, borderRadius: "var(--r-pill)", border: "none", background: "var(--surface2)", boxShadow: "var(--shadow-sm)", color: "var(--text-2)", cursor: "pointer", fontFamily: "inherit", fontSize: 16, lineHeight: 1 }}>×</button>
           </div>
           <div style={{ padding: "14px 16px 0", overflowY: "auto", flex: 1, minHeight: 0, display: "flex", flexDirection: "column" }}>
@@ -1072,6 +1077,7 @@ function LeadDrawer({ lead, leadStore, appts, jobs, quotes, users, currentUser, 
       </div>
       {edit && <LeadModal initial={edit.lead} isNew={edit.isNew} users={users} onClose={() => setEdit(null)}
         onSave={(rec) => { leadStore.upsert(rec); setEdit(null); }} />}
+      {poster && <window.PkPosterModal lead={lead} stock={stock} quotes={quotes} onClose={() => setPoster(false)} />}
       {log && <ContactLogModal lead={log} currentUser={currentUser} onClose={() => setLog(null)}
         onSave={(rec) => { leadAddContact(leadStore, log, rec); setLog(null); }} />}
     </React.Fragment>

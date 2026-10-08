@@ -2432,6 +2432,7 @@ function LeadDrawer({
   const bdClose = window.useBackdropClose(onClose);
   const [edit, setEdit] = React.useState(null);
   const [log, setLog] = React.useState(null);
+  const [poster, setPoster] = React.useState(false);
   const [tab, setTab] = React.useState("ov");
   React.useEffect(() => {
     setTab("ov");
@@ -2585,7 +2586,16 @@ function LeadDrawer({
   }, lead.code, React.createElement(AdminHideBtn, {
     rec: lead,
     path: "surveyLeads/" + lead.id
-  }))), React.createElement("button", {
+  }))), lead.boq && lead.boq.panelModel && window.PkPosterModal && React.createElement("button", {
+    className: "btn btn-soft",
+    onClick: () => setPoster(true),
+    title: "\u0E17\u0E33\u0E23\u0E39\u0E1B\u0E41\u0E1E\u0E47\u0E04\u0E40\u0E01\u0E08\u0E02\u0E32\u0E22\u0E08\u0E32\u0E01 BOQ \u0E02\u0E2D\u0E07\u0E25\u0E39\u0E01\u0E04\u0E49\u0E32\u0E19\u0E35\u0E49",
+    style: {
+      flexShrink: 0,
+      padding: "7px 12px",
+      fontSize: 12.5
+    }
+  }, "\uD83D\uDDBC \u0E23\u0E39\u0E1B\u0E41\u0E1E\u0E47\u0E04\u0E40\u0E01\u0E08"), React.createElement("button", {
     className: "x-close",
     onClick: onClose,
     "aria-label": "\u0E1B\u0E34\u0E14",
@@ -2625,6 +2635,11 @@ function LeadDrawer({
       leadStore.upsert(rec);
       setEdit(null);
     }
+  }), poster && React.createElement(window.PkPosterModal, {
+    lead: lead,
+    stock: stock,
+    quotes: quotes,
+    onClose: () => setPoster(false)
   }), log && React.createElement(ContactLogModal, {
     lead: log,
     currentUser: currentUser,
