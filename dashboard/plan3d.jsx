@@ -2062,13 +2062,13 @@ function p3SldModel(st, job, design) {
     branches,
     combinerModel: "",
     ctBranch: "CTx1 " + p3Ct(totA * 1.5) + "A/40mA",
-    rccb: totA * 1.25 > 63 ? "MCCB " + P + p3At(totA * 1.25) + "AT" : "RCCB " + Vll + "V " + P + "63AT",
+    rccb: totA * 1.25 > 63 ? "MCCB 3P," + p3At(totA * 1.25) + "AT" : "RCCB " + Vll + "V " + P + "63AT",
     rccbType: totA * 1.25 > 63 ? "c/w GFR + ZCT + SHUNT TRIP" : "Type A 100mA",
     gateway: true,
     mainCable: ["CV-FD  " + (nPh === 3 ? "4Cx" : "2Cx") + mainCu + " sq.mm. (SOLAR-CELL)",
       "IEC01 THW(G)  " + Math.max(6, p3Cu(totA * 0.5, 2)) + " sq.mm. (GROUND)"],
     mccbNew: true,
-    mccb: ["MCCB " + P + p3At(totA * 1.25) + "AT", "NEW"],
+    mccb: ["MCCB 3P," + p3At(totA * 1.25) + "AT", "NEW"],
     rcbo: ["RCBO", P + p3At(totA * 1.25) + "AT"],
     ctMain: "CTx2 " + p3Ct(Math.max(250, totA * 3)) + "A/40mA",
     batt: battOn && battKwh ? { brand: p3Brand((sys.batt && sys.batt.model) || (job && job.brand), "ATMOCE"), model: (sys.batt && sys.batt.model) || (battKwh ? battKwh + " kWh" : "-"), kwh: battKwh } : null,
@@ -2176,11 +2176,11 @@ function p3SldModel(st, job, design) {
     const pmt = (job && job.permit) || {}, sv = (job && job.survey) || {};
     const exMain = pmt.mainAT ? pmt.mainAT + "AT" : (sv.mainBreaker || "");
     const ivBrk = units.map((u) => { const a = p3At(aOfUnit(u) * 1.25);
-      return home && a <= 63 ? "RCBO " + P2 + a + "A " + ((R && R.rcboMa) || 100) + "mA" : (a > 125 ? "MCCB " : "MCB ") + P2 + a + "AT"; });
+      return home && a <= 63 ? "RCBO " + P2 + a + "A " + ((R && R.rcboMa) || 100) + "mA" : (a > 125 ? "MCCB 3P " : "MCB " + P2) + a + "AT"; });
     const dcDev = (R ? home : small)
       ? { k: "mcb", tag: "DC MCB " + mcbP + " " + mcbA + "A " + mcbV + "VDC" }
       : { k: "fuse", tag: "DC FUSE gPV " + fuseA + "A " + dcV + "VDC (+/-)" };
-    const mainTxt = !gf ? "RCBO " + P2 + mainA + "A " + ((R && R.rcboMa) || 100) + "mA" : (lsig && mainA > 1250 ? "ACB " : "MCCB ") + P2 + mainA + "AT";
+    const mainTxt = !gf ? "RCBO " + P2 + mainA + "A " + ((R && R.rcboMa) || 100) + "mA" : (lsig && mainA > 1250 ? "ACB " : "MCCB ") + "3P " + mainA + "AT";
     M.pro = {
       home, small, maxVdc, tMin, isc, wp, vocAt, vocMax, auth: auth || "MEA/PEA",
       lps, dcDev, dcSpdTag: "SPD " + (lps ? "T1+T2 " : "T2 ") + ucpv + "VDC", dcSpdFull: "DC SPD " + (lps ? "T1+T2" : "T2") + " Ucpv " + ucpv + "VDC " + dcSpdKa,

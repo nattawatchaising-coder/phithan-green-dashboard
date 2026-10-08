@@ -57,8 +57,8 @@
     /* ── ตู้ไฟ AC ── */
     { sec: "acBoard", g: "งานโครงการ", key: "mccbIrK", th: "MCCB ตั้งกระแส Ir = กระแสออก ×", unit: "เท่า", def: 1.05, min: 1 },
     { sec: "acBoard", g: "งานโครงการ", key: "mccbStep", th: "ปัด Ir ขึ้นทีละ", unit: "A", def: 5, min: 1 },
-    { sec: "acBoard", g: "งานโครงการ", key: "mccbAt", th: "ขนาดเฟรม MCCB ที่มีขาย", unit: "AT", type: "nums", def: [16, 20, 25, 32, 40, 50, 63, 80, 100, 125, 160, 200, 225, 250, 320, 400, 500, 630, 800, 1000, 1250] },
-    { sec: "acBoard", g: "งานโครงการ", key: "acbAt", th: "ขนาด ACB (ใช้เมื่อเกิน MCCB ตัวใหญ่สุด)", unit: "AT", type: "nums", def: [1600, 2000, 2500, 3200, 4000] },
+    { sec: "acBoard", g: "งานโครงการ", key: "mccbAt", th: "ขนาดเฟรม MCCB ที่มีขาย (3P ทุกตัว)", unit: "AT", type: "nums", def: [16, 20, 25, 32, 40, 50, 63, 80, 100, 125, 160, 200, 225, 250, 320, 400, 500, 630, 800, 1000, 1250] },
+    { sec: "acBoard", g: "งานโครงการ", key: "acbAt", th: "ขนาด ACB 3P (ใช้เมื่อเกิน MCCB ตัวใหญ่สุด)", unit: "AT", type: "nums", def: [1600, 2000, 2500, 3200, 4000] },
     { sec: "acBoard", g: "งานโครงการ", key: "gfLsigAt", th: "เมนตั้งแต่กี่ AT ใช้ trip unit LSIG แทน GFR + ZCT + Shunt trip", unit: "AT", def: 1000, min: 1 },
     { sec: "acBoard", g: "ทุกงาน", key: "acSpd2", th: "AC SPD Type II ที่มีขาย", unit: "V Uc", unitA: "kA Imax", type: "pairs", poles: ["2P", "1P+N", "3P", "3P+N", "4P"], poleDef: "2P",
       def: [{ v: 275, p: "2P", a: [40] }, { v: 385, p: "3P+N", a: [40] }] },

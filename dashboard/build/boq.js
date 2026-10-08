@@ -3193,7 +3193,7 @@ function BOQEditor({
     if (!a) {
       const k = brkPick(ib, c);
       return Object.assign(k, {
-        nm: k.kind + " " + pole + " " + k.at + "AT"
+        nm: k.kind + " 3P " + k.at + "AT"
       });
     }
     const iz = cabIz(c),
@@ -3264,7 +3264,7 @@ function BOQEditor({
         }, k);
         const gIn = bOn("gf") && k.at >= GF_IN_AT;
         out.ac.push({
-          name: (k.nm || k.kind + " " + pole + " " + k.at + "AT") + (gIn ? " LSIG" : ""),
+          name: (k.nm || k.kind + " 3P " + k.at + "AT") + (gIn ? " LSIG" : ""),
           qty: 1,
           unit: "ตัว",
           auto: 1,
@@ -3282,7 +3282,7 @@ function BOQEditor({
         }, k);
         if (homeOne) mainAt = k.at;
         out.ac.push({
-          name: k.nm || k.kind + " " + pole + " " + k.at + "AT",
+          name: k.nm || k.kind + " 3P " + k.at + "AT",
           qty: 1,
           unit: "ตัว",
           auto: 1,

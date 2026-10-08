@@ -1889,7 +1889,7 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock, ver, verName, p3Vers
   const RCBO_AT = { "2P": RU.rcbo2P, "3P": RU.rcbo3P };
   const brkPickHome = (ib, c, pole) => {
     const need = ib * RU.fixK, a = (RCBO_AT[pole] || RCBO_AT["2P"]).find((x) => x >= need);
-    if (!a) { const k = brkPick(ib, c); return Object.assign(k, { nm: k.kind + " " + pole + " " + k.at + "AT" }); }
+    if (!a) { const k = brkPick(ib, c); return Object.assign(k, { nm: k.kind + " 3P " + k.at + "AT" }); }
     const iz = cabIz(c), nm = "RCBO " + a + "A " + (pole === "3P" ? "3P+N" : "2P") + " " + RU.rcboMa + "mA";
     const base = r1(ib) + " A × " + RU.fixK + " = " + r1(need) + " A → RCBO " + a + " A " + RU.rcboMa + "mA (งานบ้าน กันไฟรั่ว + กระแสเกินในตัวเดียว)";
     if (!iz) return { at: a, ir: a, kind: "RCBO", nm, ok: true, txt: base + " · ยังไม่ได้เลือกสาย ตรวจพิกัดสายไม่ได้" };
@@ -1928,7 +1928,7 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock, ver, verName, p3Vers
         if (m) brkOfCab[cs.indexOf(m)] = Object.assign({ who: "เมนตู้ AC" }, k);
         // เมน ≥ 1000 AT ใช้เบรกเกอร์ trip unit อิเล็กทรอนิกส์ LSIG — มี Ground Fault ในตัว ไม่ต้องมี GFR/ZCT/Shunt trip แยก
         const gIn = bOn("gf") && k.at >= GF_IN_AT;
-        out.ac.push({ name: (k.nm || k.kind + " " + pole + " " + k.at + "AT") + (gIn ? " LSIG" : ""), qty: 1, unit: "ตัว", auto: 1, ok: k.ok,
+        out.ac.push({ name: (k.nm || k.kind + " 3P " + k.at + "AT") + (gIn ? " LSIG" : ""), qty: 1, unit: "ตัว", auto: 1, ok: k.ok,
           why: tag + "เมน · อินเวอร์เตอร์ " + nos.join(", ") + " รวม " + k.txt + (gIn ? " · trip unit LSIG มี Ground Fault ในตัว" : "") });
       }
       nos.forEach((no) => {
@@ -1937,7 +1937,7 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock, ver, verName, p3Vers
         const k = isHome ? brkPickHome(u.outA, c, pole) : brkPick(u.outA, c);
         if (c) brkOfCab[cs.indexOf(c)] = Object.assign({ who: "อินเวอร์เตอร์ตัวที่ " + no }, k);
         if (homeOne) mainAt = k.at;
-        out.ac.push({ name: k.nm || k.kind + " " + pole + " " + k.at + "AT", qty: 1, unit: "ตัว", auto: 1, ok: k.ok,
+        out.ac.push({ name: k.nm || k.kind + " 3P " + k.at + "AT", qty: 1, unit: "ตัว", auto: 1, ok: k.ok,
           why: tag + "อินเวอร์เตอร์ตัวที่ " + no + " · " + k.txt + (homeOne ? " · งานบ้านอินเวอร์เตอร์ตัวเดียว ต่อเข้าเบรกเกอร์นี้เลย ไม่มีเมนแยก" : "") });
       });
       // ฟิวส์กันหลัง SPD = ฟิวส์ใบมีด NH00 gG — Type 2 = 32 A · Type 1+2 = 125 A (ต้องทนกระแสฟ้าผ่า)
