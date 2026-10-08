@@ -406,9 +406,10 @@
     { name: "ชุดพุชอินเทอร์มินอล FJ7-2.5/4 24A ใส่สาย 0.14-2.5mm. สีเทา (1ชุด10แถว+ฝา1อัน P7-2.5/4) BLOX CONNECT", qty: 1, unit: "ชุด" },
   ];
   // อุปกรณ์คงที่ที่จำนวนขั้วเปลี่ยนตามเฟส (3 เฟส = 4P/3P+N · 1 เฟส = 2P)
+  // ชื่อ MCB/RCCB ตามสเปค CHINT ในคลัง (ผู้ใช้ ต.ค. 2026: "MCB 2P 25A" · "RCCB 25A 2P 100mA") — เลิกใช้ชื่อเก่า "MCB 2P 25AT" / "… 10AT 400V"
   const ATMOCE_ASM_POLE = {
-    3: { pole: "4P", mcb25: "MCB 4P 25AT", spd: "AC SPD TYPE II 3P+N Uc385V In20Ka/Imax40Ka", mcb10: "MCB 4P 10AT 400V" },
-    1: { pole: "2P", mcb25: "MCB 2P 25AT", spd: "AC SPD TYPE II 2P Uc275V In20Ka/Imax40Ka",   mcb10: "MCB 2P 10AT 400V" },
+    3: { pole: "4P", mcb25: "MCB 4P 25A", spd: "AC SPD TYPE II 3P+N Uc385V In20Ka/Imax40Ka", mcb10: "MCB 4P 10A" },
+    1: { pole: "2P", mcb25: "MCB 2P 25A", spd: "AC SPD TYPE II 2P Uc275V In20Ka/Imax40Ka",   mcb10: "MCB 2P 10A" },
   };
   // สร้างรายการอุปกรณ์ในตู้ประกอบ — iMicro/iBatt = กระแสรวม (A) · hasBatt = มีแบตเตอรี่ · phase = 1|3
   // RCCB เลือกจากกระแสรวม (ไมโคร+แบต) · MCB ไมโคร/แบต เลือกตามกระแสแต่ละชุด (×1.25)
@@ -416,11 +417,12 @@
     const cfg = ATMOCE_ASM_POLE[phase === 3 ? 3 : 1];
     const out = [];
     out.push(ATMOCE_ASM_ENCLOSURE);                                                                                         // ตัวตู้หน้ากระจก เบอร์4
-    out.push({ name: "RCCB " + cfg.pole + " " + pickBreakerAT(iMicro + iBatt) + "AT Type A 100mA", qty: 1, unit: "ตัว" });  // ตามกระแสรวม BAT+Micro
+    const rcA = pickBreakerAT(iMicro + iBatt), rcL = (phase === 3 ? RULES.rccb4P : RULES.rccb2P) || [25, 40, 63];
+    out.push({ name: "RCCB " + (rcL.find((a) => a >= rcA) || rcL[rcL.length - 1]) + "A " + cfg.pole + " " + RULES.rcboMa + "mA", qty: 1, unit: "ตัว" });  // ตามกระแสรวม BAT+Micro · ขนาด RCCB ที่มีขาย
     out.push({ name: cfg.mcb25, qty: 1, unit: "ตัว" });                                                                     // MCB 25AT เท่าเดิม
     out.push({ name: cfg.spd, qty: 1, unit: "ตัว" });                                                                       // AC SPD เท่าเดิม
-    if (hasBatt) out.push({ name: "MCB " + cfg.pole + " " + pickBreakerAT(iBatt) + "AT 400V (แบตเตอรี่)", qty: 1, unit: "ตัว" });  // ตามกระแสรวม BATTERY
-    out.push({ name: "MCB " + cfg.pole + " " + pickBreakerAT(iMicro) + "AT 400V (ไมโคร)", qty: 1, unit: "ตัว" });            // ตามกระแสรวม Micro
+    if (hasBatt) out.push({ name: "MCB " + cfg.pole + " " + pickBreakerAT(iBatt) + "A", qty: 1, unit: "ตัว", note: "แบตเตอรี่" });  // ตามกระแสรวม BATTERY
+    out.push({ name: "MCB " + cfg.pole + " " + pickBreakerAT(iMicro) + "A", qty: 1, unit: "ตัว", note: "ไมโคร" });            // ตามกระแสรวม Micro
     out.push({ name: cfg.mcb10, qty: 1, unit: "ตัว" });                                                                     // MCB 10AT เท่าเดิม
     ATMOCE_ASM_SHARED.forEach((x) => out.push(x));                                                                          // อุปกรณ์ร่วม
     return out.map((x) => Object.assign({}, x));
