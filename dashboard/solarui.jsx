@@ -2838,7 +2838,7 @@ function SolarWorkspace({ job, st, sys, onChange, onClose, snap }) {
                         <div style={{ display: "flex", gap: 16, flexWrap: "wrap", borderTop: "1px solid var(--ln)", paddingTop: 9 }}>
                           {row("1 สตริง (Imp)", cur.impA, cur.limIn, "Imp ของแผง 1 สตริง เทียบกับกระแสสูงสุดของ 1 ขั้ว")}
                           {row("รวมใน 1 MPPT", cur.opA, cur.limOp, "ทุกสตริงที่ขนานเข้าช่อง MPPT เดียวกันรวมกัน เทียบกับกระแสสูงสุดต่อ MPPT")}
-                          {row("ลัดวงจร (Isc×1.25)", cur.scA, cur.limSc, "Isc×1.25 ตามมาตรฐานการติดตั้ง เทียบกับพิกัดกระแสลัดวงจรของช่อง MPPT")}
+                          {row("ลัดวงจร (Isc)", cur.scA, cur.limSc, "Isc ของสตริงรวมในช่อง เทียบกับพิกัดกระแสลัดวงจรของช่อง MPPT")}
                           <span className="p3-stat" title={"ขั้วที่มี " + lay.phys + " ต่อ MPPT · ตัดลงถ้ากระแสขนานเกินพิกัด"}>
                             ขนานได้ <b>{per}</b> สตริง/MPPT</span>
                           <span className="p3-stat" title={lay.mppt + " ช่อง MPPT × " + lay.phys + " ขั้ว"}>ขั้วทั้งระบบ <b>{lay.pins}</b></span>
@@ -2904,7 +2904,7 @@ function SolarWorkspace({ job, st, sys, onChange, onClose, snap }) {
                               <span style={{ color: "var(--text-3)", fontWeight: 700 }}>&nbsp;/ {microSel.cur.limOp || "—"} A</span>
                             </span>
                             <span className="p3-stat" style={{ color: microSel.cur.limSc && microSel.cur.scA > microSel.cur.limSc ? "var(--tint-red-tx)" : undefined }}>
-                              กระแสลัดวงจร (Isc×1.25) <b>{microSel.cur.scA} A</b>
+                              กระแสลัดวงจร (Isc) <b>{microSel.cur.scA} A</b>
                               <span style={{ color: "var(--text-3)", fontWeight: 700 }}>&nbsp;/ {microSel.cur.limSc || "—"} A</span>
                             </span>
                             <span className="p3-stat">แผงต่อ 1 MPPT <b>{microSel.nSeries}</b> ใบ</span>
@@ -3214,7 +3214,7 @@ function SolarWorkspace({ job, st, sys, onChange, onClose, snap }) {
                               {!microSel.cur.limOp ? "—" : microSel.cur.opA <= microSel.cur.limOp ? "ผ่าน" : "ไม่ผ่าน"}</td>
                           </tr>
                           <tr>
-                            <td>กระแสลัดวงจร Isc×1.25</td><td><b>{microSel.cur.scA}</b> A</td>
+                            <td>กระแสลัดวงจร Isc</td><td><b>{microSel.cur.scA}</b> A</td>
                             <td>{microSel.cur.limSc ? "≤ " + microSel.cur.limSc + " A" : "ยังไม่ระบุ"}</td>
                             <td style={{ color: !microSel.cur.limSc ? "var(--text-3)" : microSel.cur.scA <= microSel.cur.limSc ? "#12794A" : "var(--tint-red-tx)", fontWeight: 800 }}>
                               {!microSel.cur.limSc ? "—" : microSel.cur.scA <= microSel.cur.limSc ? "ผ่าน" : "ไม่ผ่าน"}</td>

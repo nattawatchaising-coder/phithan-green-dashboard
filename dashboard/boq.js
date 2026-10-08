@@ -998,7 +998,8 @@
     const iOp = imp || isc, limOp = maxMpptA || maxInA, r2 = (x) => Math.round(x * 100) / 100;
     if (maxInA > 0 && iOp > maxInA) out.warns.push("กระแสทำงาน 1 สตริง " + r2(iOp) + " A เกินกระแสเข้าสูงสุดต่อขั้ว " + maxInA + " A");
     if (limOp > 0 && spm > 1 && iOp * spm > limOp) out.warns.push("กระแสทำงานรวม " + r2(iOp * spm) + " A (" + spm + " สตริง/MPPT) เกินกระแสเข้าสูงสุดต่อ MPPT " + limOp + " A");
-    if (maxIscA > 0 && isc > 0 && iscD * 1.25 * spm > maxIscA) out.warns.push("Isc" + (bif ? " (สองหน้า ×" + RULES.bifacialK + ")" : "") + " × 1.25" + (spm > 1 ? " × " + spm + " สตริง" : "") + " = " + r2(iscD * 1.25 * spm) + " A เกินกระแสลัดวงจรสูงสุดต่อ MPPT " + maxIscA + " A");
+    /* เทียบ Isc ตรง ๆ กับพิกัดลัดวงจรของ MPPT ไม่คูณ 1.25 (ผู้ใช้ ต.ค. 2026 · ตรงกับ solarcalc scCurrent) */
+    if (maxIscA > 0 && isc > 0 && iscD * spm > maxIscA) out.warns.push("Isc" + (bif ? " (สองหน้า ×" + RULES.bifacialK + ")" : "") + (spm > 1 ? " × " + spm + " สตริง" : "") + " = " + r2(iscD * spm) + " A เกินกระแสลัดวงจรสูงสุดต่อ MPPT " + maxIscA + " A");
     return out;
   }
 

@@ -750,7 +750,7 @@ const RP_I18N = {
   "ผ่าน · ": ["Pass · ", "合格 · "],
   "ไม่ผ่าน": ["Fail", "不合格"],
   "ผ่าน": ["Pass", "合格"],
-  "กระแสลัดวงจร Isc×1.25": ["Short-circuit current Isc×1.25", "短路电流 Isc×1.25"],
+  "กระแสลัดวงจร Isc": ["Short-circuit current Isc", "短路电流 Isc"],
   "สตริง": ["String", "组串"],
   "ขั้วที่เสียบ (INV / MPPT / ช่อง)": ["Connection (INV / MPPT / input)", "接入位置（逆变器 / MPPT / 路）"],
   "ช่วงแรงดันทำงาน": ["Operating voltage range", "工作电压范围"],
@@ -1348,7 +1348,7 @@ function suReportHTML(D) {
           ["กระแสทำงาน Imp", D.microSel.cur.opA + " A", D.microSel.cur.limOp ? "≤ " + D.microSel.cur.limOp + " A" : "ไม่ระบุ",
             { v: !D.microSel.cur.limOp ? "—" : D.microSel.cur.opA <= D.microSel.cur.limOp ? "ผ่าน" : "ไม่ผ่าน",
               cls: !D.microSel.cur.limOp ? "" : D.microSel.cur.opA <= D.microSel.cur.limOp ? "ok" : "bad" }],
-          ["กระแสลัดวงจร Isc×1.25", D.microSel.cur.scA + " A", D.microSel.cur.limSc ? "≤ " + D.microSel.cur.limSc + " A" : "ไม่ระบุ",
+          ["กระแสลัดวงจร Isc", D.microSel.cur.scA + " A", D.microSel.cur.limSc ? "≤ " + D.microSel.cur.limSc + " A" : "ไม่ระบุ",
             { v: !D.microSel.cur.limSc ? "—" : D.microSel.cur.scA <= D.microSel.cur.limSc ? "ผ่าน" : "ไม่ผ่าน",
               cls: !D.microSel.cur.limSc ? "" : D.microSel.cur.scA <= D.microSel.cur.limSc ? "ok" : "bad" }],
         ])) : "")

@@ -401,12 +401,12 @@ function scCurrent(panel, inv, nPar, opt) {
   const limOp = scNum(inv.maxMpptA) || limIn * (n > 1 ? 1 : 1);
   const limSc = scNum(inv.maxIscA);
   const opA = scR(imp * n, 2),
-    scA = scR(isc * 1.25 * n, 2);
+    scA = scR(isc * n, 2);
   const warns = [],
     notes = [];
   if (limIn && imp > limIn) warns.push("กระแสทำงานของ 1 สตริง " + scR(imp, 2) + " A เกินกระแสสูงสุดต่อ 1 ขั้ว (" + limIn + " A)");
   if (limOp && opA > limOp) warns.push("กระแสทำงานรวม " + opA + " A" + (n > 1 ? " (" + n + " สตริงขนาน)" : "") + " เกินกระแสเข้าสูงสุดต่อช่อง MPPT (" + limOp + " A)");
-  if (limSc && scA > limSc) warns.push("กระแสลัดวงจร Isc×1.25 = " + scA + " A" + (n > 1 ? " (" + n + " สตริงขนาน)" : "") + " เกินพิกัดกระแสลัดวงจรต่อช่อง MPPT (" + limSc + " A)");
+  if (limSc && scA > limSc) warns.push("กระแสลัดวงจร Isc = " + scA + " A" + (n > 1 ? " (" + n + " สตริงขนาน)" : "") + " เกินพิกัดกระแสลัดวงจรต่อช่อง MPPT (" + limSc + " A)");
   if (!scNum(inv.maxMpptA) && limIn) notes.push("ยังไม่ได้ระบุ “กระแสสูงสุดต่อช่อง MPPT” — ดาต้าชีตแยกจาก “ต่อ 1 อินพุต” (เช่น 30 A ต่อ MPPT แต่ 23 A ต่ออินพุต) ระบบเลยใช้ค่าต่ออินพุตแทนไปก่อน");
   if (!limSc && isc) notes.push("ยังไม่ได้ระบุ “กระแสลัดวงจรสูงสุด/MPPT” ของอินเวอร์เตอร์ — กรอกจากดาต้าชีต ระบบจะได้ตรวจให้ครบ");
   return {
@@ -429,7 +429,7 @@ function scStringsPerMppt(panel, inv) {
     limSc = scNum(inv.maxIscA);
   let n = Math.max(1, Math.round(scNum(inv.strPerMppt, 2) || 2));
   if (imp && limOp) n = Math.min(n, Math.floor(limOp / imp));
-  if (isc && limSc) n = Math.min(n, Math.floor(limSc / (isc * 1.25)));
+  if (isc && limSc) n = Math.min(n, Math.floor(limSc / isc));
   return Math.max(1, n);
 }
 const SC_FUSE_SIZES = [10, 12, 15, 16, 20, 25, 30, 32];

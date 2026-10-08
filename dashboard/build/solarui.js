@@ -5457,7 +5457,7 @@ function SolarWorkspace({
         borderTop: "1px solid var(--ln)",
         paddingTop: 9
       }
-    }, row("1 สตริง (Imp)", cur.impA, cur.limIn, "Imp ของแผง 1 สตริง เทียบกับกระแสสูงสุดของ 1 ขั้ว"), row("รวมใน 1 MPPT", cur.opA, cur.limOp, "ทุกสตริงที่ขนานเข้าช่อง MPPT เดียวกันรวมกัน เทียบกับกระแสสูงสุดต่อ MPPT"), row("ลัดวงจร (Isc×1.25)", cur.scA, cur.limSc, "Isc×1.25 ตามมาตรฐานการติดตั้ง เทียบกับพิกัดกระแสลัดวงจรของช่อง MPPT"), React.createElement("span", {
+    }, row("1 สตริง (Imp)", cur.impA, cur.limIn, "Imp ของแผง 1 สตริง เทียบกับกระแสสูงสุดของ 1 ขั้ว"), row("รวมใน 1 MPPT", cur.opA, cur.limOp, "ทุกสตริงที่ขนานเข้าช่อง MPPT เดียวกันรวมกัน เทียบกับกระแสสูงสุดต่อ MPPT"), row("ลัดวงจร (Isc)", cur.scA, cur.limSc, "Isc ของสตริงรวมในช่อง เทียบกับพิกัดกระแสลัดวงจรของช่อง MPPT"), React.createElement("span", {
       className: "p3-stat",
       title: "ขั้วที่มี " + lay.phys + " ต่อ MPPT · ตัดลงถ้ากระแสขนานเกินพิกัด"
     }, "\u0E02\u0E19\u0E32\u0E19\u0E44\u0E14\u0E49 ", React.createElement("b", null, per), " \u0E2A\u0E15\u0E23\u0E34\u0E07/MPPT"), React.createElement("span", {
@@ -5647,7 +5647,7 @@ function SolarWorkspace({
     style: {
       color: microSel.cur.limSc && microSel.cur.scA > microSel.cur.limSc ? "var(--tint-red-tx)" : undefined
     }
-  }, "\u0E01\u0E23\u0E30\u0E41\u0E2A\u0E25\u0E31\u0E14\u0E27\u0E07\u0E08\u0E23 (Isc\xD71.25) ", React.createElement("b", null, microSel.cur.scA, " A"), React.createElement("span", {
+  }, "\u0E01\u0E23\u0E30\u0E41\u0E2A\u0E25\u0E31\u0E14\u0E27\u0E07\u0E08\u0E23 (Isc) ", React.createElement("b", null, microSel.cur.scA, " A"), React.createElement("span", {
     style: {
       color: "var(--text-3)",
       fontWeight: 700
@@ -6167,7 +6167,7 @@ function SolarWorkspace({
       color: !microSel.cur.limOp ? "var(--text-3)" : microSel.cur.opA <= microSel.cur.limOp ? "#12794A" : "var(--tint-red-tx)",
       fontWeight: 800
     }
-  }, !microSel.cur.limOp ? "—" : microSel.cur.opA <= microSel.cur.limOp ? "ผ่าน" : "ไม่ผ่าน")), React.createElement("tr", null, React.createElement("td", null, "\u0E01\u0E23\u0E30\u0E41\u0E2A\u0E25\u0E31\u0E14\u0E27\u0E07\u0E08\u0E23 Isc\xD71.25"), React.createElement("td", null, React.createElement("b", null, microSel.cur.scA), " A"), React.createElement("td", null, microSel.cur.limSc ? "≤ " + microSel.cur.limSc + " A" : "ยังไม่ระบุ"), React.createElement("td", {
+  }, !microSel.cur.limOp ? "—" : microSel.cur.opA <= microSel.cur.limOp ? "ผ่าน" : "ไม่ผ่าน")), React.createElement("tr", null, React.createElement("td", null, "\u0E01\u0E23\u0E30\u0E41\u0E2A\u0E25\u0E31\u0E14\u0E27\u0E07\u0E08\u0E23 Isc"), React.createElement("td", null, React.createElement("b", null, microSel.cur.scA), " A"), React.createElement("td", null, microSel.cur.limSc ? "≤ " + microSel.cur.limSc + " A" : "ยังไม่ระบุ"), React.createElement("td", {
     style: {
       color: !microSel.cur.limSc ? "var(--text-3)" : microSel.cur.scA <= microSel.cur.limSc ? "#12794A" : "var(--tint-red-tx)",
       fontWeight: 800

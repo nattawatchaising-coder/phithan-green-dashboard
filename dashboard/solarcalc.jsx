@@ -22,7 +22,7 @@ const SC_PANEL_EXTRA = { tcVoc: -0.25, tcIsc: 0.045, tcPmax: -0.29, noct: 44, de
    ดาต้าชีตแยกกระแสไว้ 3 ค่า คนละความหมาย ห้ามเอามาปนกัน (ตัวอย่าง SUN2000-50K-MC0):
      maxInA   = Max. Current per Input  (23 A) → เพดานของ "1 สตริง" ที่เสียบ 1 ขั้ว
      maxMpptA = Max. Current per MPPT   (30 A) → เพดานของ "ทุกสตริงในช่อง MPPT เดียวกันรวมกัน"
-     maxIscA  = Max. Short Circuit Current per MPPT (40 A) → เทียบกับ Isc×1.25 รวมทั้งช่อง
+     maxIscA  = Max. Short Circuit Current per MPPT (40 A) → เทียบกับ Isc รวมทั้งช่อง (ไม่คูณ 1.25)
    vStart = แรงดันที่อินเวอร์เตอร์เริ่มจ่ายไฟ · vRated = แรงดันที่ออกแบบไว้ให้ทำงานได้ดีที่สุด
    effEuro = ประสิทธิภาพถ่วงน้ำหนักตามการใช้งานจริง (ใช้คิดผลผลิต) ส่วน eff = ค่าสูงสุดบนดาต้าชีต */
 const SC_INV_EXTRA = { eff: 97.5, strPerMppt: 2 };
@@ -294,8 +294,8 @@ function scSeriesRange(panel, inv, env, opt) {
 /* ── กระแสเข้าช่อง MPPT ──
    ดาต้าชีตอินเวอร์เตอร์แยกไว้ 2 ค่า ต้องเทียบคนละคู่กัน:
      maxInA  = กระแส "ทำงาน" สูงสุดต่อช่อง  → เทียบกับ Imp ของแผง × จำนวนสตริงขนาน
-     maxIscA = กระแส "ลัดวงจร" สูงสุดต่อช่อง → เทียบกับ Isc × 1.25 × จำนวนสตริงขนาน
-   (1.25 = ตัวคูณเผื่อแดดสะท้อน/แดดจัดเกิน 1000 W/m² ตามมาตรฐานการติดตั้ง) */
+     maxIscA = กระแส "ลัดวงจร" สูงสุดต่อช่อง → เทียบกับ Isc × จำนวนสตริงขนาน
+   (ไม่คูณ 1.25 — ผู้ใช้ ต.ค. 2026 · ตัวคูณ 1.25 ใช้แค่ตอนเลือกขนาดสาย/ฟิวส์) */
 function scCurrent(panel, inv, nPar, opt) {
   const n = Math.max(1, Math.round(nPar || 1));
   /* ติดตัวคุมแผงแล้ว กระแสที่ออกจากสตริงถูกจำกัดด้วยพิกัดฝั่งออกของตัวคุม ไม่ใช่ Imp/Isc ของแผง
@@ -306,11 +306,11 @@ function scCurrent(panel, inv, nPar, opt) {
   const limIn = scNum(inv.maxInA);                                  // ต่อ 1 ขั้ว (1 สตริง)
   const limOp = scNum(inv.maxMpptA) || limIn * (n > 1 ? 1 : 1);     // ต่อ 1 ช่อง MPPT (ทุกสตริงรวมกัน)
   const limSc = scNum(inv.maxIscA);
-  const opA = scR(imp * n, 2), scA = scR(isc * 1.25 * n, 2);
+  const opA = scR(imp * n, 2), scA = scR(isc * n, 2);
   const warns = [], notes = [];
   if (limIn && imp > limIn) warns.push("กระแสทำงานของ 1 สตริง " + scR(imp, 2) + " A เกินกระแสสูงสุดต่อ 1 ขั้ว (" + limIn + " A)");
   if (limOp && opA > limOp) warns.push("กระแสทำงานรวม " + opA + " A" + (n > 1 ? " (" + n + " สตริงขนาน)" : "") + " เกินกระแสเข้าสูงสุดต่อช่อง MPPT (" + limOp + " A)");
-  if (limSc && scA > limSc) warns.push("กระแสลัดวงจร Isc×1.25 = " + scA + " A" + (n > 1 ? " (" + n + " สตริงขนาน)" : "") + " เกินพิกัดกระแสลัดวงจรต่อช่อง MPPT (" + limSc + " A)");
+  if (limSc && scA > limSc) warns.push("กระแสลัดวงจร Isc = " + scA + " A" + (n > 1 ? " (" + n + " สตริงขนาน)" : "") + " เกินพิกัดกระแสลัดวงจรต่อช่อง MPPT (" + limSc + " A)");
   if (!scNum(inv.maxMpptA) && limIn) notes.push("ยังไม่ได้ระบุ “กระแสสูงสุดต่อช่อง MPPT” — ดาต้าชีตแยกจาก “ต่อ 1 อินพุต” (เช่น 30 A ต่อ MPPT แต่ 23 A ต่ออินพุต) ระบบเลยใช้ค่าต่ออินพุตแทนไปก่อน");
   if (!limSc && isc) notes.push("ยังไม่ได้ระบุ “กระแสลัดวงจรสูงสุด/MPPT” ของอินเวอร์เตอร์ — กรอกจากดาต้าชีต ระบบจะได้ตรวจให้ครบ");
   return { opA, scA, limIn, limOp, limSc, impA: scR(imp, 2), n, warns, notes, ok: !warns.length };
@@ -326,7 +326,7 @@ function scStringsPerMppt(panel, inv) {
   const limOp = scNum(inv.maxMpptA) || scNum(inv.maxInA), limSc = scNum(inv.maxIscA);
   let n = Math.max(1, Math.round(scNum(inv.strPerMppt, 2) || 2));
   if (imp && limOp) n = Math.min(n, Math.floor(limOp / imp));
-  if (isc && limSc) n = Math.min(n, Math.floor(limSc / (isc * 1.25)));
+  if (isc && limSc) n = Math.min(n, Math.floor(limSc / isc));
   return Math.max(1, n);
 }
 /* ── ฟิวส์สตริง (string fuse) ──
