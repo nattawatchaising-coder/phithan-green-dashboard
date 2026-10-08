@@ -1767,7 +1767,8 @@ function BrStockGap({ stock }) {
   const items = (stock && stock.items) || [];
   const mk = (window.BOQ && window.BOQ.matKey) || ((x) => String(x || "").trim());
   const have = {};
-  items.forEach((s) => { if (s.name) have[mk(s.name)] = 1; });
+  // ชื่อพ้อง (aka) นับว่ามีแล้ว — ราคาใน BOQ ก็จับคู่ชื่อพ้องเหมือนกัน (เช่น MCB 3P 6A → ABB SH203 3P 6A)
+  items.forEach((s) => { if (s.name) have[mk(s.name)] = 1; (s.aka || []).forEach((n) => { if (n) have[mk(n)] = 1; }); });
   const miss = brStockNeeds().filter((x) => !have[mk(x.name)]);
   if (!stock || !stock.upsertItem || !miss.length) return null;
   const addAll = () => {

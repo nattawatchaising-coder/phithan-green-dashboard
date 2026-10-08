@@ -4570,6 +4570,9 @@ function BrStockGap({
   const have = {};
   items.forEach(s => {
     if (s.name) have[mk(s.name)] = 1;
+    (s.aka || []).forEach(n => {
+      if (n) have[mk(n)] = 1;
+    });
   });
   const miss = brStockNeeds().filter(x => !have[mk(x.name)]);
   if (!stock || !stock.upsertItem || !miss.length) return null;
