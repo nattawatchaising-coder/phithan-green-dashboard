@@ -135,7 +135,11 @@ function StockView({ stock, onResetAll, onMenuOpen, currentUser, jobs, priceStor
   // นับรวมของในหมวดย่อยเข้าหมวดหลักด้วย ตัวเลขบนชิปจึงตรงกับที่กดแล้วเห็น
   const catCount = React.useMemo(() => { const m = {}; items.forEach((it) => { const k = SF.mainCatOf(it.cat); m[k] = (m[k] || 0) + 1; }); return m; }, [items]);
   const subCount = React.useMemo(() => { const m = {}; items.forEach((it) => { if (SF.mainCatOf(it.cat) !== it.cat) m[it.cat] = (m[it.cat] || 0) + 1; }); return m; }, [items]);
-  const subChips = (SF.STOCK_SUB_BY_CAT[cat] || []).filter((c) => sub === c.key || subCount[c.key]);
+  /* ถังขยะ = หมวดย่อยที่ชื่อมี "รอลบ" — ไม่ขึ้นเป็นการ์ดหมวด เข้าจากปุ่มถังขยะลอยมุมขวาล่างแทน (ผู้ใช้ ต.ค. 2026) */
+  const trashCats = React.useMemo(() => (SF.STOCK_CATS_ALL || Object.values(SF.STOCK_CAT_BY || {})).filter((c) => c && c.parent && /รอลบ/.test(c.th || "")), [stock.items]);
+  const isTrash = (k) => trashCats.some((c) => c.key === k);
+  const trashN = (stock.items || []).filter((it) => isTrash(it.cat)).length;
+  const subChips = (SF.STOCK_SUB_BY_CAT[cat] || []).filter((c) => sub === c.key || (subCount[c.key] && !isTrash(c.key)));
   /* กดค้นหา / กรองยี่ห้อ / กด KPI เมื่อไหร่ = ตั้งใจจะหาของ ข้ามหน้าเลือกหมวดไปเลย */
   const browsing = !isPrices && !isAmp && browse && !search.trim() && brand === "all" && !kpiFilter;
   const showCatHome = browsing && cat === "all";
@@ -161,7 +165,8 @@ function StockView({ stock, onResetAll, onMenuOpen, currentUser, jobs, priceStor
     return m;
   }, [items]);
   // เปลี่ยนหมวดหลัก / หมวดย่อยหายไป → รีเซ็ตตัวกรองย่อย ไม่ให้ค้างจนตารางว่างโดยไม่รู้สาเหตุ
-  React.useEffect(() => { setSub("all"); setGrp("all"); }, [cat]);
+  const keepSub = React.useRef(false);   // ปุ่มถังขยะตั้ง cat+sub พร้อมกัน — ไม่ให้การเปลี่ยน cat ล้าง sub ทิ้ง
+  React.useEffect(() => { if (keepSub.current) { keepSub.current = false; return; } setSub("all"); setGrp("all"); }, [cat]);
   React.useEffect(() => { setSeries("all"); }, [cat, sub, brand]);
   React.useEffect(() => { if (sub !== "all" && !subChips.some((c) => c.key === sub)) setSub("all"); }, [subChips.length]);
   /* ตัวเลือกยี่ห้อ/รุ่น — นับจากของที่ผ่านตัวกรอง "หมวด" แล้ว
@@ -663,6 +668,18 @@ function StockView({ stock, onResetAll, onMenuOpen, currentUser, jobs, priceStor
           )}
         </div>
       </div>
+      )}
+
+      {/* ปุ่มถังขยะลอย — เปิดหมวดรอลบ (ลบทั้งหมดได้ในนั้น) */}
+      {tab === "stock" && trashCats.length > 0 && (
+        <button onClick={() => { const t = trashCats[0]; setSearch(""); setBrand("all"); setKpiFilter(null); if (cat !== t.parent) keepSub.current = true; setGrp("all"); setCat(t.parent); setSub(t.key); setBrowse(false); }}
+          title={trashN ? "ถังขยะ · " + trashN + " รายการรอลบ" : "ถังขยะว่าง"}
+          style={{ position: "fixed", right: isMobile ? 16 : 28, bottom: isMobile ? 84 : 24, zIndex: 40, width: 52, height: 52, borderRadius: "50%", border: "none",
+            background: "var(--surface)", boxShadow: "var(--shadow-card)", cursor: "pointer", display: "grid", placeItems: "center" }}>
+          <Icon name="trash" size={22} color={trashN ? "#EF4444" : "var(--text-3)"} />
+          {trashN > 0 && <span style={{ position: "absolute", top: -4, right: -4, minWidth: 20, height: 20, padding: "0 6px", boxSizing: "border-box", borderRadius: 99,
+            background: "#EF4444", color: "#fff", fontSize: 11, fontWeight: 800, display: "grid", placeItems: "center" }}>{trashN}</span>}
+        </button>
       )}
 
       {moveItem && <MoveModal info={moveItem} byName={byName} jobs={jobs || []} onSave={(qty, ref, note, jobId) => { stock.move(moveItem.item.id, moveItem.type, qty, ref, note, byName, jobId); setMoveItem(null); }} onClose={() => setMoveItem(null)} />}

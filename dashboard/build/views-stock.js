@@ -258,7 +258,10 @@ function StockView({
     });
     return m;
   }, [items]);
-  const subChips = (SF.STOCK_SUB_BY_CAT[cat] || []).filter(c => sub === c.key || subCount[c.key]);
+  const trashCats = React.useMemo(() => (SF.STOCK_CATS_ALL || Object.values(SF.STOCK_CAT_BY || {})).filter(c => c && c.parent && /รอลบ/.test(c.th || "")), [stock.items]);
+  const isTrash = k => trashCats.some(c => c.key === k);
+  const trashN = (stock.items || []).filter(it => isTrash(it.cat)).length;
+  const subChips = (SF.STOCK_SUB_BY_CAT[cat] || []).filter(c => sub === c.key || subCount[c.key] && !isTrash(c.key));
   const browsing = !isPrices && !isAmp && browse && !search.trim() && brand === "all" && !kpiFilter;
   const showCatHome = browsing && cat === "all";
   const showSubHome = browsing && cat !== "all" && sub === "all" && subChips.length > 0;
@@ -310,7 +313,12 @@ function StockView({
     });
     return m;
   }, [items]);
+  const keepSub = React.useRef(false);
   React.useEffect(() => {
+    if (keepSub.current) {
+      keepSub.current = false;
+      return;
+    }
     setSub("all");
     setGrp("all");
   }, [cat]);
@@ -1418,7 +1426,56 @@ function StockView({
       textAlign: "center",
       color: "var(--text-3)"
     }
-  }, "\u0E44\u0E21\u0E48\u0E1E\u0E1A\u0E23\u0E32\u0E22\u0E01\u0E32\u0E23\u0E2D\u0E38\u0E1B\u0E01\u0E23\u0E13\u0E4C")))))))), moveItem && React.createElement(MoveModal, {
+  }, "\u0E44\u0E21\u0E48\u0E1E\u0E1A\u0E23\u0E32\u0E22\u0E01\u0E32\u0E23\u0E2D\u0E38\u0E1B\u0E01\u0E23\u0E13\u0E4C")))))))), tab === "stock" && trashCats.length > 0 && React.createElement("button", {
+    onClick: () => {
+      const t = trashCats[0];
+      setSearch("");
+      setBrand("all");
+      setKpiFilter(null);
+      if (cat !== t.parent) keepSub.current = true;
+      setGrp("all");
+      setCat(t.parent);
+      setSub(t.key);
+      setBrowse(false);
+    },
+    title: trashN ? "ถังขยะ · " + trashN + " รายการรอลบ" : "ถังขยะว่าง",
+    style: {
+      position: "fixed",
+      right: isMobile ? 16 : 28,
+      bottom: isMobile ? 84 : 24,
+      zIndex: 40,
+      width: 52,
+      height: 52,
+      borderRadius: "50%",
+      border: "none",
+      background: "var(--surface)",
+      boxShadow: "var(--shadow-card)",
+      cursor: "pointer",
+      display: "grid",
+      placeItems: "center"
+    }
+  }, React.createElement(Icon, {
+    name: "trash",
+    size: 22,
+    color: trashN ? "#EF4444" : "var(--text-3)"
+  }), trashN > 0 && React.createElement("span", {
+    style: {
+      position: "absolute",
+      top: -4,
+      right: -4,
+      minWidth: 20,
+      height: 20,
+      padding: "0 6px",
+      boxSizing: "border-box",
+      borderRadius: 99,
+      background: "#EF4444",
+      color: "#fff",
+      fontSize: 11,
+      fontWeight: 800,
+      display: "grid",
+      placeItems: "center"
+    }
+  }, trashN)), moveItem && React.createElement(MoveModal, {
     info: moveItem,
     byName: byName,
     jobs: jobs || [],
