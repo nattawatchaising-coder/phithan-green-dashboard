@@ -1252,7 +1252,7 @@ function ItemModal({ initial, isNew, items, onSave, onClose, onAddCat, onRemoveC
               </div>
             </div>
           )}
-          {mainCat === "inverter" && +f.invKw > 0 && (
+          {((mainCat === "inverter" && +f.invKw > 0) || f.elecType === "MCCB") && (
             <StkAccPick ids={f.accIds} self={f} items={items} onChange={(v) => set("accIds", v)} />
           )}
           {mainCat === "electrical" && (
@@ -2635,8 +2635,10 @@ function ItemDetailModal({ item, img, variants, loadDoc, setDoc, onMove, onEdit,
           {/* อุปกรณ์เสริมที่ใช้คู่กัน · กลับด้าน = อุปกรณ์เสริมชิ้นนี้ใช้กับอินเวอร์เตอร์รุ่นไหน */}
           <StkLinkTiles title="อุปกรณ์เสริมที่ใช้คู่กัน" imgs={imgs} onOpen={onOpen}
             list={(item.accIds || []).map((id) => (items || []).find((x) => x && x.id === id)).filter(Boolean)} />
-          <StkLinkTiles title="ใช้คู่กับอินเวอร์เตอร์" imgs={imgs} onOpen={onOpen}
-            list={(items || []).filter((x) => x && Array.isArray(x.accIds) && x.accIds.indexOf(item.id) !== -1)} />
+          {(() => { const L = (items || []).filter((x) => x && Array.isArray(x.accIds) && x.accIds.indexOf(item.id) !== -1);
+            /* อุปกรณ์เสริม MCCB (คอยล์/สวิตช์ช่วย) ก็ผูกด้วย accIds บนตัว MCCB เหมือนอินเวอร์เตอร์ */
+            const mc = L.length && L.every((x) => x.elecType === "MCCB");
+            return <StkLinkTiles title={mc ? "ใช้กับ MCCB รุ่น" : "ใช้คู่กับอินเวอร์เตอร์"} imgs={imgs} onOpen={onOpen} list={L} />; })()}
 
           {/* DATA SHEET — แนบไฟล์ PDF ของผู้ผลิต ไว้เปิดดูหน้างานได้เลย */}
           <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
