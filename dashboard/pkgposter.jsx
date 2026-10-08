@@ -19,6 +19,8 @@ const PK_B = (typeof BRANDING !== "undefined" && BRANDING) || window.BRANDING ||
 const PK_CO_DEF = { name: PK_B.name || "flash+solar", tag: PK_B.tagline || "CLEAN ENERGY", tel: PK_B.tel || "", line: "", site: PK_B.site || "", mark: "" };
 const PK_CO_KEYS = ["name", "tag", "tel", "line", "site", "mark"];
 const PK_CO_PATH = "config/pkPosterCo";
+const PK_TX_PATH = "config/pkPosterText";   // {title, wty ข้อความบรรทัดละข้อ}
+const PK_TITLE_DEF = "แพ็คเกจโซลาร์รูฟท็อป";
 const PK_TH = "'IBM Plex Sans Thai', sans-serif";
 const PK_NUM = "'Outfit', 'IBM Plex Sans Thai', sans-serif";
 
@@ -394,7 +396,7 @@ function PkPosterModal({ lead, stock, quotes, onClose }) {
   const [logo, setLogo] = React.useState(saved.logo !== false);
   const [price, setPrice] = React.useState(saved.price !== false);
   const [contact, setContact] = React.useState(saved.contact === true);
-  const [title, setTitle] = React.useState("แพ็คเกจโซลาร์รูฟท็อป");
+  const [title, setTitle] = React.useState(PK_TITLE_DEF);
   const [disc, setDisc] = React.useState("");
   const [wty, setWty] = React.useState(() => ((q && q.warranties) || PK_WTY_DEF).join("\n"));
   const [A, setA] = React.useState(null);
@@ -414,7 +416,23 @@ function PkPosterModal({ lead, stock, quotes, onClose }) {
       setCoSaved(v); setCo(v);
     };
     r.once("value", fn);
+    // หัวข้อ/จุดเด่นที่บันทึกไว้ (ใช้ร่วมทุกลูกค้า · ไม่มี = จุดเด่นจากใบเสนอราคา)
+    window.FBDB.ref(PK_TX_PATH).once("value", (s) => {
+      const v = s.val();
+      if (v) { setTxSaved({ title: v.title || "", wty: v.wty || "" }); if (v.title) setTitle(v.title); if (v.wty) setWty(v.wty); }
+      else setTxSaved({ title: "", wty: "" });
+    });
   }, []);
+  const [txSaved, setTxSaved] = React.useState(null);
+  const [txBusy, setTxBusy] = React.useState(false);
+  const txDiff = !!txSaved && (title !== (txSaved.title || PK_TITLE_DEF) || (txSaved.wty ? wty !== txSaved.wty : true));
+  const saveTx = () => {
+    if (!window.FBDB) return;
+    const v = { title: title, wty: wty };
+    setTxBusy(true);
+    window.FBDB.ref(PK_TX_PATH).set(v).then(() => { setTxSaved(v); setTxBusy(false); },
+      (e) => { setTxBusy(false); alert("บันทึกไม่สำเร็จ: " + (e && e.message || e)); });
+  };
   React.useEffect(() => {
     let live = true;
     if (co.mark) pkImg(co.mark).then((im) => { if (live) setMarkIm(im); }); else setMarkIm(null);
@@ -553,6 +571,12 @@ function PkPosterModal({ lead, stock, quotes, onClose }) {
                 <input value={title} onChange={(e) => setTitle(e.target.value)} style={well} />
                 <div style={{ fontSize: 12, fontWeight: 700, color: "var(--text-2)", marginTop: 4 }}>จุดเด่น (บรรทัดละข้อ)</div>
                 <textarea value={wty} onChange={(e) => setWty(e.target.value)} rows={6} style={Object.assign({}, well, { resize: "vertical", lineHeight: 1.5 })} />
+                <div style={{ display: "flex", alignItems: "center", gap: 10, marginTop: 2 }}>
+                  <button type="button" className="btn btn-pri" disabled={!txDiff || txBusy} onClick={saveTx} style={{ padding: "7px 14px", fontSize: 12.5 }}>
+                    {txBusy ? "กำลังบันทึก…" : txDiff ? "บันทึกหัวข้อ · จุดเด่น" : "บันทึกแล้ว"}
+                  </button>
+                </div>
+                <div style={{ fontSize: 11.5, color: "var(--text-3)", lineHeight: 1.45 }}>บันทึกแล้วใช้กับรูปของทุกลูกค้า · ทุกเครื่อง</div>
               </div>
               <div style={{ fontSize: 11.5, color: "var(--text-3)", lineHeight: 1.5 }}>
                 รูปสินค้าและโลโก้ยี่ห้อดึงจากรูปในคลังสินค้า{!sp.pItem ? " · ไม่พบรุ่นแผงนี้ในคลัง" : ""}

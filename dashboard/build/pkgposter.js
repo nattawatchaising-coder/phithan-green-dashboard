@@ -14,6 +14,8 @@ const PK_CO_DEF = {
 };
 const PK_CO_KEYS = ["name", "tag", "tel", "line", "site", "mark"];
 const PK_CO_PATH = "config/pkPosterCo";
+const PK_TX_PATH = "config/pkPosterText";
+const PK_TITLE_DEF = "แพ็คเกจโซลาร์รูฟท็อป";
 const PK_TH = "'IBM Plex Sans Thai', sans-serif";
 const PK_NUM = "'Outfit', 'IBM Plex Sans Thai', sans-serif";
 const pkNorm = s => String(s || "").toLowerCase().replace(/\s+/g, " ").trim();
@@ -612,7 +614,7 @@ function PkPosterModal({
   const [logo, setLogo] = React.useState(saved.logo !== false);
   const [price, setPrice] = React.useState(saved.price !== false);
   const [contact, setContact] = React.useState(saved.contact === true);
-  const [title, setTitle] = React.useState("แพ็คเกจโซลาร์รูฟท็อป");
+  const [title, setTitle] = React.useState(PK_TITLE_DEF);
   const [disc, setDisc] = React.useState("");
   const [wty, setWty] = React.useState(() => (q && q.warranties || PK_WTY_DEF).join("\n"));
   const [A, setA] = React.useState(null);
@@ -635,7 +637,39 @@ function PkPosterModal({
       setCo(v);
     };
     r.once("value", fn);
+    window.FBDB.ref(PK_TX_PATH).once("value", s => {
+      const v = s.val();
+      if (v) {
+        setTxSaved({
+          title: v.title || "",
+          wty: v.wty || ""
+        });
+        if (v.title) setTitle(v.title);
+        if (v.wty) setWty(v.wty);
+      } else setTxSaved({
+        title: "",
+        wty: ""
+      });
+    });
   }, []);
+  const [txSaved, setTxSaved] = React.useState(null);
+  const [txBusy, setTxBusy] = React.useState(false);
+  const txDiff = !!txSaved && (title !== (txSaved.title || PK_TITLE_DEF) || (txSaved.wty ? wty !== txSaved.wty : true));
+  const saveTx = () => {
+    if (!window.FBDB) return;
+    const v = {
+      title: title,
+      wty: wty
+    };
+    setTxBusy(true);
+    window.FBDB.ref(PK_TX_PATH).set(v).then(() => {
+      setTxSaved(v);
+      setTxBusy(false);
+    }, e => {
+      setTxBusy(false);
+      alert("บันทึกไม่สำเร็จ: " + (e && e.message || e));
+    });
+  };
   React.useEffect(() => {
     let live = true;
     if (co.mark) pkImg(co.mark).then(im => {
@@ -1123,7 +1157,29 @@ function PkPosterModal({
       resize: "vertical",
       lineHeight: 1.5
     })
-  })), React.createElement("div", {
+  }), React.createElement("div", {
+    style: {
+      display: "flex",
+      alignItems: "center",
+      gap: 10,
+      marginTop: 2
+    }
+  }, React.createElement("button", {
+    type: "button",
+    className: "btn btn-pri",
+    disabled: !txDiff || txBusy,
+    onClick: saveTx,
+    style: {
+      padding: "7px 14px",
+      fontSize: 12.5
+    }
+  }, txBusy ? "กำลังบันทึก…" : txDiff ? "บันทึกหัวข้อ · จุดเด่น" : "บันทึกแล้ว")), React.createElement("div", {
+    style: {
+      fontSize: 11.5,
+      color: "var(--text-3)",
+      lineHeight: 1.45
+    }
+  }, "\u0E1A\u0E31\u0E19\u0E17\u0E36\u0E01\u0E41\u0E25\u0E49\u0E27\u0E43\u0E0A\u0E49\u0E01\u0E31\u0E1A\u0E23\u0E39\u0E1B\u0E02\u0E2D\u0E07\u0E17\u0E38\u0E01\u0E25\u0E39\u0E01\u0E04\u0E49\u0E32 \xB7 \u0E17\u0E38\u0E01\u0E40\u0E04\u0E23\u0E37\u0E48\u0E2D\u0E07")), React.createElement("div", {
     style: {
       fontSize: 11.5,
       color: "var(--text-3)",
