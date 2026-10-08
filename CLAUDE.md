@@ -119,7 +119,7 @@ deploy อัตโนมัติด้วย Vercel จาก `master` บน 
 ## รูปแพ็คเกจขาย (`dashboard/pkgposter.jsx` prefix `pk`/`Pk` · โหลดก่อน views-survey.js)
 - ปุ่ม **"🖼 รูปแพ็คเกจ"** บนหัวใบลูกค้า (LeadDrawer · โชว์เมื่อ boq มี panelModel) → `PkPosterModal` วาด canvas 1080×1350 ดาวน์โหลด PNG · ไม่เขียนข้อมูลอะไรเลย
 - สเปคจาก `lead.boq` (panels · panelModel · inverterModel/invCount · inv2 · phase · batteryKwh) · **ราคา = `lead.expValue` (มูลค่าที่คาด) ว่าง = `boq.pricing.sell`** · ช่อง **ส่วนลด** (ไม่บันทึก) = ราคาเต็มขีดฆ่า (ราคา + ส่วนลด) + ป้ายแดง "ลด ฿…"
-- รูปสินค้า `stockImg/{id}` → `cat_panel`/`cat_inverter` · โลโก้ยี่ห้อ `cat_brand_<ยี่ห้อ>` → รูปหมวดย่อยที่เป็นยี่ห้อ (`cat_`+item.cat เช่น LONGI = sub6 · HUAWEI = sub20) → ตัวหนังสือ · ตัดพื้นขาวออก (`pkTrim`)
+- รูปสินค้า `stockImg/{id}` → `cat_panel`/`cat_inverter` · โลโก้ยี่ห้อ `cat_brand_<ยี่ห้อ>` → รูปหมวดย่อยที่เป็นยี่ห้อ (`cat_`+item.cat เช่น LONGI = sub6 · HUAWEI = sub20) → ตัวหนังสือ · ตัดพื้นขาวออก (`pkTrim`) · โลโก้วางกลางเหนือรูปสินค้า **ไม่มีกล่อง/พื้นขาวรอง** (ผู้ใช้: กล่องดูไม่เนียน)
 - สวิตช์ โลโก้บริษัท · เบอร์โทร/เว็บ (ค่าเริ่มปิด) · แสดงราคา — จำที่ `localStorage.pk_poster_opt` · หัวข้อ/จุดเด่นแก้ได้ (จุดเด่นเริ่มจาก warranties ของใบเสนอราคา)
 - พื้นหลังส่วนบน = `dashboard/assets/pkg-house.jpg` (บ้านติดแผงฟ้าใส ผู้ใช้ให้มา) มืดลงเฉพาะฝั่งซ้ายที่มีตัวหนังสือ · ผลิตไฟ 1,400 หน่วย/kWp/ปี × 4.5 บาท
 

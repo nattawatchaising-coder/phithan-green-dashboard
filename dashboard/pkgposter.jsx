@@ -196,7 +196,7 @@ function pkDraw(cv, sp, A, o) {
   g.fillStyle = "#fff"; g.textAlign = "center"; g.fillText(ph, PK_W - 48 - pw / 2, y + 45); g.textAlign = "left";
 
   // หัวข้อ + ตัวเลขใหญ่
-  y = 220;
+  y = 210;
   g.fillStyle = C.sun; g.font = "700 34px " + PK_TH; g.fillText(o.title || "แพ็คเกจโซลาร์รูฟท็อป", 52, y);
   g.fillStyle = C.sun; g.fillRect(52, y + 18, 70, 6);
   const big = String(sp.kwp);
@@ -210,33 +210,29 @@ function pkDraw(cv, sp, A, o) {
   pkFit(g, sub, "600", 32, PK_TH, PK_W - 104, 20); g.fillStyle = "rgba(255,255,255,.88)"; g.fillText(sub, 52, y + 268);
 
   /* ── การ์ดสินค้า ── */
-  const cx = 48, cy = 520, cw = PK_W - 96, ch = 360;
+  const cx = 48, cy = 500, cw = PK_W - 96, ch = 412;
   g.save(); g.shadowColor = "rgba(8,30,24,.28)"; g.shadowBlur = 50; g.shadowOffsetY = 18;
   pkRR(g, cx, cy, cw, ch, 36); g.fillStyle = "#fff"; g.fill(); g.restore();
   const half = cw / 2;
   const prod = (i, logo, brand, photo, model, kind, qty) => {
     const x = cx + i * half, mid = x + half / 2;
     // พื้นอ่อนหลังรูป
-    pkRR(g, x + 24, cy + 24, half - 48, 214, 26);
-    const pg = g.createLinearGradient(0, cy + 24, 0, cy + 238);
-    pg.addColorStop(0, "#F3F7F5"); pg.addColorStop(1, "#E3ECE8"); g.fillStyle = pg; g.fill();
-    // โลโก้ยี่ห้อ มุมซ้ายบนของพื้นรูป
-    if (logo) {
-      g.save(); pkRR(g, x + 40, cy + 40, 150, 50, 14); g.fillStyle = "#fff"; g.shadowColor = "rgba(0,0,0,.08)"; g.shadowBlur = 10; g.fill(); g.restore();
-      pkContain(g, logo, x + 50, cy + 47, 130, 36);
-    } else if (brand) {
-      g.font = "800 30px " + PK_NUM; g.fillStyle = C.deep; g.fillText(brand.toUpperCase(), x + 44, cy + 76);
-    }
+    pkRR(g, x + 24, cy + 24, half - 48, 238, 26);
+    const pg = g.createLinearGradient(0, cy + 24, 0, cy + 262);
+    pg.addColorStop(0, "#F6F9F7"); pg.addColorStop(1, "#E2EBE7"); g.fillStyle = pg; g.fill();
+    // โลโก้ยี่ห้อ กลางด้านบน วางตรงบนพื้น (พื้นขาวของโลโก้ถูกตัดเป็นโปร่งแล้ว ไม่ต้องมีกล่องรอง)
+    if (logo) pkContain(g, logo, mid - 95, cy + 40, 190, 42);
+    else if (brand) { g.font = "800 32px " + PK_NUM; g.fillStyle = C.deep; g.textAlign = "center"; g.fillText(brand.toUpperCase(), mid, cy + 74); g.textAlign = "left"; }
     if (photo) {
-      g.save(); g.shadowColor = "rgba(0,0,0,.22)"; g.shadowBlur = 22; g.shadowOffsetY = 10;
-      pkContain(g, photo, x + 96, cy + 52, half - 192, 172); g.restore();
+      g.save(); g.shadowColor = "rgba(0,0,0,.22)"; g.shadowBlur = 20; g.shadowOffsetY = 10;
+      pkContain(g, photo, x + 70, cy + 98, half - 140, 150); g.restore();
     }
     g.fillStyle = C.mute; g.font = "600 22px " + PK_TH; g.textAlign = "center";
-    g.fillText(kind, mid, cy + 278);
-    pkFit(g, model, "700", 27, PK_TH, half - 56, 16); g.fillStyle = C.ink; g.fillText(model, mid, cy + 312);
+    g.fillText(kind, mid, cy + 300);
+    pkFit(g, model, "700", 27, PK_TH, half - 56, 16); g.fillStyle = C.ink; g.fillText(model, mid, cy + 336);
     g.font = "700 22px " + PK_TH; const qw = g.measureText(qty).width + 36;
-    pkRR(g, mid - qw / 2, cy + 324, qw, 36, 18); g.fillStyle = "#E3F5EC"; g.fill();
-    g.fillStyle = C.leaf; g.fillText(qty, mid, cy + 349); g.textAlign = "left";
+    pkRR(g, mid - qw / 2, cy + 356, qw, 38, 19); g.fillStyle = "#E3F5EC"; g.fill();
+    g.fillStyle = C.leaf; g.fillText(qty, mid, cy + 382); g.textAlign = "left";
   };
   const pBrand = sp.pItem && sp.pItem.brand || "", iItem = inv0 && inv0.item, iBrand = iItem && iItem.brand || "";
   prod(0, A.pLogo, pBrand, A.pPhoto, (sp.pItem && sp.pItem.model) || pkSplitModel(sp.panelName, pBrand), "แผงโซลาร์เซลล์", sp.wp + " W × " + sp.n + " แผ่น");
@@ -248,30 +244,30 @@ function pkDraw(cv, sp, A, o) {
   }
   // วงกลม + ตรงกลาง
   g.save(); g.shadowColor = "rgba(27,155,117,.45)"; g.shadowBlur = 16;
-  g.beginPath(); g.arc(cx + half, cy + 131, 30, 0, Math.PI * 2); g.fillStyle = C.leaf; g.fill(); g.restore();
+  g.beginPath(); g.arc(cx + half, cy + 143, 30, 0, Math.PI * 2); g.fillStyle = C.leaf; g.fill(); g.restore();
   g.strokeStyle = "#fff"; g.lineWidth = 6; g.lineCap = "round"; g.beginPath();
-  g.moveTo(cx + half - 12, cy + 131); g.lineTo(cx + half + 12, cy + 131); g.moveTo(cx + half, cy + 119); g.lineTo(cx + half, cy + 143); g.stroke();
+  g.moveTo(cx + half - 12, cy + 143); g.lineTo(cx + half + 12, cy + 143); g.moveTo(cx + half, cy + 131); g.lineTo(cx + half, cy + 155); g.stroke();
 
   /* ── ตัวเลขผลตอบแทน ── */
   const kwh = sp.kwp * PK_YIELD, save = kwh * PK_RATE;
   const tiles = [["ผลิตไฟ", "~" + pkFmt(kwh), "หน่วย/ปี", "#F59E0B"], ["ประหยัดค่าไฟ", "~฿" + pkFmt(save), "ต่อปี", C.leaf]];
   if (o.price && sp.sell && save) tiles.push(["คืนทุน", "~" + (Math.round(sp.sell / save * 10) / 10), "ปี", C.deep]);
-  const ty = 898, th = 104, tg = 18, tw = (PK_W - 96 - tg * (tiles.length - 1)) / tiles.length;
+  const ty = 932, th = 100, tg = 18, tw = (PK_W - 96 - tg * (tiles.length - 1)) / tiles.length;
   tiles.forEach((t, i) => {
     const x = 48 + i * (tw + tg);
     g.save(); g.shadowColor = "rgba(8,30,24,.10)"; g.shadowBlur = 18; g.shadowOffsetY = 6;
     pkRR(g, x, ty, tw, th, 24); g.fillStyle = "#fff"; g.fill(); g.restore();
     g.fillStyle = t[3]; pkRR(g, x + 22, ty + 22, 8, th - 44, 4); g.fill();
-    g.fillStyle = C.mute; g.font = "600 22px " + PK_TH; g.fillText(t[0], x + 46, ty + 40);
+    g.fillStyle = C.mute; g.font = "600 22px " + PK_TH; g.fillText(t[0], x + 46, ty + 38);
     const vs = pkFit(g, t[1], "800", 46, PK_NUM, tw - 70 - 80, 26);
-    g.fillStyle = C.ink; g.fillText(t[1], x + 46, ty + 86);
+    g.fillStyle = C.ink; g.fillText(t[1], x + 46, ty + 82);
     const vw = g.measureText(t[1]).width;
-    g.font = "600 21px " + PK_TH; g.fillStyle = C.mute; g.fillText(t[2], x + 46 + vw + 10, ty + 86);
+    g.font = "600 21px " + PK_TH; g.fillStyle = C.mute; g.fillText(t[2], x + 46 + vw + 10, ty + 82);
     void vs;
   });
 
   /* ── แถบราคา ── */
-  const py = 1022, phh = 116;
+  const py = 1052, phh = 112;
   g.save(); g.shadowColor = "rgba(10,77,104,.35)"; g.shadowBlur = 24; g.shadowOffsetY = 10;
   pkRR(g, 48, py, PK_W - 96, phh, 30);
   gr = g.createLinearGradient(48, 0, PK_W - 48, 0); gr.addColorStop(0, "#0A4D68"); gr.addColorStop(1, "#13896A");
@@ -309,7 +305,7 @@ function pkDraw(cv, sp, A, o) {
     if (rw + w > maxW && rows[rows.length - 1].length) { if (rows.length === 2) return; rows.push([]); rw = 0; }
     rows[rows.length - 1].push([t, w]); rw += w + gap;
   });
-  let cyy = 1156;
+  let cyy = 1184;
   rows.forEach((r) => {
     const tot = r.reduce((a, c) => a + c[1], 0) + gap * (r.length - 1);
     let x = (PK_W - tot) / 2;
@@ -324,16 +320,16 @@ function pkDraw(cv, sp, A, o) {
   });
 
   /* ── ท้าย ── */
-  const fy = PK_H - 44;
+  const fy = PK_H - 34;
   g.fillStyle = C.mute; g.font = "500 16px " + PK_TH; g.textAlign = "center";
   const note = "ผลผลิตประมาณจาก " + pkFmt(PK_YIELD) + " หน่วย/kWp/ปี · ค่าไฟ " + PK_RATE + " บาท/หน่วย · ขึ้นกับทิศ ความชัน และเงาของหลังคาจริง";
   if (o.contact) {
-    g.fillText(note, PK_W / 2, fy - 4);
+    g.fillText(note, PK_W / 2, fy - 14);
     g.fillStyle = C.deep; g.font = "700 26px " + PK_TH;
     const B = window.BRANDING || (typeof BRANDING !== "undefined" ? BRANDING : {});
-    g.fillText("โทร " + (B.tel || "") + "   ·   " + (B.site || ""), PK_W / 2, fy + 32);
+    g.fillText("โทร " + (B.tel || "") + "   ·   " + (B.site || ""), PK_W / 2, fy + 22);
   } else {
-    g.fillText(note, PK_W / 2, fy + 20);
+    g.fillText(note, PK_W / 2, fy);
   }
   g.textAlign = "left";
 }
