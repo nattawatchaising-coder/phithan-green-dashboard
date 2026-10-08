@@ -3471,7 +3471,8 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock, ver, verName, p3Vers
                     {[
                       { l: "แรงดันทำงานรวม", v: scfg.stringVop + " V", ok: scfg.inRange },
                       { l: "Voc รวมที่ " + scfg.tMin + "°C (เปิดวงจร)", v: scfg.stringVoc + " V", ok: !scfg.overMaxVdc },
-                      { l: "กระแส DC (Isc×1.25)", v: scfg.dcAmp + " A", ok: null },
+                      /* โชว์ Isc ตรง ๆ ไม่คูณ 1.25 (ผู้ใช้ ต.ค. 2026) — ตัวคูณ pvWireK ใช้แค่ตอนเลือกขนาดสาย */
+                      { l: "กระแส DC (Isc" + (scfg.bifacial ? " สองหน้า" : "") + ")", v: scfg.iscD + " A", ok: null },
                       { l: "ขนาดสาย DC PV1-F", v: scfg.dcWire, ok: null, hi: true },
                     ].map((c, i) => (
                       <div key={i} data-bad={c.ok === false ? "1" : "0"}>
@@ -3494,7 +3495,7 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock, ver, verName, p3Vers
                         <div><span className="k">อินเวอร์เตอร์</span><span className="v">{plan.invCount} ตัว</span></div>
                         <div><span className="k">ช่องรับสตริงรวม</span><span className="v">{plan.cap} ช่อง</span></div>
                         <div data-bad={plan.over ? "1" : "0"}><span className="k">{plan.over ? "เกินช่องรับ" : "ช่องที่ยังว่าง"}</span><span className="v">{plan.over ? plan.strings - plan.cap : plan.spare} สตริง</span></div>
-                        <div><span className="k">กระแส DC รวม/ตัว</span><span className="v">{Math.round(plan.perInv * scfg.dcAmp * 10) / 10} A</span></div>
+                        <div><span className="k">กระแส DC รวม/ตัว</span><span className="v">{Math.round(plan.perInv * scfg.iscD * 10) / 10} A</span></div>
                       </div>
                       {plan.over ? (
                         <div className="bq-note warn">

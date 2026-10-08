@@ -6915,8 +6915,8 @@ function BOQEditor({
     v: scfg.stringVoc + " V",
     ok: !scfg.overMaxVdc
   }, {
-    l: "กระแส DC (Isc×1.25)",
-    v: scfg.dcAmp + " A",
+    l: "กระแส DC (Isc" + (scfg.bifacial ? " สองหน้า" : "") + ")",
+    v: scfg.iscD + " A",
     ok: null
   }, {
     l: "ขนาดสาย DC PV1-F",
@@ -6977,7 +6977,7 @@ function BOQEditor({
     className: "k"
   }, "\u0E01\u0E23\u0E30\u0E41\u0E2A DC \u0E23\u0E27\u0E21/\u0E15\u0E31\u0E27"), React.createElement("span", {
     className: "v"
-  }, Math.round(plan.perInv * scfg.dcAmp * 10) / 10, " A"))), plan.over ? React.createElement("div", {
+  }, Math.round(plan.perInv * scfg.iscD * 10) / 10, " A"))), plan.over ? React.createElement("div", {
     className: "bq-note warn"
   }, React.createElement(Icon, {
     name: "alert",
