@@ -10,12 +10,15 @@ const STOCK_COLORS = {
   ok: "#1B9B75"
 };
 const SIZE_RE = /(\d+(?:\.\d+)?\s*[x×]\s*\d+(?:\.\d+)?\s*(?:sq\.?\s*mm\.?|ตร\.?\s*มม\.?|mm\.?|มม\.?)?)|(\d+[\s-]\d+\/\d+\s*(?:"|″|นิ้ว))|(\d+\/\d+\s*(?:"|″|นิ้ว))|(\d+(?:\.\d+)?\s*(?:sq\.?\s*mm\.?|ตร\.?\s*มม\.?))|(\d+(?:\.\d+)?\s*(?:mm\.?|มม\.?|"|″|นิ้ว))|(\b\d+(?:\.\d+)?AT?\b)/i;
+const HDG_RE = /\s*\(HDG\.?\)/i;
 function sizeOfName(name) {
-  const s = String(name || "");
+  const s0 = String(name || "");
+  const hdg = HDG_RE.test(s0);
+  const s = hdg ? s0.replace(HDG_RE, "") : s0;
   const m = s.match(SIZE_RE);
   if (!m) return null;
   return {
-    size: m[0].trim().replace(/\s+/g, " "),
+    size: m[0].trim().replace(/\s+/g, " ") + (hdg ? " HDG" : ""),
     base: s.slice(0, m.index) + "\u0000" + s.slice(m.index + m[0].length)
   };
 }
@@ -23,6 +26,39 @@ function sizeGroupKey(it) {
   const p = sizeOfName(it && it.name);
   if (!p) return null;
   return window.SF.mainCatOf(it.cat) + "|" + String(it.brand || "").trim().toLowerCase() + "|" + p.base.toLowerCase();
+}
+const STOCK_COLL = new Intl.Collator("th", {
+  numeric: true
+});
+function useGrowList(list, step) {
+  step = step || 60;
+  const all = list || [];
+  const [n, setN] = React.useState(step);
+  const first = all[0] ? (all[0].it || all[0]).id || "" : "";
+  React.useEffect(() => {
+    setN(step);
+  }, [all.length, first]);
+  const [el, setEl] = React.useState(null);
+  React.useEffect(() => {
+    if (!el || n >= all.length || typeof IntersectionObserver === "undefined") return;
+    const io = new IntersectionObserver(es => {
+      if (es[0] && es[0].isIntersecting) setN(x => x + step);
+    }, {
+      rootMargin: "900px 0px"
+    });
+    io.observe(el);
+    return () => io.disconnect();
+  }, [el, n, all.length]);
+  const more = n < all.length ? React.createElement("div", {
+    ref: setEl,
+    style: {
+      padding: 14,
+      textAlign: "center",
+      fontSize: 11.5,
+      color: "var(--text-3)"
+    }
+  }, "\u0E01\u0E33\u0E25\u0E31\u0E07\u0E42\u0E2B\u0E25\u0E14\u0E2D\u0E35\u0E01 ", (all.length - n).toLocaleString(), " \u0E23\u0E32\u0E22\u0E01\u0E32\u0E23\u2026") : null;
+  return [n < all.length ? all.slice(0, n) : all, more];
 }
 function sizeNum(txt) {
   const m = String(txt).match(/\d+(?:\.\d+)?/);
@@ -372,36 +408,38 @@ function StockView({
     if (brand !== "all" && !brandCount[brand]) setBrand("all");
   }, [brandCount]);
   const thisMonth = SF.TODAY.slice(0, 7);
-  const inItemIds = new Set(stock.moves.filter(m => m.type === "in" && m.date.startsWith(thisMonth)).map(m => m.itemId));
-  const outItemIds = new Set(stock.moves.filter(m => m.type === "out" && m.date.startsWith(thisMonth)).map(m => m.itemId));
+  const inItemIds = React.useMemo(() => new Set(stock.moves.filter(m => m.type === "in" && m.date.startsWith(thisMonth)).map(m => m.itemId)), [stock.moves, thisMonth]);
+  const outItemIds = React.useMemo(() => new Set(stock.moves.filter(m => m.type === "out" && m.date.startsWith(thisMonth)).map(m => m.itemId)), [stock.moves, thisMonth]);
   const inMonth = stock.moves.filter(m => m.type === "in" && m.date.startsWith(thisMonth)).reduce((s, m) => s + m.qty, 0);
   const outMonth = stock.moves.filter(m => m.type === "out" && m.date.startsWith(thisMonth)).reduce((s, m) => s + m.qty, 0);
-  const catOrder = {};
-  SF.STOCK_CATS.forEach((c, i) => {
-    catOrder[c.key] = i;
-  });
-  const filtered = items.filter(it => {
-    if (cat !== "all" && it.cat !== cat && SF.mainCatOf(it.cat) !== cat) return false;
-    if (sub !== "all" && it.cat !== sub) return false;
-    if (grp !== "all" && sub === "all" && stockGrpOf(it.cat) !== grp) return false;
-    if (brand !== "all" && (it.brand || "") !== brand) return false;
-    if (series !== "all" && (it.series || "") !== series) return false;
-    if (search && !(it.name + it.sku + it.loc + (it.brand || "") + (it.model || "")).toLowerCase().includes(search.toLowerCase())) return false;
-    if (kpiFilter === "low" && lowState(it) === "ok") return false;
-    if (kpiFilter === "in" && !inItemIds.has(it.id)) return false;
-    if (kpiFilter === "out" && !outItemIds.has(it.id)) return false;
-    return true;
-  }).sort((a, b) => {
-    const ka = SF.mainCatOf(a.cat),
-      kb = SF.mainCatOf(b.cat);
-    const ca = catOrder[ka] != null ? catOrder[ka] : 99;
-    const cb = catOrder[kb] != null ? catOrder[kb] : 99;
-    if (ca !== cb) return ca - cb;
-    if (a.cat !== b.cat) return String(a.cat).localeCompare(String(b.cat));
-    return String(a.name || "").localeCompare(String(b.name || ""), "th", {
-      numeric: true
+  const filtered = React.useMemo(() => {
+    const catOrder = {};
+    SF.STOCK_CATS.forEach((c, i) => {
+      catOrder[c.key] = i;
     });
-  });
+    const q = search.toLowerCase();
+    return items.filter(it => {
+      if (cat !== "all" && it.cat !== cat && SF.mainCatOf(it.cat) !== cat) return false;
+      if (sub !== "all" && it.cat !== sub) return false;
+      if (grp !== "all" && sub === "all" && stockGrpOf(it.cat) !== grp) return false;
+      if (brand !== "all" && (it.brand || "") !== brand) return false;
+      if (series !== "all" && (it.series || "") !== series) return false;
+      if (q && !(it.name + it.sku + it.loc + (it.brand || "") + (it.model || "")).toLowerCase().includes(q)) return false;
+      if (kpiFilter === "low" && lowState(it) === "ok") return false;
+      if (kpiFilter === "in" && !inItemIds.has(it.id)) return false;
+      if (kpiFilter === "out" && !outItemIds.has(it.id)) return false;
+      return true;
+    }).sort((a, b) => {
+      const ka = SF.mainCatOf(a.cat),
+        kb = SF.mainCatOf(b.cat);
+      const ca = catOrder[ka] != null ? catOrder[ka] : 99;
+      const cb = catOrder[kb] != null ? catOrder[kb] : 99;
+      if (ca !== cb) return ca - cb;
+      if (a.cat !== b.cat) return String(a.cat) < String(b.cat) ? -1 : 1;
+      return STOCK_COLL.compare(String(a.name || ""), String(b.name || ""));
+    });
+  }, [items, cat, sub, grp, brand, series, search, kpiFilter, inItemIds, outItemIds]);
+  const [tblRows, tblMore] = useGrowList(filtered, 80);
   const sizeGroups = React.useMemo(() => {
     const m = {};
     items.forEach(it => {
@@ -552,7 +590,8 @@ function StockView({
     };
   }, [browsing, cat, showSubHome, filtered, imgs]);
   const seriesHome = React.useMemo(() => {
-    if (isPrices || isAmp || !browse || search.trim() || kpiFilter || brand === "all" || series !== "all") return null;
+    if (isPrices || isAmp || !browse || search.trim() || kpiFilter || series !== "all") return null;
+    if (brand === "all" && (cat === "all" || showSubHome || brandHome)) return null;
     const m = {},
       low = {},
       none = [];
@@ -587,7 +626,7 @@ function StockView({
       low: low,
       none: none
     };
-  }, [isPrices, isAmp, browse, search, kpiFilter, brand, series, filtered, imgs]);
+  }, [isPrices, isAmp, browse, search, kpiFilter, brand, series, filtered, imgs, cat, showSubHome, brandHome]);
   const filterBar = React.createElement("div", {
     className: "content-filters"
   }, React.createElement("div", {
@@ -1163,9 +1202,9 @@ function StockView({
       m["cat_" + b.key] = b.img;
       return m;
     }, {}),
-    title: brand,
-    hint: seriesHome.list.length + " กลุ่มรุ่น · " + filtered.length.toLocaleString() + " รายการ",
-    allLabel: "\u0E14\u0E39\u0E17\u0E38\u0E01\u0E23\u0E32\u0E22\u0E01\u0E32\u0E23\u0E02\u0E2D\u0E07\u0E22\u0E35\u0E48\u0E2B\u0E49\u0E2D\u0E19\u0E35\u0E49",
+    title: brand !== "all" ? brand : (SF.STOCK_CAT_BY[sub !== "all" ? sub : cat] || {}).th || "",
+    hint: seriesHome.list.length + (brand !== "all" ? " กลุ่มรุ่น · " : " กลุ่ม · ") + filtered.length.toLocaleString() + " รายการ",
+    allLabel: brand !== "all" ? "ดูทุกรายการของยี่ห้อนี้" : "ดูทุกรายการในหมวดนี้",
     onPick: s => setSeries(s),
     onAll: () => setBrowse(false),
     tools: React.createElement(React.Fragment, null, delBtn, viewBtn(true)),
@@ -1328,7 +1367,7 @@ function StockView({
       whiteSpace: "nowrap",
       background: "var(--surface2)"
     }
-  }, h)))), React.createElement("tbody", null, filtered.map(it => {
+  }, h)))), React.createElement("tbody", null, tblRows.map(it => {
     const c = SF.STOCK_CAT_BY[it.cat] || SF.STOCK_CATS[SF.STOCK_CATS.length - 1];
     const st = lowState(it);
     return React.createElement("tr", {
@@ -1482,7 +1521,7 @@ function StockView({
       textAlign: "center",
       color: "var(--text-3)"
     }
-  }, "\u0E44\u0E21\u0E48\u0E1E\u0E1A\u0E23\u0E32\u0E22\u0E01\u0E32\u0E23\u0E2D\u0E38\u0E1B\u0E01\u0E23\u0E13\u0E4C")))))))), tab === "stock" && trashCats.length > 0 && React.createElement("button", {
+  }, "\u0E44\u0E21\u0E48\u0E1E\u0E1A\u0E23\u0E32\u0E22\u0E01\u0E32\u0E23\u0E2D\u0E38\u0E1B\u0E01\u0E23\u0E13\u0E4C"))))), tblMore))), tab === "stock" && trashCats.length > 0 && React.createElement("button", {
     onClick: () => {
       const t = trashCats[0];
       setSearch("");
@@ -1864,6 +1903,7 @@ function StockCardList({
   onRemove
 }) {
   const SF = window.SF;
+  const [shown, more] = useGrowList(rows, 40);
   if (!rows || rows.length === 0) {
     return React.createElement("div", {
       style: {
@@ -1874,13 +1914,13 @@ function StockCardList({
       }
     }, "\u0E44\u0E21\u0E48\u0E1E\u0E1A\u0E23\u0E32\u0E22\u0E01\u0E32\u0E23\u0E2D\u0E38\u0E1B\u0E01\u0E23\u0E13\u0E4C");
   }
-  return React.createElement("div", {
+  return React.createElement(React.Fragment, null, React.createElement("div", {
     style: {
       display: "flex",
       flexDirection: "column",
       gap: 10
     }
-  }, rows.map(r => {
+  }, shown.map(r => {
     const it = r.it;
     const g = r.sizes && r.sizes.length > 1 ? groupSummary(r.sizes) : null;
     const c = SF.STOCK_CAT_BY[it.cat] || SF.STOCK_CATS[SF.STOCK_CATS.length - 1];
@@ -2079,7 +2119,7 @@ function StockCardList({
       name: "x",
       size: 16
     }))));
-  }));
+  })), more);
 }
 function CatDropdown({
   cat,
@@ -7538,13 +7578,14 @@ function StockGrid({
   const baht = v => "฿" + (+v).toLocaleString(undefined, {
     maximumFractionDigits: 2
   });
-  return React.createElement("div", {
+  const [shown, more] = useGrowList(rows);
+  return React.createElement(React.Fragment, null, React.createElement("div", {
     style: {
       display: "grid",
       gridTemplateColumns: "repeat(auto-fill, minmax(210px, 1fr))",
       gap: 12
     }
-  }, (rows || []).map(r => {
+  }, shown.map(r => {
     const it = r.it;
     const g = r.sizes && r.sizes.length > 1 ? groupSummary(r.sizes) : null;
     const st = g ? g.st : lowState(it);
@@ -7737,7 +7778,7 @@ function StockGrid({
       name: "x",
       size: 13
     })))));
-  }));
+  })), more);
 }
 function MatImagePicker({
   src,

@@ -14,17 +14,43 @@ const STOCK_COLORS = { out: "#EF4444", low: "#F59E0B", ok: "#1B9B75" };
    แต่ตอนเปิดดูจะจับมารวมเป็นปุ่มเลือกขนาดให้ ไม่ต้องปิดแล้วไปหาตัวอื่น
    จับขนาดจากชื่อ: 20mm. · 1/2" · 25 มม. · 1x2.5 sq.mm · 2x4 · แอมป์เบรกเกอร์ 25A / 16AT (ไม่จับ 30mA · 36kA · 100AF) */
 const SIZE_RE = /(\d+(?:\.\d+)?\s*[x×]\s*\d+(?:\.\d+)?\s*(?:sq\.?\s*mm\.?|ตร\.?\s*มม\.?|mm\.?|มม\.?)?)|(\d+[\s-]\d+\/\d+\s*(?:"|″|นิ้ว))|(\d+\/\d+\s*(?:"|″|นิ้ว))|(\d+(?:\.\d+)?\s*(?:sq\.?\s*mm\.?|ตร\.?\s*มม\.?))|(\d+(?:\.\d+)?\s*(?:mm\.?|มม\.?|"|″|นิ้ว))|(\b\d+(?:\.\d+)?AT?\b)/i;
+/* แบบชุบ (HDG.) = ตัวเลือกเดียวกับขนาด ไม่แยกการ์ด (ผู้ใช้ ต.ค. 2026: รางไฟทุกชิ้นมีปกติ/HDG การ์ดเบิ้ลสองเท่า)
+   ตัด "(HDG.)" ออกจากชื่อกลุ่ม แล้วต่อท้ายป้ายขนาดเป็น "… HDG" */
+const HDG_RE = /\s*\(HDG\.?\)/i;
 function sizeOfName(name) {
-  const s = String(name || "");
+  const s0 = String(name || "");
+  const hdg = HDG_RE.test(s0);
+  const s = hdg ? s0.replace(HDG_RE, "") : s0;
   const m = s.match(SIZE_RE);
   if (!m) return null;
-  return { size: m[0].trim().replace(/\s+/g, " "), base: s.slice(0, m.index) + "\u0000" + s.slice(m.index + m[0].length) };
+  return { size: m[0].trim().replace(/\s+/g, " ") + (hdg ? " HDG" : ""), base: s.slice(0, m.index) + "\u0000" + s.slice(m.index + m[0].length) };
 }
 /* คีย์กลุ่ม = หมวดหลัก + ยี่ห้อ + ชื่อที่ตัดขนาดออกแล้ว */
 function sizeGroupKey(it) {
   const p = sizeOfName(it && it.name);
   if (!p) return null;
   return window.SF.mainCatOf(it.cat) + "|" + String(it.brand || "").trim().toLowerCase() + "|" + p.base.toLowerCase();
+}
+const STOCK_COLL = new Intl.Collator("th", { numeric: true });
+/* วาดรายการทีละช่วง — "ดูทุกรายการ" มี 1,100+ ชิ้น (รูป data URL หลายร้อยรูป) วาดทีเดียวค้าง 1–3 วิ ทุกครั้งที่สลับการ์ด/ตาราง
+   (ผู้ใช้ ต.ค. 2026 "กดแล้วกระตุก") · วาด step ชิ้นแรก แล้วเติมเมื่อเลื่อนใกล้ท้าย (IntersectionObserver) · คืน [ชิ้นที่วาด, ตัวจับท้ายรายการ] */
+function useGrowList(list, step) {
+  step = step || 60;
+  const all = list || [];
+  const [n, setN] = React.useState(step);
+  const first = all[0] ? ((all[0].it || all[0]).id || "") : "";
+  React.useEffect(() => { setN(step); }, [all.length, first]);
+  const [el, setEl] = React.useState(null);   // callback ref — ตัวจับท้ายโผล่ทีหลังได้ (เช่นสลับจากการ์ดไปตาราง) effect ต้องรันใหม่
+  React.useEffect(() => {
+    if (!el || n >= all.length || typeof IntersectionObserver === "undefined") return;
+    const io = new IntersectionObserver((es) => { if (es[0] && es[0].isIntersecting) setN((x) => x + step); }, { rootMargin: "900px 0px" });
+    io.observe(el);
+    return () => io.disconnect();
+  }, [el, n, all.length]);
+  const more = n < all.length
+    ? <div ref={setEl} style={{ padding: 14, textAlign: "center", fontSize: 11.5, color: "var(--text-3)" }}>กำลังโหลดอีก {(all.length - n).toLocaleString()} รายการ…</div>
+    : null;
+  return [n < all.length ? all.slice(0, n) : all, more];
 }
 function sizeNum(txt) { const m = String(txt).match(/\d+(?:\.\d+)?/); return m ? +m[0] : 0; }
 function sizeLabel(it) { return ((sizeOfName(it && it.name) || {}).size) || ""; }
@@ -200,21 +226,25 @@ function StockView({ stock, onResetAll, onMenuOpen, currentUser, jobs, priceStor
   const brandList = React.useMemo(() => Object.keys(brandCount).sort((a, z) => a.localeCompare(z, "th")), [brandCount]);
   React.useEffect(() => { if (brand !== "all" && !brandCount[brand]) setBrand("all"); }, [brandCount]);
   const thisMonth = SF.TODAY.slice(0, 7);
-  const inItemIds = new Set(stock.moves.filter((m) => m.type === "in" && m.date.startsWith(thisMonth)).map((m) => m.itemId));
-  const outItemIds = new Set(stock.moves.filter((m) => m.type === "out" && m.date.startsWith(thisMonth)).map((m) => m.itemId));
+  const inItemIds = React.useMemo(() => new Set(stock.moves.filter((m) => m.type === "in" && m.date.startsWith(thisMonth)).map((m) => m.itemId)), [stock.moves, thisMonth]);
+  const outItemIds = React.useMemo(() => new Set(stock.moves.filter((m) => m.type === "out" && m.date.startsWith(thisMonth)).map((m) => m.itemId)), [stock.moves, thisMonth]);
   const inMonth = stock.moves.filter((m) => m.type === "in" && m.date.startsWith(thisMonth)).reduce((s, m) => s + m.qty, 0);
   const outMonth = stock.moves.filter((m) => m.type === "out" && m.date.startsWith(thisMonth)).reduce((s, m) => s + m.qty, 0);
 
   // ลำดับหมวด สำหรับจัดกลุ่มเวลาแสดงผล
+  /* คำนวณใหม่เฉพาะเมื่อตัวกรองเปลี่ยน — เดิมเรียง 1,100+ รายการด้วย localeCompare("th") ทุกครั้งที่หน้าวาดใหม่
+     (กดสลับการ์ด/ตารางก็ค้าง ~1.5 วิ · ผู้ใช้ ต.ค. 2026 "กดแล้วกระตุก") · ใช้ Collator ตัวเดียว */
+  const filtered = React.useMemo(() => {
   const catOrder = {}; SF.STOCK_CATS.forEach((c, i) => { catOrder[c.key] = i; });
-  const filtered = items.filter((it) => {
+  const q = search.toLowerCase();
+  return items.filter((it) => {
     // เลือกหมวดหลัก = ได้ของในหมวดย่อยใต้มันด้วย · เลือกหมวดย่อย = เฉพาะหมวดย่อยนั้น
     if (cat !== "all" && it.cat !== cat && SF.mainCatOf(it.cat) !== cat) return false;
     if (sub !== "all" && it.cat !== sub) return false;
     if (grp !== "all" && sub === "all" && stockGrpOf(it.cat) !== grp) return false;
     if (brand !== "all" && (it.brand || "") !== brand) return false;
     if (series !== "all" && (it.series || "") !== series) return false;
-    if (search && !((it.name + it.sku + it.loc + (it.brand || "") + (it.model || "")).toLowerCase().includes(search.toLowerCase()))) return false;
+    if (q && !((it.name + it.sku + it.loc + (it.brand || "") + (it.model || "")).toLowerCase().includes(q))) return false;
     if (kpiFilter === "low" && lowState(it) === "ok") return false;
     if (kpiFilter === "in" && !inItemIds.has(it.id)) return false;
     if (kpiFilter === "out" && !outItemIds.has(it.id)) return false;
@@ -226,9 +256,11 @@ function StockView({ stock, onResetAll, onMenuOpen, currentUser, jobs, priceStor
     const cb = catOrder[kb] != null ? catOrder[kb] : 99;
     if (ca !== cb) return ca - cb;
     // หมวดหลักเดียวกัน → เรียงตามหมวดย่อย ของกลุ่มเดียวกันจะได้อยู่ติดกัน
-    if (a.cat !== b.cat) return String(a.cat).localeCompare(String(b.cat));
-    return String(a.name || "").localeCompare(String(b.name || ""), "th", { numeric: true });
+    if (a.cat !== b.cat) return String(a.cat) < String(b.cat) ? -1 : 1;
+    return STOCK_COLL.compare(String(a.name || ""), String(b.name || ""));
   });
+  }, [items, cat, sub, grp, brand, series, search, kpiFilter, inItemIds, outItemIds]);
+  const [tblRows, tblMore] = useGrowList(filtered, 80);
   /* ของชนิดเดียวกันคนละขนาด — ใช้ทำปุ่มเลือกขนาดในหน้ารายละเอียด */
   const sizeGroups = React.useMemo(() => {
     const m = {};
@@ -321,7 +353,9 @@ function StockView({ stock, onResetAll, onMenuOpen, currentUser, jobs, priceStor
   /* ชั้นกลุ่มรุ่น — เลือกยี่ห้อแล้ว ของมีช่อง series (เช่น MCCB › SCHNEIDER › CVS / EZC100H) ขึ้นการ์ดกลุ่มรุ่นก่อนถึงรายการ
      รูปการ์ดตั้งที่ cat_series_<ยี่ห้อ>_<กลุ่ม> · ของที่ไม่ระบุกลุ่มต่อท้ายหน้า */
   const seriesHome = React.useMemo(() => {
-    if (isPrices || isAmp || !browse || search.trim() || kpiFilter || brand === "all" || series !== "all") return null;
+    if (isPrices || isAmp || !browse || search.trim() || kpiFilter || series !== "all") return null;
+    /* ไม่ได้เลือกยี่ห้อ: ใช้ชั้นกลุ่มได้เมื่อหมวดนี้ไม่มีชั้นยี่ห้อ (ของไม่มียี่ห้อ เช่นรางไฟ แบ่ง ตัวราง / ข้องอ / สามทาง…) */
+    if (brand === "all" && (cat === "all" || showSubHome || brandHome)) return null;
     const m = {}, low = {}, none = [];
     filtered.forEach((it) => {
       const s = (it.series || "").trim();
@@ -337,7 +371,7 @@ function StockView({ stock, onResetAll, onMenuOpen, currentUser, jobs, priceStor
       return { key: s, th: s, color: "#0EA5E9", icon: "box", imgKey: k, img: imgs["cat_" + k] || (first ? imgs[first.id] : "") };
     });
     return { list: list, count: m, low: low, none: none };
-  }, [isPrices, isAmp, browse, search, kpiFilter, brand, series, filtered, imgs]);
+  }, [isPrices, isAmp, browse, search, kpiFilter, brand, series, filtered, imgs, cat, showSubHome, brandHome]);
 
   /* แถวแท็บกับหมวด — อยู่ในเนื้อหา ไม่ใช่ในหัวจอ
      หัวจอเก็บแค่ชื่อหน้ากับเครื่องมือของหน้า ส่วนตัวกรองอยู่ติดกับของที่มันกรอง
@@ -583,9 +617,9 @@ function StockView({ stock, onResetAll, onMenuOpen, currentUser, jobs, priceStor
             <React.Fragment>
               <CatBrowser list={seriesHome.list} count={seriesHome.count} low={seriesHome.low}
                 imgs={seriesHome.list.reduce((m, b) => { m["cat_" + b.key] = b.img; return m; }, {})}
-                title={brand}
-                hint={seriesHome.list.length + " กลุ่มรุ่น · " + filtered.length.toLocaleString() + " รายการ"}
-                allLabel="ดูทุกรายการของยี่ห้อนี้"
+                title={brand !== "all" ? brand : ((SF.STOCK_CAT_BY[sub !== "all" ? sub : cat] || {}).th || "")}
+                hint={seriesHome.list.length + (brand !== "all" ? " กลุ่มรุ่น · " : " กลุ่ม · ") + filtered.length.toLocaleString() + " รายการ"}
+                allLabel={brand !== "all" ? "ดูทุกรายการของยี่ห้อนี้" : "ดูทุกรายการในหมวดนี้"}
                 onPick={(s) => setSeries(s)} onAll={() => setBrowse(false)} tools={<React.Fragment>{delBtn}{viewBtn(true)}</React.Fragment>} onBack={goBack}
                 onSetImage={(s, d) => { const x = seriesHome.list.find((y) => y.key === s); if (x) stock.setImage("cat_" + x.imgKey, d); }} />
               {seriesHome.none.length > 0 && (
@@ -646,7 +680,7 @@ function StockView({ stock, onResetAll, onMenuOpen, currentUser, jobs, priceStor
                   </tr>
                 </thead>
                 <tbody>
-                  {filtered.map((it) => {
+                  {tblRows.map((it) => {
                     const c = SF.STOCK_CAT_BY[it.cat] || SF.STOCK_CATS[SF.STOCK_CATS.length - 1];
                     const st = lowState(it);
                     return (
@@ -691,6 +725,7 @@ function StockView({ stock, onResetAll, onMenuOpen, currentUser, jobs, priceStor
                 </tbody>
               </table>
             </div>
+            {tblMore}
           </div>
           )}
         </div>
@@ -804,12 +839,14 @@ function CatChip({ active, onClick, label, color, count }) {
 /* ── Mobile stock — card list แทนตาราง ── */
 function StockCardList({ rows, imgs, onOpen, onEdit, onRemove }) {
   const SF = window.SF;
+  const [shown, more] = useGrowList(rows, 40);
   if (!rows || rows.length === 0) {
     return <div style={{ padding: 40, textAlign: "center", color: "var(--text-3)", fontSize: 14 }}>ไม่พบรายการอุปกรณ์</div>;
   }
   return (
+    <React.Fragment>
     <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-      {rows.map((r) => {
+      {shown.map((r) => {
         const it = r.it;
         const g = r.sizes && r.sizes.length > 1 ? groupSummary(r.sizes) : null;
         const c = SF.STOCK_CAT_BY[it.cat] || SF.STOCK_CATS[SF.STOCK_CATS.length - 1];
@@ -861,6 +898,8 @@ function StockCardList({ rows, imgs, onOpen, onEdit, onRemove }) {
         );
       })}
     </div>
+    {more}
+    </React.Fragment>
   );
 }
 
@@ -2930,9 +2969,11 @@ const STK_INV_TYPE = { hybrid: "Hybrid", string: "On-grid", micro: "Micro" };
 function StockGrid({ rows, imgs, onOpen, onEdit, onRemove, lowState }) {
   const SF = window.SF;
   const baht = (v) => "฿" + (+v).toLocaleString(undefined, { maximumFractionDigits: 2 });
+  const [shown, more] = useGrowList(rows);
   return (
+    <React.Fragment>
     <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(210px, 1fr))", gap: 12 }}>
-      {(rows || []).map((r) => {
+      {shown.map((r) => {
         const it = r.it;
         const g = r.sizes && r.sizes.length > 1 ? groupSummary(r.sizes) : null;
         const st = g ? g.st : lowState(it);
@@ -2997,6 +3038,8 @@ function StockGrid({ rows, imgs, onOpen, onEdit, onRemove, lowState }) {
         );
       })}
     </div>
+    {more}
+    </React.Fragment>
   );
 }
 
