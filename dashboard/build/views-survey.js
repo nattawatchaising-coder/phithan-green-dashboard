@@ -2572,15 +2572,20 @@ function LeadDrawer({
       textOverflow: "ellipsis"
     }
   }, React.createElement(AdminOnlyMark, {
-    rec: lead,
-    onClick: () => window.pgMakePublic("surveyLeads/" + lead.id, lead.name)
+    rec: lead
   }), lead.name || "(ไม่ระบุชื่อ)"), React.createElement("div", {
     style: {
       fontSize: 11,
       color: "var(--text-3)",
-      marginTop: 1
+      marginTop: 1,
+      display: "flex",
+      alignItems: "center",
+      gap: 8
     }
-  }, lead.code)), React.createElement("button", {
+  }, lead.code, React.createElement(AdminHideBtn, {
+    rec: lead,
+    path: "surveyLeads/" + lead.id
+  }))), React.createElement("button", {
     className: "x-close",
     onClick: onClose,
     "aria-label": "\u0E1B\u0E34\u0E14",

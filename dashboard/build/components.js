@@ -1084,18 +1084,61 @@ function usePgAdmin() {
   }, []);
   return a;
 }
-function pgMakePublic(path, name) {
-  const ask = window.askConfirm ? window.askConfirm({
-    title: "เปิดให้ทุกคนเห็น “" + (name || "รายนี้") + "” ?",
-    body: "ตอนนี้เห็นเฉพาะแอดมิน — เปิดแล้วทุกตำแหน่งที่มีสิทธิ์จะเห็นรายนี้ (รวมใบเสนอราคาและนัด)",
-    ok: "เปิดให้ทุกคนเห็น",
+function pgSetHidden(path, name, on) {
+  const nm = "“" + (name || "รายนี้") + "”";
+  const ask = window.askConfirm ? window.askConfirm(on ? {
+    title: "ซ่อน " + nm + " ไว้เฉพาะแอดมิน?",
+    body: "คนที่ไม่ใช่แอดมินจะไม่เห็นรายนี้ (รวมใบเสนอราคาและนัด) จนกว่าจะกดยกเลิกซ่อน",
+    ok: "ซ่อน",
+    icon: "eyeOff"
+  } : {
+    title: "ยกเลิกซ่อน " + nm + " ?",
+    body: "ตอนนี้เห็นเฉพาะแอดมิน — ยกเลิกแล้วทุกตำแหน่งที่มีสิทธิ์จะเห็นรายนี้ (รวมใบเสนอราคาและนัด)",
+    ok: "ยกเลิกซ่อน",
     icon: "eye"
   }) : Promise.resolve(true);
   ask.then(y => {
     if (y && window.FBDB) window.FBDB.ref(path).update({
-      adminOnly: null
+      adminOnly: on ? true : null
     });
   });
+}
+function AdminHideBtn({
+  rec,
+  path
+}) {
+  const admin = usePgAdmin();
+  if (!admin || !rec) return null;
+  const on = !!rec.adminOnly;
+  return React.createElement("button", {
+    type: "button",
+    onClick: e => {
+      e.stopPropagation();
+      pgSetHidden(path, rec.name, !on);
+    },
+    title: on ? "เห็นเฉพาะแอดมิน — กดเพื่อให้ทุกคนเห็น" : "ซ่อนรายนี้ไว้ให้เห็นเฉพาะแอดมิน",
+    style: {
+      display: "inline-flex",
+      alignItems: "center",
+      gap: 5,
+      padding: "2px 9px",
+      height: 22,
+      border: "none",
+      cursor: "pointer",
+      borderRadius: 6,
+      fontSize: 11,
+      fontWeight: 700,
+      fontFamily: "inherit",
+      whiteSpace: "nowrap",
+      background: on ? "var(--surface2)" : "transparent",
+      boxShadow: on ? "var(--shadow-inset)" : "none",
+      color: on ? "var(--text-2)" : "var(--text-3)"
+    }
+  }, React.createElement(Icon, {
+    name: on ? "eyeOff" : "eye",
+    size: 13,
+    sw: 2.2
+  }), on ? "ซ่อนอยู่ · ยกเลิกซ่อน" : "ซ่อน");
 }
 const pgAdminFlag = () => window.__pgAdmin ? {
   adminOnly: true
@@ -1155,7 +1198,8 @@ Object.assign(window, {
   usePgAdmin,
   pgAdminFlag,
   AdminOnlyMark,
-  pgMakePublic,
+  pgSetHidden,
+  AdminHideBtn,
   StageBadge,
   TypeBadge,
   MatChip,

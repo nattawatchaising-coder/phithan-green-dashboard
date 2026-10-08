@@ -654,8 +654,7 @@ function StockShopModal({
       whiteSpace: "nowrap"
     }
   }, React.createElement(AdminOnlyMark, {
-    rec: job,
-    onClick: () => window.pgMakePublic("jobs/" + job.id, job.name)
+    rec: job
   }), job.name)), React.createElement("button", {
     className: "x-close",
     onClick: onClose,
@@ -1361,7 +1360,10 @@ function DetailDrawer({
       padding: "2px 8px",
       borderRadius: 6
     }
-  }, "\u26A0 \u0E25\u0E48\u0E32\u0E0A\u0E49\u0E32")), React.createElement("h2", {
+  }, "\u26A0 \u0E25\u0E48\u0E32\u0E0A\u0E49\u0E32"), React.createElement(AdminHideBtn, {
+    rec: job,
+    path: "jobs/" + job.id
+  })), React.createElement("h2", {
     style: {
       fontSize: isMobile ? 17 : 20,
       fontWeight: 700,
@@ -1370,8 +1372,7 @@ function DetailDrawer({
       lineHeight: 1.25
     }
   }, React.createElement(AdminOnlyMark, {
-    rec: job,
-    onClick: () => window.pgMakePublic("jobs/" + job.id, job.name)
+    rec: job
   }), job.name)), React.createElement("button", {
     className: "x-close",
     onClick: onClose,

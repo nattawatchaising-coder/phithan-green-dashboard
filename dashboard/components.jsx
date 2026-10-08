@@ -680,11 +680,30 @@ function usePgAdmin() {
   }, []);
   return a;
 }
-/* ปลดธง = เปิดให้ทุกคนเห็น (path = "jobs/<id>" หรือ "surveyLeads/<id>") ถามก่อนด้วย askConfirm ของแอป */
-function pgMakePublic(path, name) {
-  const ask = window.askConfirm ? window.askConfirm({ title: "เปิดให้ทุกคนเห็น “" + (name || "รายนี้") + "” ?",
-    body: "ตอนนี้เห็นเฉพาะแอดมิน — เปิดแล้วทุกตำแหน่งที่มีสิทธิ์จะเห็นรายนี้ (รวมใบเสนอราคาและนัด)", ok: "เปิดให้ทุกคนเห็น", icon: "eye" }) : Promise.resolve(true);
-  ask.then((y) => { if (y && window.FBDB) window.FBDB.ref(path).update({ adminOnly: null }); });
+/* ซ่อน/ยกเลิกซ่อน (path = "jobs/<id>" หรือ "surveyLeads/<id>") ถามก่อนด้วย askConfirm ของแอป */
+function pgSetHidden(path, name, on) {
+  const nm = "“" + (name || "รายนี้") + "”";
+  const ask = window.askConfirm ? window.askConfirm(on
+    ? { title: "ซ่อน " + nm + " ไว้เฉพาะแอดมิน?", body: "คนที่ไม่ใช่แอดมินจะไม่เห็นรายนี้ (รวมใบเสนอราคาและนัด) จนกว่าจะกดยกเลิกซ่อน", ok: "ซ่อน", icon: "eyeOff" }
+    : { title: "ยกเลิกซ่อน " + nm + " ?", body: "ตอนนี้เห็นเฉพาะแอดมิน — ยกเลิกแล้วทุกตำแหน่งที่มีสิทธิ์จะเห็นรายนี้ (รวมใบเสนอราคาและนัด)", ok: "ยกเลิกซ่อน", icon: "eye" })
+    : Promise.resolve(true);
+  ask.then((y) => { if (y && window.FBDB) window.FBDB.ref(path).update({ adminOnly: on ? true : null }); });
+}
+/* ปุ่มซ่อน/ยกเลิกซ่อนในหัวใบงาน/ใบลูกค้า — โชว์เฉพาะแอดมิน */
+function AdminHideBtn({ rec, path }) {
+  const admin = usePgAdmin();
+  if (!admin || !rec) return null;
+  const on = !!rec.adminOnly;
+  return (
+    <button type="button" onClick={(e) => { e.stopPropagation(); pgSetHidden(path, rec.name, !on); }}
+      title={on ? "เห็นเฉพาะแอดมิน — กดเพื่อให้ทุกคนเห็น" : "ซ่อนรายนี้ไว้ให้เห็นเฉพาะแอดมิน"}
+      style={{ display: "inline-flex", alignItems: "center", gap: 5, padding: "2px 9px", height: 22, border: "none", cursor: "pointer",
+        borderRadius: 6, fontSize: 11, fontWeight: 700, fontFamily: "inherit", whiteSpace: "nowrap",
+        background: on ? "var(--surface2)" : "transparent", boxShadow: on ? "var(--shadow-inset)" : "none", color: on ? "var(--text-2)" : "var(--text-3)" }}>
+      <Icon name={on ? "eyeOff" : "eye"} size={13} sw={2.2} />
+      {on ? "ซ่อนอยู่ · ยกเลิกซ่อน" : "ซ่อน"}
+    </button>
+  );
 }
 /* ธงของใบใหม่ — ใส่ใน blank() ของงาน/ลูกค้า */
 const pgAdminFlag = () => (window.__pgAdmin ? { adminOnly: true } : {});
@@ -702,5 +721,5 @@ function AdminOnlyMark({ rec, size = 14, onClick }) {
   return <span title={tip} aria-label={tip} style={{ display: "inline-flex", verticalAlign: -2, marginRight: 5 }}>{ic}</span>;
 }
 
-Object.assign(window, { Icon, ICONS, SearchPick, pgSetViewer, usePgAdmin, pgAdminFlag, AdminOnlyMark, pgMakePublic, StageBadge, TypeBadge, MatChip, TechAvatar, ProgressBar, MatDots, Segmented, Dropdown, useBackdropClose, PgTime, pgTimeFix,
+Object.assign(window, { Icon, ICONS, SearchPick, pgSetViewer, usePgAdmin, pgAdminFlag, AdminOnlyMark, pgSetHidden, AdminHideBtn, StageBadge, TypeBadge, MatChip, TechAvatar, ProgressBar, MatDots, Segmented, Dropdown, useBackdropClose, PgTime, pgTimeFix,
   thDate, thDateTime, fmtBaht, stageOf, parseDate, TH_MONTHS, TH_DAYS, saveMatPrice, newMatSaveCtx, HdrCtx, HdrSlot, HdrSlotFill });
