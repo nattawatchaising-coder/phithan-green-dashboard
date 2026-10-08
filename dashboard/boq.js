@@ -71,7 +71,7 @@
     { sec: "acBoard", g: "ทุกงาน", key: "acSpd2", th: "AC SPD Type II ที่มีขาย", unit: "V Uc", unitA: "kA Imax", type: "pairs", poles: ["2P", "1P+N", "3P", "3P+N", "4P"], poleDef: "2P",
       def: [{ v: 275, p: "2P", a: [40] }, { v: 385, p: "4P", a: [40] }] },   // SUNTREE SUP1H-40 (ต.ค. 2026)
     { sec: "acBoard", g: "งานโครงการ", key: "acSpd12", th: "AC SPD Type I+II ที่มีขาย (ระบบล่อฟ้า · แผงใกล้)", unit: "V Uc", unitA: "kA Iimp", type: "pairs", poles: ["2P", "1P+N", "3P", "3P+N", "4P"], poleDef: "2P",
-      def: [{ v: 275, p: "2P", a: [7] }, { v: 385, p: "3P", a: [7] }, { v: 385, p: "4P", a: [7] }] },   // SUNTREE SUP2-T1+T2 (ฉลาก Iimp 7kA)
+      def: [{ v: 275, p: "2P", a: [7, 12.5] }, { v: 385, p: "3P", a: [7] }, { v: 385, p: "4P", a: [7, 12.5] }] },   // SUNTREE SUP2-T1+T2 (ฉลาก Iimp 7kA) · CHINT NXU-I+II 12.5kA 2P/4P
     { sec: "acBoard", g: "ทุกงาน", key: "acUc1", th: "AC SPD 1 เฟส · Uc ไม่ต่ำกว่า (ขั้ว 2P / 1P+N)", unit: "V", def: 275, min: 1 },
     { sec: "acBoard", g: "ทุกงาน", key: "acUc3", th: "AC SPD 3 เฟส · Uc ไม่ต่ำกว่า (ขั้ว 3P+N / 4P)", unit: "V", def: 385, min: 1 },
     { sec: "acBoard", g: "งานโครงการ", key: "acIimp", th: "AC SPD Type I+II · Iimp ไม่ต่ำกว่า (ต่อขั้ว)", unit: "kA", def: 12.5, min: 0.1 },
