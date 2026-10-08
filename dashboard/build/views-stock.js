@@ -30,35 +30,81 @@ function sizeGroupKey(it) {
 const STOCK_COLL = new Intl.Collator("th", {
   numeric: true
 });
-function useGrowList(list, step) {
-  step = step || 60;
+const STOCK_PAGE = 30;
+function useGrowList(list, per) {
+  per = per || STOCK_PAGE;
   const all = list || [];
-  const [n, setN] = React.useState(step);
+  const pages = Math.max(1, Math.ceil(all.length / per));
+  const [pg, setPg] = React.useState(0);
   const first = all[0] ? (all[0].it || all[0]).id || "" : "";
   React.useEffect(() => {
-    setN(step);
+    setPg(0);
   }, [all.length, first]);
-  const [el, setEl] = React.useState(null);
-  React.useEffect(() => {
-    if (!el || n >= all.length || typeof IntersectionObserver === "undefined") return;
-    const io = new IntersectionObserver(es => {
-      if (es[0] && es[0].isIntersecting) setN(x => x + step);
-    }, {
-      rootMargin: "900px 0px"
+  const p = Math.min(pg, pages - 1);
+  const elRef = React.useRef(null);
+  const go = i => {
+    setPg(Math.max(0, Math.min(pages - 1, i)));
+    let e = elRef.current && elRef.current.parentElement;
+    while (e && !(e.scrollHeight > e.clientHeight + 4 && /auto|scroll/.test(getComputedStyle(e).overflowY))) e = e.parentElement;
+    (e || document.scrollingElement || document.documentElement).scrollTo({
+      top: 0
     });
-    io.observe(el);
-    return () => io.disconnect();
-  }, [el, n, all.length]);
-  const more = n < all.length ? React.createElement("div", {
-    ref: setEl,
+  };
+  if (pages <= 1) return [all, null];
+  const nums = [];
+  for (let i = 0; i < pages; i++) if (i === 0 || i === pages - 1 || Math.abs(i - p) <= 1) nums.push(i);
+  const btn = (on, dis) => ({
+    minWidth: 34,
+    height: 34,
+    padding: "0 11px",
+    borderRadius: "var(--r-chip)",
+    border: "none",
+    fontFamily: "inherit",
+    fontSize: 12.5,
+    fontWeight: 700,
+    cursor: dis ? "default" : "pointer",
+    opacity: dis ? 0.4 : 1,
+    background: on ? "var(--primary)" : "var(--surface2)",
+    color: on ? "#fff" : "var(--text-2)",
+    boxShadow: on ? "none" : "var(--shadow-sm)"
+  });
+  const bar = React.createElement("div", {
+    ref: elRef,
     style: {
-      padding: 14,
-      textAlign: "center",
-      fontSize: 11.5,
-      color: "var(--text-3)"
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "center",
+      gap: 6,
+      flexWrap: "wrap",
+      padding: "18px 0 6px"
     }
-  }, "\u0E01\u0E33\u0E25\u0E31\u0E07\u0E42\u0E2B\u0E25\u0E14\u0E2D\u0E35\u0E01 ", (all.length - n).toLocaleString(), " \u0E23\u0E32\u0E22\u0E01\u0E32\u0E23\u2026") : null;
-  return [n < all.length ? all.slice(0, n) : all, more];
+  }, React.createElement("button", {
+    style: btn(false, p === 0),
+    disabled: p === 0,
+    onClick: () => go(p - 1)
+  }, "\u2039 \u0E01\u0E48\u0E2D\u0E19\u0E2B\u0E19\u0E49\u0E32"), nums.map((i, k) => React.createElement(React.Fragment, {
+    key: i
+  }, k > 0 && i - nums[k - 1] > 1 && React.createElement("span", {
+    style: {
+      color: "var(--text-3)",
+      fontSize: 12,
+      padding: "0 2px"
+    }
+  }, "\u2026"), React.createElement("button", {
+    style: btn(i === p),
+    onClick: () => go(i)
+  }, i + 1))), React.createElement("button", {
+    style: btn(false, p === pages - 1),
+    disabled: p === pages - 1,
+    onClick: () => go(p + 1)
+  }, "\u0E16\u0E31\u0E14\u0E44\u0E1B \u203A"), React.createElement("span", {
+    style: {
+      fontSize: 11.5,
+      color: "var(--text-3)",
+      marginLeft: 6
+    }
+  }, (p * per + 1).toLocaleString(), "\u2013", Math.min(all.length, (p + 1) * per).toLocaleString(), " \u0E08\u0E32\u0E01 ", all.length.toLocaleString(), " \u0E23\u0E32\u0E22\u0E01\u0E32\u0E23"));
+  return [all.slice(p * per, (p + 1) * per), bar];
 }
 function sizeNum(txt) {
   const m = String(txt).match(/\d+(?:\.\d+)?/);
@@ -439,7 +485,7 @@ function StockView({
       return STOCK_COLL.compare(String(a.name || ""), String(b.name || ""));
     });
   }, [items, cat, sub, grp, brand, series, search, kpiFilter, inItemIds, outItemIds]);
-  const [tblRows, tblMore] = useGrowList(filtered, 80);
+  const [tblRows, tblMore] = useGrowList(filtered);
   const sizeGroups = React.useMemo(() => {
     const m = {};
     items.forEach(it => {
@@ -1903,7 +1949,7 @@ function StockCardList({
   onRemove
 }) {
   const SF = window.SF;
-  const [shown, more] = useGrowList(rows, 40);
+  const [shown, more] = useGrowList(rows);
   if (!rows || rows.length === 0) {
     return React.createElement("div", {
       style: {
