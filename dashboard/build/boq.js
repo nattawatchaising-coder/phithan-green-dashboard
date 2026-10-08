@@ -3157,7 +3157,8 @@ function BOQEditor({
       at: a,
       kind
     } = brkSet(ib);
-    const base = r1(ib) + " A → " + a + " AT " + (ir < a ? "ปรับตั้ง " + ir + " A (" + r1(ir / a) + " × In)" : "ไม่ต้องปรับ");
+    const fr = kind === "MCCB" ? window.BOQ.mccbFrame(a) : null;
+    const base = r1(ib) + " A → " + (fr ? fr.af + " AF " : "") + a + " AT " + (fr && fr.ka ? fr.ka + " kA " : "") + (ir < a ? "ปรับตั้ง " + ir + " A (" + r1(ir / a) + " × In)" : "ไม่ต้องปรับ");
     if (!iz) return {
       at: a,
       ir,
@@ -3193,7 +3194,7 @@ function BOQEditor({
     if (!a) {
       const k = brkPick(ib, c);
       return Object.assign(k, {
-        nm: k.kind + " 3P " + k.at + "AT"
+        nm: k.kind === "ACB" ? "ACB 3P " + k.at + "AT" : window.BOQ.mccbName(k.at)
       });
     }
     const iz = cabIz(c),
@@ -3264,7 +3265,7 @@ function BOQEditor({
         }, k);
         const gIn = bOn("gf") && k.at >= GF_IN_AT;
         out.ac.push({
-          name: (k.nm || k.kind + " 3P " + k.at + "AT") + (gIn ? " LSIG" : ""),
+          name: (k.nm || (k.kind === "ACB" ? "ACB 3P " + k.at + "AT" : window.BOQ.mccbName(k.at))) + (gIn ? " LSIG" : ""),
           qty: 1,
           unit: "ตัว",
           auto: 1,
@@ -3282,7 +3283,7 @@ function BOQEditor({
         }, k);
         if (homeOne) mainAt = k.at;
         out.ac.push({
-          name: k.nm || k.kind + " 3P " + k.at + "AT",
+          name: k.nm || (k.kind === "ACB" ? "ACB 3P " + k.at + "AT" : window.BOQ.mccbName(k.at)),
           qty: 1,
           unit: "ตัว",
           auto: 1,

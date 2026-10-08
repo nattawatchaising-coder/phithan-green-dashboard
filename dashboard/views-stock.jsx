@@ -1684,7 +1684,7 @@ const BR_FIXED_SECS = [
   { k: "om", grp: "ตาราง", th: "ราคา O&M · ล้างแผง", sub: "ตารางราคาตามขนาดระบบ (kWp)" },
 ];
 /* ชื่อรายการที่ BOQ จะสร้างจาก "ของที่มีขาย" ทุกขนาด (ชื่อต้องตรงกับที่ boq.jsx ตั้งทุกตัวอักษร ราคาถึงดึงจากคลังได้)
-   คิดจากทั้งชุดงานบ้านและงานโครงการ · MCCB/ACB ไม่อยู่ในนี้ (ชื่อผูกกับค่าตั้ง Ir) */
+   คิดจากทั้งชุดงานบ้านและงานโครงการ · MCCB ตามตาราง AF ↔ AT (AT ซ้ำหลายเฟรม = เฟรมเล็กสุด) · ACB ไม่อยู่ในนี้ */
 function brStockNeeds() {
   const B = window.BOQ || {}, T = B.RULES_T || {}, H = T.home || {}, P = T.proj || {};
   const out = [], seen = {};
@@ -1697,6 +1697,7 @@ function brStockNeeds() {
   (H.dcMcb || []).forEach((p) => p.a.forEach((a) => add("DC MCB " + a + "A " + (p.p || "2P") + " " + p.v + "VDC", { elecType: "MCB", poles: p.p || "2P", amp: a })));
   (H.rcbo2P || []).forEach((a) => add("RCBO " + a + "A 2P " + (H.rcboMa || 100) + "mA", { elecType: "RCBO", poles: "2P", amp: a }));
   (H.rcbo3P || []).forEach((a) => add("RCBO " + a + "A 3P+N " + (H.rcboMa || 100) + "mA", { elecType: "RCBO", poles: "3P+N", amp: a }));
+  (P.mccb || []).forEach((r) => r.a.forEach((a) => { if ((P.mccb || []).find((q) => q.a.indexOf(a) >= 0) === r) add(B.mccbName(a), { elecType: "MCCB", poles: "3P", amp: a }); }));
   (P.ctR || []).forEach((r) => add("CT " + r + "/5A", {}));
   (P.zctD || []).forEach((d) => add("ZCT Φ" + d + "mm", {}));
   return out;
@@ -1941,7 +1942,7 @@ function BrPairs({ list, d, onChange, disabled }) {
     <div style={{ background: "var(--surface)", boxShadow: "var(--shadow-sm)", borderRadius: "var(--r-tile)", overflow: "hidden" }}>
       {!narrow && (
         <div style={{ display: "grid", gridTemplateColumns: cols, gap: 12, padding: "8px 14px", background: "var(--surface2)" }}>
-          <span style={head}>แรงดัน ({d.unit})</span>
+          <span style={head}>{d.vName || "แรงดัน"} ({d.unit})</span>
           {d.poles && <span style={head}>ขั้ว</span>}
           <span style={head}>{sizeTh}</span>
           {d.holder && <span style={head}>{d.holder}</span>}
@@ -1955,7 +1956,7 @@ function BrPairs({ list, d, onChange, disabled }) {
             <span style={{ fontSize: 10.5, fontWeight: 700, color: "var(--text-3)" }}>{d.unit}</span>
             {narrow && d.poles && <span style={{ marginLeft: 8 }}>{poleSel(p.p || d.poleDef, (v) => setPole(i, v), 74)}</span>}
             {narrow && !disabled && list.length > 1 && (
-              <button type="button" title={"เอาแรงดัน " + p.v + " ออก"} onClick={() => onChange(list.filter((_, j) => j !== i))}
+              <button type="button" title={"เอา" + (d.vName || "แรงดัน") + " " + p.v + " ออก"} onClick={() => onChange(list.filter((_, j) => j !== i))}
                 style={{ marginLeft: "auto", border: "none", background: "transparent", cursor: "pointer", padding: 4, display: "inline-flex" }}>
                 <Icon name="trash" size={14} color="var(--text-3)" />
               </button>
@@ -1968,7 +1969,7 @@ function BrPairs({ list, d, onChange, disabled }) {
           </div>
           {d.holder && (
             <div>{lab(d.holder)}
-              <input value={p.h || ""} disabled={disabled} placeholder="รุ่น เช่น SRD-30"
+              <input value={p.h || ""} disabled={disabled} placeholder={d.holderPh || "รุ่น เช่น SRD-30"}
                 onChange={(e) => { const h = e.target.value.replace(/[\[\]:;]/g, ""); onChange(list.map((q, j) => (j === i ? Object.assign({}, q, { h: h }) : q))); }}
                 style={{ width: "100%", boxSizing: "border-box", border: "none", outline: "none", fontFamily: "inherit", fontSize: 12.5, fontWeight: 700, padding: "7px 10px", borderRadius: "var(--r-chip)",
                   background: "var(--surface2)", boxShadow: "var(--shadow-inset)", color: "var(--text-1)" }} />
@@ -1977,7 +1978,7 @@ function BrPairs({ list, d, onChange, disabled }) {
           {!narrow && (
             <div style={{ display: "flex", justifyContent: "center" }}>
               {!disabled && list.length > 1 && (
-                <button type="button" title={"เอาแรงดัน " + p.v + " ออก"} onClick={() => onChange(list.filter((_, j) => j !== i))}
+                <button type="button" title={"เอา" + (d.vName || "แรงดัน") + " " + p.v + " ออก"} onClick={() => onChange(list.filter((_, j) => j !== i))}
                   style={{ border: "none", background: "transparent", cursor: "pointer", padding: 4, display: "inline-flex", borderRadius: 8 }}>
                   <Icon name="trash" size={14} color="var(--text-3)" />
                 </button>
@@ -1989,11 +1990,11 @@ function BrPairs({ list, d, onChange, disabled }) {
       {!disabled && (
         <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap", padding: "9px 14px", borderTop: "1px solid var(--divider)", background: "var(--surface2)" }}>
           <input value={nv} onChange={(e) => setNv(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); addV(); } }}
-            placeholder={"แรงดันใหม่ (" + d.unit + ")"} inputMode="decimal"
+            placeholder={(d.vName || "แรงดัน") + "ใหม่ (" + d.unit + ")"} inputMode="decimal"
             style={{ width: 150, border: "none", outline: "none", fontFamily: "inherit", fontSize: 12.5, padding: "7px 10px", borderRadius: "var(--r-chip)",
               background: "var(--surface)", boxShadow: "var(--shadow-inset)", color: "var(--text-1)" }} />
           {d.poles && poleSel(np, setNp, 74)}
-          <button type="button" className="btn btn-sm" onClick={addV} disabled={!nv}><Icon name="plus" size={12} /> {d.poles ? "เพิ่มรุ่น" : "เพิ่มแรงดัน"}</button>
+          <button type="button" className="btn btn-sm" onClick={addV} disabled={!nv}><Icon name="plus" size={12} /> {d.poles ? "เพิ่มรุ่น" : "เพิ่ม" + (d.vName || "แรงดัน")}</button>
         </div>
       )}
     </div>
@@ -2076,7 +2077,7 @@ function BoqRuleSec({ sec, rulesStore, type }) {
               <div key={d.key} style={{ padding: "12px 0", borderTop: i ? "1px solid var(--divider)" : "none" }}>
                 <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 8 }}>
                   <span style={{ fontSize: 13, fontWeight: 700, color: "var(--text-1)" }}>{d.th}</span>
-                  {d.type === "pairs" && <span style={{ fontSize: 11, color: "var(--text-3)" }}>· {d.poles ? "แถวละแรงดัน + จำนวนขั้ว" : "แถวละแรงดัน"} ชิป = {d.unitA} ที่มีของรุ่นนั้น</span>}
+                  {d.type === "pairs" && <span style={{ fontSize: 11, color: "var(--text-3)" }}>· {d.poles ? "แถวละแรงดัน + จำนวนขั้ว" : "แถวละ" + (d.vName || "แรงดัน")} ชิป = {d.unitA} ที่มีของรุ่นนั้น</span>}
                   {changedDot(d)}<span style={{ flex: 1 }} />{resetBtn(d)}
                 </div>
                 {d.stock && !d.type

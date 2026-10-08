@@ -4415,6 +4415,13 @@ function brStockNeeds() {
     poles: "3P+N",
     amp: a
   }));
+  (P.mccb || []).forEach(r => r.a.forEach(a => {
+    if ((P.mccb || []).find(q => q.a.indexOf(a) >= 0) === r) add(B.mccbName(a), {
+      elecType: "MCCB",
+      poles: "3P",
+      amp: a
+    });
+  }));
   (P.ctR || []).forEach(r => add("CT " + r + "/5A", {}));
   (P.zctD || []).forEach(d => add("ZCT Φ" + d + "mm", {}));
   return out;
@@ -5005,7 +5012,7 @@ function BrPairs({
     }
   }, React.createElement("span", {
     style: head
-  }, "\u0E41\u0E23\u0E07\u0E14\u0E31\u0E19 (", d.unit, ")"), d.poles && React.createElement("span", {
+  }, d.vName || "แรงดัน", " (", d.unit, ")"), d.poles && React.createElement("span", {
     style: head
   }, "\u0E02\u0E31\u0E49\u0E27"), React.createElement("span", {
     style: head
@@ -5040,7 +5047,7 @@ function BrPairs({
     }
   }, poleSel(p.p || d.poleDef, v => setPole(i, v), 74)), narrow && !disabled && list.length > 1 && React.createElement("button", {
     type: "button",
-    title: "เอาแรงดัน " + p.v + " ออก",
+    title: "เอา" + (d.vName || "แรงดัน") + " " + p.v + " ออก",
     onClick: () => onChange(list.filter((_, j) => j !== i)),
     style: {
       marginLeft: "auto",
@@ -5064,7 +5071,7 @@ function BrPairs({
   })), d.holder && React.createElement("div", null, lab(d.holder), React.createElement("input", {
     value: p.h || "",
     disabled: disabled,
-    placeholder: "\u0E23\u0E38\u0E48\u0E19 \u0E40\u0E0A\u0E48\u0E19 SRD-30",
+    placeholder: d.holderPh || "รุ่น เช่น SRD-30",
     onChange: e => {
       const h = e.target.value.replace(/[\[\]:;]/g, "");
       onChange(list.map((q, j) => j === i ? Object.assign({}, q, {
@@ -5092,7 +5099,7 @@ function BrPairs({
     }
   }, !disabled && list.length > 1 && React.createElement("button", {
     type: "button",
-    title: "เอาแรงดัน " + p.v + " ออก",
+    title: "เอา" + (d.vName || "แรงดัน") + " " + p.v + " ออก",
     onClick: () => onChange(list.filter((_, j) => j !== i)),
     style: {
       border: "none",
@@ -5125,7 +5132,7 @@ function BrPairs({
         addV();
       }
     },
-    placeholder: "แรงดันใหม่ (" + d.unit + ")",
+    placeholder: (d.vName || "แรงดัน") + "ใหม่ (" + d.unit + ")",
     inputMode: "decimal",
     style: {
       width: 150,
@@ -5147,7 +5154,7 @@ function BrPairs({
   }, React.createElement(Icon, {
     name: "plus",
     size: 12
-  }), " ", d.poles ? "เพิ่มรุ่น" : "เพิ่มแรงดัน")));
+  }), " ", d.poles ? "เพิ่มรุ่น" : "เพิ่ม" + (d.vName || "แรงดัน"))));
 }
 function BoqRuleSec({
   sec,
@@ -5370,7 +5377,7 @@ function BoqRuleSec({
       fontSize: 11,
       color: "var(--text-3)"
     }
-  }, "\xB7 ", d.poles ? "แถวละแรงดัน + จำนวนขั้ว" : "แถวละแรงดัน", " \u0E0A\u0E34\u0E1B = ", d.unitA, " \u0E17\u0E35\u0E48\u0E21\u0E35\u0E02\u0E2D\u0E07\u0E23\u0E38\u0E48\u0E19\u0E19\u0E31\u0E49\u0E19"), changedDot(d), React.createElement("span", {
+  }, "\xB7 ", d.poles ? "แถวละแรงดัน + จำนวนขั้ว" : "แถวละ" + (d.vName || "แรงดัน"), " \u0E0A\u0E34\u0E1B = ", d.unitA, " \u0E17\u0E35\u0E48\u0E21\u0E35\u0E02\u0E2D\u0E07\u0E23\u0E38\u0E48\u0E19\u0E19\u0E31\u0E49\u0E19"), changedDot(d), React.createElement("span", {
     style: {
       flex: 1
     }
