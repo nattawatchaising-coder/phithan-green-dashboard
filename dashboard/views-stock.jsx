@@ -1537,7 +1537,7 @@ function ConduitDefaultsEditor({ condStore }) {
 
 /* ── ตารางราคาล้างแผง / งาน O&M ตามขนาดระบบ ──
    ตารางละการ์ด กดแก้ไข → แก้ในร่าง → บันทึกทั้งตาราง (ท่าเดียวกับ ConduitDefaultsEditor)
-   ขนาดในตาราง = "ไม่เกิน" X kWp · ใหญ่กว่าแถวสุดท้าย = คูณต่อด้วยเรตต่อ kWp ของแถวสุดท้าย ปัดขึ้นทีละ 500
+   ราคาในตาราง = ราคาที่ขนาดนั้นพอดี · ระหว่างแถวเฉลี่ยตามสัดส่วน (omTierPrice) · ใหญ่กว่าแถวสุดท้าย = เรตต่อ kWp ของแถวสุดท้าย
    มีช่องลองคิดราคาตามขนาดระบบไว้ข้างบน จะได้เห็นทันทีว่าใบ BOQ จะได้เท่าไร */
 const OM_TIER_KINDS = [
   { key: "clean", th: "ราคาล้างแผง", unit: "฿/ครั้ง", color: "#0EA5E9", defKey: "OM_CLEAN_DEF", curKey: "OM_CLEAN_TIERS" },
@@ -1604,7 +1604,7 @@ function OmTierTable({ kind, saved, onSave }) {
                     <span style={{ display: "flex", alignItems: "center", gap: 6 }}>ไม่เกิน
                       <input type="number" min={0} step="any" style={Object.assign({}, inp, { width: 90 })} value={r[0]} onChange={(e) => setCell(i, 0, e.target.value)} /> kWp</span>
                   ) : (
-                    <span>{prev ? "เกิน " + prev.toLocaleString() + " – " : "ไม่เกิน "}{(+r[0]).toLocaleString()} kWp</span>
+                    <span>{prev ? "" : "ไม่เกิน "}{(+r[0]).toLocaleString()} kWp</span>
                   )}
                 </td>
                 <td style={Object.assign({}, cell, { width: 140, textAlign: "right" })}>
@@ -1622,7 +1622,7 @@ function OmTierTable({ kind, saved, onSave }) {
           {!edit && last && (
             <tr>
               <td colSpan={3} style={Object.assign({}, cell, { fontSize: 11.5, color: "var(--text-3)", borderBottom: "none" })}>
-                เกิน {(+last[0]).toLocaleString()} kWp = kWp × ฿{(Math.round(last[1] / last[0] * 100) / 100).toLocaleString()} (เรตของแถวสุดท้าย) ปัดขึ้นทีละ ฿500
+                ขนาดที่อยู่ระหว่างสองแถวคิดเฉลี่ยตามสัดส่วน{cur.length > 1 && (() => { const a = cur[cur.length - 2], b = last, m = Math.round((+a[0] + +b[0]) / 2); return " (เช่น " + m.toLocaleString() + " kWp = ฿" + (window.BOQ.omTierPrice(cur, m)).toLocaleString() + ")"; })()} · เกิน {(+last[0]).toLocaleString()} kWp = kWp × ฿{(Math.round(last[1] / last[0] * 100) / 100).toLocaleString()} · ปัดขึ้นทีละ ฿{((window.BOQ.RULES || {}).omRound || 100).toLocaleString()} (ตั้งในหัวข้อ เผื่อ · กำไร · O&amp;M)
               </td>
             </tr>
           )}

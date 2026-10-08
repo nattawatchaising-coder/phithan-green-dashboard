@@ -169,6 +169,7 @@
     { sec: "price", key: "vat", th: "ภาษีมูลค่าเพิ่ม", unit: "%", def: 7, max: 30 },
     { sec: "price", key: "omYears", th: "O&M ฟรี · ปีที่แถม", unit: "ปี", def: 2 },
     { sec: "price", key: "omPerYear", th: "O&M ฟรี · ล้างแผงปีละ", unit: "ครั้ง", def: 1 },
+    { sec: "price", key: "omRound", th: "ราคาล้างแผง / งาน O&M (เฉลี่ยระหว่างขั้นของตาราง) ปัดขึ้นทีละ", unit: "บาท", def: 100, min: 1 },
     { sec: "plan", key: "pprLen", th: "ท่อ PPR 1 เส้นยาว", unit: "ม.", def: 4, min: 0.5 },
     { sec: "plan", key: "pprSpare", th: "ท่อ PPR เผื่อ", unit: "%", def: 10 },
     { sec: "plan", key: "pprTap", th: "ท่อเพิ่มต่อก๊อก 1 จุด", unit: "ม.", def: 0.2 },
@@ -1426,12 +1427,21 @@
     put(OM_CLEAN_TIERS, (v || {}).clean, OM_CLEAN_DEF);
     put(OM_SVC_TIERS, (v || {}).svc, OM_SVC_DEF);
   }
+  /* ราคาในตาราง = ราคาที่ขนาดนั้นพอดี · ระหว่างสองแถวคิดเฉลี่ยตามสัดส่วน (เส้นตรง) ไม่กระโดดเป็นขั้น
+     (ผู้ใช้: 60 kWp เดิมได้ราคาเท่า 100 kWp) · เล็กกว่าแถวแรก = ราคาแถวแรก · เกินแถวสุดท้าย = เรต/kWp ของแถวสุดท้าย
+     ปัดขึ้นทีละ RULES.omRound (ค่าเริ่ม 100) · ตรงขนาดในตารางพอดีได้ราคาในตารางเป๊ะ */
   function omTierPrice(tiers, kw) {
     const k = Math.max(0, +kw || 0);
-    if (!k) return 0;
-    for (let i = 0; i < tiers.length; i++) if (k <= tiers[i][0]) return tiers[i][1];
+    if (!k || !tiers.length) return 0;
+    const st = RULES.omRound > 0 ? RULES.omRound : 100;
+    const up = (v) => Math.ceil(v / st - 1e-9) * st;
+    if (k <= tiers[0][0]) return tiers[0][1];
+    for (let i = 1; i < tiers.length; i++) {
+      const a = tiers[i - 1], b = tiers[i];
+      if (k <= b[0]) return k === b[0] ? b[1] : up(a[1] + (b[1] - a[1]) * (k - a[0]) / (b[0] - a[0]));
+    }
     const last = tiers[tiers.length - 1];
-    return Math.ceil((k * last[1] / last[0]) / 500) * 500;
+    return up(k * last[1] / last[0]);
   }
   const OM_DEF = { years: 2, perYear: 1 };
   function omDefaults(b, kw) { return Object.assign({}, OM_DEF, { years: RULES.omYears, perYear: RULES.omPerYear, visit: omTierPrice(OM_CLEAN_TIERS, kw), svc: omTierPrice(OM_SVC_TIERS, kw) }); }

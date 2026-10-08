@@ -4188,7 +4188,7 @@ function OmTierTable({
       }),
       value: r[0],
       onChange: e => setCell(i, 0, e.target.value)
-    }), " kWp") : React.createElement("span", null, prev ? "เกิน " + prev.toLocaleString() + " – " : "ไม่เกิน ", (+r[0]).toLocaleString(), " kWp")), React.createElement("td", {
+    }), " kWp") : React.createElement("span", null, prev ? "" : "ไม่เกิน ", (+r[0]).toLocaleString(), " kWp")), React.createElement("td", {
       style: Object.assign({}, cell, {
         width: 140,
         textAlign: "right"
@@ -4234,7 +4234,12 @@ function OmTierTable({
       color: "var(--text-3)",
       borderBottom: "none"
     })
-  }, "\u0E40\u0E01\u0E34\u0E19 ", (+last[0]).toLocaleString(), " kWp = kWp \xD7 \u0E3F", (Math.round(last[1] / last[0] * 100) / 100).toLocaleString(), " (\u0E40\u0E23\u0E15\u0E02\u0E2D\u0E07\u0E41\u0E16\u0E27\u0E2A\u0E38\u0E14\u0E17\u0E49\u0E32\u0E22) \u0E1B\u0E31\u0E14\u0E02\u0E36\u0E49\u0E19\u0E17\u0E35\u0E25\u0E30 \u0E3F500")))), edit && React.createElement("div", {
+  }, "\u0E02\u0E19\u0E32\u0E14\u0E17\u0E35\u0E48\u0E2D\u0E22\u0E39\u0E48\u0E23\u0E30\u0E2B\u0E27\u0E48\u0E32\u0E07\u0E2A\u0E2D\u0E07\u0E41\u0E16\u0E27\u0E04\u0E34\u0E14\u0E40\u0E09\u0E25\u0E35\u0E48\u0E22\u0E15\u0E32\u0E21\u0E2A\u0E31\u0E14\u0E2A\u0E48\u0E27\u0E19", cur.length > 1 && (() => {
+    const a = cur[cur.length - 2],
+      b = last,
+      m = Math.round((+a[0] + +b[0]) / 2);
+    return " (เช่น " + m.toLocaleString() + " kWp = ฿" + window.BOQ.omTierPrice(cur, m).toLocaleString() + ")";
+  })(), " \xB7 \u0E40\u0E01\u0E34\u0E19 ", (+last[0]).toLocaleString(), " kWp = kWp \xD7 \u0E3F", (Math.round(last[1] / last[0] * 100) / 100).toLocaleString(), " \xB7 \u0E1B\u0E31\u0E14\u0E02\u0E36\u0E49\u0E19\u0E17\u0E35\u0E25\u0E30 \u0E3F", ((window.BOQ.RULES || {}).omRound || 100).toLocaleString(), " (\u0E15\u0E31\u0E49\u0E07\u0E43\u0E19\u0E2B\u0E31\u0E27\u0E02\u0E49\u0E2D \u0E40\u0E1C\u0E37\u0E48\u0E2D \xB7 \u0E01\u0E33\u0E44\u0E23 \xB7 O&M)")))), edit && React.createElement("div", {
     style: {
       padding: "8px 12px"
     }
