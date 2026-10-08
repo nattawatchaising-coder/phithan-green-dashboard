@@ -1901,42 +1901,78 @@ function BrPairs({ list, d, onChange, disabled }) {
       {d.poles.map((p) => <option key={p} value={p}>{p}</option>)}
     </select>
   );
+  /* ตารางกล่องเดียว (DESIGN.md "ตารางเรียบกล่องเดียว") หัวคอลัมน์ · แถวละแรงดัน แบ่งด้วย --divider · แถวเพิ่มอยู่ท้ายตาราง
+     มือถือ (≤ 860px) ยุบเป็นแผ่นต่อแถว ป้ายคอลัมน์อยู่เหนือค่า */
+  const [narrow, setNarrow] = React.useState(() => window.matchMedia && window.matchMedia("(max-width: 860px)").matches);
+  React.useEffect(() => {
+    if (!window.matchMedia) return;
+    const m = window.matchMedia("(max-width: 860px)"), h = () => setNarrow(m.matches);
+    m.addEventListener ? m.addEventListener("change", h) : m.addListener(h);
+    return () => (m.removeEventListener ? m.removeEventListener("change", h) : m.removeListener(h));
+  }, []);
+  const cols = ["104px"].concat(d.poles ? ["86px"] : [], ["minmax(0,1fr)"], d.holder ? ["150px"] : [], ["30px"]).join(" ");
+  const head = { fontSize: 10.5, fontWeight: 700, color: "var(--text-3)", letterSpacing: 0.2 };
+  const lab = (t) => (narrow ? <div style={Object.assign({}, head, { marginBottom: 4 })}>{t}</div> : null);
+  const rowSt = (i) => (narrow
+    ? { display: "flex", flexDirection: "column", gap: 8, padding: "10px 12px", borderTop: i ? "1px solid var(--divider)" : "none" }
+    : { display: "grid", gridTemplateColumns: cols, gap: 12, alignItems: "center", padding: "9px 14px", borderTop: "1px solid var(--divider)" });
+  const sizeTh = "ขนาดที่มีขาย (" + d.unitA + ")";
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+    <div style={{ background: "var(--surface)", boxShadow: "var(--shadow-sm)", borderRadius: "var(--r-tile)", overflow: "hidden" }}>
+      {!narrow && (
+        <div style={{ display: "grid", gridTemplateColumns: cols, gap: 12, padding: "8px 14px", background: "var(--surface2)" }}>
+          <span style={head}>แรงดัน ({d.unit})</span>
+          {d.poles && <span style={head}>ขั้ว</span>}
+          <span style={head}>{sizeTh}</span>
+          {d.holder && <span style={head}>{d.holder}</span>}
+          <span />
+        </div>
+      )}
       {list.map((p, i) => (
-        <div key={p.v + "|" + (p.p || "")} style={{ display: "grid", gridTemplateColumns: (d.poles ? 176 : 112) + "px minmax(0,1fr)", gap: 10, alignItems: "start", padding: "8px 10px",
-          borderRadius: "var(--r-tile)", background: "var(--surface2)", boxShadow: "var(--shadow-inset)" }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 4, paddingTop: 5 }}>
-            <span style={{ fontSize: 13, fontWeight: 800, color: "var(--primary-dark)", fontVariantNumeric: "tabular-nums" }}>{p.v}</span>
+        <div key={p.v + "|" + (p.p || "")} style={rowSt(i)}>
+          <div style={{ display: "flex", alignItems: "baseline", gap: 4 }}>
+            <span style={{ fontFamily: "var(--display)", fontSize: 17, fontWeight: 800, color: "var(--primary-dark)", fontVariantNumeric: "tabular-nums" }}>{p.v.toLocaleString()}</span>
             <span style={{ fontSize: 10.5, fontWeight: 700, color: "var(--text-3)" }}>{d.unit}</span>
-            {d.poles && <span style={{ marginLeft: 4 }}>{poleSel(p.p || d.poleDef, (v) => setPole(i, v), 62)}</span>}
-            {!disabled && list.length > 1 && (
+            {narrow && d.poles && <span style={{ marginLeft: 8 }}>{poleSel(p.p || d.poleDef, (v) => setPole(i, v), 74)}</span>}
+            {narrow && !disabled && list.length > 1 && (
               <button type="button" title={"เอาแรงดัน " + p.v + " ออก"} onClick={() => onChange(list.filter((_, j) => j !== i))}
-                style={{ border: "none", background: "transparent", cursor: "pointer", padding: 2, display: "inline-flex", marginLeft: 2 }}>
-                <Icon name="trash" size={12} color="var(--text-3)" />
+                style={{ marginLeft: "auto", border: "none", background: "transparent", cursor: "pointer", padding: 4, display: "inline-flex" }}>
+                <Icon name="trash" size={14} color="var(--text-3)" />
               </button>
             )}
           </div>
-          <BrChips list={p.a} unit={d.unitA} disabled={disabled}
-            onChange={(a) => onChange(list.map((q, j) => (j === i ? Object.assign({}, q, { a: a }) : q)))} />
+          {!narrow && d.poles && <div>{poleSel(p.p || d.poleDef, (v) => setPole(i, v), 74)}</div>}
+          <div>{lab(sizeTh)}
+            <BrChips list={p.a} unit={d.unitA.split(" ")[0]} disabled={disabled}
+              onChange={(a) => onChange(list.map((q, j) => (j === i ? Object.assign({}, q, { a: a }) : q)))} />
+          </div>
           {d.holder && (
-            <label style={{ gridColumn: 2, display: "inline-flex", alignItems: "center", gap: 6, fontSize: 11.5, color: "var(--text-3)" }}>
-              {d.holder}
+            <div>{lab(d.holder)}
               <input value={p.h || ""} disabled={disabled} placeholder="รุ่น เช่น SRD-30"
-                onChange={(e) => { const h = e.target.value.replace(/[[]:;]/g, ""); onChange(list.map((q, j) => (j === i ? Object.assign({}, q, { h: h }) : q))); }}
-                style={{ width: 150, border: "none", outline: "none", fontFamily: "inherit", fontSize: 12.5, fontWeight: 700, padding: "5px 9px", borderRadius: "var(--r-chip)",
-                  background: "var(--surface)", boxShadow: "var(--shadow-sm)", color: "var(--text-1)" }} />
-            </label>
+                onChange={(e) => { const h = e.target.value.replace(/[\[\]:;]/g, ""); onChange(list.map((q, j) => (j === i ? Object.assign({}, q, { h: h }) : q))); }}
+                style={{ width: "100%", boxSizing: "border-box", border: "none", outline: "none", fontFamily: "inherit", fontSize: 12.5, fontWeight: 700, padding: "7px 10px", borderRadius: "var(--r-chip)",
+                  background: "var(--surface2)", boxShadow: "var(--shadow-inset)", color: "var(--text-1)" }} />
+            </div>
+          )}
+          {!narrow && (
+            <div style={{ display: "flex", justifyContent: "center" }}>
+              {!disabled && list.length > 1 && (
+                <button type="button" title={"เอาแรงดัน " + p.v + " ออก"} onClick={() => onChange(list.filter((_, j) => j !== i))}
+                  style={{ border: "none", background: "transparent", cursor: "pointer", padding: 4, display: "inline-flex", borderRadius: 8 }}>
+                  <Icon name="trash" size={14} color="var(--text-3)" />
+                </button>
+              )}
+            </div>
           )}
         </div>
       ))}
       {!disabled && (
-        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap", padding: "9px 14px", borderTop: "1px solid var(--divider)", background: "var(--surface2)" }}>
           <input value={nv} onChange={(e) => setNv(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); addV(); } }}
             placeholder={"แรงดันใหม่ (" + d.unit + ")"} inputMode="decimal"
             style={{ width: 150, border: "none", outline: "none", fontFamily: "inherit", fontSize: 12.5, padding: "7px 10px", borderRadius: "var(--r-chip)",
-              background: "var(--surface2)", boxShadow: "var(--shadow-inset)", color: "var(--text-1)" }} />
-          {d.poles && poleSel(np, setNp, 70)}
+              background: "var(--surface)", boxShadow: "var(--shadow-inset)", color: "var(--text-1)" }} />
+          {d.poles && poleSel(np, setNp, 74)}
           <button type="button" className="btn btn-sm" onClick={addV} disabled={!nv}><Icon name="plus" size={12} /> {d.poles ? "เพิ่มรุ่น" : "เพิ่มแรงดัน"}</button>
         </div>
       )}

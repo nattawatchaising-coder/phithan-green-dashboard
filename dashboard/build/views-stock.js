@@ -4906,49 +4906,144 @@ function BrPairs({
     key: p,
     value: p
   }, p)));
+  const [narrow, setNarrow] = React.useState(() => window.matchMedia && window.matchMedia("(max-width: 860px)").matches);
+  React.useEffect(() => {
+    if (!window.matchMedia) return;
+    const m = window.matchMedia("(max-width: 860px)"),
+      h = () => setNarrow(m.matches);
+    m.addEventListener ? m.addEventListener("change", h) : m.addListener(h);
+    return () => m.removeEventListener ? m.removeEventListener("change", h) : m.removeListener(h);
+  }, []);
+  const cols = ["104px"].concat(d.poles ? ["86px"] : [], ["minmax(0,1fr)"], d.holder ? ["150px"] : [], ["30px"]).join(" ");
+  const head = {
+    fontSize: 10.5,
+    fontWeight: 700,
+    color: "var(--text-3)",
+    letterSpacing: 0.2
+  };
+  const lab = t => narrow ? React.createElement("div", {
+    style: Object.assign({}, head, {
+      marginBottom: 4
+    })
+  }, t) : null;
+  const rowSt = i => narrow ? {
+    display: "flex",
+    flexDirection: "column",
+    gap: 8,
+    padding: "10px 12px",
+    borderTop: i ? "1px solid var(--divider)" : "none"
+  } : {
+    display: "grid",
+    gridTemplateColumns: cols,
+    gap: 12,
+    alignItems: "center",
+    padding: "9px 14px",
+    borderTop: "1px solid var(--divider)"
+  };
+  const sizeTh = "ขนาดที่มีขาย (" + d.unitA + ")";
   return React.createElement("div", {
     style: {
-      display: "flex",
-      flexDirection: "column",
-      gap: 6
+      background: "var(--surface)",
+      boxShadow: "var(--shadow-sm)",
+      borderRadius: "var(--r-tile)",
+      overflow: "hidden"
     }
-  }, list.map((p, i) => React.createElement("div", {
-    key: p.v + "|" + (p.p || ""),
+  }, !narrow && React.createElement("div", {
     style: {
       display: "grid",
-      gridTemplateColumns: (d.poles ? 176 : 112) + "px minmax(0,1fr)",
-      gap: 10,
-      alignItems: "start",
-      padding: "8px 10px",
-      borderRadius: "var(--r-tile)",
-      background: "var(--surface2)",
-      boxShadow: "var(--shadow-inset)"
+      gridTemplateColumns: cols,
+      gap: 12,
+      padding: "8px 14px",
+      background: "var(--surface2)"
     }
+  }, React.createElement("span", {
+    style: head
+  }, "\u0E41\u0E23\u0E07\u0E14\u0E31\u0E19 (", d.unit, ")"), d.poles && React.createElement("span", {
+    style: head
+  }, "\u0E02\u0E31\u0E49\u0E27"), React.createElement("span", {
+    style: head
+  }, sizeTh), d.holder && React.createElement("span", {
+    style: head
+  }, d.holder), React.createElement("span", null)), list.map((p, i) => React.createElement("div", {
+    key: p.v + "|" + (p.p || ""),
+    style: rowSt(i)
   }, React.createElement("div", {
     style: {
       display: "flex",
-      alignItems: "center",
-      gap: 4,
-      paddingTop: 5
+      alignItems: "baseline",
+      gap: 4
     }
   }, React.createElement("span", {
     style: {
-      fontSize: 13,
+      fontFamily: "var(--display)",
+      fontSize: 17,
       fontWeight: 800,
       color: "var(--primary-dark)",
       fontVariantNumeric: "tabular-nums"
     }
-  }, p.v), React.createElement("span", {
+  }, p.v.toLocaleString()), React.createElement("span", {
     style: {
       fontSize: 10.5,
       fontWeight: 700,
       color: "var(--text-3)"
     }
-  }, d.unit), d.poles && React.createElement("span", {
+  }, d.unit), narrow && d.poles && React.createElement("span", {
     style: {
-      marginLeft: 4
+      marginLeft: 8
     }
-  }, poleSel(p.p || d.poleDef, v => setPole(i, v), 62)), !disabled && list.length > 1 && React.createElement("button", {
+  }, poleSel(p.p || d.poleDef, v => setPole(i, v), 74)), narrow && !disabled && list.length > 1 && React.createElement("button", {
+    type: "button",
+    title: "เอาแรงดัน " + p.v + " ออก",
+    onClick: () => onChange(list.filter((_, j) => j !== i)),
+    style: {
+      marginLeft: "auto",
+      border: "none",
+      background: "transparent",
+      cursor: "pointer",
+      padding: 4,
+      display: "inline-flex"
+    }
+  }, React.createElement(Icon, {
+    name: "trash",
+    size: 14,
+    color: "var(--text-3)"
+  }))), !narrow && d.poles && React.createElement("div", null, poleSel(p.p || d.poleDef, v => setPole(i, v), 74)), React.createElement("div", null, lab(sizeTh), React.createElement(BrChips, {
+    list: p.a,
+    unit: d.unitA.split(" ")[0],
+    disabled: disabled,
+    onChange: a => onChange(list.map((q, j) => j === i ? Object.assign({}, q, {
+      a: a
+    }) : q))
+  })), d.holder && React.createElement("div", null, lab(d.holder), React.createElement("input", {
+    value: p.h || "",
+    disabled: disabled,
+    placeholder: "\u0E23\u0E38\u0E48\u0E19 \u0E40\u0E0A\u0E48\u0E19 SRD-30",
+    onChange: e => {
+      const h = e.target.value.replace(/[\[\]:;]/g, "");
+      onChange(list.map((q, j) => j === i ? Object.assign({}, q, {
+        h: h
+      }) : q));
+    },
+    style: {
+      width: "100%",
+      boxSizing: "border-box",
+      border: "none",
+      outline: "none",
+      fontFamily: "inherit",
+      fontSize: 12.5,
+      fontWeight: 700,
+      padding: "7px 10px",
+      borderRadius: "var(--r-chip)",
+      background: "var(--surface2)",
+      boxShadow: "var(--shadow-inset)",
+      color: "var(--text-1)"
+    }
+  })), !narrow && React.createElement("div", {
+    style: {
+      display: "flex",
+      justifyContent: "center"
+    }
+  }, !disabled && list.length > 1 && React.createElement("button", {
     type: "button",
     title: "เอาแรงดัน " + p.v + " ออก",
     onClick: () => onChange(list.filter((_, j) => j !== i)),
@@ -4956,58 +5051,23 @@ function BrPairs({
       border: "none",
       background: "transparent",
       cursor: "pointer",
-      padding: 2,
+      padding: 4,
       display: "inline-flex",
-      marginLeft: 2
+      borderRadius: 8
     }
   }, React.createElement(Icon, {
     name: "trash",
-    size: 12,
+    size: 14,
     color: "var(--text-3)"
-  }))), React.createElement(BrChips, {
-    list: p.a,
-    unit: d.unitA,
-    disabled: disabled,
-    onChange: a => onChange(list.map((q, j) => j === i ? Object.assign({}, q, {
-      a: a
-    }) : q))
-  }), d.holder && React.createElement("label", {
-    style: {
-      gridColumn: 2,
-      display: "inline-flex",
-      alignItems: "center",
-      gap: 6,
-      fontSize: 11.5,
-      color: "var(--text-3)"
-    }
-  }, d.holder, React.createElement("input", {
-    value: p.h || "",
-    disabled: disabled,
-    placeholder: "\u0E23\u0E38\u0E48\u0E19 \u0E40\u0E0A\u0E48\u0E19 SRD-30",
-    onChange: e => {
-      const h = e.target.value.replace(/[[]:;]/g, "");
-      onChange(list.map((q, j) => j === i ? Object.assign({}, q, {
-        h: h
-      }) : q));
-    },
-    style: {
-      width: 150,
-      border: "none",
-      outline: "none",
-      fontFamily: "inherit",
-      fontSize: 12.5,
-      fontWeight: 700,
-      padding: "5px 9px",
-      borderRadius: "var(--r-chip)",
-      background: "var(--surface)",
-      boxShadow: "var(--shadow-sm)",
-      color: "var(--text-1)"
-    }
-  })))), !disabled && React.createElement("div", {
+  }))))), !disabled && React.createElement("div", {
     style: {
       display: "flex",
       alignItems: "center",
-      gap: 8
+      gap: 8,
+      flexWrap: "wrap",
+      padding: "9px 14px",
+      borderTop: "1px solid var(--divider)",
+      background: "var(--surface2)"
     }
   }, React.createElement("input", {
     value: nv,
@@ -5028,11 +5088,11 @@ function BrPairs({
       fontSize: 12.5,
       padding: "7px 10px",
       borderRadius: "var(--r-chip)",
-      background: "var(--surface2)",
+      background: "var(--surface)",
       boxShadow: "var(--shadow-inset)",
       color: "var(--text-1)"
     }
-  }), d.poles && poleSel(np, setNp, 70), React.createElement("button", {
+  }), d.poles && poleSel(np, setNp, 74), React.createElement("button", {
     type: "button",
     className: "btn btn-sm",
     onClick: addV,
