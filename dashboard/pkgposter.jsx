@@ -14,6 +14,11 @@ const PK_W = 1080, PK_H = 1350;
 const PK_YIELD = 1400;   // หน่วย/kWp/ปี (ประมาณ)
 const PK_RATE = 4.5;     // บาท/หน่วย
 const PK_WTY_DEF = ["รับประกันงานติดตั้ง 5 ปี", "แผงโซลาร์ 15 ปี", "อินเวอร์เตอร์ 5 ปี", "ฟรีล้างแผง 3 ครั้ง", "สำรวจหน้างานฟรี", "รวมขออนุญาตการไฟฟ้า"];
+/* ข้อมูลบริษัทบนรูป — แก้ในป๊อปแล้วกดบันทึก เก็บที่ RTDB config/pkPosterCo (ใช้ร่วมทุกเครื่อง) · ไม่มี = แบรนด์ของเรา */
+const PK_B = (typeof BRANDING !== "undefined" && BRANDING) || window.BRANDING || {};
+const PK_CO_DEF = { name: PK_B.name || "flash+solar", tag: PK_B.tagline || "CLEAN ENERGY", tel: PK_B.tel || "", line: "", site: PK_B.site || "", mark: "" };
+const PK_CO_KEYS = ["name", "tag", "tel", "line", "site", "mark"];
+const PK_CO_PATH = "config/pkPosterCo";
 const PK_TH = "'IBM Plex Sans Thai', sans-serif";
 const PK_NUM = "'Outfit', 'IBM Plex Sans Thai', sans-serif";
 
@@ -172,25 +177,40 @@ function pkDraw(cv, sp, A, o) {
 
   // แถวบน: โลโก้บริษัท (เปิด/ปิด) · ป้ายเฟส
   let y = 56;
+  const ph = "ระบบ " + sp.phase + " เฟส · ON-GRID";
+  g.font = "700 26px " + PK_TH; const pw = g.measureText(ph).width + 44;
   if (o.logo) {
-    const lh = 70;
-    if (A.mark) {
-      const mw = lh * (A.mark.naturalWidth / A.mark.naturalHeight);
+    // ข้อมูลบริษัท (o.co) — ไม่ตั้ง = แบรนด์ของเรา
+    const co = o.co || {}, mark = co.markIm || A.mark;
+    const nm = co.name != null ? co.name : PK_CO_DEF.name, tag = co.tag != null ? co.tag : PK_CO_DEF.tag;
+    const lh = 70, mw = mark ? Math.min(lh * (mark.naturalWidth / mark.naturalHeight), 260) : 0;
+    let x = 52;
+    g.textBaseline = "alphabetic"; g.textAlign = "left";
+    if (mark) {
       g.save(); g.shadowColor = "rgba(0,0,0,.35)"; g.shadowBlur = 12;
-      g.drawImage(A.mark, 52, y, mw, lh); g.restore();
-      g.textBaseline = "alphabetic"; g.textAlign = "left";
-      let x = 52 + mw + 16;
-      g.font = "700 44px " + PK_NUM; g.fillStyle = "#fff";
-      g.fillText("flash", x, y + 44); x += g.measureText("flash").width;
-      g.fillStyle = C.green; g.fillText("+", x, y + 44); x += g.measureText("+").width;
-      g.fillStyle = "#fff"; g.fillText("solar", x, y + 44);
+      pkContain(g, mark, x, y, mw, lh); g.restore();
+      x += mw + 16;
+    }
+    const tx = x + 2;
+    if (nm) {
+      const maxW = PK_W - 48 - pw - 28 - x;
+      let fs = 44; g.font = "700 " + fs + "px " + PK_NUM;
+      while (fs > 22 && g.measureText(nm).width > maxW) { fs -= 2; g.font = "700 " + fs + "px " + PK_NUM; }
+      const ny = tag ? y + 44 : y + 50;
+      // เครื่องหมาย + ในชื่อเป็นสีเขียวแบบโลโก้
+      nm.split("+").forEach((part, i) => {
+        if (i) { g.fillStyle = C.green; g.fillText("+", x, ny); x += g.measureText("+").width; }
+        g.fillStyle = "#fff"; g.fillText(part, x, ny); x += g.measureText(part).width;
+      });
+    }
+    if (tag) {
+      const t = /^[\x20-\x7e]*$/.test(tag) ? tag.toUpperCase().split("").join(" ") : tag; // อังกฤษเว้นตัวอักษรแบบโลโก้
       g.font = "500 15px " + PK_NUM; g.fillStyle = "rgba(255,255,255,.7)";
-      g.fillText("C L E A N   E N E R G Y", 52 + mw + 18, y + 68);
+      g.fillText(t, tx, nm ? y + 68 : y + 42);
     }
   }
   // ป้ายเฟส มุมขวาบน
-  const ph = "ระบบ " + sp.phase + " เฟส · ON-GRID";
-  g.font = "700 26px " + PK_TH; const pw = g.measureText(ph).width + 44;
+  g.font = "700 26px " + PK_TH;
   pkRR(g, PK_W - 48 - pw, y + 8, pw, 54, 27); g.fillStyle = "rgba(255,255,255,.16)"; g.fill();
   g.lineWidth = 2; g.strokeStyle = "rgba(255,255,255,.35)"; g.stroke();
   g.fillStyle = "#fff"; g.textAlign = "center"; g.fillText(ph, PK_W - 48 - pw / 2, y + 45); g.textAlign = "left";
@@ -277,18 +297,30 @@ function pkDraw(cv, sp, A, o) {
   g.textAlign = "right";
   const disc = o.price && sp.sell ? Math.max(0, +o.disc || 0) : 0;
   if (o.price && sp.sell && disc) {
-    // ราคาเต็มขีดฆ่า + ราคาหลังลด
-    const full = "฿" + pkFmt(sp.sell + disc);
-    g.fillStyle = "rgba(255,255,255,.72)"; g.font = "600 28px " + PK_NUM; g.fillText(full, PK_W - 84, py + 38);
+    // สติกเกอร์ดาวแฉกสีแดง มุมขวาบนแถบราคา (เกยแผ่นคืนทุนเล็กน้อย) — ผู้ใช้ขอให้ส่วนลดเด่น
+    const bx = PK_W - 112, by = py - 30, R = 84, r = 72, N = 18;
+    // ราคาเต็มขีดฆ่า ชิดซ้ายของสติกเกอร์
+    const full = "฿" + pkFmt(sp.sell + disc), fx = bx - R - 18;
+    g.fillStyle = "rgba(255,255,255,.78)"; g.font = "600 30px " + PK_NUM; g.fillText(full, fx, py + 40);
     const fw = g.measureText(full).width;
-    g.strokeStyle = "#FCA5A5"; g.lineWidth = 3; g.beginPath(); g.moveTo(PK_W - 84 - fw - 4, py + 29); g.lineTo(PK_W - 80, py + 29); g.stroke();
-    g.fillStyle = C.sun; g.font = "800 64px " + PK_NUM; g.fillText("฿" + pkFmt(sp.sell), PK_W - 84, py + 100);
-    // ป้ายลด เกาะขอบบนแถบราคา
-    const tag = "ลด ฿" + pkFmt(disc);
-    g.font = "800 26px " + PK_TH; const tw2 = g.measureText(tag).width + 40;
-    g.save(); g.shadowColor = "rgba(185,28,28,.4)"; g.shadowBlur = 12; g.shadowOffsetY = 4;
-    pkRR(g, PK_W - 84 - fw - 24 - tw2, py - 20, tw2, 46, 23); g.fillStyle = "#EF4444"; g.fill(); g.restore();
-    g.fillStyle = "#fff"; g.textAlign = "center"; g.fillText(tag, PK_W - 84 - fw - 24 - tw2 / 2, py + 12); g.textAlign = "right";
+    g.strokeStyle = "#F87171"; g.lineWidth = 4; g.beginPath(); g.moveTo(fx - fw - 4, py + 30); g.lineTo(fx + 4, py + 30); g.stroke();
+    g.fillStyle = C.sun; g.font = "800 66px " + PK_NUM; g.fillText("฿" + pkFmt(sp.sell), PK_W - 84, py + 102);
+    g.save(); g.translate(bx, by); g.rotate(-0.21);
+    g.beginPath();
+    for (let i = 0; i < N * 2; i++) { const a = Math.PI * i / N, rr = i % 2 ? r : R; g[i ? "lineTo" : "moveTo"](Math.cos(a) * rr, Math.sin(a) * rr); }
+    g.closePath();
+    g.save(); g.shadowColor = "rgba(127,29,29,.45)"; g.shadowBlur = 22; g.shadowOffsetY = 8;
+    const bg = g.createLinearGradient(0, -R, 0, R); bg.addColorStop(0, "#FB7185"); bg.addColorStop(.5, "#EF4444"); bg.addColorStop(1, "#B91C1C");
+    g.fillStyle = bg; g.fill(); g.restore();
+    g.lineWidth = 3; g.strokeStyle = "rgba(255,255,255,.9)";
+    g.beginPath(); g.arc(0, 0, r - 9, 0, Math.PI * 2); g.setLineDash([5, 6]); g.stroke(); g.setLineDash([]);
+    g.textAlign = "center"; g.fillStyle = "#fff";
+    g.font = "800 26px " + PK_TH; g.fillText("ลดทันที", 0, -14);
+    const amt = "฿" + pkFmt(disc);
+    let fs = 38; g.font = "800 " + fs + "px " + PK_NUM;
+    while (fs > 20 && g.measureText(amt).width > (r - 22) * 2) { fs -= 2; g.font = "800 " + fs + "px " + PK_NUM; }
+    g.fillStyle = "#FDE68A"; g.fillText(amt, 0, 28);
+    g.restore(); g.textAlign = "right";
   } else if (o.price && sp.sell) {
     g.fillStyle = C.sun; g.font = "800 72px " + PK_NUM; g.fillText("฿" + pkFmt(sp.sell), PK_W - 84, py + 82);
   } else {
@@ -323,11 +355,14 @@ function pkDraw(cv, sp, A, o) {
   const fy = PK_H - 34;
   g.fillStyle = C.mute; g.font = "500 16px " + PK_TH; g.textAlign = "center";
   const note = "ผลผลิตประมาณจาก " + pkFmt(PK_YIELD) + " หน่วย/kWp/ปี · ค่าไฟ " + PK_RATE + " บาท/หน่วย · ขึ้นกับทิศ ความชัน และเงาของหลังคาจริง";
-  if (o.contact) {
+  const co = Object.assign({}, PK_CO_DEF, o.co || {});
+  const cl = [co.tel && "โทร " + co.tel, co.line && "LINE " + co.line, co.site].filter(Boolean).join("   ·   ");
+  if (o.contact && cl) {
     g.fillText(note, PK_W / 2, fy - 14);
-    g.fillStyle = C.deep; g.font = "700 26px " + PK_TH;
-    const B = window.BRANDING || (typeof BRANDING !== "undefined" ? BRANDING : {});
-    g.fillText("โทร " + (B.tel || "") + "   ·   " + (B.site || ""), PK_W / 2, fy + 22);
+    g.fillStyle = C.deep;
+    let fs = 26; g.font = "700 " + fs + "px " + PK_TH;
+    while (fs > 16 && g.measureText(cl).width > PK_W - 96) { fs -= 1; g.font = "700 " + fs + "px " + PK_TH; }
+    g.fillText(cl, PK_W / 2, fy + 22);
   } else {
     g.fillText(note, PK_W / 2, fy);
   }
@@ -363,7 +398,53 @@ function PkPosterModal({ lead, stock, quotes, onClose }) {
   const [disc, setDisc] = React.useState("");
   const [wty, setWty] = React.useState(() => ((q && q.warranties) || PK_WTY_DEF).join("\n"));
   const [A, setA] = React.useState(null);
+  const [coSaved, setCoSaved] = React.useState(null);  // ค่าที่บันทึกไว้ใน RTDB (null = ยังโหลดไม่เสร็จ)
+  const [co, setCo] = React.useState(PK_CO_DEF);
+  const [coBusy, setCoBusy] = React.useState(false);
+  const [markIm, setMarkIm] = React.useState(null);
+  const [coOpen, setCoOpen] = React.useState(false);
   const cv = React.useRef(null);
+  const fileRef = React.useRef(null);
+
+  React.useEffect(() => {
+    if (!window.FBDB) { setCoSaved(PK_CO_DEF); return; }
+    const r = window.FBDB.ref(PK_CO_PATH);
+    const fn = (s) => {
+      const v = Object.assign({}, PK_CO_DEF, s.val() || {});
+      setCoSaved(v); setCo(v);
+    };
+    r.once("value", fn);
+  }, []);
+  React.useEffect(() => {
+    let live = true;
+    if (co.mark) pkImg(co.mark).then((im) => { if (live) setMarkIm(im); }); else setMarkIm(null);
+    return () => { live = false; };
+  }, [co.mark]);
+  const setC = (k, v) => setCo((c) => Object.assign({}, c, { [k]: v }));
+  const coDiff = !!coSaved && PK_CO_KEYS.some((k) => (co[k] || "") !== (coSaved[k] || ""));
+  const coCustom = PK_CO_KEYS.some((k) => (co[k] || "") !== (PK_CO_DEF[k] || ""));
+  const saveCo = () => {
+    if (!window.FBDB) return;
+    const v = {}; PK_CO_KEYS.forEach((k) => { v[k] = co[k] || ""; });
+    setCoBusy(true);
+    window.FBDB.ref(PK_CO_PATH).set(v).then(() => { setCoSaved(Object.assign({}, v)); setCoBusy(false); },
+      (e) => { setCoBusy(false); alert("บันทึกไม่สำเร็จ: " + (e && e.message || e)); });
+  };
+  // โลโก้ที่อัปโหลด: ย่อสูงไม่เกิน 240 px เก็บเป็น PNG
+  const pickMark = (e) => {
+    const f = e.target.files && e.target.files[0]; e.target.value = "";
+    if (!f) return;
+    const rd = new FileReader();
+    rd.onload = () => pkImg(rd.result).then((im) => {
+      if (!im) return;
+      const s = Math.min(1, 240 / im.naturalHeight, 600 / im.naturalWidth);
+      const c = document.createElement("canvas");
+      c.width = Math.max(1, Math.round(im.naturalWidth * s)); c.height = Math.max(1, Math.round(im.naturalHeight * s));
+      c.getContext("2d").drawImage(im, 0, 0, c.width, c.height);
+      setC("mark", c.toDataURL("image/png"));
+    });
+    rd.readAsDataURL(f);
+  };
 
   React.useEffect(() => {
     try { localStorage.setItem(PK_LS, JSON.stringify({ logo: logo, price: price, contact: contact })); } catch (e) { /* โหมดส่วนตัว */ }
@@ -374,8 +455,9 @@ function PkPosterModal({ lead, stock, quotes, onClose }) {
     return () => { live = false; };
   }, [sp]);
   React.useEffect(() => {
-    if (A && cv.current) pkDraw(cv.current, sp, A, { logo: logo, contact: contact, price: price, disc: pkNum(disc) || 0, title: title, wty: wty.split("\n").map((s) => s.trim()) });
-  }, [A, sp, logo, contact, price, disc, title, wty]);
+    if (A && cv.current) pkDraw(cv.current, sp, A, { logo: logo, contact: contact, price: price, disc: pkNum(disc) || 0, title: title, wty: wty.split("\n").map((s) => s.trim()),
+      co: Object.assign({}, co, { markIm: co.mark ? markIm : null }) });
+  }, [A, sp, logo, contact, price, disc, title, wty, co, markIm]);
 
   const download = () => {
     if (!cv.current) return;
@@ -416,7 +498,7 @@ function PkPosterModal({ lead, stock, quotes, onClose }) {
             <div style={{ width: isMobile ? "auto" : 290, flexShrink: 0, padding: 16, display: "flex", flexDirection: "column", gap: 12, overflowY: "auto" }}>
               <div style={{ background: "var(--surface)", boxShadow: "var(--shadow-sm)", borderRadius: "var(--r-card)", padding: 14, display: "flex", flexDirection: "column", gap: 12 }}>
                 {sw(logo, setLogo, "โลโก้บริษัท")}
-                {sw(contact, setContact, "เบอร์โทร · เว็บไซต์")}
+                {sw(contact, setContact, "ข้อมูลติดต่อ")}
                 {sw(price, setPrice, "แสดงราคา")}
                 {price && (
                   <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
@@ -427,6 +509,42 @@ function PkPosterModal({ lead, stock, quotes, onClose }) {
                       <span style={{ fontSize: 12, color: "var(--text-3)" }}>บาท</span>
                     </div>
                     {pkNum(disc) > 0 && <div style={{ fontSize: 11.5, color: "var(--text-3)" }}>รูปโชว์ราคาเต็ม ฿{pkFmt(sp.sell + (pkNum(disc)))} ขีดฆ่า</div>}
+                  </div>
+                )}
+              </div>
+              <div style={{ background: "var(--surface)", boxShadow: "var(--shadow-sm)", borderRadius: "var(--r-card)", padding: 14, display: "flex", flexDirection: "column", gap: 8 }}>
+                <button type="button" onClick={() => setCoOpen(!coOpen)}
+                  style={{ display: "flex", alignItems: "center", gap: 8, border: "none", background: "none", padding: 0, cursor: "pointer", fontFamily: "inherit", textAlign: "left" }}>
+                  <span style={{ flex: 1, fontSize: 13, fontWeight: 700, color: "var(--text-1)" }}>ข้อมูลบริษัท · ติดต่อ</span>
+                  {coDiff && <span style={{ fontSize: 11, fontWeight: 700, color: "var(--warning, #B45309)" }}>ยังไม่บันทึก</span>}
+                  <span style={{ fontSize: 12, color: "var(--text-3)" }}>{coOpen ? "▲" : "▼"}</span>
+                </button>
+                {coOpen && (
+                  <div style={{ display: "flex", flexDirection: "column", gap: 7 }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                      <div style={{ width: 52, height: 52, borderRadius: "var(--r-tile)", background: "#0c3350", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                        {(co.mark || (A && A.mark)) && <img src={co.mark || A.mark.src} alt="" style={{ maxWidth: 44, maxHeight: 44 }} />}
+                      </div>
+                      <div style={{ display: "flex", flexDirection: "column", gap: 4, alignItems: "flex-start" }}>
+                        <button type="button" className="btn btn-soft" onClick={() => fileRef.current && fileRef.current.click()} style={{ padding: "5px 10px", fontSize: 12 }}>เปลี่ยนรูปโลโก้</button>
+                        {co.mark && <button type="button" onClick={() => setC("mark", "")} style={{ border: "none", background: "none", padding: 0, cursor: "pointer", fontSize: 11.5, color: "var(--text-3)", fontFamily: "inherit" }}>ใช้โลโก้เดิม</button>}
+                      </div>
+                      <input ref={fileRef} type="file" accept="image/*" onChange={pickMark} style={{ display: "none" }} />
+                    </div>
+                    {[["name", "ชื่อบริษัท", "ใส่ + ได้ (เป็นสีเขียว)"], ["tag", "บรรทัดรอง", "เช่น CLEAN ENERGY"], ["tel", "เบอร์โทร", ""], ["line", "LINE", "เช่น @flashplussolar"], ["site", "เว็บไซต์", ""]].map((f) => (
+                      <label key={f[0]} style={{ display: "flex", flexDirection: "column", gap: 3 }}>
+                        <span style={{ fontSize: 11.5, fontWeight: 700, color: "var(--text-2)" }}>{f[1]}</span>
+                        <input value={co[f[0]] || ""} placeholder={f[2]} onChange={(e) => setC(f[0], e.target.value)} style={well} />
+                      </label>
+                    ))}
+                    <div style={{ display: "flex", alignItems: "center", gap: 10, marginTop: 2 }}>
+                      <button type="button" className="btn btn-pri" disabled={!coDiff || coBusy} onClick={saveCo} style={{ padding: "7px 14px", fontSize: 12.5 }}>
+                        {coBusy ? "กำลังบันทึก…" : coDiff ? "บันทึก" : "บันทึกแล้ว"}
+                      </button>
+                      {coCustom && <button type="button" onClick={() => setCo(Object.assign({}, PK_CO_DEF))}
+                        style={{ border: "none", background: "none", padding: 0, cursor: "pointer", fontSize: 12, color: "var(--text-3)", fontFamily: "inherit" }}>คืนค่าบริษัทเดิม</button>}
+                    </div>
+                    <div style={{ fontSize: 11.5, color: "var(--text-3)", lineHeight: 1.45 }}>บันทึกแล้วใช้ทุกเครื่อง · ชื่อ/โลโก้ขึ้นเมื่อเปิด "โลโก้บริษัท" · เบอร์/LINE/เว็บขึ้นเมื่อเปิด "ข้อมูลติดต่อ"</div>
                   </div>
                 )}
               </div>
