@@ -316,7 +316,7 @@ function pkDraw(cv, sp, A, o) {
   const cx = 48,
     cy = 500,
     cw = PK_W - 96,
-    ch = 412;
+    ch = 376;
   g.save();
   g.shadowColor = "rgba(8,30,24,.28)";
   g.shadowBlur = 50;
@@ -409,10 +409,10 @@ function pkDraw(cv, sp, A, o) {
     g.fillStyle = C.mute;
     g.font = "600 22px " + PK_TH;
     g.textAlign = "center";
-    g.fillText(kind, mid, cy + 320);
+    g.fillText(kind, mid, cy + 302);
     pkFit(g, model, "700", 28, PK_TH, half - 56, 16);
     g.fillStyle = C.ink;
-    g.fillText(model, mid, cy + 362);
+    g.fillText(model, mid, cy + 340);
     g.textAlign = "left";
   };
   const pBrand = sp.pItem && sp.pItem.brand || "",
@@ -448,7 +448,7 @@ function pkDraw(cv, sp, A, o) {
     save = kwh * PK_RATE;
   const tiles = [["ผลิตไฟ", "~" + pkFmt(kwh), "หน่วย/ปี", "#F59E0B"], ["ประหยัดค่าไฟ", "~฿" + pkFmt(save), "ต่อปี", C.leaf]];
   if (o.price && sp.sell && save) tiles.push(["คืนทุน", "~" + Math.round(sp.sell / save * 10) / 10, "ปี", C.deep]);
-  const ty = 932,
+  const ty = 896,
     th = 100,
     tg = 18,
     tw = (PK_W - 96 - tg * (tiles.length - 1)) / tiles.length;
@@ -477,7 +477,7 @@ function pkDraw(cv, sp, A, o) {
     g.fillText(t[2], x + 46 + vw + 10, ty + 82);
     void vs;
   });
-  const py = 1052,
+  const py = 1014,
     phh = 112;
   g.save();
   g.shadowColor = "rgba(10,77,104,.35)";
@@ -588,7 +588,7 @@ function pkDraw(cv, sp, A, o) {
     rows[rows.length - 1].push([t, w]);
     rw += w + gap;
   });
-  let cyy = 1184;
+  let cyy = 1158;
   rows.forEach(r => {
     const tot = r.reduce((a, c) => a + c[1], 0) + gap * (r.length - 1);
     let x = (PK_W - tot) / 2;

@@ -232,7 +232,7 @@ function pkDraw(cv, sp, A, o) {
   pkFit(g, sub, "600", 32, PK_TH, PK_W - 104, 20); g.fillStyle = "rgba(255,255,255,.88)"; g.fillText(sub, 52, y + 268);
 
   /* ── การ์ดสินค้า ── */
-  const cx = 48, cy = 500, cw = PK_W - 96, ch = 412;
+  const cx = 48, cy = 500, cw = PK_W - 96, ch = 376;
   g.save(); g.shadowColor = "rgba(8,30,24,.28)"; g.shadowBlur = 50; g.shadowOffsetY = 18;
   pkRR(g, cx, cy, cw, ch, 36); g.fillStyle = "#fff"; g.fill(); g.restore();
   const half = cw / 2;
@@ -272,8 +272,8 @@ function pkDraw(cv, sp, A, o) {
       g.textBaseline = "alphabetic"; g.textAlign = "left";
     }
     g.fillStyle = C.mute; g.font = "600 22px " + PK_TH; g.textAlign = "center";
-    g.fillText(kind, mid, cy + 320);
-    pkFit(g, model, "700", 28, PK_TH, half - 56, 16); g.fillStyle = C.ink; g.fillText(model, mid, cy + 362);
+    g.fillText(kind, mid, cy + 302);
+    pkFit(g, model, "700", 28, PK_TH, half - 56, 16); g.fillStyle = C.ink; g.fillText(model, mid, cy + 340);
     g.textAlign = "left";
   };
   const pBrand = sp.pItem && sp.pItem.brand || "", iItem = inv0 && inv0.item, iBrand = iItem && iItem.brand || "";
@@ -296,7 +296,7 @@ function pkDraw(cv, sp, A, o) {
   const kwh = sp.kwp * PK_YIELD, save = kwh * PK_RATE;
   const tiles = [["ผลิตไฟ", "~" + pkFmt(kwh), "หน่วย/ปี", "#F59E0B"], ["ประหยัดค่าไฟ", "~฿" + pkFmt(save), "ต่อปี", C.leaf]];
   if (o.price && sp.sell && save) tiles.push(["คืนทุน", "~" + (Math.round(sp.sell / save * 10) / 10), "ปี", C.deep]);
-  const ty = 932, th = 100, tg = 18, tw = (PK_W - 96 - tg * (tiles.length - 1)) / tiles.length;
+  const ty = 896, th = 100, tg = 18, tw = (PK_W - 96 - tg * (tiles.length - 1)) / tiles.length;
   tiles.forEach((t, i) => {
     const x = 48 + i * (tw + tg);
     g.save(); g.shadowColor = "rgba(8,30,24,.10)"; g.shadowBlur = 18; g.shadowOffsetY = 6;
@@ -311,7 +311,7 @@ function pkDraw(cv, sp, A, o) {
   });
 
   /* ── แถบราคา ── */
-  const py = 1052, phh = 112;
+  const py = 1014, phh = 112;
   g.save(); g.shadowColor = "rgba(10,77,104,.35)"; g.shadowBlur = 24; g.shadowOffsetY = 10;
   pkRR(g, 48, py, PK_W - 96, phh, 30);
   gr = g.createLinearGradient(48, 0, PK_W - 48, 0); gr.addColorStop(0, "#0A4D68"); gr.addColorStop(1, "#13896A");
@@ -361,7 +361,7 @@ function pkDraw(cv, sp, A, o) {
     if (rw + w > maxW && rows[rows.length - 1].length) { if (rows.length === 2) return; rows.push([]); rw = 0; }
     rows[rows.length - 1].push([t, w]); rw += w + gap;
   });
-  let cyy = 1184;
+  let cyy = 1158;
   rows.forEach((r) => {
     const tot = r.reduce((a, c) => a + c[1], 0) + gap * (r.length - 1);
     let x = (PK_W - tot) / 2;
