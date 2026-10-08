@@ -1697,7 +1697,7 @@ function brStockNeeds() {
   (H.dcMcb || []).forEach((p) => p.a.forEach((a) => add("DC MCB " + a + "A " + (p.p || "2P") + " " + p.v + "VDC", { elecType: "MCB", poles: p.p || "2P", amp: a })));
   (H.rcbo2P || []).forEach((a) => add("RCBO " + a + "A 2P " + (H.rcboMa || 100) + "mA", { elecType: "RCBO", poles: "2P", amp: a }));
   (H.rcbo3P || []).forEach((a) => add("RCBO " + a + "A 3P+N " + (H.rcboMa || 100) + "mA", { elecType: "RCBO", poles: "3P+N", amp: a }));
-  /* MCCB สองตาราง — เมน (ต่อท้าย SHUNT TRIP · ตัว ≥ gfLsigAt ใช้ LSIG) · อินเวอร์เตอร์ · AT ซ้ำหลายเฟรม = เฟรมเล็กสุด */
+  /* MCCB สองตาราง — เมน (ต่อท้าย TM-D · ตัว ≥ gfLsigAt ใช้ LSIG) · อินเวอร์เตอร์ · AT ซ้ำหลายเฟรม = เฟรมเล็กสุด */
   [["mccbMain", "main"], ["mccbInv", "inv"]].forEach(([k, w]) => (P[k] || []).forEach((r) => r.a.forEach((a) => {
     if ((P[k] || []).find((q) => q.a.indexOf(a) >= 0) === r) add(B.mccbName(a, w, w === "main" && a >= (P.gfLsigAt || 1000)), { elecType: "MCCB", poles: "3P", amp: a }); })));
   (P.ctR || []).forEach((r) => add("CT " + r + "/5A", {}));

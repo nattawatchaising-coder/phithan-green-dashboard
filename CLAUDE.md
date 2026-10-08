@@ -139,11 +139,11 @@ deploy อัตโนมัติด้วย Vercel จาก `master` บน 
 ราคาดึงจากคลังด้วย "ชื่อตรงกันทุกตัวอักษร" — ชื่อรายการอัตโนมัติต้องตรงกับชื่อในคลัง (`stock/IV-n`, sku `ELC-nnnn`, cat `electrical`)
 
 ### ตู้ไฟ — งานโครงการ
-- **MCCB/ACB เป็น 3P ทุกตัว** (ผู้ใช้ · ทั้ง 1 และ 3 เฟส) · **MCCB ที่มีขาย = ตาราง เฟรม AF ↔ ขนาด AT + kA (Icu) ต่อเฟรม แยกสองตาราง** (ผู้ใช้): `mccbMain` เมนตู้ AC (รุ่นมี Shunt trip ในตัว) · `mccbInv` อินเวอร์เตอร์ (pairs · kA ในช่อง h · `RULES.mccbAtMain/mccbAtInv` คิดใน setRules · `brkSet(ib, w)` w = main/inv) → เลือก AT แรกที่ ≥ Ir แล้ว AF เล็กสุดที่มี AT นั้น (`mccbFrame`) ชื่อ `mccbName(at, w, lsig)`: อินเวอร์เตอร์ `MCCB 3P 100AF 63AT 25kA` · เมน ต่อท้าย ` SHUNT TRIP` (≥ gfLsigAt = ` LSIG`) ใช้ทั้ง BOQ/SLD (`mccbName0` ไม่มีส่วนท้าย)/แถบยังไม่มีในคลัง · ACB ยังเป็น `ACB 3P 1600AT` · เบรกเกอร์: MCCB ปรับตั้งได้ Ir = กระแสออก × 1.05 ปัดขึ้นทีละ 5 A (84 A → 100AT ตั้ง 90 A) แล้วคิดสายจาก Ir · รายการถึง 1250AT เกินนั้นใช้ ACB 1600–4000
+- **MCCB/ACB เป็น 3P ทุกตัว** (ผู้ใช้ · ทั้ง 1 และ 3 เฟส) · **MCCB ที่มีขาย = ตาราง เฟรม AF ↔ ขนาด AT + kA (Icu) ต่อเฟรม แยกสองตาราง** (ผู้ใช้): `mccbMain` เมนตู้ AC (รุ่นปรับตั้งได้ TM-D เช่น Schneider EasyPact CVS · Shunt trip เป็นอุปกรณ์เสริมแยก) · `mccbInv` อินเวอร์เตอร์ (pairs · kA ในช่อง h · `RULES.mccbAtMain/mccbAtInv` คิดใน setRules · `brkSet(ib, w)` w = main/inv) → เลือก AT แรกที่ ≥ Ir แล้ว AF เล็กสุดที่มี AT นั้น (`mccbFrame`) ชื่อ `mccbName(at, w, lsig)`: อินเวอร์เตอร์ `MCCB 3P 100AF 63AT 25kA` · เมน ต่อท้าย ` TM-D` (กันชื่อชนรุ่นอินเวอร์เตอร์ที่ AF/AT/kA เท่ากัน · ≥ gfLsigAt = ` LSIG`) ใช้ทั้ง BOQ/SLD (`mccbName0` ไม่มีส่วนท้าย)/แถบยังไม่มีในคลัง · ACB ยังเป็น `ACB 3P 1600AT` · เบรกเกอร์: MCCB ปรับตั้งได้ Ir = กระแสออก × 1.05 ปัดขึ้นทีละ 5 A (84 A → 100AT ตั้ง 90 A) แล้วคิดสายจาก Ir · รายการถึง 1250AT เกินนั้นใช้ ACB 1600–4000
 - สายเล็กกว่าเบรกเกอร์ = แนะนำสาย ไม่ลดเบรกเกอร์ให้เอง (ปุ่ม "ใช้สายตามเบรกเกอร์")
 - ระบบล่อฟ้า (ไม่มี / มี·แผงห่างพอ / มี·แผงใกล้) — "แผงใกล้" = SPD Type 1+2 ทั้ง AC และ DC
 - ฟิวส์ใบมีด NH00 กันหลัง AC SPD: Type 2 = 32 A · Type 1+2 = 125 A (ไม่ต้องมีถ้าเมน ≤ 125AT)
-- Ground Fault: GFR + ZCT + Shunt trip เมื่อเมน < 1000AT — **MCCB เมนมาจากตาราง `mccbMain` = รุ่นมี Shunt trip ในตัวเสมอ** ไม่มีบรรทัด SHUNT TRIP 220VAC แยกแล้ว · ≥ 1000AT ใช้ trip unit LSIG · Power Meter PM2230 + CT ตามเมน · MCB 6A กันสายวัด · ปิดได้ทีละอย่าง
+- Ground Fault: GFR + ZCT + Shunt trip เมื่อเมน < 1000AT — MCCB เมนจากตาราง `mccbMain` + บรรทัด **`SHUNT TRIP 220VAC`** แยก (คอยล์ MX LV429387 ในคลัง · ผู้ใช้: CVS ไม่มี Shunt trip ในตัว ต้องซื้ออุปกรณ์เสริม) · ≥ 1000AT ใช้ trip unit LSIG · Power Meter PM2230 + CT ตามเมน · MCB 6A กันสายวัด · ปิดได้ทีละอย่าง
 - ใบรายการแยกหมวดละตู้: ตู้ไฟ AC / ตู้ไฟ DC / ตู้ไฟ DATA LOGGER
 
 ### ตู้ไฟ — งานบ้าน (คิดแบบงานโครงการ แต่ต่างตรงนี้)

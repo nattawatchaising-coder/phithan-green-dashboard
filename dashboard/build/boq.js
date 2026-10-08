@@ -3272,7 +3272,7 @@ function BOQEditor({
           unit: "ตัว",
           auto: 1,
           ok: k.ok,
-          why: tag + "เมน · อินเวอร์เตอร์ " + nos.join(", ") + " รวม " + k.txt + (gIn ? " · trip unit LSIG มี Ground Fault ในตัว" : isM ? " · รุ่นมี Shunt trip ในตัว" + (bOn("gf") ? " รับสัญญาณตัดจาก GFR" : "") : "")
+          why: tag + "เมน · อินเวอร์เตอร์ " + nos.join(", ") + " รวม " + k.txt + (gIn ? " · trip unit LSIG มี Ground Fault ในตัว" : isM ? " · รุ่นปรับตั้งได้ (TM-D)" : "")
         });
       }
       nos.forEach(no => {
@@ -3353,6 +3353,13 @@ function BOQEditor({
           unit: "ตัว",
           auto: 1,
           why: tag + "ร้อยสายเฟส + N ของเมน " + mainAt + " AT ทั้งชุด (รูต้องใหญ่พอกับสายจริง)"
+        });
+        out.ac.push({
+          name: "SHUNT TRIP 220VAC",
+          qty: 1,
+          unit: "ตัว",
+          auto: 1,
+          why: tag + "คอยล์สั่งตัด MCCB เมน " + mainAt + " AT รับสัญญาณจาก GFR (อุปกรณ์เสริมของ MCCB · ตรงรุ่นเฟรม)"
         });
       }
       if (bOn("pm") && mainAt > 0) {

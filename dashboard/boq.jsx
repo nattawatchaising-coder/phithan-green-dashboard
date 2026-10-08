@@ -775,7 +775,7 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock, ver, verName, p3Vers
      Ir = กระแสออก × 1.05 ปัดขึ้นทีละ 5 A (84 A → 90 A) · In = ขนาดเฟรมมาตรฐานเล็กสุดที่ ≥ Ir (90 A → 100 AT ตั้งที่ 0.9)
      สายไฟคิดจาก Ir — สายรับ ≥ Ir เบรกเกอร์ตัดก่อนสายร้อนเสมอ */
   const RU = window.BOQ.RULES;   // ตั้งค่าคำนวณ BOQ (หน้าคลัง) — ค่าตั้งต้นเท่ากับตัวเลขเดิมในคอมเมนต์
-  const brkAts = (w) => (w === "main" ? RU.mccbAtMain : RU.mccbAtInv);   // MCCB เมน (Shunt trip ในตัว) / อินเวอร์เตอร์ แยกตาราง
+  const brkAts = (w) => (w === "main" ? RU.mccbAtMain : RU.mccbAtInv);   // MCCB เมน (ปรับตั้งได้ TM-D) / อินเวอร์เตอร์ แยกตาราง
   const ACB_AT = RU.acbAt;           // เกิน MCCB ตัวใหญ่สุด → ACB
   const GF_IN_AT = RU.gfLsigAt;   // เมนตั้งแต่ขนาดนี้ใช้ trip unit LSIG (Ground Fault ในตัว) — วสท. บังคับ GFP ที่เมน ≥ 1000 A
   const brkSet = (ib, w) => {
@@ -1930,10 +1930,10 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock, ver, verName, p3Vers
         if (m) brkOfCab[cs.indexOf(m)] = Object.assign({ who: "เมนตู้ AC" }, k);
         // เมน ≥ 1000 AT ใช้เบรกเกอร์ trip unit อิเล็กทรอนิกส์ LSIG — มี Ground Fault ในตัว ไม่ต้องมี GFR/ZCT/Shunt trip แยก
         const gIn = bOn("gf") && k.at >= GF_IN_AT;
-        /* MCCB เมน = ตาราง "MCCB สำหรับเมน" รุ่นมี Shunt trip ในตัว (GFR สั่งตัดได้ ไม่ต้องซื้อคอยล์แยก) · ≥ gfLsigAt = LSIG */
+        /* MCCB เมน = ตาราง "MCCB สำหรับเมน" รุ่นปรับตั้งได้ TM-D · Shunt trip ใส่เป็นอุปกรณ์เสริมแยก (บรรทัด SHUNT TRIP 220VAC ในส่วน Ground Fault) · ≥ gfLsigAt = LSIG */
         const isM = k.kind === "MCCB" && !k.nm;
         out.ac.push({ name: k.nm ? k.nm + (gIn ? " LSIG" : "") : k.kind === "ACB" ? "ACB 3P " + k.at + "AT" + (gIn ? " LSIG" : "") : window.BOQ.mccbName(k.at, "main", gIn), qty: 1, unit: "ตัว", auto: 1, ok: k.ok,
-          why: tag + "เมน · อินเวอร์เตอร์ " + nos.join(", ") + " รวม " + k.txt + (gIn ? " · trip unit LSIG มี Ground Fault ในตัว" : isM ? " · รุ่นมี Shunt trip ในตัว" + (bOn("gf") ? " รับสัญญาณตัดจาก GFR" : "") : "") });
+          why: tag + "เมน · อินเวอร์เตอร์ " + nos.join(", ") + " รวม " + k.txt + (gIn ? " · trip unit LSIG มี Ground Fault ในตัว" : isM ? " · รุ่นปรับตั้งได้ (TM-D)" : "") });
       }
       nos.forEach((no) => {
         const u = invUnits[no - 1]; if (!u || !u.outA) return;
@@ -1972,6 +1972,7 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock, ver, verName, p3Vers
         const zd = RU.zctD[Math.min(zi < 0 ? RU.zctAt.length : zi, RU.zctD.length - 1)];
         out.ac.push({ name: "GROUND FAULT RELAY (GFR)", qty: 1, unit: "ตัว", auto: 1, why: tag + "ตรวจกระแสรั่วลงดิน สั่งตัด MCCB เมน" });
         out.ac.push({ name: "ZCT Φ" + zd + "mm", qty: 1, unit: "ตัว", auto: 1, why: tag + "ร้อยสายเฟส + N ของเมน " + mainAt + " AT ทั้งชุด (รูต้องใหญ่พอกับสายจริง)" });
+        out.ac.push({ name: "SHUNT TRIP 220VAC", qty: 1, unit: "ตัว", auto: 1, why: tag + "คอยล์สั่งตัด MCCB เมน " + mainAt + " AT รับสัญญาณจาก GFR (อุปกรณ์เสริมของ MCCB · ตรงรุ่นเฟรม)" });
       }
       /* Power Meter PM2230 — CT ตามขนาดเมน (อัตราส่วนมาตรฐานแรกที่ ≥ In ของ MCCB เมน /5A) เฟสละ 1 ตัว */
       if (bOn("pm") && mainAt > 0) {

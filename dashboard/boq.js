@@ -58,9 +58,9 @@
     { sec: "acBoard", g: "งานโครงการ", key: "mccbIrK", th: "MCCB ตั้งกระแส Ir = กระแสออก ×", unit: "เท่า", def: 1.05, min: 1 },
     { sec: "acBoard", g: "งานโครงการ", key: "mccbStep", th: "ปัด Ir ขึ้นทีละ", unit: "A", def: 5, min: 1 },
     /* MCCB 3P ขายเป็นเฟรม AF → ขนาด AT ในเฟรมนั้น + kA (Icu) ต่อเฟรม (เก็บใน h) · เลือก AT แรกที่ ≥ Ir แล้วใช้ AF เล็กสุดที่มี AT นั้น
-       แยกสองตาราง (ผู้ใช้): เมนตู้ AC = รุ่นมี Shunt trip ในตัว ("MCCB 3P 250AF 125AT 36kA SHUNT TRIP" · ไม่มีคอยล์แยก)
+       แยกสองตาราง (ผู้ใช้): เมนตู้ AC = รุ่นปรับตั้งได้ TM-D ("MCCB 3P 250AF 160AT 36kA TM-D" · Shunt trip เป็นอุปกรณ์เสริมแยก "SHUNT TRIP 220VAC")
        อินเวอร์เตอร์ = MCCB ธรรมดา · RULES.mccbAtMain/mccbAtInv = ทุก AT ของตาราง (คำนวณใน setRules) */
-    { sec: "acBoard", g: "งานโครงการ", key: "mccbMain", th: "MCCB สำหรับเมนตู้ AC ที่มีขาย (รุ่นมี Shunt trip ในตัว)", unit: "AF", unitA: "AT", vName: "เฟรม", type: "pairs", holder: "kA (Icu)", holderPh: "เช่น 36",
+    { sec: "acBoard", g: "งานโครงการ", key: "mccbMain", th: "MCCB สำหรับเมนตู้ AC ที่มีขาย (รุ่นปรับตั้งได้ TM-D)", unit: "AF", unitA: "AT", vName: "เฟรม", type: "pairs", holder: "kA (Icu)", holderPh: "เช่น 36",
       def: [{ v: 100, h: "25", a: [16, 20, 25, 32, 40, 50, 63, 80, 100] }, { v: 250, h: "36", a: [100, 125, 150, 160, 175, 200, 225, 250] },
         { v: 400, h: "50", a: [250, 300, 320, 350, 400] }, { v: 630, h: "50", a: [400, 500, 630] }, { v: 800, h: "50", a: [700, 800] }, { v: 1250, h: "50", a: [1000, 1250] }] },
     { sec: "acBoard", g: "งานโครงการ", key: "mccbInv", th: "MCCB สำหรับอินเวอร์เตอร์ที่มีขาย", unit: "AF", unitA: "AT", vName: "เฟรม", type: "pairs", holder: "kA (Icu)", holderPh: "เช่น 25",
@@ -287,9 +287,9 @@
     const r = pairPick0(P, needV, needA); r.okP = okP; return r;
   }
   /* MCCB: w = "main" (เมนตู้ AC) / อื่น = อินเวอร์เตอร์ · เฟรม AF เล็กสุดที่มีขนาด AT นี้ + kA ของเฟรม · ไม่มีในตาราง = ชื่อแบบไม่มี AF
-     เมน: ต่อท้าย " SHUNT TRIP" (รุ่นในตัว) · lsig = trip unit LSIG แทน */
+     เมน: ต่อท้าย " TM-D" (ปรับตั้งได้ · ชื่อไม่ชนกับรุ่นอินเวอร์เตอร์ที่ AF/AT/kA เท่ากัน) · lsig = trip unit LSIG แทน */
   function mccbFrame(at, w) { const r = (RULES[w === "main" ? "mccbMain" : "mccbInv"] || []).find((p) => p.a.indexOf(+at) >= 0); return r ? { af: r.v, ka: r.h || "" } : null; }
-  function mccbName(at, w, lsig) { return mccbName0(at, w) + (w === "main" ? (lsig ? " LSIG" : " SHUNT TRIP") : ""); }
+  function mccbName(at, w, lsig) { return mccbName0(at, w) + (w === "main" ? (lsig ? " LSIG" : " TM-D") : ""); }
   function mccbName0(at, w) { const f = mccbFrame(at, w); return "MCCB 3P " + (f ? f.af + "AF " : "") + at + "AT" + (f && f.ka ? " " + String(f.ka).replace(/\s*kA$/i, "") + "kA" : ""); }
   /* ชื่อ SPD ตามที่เลือกได้ (ต้องตรงกับชื่อในคลัง) · Type II In = Imax/2 */
   function spdName(kind, s) {
