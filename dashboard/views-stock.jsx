@@ -332,7 +332,8 @@ function StockView({ stock, onResetAll, onMenuOpen, currentUser, jobs, priceStor
                 <CatChip active={tab === "rules"} onClick={() => setTab("rules")} label="ตั้งค่าคำนวณ BOQ" color="#F59E0B" />
               </React.Fragment>
             )}
-            {!isMobile && !isAmp && !isCond && !isOm && (
+            {/* แท็บสต็อกเลือกหมวดจากการ์ด + เส้นทาง (ย้อนกลับ › หมวด) แล้ว — แถบชิปหมวด/หมวดย่อยเอาออก (ผู้ใช้ ต.ค. 2026) เหลือแค่แท็บราคา BOQ */}
+            {!isMobile && isPrices && !isAmp && !isCond && !isOm && (
               <button onClick={toggleCat} title={catOpen ? "ซ่อนตัวกรองหมวด" : "แสดงตัวกรองหมวด"}
                 style={{ marginLeft: "auto", display: "inline-flex", alignItems: "center", gap: 6, padding: "6px 13px", borderRadius: "var(--r-pill)",
                   background: "var(--surface2)", boxShadow: "var(--shadow-sm)", color: "var(--text-2)",
@@ -349,7 +350,7 @@ function StockView({ stock, onResetAll, onMenuOpen, currentUser, jobs, priceStor
           {isMobile && !isPrices && !isAmp && !isCond && !isOm && <div style={{ marginTop: 10 }}><CatDropdown cat={cat} setCat={setCat} items={items} cats={SF.STOCK_CATS} /></div>}
           {isMobile && isPrices && <div style={{ marginTop: 10 }}><Dropdown value={priceGrp} onChange={setPriceGrp} options={priceGroups.map((g) => ({ value: g, label: g === "all" ? "ทั้งหมด" : (PG_TH[g] || g) }))} /></div>}
           {/* เดสก์ท็อป: ชิปหมวด — ย่อ/ขยายแบบลื่น (max-height + opacity) */}
-          {!isMobile && !isAmp && !isCond && !isOm && (
+          {!isMobile && isPrices && !isAmp && !isCond && !isOm && (
             <div style={{ overflow: "hidden",
               maxHeight: catOpen ? (!isPrices && subChips.length ? 92 : 48) : 0,
               opacity: catOpen ? 1 : 0,

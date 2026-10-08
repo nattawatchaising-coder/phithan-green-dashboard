@@ -576,7 +576,7 @@ function StockView({
     onClick: () => setTab("rules"),
     label: "\u0E15\u0E31\u0E49\u0E07\u0E04\u0E48\u0E32\u0E04\u0E33\u0E19\u0E27\u0E13 BOQ",
     color: "#F59E0B"
-  })), !isMobile && !isAmp && !isCond && !isOm && React.createElement("button", {
+  })), !isMobile && isPrices && !isAmp && !isCond && !isOm && React.createElement("button", {
     onClick: toggleCat,
     title: catOpen ? "ซ่อนตัวกรองหมวด" : "แสดงตัวกรองหมวด",
     style: {
@@ -627,7 +627,7 @@ function StockView({
       value: g,
       label: g === "all" ? "ทั้งหมด" : PG_TH[g] || g
     }))
-  })), !isMobile && !isAmp && !isCond && !isOm && React.createElement("div", {
+  })), !isMobile && isPrices && !isAmp && !isCond && !isOm && React.createElement("div", {
     style: {
       overflow: "hidden",
       maxHeight: catOpen ? !isPrices && subChips.length ? 92 : 48 : 0,
