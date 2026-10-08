@@ -2769,7 +2769,7 @@ function BOQEditor({
     });
     return m;
   }, [cableTypeOptions]);
-  const gndSizeFor = sz => sz <= 35 ? 10 : sz <= 50 ? 16 : sz <= 95 ? 25 : sz <= 185 ? 35 : sz <= 300 ? 50 : sz <= 500 ? 70 : 95;
+  const gndSizeFor = sz => sz < RU.gndSmallBelow ? RU.gndSmall : sz <= 35 ? 10 : sz <= 50 ? 16 : sz <= 95 ? 25 : sz <= 185 ? 35 : sz <= 300 ? 50 : sz <= 500 ? 70 : 95;
   const gndNameFor = sz => {
     const g = gndSizeFor(sz);
     const n = "IEC01(THW)1Cx" + g + " SQ.MM. Y/G";

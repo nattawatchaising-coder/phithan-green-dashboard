@@ -1632,7 +1632,8 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock, ver, verName, p3Vers
     const m = {}; cableTypeOptions.forEach((o) => { m[cabNorm(o.value)] = o.value; }); return m;
   }, [cableTypeOptions]);
   // ตารางที่ 4.1 ขนาดต่ำสุดของสายต่อหลักดิน (ตร.มม.) ตามขนาดตัวนำประธาน
-  const gndSizeFor = (sz) => (sz <= 35 ? 10 : sz <= 50 ? 16 : sz <= 95 ? 25 : sz <= 185 ? 35 : sz <= 300 ? 50 : sz <= 500 ? 70 : 95);
+  /* สายประธาน (รวมทุกชุด) เล็กกว่า gndSmallBelow (25) → กราวด์ gndSmall (6) ตามที่ผู้ใช้ใช้หน้างาน (ต.ค. 2026) */
+  const gndSizeFor = (sz) => (sz < RU.gndSmallBelow ? RU.gndSmall : sz <= 35 ? 10 : sz <= 50 ? 16 : sz <= 95 ? 25 : sz <= 185 ? 35 : sz <= 300 ? 50 : sz <= 500 ? 70 : 95);
   const gndNameFor = (sz) => { const g = gndSizeFor(sz); const n = "IEC01(THW)1Cx" + g + " SQ.MM. Y/G"; return cabStockName[cabNorm(n)] || n; };
   const isPowerCab = (c) => {
     const n = (c.name || "").toUpperCase();

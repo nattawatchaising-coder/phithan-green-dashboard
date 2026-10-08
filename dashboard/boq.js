@@ -92,6 +92,8 @@
     /* ── สาย AC ── */
     { sec: "acWire", key: "wireK", th: "สาย AC เลือกขนาดจากกระแส × (โหลดต่อเนื่อง)", unit: "เท่า", def: 1.25, min: 1 },
     { sec: "acWire", key: "acTempK", th: "ตัวคูณลดพิกัดสาย AC ตามอุณหภูมิแวดล้อม (ตาราง วสท. อ้างอิง 40°C · ใต้หลังคาร้อน ~0.87)", unit: "เท่า", def: 1, min: 0.3, max: 1.2 },
+    { sec: "acWire", key: "gndSmallBelow", th: "สายประธานเล็กกว่านี้ ใช้สายกราวด์ขนาดเล็ก (ไม่ใช้ตารางสายต่อหลักดิน)", unit: "ตร.มม.", def: 25, min: 0 },
+    { sec: "acWire", key: "gndSmall", th: "ขนาดสายกราวด์เมื่อสายประธานเล็ก", unit: "ตร.มม.", def: 6, min: 1 },
     { sec: "acWire", key: "vdAc", th: "แรงดันตกฝั่ง AC ไม่เกิน", unit: "%", def: 3, min: 0.1, max: 20 },
     { sec: "acWire", key: "vdTotal", th: "แรงดันตกรวม DC + AC ไม่เกิน", unit: "%", def: 5, min: 0.1, max: 30 },
     /* ── รางไฟ ── */
