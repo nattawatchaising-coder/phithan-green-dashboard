@@ -237,7 +237,7 @@ function pkDraw(cv, sp, A, o) {
   pkRR(g, cx, cy, cw, ch, 36); g.fillStyle = "#fff"; g.fill(); g.restore();
   const half = cw / 2;
   // cnt = จำนวน (วงกลม ×n มุมขวาล่างของรูป) · spec = กำลัง (ป้ายติดมุมซ้ายล่างของรูป เช่น 650 W) — ผู้ใช้: ดูน่าสนใจกว่าป้ายใต้ชื่อรุ่น
-  const prod = (i, logo, brand, photo, model, kind, cnt, spec) => {
+  const prod = (i, logo, brand, photo, model, kind, cnt, spec, unit) => {
     const x = cx + i * half, mid = x + half / 2;
     // พื้นอ่อนหลังรูป
     pkRR(g, x + 24, cy + 24, half - 48, 238, 26);
@@ -252,24 +252,22 @@ function pkDraw(cv, sp, A, o) {
     }
     const pr = x + half - 24, pb = cy + 262;   // ขวา/ล่างของพื้นรูป
     if (spec) {
-      g.font = "800 30px " + PK_NUM; const sw2 = g.measureText(spec).width + 34;
-      g.save(); g.shadowColor = "rgba(10,40,60,.3)"; g.shadowBlur = 12; g.shadowOffsetY = 4;
-      pkRR(g, x + 40, pb - 62, sw2, 46, 23);
-      const sg = g.createLinearGradient(0, pb - 62, 0, pb - 16); sg.addColorStop(0, "#0E5E80"); sg.addColorStop(1, "#0A4D68");
-      g.fillStyle = sg; g.fill(); g.restore();
-      g.fillStyle = "#fff"; g.textBaseline = "middle"; g.fillText(spec, x + 57, pb - 38); g.textBaseline = "alphabetic";
+      // กำลังแผง/อินเวอร์เตอร์ ตัวเลขใหญ่ลอยมุมซ้ายล่าง ไม่มีกรอบ (คู่กับจำนวนฝั่งขวา)
+      const sp2 = spec.lastIndexOf(" "), num = sp2 > 0 ? spec.slice(0, sp2) : spec, su = sp2 > 0 ? spec.slice(sp2 + 1) : "";
+      g.font = "700 22px " + PK_NUM; const suw = su ? g.measureText(su).width + 6 : 0;
+      let fs = 56; g.font = "800 " + fs + "px " + PK_NUM;
+      while (fs > 28 && g.measureText(num).width + suw > half / 2 - 40) { fs -= 2; g.font = "800 " + fs + "px " + PK_NUM; }
+      const nw2 = g.measureText(num).width;
+      g.fillStyle = C.leaf; g.fillText(num, x + 42, pb - 18);
+      if (su) { g.font = "700 22px " + PK_NUM; g.fillStyle = C.mute; g.fillText(su, x + 48 + nw2, pb - 22); }
     }
     if (cnt) {
-      const t = "×" + cnt, R = 38, bx = pr - 18 - R, by = pb - 18 - R;
-      g.save(); g.shadowColor = "rgba(27,155,117,.45)"; g.shadowBlur = 16; g.shadowOffsetY = 5;
-      g.beginPath(); g.arc(bx, by, R, 0, Math.PI * 2);
-      const cg = g.createLinearGradient(0, by - R, 0, by + R); cg.addColorStop(0, "#2DBE8F"); cg.addColorStop(1, C.leaf);
-      g.fillStyle = cg; g.fill(); g.restore();
-      g.lineWidth = 4; g.strokeStyle = "#fff"; g.beginPath(); g.arc(bx, by, R, 0, Math.PI * 2); g.stroke();
-      let fs = 34; g.font = "800 " + fs + "px " + PK_NUM;
-      while (fs > 18 && g.measureText(t).width > R * 1.6) { fs -= 2; g.font = "800 " + fs + "px " + PK_NUM; }
-      g.fillStyle = "#fff"; g.textAlign = "center"; g.textBaseline = "middle"; g.fillText(t, bx, by + 1);
-      g.textBaseline = "alphabetic"; g.textAlign = "left";
+      // ตัวเลขใหญ่ลอยมุมขวาล่าง ไม่มีกรอบ
+      g.textAlign = "right"; g.textBaseline = "alphabetic";
+      g.font = "700 22px " + PK_TH; const uw = g.measureText(unit).width;
+      g.fillStyle = C.mute; g.fillText(unit, pr - 18, pb - 22);
+      g.font = "800 64px " + PK_NUM; g.fillStyle = C.deep; g.fillText("×" + cnt, pr - 26 - uw, pb - 18);
+      g.textAlign = "left";
     }
     g.fillStyle = C.mute; g.font = "600 22px " + PK_TH; g.textAlign = "center";
     g.fillText(kind, mid, cy + 302);
@@ -277,12 +275,12 @@ function pkDraw(cv, sp, A, o) {
     g.textAlign = "left";
   };
   const pBrand = sp.pItem && sp.pItem.brand || "", iItem = inv0 && inv0.item, iBrand = iItem && iItem.brand || "";
-  prod(0, A.pLogo, pBrand, A.pPhoto, (sp.pItem && sp.pItem.model) || pkSplitModel(sp.panelName, pBrand), "แผงโซลาร์เซลล์", sp.n, sp.wp ? sp.wp + " W" : "");
+  prod(0, A.pLogo, pBrand, A.pPhoto, (sp.pItem && sp.pItem.model) || pkSplitModel(sp.panelName, pBrand), "แผงโซลาร์เซลล์", sp.n, sp.wp ? sp.wp + " W" : "", "แผ่น");
   if (inv0) {
     const nInv = sp.invs.reduce((s, v) => s + (+v.count || 0), 0);
     const kws = sp.invs.map((v) => v.kw).filter(Boolean);
     const spec = kws.length ? kws.filter((k, j) => kws.indexOf(k) === j).join(" + ") + " kW" : "";
-    prod(1, A.iLogo, iBrand, A.iPhoto, (iItem && iItem.model) || pkSplitModel(inv0.name, iBrand), "อินเวอร์เตอร์", nInv, spec);
+    prod(1, A.iLogo, iBrand, A.iPhoto, (iItem && iItem.model) || pkSplitModel(inv0.name, iBrand), "อินเวอร์เตอร์", nInv, spec, "เครื่อง");
   } else {
     prod(1, null, "", A.iPhoto, "ไมโครอินเวอร์เตอร์", "อินเวอร์เตอร์", 0, "");
   }
