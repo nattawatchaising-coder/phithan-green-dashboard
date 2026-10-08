@@ -2168,7 +2168,7 @@ function p3SldModel(st, job, design) {
     const lsig = mainA >= 1000;
     const pm = !home;
     /* กันหลัง AC SPD ตามเงื่อนไข BOQ: งานบ้าน (Type II) = MCB · Type I+II และเมน ≤ nhT12 = ไม่ต้องมี · อื่น ๆ = ฟิวส์ NH00 gG */
-    const spdBk = !R ? (mainA > 125 ? "AC FUSE NH00 gG 32A" : home ? "MCB " + (nPh === 3 ? "3P" : "2P") + " 32A" : "")
+    const spdBk = !R ? (mainA > 125 ? "AC FUSE NH00 gG 63A" : home ? "MCB " + (nPh === 3 ? "3P" : "2P") + " 32A" : "")
       : home && !lps ? "MCB " + (nPh === 3 ? "3P" : "2P") + " " + R.homeSpdMcb + "A"
       : lps && mainA <= R.nhT12 ? "" : "AC FUSE NH00 gG " + (lps ? R.nhT12 : R.nhT2) + "A";
     /* สายดินอุปกรณ์ตามขนาดเครื่องป้องกันเมน (แนวตาราง วสท.) · SPD Type II ต้องไม่ต่ำกว่า 6 mm² */

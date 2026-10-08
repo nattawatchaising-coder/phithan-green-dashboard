@@ -3359,18 +3359,12 @@ function BOQEditor({
           auto: 1,
           why: tag + "ฟิวส์ใบมีดกันหลัง SPD เส้นไฟละ 1 ตัว (ไม่ใส่ที่ N)" + (lps ? " — Type 1+2 ต้องทนกระแสฟ้าผ่า จึงใช้ " + fA + " A (ตรวจ max backup fuse ในสเปค SPD)" : " — Type 2 ใช้ " + fA + " A (ไม่เกิน max backup fuse ในสเปค SPD)")
         });
-        out.ac.push(ph === 3 ? {
+        out.ac.push({
           name: "FUSE BASE NH00 3P 160A",
           qty: 1,
           unit: "ตัว",
           auto: 1,
-          why: tag + "ฐานฟิวส์ใบมีด NH00 3P แบบมีมือจับ ใส่ฟิวส์ครบ 3 เส้นไฟ"
-        } : {
-          name: "FUSE BASE NH00 1P",
-          qty: ph,
-          unit: "ตัว",
-          auto: 1,
-          why: tag + "ฐานฟิวส์ใบมีด NH00"
+          why: tag + "ฐานฟิวส์ใบมีด NH00 3 ช่องแบบมีมือจับ" + (ph === 3 ? " ใส่ฟิวส์ครบ 3 เส้นไฟ" : " (1 เฟสใช้ช่องเดียว)")
         });
       }
       if (bOn("gf") && mainAt > 0 && mainAt < GF_IN_AT) {

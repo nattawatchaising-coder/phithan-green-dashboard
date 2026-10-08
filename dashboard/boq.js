@@ -75,7 +75,7 @@
     { sec: "acBoard", g: "ทุกงาน", key: "acUc1", th: "AC SPD 1 เฟส · Uc ไม่ต่ำกว่า (ขั้ว 2P / 1P+N)", unit: "V", def: 275, min: 1 },
     { sec: "acBoard", g: "ทุกงาน", key: "acUc3", th: "AC SPD 3 เฟส · Uc ไม่ต่ำกว่า (ขั้ว 3P+N / 4P)", unit: "V", def: 385, min: 1 },
     { sec: "acBoard", g: "งานโครงการ", key: "acIimp", th: "AC SPD Type I+II · Iimp ไม่ต่ำกว่า (ต่อขั้ว)", unit: "kA", def: 12.5, min: 0.1 },
-    { sec: "acBoard", g: "งานโครงการ", key: "nhT2", th: "ฟิวส์ NH00 กันหลัง AC SPD Type 2", unit: "A", def: 32, min: 1 },
+    { sec: "acBoard", g: "งานโครงการ", key: "nhT2", th: "ฟิวส์ NH00 กันหลัง AC SPD Type 2", unit: "A", def: 63, min: 1 },
     { sec: "acBoard", g: "งานโครงการ", key: "nhT12", th: "ฟิวส์ NH00 กันหลัง AC SPD Type 1+2 (เมนไม่เกินค่านี้ไม่ต้องมีฟิวส์)", unit: "A", def: 125, min: 1 },
     { sec: "acBoard", g: "งานโครงการ", key: "ctR", th: "อัตราส่วน CT ของ Power Meter ที่มีขาย (/5A · เลือกตัวแรกที่ ≥ เมน)", unit: "A", type: "nums", def: [100, 150, 200, 250, 300, 400, 500, 600, 800, 1000, 1200, 1250, 1500, 1600, 2000, 2500, 3000, 4000] },
     { sec: "acBoard", g: "งานโครงการ", key: "pmMcb", th: "MCB กันสายวัดแรงดัน PM2230 / ไฟเลี้ยง GFR", unit: "A", def: 6, min: 1 },

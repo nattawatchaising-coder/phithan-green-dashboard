@@ -1860,7 +1860,7 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock, ver, verName, p3Vers
      เบรกเกอร์ (วสท.): Ib ≤ Ir ≤ Iz — MCCB ปรับตั้งได้ ดู brkSet (84 A → 100 AT ตั้ง 90 A) · สายคิดจาก Ir
        ถ้าเลือกสายเองเล็กกว่า Ir ไม่ลดเบรกเกอร์ แต่แนะนำสายขนาดเล็กสุดที่รับ ≥ Ir ในหัวข้อสายไฟ (กดใช้เอง → c.minA)
        (เบรกเกอร์ใหญ่กว่าที่สายรับได้ สายจะร้อนจนฉนวนเสียก่อนเบรกเกอร์ตัด)
-     SPD AC Type 2 ตู้ละ 1 ตัว + ฟิวส์ใบมีด NH00 gG 32A กันหลัง SPD ทุกเส้นไฟ (L)
+     SPD AC Type 2 ตู้ละ 1 ตัว + ฟิวส์ใบมีด NH00 gG 63A กันหลัง SPD ทุกเส้นไฟ (L)
      ฝั่ง DC ต่อสตริง: ฟิวส์ gPV ขั้ว + และ − (IEC 62548: 1.5·Isc ≤ In ≤ 2.4·Isc) · SPD DC Type 2 สตริงละ 1 ตัว
        แรงดันพิกัด ≥ Voc สตริง × 1.1 (เผื่อแรงดันขึ้นตอนแผงเย็น) */
   const DCF_P = RU.dcFuse;   // ฟิวส์ gPV ที่มีขายเป็นคู่ แรงดัน ↔ ขนาด A · SPD/DC MCB เป็นชุด แรงดัน + ขั้ว ↔ kA/A (RU.dcSpd2 ฯลฯ)
@@ -1951,7 +1951,7 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock, ver, verName, p3Vers
           why: tag + "อินเวอร์เตอร์ตัวที่ " + no + " · " + k.txt + (homeOne ? " · งานบ้านอินเวอร์เตอร์ตัวเดียว ต่อเข้าเบรกเกอร์นี้เลย ไม่มีเมนแยก" : "") });
         if (k.nm2) out.ac.push({ name: k.nm2, qty: 1, unit: "ตัว", auto: 1, why: tag + "กันไฟรั่วคู่กับ " + k.nm + " (RCCB ไม่ตัดกระแสเกิน · ขนาดต้อง ≥ MCB)" });
       });
-      // ฟิวส์กันหลัง SPD = ฟิวส์ใบมีด NH00 gG — Type 2 = 32 A · Type 1+2 = 125 A (ต้องทนกระแสฟ้าผ่า)
+      // ฟิวส์กันหลัง SPD = ฟิวส์ใบมีด NH00 gG — Type 2 = 63 A (ขนาดเล็กสุดของ HABER ที่มีขาย) · Type 1+2 = 125 A (ต้องทนกระแสฟ้าผ่า)
       // Type 1+2: MCCB เมนตู้ ≤ 125 AT กันหลัง SPD ได้เอง ไม่ต้องมีฟิวส์
       const fA = lps ? RU.nhT12 : RU.nhT2;
       const noFuse = lps && mainAt > 0 && mainAt <= RU.nhT12;
@@ -1970,10 +1970,9 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock, ver, verName, p3Vers
         out.ac.push({ name: "AC FUSE gG " + fA + "A NH00", qty: ph, unit: "ตัว", auto: 1,
           why: tag + "ฟิวส์ใบมีดกันหลัง SPD เส้นไฟละ 1 ตัว (ไม่ใส่ที่ N)"
             + (lps ? " — Type 1+2 ต้องทนกระแสฟ้าผ่า จึงใช้ " + fA + " A (ตรวจ max backup fuse ในสเปค SPD)" : " — Type 2 ใช้ " + fA + " A (ไม่เกิน max backup fuse ในสเปค SPD)") });
-        // 3 เฟส = ฐานฟิวส์ 3P แบบมีมือจับตัวเดียว (HABER HR17-160 ที่มีขาย) · 1 เฟส = ฐาน 1P
-        out.ac.push(ph === 3
-          ? { name: "FUSE BASE NH00 3P 160A", qty: 1, unit: "ตัว", auto: 1, why: tag + "ฐานฟิวส์ใบมีด NH00 3P แบบมีมือจับ ใส่ฟิวส์ครบ 3 เส้นไฟ" }
-          : { name: "FUSE BASE NH00 1P", qty: ph, unit: "ตัว", auto: 1, why: tag + "ฐานฟิวส์ใบมีด NH00" });
+        // ฐานฟิวส์ = HABER HR17-160 แบบ 3 ช่องมีมือจับตัวเดียว (ของที่มีขาย · ผู้ใช้ ต.ค. 2026 เลิกใช้ฐาน 1P) — 1 เฟสก็ใช้ตัวนี้ ใส่ฟิวส์ช่องเดียว
+        out.ac.push({ name: "FUSE BASE NH00 3P 160A", qty: 1, unit: "ตัว", auto: 1,
+          why: tag + "ฐานฟิวส์ใบมีด NH00 3 ช่องแบบมีมือจับ" + (ph === 3 ? " ใส่ฟิวส์ครบ 3 เส้นไฟ" : " (1 เฟสใช้ช่องเดียว)") });
       }
       /* ระบบ Ground Fault — รีเลย์ตรวจกระแสรั่วลงดิน (GFR) + ZCT ร้อยสายเฟส+N ทั้งชุด → สั่ง Shunt trip ให้ MCCB เมนตัด
          ZCT เลือกขนาดรูตามเมน (สายใหญ่ขึ้นรูต้องใหญ่ขึ้น) — ตรวจกับขนาดสายจริงอีกครั้ง */
