@@ -461,7 +461,7 @@ function StockView({
           key: k,
           th: d.th,
           color: d.color,
-          icon: "bolt",
+          icon: d.icon || "bolt",
           grpOf: g
         });
         count[k] = 0;
@@ -8034,6 +8034,16 @@ const STOCK_GRPS = {
   AC: {
     th: "อุปกรณ์ AC",
     color: "#2563EB"
+  },
+  "ท่อร้อยสาย": {
+    th: "ท่อร้อยสาย",
+    color: "#0891B2",
+    icon: "menu"
+  },
+  "รางไฟ": {
+    th: "รางไฟ",
+    color: "#7C3AED",
+    icon: "grid"
   }
 };
 const stockGrpOf = k => (SF.STOCK_CAT_BY[k] || {}).grp || "";

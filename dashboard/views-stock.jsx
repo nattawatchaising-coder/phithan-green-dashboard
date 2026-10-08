@@ -262,7 +262,7 @@ function StockView({ stock, onResetAll, onMenuOpen, currentUser, jobs, priceStor
       const k = "grp_" + cat + "_" + g;
       if (!gl.some((x) => x.key === k)) {
         const d = STOCK_GRPS[g] || { th: g, color: "#0891B2" };
-        gl.push({ key: k, th: d.th, color: d.color, icon: "bolt", grpOf: g });
+        gl.push({ key: k, th: d.th, color: d.color, icon: d.icon || "bolt", grpOf: g });
         count[k] = 0; low[k] = 0;
       }
       count[k] += subCount[c.key] || 0; low[k] += subLow[c.key] || 0;
@@ -3132,6 +3132,9 @@ function BrandMarquee({ items, imgs, onPick }) {
 const STOCK_GRPS = {
   DC: { th: "อุปกรณ์ DC", color: "#DC2626" },
   AC: { th: "อุปกรณ์ AC", color: "#2563EB" },
+  // หมวดท่อร้อยสาย แยกท่อ / รางไฟ ก่อน แล้วค่อยเป็นชนิดท่อ-ราง (ผู้ใช้ ต.ค. 2026)
+  "ท่อร้อยสาย": { th: "ท่อร้อยสาย", color: "#0891B2", icon: "menu" },
+  "รางไฟ": { th: "รางไฟ", color: "#7C3AED", icon: "grid" },
 };
 const stockGrpOf = (k) => ((SF.STOCK_CAT_BY[k] || {}).grp || "");
 
