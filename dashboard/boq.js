@@ -69,9 +69,9 @@
     { sec: "acBoard", g: "งานโครงการ", key: "acbAt", th: "ขนาด ACB 3P (ใช้เมื่อเกิน MCCB ตัวใหญ่สุด)", unit: "AT", type: "nums", def: [1600, 2000, 2500, 3200, 4000] },
     { sec: "acBoard", g: "งานโครงการ", key: "gfLsigAt", th: "เมนตั้งแต่กี่ AT ใช้ trip unit LSIG แทน GFR + ZCT + Shunt trip", unit: "AT", def: 1000, min: 1 },
     { sec: "acBoard", g: "ทุกงาน", key: "acSpd2", th: "AC SPD Type II ที่มีขาย", unit: "V Uc", unitA: "kA Imax", type: "pairs", poles: ["2P", "1P+N", "3P", "3P+N", "4P"], poleDef: "2P",
-      def: [{ v: 275, p: "2P", a: [40] }, { v: 385, p: "3P+N", a: [40] }] },
+      def: [{ v: 275, p: "2P", a: [40] }, { v: 385, p: "4P", a: [40] }] },   // SUNTREE SUP1H-40 (ต.ค. 2026)
     { sec: "acBoard", g: "งานโครงการ", key: "acSpd12", th: "AC SPD Type I+II ที่มีขาย (ระบบล่อฟ้า · แผงใกล้)", unit: "V Uc", unitA: "kA Iimp", type: "pairs", poles: ["2P", "1P+N", "3P", "3P+N", "4P"], poleDef: "2P",
-      def: [{ v: 275, p: "2P", a: [12.5] }, { v: 385, p: "3P+N", a: [12.5] }] },
+      def: [{ v: 275, p: "2P", a: [12.5] }, { v: 385, p: "3P", a: [12.5] }, { v: 385, p: "4P", a: [12.5] }] },   // SUNTREE SUP2-T1+T2
     { sec: "acBoard", g: "ทุกงาน", key: "acUc1", th: "AC SPD 1 เฟส · Uc ไม่ต่ำกว่า (ขั้ว 2P / 1P+N)", unit: "V", def: 275, min: 1 },
     { sec: "acBoard", g: "ทุกงาน", key: "acUc3", th: "AC SPD 3 เฟส · Uc ไม่ต่ำกว่า (ขั้ว 3P+N / 4P)", unit: "V", def: 385, min: 1 },
     { sec: "acBoard", g: "งานโครงการ", key: "acIimp", th: "AC SPD Type I+II · Iimp ไม่ต่ำกว่า (ต่อขั้ว)", unit: "kA", def: 12.5, min: 0.1 },
@@ -408,7 +408,7 @@
   // อุปกรณ์คงที่ที่จำนวนขั้วเปลี่ยนตามเฟส (3 เฟส = 4P/3P+N · 1 เฟส = 2P)
   // ชื่อ MCB/RCCB ตามสเปค CHINT ในคลัง (ผู้ใช้ ต.ค. 2026: "MCB 2P 25A" · "RCCB 25A 2P 100mA") — เลิกใช้ชื่อเก่า "MCB 2P 25AT" / "… 10AT 400V"
   const ATMOCE_ASM_POLE = {
-    3: { pole: "4P", mcb25: "MCB 4P 25A", spd: "AC SPD TYPE II 3P+N Uc385V In20Ka/Imax40Ka", mcb10: "MCB 4P 10A" },
+    3: { pole: "4P", mcb25: "MCB 4P 25A", spd: "AC SPD TYPE II 4P Uc385V In20Ka/Imax40Ka", mcb10: "MCB 4P 10A" },
     1: { pole: "2P", mcb25: "MCB 2P 25A", spd: "AC SPD TYPE II 2P Uc275V In20Ka/Imax40Ka",   mcb10: "MCB 2P 10A" },
   };
   // สร้างรายการอุปกรณ์ในตู้ประกอบ — iMicro/iBatt = กระแสรวม (A) · hasBatt = มีแบตเตอรี่ · phase = 1|3
