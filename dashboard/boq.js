@@ -74,6 +74,7 @@
     { sec: "acBoard", g: "งานโครงการ", key: "zctAt", th: "ZCT · ขนาดเมนแต่ละขั้น (ไม่เกิน)", unit: "AT", type: "nums", def: [125, 250, 630] },
     { sec: "acBoard", g: "งานโครงการ", key: "zctD", th: "ZCT · ขนาดรูของแต่ละขั้น (ตัวสุดท้าย = เมนใหญ่กว่าขั้นสุดท้าย)", unit: "มม.", type: "nums", def: [60, 80, 120, 200] },
     { sec: "acBoard", g: "งานบ้าน", key: "fixK", th: "RCBO / MCB (ปรับตั้งไม่ได้) เลือกขนาดแรกที่ ≥ กระแส ×", unit: "เท่า", def: 1.25, min: 1 },
+    { sec: "acBoard", g: "งานบ้าน", key: "rcboMa", th: "RCBO รุ่นกระแสรั่ว (ใช้กับทุกขนาดด้านล่าง)", unit: "mA", def: 100, min: 1, stock: [10, 30, 100, 300] },
     { sec: "acBoard", g: "งานบ้าน", key: "rcbo2P", th: "RCBO 2P (1 เฟส) ที่มีขาย — เกินตัวใหญ่สุดใช้ MCCB", unit: "A", type: "nums", def: [16, 20, 25, 32, 50] },
     { sec: "acBoard", g: "งานบ้าน", key: "rcbo3P", th: "RCBO 3P+N (3 เฟส) ที่มีขาย — เกินตัวใหญ่สุดใช้ MCCB", unit: "A", type: "nums", def: [16, 20, 25, 32, 50, 63] },
     { sec: "acBoard", g: "งานบ้าน", key: "homeSpdMcb", th: "MCB กันหลัง AC SPD", unit: "A", def: 32, min: 1 },
@@ -363,7 +364,7 @@
   const RCBO_SIZES = [16, 20, 25, 32, 40, 50, 63, 100];
   // เลือกขนาด RCBO จากกระแสออก × 1.25 ปัดขึ้นไปขนาดมาตรฐานถัดไป
   function rcboAmp(outA) { const v = (+outA || 0) * RULES.fixK; for (let i = 0; i < RCBO_SIZES.length; i++) { if (RCBO_SIZES[i] >= v) return RCBO_SIZES[i]; } return RCBO_SIZES[RCBO_SIZES.length - 1]; }
-  function rcboName(outA, phase) { return "RCBO " + rcboAmp(outA) + "A " + (phase === 3 ? "3P+N" : "2P") + " 100mA FEEO"; }
+  function rcboName(outA, phase) { return "RCBO " + rcboAmp(outA) + "A " + (phase === 3 ? "3P+N" : "2P") + " " + RULES.rcboMa + "mA FEEO"; }
 
   const COMBINER = { 1: "M-Combiner 1P (MC-100)", 3: "M-Combiner 3P (MC-100T)" };
   const CT       = { 1: "CT 250A x1", 3: "CT 250A x3" };

@@ -4405,12 +4405,12 @@ function brStockNeeds() {
     poles: p.p || "2P",
     amp: a
   })));
-  (H.rcbo2P || []).forEach(a => add("RCBO " + a + "A 2P 100mA", {
+  (H.rcbo2P || []).forEach(a => add("RCBO " + a + "A 2P " + (H.rcboMa || 100) + "mA", {
     elecType: "RCBO",
     poles: "2P",
     amp: a
   }));
-  (H.rcbo3P || []).forEach(a => add("RCBO " + a + "A 3P+N 100mA", {
+  (H.rcbo3P || []).forEach(a => add("RCBO " + a + "A 3P+N " + (H.rcboMa || 100) + "mA", {
     elecType: "RCBO",
     poles: "3P+N",
     amp: a
@@ -4751,7 +4751,7 @@ const brChanged = (d, saved, type) => {
   if (raw == null || raw === "") return false;
   return B.ruleTxt(d, B.ruleVal(d, raw)) !== B.ruleTxt(d, d.def);
 };
-const brStockRow = d => d.type === "nums" || d.type === "pairs";
+const brStockRow = d => d.type === "nums" || d.type === "pairs" || !!d.stock;
 const BR_TYPE_G = {
   "ทุกงาน": 1,
   "งานบ้าน": 1,
@@ -4845,6 +4845,53 @@ function BrChips({
       boxShadow: "var(--shadow-inset)",
       color: "var(--text-1)"
     }
+  }));
+}
+function BrPick({
+  d,
+  value,
+  onChange,
+  disabled
+}) {
+  const opts = d.stock.indexOf(value) >= 0 || !(value > 0) ? d.stock : d.stock.concat([value]).sort((x, y) => x - y);
+  return React.createElement("div", {
+    style: {
+      display: "inline-flex",
+      flexWrap: "wrap",
+      gap: 4,
+      padding: 4,
+      borderRadius: "var(--r-tile)",
+      background: "var(--surface2)",
+      boxShadow: "var(--shadow-inset)"
+    }
+  }, opts.map(x => {
+    const on = x === value;
+    return React.createElement("button", {
+      key: x,
+      type: "button",
+      disabled: disabled,
+      onClick: () => onChange(x),
+      style: {
+        border: "none",
+        fontFamily: "inherit",
+        cursor: disabled ? "default" : "pointer",
+        padding: "6px 14px",
+        borderRadius: "var(--r-chip)",
+        fontSize: 13,
+        fontWeight: on ? 800 : 600,
+        fontVariantNumeric: "tabular-nums",
+        background: on ? "var(--surface)" : "transparent",
+        boxShadow: on ? "var(--shadow-sm)" : "none",
+        color: on ? "var(--primary-dark)" : "var(--text-2)"
+      }
+    }, x, React.createElement("span", {
+      style: {
+        fontSize: 10.5,
+        fontWeight: 600,
+        color: "var(--text-3)",
+        marginLeft: 2
+      }
+    }, d.unit));
   }));
 }
 function BrPairs({
@@ -5327,7 +5374,12 @@ function BoqRuleSec({
     style: {
       flex: 1
     }
-  }), resetBtn(d)), d.type === "pairs" ? React.createElement(BrPairs, {
+  }), resetBtn(d)), d.stock && !d.type ? React.createElement(BrPick, {
+    d: d,
+    value: +(str(view, d.key) || d.def),
+    disabled: ro,
+    onChange: x => set(d.key, String(x))
+  }) : d.type === "pairs" ? React.createElement(BrPairs, {
     list: cur(d),
     d: d,
     disabled: ro,

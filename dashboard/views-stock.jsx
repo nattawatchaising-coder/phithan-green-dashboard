@@ -1695,8 +1695,8 @@ function brStockNeeds() {
   [["dcSpd2", "dc2"], ["dcSpd12", "dc12"], ["acSpd2", "ac2"], ["acSpd12", "ac12"]].forEach(([k, kind]) =>
     both(k).forEach((r) => r.a.forEach((a) => add(B.spdName(kind, { v: r.v, p: r.p, a: a }), { elecType: "SPD", poles: r.p }))));
   (H.dcMcb || []).forEach((p) => p.a.forEach((a) => add("DC MCB " + a + "A " + (p.p || "2P") + " " + p.v + "VDC", { elecType: "MCB", poles: p.p || "2P", amp: a })));
-  (H.rcbo2P || []).forEach((a) => add("RCBO " + a + "A 2P 100mA", { elecType: "RCBO", poles: "2P", amp: a }));
-  (H.rcbo3P || []).forEach((a) => add("RCBO " + a + "A 3P+N 100mA", { elecType: "RCBO", poles: "3P+N", amp: a }));
+  (H.rcbo2P || []).forEach((a) => add("RCBO " + a + "A 2P " + (H.rcboMa || 100) + "mA", { elecType: "RCBO", poles: "2P", amp: a }));
+  (H.rcbo3P || []).forEach((a) => add("RCBO " + a + "A 3P+N " + (H.rcboMa || 100) + "mA", { elecType: "RCBO", poles: "3P+N", amp: a }));
   (P.ctR || []).forEach((r) => add("CT " + r + "/5A", {}));
   (P.zctD || []).forEach((d) => add("ZCT Φ" + d + "mm", {}));
   return out;
@@ -1835,7 +1835,7 @@ const brChanged = (d, saved, type) => {
   return B.ruleTxt(d, B.ruleVal(d, raw)) !== B.ruleTxt(d, d.def);
 };
 /* แถวรายการของที่มีขาย (ขนาด/แรงดัน/อัตราส่วนที่มีจริง) — ขึ้นก่อนเงื่อนไขในแต่ละหัวข้อ */
-const brStockRow = (d) => d.type === "nums" || d.type === "pairs";
+const brStockRow = (d) => d.type === "nums" || d.type === "pairs" || !!d.stock;
 const BR_TYPE_G = { "ทุกงาน": 1, "งานบ้าน": 1, "งานโครงการ": 1 };
 const brPath = (d) => d.key;
 /* แถวใช้ร่วมมีค่าเดียว — บันทึก/คืนค่าแล้วล้างค่าที่เคยตั้งแยก home/proj ทิ้งด้วย ไม่งั้นค้างเป็นค่าสำรอง */
@@ -1872,6 +1872,26 @@ function BrChips({ list, unit, onChange, disabled, words }) {
           style={{ width: 76, border: "none", outline: "none", fontFamily: "inherit", fontSize: 12.5, padding: "6px 9px", borderRadius: "var(--r-chip)",
             background: "var(--surface2)", boxShadow: "var(--shadow-inset)", color: "var(--text-1)" }} />
       )}
+    </div>
+  );
+}
+
+/* ของที่มีขายแบบเลือกค่าเดียว (def.stock = ตัวเลือก) เช่น รุ่นกระแสรั่ว RCBO — ปุ่มแบ่งช่อง + กรอกค่าอื่นเองได้ */
+function BrPick({ d, value, onChange, disabled }) {
+  const opts = d.stock.indexOf(value) >= 0 || !(value > 0) ? d.stock : d.stock.concat([value]).sort((x, y) => x - y);
+  return (
+    <div style={{ display: "inline-flex", flexWrap: "wrap", gap: 4, padding: 4, borderRadius: "var(--r-tile)", background: "var(--surface2)", boxShadow: "var(--shadow-inset)" }}>
+      {opts.map((x) => {
+        const on = x === value;
+        return (
+          <button key={x} type="button" disabled={disabled} onClick={() => onChange(x)}
+            style={{ border: "none", fontFamily: "inherit", cursor: disabled ? "default" : "pointer", padding: "6px 14px", borderRadius: "var(--r-chip)",
+              fontSize: 13, fontWeight: on ? 800 : 600, fontVariantNumeric: "tabular-nums",
+              background: on ? "var(--surface)" : "transparent", boxShadow: on ? "var(--shadow-sm)" : "none", color: on ? "var(--primary-dark)" : "var(--text-2)" }}>
+            {x}<span style={{ fontSize: 10.5, fontWeight: 600, color: "var(--text-3)", marginLeft: 2 }}>{d.unit}</span>
+          </button>
+        );
+      })}
     </div>
   );
 }
@@ -2059,7 +2079,9 @@ function BoqRuleSec({ sec, rulesStore, type }) {
                   {d.type === "pairs" && <span style={{ fontSize: 11, color: "var(--text-3)" }}>· {d.poles ? "แถวละแรงดัน + จำนวนขั้ว" : "แถวละแรงดัน"} ชิป = {d.unitA} ที่มีของรุ่นนั้น</span>}
                   {changedDot(d)}<span style={{ flex: 1 }} />{resetBtn(d)}
                 </div>
-                {d.type === "pairs"
+                {d.stock && !d.type
+                  ? <BrPick d={d} value={+(str(view, d.key) || d.def)} disabled={ro} onChange={(x) => set(d.key, String(x))} />
+                  : d.type === "pairs"
                   ? <BrPairs list={cur(d)} d={d} disabled={ro} onChange={(L) => set(d.key, BOQ.ruleTxt(d, L))} />
                   : <BrChips list={cur(d)} unit={d.unit} words={d.type === "words"} disabled={ro}
                       onChange={(L) => set(d.key, BOQ.ruleTxt(d, BOQ.ruleVal(d, L.join(", "))))} />}

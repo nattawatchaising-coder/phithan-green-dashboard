@@ -2079,7 +2079,7 @@ function BOQEditor({
     });
   });
   const kitShown = isHome ? kitSections.filter(sc => sc.sec === "board" || sc.sec === "water" && pipe3dRaw).map(sc => Object.assign({}, sc, {
-    hint: "ตู้ไฟของงานบ้าน — คิดแบบงานโครงการ: เบรกเกอร์ตามกระแสอินเวอร์เตอร์ (RCBO 100mA ขนาดแรกที่ ≥ " + RU.fixK + " × กระแส — 1 เฟสถึง " + RU.rcbo2P[RU.rcbo2P.length - 1] + " A · 3 เฟสถึง " + RU.rcbo3P[RU.rcbo3P.length - 1] + " A เกินนั้นใช้ MCCB · อินเวอร์เตอร์ตัวเดียวไม่มีเมนแยก) · SPD Type 2 กันหลังด้วย MCB " + RU.homeSpdMcb + "A · ฟิวส์ DC ตาม Isc/Voc ของสตริง · ราคาดึงจากคลังเหมือนวัสดุอื่น"
+    hint: "ตู้ไฟของงานบ้าน — คิดแบบงานโครงการ: เบรกเกอร์ตามกระแสอินเวอร์เตอร์ (RCBO " + RU.rcboMa + "mA ขนาดแรกที่ ≥ " + RU.fixK + " × กระแส — 1 เฟสถึง " + RU.rcbo2P[RU.rcbo2P.length - 1] + " A · 3 เฟสถึง " + RU.rcbo3P[RU.rcbo3P.length - 1] + " A เกินนั้นใช้ MCCB · อินเวอร์เตอร์ตัวเดียวไม่มีเมนแยก) · SPD Type 2 กันหลังด้วย MCB " + RU.homeSpdMcb + "A · ฟิวส์ DC ตาม Isc/Voc ของสตริง · ราคาดึงจากคลังเหมือนวัสดุอื่น"
   })) : kitSections;
   const PRICE_DEF = {
     discount: 0,
@@ -3197,8 +3197,8 @@ function BOQEditor({
       });
     }
     const iz = cabIz(c),
-      nm = "RCBO " + a + "A " + (pole === "3P" ? "3P+N" : "2P") + " 100mA";
-    const base = r1(ib) + " A × " + RU.fixK + " = " + r1(need) + " A → RCBO " + a + " A 100mA (งานบ้าน กันไฟรั่ว + กระแสเกินในตัวเดียว)";
+      nm = "RCBO " + a + "A " + (pole === "3P" ? "3P+N" : "2P") + " " + RU.rcboMa + "mA";
+    const base = r1(ib) + " A × " + RU.fixK + " = " + r1(need) + " A → RCBO " + a + " A " + RU.rcboMa + "mA (งานบ้าน กันไฟรั่ว + กระแสเกินในตัวเดียว)";
     if (!iz) return {
       at: a,
       ir: a,

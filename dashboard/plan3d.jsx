@@ -2176,11 +2176,11 @@ function p3SldModel(st, job, design) {
     const pmt = (job && job.permit) || {}, sv = (job && job.survey) || {};
     const exMain = pmt.mainAT ? pmt.mainAT + "AT" : (sv.mainBreaker || "");
     const ivBrk = units.map((u) => { const a = p3At(aOfUnit(u) * 1.25);
-      return home && a <= 63 ? "RCBO " + P2 + a + "A 100mA" : (a > 125 ? "MCCB " : "MCB ") + P2 + a + "AT"; });
+      return home && a <= 63 ? "RCBO " + P2 + a + "A " + ((R && R.rcboMa) || 100) + "mA" : (a > 125 ? "MCCB " : "MCB ") + P2 + a + "AT"; });
     const dcDev = (R ? home : small)
       ? { k: "mcb", tag: "DC MCB " + mcbP + " " + mcbA + "A " + mcbV + "VDC" }
       : { k: "fuse", tag: "DC FUSE gPV " + fuseA + "A " + dcV + "VDC (+/-)" };
-    const mainTxt = !gf ? "RCBO " + P2 + mainA + "A 100mA" : (lsig && mainA > 1250 ? "ACB " : "MCCB ") + P2 + mainA + "AT";
+    const mainTxt = !gf ? "RCBO " + P2 + mainA + "A " + ((R && R.rcboMa) || 100) + "mA" : (lsig && mainA > 1250 ? "ACB " : "MCCB ") + P2 + mainA + "AT";
     M.pro = {
       home, small, maxVdc, tMin, isc, wp, vocAt, vocMax, auth: auth || "MEA/PEA",
       lps, dcDev, dcSpdTag: "SPD " + (lps ? "T1+T2 " : "T2 ") + ucpv + "VDC", dcSpdFull: "DC SPD " + (lps ? "T1+T2" : "T2") + " Ucpv " + ucpv + "VDC " + dcSpdKa,
