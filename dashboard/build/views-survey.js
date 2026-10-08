@@ -2592,10 +2592,20 @@ function LeadDrawer({
     title: "\u0E17\u0E33\u0E23\u0E39\u0E1B\u0E41\u0E1E\u0E47\u0E04\u0E40\u0E01\u0E08\u0E02\u0E32\u0E22\u0E08\u0E32\u0E01 BOQ \u0E02\u0E2D\u0E07\u0E25\u0E39\u0E01\u0E04\u0E49\u0E32\u0E19\u0E35\u0E49",
     style: {
       flexShrink: 0,
-      padding: "7px 12px",
-      fontSize: 12.5
+      height: 32,
+      padding: "0 13px 0 11px",
+      fontSize: 12.5,
+      borderRadius: "var(--r-pill)",
+      display: "inline-flex",
+      alignItems: "center",
+      gap: 6
     }
-  }, "\uD83D\uDDBC \u0E23\u0E39\u0E1B\u0E41\u0E1E\u0E47\u0E04\u0E40\u0E01\u0E08"), React.createElement("button", {
+  }, React.createElement(Icon, {
+    name: "image",
+    size: 15,
+    color: "currentColor",
+    sw: 2
+  }), "\u0E23\u0E39\u0E1B\u0E41\u0E1E\u0E47\u0E04\u0E40\u0E01\u0E08"), React.createElement("button", {
     className: "x-close",
     onClick: onClose,
     "aria-label": "\u0E1B\u0E34\u0E14",

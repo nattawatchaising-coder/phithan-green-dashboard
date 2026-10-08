@@ -1065,7 +1065,8 @@ function LeadDrawer({ lead, leadStore, appts, jobs, quotes, users, currentUser, 
             </div>
             {lead.boq && lead.boq.panelModel && window.PkPosterModal && (
               <button className="btn btn-soft" onClick={() => setPoster(true)} title="ทำรูปแพ็คเกจขายจาก BOQ ของลูกค้านี้"
-                style={{ flexShrink: 0, padding: "7px 12px", fontSize: 12.5 }}>🖼 รูปแพ็คเกจ</button>
+                style={{ flexShrink: 0, height: 32, padding: "0 13px 0 11px", fontSize: 12.5, borderRadius: "var(--r-pill)", display: "inline-flex", alignItems: "center", gap: 6 }}>
+                <Icon name="image" size={15} color="currentColor" sw={2} />รูปแพ็คเกจ</button>
             )}
             <button className="x-close" onClick={onClose} aria-label="ปิด" style={{ flexShrink: 0, width: 32, height: 32, borderRadius: "var(--r-pill)", border: "none", background: "var(--surface2)", boxShadow: "var(--shadow-sm)", color: "var(--text-2)", cursor: "pointer", fontFamily: "inherit", fontSize: 16, lineHeight: 1 }}>×</button>
           </div>
