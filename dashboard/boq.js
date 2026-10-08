@@ -58,7 +58,7 @@
     { sec: "acBoard", g: "งานโครงการ", key: "mccbIrK", th: "MCCB ตั้งกระแส Ir = กระแสออก ×", unit: "เท่า", def: 1.05, min: 1 },
     { sec: "acBoard", g: "งานโครงการ", key: "mccbStep", th: "ปัด Ir ขึ้นทีละ", unit: "A", def: 5, min: 1 },
     /* MCCB 3P ขายเป็นเฟรม AF → ขนาด AT ในเฟรมนั้น + kA (Icu) ต่อเฟรม (เก็บใน h) · เลือก AT แรกที่ ≥ Ir แล้วใช้ AF เล็กสุดที่มี AT นั้น
-       แยกสองตาราง (ผู้ใช้): เมนตู้ AC = รุ่นปรับตั้งได้ TM-D ("MCCB 3P 250AF 160AT 36kA TM-D" · Shunt trip เป็นอุปกรณ์เสริมแยก "SHUNT TRIP 220VAC")
+       แยกสองตาราง (ผู้ใช้): เมนตู้ AC = รุ่นปรับตั้งได้ TM-D ("MCCB 3P 250AF 160AT 36kA TM-D" · Shunt trip เป็นอุปกรณ์เสริมแยก "MCCB CVS Shunt Trip (MX) 220VAC")
        อินเวอร์เตอร์ = MCCB ธรรมดา · RULES.mccbAtMain/mccbAtInv = ทุก AT ของตาราง (คำนวณใน setRules) */
     { sec: "acBoard", g: "งานโครงการ", key: "mccbMain", th: "MCCB สำหรับเมนตู้ AC ที่มีขาย (รุ่นปรับตั้งได้ TM-D)", unit: "AF", unitA: "AT", vName: "เฟรม", type: "pairs", holder: "kA (Icu)", holderPh: "เช่น 36",
       def: [{ v: 100, h: "25", a: [16, 20, 25, 32, 40, 50, 63, 80, 100] }, { v: 250, h: "36", a: [100, 125, 150, 160, 175, 200, 225, 250] },

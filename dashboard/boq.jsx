@@ -1930,7 +1930,7 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock, ver, verName, p3Vers
         if (m) brkOfCab[cs.indexOf(m)] = Object.assign({ who: "เมนตู้ AC" }, k);
         // เมน ≥ 1000 AT ใช้เบรกเกอร์ trip unit อิเล็กทรอนิกส์ LSIG — มี Ground Fault ในตัว ไม่ต้องมี GFR/ZCT/Shunt trip แยก
         const gIn = bOn("gf") && k.at >= GF_IN_AT;
-        /* MCCB เมน = ตาราง "MCCB สำหรับเมน" รุ่นปรับตั้งได้ TM-D · Shunt trip ใส่เป็นอุปกรณ์เสริมแยก (บรรทัด SHUNT TRIP 220VAC ในส่วน Ground Fault) · ≥ gfLsigAt = LSIG */
+        /* MCCB เมน = ตาราง "MCCB สำหรับเมน" รุ่นปรับตั้งได้ TM-D · Shunt trip ใส่เป็นอุปกรณ์เสริมแยก (บรรทัด MCCB CVS Shunt Trip (MX) 220VAC ในส่วน Ground Fault) · ≥ gfLsigAt = LSIG */
         const isM = k.kind === "MCCB" && !k.nm;
         out.ac.push({ name: k.nm ? k.nm + (gIn ? " LSIG" : "") : k.kind === "ACB" ? "ACB 3P " + k.at + "AT" + (gIn ? " LSIG" : "") : window.BOQ.mccbName(k.at, "main", gIn), qty: 1, unit: "ตัว", auto: 1, ok: k.ok,
           why: tag + "เมน · อินเวอร์เตอร์ " + nos.join(", ") + " รวม " + k.txt + (gIn ? " · trip unit LSIG มี Ground Fault ในตัว" : isM ? " · รุ่นปรับตั้งได้ (TM-D)" : "") });
@@ -1972,7 +1972,7 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock, ver, verName, p3Vers
         const zd = RU.zctD[Math.min(zi < 0 ? RU.zctAt.length : zi, RU.zctD.length - 1)];
         out.ac.push({ name: "GROUND FAULT RELAY (GFR)", qty: 1, unit: "ตัว", auto: 1, why: tag + "ตรวจกระแสรั่วลงดิน สั่งตัด MCCB เมน" });
         out.ac.push({ name: "ZCT Φ" + zd + "mm", qty: 1, unit: "ตัว", auto: 1, why: tag + "ร้อยสายเฟส + N ของเมน " + mainAt + " AT ทั้งชุด (รูต้องใหญ่พอกับสายจริง)" });
-        out.ac.push({ name: "SHUNT TRIP 220VAC", qty: 1, unit: "ตัว", auto: 1, why: tag + "คอยล์สั่งตัด MCCB เมน " + mainAt + " AT รับสัญญาณจาก GFR (อุปกรณ์เสริมของ MCCB · ตรงรุ่นเฟรม)" });
+        out.ac.push({ name: "MCCB CVS Shunt Trip (MX) 220VAC", qty: 1, unit: "ตัว", auto: 1, why: tag + "คอยล์สั่งตัด MCCB เมน " + mainAt + " AT รับสัญญาณจาก GFR (อุปกรณ์เสริมของ MCCB · ตรงรุ่นเฟรม)" });
       }
       /* Power Meter PM2230 — CT ตามขนาดเมน (อัตราส่วนมาตรฐานแรกที่ ≥ In ของ MCCB เมน /5A) เฟสละ 1 ตัว */
       if (bOn("pm") && mainAt > 0) {

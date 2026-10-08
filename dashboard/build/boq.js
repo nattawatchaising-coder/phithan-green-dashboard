@@ -3355,7 +3355,7 @@ function BOQEditor({
           why: tag + "ร้อยสายเฟส + N ของเมน " + mainAt + " AT ทั้งชุด (รูต้องใหญ่พอกับสายจริง)"
         });
         out.ac.push({
-          name: "SHUNT TRIP 220VAC",
+          name: "MCCB CVS Shunt Trip (MX) 220VAC",
           qty: 1,
           unit: "ตัว",
           auto: 1,
