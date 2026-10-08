@@ -4860,7 +4860,7 @@ function BrPick({
   onChange,
   disabled
 }) {
-  const opts = d.stock.indexOf(value) >= 0 || !(value > 0) ? d.stock : d.stock.concat([value]).sort((x, y) => x - y);
+  const opts = d.stock.indexOf(value) >= 0 || !(value > 0) || d.labels ? d.stock : d.stock.concat([value]).sort((x, y) => x - y);
   return React.createElement("div", {
     style: {
       display: "inline-flex",
@@ -4891,14 +4891,14 @@ function BrPick({
         boxShadow: on ? "var(--shadow-sm)" : "none",
         color: on ? "var(--primary-dark)" : "var(--text-2)"
       }
-    }, x, React.createElement("span", {
+    }, d.labels && d.labels[x] != null ? d.labels[x] : React.createElement(React.Fragment, null, x, React.createElement("span", {
       style: {
         fontSize: 10.5,
         fontWeight: 600,
         color: "var(--text-3)",
         marginLeft: 2
       }
-    }, d.unit));
+    }, d.unit)));
   }));
 }
 function BrPairs({

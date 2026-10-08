@@ -3253,7 +3253,8 @@ function BOQEditor({
     });
     boards.forEach((m, bi) => {
       const tag = boards.length > 1 ? "ตู้ " + (bi + 1) + " · " : "";
-      let mainAt = 0;
+      let mainAt = 0,
+        shIn = false;
       const nos = mcbInvsOf(m);
       const ib = nos.reduce((s, no) => s + ((invUnits[no - 1] || {}).outA || 0), 0);
       const homeOne = isHome && nos.length === 1;
@@ -3264,13 +3265,14 @@ function BOQEditor({
           who: "เมนตู้ AC"
         }, k);
         const gIn = bOn("gf") && k.at >= GF_IN_AT;
+        shIn = !isHome && bOn("gf") && !gIn && k.kind === "MCCB" && !k.nm && RU.mccbShunt === 1;
         out.ac.push({
-          name: (k.nm || (k.kind === "ACB" ? "ACB 3P " + k.at + "AT" : window.BOQ.mccbName(k.at))) + (gIn ? " LSIG" : ""),
+          name: (k.nm || (k.kind === "ACB" ? "ACB 3P " + k.at + "AT" : window.BOQ.mccbName(k.at))) + (gIn ? " LSIG" : shIn ? " SHUNT TRIP" : ""),
           qty: 1,
           unit: "ตัว",
           auto: 1,
           ok: k.ok,
-          why: tag + "เมน · อินเวอร์เตอร์ " + nos.join(", ") + " รวม " + k.txt + (gIn ? " · trip unit LSIG มี Ground Fault ในตัว" : "")
+          why: tag + "เมน · อินเวอร์เตอร์ " + nos.join(", ") + " รวม " + k.txt + (gIn ? " · trip unit LSIG มี Ground Fault ในตัว" : shIn ? " · รุ่นมี Shunt trip ในตัว รับสัญญาณตัดจาก GFR" : "")
         });
       }
       nos.forEach(no => {
@@ -3352,7 +3354,7 @@ function BOQEditor({
           auto: 1,
           why: tag + "ร้อยสายเฟส + N ของเมน " + mainAt + " AT ทั้งชุด (รูต้องใหญ่พอกับสายจริง)"
         });
-        out.ac.push({
+        if (!shIn) out.ac.push({
           name: "SHUNT TRIP 220VAC",
           qty: 1,
           unit: "ตัว",

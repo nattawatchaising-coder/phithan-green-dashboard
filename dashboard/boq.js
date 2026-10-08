@@ -62,6 +62,9 @@
     { sec: "acBoard", g: "งานโครงการ", key: "mccb", th: "MCCB 3P ที่มีขาย (เฟรม AF ↔ ขนาด AT · kA)", unit: "AF", unitA: "AT", vName: "เฟรม", type: "pairs", holder: "kA (Icu)", holderPh: "เช่น 36",
       def: [{ v: 100, h: "25", a: [16, 20, 25, 32, 40, 50, 63, 80, 100] }, { v: 250, h: "36", a: [100, 125, 150, 160, 175, 200, 225, 250] },
         { v: 400, h: "50", a: [250, 300, 320, 350, 400] }, { v: 630, h: "50", a: [400, 500, 630] }, { v: 800, h: "50", a: [700, 800] }, { v: 1250, h: "50", a: [1000, 1250] }] },
+    /* เมนตู้ AC ที่ใช้ GFR + ZCT แยก: รุ่นมี Shunt trip ในตัว (ชื่อ MCCB … SHUNT TRIP · ไม่มีบรรทัด SHUNT TRIP 220VAC แยก) หรือซื้อคอยล์แยก */
+    { sec: "acBoard", g: "งานโครงการ", key: "mccbShunt", th: "MCCB เมนตู้ AC (เมื่อมี Ground Fault แบบ GFR + ZCT)", unit: "", def: 1, max: 1, stock: [1, 0],
+      labels: { 1: "รุ่นมี Shunt trip ในตัว", 0: "MCCB + SHUNT TRIP แยก" } },
     { sec: "acBoard", g: "งานโครงการ", key: "acbAt", th: "ขนาด ACB 3P (ใช้เมื่อเกิน MCCB ตัวใหญ่สุด)", unit: "AT", type: "nums", def: [1600, 2000, 2500, 3200, 4000] },
     { sec: "acBoard", g: "งานโครงการ", key: "gfLsigAt", th: "เมนตั้งแต่กี่ AT ใช้ trip unit LSIG แทน GFR + ZCT + Shunt trip", unit: "AT", def: 1000, min: 1 },
     { sec: "acBoard", g: "ทุกงาน", key: "acSpd2", th: "AC SPD Type II ที่มีขาย", unit: "V Uc", unitA: "kA Imax", type: "pairs", poles: ["2P", "1P+N", "3P", "3P+N", "4P"], poleDef: "2P",

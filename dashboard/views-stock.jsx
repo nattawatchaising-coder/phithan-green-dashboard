@@ -1879,7 +1879,7 @@ function BrChips({ list, unit, onChange, disabled, words }) {
 
 /* ของที่มีขายแบบเลือกค่าเดียว (def.stock = ตัวเลือก) เช่น รุ่นกระแสรั่ว RCBO — ปุ่มแบ่งช่อง + กรอกค่าอื่นเองได้ */
 function BrPick({ d, value, onChange, disabled }) {
-  const opts = d.stock.indexOf(value) >= 0 || !(value > 0) ? d.stock : d.stock.concat([value]).sort((x, y) => x - y);
+  const opts = d.stock.indexOf(value) >= 0 || !(value > 0) || d.labels ? d.stock : d.stock.concat([value]).sort((x, y) => x - y);
   return (
     <div style={{ display: "inline-flex", flexWrap: "wrap", gap: 4, padding: 4, borderRadius: "var(--r-tile)", background: "var(--surface2)", boxShadow: "var(--shadow-inset)" }}>
       {opts.map((x) => {
@@ -1889,7 +1889,7 @@ function BrPick({ d, value, onChange, disabled }) {
             style={{ border: "none", fontFamily: "inherit", cursor: disabled ? "default" : "pointer", padding: "6px 14px", borderRadius: "var(--r-chip)",
               fontSize: 13, fontWeight: on ? 800 : 600, fontVariantNumeric: "tabular-nums",
               background: on ? "var(--surface)" : "transparent", boxShadow: on ? "var(--shadow-sm)" : "none", color: on ? "var(--primary-dark)" : "var(--text-2)" }}>
-            {x}<span style={{ fontSize: 10.5, fontWeight: 600, color: "var(--text-3)", marginLeft: 2 }}>{d.unit}</span>
+            {d.labels && d.labels[x] != null ? d.labels[x] : <>{x}<span style={{ fontSize: 10.5, fontWeight: 600, color: "var(--text-3)", marginLeft: 2 }}>{d.unit}</span></>}
           </button>
         );
       })}

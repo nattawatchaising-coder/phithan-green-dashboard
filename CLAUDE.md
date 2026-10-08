@@ -143,7 +143,7 @@ deploy อัตโนมัติด้วย Vercel จาก `master` บน 
 - สายเล็กกว่าเบรกเกอร์ = แนะนำสาย ไม่ลดเบรกเกอร์ให้เอง (ปุ่ม "ใช้สายตามเบรกเกอร์")
 - ระบบล่อฟ้า (ไม่มี / มี·แผงห่างพอ / มี·แผงใกล้) — "แผงใกล้" = SPD Type 1+2 ทั้ง AC และ DC
 - ฟิวส์ใบมีด NH00 กันหลัง AC SPD: Type 2 = 32 A · Type 1+2 = 125 A (ไม่ต้องมีถ้าเมน ≤ 125AT)
-- Ground Fault: GFR + ZCT + SHUNT TRIP 220VAC เมื่อเมน < 1000AT · ≥ 1000AT ใช้ trip unit LSIG · Power Meter PM2230 + CT ตามเมน · MCB 6A กันสายวัด · ปิดได้ทีละอย่าง
+- Ground Fault: GFR + ZCT + Shunt trip เมื่อเมน < 1000AT — **MCCB เมนรุ่นมี Shunt trip ในตัว** เป็นค่าเริ่ม (กฎ `mccbShunt` 1 · ปุ่มเลือกในของที่มีขายตู้ไฟ AC `BrPick` + `labels`): ชื่อ `MCCB 3P 250AF 125AT 36kA SHUNT TRIP` ไม่มีบรรทัด SHUNT TRIP แยก · ตั้ง 0 = MCCB + `SHUNT TRIP 220VAC` แยกแบบเดิม · ≥ 1000AT ใช้ trip unit LSIG · Power Meter PM2230 + CT ตามเมน · MCB 6A กันสายวัด · ปิดได้ทีละอย่าง
 - ใบรายการแยกหมวดละตู้: ตู้ไฟ AC / ตู้ไฟ DC / ตู้ไฟ DATA LOGGER
 
 ### ตู้ไฟ — งานบ้าน (คิดแบบงานโครงการ แต่ต่างตรงนี้)
