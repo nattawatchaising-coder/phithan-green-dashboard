@@ -1747,8 +1747,11 @@ function brStockNeeds() {
   [["dcSpd2", "dc2"], ["dcSpd12", "dc12"], ["acSpd2", "ac2"], ["acSpd12", "ac12"]].forEach(([k, kind]) =>
     both(k).forEach((r) => r.a.forEach((a) => add(B.spdName(kind, { v: r.v, p: r.p, a: a }), { elecType: "SPD", poles: r.p }))));
   (H.dcMcb || []).forEach((p) => p.a.forEach((a) => add("DC MCB " + a + "A " + (p.p || "2P") + " " + p.v + "VDC", { elecType: "MCB", poles: p.p || "2P", amp: a })));
-  (H.rcbo2P || []).forEach((a) => add("RCBO " + a + "A 2P " + (H.rcboMa || 100) + "mA", { elecType: "RCBO", poles: "2P", amp: a }));
-  (H.rcbo3P || []).forEach((a) => add("RCBO " + a + "A 3P+N " + (H.rcboMa || 100) + "mA", { elecType: "RCBO", poles: "3P+N", amp: a }));
+  /* งานบ้าน MCB + RCCB (ชื่อตรงกับ brkPickHome ใน boq.jsx) */
+  (H.mcbHome2P || []).forEach((a) => add("MCB 2P " + a + "A", { elecType: "MCB", poles: "2P", amp: a }));
+  (H.mcbHome3P || []).forEach((a) => add("MCB 3P " + a + "A", { elecType: "MCB", poles: "3P", amp: a }));
+  (H.rccb2P || []).forEach((a) => add("RCCB " + a + "A 2P " + (H.rcboMa || 100) + "mA", { elecType: "RCBO", poles: "2P", amp: a }));
+  (H.rccb4P || []).forEach((a) => add("RCCB " + a + "A 4P " + (H.rcboMa || 100) + "mA", { elecType: "RCBO", poles: "4P", amp: a }));
   /* MCCB สองตาราง — เมน (ต่อท้าย TM-D · ตัว ≥ gfLsigAt ใช้ LSIG) · อินเวอร์เตอร์ · AT ซ้ำหลายเฟรม = เฟรมเล็กสุด */
   [["mccbMain", "main"], ["mccbInv", "inv"]].forEach(([k, w]) => (P[k] || []).forEach((r) => r.a.forEach((a) => {
     if ((P[k] || []).find((q) => q.a.indexOf(a) >= 0) === r) add(B.mccbName(a, w, w === "main" && a >= (P.gfLsigAt || 1000)), { elecType: "MCCB", poles: "3P", amp: a }); })));

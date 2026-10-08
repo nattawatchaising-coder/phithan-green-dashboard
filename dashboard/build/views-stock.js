@@ -4529,14 +4529,24 @@ function brStockNeeds() {
     poles: p.p || "2P",
     amp: a
   })));
-  (H.rcbo2P || []).forEach(a => add("RCBO " + a + "A 2P " + (H.rcboMa || 100) + "mA", {
+  (H.mcbHome2P || []).forEach(a => add("MCB 2P " + a + "A", {
+    elecType: "MCB",
+    poles: "2P",
+    amp: a
+  }));
+  (H.mcbHome3P || []).forEach(a => add("MCB 3P " + a + "A", {
+    elecType: "MCB",
+    poles: "3P",
+    amp: a
+  }));
+  (H.rccb2P || []).forEach(a => add("RCCB " + a + "A 2P " + (H.rcboMa || 100) + "mA", {
     elecType: "RCBO",
     poles: "2P",
     amp: a
   }));
-  (H.rcbo3P || []).forEach(a => add("RCBO " + a + "A 3P+N " + (H.rcboMa || 100) + "mA", {
+  (H.rccb4P || []).forEach(a => add("RCCB " + a + "A 4P " + (H.rcboMa || 100) + "mA", {
     elecType: "RCBO",
-    poles: "3P+N",
+    poles: "4P",
     amp: a
   }));
   [["mccbMain", "main"], ["mccbInv", "inv"]].forEach(([k, w]) => (P[k] || []).forEach(r => r.a.forEach(a => {

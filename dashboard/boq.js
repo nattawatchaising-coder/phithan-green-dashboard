@@ -14,7 +14,7 @@
   const RULE_SECS = [
     { k: "dcBoard", grp: "ฝั่ง DC", th: "ตู้ไฟ DC", sub: "ฟิวส์ gPV · DC SPD · แรงดันพิกัด · DC MCB (งานบ้าน)" },
     { k: "dcWire", grp: "ฝั่ง DC", th: "สาย DC (PV)", sub: "ตัวคูณเลือกขนาดสาย PV · เผื่อความยาว · แรงดันตก DC" },
-    { k: "acBoard", grp: "ฝั่ง AC", th: "ตู้ไฟ AC", sub: "MCCB/ACB · Ground Fault · ZCT · ฟิวส์กันหลัง SPD · CT · RCBO (งานบ้าน)" },
+    { k: "acBoard", grp: "ฝั่ง AC", th: "ตู้ไฟ AC", sub: "MCCB/ACB · Ground Fault · ZCT · ฟิวส์กันหลัง SPD · CT · MCB + RCCB (งานบ้าน)" },
     { k: "acWire", grp: "ฝั่ง AC", th: "สาย AC", sub: "ตัวคูณเลือกขนาดสาย · แรงดันตก AC / รวม" },
     { k: "tray", grp: "งานติดตั้ง", th: "รางไฟ · ท่อร้อยสาย", sub: "ขาล็อก · ตัวยึด · Rail รอง · ข้อต่อ · % บรรจุสาย · รางจากแบบ 3D · อุปกรณ์ uPVC" },
     { k: "mount", grp: "งานติดตั้ง", th: "โครงยึดแผง (MOUNTING)", sub: "RAIL · ข้อต่อ · MID/END CLAMP · L-FEET · กราวด์โครงแผง" },
@@ -81,10 +81,13 @@
     { sec: "acBoard", g: "งานโครงการ", key: "pmMcb", th: "MCB กันสายวัดแรงดัน PM2230 / ไฟเลี้ยง GFR", unit: "A", def: 6, min: 1 },
     { sec: "acBoard", g: "งานโครงการ", key: "zctAt", th: "ZCT · ขนาดเมนแต่ละขั้น (ไม่เกิน)", unit: "AT", type: "nums", def: [125, 250, 630] },
     { sec: "acBoard", g: "งานโครงการ", key: "zctD", th: "ZCT · ขนาดรูของแต่ละขั้น (ตัวสุดท้าย = เมนใหญ่กว่าขั้นสุดท้าย)", unit: "มม.", type: "nums", def: [60, 80, 120, 200] },
-    { sec: "acBoard", g: "งานบ้าน", key: "fixK", th: "RCBO / MCB (ปรับตั้งไม่ได้) เลือกขนาดแรกที่ ≥ กระแส ×", unit: "เท่า", def: 1.25, min: 1 },
-    { sec: "acBoard", g: "งานบ้าน", key: "rcboMa", th: "RCBO รุ่นกระแสรั่ว (ใช้กับทุกขนาดด้านล่าง)", unit: "mA", def: 100, min: 1, stock: [10, 30, 100, 300] },
-    { sec: "acBoard", g: "งานบ้าน", key: "rcbo2P", th: "RCBO 2P (1 เฟส) ที่มีขาย — เกินตัวใหญ่สุดใช้ MCCB", unit: "A", type: "nums", def: [16, 20, 25, 32, 50] },
-    { sec: "acBoard", g: "งานบ้าน", key: "rcbo3P", th: "RCBO 3P+N (3 เฟส) ที่มีขาย — เกินตัวใหญ่สุดใช้ MCCB", unit: "A", type: "nums", def: [16, 20, 25, 32, 50, 63] },
+    /* งานบ้าน = MCB (กระแสเกิน) + RCCB (ไฟรั่ว) แทน RCBO (ผู้ใช้: ของที่มีขายมีแต่ RCCB) · rcboMa คีย์เดิมเก็บรุ่นกระแสรั่วของ RCCB */
+    { sec: "acBoard", g: "งานบ้าน", key: "fixK", th: "MCB (ปรับตั้งไม่ได้) เลือกขนาดแรกที่ ≥ กระแส ×", unit: "เท่า", def: 1.25, min: 1 },
+    { sec: "acBoard", g: "งานบ้าน", key: "rcboMa", th: "RCCB รุ่นกระแสรั่ว (ใช้กับทุกขนาดด้านล่าง)", unit: "mA", def: 100, min: 1, stock: [30, 100, 300] },
+    { sec: "acBoard", g: "งานบ้าน", key: "mcbHome2P", th: "MCB 2P (1 เฟส) ที่มีขาย — เกินตัวใหญ่สุดใช้ MCCB", unit: "A", type: "nums", def: [16, 20, 25, 32, 40, 50, 63] },
+    { sec: "acBoard", g: "งานบ้าน", key: "mcbHome3P", th: "MCB 3P (3 เฟส) ที่มีขาย — เกินตัวใหญ่สุดใช้ MCCB", unit: "A", type: "nums", def: [16, 20, 25, 32, 40, 50, 63] },
+    { sec: "acBoard", g: "งานบ้าน", key: "rccb2P", th: "RCCB 2P (1 เฟส) ที่มีขาย — ขนาดแรกที่ ≥ MCB", unit: "A", type: "nums", def: [25, 40, 63] },
+    { sec: "acBoard", g: "งานบ้าน", key: "rccb4P", th: "RCCB 4P (3 เฟส) ที่มีขาย — ขนาดแรกที่ ≥ MCB", unit: "A", type: "nums", def: [25, 40, 63] },
     { sec: "acBoard", g: "งานบ้าน", key: "homeSpdMcb", th: "MCB กันหลัง AC SPD", unit: "A", def: 32, min: 1 },
     /* ── สาย AC ── */
     { sec: "acWire", key: "wireK", th: "สาย AC เลือกขนาดจากกระแส × (โหลดต่อเนื่อง)", unit: "เท่า", def: 1.25, min: 1 },
@@ -379,10 +382,6 @@
     backupbox3: "Backup Box-B1 (3 เฟส)",
     optimizer: "Smart PV Optimizer SUN2000-600W-P",
   };
-  const RCBO_SIZES = [16, 20, 25, 32, 40, 50, 63, 100];
-  // เลือกขนาด RCBO จากกระแสออก × 1.25 ปัดขึ้นไปขนาดมาตรฐานถัดไป
-  function rcboAmp(outA) { const v = (+outA || 0) * RULES.fixK; for (let i = 0; i < RCBO_SIZES.length; i++) { if (RCBO_SIZES[i] >= v) return RCBO_SIZES[i]; } return RCBO_SIZES[RCBO_SIZES.length - 1]; }
-  function rcboName(outA, phase) { return "RCBO " + rcboAmp(outA) + "A " + (phase === 3 ? "3P+N" : "2P") + " " + RULES.rcboMa + "mA FEEO"; }
 
   const COMBINER = { 1: "M-Combiner 1P (MC-100)", 3: "M-Combiner 3P (MC-100T)" };
   const CT       = { 1: "CT 250A x1", 3: "CT 250A x3" };

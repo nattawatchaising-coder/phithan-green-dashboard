@@ -2122,7 +2122,7 @@ function p3SldModel(st, job, design) {
        งานบ้าน = DC MCB · งานโครงการ = ฟิวส์ gPV ทั้งขั้ว + และ − — ขนาด/แรงดัน/SPD เลือกจากกฎ BOQ ชุดเดียวกับใบ BOQ
        (window.BOQ.RULES_T + pairPick/spdName · ไม่มี BOQ = ค่าตั้งต้นเดิม)
      - Voc สตริงตอนอากาศเย็นสุด (tMin) ต้องไม่เกินแรงดัน DC สูงสุดของอินเวอร์เตอร์
-     - เมนตู้ AC: ≤ 63 A งานบ้าน = RCBO · เกินนั้น MCCB + ZCT/GFR/Shunt trip · ≥ 1000 A = trip unit LSIG
+     - เมนตู้ AC: ≤ 63 A งานบ้าน = MCB + RCCB · เกินนั้น MCCB + ZCT/GFR/Shunt trip · ≥ 1000 A = trip unit LSIG
      - ทุกอุปกรณ์ต้องมีสเปคในตารางอุปกรณ์ (M.sched) */
   if (M.mppt && M.mppt.rows.length && !micro) {
     const PS = typeof scPanelSpec === "function" ? scPanelSpec(sys) : {};
@@ -2176,11 +2176,13 @@ function p3SldModel(st, job, design) {
     const pmt = (job && job.permit) || {}, sv = (job && job.survey) || {};
     const exMain = pmt.mainAT ? pmt.mainAT + "AT" : (sv.mainBreaker || "");
     const ivBrk = units.map((u) => { const a = p3At(aOfUnit(u) * 1.25);
-      return home && a <= 63 ? "RCBO " + P2 + a + "A " + ((R && R.rcboMa) || 100) + "mA" : (a > 125 ? (BQ.mccbName ? BQ.mccbName(a, "inv") : "MCCB 3P " + a + "AT") : "MCB " + P2 + a + "AT"); });
+      return home && a <= 63 ? "MCB " + (nPh === 3 ? "3P " : "2P ") + a + "A" : (a > 125 ? (BQ.mccbName ? BQ.mccbName(a, "inv") : "MCCB 3P " + a + "AT") : "MCB " + P2 + a + "AT"); });
     const dcDev = (R ? home : small)
       ? { k: "mcb", tag: "DC MCB " + mcbP + " " + mcbA + "A " + mcbV + "VDC" }
       : { k: "fuse", tag: "DC FUSE gPV " + fuseA + "A " + dcV + "VDC (+/-)" };
-    const mainTxt = !gf ? "RCBO " + P2 + mainA + "A " + ((R && R.rcboMa) || 100) + "mA" : (lsig && mainA > 1250 ? "ACB 3P " + mainA + "AT" : BQ.mccbName0 ? BQ.mccbName0(mainA, "main") : "MCCB 3P " + mainA + "AT");
+    /* งานบ้าน = MCB (กระแสเกิน) + RCCB (ไฟรั่ว · ขนาดแรกที่ ≥ MCB จากกฎ rccb2P/rccb4P) — ไม่ใช้ RCBO แล้ว */
+    const rccbA = (((R && (nPh === 3 ? R.rccb4P : R.rccb2P)) || [25, 40, 63]).find((x) => x >= mainA)) || 63;
+    const mainTxt = !gf ? "MCB " + (nPh === 3 ? "3P " : "2P ") + mainA + "A + RCCB " + P2 + rccbA + "A " + ((R && R.rcboMa) || 100) + "mA" : (lsig && mainA > 1250 ? "ACB 3P " + mainA + "AT" : BQ.mccbName0 ? BQ.mccbName0(mainA, "main") : "MCCB 3P " + mainA + "AT");
     M.pro = {
       home, small, maxVdc, tMin, isc, wp, vocAt, vocMax, auth: auth || "MEA/PEA",
       lps, dcDev, dcSpdTag: "SPD " + (lps ? "T1+T2 " : "T2 ") + ucpv + "VDC", dcSpdFull: "DC SPD " + (lps ? "T1+T2" : "T2") + " Ucpv " + ucpv + "VDC " + dcSpdKa,

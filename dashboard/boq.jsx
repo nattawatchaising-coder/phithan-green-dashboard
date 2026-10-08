@@ -1131,7 +1131,7 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock, ver, verName, p3Vers
   });
   // งานบ้านมีเฉพาะหมวดตู้ไฟ (คิดอุปกรณ์อัตโนมัติแบบงานโครงการ) · ระบบน้ำมีแต่งานโครงการ
   const kitShown = isHome ? kitSections.filter((sc) => sc.sec === "board" || (sc.sec === "water" && pipe3dRaw))
-    .map((sc) => Object.assign({}, sc, { hint: "ตู้ไฟของงานบ้าน — คิดแบบงานโครงการ: เบรกเกอร์ตามกระแสอินเวอร์เตอร์ (RCBO " + RU.rcboMa + "mA ขนาดแรกที่ ≥ " + RU.fixK + " × กระแส — 1 เฟสถึง " + RU.rcbo2P[RU.rcbo2P.length - 1] + " A · 3 เฟสถึง " + RU.rcbo3P[RU.rcbo3P.length - 1] + " A เกินนั้นใช้ MCCB · อินเวอร์เตอร์ตัวเดียวไม่มีเมนแยก) · SPD Type 2 กันหลังด้วย MCB " + RU.homeSpdMcb + "A · ฟิวส์ DC ตาม Isc/Voc ของสตริง · ราคาดึงจากคลังเหมือนวัสดุอื่น" })) : kitSections;
+    .map((sc) => Object.assign({}, sc, { hint: "ตู้ไฟของงานบ้าน — คิดแบบงานโครงการ: เบรกเกอร์ตามกระแสอินเวอร์เตอร์ (MCB ขนาดแรกที่ ≥ " + RU.fixK + " × กระแส + RCCB " + RU.rcboMa + "mA ขนาดแรกที่ ≥ MCB ที่เมน — RCCB ใหญ่สุด " + RU.rccb2P[RU.rccb2P.length - 1] + " A เกินนั้นใช้ MCCB · อินเวอร์เตอร์ตัวเดียวไม่มีเมนแยก) · SPD Type 2 กันหลังด้วย MCB " + RU.homeSpdMcb + "A · ฟิวส์ DC ตาม Isc/Voc ของสตริง · ราคาดึงจากคลังเหมือนวัสดุอื่น" })) : kitSections;
 
   // ── ราคาขาย & ส่วนลด ──
   const PRICE_DEF = { discount: 0, vat: window.BOQ.VAT_RATE };
@@ -1886,18 +1886,21 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock, ver, verName, p3Vers
     return { at: a, ir, kind, ok: false, iz, rec, txt: base + " แต่สายรับได้ " + iz + " A"
       + (rec ? " — แนะนำ " + rec.name.trim() + (rec.sets > 1 ? " × " + rec.sets + " ชุด" : "") + " (รับ " + rec.amp * rec.sets + " A)" : " — ขยายสาย/เพิ่มชุด") };
   };
-  /* งานบ้าน: RCBO 100mA (RCCB + MCB ในตัวเดียว) ขนาดตามที่มีขาย — 2P (1 เฟส) ถึง 50 A · 4P (3 เฟส) ถึง 63 A
-     ปรับตั้งไม่ได้ จึงเลือกขนาดแรกที่ ≥ 1.25 × กระแส · เกินขนาดใหญ่สุด ใช้ MCCB แบบงานโครงการ */
-  const RCBO_AT = { "2P": RU.rcbo2P, "3P": RU.rcbo3P };
-  const brkPickHome = (ib, c, pole, w) => {
-    const need = ib * RU.fixK, a = (RCBO_AT[pole] || RCBO_AT["2P"]).find((x) => x >= need);
-    if (!a) { const k = brkPick(ib, c, w); return Object.assign(k, { nm: (k.kind === "ACB" ? "ACB 3P " + k.at + "AT" : window.BOQ.mccbName(k.at, w)) }); }
-    const iz = cabIz(c), nm = "RCBO " + a + "A " + (pole === "3P" ? "3P+N" : "2P") + " " + RU.rcboMa + "mA";
-    const base = r1(ib) + " A × " + RU.fixK + " = " + r1(need) + " A → RCBO " + a + " A " + RU.rcboMa + "mA (งานบ้าน กันไฟรั่ว + กระแสเกินในตัวเดียว)";
-    if (!iz) return { at: a, ir: a, kind: "RCBO", nm, ok: true, txt: base + " · ยังไม่ได้เลือกสาย ตรวจพิกัดสายไม่ได้" };
-    if (a <= iz) return { at: a, ir: a, kind: "RCBO", nm, ok: true, txt: base + " ≤ สายรับ " + iz + " A ✓" };
+  /* งานบ้าน: MCB (กระแสเกิน · ปรับตั้งไม่ได้ เลือกขนาดแรกที่ ≥ fixK × กระแส) + RCCB (ไฟรั่ว rcboMa · ขนาดแรกที่ ≥ MCB)
+     ผู้ใช้: ของที่มีขายมีแต่ RCCB ไม่ใช้ RCBO · rccb = true เฉพาะเบรกเกอร์ตัวแรกฝั่งกริด (เมน หรืออินเวอร์เตอร์ตัวเดียว)
+     ลูกย่อยต่ออินเวอร์เตอร์ใต้เมนเป็น MCB อย่างเดียว · MCB/RCCB ใหญ่สุดไม่พอ = MCCB แบบงานโครงการ */
+  const MCBH_AT = { "2P": RU.mcbHome2P, "3P": RU.mcbHome3P }, RCCB_AT = { "2P": RU.rccb2P, "3P": RU.rccb4P };
+  const brkPickHome = (ib, c, pole, w, rccb) => {
+    const need = ib * RU.fixK, a = (MCBH_AT[pole] || MCBH_AT["2P"]).find((x) => x >= need);
+    const ra = a && rccb ? (RCCB_AT[pole] || RCCB_AT["2P"]).find((x) => x >= a) : 0;
+    if (!a || (rccb && !ra)) { const k = brkPick(ib, c, w); return Object.assign(k, { nm: (k.kind === "ACB" ? "ACB 3P " + k.at + "AT" : window.BOQ.mccbName(k.at, w)) }); }
+    const iz = cabIz(c), nm = "MCB " + pole + " " + a + "A";
+    const nm2 = rccb ? "RCCB " + ra + "A " + (pole === "3P" ? "4P" : "2P") + " " + RU.rcboMa + "mA" : "";
+    const base = r1(ib) + " A × " + RU.fixK + " = " + r1(need) + " A → MCB " + a + " A" + (rccb ? " + RCCB " + ra + " A " + RU.rcboMa + "mA (MCB กันกระแสเกิน · RCCB กันไฟรั่ว)" : "");
+    if (!iz) return { at: a, ir: a, kind: "MCB", nm, nm2, ok: true, txt: base + " · ยังไม่ได้เลือกสาย ตรวจพิกัดสายไม่ได้" };
+    if (a <= iz) return { at: a, ir: a, kind: "MCB", nm, nm2, ok: true, txt: base + " ≤ สายรับ " + iz + " A ✓" };
     const rec = cabFit(c, famOfCab(c), Math.max(1, Math.round(+c.sets || 1)), a);
-    return { at: a, ir: a, kind: "RCBO", nm, ok: false, iz, rec, txt: base + " แต่สายรับได้ " + iz + " A"
+    return { at: a, ir: a, kind: "MCB", nm, nm2, ok: false, iz, rec, txt: base + " แต่สายรับได้ " + iz + " A"
       + (rec ? " — แนะนำ " + rec.name.trim() + (rec.sets > 1 ? " × " + rec.sets + " ชุด" : "") + " (รับ " + rec.amp * rec.sets + " A)" : " — ขยายสาย/เพิ่มชุด") };
   };
   // เบรกเกอร์ของสายแต่ละเส้น (index แถวสาย → ผลเลือก) — หัวข้อสายไฟเอาไปโชว์คำแนะนำ
@@ -1926,7 +1929,7 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock, ver, verName, p3Vers
       const ib = nos.reduce((s, no) => s + ((invUnits[no - 1] || {}).outA || 0), 0);
       const homeOne = isHome && nos.length === 1;
       if (ib > 0 && !homeOne) {
-        const k = isHome ? brkPickHome(ib, m, pole, "main") : brkPick(ib, m, "main"); mainAt = k.at;
+        const k = isHome ? brkPickHome(ib, m, pole, "main", true) : brkPick(ib, m, "main"); mainAt = k.at;
         if (m) brkOfCab[cs.indexOf(m)] = Object.assign({ who: "เมนตู้ AC" }, k);
         // เมน ≥ 1000 AT ใช้เบรกเกอร์ trip unit อิเล็กทรอนิกส์ LSIG — มี Ground Fault ในตัว ไม่ต้องมี GFR/ZCT/Shunt trip แยก
         const gIn = bOn("gf") && k.at >= GF_IN_AT;
@@ -1934,17 +1937,19 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock, ver, verName, p3Vers
         const isM = k.kind === "MCCB" && !k.nm;
         out.ac.push({ name: k.nm ? k.nm + (gIn ? " LSIG" : "") : k.kind === "ACB" ? "ACB 3P " + k.at + "AT" + (gIn ? " LSIG" : "") : window.BOQ.mccbName(k.at, "main", gIn), qty: 1, unit: "ตัว", auto: 1, ok: k.ok,
           why: tag + "เมน · อินเวอร์เตอร์ " + nos.join(", ") + " รวม " + k.txt + (gIn ? " · trip unit LSIG มี Ground Fault ในตัว" : isM ? " · รุ่นปรับตั้งได้ (TM-D)" : "") });
+        if (k.nm2) out.ac.push({ name: k.nm2, qty: 1, unit: "ตัว", auto: 1, why: tag + "กันไฟรั่วคู่กับ " + k.nm + " (RCCB ไม่ตัดกระแสเกิน · ขนาดต้อง ≥ MCB)" });
         if (isM && !isHome && !gIn) out.ac.push({ name: "MCCB CVS Shunt Trip (MX) 220VAC", qty: 1, unit: "ตัว", auto: 1,
           why: tag + "คอยล์สั่งตัด MCCB เมน " + k.at + " AT (อุปกรณ์เสริมของเมน · ตรงรุ่นเฟรม)" + (bOn("gf") ? " รับสัญญาณจาก GFR" : "") });
       }
       nos.forEach((no) => {
         const u = invUnits[no - 1]; if (!u || !u.outA) return;
         const c = cs.find((x) => /INVERTER-MCB_SOLAR/i.test(x.name || "") && +x.inv === no);
-        const k = isHome ? brkPickHome(u.outA, c, pole, "inv") : brkPick(u.outA, c, "inv");
+        const k = isHome ? brkPickHome(u.outA, c, pole, "inv", homeOne) : brkPick(u.outA, c, "inv");
         if (c) brkOfCab[cs.indexOf(c)] = Object.assign({ who: "อินเวอร์เตอร์ตัวที่ " + no }, k);
         if (homeOne) mainAt = k.at;
         out.ac.push({ name: k.nm || (k.kind === "ACB" ? "ACB 3P " + k.at + "AT" : window.BOQ.mccbName(k.at, "inv")), qty: 1, unit: "ตัว", auto: 1, ok: k.ok,
           why: tag + "อินเวอร์เตอร์ตัวที่ " + no + " · " + k.txt + (homeOne ? " · งานบ้านอินเวอร์เตอร์ตัวเดียว ต่อเข้าเบรกเกอร์นี้เลย ไม่มีเมนแยก" : "") });
+        if (k.nm2) out.ac.push({ name: k.nm2, qty: 1, unit: "ตัว", auto: 1, why: tag + "กันไฟรั่วคู่กับ " + k.nm + " (RCCB ไม่ตัดกระแสเกิน · ขนาดต้อง ≥ MCB)" });
       });
       // ฟิวส์กันหลัง SPD = ฟิวส์ใบมีด NH00 gG — Type 2 = 32 A · Type 1+2 = 125 A (ต้องทนกระแสฟ้าผ่า)
       // Type 1+2: MCCB เมนตู้ ≤ 125 AT กันหลัง SPD ได้เอง ไม่ต้องมีฟิวส์
@@ -3254,7 +3259,7 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock, ver, verName, p3Vers
                       <b>สองขนาดในงานเดียว</b> — {selInv.model} {result.meta.invCount} ตัว + {selInv2.model} {inv2Count} ตัว
                       {" "}(รวม {invTotal} ตัว){maxPvTotal > 0 ? " · MAX PV รวม " + maxPvTotal + " kWp" : ""}
                       {acMaxTotal > 0 ? " · กำลังออก AC รวม " + Math.round(acMaxTotal) + " kW" : ""}
-                      <br />จำนวนตัวที่สองกรอกเอง · รุ่นแรกคิดกำลังที่เหลือให้ ({result.meta.invAuto} ตัว) · RCBO กับสาย AC แยกขนาดตามกระแสออกของแต่ละรุ่นแล้ว
+                      <br />จำนวนตัวที่สองกรอกเอง · รุ่นแรกคิดกำลังที่เหลือให้ ({result.meta.invAuto} ตัว) · เบรกเกอร์กับสาย AC แยกขนาดตามกระแสออกของแต่ละรุ่นแล้ว
                       {inv2PhaseBad && <span style={{ fontWeight: 700 }}><br />รุ่นที่สองเป็น {selInv2.phase} เฟส แต่งานนี้เป็น {jobPhaseNum} เฟส — เปลี่ยนรุ่น หรือแก้เฟสในคลัง</span>}
                     </span>
                   </div>
@@ -3367,7 +3372,7 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock, ver, verName, p3Vers
 
               <div className="bq-hint" style={{ marginTop: 10, fontSize: 11, color: "var(--text-3)", lineHeight: 1.5 }}>
                 * ใส่แผงเกินกำลัง AC ได้ถึง DC/AC {window.BOQ.DCAC_LIMIT} เท่า — อินเวอร์เตอร์ตัดกำลังออกไว้ที่ Max AC Active Power อยู่แล้ว ส่วนที่เกินช่วยเก็บกำลังตอนแดดอ่อน
-                <br />* จำนวนตัว = ปัดขึ้น(กำลังแผงรวม ÷ MAX PV ต่อตัว) พิมพ์ทับได้ · Combiner Box + DC (Fuse/Holder/MCB/MC4) คิดตามจำนวน String · RCBO/SPD/Smart Meter/Backup เลือกตามเฟส ({selInv.phase === 3 ? "3" : "1"} เฟส) · RCBO ขนาดจากกระแสออก × 1.25
+                <br />* จำนวนตัว = ปัดขึ้น(กำลังแผงรวม ÷ MAX PV ต่อตัว) พิมพ์ทับได้ · Combiner Box + DC (Fuse/Holder/MCB/MC4) คิดตามจำนวน String · MCB+RCCB/SPD/Smart Meter/Backup เลือกตามเฟส ({selInv.phase === 3 ? "3" : "1"} เฟส) · MCB ขนาดจากกระแสออก × 1.25
               </div>
             </BoqSection>
           )}
@@ -3425,7 +3430,7 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock, ver, verName, p3Vers
 
               <div className="bq-hint" style={{ marginTop: 10, fontSize: 11, color: "var(--text-3)", lineHeight: 1.5 }}>
                 * จำนวนตัวของรุ่นนี้กรอกเองเสมอ — ตัวที่ 1 จะคิดกำลังที่เหลือให้อัตโนมัติ ({result.meta.invAuto} ตัว) · รวมทั้งงาน {invTotal} ตัว
-                <br />* RCBO กับสาย AC ของรุ่นนี้แยกขนาดตามกระแสออกของตัวมันเอง ({selInv2.outA || "—"} A) ไม่ได้ใช้ขนาดเดียวกับตัวที่ 1 · AC SPD คิดตามจำนวนตัวรวม
+                <br />* เบรกเกอร์กับสาย AC ของรุ่นนี้แยกขนาดตามกระแสออกของตัวมันเอง ({selInv2.outA || "—"} A) ไม่ได้ใช้ขนาดเดียวกับตัวที่ 1 · AC SPD คิดตามจำนวนตัวรวม
                 <br />* ตัวออกแบบสตริง 3D และสมุดส่งมอบยังใช้อินเวอร์เตอร์ตัวที่ 1 อย่างเดียว
               </div>
             </BoqSection>

@@ -2080,7 +2080,7 @@ function BOQEditor({
     });
   });
   const kitShown = isHome ? kitSections.filter(sc => sc.sec === "board" || sc.sec === "water" && pipe3dRaw).map(sc => Object.assign({}, sc, {
-    hint: "ตู้ไฟของงานบ้าน — คิดแบบงานโครงการ: เบรกเกอร์ตามกระแสอินเวอร์เตอร์ (RCBO " + RU.rcboMa + "mA ขนาดแรกที่ ≥ " + RU.fixK + " × กระแส — 1 เฟสถึง " + RU.rcbo2P[RU.rcbo2P.length - 1] + " A · 3 เฟสถึง " + RU.rcbo3P[RU.rcbo3P.length - 1] + " A เกินนั้นใช้ MCCB · อินเวอร์เตอร์ตัวเดียวไม่มีเมนแยก) · SPD Type 2 กันหลังด้วย MCB " + RU.homeSpdMcb + "A · ฟิวส์ DC ตาม Isc/Voc ของสตริง · ราคาดึงจากคลังเหมือนวัสดุอื่น"
+    hint: "ตู้ไฟของงานบ้าน — คิดแบบงานโครงการ: เบรกเกอร์ตามกระแสอินเวอร์เตอร์ (MCB ขนาดแรกที่ ≥ " + RU.fixK + " × กระแส + RCCB " + RU.rcboMa + "mA ขนาดแรกที่ ≥ MCB ที่เมน — RCCB ใหญ่สุด " + RU.rccb2P[RU.rccb2P.length - 1] + " A เกินนั้นใช้ MCCB · อินเวอร์เตอร์ตัวเดียวไม่มีเมนแยก) · SPD Type 2 กันหลังด้วย MCB " + RU.homeSpdMcb + "A · ฟิวส์ DC ตาม Isc/Voc ของสตริง · ราคาดึงจากคลังเหมือนวัสดุอื่น"
   })) : kitSections;
   const PRICE_DEF = {
     discount: 0,
@@ -3185,35 +3185,43 @@ function BOQEditor({
       txt: base + " แต่สายรับได้ " + iz + " A" + (rec ? " — แนะนำ " + rec.name.trim() + (rec.sets > 1 ? " × " + rec.sets + " ชุด" : "") + " (รับ " + rec.amp * rec.sets + " A)" : " — ขยายสาย/เพิ่มชุด")
     };
   };
-  const RCBO_AT = {
-    "2P": RU.rcbo2P,
-    "3P": RU.rcbo3P
-  };
-  const brkPickHome = (ib, c, pole, w) => {
+  const MCBH_AT = {
+      "2P": RU.mcbHome2P,
+      "3P": RU.mcbHome3P
+    },
+    RCCB_AT = {
+      "2P": RU.rccb2P,
+      "3P": RU.rccb4P
+    };
+  const brkPickHome = (ib, c, pole, w, rccb) => {
     const need = ib * RU.fixK,
-      a = (RCBO_AT[pole] || RCBO_AT["2P"]).find(x => x >= need);
-    if (!a) {
+      a = (MCBH_AT[pole] || MCBH_AT["2P"]).find(x => x >= need);
+    const ra = a && rccb ? (RCCB_AT[pole] || RCCB_AT["2P"]).find(x => x >= a) : 0;
+    if (!a || rccb && !ra) {
       const k = brkPick(ib, c, w);
       return Object.assign(k, {
         nm: k.kind === "ACB" ? "ACB 3P " + k.at + "AT" : window.BOQ.mccbName(k.at, w)
       });
     }
     const iz = cabIz(c),
-      nm = "RCBO " + a + "A " + (pole === "3P" ? "3P+N" : "2P") + " " + RU.rcboMa + "mA";
-    const base = r1(ib) + " A × " + RU.fixK + " = " + r1(need) + " A → RCBO " + a + " A " + RU.rcboMa + "mA (งานบ้าน กันไฟรั่ว + กระแสเกินในตัวเดียว)";
+      nm = "MCB " + pole + " " + a + "A";
+    const nm2 = rccb ? "RCCB " + ra + "A " + (pole === "3P" ? "4P" : "2P") + " " + RU.rcboMa + "mA" : "";
+    const base = r1(ib) + " A × " + RU.fixK + " = " + r1(need) + " A → MCB " + a + " A" + (rccb ? " + RCCB " + ra + " A " + RU.rcboMa + "mA (MCB กันกระแสเกิน · RCCB กันไฟรั่ว)" : "");
     if (!iz) return {
       at: a,
       ir: a,
-      kind: "RCBO",
+      kind: "MCB",
       nm,
+      nm2,
       ok: true,
       txt: base + " · ยังไม่ได้เลือกสาย ตรวจพิกัดสายไม่ได้"
     };
     if (a <= iz) return {
       at: a,
       ir: a,
-      kind: "RCBO",
+      kind: "MCB",
       nm,
+      nm2,
       ok: true,
       txt: base + " ≤ สายรับ " + iz + " A ✓"
     };
@@ -3221,8 +3229,9 @@ function BOQEditor({
     return {
       at: a,
       ir: a,
-      kind: "RCBO",
+      kind: "MCB",
       nm,
+      nm2,
       ok: false,
       iz,
       rec,
@@ -3259,7 +3268,7 @@ function BOQEditor({
       const ib = nos.reduce((s, no) => s + ((invUnits[no - 1] || {}).outA || 0), 0);
       const homeOne = isHome && nos.length === 1;
       if (ib > 0 && !homeOne) {
-        const k = isHome ? brkPickHome(ib, m, pole, "main") : brkPick(ib, m, "main");
+        const k = isHome ? brkPickHome(ib, m, pole, "main", true) : brkPick(ib, m, "main");
         mainAt = k.at;
         if (m) brkOfCab[cs.indexOf(m)] = Object.assign({
           who: "เมนตู้ AC"
@@ -3274,6 +3283,13 @@ function BOQEditor({
           ok: k.ok,
           why: tag + "เมน · อินเวอร์เตอร์ " + nos.join(", ") + " รวม " + k.txt + (gIn ? " · trip unit LSIG มี Ground Fault ในตัว" : isM ? " · รุ่นปรับตั้งได้ (TM-D)" : "")
         });
+        if (k.nm2) out.ac.push({
+          name: k.nm2,
+          qty: 1,
+          unit: "ตัว",
+          auto: 1,
+          why: tag + "กันไฟรั่วคู่กับ " + k.nm + " (RCCB ไม่ตัดกระแสเกิน · ขนาดต้อง ≥ MCB)"
+        });
         if (isM && !isHome && !gIn) out.ac.push({
           name: "MCCB CVS Shunt Trip (MX) 220VAC",
           qty: 1,
@@ -3286,7 +3302,7 @@ function BOQEditor({
         const u = invUnits[no - 1];
         if (!u || !u.outA) return;
         const c = cs.find(x => /INVERTER-MCB_SOLAR/i.test(x.name || "") && +x.inv === no);
-        const k = isHome ? brkPickHome(u.outA, c, pole, "inv") : brkPick(u.outA, c, "inv");
+        const k = isHome ? brkPickHome(u.outA, c, pole, "inv", homeOne) : brkPick(u.outA, c, "inv");
         if (c) brkOfCab[cs.indexOf(c)] = Object.assign({
           who: "อินเวอร์เตอร์ตัวที่ " + no
         }, k);
@@ -3298,6 +3314,13 @@ function BOQEditor({
           auto: 1,
           ok: k.ok,
           why: tag + "อินเวอร์เตอร์ตัวที่ " + no + " · " + k.txt + (homeOne ? " · งานบ้านอินเวอร์เตอร์ตัวเดียว ต่อเข้าเบรกเกอร์นี้เลย ไม่มีเมนแยก" : "")
+        });
+        if (k.nm2) out.ac.push({
+          name: k.nm2,
+          qty: 1,
+          unit: "ตัว",
+          auto: 1,
+          why: tag + "กันไฟรั่วคู่กับ " + k.nm + " (RCCB ไม่ตัดกระแสเกิน · ขนาดต้อง ≥ MCB)"
         });
       });
       const fA = lps ? RU.nhT12 : RU.nhT2;
@@ -6442,7 +6465,7 @@ function BOQEditor({
     name: inv2PhaseBad ? "alert" : "bolt",
     size: 15,
     color: inv2PhaseBad ? "#F59E0B" : "#0D9488"
-  }), React.createElement("span", null, React.createElement("b", null, "\u0E2A\u0E2D\u0E07\u0E02\u0E19\u0E32\u0E14\u0E43\u0E19\u0E07\u0E32\u0E19\u0E40\u0E14\u0E35\u0E22\u0E27"), " \u2014 ", selInv.model, " ", result.meta.invCount, " \u0E15\u0E31\u0E27 + ", selInv2.model, " ", inv2Count, " \u0E15\u0E31\u0E27", " ", "(\u0E23\u0E27\u0E21 ", invTotal, " \u0E15\u0E31\u0E27)", maxPvTotal > 0 ? " · MAX PV รวม " + maxPvTotal + " kWp" : "", acMaxTotal > 0 ? " · กำลังออก AC รวม " + Math.round(acMaxTotal) + " kW" : "", React.createElement("br", null), "\u0E08\u0E33\u0E19\u0E27\u0E19\u0E15\u0E31\u0E27\u0E17\u0E35\u0E48\u0E2A\u0E2D\u0E07\u0E01\u0E23\u0E2D\u0E01\u0E40\u0E2D\u0E07 \xB7 \u0E23\u0E38\u0E48\u0E19\u0E41\u0E23\u0E01\u0E04\u0E34\u0E14\u0E01\u0E33\u0E25\u0E31\u0E07\u0E17\u0E35\u0E48\u0E40\u0E2B\u0E25\u0E37\u0E2D\u0E43\u0E2B\u0E49 (", result.meta.invAuto, " \u0E15\u0E31\u0E27) \xB7 RCBO \u0E01\u0E31\u0E1A\u0E2A\u0E32\u0E22 AC \u0E41\u0E22\u0E01\u0E02\u0E19\u0E32\u0E14\u0E15\u0E32\u0E21\u0E01\u0E23\u0E30\u0E41\u0E2A\u0E2D\u0E2D\u0E01\u0E02\u0E2D\u0E07\u0E41\u0E15\u0E48\u0E25\u0E30\u0E23\u0E38\u0E48\u0E19\u0E41\u0E25\u0E49\u0E27", inv2PhaseBad && React.createElement("span", {
+  }), React.createElement("span", null, React.createElement("b", null, "\u0E2A\u0E2D\u0E07\u0E02\u0E19\u0E32\u0E14\u0E43\u0E19\u0E07\u0E32\u0E19\u0E40\u0E14\u0E35\u0E22\u0E27"), " \u2014 ", selInv.model, " ", result.meta.invCount, " \u0E15\u0E31\u0E27 + ", selInv2.model, " ", inv2Count, " \u0E15\u0E31\u0E27", " ", "(\u0E23\u0E27\u0E21 ", invTotal, " \u0E15\u0E31\u0E27)", maxPvTotal > 0 ? " · MAX PV รวม " + maxPvTotal + " kWp" : "", acMaxTotal > 0 ? " · กำลังออก AC รวม " + Math.round(acMaxTotal) + " kW" : "", React.createElement("br", null), "\u0E08\u0E33\u0E19\u0E27\u0E19\u0E15\u0E31\u0E27\u0E17\u0E35\u0E48\u0E2A\u0E2D\u0E07\u0E01\u0E23\u0E2D\u0E01\u0E40\u0E2D\u0E07 \xB7 \u0E23\u0E38\u0E48\u0E19\u0E41\u0E23\u0E01\u0E04\u0E34\u0E14\u0E01\u0E33\u0E25\u0E31\u0E07\u0E17\u0E35\u0E48\u0E40\u0E2B\u0E25\u0E37\u0E2D\u0E43\u0E2B\u0E49 (", result.meta.invAuto, " \u0E15\u0E31\u0E27) \xB7 \u0E40\u0E1A\u0E23\u0E01\u0E40\u0E01\u0E2D\u0E23\u0E4C\u0E01\u0E31\u0E1A\u0E2A\u0E32\u0E22 AC \u0E41\u0E22\u0E01\u0E02\u0E19\u0E32\u0E14\u0E15\u0E32\u0E21\u0E01\u0E23\u0E30\u0E41\u0E2A\u0E2D\u0E2D\u0E01\u0E02\u0E2D\u0E07\u0E41\u0E15\u0E48\u0E25\u0E30\u0E23\u0E38\u0E48\u0E19\u0E41\u0E25\u0E49\u0E27", inv2PhaseBad && React.createElement("span", {
     style: {
       fontWeight: 700
     }
@@ -6696,7 +6719,7 @@ function BOQEditor({
       color: "var(--text-3)",
       lineHeight: 1.5
     }
-  }, "* \u0E43\u0E2A\u0E48\u0E41\u0E1C\u0E07\u0E40\u0E01\u0E34\u0E19\u0E01\u0E33\u0E25\u0E31\u0E07 AC \u0E44\u0E14\u0E49\u0E16\u0E36\u0E07 DC/AC ", window.BOQ.DCAC_LIMIT, " \u0E40\u0E17\u0E48\u0E32 \u2014 \u0E2D\u0E34\u0E19\u0E40\u0E27\u0E2D\u0E23\u0E4C\u0E40\u0E15\u0E2D\u0E23\u0E4C\u0E15\u0E31\u0E14\u0E01\u0E33\u0E25\u0E31\u0E07\u0E2D\u0E2D\u0E01\u0E44\u0E27\u0E49\u0E17\u0E35\u0E48 Max AC Active Power \u0E2D\u0E22\u0E39\u0E48\u0E41\u0E25\u0E49\u0E27 \u0E2A\u0E48\u0E27\u0E19\u0E17\u0E35\u0E48\u0E40\u0E01\u0E34\u0E19\u0E0A\u0E48\u0E27\u0E22\u0E40\u0E01\u0E47\u0E1A\u0E01\u0E33\u0E25\u0E31\u0E07\u0E15\u0E2D\u0E19\u0E41\u0E14\u0E14\u0E2D\u0E48\u0E2D\u0E19", React.createElement("br", null), "* \u0E08\u0E33\u0E19\u0E27\u0E19\u0E15\u0E31\u0E27 = \u0E1B\u0E31\u0E14\u0E02\u0E36\u0E49\u0E19(\u0E01\u0E33\u0E25\u0E31\u0E07\u0E41\u0E1C\u0E07\u0E23\u0E27\u0E21 \xF7 MAX PV \u0E15\u0E48\u0E2D\u0E15\u0E31\u0E27) \u0E1E\u0E34\u0E21\u0E1E\u0E4C\u0E17\u0E31\u0E1A\u0E44\u0E14\u0E49 \xB7 Combiner Box + DC (Fuse/Holder/MCB/MC4) \u0E04\u0E34\u0E14\u0E15\u0E32\u0E21\u0E08\u0E33\u0E19\u0E27\u0E19 String \xB7 RCBO/SPD/Smart Meter/Backup \u0E40\u0E25\u0E37\u0E2D\u0E01\u0E15\u0E32\u0E21\u0E40\u0E1F\u0E2A (", selInv.phase === 3 ? "3" : "1", " \u0E40\u0E1F\u0E2A) \xB7 RCBO \u0E02\u0E19\u0E32\u0E14\u0E08\u0E32\u0E01\u0E01\u0E23\u0E30\u0E41\u0E2A\u0E2D\u0E2D\u0E01 \xD7 1.25")), isHuawei && !!selInv2 && React.createElement(BoqSection, _extends({
+  }, "* \u0E43\u0E2A\u0E48\u0E41\u0E1C\u0E07\u0E40\u0E01\u0E34\u0E19\u0E01\u0E33\u0E25\u0E31\u0E07 AC \u0E44\u0E14\u0E49\u0E16\u0E36\u0E07 DC/AC ", window.BOQ.DCAC_LIMIT, " \u0E40\u0E17\u0E48\u0E32 \u2014 \u0E2D\u0E34\u0E19\u0E40\u0E27\u0E2D\u0E23\u0E4C\u0E40\u0E15\u0E2D\u0E23\u0E4C\u0E15\u0E31\u0E14\u0E01\u0E33\u0E25\u0E31\u0E07\u0E2D\u0E2D\u0E01\u0E44\u0E27\u0E49\u0E17\u0E35\u0E48 Max AC Active Power \u0E2D\u0E22\u0E39\u0E48\u0E41\u0E25\u0E49\u0E27 \u0E2A\u0E48\u0E27\u0E19\u0E17\u0E35\u0E48\u0E40\u0E01\u0E34\u0E19\u0E0A\u0E48\u0E27\u0E22\u0E40\u0E01\u0E47\u0E1A\u0E01\u0E33\u0E25\u0E31\u0E07\u0E15\u0E2D\u0E19\u0E41\u0E14\u0E14\u0E2D\u0E48\u0E2D\u0E19", React.createElement("br", null), "* \u0E08\u0E33\u0E19\u0E27\u0E19\u0E15\u0E31\u0E27 = \u0E1B\u0E31\u0E14\u0E02\u0E36\u0E49\u0E19(\u0E01\u0E33\u0E25\u0E31\u0E07\u0E41\u0E1C\u0E07\u0E23\u0E27\u0E21 \xF7 MAX PV \u0E15\u0E48\u0E2D\u0E15\u0E31\u0E27) \u0E1E\u0E34\u0E21\u0E1E\u0E4C\u0E17\u0E31\u0E1A\u0E44\u0E14\u0E49 \xB7 Combiner Box + DC (Fuse/Holder/MCB/MC4) \u0E04\u0E34\u0E14\u0E15\u0E32\u0E21\u0E08\u0E33\u0E19\u0E27\u0E19 String \xB7 MCB+RCCB/SPD/Smart Meter/Backup \u0E40\u0E25\u0E37\u0E2D\u0E01\u0E15\u0E32\u0E21\u0E40\u0E1F\u0E2A (", selInv.phase === 3 ? "3" : "1", " \u0E40\u0E1F\u0E2A) \xB7 MCB \u0E02\u0E19\u0E32\u0E14\u0E08\u0E32\u0E01\u0E01\u0E23\u0E30\u0E41\u0E2A\u0E2D\u0E2D\u0E01 \xD7 1.25")), isHuawei && !!selInv2 && React.createElement(BoqSection, _extends({
     title: "ระบบ " + (selInv.type === "hybrid" ? "Hybrid" : "On-grid") + " · ตัวที่ 2 (" + selInv2.model + ")",
     icon: "bolt"
   }, secProps("hybrid")), React.createElement("div", {
@@ -6812,7 +6835,7 @@ function BOQEditor({
       color: "var(--text-3)",
       lineHeight: 1.5
     }
-  }, "* \u0E08\u0E33\u0E19\u0E27\u0E19\u0E15\u0E31\u0E27\u0E02\u0E2D\u0E07\u0E23\u0E38\u0E48\u0E19\u0E19\u0E35\u0E49\u0E01\u0E23\u0E2D\u0E01\u0E40\u0E2D\u0E07\u0E40\u0E2A\u0E21\u0E2D \u2014 \u0E15\u0E31\u0E27\u0E17\u0E35\u0E48 1 \u0E08\u0E30\u0E04\u0E34\u0E14\u0E01\u0E33\u0E25\u0E31\u0E07\u0E17\u0E35\u0E48\u0E40\u0E2B\u0E25\u0E37\u0E2D\u0E43\u0E2B\u0E49\u0E2D\u0E31\u0E15\u0E42\u0E19\u0E21\u0E31\u0E15\u0E34 (", result.meta.invAuto, " \u0E15\u0E31\u0E27) \xB7 \u0E23\u0E27\u0E21\u0E17\u0E31\u0E49\u0E07\u0E07\u0E32\u0E19 ", invTotal, " \u0E15\u0E31\u0E27", React.createElement("br", null), "* RCBO \u0E01\u0E31\u0E1A\u0E2A\u0E32\u0E22 AC \u0E02\u0E2D\u0E07\u0E23\u0E38\u0E48\u0E19\u0E19\u0E35\u0E49\u0E41\u0E22\u0E01\u0E02\u0E19\u0E32\u0E14\u0E15\u0E32\u0E21\u0E01\u0E23\u0E30\u0E41\u0E2A\u0E2D\u0E2D\u0E01\u0E02\u0E2D\u0E07\u0E15\u0E31\u0E27\u0E21\u0E31\u0E19\u0E40\u0E2D\u0E07 (", selInv2.outA || "—", " A) \u0E44\u0E21\u0E48\u0E44\u0E14\u0E49\u0E43\u0E0A\u0E49\u0E02\u0E19\u0E32\u0E14\u0E40\u0E14\u0E35\u0E22\u0E27\u0E01\u0E31\u0E1A\u0E15\u0E31\u0E27\u0E17\u0E35\u0E48 1 \xB7 AC SPD \u0E04\u0E34\u0E14\u0E15\u0E32\u0E21\u0E08\u0E33\u0E19\u0E27\u0E19\u0E15\u0E31\u0E27\u0E23\u0E27\u0E21", React.createElement("br", null), "* \u0E15\u0E31\u0E27\u0E2D\u0E2D\u0E01\u0E41\u0E1A\u0E1A\u0E2A\u0E15\u0E23\u0E34\u0E07 3D \u0E41\u0E25\u0E30\u0E2A\u0E21\u0E38\u0E14\u0E2A\u0E48\u0E07\u0E21\u0E2D\u0E1A\u0E22\u0E31\u0E07\u0E43\u0E0A\u0E49\u0E2D\u0E34\u0E19\u0E40\u0E27\u0E2D\u0E23\u0E4C\u0E40\u0E15\u0E2D\u0E23\u0E4C\u0E15\u0E31\u0E27\u0E17\u0E35\u0E48 1 \u0E2D\u0E22\u0E48\u0E32\u0E07\u0E40\u0E14\u0E35\u0E22\u0E27")), isStringInv && scfg && React.createElement(BoqSection, _extends({
+  }, "* \u0E08\u0E33\u0E19\u0E27\u0E19\u0E15\u0E31\u0E27\u0E02\u0E2D\u0E07\u0E23\u0E38\u0E48\u0E19\u0E19\u0E35\u0E49\u0E01\u0E23\u0E2D\u0E01\u0E40\u0E2D\u0E07\u0E40\u0E2A\u0E21\u0E2D \u2014 \u0E15\u0E31\u0E27\u0E17\u0E35\u0E48 1 \u0E08\u0E30\u0E04\u0E34\u0E14\u0E01\u0E33\u0E25\u0E31\u0E07\u0E17\u0E35\u0E48\u0E40\u0E2B\u0E25\u0E37\u0E2D\u0E43\u0E2B\u0E49\u0E2D\u0E31\u0E15\u0E42\u0E19\u0E21\u0E31\u0E15\u0E34 (", result.meta.invAuto, " \u0E15\u0E31\u0E27) \xB7 \u0E23\u0E27\u0E21\u0E17\u0E31\u0E49\u0E07\u0E07\u0E32\u0E19 ", invTotal, " \u0E15\u0E31\u0E27", React.createElement("br", null), "* \u0E40\u0E1A\u0E23\u0E01\u0E40\u0E01\u0E2D\u0E23\u0E4C\u0E01\u0E31\u0E1A\u0E2A\u0E32\u0E22 AC \u0E02\u0E2D\u0E07\u0E23\u0E38\u0E48\u0E19\u0E19\u0E35\u0E49\u0E41\u0E22\u0E01\u0E02\u0E19\u0E32\u0E14\u0E15\u0E32\u0E21\u0E01\u0E23\u0E30\u0E41\u0E2A\u0E2D\u0E2D\u0E01\u0E02\u0E2D\u0E07\u0E15\u0E31\u0E27\u0E21\u0E31\u0E19\u0E40\u0E2D\u0E07 (", selInv2.outA || "—", " A) \u0E44\u0E21\u0E48\u0E44\u0E14\u0E49\u0E43\u0E0A\u0E49\u0E02\u0E19\u0E32\u0E14\u0E40\u0E14\u0E35\u0E22\u0E27\u0E01\u0E31\u0E1A\u0E15\u0E31\u0E27\u0E17\u0E35\u0E48 1 \xB7 AC SPD \u0E04\u0E34\u0E14\u0E15\u0E32\u0E21\u0E08\u0E33\u0E19\u0E27\u0E19\u0E15\u0E31\u0E27\u0E23\u0E27\u0E21", React.createElement("br", null), "* \u0E15\u0E31\u0E27\u0E2D\u0E2D\u0E01\u0E41\u0E1A\u0E1A\u0E2A\u0E15\u0E23\u0E34\u0E07 3D \u0E41\u0E25\u0E30\u0E2A\u0E21\u0E38\u0E14\u0E2A\u0E48\u0E07\u0E21\u0E2D\u0E1A\u0E22\u0E31\u0E07\u0E43\u0E0A\u0E49\u0E2D\u0E34\u0E19\u0E40\u0E27\u0E2D\u0E23\u0E4C\u0E40\u0E15\u0E2D\u0E23\u0E4C\u0E15\u0E31\u0E27\u0E17\u0E35\u0E48 1 \u0E2D\u0E22\u0E48\u0E32\u0E07\u0E40\u0E14\u0E35\u0E22\u0E27")), isStringInv && scfg && React.createElement(BoqSection, _extends({
     title: "\u0E2A\u0E32\u0E22 DC / \u0E01\u0E32\u0E23\u0E15\u0E48\u0E2D\u0E2D\u0E19\u0E38\u0E01\u0E23\u0E21 String (PV1-F)",
     icon: "bolt"
   }, secProps("dc")), !scfg.ready ? React.createElement("div", {
