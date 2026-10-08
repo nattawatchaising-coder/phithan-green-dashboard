@@ -1385,10 +1385,11 @@ function BOQEditor({
   }, [job, microW, wcPhase, wcVolt, wcalc.battKw, wcalc.backupMainA, wcStrings, hasBattery, hasBackup, calcIns, calcMethod, calcGroup, calcNCond]);
   const cableAmp = (name, opts) => window.BOQ.ampacityOf(name, opts);
   const RU = window.BOQ.RULES;
-  const BRK_AT = RU.mccbAt;
+  const brkAts = w => w === "main" ? RU.mccbAtMain : RU.mccbAtInv;
   const ACB_AT = RU.acbAt;
   const GF_IN_AT = RU.gfLsigAt;
-  const brkSet = ib => {
+  const brkSet = (ib, w) => {
+    const BRK_AT = brkAts(w);
     let ir = Math.ceil(ib * RU.mccbIrK / RU.mccbStep) * RU.mccbStep;
     const acb = ir > BRK_AT[BRK_AT.length - 1];
     const L = acb ? ACB_AT : BRK_AT;
@@ -1425,11 +1426,11 @@ function BOQEditor({
     if (invUnits.length) {
       if (/MCB_SOLAR-MDB/.test(n)) {
         const a = mcbInvsOf(row).reduce((s, no) => s + ((invUnits[no - 1] || {}).outA || 0), 0);
-        return a ? homeJob ? a * WK : brkSet(a).ir : null;
+        return a ? homeJob ? a * WK : brkSet(a, "main").ir : null;
       }
       if (/INVERTER-MCB_SOLAR/.test(n)) {
         const u = invUnits[(row && +row.inv || 1) - 1] || invUnits[0];
-        return u.outA ? homeJob ? u.outA * WK : brkSet(u.outA).ir : null;
+        return u.outA ? homeJob ? u.outA * WK : brkSet(u.outA, "inv").ir : null;
       }
     }
     const invAcPer = selInv ? +selInv.outA || 0 : 0;
@@ -3150,14 +3151,14 @@ function BOQEditor({
     return a ? Math.round(a * Math.max(1, Math.round(+c.sets || 1))) : null;
   };
   const famOfCab = c => CAB_FAMS.find(f => f.key === c.fam) || (/THW|IEC\s*0?1/i.test(c.type || "") ? CAB_FAMS[2] : cabCores(c.type) >= 2 ? CAB_FAMS[0] : CAB_FAMS[1]);
-  const brkPick = (ib, c) => {
+  const brkPick = (ib, c, w) => {
     const iz = cabIz(c);
     const {
       ir,
       at: a,
       kind
-    } = brkSet(ib);
-    const fr = kind === "MCCB" ? window.BOQ.mccbFrame(a) : null;
+    } = brkSet(ib, w);
+    const fr = kind === "MCCB" ? window.BOQ.mccbFrame(a, w) : null;
     const base = r1(ib) + " A → " + (fr ? fr.af + " AF " : "") + a + " AT " + (fr && fr.ka ? fr.ka + " kA " : "") + (ir < a ? "ปรับตั้ง " + ir + " A (" + r1(ir / a) + " × In)" : "ไม่ต้องปรับ");
     if (!iz) return {
       at: a,
@@ -3188,13 +3189,13 @@ function BOQEditor({
     "2P": RU.rcbo2P,
     "3P": RU.rcbo3P
   };
-  const brkPickHome = (ib, c, pole) => {
+  const brkPickHome = (ib, c, pole, w) => {
     const need = ib * RU.fixK,
       a = (RCBO_AT[pole] || RCBO_AT["2P"]).find(x => x >= need);
     if (!a) {
-      const k = brkPick(ib, c);
+      const k = brkPick(ib, c, w);
       return Object.assign(k, {
-        nm: k.kind === "ACB" ? "ACB 3P " + k.at + "AT" : window.BOQ.mccbName(k.at)
+        nm: k.kind === "ACB" ? "ACB 3P " + k.at + "AT" : window.BOQ.mccbName(k.at, w)
       });
     }
     const iz = cabIz(c),
@@ -3253,39 +3254,38 @@ function BOQEditor({
     });
     boards.forEach((m, bi) => {
       const tag = boards.length > 1 ? "ตู้ " + (bi + 1) + " · " : "";
-      let mainAt = 0,
-        shIn = false;
+      let mainAt = 0;
       const nos = mcbInvsOf(m);
       const ib = nos.reduce((s, no) => s + ((invUnits[no - 1] || {}).outA || 0), 0);
       const homeOne = isHome && nos.length === 1;
       if (ib > 0 && !homeOne) {
-        const k = isHome ? brkPickHome(ib, m, pole) : brkPick(ib, m);
+        const k = isHome ? brkPickHome(ib, m, pole, "main") : brkPick(ib, m, "main");
         mainAt = k.at;
         if (m) brkOfCab[cs.indexOf(m)] = Object.assign({
           who: "เมนตู้ AC"
         }, k);
         const gIn = bOn("gf") && k.at >= GF_IN_AT;
-        shIn = !isHome && bOn("gf") && !gIn && k.kind === "MCCB" && !k.nm && RU.mccbShunt === 1;
+        const isM = k.kind === "MCCB" && !k.nm;
         out.ac.push({
-          name: (k.nm || (k.kind === "ACB" ? "ACB 3P " + k.at + "AT" : window.BOQ.mccbName(k.at))) + (gIn ? " LSIG" : shIn ? " SHUNT TRIP" : ""),
+          name: k.nm ? k.nm + (gIn ? " LSIG" : "") : k.kind === "ACB" ? "ACB 3P " + k.at + "AT" + (gIn ? " LSIG" : "") : window.BOQ.mccbName(k.at, "main", gIn),
           qty: 1,
           unit: "ตัว",
           auto: 1,
           ok: k.ok,
-          why: tag + "เมน · อินเวอร์เตอร์ " + nos.join(", ") + " รวม " + k.txt + (gIn ? " · trip unit LSIG มี Ground Fault ในตัว" : shIn ? " · รุ่นมี Shunt trip ในตัว รับสัญญาณตัดจาก GFR" : "")
+          why: tag + "เมน · อินเวอร์เตอร์ " + nos.join(", ") + " รวม " + k.txt + (gIn ? " · trip unit LSIG มี Ground Fault ในตัว" : isM ? " · รุ่นมี Shunt trip ในตัว" + (bOn("gf") ? " รับสัญญาณตัดจาก GFR" : "") : "")
         });
       }
       nos.forEach(no => {
         const u = invUnits[no - 1];
         if (!u || !u.outA) return;
         const c = cs.find(x => /INVERTER-MCB_SOLAR/i.test(x.name || "") && +x.inv === no);
-        const k = isHome ? brkPickHome(u.outA, c, pole) : brkPick(u.outA, c);
+        const k = isHome ? brkPickHome(u.outA, c, pole, "inv") : brkPick(u.outA, c, "inv");
         if (c) brkOfCab[cs.indexOf(c)] = Object.assign({
           who: "อินเวอร์เตอร์ตัวที่ " + no
         }, k);
         if (homeOne) mainAt = k.at;
         out.ac.push({
-          name: k.nm || (k.kind === "ACB" ? "ACB 3P " + k.at + "AT" : window.BOQ.mccbName(k.at)),
+          name: k.nm || (k.kind === "ACB" ? "ACB 3P " + k.at + "AT" : window.BOQ.mccbName(k.at, "inv")),
           qty: 1,
           unit: "ตัว",
           auto: 1,
@@ -3353,13 +3353,6 @@ function BOQEditor({
           unit: "ตัว",
           auto: 1,
           why: tag + "ร้อยสายเฟส + N ของเมน " + mainAt + " AT ทั้งชุด (รูต้องใหญ่พอกับสายจริง)"
-        });
-        if (!shIn) out.ac.push({
-          name: "SHUNT TRIP 220VAC",
-          qty: 1,
-          unit: "ตัว",
-          auto: 1,
-          why: tag + "คอยล์สั่งตัด MCCB เมน " + mainAt + " AT รับสัญญาณจาก GFR (สั่งให้ตรงรุ่น/เฟรมของ MCCB)"
         });
       }
       if (bOn("pm") && mainAt > 0) {

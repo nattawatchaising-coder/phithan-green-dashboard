@@ -4415,13 +4415,13 @@ function brStockNeeds() {
     poles: "3P+N",
     amp: a
   }));
-  (P.mccb || []).forEach(r => r.a.forEach(a => {
-    if ((P.mccb || []).find(q => q.a.indexOf(a) >= 0) === r) add(B.mccbName(a), {
+  [["mccbMain", "main"], ["mccbInv", "inv"]].forEach(([k, w]) => (P[k] || []).forEach(r => r.a.forEach(a => {
+    if ((P[k] || []).find(q => q.a.indexOf(a) >= 0) === r) add(B.mccbName(a, w, w === "main" && a >= (P.gfLsigAt || 1000)), {
       elecType: "MCCB",
       poles: "3P",
       amp: a
     });
-  }));
+  })));
   (P.ctR || []).forEach(r => add("CT " + r + "/5A", {}));
   (P.zctD || []).forEach(d => add("ZCT Φ" + d + "mm", {}));
   return out;

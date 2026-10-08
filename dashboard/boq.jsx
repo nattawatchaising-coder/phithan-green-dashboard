@@ -775,10 +775,11 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock, ver, verName, p3Vers
      Ir = กระแสออก × 1.05 ปัดขึ้นทีละ 5 A (84 A → 90 A) · In = ขนาดเฟรมมาตรฐานเล็กสุดที่ ≥ Ir (90 A → 100 AT ตั้งที่ 0.9)
      สายไฟคิดจาก Ir — สายรับ ≥ Ir เบรกเกอร์ตัดก่อนสายร้อนเสมอ */
   const RU = window.BOQ.RULES;   // ตั้งค่าคำนวณ BOQ (หน้าคลัง) — ค่าตั้งต้นเท่ากับตัวเลขเดิมในคอมเมนต์
-  const BRK_AT = RU.mccbAt;
+  const brkAts = (w) => (w === "main" ? RU.mccbAtMain : RU.mccbAtInv);   // MCCB เมน (Shunt trip ในตัว) / อินเวอร์เตอร์ แยกตาราง
   const ACB_AT = RU.acbAt;           // เกิน MCCB ตัวใหญ่สุด → ACB
   const GF_IN_AT = RU.gfLsigAt;   // เมนตั้งแต่ขนาดนี้ใช้ trip unit LSIG (Ground Fault ในตัว) — วสท. บังคับ GFP ที่เมน ≥ 1000 A
-  const brkSet = (ib) => {
+  const brkSet = (ib, w) => {
+    const BRK_AT = brkAts(w);
     let ir = Math.ceil((ib * RU.mccbIrK) / RU.mccbStep) * RU.mccbStep;
     const acb = ir > BRK_AT[BRK_AT.length - 1];
     const L = acb ? ACB_AT : BRK_AT;
@@ -810,11 +811,11 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock, ver, verName, p3Vers
     if (invUnits.length) {
       if (/MCB_SOLAR-MDB/.test(n)) {                                         // รวมเฉพาะตัวที่อยู่ตู้นี้ → ตู้เมน
         const a = mcbInvsOf(row).reduce((s, no) => s + ((invUnits[no - 1] || {}).outA || 0), 0);
-        return a ? (homeJob ? a * WK : brkSet(a).ir) : null;                                      // ตามกระแสตั้งของ MCCB เมน
+        return a ? (homeJob ? a * WK : brkSet(a, "main").ir) : null;                                      // ตามกระแสตั้งของ MCCB เมน
       }
       if (/INVERTER-MCB_SOLAR/.test(n)) {                                    // อินเวอร์เตอร์ตัวของแถวนี้
         const u = invUnits[((row && +row.inv) || 1) - 1] || invUnits[0];
-        return u.outA ? (homeJob ? u.outA * WK : brkSet(u.outA).ir) : null;                           // ตามกระแสตั้งของ MCCB อินเวอร์เตอร์
+        return u.outA ? (homeJob ? u.outA * WK : brkSet(u.outA, "inv").ir) : null;                           // ตามกระแสตั้งของ MCCB อินเวอร์เตอร์
       }
     }
     const invAcPer = selInv ? (+selInv.outA || 0) : 0;                       // กระแสออก AC ต่ออินเวอร์เตอร์ 1 ตัว
@@ -1873,10 +1874,10 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock, ver, verName, p3Vers
   // ชนิดสายของเส้นนี้ (CV หลายแกน / CV แกนเดียว / THW) — ใช้หาขนาดแนะนำในชนิดเดิม
   const famOfCab = (c) => CAB_FAMS.find((f) => f.key === c.fam)
     || (/THW|IEC\s*0?1/i.test(c.type || "") ? CAB_FAMS[2] : cabCores(c.type) >= 2 ? CAB_FAMS[0] : CAB_FAMS[1]);
-  const brkPick = (ib, c) => {
+  const brkPick = (ib, c, w) => {
     const iz = cabIz(c);
-    const { ir, at: a, kind } = brkSet(ib);
-    const fr = kind === "MCCB" ? window.BOQ.mccbFrame(a) : null;
+    const { ir, at: a, kind } = brkSet(ib, w);
+    const fr = kind === "MCCB" ? window.BOQ.mccbFrame(a, w) : null;
     const base = r1(ib) + " A → " + (fr ? fr.af + " AF " : "") + a + " AT " + (fr && fr.ka ? fr.ka + " kA " : "") + (ir < a ? "ปรับตั้ง " + ir + " A (" + r1(ir / a) + " × In)" : "ไม่ต้องปรับ");
     if (!iz) return { at: a, ir, kind, ok: true, txt: base + " · ยังไม่ได้เลือกสาย ตรวจพิกัดสายไม่ได้" };
     if (ir <= iz) return { at: a, ir, kind, ok: true, txt: base + " ≤ สายรับ " + iz + " A ✓" };
@@ -1888,9 +1889,9 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock, ver, verName, p3Vers
   /* งานบ้าน: RCBO 100mA (RCCB + MCB ในตัวเดียว) ขนาดตามที่มีขาย — 2P (1 เฟส) ถึง 50 A · 4P (3 เฟส) ถึง 63 A
      ปรับตั้งไม่ได้ จึงเลือกขนาดแรกที่ ≥ 1.25 × กระแส · เกินขนาดใหญ่สุด ใช้ MCCB แบบงานโครงการ */
   const RCBO_AT = { "2P": RU.rcbo2P, "3P": RU.rcbo3P };
-  const brkPickHome = (ib, c, pole) => {
+  const brkPickHome = (ib, c, pole, w) => {
     const need = ib * RU.fixK, a = (RCBO_AT[pole] || RCBO_AT["2P"]).find((x) => x >= need);
-    if (!a) { const k = brkPick(ib, c); return Object.assign(k, { nm: (k.kind === "ACB" ? "ACB 3P " + k.at + "AT" : window.BOQ.mccbName(k.at)) }); }
+    if (!a) { const k = brkPick(ib, c, w); return Object.assign(k, { nm: (k.kind === "ACB" ? "ACB 3P " + k.at + "AT" : window.BOQ.mccbName(k.at, w)) }); }
     const iz = cabIz(c), nm = "RCBO " + a + "A " + (pole === "3P" ? "3P+N" : "2P") + " " + RU.rcboMa + "mA";
     const base = r1(ib) + " A × " + RU.fixK + " = " + r1(need) + " A → RCBO " + a + " A " + RU.rcboMa + "mA (งานบ้าน กันไฟรั่ว + กระแสเกินในตัวเดียว)";
     if (!iz) return { at: a, ir: a, kind: "RCBO", nm, ok: true, txt: base + " · ยังไม่ได้เลือกสาย ตรวจพิกัดสายไม่ได้" };
@@ -1920,27 +1921,27 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock, ver, verName, p3Vers
     if (!(+projBoard.ac > 0)) out.ac.push({ name: "ตู้ไฟ AC", qty: boards.length, unit: "ตู้", auto: 1, why: "1 ตู้ต่อสายเมน MCB SOLAR → MDB 1 เส้น" });
     boards.forEach((m, bi) => {
       const tag = boards.length > 1 ? "ตู้ " + (bi + 1) + " · " : "";
-      let mainAt = 0, shIn = false;
+      let mainAt = 0;
       const nos = mcbInvsOf(m);
       const ib = nos.reduce((s, no) => s + ((invUnits[no - 1] || {}).outA || 0), 0);
       const homeOne = isHome && nos.length === 1;
       if (ib > 0 && !homeOne) {
-        const k = isHome ? brkPickHome(ib, m, pole) : brkPick(ib, m); mainAt = k.at;
+        const k = isHome ? brkPickHome(ib, m, pole, "main") : brkPick(ib, m, "main"); mainAt = k.at;
         if (m) brkOfCab[cs.indexOf(m)] = Object.assign({ who: "เมนตู้ AC" }, k);
         // เมน ≥ 1000 AT ใช้เบรกเกอร์ trip unit อิเล็กทรอนิกส์ LSIG — มี Ground Fault ในตัว ไม่ต้องมี GFR/ZCT/Shunt trip แยก
         const gIn = bOn("gf") && k.at >= GF_IN_AT;
-        /* Ground Fault แบบแยก (GFR + ZCT) + กฎ mccbShunt = MCCB เมนรุ่นมี Shunt trip ในตัว (ไม่ต้องซื้อคอยล์แยก) */
-        shIn = !isHome && bOn("gf") && !gIn && k.kind === "MCCB" && !k.nm && RU.mccbShunt === 1;
-        out.ac.push({ name: (k.nm || (k.kind === "ACB" ? "ACB 3P " + k.at + "AT" : window.BOQ.mccbName(k.at))) + (gIn ? " LSIG" : shIn ? " SHUNT TRIP" : ""), qty: 1, unit: "ตัว", auto: 1, ok: k.ok,
-          why: tag + "เมน · อินเวอร์เตอร์ " + nos.join(", ") + " รวม " + k.txt + (gIn ? " · trip unit LSIG มี Ground Fault ในตัว" : shIn ? " · รุ่นมี Shunt trip ในตัว รับสัญญาณตัดจาก GFR" : "") });
+        /* MCCB เมน = ตาราง "MCCB สำหรับเมน" รุ่นมี Shunt trip ในตัว (GFR สั่งตัดได้ ไม่ต้องซื้อคอยล์แยก) · ≥ gfLsigAt = LSIG */
+        const isM = k.kind === "MCCB" && !k.nm;
+        out.ac.push({ name: k.nm ? k.nm + (gIn ? " LSIG" : "") : k.kind === "ACB" ? "ACB 3P " + k.at + "AT" + (gIn ? " LSIG" : "") : window.BOQ.mccbName(k.at, "main", gIn), qty: 1, unit: "ตัว", auto: 1, ok: k.ok,
+          why: tag + "เมน · อินเวอร์เตอร์ " + nos.join(", ") + " รวม " + k.txt + (gIn ? " · trip unit LSIG มี Ground Fault ในตัว" : isM ? " · รุ่นมี Shunt trip ในตัว" + (bOn("gf") ? " รับสัญญาณตัดจาก GFR" : "") : "") });
       }
       nos.forEach((no) => {
         const u = invUnits[no - 1]; if (!u || !u.outA) return;
         const c = cs.find((x) => /INVERTER-MCB_SOLAR/i.test(x.name || "") && +x.inv === no);
-        const k = isHome ? brkPickHome(u.outA, c, pole) : brkPick(u.outA, c);
+        const k = isHome ? brkPickHome(u.outA, c, pole, "inv") : brkPick(u.outA, c, "inv");
         if (c) brkOfCab[cs.indexOf(c)] = Object.assign({ who: "อินเวอร์เตอร์ตัวที่ " + no }, k);
         if (homeOne) mainAt = k.at;
-        out.ac.push({ name: k.nm || (k.kind === "ACB" ? "ACB 3P " + k.at + "AT" : window.BOQ.mccbName(k.at)), qty: 1, unit: "ตัว", auto: 1, ok: k.ok,
+        out.ac.push({ name: k.nm || (k.kind === "ACB" ? "ACB 3P " + k.at + "AT" : window.BOQ.mccbName(k.at, "inv")), qty: 1, unit: "ตัว", auto: 1, ok: k.ok,
           why: tag + "อินเวอร์เตอร์ตัวที่ " + no + " · " + k.txt + (homeOne ? " · งานบ้านอินเวอร์เตอร์ตัวเดียว ต่อเข้าเบรกเกอร์นี้เลย ไม่มีเมนแยก" : "") });
       });
       // ฟิวส์กันหลัง SPD = ฟิวส์ใบมีด NH00 gG — Type 2 = 32 A · Type 1+2 = 125 A (ต้องทนกระแสฟ้าผ่า)
@@ -1971,7 +1972,6 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock, ver, verName, p3Vers
         const zd = RU.zctD[Math.min(zi < 0 ? RU.zctAt.length : zi, RU.zctD.length - 1)];
         out.ac.push({ name: "GROUND FAULT RELAY (GFR)", qty: 1, unit: "ตัว", auto: 1, why: tag + "ตรวจกระแสรั่วลงดิน สั่งตัด MCCB เมน" });
         out.ac.push({ name: "ZCT Φ" + zd + "mm", qty: 1, unit: "ตัว", auto: 1, why: tag + "ร้อยสายเฟส + N ของเมน " + mainAt + " AT ทั้งชุด (รูต้องใหญ่พอกับสายจริง)" });
-        if (!shIn) out.ac.push({ name: "SHUNT TRIP 220VAC", qty: 1, unit: "ตัว", auto: 1, why: tag + "คอยล์สั่งตัด MCCB เมน " + mainAt + " AT รับสัญญาณจาก GFR (สั่งให้ตรงรุ่น/เฟรมของ MCCB)" });
       }
       /* Power Meter PM2230 — CT ตามขนาดเมน (อัตราส่วนมาตรฐานแรกที่ ≥ In ของ MCCB เมน /5A) เฟสละ 1 ตัว */
       if (bOn("pm") && mainAt > 0) {
