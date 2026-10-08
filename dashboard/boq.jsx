@@ -1970,7 +1970,10 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock, ver, verName, p3Vers
         out.ac.push({ name: "AC FUSE gG " + fA + "A NH00", qty: ph, unit: "ตัว", auto: 1,
           why: tag + "ฟิวส์ใบมีดกันหลัง SPD เส้นไฟละ 1 ตัว (ไม่ใส่ที่ N)"
             + (lps ? " — Type 1+2 ต้องทนกระแสฟ้าผ่า จึงใช้ " + fA + " A (ตรวจ max backup fuse ในสเปค SPD)" : " — Type 2 ใช้ " + fA + " A (ไม่เกิน max backup fuse ในสเปค SPD)") });
-        out.ac.push({ name: "FUSE BASE NH00 1P", qty: ph, unit: "ตัว", auto: 1, why: tag + "ฐานฟิวส์ใบมีด NH00" });
+        // 3 เฟส = ฐานฟิวส์ 3P แบบมีมือจับตัวเดียว (HABER HR17-160 ที่มีขาย) · 1 เฟส = ฐาน 1P
+        out.ac.push(ph === 3
+          ? { name: "FUSE BASE NH00 3P 160A", qty: 1, unit: "ตัว", auto: 1, why: tag + "ฐานฟิวส์ใบมีด NH00 3P แบบมีมือจับ ใส่ฟิวส์ครบ 3 เส้นไฟ" }
+          : { name: "FUSE BASE NH00 1P", qty: ph, unit: "ตัว", auto: 1, why: tag + "ฐานฟิวส์ใบมีด NH00" });
       }
       /* ระบบ Ground Fault — รีเลย์ตรวจกระแสรั่วลงดิน (GFR) + ZCT ร้อยสายเฟส+N ทั้งชุด → สั่ง Shunt trip ให้ MCCB เมนตัด
          ZCT เลือกขนาดรูตามเมน (สายใหญ่ขึ้นรูต้องใหญ่ขึ้น) — ตรวจกับขนาดสายจริงอีกครั้ง */
