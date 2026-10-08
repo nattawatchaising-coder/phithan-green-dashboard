@@ -201,6 +201,7 @@ function StockView({
     isOm = isRules;
   const [cat, setCat] = React.useState("all");
   const [sub, setSub] = React.useState("all");
+  const [grp, setGrp] = React.useState("all");
   const [view, setView] = React.useState(() => localStorage.getItem("sf_stock_view") || "grid");
   React.useEffect(() => {
     try {
@@ -287,6 +288,11 @@ function StockView({
       setBrowse(true);
       return;
     }
+    if (grp !== "all") {
+      setGrp("all");
+      setBrowse(true);
+      return;
+    }
     if (cat !== "all") {
       setCat("all");
       setBrowse(true);
@@ -306,6 +312,7 @@ function StockView({
   }, [items]);
   React.useEffect(() => {
     setSub("all");
+    setGrp("all");
   }, [cat]);
   React.useEffect(() => {
     setSeries("all");
@@ -340,6 +347,7 @@ function StockView({
   const filtered = items.filter(it => {
     if (cat !== "all" && it.cat !== cat && SF.mainCatOf(it.cat) !== cat) return false;
     if (sub !== "all" && it.cat !== sub) return false;
+    if (grp !== "all" && sub === "all" && stockGrpOf(it.cat) !== grp) return false;
     if (brand !== "all" && (it.brand || "") !== brand) return false;
     if (series !== "all" && (it.series || "") !== series) return false;
     if (search && !(it.name + it.sku + it.loc + (it.brand || "") + (it.model || "")).toLowerCase().includes(search.toLowerCase())) return false;
@@ -427,6 +435,47 @@ function StockView({
       size: (sizeOfName(x.name) || {}).size || ""
     })).sort((a, b) => sizeNum(a.size) - sizeNum(b.size) || a.size.localeCompare(b.size));
   };
+  const subHome = React.useMemo(() => {
+    if (grp !== "all") return {
+      list: subChips.filter(c => (c.grp || "") === grp),
+      count: subCount,
+      low: subLow
+    };
+    const gl = [],
+      rest = [],
+      count = Object.assign({}, subCount),
+      low = Object.assign({}, subLow);
+    subChips.forEach(c => {
+      const g = c.grp || "";
+      if (!g) {
+        rest.push(c);
+        return;
+      }
+      const k = "grp_" + cat + "_" + g;
+      if (!gl.some(x => x.key === k)) {
+        const d = STOCK_GRPS[g] || {
+          th: g,
+          color: "#0891B2"
+        };
+        gl.push({
+          key: k,
+          th: d.th,
+          color: d.color,
+          icon: "bolt",
+          grpOf: g
+        });
+        count[k] = 0;
+        low[k] = 0;
+      }
+      count[k] += subCount[c.key] || 0;
+      low[k] += subLow[c.key] || 0;
+    });
+    return {
+      list: gl.concat(rest),
+      count: count,
+      low: low
+    };
+  }, [grp, cat, subChips, subCount, subLow]);
   const directItems = showSubHome ? filtered.filter(it => it.cat === cat) : [];
   const brandHome = React.useMemo(() => {
     if (!browsing || cat === "all" || showSubHome) return null;
@@ -876,6 +925,17 @@ function StockView({
   }, "\u0E04\u0E25\u0E31\u0E07\u0E17\u0E31\u0E49\u0E07\u0E2B\u0E21\u0E14"), cat !== "all" && React.createElement("span", null, " \u203A ", React.createElement("span", {
     style: {
       fontWeight: 700,
+      color: sub === "all" && grp === "all" ? "var(--text-1)" : "var(--text-2)",
+      cursor: "pointer"
+    },
+    onClick: () => {
+      setSub("all");
+      setGrp("all");
+      setBrowse(true);
+    }
+  }, (SF.STOCK_CAT_BY[cat] || {}).th || "")), grp !== "all" && React.createElement("span", null, " \u203A ", React.createElement("span", {
+    style: {
+      fontWeight: 700,
       color: sub === "all" ? "var(--text-1)" : "var(--text-2)",
       cursor: "pointer"
     },
@@ -883,7 +943,7 @@ function StockView({
       setSub("all");
       setBrowse(true);
     }
-  }, (SF.STOCK_CAT_BY[cat] || {}).th || "")), sub !== "all" && React.createElement("span", null, " \u203A ", React.createElement("span", {
+  }, (STOCK_GRPS[grp] || {}).th || grp)), sub !== "all" && React.createElement("span", null, " \u203A ", React.createElement("span", {
     style: {
       fontWeight: 700,
       color: brand === "all" ? "var(--text-1)" : "var(--text-2)",
@@ -919,16 +979,19 @@ function StockView({
     onAll: () => setBrowse(false),
     onSetImage: (k, d) => stock.setImage("cat_" + k, d)
   }) : showSubHome ? React.createElement(React.Fragment, null, React.createElement(CatBrowser, {
-    list: subChips,
-    count: subCount,
-    low: subLow,
+    list: subHome.list,
+    count: subHome.count,
+    low: subHome.low,
     imgs: imgs,
-    title: (SF.STOCK_CAT_BY[cat] || {}).th || "",
-    hint: subChips.length + " หมวดย่อย · " + (catCount[cat] || 0).toLocaleString() + " รายการ",
-    allLabel: "\u0E14\u0E39\u0E17\u0E38\u0E01\u0E23\u0E32\u0E22\u0E01\u0E32\u0E23\u0E43\u0E19\u0E2B\u0E21\u0E27\u0E14\u0E19\u0E35\u0E49",
-    onPick: k => setSub(k),
+    title: ((SF.STOCK_CAT_BY[cat] || {}).th || "") + (grp !== "all" ? " › " + ((STOCK_GRPS[grp] || {}).th || grp) : ""),
+    hint: subHome.list.length + (grp !== "all" ? " หมวดย่อย · " + filtered.length.toLocaleString() : " หมวด · " + (catCount[cat] || 0).toLocaleString()) + " รายการ",
+    allLabel: grp !== "all" ? "ดูทุกรายการในกลุ่มนี้" : "ดูทุกรายการในหมวดนี้",
+    onPick: k => {
+      const x = subHome.list.find(y => y.key === k);
+      if (x && x.grpOf) setGrp(x.grpOf);else setSub(k);
+    },
     onAll: () => setBrowse(false),
-    onBack: () => setCat("all"),
+    onBack: () => grp !== "all" ? setGrp("all") : setCat("all"),
     onSetImage: (k, d) => stock.setImage("cat_" + k, d)
   }), directItems.length > 0 && React.createElement("div", {
     style: {
@@ -7911,6 +7974,17 @@ function BrandMarquee({
     }
   }, list.map((x, i) => one(x, i, false)), list.map((x, i) => one(x, i, true))));
 }
+const STOCK_GRPS = {
+  DC: {
+    th: "อุปกรณ์ DC",
+    color: "#DC2626"
+  },
+  AC: {
+    th: "อุปกรณ์ AC",
+    color: "#2563EB"
+  }
+};
+const stockGrpOf = k => (SF.STOCK_CAT_BY[k] || {}).grp || "";
 function CatBrowser({
   list,
   count,

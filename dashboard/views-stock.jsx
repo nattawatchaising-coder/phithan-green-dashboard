@@ -92,6 +92,7 @@ function StockView({ stock, onResetAll, onMenuOpen, currentUser, jobs, priceStor
   const isAmp = isRules, isCond = isRules, isOm = isRules;
   const [cat, setCat] = React.useState("all");
   const [sub, setSub] = React.useState("all");   // หมวดย่อยภายในหมวดหลักที่เลือก
+  const [grp, setGrp] = React.useState("all");   // กลุ่มหมวดย่อย (DC / AC) ใต้หมวดหลัก — ช่อง grp ของหมวดย่อยใน stockCats
   const [view, setView] = React.useState(() => localStorage.getItem("sf_stock_view") || "grid");   // grid = การ์ดมีรูป · table = ตาราง
   React.useEffect(() => { try { localStorage.setItem("sf_stock_view", view); } catch (e) {} }, [view]);
   // รูปสินค้าเก็บแยกโหนด โหลดเฉพาะตอนเปิดหน้านี้ ไม่ถ่วงหน้าอื่น
@@ -150,6 +151,7 @@ function StockView({ stock, onResetAll, onMenuOpen, currentUser, jobs, priceStor
     if (series !== "all" && !search.trim() && !kpiFilter) { setSeries("all"); setBrowse(true); return; }
     if (brand !== "all" && !search.trim() && !kpiFilter) { setBrand("all"); setBrowse(true); return; }
     if (sub !== "all") { setSub("all"); setBrowse(true); return; }
+    if (grp !== "all") { setGrp("all"); setBrowse(true); return; }
     if (cat !== "all") { setCat("all"); setBrowse(true); return; }
     setBrowse(true); setKpiFilter(null); setSearch(""); setBrand("all");
   };
@@ -159,7 +161,7 @@ function StockView({ stock, onResetAll, onMenuOpen, currentUser, jobs, priceStor
     return m;
   }, [items]);
   // เปลี่ยนหมวดหลัก / หมวดย่อยหายไป → รีเซ็ตตัวกรองย่อย ไม่ให้ค้างจนตารางว่างโดยไม่รู้สาเหตุ
-  React.useEffect(() => { setSub("all"); }, [cat]);
+  React.useEffect(() => { setSub("all"); setGrp("all"); }, [cat]);
   React.useEffect(() => { setSeries("all"); }, [cat, sub, brand]);
   React.useEffect(() => { if (sub !== "all" && !subChips.some((c) => c.key === sub)) setSub("all"); }, [subChips.length]);
   /* ตัวเลือกยี่ห้อ/รุ่น — นับจากของที่ผ่านตัวกรอง "หมวด" แล้ว
@@ -188,6 +190,7 @@ function StockView({ stock, onResetAll, onMenuOpen, currentUser, jobs, priceStor
     // เลือกหมวดหลัก = ได้ของในหมวดย่อยใต้มันด้วย · เลือกหมวดย่อย = เฉพาะหมวดย่อยนั้น
     if (cat !== "all" && it.cat !== cat && SF.mainCatOf(it.cat) !== cat) return false;
     if (sub !== "all" && it.cat !== sub) return false;
+    if (grp !== "all" && sub === "all" && stockGrpOf(it.cat) !== grp) return false;
     if (brand !== "all" && (it.brand || "") !== brand) return false;
     if (series !== "all" && (it.series || "") !== series) return false;
     if (search && !((it.name + it.sku + it.loc + (it.brand || "") + (it.model || "")).toLowerCase().includes(search.toLowerCase()))) return false;
@@ -248,6 +251,24 @@ function StockView({ stock, onResetAll, onMenuOpen, currentUser, jobs, priceStor
     return list.map((x) => ({ it: x, size: (sizeOfName(x.name) || {}).size || "" }))
       .sort((a, b) => sizeNum(a.size) - sizeNum(b.size) || a.size.localeCompare(b.size));
   };
+  /* หน้าเลือกหมวดย่อย: หมวดย่อยที่ติดกลุ่ม (grp เช่น DC / AC) ยุบเป็นการ์ดกลุ่มเดียว กดแล้วเจอหมวดย่อยในกลุ่ม
+     หมวดย่อยที่ไม่มีกลุ่ม (ตู้ไฟ · รอลบ) ขึ้นเป็นการ์ดตามเดิม ต่อท้ายการ์ดกลุ่ม */
+  const subHome = React.useMemo(() => {
+    if (grp !== "all") return { list: subChips.filter((c) => (c.grp || "") === grp), count: subCount, low: subLow };
+    const gl = [], rest = [], count = Object.assign({}, subCount), low = Object.assign({}, subLow);
+    subChips.forEach((c) => {
+      const g = c.grp || "";
+      if (!g) { rest.push(c); return; }
+      const k = "grp_" + cat + "_" + g;
+      if (!gl.some((x) => x.key === k)) {
+        const d = STOCK_GRPS[g] || { th: g, color: "#0891B2" };
+        gl.push({ key: k, th: d.th, color: d.color, icon: "bolt", grpOf: g });
+        count[k] = 0; low[k] = 0;
+      }
+      count[k] += subCount[c.key] || 0; low[k] += subLow[c.key] || 0;
+    });
+    return { list: gl.concat(rest), count: count, low: low };
+  }, [grp, cat, subChips, subCount, subLow]);
   // ของที่อยู่ในหมวดหลักตรง ๆ (ไม่ได้ใส่หมวดย่อยไว้) — เอาไปต่อท้ายหน้าเลือกหมวดย่อย
   const directItems = showSubHome ? filtered.filter((it) => it.cat === cat) : [];
   /* ชั้นยี่ห้อ — ใต้หมวดย่อย (หรือหมวดหลักที่ไม่มีหมวดย่อย) ที่มีของ ≥ 2 ยี่ห้อ ขึ้นการ์ดยี่ห้อก่อนถึงรายการ
@@ -466,8 +487,10 @@ function StockView({ stock, onResetAll, onMenuOpen, currentUser, jobs, priceStor
               <span style={{ fontSize: 12, color: "var(--text-3)" }}>
                 <span onClick={() => { setCat("all"); setSub("all"); setBrowse(true); }}
                   style={{ cursor: "pointer", fontWeight: 700, color: "var(--text-2)" }}>คลังทั้งหมด</span>
-                {cat !== "all" && <span> › <span style={{ fontWeight: 700, color: sub === "all" ? "var(--text-1)" : "var(--text-2)", cursor: "pointer" }}
-                  onClick={() => { setSub("all"); setBrowse(true); }}>{(SF.STOCK_CAT_BY[cat] || {}).th || ""}</span></span>}
+                {cat !== "all" && <span> › <span style={{ fontWeight: 700, color: sub === "all" && grp === "all" ? "var(--text-1)" : "var(--text-2)", cursor: "pointer" }}
+                  onClick={() => { setSub("all"); setGrp("all"); setBrowse(true); }}>{(SF.STOCK_CAT_BY[cat] || {}).th || ""}</span></span>}
+                {grp !== "all" && <span> › <span style={{ fontWeight: 700, color: sub === "all" ? "var(--text-1)" : "var(--text-2)", cursor: "pointer" }}
+                  onClick={() => { setSub("all"); setBrowse(true); }}>{(STOCK_GRPS[grp] || {}).th || grp}</span></span>}
                 {sub !== "all" && <span> › <span style={{ fontWeight: 700, color: brand === "all" ? "var(--text-1)" : "var(--text-2)", cursor: "pointer" }}
                   onClick={() => { setBrand("all"); setBrowse(true); }}>{(SF.STOCK_CAT_BY[sub] || {}).th || ""}</span></span>}
                 {brand !== "all" && <span> › <span style={{ fontWeight: 700, color: series === "all" ? "var(--text-1)" : "var(--text-2)", cursor: "pointer" }}
@@ -485,11 +508,12 @@ function StockView({ stock, onResetAll, onMenuOpen, currentUser, jobs, priceStor
               onPick={(k) => setCat(k)} onAll={() => setBrowse(false)} onSetImage={(k, d) => stock.setImage("cat_" + k, d)} />
           ) : showSubHome ? (
             <React.Fragment>
-              <CatBrowser list={subChips} count={subCount} low={subLow} imgs={imgs}
-                title={(SF.STOCK_CAT_BY[cat] || {}).th || ""}
-                hint={subChips.length + " หมวดย่อย · " + (catCount[cat] || 0).toLocaleString() + " รายการ"}
-                allLabel="ดูทุกรายการในหมวดนี้"
-                onPick={(k) => setSub(k)} onAll={() => setBrowse(false)} onBack={() => setCat("all")}
+              <CatBrowser list={subHome.list} count={subHome.count} low={subHome.low} imgs={imgs}
+                title={((SF.STOCK_CAT_BY[cat] || {}).th || "") + (grp !== "all" ? " › " + ((STOCK_GRPS[grp] || {}).th || grp) : "")}
+                hint={subHome.list.length + (grp !== "all" ? " หมวดย่อย · " + filtered.length.toLocaleString() : " หมวด · " + (catCount[cat] || 0).toLocaleString()) + " รายการ"}
+                allLabel={grp !== "all" ? "ดูทุกรายการในกลุ่มนี้" : "ดูทุกรายการในหมวดนี้"}
+                onPick={(k) => { const x = subHome.list.find((y) => y.key === k); if (x && x.grpOf) setGrp(x.grpOf); else setSub(k); }}
+                onAll={() => setBrowse(false)} onBack={() => (grp !== "all" ? setGrp("all") : setCat("all"))}
                 onSetImage={(k, d) => stock.setImage("cat_" + k, d)} />
               {/* ของที่ยังไม่ได้จัดเข้าหมวดย่อย — ต่อท้ายหน้านี้เลย ไม่ต้องกดเข้าไปอีกชั้น */}
               {directItems.length > 0 && (
@@ -3086,6 +3110,13 @@ function BrandMarquee({ items, imgs, onPick }) {
     </div>
   );
 }
+
+/* กลุ่มของหมวดย่อย — ตั้งที่ stockCats/<หมวดย่อย>.grp (ผู้ใช้ ต.ค. 2026: อุปกรณ์ไฟฟ้าแยกฝั่ง DC / AC ก่อน แล้วค่อยเป็นชนิดอุปกรณ์) */
+const STOCK_GRPS = {
+  DC: { th: "อุปกรณ์ DC", color: "#DC2626" },
+  AC: { th: "อุปกรณ์ AC", color: "#2563EB" },
+};
+const stockGrpOf = (k) => ((SF.STOCK_CAT_BY[k] || {}).grp || "");
 
 function CatBrowser({ list, count, low, imgs, title, hint, allLabel, onPick, onAll, onBack, onSetImage }) {
   const shown = list || [];
