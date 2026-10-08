@@ -141,8 +141,9 @@
     { sec: "gnd", g: "ไซต์ใหญ่", key: "gndWeldB", th: "เทอร์โมเวล 2 ทาง", unit: "ชุด", def: 2 },
     /* ── ทางเดิน · บันได · ราวกันตก ── */
     { sec: "walk", g: "ทางเดิน (WALKWAY)", key: "walkSheet", th: "ความยาวแผ่น WALKWAY ที่มีขาย (เลือกต่อใบในหัวข้อทางเดิน)", unit: "ม.", type: "nums", def: [2.44] },
-    { sec: "walk", g: "ทางเดิน (WALKWAY)", key: "walkClamp", th: "END CLAMP + ชุดยึด ต่อแผ่น", unit: "ชุด", def: 6 },
-    { sec: "walk", g: "ทางเดิน (WALKWAY)", key: "walkRailPts", th: "RAIL รองใต้แผ่น ต่อแผ่น", unit: "เส้น", def: 3 },
+    { sec: "walk", g: "ทางเดิน (WALKWAY)", key: "walkClampRail", th: "END CLAMP + ชุดยึด ต่อ RAIL รองใต้ 1 เส้น (ซ้าย-ขวาแผ่น)", unit: "ชุด", def: 2, min: 0 },   // เดิม walkClamp 6 ชุด/แผ่น
+    // RAIL รองใต้คิดตามความยาวทางเดิน (ผู้ใช้ ต.ค. 2026 — แผ่นมีหลายความยาวแล้ว ต่อแผ่นใช้ไม่ได้) · คีย์ใหม่ ค่าเก่า walkRailPts (เส้น/แผ่น) ไม่ใช้
+    { sec: "walk", g: "ทางเดิน (WALKWAY)", key: "walkRailEvery", th: "RAIL รองใต้แผ่น วางทุกระยะ (ตามความยาวทางเดิน · หัว-ท้ายแนวมีเสมอ)", unit: "ม.", def: 1.22, min: 0.1 },
     { sec: "walk", g: "ทางเดิน (WALKWAY)", key: "walkRailLen", th: "RAIL รองใต้แผ่น ยาวเส้นละ (ตัดจาก RAIL 4.2 ม.)", unit: "ม.", def: 1.5, min: 0.1, max: 4.2 },
     { sec: "walk", g: "ทางเดิน (WALKWAY)", key: "walkRound", th: "ความยาวทางเดินจากแบบ 3D ปัดขึ้นทีละ", unit: "ม.", def: 0.1, min: 0.01 },
     { sec: "walk", g: "% เผื่อเริ่มต้นของใบใหม่", key: "walkSpare", th: "ทางเดิน", unit: "%", def: 10, max: 100 },
@@ -2000,8 +2001,9 @@
       wlk.forEach((r) => {
         const D = Math.ceil((+r.len) / wLen);
         const E = D - 1, F = (E >= 1 ? E : 0) * 2;
-        const H = D * RULES.walkClamp;                          // End Clamp 6/แผ่น
-        const M = Math.ceil((D * (RULES.walkRailPts * RULES.walkRailLen)) / 4.2);   // RAIL (3 จุด × 1.5m ÷ 4.2m)
+        const nR = Math.ceil((+r.len) / RULES.walkRailEvery) + 1;              // RAIL รองใต้ ทุก walkRailEvery ม. + หัวท้าย (เดิม 3 เส้น/แผ่น 2.44 ม.)
+        const M = Math.ceil((nR * RULES.walkRailLen) / 4.2);                    // ตัดจาก RAIL 4.2 ม. ท่อนละ walkRailLen
+        const H = nR * RULES.walkClampRail;                                     // END CLAMP + ชุดยึด ต่อ RAIL (เดิม 6/แผ่น)
         dT += D; fT += F; hT += H; mT += M;
       });
       // ความหนา walkway → ขนาด END CLAMP KIT · 0 = รุ่นที่ไม่ใช้ END CLAMP (ไม่มีค่า = 35 ใบเก่า) — ชุดยึด Rail กับหลังคายังคิดตามเดิม
