@@ -44,7 +44,7 @@
     { sec: "dcBoard", g: "ทุกงาน", key: "dcIimp", th: "DC SPD Type I+II · Iimp ไม่ต่ำกว่า", unit: "kA", def: 6.25, min: 0.1 },
     { sec: "dcBoard", g: "งานบ้าน", key: "dcMcbK", th: "DC MCB ต่อสตริง = Isc × (IEC 62548 ≥ 1.5)", unit: "เท่า", def: 1.5, min: 1 },
     { sec: "dcBoard", g: "งานบ้าน", key: "dcMcb", th: "DC MCB ที่มีขาย", unit: "VDC", unitA: "A", type: "pairs", poles: ["1P", "2P", "3P", "4P"], poleDef: "2P", legacy: ["dcMcbA", "dcMcbV"],
-      def: [{ v: 500, p: "2P", a: [10, 16, 20, 25, 32, 40, 50, 63] }, { v: 800, p: "2P", a: [10, 16, 20, 25, 32, 40, 50, 63] }, { v: 1000, p: "2P", a: [10, 16, 20, 25, 32, 40, 50, 63] }] },
+      def: [{ v: 550, p: "2P", a: [16, 20, 25, 32, 63] }, { v: 800, p: "2P", a: [16, 20, 25, 32, 63] }, { v: 1000, p: "4P", a: [16, 20, 25, 32, 63] }] },   // SUNTREE SL7N-63 (ต.ค. 2026)
     { sec: "dcBoard", g: "อินเวอร์เตอร์", key: "battS1Kwh", th: "แบต Huawei LUNA2000-S1 · ความจุต่อก้อน", unit: "kWh", def: 7, min: 1 },
     { sec: "dcBoard", g: "อินเวอร์เตอร์", key: "battS1Per", th: "แบต LUNA2000-S1 · ก้อนสูงสุดต่อ Power Module 1 ตัว", unit: "ก้อน", def: 3, min: 1 },
     { sec: "dcBoard", g: "อินเวอร์เตอร์", key: "dcacMax", th: "เพดานอัตรา DC/AC (กำลังแผง ÷ กำลัง AC อินเวอร์เตอร์)", unit: "เท่า", def: 1.2, min: 0.5, max: 3 },
