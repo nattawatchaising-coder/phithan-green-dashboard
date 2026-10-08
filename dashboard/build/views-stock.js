@@ -701,6 +701,32 @@ function StockView({
     color: c.color,
     count: subCount[c.key] || 0
   })))));
+  const viewBtn = fromBrowse => isMobile ? null : React.createElement("button", {
+    onClick: () => {
+      setView(v => v === "grid" ? "table" : "grid");
+      if (fromBrowse) setBrowse(false);
+    },
+    title: view === "grid" ? "สลับเป็นมุมมองตาราง" : "สลับเป็นมุมมองการ์ด (มีรูป)",
+    style: {
+      display: "inline-flex",
+      alignItems: "center",
+      gap: 6,
+      padding: "7px 14px",
+      borderRadius: "var(--r-chip)",
+      border: "none",
+      background: "var(--surface2)",
+      boxShadow: "var(--shadow-sm)",
+      color: "var(--text-2)",
+      fontFamily: "inherit",
+      fontSize: 12.5,
+      fontWeight: 700,
+      cursor: "pointer"
+    }
+  }, React.createElement(Icon, {
+    name: view === "grid" ? "menu" : "grid",
+    size: 14,
+    color: "var(--text-2)"
+  }), view === "grid" ? "ตาราง" : "การ์ด");
   return React.createElement(React.Fragment, null, React.createElement("header", {
     className: "app-header",
     style: {
@@ -766,21 +792,7 @@ function StockView({
     size: 17,
     color: "#fff",
     sw: 2.4
-  }), React.createElement("span", null, "\u0E40\u0E1E\u0E34\u0E48\u0E21\u0E27\u0E31\u0E2A\u0E14\u0E38")) : React.createElement(React.Fragment, null, !isMobile && React.createElement("button", {
-    className: "btn-add",
-    onClick: () => setView(v => v === "grid" ? "table" : "grid"),
-    title: view === "grid" ? "สลับเป็นมุมมองตาราง" : "สลับเป็นมุมมองการ์ด (มีรูป)",
-    style: {
-      background: "var(--surface2)",
-      boxShadow: "var(--shadow-sm)",
-      color: "var(--text-2)",
-      border: "none"
-    }
-  }, React.createElement(Icon, {
-    name: view === "grid" ? "menu" : "grid",
-    size: 16,
-    color: "var(--text-2)"
-  }), React.createElement("span", null, view === "grid" ? "ตาราง" : "การ์ด")), React.createElement("button", {
+  }), React.createElement("span", null, "\u0E40\u0E1E\u0E34\u0E48\u0E21\u0E27\u0E31\u0E2A\u0E14\u0E38")) : React.createElement(React.Fragment, null, React.createElement("button", {
     className: "btn-add",
     onClick: () => setFillOpen(true),
     style: {
@@ -968,7 +980,11 @@ function StockView({
       fontWeight: 700,
       color: "var(--text-1)"
     }
-  }, series)), React.createElement("span", null, " \xB7 ", filtered.length.toLocaleString(), " \u0E23\u0E32\u0E22\u0E01\u0E32\u0E23"))), showCatHome ? React.createElement(CatBrowser, {
+  }, series)), React.createElement("span", null, " \xB7 ", filtered.length.toLocaleString(), " \u0E23\u0E32\u0E22\u0E01\u0E32\u0E23")), React.createElement("span", {
+    style: {
+      marginLeft: "auto"
+    }
+  }, viewBtn(false))), showCatHome ? React.createElement(CatBrowser, {
     list: SF.STOCK_CATS.filter(c => catCount[c.key]),
     count: catCount,
     low: catLow,
@@ -977,6 +993,7 @@ function StockView({
     hint: SF.STOCK_CATS.filter(c => catCount[c.key]).length + " หมวด · " + items.length.toLocaleString() + " รายการ",
     onPick: k => setCat(k),
     onAll: () => setBrowse(false),
+    tools: viewBtn(true),
     onSetImage: (k, d) => stock.setImage("cat_" + k, d)
   }) : showSubHome ? React.createElement(React.Fragment, null, React.createElement(CatBrowser, {
     list: subHome.list,
@@ -991,6 +1008,7 @@ function StockView({
       if (x && x.grpOf) setGrp(x.grpOf);else setSub(k);
     },
     onAll: () => setBrowse(false),
+    tools: viewBtn(true),
     onBack: () => grp !== "all" ? setGrp("all") : setCat("all"),
     onSetImage: (k, d) => stock.setImage("cat_" + k, d)
   }), directItems.length > 0 && React.createElement("div", {
@@ -1048,6 +1066,7 @@ function StockView({
     allLabel: "\u0E14\u0E39\u0E17\u0E38\u0E01\u0E23\u0E32\u0E22\u0E01\u0E32\u0E23\u0E02\u0E2D\u0E07\u0E22\u0E35\u0E48\u0E2B\u0E49\u0E2D\u0E19\u0E35\u0E49",
     onPick: s => setSeries(s),
     onAll: () => setBrowse(false),
+    tools: viewBtn(true),
     onBack: goBack,
     onSetImage: (s, d) => {
       const x = seriesHome.list.find(y => y.key === s);
@@ -1108,6 +1127,7 @@ function StockView({
     allLabel: "\u0E14\u0E39\u0E17\u0E38\u0E01\u0E23\u0E32\u0E22\u0E01\u0E32\u0E23\u0E43\u0E19\u0E2B\u0E21\u0E27\u0E14\u0E19\u0E35\u0E49",
     onPick: b => setBrand(b),
     onAll: () => setBrowse(false),
+    tools: viewBtn(true),
     onBack: goBack,
     onSetImage: (b, d) => {
       const x = brandHome.list.find(y => y.key === b);
@@ -7944,7 +7964,7 @@ function BrandMarquee({
         n: m[b],
         img: imgs["cat_" + k] || byName[b.toLowerCase()] || ""
       };
-    });
+    }).filter(x => x.img);
   }, [items, imgs]);
   if (!list.length) return null;
   const one = (x, i, dup) => React.createElement("button", {
@@ -7996,7 +8016,8 @@ function CatBrowser({
   onPick,
   onAll,
   onBack,
-  onSetImage
+  onSetImage,
+  tools
 }) {
   const shown = list || [];
   return React.createElement("div", null, React.createElement("div", {
@@ -8043,10 +8064,13 @@ function CatBrowser({
       fontSize: 11.5,
       color: "var(--text-3)"
     }
-  }, hint), React.createElement("button", {
+  }, hint), React.createElement("span", {
+    style: {
+      marginLeft: "auto"
+    }
+  }, tools), React.createElement("button", {
     onClick: onAll,
     style: {
-      marginLeft: "auto",
       padding: "7px 14px",
       borderRadius: "var(--r-chip)",
       boxShadow: "var(--shadow-sm)",
