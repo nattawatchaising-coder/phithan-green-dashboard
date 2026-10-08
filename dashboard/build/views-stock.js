@@ -4555,9 +4555,10 @@ function BoqRulesPage({
   };
   const [type, setTypeS] = React.useState(() => {
     try {
-      return localStorage.getItem("br_type") === "home" ? "home" : "proj";
+      const t = localStorage.getItem("br_type");
+      return t === "home" || t === "proj" ? t : "all";
     } catch (e) {
-      return "proj";
+      return "all";
     }
   });
   const setType = t => {
@@ -4568,7 +4569,9 @@ function BoqRulesPage({
   };
   const saved = rulesStore && rulesStore.val || {};
   const nSet = k => (BOQ.RULE_DEFS || []).filter(d => d.sec === k && brRuleOn(d, type) && brChanged(d, saved, type)).length;
-  const cur = secs.find(x => x.k === sec) || secs[0];
+  const nRows = k => (BOQ.RULE_DEFS || []).filter(d => d.sec === k && brRuleOn(d, type)).length;
+  const secsT = secs.filter(x => BR_FIXED_SECS.some(f => f.k === x.k) ? type === "all" : nRows(x.k) > 0);
+  const cur = secsT.find(x => x.k === sec) || secsT[0];
   const typeBar = React.createElement("div", {
     style: {
       display: "flex",
@@ -4586,7 +4589,7 @@ function BoqRulesPage({
       background: "var(--surface2)",
       boxShadow: "var(--shadow-inset)"
     }
-  }, [["home", "งานบ้าน", "home"], ["proj", "งานโครงการ", "building"]].map(([k, th, ic]) => React.createElement("button", {
+  }, [["all", "ใช้ร่วม", "link"], ["home", "งานบ้าน", "home"], ["proj", "งานโครงการ", "building"]].map(([k, th, ic]) => React.createElement("button", {
     key: k,
     onClick: () => setType(k),
     style: {
@@ -4613,20 +4616,20 @@ function BoqRulesPage({
       fontSize: 11.5,
       color: "var(--text-3)"
     }
-  }, "\u0E04\u0E48\u0E32\u0E02\u0E2D\u0E07", type === "home" ? "งานบ้าน" : "งานโครงการ", " \xB7 \u0E43\u0E1A BOQ \u0E43\u0E0A\u0E49\u0E0A\u0E38\u0E14\u0E15\u0E32\u0E21\u0E1B\u0E23\u0E30\u0E40\u0E20\u0E17\u0E07\u0E32\u0E19\u0E02\u0E2D\u0E07\u0E43\u0E1A\u0E19\u0E31\u0E49\u0E19"));
-  const body = sec === "amp" ? React.createElement(AmpacityEditor, {
+  }, type === "all" ? "ค่าที่ใช้เหมือนกันทั้งงานบ้านและงานโครงการ" : "เฉพาะข้อที่" + (type === "home" ? "งานบ้าน" : "งานโครงการ") + "ต่างออกไป · ข้ออื่นใช้ค่าในแท็บใช้ร่วม"));
+  const body = cur.k === "amp" ? React.createElement(AmpacityEditor, {
     ampStore: ampStore
-  }) : sec === "cond" ? React.createElement(ConduitDefaultsEditor, {
+  }) : cur.k === "cond" ? React.createElement(ConduitDefaultsEditor, {
     condStore: condStore
-  }) : sec === "om" ? React.createElement(OmTierEditor, {
+  }) : cur.k === "om" ? React.createElement(OmTierEditor, {
     omStore: omStore
   }) : React.createElement(BoqRuleSec, {
-    key: type,
+    key: type + cur.k,
     sec: cur,
     rulesStore: rulesStore,
     type: type
   });
-  const fixed = sec === "amp" || sec === "cond" || sec === "om";
+  const fixed = cur.k === "amp" || cur.k === "cond" || cur.k === "om";
   if (isMobile) return React.createElement("div", {
     style: {
       display: "flex",
@@ -4638,7 +4641,7 @@ function BoqRulesPage({
   }), !fixed && typeBar, React.createElement(Dropdown, {
     value: cur.k,
     onChange: pick,
-    options: secs.map(x => ({
+    options: secsT.map(x => ({
       value: x.k,
       group: x.grp,
       label: x.th + (nSet(x.k) ? " · แก้แล้ว " + nSet(x.k) : "")
@@ -4665,12 +4668,12 @@ function BoqRulesPage({
       flexDirection: "column",
       gap: 2
     }
-  }, secs.map((x, i) => {
+  }, secsT.map((x, i) => {
     const on = x.k === cur.k,
       n = nSet(x.k);
     return React.createElement(React.Fragment, {
       key: x.k
-    }, x.grp && (i === 0 || secs[i - 1].grp !== x.grp) && React.createElement("div", {
+    }, x.grp && (i === 0 || secsT[i - 1].grp !== x.grp) && React.createElement("div", {
       style: {
         fontSize: 10.5,
         fontWeight: 700,
@@ -4735,7 +4738,7 @@ function BoqRulesPage({
 }
 const brRuleOn = (d, type) => {
   const o = window.BOQ.ruleOnly(d);
-  return !o || o === type;
+  return type === "all" ? !o : o === type;
 };
 const brChanged = (d, saved, type) => {
   const B = window.BOQ,
@@ -4749,8 +4752,8 @@ const BR_TYPE_G = {
   "งานบ้าน": 1,
   "งานโครงการ": 1
 };
-const brPath = (d, type) => window.BOQ.ruleFlat(d) ? d.key : type + "/" + d.key;
-const brShared = d => window.BOQ.ruleFlat(d) && !window.BOQ.ruleOnly(d);
+const brPath = d => d.key;
+const brShared = d => !window.BOQ.ruleOnly(d);
 const brClearSplit = (rulesStore, d) => ["home", "proj"].forEach(t => {
   const o = ((rulesStore.val || {})[t] || {})[d.key];
   if (o != null && o !== "") rulesStore.setCell(t + "/" + d.key, "");

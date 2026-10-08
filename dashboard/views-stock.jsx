@@ -1756,16 +1756,19 @@ function BoqRulesPage({ ampStore, condStore, omStore, rulesStore, isMobile, stoc
   const secs = (BOQ.RULE_SECS || []).concat(BR_FIXED_SECS);
   const [sec, setSec] = React.useState(() => { try { return localStorage.getItem("br_sec") || "dcBoard"; } catch (e) { return "board"; } });
   const pick = (k) => { setSec(k); try { localStorage.setItem("br_sec", k); } catch (e) {} };
-  /* งานบ้าน / งานโครงการ ตั้งแยกกัน — แถวที่ใช้ทั้งสองประเภทเก็บที่ boqRules/home|proj/<key> (ดู ruleOnly/ruleRaw ใน boq.js) */
-  const [type, setTypeS] = React.useState(() => { try { return localStorage.getItem("br_type") === "home" ? "home" : "proj"; } catch (e) { return "proj"; } });
+  /* 3 แท็บ: ใช้ร่วม (ค่าเดียวทั้งสองประเภท) · งานบ้าน · งานโครงการ (เฉพาะข้อที่ต่างกันจริง — ruleOnly ใน boq.js) */
+  const [type, setTypeS] = React.useState(() => { try { const t = localStorage.getItem("br_type"); return t === "home" || t === "proj" ? t : "all"; } catch (e) { return "all"; } });
   const setType = (t) => { setTypeS(t); try { localStorage.setItem("br_type", t); } catch (e) {} };
   const saved = (rulesStore && rulesStore.val) || {};
   const nSet = (k) => (BOQ.RULE_DEFS || []).filter((d) => d.sec === k && brRuleOn(d, type) && brChanged(d, saved, type)).length;
-  const cur = secs.find((x) => x.k === sec) || secs[0];
+  /* แท็บงานบ้าน/งานโครงการ โชว์เฉพาะหัวข้อที่มีข้อเฉพาะประเภทนั้น · ตารางคงที่ (พิกัดสาย ฯลฯ) อยู่แท็บใช้ร่วม */
+  const nRows = (k) => (BOQ.RULE_DEFS || []).filter((d) => d.sec === k && brRuleOn(d, type)).length;
+  const secsT = secs.filter((x) => (BR_FIXED_SECS.some((f) => f.k === x.k) ? type === "all" : nRows(x.k) > 0));
+  const cur = secsT.find((x) => x.k === sec) || secsT[0];
   const typeBar = (
     <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap", marginBottom: 14 }}>
       <div style={{ display: "inline-flex", gap: 4, padding: 4, borderRadius: "var(--r-pill)", background: "var(--surface2)", boxShadow: "var(--shadow-inset)" }}>
-        {[["home", "งานบ้าน", "home"], ["proj", "งานโครงการ", "building"]].map(([k, th, ic]) => (
+        {[["all", "ใช้ร่วม", "link"], ["home", "งานบ้าน", "home"], ["proj", "งานโครงการ", "building"]].map(([k, th, ic]) => (
           <button key={k} onClick={() => setType(k)}
             style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "7px 16px", border: "none", cursor: "pointer", fontFamily: "inherit",
               fontSize: 13, fontWeight: 700, borderRadius: "var(--r-pill)",
@@ -1775,19 +1778,19 @@ function BoqRulesPage({ ampStore, condStore, omStore, rulesStore, isMobile, stoc
           </button>
         ))}
       </div>
-      <span style={{ fontSize: 11.5, color: "var(--text-3)" }}>ค่าของ{type === "home" ? "งานบ้าน" : "งานโครงการ"} · ใบ BOQ ใช้ชุดตามประเภทงานของใบนั้น</span>
+      <span style={{ fontSize: 11.5, color: "var(--text-3)" }}>{type === "all" ? "ค่าที่ใช้เหมือนกันทั้งงานบ้านและงานโครงการ" : "เฉพาะข้อที่" + (type === "home" ? "งานบ้าน" : "งานโครงการ") + "ต่างออกไป · ข้ออื่นใช้ค่าในแท็บใช้ร่วม"}</span>
     </div>
   );
-  const body = sec === "amp" ? <AmpacityEditor ampStore={ampStore} />
-    : sec === "cond" ? <ConduitDefaultsEditor condStore={condStore} />
-    : sec === "om" ? <OmTierEditor omStore={omStore} />
-    : <BoqRuleSec key={type} sec={cur} rulesStore={rulesStore} type={type} />;
-  const fixed = sec === "amp" || sec === "cond" || sec === "om";
+  const body = cur.k === "amp" ? <AmpacityEditor ampStore={ampStore} />
+    : cur.k === "cond" ? <ConduitDefaultsEditor condStore={condStore} />
+    : cur.k === "om" ? <OmTierEditor omStore={omStore} />
+    : <BoqRuleSec key={type + cur.k} sec={cur} rulesStore={rulesStore} type={type} />;
+  const fixed = cur.k === "amp" || cur.k === "cond" || cur.k === "om";
   if (isMobile) return (
     <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
       <BrStockGap stock={stock} />
       {!fixed && typeBar}
-      <Dropdown value={cur.k} onChange={pick} options={secs.map((x) => ({ value: x.k, group: x.grp, label: x.th + (nSet(x.k) ? " · แก้แล้ว " + nSet(x.k) : "") }))} />
+      <Dropdown value={cur.k} onChange={pick} options={secsT.map((x) => ({ value: x.k, group: x.grp, label: x.th + (nSet(x.k) ? " · แก้แล้ว " + nSet(x.k) : "") }))} />
       {body}
     </div>
   );
@@ -1797,11 +1800,11 @@ function BoqRulesPage({ ampStore, condStore, omStore, rulesStore, isMobile, stoc
     {typeBar}
     <div style={{ display: "grid", gridTemplateColumns: "250px minmax(0,1fr)", gap: 18, alignItems: "start" }}>
       <nav style={{ position: "sticky", top: 12, background: "var(--surface)", boxShadow: "var(--shadow-card)", borderRadius: "var(--r-card)", padding: 8, display: "flex", flexDirection: "column", gap: 2 }}>
-        {secs.map((x, i) => {
+        {secsT.map((x, i) => {
           const on = x.k === cur.k, n = nSet(x.k);
           return (
             <React.Fragment key={x.k}>
-              {x.grp && (i === 0 || secs[i - 1].grp !== x.grp) && <div style={{ fontSize: 10.5, fontWeight: 700, color: "var(--text-3)", padding: (i ? "10px" : "4px") + " 10px 4px" }}>{x.grp}</div>}
+              {x.grp && (i === 0 || secsT[i - 1].grp !== x.grp) && <div style={{ fontSize: 10.5, fontWeight: 700, color: "var(--text-3)", padding: (i ? "10px" : "4px") + " 10px 4px" }}>{x.grp}</div>}
               <button onClick={() => pick(x.k)}
                 style={{ textAlign: "left", border: "none", cursor: "pointer", fontFamily: "inherit", padding: "9px 11px", borderRadius: "var(--r-tile)",
                   background: on ? "var(--primary-soft)" : "transparent", color: on ? "var(--primary-dark)" : "var(--text-1)" }}>
@@ -1825,7 +1828,7 @@ function BoqRulesPage({ ampStore, condStore, omStore, rulesStore, isMobile, stoc
 }
 
 /* แถวนี้โชว์ในแท็บประเภทงานนี้ไหม · ค่าที่ใช้จริงต่างจากค่าตั้งต้นไหม · เก็บที่คีย์ไหน */
-const brRuleOn = (d, type) => { const o = window.BOQ.ruleOnly(d); return !o || o === type; };
+const brRuleOn = (d, type) => { const o = window.BOQ.ruleOnly(d); return type === "all" ? !o : o === type; };
 const brChanged = (d, saved, type) => {
   const B = window.BOQ, raw = B.ruleRaw(saved, d, type);
   if (raw == null || raw === "") return false;
@@ -1834,9 +1837,9 @@ const brChanged = (d, saved, type) => {
 /* แถวรายการของที่มีขาย (ขนาด/แรงดัน/อัตราส่วนที่มีจริง) — ขึ้นก่อนเงื่อนไขในแต่ละหัวข้อ */
 const brStockRow = (d) => d.type === "nums" || d.type === "pairs";
 const BR_TYPE_G = { "ทุกงาน": 1, "งานบ้าน": 1, "งานโครงการ": 1 };
-const brPath = (d, type) => (window.BOQ.ruleFlat(d) ? d.key : type + "/" + d.key);
-/* ของที่มีขายใช้ค่าเดียวทั้งสองประเภท — บันทึก/คืนค่าแล้วล้างค่าที่เคยตั้งแยก home/proj ทิ้งด้วย ไม่งั้นค้างเป็นค่าสำรอง */
-const brShared = (d) => window.BOQ.ruleFlat(d) && !window.BOQ.ruleOnly(d);
+const brPath = (d) => d.key;
+/* แถวใช้ร่วมมีค่าเดียว — บันทึก/คืนค่าแล้วล้างค่าที่เคยตั้งแยก home/proj ทิ้งด้วย ไม่งั้นค้างเป็นค่าสำรอง */
+const brShared = (d) => !window.BOQ.ruleOnly(d);
 const brClearSplit = (rulesStore, d) => ["home", "proj"].forEach((t) => {
   const o = ((rulesStore.val || {})[t] || {})[d.key];
   if (o != null && o !== "") rulesStore.setCell(t + "/" + d.key, "");

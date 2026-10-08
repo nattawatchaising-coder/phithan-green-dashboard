@@ -195,21 +195,22 @@
     if (!isFinite(v) || v < (d.min != null ? d.min : 0) || (d.max != null && v > d.max)) return d.def;
     return v;
   }
-  /* ── แยกค่า งานบ้าน / งานโครงการ ──
-     แถวที่ใช้กับงานประเภทเดียว (หัวย่อย g "งานบ้าน"/"งานโครงการ" หรือ only) มีค่าเดียว เก็บที่ boqRules/<key>
-     แถวที่ใช้ทั้งสองประเภท ตั้งแยกกันได้ที่ boqRules/home/<key> · boqRules/proj/<key> — ไม่ตั้ง = boqRules/<key> (ค่าก่อนแยก) → ค่าตั้งต้น
+  /* ── ใช้ร่วม / งานบ้าน / งานโครงการ ──
+     ทุกแถวมีค่าเดียว เก็บที่ boqRules/<key> · แถวที่ใช้กับงานประเภทเดียว (หัวย่อย g "งานบ้าน"/"งานโครงการ" หรือ only) โชว์ในแท็บประเภทนั้น
+     ที่เหลือ = ใช้ร่วมทั้งสองประเภท (ผู้ใช้: แยกเฉพาะข้อที่ต่างกันจริง)
+     ค่าเก่าที่เคยตั้งแยก boqRules/home|proj/<key> ใช้เมื่อยังไม่มีค่ากลาง (งานโครงการก่อน แล้วงานบ้าน — ได้ค่าเดียวกันทั้งสองประเภท)
      RULES = ชุดของประเภทงานที่กำลังคิด (useRuleType) · ฟังก์ชันที่ส่งออกทุกตัวสลับชุดเองเมื่อได้ใบ/งานที่บอกประเภท (ห่อท้ายไฟล์) */
   const ruleOnly = (d) => d.only || (d.g === "งานบ้าน" ? "home" : d.g === "งานโครงการ" ? "proj" : null);
   /* "ของที่มีขาย" (รายการขนาด/แรงดันที่มีจริง · type nums/pairs) เป็นของชิ้นเดียวกันทั้งงานบ้านและงานโครงการ
      → เก็บค่าเดียวที่ boqRules/<key> เหมือนแถวประเภทเดียว · ค่าที่เคยตั้งแยก home/proj ไว้ใช้เมื่อยังไม่มีค่ากลาง */
-  const ruleFlat = (d) => !!ruleOnly(d) || d.type === "nums" || d.type === "pairs";
-  const ruleRaw = (src, d, t) => {
+  const ruleFlat = () => true;
+  const ruleRaw = (src, d) => {
     const s = src || {};
     const has = (x) => x != null && x !== "";
-    const pick = (k) => { const o = s[t] ? s[t][k] : null, f = s[k];
-      if (ruleOnly(d)) return f;
-      if (ruleFlat(d)) return has(f) ? f : has(o) ? o : (s[t === "home" ? "proj" : "home"] || {})[k];
-      return has(o) ? o : f; };
+    const pick = (k) => { const f = s[k];
+      if (ruleOnly(d) || has(f)) return f;
+      const p = (s.proj || {})[k];
+      return has(p) ? p : (s.home || {})[k]; };
     const r = pick(d.key);
     if ((r == null || r === "") && d.legacyV) {
       const rv = pick(d.legacyV);
