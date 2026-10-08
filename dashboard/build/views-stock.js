@@ -224,6 +224,7 @@ function StockView({
   const [detailItem, setDetailItem] = React.useState(null);
   const [fillOpen, setFillOpen] = React.useState(false);
   const [brand, setBrand] = React.useState("all");
+  const [series, setSeries] = React.useState("all");
   const [movesOpen, setMovesOpen] = React.useState(false);
   const [priceQ, setPriceQ] = React.useState("");
   const [priceGrp, setPriceGrp] = React.useState("all");
@@ -271,6 +272,11 @@ function StockView({
     return m;
   }, [items]);
   const goBack = () => {
+    if (series !== "all" && !search.trim() && !kpiFilter) {
+      setSeries("all");
+      setBrowse(true);
+      return;
+    }
     if (brand !== "all" && !search.trim() && !kpiFilter) {
       setBrand("all");
       setBrowse(true);
@@ -302,6 +308,9 @@ function StockView({
     setSub("all");
   }, [cat]);
   React.useEffect(() => {
+    setSeries("all");
+  }, [cat, sub, brand]);
+  React.useEffect(() => {
     if (sub !== "all" && !subChips.some(c => c.key === sub)) setSub("all");
   }, [subChips.length]);
   const brandCount = React.useMemo(() => {
@@ -332,6 +341,7 @@ function StockView({
     if (cat !== "all" && it.cat !== cat && SF.mainCatOf(it.cat) !== cat) return false;
     if (sub !== "all" && it.cat !== sub) return false;
     if (brand !== "all" && (it.brand || "") !== brand) return false;
+    if (series !== "all" && (it.series || "") !== series) return false;
     if (search && !(it.name + it.sku + it.loc + (it.brand || "") + (it.model || "")).toLowerCase().includes(search.toLowerCase())) return false;
     if (kpiFilter === "low" && lowState(it) === "ok") return false;
     if (kpiFilter === "in" && !inItemIds.has(it.id)) return false;
@@ -433,7 +443,7 @@ function StockView({
       if (lowState(it) !== "ok") low[b] = (low[b] || 0) + 1;
     });
     const keys = Object.keys(m).sort((a, z) => a.localeCompare(z, "th"));
-    if (keys.length < 2) return null;
+    if (keys.length < 2 && !(keys.length === 1 && filtered.some(it => (it.series || "").trim()))) return null;
     const catByName = {};
     SF.STOCK_CATS.concat(Object.keys(SF.STOCK_SUB_BY_CAT || {}).reduce((a, k) => a.concat(SF.STOCK_SUB_BY_CAT[k] || []), [])).forEach(c => {
       if (c && c.th && imgs["cat_" + c.key]) catByName[String(c.th).trim().toLowerCase()] = imgs["cat_" + c.key];
@@ -456,6 +466,43 @@ function StockView({
       none: none
     };
   }, [browsing, cat, showSubHome, filtered, imgs]);
+  const seriesHome = React.useMemo(() => {
+    if (isPrices || isAmp || !browse || search.trim() || kpiFilter || brand === "all" || series !== "all") return null;
+    const m = {},
+      low = {},
+      none = [];
+    filtered.forEach(it => {
+      const s = (it.series || "").trim();
+      if (!s) {
+        none.push(it);
+        return;
+      }
+      m[s] = (m[s] || 0) + 1;
+      if (lowState(it) !== "ok") low[s] = (low[s] || 0) + 1;
+    });
+    const keys = Object.keys(m).sort((a, z) => a.localeCompare(z, "th", {
+      numeric: true
+    }));
+    if (!keys.length) return null;
+    const list = keys.map(s => {
+      const k = ("series_" + brand + "_" + s).trim().toLowerCase().replace(/[.#$\[\]\/\s]+/g, "_");
+      const first = filtered.find(it => (it.series || "").trim() === s && imgs[it.id]);
+      return {
+        key: s,
+        th: s,
+        color: "#0EA5E9",
+        icon: "box",
+        imgKey: k,
+        img: imgs["cat_" + k] || (first ? imgs[first.id] : "")
+      };
+    });
+    return {
+      list: list,
+      count: m,
+      low: low,
+      none: none
+    };
+  }, [isPrices, isAmp, browse, search, kpiFilter, brand, series, filtered, imgs]);
   const filterBar = React.createElement("div", {
     className: "content-filters"
   }, React.createElement("div", {
@@ -777,7 +824,7 @@ function StockView({
     label: b,
     color: "#0EA5E9",
     count: brandCount[b]
-  })))), React.createElement("div", null, !isPrices && !isAmp && !showCatHome && !showSubHome && !brandHome && React.createElement("div", {
+  })))), React.createElement("div", null, !isPrices && !isAmp && !showCatHome && !showSubHome && !brandHome && !seriesHome && React.createElement("div", {
     style: {
       display: "flex",
       alignItems: "center",
@@ -849,9 +896,19 @@ function StockView({
   }, (SF.STOCK_CAT_BY[sub] || {}).th || "")), brand !== "all" && React.createElement("span", null, " \u203A ", React.createElement("span", {
     style: {
       fontWeight: 700,
+      color: series === "all" ? "var(--text-1)" : "var(--text-2)",
+      cursor: "pointer"
+    },
+    onClick: () => {
+      setSeries("all");
+      setBrowse(true);
+    }
+  }, brand)), series !== "all" && React.createElement("span", null, " \u203A ", React.createElement("span", {
+    style: {
+      fontWeight: 700,
       color: "var(--text-1)"
     }
-  }, brand)), React.createElement("span", null, " \xB7 ", filtered.length.toLocaleString(), " \u0E23\u0E32\u0E22\u0E01\u0E32\u0E23"))), showCatHome ? React.createElement(CatBrowser, {
+  }, series)), React.createElement("span", null, " \xB7 ", filtered.length.toLocaleString(), " \u0E23\u0E32\u0E22\u0E01\u0E32\u0E23"))), showCatHome ? React.createElement(CatBrowser, {
     list: SF.STOCK_CATS.filter(c => catCount[c.key]),
     count: catCount,
     low: catLow,
@@ -907,6 +964,66 @@ function StockView({
     onRemove: stock.removeItem
   }) : React.createElement(StockGrid, {
     rows: rowsOf(directItems),
+    imgs: imgs,
+    lowState: lowState,
+    onOpen: setDetailItem,
+    onEdit: it => setItemForm({
+      item: it,
+      isNew: false
+    }),
+    onRemove: stock.removeItem
+  }))) : seriesHome ? React.createElement(React.Fragment, null, React.createElement(CatBrowser, {
+    list: seriesHome.list,
+    count: seriesHome.count,
+    low: seriesHome.low,
+    imgs: seriesHome.list.reduce((m, b) => {
+      m["cat_" + b.key] = b.img;
+      return m;
+    }, {}),
+    title: brand,
+    hint: seriesHome.list.length + " กลุ่มรุ่น · " + filtered.length.toLocaleString() + " รายการ",
+    allLabel: "\u0E14\u0E39\u0E17\u0E38\u0E01\u0E23\u0E32\u0E22\u0E01\u0E32\u0E23\u0E02\u0E2D\u0E07\u0E22\u0E35\u0E48\u0E2B\u0E49\u0E2D\u0E19\u0E35\u0E49",
+    onPick: s => setSeries(s),
+    onAll: () => setBrowse(false),
+    onBack: goBack,
+    onSetImage: (s, d) => {
+      const x = seriesHome.list.find(y => y.key === s);
+      if (x) stock.setImage("cat_" + x.imgKey, d);
+    }
+  }), seriesHome.none.length > 0 && React.createElement("div", {
+    style: {
+      marginTop: 24
+    }
+  }, React.createElement("div", {
+    style: {
+      display: "flex",
+      alignItems: "baseline",
+      gap: 9,
+      marginBottom: 10,
+      flexWrap: "wrap"
+    }
+  }, React.createElement("span", {
+    style: {
+      fontSize: 13.5,
+      fontWeight: 800,
+      color: "var(--text-1)"
+    }
+  }, "\u0E44\u0E21\u0E48\u0E23\u0E30\u0E1A\u0E38\u0E01\u0E25\u0E38\u0E48\u0E21\u0E23\u0E38\u0E48\u0E19"), React.createElement("span", {
+    style: {
+      fontSize: 11.5,
+      color: "var(--text-3)"
+    }
+  }, seriesHome.none.length.toLocaleString(), " \u0E23\u0E32\u0E22\u0E01\u0E32\u0E23")), isMobile ? React.createElement(StockCardList, {
+    rows: rowsOf(seriesHome.none),
+    imgs: imgs,
+    onOpen: setDetailItem,
+    onEdit: it => setItemForm({
+      item: it,
+      isNew: false
+    }),
+    onRemove: stock.removeItem
+  }) : React.createElement(StockGrid, {
+    rows: rowsOf(seriesHome.none),
     imgs: imgs,
     lowState: lowState,
     onOpen: setDetailItem,
@@ -2671,6 +2788,13 @@ function ItemModal({
     value: f.model || "",
     onChange: e => set("model", e.target.value),
     placeholder: "D25 / CKT 20"
+  })), React.createElement(Field, {
+    label: "\u0E01\u0E25\u0E38\u0E48\u0E21\u0E23\u0E38\u0E48\u0E19 (\u0E0B\u0E35\u0E23\u0E35\u0E2A\u0E4C)"
+  }, React.createElement("input", {
+    style: inputStyle,
+    value: f.series || "",
+    onChange: e => set("series", e.target.value),
+    placeholder: "CVS / EZC100H \u2014 \u0E43\u0E0A\u0E49\u0E08\u0E31\u0E14\u0E01\u0E32\u0E23\u0E4C\u0E14\u0E43\u0E15\u0E49\u0E22\u0E35\u0E48\u0E2B\u0E49\u0E2D"
   })), React.createElement(Field, {
     label: "\u0E08\u0E33\u0E19\u0E27\u0E19\u0E04\u0E07\u0E40\u0E2B\u0E25\u0E37\u0E2D"
   }, React.createElement("input", {

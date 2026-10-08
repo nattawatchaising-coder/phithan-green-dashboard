@@ -112,6 +112,7 @@ function StockView({ stock, onResetAll, onMenuOpen, currentUser, jobs, priceStor
   const [detailItem, setDetailItem] = React.useState(null); // แถวที่กดเปิดดูรายละเอียด
   const [fillOpen, setFillOpen] = React.useState(false);   // หน้าต่างเติมยี่ห้อ/รุ่นจากชื่อ
   const [brand, setBrand] = React.useState("all");  // กรองยี่ห้อ
+  const [series, setSeries] = React.useState("all");  // กลุ่มรุ่นใต้ยี่ห้อ (it.series เช่น CVS / EZC100H)
   const [movesOpen, setMovesOpen] = React.useState(false); // popup ความเคลื่อนไหว
   // ── แท็บราคา BOQ: ค้นหา + กรองกลุ่ม (ยกขึ้นมาไว้บน header เหมือนหน้าสต็อก) ──
   const [priceQ, setPriceQ] = React.useState("");
@@ -146,6 +147,7 @@ function StockView({ stock, onResetAll, onMenuOpen, currentUser, jobs, priceStor
   }, [items]);
   /* ย้อนกลับทีละชั้น: หมวดย่อย → หมวดหลัก → หน้าเลือกหมวด */
   const goBack = () => {
+    if (series !== "all" && !search.trim() && !kpiFilter) { setSeries("all"); setBrowse(true); return; }
     if (brand !== "all" && !search.trim() && !kpiFilter) { setBrand("all"); setBrowse(true); return; }
     if (sub !== "all") { setSub("all"); setBrowse(true); return; }
     if (cat !== "all") { setCat("all"); setBrowse(true); return; }
@@ -158,6 +160,7 @@ function StockView({ stock, onResetAll, onMenuOpen, currentUser, jobs, priceStor
   }, [items]);
   // เปลี่ยนหมวดหลัก / หมวดย่อยหายไป → รีเซ็ตตัวกรองย่อย ไม่ให้ค้างจนตารางว่างโดยไม่รู้สาเหตุ
   React.useEffect(() => { setSub("all"); }, [cat]);
+  React.useEffect(() => { setSeries("all"); }, [cat, sub, brand]);
   React.useEffect(() => { if (sub !== "all" && !subChips.some((c) => c.key === sub)) setSub("all"); }, [subChips.length]);
   /* ตัวเลือกยี่ห้อ/รุ่น — นับจากของที่ผ่านตัวกรอง "หมวด" แล้ว
      เลือกยี่ห้อก่อน แถวรุ่นถึงจะขึ้น เพราะรุ่นของคนละยี่ห้อไม่ควรปนกัน */
@@ -186,6 +189,7 @@ function StockView({ stock, onResetAll, onMenuOpen, currentUser, jobs, priceStor
     if (cat !== "all" && it.cat !== cat && SF.mainCatOf(it.cat) !== cat) return false;
     if (sub !== "all" && it.cat !== sub) return false;
     if (brand !== "all" && (it.brand || "") !== brand) return false;
+    if (series !== "all" && (it.series || "") !== series) return false;
     if (search && !((it.name + it.sku + it.loc + (it.brand || "") + (it.model || "")).toLowerCase().includes(search.toLowerCase()))) return false;
     if (kpiFilter === "low" && lowState(it) === "ok") return false;
     if (kpiFilter === "in" && !inItemIds.has(it.id)) return false;
@@ -259,7 +263,8 @@ function StockView({ stock, onResetAll, onMenuOpen, currentUser, jobs, priceStor
       if (lowState(it) !== "ok") low[b] = (low[b] || 0) + 1;
     });
     const keys = Object.keys(m).sort((a, z) => a.localeCompare(z, "th"));
-    if (keys.length < 2) return null;
+    /* ยี่ห้อเดียวก็ขึ้นการ์ดยี่ห้อ ถ้าของในหมวดมีกลุ่มรุ่น (หมวด › ยี่ห้อ › กลุ่มรุ่น ตามที่ผู้ใช้จัด) */
+    if (keys.length < 2 && !(keys.length === 1 && filtered.some((it) => (it.series || "").trim()))) return null;
     // รูปการ์ดยี่ห้อ: ตั้งเองที่ cat_brand_<ยี่ห้อ> · ไม่มี = รูปหมวดที่ชื่อตรงกับยี่ห้อ (เช่นหมวดย่อย HUAWEI ใต้อินเวอร์เตอร์)
     const catByName = {};
     SF.STOCK_CATS.concat(Object.keys(SF.STOCK_SUB_BY_CAT || {}).reduce((a, k) => a.concat(SF.STOCK_SUB_BY_CAT[k] || []), []))
@@ -270,6 +275,27 @@ function StockView({ stock, onResetAll, onMenuOpen, currentUser, jobs, priceStor
     });
     return { list: list, count: m, low: low, none: none };
   }, [browsing, cat, showSubHome, filtered, imgs]);
+
+  /* ชั้นกลุ่มรุ่น — เลือกยี่ห้อแล้ว ของมีช่อง series (เช่น MCCB › SCHNEIDER › CVS / EZC100H) ขึ้นการ์ดกลุ่มรุ่นก่อนถึงรายการ
+     รูปการ์ดตั้งที่ cat_series_<ยี่ห้อ>_<กลุ่ม> · ของที่ไม่ระบุกลุ่มต่อท้ายหน้า */
+  const seriesHome = React.useMemo(() => {
+    if (isPrices || isAmp || !browse || search.trim() || kpiFilter || brand === "all" || series !== "all") return null;
+    const m = {}, low = {}, none = [];
+    filtered.forEach((it) => {
+      const s = (it.series || "").trim();
+      if (!s) { none.push(it); return; }
+      m[s] = (m[s] || 0) + 1;
+      if (lowState(it) !== "ok") low[s] = (low[s] || 0) + 1;
+    });
+    const keys = Object.keys(m).sort((a, z) => a.localeCompare(z, "th", { numeric: true }));
+    if (!keys.length) return null;
+    const list = keys.map((s) => {
+      const k = ("series_" + brand + "_" + s).trim().toLowerCase().replace(/[.#$\[\]\/\s]+/g, "_");
+      const first = filtered.find((it) => (it.series || "").trim() === s && imgs[it.id]);
+      return { key: s, th: s, color: "#0EA5E9", icon: "box", imgKey: k, img: imgs["cat_" + k] || (first ? imgs[first.id] : "") };
+    });
+    return { list: list, count: m, low: low, none: none };
+  }, [isPrices, isAmp, browse, search, kpiFilter, brand, series, filtered, imgs]);
 
   /* แถวแท็บกับหมวด — อยู่ในเนื้อหา ไม่ใช่ในหัวจอ
      หัวจอเก็บแค่ชื่อหน้ากับเครื่องมือของหน้า ส่วนตัวกรองอยู่ติดกับของที่มันกรอง
@@ -430,7 +456,7 @@ function StockView({ stock, onResetAll, onMenuOpen, currentUser, jobs, priceStor
 
         <div>
           {/* เส้นทางที่อยู่ + ปุ่มย้อนกลับ — เข้าไปดูของในหมวดแล้วต้องกลับออกมาได้เสมอ */}
-          {!isPrices && !isAmp && !showCatHome && !showSubHome && !brandHome && (
+          {!isPrices && !isAmp && !showCatHome && !showSubHome && !brandHome && !seriesHome && (
             <div style={{ display: "flex", alignItems: "center", gap: 9, marginBottom: 12, flexWrap: "wrap" }}>
               <button onClick={goBack} title="ย้อนกลับ"
                 style={{ display: "flex", alignItems: "center", gap: 4, padding: "6px 11px", borderRadius: "var(--r-chip)", boxShadow: "var(--shadow-sm)",
@@ -444,7 +470,9 @@ function StockView({ stock, onResetAll, onMenuOpen, currentUser, jobs, priceStor
                   onClick={() => { setSub("all"); setBrowse(true); }}>{(SF.STOCK_CAT_BY[cat] || {}).th || ""}</span></span>}
                 {sub !== "all" && <span> › <span style={{ fontWeight: 700, color: brand === "all" ? "var(--text-1)" : "var(--text-2)", cursor: "pointer" }}
                   onClick={() => { setBrand("all"); setBrowse(true); }}>{(SF.STOCK_CAT_BY[sub] || {}).th || ""}</span></span>}
-                {brand !== "all" && <span> › <span style={{ fontWeight: 700, color: "var(--text-1)" }}>{brand}</span></span>}
+                {brand !== "all" && <span> › <span style={{ fontWeight: 700, color: series === "all" ? "var(--text-1)" : "var(--text-2)", cursor: "pointer" }}
+                  onClick={() => { setSeries("all"); setBrowse(true); }}>{brand}</span></span>}
+                {series !== "all" && <span> › <span style={{ fontWeight: 700, color: "var(--text-1)" }}>{series}</span></span>}
                 <span> · {filtered.length.toLocaleString()} รายการ</span>
               </span>
             </div>
@@ -474,6 +502,29 @@ function StockView({ stock, onResetAll, onMenuOpen, currentUser, jobs, priceStor
                     ? <StockCardList rows={rowsOf(directItems)} imgs={imgs} onOpen={setDetailItem}
                         onEdit={(it) => setItemForm({ item: it, isNew: false })} onRemove={stock.removeItem} />
                     : <StockGrid rows={rowsOf(directItems)} imgs={imgs} lowState={lowState} onOpen={setDetailItem}
+                        onEdit={(it) => setItemForm({ item: it, isNew: false })} onRemove={stock.removeItem} />}
+                </div>
+              )}
+            </React.Fragment>
+          ) : seriesHome ? (
+            <React.Fragment>
+              <CatBrowser list={seriesHome.list} count={seriesHome.count} low={seriesHome.low}
+                imgs={seriesHome.list.reduce((m, b) => { m["cat_" + b.key] = b.img; return m; }, {})}
+                title={brand}
+                hint={seriesHome.list.length + " กลุ่มรุ่น · " + filtered.length.toLocaleString() + " รายการ"}
+                allLabel="ดูทุกรายการของยี่ห้อนี้"
+                onPick={(s) => setSeries(s)} onAll={() => setBrowse(false)} onBack={goBack}
+                onSetImage={(s, d) => { const x = seriesHome.list.find((y) => y.key === s); if (x) stock.setImage("cat_" + x.imgKey, d); }} />
+              {seriesHome.none.length > 0 && (
+                <div style={{ marginTop: 24 }}>
+                  <div style={{ display: "flex", alignItems: "baseline", gap: 9, marginBottom: 10, flexWrap: "wrap" }}>
+                    <span style={{ fontSize: 13.5, fontWeight: 800, color: "var(--text-1)" }}>ไม่ระบุกลุ่มรุ่น</span>
+                    <span style={{ fontSize: 11.5, color: "var(--text-3)" }}>{seriesHome.none.length.toLocaleString()} รายการ</span>
+                  </div>
+                  {isMobile
+                    ? <StockCardList rows={rowsOf(seriesHome.none)} imgs={imgs} onOpen={setDetailItem}
+                        onEdit={(it) => setItemForm({ item: it, isNew: false })} onRemove={stock.removeItem} />
+                    : <StockGrid rows={rowsOf(seriesHome.none)} imgs={imgs} lowState={lowState} onOpen={setDetailItem}
                         onEdit={(it) => setItemForm({ item: it, isNew: false })} onRemove={stock.removeItem} />}
                 </div>
               )}
@@ -1067,6 +1118,7 @@ function ItemModal({ initial, isNew, items, onSave, onClose, onAddCat, onRemoveC
           {/* ยี่ห้อ/รุ่น — ของชิ้นเดียวกันคนละยี่ห้อคนละรุ่น ราคาไม่เท่ากัน แยกเป็นคนละรายการได้ */}
           <Field label="ยี่ห้อ (Brand)"><input style={inputStyle} value={f.brand || ""} onChange={(e) => set("brand", e.target.value)} placeholder="THAI PP-R / SANWA" /></Field>
           <Field label="รุ่น (Model)"><input style={inputStyle} value={f.model || ""} onChange={(e) => set("model", e.target.value)} placeholder="D25 / CKT 20" /></Field>
+          <Field label="กลุ่มรุ่น (ซีรีส์)"><input style={inputStyle} value={f.series || ""} onChange={(e) => set("series", e.target.value)} placeholder="CVS / EZC100H — ใช้จัดการ์ดใต้ยี่ห้อ" /></Field>
           <Field label="จำนวนคงเหลือ"><input type="number" style={inputStyle} value={f.qty} onChange={(e) => set("qty", parseInt(e.target.value) || 0)} /></Field>
           <Field label="หน่วยนับ"><input style={inputStyle} value={f.unit} onChange={(e) => set("unit", e.target.value)} placeholder="แผง / ตัว / ม้วน" /></Field>
           <Field label="ขั้นต่ำ (แจ้งเตือน)"><input type="number" style={inputStyle} value={f.min} onChange={(e) => set("min", parseInt(e.target.value) || 0)} /></Field>
