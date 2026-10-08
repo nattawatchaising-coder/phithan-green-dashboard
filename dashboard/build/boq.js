@@ -3274,6 +3274,13 @@ function BOQEditor({
           ok: k.ok,
           why: tag + "เมน · อินเวอร์เตอร์ " + nos.join(", ") + " รวม " + k.txt + (gIn ? " · trip unit LSIG มี Ground Fault ในตัว" : isM ? " · รุ่นปรับตั้งได้ (TM-D)" : "")
         });
+        if (isM && !isHome && !gIn) out.ac.push({
+          name: "MCCB CVS Shunt Trip (MX) 220VAC",
+          qty: 1,
+          unit: "ตัว",
+          auto: 1,
+          why: tag + "คอยล์สั่งตัด MCCB เมน " + k.at + " AT (อุปกรณ์เสริมของเมน · ตรงรุ่นเฟรม)" + (bOn("gf") ? " รับสัญญาณจาก GFR" : "")
+        });
       }
       nos.forEach(no => {
         const u = invUnits[no - 1];
@@ -3353,13 +3360,6 @@ function BOQEditor({
           unit: "ตัว",
           auto: 1,
           why: tag + "ร้อยสายเฟส + N ของเมน " + mainAt + " AT ทั้งชุด (รูต้องใหญ่พอกับสายจริง)"
-        });
-        out.ac.push({
-          name: "MCCB CVS Shunt Trip (MX) 220VAC",
-          qty: 1,
-          unit: "ตัว",
-          auto: 1,
-          why: tag + "คอยล์สั่งตัด MCCB เมน " + mainAt + " AT รับสัญญาณจาก GFR (อุปกรณ์เสริมของ MCCB · ตรงรุ่นเฟรม)"
         });
       }
       if (bOn("pm") && mainAt > 0) {
