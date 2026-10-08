@@ -3994,7 +3994,7 @@ function BOQEditor({
     const OD = window.BOQ.CABLE_OD || {};
     const odTypes = Object.keys(OD);
     const setCables = (i, cs) => setTrayRow(kind, i, "cables", cs);
-    const railTon = +b.railSize || 4.2;
+    const railTon = +b.railSize || window.BOQ.railLens()[0];
     const railCm = sz => window.BOQ.railLenCm(sz || "");
     const railPer = sz => window.BOQ.railPerTon(sz || "", railTon);
     return React.createElement("div", null, React.createElement("div", {
@@ -7249,13 +7249,10 @@ function BOQEditor({
   }, React.createElement(Dropdown, {
     value: b.railSize,
     onChange: v => set("railSize", v),
-    options: [{
-      value: 4.2,
-      label: "4.2 ม."
-    }, {
-      value: 4.8,
-      label: "4.8 ม."
-    }]
+    options: window.BOQ.railLens().concat(window.BOQ.railLens().includes(+b.railSize) || !(+b.railSize > 0) ? [] : [+b.railSize]).map(x => ({
+      value: x,
+      label: x + " ม."
+    }))
   })), React.createElement(Field, {
     label: "\u0E40\u0E1C\u0E37\u0E48\u0E2D\u0E23\u0E30\u0E2B\u0E27\u0E48\u0E32\u0E07\u0E41\u0E1C\u0E07 (\u0E21.)"
   }, React.createElement("input", {

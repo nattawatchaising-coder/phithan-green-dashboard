@@ -17,7 +17,7 @@
     { k: "acBoard", grp: "ฝั่ง AC", th: "ตู้ไฟ AC", sub: "MCCB/ACB · Ground Fault · ZCT · ฟิวส์กันหลัง SPD · CT · RCBO (งานบ้าน)" },
     { k: "acWire", grp: "ฝั่ง AC", th: "สาย AC", sub: "ตัวคูณเลือกขนาดสาย · แรงดันตก AC / รวม" },
     { k: "tray", grp: "งานติดตั้ง", th: "รางไฟ · ท่อร้อยสาย", sub: "ขาล็อก · ตัวยึด · Rail รอง · ข้อต่อ · % บรรจุสาย · รางจากแบบ 3D · อุปกรณ์ uPVC" },
-    { k: "mount", grp: "งานติดตั้ง", th: "โครงยึดแผง (MOUNTING)", sub: "EARTHING CLIP · น็อต M8 · L-FEET ตามระยะแป" },
+    { k: "mount", grp: "งานติดตั้ง", th: "โครงยึดแผง (MOUNTING)", sub: "RAIL · ข้อต่อ · MID/END CLAMP · L-FEET · กราวด์โครงแผง" },
     { k: "gnd", grp: "งานติดตั้ง", th: "กราวด์", sub: "แท่งกราวด์ · เทอร์โมเวล ตามขนาดระบบ" },
     { k: "walk", grp: "งานติดตั้ง", th: "ทางเดิน · บันได · ราวกันตก", sub: "แผ่น WALKWAY · END CLAMP · RAIL · สูตรบันไดลิง/ราวสลิง · % เผื่อเริ่มต้น" },
     { k: "plan", grp: "งานติดตั้ง", th: "ท่อน้ำ PPR", sub: "ความยาวเส้น · เผื่อ · ก๊อก · แคลมป์ · มุมเลี้ยว" },
@@ -103,9 +103,24 @@
     { sec: "tray", g: "ท่อร้อยสาย", key: "upConnBat", th: "uPVC คอนเน็ตเตอร์ เพิ่มเมื่อมีแบต / Backup (อย่างละ)", unit: "ตัว", def: 4 },
     { sec: "tray", g: "ท่อร้อยสาย", key: "upConnPb", th: "uPVC คอนเน็ตเตอร์ เพิ่มต่อ Pull box", unit: "ตัว", def: 3 },
     /* ── โครงยึดแผง ── */
-    { sec: "mount", key: "earthClipPer", th: "EARTHING CLIP ต่อแผง", unit: "ตัว", def: 1, max: 10 },
-    { sec: "mount", key: "boltPerLug", th: "BOLT&N2 NUT M8 ต่อ GROUNDING LUG", unit: "ชุด", def: 1, max: 10 },
-    { sec: "mount", key: "purlinSpan", th: "ระยะแปเริ่มต้น (ใบที่เลือกคิด L-FEET ตามระยะแป)", unit: "ม.", def: 1.2, min: 0.3, max: 6 },
+    { sec: "mount", g: "RAIL", key: "railLens", th: "ความยาวท่อน RAIL ที่มีขาย (เลือกต่อใบ · ท่อนแรก = ค่าเริ่มใบใหม่)", unit: "ม.", type: "nums", def: [4.2, 4.8] },
+    { sec: "mount", g: "RAIL", key: "railLines", th: "RAIL ต่อแถวแผง (จำนวนแนว)", unit: "แนว", def: 2, min: 1, max: 6 },
+    { sec: "mount", g: "RAIL", key: "splicePerJoint", th: "RAIL SPLICE KIT ต่อรอยต่อท่อน (ต่อแนว)", unit: "ชุด", def: 1, max: 4 },
+    { sec: "mount", g: "CLAMP", key: "midPerJoint", th: "MID CLAMP ต่อรอยต่อระหว่างแผง", unit: "ชุด", def: 2, max: 6 },
+    { sec: "mount", g: "CLAMP", key: "endPerRow", th: "END CLAMP ต่อแถว", unit: "ชุด", def: 4, max: 12 },
+    { sec: "mount", g: "L-FEET", key: "purlinSpan", th: "ระยะแปเริ่มต้น (ใบที่เลือกคิด L-FEET ตามระยะแป)", unit: "ม.", def: 1.2, min: 0.3, max: 6 },
+    { sec: "mount", g: "กราวด์โครงแผง", key: "lugPerRow", th: "GROUNDING LUG ต่อแถว", unit: "ชุด", def: 2, max: 10 },
+    { sec: "mount", g: "กราวด์โครงแผง", key: "earthClipPer", th: "EARTHING CLIP ต่อแผง", unit: "ตัว", def: 1, max: 10 },
+    { sec: "mount", g: "กราวด์โครงแผง", key: "boltPerLug", th: "BOLT&N2 NUT M8 ต่อ GROUNDING LUG", unit: "ชุด", def: 1, max: 10 },
+    { sec: "mount", g: "ค่าเริ่มต้นของใบใหม่", key: "mGap", th: "ช่องห่างระหว่างแผง", unit: "ม.", def: 0.025, max: 0.5 },
+    { sec: "mount", g: "ค่าเริ่มต้นของใบใหม่", key: "mEndSpare", th: "เผื่อหัวท้ายต่อแถว", unit: "ม.", def: 0.6, max: 5 },
+    { sec: "mount", g: "ค่าเริ่มต้นของใบใหม่", key: "mLfeetPerRail", th: "L-FEET ต่อท่อนราง (ใบที่คิดต่อท่อนราง)", unit: "ตัว", def: 4, max: 20 },
+    { sec: "mount", g: "% เผื่อเริ่มต้นของใบใหม่", key: "mSpRail", th: "RAIL", unit: "%", def: 5, max: 100 },
+    { sec: "mount", g: "% เผื่อเริ่มต้นของใบใหม่", key: "mSpJoiner", th: "RAIL SPLICE KIT", unit: "%", def: 5, max: 100 },
+    { sec: "mount", g: "% เผื่อเริ่มต้นของใบใหม่", key: "mSpMid", th: "MID CLAMP", unit: "%", def: 10, max: 100 },
+    { sec: "mount", g: "% เผื่อเริ่มต้นของใบใหม่", key: "mSpEnd", th: "END CLAMP", unit: "%", def: 10, max: 100 },
+    { sec: "mount", g: "% เผื่อเริ่มต้นของใบใหม่", key: "mSpLfeet", th: "L-FEET / ROOF HOOK", unit: "%", def: 5, max: 100 },
+    { sec: "mount", g: "% เผื่อเริ่มต้นของใบใหม่", key: "mSpGround", th: "GROUNDING LUG", unit: "%", def: 10, max: 100 },
     /* ── กราวด์ ── */
     { sec: "gnd", key: "gndBigKw", th: "ไซต์ใหญ่ตั้งแต่ (เพิ่มแท่งกราวด์ · เทอร์โมเวล 3 ทาง · Test box)", unit: "kW", def: 30 },
     { sec: "gnd", g: "ไซต์เล็ก", key: "gndRodS", th: "แท่งกราวด์", unit: "แท่ง", def: 1 },
@@ -408,6 +423,8 @@
   const MID_CLAMP = { 30: "MID CLAME KIT 30mm.", 33: "MID CLAME KIT 30mm.", 35: "MID CLAME KIT 35mm." };
   const END_CLAMP = { 30: "END CLAMP KIT 30mm.", 33: "END CLAMP KIT 30mm.", 35: "END CLAMP KIT 35mm." };
   const RAIL = { 4.2: "RAIL 4.2 M ", 4.8: "RAIL 4.8 M " };
+  /* ความยาวท่อน RAIL ที่มีขาย (กฎ railLens) · ชื่อ 4.2/4.8 ตรงกับคลังเดิม (มีช่องว่างท้าย) */
+  function railLens() { const a = RULES.railLens; return Array.isArray(a) && a.length ? a : [4.2]; }
 
   // ── ชนิดสายไฟที่เลือกได้ ──
   const CABLE_TYPES = [
@@ -1858,11 +1875,11 @@
       backup: !!job.backup,
       birdnet: !!job.birdnet,
       roof: "เมทัลชีท",
-      railSize: 4.2,
-      gap: 0.025,
-      endSpare: 0.6,
-      lfeetPerRail: 4,
-      sparePct: { rail: 5, joiner: 5, endClamp: 10, midClamp: 10, lfeet: 5, ground: 10 },
+      railSize: railLens()[0],
+      gap: RULES.mGap,
+      endSpare: RULES.mEndSpare,
+      lfeetPerRail: RULES.mLfeetPerRail,
+      sparePct: { rail: RULES.mSpRail, joiner: RULES.mSpJoiner, endClamp: RULES.mSpEnd, midClamp: RULES.mSpMid, lfeet: RULES.mSpLfeet, ground: RULES.mSpGround },
       rows: [{ panels: +job.panels || 0, count: 1 }],
       // ค่าเริ่มต้นสายไฟ — ตัด COMBINER-BAT. ออกถ้าไม่มีแบต, ตัด COMBINER-BACKUP ออกถ้าไม่มี Backup
       cables: DEFAULT_CABLES
@@ -2001,12 +2018,13 @@
     const panel = PANELS.find((p) => p.model === b.panelModel) || PANELS[0];
     const phase = String(b.phase) === "3" ? 3 : 1;
     const sp = b.sparePct || {};
-    const railSize = +b.railSize || 4.2;
+    const railSize = +b.railSize || railLens()[0];
     const gap = +b.gap || 0;
     const endSpare = +b.endSpare || 0;
     const lfeetPerRail = +b.lfeetPerRail || 0;
     const lfeetBy = b.lfeetBy === "purlin" ? "purlin" : "rail";
     const purlin = +b.purlin > 0 ? +b.purlin : RULES.purlinSpan;
+    const nLine = RULES.railLines, spJ = RULES.splicePerJoint, midJ = RULES.midPerJoint, endR = RULES.endPerRow, lugR = RULES.lugPerRow;
 
     // กรอกจำนวนแผงโดยตรง → คำนวณขนาดติดตั้ง (kW) ย้อนกลับ
     // (รองรับข้อมูลเก่าที่เก็บเป็น kw)
@@ -2025,14 +2043,14 @@
          ทั้งสองแบบแผงเรียงบนรางด้วยด้านสั้น "แผง/แถว" ของแนวนอนจึงหมายถึงแผงต่อแนวราง (ขึ้นตามลาด) */
       const lenRow = (((panel.width + gap) * pr) - gap) + endSpare;     // ความยาว/แถว
       const tonRow = Math.ceil(lenRow / railSize);                       // ปัดเศษ ท่อน/แถว (ROUNDUP)
-      const railx2 = tonRow * 2;                                         // ราง 2 ชั้น
+      const railx2 = tonRow * nLine;                                     // ราง nLine แนว (ค่าเริ่ม 2)
       railSum     += nr * railx2;
-      joinerSum   += nr * ((tonRow - 1) * 2);
-      midSum      += nr * ((pr - 1) * 2);
-      endSum      += nr * 4;
+      joinerSum   += nr * ((tonRow - 1) * nLine * spJ);
+      midSum      += nr * ((pr - 1) * midJ);
+      endSum      += nr * endR;
       /* L-FEET: ต่อท่อนราง (เดิม) หรือ ตามระยะแป = จุดยึดทุกแปตลอดแนวราง + 1 · ราง 2 แนวต่อแถว */
-      lbracketSum += lfeetBy === "purlin" ? nr * 2 * (Math.ceil(Math.max(0, lenRow - endSpare) / purlin) + 1) : (nr * railx2) * lfeetPerRail;
-      earthlugSum += nr * 2;
+      lbracketSum += lfeetBy === "purlin" ? nr * nLine * (Math.ceil(Math.max(0, lenRow - endSpare) / purlin) + 1) : (nr * railx2) * lfeetPerRail;
+      earthlugSum += nr * lugR;
     });
     const pct = (v, p) => Math.round(v * (1 + (+p || 0) / 100));
     const rail      = pct(railSum, sp.rail);
@@ -2844,7 +2862,7 @@
   window.BOQ = { PANELS, MICRO, INVERTERS, OPTIMIZERS, setOptimizers, findOptimizer, ROOF_HOOKS, ROOF_OPTIONS, CABLE_TYPES, CABLE_GROUPS, cableCategory, MATERIAL_SUBGROUPS, materialSubGroup, CABLE_POINTS, DEFAULT_CABLES, STRING_CABLE_POINTS, MICRO_CABLE_NAMES, DEFAULT_STRING_CABLES, IMC_SIZES, UPVC_SIZES, PULLBOX_SIZES, CABLE_OD, HDPE_TABLE, IMC_CONDUIT, WIRE_SIZES, WIRE_METHODS, INS_CLASSES, AMP_GROUPS, AMP_NCOND, AMP_CORES, ampColKey, DEFAULT_AMPACITY, AMPACITY, setAmpacity, WIRE_METHOD_BASE, ampTableFor, cableInsClass, cableCoreType, cableSizeNum, ampacityOf, pickWireSize, PV_WIRE_SIZES, PV_WIRE_AMP, PV_WIRE_MIN, pickPvWireSize, calcVdrop, VD_LIMIT, findPanel, findInverter, stringConfig, stringPlan, wireArea, calcWireWay, calcConduitSize, blankBOQ, mergeBOQ, setConduitDefaults, conduitDefaults, CONDUIT_SPARE_FIXED, IMC_RULE, IMC_RULE_DEF, imcRule, calcBOQ, calcStructures, matKey, qtyKey, catalog, isPvDcCable, PV_DC_COLORS, PV_DC_SPARE, pvDcLength, applyPrices, setPanels, setInverters,
     WAY_SIZES, TRAY_SIZES, PERF_SIZES, TRAY_KINDS, TRAY_KIND_KEYS, trayKindOf, trayNorm, trayAlias, hdgName,
     optimizerQty, optimizerFits, DCAC_LIMIT, WAY_PIPE_LEN, TRAY_PIPE_LEN, trayLenTxt, railLenCm, railPerTon, railName, SUPPORT_KINDS, LABOR_PRESET, PERMIT_PRESET, permitPresetFor, permitGridFee, gridAuthOf, PERMIT_ENG_TIERS, PERMIT_GRID_FEE, PERMIT_GRID_NAME,
-    COND_FIT_KINDS, WAY_FIT_KINDS, condFittings, trayFittings, PPR_SIZES, PPR_FIT_KINDS, pipeFittings, pipeFromPlan, trayFromPlan, walkFromPlan, walkLens, walkLenOf, walkName,
+    COND_FIT_KINDS, WAY_FIT_KINDS, condFittings, trayFittings, PPR_SIZES, PPR_FIT_KINDS, pipeFittings, pipeFromPlan, trayFromPlan, walkFromPlan, walkLens, walkLenOf, walkName, railLens,
     STEEL_SPECS, steelName, steelBarLen, steelSel, steelOf,
     TRANSPORT_PRESET, MANAGE_PRESET, G_TRANSPORT, G_MANAGE, PROJECT_KITS, normProject, kitExtraKeys, ACC_ALLOW_PCT, ACC_ALLOW_PCT_HOME, accAllowDef, accAllowPct, VAT_RATE, PROFIT_PCT_DEF, priceBreakdown,
     TRAY_FILL_LIMIT, TRAY_DERATE, trayDerate, trayDim, trayCheck, cableCores,

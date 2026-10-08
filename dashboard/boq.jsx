@@ -2227,7 +2227,7 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock, ver, verName, p3Vers
     const OD = window.BOQ.CABLE_OD || {};
     const odTypes = Object.keys(OD);
     const setCables = (i, cs) => setTrayRow(kind, i, "cables", cs);
-    const railTon = +b.railSize || 4.2;                      // ท่อน Rail ที่งานนี้ใช้ (หมวดโครงยึดแผง)
+    const railTon = +b.railSize || window.BOQ.railLens()[0];                     // ท่อน Rail ที่งานนี้ใช้ (หมวดโครงยึดแผง)
     const railCm = (sz) => window.BOQ.railLenCm(sz || "");
     const railPer = (sz) => window.BOQ.railPerTon(sz || "", railTon);
     return (
@@ -3608,7 +3608,7 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock, ver, verName, p3Vers
             </button>
             {adv && (
               <div style={{ marginTop: 10, padding: 12, background: "var(--surface2)", borderRadius: "var(--r-chip)", display: "grid", gridTemplateColumns: isMobile ? "minmax(0,1fr) minmax(0,1fr)" : "repeat(4, minmax(0,1fr))", gap: 10 }}>
-                <Field label="ขนาดราง"><Dropdown value={b.railSize} onChange={(v) => set("railSize", v)} options={[{ value: 4.2, label: "4.2 ม." }, { value: 4.8, label: "4.8 ม." }]} /></Field>
+                <Field label="ขนาดราง"><Dropdown value={b.railSize} onChange={(v) => set("railSize", v)} options={window.BOQ.railLens().concat(window.BOQ.railLens().includes(+b.railSize) || !(+b.railSize > 0) ? [] : [+b.railSize]).map((x) => ({ value: x, label: x + " ม." }))} /></Field>
                 <Field label="เผื่อระหว่างแผง (ม.)"><input type="number" style={numStyle} value={b.gap} onChange={(e) => set("gap", e.target.value)} /></Field>
                 <Field label="เผื่อหัวท้าย (ม.)"><input type="number" style={numStyle} value={b.endSpare} onChange={(e) => set("endSpare", e.target.value)} /></Field>
                 <Field label="คิด L-FEET จาก"><Dropdown value={b.lfeetBy === "purlin" ? "purlin" : "rail"} onChange={(v) => set("lfeetBy", v)} options={[{ value: "rail", label: "จำนวนต่อท่อนราง" }, { value: "purlin", label: "ระยะแป" }]} /></Field>
