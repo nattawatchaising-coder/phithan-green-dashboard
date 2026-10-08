@@ -297,6 +297,9 @@ function useAuthStore() {
 
   const list    = users || [];
   const current = list.find((u) => u.id === sessionId && u.active !== false) || null;
+  /* บอกตัวเก็บงาน/ลูกค้าว่าคนที่ดูเป็นแอดมินไหม — งานเฉพาะแอดมิน (adminOnly) ซ่อนจากคนอื่น */
+  const viewerKey = current ? current.id + "|" + userRoles(current).join(",") : "";
+  React.useEffect(() => { if (window.pgSetViewer) window.pgSetViewer(current); }, [viewerKey]);
 
   const login = React.useCallback((userId, pin) => {
     const u = (users || []).find((x) => x.id === userId);

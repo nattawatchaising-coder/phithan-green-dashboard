@@ -247,9 +247,15 @@ function App() {
   const condStore = useConduitDefaults();   // ค่าตั้งต้นอุปกรณ์ท่อร้อยสายของบริษัท
   const omStore = useOmTiers();             // ตารางราคาล้างแผง / งาน O&M ตามขนาดระบบ
   const rulesStore = useBoqRules();         // เงื่อนไขการคำนวณ BOQ (ตั้งค่าคำนวณ BOQ ในหน้าคลัง)
-  const apptStore = useSurveyApptStore();
+  const apptStore0 = useSurveyApptStore();
   const leadStore = useSurveyLeadStore();   // ลูกค้าที่ขอให้ไปสำรวจ — แยกจากฐานข้อมูลงาน
-  const quoteStore = useQuoteStore();       // ใบเสนอราคา — แขวนได้ทั้งกับลูกค้าสำรวจและกับงาน
+  const quoteStore0 = useQuoteStore();      // ใบเสนอราคา — แขวนได้ทั้งกับลูกค้าสำรวจและกับงาน
+  /* งาน/ลูกค้าเฉพาะแอดมิน (adminOnly) ถูกกรองในตัวเก็บแล้ว — ใบเสนอราคาและนัดของรายนั้นต้องหายตามด้วย */
+  const hideIds = React.useMemo(() => new Set([...(store.hidden || []), ...(leadStore.hidden || [])]), [store.hidden, leadStore.hidden]);
+  const visAppts = React.useMemo(() => !hideIds.size ? apptStore0.appts : (apptStore0.appts || []).filter((a) => !hideIds.has(a.leadId) && !hideIds.has(a.projectId)), [apptStore0.appts, hideIds]);
+  const visQuotes = React.useMemo(() => !hideIds.size ? quoteStore0.quotes : (quoteStore0.quotes || []).filter((q) => !hideIds.has(q.leadId) && !hideIds.has(q.jobId)), [quoteStore0.quotes, hideIds]);
+  const apptStore = hideIds.size ? Object.assign({}, apptStore0, { appts: visAppts }) : apptStore0;
+  const quoteStore = hideIds.size ? Object.assign({}, quoteStore0, { quotes: visQuotes }) : quoteStore0;
   const fileFlags = useJobFileFlags();
   const [t, setTweak] = useTweaks(TWEAK_DEFAULTS);
   const [view, setView] = React.useState("overview");

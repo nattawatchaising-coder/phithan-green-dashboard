@@ -1066,10 +1066,96 @@ function PgTime({
     style: style
   });
 }
+function pgSetViewer(u) {
+  const a = !!u && !!window.hasRole && window.hasRole(window.userRoles(u), "admin");
+  if (window.__pgAdmin === a) return;
+  window.__pgAdmin = a;
+  try {
+    window.dispatchEvent(new Event("pg-viewer"));
+  } catch (e) {}
+}
+function usePgAdmin() {
+  const [a, setA] = React.useState(!!window.__pgAdmin);
+  React.useEffect(() => {
+    const h = () => setA(!!window.__pgAdmin);
+    window.addEventListener("pg-viewer", h);
+    h();
+    return () => window.removeEventListener("pg-viewer", h);
+  }, []);
+  return a;
+}
+function pgMakePublic(path, name) {
+  const ask = window.askConfirm ? window.askConfirm({
+    title: "เปิดให้ทุกคนเห็น “" + (name || "รายนี้") + "” ?",
+    body: "ตอนนี้เห็นเฉพาะแอดมิน — เปิดแล้วทุกตำแหน่งที่มีสิทธิ์จะเห็นรายนี้ (รวมใบเสนอราคาและนัด)",
+    ok: "เปิดให้ทุกคนเห็น",
+    icon: "eye"
+  }) : Promise.resolve(true);
+  ask.then(y => {
+    if (y && window.FBDB) window.FBDB.ref(path).update({
+      adminOnly: null
+    });
+  });
+}
+const pgAdminFlag = () => window.__pgAdmin ? {
+  adminOnly: true
+} : {};
+function AdminOnlyMark({
+  rec,
+  size = 14,
+  onClick
+}) {
+  if (!rec || !rec.adminOnly) return null;
+  const tip = "เฉพาะแอดมิน — คนอื่นไม่เห็นรายนี้" + (onClick ? " · กดเพื่อเปิดให้ทุกคนเห็น" : "");
+  const ic = React.createElement(Icon, {
+    name: "eyeOff",
+    size: size,
+    color: "var(--text-3)",
+    sw: 2.2
+  });
+  if (onClick) return React.createElement("button", {
+    type: "button",
+    title: tip,
+    "aria-label": tip,
+    onClick: e => {
+      e.stopPropagation();
+      onClick();
+    },
+    style: {
+      display: "inline-flex",
+      alignItems: "center",
+      justifyContent: "center",
+      verticalAlign: "middle",
+      marginRight: 6,
+      width: size + 14,
+      height: size + 14,
+      padding: 0,
+      border: "none",
+      borderRadius: "var(--r-chip)",
+      cursor: "pointer",
+      background: "var(--surface2)",
+      boxShadow: "var(--shadow-inset)"
+    }
+  }, ic);
+  return React.createElement("span", {
+    title: tip,
+    "aria-label": tip,
+    style: {
+      display: "inline-flex",
+      verticalAlign: -2,
+      marginRight: 5
+    }
+  }, ic);
+}
 Object.assign(window, {
   Icon,
   ICONS,
   SearchPick,
+  pgSetViewer,
+  usePgAdmin,
+  pgAdminFlag,
+  AdminOnlyMark,
+  pgMakePublic,
   StageBadge,
   TypeBadge,
   MatChip,

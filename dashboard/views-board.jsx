@@ -48,7 +48,7 @@ function KanbanCard({ job, onOpen, onDragStart, dragging }) {
           {job.hasBoq && <DocChip job={job} kind="boq" label="BOQ" color="#0D9488" soft="#0D948814" />}
         </div>
       )}
-      <div style={{ fontSize: 14.5, fontWeight: 700, color: "var(--text-1)", lineHeight: 1.3, marginBottom: 3, letterSpacing: "-.01em" }}>{job.name}</div>
+      <div style={{ fontSize: 14.5, fontWeight: 700, color: "var(--text-1)", lineHeight: 1.3, marginBottom: 3, letterSpacing: "-.01em" }}><AdminOnlyMark rec={job} />{job.name}</div>
       <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 11.5, color: "var(--text-3)", marginBottom: 10, whiteSpace: "nowrap", overflow: "hidden" }}>
         <span style={{ minWidth: 0, overflow: "hidden", textOverflow: "ellipsis" }}>
           <Icon name="pin" size={11} style={{ verticalAlign: -1 }} /> {job.province} · <span style={{ fontWeight: 600, color: "var(--text-2)" }}>{job.brand}</span>

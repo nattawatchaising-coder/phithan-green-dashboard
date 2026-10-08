@@ -123,7 +123,11 @@ function useSurveyLeadStore() {
     else setLeads((p) => (p || []).filter((x) => x.id !== id));
   }, []);
 
-  return { leads: leads || [], upsert, patch, remove, blank: () => blankLead(ref.current || []) };
+  /* ลูกค้าเฉพาะแอดมิน (adminOnly) — คนที่ไม่ใช่แอดมินไม่เห็น · blankLead ยังนับเลขจากทั้งหมด */
+  const admin = window.usePgAdmin();
+  const vis = React.useMemo(() => admin ? (leads || []) : (leads || []).filter((l) => !l.adminOnly), [leads, admin]);
+  const hidden = React.useMemo(() => new Set(admin ? [] : (leads || []).filter((l) => l.adminOnly).map((l) => l.id)), [leads, admin]);
+  return { leads: vis, hidden, upsert, patch, remove, blank: () => Object.assign(blankLead(ref.current || []), window.pgAdminFlag()) };
 }
 
 /* ย้ายรูป checklist จากลูกค้าสำรวจ → งานจริง (คนละคีย์ใน surveyPhotos) */

@@ -138,7 +138,9 @@ function PermitCard({
         lineHeight: 1.3,
         marginBottom: 3
       }
-    }, job.name), React.createElement("div", {
+    }, React.createElement(AdminOnlyMark, {
+      rec: job
+    }), job.name), React.createElement("div", {
       style: {
         fontSize: 11.5,
         color: "var(--text-3)",
@@ -1293,7 +1295,9 @@ function PermitReview({
       overflow: "hidden",
       textOverflow: "ellipsis"
     }
-  }, job.name), React.createElement("span", {
+  }, React.createElement(AdminOnlyMark, {
+    rec: job
+  }), job.name), React.createElement("span", {
     style: {
       fontSize: 11.5,
       color: "var(--text-3)"

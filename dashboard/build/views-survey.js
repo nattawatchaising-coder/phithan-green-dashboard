@@ -1471,7 +1471,9 @@ function LeadCard({
         overflow: "hidden",
         textOverflow: "ellipsis"
       }
-    }, l.name || "(ไม่ระบุชื่อ)"), React.createElement("div", {
+    }, React.createElement(AdminOnlyMark, {
+      rec: l
+    }), l.name || "(ไม่ระบุชื่อ)"), React.createElement("div", {
       style: {
         fontSize: 11.5,
         color: "var(--text-3)",
@@ -2569,7 +2571,10 @@ function LeadDrawer({
       overflow: "hidden",
       textOverflow: "ellipsis"
     }
-  }, lead.name || "(ไม่ระบุชื่อ)"), React.createElement("div", {
+  }, React.createElement(AdminOnlyMark, {
+    rec: lead,
+    onClick: () => window.pgMakePublic("surveyLeads/" + lead.id, lead.name)
+  }), lead.name || "(ไม่ระบุชื่อ)"), React.createElement("div", {
     style: {
       fontSize: 11,
       color: "var(--text-3)",

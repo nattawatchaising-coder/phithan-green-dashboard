@@ -200,12 +200,16 @@ function useSurveyLeadStore() {
       _fbRem("surveyPhotos/" + id);
     } else setLeads(p => (p || []).filter(x => x.id !== id));
   }, []);
+  const admin = window.usePgAdmin();
+  const vis = React.useMemo(() => admin ? leads || [] : (leads || []).filter(l => !l.adminOnly), [leads, admin]);
+  const hidden = React.useMemo(() => new Set(admin ? [] : (leads || []).filter(l => l.adminOnly).map(l => l.id)), [leads, admin]);
   return {
-    leads: leads || [],
+    leads: vis,
+    hidden,
     upsert,
     patch,
     remove,
-    blank: () => blankLead(ref.current || [])
+    blank: () => Object.assign(blankLead(ref.current || []), window.pgAdminFlag())
   };
 }
 function moveSurveyPhotos(fromId, toId) {

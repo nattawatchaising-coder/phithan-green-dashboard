@@ -82,7 +82,7 @@ function PermitCard({ job, onOpen, onDragStart, dragging, draggable }) {
         <span style={{ fontFamily: "var(--mono)", fontSize: 11, fontWeight: 600, color: "var(--text-3)" }}>{job.code}</span>
         {late && <span style={{ fontSize: 10, fontWeight: 700, color: "var(--tint-red-tx2)", background: "var(--tint-red-bg2)", padding: "1px 7px", borderRadius: "var(--r-pill)" }}>ค้าง {days} วัน</span>}
       </div>
-      <div style={{ fontSize: 14, fontWeight: 700, color: "var(--text-1)", lineHeight: 1.3, marginBottom: 3 }}>{job.name}</div>
+      <div style={{ fontSize: 14, fontWeight: 700, color: "var(--text-1)", lineHeight: 1.3, marginBottom: 3 }}><AdminOnlyMark rec={job} />{job.name}</div>
       <div style={{ fontSize: 11.5, color: "var(--text-3)", marginBottom: 9, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
         <Icon name="pin" size={11} style={{ verticalAlign: -1 }} /> {job.province || "—"}
         {p.auth ? " · " + p.auth : ""}{p.branch ? " " + p.branch : ""}
@@ -591,7 +591,7 @@ function PermitReview({ job, currentUser, stock, onClose, onPatch, onOpenJob }) 
             <Icon name="file" size={18} color={st.color} />
           </span>
           <div style={{ flex: 1, minWidth: 0 }}>
-            <h2 style={{ fontSize: 16, fontWeight: 700, color: "var(--text-1)", margin: 0, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{job.name}</h2>
+            <h2 style={{ fontSize: 16, fontWeight: 700, color: "var(--text-1)", margin: 0, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}><AdminOnlyMark rec={job} />{job.name}</h2>
             <span style={{ fontSize: 11.5, color: "var(--text-3)" }}>{job.code} · <span style={{ color: st.color, fontWeight: 700 }}>{st.th}</span></span>
           </div>
           <button className="x-close" onClick={onClose} style={{ width: 32, height: 32, borderRadius: 9, border: "none", boxShadow: "var(--shadow-sm)", background: "var(--surface)", cursor: "pointer", display: "grid", placeItems: "center", color: "var(--text-2)", flexShrink: 0 }}><Icon name="x" size={16} /></button>

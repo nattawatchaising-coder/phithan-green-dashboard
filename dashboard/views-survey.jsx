@@ -546,7 +546,7 @@ function LeadCard({ l, ctx }) {
       style={{ background: "var(--surface)", borderLeft: "4px solid " + sc.color, borderRadius: "var(--r-tile)", boxShadow: "var(--shadow-sm)", padding: 14, display: "flex", flexDirection: "column", gap: 9, cursor: onOpen ? "pointer" : "default" }}>
       <div style={{ display: "flex", alignItems: "flex-start", gap: 10 }}>
         <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ fontSize: 15, fontWeight: 800, color: "var(--text-1)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{l.name || "(ไม่ระบุชื่อ)"}</div>
+          <div style={{ fontSize: 15, fontWeight: 800, color: "var(--text-1)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}><AdminOnlyMark rec={l} />{l.name || "(ไม่ระบุชื่อ)"}</div>
           <div style={{ fontSize: 11.5, color: "var(--text-3)", marginTop: 2 }}>
             {l.code}{l.province ? " · " + l.province : ""}{l.phone ? " · " + l.phone : ""}
           </div>
@@ -1059,7 +1059,7 @@ function LeadDrawer({ lead, leadStore, appts, jobs, quotes, users, currentUser, 
           <div style={{ padding: "14px 16px", boxShadow: "0 10px 18px -14px rgba(8,20,14,.45)", background: "var(--surface)",
             display: "flex", alignItems: "center", gap: 10, position: "relative", zIndex: 1 }}>
             <div style={{ flex: 1, minWidth: 0 }}>
-              <div style={{ fontSize: 14.5, fontWeight: 800, color: "var(--text-1)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{lead.name || "(ไม่ระบุชื่อ)"}</div>
+              <div style={{ fontSize: 14.5, fontWeight: 800, color: "var(--text-1)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}><AdminOnlyMark rec={lead} onClick={() => window.pgMakePublic("surveyLeads/" + lead.id, lead.name)} />{lead.name || "(ไม่ระบุชื่อ)"}</div>
               <div style={{ fontSize: 11, color: "var(--text-3)", marginTop: 1 }}>{lead.code}</div>
             </div>
             <button className="x-close" onClick={onClose} aria-label="ปิด" style={{ flexShrink: 0, width: 32, height: 32, borderRadius: "var(--r-pill)", border: "none", background: "var(--surface2)", boxShadow: "var(--shadow-sm)", color: "var(--text-2)", cursor: "pointer", fontFamily: "inherit", fontSize: 16, lineHeight: 1 }}>×</button>

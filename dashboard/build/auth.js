@@ -587,6 +587,10 @@ function useAuthStore() {
   }, [users]);
   const list = users || [];
   const current = list.find(u => u.id === sessionId && u.active !== false) || null;
+  const viewerKey = current ? current.id + "|" + userRoles(current).join(",") : "";
+  React.useEffect(() => {
+    if (window.pgSetViewer) window.pgSetViewer(current);
+  }, [viewerKey]);
   const login = React.useCallback((userId, pin) => {
     const u = (users || []).find(x => x.id === userId);
     if (!u) return {

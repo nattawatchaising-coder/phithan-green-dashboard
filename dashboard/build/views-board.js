@@ -112,7 +112,9 @@ function KanbanCard({
         marginBottom: 3,
         letterSpacing: "-.01em"
       }
-    }, job.name), React.createElement("div", {
+    }, React.createElement(AdminOnlyMark, {
+      rec: job
+    }), job.name), React.createElement("div", {
       style: {
         display: "flex",
         alignItems: "center",

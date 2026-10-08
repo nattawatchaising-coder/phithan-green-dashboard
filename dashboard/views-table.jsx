@@ -139,7 +139,7 @@ function TableView({ jobs, onOpen, onEdit, onDelete, onSetMat, onSetStage, trash
                     <span style={{ width: 3, borderRadius: "0 99px 99px 0", flexShrink: 0,
                       background: j.delayed ? "#D93025" : (j.problem ? "#F59E0B" : "transparent") }} />
                     <button onClick={() => onOpen(j)} style={{ textAlign: "left", background: "none", border: "none", cursor: "pointer", fontFamily: "inherit", padding: 0, minWidth: 0 }}>
-                      <div style={{ fontSize: 13.5, fontWeight: 700, color: "var(--text-1)", letterSpacing: "-.01em", lineHeight: 1.3 }}>{j.name}</div>
+                      <div style={{ fontSize: 13.5, fontWeight: 700, color: "var(--text-1)", letterSpacing: "-.01em", lineHeight: 1.3 }}><AdminOnlyMark rec={j} />{j.name}</div>
                       <div style={{ fontSize: 11, color: "var(--text-3)", marginTop: 3, whiteSpace: "nowrap" }}>
                         <span style={{ fontFamily: "var(--mono)", letterSpacing: "-.01em" }}>{j.code}</span>
                         {j.province ? " · " + j.province : ""}{j.phone ? " · " + j.phone : ""}
@@ -341,7 +341,7 @@ function TableMobile({ jobs, sort, setSort, onOpen, onEdit, onDelete, onSetStage
                   <span style={{ fontFamily: "var(--mono)", fontSize: 11, fontWeight: 600, color: "var(--text-3)" }}>{j.code}</span>
                   <TypeBadge type={j.type} />
                 </div>
-                <div style={{ fontSize: 15, fontWeight: 700, color: "var(--text-1)", lineHeight: 1.25 }}>{j.name}</div>
+                <div style={{ fontSize: 15, fontWeight: 700, color: "var(--text-1)", lineHeight: 1.25 }}><AdminOnlyMark rec={j} />{j.name}</div>
               </button>
               <div style={{ display: "flex", gap: 4, flexShrink: 0 }}>
                 <button onClick={() => onEdit(j)} title="แก้ไข" style={actionBtn("#3B82F6")}><Icon name="settings" size={15} /></button>

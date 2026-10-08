@@ -653,7 +653,10 @@ function StockShopModal({
       textOverflow: "ellipsis",
       whiteSpace: "nowrap"
     }
-  }, job.name)), React.createElement("button", {
+  }, React.createElement(AdminOnlyMark, {
+    rec: job,
+    onClick: () => window.pgMakePublic("jobs/" + job.id, job.name)
+  }), job.name)), React.createElement("button", {
     className: "x-close",
     onClick: onClose,
     style: {
@@ -1366,7 +1369,10 @@ function DetailDrawer({
       margin: 0,
       lineHeight: 1.25
     }
-  }, job.name)), React.createElement("button", {
+  }, React.createElement(AdminOnlyMark, {
+    rec: job,
+    onClick: () => window.pgMakePublic("jobs/" + job.id, job.name)
+  }), job.name)), React.createElement("button", {
     className: "x-close",
     onClick: onClose,
     style: {

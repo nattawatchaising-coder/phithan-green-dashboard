@@ -2135,7 +2135,7 @@ function SalesCard({ lead, quotes, onOpen, onDragStart, dragging }) {
           {flags.boq && <window.DocChip job={docJob} kind="boq" label="BOQ" color="#0D9488" soft="#0D948814" />}
         </div>
       )}
-      <div style={{ fontSize: 14, fontWeight: 700, color: "var(--text-1)", lineHeight: 1.3, marginBottom: 3 }}>{lead.name || "(ไม่ระบุชื่อ)"}</div>
+      <div style={{ fontSize: 14, fontWeight: 700, color: "var(--text-1)", lineHeight: 1.3, marginBottom: 3 }}><AdminOnlyMark rec={lead} />{lead.name || "(ไม่ระบุชื่อ)"}</div>
       <div style={{ fontSize: 11.5, color: "var(--text-3)", marginBottom: 9, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
         <Icon name="pin" size={11} style={{ verticalAlign: -1 }} /> {lead.province || "—"}
         {lead.source ? " · " + LEAD_SOURCE_TH(lead.source) : ""}
@@ -2737,7 +2737,7 @@ function SalesOverview({ leads, quotes, jobs, currentUser, onOpenLead, onOpenJob
                 <button key={l.id} onClick={() => openLead(l)}>
                   <span className="mk" style={{ background: late ? "#D93025" : (now ? "#F59E0B" : st.color) }} />
                   <span className="bd">
-                    <span className="nm">{l.name || "(ไม่ระบุชื่อ)"}</span>
+                    <span className="nm"><AdminOnlyMark rec={l} />{l.name || "(ไม่ระบุชื่อ)"}</span>
                     <span className="mt">{[l.code, l.province, st.th].filter(Boolean).join(" · ")}</span>
                   </span>
                   <span className="when" style={late ? { color: "#D93025" } : null}>

@@ -138,8 +138,11 @@ function useJobStore() {
   React.useEffect(() => {
     if (!_FB() && raw !== null) _lsSet(SF_STORE_KEY, raw);
   }, [raw]);
-  const jobs = React.useMemo(() => (raw || []).filter(j => !j.deleted).map(window.SF.deriveJob), [raw]);
-  const trash = React.useMemo(() => (raw || []).filter(j => j.deleted).sort((a, b) => String(b.deletedAt || "").localeCompare(String(a.deletedAt || ""))), [raw]);
+  const admin = window.usePgAdmin();
+  const seen = j => admin || !j.adminOnly;
+  const jobs = React.useMemo(() => (raw || []).filter(j => !j.deleted && seen(j)).map(window.SF.deriveJob), [raw, admin]);
+  const hidden = React.useMemo(() => new Set((raw || []).filter(j => !seen(j)).map(j => j.id)), [raw, admin]);
+  const trash = React.useMemo(() => (raw || []).filter(j => j.deleted && seen(j)).sort((a, b) => String(b.deletedAt || "").localeCompare(String(a.deletedAt || ""))), [raw, admin]);
   const upsert = React.useCallback(rec => {
     if (_FB()) {
       _fbSet("jobs/" + rec.id, rec);
@@ -271,6 +274,7 @@ function useJobStore() {
     jobs,
     trash,
     loading,
+    hidden,
     upsert,
     patch,
     remove,
@@ -280,7 +284,7 @@ function useJobStore() {
     setStage,
     setMat,
     resetDB,
-    blank: () => blankJob(rawRef.current || [])
+    blank: () => Object.assign(blankJob(rawRef.current || []), window.pgAdminFlag())
   };
 }
 function blankItem(items) {

@@ -127,9 +127,13 @@ function useJobStore() {
   /* ---------- derived jobs ----------
      งานที่ถูกลบจะไม่หายจากฐานทันที แต่ติดธง deleted ไว้ (ถังขยะ) — เผลอกดลบแล้วกู้คืนได้
      ทุกหน้าจออ่านจาก jobs เหมือนเดิม จึงไม่เห็นงานในถังขยะ ส่วนรหัสงานเดิมก็ไม่ถูกนำไปใช้ซ้ำ */
-  const jobs = React.useMemo(() => (raw || []).filter((j) => !j.deleted).map(window.SF.deriveJob), [raw]);
-  const trash = React.useMemo(() => (raw || []).filter((j) => j.deleted)
-    .sort((a, b) => String(b.deletedAt || "").localeCompare(String(a.deletedAt || ""))), [raw]);
+  /* งานเฉพาะแอดมิน (adminOnly) — คนที่ไม่ใช่แอดมินไม่เห็นทั้งในรายการและถังขยะ · raw ยังครบ (เลขงานถัดไปไม่ซ้ำ) */
+  const admin = window.usePgAdmin();
+  const seen = (j) => admin || !j.adminOnly;
+  const jobs = React.useMemo(() => (raw || []).filter((j) => !j.deleted && seen(j)).map(window.SF.deriveJob), [raw, admin]);
+  const hidden = React.useMemo(() => new Set((raw || []).filter((j) => !seen(j)).map((j) => j.id)), [raw, admin]);
+  const trash = React.useMemo(() => (raw || []).filter((j) => j.deleted && seen(j))
+    .sort((a, b) => String(b.deletedAt || "").localeCompare(String(a.deletedAt || ""))), [raw, admin]);
 
   /* ---------- mutations ---------- */
   const upsert = React.useCallback((rec) => {
@@ -239,9 +243,9 @@ function useJobStore() {
   }, []);
 
   return {
-    raw: raw || [], jobs, trash, loading,
+    raw: raw || [], jobs, trash, loading, hidden,
     upsert, patch, remove, restore, purge, advance, setStage, setMat, resetDB,
-    blank: () => blankJob(rawRef.current || []),
+    blank: () => Object.assign(blankJob(rawRef.current || []), window.pgAdminFlag()),
   };
 }
 

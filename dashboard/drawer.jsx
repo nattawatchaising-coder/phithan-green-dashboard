@@ -267,7 +267,7 @@ function StockShopModal({ stock, job, byName, onClose }) {
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12 }}>
             <div style={{ minWidth: 0 }}>
               <div style={{ fontSize: 11.5, color: "var(--text-3)" }}>เบิกของเข้างาน · {job.code}</div>
-              <h2 style={{ fontSize: 16.5, fontWeight: 700, color: "var(--text-1)", margin: "2px 0 0", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{job.name}</h2>
+              <h2 style={{ fontSize: 16.5, fontWeight: 700, color: "var(--text-1)", margin: "2px 0 0", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}><AdminOnlyMark rec={job} onClick={() => window.pgMakePublic("jobs/" + job.id, job.name)} />{job.name}</h2>
             </div>
             <button className="x-close" onClick={onClose} style={{ width: 32, height: 32, borderRadius: "var(--r-chip)", boxShadow: "var(--shadow-sm)", background: "var(--surface)", cursor: "pointer", display: "grid", placeItems: "center", color: "var(--text-2)", flexShrink: 0 }}><Icon name="x" size={16} /></button>
           </div>
@@ -568,7 +568,7 @@ function DetailDrawer({ job, onClose, onAdvance, onSetMat, onEdit, currentUser, 
                     <TypeBadge type={job.type} />
                     {job.delayed && <span style={{ fontSize: 11, fontWeight: 700, color: "var(--tint-red-tx2)", background: "var(--tint-red-bg2)", padding: "2px 8px", borderRadius: 6 }}>⚠ ล่าช้า</span>}
                   </div>
-                  <h2 style={{ fontSize: isMobile ? 17 : 20, fontWeight: 700, color: "var(--text-1)", margin: 0, lineHeight: 1.25 }}>{job.name}</h2>
+                  <h2 style={{ fontSize: isMobile ? 17 : 20, fontWeight: 700, color: "var(--text-1)", margin: 0, lineHeight: 1.25 }}><AdminOnlyMark rec={job} onClick={() => window.pgMakePublic("jobs/" + job.id, job.name)} />{job.name}</h2>
                 </div>
                 <button className="x-close" onClick={onClose} style={{ width: 36, height: 36, borderRadius: "var(--r-tile)", boxShadow: "var(--shadow-sm)",
                   background: "var(--surface)", cursor: "pointer", display: "grid", placeItems: "center", color: "var(--text-2)", flexShrink: 0 }}>

@@ -295,7 +295,9 @@ function TableView({
       letterSpacing: "-.01em",
       lineHeight: 1.3
     }
-  }, j.name), React.createElement("div", {
+  }, React.createElement(AdminOnlyMark, {
+    rec: j
+  }), j.name), React.createElement("div", {
     style: {
       fontSize: 11,
       color: "var(--text-3)",
@@ -814,7 +816,9 @@ function TableMobile({
         color: "var(--text-1)",
         lineHeight: 1.25
       }
-    }, j.name)), React.createElement("div", {
+    }, React.createElement(AdminOnlyMark, {
+      rec: j
+    }), j.name)), React.createElement("div", {
       style: {
         display: "flex",
         gap: 4,

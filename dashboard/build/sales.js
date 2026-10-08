@@ -3404,7 +3404,9 @@ function SalesCard({
         lineHeight: 1.3,
         marginBottom: 3
       }
-    }, lead.name || "(ไม่ระบุชื่อ)"), React.createElement("div", {
+    }, React.createElement(AdminOnlyMark, {
+      rec: lead
+    }), lead.name || "(ไม่ระบุชื่อ)"), React.createElement("div", {
       style: {
         fontSize: 11.5,
         color: "var(--text-3)",
@@ -4528,7 +4530,9 @@ function SalesOverview({
       className: "bd"
     }, React.createElement("span", {
       className: "nm"
-    }, l.name || "(ไม่ระบุชื่อ)"), React.createElement("span", {
+    }, React.createElement(AdminOnlyMark, {
+      rec: l
+    }), l.name || "(ไม่ระบุชื่อ)"), React.createElement("span", {
       className: "mt"
     }, [l.code, l.province, st.th].filter(Boolean).join(" · "))), React.createElement("span", {
       className: "when",
