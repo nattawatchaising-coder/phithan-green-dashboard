@@ -727,6 +727,36 @@ function StockView({
     size: 14,
     color: "var(--text-2)"
   }), view === "grid" ? "ตาราง" : "การ์ด");
+  const delBtn = sub !== "all" && /รอลบ/.test((SF.STOCK_CAT_BY[sub] || {}).th || "") && filtered.length > 0 ? React.createElement("button", {
+    onClick: () => {
+      const ids = filtered.map(it => it.id);
+      window.askConfirm({
+        title: "ลบ " + ids.length + " รายการออกจากคลังถาวร?",
+        body: "ทุกรายการในหมวด " + ((SF.STOCK_CAT_BY[sub] || {}).th || "") + (brand !== "all" ? " ยี่ห้อ " + brand : "") + " · ลบแล้วกู้คืนไม่ได้",
+        ok: "ลบทั้งหมด",
+        danger: true
+      }).then(ok => {
+        if (ok) ids.forEach(id => stock.removeItem(id));
+      });
+    },
+    style: {
+      display: "inline-flex",
+      alignItems: "center",
+      gap: 6,
+      padding: "7px 14px",
+      borderRadius: "var(--r-chip)",
+      border: "none",
+      background: "var(--tint-red-bg)",
+      color: "var(--tint-red-tx2)",
+      fontFamily: "inherit",
+      fontSize: 12.5,
+      fontWeight: 700,
+      cursor: "pointer"
+    }
+  }, React.createElement(Icon, {
+    name: "x",
+    size: 14
+  }), "\u0E25\u0E1A\u0E17\u0E31\u0E49\u0E07\u0E2B\u0E21\u0E14 ", filtered.length, " \u0E23\u0E32\u0E22\u0E01\u0E32\u0E23") : null;
   return React.createElement(React.Fragment, null, React.createElement("header", {
     className: "app-header",
     style: {
@@ -838,7 +868,7 @@ function StockView({
     items: items,
     imgs: imgs,
     onPick: setBrand
-  }), brandList.length > 0 && !showCatHome && React.createElement("div", {
+  }), brandList.length > 0 && !showCatHome && isPrices && React.createElement("div", {
     style: {
       marginBottom: 12,
       display: "flex",
@@ -982,9 +1012,11 @@ function StockView({
     }
   }, series)), React.createElement("span", null, " \xB7 ", filtered.length.toLocaleString(), " \u0E23\u0E32\u0E22\u0E01\u0E32\u0E23")), React.createElement("span", {
     style: {
-      marginLeft: "auto"
+      marginLeft: "auto",
+      display: "inline-flex",
+      gap: 8
     }
-  }, viewBtn(false))), showCatHome ? React.createElement(CatBrowser, {
+  }, delBtn, viewBtn(false))), showCatHome ? React.createElement(CatBrowser, {
     list: SF.STOCK_CATS.filter(c => catCount[c.key]),
     count: catCount,
     low: catLow,
@@ -993,7 +1025,7 @@ function StockView({
     hint: SF.STOCK_CATS.filter(c => catCount[c.key]).length + " หมวด · " + items.length.toLocaleString() + " รายการ",
     onPick: k => setCat(k),
     onAll: () => setBrowse(false),
-    tools: viewBtn(true),
+    tools: React.createElement(React.Fragment, null, delBtn, viewBtn(true)),
     onSetImage: (k, d) => stock.setImage("cat_" + k, d)
   }) : showSubHome ? React.createElement(React.Fragment, null, React.createElement(CatBrowser, {
     list: subHome.list,
@@ -1008,7 +1040,7 @@ function StockView({
       if (x && x.grpOf) setGrp(x.grpOf);else setSub(k);
     },
     onAll: () => setBrowse(false),
-    tools: viewBtn(true),
+    tools: React.createElement(React.Fragment, null, delBtn, viewBtn(true)),
     onBack: () => grp !== "all" ? setGrp("all") : setCat("all"),
     onSetImage: (k, d) => stock.setImage("cat_" + k, d)
   }), directItems.length > 0 && React.createElement("div", {
@@ -1066,7 +1098,7 @@ function StockView({
     allLabel: "\u0E14\u0E39\u0E17\u0E38\u0E01\u0E23\u0E32\u0E22\u0E01\u0E32\u0E23\u0E02\u0E2D\u0E07\u0E22\u0E35\u0E48\u0E2B\u0E49\u0E2D\u0E19\u0E35\u0E49",
     onPick: s => setSeries(s),
     onAll: () => setBrowse(false),
-    tools: viewBtn(true),
+    tools: React.createElement(React.Fragment, null, delBtn, viewBtn(true)),
     onBack: goBack,
     onSetImage: (s, d) => {
       const x = seriesHome.list.find(y => y.key === s);
@@ -1127,7 +1159,7 @@ function StockView({
     allLabel: "\u0E14\u0E39\u0E17\u0E38\u0E01\u0E23\u0E32\u0E22\u0E01\u0E32\u0E23\u0E43\u0E19\u0E2B\u0E21\u0E27\u0E14\u0E19\u0E35\u0E49",
     onPick: b => setBrand(b),
     onAll: () => setBrowse(false),
-    tools: viewBtn(true),
+    tools: React.createElement(React.Fragment, null, delBtn, viewBtn(true)),
     onBack: goBack,
     onSetImage: (b, d) => {
       const x = brandHome.list.find(y => y.key === b);
@@ -8066,7 +8098,9 @@ function CatBrowser({
     }
   }, hint), React.createElement("span", {
     style: {
-      marginLeft: "auto"
+      marginLeft: "auto",
+      display: "inline-flex",
+      gap: 8
     }
   }, tools), React.createElement("button", {
     onClick: onAll,

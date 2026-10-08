@@ -331,7 +331,7 @@ function PricePanel({
       color: "#F59E0B",
       fontWeight: 700
     }
-  }, "\u0E22\u0E31\u0E07\u0E44\u0E21\u0E48\u0E1A\u0E31\u0E19\u0E17\u0E36\u0E01 ", dirtyCount, " \u0E23\u0E32\u0E22\u0E01\u0E32\u0E23") : "บันทึกครบแล้ว"), newCount > 0 && React.createElement("button", {
+  }, "\u0E22\u0E31\u0E07\u0E44\u0E21\u0E48\u0E1A\u0E31\u0E19\u0E17\u0E36\u0E01 ", dirtyCount, " \u0E23\u0E32\u0E22\u0E01\u0E32\u0E23") : "บันทึกครบแล้ว"), false && newCount > 0 && React.createElement("button", {
     onClick: addAllNew,
     style: {
       flex: "0 0 auto",

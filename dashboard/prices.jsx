@@ -113,7 +113,9 @@ function PricePanel({ priceStore, stock, q = "", grp = "all" }) {
       {/* sticky save bar */}
       <div style={{ position: "sticky", bottom: 0, padding: "12px 16px", paddingBottom: isMobile ? "calc(12px + env(safe-area-inset-bottom,0px))" : 12, borderTop: "1px solid var(--divider)", background: "var(--surface)", display: "flex", gap: 10, alignItems: "center" }}>
         <div style={{ flex: 1, fontSize: 11.5, color: "var(--text-3)" }}>{newCount > 0 ? <span>มี <b style={{ color: "var(--tint-amber-tx)" }}>{newCount}</b> รายการยังไม่อยู่ในคลัง</span> : (dirtyCount > 0 ? <span style={{ color: "#F59E0B", fontWeight: 700 }}>ยังไม่บันทึก {dirtyCount} รายการ</span> : "บันทึกครบแล้ว")}</div>
-        {newCount > 0 && (
+        {/* ปุ่ม "เพิ่มทั้งหมดลงคลัง" เอาออก (ต.ค. 2026) — มันสร้างทุกชื่อในแคตตาล็อก BOQ (อุปกรณ์ท่อ/ราง/PPR ทุกขนาด 600+ รายการ ราคา 0) ทับคลังที่จัดไว้แล้ว
+            ของใหม่ให้เพิ่มทีละรายการ หรือบันทึกราคาแถวนั้น (saveMatPrice สร้างให้เฉพาะแถวที่กรอก) */}
+        {false && newCount > 0 && (
           <button onClick={addAllNew}
             style={{ flex: "0 0 auto", padding: "11px 18px", borderRadius: "var(--r-chip)", border: "1px solid var(--primary)", background: "var(--surface)", color: "var(--primary-dark)", fontWeight: 700, fontFamily: "inherit", fontSize: 13, cursor: "pointer", display: "flex", alignItems: "center", gap: 6 }}>
             <Icon name="plus" size={14} /> เพิ่มทั้งหมดลงคลัง ({newCount})

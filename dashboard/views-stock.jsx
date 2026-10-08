@@ -392,6 +392,18 @@ function StockView({ stock, onResetAll, onMenuOpen, currentUser, jobs, priceStor
     </button>
   );
 
+  /* หมวด "รอลบ" — ลบทั้งหมวดทีเดียว (ผู้ใช้ ต.ค. 2026: ของที่ย้ายมารอลบมีเป็นร้อย ลบทีละชิ้นไม่ไหว) · ยืนยันก่อนเสมอ · ลบตามตัวกรองที่เห็นอยู่ */
+  const delBtn = sub !== "all" && /รอลบ/.test((SF.STOCK_CAT_BY[sub] || {}).th || "") && filtered.length > 0 ? (
+    <button onClick={() => {
+      const ids = filtered.map((it) => it.id);
+      window.askConfirm({ title: "ลบ " + ids.length + " รายการออกจากคลังถาวร?", body: "ทุกรายการในหมวด " + ((SF.STOCK_CAT_BY[sub] || {}).th || "") + (brand !== "all" ? " ยี่ห้อ " + brand : "") + " · ลบแล้วกู้คืนไม่ได้", ok: "ลบทั้งหมด", danger: true })
+        .then((ok) => { if (ok) ids.forEach((id) => stock.removeItem(id)); });
+    }} style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "7px 14px", borderRadius: "var(--r-chip)", border: "none",
+      background: "var(--tint-red-bg)", color: "var(--tint-red-tx2)", fontFamily: "inherit", fontSize: 12.5, fontWeight: 700, cursor: "pointer" }}>
+      <Icon name="x" size={14} />ลบทั้งหมด {filtered.length} รายการ
+    </button>
+  ) : null;
+
   return (
     <React.Fragment>
       {/* ชิดล่างเท่าหัวจอหน้าอื่น — เมื่อก่อนแถบตัวกรองเคยอยู่ในนี้ มันออกระยะห่างล่างให้เอง
@@ -463,7 +475,8 @@ function StockView({ stock, onResetAll, onMenuOpen, currentUser, jobs, priceStor
 
         {/* ── เลือกยี่ห้อ ── วางติดกับรายการเลย เลื่อนมาดูของแล้วยังกดเปลี่ยนได้ ไม่ต้องเลื่อนกลับขึ้นหัวเพจ
             หน้าแรก (เลือกหมวด) ไม่ต้องขึ้น — ยี่ห้อทั้งคลังมี 14 ยี่ห้อ รกเปล่า ๆ กดเข้าหมวดก่อนค่อยโผล่ */}
-        {brandList.length > 0 && !showCatHome && (
+        {/* แท็บสต็อกเลือกยี่ห้อจากการ์ดยี่ห้อแล้ว — แถบชิปยี่ห้อเอาออก (ผู้ใช้ ต.ค. 2026) */}
+        {brandList.length > 0 && !showCatHome && isPrices && (
           <div style={{ marginBottom: 12, display: "flex", flexDirection: "column", gap: 8 }}>
             {isMobile ? (
               <Dropdown value={brand} onChange={setBrand}
@@ -501,7 +514,7 @@ function StockView({ stock, onResetAll, onMenuOpen, currentUser, jobs, priceStor
                 {series !== "all" && <span> › <span style={{ fontWeight: 700, color: "var(--text-1)" }}>{series}</span></span>}
                 <span> · {filtered.length.toLocaleString()} รายการ</span>
               </span>
-              <span style={{ marginLeft: "auto" }}>{viewBtn(false)}</span>
+              <span style={{ marginLeft: "auto", display: "inline-flex", gap: 8 }}>{delBtn}{viewBtn(false)}</span>
             </div>
           )}
           {/* stock list — เต็มความกว้าง (มือถือ: card list, เดสก์ท็อป: ตาราง) */}
@@ -509,7 +522,7 @@ function StockView({ stock, onResetAll, onMenuOpen, currentUser, jobs, priceStor
             <CatBrowser list={SF.STOCK_CATS.filter((c) => catCount[c.key])} count={catCount} low={catLow} imgs={imgs}
               title="เลือกหมวดที่ต้องการ"
               hint={SF.STOCK_CATS.filter((c) => catCount[c.key]).length + " หมวด · " + items.length.toLocaleString() + " รายการ"}
-              onPick={(k) => setCat(k)} onAll={() => setBrowse(false)} tools={viewBtn(true)} onSetImage={(k, d) => stock.setImage("cat_" + k, d)} />
+              onPick={(k) => setCat(k)} onAll={() => setBrowse(false)} tools={<React.Fragment>{delBtn}{viewBtn(true)}</React.Fragment>} onSetImage={(k, d) => stock.setImage("cat_" + k, d)} />
           ) : showSubHome ? (
             <React.Fragment>
               <CatBrowser list={subHome.list} count={subHome.count} low={subHome.low} imgs={imgs}
@@ -517,7 +530,7 @@ function StockView({ stock, onResetAll, onMenuOpen, currentUser, jobs, priceStor
                 hint={subHome.list.length + (grp !== "all" ? " หมวดย่อย · " + filtered.length.toLocaleString() : " หมวด · " + (catCount[cat] || 0).toLocaleString()) + " รายการ"}
                 allLabel={grp !== "all" ? "ดูทุกรายการในกลุ่มนี้" : "ดูทุกรายการในหมวดนี้"}
                 onPick={(k) => { const x = subHome.list.find((y) => y.key === k); if (x && x.grpOf) setGrp(x.grpOf); else setSub(k); }}
-                onAll={() => setBrowse(false)} tools={viewBtn(true)} onBack={() => (grp !== "all" ? setGrp("all") : setCat("all"))}
+                onAll={() => setBrowse(false)} tools={<React.Fragment>{delBtn}{viewBtn(true)}</React.Fragment>} onBack={() => (grp !== "all" ? setGrp("all") : setCat("all"))}
                 onSetImage={(k, d) => stock.setImage("cat_" + k, d)} />
               {/* ของที่ยังไม่ได้จัดเข้าหมวดย่อย — ต่อท้ายหน้านี้เลย ไม่ต้องกดเข้าไปอีกชั้น */}
               {directItems.length > 0 && (
@@ -541,7 +554,7 @@ function StockView({ stock, onResetAll, onMenuOpen, currentUser, jobs, priceStor
                 title={brand}
                 hint={seriesHome.list.length + " กลุ่มรุ่น · " + filtered.length.toLocaleString() + " รายการ"}
                 allLabel="ดูทุกรายการของยี่ห้อนี้"
-                onPick={(s) => setSeries(s)} onAll={() => setBrowse(false)} tools={viewBtn(true)} onBack={goBack}
+                onPick={(s) => setSeries(s)} onAll={() => setBrowse(false)} tools={<React.Fragment>{delBtn}{viewBtn(true)}</React.Fragment>} onBack={goBack}
                 onSetImage={(s, d) => { const x = seriesHome.list.find((y) => y.key === s); if (x) stock.setImage("cat_" + x.imgKey, d); }} />
               {seriesHome.none.length > 0 && (
                 <div style={{ marginTop: 24 }}>
@@ -564,7 +577,7 @@ function StockView({ stock, onResetAll, onMenuOpen, currentUser, jobs, priceStor
                 title={(SF.STOCK_CAT_BY[sub !== "all" ? sub : cat] || {}).th || ""}
                 hint={brandHome.list.length + " ยี่ห้อ · " + filtered.length.toLocaleString() + " รายการ"}
                 allLabel="ดูทุกรายการในหมวดนี้"
-                onPick={(b) => setBrand(b)} onAll={() => setBrowse(false)} tools={viewBtn(true)} onBack={goBack}
+                onPick={(b) => setBrand(b)} onAll={() => setBrowse(false)} tools={<React.Fragment>{delBtn}{viewBtn(true)}</React.Fragment>} onBack={goBack}
                 onSetImage={(b, d) => { const x = brandHome.list.find((y) => y.key === b); if (x) stock.setImage("cat_" + x.imgKey, d); }} />
               {brandHome.none.length > 0 && (
                 <div style={{ marginTop: 24 }}>
@@ -3136,7 +3149,7 @@ function CatBrowser({ list, count, low, imgs, title, hint, allLabel, onPick, onA
         )}
         <span style={{ fontSize: 13.5, fontWeight: 800, color: "var(--text-1)" }}>{title}</span>
         <span style={{ fontSize: 11.5, color: "var(--text-3)" }}>{hint}</span>
-        <span style={{ marginLeft: "auto" }}>{tools}</span>
+        <span style={{ marginLeft: "auto", display: "inline-flex", gap: 8 }}>{tools}</span>
         <button onClick={onAll} style={{ padding: "7px 14px", borderRadius: "var(--r-chip)", boxShadow: "var(--shadow-sm)",
           background: "var(--surface2)", boxShadow: "var(--shadow-sm)", color: "var(--text-2)", fontFamily: "inherit", fontSize: 12.5, fontWeight: 700, cursor: "pointer" }}>
           {allLabel || "ดูทุกรายการ"}
