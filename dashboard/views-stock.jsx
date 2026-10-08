@@ -139,6 +139,22 @@ function StockView({ stock, onResetAll, onMenuOpen, currentUser, jobs, priceStor
   const trashCats = React.useMemo(() => (SF.STOCK_CATS_ALL || Object.values(SF.STOCK_CAT_BY || {})).filter((c) => c && c.parent && /รอลบ/.test(c.th || "")), [stock.items]);
   const isTrash = (k) => trashCats.some((c) => c.key === k);
   const trashN = (stock.items || []).filter((it) => isTrash(it.cat)).length;
+  /* กดลบ = ย้ายลงถังขยะก่อน (ผู้ใช้ ต.ค. 2026) จำหมวดเดิมไว้ที่ trashFrom ให้กู้คืนได้ · ของที่อยู่ในถังแล้ว กดลบ = ลบถาวร */
+  function trashItem(id) {
+    const it = (stock.items || []).find((x) => x.id === id);
+    if (!it) return;
+    if (isTrash(it.cat)) {
+      window.askConfirm({ title: "ลบ “" + it.name + "” ถาวร?", body: "อยู่ในถังขยะแล้ว · ลบแล้วกู้คืนไม่ได้", ok: "ลบถาวร", danger: true })
+        .then((ok) => { if (ok) stock.removeItem(id); });
+      return;
+    }
+    window.askConfirm({ title: "ย้าย “" + it.name + "” ไปถังขยะ?", body: "กู้คืนได้จากปุ่มถังขยะมุมขวาล่าง", ok: "ย้ายไปถังขยะ", danger: true })
+      .then((ok) => {
+        if (!ok) return;
+        const key = (trashCats[0] && trashCats[0].key) || stock.addCat("รอลบ · ของเก่า/ไม่ใช้", "electrical");
+        stock.upsertItem(Object.assign({}, it, { cat: key, trashFrom: it.cat }));
+      });
+  }
   const subChips = (SF.STOCK_SUB_BY_CAT[cat] || []).filter((c) => sub === c.key || (subCount[c.key] && !isTrash(c.key)));
   /* กดค้นหา / กรองยี่ห้อ / กด KPI เมื่อไหร่ = ตั้งใจจะหาของ ข้ามหน้าเลือกหมวดไปเลย */
   const browsing = !isPrices && !isAmp && browse && !search.trim() && brand === "all" && !kpiFilter;
@@ -398,7 +414,17 @@ function StockView({ stock, onResetAll, onMenuOpen, currentUser, jobs, priceStor
   );
 
   /* หมวด "รอลบ" — ลบทั้งหมวดทีเดียว (ผู้ใช้ ต.ค. 2026: ของที่ย้ายมารอลบมีเป็นร้อย ลบทีละชิ้นไม่ไหว) · ยืนยันก่อนเสมอ · ลบตามตัวกรองที่เห็นอยู่ */
+  const restoreN = isTrash(sub) ? filtered.filter((it) => it.trashFrom && !isTrash(it.trashFrom)).length : 0;
   const delBtn = sub !== "all" && /รอลบ/.test((SF.STOCK_CAT_BY[sub] || {}).th || "") && filtered.length > 0 ? (
+    <React.Fragment>
+    {restoreN > 0 && <button onClick={() => {
+      const list = filtered.filter((it) => it.trashFrom && !isTrash(it.trashFrom));
+      window.askConfirm({ title: "กู้คืน " + list.length + " รายการ?", body: "กลับไปหมวดเดิมก่อนลบ", ok: "กู้คืน", danger: false })
+        .then((ok) => { if (ok) list.forEach((it) => { const r = Object.assign({}, it, { cat: it.trashFrom }); delete r.trashFrom; stock.upsertItem(r); }); });
+    }} style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "7px 14px", borderRadius: "var(--r-chip)", border: "none",
+      background: "var(--surface2)", boxShadow: "var(--shadow-sm)", color: "var(--text-2)", fontFamily: "inherit", fontSize: 12.5, fontWeight: 700, cursor: "pointer" }}>
+      กู้คืน {restoreN} รายการ
+    </button>}
     <button onClick={() => {
       const ids = filtered.map((it) => it.id);
       window.askConfirm({ title: "ลบ " + ids.length + " รายการออกจากคลังถาวร?", body: "ทุกรายการในหมวด " + ((SF.STOCK_CAT_BY[sub] || {}).th || "") + (brand !== "all" ? " ยี่ห้อ " + brand : "") + " · ลบแล้วกู้คืนไม่ได้", ok: "ลบทั้งหมด", danger: true })
@@ -407,6 +433,7 @@ function StockView({ stock, onResetAll, onMenuOpen, currentUser, jobs, priceStor
       background: "var(--tint-red-bg)", color: "var(--tint-red-tx2)", fontFamily: "inherit", fontSize: 12.5, fontWeight: 700, cursor: "pointer" }}>
       <Icon name="x" size={14} />ลบทั้งหมด {filtered.length} รายการ
     </button>
+    </React.Fragment>
   ) : null;
 
   return (
@@ -546,9 +573,9 @@ function StockView({ stock, onResetAll, onMenuOpen, currentUser, jobs, priceStor
                   </div>
                   {isMobile
                     ? <StockCardList rows={rowsOf(directItems)} imgs={imgs} onOpen={setDetailItem}
-                        onEdit={(it) => setItemForm({ item: it, isNew: false })} onRemove={stock.removeItem} />
+                        onEdit={(it) => setItemForm({ item: it, isNew: false })} onRemove={trashItem} />
                     : <StockGrid rows={rowsOf(directItems)} imgs={imgs} lowState={lowState} onOpen={setDetailItem}
-                        onEdit={(it) => setItemForm({ item: it, isNew: false })} onRemove={stock.removeItem} />}
+                        onEdit={(it) => setItemForm({ item: it, isNew: false })} onRemove={trashItem} />}
                 </div>
               )}
             </React.Fragment>
@@ -569,9 +596,9 @@ function StockView({ stock, onResetAll, onMenuOpen, currentUser, jobs, priceStor
                   </div>
                   {isMobile
                     ? <StockCardList rows={rowsOf(seriesHome.none)} imgs={imgs} onOpen={setDetailItem}
-                        onEdit={(it) => setItemForm({ item: it, isNew: false })} onRemove={stock.removeItem} />
+                        onEdit={(it) => setItemForm({ item: it, isNew: false })} onRemove={trashItem} />
                     : <StockGrid rows={rowsOf(seriesHome.none)} imgs={imgs} lowState={lowState} onOpen={setDetailItem}
-                        onEdit={(it) => setItemForm({ item: it, isNew: false })} onRemove={stock.removeItem} />}
+                        onEdit={(it) => setItemForm({ item: it, isNew: false })} onRemove={trashItem} />}
                 </div>
               )}
             </React.Fragment>
@@ -592,18 +619,18 @@ function StockView({ stock, onResetAll, onMenuOpen, currentUser, jobs, priceStor
                   </div>
                   {isMobile
                     ? <StockCardList rows={rowsOf(brandHome.none)} imgs={imgs} onOpen={setDetailItem}
-                        onEdit={(it) => setItemForm({ item: it, isNew: false })} onRemove={stock.removeItem} />
+                        onEdit={(it) => setItemForm({ item: it, isNew: false })} onRemove={trashItem} />
                     : <StockGrid rows={rowsOf(brandHome.none)} imgs={imgs} lowState={lowState} onOpen={setDetailItem}
-                        onEdit={(it) => setItemForm({ item: it, isNew: false })} onRemove={stock.removeItem} />}
+                        onEdit={(it) => setItemForm({ item: it, isNew: false })} onRemove={trashItem} />}
                 </div>
               )}
             </React.Fragment>
           ) : isMobile ? (
             <StockCardList rows={rowsOf(filtered)} imgs={imgs} onOpen={setDetailItem}
-              onEdit={(it) => setItemForm({ item: it, isNew: false })} onRemove={stock.removeItem} />
+              onEdit={(it) => setItemForm({ item: it, isNew: false })} onRemove={trashItem} />
           ) : view === "grid" ? (
             <StockGrid rows={rowsOf(filtered)} imgs={imgs} lowState={lowState} onOpen={setDetailItem}
-              onEdit={(it) => setItemForm({ item: it, isNew: false })} onRemove={stock.removeItem} />
+              onEdit={(it) => setItemForm({ item: it, isNew: false })} onRemove={trashItem} />
           ) : (
           <div style={{ background: "var(--surface)", borderRadius: "var(--r-card)", overflow: "hidden", boxShadow: "var(--shadow-sm)" }}>
             <div style={{ overflowX: "auto" }}>
@@ -655,7 +682,7 @@ function StockView({ stock, onResetAll, onMenuOpen, currentUser, jobs, priceStor
                         {/* เหลือแค่ แก้ไข/ลบ — รับ/เบิก/คืน ย้ายไปอยู่ในหน้ารายละเอียด */}
                         <td style={{ padding: "11px 12px", whiteSpace: "nowrap" }} onClick={(e) => e.stopPropagation()}>
                           <button onClick={() => setItemForm({ item: it, isNew: false })} title="แก้ไข" style={{ background: "#3B82F614", border: "none", color: "#3B82F6", width: 28, height: 28, borderRadius: "var(--r-chip)", cursor: "pointer", verticalAlign: "middle" }}><Icon name="settings" size={14} /></button>
-                          <button onClick={() => { askConfirm({ title: "ลบ “" + it.name + "” ออกจากคลัง?" }).then((ok) => { if (ok) stock.removeItem(it.id); }); }} title="ลบ" style={{ background: "var(--tint-red-bg)", border: "none", color: "var(--tint-red-tx2)", width: 28, height: 28, borderRadius: "var(--r-chip)", cursor: "pointer", marginLeft: 4, verticalAlign: "middle" }}><Icon name="x" size={14} /></button>
+                          <button onClick={() => trashItem(it.id)} title="ลบ" style={{ background: "var(--tint-red-bg)", border: "none", color: "var(--tint-red-tx2)", width: 28, height: 28, borderRadius: "var(--r-chip)", cursor: "pointer", marginLeft: 4, verticalAlign: "middle" }}><Icon name="x" size={14} /></button>
                         </td>
                       </tr>
                     );
@@ -827,7 +854,7 @@ function StockCardList({ rows, imgs, onOpen, onEdit, onRemove }) {
               {/* การ์ดรวมขนาดยังไม่รู้ว่าจะแก้/ลบตัวไหน — เข้าไปเลือกขนาดก่อน */}
               {!g && <button onClick={() => onEdit(it)} title="แก้ไข" aria-label="แก้ไข"
                 style={{ flexShrink: 0, background: "#3B82F614", border: "none", color: "#3B82F6", width: 44, height: 36, borderRadius: "var(--r-chip)", cursor: "pointer", display: "grid", placeItems: "center" }}><Icon name="settings" size={16} /></button>}
-              {!g && <button onClick={() => { askConfirm({ title: "ลบ “" + it.name + "” ออกจากคลัง?" }).then((ok) => { if (ok) onRemove(it.id); }); }} title="ลบ" aria-label="ลบ"
+              {!g && <button onClick={() => onRemove(it.id)} title="ลบ" aria-label="ลบ"
                 style={{ flexShrink: 0, background: "var(--tint-red-bg)", border: "none", color: "var(--tint-red-tx2)", width: 44, height: 36, borderRadius: "var(--r-chip)", cursor: "pointer", display: "grid", placeItems: "center" }}><Icon name="x" size={16} /></button>}
             </div>
           </div>
@@ -2962,7 +2989,7 @@ function StockGrid({ rows, imgs, onOpen, onEdit, onRemove, lowState }) {
               ) : (
                 <div onClick={(e) => e.stopPropagation()} style={{ display: "flex", gap: 5, marginTop: 7 }}>
                   <button onClick={() => onEdit(it)} title="แก้ไข" style={{ flex: 1, height: 28, background: "#3B82F614", border: "none", color: "#3B82F6", borderRadius: "var(--r-chip)", cursor: "pointer", display: "grid", placeItems: "center" }}><Icon name="settings" size={13} /></button>
-                  <button onClick={() => { askConfirm({ title: "ลบ “" + it.name + "” ออกจากคลัง?" }).then((ok) => { if (ok) onRemove(it.id); }); }} title="ลบ" style={{ width: 32, height: 28, background: "var(--tint-red-bg)", border: "none", color: "var(--tint-red-tx2)", borderRadius: "var(--r-chip)", cursor: "pointer", display: "grid", placeItems: "center" }}><Icon name="x" size={13} /></button>
+                  <button onClick={() => onRemove(it.id)} title="ลบ" style={{ width: 32, height: 28, background: "var(--tint-red-bg)", border: "none", color: "var(--tint-red-tx2)", borderRadius: "var(--r-chip)", cursor: "pointer", display: "grid", placeItems: "center" }}><Icon name="x" size={13} /></button>
                 </div>
               )}
             </div>

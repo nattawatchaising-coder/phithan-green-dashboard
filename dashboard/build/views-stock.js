@@ -261,6 +261,34 @@ function StockView({
   const trashCats = React.useMemo(() => (SF.STOCK_CATS_ALL || Object.values(SF.STOCK_CAT_BY || {})).filter(c => c && c.parent && /รอลบ/.test(c.th || "")), [stock.items]);
   const isTrash = k => trashCats.some(c => c.key === k);
   const trashN = (stock.items || []).filter(it => isTrash(it.cat)).length;
+  function trashItem(id) {
+    const it = (stock.items || []).find(x => x.id === id);
+    if (!it) return;
+    if (isTrash(it.cat)) {
+      window.askConfirm({
+        title: "ลบ “" + it.name + "” ถาวร?",
+        body: "อยู่ในถังขยะแล้ว · ลบแล้วกู้คืนไม่ได้",
+        ok: "ลบถาวร",
+        danger: true
+      }).then(ok => {
+        if (ok) stock.removeItem(id);
+      });
+      return;
+    }
+    window.askConfirm({
+      title: "ย้าย “" + it.name + "” ไปถังขยะ?",
+      body: "กู้คืนได้จากปุ่มถังขยะมุมขวาล่าง",
+      ok: "ย้ายไปถังขยะ",
+      danger: true
+    }).then(ok => {
+      if (!ok) return;
+      const key = trashCats[0] && trashCats[0].key || stock.addCat("รอลบ · ของเก่า/ไม่ใช้", "electrical");
+      stock.upsertItem(Object.assign({}, it, {
+        cat: key,
+        trashFrom: it.cat
+      }));
+    });
+  }
   const subChips = (SF.STOCK_SUB_BY_CAT[cat] || []).filter(c => sub === c.key || subCount[c.key] && !isTrash(c.key));
   const browsing = !isPrices && !isAmp && browse && !search.trim() && brand === "all" && !kpiFilter;
   const showCatHome = browsing && cat === "all";
@@ -735,7 +763,41 @@ function StockView({
     size: 14,
     color: "var(--text-2)"
   }), view === "grid" ? "ตาราง" : "การ์ด");
-  const delBtn = sub !== "all" && /รอลบ/.test((SF.STOCK_CAT_BY[sub] || {}).th || "") && filtered.length > 0 ? React.createElement("button", {
+  const restoreN = isTrash(sub) ? filtered.filter(it => it.trashFrom && !isTrash(it.trashFrom)).length : 0;
+  const delBtn = sub !== "all" && /รอลบ/.test((SF.STOCK_CAT_BY[sub] || {}).th || "") && filtered.length > 0 ? React.createElement(React.Fragment, null, restoreN > 0 && React.createElement("button", {
+    onClick: () => {
+      const list = filtered.filter(it => it.trashFrom && !isTrash(it.trashFrom));
+      window.askConfirm({
+        title: "กู้คืน " + list.length + " รายการ?",
+        body: "กลับไปหมวดเดิมก่อนลบ",
+        ok: "กู้คืน",
+        danger: false
+      }).then(ok => {
+        if (ok) list.forEach(it => {
+          const r = Object.assign({}, it, {
+            cat: it.trashFrom
+          });
+          delete r.trashFrom;
+          stock.upsertItem(r);
+        });
+      });
+    },
+    style: {
+      display: "inline-flex",
+      alignItems: "center",
+      gap: 6,
+      padding: "7px 14px",
+      borderRadius: "var(--r-chip)",
+      border: "none",
+      background: "var(--surface2)",
+      boxShadow: "var(--shadow-sm)",
+      color: "var(--text-2)",
+      fontFamily: "inherit",
+      fontSize: 12.5,
+      fontWeight: 700,
+      cursor: "pointer"
+    }
+  }, "\u0E01\u0E39\u0E49\u0E04\u0E37\u0E19 ", restoreN, " \u0E23\u0E32\u0E22\u0E01\u0E32\u0E23"), React.createElement("button", {
     onClick: () => {
       const ids = filtered.map(it => it.id);
       window.askConfirm({
@@ -764,7 +826,7 @@ function StockView({
   }, React.createElement(Icon, {
     name: "x",
     size: 14
-  }), "\u0E25\u0E1A\u0E17\u0E31\u0E49\u0E07\u0E2B\u0E21\u0E14 ", filtered.length, " \u0E23\u0E32\u0E22\u0E01\u0E32\u0E23") : null;
+  }), "\u0E25\u0E1A\u0E17\u0E31\u0E49\u0E07\u0E2B\u0E21\u0E14 ", filtered.length, " \u0E23\u0E32\u0E22\u0E01\u0E32\u0E23")) : null;
   return React.createElement(React.Fragment, null, React.createElement("header", {
     className: "app-header",
     style: {
@@ -1082,7 +1144,7 @@ function StockView({
       item: it,
       isNew: false
     }),
-    onRemove: stock.removeItem
+    onRemove: trashItem
   }) : React.createElement(StockGrid, {
     rows: rowsOf(directItems),
     imgs: imgs,
@@ -1092,7 +1154,7 @@ function StockView({
       item: it,
       isNew: false
     }),
-    onRemove: stock.removeItem
+    onRemove: trashItem
   }))) : seriesHome ? React.createElement(React.Fragment, null, React.createElement(CatBrowser, {
     list: seriesHome.list,
     count: seriesHome.count,
@@ -1143,7 +1205,7 @@ function StockView({
       item: it,
       isNew: false
     }),
-    onRemove: stock.removeItem
+    onRemove: trashItem
   }) : React.createElement(StockGrid, {
     rows: rowsOf(seriesHome.none),
     imgs: imgs,
@@ -1153,7 +1215,7 @@ function StockView({
       item: it,
       isNew: false
     }),
-    onRemove: stock.removeItem
+    onRemove: trashItem
   }))) : brandHome ? React.createElement(React.Fragment, null, React.createElement(CatBrowser, {
     list: brandHome.list,
     count: brandHome.count,
@@ -1204,7 +1266,7 @@ function StockView({
       item: it,
       isNew: false
     }),
-    onRemove: stock.removeItem
+    onRemove: trashItem
   }) : React.createElement(StockGrid, {
     rows: rowsOf(brandHome.none),
     imgs: imgs,
@@ -1214,7 +1276,7 @@ function StockView({
       item: it,
       isNew: false
     }),
-    onRemove: stock.removeItem
+    onRemove: trashItem
   }))) : isMobile ? React.createElement(StockCardList, {
     rows: rowsOf(filtered),
     imgs: imgs,
@@ -1223,7 +1285,7 @@ function StockView({
       item: it,
       isNew: false
     }),
-    onRemove: stock.removeItem
+    onRemove: trashItem
   }) : view === "grid" ? React.createElement(StockGrid, {
     rows: rowsOf(filtered),
     imgs: imgs,
@@ -1233,7 +1295,7 @@ function StockView({
       item: it,
       isNew: false
     }),
-    onRemove: stock.removeItem
+    onRemove: trashItem
   }) : React.createElement("div", {
     style: {
       background: "var(--surface)",
@@ -1396,13 +1458,7 @@ function StockView({
       name: "settings",
       size: 14
     })), React.createElement("button", {
-      onClick: () => {
-        askConfirm({
-          title: "ลบ “" + it.name + "” ออกจากคลัง?"
-        }).then(ok => {
-          if (ok) stock.removeItem(it.id);
-        });
-      },
+      onClick: () => trashItem(it.id),
       title: "\u0E25\u0E1A",
       style: {
         background: "var(--tint-red-bg)",
@@ -2004,13 +2060,7 @@ function StockCardList({
       name: "settings",
       size: 16
     })), !g && React.createElement("button", {
-      onClick: () => {
-        askConfirm({
-          title: "ลบ “" + it.name + "” ออกจากคลัง?"
-        }).then(ok => {
-          if (ok) onRemove(it.id);
-        });
-      },
+      onClick: () => onRemove(it.id),
       title: "\u0E25\u0E1A",
       "aria-label": "\u0E25\u0E1A",
       style: {
@@ -7670,13 +7720,7 @@ function StockGrid({
       name: "settings",
       size: 13
     })), React.createElement("button", {
-      onClick: () => {
-        askConfirm({
-          title: "ลบ “" + it.name + "” ออกจากคลัง?"
-        }).then(ok => {
-          if (ok) onRemove(it.id);
-        });
-      },
+      onClick: () => onRemove(it.id),
       title: "\u0E25\u0E1A",
       style: {
         width: 32,
