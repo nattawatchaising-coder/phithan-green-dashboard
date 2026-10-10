@@ -99,7 +99,7 @@
     "--border:rgba(255,255,255,.55);--divider:rgba(15,43,51,.08);--r-card:26px;",
     "--shadow-card:inset 0 1px 0 var(--sk-edge),0 0 0 1px rgba(255,255,255,.5),0 2px 6px rgba(50,35,20,.05),0 26px 60px -24px rgba(50,35,20,.28);",
     "--shadow-sm:inset 0 1px 0 rgba(255,255,255,.85),0 0 0 1px rgba(255,255,255,.5),0 6px 18px -10px rgba(50,35,20,.22);",
-    "--shadow-inset:inset 0 0 0 1px rgba(255,255,255,.75),inset 0 1px 2px rgba(15,43,51,.06);",
+    "--shadow-inset:inset 0 0 0 1px rgba(15,43,51,.13),inset 0 1px 2px rgba(15,43,51,.07);",   /* ขอบเส้นขาวกลืนกับพื้นกระจกจนช่องกรอกไม่มีกรอบ — ใช้เส้นเทาจางแทน */
     "--hov-sh:inset 0 1px 0 rgba(255,255,255,.9),0 0 0 1px rgba(255,255,255,.6),0 14px 30px -12px rgba(50,35,20,.3);",
     "--hov-sh-lg:inset 0 1px 0 rgba(255,255,255,.9),0 0 0 1px rgba(255,255,255,.6),0 30px 60px -22px rgba(50,35,20,.34)}",
 
@@ -125,6 +125,9 @@
 
     /* ── ป้ายเล็ก (chip) ที่ใช้พื้น --surface2 — บนการ์ดกระจกสีขาวกลืนจนกรอบหาย ให้เป็นสีเทาอมข้อความแทน ── */
     G + " [style*='border-radius: var(--r-chip)'][style*='background: var(--surface2)']{background:color-mix(in srgb,var(--text-2) 12%,transparent)!important}",
+
+    /* ── ช่องล็อก (อ่านอย่างเดียว) ในหน้าถอด BOQ — พื้นจางไม่มีขอบ บนกระจกเลยมองไม่เห็นกรอบ ── */
+    L + " .bq-ro{box-shadow:inset 0 0 0 1px rgba(15,43,51,.10);background:rgba(255,255,255,.30)}",
 
     /* ── แผ่นกระจก: แถบเมนู · หัวจอ · แผง · การ์ดใหญ่ทุกใบ (inline style ที่ใช้ --shadow-card) ── */
     G + " .sidebar," + G + " .app-header{background:linear-gradient(140deg,var(--sk-glass-a),var(--sk-glass-b));",
