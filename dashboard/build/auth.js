@@ -1978,7 +1978,7 @@ const LG_CSS = `
 
 .lg-pill{display:flex;align-items:center;gap:10px;background:var(--lg-pill);border-radius:999px;padding:5px 6px 5px 5px;
   min-height:46px;box-shadow:inset 0 0 0 1px var(--lg-pill-bd),inset 0 1px 2px rgba(0,0,0,.04);transition:box-shadow .15s,background .15s;cursor:text}
-.lg-pill:focus-within{background:var(--lg-glass-a);box-shadow:inset 0 0 0 1.5px var(--primary),0 0 0 4px var(--primary-soft)}
+.lg-pill:focus-within{background:var(--lg-glass-a);box-shadow:inset 0 0 0 1.5px var(--primary)}
 .lg-pill-lb{min-height:52px}
 .lg-ic{width:36px;height:36px;border-radius:50%;display:grid;place-items:center;flex:none;background:var(--lg-pill);
   box-shadow:inset 0 0 0 1px var(--lg-pill-bd),0 1px 2px rgba(0,0,0,.06)}
