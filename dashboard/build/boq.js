@@ -1584,6 +1584,7 @@ function BOQEditor({
     way: [],
     tray: [],
     perf: [],
+    wwu: [],
     spare: window.BOQ.RULES.traySpare,
     extra: []
   };
@@ -1942,7 +1943,8 @@ function BOQEditor({
       UPVC = window.BOQ.UPVC_SIZES || [];
     const WAY = window.BOQ.WAY_SIZES || [],
       TRAY = window.BOQ.TRAY_SIZES || [],
-      PERF = window.BOQ.PERF_SIZES || [];
+      PERF = window.BOQ.PERF_SIZES || [],
+      WWU = window.BOQ.WWU_SIZES || [];
     const o = (b.cables || []).map((c, i) => ({
       value: "cab:" + i,
       group: "สายไฟ — ทับความยาวเดิม",
@@ -1978,6 +1980,11 @@ function BOQEditor({
       group: "เพิ่มแถวใหม่",
       label: "Cable Tray Perforated (" + PERF[0] + ")"
     });
+    if (WWU[0]) o.push({
+      value: "wwu",
+      group: "เพิ่มแถวใหม่",
+      label: "Wireway uPVC (" + WWU[0] + ")"
+    });
     o.push({
       value: "ladder",
       group: "เพิ่มแถวใหม่",
@@ -2012,7 +2019,8 @@ function BOQEditor({
       UPVC = window.BOQ.UPVC_SIZES || [];
     const WAY = window.BOQ.WAY_SIZES || [],
       TRAY = window.BOQ.TRAY_SIZES || [],
-      PERF = window.BOQ.PERF_SIZES || [];
+      PERF = window.BOQ.PERF_SIZES || [],
+      WWU = window.BOQ.WWU_SIZES || [];
     rows.forEach(({
       m,
       target
@@ -2042,6 +2050,10 @@ function BOQEditor({
         cables: []
       });else if (target === "perf") addTrayRow("perf", {
         size: PERF[0],
+        length: L,
+        cables: []
+      });else if (target === "wwu") addTrayRow("wwu", {
+        size: WWU[0],
         length: L,
         cables: []
       });else if (target === "ladder") addStruct("ladder", {
@@ -3015,8 +3027,9 @@ function BOQEditor({
     imc: "IMC",
     upvc: "uPVC",
     way: "Wireway",
+    perf: "Perforated",
     tray: "Ladder",
-    perf: "Perforated"
+    wwu: "Wireway uPVC"
   };
   const isTrayK = k => TRAY_KEYS.indexOf(k) >= 0;
   const raceDim = nm => (String(nm).match(/(\d+)\s*[xX×]\s*(\d+)/) || []).slice(1, 3).join("x");
@@ -3101,7 +3114,7 @@ function BOQEditor({
     const own = c.raceLen != null && c.raceLen !== "";
     const len = own ? +c.raceLen || 0 : +c.length || 0;
     const chk = !kind ? null : tray ? window.BOQ.trayCheck(size, trayCables, kind, pool) : window.BOQ.conduitCheck(size, cables, pool);
-    const hdg = tray && !!c.raceHdg,
+    const hdg = tray && !!c.raceHdg && !window.BOQ.TRAY_KINDS[kind].noHdg,
       rail = tray && !!c.raceRail && window.BOQ.TRAY_KINDS[kind].hanger;
     const sp = tray ? window.BOQ.TRAY_KINDS[kind] : null;
     const sep = tray ? " " + sp.brief + " " : kind === "imc" ? " IMC " : " uPVC ";
@@ -4252,7 +4265,7 @@ function BOQEditor({
         style: {
           transform: open ? "rotate(180deg)" : "none"
         }
-      })), React.createElement("button", {
+      })), !spec.noHdg && React.createElement("button", {
         onClick: () => x.auto ? setRace(x.from, {
           raceHdg: x.hdg ? null : 1
         }) : setTrayRow(kind, i, "hdg", !x.hdg),
@@ -8624,7 +8637,7 @@ function BOQEditor({
       kind: k,
       hdg: tray3dHdg
     })
-  }, window.BOQ.TRAY_KINDS[k].label)), React.createElement("button", {
+  }, window.BOQ.TRAY_KINDS[k].label)), !window.BOQ.TRAY_KINDS[tray3dKind].noHdg && React.createElement("button", {
     type: "button",
     className: "bq-cab-chip" + (tray3dHdg ? " on" : ""),
     style: {
@@ -8840,7 +8853,7 @@ function BOQEditor({
       flexDirection: "column",
       gap: 7
     }
-  }, r.tray && React.createElement("div", {
+  }, r.tray && !window.BOQ.TRAY_KINDS[r.kind].noHdg && React.createElement("div", {
     style: {
       display: "flex",
       gap: 6,
@@ -9002,6 +9015,11 @@ function BOQEditor({
     kind: "perf",
     label: "Cable Tray Perforated (รางเจาะรู)",
     sizes: window.BOQ.PERF_SIZES,
+    hint: ""
+  }), TrayList({
+    kind: "wwu",
+    label: "Wireway uPVC (รางเก็บสายไฟ uPVC)",
+    sizes: window.BOQ.WWU_SIZES,
     hint: ""
   }), FitList({
     rows: (tw.extra || []).filter(x => !x.auto),

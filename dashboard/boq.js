@@ -1086,7 +1086,7 @@
      เกิน 1.2 เท่าเมื่อไหร่ค่อยเตือน เพราะเลยจุดนั้นแล้ว clip ช่วงเที่ยงจะกินกำลังที่ได้เพิ่ม */
   const DCAC_LIMIT = 1.2;
 
-  const WAY_PIPE_LEN = 2.4, TRAY_PIPE_LEN = 2.44;   // ความยาวท่อนอยู่ในชื่อรายการ (ผูกราคาคลัง) จึงไม่ให้ตั้งค่า
+  const WAY_PIPE_LEN = 2.4, TRAY_PIPE_LEN = 2.44, WWU_PIPE_LEN = 1;   // ความยาวท่อนอยู่ในชื่อรายการ (ผูกราคาคลัง) จึงไม่ให้ตั้งค่า
   /* Rail ที่รองใต้ขาล็อก ต้องยื่นพ้นรางไฟข้างละ 10 ซม. ไว้ให้ขาล็อกจับ — สั้นกว่านี้ไม่มีที่ยึด
      คิดจากความกว้างรางในชื่อรุ่น เช่น 100x50 → 100 + 100 + 100 = 300 mm = 30 ซม. */
   // RULES.trayRailSide (100 มม.) · ตัวยึดต่อขา RULES.trayAnchor (2)
@@ -1119,16 +1119,24 @@
     "Cable Tray Perforated 150x50 mm.", "Cable Tray Perforated 200x50 mm.", "Cable Tray Perforated 300x100 mm.",
     "Cable Tray Perforated 450x100 mm.", "Cable Tray Perforated 600x100 mm.",
   ];
+  /* รางเก็บสายไฟ uPVC (ผู้ใช้ ต.ค. 2026: ชนิดรางในใบถอดตามหมวดรางไฟในคลัง) — มีสองสี ราคาเท่ากัน ค่าตั้งต้น = สีเทา */
+  const WWU_SIZES = [
+    "รางเก็บสายไฟ uPVC 80x60 mm. สีเทา", "รางเก็บสายไฟ uPVC 80x80 mm. สีเทา", "รางเก็บสายไฟ uPVC 100x80 mm. สีเทา",
+    "รางเก็บสายไฟ uPVC 100x100 mm. สีเทา", "รางเก็บสายไฟ uPVC 120x80 mm. สีเทา", "รางเก็บสายไฟ uPVC 120x100 mm. สีเทา",
+  ];
   /* สเปคของรางแต่ละชนิดรวมไว้ที่เดียว — เดิมกระจายเป็น if (isTray) หลายจุด พอเพิ่มชนิดที่สามเลยต้องตามแก้ทุกจุด
      fill     = % เติมเต็มสูงสุด (รางปิดฝาระบายความร้อนไม่ออก จึงคุมแน่นกว่ารางเปิด)
      hanger   = แขวนด้วยขาแขวนสำเร็จ (Wireway ยึดพุ๊กเข้าโครงตรง ๆ)
-     oneLayer = ควรวางสายชั้นเดียว จึงต้องเช็คผลรวมเส้นผ่านศูนย์กลางเทียบความกว้างรางด้วย */
+     oneLayer = ควรวางสายชั้นเดียว จึงต้องเช็คผลรวมเส้นผ่านศูนย์กลางเทียบความกว้างรางด้วย
+     noHdg    = ไม่มีของชุบ (พลาสติก) — ซ่อนปุ่มชุบ HDG และไม่ต่อท้าย (HDG.) แม้แถวเก่าจะติ๊กไว้
+     std      = ท้ายชื่อของสีมาตรฐาน — เลือกขนาดอัตโนมัติจะเลือกสีนี้ก่อน (ชนิดที่ไม่มีสีมาตรฐาน = ชื่อจบที่ "mm.") */
   const TRAY_KINDS = {
     way:  { key: "way",  brief: "Wireway",               label: "Wireway เหล็กมีฝา",     sizes: WAY_SIZES,  pipeLen: WAY_PIPE_LEN,  get fill() { return RULES.wayFill; }, hanger: false, oneLayer: false },
     tray: { key: "tray", brief: "Cable Tray Ladder",     label: "Cable Tray Ladder",     sizes: TRAY_SIZES, pipeLen: TRAY_PIPE_LEN, get fill() { return RULES.trayFill; }, hanger: true,  oneLayer: true },
     perf: { key: "perf", brief: "Cable Tray Perforated", label: "Cable Tray Perforated", sizes: PERF_SIZES, pipeLen: TRAY_PIPE_LEN, get fill() { return RULES.trayFill; }, hanger: true,  oneLayer: true },
+    wwu:  { key: "wwu",  brief: "รางเก็บสายไฟ uPVC",     label: "Wireway uPVC",          sizes: WWU_SIZES,  pipeLen: WWU_PIPE_LEN,  get fill() { return RULES.wayFill; }, hanger: false, oneLayer: false, noHdg: true, std: " สีเทา" },
   };
-  const TRAY_KIND_KEYS = ["way", "tray", "perf"];
+  const TRAY_KIND_KEYS = ["way", "perf", "tray", "wwu"];   // ลำดับตามหมวดรางไฟในคลัง
   /* รับได้ทั้งคีย์ชนิด ("way"/"tray"/"perf") และ boolean isTray แบบเดิม — ที่เรียกด้วย true/false อยู่จึงไม่พัง */
   const trayKindOf = (k) => TRAY_KINDS[k === true ? "tray" : (k || "way")] || TRAY_KINDS.way;
   /* ขนาดรางดึงจากคลัง (ผู้ใช้ ต.ค. 2026) — ตัวรางในคลังชื่อ "<ชนิด> WxH mm.[ สีขาว][ (HDG.)] (2.4m/ท่อน)"
@@ -1136,8 +1144,8 @@
      คลังมีอย่างน้อย 1 ขนาด = ใช้ชุดนั้นแทนรายการตั้งต้น ไม่มี = รายการตั้งต้น
      ความยาวท่อนก็อ่านจากชื่อ — ตัวรางของชนิดนั้นยาวเท่ากันหมด (เช่น Ladder KJL 3 ม.) = ใช้ค่านั้น ไม่งั้นค่าตั้งต้น
      แก้อาร์เรย์เดิมในที่ ทุกที่ที่ถือ WAY_SIZES / spec.sizes ไว้จึงเห็นค่าใหม่ · store เรียกทุกครั้งที่คลังเปลี่ยน */
-  const TRAY_SIZE_DEF = { way: WAY_SIZES.slice(), tray: TRAY_SIZES.slice(), perf: PERF_SIZES.slice() };
-  const TRAY_LEN_DEF = { way: WAY_PIPE_LEN, tray: TRAY_PIPE_LEN, perf: TRAY_PIPE_LEN };
+  const TRAY_SIZE_DEF = { way: WAY_SIZES.slice(), tray: TRAY_SIZES.slice(), perf: PERF_SIZES.slice(), wwu: WWU_SIZES.slice() };
+  const TRAY_LEN_DEF = { way: WAY_PIPE_LEN, tray: TRAY_PIPE_LEN, perf: TRAY_PIPE_LEN, wwu: WWU_PIPE_LEN };
   let traySizesV = 0;
   function syncTraySizes(items) {
     TRAY_KIND_KEYS.forEach((kk) => {
@@ -1147,7 +1155,7 @@
       (items || []).forEach((it) => {
         const m = it && !it.trashFrom && re.exec(String(it.name || "").trim());
         if (!m) return;
-        got[spec.brief + " " + m[1] + "x" + m[2] + " mm." + (m[3] || "")] = [+m[1], +m[2], m[3] ? 1 : 0];
+        got[spec.brief + " " + m[1] + "x" + m[2] + " mm." + (m[3] || "")] = [+m[1], +m[2], !m[3] || m[3] === spec.std ? 0 : 1];   // สีมาตรฐานก่อน
         lens[+m[4]] = 1;
       });
       const want = Object.keys(got).sort((a, b) => got[a][0] - got[b][0] || got[a][1] - got[b][1] || got[a][2] - got[b][2] || a.localeCompare(b));
@@ -1170,7 +1178,7 @@
     .replace(/ขาแขวนราง/g, "ขาล็อกรางไฟ")
     .replace(/Cable Tray\s*บันได/g, "Cable Tray Ladder")
     .replace(/Cable Tray (?!Ladder|Perforated)/g, "Cable Tray Ladder ");
-  const traySuffix = (nm) => trayAlias(nm).replace(/^(Wireway|Cable Tray Ladder|Cable Tray Perforated)\s*/i, "").trim();
+  const traySuffix = (nm) => trayAlias(nm).replace(/^(Wireway|Cable Tray Ladder|Cable Tray Perforated|รางเก็บสายไฟ uPVC)\s*/i, "").trim();
   /* ถอดวัสดุรางไฟ 1 ขนาด — คืน array ของ item · pct = % เผื่อของอุปกรณ์ประกอบ */
   function wayItems(name, lenM, pct, kind, hdg, rail, tonLen) {
     const len = +lenM || 0;
@@ -1182,7 +1190,7 @@
     const pcs = Math.ceil(len / pipeLen);
     const joint = Math.max(0, pcs - 1) + RULES.trayJointX;        // ทุกรอยต่อ + เผื่อหัวท้าย
     const hanger = Math.ceil(len / RULES.trayHanger);             // ขาล็อกทุก 1.5 ม. (ตั้งค่าได้)
-    const z = (nm) => hdgName(nm, hdg);                           // ของที่สั่งชุบมาทั้งชิ้น — ตัวราง ข้อต่อ ขาล็อก
+    const z = (nm) => hdgName(nm, hdg && !spec.noHdg);            // ของที่สั่งชุบมาทั้งชิ้น — ตัวราง ข้อต่อ ขาล็อก
     const onRail = !!rail && spec.hanger;                         // Wireway ยึดพุ๊กเข้าโครงตรง ๆ ไม่มีขาล็อกให้วางบน Rail
     const out = [
       { name: z(trayAlias(name)) + " (" + trayLenTxt(pipeLen) + "m/ท่อน)", qty: pcs, unit: "ท่อน" },
@@ -1217,7 +1225,7 @@
     TRAY_KIND_KEYS.forEach((kk) => {
       const spec = TRAY_KINDS[kk];
       // ของชุบ HDG แยกเป็นกลุ่มของตัวเอง — อยู่กลุ่มเดียวกันจะเลือกผิดง่าย เพราะชื่อต่างกันแค่วงเล็บท้าย
-      [false, true].forEach((z) => {
+      (spec.noHdg ? [false] : [false, true]).forEach((z) => {
         spec.sizes.forEach((nm) => {
           const sz = traySuffix(nm);
           WAY_FIT_KINDS.forEach((k) => out.push({
@@ -1234,7 +1242,7 @@
      Cable Tray (รางบันได): ≤ 50% ของพื้นที่ราง และควรวางชั้นเดียว คือผลรวมเส้นผ่านศูนย์กลาง ≤ ความกว้างราง
      ตัวคูณลดกระแส: ยิ่งมีตัวนำนำกระแสในรางเดียวกันมาก แต่ละเส้นยิ่งรับกระแสได้น้อยลง
      (ตารางตัวคูณตามจำนวนตัวนำ — แก้ตัวเลขได้ที่นี่ถ้าใช้เกณฑ์ของโครงการอื่น) */
-  const TRAY_FILL_LIMIT = { get way() { return TRAY_KINDS.way.fill; }, get tray() { return TRAY_KINDS.tray.fill; }, get perf() { return TRAY_KINDS.perf.fill; } };
+  const TRAY_FILL_LIMIT = { get way() { return TRAY_KINDS.way.fill; }, get tray() { return TRAY_KINDS.tray.fill; }, get perf() { return TRAY_KINDS.perf.fill; }, get wwu() { return TRAY_KINDS.wwu.fill; } };
   const TRAY_DERATE = [
     { max: 3, f: 1.00 }, { max: 6, f: 0.80 }, { max: 9, f: 0.70 }, { max: 20, f: 0.50 },
     { max: 30, f: 0.45 }, { max: 40, f: 0.40 }, { max: Infinity, f: 0.35 },
@@ -1292,7 +1300,7 @@
   /* ใบถอดของที่บันทึกไว้ก่อนแยกชนิดราง — แปลงชื่อขนาดให้ตรงรายการใหม่
      ไม่แปลงแล้วดรอปดาวน์จะขึ้นเป็นของนอกรายการ และตารางตรวจสายหาขนาดรางไม่เจอ */
   function trayNorm(tray) {
-    const t = Object.assign({ way: [], tray: [], perf: [], spare: RULES.traySpare, extra: [] }, tray);
+    const t = Object.assign({ way: [], tray: [], perf: [], wwu: [], spare: RULES.traySpare, extra: [] }, tray);
     TRAY_KIND_KEYS.forEach((k) => {
       t[k] = (t[k] || []).map((r) => Object.assign({}, r, { size: trayAlias(r.size || "") }));
     });
@@ -1651,8 +1659,9 @@
     const obs = ((plan && plan.obstacles) || []).filter((o) => o && o.p3sType === "tray");
     if (!obs.length) return null;
     const spec = trayKindOf(kind);
-    // เลือกเองเฉพาะรางสีมาตรฐาน (ชื่อจบที่ "mm.") — รางสีพิเศษ (สีขาว) ให้คนเลือกเองในตาราง
-    const std = spec.sizes.filter((nm) => /mm.$/.test(nm));
+    if (spec.noHdg) hdg = false;
+    // เลือกเองเฉพาะรางสีมาตรฐาน (ชื่อจบที่ "mm." หรือ spec.std) — รางสีพิเศษ (สีขาว) ให้คนเลือกเองในตาราง
+    const std = spec.sizes.filter((nm) => /mm.$/.test(nm) || (spec.std && nm.endsWith(spec.std)));
     const pool = std.length ? std : spec.sizes;
     const pick = (wMm) => pool.find((nm) => trayDim(nm).w >= wMm - 0.5) || pool[pool.length - 1];
     const by = {}, fit = {};
@@ -2678,7 +2687,7 @@
       const spec = TRAY_KINDS[kk];
       spec.sizes.forEach((nm) => {
         const sz = traySuffix(nm);
-        [false, true].forEach((z) => {                            // ของธรรมดา + ของชุบ HDG ตั้งราคาแยกกันได้
+        (spec.noHdg ? [false] : [false, true]).forEach((z) => {   // ของธรรมดา + ของชุบ HDG ตั้งราคาแยกกันได้
           add(G_TRAY, hdgName(nm, z) + " (" + trayLenTxt(spec.pipeLen) + "m/ท่อน)", "ท่อน");
           add(G_TRAY, hdgName("ชุดข้อต่อราง " + spec.brief + " " + sz, z), "ชุด");
           if (spec.hanger) add(G_TRAY, hdgName("ขาล็อกรางไฟ " + spec.brief + " " + sz, z), "ชุด");
@@ -2944,7 +2953,7 @@
   }
 
   window.BOQ = { PANELS, MICRO, INVERTERS, OPTIMIZERS, setOptimizers, findOptimizer, ROOF_HOOKS, ROOF_OPTIONS, CABLE_TYPES, CABLE_GROUPS, cableCategory, MATERIAL_SUBGROUPS, materialSubGroup, CABLE_POINTS, DEFAULT_CABLES, STRING_CABLE_POINTS, MICRO_CABLE_NAMES, DEFAULT_STRING_CABLES, IMC_SIZES, UPVC_SIZES, PULLBOX_SIZES, CABLE_OD, HDPE_TABLE, IMC_CONDUIT, WIRE_SIZES, WIRE_METHODS, INS_CLASSES, AMP_GROUPS, AMP_NCOND, AMP_CORES, ampColKey, DEFAULT_AMPACITY, AMPACITY, setAmpacity, WIRE_METHOD_BASE, ampTableFor, cableInsClass, cableCoreType, cableSizeNum, ampacityOf, pickWireSize, PV_WIRE_SIZES, PV_WIRE_AMP, PV_WIRE_MIN, pickPvWireSize, calcVdrop, VD_LIMIT, findPanel, findInverter, stringConfig, stringPlan, wireArea, calcWireWay, calcConduitSize, blankBOQ, mergeBOQ, setConduitDefaults, conduitDefaults, CONDUIT_SPARE_FIXED, IMC_RULE, IMC_RULE_DEF, imcRule, calcBOQ, calcStructures, matKey, qtyKey, catalog, isPvDcCable, PV_DC_COLORS, PV_DC_SPARE, pvDcLength, applyPrices, setPanels, setInverters,
-    WAY_SIZES, TRAY_SIZES, PERF_SIZES, syncTraySizes, traySizesVer, TRAY_KINDS, TRAY_KIND_KEYS, trayKindOf, trayNorm, trayAlias, hdgName,
+    WAY_SIZES, TRAY_SIZES, PERF_SIZES, WWU_SIZES, syncTraySizes, traySizesVer, TRAY_KINDS, TRAY_KIND_KEYS, trayKindOf, trayNorm, trayAlias, hdgName,
     optimizerQty, optimizerFits, DCAC_LIMIT, WAY_PIPE_LEN, TRAY_PIPE_LEN, trayLenTxt, railLenCm, railPerTon, railName, SUPPORT_KINDS, LABOR_PRESET, PERMIT_PRESET, permitPresetFor, permitGridFee, gridAuthOf, PERMIT_ENG_TIERS, PERMIT_GRID_FEE, PERMIT_GRID_NAME,
     COND_FIT_KINDS, WAY_FIT_KINDS, condFittings, trayFittings, PPR_SIZES, PPR_FIT_KINDS, pipeFittings, pipeFromPlan, trayFromPlan, walkFromPlan, walkLens, walkLenOf, walkName, railLens, mccbFrame, mccbName, mccbName0,
     STEEL_SPECS, steelName, steelBarLen, steelSel, steelOf,

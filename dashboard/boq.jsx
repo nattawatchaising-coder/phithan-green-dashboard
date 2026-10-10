@@ -873,7 +873,7 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock, ver, verName, p3Vers
   const condBad = condPools.reduce((n, [k, sizes]) =>
     n + (cond[k] || []).filter((x) => (x.cables || []).length && !window.BOQ.conduitCheck(x.size, x.cables, sizes).ok).length, 0);
   // ── รางไฟ (WIREWAY / CABLE TRAY) — โครงสร้างข้อมูลเหมือนท่อร้อยสาย: {size, length} ต่อแถว ──
-  const TRAY_DEF = { way: [], tray: [], perf: [], spare: window.BOQ.RULES.traySpare, extra: [] };
+  const TRAY_DEF = { way: [], tray: [], perf: [], wwu: [], spare: window.BOQ.RULES.traySpare, extra: [] };
   const TRAY_POOLS = window.BOQ.TRAY_KIND_KEYS.map((k) => [k, window.BOQ.TRAY_KINDS[k].sizes]);
   /* trayNorm แปลงชื่อรางรุ่นเก่า ("Cable Tray บันได") ให้ตรงรายการใหม่ ตั้งแต่ตอนอ่านขึ้นมา
      ไม่งั้นดรอปดาวน์ขึ้นเป็นของนอกรายการ และตารางตรวจสายหาขนาดรางไม่เจอ */
@@ -1045,7 +1045,7 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock, ver, verName, p3Vers
   const measFor = (kinds) => meas3d.filter((m) => kinds.indexOf(m.kind || "other") >= 0 || (m.kind || "other") === "other");
   const measTargets = React.useMemo(() => {
     const IMC = window.BOQ.IMC_SIZES || [], UPVC = window.BOQ.UPVC_SIZES || [];
-    const WAY = window.BOQ.WAY_SIZES || [], TRAY = window.BOQ.TRAY_SIZES || [], PERF = window.BOQ.PERF_SIZES || [];
+    const WAY = window.BOQ.WAY_SIZES || [], TRAY = window.BOQ.TRAY_SIZES || [], PERF = window.BOQ.PERF_SIZES || [], WWU = window.BOQ.WWU_SIZES || [];
     const o = (b.cables || []).map((c, i) => ({
       value: "cab:" + i, group: "สายไฟ — ทับความยาวเดิม",
       label: (c.name || "สายแถวที่ " + (i + 1)) + (c.length ? " (เดิม " + c.length + " ม.)" : ""),
@@ -1056,6 +1056,7 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock, ver, verName, p3Vers
     if (WAY[0]) o.push({ value: "way", group: "เพิ่มแถวใหม่", label: "Wireway (" + WAY[0] + ")" });
     if (TRAY[0]) o.push({ value: "tray", group: "เพิ่มแถวใหม่", label: "Cable Tray Ladder (" + TRAY[0] + ")" });
     if (PERF[0]) o.push({ value: "perf", group: "เพิ่มแถวใหม่", label: "Cable Tray Perforated (" + PERF[0] + ")" });
+    if (WWU[0]) o.push({ value: "wwu", group: "เพิ่มแถวใหม่", label: "Wireway uPVC (" + WWU[0] + ")" });
     o.push({ value: "ladder", group: "เพิ่มแถวใหม่", label: "บันไดลิง (ความสูง)" });
     o.push({ value: "walkway", group: "เพิ่มแถวใหม่", label: "ทางเดิน Walkway (ความยาว)" });
     o.push({ value: "guardrail", group: "เพิ่มแถวใหม่", label: "ราวกันตก (ความยาว)" });
@@ -1077,7 +1078,7 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock, ver, verName, p3Vers
   };
   const applyMeas = (rows) => {
     const IMC = window.BOQ.IMC_SIZES || [], UPVC = window.BOQ.UPVC_SIZES || [];
-    const WAY = window.BOQ.WAY_SIZES || [], TRAY = window.BOQ.TRAY_SIZES || [], PERF = window.BOQ.PERF_SIZES || [];
+    const WAY = window.BOQ.WAY_SIZES || [], TRAY = window.BOQ.TRAY_SIZES || [], PERF = window.BOQ.PERF_SIZES || [], WWU = window.BOQ.WWU_SIZES || [];
     rows.forEach(({ m, target }) => {
       const L = measLen(m);
       if (/^cab:\d+$/.test(target)) setCab(+target.slice(4), "length", L);
@@ -1087,6 +1088,7 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock, ver, verName, p3Vers
       else if (target === "way") addTrayRow("way", { size: WAY[0], length: L, cables: [] });
       else if (target === "tray") addTrayRow("tray", { size: TRAY[0], length: L, cables: [] });
       else if (target === "perf") addTrayRow("perf", { size: PERF[0], length: L, cables: [] });
+      else if (target === "wwu") addTrayRow("wwu", { size: WWU[0], length: L, cables: [] });
       else if (target === "ladder") addStruct("ladder", { h: L });
       else if (target === "walkway") addStruct("walkway", { len: L });
       else if (target === "guardrail") addStruct("guardrail", { len: L, corners: 0 });
@@ -1789,7 +1791,8 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock, ver, verName, p3Vers
   /* รางไฟ — แยกรางต่อเส้นสาย (แบบเดียวกับท่อ) · ทุกชุดที่เดินขนานของเส้นนั้นวางในรางเดียว + กราวด์
      ขนาดเล็กสุดที่ผ่านทั้ง % เติมเต็ม และ (รางเปิด) วางชั้นเดียวได้ */
   const TRAY_KEYS = window.BOQ.TRAY_KIND_KEYS;
-  const RACE_TH = { imc: "IMC", upvc: "uPVC", way: "Wireway", tray: "Ladder", perf: "Perforated" };
+  // รางเรียงตามหมวดรางไฟในคลัง (Wireway · Perforated · Ladder · Wireway uPVC)
+  const RACE_TH = { imc: "IMC", upvc: "uPVC", way: "Wireway", perf: "Perforated", tray: "Ladder", wwu: "Wireway uPVC" };
   const isTrayK = (k) => TRAY_KEYS.indexOf(k) >= 0;
   const raceDim = (nm) => (String(nm).match(/(\d+)\s*[xX×]\s*(\d+)/) || []).slice(1, 3).join("x");
   const trayFit = (k, cables) => {
@@ -1840,7 +1843,7 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock, ver, verName, p3Vers
     const chk = !kind ? null : tray ? window.BOQ.trayCheck(size, trayCables, kind, pool) : window.BOQ.conduitCheck(size, cables, pool);
     /* ข้อต่อของเส้นนี้ — เก็บแค่ "ชนิด" (ข้องอ 90° ฯลฯ) ชื่อเต็มประกอบจากชนิดท่อ/ราง + ขนาด + ชุบ ณ ตอนนี้
        เปลี่ยนขนาดทีหลัง ข้อต่อก็เปลี่ยนขนาดตามเอง ไม่ต้องไล่เลือกใหม่ */
-    const hdg = tray && !!c.raceHdg, rail = tray && !!c.raceRail && window.BOQ.TRAY_KINDS[kind].hanger;
+    const hdg = tray && !!c.raceHdg && !window.BOQ.TRAY_KINDS[kind].noHdg, rail = tray && !!c.raceRail && window.BOQ.TRAY_KINDS[kind].hanger;
     const sp = tray ? window.BOQ.TRAY_KINDS[kind] : null;
     const sep = tray ? " " + sp.brief + " " : kind === "imc" ? " IMC " : " uPVC ";
     const mm = (String(size).match(/(\d+)\s*mm/) || [])[1];
@@ -2319,14 +2322,14 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock, ver, verName, p3Vers
                   </button>
                   {/* ชุบ HDG ทีละแถว — งานเดียวกันมีทั้งรางในอาคาร (Pre-Zinc) และรางนอกอาคาร (ชุบ) ได้
                       ติ๊กแล้วตัวราง ชุดข้อต่อ และขาแขวนของแถวนี้ต่อท้ายชื่อด้วย (HDG.) แยกราคาจากของไม่ชุบ */}
-                  <button onClick={() => (x.auto ? setRace(x.from, { raceHdg: x.hdg ? null : 1 }) : setTrayRow(kind, i, "hdg", !x.hdg))}
+                  {!spec.noHdg && <button onClick={() => (x.auto ? setRace(x.from, { raceHdg: x.hdg ? null : 1 }) : setTrayRow(kind, i, "hdg", !x.hdg))}
                     title={x.hdg ? "ชุบกัลวาไนซ์แบบจุ่มร้อน — ตัวราง ข้อต่อ และขาแขวนของแถวนี้จะถอดเป็นของชุบ (HDG.)"
                       : "ยังไม่ชุบ — ถอดเป็นของธรรมดา (Pre-Zinc) กดเพื่อเปลี่ยนเป็นของชุบ HDG"}
                     style={{ display: "inline-flex", alignItems: "center", gap: 5, padding: "3px 10px", borderRadius: "var(--r-pill)", cursor: "pointer", fontFamily: "inherit",
                       fontSize: 11, fontWeight: 800, border: "none", boxShadow: x.hdg ? "inset 0 0 0 1px var(--primary)" : "var(--shadow-sm)",
                       background: x.hdg ? "var(--primary-soft)" : "var(--surface)", color: x.hdg ? "var(--primary-dark)" : "var(--text-3)" }}>
                     {x.hdg && <Icon name="check" size={11} color="var(--primary-dark)" />}ชุบ HDG
-                  </button>
+                  </button>}
                   {/* วิธียึดขาล็อก เลือกทีละแถว — บนหลังคาขาล็อกวางบน Rail ส่วนในอาคารยิงพุ๊กเข้าโครงตรง ๆ
                       ยึดบน Rail แล้วตัวยึดเปลี่ยนจากพุ๊กเป็น T-BOLT KIT และต้องมี Rail รองใต้ขาเพิ่มมาด้วย */}
                   {spec.hanger && (
@@ -4264,9 +4267,9 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock, ver, verName, p3Vers
                       <button key={k} type="button" className={"bq-cab-chip" + (tray3dKind === k ? " on" : "")} style={{ fontSize: 11.5, padding: "5px 11px" }}
                         onClick={() => setTray3dOpt({ kind: k, hdg: tray3dHdg })}>{window.BOQ.TRAY_KINDS[k].label}</button>
                     ))}
-                    <button type="button" className={"bq-cab-chip" + (tray3dHdg ? " on" : "")} style={{ fontSize: 11.5, padding: "5px 11px", marginLeft: 6 }}
+                    {!window.BOQ.TRAY_KINDS[tray3dKind].noHdg && <button type="button" className={"bq-cab-chip" + (tray3dHdg ? " on" : "")} style={{ fontSize: 11.5, padding: "5px 11px", marginLeft: 6 }}
                       title="รางบนหลังคาอยู่กลางแดดกลางฝน — ปกติใช้ชุบกัลวาไนซ์จุ่มร้อน"
-                      onClick={() => setTray3dOpt({ kind: tray3dKind, hdg: !tray3dHdg })}>ชุบ HDG</button>
+                      onClick={() => setTray3dOpt({ kind: tray3dKind, hdg: !tray3dHdg })}>ชุบ HDG</button>}
                   </div>
                 )}
                 {tray3d && !tray3dSame && (
@@ -4354,7 +4357,7 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock, ver, verName, p3Vers
                       )}
                       {r.kind && !r.shared && (
                         <div style={{ display: "flex", flexDirection: "column", gap: 7 }}>
-                          {r.tray && (
+                          {r.tray && !window.BOQ.TRAY_KINDS[r.kind].noHdg && (
                             <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
                               <button className={"bq-cab-chip" + (r.hdg ? " on" : "")} style={{ fontSize: 11, padding: "4px 10px" }}
                                 title="ชุบกัลวาไนซ์แบบจุ่มร้อน — ตัวราง ข้อต่อ และขาแขวนของรางเส้นนี้ถอดเป็นของชุบ (HDG.)"
@@ -4402,6 +4405,7 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock, ver, verName, p3Vers
               {TrayList({ kind: "way", label: "Wireway เหล็กมีฝา", sizes: window.BOQ.WAY_SIZES, hint: "" })}
               {TrayList({ kind: "tray", label: "Cable Tray Ladder (รางบันได)", sizes: window.BOQ.TRAY_SIZES, hint: "" })}
               {TrayList({ kind: "perf", label: "Cable Tray Perforated (รางเจาะรู)", sizes: window.BOQ.PERF_SIZES, hint: "" })}
+              {TrayList({ kind: "wwu", label: "Wireway uPVC (รางเก็บสายไฟ uPVC)", sizes: window.BOQ.WWU_SIZES, hint: "" })}
               {FitList({ rows: (tw.extra || []).filter((x) => !x.auto), onChange: (v) => setTrayVal("extra", (tw.extra || []).filter((x) => x.auto).concat(v)), catalog: trayFits,
                 hint: "ของรางไฟโดยเฉพาะ — แยกกลุ่มตามชนิดราง และแยกของชุบ HDG" })}
             </div>
