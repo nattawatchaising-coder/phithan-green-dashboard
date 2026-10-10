@@ -820,22 +820,16 @@ function LgScene({ children }) {
   );
 }
 
-/* ภาพพื้นหลัง: สลับสองภาพช้า ๆ (ค่อย ๆ จาง) + ซูมเข้าออกเบา ๆ ให้ฉากมีชีวิต
+/* ภาพพื้นหลัง: สุ่มหนึ่งภาพตอนเปิดหน้า ไม่สลับ (ผู้ใช้สั่ง) + ซูมเข้าออกเบา ๆ
+   สุ่มครั้งเดียวต่อการโหลดหน้า — ล็อกอินแล้วไปหน้าตั้งค่าบัญชีจะได้ภาพเดิม
    ไฟล์อยู่ dashboard/assets (index.html กับ liff.html อยู่ราก จึงอ้าง path เดียวกันได้) */
 const LG_PHOTOS = ["dashboard/assets/login-farm.jpg", "dashboard/assets/login-village.jpg"];
+const LG_PHOTO = LG_PHOTOS[Math.floor(Math.random() * LG_PHOTOS.length)];
 
 function LgSky() {
-  const [idx, setIdx] = React.useState(0);
-  React.useEffect(() => {
-    if (window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
-    const t = setInterval(() => setIdx((i) => (i + 1) % LG_PHOTOS.length), 9000);
-    return () => clearInterval(t);
-  }, []);
   return (
     <div className="lg-sky" aria-hidden="true">
-      {LG_PHOTOS.map((src, i) => (
-        <div key={src} className={"lg-photo" + (i === idx ? " on" : "")} style={{ backgroundImage: "url(" + src + ")" }} />
-      ))}
+      <div className="lg-photo" style={{ backgroundImage: "url(" + LG_PHOTO + ")" }} />
       <div className="lg-tint" />
       <div className="lg-grain" />
     </div>
@@ -1078,10 +1072,8 @@ const LG_CSS = `
   --lg-tx:#F1F3F2;--lg-tx2:#B8BDBA;--lg-tx3:#878D8A;--lg-glow:rgba(255,150,80,.5);--lg-smoke:rgba(6,8,12,.7);
   --lg-tint:linear-gradient(180deg,rgba(10,14,30,.72) 0%,rgba(40,24,40,.55) 55%,rgba(8,10,16,.78) 100%)}
 .lg-sky{position:absolute;inset:0;pointer-events:none;overflow:hidden}
-.lg-photo{position:absolute;inset:-3%;background-size:cover;background-position:center 40%;opacity:0;
-  transition:opacity 2.2s ease;animation:lgKen 26s ease-in-out infinite alternate}
-.lg-photo.on{opacity:1}
-.lg-photo:nth-child(2){animation-delay:-13s;background-position:center 55%}
+.lg-photo{position:absolute;inset:-3%;background-size:cover;background-position:center 45%;
+  animation:lgKen 26s ease-in-out infinite alternate}
 @keyframes lgKen{from{transform:scale(1.02) translate(0,0)}to{transform:scale(1.1) translate(-1.5%,-1%)}}
 .lg-tint{position:absolute;inset:0;background:var(--lg-tint)}
 [data-theme="aurora"] .lg-photo{filter:saturate(.75)}
