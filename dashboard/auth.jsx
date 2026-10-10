@@ -824,8 +824,8 @@ function LgScene({ children }) {
    สุ่มครั้งเดียวต่อการโหลดหน้า — ล็อกอินแล้วไปหน้าตั้งค่าบัญชีจะได้ภาพเดิม
    ไฟล์อยู่ dashboard/assets (index.html กับ liff.html อยู่ราก จึงอ้าง path เดียวกันได้)
    ตอนนี้มีภาพเดียว: ช่างติดตั้งบนหลังคาอยู่ฝั่งขวา ฟ้าว่างฝั่งซ้าย — จอกว้างจึงวางการ์ดชิดซ้ายบนฟ้า (.lg-wrap)
-   เพิ่มภาพใหม่ควรเว้นฝั่งซ้าย/กลางให้ว่างแบบเดียวกัน */
-const LG_PHOTOS = ["dashboard/assets/login-crew.jpg"];
+   เพิ่มภาพใหม่ควรเว้นฝั่งซ้าย/กลางให้ว่างแบบเดียวกัน · เปลี่ยนไฟล์ทับชื่อเดิมให้บัมป์ ?v= ไม่งั้นเบราว์เซอร์ใช้ภาพเก่าจากแคช */
+const LG_PHOTOS = ["dashboard/assets/login-crew.jpg?v=2"];
 const LG_PHOTO = LG_PHOTOS[Math.floor(Math.random() * LG_PHOTOS.length)];
 
 function LgSky() {

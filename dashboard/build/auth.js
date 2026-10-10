@@ -1535,7 +1535,7 @@ function LgScene({
     className: "lg-wrap"
   }, children));
 }
-const LG_PHOTOS = ["dashboard/assets/login-crew.jpg"];
+const LG_PHOTOS = ["dashboard/assets/login-crew.jpg?v=2"];
 const LG_PHOTO = LG_PHOTOS[Math.floor(Math.random() * LG_PHOTOS.length)];
 function LgSky() {
   return React.createElement("div", {
