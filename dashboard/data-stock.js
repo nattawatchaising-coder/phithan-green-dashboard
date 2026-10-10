@@ -15,7 +15,7 @@
     { key: "structure", th: "Solar Mounting",    color: "#F59E0B", icon: "box" },
     { key: "steelwork", th: "งานโครงสร้าง",       color: "#475569", icon: "box" },
     { key: "wiring",    th: "สายไฟ / ไฟฟ้า",   color: "#EF4444", icon: "flow" },
-    { key: "conduit",   th: "ท่อร้อยสาย",       color: "#0EA5E9", icon: "menu" },
+    { key: "conduit",   th: "ท่อและรางไฟ",      color: "#0EA5E9", icon: "menu" },
     { key: "grounding", th: "กราวด์ / กันดูด",  color: "#A16207", icon: "shield" },
     { key: "electrical",th: "อุปกรณ์ไฟฟ้า",     color: "#4F46E5", icon: "bolt" },
     { key: "accessory", th: "Accessories",      color: "#EC4899", icon: "box" },
