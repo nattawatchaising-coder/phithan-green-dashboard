@@ -50,6 +50,15 @@ export async function rtdbGet(path) {
   return await r.json();
 }
 
+/* ข้อความดิบจาก REST ไม่ parse — ใช้กับสำรองข้อมูล (api/cron/backup.mjs) ที่ต้องเทียบไบต์ต่อไบต์
+   query เช่น "shallow=true" · path ต้อง encode ชื่อคีย์มาเอง */
+export async function rtdbText(path, query) {
+  if (!ENV.rtdb()) throw new Error("RTDB_URL not set");
+  const r = await fetch(dbUrl(path) + (query ? "?" + query : ""), { headers: await dbHeaders() });
+  if (!r.ok) throw new Error("rtdb get " + r.status + " " + path);
+  return await r.text();
+}
+
 /* PATCH = รวมฟิลด์เข้าของเดิม ไม่ทับทั้งก้อน (เท่ากับ .update() ของ SDK) */
 export async function rtdbUpdate(path, data) {
   if (!ENV.rtdb()) throw new Error("RTDB_URL not set");
