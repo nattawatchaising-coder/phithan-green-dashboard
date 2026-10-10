@@ -39,6 +39,55 @@
   var L = G + ':not([data-theme="aurora"])';   // ชุดสว่าง — ต้องไม่ทับตัวแปรของโหมดกราไฟต์
   var D = G + '[data-theme="aurora"]';
   var M = G + '[data-skin-bg="mesh"]';
+  /* ชุดสีพื้นหลังแบบไล่สี — แต่ละชุดมีโหมดสว่าง (l) และกราไฟต์ (d): สีพื้น + สีวง 4 วง (r,g,b,ความเข้ม) */
+  var MESH_PAL = [
+    { n: "เขียวแบรนด์", l: ["#E6EFEC", [27,155,117,.55], [110,196,222,.60], [255,205,160,.70], [140,214,184,.55]],
+      d: ["#0D1120", [27,155,117,.42], [80,70,180,.45], [170,70,120,.32], [20,120,150,.38]] },
+    { n: "พระอาทิตย์ขึ้น", l: ["#FBF1E8", [255,160,110,.55], [255,212,130,.65], [236,130,160,.45], [150,196,230,.50]],
+      d: ["#170E16", [200,90,60,.42], [210,150,60,.34], [150,50,110,.40], [60,60,150,.40]] },
+    { n: "ทะเล", l: ["#E8F2F8", [70,150,230,.50], [110,215,215,.55], [160,180,250,.50], [196,236,226,.60]],
+      d: ["#07111E", [30,100,200,.45], [20,150,160,.38], [90,80,200,.40], [10,70,130,.45]] },
+    { n: "ลาเวนเดอร์", l: ["#F2EEF8", [176,146,240,.50], [248,166,206,.50], [146,196,250,.50], [255,218,186,.60]],
+      d: ["#110D21", [120,80,220,.45], [190,70,150,.35], [60,90,200,.40], [150,90,60,.30]] },
+    { n: "ป่าเขา", l: ["#EEF3E6", [140,196,84,.50], [232,206,100,.55], [80,176,146,.50], [196,228,166,.60]],
+      d: ["#0B130D", [60,140,60,.42], [160,140,40,.32], [20,120,100,.40], [80,110,40,.36]] },
+    { n: "พีชมิ้นต์", l: ["#F5F1EC", [255,180,150,.55], [130,220,190,.55], [255,226,160,.55], [170,210,240,.45]],
+      d: ["#11121A", [190,100,80,.36], [30,150,120,.40], [170,140,60,.30], [60,100,170,.38]] },
+  ];
+  // ตำแหน่งวงตั้งต้น (x%, y%, กว้าง%, สูง%) — แบบเดิมก่อนมีการสุ่ม
+  var MESH_POS = [[10,14,42,52], [88,8,40,50], [74,88,48,55], [18,92,40,48]];
+  var MKEY = "pg-skin-mesh";
+  var mesh = { p: 0, pos: MESH_POS };
+  try {
+    var mj = JSON.parse(localStorage.getItem(MKEY) || "null");
+    if (mj && MESH_PAL[mj.p] && mj.pos && mj.pos.length === 4) mesh = mj;
+  } catch (e) {}
+  var meshCss = function () {
+    var pal = MESH_PAL[mesh.p] || MESH_PAL[0];
+    var layer = function (set, light) {
+      var g = set.slice(1).map(function (c, k) {
+        var o = mesh.pos[k];
+        return "radial-gradient(" + o[2] + "% " + o[3] + "% at " + o[0] + "% " + o[1] + "%,rgba(" + c[0] + "," + c[1] + "," + c[2] + "," + c[3] + "),transparent 70%)";
+      });
+      if (light) g.push("radial-gradient(36% 42% at 50% 46%,rgba(255,250,240,.7),transparent 70%)");
+      return "background-color:" + set[0] + ";background-image:" + g.join(",");
+    };
+    return M + ':not([data-theme="aurora"]) .app-root::before{' + layer(pal.l, true) + "}" +
+      M + '[data-theme="aurora"] .app-root::before{' + layer(pal.d, false) + "}";
+  };
+  var r2 = function (a, b) { return Math.round(a + Math.random() * (b - a)); };
+  // สุ่ม: ชุดสีใหม่ (ไม่ซ้ำชุดเดิม) + วงสีย้ายที่ — กระจายทีละมุมกันวงกองรวมกัน
+  var shuffleMesh = function () {
+    var p = mesh.p;
+    while (MESH_PAL.length > 1 && p === mesh.p) p = Math.floor(Math.random() * MESH_PAL.length);
+    var corners = [[0, 0], [1, 0], [1, 1], [0, 1]].sort(function () { return Math.random() - 0.5; });
+    mesh = { p: p, pos: corners.map(function (c) {
+      return [c[0] ? r2(55, 100) : r2(0, 45), c[1] ? r2(55, 100) : r2(0, 45), r2(34, 56), r2(40, 62)];
+    }) };
+    try { localStorage.setItem(MKEY, JSON.stringify(mesh)); } catch (e) {}
+    mst.textContent = meshCss();
+  };
+
   var CSS = [
     /* ── ตัวแปร: แผ่นกลายเป็นกระจกขาวใส เงาเป็นแสงสะท้อนขอบบน + เงาฟุ้งอุ่นแบบการ์ดล็อกอิน ── */
     L + "{--sk-glass-a:rgba(255,255,255,.62);--sk-glass-b:rgba(255,255,255,.34);--sk-edge:rgba(255,255,255,.9);--sk-edge-lo:rgba(255,255,255,.18);",
@@ -65,20 +114,11 @@
     "background:url('" + PHOTO + "') 65% center/cover;filter:blur(6px)}",
     G + " .app-root::after{content:'';position:fixed;inset:0;z-index:-1;pointer-events:none;background:var(--sk-wash)}",
 
-    /* ── พื้นหลังแบบไล่สี (ไม่ใช้รูป): วงสีฟุ้งหลายวง เขียวแบรนด์ · ฟ้าอมเขียว · ครีมอุ่น ── */
+    /* ── พื้นหลังแบบไล่สี (ไม่ใช้รูป): วงสีฟุ้งหลายวงจากชุดสี MESH_PAL ── */
     M + ":not([data-theme=\"aurora\"]){--sk-wash:linear-gradient(180deg,rgba(255,255,255,.10),rgba(255,255,255,.18))}",
     M + "[data-theme=\"aurora\"]{--sk-wash:linear-gradient(180deg,rgba(8,10,18,.20),rgba(8,10,18,.38))}",
-    M + " .app-root::before{inset:0;filter:none;background-color:#E6EFEC;background-image:",
-    "radial-gradient(42% 52% at 10% 14%,rgba(27,155,117,.55),transparent 70%),",
-    "radial-gradient(40% 50% at 88% 8%,rgba(110,196,222,.60),transparent 70%),",
-    "radial-gradient(48% 55% at 74% 88%,rgba(255,205,160,.70),transparent 70%),",
-    "radial-gradient(40% 48% at 18% 92%,rgba(140,214,184,.55),transparent 70%),",
-    "radial-gradient(36% 42% at 50% 46%,rgba(255,250,240,.75),transparent 70%)}",
-    M + "[data-theme=\"aurora\"] .app-root::before{background-color:#0D1120;background-image:",
-    "radial-gradient(42% 52% at 12% 16%,rgba(27,155,117,.42),transparent 70%),",
-    "radial-gradient(40% 50% at 86% 10%,rgba(80,70,180,.45),transparent 70%),",
-    "radial-gradient(46% 55% at 76% 88%,rgba(170,70,120,.32),transparent 70%),",
-    "radial-gradient(40% 48% at 18% 90%,rgba(20,120,150,.38),transparent 70%)}",
+    M + " .app-root::before{inset:0;filter:none}",
+    /* สี/ตำแหน่งวงสีสร้างใน meshCss() ข้างล่าง (สลับชุดสี/สุ่มตำแหน่งได้) */
 
     /* ── แผ่นกระจก: แถบเมนู · หัวจอ · แผง · การ์ดใหญ่ทุกใบ (inline style ที่ใช้ --shadow-card) ── */
     G + " .sidebar," + G + " .app-header{background:linear-gradient(140deg,var(--sk-glass-a),var(--sk-glass-b));",
@@ -115,12 +155,17 @@
     "padding:6px 13px;border-radius:999px;color:#1B2220;background:rgba(255,255,255,.75);",
     "-webkit-backdrop-filter:blur(12px);backdrop-filter:blur(12px);box-shadow:inset 0 0 0 1px rgba(255,255,255,.8),0 4px 14px rgba(0,0,0,.18)}",
     ".sk-toggle[data-on='1']{background:#1B9B75;color:#fff;box-shadow:0 4px 14px rgba(0,0,0,.2)}",
+    ".sk-toggle.sk-dice{right:auto;left:auto}",
   ].join("");
 
   var st = document.createElement("style");
   st.id = "skin-glass-css";
   st.textContent = CSS;
   (document.head || root).appendChild(st);
+  var mst = document.createElement("style");
+  mst.id = "skin-glass-mesh";
+  mst.textContent = meshCss();
+  (document.head || root).appendChild(mst);
 
   var h = location.hostname;
   if (!(h === "localhost" || h === "127.0.0.1")) return;
@@ -128,10 +173,18 @@
     var b = document.createElement("button");
     b.className = "sk-toggle";
     var LABEL = { "": "ปิด", photo: "รูป", mesh: "ไล่สี" };
+    // ปุ่มสุ่มสี — โผล่เฉพาะตอนเป็นแบบไล่สี อยู่ซ้ายปุ่มหลัก
+    var d = document.createElement("button");
+    d.className = "sk-toggle sk-dice";
+    d.textContent = "🎲 สุ่มสี";
+    d.title = "เปลี่ยนชุดสีและย้ายตำแหน่งวงสี — จำค่าเฉพาะเครื่องนี้";
     var show = function () {
       b.setAttribute("data-on", mode ? "1" : "0");
-      b.textContent = "ธีมกระจก (ทดลอง) · " + LABEL[mode];
+      b.textContent = "ธีมกระจก (ทดลอง) · " + LABEL[mode] + (mode === "mesh" ? " · " + MESH_PAL[mesh.p].n : "");
+      d.style.display = mode === "mesh" ? "" : "none";
+      d.style.right = (b.offsetWidth + 20) + "px";
     };
+    d.onclick = function () { shuffleMesh(); show(); };
     show();
     b.title = "กดวน ปิด → รูป → ไล่สี — จำค่าเฉพาะเครื่องนี้";
     b.onclick = function () {
@@ -141,6 +194,8 @@
       show();
     };
     document.body.appendChild(b);
+    document.body.appendChild(d);
+    show();
   };
   if (document.body) addBtn();
   else document.addEventListener("DOMContentLoaded", addBtn);
