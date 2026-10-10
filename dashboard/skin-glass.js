@@ -126,6 +126,9 @@
     /* ── ป้ายเล็ก (chip) ที่ใช้พื้น --surface2 — บนการ์ดกระจกสีขาวกลืนจนกรอบหาย ให้เป็นสีเทาอมข้อความแทน ── */
     G + " [style*='border-radius: var(--r-chip)'][style*='background: var(--surface2)']{background:color-mix(in srgb,var(--text-2) 12%,transparent)!important}",
 
+    /* ── รางหลอดความคืบหน้า (พื้น --surface3 มน + overflow hidden) — ขาวบนการ์ดกระจกขาวจนกลืน ให้เป็นเทาจางแทน ── */
+    L + " [style*='background: var(--surface3)'][style*='border-radius: var(--r-pill)'][style*='overflow: hidden']{background:rgba(15,43,51,.08)!important}",
+
     /* ── ช่องล็อก (อ่านอย่างเดียว) ในหน้าถอด BOQ — พื้นจางไม่มีขอบ บนกระจกเลยมองไม่เห็นกรอบ ── */
     L + " .bq-ro{box-shadow:inset 0 0 0 1px rgba(15,43,51,.10);background:rgba(255,255,255,.30)}",
 
