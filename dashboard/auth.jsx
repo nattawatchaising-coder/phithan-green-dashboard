@@ -805,12 +805,175 @@ function sfPinProblem(pin, oldPin) {
   return "";
 }
 
-/* ช่องกรอกแบบหลุม (DESIGN.md: --surface2 + --shadow-inset ไม่มีเส้นขอบ) */
-const FL_INPUT = {
-  background: "var(--surface2)", border: "none", boxShadow: "var(--shadow-inset)", color: "var(--text-1)",
-  fontFamily: "inherit", fontSize: 15, padding: "11px 13px", borderRadius: "var(--r-tile)", outline: "none", width: "100%",
-};
+/* ================================================================
+   ฉากหน้าเข้าสู่ระบบ / ตั้งค่าบัญชีครั้งแรก — ท้องฟ้า ดวงอาทิตย์ เมฆ ภูเขา ทุ่งแผงโซลาร์ + การ์ดกระจก
+   ใช้สองหน้านี้เท่านั้น (ข้อยกเว้นใน DESIGN.md) · สไตล์ทั้งหมดอยู่ใน LG_CSS · สีฉากเป็นตัวแปร --lg-*
+   ธีมกราไฟต์ (aurora) เปลี่ยนเป็นฉากพลบค่ำด้วยตัวแปรชุดเดียวกัน
+   ================================================================ */
+function LgScene({ children }) {
+  return (
+    <div className="lg-scene">
+      <style>{LG_CSS}</style>
+      <LgSky />
+      <div className="lg-wrap">{children}</div>
+    </div>
+  );
+}
 
+/* เมฆ: แต่ละก้อนคือวงรีฟุ้งหลายวงซ้อนกัน (ซ้าย บน กว้าง สูง เป็น px ก่อนคูณขนาด) */
+const LG_CLOUD_BLOBS = [[0, 26, 150, 54], [58, 4, 150, 74], [150, 20, 160, 58], [36, 40, 260, 44]];
+const LG_CLOUDS = [
+  { x: "4%", y: "9%", s: 1.15, d: 0 }, { x: "34%", y: "4%", s: 0.75, d: -40 },
+  { x: "58%", y: "13%", s: 1, d: -80 }, { x: "80%", y: "6%", s: 0.7, d: -20 }, { x: "16%", y: "30%", s: 0.55, d: -60 },
+];
+
+function LgSky() {
+  return (
+    <div className="lg-sky" aria-hidden="true">
+      <div className="lg-halo" />
+      <div className="lg-sun" />
+      {LG_CLOUDS.map((c, i) => (
+        <div key={i} className="lg-cloud" style={{ left: c.x, top: c.y, transform: "scale(" + c.s + ")", animationDelay: c.d + "s" }}>
+          {LG_CLOUD_BLOBS.map((b, j) => <span key={j} style={{ left: b[0], top: b[1], width: b[2], height: b[3] }} />)}
+        </div>
+      ))}
+      <LgLand />
+      <div className="lg-grain" />
+    </div>
+  );
+}
+
+/* พื้นดิน: ภูเขาสามชั้น + ทุ่งหญ้า + แถวแผงโซลาร์ แบบมองเปอร์สเปกทีฟ
+   กล้องสูง H มองไปข้างหน้า เส้นขอบฟ้าอยู่ที่ y = HZ ของภาพ · แถวไกลวาดก่อนให้แถวใกล้ทับ
+   แถวไกลมาก (z > 13) วาดเป็นแถบยาวแถบเดียวต่อแถว ไม่ต้องวาดทีละแผง (ระยะนั้นมองไม่ออกอยู่แล้ว) */
+function LgLand() {
+  const g = React.useMemo(() => {
+    const W = 1600, Hv = 600, HZ = 92, cx = W / 2, f = 360, H = 7;
+    const px = (x, z) => cx + x * f / z, py = (y, z) => HZ + (H - y) * f / z;
+    const P = (x, y, z) => px(x, z).toFixed(1) + "," + py(y, z).toFixed(1);
+    /* ภูเขา: ผลรวมคลื่นไซน์หลายความถี่ — ได้สันเขาที่ไม่ซ้ำแบบ */
+    const ridge = (base, amp, waves, step) => {
+      let d = "M0," + (HZ + 12);
+      for (let x = 0; x <= W; x += step) {
+        let y = 0;
+        waves.forEach((w) => { y += Math.sin(x * w[0] + w[1]) * w[2]; });
+        d += "L" + x + "," + (base - amp * (0.5 + y / 2)).toFixed(1);
+      }
+      return d + "L" + W + "," + (HZ + 12) + "Z";
+    };
+    const hills = [
+      ridge(HZ - 6, 64, [[0.0021, 0.4, 0.55], [0.0053, 1.7, 0.3], [0.011, 0.2, 0.15]], 10),
+      ridge(HZ + 2, 34, [[0.0034, 2.1, 0.5], [0.0081, 0.6, 0.3], [0.017, 1.3, 0.2]], 8),
+      ridge(HZ + 4, 12, [[0.006, 0.9, 0.35], [0.031, 0.3, 0.3], [0.073, 1.1, 0.35]], 5),
+    ];
+    const rows = [];
+    for (let z = 2.2; z < 46; z += z < 13 ? 2.7 : 3.2) rows.unshift(z);
+    const panels = [], strips = [], shadows = [], legs = [], cells = [];
+    const pw = 1.05, gap = 0.05, d = 0.82, y0 = 0.45, y1 = 1.3;
+    rows.forEach((z) => {
+      const half = (cx + 80) * z / f + 1.5;
+      if (z > 13) {
+        strips.push(P(-half, y0, z) + " " + P(half, y0, z) + " " + P(half, y1, z + d) + " " + P(-half, y1, z + d));
+        return;
+      }
+      /* เงาแผงตกบนหญ้าด้านหน้า (แดดอยู่ข้างหลังแถว) */
+      shadows.push(P(-half, 0, z + 0.1) + " " + P(half, 0, z + 0.1) + " " + P(half, 0, z - 0.75) + " " + P(-half, 0, z - 0.75));
+      for (let x = -Math.ceil(half / (pw + gap)) * (pw + gap); x < half; x += pw + gap) {
+        const x1 = x + pw;
+        panels.push(P(x, y0, z) + " " + P(x1, y0, z) + " " + P(x1, y1, z + d) + " " + P(x, y1, z + d));
+        if (z < 9) {
+          legs.push("M" + P(x + 0.15, y0, z) + "L" + P(x + 0.15, 0, z));
+          [1 / 3, 2 / 3].forEach((u) => { const xu = x + pw * u; cells.push("M" + P(xu, y0, z) + "L" + P(xu, y1, z + d)); });
+          cells.push("M" + P(x, (y0 + y1) / 2, z + d / 2) + "L" + P(x1, (y0 + y1) / 2, z + d / 2));
+        }
+      }
+    });
+    return { W, Hv, HZ, hills, panels, strips, shadows, legs: legs.join(""), cells: cells.join("") };
+  }, []);
+  return (
+    <svg className="lg-land" viewBox={"0 0 " + g.W + " " + g.Hv} preserveAspectRatio="xMidYMin slice">
+      <defs>
+        <linearGradient id="lgGrass" x1="0" y1={g.HZ} x2="0" y2={g.Hv} gradientUnits="userSpaceOnUse">
+          <stop offset="0" style={{ stopColor: "var(--lg-grass1)" }} /><stop offset=".35" style={{ stopColor: "var(--lg-grass2)" }} />
+          <stop offset="1" style={{ stopColor: "var(--lg-grass3)" }} />
+        </linearGradient>
+        <linearGradient id="lgPv" x1="0" y1="0" x2="0.3" y2="1">
+          <stop offset="0" style={{ stopColor: "var(--lg-pv1)" }} /><stop offset=".38" style={{ stopColor: "var(--lg-pv2)" }} />
+          <stop offset=".78" style={{ stopColor: "var(--lg-pv3)" }} /><stop offset="1" style={{ stopColor: "var(--lg-pv4)" }} />
+        </linearGradient>
+        <radialGradient id="lgGlint" cx=".74" cy="0" r=".62">
+          <stop offset="0" style={{ stopColor: "var(--lg-glint)" }} stopOpacity=".55" />
+          <stop offset="1" style={{ stopColor: "var(--lg-glint)" }} stopOpacity="0" />
+        </radialGradient>
+        <linearGradient id="lgHaze" x1="0" y1={g.HZ - 70} x2="0" y2={g.HZ + 230} gradientUnits="userSpaceOnUse">
+          <stop offset="0" style={{ stopColor: "var(--lg-haze)" }} stopOpacity="0" />
+          <stop offset=".22" style={{ stopColor: "var(--lg-haze)" }} stopOpacity=".85" />
+          <stop offset="1" style={{ stopColor: "var(--lg-haze)" }} stopOpacity="0" />
+        </linearGradient>
+        <clipPath id="lgPvClip">
+          {g.panels.map((p, i) => <polygon key={i} points={p} />)}
+          {g.strips.map((p, i) => <polygon key={"s" + i} points={p} />)}
+        </clipPath>
+      </defs>
+      <path d={g.hills[0]} style={{ fill: "var(--lg-hill1)" }} />
+      <path d={g.hills[1]} style={{ fill: "var(--lg-hill2)" }} />
+      <path d={g.hills[2]} style={{ fill: "var(--lg-hill3)" }} />
+      <rect x="0" y={g.HZ} width={g.W} height={g.Hv - g.HZ} fill="url(#lgGrass)" />
+      {g.strips.map((p, i) => <polygon key={"s" + i} points={p} fill="url(#lgPv)" />)}
+      {g.shadows.map((p, i) => <polygon key={"h" + i} points={p} style={{ fill: "var(--lg-shade)" }} />)}
+      <path d={g.legs} style={{ stroke: "var(--lg-leg)" }} strokeWidth="2.5" fill="none" />
+      {g.panels.map((p, i) => <polygon key={i} points={p} fill="url(#lgPv)" style={{ stroke: "var(--lg-frame)" }} strokeWidth="1.8" strokeLinejoin="round" />)}
+      <path d={g.cells} stroke="rgba(255,255,255,.16)" strokeWidth="1.1" fill="none" />
+      <rect x="0" y="0" width={g.W} height={g.Hv} fill="url(#lgGlint)" clipPath="url(#lgPvClip)" />
+      <rect x="0" y="0" width={g.W} height={g.Hv} fill="url(#lgHaze)" />
+    </svg>
+  );
+}
+
+/* ช่องกรอกแบบแคปซูลกระจก — ไอคอนกลมด้านหน้า · label (ถ้ามี) เป็นตัวเล็กเหนือค่าในแคปซูลเดียวกัน */
+function LgPill({ icon, glyph, label, children, extra }) {
+  return (
+    <label className={"lg-pill" + (label ? " lg-pill-lb" : "")}>
+      <span className="lg-ic">{glyph ? <b>{glyph}</b> : <Icon name={icon} size={15} color="var(--lg-tx)" />}</span>
+      {label ? <span className="lg-pill-col"><span className="lg-pill-lab">{label}</span>{children}</span> : children}
+      {extra}
+    </label>
+  );
+}
+
+/* ปุ่มกระจก — แคปซูลใส มีลูกแก้วดวงอาทิตย์หมุนอยู่ข้างใน ตัวอักษรเรือง กดแล้วมีประกายแตกออก */
+function LgGlassButton({ onClick, busy, label, busyLabel, wide }) {
+  const [bursts, setBursts] = React.useState([]);
+  const fire = () => {
+    if (busy) return;
+    const id = Date.now() + Math.random();
+    const parts = Array.from({ length: 16 }).map((_, i) => {
+      const a = (i / 16) * Math.PI * 2 + Math.random() * 0.4, r = 26 + Math.random() * 34;
+      return { dx: Math.cos(a) * r, dy: Math.sin(a) * r, s: 3 + Math.random() * 4, t: 0.5 + Math.random() * 0.35 };
+    });
+    setBursts((b) => b.concat({ id, parts }));
+    setTimeout(() => setBursts((b) => b.filter((x) => x.id !== id)), 900);
+    onClick && onClick();
+  };
+  return (
+    <button type="button" className={"lg-gbtn" + (wide ? " lg-gbtn-wide" : "") + (busy ? " is-busy" : "")} onClick={fire} disabled={busy}>
+      <span className="lg-gbtn-tx">{busy ? busyLabel : label}</span>
+      <span className="lg-orb">
+        <span className="lg-orb-swirl" />
+        <Icon name="arrowRight" size={16} color="#fff" />
+        {bursts.map((b) => (
+          <span key={b.id} className="lg-burst">
+            {b.parts.map((p, i) => <i key={i} style={{ "--dx": p.dx + "px", "--dy": p.dy + "px", width: p.s, height: p.s, animationDuration: p.t + "s" }} />)}
+          </span>
+        ))}
+      </span>
+    </button>
+  );
+}
+
+/* ================================================================
+   FirstLoginScreen — เข้าใช้งานครั้งแรก: กรอกข้อมูลติดต่อ + เปลี่ยนรหัสจาก 1234
+   ================================================================ */
 function FirstLoginScreen({ user, onSave, onLogout }) {
   const [f, setF] = React.useState(() => ({
     name: user.name || "", phone: user.phone || "", email: user.email || "", line: user.line || "", pin: "", pin2: "" }));
@@ -838,68 +1001,68 @@ function FirstLoginScreen({ user, onSave, onLogout }) {
     }
   };
 
-  const lbl = { fontSize: 11, fontWeight: 700, color: "var(--text-3)" };
-  const field = (label, input, hint) => (
-    <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-      <label style={lbl}>{label}<span style={{ color: "var(--tint-red-tx2)" }}> *</span></label>
-      {input}
-      {hint && <div style={{ fontSize: 11.5, color: "var(--text-3)", lineHeight: 1.5 }}>{hint}</div>}
-    </div>
-  );
-  const head = (t) => <div style={{ fontSize: 12, fontWeight: 700, color: "var(--text-2)", marginTop: 4 }}>{t}</div>;
-
   return (
-    <div style={{ minHeight: "100dvh", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center",
-      background: "transparent", gap: 18,
-      padding: "calc(24px + env(safe-area-inset-top, 0px)) 16px calc(24px + env(safe-area-inset-bottom, 0px))" }}>
-      <window.BrandMark size={64} />
-      <div style={{ background: "var(--surface)", boxShadow: "var(--shadow-card)", border: "1px solid var(--card-bd)",
-        borderRadius: "var(--r-card)", width: "min(440px, 100%)", padding: 22, display: "flex", flexDirection: "column", gap: 14 }}>
+    <LgScene>
+      <div className="lg-glass lg-setup">
+        <div className="lg-top">
+          <window.BrandWord size={17} color="var(--lg-tx)" />
+          <span className="lg-mini">เข้าใช้งานครั้งแรก</span>
+        </div>
         <div>
-          <div style={{ fontSize: 17, fontWeight: 700, color: "var(--text-1)" }}>ตั้งค่าบัญชีครั้งแรก</div>
-          <div style={{ marginTop: 6, fontSize: 13, color: "var(--text-2)", lineHeight: 1.6 }}>
-            กรอกข้อมูลติดต่อให้ครบ และเปลี่ยนรหัสผ่านจากรหัสที่ได้รับ ก่อนเริ่มใช้งาน
+          <div className="lg-h">ตั้งค่าบัญชี</div>
+          <div className="lg-sub">กรอกข้อมูลติดต่อให้ครบ และเปลี่ยนรหัสผ่านจากรหัสที่ได้รับ ก่อนเริ่มใช้งาน</div>
+        </div>
+
+        <div className="lg-sec">ข้อมูลผู้ใช้</div>
+        <div className="lg-two">
+          <div className="lg-span2">
+            <LgPill icon="user" label="ชื่อ-สกุล *">
+              <input value={f.name} onChange={(e) => set("name", e.target.value)} placeholder="เช่น สมชาย ตั้งใจ" autoComplete="name" />
+            </LgPill>
+          </div>
+          <LgPill icon="phone" label="เบอร์โทร *">
+            <input value={f.phone} inputMode="tel" autoComplete="tel" onChange={(e) => set("phone", e.target.value)} placeholder="08x-xxx-xxxx" />
+          </LgPill>
+          <LgPill glyph="@" label="อีเมล *">
+            <input value={f.email} inputMode="email" autoCapitalize="none" spellCheck={false} autoComplete="email"
+              onChange={(e) => set("email", e.target.value)} placeholder="name@example.com" />
+          </LgPill>
+          <div className="lg-span2">
+            <LgPill icon="message" label="LINE ID *">
+              <input value={f.line} autoCapitalize="none" spellCheck={false} onChange={(e) => set("line", e.target.value)} placeholder="เช่น somchai" />
+            </LgPill>
           </div>
         </div>
 
-        {head("ข้อมูลผู้ใช้")}
-        {field("ชื่อ-สกุล", <input style={FL_INPUT} value={f.name} onChange={(e) => set("name", e.target.value)} placeholder="เช่น สมชาย ตั้งใจ" />)}
-        {field("เบอร์โทร", <input style={FL_INPUT} value={f.phone} inputMode="tel" autoComplete="tel" onChange={(e) => set("phone", e.target.value)} placeholder="08x-xxx-xxxx" />)}
-        {field("อีเมล", <input style={FL_INPUT} value={f.email} inputMode="email" autoCapitalize="none" spellCheck={false} autoComplete="email"
-          onChange={(e) => set("email", e.target.value)} placeholder="name@example.com" />)}
-        {field("LINE ID", <input style={FL_INPUT} value={f.line} autoCapitalize="none" spellCheck={false}
-          onChange={(e) => set("line", e.target.value)} placeholder="เช่น somchai" />)}
+        <div className="lg-sec">รหัสผ่านใหม่</div>
+        <div className="lg-two">
+          <LgPill icon="lock" label="รหัสผ่านใหม่ *">
+            <input value={f.pin} type="password" inputMode="numeric" autoComplete="new-password"
+              onChange={(e) => set("pin", e.target.value.replace(/\D/g, ""))} placeholder="ตัวเลข 6 หลักขึ้นไป" />
+          </LgPill>
+          <LgPill icon="lock" label="ยืนยันรหัสผ่าน *">
+            <input value={f.pin2} type="password" inputMode="numeric" autoComplete="new-password"
+              onChange={(e) => set("pin2", e.target.value.replace(/\D/g, ""))} onKeyDown={(e) => { if (e.key === "Enter") submit(); }}
+              placeholder="กรอกซ้ำอีกครั้ง" />
+          </LgPill>
+        </div>
+        <div className="lg-note">ห้ามเลขเรียง (123456) หรือเลขซ้ำ (111111) · ใช้รหัสนี้เข้าเว็บครั้งต่อไป</div>
 
-        {head("รหัสผ่านใหม่")}
-        {field("รหัสผ่านใหม่", <input style={FL_INPUT} value={f.pin} type="password" inputMode="numeric" autoComplete="new-password"
-          onChange={(e) => set("pin", e.target.value.replace(/\D/g, ""))} placeholder="ตัวเลข 6 หลักขึ้นไป" />,
-          "ห้ามเลขเรียง (123456) หรือเลขซ้ำ (111111) · ใช้รหัสนี้เข้าเว็บครั้งต่อไป")}
-        {field("ยืนยันรหัสผ่านใหม่", <input style={FL_INPUT} value={f.pin2} type="password" inputMode="numeric" autoComplete="new-password"
-          onChange={(e) => set("pin2", e.target.value.replace(/\D/g, ""))} onKeyDown={(e) => { if (e.key === "Enter") submit(); }}
-          placeholder="กรอกซ้ำอีกครั้ง" />)}
+        {err && <div className="lg-err">⚠ {err}</div>}
 
-        {err && <div style={{ padding: "9px 12px", borderRadius: "var(--r-chip)", background: "var(--tint-red-bg)",
-          color: "var(--tint-red-tx2)", fontSize: 12.5, fontWeight: 600 }}>{err}</div>}
-
-        <button onClick={submit} disabled={busy}
-          style={{ marginTop: 4, width: "100%", padding: "13px 16px", borderRadius: "var(--r-tile)", border: "none",
-            background: busy ? "var(--text-3)" : "var(--primary)", color: "#fff", fontWeight: 700, fontFamily: "inherit",
-            fontSize: 14.5, cursor: busy ? "default" : "pointer", boxShadow: "var(--shadow-btn)" }}>
-          {busy ? "กำลังบันทึก…" : "บันทึกและเริ่มใช้งาน"}
-        </button>
-        {onLogout && (
-          <button onClick={onLogout} disabled={busy}
-            style={{ background: "none", border: "none", color: "var(--text-3)", fontFamily: "inherit", fontSize: 12.5, cursor: "pointer", padding: 4 }}>
-            ออกจากระบบ
-          </button>
-        )}
+        <div className="lg-foot">
+          {onLogout
+            ? <button type="button" className="lg-link" onClick={onLogout} disabled={busy}>ออกจากระบบ</button>
+            : <span />}
+          <LgGlassButton onClick={submit} busy={busy} label="บันทึกและเริ่มใช้งาน" busyLabel="กำลังบันทึก…" />
+        </div>
       </div>
-    </div>
+    </LgScene>
   );
 }
 
 /* ================================================================
-   LoginScreen — เลือกผู้ใช้ + กรอก PIN
+   LoginScreen — กรอกชื่อผู้ใช้ + รหัสผ่าน
    ================================================================ */
 function LoginScreen({ authStore }) {
   const [username, setUsername] = React.useState("");
@@ -928,210 +1091,220 @@ function LoginScreen({ authStore }) {
     : h < 18 && h >= 15 ? "แดดบ่ายเริ่มอ่อนลง" : "แผงพัก พรุ่งนี้แดดมาใหม่";
 
   return (
-    /* หน้าเข้าสู่ระบบเป็นหน้าโชว์แบรนด์ — ฉากแดด/แผงโซลาร์ + การ์ดกระจกฝ้า (สไตล์อยู่ใน LG_CSS)
-       เป็นข้อยกเว้นของ DESIGN.md: สีฉากเขียนเองได้ แต่ปุ่มหลักยังใช้ --primary และมีฉากกลางคืนสำหรับธีมกราไฟต์ */
-    <div className="lg-scene">
-      <style>{LG_CSS}</style>
-      <div className="lg-sky" aria-hidden="true">
-        <div className="lg-sun" />
-        <LgFarm />
-      </div>
-
-      <div className="lg-wrap">
-        <div className="lg-grid">
-          {/* ── การ์ดเข้าสู่ระบบ ── */}
-          <div className="lg-glass lg-login">
-            <div className="lg-top">
-              <window.BrandWord size={17} color="var(--lg-tx)" />
-              <span className="lg-mini">{window.BRANDING.taglineTH}</span>
-            </div>
-            <div className="lg-h">เข้าสู่ระบบ</div>
-
-            <label className="lg-pill">
-              <span className="lg-ic"><Icon name="user" size={15} color="var(--lg-tx)" /></span>
-              <input autoFocus autoCapitalize="none" autoCorrect="off" spellCheck={false} value={username}
-                autoComplete="username" placeholder="ชื่อผู้ใช้ (ID)" aria-label="ชื่อผู้ใช้"
-                onChange={(e) => { setUsername(e.target.value); setErr(""); }}
-                onKeyDown={(e) => { if (e.key === "Enter" && pwRef.current) pwRef.current.focus(); }} />
-            </label>
-            <label className="lg-pill">
-              <span className="lg-ic"><Icon name="lock" size={15} color="var(--lg-tx)" /></span>
-              <input ref={pwRef} type={show ? "text" : "password"} value={pw}
-                autoComplete="current-password" placeholder="รหัสผ่าน" aria-label="รหัสผ่าน"
-                onChange={(e) => { setPw(e.target.value); setErr(""); }}
-                onKeyDown={(e) => { if (e.key === "Enter") submit(); }} />
-              <button type="button" className="lg-chip" onClick={() => setShow((s) => !s)} tabIndex={-1}>
-                <Icon name={show ? "eyeOff" : "eye"} size={14} color="var(--lg-tx2)" />{show ? "ซ่อน" : "แสดง"}
-              </button>
-            </label>
-
-            {err && <div className="lg-err">⚠ {err}</div>}
-
-            <div className="lg-foot">
-              <div className="lg-note">ใช้ชื่อผู้ใช้และรหัสที่ได้รับจากแอดมิน<br />ลืมรหัส ให้แอดมินตั้งให้ใหม่</div>
-              <button className="lg-go" onClick={submit} disabled={busy}>
-                <span>{busy ? "กำลังเข้า…" : "เข้าสู่ระบบ"}</span>
-                <span className="lg-go-dot"><Icon name="arrowRight" size={16} color="#fff" /></span>
-              </button>
-            </div>
+    <LgScene>
+      <div className="lg-grid">
+        {/* ── การ์ดเข้าสู่ระบบ ── */}
+        <div className="lg-glass lg-login">
+          <div className="lg-top">
+            <window.BrandWord size={17} color="var(--lg-tx)" />
+            <span className="lg-mini">{window.BRANDING.taglineTH}</span>
           </div>
+          <div className="lg-h">เข้าสู่ระบบ</div>
 
-          {/* ── การ์ดมืด: ชื่อระบบ ── */}
-          <div className="lg-dark">
-            <div className="lg-dark-h">พลังงานสะอาด<br /><span>จากหลังคาของลูกค้า</span></div>
-            <div className="lg-dark-row">
-              <span>{window.BRANDING.tagline}</span>
-              <window.BrandMark size={34} />
-            </div>
-          </div>
+          <LgPill icon="user">
+            <input autoFocus autoCapitalize="none" autoCorrect="off" spellCheck={false} value={username}
+              autoComplete="username" placeholder="ชื่อผู้ใช้ (ID)" aria-label="ชื่อผู้ใช้"
+              onChange={(e) => { setUsername(e.target.value); setErr(""); }}
+              onKeyDown={(e) => { if (e.key === "Enter" && pwRef.current) pwRef.current.focus(); }} />
+          </LgPill>
+          <LgPill icon="lock" extra={
+            <button type="button" className="lg-chip" onClick={() => setShow((s) => !s)} tabIndex={-1}>
+              <Icon name={show ? "eyeOff" : "eye"} size={14} color="var(--lg-tx2)" />{show ? "ซ่อน" : "แสดง"}
+            </button>}>
+            <input ref={pwRef} type={show ? "text" : "password"} value={pw}
+              autoComplete="current-password" placeholder="รหัสผ่าน" aria-label="รหัสผ่าน"
+              onChange={(e) => { setPw(e.target.value); setErr(""); }}
+              onKeyDown={(e) => { if (e.key === "Enter") submit(); }} />
+          </LgPill>
 
-          {/* ── การ์ดวันนี้ (จอกว้างเท่านั้น) ── */}
-          <div className="lg-day">
-            <div className="lg-day-orb" />
-            <div className="lg-strip">
-              <div className="lg-wd">{wday}</div>
-              <div className="lg-dm">{dmon}</div>
-              <div className="lg-time">{hhmm} น.<br />{sunNote}</div>
-              <div className="lg-strip-b"><Icon name="sun" size={22} color="var(--lg-tx)" /><span>flash+solar</span></div>
-            </div>
-            <div className="lg-day-side">ระบบติดตาม<br />งานติดตั้งโซลาร์</div>
-            <div className="lg-day-tag"><span>ทีมติดตั้ง</span><span className="lg-go-dot"><Icon name="bolt" size={14} color="#fff" /></span></div>
+          {err && <div className="lg-err">⚠ {err}</div>}
+
+          <div className="lg-foot">
+            <div className="lg-note">ใช้ชื่อผู้ใช้และรหัสที่ได้รับจากแอดมิน<br />ลืมรหัส ให้แอดมินตั้งให้ใหม่</div>
+            <LgGlassButton onClick={submit} busy={busy} label="เข้าสู่ระบบ" busyLabel="กำลังเข้า…" />
           </div>
         </div>
+
+        {/* ── การ์ดกระจกควัน: ชื่อระบบ ── */}
+        <div className="lg-dark">
+          <div className="lg-dark-h">พลังงานสะอาด<br /><span>จากหลังคาของลูกค้า</span></div>
+          <div className="lg-dark-row">
+            <span>{window.BRANDING.tagline}</span>
+            <window.BrandMark size={34} />
+          </div>
+        </div>
+
+        {/* ── การ์ดวันนี้ (จอกว้างเท่านั้น) ── */}
+        <div className="lg-glass lg-day">
+          <div className="lg-day-orb" />
+          <div className="lg-strip">
+            <div className="lg-wd">{wday}</div>
+            <div className="lg-dm">{dmon}</div>
+            <div className="lg-time">{hhmm} น.<br />{sunNote}</div>
+            <div className="lg-strip-b"><Icon name="sun" size={22} color="var(--lg-tx)" /><span>flash+solar</span></div>
+          </div>
+          <div className="lg-day-side">ระบบติดตาม<br />งานติดตั้งโซลาร์</div>
+        </div>
       </div>
-    </div>
+    </LgScene>
   );
 }
 
-/* ทุ่งแผงโซลาร์ในฉากหลัง — วาดเป็น SVG แบบมองเปอร์สเปกทีฟ (กล้องสูง H มองไปข้างหน้า เส้นขอบฟ้าอยู่บนสุดของภาพ)
-   แผงเอียงหน้าเข้าหากล้อง · แถวไกลวาดก่อนให้แถวใกล้ทับ · ไม่ใช้ CSS 3D เพราะคุมระยะ/ตัดขอบยาก */
-function LgFarm() {
-  const svg = React.useMemo(() => {
-    const W = 1600, Hv = 520, cx = W / 2, f = 420, H = 4.5;
-    const P = (x, y, z) => (cx + x * f / z).toFixed(1) + "," + ((H - y) * f / z - 60).toFixed(1);
-    const rows = [];
-    for (let z = 17; z >= 2.2; z -= 1.45) rows.push(z);
-    const panels = [], lines = [];
-    rows.forEach((z) => {
-      const half = (cx + 60) * z / f + 1.2, pw = 1.05, gap = 0.05, d = 0.82, y0 = 0.45, y1 = 1.3;
-      for (let x = -Math.ceil(half / (pw + gap)) * (pw + gap); x < half; x += pw + gap) {
-        const x1 = x + pw;
-        panels.push(P(x, y0, z) + " " + P(x1, y0, z) + " " + P(x1, y1, z + d) + " " + P(x, y1, z + d));
-        if (z < 9) {
-          [1 / 3, 2 / 3].forEach((u) => { const xu = x + pw * u; lines.push("M" + P(xu, y0, z) + "L" + P(xu, y1, z + d)); });
-          lines.push("M" + P(x, (y0 + y1) / 2, z + d / 2) + "L" + P(x1, (y0 + y1) / 2, z + d / 2));
-        }
-      }
-    });
-    return { W, Hv, panels, lines: lines.join("") };
-  }, []);
-  return (
-    <svg className="lg-farm" viewBox={"0 0 " + svg.W + " " + svg.Hv} preserveAspectRatio="xMidYMin slice">
-      <defs>
-        <linearGradient id="lgPv" x1="0" y1="0" x2="0.35" y2="1">
-          <stop offset="0" stopColor="#3D6390" /><stop offset=".55" stopColor="#152844" /><stop offset="1" stopColor="#21416A" />
-        </linearGradient>
-        <radialGradient id="lgGlint" cx=".72" cy="0" r=".7">
-          <stop offset="0" stopColor="#FFC58A" stopOpacity=".75" /><stop offset="1" stopColor="#FFC58A" stopOpacity="0" />
-        </radialGradient>
-        <clipPath id="lgPvClip">{svg.panels.map((p, i) => <polygon key={i} points={p} />)}</clipPath>
-      </defs>
-      {svg.panels.map((p, i) => <polygon key={i} points={p} fill="url(#lgPv)" stroke="rgba(228,235,244,.85)" strokeWidth="2" strokeLinejoin="round" />)}
-      <path d={svg.lines} stroke="rgba(255,255,255,.18)" strokeWidth="1.2" fill="none" />
-      <rect x="0" y="0" width={svg.W} height={svg.Hv} fill="url(#lgGlint)" clipPath="url(#lgPvClip)" />
-    </svg>
-  );
-}
-
-/* สไตล์หน้าเข้าสู่ระบบ — คลาส lg-* ใช้ที่หน้านี้ที่เดียว
-   --lg-* คือสีฉาก (กลางวัน) · [data-theme="aurora"] เปลี่ยนเป็นฉากเย็นค่ำ */
+/* สไตล์ฉาก lg-* — ตัวแปร --lg-* ชุดแรกคือฉากเช้า ชุด aurora คือฉากพลบค่ำ */
+const LG_GRAIN = "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E\")";
 const LG_CSS = `
-.lg-scene{--lg-sky1:#F7EFE6;--lg-sky2:#F2DFC9;--lg-sky3:#E9CBA9;--lg-ground:#E7D6C2;
-  --lg-glass:rgba(255,255,255,.42);--lg-glass-bd:rgba(255,255,255,.65);--lg-pill:rgba(255,255,255,.55);
-  --lg-tx:#1E2421;--lg-tx2:#5E625F;--lg-tx3:#8A8D8A;--lg-day:rgba(255,255,255,.82);--lg-strip:rgba(255,255,255,.5);
-  --lg-dark:#16191A;--lg-sun1:#FFE2B0;--lg-sun2:#FF9B3D;--lg-sun3:#FF6F12;--lg-glow:rgba(255,140,40,.38);
+.lg-scene{--lg-sky0:#6F9FCB;--lg-sky1:#A6C3DC;--lg-sky2:#D6DCDD;--lg-sky3:#F2D2AE;--lg-sky4:#F7C28E;
+  --lg-hill1:#AEB9C9;--lg-hill2:#8C9E8E;--lg-hill3:#5E7653;--lg-grass1:#B8B68A;--lg-grass2:#8FA066;--lg-grass3:#5F7D45;
+  --lg-pv1:#86A8C9;--lg-pv2:#3A5C86;--lg-pv3:#152844;--lg-pv4:#1F3D63;--lg-frame:rgba(232,238,245,.9);--lg-leg:#5D6469;
+  --lg-shade:rgba(34,52,24,.24);--lg-glint:#FFD4A0;--lg-haze:#F2D8BB;
+  --lg-sun-core:#FFFFFF;--lg-sun-mid:#FFF1C9;--lg-sun-glow:rgba(255,206,140,.55);--lg-cloud:rgba(255,255,255,.88);--lg-cloud-lo:rgba(255,226,196,.7);
+  --lg-glass-a:rgba(255,255,255,.42);--lg-glass-b:rgba(255,255,255,.16);--lg-edge:rgba(255,255,255,.85);--lg-edge-lo:rgba(255,255,255,.12);
+  --lg-pill:rgba(255,255,255,.42);--lg-pill-bd:rgba(255,255,255,.7);--lg-strip:rgba(255,255,255,.34);
+  --lg-tx:#1B2220;--lg-tx2:#4F5653;--lg-tx3:#7D827F;--lg-glow:rgba(255,170,80,.55);
+  --lg-smoke:rgba(18,22,24,.72);--lg-orb1:#FFF6DA;--lg-orb2:#FFC46B;--lg-orb3:#FF8A2A;--lg-orb4:#B9420C;
   position:relative;min-height:100dvh;overflow:hidden;color:var(--lg-tx);
-  background:linear-gradient(180deg,var(--lg-sky1) 0%,var(--lg-sky2) 42%,var(--lg-sky3) 58%,var(--lg-ground) 100%)}
-[data-theme="aurora"] .lg-scene{--lg-sky1:#0D111B;--lg-sky2:#1A1B2C;--lg-sky3:#4A2C27;--lg-ground:#121520;
-  --lg-glass:rgba(22,26,34,.48);--lg-glass-bd:rgba(255,255,255,.10);--lg-pill:rgba(255,255,255,.08);
-  --lg-tx:#F1F3F2;--lg-tx2:#B4B9B6;--lg-tx3:#868C89;--lg-day:rgba(24,28,36,.78);--lg-strip:rgba(255,255,255,.06);
-  --lg-dark:rgba(8,10,14,.9);--lg-sun1:#FFC98A;--lg-sun2:#F57A2A;--lg-sun3:#C9420E;--lg-glow:rgba(245,110,40,.30)}
+  background:linear-gradient(180deg,var(--lg-sky0) 0%,var(--lg-sky1) 20%,var(--lg-sky2) 38%,var(--lg-sky3) 50%,var(--lg-sky4) 57%,var(--lg-sky3) 70%)}
+[data-theme="aurora"] .lg-scene{--lg-sky0:#080C18;--lg-sky1:#141C34;--lg-sky2:#2B2B4A;--lg-sky3:#7A4A48;--lg-sky4:#D0784A;
+  --lg-hill1:#3A3550;--lg-hill2:#252639;--lg-hill3:#161A24;--lg-grass1:#2C2A30;--lg-grass2:#1A1E22;--lg-grass3:#101416;
+  --lg-pv1:#7A6E86;--lg-pv2:#2C3550;--lg-pv3:#0E1422;--lg-pv4:#18233A;--lg-frame:rgba(170,180,200,.45);--lg-leg:#2A2E36;
+  --lg-shade:rgba(0,0,0,.35);--lg-glint:#F08A4A;--lg-haze:#5A3A44;
+  --lg-sun-core:#FFE2B0;--lg-sun-mid:#FFB070;--lg-sun-glow:rgba(240,120,60,.45);--lg-cloud:rgba(150,120,160,.28);--lg-cloud-lo:rgba(220,120,90,.25);
+  --lg-glass-a:rgba(30,34,46,.55);--lg-glass-b:rgba(20,22,32,.30);--lg-edge:rgba(255,255,255,.28);--lg-edge-lo:rgba(255,255,255,.04);
+  --lg-pill:rgba(255,255,255,.07);--lg-pill-bd:rgba(255,255,255,.14);--lg-strip:rgba(255,255,255,.05);
+  --lg-tx:#F1F3F2;--lg-tx2:#B8BDBA;--lg-tx3:#878D8A;--lg-glow:rgba(255,150,80,.5);--lg-smoke:rgba(6,8,12,.7)}
 .lg-sky{position:absolute;inset:0;pointer-events:none}
-.lg-sun{position:absolute;width:min(46vw,460px);aspect-ratio:1;border-radius:50%;right:9%;top:9%;
-  background:radial-gradient(circle at 38% 36%,var(--lg-sun1) 0%,var(--lg-sun2) 46%,var(--lg-sun3) 78%);
-  box-shadow:0 0 120px 50px var(--lg-glow),0 0 260px 120px var(--lg-glow);filter:saturate(1.05)}
-[data-theme="aurora"] .lg-sun{top:30%;width:min(40vw,400px)}
-.lg-farm{position:absolute;left:0;right:0;bottom:0;width:100%;height:44%;display:block;
-  -webkit-mask-image:linear-gradient(to bottom,transparent 0%,#000 30%);mask-image:linear-gradient(to bottom,transparent 0%,#000 30%)}
-[data-theme="aurora"] .lg-farm{opacity:.75}
+.lg-halo{position:absolute;right:calc(12% - 380px);top:calc(13% - 380px);width:760px;height:760px;border-radius:50%;
+  background:radial-gradient(circle,var(--lg-sun-glow) 0%,transparent 65%)}
+.lg-sun{position:absolute;right:calc(12% - 70px);top:calc(13% - 70px);width:140px;height:140px;border-radius:50%;
+  background:radial-gradient(circle,var(--lg-sun-core) 0%,var(--lg-sun-core) 22%,var(--lg-sun-mid) 36%,var(--lg-sun-glow) 52%,transparent 72%);
+  filter:blur(1px)}
+[data-theme="aurora"] .lg-sun{top:calc(40% - 70px);right:calc(8% - 70px)}
+[data-theme="aurora"] .lg-halo{top:calc(40% - 380px);right:calc(8% - 380px)}
+.lg-cloud{position:absolute;width:310px;height:110px;transform-origin:0 0;animation:lgDrift 70s ease-in-out infinite alternate}
+.lg-cloud span{position:absolute;border-radius:50%;filter:blur(10px);
+  background:radial-gradient(ellipse at 50% 35%,var(--lg-cloud) 0%,var(--lg-cloud) 35%,var(--lg-cloud-lo) 62%,transparent 72%)}
+@keyframes lgDrift{from{translate:-40px 0}to{translate:40px 0}}
+.lg-land{position:absolute;left:0;right:0;bottom:0;width:100%;height:47%;display:block}
+.lg-grain{position:absolute;inset:0;opacity:.09;mix-blend-mode:overlay;background-image:${LG_GRAIN}}
 
 .lg-wrap{position:relative;z-index:1;min-height:100dvh;display:grid;place-items:center;
   padding:calc(20px + env(safe-area-inset-top,0px)) 16px calc(20px + env(safe-area-inset-bottom,0px))}
-.lg-grid{width:min(880px,100%);display:grid;grid-template-columns:1fr 1fr;gap:16px;
-  grid-template-areas:"login day" "dark day"}
-.lg-glass{background:var(--lg-glass);border:1px solid var(--lg-glass-bd);border-radius:26px;
-  -webkit-backdrop-filter:blur(22px) saturate(1.35);backdrop-filter:blur(22px) saturate(1.35);
-  box-shadow:0 24px 60px rgba(90,50,15,.16),inset 0 1px 0 rgba(255,255,255,.5)}
-[data-theme="aurora"] .lg-glass{box-shadow:0 24px 60px rgba(0,0,0,.45),inset 0 1px 0 rgba(255,255,255,.06)}
+.lg-grid{width:min(880px,100%);display:grid;grid-template-columns:1fr 1fr;gap:16px;grid-template-areas:"login day" "dark day"}
+
+/* กระจก: พื้นไล่ใส · เบลอฉากข้างหลัง · ขอบสะท้อนแสงไล่สี (::before) · แสงเงาเงาวาวมุมซ้ายบน (::after) */
+.lg-glass{position:relative;isolation:isolate;border-radius:26px;
+  background:linear-gradient(140deg,var(--lg-glass-a),var(--lg-glass-b));
+  -webkit-backdrop-filter:blur(26px) saturate(1.7) brightness(1.04);backdrop-filter:blur(26px) saturate(1.7) brightness(1.04);
+  box-shadow:0 30px 80px rgba(50,35,20,.20),0 2px 6px rgba(50,35,20,.06),inset 0 1px 0 var(--lg-edge)}
+[data-theme="aurora"] .lg-glass{box-shadow:0 30px 80px rgba(0,0,0,.5),inset 0 1px 0 var(--lg-edge)}
+.lg-glass::before{content:"";position:absolute;inset:0;border-radius:inherit;padding:1px;pointer-events:none;z-index:-1;
+  background:linear-gradient(135deg,var(--lg-edge),var(--lg-edge-lo) 38%,var(--lg-edge-lo) 62%,var(--lg-edge));
+  -webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);-webkit-mask-composite:xor;
+  mask:linear-gradient(#000 0 0) content-box exclude,linear-gradient(#000 0 0)}
+.lg-glass::after{content:"";position:absolute;inset:0;border-radius:inherit;pointer-events:none;z-index:-1;
+  background:radial-gradient(120% 70% at 0% 0%,rgba(255,255,255,.32),transparent 55%)}
+[data-theme="aurora"] .lg-glass::after{background:radial-gradient(120% 70% at 0% 0%,rgba(255,255,255,.07),transparent 55%)}
+
 .lg-login{grid-area:login;padding:22px 22px 20px;display:flex;flex-direction:column;gap:12px}
+.lg-setup{width:min(560px,100%);padding:24px 24px 22px;display:flex;flex-direction:column;gap:12px}
 .lg-top{display:flex;justify-content:space-between;align-items:center;gap:10px}
 .lg-mini{font-size:11.5px;color:var(--lg-tx2);font-weight:600}
 .lg-h{font-family:var(--brand-font),var(--sans);font-size:30px;font-weight:500;letter-spacing:-.01em;margin:14px 0 6px}
+.lg-setup .lg-h{margin:10px 0 4px}
+.lg-sub{font-size:13px;line-height:1.6;color:var(--lg-tx2)}
+.lg-sec{font-size:11px;font-weight:700;letter-spacing:.06em;color:var(--lg-tx3);margin-top:6px}
+.lg-two{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.lg-span2{grid-column:1 / -1}
+
 .lg-pill{display:flex;align-items:center;gap:10px;background:var(--lg-pill);border-radius:999px;padding:5px 6px 5px 5px;
-  min-height:46px;box-shadow:inset 0 0 0 1px var(--lg-glass-bd);transition:box-shadow .15s;cursor:text}
-.lg-pill:focus-within{box-shadow:inset 0 0 0 1.5px var(--primary),0 0 0 4px var(--primary-soft)}
+  min-height:46px;box-shadow:inset 0 0 0 1px var(--lg-pill-bd),inset 0 1px 2px rgba(0,0,0,.04);transition:box-shadow .15s,background .15s;cursor:text}
+.lg-pill:focus-within{background:var(--lg-glass-a);box-shadow:inset 0 0 0 1.5px var(--primary),0 0 0 4px var(--primary-soft)}
+.lg-pill-lb{min-height:52px}
 .lg-ic{width:36px;height:36px;border-radius:50%;display:grid;place-items:center;flex:none;background:var(--lg-pill);
-  box-shadow:inset 0 0 0 1px var(--lg-glass-bd)}
-.lg-scene .lg-pill input{flex:1;background:transparent;box-shadow:none;border:none;outline:none;padding:8px 4px;
+  box-shadow:inset 0 0 0 1px var(--lg-pill-bd),0 1px 2px rgba(0,0,0,.06)}
+.lg-ic b{font-family:var(--brand-font);font-size:15px;font-weight:600;color:var(--lg-tx)}
+.lg-pill-col{flex:1;min-width:0;display:flex;flex-direction:column}
+.lg-pill-lab{font-size:10px;font-weight:700;color:var(--lg-tx3);padding:0 4px;line-height:1.2}
+.lg-scene .lg-pill input{flex:1;width:100%;background:transparent;box-shadow:none;border:none;outline:none;padding:8px 4px;
   font-size:15px;color:var(--lg-tx);font-family:inherit}
+.lg-scene .lg-pill-col input{padding:2px 4px 3px}
 .lg-scene .lg-pill input::placeholder{color:var(--lg-tx3)}
-.lg-chip{display:inline-flex;align-items:center;gap:5px;border:none;cursor:pointer;font-family:inherit;
-  font-size:11.5px;font-weight:700;color:var(--lg-tx2);background:var(--lg-day);border-radius:999px;padding:8px 12px;
-  box-shadow:0 1px 3px rgba(0,0,0,.08)}
+.lg-chip{display:inline-flex;align-items:center;gap:5px;border:none;cursor:pointer;font-family:inherit;flex:none;
+  font-size:11.5px;font-weight:700;color:var(--lg-tx2);background:var(--lg-glass-a);border-radius:999px;padding:8px 12px;
+  box-shadow:inset 0 0 0 1px var(--lg-pill-bd)}
 .lg-err{font-size:12.5px;font-weight:600;color:var(--tint-red-tx2);background:var(--tint-red-bg);border-radius:12px;padding:8px 12px}
 .lg-foot{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:8px}
 .lg-note{font-size:10.5px;line-height:1.55;color:var(--lg-tx2)}
-.lg-go{display:inline-flex;align-items:center;gap:10px;border:none;cursor:pointer;font-family:inherit;flex:none;
-  background:var(--lg-dark);color:#fff;border-radius:999px;padding:5px 5px 5px 18px;font-size:13.5px;font-weight:700;
-  box-shadow:0 10px 24px rgba(0,0,0,.22);transition:transform .15s}
-[data-theme="aurora"] .lg-go{background:#F1F3F2;color:#16191A}
-.lg-go:hover:not(:disabled){transform:translateY(-1px)}
-.lg-go:disabled{opacity:.7;cursor:default}
-.lg-go-dot{width:34px;height:34px;border-radius:50%;display:grid;place-items:center;background:var(--primary);flex:none}
+.lg-link{background:none;border:none;cursor:pointer;font-family:inherit;font-size:12.5px;color:var(--lg-tx2);padding:6px 2px}
 
-.lg-dark{grid-area:dark;background:var(--lg-dark);color:#fff;border-radius:26px;padding:22px;min-height:150px;
-  display:flex;flex-direction:column;justify-content:space-between;gap:18px;box-shadow:0 24px 60px rgba(0,0,0,.22);
-  -webkit-backdrop-filter:blur(12px);backdrop-filter:blur(12px)}
+/* ปุ่มกระจก + ลูกแก้วดวงอาทิตย์ */
+.lg-gbtn{position:relative;display:inline-flex;align-items:center;gap:12px;flex:none;cursor:pointer;font-family:inherit;
+  border:none;border-radius:999px;padding:5px 5px 5px 20px;min-height:48px;color:var(--lg-tx);
+  background:linear-gradient(180deg,rgba(255,255,255,.62),rgba(255,255,255,.2));
+  -webkit-backdrop-filter:blur(14px) saturate(1.6);backdrop-filter:blur(14px) saturate(1.6);
+  box-shadow:inset 0 1px 1px rgba(255,255,255,.95),inset 0 -10px 18px rgba(255,255,255,.18),inset 0 0 0 1px rgba(255,255,255,.6),
+    0 12px 30px rgba(60,40,20,.20),0 0 0 0 var(--lg-glow);
+  transition:transform .18s cubic-bezier(.3,.9,.3,1),box-shadow .25s}
+[data-theme="aurora"] .lg-gbtn{background:linear-gradient(180deg,rgba(255,255,255,.18),rgba(255,255,255,.05));
+  box-shadow:inset 0 1px 1px rgba(255,255,255,.35),inset 0 0 0 1px rgba(255,255,255,.16),0 12px 30px rgba(0,0,0,.45)}
+.lg-gbtn:hover:not(:disabled){transform:translateY(-1px);
+  box-shadow:inset 0 1px 1px rgba(255,255,255,.95),inset 0 -10px 18px rgba(255,255,255,.18),inset 0 0 0 1px rgba(255,255,255,.6),
+    0 14px 34px rgba(60,40,20,.22),0 0 26px 2px var(--lg-glow)}
+.lg-gbtn:active:not(:disabled){transform:scale(.97)}
+.lg-gbtn:disabled{cursor:default}
+.lg-gbtn-tx{font-size:13.5px;font-weight:700;letter-spacing:.01em;white-space:nowrap;
+  text-shadow:0 0 14px var(--lg-glow),0 0 2px rgba(255,255,255,.6)}
+.lg-orb{position:relative;width:38px;height:38px;border-radius:50%;display:grid;place-items:center;flex:none;
+  background:radial-gradient(circle at 34% 28%,var(--lg-orb1) 0%,var(--lg-orb2) 26%,var(--lg-orb3) 58%,var(--lg-orb4) 100%);
+  box-shadow:0 0 18px var(--lg-glow),inset 0 -4px 8px rgba(120,30,0,.35),inset 0 2px 3px rgba(255,255,255,.6)}
+.lg-orb>svg{position:relative;z-index:1;filter:drop-shadow(0 1px 1px rgba(120,40,0,.4))}
+.lg-orb-swirl{position:absolute;inset:0;border-radius:50%;mix-blend-mode:screen;opacity:.8;
+  background:conic-gradient(from 0deg,transparent 0deg,rgba(255,255,255,.65) 50deg,transparent 120deg,rgba(255,220,150,.5) 220deg,transparent 280deg);
+  animation:lgSpin 4.5s linear infinite}
+.lg-gbtn.is-busy .lg-orb-swirl{animation-duration:.9s}
+@keyframes lgSpin{to{transform:rotate(360deg)}}
+.lg-burst{position:absolute;left:50%;top:50%;width:0;height:0;pointer-events:none;z-index:2}
+.lg-burst i{position:absolute;left:0;top:0;border-radius:50%;background:#FFE3A8;
+  box-shadow:0 0 8px 2px rgba(255,170,70,.85);animation:lgBurst .7s cubic-bezier(.15,.7,.3,1) forwards}
+@keyframes lgBurst{from{transform:translate(-50%,-50%) scale(1);opacity:1}
+  to{transform:translate(calc(-50% + var(--dx)),calc(-50% + var(--dy))) scale(.2);opacity:0}}
+
+.lg-dark{grid-area:dark;position:relative;color:#fff;border-radius:26px;padding:22px;min-height:150px;
+  display:flex;flex-direction:column;justify-content:space-between;gap:18px;
+  background:linear-gradient(140deg,var(--lg-smoke),rgba(18,22,24,.5));
+  -webkit-backdrop-filter:blur(20px) saturate(1.3);backdrop-filter:blur(20px) saturate(1.3);
+  box-shadow:0 30px 70px rgba(0,0,0,.25),inset 0 1px 0 rgba(255,255,255,.18),inset 0 0 0 1px rgba(255,255,255,.06)}
 .lg-dark-h{font-size:26px;font-weight:500;line-height:1.25}
-.lg-dark-h span{color:rgba(255,255,255,.5);font-size:18px}
+.lg-dark-h span{color:rgba(255,255,255,.55);font-size:18px}
 .lg-dark-row{display:flex;justify-content:space-between;align-items:flex-end;font-family:var(--brand-font);
-  letter-spacing:.28em;font-size:11px;color:rgba(255,255,255,.7)}
+  letter-spacing:.28em;font-size:11px;color:rgba(255,255,255,.72)}
 
-.lg-day{grid-area:day;position:relative;overflow:hidden;background:var(--lg-day);border-radius:26px;min-height:440px;
-  box-shadow:0 24px 60px rgba(90,50,15,.18)}
-.lg-day-orb{position:absolute;width:62%;aspect-ratio:1;border-radius:50%;right:-14%;top:30%;
-  background:radial-gradient(circle at 35% 35%,var(--lg-sun1),var(--lg-sun2) 50%,var(--lg-sun3));
+.lg-day{grid-area:day;overflow:hidden;min-height:440px}
+.lg-day-orb{position:absolute;width:62%;aspect-ratio:1;border-radius:50%;right:-14%;top:30%;z-index:-1;
+  background:radial-gradient(circle at 35% 35%,var(--lg-orb1),var(--lg-orb2) 30%,var(--lg-orb3) 62%,var(--lg-orb4));
   box-shadow:0 0 80px 20px var(--lg-glow)}
 .lg-strip{position:absolute;left:12px;top:12px;bottom:12px;width:56%;border-radius:20px;padding:22px 20px;
-  background:var(--lg-strip);-webkit-backdrop-filter:blur(26px);backdrop-filter:blur(26px);
-  box-shadow:inset 0 0 0 1px var(--lg-glass-bd);display:flex;flex-direction:column}
+  background:var(--lg-strip);-webkit-backdrop-filter:blur(24px);backdrop-filter:blur(24px);
+  box-shadow:inset 0 0 0 1px var(--lg-pill-bd),inset 0 1px 0 var(--lg-edge);display:flex;flex-direction:column}
 .lg-wd{font-size:44px;font-weight:500;line-height:1.05;letter-spacing:-.01em}
 .lg-dm{font-size:40px;font-weight:400;line-height:1.1;color:var(--lg-tx3)}
 .lg-time{margin-top:auto;font-size:12.5px;line-height:1.6;color:var(--lg-tx2);font-variant-numeric:tabular-nums}
 .lg-strip-b{margin-top:auto;display:flex;flex-direction:column;align-items:center;gap:6px;
   font-family:var(--brand-font);font-size:12px;color:var(--lg-tx2)}
 .lg-day-side{position:absolute;right:20px;top:22px;text-align:right;font-size:12px;line-height:1.55;color:var(--lg-tx2);font-weight:600}
-.lg-day-tag{position:absolute;right:16px;bottom:16px;display:inline-flex;align-items:center;gap:8px;
-  background:var(--lg-dark);color:#fff;border-radius:999px;padding:4px 4px 4px 14px;font-size:12px;font-weight:700}
 
+@media (prefers-reduced-motion:reduce){.lg-cloud,.lg-orb-swirl{animation:none}}
 @media (max-width:720px){
   .lg-grid{grid-template-columns:1fr;grid-template-areas:"login" "dark";max-width:440px}
   .lg-day{display:none}
-  .lg-sun{width:72vw;right:-18%;top:3%}
+  .lg-two{grid-template-columns:1fr}
+  .lg-halo{right:calc(14% - 260px);top:calc(16% - 260px);width:520px;height:520px}
+  .lg-sun{right:calc(14% - 55px);top:calc(16% - 55px);width:110px;height:110px}
+  .lg-cloud{scale:.6}
   .lg-dark{min-height:0}
   .lg-dark-h{font-size:21px}
   .lg-dark-h span{font-size:15px}
-  .lg-farm{height:34%}
+  .lg-land{height:40%}
 }
 `;
 
