@@ -123,6 +123,9 @@
     M + " .app-root::before{inset:0;filter:none}",
     /* สี/ตำแหน่งวงสีสร้างใน meshCss() ข้างล่าง (สลับชุดสี/สุ่มตำแหน่งได้) */
 
+    /* ── ป้ายเล็ก (chip) ที่ใช้พื้น --surface2 — บนการ์ดกระจกสีขาวกลืนจนกรอบหาย ให้เป็นสีเทาอมข้อความแทน ── */
+    G + " [style*='border-radius: var(--r-chip)'][style*='background: var(--surface2)']{background:color-mix(in srgb,var(--text-2) 12%,transparent)!important}",
+
     /* ── แผ่นกระจก: แถบเมนู · หัวจอ · แผง · การ์ดใหญ่ทุกใบ (inline style ที่ใช้ --shadow-card) ── */
     G + " .sidebar," + G + " .app-header{background:linear-gradient(140deg,var(--sk-glass-a),var(--sk-glass-b));",
     "-webkit-backdrop-filter:var(--sk-blur);backdrop-filter:var(--sk-blur);border-color:transparent}",
