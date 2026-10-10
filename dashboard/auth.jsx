@@ -822,8 +822,10 @@ function LgScene({ children }) {
 
 /* ภาพพื้นหลัง: สุ่มหนึ่งภาพตอนเปิดหน้า ไม่สลับ ไม่ซูม (ผู้ใช้สั่ง — ซูม/เม็ดฟิล์มทำให้ภาพไม่คม)
    สุ่มครั้งเดียวต่อการโหลดหน้า — ล็อกอินแล้วไปหน้าตั้งค่าบัญชีจะได้ภาพเดิม
-   ไฟล์อยู่ dashboard/assets (index.html กับ liff.html อยู่ราก จึงอ้าง path เดียวกันได้) */
-const LG_PHOTOS = ["dashboard/assets/login-farm.jpg", "dashboard/assets/login-village.jpg"];
+   ไฟล์อยู่ dashboard/assets (index.html กับ liff.html อยู่ราก จึงอ้าง path เดียวกันได้)
+   ตอนนี้มีภาพเดียว: ช่างติดตั้งบนหลังคาอยู่ฝั่งขวา ฟ้าว่างฝั่งซ้าย — จอกว้างจึงวางการ์ดชิดซ้ายบนฟ้า (.lg-wrap)
+   เพิ่มภาพใหม่ควรเว้นฝั่งซ้าย/กลางให้ว่างแบบเดียวกัน */
+const LG_PHOTOS = ["dashboard/assets/login-crew.jpg"];
 const LG_PHOTO = LG_PHOTOS[Math.floor(Math.random() * LG_PHOTOS.length)];
 
 function LgSky() {
@@ -1049,12 +1051,13 @@ const LG_CSS = `
   --lg-tx:#F1F3F2;--lg-tx2:#B8BDBA;--lg-tx3:#878D8A;--lg-glow:rgba(255,150,80,.5);--lg-smoke:rgba(6,8,12,.7);
   --lg-tint:linear-gradient(180deg,rgba(10,14,30,.72) 0%,rgba(40,24,40,.55) 55%,rgba(8,10,16,.78) 100%)}
 .lg-sky{position:absolute;inset:0;pointer-events:none;overflow:hidden}
-.lg-photo{position:absolute;inset:0;background-size:cover;background-position:center 45%}
+.lg-photo{position:absolute;inset:0;background-size:cover;background-position:65% center}
 .lg-tint{position:absolute;inset:0;background:var(--lg-tint)}
 [data-theme="aurora"] .lg-photo{filter:saturate(.75)}
 
 .lg-wrap{position:relative;z-index:1;min-height:100dvh;display:grid;place-items:center;
   padding:calc(20px + env(safe-area-inset-top,0px)) 16px calc(20px + env(safe-area-inset-bottom,0px))}
+@media (min-width:900px){.lg-wrap{justify-items:start;padding-left:max(16px,7vw)}}
 .lg-grid{width:min(440px,100%);display:grid;grid-template-columns:1fr;gap:14px;grid-template-areas:"login" "dark"}
 
 /* กระจก: พื้นไล่ใส · เบลอฉากข้างหลัง · ขอบสะท้อนแสงไล่สี (::before) · แสงเงาเงาวาวมุมซ้ายบน (::after) */
