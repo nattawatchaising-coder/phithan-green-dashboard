@@ -11,7 +11,7 @@
    (ถ้าบอกแยกว่า "ไม่พบบัญชีนี้" กับ "รหัสผ่านไม่ถูกต้อง" = แจกรายชื่อผู้ใช้ให้ฟรี)
    ============================================================ */
 
-import { ENV, json, body, verifyIdToken, rtdbGet, rtdbUpdate, rtdbSet } from "../_lib/line.mjs";
+import { ENV, json, body, verifyIdToken, rtdbGet, rtdbUpdate, rtdbSet, matchCred, tokenForUser } from "../_lib/line.mjs";
 
 const MAX_FAIL = 5;
 const BAD = { error: "ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้อง" };
@@ -38,22 +38,15 @@ export async function POST(request) {
 
   /* ผูกไปแล้วก็ไม่ต้องถาม PIN ซ้ำ — กันกรณีกดสองครั้ง */
   const already = await rtdbGet("lineLinks/" + id.sub);
-  if (already && already.userId) return json({ userId: already.userId, name: already.name || "" });
+  if (already && already.userId) return json({ userId: already.userId, name: already.name || "", token: await tokenForUser(already.userId) });
 
   let users = null;
   try { users = await rtdbGet("users"); } catch (e) { return json({ error: "db" }, 502); }
-  const list = users && typeof users === "object" ? Object.values(users) : [];
 
-  /* เทียบแบบเดียวกับ loginCred (dashboard/auth.jsx) เป๊ะ รวมทั้งทางลัดของบัญชีเก่าที่ยังไม่ตั้ง username
+  /* เทียบด้วย matchCred ตัวเดียวกับ /api/auth/login — กฎเดียวกับ sfMatchCred ในเว็บเป๊ะ
      ถ้าตรงนี้เพี้ยนจากฝั่งเว็บ จะกลายเป็นว่าเข้าเว็บได้แต่ผูก LINE ไม่ได้ โดยไม่มีใครเดาถูกว่าทำไม */
-  const uname = String(b.username || "").trim().toLowerCase();
-  const pin   = String(b.pin == null ? "" : b.pin);
-  const u = list.find((x) => (x.username || "").toLowerCase() === uname)
-         || list.find((x) => !x.username && (x.name || "").trim().toLowerCase() === uname)
-         || (uname === "admin" ? list.find((x) => !x.username && x.role === "admin") : null);
-
-  const okUser = u && u.active !== false && String(u.pin) === pin && uname;
-  if (!okUser) {
+  const u = matchCred(users, b.username, b.pin);
+  if (!u) {
     const n = (fails && Number(fails.n) || 0) + 1;
     await rtdbSet("lineBindFails/" + id.sub, { n, at: new Date().toISOString() }).catch(() => {});
     return json(BAD, 401);
@@ -69,5 +62,5 @@ export async function POST(request) {
   patch["lineBindFails/" + id.sub] = null;
 
   try { await rtdbUpdate("/", patch); } catch (e) { return json({ error: "db" }, 502); }
-  return json({ userId: u.id, name: u.name || "" });
+  return json({ userId: u.id, name: u.name || "", token: await tokenForUser(u) });
 }

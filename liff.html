@@ -84,6 +84,7 @@ window.LN_LIFF_ID = "2011577974-yzS9mgQQ";
 
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
 <script src="firebase-config.js"></script>
 
 <script src="dashboard/data.js?v=25"></script>
@@ -103,7 +104,7 @@ window.LN_LIFF_ID = "2011577974-yzS9mgQQ";
 <script src="dashboard/build/store.js?v=50"></script>
 <script src="dashboard/build/media.js?v=20"></script>
 <script src="dashboard/build/daily.js?v=19"></script>
-<script src="dashboard/build/auth.js?v=53"></script>
+<script src="dashboard/build/auth.js?v=54"></script>
 <!-- ตัวสร้างคิวอาร์ + นามบัตรอิเล็กทรอนิกส์ — หลัง auth.js เพราะอ่าน ROLE_INFO/userRoles/useUserAvatar จากที่นั่น
      น้ำหนักที่เพิ่มมาสองตัวนี้คุ้มกับการได้นามบัตรในไลน์ ซึ่งเป็นที่ที่ช่างอยู่ตอนส่งจริง -->
 <script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.js"></script>
@@ -114,7 +115,7 @@ window.LN_LIFF_ID = "2011577974-yzS9mgQQ";
 <!-- om.js เข้ามาเพราะแท็บ "ซ่อม" ใช้ใบแจ้งซ่อมชุดเดียวกับหน้า O&M บนเดสก์ท็อป
      (เป็นไฟล์ตรรกะล้วน ไม่มีหน้าจอเดสก์ท็อปติดมา — หน้าจออยู่ที่ views-om / om-ticket) -->
 <script src="dashboard/build/om.js?v=13"></script>
-<script src="dashboard/build/line.js?v=9"></script>
+<script src="dashboard/build/line.js?v=10"></script>
 <!-- ชิ้นส่วนหน้าตาที่ทุกหน้าในแอปไลน์ใช้ร่วมกัน — ต้องเป็นไฟล์แรกของชุด liff-*
      สคริปต์ชุดนี้ใช้ขอบเขตร่วมกัน ของที่ประกาศในนี้จึงถูกไฟล์ที่โหลดทีหลังเรียกใช้ได้ตรง ๆ
      ⚠ ห้ามประกาศ LN_CARD / LN_FIELD / LN_BTN / LnSub ซ้ำในไฟล์อื่นอีก
@@ -129,8 +130,11 @@ window.LN_LIFF_ID = "2011577974-yzS9mgQQ";
 
 <script>
 (function () {
-  var root = ReactDOM.createRoot(document.getElementById("root"));
-  root.render(React.createElement(window.LnGate, null, React.createElement(window.LnApp)));
+  /* รอสถานะล็อกอิน Firebase ก่อน mount — เหตุผลอยู่ใน firebase-config.js */
+  (window.FB_AUTH_READY || Promise.resolve()).then(function () {
+    var root = ReactDOM.createRoot(document.getElementById("root"));
+    root.render(React.createElement(window.LnGate, null, React.createElement(window.LnApp)));
+  });
 })();
 </script>
 </body>

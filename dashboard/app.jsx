@@ -1909,4 +1909,5 @@ function MapModal({ jobs, onOpen, onClose }) {
   );
 }
 
-ReactDOM.createRoot(document.getElementById("root")).render(<App />);
+/* รอสถานะล็อกอิน Firebase ก่อน mount — เหตุผลอยู่ใน firebase-config.js */
+(window.FB_AUTH_READY || Promise.resolve()).then(() => ReactDOM.createRoot(document.getElementById("root")).render(<App />));

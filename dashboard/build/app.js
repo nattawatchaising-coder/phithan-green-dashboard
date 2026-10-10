@@ -3292,4 +3292,4 @@ function MapModal({
     onOpen: onOpen
   }))));
 }
-ReactDOM.createRoot(document.getElementById("root")).render(React.createElement(App, null));
+(window.FB_AUTH_READY || Promise.resolve()).then(() => ReactDOM.createRoot(document.getElementById("root")).render(React.createElement(App, null)));

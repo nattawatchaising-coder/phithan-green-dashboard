@@ -23,3 +23,20 @@ const FIREBASE_CONFIG = {
     window.FBDB = null;
   }
 })();
+
+/* ── Firebase Auth (ล็อกอินด้วย custom token จาก /api/auth/login · /api/line/*) ──
+   FB_AUTH_READY = รอจนรู้ว่ามีเซสชัน Firebase ค้างอยู่ไหม แล้วค่อย render แอป
+   เพราะ listener ของฐานข้อมูลที่ถูกปฏิเสธสิทธิ์ (ตอนกฎเป็น auth != null) จะถูกยกเลิกถาวร
+   ไม่ต่อใหม่เองหลังล็อกอิน — จึงต้องมี auth ก่อน mount และ reload หลังล็อกอินสำเร็จ
+   หน้าไหนไม่ได้โหลด firebase-auth-compat (เช่น test-data.html) = ข้ามไป ทำงานแบบเดิม */
+window.FBAUTH = null;
+window.FB_AUTH_READY = new Promise(function (resolve) {
+  try {
+    if (!window.FBDB || !firebase.auth) return resolve(null);
+    window.FBAUTH = firebase.auth();
+    var done = false;
+    var fin = function (u) { if (!done) { done = true; resolve(u || null); } };
+    window.FBAUTH.onAuthStateChanged(fin);
+    setTimeout(function () { fin(window.FBAUTH.currentUser); }, 5000);   // เน็ตช้า/IndexedDB ถูกบล็อก — ไม่ค้างหน้าขาว
+  } catch (e) { resolve(null); }
+});

@@ -39,6 +39,15 @@ function lnPush(notifId) {
     why(0, e && e.message);
   }
 }
+async function lnUseToken(token, userId) {
+  if (!token) {
+    try {
+      localStorage.setItem(window.SF_LEGACY_KEY || "solarflow_auth_legacy", "1");
+    } catch (e) {}
+    return true;
+  }
+  return window.sfSignInToken ? await window.sfSignInToken(token, userId) : false;
+}
 function useLnSession() {
   const [state, setState] = React.useState({
     phase: "loading",
@@ -111,6 +120,16 @@ function useLnSession() {
           });
         }
         if (j.bound) {
+          if (!(await lnUseToken(j.token, j.userId))) {
+            if (!dead) setState({
+              phase: "error",
+              error: "เชื่อมต่อระบบยืนยันตัวตนไม่สำเร็จ ปิดหน้านี้แล้วเปิดใหม่อีกครั้ง",
+              idToken,
+              profile
+            });
+            return;
+          }
+          if (dead) return;
           try {
             localStorage.setItem(LN_SESSION_KEY, j.userId);
           } catch (e) {}
@@ -159,6 +178,10 @@ function useLnSession() {
       if (!r.ok || !j || !j.userId) return {
         ok: false,
         error: j && j.error || "เชื่อมบัญชีไม่สำเร็จ"
+      };
+      if (!(await lnUseToken(j.token, j.userId))) return {
+        ok: false,
+        error: "เชื่อมต่อระบบยืนยันตัวตนไม่สำเร็จ ลองใหม่อีกครั้ง"
       };
       try {
         localStorage.setItem(LN_SESSION_KEY, j.userId);
@@ -521,12 +544,21 @@ function LnWebForm({
     }, () => setUsers([]));
     return () => ref.off("value", h);
   }, []);
-  const submit = () => {
+  const submit = async () => {
     if (!users) return;
+    const s = await window.sfServerLogin(u, p);
+    if (s.ok) {
+      try {
+        localStorage.setItem(LN_SESSION_KEY, s.userId);
+      } catch (e) {}
+      return onDone(s.userId);
+    }
+    if (!s.fallback) return setErr(s.error);
     const m = window.sfMatchCred(users, u, p);
     if (!m.ok) return setErr(m.error);
     try {
       localStorage.setItem(LN_SESSION_KEY, m.user.id);
+      localStorage.setItem(window.SF_LEGACY_KEY, "1");
     } catch (e) {}
     onDone(m.user.id);
   };

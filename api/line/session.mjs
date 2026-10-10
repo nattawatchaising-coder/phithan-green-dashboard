@@ -8,7 +8,7 @@
       ก็เท่ากับแจกบัญชีทั้งบริษัทให้คนเดา PIN
    ============================================================ */
 
-import { ENV, json, body, verifyIdToken, rtdbGet } from "../_lib/line.mjs";
+import { ENV, json, body, verifyIdToken, rtdbGet, tokenForUser } from "../_lib/line.mjs";
 
 /* ชื่อ export ต้องเป็น POST ห้ามใช้ `export default`
    Vercel ตีความ default export ว่าเป็นลายเซ็นเก่า (req, res) => void
@@ -27,5 +27,6 @@ export async function POST(request) {
   try { link = await rtdbGet("lineLinks/" + id.sub); } catch (e) { return json({ error: "db" }, 502); }
 
   if (!link || !link.userId) return json({ bound: false });
-  return json({ bound: true, userId: link.userId, name: link.name || "" });
+  /* token = ใบผ่าน Firebase ให้หน้า LIFF signIn (null ถ้ายังไม่ตั้ง service account หรือบัญชีถูกระงับ) */
+  return json({ bound: true, userId: link.userId, name: link.name || "", token: await tokenForUser(link.userId) });
 }

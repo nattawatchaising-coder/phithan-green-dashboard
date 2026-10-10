@@ -558,6 +558,67 @@ function sfMatchCred(users, username, password) {
     user: u
   };
 }
+const SF_LEGACY_KEY = "solarflow_auth_legacy";
+const _legacyGet = () => {
+  try {
+    return localStorage.getItem(SF_LEGACY_KEY) === "1";
+  } catch (e) {
+    return false;
+  }
+};
+const _legacySet = on => {
+  try {
+    on ? localStorage.setItem(SF_LEGACY_KEY, "1") : localStorage.removeItem(SF_LEGACY_KEY);
+  } catch (e) {}
+};
+async function sfSignInToken(token, userId) {
+  if (!window.FBAUTH || !token) return false;
+  try {
+    const cur = window.FBAUTH.currentUser;
+    if (!(cur && userId && cur.uid === userId)) await window.FBAUTH.signInWithCustomToken(token);
+    _legacySet(false);
+    return true;
+  } catch (e) {
+    console.warn("[auth] signInWithCustomToken:", e && e.code, e && e.message);
+    return false;
+  }
+}
+async function sfServerLogin(username, pin) {
+  let r = null,
+    j = null;
+  try {
+    r = await fetch("/api/auth/login", {
+      method: "POST",
+      headers: {
+        "content-type": "application/json"
+      },
+      body: JSON.stringify({
+        username: String(username || ""),
+        pin: String(pin == null ? "" : pin)
+      })
+    });
+    j = await r.json().catch(() => null);
+  } catch (e) {
+    return {
+      fallback: true
+    };
+  }
+  if (r.status === 404 || j && j.fallback) return {
+    fallback: true
+  };
+  if (!r.ok || !j || !j.token) return {
+    ok: false,
+    error: j && j.error || "เข้าสู่ระบบไม่สำเร็จ"
+  };
+  if (!(await sfSignInToken(j.token, j.userId))) return {
+    ok: false,
+    error: "เชื่อมต่อระบบยืนยันตัวตนไม่สำเร็จ ลองใหม่อีกครั้ง"
+  };
+  return {
+    ok: true,
+    userId: j.userId
+  };
+}
 function useAuthStore() {
   const [users, setUsers] = React.useState(_AFB() ? null : () => _alsGet(SF_USERS_KEY, [ADMIN_SEED]));
   const [sessionId, setSession] = React.useState(() => {
@@ -568,6 +629,21 @@ function useAuthStore() {
     }
   });
   const [loading, setLoading] = React.useState(_AFB());
+  const [fbUid, setFbUid] = React.useState(() => window.FBAUTH && window.FBAUTH.currentUser ? window.FBAUTH.currentUser.uid : null);
+  const [legacy, setLegacy] = React.useState(_legacyGet);
+  React.useEffect(() => {
+    if (!window.FBAUTH) return;
+    return window.FBAUTH.onAuthStateChanged(u => setFbUid(u ? u.uid : null));
+  }, []);
+  React.useEffect(() => {
+    if (!legacy || fbUid || !window.FBAUTH) return;
+    fetch("/api/auth/login").then(r => r.ok ? r.json() : null).then(j => {
+      if (j && j.configured) {
+        _legacySet(false);
+        setLegacy(false);
+      }
+    }).catch(() => {});
+  }, [legacy, fbUid]);
   React.useEffect(() => {
     if (!_AFB()) return;
     const ref = _aref("users");
@@ -586,7 +662,8 @@ function useAuthStore() {
     if (!_AFB() && users) _alsSet(SF_USERS_KEY, users);
   }, [users]);
   const list = users || [];
-  const current = list.find(u => u.id === sessionId && u.active !== false) || null;
+  const authOk = !window.FBAUTH || (fbUid ? fbUid === sessionId : legacy);
+  const current = authOk && list.find(u => u.id === sessionId && u.active !== false) || null;
   const viewerKey = current ? current.id + "|" + userRoles(current).join(",") : "";
   React.useEffect(() => {
     if (window.pgSetViewer) window.pgSetViewer(current);
@@ -613,12 +690,25 @@ function useAuthStore() {
       ok: true
     };
   }, [users]);
-  const loginCred = React.useCallback((username, password) => {
+  const loginCred = React.useCallback(async (username, password) => {
+    const s = await sfServerLogin(username, password);
+    if (s.ok) {
+      try {
+        localStorage.setItem(SF_SESSION_KEY, s.userId);
+      } catch (e) {}
+      location.reload();
+      return {
+        ok: true
+      };
+    }
+    if (!s.fallback) return s;
     const m = sfMatchCred(users, username, password);
     if (!m.ok) return m;
     try {
       localStorage.setItem(SF_SESSION_KEY, m.user.id);
     } catch (e) {}
+    _legacySet(true);
+    setLegacy(true);
     setSession(m.user.id);
     return {
       ok: true
@@ -628,6 +718,9 @@ function useAuthStore() {
     try {
       localStorage.removeItem(SF_SESSION_KEY);
     } catch (e) {}
+    _legacySet(false);
+    setLegacy(false);
+    if (window.FBAUTH) window.FBAUTH.signOut().catch(() => {});
     setSession(null);
   }, []);
   const upsertUser = React.useCallback(rec => {
@@ -1419,8 +1512,13 @@ function LoginScreen({
   const [show, setShow] = React.useState(false);
   const [err, setErr] = React.useState("");
   const pwRef = React.useRef(null);
-  const submit = () => {
-    const res = authStore.loginCred(username, pw);
+  const [busy, setBusy] = React.useState(false);
+  const submit = async () => {
+    if (busy) return;
+    setBusy(true);
+    setErr("");
+    const res = await authStore.loginCred(username, pw);
+    setBusy(false);
     if (!res.ok) {
       setErr(res.error);
       setPw("");
@@ -1560,28 +1658,29 @@ function LoginScreen({
     }
   }, "\u26A0 ", err), React.createElement("button", {
     onClick: submit,
+    disabled: busy,
     style: {
       marginTop: 18,
       width: "100%",
       padding: "13px 16px",
       borderRadius: "var(--r-chip)",
       border: "none",
-      background: "var(--primary)",
+      background: busy ? "var(--text-3)" : "var(--primary)",
       color: "#fff",
       fontWeight: 700,
       fontFamily: "inherit",
       fontSize: 14.5,
-      cursor: "pointer",
+      cursor: busy ? "default" : "pointer",
       display: "inline-flex",
       alignItems: "center",
       justifyContent: "center",
       gap: 8
     }
-  }, "\u0E40\u0E02\u0E49\u0E32\u0E2A\u0E39\u0E48\u0E23\u0E30\u0E1A\u0E1A ", React.createElement(Icon, {
+  }, busy ? "กำลังเข้าสู่ระบบ…" : React.createElement(React.Fragment, null, "\u0E40\u0E02\u0E49\u0E32\u0E2A\u0E39\u0E48\u0E23\u0E30\u0E1A\u0E1A ", React.createElement(Icon, {
     name: "arrowRight",
     size: 17,
     color: "#fff"
-  })))));
+  }))))));
 }
 const NOTIF_KINDS = {
   reject: {
@@ -3322,6 +3421,9 @@ Object.assign(window, {
   LoginScreen,
   NotifPanel,
   UserManager,
+  sfServerLogin,
+  sfSignInToken,
+  SF_LEGACY_KEY,
   useUserAvatar,
   MyProfileModal,
   can,

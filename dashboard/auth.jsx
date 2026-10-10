@@ -271,6 +271,37 @@ function sfMatchCred(users, username, password) {
   return { ok: true, user: u };
 }
 
+/* ── ล็อกอินผ่านเซิร์ฟเวอร์ (Firebase custom token) — docs/security.md ──
+   เซิร์ฟเวอร์เทียบ PIN แล้วออกใบผ่าน → signInWithCustomToken → ฐานข้อมูลรู้ว่าใครเป็นใคร
+   เซิร์ฟเวอร์ยังไม่ได้ตั้ง service account / เปิดจาก localhost ที่ไม่มี /api → { fallback: true }
+   ให้เทียบในเบราว์เซอร์แบบเดิม และจดว่าเป็นเซสชันแบบเก่า (SF_LEGACY_KEY) */
+const SF_LEGACY_KEY = "solarflow_auth_legacy";
+const _legacyGet = () => { try { return localStorage.getItem(SF_LEGACY_KEY) === "1"; } catch (e) { return false; } };
+const _legacySet = (on) => { try { on ? localStorage.setItem(SF_LEGACY_KEY, "1") : localStorage.removeItem(SF_LEGACY_KEY); } catch (e) {} };
+
+async function sfSignInToken(token, userId) {
+  if (!window.FBAUTH || !token) return false;
+  try {
+    const cur = window.FBAUTH.currentUser;
+    if (!(cur && userId && cur.uid === userId)) await window.FBAUTH.signInWithCustomToken(token);
+    _legacySet(false);
+    return true;
+  } catch (e) { console.warn("[auth] signInWithCustomToken:", e && e.code, e && e.message); return false; }
+}
+
+async function sfServerLogin(username, pin) {
+  let r = null, j = null;
+  try {
+    r = await fetch("/api/auth/login", { method: "POST", headers: { "content-type": "application/json" },
+      body: JSON.stringify({ username: String(username || ""), pin: String(pin == null ? "" : pin) }) });
+    j = await r.json().catch(() => null);
+  } catch (e) { return { fallback: true }; }
+  if (r.status === 404 || (j && j.fallback)) return { fallback: true };
+  if (!r.ok || !j || !j.token) return { ok: false, error: (j && j.error) || "เข้าสู่ระบบไม่สำเร็จ" };
+  if (!(await sfSignInToken(j.token, j.userId))) return { ok: false, error: "เชื่อมต่อระบบยืนยันตัวตนไม่สำเร็จ ลองใหม่อีกครั้ง" };
+  return { ok: true, userId: j.userId };
+}
+
 /* ================================================================
    useAuthStore
    ================================================================ */
@@ -278,6 +309,23 @@ function useAuthStore() {
   const [users, setUsers]       = React.useState(_AFB() ? null : () => _alsGet(SF_USERS_KEY, [ADMIN_SEED]));
   const [sessionId, setSession] = React.useState(() => { try { return localStorage.getItem(SF_SESSION_KEY) || null; } catch (e) { return null; } });
   const [loading, setLoading]   = React.useState(_AFB());
+  /* uid ของ Firebase Auth — เซสชันใช้ได้เมื่อ uid ตรงกับผู้ใช้ที่จดไว้ใน localStorage เท่านั้น
+     (ก่อนนี้แค่ตั้ง localStorage เป็น id ของใครก็เข้าเป็นคนนั้นได้) */
+  const [fbUid, setFbUid]   = React.useState(() => (window.FBAUTH && window.FBAUTH.currentUser ? window.FBAUTH.currentUser.uid : null));
+  const [legacy, setLegacy] = React.useState(_legacyGet);
+
+  React.useEffect(() => {
+    if (!window.FBAUTH) return;
+    return window.FBAUTH.onAuthStateChanged((u) => setFbUid(u ? u.uid : null));
+  }, []);
+
+  /* เซสชันแบบเก่าใช้ได้แค่ช่วงที่เซิร์ฟเวอร์ยังออกใบผ่านไม่ได้ — พอตั้งค่าเสร็จแล้วให้ล็อกอินใหม่หนึ่งครั้ง */
+  React.useEffect(() => {
+    if (!legacy || fbUid || !window.FBAUTH) return;
+    fetch("/api/auth/login").then((r) => (r.ok ? r.json() : null)).then((j) => {
+      if (j && j.configured) { _legacySet(false); setLegacy(false); }
+    }).catch(() => {});
+  }, [legacy, fbUid]);
 
   /* Firebase realtime + seed admin */
   React.useEffect(() => {
@@ -296,7 +344,8 @@ function useAuthStore() {
   React.useEffect(() => { if (!_AFB() && users) _alsSet(SF_USERS_KEY, users); }, [users]);
 
   const list    = users || [];
-  const current = list.find((u) => u.id === sessionId && u.active !== false) || null;
+  const authOk  = !window.FBAUTH || (fbUid ? fbUid === sessionId : legacy);
+  const current = (authOk && list.find((u) => u.id === sessionId && u.active !== false)) || null;
   /* บอกตัวเก็บงาน/ลูกค้าว่าคนที่ดูเป็นแอดมินไหม — งานเฉพาะแอดมิน (adminOnly) ซ่อนจากคนอื่น */
   const viewerKey = current ? current.id + "|" + userRoles(current).join(",") : "";
   React.useEffect(() => { if (window.pgSetViewer) window.pgSetViewer(current); }, [viewerKey]);
@@ -312,16 +361,27 @@ function useAuthStore() {
   }, [users]);
 
   // เข้าระบบด้วย ชื่อผู้ใช้ (ID) + รหัสผ่าน — fallback: จับคู่ด้วย "ชื่อ" สำหรับบัญชีเก่าที่ยังไม่ตั้ง ID
-  const loginCred = React.useCallback((username, password) => {
+  // คืน Promise — เซิร์ฟเวอร์เป็นคนเทียบ PIN · ผ่านแล้ว reload เพราะ listener ที่ถูกปฏิเสธก่อนล็อกอินไม่ต่อใหม่เอง
+  const loginCred = React.useCallback(async (username, password) => {
+    const s = await sfServerLogin(username, password);
+    if (s.ok) {
+      try { localStorage.setItem(SF_SESSION_KEY, s.userId); } catch (e) {}
+      location.reload();
+      return { ok: true };
+    }
+    if (!s.fallback) return s;
     const m = sfMatchCred(users, username, password);
     if (!m.ok) return m;
     try { localStorage.setItem(SF_SESSION_KEY, m.user.id); } catch (e) {}
+    _legacySet(true); setLegacy(true);
     setSession(m.user.id);
     return { ok: true };
   }, [users]);
 
   const logout = React.useCallback(() => {
     try { localStorage.removeItem(SF_SESSION_KEY); } catch (e) {}
+    _legacySet(false); setLegacy(false);
+    if (window.FBAUTH) window.FBAUTH.signOut().catch(() => {});
     setSession(null);
   }, []);
 
@@ -722,8 +782,12 @@ function LoginScreen({ authStore }) {
   const [err, setErr] = React.useState("");
   const pwRef = React.useRef(null);
 
-  const submit = () => {
-    const res = authStore.loginCred(username, pw);
+  const [busy, setBusy] = React.useState(false);
+  const submit = async () => {
+    if (busy) return;
+    setBusy(true); setErr("");
+    const res = await authStore.loginCred(username, pw);
+    setBusy(false);
     if (!res.ok) { setErr(res.error); setPw(""); }
   };
 
@@ -770,11 +834,12 @@ function LoginScreen({ authStore }) {
             </AField>
           </div>
           {err && <div style={{ marginTop: 12, fontSize: 12.5, color: "var(--tint-red-tx2)", fontWeight: 600, textAlign: "center" }}>⚠ {err}</div>}
-          <button onClick={submit}
+          <button onClick={submit} disabled={busy}
             style={{ marginTop: 18, width: "100%", padding: "13px 16px", borderRadius: "var(--r-chip)", border: "none",
-              background: "var(--primary)", color: "#fff", fontWeight: 700, fontFamily: "inherit", fontSize: 14.5, cursor: "pointer",
+              background: busy ? "var(--text-3)" : "var(--primary)", color: "#fff", fontWeight: 700, fontFamily: "inherit", fontSize: 14.5,
+              cursor: busy ? "default" : "pointer",
               display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 8 }}>
-            เข้าสู่ระบบ <Icon name="arrowRight" size={17} color="#fff" />
+            {busy ? "กำลังเข้าสู่ระบบ…" : <>เข้าสู่ระบบ <Icon name="arrowRight" size={17} color="#fff" /></>}
           </button>
         </div>
       </div>
@@ -1415,7 +1480,7 @@ function UserEditModal({ initial, existing, onSave, onClose }) {
 
 Object.assign(window, { sfMatchCred, SF_SESSION_KEY, jobIsMine });
 
-Object.assign(window, { useAuthStore, useNotifStore, LoginScreen, NotifPanel, UserManager,
+Object.assign(window, { useAuthStore, useNotifStore, LoginScreen, NotifPanel, UserManager, sfServerLogin, sfSignInToken, SF_LEGACY_KEY,
   useUserAvatar, MyProfileModal,
   can, hasRole, userRoles, ROLE_INFO, ROLE_KEYS, ROLE_ALIAS, RoleBadge, RoleBadges,
   useRoleConfig, jobScopeOf, jobInScope, PERM_LIST, SCOPE_MODES, DEFAULT_PERMS, applyRoleConfig, roleConfigNow });

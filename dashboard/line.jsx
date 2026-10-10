@@ -58,6 +58,14 @@ function lnPush(notifId) {
   } catch (e) { why(0, e && e.message); }
 }
 
+/* ใบผ่าน Firebase จาก /api/line/session|bind → signIn ก่อนแอปจริง mount (docs/security.md)
+   ไม่มีใบผ่าน = เซิร์ฟเวอร์ยังไม่ได้ตั้ง service account → จดเป็นเซสชันแบบเก่าให้ useAuthStore ยอมรับ
+   คืน false เฉพาะตอนได้ใบผ่านมาแต่ signIn ไม่สำเร็จ */
+async function lnUseToken(token, userId) {
+  if (!token) { try { localStorage.setItem(window.SF_LEGACY_KEY || "solarflow_auth_legacy", "1"); } catch (e) {} return true; }
+  return window.sfSignInToken ? await window.sfSignInToken(token, userId) : false;
+}
+
 /* ================================================================
    useLnSession — ใช้ในหน้า LIFF เท่านั้น
    สถานะ: loading → bind (ยังไม่ผูก) | ready (ผูกแล้ว) | error
@@ -105,6 +113,11 @@ function useLnSession() {
           return setState({ phase: "error", error: why, idToken, profile });
         }
         if (j.bound) {
+          if (!(await lnUseToken(j.token, j.userId))) {
+            if (!dead) setState({ phase: "error", error: "เชื่อมต่อระบบยืนยันตัวตนไม่สำเร็จ ปิดหน้านี้แล้วเปิดใหม่อีกครั้ง", idToken, profile });
+            return;
+          }
+          if (dead) return;
           try { localStorage.setItem(LN_SESSION_KEY, j.userId); } catch (e) {}
           return setState({ phase: "ready", userId: j.userId, idToken, profile, error: "" });
         }
@@ -125,6 +138,7 @@ function useLnSession() {
       });
       const j = await r.json().catch(() => null);
       if (!r.ok || !j || !j.userId) return { ok: false, error: (j && j.error) || "เชื่อมบัญชีไม่สำเร็จ" };
+      if (!(await lnUseToken(j.token, j.userId))) return { ok: false, error: "เชื่อมต่อระบบยืนยันตัวตนไม่สำเร็จ ลองใหม่อีกครั้ง" };
       try { localStorage.setItem(LN_SESSION_KEY, j.userId); } catch (e) {}
       setState((s) => Object.assign({}, s, { phase: "ready", userId: j.userId, error: "" }));
       return { ok: true };
@@ -331,11 +345,18 @@ function LnWebForm({ reason, onDone }) {
     return () => ref.off("value", h);
   }, []);
 
-  const submit = () => {
+  /* เซิร์ฟเวอร์เทียบรหัสก่อน (ได้ใบผ่าน Firebase) · ยังไม่ได้ตั้งค่า = เทียบในเบราว์เซอร์แบบเดิม */
+  const submit = async () => {
     if (!users) return;
+    const s = await window.sfServerLogin(u, p);
+    if (s.ok) {
+      try { localStorage.setItem(LN_SESSION_KEY, s.userId); } catch (e) {}
+      return onDone(s.userId);
+    }
+    if (!s.fallback) return setErr(s.error);
     const m = window.sfMatchCred(users, u, p);
     if (!m.ok) return setErr(m.error);
-    try { localStorage.setItem(LN_SESSION_KEY, m.user.id); } catch (e) {}
+    try { localStorage.setItem(LN_SESSION_KEY, m.user.id); localStorage.setItem(window.SF_LEGACY_KEY, "1"); } catch (e) {}
     onDone(m.user.id);
   };
 

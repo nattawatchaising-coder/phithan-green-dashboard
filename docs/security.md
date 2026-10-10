@@ -50,26 +50,36 @@
 
 ### ขั้น 1 — เพิ่ม Firebase Auth แบบ custom token (ตัวแก้จริง)
 
-โค้ดที่ต้องทำ (ยังไม่ได้ทำ):
-1. Service account ของ Firebase → เก็บใน **Vercel Environment Variables เท่านั้น**
-2. `api/auth/login` รับ `{username, pin}` → เซิร์ฟเวอร์เทียบ PIN (ใช้กฎเดียวกับ `sfMatchCred`) → ออก **Firebase custom token** (`uid` = id ผู้ใช้, claim `roles`) — เซ็น RS256 ด้วย `node:crypto` ได้ ไม่ต้องลงแพ็กเกจ (`api/_lib` ห้ามมี dependency)
-3. `/api/line/session` ที่ผูกแล้ว → ตอบ custom token ด้วย (LIFF เข้าได้โดยไม่ต้องกรอก PIN เหมือนเดิม)
-4. เว็บ/LIFF โหลด `firebase-auth-compat` แล้ว `signInWithCustomToken` · เลิกโหลด `users/` ก่อนล็อกอิน
-5. ย้าย PIN ออกจาก `users/` ไป `userSecrets/{id}` (เก็บแบบ hash เช่น scrypt) — เซิร์ฟเวอร์อ่านได้คนเดียว
-6. `api/_lib/line.mjs` ยิง REST ด้วย access token ของ service account (ข้ามกฎได้) — **ต้อง deploy ก่อนรัดกฎ** ไม่งั้น cron/push/ผูก LINE ตอบ 401
-7. ยกเลิก `ADMIN_SEED` ที่สร้างแอดมิน 1234 เองเมื่อ `users/` ว่าง
+**โค้ดทำแล้ว (2026-10-10)** — ทำงานได้ทั้งก่อนและหลังตั้ง service account:
+- `api/_lib/gauth.mjs` — อ่าน env `FIREBASE_SERVICE_ACCOUNT` · `customToken()` เซ็น RS256 ด้วย `node:crypto` · `accessToken()` ให้ REST ข้ามกฎ (ไม่มี dependency)
+- `api/_lib/line.mjs` — `rtdb*` แนบ access token เมื่อตั้งค่าแล้ว · `matchCred()` (กฎเดียวกับ `sfMatchCred`) · `tokenForUser()` (บัญชีถูกระงับ = ไม่ออกใบผ่าน)
+- `api/auth/login.mjs` — POST `{username,pin}` → `{token,userId}` · พลาด 8 ครั้งล็อก 15 นาที (`authFails/`) · ยังไม่ตั้งค่า = 503 `{fallback:true}` · GET → `{configured}`
+- `api/line/session.mjs` / `bind.mjs` — ตอบ `token` เพิ่ม
+- `firebase-config.js` — `window.FBAUTH` + `window.FB_AUTH_READY` · `app.jsx` / `liff.html` รอ `FB_AUTH_READY` ก่อน mount (listener ที่ถูกปฏิเสธสิทธิ์ไม่ต่อใหม่เอง → เว็บ `location.reload()` หลังล็อกอิน)
+- `auth.jsx` — `sfServerLogin` / `sfSignInToken` · เซสชันใช้ได้เมื่อ `FBAUTH uid === solarflow_session_v1` เท่านั้น (ตั้ง localStorage เองเข้าไม่ได้แล้ว) · เซิร์ฟเวอร์ตอบ fallback = เทียบ PIN ในเบราว์เซอร์แบบเดิมและจด `solarflow_auth_legacy=1` — พอเซิร์ฟเวอร์ตั้งค่าแล้ว เซสชันแบบเก่าถูกบังคับล็อกอินใหม่เอง
+- `line.jsx` — LIFF signIn ด้วย token จาก session/bind · หน้าเปิดนอก LINE (`LnWebForm`) ล็อกอินผ่านเซิร์ฟเวอร์
 
-ลำดับปล่อย: deploy โค้ดตอนกฎยังเปิด → ให้ทุกคนล็อกอินใหม่ → ดูใน Console → Authentication ว่ามีผู้ใช้ครบ → ทดสอบ cron/LINE → **แล้วค่อย**วางกฎข้างล่าง
+**ยังไม่ได้ทำ:** ย้าย PIN ไป `userSecrets/` แบบ hash (PIN ยังอ่านได้โดยพนักงานที่ล็อกอินแล้ว) · ยกเลิก `ADMIN_SEED` · devserver ส่งต่อ `/api/auth/login` ไปเว็บจริง (ถูกระบบกันไว้ตอนทำ) — **หลังรัดกฎ localhost จะอ่านข้อมูลไม่ได้** ต้องทำตัวส่งต่อนี้หรือรัน `vercel dev` (ห้ามใช้ vercel deploy)
+
+**ตั้งค่า (ผู้ใช้ทำเอง ห้ามใส่ค่าลงไฟล์ใด ๆ ใน repo):**
+1. Firebase Console → Build → **Authentication → Get started** (ไม่ต้องเปิด provider ใด custom token ใช้ได้เลย)
+2. ⚙ Project settings → **Service accounts → Generate new private key** → ได้ไฟล์ JSON
+3. Vercel → โปรเจกต์ → Settings → Environment Variables → `FIREBASE_SERVICE_ACCOUNT` = เนื้อไฟล์ JSON ทั้งก้อน (Production) → Save · ลบไฟล์ JSON ในเครื่องทิ้งหลังวาง
+4. merge เข้า master (deploy ใหม่จึงอ่าน env) → เช็ก `https://<เว็บ>/api/auth/login` ต้องได้ `{"configured":true}`
+
+ลำดับปล่อย: ตั้งค่า 1–3 → merge → ทุกคนล็อกอินเว็บใหม่หนึ่งครั้ง (LIFF ไม่ต้อง ได้ token เองตอนเปิด) → Console → Authentication → Users มีครบ → เช็ก cron (แจ้งเตือน 20:30 · 18:00) / ผูก LINE / push → **แล้วค่อย**วางกฎข้างล่าง
 
 ```json
 {
   "rules": {
     "$top": { ".read": "auth != null", ".write": "auth != null" },
     "userSecrets": { ".read": false, ".write": false },
-    "_sandbox":    { ".read": "auth != null", ".write": "auth != null" }
+    "authFails":   { ".read": false, ".write": false }
   }
 }
 ```
+- หลังรัดกฎ: หน้า LIFF เปิดนอกแอป LINE จะขึ้น "ปิดอยู่" เสมอ เพราะอ่าน `config/lnWebLogin` ก่อนล็อกอินไม่ได้ · `test-data.html` ใช้ไม่ได้ (ไม่มี auth)
+- คนที่ถูกระงับบัญชียังมีเซสชัน Firebase ค้างอยู่ (แอปซ่อนให้ แต่ฐานข้อมูลยังให้อ่าน) — ปิดได้ในขั้น 2 ด้วยกฎเช็ก `users/$uid/active`
 - ใช้ `$top` แทนการไล่ชื่อทุกกลุ่ม เพราะมี ~70 กลุ่มชั้นบนสุด บางชื่อประกอบจากตัวแปร (`*_ROOT + p`) — ไล่ชื่อตกไปตัวเดียว = ฟีเจอร์นั้นพังเงียบ
 - ชื่อที่ระบุตรง ๆ (`userSecrets`) ชนะ `$top` · **ห้ามให้สิทธิ์ที่ราก** เพราะสิทธิ์ที่ให้ชั้นบนแล้ว ชั้นล่างถอนคืนไม่ได้
 - ผล: คนนอกเข้าไม่ได้เลย · แต่พนักงานที่ล็อกอินแล้วยังแก้ได้ทุกอย่าง (เท่ากับวันนี้ภายในบริษัท)

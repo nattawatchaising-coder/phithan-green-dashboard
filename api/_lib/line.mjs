@@ -10,6 +10,7 @@
    ============================================================ */
 
 import crypto from "node:crypto";
+import { accessToken, customToken } from "./gauth.mjs";
 
 /* ---------- ค่าลับ — อยู่ใน Vercel Environment Variables เท่านั้น ---------- */
 /* .trim() ทุกตัว — ค่าที่ก๊อปจากคอนโซลมักติดช่องว่างหรือขึ้นบรรทัดใหม่มาด้วย
@@ -33,14 +34,18 @@ export async function body(request) {
 
 /* ================================================================
    Firebase Realtime Database ผ่าน REST
-   กฎของฐานข้อมูลตอนนี้เปิดกว้าง (เหมือนที่เบราว์เซอร์เขียนตรงอยู่แล้ว)
-   จึงไม่ต้องมี service account — วันที่รัดกฎเมื่อไหร่ ค่อยเซ็น JWT เพิ่มตรงนี้จุดเดียว
+   ตั้ง FIREBASE_SERVICE_ACCOUNT แล้ว = แนบ access token ของ service account (ข้ามกฎฐานข้อมูล)
+   ยังไม่ตั้ง = ยิงเปล่าแบบเดิม ใช้ได้เฉพาะตอนกฎยังเปิด — ดู docs/security.md
    ================================================================ */
 const dbUrl = (path) => ENV.rtdb() + "/" + String(path).replace(/^\/+/, "") + ".json";
+async function dbHeaders(extra) {
+  const t = await accessToken();
+  return Object.assign({}, extra || {}, t ? { authorization: "Bearer " + t } : {});
+}
 
 export async function rtdbGet(path) {
   if (!ENV.rtdb()) throw new Error("RTDB_URL not set");
-  const r = await fetch(dbUrl(path));
+  const r = await fetch(dbUrl(path), { headers: await dbHeaders() });
   if (!r.ok) throw new Error("rtdb get " + r.status);
   return await r.json();
 }
@@ -49,7 +54,7 @@ export async function rtdbGet(path) {
 export async function rtdbUpdate(path, data) {
   if (!ENV.rtdb()) throw new Error("RTDB_URL not set");
   const r = await fetch(dbUrl(path), {
-    method: "PATCH", headers: { "content-type": "application/json" }, body: JSON.stringify(data),
+    method: "PATCH", headers: await dbHeaders({ "content-type": "application/json" }), body: JSON.stringify(data),
   });
   if (!r.ok) throw new Error("rtdb patch " + r.status);
   return true;
@@ -58,7 +63,7 @@ export async function rtdbUpdate(path, data) {
 export async function rtdbSet(path, data) {
   if (!ENV.rtdb()) throw new Error("RTDB_URL not set");
   const r = await fetch(dbUrl(path), {
-    method: "PUT", headers: { "content-type": "application/json" }, body: JSON.stringify(data),
+    method: "PUT", headers: await dbHeaders({ "content-type": "application/json" }), body: JSON.stringify(data),
   });
   if (!r.ok) throw new Error("rtdb put " + r.status);
   return true;
@@ -66,8 +71,39 @@ export async function rtdbSet(path, data) {
 
 export async function rtdbDelete(path) {
   if (!ENV.rtdb()) throw new Error("RTDB_URL not set");
-  await fetch(dbUrl(path), { method: "DELETE" });
+  await fetch(dbUrl(path), { method: "DELETE", headers: await dbHeaders() });
   return true;
+}
+
+/* ================================================================
+   เทียบชื่อผู้ใช้ + PIN — กฎเดียวกับ sfMatchCred (dashboard/auth.jsx) เป๊ะ
+   รวมทางลัดของบัญชีเก่าที่ยังไม่ตั้ง username · ใช้ร่วมกันทั้ง /api/auth/login และ /api/line/bind
+   คืนผู้ใช้เมื่อผ่าน · null เมื่อไม่ผ่าน (ไม่บอกว่าผิดเพราะอะไร กันการไล่หาชื่อผู้ใช้)
+   ================================================================ */
+export function matchCred(users, username, pin) {
+  const list = users && typeof users === "object" ? Object.values(users) : [];
+  const uname = String(username || "").trim().toLowerCase();
+  const p = String(pin == null ? "" : pin);
+  if (!uname) return null;
+  const u = list.find((x) => (x.username || "").toLowerCase() === uname)
+         || list.find((x) => !x.username && (x.name || "").trim().toLowerCase() === uname)
+         || (uname === "admin" ? list.find((x) => !x.username && x.role === "admin") : null);
+  return u && u.active !== false && String(u.pin) === p ? u : null;
+}
+
+/* ตำแหน่งของผู้ใช้ — ใส่ใน custom token เป็น claim ไว้ให้กฎขั้นถัดไปใช้ (auth.token.roles) */
+export function rolesOf(u) {
+  const raw = Array.isArray(u && u.roles) && u.roles.length ? u.roles : (u && u.role ? [u.role] : []);
+  return raw.map(String).slice(0, 10);
+}
+
+/* ใบผ่าน Firebase ของผู้ใช้คนหนึ่ง — อ่านตำแหน่งล่าสุดจากฐานข้อมูลเอง ไม่เชื่อค่าจาก client
+   คืน null เมื่อยังไม่ตั้ง service account · ไม่พบผู้ใช้ · หรือบัญชีถูกระงับ */
+export async function tokenForUser(userIdOrRec) {
+  const u = userIdOrRec && typeof userIdOrRec === "object" ? userIdOrRec
+          : await rtdbGet("users/" + String(userIdOrRec || "").replace(/[.#$\[\]\/]/g, "")).catch(() => null);
+  if (!u || !u.id || u.active === false) return null;
+  return customToken(u.id, { roles: rolesOf(u) });
 }
 
 /* ================================================================
