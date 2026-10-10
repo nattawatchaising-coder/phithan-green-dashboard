@@ -4,6 +4,7 @@
   "outputDirectory": ".",
   "installCommand": null,
   "framework": null,
+  "git": { "deploymentEnabled": { "claude/**": false } },
   "crons": [
     { "path": "/api/cron/daily", "schedule": "30 13 * * *" },
     { "path": "/api/cron/clockout", "schedule": "0 11 * * *" },
