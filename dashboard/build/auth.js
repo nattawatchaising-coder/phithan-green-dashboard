@@ -2204,6 +2204,7 @@ const LG_CSS = `
   --lg-pill:rgba(255,255,255,.42);--lg-pill-bd:rgba(255,255,255,.7);--lg-strip:rgba(255,255,255,.34);
   --lg-tx:#1B2220;--lg-tx2:#4F5653;--lg-tx3:#7D827F;--lg-glow:rgba(255,170,80,.55);
   --lg-smoke:rgba(18,22,24,.72);--lg-orb1:#FFF6DA;--lg-orb2:#FFC46B;--lg-orb3:#FF8A2A;--lg-orb4:#B9420C;
+  --lg-g1:#EAFFF4;--lg-g2:#7FE3B5;--lg-g3:#22B36A;--lg-g4:#0B5E44;--lg-gglow:rgba(34,179,106,.5);
   position:relative;min-height:100dvh;overflow:hidden;color:var(--lg-tx);
   background:linear-gradient(180deg,var(--lg-sky0) 0%,var(--lg-sky1) 20%,var(--lg-sky2) 38%,var(--lg-sky3) 50%,var(--lg-sky4) 57%,var(--lg-sky3) 70%)}
 [data-theme="aurora"] .lg-scene{--lg-sky0:#080C18;--lg-sky1:#141C34;--lg-sky2:#2B2B4A;--lg-sky3:#7A4A48;--lg-sky4:#D0784A;
@@ -2291,23 +2292,23 @@ const LG_CSS = `
   box-shadow:inset 0 1px 1px rgba(255,255,255,.35),inset 0 0 0 1px rgba(255,255,255,.16),0 12px 30px rgba(0,0,0,.45)}
 .lg-gbtn:hover:not(:disabled){transform:translateY(-1px);
   box-shadow:inset 0 1px 1px rgba(255,255,255,.95),inset 0 -10px 18px rgba(255,255,255,.18),inset 0 0 0 1px rgba(255,255,255,.6),
-    0 14px 34px rgba(60,40,20,.22),0 0 26px 2px var(--lg-glow)}
+    0 14px 34px rgba(60,40,20,.22),0 0 26px 2px var(--lg-gglow)}
 .lg-gbtn:active:not(:disabled){transform:scale(.97)}
 .lg-gbtn:disabled{cursor:default}
 .lg-gbtn-tx{font-size:13.5px;font-weight:700;letter-spacing:.01em;white-space:nowrap;
-  text-shadow:0 0 14px var(--lg-glow),0 0 2px rgba(255,255,255,.6)}
+  text-shadow:0 0 14px var(--lg-gglow),0 0 2px rgba(255,255,255,.6)}
 .lg-orb{position:relative;width:38px;height:38px;border-radius:50%;display:grid;place-items:center;flex:none;
-  background:radial-gradient(circle at 34% 28%,var(--lg-orb1) 0%,var(--lg-orb2) 26%,var(--lg-orb3) 58%,var(--lg-orb4) 100%);
-  box-shadow:0 0 18px var(--lg-glow),inset 0 -4px 8px rgba(120,30,0,.35),inset 0 2px 3px rgba(255,255,255,.6)}
-.lg-orb>svg{position:relative;z-index:1;filter:drop-shadow(0 1px 1px rgba(120,40,0,.4))}
+  background:radial-gradient(circle at 34% 28%,var(--lg-g1) 0%,var(--lg-g2) 26%,var(--lg-g3) 58%,var(--lg-g4) 100%);
+  box-shadow:0 0 18px var(--lg-gglow),inset 0 -4px 8px rgba(0,60,30,.35),inset 0 2px 3px rgba(255,255,255,.6)}
+.lg-orb>svg{position:relative;z-index:1;filter:drop-shadow(0 1px 1px rgba(0,60,30,.45))}
 .lg-orb-swirl{position:absolute;inset:0;border-radius:50%;mix-blend-mode:screen;opacity:.8;
-  background:conic-gradient(from 0deg,transparent 0deg,rgba(255,255,255,.65) 50deg,transparent 120deg,rgba(255,220,150,.5) 220deg,transparent 280deg);
+  background:conic-gradient(from 0deg,transparent 0deg,rgba(255,255,255,.65) 50deg,transparent 120deg,rgba(200,255,225,.5) 220deg,transparent 280deg);
   animation:lgSpin 4.5s linear infinite}
 .lg-gbtn.is-busy .lg-orb-swirl{animation-duration:.9s}
 @keyframes lgSpin{to{transform:rotate(360deg)}}
 .lg-burst{position:absolute;left:50%;top:50%;width:0;height:0;pointer-events:none;z-index:2}
-.lg-burst i{position:absolute;left:0;top:0;border-radius:50%;background:#FFE3A8;
-  box-shadow:0 0 8px 2px rgba(255,170,70,.85);animation:lgBurst .7s cubic-bezier(.15,.7,.3,1) forwards}
+.lg-burst i{position:absolute;left:0;top:0;border-radius:50%;background:#C9F7DF;
+  box-shadow:0 0 8px 2px rgba(34,179,106,.8);animation:lgBurst .7s cubic-bezier(.15,.7,.3,1) forwards}
 @keyframes lgBurst{from{transform:translate(-50%,-50%) scale(1);opacity:1}
   to{transform:translate(calc(-50% + var(--dx)),calc(-50% + var(--dy))) scale(.2);opacity:0}}
 
