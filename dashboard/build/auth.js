@@ -1766,164 +1766,337 @@ function LoginScreen({
       setPw("");
     }
   };
-  return React.createElement("div", {
-    style: {
-      minHeight: "100dvh",
-      display: "flex",
-      flexDirection: "column",
-      alignItems: "center",
-      justifyContent: "center",
-      background: "transparent",
-      gap: 22,
-      padding: "calc(20px + env(safe-area-inset-top, 0px)) 20px calc(20px + env(safe-area-inset-bottom, 0px))"
-    }
-  }, React.createElement("div", {
-    style: {
-      display: "flex",
-      flexDirection: "column",
-      alignItems: "center",
-      gap: 16
-    }
-  }, React.createElement(window.BrandMark, {
-    size: 124
-  }), React.createElement("div", {
-    style: {
-      display: "flex",
-      flexDirection: "column",
-      alignItems: "center",
-      gap: 3
-    }
-  }, React.createElement(window.BrandWord, {
-    size: 40
-  }), React.createElement("div", {
-    style: {
-      fontFamily: "var(--brand-font)",
-      fontSize: 12,
-      letterSpacing: ".32em",
-      color: "var(--brand-muted)",
-      fontWeight: 500,
-      paddingLeft: ".32em"
-    }
-  }, window.BRANDING.tagline))), React.createElement("div", {
-    style: {
-      background: "var(--surface)",
-      border: "1px solid var(--border)",
-      borderRadius: "var(--r-card)",
-      boxShadow: "var(--shadow-sm)",
-      width: "min(420px, 100%)",
-      overflow: "hidden"
-    }
-  }, React.createElement("div", {
-    style: {
-      padding: 22
-    }
-  }, React.createElement("div", {
-    style: {
-      fontSize: 15,
-      fontWeight: 700,
-      color: "var(--text-1)",
-      marginBottom: 16
-    }
-  }, "\u0E40\u0E02\u0E49\u0E32\u0E2A\u0E39\u0E48\u0E23\u0E30\u0E1A\u0E1A"), React.createElement("div", {
-    style: {
-      display: "flex",
-      flexDirection: "column",
-      gap: 13
-    }
-  }, React.createElement(AField, {
-    label: "\u0E0A\u0E37\u0E48\u0E2D\u0E1C\u0E39\u0E49\u0E43\u0E0A\u0E49 (ID)",
-    required: true
-  }, React.createElement("input", {
-    autoFocus: true,
-    autoCapitalize: "none",
-    autoCorrect: "off",
-    spellCheck: false,
-    value: username,
-    onChange: e => {
-      setUsername(e.target.value);
-      setErr("");
-    },
-    onKeyDown: e => {
-      if (e.key === "Enter" && pwRef.current) pwRef.current.focus();
-    },
-    style: A_INPUT
-  })), React.createElement(AField, {
-    label: "\u0E23\u0E2B\u0E31\u0E2A\u0E1C\u0E48\u0E32\u0E19",
-    required: true
-  }, React.createElement("div", {
-    style: {
-      position: "relative"
-    }
-  }, React.createElement("input", {
-    ref: pwRef,
-    type: show ? "text" : "password",
-    value: pw,
-    onChange: e => {
-      setPw(e.target.value);
-      setErr("");
-    },
-    onKeyDown: e => {
-      if (e.key === "Enter") submit();
-    },
-    style: Object.assign({}, A_INPUT, {
-      paddingRight: 44
-    }),
-    placeholder: "\u2022\u2022\u2022\u2022\u2022\u2022"
-  }), React.createElement("button", {
-    type: "button",
-    onClick: () => setShow(s => !s),
-    tabIndex: -1,
-    style: {
-      position: "absolute",
-      top: 0,
-      right: 0,
-      height: "100%",
-      width: 42,
-      display: "grid",
-      placeItems: "center",
-      background: "none",
-      border: "none",
-      cursor: "pointer",
-      color: "var(--text-3)"
-    }
-  }, React.createElement(Icon, {
-    name: show ? "eyeOff" : "eye",
-    size: 17,
-    color: "var(--text-3)"
-  }))))), err && React.createElement("div", {
-    style: {
-      marginTop: 12,
-      fontSize: 12.5,
-      color: "var(--tint-red-tx2)",
-      fontWeight: 600,
-      textAlign: "center"
-    }
-  }, "\u26A0 ", err), React.createElement("button", {
-    onClick: submit,
-    disabled: busy,
-    style: {
-      marginTop: 18,
-      width: "100%",
-      padding: "13px 16px",
-      borderRadius: "var(--r-chip)",
-      border: "none",
-      background: busy ? "var(--text-3)" : "var(--primary)",
-      color: "#fff",
-      fontWeight: 700,
-      fontFamily: "inherit",
-      fontSize: 14.5,
-      cursor: busy ? "default" : "pointer",
-      display: "inline-flex",
-      alignItems: "center",
-      justifyContent: "center",
-      gap: 8
-    }
-  }, busy ? "กำลังเข้าสู่ระบบ…" : React.createElement(React.Fragment, null, "\u0E40\u0E02\u0E49\u0E32\u0E2A\u0E39\u0E48\u0E23\u0E30\u0E1A\u0E1A ", React.createElement(Icon, {
-    name: "arrowRight",
-    size: 17,
-    color: "#fff"
-  }))))));
+  const [now, setNow] = React.useState(() => new Date());
+  React.useEffect(() => {
+    const t = setInterval(() => setNow(new Date()), 30000);
+    return () => clearInterval(t);
+  }, []);
+  const wday = now.toLocaleDateString("th-TH", {
+    weekday: "long"
+  }).replace(/^วัน/, "");
+  const dmon = now.getDate() + " " + now.toLocaleDateString("th-TH", {
+    month: "short"
+  });
+  const hhmm = String(now.getHours()).padStart(2, "0") + ":" + String(now.getMinutes()).padStart(2, "0");
+  const h = now.getHours();
+  const sunNote = h >= 5 && h < 10 ? "แดดเช้าเริ่มเข้าแผง" : h < 15 && h >= 10 ? "ช่วงแดดแรงสุดของวัน" : h < 18 && h >= 15 ? "แดดบ่ายเริ่มอ่อนลง" : "แผงพัก พรุ่งนี้แดดมาใหม่";
+  return (React.createElement("div", {
+      className: "lg-scene"
+    }, React.createElement("style", null, LG_CSS), React.createElement("div", {
+      className: "lg-sky",
+      "aria-hidden": "true"
+    }, React.createElement("div", {
+      className: "lg-sun"
+    }), React.createElement(LgFarm, null)), React.createElement("div", {
+      className: "lg-wrap"
+    }, React.createElement("div", {
+      className: "lg-grid"
+    }, React.createElement("div", {
+      className: "lg-glass lg-login"
+    }, React.createElement("div", {
+      className: "lg-top"
+    }, React.createElement(window.BrandWord, {
+      size: 17,
+      color: "var(--lg-tx)"
+    }), React.createElement("span", {
+      className: "lg-mini"
+    }, window.BRANDING.taglineTH)), React.createElement("div", {
+      className: "lg-h"
+    }, "\u0E40\u0E02\u0E49\u0E32\u0E2A\u0E39\u0E48\u0E23\u0E30\u0E1A\u0E1A"), React.createElement("label", {
+      className: "lg-pill"
+    }, React.createElement("span", {
+      className: "lg-ic"
+    }, React.createElement(Icon, {
+      name: "user",
+      size: 15,
+      color: "var(--lg-tx)"
+    })), React.createElement("input", {
+      autoFocus: true,
+      autoCapitalize: "none",
+      autoCorrect: "off",
+      spellCheck: false,
+      value: username,
+      autoComplete: "username",
+      placeholder: "\u0E0A\u0E37\u0E48\u0E2D\u0E1C\u0E39\u0E49\u0E43\u0E0A\u0E49 (ID)",
+      "aria-label": "\u0E0A\u0E37\u0E48\u0E2D\u0E1C\u0E39\u0E49\u0E43\u0E0A\u0E49",
+      onChange: e => {
+        setUsername(e.target.value);
+        setErr("");
+      },
+      onKeyDown: e => {
+        if (e.key === "Enter" && pwRef.current) pwRef.current.focus();
+      }
+    })), React.createElement("label", {
+      className: "lg-pill"
+    }, React.createElement("span", {
+      className: "lg-ic"
+    }, React.createElement(Icon, {
+      name: "lock",
+      size: 15,
+      color: "var(--lg-tx)"
+    })), React.createElement("input", {
+      ref: pwRef,
+      type: show ? "text" : "password",
+      value: pw,
+      autoComplete: "current-password",
+      placeholder: "\u0E23\u0E2B\u0E31\u0E2A\u0E1C\u0E48\u0E32\u0E19",
+      "aria-label": "\u0E23\u0E2B\u0E31\u0E2A\u0E1C\u0E48\u0E32\u0E19",
+      onChange: e => {
+        setPw(e.target.value);
+        setErr("");
+      },
+      onKeyDown: e => {
+        if (e.key === "Enter") submit();
+      }
+    }), React.createElement("button", {
+      type: "button",
+      className: "lg-chip",
+      onClick: () => setShow(s => !s),
+      tabIndex: -1
+    }, React.createElement(Icon, {
+      name: show ? "eyeOff" : "eye",
+      size: 14,
+      color: "var(--lg-tx2)"
+    }), show ? "ซ่อน" : "แสดง")), err && React.createElement("div", {
+      className: "lg-err"
+    }, "\u26A0 ", err), React.createElement("div", {
+      className: "lg-foot"
+    }, React.createElement("div", {
+      className: "lg-note"
+    }, "\u0E43\u0E0A\u0E49\u0E0A\u0E37\u0E48\u0E2D\u0E1C\u0E39\u0E49\u0E43\u0E0A\u0E49\u0E41\u0E25\u0E30\u0E23\u0E2B\u0E31\u0E2A\u0E17\u0E35\u0E48\u0E44\u0E14\u0E49\u0E23\u0E31\u0E1A\u0E08\u0E32\u0E01\u0E41\u0E2D\u0E14\u0E21\u0E34\u0E19", React.createElement("br", null), "\u0E25\u0E37\u0E21\u0E23\u0E2B\u0E31\u0E2A \u0E43\u0E2B\u0E49\u0E41\u0E2D\u0E14\u0E21\u0E34\u0E19\u0E15\u0E31\u0E49\u0E07\u0E43\u0E2B\u0E49\u0E43\u0E2B\u0E21\u0E48"), React.createElement("button", {
+      className: "lg-go",
+      onClick: submit,
+      disabled: busy
+    }, React.createElement("span", null, busy ? "กำลังเข้า…" : "เข้าสู่ระบบ"), React.createElement("span", {
+      className: "lg-go-dot"
+    }, React.createElement(Icon, {
+      name: "arrowRight",
+      size: 16,
+      color: "#fff"
+    }))))), React.createElement("div", {
+      className: "lg-dark"
+    }, React.createElement("div", {
+      className: "lg-dark-h"
+    }, "\u0E1E\u0E25\u0E31\u0E07\u0E07\u0E32\u0E19\u0E2A\u0E30\u0E2D\u0E32\u0E14", React.createElement("br", null), React.createElement("span", null, "\u0E08\u0E32\u0E01\u0E2B\u0E25\u0E31\u0E07\u0E04\u0E32\u0E02\u0E2D\u0E07\u0E25\u0E39\u0E01\u0E04\u0E49\u0E32")), React.createElement("div", {
+      className: "lg-dark-row"
+    }, React.createElement("span", null, window.BRANDING.tagline), React.createElement(window.BrandMark, {
+      size: 34
+    }))), React.createElement("div", {
+      className: "lg-day"
+    }, React.createElement("div", {
+      className: "lg-day-orb"
+    }), React.createElement("div", {
+      className: "lg-strip"
+    }, React.createElement("div", {
+      className: "lg-wd"
+    }, wday), React.createElement("div", {
+      className: "lg-dm"
+    }, dmon), React.createElement("div", {
+      className: "lg-time"
+    }, hhmm, " \u0E19.", React.createElement("br", null), sunNote), React.createElement("div", {
+      className: "lg-strip-b"
+    }, React.createElement(Icon, {
+      name: "sun",
+      size: 22,
+      color: "var(--lg-tx)"
+    }), React.createElement("span", null, "flash+solar"))), React.createElement("div", {
+      className: "lg-day-side"
+    }, "\u0E23\u0E30\u0E1A\u0E1A\u0E15\u0E34\u0E14\u0E15\u0E32\u0E21", React.createElement("br", null), "\u0E07\u0E32\u0E19\u0E15\u0E34\u0E14\u0E15\u0E31\u0E49\u0E07\u0E42\u0E0B\u0E25\u0E32\u0E23\u0E4C"), React.createElement("div", {
+      className: "lg-day-tag"
+    }, React.createElement("span", null, "\u0E17\u0E35\u0E21\u0E15\u0E34\u0E14\u0E15\u0E31\u0E49\u0E07"), React.createElement("span", {
+      className: "lg-go-dot"
+    }, React.createElement(Icon, {
+      name: "bolt",
+      size: 14,
+      color: "#fff"
+    })))))))
+  );
 }
+function LgFarm() {
+  const svg = React.useMemo(() => {
+    const W = 1600,
+      Hv = 520,
+      cx = W / 2,
+      f = 420,
+      H = 4.5;
+    const P = (x, y, z) => (cx + x * f / z).toFixed(1) + "," + ((H - y) * f / z - 60).toFixed(1);
+    const rows = [];
+    for (let z = 17; z >= 2.2; z -= 1.45) rows.push(z);
+    const panels = [],
+      lines = [];
+    rows.forEach(z => {
+      const half = (cx + 60) * z / f + 1.2,
+        pw = 1.05,
+        gap = 0.05,
+        d = 0.82,
+        y0 = 0.45,
+        y1 = 1.3;
+      for (let x = -Math.ceil(half / (pw + gap)) * (pw + gap); x < half; x += pw + gap) {
+        const x1 = x + pw;
+        panels.push(P(x, y0, z) + " " + P(x1, y0, z) + " " + P(x1, y1, z + d) + " " + P(x, y1, z + d));
+        if (z < 9) {
+          [1 / 3, 2 / 3].forEach(u => {
+            const xu = x + pw * u;
+            lines.push("M" + P(xu, y0, z) + "L" + P(xu, y1, z + d));
+          });
+          lines.push("M" + P(x, (y0 + y1) / 2, z + d / 2) + "L" + P(x1, (y0 + y1) / 2, z + d / 2));
+        }
+      }
+    });
+    return {
+      W,
+      Hv,
+      panels,
+      lines: lines.join("")
+    };
+  }, []);
+  return React.createElement("svg", {
+    className: "lg-farm",
+    viewBox: "0 0 " + svg.W + " " + svg.Hv,
+    preserveAspectRatio: "xMidYMin slice"
+  }, React.createElement("defs", null, React.createElement("linearGradient", {
+    id: "lgPv",
+    x1: "0",
+    y1: "0",
+    x2: "0.35",
+    y2: "1"
+  }, React.createElement("stop", {
+    offset: "0",
+    stopColor: "#3D6390"
+  }), React.createElement("stop", {
+    offset: ".55",
+    stopColor: "#152844"
+  }), React.createElement("stop", {
+    offset: "1",
+    stopColor: "#21416A"
+  })), React.createElement("radialGradient", {
+    id: "lgGlint",
+    cx: ".72",
+    cy: "0",
+    r: ".7"
+  }, React.createElement("stop", {
+    offset: "0",
+    stopColor: "#FFC58A",
+    stopOpacity: ".75"
+  }), React.createElement("stop", {
+    offset: "1",
+    stopColor: "#FFC58A",
+    stopOpacity: "0"
+  })), React.createElement("clipPath", {
+    id: "lgPvClip"
+  }, svg.panels.map((p, i) => React.createElement("polygon", {
+    key: i,
+    points: p
+  })))), svg.panels.map((p, i) => React.createElement("polygon", {
+    key: i,
+    points: p,
+    fill: "url(#lgPv)",
+    stroke: "rgba(228,235,244,.85)",
+    strokeWidth: "2",
+    strokeLinejoin: "round"
+  })), React.createElement("path", {
+    d: svg.lines,
+    stroke: "rgba(255,255,255,.18)",
+    strokeWidth: "1.2",
+    fill: "none"
+  }), React.createElement("rect", {
+    x: "0",
+    y: "0",
+    width: svg.W,
+    height: svg.Hv,
+    fill: "url(#lgGlint)",
+    clipPath: "url(#lgPvClip)"
+  }));
+}
+const LG_CSS = `
+.lg-scene{--lg-sky1:#F7EFE6;--lg-sky2:#F2DFC9;--lg-sky3:#E9CBA9;--lg-ground:#E7D6C2;
+  --lg-glass:rgba(255,255,255,.42);--lg-glass-bd:rgba(255,255,255,.65);--lg-pill:rgba(255,255,255,.55);
+  --lg-tx:#1E2421;--lg-tx2:#5E625F;--lg-tx3:#8A8D8A;--lg-day:rgba(255,255,255,.82);--lg-strip:rgba(255,255,255,.5);
+  --lg-dark:#16191A;--lg-sun1:#FFE2B0;--lg-sun2:#FF9B3D;--lg-sun3:#FF6F12;--lg-glow:rgba(255,140,40,.38);
+  position:relative;min-height:100dvh;overflow:hidden;color:var(--lg-tx);
+  background:linear-gradient(180deg,var(--lg-sky1) 0%,var(--lg-sky2) 42%,var(--lg-sky3) 58%,var(--lg-ground) 100%)}
+[data-theme="aurora"] .lg-scene{--lg-sky1:#0D111B;--lg-sky2:#1A1B2C;--lg-sky3:#4A2C27;--lg-ground:#121520;
+  --lg-glass:rgba(22,26,34,.48);--lg-glass-bd:rgba(255,255,255,.10);--lg-pill:rgba(255,255,255,.08);
+  --lg-tx:#F1F3F2;--lg-tx2:#B4B9B6;--lg-tx3:#868C89;--lg-day:rgba(24,28,36,.78);--lg-strip:rgba(255,255,255,.06);
+  --lg-dark:rgba(8,10,14,.9);--lg-sun1:#FFC98A;--lg-sun2:#F57A2A;--lg-sun3:#C9420E;--lg-glow:rgba(245,110,40,.30)}
+.lg-sky{position:absolute;inset:0;pointer-events:none}
+.lg-sun{position:absolute;width:min(46vw,460px);aspect-ratio:1;border-radius:50%;right:9%;top:9%;
+  background:radial-gradient(circle at 38% 36%,var(--lg-sun1) 0%,var(--lg-sun2) 46%,var(--lg-sun3) 78%);
+  box-shadow:0 0 120px 50px var(--lg-glow),0 0 260px 120px var(--lg-glow);filter:saturate(1.05)}
+[data-theme="aurora"] .lg-sun{top:30%;width:min(40vw,400px)}
+.lg-farm{position:absolute;left:0;right:0;bottom:0;width:100%;height:44%;display:block;
+  -webkit-mask-image:linear-gradient(to bottom,transparent 0%,#000 30%);mask-image:linear-gradient(to bottom,transparent 0%,#000 30%)}
+[data-theme="aurora"] .lg-farm{opacity:.75}
+
+.lg-wrap{position:relative;z-index:1;min-height:100dvh;display:grid;place-items:center;
+  padding:calc(20px + env(safe-area-inset-top,0px)) 16px calc(20px + env(safe-area-inset-bottom,0px))}
+.lg-grid{width:min(880px,100%);display:grid;grid-template-columns:1fr 1fr;gap:16px;
+  grid-template-areas:"login day" "dark day"}
+.lg-glass{background:var(--lg-glass);border:1px solid var(--lg-glass-bd);border-radius:26px;
+  -webkit-backdrop-filter:blur(22px) saturate(1.35);backdrop-filter:blur(22px) saturate(1.35);
+  box-shadow:0 24px 60px rgba(90,50,15,.16),inset 0 1px 0 rgba(255,255,255,.5)}
+[data-theme="aurora"] .lg-glass{box-shadow:0 24px 60px rgba(0,0,0,.45),inset 0 1px 0 rgba(255,255,255,.06)}
+.lg-login{grid-area:login;padding:22px 22px 20px;display:flex;flex-direction:column;gap:12px}
+.lg-top{display:flex;justify-content:space-between;align-items:center;gap:10px}
+.lg-mini{font-size:11.5px;color:var(--lg-tx2);font-weight:600}
+.lg-h{font-family:var(--brand-font),var(--sans);font-size:30px;font-weight:500;letter-spacing:-.01em;margin:14px 0 6px}
+.lg-pill{display:flex;align-items:center;gap:10px;background:var(--lg-pill);border-radius:999px;padding:5px 6px 5px 5px;
+  min-height:46px;box-shadow:inset 0 0 0 1px var(--lg-glass-bd);transition:box-shadow .15s;cursor:text}
+.lg-pill:focus-within{box-shadow:inset 0 0 0 1.5px var(--primary),0 0 0 4px var(--primary-soft)}
+.lg-ic{width:36px;height:36px;border-radius:50%;display:grid;place-items:center;flex:none;background:var(--lg-pill);
+  box-shadow:inset 0 0 0 1px var(--lg-glass-bd)}
+.lg-scene .lg-pill input{flex:1;background:transparent;box-shadow:none;border:none;outline:none;padding:8px 4px;
+  font-size:15px;color:var(--lg-tx);font-family:inherit}
+.lg-scene .lg-pill input::placeholder{color:var(--lg-tx3)}
+.lg-chip{display:inline-flex;align-items:center;gap:5px;border:none;cursor:pointer;font-family:inherit;
+  font-size:11.5px;font-weight:700;color:var(--lg-tx2);background:var(--lg-day);border-radius:999px;padding:8px 12px;
+  box-shadow:0 1px 3px rgba(0,0,0,.08)}
+.lg-err{font-size:12.5px;font-weight:600;color:var(--tint-red-tx2);background:var(--tint-red-bg);border-radius:12px;padding:8px 12px}
+.lg-foot{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:8px}
+.lg-note{font-size:10.5px;line-height:1.55;color:var(--lg-tx2)}
+.lg-go{display:inline-flex;align-items:center;gap:10px;border:none;cursor:pointer;font-family:inherit;flex:none;
+  background:var(--lg-dark);color:#fff;border-radius:999px;padding:5px 5px 5px 18px;font-size:13.5px;font-weight:700;
+  box-shadow:0 10px 24px rgba(0,0,0,.22);transition:transform .15s}
+[data-theme="aurora"] .lg-go{background:#F1F3F2;color:#16191A}
+.lg-go:hover:not(:disabled){transform:translateY(-1px)}
+.lg-go:disabled{opacity:.7;cursor:default}
+.lg-go-dot{width:34px;height:34px;border-radius:50%;display:grid;place-items:center;background:var(--primary);flex:none}
+
+.lg-dark{grid-area:dark;background:var(--lg-dark);color:#fff;border-radius:26px;padding:22px;min-height:150px;
+  display:flex;flex-direction:column;justify-content:space-between;gap:18px;box-shadow:0 24px 60px rgba(0,0,0,.22);
+  -webkit-backdrop-filter:blur(12px);backdrop-filter:blur(12px)}
+.lg-dark-h{font-size:26px;font-weight:500;line-height:1.25}
+.lg-dark-h span{color:rgba(255,255,255,.5);font-size:18px}
+.lg-dark-row{display:flex;justify-content:space-between;align-items:flex-end;font-family:var(--brand-font);
+  letter-spacing:.28em;font-size:11px;color:rgba(255,255,255,.7)}
+
+.lg-day{grid-area:day;position:relative;overflow:hidden;background:var(--lg-day);border-radius:26px;min-height:440px;
+  box-shadow:0 24px 60px rgba(90,50,15,.18)}
+.lg-day-orb{position:absolute;width:62%;aspect-ratio:1;border-radius:50%;right:-14%;top:30%;
+  background:radial-gradient(circle at 35% 35%,var(--lg-sun1),var(--lg-sun2) 50%,var(--lg-sun3));
+  box-shadow:0 0 80px 20px var(--lg-glow)}
+.lg-strip{position:absolute;left:12px;top:12px;bottom:12px;width:56%;border-radius:20px;padding:22px 20px;
+  background:var(--lg-strip);-webkit-backdrop-filter:blur(26px);backdrop-filter:blur(26px);
+  box-shadow:inset 0 0 0 1px var(--lg-glass-bd);display:flex;flex-direction:column}
+.lg-wd{font-size:44px;font-weight:500;line-height:1.05;letter-spacing:-.01em}
+.lg-dm{font-size:40px;font-weight:400;line-height:1.1;color:var(--lg-tx3)}
+.lg-time{margin-top:auto;font-size:12.5px;line-height:1.6;color:var(--lg-tx2);font-variant-numeric:tabular-nums}
+.lg-strip-b{margin-top:auto;display:flex;flex-direction:column;align-items:center;gap:6px;
+  font-family:var(--brand-font);font-size:12px;color:var(--lg-tx2)}
+.lg-day-side{position:absolute;right:20px;top:22px;text-align:right;font-size:12px;line-height:1.55;color:var(--lg-tx2);font-weight:600}
+.lg-day-tag{position:absolute;right:16px;bottom:16px;display:inline-flex;align-items:center;gap:8px;
+  background:var(--lg-dark);color:#fff;border-radius:999px;padding:4px 4px 4px 14px;font-size:12px;font-weight:700}
+
+@media (max-width:720px){
+  .lg-grid{grid-template-columns:1fr;grid-template-areas:"login" "dark";max-width:440px}
+  .lg-day{display:none}
+  .lg-sun{width:72vw;right:-18%;top:3%}
+  .lg-dark{min-height:0}
+  .lg-dark-h{font-size:21px}
+  .lg-dark-h span{font-size:15px}
+  .lg-farm{height:34%}
+}
+`;
 const NOTIF_KINDS = {
   reject: {
     icon: "alert",
