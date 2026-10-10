@@ -1535,296 +1535,27 @@ function LgScene({
     className: "lg-wrap"
   }, children));
 }
-const LG_CLOUD_BLOBS = [[0, 26, 150, 54], [58, 4, 150, 74], [150, 20, 160, 58], [36, 40, 260, 44]];
-const LG_CLOUDS = [{
-  x: "4%",
-  y: "9%",
-  s: 1.15,
-  d: 0
-}, {
-  x: "34%",
-  y: "4%",
-  s: 0.75,
-  d: -40
-}, {
-  x: "58%",
-  y: "13%",
-  s: 1,
-  d: -80
-}, {
-  x: "80%",
-  y: "6%",
-  s: 0.7,
-  d: -20
-}, {
-  x: "16%",
-  y: "30%",
-  s: 0.55,
-  d: -60
-}];
+const LG_PHOTOS = ["dashboard/assets/login-farm.jpg", "dashboard/assets/login-village.jpg"];
 function LgSky() {
+  const [idx, setIdx] = React.useState(0);
+  React.useEffect(() => {
+    if (window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+    const t = setInterval(() => setIdx(i => (i + 1) % LG_PHOTOS.length), 9000);
+    return () => clearInterval(t);
+  }, []);
   return React.createElement("div", {
     className: "lg-sky",
     "aria-hidden": "true"
-  }, React.createElement("div", {
-    className: "lg-halo"
+  }, LG_PHOTOS.map((src, i) => React.createElement("div", {
+    key: src,
+    className: "lg-photo" + (i === idx ? " on" : ""),
+    style: {
+      backgroundImage: "url(" + src + ")"
+    }
+  })), React.createElement("div", {
+    className: "lg-tint"
   }), React.createElement("div", {
-    className: "lg-sun"
-  }), LG_CLOUDS.map((c, i) => React.createElement("div", {
-    key: i,
-    className: "lg-cloud",
-    style: {
-      left: c.x,
-      top: c.y,
-      transform: "scale(" + c.s + ")",
-      animationDelay: c.d + "s"
-    }
-  }, LG_CLOUD_BLOBS.map((b, j) => React.createElement("span", {
-    key: j,
-    style: {
-      left: b[0],
-      top: b[1],
-      width: b[2],
-      height: b[3]
-    }
-  })))), React.createElement(LgLand, null), React.createElement("div", {
     className: "lg-grain"
-  }));
-}
-function LgLand() {
-  const g = React.useMemo(() => {
-    const W = 1600,
-      Hv = 600,
-      HZ = 92,
-      cx = W / 2,
-      f = 360,
-      H = 7;
-    const px = (x, z) => cx + x * f / z,
-      py = (y, z) => HZ + (H - y) * f / z;
-    const P = (x, y, z) => px(x, z).toFixed(1) + "," + py(y, z).toFixed(1);
-    const ridge = (base, amp, waves, step) => {
-      let d = "M0," + (HZ + 12);
-      for (let x = 0; x <= W; x += step) {
-        let y = 0;
-        waves.forEach(w => {
-          y += Math.sin(x * w[0] + w[1]) * w[2];
-        });
-        d += "L" + x + "," + (base - amp * (0.5 + y / 2)).toFixed(1);
-      }
-      return d + "L" + W + "," + (HZ + 12) + "Z";
-    };
-    const hills = [ridge(HZ - 6, 64, [[0.0021, 0.4, 0.55], [0.0053, 1.7, 0.3], [0.011, 0.2, 0.15]], 10), ridge(HZ + 2, 34, [[0.0034, 2.1, 0.5], [0.0081, 0.6, 0.3], [0.017, 1.3, 0.2]], 8), ridge(HZ + 4, 12, [[0.006, 0.9, 0.35], [0.031, 0.3, 0.3], [0.073, 1.1, 0.35]], 5)];
-    const rows = [];
-    for (let z = 2.2; z < 46; z += z < 13 ? 2.7 : 3.2) rows.unshift(z);
-    const panels = [],
-      strips = [],
-      shadows = [],
-      legs = [],
-      cells = [];
-    const pw = 1.05,
-      gap = 0.05,
-      d = 0.82,
-      y0 = 0.45,
-      y1 = 1.3;
-    rows.forEach(z => {
-      const half = (cx + 80) * z / f + 1.5;
-      if (z > 13) {
-        strips.push(P(-half, y0, z) + " " + P(half, y0, z) + " " + P(half, y1, z + d) + " " + P(-half, y1, z + d));
-        return;
-      }
-      shadows.push(P(-half, 0, z + 0.1) + " " + P(half, 0, z + 0.1) + " " + P(half, 0, z - 0.75) + " " + P(-half, 0, z - 0.75));
-      for (let x = -Math.ceil(half / (pw + gap)) * (pw + gap); x < half; x += pw + gap) {
-        const x1 = x + pw;
-        panels.push(P(x, y0, z) + " " + P(x1, y0, z) + " " + P(x1, y1, z + d) + " " + P(x, y1, z + d));
-        if (z < 9) {
-          legs.push("M" + P(x + 0.15, y0, z) + "L" + P(x + 0.15, 0, z));
-          [1 / 3, 2 / 3].forEach(u => {
-            const xu = x + pw * u;
-            cells.push("M" + P(xu, y0, z) + "L" + P(xu, y1, z + d));
-          });
-          cells.push("M" + P(x, (y0 + y1) / 2, z + d / 2) + "L" + P(x1, (y0 + y1) / 2, z + d / 2));
-        }
-      }
-    });
-    return {
-      W,
-      Hv,
-      HZ,
-      hills,
-      panels,
-      strips,
-      shadows,
-      legs: legs.join(""),
-      cells: cells.join("")
-    };
-  }, []);
-  return React.createElement("svg", {
-    className: "lg-land",
-    viewBox: "0 0 " + g.W + " " + g.Hv,
-    preserveAspectRatio: "xMidYMin slice"
-  }, React.createElement("defs", null, React.createElement("linearGradient", {
-    id: "lgGrass",
-    x1: "0",
-    y1: g.HZ,
-    x2: "0",
-    y2: g.Hv,
-    gradientUnits: "userSpaceOnUse"
-  }, React.createElement("stop", {
-    offset: "0",
-    style: {
-      stopColor: "var(--lg-grass1)"
-    }
-  }), React.createElement("stop", {
-    offset: ".35",
-    style: {
-      stopColor: "var(--lg-grass2)"
-    }
-  }), React.createElement("stop", {
-    offset: "1",
-    style: {
-      stopColor: "var(--lg-grass3)"
-    }
-  })), React.createElement("linearGradient", {
-    id: "lgPv",
-    x1: "0",
-    y1: "0",
-    x2: "0.3",
-    y2: "1"
-  }, React.createElement("stop", {
-    offset: "0",
-    style: {
-      stopColor: "var(--lg-pv1)"
-    }
-  }), React.createElement("stop", {
-    offset: ".38",
-    style: {
-      stopColor: "var(--lg-pv2)"
-    }
-  }), React.createElement("stop", {
-    offset: ".78",
-    style: {
-      stopColor: "var(--lg-pv3)"
-    }
-  }), React.createElement("stop", {
-    offset: "1",
-    style: {
-      stopColor: "var(--lg-pv4)"
-    }
-  })), React.createElement("radialGradient", {
-    id: "lgGlint",
-    cx: ".74",
-    cy: "0",
-    r: ".62"
-  }, React.createElement("stop", {
-    offset: "0",
-    style: {
-      stopColor: "var(--lg-glint)"
-    },
-    stopOpacity: ".55"
-  }), React.createElement("stop", {
-    offset: "1",
-    style: {
-      stopColor: "var(--lg-glint)"
-    },
-    stopOpacity: "0"
-  })), React.createElement("linearGradient", {
-    id: "lgHaze",
-    x1: "0",
-    y1: g.HZ - 70,
-    x2: "0",
-    y2: g.HZ + 230,
-    gradientUnits: "userSpaceOnUse"
-  }, React.createElement("stop", {
-    offset: "0",
-    style: {
-      stopColor: "var(--lg-haze)"
-    },
-    stopOpacity: "0"
-  }), React.createElement("stop", {
-    offset: ".22",
-    style: {
-      stopColor: "var(--lg-haze)"
-    },
-    stopOpacity: ".85"
-  }), React.createElement("stop", {
-    offset: "1",
-    style: {
-      stopColor: "var(--lg-haze)"
-    },
-    stopOpacity: "0"
-  })), React.createElement("clipPath", {
-    id: "lgPvClip"
-  }, g.panels.map((p, i) => React.createElement("polygon", {
-    key: i,
-    points: p
-  })), g.strips.map((p, i) => React.createElement("polygon", {
-    key: "s" + i,
-    points: p
-  })))), React.createElement("path", {
-    d: g.hills[0],
-    style: {
-      fill: "var(--lg-hill1)"
-    }
-  }), React.createElement("path", {
-    d: g.hills[1],
-    style: {
-      fill: "var(--lg-hill2)"
-    }
-  }), React.createElement("path", {
-    d: g.hills[2],
-    style: {
-      fill: "var(--lg-hill3)"
-    }
-  }), React.createElement("rect", {
-    x: "0",
-    y: g.HZ,
-    width: g.W,
-    height: g.Hv - g.HZ,
-    fill: "url(#lgGrass)"
-  }), g.strips.map((p, i) => React.createElement("polygon", {
-    key: "s" + i,
-    points: p,
-    fill: "url(#lgPv)"
-  })), g.shadows.map((p, i) => React.createElement("polygon", {
-    key: "h" + i,
-    points: p,
-    style: {
-      fill: "var(--lg-shade)"
-    }
-  })), React.createElement("path", {
-    d: g.legs,
-    style: {
-      stroke: "var(--lg-leg)"
-    },
-    strokeWidth: "2.5",
-    fill: "none"
-  }), g.panels.map((p, i) => React.createElement("polygon", {
-    key: i,
-    points: p,
-    fill: "url(#lgPv)",
-    style: {
-      stroke: "var(--lg-frame)"
-    },
-    strokeWidth: "1.8",
-    strokeLinejoin: "round"
-  })), React.createElement("path", {
-    d: g.cells,
-    stroke: "rgba(255,255,255,.16)",
-    strokeWidth: "1.1",
-    fill: "none"
-  }), React.createElement("rect", {
-    x: "0",
-    y: "0",
-    width: g.W,
-    height: g.Hv,
-    fill: "url(#lgGlint)",
-    clipPath: "url(#lgPvClip)"
-  }), React.createElement("rect", {
-    x: "0",
-    y: "0",
-    width: g.W,
-    height: g.Hv,
-    fill: "url(#lgHaze)"
   }));
 }
 function LgPill({
@@ -2193,39 +1924,28 @@ function LoginScreen({
 }
 const LG_GRAIN = "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E\")";
 const LG_CSS = `
-.lg-scene{--lg-sky0:#6F9FCB;--lg-sky1:#A6C3DC;--lg-sky2:#D6DCDD;--lg-sky3:#F2D2AE;--lg-sky4:#F7C28E;
-  --lg-hill1:#AEB9C9;--lg-hill2:#8C9E8E;--lg-hill3:#5E7653;--lg-grass1:#B8B68A;--lg-grass2:#8FA066;--lg-grass3:#5F7D45;
-  --lg-pv1:#86A8C9;--lg-pv2:#3A5C86;--lg-pv3:#152844;--lg-pv4:#1F3D63;--lg-frame:rgba(232,238,245,.9);--lg-leg:#5D6469;
-  --lg-shade:rgba(34,52,24,.24);--lg-glint:#FFD4A0;--lg-haze:#F2D8BB;
-  --lg-sun-core:#FFFFFF;--lg-sun-mid:#FFF1C9;--lg-sun-glow:rgba(255,206,140,.55);--lg-cloud:rgba(255,255,255,.88);--lg-cloud-lo:rgba(255,226,196,.7);
+.lg-scene{--lg-sky0:#B9C9D2;--lg-sky1:#EBD9C0;
   --lg-glass-a:rgba(255,255,255,.42);--lg-glass-b:rgba(255,255,255,.16);--lg-edge:rgba(255,255,255,.85);--lg-edge-lo:rgba(255,255,255,.12);
   --lg-pill:rgba(255,255,255,.42);--lg-pill-bd:rgba(255,255,255,.7);--lg-strip:rgba(255,255,255,.34);
   --lg-tx:#1B2220;--lg-tx2:#4F5653;--lg-tx3:#7D827F;--lg-glow:rgba(255,170,80,.55);
   --lg-smoke:rgba(18,22,24,.72);--lg-orb1:#FFF6DA;--lg-orb2:#FFC46B;--lg-orb3:#FF8A2A;--lg-orb4:#B9420C;
+  --lg-tint:linear-gradient(180deg,rgba(255,236,210,.18) 0%,rgba(255,236,210,0) 45%,rgba(20,32,20,.18) 100%);
   position:relative;min-height:100dvh;overflow:hidden;color:var(--lg-tx);
-  background:linear-gradient(180deg,var(--lg-sky0) 0%,var(--lg-sky1) 20%,var(--lg-sky2) 38%,var(--lg-sky3) 50%,var(--lg-sky4) 57%,var(--lg-sky3) 70%)}
-[data-theme="aurora"] .lg-scene{--lg-sky0:#080C18;--lg-sky1:#141C34;--lg-sky2:#2B2B4A;--lg-sky3:#7A4A48;--lg-sky4:#D0784A;
-  --lg-hill1:#3A3550;--lg-hill2:#252639;--lg-hill3:#161A24;--lg-grass1:#2C2A30;--lg-grass2:#1A1E22;--lg-grass3:#101416;
-  --lg-pv1:#7A6E86;--lg-pv2:#2C3550;--lg-pv3:#0E1422;--lg-pv4:#18233A;--lg-frame:rgba(170,180,200,.45);--lg-leg:#2A2E36;
-  --lg-shade:rgba(0,0,0,.35);--lg-glint:#F08A4A;--lg-haze:#5A3A44;
-  --lg-sun-core:#FFE2B0;--lg-sun-mid:#FFB070;--lg-sun-glow:rgba(240,120,60,.45);--lg-cloud:rgba(150,120,160,.28);--lg-cloud-lo:rgba(220,120,90,.25);
+  background:linear-gradient(180deg,var(--lg-sky0),var(--lg-sky1))}
+[data-theme="aurora"] .lg-scene{--lg-sky0:#0D111B;--lg-sky1:#2A2230;
   --lg-glass-a:rgba(30,34,46,.55);--lg-glass-b:rgba(20,22,32,.30);--lg-edge:rgba(255,255,255,.28);--lg-edge-lo:rgba(255,255,255,.04);
   --lg-pill:rgba(255,255,255,.07);--lg-pill-bd:rgba(255,255,255,.14);--lg-strip:rgba(255,255,255,.05);
-  --lg-tx:#F1F3F2;--lg-tx2:#B8BDBA;--lg-tx3:#878D8A;--lg-glow:rgba(255,150,80,.5);--lg-smoke:rgba(6,8,12,.7)}
-.lg-sky{position:absolute;inset:0;pointer-events:none}
-.lg-halo{position:absolute;right:calc(12% - 380px);top:calc(13% - 380px);width:760px;height:760px;border-radius:50%;
-  background:radial-gradient(circle,var(--lg-sun-glow) 0%,transparent 65%)}
-.lg-sun{position:absolute;right:calc(12% - 70px);top:calc(13% - 70px);width:140px;height:140px;border-radius:50%;
-  background:radial-gradient(circle,var(--lg-sun-core) 0%,var(--lg-sun-core) 22%,var(--lg-sun-mid) 36%,var(--lg-sun-glow) 52%,transparent 72%);
-  filter:blur(1px)}
-[data-theme="aurora"] .lg-sun{top:calc(40% - 70px);right:calc(8% - 70px)}
-[data-theme="aurora"] .lg-halo{top:calc(40% - 380px);right:calc(8% - 380px)}
-.lg-cloud{position:absolute;width:310px;height:110px;transform-origin:0 0;animation:lgDrift 70s ease-in-out infinite alternate}
-.lg-cloud span{position:absolute;border-radius:50%;filter:blur(10px);
-  background:radial-gradient(ellipse at 50% 35%,var(--lg-cloud) 0%,var(--lg-cloud) 35%,var(--lg-cloud-lo) 62%,transparent 72%)}
-@keyframes lgDrift{from{translate:-40px 0}to{translate:40px 0}}
-.lg-land{position:absolute;left:0;right:0;bottom:0;width:100%;height:47%;display:block}
-.lg-grain{position:absolute;inset:0;opacity:.09;mix-blend-mode:overlay;background-image:${LG_GRAIN}}
+  --lg-tx:#F1F3F2;--lg-tx2:#B8BDBA;--lg-tx3:#878D8A;--lg-glow:rgba(255,150,80,.5);--lg-smoke:rgba(6,8,12,.7);
+  --lg-tint:linear-gradient(180deg,rgba(10,14,30,.72) 0%,rgba(40,24,40,.55) 55%,rgba(8,10,16,.78) 100%)}
+.lg-sky{position:absolute;inset:0;pointer-events:none;overflow:hidden}
+.lg-photo{position:absolute;inset:-3%;background-size:cover;background-position:center 40%;opacity:0;
+  transition:opacity 2.2s ease;animation:lgKen 26s ease-in-out infinite alternate}
+.lg-photo.on{opacity:1}
+.lg-photo:nth-child(2){animation-delay:-13s;background-position:center 55%}
+@keyframes lgKen{from{transform:scale(1.02) translate(0,0)}to{transform:scale(1.1) translate(-1.5%,-1%)}}
+.lg-tint{position:absolute;inset:0;background:var(--lg-tint)}
+[data-theme="aurora"] .lg-photo{filter:saturate(.75)}
+.lg-grain{position:absolute;inset:0;opacity:.08;mix-blend-mode:overlay;background-image:${LG_GRAIN}}
 
 .lg-wrap{position:relative;z-index:1;min-height:100dvh;display:grid;place-items:center;
   padding:calc(20px + env(safe-area-inset-top,0px)) 16px calc(20px + env(safe-area-inset-bottom,0px))}
@@ -2327,18 +2047,14 @@ const LG_CSS = `
   font-family:var(--brand-font);font-size:12px;color:var(--lg-tx2)}
 .lg-day-side{position:absolute;right:20px;top:22px;text-align:right;font-size:12px;line-height:1.55;color:var(--lg-tx2);font-weight:600}
 
-@media (prefers-reduced-motion:reduce){.lg-cloud,.lg-gbtn.is-busy .lg-orb{animation:none}}
+@media (prefers-reduced-motion:reduce){.lg-photo,.lg-gbtn.is-busy .lg-orb{animation:none}}
 @media (max-width:720px){
   .lg-grid{grid-template-columns:1fr;grid-template-areas:"login" "dark";max-width:440px}
   .lg-day{display:none}
   .lg-two{grid-template-columns:1fr}
-  .lg-halo{right:calc(14% - 260px);top:calc(16% - 260px);width:520px;height:520px}
-  .lg-sun{right:calc(14% - 55px);top:calc(16% - 55px);width:110px;height:110px}
-  .lg-cloud{scale:.6}
   .lg-dark{min-height:0}
   .lg-dark-h{font-size:21px}
   .lg-dark-h span{font-size:15px}
-  .lg-land{height:40%}
 }
 `;
 const NOTIF_KINDS = {
