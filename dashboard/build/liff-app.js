@@ -2470,6 +2470,10 @@ function LnApp() {
     text: "\u0E1A\u0E31\u0E0D\u0E0A\u0E35\u0E19\u0E35\u0E49\u0E16\u0E39\u0E01\u0E23\u0E30\u0E07\u0E31\u0E1A\u0E2B\u0E23\u0E37\u0E2D\u0E16\u0E39\u0E01\u0E25\u0E1A\u0E44\u0E1B\u0E41\u0E25\u0E49\u0E27",
     sub: "\u0E15\u0E34\u0E14\u0E15\u0E48\u0E2D\u0E41\u0E2D\u0E14\u0E21\u0E34\u0E19\u0E02\u0E2D\u0E07\u0E1A\u0E23\u0E34\u0E29\u0E31\u0E17"
   });
+  if (window.sfNeedsSetup(me)) return React.createElement(window.FirstLoginScreen, {
+    user: me,
+    onSave: auth.completeSetup
+  });
   return React.createElement("div", {
     style: {
       minHeight: "100dvh",

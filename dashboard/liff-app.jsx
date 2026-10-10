@@ -1577,6 +1577,9 @@ function LnApp() {
 
   if (auth.loading || store.loading) return <window.LnSplash text="กำลังโหลดข้อมูล…" />;
   if (!me) return <window.LnSplash tone="bad" text="บัญชีนี้ถูกระงับหรือถูกลบไปแล้ว" sub="ติดต่อแอดมินของบริษัท" />;
+  /* เข้าใช้งานครั้งแรกบังคับในไลน์ด้วย — ไม่งั้นคนที่ใช้แต่ไลน์จะค้างรหัส 1234 ไว้เข้าเว็บตลอดไป
+     ไม่มีปุ่มออกจากระบบ เพราะในไลน์ล็อกอินด้วยบัญชี LINE เอง ออกไปก็กลับมาที่หน้านี้อีก */
+  if (window.sfNeedsSetup(me)) return <window.FirstLoginScreen user={me} onSave={auth.completeSetup} />;
 
   return (
     <div style={{ minHeight: "100dvh", background: "var(--bg)",

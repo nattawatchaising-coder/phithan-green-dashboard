@@ -399,7 +399,16 @@ function useAuthStore() {
     else setUsers((prev) => (prev || []).filter((u) => u.id !== id));
   }, []);
 
-  return { users: list, current, loading, login, loginCred, logout, upsertUser, removeUser, blankUser: () => blankUser() };
+  /* หน้าเข้าใช้งานครั้งแรก — update ทีละฟิลด์ (ไม่ set ทั้งก้อน) ฟิลด์อื่นของผู้ใช้จะได้ไม่หาย */
+  const completeSetup = React.useCallback((patch) => {
+    if (!current) return Promise.reject(new Error("no user"));
+    if (_AFB()) return _aref("users/" + current.id).update(patch);
+    setUsers((prev) => (prev || []).map((u) => (u.id === current.id
+      ? Object.assign({}, u, patch, { mustChangePin: undefined }) : u)));
+    return Promise.resolve();
+  }, [current && current.id]);
+
+  return { users: list, current, loading, login, loginCred, logout, upsertUser, removeUser, completeSetup, blankUser: () => blankUser() };
 }
 
 /* ── รูปโปรไฟล์ ──
@@ -769,6 +778,123 @@ function RoleBadges({ roles, short }) {
     <span style={{ display: "inline-flex", flexWrap: "wrap", gap: 4, alignItems: "center" }}>
       {arr.map((r) => <RoleBadge key={r} role={r} short={short} />)}
     </span>
+  );
+}
+
+/* ================================================================
+   เข้าใช้งานครั้งแรก — กรอกข้อมูลติดต่อ + เปลี่ยนรหัสแรก
+   ต้องผ่านหน้านี้ก่อนเข้าแอป (ทั้งเว็บและในไลน์) เมื่อ:
+   · รหัสยังเป็น 1234 (รหัสแรกที่แอดมินแจก — รวมบัญชีเก่าที่ไม่เคยเปลี่ยน)
+   · mustChangePin = true — แอดมินเพิ่งสร้างบัญชีหรือตั้งรหัสให้ใหม่ (UserEditModal ใส่ให้)
+   ================================================================ */
+const SF_FIRST_PIN = "1234";
+function sfNeedsSetup(u) {
+  return !!u && (u.mustChangePin === true || String(u.pin) === SF_FIRST_PIN);
+}
+
+/* รหัสใหม่: ตัวเลข 6 หลักขึ้นไป · ห้ามเลขเดียวซ้ำ (111111) · ห้ามเรียงขึ้น/ลง (123456, 654321) · ห้ามซ้ำรหัสเดิม
+   คืนข้อความผิดพลาด หรือ "" เมื่อผ่าน */
+function sfPinProblem(pin, oldPin) {
+  const p = String(pin || "");
+  if (!/^\d{6,}$/.test(p)) return "รหัสผ่านต้องเป็นตัวเลข 6 หลักขึ้นไป";
+  if (/^(\d)\1+$/.test(p)) return "รหัสผ่านเป็นเลขเดียวกันทั้งหมด เดาง่ายเกินไป";
+  const step = (+p[1]) - (+p[0]);
+  if ((step === 1 || step === -1) && p.split("").every((c, i) => i === 0 || (+c) - (+p[i - 1]) === step))
+    return "รหัสผ่านเป็นเลขเรียงกัน เดาง่ายเกินไป";
+  if (oldPin != null && p === String(oldPin)) return "รหัสผ่านใหม่ต้องไม่ซ้ำกับรหัสเดิม";
+  return "";
+}
+
+/* ช่องกรอกแบบหลุม (DESIGN.md: --surface2 + --shadow-inset ไม่มีเส้นขอบ) */
+const FL_INPUT = {
+  background: "var(--surface2)", border: "none", boxShadow: "var(--shadow-inset)", color: "var(--text-1)",
+  fontFamily: "inherit", fontSize: 15, padding: "11px 13px", borderRadius: "var(--r-tile)", outline: "none", width: "100%",
+};
+
+function FirstLoginScreen({ user, onSave, onLogout }) {
+  const [f, setF] = React.useState(() => ({
+    name: user.name || "", phone: user.phone || "", email: user.email || "", line: user.line || "", pin: "", pin2: "" }));
+  const [err, setErr] = React.useState("");
+  const [busy, setBusy] = React.useState(false);
+  const set = (k, v) => { setF((o) => Object.assign({}, o, { [k]: v })); setErr(""); };
+
+  const submit = async () => {
+    if (busy) return;
+    const name = f.name.trim(), phone = f.phone.trim(), email = f.email.trim(), line = f.line.trim();
+    if (!name) return setErr("กรุณากรอกชื่อ-สกุล");
+    const digits = phone.replace(/\D/g, "");
+    if (digits.length < 9 || digits.length > 10) return setErr("เบอร์โทรไม่ถูกต้อง (9–10 หลัก)");
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return setErr("อีเมลไม่ถูกต้อง");
+    if (!line) return setErr("กรุณากรอก LINE ID");
+    const bad = sfPinProblem(f.pin, user.pin);
+    if (bad) return setErr(bad);
+    if (f.pin !== f.pin2) return setErr("ยืนยันรหัสผ่านไม่ตรงกัน");
+    setBusy(true);
+    try {
+      await onSave({ name, phone, email, line, pin: f.pin, mustChangePin: null, setupAt: new Date().toISOString() });
+    } catch (e) {
+      setBusy(false);
+      setErr("บันทึกไม่สำเร็จ ลองใหม่อีกครั้ง");
+    }
+  };
+
+  const lbl = { fontSize: 11, fontWeight: 700, color: "var(--text-3)" };
+  const field = (label, input, hint) => (
+    <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+      <label style={lbl}>{label}<span style={{ color: "var(--tint-red-tx2)" }}> *</span></label>
+      {input}
+      {hint && <div style={{ fontSize: 11.5, color: "var(--text-3)", lineHeight: 1.5 }}>{hint}</div>}
+    </div>
+  );
+  const head = (t) => <div style={{ fontSize: 12, fontWeight: 700, color: "var(--text-2)", marginTop: 4 }}>{t}</div>;
+
+  return (
+    <div style={{ minHeight: "100dvh", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center",
+      background: "transparent", gap: 18,
+      padding: "calc(24px + env(safe-area-inset-top, 0px)) 16px calc(24px + env(safe-area-inset-bottom, 0px))" }}>
+      <window.BrandMark size={64} />
+      <div style={{ background: "var(--surface)", boxShadow: "var(--shadow-card)", border: "1px solid var(--card-bd)",
+        borderRadius: "var(--r-card)", width: "min(440px, 100%)", padding: 22, display: "flex", flexDirection: "column", gap: 14 }}>
+        <div>
+          <div style={{ fontSize: 17, fontWeight: 700, color: "var(--text-1)" }}>ตั้งค่าบัญชีครั้งแรก</div>
+          <div style={{ marginTop: 6, fontSize: 13, color: "var(--text-2)", lineHeight: 1.6 }}>
+            กรอกข้อมูลติดต่อให้ครบ และเปลี่ยนรหัสผ่านจากรหัสที่ได้รับ ก่อนเริ่มใช้งาน
+          </div>
+        </div>
+
+        {head("ข้อมูลผู้ใช้")}
+        {field("ชื่อ-สกุล", <input style={FL_INPUT} value={f.name} onChange={(e) => set("name", e.target.value)} placeholder="เช่น สมชาย ตั้งใจ" />)}
+        {field("เบอร์โทร", <input style={FL_INPUT} value={f.phone} inputMode="tel" autoComplete="tel" onChange={(e) => set("phone", e.target.value)} placeholder="08x-xxx-xxxx" />)}
+        {field("อีเมล", <input style={FL_INPUT} value={f.email} inputMode="email" autoCapitalize="none" spellCheck={false} autoComplete="email"
+          onChange={(e) => set("email", e.target.value)} placeholder="name@example.com" />)}
+        {field("LINE ID", <input style={FL_INPUT} value={f.line} autoCapitalize="none" spellCheck={false}
+          onChange={(e) => set("line", e.target.value)} placeholder="เช่น somchai" />)}
+
+        {head("รหัสผ่านใหม่")}
+        {field("รหัสผ่านใหม่", <input style={FL_INPUT} value={f.pin} type="password" inputMode="numeric" autoComplete="new-password"
+          onChange={(e) => set("pin", e.target.value.replace(/\D/g, ""))} placeholder="ตัวเลข 6 หลักขึ้นไป" />,
+          "ห้ามเลขเรียง (123456) หรือเลขซ้ำ (111111) · ใช้รหัสนี้เข้าเว็บครั้งต่อไป")}
+        {field("ยืนยันรหัสผ่านใหม่", <input style={FL_INPUT} value={f.pin2} type="password" inputMode="numeric" autoComplete="new-password"
+          onChange={(e) => set("pin2", e.target.value.replace(/\D/g, ""))} onKeyDown={(e) => { if (e.key === "Enter") submit(); }}
+          placeholder="กรอกซ้ำอีกครั้ง" />)}
+
+        {err && <div style={{ padding: "9px 12px", borderRadius: "var(--r-chip)", background: "var(--tint-red-bg)",
+          color: "var(--tint-red-tx2)", fontSize: 12.5, fontWeight: 600 }}>{err}</div>}
+
+        <button onClick={submit} disabled={busy}
+          style={{ marginTop: 4, width: "100%", padding: "13px 16px", borderRadius: "var(--r-tile)", border: "none",
+            background: busy ? "var(--text-3)" : "var(--primary)", color: "#fff", fontWeight: 700, fontFamily: "inherit",
+            fontSize: 14.5, cursor: busy ? "default" : "pointer", boxShadow: "var(--shadow-btn)" }}>
+          {busy ? "กำลังบันทึก…" : "บันทึกและเริ่มใช้งาน"}
+        </button>
+        {onLogout && (
+          <button onClick={onLogout} disabled={busy}
+            style={{ background: "none", border: "none", color: "var(--text-3)", fontFamily: "inherit", fontSize: 12.5, cursor: "pointer", padding: 4 }}>
+            ออกจากระบบ
+          </button>
+        )}
+      </div>
+    </div>
   );
 }
 
@@ -1313,7 +1439,7 @@ function UserManager({ authStore, onClose, roleCfg }) {
         )}
       </div>
 
-      {editing && <UserEditModal initial={editing} existing={users}
+      {editing && <UserEditModal initial={editing} existing={users} meId={authStore.current ? authStore.current.id : null}
         onSave={(rec) => { authStore.upsertUser(rec); setEditing(null); }} onClose={() => setEditing(null)} />}
     </div>
   );
@@ -1349,7 +1475,7 @@ function RolePicker({ value, onChange }) {
   );
 }
 
-function UserEditModal({ initial, existing, onSave, onClose }) {
+function UserEditModal({ initial, existing, meId, onSave, onClose }) {
   const SF = window.SF;
   const bdClose = window.useBackdropClose(onClose);
   const isMobile = window.matchMedia("(max-width: 860px)").matches;
@@ -1374,7 +1500,12 @@ function UserEditModal({ initial, existing, onSave, onClose }) {
     if (dup) { setErr("พนักงานคนนี้ผูกกับบัญชี \"" + (dup.name || dup.username) + "\" อยู่แล้ว เลือกคนให้ตรงกับบัญชีนี้ก่อน"); return; }
     /* เรียงตำแหน่งตามลำดับมาตรฐาน แล้วเก็บ role (ตำแหน่งเดียว) ไว้ด้วยเพื่อความเข้ากันได้กับข้อมูลเดิม */
     const roles = ROLE_KEYS.filter((k) => f.roles.indexOf(k) !== -1);
-    onSave(Object.assign({}, f, { name: f.name.trim(), username: uname, pin: String(f.pin).trim(), roles: roles, role: roles[0] }));
+    /* แอดมินสร้างบัญชีให้ หรือตั้งรหัสให้คนอื่น = รหัสนั้นแอดมินรู้ → เจ้าของบัญชีต้องเปลี่ยนเองตอนเข้าครั้งถัดไป
+       (หน้าเข้าใช้งานครั้งแรก) · แก้รหัสของตัวเองไม่ต้อง */
+    const pin = String(f.pin).trim();
+    const pinSet = isNew || pin !== String(initial.pin == null ? "" : initial.pin);
+    const must = pinSet && f.id !== meId ? true : (f.mustChangePin || null);
+    onSave(Object.assign({}, f, { name: f.name.trim(), username: uname, pin: pin, roles: roles, role: roles[0], mustChangePin: must }));
   };
 
   return (
@@ -1481,6 +1612,7 @@ function UserEditModal({ initial, existing, onSave, onClose }) {
 Object.assign(window, { sfMatchCred, SF_SESSION_KEY, jobIsMine });
 
 Object.assign(window, { useAuthStore, useNotifStore, LoginScreen, NotifPanel, UserManager, sfServerLogin, sfSignInToken, SF_LEGACY_KEY,
+  FirstLoginScreen, sfNeedsSetup, sfPinProblem,
   useUserAvatar, MyProfileModal,
   can, hasRole, userRoles, ROLE_INFO, ROLE_KEYS, ROLE_ALIAS, RoleBadge, RoleBadges,
   useRoleConfig, jobScopeOf, jobInScope, PERM_LIST, SCOPE_MODES, DEFAULT_PERMS, applyRoleConfig, roleConfigNow });

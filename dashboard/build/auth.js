@@ -739,6 +739,14 @@ function useAuthStore() {
       _aref("users/" + id).remove();
     } else setUsers(prev => (prev || []).filter(u => u.id !== id));
   }, []);
+  const completeSetup = React.useCallback(patch => {
+    if (!current) return Promise.reject(new Error("no user"));
+    if (_AFB()) return _aref("users/" + current.id).update(patch);
+    setUsers(prev => (prev || []).map(u => u.id === current.id ? Object.assign({}, u, patch, {
+      mustChangePin: undefined
+    }) : u));
+    return Promise.resolve();
+  }, [current && current.id]);
   return {
     users: list,
     current,
@@ -748,6 +756,7 @@ function useAuthStore() {
     logout,
     upsertUser,
     removeUser,
+    completeSetup,
     blankUser: () => blankUser()
   };
 }
@@ -1503,6 +1512,239 @@ function RoleBadges({
     role: r,
     short: short
   })));
+}
+const SF_FIRST_PIN = "1234";
+function sfNeedsSetup(u) {
+  return !!u && (u.mustChangePin === true || String(u.pin) === SF_FIRST_PIN);
+}
+function sfPinProblem(pin, oldPin) {
+  const p = String(pin || "");
+  if (!/^\d{6,}$/.test(p)) return "รหัสผ่านต้องเป็นตัวเลข 6 หลักขึ้นไป";
+  if (/^(\d)\1+$/.test(p)) return "รหัสผ่านเป็นเลขเดียวกันทั้งหมด เดาง่ายเกินไป";
+  const step = +p[1] - +p[0];
+  if ((step === 1 || step === -1) && p.split("").every((c, i) => i === 0 || +c - +p[i - 1] === step)) return "รหัสผ่านเป็นเลขเรียงกัน เดาง่ายเกินไป";
+  if (oldPin != null && p === String(oldPin)) return "รหัสผ่านใหม่ต้องไม่ซ้ำกับรหัสเดิม";
+  return "";
+}
+const FL_INPUT = {
+  background: "var(--surface2)",
+  border: "none",
+  boxShadow: "var(--shadow-inset)",
+  color: "var(--text-1)",
+  fontFamily: "inherit",
+  fontSize: 15,
+  padding: "11px 13px",
+  borderRadius: "var(--r-tile)",
+  outline: "none",
+  width: "100%"
+};
+function FirstLoginScreen({
+  user,
+  onSave,
+  onLogout
+}) {
+  const [f, setF] = React.useState(() => ({
+    name: user.name || "",
+    phone: user.phone || "",
+    email: user.email || "",
+    line: user.line || "",
+    pin: "",
+    pin2: ""
+  }));
+  const [err, setErr] = React.useState("");
+  const [busy, setBusy] = React.useState(false);
+  const set = (k, v) => {
+    setF(o => Object.assign({}, o, {
+      [k]: v
+    }));
+    setErr("");
+  };
+  const submit = async () => {
+    if (busy) return;
+    const name = f.name.trim(),
+      phone = f.phone.trim(),
+      email = f.email.trim(),
+      line = f.line.trim();
+    if (!name) return setErr("กรุณากรอกชื่อ-สกุล");
+    const digits = phone.replace(/\D/g, "");
+    if (digits.length < 9 || digits.length > 10) return setErr("เบอร์โทรไม่ถูกต้อง (9–10 หลัก)");
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return setErr("อีเมลไม่ถูกต้อง");
+    if (!line) return setErr("กรุณากรอก LINE ID");
+    const bad = sfPinProblem(f.pin, user.pin);
+    if (bad) return setErr(bad);
+    if (f.pin !== f.pin2) return setErr("ยืนยันรหัสผ่านไม่ตรงกัน");
+    setBusy(true);
+    try {
+      await onSave({
+        name,
+        phone,
+        email,
+        line,
+        pin: f.pin,
+        mustChangePin: null,
+        setupAt: new Date().toISOString()
+      });
+    } catch (e) {
+      setBusy(false);
+      setErr("บันทึกไม่สำเร็จ ลองใหม่อีกครั้ง");
+    }
+  };
+  const lbl = {
+    fontSize: 11,
+    fontWeight: 700,
+    color: "var(--text-3)"
+  };
+  const field = (label, input, hint) => React.createElement("div", {
+    style: {
+      display: "flex",
+      flexDirection: "column",
+      gap: 6
+    }
+  }, React.createElement("label", {
+    style: lbl
+  }, label, React.createElement("span", {
+    style: {
+      color: "var(--tint-red-tx2)"
+    }
+  }, " *")), input, hint && React.createElement("div", {
+    style: {
+      fontSize: 11.5,
+      color: "var(--text-3)",
+      lineHeight: 1.5
+    }
+  }, hint));
+  const head = t => React.createElement("div", {
+    style: {
+      fontSize: 12,
+      fontWeight: 700,
+      color: "var(--text-2)",
+      marginTop: 4
+    }
+  }, t);
+  return React.createElement("div", {
+    style: {
+      minHeight: "100dvh",
+      display: "flex",
+      flexDirection: "column",
+      alignItems: "center",
+      justifyContent: "center",
+      background: "transparent",
+      gap: 18,
+      padding: "calc(24px + env(safe-area-inset-top, 0px)) 16px calc(24px + env(safe-area-inset-bottom, 0px))"
+    }
+  }, React.createElement(window.BrandMark, {
+    size: 64
+  }), React.createElement("div", {
+    style: {
+      background: "var(--surface)",
+      boxShadow: "var(--shadow-card)",
+      border: "1px solid var(--card-bd)",
+      borderRadius: "var(--r-card)",
+      width: "min(440px, 100%)",
+      padding: 22,
+      display: "flex",
+      flexDirection: "column",
+      gap: 14
+    }
+  }, React.createElement("div", null, React.createElement("div", {
+    style: {
+      fontSize: 17,
+      fontWeight: 700,
+      color: "var(--text-1)"
+    }
+  }, "\u0E15\u0E31\u0E49\u0E07\u0E04\u0E48\u0E32\u0E1A\u0E31\u0E0D\u0E0A\u0E35\u0E04\u0E23\u0E31\u0E49\u0E07\u0E41\u0E23\u0E01"), React.createElement("div", {
+    style: {
+      marginTop: 6,
+      fontSize: 13,
+      color: "var(--text-2)",
+      lineHeight: 1.6
+    }
+  }, "\u0E01\u0E23\u0E2D\u0E01\u0E02\u0E49\u0E2D\u0E21\u0E39\u0E25\u0E15\u0E34\u0E14\u0E15\u0E48\u0E2D\u0E43\u0E2B\u0E49\u0E04\u0E23\u0E1A \u0E41\u0E25\u0E30\u0E40\u0E1B\u0E25\u0E35\u0E48\u0E22\u0E19\u0E23\u0E2B\u0E31\u0E2A\u0E1C\u0E48\u0E32\u0E19\u0E08\u0E32\u0E01\u0E23\u0E2B\u0E31\u0E2A\u0E17\u0E35\u0E48\u0E44\u0E14\u0E49\u0E23\u0E31\u0E1A \u0E01\u0E48\u0E2D\u0E19\u0E40\u0E23\u0E34\u0E48\u0E21\u0E43\u0E0A\u0E49\u0E07\u0E32\u0E19")), head("ข้อมูลผู้ใช้"), field("ชื่อ-สกุล", React.createElement("input", {
+    style: FL_INPUT,
+    value: f.name,
+    onChange: e => set("name", e.target.value),
+    placeholder: "\u0E40\u0E0A\u0E48\u0E19 \u0E2A\u0E21\u0E0A\u0E32\u0E22 \u0E15\u0E31\u0E49\u0E07\u0E43\u0E08"
+  })), field("เบอร์โทร", React.createElement("input", {
+    style: FL_INPUT,
+    value: f.phone,
+    inputMode: "tel",
+    autoComplete: "tel",
+    onChange: e => set("phone", e.target.value),
+    placeholder: "08x-xxx-xxxx"
+  })), field("อีเมล", React.createElement("input", {
+    style: FL_INPUT,
+    value: f.email,
+    inputMode: "email",
+    autoCapitalize: "none",
+    spellCheck: false,
+    autoComplete: "email",
+    onChange: e => set("email", e.target.value),
+    placeholder: "name@example.com"
+  })), field("LINE ID", React.createElement("input", {
+    style: FL_INPUT,
+    value: f.line,
+    autoCapitalize: "none",
+    spellCheck: false,
+    onChange: e => set("line", e.target.value),
+    placeholder: "\u0E40\u0E0A\u0E48\u0E19 somchai"
+  })), head("รหัสผ่านใหม่"), field("รหัสผ่านใหม่", React.createElement("input", {
+    style: FL_INPUT,
+    value: f.pin,
+    type: "password",
+    inputMode: "numeric",
+    autoComplete: "new-password",
+    onChange: e => set("pin", e.target.value.replace(/\D/g, "")),
+    placeholder: "\u0E15\u0E31\u0E27\u0E40\u0E25\u0E02 6 \u0E2B\u0E25\u0E31\u0E01\u0E02\u0E36\u0E49\u0E19\u0E44\u0E1B"
+  }), "ห้ามเลขเรียง (123456) หรือเลขซ้ำ (111111) · ใช้รหัสนี้เข้าเว็บครั้งต่อไป"), field("ยืนยันรหัสผ่านใหม่", React.createElement("input", {
+    style: FL_INPUT,
+    value: f.pin2,
+    type: "password",
+    inputMode: "numeric",
+    autoComplete: "new-password",
+    onChange: e => set("pin2", e.target.value.replace(/\D/g, "")),
+    onKeyDown: e => {
+      if (e.key === "Enter") submit();
+    },
+    placeholder: "\u0E01\u0E23\u0E2D\u0E01\u0E0B\u0E49\u0E33\u0E2D\u0E35\u0E01\u0E04\u0E23\u0E31\u0E49\u0E07"
+  })), err && React.createElement("div", {
+    style: {
+      padding: "9px 12px",
+      borderRadius: "var(--r-chip)",
+      background: "var(--tint-red-bg)",
+      color: "var(--tint-red-tx2)",
+      fontSize: 12.5,
+      fontWeight: 600
+    }
+  }, err), React.createElement("button", {
+    onClick: submit,
+    disabled: busy,
+    style: {
+      marginTop: 4,
+      width: "100%",
+      padding: "13px 16px",
+      borderRadius: "var(--r-tile)",
+      border: "none",
+      background: busy ? "var(--text-3)" : "var(--primary)",
+      color: "#fff",
+      fontWeight: 700,
+      fontFamily: "inherit",
+      fontSize: 14.5,
+      cursor: busy ? "default" : "pointer",
+      boxShadow: "var(--shadow-btn)"
+    }
+  }, busy ? "กำลังบันทึก…" : "บันทึกและเริ่มใช้งาน"), onLogout && React.createElement("button", {
+    onClick: onLogout,
+    disabled: busy,
+    style: {
+      background: "none",
+      border: "none",
+      color: "var(--text-3)",
+      fontFamily: "inherit",
+      fontSize: 12.5,
+      cursor: "pointer",
+      padding: 4
+    }
+  }, "\u0E2D\u0E2D\u0E01\u0E08\u0E32\u0E01\u0E23\u0E30\u0E1A\u0E1A")));
 }
 function LoginScreen({
   authStore
@@ -2965,6 +3207,7 @@ function UserManager({
   }), " \u0E40\u0E1E\u0E34\u0E48\u0E21\u0E1C\u0E39\u0E49\u0E43\u0E0A\u0E49"))), editing && React.createElement(UserEditModal, {
     initial: editing,
     existing: users,
+    meId: authStore.current ? authStore.current.id : null,
     onSave: rec => {
       authStore.upsertUser(rec);
       setEditing(null);
@@ -3052,6 +3295,7 @@ function RolePicker({
 function UserEditModal({
   initial,
   existing,
+  meId,
   onSave,
   onClose
 }) {
@@ -3102,12 +3346,16 @@ function UserEditModal({
       return;
     }
     const roles = ROLE_KEYS.filter(k => f.roles.indexOf(k) !== -1);
+    const pin = String(f.pin).trim();
+    const pinSet = isNew || pin !== String(initial.pin == null ? "" : initial.pin);
+    const must = pinSet && f.id !== meId ? true : f.mustChangePin || null;
     onSave(Object.assign({}, f, {
       name: f.name.trim(),
       username: uname,
-      pin: String(f.pin).trim(),
+      pin: pin,
       roles: roles,
-      role: roles[0]
+      role: roles[0],
+      mustChangePin: must
     }));
   };
   return React.createElement("div", _extends({}, bdClose, {
@@ -3424,6 +3672,9 @@ Object.assign(window, {
   sfServerLogin,
   sfSignInToken,
   SF_LEGACY_KEY,
+  FirstLoginScreen,
+  sfNeedsSetup,
+  sfPinProblem,
   useUserAvatar,
   MyProfileModal,
   can,

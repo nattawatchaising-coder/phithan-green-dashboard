@@ -877,6 +877,9 @@ function App() {
 
   if (loading) return <LoadingScreen />;
   if (!auth.current) return <LoginScreen authStore={auth} />;
+  /* รหัสยังเป็นรหัสแรก / แอดมินเพิ่งตั้งรหัสให้ → กรอกข้อมูลและเปลี่ยนรหัสก่อนเข้าแอป */
+  if (window.sfNeedsSetup(auth.current))
+    return <window.FirstLoginScreen user={auth.current} onSave={auth.completeSetup} onLogout={auth.logout} />;
 
   // แจ้งเตือนของช่างคนนี้ (admin/manager ไม่มี techId → ไม่มีกระดิ่งส่วนตัว)
   /* แจ้งเตือนของฉัน = ที่จ่าหน้าถึงตัวเรา + ที่จ่าหน้าถึง "คนที่มีสิทธิ์นี้" (เช่น งานขออนุญาตส่งถึงทุกคนในฝ่าย) */

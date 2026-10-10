@@ -1041,6 +1041,11 @@ function App() {
   if (!auth.current) return React.createElement(LoginScreen, {
     authStore: auth
   });
+  if (window.sfNeedsSetup(auth.current)) return React.createElement(window.FirstLoginScreen, {
+    user: auth.current,
+    onSave: auth.completeSetup,
+    onLogout: auth.logout
+  });
   const myUid = auth.current ? auth.current.id : null;
   const myNotifs = notif.notifs.filter(n => techId && n.toTechId === techId || myUid && n.toUserId === myUid || n.toPerm && can(role, n.toPerm));
   const unread = myNotifs.filter(n => !n.read).length;
