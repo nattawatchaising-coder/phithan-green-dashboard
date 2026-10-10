@@ -1884,7 +1884,6 @@ function BOQEditor({
   const TRAY_KEYS3 = window.BOQ.TRAY_KIND_KEYS;
   const tray3dOld = TRAY_KEYS3.some(k => (tw[k] || []).some(x => x.p3)) || (tw.extra || []).some(x => x.p3);
   const tray3d = React.useMemo(() => window.BOQ.trayFromPlan ? window.BOQ.trayFromPlan(plan3d, "way", false) : null, [plan3d]);
-  const [tray3dTo, setTray3dTo] = React.useState(null);
   const walk3d = React.useMemo(() => window.BOQ.walkFromPlan ? window.BOQ.walkFromPlan(plan3d) : null, [plan3d]);
   const walk3dHas = ((b.struct || {}).walkway || []).filter(r => r.p3);
   const walk3dSame = !!walk3d && JSON.stringify(walk3dHas.map(r => +r.len)) === JSON.stringify(walk3d.rows.map(r => r.len));
@@ -3069,9 +3068,9 @@ function BOQEditor({
   });
   const raceHostOf = i => {
     const x = raceBase[i];
-    if (!x || !isTrayK(x.c.race) || x.c.raceWith == null) return null;
+    if (!x || x.dc || !isTrayK(x.c.race) || x.c.raceWith == null) return null;
     const h = raceBase[+x.c.raceWith];
-    return h && +x.c.raceWith !== i && h.c.race === x.c.race && h.c.raceWith == null ? +x.c.raceWith : null;
+    return h && !h.dc && +x.c.raceWith !== i && h.c.race === x.c.race && h.c.raceWith == null ? +x.c.raceWith : null;
   };
   const raceRuns = (b.cables || []).map((c, i) => {
     const base = raceBase[i];
@@ -3150,23 +3149,17 @@ function BOQEditor({
     qty: 1,
     p3: 1
   }))) : [];
-  const tray3dHosts = raceRuns.filter(r => r && r.tray && !r.shared);
-  const tray3dAt = raceRuns.filter(r => r && r.fits.some(f => f.p3));
-  const tray3dTgt = tray3dHosts.find(r => r.i === tray3dTo) || tray3dHosts.find(r => tray3dAt.indexOf(r) >= 0) || tray3dHosts[0] || null;
-  const fit3dKey = fs => JSON.stringify(fs.filter(f => f.p3).map(f => [f.k, +f.qty]).sort());
-  const tray3dSame = !tray3dOld && (tray3dFits.length ? !!tray3dTgt && tray3dAt.length === 1 && tray3dAt[0] === tray3dTgt && fit3dKey(tray3dTgt.fits) === fit3dKey(tray3dFits) : !tray3dAt.length);
-  const applyTray3d = drop => setB(p => {
+  const tray3dAt = raceRuns.filter(r => r && r.tray && !r.shared && r.fits.some(f => f.p3));
+  const applyTray3d = () => setB(p => {
     const t = Object.assign({}, TRAY_DEF, p.tray);
     TRAY_KEYS3.forEach(k => {
       t[k] = (t[k] || []).filter(x => !x.p3);
     });
     t.extra = (t.extra || []).filter(x => !x.p3);
-    const cs = (p.cables || []).map((c, i) => {
-      const own = (c.raceFit || []).filter(f => !f.p3);
-      const add = !drop && tray3dTgt && i === tray3dTgt.i ? tray3dFits : [];
-      if (own.length === (c.raceFit || []).length && !add.length) return c;
+    const cs = tray3d ? p.cables : (p.cables || []).map(c => {
+      if (!(c.raceFit || []).some(f => f.p3)) return c;
       const x = Object.assign({}, c),
-        nf = own.concat(add);
+        nf = c.raceFit.filter(f => !f.p3);
       if (nf.length) x.raceFit = nf;else delete x.raceFit;
       return x;
     });
@@ -8609,80 +8602,43 @@ function BOQEditor({
     kinds: ["conduit", "tray"]
   }), (tray3d || tray3dOld || tray3dAt.length > 0) && React.createElement("div", {
     className: "bq-p3",
-    "data-ok": tray3dSame ? "1" : "0"
+    "data-ok": tray3d && tray3dAt.length && !tray3dOld ? "1" : "0"
   }, React.createElement("div", {
     className: "bq-p3-hd"
   }, React.createElement("span", {
     className: "ic"
   }, React.createElement(Icon, {
-    name: tray3dSame ? "check" : "grid",
+    name: tray3d && tray3dAt.length ? "check" : "grid",
     size: 15,
     color: "currentColor",
-    sw: tray3dSame ? 2.6 : 2
+    sw: tray3d && tray3dAt.length ? 2.6 : 2
   })), React.createElement("div", {
     className: "tt"
-  }, React.createElement("b", null, "\u0E02\u0E49\u0E2D\u0E15\u0E48\u0E2D\u0E23\u0E32\u0E07\u0E08\u0E32\u0E01\u0E41\u0E1A\u0E1A 3D"), React.createElement("span", null, !tray3d ? "แบบ 3D ไม่มีรางไฟแล้ว แต่ใบนี้ยังมีของที่ดึงมาจากแบบ" : tray3dSame ? "ข้อต่อในรางของ " + tray3dTgt.label + " ตรงกับแบบแล้ว" : "นับข้องอตามมุมเลี้ยวและแผ่นปิดหัว-ท้ายจากรางที่วาดบนหลังคา ใส่เป็นข้อต่อของรางเส้นสายด้านล่าง — ชนิด ขนาด และระยะราง (รวมทางลงถึงห้องอินเวอร์เตอร์) ใส่เองที่เส้นสาย")), tray3d && React.createElement("div", {
+  }, React.createElement("b", null, "\u0E02\u0E49\u0E2D\u0E15\u0E48\u0E2D\u0E23\u0E32\u0E07\u0E08\u0E32\u0E01\u0E41\u0E1A\u0E1A 3D"), React.createElement("span", null, !tray3d ? "แบบ 3D ไม่มีรางไฟแล้ว แต่ใบนี้ยังมีของที่ดึงมาจากแบบ" : tray3dAt.length ? "เพิ่มในรางของ " + tray3dAt.map(r => r.label).join(", ") + " แล้ว — แก้จำนวนหรือเพิ่มข้อต่อได้ที่เส้นนั้น" : "นับข้องอตามมุมเลี้ยวและแผ่นปิดหัว-ท้ายจากรางที่วาดบนหลังคา — กดเลือกรางที่เส้นสายไหนก็ได้ด้านล่าง ข้อต่อพวกนี้จะเพิ่มเข้ารางเส้นนั้นให้เอง (ขนาดและระยะรางใส่เองที่เส้นสาย)")), tray3d && React.createElement("div", {
     className: "sum"
-  }, tray3d.runs, " \u0E40\u0E2A\u0E49\u0E19", React.createElement("i", null, "\xB7"), "\u0E43\u0E19\u0E41\u0E1A\u0E1A ", React.createElement("b", null, tray3d.total.toLocaleString()), " \u0E21.", React.createElement("i", null, "\xB7"), "\u0E40\u0E25\u0E35\u0E49\u0E22\u0E27 ", React.createElement("b", null, tray3d.bends), " \u0E08\u0E38\u0E14"), tray3d && !tray3dSame && tray3dTgt && React.createElement("button", {
+  }, tray3d.runs, " \u0E40\u0E2A\u0E49\u0E19", React.createElement("i", null, "\xB7"), "\u0E43\u0E19\u0E41\u0E1A\u0E1A ", React.createElement("b", null, tray3d.total.toLocaleString()), " \u0E21.", React.createElement("i", null, "\xB7"), "\u0E40\u0E25\u0E35\u0E49\u0E22\u0E27 ", React.createElement("b", null, tray3d.bends), " \u0E08\u0E38\u0E14"), (tray3dOld || !tray3d && tray3dAt.length > 0) && React.createElement("button", {
     type: "button",
     className: "go",
-    onClick: () => applyTray3d(false)
-  }, React.createElement(Icon, {
-    name: "download",
-    size: 13,
-    color: "#fff"
-  }), " \u0E43\u0E0A\u0E49\u0E02\u0E49\u0E2D\u0E15\u0E48\u0E2D\u0E19\u0E35\u0E49"), !tray3d && React.createElement("button", {
-    type: "button",
-    className: "go",
-    onClick: () => applyTray3d(true)
+    onClick: applyTray3d
   }, React.createElement(Icon, {
     name: "x",
     size: 13,
     color: "#fff"
-  }), " \u0E40\u0E2D\u0E32\u0E02\u0E2D\u0E07\u0E08\u0E32\u0E01\u0E41\u0E1A\u0E1A\u0E2D\u0E2D\u0E01")), tray3d && tray3dHosts.length > 1 && React.createElement("div", {
-    style: {
-      display: "flex",
-      alignItems: "center",
-      gap: 6,
-      flexWrap: "wrap",
-      padding: "10px 14px 4px"
-    }
-  }, React.createElement("span", {
-    style: {
-      fontSize: 11,
-      color: "var(--text-3)",
-      fontWeight: 600
-    }
-  }, "\u0E43\u0E2A\u0E48\u0E43\u0E19\u0E23\u0E32\u0E07\u0E02\u0E2D\u0E07:"), tray3dHosts.map(r => React.createElement("button", {
-    key: r.i,
-    type: "button",
-    className: "bq-cab-chip" + (tray3dTgt === r ? " on" : ""),
-    style: {
-      fontSize: 11.5,
-      padding: "5px 11px"
-    },
-    onClick: () => setTray3dTo(r.i)
-  }, r.label))), tray3d && !tray3dSame && tray3dFits.length > 0 && React.createElement("table", {
+  }), " \u0E40\u0E2D\u0E32\u0E02\u0E2D\u0E07\u0E08\u0E32\u0E01\u0E41\u0E1A\u0E1A\u0E2D\u0E2D\u0E01")), tray3d && !tray3dAt.length && tray3dFits.length > 0 && React.createElement("table", {
     className: "bq-p3-tb"
-  }, React.createElement("thead", null, React.createElement("tr", null, React.createElement("th", null, "\u0E02\u0E49\u0E2D\u0E15\u0E48\u0E2D\u0E23\u0E32\u0E07", tray3dTgt ? " · " + RACE_TH[tray3dTgt.kind] + " " + raceDim(tray3dTgt.size) + " ของ " + tray3dTgt.label : ""), React.createElement("th", {
+  }, React.createElement("thead", null, React.createElement("tr", null, React.createElement("th", null, "\u0E02\u0E49\u0E2D\u0E15\u0E48\u0E2D\u0E17\u0E35\u0E48\u0E08\u0E30\u0E40\u0E1E\u0E34\u0E48\u0E21\u0E40\u0E21\u0E37\u0E48\u0E2D\u0E40\u0E25\u0E37\u0E2D\u0E01\u0E23\u0E32\u0E07"), React.createElement("th", {
     className: "n"
   }, "\u0E08\u0E33\u0E19\u0E27\u0E19"))), React.createElement("tbody", null, tray3dFits.map(x => React.createElement("tr", {
     key: x.k
   }, React.createElement("td", null, x.k), React.createElement("td", {
     className: "n"
-  }, React.createElement("b", null, x.qty.toLocaleString()), " \u0E0A\u0E38\u0E14"))))), tray3d && !tray3dTgt && React.createElement("div", {
+  }, React.createElement("b", null, x.qty.toLocaleString()), " \u0E0A\u0E38\u0E14"))))), tray3dOld && React.createElement("div", {
     className: "warn"
   }, React.createElement(Icon, {
     name: "alert",
     size: 13,
     color: "currentColor"
-  }), " \u0E22\u0E31\u0E07\u0E44\u0E21\u0E48\u0E21\u0E35\u0E40\u0E2A\u0E49\u0E19\u0E2A\u0E32\u0E22\u0E17\u0E35\u0E48\u0E40\u0E25\u0E37\u0E2D\u0E01\u0E40\u0E14\u0E34\u0E19\u0E23\u0E32\u0E07 \u2014 \u0E40\u0E25\u0E37\u0E2D\u0E01\u0E0A\u0E19\u0E34\u0E14\u0E23\u0E32\u0E07\u0E17\u0E35\u0E48\u0E40\u0E2A\u0E49\u0E19\u0E2A\u0E32\u0E22\u0E44\u0E1F\u0E14\u0E49\u0E32\u0E19\u0E25\u0E48\u0E32\u0E07\u0E01\u0E48\u0E2D\u0E19 \u0E41\u0E25\u0E49\u0E27\u0E04\u0E48\u0E2D\u0E22\u0E01\u0E14\u0E43\u0E0A\u0E49\u0E02\u0E49\u0E2D\u0E15\u0E48\u0E2D"), tray3dOld && React.createElement("div", {
-    className: "warn"
-  }, React.createElement(Icon, {
-    name: "alert",
-    size: 13,
-    color: "currentColor"
-  }), " \u0E43\u0E1A\u0E19\u0E35\u0E49\u0E22\u0E31\u0E07\u0E21\u0E35\u0E15\u0E31\u0E27\u0E23\u0E32\u0E07\u0E17\u0E35\u0E48\u0E14\u0E36\u0E07\u0E08\u0E32\u0E01\u0E41\u0E1A\u0E1A\u0E41\u0E1A\u0E1A\u0E40\u0E14\u0E34\u0E21 (\u0E19\u0E31\u0E1A\u0E0B\u0E49\u0E33\u0E01\u0E31\u0E1A\u0E23\u0E32\u0E07\u0E02\u0E2D\u0E07\u0E40\u0E2A\u0E49\u0E19\u0E2A\u0E32\u0E22) \u2014 \u0E01\u0E14", tray3d ? "ใช้ข้อต่อนี้" : "เอาของจากแบบออก", "\u0E41\u0E25\u0E49\u0E27\u0E08\u0E30\u0E25\u0E1A\u0E2D\u0E2D\u0E01")), raceRuns.some(Boolean) && React.createElement("div", {
+  }), " \u0E43\u0E1A\u0E19\u0E35\u0E49\u0E22\u0E31\u0E07\u0E21\u0E35\u0E15\u0E31\u0E27\u0E23\u0E32\u0E07\u0E17\u0E35\u0E48\u0E14\u0E36\u0E07\u0E08\u0E32\u0E01\u0E41\u0E1A\u0E1A\u0E41\u0E1A\u0E1A\u0E40\u0E14\u0E34\u0E21 (\u0E19\u0E31\u0E1A\u0E0B\u0E49\u0E33\u0E01\u0E31\u0E1A\u0E23\u0E32\u0E07\u0E02\u0E2D\u0E07\u0E40\u0E2A\u0E49\u0E19\u0E2A\u0E32\u0E22) \u2014 \u0E01\u0E14 \"\u0E40\u0E2D\u0E32\u0E02\u0E2D\u0E07\u0E08\u0E32\u0E01\u0E41\u0E1A\u0E1A\u0E2D\u0E2D\u0E01\"")), raceRuns.some(Boolean) && React.createElement("div", {
     style: {
       marginBottom: 18
     }
@@ -8758,13 +8714,13 @@ function BOQEditor({
     onClick: () => setRace(r.i, {
       race: k,
       raceSize: null,
-      raceFit: null,
       raceHdg: null,
       raceRail: null,
-      raceWith: null
+      raceWith: null,
+      raceFit: isTrayK(k) && tray3dFits.length ? tray3dFits.map(f => Object.assign({}, f)) : null
     })
   }, th)))), r.tray && (() => {
-    const hosts = raceRuns.filter(x => x && x.i !== r.i && x.kind === r.kind && x.host == null);
+    const hosts = raceBase[r.i].dc ? [] : raceRuns.filter(x => x && x.i !== r.i && x.kind === r.kind && x.host == null && !raceBase[x.i].dc);
     if (!hosts.length || r.guests.length) return r.guests.length ? React.createElement("div", {
       style: {
         fontSize: 11,
