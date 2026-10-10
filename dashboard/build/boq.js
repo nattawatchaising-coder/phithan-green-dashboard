@@ -1797,7 +1797,7 @@ function BOQEditor({
   const dsBattN = dsBattOn ? Math.max(1, Math.round(+dsBatt.n || 1)) : 0;
   const dsBattKwh = dsBattOn ? +dsBatt.kwh || 0 : 0;
   React.useEffect(() => {
-    if (!plan3d) return;
+    if (!plan3d || b.battSrc === "boq") return;
     if (!dsBattOn) {
       if (b.batteryModel) setB(p => Object.assign({}, p, {
         batteryModel: "",
@@ -1811,7 +1811,75 @@ function BOQEditor({
       batteryQty: dsBattN,
       batteryKwh: dsBattKwh
     }));
-  }, [!!plan3d, dsBattOn, dsBattOn && dsBatt.model, dsBattN, dsBattKwh]);
+  }, [!!plan3d, b.battSrc, dsBattOn, dsBattOn && dsBatt.model, dsBattN, dsBattKwh]);
+  const bqBatts = window.BOQ && window.BOQ.BATTERIES || [];
+  const bqBattFit = (bt, inv) => {
+    if (!inv || !inv.model) return {
+      ok: 0,
+      g: bt.brand || undefined
+    };
+    if (inv.type !== "hybrid") return {
+      ok: -1,
+      g: "อินเวอร์เตอร์ On-grid",
+      why: "อินเวอร์เตอร์ On-grid ต่อแบตตรงไม่ได้"
+    };
+    const same = String(bt.brand || "").toLowerCase() === String(inv.model).split(/[\s-]/)[0].toLowerCase();
+    if ((bt.invs || []).length) return bt.invs.indexOf(inv.model) >= 0 ? {
+      ok: 3,
+      g: "รองรับตามดาต้าชีต",
+      why: "อยู่ในรายชื่อรุ่นที่ใช้กับ " + inv.model + " ได้"
+    } : {
+      ok: -1,
+      g: "ไม่รองรับ",
+      why: "ดาต้าชีตไม่มี " + inv.model + " ในรายชื่อรุ่นที่ใช้ได้"
+    };
+    if (bt.v && inv.batV) return bt.v === inv.batV ? {
+      ok: same ? 2 : 1,
+      g: "แรงดันตรง (" + inv.batV.toUpperCase() + ")",
+      why: "แรงดันตรงกัน (" + inv.batV.toUpperCase() + ")" + (same ? "" : " · คนละยี่ห้อ เช็คว่า BMS สื่อสารกันได้")
+    } : {
+      ok: -1,
+      g: "ไม่รองรับ",
+      why: "แรงดันไม่ตรง — แบต " + bt.v.toUpperCase() + " แต่อินเวอร์เตอร์รับ " + inv.batV.toUpperCase()
+    };
+    return same ? {
+      ok: 1,
+      g: "ยี่ห้อเดียวกัน",
+      why: "ยี่ห้อเดียวกัน แต่คลังยังไม่ระบุรุ่นที่รองรับ — เช็คดาต้าชีต"
+    } : {
+      ok: 0,
+      g: "ยังไม่มีข้อมูล",
+      why: "คลังยังไม่มีข้อมูลว่าใช้กับอินเวอร์เตอร์นี้ได้ไหม — เช็คดาต้าชีต"
+    };
+  };
+  const bqPickBatt = (v, n) => {
+    if (v === "__design") {
+      setB(p => Object.assign({}, p, {
+        battSrc: "",
+        batteryModel: dsBattOn ? dsBatt.model : "",
+        batteryQty: dsBattN,
+        batteryKwh: dsBattOn ? dsBattKwh : job && job.battery ? parseFloat(job.batSize) || 0 : 0
+      }));
+      return;
+    }
+    const bt = bqBatts.find(x => x.name === v);
+    if (!bt) {
+      setB(p => Object.assign({}, p, {
+        battSrc: "boq",
+        batteryModel: "",
+        batteryQty: 0,
+        batteryKwh: job && job.battery ? parseFloat(job.batSize) || 0 : 0
+      }));
+      return;
+    }
+    const k = Math.max(1, Math.round(n || +b.batteryQty || 1));
+    setB(p => Object.assign({}, p, {
+      battSrc: "boq",
+      batteryModel: bt.name,
+      batteryQty: k,
+      batteryKwh: Math.round(bt.kwh * k * 100) / 100
+    }));
+  };
   const TRAY_KEYS3 = window.BOQ.TRAY_KIND_KEYS;
   const tray3dHas = TRAY_KEYS3.find(k => (tw[k] || []).some(x => x.p3));
   const tray3dW = (plan3d && plan3d.obstacles || []).filter(o => o && o.p3sType === "tray").map(o => +o.d || 0.1);
@@ -6542,19 +6610,70 @@ function BOQEditor({
       fontWeight: 700,
       color: "var(--text-2)"
     }
-  }, "\u0E43\u0E0A\u0E49\u0E23\u0E38\u0E48\u0E19\u0E15\u0E32\u0E21\u0E10\u0E32\u0E19\u0E02\u0E49\u0E2D\u0E21\u0E39\u0E25")))), hasBattery && React.createElement("div", {
-    style: {
-      gridColumn: isMobile ? "1 / -1" : "auto"
-    }
-  }, React.createElement(Field, {
-    label: b.batteryModel ? "แบตเตอรี่ (จากออกแบบระบบ)" : "แบตเตอรี่ (kWh)"
-  }, b.batteryModel ? React.createElement(BoqLocked, {
-    value: b.batteryModel + " × " + (+b.batteryQty || 1) + " ก้อน · " + b.batteryKwh + " kWh"
-  }) : React.createElement(BoqLocked, {
-    value: b.batteryKwh,
-    unit: "kWh",
-    num: true
-  }))), hasBackup && React.createElement("div", {
+  }, "\u0E43\u0E0A\u0E49\u0E23\u0E38\u0E48\u0E19\u0E15\u0E32\u0E21\u0E10\u0E32\u0E19\u0E02\u0E49\u0E2D\u0E21\u0E39\u0E25")))), (() => {
+    const fromDs = b.battSrc !== "boq";
+    const curBt = b.batteryModel ? bqBatts.find(x => x.name === b.batteryModel) : null;
+    const ft = curBt ? bqBattFit(curBt, selInv) : null;
+    const genLabel = job && job.battery ? "แบตรุ่นกลางตามหน้าแก้งาน (" + (parseFloat(job.batSize) || 0) + " kWh)" : "ไม่มีแบต";
+    const opts = [{
+      value: "",
+      label: genLabel
+    }].concat(dsBattOn ? [{
+      value: "__design",
+      label: "ตามออกแบบระบบ — " + dsBatt.model + " × " + dsBattN + " ก้อน"
+    }] : []).concat(bqBatts.slice().sort((x, y) => bqBattFit(y, selInv).ok - bqBattFit(x, selInv).ok || String(x.brand).localeCompare(String(y.brand)) || x.kwh - y.kwh).map(x => ({
+      value: x.name,
+      label: x.name,
+      sub: x.kwh + " kWh" + (x.price ? " · " + x.price.toLocaleString() + " บาท/ก้อน" : ""),
+      group: bqBattFit(x, selInv).g
+    })));
+    const val = fromDs && dsBattOn ? "__design" : b.batteryModel || "";
+    return React.createElement("div", {
+      style: {
+        gridColumn: "1 / -1",
+        display: "grid",
+        gridTemplateColumns: isMobile ? "minmax(0,1fr)" : "minmax(0,2fr) minmax(0,1fr)",
+        gap: 12
+      }
+    }, React.createElement(Field, {
+      label: "แบตเตอรี่" + (fromDs && dsBattOn ? " · ตามออกแบบระบบ" : !fromDs && b.batteryModel ? " · เลือกในหน้านี้" : "")
+    }, React.createElement(Dropdown, {
+      value: val,
+      onChange: v => bqPickBatt(v),
+      options: opts
+    }), ft && ft.why && React.createElement("div", {
+      style: {
+        marginTop: 5,
+        fontSize: 11.5,
+        fontWeight: 700,
+        color: ft.ok >= 2 ? "var(--tint-green-tx)" : ft.ok < 0 ? "var(--tint-red-tx)" : "var(--tint-amber-tx)"
+      }
+    }, (ft.ok >= 2 ? "✓ " : "⚠ ") + ft.why), !fromDs && dsBattOn && b.batteryModel !== dsBatt.model && React.createElement("div", {
+      style: {
+        marginTop: 5,
+        fontSize: 11.5,
+        color: "var(--tint-amber-tx)"
+      }
+    }, "\u0E44\u0E21\u0E48\u0E15\u0E23\u0E07\u0E01\u0E31\u0E1A\u0E2B\u0E19\u0E49\u0E32\u0E2D\u0E2D\u0E01\u0E41\u0E1A\u0E1A\u0E23\u0E30\u0E1A\u0E1A (", dsBatt.model, " \xD7 ", dsBattN, ")")), b.batteryModel ? React.createElement(Field, {
+      label: "\u0E08\u0E33\u0E19\u0E27\u0E19\u0E01\u0E49\u0E2D\u0E19"
+    }, React.createElement("div", {
+      className: "bq-fld"
+    }, React.createElement("input", {
+      type: "number",
+      min: 1,
+      step: 1,
+      value: +b.batteryQty || 1,
+      onChange: e => bqPickBatt(b.batteryModel, Math.max(1, parseInt(e.target.value) || 1))
+    }), React.createElement("span", {
+      className: "u"
+    }, "\u0E01\u0E49\u0E2D\u0E19 \xB7 ", b.batteryKwh, " kWh"))) : hasBattery ? React.createElement(Field, {
+      label: "\u0E04\u0E27\u0E32\u0E21\u0E08\u0E38 (\u0E15\u0E32\u0E21\u0E2B\u0E19\u0E49\u0E32\u0E41\u0E01\u0E49\u0E07\u0E32\u0E19)"
+    }, React.createElement(BoqLocked, {
+      value: b.batteryKwh,
+      unit: "kWh",
+      num: true
+    })) : React.createElement("div", null));
+  })(), hasBackup && React.createElement("div", {
     style: {
       gridColumn: isMobile ? "1 / -1" : "auto"
     }

@@ -970,8 +970,9 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock, ver, verName, p3Vers
   const dsBattOn = !!(dsBatt && dsBatt.on && dsBatt.model);
   const dsBattN = dsBattOn ? Math.max(1, Math.round(+dsBatt.n || 1)) : 0;
   const dsBattKwh = dsBattOn ? (+dsBatt.kwh || 0) : 0;
+  /* b.battSrc === "boq" = เลือกแบตเองในหน้านี้ (ทับแบบ) — ไม่ดึงจากแบบอีกจนกว่าจะเลือก "ตามออกแบบระบบ" */
   React.useEffect(() => {
-    if (!plan3d) return;   // ยังโหลดแบบไม่เสร็จ — อย่าเพิ่งล้างค่า
+    if (!plan3d || b.battSrc === "boq") return;   // ยังโหลดแบบไม่เสร็จ — อย่าเพิ่งล้างค่า
     if (!dsBattOn) {
       if (b.batteryModel) setB((p) => Object.assign({}, p, { batteryModel: "", batteryQty: 0,
         batteryKwh: job && job.battery ? (parseFloat(job.batSize) || 0) : 0 }));
@@ -979,7 +980,29 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock, ver, verName, p3Vers
     }
     if (b.batteryModel !== dsBatt.model || +b.batteryQty !== dsBattN || +b.batteryKwh !== dsBattKwh)
       setB((p) => Object.assign({}, p, { batteryModel: dsBatt.model, batteryQty: dsBattN, batteryKwh: dsBattKwh }));
-  }, [!!plan3d, dsBattOn, dsBattOn && dsBatt.model, dsBattN, dsBattKwh]); // eslint-disable-line
+  }, [!!plan3d, b.battSrc, dsBattOn, dsBattOn && dsBatt.model, dsBattN, dsBattKwh]); // eslint-disable-line
+  /* รุ่นแบตจากคลังให้เลือกในหน้านี้ — จัดกลุ่มตามอินเวอร์เตอร์ที่เลือก (รายชื่อรุ่นที่รองรับ > แรงดัน LV/HV > ยี่ห้อ) แบบเดียวกับหน้าออกแบบระบบ */
+  const bqBatts = (window.BOQ && window.BOQ.BATTERIES) || [];
+  const bqBattFit = (bt, inv) => {
+    if (!inv || !inv.model) return { ok: 0, g: bt.brand || undefined };
+    if (inv.type !== "hybrid") return { ok: -1, g: "อินเวอร์เตอร์ On-grid", why: "อินเวอร์เตอร์ On-grid ต่อแบตตรงไม่ได้" };
+    const same = String(bt.brand || "").toLowerCase() === String(inv.model).split(/[\s-]/)[0].toLowerCase();
+    if ((bt.invs || []).length) return bt.invs.indexOf(inv.model) >= 0
+      ? { ok: 3, g: "รองรับตามดาต้าชีต", why: "อยู่ในรายชื่อรุ่นที่ใช้กับ " + inv.model + " ได้" }
+      : { ok: -1, g: "ไม่รองรับ", why: "ดาต้าชีตไม่มี " + inv.model + " ในรายชื่อรุ่นที่ใช้ได้" };
+    if (bt.v && inv.batV) return bt.v === inv.batV
+      ? { ok: same ? 2 : 1, g: "แรงดันตรง (" + inv.batV.toUpperCase() + ")", why: "แรงดันตรงกัน (" + inv.batV.toUpperCase() + ")" + (same ? "" : " · คนละยี่ห้อ เช็คว่า BMS สื่อสารกันได้") }
+      : { ok: -1, g: "ไม่รองรับ", why: "แรงดันไม่ตรง — แบต " + bt.v.toUpperCase() + " แต่อินเวอร์เตอร์รับ " + inv.batV.toUpperCase() };
+    return same ? { ok: 1, g: "ยี่ห้อเดียวกัน", why: "ยี่ห้อเดียวกัน แต่คลังยังไม่ระบุรุ่นที่รองรับ — เช็คดาต้าชีต" }
+      : { ok: 0, g: "ยังไม่มีข้อมูล", why: "คลังยังไม่มีข้อมูลว่าใช้กับอินเวอร์เตอร์นี้ได้ไหม — เช็คดาต้าชีต" };
+  };
+  const bqPickBatt = (v, n) => {
+    if (v === "__design") { setB((p) => Object.assign({}, p, { battSrc: "", batteryModel: dsBattOn ? dsBatt.model : "", batteryQty: dsBattN, batteryKwh: dsBattOn ? dsBattKwh : (job && job.battery ? (parseFloat(job.batSize) || 0) : 0) })); return; }
+    const bt = bqBatts.find((x) => x.name === v);
+    if (!bt) { setB((p) => Object.assign({}, p, { battSrc: "boq", batteryModel: "", batteryQty: 0, batteryKwh: job && job.battery ? (parseFloat(job.batSize) || 0) : 0 })); return; }
+    const k = Math.max(1, Math.round(n || +b.batteryQty || 1));
+    setB((p) => Object.assign({}, p, { battSrc: "boq", batteryModel: bt.name, batteryQty: k, batteryKwh: Math.round(bt.kwh * k * 100) / 100 }));
+  };
   /* ── รางไฟจากแบบ 3D (obstacles p3sType tray) — แถว p3: 1 ในราง + ข้อต่อใน extra ──
      ชนิดราง/ชุบ เลือกในแถบ · ค่าเริ่ม: ใช้ชนิดของแถวที่เคยกดใช้ · ไม่มี = รางกว้างทุกเส้น ≥ 15 ซม. → Perforated ไม่งั้น Wireway */
   const TRAY_KEYS3 = window.BOQ.TRAY_KIND_KEYS;
@@ -3304,12 +3327,42 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock, ver, verName, p3Vers
                   )}
                 </Field>
               </div>
-              {hasBattery && <div style={{ gridColumn: isMobile ? "1 / -1" : "auto" }}>
-                <Field label={b.batteryModel ? "แบตเตอรี่ (จากออกแบบระบบ)" : "แบตเตอรี่ (kWh)"}>
-                  {b.batteryModel
-                    ? <BoqLocked value={b.batteryModel + " × " + (+b.batteryQty || 1) + " ก้อน · " + b.batteryKwh + " kWh"} />
-                    : <BoqLocked value={b.batteryKwh} unit="kWh" num />}
-                </Field></div>}
+              {/* ── แบตเตอรี่ ── บรรทัดเดียวกับอินเวอร์เตอร์ (รุ่น | จำนวนก้อน) · ปกติตามหน้าออกแบบระบบ เลือกเองที่นี่ได้ (battSrc = "boq") */}
+              {(() => {
+                const fromDs = b.battSrc !== "boq";
+                const curBt = b.batteryModel ? bqBatts.find((x) => x.name === b.batteryModel) : null;
+                const ft = curBt ? bqBattFit(curBt, selInv) : null;
+                const genLabel = job && job.battery ? "แบตรุ่นกลางตามหน้าแก้งาน (" + (parseFloat(job.batSize) || 0) + " kWh)" : "ไม่มีแบต";
+                const opts = [{ value: "", label: genLabel }]
+                  .concat(dsBattOn ? [{ value: "__design", label: "ตามออกแบบระบบ — " + dsBatt.model + " × " + dsBattN + " ก้อน" }] : [])
+                  .concat(bqBatts.slice().sort((x, y) => bqBattFit(y, selInv).ok - bqBattFit(x, selInv).ok || String(x.brand).localeCompare(String(y.brand)) || x.kwh - y.kwh)
+                    .map((x) => ({ value: x.name, label: x.name, sub: x.kwh + " kWh" + (x.price ? " · " + x.price.toLocaleString() + " บาท/ก้อน" : ""), group: bqBattFit(x, selInv).g })));
+                const val = fromDs && dsBattOn ? "__design" : (b.batteryModel || "");
+                return (
+                  <div style={{ gridColumn: "1 / -1", display: "grid", gridTemplateColumns: isMobile ? "minmax(0,1fr)" : "minmax(0,2fr) minmax(0,1fr)", gap: 12 }}>
+                    <Field label={"แบตเตอรี่" + (fromDs && dsBattOn ? " · ตามออกแบบระบบ" : !fromDs && b.batteryModel ? " · เลือกในหน้านี้" : "")}>
+                      <Dropdown value={val} onChange={(v) => bqPickBatt(v)} options={opts} />
+                      {ft && ft.why && (
+                        <div style={{ marginTop: 5, fontSize: 11.5, fontWeight: 700, color: ft.ok >= 2 ? "var(--tint-green-tx)" : ft.ok < 0 ? "var(--tint-red-tx)" : "var(--tint-amber-tx)" }}>
+                          {(ft.ok >= 2 ? "✓ " : "⚠ ") + ft.why}
+                        </div>
+                      )}
+                      {!fromDs && dsBattOn && b.batteryModel !== dsBatt.model && (
+                        <div style={{ marginTop: 5, fontSize: 11.5, color: "var(--tint-amber-tx)" }}>ไม่ตรงกับหน้าออกแบบระบบ ({dsBatt.model} × {dsBattN})</div>
+                      )}
+                    </Field>
+                    {b.batteryModel ? (
+                      <Field label="จำนวนก้อน">
+                        <div className="bq-fld">
+                          <input type="number" min={1} step={1} value={+b.batteryQty || 1}
+                            onChange={(e) => bqPickBatt(b.batteryModel, Math.max(1, parseInt(e.target.value) || 1))} />
+                          <span className="u">ก้อน · {b.batteryKwh} kWh</span>
+                        </div>
+                      </Field>
+                    ) : hasBattery ? <Field label="ความจุ (ตามหน้าแก้งาน)"><BoqLocked value={b.batteryKwh} unit="kWh" num /></Field> : <div />}
+                  </div>
+                );
+              })()}
               {hasBackup && <div style={{ gridColumn: isMobile ? "1 / -1" : "auto" }}><Field label="ระบบ Backup"><BoqLocked value={b.backup ? "ติดตั้ง" : "ไม่ติดตั้ง"} /></Field></div>}
               <div style={{ gridColumn: isMobile ? "1 / -1" : "auto" }}><Field label="ประเภทหลังคา"><Dropdown value={b.roof} onChange={(v) => set("roof", v)} options={opt(window.BOQ.ROOF_OPTIONS)} /></Field></div>
             </div>
