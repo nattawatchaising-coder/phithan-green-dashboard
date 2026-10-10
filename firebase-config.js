@@ -40,7 +40,7 @@ const FIREBASE_CONFIG = {
   // ป้ายบอกฐานข้อมูลบนหน้าเว็บ — แสดงเฉพาะในเครื่อง (เว็บจริงไม่มีป้าย)
   if (!isLocal) return;
   const label = useTest
-    ? "ฐานข้อมูลทดสอบ · " + cfg.projectId
+    ? "ฐานข้อมูลทดสอบ"
     : "⚠ ฐานข้อมูลจริง — บันทึกแล้วแก้ข้อมูลจริง";
   if (useTest) document.title = "[ทดสอบ] " + document.title;
   const show = () => {
