@@ -20,7 +20,7 @@
 - **ฐานทดสอบ ไม่มีกุญแจ**: ตอบ `fallback` → เทียบ PIN ในเบราว์เซอร์แบบเก่า ใช้ได้เฉพาะกฎฐานทดสอบเปิด read/write — **ห้ามใส่ข้อมูลจริงในฐานที่เปิดกฎ**
 - ไม่ส่งต่อไปเว็บจริงเลยตอนใช้ฐานทดสอบ
 
-**สถานะ 2026-10-10 (เครื่อง 2):** สร้าง `phithan-green-test` (asia-southeast1 · Auth เปิด · กฎเดียวกับของจริง) · วาง config + กุญแจที่โฟลเดอร์หลักของ repo · นำเข้าข้อมูลจริงครบ 61 กลุ่ม · `/api/auth/login` บน localhost ตอบ `configured:true` · เครื่อง 1 ยังไม่ได้วางไฟล์
+**สถานะ 2026-10-10 (เครื่อง 2):** สร้าง `phithan-green-test` (asia-southeast1 · Auth เปิด · กฎเดียวกับของจริง) · วาง config + กุญแจที่โฟลเดอร์หลักของ repo · นำเข้าข้อมูลจริงครบ 61 กลุ่ม · `/api/auth/login` บน localhost ตอบ `configured:true` · ผู้ใช้ล็อกอิน localhost บนฐานทดสอบผ่านแล้ว · เครื่อง 1 ยังไม่ได้วางไฟล์
 
 ## ห้ามขึ้น git / เว็บ
 `firebase-config.local.js` · `firebase-sa.local.json` · `*-firebase-adminsdk-*.json` · ไฟล์ export (`*-export.json`) อยู่ใน `.gitignore` (และ `.vercelignore`) — **แต่ละเครื่องต้องสร้างเอง** · repo เป็น public: กุญแจ service account และข้อมูลลูกค้าห้าม commit เด็ดขาด
