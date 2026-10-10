@@ -3810,6 +3810,7 @@ function SolarWorkspace({
   const inv = React.useMemo(() => scInvSpec(S), [S.invModel, S.inv, stockInv]);
   const stockPanel = stockPanels.find(p => p.model === S.panelModel) || {};
   const stockInvRow = stockInv.find(p => p.model === S.invModel) || {};
+  const [invBrandPick, setInvBrandPick] = React.useState("");
   const inv2 = React.useMemo(() => scInvSpec2(S), [S.inv2Model, S.inv2, S.inv2Count, S.invModel, stockInv]);
   const inv2Count = inv2 ? Math.max(1, Math.round(scNum(S.inv2Count, 0))) : 0;
   const stockInv2Row = stockInv.find(p => p.model === S.inv2Model) || {};
@@ -4209,6 +4210,26 @@ function SolarWorkspace({
   const microUnassigned = isMicro ? foot.panels.filter(p => !microAssign[p.uid]).length : 0;
   const jobPhase = String(job && job.phase) === "3" ? 3 : 1;
   const phases = S.phases == null ? jobPhase : scNum(S.phases, 1) === 3 ? 3 : 1;
+  const invBrandOf = p => String(p && p.group || "").trim() || "ไม่ระบุยี่ห้อ";
+  const invBrands = (() => {
+    const m = {};
+    stockInv.forEach(p => {
+      const b = invBrandOf(p);
+      if (!m[b.toLowerCase()]) m[b.toLowerCase()] = b;
+    });
+    return Object.keys(m).sort().map(k => m[k]);
+  })();
+  const invBrand = invBrandPick || (S.invModel && stockInvRow.model ? invBrandOf(stockInvRow) : "");
+  const invTypeTh = p => p.type === "hybrid" ? "Hybrid" : "On-grid";
+  const invOptLabel = (p, brand) => {
+    let nm = String(p.model);
+    if (brand && nm.toLowerCase().startsWith(brand.toLowerCase())) nm = nm.slice(brand.length).replace(/^[\s-]+/, "") || p.model;
+    return [nm, p.kw ? p.kw + " kW" : "", p.phase ? p.phase + " เฟส" : "", invTypeTh(p)].filter(Boolean).join(" · ");
+  };
+  const invByKw = (a, b) => (a.kw || 0) - (b.kw || 0) || String(a.model).localeCompare(String(b.model));
+  const invOfBrand = invBrand ? stockInv.filter(p => invBrandOf(p).toLowerCase() === invBrand.toLowerCase()).sort(invByKw) : [];
+  const invPhaseOk = p => !p.phase || Number(p.phase) === phases;
+  const invPhaseMismatch = !!(stockInvRow.model && stockInvRow.phase && Number(stockInvRow.phase) !== phases);
   const phaseBins = React.useMemo(() => isMicro && microSel && typeof scMicroPhases === "function" ? scMicroPhases(microUnits, {
     phases,
     wp: panel.wp,
@@ -5167,23 +5188,71 @@ function SolarWorkspace({
   }, S.invCount + " + " + inv2Count + " = " + pinLay.nInv + " ตัว") : null), React.createElement("div", {
     style: {
       display: "flex",
-      gap: 9
+      gap: 9,
+      alignItems: "flex-end",
+      flexWrap: "wrap"
     }
-  }, React.createElement("select", {
-    className: "p3-inp",
+  }, React.createElement("label", {
+    className: "p3-f",
     style: {
-      flex: 1
-    },
+      width: 150,
+      flex: "0 0 auto"
+    }
+  }, React.createElement("span", {
+    className: "lb"
+  }, "\u0E22\u0E35\u0E48\u0E2B\u0E49\u0E2D"), React.createElement("select", {
+    className: "p3-inp",
+    value: invBrand,
+    onChange: e => {
+      const b = e.target.value;
+      setInvBrandPick(b);
+      if (S.invModel && invBrandOf(stockInvRow).toLowerCase() !== b.toLowerCase()) set({
+        invModel: ""
+      });
+    }
+  }, React.createElement("option", {
+    value: ""
+  }, "\u2014 \u0E40\u0E25\u0E37\u0E2D\u0E01\u0E22\u0E35\u0E48\u0E2B\u0E49\u0E2D \u2014"), invBrands.map(b => React.createElement("option", {
+    key: b,
+    value: b
+  }, b + " (" + stockInv.filter(p => invBrandOf(p).toLowerCase() === b.toLowerCase()).length + ")")))), React.createElement("label", {
+    className: "p3-f",
+    style: {
+      flex: 1,
+      minWidth: 200
+    }
+  }, React.createElement("span", {
+    className: "lb",
+    style: {
+      display: "flex",
+      gap: 6
+    }
+  }, React.createElement("span", null, "\u0E23\u0E38\u0E48\u0E19\u0E2D\u0E34\u0E19\u0E40\u0E27\u0E2D\u0E23\u0E4C\u0E40\u0E15\u0E2D\u0E23\u0E4C"), React.createElement("span", {
+    style: {
+      marginLeft: "auto",
+      fontWeight: 700,
+      color: "var(--text-3)"
+    }
+  }, "\u0E07\u0E32\u0E19\u0E19\u0E35\u0E49 ", phases, " \u0E40\u0E1F\u0E2A")), React.createElement("select", {
+    className: "p3-inp",
     value: S.invModel || "",
+    disabled: !invBrand,
     onChange: e => set({
       invModel: e.target.value
     })
   }, React.createElement("option", {
     value: ""
-  }, "\u2014 \u0E40\u0E25\u0E37\u0E2D\u0E01\u0E23\u0E38\u0E48\u0E19\u0E2D\u0E34\u0E19\u0E40\u0E27\u0E2D\u0E23\u0E4C\u0E40\u0E15\u0E2D\u0E23\u0E4C \u2014"), stockInv.map(p => React.createElement("option", {
+  }, invBrand ? "— เลือกรุ่น " + invBrand + " —" : "— เลือกยี่ห้อก่อน —"), invOfBrand.some(invPhaseOk) && React.createElement("optgroup", {
+    label: "ตรงกับงาน (" + phases + " เฟส)"
+  }, invOfBrand.filter(invPhaseOk).map(p => React.createElement("option", {
     key: p.model,
     value: p.model
-  }, p.model))), React.createElement("label", {
+  }, invOptLabel(p, invBrand)))), invOfBrand.some(p => !invPhaseOk(p)) && React.createElement("optgroup", {
+    label: "เฟสไม่ตรงกับงาน"
+  }, invOfBrand.filter(p => !invPhaseOk(p)).map(p => React.createElement("option", {
+    key: p.model,
+    value: p.model
+  }, invOptLabel(p, invBrand)))))), React.createElement("label", {
     className: "p3-f",
     style: {
       width: 108,
@@ -5217,7 +5286,40 @@ function SolarWorkspace({
     onChange: e => set({
       invCount: Math.max(1, +e.target.value || 1)
     })
-  }))), React.createElement("div", {
+  }))), stockInvRow.model ? React.createElement("div", {
+    style: {
+      display: "flex",
+      gap: 6,
+      alignItems: "center",
+      flexWrap: "wrap",
+      fontSize: 11.5,
+      color: "var(--text-2)"
+    }
+  }, React.createElement("span", {
+    style: {
+      padding: "2px 8px",
+      borderRadius: "var(--r-chip)",
+      background: "var(--surface2)",
+      fontWeight: 700
+    }
+  }, invTypeTh(stockInvRow)), stockInvRow.phase ? React.createElement("span", {
+    style: {
+      padding: "2px 8px",
+      borderRadius: "var(--r-chip)",
+      background: "var(--surface2)",
+      fontWeight: 700
+    }
+  }, stockInvRow.phase + " เฟส") : null, invPhaseMismatch ? React.createElement("span", {
+    style: {
+      color: "var(--tint-red-tx)",
+      fontWeight: 700
+    }
+  }, "\u26A0 \u0E40\u0E1F\u0E2A\u0E44\u0E21\u0E48\u0E15\u0E23\u0E07\u0E01\u0E31\u0E1A\u0E07\u0E32\u0E19 (\u0E07\u0E32\u0E19\u0E19\u0E35\u0E49 ", phases, " \u0E40\u0E1F\u0E2A)") : stockInvRow.phase ? React.createElement("span", {
+    style: {
+      color: "var(--tint-green-tx)",
+      fontWeight: 600
+    }
+  }, "\u2713 \u0E15\u0E23\u0E07\u0E01\u0E31\u0E1A\u0E07\u0E32\u0E19") : null) : null, React.createElement("div", {
     style: {
       display: "grid",
       gridTemplateColumns: "1fr 1fr 1fr",
@@ -5338,10 +5440,10 @@ function SolarWorkspace({
     })
   }, React.createElement("option", {
     value: ""
-  }, "\u2014 \u0E44\u0E21\u0E48\u0E43\u0E0A\u0E49 (\u0E23\u0E38\u0E48\u0E19\u0E40\u0E14\u0E35\u0E22\u0E27\u0E17\u0E31\u0E49\u0E07\u0E07\u0E32\u0E19) \u2014"), stockInv.filter(p => p.model !== S.invModel).map(p => React.createElement("option", {
+  }, "\u2014 \u0E44\u0E21\u0E48\u0E43\u0E0A\u0E49 (\u0E23\u0E38\u0E48\u0E19\u0E40\u0E14\u0E35\u0E22\u0E27\u0E17\u0E31\u0E49\u0E07\u0E07\u0E32\u0E19) \u2014"), stockInv.filter(p => p.model !== S.invModel).slice().sort((a, b) => invBrandOf(a).localeCompare(invBrandOf(b)) || invByKw(a, b)).map(p => React.createElement("option", {
     key: p.model,
     value: p.model
-  }, p.model)))), React.createElement("label", {
+  }, invOptLabel(p, ""))))), React.createElement("label", {
     className: "p3-f",
     style: {
       width: 108,

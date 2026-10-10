@@ -1979,6 +1979,8 @@ function SolarWorkspace({ job, st, sys, onChange, onClose, snap }) {
   const inv = React.useMemo(() => scInvSpec(S), [S.invModel, S.inv, stockInv]);
   const stockPanel = stockPanels.find((p) => p.model === S.panelModel) || {};
   const stockInvRow = stockInv.find((p) => p.model === S.invModel) || {};
+  /* ยี่ห้อที่กดเลือกไว้ (ยังไม่ได้เลือกรุ่น) — เลือกรุ่นแล้วยี่ห้อตามรุ่นนั้นเอง */
+  const [invBrandPick, setInvBrandPick] = React.useState("");
   /* ── อินเวอร์เตอร์ขนาดที่สอง ── null = ใช้รุ่นเดียวทั้งงาน
      เอนจินรับ inv2/inv2Count เป็นตัวเลือก ถ้าไม่ส่งไปก็ทำงานแบบรุ่นเดียวเหมือนเดิมทุกประการ */
   const inv2 = React.useMemo(() => scInvSpec2(S), [S.inv2Model, S.inv2, S.inv2Count, S.invModel, stockInv]);
@@ -2244,6 +2246,24 @@ function SolarWorkspace({ job, st, sys, onChange, onClose, snap }) {
      ค่าตั้งต้นดึงจากข้อมูลงาน (job.phase) แก้ทับได้ในหน้านี้ */
   const jobPhase = String(job && job.phase) === "3" ? 3 : 1;
   const phases = S.phases == null ? jobPhase : (scNum(S.phases, 1) === 3 ? 3 : 1);
+  /* ── เลือกอินเวอร์เตอร์: ยี่ห้อก่อน แล้วค่อยรุ่น ──
+     คลังมีหลายยี่ห้อหลายสิบรุ่น ดรอปดาวน์เดียวยาวหาไม่เจอ · รุ่นบอก kW · เฟส · Hybrid/On-grid
+     รุ่นที่เฟสตรงกับงานขึ้นก่อน ที่ไม่ตรงแยกไว้กลุ่มท้าย (ยังเลือกได้ เผื่องานพิเศษ) */
+  const invBrandOf = (p) => String((p && p.group) || "").trim() || "ไม่ระบุยี่ห้อ";
+  const invBrands = (() => { const m = {}; stockInv.forEach((p) => { const b = invBrandOf(p); if (!m[b.toLowerCase()]) m[b.toLowerCase()] = b; });
+    return Object.keys(m).sort().map((k) => m[k]); })();
+  const invBrand = invBrandPick || (S.invModel && stockInvRow.model ? invBrandOf(stockInvRow) : "");
+  const invTypeTh = (p) => (p.type === "hybrid" ? "Hybrid" : "On-grid");
+  const invOptLabel = (p, brand) => {
+    /* ตัดชื่อยี่ห้อหน้าชื่อรุ่นออก ("Growatt - MIN 5000TL-X" → "MIN 5000TL-X") เลือกยี่ห้อไว้แล้วไม่ต้องซ้ำ */
+    let nm = String(p.model);
+    if (brand && nm.toLowerCase().startsWith(brand.toLowerCase())) nm = nm.slice(brand.length).replace(/^[\s-]+/, "") || p.model;
+    return [nm, p.kw ? p.kw + " kW" : "", p.phase ? p.phase + " เฟส" : "", invTypeTh(p)].filter(Boolean).join(" · ");
+  };
+  const invByKw = (a, b) => (a.kw || 0) - (b.kw || 0) || String(a.model).localeCompare(String(b.model));
+  const invOfBrand = invBrand ? stockInv.filter((p) => invBrandOf(p).toLowerCase() === invBrand.toLowerCase()).sort(invByKw) : [];
+  const invPhaseOk = (p) => !p.phase || Number(p.phase) === phases;
+  const invPhaseMismatch = !!(stockInvRow.model && stockInvRow.phase && Number(stockInvRow.phase) !== phases);
   const phaseBins = React.useMemo(() => (isMicro && microSel && typeof scMicroPhases === "function"
     ? scMicroPhases(microUnits, { phases, wp: panel.wp, acW: microSel.acW, acV: microSel.acV,
         perBranch: microSel.perBranch, override: S.microPhase || {} })
@@ -2754,11 +2774,34 @@ function SolarWorkspace({ job, st, sys, onChange, onClose, snap }) {
                       <span className="ln" />
                       {inv2 ? <span style={{ fontWeight: 600 }}>{S.invCount + " + " + inv2Count + " = " + pinLay.nInv + " ตัว"}</span> : null}
                     </span>
-                    <div style={{ display: "flex", gap: 9 }}>
-                      <select className="p3-inp" style={{ flex: 1 }} value={S.invModel || ""} onChange={(e) => set({ invModel: e.target.value })}>
-                        <option value="">— เลือกรุ่นอินเวอร์เตอร์ —</option>
-                        {stockInv.map((p) => <option key={p.model} value={p.model}>{p.model}</option>)}
-                      </select>
+                    <div style={{ display: "flex", gap: 9, alignItems: "flex-end", flexWrap: "wrap" }}>
+                      <label className="p3-f" style={{ width: 150, flex: "0 0 auto" }}>
+                        <span className="lb">ยี่ห้อ</span>
+                        <select className="p3-inp" value={invBrand}
+                          onChange={(e) => { const b = e.target.value; setInvBrandPick(b); if (S.invModel && invBrandOf(stockInvRow).toLowerCase() !== b.toLowerCase()) set({ invModel: "" }); }}>
+                          <option value="">— เลือกยี่ห้อ —</option>
+                          {invBrands.map((b) => <option key={b} value={b}>{b + " (" + stockInv.filter((p) => invBrandOf(p).toLowerCase() === b.toLowerCase()).length + ")"}</option>)}
+                        </select>
+                      </label>
+                      <label className="p3-f" style={{ flex: 1, minWidth: 200 }}>
+                        <span className="lb" style={{ display: "flex", gap: 6 }}>
+                          <span>รุ่นอินเวอร์เตอร์</span>
+                          <span style={{ marginLeft: "auto", fontWeight: 700, color: "var(--text-3)" }}>งานนี้ {phases} เฟส</span>
+                        </span>
+                        <select className="p3-inp" value={S.invModel || ""} disabled={!invBrand} onChange={(e) => set({ invModel: e.target.value })}>
+                          <option value="">{invBrand ? "— เลือกรุ่น " + invBrand + " —" : "— เลือกยี่ห้อก่อน —"}</option>
+                          {invOfBrand.some(invPhaseOk) && (
+                            <optgroup label={"ตรงกับงาน (" + phases + " เฟส)"}>
+                              {invOfBrand.filter(invPhaseOk).map((p) => <option key={p.model} value={p.model}>{invOptLabel(p, invBrand)}</option>)}
+                            </optgroup>
+                          )}
+                          {invOfBrand.some((p) => !invPhaseOk(p)) && (
+                            <optgroup label={"เฟสไม่ตรงกับงาน"}>
+                              {invOfBrand.filter((p) => !invPhaseOk(p)).map((p) => <option key={p.model} value={p.model}>{invOptLabel(p, invBrand)}</option>)}
+                            </optgroup>
+                          )}
+                        </select>
+                      </label>
                       <label className="p3-f" style={{ width: 108, flex: "0 0 auto" }}>
                         <span className="lb" style={{ display: "flex", gap: 5 }}>
                           <span>จำนวนตัว</span>
@@ -2770,6 +2813,15 @@ function SolarWorkspace({ job, st, sys, onChange, onClose, snap }) {
                         <input className="p3-inp" type="number" min="1" step="1" value={S.invCount} onChange={(e) => set({ invCount: Math.max(1, +e.target.value || 1) })} />
                       </label>
                     </div>
+                    {stockInvRow.model ? (
+                      <div style={{ display: "flex", gap: 6, alignItems: "center", flexWrap: "wrap", fontSize: 11.5, color: "var(--text-2)" }}>
+                        <span style={{ padding: "2px 8px", borderRadius: "var(--r-chip)", background: "var(--surface2)", fontWeight: 700 }}>{invTypeTh(stockInvRow)}</span>
+                        {stockInvRow.phase ? <span style={{ padding: "2px 8px", borderRadius: "var(--r-chip)", background: "var(--surface2)", fontWeight: 700 }}>{stockInvRow.phase + " เฟส"}</span> : null}
+                        {invPhaseMismatch
+                          ? <span style={{ color: "var(--tint-red-tx)", fontWeight: 700 }}>⚠ เฟสไม่ตรงกับงาน (งานนี้ {phases} เฟส)</span>
+                          : stockInvRow.phase ? <span style={{ color: "var(--tint-green-tx)", fontWeight: 600 }}>✓ ตรงกับงาน</span> : null}
+                      </div>
+                    ) : null}
                     <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 9 }}>
                       <SuSpec label="กำลัง AC" value={inv.kw} step={0.1} suffix="kW" src={srcOf(S.inv, stockInvRow, "kw")} onChange={(v) => setI("kw", v)} onReset={() => setI("kw", null)} />
                       <SuSpec label="MPPT ต่ำสุด" value={inv.mpptVmin} step={5} suffix="V" src={srcOf(S.inv, stockInvRow, "mpptVmin")} onChange={(v) => setI("mpptVmin", v)} onReset={() => setI("mpptVmin", null)} />
@@ -2793,7 +2845,8 @@ function SolarWorkspace({ job, st, sys, onChange, onClose, snap }) {
                           <select className="p3-inp" value={S.inv2Model || ""}
                             onChange={(e) => set({ inv2Model: e.target.value, inv2Count: e.target.value ? Math.max(1, Math.round(scNum(S.inv2Count, 0))) : 0 })}>
                             <option value="">— ไม่ใช้ (รุ่นเดียวทั้งงาน) —</option>
-                            {stockInv.filter((p) => p.model !== S.invModel).map((p) => <option key={p.model} value={p.model}>{p.model}</option>)}
+                            {stockInv.filter((p) => p.model !== S.invModel).slice().sort((a, b) => invBrandOf(a).localeCompare(invBrandOf(b)) || invByKw(a, b))
+                              .map((p) => <option key={p.model} value={p.model}>{invOptLabel(p, "")}</option>)}
                           </select>
                         </label>
                         <label className="p3-f" style={{ width: 108, flex: "0 0 auto" }}>
