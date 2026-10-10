@@ -129,6 +129,9 @@
     /* ── รางหลอดความคืบหน้า (พื้น --surface3 มน + overflow hidden) — ขาวบนการ์ดกระจกขาวจนกลืน ให้เป็นเทาจางแทน ── */
     L + " [style*='background: var(--surface3)'][style*='border-radius: var(--r-pill)'][style*='overflow: hidden']{background:rgba(15,43,51,.08)!important}",
 
+    /* ── ปุ่มดรอปดาวน์/ช่องเลือก (พื้น --surface2 + เงา --shadow-sm) — ขอบเงาเป็นเส้นขาว กลืนกับกระจก ให้มีเส้นเทาจาง ── */
+    L + " [style*='background: var(--surface2)'][style*='box-shadow: var(--shadow-sm)']{box-shadow:inset 0 0 0 1px rgba(15,43,51,.13),0 4px 12px -8px rgba(50,35,20,.18)!important}",
+
     /* ── ช่องล็อก (อ่านอย่างเดียว) ในหน้าถอด BOQ — พื้นจางไม่มีขอบ บนกระจกเลยมองไม่เห็นกรอบ ── */
     L + " .bq-ro{box-shadow:inset 0 0 0 1px rgba(15,43,51,.10);background:rgba(255,255,255,.30)}",
 
