@@ -4009,6 +4009,62 @@ function ItemModal({
     value: f.batVnom || "",
     onChange: e => set("batVnom", parseFloat(e.target.value) || 0),
     placeholder: "51.2 / 360"
+  })), React.createElement(Field, {
+    label: "\u0E0A\u0E19\u0E34\u0E14\u0E40\u0E0B\u0E25\u0E25\u0E4C"
+  }, React.createElement("select", {
+    style: inputStyle,
+    value: f.batCell || "",
+    onChange: e => set("batCell", e.target.value)
+  }, React.createElement("option", {
+    value: ""
+  }, "\u0E44\u0E21\u0E48\u0E23\u0E30\u0E1A\u0E38"), React.createElement("option", {
+    value: "lfp"
+  }, "\u0E25\u0E34\u0E40\u0E17\u0E35\u0E22\u0E21\u0E1F\u0E2D\u0E2A\u0E40\u0E1F\u0E15 (LFP)"), React.createElement("option", {
+    value: "nmc"
+  }, "\u0E25\u0E34\u0E40\u0E17\u0E35\u0E22\u0E21 NMC"), React.createElement("option", {
+    value: "lead"
+  }, "\u0E15\u0E30\u0E01\u0E31\u0E48\u0E27\u0E01\u0E23\u0E14 / \u0E14\u0E35\u0E1E\u0E44\u0E0B\u0E40\u0E04\u0E34\u0E25"))), React.createElement(Field, {
+    label: "\u0E43\u0E0A\u0E49\u0E44\u0E14\u0E49\u0E08\u0E23\u0E34\u0E07 DoD (%)"
+  }, React.createElement("input", {
+    type: "number",
+    style: inputStyle,
+    value: f.batDod || "",
+    onChange: e => set("batDod", parseFloat(e.target.value) || 0),
+    placeholder: "90 / 95 / 100"
+  })), React.createElement(Field, {
+    label: "\u0E0A\u0E32\u0E23\u0E4C\u0E08/\u0E08\u0E48\u0E32\u0E22\u0E15\u0E48\u0E2D\u0E40\u0E19\u0E37\u0E48\u0E2D\u0E07 \u0E15\u0E48\u0E2D\u0E01\u0E49\u0E2D\u0E19 (kW)"
+  }, React.createElement("input", {
+    type: "number",
+    step: "0.01",
+    style: inputStyle,
+    value: f.batKw || "",
+    onChange: e => set("batKw", parseFloat(e.target.value) || 0),
+    placeholder: "2.56 / 3.5"
+  })), React.createElement(Field, {
+    label: "\u0E1B\u0E23\u0E30\u0E2A\u0E34\u0E17\u0E18\u0E34\u0E20\u0E32\u0E1E\u0E44\u0E1B-\u0E01\u0E25\u0E31\u0E1A (%)"
+  }, React.createElement("input", {
+    type: "number",
+    step: "0.1",
+    style: inputStyle,
+    value: f.batRte || "",
+    onChange: e => set("batRte", parseFloat(e.target.value) || 0),
+    placeholder: "95"
+  })), React.createElement(Field, {
+    label: "\u0E08\u0E33\u0E19\u0E27\u0E19\u0E23\u0E2D\u0E1A"
+  }, React.createElement("input", {
+    type: "number",
+    style: inputStyle,
+    value: f.batCycles || "",
+    onChange: e => set("batCycles", parseFloat(e.target.value) || 0),
+    placeholder: "6000"
+  })), React.createElement(Field, {
+    label: "\u0E04\u0E27\u0E32\u0E21\u0E08\u0E38\u0E04\u0E07\u0E40\u0E2B\u0E25\u0E37\u0E2D\u0E15\u0E2D\u0E19\u0E2B\u0E21\u0E14\u0E2D\u0E32\u0E22\u0E38 (%)"
+  }, React.createElement("input", {
+    type: "number",
+    style: inputStyle,
+    value: f.batEol || "",
+    onChange: e => set("batEol", parseFloat(e.target.value) || 0),
+    placeholder: "70"
   }))), React.createElement("div", {
     style: {
       marginTop: 6,
@@ -4016,7 +4072,7 @@ function ItemModal({
       color: "var(--text-3)",
       lineHeight: 1.5
     }
-  }, "\u0E44\u0E21\u0E48\u0E01\u0E23\u0E2D\u0E01 kWh = \u0E44\u0E21\u0E48\u0E43\u0E0A\u0E48\u0E01\u0E49\u0E2D\u0E19\u0E41\u0E1A\u0E15 (\u0E10\u0E32\u0E19 \u0E2A\u0E32\u0E22 \u0E15\u0E31\u0E27\u0E04\u0E38\u0E21) \u2014 \u0E44\u0E21\u0E48\u0E02\u0E36\u0E49\u0E19\u0E43\u0E19\u0E23\u0E32\u0E22\u0E01\u0E32\u0E23\u0E40\u0E25\u0E37\u0E2D\u0E01\u0E41\u0E1A\u0E15\u0E02\u0E2D\u0E07\u0E2B\u0E19\u0E49\u0E32\u0E2D\u0E2D\u0E01\u0E41\u0E1A\u0E1A\u0E23\u0E30\u0E1A\u0E1A"), React.createElement(StkBatInvs, {
+  }, "\u0E44\u0E21\u0E48\u0E01\u0E23\u0E2D\u0E01 kWh = \u0E44\u0E21\u0E48\u0E43\u0E0A\u0E48\u0E01\u0E49\u0E2D\u0E19\u0E41\u0E1A\u0E15 (\u0E10\u0E32\u0E19 \u0E2A\u0E32\u0E22 \u0E15\u0E31\u0E27\u0E04\u0E38\u0E21) \u2014 \u0E44\u0E21\u0E48\u0E02\u0E36\u0E49\u0E19\u0E43\u0E19\u0E23\u0E32\u0E22\u0E01\u0E32\u0E23\u0E40\u0E25\u0E37\u0E2D\u0E01\u0E41\u0E1A\u0E15\u0E02\u0E2D\u0E07\u0E2B\u0E19\u0E49\u0E32\u0E2D\u0E2D\u0E01\u0E41\u0E1A\u0E1A\u0E23\u0E30\u0E1A\u0E1A \xB7 \u0E0A\u0E48\u0E2D\u0E07\u0E2A\u0E40\u0E1B\u0E04\u0E17\u0E35\u0E48\u0E40\u0E2B\u0E25\u0E37\u0E2D (\u0E14\u0E32\u0E15\u0E49\u0E32\u0E0A\u0E35\u0E15) \u0E40\u0E15\u0E34\u0E21\u0E43\u0E2B\u0E49\u0E15\u0E2D\u0E19\u0E40\u0E25\u0E37\u0E2D\u0E01\u0E23\u0E38\u0E48\u0E19\u0E43\u0E19\u0E2B\u0E19\u0E49\u0E32\u0E2D\u0E2D\u0E01\u0E41\u0E1A\u0E1A \u2014 \u0E01\u0E33\u0E25\u0E31\u0E07\u0E04\u0E39\u0E13\u0E08\u0E33\u0E19\u0E27\u0E19\u0E01\u0E49\u0E2D\u0E19 \xB7 \u0E2D\u0E32\u0E22\u0E38\u0E1B\u0E0F\u0E34\u0E17\u0E34\u0E19\u0E43\u0E0A\u0E49 \"\u0E23\u0E31\u0E1A\u0E1B\u0E23\u0E30\u0E01\u0E31\u0E19\u0E2A\u0E34\u0E19\u0E04\u0E49\u0E32 (\u0E1B\u0E35)\" \xB7 \u0E40\u0E27\u0E49\u0E19\u0E27\u0E48\u0E32\u0E07 = \u0E43\u0E0A\u0E49\u0E04\u0E48\u0E32\u0E01\u0E25\u0E32\u0E07\u0E02\u0E2D\u0E07\u0E0A\u0E19\u0E34\u0E14\u0E40\u0E0B\u0E25\u0E25\u0E4C"), React.createElement(StkBatInvs, {
     list: f.batInvs,
     hybNames: hybNames,
     onChange: v => set("batInvs", v)

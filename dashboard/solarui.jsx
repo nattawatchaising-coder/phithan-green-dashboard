@@ -2394,7 +2394,18 @@ function SolarWorkspace({ job, st, sys, onChange, onClose, snap }) {
     const b = stockBatts.find((x) => x.name === name);
     if (!b) { setBatt({ model: "", n: null }); return; }
     const k = Math.max(1, Math.round(n || 1));
-    setBatt(Object.assign({ model: b.name, n: k, kwh: Math.round(b.kwh * k * 100) / 100 },
+    /* สเปคจากคลัง (ตามดาต้าชีต) — ช่องที่คลังไม่ได้กรอก: ระบุชนิดเซลล์ไว้ = ใช้ค่ากลางของเซลล์นั้น · ไม่ระบุ = คงค่าเดิมในฟอร์ม
+       กำลังชาร์จ/จ่ายคูณตามจำนวนก้อน · อายุปฏิทินใช้อายุรับประกันในคลัง */
+    const c = SC_CHEM[b.cell] || null;
+    const spec = {};
+    if (c) Object.assign(spec, { chem: b.cell, dod: c.dod, rte: c.rte, cycles: c.cycles, calYears: c.calYears, eol: c.eol });
+    if (b.dod) spec.dod = b.dod;
+    if (b.rte) spec.rte = b.rte;
+    if (b.cycles) spec.cycles = b.cycles;
+    if (b.eol) spec.eol = b.eol;
+    if (b.warY) spec.calYears = b.warY;
+    if (b.kw) spec.pKw = Math.round(b.kw * k * 100) / 100;
+    setBatt(Object.assign({ model: b.name, n: k, kwh: Math.round(b.kwh * k * 100) / 100 }, spec,
       b.price ? { costMode: "lump", lump: b.price * k } : {}));
   };
   /* ยังไม่กรอกยอดใช้ไฟ = คิดไม่ได้ว่าใช้เองเท่าไหร่ → ปล่อยเป็น null แล้วให้ ROI กลับไปใช้สไลเดอร์ % เหมือนเดิม */

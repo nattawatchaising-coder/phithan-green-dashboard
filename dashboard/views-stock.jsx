@@ -1513,9 +1513,23 @@ function ItemModal({ initial, isNew, items, onSave, onClose, onAddCat, onRemoveC
                   </select>
                 </Field>
                 <Field label="แรงดันระบุ (V)"><input type="number" style={inputStyle} value={f.batVnom || ""} onChange={(e) => set("batVnom", parseFloat(e.target.value) || 0)} placeholder="51.2 / 360" /></Field>
+                <Field label="ชนิดเซลล์">
+                  <select style={inputStyle} value={f.batCell || ""} onChange={(e) => set("batCell", e.target.value)}>
+                    <option value="">ไม่ระบุ</option>
+                    <option value="lfp">ลิเทียมฟอสเฟต (LFP)</option>
+                    <option value="nmc">ลิเทียม NMC</option>
+                    <option value="lead">ตะกั่วกรด / ดีพไซเคิล</option>
+                  </select>
+                </Field>
+                <Field label="ใช้ได้จริง DoD (%)"><input type="number" style={inputStyle} value={f.batDod || ""} onChange={(e) => set("batDod", parseFloat(e.target.value) || 0)} placeholder="90 / 95 / 100" /></Field>
+                <Field label="ชาร์จ/จ่ายต่อเนื่อง ต่อก้อน (kW)"><input type="number" step="0.01" style={inputStyle} value={f.batKw || ""} onChange={(e) => set("batKw", parseFloat(e.target.value) || 0)} placeholder="2.56 / 3.5" /></Field>
+                <Field label="ประสิทธิภาพไป-กลับ (%)"><input type="number" step="0.1" style={inputStyle} value={f.batRte || ""} onChange={(e) => set("batRte", parseFloat(e.target.value) || 0)} placeholder="95" /></Field>
+                <Field label="จำนวนรอบ"><input type="number" style={inputStyle} value={f.batCycles || ""} onChange={(e) => set("batCycles", parseFloat(e.target.value) || 0)} placeholder="6000" /></Field>
+                <Field label="ความจุคงเหลือตอนหมดอายุ (%)"><input type="number" style={inputStyle} value={f.batEol || ""} onChange={(e) => set("batEol", parseFloat(e.target.value) || 0)} placeholder="70" /></Field>
               </div>
               <div style={{ marginTop: 6, fontSize: 10.5, color: "var(--text-3)", lineHeight: 1.5 }}>
-                ไม่กรอก kWh = ไม่ใช่ก้อนแบต (ฐาน สาย ตัวคุม) — ไม่ขึ้นในรายการเลือกแบตของหน้าออกแบบระบบ
+                ไม่กรอก kWh = ไม่ใช่ก้อนแบต (ฐาน สาย ตัวคุม) — ไม่ขึ้นในรายการเลือกแบตของหน้าออกแบบระบบ ·
+                ช่องสเปคที่เหลือ (ดาต้าชีต) เติมให้ตอนเลือกรุ่นในหน้าออกแบบ — กำลังคูณจำนวนก้อน · อายุปฏิทินใช้ "รับประกันสินค้า (ปี)" · เว้นว่าง = ใช้ค่ากลางของชนิดเซลล์
               </div>
               <StkBatInvs list={f.batInvs} hybNames={hybNames} onChange={(v) => set("batInvs", v)} />
             </div>

@@ -647,7 +647,13 @@ function App() {
       warY: +s.warY || 0,
       v: s.batV || "",
       vNom: +s.batVnom || 0,
-      invs: Array.isArray(s.batInvs) ? s.batInvs : []
+      invs: Array.isArray(s.batInvs) ? s.batInvs : [],
+      cell: s.batCell || "",
+      dod: +s.batDod || 0,
+      kw: +s.batKw || 0,
+      rte: +s.batRte || 0,
+      cycles: +s.batCycles || 0,
+      eol: +s.batEol || 0
     }));
     if (window.BOQ.setOptimizers) window.BOQ.setOptimizers((stock.items || []).filter(s => window.SF.isOptimizerCat(s.cat) && s.name).map(s => ({
       model: s.name,

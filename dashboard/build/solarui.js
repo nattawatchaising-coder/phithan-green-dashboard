@@ -4409,11 +4409,27 @@ function SolarWorkspace({
       return;
     }
     const k = Math.max(1, Math.round(n || 1));
+    const c = SC_CHEM[b.cell] || null;
+    const spec = {};
+    if (c) Object.assign(spec, {
+      chem: b.cell,
+      dod: c.dod,
+      rte: c.rte,
+      cycles: c.cycles,
+      calYears: c.calYears,
+      eol: c.eol
+    });
+    if (b.dod) spec.dod = b.dod;
+    if (b.rte) spec.rte = b.rte;
+    if (b.cycles) spec.cycles = b.cycles;
+    if (b.eol) spec.eol = b.eol;
+    if (b.warY) spec.calYears = b.warY;
+    if (b.kw) spec.pKw = Math.round(b.kw * k * 100) / 100;
     setBatt(Object.assign({
       model: b.name,
       n: k,
       kwh: Math.round(b.kwh * k * 100) / 100
-    }, b.price ? {
+    }, spec, b.price ? {
       costMode: "lump",
       lump: b.price * k
     } : {}));
