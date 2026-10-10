@@ -8624,15 +8624,7 @@ function BOQEditor({
     name: "x",
     size: 13,
     color: "#fff"
-  }), " \u0E40\u0E2D\u0E32\u0E02\u0E2D\u0E07\u0E08\u0E32\u0E01\u0E41\u0E1A\u0E1A\u0E2D\u0E2D\u0E01")), tray3d && !tray3dAt.length && tray3dFits.length > 0 && React.createElement("table", {
-    className: "bq-p3-tb"
-  }, React.createElement("thead", null, React.createElement("tr", null, React.createElement("th", null, "\u0E02\u0E49\u0E2D\u0E15\u0E48\u0E2D\u0E17\u0E35\u0E48\u0E08\u0E30\u0E40\u0E1E\u0E34\u0E48\u0E21\u0E40\u0E21\u0E37\u0E48\u0E2D\u0E40\u0E25\u0E37\u0E2D\u0E01\u0E23\u0E32\u0E07"), React.createElement("th", {
-    className: "n"
-  }, "\u0E08\u0E33\u0E19\u0E27\u0E19"))), React.createElement("tbody", null, tray3dFits.map(x => React.createElement("tr", {
-    key: x.k
-  }, React.createElement("td", null, x.k), React.createElement("td", {
-    className: "n"
-  }, React.createElement("b", null, x.qty.toLocaleString()), " \u0E0A\u0E38\u0E14"))))), tray3dOld && React.createElement("div", {
+  }), " \u0E40\u0E2D\u0E32\u0E02\u0E2D\u0E07\u0E08\u0E32\u0E01\u0E41\u0E1A\u0E1A\u0E2D\u0E2D\u0E01")), tray3dOld && React.createElement("div", {
     className: "warn"
   }, React.createElement(Icon, {
     name: "alert",

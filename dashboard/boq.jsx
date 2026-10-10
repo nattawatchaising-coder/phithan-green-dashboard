@@ -4265,14 +4265,7 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock, ver, verName, p3Vers
                   {tray3d && <div className="sum">{tray3d.runs} เส้น<i>·</i>ในแบบ <b>{tray3d.total.toLocaleString()}</b> ม.<i>·</i>เลี้ยว <b>{tray3d.bends}</b> จุด</div>}
                   {(tray3dOld || (!tray3d && tray3dAt.length > 0)) && <button type="button" className="go" onClick={applyTray3d}><Icon name="x" size={13} color="#fff" /> เอาของจากแบบออก</button>}
                 </div>
-                {tray3d && !tray3dAt.length && tray3dFits.length > 0 && (
-                  <table className="bq-p3-tb">
-                    <thead><tr><th>ข้อต่อที่จะเพิ่มเมื่อเลือกราง</th><th className="n">จำนวน</th></tr></thead>
-                    <tbody>
-                      {tray3dFits.map((x) => <tr key={x.k}><td>{x.k}</td><td className="n"><b>{x.qty.toLocaleString()}</b> ชุด</td></tr>)}
-                    </tbody>
-                  </table>
-                )}
+                {/* ไม่โชว์ตารางข้อต่อในแถบ (ผู้ใช้) — ข้อต่อขึ้นที่เส้นสายตอนกดเลือกรางเท่านั้น */}
                 {tray3dOld && (
                   <div className="warn"><Icon name="alert" size={13} color="currentColor" /> ใบนี้ยังมีตัวรางที่ดึงจากแบบแบบเดิม (นับซ้ำกับรางของเส้นสาย) — กด "เอาของจากแบบออก"</div>
                 )}
