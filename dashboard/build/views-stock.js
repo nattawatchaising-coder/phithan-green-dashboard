@@ -2531,6 +2531,87 @@ function MoveModal({
     }
   }, mt.sym, " ", mt.label))));
 }
+function StkBatInvs({
+  list,
+  hybNames,
+  onChange
+}) {
+  const cur = Array.isArray(list) ? list : [];
+  const left = (hybNames || []).filter(n => cur.indexOf(n) < 0);
+  return React.createElement("div", {
+    style: {
+      marginTop: 11,
+      borderTop: "1px dashed var(--border-strong)",
+      paddingTop: 11
+    }
+  }, React.createElement("div", {
+    style: {
+      display: "flex",
+      alignItems: "center",
+      gap: 8,
+      flexWrap: "wrap",
+      marginBottom: 8
+    }
+  }, React.createElement("span", {
+    style: {
+      fontSize: 11.5,
+      fontWeight: 700,
+      color: "var(--text-2)"
+    }
+  }, "\u0E43\u0E0A\u0E49\u0E01\u0E31\u0E1A\u0E2D\u0E34\u0E19\u0E40\u0E27\u0E2D\u0E23\u0E4C\u0E40\u0E15\u0E2D\u0E23\u0E4C\u0E23\u0E38\u0E48\u0E19\u0E44\u0E2B\u0E19\u0E44\u0E14\u0E49\u0E1A\u0E49\u0E32\u0E07"), React.createElement("span", {
+    style: {
+      fontSize: 11,
+      color: "var(--text-3)"
+    }
+  }, "\u0E15\u0E32\u0E21\u0E23\u0E32\u0E22\u0E0A\u0E37\u0E48\u0E2D\u0E41\u0E1A\u0E15\u0E17\u0E35\u0E48\u0E23\u0E2D\u0E07\u0E23\u0E31\u0E1A\u0E43\u0E19\u0E14\u0E32\u0E15\u0E49\u0E32\u0E0A\u0E35\u0E15")), React.createElement("div", {
+    style: {
+      display: "flex",
+      gap: 6,
+      flexWrap: "wrap",
+      marginBottom: 8
+    }
+  }, !cur.length ? React.createElement("span", {
+    style: {
+      fontSize: 11.5,
+      color: "var(--text-3)"
+    }
+  }, "\u0E22\u0E31\u0E07\u0E44\u0E21\u0E48\u0E23\u0E30\u0E1A\u0E38 \u2014 \u0E2B\u0E19\u0E49\u0E32\u0E2D\u0E2D\u0E01\u0E41\u0E1A\u0E1A\u0E23\u0E30\u0E1A\u0E1A\u0E08\u0E30\u0E14\u0E39\u0E08\u0E32\u0E01\u0E22\u0E35\u0E48\u0E2B\u0E49\u0E2D + \u0E41\u0E23\u0E07\u0E14\u0E31\u0E19 LV/HV \u0E41\u0E17\u0E19") : cur.map(n => React.createElement("span", {
+    key: n,
+    style: {
+      display: "inline-flex",
+      alignItems: "center",
+      gap: 5,
+      padding: "4px 6px 4px 10px",
+      borderRadius: "var(--r-chip)",
+      background: "var(--surface)",
+      boxShadow: "var(--shadow-sm)",
+      fontSize: 11.5,
+      fontWeight: 600,
+      color: "var(--text-1)"
+    }
+  }, n, (hybNames || []).indexOf(n) < 0 ? " (ไม่มีในคลังแล้ว)" : "", React.createElement("button", {
+    type: "button",
+    title: "\u0E40\u0E2D\u0E32\u0E2D\u0E2D\u0E01",
+    onClick: () => onChange(cur.filter(x => x !== n)),
+    style: {
+      border: 0,
+      background: "transparent",
+      color: "var(--text-3)",
+      cursor: "pointer",
+      fontSize: 13,
+      lineHeight: 1,
+      padding: "0 3px"
+    }
+  }, "\xD7")))), left.length ? React.createElement(Dropdown, {
+    value: "",
+    placeholder: "+ \u0E40\u0E1E\u0E34\u0E48\u0E21\u0E23\u0E38\u0E48\u0E19\u0E2D\u0E34\u0E19\u0E40\u0E27\u0E2D\u0E23\u0E4C\u0E40\u0E15\u0E2D\u0E23\u0E4C",
+    onChange: v => v && onChange(cur.concat([v])),
+    options: left.map(n => ({
+      value: n,
+      label: n
+    }))
+  }) : null);
+}
 function StkOptPairs({
   pairs,
   invNames,
@@ -2801,6 +2882,7 @@ function ItemModal({
   }));
   const suggestCode = SF.genMatCode(f.cat, items || []);
   const invNames = (items || []).filter(x => SF.mainCatOf(x.cat) === "inverter" && x.name).map(x => x.name);
+  const hybNames = (items || []).filter(x => SF.mainCatOf(x.cat) === "inverter" && x.invType === "hybrid" && x.name).map(x => x.name).sort();
   const mainCat = SF.mainCatOf(f.cat);
   const subCat = mainCat === f.cat ? "" : f.cat;
   const subList = SF.STOCK_SUB_BY_CAT[mainCat] || [];
@@ -3704,7 +3786,38 @@ function ItemModal({
     value: ""
   }, "\u0E15\u0E34\u0E14\u0E1C\u0E19\u0E31\u0E07 / \u0E23\u0E32\u0E07"), React.createElement("option", {
     value: "floor"
-  }, "\u0E15\u0E31\u0E49\u0E07\u0E1E\u0E37\u0E49\u0E19 (\u0E15\u0E39\u0E49)"))))), (f.invType === "string" || f.invType === "hybrid") && React.createElement("div", {
+  }, "\u0E15\u0E31\u0E49\u0E07\u0E1E\u0E37\u0E49\u0E19 (\u0E15\u0E39\u0E49)"))))), f.invType === "hybrid" && React.createElement("div", {
+    style: {
+      marginTop: 12,
+      paddingTop: 12,
+      borderTop: "1px dashed var(--border-strong)"
+    }
+  }, React.createElement("div", {
+    style: {
+      display: "grid",
+      gridTemplateColumns: isMobile ? "1fr 1fr" : "repeat(3, 1fr)",
+      gap: 12
+    }
+  }, React.createElement(Field, {
+    label: "\u0E41\u0E23\u0E07\u0E14\u0E31\u0E19\u0E41\u0E1A\u0E15\u0E17\u0E35\u0E48\u0E23\u0E31\u0E1A\u0E44\u0E14\u0E49"
+  }, React.createElement("select", {
+    style: inputStyle,
+    value: f.invBatV || "",
+    onChange: e => set("invBatV", e.target.value)
+  }, React.createElement("option", {
+    value: ""
+  }, "\u0E44\u0E21\u0E48\u0E23\u0E30\u0E1A\u0E38"), React.createElement("option", {
+    value: "lv"
+  }, "LV (48V)"), React.createElement("option", {
+    value: "hv"
+  }, "HV (\u0E41\u0E23\u0E07\u0E14\u0E31\u0E19\u0E2A\u0E39\u0E07)")))), React.createElement("div", {
+    style: {
+      marginTop: 6,
+      fontSize: 10.5,
+      color: "var(--text-3)",
+      lineHeight: 1.5
+    }
+  }, "\u0E14\u0E39\u0E2B\u0E31\u0E27\u0E02\u0E49\u0E2D Battery \u0E43\u0E19\u0E14\u0E32\u0E15\u0E49\u0E32\u0E0A\u0E35\u0E15 (Battery voltage range) \u2014 \u0E43\u0E0A\u0E49\u0E04\u0E31\u0E14\u0E41\u0E1A\u0E15\u0E17\u0E35\u0E48\u0E41\u0E23\u0E07\u0E14\u0E31\u0E19\u0E15\u0E23\u0E07\u0E43\u0E19\u0E2B\u0E19\u0E49\u0E32\u0E2D\u0E2D\u0E01\u0E41\u0E1A\u0E1A\u0E23\u0E30\u0E1A\u0E1A \xB7 \u0E23\u0E32\u0E22\u0E0A\u0E37\u0E48\u0E2D\u0E41\u0E1A\u0E15\u0E17\u0E35\u0E48\u0E23\u0E2D\u0E07\u0E23\u0E31\u0E1A\u0E23\u0E30\u0E1A\u0E38\u0E17\u0E35\u0E48\u0E15\u0E31\u0E27\u0E41\u0E1A\u0E15\u0E41\u0E15\u0E48\u0E25\u0E30\u0E23\u0E38\u0E48\u0E19")), (f.invType === "string" || f.invType === "hybrid") && React.createElement("div", {
     style: {
       marginTop: 12,
       paddingTop: 12,
@@ -3838,7 +3951,76 @@ function ItemModal({
       color: "var(--text-3)",
       lineHeight: 1.5
     }
-  }, "\u0E15\u0E31\u0E49\u0E07\u0E40\u0E1B\u0E47\u0E19 String/Hybrid \u2192 \u0E40\u0E25\u0E37\u0E2D\u0E01\u0E43\u0E19\u0E2B\u0E19\u0E49\u0E32\u0E16\u0E2D\u0E14 BOQ \u0E44\u0E14\u0E49 \u0E04\u0E34\u0E14\u0E08\u0E33\u0E19\u0E27\u0E19\u0E15\u0E31\u0E27 = \u0E1B\u0E31\u0E14\u0E02\u0E36\u0E49\u0E19(\u0E01\u0E33\u0E25\u0E31\u0E07\u0E41\u0E1C\u0E07\u0E23\u0E27\u0E21 \xF7 MAX PV \u0E15\u0E48\u0E2D\u0E15\u0E31\u0E27) \xB7 MAX PV = \u0E01\u0E33\u0E25\u0E31\u0E07\u0E41\u0E1C\u0E07\u0E2A\u0E39\u0E07\u0E2A\u0E38\u0E14\u0E17\u0E35\u0E48\u0E43\u0E2A\u0E48\u0E44\u0E14\u0E49 \xB7 \u0E08\u0E33\u0E19\u0E27\u0E19\u0E0A\u0E48\u0E2D\u0E07 MPPT \xD7 \u0E2D\u0E34\u0E19\u0E1E\u0E38\u0E15\u0E15\u0E48\u0E2D\u0E0A\u0E48\u0E2D\u0E07 = \u0E2A\u0E15\u0E23\u0E34\u0E07\u0E17\u0E35\u0E48\u0E40\u0E2A\u0E35\u0E22\u0E1A\u0E44\u0E14\u0E49\u0E17\u0E31\u0E49\u0E07\u0E15\u0E31\u0E27 (\u0E40\u0E0A\u0E48\u0E19 2 \u0E0A\u0E48\u0E2D\u0E07 \xD7 2 \u0E2D\u0E34\u0E19\u0E1E\u0E38\u0E15 = 4 \u0E2A\u0E15\u0E23\u0E34\u0E07 \xB7 \u0E44\u0E21\u0E48\u0E01\u0E23\u0E2D\u0E01\u0E16\u0E37\u0E2D\u0E27\u0E48\u0E32 2 \u0E2D\u0E34\u0E19\u0E1E\u0E38\u0E15/\u0E0A\u0E48\u0E2D\u0E07) \xB7 \u0E01\u0E23\u0E30\u0E41\u0E2A\u0E2D\u0E2D\u0E01 (A) = \u0E43\u0E0A\u0E49\u0E04\u0E33\u0E19\u0E27\u0E13 RCBO \u0E41\u0E25\u0E30\u0E02\u0E19\u0E32\u0E14\u0E2A\u0E32\u0E22 AC \u0E08\u0E38\u0E14 INVERTER-MCB_SOLAR / MCB_SOLAR-MDB (\xD71.25) \xB7 \u0E0A\u0E48\u0E27\u0E07 MPPT/Voc \u0E41\u0E1C\u0E07 \u2192 \u0E04\u0E33\u0E19\u0E27\u0E13\u0E08\u0E33\u0E19\u0E27\u0E19\u0E41\u0E1C\u0E07\u0E15\u0E48\u0E2D\u0E2D\u0E19\u0E38\u0E01\u0E23\u0E21 + \u0E2A\u0E32\u0E22 DC")), (mainCat === "inverter" && +f.invKw > 0 || f.elecType === "MCCB") && React.createElement(StkAccPick, {
+  }, "\u0E15\u0E31\u0E49\u0E07\u0E40\u0E1B\u0E47\u0E19 String/Hybrid \u2192 \u0E40\u0E25\u0E37\u0E2D\u0E01\u0E43\u0E19\u0E2B\u0E19\u0E49\u0E32\u0E16\u0E2D\u0E14 BOQ \u0E44\u0E14\u0E49 \u0E04\u0E34\u0E14\u0E08\u0E33\u0E19\u0E27\u0E19\u0E15\u0E31\u0E27 = \u0E1B\u0E31\u0E14\u0E02\u0E36\u0E49\u0E19(\u0E01\u0E33\u0E25\u0E31\u0E07\u0E41\u0E1C\u0E07\u0E23\u0E27\u0E21 \xF7 MAX PV \u0E15\u0E48\u0E2D\u0E15\u0E31\u0E27) \xB7 MAX PV = \u0E01\u0E33\u0E25\u0E31\u0E07\u0E41\u0E1C\u0E07\u0E2A\u0E39\u0E07\u0E2A\u0E38\u0E14\u0E17\u0E35\u0E48\u0E43\u0E2A\u0E48\u0E44\u0E14\u0E49 \xB7 \u0E08\u0E33\u0E19\u0E27\u0E19\u0E0A\u0E48\u0E2D\u0E07 MPPT \xD7 \u0E2D\u0E34\u0E19\u0E1E\u0E38\u0E15\u0E15\u0E48\u0E2D\u0E0A\u0E48\u0E2D\u0E07 = \u0E2A\u0E15\u0E23\u0E34\u0E07\u0E17\u0E35\u0E48\u0E40\u0E2A\u0E35\u0E22\u0E1A\u0E44\u0E14\u0E49\u0E17\u0E31\u0E49\u0E07\u0E15\u0E31\u0E27 (\u0E40\u0E0A\u0E48\u0E19 2 \u0E0A\u0E48\u0E2D\u0E07 \xD7 2 \u0E2D\u0E34\u0E19\u0E1E\u0E38\u0E15 = 4 \u0E2A\u0E15\u0E23\u0E34\u0E07 \xB7 \u0E44\u0E21\u0E48\u0E01\u0E23\u0E2D\u0E01\u0E16\u0E37\u0E2D\u0E27\u0E48\u0E32 2 \u0E2D\u0E34\u0E19\u0E1E\u0E38\u0E15/\u0E0A\u0E48\u0E2D\u0E07) \xB7 \u0E01\u0E23\u0E30\u0E41\u0E2A\u0E2D\u0E2D\u0E01 (A) = \u0E43\u0E0A\u0E49\u0E04\u0E33\u0E19\u0E27\u0E13 RCBO \u0E41\u0E25\u0E30\u0E02\u0E19\u0E32\u0E14\u0E2A\u0E32\u0E22 AC \u0E08\u0E38\u0E14 INVERTER-MCB_SOLAR / MCB_SOLAR-MDB (\xD71.25) \xB7 \u0E0A\u0E48\u0E27\u0E07 MPPT/Voc \u0E41\u0E1C\u0E07 \u2192 \u0E04\u0E33\u0E19\u0E27\u0E13\u0E08\u0E33\u0E19\u0E27\u0E19\u0E41\u0E1C\u0E07\u0E15\u0E48\u0E2D\u0E2D\u0E19\u0E38\u0E01\u0E23\u0E21 + \u0E2A\u0E32\u0E22 DC")), mainCat === "battery" && React.createElement("div", {
+    style: {
+      gridColumn: "1 / -1",
+      marginTop: 2,
+      padding: 14,
+      background: "var(--surface2)",
+      border: "1px dashed var(--border-strong)",
+      borderRadius: "var(--r-tile)"
+    }
+  }, React.createElement("div", {
+    style: {
+      display: "flex",
+      alignItems: "center",
+      gap: 6,
+      fontSize: 11.5,
+      fontWeight: 700,
+      color: "var(--text-2)",
+      marginBottom: 10
+    }
+  }, React.createElement(Icon, {
+    name: "bolt",
+    size: 14,
+    color: "var(--primary-dark)"
+  }), " \u0E2A\u0E40\u0E1B\u0E04\u0E41\u0E1A\u0E15\u0E40\u0E15\u0E2D\u0E23\u0E35\u0E48 (\u0E43\u0E0A\u0E49\u0E43\u0E19\u0E2B\u0E19\u0E49\u0E32\u0E2D\u0E2D\u0E01\u0E41\u0E1A\u0E1A\u0E23\u0E30\u0E1A\u0E1A + \u0E16\u0E2D\u0E14 BOQ)"), React.createElement("div", {
+    style: {
+      display: "grid",
+      gridTemplateColumns: isMobile ? "1fr 1fr" : "repeat(3, 1fr)",
+      gap: 12
+    }
+  }, React.createElement(Field, {
+    label: "\u0E04\u0E27\u0E32\u0E21\u0E08\u0E38\u0E15\u0E48\u0E2D\u0E01\u0E49\u0E2D\u0E19 (kWh)"
+  }, React.createElement("input", {
+    type: "number",
+    step: "0.01",
+    style: inputStyle,
+    value: f.kwh || "",
+    onChange: e => set("kwh", parseFloat(e.target.value) || 0),
+    placeholder: "5 / 7 / 16"
+  })), React.createElement(Field, {
+    label: "\u0E23\u0E30\u0E1A\u0E1A\u0E41\u0E23\u0E07\u0E14\u0E31\u0E19"
+  }, React.createElement("select", {
+    style: inputStyle,
+    value: f.batV || "",
+    onChange: e => set("batV", e.target.value)
+  }, React.createElement("option", {
+    value: ""
+  }, "\u0E44\u0E21\u0E48\u0E23\u0E30\u0E1A\u0E38"), React.createElement("option", {
+    value: "lv"
+  }, "LV (48V)"), React.createElement("option", {
+    value: "hv"
+  }, "HV (\u0E41\u0E23\u0E07\u0E14\u0E31\u0E19\u0E2A\u0E39\u0E07)"))), React.createElement(Field, {
+    label: "\u0E41\u0E23\u0E07\u0E14\u0E31\u0E19\u0E23\u0E30\u0E1A\u0E38 (V)"
+  }, React.createElement("input", {
+    type: "number",
+    style: inputStyle,
+    value: f.batVnom || "",
+    onChange: e => set("batVnom", parseFloat(e.target.value) || 0),
+    placeholder: "51.2 / 360"
+  }))), React.createElement("div", {
+    style: {
+      marginTop: 6,
+      fontSize: 10.5,
+      color: "var(--text-3)",
+      lineHeight: 1.5
+    }
+  }, "\u0E44\u0E21\u0E48\u0E01\u0E23\u0E2D\u0E01 kWh = \u0E44\u0E21\u0E48\u0E43\u0E0A\u0E48\u0E01\u0E49\u0E2D\u0E19\u0E41\u0E1A\u0E15 (\u0E10\u0E32\u0E19 \u0E2A\u0E32\u0E22 \u0E15\u0E31\u0E27\u0E04\u0E38\u0E21) \u2014 \u0E44\u0E21\u0E48\u0E02\u0E36\u0E49\u0E19\u0E43\u0E19\u0E23\u0E32\u0E22\u0E01\u0E32\u0E23\u0E40\u0E25\u0E37\u0E2D\u0E01\u0E41\u0E1A\u0E15\u0E02\u0E2D\u0E07\u0E2B\u0E19\u0E49\u0E32\u0E2D\u0E2D\u0E01\u0E41\u0E1A\u0E1A\u0E23\u0E30\u0E1A\u0E1A"), React.createElement(StkBatInvs, {
+    list: f.batInvs,
+    hybNames: hybNames,
+    onChange: v => set("batInvs", v)
+  })), (mainCat === "inverter" && +f.invKw > 0 || f.elecType === "MCCB") && React.createElement(StkAccPick, {
     ids: f.accIds,
     self: f,
     items: items,

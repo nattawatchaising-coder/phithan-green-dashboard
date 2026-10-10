@@ -1057,6 +1057,34 @@ function MoveModal({ info, onSave, onClose, byName, jobs, lockedJob, maxQty }) {
    หนึ่งแถว = อินเวอร์เตอร์หนึ่งรุ่น พร้อมข้อจำกัดของสตริงตามคู่มือ
      min/max = จำนวนตัวคุมต่อสตริง ต่ำสุด/สูงสุด · maxW = กำลัง DC สูงสุดต่อสตริง
    เก็บเป็นอาเรย์ในตัวของใช้เอง ไม่ต้องมีตารางแยก เพราะข้อมูลชุดนี้เป็นของอุปกรณ์ตัวนั้นโดยตรง */
+/* แบตก้อนนี้ใช้กับอินเวอร์เตอร์ไฮบริดรุ่นไหนได้ (ตามรายชื่อในดาต้าชีต) — หน้าออกแบบระบบใช้จับคู่ก่อนดูยี่ห้อ/แรงดัน */
+function StkBatInvs({ list, hybNames, onChange }) {
+  const cur = Array.isArray(list) ? list : [];
+  const left = (hybNames || []).filter((n) => cur.indexOf(n) < 0);
+  return (
+    <div style={{ marginTop: 11, borderTop: "1px dashed var(--border-strong)", paddingTop: 11 }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap", marginBottom: 8 }}>
+        <span style={{ fontSize: 11.5, fontWeight: 700, color: "var(--text-2)" }}>ใช้กับอินเวอร์เตอร์รุ่นไหนได้บ้าง</span>
+        <span style={{ fontSize: 11, color: "var(--text-3)" }}>ตามรายชื่อแบตที่รองรับในดาต้าชีต</span>
+      </div>
+      <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginBottom: 8 }}>
+        {!cur.length ? <span style={{ fontSize: 11.5, color: "var(--text-3)" }}>ยังไม่ระบุ — หน้าออกแบบระบบจะดูจากยี่ห้อ + แรงดัน LV/HV แทน</span> : cur.map((n) => (
+          <span key={n} style={{ display: "inline-flex", alignItems: "center", gap: 5, padding: "4px 6px 4px 10px", borderRadius: "var(--r-chip)",
+            background: "var(--surface)", boxShadow: "var(--shadow-sm)", fontSize: 11.5, fontWeight: 600, color: "var(--text-1)" }}>
+            {n}{(hybNames || []).indexOf(n) < 0 ? " (ไม่มีในคลังแล้ว)" : ""}
+            <button type="button" title="เอาออก" onClick={() => onChange(cur.filter((x) => x !== n))}
+              style={{ border: 0, background: "transparent", color: "var(--text-3)", cursor: "pointer", fontSize: 13, lineHeight: 1, padding: "0 3px" }}>×</button>
+          </span>
+        ))}
+      </div>
+      {left.length ? (
+        <Dropdown value="" placeholder="+ เพิ่มรุ่นอินเวอร์เตอร์" onChange={(v) => v && onChange(cur.concat([v]))}
+          options={left.map((n) => ({ value: n, label: n }))} />
+      ) : null}
+    </div>
+  );
+}
+
 function StkOptPairs({ pairs, invNames, onChange, isMobile }) {
   const list = Array.isArray(pairs) ? pairs : [];
   const setRow = (i, patch) => onChange(list.map((r, j) => (j === i ? Object.assign({}, r, patch) : r)));
@@ -1165,6 +1193,8 @@ function ItemModal({ initial, isNew, items, onSave, onClose, onAddCat, onRemoveC
   /* รายชื่ออินเวอร์เตอร์ในคลัง — ใช้เป็นตัวเลือกตอนจับคู่กับตัวคุมแผง
      ต้องเลือกจากรุ่นที่มีอยู่จริง ไม่ใช่พิมพ์เอง ไม่งั้นชื่อไม่ตรงแล้วจับคู่ไม่ติดตอนออกแบบ */
   const invNames = (items || []).filter((x) => SF.mainCatOf(x.cat) === "inverter" && x.name).map((x) => x.name);
+  /* อินเวอร์เตอร์ไฮบริด — ตัวเลือกตอนระบุว่าแบตก้อนนี้ใช้กับรุ่นไหนได้ (หน้าออกแบบระบบเอาไปจับคู่) */
+  const hybNames = (items || []).filter((x) => SF.mainCatOf(x.cat) === "inverter" && x.invType === "hybrid" && x.name).map((x) => x.name).sort();
 
   /* หมวด — f.cat เก็บคีย์ที่ละเอียดที่สุด แยกกลับเป็นหลัก/ย่อยตอนแสดง
      ช่องสเปค (แผง/อินเวอร์เตอร์/อุปกรณ์ไฟฟ้า/สาย) ต้องดูจาก mainCat ไม่ใช่ f.cat
@@ -1423,6 +1453,22 @@ function ItemModal({ initial, isNew, items, onSave, onClose, onAddCat, onRemoveC
                   </Field>
                 </div>
               </div>
+              {f.invType === "hybrid" && (
+                <div style={{ marginTop: 12, paddingTop: 12, borderTop: "1px dashed var(--border-strong)" }}>
+                  <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr 1fr" : "repeat(3, 1fr)", gap: 12 }}>
+                    <Field label="แรงดันแบตที่รับได้">
+                      <select style={inputStyle} value={f.invBatV || ""} onChange={(e) => set("invBatV", e.target.value)}>
+                        <option value="">ไม่ระบุ</option>
+                        <option value="lv">LV (48V)</option>
+                        <option value="hv">HV (แรงดันสูง)</option>
+                      </select>
+                    </Field>
+                  </div>
+                  <div style={{ marginTop: 6, fontSize: 10.5, color: "var(--text-3)", lineHeight: 1.5 }}>
+                    ดูหัวข้อ Battery ในดาต้าชีต (Battery voltage range) — ใช้คัดแบตที่แรงดันตรงในหน้าออกแบบระบบ · รายชื่อแบตที่รองรับระบุที่ตัวแบตแต่ละรุ่น
+                  </div>
+                </div>
+              )}
               {(f.invType === "string" || f.invType === "hybrid") && (
                 <div style={{ marginTop: 12, paddingTop: 12, borderTop: "1px dashed var(--border-strong)" }}>
                   <div style={{ fontSize: 11, fontWeight: 700, color: "var(--text-2)", marginBottom: 8 }}>ช่วงแรงดัน DC / MPPT (สำหรับคำนวณ String)</div>
@@ -1450,6 +1496,28 @@ function ItemModal({ initial, isNew, items, onSave, onClose, onAddCat, onRemoveC
               <div style={{ marginTop: 9, fontSize: 10.5, color: "var(--text-3)", lineHeight: 1.5 }}>
                 ตั้งเป็น String/Hybrid → เลือกในหน้าถอด BOQ ได้ คิดจำนวนตัว = ปัดขึ้น(กำลังแผงรวม ÷ MAX PV ต่อตัว) · MAX PV = กำลังแผงสูงสุดที่ใส่ได้ · จำนวนช่อง MPPT × อินพุตต่อช่อง = สตริงที่เสียบได้ทั้งตัว (เช่น 2 ช่อง × 2 อินพุต = 4 สตริง · ไม่กรอกถือว่า 2 อินพุต/ช่อง) · กระแสออก (A) = ใช้คำนวณ RCBO และขนาดสาย AC จุด INVERTER-MCB_SOLAR / MCB_SOLAR-MDB (×1.25) · ช่วง MPPT/Voc แผง → คำนวณจำนวนแผงต่ออนุกรม + สาย DC
               </div>
+            </div>
+          )}
+          {mainCat === "battery" && (
+            <div style={{ gridColumn: "1 / -1", marginTop: 2, padding: 14, background: "var(--surface2)", border: "1px dashed var(--border-strong)", borderRadius: "var(--r-tile)" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 11.5, fontWeight: 700, color: "var(--text-2)", marginBottom: 10 }}>
+                <Icon name="bolt" size={14} color="var(--primary-dark)" /> สเปคแบตเตอรี่ (ใช้ในหน้าออกแบบระบบ + ถอด BOQ)
+              </div>
+              <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr 1fr" : "repeat(3, 1fr)", gap: 12 }}>
+                <Field label="ความจุต่อก้อน (kWh)"><input type="number" step="0.01" style={inputStyle} value={f.kwh || ""} onChange={(e) => set("kwh", parseFloat(e.target.value) || 0)} placeholder="5 / 7 / 16" /></Field>
+                <Field label="ระบบแรงดัน">
+                  <select style={inputStyle} value={f.batV || ""} onChange={(e) => set("batV", e.target.value)}>
+                    <option value="">ไม่ระบุ</option>
+                    <option value="lv">LV (48V)</option>
+                    <option value="hv">HV (แรงดันสูง)</option>
+                  </select>
+                </Field>
+                <Field label="แรงดันระบุ (V)"><input type="number" style={inputStyle} value={f.batVnom || ""} onChange={(e) => set("batVnom", parseFloat(e.target.value) || 0)} placeholder="51.2 / 360" /></Field>
+              </div>
+              <div style={{ marginTop: 6, fontSize: 10.5, color: "var(--text-3)", lineHeight: 1.5 }}>
+                ไม่กรอก kWh = ไม่ใช่ก้อนแบต (ฐาน สาย ตัวคุม) — ไม่ขึ้นในรายการเลือกแบตของหน้าออกแบบระบบ
+              </div>
+              <StkBatInvs list={f.batInvs} hybNames={hybNames} onChange={(v) => set("batInvs", v)} />
             </div>
           )}
           {((mainCat === "inverter" && +f.invKw > 0) || f.elecType === "MCCB") && (

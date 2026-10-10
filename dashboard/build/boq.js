@@ -1182,7 +1182,7 @@ function BOQEditor({
     return base;
   });
   const isLead = !!(job && job.__lead);
-  const hasBattery = !!(job && job.battery);
+  const hasBattery = !!(job && job.battery) || !!b.batteryModel;
   const hasBackup = !!(job && job.backup);
   const [adv, setAdv] = React.useState(false);
   const set = (k, v) => setB(p => Object.assign({}, p, {
@@ -1792,6 +1792,26 @@ function BOQEditor({
   const p3VersOwn = window.useP3Vers ? window.useP3Vers(p3Vers ? null : job ? job.id : null) : null;
   const p3List = p3Vers || p3VersOwn && p3VersOwn.list || [];
   const plan3d = usePlan3dRO(job ? window.dvP3Key ? window.dvP3Key(job.id, b.plan3d) : job.id : null);
+  const dsBatt = plan3d && plan3d.sys && plan3d.sys.batt || null;
+  const dsBattOn = !!(dsBatt && dsBatt.on && dsBatt.model);
+  const dsBattN = dsBattOn ? Math.max(1, Math.round(+dsBatt.n || 1)) : 0;
+  const dsBattKwh = dsBattOn ? +dsBatt.kwh || 0 : 0;
+  React.useEffect(() => {
+    if (!plan3d) return;
+    if (!dsBattOn) {
+      if (b.batteryModel) setB(p => Object.assign({}, p, {
+        batteryModel: "",
+        batteryQty: 0,
+        batteryKwh: job && job.battery ? parseFloat(job.batSize) || 0 : 0
+      }));
+      return;
+    }
+    if (b.batteryModel !== dsBatt.model || +b.batteryQty !== dsBattN || +b.batteryKwh !== dsBattKwh) setB(p => Object.assign({}, p, {
+      batteryModel: dsBatt.model,
+      batteryQty: dsBattN,
+      batteryKwh: dsBattKwh
+    }));
+  }, [!!plan3d, dsBattOn, dsBattOn && dsBatt.model, dsBattN, dsBattKwh]);
   const TRAY_KEYS3 = window.BOQ.TRAY_KIND_KEYS;
   const tray3dHas = TRAY_KEYS3.find(k => (tw[k] || []).some(x => x.p3));
   const tray3dW = (plan3d && plan3d.obstacles || []).filter(o => o && o.p3sType === "tray").map(o => +o.d || 0.1);
@@ -6527,8 +6547,10 @@ function BOQEditor({
       gridColumn: isMobile ? "1 / -1" : "auto"
     }
   }, React.createElement(Field, {
-    label: "\u0E41\u0E1A\u0E15\u0E40\u0E15\u0E2D\u0E23\u0E35\u0E48 (kWh)"
-  }, React.createElement(BoqLocked, {
+    label: b.batteryModel ? "แบตเตอรี่ (จากออกแบบระบบ)" : "แบตเตอรี่ (kWh)"
+  }, b.batteryModel ? React.createElement(BoqLocked, {
+    value: b.batteryModel + " × " + (+b.batteryQty || 1) + " ก้อน · " + b.batteryKwh + " kWh"
+  }) : React.createElement(BoqLocked, {
     value: b.batteryKwh,
     unit: "kWh",
     num: true

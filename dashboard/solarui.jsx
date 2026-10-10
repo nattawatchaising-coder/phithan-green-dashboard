@@ -2368,11 +2368,26 @@ function SolarWorkspace({ job, st, sys, onChange, onClose, snap }) {
   const prof = React.useMemo(() => scLoadProfile(loadCfg), [S.load]);
   const battS = scBattSpec(battCfg);
   /* ── รุ่นแบตจากคลัง (app.jsx ลงทะเบียน BOQ.BATTERIES เฉพาะของที่มี kWh — ฐาน/สาย/ตัวคุมไม่นับ) ──
-     คลังยังไม่มีรายชื่อ "แบตที่อินเวอร์เตอร์รุ่นนี้รองรับ" จึงจับคู่ด้วยยี่ห้อ: ยี่ห้อเดียวกับอินเวอร์เตอร์ขึ้นก่อน
-     ยี่ห้ออื่นยังเลือกได้แต่เตือนให้เช็คดาต้าชีต · เลือกรุ่นแล้วเติมความจุ (kWh × ก้อน) และราคารวมจากคลังให้ แก้ทับได้ */
+     จับคู่กับอินเวอร์เตอร์ตามลำดับความแน่น: 1) แบตระบุรุ่นอินเวอร์เตอร์ที่รองรับไว้ (batInvs ในคลัง ตามดาต้าชีต)
+     2) แรงดัน LV/HV ของแบต (batV) เทียบกับที่ไฮบริดรับได้ (invBatV) 3) ยี่ห้อเดียวกัน
+     เลือกรุ่นแล้วเติมความจุ (kWh × ก้อน) และราคารวมจากคลังให้ แก้ทับได้ · BOQ ถอดรุ่นนี้ตาม batt.model */
   const stockBatts = (window.BOQ && window.BOQ.BATTERIES) || [];
   const invBrandKey = stockInvRow.model ? invBrandOf(stockInvRow).toLowerCase() : "";
-  const battFits = (b) => !!invBrandKey && String(b.brand || "").toLowerCase() === invBrandKey;
+  /* ok: 3 รองรับตามดาต้าชีต · 2 แรงดันตรง+ยี่ห้อเดียวกัน · 1 แรงดันตรง หรือยี่ห้อเดียวกัน · 0 ไม่มีข้อมูล · -1 ใช้ไม่ได้ */
+  const battFit = (b) => {
+    if (!stockInvRow.model) return { ok: 0, g: b.brand || undefined };
+    if (stockInvRow.type !== "hybrid") return { ok: -1, g: "อินเวอร์เตอร์ On-grid", why: "อินเวอร์เตอร์ On-grid ต่อแบตตรงไม่ได้" };
+    const same = String(b.brand || "").toLowerCase() === invBrandKey;
+    if ((b.invs || []).length) return b.invs.indexOf(stockInvRow.model) >= 0
+      ? { ok: 3, g: "รองรับตามดาต้าชีต", why: "อยู่ในรายชื่อรุ่นที่ใช้กับ " + stockInvRow.model + " ได้" }
+      : { ok: -1, g: "ไม่รองรับ", why: "คลังระบุรุ่นอินเวอร์เตอร์ที่แบตนี้ใช้ได้ไว้แล้ว และไม่มี " + stockInvRow.model };
+    const iv = stockInvRow.batV || "";
+    if (b.v && iv) return b.v === iv
+      ? { ok: same ? 2 : 1, g: "แรงดันตรง (" + iv.toUpperCase() + ")", why: "แรงดันตรงกัน (" + iv.toUpperCase() + ")" + (same ? " · ยี่ห้อเดียวกัน" : " · คนละยี่ห้อ เช็คดาต้าชีตว่าสื่อสาร (BMS) กันได้") }
+      : { ok: -1, g: "ไม่รองรับ", why: "แรงดันไม่ตรง — แบต " + b.v.toUpperCase() + " แต่อินเวอร์เตอร์รับ " + iv.toUpperCase() };
+    return same ? { ok: 1, g: "ยี่ห้อเดียวกัน", why: "ยี่ห้อเดียวกัน แต่คลังยังไม่ได้ระบุรุ่นที่รองรับ/แรงดัน — เช็คดาต้าชีต" }
+      : { ok: 0, g: "ยังไม่มีข้อมูล", why: "คนละยี่ห้อ และคลังยังไม่มีข้อมูลรุ่นที่รองรับ — เช็คดาต้าชีตก่อน" };
+  };
   const battRow = battCfg.model ? stockBatts.find((b) => b.name === battCfg.model) || null : null;
   const battN = Math.max(1, Math.round(scNum(battCfg.n, 1)));
   const pickBatt = (name, n) => {
@@ -4266,10 +4281,10 @@ function SolarWorkspace({ job, st, sys, onChange, onClose, snap }) {
                           </span>
                           <Dropdown value={battRow ? battRow.name : ""} style={invDdStyle}
                             options={[{ value: "", label: "— ไม่เลือกรุ่น (กรอกสเปคเอง) —" }].concat(stockBatts.slice()
-                              .sort((a, b) => (battFits(b) ? 1 : 0) - (battFits(a) ? 1 : 0) || String(a.brand).localeCompare(String(b.brand)) || a.kwh - b.kwh)
+                              .sort((a, b) => battFit(b).ok - battFit(a).ok || String(a.brand).localeCompare(String(b.brand)) || a.kwh - b.kwh)
                               .map((b) => ({ value: b.name, label: b.name,
                                 sub: [b.kwh + " kWh", b.price ? b.price.toLocaleString() + " บาท/ก้อน" : "", b.warY ? "ประกัน " + b.warY + " ปี" : ""].filter(Boolean).join(" · "),
-                                group: invBrandKey ? (battFits(b) ? "ยี่ห้อเดียวกับอินเวอร์เตอร์" : "ยี่ห้ออื่น") : (b.brand || undefined) })))}
+                                group: battFit(b).g })))}
                             onChange={(v) => pickBatt(v, battN)} />
                         </label>
                         {battRow ? (
@@ -4281,11 +4296,11 @@ function SolarWorkspace({ job, st, sys, onChange, onClose, snap }) {
                       {stockInvRow.model && stockInvRow.type !== "hybrid" ? (
                         <span style={{ fontSize: 11.5, fontWeight: 700, color: "var(--tint-red-tx)" }}>
                           ⚠ อินเวอร์เตอร์ที่เลือกเป็น On-grid ต่อแบตตรงไม่ได้ — เปลี่ยนเป็นรุ่น Hybrid หรือใช้ชุดแบตแบบ AC-coupled</span>
-                      ) : battRow && stockInvRow.model ? (
-                        battFits(battRow)
-                          ? <span style={{ fontSize: 11.5, fontWeight: 600, color: "var(--tint-green-tx)" }}>✓ ยี่ห้อเดียวกับอินเวอร์เตอร์ — ยังต้องดูแรงดันแบต (LV 48V / HV) ให้ตรงกับรุ่นอินเวอร์เตอร์</span>
-                          : <span style={{ fontSize: 11.5, fontWeight: 700, color: "var(--tint-amber-tx)" }}>⚠ แบตคนละยี่ห้อกับอินเวอร์เตอร์ — เช็ครายชื่อแบตที่รองรับในดาต้าชีตอินเวอร์เตอร์ก่อน</span>
-                      ) : null}
+                      ) : battRow && stockInvRow.model ? (() => {
+                        const ft = battFit(battRow);
+                        const c = ft.ok >= 2 ? "var(--tint-green-tx)" : ft.ok < 0 ? "var(--tint-red-tx)" : "var(--tint-amber-tx)";
+                        return <span style={{ fontSize: 11.5, fontWeight: 700, color: c }}>{(ft.ok >= 2 ? "✓ " : "⚠ ") + ft.why}</span>;
+                      })() : null}
                       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(150px,1fr))", gap: 9 }}>
                         <label className="p3-f"><span className="lb">ชนิดเซลล์</span>
                           <select className="p3-inp" value={battCfg.chem} onChange={(e) => {

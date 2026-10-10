@@ -656,7 +656,8 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock, ver, verName, p3Vers
   /* ใบลูกค้า (leadAsJob, survey-sched.jsx:90) — ยังไม่เป็นงานจริง จำนวนแผงจึงยังไม่มีใครยืนยัน
      ช่องที่ล็อกไว้ "ตั้งค่าจากหน้าแก้งาน" ในใบลูกค้าไม่มีหน้าให้ไปแก้ ต้องแก้ตรงนี้ได้ */
   const isLead = !!(job && job.__lead);
-  const hasBattery = !!(job && job.battery);
+  /* มีแบต = งานติ๊กแบตไว้ หรือหน้าออกแบบระบบเลือกรุ่นแบตไว้ (b.batteryModel มาจาก sys.batt — ดูเอฟเฟกต์ใต้ plan3d) */
+  const hasBattery = !!(job && job.battery) || !!b.batteryModel;
   const hasBackup = !!(job && job.backup);
   const [adv, setAdv] = React.useState(false);
   const set = (k, v) => setB((p) => Object.assign({}, p, { [k]: v }));
@@ -962,6 +963,23 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock, ver, verName, p3Vers
   const p3VersOwn = window.useP3Vers ? window.useP3Vers(p3Vers ? null : (job ? job.id : null)) : null;
   const p3List = p3Vers || (p3VersOwn && p3VersOwn.list) || [];
   const plan3d = usePlan3dRO(job ? (window.dvP3Key ? window.dvP3Key(job.id, b.plan3d) : job.id) : null);
+  /* ── แบตจากหน้าออกแบบระบบ (sys.batt ของแบบ 3D ที่ใบนี้ผูก) ──
+     เลือก "มีแบต" + รุ่นจากคลังไว้ → ถอดรุ่นนั้นตามจำนวนก้อน kWh ตามแบบ (ทับ kWh จากหน้าแก้งาน)
+     แบบไม่มีแบต/ไม่ได้เลือกรุ่น → กลับไปใช้ kWh จากหน้าแก้งาน + แบตรุ่นกลางเหมือนเดิม */
+  const dsBatt = (plan3d && plan3d.sys && plan3d.sys.batt) || null;
+  const dsBattOn = !!(dsBatt && dsBatt.on && dsBatt.model);
+  const dsBattN = dsBattOn ? Math.max(1, Math.round(+dsBatt.n || 1)) : 0;
+  const dsBattKwh = dsBattOn ? (+dsBatt.kwh || 0) : 0;
+  React.useEffect(() => {
+    if (!plan3d) return;   // ยังโหลดแบบไม่เสร็จ — อย่าเพิ่งล้างค่า
+    if (!dsBattOn) {
+      if (b.batteryModel) setB((p) => Object.assign({}, p, { batteryModel: "", batteryQty: 0,
+        batteryKwh: job && job.battery ? (parseFloat(job.batSize) || 0) : 0 }));
+      return;
+    }
+    if (b.batteryModel !== dsBatt.model || +b.batteryQty !== dsBattN || +b.batteryKwh !== dsBattKwh)
+      setB((p) => Object.assign({}, p, { batteryModel: dsBatt.model, batteryQty: dsBattN, batteryKwh: dsBattKwh }));
+  }, [!!plan3d, dsBattOn, dsBattOn && dsBatt.model, dsBattN, dsBattKwh]); // eslint-disable-line
   /* ── รางไฟจากแบบ 3D (obstacles p3sType tray) — แถว p3: 1 ในราง + ข้อต่อใน extra ──
      ชนิดราง/ชุบ เลือกในแถบ · ค่าเริ่ม: ใช้ชนิดของแถวที่เคยกดใช้ · ไม่มี = รางกว้างทุกเส้น ≥ 15 ซม. → Perforated ไม่งั้น Wireway */
   const TRAY_KEYS3 = window.BOQ.TRAY_KIND_KEYS;
@@ -3286,7 +3304,12 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock, ver, verName, p3Vers
                   )}
                 </Field>
               </div>
-              {hasBattery && <div style={{ gridColumn: isMobile ? "1 / -1" : "auto" }}><Field label="แบตเตอรี่ (kWh)"><BoqLocked value={b.batteryKwh} unit="kWh" num /></Field></div>}
+              {hasBattery && <div style={{ gridColumn: isMobile ? "1 / -1" : "auto" }}>
+                <Field label={b.batteryModel ? "แบตเตอรี่ (จากออกแบบระบบ)" : "แบตเตอรี่ (kWh)"}>
+                  {b.batteryModel
+                    ? <BoqLocked value={b.batteryModel + " × " + (+b.batteryQty || 1) + " ก้อน · " + b.batteryKwh + " kWh"} />
+                    : <BoqLocked value={b.batteryKwh} unit="kWh" num />}
+                </Field></div>}
               {hasBackup && <div style={{ gridColumn: isMobile ? "1 / -1" : "auto" }}><Field label="ระบบ Backup"><BoqLocked value={b.backup ? "ติดตั้ง" : "ไม่ติดตั้ง"} /></Field></div>}
               <div style={{ gridColumn: isMobile ? "1 / -1" : "auto" }}><Field label="ประเภทหลังคา"><Dropdown value={b.roof} onChange={(v) => set("roof", v)} options={opt(window.BOQ.ROOF_OPTIONS)} /></Field></div>
             </div>

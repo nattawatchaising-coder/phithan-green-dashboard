@@ -635,7 +635,8 @@ function App() {
       dimW: s.invDimW,
       dimH: s.invDimH,
       dimD: s.invDimD,
-      mount: s.invMount
+      mount: s.invMount,
+      batV: s.invBatV
     })));
     window.BOQ.BATTERIES = (stock.items || []).filter(s => inCat(s, "battery") && s.name && +s.kwh > 0).map(s => ({
       name: s.name,
@@ -643,7 +644,10 @@ function App() {
       brand: (s.brand || "").trim() || subTh(s),
       kwh: +s.kwh,
       price: +s.price || 0,
-      warY: +s.warY || 0
+      warY: +s.warY || 0,
+      v: s.batV || "",
+      vNom: +s.batVnom || 0,
+      invs: Array.isArray(s.batInvs) ? s.batInvs : []
     }));
     if (window.BOQ.setOptimizers) window.BOQ.setOptimizers((stock.items || []).filter(s => window.SF.isOptimizerCat(s.cat) && s.name).map(s => ({
       model: s.name,

@@ -4357,7 +4357,46 @@ function SolarWorkspace({
   const battS = scBattSpec(battCfg);
   const stockBatts = window.BOQ && window.BOQ.BATTERIES || [];
   const invBrandKey = stockInvRow.model ? invBrandOf(stockInvRow).toLowerCase() : "";
-  const battFits = b => !!invBrandKey && String(b.brand || "").toLowerCase() === invBrandKey;
+  const battFit = b => {
+    if (!stockInvRow.model) return {
+      ok: 0,
+      g: b.brand || undefined
+    };
+    if (stockInvRow.type !== "hybrid") return {
+      ok: -1,
+      g: "อินเวอร์เตอร์ On-grid",
+      why: "อินเวอร์เตอร์ On-grid ต่อแบตตรงไม่ได้"
+    };
+    const same = String(b.brand || "").toLowerCase() === invBrandKey;
+    if ((b.invs || []).length) return b.invs.indexOf(stockInvRow.model) >= 0 ? {
+      ok: 3,
+      g: "รองรับตามดาต้าชีต",
+      why: "อยู่ในรายชื่อรุ่นที่ใช้กับ " + stockInvRow.model + " ได้"
+    } : {
+      ok: -1,
+      g: "ไม่รองรับ",
+      why: "คลังระบุรุ่นอินเวอร์เตอร์ที่แบตนี้ใช้ได้ไว้แล้ว และไม่มี " + stockInvRow.model
+    };
+    const iv = stockInvRow.batV || "";
+    if (b.v && iv) return b.v === iv ? {
+      ok: same ? 2 : 1,
+      g: "แรงดันตรง (" + iv.toUpperCase() + ")",
+      why: "แรงดันตรงกัน (" + iv.toUpperCase() + ")" + (same ? " · ยี่ห้อเดียวกัน" : " · คนละยี่ห้อ เช็คดาต้าชีตว่าสื่อสาร (BMS) กันได้")
+    } : {
+      ok: -1,
+      g: "ไม่รองรับ",
+      why: "แรงดันไม่ตรง — แบต " + b.v.toUpperCase() + " แต่อินเวอร์เตอร์รับ " + iv.toUpperCase()
+    };
+    return same ? {
+      ok: 1,
+      g: "ยี่ห้อเดียวกัน",
+      why: "ยี่ห้อเดียวกัน แต่คลังยังไม่ได้ระบุรุ่นที่รองรับ/แรงดัน — เช็คดาต้าชีต"
+    } : {
+      ok: 0,
+      g: "ยังไม่มีข้อมูล",
+      why: "คนละยี่ห้อ และคลังยังไม่มีข้อมูลรุ่นที่รองรับ — เช็คดาต้าชีตก่อน"
+    };
+  };
   const battRow = battCfg.model ? stockBatts.find(b => b.name === battCfg.model) || null : null;
   const battN = Math.max(1, Math.round(scNum(battCfg.n, 1)));
   const pickBatt = (name, n) => {
@@ -8202,11 +8241,11 @@ function SolarWorkspace({
     options: [{
       value: "",
       label: "— ไม่เลือกรุ่น (กรอกสเปคเอง) —"
-    }].concat(stockBatts.slice().sort((a, b) => (battFits(b) ? 1 : 0) - (battFits(a) ? 1 : 0) || String(a.brand).localeCompare(String(b.brand)) || a.kwh - b.kwh).map(b => ({
+    }].concat(stockBatts.slice().sort((a, b) => battFit(b).ok - battFit(a).ok || String(a.brand).localeCompare(String(b.brand)) || a.kwh - b.kwh).map(b => ({
       value: b.name,
       label: b.name,
       sub: [b.kwh + " kWh", b.price ? b.price.toLocaleString() + " บาท/ก้อน" : "", b.warY ? "ประกัน " + b.warY + " ปี" : ""].filter(Boolean).join(" · "),
-      group: invBrandKey ? battFits(b) ? "ยี่ห้อเดียวกับอินเวอร์เตอร์" : "ยี่ห้ออื่น" : b.brand || undefined
+      group: battFit(b).g
     }))),
     onChange: v => pickBatt(v, battN)
   })), battRow ? React.createElement("label", {
@@ -8230,19 +8269,17 @@ function SolarWorkspace({
       fontWeight: 700,
       color: "var(--tint-red-tx)"
     }
-  }, "\u26A0 \u0E2D\u0E34\u0E19\u0E40\u0E27\u0E2D\u0E23\u0E4C\u0E40\u0E15\u0E2D\u0E23\u0E4C\u0E17\u0E35\u0E48\u0E40\u0E25\u0E37\u0E2D\u0E01\u0E40\u0E1B\u0E47\u0E19 On-grid \u0E15\u0E48\u0E2D\u0E41\u0E1A\u0E15\u0E15\u0E23\u0E07\u0E44\u0E21\u0E48\u0E44\u0E14\u0E49 \u2014 \u0E40\u0E1B\u0E25\u0E35\u0E48\u0E22\u0E19\u0E40\u0E1B\u0E47\u0E19\u0E23\u0E38\u0E48\u0E19 Hybrid \u0E2B\u0E23\u0E37\u0E2D\u0E43\u0E0A\u0E49\u0E0A\u0E38\u0E14\u0E41\u0E1A\u0E15\u0E41\u0E1A\u0E1A AC-coupled") : battRow && stockInvRow.model ? battFits(battRow) ? React.createElement("span", {
-    style: {
-      fontSize: 11.5,
-      fontWeight: 600,
-      color: "var(--tint-green-tx)"
-    }
-  }, "\u2713 \u0E22\u0E35\u0E48\u0E2B\u0E49\u0E2D\u0E40\u0E14\u0E35\u0E22\u0E27\u0E01\u0E31\u0E1A\u0E2D\u0E34\u0E19\u0E40\u0E27\u0E2D\u0E23\u0E4C\u0E40\u0E15\u0E2D\u0E23\u0E4C \u2014 \u0E22\u0E31\u0E07\u0E15\u0E49\u0E2D\u0E07\u0E14\u0E39\u0E41\u0E23\u0E07\u0E14\u0E31\u0E19\u0E41\u0E1A\u0E15 (LV 48V / HV) \u0E43\u0E2B\u0E49\u0E15\u0E23\u0E07\u0E01\u0E31\u0E1A\u0E23\u0E38\u0E48\u0E19\u0E2D\u0E34\u0E19\u0E40\u0E27\u0E2D\u0E23\u0E4C\u0E40\u0E15\u0E2D\u0E23\u0E4C") : React.createElement("span", {
-    style: {
-      fontSize: 11.5,
-      fontWeight: 700,
-      color: "var(--tint-amber-tx)"
-    }
-  }, "\u26A0 \u0E41\u0E1A\u0E15\u0E04\u0E19\u0E25\u0E30\u0E22\u0E35\u0E48\u0E2B\u0E49\u0E2D\u0E01\u0E31\u0E1A\u0E2D\u0E34\u0E19\u0E40\u0E27\u0E2D\u0E23\u0E4C\u0E40\u0E15\u0E2D\u0E23\u0E4C \u2014 \u0E40\u0E0A\u0E47\u0E04\u0E23\u0E32\u0E22\u0E0A\u0E37\u0E48\u0E2D\u0E41\u0E1A\u0E15\u0E17\u0E35\u0E48\u0E23\u0E2D\u0E07\u0E23\u0E31\u0E1A\u0E43\u0E19\u0E14\u0E32\u0E15\u0E49\u0E32\u0E0A\u0E35\u0E15\u0E2D\u0E34\u0E19\u0E40\u0E27\u0E2D\u0E23\u0E4C\u0E40\u0E15\u0E2D\u0E23\u0E4C\u0E01\u0E48\u0E2D\u0E19") : null, React.createElement("div", {
+  }, "\u26A0 \u0E2D\u0E34\u0E19\u0E40\u0E27\u0E2D\u0E23\u0E4C\u0E40\u0E15\u0E2D\u0E23\u0E4C\u0E17\u0E35\u0E48\u0E40\u0E25\u0E37\u0E2D\u0E01\u0E40\u0E1B\u0E47\u0E19 On-grid \u0E15\u0E48\u0E2D\u0E41\u0E1A\u0E15\u0E15\u0E23\u0E07\u0E44\u0E21\u0E48\u0E44\u0E14\u0E49 \u2014 \u0E40\u0E1B\u0E25\u0E35\u0E48\u0E22\u0E19\u0E40\u0E1B\u0E47\u0E19\u0E23\u0E38\u0E48\u0E19 Hybrid \u0E2B\u0E23\u0E37\u0E2D\u0E43\u0E0A\u0E49\u0E0A\u0E38\u0E14\u0E41\u0E1A\u0E15\u0E41\u0E1A\u0E1A AC-coupled") : battRow && stockInvRow.model ? (() => {
+    const ft = battFit(battRow);
+    const c = ft.ok >= 2 ? "var(--tint-green-tx)" : ft.ok < 0 ? "var(--tint-red-tx)" : "var(--tint-amber-tx)";
+    return React.createElement("span", {
+      style: {
+        fontSize: 11.5,
+        fontWeight: 700,
+        color: c
+      }
+    }, (ft.ok >= 2 ? "✓ " : "⚠ ") + ft.why);
+  })() : null, React.createElement("div", {
     style: {
       display: "grid",
       gridTemplateColumns: "repeat(auto-fit,minmax(150px,1fr))",

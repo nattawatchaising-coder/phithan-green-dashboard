@@ -2101,6 +2101,14 @@
 
     // ── INVERTER ──
     const battCount = Math.round((+b.batteryKwh || 0) / BATTERY_UNIT_KWH);
+    /* แบตรุ่นที่เลือกในหน้าออกแบบระบบ (b.batteryModel/batteryQty — BOQEditor ดึงจาก sys.batt ของแบบ 3D)
+       มี = ถอดรุ่นนี้ตามจำนวนก้อนแทนแบตรุ่นกลาง · ไม่มี = ใช้แบตรุ่นกลางตาม kWh ของงานเหมือนเดิม */
+    const battPick = (+b.batteryKwh || 0) > 0 ? String(b.batteryModel || "").trim() : "";
+    const battPickQty = battPick ? Math.max(1, Math.round(+b.batteryQty || 1)) : 0;
+    const pushBatt = (arr) => {
+      if (battPick) arr.push({ name: battPick, qty: battPickQty, unit: "ก้อน" });
+      else if (battCount > 0) arr.push({ name: BATTERY_MODEL, qty: battCount, unit: "SET" });
+    };
     const selInv = b.inverterModel ? INVERTERS.find((x) => x.model === b.inverterModel) : null;
     /* ── อินเวอร์เตอร์ขนาดที่สอง ──
        จำนวนตัวกรอกเองเสมอ สิ่งที่ระบบคิดให้คือกำลังที่เหลือให้รุ่นแรกรับ (invAuto ด้านล่าง)
@@ -2147,7 +2155,7 @@
            งานบ้านใช้ Smart Meter วัดที่จุดต่อกริด + Dongle 1 ตัว */
         if (!hw) {
           // ยี่ห้ออื่น: ยังไม่มีชุดมอนิเตอร์/มิเตอร์ของยี่ห้อนั้นในระบบ — ให้เพิ่มเองในใบ · แบตใช้รุ่นกลางเดิม
-          if (battCount > 0) invItems.push({ name: BATTERY_MODEL, qty: battCount, unit: "SET" });
+          pushBatt(invItems);
         } else if (isProject) {
           invItems.push({ name: HW.logger, qty: 1, unit: "ตัว" });
         } else {
@@ -2155,11 +2163,14 @@
           // 2 รุ่นนี้มี dongle ในตัว (SUN2000-10K-LC0, SUN2000-5K-LB0) — ไม่ต้องถอด Smart Dongle เพิ่ม
           if (!/SUN2000-10K-LC0|SUN2000-5K-LB0/i.test(selInv.model)) invItems.push({ name: HW.dongle, qty: 1, unit: "ชุด" });
         }
-        if (hw && (+b.batteryKwh || 0) > 0) {
-          const s1 = Math.ceil((+b.batteryKwh || 0) / RULES.battS1Kwh);   // แบต S1 ก้อนละ battS1Kwh kWh
+        /* โมดูล LUNA S1 (ในคลังชื่อ LUNA2000-7-E1) ต้องมี Power Module C1 — เลือกรุ่นนี้จากออกแบบระบบก็ยังถอด C1 ให้ */
+        const lunaPick = battPick && (battPick === HW.lunaS1 || /LUNA2000-(S1|7-E1)/i.test(battPick));
+        if (hw && battPick && !lunaPick) pushBatt(invItems);
+        else if (hw && (+b.batteryKwh || 0) > 0) {
+          const s1 = lunaPick ? battPickQty : Math.ceil((+b.batteryKwh || 0) / RULES.battS1Kwh);   // แบต S1 ก้อนละ battS1Kwh kWh
           const c1 = Math.ceil(s1 / RULES.battS1Per);                       // Power Module 1 ตัว/แสตก (สูงสุด battS1Per ก้อน)
           invItems.push({ name: HW.lunaC1, qty: c1, unit: "ตัว" });
-          invItems.push({ name: HW.lunaS1, qty: s1, unit: "ก้อน" });
+          invItems.push({ name: lunaPick ? battPick : HW.lunaS1, qty: s1, unit: "ก้อน" });
         }
         // ระบบสำรองไฟ 1 ชุด/งาน
         if (!hw) { /* ระบบสำรองไฟ SmartGuard/Backup Box เป็นของ Huawei */ }
@@ -2180,7 +2191,7 @@
         // String / Hybrid ทั่วไป: จำนวนตัว = ปัดขึ้น(kW รวม ÷ kW ต่อตัว) + แบต
         invItems = [{ name: selInv.model, qty: invCount, unit: "ตัว" }];
         if (selInv2) invItems.push({ name: selInv2.model, qty: inv2Count, unit: "ตัว" });
-        if (battCount > 0) invItems.push({ name: BATTERY_MODEL, qty: battCount, unit: "SET" });
+        pushBatt(invItems);
       }
     } else {
       // ไมโคร ATMOCE (ตามอัตราไมโคร) — ชุดเดิม
@@ -2200,7 +2211,7 @@
       }
       invItems.push({ name: CT[phase], qty: 1, unit: "SET" });
       if (b.backup) invItems.push({ name: BACKUP[phase], qty: 1, unit: "SET" });
-      if (battCount > 0) invItems.push({ name: BATTERY_MODEL, qty: battCount, unit: "SET" });
+      pushBatt(invItems);
       invItems.push({ name: JUNCTION[phase], qty: 1, unit: "SET" });
       invItems.push({ name: "1.3 m, Three-terminal AC Cable (MW-025013-A)", qty: invCount, unit: "SET" });
       invItems.push({ name: "2 m, Two-terminal AC Cable (MW-025020-B0)", qty: Math.max(invCount - 3, 0), unit: "SET" });
@@ -2841,6 +2852,7 @@
       /* ขนาดตัวเครื่อง (มม.) + ตั้งพื้น — ห้องอุปกรณ์ 3D (eroom.jsx) */
       if (+p.dimW > 0 && +p.dimH > 0) row.dim = { w: +p.dimW, h: +p.dimH, d: +p.dimD || 250 };
       if (p.mount === "floor") row.mount = "floor";
+      if (p.batV === "lv" || p.batV === "hv") row.batV = p.batV;   // แรงดันแบตที่ไฮบริดรับได้ — หน้าออกแบบระบบคัดแบต
     });
     INVERTERS.length = 0;
     out.forEach((x) => INVERTERS.push(x));
