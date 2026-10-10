@@ -44,11 +44,8 @@ export async function GET(request) {
   for (const u of list) {
     const d = dayRows[u.id];
     if (!d || !d.in || d.out) continue;
-    const lines = [
-      "• วันนี้ยังไม่ได้ลงเวลาออกงาน (เข้างาน " + d.in + ")",
-      "   ถ้าเลิกงานแล้ว กดปุ่มด้านล่างเพื่อลงเวลาออก",
-      "   ถ้ายังทำงานต่อ (OT) ลงเวลาออกตอนเลิกจริง แล้วขอ OT ในแอป",
-    ];
+    /* ผู้ใช้สั่ง 2026-10-10: ในการ์ดเหลือบรรทัดเดียวพอ (ตัดคำแนะนำกดปุ่ม/OT ออก) */
+    const lines = ["วันนี้ยังไม่ได้ลงเวลาออกงาน (เข้างาน " + d.in + ")"];
     const text = ["⏰ ลืมลงเวลาออกงานหรือเปล่า? " + shortTH(date)].concat(lines).join("\n");
     const r = await pushCard(pushMessage, u.lineUserId, flexDigest(shortTH(date), lines, "⏰  ลืมลงเวลาออกงานหรือเปล่า?"), text);
     results.push({ userId: u.id, ok: r.ok, status: r.status, err: r.err || "", fellback: !!r.fellback });
