@@ -4232,6 +4232,7 @@ function SolarWorkspace({
     fontWeight: 600,
     padding: "7px 9px",
     borderRadius: 9,
+    border: "1px solid var(--ln2)",
     boxShadow: "var(--shadow-inset)"
   };
   const invByKw = (a, b) => (a.kw || 0) - (b.kw || 0) || String(a.model).localeCompare(String(b.model));
@@ -4354,6 +4355,30 @@ function SolarWorkspace({
   });
   const prof = React.useMemo(() => scLoadProfile(loadCfg), [S.load]);
   const battS = scBattSpec(battCfg);
+  const stockBatts = window.BOQ && window.BOQ.BATTERIES || [];
+  const invBrandKey = stockInvRow.model ? invBrandOf(stockInvRow).toLowerCase() : "";
+  const battFits = b => !!invBrandKey && String(b.brand || "").toLowerCase() === invBrandKey;
+  const battRow = battCfg.model ? stockBatts.find(b => b.name === battCfg.model) || null : null;
+  const battN = Math.max(1, Math.round(scNum(battCfg.n, 1)));
+  const pickBatt = (name, n) => {
+    const b = stockBatts.find(x => x.name === name);
+    if (!b) {
+      setBatt({
+        model: "",
+        n: null
+      });
+      return;
+    }
+    const k = Math.max(1, Math.round(n || 1));
+    setBatt(Object.assign({
+      model: b.name,
+      n: k,
+      kwh: Math.round(b.kwh * k * 100) / 100
+    }, b.price ? {
+      costMode: "lump",
+      lump: b.price * k
+    } : {}));
+  };
   const dis = React.useMemo(() => energy && energy.hourly && prof.annual > 0 && typeof scDispatch === "function" ? scDispatch(energy.hourly, prof, battCfg, {
     zeroExport: gridCfg.mode === "zero",
     expLimitKw: gridCfg.mode === "limit" ? gridCfg.expLimitKw : 0
@@ -8147,6 +8172,77 @@ function SolarWorkspace({
       on: true
     })
   }, "\u0E21\u0E35\u0E41\u0E1A\u0E15"))), battCfg.on && React.createElement(React.Fragment, null, React.createElement("div", {
+    style: {
+      display: "flex",
+      gap: 9,
+      alignItems: "flex-end",
+      flexWrap: "wrap"
+    }
+  }, React.createElement("label", {
+    className: "p3-f",
+    style: {
+      flex: 1,
+      minWidth: 220
+    }
+  }, React.createElement("span", {
+    className: "lb",
+    style: {
+      display: "flex",
+      gap: 6
+    }
+  }, React.createElement("span", null, "\u0E23\u0E38\u0E48\u0E19\u0E41\u0E1A\u0E15\u0E08\u0E32\u0E01\u0E04\u0E25\u0E31\u0E07"), React.createElement("span", {
+    style: {
+      marginLeft: "auto",
+      fontWeight: 700,
+      color: "var(--text-3)"
+    }
+  }, stockInvRow.model ? "อินเวอร์เตอร์ " + invBrandOf(stockInvRow) + " · " + invTypeTh(stockInvRow) : "ยังไม่เลือกอินเวอร์เตอร์")), React.createElement(Dropdown, {
+    value: battRow ? battRow.name : "",
+    style: invDdStyle,
+    options: [{
+      value: "",
+      label: "— ไม่เลือกรุ่น (กรอกสเปคเอง) —"
+    }].concat(stockBatts.slice().sort((a, b) => (battFits(b) ? 1 : 0) - (battFits(a) ? 1 : 0) || String(a.brand).localeCompare(String(b.brand)) || a.kwh - b.kwh).map(b => ({
+      value: b.name,
+      label: b.name,
+      sub: [b.kwh + " kWh", b.price ? b.price.toLocaleString() + " บาท/ก้อน" : "", b.warY ? "ประกัน " + b.warY + " ปี" : ""].filter(Boolean).join(" · "),
+      group: invBrandKey ? battFits(b) ? "ยี่ห้อเดียวกับอินเวอร์เตอร์" : "ยี่ห้ออื่น" : b.brand || undefined
+    }))),
+    onChange: v => pickBatt(v, battN)
+  })), battRow ? React.createElement("label", {
+    className: "p3-f",
+    style: {
+      width: 108,
+      flex: "0 0 auto"
+    }
+  }, React.createElement("span", {
+    className: "lb"
+  }, "\u0E08\u0E33\u0E19\u0E27\u0E19\u0E01\u0E49\u0E2D\u0E19"), React.createElement("input", {
+    className: "p3-inp",
+    type: "number",
+    min: "1",
+    step: "1",
+    value: battN,
+    onChange: e => pickBatt(battRow.name, +e.target.value || 1)
+  })) : null), stockInvRow.model && stockInvRow.type !== "hybrid" ? React.createElement("span", {
+    style: {
+      fontSize: 11.5,
+      fontWeight: 700,
+      color: "var(--tint-red-tx)"
+    }
+  }, "\u26A0 \u0E2D\u0E34\u0E19\u0E40\u0E27\u0E2D\u0E23\u0E4C\u0E40\u0E15\u0E2D\u0E23\u0E4C\u0E17\u0E35\u0E48\u0E40\u0E25\u0E37\u0E2D\u0E01\u0E40\u0E1B\u0E47\u0E19 On-grid \u0E15\u0E48\u0E2D\u0E41\u0E1A\u0E15\u0E15\u0E23\u0E07\u0E44\u0E21\u0E48\u0E44\u0E14\u0E49 \u2014 \u0E40\u0E1B\u0E25\u0E35\u0E48\u0E22\u0E19\u0E40\u0E1B\u0E47\u0E19\u0E23\u0E38\u0E48\u0E19 Hybrid \u0E2B\u0E23\u0E37\u0E2D\u0E43\u0E0A\u0E49\u0E0A\u0E38\u0E14\u0E41\u0E1A\u0E15\u0E41\u0E1A\u0E1A AC-coupled") : battRow && stockInvRow.model ? battFits(battRow) ? React.createElement("span", {
+    style: {
+      fontSize: 11.5,
+      fontWeight: 600,
+      color: "var(--tint-green-tx)"
+    }
+  }, "\u2713 \u0E22\u0E35\u0E48\u0E2B\u0E49\u0E2D\u0E40\u0E14\u0E35\u0E22\u0E27\u0E01\u0E31\u0E1A\u0E2D\u0E34\u0E19\u0E40\u0E27\u0E2D\u0E23\u0E4C\u0E40\u0E15\u0E2D\u0E23\u0E4C \u2014 \u0E22\u0E31\u0E07\u0E15\u0E49\u0E2D\u0E07\u0E14\u0E39\u0E41\u0E23\u0E07\u0E14\u0E31\u0E19\u0E41\u0E1A\u0E15 (LV 48V / HV) \u0E43\u0E2B\u0E49\u0E15\u0E23\u0E07\u0E01\u0E31\u0E1A\u0E23\u0E38\u0E48\u0E19\u0E2D\u0E34\u0E19\u0E40\u0E27\u0E2D\u0E23\u0E4C\u0E40\u0E15\u0E2D\u0E23\u0E4C") : React.createElement("span", {
+    style: {
+      fontSize: 11.5,
+      fontWeight: 700,
+      color: "var(--tint-amber-tx)"
+    }
+  }, "\u26A0 \u0E41\u0E1A\u0E15\u0E04\u0E19\u0E25\u0E30\u0E22\u0E35\u0E48\u0E2B\u0E49\u0E2D\u0E01\u0E31\u0E1A\u0E2D\u0E34\u0E19\u0E40\u0E27\u0E2D\u0E23\u0E4C\u0E40\u0E15\u0E2D\u0E23\u0E4C \u2014 \u0E40\u0E0A\u0E47\u0E04\u0E23\u0E32\u0E22\u0E0A\u0E37\u0E48\u0E2D\u0E41\u0E1A\u0E15\u0E17\u0E35\u0E48\u0E23\u0E2D\u0E07\u0E23\u0E31\u0E1A\u0E43\u0E19\u0E14\u0E32\u0E15\u0E49\u0E32\u0E0A\u0E35\u0E15\u0E2D\u0E34\u0E19\u0E40\u0E27\u0E2D\u0E23\u0E4C\u0E40\u0E15\u0E2D\u0E23\u0E4C\u0E01\u0E48\u0E2D\u0E19") : null, React.createElement("div", {
     style: {
       display: "grid",
       gridTemplateColumns: "repeat(auto-fit,minmax(150px,1fr))",

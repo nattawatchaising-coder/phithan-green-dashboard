@@ -637,6 +637,14 @@ function App() {
       dimD: s.invDimD,
       mount: s.invMount
     })));
+    window.BOQ.BATTERIES = (stock.items || []).filter(s => inCat(s, "battery") && s.name && +s.kwh > 0).map(s => ({
+      name: s.name,
+      model: s.model || s.name,
+      brand: (s.brand || "").trim() || subTh(s),
+      kwh: +s.kwh,
+      price: +s.price || 0,
+      warY: +s.warY || 0
+    }));
     if (window.BOQ.setOptimizers) window.BOQ.setOptimizers((stock.items || []).filter(s => window.SF.isOptimizerCat(s.cat) && s.name).map(s => ({
       model: s.name,
       group: (s.brand || "").trim() || subTh(s),
