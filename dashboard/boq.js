@@ -1131,24 +1131,32 @@
   const TRAY_KIND_KEYS = ["way", "tray", "perf"];
   /* รับได้ทั้งคีย์ชนิด ("way"/"tray"/"perf") และ boolean isTray แบบเดิม — ที่เรียกด้วย true/false อยู่จึงไม่พัง */
   const trayKindOf = (k) => TRAY_KINDS[k === true ? "tray" : (k || "way")] || TRAY_KINDS.way;
-  /* ขนาดรางดึงจากคลัง (ผู้ใช้ ต.ค. 2026) — ตัวรางในคลังชื่อ "<ชนิด> WxH mm.[ สีขาว] (2.4m/ท่อน)"
-     ไม่นับของชุบ (HDG.) และของในถังขยะ (มี trashFrom) · คลังมีอย่างน้อย 1 ขนาด = ใช้ชุดนั้นแทนรายการตั้งต้น ไม่มี = รายการตั้งต้น
+  /* ขนาดรางดึงจากคลัง (ผู้ใช้ ต.ค. 2026) — ตัวรางในคลังชื่อ "<ชนิด> WxH mm.[ สีขาว][ (HDG.)] (2.4m/ท่อน)"
+     ของชุบ (HDG.) นับขนาดด้วย (ชื่อขนาดไม่มี HDG — ปุ่ม HDG ในใบ BOQ ต่อท้ายเอง) · ไม่นับของในถังขยะ (มี trashFrom)
+     คลังมีอย่างน้อย 1 ขนาด = ใช้ชุดนั้นแทนรายการตั้งต้น ไม่มี = รายการตั้งต้น
+     ความยาวท่อนก็อ่านจากชื่อ — ตัวรางของชนิดนั้นยาวเท่ากันหมด (เช่น Ladder KJL 3 ม.) = ใช้ค่านั้น ไม่งั้นค่าตั้งต้น
      แก้อาร์เรย์เดิมในที่ ทุกที่ที่ถือ WAY_SIZES / spec.sizes ไว้จึงเห็นค่าใหม่ · store เรียกทุกครั้งที่คลังเปลี่ยน */
   const TRAY_SIZE_DEF = { way: WAY_SIZES.slice(), tray: TRAY_SIZES.slice(), perf: PERF_SIZES.slice() };
+  const TRAY_LEN_DEF = { way: WAY_PIPE_LEN, tray: TRAY_PIPE_LEN, perf: TRAY_PIPE_LEN };
   let traySizesV = 0;
   function syncTraySizes(items) {
     TRAY_KIND_KEYS.forEach((kk) => {
       const spec = TRAY_KINDS[kk];
-      const re = new RegExp("^" + spec.brief + " (\\d+)x(\\d+) mm\\.( [^()]+)? \\([\\d.]+m/ท่อน\\)$");
-      const got = {};
+      const re = new RegExp("^" + spec.brief + " (\\d+)x(\\d+) mm\\.( [^()]+)?(?: \\(HDG\\.\\))? \\(([\\d.]+)m/ท่อน\\)$");
+      const got = {}, lens = {};
       (items || []).forEach((it) => {
         const m = it && !it.trashFrom && re.exec(String(it.name || "").trim());
-        if (m) got[spec.brief + " " + m[1] + "x" + m[2] + " mm." + (m[3] || "")] = [+m[1], +m[2], m[3] ? 1 : 0];
+        if (!m) return;
+        got[spec.brief + " " + m[1] + "x" + m[2] + " mm." + (m[3] || "")] = [+m[1], +m[2], m[3] ? 1 : 0];
+        lens[+m[4]] = 1;
       });
       const want = Object.keys(got).sort((a, b) => got[a][0] - got[b][0] || got[a][1] - got[b][1] || got[a][2] - got[b][2] || a.localeCompare(b));
       const next = want.length ? want : TRAY_SIZE_DEF[kk];
-      if (next.join("|") === spec.sizes.join("|")) return;
+      const lk = Object.keys(lens);
+      const len = lk.length === 1 && +lk[0] > 0 ? +lk[0] : TRAY_LEN_DEF[kk];
+      if (next.join("|") === spec.sizes.join("|") && len === spec.pipeLen) return;
       spec.sizes.splice.apply(spec.sizes, [0, spec.sizes.length].concat(next));
+      spec.pipeLen = len;
       traySizesV++;
     });
   }
