@@ -941,7 +941,7 @@ function LgPill({ icon, glyph, label, children, extra }) {
   );
 }
 
-/* ปุ่มกระจก — แคปซูลใส มีลูกแก้วดวงอาทิตย์หมุนอยู่ข้างใน ตัวอักษรเรือง กดแล้วมีประกายแตกออก */
+/* ปุ่มกระจก — แคปซูลใส วงกลมเขียวสีหลักของธีมมีลูกศร กดแล้วมีประกายแตกออก (รอ = วงกลมกะพริบ) */
 function LgGlassButton({ onClick, busy, label, busyLabel, wide }) {
   const [bursts, setBursts] = React.useState([]);
   const fire = () => {
@@ -959,7 +959,6 @@ function LgGlassButton({ onClick, busy, label, busyLabel, wide }) {
     <button type="button" className={"lg-gbtn" + (wide ? " lg-gbtn-wide" : "") + (busy ? " is-busy" : "")} onClick={fire} disabled={busy}>
       <span className="lg-gbtn-tx">{busy ? busyLabel : label}</span>
       <span className="lg-orb">
-        <span className="lg-orb-swirl" />
         <Icon name="arrowRight" size={16} color="#fff" />
         {bursts.map((b) => (
           <span key={b.id} className="lg-burst">
@@ -1162,7 +1161,6 @@ const LG_CSS = `
   --lg-pill:rgba(255,255,255,.42);--lg-pill-bd:rgba(255,255,255,.7);--lg-strip:rgba(255,255,255,.34);
   --lg-tx:#1B2220;--lg-tx2:#4F5653;--lg-tx3:#7D827F;--lg-glow:rgba(255,170,80,.55);
   --lg-smoke:rgba(18,22,24,.72);--lg-orb1:#FFF6DA;--lg-orb2:#FFC46B;--lg-orb3:#FF8A2A;--lg-orb4:#B9420C;
-  --lg-g1:#9AA0A6;--lg-g2:#4A5056;--lg-g3:#1C1F22;--lg-g4:#050607;--lg-gglow:rgba(20,24,28,.32);
   position:relative;min-height:100dvh;overflow:hidden;color:var(--lg-tx);
   background:linear-gradient(180deg,var(--lg-sky0) 0%,var(--lg-sky1) 20%,var(--lg-sky2) 38%,var(--lg-sky3) 50%,var(--lg-sky4) 57%,var(--lg-sky3) 70%)}
 [data-theme="aurora"] .lg-scene{--lg-sky0:#080C18;--lg-sky1:#141C34;--lg-sky2:#2B2B4A;--lg-sky3:#7A4A48;--lg-sky4:#D0784A;
@@ -1238,7 +1236,7 @@ const LG_CSS = `
 .lg-note{font-size:10.5px;line-height:1.55;color:var(--lg-tx2)}
 .lg-link{background:none;border:none;cursor:pointer;font-family:inherit;font-size:12.5px;color:var(--lg-tx2);padding:6px 2px}
 
-/* ปุ่มกระจก + ลูกแก้วดวงอาทิตย์ */
+/* ปุ่มกระจก + วงกลมเขียวสีหลักของธีม (เรียบ ไม่มีเงา/แสงเรือง — ผู้ใช้เลือกแล้ว) */
 .lg-gbtn{position:relative;display:inline-flex;align-items:center;gap:12px;flex:none;cursor:pointer;font-family:inherit;
   border:none;border-radius:999px;padding:5px 5px 5px 20px;min-height:48px;color:var(--lg-tx);
   background:linear-gradient(180deg,rgba(255,255,255,.62),rgba(255,255,255,.2));
@@ -1250,23 +1248,17 @@ const LG_CSS = `
   box-shadow:inset 0 1px 1px rgba(255,255,255,.35),inset 0 0 0 1px rgba(255,255,255,.16),0 12px 30px rgba(0,0,0,.45)}
 .lg-gbtn:hover:not(:disabled){transform:translateY(-1px);
   box-shadow:inset 0 1px 1px rgba(255,255,255,.95),inset 0 -10px 18px rgba(255,255,255,.18),inset 0 0 0 1px rgba(255,255,255,.6),
-    0 14px 34px rgba(60,40,20,.22),0 0 26px 2px var(--lg-gglow)}
+    0 14px 34px rgba(60,40,20,.22)}
 .lg-gbtn:active:not(:disabled){transform:scale(.97)}
 .lg-gbtn:disabled{cursor:default}
-.lg-gbtn-tx{font-size:13.5px;font-weight:700;letter-spacing:.01em;white-space:nowrap;
-  text-shadow:0 0 12px rgba(255,255,255,.75)}
+.lg-gbtn-tx{font-size:13.5px;font-weight:700;letter-spacing:.01em;white-space:nowrap}
 .lg-orb{position:relative;width:38px;height:38px;border-radius:50%;display:grid;place-items:center;flex:none;
-  background:radial-gradient(circle at 34% 28%,var(--lg-g1) 0%,var(--lg-g2) 26%,var(--lg-g3) 58%,var(--lg-g4) 100%);
-  box-shadow:0 0 18px var(--lg-gglow),inset 0 -4px 8px rgba(0,0,0,.45),inset 0 2px 3px rgba(255,255,255,.6)}
-.lg-orb>svg{position:relative;z-index:1;filter:drop-shadow(0 1px 1px rgba(0,0,0,.5))}
-.lg-orb-swirl{position:absolute;inset:0;border-radius:50%;mix-blend-mode:screen;opacity:.8;
-  background:conic-gradient(from 0deg,transparent 0deg,rgba(255,255,255,.65) 50deg,transparent 120deg,rgba(210,220,230,.45) 220deg,transparent 280deg);
-  animation:lgSpin 4.5s linear infinite}
-.lg-gbtn.is-busy .lg-orb-swirl{animation-duration:.9s}
-@keyframes lgSpin{to{transform:rotate(360deg)}}
+  background:var(--primary);transition:background .15s}
+.lg-gbtn:hover:not(:disabled) .lg-orb{background:var(--primary-dark)}
+.lg-gbtn.is-busy .lg-orb{animation:lgPulse 1s ease-in-out infinite}
+@keyframes lgPulse{50%{opacity:.5}}
 .lg-burst{position:absolute;left:50%;top:50%;width:0;height:0;pointer-events:none;z-index:2}
-.lg-burst i{position:absolute;left:0;top:0;border-radius:50%;background:#F2F4F6;
-  box-shadow:0 0 8px 2px rgba(255,255,255,.75),0 0 2px rgba(0,0,0,.35);animation:lgBurst .7s cubic-bezier(.15,.7,.3,1) forwards}
+.lg-burst i{position:absolute;left:0;top:0;border-radius:50%;background:var(--primary);animation:lgBurst .7s cubic-bezier(.15,.7,.3,1) forwards}
 @keyframes lgBurst{from{transform:translate(-50%,-50%) scale(1);opacity:1}
   to{transform:translate(calc(-50% + var(--dx)),calc(-50% + var(--dy))) scale(.2);opacity:0}}
 
@@ -1294,7 +1286,7 @@ const LG_CSS = `
   font-family:var(--brand-font);font-size:12px;color:var(--lg-tx2)}
 .lg-day-side{position:absolute;right:20px;top:22px;text-align:right;font-size:12px;line-height:1.55;color:var(--lg-tx2);font-weight:600}
 
-@media (prefers-reduced-motion:reduce){.lg-cloud,.lg-orb-swirl{animation:none}}
+@media (prefers-reduced-motion:reduce){.lg-cloud,.lg-gbtn.is-busy .lg-orb{animation:none}}
 @media (max-width:720px){
   .lg-grid{grid-template-columns:1fr;grid-template-areas:"login" "dark";max-width:440px}
   .lg-day{display:none}
