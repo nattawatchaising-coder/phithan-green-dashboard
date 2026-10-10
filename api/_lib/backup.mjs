@@ -77,3 +77,56 @@ export async function plan(getText, topNames) {
 
 /* path ที่ cron/seed ดูแล — นอกนี้ (README, .gitattributes, _backup.json) ไม่แตะ */
 export const managed = (p) => p.startsWith("data/") || p.startsWith("files/");
+
+/* ================================================================
+   GitHub REST ของ repo สำรอง — env BACKUP_GH_TOKEN / BACKUP_GH_REPO (Vercel เท่านั้น)
+   ================================================================ */
+export const ghToken = () => (process.env.BACKUP_GH_TOKEN || "").trim();
+export const ghRepo  = () => (process.env.BACKUP_GH_REPO || "").trim().replace(/^https:\/\/github\.com\//, "").replace(/\.git$|\/+$/g, "");
+export const ghReady = () => !!ghToken() && /^[\w.-]+\/[\w.-]+$/.test(ghRepo());
+
+export async function gh(method, path, data) {
+  const r = await fetch("https://api.github.com/repos/" + ghRepo() + path, {
+    method,
+    headers: {
+      authorization: "Bearer " + ghToken(), accept: "application/vnd.github+json",
+      "x-github-api-version": "2022-11-28", "user-agent": "flashsolar-backup",
+      ...(data ? { "content-type": "application/json" } : {}),
+    },
+    body: data ? JSON.stringify(data) : undefined,
+  });
+  if (!r.ok) throw new Error("github " + method + " " + (path.split("?")[0] || "/repo") + " " + r.status);
+  return await r.json();
+}
+
+/* ================================================================
+   แจ้งเตือนทาง LINE เมื่อสำรองมีปัญหา — ส่งถึงคนเดียว (ผู้ใช้สั่ง 2026-10-10: บัญชี Film)
+   เปลี่ยนคนได้ด้วย env BACKUP_ALERT_USER = id ผู้ใช้ · ส่งเฉพาะตอนมีปัญหา (โควตา OA ~300/เดือน)
+   ================================================================ */
+const ALERT_USER = () => (process.env.BACKUP_ALERT_USER || "u-mq4zbpvk").trim();   // u-mq4zbpvk = Film
+const STALE_MS = 36 * 3600000;   // สำรองตี 3 · daily เช็ก 20:30 → ปกติห่าง ~17.5 ชม. เกิน 36 = ขาดไปอย่างน้อยหนึ่งคืน
+
+export async function alertBackup(msg) {
+  const { rtdbGet, pushMessage } = await import("./line.mjs");
+  try {
+    const u = await rtdbGet("users/" + ALERT_USER());
+    if (!u || !u.lineUserId || u.active === false) return { ok: false, err: "alert user has no LINE" };
+    return await pushMessage(u.lineUserId, [{ type: "text", text: "⚠️ สำรองข้อมูล flash+solar\n" + msg + "\n\nวิธีแก้: docs/backup.md" }]);
+  } catch (e) { return { ok: false, err: String(e.message || e) }; }
+}
+
+/* ตัวเฝ้า — เรียกจาก daily.mjs (function คนละตัว) จึงจับได้แม้ cron สำรองไม่รันเลยหรือพังก่อนส่งแจ้งเตือนเอง */
+export async function checkBackup() {
+  if (!ghReady()) return { skipped: "not configured" };
+  let s;
+  try {
+    const j = await gh("GET", "/contents/_backup.json");
+    s = JSON.parse(Buffer.from(j.content || "", "base64").toString("utf8"));
+  } catch (e) {
+    return { alert: await alertBackup("อ่านสถานะใน GitHub ไม่ได้ (" + (e.message || e) + ") — token หมดอายุ/ถูกเพิกถอน หรือ repo ถูกย้าย?") };
+  }
+  const age = Date.now() - Date.parse(s.at);
+  if (!(age < STALE_MS))
+    return { alert: await alertBackup("ไม่ได้สำรองมา " + Math.round(age / 3600000) + " ชม. (ล่าสุด " + s.date + ") — ดู Vercel → Logs ของ /api/cron/backup") };
+  return { ok: true, hours: Math.round(age / 3600000) };
+}

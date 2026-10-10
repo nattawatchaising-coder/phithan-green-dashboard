@@ -22,44 +22,35 @@
    อ่านรายชื่อพลาดแม้จุดเดียว = ยกเลิกทั้งรอบ ไม่ commit (กันพลาดแล้วถูกตีความว่า "ข้อมูลถูกลบ")
    ค่าลับ BACKUP_GH_TOKEN (fine-grained เฉพาะ repo สำรอง · Contents read/write) · BACKUP_GH_REPO = "owner/name"
    อยู่ใน Vercel Environment Variables เท่านั้น
+   พังเมื่อไหร่ = ส่ง LINE ถึง Film (alertBackup ใน _lib/backup.mjs) · cron ไม่รันเลย = daily.mjs เฝ้าแทน (checkBackup)
 
    ⚠ ไม่มี dependency (installCommand: null) — ดูเหตุผลที่หัว _lib/line.mjs
    ============================================================ */
 
 import crypto from "node:crypto";
 import { ENV, json, rtdbText, todayTH } from "../_lib/line.mjs";
-import { plan, dataText, gitSha, pool, managed } from "../_lib/backup.mjs";
+import { plan, dataText, gitSha, pool, managed, gh, ghReady, alertBackup } from "../_lib/backup.mjs";
 
 const BUDGET_MS = 45000;   // เผื่อเวลาสร้าง tree/commit ก่อนชน 60 วินาที
 const MAX_BLOBS = 60;
 const ROTATE    = 30;
 
-const ghToken = () => (process.env.BACKUP_GH_TOKEN || "").trim();
-const ghRepo  = () => (process.env.BACKUP_GH_REPO || "").trim().replace(/^https:\/\/github\.com\//, "").replace(/\.git$|\/+$/g, "");
-
-async function gh(method, path, data) {
-  const r = await fetch("https://api.github.com/repos/" + ghRepo() + path, {
-    method,
-    headers: {
-      authorization: "Bearer " + ghToken(), accept: "application/vnd.github+json",
-      "x-github-api-version": "2022-11-28", "user-agent": "flashsolar-backup",
-      ...(data ? { "content-type": "application/json" } : {}),
-    },
-    body: data ? JSON.stringify(data) : undefined,
-  });
-  if (!r.ok) throw new Error("github " + method + " " + path.split("?")[0] + " " + r.status);
-  return await r.json();
-}
-
 /* ชิ้นไหนถึงคิวตรวจซ้ำวันนี้ — แบ่งตาม hash ของ path คงที่ทุกวัน */
 const dayNo = () => Math.floor(Date.now() / 86400000);
 const dueToday = (path) => parseInt(crypto.createHash("sha1").update(path).digest("hex").slice(0, 8), 16) % ROTATE === dayNo() % ROTATE;
+
+/* ตอบ error พร้อมแจ้ง LINE — รอบที่พังต้องมีคนรู้ ไม่งั้นข้อมูลไม่ได้สำรองแบบเงียบ ๆ */
+async function fail(what, e, extra) {
+  const detail = String((e && e.message) || e || "");
+  await alertBackup("รอบ " + todayTH() + " ไม่สำเร็จ: " + what + " — " + detail);
+  return json({ error: what, detail, ...(extra || {}) }, 502);
+}
 
 export async function GET(request) {
   const want = ENV.cron();
   const got = (request.headers.get("authorization") || "").replace(/^Bearer\s+/i, "").trim();
   if (!want || got !== want) return json({ error: "unauthorized" }, 401);
-  if (!ENV.rtdb() || !ghToken() || !/^[\w.-]+\/[\w.-]+$/.test(ghRepo())) return json({ error: "backup not configured" }, 500);
+  if (!ENV.rtdb() || !ghReady()) return fail("backup not configured", "ไม่พบ env BACKUP_GH_TOKEN / BACKUP_GH_REPO ใน Vercel");
 
   const t0 = Date.now();
   const left = () => BUDGET_MS - (Date.now() - t0);
@@ -74,11 +65,11 @@ export async function GET(request) {
     const tr = await gh("GET", "/git/trees/" + baseTree + "?recursive=1");
     if (tr.truncated) throw new Error("tree truncated");
     have = new Map(tr.tree.filter((e) => e.type === "blob").map((e) => [e.path, e.sha]));
-  } catch (e) { return json({ error: "github", detail: String(e.message || e) }, 502); }
+  } catch (e) { return fail("github", e); }
 
   /* 2. รายการที่ควรมี — พลาด = ยกเลิกทั้งรอบ */
   let p;
-  try { p = await plan(rtdbText); } catch (e) { return json({ error: "db list", detail: String(e.message || e) }, 502); }
+  try { p = await plan(rtdbText); } catch (e) { return fail("db list", e); }
 
   const entries = [];
   let blobs = 0, changed = 0, pending = 0, failed = 0;
@@ -94,7 +85,7 @@ export async function GET(request) {
   /* 3. ข้อมูลงาน — ทุกกลุ่มทุกวัน · พลาด = ยกเลิก (ข้อมูลงานต้องครบทุกรอบ) */
   try {
     await pool(p.data, 4, async (d) => upload(d.path, dataText(await rtdbText(d.db))));
-  } catch (e) { return json({ error: "data", detail: String(e.message || e) }, 502); }
+  } catch (e) { return fail("data", e); }
 
   /* 4. ไฟล์/รูป — ชิ้นใหม่ก่อน แล้วชิ้นที่ถึงคิวตรวจซ้ำ · หมดเวลา/โควตา = ค้างไว้รอบหน้า */
   const fresh = p.leaves.filter((l) => !have.has(l.path));
@@ -125,6 +116,7 @@ export async function GET(request) {
       + (pending ? " · ค้าง " + pending : "") + (failed ? " · พลาด " + failed : "");
     const commit = (await gh("POST", "/git/commits", { message: msg, tree, parents: [head] })).sha;
     await gh("PATCH", "/git/refs/heads/" + branch, { sha: commit });
+    if (failed) await alertBackup("รอบ " + date + " ดาวน์โหลดไฟล์/รูปพลาด " + failed + " ชิ้น (รอบหน้าลองใหม่เอง) — ถ้าเตือนซ้ำหลายวันให้ดู Logs");
     return json({ ok: true, commit, ms: Date.now() - t0, ...summary });
-  } catch (e) { return json({ error: "commit", detail: String(e.message || e), ...summary }, 502); }
+  } catch (e) { return fail("commit", e, summary); }
 }

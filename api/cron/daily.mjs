@@ -20,6 +20,7 @@
 
 import { ENV, json, rtdbGet, rtdbSet, pushMessage, todayTH, shortTH } from "../_lib/line.mjs";
 import { flexDigest, pushCard } from "../_lib/flex.mjs";
+import { checkBackup } from "../_lib/backup.mjs";
 
 /* แปลงนาทีเป็น "3 ชม. 30 น." — สำเนาเล็ก ๆ ของ tmDur (dashboard/attend.jsx)
    ตั้งใจไม่ import ข้ามฝั่ง เพราะโค้ดฝั่งหน้าเว็บเป็น JSX ที่ยังไม่ผ่าน build */
@@ -47,6 +48,10 @@ export async function GET(request) {
   const done = await rtdbGet("cronRun/" + date).catch(() => null);
   if (done) return json({ skipped: "already", date });
 
+  /* เฝ้าระบบสำรองข้อมูล — cron สำรองไม่รันเลย/token หมดอายุ = ตัวมันเองแจ้งไม่ได้ จึงเช็กจากที่นี่
+     ส่ง LINE ถึง Film เฉพาะตอนมีปัญหา · อยู่ก่อนสวิตช์ kinds.attend เพราะไม่เกี่ยวกับเรื่องลงเวลา (docs/backup.md) */
+  const backup = await checkBackup().catch((e) => ({ error: String(e.message || e) }));
+
   let users = null, ot = null, lv = null;
   try {
     users = await rtdbGet("users");
@@ -64,7 +69,7 @@ export async function GET(request) {
   const allow = await rtdbGet("config/linePush").catch(() => null);
   if (allow && allow.kinds && !allow.kinds.attend) {
     await rtdbSet("cronRun/" + date, { at: new Date().toISOString(), skipped: "kind off" }).catch(() => {});
-    return json({ skipped: "kind:attend", date });
+    return json({ skipped: "kind:attend", date, backup });
   }
 
   const results = [];
@@ -115,5 +120,5 @@ export async function GET(request) {
   }
   await rtdbSet("cronRun/" + date, { at, n: results.length, ok: results.filter((x) => x.ok).length }).catch(() => {});
 
-  return json({ date, sent: results.filter((x) => x.ok).length, of: results.length });
+  return json({ date, sent: results.filter((x) => x.ok).length, of: results.length, backup });
 }
