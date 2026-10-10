@@ -107,7 +107,6 @@
     { sec: "tray", g: "จากแบบ 3D", key: "trayTurn90", th: "มุมเลี้ยวตั้งแต่กี่องศานับเป็นข้องอ 90° (น้อยกว่า = 45°)", unit: "°", def: 60, max: 180 },
     { sec: "tray", g: "จากแบบ 3D", key: "trayTurn45", th: "มุมเลี้ยวน้อยกว่านี้ไม่นับข้องอ", unit: "°", def: 15, max: 180 },
     { sec: "tray", g: "จากแบบ 3D", key: "trayEnd", th: "แผ่นปิดหัว-ท้าย ต่อเส้น", unit: "ชุด", def: 2 },
-    { sec: "tray", g: "จากแบบ 3D", key: "trayPerfW", th: "ทุกเส้นกว้างตั้งแต่เท่านี้ เลือก Perforated ให้ (แคบกว่า = Wireway)", unit: "ซม.", def: 15, min: 1 },
     { sec: "tray", g: "ท่อร้อยสาย", key: "condFill1", th: "บรรจุสายในท่อ · สาย 1 เส้น ไม่เกิน", unit: "%", def: 53, min: 1, max: 100 },
     { sec: "tray", g: "ท่อร้อยสาย", key: "condFill2", th: "บรรจุสายในท่อ · สาย 2 เส้น ไม่เกิน", unit: "%", def: 31, min: 1, max: 100 },
     { sec: "tray", g: "ท่อร้อยสาย", key: "condFill3", th: "บรรจุสายในท่อ · 3 เส้นขึ้นไป ไม่เกิน", unit: "%", def: 40, min: 1, max: 100 },
@@ -1664,9 +1663,9 @@
     const std = spec.sizes.filter((nm) => /mm.$/.test(nm) || (spec.std && nm.endsWith(spec.std)));
     const pool = std.length ? std : spec.sizes;
     const pick = (wMm) => pool.find((nm) => trayDim(nm).w >= wMm - 0.5) || pool[pool.length - 1];
-    const by = {}, fit = {};
+    const by = {}, fit = {}, types = {};   // types = จำนวนตามชนิดข้อต่อ ไม่ผูกชนิด/ขนาดราง (ใบ BOQ ใส่เข้าข้อต่อของรางเส้นสาย)
     let total = 0, bends = 0;
-    const addFit = (k, sz, q) => { if (q <= 0) return; const nm = hdgName(k + " " + spec.brief + " " + sz, hdg); fit[nm] = (fit[nm] || 0) + q; };
+    const addFit = (k, sz, q) => { if (q <= 0) return; const nm = hdgName(k + " " + spec.brief + " " + sz, hdg); fit[nm] = (fit[nm] || 0) + q; types[k] = (types[k] || 0) + q; };
     obs.forEach((o) => {
       const x = +o.x || 0, z = +o.z || 0;
       let P;
@@ -1692,7 +1691,7 @@
       hdg ? { hdg: true } : {}, spec.hanger ? { rail: true } : {}));
     if (!rows.length) return null;
     const fits = Object.keys(fit).map((nm) => ({ name: nm, qty: fit[nm], unit: "ชุด", p3: 1 }));
-    return { kind: spec.key, rows, fits, runs: obs.length, total: Math.round(total * 10) / 10, bends,
+    return { kind: spec.key, rows, fits, types, runs: obs.length, total: Math.round(total * 10) / 10, bends,
       sizes: rows.map((r) => ({ size: r.size, len: r.length, runs: by[r.size].runs })) };
   }
   /* แปลง boards → items แบนราบ ให้ calcBOQ/catalog ใช้เหมือนหมวดอื่น

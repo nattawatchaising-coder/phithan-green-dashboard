@@ -1003,18 +1003,14 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock, ver, verName, p3Vers
     const k = Math.max(1, Math.round(n || +b.batteryQty || 1));
     setB((p) => Object.assign({}, p, { battSrc: "boq", batteryModel: bt.name, batteryQty: k, batteryKwh: Math.round(bt.kwh * k * 100) / 100 }));
   };
-  /* ── รางไฟจากแบบ 3D (obstacles p3sType tray) — แถว p3: 1 ในราง + ข้อต่อใน extra ──
-     ชนิดราง/ชุบ เลือกในแถบ · ค่าเริ่ม: ใช้ชนิดของแถวที่เคยกดใช้ · ไม่มี = รางกว้างทุกเส้น ≥ 15 ซม. → Perforated ไม่งั้น Wireway */
+  /* ── ข้อต่อรางจากแบบ 3D (obstacles p3sType tray) ──
+     ผู้ใช้ ต.ค. 2026: รางที่วาดบนหลังคาคือรางเส้นเดียวกับรางของเส้นสายไฟ (ซึ่งต้องบวกทางลงจากหลังคาถึงห้องอินเวอร์เตอร์ด้วย)
+     จึงดึงจากแบบแค่ชนิด + จำนวนข้อต่อ (ข้องอตามมุมเลี้ยว · แผ่นปิดหัว-ท้าย) ไปใส่ในข้อต่อของรางเส้นสายที่เลือก (raceFit แถว p3: 1)
+     ชนิด/ขนาด/ระยะ/HDG ของรางตั้งเองที่เส้นสาย · แถว p3 แบบเก่า (ตัวราง + ข้อต่อใน tray) ล้างทิ้งตอนกดใช้ */
   const TRAY_KEYS3 = window.BOQ.TRAY_KIND_KEYS;
-  const tray3dHas = TRAY_KEYS3.find((k) => (tw[k] || []).some((x) => x.p3));
-  const tray3dW = ((plan3d && plan3d.obstacles) || []).filter((o) => o && o.p3sType === "tray").map((o) => +o.d || 0.1);
-  const [tray3dOpt, setTray3dOpt] = React.useState(null);
-  const tray3dKind = (tray3dOpt && tray3dOpt.kind) || tray3dHas || (tray3dW.length && tray3dW.every((w) => w >= window.BOQ.RULES.trayPerfW / 100 - 0.001) ? "perf" : "way");
-  const tray3dHdg = tray3dOpt ? !!tray3dOpt.hdg : tray3dHas ? (tw[tray3dHas] || []).some((x) => x.p3 && x.hdg) : true;
-  const tray3d = React.useMemo(() => (window.BOQ.trayFromPlan ? window.BOQ.trayFromPlan(plan3d, tray3dKind, tray3dHdg) : null), [plan3d, tray3dKind, tray3dHdg]);
-  const tray3dKey = (rows, fits) => JSON.stringify([rows.map((r) => [r.k, r.size, +r.length, !!r.hdg, !!r.rail]).sort(), fits.map((x) => [window.BOQ.matKey(x.name), +x.qty]).sort()]);
-  const tray3dNow = tray3dKey(TRAY_KEYS3.reduce((a, k) => a.concat((tw[k] || []).filter((x) => x.p3).map((x) => Object.assign({ k }, x))), []), (tw.extra || []).filter((x) => x.p3));
-  const tray3dSame = !!tray3d && tray3dNow === tray3dKey(tray3d.rows.map((r) => Object.assign({ k: tray3d.kind }, r)), tray3d.fits);
+  const tray3dOld = TRAY_KEYS3.some((k) => (tw[k] || []).some((x) => x.p3)) || (tw.extra || []).some((x) => x.p3);
+  const tray3d = React.useMemo(() => (window.BOQ.trayFromPlan ? window.BOQ.trayFromPlan(plan3d, "way", false) : null), [plan3d]);
+  const [tray3dTo, setTray3dTo] = React.useState(null);
   /* ── ทางเดินจากแบบ 3D (obstacles p3sType walkway) — แถว struct.walkway ที่ติด p3: 1 แทนทั้งชุด แนวที่กรอกเองไม่ถูกแตะ ── */
   const walk3d = React.useMemo(() => (window.BOQ.walkFromPlan ? window.BOQ.walkFromPlan(plan3d) : null), [plan3d]);
   const walk3dHas = ((b.struct || {}).walkway || []).filter((r) => r.p3);
@@ -1025,12 +1021,6 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock, ver, verName, p3Vers
     const s = Object.assign({}, STRUCT_DEF, p.struct);
     s.walkway = (s.walkway || []).filter((r) => !r.p3).concat(!drop && walk3d ? walk3d.rows.map((r) => ({ len: r.len, p3: 1 })) : []);
     return Object.assign({}, p, { struct: s });
-  });
-  const applyTray3d = (drop) => setB((p) => {
-    const t = Object.assign({}, TRAY_DEF, p.tray);
-    TRAY_KEYS3.forEach((k) => { t[k] = (t[k] || []).filter((x) => !x.p3).concat(!drop && tray3d && k === tray3d.kind ? tray3d.rows : []); });
-    t.extra = (t.extra || []).filter((x) => !x.p3).concat(!drop && tray3d ? tray3d.fits : []);
-    return Object.assign({}, p, { tray: t });
   });
   const meas3d = React.useMemo(() => ((plan3d && plan3d.measures) || []).filter((m) => m && (m.pts || []).length >= 2), [plan3d]);
   /* การจัดวางแผงจากแบบ 3D — แผงที่วางบนผังจริงคือแหล่งที่ตรงที่สุด ไม่ต้องนั่งนับแถวเองอีก
@@ -1859,6 +1849,32 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock, ver, verName, p3Vers
   });
   // เส้นที่ฝากรางเส้นอื่น — ไม่มีรางของตัวเอง ใช้ขนาด/ระยะ/HDG/Rail/ข้อต่อของเจ้าของราง
   raceRuns.forEach((r) => { if (r && r.host != null) r.shared = raceRuns[r.host]; });
+  // ข้อต่อรางจากแบบ 3D → ใส่ในรางของเส้นสาย (ดูคอมเมนต์ที่ tray3d)
+  /* + ข้องอ 90° เปิดนอก/เปิดใน อย่างละ 1 ตัว (ผู้ใช้: ช่วงรางพับลงจากหลังคา · ต้องเพิ่มก็กดเพิ่มเองทีหลัง) */
+  const tray3dFits = tray3d ? Object.keys(tray3d.types).map((k) => ({ k, qty: tray3d.types[k], p3: 1 }))
+    .concat(["ข้องอ 90° เปิดนอก", "ข้องอ 90° เปิดใน"].filter((k) => !tray3d.types[k]).map((k) => ({ k, qty: 1, p3: 1 }))) : [];
+  const tray3dHosts = raceRuns.filter((r) => r && r.tray && !r.shared);
+  const tray3dAt = raceRuns.filter((r) => r && r.fits.some((f) => f.p3));
+  const tray3dTgt = tray3dHosts.find((r) => r.i === tray3dTo) || tray3dHosts.find((r) => tray3dAt.indexOf(r) >= 0) || tray3dHosts[0] || null;
+  const fit3dKey = (fs) => JSON.stringify(fs.filter((f) => f.p3).map((f) => [f.k, +f.qty]).sort());
+  const tray3dSame = !tray3dOld && (tray3dFits.length
+    ? !!tray3dTgt && tray3dAt.length === 1 && tray3dAt[0] === tray3dTgt && fit3dKey(tray3dTgt.fits) === fit3dKey(tray3dFits)
+    : !tray3dAt.length);
+  const applyTray3d = (drop) => setB((p) => {
+    const t = Object.assign({}, TRAY_DEF, p.tray);
+    TRAY_KEYS3.forEach((k) => { t[k] = (t[k] || []).filter((x) => !x.p3); });
+    t.extra = (t.extra || []).filter((x) => !x.p3);
+    const cs = (p.cables || []).map((c, i) => {
+      const own = (c.raceFit || []).filter((f) => !f.p3);
+      const add = !drop && tray3dTgt && i === tray3dTgt.i ? tray3dFits : [];
+      if (own.length === (c.raceFit || []).length && !add.length) return c;
+      const x = Object.assign({}, c), nf = own.concat(add);
+      if (nf.length) x.raceFit = nf; else delete x.raceFit;
+      return x;
+    });
+    return Object.assign({}, p, { tray: t, cables: cs });
+  });
+  const fitRaw = (y, o) => Object.assign(y.p3 ? { k: y.k, qty: y.qty, p3: 1 } : { k: y.k, qty: y.qty }, o || {});   // คงป้าย p3 ไว้ตอนแก้แถวอื่น
   // ข้อต่อจากทุกเส้น → แถว auto ใน extra ของท่อ / ราง
   const raceFitRows = (trayK) => raceRuns.filter((r) => r && r.kind && !r.shared && !!r.tray === trayK).reduce((a, r) =>
     a.concat(r.fits.filter((f) => f.item && +f.qty > 0).map((f) => ({ name: f.item.name, qty: +f.qty, unit: f.item.unit || "ชุด", auto: 1, from: r.i }))), []);
@@ -4243,51 +4259,46 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock, ver, verName, p3Vers
             right={condLen + trayLen > 0 ? <span style={{ fontSize: 12, fontWeight: 800, color: "var(--primary-dark)" }}>
               {[condLen > 0 ? "ท่อ " + condLen + " ม." : "", trayLen > 0 ? "ราง " + trayLen + " ม." : ""].filter(Boolean).join(" · ")}</span> : null}>
             <MeasBar kinds={["conduit", "tray"]} />
-            {(tray3d || tray3dHas) && (
+            {(tray3d || tray3dOld || tray3dAt.length > 0) && (
               <div className="bq-p3" data-ok={tray3dSame ? "1" : "0"}>
                 <div className="bq-p3-hd">
                   <span className="ic"><Icon name={tray3dSame ? "check" : "grid"} size={15} color="currentColor" sw={tray3dSame ? 2.6 : 2} /></span>
                   <div className="tt">
-                    <b>รางไฟจากแบบ 3D</b>
-                    <span>{!tray3d ? "แบบ 3D ไม่มีรางไฟแล้ว แต่ใบนี้ยังมีรางที่ดึงมาจากแบบ"
-                      : tray3dSame ? "รางในใบถอดของตรงกับแบบแล้ว"
-                      : "ถอดตัวราง ข้อต่อ ขาล็อก และข้องอตามเส้นที่วาดบนหลังคา — กดใช้แล้วรายการไปอยู่ในใบถอดของ"}</span>
+                    <b>ข้อต่อรางจากแบบ 3D</b>
+                    <span>{!tray3d ? "แบบ 3D ไม่มีรางไฟแล้ว แต่ใบนี้ยังมีของที่ดึงมาจากแบบ"
+                      : tray3dSame ? "ข้อต่อในรางของ " + tray3dTgt.label + " ตรงกับแบบแล้ว"
+                      : "นับข้องอตามมุมเลี้ยวและแผ่นปิดหัว-ท้ายจากรางที่วาดบนหลังคา ใส่เป็นข้อต่อของรางเส้นสายด้านล่าง — ชนิด ขนาด และระยะราง (รวมทางลงถึงห้องอินเวอร์เตอร์) ใส่เองที่เส้นสาย"}</span>
                   </div>
-                  {tray3d && <div className="sum">{tray3d.runs} เส้น<i>·</i><b>{tray3d.total.toLocaleString()}</b> ม.<i>·</i>เลี้ยว <b>{tray3d.bends}</b> จุด</div>}
-                  {tray3d && !tray3dSame && (
+                  {tray3d && <div className="sum">{tray3d.runs} เส้น<i>·</i>ในแบบ <b>{tray3d.total.toLocaleString()}</b> ม.<i>·</i>เลี้ยว <b>{tray3d.bends}</b> จุด</div>}
+                  {tray3d && !tray3dSame && tray3dTgt && (
                     <button type="button" className="go" onClick={() => applyTray3d(false)}>
-                      <Icon name="download" size={13} color="#fff" /> ใช้รายการนี้
+                      <Icon name="download" size={13} color="#fff" /> ใช้ข้อต่อนี้
                     </button>
                   )}
-                  {!tray3d && <button type="button" className="go" onClick={() => applyTray3d(true)}><Icon name="x" size={13} color="#fff" /> เอารางจากแบบออก</button>}
+                  {!tray3d && <button type="button" className="go" onClick={() => applyTray3d(true)}><Icon name="x" size={13} color="#fff" /> เอาของจากแบบออก</button>}
                 </div>
-                {tray3d && (
+                {tray3d && tray3dHosts.length > 1 && (
                   <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap", padding: "10px 14px 4px" }}>
-                    {TRAY_KEYS3.map((k) => (
-                      <button key={k} type="button" className={"bq-cab-chip" + (tray3dKind === k ? " on" : "")} style={{ fontSize: 11.5, padding: "5px 11px" }}
-                        onClick={() => setTray3dOpt({ kind: k, hdg: tray3dHdg })}>{window.BOQ.TRAY_KINDS[k].label}</button>
+                    <span style={{ fontSize: 11, color: "var(--text-3)", fontWeight: 600 }}>ใส่ในรางของ:</span>
+                    {tray3dHosts.map((r) => (
+                      <button key={r.i} type="button" className={"bq-cab-chip" + (tray3dTgt === r ? " on" : "")} style={{ fontSize: 11.5, padding: "5px 11px" }}
+                        onClick={() => setTray3dTo(r.i)}>{r.label}</button>
                     ))}
-                    {!window.BOQ.TRAY_KINDS[tray3dKind].noHdg && <button type="button" className={"bq-cab-chip" + (tray3dHdg ? " on" : "")} style={{ fontSize: 11.5, padding: "5px 11px", marginLeft: 6 }}
-                      title="รางบนหลังคาอยู่กลางแดดกลางฝน — ปกติใช้ชุบกัลวาไนซ์จุ่มร้อน"
-                      onClick={() => setTray3dOpt({ kind: tray3dKind, hdg: !tray3dHdg })}>ชุบ HDG</button>}
                   </div>
                 )}
-                {tray3d && !tray3dSame && (
+                {tray3d && !tray3dSame && tray3dFits.length > 0 && (
                   <table className="bq-p3-tb">
-                    <thead><tr><th>รายการ</th><th className="n">จำนวน</th></tr></thead>
+                    <thead><tr><th>ข้อต่อราง{tray3dTgt ? " · " + RACE_TH[tray3dTgt.kind] + " " + raceDim(tray3dTgt.size) + " ของ " + tray3dTgt.label : ""}</th><th className="n">จำนวน</th></tr></thead>
                     <tbody>
-                      {tray3d.rows.map((r) => (
-                        <tr key={r.size}><td>{window.BOQ.hdgName(r.size, r.hdg)}{r.rail ? " · ขาล็อกวางบน Rail" : ""}</td><td className="n"><b>{r.length.toLocaleString()}</b> ม.</td></tr>
-                      ))}
-                      {tray3d.fits.map((x) => <tr key={x.name}><td>{x.name}</td><td className="n"><b>{x.qty.toLocaleString()}</b> {x.unit}</td></tr>)}
+                      {tray3dFits.map((x) => <tr key={x.k}><td>{x.k}</td><td className="n"><b>{x.qty.toLocaleString()}</b> ชุด</td></tr>)}
                     </tbody>
                   </table>
                 )}
-                {tray3d && tray3d.sizes.some((g) => window.BOQ.trayDim(g.size).w + 0.5 < Math.max.apply(null, tray3dW) * 1000) && (
-                  <div className="warn"><Icon name="alert" size={13} color="currentColor" /> รางที่วาดกว้างกว่าขนาดใหญ่สุดของ {window.BOQ.TRAY_KINDS[tray3dKind].label} — ใช้ขนาดใหญ่สุดแทน</div>
+                {tray3d && !tray3dTgt && (
+                  <div className="warn"><Icon name="alert" size={13} color="currentColor" /> ยังไม่มีเส้นสายที่เลือกเดินราง — เลือกชนิดรางที่เส้นสายไฟด้านล่างก่อน แล้วค่อยกดใช้ข้อต่อ</div>
                 )}
-                {tray3d && raceTrayRows.length > 0 && (
-                  <div className="warn"><Icon name="alert" size={13} color="currentColor" /> เส้นสายไฟด้านล่างเลือกเดินรางไว้ด้วย {Math.round(raceTrayRows.reduce((t, r) => t + r.row.length, 0))} ม. — ถ้าเป็นรางเส้นเดียวกับที่วาดในแบบ ให้เปลี่ยนเส้นนั้นเป็น "ไม่ร้อยท่อ" ไม่งั้นนับรางซ้ำ</div>
+                {tray3dOld && (
+                  <div className="warn"><Icon name="alert" size={13} color="currentColor" /> ใบนี้ยังมีตัวรางที่ดึงจากแบบแบบเดิม (นับซ้ำกับรางของเส้นสาย) — กด{tray3d ? "ใช้ข้อต่อนี้" : "เอาของจากแบบออก"}แล้วจะลบออก</div>
                 )}
               </div>
             )}
@@ -4373,16 +4384,16 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock, ver, verName, p3Vers
                             <div key={j} style={{ display: "grid", gridTemplateColumns: isMobile ? "minmax(0,1fr) 70px 34px" : "minmax(0,240px) 110px 34px minmax(0,1fr)", gap: 8, alignItems: "center" }}>
                               <Dropdown value={f.k || ""} placeholder="เลือกข้อต่อ"
                                 options={r.fitCat.map((x) => ({ value: x.k, label: x.k }))}
-                                onChange={(v) => setRace(r.i, { raceFit: r.fits.map((y, q) => ({ k: q === j ? v : y.k, qty: y.qty })) })} />
+                                onChange={(v) => setRace(r.i, { raceFit: r.fits.map((y, q) => fitRaw(y, q === j ? { k: v } : null)) })} />
                               <input type="number" style={numStyle} value={f.qty != null ? f.qty : ""} placeholder="ชิ้น"
-                                onChange={(e) => setRace(r.i, { raceFit: r.fits.map((y, q) => ({ k: y.k, qty: q === j ? e.target.value : y.qty })) })} />
+                                onChange={(e) => setRace(r.i, { raceFit: r.fits.map((y, q) => fitRaw(y, q === j ? { qty: e.target.value } : null)) })} />
                               <button className="bq-x" style={{ width: 34, height: 34, flex: "0 0 34px" }} title="ลบ"
-                                onClick={() => setRace(r.i, { raceFit: r.fits.filter((_, q) => q !== j).map((y) => ({ k: y.k, qty: y.qty })) })}><Icon name="x" size={13} /></button>
+                                onClick={() => setRace(r.i, { raceFit: r.fits.filter((_, q) => q !== j).map((y) => fitRaw(y)) })}><Icon name="x" size={13} /></button>
                               {!isMobile && <span style={{ fontSize: 10.5, color: f.item || !f.k ? "var(--text-3)" : "var(--tint-red-tx2)", minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                                 {f.item ? f.item.name : f.k ? "ไม่มีข้อต่อชนิดนี้ในขนาดนี้" : ""}</span>}
                             </div>
                           ))}
-                          <button onClick={() => setRace(r.i, { raceFit: r.fits.map((y) => ({ k: y.k, qty: y.qty })).concat([{ k: (r.fitCat[0] || {}).k || "", qty: 1 }]) })}
+                          <button onClick={() => setRace(r.i, { raceFit: r.fits.map((y) => fitRaw(y)).concat([{ k: (r.fitCat[0] || {}).k || "", qty: 1 }]) })}
                             style={{ alignSelf: "flex-start", display: "inline-flex", alignItems: "center", gap: 5, background: "var(--surface)", boxShadow: "var(--shadow-sm)", color: "var(--text-2)", border: "none", borderRadius: 9, padding: "6px 10px", fontWeight: 700, fontSize: 11.5, cursor: "pointer", fontFamily: "inherit" }}>
                             <Icon name="plus" size={12} color="var(--text-2)" /> เพิ่มข้อต่อ{r.tray ? "ราง" : "ท่อ"}
                           </button>
