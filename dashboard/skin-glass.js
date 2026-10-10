@@ -96,9 +96,9 @@
     L + "{--sk-glass-a:rgba(255,255,255,.62);--sk-glass-b:rgba(255,255,255,.34);--sk-edge:rgba(255,255,255,.9);--sk-edge-lo:rgba(255,255,255,.18);",
     "--sk-wash:linear-gradient(180deg,rgba(236,241,240,.30),rgba(236,241,240,.50));--sk-blur:blur(22px) saturate(1.6);",
     "--bg:#EEF2F1;--surface:rgba(255,255,255,.58);--surface2:rgba(255,255,255,.46);--surface3:rgba(255,255,255,.72);",
-    "--border:rgba(255,255,255,.55);--divider:rgba(15,43,51,.08);--r-card:26px;",
+    "--border:rgba(15,43,51,.10);--divider:rgba(15,43,51,.08);--r-card:26px;",
     "--shadow-card:inset 0 1px 0 var(--sk-edge),0 0 0 1px rgba(255,255,255,.5),0 2px 6px rgba(50,35,20,.05),0 26px 60px -24px rgba(50,35,20,.28);",
-    "--shadow-sm:inset 0 1px 0 rgba(255,255,255,.85),0 0 0 1px rgba(255,255,255,.5),0 6px 18px -10px rgba(50,35,20,.22);",
+    "--shadow-sm:inset 0 1px 0 rgba(255,255,255,.85),0 0 0 1px rgba(15,43,51,.10),0 6px 18px -10px rgba(50,35,20,.22);",
     "--shadow-inset:inset 0 0 0 1px rgba(15,43,51,.13),inset 0 1px 2px rgba(15,43,51,.07);",   /* ขอบเส้นขาวกลืนกับพื้นกระจกจนช่องกรอกไม่มีกรอบ — ใช้เส้นเทาจางแทน */
     "--hov-sh:inset 0 1px 0 rgba(255,255,255,.9),0 0 0 1px rgba(255,255,255,.6),0 14px 30px -12px rgba(50,35,20,.3);",
     "--hov-sh-lg:inset 0 1px 0 rgba(255,255,255,.9),0 0 0 1px rgba(255,255,255,.6),0 30px 60px -22px rgba(50,35,20,.34)}",
@@ -131,6 +131,10 @@
 
     /* ── ปุ่มดรอปดาวน์/ช่องเลือก (พื้น --surface2 + เงา --shadow-sm) — ขอบเงาเป็นเส้นขาว กลืนกับกระจก ให้มีเส้นเทาจาง ── */
     L + " [style*='background: var(--surface2)'][style*='box-shadow: var(--shadow-sm)']{box-shadow:inset 0 0 0 1px rgba(15,43,51,.13),0 4px 12px -8px rgba(50,35,20,.18)!important}",
+
+    /* ── กล่อง/ปุ่มพื้น --surface2 ที่ไม่มีเงา (หน้าถอด BOQ) — ขาวบนกระจกขาวจนไม่เห็นกรอบ ให้มีเส้นเทาจาง ── */
+    L + " .mbar{background:rgba(15,43,51,.08)}",
+    L + " .bq-spec>div:not([data-miss='1']):not([data-bad='1'])," + L + " .bq-cabx," + L + " .bq-cabx-opt:not(.on)," + L + " .bq-cab-chip:not(.on)," + L + " .bq-chip:not(.pri){box-shadow:inset 0 0 0 1px rgba(15,43,51,.11)}",
 
     /* ── ช่องล็อก (อ่านอย่างเดียว) ในหน้าถอด BOQ — พื้นจางไม่มีขอบ บนกระจกเลยมองไม่เห็นกรอบ ── */
     L + " .bq-ro{box-shadow:inset 0 0 0 1px rgba(15,43,51,.10);background:rgba(255,255,255,.30)}",
