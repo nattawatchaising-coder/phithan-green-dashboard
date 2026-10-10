@@ -1,12 +1,11 @@
 /* ================================================================
-   ธีมกระจก (ทดลอง) — หน้าตาภายในเว็บแบบเดียวกับหน้าเข้าสู่ระบบ
-   ภาพฟาร์มโซลาร์ (ผู้ใช้เลือก) เบลอเป็นพื้นหลังทั้งแอป · แถบเมนู/หัวจอ/การ์ดเป็นกระจกฝ้า
+   ธีมกระจก — หน้าตาภายในเว็บแบบเดียวกับหน้าเข้าสู่ระบบ · **เป็นค่าเริ่มของเว็บจริงแล้ว** (ผู้ใช้เลือก ต.ค. 2026)
+   ค่าเริ่ม = พื้นหลังไล่สีชุด "ทะเล" (html[data-skin-bg="mesh"]) · อีกแบบคือรูปฟาร์มโซลาร์เบลอ (PHOTO)
    เปลี่ยนรูป = วางไฟล์ใน dashboard/assets/ แล้วแก้ PHOTO ข้างล่าง
-   พื้นหลังมี 2 แบบ: รูปฟาร์มโซลาร์ (ค่าเริ่ม) · ไล่สีนุ่ม ๆ ไม่ใช้รูป (html[data-skin-bg="mesh"], localStorage "pg-skin-bg")
 
-   ไม่แตะธีมเดิม: ทุกกฎอยู่ใต้ html[data-skin="glass"] และเปลี่ยนแค่ค่าตัวแปร (token) + ชั้นกระจก
-   ปิดอยู่เป็นค่าเริ่ม — เปิด/ปิดได้ 2 ทาง (จำค่าใน localStorage "pg-skin" ของเครื่องนั้น)
-     - ต่อท้าย URL ?skin=glass (รูป) · ?skin=mesh (ไล่สี) · ?skin=off (ปิด)
+   ธีมเดิมยังอยู่ครบ: ทุกกฎอยู่ใต้ html[data-skin="glass"] และเปลี่ยนแค่ค่าตัวแปร (token) + ชั้นกระจก
+   เลือกได้ต่อเครื่อง (localStorage "pg-skin" = glass/off · "pg-skin-bg" = mesh/photo)
+     - ต่อท้าย URL ?skin=mesh (ไล่สี) · ?skin=glass (รูป) · ?skin=off (กลับไปธีมเดิม)
      - localhost มีปุ่มลอยมุมขวาล่าง กดวน ปิด → รูป → ไล่สี
    ห้ามเอาคลาส lg-* ของหน้าล็อกอินมาใช้ (DESIGN.md) — ชุดนี้ใช้ตัวแปร --sk-* ของตัวเอง
    ================================================================ */
@@ -16,8 +15,8 @@
   // mode: "" ปิด · "photo" รูป · "mesh" ไล่สี
   var save = function (m) {
     try {
-      m ? localStorage.setItem(KEY, "glass") : localStorage.removeItem(KEY);
-      m === "mesh" ? localStorage.setItem(BGKEY, "mesh") : localStorage.removeItem(BGKEY);
+      localStorage.setItem(KEY, m ? "glass" : "off");   // "off" ต้องจดไว้ ไม่งั้นกลับเป็นค่าเริ่ม (เปิด)
+      if (m) localStorage.setItem(BGKEY, m);
     } catch (e) {}
   };
   var apply = function (m) {
@@ -30,8 +29,12 @@
     else if (q === "mesh") save("mesh");
     else if (q === "off") save("");
   } catch (e) {}
-  var mode = "";
-  try { if (localStorage.getItem(KEY) === "glass") mode = localStorage.getItem(BGKEY) === "mesh" ? "mesh" : "photo"; } catch (e) {}
+  // ค่าเริ่ม (ยังไม่เคยเลือก) = ไล่สี · เลือกปิดไว้ = ธีมเดิม · แบบรูปต้องเคยเลือกไว้ (pg-skin-bg = "photo")
+  var mode = "mesh";
+  try {
+    if (localStorage.getItem(KEY) === "off") mode = "";
+    else if (localStorage.getItem(BGKEY) === "photo") mode = "photo";
+  } catch (e) {}
   apply(mode);
 
   var PHOTO = "dashboard/assets/skin-solarfarm.jpg?v=2";
@@ -194,7 +197,7 @@
     d.title = "เปลี่ยนชุดสีและย้ายตำแหน่งวงสี — จำค่าเฉพาะเครื่องนี้";
     var show = function () {
       b.setAttribute("data-on", mode ? "1" : "0");
-      b.textContent = "ธีมกระจก (ทดลอง) · " + LABEL[mode] + (mode === "mesh" ? " · " + MESH_PAL[mesh.p].n : "");
+      b.textContent = "ธีมกระจก · " + LABEL[mode] + (mode === "mesh" ? " · " + MESH_PAL[mesh.p].n : "");
       d.style.display = mode === "mesh" ? "" : "none";
       d.style.right = (b.offsetWidth + 20) + "px";
     };
