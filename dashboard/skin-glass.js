@@ -165,17 +165,11 @@
     D + " [style*='position: absolute'][style*='background: var(--surface)']," + D + " [style*='position: fixed'][style*='background: var(--surface)']{--surface:rgba(30,33,44,.95)}",
     G + " [style*='position: absolute'][style*='background: var(--surface)']," + G + " [style*='position: fixed'][style*='background: var(--surface)']{-webkit-backdrop-filter:blur(28px) saturate(1.5);backdrop-filter:blur(28px) saturate(1.5)}",
 
-    /* ปุ่มย่อ/ขยายแถบเมนู: เดิมวงเขียวทึบมีวงแหวนสีพื้นหลังทึบ — เป็นเม็ดกระจกขาว ลูกศรสีแบรนด์ แล้วเป็นเขียวตอนชี้ */
+    /* ปุ่มย่อ/ขยายแถบเมนู: เขียวแบรนด์ตลอด (ผู้ใช้เลือก) แต่ไม่มีวงแหวนสีพื้นทึบรอบ ๆ แบบเดิม — ใช้เงาฟุ้งสีเขียวแทน */
     G + " .sidebar>button[aria-label='ย่อ/ขยายแถบเมนู']{width:28px!important;height:28px!important;right:-14px!important;border:none!important;",
-    "background:rgba(255,255,255,.82)!important;-webkit-backdrop-filter:blur(14px) saturate(1.5);backdrop-filter:blur(14px) saturate(1.5);",
-    "box-shadow:inset 0 0 0 1px rgba(255,255,255,.9),0 4px 14px -4px rgba(15,43,51,.28)!important;transition:background .15s,box-shadow .15s}",
-    G + " .sidebar>button[aria-label='ย่อ/ขยายแถบเมนู'] svg{stroke:var(--primary);stroke-width:2.2}",
-    G + " .sidebar>button[aria-label='ย่อ/ขยายแถบเมนู']:hover{background:var(--primary)!important;box-shadow:0 6px 16px -4px color-mix(in srgb,var(--primary) 60%,transparent)!important}",
-    G + " .sidebar>button[aria-label='ย่อ/ขยายแถบเมนู']:hover svg{stroke:#fff}",
-    D + " .sidebar>button[aria-label='ย่อ/ขยายแถบเมนู']{background:rgba(44,48,62,.85)!important;box-shadow:inset 0 0 0 1px rgba(255,255,255,.14),0 4px 14px -4px rgba(0,0,0,.6)!important}",
-    D + " .sidebar>button[aria-label='ย่อ/ขยายแถบเมนู'] svg{stroke:var(--primary-bright,#4FD79A)}",
-    D + " .sidebar>button[aria-label='ย่อ/ขยายแถบเมนู']:hover{background:var(--primary)!important}",
-    D + " .sidebar>button[aria-label='ย่อ/ขยายแถบเมนู']:hover svg{stroke:#fff}",
+    "box-shadow:inset 0 1px 0 rgba(255,255,255,.35),0 4px 14px -3px color-mix(in srgb,var(--primary) 65%,transparent)!important;transition:filter .15s,box-shadow .15s}",
+    G + " .sidebar>button[aria-label='ย่อ/ขยายแถบเมนู'] svg{stroke-width:2.2}",
+    G + " .sidebar>button[aria-label='ย่อ/ขยายแถบเมนู']:hover{filter:brightness(1.08);box-shadow:inset 0 1px 0 rgba(255,255,255,.4),0 6px 18px -3px color-mix(in srgb,var(--primary) 80%,transparent)!important}",
 
     /* โมดัล/ลิ้นชัก: กระจกทึบขึ้น อ่านง่ายบนพื้นมืดของฉากหลังโมดัล */
     L + " [style*='var(--shadow-modal)']," + L + " [style*='var(--shadow-sheet)']{--surface:rgba(250,252,252,.86)}",
