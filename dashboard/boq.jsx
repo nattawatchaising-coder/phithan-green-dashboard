@@ -857,7 +857,7 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock, ver, verName, p3Vers
   const setCondVal = (k, v) => setB((p) => Object.assign({}, p, { conduit: Object.assign({ imc: [], upvc: [], pullbox: [] }, p.conduit, { [k]: v }) }));
   // รายการข้อต่อให้เลือก — คงที่ทั้งไฟล์ สร้างครั้งเดียวพอ
   const condFits = React.useMemo(() => window.BOQ.condFittings(), []);
-  const trayFits = React.useMemo(() => window.BOQ.trayFittings(), []);
+  const trayFits = React.useMemo(() => window.BOQ.trayFittings(), [window.BOQ.traySizesVer()]);   // ขนาดรางมาจากคลัง เปลี่ยนได้
   const SPARE_DEF = { clamp: 10, bushing: 10, cchannel: 10, connector: 10, coupling: 10, upStraight: 10, upClamp: 10, upConnector: 10 };
   const setCSpare = (k, v) => setB((p) => Object.assign({}, p, { conduitSpare: Object.assign({}, SPARE_DEF, p.conduitSpare, { [k]: v }) }));
   /* ชิ้น/ท่อน — ล้างช่องแล้วต้องลบคีย์ทิ้ง ไม่ใช่เก็บสตริงว่างไว้ จะได้กลับไปใช้กฎอัตโนมัติจริง ๆ */

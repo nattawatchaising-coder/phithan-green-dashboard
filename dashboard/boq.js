@@ -1131,6 +1131,28 @@
   const TRAY_KIND_KEYS = ["way", "tray", "perf"];
   /* รับได้ทั้งคีย์ชนิด ("way"/"tray"/"perf") และ boolean isTray แบบเดิม — ที่เรียกด้วย true/false อยู่จึงไม่พัง */
   const trayKindOf = (k) => TRAY_KINDS[k === true ? "tray" : (k || "way")] || TRAY_KINDS.way;
+  /* ขนาดรางดึงจากคลัง (ผู้ใช้ ต.ค. 2026) — ตัวรางในคลังชื่อ "<ชนิด> WxH mm.[ สีขาว] (2.4m/ท่อน)"
+     ไม่นับของชุบ (HDG.) และของในถังขยะ (มี trashFrom) · คลังมีอย่างน้อย 1 ขนาด = ใช้ชุดนั้นแทนรายการตั้งต้น ไม่มี = รายการตั้งต้น
+     แก้อาร์เรย์เดิมในที่ ทุกที่ที่ถือ WAY_SIZES / spec.sizes ไว้จึงเห็นค่าใหม่ · store เรียกทุกครั้งที่คลังเปลี่ยน */
+  const TRAY_SIZE_DEF = { way: WAY_SIZES.slice(), tray: TRAY_SIZES.slice(), perf: PERF_SIZES.slice() };
+  let traySizesV = 0;
+  function syncTraySizes(items) {
+    TRAY_KIND_KEYS.forEach((kk) => {
+      const spec = TRAY_KINDS[kk];
+      const re = new RegExp("^" + spec.brief + " (\\d+)x(\\d+) mm\\.( [^()]+)? \\([\\d.]+m/ท่อน\\)$");
+      const got = {};
+      (items || []).forEach((it) => {
+        const m = it && !it.trashFrom && re.exec(String(it.name || "").trim());
+        if (m) got[spec.brief + " " + m[1] + "x" + m[2] + " mm." + (m[3] || "")] = [+m[1], +m[2], m[3] ? 1 : 0];
+      });
+      const want = Object.keys(got).sort((a, b) => got[a][0] - got[b][0] || got[a][1] - got[b][1] || got[a][2] - got[b][2] || a.localeCompare(b));
+      const next = want.length ? want : TRAY_SIZE_DEF[kk];
+      if (next.join("|") === spec.sizes.join("|")) return;
+      spec.sizes.splice.apply(spec.sizes, [0, spec.sizes.length].concat(next));
+      traySizesV++;
+    });
+  }
+  const traySizesVer = () => traySizesV;
 
   const HDG_TAG = " (HDG.)";
   const hdgName = (nm, on) => (on ? String(nm) + HDG_TAG : String(nm));
@@ -1621,7 +1643,10 @@
     const obs = ((plan && plan.obstacles) || []).filter((o) => o && o.p3sType === "tray");
     if (!obs.length) return null;
     const spec = trayKindOf(kind);
-    const pick = (wMm) => spec.sizes.find((nm) => trayDim(nm).w >= wMm - 0.5) || spec.sizes[spec.sizes.length - 1];
+    // เลือกเองเฉพาะรางสีมาตรฐาน (ชื่อจบที่ "mm.") — รางสีพิเศษ (สีขาว) ให้คนเลือกเองในตาราง
+    const std = spec.sizes.filter((nm) => /mm.$/.test(nm));
+    const pool = std.length ? std : spec.sizes;
+    const pick = (wMm) => pool.find((nm) => trayDim(nm).w >= wMm - 0.5) || pool[pool.length - 1];
     const by = {}, fit = {};
     let total = 0, bends = 0;
     const addFit = (k, sz, q) => { if (q <= 0) return; const nm = hdgName(k + " " + spec.brief + " " + sz, hdg); fit[nm] = (fit[nm] || 0) + q; };
@@ -2911,7 +2936,7 @@
   }
 
   window.BOQ = { PANELS, MICRO, INVERTERS, OPTIMIZERS, setOptimizers, findOptimizer, ROOF_HOOKS, ROOF_OPTIONS, CABLE_TYPES, CABLE_GROUPS, cableCategory, MATERIAL_SUBGROUPS, materialSubGroup, CABLE_POINTS, DEFAULT_CABLES, STRING_CABLE_POINTS, MICRO_CABLE_NAMES, DEFAULT_STRING_CABLES, IMC_SIZES, UPVC_SIZES, PULLBOX_SIZES, CABLE_OD, HDPE_TABLE, IMC_CONDUIT, WIRE_SIZES, WIRE_METHODS, INS_CLASSES, AMP_GROUPS, AMP_NCOND, AMP_CORES, ampColKey, DEFAULT_AMPACITY, AMPACITY, setAmpacity, WIRE_METHOD_BASE, ampTableFor, cableInsClass, cableCoreType, cableSizeNum, ampacityOf, pickWireSize, PV_WIRE_SIZES, PV_WIRE_AMP, PV_WIRE_MIN, pickPvWireSize, calcVdrop, VD_LIMIT, findPanel, findInverter, stringConfig, stringPlan, wireArea, calcWireWay, calcConduitSize, blankBOQ, mergeBOQ, setConduitDefaults, conduitDefaults, CONDUIT_SPARE_FIXED, IMC_RULE, IMC_RULE_DEF, imcRule, calcBOQ, calcStructures, matKey, qtyKey, catalog, isPvDcCable, PV_DC_COLORS, PV_DC_SPARE, pvDcLength, applyPrices, setPanels, setInverters,
-    WAY_SIZES, TRAY_SIZES, PERF_SIZES, TRAY_KINDS, TRAY_KIND_KEYS, trayKindOf, trayNorm, trayAlias, hdgName,
+    WAY_SIZES, TRAY_SIZES, PERF_SIZES, syncTraySizes, traySizesVer, TRAY_KINDS, TRAY_KIND_KEYS, trayKindOf, trayNorm, trayAlias, hdgName,
     optimizerQty, optimizerFits, DCAC_LIMIT, WAY_PIPE_LEN, TRAY_PIPE_LEN, trayLenTxt, railLenCm, railPerTon, railName, SUPPORT_KINDS, LABOR_PRESET, PERMIT_PRESET, permitPresetFor, permitGridFee, gridAuthOf, PERMIT_ENG_TIERS, PERMIT_GRID_FEE, PERMIT_GRID_NAME,
     COND_FIT_KINDS, WAY_FIT_KINDS, condFittings, trayFittings, PPR_SIZES, PPR_FIT_KINDS, pipeFittings, pipeFromPlan, trayFromPlan, walkFromPlan, walkLens, walkLenOf, walkName, railLens, mccbFrame, mccbName, mccbName0,
     STEEL_SPECS, steelName, steelBarLen, steelSel, steelOf,

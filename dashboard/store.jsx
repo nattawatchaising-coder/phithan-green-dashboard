@@ -298,7 +298,9 @@ function useStockStore() {
       } else { _fbSet("meta/stockSeeded", true); }
     });
     const iH = iRef.on("value", (snap) => {
-      setItems(_snap2arr(snap) || []); iDone = true; done();
+      const arr = _snap2arr(snap) || [];
+      if (window.BOQ && window.BOQ.syncTraySizes) window.BOQ.syncTraySizes(arr);   // ขนาดรางในใบ BOQ ตามตัวรางที่มีในคลัง
+      setItems(arr); iDone = true; done();
     }, () => { iDone = true; done(); });
 
     const mRef = _fbr("moves");

@@ -349,7 +349,9 @@ function useStockStore() {
       }
     });
     const iH = iRef.on("value", snap => {
-      setItems(_snap2arr(snap) || []);
+      const arr = _snap2arr(snap) || [];
+      if (window.BOQ && window.BOQ.syncTraySizes) window.BOQ.syncTraySizes(arr);
+      setItems(arr);
       iDone = true;
       done();
     }, () => {

@@ -12,7 +12,7 @@ const CAT_TO_GROUP = { panel: "PV MODULE", inverter: "INVERTER", battery: "INVER
 function PricePanel({ priceStore, stock, q = "", grp = "all" }) {
   const SF = window.SF;
   const isMobile = window.matchMedia("(max-width: 860px)").matches;
-  const baseCat = React.useMemo(() => window.BOQ.catalog(), []);
+  const baseCat = React.useMemo(() => window.BOQ.catalog(), [window.BOQ.traySizesVer()]);   // ขนาดรางมาจากคลัง
   const catKeys = React.useMemo(() => new Set(baseCat.map((c) => c.name)), [baseCat]);
   const stockItems = (stock && stock.items) || [];
   const stockByName = React.useMemo(() => { const m = {}; stockItems.forEach((s) => { m[s.name] = s; }); return m; }, [stockItems]);

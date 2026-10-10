@@ -1553,7 +1553,7 @@ function BOQEditor({
     })
   }));
   const condFits = React.useMemo(() => window.BOQ.condFittings(), []);
-  const trayFits = React.useMemo(() => window.BOQ.trayFittings(), []);
+  const trayFits = React.useMemo(() => window.BOQ.trayFittings(), [window.BOQ.traySizesVer()]);
   const SPARE_DEF = {
     clamp: 10,
     bushing: 10,

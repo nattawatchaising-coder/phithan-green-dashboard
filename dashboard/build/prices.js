@@ -44,7 +44,7 @@ function PricePanel({
 }) {
   const SF = window.SF;
   const isMobile = window.matchMedia("(max-width: 860px)").matches;
-  const baseCat = React.useMemo(() => window.BOQ.catalog(), []);
+  const baseCat = React.useMemo(() => window.BOQ.catalog(), [window.BOQ.traySizesVer()]);
   const catKeys = React.useMemo(() => new Set(baseCat.map(c => c.name)), [baseCat]);
   const stockItems = stock && stock.items || [];
   const stockByName = React.useMemo(() => {
