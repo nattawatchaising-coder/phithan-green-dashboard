@@ -1,6 +1,7 @@
 /* ================================================================
    ธีมกระจก (ทดลอง) — หน้าตาภายในเว็บแบบเดียวกับหน้าเข้าสู่ระบบ
-   ภาพถ่ายหน้าล็อกอินเป็นพื้นหลังทั้งแอป · แถบเมนู/หัวจอ/การ์ดเป็นกระจกฝ้า
+   ภาพฟาร์มโซลาร์เป็นพื้นหลังทั้งแอป (คมชัด ไม่เบลอ) · แถบเมนู/หัวจอ/การ์ดเป็นกระจกฝ้าใส ๆ
+   เปลี่ยนรูป = วางไฟล์ใน dashboard/assets/ แล้วแก้ PHOTO ข้างล่าง
 
    ไม่แตะธีมเดิม: ทุกกฎอยู่ใต้ html[data-skin="glass"] และเปลี่ยนแค่ค่าตัวแปร (token) + ชั้นกระจก
    ปิดอยู่เป็นค่าเริ่ม — เปิด/ปิดได้ 2 ทาง (จำค่าใน localStorage "pg-skin" ของเครื่องนั้น)
@@ -20,15 +21,16 @@
   try { on = localStorage.getItem(KEY) === "glass"; } catch (e) {}
   if (on) root.setAttribute("data-skin", "glass");
 
+  var PHOTO = "dashboard/assets/skin-solarfarm.jpg?v=1";
   var G = 'html[data-skin="glass"]';
   var L = G + ':not([data-theme="aurora"])';   // ชุดสว่าง — ต้องไม่ทับตัวแปรของโหมดกราไฟต์
   var D = G + '[data-theme="aurora"]';
   var CSS = [
     /* ── ตัวแปร: แผ่นกลายเป็นกระจกขาวใส เงาเป็นแสงสะท้อนขอบบน + เงาฟุ้งอุ่นแบบการ์ดล็อกอิน ── */
-    L + "{--sk-glass-a:rgba(255,255,255,.62);--sk-glass-b:rgba(255,255,255,.34);--sk-edge:rgba(255,255,255,.9);--sk-edge-lo:rgba(255,255,255,.18);",
-    "--sk-wash:linear-gradient(180deg,rgba(236,241,240,.30),rgba(236,241,240,.50));--sk-blur:blur(22px) saturate(1.6);",
-    "--bg:#EEF2F1;--surface:rgba(255,255,255,.58);--surface2:rgba(255,255,255,.46);--surface3:rgba(255,255,255,.72);",
-    "--border:rgba(255,255,255,.55);--divider:rgba(15,43,51,.08);--r-card:26px;",
+    L + "{--sk-glass-a:rgba(255,255,255,.42);--sk-glass-b:rgba(255,255,255,.16);--sk-edge:rgba(255,255,255,.9);--sk-edge-lo:rgba(255,255,255,.18);",
+    "--sk-wash:linear-gradient(180deg,rgba(236,241,240,.04),rgba(236,241,240,.18));--sk-blur:blur(22px) saturate(1.6);",
+    "--bg:#EEF2F1;--surface:rgba(255,255,255,.40);--surface2:rgba(255,255,255,.38);--surface3:rgba(255,255,255,.60);",
+    "--border:rgba(255,255,255,.55);--divider:rgba(15,43,51,.08);--r-card:26px;--text-2:#34474B;--text-3:#5B6E71;",
     "--shadow-card:inset 0 1px 0 var(--sk-edge),0 0 0 1px rgba(255,255,255,.5),0 2px 6px rgba(50,35,20,.05),0 26px 60px -24px rgba(50,35,20,.28);",
     "--shadow-sm:inset 0 1px 0 rgba(255,255,255,.85),0 0 0 1px rgba(255,255,255,.5),0 6px 18px -10px rgba(50,35,20,.22);",
     "--shadow-inset:inset 0 0 0 1px rgba(255,255,255,.75),inset 0 1px 2px rgba(15,43,51,.06);",
@@ -36,17 +38,17 @@
     "--hov-sh-lg:inset 0 1px 0 rgba(255,255,255,.9),0 0 0 1px rgba(255,255,255,.6),0 30px 60px -22px rgba(50,35,20,.34)}",
 
     /* ชุดกราไฟต์ — กระจกควันบนภาพที่ทาสีพลบค่ำทับ (เหมือนหน้าล็อกอินโหมดมืด) */
-    D + "{--sk-glass-a:rgba(30,34,46,.62);--sk-glass-b:rgba(20,22,32,.40);--sk-edge:rgba(255,255,255,.22);--sk-edge-lo:rgba(255,255,255,.04);",
-    "--sk-wash:linear-gradient(180deg,rgba(10,14,30,.72) 0%,rgba(40,24,40,.58) 55%,rgba(8,10,16,.80) 100%);--sk-blur:blur(22px) saturate(1.4);",
-    "--surface:rgba(28,31,40,.62);--surface2:rgba(255,255,255,.07);--surface3:rgba(255,255,255,.12);--r-card:26px;",
+    D + "{--sk-glass-a:rgba(30,34,46,.46);--sk-glass-b:rgba(20,22,32,.24);--sk-edge:rgba(255,255,255,.22);--sk-edge-lo:rgba(255,255,255,.04);",
+    "--sk-wash:linear-gradient(180deg,rgba(10,14,30,.56) 0%,rgba(30,22,36,.44) 55%,rgba(8,10,16,.70) 100%);--sk-blur:blur(22px) saturate(1.4);",
+    "--surface:rgba(28,31,40,.48);--surface2:rgba(255,255,255,.07);--surface3:rgba(255,255,255,.12);--r-card:26px;--text-2:rgba(235,235,245,.76);--text-3:rgba(235,235,245,.54);",
     "--shadow-card:inset 0 1px 0 var(--sk-edge),0 26px 60px -24px rgba(0,0,0,.6);",
     "--shadow-sm:inset 0 1px 0 rgba(255,255,255,.10),0 6px 18px -10px rgba(0,0,0,.6)}",
 
-    /* ── พื้นหลัง: ภาพถ่ายหน้าล็อกอินเต็มจอ เบลอนิดเดียว + ผ้าคลุมจาง ── */
+    /* ── พื้นหลัง: ภาพฟาร์มโซลาร์เต็มจอ คมชัด + ผ้าคลุมบาง ๆ (กระจกเบลอเฉพาะส่วนที่อยู่หลังการ์ด) ── */
     G + " body{background:#C9D3D6}",
     G + " .app-root{position:relative;isolation:isolate}",
-    G + " .app-root::before{content:'';position:fixed;inset:-40px;z-index:-2;pointer-events:none;",
-    "background:url('dashboard/assets/login-crew.jpg?v=2') 65% center/cover;filter:blur(6px)}",
+    G + " .app-root::before{content:'';position:fixed;inset:0;z-index:-2;pointer-events:none;",
+    "background:url('" + PHOTO + "') 62% 60%/cover}",
     G + " .app-root::after{content:'';position:fixed;inset:0;z-index:-1;pointer-events:none;background:var(--sk-wash)}",
 
     /* ── แผ่นกระจก: แถบเมนู · หัวจอ · แผง · การ์ดใหญ่ทุกใบ (inline style ที่ใช้ --shadow-card) ── */
@@ -68,8 +70,8 @@
     L + " .nav-item.active{background:rgba(255,255,255,.75);box-shadow:inset 0 1px 0 #fff,0 6px 16px -8px rgba(50,35,20,.25)}",
 
     /* รางบอร์ดงาน: ร่องกระจกขุ่น แทนพื้นเทาทึบ */
-    L + " .bd-col{background:rgba(255,255,255,.22);-webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px)}",
-    L + " .bd-card{background-color:rgba(255,255,255,.78)}",
+    L + " .bd-col{background:rgba(255,255,255,.14);-webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px)}",
+    L + " .bd-card{background-color:rgba(255,255,255,.70)}",
 
     /* โมดัล/ลิ้นชัก: กระจกทึบขึ้น อ่านง่ายบนพื้นมืดของฉากหลังโมดัล */
     L + " [style*='var(--shadow-modal)']," + L + " [style*='var(--shadow-sheet)']{--surface:rgba(250,252,252,.86)}",
