@@ -2254,12 +2254,15 @@ function SolarWorkspace({ job, st, sys, onChange, onClose, snap }) {
     return Object.keys(m).sort().map((k) => m[k]); })();
   const invBrand = invBrandPick || (S.invModel && stockInvRow.model ? invBrandOf(stockInvRow) : "");
   const invTypeTh = (p) => (p.type === "hybrid" ? "Hybrid" : "On-grid");
-  const invOptLabel = (p, brand) => {
+  const invNameOf = (p, brand) => {
     /* ตัดชื่อยี่ห้อหน้าชื่อรุ่นออก ("Growatt - MIN 5000TL-X" → "MIN 5000TL-X") เลือกยี่ห้อไว้แล้วไม่ต้องซ้ำ */
     let nm = String(p.model);
     if (brand && nm.toLowerCase().startsWith(brand.toLowerCase())) nm = nm.slice(brand.length).replace(/^[\s-]+/, "") || p.model;
-    return [nm, p.kw ? p.kw + " kW" : "", p.phase ? p.phase + " เฟส" : "", invTypeTh(p)].filter(Boolean).join(" · ");
+    return nm;
   };
+  const invSpecOf = (p) => [p.kw ? p.kw + " kW" : "", p.phase ? p.phase + " เฟส" : "", invTypeTh(p)].filter(Boolean).join(" · ");
+  /* Dropdown ของแอปให้หน้าตาเท่าช่อง p3-inp ข้าง ๆ (select ธรรมดาแต่งกล่องที่เด้งขึ้นไม่ได้ ผู้ใช้ว่าไม่สวย) */
+  const invDdStyle = { fontSize: 13, fontWeight: 600, padding: "7px 9px", borderRadius: 9, boxShadow: "var(--shadow-inset)" };
   const invByKw = (a, b) => (a.kw || 0) - (b.kw || 0) || String(a.model).localeCompare(String(b.model));
   const invOfBrand = invBrand ? stockInv.filter((p) => invBrandOf(p).toLowerCase() === invBrand.toLowerCase()).sort(invByKw) : [];
   const invPhaseOk = (p) => !p.phase || Number(p.phase) === phases;
@@ -2777,30 +2780,22 @@ function SolarWorkspace({ job, st, sys, onChange, onClose, snap }) {
                     <div style={{ display: "flex", gap: 9, alignItems: "flex-end", flexWrap: "wrap" }}>
                       <label className="p3-f" style={{ width: 150, flex: "0 0 auto" }}>
                         <span className="lb">ยี่ห้อ</span>
-                        <select className="p3-inp" value={invBrand}
-                          onChange={(e) => { const b = e.target.value; setInvBrandPick(b); if (S.invModel && invBrandOf(stockInvRow).toLowerCase() !== b.toLowerCase()) set({ invModel: "" }); }}>
-                          <option value="">— เลือกยี่ห้อ —</option>
-                          {invBrands.map((b) => <option key={b} value={b}>{b + " (" + stockInv.filter((p) => invBrandOf(p).toLowerCase() === b.toLowerCase()).length + ")"}</option>)}
-                        </select>
+                        <Dropdown value={invBrand} placeholder="— เลือกยี่ห้อ —" style={invDdStyle}
+                          options={invBrands.map((b) => ({ value: b, label: b,
+                            sub: stockInv.filter((p) => invBrandOf(p).toLowerCase() === b.toLowerCase()).length + " รุ่นในคลัง" }))}
+                          onChange={(b) => { setInvBrandPick(b); if (S.invModel && invBrandOf(stockInvRow).toLowerCase() !== String(b).toLowerCase()) set({ invModel: "" }); }} />
                       </label>
                       <label className="p3-f" style={{ flex: 1, minWidth: 200 }}>
                         <span className="lb" style={{ display: "flex", gap: 6 }}>
                           <span>รุ่นอินเวอร์เตอร์</span>
                           <span style={{ marginLeft: "auto", fontWeight: 700, color: "var(--text-3)" }}>งานนี้ {phases} เฟส</span>
                         </span>
-                        <select className="p3-inp" value={S.invModel || ""} disabled={!invBrand} onChange={(e) => set({ invModel: e.target.value })}>
-                          <option value="">{invBrand ? "— เลือกรุ่น " + invBrand + " —" : "— เลือกยี่ห้อก่อน —"}</option>
-                          {invOfBrand.some(invPhaseOk) && (
-                            <optgroup label={"ตรงกับงาน (" + phases + " เฟส)"}>
-                              {invOfBrand.filter(invPhaseOk).map((p) => <option key={p.model} value={p.model}>{invOptLabel(p, invBrand)}</option>)}
-                            </optgroup>
-                          )}
-                          {invOfBrand.some((p) => !invPhaseOk(p)) && (
-                            <optgroup label={"เฟสไม่ตรงกับงาน"}>
-                              {invOfBrand.filter((p) => !invPhaseOk(p)).map((p) => <option key={p.model} value={p.model}>{invOptLabel(p, invBrand)}</option>)}
-                            </optgroup>
-                          )}
-                        </select>
+                        <Dropdown value={S.invModel || ""} disabled={!invBrand} style={invDdStyle}
+                          placeholder={invBrand ? "— เลือกรุ่น " + invBrand + " —" : "— เลือกยี่ห้อก่อน —"}
+                          options={invOfBrand.filter(invPhaseOk).concat(invOfBrand.filter((p) => !invPhaseOk(p))).map((p) => ({
+                            value: p.model, label: invNameOf(p, invBrand), sub: invSpecOf(p),
+                            group: invPhaseOk(p) ? "ตรงกับงาน (" + phases + " เฟส)" : "เฟสไม่ตรงงาน" }))}
+                          onChange={(v) => set({ invModel: v })} />
                       </label>
                       <label className="p3-f" style={{ width: 108, flex: "0 0 auto" }}>
                         <span className="lb" style={{ display: "flex", gap: 5 }}>
@@ -2842,12 +2837,11 @@ function SolarWorkspace({ job, st, sys, onChange, onClose, snap }) {
                       <div style={{ display: "flex", gap: 9 }}>
                         <label className="p3-f" style={{ flex: 1, minWidth: 0 }}>
                           <span className="lb">อินเวอร์เตอร์ตัวที่สอง (ไม่บังคับ)</span>
-                          <select className="p3-inp" value={S.inv2Model || ""}
-                            onChange={(e) => set({ inv2Model: e.target.value, inv2Count: e.target.value ? Math.max(1, Math.round(scNum(S.inv2Count, 0))) : 0 })}>
-                            <option value="">— ไม่ใช้ (รุ่นเดียวทั้งงาน) —</option>
-                            {stockInv.filter((p) => p.model !== S.invModel).slice().sort((a, b) => invBrandOf(a).localeCompare(invBrandOf(b)) || invByKw(a, b))
-                              .map((p) => <option key={p.model} value={p.model}>{invOptLabel(p, "")}</option>)}
-                          </select>
+                          <Dropdown value={S.inv2Model || ""} style={invDdStyle}
+                            options={[{ value: "", label: "— ไม่ใช้ (รุ่นเดียวทั้งงาน) —" }].concat(stockInv.filter((p) => p.model !== S.invModel).slice()
+                              .sort((a, b) => invBrandOf(a).localeCompare(invBrandOf(b)) || invByKw(a, b))
+                              .map((p) => ({ value: p.model, label: invNameOf(p, invBrandOf(p)), sub: invBrandOf(p) + " · " + invSpecOf(p), group: invBrandOf(p) })))}
+                            onChange={(v) => set({ inv2Model: v, inv2Count: v ? Math.max(1, Math.round(scNum(S.inv2Count, 0))) : 0 })} />
                         </label>
                         <label className="p3-f" style={{ width: 108, flex: "0 0 auto" }}>
                           <span className="lb">จำนวน (กรอกเอง)</span>

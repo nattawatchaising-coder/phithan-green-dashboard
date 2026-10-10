@@ -4221,10 +4221,18 @@ function SolarWorkspace({
   })();
   const invBrand = invBrandPick || (S.invModel && stockInvRow.model ? invBrandOf(stockInvRow) : "");
   const invTypeTh = p => p.type === "hybrid" ? "Hybrid" : "On-grid";
-  const invOptLabel = (p, brand) => {
+  const invNameOf = (p, brand) => {
     let nm = String(p.model);
     if (brand && nm.toLowerCase().startsWith(brand.toLowerCase())) nm = nm.slice(brand.length).replace(/^[\s-]+/, "") || p.model;
-    return [nm, p.kw ? p.kw + " kW" : "", p.phase ? p.phase + " เฟส" : "", invTypeTh(p)].filter(Boolean).join(" · ");
+    return nm;
+  };
+  const invSpecOf = p => [p.kw ? p.kw + " kW" : "", p.phase ? p.phase + " เฟส" : "", invTypeTh(p)].filter(Boolean).join(" · ");
+  const invDdStyle = {
+    fontSize: 13,
+    fontWeight: 600,
+    padding: "7px 9px",
+    borderRadius: 9,
+    boxShadow: "var(--shadow-inset)"
   };
   const invByKw = (a, b) => (a.kw || 0) - (b.kw || 0) || String(a.model).localeCompare(String(b.model));
   const invOfBrand = invBrand ? stockInv.filter(p => invBrandOf(p).toLowerCase() === invBrand.toLowerCase()).sort(invByKw) : [];
@@ -5200,22 +5208,22 @@ function SolarWorkspace({
     }
   }, React.createElement("span", {
     className: "lb"
-  }, "\u0E22\u0E35\u0E48\u0E2B\u0E49\u0E2D"), React.createElement("select", {
-    className: "p3-inp",
+  }, "\u0E22\u0E35\u0E48\u0E2B\u0E49\u0E2D"), React.createElement(Dropdown, {
     value: invBrand,
-    onChange: e => {
-      const b = e.target.value;
+    placeholder: "\u2014 \u0E40\u0E25\u0E37\u0E2D\u0E01\u0E22\u0E35\u0E48\u0E2B\u0E49\u0E2D \u2014",
+    style: invDdStyle,
+    options: invBrands.map(b => ({
+      value: b,
+      label: b,
+      sub: stockInv.filter(p => invBrandOf(p).toLowerCase() === b.toLowerCase()).length + " รุ่นในคลัง"
+    })),
+    onChange: b => {
       setInvBrandPick(b);
-      if (S.invModel && invBrandOf(stockInvRow).toLowerCase() !== b.toLowerCase()) set({
+      if (S.invModel && invBrandOf(stockInvRow).toLowerCase() !== String(b).toLowerCase()) set({
         invModel: ""
       });
     }
-  }, React.createElement("option", {
-    value: ""
-  }, "\u2014 \u0E40\u0E25\u0E37\u0E2D\u0E01\u0E22\u0E35\u0E48\u0E2B\u0E49\u0E2D \u2014"), invBrands.map(b => React.createElement("option", {
-    key: b,
-    value: b
-  }, b + " (" + stockInv.filter(p => invBrandOf(p).toLowerCase() === b.toLowerCase()).length + ")")))), React.createElement("label", {
+  })), React.createElement("label", {
     className: "p3-f",
     style: {
       flex: 1,
@@ -5233,26 +5241,21 @@ function SolarWorkspace({
       fontWeight: 700,
       color: "var(--text-3)"
     }
-  }, "\u0E07\u0E32\u0E19\u0E19\u0E35\u0E49 ", phases, " \u0E40\u0E1F\u0E2A")), React.createElement("select", {
-    className: "p3-inp",
+  }, "\u0E07\u0E32\u0E19\u0E19\u0E35\u0E49 ", phases, " \u0E40\u0E1F\u0E2A")), React.createElement(Dropdown, {
     value: S.invModel || "",
     disabled: !invBrand,
-    onChange: e => set({
-      invModel: e.target.value
+    style: invDdStyle,
+    placeholder: invBrand ? "— เลือกรุ่น " + invBrand + " —" : "— เลือกยี่ห้อก่อน —",
+    options: invOfBrand.filter(invPhaseOk).concat(invOfBrand.filter(p => !invPhaseOk(p))).map(p => ({
+      value: p.model,
+      label: invNameOf(p, invBrand),
+      sub: invSpecOf(p),
+      group: invPhaseOk(p) ? "ตรงกับงาน (" + phases + " เฟส)" : "เฟสไม่ตรงงาน"
+    })),
+    onChange: v => set({
+      invModel: v
     })
-  }, React.createElement("option", {
-    value: ""
-  }, invBrand ? "— เลือกรุ่น " + invBrand + " —" : "— เลือกยี่ห้อก่อน —"), invOfBrand.some(invPhaseOk) && React.createElement("optgroup", {
-    label: "ตรงกับงาน (" + phases + " เฟส)"
-  }, invOfBrand.filter(invPhaseOk).map(p => React.createElement("option", {
-    key: p.model,
-    value: p.model
-  }, invOptLabel(p, invBrand)))), invOfBrand.some(p => !invPhaseOk(p)) && React.createElement("optgroup", {
-    label: "เฟสไม่ตรงกับงาน"
-  }, invOfBrand.filter(p => !invPhaseOk(p)).map(p => React.createElement("option", {
-    key: p.model,
-    value: p.model
-  }, invOptLabel(p, invBrand)))))), React.createElement("label", {
+  })), React.createElement("label", {
     className: "p3-f",
     style: {
       width: 108,
@@ -5431,19 +5434,23 @@ function SolarWorkspace({
     }
   }, React.createElement("span", {
     className: "lb"
-  }, "\u0E2D\u0E34\u0E19\u0E40\u0E27\u0E2D\u0E23\u0E4C\u0E40\u0E15\u0E2D\u0E23\u0E4C\u0E15\u0E31\u0E27\u0E17\u0E35\u0E48\u0E2A\u0E2D\u0E07 (\u0E44\u0E21\u0E48\u0E1A\u0E31\u0E07\u0E04\u0E31\u0E1A)"), React.createElement("select", {
-    className: "p3-inp",
+  }, "\u0E2D\u0E34\u0E19\u0E40\u0E27\u0E2D\u0E23\u0E4C\u0E40\u0E15\u0E2D\u0E23\u0E4C\u0E15\u0E31\u0E27\u0E17\u0E35\u0E48\u0E2A\u0E2D\u0E07 (\u0E44\u0E21\u0E48\u0E1A\u0E31\u0E07\u0E04\u0E31\u0E1A)"), React.createElement(Dropdown, {
     value: S.inv2Model || "",
-    onChange: e => set({
-      inv2Model: e.target.value,
-      inv2Count: e.target.value ? Math.max(1, Math.round(scNum(S.inv2Count, 0))) : 0
+    style: invDdStyle,
+    options: [{
+      value: "",
+      label: "— ไม่ใช้ (รุ่นเดียวทั้งงาน) —"
+    }].concat(stockInv.filter(p => p.model !== S.invModel).slice().sort((a, b) => invBrandOf(a).localeCompare(invBrandOf(b)) || invByKw(a, b)).map(p => ({
+      value: p.model,
+      label: invNameOf(p, invBrandOf(p)),
+      sub: invBrandOf(p) + " · " + invSpecOf(p),
+      group: invBrandOf(p)
+    }))),
+    onChange: v => set({
+      inv2Model: v,
+      inv2Count: v ? Math.max(1, Math.round(scNum(S.inv2Count, 0))) : 0
     })
-  }, React.createElement("option", {
-    value: ""
-  }, "\u2014 \u0E44\u0E21\u0E48\u0E43\u0E0A\u0E49 (\u0E23\u0E38\u0E48\u0E19\u0E40\u0E14\u0E35\u0E22\u0E27\u0E17\u0E31\u0E49\u0E07\u0E07\u0E32\u0E19) \u2014"), stockInv.filter(p => p.model !== S.invModel).slice().sort((a, b) => invBrandOf(a).localeCompare(invBrandOf(b)) || invByKw(a, b)).map(p => React.createElement("option", {
-    key: p.model,
-    value: p.model
-  }, invOptLabel(p, ""))))), React.createElement("label", {
+  })), React.createElement("label", {
     className: "p3-f",
     style: {
       width: 108,
