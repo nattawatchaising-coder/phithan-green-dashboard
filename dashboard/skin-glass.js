@@ -2,29 +2,43 @@
    ธีมกระจก (ทดลอง) — หน้าตาภายในเว็บแบบเดียวกับหน้าเข้าสู่ระบบ
    ภาพฟาร์มโซลาร์ (ผู้ใช้เลือก) เบลอเป็นพื้นหลังทั้งแอป · แถบเมนู/หัวจอ/การ์ดเป็นกระจกฝ้า
    เปลี่ยนรูป = วางไฟล์ใน dashboard/assets/ แล้วแก้ PHOTO ข้างล่าง
+   พื้นหลังมี 2 แบบ: รูปฟาร์มโซลาร์ (ค่าเริ่ม) · ไล่สีนุ่ม ๆ ไม่ใช้รูป (html[data-skin-bg="mesh"], localStorage "pg-skin-bg")
 
    ไม่แตะธีมเดิม: ทุกกฎอยู่ใต้ html[data-skin="glass"] และเปลี่ยนแค่ค่าตัวแปร (token) + ชั้นกระจก
    ปิดอยู่เป็นค่าเริ่ม — เปิด/ปิดได้ 2 ทาง (จำค่าใน localStorage "pg-skin" ของเครื่องนั้น)
-     - ต่อท้าย URL ?skin=glass (เปิด) · ?skin=off (ปิด)
-     - localhost มีปุ่มลอยมุมขวาล่าง
+     - ต่อท้าย URL ?skin=glass (รูป) · ?skin=mesh (ไล่สี) · ?skin=off (ปิด)
+     - localhost มีปุ่มลอยมุมขวาล่าง กดวน ปิด → รูป → ไล่สี
    ห้ามเอาคลาส lg-* ของหน้าล็อกอินมาใช้ (DESIGN.md) — ชุดนี้ใช้ตัวแปร --sk-* ของตัวเอง
    ================================================================ */
 (function () {
-  var KEY = "pg-skin";
+  var KEY = "pg-skin", BGKEY = "pg-skin-bg";
   var root = document.documentElement;
+  // mode: "" ปิด · "photo" รูป · "mesh" ไล่สี
+  var save = function (m) {
+    try {
+      m ? localStorage.setItem(KEY, "glass") : localStorage.removeItem(KEY);
+      m === "mesh" ? localStorage.setItem(BGKEY, "mesh") : localStorage.removeItem(BGKEY);
+    } catch (e) {}
+  };
+  var apply = function (m) {
+    m ? root.setAttribute("data-skin", "glass") : root.removeAttribute("data-skin");
+    m === "mesh" ? root.setAttribute("data-skin-bg", "mesh") : root.removeAttribute("data-skin-bg");
+  };
   try {
     var q = new URLSearchParams(location.search).get("skin");
-    if (q === "glass") localStorage.setItem(KEY, "glass");
-    else if (q === "off") localStorage.removeItem(KEY);
+    if (q === "glass") save("photo");
+    else if (q === "mesh") save("mesh");
+    else if (q === "off") save("");
   } catch (e) {}
-  var on = false;
-  try { on = localStorage.getItem(KEY) === "glass"; } catch (e) {}
-  if (on) root.setAttribute("data-skin", "glass");
+  var mode = "";
+  try { if (localStorage.getItem(KEY) === "glass") mode = localStorage.getItem(BGKEY) === "mesh" ? "mesh" : "photo"; } catch (e) {}
+  apply(mode);
 
   var PHOTO = "dashboard/assets/skin-solarfarm.jpg?v=2";
   var G = 'html[data-skin="glass"]';
   var L = G + ':not([data-theme="aurora"])';   // ชุดสว่าง — ต้องไม่ทับตัวแปรของโหมดกราไฟต์
   var D = G + '[data-theme="aurora"]';
+  var M = G + '[data-skin-bg="mesh"]';
   var CSS = [
     /* ── ตัวแปร: แผ่นกลายเป็นกระจกขาวใส เงาเป็นแสงสะท้อนขอบบน + เงาฟุ้งอุ่นแบบการ์ดล็อกอิน ── */
     L + "{--sk-glass-a:rgba(255,255,255,.62);--sk-glass-b:rgba(255,255,255,.34);--sk-edge:rgba(255,255,255,.9);--sk-edge-lo:rgba(255,255,255,.18);",
@@ -50,6 +64,21 @@
     G + " .app-root::before{content:'';position:fixed;inset:-40px;z-index:-2;pointer-events:none;",
     "background:url('" + PHOTO + "') 65% center/cover;filter:blur(6px)}",
     G + " .app-root::after{content:'';position:fixed;inset:0;z-index:-1;pointer-events:none;background:var(--sk-wash)}",
+
+    /* ── พื้นหลังแบบไล่สี (ไม่ใช้รูป): วงสีฟุ้งหลายวง เขียวแบรนด์ · ฟ้าอมเขียว · ครีมอุ่น ── */
+    M + ":not([data-theme=\"aurora\"]){--sk-wash:linear-gradient(180deg,rgba(255,255,255,.10),rgba(255,255,255,.18))}",
+    M + "[data-theme=\"aurora\"]{--sk-wash:linear-gradient(180deg,rgba(8,10,18,.20),rgba(8,10,18,.38))}",
+    M + " .app-root::before{inset:0;filter:none;background-color:#E6EFEC;background-image:",
+    "radial-gradient(42% 52% at 10% 14%,rgba(27,155,117,.55),transparent 70%),",
+    "radial-gradient(40% 50% at 88% 8%,rgba(110,196,222,.60),transparent 70%),",
+    "radial-gradient(48% 55% at 74% 88%,rgba(255,205,160,.70),transparent 70%),",
+    "radial-gradient(40% 48% at 18% 92%,rgba(140,214,184,.55),transparent 70%),",
+    "radial-gradient(36% 42% at 50% 46%,rgba(255,250,240,.75),transparent 70%)}",
+    M + "[data-theme=\"aurora\"] .app-root::before{background-color:#0D1120;background-image:",
+    "radial-gradient(42% 52% at 12% 16%,rgba(27,155,117,.42),transparent 70%),",
+    "radial-gradient(40% 50% at 86% 10%,rgba(80,70,180,.45),transparent 70%),",
+    "radial-gradient(46% 55% at 76% 88%,rgba(170,70,120,.32),transparent 70%),",
+    "radial-gradient(40% 48% at 18% 90%,rgba(20,120,150,.38),transparent 70%)}",
 
     /* ── แผ่นกระจก: แถบเมนู · หัวจอ · แผง · การ์ดใหญ่ทุกใบ (inline style ที่ใช้ --shadow-card) ── */
     G + " .sidebar," + G + " .app-header{background:linear-gradient(140deg,var(--sk-glass-a),var(--sk-glass-b));",
@@ -98,15 +127,18 @@
   var addBtn = function () {
     var b = document.createElement("button");
     b.className = "sk-toggle";
-    b.setAttribute("data-on", on ? "1" : "0");
-    b.textContent = on ? "ธีมกระจก (ทดลอง) · เปิด" : "ธีมกระจก (ทดลอง) · ปิด";
-    b.title = "สลับหน้าตาแบบหน้าเข้าสู่ระบบ — จำค่าเฉพาะเครื่องนี้";
+    var LABEL = { "": "ปิด", photo: "รูป", mesh: "ไล่สี" };
+    var show = function () {
+      b.setAttribute("data-on", mode ? "1" : "0");
+      b.textContent = "ธีมกระจก (ทดลอง) · " + LABEL[mode];
+    };
+    show();
+    b.title = "กดวน ปิด → รูป → ไล่สี — จำค่าเฉพาะเครื่องนี้";
     b.onclick = function () {
-      on = !on;
-      try { on ? localStorage.setItem(KEY, "glass") : localStorage.removeItem(KEY); } catch (e) {}
-      on ? root.setAttribute("data-skin", "glass") : root.removeAttribute("data-skin");
-      b.setAttribute("data-on", on ? "1" : "0");
-      b.textContent = on ? "ธีมกระจก (ทดลอง) · เปิด" : "ธีมกระจก (ทดลอง) · ปิด";
+      mode = mode === "" ? "photo" : mode === "photo" ? "mesh" : "";
+      save(mode);
+      apply(mode);
+      show();
     };
     document.body.appendChild(b);
   };
