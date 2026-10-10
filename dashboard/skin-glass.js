@@ -57,7 +57,7 @@
   // ตำแหน่งวงตั้งต้น (x%, y%, กว้าง%, สูง%) — แบบเดิมก่อนมีการสุ่ม
   var MESH_POS = [[10,14,42,52], [88,8,40,50], [74,88,48,55], [18,92,40,48]];
   var MKEY = "pg-skin-mesh";
-  var mesh = { p: 0, pos: MESH_POS };
+  var mesh = { p: 2, pos: MESH_POS };   // ค่าเริ่ม = ทะเล (ผู้ใช้เลือก)
   try {
     var mj = JSON.parse(localStorage.getItem(MKEY) || "null");
     if (mj && MESH_PAL[mj.p] && mj.pos && mj.pos.length === 4) mesh = mj;
@@ -103,7 +103,7 @@
     /* ชุดกราไฟต์ — กระจกควันบนภาพที่ทาสีพลบค่ำทับ (เหมือนหน้าล็อกอินโหมดมืด) */
     D + "{--sk-glass-a:rgba(30,34,46,.62);--sk-glass-b:rgba(20,22,32,.40);--sk-edge:rgba(255,255,255,.22);--sk-edge-lo:rgba(255,255,255,.04);",
     "--sk-wash:linear-gradient(180deg,rgba(10,14,30,.72) 0%,rgba(40,24,40,.58) 55%,rgba(8,10,16,.80) 100%);--sk-blur:blur(22px) saturate(1.4);",
-    "--surface:rgba(28,31,40,.62);--surface2:rgba(255,255,255,.07);--surface3:rgba(255,255,255,.12);--r-card:26px;",
+    "--surface:rgba(28,31,40,.62);--surface2:rgba(255,255,255,.07);--surface3:rgba(255,255,255,.12);--r-card:26px;--gr-card:rgba(28,31,40,.55);",
     "--shadow-card:inset 0 1px 0 var(--sk-edge),0 26px 60px -24px rgba(0,0,0,.6);",
     "--shadow-sm:inset 0 1px 0 rgba(255,255,255,.10),0 6px 18px -10px rgba(0,0,0,.6)}",
 
@@ -141,6 +141,12 @@
     /* รางบอร์ดงาน: ร่องกระจกขุ่น แทนพื้นเทาทึบ */
     L + " .bd-col{background:rgba(255,255,255,.22);-webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px)}",
     L + " .bd-card{background-color:rgba(255,255,255,.78)}",
+
+    /* โหมดมืด: รางบอร์ด (เดิมผสมดำ 34%) และหัวตาราง (--gr-card !important) — หัวตารางติดหนึบต้องทึบพอให้แถวที่เลื่อนผ่านไม่ทะลุ */
+    D + " .bd-col{background:rgba(8,10,18,.32);-webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px)}",
+    D + " .app-content thead th{background:rgba(22,25,34,.94)!important}",
+    /* การ์ดตัวเลข (stat-rail) เบลอฉากหลังเหมือนแผ่นอื่น */
+    G + " .stat-rail>button{-webkit-backdrop-filter:var(--sk-blur);backdrop-filter:var(--sk-blur)}",
 
     /* โมดัล/ลิ้นชัก: กระจกทึบขึ้น อ่านง่ายบนพื้นมืดของฉากหลังโมดัล */
     L + " [style*='var(--shadow-modal)']," + L + " [style*='var(--shadow-sheet)']{--surface:rgba(250,252,252,.86)}",
