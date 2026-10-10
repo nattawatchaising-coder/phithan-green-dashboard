@@ -820,7 +820,7 @@ function LgScene({ children }) {
   );
 }
 
-/* ภาพพื้นหลัง: สุ่มหนึ่งภาพตอนเปิดหน้า ไม่สลับ (ผู้ใช้สั่ง) + ซูมเข้าออกเบา ๆ
+/* ภาพพื้นหลัง: สุ่มหนึ่งภาพตอนเปิดหน้า ไม่สลับ ไม่ซูม (ผู้ใช้สั่ง — ซูม/เม็ดฟิล์มทำให้ภาพไม่คม)
    สุ่มครั้งเดียวต่อการโหลดหน้า — ล็อกอินแล้วไปหน้าตั้งค่าบัญชีจะได้ภาพเดิม
    ไฟล์อยู่ dashboard/assets (index.html กับ liff.html อยู่ราก จึงอ้าง path เดียวกันได้) */
 const LG_PHOTOS = ["dashboard/assets/login-farm.jpg", "dashboard/assets/login-village.jpg"];
@@ -831,7 +831,6 @@ function LgSky() {
     <div className="lg-sky" aria-hidden="true">
       <div className="lg-photo" style={{ backgroundImage: "url(" + LG_PHOTO + ")" }} />
       <div className="lg-tint" />
-      <div className="lg-grain" />
     </div>
   );
 }
@@ -985,16 +984,6 @@ function LoginScreen({ authStore }) {
     if (!res.ok) { setErr(res.error); setPw(""); }
   };
 
-  /* วันที่/เวลาบนการ์ดขวา — เดินเองทุก 30 วิ */
-  const [now, setNow] = React.useState(() => new Date());
-  React.useEffect(() => { const t = setInterval(() => setNow(new Date()), 30000); return () => clearInterval(t); }, []);
-  const wday = now.toLocaleDateString("th-TH", { weekday: "long" }).replace(/^วัน/, "");
-  const dmon = now.getDate() + " " + now.toLocaleDateString("th-TH", { month: "short" });
-  const hhmm = String(now.getHours()).padStart(2, "0") + ":" + String(now.getMinutes()).padStart(2, "0");
-  const h = now.getHours();
-  const sunNote = h >= 5 && h < 10 ? "แดดเช้าเริ่มเข้าแผง" : h < 15 && h >= 10 ? "ช่วงแดดแรงสุดของวัน"
-    : h < 18 && h >= 15 ? "แดดบ่ายเริ่มอ่อนลง" : "แผงพัก พรุ่งนี้แดดมาใหม่";
-
   return (
     <LgScene>
       <div className="lg-grid">
@@ -1039,49 +1028,34 @@ function LoginScreen({ authStore }) {
           </div>
         </div>
 
-        {/* ── การ์ดวันนี้ (จอกว้างเท่านั้น) ── */}
-        <div className="lg-glass lg-day">
-          <div className="lg-day-orb" />
-          <div className="lg-strip">
-            <div className="lg-wd">{wday}</div>
-            <div className="lg-dm">{dmon}</div>
-            <div className="lg-time">{hhmm} น.<br />{sunNote}</div>
-            <div className="lg-strip-b"><Icon name="sun" size={22} color="var(--lg-tx)" /><span>flash+solar</span></div>
-          </div>
-          <div className="lg-day-side">ระบบติดตาม<br />งานติดตั้งโซลาร์</div>
-        </div>
       </div>
     </LgScene>
   );
 }
 
 /* สไตล์ฉาก lg-* — ตัวแปร --lg-* ชุดแรกคือฉากเช้า ชุด aurora คือฉากพลบค่ำ */
-const LG_GRAIN = "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E\")";
 const LG_CSS = `
 .lg-scene{--lg-sky0:#B9C9D2;--lg-sky1:#EBD9C0;
   --lg-glass-a:rgba(255,255,255,.42);--lg-glass-b:rgba(255,255,255,.16);--lg-edge:rgba(255,255,255,.85);--lg-edge-lo:rgba(255,255,255,.12);
-  --lg-pill:rgba(255,255,255,.42);--lg-pill-bd:rgba(255,255,255,.7);--lg-strip:rgba(255,255,255,.34);
-  --lg-tx:#1B2220;--lg-tx2:#4F5653;--lg-tx3:#7D827F;--lg-glow:rgba(255,170,80,.55);
-  --lg-smoke:rgba(18,22,24,.72);--lg-orb1:#FFF6DA;--lg-orb2:#FFC46B;--lg-orb3:#FF8A2A;--lg-orb4:#B9420C;
-  --lg-tint:linear-gradient(180deg,rgba(255,236,210,.18) 0%,rgba(255,236,210,0) 45%,rgba(20,32,20,.18) 100%);
+  --lg-pill:rgba(255,255,255,.42);--lg-pill-bd:rgba(255,255,255,.7);
+  --lg-tx:#1B2220;--lg-tx2:#3D4441;--lg-tx3:#6E7470;--lg-glow:rgba(255,170,80,.55);
+  --lg-smoke:rgba(18,22,24,.72);
+  --lg-tint:none;
   position:relative;min-height:100dvh;overflow:hidden;color:var(--lg-tx);
   background:linear-gradient(180deg,var(--lg-sky0),var(--lg-sky1))}
 [data-theme="aurora"] .lg-scene{--lg-sky0:#0D111B;--lg-sky1:#2A2230;
   --lg-glass-a:rgba(30,34,46,.55);--lg-glass-b:rgba(20,22,32,.30);--lg-edge:rgba(255,255,255,.28);--lg-edge-lo:rgba(255,255,255,.04);
-  --lg-pill:rgba(255,255,255,.07);--lg-pill-bd:rgba(255,255,255,.14);--lg-strip:rgba(255,255,255,.05);
+  --lg-pill:rgba(255,255,255,.07);--lg-pill-bd:rgba(255,255,255,.14);
   --lg-tx:#F1F3F2;--lg-tx2:#B8BDBA;--lg-tx3:#878D8A;--lg-glow:rgba(255,150,80,.5);--lg-smoke:rgba(6,8,12,.7);
   --lg-tint:linear-gradient(180deg,rgba(10,14,30,.72) 0%,rgba(40,24,40,.55) 55%,rgba(8,10,16,.78) 100%)}
 .lg-sky{position:absolute;inset:0;pointer-events:none;overflow:hidden}
-.lg-photo{position:absolute;inset:-3%;background-size:cover;background-position:center 45%;
-  animation:lgKen 26s ease-in-out infinite alternate}
-@keyframes lgKen{from{transform:scale(1.02) translate(0,0)}to{transform:scale(1.1) translate(-1.5%,-1%)}}
+.lg-photo{position:absolute;inset:0;background-size:cover;background-position:center 45%}
 .lg-tint{position:absolute;inset:0;background:var(--lg-tint)}
 [data-theme="aurora"] .lg-photo{filter:saturate(.75)}
-.lg-grain{position:absolute;inset:0;opacity:.08;mix-blend-mode:overlay;background-image:${LG_GRAIN}}
 
 .lg-wrap{position:relative;z-index:1;min-height:100dvh;display:grid;place-items:center;
   padding:calc(20px + env(safe-area-inset-top,0px)) 16px calc(20px + env(safe-area-inset-bottom,0px))}
-.lg-grid{width:min(880px,100%);display:grid;grid-template-columns:1fr 1fr;gap:16px;grid-template-areas:"login day" "dark day"}
+.lg-grid{width:min(440px,100%);display:grid;grid-template-columns:1fr;gap:14px;grid-template-areas:"login" "dark"}
 
 /* กระจก: พื้นไล่ใส · เบลอฉากข้างหลัง · ขอบสะท้อนแสงไล่สี (::before) · แสงเงาเงาวาวมุมซ้ายบน (::after) */
 .lg-glass{position:relative;isolation:isolate;border-radius:26px;
@@ -1100,7 +1074,7 @@ const LG_CSS = `
 .lg-login{grid-area:login;padding:22px 22px 20px;display:flex;flex-direction:column;gap:12px}
 .lg-setup{width:min(560px,100%);padding:24px 24px 22px;display:flex;flex-direction:column;gap:12px}
 .lg-top{display:flex;justify-content:space-between;align-items:center;gap:10px}
-.lg-mini{font-size:11.5px;color:var(--lg-tx2);font-weight:600}
+.lg-mini{font-size:12.5px;color:var(--lg-tx2);font-weight:600}
 .lg-h{font-family:var(--brand-font),var(--sans);font-size:30px;font-weight:500;letter-spacing:-.01em;margin:14px 0 6px}
 .lg-setup .lg-h{margin:10px 0 4px}
 .lg-sub{font-size:13px;line-height:1.6;color:var(--lg-tx2)}
@@ -1126,7 +1100,7 @@ const LG_CSS = `
   box-shadow:inset 0 0 0 1px var(--lg-pill-bd)}
 .lg-err{font-size:12.5px;font-weight:600;color:var(--tint-red-tx2);background:var(--tint-red-bg);border-radius:12px;padding:8px 12px}
 .lg-foot{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:8px}
-.lg-note{font-size:10.5px;line-height:1.55;color:var(--lg-tx2)}
+.lg-note{font-size:12px;line-height:1.55;color:var(--lg-tx2)}
 .lg-link{background:none;border:none;cursor:pointer;font-family:inherit;font-size:12.5px;color:var(--lg-tx2);padding:6px 2px}
 
 /* ปุ่มกระจก + วงกลมเขียวสีหลักของธีม (เรียบ ไม่มีเงา/แสงเรือง — ผู้ใช้เลือกแล้ว) */
@@ -1165,24 +1139,9 @@ const LG_CSS = `
 .lg-dark-row{display:flex;justify-content:space-between;align-items:flex-end;font-family:var(--brand-font);
   letter-spacing:.28em;font-size:11px;color:rgba(255,255,255,.72)}
 
-.lg-day{grid-area:day;overflow:hidden;min-height:440px}
-.lg-day-orb{position:absolute;width:62%;aspect-ratio:1;border-radius:50%;right:-14%;top:30%;z-index:-1;
-  background:radial-gradient(circle at 35% 35%,var(--lg-orb1),var(--lg-orb2) 30%,var(--lg-orb3) 62%,var(--lg-orb4));
-  box-shadow:0 0 80px 20px var(--lg-glow)}
-.lg-strip{position:absolute;left:12px;top:12px;bottom:12px;width:56%;border-radius:20px;padding:22px 20px;
-  background:var(--lg-strip);-webkit-backdrop-filter:blur(24px);backdrop-filter:blur(24px);
-  box-shadow:inset 0 0 0 1px var(--lg-pill-bd),inset 0 1px 0 var(--lg-edge);display:flex;flex-direction:column}
-.lg-wd{font-size:44px;font-weight:500;line-height:1.05;letter-spacing:-.01em}
-.lg-dm{font-size:40px;font-weight:400;line-height:1.1;color:var(--lg-tx3)}
-.lg-time{margin-top:auto;font-size:12.5px;line-height:1.6;color:var(--lg-tx2);font-variant-numeric:tabular-nums}
-.lg-strip-b{margin-top:auto;display:flex;flex-direction:column;align-items:center;gap:6px;
-  font-family:var(--brand-font);font-size:12px;color:var(--lg-tx2)}
-.lg-day-side{position:absolute;right:20px;top:22px;text-align:right;font-size:12px;line-height:1.55;color:var(--lg-tx2);font-weight:600}
 
-@media (prefers-reduced-motion:reduce){.lg-photo,.lg-gbtn.is-busy .lg-orb{animation:none}}
+@media (prefers-reduced-motion:reduce){.lg-gbtn.is-busy .lg-orb{animation:none}}
 @media (max-width:720px){
-  .lg-grid{grid-template-columns:1fr;grid-template-areas:"login" "dark";max-width:440px}
-  .lg-day{display:none}
   .lg-two{grid-template-columns:1fr}
   .lg-dark{min-height:0}
   .lg-dark-h{font-size:21px}
