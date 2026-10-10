@@ -10,9 +10,10 @@ deploy อัตโนมัติด้วย Vercel จาก `master` บน 
 - terminal เป็น Windows PowerShell 5.1 — ไม่รู้จัก `&&` (ใช้ `;` หรือ `if ($?) { }`) · ไม่มี Python ใช้ node แทน
 
 ## กฎที่ห้ามพลาด
-- **เซิร์ฟเวอร์ทดสอบในเครื่อง (`tools/devserver.js`, localhost:8765) ต่อ Firebase ตัวจริง** — กดปุ่มบันทึกบน localhost = แก้ข้อมูลจริง (เคยทำ % คืบหน้าใบงาน SF-2448 หาย)
-  - ทดสอบด้วยการกันการเขียน: ครอบ `window.FBDB.ref` ให้ set/update/remove/push/transaction แค่จดลง array แล้ว mount คอมโพเนนต์ด้วยงานปลอม (`id: '__fake'`) ใน div แยก เสร็จแล้ว unmount และคืน `FBDB.ref` ตัวเดิม
-  - อ่านข้อมูลจริงได้ · เขียน/แก้คลังหรืองานจริงต้องได้คำอนุญาตจากผู้ใช้ก่อน · ห้ามลบข้อมูลถาวร ให้ผู้ใช้ลบเองในหน้าเว็บ
+- **localhost:8765 (`tools/devserver.js`) ใช้ฐานข้อมูลทดสอบเมื่อมี `firebase-config.local.js` เท่านั้น** (+ `firebase-sa.local.json` สำหรับล็อกอิน · ไม่ขึ้น git แต่ละเครื่องสร้างเอง · ดู `docs/test-db.md`) — เว็บจริงใช้ของจริงเสมอ
+  - ดูป้ายกลางล่างจอ / `window.FB_DB_MODE` ก่อนทดสอบที่มีการบันทึก: **ส้ม "ฐานข้อมูลทดสอบ"** = กดบันทึกได้ · **แดง "ฐานข้อมูลจริง"** = ไม่มีไฟล์ local → กดบันทึก = แก้ข้อมูลจริง (เคยทำ % คืบหน้าใบงาน SF-2448 หาย)
+  - ถ้าเป็นโหมดจริง ต้องทดสอบด้วยการกันการเขียนแบบเดิม: ครอบ `window.FBDB.ref` ให้ set/update/remove/push/transaction แค่จดลง array แล้ว mount คอมโพเนนต์ด้วยงานปลอม (`id: '__fake'`) ใน div แยก เสร็จแล้ว unmount และคืน `FBDB.ref` ตัวเดิม
+  - ข้อมูลจริงอ่านได้ · เขียน/แก้คลังหรืองานจริงต้องได้คำอนุญาตจากผู้ใช้ก่อน · ห้ามลบข้อมูลถาวร ให้ผู้ใช้ลบเองในหน้าเว็บ · ไฟล์ export ข้อมูลจริง/config ทดสอบ/กุญแจ service account ห้าม commit
 - **ห้าม deploy ด้วย `vercel` CLI** — push ขึ้น master อย่างเดียว (เคยมีงานค้างเครื่องเดียว 25 คอมมิตเพราะ deploy ตรง)
 - **commit เองได้เลยไม่ต้องถาม** เมื่องานเสร็จและตรวจแล้ว — hook `.githooks/post-commit` push ให้เอง (ปิดชั่วคราวด้วยไฟล์ `.git/no-autopush`) · ข้อความ commit ภาษาไทย บอกเหตุผล
 
@@ -38,6 +39,7 @@ deploy อัตโนมัติด้วย Vercel จาก `master` บน 
 | ลงเวลา · OT · การลา · เมนู LINE (`attend` `leave` `liff-*`) | `docs/attend-leave.md` |
 | สำรองข้อมูล Firebase · กู้คืน (`api/cron/backup.mjs` `tools/backup-*.mjs`) | `docs/backup.md` |
 | ความปลอดภัยฐานข้อมูล · Firebase Rules · ล็อกอิน/สิทธิ์ (`auth.jsx` `api/_lib/line.mjs`) | `docs/security.md` |
+| ฐานข้อมูลทดสอบบน localhost (`firebase-config.js` `firebase-config.local.js` `devserver.js`) | `docs/test-db.md` |
 
 ข้อตกลงใหม่ของเรื่องไหนให้เขียนลงไฟล์ของเรื่องนั้น (ไม่ใช่ที่นี่) · เรื่องใหม่ที่ยังไม่มีไฟล์ = สร้าง `docs/<เรื่อง>.md` แล้วเพิ่มแถวในตารางนี้
 

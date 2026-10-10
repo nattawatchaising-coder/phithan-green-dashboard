@@ -20,3 +20,10 @@ dist/
 
 # cache ของไฟล์ CDN ที่โหลดไว้ใช้ตอนพัฒนาในเครื่อง
 .devcache/
+
+# config ฐานข้อมูลทดสอบของแต่ละเครื่อง (docs/test-db.md) และไฟล์ export ข้อมูลจริง — ห้ามขึ้น git
+firebase-config.local.js
+firebase-sa.local.json
+*-firebase-adminsdk-*.json
+*-export.json
+*-rtdb-export*.json

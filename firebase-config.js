@@ -1,6 +1,11 @@
 /* ================================================================
    PHITHAN GREEN — Firebase Configuration
-   Project: phithan-green-5907
+   Project: phithan-green-5907 (ฐานข้อมูลจริง)
+
+   ฐานข้อมูลทดสอบ: บน localhost/127.0.0.1 ถ้ามี firebase-config.local.js
+   (ไม่ขึ้น git — ดู docs/test-db.md) เซิร์ฟเวอร์ทดสอบ tools/devserver.js
+   จะแปะ window.FIREBASE_TEST_CONFIG ไว้หน้าไฟล์นี้ → ใช้ฐานทดสอบแทนของจริง
+   เว็บจริง (Vercel) ไม่มีไฟล์นั้น และเช็ก host ซ้ำ → ใช้ของจริงเสมอ
    ================================================================ */
 
 const FIREBASE_CONFIG = {
@@ -14,14 +19,48 @@ const FIREBASE_CONFIG = {
 };
 
 (function () {
+  const host = location.hostname;
+  const isLocal = host === "localhost" || host === "127.0.0.1" || host === "[::1]" || host === "::1";
+  const t = window.FIREBASE_TEST_CONFIG;
+  // ใช้ฐานทดสอบเฉพาะเมื่ออยู่ในเครื่อง + config ครบ + ไม่ใช่ฐานเดียวกับของจริง
+  const useTest = isLocal && !!t && !!t.databaseURL &&
+    t.databaseURL !== FIREBASE_CONFIG.databaseURL && t.projectId !== FIREBASE_CONFIG.projectId;
+  const cfg = useTest ? t : FIREBASE_CONFIG;
+  window.FB_DB_MODE = useTest ? "test" : "real";
+
   try {
-    firebase.initializeApp(FIREBASE_CONFIG);
+    firebase.initializeApp(cfg);
     window.FBDB = firebase.database();
-    console.info("[PHITHAN GREEN] ✅ Firebase connected:", FIREBASE_CONFIG.projectId);
+    console.info("[PHITHAN GREEN] ✅ Firebase connected:", cfg.projectId, useTest ? "(ฐานข้อมูลทดสอบ)" : "");
   } catch (e) {
     console.error("[PHITHAN GREEN] ❌ Firebase error:", e.message);
     window.FBDB = null;
   }
+
+  // ป้ายบอกฐานข้อมูลบนหน้าเว็บ — แสดงเฉพาะในเครื่อง (เว็บจริงไม่มีป้าย)
+  if (!isLocal) return;
+  const label = useTest
+    ? "ฐานข้อมูลทดสอบ · " + cfg.projectId
+    : "⚠ ฐานข้อมูลจริง — บันทึกแล้วแก้ข้อมูลจริง";
+  if (useTest) document.title = "[ทดสอบ] " + document.title;
+  const show = () => {
+    const el = document.createElement("div");
+    el.id = "fb-db-badge";
+    el.textContent = label;
+    el.title = useTest
+      ? "localhost ต่อฐานข้อมูลทดสอบ (firebase-config.local.js) — เว็บจริงไม่กระทบ"
+      : "ยังไม่มี firebase-config.local.js — ดู docs/test-db.md";
+    el.style.cssText = [
+      "position:fixed", "left:50%", "bottom:10px", "transform:translateX(-50%)",
+      "z-index:2147483647", "pointer-events:none", "padding:5px 14px", "border-radius:999px",
+      "font:600 12px/1.4 system-ui,sans-serif", "color:#fff", "white-space:nowrap",
+      "box-shadow:0 2px 8px rgba(0,0,0,.25)", "opacity:.92",
+      "background:" + (useTest ? "#C77700" : "#C62828"),
+    ].join(";");
+    document.body.appendChild(el);
+  };
+  if (document.body) show();
+  else document.addEventListener("DOMContentLoaded", show);
 })();
 
 /* ── Firebase Auth (ล็อกอินด้วย custom token จาก /api/auth/login · /api/line/*) ──

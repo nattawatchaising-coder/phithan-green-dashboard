@@ -61,7 +61,7 @@
 - `auth.jsx` — `sfServerLogin` / `sfSignInToken` · เซสชันใช้ได้เมื่อ `FBAUTH uid === solarflow_session_v1` เท่านั้น (ตั้ง localStorage เองเข้าไม่ได้แล้ว) · เซิร์ฟเวอร์ตอบ fallback = เทียบ PIN ในเบราว์เซอร์แบบเดิมและจด `solarflow_auth_legacy=1` — พอเซิร์ฟเวอร์ตั้งค่าแล้ว เซสชันแบบเก่าถูกบังคับล็อกอินใหม่เอง
 - `line.jsx` — LIFF signIn ด้วย token จาก session/bind · หน้าเปิดนอก LINE (`LnWebForm`) ล็อกอินผ่านเซิร์ฟเวอร์
 
-- `tools/devserver.js` — ส่งต่อ `/api/auth/login` (เส้นเดียว) ไป `https://flashsolar.vercel.app` (เปลี่ยนด้วย env `DEV_API`) — localhost จึงได้ใบผ่านและอ่านข้อมูลได้หลังรัดกฎ
+- `tools/devserver.js` — ส่งต่อ `/api/auth/login` (เส้นเดียว) ไป `https://flashsolar.vercel.app` (เปลี่ยนด้วย env `DEV_API`) — localhost จึงได้ใบผ่านและอ่านข้อมูลได้หลังรัดกฎ · **เฉพาะตอนใช้ฐานจริง** — ถ้ามี `firebase-config.local.js` (ฐานทดสอบ) จะรัน `login.mjs` ในเครื่องด้วยกุญแจโปรเจกต์ทดสอบแทน ไม่ส่งต่อ (`docs/test-db.md`)
 
 **ยังไม่ได้ทำ:** ย้าย PIN ไป `userSecrets/` แบบ hash (PIN ยังอ่านได้โดยพนักงานที่ล็อกอินแล้ว) · ยกเลิก `ADMIN_SEED`
 

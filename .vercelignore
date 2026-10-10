@@ -11,3 +11,9 @@ node_modules
 
 # เอกสารสำหรับ Claude (แยกจาก CLAUDE.md)
 docs
+
+# config ฐานข้อมูลทดสอบ — ใช้เฉพาะในเครื่อง
+firebase-config.local.js
+firebase-sa.local.json
+*-firebase-adminsdk-*.json
+firebase-config.local.example.js
