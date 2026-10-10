@@ -204,7 +204,7 @@ function LnBindScreen({ profile, onBind }) {
             style={Object.assign({ marginTop: 6, marginBottom: 14 }, inp)} placeholder="เช่น somchai" />
 
           <label style={{ fontSize: 11, fontWeight: 700, color: "var(--text-3)", letterSpacing: ".04em" }}>รหัสผ่าน</label>
-          <input value={p} type="password" inputMode="numeric" autoComplete="current-password"
+          <input value={p} type="password" autoComplete="current-password" autoCapitalize="none" autoCorrect="off" spellCheck={false}
             onChange={(e) => { setP(e.target.value); setErr(""); }}
             onKeyDown={(e) => { if (e.key === "Enter") submit(); }}
             style={Object.assign({ marginTop: 6 }, inp)} placeholder="••••••" />
@@ -381,7 +381,7 @@ function LnWebForm({ reason, onDone }) {
             style={Object.assign({ marginTop: 6, marginBottom: 14 }, inp)} placeholder="เช่น somchai" />
 
           <label style={{ fontSize: 11, fontWeight: 700, color: "var(--text-3)", letterSpacing: ".04em" }}>รหัสผ่าน</label>
-          <input value={p} type="password" inputMode="numeric" autoComplete="current-password"
+          <input value={p} type="password" autoComplete="current-password" autoCapitalize="none" autoCorrect="off" spellCheck={false}
             onChange={(e) => { setP(e.target.value); setErr(""); }}
             onKeyDown={(e) => { if (e.key === "Enter") submit(); }}
             style={Object.assign({ marginTop: 6 }, inp)} placeholder="••••••" />

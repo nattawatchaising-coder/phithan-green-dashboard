@@ -792,14 +792,17 @@ function sfNeedsSetup(u) {
   return !!u && (u.mustChangePin === true || String(u.pin) === SF_FIRST_PIN);
 }
 
-/* รหัสใหม่: ตัวเลข 6 หลักขึ้นไป · ห้ามเลขเดียวซ้ำ (111111) · ห้ามเรียงขึ้น/ลง (123456, 654321) · ห้ามซ้ำรหัสเดิม
+/* รหัสใหม่: 6 ตัวขึ้นไป · ตัวเลข/ตัวอังกฤษ/สัญลักษณ์ได้ (ผู้ใช้ขอ 2026-10-10 — เดิมตัวเลขล้วน)
+   ห้ามภาษาไทย/ช่องว่าง (แป้นไทยกับอังกฤษสลับกันแล้วจำไม่ได้ว่าพิมพ์อะไร) · ตัวพิมพ์เล็ก/ใหญ่ถือว่าต่างกัน
+   ห้ามตัวเดียวซ้ำ (111111, aaaaaa) · ห้ามเลขเรียงขึ้น/ลง (123456, 654321) · ห้ามซ้ำรหัสเดิม
    คืนข้อความผิดพลาด หรือ "" เมื่อผ่าน */
 function sfPinProblem(pin, oldPin) {
   const p = String(pin || "");
-  if (!/^\d{6,}$/.test(p)) return "รหัสผ่านต้องเป็นตัวเลข 6 หลักขึ้นไป";
-  if (/^(\d)\1+$/.test(p)) return "รหัสผ่านเป็นเลขเดียวกันทั้งหมด เดาง่ายเกินไป";
+  if (!/^[\x21-\x7E]*$/.test(p)) return "รหัสผ่านใช้ได้เฉพาะตัวเลข ตัวอังกฤษ และสัญลักษณ์ (ห้ามภาษาไทยและช่องว่าง)";
+  if (p.length < 6) return "รหัสผ่านต้องมีอย่างน้อย 6 ตัว";
+  if (/^(.)\1+$/.test(p)) return "รหัสผ่านเป็นตัวเดียวกันทั้งหมด เดาง่ายเกินไป";
   const step = (+p[1]) - (+p[0]);
-  if ((step === 1 || step === -1) && p.split("").every((c, i) => i === 0 || (+c) - (+p[i - 1]) === step))
+  if (/^\d+$/.test(p) && (step === 1 || step === -1) && p.split("").every((c, i) => i === 0 || (+c) - (+p[i - 1]) === step))
     return "รหัสผ่านเป็นเลขเรียงกัน เดาง่ายเกินไป";
   if (oldPin != null && p === String(oldPin)) return "รหัสผ่านใหม่ต้องไม่ซ้ำกับรหัสเดิม";
   return "";
@@ -943,16 +946,16 @@ function FirstLoginScreen({ user, onSave, onLogout }) {
         <div className="lg-sec">รหัสผ่านใหม่</div>
         <div className="lg-two">
           <LgPill icon="lock" label="รหัสผ่านใหม่ *">
-            <input value={f.pin} type="password" inputMode="numeric" autoComplete="new-password"
-              onChange={(e) => set("pin", e.target.value.replace(/\D/g, ""))} placeholder="ตัวเลข 6 หลักขึ้นไป" />
+            <input value={f.pin} type="password" autoComplete="new-password" autoCapitalize="none" autoCorrect="off" spellCheck={false}
+              onChange={(e) => set("pin", e.target.value)} placeholder="อย่างน้อย 6 ตัว" />
           </LgPill>
           <LgPill icon="lock" label="ยืนยันรหัสผ่าน *">
-            <input value={f.pin2} type="password" inputMode="numeric" autoComplete="new-password"
-              onChange={(e) => set("pin2", e.target.value.replace(/\D/g, ""))} onKeyDown={(e) => { if (e.key === "Enter") submit(); }}
+            <input value={f.pin2} type="password" autoComplete="new-password" autoCapitalize="none" autoCorrect="off" spellCheck={false}
+              onChange={(e) => set("pin2", e.target.value)} onKeyDown={(e) => { if (e.key === "Enter") submit(); }}
               placeholder="กรอกซ้ำอีกครั้ง" />
           </LgPill>
         </div>
-        <div className="lg-note">ห้ามเลขเรียง (123456) หรือเลขซ้ำ (111111) · ใช้รหัสนี้เข้าเว็บครั้งต่อไป</div>
+        <div className="lg-note">ตัวเลข ตัวอังกฤษ หรือสัญลักษณ์ก็ได้ (ตัวพิมพ์เล็ก/ใหญ่ต่างกัน) · ห้ามเลขเรียง (123456) หรือตัวซ้ำ (111111) · ใช้รหัสนี้เข้าเว็บครั้งต่อไป</div>
 
         {err && <div className="lg-err">⚠ {err}</div>}
 

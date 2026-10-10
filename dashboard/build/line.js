@@ -356,8 +356,10 @@ function LnBindScreen({
   }, "\u0E23\u0E2B\u0E31\u0E2A\u0E1C\u0E48\u0E32\u0E19"), React.createElement("input", {
     value: p,
     type: "password",
-    inputMode: "numeric",
     autoComplete: "current-password",
+    autoCapitalize: "none",
+    autoCorrect: "off",
+    spellCheck: false,
     onChange: e => {
       setP(e.target.value);
       setErr("");
@@ -652,8 +654,10 @@ function LnWebForm({
   }, "\u0E23\u0E2B\u0E31\u0E2A\u0E1C\u0E48\u0E32\u0E19"), React.createElement("input", {
     value: p,
     type: "password",
-    inputMode: "numeric",
     autoComplete: "current-password",
+    autoCapitalize: "none",
+    autoCorrect: "off",
+    spellCheck: false,
     onChange: e => {
       setP(e.target.value);
       setErr("");

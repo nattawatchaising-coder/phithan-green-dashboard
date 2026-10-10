@@ -1519,10 +1519,11 @@ function sfNeedsSetup(u) {
 }
 function sfPinProblem(pin, oldPin) {
   const p = String(pin || "");
-  if (!/^\d{6,}$/.test(p)) return "รหัสผ่านต้องเป็นตัวเลข 6 หลักขึ้นไป";
-  if (/^(\d)\1+$/.test(p)) return "รหัสผ่านเป็นเลขเดียวกันทั้งหมด เดาง่ายเกินไป";
+  if (!/^[\x21-\x7E]*$/.test(p)) return "รหัสผ่านใช้ได้เฉพาะตัวเลข ตัวอังกฤษ และสัญลักษณ์ (ห้ามภาษาไทยและช่องว่าง)";
+  if (p.length < 6) return "รหัสผ่านต้องมีอย่างน้อย 6 ตัว";
+  if (/^(.)\1+$/.test(p)) return "รหัสผ่านเป็นตัวเดียวกันทั้งหมด เดาง่ายเกินไป";
   const step = +p[1] - +p[0];
-  if ((step === 1 || step === -1) && p.split("").every((c, i) => i === 0 || +c - +p[i - 1] === step)) return "รหัสผ่านเป็นเลขเรียงกัน เดาง่ายเกินไป";
+  if (/^\d+$/.test(p) && (step === 1 || step === -1) && p.split("").every((c, i) => i === 0 || +c - +p[i - 1] === step)) return "รหัสผ่านเป็นเลขเรียงกัน เดาง่ายเกินไป";
   if (oldPin != null && p === String(oldPin)) return "รหัสผ่านใหม่ต้องไม่ซ้ำกับรหัสเดิม";
   return "";
 }
@@ -1747,26 +1748,30 @@ function FirstLoginScreen({
   }, React.createElement("input", {
     value: f.pin,
     type: "password",
-    inputMode: "numeric",
     autoComplete: "new-password",
-    onChange: e => set("pin", e.target.value.replace(/\D/g, "")),
-    placeholder: "\u0E15\u0E31\u0E27\u0E40\u0E25\u0E02 6 \u0E2B\u0E25\u0E31\u0E01\u0E02\u0E36\u0E49\u0E19\u0E44\u0E1B"
+    autoCapitalize: "none",
+    autoCorrect: "off",
+    spellCheck: false,
+    onChange: e => set("pin", e.target.value),
+    placeholder: "\u0E2D\u0E22\u0E48\u0E32\u0E07\u0E19\u0E49\u0E2D\u0E22 6 \u0E15\u0E31\u0E27"
   })), React.createElement(LgPill, {
     icon: "lock",
     label: "\u0E22\u0E37\u0E19\u0E22\u0E31\u0E19\u0E23\u0E2B\u0E31\u0E2A\u0E1C\u0E48\u0E32\u0E19 *"
   }, React.createElement("input", {
     value: f.pin2,
     type: "password",
-    inputMode: "numeric",
     autoComplete: "new-password",
-    onChange: e => set("pin2", e.target.value.replace(/\D/g, "")),
+    autoCapitalize: "none",
+    autoCorrect: "off",
+    spellCheck: false,
+    onChange: e => set("pin2", e.target.value),
     onKeyDown: e => {
       if (e.key === "Enter") submit();
     },
     placeholder: "\u0E01\u0E23\u0E2D\u0E01\u0E0B\u0E49\u0E33\u0E2D\u0E35\u0E01\u0E04\u0E23\u0E31\u0E49\u0E07"
   }))), React.createElement("div", {
     className: "lg-note"
-  }, "\u0E2B\u0E49\u0E32\u0E21\u0E40\u0E25\u0E02\u0E40\u0E23\u0E35\u0E22\u0E07 (123456) \u0E2B\u0E23\u0E37\u0E2D\u0E40\u0E25\u0E02\u0E0B\u0E49\u0E33 (111111) \xB7 \u0E43\u0E0A\u0E49\u0E23\u0E2B\u0E31\u0E2A\u0E19\u0E35\u0E49\u0E40\u0E02\u0E49\u0E32\u0E40\u0E27\u0E47\u0E1A\u0E04\u0E23\u0E31\u0E49\u0E07\u0E15\u0E48\u0E2D\u0E44\u0E1B"), err && React.createElement("div", {
+  }, "\u0E15\u0E31\u0E27\u0E40\u0E25\u0E02 \u0E15\u0E31\u0E27\u0E2D\u0E31\u0E07\u0E01\u0E24\u0E29 \u0E2B\u0E23\u0E37\u0E2D\u0E2A\u0E31\u0E0D\u0E25\u0E31\u0E01\u0E29\u0E13\u0E4C\u0E01\u0E47\u0E44\u0E14\u0E49 (\u0E15\u0E31\u0E27\u0E1E\u0E34\u0E21\u0E1E\u0E4C\u0E40\u0E25\u0E47\u0E01/\u0E43\u0E2B\u0E0D\u0E48\u0E15\u0E48\u0E32\u0E07\u0E01\u0E31\u0E19) \xB7 \u0E2B\u0E49\u0E32\u0E21\u0E40\u0E25\u0E02\u0E40\u0E23\u0E35\u0E22\u0E07 (123456) \u0E2B\u0E23\u0E37\u0E2D\u0E15\u0E31\u0E27\u0E0B\u0E49\u0E33 (111111) \xB7 \u0E43\u0E0A\u0E49\u0E23\u0E2B\u0E31\u0E2A\u0E19\u0E35\u0E49\u0E40\u0E02\u0E49\u0E32\u0E40\u0E27\u0E47\u0E1A\u0E04\u0E23\u0E31\u0E49\u0E07\u0E15\u0E48\u0E2D\u0E44\u0E1B"), err && React.createElement("div", {
     className: "lg-err"
   }, "\u26A0 ", err), React.createElement("div", {
     className: "lg-foot"
