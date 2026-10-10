@@ -59,7 +59,11 @@
 - `auth.jsx` — `sfServerLogin` / `sfSignInToken` · เซสชันใช้ได้เมื่อ `FBAUTH uid === solarflow_session_v1` เท่านั้น (ตั้ง localStorage เองเข้าไม่ได้แล้ว) · เซิร์ฟเวอร์ตอบ fallback = เทียบ PIN ในเบราว์เซอร์แบบเดิมและจด `solarflow_auth_legacy=1` — พอเซิร์ฟเวอร์ตั้งค่าแล้ว เซสชันแบบเก่าถูกบังคับล็อกอินใหม่เอง
 - `line.jsx` — LIFF signIn ด้วย token จาก session/bind · หน้าเปิดนอก LINE (`LnWebForm`) ล็อกอินผ่านเซิร์ฟเวอร์
 
-**ยังไม่ได้ทำ:** ย้าย PIN ไป `userSecrets/` แบบ hash (PIN ยังอ่านได้โดยพนักงานที่ล็อกอินแล้ว) · ยกเลิก `ADMIN_SEED` · devserver ส่งต่อ `/api/auth/login` ไปเว็บจริง (ถูกระบบกันไว้ตอนทำ) — **หลังรัดกฎ localhost จะอ่านข้อมูลไม่ได้** ต้องทำตัวส่งต่อนี้หรือรัน `vercel dev` (ห้ามใช้ vercel deploy)
+- `tools/devserver.js` — ส่งต่อ `/api/auth/login` (เส้นเดียว) ไป `https://flashsolar.vercel.app` (เปลี่ยนด้วย env `DEV_API`) — localhost จึงได้ใบผ่านและอ่านข้อมูลได้หลังรัดกฎ
+
+**ยังไม่ได้ทำ:** ย้าย PIN ไป `userSecrets/` แบบ hash (PIN ยังอ่านได้โดยพนักงานที่ล็อกอินแล้ว) · ยกเลิก `ADMIN_SEED`
+
+**เปลี่ยนรหัส (PIN):** เซิร์ฟเวอร์อ่าน `users/` ใหม่ทุกครั้งที่ล็อกอิน → รหัสใหม่ใช้ได้ทันที รหัสเก่าใช้ไม่ได้ทันที · แต่**เครื่องที่ล็อกอินค้างอยู่แล้วไม่ถูกเตะออก** (เซสชัน Firebase ต่ออายุเอง) — ถ้าเปลี่ยนเพราะรหัสรั่ว ต้องระงับบัญชี (active=false: แอปซ่อน แต่ฐานข้อมูลยังให้อ่านจนกว่าจะทำขั้น 2) หรือเพิกถอนเซสชันด้วย Admin API (ยังไม่ได้ทำ) · LINE ไม่ใช้ PIN จึงไม่กระทบ · พลาด 8 ครั้งล็อก 15 นาที
 
 **ตั้งค่า (ผู้ใช้ทำเอง ห้ามใส่ค่าลงไฟล์ใด ๆ ใน repo):**
 1. Firebase Console → Build → **Authentication → Get started** (ไม่ต้องเปิด provider ใด custom token ใช้ได้เลย)

@@ -38,6 +38,23 @@ http
       res.writeHead(400).end('bad request');
       return;
     }
+    // ล็อกอินส่งต่อให้เว็บจริง — เครื่องนี้ไม่มี /api แต่ต้องได้ใบผ่าน Firebase ไม่งั้นกฎ auth != null อ่านอะไรไม่ได้
+    // ส่งต่อเฉพาะเส้นนี้เส้นเดียว ไม่เปิด /api อื่น (docs/security.md) · เปลี่ยนปลายทางด้วย DEV_API=https://...
+    if (rel === '/api/auth/login') {
+      const chunks = [];
+      req.on('data', (c) => chunks.push(c));
+      req.on('end', () => {
+        const api = (process.env.DEV_API || 'https://flashsolar.vercel.app').replace(/\/+$/, '');
+        fetch(api + rel, {
+          method: req.method === 'POST' ? 'POST' : 'GET',
+          headers: { 'content-type': 'application/json' },
+          body: req.method === 'POST' ? Buffer.concat(chunks) : undefined,
+        })
+          .then(async (r) => res.writeHead(r.status, { 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'no-store' }).end(await r.text()))
+          .catch(() => res.writeHead(502, { 'Content-Type': 'application/json; charset=utf-8' }).end('{"error":"proxy"}'));
+      });
+      return;
+    }
     if (rel.endsWith('/')) rel += 'index.html';
 
     const target = path.join(ROOT, rel);
