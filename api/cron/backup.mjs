@@ -42,7 +42,7 @@ const dueToday = (path) => parseInt(crypto.createHash("sha1").update(path).diges
 /* ตอบ error พร้อมแจ้ง LINE — รอบที่พังต้องมีคนรู้ ไม่งั้นข้อมูลไม่ได้สำรองแบบเงียบ ๆ */
 async function fail(what, e, extra) {
   const detail = String((e && e.message) || e || "");
-  await alertBackup("รอบ " + todayTH() + " ไม่สำเร็จ: " + what + " — " + detail);
+  await alertBackup("สำรองรอบ " + todayTH() + " ไม่สำเร็จ", what + " — " + detail);
   return json({ error: what, detail, ...(extra || {}) }, 502);
 }
 
@@ -117,8 +117,8 @@ export async function GET(request) {
     const commit = (await gh("POST", "/git/commits", { message: msg, tree, parents: [head] })).sha;
     await gh("PATCH", "/git/refs/heads/" + branch, { sha: commit });
     /* ชั่วคราว 2026-10-10: ผู้ใช้ขอลองรับข้อความแจ้งเตือน — เอาออกหลังได้รับแล้ว */
-    await alertBackup("🧪 ทดสอบแจ้งเตือน (ไม่ใช่ปัญหา)\nสำรองรอบนี้สำเร็จ: ข้อมูลงาน " + p.data.length + " กลุ่ม · ไฟล์/รูป " + p.leaves.length + " ชิ้น · แก้ " + changed + " · ค้าง " + pending);
-    if (failed) await alertBackup("รอบ " + date + " ดาวน์โหลดไฟล์/รูปพลาด " + failed + " ชิ้น (รอบหน้าลองใหม่เอง) — ถ้าเตือนซ้ำหลายวันให้ดู Logs");
+    await alertBackup("🧪 ทดสอบแจ้งเตือน (ไม่ใช่ปัญหา)", "สำรองรอบนี้สำเร็จ · ข้อมูลงาน " + p.data.length + " กลุ่ม · ไฟล์/รูป " + p.leaves.length + " ชิ้น · แก้ " + changed + " · ค้าง " + pending, true);
+    if (failed) await alertBackup("ดาวน์โหลดไฟล์/รูปพลาด " + failed + " ชิ้น", "รอบ " + date + " · รอบหน้าลองใหม่เอง — ถ้าเตือนซ้ำหลายวันให้ดู Logs");
     return json({ ok: true, commit, ms: Date.now() - t0, ...summary });
   } catch (e) { return fail("commit", e, summary); }
 }

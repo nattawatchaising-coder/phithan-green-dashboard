@@ -173,6 +173,44 @@ export function flexDigest(dateTH, lines, title) {
 }
 
 /* ================================================================
+   การ์ดระบบสำรองข้อมูล (api/cron/backup.mjs · ตัวเฝ้าใน daily.mjs) — ดู docs/backup.md
+   ok = true สีเขียว (ทดสอบ/ปกติ) · false สีแดง (มีปัญหา)
+   ปุ่มเปิด commit ใน GitHub repo สำรอง ไม่ใช่แอป — ในแอปไม่มีหน้าเรื่องสำรองข้อมูล
+   ================================================================ */
+export function flexBackup({ title, detail, ok, url }) {
+  const color = ok ? "#1B9B75" : "#D93025";
+  const head = (ok ? "✅" : "⚠️") + "  สำรองข้อมูล";
+  const t = clip(title, 110) || "สำรองข้อมูล";
+  const d = clip(detail, 260);
+
+  const body = [{ type: "text", text: t, weight: "bold", size: "md", color: "#152229", wrap: true }];
+  if (d) body.push({ type: "text", text: d, size: "sm", color: "#5B6B73", wrap: true, margin: "md" });
+  const rows = [kv("เมื่อ", stampTH(new Date().toISOString()))].filter(Boolean);
+  if (rows.length) {
+    body.push({ type: "separator", margin: "lg", color: "#E8EDEA" });
+    body.push({ type: "box", layout: "vertical", margin: "lg", contents: rows });
+  }
+
+  const bubble = {
+    type: "bubble", size: "kilo",
+    header: {
+      type: "box", layout: "vertical", backgroundColor: color, paddingAll: "13px",
+      contents: [{ type: "text", text: head, color: "#FFFFFF", size: "sm", weight: "bold" }],
+    },
+    body: { type: "box", layout: "vertical", paddingAll: "16px", contents: body },
+  };
+  /* ไม่มี url (ยังไม่ตั้ง BACKUP_GH_REPO) = ไม่ใส่ปุ่ม — uri ว่าง LINE ปฏิเสธทั้งใบ */
+  if (/^https:\/\//.test(url || "")) {
+    bubble.footer = {
+      type: "box", layout: "vertical", paddingAll: "12px", paddingTop: "0px",
+      contents: [{ type: "button", style: "primary", height: "sm", color, action: { type: "uri", label: "ดูใน GitHub", uri: url } }],
+    };
+    bubble.action = { type: "uri", label: "ดูใน GitHub", uri: url };
+  }
+  return { type: "flex", altText: clip(head.replace(/\s+/g, " ") + " — " + t + (d ? " · " + d : ""), 380), contents: bubble };
+}
+
+/* ================================================================
    ส่งการ์ด โดยมีตัวหนังสือเป็นตาข่ายรับ
 
    Flex ที่ประกอบผิดกติกาแม้นิดเดียว LINE ตอบ 400 แล้ว**ข้อความหายทั้งใบ**

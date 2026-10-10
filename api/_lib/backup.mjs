@@ -106,12 +106,17 @@ export async function gh(method, path, data) {
 const ALERT_USER = () => (process.env.BACKUP_ALERT_USER || "u-mq4zbpvk").trim();   // u-mq4zbpvk = Film
 const STALE_MS = 36 * 3600000;   // สำรองตี 3 · daily เช็ก 20:30 → ปกติห่าง ~17.5 ชม. เกิน 36 = ขาดไปอย่างน้อยหนึ่งคืน
 
-export async function alertBackup(msg) {
+/* การ์ดแบบเดียวกับแจ้งเตือนอื่น (flexBackup) · การ์ดถูกปฏิเสธ = ส่งตัวหนังสือแทน (pushCard)
+   title = เรื่องสั้น ๆ · detail = สาเหตุ/วิธีดู · ok = true เฉพาะข้อความทดสอบ */
+export async function alertBackup(title, detail, ok) {
   const { rtdbGet, pushMessage } = await import("./line.mjs");
+  const { flexBackup, pushCard } = await import("./flex.mjs");
   try {
     const u = await rtdbGet("users/" + ALERT_USER());
     if (!u || !u.lineUserId || u.active === false) return { ok: false, err: "alert user has no LINE" };
-    return await pushMessage(u.lineUserId, [{ type: "text", text: "⚠️ สำรองข้อมูล flash+solar\n" + msg + "\n\nวิธีแก้: docs/backup.md" }]);
+    const url = ghRepo() ? "https://github.com/" + ghRepo() + "/commits" : "";
+    const text = (ok ? "✅" : "⚠️") + " สำรองข้อมูล flash+solar\n" + title + (detail ? "\n" + detail : "") + "\n\nวิธีแก้: docs/backup.md";
+    return await pushCard(pushMessage, u.lineUserId, flexBackup({ title, detail, ok: !!ok, url }), text);
   } catch (e) { return { ok: false, err: String(e.message || e) }; }
 }
 
@@ -123,10 +128,10 @@ export async function checkBackup() {
     const j = await gh("GET", "/contents/_backup.json");
     s = JSON.parse(Buffer.from(j.content || "", "base64").toString("utf8"));
   } catch (e) {
-    return { alert: await alertBackup("อ่านสถานะใน GitHub ไม่ได้ (" + (e.message || e) + ") — token หมดอายุ/ถูกเพิกถอน หรือ repo ถูกย้าย?") };
+    return { alert: await alertBackup("อ่านสถานะใน GitHub ไม่ได้", String(e.message || e) + " — token หมดอายุ/ถูกเพิกถอน หรือ repo ถูกย้าย?") };
   }
   const age = Date.now() - Date.parse(s.at);
   if (!(age < STALE_MS))
-    return { alert: await alertBackup("ไม่ได้สำรองมา " + Math.round(age / 3600000) + " ชม. (ล่าสุด " + s.date + ") — ดู Vercel → Logs ของ /api/cron/backup") };
+    return { alert: await alertBackup("ไม่ได้สำรองมา " + Math.round(age / 3600000) + " ชม.", "สำรองล่าสุด " + s.date + " — ดู Vercel → Logs ของ /api/cron/backup") };
   return { ok: true, hours: Math.round(age / 3600000) };
 }
