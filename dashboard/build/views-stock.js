@@ -25,7 +25,7 @@ function sizeOfName(name) {
 function sizeGroupKey(it) {
   const p = sizeOfName(it && it.name);
   if (!p) return null;
-  return window.SF.mainCatOf(it.cat) + "|" + String(it.brand || "").trim().toLowerCase() + "|" + p.base.toLowerCase();
+  return window.SF.mainCatOf(it.cat) + "|" + String(it.brand || "").trim().toLowerCase() + "|" + String(it.series || "").trim().toLowerCase() + "|" + p.base.toLowerCase();
 }
 const STOCK_COLL = new Intl.Collator("th", {
   numeric: true
@@ -528,6 +528,7 @@ function StockView({
       name: it.name || "",
       cat: it.cat,
       brand: it.brand || "",
+      series: it.series || "",
       unit: it.unit || "ชิ้น",
       min: +it.min || 0,
       loc: it.loc || "",

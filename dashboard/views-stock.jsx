@@ -25,11 +25,12 @@ function sizeOfName(name) {
   if (!m) return null;
   return { size: m[0].trim().replace(/\s+/g, " ") + (hdg ? " HDG" : ""), base: s.slice(0, m.index) + "\u0000" + s.slice(m.index + m[0].length) };
 }
-/* คีย์กลุ่ม = หมวดหลัก + ยี่ห้อ + ชื่อที่ตัดขนาดออกแล้ว */
+/* คีย์กลุ่ม = หมวดหลัก + ยี่ห้อ + กลุ่มรุ่น + ชื่อที่ตัดขนาดออกแล้ว
+   กลุ่มรุ่น (series) ต่างกัน = คนละกลุ่ม — ผู้ใช้ ต.ค. 2026: Perforated พ่นสีฝุ่นกับชุบ HDG ปนกันในแถบขนาด */
 function sizeGroupKey(it) {
   const p = sizeOfName(it && it.name);
   if (!p) return null;
-  return window.SF.mainCatOf(it.cat) + "|" + String(it.brand || "").trim().toLowerCase() + "|" + p.base.toLowerCase();
+  return window.SF.mainCatOf(it.cat) + "|" + String(it.brand || "").trim().toLowerCase() + "|" + String(it.series || "").trim().toLowerCase() + "|" + p.base.toLowerCase();
 }
 const STOCK_COLL = new Intl.Collator("th", { numeric: true });
 /* แบ่งหน้า — "ดูทุกรายการ" มี 1,100+ ชิ้น (รูป data URL หลายร้อยรูป) วาดทีเดียวค้าง 1–3 วิ ทุกครั้งที่สลับการ์ด/ตาราง
@@ -314,7 +315,7 @@ function StockView({ stock, onResetAll, onMenuOpen, currentUser, jobs, priceStor
   const addSizeFrom = (it) => {
     if (!it) return;
     const rec = Object.assign(stock.blankItem(), {
-      name: it.name || "", cat: it.cat, brand: it.brand || "", unit: it.unit || "ชิ้น",
+      name: it.name || "", cat: it.cat, brand: it.brand || "", series: it.series || "", unit: it.unit || "ชิ้น",
       min: +it.min || 0, loc: it.loc || "", desc: it.desc || "", qty: 0, price: 0, sku: "",
       warY: +it.warY || 0, warPerfY: +it.warPerfY || 0, warNote: it.warNote || "",
     });
