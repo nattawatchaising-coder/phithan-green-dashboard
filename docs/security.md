@@ -67,6 +67,8 @@
 3. Vercel → โปรเจกต์ → Settings → Environment Variables → `FIREBASE_SERVICE_ACCOUNT` = เนื้อไฟล์ JSON ทั้งก้อน (Production) → Save · ลบไฟล์ JSON ในเครื่องทิ้งหลังวาง
 4. merge เข้า master (deploy ใหม่จึงอ่าน env) → เช็ก `https://<เว็บ>/api/auth/login` ต้องได้ `{"configured":true}`
 
+**สถานะ 2026-10-10:** ตั้งค่า 1–3 แล้ว · merge เข้า master (`0f8167c`) · `/api/auth/login` ตอบ `configured:true` · ผู้ใช้ล็อกอินเว็บผ่าน ขึ้นใน Authentication → Users (ช่อง Identifier/Providers ว่าง = ผู้ใช้จาก custom token ปกติ) · **ยังไม่ได้รัดกฎ** — รอทุกคนล็อกอินใหม่ + เช็ก cron/LINE
+
 ลำดับปล่อย: ตั้งค่า 1–3 → merge → ทุกคนล็อกอินเว็บใหม่หนึ่งครั้ง (LIFF ไม่ต้อง ได้ token เองตอนเปิด) → Console → Authentication → Users มีครบ → เช็ก cron (แจ้งเตือน 20:30 · 18:00) / ผูก LINE / push → **แล้วค่อย**วางกฎข้างล่าง
 
 ```json
