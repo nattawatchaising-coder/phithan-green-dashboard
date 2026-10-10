@@ -165,11 +165,12 @@
     D + " [style*='position: absolute'][style*='background: var(--surface)']," + D + " [style*='position: fixed'][style*='background: var(--surface)']{--surface:rgba(30,33,44,.95)}",
     G + " [style*='position: absolute'][style*='background: var(--surface)']," + G + " [style*='position: fixed'][style*='background: var(--surface)']{-webkit-backdrop-filter:blur(28px) saturate(1.5);backdrop-filter:blur(28px) saturate(1.5)}",
 
-    /* ปุ่มย่อ/ขยายแถบเมนู: เขียวแบรนด์ตลอด (ผู้ใช้เลือก) แต่ไม่มีวงแหวนสีพื้นทึบรอบ ๆ แบบเดิม — ใช้เงาฟุ้งสีเขียวแทน */
-    G + " .sidebar>button[aria-label='ย่อ/ขยายแถบเมนู']{width:28px!important;height:28px!important;right:-14px!important;border:none!important;",
-    "box-shadow:inset 0 1px 0 rgba(255,255,255,.35),0 4px 14px -3px color-mix(in srgb,var(--primary) 65%,transparent)!important;transition:filter .15s,box-shadow .15s}",
-    G + " .sidebar>button[aria-label='ย่อ/ขยายแถบเมนู'] svg{stroke-width:2.2}",
-    G + " .sidebar>button[aria-label='ย่อ/ขยายแถบเมนู']:hover{filter:brightness(1.08);box-shadow:inset 0 1px 0 rgba(255,255,255,.4),0 6px 18px -3px color-mix(in srgb,var(--primary) 80%,transparent)!important}",
+    /* ปุ่มย่อ/ขยายแถบเมนู: แท็บครึ่งแคปซูลสีเขียวยื่นออกจากขอบขวาของแถบเมนู เหมือนหูลิ้นชัก (ผู้ใช้เลือกแบบ 2 จากตัวเลือก 6 แบบ)
+       ไม่มีวงแหวนสีพื้น · มุมโค้งเฉพาะฝั่งขวา ฝั่งซ้ายแนบขอบเมนู · ชี้แล้วยืดออกนิดหนึ่ง */
+    G + " .sidebar>button[aria-label='ย่อ/ขยายแถบเมนู']{width:18px!important;height:46px!important;right:-18px!important;border:none!important;border-radius:0 12px 12px 0!important;",
+    "box-shadow:inset 0 1px 0 rgba(255,255,255,.3),4px 4px 14px -4px color-mix(in srgb,var(--primary) 60%,transparent)!important;transition:width .15s,right .15s,filter .15s}",
+    G + " .sidebar>button[aria-label='ย่อ/ขยายแถบเมนู'] svg{width:14px;height:14px;stroke-width:2.4}",
+    G + " .sidebar>button[aria-label='ย่อ/ขยายแถบเมนู']:hover{width:22px!important;right:-22px!important;filter:brightness(1.08)}",
 
     /* โมดัล/ลิ้นชัก: กระจกทึบขึ้น อ่านง่ายบนพื้นมืดของฉากหลังโมดัล */
     L + " [style*='var(--shadow-modal)']," + L + " [style*='var(--shadow-sheet)']{--surface:rgba(250,252,252,.86)}",
