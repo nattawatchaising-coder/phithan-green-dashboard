@@ -159,6 +159,24 @@
     G + " .ov-hero::after{inset:-1px;border-radius:inherit;background:linear-gradient(100deg,rgba(14,32,44,.74) 0,rgba(14,32,44,.58) 30%,rgba(14,32,44,.22) 62%,rgba(14,32,44,.06) 90%)}",
     G + " .ov-hero-fig{background:rgba(255,255,255,.18);-webkit-backdrop-filter:blur(10px) saturate(1.3);backdrop-filter:blur(10px) saturate(1.3)}",
 
+    /* เมนูเด้ง/ดรอปดาวน์ที่ลอยทับของอื่น (inline position:absolute|fixed + พื้น --surface) เช่น เมนูตั้งค่าท้ายแถบเมนู
+       กระจกใสปกติทำให้ตัวหนังสือข้างหลังโผล่ทะลุ — ทำให้ทึบเกือบเต็ม + เบลอแรง */
+    L + " [style*='position: absolute'][style*='background: var(--surface)']," + L + " [style*='position: fixed'][style*='background: var(--surface)']{--surface:rgba(250,252,252,.94)}",
+    D + " [style*='position: absolute'][style*='background: var(--surface)']," + D + " [style*='position: fixed'][style*='background: var(--surface)']{--surface:rgba(30,33,44,.95)}",
+    G + " [style*='position: absolute'][style*='background: var(--surface)']," + G + " [style*='position: fixed'][style*='background: var(--surface)']{-webkit-backdrop-filter:blur(28px) saturate(1.5);backdrop-filter:blur(28px) saturate(1.5)}",
+
+    /* ปุ่มย่อ/ขยายแถบเมนู: เดิมวงเขียวทึบมีวงแหวนสีพื้นหลังทึบ — เป็นเม็ดกระจกขาว ลูกศรสีแบรนด์ แล้วเป็นเขียวตอนชี้ */
+    G + " .sidebar>button[aria-label='ย่อ/ขยายแถบเมนู']{width:28px!important;height:28px!important;right:-14px!important;border:none!important;",
+    "background:rgba(255,255,255,.82)!important;-webkit-backdrop-filter:blur(14px) saturate(1.5);backdrop-filter:blur(14px) saturate(1.5);",
+    "box-shadow:inset 0 0 0 1px rgba(255,255,255,.9),0 4px 14px -4px rgba(15,43,51,.28)!important;transition:background .15s,box-shadow .15s}",
+    G + " .sidebar>button[aria-label='ย่อ/ขยายแถบเมนู'] svg{stroke:var(--primary);stroke-width:2.2}",
+    G + " .sidebar>button[aria-label='ย่อ/ขยายแถบเมนู']:hover{background:var(--primary)!important;box-shadow:0 6px 16px -4px color-mix(in srgb,var(--primary) 60%,transparent)!important}",
+    G + " .sidebar>button[aria-label='ย่อ/ขยายแถบเมนู']:hover svg{stroke:#fff}",
+    D + " .sidebar>button[aria-label='ย่อ/ขยายแถบเมนู']{background:rgba(44,48,62,.85)!important;box-shadow:inset 0 0 0 1px rgba(255,255,255,.14),0 4px 14px -4px rgba(0,0,0,.6)!important}",
+    D + " .sidebar>button[aria-label='ย่อ/ขยายแถบเมนู'] svg{stroke:var(--primary-bright,#4FD79A)}",
+    D + " .sidebar>button[aria-label='ย่อ/ขยายแถบเมนู']:hover{background:var(--primary)!important}",
+    D + " .sidebar>button[aria-label='ย่อ/ขยายแถบเมนู']:hover svg{stroke:#fff}",
+
     /* โมดัล/ลิ้นชัก: กระจกทึบขึ้น อ่านง่ายบนพื้นมืดของฉากหลังโมดัล */
     L + " [style*='var(--shadow-modal)']," + L + " [style*='var(--shadow-sheet)']{--surface:rgba(250,252,252,.86)}",
     D + " [style*='var(--shadow-modal)']," + D + " [style*='var(--shadow-sheet)']{--surface:rgba(28,31,40,.9)}",
