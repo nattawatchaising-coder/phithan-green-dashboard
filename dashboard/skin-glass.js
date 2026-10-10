@@ -151,7 +151,9 @@
     /* แถบต้อนรับหน้าภาพรวม (.ov-hero): ใช้รูปฟาร์มโซลาร์รูปเดียวกับพื้นหลัง · ผ้าคลุมเปลี่ยนจากเขียวแบรนด์ทึบ
        เป็นน้ำเงินเทาเข้มจาง ๆ ทางซ้าย (ผู้ใช้ว่าเขียวเกิน) — ตัวหนังสือขาวยังอ่านออก แล้วโปร่งไปทางขวาให้เห็นรูป */
     G + " .ov-hero{background:#2A3F4A url('" + PHOTO + "') right 72%/cover no-repeat}",
-    G + " .ov-hero::after{background:linear-gradient(100deg,rgba(14,32,44,.74) 0,rgba(14,32,44,.58) 30%,rgba(14,32,44,.22) 62%,rgba(14,32,44,.06) 90%)}",
+    /* ผ้าคลุมต้องคลุมใต้เส้นขอบ 1px ด้วย (inset:-1px) ไม่งั้นรูปดิบโผล่เป็นขอบสว่างรอบแถบ */
+    G + " .ov-hero{border-color:transparent;box-shadow:inset 0 0 0 1px rgba(255,255,255,.14),var(--shadow-sm)}",
+    G + " .ov-hero::after{inset:-1px;border-radius:inherit;background:linear-gradient(100deg,rgba(14,32,44,.74) 0,rgba(14,32,44,.58) 30%,rgba(14,32,44,.22) 62%,rgba(14,32,44,.06) 90%)}",
     G + " .ov-hero-fig{background:rgba(255,255,255,.18);-webkit-backdrop-filter:blur(10px) saturate(1.3);backdrop-filter:blur(10px) saturate(1.3)}",
 
     /* โมดัล/ลิ้นชัก: กระจกทึบขึ้น อ่านง่ายบนพื้นมืดของฉากหลังโมดัล */
