@@ -56,7 +56,16 @@
 4. ลบ `_restore/` หลังนำเข้า (มีข้อมูลลูกค้า)
 
 ทดสอบแล้ว 2026-10-10 (GitHub จำลอง + อ่าน Firebase จริง): กู้ `jobs/SF-2448` และ `billPhotos/SF-2450` ตรงกับข้อมูลจริงทุกไบต์ · รอบซ้ำไม่อัปข้อมูลงานซ้ำ · อ่านรายชื่อไม่ได้ = ไม่ commit
-**ยังไม่ได้ทดสอบ:** GitHub ตัวจริง (รอผู้ใช้ตั้ง env) · seed เต็มก้อน
+
+## สถานะ (2026-10-10)
+- repo สำรอง: **`nattawatchaising-coder/flashsolar-backup`** (private) · token ตั้ง No expiration (สิทธิ์ Contents เฉพาะ repo นี้) — หลุด = Revoke แล้วสร้างใหม่
+- env ตั้งใน Vercel แล้ว · cron รันจริงผ่าน 2 รอบ · seed รอบแรกเสร็จ: data 47 กลุ่ม + files 779 ชิ้น (341 MB) · ไฟล์ที่ cron เขียนตรงไบต์กับ seed (เปลี่ยน 0 ไฟล์)
+- กู้ `jobFiles/SF-2419` (8 MB) จาก repo จริง ตรงกับข้อมูลจริง
+- clone ไว้ที่เครื่อง 2: `D:\flashsolar-backup` (ตั้ง `core.autocrlf false` และ user.name/email ใน repo นั้นแล้ว — เครื่องอื่นที่ clone ต้องตั้งเอง)
+
+## สั่งรันเอง
+Vercel → Settings → **Cron Jobs** → แถว `/api/cron/backup` → **Run** (Vercel แนบ CRON_SECRET ให้เอง) · ⚠ ห้ามกด Run ของ `daily`/`clockout` — ส่ง LINE ถึงพนักงานจริง
+ผลดูที่ Logs (`requestPath:/api/cron/backup`) หรือ commit ล่าสุดใน repo สำรอง · env ใหม่มีผลหลัง deploy **Production** (push master) — Redeploy ตัว Preview ไม่ช่วย
 
 ## สำรองมือ (ไม่ต้องพึ่งระบบนี้)
 Firebase Console → Realtime Database → ⋮ → Export JSON (~355 MB) — เก็บที่ส่วนตัว ห้ามใส่ repo นี้
