@@ -179,6 +179,10 @@
     L + " [style*='var(--shadow-modal)']," + L + " [style*='var(--shadow-sheet)']{--surface:rgba(250,252,252,.86)}",
     D + " [style*='var(--shadow-modal)']," + D + " [style*='var(--shadow-sheet)']{--surface:rgba(28,31,40,.9)}",
     G + " [style*='var(--shadow-modal)']," + G + " [style*='var(--shadow-sheet)']{-webkit-backdrop-filter:blur(30px) saturate(1.5);backdrop-filter:blur(30px) saturate(1.5)}",
+    /* backdrop-filter ทำให้กล่องนั้นเป็นกรอบของลูกที่ position:fixed — หน้าจอเต็ม (BOQ · ห้องอุปกรณ์ · ออกแบบระบบ · ปฏิทิน · ป๊อปอัปเต็มจอ)
+       ที่เปิดจากในการ์ด/หน้าต่างกระจกจึงโดนขังเหลือแค่ขนาดกล่อง → ถอด blur ของกล่องที่มีหน้าจอเต็มอยู่ข้างในออกชั่วคราว (ของเต็มจอบังอยู่แล้ว มองไม่เห็นต่าง) */
+    G + " :is(.pnl,.sidebar,.app-header,.bd-col,.stat-rail>button,.ov-hero-fig,[style*='var(--shadow-card)'],[style*='var(--shadow-modal)'],[style*='var(--shadow-sheet)'],[style*='background: var(--surface)'])" +
+      ":has(.bq,.bqq-bd,.pgdp-wrap,.er,.su,.dv-bd,[style*='position: fixed'][style*='inset: 0']){-webkit-backdrop-filter:none!important;backdrop-filter:none!important}",
 
     /* พิมพ์เอกสาร: ไม่มีภาพพื้นหลัง */
     "@media print{" + G + " .app-root::before," + G + " .app-root::after{display:none}}",
