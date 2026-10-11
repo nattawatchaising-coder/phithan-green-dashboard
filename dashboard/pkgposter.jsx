@@ -25,22 +25,23 @@ const PK_TX_PATH = "config/pkPosterText";   // {title, wty ข้อความ
 const PK_TITLE_DEF = "แพ็คเกจโซลาร์รูฟท็อป";
 const PK_TH = "'IBM Plex Sans Thai', sans-serif";
 const PK_NUM = "'Outfit', 'IBM Plex Sans Thai', sans-serif";
-/* ธีมสี (ผู้ใช้ ต.ค. 2026 ขอเลือกธีม "เช้ามืด") — วาดทุกครั้งเรียก pkTheme(o.theme) ก่อน แล้วทุกฟังก์ชันอ่านสีจาก PK_C
-   ink ตัวหนังสือหลัก · deep ตัวเลขใหญ่/หัวข้อ · leaf สีเน้น (หน่วย ชิป HYBRID ประหยัด) · fill/solid พื้นทึบ (ตัวหนังสือขาวบน)
-   glass = rgb การ์ดกระจก · line/alt/recRow/chip1/chip3 = เส้นแบ่ง แถวสลับ แถวแนะนำ ชิป 1/3 เฟส · dark = พื้นมืด (โลโก้ยี่ห้อมีเม็ดยาขาวรอง) */
+/* ธีมสี (ผู้ใช้ ต.ค. 2026) — พื้นสว่างแบบเดิมทุกธีม เปลี่ยนแค่ชุดสี · วาดทุกครั้งเรียก pkTheme(o.theme) ก่อน แล้วทุกฟังก์ชันอ่านสีจาก PK_C
+   ink ตัวหนังสือหลัก · deep ตัวเลขใหญ่/หัวข้อ/พื้นทึบป้ายหัวข้อ · leaf สีเน้น (หน่วย ชิป HYBRID ประหยัด ป้ายแนะนำ) · price ราคา · solid2 ปลายไล่สีป้ายเขียว
+   band แถบล่าง · lr/dr = rgb ของ leaf/deep ไว้ทำพื้นจาง (แถวแนะนำ ชิปเฟส) · ผู้ใช้ลองธีมมืด "เช้ามืด" แล้วไม่เอา */
+function pkMkTheme(label, ink, deep, leaf, price, solid2, band, mute, lr, dr) {
+  return { label: label, sw: "linear-gradient(135deg," + deep + " 45%," + leaf + " 46%)",
+    ink: ink, deep: deep, leaf: leaf, price: price, green: solid2, sun: "#FCD34D", mute: mute, bg: "#F3F6F4", band: band, red: "#DC2626",
+    fill: deep, solid: leaf, solid2: solid2, glass: "255,255,255", edge: "rgba(255,255,255,.95)",
+    line: "rgba(15,43,51,.1)", alt: "rgba(15,43,51,.035)", recRow: "rgba(" + lr + ",.12)", chip1: "rgba(" + lr + ",.14)", chip3: "rgba(" + dr + ",.12)" };
+}
 const PK_THEMES = {
-  day: { label: "กลางวัน", sw: "linear-gradient(135deg,#BFDDF2,#13896A)",
-    ink: "#0F2B33", deep: "#0A4D68", leaf: "#13896A", price: "#0B6E4F", green: "#22B36A", sun: "#FCD34D", mute: "#5B6B63", bg: "#F3F6F4", band: "#0B2533", red: "#DC2626",
-    fill: "#0A4D68", solid: "#13896A", solid2: "#22B36A", glass: "255,255,255", edge: "rgba(255,255,255,.95)",
-    line: "rgba(15,43,51,.1)", alt: "rgba(15,43,51,.035)", recRow: "rgba(19,137,106,.12)", chip1: "rgba(19,137,106,.14)", chip3: "rgba(10,77,104,.12)", dark: false },
-  /* เช้ามืด = กรมเกือบดำ แสงส้มจาง ๆ ที่ขอบฟ้า (ผู้ใช้: ม่วงไม่ใช่มืด) */
-  dawn: { label: "เช้ามืด", sw: "linear-gradient(160deg,#070D1A,#13223A 60%,#B4643A)",
-    ink: "#F1F5FB", deep: "#FFFFFF", leaf: "#FDBA74", price: "#FCD34D", green: "#FB923C", sun: "#FCD34D", mute: "#97A3B8", bg: "#0A1120", band: "#050912", red: "#F87171",
-    fill: "#1F3A5F", solid: "#EA580C", solid2: "#F59E0B", glass: "17,27,45", edge: "rgba(255,255,255,.1)",
-    line: "rgba(255,255,255,.12)", alt: "rgba(255,255,255,.045)", recRow: "rgba(251,146,60,.2)", chip1: "rgba(253,186,116,.18)", chip3: "rgba(255,255,255,.14)", dark: true },
+  green: pkMkTheme("เขียว", "#0F2B33", "#0A4D68", "#13896A", "#0B6E4F", "#22B36A", "#0B2533", "#5B6B63", "19,137,106", "10,77,104"),
+  blue: pkMkTheme("น้ำเงิน", "#0F1B33", "#1E3A8A", "#2563EB", "#1D4ED8", "#3B82F6", "#0B1736", "#55607A", "37,99,235", "30,58,138"),
+  orange: pkMkTheme("ส้ม", "#2B1A10", "#9A3412", "#EA580C", "#C2410C", "#F59E0B", "#2A140A", "#6B5A4E", "234,88,12", "154,52,18"),
+  gold: pkMkTheme("กรมทอง", "#111827", "#0F2744", "#B7791F", "#A16207", "#D9A53A", "#0F1B2E", "#5F6673", "183,121,31", "15,39,68"),
 };
-const PK_C = Object.assign({}, PK_THEMES.day);
-const pkTheme = (k) => Object.assign(PK_C, PK_THEMES[k] || PK_THEMES.day);
+const PK_C = Object.assign({}, PK_THEMES.green);
+const pkTheme = (k) => Object.assign(PK_C, PK_THEMES[k] || PK_THEMES.green);
 const PK_SUM_MAX = 8;    // แพ็คเกจในรูปสรุปได้สูงสุด (เกินนี้แถวเตี้ยจนอ่านไม่ออก)
 
 const pkNorm = (s) => String(s || "").toLowerCase().replace(/\s+/g, " ").trim();
@@ -273,25 +274,8 @@ function pkHero(g, A, H, ay) {
   g.save(); g.beginPath(); g.rect(0, 0, PK_W, H); g.clip();
   if (A.hero) pkCover(g, A.hero, 0, 0, PK_W, H, ay == null ? .35 : ay);
   else { const sk = g.createLinearGradient(0, 0, 0, H); sk.addColorStop(0, "#BFDDF2"); sk.addColorStop(1, "#EEF4F1"); g.fillStyle = sk; g.fillRect(0, 0, PK_W, H); }
-  let gr;
-  if (C.dark) {
-    /* เช้ามืด: คูณรูปกลางวันด้วยกรมเกือบดำ → ส้มหม่นที่ขอบฟ้า + แสงอาทิตย์จาง ๆ หลังรูปสินค้า */
-    g.globalCompositeOperation = "multiply";
-    gr = g.createLinearGradient(0, 0, 0, H);
-    gr.addColorStop(0, "#070C18"); gr.addColorStop(.45, "#111C30"); gr.addColorStop(.8, "#33303A"); gr.addColorStop(1, "#7A5240");
-    g.fillStyle = gr; g.fillRect(0, 0, PK_W, H);
-    g.globalCompositeOperation = "screen";
-    const sx = PK_W * .8, sy = Math.min(H * .62, 520);
-    gr = g.createRadialGradient(sx, sy, 10, sx, sy, 440);
-    gr.addColorStop(0, "rgba(255,160,80,.32)"); gr.addColorStop(.45, "rgba(230,110,60,.1)"); gr.addColorStop(1, "rgba(230,110,60,0)");
-    g.fillStyle = gr; g.fillRect(0, 0, PK_W, H);
-    g.globalCompositeOperation = "source-over";
-    gr = g.createLinearGradient(0, 0, PK_W * .8, 0);
-    gr.addColorStop(0, "rgba(7,12,24,.92)"); gr.addColorStop(.48, "rgba(7,12,24,.7)"); gr.addColorStop(1, "rgba(7,12,24,0)");
-  } else {
-    gr = g.createLinearGradient(0, 0, PK_W * .8, 0);
-    gr.addColorStop(0, "rgba(246,249,247,.97)"); gr.addColorStop(.48, "rgba(246,249,247,.86)"); gr.addColorStop(1, "rgba(246,249,247,0)");
-  }
+  let gr = g.createLinearGradient(0, 0, PK_W * .8, 0);
+  gr.addColorStop(0, "rgba(246,249,247,.97)"); gr.addColorStop(.48, "rgba(246,249,247,.86)"); gr.addColorStop(1, "rgba(246,249,247,0)");
   g.fillStyle = gr; g.fillRect(0, 0, PK_W, H);
   gr = g.createLinearGradient(0, H - 300, 0, H);
   gr.addColorStop(0, C.bg + "00"); gr.addColorStop(1, C.bg);
@@ -329,18 +313,13 @@ function pkTop(g, A, o, brands) {
     if (b.logo) return { b: b, w: Math.min(190, 46 * (b.logo.naturalWidth || b.logo.width) / (b.logo.naturalHeight || b.logo.height)) };
     g.font = "800 30px " + PK_NUM; return { b: b, w: b.name ? g.measureText(b.name.toUpperCase()).width : 0 };
   });
-  /* ธีมมืด: โลโก้ยี่ห้อ (ตัวหนังสือดำ/แดง) จมพื้น → วางบนเม็ดยาขาวขุ่น */
-  if (C.dark && bl.length) {
-    const tot = bl.reduce((t, x) => t + x.w, 0) + 52 * (bl.length - 1);
-    g.save(); pkShadow(g, "rgba(0,0,0,.3)", 18, 6); pkRR(g, rx - tot - 26, y + 1, tot + 52, 64, 32); g.fillStyle = "rgba(255,255,255,.94)"; g.fill(); g.restore();
-  }
   bl.forEach((x, i) => {
     const b = x.b, w = x.w;
     if (i) { g.fillStyle = "rgba(15,43,51,.25)"; g.fillRect(rx - 2, y + 8, 2, 50); rx -= 26; }
     if (b.logo) {
       pkContain(g, b.logo, rx - w, y + 10, w, 46, .5, 1); rx -= w + 26;
     } else if (b.name) {
-      g.font = "800 30px " + PK_NUM; g.fillStyle = C.dark ? "#0A4D68" : C.deep; g.textAlign = "right"; g.fillText(b.name.toUpperCase(), rx, y + 44); g.textAlign = "left";
+      g.font = "800 30px " + PK_NUM; g.fillStyle = C.deep; g.textAlign = "right"; g.fillText(b.name.toUpperCase(), rx, y + 44); g.textAlign = "left";
       rx -= w + 26;
     }
   });
@@ -352,7 +331,7 @@ function pkTag(g, txt, y, lineTo) {
   pkRR(g, 52, y, w, 54, 10); g.fillStyle = C.fill; g.fill();
   g.fillStyle = "#fff"; g.textAlign = "left"; g.fillText(txt, 72, y + 38);
   if (lineTo > 52 + w + 40) {
-    const lg = g.createLinearGradient(52 + w + 20, 0, lineTo, 0); lg.addColorStop(0, C.dark ? C.leaf : C.fill); lg.addColorStop(1, (C.dark ? C.leaf : C.fill) + "00");
+    const lg = g.createLinearGradient(52 + w + 20, 0, lineTo, 0); lg.addColorStop(0, C.fill); lg.addColorStop(1, C.fill + "00");
     g.fillStyle = lg; g.fillRect(52 + w + 20, y + 26, lineTo - (52 + w + 20), 3);
   }
 }
@@ -735,7 +714,7 @@ function PkPosterModal({ lead, leads, stock, quotes, onClose }) {
   const [price, setPrice] = React.useState(saved.price !== false);
   const [contact, setContact] = React.useState(saved.contact === true);
   const [vat, setVat] = React.useState(saved.vat === true);
-  const [theme, setTheme] = React.useState(PK_THEMES[saved.theme] ? saved.theme : "day");
+  const [theme, setTheme] = React.useState(PK_THEMES[saved.theme] ? saved.theme : "green");
   const [title, setTitle] = React.useState(PK_TITLE_DEF);
   const [disc, setDisc] = React.useState("");
   const [wty, setWty] = React.useState(() => ((q && q.warranties) || PK_WTY_DEF).join("\n"));
@@ -897,9 +876,9 @@ function PkPosterModal({ lead, leads, stock, quotes, onClose }) {
                 </div>
               )}
               <div style={Object.assign({}, card, { gap: 12 })}>
-                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10 }}>
+                <div style={{ display: "flex", flexDirection: "column", gap: 7 }}>
                   <span style={{ fontSize: 13, fontWeight: 600, color: "var(--text-1)" }}>ธีมสี</span>
-                  <div style={{ display: "flex", gap: 3, padding: 3, borderRadius: "var(--r-pill)", background: "var(--surface2)", boxShadow: "var(--shadow-inset)" }}>
+                  <div style={{ display: "flex", flexWrap: "wrap", gap: 3, padding: 3, borderRadius: 14, background: "var(--surface2)", boxShadow: "var(--shadow-inset)" }}>
                     {Object.keys(PK_THEMES).map((k) => (
                       <button key={k} type="button" onClick={() => setTheme(k)}
                         style={{ display: "flex", alignItems: "center", gap: 6, border: "none", cursor: "pointer", fontFamily: "inherit", fontSize: 12, fontWeight: 700, padding: "5px 11px", borderRadius: "var(--r-pill)",
