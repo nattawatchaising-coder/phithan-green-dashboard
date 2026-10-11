@@ -699,6 +699,83 @@ function pkDrawSum(cv, rows, A, o) {
   pkBand(g, o, 1050);
 }
 
+/* ── รูป Add-on แบต + Optimizer (ผู้ใช้ ต.ค. 2026 ขอปุ่มทำเอง) ──
+   ราคา = ทุนในคลัง ÷ (1 − กำไร%) ปัดขึ้นหลักพัน — ราคาคลังเปลี่ยน กดทำรูปใหม่ได้เลย
+   ชื่อต้องตรงชื่อในคลังทุกตัวอักษร (เหมือน BOQ) */
+const PK_ADD = { bat: "HUAWEI LUNA2000-7-E1", pm: "HUAWEI LUNA2000-10KW-C1 (Power Module)", opt: "Huawei Optimizer MERC-600W-PA0" };
+const PK_ADD_OPT_DEF = [[5, 3.25], [8, 5.2], [16, 10.4], [24, 15.6], [32, 20.8]];   // [แผง, kWp] เมื่อยังไม่ได้เลือกแพ็คเกจ
+function pkAddon(items, rows, mg) {
+  const bI = pkFind(items, PK_ADD.bat), pI = pkFind(items, PK_ADD.pm), oI = pkFind(items, PK_ADD.opt);
+  const m = Math.min(90, Math.max(0, +mg || 0)), sell = (c) => Math.ceil(c / (1 - m / 100) / 1000) * 1000;
+  const per = (window.BOQ && window.BOQ.RULES && +window.BOQ.RULES.battS1Per) || 3, kwh = (bI && +bI.kwh) || 7;
+  const bats = bI ? [1, 2, 3].map((q) => ({ kwh: kwh * q, q: q, p: sell(q * (+bI.price || 0) + Math.ceil(q / per) * ((pI && +pI.price) || 0)) })) : [];
+  // ขนาด Optimizer = จำนวนแผงของแพ็คเกจที่เลือก (ไม่ซ้ำ · สูงสุด 5 ช่อง)
+  const seen = {}, ns = rows.map((r) => [r.sp.n, r.sp.kwp]).filter((x) => x[0] && !seen[x[0]] && (seen[x[0]] = 1)).sort((a, b) => a[0] - b[0]).slice(0, 5);
+  const optQ = (n) => (window.BOQ && window.BOQ.optimizerQty ? window.BOQ.optimizerQty(PK_ADD.opt, n) : n);
+  const opts = oI ? (ns.length ? ns : PK_ADD_OPT_DEF).map((x) => ({ kwp: x[1], n: optQ(x[0]), p: sell(optQ(x[0]) * (+oI.price || 0)) })) : [];
+  return { bI: bI, pI: pI, oI: oI, bats: bats, opts: opts, mg: m };
+}
+function pkDrawAddon(cv, A, o, ad) {
+  const g = cv.getContext("2d"), C = PK_C;
+  cv.width = PK_W; cv.height = PK_H;
+  g.imageSmoothingQuality = "high"; g.textBaseline = "alphabetic";
+  pkTheme(o.theme);
+  pkHero(g, A, 560);
+  const brand = (ad.bI && ad.bI.brand) || (ad.oI && ad.oI.brand) || "";
+  pkTop(g, A, o, [{ logo: A.iLogo, name: brand }]);
+  if (A.bSet) pkLift(g, () => pkContain(g, A.bSet, 690, 140, 230, 270, 1, .5), 30);
+  if (A.oPhoto) pkLift(g, () => pkContain(g, A.oPhoto, 920, 170, 90, 240, 1, .5), 24);
+  if (A.oPhoto2) pkLift(g, () => pkContain(g, A.oPhoto2, 610, 250, 64, 160, 1, .5), 20);
+  pkTag(g, o.title || ("อัปเกรดแพ็คเกจ " + brand), 156, 560);
+  const head = ad.bats.length ? "เพิ่มแบตเตอรี่" : "เพิ่ม Optimizer";
+  pkFit(g, head, "800", 92, PK_TH, 560, 50); g.fillStyle = C.deep; g.fillText(head, 44, 300);
+  if (ad.bats.length && ad.opts.length) { g.font = "800 52px " + PK_NUM; g.fillStyle = C.leaf; g.fillText("+ Optimizer", 52, 362); }
+  const sub = "ต่อเพิ่มจากแพ็คเกจโซลาร์ " + brand + " Hybrid ได้ทุกขนาด";
+  pkFit(g, sub, "600", 24, PK_TH, 540, 16); g.fillStyle = C.ink; g.fillText(sub, 52, 404);
+  const pr = (p) => "+฿" + pkFmt(pkPrice(p, o));
+  let y = 432;
+  if (ad.bats.length) {
+    const bm = String((ad.bI && ad.bI.model) || "").split("-")[0];
+    pkGlass(g, 48, y, PK_W - 96, 270, 30, .94);
+    g.font = "700 28px " + PK_TH; g.fillStyle = C.deep; g.fillText("แบตเตอรี่ " + brand + " " + bm, 80, y + 48);
+    g.font = "600 20px " + PK_TH; g.fillStyle = C.mute; g.textAlign = "right";
+    g.fillText("ก้อนละ " + ad.bats[0].kwh + " kWh" + (ad.pI ? " + Power Module" : "") + " · สำรองไฟ/ใช้ไฟกลางคืน", PK_W - 80, y + 48); g.textAlign = "left";
+    const tw = (PK_W - 96 - 60 - 40) / 3;
+    ad.bats.forEach((b, i) => {
+      const x = 78 + i * (tw + 20), ty = y + 72;
+      pkRR(g, x, ty, tw, 174, 22); g.fillStyle = i === 1 ? C.recRow : C.alt; g.fill();
+      const kt = String(b.kwh); g.font = "800 64px " + PK_NUM; const kw = g.measureText(kt).width;
+      g.font = "700 28px " + PK_NUM; const uw = g.measureText(" kWh").width, x0 = x + tw / 2 - (kw + uw) / 2;
+      g.font = "800 64px " + PK_NUM; g.fillStyle = C.deep; g.fillText(kt, x0, o.price ? ty + 74 : ty + 96);
+      g.font = "700 28px " + PK_NUM; g.fillStyle = C.leaf; g.fillText(" kWh", x0 + kw, o.price ? ty + 74 : ty + 96);
+      g.textAlign = "center"; g.font = "600 20px " + PK_TH; g.fillStyle = C.mute; g.fillText(b.q + " ก้อน", x + tw / 2, o.price ? ty + 108 : ty + 136);
+      if (o.price) { g.font = "800 38px " + PK_NUM; g.fillStyle = C.price; g.fillText(pr(b.p), x + tw / 2, ty + 154); }
+      g.textAlign = "left";
+    });
+    y = 722;
+  }
+  if (ad.opts.length) {
+    const om = String((ad.oI && ad.oI.model) || "").replace(/-PA\d*$/i, "");
+    const k = ad.opts.length, ow = (PK_W - 96 - 60 - (k - 1) * 16) / k, top = ad.bats.length ? y : 470, h = 290;
+    pkGlass(g, 48, top, PK_W - 96, h, 30, .94);
+    g.font = "700 28px " + PK_TH; g.fillStyle = C.deep; g.fillText("Optimizer " + brand + " " + om + " (ใส่ทุกแผง)", 80, top + 48);
+    const why = "ดูผลผลิตรายแผงในแอป · แผงโดนเงาบางแผงไม่ฉุดทั้งสตริง · ตัดไฟ DC ที่แผงได้เพื่อความปลอดภัย";
+    pkFit(g, why, "600", 20, PK_TH, PK_W - 160, 14); g.fillStyle = C.mute; g.fillText(why, 80, top + 84);
+    ad.opts.forEach((c, i) => {
+      const x = 78 + i * (ow + 16), ty = top + 106;
+      pkRR(g, x, ty, ow, 156, 20); g.fillStyle = C.alt; g.fill(); g.textAlign = "center";
+      g.font = "800 44px " + PK_NUM; g.fillStyle = C.deep; g.fillText(String(c.kwp), x + ow / 2, ty + 56);
+      g.font = "700 18px " + PK_NUM; g.fillStyle = C.leaf; g.fillText("kWp", x + ow / 2, ty + 80);
+      g.font = "600 18px " + PK_TH; g.fillStyle = C.mute; g.fillText(c.n + " ตัว", x + ow / 2, ty + 106);
+      if (o.price) { pkFit(g, pr(c.p), "800", 30, PK_NUM, ow - 16, 18); g.fillStyle = C.price; g.fillText(pr(c.p), x + ow / 2, ty + 142); }
+      g.textAlign = "left";
+    });
+    y = top + h;
+  }
+  if (o.price) { g.textAlign = "right"; g.font = "700 20px " + PK_TH; g.fillStyle = C.deep; g.fillText("* " + pkPriceNote(o), PK_W - 56, Math.min(y + 30, 1040)); g.textAlign = "left"; }
+  pkBand(g, o, 1050);
+}
+
 async function pkFonts() {
   if (!document.fonts || !document.fonts.load) return;
   try {
@@ -746,7 +823,14 @@ function PkPosterModal({ lead, leads, stock, quotes, onClose }) {
   };
   const sumRows = React.useMemo(() => cands.filter((c) => selIds.indexOf(c.l.id) >= 0)
     .map((c) => ({ sp: c.sp, disc: pkNum((row[c.l.id] || {}).disc), rec: !!(row[c.l.id] || {}).rec })), [cands, selIds, row]);
-  const assetSp = sum ? (sumRows[0] && sumRows[0].sp) : sp;
+  /* โหมดรูป Add-on แบต + Optimizer — อยู่ในป๊อปรูปสรุป (ขนาด Optimizer ตามแพ็คเกจที่เลือก) */
+  const [kind, setKind] = React.useState("sum");
+  const addon = sum && kind === "addon";
+  const [mg, setMg] = React.useState("15");
+  const ad = React.useMemo(() => (addon ? pkAddon(items, sumRows, pkNum(mg)) : null), [addon, items, sumRows, mg]);
+  const addSp = React.useMemo(() => (!ad ? null : { invs: [{ item: items.find((x) => /huawei/i.test(x.brand || "") && x.invType === "hybrid") || null }],
+    pItem: null, bat: ad.bI ? 1 : 0, batItem: ad.bI, opt: ad.oI ? 1 : 0, optItem: ad.oI }), [ad && ad.bI, ad && ad.oI, items]);
+  const assetSp = addon ? addSp : sum ? (sumRows[0] && sumRows[0].sp) : sp;
 
   const q = React.useMemo(() => {
     const list = (lead && typeof quotesOfLead === "function" ? quotesOfLead(quotes || [], lead) : []);
@@ -829,7 +913,7 @@ function PkPosterModal({ lead, leads, stock, quotes, onClose }) {
   React.useEffect(() => {
     try { localStorage.setItem(PK_LS, JSON.stringify({ logo: logo, price: price, contact: contact, vat: vat, theme: theme })); } catch (e) { /* โหมดส่วนตัว */ }
   }, [logo, price, contact, vat, theme]);
-  const assetKey = assetSp ? [assetSp.pItem && assetSp.pItem.id, assetSp.invs[0] && assetSp.invs[0].item && assetSp.invs[0].item.id].join("|") : "";
+  const assetKey = assetSp ? [assetSp.pItem && assetSp.pItem.id, assetSp.invs[0] && assetSp.invs[0].item && assetSp.invs[0].item.id, addon ? "add" : ""].join("|") : "";
   React.useEffect(() => {
     let live = true;
     Promise.all([pkAssets(assetSp), pkFonts()]).then((r) => { if (live) setA(r[0]); });
@@ -839,14 +923,16 @@ function PkPosterModal({ lead, leads, stock, quotes, onClose }) {
     if (!A || !cv.current) return;
     const o = { theme: theme, logo: logo, contact: contact, price: price, vat: vat, disc: pkNum(disc) || 0, title: title, wty: wty.split("\n").map((s) => s.trim()),
       co: Object.assign({}, co, { markIm: co.mark ? markIm : null }) };
-    if (sum) { if (sumRows.length) pkDrawSum(cv.current, sumRows, A, o); }
+    if (addon) { if (ad && (ad.bats.length || ad.opts.length)) pkDrawAddon(cv.current, A, Object.assign(o, { title: "" }), ad); }
+    else if (sum) { if (sumRows.length) pkDrawSum(cv.current, sumRows, A, o); }
     else pkDraw(cv.current, sp, A, o);
-  }, [A, sp, sumRows, theme, logo, contact, price, vat, disc, title, wty, co, markIm]);
+  }, [A, sp, sumRows, ad, theme, logo, contact, price, vat, disc, title, wty, co, markIm]);
 
   const download = () => {
     if (!cv.current) return;
     const a = document.createElement("a");
-    if (sum) {
+    if (addon) a.download = "Add-on แบต + Optimizer " + (((ad.bI || ad.oI) || {}).brand || "") + ".png";
+    else if (sum) {
       const ks = sumRows.map((r) => r.sp.kwp);
       a.download = "แพ็คเกจสรุป " + Math.min.apply(null, ks) + "-" + Math.max.apply(null, ks) + " kWp.png";
     } else a.download = "แพ็คเกจ " + sp.kwp + " kWp " + (lead.code || "") + ".png";
@@ -866,7 +952,7 @@ function PkPosterModal({ lead, leads, stock, quotes, onClose }) {
     borderRadius: "var(--r-tile)", padding: "9px 11px", fontFamily: "inherit", fontSize: 13, color: "var(--text-1)", outline: "none" };
   const card = { background: "var(--surface)", boxShadow: "var(--shadow-sm)", borderRadius: "var(--r-card)", padding: 14, display: "flex", flexDirection: "column", gap: 8 };
   const isMobile = window.innerWidth < 760;
-  const ready = sum ? sumRows.length > 0 : sp.ok;
+  const ready = addon ? !!ad && (ad.bats.length > 0 || ad.opts.length > 0) : sum ? sumRows.length > 0 : sp.ok;
 
   return ReactDOM.createPortal(
     <div onClick={onClose} style={{ position: "fixed", inset: 0, zIndex: 3000, background: "rgba(8,20,14,.55)", display: "flex", alignItems: "center", justifyContent: "center", padding: isMobile ? 0 : 20 }}>
@@ -874,6 +960,15 @@ function PkPosterModal({ lead, leads, stock, quotes, onClose }) {
         width: isMobile ? "100%" : "min(1020px,100%)", height: isMobile ? "100%" : "min(880px,94vh)", display: "flex", flexDirection: "column", overflow: "hidden" }}>
         <div style={{ padding: "12px 16px", background: "var(--surface)", boxShadow: "var(--shadow-sm)", display: "flex", alignItems: "center", gap: 10, zIndex: 1 }}>
           <div style={{ flex: 1, fontSize: 14.5, fontWeight: 800, color: "var(--text-1)" }}>{sum ? "รูปสรุปแพ็คเกจ" : "รูปแพ็คเกจ · " + (lead.name || lead.code)}</div>
+          {sum && (
+            <div style={{ display: "flex", gap: 3, padding: 3, borderRadius: 14, background: "var(--surface2)", boxShadow: "var(--shadow-inset)" }}>
+              {[["sum", "สรุปแพ็คเกจ"], ["addon", "Add-on แบต + Optimizer"]].map((t) => (
+                <button key={t[0]} type="button" onClick={() => setKind(t[0])}
+                  style={{ border: "none", cursor: "pointer", fontFamily: "inherit", fontSize: 12, fontWeight: 700, padding: "5px 11px", borderRadius: "var(--r-pill)", whiteSpace: "nowrap",
+                    background: kind === t[0] ? "var(--surface)" : "transparent", color: kind === t[0] ? "var(--text-1)" : "var(--text-3)", boxShadow: kind === t[0] ? "var(--shadow-sm)" : "none" }}>{t[1]}</button>
+              ))}
+            </div>
+          )}
           <button className="x-close" onClick={onClose} aria-label="ปิด" style={{ width: 32, height: 32, borderRadius: "var(--r-pill)", border: "none", background: "var(--surface2)", boxShadow: "var(--shadow-sm)", color: "var(--text-2)", cursor: "pointer", fontSize: 16 }}>×</button>
         </div>
         {!sum && !sp.ok ? (
@@ -883,10 +978,23 @@ function PkPosterModal({ lead, leads, stock, quotes, onClose }) {
         ) : (
           <div style={{ flex: 1, minHeight: 0, display: "flex", flexDirection: isMobile ? "column" : "row", overflow: isMobile ? "auto" : "hidden" }}>
             <div style={{ flex: 1, minHeight: isMobile ? 420 : 0, padding: 16, display: "flex", alignItems: "center", justifyContent: "center" }}>
-              {(!A || !ready) && <div style={{ color: "var(--text-3)", fontSize: 13 }}>{!ready ? "เลือกแพ็คเกจอย่างน้อย 1 รายการ" : "กำลังเตรียมรูป…"}</div>}
+              {(!A || !ready) && <div style={{ color: "var(--text-3)", fontSize: 13 }}>{!ready ? (addon ? "ไม่พบแบต/Optimizer ในคลัง (" + PK_ADD.bat + " · " + PK_ADD.opt + ")" : "เลือกแพ็คเกจอย่างน้อย 1 รายการ") : "กำลังเตรียมรูป…"}</div>}
               <canvas ref={cv} style={{ display: A && ready ? "block" : "none", maxWidth: "100%", maxHeight: "100%", aspectRatio: "1080 / 1350", height: isMobile ? "auto" : "100%", borderRadius: 14, boxShadow: "var(--shadow-card)" }} />
             </div>
             <div style={{ width: isMobile ? "auto" : 310, flexShrink: 0, padding: 16, display: "flex", flexDirection: "column", gap: 12, overflowY: "auto" }}>
+              {addon && ad && (
+                <div style={card}>
+                  <div style={{ fontSize: 13, fontWeight: 700, color: "var(--text-1)" }}>ราคา Add-on</div>
+                  <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                    <span style={{ fontSize: 12, fontWeight: 700, color: "var(--text-2)", whiteSpace: "nowrap" }}>กำไร</span>
+                    <input inputMode="decimal" value={mg} onChange={(e) => setMg(e.target.value)} style={well} />
+                    <span style={{ fontSize: 12, color: "var(--text-3)" }}>%</span>
+                  </div>
+                  {ad.bats.map((b) => <div key={"b" + b.q} style={{ display: "flex", fontSize: 12.5, color: "var(--text-2)" }}><span style={{ flex: 1 }}>แบต {b.kwh} kWh ({b.q} ก้อน)</span><b style={{ color: "var(--text-1)" }}>+฿{pkFmt(b.p)}</b></div>)}
+                  {ad.opts.map((c) => <div key={"o" + c.n} style={{ display: "flex", fontSize: 12.5, color: "var(--text-2)" }}><span style={{ flex: 1 }}>Optimizer {c.kwp} kWp ({c.n} ตัว)</span><b style={{ color: "var(--text-1)" }}>+฿{pkFmt(c.p)}</b></div>)}
+                  <div style={{ fontSize: 11.5, color: "var(--text-3)", lineHeight: 1.45 }}>ราคา = ทุนในคลัง ÷ (1 − กำไร%) ปัดขึ้นหลักพัน · แบตรวม Power Module · ขนาด Optimizer ตามแพ็คเกจที่เลือกด้านล่าง (สูงสุด 5 ขนาด) · ยังไม่รวมค่าแรงติดตั้งแบต</div>
+                </div>
+              )}
               {sum && (
                 <div style={card}>
                   <div style={{ fontSize: 13, fontWeight: 700, color: "var(--text-1)" }}>แพ็คเกจในรูป <span style={{ fontWeight: 600, color: "var(--text-3)", fontSize: 11.5 }}>เลือกได้ {PK_SUM_MAX} · {selIds.length} ที่เลือก</span></div>
@@ -902,7 +1010,7 @@ function PkPosterModal({ lead, leads, stock, quotes, onClose }) {
                             <span style={{ display: "block", fontSize: 11, color: "var(--text-3)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{c.l.code} · {c.l.name}</span>
                           </span>
                         </label>
-                        {on && (
+                        {on && !addon && (
                           <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
                             <input inputMode="decimal" placeholder="ส่วนลด ฿" value={r.disc || ""} onChange={(e) => setR(c.l.id, "disc", e.target.value)}
                               style={Object.assign({}, well, { padding: "6px 9px", fontSize: 12 })} />
@@ -984,8 +1092,8 @@ function PkPosterModal({ lead, leads, stock, quotes, onClose }) {
                 )}
               </div>
               <div style={card}>
-                <div style={{ fontSize: 12, fontWeight: 700, color: "var(--text-2)" }}>หัวข้อ</div>
-                <input value={title} onChange={(e) => setTitle(e.target.value)} style={well} />
+                {!addon && <div style={{ fontSize: 12, fontWeight: 700, color: "var(--text-2)" }}>หัวข้อ</div>}
+                {!addon && <input value={title} onChange={(e) => setTitle(e.target.value)} style={well} />}
                 <div style={{ fontSize: 12, fontWeight: 700, color: "var(--text-2)", marginTop: 4 }}>รับประกัน · บริการ (บรรทัดละข้อ · ขึ้นในรูป 6 ข้อแรก)</div>
                 <textarea value={wty} onChange={(e) => setWty(e.target.value)} rows={6} style={Object.assign({}, well, { resize: "vertical", lineHeight: 1.5 })} />
                 <div style={{ display: "flex", alignItems: "center", gap: 10, marginTop: 2 }}>
