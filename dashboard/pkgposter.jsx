@@ -108,7 +108,8 @@ function pkTrim(im) {
     /* พื้นขาวที่ยังติดอยู่ทำให้โปร่ง — ไล่จากขอบรูปเข้าไปเฉพาะพื้นขาวที่ต่อกับขอบ (flood fill)
        ตัวสินค้าสีขาว (อินเวอร์เตอร์) จึงไม่โปร่งเป็นผีตามไปด้วย */
     const od = og.getImageData(0, 0, w, h), p = od.data, seen = new Uint8Array(w * h), st = [];
-    const light = (k) => Math.min(p[k * 4], p[k * 4 + 1], p[k * 4 + 2]) > 232 || p[k * 4 + 3] < 20;
+    /* ไล่เฉพาะขาวเกือบบริสุทธิ์ (> 248) — หน้าเครื่องสีขาวของอินเวอร์เตอร์อยู่ราว 237–246 เกณฑ์ต่ำกว่านี้ไหลเข้าหน้าเครื่องจนเป็นจุด ๆ */
+    const light = (k) => Math.min(p[k * 4], p[k * 4 + 1], p[k * 4 + 2]) > 248 || p[k * 4 + 3] < 20;
     for (let x = 0; x < w; x++) st.push(x, (h - 1) * w + x);
     for (let y = 0; y < h; y++) st.push(y * w, y * w + w - 1);
     while (st.length) {
@@ -116,7 +117,7 @@ function pkTrim(im) {
       if (seen[k] || !light(k)) continue;
       seen[k] = 1;
       const m = Math.min(p[k * 4], p[k * 4 + 1], p[k * 4 + 2]);
-      p[k * 4 + 3] = m > 246 ? 0 : Math.round(p[k * 4 + 3] * (246 - m) / 14);
+      p[k * 4 + 3] = m > 252 ? 0 : Math.round(p[k * 4 + 3] * (253 - m) / 5);
       const x = k % w;
       if (x > 0) st.push(k - 1); if (x < w - 1) st.push(k + 1);
       if (k >= w) st.push(k - w); if (k < w * (h - 1)) st.push(k + w);
@@ -137,10 +138,10 @@ function pkBrandKeys(item) {
   return out;
 }
 /* รูปสินค้าประจำยี่ห้อสำหรับโพสต์ (ไฟล์ใน repo · ผู้ใช้ให้มา) — มาก่อนรูปในคลัง ไม่มี = รูปคลัง */
-const PK_BRAND_PHOTO = { huawei: "dashboard/assets/pkg-inv-huawei.jpg" };
-function pkBrandPhoto(item) {
-  const k = String((item && item.brand) || "").trim().toLowerCase();
-  return pkImg(PK_BRAND_PHOTO[k] || "");
+const PK_BRAND_PHOTO = { "inv:huawei": "dashboard/assets/pkg-inv-huawei.jpg", "panel:longi": "dashboard/assets/pkg-panel-longi.jpg" };
+function pkBrandPhoto(item, kind) {
+  const k = kind + ":" + String((item && item.brand) || "").trim().toLowerCase();
+  return pkImg(PK_BRAND_PHOTO[k] || "");   // ไม่มีไฟล์ = null → รูปคลัง
 }
 async function pkAssets(sp) {
   const inv = sp && sp.invs[0] && sp.invs[0].item;
@@ -148,8 +149,8 @@ async function pkAssets(sp) {
   const [hero, mark, pPhoto, iPhoto, pLogo, iLogo] = await Promise.all([
     pkImg("dashboard/assets/pkg-house-light.jpg"),   // บ้านสว่าง ฝั่งซ้ายเป็นฟ้าโล่ง (ผู้ใช้ให้มา ต.ค. 2026 · ของเดิม pkg-house.jpg)
     pkImg(typeof brandDocURL === "function" ? brandDocURL() : ""),
-    pkFirstImg([pItem && pItem.id, "cat_panel"]),
-    pkBrandPhoto(inv).then((im) => im || pkFirstImg([inv && inv.id, "cat_inverter"])),
+    pkBrandPhoto(pItem, "panel").then((im) => im || pkFirstImg([pItem && pItem.id, "cat_panel"])),
+    pkBrandPhoto(inv, "inv").then((im) => im || pkFirstImg([inv && inv.id, "cat_inverter"])),
     pkFirstImg(pkBrandKeys(pItem)),
     pkFirstImg(pkBrandKeys(inv)),
   ]);
@@ -214,6 +215,14 @@ function pkWrap(g, txt, maxW, maxLines) {
   if (lines.length > maxLines) { lines.length = maxLines; lines[maxLines - 1] = lines[maxLines - 1].replace(/.$/, "…"); }
   return lines;
 }
+/* วาดของขาว/สีอ่อนบนพื้นฟ้าสว่างให้ไม่กลืน (ผู้ใช้ ต.ค. 2026: อินเวอร์เตอร์ขาว · โลโก้มีส่วนขาว โดนพื้นกลบ)
+   เงาฟุ้งใหญ่ (big) + วาดซ้ำด้วยเงาแคบเข้ม = เส้นขอบนุ่ม ๆ รอบตัว */
+function pkLift(g, draw, big) {
+  g.save();
+  if (big) { pkShadow(g, "rgba(8,30,40,.38)", big, big * .45); draw(); }
+  pkShadow(g, "rgba(8,30,40,.55)", 3, 0); draw();
+  g.restore();
+}
 function pkShadow(g, c, blur, oy) { g.shadowColor = c; g.shadowBlur = blur; g.shadowOffsetX = 0; g.shadowOffsetY = oy || 0; }
 /* การ์ดกระจกขาวบนพื้นรูป */
 function pkGlass(g, x, y, w, h, r, a) {
@@ -246,7 +255,7 @@ function pkTop(g, A, o, brands) {
     const lh = 64, mw = mark ? Math.min(lh * ((mark.naturalWidth || mark.width) / (mark.naturalHeight || mark.height)), 230) : 0;
     let x = 52;
     g.textBaseline = "alphabetic"; g.textAlign = "left";
-    if (mark) { pkContain(g, mark, x, y, mw, lh); x += mw + 14; }
+    if (mark) { const mx = x; pkLift(g, () => pkContain(g, mark, mx, y, mw, lh), 0); x += mw + 14; }
     const tx = x + 1;
     if (nm) {
       let fs = 40; g.font = "700 " + fs + "px " + PK_NUM;
@@ -378,10 +387,8 @@ function pkDraw(cv, sp, A, o) {
   pkTop(g, A, o, [{ logo: A.pLogo, name: pBrand }, { logo: inv0 ? A.iLogo : null, name: inv0 ? iBrand : "" }].filter((b) => b.logo || b.name));
 
   // รูปสินค้าลอยฝั่งขวา: แผงอยู่หลัง อินเวอร์เตอร์อยู่หน้า
-  g.save(); pkShadow(g, "rgba(0,0,0,.28)", 34, 16);
-  if (A.pPhoto) pkContain(g, A.pPhoto, 672, 150, 210, 360, .5, .5);
-  if (A.iPhoto) pkContain(g, A.iPhoto, 826, 270, 210, 250, 1, .5);
-  g.restore();
+  if (A.pPhoto) pkLift(g, () => pkContain(g, A.pPhoto, 672, 150, 210, 360, .5, .5), 34);
+  if (A.iPhoto) pkLift(g, () => pkContain(g, A.iPhoto, 826, 270, 210, 250, 1, .5), 34);
 
   pkTag(g, o.title || PK_TITLE_DEF, 168, 640);
   // ขนาดระบบตัวใหญ่
@@ -471,10 +478,8 @@ function pkDrawSum(cv, rows, A, o) {
   const pBrand = brand((r) => r.sp.pItem && r.sp.pItem.brand);
   const iBrand = brand((r) => r.sp.invs[0] && r.sp.invs[0].item && r.sp.invs[0].item.brand);
   pkTop(g, A, o, [{ logo: pBrand ? A.pLogo : null, name: pBrand }, { logo: iBrand ? A.iLogo : null, name: iBrand }].filter((b) => b.logo || b.name));
-  g.save(); pkShadow(g, "rgba(0,0,0,.28)", 30, 14);
-  if (A.pPhoto) pkContain(g, A.pPhoto, 690, 150, 200, 330, .5, .5);
-  if (A.iPhoto) pkContain(g, A.iPhoto, 830, 250, 210, 240, 1, .5);
-  g.restore();
+  if (A.pPhoto) pkLift(g, () => pkContain(g, A.pPhoto, 690, 150, 200, 330, .5, .5), 30);
+  if (A.iPhoto) pkLift(g, () => pkContain(g, A.iPhoto, 830, 250, 210, 240, 1, .5), 30);
 
   pkTag(g, o.title || PK_TITLE_DEF, 156, 680);
   const ks = rows.map((r) => r.sp.kwp), lo = Math.min.apply(null, ks), hi = Math.max.apply(null, ks);

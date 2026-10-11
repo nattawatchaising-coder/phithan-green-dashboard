@@ -140,7 +140,7 @@ function pkTrim(im) {
       p = od.data,
       seen = new Uint8Array(w * h),
       st = [];
-    const light = k => Math.min(p[k * 4], p[k * 4 + 1], p[k * 4 + 2]) > 232 || p[k * 4 + 3] < 20;
+    const light = k => Math.min(p[k * 4], p[k * 4 + 1], p[k * 4 + 2]) > 248 || p[k * 4 + 3] < 20;
     for (let x = 0; x < w; x++) st.push(x, (h - 1) * w + x);
     for (let y = 0; y < h; y++) st.push(y * w, y * w + w - 1);
     while (st.length) {
@@ -148,7 +148,7 @@ function pkTrim(im) {
       if (seen[k] || !light(k)) continue;
       seen[k] = 1;
       const m = Math.min(p[k * 4], p[k * 4 + 1], p[k * 4 + 2]);
-      p[k * 4 + 3] = m > 246 ? 0 : Math.round(p[k * 4 + 3] * (246 - m) / 14);
+      p[k * 4 + 3] = m > 252 ? 0 : Math.round(p[k * 4 + 3] * (253 - m) / 5);
       const x = k % w;
       if (x > 0) st.push(k - 1);
       if (x < w - 1) st.push(k + 1);
@@ -175,16 +175,17 @@ function pkBrandKeys(item) {
   return out;
 }
 const PK_BRAND_PHOTO = {
-  huawei: "dashboard/assets/pkg-inv-huawei.jpg"
+  "inv:huawei": "dashboard/assets/pkg-inv-huawei.jpg",
+  "panel:longi": "dashboard/assets/pkg-panel-longi.jpg"
 };
-function pkBrandPhoto(item) {
-  const k = String(item && item.brand || "").trim().toLowerCase();
+function pkBrandPhoto(item, kind) {
+  const k = kind + ":" + String(item && item.brand || "").trim().toLowerCase();
   return pkImg(PK_BRAND_PHOTO[k] || "");
 }
 async function pkAssets(sp) {
   const inv = sp && sp.invs[0] && sp.invs[0].item;
   const pItem = sp && sp.pItem;
-  const [hero, mark, pPhoto, iPhoto, pLogo, iLogo] = await Promise.all([pkImg("dashboard/assets/pkg-house-light.jpg"), pkImg(typeof brandDocURL === "function" ? brandDocURL() : ""), pkFirstImg([pItem && pItem.id, "cat_panel"]), pkBrandPhoto(inv).then(im => im || pkFirstImg([inv && inv.id, "cat_inverter"])), pkFirstImg(pkBrandKeys(pItem)), pkFirstImg(pkBrandKeys(inv))]);
+  const [hero, mark, pPhoto, iPhoto, pLogo, iLogo] = await Promise.all([pkImg("dashboard/assets/pkg-house-light.jpg"), pkImg(typeof brandDocURL === "function" ? brandDocURL() : ""), pkBrandPhoto(pItem, "panel").then(im => im || pkFirstImg([pItem && pItem.id, "cat_panel"])), pkBrandPhoto(inv, "inv").then(im => im || pkFirstImg([inv && inv.id, "cat_inverter"])), pkFirstImg(pkBrandKeys(pItem)), pkFirstImg(pkBrandKeys(inv))]);
   return {
     hero: hero,
     mark: mark,
@@ -279,6 +280,16 @@ function pkWrap(g, txt, maxW, maxLines) {
   }
   return lines;
 }
+function pkLift(g, draw, big) {
+  g.save();
+  if (big) {
+    pkShadow(g, "rgba(8,30,40,.38)", big, big * .45);
+    draw();
+  }
+  pkShadow(g, "rgba(8,30,40,.55)", 3, 0);
+  draw();
+  g.restore();
+}
 function pkShadow(g, c, blur, oy) {
   g.shadowColor = c;
   g.shadowBlur = blur;
@@ -341,7 +352,8 @@ function pkTop(g, A, o, brands) {
     g.textBaseline = "alphabetic";
     g.textAlign = "left";
     if (mark) {
-      pkContain(g, mark, x, y, mw, lh);
+      const mx = x;
+      pkLift(g, () => pkContain(g, mark, mx, y, mw, lh), 0);
       x += mw + 14;
     }
     const tx = x + 1;
@@ -615,11 +627,8 @@ function pkDraw(cv, sp, A, o) {
     logo: inv0 ? A.iLogo : null,
     name: inv0 ? iBrand : ""
   }].filter(b => b.logo || b.name));
-  g.save();
-  pkShadow(g, "rgba(0,0,0,.28)", 34, 16);
-  if (A.pPhoto) pkContain(g, A.pPhoto, 672, 150, 210, 360, .5, .5);
-  if (A.iPhoto) pkContain(g, A.iPhoto, 826, 270, 210, 250, 1, .5);
-  g.restore();
+  if (A.pPhoto) pkLift(g, () => pkContain(g, A.pPhoto, 672, 150, 210, 360, .5, .5), 34);
+  if (A.iPhoto) pkLift(g, () => pkContain(g, A.iPhoto, 826, 270, 210, 250, 1, .5), 34);
   pkTag(g, o.title || PK_TITLE_DEF, 168, 640);
   const big = String(sp.kwp);
   g.font = "800 168px " + PK_NUM;
@@ -802,11 +811,8 @@ function pkDrawSum(cv, rows, A, o) {
     logo: iBrand ? A.iLogo : null,
     name: iBrand
   }].filter(b => b.logo || b.name));
-  g.save();
-  pkShadow(g, "rgba(0,0,0,.28)", 30, 14);
-  if (A.pPhoto) pkContain(g, A.pPhoto, 690, 150, 200, 330, .5, .5);
-  if (A.iPhoto) pkContain(g, A.iPhoto, 830, 250, 210, 240, 1, .5);
-  g.restore();
+  if (A.pPhoto) pkLift(g, () => pkContain(g, A.pPhoto, 690, 150, 200, 330, .5, .5), 30);
+  if (A.iPhoto) pkLift(g, () => pkContain(g, A.iPhoto, 830, 250, 210, 240, 1, .5), 30);
   pkTag(g, o.title || PK_TITLE_DEF, 156, 680);
   const ks = rows.map(r => r.sp.kwp),
     lo = Math.min.apply(null, ks),
