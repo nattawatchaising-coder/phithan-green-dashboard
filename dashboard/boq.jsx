@@ -104,6 +104,10 @@ const BQ_CSS = `
 .bq-cabx-opt b{font-size:14px;font-weight:800;font-family:var(--mono)}
 .bq-cabx-opt .s{font-size:10px;font-weight:600;color:var(--text-3)}
 .bq-cabx-opt .ns{font-size:9.5px;font-weight:800;color:var(--tint-amber-tx)}
+.bq-cabx-opt .pr{font-size:11px;font-weight:800;color:var(--text-2);font-variant-numeric:tabular-nums;margin-top:2px}
+.bq-cabx-opt .pr.best{color:var(--tint-green-tx)}
+.bq-cabx-opt .pr i{font-style:normal;font-size:9.5px;font-weight:800;margin-left:5px;padding:1px 6px;border-radius:var(--r-pill);background:var(--primary-soft);color:var(--tint-green-tx)}
+.bq-cabx-opt .pr.na{font-weight:600;color:var(--text-3)}
 .bq-cabx-stp{display:inline-flex;align-items:center;border-radius:9px;background:var(--surface);box-shadow:var(--shadow-sm)}
 .bq-cabx-stp button{width:26px;height:26px;border:0;background:none;cursor:pointer;font-size:15px;font-weight:800;color:var(--text-2);font-family:inherit}
 .bq-cabx-stp button:disabled{opacity:.3;cursor:default}
@@ -1702,6 +1706,13 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock, ver, verName, p3Vers
     return null;
   };
   const cabPlans = (b.cables || []).map((c) => (isPowerCab(c) ? CAB_FAMS.map((f) => cabPlan(c, f)) : null));
+  /* เทียบราคาสายแต่ละชนิด (ผู้ใช้ ต.ค. 2026) — ราคา/ม. จากคลัง × เส้นต่อชุด × จำนวนชุด × ระยะ (ไม่รวมกราวด์ เพราะเท่ากันทุกชนิด)
+     ยังไม่กรอกระยะ = ราคาต่อระยะเดิน 1 ม. · ไม่มีราคาในคลัง = null */
+  const cabCost = (p, len) => {
+    if (!p) return null;
+    const pr = +((priceMap || {})[window.BOQ.matKey(p.name)] || {}).price || 0;
+    return pr > 0 ? Math.round(pr * p.wires * p.sets * (len > 0 ? len : 1)) : null;
+  };
   /* ชนิดที่ระบบเลือกให้ — ตามที่ผู้ใช้กดการ์ดไว้ (c.fam) ไม่งั้นเอาตัวแรกที่มีในคลังแบบชุดเดียว
      ลำดับ: CV หลายแกน → CV แกนเดียว → THW แกนเดียว */
   const cabDefaultPlan = (plans, c) => {
@@ -4071,8 +4082,12 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock, ver, verName, p3Vers
                         <div className="bq-cabx-step" style={{ alignItems: "flex-start" }}>
                           <span className="n" style={{ marginTop: 8 }}>2</span><span className="lb" style={{ marginTop: 9 }}>ขนาดสาย</span>
                           <div className="bq-cabx-opts">
-                            {CAB_FAMS.map((f, k) => {
-                              const p = plans[k];
+                            {(() => {
+                              const costs = plans.map((p) => cabCost(p, len));
+                              const priced = costs.filter((v) => v != null);
+                              const best = priced.length > 1 ? Math.min.apply(null, priced) : null;
+                              return CAB_FAMS.map((f, k) => {
+                              const p = plans[k], cost = costs[k];
                               const on = !!p && cabNorm(p.name) === cabNorm(c.type);
                               return (
                                 <button key={f.key} type="button" className={"bq-cabx-opt" + (on ? " on" : "")} disabled={!p}
@@ -4083,11 +4098,16 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock, ver, verName, p3Vers
                                       <b>{p.size} mm²{p.sets > 1 ? " × " + p.sets + " ชุด" : ""}</b>
                                       <span className="s">พิกัด {p.amp * p.sets} A{p.vd ? " · ΔV " + p.vd.pct + "%" : ""}</span>
                                       {!p.inStock && <span className="ns">ไม่มีในคลัง</span>}
+                                      {cost != null
+                                        ? <span className={"pr" + (cost === best ? " best" : "")} title={"ราคา/ม. × " + p.wires + " เส้น" + (p.sets > 1 ? " × " + p.sets + " ชุด" : "") + (len > 0 ? " × " + len + " ม." : " ต่อระยะเดิน 1 ม.") + " (ไม่รวมกราวด์)"}>
+                                            ฿{cost.toLocaleString()}{len > 0 ? "" : "/ม."}{cost === best && <i>ถูกสุด</i>}</span>
+                                        : p.inStock && <span className="pr na">ยังไม่มีราคา</span>}
                                     </React.Fragment>
                                   ) : <span className="s">ไม่มีขนาดที่รับไหว</span>}
                                 </button>
                               );
-                            })}
+                              });
+                            })()}
                           </div>
                         </div>
                         {/* ③ กี่ชุด ชุดละกี่เส้น + สายกราวด์ตามตาราง 4.1 */}

@@ -97,6 +97,10 @@ const BQ_CSS = `
 .bq-cabx-opt b{font-size:14px;font-weight:800;font-family:var(--mono)}
 .bq-cabx-opt .s{font-size:10px;font-weight:600;color:var(--text-3)}
 .bq-cabx-opt .ns{font-size:9.5px;font-weight:800;color:var(--tint-amber-tx)}
+.bq-cabx-opt .pr{font-size:11px;font-weight:800;color:var(--text-2);font-variant-numeric:tabular-nums;margin-top:2px}
+.bq-cabx-opt .pr.best{color:var(--tint-green-tx)}
+.bq-cabx-opt .pr i{font-style:normal;font-size:9.5px;font-weight:800;margin-left:5px;padding:1px 6px;border-radius:var(--r-pill);background:var(--primary-soft);color:var(--tint-green-tx)}
+.bq-cabx-opt .pr.na{font-weight:600;color:var(--text-3)}
 .bq-cabx-stp{display:inline-flex;align-items:center;border-radius:9px;background:var(--surface);box-shadow:var(--shadow-sm)}
 .bq-cabx-stp button{width:26px;height:26px;border:0;background:none;cursor:pointer;font-size:15px;font-weight:800;color:var(--text-2);font-family:inherit}
 .bq-cabx-stp button:disabled{opacity:.3;cursor:default}
@@ -2910,6 +2914,11 @@ function BOQEditor({
     return null;
   };
   const cabPlans = (b.cables || []).map(c => isPowerCab(c) ? CAB_FAMS.map(f => cabPlan(c, f)) : null);
+  const cabCost = (p, len) => {
+    if (!p) return null;
+    const pr = +((priceMap || {})[window.BOQ.matKey(p.name)] || {}).price || 0;
+    return pr > 0 ? Math.round(pr * p.wires * p.sets * (len > 0 ? len : 1)) : null;
+  };
   const cabDefaultPlan = (plans, c) => {
     if (!plans) return null;
     if (c.fam) {
@@ -8206,26 +8215,37 @@ function BOQEditor({
         }
       }, "\u0E02\u0E19\u0E32\u0E14\u0E2A\u0E32\u0E22"), React.createElement("div", {
         className: "bq-cabx-opts"
-      }, CAB_FAMS.map((f, k) => {
-        const p = plans[k];
-        const on = !!p && cabNorm(p.name) === cabNorm(c.type);
-        return React.createElement("button", {
-          key: f.key,
-          type: "button",
-          className: "bq-cabx-opt" + (on ? " on" : ""),
-          disabled: !p,
-          title: p ? p.name : "ไม่มีขนาดในตาราง วสท. ที่รับกระแสนี้ได้",
-          onClick: () => p && pickCabFam(i, f.key)
-        }, React.createElement("span", {
-          className: "t"
-        }, f.th, f.multi ? " (" + (ph === 3 ? 4 : 2) + " แกน)" : ""), p ? React.createElement(React.Fragment, null, React.createElement("b", null, p.size, " mm\xB2", p.sets > 1 ? " × " + p.sets + " ชุด" : ""), React.createElement("span", {
-          className: "s"
-        }, "\u0E1E\u0E34\u0E01\u0E31\u0E14 ", p.amp * p.sets, " A", p.vd ? " · ΔV " + p.vd.pct + "%" : ""), !p.inStock && React.createElement("span", {
-          className: "ns"
-        }, "\u0E44\u0E21\u0E48\u0E21\u0E35\u0E43\u0E19\u0E04\u0E25\u0E31\u0E07")) : React.createElement("span", {
-          className: "s"
-        }, "\u0E44\u0E21\u0E48\u0E21\u0E35\u0E02\u0E19\u0E32\u0E14\u0E17\u0E35\u0E48\u0E23\u0E31\u0E1A\u0E44\u0E2B\u0E27"));
-      }))), React.createElement("div", {
+      }, (() => {
+        const costs = plans.map(p => cabCost(p, len));
+        const priced = costs.filter(v => v != null);
+        const best = priced.length > 1 ? Math.min.apply(null, priced) : null;
+        return CAB_FAMS.map((f, k) => {
+          const p = plans[k],
+            cost = costs[k];
+          const on = !!p && cabNorm(p.name) === cabNorm(c.type);
+          return React.createElement("button", {
+            key: f.key,
+            type: "button",
+            className: "bq-cabx-opt" + (on ? " on" : ""),
+            disabled: !p,
+            title: p ? p.name : "ไม่มีขนาดในตาราง วสท. ที่รับกระแสนี้ได้",
+            onClick: () => p && pickCabFam(i, f.key)
+          }, React.createElement("span", {
+            className: "t"
+          }, f.th, f.multi ? " (" + (ph === 3 ? 4 : 2) + " แกน)" : ""), p ? React.createElement(React.Fragment, null, React.createElement("b", null, p.size, " mm\xB2", p.sets > 1 ? " × " + p.sets + " ชุด" : ""), React.createElement("span", {
+            className: "s"
+          }, "\u0E1E\u0E34\u0E01\u0E31\u0E14 ", p.amp * p.sets, " A", p.vd ? " · ΔV " + p.vd.pct + "%" : ""), !p.inStock && React.createElement("span", {
+            className: "ns"
+          }, "\u0E44\u0E21\u0E48\u0E21\u0E35\u0E43\u0E19\u0E04\u0E25\u0E31\u0E07"), cost != null ? React.createElement("span", {
+            className: "pr" + (cost === best ? " best" : ""),
+            title: "ราคา/ม. × " + p.wires + " เส้น" + (p.sets > 1 ? " × " + p.sets + " ชุด" : "") + (len > 0 ? " × " + len + " ม." : " ต่อระยะเดิน 1 ม.") + " (ไม่รวมกราวด์)"
+          }, "\u0E3F", cost.toLocaleString(), len > 0 ? "" : "/ม.", cost === best && React.createElement("i", null, "\u0E16\u0E39\u0E01\u0E2A\u0E38\u0E14")) : p.inStock && React.createElement("span", {
+            className: "pr na"
+          }, "\u0E22\u0E31\u0E07\u0E44\u0E21\u0E48\u0E21\u0E35\u0E23\u0E32\u0E04\u0E32")) : React.createElement("span", {
+            className: "s"
+          }, "\u0E44\u0E21\u0E48\u0E21\u0E35\u0E02\u0E19\u0E32\u0E14\u0E17\u0E35\u0E48\u0E23\u0E31\u0E1A\u0E44\u0E2B\u0E27"));
+        });
+      })())), React.createElement("div", {
         className: "bq-cabx-step"
       }, React.createElement("span", {
         className: "n"
