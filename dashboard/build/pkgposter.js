@@ -238,7 +238,11 @@ function pkBrandKeys(item) {
 const PK_BRAND_PHOTO = {
   "inv:huawei": "dashboard/assets/pkg-inv-huawei.jpg",
   "inv:growatt": "dashboard/assets/pkg-inv-growatt.png",
-  "panel:longi": "dashboard/assets/pkg-panel-longi.webp"
+  "panel:longi": "dashboard/assets/pkg-panel-longi.webp",
+  "batt:huawei": "dashboard/assets/pkg-batt-huawei.png",
+  "battset:huawei": "dashboard/assets/pkg-batt-huawei-set.png",
+  "opt:huawei": "dashboard/assets/pkg-opt-huawei.png",
+  "opt2:huawei": "dashboard/assets/pkg-opt-huawei-2.png"
 };
 function pkBrandPhoto(item, kind) {
   const k = kind + ":" + String(item && item.brand || "").trim().toLowerCase();
@@ -248,9 +252,13 @@ async function pkAssets(sp) {
   const inv = sp && sp.invs[0] && sp.invs[0].item;
   const pItem = sp && sp.pItem;
   const bItem = sp && sp.bat ? sp.batItem : null;
-  const [hero, mark, pPhoto, iPhoto, pLogo, iLogo, bPhoto] = await Promise.all([pkImg("dashboard/assets/pkg-house-light.jpg"), pkImg(typeof brandDocURL === "function" ? brandDocURL() : ""), pkBrandPhoto(pItem, "panel").then(im => im || pkFirstImg([pItem && pItem.id, "cat_panel"])), pkBrandPhoto(inv, "inv").then(im => im || pkFirstImg([inv && inv.id, "cat_inverter"])), pkFirstImg(pkBrandKeys(pItem)), pkFirstImg(pkBrandKeys(inv)), bItem ? pkBrandPhoto(bItem, "batt").then(im => im || pkFirstImg([bItem.id])) : null]);
+  const oItem = sp && sp.opt ? sp.optItem : null;
+  const [hero, mark, pPhoto, iPhoto, pLogo, iLogo, bPhoto, bSet, oPhoto, oPhoto2] = await Promise.all([pkImg("dashboard/assets/pkg-house-light.jpg"), pkImg(typeof brandDocURL === "function" ? brandDocURL() : ""), pkBrandPhoto(pItem, "panel").then(im => im || pkFirstImg([pItem && pItem.id, "cat_panel"])), pkBrandPhoto(inv, "inv").then(im => im || pkFirstImg([inv && inv.id, "cat_inverter"])), pkFirstImg(pkBrandKeys(pItem)), pkFirstImg(pkBrandKeys(inv)), bItem ? pkBrandPhoto(bItem, "batt").then(im => im || pkFirstImg([bItem.id])) : null, bItem ? pkBrandPhoto(bItem, "battset") : null, oItem ? pkBrandPhoto(oItem, "opt").then(im => im || pkFirstImg([oItem.id])) : null, oItem ? pkBrandPhoto(oItem, "opt2") : null]);
   return {
+    oPhoto: pkTrim(oPhoto),
+    oPhoto2: pkTrim(oPhoto2),
     bPhoto: pkTrim(bPhoto),
+    bSet: pkTrim(bSet || bPhoto),
     hero: hero,
     mark: mark,
     pPhoto: pkTrim(pPhoto),
@@ -760,6 +768,7 @@ function pkDraw(cv, sp, A, o) {
     name: inv0 ? iBrand : ""
   }].filter(b => b.logo || b.name));
   if (A.pPhoto) pkLift(g, () => pkContain(g, A.pPhoto, 672, 150, 210, 360, .5, .5), 34);
+  if (A.oPhoto && sp.opt) pkLift(g, () => pkContain(g, A.oPhoto, 596, 300, 90, 230, 1, .5), 24);
   if (A.bPhoto && sp.bat) pkLift(g, () => pkContain(g, A.bPhoto, 676, 330, 150, 200, 1, .5), 34);
   if (A.iPhoto) pkLift(g, () => pkContain(g, A.iPhoto, 826, 270, 210, 250, 1, .5), 34);
   if (sp.hyb && !sp.bat) pkHybBadge(g);
@@ -1002,6 +1011,11 @@ function pkDrawSum(cv, rows, A, o) {
   }].filter(b => b.logo || b.name));
   if (A.pPhoto) pkLift(g, () => pkContain(g, A.pPhoto, 700, 136, 180, 280, .5, .5), 30);
   if (A.iPhoto) pkLift(g, () => pkContain(g, A.iPhoto, 836, 200, 200, 214, 1, .5), 30);
+  if (rows.every(r => r.sp.opt)) {
+    if (A.oPhoto2) pkLift(g, () => pkContain(g, A.oPhoto2, 1000, 250, 64, 164, 1, .5), 20);
+    if (A.oPhoto) pkLift(g, () => pkContain(g, A.oPhoto, 608, 236, 70, 178, 1, .5), 20);
+  }
+  if (A.bSet && rows.every(r => r.sp.bat)) pkLift(g, () => pkContain(g, A.bSet, 660, 236, 170, 178, 1, .5), 30);
   pkTag(g, o.title || PK_TITLE_DEF, 156, 680);
   const ks = rows.map(r => r.sp.kwp),
     lo = Math.min.apply(null, ks),
@@ -1015,7 +1029,7 @@ function pkDrawSum(cv, rows, A, o) {
   g.fillText("kWp", 44 + bw + 14, 338);
   const wps = rows.map(r => r.sp.wp).filter((w, j, a) => w && a.indexOf(w) === j);
   const sub = [pBrand && wps.length === 1 ? "แผง " + pBrand + " " + wps[0] + "W" : "", iBrand ? "อินเวอร์เตอร์ " + iBrand + (rows.every(r => r.sp.hyb) ? " Hybrid" : "") : "", rows.every(r => r.sp.bat) ? "แบตเตอรี่" + (rows.every(r => r.sp.bat === rows[0].sp.bat) ? " " + rows[0].sp.bat + " kWh" : "") + (rows.every(r => r.sp.opt) ? " + Optimizer" : "") : ""].filter(Boolean).join(" · ") || "ติดตั้งครบ จบในที่เดียว";
-  pkFit(g, sub, "700", 30, PK_TH, 620, 16);
+  pkFit(g, sub, "700", 30, PK_TH, rows.every(r => r.sp.opt) ? 520 : 620, 16);
   g.fillStyle = C.leaf;
   g.fillText(sub, 52, 392);
   const tx = 48,

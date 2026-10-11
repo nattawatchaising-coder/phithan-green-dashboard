@@ -182,7 +182,11 @@ function pkBrandKeys(item) {
   return out;
 }
 /* รูปสินค้าประจำยี่ห้อสำหรับโพสต์ (ไฟล์ใน repo · ผู้ใช้ให้มา) — มาก่อนรูปในคลัง ไม่มี = รูปคลัง */
-const PK_BRAND_PHOTO = { "inv:huawei": "dashboard/assets/pkg-inv-huawei.jpg", "inv:growatt": "dashboard/assets/pkg-inv-growatt.png", "panel:longi": "dashboard/assets/pkg-panel-longi.webp" };   // batt:<ยี่ห้อ> = รูปแบต (ไม่มีไฟล์ = รูปคลัง)
+const PK_BRAND_PHOTO = { "inv:huawei": "dashboard/assets/pkg-inv-huawei.jpg", "inv:growatt": "dashboard/assets/pkg-inv-growatt.png", "panel:longi": "dashboard/assets/pkg-panel-longi.webp",
+  /* แบต Huawei (ผู้ใช้ให้มา ต.ค. 2026): ก้อนเดียว = รูปรายอัน · ชุด 3 ขนาด = รูปสรุป — ตัดพื้นไว้ในไฟล์แล้ว (เครื่องขาวบนพื้นขาว) */
+  "batt:huawei": "dashboard/assets/pkg-batt-huawei.png", "battset:huawei": "dashboard/assets/pkg-batt-huawei-set.png",
+  /* Optimizer Huawei (ผู้ใช้ให้มา ต.ค. 2026): opt = รูปรายอัน · รูปสรุปใช้ทั้ง opt + opt2 */
+  "opt:huawei": "dashboard/assets/pkg-opt-huawei.png", "opt2:huawei": "dashboard/assets/pkg-opt-huawei-2.png" };   // batt:<ยี่ห้อ> ไม่มีไฟล์ = รูปคลัง · battset ไม่มี = ใช้ batt
 function pkBrandPhoto(item, kind) {
   const k = kind + ":" + String((item && item.brand) || "").trim().toLowerCase();
   return pkImg(PK_BRAND_PHOTO[k] || "");   // ไม่มีไฟล์ = null → รูปคลัง
@@ -191,7 +195,8 @@ async function pkAssets(sp) {
   const inv = sp && sp.invs[0] && sp.invs[0].item;
   const pItem = sp && sp.pItem;
   const bItem = sp && sp.bat ? sp.batItem : null;
-  const [hero, mark, pPhoto, iPhoto, pLogo, iLogo, bPhoto] = await Promise.all([
+  const oItem = sp && sp.opt ? sp.optItem : null;
+  const [hero, mark, pPhoto, iPhoto, pLogo, iLogo, bPhoto, bSet, oPhoto, oPhoto2] = await Promise.all([
     pkImg("dashboard/assets/pkg-house-light.jpg"),   // บ้านสว่าง ฝั่งซ้ายเป็นฟ้าโล่ง (ผู้ใช้ให้มา ต.ค. 2026 · ของเดิม pkg-house.jpg)
     pkImg(typeof brandDocURL === "function" ? brandDocURL() : ""),
     pkBrandPhoto(pItem, "panel").then((im) => im || pkFirstImg([pItem && pItem.id, "cat_panel"])),
@@ -199,8 +204,11 @@ async function pkAssets(sp) {
     pkFirstImg(pkBrandKeys(pItem)),
     pkFirstImg(pkBrandKeys(inv)),
     bItem ? pkBrandPhoto(bItem, "batt").then((im) => im || pkFirstImg([bItem.id])) : null,
+    bItem ? pkBrandPhoto(bItem, "battset") : null,
+    oItem ? pkBrandPhoto(oItem, "opt").then((im) => im || pkFirstImg([oItem.id])) : null,
+    oItem ? pkBrandPhoto(oItem, "opt2") : null,
   ]);
-  return { bPhoto: pkTrim(bPhoto), hero: hero, mark: mark, pPhoto: pkTrim(pPhoto), iPhoto: pkTrim(iPhoto), pLogo: pkUnwhite(pkTrim(pLogo)), iLogo: pkUnwhite(pkTrim(iLogo)) };
+  return { oPhoto: pkTrim(oPhoto), oPhoto2: pkTrim(oPhoto2), bPhoto: pkTrim(bPhoto), bSet: pkTrim(bSet || bPhoto), hero: hero, mark: mark, pPhoto: pkTrim(pPhoto), iPhoto: pkTrim(iPhoto), pLogo: pkUnwhite(pkTrim(pLogo)), iLogo: pkUnwhite(pkTrim(iLogo)) };
 }
 
 /* ── วาด: ตัวช่วย ── */
@@ -461,6 +469,7 @@ function pkDraw(cv, sp, A, o) {
 
   // รูปสินค้าลอยฝั่งขวา: แผงอยู่หลัง อินเวอร์เตอร์อยู่หน้า
   if (A.pPhoto) pkLift(g, () => pkContain(g, A.pPhoto, 672, 150, 210, 360, .5, .5), 34);
+  if (A.oPhoto && sp.opt) pkLift(g, () => pkContain(g, A.oPhoto, 596, 300, 90, 230, 1, .5), 24);   // Optimizer ซ้ายสุด
   if (A.bPhoto && sp.bat) pkLift(g, () => pkContain(g, A.bPhoto, 676, 330, 150, 200, 1, .5), 34);   // แบตยืนหน้าแผง ข้างอินเวอร์เตอร์
   if (A.iPhoto) pkLift(g, () => pkContain(g, A.iPhoto, 826, 270, 210, 250, 1, .5), 34);
   /* Hybrid ยังไม่ติดแบต → ป้าย "รองรับแบตเตอรี่ในอนาคต" ข้างรูปอินเวอร์เตอร์ (ผู้ใช้ ต.ค. 2026: ย้ายออกจากบรรทัดใต้ kWp) */
@@ -585,6 +594,13 @@ function pkDrawSum(cv, rows, A, o) {
   pkTop(g, A, o, [{ logo: pBrand ? A.pLogo : null, name: pBrand }, { logo: iBrand ? A.iLogo : null, name: iBrand }].filter((b) => b.logo || b.name));
   if (A.pPhoto) pkLift(g, () => pkContain(g, A.pPhoto, 700, 136, 180, 280, .5, .5), 30);   // ไม่ล้นลงตาราง (เริ่ม y 428)
   if (A.iPhoto) pkLift(g, () => pkContain(g, A.iPhoto, 836, 200, 200, 214, 1, .5), 30);
+  // ทุกแถวมีแบต → รูปชุดแบตยืนหน้าแผง ข้างอินเวอร์เตอร์
+  /* รูปสรุป: ใส่ของให้ครบ (ผู้ใช้ ต.ค. 2026 "จะได้อยู่เยอะ ๆ") — ชุดแบต + Optimizer ทั้ง 2 รูป */
+  if (rows.every((r) => r.sp.opt)) {
+    if (A.oPhoto2) pkLift(g, () => pkContain(g, A.oPhoto2, 1000, 250, 64, 164, 1, .5), 20);
+    if (A.oPhoto) pkLift(g, () => pkContain(g, A.oPhoto, 608, 236, 70, 178, 1, .5), 20);
+  }
+  if (A.bSet && rows.every((r) => r.sp.bat)) pkLift(g, () => pkContain(g, A.bSet, 660, 236, 170, 178, 1, .5), 30);
 
   pkTag(g, o.title || PK_TITLE_DEF, 156, 680);
   const ks = rows.map((r) => r.sp.kwp), lo = Math.min.apply(null, ks), hi = Math.max.apply(null, ks);
@@ -594,7 +610,7 @@ function pkDrawSum(cv, rows, A, o) {
   const wps = rows.map((r) => r.sp.wp).filter((w, j, a) => w && a.indexOf(w) === j);
   const sub = [pBrand && wps.length === 1 ? "แผง " + pBrand + " " + wps[0] + "W" : "", iBrand ? "อินเวอร์เตอร์ " + iBrand + (rows.every((r) => r.sp.hyb) ? " Hybrid" : "") : "",
     rows.every((r) => r.sp.bat) ? "แบตเตอรี่" + (rows.every((r) => r.sp.bat === rows[0].sp.bat) ? " " + rows[0].sp.bat + " kWh" : "") + (rows.every((r) => r.sp.opt) ? " + Optimizer" : "") : ""].filter(Boolean).join(" · ") || "ติดตั้งครบ จบในที่เดียว";
-  pkFit(g, sub, "700", 30, PK_TH, 620, 16); g.fillStyle = C.leaf; g.fillText(sub, 52, 392);
+  pkFit(g, sub, "700", 30, PK_TH, rows.every((r) => r.sp.opt) ? 520 : 620, 16); g.fillStyle = C.leaf; g.fillText(sub, 52, 392);   // มีรูป Optimizer ยืนที่ x 608 — ห้ามชน
 
   // ตารางแพ็คเกจ
   const tx = 48, ty = 428, tw = PK_W - 96, th = 574;
