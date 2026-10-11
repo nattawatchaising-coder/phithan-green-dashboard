@@ -1258,6 +1258,7 @@ function App() {
     jobs: filtered,
     leads: leadStore.leads,
     quotes: quoteStore.quotes,
+    stock: stock,
     search: search,
     onNewJob: can(role, "addJob") ? () => setForm({
       job: store.blank(),

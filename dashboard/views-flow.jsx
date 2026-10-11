@@ -53,7 +53,7 @@ function FlCol({ col, count, isOver, dimmed, sub, onDragOver, onDragLeave, onDro
 
 /* ── แถบหัวช่วง + โหมดพับ ──
    พับแล้วเหลือแท่งแคบแนวตั้ง ยังบอกชื่อช่วงกับจำนวนใบอยู่ จะได้รู้ว่าพับอะไรไว้ */
-function FlGroup({ g, count, collapsed, onToggle, onAdd, addLabel, children }) {
+function FlGroup({ g, count, collapsed, onToggle, onAdd, addLabel, extra, children }) {
   if (collapsed) {
     return (
       <button onClick={onToggle} title={"กางช่วง " + g.th}
@@ -103,6 +103,7 @@ function FlGroup({ g, count, collapsed, onToggle, onAdd, addLabel, children }) {
             <Icon name="plus" size={13} color={g.color} sw={2.6} /> {addLabel || "ลูกค้าใหม่"}
           </button>
         )}
+        {extra}
         <span style={{ fontSize: 11, color: "var(--text-3)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{g.hint}</span>
       </div>
       <div style={{ display: "flex", gap: 12, flex: 1, minHeight: 0 }}>{children}</div>
@@ -139,7 +140,7 @@ const flSumValue = (leadsArr) => {
   return sum > 0 ? "มูลค่ารวม ฿" + fmtBaht(sum) : null;
 };
 
-function FlowBoardView({ jobs, leads, quotes, search, role, currentUser,
+function FlowBoardView({ jobs, leads, quotes, stock, search, role, currentUser,
   onOpenJob, onOpenLead, onNewLead, onNewPermitJob, onNewJob, onMoveStage, onPatchJob, onPatchLead, onPatchPermit, onOpenReview }) {
   const SF = window.SF;
   const isMobile = window.matchMedia("(max-width: 860px)").matches;
@@ -149,6 +150,7 @@ function FlowBoardView({ jobs, leads, quotes, search, role, currentUser,
   const canMoveJob = window.can(role, "editJob");
 
   const [collapsed, setCollapsed] = React.useState(flReadCollapsed);
+  const [pkSum, setPkSum] = React.useState(false);   // ป๊อปรูปสรุปแพ็คเกจ (pkgposter.jsx)
   const toggle = (k) => setCollapsed((c) => {
     const next = Object.assign({}, c, { [k]: !c[k] });
     try { localStorage.setItem(FL_GRP_KEY, JSON.stringify(next)); } catch (e) {}
@@ -348,7 +350,16 @@ function FlowBoardView({ jobs, leads, quotes, search, role, currentUser,
             /* ช่วงหน้างาน = ปุ่มเปิดใบงานใหม่ ซึ่งเดิมอยู่บนหัวจอทุกหน้า ย้ายมาอยู่ตรงกองงานที่มันจะไปโผล่ */
             onAdd={g.kind === "lead" ? (onNewLead || null) : g.kind === "permit" ? (onNewPermitJob || null)
               : g.kind === "job" ? (onNewJob || null) : null}
-            addLabel={g.kind === "permit" ? "งานขออนุญาต" : g.kind === "job" ? "เพิ่มงาน" : "ลูกค้าใหม่"}>
+            addLabel={g.kind === "permit" ? "งานขออนุญาต" : g.kind === "job" ? "เพิ่มงาน" : "ลูกค้าใหม่"}
+            /* ช่วงขาย: รูปสรุปหลายแพ็คเกจ (เช่น 3–20 kWp) จาก BOQ ของลูกค้าที่เป็นแพ็คเกจ */
+            extra={g.kind === "lead" && window.PkPosterModal ? (
+              <button onClick={(e) => { e.stopPropagation(); setPkSum(true); }} title="ทำรูปโพสต์สรุปหลายแพ็คเกจในรูปเดียว"
+                style={{ display: "inline-flex", alignItems: "center", gap: 5, height: 24, padding: "0 10px",
+                  borderRadius: "var(--r-chip)", border: "1px solid color-mix(in srgb, " + g.color + " 33%, transparent)",
+                  background: "color-mix(in srgb, " + g.color + " 8%, transparent)", color: g.color,
+                  cursor: "pointer", fontFamily: "inherit", fontSize: 11.5, fontWeight: 700, flexShrink: 0, whiteSpace: "nowrap" }}>
+                <Icon name="image" size={13} color={g.color} sw={2.2} /> รูปสรุปแพ็คเกจ
+              </button>) : null}>
             {g.cols.map((c) => {
               const cards = cardsOf(g, c.key);
               const ok = canDrop(g, c.key);
@@ -366,6 +377,7 @@ function FlowBoardView({ jobs, leads, quotes, search, role, currentUser,
           </FlGroup>
         ))}
       </div>
+      {pkSum && window.PkPosterModal && <window.PkPosterModal leads={leads} stock={stock} quotes={quotes} onClose={() => setPkSum(false)} />}
     </div>
   );
 }

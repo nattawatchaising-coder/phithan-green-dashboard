@@ -980,7 +980,7 @@ function App() {
           {/* บอร์ดรวมทั้งวงจร — ขาย → หน้างาน → เอกสาร อยู่ผืนเดียว (ช่วงไหนไม่มีสิทธิ์ก็ไม่ขึ้น)
               ฝ่ายขออนุญาตอย่างเดียวยังได้บอร์ดขออนุญาตเต็มรูปแบบเหมือนเดิม เพราะเขาต้องใช้มุมรายการด้วย */}
           {view === "board" && (
-            <FlowBoardView jobs={filtered} leads={leadStore.leads} quotes={quoteStore.quotes} search={search}
+            <FlowBoardView jobs={filtered} leads={leadStore.leads} quotes={quoteStore.quotes} stock={stock} search={search}
               onNewJob={can(role, "addJob") ? () => setForm({ job: store.blank(), isNew: true }) : null}
               role={role} currentUser={auth.current}
               onOpenJob={openJob}

@@ -95,6 +95,7 @@ function FlGroup({
   onToggle,
   onAdd,
   addLabel,
+  extra,
   children
 }) {
   if (collapsed) {
@@ -240,7 +241,7 @@ function FlGroup({
     size: 13,
     color: g.color,
     sw: 2.6
-  }), " ", addLabel || "ลูกค้าใหม่"), React.createElement("span", {
+  }), " ", addLabel || "ลูกค้าใหม่"), extra, React.createElement("span", {
     style: {
       fontSize: 11,
       color: "var(--text-3)",
@@ -296,6 +297,7 @@ function FlowBoardView({
   jobs,
   leads,
   quotes,
+  stock,
   search,
   role,
   currentUser,
@@ -317,6 +319,7 @@ function FlowBoardView({
   const hasSales = groups.some(g => g.key === "sales");
   const canMoveJob = window.can(role, "editJob");
   const [collapsed, setCollapsed] = React.useState(flReadCollapsed);
+  const [pkSum, setPkSum] = React.useState(false);
   const toggle = k => setCollapsed(c => {
     const next = Object.assign({}, c, {
       [k]: !c[k]
@@ -543,7 +546,36 @@ function FlowBoardView({
     collapsed: !!collapsed[g.key],
     onToggle: () => toggle(g.key),
     onAdd: g.kind === "lead" ? onNewLead || null : g.kind === "permit" ? onNewPermitJob || null : g.kind === "job" ? onNewJob || null : null,
-    addLabel: g.kind === "permit" ? "งานขออนุญาต" : g.kind === "job" ? "เพิ่มงาน" : "ลูกค้าใหม่"
+    addLabel: g.kind === "permit" ? "งานขออนุญาต" : g.kind === "job" ? "เพิ่มงาน" : "ลูกค้าใหม่",
+    extra: g.kind === "lead" && window.PkPosterModal ? React.createElement("button", {
+      onClick: e => {
+        e.stopPropagation();
+        setPkSum(true);
+      },
+      title: "\u0E17\u0E33\u0E23\u0E39\u0E1B\u0E42\u0E1E\u0E2A\u0E15\u0E4C\u0E2A\u0E23\u0E38\u0E1B\u0E2B\u0E25\u0E32\u0E22\u0E41\u0E1E\u0E47\u0E04\u0E40\u0E01\u0E08\u0E43\u0E19\u0E23\u0E39\u0E1B\u0E40\u0E14\u0E35\u0E22\u0E27",
+      style: {
+        display: "inline-flex",
+        alignItems: "center",
+        gap: 5,
+        height: 24,
+        padding: "0 10px",
+        borderRadius: "var(--r-chip)",
+        border: "1px solid color-mix(in srgb, " + g.color + " 33%, transparent)",
+        background: "color-mix(in srgb, " + g.color + " 8%, transparent)",
+        color: g.color,
+        cursor: "pointer",
+        fontFamily: "inherit",
+        fontSize: 11.5,
+        fontWeight: 700,
+        flexShrink: 0,
+        whiteSpace: "nowrap"
+      }
+    }, React.createElement(Icon, {
+      name: "image",
+      size: 13,
+      color: g.color,
+      sw: 2.2
+    }), " \u0E23\u0E39\u0E1B\u0E2A\u0E23\u0E38\u0E1B\u0E41\u0E1E\u0E47\u0E04\u0E40\u0E01\u0E08") : null
   }, g.cols.map(c => {
     const cards = cardsOf(g, c.key);
     const ok = canDrop(g, c.key);
@@ -562,7 +594,12 @@ function FlowBoardView({
       onDragLeave: () => setOver(o => o === g.key + ":" + c.key ? null : o),
       onDrop: () => doDrop(g, c.key)
     }, cards.map(rec => renderCard(g, rec)));
-  })))));
+  })))), pkSum && window.PkPosterModal && React.createElement(window.PkPosterModal, {
+    leads: leads,
+    stock: stock,
+    quotes: quotes,
+    onClose: () => setPkSum(false)
+  }));
 }
 function FlowMobile({
   groups,
