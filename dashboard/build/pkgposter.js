@@ -651,6 +651,105 @@ function pkStar(g, bx, by, disc, R) {
   g.textAlign = "left";
 }
 const pkPriceNote = o => o.vat ? "รวม VAT และติดตั้ง" : "รวมติดตั้ง · ยังไม่รวม VAT 7%";
+function pkBatt(g, x, y, k, col) {
+  g.save();
+  g.strokeStyle = col;
+  g.fillStyle = col;
+  g.lineWidth = 2.5 * k;
+  g.lineJoin = "round";
+  pkRR(g, x, y, 30 * k, 20 * k, 4 * k);
+  g.stroke();
+  g.fillRect(x + 30 * k, y + 6 * k, 4 * k, 8 * k);
+  g.beginPath();
+  g.moveTo(x + 17 * k, y + 3 * k);
+  g.lineTo(x + 10 * k, y + 11 * k);
+  g.lineTo(x + 15 * k, y + 11 * k);
+  g.lineTo(x + 13 * k, y + 17 * k);
+  g.lineTo(x + 20 * k, y + 9 * k);
+  g.lineTo(x + 15 * k, y + 9 * k);
+  g.closePath();
+  g.fill();
+  g.restore();
+}
+function pkHybBadge(g, hv) {
+  const C = PK_C,
+    bt = "รองรับแบตเตอรี่ในอนาคต";
+  g.textAlign = "left";
+  if (hv === "c") {
+    const cx = 838,
+      cy = 300,
+      r = 66;
+    g.save();
+    pkShadow(g, "rgba(8,60,40,.35)", 18, 6);
+    const gr = g.createLinearGradient(0, cy - r, 0, cy + r);
+    gr.addColorStop(0, "#22B36A");
+    gr.addColorStop(1, C.leaf);
+    g.beginPath();
+    g.arc(cx, cy, r, 0, Math.PI * 2);
+    g.fillStyle = gr;
+    g.fill();
+    g.restore();
+    g.beginPath();
+    g.arc(cx, cy, r - 7, 0, Math.PI * 2);
+    g.setLineDash([4, 5]);
+    g.lineWidth = 2;
+    g.strokeStyle = "rgba(255,255,255,.8)";
+    g.stroke();
+    g.setLineDash([]);
+    pkBatt(g, cx - 19, cy - 42, 1.1, "#fff");
+    g.textAlign = "center";
+    g.fillStyle = "#fff";
+    g.font = "800 21px " + PK_TH;
+    g.fillText("พร้อมต่อ", cx, cy + 6);
+    g.fillText("แบตเตอรี่", cx, cy + 32);
+    g.textAlign = "left";
+    return;
+  }
+  if (hv === "d") {
+    g.font = "600 20px " + PK_TH;
+    const w = Math.max(g.measureText(bt).width, 170) + 92,
+      h = 70,
+      x = PK_W - 40 - w,
+      y = 528;
+    g.save();
+    pkShadow(g, "rgba(0,0,0,.3)", 22, 8);
+    pkRR(g, x, y, w, h, 18);
+    g.fillStyle = "rgba(11,37,51,.92)";
+    g.fill();
+    g.restore();
+    pkBatt(g, x + 20, y + 22, 1.3, C.sun);
+    g.font = "800 20px " + PK_NUM;
+    g.fillStyle = C.sun;
+    g.fillText("HYBRID INVERTER", x + 76, y + 30);
+    g.font = "600 20px " + PK_TH;
+    g.fillStyle = "#fff";
+    g.fillText(bt, x + 76, y + 56);
+    return;
+  }
+  g.font = "700 22px " + PK_TH;
+  const bw = g.measureText(bt).width + 74,
+    bx = PK_W - 40 - bw,
+    by = 536;
+  if (hv === "b") {
+    g.save();
+    pkShadow(g, "rgba(8,60,40,.35)", 16, 6);
+    pkRR(g, bx, by, bw, 50, 25);
+    const gr = g.createLinearGradient(bx, 0, bx + bw, 0);
+    gr.addColorStop(0, C.leaf);
+    gr.addColorStop(1, "#22B36A");
+    g.fillStyle = gr;
+    g.fill();
+    g.restore();
+    pkBatt(g, bx + 20, by + 15, 1, "#fff");
+    g.fillStyle = "#fff";
+  } else {
+    pkGlass(g, bx, by, bw, 50, 25, .95);
+    pkBatt(g, bx + 20, by + 15, 1, C.leaf);
+    g.fillStyle = C.leaf;
+  }
+  g.font = "700 22px " + PK_TH;
+  g.fillText(bt, bx + 62, by + 33);
+}
 function pkDraw(cv, sp, A, o) {
   const g = cv.getContext("2d"),
     C = PK_C;
@@ -673,35 +772,8 @@ function pkDraw(cv, sp, A, o) {
   }].filter(b => b.logo || b.name));
   if (A.pPhoto) pkLift(g, () => pkContain(g, A.pPhoto, 672, 150, 210, 360, .5, .5), 34);
   if (A.iPhoto) pkLift(g, () => pkContain(g, A.iPhoto, 826, 270, 210, 250, 1, .5), 34);
-  if (sp.hyb && !sp.bat) {
-    const bt = "รองรับแบตเตอรี่ในอนาคต";
-    g.font = "700 22px " + PK_TH;
-    const bw = g.measureText(bt).width + 74,
-      bx = PK_W - 40 - bw,
-      by = 536;
-    pkGlass(g, bx, by, bw, 50, 25, .95);
-    g.save();
-    g.strokeStyle = C.leaf;
-    g.fillStyle = C.leaf;
-    g.lineWidth = 2.5;
-    g.lineJoin = "round";
-    pkRR(g, bx + 20, by + 15, 30, 20, 4);
-    g.stroke();
-    g.fillRect(bx + 50, by + 21, 4, 8);
-    g.beginPath();
-    g.moveTo(bx + 37, by + 18);
-    g.lineTo(bx + 30, by + 26);
-    g.lineTo(bx + 35, by + 26);
-    g.lineTo(bx + 33, by + 32);
-    g.lineTo(bx + 40, by + 24);
-    g.lineTo(bx + 35, by + 24);
-    g.closePath();
-    g.fill();
-    g.restore();
-    g.fillStyle = C.leaf;
-    g.textAlign = "left";
-    g.fillText(bt, bx + 62, by + 33);
-  }
+  const hv = o.hv || "a";
+  if (sp.hyb && !sp.bat) pkHybBadge(g, hv);
   pkTag(g, o.title || PK_TITLE_DEF, 168, 640);
   const big = String(sp.kwp);
   g.font = "800 168px " + PK_NUM;
@@ -712,9 +784,32 @@ function pkDraw(cv, sp, A, o) {
   g.fillText("kWp", 44 + bw + 14, 372);
   g.font = "700 30px " + PK_TH;
   g.fillStyle = C.leaf;
-  const sysTx = "ระบบ " + sp.phase + " เฟส · " + (sp.hyb ? "HYBRID" + (sp.bat ? " + แบตเตอรี่" : "") : "ON-GRID" + (sp.bat ? " + แบตเตอรี่" : ""));
-  pkFit(g, sysTx, "700", 30, PK_TH, 600, 18);
-  g.fillText(sysTx, 52, 426);
+  const typTx = (sp.hyb ? "HYBRID" : "ON-GRID") + (sp.bat ? " + แบตเตอรี่" : "");
+  if (sp.hyb != null && (hv === "b" || hv === "c")) {
+    const pre = "ระบบ " + sp.phase + " เฟส";
+    g.fillText(pre, 52, 426);
+    const px = 52 + g.measureText(pre).width + 16;
+    g.font = "800 24px " + PK_NUM;
+    const cw2 = g.measureText(typTx).width + 32;
+    pkRR(g, px, 394, cw2, 42, 21);
+    if (hv === "b") {
+      g.fillStyle = sp.hyb ? C.leaf : C.deep;
+      g.fill();
+      g.fillStyle = "#fff";
+    } else {
+      g.lineWidth = 2.5;
+      g.strokeStyle = sp.hyb ? C.leaf : C.deep;
+      g.stroke();
+      g.fillStyle = sp.hyb ? C.leaf : C.deep;
+    }
+    g.textAlign = "center";
+    g.fillText(typTx, px + cw2 / 2, 424);
+    g.textAlign = "left";
+  } else {
+    const sysTx = "ระบบ " + sp.phase + " เฟส · " + (sp.hyb == null ? "ON-GRID" + (sp.bat ? " + แบตเตอรี่" : "") : typTx);
+    pkFit(g, sysTx, "700", 30, PK_TH, 600, 18);
+    g.fillText(sysTx, 52, 426);
+  }
   const sell = o.price && sp.sell ? pkPrice(sp.sell, o) : 0,
     disc = sell ? Math.max(0, +o.disc || 0) : 0;
   if (sell) {
@@ -1119,6 +1214,7 @@ function PkPosterModal({
   const [price, setPrice] = React.useState(saved.price !== false);
   const [contact, setContact] = React.useState(saved.contact === true);
   const [vat, setVat] = React.useState(saved.vat === true);
+  const [hv, setHv] = React.useState(saved.hv || "a");
   const [title, setTitle] = React.useState(PK_TITLE_DEF);
   const [disc, setDisc] = React.useState("");
   const [wty, setWty] = React.useState(() => (q && q.warranties || PK_WTY_DEF).join("\n"));
@@ -1226,10 +1322,11 @@ function PkPosterModal({
         logo: logo,
         price: price,
         contact: contact,
-        vat: vat
+        vat: vat,
+        hv: hv
       }));
     } catch (e) {}
-  }, [logo, price, contact, vat]);
+  }, [logo, price, contact, vat, hv]);
   const assetKey = assetSp ? [assetSp.pItem && assetSp.pItem.id, assetSp.invs[0] && assetSp.invs[0].item && assetSp.invs[0].item.id].join("|") : "";
   React.useEffect(() => {
     let live = true;
@@ -1247,6 +1344,7 @@ function PkPosterModal({
       contact: contact,
       price: price,
       vat: vat,
+      hv: hv,
       disc: pkNum(disc) || 0,
       title: title,
       wty: wty.split("\n").map(s => s.trim()),
@@ -1257,7 +1355,7 @@ function PkPosterModal({
     if (sum) {
       if (sumRows.length) pkDrawSum(cv.current, sumRows, A, o);
     } else pkDraw(cv.current, sp, A, o);
-  }, [A, sp, sumRows, logo, contact, price, vat, disc, title, wty, co, markIm]);
+  }, [A, sp, sumRows, logo, contact, price, vat, hv, disc, title, wty, co, markIm]);
   const download = () => {
     if (!cv.current) return;
     const a = document.createElement("a");
@@ -1552,7 +1650,41 @@ function PkPosterModal({
     style: Object.assign({}, card, {
       gap: 12
     })
-  }, sw(logo, setLogo, "โลโก้บริษัท"), sw(contact, setContact, "ข้อมูลติดต่อ"), sw(price, setPrice, "แสดงราคา"), price && sw(vat, setVat, "บวก VAT 7% ในราคา"), price && !sum && React.createElement("div", {
+  }, sw(logo, setLogo, "โลโก้บริษัท"), sw(contact, setContact, "ข้อมูลติดต่อ"), sw(price, setPrice, "แสดงราคา"), price && sw(vat, setVat, "บวก VAT 7% ในราคา"), !sum && sp.hyb && React.createElement("div", {
+    style: {
+      display: "flex",
+      flexDirection: "column",
+      gap: 6
+    }
+  }, React.createElement("div", {
+    style: {
+      fontSize: 12,
+      fontWeight: 700,
+      color: "var(--text-2)"
+    }
+  }, "\u0E41\u0E1A\u0E1A\u0E1B\u0E49\u0E32\u0E22 Hybrid \xB7 \u0E23\u0E2D\u0E07\u0E23\u0E31\u0E1A\u0E41\u0E1A\u0E15"), React.createElement("div", {
+    style: {
+      display: "grid",
+      gridTemplateColumns: "1fr 1fr",
+      gap: 6
+    }
+  }, [["a", "กระจกขาว"], ["b", "เขียวทึบ"], ["c", "สติกเกอร์วงกลม"], ["d", "การ์ดกรม"]].map(v => React.createElement("button", {
+    key: v[0],
+    type: "button",
+    onClick: () => setHv(v[0]),
+    style: {
+      border: "none",
+      cursor: "pointer",
+      fontFamily: "inherit",
+      fontSize: 12,
+      fontWeight: 700,
+      padding: "7px 8px",
+      borderRadius: "var(--r-tile)",
+      background: hv === v[0] ? "var(--primary-soft)" : "var(--surface2)",
+      color: hv === v[0] ? "var(--primary-dark)" : "var(--text-2)",
+      boxShadow: hv === v[0] ? "inset 0 0 0 1.5px var(--primary)" : "var(--shadow-inset)"
+    }
+  }, v[0].toUpperCase() + " · " + v[1])))), price && !sum && React.createElement("div", {
     style: {
       display: "flex",
       flexDirection: "column",
