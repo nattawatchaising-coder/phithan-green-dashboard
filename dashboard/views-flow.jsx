@@ -151,6 +151,7 @@ function FlowBoardView({ jobs, leads, quotes, stock, search, role, currentUser,
 
   const [collapsed, setCollapsed] = React.useState(flReadCollapsed);
   const [pkSum, setPkSum] = React.useState(false);   // ป๊อปรูปสรุปแพ็คเกจ (pkgposter.jsx)
+  const pkAdmin = window.usePgAdmin();   // รูปแพ็คเกจใช้ได้เฉพาะแอดมิน (ผู้ใช้สั่ง ต.ค. 2026)
   const toggle = (k) => setCollapsed((c) => {
     const next = Object.assign({}, c, { [k]: !c[k] });
     try { localStorage.setItem(FL_GRP_KEY, JSON.stringify(next)); } catch (e) {}
@@ -352,7 +353,7 @@ function FlowBoardView({ jobs, leads, quotes, stock, search, role, currentUser,
               : g.kind === "job" ? (onNewJob || null) : null}
             addLabel={g.kind === "permit" ? "งานขออนุญาต" : g.kind === "job" ? "เพิ่มงาน" : "ลูกค้าใหม่"}
             /* ช่วงขาย: รูปสรุปหลายแพ็คเกจ (เช่น 3–20 kWp) จาก BOQ ของลูกค้าที่เป็นแพ็คเกจ */
-            extra={g.kind === "lead" && window.PkPosterModal ? (
+            extra={g.kind === "lead" && pkAdmin && window.PkPosterModal ? (
               <button onClick={(e) => { e.stopPropagation(); setPkSum(true); }} title="ทำรูปโพสต์สรุปหลายแพ็คเกจในรูปเดียว"
                 style={{ display: "inline-flex", alignItems: "center", gap: 5, height: 24, padding: "0 10px",
                   borderRadius: "var(--r-chip)", border: "1px solid color-mix(in srgb, " + g.color + " 33%, transparent)",
@@ -377,7 +378,7 @@ function FlowBoardView({ jobs, leads, quotes, stock, search, role, currentUser,
           </FlGroup>
         ))}
       </div>
-      {pkSum && window.PkPosterModal && <window.PkPosterModal leads={leads} stock={stock} quotes={quotes} onClose={() => setPkSum(false)} />}
+      {pkSum && pkAdmin && window.PkPosterModal && <window.PkPosterModal leads={leads} stock={stock} quotes={quotes} onClose={() => setPkSum(false)} />}
     </div>
   );
 }

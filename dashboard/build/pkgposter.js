@@ -2035,30 +2035,38 @@ function PkPosterModal({
           title: v.title || "",
           wty: v.wty || "",
           wtyAdd: v.wtyAdd || "",
-          loads: v.loads || ""
+          loads: v.loads || "",
+          mg: v.mg || "",
+          mgBig: v.mgBig || ""
         });
         if (v.title) setTitle(v.title);
         if (v.wty) setWty(v.wty);
         if (v.wtyAdd) setWtyAdd(v.wtyAdd);
         if (v.loads) setLoads(v.loads);
+        if (v.mg) setMg(String(v.mg));
+        if (v.mgBig) setMgBig(String(v.mgBig));
       } else setTxSaved({
         title: "",
         wty: "",
         wtyAdd: "",
-        loads: ""
+        loads: "",
+        mg: "",
+        mgBig: ""
       });
     });
   }, []);
   const [txSaved, setTxSaved] = React.useState(null);
   const [txBusy, setTxBusy] = React.useState(false);
-  const txDiff = !!txSaved && (title !== (txSaved.title || PK_TITLE_DEF) || (txSaved.wty ? wty !== txSaved.wty : true) || wtyAdd !== (txSaved.wtyAdd || "") || loads !== (txSaved.loads || PK_ADD_LOADS_DEF));
+  const txDiff = !!txSaved && (title !== (txSaved.title || PK_TITLE_DEF) || (txSaved.wty ? wty !== txSaved.wty : true) || wtyAdd !== (txSaved.wtyAdd || "") || loads !== (txSaved.loads || PK_ADD_LOADS_DEF) || mg !== (txSaved.mg || "15") || mgBig !== (txSaved.mgBig || "8"));
   const saveTx = () => {
     if (!window.FBDB) return;
     const v = {
       title: title,
       wty: wty,
       wtyAdd: wtyAdd,
-      loads: loads === PK_ADD_LOADS_DEF ? "" : loads
+      loads: loads === PK_ADD_LOADS_DEF ? "" : loads,
+      mg: mg,
+      mgBig: mgBig
     };
     setTxBusy(true);
     window.FBDB.ref(PK_TX_PATH).set(v).then(() => {
@@ -2456,6 +2464,26 @@ function PkPosterModal({
       color: "var(--text-1)"
     }
   }, "+\u0E3F", pkFmt(c.p)))), React.createElement("div", {
+    style: {
+      display: "flex",
+      alignItems: "center",
+      gap: 10
+    }
+  }, React.createElement("button", {
+    type: "button",
+    className: "btn btn-pri",
+    disabled: !txDiff || txBusy,
+    onClick: saveTx,
+    style: {
+      padding: "7px 14px",
+      fontSize: 12.5
+    }
+  }, txBusy ? "กำลังบันทึก…" : txDiff ? "บันทึก" : "บันทึกแล้ว"), React.createElement("span", {
+    style: {
+      fontSize: 11.5,
+      color: "var(--text-3)"
+    }
+  }, "\u0E1A\u0E31\u0E19\u0E17\u0E36\u0E01\u0E41\u0E25\u0E49\u0E27\u0E43\u0E0A\u0E49\u0E17\u0E38\u0E01\u0E40\u0E04\u0E23\u0E37\u0E48\u0E2D\u0E07")), React.createElement("div", {
     style: {
       fontSize: 11.5,
       color: "var(--text-3)",

@@ -2433,6 +2433,7 @@ function LeadDrawer({
   const [edit, setEdit] = React.useState(null);
   const [log, setLog] = React.useState(null);
   const [poster, setPoster] = React.useState(false);
+  const pkAdmin = window.usePgAdmin();
   const [tab, setTab] = React.useState("ov");
   React.useEffect(() => {
     setTab("ov");
@@ -2586,7 +2587,7 @@ function LeadDrawer({
   }, lead.code, React.createElement(AdminHideBtn, {
     rec: lead,
     path: "surveyLeads/" + lead.id
-  }))), lead.boq && lead.boq.panelModel && window.PkPosterModal && React.createElement("button", {
+  }))), pkAdmin && lead.boq && lead.boq.panelModel && window.PkPosterModal && React.createElement("button", {
     className: "btn btn-soft",
     onClick: () => setPoster(true),
     title: "\u0E17\u0E33\u0E23\u0E39\u0E1B\u0E41\u0E1E\u0E47\u0E04\u0E40\u0E01\u0E08\u0E02\u0E32\u0E22\u0E08\u0E32\u0E01 BOQ \u0E02\u0E2D\u0E07\u0E25\u0E39\u0E01\u0E04\u0E49\u0E32\u0E19\u0E35\u0E49",
@@ -2645,7 +2646,7 @@ function LeadDrawer({
       leadStore.upsert(rec);
       setEdit(null);
     }
-  }), poster && React.createElement(window.PkPosterModal, {
+  }), poster && pkAdmin && React.createElement(window.PkPosterModal, {
     lead: lead,
     stock: stock,
     quotes: quotes,

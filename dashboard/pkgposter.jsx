@@ -21,7 +21,7 @@ const PK_B = (typeof BRANDING !== "undefined" && BRANDING) || window.BRANDING ||
 const PK_CO_DEF = { name: PK_B.name || "flash+solar", tag: PK_B.tagline || "CLEAN ENERGY", tel: PK_B.tel || "", line: "", site: PK_B.site || "", mark: "" };
 const PK_CO_KEYS = ["name", "tag", "tel", "line", "site", "mark"];
 const PK_CO_PATH = "config/pkPosterCo";
-const PK_TX_PATH = "config/pkPosterText";   // {title, wty ข้อความบรรทัดละข้อ}
+const PK_TX_PATH = "config/pkPosterText";   // {title, wty ข้อความบรรทัดละข้อ, wtyAdd, loads, mg, mgBig กำไรรูป Add-on}
 const PK_TITLE_DEF = "แพ็คเกจโซลาร์รูฟท็อป";
 const PK_TH = "'IBM Plex Sans Thai', sans-serif";
 const PK_NUM = "'Outfit', 'IBM Plex Sans Thai', sans-serif";
@@ -1108,8 +1108,8 @@ function PkPosterModal({ lead, leads, stock, quotes, onClose }) {
   /* โหมดรูป Add-on แบต + Optimizer — อยู่ในป๊อปรูปสรุป (ขนาด Optimizer ตามแพ็คเกจที่เลือก) */
   const [kind, setKind] = React.useState("sum");
   const addon = sum && kind === "addon";
-  const [mg, setMg] = React.useState("15");
-  const [mgBig, setMgBig] = React.useState("8");   // กำไร Optimizer ขนาดใหญ่สุด (ติดเยอะถูกลง)
+  const [mg, setMg] = React.useState("15");   // กำไรรูป Add-on ขนาดเล็กสุด — บันทึกใน config/pkPosterText (ผู้ใช้ ต.ค. 2026: "ไม่จำค่าที่บันทึกไว้")
+  const [mgBig, setMgBig] = React.useState("8");   // กำไรขนาดใหญ่สุด (ติดเยอะถูกลง)
   const ad = React.useMemo(() => (addon ? pkAddon(items, sumRows, pkNum(mg), pkNum(mgBig)) : null), [addon, items, sumRows, mg, mgBig]);
   const addSp = React.useMemo(() => (!ad ? null : { invs: [{ item: items.find((x) => /huawei/i.test(x.brand || "") && x.invType === "hybrid") || null }],
     pItem: null, addon: true, bat: ad.bI ? 1 : 0, batItem: ad.bI, opt: ad.oI ? 1 : 0, optItem: ad.oI }), [ad && ad.bI, ad && ad.oI, items]);
@@ -1150,16 +1150,21 @@ function PkPosterModal({ lead, leads, stock, quotes, onClose }) {
     // หัวข้อ/จุดเด่นที่บันทึกไว้ (ใช้ร่วมทุกลูกค้า · ไม่มี = จุดเด่นจากใบเสนอราคา)
     window.FBDB.ref(PK_TX_PATH).once("value", (s) => {
       const v = s.val();
-      if (v) { setTxSaved({ title: v.title || "", wty: v.wty || "", wtyAdd: v.wtyAdd || "", loads: v.loads || "" }); if (v.title) setTitle(v.title); if (v.wty) setWty(v.wty); if (v.wtyAdd) setWtyAdd(v.wtyAdd); if (v.loads) setLoads(v.loads); }
-      else setTxSaved({ title: "", wty: "", wtyAdd: "", loads: "" });
+      if (v) {
+        setTxSaved({ title: v.title || "", wty: v.wty || "", wtyAdd: v.wtyAdd || "", loads: v.loads || "", mg: v.mg || "", mgBig: v.mgBig || "" });
+        if (v.title) setTitle(v.title); if (v.wty) setWty(v.wty); if (v.wtyAdd) setWtyAdd(v.wtyAdd); if (v.loads) setLoads(v.loads);
+        if (v.mg) setMg(String(v.mg)); if (v.mgBig) setMgBig(String(v.mgBig));
+      }
+      else setTxSaved({ title: "", wty: "", wtyAdd: "", loads: "", mg: "", mgBig: "" });
     });
   }, []);
   const [txSaved, setTxSaved] = React.useState(null);
   const [txBusy, setTxBusy] = React.useState(false);
-  const txDiff = !!txSaved && (title !== (txSaved.title || PK_TITLE_DEF) || (txSaved.wty ? wty !== txSaved.wty : true) || wtyAdd !== (txSaved.wtyAdd || "") || loads !== (txSaved.loads || PK_ADD_LOADS_DEF));
+  const txDiff = !!txSaved && (title !== (txSaved.title || PK_TITLE_DEF) || (txSaved.wty ? wty !== txSaved.wty : true) || wtyAdd !== (txSaved.wtyAdd || "") || loads !== (txSaved.loads || PK_ADD_LOADS_DEF)
+    || mg !== (txSaved.mg || "15") || mgBig !== (txSaved.mgBig || "8"));
   const saveTx = () => {
     if (!window.FBDB) return;
-    const v = { title: title, wty: wty, wtyAdd: wtyAdd, loads: loads === PK_ADD_LOADS_DEF ? "" : loads };
+    const v = { title: title, wty: wty, wtyAdd: wtyAdd, loads: loads === PK_ADD_LOADS_DEF ? "" : loads, mg: mg, mgBig: mgBig };
     setTxBusy(true);
     window.FBDB.ref(PK_TX_PATH).set(v).then(() => { setTxSaved(v); setTxBusy(false); },
       (e) => { setTxBusy(false); alert("บันทึกไม่สำเร็จ: " + (e && e.message || e)); });
@@ -1282,6 +1287,10 @@ function PkPosterModal({ lead, leads, stock, quotes, onClose }) {
                   </div>
                   {ad.bats.map((b) => <div key={"b" + b.q} style={{ display: "flex", fontSize: 12.5, color: "var(--text-2)" }}><span style={{ flex: 1 }}>แบต {b.kwh} kWh ({b.q} ก้อน · ก้อนละ ฿{pkFmt(b.p / b.q)})</span><b style={{ color: "var(--text-1)" }}>+฿{pkFmt(b.p)}</b></div>)}
                   {ad.opts.map((c) => <div key={"o" + c.n} style={{ display: "flex", fontSize: 12.5, color: "var(--text-2)" }}><span style={{ flex: 1 }}>Optimizer {c.kwp} kWp ({c.n} ตัว · ตัวละ ฿{pkFmt(c.u)})</span><b style={{ color: "var(--text-1)" }}>+฿{pkFmt(c.p)}</b></div>)}
+                  <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                    <button type="button" className="btn btn-pri" disabled={!txDiff || txBusy} onClick={saveTx} style={{ padding: "7px 14px", fontSize: 12.5 }}>{txBusy ? "กำลังบันทึก…" : txDiff ? "บันทึก" : "บันทึกแล้ว"}</button>
+                    <span style={{ fontSize: 11.5, color: "var(--text-3)" }}>บันทึกแล้วใช้ทุกเครื่อง</span>
+                  </div>
                   <div style={{ fontSize: 11.5, color: "var(--text-3)", lineHeight: 1.45 }}>ราคา = ทุนในคลัง ÷ (1 − กำไร%) ปัดขึ้น (แบตหลักพัน · Optimizer หลัก 500) · กำไรไล่ลงจากขนาดเล็กสุดถึงใหญ่สุดทั้งแบตและ Optimizer ติดเยอะยิ่งถูก · แบตรวม Power Module · ขนาด Optimizer ตามแพ็คเกจที่เลือกด้านล่าง (สูงสุด 5 ขนาด) · ยังไม่รวมค่าแรงติดตั้งแบต</div>
                 </div>
               )}

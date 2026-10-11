@@ -320,6 +320,7 @@ function FlowBoardView({
   const canMoveJob = window.can(role, "editJob");
   const [collapsed, setCollapsed] = React.useState(flReadCollapsed);
   const [pkSum, setPkSum] = React.useState(false);
+  const pkAdmin = window.usePgAdmin();
   const toggle = k => setCollapsed(c => {
     const next = Object.assign({}, c, {
       [k]: !c[k]
@@ -547,7 +548,7 @@ function FlowBoardView({
     onToggle: () => toggle(g.key),
     onAdd: g.kind === "lead" ? onNewLead || null : g.kind === "permit" ? onNewPermitJob || null : g.kind === "job" ? onNewJob || null : null,
     addLabel: g.kind === "permit" ? "งานขออนุญาต" : g.kind === "job" ? "เพิ่มงาน" : "ลูกค้าใหม่",
-    extra: g.kind === "lead" && window.PkPosterModal ? React.createElement("button", {
+    extra: g.kind === "lead" && pkAdmin && window.PkPosterModal ? React.createElement("button", {
       onClick: e => {
         e.stopPropagation();
         setPkSum(true);
@@ -594,7 +595,7 @@ function FlowBoardView({
       onDragLeave: () => setOver(o => o === g.key + ":" + c.key ? null : o),
       onDrop: () => doDrop(g, c.key)
     }, cards.map(rec => renderCard(g, rec)));
-  })))), pkSum && window.PkPosterModal && React.createElement(window.PkPosterModal, {
+  })))), pkSum && pkAdmin && window.PkPosterModal && React.createElement(window.PkPosterModal, {
     leads: leads,
     stock: stock,
     quotes: quotes,
