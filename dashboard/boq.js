@@ -102,6 +102,8 @@
     { sec: "tray", g: "ถอดวัสดุ", key: "trayAnchor", th: "ตัวยึด (พุ๊ก / T-BOLT) ต่อขาล็อก", unit: "ตัว", def: 2 },
     { sec: "tray", g: "ถอดวัสดุ", key: "trayRailSide", th: "Rail รองขาล็อก ยื่นพ้นรางข้างละ", unit: "มม.", def: 100 },
     { sec: "tray", g: "ถอดวัสดุ", key: "trayJointX", th: "ชุดข้อต่อราง เผื่อนอกจากรอยต่อ (หัว-ท้าย)", unit: "ชุด", def: 2 },
+    { sec: "tray", g: "ถอดวัสดุ", key: "traySplice", th: "Ladder: ข้อต่อตรง ต่อรอยต่อ (ซ้าย-ขวา)", unit: "ตัว", def: 2 },
+    { sec: "tray", g: "ถอดวัสดุ", key: "trayJLock", th: "Ladder: เจล็อค ต่อจุดยึด", unit: "ตัว", def: 2 },
     { sec: "tray", g: "ถอดวัสดุ", key: "wayFill", th: "Wireway บรรจุสายได้ไม่เกิน (พื้นที่หน้าตัด)", unit: "%", def: 20, min: 1, max: 100 },
     { sec: "tray", g: "ถอดวัสดุ", key: "trayFill", th: "Cable Tray บรรจุสายได้ไม่เกิน (พื้นที่หน้าตัด)", unit: "%", def: 50, min: 1, max: 100 },
     { sec: "tray", g: "จากแบบ 3D", key: "trayTurn90", th: "มุมเลี้ยวตั้งแต่กี่องศานับเป็นข้องอ 90° (น้อยกว่า = 45°)", unit: "°", def: 60, max: 180 },
@@ -1128,10 +1130,12 @@
      hanger   = แขวนด้วยขาแขวนสำเร็จ (Wireway ยึดพุ๊กเข้าโครงตรง ๆ)
      oneLayer = ควรวางสายชั้นเดียว จึงต้องเช็คผลรวมเส้นผ่านศูนย์กลางเทียบความกว้างรางด้วย
      noHdg    = ไม่มีของชุบ (พลาสติก) — ซ่อนปุ่มชุบ HDG และไม่ต่อท้าย (HDG.) แม้แถวเก่าจะติ๊กไว้
-     std      = ท้ายชื่อของสีมาตรฐาน — เลือกขนาดอัตโนมัติจะเลือกสีนี้ก่อน (ชนิดที่ไม่มีสีมาตรฐาน = ชื่อจบที่ "mm.") */
+     std      = ท้ายชื่อของสีมาตรฐาน — เลือกขนาดอัตโนมัติจะเลือกสีนี้ก่อน (ชนิดที่ไม่มีสีมาตรฐาน = ชื่อจบที่ "mm.")
+     lock     = Ladder KJL: ข้อต่อขายเป็นตัวไม่แยกขนาด ("ข้อต่อตรง … (HDG.)" × RULES.traySplice ต่อรอยต่อ)
+                และขาล็อกเลือกได้ทีละแถว เจล็อค (ไม่แยกขนาด × RULES.trayJLock ต่อจุด) / คานล็อค (ตามความกว้าง 1 ตัวต่อจุด) */
   const TRAY_KINDS = {
     way:  { key: "way",  brief: "Wireway",               label: "Wireway เหล็กมีฝา",     sizes: WAY_SIZES,  pipeLen: WAY_PIPE_LEN,  get fill() { return RULES.wayFill; }, hanger: false, oneLayer: false },
-    tray: { key: "tray", brief: "Cable Tray Ladder",     label: "Cable Tray Ladder",     sizes: TRAY_SIZES, pipeLen: TRAY_PIPE_LEN, get fill() { return RULES.trayFill; }, hanger: true,  oneLayer: true },
+    tray: { key: "tray", brief: "Cable Tray Ladder",     label: "Cable Tray Ladder",     sizes: TRAY_SIZES, pipeLen: TRAY_PIPE_LEN, get fill() { return RULES.trayFill; }, hanger: true,  oneLayer: true, lock: true },
     perf: { key: "perf", brief: "Cable Tray Perforated", label: "Cable Tray Perforated", sizes: PERF_SIZES, pipeLen: TRAY_PIPE_LEN, get fill() { return RULES.trayFill; }, hanger: true,  oneLayer: true },
     wwu:  { key: "wwu",  brief: "รางเก็บสายไฟ uPVC",     label: "Wireway uPVC",          sizes: WWU_SIZES,  pipeLen: WWU_PIPE_LEN,  get fill() { return RULES.wayFill; }, hanger: false, oneLayer: false, noHdg: true, std: " สีเทา" },
   };
@@ -1179,7 +1183,8 @@
     .replace(/Cable Tray (?!Ladder|Perforated)/g, "Cable Tray Ladder ");
   const traySuffix = (nm) => trayAlias(nm).replace(/^(Wireway|Cable Tray Ladder|Cable Tray Perforated|รางเก็บสายไฟ uPVC)\s*/i, "").trim();
   /* ถอดวัสดุรางไฟ 1 ขนาด — คืน array ของ item · pct = % เผื่อของอุปกรณ์ประกอบ */
-  function wayItems(name, lenM, pct, kind, hdg, rail, tonLen) {
+  /* lock = "u" คานล็อค · อื่น ๆ เจล็อค (เฉพาะชนิดที่ spec.lock) */
+  function wayItems(name, lenM, pct, kind, hdg, rail, tonLen, lock) {
     const len = +lenM || 0;
     if (len <= 0) return [];
     const spec = trayKindOf(kind);
@@ -1196,9 +1201,16 @@
     ];
     // Wireway ไม่ต้องมีของประกอบ (ข้อต่อ · สกรู M6 · พุ๊ก) — ผู้ใช้ยืนยัน · ถอดแค่ตัวราง
     if (!spec.hanger) return out;
-    out.push({ name: z("ชุดข้อต่อราง " + spec.brief + " " + sz), qty: up(joint), unit: "ชุด" });
-    // รางเคเบิลล็อกด้วยขาล็อกสำเร็จ
-    if (spec.hanger) out.push({ name: z("ขาล็อกรางไฟ " + spec.brief + " " + sz), qty: up(hanger), unit: "ชุด" });
+    if (spec.lock) {
+      // Ladder KJL — ข้อต่อตรงซ้าย-ขวาต่อรอยต่อ · ขาล็อก = เจล็อค หรือคานล็อคตามความกว้าง (ผู้ใช้ ต.ค. 2026 ให้เลือกได้)
+      out.push({ name: z("ข้อต่อตรง " + spec.brief), qty: up(joint * RULES.traySplice), unit: "ตัว" });
+      if (lock === "u") out.push({ name: z("คานล็อค " + spec.brief + " " + sz), qty: up(hanger), unit: "ตัว" });
+      else out.push({ name: z("เจล็อค " + spec.brief), qty: up(hanger * RULES.trayJLock), unit: "ตัว" });
+    } else {
+      out.push({ name: z("ชุดข้อต่อราง " + spec.brief + " " + sz), qty: up(joint), unit: "ชุด" });
+      // รางเคเบิลล็อกด้วยขาล็อกสำเร็จ
+      out.push({ name: z("ขาล็อกรางไฟ " + spec.brief + " " + sz), qty: up(hanger), unit: "ชุด" });
+    }
     /* ตัวยึดขา — ของมาตรฐานที่ใช้ร่วมกับงานอื่นทั้งใบ ไม่ต่อท้าย (HDG.) ไม่งั้นบรรทัดเดียวแตกเป็นสองบรรทัด
        Rail ก็เช่นกัน เป็นรางอะลูมิเนียมตัวเดียวกับงานโครงยึดแผง ไม่ได้ชุบ */
     if (onRail) {
@@ -2414,12 +2426,12 @@
       (tw[kk] || []).forEach((r) => {
         const nm = (r.size || "").trim(), q = +r.length || 0;
         if (!nm || q <= 0) return;
-        const key = (r.hdg ? "1" : "0") + (r.rail ? "1|" : "0|") + nm;
+        const key = (r.hdg ? "1" : "0") + (r.rail ? "1" : "0") + (r.lock === "u" ? "u|" : "j|") + nm;
         map[key] = (map[key] || 0) + q;
       });
       Object.keys(map).forEach((key) => {
         wayTotalLen += map[key];
-        wayItems(key.slice(3), map[key], waySpare, kk, key.charAt(0) === "1", key.charAt(1) === "1", +b.railSize || 4.2)
+        wayItems(key.slice(4), map[key], waySpare, kk, key.charAt(0) === "1", key.charAt(1) === "1", +b.railSize || 4.2, key.charAt(2))
           .forEach((x) => wayRows.push(x));
       });
     });
@@ -2688,6 +2700,12 @@
         const sz = traySuffix(nm);
         (spec.noHdg ? [false] : [false, true]).forEach((z) => {   // ของธรรมดา + ของชุบ HDG ตั้งราคาแยกกันได้
           add(G_TRAY, hdgName(nm, z) + " (" + trayLenTxt(spec.pipeLen) + "m/ท่อน)", "ท่อน");
+          if (spec.lock) {
+            add(G_TRAY, hdgName("ข้อต่อตรง " + spec.brief, z), "ตัว");
+            add(G_TRAY, hdgName("เจล็อค " + spec.brief, z), "ตัว");
+            add(G_TRAY, hdgName("คานล็อค " + spec.brief + " " + sz, z), "ตัว");
+            return;
+          }
           add(G_TRAY, hdgName("ชุดข้อต่อราง " + spec.brief + " " + sz, z), "ชุด");
           if (spec.hanger) add(G_TRAY, hdgName("ขาล็อกรางไฟ " + spec.brief + " " + sz, z), "ชุด");
         });

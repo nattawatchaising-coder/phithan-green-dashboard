@@ -1849,6 +1849,7 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock, ver, verName, p3Vers
        เปลี่ยนขนาดทีหลัง ข้อต่อก็เปลี่ยนขนาดตามเอง ไม่ต้องไล่เลือกใหม่ */
     const hdg = tray && !!c.raceHdg && !window.BOQ.TRAY_KINDS[kind].noHdg, rail = tray && !!c.raceRail && window.BOQ.TRAY_KINDS[kind].hanger;
     const sp = tray ? window.BOQ.TRAY_KINDS[kind] : null;
+    const lock = tray && sp.lock ? (c.raceLock === "u" ? "u" : "j") : null;   // Ladder: เจล็อค / คานล็อค
     const sep = tray ? " " + sp.brief + " " : kind === "imc" ? " IMC " : " uPVC ";
     const mm = (String(size).match(/(\d+)\s*mm/) || [])[1];
     const fitCat = !kind ? [] : (tray ? trayFits : condFits).filter((f) => {
@@ -1858,7 +1859,7 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock, ver, verName, p3Vers
     }).map((f) => ({ k: f.name.split(sep)[0], name: f.name, unit: f.unit }));
     const fits = (c.raceFit || []).map((f) => Object.assign({}, f, { item: fitCat.find((x) => x.k === f.k) || null }));
     return { i, label: raceLabel(c), type: t, cables, trayCables, sets, kind, tray, pool, size, auto, len, own, cabLen: +c.length || 0,
-      noOd: !od || !sz, chk, ok: !!chk && chk.ok && (!tray || chk.widthOk), hdg, rail, fitCat, fits,
+      noOd: !od || !sz, chk, ok: !!chk && chk.ok && (!tray || chk.widthOk), hdg, rail, lock, fitCat, fits,
       host, guests, wireTxt: raceWireTxt(base) };
   });
   // เส้นที่ฝากรางเส้นอื่น — ไม่มีรางของตัวเอง ใช้ขนาด/ระยะ/HDG/Rail/ข้อต่อของเจ้าของราง
@@ -1888,7 +1889,7 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock, ver, verName, p3Vers
   const raceTrayRows = raceRuns.filter((r) => r && r.tray && !r.shared && r.len > 0 && r.size).map((r) => ({ k: r.kind,
     row: Object.assign({ size: r.size, length: Math.round(r.len * 10) / 10, cables: r.trayCables, auto: 1, from: r.i,
       lab: [r.label].concat(r.guests.map((j) => raceRuns[j].label)).join(" + ") },
-      r.hdg ? { hdg: true } : {}, r.rail ? { rail: true } : {}) }));
+      r.hdg ? { hdg: true } : {}, r.rail ? { rail: true } : {}, r.lock === "u" ? { lock: "u" } : {}) }));
   const trayFitAuto = raceFitRows(true);
   const raceTrayKey = JSON.stringify([raceTrayRows, trayFitAuto]);
   React.useEffect(() => {
@@ -2368,6 +2369,18 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock, ver, verName, p3Vers
                       ยึดบน Rail{x.rail && x.size ? " " + railCm(x.size) + " ซม." : ""}
                     </button>
                   )}
+                  {/* Ladder: ขาล็อกเลือก เจล็อค / คานล็อค ทีละแถว */}
+                  {spec.lock && [["j", "เจล็อค"], ["u", "คานล็อค"]].map(([v, t]) => {
+                    const on = (x.lock === "u" ? "u" : "j") === v;
+                    return (
+                      <button key={v} onClick={() => setTrayRow(kind, i, "lock", v === "u" ? "u" : null)}
+                        style={{ display: "inline-flex", alignItems: "center", gap: 5, padding: "3px 10px", borderRadius: "var(--r-pill)", cursor: "pointer", fontFamily: "inherit",
+                          fontSize: 11, fontWeight: 800, border: "none", boxShadow: on ? "inset 0 0 0 1px var(--primary)" : "var(--shadow-sm)",
+                          background: on ? "var(--primary-soft)" : "var(--surface)", color: on ? "var(--primary-dark)" : "var(--text-3)" }}>
+                        {on && <Icon name="check" size={11} color="var(--primary-dark)" />}{t}
+                      </button>
+                    );
+                  })}
                   {any && (
                     <span style={{ marginLeft: "auto", display: "inline-flex", alignItems: "center", gap: 8, fontSize: 11, fontWeight: 800, fontVariantNumeric: "tabular-nums",
                       color: chk.ok && chk.widthOk ? "var(--tint-green-tx)" : "var(--tint-red-tx2)" }}>
@@ -4312,7 +4325,7 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock, ver, verName, p3Vers
                         <span style={{ display: "inline-flex", gap: 5, flexWrap: "wrap" }}>
                           {[["", "ไม่ร้อยท่อ"]].concat(Object.keys(RACE_TH).map((k) => [k, RACE_TH[k]])).map(([k, th]) => (
                             <button key={k} className={"bq-cab-chip" + (r.kind === k ? " on" : "")} style={{ fontSize: 11.5, padding: "5px 11px" }}
-                              onClick={() => setRace(r.i, { race: k, raceSize: null, raceHdg: null, raceRail: null, raceWith: null,
+                              onClick={() => setRace(r.i, { race: k, raceSize: null, raceHdg: null, raceRail: null, raceLock: null, raceWith: null,
                                 raceFit: isTrayK(k) && tray3dFits.length ? tray3dFits.map((f) => Object.assign({}, f)) : null })}>{th}</button>
                           ))}
                         </span>
@@ -4329,7 +4342,7 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock, ver, verName, p3Vers
                             <span style={{ fontSize: 11, color: "var(--text-3)", fontWeight: 600 }}>วางในราง:</span>
                             {[{ i: null, label: "รางของเส้นนี้เอง" }].concat(hosts).map((h) => (
                               <button key={String(h.i)} className={"bq-cab-chip" + (r.host === h.i ? " on" : "")} style={{ fontSize: 11, padding: "4px 10px" }}
-                                onClick={() => setRace(r.i, h.i == null ? { raceWith: null } : { raceWith: h.i, raceSize: null, raceLen: null, raceFit: null, raceHdg: null, raceRail: null })}>
+                                onClick={() => setRace(r.i, h.i == null ? { raceWith: null } : { raceWith: h.i, raceSize: null, raceLen: null, raceFit: null, raceHdg: null, raceRail: null, raceLock: null })}>
                                 {h.i == null ? h.label : "ร่วมกับ " + h.label}</button>
                             ))}
                           </div>
@@ -4371,6 +4384,11 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock, ver, verName, p3Vers
                                   title="ขาล็อกวางบน Rail — ถอด T-BOLT KIT 2 ชุด/ขา + Rail รองใต้ขา (ไม่กด = ยึดพุ๊กเข้าโครงตรง ๆ)"
                                   onClick={() => setRace(r.i, { raceRail: r.rail ? null : 1 })}>{r.rail ? "✓ " : ""}ยึดบน Rail</button>
                               )}
+                              {r.lock && [["j", "เจล็อค"], ["u", "คานล็อค"]].map(([v, t]) => (
+                                <button key={v} className={"bq-cab-chip" + (r.lock === v ? " on" : "")} style={{ fontSize: 11, padding: "4px 10px" }}
+                                  title={v === "u" ? "ขาล็อก = คานล็อคตามความกว้างราง 1 ตัว/จุดยึด" : "ขาล็อก = เจล็อค (ไม่แยกขนาด) 2 ตัว/จุดยึด"}
+                                  onClick={() => setRace(r.i, { raceLock: v === "u" ? "u" : null })}>{r.lock === v ? "✓ " : ""}{t}</button>
+                              ))}
                             </div>
                           )}
                           {r.fits.map((f, j) => (
@@ -5377,6 +5395,12 @@ function MatVariantModal({ item, stock, priceMap, matOptions, picked, onPick, re
     const miss = (o) => (o.group === "ยังไม่มีในคลัง" ? 1 : 0);   // ของที่ยังไม่มีในคลังไว้ท้ายสุด
     return out.sort((a, z) => miss(a) - miss(z) || a.group.localeCompare(z.group, "th") || String(a.label).localeCompare(String(z.label), "th"));
   }, [matOptions, myCat, allCat, stockByKey]);
+  /* เปิดดรอปดาวน์มาที่ชิปประเภทเดิมของชิ้นนี้เลย (ผู้ใช้ ต.ค. 2026: เคยอยู่หมวดไหนก็เอาแค่หมวดนั้น) — กด "ทั้งหมด" ดูที่เหลือได้ */
+  const myType = React.useMemo(() => {
+    const mk = window.BOQ.matKey, ks = [mk(item.nameAuto || item.name), mk(item.name)];
+    const o = ks.map((k) => catOpts.find((x) => mk(x.value) === k)).find(Boolean);
+    return o && o.group !== "ยังไม่มีในคลัง" ? o.group : null;
+  }, [catOpts, item.nameAuto, item.name]);
   /* รูปในคลังเก็บแยกโหนด stockImg/{id} (ไม่โหลดมากับรายการ) — โหลดทีละรูปตอนชี้ แล้วจำไว้ · อ่านอย่างเดียว */
   const [imgs, setImgs] = React.useState({});
   const wantImg = (id) => {
@@ -5445,7 +5469,8 @@ function MatVariantModal({ item, stock, priceMap, matOptions, picked, onPick, re
               <span style={{ fontSize: 10.5, fontWeight: 800, color: "var(--text-3)" }}>ชื่อรายการในใบถอดของ</span>
               <Dropdown value={item.name} onChange={(v) => onRename(v === (item.nameAuto || item.name) ? "" : v)}
                 options={catOpts.some((o) => o.value === item.name) ? catOpts : [{ value: item.name, label: item.name, group: "ชื่อปัจจุบัน" }].concat(catOpts)}
-                addable onAdd={(v) => onRename(v)} placeholder={myCat && !allCat ? "เลือกวัสดุหมวด " + myCat : "เลือกวัสดุจากคลัง"} renderHover={hoverCard} />
+                addable onAdd={(v) => onRename(v)} placeholder={myCat && !allCat ? "เลือกวัสดุหมวด " + myCat : "เลือกวัสดุจากคลัง"} renderHover={hoverCard}
+                openGroup={myType} />
               {myCat && (
                 <label style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 11, color: "var(--text-3)", cursor: "pointer", marginTop: -2 }}>
                   <input type="checkbox" checked={allCat} onChange={(e) => setAllCat(e.target.checked)} style={{ accentColor: "var(--primary)", cursor: "pointer" }} />

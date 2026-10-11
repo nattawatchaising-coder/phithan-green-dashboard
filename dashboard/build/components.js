@@ -364,7 +364,8 @@ function Dropdown({
   addable,
   onAdd,
   wrap,
-  renderHover
+  renderHover,
+  openGroup
 }) {
   const [open, setOpen] = React.useState(false);
   const [hov, setHov] = React.useState(null);
@@ -399,6 +400,7 @@ function Dropdown({
       top: needUp ? null : r.bottom + 6,
       bottom: needUp ? window.innerHeight - r.top + 6 : null
     });
+    if (openGroup && hasGroups && groupList.indexOf(openGroup) >= 0) setCat(openGroup);
     setOpen(true);
   };
   const submitAdd = () => {

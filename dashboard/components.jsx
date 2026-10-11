@@ -266,7 +266,8 @@ function Segmented({ options, value, onChange, flat }) {
    options: [{ value, label }] ── */
 /* wrap = ให้ข้อความบนปุ่มตัดบรรทัดได้ถึง 2 บรรทัด (ชื่อยาว ๆ อย่างวิธีเดินสายตาม วสท. ถ้าตัดด้วย ... จะอ่านไม่รู้เรื่อง) */
 /* renderHover(o) = การ์ดข้อมูลลอยข้างเมนูตอนชี้ตัวเลือก (รูป/ราคา ฯลฯ) — คืน null = ไม่มีการ์ด · ใช้กับเมาส์เท่านั้น */
-function Dropdown({ value, onChange, options, disabled, placeholder, style, addable, onAdd, wrap, renderHover }) {
+/* openGroup = เปิดเมนูมาที่ชิปหมวดนี้ก่อน (ไม่มีหมวดนี้ในตัวเลือก = ทั้งหมด) */
+function Dropdown({ value, onChange, options, disabled, placeholder, style, addable, onAdd, wrap, renderHover, openGroup }) {
   const [open, setOpen] = React.useState(false);
   const [hov, setHov] = React.useState(null);   // { o, y } ตัวเลือกที่ชี้อยู่
   const [rect, setRect] = React.useState(null);
@@ -304,6 +305,7 @@ function Dropdown({ value, onChange, options, disabled, placeholder, style, adda
     const w = want ? Math.min(Math.max(r.width, want), window.innerWidth - 16) : r.width;
     setRect({ left: Math.max(8, Math.min(r.left, window.innerWidth - w - 8)), width: w, maxH,
       top: needUp ? null : r.bottom + 6, bottom: needUp ? (window.innerHeight - r.top + 6) : null });
+    if (openGroup && hasGroups && groupList.indexOf(openGroup) >= 0) setCat(openGroup);
     setOpen(true);
   };
   const submitAdd = () => {

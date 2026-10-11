@@ -3107,6 +3107,7 @@ function BOQEditor({
     const hdg = tray && !!c.raceHdg && !window.BOQ.TRAY_KINDS[kind].noHdg,
       rail = tray && !!c.raceRail && window.BOQ.TRAY_KINDS[kind].hanger;
     const sp = tray ? window.BOQ.TRAY_KINDS[kind] : null;
+    const lock = tray && sp.lock ? c.raceLock === "u" ? "u" : "j" : null;
     const sep = tray ? " " + sp.brief + " " : kind === "imc" ? " IMC " : " uPVC ";
     const mm = (String(size).match(/(\d+)\s*mm/) || [])[1];
     const fitCat = !kind ? [] : (tray ? trayFits : condFits).filter(f => {
@@ -3141,6 +3142,7 @@ function BOQEditor({
       ok: !!chk && chk.ok && (!tray || chk.widthOk),
       hdg,
       rail,
+      lock,
       fitCat,
       fits,
       host,
@@ -3207,6 +3209,8 @@ function BOQEditor({
       hdg: true
     } : {}, r.rail ? {
       rail: true
+    } : {}, r.lock === "u" ? {
+      lock: "u"
     } : {})
   }));
   const trayFitAuto = raceFitRows(true);
@@ -4339,7 +4343,32 @@ function BOQEditor({
         name: "check",
         size: 11,
         color: "var(--primary-dark)"
-      }), "\u0E22\u0E36\u0E14\u0E1A\u0E19 Rail", x.rail && x.size ? " " + railCm(x.size) + " ซม." : ""), any && React.createElement("span", {
+      }), "\u0E22\u0E36\u0E14\u0E1A\u0E19 Rail", x.rail && x.size ? " " + railCm(x.size) + " ซม." : ""), spec.lock && [["j", "เจล็อค"], ["u", "คานล็อค"]].map(([v, t]) => {
+        const on = (x.lock === "u" ? "u" : "j") === v;
+        return React.createElement("button", {
+          key: v,
+          onClick: () => setTrayRow(kind, i, "lock", v === "u" ? "u" : null),
+          style: {
+            display: "inline-flex",
+            alignItems: "center",
+            gap: 5,
+            padding: "3px 10px",
+            borderRadius: "var(--r-pill)",
+            cursor: "pointer",
+            fontFamily: "inherit",
+            fontSize: 11,
+            fontWeight: 800,
+            border: "none",
+            boxShadow: on ? "inset 0 0 0 1px var(--primary)" : "var(--shadow-sm)",
+            background: on ? "var(--primary-soft)" : "var(--surface)",
+            color: on ? "var(--primary-dark)" : "var(--text-3)"
+          }
+        }, on && React.createElement(Icon, {
+          name: "check",
+          size: 11,
+          color: "var(--primary-dark)"
+        }), t);
+      }), any && React.createElement("span", {
         style: {
           marginLeft: "auto",
           display: "inline-flex",
@@ -8730,6 +8759,7 @@ function BOQEditor({
       raceSize: null,
       raceHdg: null,
       raceRail: null,
+      raceLock: null,
       raceWith: null,
       raceFit: isTrayK(k) && tray3dFits.length ? tray3dFits.map(f => Object.assign({}, f)) : null
     })
@@ -8773,7 +8803,8 @@ function BOQEditor({
         raceLen: null,
         raceFit: null,
         raceHdg: null,
-        raceRail: null
+        raceRail: null,
+        raceLock: null
       })
     }, h.i == null ? h.label : "ร่วมกับ " + h.label)));
   })(), r.shared && React.createElement("div", {
@@ -8857,7 +8888,18 @@ function BOQEditor({
     onClick: () => setRace(r.i, {
       raceRail: r.rail ? null : 1
     })
-  }, r.rail ? "✓ " : "", "\u0E22\u0E36\u0E14\u0E1A\u0E19 Rail")), r.fits.map((f, j) => React.createElement("div", {
+  }, r.rail ? "✓ " : "", "\u0E22\u0E36\u0E14\u0E1A\u0E19 Rail"), r.lock && [["j", "เจล็อค"], ["u", "คานล็อค"]].map(([v, t]) => React.createElement("button", {
+    key: v,
+    className: "bq-cab-chip" + (r.lock === v ? " on" : ""),
+    style: {
+      fontSize: 11,
+      padding: "4px 10px"
+    },
+    title: v === "u" ? "ขาล็อก = คานล็อคตามความกว้างราง 1 ตัว/จุดยึด" : "ขาล็อก = เจล็อค (ไม่แยกขนาด) 2 ตัว/จุดยึด",
+    onClick: () => setRace(r.i, {
+      raceLock: v === "u" ? "u" : null
+    })
+  }, r.lock === v ? "✓ " : "", t))), r.fits.map((f, j) => React.createElement("div", {
     key: j,
     style: {
       display: "grid",
@@ -11302,6 +11344,12 @@ function MatVariantModal({
     const miss = o => o.group === "ยังไม่มีในคลัง" ? 1 : 0;
     return out.sort((a, z) => miss(a) - miss(z) || a.group.localeCompare(z.group, "th") || String(a.label).localeCompare(String(z.label), "th"));
   }, [matOptions, myCat, allCat, stockByKey]);
+  const myType = React.useMemo(() => {
+    const mk = window.BOQ.matKey,
+      ks = [mk(item.nameAuto || item.name), mk(item.name)];
+    const o = ks.map(k => catOpts.find(x => mk(x.value) === k)).find(Boolean);
+    return o && o.group !== "ยังไม่มีในคลัง" ? o.group : null;
+  }, [catOpts, item.nameAuto, item.name]);
   const [imgs, setImgs] = React.useState({});
   const wantImg = id => {
     if (!id || id in imgs || !window.FBDB) return;
@@ -11508,7 +11556,8 @@ function MatVariantModal({
     addable: true,
     onAdd: v => onRename(v),
     placeholder: myCat && !allCat ? "เลือกวัสดุหมวด " + myCat : "เลือกวัสดุจากคลัง",
-    renderHover: hoverCard
+    renderHover: hoverCard,
+    openGroup: myType
   }), myCat && React.createElement("label", {
     style: {
       display: "flex",
