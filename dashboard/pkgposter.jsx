@@ -550,7 +550,7 @@ function pkDrawSum(cv, rows, A, o) {
 
   pkTag(g, o.title || PK_TITLE_DEF, 156, 680);
   const ks = rows.map((r) => r.sp.kwp), lo = Math.min.apply(null, ks), hi = Math.max.apply(null, ks);
-  const big = rows.length > 1 && lo !== hi ? Math.round(lo) + "–" + Math.round(hi) : String(lo);
+  const big = rows.length > 1 && lo !== hi ? Math.floor(lo) + "–" + Math.floor(hi) : String(lo);   // ปัดลง: 20.8 → "20" (ผู้ใช้ ต.ค. 2026)
   g.font = "800 140px " + PK_NUM; g.fillStyle = C.deep; g.fillText(big, 44, 338);
   const bw = g.measureText(big).width; g.font = "700 54px " + PK_NUM; g.fillText("kWp", 44 + bw + 14, 338);
   const wps = rows.map((r) => r.sp.wp).filter((w, j, a) => w && a.indexOf(w) === j);
@@ -566,15 +566,25 @@ function pkDrawSum(cv, rows, A, o) {
   g.textAlign = "right"; g.fillText("ประหยัด/เดือน", col.sv + 120, ty + 44); g.fillText(o.price ? "ราคา" : "", col.pr, ty + 44); g.textAlign = "left";
   g.fillStyle = "rgba(15,43,51,.1)"; g.fillRect(tx + 24, ty + 60, tw - 48, 2);
   const r0 = ty + 66, rH = Math.min(92, (th - 66 - 46) / Math.max(1, rows.length));
+  /* ชิปเฟส / ชิป HYBRID ตรงกันเป็นคอลัมน์ (ผู้ใช้ ต.ค. 2026) — วัดความกว้างที่มากสุดของทุกแถวก่อน */
+  const ks2 = Math.min(46, rH * .55), f2 = Math.min(19, rH * .3);
+  const l2Of = (sp) => { const it = pkInvTxt(sp); return sp.invs.length ? "อินเวอร์เตอร์ " + it.kw + " kW" + (it.n > 1 ? " × " + it.n : "") : "ไมโครอินเวอร์เตอร์"; };
+  let kMax = 0, l2Max = 0;
+  rows.forEach((r) => {
+    g.font = "800 " + ks2 + "px " + PK_NUM; let w = g.measureText(String(r.sp.kwp)).width + 6;
+    g.font = "700 " + Math.round(ks2 * .45) + "px " + PK_NUM; w += g.measureText("kWp").width;
+    kMax = Math.max(kMax, w);
+    g.font = "500 " + f2 + "px " + PK_TH; l2Max = Math.max(l2Max, Math.min(250, g.measureText(l2Of(r.sp)).width));
+  });
   rows.forEach((r, i) => {
-    const sp = r.sp, y = r0 + i * rH, mid = y + rH / 2, it = pkInvTxt(sp);
+    const sp = r.sp, y = r0 + i * rH, mid = y + rH / 2;
     if (r.rec) { pkRR(g, tx + 14, y + 3, tw - 28, rH - 6, 18); g.fillStyle = "rgba(19,137,106,.12)"; g.fill(); }
     else if (i % 2) { pkRR(g, tx + 14, y + 3, tw - 28, rH - 6, 18); g.fillStyle = "rgba(15,43,51,.035)"; g.fill(); }
     // ขนาด + เฟส
-    const kt = String(sp.kwp), ks2 = Math.min(46, rH * .55);
+    const kt = String(sp.kwp);
     g.font = "800 " + ks2 + "px " + PK_NUM; g.fillStyle = C.deep; g.fillText(kt, col.k, mid + ks2 * .36);
     const kw2 = g.measureText(kt).width; g.font = "700 " + Math.round(ks2 * .45) + "px " + PK_NUM; g.fillText("kWp", col.k + kw2 + 6, mid + ks2 * .36);
-    const kx = col.k + kw2 + 6 + g.measureText("kWp").width + 12;
+    const kx = col.k + kMax + 12;
     const pt = sp.phase + " เฟส"; g.font = "700 16px " + PK_TH; const ptw = g.measureText(pt).width + 18;
     pkRR(g, kx, mid - 14, ptw, 28, 14); g.fillStyle = sp.phase === 3 ? "rgba(10,77,104,.12)" : "rgba(19,137,106,.14)"; g.fill();
     g.fillStyle = sp.phase === 3 ? C.deep : C.leaf; g.fillText(pt, kx + 9, mid + 6);
@@ -584,14 +594,14 @@ function pkDrawSum(cv, rows, A, o) {
     }
     // อุปกรณ์
     const l1 = "แผง " + sp.wp + "W × " + sp.n + (sp.bat ? " · แบต " + sp.bat + " kWh" : "");
-    const l2 = sp.invs.length ? "อินเวอร์เตอร์ " + it.kw + " kW" + (it.n > 1 ? " × " + it.n : "") : "ไมโครอินเวอร์เตอร์";
+    const l2 = l2Of(sp);
     // สองบรรทัดเสมอ (8 แถวก็ยังอ่านออก) · ชนิดอินเวอร์เตอร์เป็นชิปเส้นขอบท้ายบรรทัดสอง แบบเดียวกับรูปรายอัน
-    const two = rH >= 50, f1 = two ? Math.min(23, rH * .36) : 20, f2 = Math.min(19, rH * .3);
+    const two = rH >= 50, f1 = two ? Math.min(23, rH * .36) : 20;
     if (two) {
       pkFit(g, l1, "700", f1, PK_TH, 330, 14); g.fillStyle = C.ink; g.fillText(l1, col.eq, mid - 3);
       pkFit(g, l2, "500", f2, PK_TH, 250, 13); g.fillStyle = C.mute; g.fillText(l2, col.eq, mid + f2 + 3);
       if (sp.hyb != null) {
-        const tt = sp.hyb ? "HYBRID" : "ON-GRID", tx2 = col.eq + g.measureText(l2).width + 10;
+        const tt = sp.hyb ? "HYBRID" : "ON-GRID", tx2 = col.eq + l2Max + 10;
         g.font = "800 13px " + PK_NUM; const ttw = g.measureText(tt).width + 16;
         pkRR(g, tx2, mid + f2 - 13, ttw, 21, 10.5); g.lineWidth = 1.8; g.strokeStyle = sp.hyb ? C.leaf : C.deep; g.stroke();
         g.fillStyle = sp.hyb ? C.leaf : C.deep; g.textAlign = "center"; g.fillText(tt, tx2 + ttw / 2, mid + f2 + 2); g.textAlign = "left";
@@ -616,7 +626,9 @@ function pkDrawSum(cv, rows, A, o) {
   });
   // หมายเหตุใต้ตาราง
   g.textAlign = "center"; g.font = "600 19px " + PK_TH; g.fillStyle = C.mute;
-  g.fillText((o.price ? "ราคา" + pkPriceNote(o) + " · " : "") + "ขออนุญาตการไฟฟ้า · ขนส่ง · สำรวจหน้างานฟรี", PK_W / 2, ty + th - 20);
+  g.fillText((o.price ? "ราคารวมติดตั้ง · " : "") + "ขออนุญาตการไฟฟ้า · ขนส่ง · สำรวจหน้างานฟรี", PK_W / 2, ty + th - 20);
+  // เรื่อง VAT แยกออกมาชิดขวาใต้ตาราง ให้เห็นชัด (ผู้ใช้ ต.ค. 2026)
+  if (o.price) { g.textAlign = "right"; g.font = "700 20px " + PK_TH; g.fillStyle = C.deep; g.fillText(o.vat ? "* ราคารวม VAT 7% แล้ว" : "* ราคายังไม่รวม VAT 7%", PK_W - 56, ty + th + 34); }
   g.textAlign = "left";
 
   pkBand(g, o, 1050);
