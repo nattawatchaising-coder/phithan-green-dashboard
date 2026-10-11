@@ -138,7 +138,7 @@ function pkBrandKeys(item) {
   return out;
 }
 /* รูปสินค้าประจำยี่ห้อสำหรับโพสต์ (ไฟล์ใน repo · ผู้ใช้ให้มา) — มาก่อนรูปในคลัง ไม่มี = รูปคลัง */
-const PK_BRAND_PHOTO = { "inv:huawei": "dashboard/assets/pkg-inv-huawei.jpg", "panel:longi": "dashboard/assets/pkg-panel-longi.jpg" };
+const PK_BRAND_PHOTO = { "inv:huawei": "dashboard/assets/pkg-inv-huawei.jpg", "panel:longi": "dashboard/assets/pkg-panel-longi.webp" };
 function pkBrandPhoto(item, kind) {
   const k = kind + ":" + String((item && item.brand) || "").trim().toLowerCase();
   return pkImg(PK_BRAND_PHOTO[k] || "");   // ไม่มีไฟล์ = null → รูปคลัง
