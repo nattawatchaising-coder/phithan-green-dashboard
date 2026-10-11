@@ -962,6 +962,7 @@ function pkDrawAddon(cv, A, o, ad) {
       const mid = ry + rh / 2;
       g.font = "800 30px " + PK_NUM; g.fillStyle = C.deep; const kt = String(c.kwp); g.fillText(kt, rx, mid + 10);
       const kw = g.measureText(kt).width; g.font = "700 17px " + PK_NUM; g.fillStyle = C.leaf; g.fillText("kWp", rx + kw + 6, mid + 10);
+      g.textAlign = "center"; g.font = "600 18px " + PK_TH; g.fillStyle = C.mute; g.fillText(c.n + " ตัว", rx + rw * .45, mid + 9); g.textAlign = "left";
       priceR(pr(c.p), rx + rw, mid + 11, 28);
     });
   }
@@ -989,37 +990,54 @@ function pkDrawAddon(cv, A, o, ad) {
   const items = (o.wty || []).filter(Boolean).slice(0, 6), n = items.length;
   const loads = ad.bats.length ? pkAddLoads(o.loads).slice(0, 5) : [];
   if (loads.length) {
-    // แบต 1 ก้อนใช้อะไรได้นานเท่าไหร่ — ไอคอนเครื่องใช้ + ชื่อ + ชั่วโมงตัวทอง
-    const kwh = ad.bats[0].kwh, ry = 1052, rh = 166, cw = (PK_W - 64) / loads.length;
-    panel(ry, rh, "แบต 1 ก้อน " + kwh + " kWh ใช้ได้นานแค่ไหน");
-    g.textAlign = "right"; g.font = "600 15px " + PK_TH; g.fillStyle = "rgba(255,255,255,.6)";
-    g.fillText("โดยประมาณ · ใช้ทีละเครื่อง", PK_W - 60, ry + 28);
+    // แบต 1 ก้อนใช้อะไรได้นานเท่าไหร่ — รูปแบตก้อนใหญ่ซ้าย + รายการ 2 คอลัมน์ขวา (ผู้ใช้เลือกแบบ C จาก 3 แบบ ต.ค. 2026)
+    const kwh = ad.bats[0].kwh, ry = 1050, rh = 182;
+    panel(ry, rh, "");
+    const bx = 76, bt = 1086, bw = 84, bh = 122, lx = bx + bw / 2, ly = bt + bh / 2, z = 30;
+    pkRR(g, lx - 16, bt - 9, 32, 12, 4); g.fillStyle = C.sun; g.fill();
+    pkRR(g, bx, bt, bw, bh, 16); g.lineWidth = 3; g.strokeStyle = C.sun; g.stroke();
+    const fg = g.createLinearGradient(0, bt + bh, 0, bt); fg.addColorStop(0, C.solid); fg.addColorStop(1, C.sun);
+    pkRR(g, bx + 8, bt + 8, bw - 16, bh - 16, 10); g.fillStyle = fg; g.fill();
+    g.beginPath(); g.moveTo(lx + z * .15, ly - z * .9); g.lineTo(lx - z * .45, ly + z * .1); g.lineTo(lx - z * .02, ly + z * .1);
+    g.lineTo(lx - z * .18, ly + z * .9); g.lineTo(lx + z * .45, ly - z * .12); g.lineTo(lx + z * .03, ly - z * .12); g.closePath(); g.fillStyle = "#fff"; g.fill();
+    g.textAlign = "left"; g.font = "700 19px " + PK_TH; g.fillStyle = "rgba(255,255,255,.85)"; g.fillText("แบต 1 ก้อน", 182, 1112);
+    const ks = String(kwh); g.font = "800 52px " + PK_NUM; g.fillStyle = C.sun; g.fillText(ks, 182, 1166);
+    const kw = g.measureText(ks).width; g.font = "700 24px " + PK_NUM; g.fillText("kWh", 182 + kw + 6, 1166);
+    g.font = "600 16px " + PK_TH; g.fillStyle = "rgba(255,255,255,.65)"; g.fillText("ใช้ได้นานแค่ไหน", 182, 1196);
+    divi(352, ry + 26, rh - 52);
+    const slot = (i) => [i < 3 ? 384 : 712, 1094 + (i % 3) * 50], cw = 300;   // คอลัมน์ละ 3 แถว
     loads.forEach((L, i) => {
-      const cx = 32 + cw * (i + .5), iy = ry + 66;
-      if (i) divi(32 + cw * i, ry + 46, rh - 66);
-      ring(cx, iy, 26); pkAddIcon(g, pkLoadIcon(L.name), cx, iy, 13, "#FFFFFF");
-      g.textAlign = "center"; pkFit(g, L.name, "600", 17, PK_TH, cw - 18, 12); g.fillStyle = "rgba(255,255,255,.88)"; g.fillText(L.name, cx, iy + 50);
-      const ht = pkLoadHrs(kwh, L.w);
-      g.font = "800 32px " + PK_NUM; const nw = g.measureText(ht).width;
-      g.font = "700 17px " + PK_TH; const hx = cx - (nw + g.measureText(" ชม.").width) / 2;
-      g.textAlign = "left"; g.fillStyle = C.sun;
-      g.font = "800 32px " + PK_NUM; g.fillText(ht, hx, iy + 88);
-      g.font = "700 17px " + PK_TH; g.fillText(" ชม.", hx + nw, iy + 88);
+      const p = slot(i), x = p[0], y = p[1], ht = pkLoadHrs(kwh, L.w);
+      ring(x + 18, y, 18); pkAddIcon(g, pkLoadIcon(L.name), x + 18, y, 9, "#FFFFFF");
+      g.textAlign = "right"; g.font = "700 16px " + PK_TH; g.fillStyle = C.sun; g.fillText("ชม.", x + cw, y + 7);
+      const uw = g.measureText("ชม.").width; g.font = "800 28px " + PK_NUM; g.fillText(ht, x + cw - uw - 6, y + 9);
+      const hw = g.measureText(ht).width;
+      g.textAlign = "left"; pkFit(g, L.name, "600", 18, PK_TH, cw - 46 - uw - hw - 18, 12); g.fillStyle = "rgba(255,255,255,.9)"; g.fillText(L.name, x + 46, y + 6);
     });
-    // รับประกันแถวเดียว: "รับประกัน" + ไอคอน ชื่อ ปีตัวทอง
-    const wy = 1232, wh = 62, wc = wy + wh / 2;
-    panel(wy, wh, "");
-    g.textAlign = "left"; g.font = "800 21px " + PK_TH; g.fillStyle = C.sun; g.fillText("รับประกัน", 60, wc + 7);
-    const wx0 = 60 + g.measureText("รับประกัน").width + 22, ww = (PK_W - 50 - wx0) / Math.max(1, n);
-    items.forEach((t, i) => {
-      const sp2 = wsplit(t), lb = sp2[0], yr = sp2[1], x0 = wx0 + ww * i;
-      divi(x0, wy + 16, wh - 32);
-      g.font = "800 24px " + PK_NUM; const yw = yr ? g.measureText(yr).width + 8 : 0;
-      const lf = pkFit(g, lb, "600", 18, PK_TH, ww - 60 - yw, 11), lw = g.measureText(lb).width;
-      let x = x0 + (ww - (34 + 10 + lw + yw)) / 2 + 17;
-      ring(x, wc, 17); pkIcon(g, t, x, wc, 8);
-      x += 27; g.font = "600 " + lf + "px " + PK_TH; g.fillStyle = "rgba(255,255,255,.88)"; g.fillText(lb, x, wc + 6);
-      if (yr) { g.font = "800 24px " + PK_NUM; g.fillStyle = C.sun; g.fillText(yr, x + lw + 8, wc + 8); }
+    const np = slot(loads.length);   // หมายเหตุอยู่ช่องว่างถัดจากรายการสุดท้าย
+    g.textAlign = "left"; g.font = "600 15px " + PK_TH; g.fillStyle = "rgba(255,255,255,.55)"; g.fillText("* โดยประมาณ · ใช้ทีละเครื่อง", np[0], np[1] + 6);
+    // รับประกัน: ป้ายเม็ดยาขอบทองแถวเดียว (ผู้ใช้เลือกแบบ B) — ยาวเกินย่อทั้งแถว
+    const py = 1250, ph = 46, mid = py + ph / 2, lab = "รับประกัน";
+    let sc = 1, pills = [], tot = 0, labW = 0;
+    for (; ; sc -= .05) {
+      g.font = "700 " + Math.round(18 * sc) + "px " + PK_TH; labW = g.measureText(lab).width + 16 * sc;
+      pills = items.map((t) => {
+        const s2 = wsplit(t); g.font = "600 " + Math.round(18 * sc) + "px " + PK_TH; const lw = g.measureText(s2[0]).width;
+        g.font = "800 " + Math.round(22 * sc) + "px " + PK_NUM; const yw = s2[1] ? g.measureText(s2[1]).width + 8 * sc : 0;
+        return { t: t, s: s2, lw: lw, w: 74 * sc + lw + yw };
+      });
+      tot = labW + pills.reduce((a, p) => a + p.w, 0) + 12 * sc * Math.max(0, pills.length - 1);
+      if (tot <= PK_W - 64 || sc <= .6) break;
+    }
+    let px = (PK_W - tot) / 2;
+    g.textAlign = "left"; g.font = "700 " + Math.round(18 * sc) + "px " + PK_TH; g.fillStyle = "rgba(255,255,255,.75)"; g.fillText(lab, px, mid + 7 * sc); px += labW;
+    pills.forEach((p) => {
+      const r = 15 * sc, ix = px + 14 * sc + r;
+      pkRR(g, px, py, p.w, ph, ph / 2); g.fillStyle = "rgba(255,255,255,.07)"; g.fill(); g.lineWidth = 1.5; g.strokeStyle = C.sun; g.stroke();
+      g.beginPath(); g.arc(ix, mid, r, 0, Math.PI * 2); g.fillStyle = C.solid; g.fill(); pkIcon(g, p.t, ix, mid, 7 * sc);
+      let x = px + 54 * sc; g.font = "600 " + Math.round(18 * sc) + "px " + PK_TH; g.fillStyle = "#fff"; g.fillText(p.s[0], x, mid + 7 * sc);
+      if (p.s[1]) { x += p.lw + 8 * sc; g.font = "800 " + Math.round(22 * sc) + "px " + PK_NUM; g.fillStyle = C.sun; g.fillText(p.s[1], x, mid + 8 * sc); }
+      px += p.w + 12 * sc;
     });
   } else {
     // ไม่มีแบต — แผ่นรับประกันเต็ม: ไอคอน + ชื่อ + ปีตัวใหญ่
