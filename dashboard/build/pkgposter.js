@@ -19,18 +19,60 @@ const PK_TX_PATH = "config/pkPosterText";
 const PK_TITLE_DEF = "แพ็คเกจโซลาร์รูฟท็อป";
 const PK_TH = "'IBM Plex Sans Thai', sans-serif";
 const PK_NUM = "'Outfit', 'IBM Plex Sans Thai', sans-serif";
-const PK_C = {
-  ink: "#0F2B33",
-  deep: "#0A4D68",
-  leaf: "#13896A",
-  price: "#0B6E4F",
-  green: "#22B36A",
-  sun: "#FCD34D",
-  mute: "#5B6B63",
-  bg: "#F3F6F4",
-  band: "#0B2533",
-  red: "#DC2626"
+const PK_THEMES = {
+  day: {
+    label: "กลางวัน",
+    sw: "linear-gradient(135deg,#BFDDF2,#13896A)",
+    ink: "#0F2B33",
+    deep: "#0A4D68",
+    leaf: "#13896A",
+    price: "#0B6E4F",
+    green: "#22B36A",
+    sun: "#FCD34D",
+    mute: "#5B6B63",
+    bg: "#F3F6F4",
+    band: "#0B2533",
+    red: "#DC2626",
+    fill: "#0A4D68",
+    solid: "#13896A",
+    solid2: "#22B36A",
+    glass: "255,255,255",
+    edge: "rgba(255,255,255,.95)",
+    line: "rgba(15,43,51,.1)",
+    alt: "rgba(15,43,51,.035)",
+    recRow: "rgba(19,137,106,.12)",
+    chip1: "rgba(19,137,106,.14)",
+    chip3: "rgba(10,77,104,.12)",
+    dark: false
+  },
+  dawn: {
+    label: "เช้ามืด",
+    sw: "linear-gradient(160deg,#070D1A,#13223A 60%,#B4643A)",
+    ink: "#F1F5FB",
+    deep: "#FFFFFF",
+    leaf: "#FDBA74",
+    price: "#FCD34D",
+    green: "#FB923C",
+    sun: "#FCD34D",
+    mute: "#97A3B8",
+    bg: "#0A1120",
+    band: "#050912",
+    red: "#F87171",
+    fill: "#1F3A5F",
+    solid: "#EA580C",
+    solid2: "#F59E0B",
+    glass: "17,27,45",
+    edge: "rgba(255,255,255,.1)",
+    line: "rgba(255,255,255,.12)",
+    alt: "rgba(255,255,255,.045)",
+    recRow: "rgba(251,146,60,.2)",
+    chip1: "rgba(253,186,116,.18)",
+    chip3: "rgba(255,255,255,.14)",
+    dark: true
+  }
 };
+const PK_C = Object.assign({}, PK_THEMES.day);
+const pkTheme = k => Object.assign(PK_C, PK_THEMES[k] || PK_THEMES.day);
 const PK_SUM_MAX = 8;
 const pkNorm = s => String(s || "").toLowerCase().replace(/\s+/g, " ").trim();
 const pkNum = v => +String(v || "").replace(/[^\d.]/g, "") || 0;
@@ -328,13 +370,13 @@ function pkGlass(g, x, y, w, h, r, a) {
   g.save();
   pkShadow(g, "rgba(8,30,24,.16)", 30, 10);
   pkRR(g, x, y, w, h, r);
-  g.fillStyle = "rgba(255,255,255," + (a || .9) + ")";
+  g.fillStyle = "rgba(" + PK_C.glass + "," + (a || .9) + ")";
   g.fill();
   g.restore();
   g.save();
   pkRR(g, x + 1, y + 1, w - 2, h - 2, r - 1);
   g.lineWidth = 2;
-  g.strokeStyle = "rgba(255,255,255,.95)";
+  g.strokeStyle = PK_C.edge;
   g.stroke();
   g.restore();
 }
@@ -353,15 +395,41 @@ function pkHero(g, A, H, ay) {
     g.fillStyle = sk;
     g.fillRect(0, 0, PK_W, H);
   }
-  let gr = g.createLinearGradient(0, 0, PK_W * .8, 0);
-  gr.addColorStop(0, "rgba(246,249,247,.97)");
-  gr.addColorStop(.48, "rgba(246,249,247,.86)");
-  gr.addColorStop(1, "rgba(246,249,247,0)");
+  let gr;
+  if (C.dark) {
+    g.globalCompositeOperation = "multiply";
+    gr = g.createLinearGradient(0, 0, 0, H);
+    gr.addColorStop(0, "#070C18");
+    gr.addColorStop(.45, "#111C30");
+    gr.addColorStop(.8, "#33303A");
+    gr.addColorStop(1, "#7A5240");
+    g.fillStyle = gr;
+    g.fillRect(0, 0, PK_W, H);
+    g.globalCompositeOperation = "screen";
+    const sx = PK_W * .8,
+      sy = Math.min(H * .62, 520);
+    gr = g.createRadialGradient(sx, sy, 10, sx, sy, 440);
+    gr.addColorStop(0, "rgba(255,160,80,.32)");
+    gr.addColorStop(.45, "rgba(230,110,60,.1)");
+    gr.addColorStop(1, "rgba(230,110,60,0)");
+    g.fillStyle = gr;
+    g.fillRect(0, 0, PK_W, H);
+    g.globalCompositeOperation = "source-over";
+    gr = g.createLinearGradient(0, 0, PK_W * .8, 0);
+    gr.addColorStop(0, "rgba(7,12,24,.92)");
+    gr.addColorStop(.48, "rgba(7,12,24,.7)");
+    gr.addColorStop(1, "rgba(7,12,24,0)");
+  } else {
+    gr = g.createLinearGradient(0, 0, PK_W * .8, 0);
+    gr.addColorStop(0, "rgba(246,249,247,.97)");
+    gr.addColorStop(.48, "rgba(246,249,247,.86)");
+    gr.addColorStop(1, "rgba(246,249,247,0)");
+  }
   g.fillStyle = gr;
   g.fillRect(0, 0, PK_W, H);
   gr = g.createLinearGradient(0, H - 300, 0, H);
-  gr.addColorStop(0, "rgba(243,246,244,0)");
-  gr.addColorStop(1, "rgba(243,246,244,1)");
+  gr.addColorStop(0, C.bg + "00");
+  gr.addColorStop(1, C.bg);
   g.fillStyle = gr;
   g.fillRect(0, H - 300, PK_W, 300);
   g.restore();
@@ -412,26 +480,44 @@ function pkTop(g, A, o, brands) {
     }
   }
   let rx = PK_W - 52;
-  brands.slice().reverse().forEach((b, i) => {
+  const bl = brands.slice().reverse().map(b => {
+    if (b.logo) return {
+      b: b,
+      w: Math.min(190, 46 * (b.logo.naturalWidth || b.logo.width) / (b.logo.naturalHeight || b.logo.height))
+    };
+    g.font = "800 30px " + PK_NUM;
+    return {
+      b: b,
+      w: b.name ? g.measureText(b.name.toUpperCase()).width : 0
+    };
+  });
+  if (C.dark && bl.length) {
+    const tot = bl.reduce((t, x) => t + x.w, 0) + 52 * (bl.length - 1);
+    g.save();
+    pkShadow(g, "rgba(0,0,0,.3)", 18, 6);
+    pkRR(g, rx - tot - 26, y + 1, tot + 52, 64, 32);
+    g.fillStyle = "rgba(255,255,255,.94)";
+    g.fill();
+    g.restore();
+  }
+  bl.forEach((x, i) => {
+    const b = x.b,
+      w = x.w;
     if (i) {
       g.fillStyle = "rgba(15,43,51,.25)";
       g.fillRect(rx - 2, y + 8, 2, 50);
       rx -= 26;
     }
     if (b.logo) {
-      const iw = b.logo.naturalWidth || b.logo.width,
-        ih = b.logo.naturalHeight || b.logo.height;
-      const h = 46,
-        w = Math.min(190, h * iw / ih);
-      pkContain(g, b.logo, rx - w, y + 10, w, h, .5, 1);
+      pkContain(g, b.logo, rx - w, y + 10, w, 46, .5, 1);
       rx -= w + 26;
     } else if (b.name) {
       g.font = "800 30px " + PK_NUM;
-      g.fillStyle = C.deep;
+      g.fillStyle = C.dark ? "#0A4D68" : C.deep;
       g.textAlign = "right";
       g.fillText(b.name.toUpperCase(), rx, y + 44);
       g.textAlign = "left";
-      rx -= g.measureText(b.name.toUpperCase()).width + 26;
+      rx -= w + 26;
     }
   });
 }
@@ -440,15 +526,15 @@ function pkTag(g, txt, y, lineTo) {
   g.font = "700 30px " + PK_TH;
   const w = g.measureText(txt).width + 40;
   pkRR(g, 52, y, w, 54, 10);
-  g.fillStyle = C.deep;
+  g.fillStyle = C.fill;
   g.fill();
   g.fillStyle = "#fff";
   g.textAlign = "left";
   g.fillText(txt, 72, y + 38);
   if (lineTo > 52 + w + 40) {
     const lg = g.createLinearGradient(52 + w + 20, 0, lineTo, 0);
-    lg.addColorStop(0, C.deep);
-    lg.addColorStop(1, "rgba(10,77,104,0)");
+    lg.addColorStop(0, C.dark ? C.leaf : C.fill);
+    lg.addColorStop(1, (C.dark ? C.leaf : C.fill) + "00");
     g.fillStyle = lg;
     g.fillRect(52 + w + 20, y + 26, lineTo - (52 + w + 20), 3);
   }
@@ -564,8 +650,8 @@ function pkBand(g, o, y) {
   g.lineTo(0, y + 30);
   g.closePath();
   const tg = g.createLinearGradient(0, 0, tw, 0);
-  tg.addColorStop(0, C.leaf);
-  tg.addColorStop(1, "#1FA67A");
+  tg.addColorStop(0, C.solid);
+  tg.addColorStop(1, C.solid2);
   g.fillStyle = tg;
   g.fill();
   g.restore();
@@ -683,8 +769,8 @@ function pkHybBadge(g) {
   pkShadow(g, "rgba(8,60,40,.35)", 16, 6);
   pkRR(g, bx, by, bw, 50, 25);
   const gr = g.createLinearGradient(bx, 0, bx + bw, 0);
-  gr.addColorStop(0, C.leaf);
-  gr.addColorStop(1, "#22B36A");
+  gr.addColorStop(0, C.solid);
+  gr.addColorStop(1, C.solid2);
   g.fillStyle = gr;
   g.fill();
   g.restore();
@@ -700,6 +786,7 @@ function pkDraw(cv, sp, A, o) {
   cv.height = PK_H;
   g.imageSmoothingQuality = "high";
   g.textBaseline = "alphabetic";
+  pkTheme(o.theme);
   pkHero(g, A, 1060, 0);
   const inv0 = sp.invs[0],
     it = pkInvTxt(sp);
@@ -786,8 +873,8 @@ function pkDraw(cv, sp, A, o) {
   pkShadow(g, "rgba(10,77,104,.3)", 16, 6);
   pkRR(g, 52, 668, pw, 58, 29);
   const pg = g.createLinearGradient(52, 0, 52 + pw, 0);
-  pg.addColorStop(0, C.deep);
-  pg.addColorStop(1, C.leaf);
+  pg.addColorStop(0, C.fill);
+  pg.addColorStop(1, C.solid);
   g.fillStyle = pg;
   g.fill();
   g.restore();
@@ -839,7 +926,7 @@ function pkDraw(cv, sp, A, o) {
       g.font = "800 16px " + PK_NUM;
       tw = g.measureText(c.tag).width + 22;
       pkRR(g, x + cw - 20 - tw, cy + 18, tw, 28, 14);
-      g.fillStyle = c.tag === "HYBRID" ? C.leaf : C.deep;
+      g.fillStyle = c.tag === "HYBRID" ? C.solid : C.fill;
       g.fill();
       g.fillStyle = "#fff";
       g.textAlign = "center";
@@ -893,7 +980,7 @@ function pkDraw(cv, sp, A, o) {
   ss.forEach((t, i) => {
     const x = 48 + sw * i;
     if (i) {
-      g.fillStyle = "rgba(15,43,51,.1)";
+      g.fillStyle = C.line;
       g.fillRect(x, sy + 20, 2, sh - 40);
     }
     g.textAlign = "center";
@@ -921,6 +1008,7 @@ function pkDrawSum(cv, rows, A, o) {
   cv.height = PK_H;
   g.imageSmoothingQuality = "high";
   g.textBaseline = "alphabetic";
+  pkTheme(o.theme);
   pkHero(g, A, 560);
   const brand = f => {
     const v = rows.map(f).filter(Boolean);
@@ -973,7 +1061,7 @@ function pkDrawSum(cv, rows, A, o) {
   g.fillText("ประหยัด/เดือน", col.sv + 120, ty + 44);
   g.fillText(o.price ? "ราคา" : "", col.pr, ty + 44);
   g.textAlign = "left";
-  g.fillStyle = "rgba(15,43,51,.1)";
+  g.fillStyle = C.line;
   g.fillRect(tx + 24, ty + 60, tw - 48, 2);
   const r0 = ty + 66,
     rH = Math.min(92, (th - 66 - 46) / Math.max(1, rows.length));
@@ -1000,11 +1088,11 @@ function pkDrawSum(cv, rows, A, o) {
       mid = y + rH / 2;
     if (r.rec) {
       pkRR(g, tx + 14, y + 3, tw - 28, rH - 6, 18);
-      g.fillStyle = "rgba(19,137,106,.12)";
+      g.fillStyle = C.recRow;
       g.fill();
     } else if (i % 2) {
       pkRR(g, tx + 14, y + 3, tw - 28, rH - 6, 18);
-      g.fillStyle = "rgba(15,43,51,.035)";
+      g.fillStyle = C.alt;
       g.fill();
     }
     const kt = String(sp.kwp);
@@ -1020,7 +1108,7 @@ function pkDrawSum(cv, rows, A, o) {
     g.font = "700 16px " + PK_TH;
     const ptw = g.measureText(pt).width + 18;
     pkRR(g, kx, py, ptw, 28, 14);
-    g.fillStyle = sp.phase === 3 ? "rgba(10,77,104,.12)" : "rgba(19,137,106,.14)";
+    g.fillStyle = sp.phase === 3 ? C.chip3 : C.chip1;
     g.fill();
     g.fillStyle = sp.phase === 3 ? C.deep : C.leaf;
     g.fillText(pt, kx + 9, py + 20);
@@ -1062,7 +1150,7 @@ function pkDrawSum(cv, rows, A, o) {
       const rt = "แนะนำ",
         rtw = g.measureText(rt).width + 22;
       pkRR(g, rx, mid - 15, rtw, 30, 15);
-      g.fillStyle = C.leaf;
+      g.fillStyle = C.solid;
       g.fill();
       g.fillStyle = "#fff";
       g.textAlign = "center";
@@ -1192,6 +1280,7 @@ function PkPosterModal({
   const [price, setPrice] = React.useState(saved.price !== false);
   const [contact, setContact] = React.useState(saved.contact === true);
   const [vat, setVat] = React.useState(saved.vat === true);
+  const [theme, setTheme] = React.useState(PK_THEMES[saved.theme] ? saved.theme : "day");
   const [title, setTitle] = React.useState(PK_TITLE_DEF);
   const [disc, setDisc] = React.useState("");
   const [wty, setWty] = React.useState(() => (q && q.warranties || PK_WTY_DEF).join("\n"));
@@ -1299,10 +1388,11 @@ function PkPosterModal({
         logo: logo,
         price: price,
         contact: contact,
-        vat: vat
+        vat: vat,
+        theme: theme
       }));
     } catch (e) {}
-  }, [logo, price, contact, vat]);
+  }, [logo, price, contact, vat, theme]);
   const assetKey = assetSp ? [assetSp.pItem && assetSp.pItem.id, assetSp.invs[0] && assetSp.invs[0].item && assetSp.invs[0].item.id].join("|") : "";
   React.useEffect(() => {
     let live = true;
@@ -1316,6 +1406,7 @@ function PkPosterModal({
   React.useEffect(() => {
     if (!A || !cv.current) return;
     const o = {
+      theme: theme,
       logo: logo,
       contact: contact,
       price: price,
@@ -1330,7 +1421,7 @@ function PkPosterModal({
     if (sum) {
       if (sumRows.length) pkDrawSum(cv.current, sumRows, A, o);
     } else pkDraw(cv.current, sp, A, o);
-  }, [A, sp, sumRows, logo, contact, price, vat, disc, title, wty, co, markIm]);
+  }, [A, sp, sumRows, theme, logo, contact, price, vat, disc, title, wty, co, markIm]);
   const download = () => {
     if (!cv.current) return;
     const a = document.createElement("a");
@@ -1625,7 +1716,56 @@ function PkPosterModal({
     style: Object.assign({}, card, {
       gap: 12
     })
-  }, sw(logo, setLogo, "โลโก้บริษัท"), sw(contact, setContact, "ข้อมูลติดต่อ"), sw(price, setPrice, "แสดงราคา"), price && sw(vat, setVat, "บวก VAT 7% ในราคา"), price && !sum && React.createElement("div", {
+  }, React.createElement("div", {
+    style: {
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "space-between",
+      gap: 10
+    }
+  }, React.createElement("span", {
+    style: {
+      fontSize: 13,
+      fontWeight: 600,
+      color: "var(--text-1)"
+    }
+  }, "\u0E18\u0E35\u0E21\u0E2A\u0E35"), React.createElement("div", {
+    style: {
+      display: "flex",
+      gap: 3,
+      padding: 3,
+      borderRadius: "var(--r-pill)",
+      background: "var(--surface2)",
+      boxShadow: "var(--shadow-inset)"
+    }
+  }, Object.keys(PK_THEMES).map(k => React.createElement("button", {
+    key: k,
+    type: "button",
+    onClick: () => setTheme(k),
+    style: {
+      display: "flex",
+      alignItems: "center",
+      gap: 6,
+      border: "none",
+      cursor: "pointer",
+      fontFamily: "inherit",
+      fontSize: 12,
+      fontWeight: 700,
+      padding: "5px 11px",
+      borderRadius: "var(--r-pill)",
+      background: theme === k ? "var(--surface)" : "transparent",
+      color: theme === k ? "var(--text-1)" : "var(--text-3)",
+      boxShadow: theme === k ? "var(--shadow-sm)" : "none"
+    }
+  }, React.createElement("span", {
+    style: {
+      width: 12,
+      height: 12,
+      borderRadius: 6,
+      background: PK_THEMES[k].sw,
+      flexShrink: 0
+    }
+  }), PK_THEMES[k].label)))), sw(logo, setLogo, "โลโก้บริษัท"), sw(contact, setContact, "ข้อมูลติดต่อ"), sw(price, setPrice, "แสดงราคา"), price && sw(vat, setVat, "บวก VAT 7% ในราคา"), price && !sum && React.createElement("div", {
     style: {
       display: "flex",
       flexDirection: "column",
