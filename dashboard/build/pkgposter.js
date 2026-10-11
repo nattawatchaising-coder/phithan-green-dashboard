@@ -70,6 +70,7 @@ function pkSpec(lead, items) {
     phase: +b.phase || +(lead.survey || {}).phase || 1,
     sell: sell,
     bat: +b.batteryKwh || 0,
+    hyb: invs.some(v => v.item && v.item.invType === "hybrid") ? true : invs.length && invs.every(v => v.item && v.item.invType) ? false : null,
     ok: !!(b.panelModel && n && (invs.length || b.microRatio))
   };
 }
@@ -462,7 +463,28 @@ function pkIcon(g, txt, cx, cy, s) {
   g.lineJoin = "round";
   const t = String(txt || "");
   g.beginPath();
-  if (/แผง|panel/i.test(t)) {
+  const drop = (x, y, r) => {
+    g.moveTo(x, y - r * 1.5);
+    g.bezierCurveTo(x + r * 1.1, y - r * .2, x + r, y + r, x, y + r);
+    g.bezierCurveTo(x - r, y + r, x - r * 1.1, y - r * .2, x, y - r * 1.5);
+  };
+  if (/ล้าง|ทำความสะอาด/.test(t)) {
+    g.moveTo(-s * .75, s * .2);
+    g.lineTo(s * .95, s * .2);
+    g.lineTo(s * .7, s * .95);
+    g.lineTo(-s, s * .95);
+    g.closePath();
+    g.moveTo(s * .07, s * .2);
+    g.lineTo(-s * .15, s * .95);
+    g.moveTo(-s * .87, s * .58);
+    g.lineTo(s * .83, s * .58);
+    g.stroke();
+    g.beginPath();
+    drop(0, -s * .5, s * .32);
+    drop(-s * .62, -s * .32, s * .2);
+    drop(s * .62, -s * .32, s * .2);
+    g.stroke();
+  } else if (/แผง|panel/i.test(t)) {
     g.rect(-s, -s * .7, s * 2, s * 1.4);
     [-s / 3, s / 3].forEach(x => {
       g.moveTo(x, -s * .7);
@@ -479,11 +501,6 @@ function pkIcon(g, txt, cx, cy, s) {
     g.lineTo(s * .55, -s * .1);
     g.lineTo(0, -s * .1);
     g.closePath();
-    g.stroke();
-  } else if (/ล้าง|ทำความสะอาด/.test(t)) {
-    g.moveTo(0, -s);
-    g.bezierCurveTo(s * .9, -s * .05, s * .75, s, 0, s);
-    g.bezierCurveTo(-s * .75, s, -s * .9, -s * .05, 0, -s);
     g.stroke();
   } else if (/อนุญาต|เอกสาร|การไฟฟ้า/.test(t)) {
     g.rect(-s * .7, -s, s * 1.4, s * 2);
@@ -666,7 +683,9 @@ function pkDraw(cv, sp, A, o) {
   g.fillText("kWp", 44 + bw + 14, 372);
   g.font = "700 30px " + PK_TH;
   g.fillStyle = C.leaf;
-  g.fillText("ระบบ " + sp.phase + " เฟส · ON-GRID" + (sp.bat ? " + แบตเตอรี่" : ""), 52, 426);
+  const sysTx = "ระบบ " + sp.phase + " เฟส · " + (sp.hyb ? sp.bat ? "HYBRID + แบตเตอรี่" : "HYBRID รองรับแบตเตอรี่ในอนาคต" : "ON-GRID" + (sp.bat ? " + แบตเตอรี่" : ""));
+  pkFit(g, sysTx, "700", 30, PK_TH, 600, 18);
+  g.fillText(sysTx, 52, 426);
   const sell = o.price && sp.sell ? pkPrice(sp.sell, o) : 0,
     disc = sell ? Math.max(0, +o.disc || 0) : 0;
   if (sell) {
@@ -725,6 +744,7 @@ function pkDraw(cv, sp, A, o) {
     ru: "แผง"
   }];
   if (inv0) cards.push({
+    tag: sp.hyb ? "HYBRID" : sp.hyb === false ? "ON-GRID" : "",
     k: "อินเวอร์เตอร์ " + iBrand,
     m: iItem && iItem.model || pkSplitModel(inv0.name, iBrand),
     v: it.kw,
@@ -747,15 +767,27 @@ function pkDraw(cv, sp, A, o) {
     r: "",
     ru: ""
   });
-  const cy = 760,
-    ch = 128,
+  const cy = 752,
+    ch = 146,
     gap = 18,
     cw = (PK_W - 96 - gap * (cards.length - 1)) / cards.length;
   cards.forEach((c, i) => {
     const x = 48 + i * (cw + gap);
     pkGlass(g, x, cy, cw, ch, 26);
+    let tw = 0;
+    if (c.tag) {
+      g.font = "800 16px " + PK_NUM;
+      tw = g.measureText(c.tag).width + 22;
+      pkRR(g, x + cw - 20 - tw, cy + 18, tw, 28, 14);
+      g.fillStyle = c.tag === "HYBRID" ? C.leaf : C.deep;
+      g.fill();
+      g.fillStyle = "#fff";
+      g.textAlign = "center";
+      g.fillText(c.tag, x + cw - 20 - tw / 2, cy + 38);
+      tw += 10;
+    }
     g.textAlign = "left";
-    pkFit(g, c.k, "700", 22, PK_TH, cw - 48, 15);
+    pkFit(g, c.k, "700", 22, PK_TH, cw - 48 - tw, 15);
     g.fillStyle = C.mute;
     g.fillText(c.k, x + 26, cy + 38);
     let rw = 0;
@@ -764,21 +796,26 @@ function pkDraw(cv, sp, A, o) {
       g.font = "700 20px " + PK_TH;
       g.fillStyle = C.mute;
       const ruw = g.measureText(c.ru).width;
-      g.fillText(c.ru, x + cw - 24, cy + 100);
+      g.fillText(c.ru, x + cw - 24, cy + 94);
       g.font = "800 46px " + PK_NUM;
       g.fillStyle = C.ink;
-      g.fillText(c.r, x + cw - 30 - ruw, cy + 100);
+      g.fillText(c.r, x + cw - 30 - ruw, cy + 94);
       rw = g.measureText(c.r).width + ruw + 16;
       g.textAlign = "left";
     }
     if (c.v) {
-      pkFit(g, c.v, "800", 62, PK_NUM, cw - 80 - rw, 30);
+      pkFit(g, c.v, "800", 60, PK_NUM, cw - 80 - rw, 30);
       g.fillStyle = C.deep;
-      g.fillText(c.v, x + 24, cy + 104);
+      g.fillText(c.v, x + 24, cy + 96);
       const vw = g.measureText(c.v).width;
       g.font = "700 26px " + PK_NUM;
       g.fillStyle = C.leaf;
-      g.fillText(c.u, x + 30 + vw, cy + 104);
+      g.fillText(c.u, x + 30 + vw, cy + 96);
+      if (c.m) {
+        pkFit(g, c.m, "600", 20, PK_NUM, cw - 50, 12);
+        g.fillStyle = C.mute;
+        g.fillText(c.m, x + 26, cy + 128);
+      }
     } else if (c.m) {
       pkFit(g, c.m, "700", 30, PK_TH, cw - 48 - rw, 16);
       g.fillStyle = C.ink;
@@ -789,8 +826,8 @@ function pkDraw(cv, sp, A, o) {
     saveY = kwh * PK_RATE;
   const ss = [["ผลิตไฟ", "~" + pkFmt(kwh), "หน่วย/ปี"], ["ประหยัดค่าไฟ", "~฿" + pkFmt(saveY / 12), "/เดือน"]];
   if (sell && saveY) ss.push(["คืนทุน", "~" + Math.round(sell / saveY * 10) / 10, "ปี"]);
-  const sy = 906,
-    sh = 104;
+  const sy = 914,
+    sh = 100;
   pkGlass(g, 48, sy, PK_W - 96, sh, 26);
   const sw = (PK_W - 96) / ss.length;
   ss.forEach((t, i) => {
@@ -852,8 +889,8 @@ function pkDrawSum(cv, rows, A, o) {
   g.font = "700 54px " + PK_NUM;
   g.fillText("kWp", 44 + bw + 14, 338);
   const wps = rows.map(r => r.sp.wp).filter((w, j, a) => w && a.indexOf(w) === j);
-  const sub = [pBrand && wps.length === 1 ? "แผง " + pBrand + " " + wps[0] + "W" : "", iBrand ? "อินเวอร์เตอร์ " + iBrand : ""].filter(Boolean).join(" · ") || "ติดตั้งครบ จบในที่เดียว";
-  pkFit(g, sub, "700", 30, PK_TH, 620, 18);
+  const sub = [pBrand && wps.length === 1 ? "แผง " + pBrand + " " + wps[0] + "W" : "", iBrand ? "อินเวอร์เตอร์ " + iBrand + (rows.every(r => r.sp.hyb) ? " Hybrid" : "") : ""].filter(Boolean).join(" · ") || "ติดตั้งครบ จบในที่เดียว";
+  pkFit(g, sub, "700", 30, PK_TH, 620, 16);
   g.fillStyle = C.leaf;
   g.fillText(sub, 52, 392);
   const tx = 48,
@@ -922,7 +959,7 @@ function pkDrawSum(cv, rows, A, o) {
       g.fillText(rt, col.k + 2, y + 20);
     }
     const l1 = "แผง " + sp.wp + "W × " + sp.n + (sp.bat ? " · แบต " + sp.bat + " kWh" : "");
-    const l2 = sp.invs.length ? "อินเวอร์เตอร์ " + it.kw + " kW" + (it.n > 1 ? " × " + it.n : "") : "ไมโครอินเวอร์เตอร์";
+    const l2 = sp.invs.length ? "อินเวอร์เตอร์ " + it.kw + " kW" + (it.n > 1 ? " × " + it.n : "") + (sp.hyb ? " · Hybrid" : sp.hyb === false ? " · On-grid" : "") : "ไมโครอินเวอร์เตอร์";
     if (rH >= 62) {
       pkFit(g, l1, "700", 23, PK_TH, 330, 14);
       g.fillStyle = C.ink;
