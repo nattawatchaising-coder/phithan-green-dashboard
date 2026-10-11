@@ -2391,7 +2391,10 @@ function BOQEditor({
     });
   });
   const scfg = isStringInv && window.BOQ.stringConfig ? window.BOQ.stringConfig(selPanel, selInv, {
-    series: b.dcSeries != null && b.dcSeries !== "" ? b.dcSeries : undefined
+    series: b.dcSeries != null && b.dcSeries !== "" ? b.dcSeries : undefined,
+    strPerInv: +b.strings > 0 ? b.strings : 0,
+    panels: result.meta.panelCount,
+    invCount: (result.meta.invCount || 1) + (selInv2 ? inv2Count : 0)
   }) : null;
   const inv2Cap = selInv2 ? inv2Count * Math.max(1, (+selInv2.inputs || 1) * Math.max(1, Math.round(+selInv2.strPerMppt || 1))) : 0;
   const plan = scfg && scfg.ready && window.BOQ.stringPlan ? window.BOQ.stringPlan(result.meta.panelCount, scfg.series, selInv, result.meta.invCount, inv2Cap) : null;

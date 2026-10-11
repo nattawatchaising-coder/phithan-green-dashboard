@@ -1354,7 +1354,8 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock, ver, verName, p3Vers
     return Object.assign({}, p, { cables: cs });
   });
   const scfg = isStringInv && window.BOQ.stringConfig
-    ? window.BOQ.stringConfig(selPanel, selInv, { series: (b.dcSeries != null && b.dcSeries !== "") ? b.dcSeries : undefined })
+    ? window.BOQ.stringConfig(selPanel, selInv, { series: (b.dcSeries != null && b.dcSeries !== "") ? b.dcSeries : undefined,
+      strPerInv: +b.strings > 0 ? b.strings : 0, panels: result.meta.panelCount, invCount: (result.meta.invCount || 1) + (selInv2 ? inv2Count : 0) })
     : null;
   /* แผนสตริง — "ลงสตริงละ N แผง แล้วได้กี่สตริง" · ต้องรู้ Voc/ช่วง MPPT ก่อน (scfg.ready) */
   /* ช่องรับสตริงของรุ่นที่สอง — จำนวนสตริงไม่เปลี่ยน แต่ช่องที่รับได้มากขึ้น

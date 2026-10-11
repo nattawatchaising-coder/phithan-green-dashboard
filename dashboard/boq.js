@@ -963,7 +963,8 @@
     /* แผงสองหน้า: ด้านหลังรับแสงสะท้อนเพิ่มกระแส — ใช้ Isc × bifacialK เลือกฟิวส์/สาย (ช่อง "แผงสองหน้า" ในคลัง · ไม่ระบุ = เดาจากชื่อรุ่น) */
     const bif = panel.bifacial === true || (panel.bifacial == null && /bifacial|BDV|BDB|HBD|DEG\d|JAM\d+D\d/i.test(String(panel.model || "")));
     const iscD = isc * (bif ? RULES.bifacialK : 1);
-    const maxMpptA = +inv.maxMpptA || 0, maxIscA = +inv.maxIscA || 0, spm = Math.max(1, Math.round(+inv.strPerMppt || 1));
+    const maxMpptA = +inv.maxMpptA || 0, maxIscA = +inv.maxIscA || 0;
+    let spm = Math.max(1, Math.round(+inv.strPerMppt || 1));
     const out = { voc, vocCold: Math.round(vocCold * 100) / 100, tMin, tcVoc: tc, tHot, isc, iscD: Math.round(iscD * 100) / 100, bifacial: bif, vmp, imp, vmin, vmax, maxVdc, maxInA, maxMpptA, maxIscA, strPerMppt: spm, vRef, warns: [], ready: false };
     if (!voc || !vmin || !vmax) {
       if (!voc) out.warns.push("ยังไม่ระบุ Voc ของแผง — เพิ่มได้ที่หน้าคลัง › สเปคแผง");
@@ -999,6 +1000,15 @@
     /* กระแสเทียบสเปคอินเวอร์เตอร์ (ตรงกับหน้าออกแบบระบบ scCurrent):
        Imp 1 สตริง ≤ กระแสเข้าสูงสุดต่อขั้ว · Imp × สตริง/MPPT ≤ ต่อช่อง MPPT · Isc × 1.25 × สตริง/MPPT ≤ Isc สูงสุดต่อ MPPT */
     const iOp = imp || isc, limOp = maxMpptA || maxInA, r2 = (x) => Math.round(x * 100) / 100;
+    /* สตริงที่ลงจริงต่อ MPPT (ผู้ใช้ ต.ค. 2026: 2 MPPT ลง 2 สตริง ก็แยกช่องละสตริง) — กระจายสตริงต่อตัวลงทุกช่องก่อน
+       ไม่ใช่คูณด้วยความจุ strPerMppt ทุกครั้ง · ระบุสตริงต่อตัวเองได้ (opts.strPerInv = b.strings) ไม่งั้นคิดจากแผงทั้งงาน ÷ แผงต่ออนุกรม ÷ จำนวนตัว
+       ไม่รู้จำนวนสตริง/MPPT = คิดเต็มความจุแบบเดิม */
+    const mpptN = Math.max(0, Math.round(+inv.inputs || 0));
+    const perInv = +opts.strPerInv > 0 ? Math.round(+opts.strPerInv)
+      : +opts.panels > 0 ? Math.ceil(Math.ceil(+opts.panels / series) / Math.max(1, Math.round(+opts.invCount || 1))) : 0;
+    const spmCap = spm;
+    spm = perInv > 0 && mpptN > 0 ? Math.max(1, Math.min(spmCap, Math.ceil(perInv / mpptN))) : spmCap;
+    out.strPerMpptUsed = spm;
     if (maxInA > 0 && iOp > maxInA) out.warns.push("กระแสทำงาน 1 สตริง " + r2(iOp) + " A เกินกระแสเข้าสูงสุดต่อขั้ว " + maxInA + " A");
     if (limOp > 0 && spm > 1 && iOp * spm > limOp) out.warns.push("กระแสทำงานรวม " + r2(iOp * spm) + " A (" + spm + " สตริง/MPPT) เกินกระแสเข้าสูงสุดต่อ MPPT " + limOp + " A");
     /* เทียบ Isc ตรง ๆ กับพิกัดลัดวงจรของ MPPT ไม่คูณ 1.25 (ผู้ใช้ ต.ค. 2026 · ตรงกับ solarcalc scCurrent) */
@@ -2188,7 +2198,8 @@
         /* จำนวนสตริงรวม — เอาจากแผนสตริงจริง (แผงทั้งงาน ÷ แผงต่ออนุกรม) ไม่ใช่เดาจากจำนวนช่อง MPPT
            ของเดิมใช้ "ช่องต่อตัว × จำนวนตัว" ซึ่งได้ 4 สตริงสำหรับงาน 155 แผง — น้อยกว่าจริงมาก
            ระบุเองได้ที่ b.strings (สตริงต่อตัว · 0 = อัตโนมัติ) */
-        const scIn = stringConfig(panel, selInv, { series: (b.dcSeries != null && b.dcSeries !== "") ? b.dcSeries : undefined });
+        const scIn = stringConfig(panel, selInv, { series: (b.dcSeries != null && b.dcSeries !== "") ? b.dcSeries : undefined,
+          strPerInv: +b.strings > 0 ? b.strings : 0, panels: panelCount, invCount: invCount + inv2Count });
         const cap2 = selInv2
           ? inv2Count * Math.max(1, (+selInv2.inputs || 1) * Math.max(1, Math.round(+selInv2.strPerMppt || 1)))
           : 0;
