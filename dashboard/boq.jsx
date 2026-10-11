@@ -1713,11 +1713,14 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock, ver, verName, p3Vers
     const pr = +((priceMap || {})[window.BOQ.matKey(p.name)] || {}).price || 0;
     return pr > 0 ? Math.round(pr * p.wires * p.sets * (len > 0 ? len : 1)) : null;
   };
-  /* ชนิดที่ระบบเลือกให้ — ตามที่ผู้ใช้กดการ์ดไว้ (c.fam) ไม่งั้นเอาตัวแรกที่มีในคลังแบบชุดเดียว
-     ลำดับ: CV หลายแกน → CV แกนเดียว → THW แกนเดียว */
+  /* ชนิดที่ระบบเลือกให้ — ตามที่ผู้ใช้กดการ์ดไว้ (c.fam) ไม่งั้น **ตัวที่ถูกสุด** ในบรรดาที่มีในคลังและมีราคา (ผู้ใช้ ต.ค. 2026)
+     ราคาเท่ากัน/ไม่มีราคาเลย = ตัวแรกที่มีในคลังแบบชุดเดียว ตามลำดับ CV หลายแกน → CV แกนเดียว → THW แกนเดียว */
   const cabDefaultPlan = (plans, c) => {
     if (!plans) return null;
     if (c.fam) { const p = plans[CAB_FAMS.findIndex((f) => f.key === c.fam)]; if (p) return p; }
+    const cheap = plans.filter((p) => p && p.inStock && cabCost(p, 1) != null)
+      .reduce((m, p) => (!m || cabCost(p, 1) < cabCost(m, 1) ? p : m), null);
+    if (cheap) return cheap;
     return plans.find((p) => p && p.inStock && p.sets === 1) || plans.find((p) => p && p.inStock) || plans.find(Boolean) || null;
   };
   // จำนวนชุดของสายที่เลือกเอง (ไม่ใช่ระบบเลือก) — น้อยสุดที่พิกัดรวมพอ

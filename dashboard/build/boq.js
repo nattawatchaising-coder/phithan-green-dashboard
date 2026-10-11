@@ -2925,6 +2925,8 @@ function BOQEditor({
       const p = plans[CAB_FAMS.findIndex(f => f.key === c.fam)];
       if (p) return p;
     }
+    const cheap = plans.filter(p => p && p.inStock && cabCost(p, 1) != null).reduce((m, p) => !m || cabCost(p, 1) < cabCost(m, 1) ? p : m, null);
+    if (cheap) return cheap;
     return plans.find(p => p && p.inStock && p.sets === 1) || plans.find(p => p && p.inStock) || plans.find(Boolean) || null;
   };
   const cabSetsFor = c => {
