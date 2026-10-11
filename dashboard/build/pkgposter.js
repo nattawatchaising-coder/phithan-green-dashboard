@@ -935,8 +935,8 @@ function pkDrawSum(cv, rows, A, o) {
     logo: iBrand ? A.iLogo : null,
     name: iBrand
   }].filter(b => b.logo || b.name));
-  if (A.pPhoto) pkLift(g, () => pkContain(g, A.pPhoto, 690, 150, 200, 330, .5, .5), 30);
-  if (A.iPhoto) pkLift(g, () => pkContain(g, A.iPhoto, 830, 250, 210, 240, 1, .5), 30);
+  if (A.pPhoto) pkLift(g, () => pkContain(g, A.pPhoto, 700, 136, 180, 280, .5, .5), 30);
+  if (A.iPhoto) pkLift(g, () => pkContain(g, A.iPhoto, 836, 200, 200, 214, 1, .5), 30);
   pkTag(g, o.title || PK_TITLE_DEF, 156, 680);
   const ks = rows.map(r => r.sp.kwp),
     lo = Math.min.apply(null, ks),
@@ -1019,16 +1019,33 @@ function pkDrawSum(cv, rows, A, o) {
       g.fillText(rt, col.k + 2, y + 20);
     }
     const l1 = "แผง " + sp.wp + "W × " + sp.n + (sp.bat ? " · แบต " + sp.bat + " kWh" : "");
-    const l2 = sp.invs.length ? "อินเวอร์เตอร์ " + it.kw + " kW" + (it.n > 1 ? " × " + it.n : "") + (sp.hyb ? " · Hybrid" : sp.hyb === false ? " · On-grid" : "") : "ไมโครอินเวอร์เตอร์";
-    if (rH >= 62) {
-      pkFit(g, l1, "700", 23, PK_TH, 330, 14);
+    const l2 = sp.invs.length ? "อินเวอร์เตอร์ " + it.kw + " kW" + (it.n > 1 ? " × " + it.n : "") : "ไมโครอินเวอร์เตอร์";
+    const two = rH >= 50,
+      f1 = two ? Math.min(23, rH * .36) : 20,
+      f2 = Math.min(19, rH * .3);
+    if (two) {
+      pkFit(g, l1, "700", f1, PK_TH, 330, 14);
       g.fillStyle = C.ink;
-      g.fillText(l1, col.eq, mid - 4);
-      pkFit(g, l2, "500", 19, PK_TH, 330, 13);
+      g.fillText(l1, col.eq, mid - 3);
+      pkFit(g, l2, "500", f2, PK_TH, 250, 13);
       g.fillStyle = C.mute;
-      g.fillText(l2, col.eq, mid + 22);
+      g.fillText(l2, col.eq, mid + f2 + 3);
+      if (sp.hyb != null) {
+        const tt = sp.hyb ? "HYBRID" : "ON-GRID",
+          tx2 = col.eq + g.measureText(l2).width + 10;
+        g.font = "800 13px " + PK_NUM;
+        const ttw = g.measureText(tt).width + 16;
+        pkRR(g, tx2, mid + f2 - 13, ttw, 21, 10.5);
+        g.lineWidth = 1.8;
+        g.strokeStyle = sp.hyb ? C.leaf : C.deep;
+        g.stroke();
+        g.fillStyle = sp.hyb ? C.leaf : C.deep;
+        g.textAlign = "center";
+        g.fillText(tt, tx2 + ttw / 2, mid + f2 + 2);
+        g.textAlign = "left";
+      }
     } else {
-      const l = l1 + " · " + l2;
+      const l = l1 + " · " + l2 + (sp.hyb ? " · Hybrid" : "");
       pkFit(g, l, "600", 20, PK_TH, 340, 12);
       g.fillStyle = C.ink;
       g.fillText(l, col.eq, mid + 7);
