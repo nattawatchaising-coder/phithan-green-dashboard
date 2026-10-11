@@ -243,7 +243,8 @@ const PK_BRAND_PHOTO = {
   "batt:huawei": "dashboard/assets/pkg-batt-huawei-1.png",
   "battset:huawei": "dashboard/assets/pkg-batt-huawei-3.png",
   "opt:huawei": "dashboard/assets/pkg-opt-huawei.png",
-  "opt2:huawei": "dashboard/assets/pkg-opt-huawei-2.png"
+  "opt2:huawei": "dashboard/assets/pkg-opt-huawei-2.png",
+  "logodark:huawei": "dashboard/assets/pkg-logo-huawei-white.png"
 };
 function pkBrandPhoto(item, kind) {
   const k = kind + ":" + String(item && item.brand || "").trim().toLowerCase();
@@ -256,9 +257,11 @@ async function pkAssets(sp) {
   const oItem = sp && sp.opt ? sp.optItem : null;
   const [hero, mark, pPhoto, iPhoto, pLogo, iLogo, bPhoto, bSet, oPhoto, oPhoto2] = await Promise.all([pkImg("dashboard/assets/pkg-house-light.jpg"), pkImg(typeof brandDocURL === "function" ? brandDocURL() : ""), pkBrandPhoto(pItem, "panel").then(im => im || pkFirstImg([pItem && pItem.id, "cat_panel"])), pkBrandPhoto(inv, "inv").then(im => im || pkFirstImg([inv && inv.id, "cat_inverter"])), pkFirstImg(pkBrandKeys(pItem)), pkFirstImg(pkBrandKeys(inv)), bItem ? pkBrandPhoto(bItem, "batt").then(im => im || pkFirstImg([bItem.id])) : null, bItem ? pkBrandPhoto(bItem, "battset") : null, oItem ? pkBrandPhoto(oItem, "opt").then(im => im || pkFirstImg([oItem.id])) : null, oItem ? pkBrandPhoto(oItem, "opt2") : null]);
   const hero2 = sp && sp.addon ? await pkImg("dashboard/assets/pkg-house-night.jpg") : null;
+  const iLogoD = sp && sp.addon ? await pkBrandPhoto(bItem || oItem || inv, "logodark") : null;
   const ad2 = sp && sp.addon ? pkDefringe : x => x;
   return {
     hero2: hero2,
+    iLogoD: iLogoD,
     oPhoto: ad2(pkTrim(oPhoto)),
     oPhoto2: ad2(pkTrim(oPhoto2)),
     bPhoto: pkTrim(bPhoto),
@@ -1523,7 +1526,7 @@ function pkDrawAddon(cv, A, o, ad) {
   C.mute = "rgba(255,255,255,.72)";
   C.deep = "#FFFFFF";
   pkTop(g, A, o, [{
-    logo: pkLogoOnDark(A.iLogo),
+    logo: A.iLogoD || pkLogoOnDark(A.iLogo),
     name: brand
   }]);
   Object.assign(C, keep);
@@ -1563,26 +1566,26 @@ function pkDrawAddon(cv, A, o, ad) {
   if (A.oPhoto) glow(A.oPhoto, O1);
   const fl = C.fill;
   C.fill = C.solid;
-  pkTag(g, o.title || "อัปเกรดแพ็คเกจ " + brand, 150, 0);
+  pkTag(g, o.title || "อัปเกรดแพ็คเกจ " + brand, 172, 0);
   C.fill = fl;
   const head = ad.bats.length ? "เพิ่มแบตเตอรี่" : "เพิ่ม Optimizer";
   pkFit(g, head, "800", 92, PK_TH, 580, 50);
   g.fillStyle = "#FFFFFF";
-  g.fillText(head, 44, 332);
+  g.fillText(head, 44, 354);
   if (ad.bats.length && ad.opts.length) {
     g.font = "800 54px " + PK_NUM;
     g.fillStyle = C.sun;
-    g.fillText("+ Optimizer", 50, 396);
+    g.fillText("+ Optimizer", 50, 418);
   }
   const sub = "ต่อเพิ่มจากแพ็คเกจโซลาร์ " + brand + " Hybrid ได้ทุกขนาด";
   pkFit(g, sub, "600", 22, PK_TH, 560, 16);
   g.fillStyle = "rgba(255,255,255,.85)";
-  g.fillText(sub, 52, 436);
+  g.fillText(sub, 52, 458);
   const feats = [ad.bats.length ? ["moon", "เก็บไฟไว้", "ใช้กลางคืน"] : null, ad.opts.length ? ["chart", "ดูผลผลิต", "รายแผง"] : null, ad.opts.length ? ["shade", "เงาบังแผงเดียว", "ไม่ฉุดทั้งระบบ"] : null, ad.opts.length ? ["shield", "ตัดไฟ DC", "ที่แผงได้"] : null].filter(Boolean);
   const fw = 140;
   feats.forEach((f, i) => {
     const cx = 52 + fw * i + 32,
-      cy = 494;
+      cy = 526;
     g.beginPath();
     g.arc(cx, cy, 27, 0, Math.PI * 2);
     g.fillStyle = "rgba(255,255,255,.08)";

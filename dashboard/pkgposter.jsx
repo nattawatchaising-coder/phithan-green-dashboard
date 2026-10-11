@@ -188,7 +188,9 @@ const PK_BRAND_PHOTO = { "inv:huawei": "dashboard/assets/pkg-inv-huawei.jpg", "i
   /* แบต Huawei (ผู้ใช้ให้มา ต.ค. 2026): ก้อนเดียว = รูปรายอัน · ชุด 3 ขนาด = รูปสรุป — ตัดพื้นไว้ในไฟล์แล้ว (เครื่องขาวบนพื้นขาว) */
   "batt:huawei": "dashboard/assets/pkg-batt-huawei-1.png", "battset:huawei": "dashboard/assets/pkg-batt-huawei-3.png",
   /* Optimizer Huawei (ผู้ใช้ให้มา ต.ค. 2026): opt = รูปรายอัน · รูปสรุปใช้ทั้ง opt + opt2 */
-  "opt:huawei": "dashboard/assets/pkg-opt-huawei.png", "opt2:huawei": "dashboard/assets/pkg-opt-huawei-2.png" };   // batt:<ยี่ห้อ> ไม่มีไฟล์ = รูปคลัง · battset ไม่มี = ใช้ batt
+  "opt:huawei": "dashboard/assets/pkg-opt-huawei.png", "opt2:huawei": "dashboard/assets/pkg-opt-huawei-2.png",
+  /* โลโก้ขาวล้วนสำหรับพื้นมืด (รูป Add-on กลางคืน · ผู้ใช้ให้โลโก้ดำมา ต.ค. 2026 → ตัดขอบ แปลงขาว พื้นโปร่ง) ไม่มี = แปลงจากโลโก้ในคลัง */
+  "logodark:huawei": "dashboard/assets/pkg-logo-huawei-white.png" };   // batt:<ยี่ห้อ> ไม่มีไฟล์ = รูปคลัง · battset ไม่มี = ใช้ batt
 function pkBrandPhoto(item, kind) {
   const k = kind + ":" + String((item && item.brand) || "").trim().toLowerCase();
   return pkImg(PK_BRAND_PHOTO[k] || "");   // ไม่มีไฟล์ = null → รูปคลัง
@@ -210,9 +212,10 @@ async function pkAssets(sp) {
     oItem ? pkBrandPhoto(oItem, "opt").then((im) => im || pkFirstImg([oItem.id])) : null,
     oItem ? pkBrandPhoto(oItem, "opt2") : null,
   ]);
-  const hero2 = sp && sp.addon ? await pkImg("dashboard/assets/pkg-house-night.jpg") : null;   // พื้นหลังรูป Add-on (บ้านกลางคืน ผู้ใช้ให้มา)
+  const hero2 = sp && sp.addon ? await pkImg("dashboard/assets/pkg-house-night.jpg") : null;
+  const iLogoD = sp && sp.addon ? await pkBrandPhoto(bItem || oItem || inv, "logodark") : null;   // พื้นหลังรูป Add-on (บ้านกลางคืน ผู้ใช้ให้มา)
   const ad2 = sp && sp.addon ? pkDefringe : (x) => x;   // พื้นมืด: ขอบขาวรอบ Optimizer โผล่
-  return { hero2: hero2, oPhoto: ad2(pkTrim(oPhoto)), oPhoto2: ad2(pkTrim(oPhoto2)), bPhoto: pkTrim(bPhoto), bSet: pkTrim(bSet || bPhoto), hero: hero, mark: mark, pPhoto: pkTrim(pPhoto), iPhoto: pkTrim(iPhoto), pLogo: pkUnwhite(pkTrim(pLogo)), iLogo: pkUnwhite(pkTrim(iLogo)) };
+  return { hero2: hero2, iLogoD: iLogoD, oPhoto: ad2(pkTrim(oPhoto)), oPhoto2: ad2(pkTrim(oPhoto2)), bPhoto: pkTrim(bPhoto), bSet: pkTrim(bSet || bPhoto), hero: hero, mark: mark, pPhoto: pkTrim(pPhoto), iPhoto: pkTrim(iPhoto), pLogo: pkUnwhite(pkTrim(pLogo)), iLogo: pkUnwhite(pkTrim(iLogo)) };
 }
 
 /* ── วาด: ตัวช่วย ── */
@@ -877,7 +880,7 @@ function pkDrawAddon(cv, A, o, ad) {
   // หัวบน: ชื่อบริษัท + โลโก้ยี่ห้อขาวทั้งตัว
   const keep = { ink: C.ink, mute: C.mute, deep: C.deep };
   C.ink = "#FFFFFF"; C.mute = "rgba(255,255,255,.72)"; C.deep = "#FFFFFF";
-  pkTop(g, A, o, [{ logo: pkLogoOnDark(A.iLogo), name: brand }]);
+  pkTop(g, A, o, [{ logo: A.iLogoD || pkLogoOnDark(A.iLogo), name: brand }]);
   Object.assign(C, keep);
 
   // สินค้ายืนบนแสงไฟอุ่นหน้าบ้าน
@@ -898,21 +901,21 @@ function pkDrawAddon(cv, A, o, ad) {
   if (A.bSet) pkLift(g, () => pkContain(g, A.bSet, 700, 360, 260, 268, 1, .5), 34);
   if (A.oPhoto) glow(A.oPhoto, O1);
 
-  // หัวเรื่อง — ป้ายกับหัวเรื่องเว้นห่าง (เดิมชิดกัน)
+  // หัวเรื่อง — ป้ายกับหัวเรื่องเว้นห่าง (เดิมชิดกัน) · ทั้งก้อนเลื่อนลงจากหัวบน (ผู้ใช้ ต.ค. 2026 "ขยับลงมานิดนึง")
   const fl = C.fill; C.fill = C.solid;   // ป้ายสีทอง/สีหลัก — สีน้ำเงินเข้มจมหายบนฟ้ากลางคืน
-  pkTag(g, o.title || ("อัปเกรดแพ็คเกจ " + brand), 150, 0);
+  pkTag(g, o.title || ("อัปเกรดแพ็คเกจ " + brand), 172, 0);
   C.fill = fl;
   const head = ad.bats.length ? "เพิ่มแบตเตอรี่" : "เพิ่ม Optimizer";
-  pkFit(g, head, "800", 92, PK_TH, 580, 50); g.fillStyle = "#FFFFFF"; g.fillText(head, 44, 332);
-  if (ad.bats.length && ad.opts.length) { g.font = "800 54px " + PK_NUM; g.fillStyle = C.sun; g.fillText("+ Optimizer", 50, 396); }
+  pkFit(g, head, "800", 92, PK_TH, 580, 50); g.fillStyle = "#FFFFFF"; g.fillText(head, 44, 354);
+  if (ad.bats.length && ad.opts.length) { g.font = "800 54px " + PK_NUM; g.fillStyle = C.sun; g.fillText("+ Optimizer", 50, 418); }
   const sub = "ต่อเพิ่มจากแพ็คเกจโซลาร์ " + brand + " Hybrid ได้ทุกขนาด";
-  pkFit(g, sub, "600", 22, PK_TH, 560, 16); g.fillStyle = "rgba(255,255,255,.85)"; g.fillText(sub, 52, 436);
+  pkFit(g, sub, "600", 22, PK_TH, 560, 16); g.fillStyle = "rgba(255,255,255,.85)"; g.fillText(sub, 52, 458);
   // จุดเด่น: ไอคอนวงทอง + คำสั้น 2 บรรทัด (แทนชิปเรียงแน่น)
   const feats = [ad.bats.length ? ["moon", "เก็บไฟไว้", "ใช้กลางคืน"] : null, ad.opts.length ? ["chart", "ดูผลผลิต", "รายแผง"] : null,
     ad.opts.length ? ["shade", "เงาบังแผงเดียว", "ไม่ฉุดทั้งระบบ"] : null, ad.opts.length ? ["shield", "ตัดไฟ DC", "ที่แผงได้"] : null].filter(Boolean);
   const fw = 140;
   feats.forEach((f, i) => {
-    const cx = 52 + fw * i + 32, cy = 494;
+    const cx = 52 + fw * i + 32, cy = 526;
     g.beginPath(); g.arc(cx, cy, 27, 0, Math.PI * 2); g.fillStyle = "rgba(255,255,255,.08)"; g.fill();
     g.lineWidth = 2; g.strokeStyle = C.sun; g.stroke();
     pkAddIcon(g, f[0], cx, cy, 14, "#FFFFFF");
