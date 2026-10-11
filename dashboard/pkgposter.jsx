@@ -750,7 +750,7 @@ function pkDrawAddon(cv, A, o, ad) {
     pkGlass(g, 48, y, PK_W - 96, 270, 30, .94);
     g.font = "700 28px " + PK_TH; g.fillStyle = C.deep; g.fillText("แบตเตอรี่ " + brand + " " + bm, 80, y + 48);
     g.font = "600 20px " + PK_TH; g.fillStyle = C.mute; g.textAlign = "right";
-    g.fillText("ก้อนละ " + ad.bats[0].kwh + " kWh" + (ad.pI ? " + Power Module" : "") + " · สำรองไฟ/ใช้ไฟกลางคืน", PK_W - 80, y + 48); g.textAlign = "left";
+    g.fillText("ก้อนละ " + ad.bats[0].kwh + " kWh" + (ad.pI ? " + Power Module" : "") + " · เก็บไฟไว้ใช้กลางคืน", PK_W - 80, y + 48); g.textAlign = "left";   // ไม่เขียน "สำรองไฟ" — แพ็คเกจไม่มีระบบสำรองไฟ (ผู้ใช้ ต.ค. 2026)
     const tw = (PK_W - 96 - 60 - 40) / 3;
     ad.bats.forEach((b, i) => {
       const x = 78 + i * (tw + 20), ty = y + 72;

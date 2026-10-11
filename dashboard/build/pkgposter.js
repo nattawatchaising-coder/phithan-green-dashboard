@@ -1293,7 +1293,7 @@ function pkDrawAddon(cv, A, o, ad) {
     g.font = "600 20px " + PK_TH;
     g.fillStyle = C.mute;
     g.textAlign = "right";
-    g.fillText("ก้อนละ " + ad.bats[0].kwh + " kWh" + (ad.pI ? " + Power Module" : "") + " · สำรองไฟ/ใช้ไฟกลางคืน", PK_W - 80, y + 48);
+    g.fillText("ก้อนละ " + ad.bats[0].kwh + " kWh" + (ad.pI ? " + Power Module" : "") + " · เก็บไฟไว้ใช้กลางคืน", PK_W - 80, y + 48);
     g.textAlign = "left";
     const tw = (PK_W - 96 - 60 - 40) / 3;
     ad.bats.forEach((b, i) => {
