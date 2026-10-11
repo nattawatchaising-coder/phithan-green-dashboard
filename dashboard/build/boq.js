@@ -11304,16 +11304,6 @@ function MatVariantModal({
     isNew: true
   });
   const [allCat, setAllCat] = React.useState(false);
-  const myCat = React.useMemo(() => {
-    const mk = window.BOQ.matKey,
-      SF = window.SF || {};
-    const k0 = mk(item.nameAuto || item.name),
-      k1 = mk(item.name);
-    const hit = (matOptions || []).find(o => mk(o.value) === k0) || (matOptions || []).find(o => mk(o.value) === k1);
-    if (hit) return hit.group;
-    const ck = (SF.BOQ_GROUP_TO_CAT || {})[item.group];
-    return ck && SF.STOCK_CAT_BY && SF.STOCK_CAT_BY[ck] ? SF.STOCK_CAT_BY[ck].th : null;
-  }, [item.nameAuto, item.name, item.group, matOptions]);
   const stockByKey = React.useMemo(() => {
     const m = {},
       mk = window.BOQ.matKey;
@@ -11322,6 +11312,25 @@ function MatVariantModal({
     });
     return m;
   }, [stock && stock.items]);
+  const ownCat = React.useMemo(() => {
+    const mk = window.BOQ.matKey;
+    const ss = [mk(item.nameAuto || item.name), mk(item.name)].map(k => (stockByKey[k] || []).find(x => !x.trashFrom && x.cat)).find(Boolean);
+    return ss ? ss.cat : null;
+  }, [item.nameAuto, item.name, stockByKey]);
+  const myCat = React.useMemo(() => {
+    const mk = window.BOQ.matKey,
+      SF = window.SF || {};
+    if (ownCat) {
+      const c = SF.STOCK_CAT_BY && SF.STOCK_CAT_BY[ownCat];
+      return c ? c.th : ownCat;
+    }
+    const k0 = mk(item.nameAuto || item.name),
+      k1 = mk(item.name);
+    const hit = (matOptions || []).find(o => mk(o.value) === k0) || (matOptions || []).find(o => mk(o.value) === k1);
+    if (hit) return hit.group;
+    const ck = (SF.BOQ_GROUP_TO_CAT || {})[item.group];
+    return ck && SF.STOCK_CAT_BY && SF.STOCK_CAT_BY[ck] ? SF.STOCK_CAT_BY[ck].th : null;
+  }, [ownCat, item.nameAuto, item.name, item.group, matOptions]);
   const typeOf = s => {
     const SF = window.SF || {},
       c = SF.STOCK_CAT_BY && SF.STOCK_CAT_BY[s.cat];
@@ -11331,28 +11340,32 @@ function MatVariantModal({
     return "ไม่ระบุประเภท";
   };
   const catOpts = React.useMemo(() => {
-    const base = !myCat || allCat ? matOptions || [] : (matOptions || []).filter(o => o.group === myCat);
-    if (allCat || !myCat) return base;
+    if (allCat || !myCat) return matOptions || [];
+    let base;
+    if (ownCat) {
+      const seen = {},
+        mk = window.BOQ.matKey;
+      base = (stock && stock.items || []).filter(x => x && x.name && !x.trashFrom && x.cat === ownCat && !seen[mk(x.name)] && (seen[mk(x.name)] = 1)).map(x => ({
+        value: x.name,
+        label: x.name,
+        group: myCat
+      }));
+    } else base = (matOptions || []).filter(o => o.group === myCat);
     const out = base.map(o => {
       const ss = stockByKey[window.BOQ.matKey(o.value)] || [];
       const vs = ss.map(s => [s.brand, s.model].filter(Boolean).join(" · ")).filter(Boolean);
       const pr = ss.map(s => +s.price || 0).filter(p => p > 0);
       const sub = [vs.length ? vs.slice(0, 2).join(" / ") + (vs.length > 2 ? " +" + (vs.length - 2) : "") : "", pr.length ? "฿" + baht(Math.min.apply(null, pr)) + (pr.length > 1 && Math.max.apply(null, pr) !== Math.min.apply(null, pr) ? "–" + baht(Math.max.apply(null, pr)) : "") : "ยังไม่มีราคา"].filter(Boolean).join(" · ");
+      const ty = ss.length ? ownCat ? ss[0].elecType || ss[0].brand || "ไม่ระบุประเภท" : typeOf(ss[0]) : "ยังไม่มีในคลัง";
       return Object.assign({}, o, {
-        group: ss.length ? typeOf(ss[0]) : "ยังไม่มีในคลัง",
+        group: ty,
         sub: sub,
         ss: ss
       });
     });
     const miss = o => o.group === "ยังไม่มีในคลัง" ? 1 : 0;
     return out.sort((a, z) => miss(a) - miss(z) || a.group.localeCompare(z.group, "th") || String(a.label).localeCompare(String(z.label), "th"));
-  }, [matOptions, myCat, allCat, stockByKey]);
-  const myType = React.useMemo(() => {
-    const mk = window.BOQ.matKey,
-      ks = [mk(item.nameAuto || item.name), mk(item.name)];
-    const o = ks.map(k => catOpts.find(x => mk(x.value) === k)).find(Boolean);
-    return o && o.group !== "ยังไม่มีในคลัง" ? o.group : null;
-  }, [catOpts, item.nameAuto, item.name]);
+  }, [matOptions, myCat, ownCat, allCat, stockByKey, stock && stock.items]);
   const [imgs, setImgs] = React.useState({});
   const wantImg = id => {
     if (!id || id in imgs || !window.FBDB) return;
@@ -11559,8 +11572,7 @@ function MatVariantModal({
     addable: true,
     onAdd: v => onRename(v),
     placeholder: myCat && !allCat ? "เลือกวัสดุหมวด " + myCat : "เลือกวัสดุจากคลัง",
-    renderHover: hoverCard,
-    openGroup: myType
+    renderHover: hoverCard
   }), myCat && React.createElement("label", {
     style: {
       display: "flex",

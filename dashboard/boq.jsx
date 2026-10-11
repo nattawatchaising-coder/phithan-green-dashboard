@@ -5360,14 +5360,6 @@ function MatVariantModal({ item, stock, priceMap, matOptions, picked, onPick, re
   /* ตัวเลือกเปลี่ยนของ = เฉพาะหมวดเดียวกับบรรทัดนี้ (แผงเห็นแค่แผง) — หมวดดูจากของเดิมในรายการ ไม่เจอใช้หมวดของกลุ่ม BOQ
      ติ๊ก "ทุกหมวด" ได้ถ้าต้องการของข้ามหมวดจริง ๆ */
   const [allCat, setAllCat] = React.useState(false);
-  const myCat = React.useMemo(() => {
-    const mk = window.BOQ.matKey, SF = window.SF || {};
-    const k0 = mk(item.nameAuto || item.name), k1 = mk(item.name);
-    const hit = (matOptions || []).find((o) => mk(o.value) === k0) || (matOptions || []).find((o) => mk(o.value) === k1);
-    if (hit) return hit.group;
-    const ck = (SF.BOQ_GROUP_TO_CAT || {})[item.group];
-    return ck && SF.STOCK_CAT_BY && SF.STOCK_CAT_BY[ck] ? SF.STOCK_CAT_BY[ck].th : null;
-  }, [item.nameAuto, item.name, item.group, matOptions]);
   /* ในหมวดเดียวกัน แยกกลุ่มตาม "ประเภท" (หมวดย่อยในคลัง → ชนิดอุปกรณ์ไฟฟ้า → ยี่ห้อ) · บรรทัดรองบอกยี่ห้อ/รุ่น/ราคา
      ของชื่อเดียวมีได้หลายยี่ห้อ/รุ่น (variants) — การ์ดตอนชี้โชว์ทุกตัว */
   const stockByKey = React.useMemo(() => {
@@ -5375,6 +5367,22 @@ function MatVariantModal({ item, stock, priceMap, matOptions, picked, onPick, re
     ((stock && stock.items) || []).forEach((s) => { if (s.name) (m[mk(s.name)] = m[mk(s.name)] || []).push(s); });
     return m;
   }, [stock && stock.items]);
+  /* หมวดจริงในคลังของชิ้นนี้ (ผู้ใช้ ต.ค. 2026: "เคยอยู่หมวดไหนก็เอาแค่หมวดนั้น") — เดิมใช้กลุ่มของลิสต์รวม
+     ซึ่งของชื่อซ้ำข้ามหมวดตกไปอยู่หมวดแรกที่เจอ (อินเวอร์เตอร์กลายเป็น Accessories 1,477 รายการ) */
+  const ownCat = React.useMemo(() => {
+    const mk = window.BOQ.matKey;
+    const ss = [mk(item.nameAuto || item.name), mk(item.name)].map((k) => (stockByKey[k] || []).find((x) => !x.trashFrom && x.cat)).find(Boolean);
+    return ss ? ss.cat : null;
+  }, [item.nameAuto, item.name, stockByKey]);
+  const myCat = React.useMemo(() => {
+    const mk = window.BOQ.matKey, SF = window.SF || {};
+    if (ownCat) { const c = SF.STOCK_CAT_BY && SF.STOCK_CAT_BY[ownCat]; return c ? c.th : ownCat; }
+    const k0 = mk(item.nameAuto || item.name), k1 = mk(item.name);
+    const hit = (matOptions || []).find((o) => mk(o.value) === k0) || (matOptions || []).find((o) => mk(o.value) === k1);
+    if (hit) return hit.group;
+    const ck = (SF.BOQ_GROUP_TO_CAT || {})[item.group];
+    return ck && SF.STOCK_CAT_BY && SF.STOCK_CAT_BY[ck] ? SF.STOCK_CAT_BY[ck].th : null;
+  }, [ownCat, item.nameAuto, item.name, item.group, matOptions]);
   const typeOf = (s) => {
     const SF = window.SF || {}, c = SF.STOCK_CAT_BY && SF.STOCK_CAT_BY[s.cat];
     if (c && c.parent) return c.th;
@@ -5383,25 +5391,26 @@ function MatVariantModal({ item, stock, priceMap, matOptions, picked, onPick, re
     return "ไม่ระบุประเภท";
   };
   const catOpts = React.useMemo(() => {
-    const base = !myCat || allCat ? (matOptions || []) : (matOptions || []).filter((o) => o.group === myCat);
-    if (allCat || !myCat) return base;
+    if (allCat || !myCat) return matOptions || [];
+    let base;
+    if (ownCat) {
+      // ของทุกตัวในหมวดเดียวกันของคลัง (ไม่นับถังขยะ) ชื่อซ้ำเอาตัวเดียว
+      const seen = {}, mk = window.BOQ.matKey;
+      base = ((stock && stock.items) || []).filter((x) => x && x.name && !x.trashFrom && x.cat === ownCat && !seen[mk(x.name)] && (seen[mk(x.name)] = 1))
+        .map((x) => ({ value: x.name, label: x.name, group: myCat }));
+    } else base = (matOptions || []).filter((o) => o.group === myCat);
     const out = base.map((o) => {
       const ss = stockByKey[window.BOQ.matKey(o.value)] || [];
       const vs = ss.map((s) => [s.brand, s.model].filter(Boolean).join(" · ")).filter(Boolean);
       const pr = ss.map((s) => +s.price || 0).filter((p) => p > 0);
       const sub = [vs.length ? vs.slice(0, 2).join(" / ") + (vs.length > 2 ? " +" + (vs.length - 2) : "") : "",
         pr.length ? "฿" + baht(Math.min.apply(null, pr)) + (pr.length > 1 && Math.max.apply(null, pr) !== Math.min.apply(null, pr) ? "–" + baht(Math.max.apply(null, pr)) : "") : "ยังไม่มีราคา"].filter(Boolean).join(" · ");
-      return Object.assign({}, o, { group: ss.length ? typeOf(ss[0]) : "ยังไม่มีในคลัง", sub: sub, ss: ss });
+      const ty = ss.length ? (ownCat ? (ss[0].elecType || ss[0].brand || "ไม่ระบุประเภท") : typeOf(ss[0])) : "ยังไม่มีในคลัง";
+      return Object.assign({}, o, { group: ty, sub: sub, ss: ss });
     });
     const miss = (o) => (o.group === "ยังไม่มีในคลัง" ? 1 : 0);   // ของที่ยังไม่มีในคลังไว้ท้ายสุด
     return out.sort((a, z) => miss(a) - miss(z) || a.group.localeCompare(z.group, "th") || String(a.label).localeCompare(String(z.label), "th"));
-  }, [matOptions, myCat, allCat, stockByKey]);
-  /* เปิดดรอปดาวน์มาที่ชิปประเภทเดิมของชิ้นนี้เลย (ผู้ใช้ ต.ค. 2026: เคยอยู่หมวดไหนก็เอาแค่หมวดนั้น) — กด "ทั้งหมด" ดูที่เหลือได้ */
-  const myType = React.useMemo(() => {
-    const mk = window.BOQ.matKey, ks = [mk(item.nameAuto || item.name), mk(item.name)];
-    const o = ks.map((k) => catOpts.find((x) => mk(x.value) === k)).find(Boolean);
-    return o && o.group !== "ยังไม่มีในคลัง" ? o.group : null;
-  }, [catOpts, item.nameAuto, item.name]);
+  }, [matOptions, myCat, ownCat, allCat, stockByKey, stock && stock.items]);
   /* รูปในคลังเก็บแยกโหนด stockImg/{id} (ไม่โหลดมากับรายการ) — โหลดทีละรูปตอนชี้ แล้วจำไว้ · อ่านอย่างเดียว */
   const [imgs, setImgs] = React.useState({});
   const wantImg = (id) => {
@@ -5470,8 +5479,7 @@ function MatVariantModal({ item, stock, priceMap, matOptions, picked, onPick, re
               <span style={{ fontSize: 10.5, fontWeight: 800, color: "var(--text-3)" }}>ชื่อรายการในใบถอดของ</span>
               <Dropdown value={item.name} onChange={(v) => onRename(v === (item.nameAuto || item.name) ? "" : v)}
                 options={catOpts.some((o) => o.value === item.name) ? catOpts : [{ value: item.name, label: item.name, group: "ชื่อปัจจุบัน" }].concat(catOpts)}
-                addable onAdd={(v) => onRename(v)} placeholder={myCat && !allCat ? "เลือกวัสดุหมวด " + myCat : "เลือกวัสดุจากคลัง"} renderHover={hoverCard}
-                openGroup={myType} />
+                addable onAdd={(v) => onRename(v)} placeholder={myCat && !allCat ? "เลือกวัสดุหมวด " + myCat : "เลือกวัสดุจากคลัง"} renderHover={hoverCard} />
               {myCat && (
                 <label style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 11, color: "var(--text-3)", cursor: "pointer", marginTop: -2 }}>
                   <input type="checkbox" checked={allCat} onChange={(e) => setAllCat(e.target.checked)} style={{ accentColor: "var(--primary)", cursor: "pointer" }} />
