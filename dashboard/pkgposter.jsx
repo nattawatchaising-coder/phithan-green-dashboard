@@ -581,9 +581,13 @@ function pkDrawSum(cv, rows, A, o) {
   const tx = 48, ty = 428, tw = PK_W - 96, th = 574;
   pkGlass(g, tx, ty, tw, th, 30, .94);
   const col = { k: tx + 34, eq: tx + 300, sv: tx + 660, pr: tx + tw - 34 };
+  /* ขอบขวาช่องประหยัด/เดือน — หลบราคาที่กว้างสุด (ราคาหลักแสน "฿435,000" เคยชิดติด "~฿10,920" ต.ค. 2026) */
+  g.font = "800 36px " + PK_NUM;
+  const prW = o.price ? Math.max(0, ...rows.map((r) => r.sp.sell ? g.measureText("฿" + pkFmt(pkPrice(r.sp.sell, o))).width : 0)) : 0;
+  const svR = Math.min(col.sv + 120, col.pr - prW - 30);
   g.font = "700 19px " + PK_TH; g.fillStyle = C.mute; g.textAlign = "left";
   g.fillText("ขนาดระบบ", col.k, ty + 44); g.fillText("อุปกรณ์", col.eq, ty + 44);
-  g.textAlign = "right"; g.fillText("ประหยัด/เดือน", col.sv + 120, ty + 44); g.fillText(o.price ? "ราคา" : "", col.pr, ty + 44); g.textAlign = "left";
+  g.textAlign = "right"; g.fillText("ประหยัด/เดือน", svR, ty + 44); g.fillText(o.price ? "ราคา" : "", col.pr, ty + 44); g.textAlign = "left";
   g.fillStyle = C.line; g.fillRect(tx + 24, ty + 60, tw - 48, 2);
   const r0 = ty + 66, rH = Math.min(92, (th - 66 - 46) / Math.max(1, rows.length));
   /* ชิปเฟส / ชิป HYBRID ตรงกันเป็นคอลัมน์ (ผู้ใช้ ต.ค. 2026) — วัดความกว้างที่มากสุดของทุกแถวก่อน */
@@ -624,14 +628,16 @@ function pkDrawSum(cv, rows, A, o) {
       }
     } else { const l = l1 + " · " + l2 + (sp.hyb ? " · Hybrid" : ""); pkFit(g, l, "600", 20, PK_TH, 340, 12); g.fillStyle = C.ink; g.fillText(l, col.eq, mid + 7); }
     /* ป้าย "แนะนำ" อยู่ช่องว่างระหว่างอุปกรณ์กับประหยัด/เดือน กลางแถว (เดิมมุมซ้ายบน/ใต้ชิปเฟส ทับตัวเลข — ผู้ใช้ ต.ค. 2026) */
+    g.font = "800 13px " + PK_NUM; let svL = col.eq + l2Max + 10 + g.measureText("ON-GRID").width + 16 + 14;  // ขอบซ้ายที่ช่องประหยัดใช้ได้
     if (r.rec) {
-      g.font = "800 13px " + PK_NUM; const rx = col.eq + l2Max + 10 + g.measureText("ON-GRID").width + 16 + 16;
+      const rx = svL + 2;
       g.font = "800 17px " + PK_TH; const rt = "แนะนำ", rtw = g.measureText(rt).width + 22;
       pkRR(g, rx, mid - 15, rtw, 30, 15); g.fillStyle = C.solid; g.fill(); g.fillStyle = "#fff"; g.textAlign = "center"; g.fillText(rt, rx + rtw / 2, mid + 6); g.textAlign = "left";
+      svL = rx + rtw + 12;
     }
     // ประหยัด
     const sv = "~฿" + pkFmt(sp.kwp * PK_YIELD * PK_RATE / 12);
-    g.textAlign = "right"; g.font = "700 25px " + PK_NUM; g.fillStyle = C.leaf; g.fillText(sv, col.sv + 120, mid + 9);
+    g.textAlign = "right"; pkFit(g, sv, "700", 25, PK_NUM, svR - svL, 17); g.fillStyle = C.leaf; g.fillText(sv, svR, mid + 9);
     // ราคา
     if (o.price) {
       const sell = sp.sell ? pkPrice(sp.sell, o) : 0, disc = sell ? Math.max(0, +r.disc || 0) : 0;

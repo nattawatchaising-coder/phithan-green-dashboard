@@ -997,13 +997,16 @@ function pkDrawSum(cv, rows, A, o) {
     sv: tx + 660,
     pr: tx + tw - 34
   };
+  g.font = "800 36px " + PK_NUM;
+  const prW = o.price ? Math.max(0, ...rows.map(r => r.sp.sell ? g.measureText("฿" + pkFmt(pkPrice(r.sp.sell, o))).width : 0)) : 0;
+  const svR = Math.min(col.sv + 120, col.pr - prW - 30);
   g.font = "700 19px " + PK_TH;
   g.fillStyle = C.mute;
   g.textAlign = "left";
   g.fillText("ขนาดระบบ", col.k, ty + 44);
   g.fillText("อุปกรณ์", col.eq, ty + 44);
   g.textAlign = "right";
-  g.fillText("ประหยัด/เดือน", col.sv + 120, ty + 44);
+  g.fillText("ประหยัด/เดือน", svR, ty + 44);
   g.fillText(o.price ? "ราคา" : "", col.pr, ty + 44);
   g.textAlign = "left";
   g.fillStyle = C.line;
@@ -1088,9 +1091,10 @@ function pkDrawSum(cv, rows, A, o) {
       g.fillStyle = C.ink;
       g.fillText(l, col.eq, mid + 7);
     }
+    g.font = "800 13px " + PK_NUM;
+    let svL = col.eq + l2Max + 10 + g.measureText("ON-GRID").width + 16 + 14;
     if (r.rec) {
-      g.font = "800 13px " + PK_NUM;
-      const rx = col.eq + l2Max + 10 + g.measureText("ON-GRID").width + 16 + 16;
+      const rx = svL + 2;
       g.font = "800 17px " + PK_TH;
       const rt = "แนะนำ",
         rtw = g.measureText(rt).width + 22;
@@ -1101,12 +1105,13 @@ function pkDrawSum(cv, rows, A, o) {
       g.textAlign = "center";
       g.fillText(rt, rx + rtw / 2, mid + 6);
       g.textAlign = "left";
+      svL = rx + rtw + 12;
     }
     const sv = "~฿" + pkFmt(sp.kwp * PK_YIELD * PK_RATE / 12);
     g.textAlign = "right";
-    g.font = "700 25px " + PK_NUM;
+    pkFit(g, sv, "700", 25, PK_NUM, svR - svL, 17);
     g.fillStyle = C.leaf;
-    g.fillText(sv, col.sv + 120, mid + 9);
+    g.fillText(sv, svR, mid + 9);
     if (o.price) {
       const sell = sp.sell ? pkPrice(sp.sell, o) : 0,
         disc = sell ? Math.max(0, +r.disc || 0) : 0;
