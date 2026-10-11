@@ -256,10 +256,11 @@ async function pkAssets(sp) {
   const oItem = sp && sp.opt ? sp.optItem : null;
   const [hero, mark, pPhoto, iPhoto, pLogo, iLogo, bPhoto, bSet, oPhoto, oPhoto2] = await Promise.all([pkImg("dashboard/assets/pkg-house-light.jpg"), pkImg(typeof brandDocURL === "function" ? brandDocURL() : ""), pkBrandPhoto(pItem, "panel").then(im => im || pkFirstImg([pItem && pItem.id, "cat_panel"])), pkBrandPhoto(inv, "inv").then(im => im || pkFirstImg([inv && inv.id, "cat_inverter"])), pkFirstImg(pkBrandKeys(pItem)), pkFirstImg(pkBrandKeys(inv)), bItem ? pkBrandPhoto(bItem, "batt").then(im => im || pkFirstImg([bItem.id])) : null, bItem ? pkBrandPhoto(bItem, "battset") : null, oItem ? pkBrandPhoto(oItem, "opt").then(im => im || pkFirstImg([oItem.id])) : null, oItem ? pkBrandPhoto(oItem, "opt2") : null]);
   const hero2 = sp && sp.addon ? await pkImg("dashboard/assets/pkg-house-night.jpg") : null;
+  const ad2 = sp && sp.addon ? pkDefringe : x => x;
   return {
     hero2: hero2,
-    oPhoto: pkTrim(oPhoto),
-    oPhoto2: pkTrim(oPhoto2),
+    oPhoto: ad2(pkTrim(oPhoto)),
+    oPhoto2: ad2(pkTrim(oPhoto2)),
     bPhoto: pkTrim(bPhoto),
     bSet: pkTrim(bSet || bPhoto),
     hero: hero,
@@ -1265,6 +1266,223 @@ function pkAddonWty(ad, wty) {
   const w = (it, nm) => it && +it.warY ? "รับประกัน" + nm + " " + it.warY + " ปี" : "";
   return [w(ad.bI, "แบตเตอรี่"), ad.pI && ad.bI && +ad.pI.warY !== +ad.bI.warY ? w(ad.pI, " Power Module") : "", w(ad.oI, " Optimizer"), ins].filter(Boolean).join("\n");
 }
+function pkLogoOnDark(im) {
+  if (!im) return null;
+  try {
+    const w = im.naturalWidth || im.width,
+      h = im.naturalHeight || im.height,
+      c = document.createElement("canvas");
+    c.width = w;
+    c.height = h;
+    const g = c.getContext("2d");
+    g.drawImage(im, 0, 0);
+    const d = g.getImageData(0, 0, w, h),
+      p = d.data;
+    for (let i = 0; i < p.length; i += 4) {
+      if (p[i + 3] < 8) continue;
+      p[i] = 255;
+      p[i + 1] = 255;
+      p[i + 2] = 255;
+    }
+    g.putImageData(d, 0, 0);
+    return c;
+  } catch (e) {
+    return im;
+  }
+}
+const PK_ADD_USE = 0.9;
+const PK_ADD_LOADS_DEF = "แอร์ 12,000 BTU = 1000\nตู้เย็น = 150\nทีวี 55 นิ้ว = 120\nไฟ LED 10 ดวง = 100\nพัดลม = 60";
+function pkAddLoads(txt) {
+  return String(txt || PK_ADD_LOADS_DEF).split("\n").map(l => /^(.+?)\s*[=:|]\s*([\d,.]+)\s*(?:w|วัตต์)?\s*$/i.exec(l.trim())).filter(Boolean).map(m => ({
+    name: m[1].trim(),
+    w: pkNum(m[2])
+  })).filter(x => x.w > 0);
+}
+function pkLoadHrs(kwh, w) {
+  const h = kwh * PK_ADD_USE * 1000 / w;
+  return h >= 10 ? pkFmt(Math.floor(h)) : String(Math.floor(h * 2) / 2);
+}
+function pkLoadIcon(n) {
+  return /แอร์|air|btu/i.test(n) ? "ac" : /ตู้เย็น|fridge/i.test(n) ? "fridge" : /ทีวี|tv|โทรทัศน์|จอ|คอม/i.test(n) ? "tv" : /พัดลม|fan/i.test(n) ? "fan" : /หลอด|led|โคม|^ไฟ(?!ฟ้า)/i.test(n) ? "bulb" : "plug";
+}
+function pkDefringe(im) {
+  if (!im) return null;
+  try {
+    const w = im.naturalWidth || im.width,
+      h = im.naturalHeight || im.height,
+      c = document.createElement("canvas");
+    c.width = w;
+    c.height = h;
+    const g = c.getContext("2d");
+    g.drawImage(im, 0, 0);
+    const d = g.getImageData(0, 0, w, h),
+      p = d.data,
+      src = new Uint8ClampedArray(p);
+    for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {
+      const i = (y * w + x) * 4,
+        a = src[i + 3];
+      if (a === 0 || a >= 250) continue;
+      let r = 0,
+        gg = 0,
+        b = 0,
+        k = 0;
+      for (let R = 1; R <= 3 && !k; R++) for (let dy = -R; dy <= R; dy++) for (let dx = -R; dx <= R; dx++) {
+        const xx = x + dx,
+          yy = y + dy;
+        if (xx < 0 || yy < 0 || xx >= w || yy >= h) continue;
+        const j = (yy * w + xx) * 4;
+        if (src[j + 3] < 250) continue;
+        r += src[j];
+        gg += src[j + 1];
+        b += src[j + 2];
+        k++;
+      }
+      if (k) {
+        p[i] = r / k;
+        p[i + 1] = gg / k;
+        p[i + 2] = b / k;
+      } else {
+        p[i] = p[i + 1] = p[i + 2] = 30;
+        p[i + 3] = a >> 1;
+      }
+    }
+    g.putImageData(d, 0, 0);
+    return c;
+  } catch (e) {
+    return im;
+  }
+}
+function pkAddIcon(g, k, cx, cy, s, col) {
+  g.save();
+  g.translate(cx, cy);
+  g.strokeStyle = col;
+  g.fillStyle = col;
+  g.lineWidth = 2.6;
+  g.lineCap = "round";
+  g.lineJoin = "round";
+  g.beginPath();
+  if (k === "moon") {
+    g.arc(-s * .1, s * .05, s * .78, Math.PI * .35, Math.PI * 1.65);
+    g.quadraticCurveTo(-s * .55, s * .05, s * .27, s * .63);
+    g.stroke();
+    g.beginPath();
+    g.arc(s * .62, -s * .55, 2.6, 0, Math.PI * 2);
+    g.fill();
+  } else if (k === "chart") {
+    [[-s * .62, .45], [-s * .1, .85], [s * .42, .65]].forEach(b => g.rect(b[0], s * .8 - s * 1.5 * b[1], s * .34, s * 1.5 * b[1]));
+    g.moveTo(-s * .85, s * .8);
+    g.lineTo(s * .9, s * .8);
+    g.stroke();
+  } else if (k === "shade") {
+    g.arc(-s * .25, -s * .25, s * .38, 0, Math.PI * 2);
+    for (let a = 0; a < 8; a++) {
+      const t = a * Math.PI / 4;
+      g.moveTo(-s * .25 + Math.cos(t) * s * .55, -s * .25 + Math.sin(t) * s * .55);
+      g.lineTo(-s * .25 + Math.cos(t) * s * .72, -s * .25 + Math.sin(t) * s * .72);
+    }
+    g.stroke();
+    g.beginPath();
+    g.moveTo(-s * .45, s * .75);
+    g.lineTo(s * .62, s * .75);
+    g.arc(s * .6, s * .5, s * .25, Math.PI * .5, -Math.PI * .5, true);
+    g.arc(s * .2, s * .28, s * .32, -Math.PI * .1, Math.PI * 1.05, true);
+    g.arc(-s * .4, s * .52, s * .23, -Math.PI * .5, Math.PI * .5, true);
+    g.closePath();
+    g.save();
+    g.fillStyle = "#0B1630";
+    g.fill();
+    g.restore();
+    g.stroke();
+  } else if (k === "ac") {
+    pkRR(g, -s, -s * .85, s * 2, s * .95, 3);
+    g.stroke();
+    g.beginPath();
+    g.moveTo(-s * .65, -s * .2);
+    g.lineTo(s * .65, -s * .2);
+    [-.5, 0, .5].forEach(v => {
+      g.moveTo(v * s, s * .35);
+      g.quadraticCurveTo(v * s + s * .2, s * .62, v * s, s * .92);
+    });
+    g.stroke();
+  } else if (k === "fridge") {
+    pkRR(g, -s * .62, -s, s * 1.24, s * 2, 3);
+    g.stroke();
+    g.beginPath();
+    g.moveTo(-s * .62, -s * .25);
+    g.lineTo(s * .62, -s * .25);
+    g.moveTo(-s * .32, -s * .72);
+    g.lineTo(-s * .32, -s * .48);
+    g.moveTo(-s * .32, s * .02);
+    g.lineTo(-s * .32, s * .45);
+    g.stroke();
+  } else if (k === "tv") {
+    pkRR(g, -s, -s * .82, s * 2, s * 1.32, 3);
+    g.stroke();
+    g.beginPath();
+    g.moveTo(0, s * .5);
+    g.lineTo(0, s * .88);
+    g.moveTo(-s * .48, s * .9);
+    g.lineTo(s * .48, s * .9);
+    g.stroke();
+  } else if (k === "fan") {
+    g.arc(0, -s * .28, s * .72, 0, Math.PI * 2);
+    g.stroke();
+    for (let b = 0; b < 3; b++) {
+      const a = -Math.PI / 2 + b * Math.PI * 2 / 3;
+      g.beginPath();
+      g.ellipse(Math.cos(a) * s * .34, -s * .28 + Math.sin(a) * s * .34, s * .3, s * .14, a, 0, Math.PI * 2);
+      g.stroke();
+    }
+    g.beginPath();
+    g.moveTo(0, s * .44);
+    g.lineTo(0, s * .86);
+    g.moveTo(-s * .45, s * .92);
+    g.lineTo(s * .45, s * .92);
+    g.stroke();
+  } else if (k === "bulb") {
+    g.arc(0, -s * .25, s * .62, Math.PI * .8, Math.PI * 2.2);
+    g.lineTo(s * .27, s * .5);
+    g.lineTo(-s * .27, s * .5);
+    g.closePath();
+    g.stroke();
+    g.beginPath();
+    g.moveTo(-s * .25, s * .72);
+    g.lineTo(s * .25, s * .72);
+    g.moveTo(-s * .14, s * .93);
+    g.lineTo(s * .14, s * .93);
+    g.stroke();
+  } else if (k === "plug") {
+    pkRR(g, -s * .5, -s * .38, s, s * .78, 4);
+    g.stroke();
+    g.beginPath();
+    g.moveTo(-s * .22, -s * .38);
+    g.lineTo(-s * .22, -s * .88);
+    g.moveTo(s * .22, -s * .38);
+    g.lineTo(s * .22, -s * .88);
+    g.moveTo(0, s * .4);
+    g.quadraticCurveTo(0, s * .92, s * .55, s * .92);
+    g.stroke();
+  } else {
+    g.moveTo(0, -s * .95);
+    g.lineTo(s * .8, -s * .6);
+    g.lineTo(s * .8, 0);
+    g.quadraticCurveTo(s * .75, s * .7, 0, s * .98);
+    g.quadraticCurveTo(-s * .75, s * .7, -s * .8, 0);
+    g.lineTo(-s * .8, -s * .6);
+    g.closePath();
+    g.stroke();
+    g.beginPath();
+    g.moveTo(s * .1, -s * .55);
+    g.lineTo(-s * .25, s * .08);
+    g.lineTo(s * .05, s * .08);
+    g.lineTo(-s * .1, s * .58);
+    g.lineTo(s * .28, -s * .08);
+    g.lineTo(-s * .02, -s * .08);
+    g.closePath();
+    g.fill();
+  }
+  g.restore();
+}
 function pkDrawAddon(cv, A, o, ad) {
   const g = cv.getContext("2d"),
     C = PK_C;
@@ -1296,15 +1514,6 @@ function pkDrawAddon(cv, A, o, ad) {
   g.fillRect(0, HH - 260, PK_W, 260);
   g.restore();
   const brand = ad.bI && ad.bI.brand || ad.oI && ad.oI.brand || "";
-  if (A.iLogo) {
-    const lw = Math.min(190, 46 * (A.iLogo.naturalWidth || A.iLogo.width) / (A.iLogo.naturalHeight || A.iLogo.height));
-    g.save();
-    pkShadow(g, "rgba(0,0,0,.3)", 14, 4);
-    pkRR(g, PK_W - 52 - lw - 22, 50, lw + 44, 66, 33);
-    g.fillStyle = "rgba(255,255,255,.96)";
-    g.fill();
-    g.restore();
-  }
   const keep = {
     ink: C.ink,
     mute: C.mute,
@@ -1312,9 +1521,9 @@ function pkDrawAddon(cv, A, o, ad) {
   };
   C.ink = "#FFFFFF";
   C.mute = "rgba(255,255,255,.72)";
-  if (!A.iLogo) C.deep = "#FFFFFF";
+  C.deep = "#FFFFFF";
   pkTop(g, A, o, [{
-    logo: A.iLogo,
+    logo: pkLogoOnDark(A.iLogo),
     name: brand
   }]);
   Object.assign(C, keep);
@@ -1328,72 +1537,93 @@ function pkDrawAddon(cv, A, o, ad) {
   g.ellipse(840, 626, 270, 64, 0, 0, Math.PI * 2);
   g.fill();
   g.restore();
-  if (A.oPhoto2) pkLift(g, () => pkContain(g, A.oPhoto2, 624, 470, 62, 156, 1, .5), 18);
+  const O2 = [620, 456, 70, 170],
+    O1 = [964, 402, 94, 224];
+  const back = b => {
+    const cx = b[0] + b[2] / 2,
+      cy = b[1] + b[3] * .42,
+      r = b[3] * .62,
+      rg = g.createRadialGradient(cx, cy, 4, cx, cy, r);
+    rg.addColorStop(0, "rgba(255,228,180,.42)");
+    rg.addColorStop(.5, "rgba(255,214,150,.16)");
+    rg.addColorStop(1, "rgba(255,214,150,0)");
+    g.fillStyle = rg;
+    g.fillRect(cx - r, cy - r, r * 2, r * 2);
+  };
+  const glow = (im, b) => {
+    g.save();
+    pkShadow(g, "rgba(255,222,170,.75)", 18, 0);
+    pkContain(g, im, b[0], b[1], b[2], b[3], 1, .5);
+    g.restore();
+  };
+  if (A.oPhoto2) back(O2);
+  if (A.oPhoto) back(O1);
+  if (A.oPhoto2) glow(A.oPhoto2, O2);
   if (A.bSet) pkLift(g, () => pkContain(g, A.bSet, 700, 360, 260, 268, 1, .5), 34);
-  if (A.oPhoto) pkLift(g, () => pkContain(g, A.oPhoto, 970, 420, 86, 206, 1, .5), 22);
+  if (A.oPhoto) glow(A.oPhoto, O1);
   const fl = C.fill;
   C.fill = C.solid;
-  pkTag(g, o.title || "อัปเกรดแพ็คเกจ " + brand, 156, 0);
+  pkTag(g, o.title || "อัปเกรดแพ็คเกจ " + brand, 150, 0);
   C.fill = fl;
   const head = ad.bats.length ? "เพิ่มแบตเตอรี่" : "เพิ่ม Optimizer";
-  pkFit(g, head, "800", 96, PK_TH, 580, 50);
+  pkFit(g, head, "800", 92, PK_TH, 580, 50);
   g.fillStyle = "#FFFFFF";
-  g.fillText(head, 44, 306);
+  g.fillText(head, 44, 332);
   if (ad.bats.length && ad.opts.length) {
-    g.font = "800 58px " + PK_NUM;
+    g.font = "800 54px " + PK_NUM;
     g.fillStyle = C.sun;
-    g.fillText("+ Optimizer", 50, 374);
+    g.fillText("+ Optimizer", 50, 396);
   }
   const sub = "ต่อเพิ่มจากแพ็คเกจโซลาร์ " + brand + " Hybrid ได้ทุกขนาด";
-  pkFit(g, sub, "600", 24, PK_TH, 560, 16);
-  g.fillStyle = "rgba(255,255,255,.88)";
-  g.fillText(sub, 52, 418);
-  const chips = [ad.bats.length ? "เก็บไฟไว้ใช้กลางคืน" : "", ad.opts.length ? "ดูผลผลิตรายแผง" : "", ad.opts.length ? "แผงโดนเงาไม่ฉุดทั้งสตริง" : "", ad.opts.length ? "ตัดไฟ DC ที่แผงได้" : ""].filter(Boolean);
-  let cx = 52,
-    cy = 446;
-  g.font = "700 19px " + PK_TH;
-  chips.forEach(t => {
-    const w = g.measureText(t).width + 44;
-    if (cx + w > 600) {
-      cx = 52;
-      cy += 48;
-    }
-    pkRR(g, cx, cy, w, 38, 19);
-    g.fillStyle = "rgba(255,255,255,.14)";
-    g.fill();
-    g.save();
-    pkRR(g, cx + .75, cy + .75, w - 1.5, 36.5, 18);
-    g.lineWidth = 1.5;
-    g.strokeStyle = "rgba(255,255,255,.28)";
-    g.stroke();
-    g.restore();
+  pkFit(g, sub, "600", 22, PK_TH, 560, 16);
+  g.fillStyle = "rgba(255,255,255,.85)";
+  g.fillText(sub, 52, 436);
+  const feats = [ad.bats.length ? ["moon", "เก็บไฟไว้", "ใช้กลางคืน"] : null, ad.opts.length ? ["chart", "ดูผลผลิต", "รายแผง"] : null, ad.opts.length ? ["shade", "เงาบังแผงเดียว", "ไม่ฉุดทั้งระบบ"] : null, ad.opts.length ? ["shield", "ตัดไฟ DC", "ที่แผงได้"] : null].filter(Boolean);
+  const fw = 140;
+  feats.forEach((f, i) => {
+    const cx = 52 + fw * i + 32,
+      cy = 494;
     g.beginPath();
-    g.arc(cx + 18, cy + 19, 5, 0, Math.PI * 2);
-    g.fillStyle = C.sun;
+    g.arc(cx, cy, 27, 0, Math.PI * 2);
+    g.fillStyle = "rgba(255,255,255,.08)";
     g.fill();
+    g.lineWidth = 2;
+    g.strokeStyle = C.sun;
+    g.stroke();
+    pkAddIcon(g, f[0], cx, cy, 14, "#FFFFFF");
+    g.textAlign = "left";
     g.fillStyle = "#FFFFFF";
-    g.fillText(t, cx + 30, cy + 26);
-    cx += w + 10;
+    pkFit(g, f[1], "700", 17, PK_TH, fw - 14, 12);
+    g.fillText(f[1], cx - 27, cy + 52);
+    pkFit(g, f[2], "600", 16, PK_TH, fw - 14, 11);
+    g.fillStyle = "rgba(255,255,255,.8)";
+    g.fillText(f[2], cx - 27, cy + 75);
   });
   const pr = p => "+฿" + pkFmt(pkPrice(p, o));
   const top = 640,
-    bot = 1010,
+    bot = 990,
     both = ad.bats.length && ad.opts.length;
   const colW = both ? (PK_W - 96 - 20) / 2 : PK_W - 96;
   const col = (x, w, title, sub2, rows, drawRow) => {
-    pkGlass(g, x, top, w, bot - top, 30, .96);
-    pkRR(g, x + 26, top + 28, 6, 52, 3);
+    pkGlass(g, x, top, w, bot - top, 30, .97);
+    pkRR(g, x + 28, top + 30, 6, 50, 3);
     g.fillStyle = C.solid;
     g.fill();
-    pkFit(g, title, "800", 27, PK_TH, w - 70, 18);
+    pkFit(g, title, "800", 26, PK_TH, w - 72, 18);
     g.fillStyle = C.deep;
-    g.fillText(title, x + 46, top + 56);
-    pkFit(g, sub2, "600", 17, PK_TH, w - 70, 12);
+    g.fillText(title, x + 48, top + 57);
+    pkFit(g, sub2, "600", 16, PK_TH, w - 72, 12);
     g.fillStyle = C.mute;
-    g.fillText(sub2, x + 46, top + 82);
-    const ry = top + 104,
-      rh = (bot - 18 - ry) / rows.length;
-    rows.forEach((r, i) => drawRow(r, i, x + 18, ry + i * rh, w - 36, rh));
+    g.fillText(sub2, x + 48, top + 82);
+    const ry = top + 102,
+      rh = (bot - 16 - ry) / rows.length;
+    rows.forEach((r, i) => {
+      if (i) {
+        g.fillStyle = C.line;
+        g.fillRect(x + 28, ry + i * rh, w - 56, 1.5);
+      }
+      drawRow(r, i, x + 28, ry + i * rh, w - 56, rh);
+    });
   };
   const priceR = (txt, x, y, size) => {
     if (!o.price) return;
@@ -1406,75 +1636,201 @@ function pkDrawAddon(cv, A, o, ad) {
   let x = 48;
   if (ad.bats.length) {
     const bm = String(ad.bI && ad.bI.model || "").split("-")[0];
-    col(x, colW, "แบตเตอรี่ " + brand + " " + bm, "ก้อนละ " + ad.bats[0].kwh + " kWh" + (ad.pI ? " + Power Module" : "") + " · เก็บไฟไว้ใช้กลางคืน", ad.bats, (b, i, rx, ry, rw, rh) => {
-      const h = rh - 10;
-      pkRR(g, rx, ry, rw, h, 18);
-      g.fillStyle = i === 1 ? C.recRow : C.alt;
-      g.fill();
-      const mw = 34,
-        mh = 14,
-        bx = rx + 20,
-        by = ry + h / 2 + b.q * (mh + 4) / 2;
+    col(x, colW, "แบตเตอรี่ " + brand + " " + bm, "ก้อนละ " + ad.bats[0].kwh + " kWh" + (ad.pI ? " · รวม Power Module" : ""), ad.bats, (b, i, rx, ry, rw, rh) => {
+      const mid = ry + rh / 2;
+      const mw = 30,
+        mh = 12,
+        by = mid + b.q * (mh + 4) / 2 - 2;
       for (let k = 0; k < b.q; k++) {
-        pkRR(g, bx, by - (k + 1) * (mh + 4), mw, mh, 4);
-        g.fillStyle = k === b.q - 1 ? C.solid : C.leaf;
-        g.globalAlpha = .55 + .45 * (k + 1) / b.q;
+        pkRR(g, rx, by - (k + 1) * (mh + 4), mw, mh, 3.5);
+        g.fillStyle = C.solid;
+        g.globalAlpha = .45 + .55 * (k + 1) / b.q;
         g.fill();
         g.globalAlpha = 1;
       }
-      const tx = rx + 72,
-        mid = ry + h / 2;
-      g.font = "800 46px " + PK_NUM;
+      const tx = rx + 46;
+      g.font = "800 44px " + PK_NUM;
       g.fillStyle = C.deep;
       const kt = String(b.kwh);
-      g.fillText(kt, tx, mid + 8);
+      g.fillText(kt, tx, mid + 6);
       const kw = g.measureText(kt).width;
-      g.font = "700 22px " + PK_NUM;
+      g.font = "700 20px " + PK_NUM;
       g.fillStyle = C.leaf;
-      g.fillText("kWh", tx + kw + 6, mid + 8);
-      g.font = "600 17px " + PK_TH;
+      g.fillText("kWh", tx + kw + 6, mid + 6);
+      g.font = "600 16px " + PK_TH;
       g.fillStyle = C.mute;
-      g.fillText(b.q + " ก้อน", tx, mid + 34);
-      priceR(pr(b.p), rx + rw - 18, mid + 14, 34);
+      g.fillText(b.q + " ก้อน", tx, mid + 30);
+      priceR(pr(b.p), rx + rw, mid + 13, 34);
     });
     x += colW + 20;
   }
   if (ad.opts.length) {
     const om = String(ad.oI && ad.oI.model || "").replace(/-PA\d*$/i, "");
     col(x, colW, "Optimizer " + brand + " " + om, "ใส่ทุกแผง · ราคาตามขนาดระบบ", ad.opts, (c, i, rx, ry, rw, rh) => {
-      const h = rh - 8,
-        mid = ry + h / 2;
-      pkRR(g, rx, ry, rw, h, 16);
-      g.fillStyle = C.alt;
-      g.fill();
-      const mx = Math.max.apply(null, ad.opts.map(z => z.n)) || 1;
-      pkRR(g, rx + 14, ry + h - 9, Math.max(16, rw * .42 * c.n / mx), 4, 2);
-      g.fillStyle = C.solid;
-      g.globalAlpha = .55;
-      g.fill();
-      g.globalAlpha = 1;
-      g.font = "800 32px " + PK_NUM;
+      const mid = ry + rh / 2;
+      g.font = "800 30px " + PK_NUM;
       g.fillStyle = C.deep;
       const kt = String(c.kwp);
-      g.fillText(kt, rx + 16, mid + 9);
+      g.fillText(kt, rx, mid + 10);
       const kw = g.measureText(kt).width;
       g.font = "700 17px " + PK_NUM;
       g.fillStyle = C.leaf;
-      g.fillText("kWp", rx + 16 + kw + 5, mid + 9);
-      g.font = "600 16px " + PK_TH;
-      g.fillStyle = C.mute;
-      g.fillText(c.n + " ตัว", rx + 16 + kw + 5 + g.measureText("kWp ").width + 14, mid + 9);
-      priceR(pr(c.p), rx + rw - 16, mid + 11, 28);
+      g.fillText("kWp", rx + kw + 6, mid + 10);
+      priceR(pr(c.p), rx + rw, mid + 11, 28);
     });
   }
   if (o.price) {
     g.textAlign = "right";
-    g.font = "700 18px " + PK_TH;
-    g.fillStyle = "rgba(255,255,255,.8)";
-    g.fillText("* " + pkPriceNote(o), PK_W - 56, 1040);
+    g.font = "600 17px " + PK_TH;
+    g.fillStyle = "rgba(255,255,255,.75)";
+    g.fillText("* " + pkPriceNote(o), PK_W - 52, 1019);
     g.textAlign = "left";
   }
-  pkBand(g, o, 1070);
+  const panel = (y, h, label) => {
+    pkRR(g, 32, y, PK_W - 64, h, 28);
+    g.fillStyle = "rgba(255,255,255,.075)";
+    g.fill();
+    g.save();
+    pkRR(g, 32.75, y + .75, PK_W - 65.5, h - 1.5, 27);
+    g.lineWidth = 1.5;
+    g.strokeStyle = "rgba(255,255,255,.18)";
+    g.stroke();
+    g.restore();
+    if (!label) return;
+    g.font = "700 22px " + PK_TH;
+    const tw = g.measureText(label).width + 48;
+    g.save();
+    pkShadow(g, "rgba(0,0,0,.3)", 12, 4);
+    pkRR(g, 60, y - 22, tw, 44, 22);
+    const tg = g.createLinearGradient(60, 0, 60 + tw, 0);
+    tg.addColorStop(0, C.solid);
+    tg.addColorStop(1, C.solid2);
+    g.fillStyle = tg;
+    g.fill();
+    g.restore();
+    g.fillStyle = "#fff";
+    g.textAlign = "left";
+    g.fillText(label, 84, y + 8);
+  };
+  const ring = (x, y, r) => {
+    g.beginPath();
+    g.arc(x, y, r, 0, Math.PI * 2);
+    g.fillStyle = "rgba(255,255,255,.06)";
+    g.fill();
+    g.lineWidth = 2;
+    g.strokeStyle = C.sun;
+    g.stroke();
+  };
+  const divi = (x, y, h) => {
+    g.fillStyle = "rgba(255,255,255,.13)";
+    g.fillRect(x, y, 1.5, h);
+  };
+  const wsplit = t => {
+    const m = /^(.*?)\s*(\d+(?:\.\d+)?\s*(?:ปี|ครั้ง\S*))\s*(.*)$/.exec(t);
+    if (!m) return [t, ""];
+    const lb = (m[1] + (m[3] ? " " + m[3] : "")).trim();
+    return [lb.replace(/^รับประกัน\s*/, "") || lb, m[2]];
+  };
+  const items = (o.wty || []).filter(Boolean).slice(0, 6),
+    n = items.length;
+  const loads = ad.bats.length ? pkAddLoads(o.loads).slice(0, 5) : [];
+  if (loads.length) {
+    const kwh = ad.bats[0].kwh,
+      ry = 1052,
+      rh = 166,
+      cw = (PK_W - 64) / loads.length;
+    panel(ry, rh, "แบต 1 ก้อน " + kwh + " kWh ใช้ได้นานแค่ไหน");
+    g.textAlign = "right";
+    g.font = "600 15px " + PK_TH;
+    g.fillStyle = "rgba(255,255,255,.6)";
+    g.fillText("โดยประมาณ · ใช้ทีละเครื่อง", PK_W - 60, ry + 28);
+    loads.forEach((L, i) => {
+      const cx = 32 + cw * (i + .5),
+        iy = ry + 66;
+      if (i) divi(32 + cw * i, ry + 46, rh - 66);
+      ring(cx, iy, 26);
+      pkAddIcon(g, pkLoadIcon(L.name), cx, iy, 13, "#FFFFFF");
+      g.textAlign = "center";
+      pkFit(g, L.name, "600", 17, PK_TH, cw - 18, 12);
+      g.fillStyle = "rgba(255,255,255,.88)";
+      g.fillText(L.name, cx, iy + 50);
+      const ht = pkLoadHrs(kwh, L.w);
+      g.font = "800 32px " + PK_NUM;
+      const nw = g.measureText(ht).width;
+      g.font = "700 17px " + PK_TH;
+      const hx = cx - (nw + g.measureText(" ชม.").width) / 2;
+      g.textAlign = "left";
+      g.fillStyle = C.sun;
+      g.font = "800 32px " + PK_NUM;
+      g.fillText(ht, hx, iy + 88);
+      g.font = "700 17px " + PK_TH;
+      g.fillText(" ชม.", hx + nw, iy + 88);
+    });
+    const wy = 1232,
+      wh = 62,
+      wc = wy + wh / 2;
+    panel(wy, wh, "");
+    g.textAlign = "left";
+    g.font = "800 21px " + PK_TH;
+    g.fillStyle = C.sun;
+    g.fillText("รับประกัน", 60, wc + 7);
+    const wx0 = 60 + g.measureText("รับประกัน").width + 22,
+      ww = (PK_W - 50 - wx0) / Math.max(1, n);
+    items.forEach((t, i) => {
+      const sp2 = wsplit(t),
+        lb = sp2[0],
+        yr = sp2[1],
+        x0 = wx0 + ww * i;
+      divi(x0, wy + 16, wh - 32);
+      g.font = "800 24px " + PK_NUM;
+      const yw = yr ? g.measureText(yr).width + 8 : 0;
+      const lf = pkFit(g, lb, "600", 18, PK_TH, ww - 60 - yw, 11),
+        lw = g.measureText(lb).width;
+      let x = x0 + (ww - (34 + 10 + lw + yw)) / 2 + 17;
+      ring(x, wc, 17);
+      pkIcon(g, t, x, wc, 8);
+      x += 27;
+      g.font = "600 " + lf + "px " + PK_TH;
+      g.fillStyle = "rgba(255,255,255,.88)";
+      g.fillText(lb, x, wc + 6);
+      if (yr) {
+        g.font = "800 24px " + PK_NUM;
+        g.fillStyle = C.sun;
+        g.fillText(yr, x + lw + 8, wc + 8);
+      }
+    });
+  } else {
+    const by = 1066,
+      bh = 172,
+      colB = (PK_W - 64) / Math.max(1, n);
+    panel(by, bh, "รับประกัน · บริการ");
+    items.forEach((t, i) => {
+      const sp2 = wsplit(t),
+        cx = 32 + colB * (i + .5);
+      if (i) divi(32 + colB * i, by + 44, bh - 66);
+      ring(cx, by + 66, 28);
+      pkIcon(g, t, cx, by + 66, 12);
+      g.textAlign = "center";
+      pkFit(g, sp2[0], "600", 18, PK_TH, colB - 20, 12);
+      g.fillStyle = "rgba(255,255,255,.88)";
+      g.fillText(sp2[0], cx, by + 122);
+      if (sp2[1]) {
+        pkFit(g, sp2[1], "800", 32, PK_NUM, colB - 20, 16);
+        g.fillStyle = C.sun;
+        g.fillText(sp2[1], cx, by + 158);
+      }
+    });
+  }
+  g.textAlign = "left";
+  const co = Object.assign({}, PK_CO_DEF, o.co || {});
+  const cl = [co.tel && "โทร " + co.tel, co.line && "LINE " + co.line, co.site].filter(Boolean).join("   ·   ");
+  if (o.contact && cl) {
+    g.textAlign = "center";
+    pkFit(g, cl, "700", 28, PK_TH, PK_W - 96, 16);
+    g.fillStyle = C.sun;
+    g.fillText(cl, PK_W / 2, PK_H - 16);
+    g.textAlign = "left";
+  }
 }
 async function pkFonts() {
   if (!document.fonts || !document.fonts.load) return;
@@ -1572,6 +1928,7 @@ function PkPosterModal({
   const [disc, setDisc] = React.useState("");
   const [wty, setWty] = React.useState(() => (q && q.warranties || PK_WTY_DEF).join("\n"));
   const [wtyAdd, setWtyAdd] = React.useState("");
+  const [loads, setLoads] = React.useState(PK_ADD_LOADS_DEF);
   const [A, setA] = React.useState(null);
   const [coSaved, setCoSaved] = React.useState(null);
   const [co, setCo] = React.useState(PK_CO_DEF);
@@ -1598,27 +1955,31 @@ function PkPosterModal({
         setTxSaved({
           title: v.title || "",
           wty: v.wty || "",
-          wtyAdd: v.wtyAdd || ""
+          wtyAdd: v.wtyAdd || "",
+          loads: v.loads || ""
         });
         if (v.title) setTitle(v.title);
         if (v.wty) setWty(v.wty);
         if (v.wtyAdd) setWtyAdd(v.wtyAdd);
+        if (v.loads) setLoads(v.loads);
       } else setTxSaved({
         title: "",
         wty: "",
-        wtyAdd: ""
+        wtyAdd: "",
+        loads: ""
       });
     });
   }, []);
   const [txSaved, setTxSaved] = React.useState(null);
   const [txBusy, setTxBusy] = React.useState(false);
-  const txDiff = !!txSaved && (title !== (txSaved.title || PK_TITLE_DEF) || (txSaved.wty ? wty !== txSaved.wty : true) || wtyAdd !== (txSaved.wtyAdd || ""));
+  const txDiff = !!txSaved && (title !== (txSaved.title || PK_TITLE_DEF) || (txSaved.wty ? wty !== txSaved.wty : true) || wtyAdd !== (txSaved.wtyAdd || "") || loads !== (txSaved.loads || PK_ADD_LOADS_DEF));
   const saveTx = () => {
     if (!window.FBDB) return;
     const v = {
       title: title,
       wty: wty,
-      wtyAdd: wtyAdd
+      wtyAdd: wtyAdd,
+      loads: loads === PK_ADD_LOADS_DEF ? "" : loads
     };
     setTxBusy(true);
     window.FBDB.ref(PK_TX_PATH).set(v).then(() => {
@@ -1706,6 +2067,7 @@ function PkPosterModal({
       disc: pkNum(disc) || 0,
       title: title,
       wty: (addon && ad ? wtyAdd || pkAddonWty(ad, wty) : wty).split("\n").map(s => s.trim()),
+      loads: loads,
       co: Object.assign({}, co, {
         markIm: co.mark ? markIm : null
       })
@@ -1717,7 +2079,7 @@ function PkPosterModal({
     } else if (sum) {
       if (sumRows.length) pkDrawSum(cv.current, sumRows, A, o);
     } else pkDraw(cv.current, sp, A, o);
-  }, [A, sp, sumRows, ad, theme, logo, contact, price, vat, disc, title, wty, wtyAdd, co, markIm]);
+  }, [A, sp, sumRows, ad, theme, logo, contact, price, vat, disc, title, wty, wtyAdd, loads, co, markIm]);
   const download = () => {
     if (!cv.current) return;
     const a = document.createElement("a");
@@ -2020,7 +2382,77 @@ function PkPosterModal({
       color: "var(--text-3)",
       lineHeight: 1.45
     }
-  }, "\u0E23\u0E32\u0E04\u0E32 = \u0E17\u0E38\u0E19\u0E43\u0E19\u0E04\u0E25\u0E31\u0E07 \xF7 (1 \u2212 \u0E01\u0E33\u0E44\u0E23%) \u0E1B\u0E31\u0E14\u0E02\u0E36\u0E49\u0E19 (\u0E41\u0E1A\u0E15\u0E2B\u0E25\u0E31\u0E01\u0E1E\u0E31\u0E19 \xB7 Optimizer \u0E2B\u0E25\u0E31\u0E01 500) \xB7 \u0E01\u0E33\u0E44\u0E23\u0E44\u0E25\u0E48\u0E25\u0E07\u0E08\u0E32\u0E01\u0E02\u0E19\u0E32\u0E14\u0E40\u0E25\u0E47\u0E01\u0E2A\u0E38\u0E14\u0E16\u0E36\u0E07\u0E43\u0E2B\u0E0D\u0E48\u0E2A\u0E38\u0E14\u0E17\u0E31\u0E49\u0E07\u0E41\u0E1A\u0E15\u0E41\u0E25\u0E30 Optimizer \u0E15\u0E34\u0E14\u0E40\u0E22\u0E2D\u0E30\u0E22\u0E34\u0E48\u0E07\u0E16\u0E39\u0E01 \xB7 \u0E41\u0E1A\u0E15\u0E23\u0E27\u0E21 Power Module \xB7 \u0E02\u0E19\u0E32\u0E14 Optimizer \u0E15\u0E32\u0E21\u0E41\u0E1E\u0E47\u0E04\u0E40\u0E01\u0E08\u0E17\u0E35\u0E48\u0E40\u0E25\u0E37\u0E2D\u0E01\u0E14\u0E49\u0E32\u0E19\u0E25\u0E48\u0E32\u0E07 (\u0E2A\u0E39\u0E07\u0E2A\u0E38\u0E14 5 \u0E02\u0E19\u0E32\u0E14) \xB7 \u0E22\u0E31\u0E07\u0E44\u0E21\u0E48\u0E23\u0E27\u0E21\u0E04\u0E48\u0E32\u0E41\u0E23\u0E07\u0E15\u0E34\u0E14\u0E15\u0E31\u0E49\u0E07\u0E41\u0E1A\u0E15")), sum && React.createElement("div", {
+  }, "\u0E23\u0E32\u0E04\u0E32 = \u0E17\u0E38\u0E19\u0E43\u0E19\u0E04\u0E25\u0E31\u0E07 \xF7 (1 \u2212 \u0E01\u0E33\u0E44\u0E23%) \u0E1B\u0E31\u0E14\u0E02\u0E36\u0E49\u0E19 (\u0E41\u0E1A\u0E15\u0E2B\u0E25\u0E31\u0E01\u0E1E\u0E31\u0E19 \xB7 Optimizer \u0E2B\u0E25\u0E31\u0E01 500) \xB7 \u0E01\u0E33\u0E44\u0E23\u0E44\u0E25\u0E48\u0E25\u0E07\u0E08\u0E32\u0E01\u0E02\u0E19\u0E32\u0E14\u0E40\u0E25\u0E47\u0E01\u0E2A\u0E38\u0E14\u0E16\u0E36\u0E07\u0E43\u0E2B\u0E0D\u0E48\u0E2A\u0E38\u0E14\u0E17\u0E31\u0E49\u0E07\u0E41\u0E1A\u0E15\u0E41\u0E25\u0E30 Optimizer \u0E15\u0E34\u0E14\u0E40\u0E22\u0E2D\u0E30\u0E22\u0E34\u0E48\u0E07\u0E16\u0E39\u0E01 \xB7 \u0E41\u0E1A\u0E15\u0E23\u0E27\u0E21 Power Module \xB7 \u0E02\u0E19\u0E32\u0E14 Optimizer \u0E15\u0E32\u0E21\u0E41\u0E1E\u0E47\u0E04\u0E40\u0E01\u0E08\u0E17\u0E35\u0E48\u0E40\u0E25\u0E37\u0E2D\u0E01\u0E14\u0E49\u0E32\u0E19\u0E25\u0E48\u0E32\u0E07 (\u0E2A\u0E39\u0E07\u0E2A\u0E38\u0E14 5 \u0E02\u0E19\u0E32\u0E14) \xB7 \u0E22\u0E31\u0E07\u0E44\u0E21\u0E48\u0E23\u0E27\u0E21\u0E04\u0E48\u0E32\u0E41\u0E23\u0E07\u0E15\u0E34\u0E14\u0E15\u0E31\u0E49\u0E07\u0E41\u0E1A\u0E15")), addon && ad && ad.bats.length > 0 && React.createElement("div", {
+    style: card
+  }, React.createElement("div", {
+    style: {
+      fontSize: 13,
+      fontWeight: 700,
+      color: "var(--text-1)"
+    }
+  }, "\u0E41\u0E1A\u0E15 1 \u0E01\u0E49\u0E2D\u0E19\u0E43\u0E0A\u0E49\u0E44\u0E14\u0E49\u0E19\u0E32\u0E19\u0E41\u0E04\u0E48\u0E44\u0E2B\u0E19 ", React.createElement("span", {
+    style: {
+      fontWeight: 600,
+      color: "var(--text-3)",
+      fontSize: 11.5
+    }
+  }, "\u0E1A\u0E23\u0E23\u0E17\u0E31\u0E14\u0E25\u0E30\u0E40\u0E04\u0E23\u0E37\u0E48\u0E2D\u0E07: \u0E0A\u0E37\u0E48\u0E2D = \u0E27\u0E31\u0E15\u0E15\u0E4C \xB7 \u0E02\u0E36\u0E49\u0E19\u0E43\u0E19\u0E23\u0E39\u0E1B 5 \u0E41\u0E16\u0E27\u0E41\u0E23\u0E01")), React.createElement("textarea", {
+    value: loads,
+    onChange: e => setLoads(e.target.value),
+    rows: 5,
+    style: Object.assign({}, well, {
+      resize: "vertical",
+      lineHeight: 1.5
+    })
+  }), pkAddLoads(loads).slice(0, 5).map((L, i) => React.createElement("div", {
+    key: i,
+    style: {
+      display: "flex",
+      fontSize: 12.5,
+      color: "var(--text-2)"
+    }
+  }, React.createElement("span", {
+    style: {
+      flex: 1
+    }
+  }, L.name, " (", pkFmt(L.w), " W)"), React.createElement("b", {
+    style: {
+      color: "var(--text-1)"
+    }
+  }, pkLoadHrs(ad.bats[0].kwh, L.w), " \u0E0A\u0E21."))), React.createElement("div", {
+    style: {
+      display: "flex",
+      alignItems: "center",
+      gap: 10
+    }
+  }, React.createElement("button", {
+    type: "button",
+    className: "btn btn-pri",
+    disabled: !txDiff || txBusy,
+    onClick: saveTx,
+    style: {
+      padding: "7px 14px",
+      fontSize: 12.5
+    }
+  }, txBusy ? "กำลังบันทึก…" : txDiff ? "บันทึก" : "บันทึกแล้ว"), loads !== PK_ADD_LOADS_DEF && React.createElement("button", {
+    type: "button",
+    onClick: () => setLoads(PK_ADD_LOADS_DEF),
+    style: {
+      border: "none",
+      background: "none",
+      padding: 0,
+      cursor: "pointer",
+      fontSize: 12,
+      color: "var(--text-3)",
+      fontFamily: "inherit"
+    }
+  }, "\u0E04\u0E37\u0E19\u0E04\u0E48\u0E32\u0E40\u0E14\u0E34\u0E21")), React.createElement("div", {
+    style: {
+      fontSize: 11.5,
+      color: "var(--text-3)",
+      lineHeight: 1.45
+    }
+  }, "\u0E0A\u0E31\u0E48\u0E27\u0E42\u0E21\u0E07 = ", ad.bats[0].kwh, " kWh \xD7 \u0E43\u0E0A\u0E49\u0E44\u0E14\u0E49\u0E08\u0E23\u0E34\u0E07 ", Math.round(PK_ADD_USE * 100), "% \xF7 \u0E27\u0E31\u0E15\u0E15\u0E4C \xB7 \u0E04\u0E34\u0E14\u0E43\u0E0A\u0E49\u0E17\u0E35\u0E25\u0E30\u0E40\u0E04\u0E23\u0E37\u0E48\u0E2D\u0E07 \xB7 \u0E1A\u0E31\u0E19\u0E17\u0E36\u0E01\u0E41\u0E25\u0E49\u0E27\u0E43\u0E0A\u0E49\u0E17\u0E38\u0E01\u0E40\u0E04\u0E23\u0E37\u0E48\u0E2D\u0E07")), sum && React.createElement("div", {
     style: card
   }, React.createElement("div", {
     style: {

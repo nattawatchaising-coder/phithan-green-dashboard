@@ -211,7 +211,8 @@ async function pkAssets(sp) {
     oItem ? pkBrandPhoto(oItem, "opt2") : null,
   ]);
   const hero2 = sp && sp.addon ? await pkImg("dashboard/assets/pkg-house-night.jpg") : null;   // พื้นหลังรูป Add-on (บ้านกลางคืน ผู้ใช้ให้มา)
-  return { hero2: hero2, oPhoto: pkTrim(oPhoto), oPhoto2: pkTrim(oPhoto2), bPhoto: pkTrim(bPhoto), bSet: pkTrim(bSet || bPhoto), hero: hero, mark: mark, pPhoto: pkTrim(pPhoto), iPhoto: pkTrim(iPhoto), pLogo: pkUnwhite(pkTrim(pLogo)), iLogo: pkUnwhite(pkTrim(iLogo)) };
+  const ad2 = sp && sp.addon ? pkDefringe : (x) => x;   // พื้นมืด: ขอบขาวรอบ Optimizer โผล่
+  return { hero2: hero2, oPhoto: ad2(pkTrim(oPhoto)), oPhoto2: ad2(pkTrim(oPhoto2)), bPhoto: pkTrim(bPhoto), bSet: pkTrim(bSet || bPhoto), hero: hero, mark: mark, pPhoto: pkTrim(pPhoto), iPhoto: pkTrim(iPhoto), pLogo: pkUnwhite(pkTrim(pLogo)), iLogo: pkUnwhite(pkTrim(iLogo)) };
 }
 
 /* ── วาด: ตัวช่วย ── */
@@ -741,9 +742,119 @@ function pkAddonWty(ad, wty) {
   const w = (it, nm) => it && +it.warY ? "รับประกัน" + nm + " " + it.warY + " ปี" : "";
   return [w(ad.bI, "แบตเตอรี่"), ad.pI && ad.bI && +ad.pI.warY !== +ad.bI.warY ? w(ad.pI, " Power Module") : "", w(ad.oI, " Optimizer"), ins].filter(Boolean).join("\n");
 }
-/* ดีไซน์ใหม่ (ผู้ใช้ ต.ค. 2026 "ออกแบบใหม่ เปลี่ยนภาพพื้นหลัง จัดองค์ประกอบใหม่" + "เป็นกลางคืนจะได้รู้ว่ามีแบตเก็บไว้ใช้กลางคืน"):
-   บ้านกลางคืนไฟเปิด (pkg-house-night.jpg ผู้ใช้ให้มา) ทั้งรูปโทนมืด — ตัวหนังสือขาว · หัวเรื่อง + ชิปจุดเด่นซ้าย
-   สินค้ายืนบนแสงอุ่นขวาล่าง · ล่าง = 2 คอลัมน์การ์ดขาว (แบต 3 แถว | Optimizer ไล่ขนาด) */
+/* ดีไซน์กลางคืน (ผู้ใช้ ต.ค. 2026 "ออกแบบใหม่ เปลี่ยนภาพพื้นหลัง" + "เป็นกลางคืนจะได้รู้ว่ามีแบตเก็บไว้ใช้กลางคืน")
+   รอบ 2 (ผู้ใช้ติ): ล่างกลืนกับพื้น → แถบรับประกันเป็นแผ่นสว่างกว่าพื้น มีขอบ · โลโก้ไม่ใช้แคปซูลขาว → แปลงตัวอักษรดำเป็นขาว
+   ป้ายกับหัวเรื่องชิดไป → เว้นห่าง · ข้อมูลเยอะไม่สวย → Optimizer เหลือ kWp + ราคา (ตัด n ตัว/แถบ) · ตัดหมายเหตุผลผลิตท้ายรูป
+   ชิปจุดเด่น → ไอคอนเส้นวงทอง + คำสั้น 2 บรรทัด */
+/* โลโก้ยี่ห้อบนพื้นมืด → ขาวทั้งตัว (แบบโลโก้ขาวล้วน) — เดิมเก็บกลีบแดง Huawei ไว้ ผู้ใช้ติ "โลโก้โดนสีแดงไม่ชัด" บนฟ้ามืด */
+function pkLogoOnDark(im) {
+  if (!im) return null;
+  try {
+    const w = im.naturalWidth || im.width, h = im.naturalHeight || im.height, c = document.createElement("canvas");
+    c.width = w; c.height = h; const g = c.getContext("2d"); g.drawImage(im, 0, 0);
+    const d = g.getImageData(0, 0, w, h), p = d.data;
+    for (let i = 0; i < p.length; i += 4) {
+      if (p[i + 3] < 8) continue;
+      p[i] = 255; p[i + 1] = 255; p[i + 2] = 255;
+    }
+    g.putImageData(d, 0, 0);
+    return c;
+  } catch (e) { return im; }
+}
+/* แบต 1 ก้อนใช้เครื่องไฟฟ้าอะไรได้นานเท่าไหร่ (ผู้ใช้ ต.ค. 2026 ใส่ด้านล่างรูป Add-on)
+   ชั่วโมง = ความจุ × PK_ADD_USE ÷ วัตต์ · ใช้ทีละเครื่อง · แก้รายการได้ในหน้ารูป (บันทึกใน config/pkPosterText.loads) */
+const PK_ADD_USE = 0.9;   // ใช้ได้จริง ~90% ของความจุ (เผื่อสูญเสียในอินเวอร์เตอร์/สายไฟ)
+const PK_ADD_LOADS_DEF = "แอร์ 12,000 BTU = 1000\nตู้เย็น = 150\nทีวี 55 นิ้ว = 120\nไฟ LED 10 ดวง = 100\nพัดลม = 60";
+function pkAddLoads(txt) {
+  return String(txt || PK_ADD_LOADS_DEF).split("\n").map((l) => /^(.+?)\s*[=:|]\s*([\d,.]+)\s*(?:w|วัตต์)?\s*$/i.exec(l.trim())).filter(Boolean)
+    .map((m) => ({ name: m[1].trim(), w: pkNum(m[2]) })).filter((x) => x.w > 0);
+}
+function pkLoadHrs(kwh, w) {
+  const h = kwh * PK_ADD_USE * 1000 / w;
+  return h >= 10 ? pkFmt(Math.floor(h)) : String(Math.floor(h * 2) / 2);   // ต่ำกว่า 10 ชม. ปัดลงทีละครึ่ง
+}
+function pkLoadIcon(n) {
+  return /แอร์|air|btu/i.test(n) ? "ac" : /ตู้เย็น|fridge/i.test(n) ? "fridge" : /ทีวี|tv|โทรทัศน์|จอ|คอม/i.test(n) ? "tv"
+    : /พัดลม|fan/i.test(n) ? "fan" : /หลอด|led|โคม|^ไฟ(?!ฟ้า)/i.test(n) ? "bulb" : "plug";
+}
+/* ขอบรูปสินค้าที่ตัดพื้นขาวมา — พิกเซลกึ่งโปร่งรอบตัวยังเป็นสีขาว บนพื้นมืดเห็นเป็นขอบขาว (ผู้ใช้ ต.ค. 2026: Optimizer "ยังมีขอบขาว")
+   → ใช้สีพิกเซลทึบข้าง ๆ แทน (ความโปร่งเท่าเดิม) · ใช้กับรูป Add-on พื้นกลางคืนเท่านั้น */
+function pkDefringe(im) {
+  if (!im) return null;
+  try {
+    const w = im.naturalWidth || im.width, h = im.naturalHeight || im.height, c = document.createElement("canvas");
+    c.width = w; c.height = h; const g = c.getContext("2d"); g.drawImage(im, 0, 0);
+    const d = g.getImageData(0, 0, w, h), p = d.data, src = new Uint8ClampedArray(p);
+    for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {
+      const i = (y * w + x) * 4, a = src[i + 3];
+      if (a === 0 || a >= 250) continue;
+      let r = 0, gg = 0, b = 0, k = 0;
+      for (let R = 1; R <= 3 && !k; R++) for (let dy = -R; dy <= R; dy++) for (let dx = -R; dx <= R; dx++) {
+        const xx = x + dx, yy = y + dy;
+        if (xx < 0 || yy < 0 || xx >= w || yy >= h) continue;
+        const j = (yy * w + xx) * 4;
+        if (src[j + 3] < 250) continue;
+        r += src[j]; gg += src[j + 1]; b += src[j + 2]; k++;
+      }
+      if (k) { p[i] = r / k; p[i + 1] = gg / k; p[i + 2] = b / k; }
+      else { p[i] = p[i + 1] = p[i + 2] = 30; p[i + 3] = a >> 1; }   // ฝ้าไกลจากตัว = เทาเข้มจาง ๆ
+    }
+    g.putImageData(d, 0, 0);
+    return c;
+  } catch (e) { return im; }
+}
+/* ไอคอนเส้นจุดเด่น + เครื่องใช้ไฟฟ้า (รูป Add-on) */
+function pkAddIcon(g, k, cx, cy, s, col) {
+  g.save(); g.translate(cx, cy); g.strokeStyle = col; g.fillStyle = col; g.lineWidth = 2.6; g.lineCap = "round"; g.lineJoin = "round";
+  g.beginPath();
+  if (k === "moon") {   // พระจันทร์เสี้ยว + ดาว
+    g.arc(-s * .1, s * .05, s * .78, Math.PI * .35, Math.PI * 1.65);
+    g.quadraticCurveTo(-s * .55, s * .05, s * .27, s * .63); g.stroke();
+    g.beginPath(); g.arc(s * .62, -s * .55, 2.6, 0, Math.PI * 2); g.fill();
+  } else if (k === "chart") {   // กราฟแท่ง
+    [[-s * .62, .45], [-s * .1, .85], [s * .42, .65]].forEach((b) => g.rect(b[0], s * .8 - s * 1.5 * b[1], s * .34, s * 1.5 * b[1]));
+    g.moveTo(-s * .85, s * .8); g.lineTo(s * .9, s * .8); g.stroke();
+  } else if (k === "shade") {   // ดวงอาทิตย์ + เมฆบัง
+    g.arc(-s * .25, -s * .25, s * .38, 0, Math.PI * 2);
+    for (let a = 0; a < 8; a++) { const t = a * Math.PI / 4; g.moveTo(-s * .25 + Math.cos(t) * s * .55, -s * .25 + Math.sin(t) * s * .55); g.lineTo(-s * .25 + Math.cos(t) * s * .72, -s * .25 + Math.sin(t) * s * .72); }
+    g.stroke(); g.beginPath();
+    g.moveTo(-s * .45, s * .75); g.lineTo(s * .62, s * .75); g.arc(s * .6, s * .5, s * .25, Math.PI * .5, -Math.PI * .5, true);
+    g.arc(s * .2, s * .28, s * .32, -Math.PI * .1, Math.PI * 1.05, true); g.arc(-s * .4, s * .52, s * .23, -Math.PI * .5, Math.PI * .5, true); g.closePath();
+    g.save(); g.fillStyle = "#0B1630"; g.fill(); g.restore(); g.stroke();
+  } else if (k === "ac") {   // แอร์ติดผนัง + ลมเย็น
+    pkRR(g, -s, -s * .85, s * 2, s * .95, 3); g.stroke(); g.beginPath();
+    g.moveTo(-s * .65, -s * .2); g.lineTo(s * .65, -s * .2);
+    [-.5, 0, .5].forEach((v) => { g.moveTo(v * s, s * .35); g.quadraticCurveTo(v * s + s * .2, s * .62, v * s, s * .92); });
+    g.stroke();
+  } else if (k === "fridge") {   // ตู้เย็น 2 ประตู
+    pkRR(g, -s * .62, -s, s * 1.24, s * 2, 3); g.stroke(); g.beginPath();
+    g.moveTo(-s * .62, -s * .25); g.lineTo(s * .62, -s * .25);
+    g.moveTo(-s * .32, -s * .72); g.lineTo(-s * .32, -s * .48); g.moveTo(-s * .32, s * .02); g.lineTo(-s * .32, s * .45);
+    g.stroke();
+  } else if (k === "tv") {   // จอทีวี + ขาตั้ง
+    pkRR(g, -s, -s * .82, s * 2, s * 1.32, 3); g.stroke(); g.beginPath();
+    g.moveTo(0, s * .5); g.lineTo(0, s * .88); g.moveTo(-s * .48, s * .9); g.lineTo(s * .48, s * .9);
+    g.stroke();
+  } else if (k === "fan") {   // พัดลมตั้งพื้น
+    g.arc(0, -s * .28, s * .72, 0, Math.PI * 2); g.stroke();
+    for (let b = 0; b < 3; b++) {
+      const a = -Math.PI / 2 + b * Math.PI * 2 / 3;
+      g.beginPath(); g.ellipse(Math.cos(a) * s * .34, -s * .28 + Math.sin(a) * s * .34, s * .3, s * .14, a, 0, Math.PI * 2); g.stroke();
+    }
+    g.beginPath(); g.moveTo(0, s * .44); g.lineTo(0, s * .86); g.moveTo(-s * .45, s * .92); g.lineTo(s * .45, s * .92); g.stroke();
+  } else if (k === "bulb") {   // หลอดไฟ
+    g.arc(0, -s * .25, s * .62, Math.PI * .8, Math.PI * 2.2); g.lineTo(s * .27, s * .5); g.lineTo(-s * .27, s * .5); g.closePath(); g.stroke();
+    g.beginPath(); g.moveTo(-s * .25, s * .72); g.lineTo(s * .25, s * .72); g.moveTo(-s * .14, s * .93); g.lineTo(s * .14, s * .93); g.stroke();
+  } else if (k === "plug") {   // ปลั๊ก (เครื่องใช้ไฟฟ้าทั่วไป)
+    pkRR(g, -s * .5, -s * .38, s, s * .78, 4); g.stroke(); g.beginPath();
+    g.moveTo(-s * .22, -s * .38); g.lineTo(-s * .22, -s * .88); g.moveTo(s * .22, -s * .38); g.lineTo(s * .22, -s * .88);
+    g.moveTo(0, s * .4); g.quadraticCurveTo(0, s * .92, s * .55, s * .92); g.stroke();
+  } else {   // โล่ + สายฟ้า (ตัดไฟ DC ปลอดภัย)
+    g.moveTo(0, -s * .95); g.lineTo(s * .8, -s * .6); g.lineTo(s * .8, 0); g.quadraticCurveTo(s * .75, s * .7, 0, s * .98); g.quadraticCurveTo(-s * .75, s * .7, -s * .8, 0); g.lineTo(-s * .8, -s * .6); g.closePath(); g.stroke();
+    g.beginPath(); g.moveTo(s * .1, -s * .55); g.lineTo(-s * .25, s * .08); g.lineTo(s * .05, s * .08); g.lineTo(-s * .1, s * .58); g.lineTo(s * .28, -s * .08); g.lineTo(-s * .02, -s * .08); g.closePath(); g.fill();
+  }
+  g.restore();
+}
 function pkDrawAddon(cv, A, o, ad) {
   const g = cv.getContext("2d"), C = PK_C;
   cv.width = PK_W; cv.height = PK_H;
@@ -763,94 +874,167 @@ function pkDrawAddon(cv, A, o, ad) {
   g.restore();
 
   const brand = (ad.bI && ad.bI.brand) || (ad.oI && ad.oI.brand) || "";
-  // หัวบน: ชื่อบริษัทสีขาว · โลโก้ยี่ห้ออยู่บนแคปซูลขาว (โลโก้ตัวอักษรดำมองไม่เห็นบนฟ้ามืด)
-  if (A.iLogo) {
-    const lw = Math.min(190, 46 * (A.iLogo.naturalWidth || A.iLogo.width) / (A.iLogo.naturalHeight || A.iLogo.height));
-    g.save(); pkShadow(g, "rgba(0,0,0,.3)", 14, 4); pkRR(g, PK_W - 52 - lw - 22, 50, lw + 44, 66, 33); g.fillStyle = "rgba(255,255,255,.96)"; g.fill(); g.restore();
-  }
+  // หัวบน: ชื่อบริษัท + โลโก้ยี่ห้อขาวทั้งตัว
   const keep = { ink: C.ink, mute: C.mute, deep: C.deep };
-  C.ink = "#FFFFFF"; C.mute = "rgba(255,255,255,.72)"; if (!A.iLogo) C.deep = "#FFFFFF";
-  pkTop(g, A, o, [{ logo: A.iLogo, name: brand }]);
+  C.ink = "#FFFFFF"; C.mute = "rgba(255,255,255,.72)"; C.deep = "#FFFFFF";
+  pkTop(g, A, o, [{ logo: pkLogoOnDark(A.iLogo), name: brand }]);
   Object.assign(C, keep);
 
   // สินค้ายืนบนแสงไฟอุ่นหน้าบ้าน
   g.save(); const pg = g.createRadialGradient(840, 626, 10, 840, 626, 270);
   pg.addColorStop(0, "rgba(255,226,170,.55)"); pg.addColorStop(.55, "rgba(255,210,140,.22)"); pg.addColorStop(1, "rgba(255,210,140,0)");
   g.fillStyle = pg; g.beginPath(); g.ellipse(840, 626, 270, 64, 0, 0, Math.PI * 2); g.fill(); g.restore();
-  if (A.oPhoto2) pkLift(g, () => pkContain(g, A.oPhoto2, 624, 470, 62, 156, 1, .5), 18);
+  // Optimizer สีดำบนพื้นมืดกลืนหาย (ผู้ใช้ติ) → แสงอุ่นทาบด้านหลัง + เรืองนุ่มรอบตัว (ไม่ใช่ขอบขาวแข็ง)
+  const O2 = [620, 456, 70, 170], O1 = [964, 402, 94, 224];
+  const back = (b) => {
+    const cx = b[0] + b[2] / 2, cy = b[1] + b[3] * .42, r = b[3] * .62, rg = g.createRadialGradient(cx, cy, 4, cx, cy, r);
+    rg.addColorStop(0, "rgba(255,228,180,.42)"); rg.addColorStop(.5, "rgba(255,214,150,.16)"); rg.addColorStop(1, "rgba(255,214,150,0)");
+    g.fillStyle = rg; g.fillRect(cx - r, cy - r, r * 2, r * 2);
+  };
+  const glow = (im, b) => { g.save(); pkShadow(g, "rgba(255,222,170,.75)", 18, 0); pkContain(g, im, b[0], b[1], b[2], b[3], 1, .5); g.restore(); };
+  if (A.oPhoto2) back(O2);
+  if (A.oPhoto) back(O1);
+  if (A.oPhoto2) glow(A.oPhoto2, O2);
   if (A.bSet) pkLift(g, () => pkContain(g, A.bSet, 700, 360, 260, 268, 1, .5), 34);
-  if (A.oPhoto) pkLift(g, () => pkContain(g, A.oPhoto, 970, 420, 86, 206, 1, .5), 22);
+  if (A.oPhoto) glow(A.oPhoto, O1);
 
-  // หัวเรื่อง
-  const fl = C.fill; C.fill = C.solid;   // ป้ายหัวเรื่องสีทอง/สีหลัก — สีน้ำเงินเข้มจมหายบนฟ้ากลางคืน
-  pkTag(g, o.title || ("อัปเกรดแพ็คเกจ " + brand), 156, 0);
+  // หัวเรื่อง — ป้ายกับหัวเรื่องเว้นห่าง (เดิมชิดกัน)
+  const fl = C.fill; C.fill = C.solid;   // ป้ายสีทอง/สีหลัก — สีน้ำเงินเข้มจมหายบนฟ้ากลางคืน
+  pkTag(g, o.title || ("อัปเกรดแพ็คเกจ " + brand), 150, 0);
   C.fill = fl;
   const head = ad.bats.length ? "เพิ่มแบตเตอรี่" : "เพิ่ม Optimizer";
-  pkFit(g, head, "800", 96, PK_TH, 580, 50); g.fillStyle = "#FFFFFF"; g.fillText(head, 44, 306);
-  if (ad.bats.length && ad.opts.length) { g.font = "800 58px " + PK_NUM; g.fillStyle = C.sun; g.fillText("+ Optimizer", 50, 374); }
+  pkFit(g, head, "800", 92, PK_TH, 580, 50); g.fillStyle = "#FFFFFF"; g.fillText(head, 44, 332);
+  if (ad.bats.length && ad.opts.length) { g.font = "800 54px " + PK_NUM; g.fillStyle = C.sun; g.fillText("+ Optimizer", 50, 396); }
   const sub = "ต่อเพิ่มจากแพ็คเกจโซลาร์ " + brand + " Hybrid ได้ทุกขนาด";
-  pkFit(g, sub, "600", 24, PK_TH, 560, 16); g.fillStyle = "rgba(255,255,255,.88)"; g.fillText(sub, 52, 418);
-  // ชิปจุดเด่น
-  const chips = [ad.bats.length ? "เก็บไฟไว้ใช้กลางคืน" : "", ad.opts.length ? "ดูผลผลิตรายแผง" : "", ad.opts.length ? "แผงโดนเงาไม่ฉุดทั้งสตริง" : "", ad.opts.length ? "ตัดไฟ DC ที่แผงได้" : ""].filter(Boolean);
-  let cx = 52, cy = 446;
-  g.font = "700 19px " + PK_TH;
-  chips.forEach((t) => {
-    const w = g.measureText(t).width + 44;
-    if (cx + w > 600) { cx = 52; cy += 48; }
-    pkRR(g, cx, cy, w, 38, 19); g.fillStyle = "rgba(255,255,255,.14)"; g.fill();
-    g.save(); pkRR(g, cx + .75, cy + .75, w - 1.5, 36.5, 18); g.lineWidth = 1.5; g.strokeStyle = "rgba(255,255,255,.28)"; g.stroke(); g.restore();
-    g.beginPath(); g.arc(cx + 18, cy + 19, 5, 0, Math.PI * 2); g.fillStyle = C.sun; g.fill();
-    g.fillStyle = "#FFFFFF"; g.fillText(t, cx + 30, cy + 26);
-    cx += w + 10;
+  pkFit(g, sub, "600", 22, PK_TH, 560, 16); g.fillStyle = "rgba(255,255,255,.85)"; g.fillText(sub, 52, 436);
+  // จุดเด่น: ไอคอนวงทอง + คำสั้น 2 บรรทัด (แทนชิปเรียงแน่น)
+  const feats = [ad.bats.length ? ["moon", "เก็บไฟไว้", "ใช้กลางคืน"] : null, ad.opts.length ? ["chart", "ดูผลผลิต", "รายแผง"] : null,
+    ad.opts.length ? ["shade", "เงาบังแผงเดียว", "ไม่ฉุดทั้งระบบ"] : null, ad.opts.length ? ["shield", "ตัดไฟ DC", "ที่แผงได้"] : null].filter(Boolean);
+  const fw = 140;
+  feats.forEach((f, i) => {
+    const cx = 52 + fw * i + 32, cy = 494;
+    g.beginPath(); g.arc(cx, cy, 27, 0, Math.PI * 2); g.fillStyle = "rgba(255,255,255,.08)"; g.fill();
+    g.lineWidth = 2; g.strokeStyle = C.sun; g.stroke();
+    pkAddIcon(g, f[0], cx, cy, 14, "#FFFFFF");
+    g.textAlign = "left"; g.fillStyle = "#FFFFFF";
+    pkFit(g, f[1], "700", 17, PK_TH, fw - 14, 12); g.fillText(f[1], cx - 27, cy + 52);
+    pkFit(g, f[2], "600", 16, PK_TH, fw - 14, 11); g.fillStyle = "rgba(255,255,255,.8)"; g.fillText(f[2], cx - 27, cy + 75);
   });
 
-  // ── 2 คอลัมน์ราคา ──
+  // ── 2 คอลัมน์ราคา (แถวคั่นเส้นบาง ไม่ใส่กล่องทุกแถว) ──
   const pr = (p) => "+฿" + pkFmt(pkPrice(p, o));
-  const top = 640, bot = 1010, both = ad.bats.length && ad.opts.length;
+  const top = 640, bot = 990, both = ad.bats.length && ad.opts.length;
   const colW = both ? (PK_W - 96 - 20) / 2 : PK_W - 96;
   const col = (x, w, title, sub2, rows, drawRow) => {
-    pkGlass(g, x, top, w, bot - top, 30, .96);
-    // หัวคอลัมน์: แถบสีซ้าย + ชื่อ + บรรทัดรอง
-    pkRR(g, x + 26, top + 28, 6, 52, 3); g.fillStyle = C.solid; g.fill();
-    pkFit(g, title, "800", 27, PK_TH, w - 70, 18); g.fillStyle = C.deep; g.fillText(title, x + 46, top + 56);
-    pkFit(g, sub2, "600", 17, PK_TH, w - 70, 12); g.fillStyle = C.mute; g.fillText(sub2, x + 46, top + 82);
-    const ry = top + 104, rh = (bot - 18 - ry) / rows.length;
-    rows.forEach((r, i) => drawRow(r, i, x + 18, ry + i * rh, w - 36, rh));
+    pkGlass(g, x, top, w, bot - top, 30, .97);
+    pkRR(g, x + 28, top + 30, 6, 50, 3); g.fillStyle = C.solid; g.fill();
+    pkFit(g, title, "800", 26, PK_TH, w - 72, 18); g.fillStyle = C.deep; g.fillText(title, x + 48, top + 57);
+    pkFit(g, sub2, "600", 16, PK_TH, w - 72, 12); g.fillStyle = C.mute; g.fillText(sub2, x + 48, top + 82);
+    const ry = top + 102, rh = (bot - 16 - ry) / rows.length;
+    rows.forEach((r, i) => {
+      if (i) { g.fillStyle = C.line; g.fillRect(x + 28, ry + i * rh, w - 56, 1.5); }
+      drawRow(r, i, x + 28, ry + i * rh, w - 56, rh);
+    });
   };
   const priceR = (txt, x, y, size) => { if (!o.price) return; g.textAlign = "right"; g.font = "800 " + size + "px " + PK_NUM; g.fillStyle = C.price; g.fillText(txt, x, y); g.textAlign = "left"; };
   let x = 48;
   if (ad.bats.length) {
     const bm = String((ad.bI && ad.bI.model) || "").split("-")[0];
-    col(x, colW, "แบตเตอรี่ " + brand + " " + bm, "ก้อนละ " + ad.bats[0].kwh + " kWh" + (ad.pI ? " + Power Module" : "") + " · เก็บไฟไว้ใช้กลางคืน", ad.bats, (b, i, rx, ry, rw, rh) => {
-      const h = rh - 10;
-      pkRR(g, rx, ry, rw, h, 18); g.fillStyle = i === 1 ? C.recRow : C.alt; g.fill();
-      // ก้อนแบตซ้อน (จำนวนก้อน)
-      const mw = 34, mh = 14, bx = rx + 20, by = ry + h / 2 + (b.q * (mh + 4)) / 2;
-      for (let k = 0; k < b.q; k++) { pkRR(g, bx, by - (k + 1) * (mh + 4), mw, mh, 4); g.fillStyle = k === b.q - 1 ? C.solid : C.leaf; g.globalAlpha = .55 + .45 * (k + 1) / b.q; g.fill(); g.globalAlpha = 1; }
-      const tx = rx + 72, mid = ry + h / 2;
-      g.font = "800 46px " + PK_NUM; g.fillStyle = C.deep; const kt = String(b.kwh); g.fillText(kt, tx, mid + 8);
-      const kw = g.measureText(kt).width; g.font = "700 22px " + PK_NUM; g.fillStyle = C.leaf; g.fillText("kWh", tx + kw + 6, mid + 8);
-      g.font = "600 17px " + PK_TH; g.fillStyle = C.mute; g.fillText(b.q + " ก้อน", tx, mid + 34);
-      priceR(pr(b.p), rx + rw - 18, mid + 14, 34);
+    col(x, colW, "แบตเตอรี่ " + brand + " " + bm, "ก้อนละ " + ad.bats[0].kwh + " kWh" + (ad.pI ? " · รวม Power Module" : ""), ad.bats, (b, i, rx, ry, rw, rh) => {
+      const mid = ry + rh / 2;
+      // ก้อนแบตซ้อนตามจำนวนก้อน
+      const mw = 30, mh = 12, by = mid + (b.q * (mh + 4)) / 2 - 2;
+      for (let k = 0; k < b.q; k++) { pkRR(g, rx, by - (k + 1) * (mh + 4), mw, mh, 3.5); g.fillStyle = C.solid; g.globalAlpha = .45 + .55 * (k + 1) / b.q; g.fill(); g.globalAlpha = 1; }
+      const tx = rx + 46;
+      g.font = "800 44px " + PK_NUM; g.fillStyle = C.deep; const kt = String(b.kwh); g.fillText(kt, tx, mid + 6);
+      const kw = g.measureText(kt).width; g.font = "700 20px " + PK_NUM; g.fillStyle = C.leaf; g.fillText("kWh", tx + kw + 6, mid + 6);
+      g.font = "600 16px " + PK_TH; g.fillStyle = C.mute; g.fillText(b.q + " ก้อน", tx, mid + 30);
+      priceR(pr(b.p), rx + rw, mid + 13, 34);
     });
     x += colW + 20;
   }
   if (ad.opts.length) {
     const om = String((ad.oI && ad.oI.model) || "").replace(/-PA\d*$/i, "");
     col(x, colW, "Optimizer " + brand + " " + om, "ใส่ทุกแผง · ราคาตามขนาดระบบ", ad.opts, (c, i, rx, ry, rw, rh) => {
-      const h = rh - 8, mid = ry + h / 2;
-      pkRR(g, rx, ry, rw, h, 16); g.fillStyle = C.alt; g.fill();
-      // แถบไล่ขนาด (ยาวตามจำนวนแผง)
-      const mx = Math.max.apply(null, ad.opts.map((z) => z.n)) || 1;
-      pkRR(g, rx + 14, ry + h - 9, Math.max(16, (rw * .42) * c.n / mx), 4, 2); g.fillStyle = C.solid; g.globalAlpha = .55; g.fill(); g.globalAlpha = 1;
-      g.font = "800 32px " + PK_NUM; g.fillStyle = C.deep; const kt = String(c.kwp); g.fillText(kt, rx + 16, mid + 9);
-      const kw = g.measureText(kt).width; g.font = "700 17px " + PK_NUM; g.fillStyle = C.leaf; g.fillText("kWp", rx + 16 + kw + 5, mid + 9);
-      g.font = "600 16px " + PK_TH; g.fillStyle = C.mute; g.fillText(c.n + " ตัว", rx + 16 + kw + 5 + g.measureText("kWp ").width + 14, mid + 9);
-      priceR(pr(c.p), rx + rw - 16, mid + 11, 28);
+      const mid = ry + rh / 2;
+      g.font = "800 30px " + PK_NUM; g.fillStyle = C.deep; const kt = String(c.kwp); g.fillText(kt, rx, mid + 10);
+      const kw = g.measureText(kt).width; g.font = "700 17px " + PK_NUM; g.fillStyle = C.leaf; g.fillText("kWp", rx + kw + 6, mid + 10);
+      priceR(pr(c.p), rx + rw, mid + 11, 28);
     });
   }
-  if (o.price) { g.textAlign = "right"; g.font = "700 18px " + PK_TH; g.fillStyle = "rgba(255,255,255,.8)"; g.fillText("* " + pkPriceNote(o), PK_W - 56, 1040); g.textAlign = "left"; }
-  pkBand(g, o, 1070);
+  if (o.price) { g.textAlign = "right"; g.font = "600 17px " + PK_TH; g.fillStyle = "rgba(255,255,255,.75)"; g.fillText("* " + pkPriceNote(o), PK_W - 52, 1019); g.textAlign = "left"; }
+
+  // ── ล่าง: แผ่นสว่างกว่าพื้น มีขอบ + ป้ายทองหัวแผ่น (เดิมแถบสีเดียวกับพื้นจนกลืน · ทีหลังผู้ใช้ว่าโล่ง → ใส่แบตใช้ได้นานแค่ไหน) ──
+  const panel = (y, h, label) => {
+    pkRR(g, 32, y, PK_W - 64, h, 28); g.fillStyle = "rgba(255,255,255,.075)"; g.fill();
+    g.save(); pkRR(g, 32.75, y + .75, PK_W - 65.5, h - 1.5, 27); g.lineWidth = 1.5; g.strokeStyle = "rgba(255,255,255,.18)"; g.stroke(); g.restore();
+    if (!label) return;
+    g.font = "700 22px " + PK_TH; const tw = g.measureText(label).width + 48;
+    g.save(); pkShadow(g, "rgba(0,0,0,.3)", 12, 4); pkRR(g, 60, y - 22, tw, 44, 22);
+    const tg = g.createLinearGradient(60, 0, 60 + tw, 0); tg.addColorStop(0, C.solid); tg.addColorStop(1, C.solid2); g.fillStyle = tg; g.fill(); g.restore();
+    g.fillStyle = "#fff"; g.textAlign = "left"; g.fillText(label, 84, y + 8);
+  };
+  const ring = (x, y, r) => { g.beginPath(); g.arc(x, y, r, 0, Math.PI * 2); g.fillStyle = "rgba(255,255,255,.06)"; g.fill(); g.lineWidth = 2; g.strokeStyle = C.sun; g.stroke(); };
+  const divi = (x, y, h) => { g.fillStyle = "rgba(255,255,255,.13)"; g.fillRect(x, y, 1.5, h); };
+  // "รับประกันแบตเตอรี่ 10 ปี" → ["แบตเตอรี่", "10 ปี"] (หัวแผ่นบอกว่ารับประกันแล้ว) · ไม่มีตัวเลข = [ข้อความเต็ม, ""]
+  const wsplit = (t) => {
+    const m = /^(.*?)\s*(\d+(?:\.\d+)?\s*(?:ปี|ครั้ง\S*))\s*(.*)$/.exec(t);
+    if (!m) return [t, ""];
+    const lb = (m[1] + (m[3] ? " " + m[3] : "")).trim();
+    return [lb.replace(/^รับประกัน\s*/, "") || lb, m[2]];
+  };
+  const items = (o.wty || []).filter(Boolean).slice(0, 6), n = items.length;
+  const loads = ad.bats.length ? pkAddLoads(o.loads).slice(0, 5) : [];
+  if (loads.length) {
+    // แบต 1 ก้อนใช้อะไรได้นานเท่าไหร่ — ไอคอนเครื่องใช้ + ชื่อ + ชั่วโมงตัวทอง
+    const kwh = ad.bats[0].kwh, ry = 1052, rh = 166, cw = (PK_W - 64) / loads.length;
+    panel(ry, rh, "แบต 1 ก้อน " + kwh + " kWh ใช้ได้นานแค่ไหน");
+    g.textAlign = "right"; g.font = "600 15px " + PK_TH; g.fillStyle = "rgba(255,255,255,.6)";
+    g.fillText("โดยประมาณ · ใช้ทีละเครื่อง", PK_W - 60, ry + 28);
+    loads.forEach((L, i) => {
+      const cx = 32 + cw * (i + .5), iy = ry + 66;
+      if (i) divi(32 + cw * i, ry + 46, rh - 66);
+      ring(cx, iy, 26); pkAddIcon(g, pkLoadIcon(L.name), cx, iy, 13, "#FFFFFF");
+      g.textAlign = "center"; pkFit(g, L.name, "600", 17, PK_TH, cw - 18, 12); g.fillStyle = "rgba(255,255,255,.88)"; g.fillText(L.name, cx, iy + 50);
+      const ht = pkLoadHrs(kwh, L.w);
+      g.font = "800 32px " + PK_NUM; const nw = g.measureText(ht).width;
+      g.font = "700 17px " + PK_TH; const hx = cx - (nw + g.measureText(" ชม.").width) / 2;
+      g.textAlign = "left"; g.fillStyle = C.sun;
+      g.font = "800 32px " + PK_NUM; g.fillText(ht, hx, iy + 88);
+      g.font = "700 17px " + PK_TH; g.fillText(" ชม.", hx + nw, iy + 88);
+    });
+    // รับประกันแถวเดียว: "รับประกัน" + ไอคอน ชื่อ ปีตัวทอง
+    const wy = 1232, wh = 62, wc = wy + wh / 2;
+    panel(wy, wh, "");
+    g.textAlign = "left"; g.font = "800 21px " + PK_TH; g.fillStyle = C.sun; g.fillText("รับประกัน", 60, wc + 7);
+    const wx0 = 60 + g.measureText("รับประกัน").width + 22, ww = (PK_W - 50 - wx0) / Math.max(1, n);
+    items.forEach((t, i) => {
+      const sp2 = wsplit(t), lb = sp2[0], yr = sp2[1], x0 = wx0 + ww * i;
+      divi(x0, wy + 16, wh - 32);
+      g.font = "800 24px " + PK_NUM; const yw = yr ? g.measureText(yr).width + 8 : 0;
+      const lf = pkFit(g, lb, "600", 18, PK_TH, ww - 60 - yw, 11), lw = g.measureText(lb).width;
+      let x = x0 + (ww - (34 + 10 + lw + yw)) / 2 + 17;
+      ring(x, wc, 17); pkIcon(g, t, x, wc, 8);
+      x += 27; g.font = "600 " + lf + "px " + PK_TH; g.fillStyle = "rgba(255,255,255,.88)"; g.fillText(lb, x, wc + 6);
+      if (yr) { g.font = "800 24px " + PK_NUM; g.fillStyle = C.sun; g.fillText(yr, x + lw + 8, wc + 8); }
+    });
+  } else {
+    // ไม่มีแบต — แผ่นรับประกันเต็ม: ไอคอน + ชื่อ + ปีตัวใหญ่
+    const by = 1066, bh = 172, colB = (PK_W - 64) / Math.max(1, n);
+    panel(by, bh, "รับประกัน · บริการ");
+    items.forEach((t, i) => {
+      const sp2 = wsplit(t), cx = 32 + colB * (i + .5);
+      if (i) divi(32 + colB * i, by + 44, bh - 66);
+      ring(cx, by + 66, 28); pkIcon(g, t, cx, by + 66, 12);
+      g.textAlign = "center"; pkFit(g, sp2[0], "600", 18, PK_TH, colB - 20, 12); g.fillStyle = "rgba(255,255,255,.88)"; g.fillText(sp2[0], cx, by + 122);
+      if (sp2[1]) { pkFit(g, sp2[1], "800", 32, PK_NUM, colB - 20, 16); g.fillStyle = C.sun; g.fillText(sp2[1], cx, by + 158); }
+    });
+  }
+  g.textAlign = "left";
+  // ติดต่อ (ไม่ใส่หมายเหตุผลผลิต — รูปนี้ไม่ได้พูดเรื่องผลผลิต)
+  const co = Object.assign({}, PK_CO_DEF, o.co || {});
+  const cl = [co.tel && "โทร " + co.tel, co.line && "LINE " + co.line, co.site].filter(Boolean).join("   ·   ");
+  if (o.contact && cl) { g.textAlign = "center"; pkFit(g, cl, "700", 28, PK_TH, PK_W - 96, 16); g.fillStyle = C.sun; g.fillText(cl, PK_W / 2, PK_H - 16); g.textAlign = "left"; }
 }
 
 async function pkFonts() {
@@ -924,6 +1108,7 @@ function PkPosterModal({ lead, leads, stock, quotes, onClose }) {
   const [disc, setDisc] = React.useState("");
   const [wty, setWty] = React.useState(() => ((q && q.warranties) || PK_WTY_DEF).join("\n"));
   const [wtyAdd, setWtyAdd] = React.useState("");   // รับประกันรูป Add-on ("" = ตามคลังอัตโนมัติ)
+  const [loads, setLoads] = React.useState(PK_ADD_LOADS_DEF);   // แบต 1 ก้อนใช้อะไรได้นาน (บรรทัดละเครื่อง: ชื่อ = วัตต์)
   const [A, setA] = React.useState(null);
   const [coSaved, setCoSaved] = React.useState(null);  // ค่าที่บันทึกไว้ใน RTDB (null = ยังโหลดไม่เสร็จ)
   const [co, setCo] = React.useState(PK_CO_DEF);
@@ -944,16 +1129,16 @@ function PkPosterModal({ lead, leads, stock, quotes, onClose }) {
     // หัวข้อ/จุดเด่นที่บันทึกไว้ (ใช้ร่วมทุกลูกค้า · ไม่มี = จุดเด่นจากใบเสนอราคา)
     window.FBDB.ref(PK_TX_PATH).once("value", (s) => {
       const v = s.val();
-      if (v) { setTxSaved({ title: v.title || "", wty: v.wty || "", wtyAdd: v.wtyAdd || "" }); if (v.title) setTitle(v.title); if (v.wty) setWty(v.wty); if (v.wtyAdd) setWtyAdd(v.wtyAdd); }
-      else setTxSaved({ title: "", wty: "", wtyAdd: "" });
+      if (v) { setTxSaved({ title: v.title || "", wty: v.wty || "", wtyAdd: v.wtyAdd || "", loads: v.loads || "" }); if (v.title) setTitle(v.title); if (v.wty) setWty(v.wty); if (v.wtyAdd) setWtyAdd(v.wtyAdd); if (v.loads) setLoads(v.loads); }
+      else setTxSaved({ title: "", wty: "", wtyAdd: "", loads: "" });
     });
   }, []);
   const [txSaved, setTxSaved] = React.useState(null);
   const [txBusy, setTxBusy] = React.useState(false);
-  const txDiff = !!txSaved && (title !== (txSaved.title || PK_TITLE_DEF) || (txSaved.wty ? wty !== txSaved.wty : true) || wtyAdd !== (txSaved.wtyAdd || ""));
+  const txDiff = !!txSaved && (title !== (txSaved.title || PK_TITLE_DEF) || (txSaved.wty ? wty !== txSaved.wty : true) || wtyAdd !== (txSaved.wtyAdd || "") || loads !== (txSaved.loads || PK_ADD_LOADS_DEF));
   const saveTx = () => {
     if (!window.FBDB) return;
-    const v = { title: title, wty: wty, wtyAdd: wtyAdd };
+    const v = { title: title, wty: wty, wtyAdd: wtyAdd, loads: loads === PK_ADD_LOADS_DEF ? "" : loads };
     setTxBusy(true);
     window.FBDB.ref(PK_TX_PATH).set(v).then(() => { setTxSaved(v); setTxBusy(false); },
       (e) => { setTxBusy(false); alert("บันทึกไม่สำเร็จ: " + (e && e.message || e)); });
@@ -1001,11 +1186,11 @@ function PkPosterModal({ lead, leads, stock, quotes, onClose }) {
   React.useEffect(() => {
     if (!A || !cv.current) return;
     const o = { theme: theme, logo: logo, contact: contact, price: price, vat: vat, disc: pkNum(disc) || 0, title: title, wty: (addon && ad ? wtyAdd || pkAddonWty(ad, wty) : wty).split("\n").map((s) => s.trim()),
-      co: Object.assign({}, co, { markIm: co.mark ? markIm : null }) };
+      loads: loads, co: Object.assign({}, co, { markIm: co.mark ? markIm : null }) };
     if (addon) { if (ad && (ad.bats.length || ad.opts.length)) pkDrawAddon(cv.current, A, Object.assign(o, { title: "" }), ad); }
     else if (sum) { if (sumRows.length) pkDrawSum(cv.current, sumRows, A, o); }
     else pkDraw(cv.current, sp, A, o);
-  }, [A, sp, sumRows, ad, theme, logo, contact, price, vat, disc, title, wty, wtyAdd, co, markIm]);
+  }, [A, sp, sumRows, ad, theme, logo, contact, price, vat, disc, title, wty, wtyAdd, loads, co, markIm]);
 
   const download = () => {
     if (!cv.current) return;
@@ -1077,6 +1262,18 @@ function PkPosterModal({ lead, leads, stock, quotes, onClose }) {
                   {ad.bats.map((b) => <div key={"b" + b.q} style={{ display: "flex", fontSize: 12.5, color: "var(--text-2)" }}><span style={{ flex: 1 }}>แบต {b.kwh} kWh ({b.q} ก้อน · ก้อนละ ฿{pkFmt(b.p / b.q)})</span><b style={{ color: "var(--text-1)" }}>+฿{pkFmt(b.p)}</b></div>)}
                   {ad.opts.map((c) => <div key={"o" + c.n} style={{ display: "flex", fontSize: 12.5, color: "var(--text-2)" }}><span style={{ flex: 1 }}>Optimizer {c.kwp} kWp ({c.n} ตัว · ตัวละ ฿{pkFmt(c.u)})</span><b style={{ color: "var(--text-1)" }}>+฿{pkFmt(c.p)}</b></div>)}
                   <div style={{ fontSize: 11.5, color: "var(--text-3)", lineHeight: 1.45 }}>ราคา = ทุนในคลัง ÷ (1 − กำไร%) ปัดขึ้น (แบตหลักพัน · Optimizer หลัก 500) · กำไรไล่ลงจากขนาดเล็กสุดถึงใหญ่สุดทั้งแบตและ Optimizer ติดเยอะยิ่งถูก · แบตรวม Power Module · ขนาด Optimizer ตามแพ็คเกจที่เลือกด้านล่าง (สูงสุด 5 ขนาด) · ยังไม่รวมค่าแรงติดตั้งแบต</div>
+                </div>
+              )}
+              {addon && ad && ad.bats.length > 0 && (
+                <div style={card}>
+                  <div style={{ fontSize: 13, fontWeight: 700, color: "var(--text-1)" }}>แบต 1 ก้อนใช้ได้นานแค่ไหน <span style={{ fontWeight: 600, color: "var(--text-3)", fontSize: 11.5 }}>บรรทัดละเครื่อง: ชื่อ = วัตต์ · ขึ้นในรูป 5 แถวแรก</span></div>
+                  <textarea value={loads} onChange={(e) => setLoads(e.target.value)} rows={5} style={Object.assign({}, well, { resize: "vertical", lineHeight: 1.5 })} />
+                  {pkAddLoads(loads).slice(0, 5).map((L, i) => <div key={i} style={{ display: "flex", fontSize: 12.5, color: "var(--text-2)" }}><span style={{ flex: 1 }}>{L.name} ({pkFmt(L.w)} W)</span><b style={{ color: "var(--text-1)" }}>{pkLoadHrs(ad.bats[0].kwh, L.w)} ชม.</b></div>)}
+                  <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                    <button type="button" className="btn btn-pri" disabled={!txDiff || txBusy} onClick={saveTx} style={{ padding: "7px 14px", fontSize: 12.5 }}>{txBusy ? "กำลังบันทึก…" : txDiff ? "บันทึก" : "บันทึกแล้ว"}</button>
+                    {loads !== PK_ADD_LOADS_DEF && <button type="button" onClick={() => setLoads(PK_ADD_LOADS_DEF)} style={{ border: "none", background: "none", padding: 0, cursor: "pointer", fontSize: 12, color: "var(--text-3)", fontFamily: "inherit" }}>คืนค่าเดิม</button>}
+                  </div>
+                  <div style={{ fontSize: 11.5, color: "var(--text-3)", lineHeight: 1.45 }}>ชั่วโมง = {ad.bats[0].kwh} kWh × ใช้ได้จริง {Math.round(PK_ADD_USE * 100)}% ÷ วัตต์ · คิดใช้ทีละเครื่อง · บันทึกแล้วใช้ทุกเครื่อง</div>
                 </div>
               )}
               {sum && (
