@@ -161,6 +161,33 @@ function pkTrim(im) {
     return im;
   }
 }
+function pkUnwhite(im) {
+  if (!im) return null;
+  try {
+    const w = im.naturalWidth || im.width,
+      h = im.naturalHeight || im.height,
+      c = document.createElement("canvas");
+    c.width = w;
+    c.height = h;
+    const g = c.getContext("2d");
+    g.drawImage(im, 0, 0);
+    const d = g.getImageData(0, 0, w, h),
+      p = d.data;
+    for (let i = 0; i < p.length; i += 4) {
+      const a = Math.max(255 - p[i], 255 - p[i + 1], 255 - p[i + 2]) / 255;
+      if (a < 0.02) {
+        p[i + 3] = 0;
+        continue;
+      }
+      for (let k = 0; k < 3; k++) p[i + k] = Math.round((p[i + k] - 255 * (1 - a)) / a);
+      p[i + 3] = Math.round(p[i + 3] * a);
+    }
+    g.putImageData(d, 0, 0);
+    return c;
+  } catch (e) {
+    return im;
+  }
+}
 function pkBrandKeys(item) {
   if (!item) return [];
   const br = String(item.brand || "").trim(),
@@ -191,8 +218,8 @@ async function pkAssets(sp) {
     mark: mark,
     pPhoto: pkTrim(pPhoto),
     iPhoto: pkTrim(iPhoto),
-    pLogo: pkTrim(pLogo),
-    iLogo: pkTrim(iLogo)
+    pLogo: pkUnwhite(pkTrim(pLogo)),
+    iLogo: pkUnwhite(pkTrim(iLogo))
   };
 }
 function pkRR(g, x, y, w, h, r) {
