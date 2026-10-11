@@ -140,7 +140,7 @@ async function pkAssets(sp) {
   const inv = sp && sp.invs[0] && sp.invs[0].item;
   const pItem = sp && sp.pItem;
   const [hero, mark, pPhoto, iPhoto, pLogo, iLogo] = await Promise.all([
-    pkImg("dashboard/assets/pkg-house.jpg"),
+    pkImg("dashboard/assets/pkg-house-light.jpg"),   // บ้านสว่าง ฝั่งซ้ายเป็นฟ้าโล่ง (ผู้ใช้ให้มา ต.ค. 2026 · ของเดิม pkg-house.jpg)
     pkImg(typeof brandDocURL === "function" ? brandDocURL() : ""),
     pkFirstImg([pItem && pItem.id, "cat_panel"]),
     pkFirstImg([inv && inv.id, "cat_inverter"]),
@@ -217,11 +217,11 @@ function pkGlass(g, x, y, w, h, r, a) {
 }
 
 /* พื้นหลังส่วนบน: รูปบ้าน · ฝั่งซ้ายสว่างให้ตัวหนังสือเข้มอ่านง่าย · ขอบล่างจางเข้าพื้น */
-function pkHero(g, A, H) {
+function pkHero(g, A, H, ay) {
   const C = PK_C;
   g.fillStyle = C.bg; g.fillRect(0, 0, PK_W, PK_H);
   g.save(); g.beginPath(); g.rect(0, 0, PK_W, H); g.clip();
-  if (A.hero) pkCover(g, A.hero, 0, 0, PK_W, H, .35);
+  if (A.hero) pkCover(g, A.hero, 0, 0, PK_W, H, ay == null ? .35 : ay);
   else { const sk = g.createLinearGradient(0, 0, 0, H); sk.addColorStop(0, "#BFDDF2"); sk.addColorStop(1, "#EEF4F1"); g.fillStyle = sk; g.fillRect(0, 0, PK_W, H); }
   let gr = g.createLinearGradient(0, 0, PK_W * .8, 0);
   gr.addColorStop(0, "rgba(246,249,247,.97)"); gr.addColorStop(.48, "rgba(246,249,247,.86)"); gr.addColorStop(1, "rgba(246,249,247,0)");
@@ -366,15 +366,15 @@ function pkDraw(cv, sp, A, o) {
   const g = cv.getContext("2d"), C = PK_C;
   cv.width = PK_W; cv.height = PK_H;
   g.imageSmoothingQuality = "high"; g.textBaseline = "alphabetic";
-  pkHero(g, A, 980);
+  pkHero(g, A, 1060, 0);   // รูปบ้านชิดบน — หลังคาติดแผงโผล่ใต้รูปสินค้า
   const inv0 = sp.invs[0], it = pkInvTxt(sp);
   const pBrand = (sp.pItem && sp.pItem.brand) || "", iItem = inv0 && inv0.item, iBrand = (iItem && iItem.brand) || "";
   pkTop(g, A, o, [{ logo: A.pLogo, name: pBrand }, { logo: inv0 ? A.iLogo : null, name: inv0 ? iBrand : "" }].filter((b) => b.logo || b.name));
 
   // รูปสินค้าลอยฝั่งขวา: แผงอยู่หลัง อินเวอร์เตอร์อยู่หน้า
   g.save(); pkShadow(g, "rgba(0,0,0,.28)", 34, 16);
-  if (A.pPhoto) pkContain(g, A.pPhoto, 640, 176, 250, 470, .5, .5);
-  if (A.iPhoto) pkContain(g, A.iPhoto, 812, 380, 226, 290, 1, .5);
+  if (A.pPhoto) pkContain(g, A.pPhoto, 672, 150, 210, 360, .5, .5);
+  if (A.iPhoto) pkContain(g, A.iPhoto, 826, 270, 210, 250, 1, .5);
   g.restore();
 
   pkTag(g, o.title || PK_TITLE_DEF, 168, 640);

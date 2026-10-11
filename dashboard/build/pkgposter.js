@@ -177,7 +177,7 @@ function pkBrandKeys(item) {
 async function pkAssets(sp) {
   const inv = sp && sp.invs[0] && sp.invs[0].item;
   const pItem = sp && sp.pItem;
-  const [hero, mark, pPhoto, iPhoto, pLogo, iLogo] = await Promise.all([pkImg("dashboard/assets/pkg-house.jpg"), pkImg(typeof brandDocURL === "function" ? brandDocURL() : ""), pkFirstImg([pItem && pItem.id, "cat_panel"]), pkFirstImg([inv && inv.id, "cat_inverter"]), pkFirstImg(pkBrandKeys(pItem)), pkFirstImg(pkBrandKeys(inv))]);
+  const [hero, mark, pPhoto, iPhoto, pLogo, iLogo] = await Promise.all([pkImg("dashboard/assets/pkg-house-light.jpg"), pkImg(typeof brandDocURL === "function" ? brandDocURL() : ""), pkFirstImg([pItem && pItem.id, "cat_panel"]), pkFirstImg([inv && inv.id, "cat_inverter"]), pkFirstImg(pkBrandKeys(pItem)), pkFirstImg(pkBrandKeys(inv))]);
   return {
     hero: hero,
     mark: mark,
@@ -292,7 +292,7 @@ function pkGlass(g, x, y, w, h, r, a) {
   g.stroke();
   g.restore();
 }
-function pkHero(g, A, H) {
+function pkHero(g, A, H, ay) {
   const C = PK_C;
   g.fillStyle = C.bg;
   g.fillRect(0, 0, PK_W, PK_H);
@@ -300,7 +300,7 @@ function pkHero(g, A, H) {
   g.beginPath();
   g.rect(0, 0, PK_W, H);
   g.clip();
-  if (A.hero) pkCover(g, A.hero, 0, 0, PK_W, H, .35);else {
+  if (A.hero) pkCover(g, A.hero, 0, 0, PK_W, H, ay == null ? .35 : ay);else {
     const sk = g.createLinearGradient(0, 0, 0, H);
     sk.addColorStop(0, "#BFDDF2");
     sk.addColorStop(1, "#EEF4F1");
@@ -595,7 +595,7 @@ function pkDraw(cv, sp, A, o) {
   cv.height = PK_H;
   g.imageSmoothingQuality = "high";
   g.textBaseline = "alphabetic";
-  pkHero(g, A, 980);
+  pkHero(g, A, 1060, 0);
   const inv0 = sp.invs[0],
     it = pkInvTxt(sp);
   const pBrand = sp.pItem && sp.pItem.brand || "",
@@ -610,8 +610,8 @@ function pkDraw(cv, sp, A, o) {
   }].filter(b => b.logo || b.name));
   g.save();
   pkShadow(g, "rgba(0,0,0,.28)", 34, 16);
-  if (A.pPhoto) pkContain(g, A.pPhoto, 640, 176, 250, 470, .5, .5);
-  if (A.iPhoto) pkContain(g, A.iPhoto, 812, 380, 226, 290, 1, .5);
+  if (A.pPhoto) pkContain(g, A.pPhoto, 672, 150, 210, 360, .5, .5);
+  if (A.iPhoto) pkContain(g, A.iPhoto, 826, 270, 210, 250, 1, .5);
   g.restore();
   pkTag(g, o.title || PK_TITLE_DEF, 168, 640);
   const big = String(sp.kwp);
