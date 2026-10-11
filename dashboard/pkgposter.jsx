@@ -184,7 +184,7 @@ function pkBrandKeys(item) {
 /* รูปสินค้าประจำยี่ห้อสำหรับโพสต์ (ไฟล์ใน repo · ผู้ใช้ให้มา) — มาก่อนรูปในคลัง ไม่มี = รูปคลัง */
 const PK_BRAND_PHOTO = { "inv:huawei": "dashboard/assets/pkg-inv-huawei.jpg", "inv:growatt": "dashboard/assets/pkg-inv-growatt.png", "panel:longi": "dashboard/assets/pkg-panel-longi.webp",
   /* แบต Huawei (ผู้ใช้ให้มา ต.ค. 2026): ก้อนเดียว = รูปรายอัน · ชุด 3 ขนาด = รูปสรุป — ตัดพื้นไว้ในไฟล์แล้ว (เครื่องขาวบนพื้นขาว) */
-  "batt:huawei": "dashboard/assets/pkg-batt-huawei.png", "battset:huawei": "dashboard/assets/pkg-batt-huawei-set.png",
+  "batt:huawei": "dashboard/assets/pkg-batt-huawei-1.png", "battset:huawei": "dashboard/assets/pkg-batt-huawei-3.png",
   /* Optimizer Huawei (ผู้ใช้ให้มา ต.ค. 2026): opt = รูปรายอัน · รูปสรุปใช้ทั้ง opt + opt2 */
   "opt:huawei": "dashboard/assets/pkg-opt-huawei.png", "opt2:huawei": "dashboard/assets/pkg-opt-huawei-2.png" };   // batt:<ยี่ห้อ> ไม่มีไฟล์ = รูปคลัง · battset ไม่มี = ใช้ batt
 function pkBrandPhoto(item, kind) {

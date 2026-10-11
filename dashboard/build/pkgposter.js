@@ -239,8 +239,8 @@ const PK_BRAND_PHOTO = {
   "inv:huawei": "dashboard/assets/pkg-inv-huawei.jpg",
   "inv:growatt": "dashboard/assets/pkg-inv-growatt.png",
   "panel:longi": "dashboard/assets/pkg-panel-longi.webp",
-  "batt:huawei": "dashboard/assets/pkg-batt-huawei.png",
-  "battset:huawei": "dashboard/assets/pkg-batt-huawei-set.png",
+  "batt:huawei": "dashboard/assets/pkg-batt-huawei-1.png",
+  "battset:huawei": "dashboard/assets/pkg-batt-huawei-3.png",
   "opt:huawei": "dashboard/assets/pkg-opt-huawei.png",
   "opt2:huawei": "dashboard/assets/pkg-opt-huawei-2.png"
 };
