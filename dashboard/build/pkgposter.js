@@ -1208,7 +1208,7 @@ const PK_ADD = {
   opt: "Huawei Optimizer MERC-600W-PA0"
 };
 const PK_ADD_OPT_DEF = [[5, 3.25], [8, 5.2], [16, 10.4], [24, 15.6], [32, 20.8]];
-function pkAddon(items, rows, mg) {
+function pkAddon(items, rows, mg, mgBig) {
   const bI = pkFind(items, PK_ADD.bat),
     pI = pkFind(items, PK_ADD.pm),
     oI = pkFind(items, PK_ADD.opt);
@@ -1224,18 +1224,31 @@ function pkAddon(items, rows, mg) {
   const seen = {},
     ns = rows.map(r => [r.sp.n, r.sp.kwp]).filter(x => x[0] && !seen[x[0]] && (seen[x[0]] = 1)).sort((a, b) => a[0] - b[0]).slice(0, 5);
   const optQ = n => window.BOQ && window.BOQ.optimizerQty ? window.BOQ.optimizerQty(PK_ADD.opt, n) : n;
-  const opts = oI ? (ns.length ? ns : PK_ADD_OPT_DEF).map(x => ({
-    kwp: x[1],
-    n: optQ(x[0]),
-    p: sell(optQ(x[0]) * (+oI.price || 0))
-  })) : [];
+  const mb = Math.min(m, Math.max(0, mgBig == null || mgBig === "" ? m : +mgBig || 0));
+  const oc = oI && +oI.price || 0,
+    sz = ns.length ? ns : PK_ADD_OPT_DEF;
+  let prevU = Infinity;
+  const opts = !oI ? [] : sz.map((x, i) => {
+    const n = optQ(x[0]),
+      mm = sz.length > 1 ? m - (m - mb) * i / (sz.length - 1) : m;
+    let p = Math.ceil(n * oc / (1 - mm / 100) / 500) * 500;
+    while (n && p / n >= prevU && p - 500 >= n * oc) p -= 500;
+    prevU = n ? p / n : prevU;
+    return {
+      kwp: x[1],
+      n: n,
+      p: p,
+      u: n ? p / n : 0
+    };
+  });
   return {
     bI: bI,
     pI: pI,
     oI: oI,
     bats: bats,
     opts: opts,
-    mg: m
+    mg: m,
+    mgBig: mb
   };
 }
 function pkDrawAddon(cv, A, o, ad) {
@@ -1341,9 +1354,10 @@ function pkDrawAddon(cv, A, o, ad) {
       g.font = "700 18px " + PK_NUM;
       g.fillStyle = C.leaf;
       g.fillText("kWp", x + ow / 2, ty + 80);
-      g.font = "600 18px " + PK_TH;
+      const nt = c.n + " ตัว" + (o.price && c.u ? " · ตัวละ ฿" + pkFmt(pkPrice(c.u, o)) : "");
+      pkFit(g, nt, "600", 18, PK_TH, ow - 14, 12);
       g.fillStyle = C.mute;
-      g.fillText(c.n + " ตัว", x + ow / 2, ty + 106);
+      g.fillText(nt, x + ow / 2, ty + 106);
       if (o.price) {
         pkFit(g, pr(c.p), "800", 30, PK_NUM, ow - 16, 18);
         g.fillStyle = C.price;
@@ -1430,7 +1444,8 @@ function PkPosterModal({
   const [kind, setKind] = React.useState("sum");
   const addon = sum && kind === "addon";
   const [mg, setMg] = React.useState("15");
-  const ad = React.useMemo(() => addon ? pkAddon(items, sumRows, pkNum(mg)) : null, [addon, items, sumRows, mg]);
+  const [mgBig, setMgBig] = React.useState("8");
+  const ad = React.useMemo(() => addon ? pkAddon(items, sumRows, pkNum(mg), pkNum(mgBig)) : null, [addon, items, sumRows, mg, mgBig]);
   const addSp = React.useMemo(() => !ad ? null : {
     invs: [{
       item: items.find(x => /huawei/i.test(x.brand || "") && x.invType === "hybrid") || null
@@ -1855,7 +1870,30 @@ function PkPosterModal({
     style: {
       color: "var(--text-1)"
     }
-  }, "+\u0E3F", pkFmt(b.p)))), ad.opts.map(c => React.createElement("div", {
+  }, "+\u0E3F", pkFmt(b.p)))), ad.opts.length > 1 && React.createElement("div", {
+    style: {
+      display: "flex",
+      alignItems: "center",
+      gap: 8
+    }
+  }, React.createElement("span", {
+    style: {
+      fontSize: 12,
+      fontWeight: 700,
+      color: "var(--text-2)",
+      whiteSpace: "nowrap"
+    }
+  }, "Optimizer \u0E02\u0E19\u0E32\u0E14\u0E43\u0E2B\u0E0D\u0E48\u0E2A\u0E38\u0E14 \u0E01\u0E33\u0E44\u0E23"), React.createElement("input", {
+    inputMode: "decimal",
+    value: mgBig,
+    onChange: e => setMgBig(e.target.value),
+    style: well
+  }), React.createElement("span", {
+    style: {
+      fontSize: 12,
+      color: "var(--text-3)"
+    }
+  }, "%")), ad.opts.map(c => React.createElement("div", {
     key: "o" + c.n,
     style: {
       display: "flex",
@@ -1866,7 +1904,7 @@ function PkPosterModal({
     style: {
       flex: 1
     }
-  }, "Optimizer ", c.kwp, " kWp (", c.n, " \u0E15\u0E31\u0E27)"), React.createElement("b", {
+  }, "Optimizer ", c.kwp, " kWp (", c.n, " \u0E15\u0E31\u0E27 \xB7 \u0E15\u0E31\u0E27\u0E25\u0E30 \u0E3F", pkFmt(c.u), ")"), React.createElement("b", {
     style: {
       color: "var(--text-1)"
     }
@@ -1876,7 +1914,7 @@ function PkPosterModal({
       color: "var(--text-3)",
       lineHeight: 1.45
     }
-  }, "\u0E23\u0E32\u0E04\u0E32 = \u0E17\u0E38\u0E19\u0E43\u0E19\u0E04\u0E25\u0E31\u0E07 \xF7 (1 \u2212 \u0E01\u0E33\u0E44\u0E23%) \u0E1B\u0E31\u0E14\u0E02\u0E36\u0E49\u0E19\u0E2B\u0E25\u0E31\u0E01\u0E1E\u0E31\u0E19 \xB7 \u0E41\u0E1A\u0E15\u0E23\u0E27\u0E21 Power Module \xB7 \u0E02\u0E19\u0E32\u0E14 Optimizer \u0E15\u0E32\u0E21\u0E41\u0E1E\u0E47\u0E04\u0E40\u0E01\u0E08\u0E17\u0E35\u0E48\u0E40\u0E25\u0E37\u0E2D\u0E01\u0E14\u0E49\u0E32\u0E19\u0E25\u0E48\u0E32\u0E07 (\u0E2A\u0E39\u0E07\u0E2A\u0E38\u0E14 5 \u0E02\u0E19\u0E32\u0E14) \xB7 \u0E22\u0E31\u0E07\u0E44\u0E21\u0E48\u0E23\u0E27\u0E21\u0E04\u0E48\u0E32\u0E41\u0E23\u0E07\u0E15\u0E34\u0E14\u0E15\u0E31\u0E49\u0E07\u0E41\u0E1A\u0E15")), sum && React.createElement("div", {
+  }, "\u0E23\u0E32\u0E04\u0E32 = \u0E17\u0E38\u0E19\u0E43\u0E19\u0E04\u0E25\u0E31\u0E07 \xF7 (1 \u2212 \u0E01\u0E33\u0E44\u0E23%) \u0E1B\u0E31\u0E14\u0E02\u0E36\u0E49\u0E19 (\u0E41\u0E1A\u0E15\u0E2B\u0E25\u0E31\u0E01\u0E1E\u0E31\u0E19 \xB7 Optimizer \u0E2B\u0E25\u0E31\u0E01 500) \xB7 Optimizer \u0E01\u0E33\u0E44\u0E23\u0E44\u0E25\u0E48\u0E25\u0E07\u0E08\u0E32\u0E01\u0E02\u0E19\u0E32\u0E14\u0E40\u0E25\u0E47\u0E01\u0E2A\u0E38\u0E14\u0E16\u0E36\u0E07\u0E43\u0E2B\u0E0D\u0E48\u0E2A\u0E38\u0E14 \u0E15\u0E34\u0E14\u0E40\u0E22\u0E2D\u0E30\u0E15\u0E31\u0E27\u0E25\u0E30\u0E16\u0E39\u0E01\u0E25\u0E07 \xB7 \u0E41\u0E1A\u0E15\u0E23\u0E27\u0E21 Power Module \xB7 \u0E02\u0E19\u0E32\u0E14 Optimizer \u0E15\u0E32\u0E21\u0E41\u0E1E\u0E47\u0E04\u0E40\u0E01\u0E08\u0E17\u0E35\u0E48\u0E40\u0E25\u0E37\u0E2D\u0E01\u0E14\u0E49\u0E32\u0E19\u0E25\u0E48\u0E32\u0E07 (\u0E2A\u0E39\u0E07\u0E2A\u0E38\u0E14 5 \u0E02\u0E19\u0E32\u0E14) \xB7 \u0E22\u0E31\u0E07\u0E44\u0E21\u0E48\u0E23\u0E27\u0E21\u0E04\u0E48\u0E32\u0E41\u0E23\u0E07\u0E15\u0E34\u0E14\u0E15\u0E31\u0E49\u0E07\u0E41\u0E1A\u0E15")), sum && React.createElement("div", {
     style: card
   }, React.createElement("div", {
     style: {

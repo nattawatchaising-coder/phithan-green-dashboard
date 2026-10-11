@@ -704,7 +704,7 @@ function pkDrawSum(cv, rows, A, o) {
    ชื่อต้องตรงชื่อในคลังทุกตัวอักษร (เหมือน BOQ) */
 const PK_ADD = { bat: "HUAWEI LUNA2000-7-E1", pm: "HUAWEI LUNA2000-10KW-C1 (Power Module)", opt: "Huawei Optimizer MERC-600W-PA0" };
 const PK_ADD_OPT_DEF = [[5, 3.25], [8, 5.2], [16, 10.4], [24, 15.6], [32, 20.8]];   // [แผง, kWp] เมื่อยังไม่ได้เลือกแพ็คเกจ
-function pkAddon(items, rows, mg) {
+function pkAddon(items, rows, mg, mgBig) {
   const bI = pkFind(items, PK_ADD.bat), pI = pkFind(items, PK_ADD.pm), oI = pkFind(items, PK_ADD.opt);
   const m = Math.min(90, Math.max(0, +mg || 0)), sell = (c) => Math.ceil(c / (1 - m / 100) / 1000) * 1000;
   const per = (window.BOQ && window.BOQ.RULES && +window.BOQ.RULES.battS1Per) || 3, kwh = (bI && +bI.kwh) || 7;
@@ -712,8 +712,19 @@ function pkAddon(items, rows, mg) {
   // ขนาด Optimizer = จำนวนแผงของแพ็คเกจที่เลือก (ไม่ซ้ำ · สูงสุด 5 ช่อง)
   const seen = {}, ns = rows.map((r) => [r.sp.n, r.sp.kwp]).filter((x) => x[0] && !seen[x[0]] && (seen[x[0]] = 1)).sort((a, b) => a[0] - b[0]).slice(0, 5);
   const optQ = (n) => (window.BOQ && window.BOQ.optimizerQty ? window.BOQ.optimizerQty(PK_ADD.opt, n) : n);
-  const opts = oI ? (ns.length ? ns : PK_ADD_OPT_DEF).map((x) => ({ kwp: x[1], n: optQ(x[0]), p: sell(optQ(x[0]) * (+oI.price || 0)) })) : [];
-  return { bI: bI, pI: pI, oI: oI, bats: bats, opts: opts, mg: m };
+  /* Optimizer ยิ่งติดเยอะยิ่งถูก (ผู้ใช้ ต.ค. 2026): กำไรไล่จาก mg (ขนาดเล็กสุด) ลงถึง mgBig (ใหญ่สุด) · ปัดขึ้นหลัก 500
+     แล้วบังคับราคาต่อตัวต้องต่ำกว่าขนาดก่อนหน้า (ไม่ต่ำกว่าทุน) */
+  const mb = Math.min(m, Math.max(0, mgBig == null || mgBig === "" ? m : +mgBig || 0));
+  const oc = (oI && +oI.price) || 0, sz = ns.length ? ns : PK_ADD_OPT_DEF;
+  let prevU = Infinity;
+  const opts = !oI ? [] : sz.map((x, i) => {
+    const n = optQ(x[0]), mm = sz.length > 1 ? m - (m - mb) * i / (sz.length - 1) : m;
+    let p = Math.ceil(n * oc / (1 - mm / 100) / 500) * 500;
+    while (n && p / n >= prevU && p - 500 >= n * oc) p -= 500;
+    prevU = n ? p / n : prevU;
+    return { kwp: x[1], n: n, p: p, u: n ? p / n : 0 };
+  });
+  return { bI: bI, pI: pI, oI: oI, bats: bats, opts: opts, mg: m, mgBig: mb };
 }
 function pkDrawAddon(cv, A, o, ad) {
   const g = cv.getContext("2d"), C = PK_C;
@@ -766,7 +777,8 @@ function pkDrawAddon(cv, A, o, ad) {
       pkRR(g, x, ty, ow, 156, 20); g.fillStyle = C.alt; g.fill(); g.textAlign = "center";
       g.font = "800 44px " + PK_NUM; g.fillStyle = C.deep; g.fillText(String(c.kwp), x + ow / 2, ty + 56);
       g.font = "700 18px " + PK_NUM; g.fillStyle = C.leaf; g.fillText("kWp", x + ow / 2, ty + 80);
-      g.font = "600 18px " + PK_TH; g.fillStyle = C.mute; g.fillText(c.n + " ตัว", x + ow / 2, ty + 106);
+      const nt = c.n + " ตัว" + (o.price && c.u ? " · ตัวละ ฿" + pkFmt(pkPrice(c.u, o)) : "");   // ราคาต่อตัวโชว์ว่าติดเยอะถูกลง
+      pkFit(g, nt, "600", 18, PK_TH, ow - 14, 12); g.fillStyle = C.mute; g.fillText(nt, x + ow / 2, ty + 106);
       if (o.price) { pkFit(g, pr(c.p), "800", 30, PK_NUM, ow - 16, 18); g.fillStyle = C.price; g.fillText(pr(c.p), x + ow / 2, ty + 142); }
       g.textAlign = "left";
     });
@@ -827,7 +839,8 @@ function PkPosterModal({ lead, leads, stock, quotes, onClose }) {
   const [kind, setKind] = React.useState("sum");
   const addon = sum && kind === "addon";
   const [mg, setMg] = React.useState("15");
-  const ad = React.useMemo(() => (addon ? pkAddon(items, sumRows, pkNum(mg)) : null), [addon, items, sumRows, mg]);
+  const [mgBig, setMgBig] = React.useState("8");   // กำไร Optimizer ขนาดใหญ่สุด (ติดเยอะถูกลง)
+  const ad = React.useMemo(() => (addon ? pkAddon(items, sumRows, pkNum(mg), pkNum(mgBig)) : null), [addon, items, sumRows, mg, mgBig]);
   const addSp = React.useMemo(() => (!ad ? null : { invs: [{ item: items.find((x) => /huawei/i.test(x.brand || "") && x.invType === "hybrid") || null }],
     pItem: null, bat: ad.bI ? 1 : 0, batItem: ad.bI, opt: ad.oI ? 1 : 0, optItem: ad.oI }), [ad && ad.bI, ad && ad.oI, items]);
   const assetSp = addon ? addSp : sum ? (sumRows[0] && sumRows[0].sp) : sp;
@@ -991,8 +1004,15 @@ function PkPosterModal({ lead, leads, stock, quotes, onClose }) {
                     <span style={{ fontSize: 12, color: "var(--text-3)" }}>%</span>
                   </div>
                   {ad.bats.map((b) => <div key={"b" + b.q} style={{ display: "flex", fontSize: 12.5, color: "var(--text-2)" }}><span style={{ flex: 1 }}>แบต {b.kwh} kWh ({b.q} ก้อน)</span><b style={{ color: "var(--text-1)" }}>+฿{pkFmt(b.p)}</b></div>)}
-                  {ad.opts.map((c) => <div key={"o" + c.n} style={{ display: "flex", fontSize: 12.5, color: "var(--text-2)" }}><span style={{ flex: 1 }}>Optimizer {c.kwp} kWp ({c.n} ตัว)</span><b style={{ color: "var(--text-1)" }}>+฿{pkFmt(c.p)}</b></div>)}
-                  <div style={{ fontSize: 11.5, color: "var(--text-3)", lineHeight: 1.45 }}>ราคา = ทุนในคลัง ÷ (1 − กำไร%) ปัดขึ้นหลักพัน · แบตรวม Power Module · ขนาด Optimizer ตามแพ็คเกจที่เลือกด้านล่าง (สูงสุด 5 ขนาด) · ยังไม่รวมค่าแรงติดตั้งแบต</div>
+                  {ad.opts.length > 1 && (
+                    <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                      <span style={{ fontSize: 12, fontWeight: 700, color: "var(--text-2)", whiteSpace: "nowrap" }}>Optimizer ขนาดใหญ่สุด กำไร</span>
+                      <input inputMode="decimal" value={mgBig} onChange={(e) => setMgBig(e.target.value)} style={well} />
+                      <span style={{ fontSize: 12, color: "var(--text-3)" }}>%</span>
+                    </div>
+                  )}
+                  {ad.opts.map((c) => <div key={"o" + c.n} style={{ display: "flex", fontSize: 12.5, color: "var(--text-2)" }}><span style={{ flex: 1 }}>Optimizer {c.kwp} kWp ({c.n} ตัว · ตัวละ ฿{pkFmt(c.u)})</span><b style={{ color: "var(--text-1)" }}>+฿{pkFmt(c.p)}</b></div>)}
+                  <div style={{ fontSize: 11.5, color: "var(--text-3)", lineHeight: 1.45 }}>ราคา = ทุนในคลัง ÷ (1 − กำไร%) ปัดขึ้น (แบตหลักพัน · Optimizer หลัก 500) · Optimizer กำไรไล่ลงจากขนาดเล็กสุดถึงใหญ่สุด ติดเยอะตัวละถูกลง · แบตรวม Power Module · ขนาด Optimizer ตามแพ็คเกจที่เลือกด้านล่าง (สูงสุด 5 ขนาด) · ยังไม่รวมค่าแรงติดตั้งแบต</div>
                 </div>
               )}
               {sum && (
