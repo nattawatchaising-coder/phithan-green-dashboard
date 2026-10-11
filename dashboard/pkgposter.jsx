@@ -136,6 +136,12 @@ function pkBrandKeys(item) {
   }));
   return out;
 }
+/* รูปสินค้าประจำยี่ห้อสำหรับโพสต์ (ไฟล์ใน repo · ผู้ใช้ให้มา) — มาก่อนรูปในคลัง ไม่มี = รูปคลัง */
+const PK_BRAND_PHOTO = { huawei: "dashboard/assets/pkg-inv-huawei.jpg" };
+function pkBrandPhoto(item) {
+  const k = String((item && item.brand) || "").trim().toLowerCase();
+  return pkImg(PK_BRAND_PHOTO[k] || "");
+}
 async function pkAssets(sp) {
   const inv = sp && sp.invs[0] && sp.invs[0].item;
   const pItem = sp && sp.pItem;
@@ -143,7 +149,7 @@ async function pkAssets(sp) {
     pkImg("dashboard/assets/pkg-house-light.jpg"),   // บ้านสว่าง ฝั่งซ้ายเป็นฟ้าโล่ง (ผู้ใช้ให้มา ต.ค. 2026 · ของเดิม pkg-house.jpg)
     pkImg(typeof brandDocURL === "function" ? brandDocURL() : ""),
     pkFirstImg([pItem && pItem.id, "cat_panel"]),
-    pkFirstImg([inv && inv.id, "cat_inverter"]),
+    pkBrandPhoto(inv).then((im) => im || pkFirstImg([inv && inv.id, "cat_inverter"])),
     pkFirstImg(pkBrandKeys(pItem)),
     pkFirstImg(pkBrandKeys(inv)),
   ]);

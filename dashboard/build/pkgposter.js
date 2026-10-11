@@ -174,10 +174,17 @@ function pkBrandKeys(item) {
   }));
   return out;
 }
+const PK_BRAND_PHOTO = {
+  huawei: "dashboard/assets/pkg-inv-huawei.jpg"
+};
+function pkBrandPhoto(item) {
+  const k = String(item && item.brand || "").trim().toLowerCase();
+  return pkImg(PK_BRAND_PHOTO[k] || "");
+}
 async function pkAssets(sp) {
   const inv = sp && sp.invs[0] && sp.invs[0].item;
   const pItem = sp && sp.pItem;
-  const [hero, mark, pPhoto, iPhoto, pLogo, iLogo] = await Promise.all([pkImg("dashboard/assets/pkg-house-light.jpg"), pkImg(typeof brandDocURL === "function" ? brandDocURL() : ""), pkFirstImg([pItem && pItem.id, "cat_panel"]), pkFirstImg([inv && inv.id, "cat_inverter"]), pkFirstImg(pkBrandKeys(pItem)), pkFirstImg(pkBrandKeys(inv))]);
+  const [hero, mark, pPhoto, iPhoto, pLogo, iLogo] = await Promise.all([pkImg("dashboard/assets/pkg-house-light.jpg"), pkImg(typeof brandDocURL === "function" ? brandDocURL() : ""), pkFirstImg([pItem && pItem.id, "cat_panel"]), pkBrandPhoto(inv).then(im => im || pkFirstImg([inv && inv.id, "cat_inverter"])), pkFirstImg(pkBrandKeys(pItem)), pkFirstImg(pkBrandKeys(inv))]);
   return {
     hero: hero,
     mark: mark,
