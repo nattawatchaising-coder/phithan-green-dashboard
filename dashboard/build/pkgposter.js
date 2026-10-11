@@ -1016,7 +1016,7 @@ function pkDrawSum(cv, rows, A, o) {
     g.fillText("kWp", col.k + kw2 + 6, mid + ks2 * .36);
     const kx = col.k + kMax + 12;
     const pt = sp.phase + " เฟส",
-      py = r.rec ? mid - 27 : mid - 14;
+      py = mid - 14;
     g.font = "700 16px " + PK_TH;
     const ptw = g.measureText(pt).width + 18;
     pkRR(g, kx, py, ptw, 28, 14);
@@ -1024,16 +1024,6 @@ function pkDrawSum(cv, rows, A, o) {
     g.fill();
     g.fillStyle = sp.phase === 3 ? C.deep : C.leaf;
     g.fillText(pt, kx + 9, py + 20);
-    if (r.rec) {
-      g.font = "800 15px " + PK_TH;
-      const rt = "แนะนำ",
-        rtw = g.measureText(rt).width + 18;
-      pkRR(g, kx, mid + 3, rtw, 25, 12.5);
-      g.fillStyle = C.leaf;
-      g.fill();
-      g.fillStyle = "#fff";
-      g.fillText(rt, kx + 9, mid + 21);
-    }
     const l1 = "แผง " + sp.wp + "W × " + sp.n + (sp.bat ? " · แบต " + sp.bat + " kWh" : "");
     const l2 = l2Of(sp);
     const two = rH >= 50,
@@ -1064,6 +1054,20 @@ function pkDrawSum(cv, rows, A, o) {
       pkFit(g, l, "600", 20, PK_TH, 340, 12);
       g.fillStyle = C.ink;
       g.fillText(l, col.eq, mid + 7);
+    }
+    if (r.rec) {
+      g.font = "800 13px " + PK_NUM;
+      const rx = col.eq + l2Max + 10 + g.measureText("ON-GRID").width + 16 + 16;
+      g.font = "800 17px " + PK_TH;
+      const rt = "แนะนำ",
+        rtw = g.measureText(rt).width + 22;
+      pkRR(g, rx, mid - 15, rtw, 30, 15);
+      g.fillStyle = C.leaf;
+      g.fill();
+      g.fillStyle = "#fff";
+      g.textAlign = "center";
+      g.fillText(rt, rx + rtw / 2, mid + 6);
+      g.textAlign = "left";
     }
     const sv = "~฿" + pkFmt(sp.kwp * PK_YIELD * PK_RATE / 12);
     g.textAlign = "right";

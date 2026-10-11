@@ -585,14 +585,9 @@ function pkDrawSum(cv, rows, A, o) {
     g.font = "800 " + ks2 + "px " + PK_NUM; g.fillStyle = C.deep; g.fillText(kt, col.k, mid + ks2 * .36);
     const kw2 = g.measureText(kt).width; g.font = "700 " + Math.round(ks2 * .45) + "px " + PK_NUM; g.fillText("kWp", col.k + kw2 + 6, mid + ks2 * .36);
     const kx = col.k + kMax + 12;
-    /* แถวแนะนำ: ชิปเฟสขยับขึ้น ป้าย "แนะนำ" ซ้อนใต้ในคอลัมน์เดียวกัน (เดิมป้ายวางมุมซ้ายบนทับตัวเลข kWp — ผู้ใช้ ต.ค. 2026) */
-    const pt = sp.phase + " เฟส", py = r.rec ? mid - 27 : mid - 14; g.font = "700 16px " + PK_TH; const ptw = g.measureText(pt).width + 18;
+    const pt = sp.phase + " เฟส", py = mid - 14; g.font = "700 16px " + PK_TH; const ptw = g.measureText(pt).width + 18;
     pkRR(g, kx, py, ptw, 28, 14); g.fillStyle = sp.phase === 3 ? "rgba(10,77,104,.12)" : "rgba(19,137,106,.14)"; g.fill();
     g.fillStyle = sp.phase === 3 ? C.deep : C.leaf; g.fillText(pt, kx + 9, py + 20);
-    if (r.rec) {
-      g.font = "800 15px " + PK_TH; const rt = "แนะนำ", rtw = g.measureText(rt).width + 18;
-      pkRR(g, kx, mid + 3, rtw, 25, 12.5); g.fillStyle = C.leaf; g.fill(); g.fillStyle = "#fff"; g.fillText(rt, kx + 9, mid + 21);
-    }
     // อุปกรณ์
     const l1 = "แผง " + sp.wp + "W × " + sp.n + (sp.bat ? " · แบต " + sp.bat + " kWh" : "");
     const l2 = l2Of(sp);
@@ -608,6 +603,12 @@ function pkDrawSum(cv, rows, A, o) {
         g.fillStyle = sp.hyb ? C.leaf : C.deep; g.textAlign = "center"; g.fillText(tt, tx2 + ttw / 2, mid + f2 + 2); g.textAlign = "left";
       }
     } else { const l = l1 + " · " + l2 + (sp.hyb ? " · Hybrid" : ""); pkFit(g, l, "600", 20, PK_TH, 340, 12); g.fillStyle = C.ink; g.fillText(l, col.eq, mid + 7); }
+    /* ป้าย "แนะนำ" อยู่ช่องว่างระหว่างอุปกรณ์กับประหยัด/เดือน กลางแถว (เดิมมุมซ้ายบน/ใต้ชิปเฟส ทับตัวเลข — ผู้ใช้ ต.ค. 2026) */
+    if (r.rec) {
+      g.font = "800 13px " + PK_NUM; const rx = col.eq + l2Max + 10 + g.measureText("ON-GRID").width + 16 + 16;
+      g.font = "800 17px " + PK_TH; const rt = "แนะนำ", rtw = g.measureText(rt).width + 22;
+      pkRR(g, rx, mid - 15, rtw, 30, 15); g.fillStyle = C.leaf; g.fill(); g.fillStyle = "#fff"; g.textAlign = "center"; g.fillText(rt, rx + rtw / 2, mid + 6); g.textAlign = "left";
+    }
     // ประหยัด
     const sv = "~฿" + pkFmt(sp.kwp * PK_YIELD * PK_RATE / 12);
     g.textAlign = "right"; g.font = "700 25px " + PK_NUM; g.fillStyle = C.leaf; g.fillText(sv, col.sv + 120, mid + 9);
