@@ -1329,7 +1329,7 @@ function pkDrawAddon(cv, A, o, ad) {
       g.textAlign = "center";
       g.font = "600 20px " + PK_TH;
       g.fillStyle = C.mute;
-      g.fillText(b.q + " ก้อน" + (o.price && b.q > 1 ? " · ก้อนละ ฿" + pkFmt(pkPrice(b.p / b.q, o)) : ""), x + tw / 2, o.price ? ty + 108 : ty + 136);
+      g.fillText(b.q + " ก้อน", x + tw / 2, o.price ? ty + 108 : ty + 136);
       if (o.price) {
         g.font = "800 38px " + PK_NUM;
         g.fillStyle = C.price;
@@ -1366,10 +1366,9 @@ function pkDrawAddon(cv, A, o, ad) {
       g.font = "700 18px " + PK_NUM;
       g.fillStyle = C.leaf;
       g.fillText("kWp", x + ow / 2, ty + 80);
-      const nt = c.n + " ตัว" + (o.price && c.u ? " · ตัวละ ฿" + pkFmt(pkPrice(c.u, o)) : "");
-      pkFit(g, nt, "600", 18, PK_TH, ow - 14, 12);
+      g.font = "600 18px " + PK_TH;
       g.fillStyle = C.mute;
-      g.fillText(nt, x + ow / 2, ty + 106);
+      g.fillText(c.n + " ตัว", x + ow / 2, ty + 106);
       if (o.price) {
         pkFit(g, pr(c.p), "800", 30, PK_NUM, ow - 16, 18);
         g.fillStyle = C.price;

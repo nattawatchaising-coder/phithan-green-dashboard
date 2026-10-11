@@ -773,7 +773,7 @@ function pkDrawAddon(cv, A, o, ad) {
       g.font = "700 28px " + PK_NUM; const uw = g.measureText(" kWh").width, x0 = x + tw / 2 - (kw + uw) / 2;
       g.font = "800 64px " + PK_NUM; g.fillStyle = C.deep; g.fillText(kt, x0, o.price ? ty + 74 : ty + 96);
       g.font = "700 28px " + PK_NUM; g.fillStyle = C.leaf; g.fillText(" kWh", x0 + kw, o.price ? ty + 74 : ty + 96);
-      g.textAlign = "center"; g.font = "600 20px " + PK_TH; g.fillStyle = C.mute; g.fillText(b.q + " ก้อน" + (o.price && b.q > 1 ? " · ก้อนละ ฿" + pkFmt(pkPrice(b.p / b.q, o)) : ""), x + tw / 2, o.price ? ty + 108 : ty + 136);
+      g.textAlign = "center"; g.font = "600 20px " + PK_TH; g.fillStyle = C.mute; g.fillText(b.q + " ก้อน", x + tw / 2, o.price ? ty + 108 : ty + 136);
       if (o.price) { g.font = "800 38px " + PK_NUM; g.fillStyle = C.price; g.fillText(pr(b.p), x + tw / 2, ty + 154); }
       g.textAlign = "left";
     });
@@ -791,8 +791,7 @@ function pkDrawAddon(cv, A, o, ad) {
       pkRR(g, x, ty, ow, 156, 20); g.fillStyle = C.alt; g.fill(); g.textAlign = "center";
       g.font = "800 44px " + PK_NUM; g.fillStyle = C.deep; g.fillText(String(c.kwp), x + ow / 2, ty + 56);
       g.font = "700 18px " + PK_NUM; g.fillStyle = C.leaf; g.fillText("kWp", x + ow / 2, ty + 80);
-      const nt = c.n + " ตัว" + (o.price && c.u ? " · ตัวละ ฿" + pkFmt(pkPrice(c.u, o)) : "");   // ราคาต่อตัวโชว์ว่าติดเยอะถูกลง
-      pkFit(g, nt, "600", 18, PK_TH, ow - 14, 12); g.fillStyle = C.mute; g.fillText(nt, x + ow / 2, ty + 106);
+      g.font = "600 18px " + PK_TH; g.fillStyle = C.mute; g.fillText(c.n + " ตัว", x + ow / 2, ty + 106);   // ไม่โชว์ราคาต่อตัวบนรูป (ผู้ใช้ ต.ค. 2026) — ดูได้ที่แผงข้าง
       if (o.price) { pkFit(g, pr(c.p), "800", 30, PK_NUM, ow - 16, 18); g.fillStyle = C.price; g.fillText(pr(c.p), x + ow / 2, ty + 142); }
       g.textAlign = "left";
     });
