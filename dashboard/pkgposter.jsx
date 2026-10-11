@@ -414,6 +414,18 @@ function pkDraw(cv, sp, A, o) {
   // รูปสินค้าลอยฝั่งขวา: แผงอยู่หลัง อินเวอร์เตอร์อยู่หน้า
   if (A.pPhoto) pkLift(g, () => pkContain(g, A.pPhoto, 672, 150, 210, 360, .5, .5), 34);
   if (A.iPhoto) pkLift(g, () => pkContain(g, A.iPhoto, 826, 270, 210, 250, 1, .5), 34);
+  /* Hybrid ยังไม่ติดแบต → ป้ายลอยใต้รูปอินเวอร์เตอร์ "รองรับแบตเตอรี่ในอนาคต" (ผู้ใช้ ต.ค. 2026: ย้ายออกจากบรรทัดใต้ kWp) */
+  if (sp.hyb && !sp.bat) {
+    const bt = "รองรับแบตเตอรี่ในอนาคต"; g.font = "700 22px " + PK_TH;
+    const bw = g.measureText(bt).width + 74, bx = PK_W - 40 - bw, by = 536;
+    pkGlass(g, bx, by, bw, 50, 25, .95);
+    // ไอคอนแบตเตอรี่ + สายฟ้า
+    g.save(); g.strokeStyle = C.leaf; g.fillStyle = C.leaf; g.lineWidth = 2.5; g.lineJoin = "round";
+    pkRR(g, bx + 20, by + 15, 30, 20, 4); g.stroke(); g.fillRect(bx + 50, by + 21, 4, 8);
+    g.beginPath(); g.moveTo(bx + 37, by + 18); g.lineTo(bx + 30, by + 26); g.lineTo(bx + 35, by + 26); g.lineTo(bx + 33, by + 32); g.lineTo(bx + 40, by + 24); g.lineTo(bx + 35, by + 24); g.closePath(); g.fill();
+    g.restore();
+    g.fillStyle = C.leaf; g.textAlign = "left"; g.fillText(bt, bx + 62, by + 33);
+  }
 
   pkTag(g, o.title || PK_TITLE_DEF, 168, 640);
   // ขนาดระบบตัวใหญ่
@@ -422,7 +434,7 @@ function pkDraw(cv, sp, A, o) {
   const bw = g.measureText(big).width;
   g.font = "700 60px " + PK_NUM; g.fillText("kWp", 44 + bw + 14, 372);
   g.font = "700 30px " + PK_TH; g.fillStyle = C.leaf;
-  const sysTx = "ระบบ " + sp.phase + " เฟส · " + (sp.hyb ? (sp.bat ? "HYBRID + แบตเตอรี่" : "HYBRID รองรับแบตเตอรี่ในอนาคต") : "ON-GRID" + (sp.bat ? " + แบตเตอรี่" : ""));
+  const sysTx = "ระบบ " + sp.phase + " เฟส · " + (sp.hyb ? "HYBRID" + (sp.bat ? " + แบตเตอรี่" : "") : "ON-GRID" + (sp.bat ? " + แบตเตอรี่" : ""));
   pkFit(g, sysTx, "700", 30, PK_TH, 600, 18); g.fillText(sysTx, 52, 426);
 
   // ราคา
