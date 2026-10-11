@@ -73,8 +73,14 @@ function pkSpec(lead, items) {
   const kwp = Math.round(n * wp / 10) / 100;
   /* ราคาบนรูป = มูลค่าที่คาดของลูกค้า (ช่องในใบลูกค้า) · ว่าง = ราคาขายจาก BOQ */
   const sell = +lead.expValue || +((b.pricing || {}).sell) || 0;
-  return { b: b, pItem: pItem, panelName: b.panelModel || "", n: n, wp: wp, kwp: kwp, invs: invs,
-    phase: +b.phase || +((lead.survey || {}).phase) || 1, sell: sell, bat: +b.batteryKwh || 0,
+  /* แบตรุ่นที่เลือก (batteryModel/Qty) + ตัวคุมแผง (optimizerModel) — แพ็คเกจ Huawei + แบต/Optimizer (ผู้ใช้ ต.ค. 2026) */
+  const bat = +b.batteryKwh || 0, batItem = bat ? pkFind(items, b.batteryModel) : null;
+  const optName = String(b.optimizerModel || "").trim(), optItem = optName ? pkFind(items, optName) : null;
+  const optN = optName && window.BOQ && window.BOQ.optimizerQty ? window.BOQ.optimizerQty(optName, n) : optName ? n : 0;
+  return { batItem: batItem, batQty: bat && b.batteryModel ? Math.max(1, Math.round(+b.batteryQty || 1)) : 0,
+    optName: optName, optItem: optItem, opt: optN,
+    b: b, pItem: pItem, panelName: b.panelModel || "", n: n, wp: wp, kwp: kwp, invs: invs,
+    phase: +b.phase || +((lead.survey || {}).phase) || 1, sell: sell, bat: bat,
     /* ชนิดอินเวอร์เตอร์จากคลัง (invType) — Hybrid = ต่อแบตเพิ่มภายหลังได้ (ผู้ใช้ ต.ค. 2026 ให้บอกบนรูป) · ไม่รู้ = null ไม่เดา */
     hyb: invs.some((v) => v.item && v.item.invType === "hybrid") ? true : invs.length && invs.every((v) => v.item && v.item.invType) ? false : null,
     ok: !!(b.panelModel && n && (invs.length || b.microRatio)) };
@@ -176,7 +182,7 @@ function pkBrandKeys(item) {
   return out;
 }
 /* รูปสินค้าประจำยี่ห้อสำหรับโพสต์ (ไฟล์ใน repo · ผู้ใช้ให้มา) — มาก่อนรูปในคลัง ไม่มี = รูปคลัง */
-const PK_BRAND_PHOTO = { "inv:huawei": "dashboard/assets/pkg-inv-huawei.jpg", "inv:growatt": "dashboard/assets/pkg-inv-growatt.png", "panel:longi": "dashboard/assets/pkg-panel-longi.webp" };
+const PK_BRAND_PHOTO = { "inv:huawei": "dashboard/assets/pkg-inv-huawei.jpg", "inv:growatt": "dashboard/assets/pkg-inv-growatt.png", "panel:longi": "dashboard/assets/pkg-panel-longi.webp" };   // batt:<ยี่ห้อ> = รูปแบต (ไม่มีไฟล์ = รูปคลัง)
 function pkBrandPhoto(item, kind) {
   const k = kind + ":" + String((item && item.brand) || "").trim().toLowerCase();
   return pkImg(PK_BRAND_PHOTO[k] || "");   // ไม่มีไฟล์ = null → รูปคลัง
@@ -184,15 +190,17 @@ function pkBrandPhoto(item, kind) {
 async function pkAssets(sp) {
   const inv = sp && sp.invs[0] && sp.invs[0].item;
   const pItem = sp && sp.pItem;
-  const [hero, mark, pPhoto, iPhoto, pLogo, iLogo] = await Promise.all([
+  const bItem = sp && sp.bat ? sp.batItem : null;
+  const [hero, mark, pPhoto, iPhoto, pLogo, iLogo, bPhoto] = await Promise.all([
     pkImg("dashboard/assets/pkg-house-light.jpg"),   // บ้านสว่าง ฝั่งซ้ายเป็นฟ้าโล่ง (ผู้ใช้ให้มา ต.ค. 2026 · ของเดิม pkg-house.jpg)
     pkImg(typeof brandDocURL === "function" ? brandDocURL() : ""),
     pkBrandPhoto(pItem, "panel").then((im) => im || pkFirstImg([pItem && pItem.id, "cat_panel"])),
     pkBrandPhoto(inv, "inv").then((im) => im || pkFirstImg([inv && inv.id, "cat_inverter"])),
     pkFirstImg(pkBrandKeys(pItem)),
     pkFirstImg(pkBrandKeys(inv)),
+    bItem ? pkBrandPhoto(bItem, "batt").then((im) => im || pkFirstImg([bItem.id])) : null,
   ]);
-  return { hero: hero, mark: mark, pPhoto: pkTrim(pPhoto), iPhoto: pkTrim(iPhoto), pLogo: pkUnwhite(pkTrim(pLogo)), iLogo: pkUnwhite(pkTrim(iLogo)) };
+  return { bPhoto: pkTrim(bPhoto), hero: hero, mark: mark, pPhoto: pkTrim(pPhoto), iPhoto: pkTrim(iPhoto), pLogo: pkUnwhite(pkTrim(pLogo)), iLogo: pkUnwhite(pkTrim(iLogo)) };
 }
 
 /* ── วาด: ตัวช่วย ── */
@@ -453,6 +461,7 @@ function pkDraw(cv, sp, A, o) {
 
   // รูปสินค้าลอยฝั่งขวา: แผงอยู่หลัง อินเวอร์เตอร์อยู่หน้า
   if (A.pPhoto) pkLift(g, () => pkContain(g, A.pPhoto, 672, 150, 210, 360, .5, .5), 34);
+  if (A.bPhoto && sp.bat) pkLift(g, () => pkContain(g, A.bPhoto, 676, 330, 150, 200, 1, .5), 34);   // แบตยืนหน้าแผง ข้างอินเวอร์เตอร์
   if (A.iPhoto) pkLift(g, () => pkContain(g, A.iPhoto, 826, 270, 210, 250, 1, .5), 34);
   /* Hybrid ยังไม่ติดแบต → ป้าย "รองรับแบตเตอรี่ในอนาคต" ข้างรูปอินเวอร์เตอร์ (ผู้ใช้ ต.ค. 2026: ย้ายออกจากบรรทัดใต้ kWp) */
   if (sp.hyb && !sp.bat) pkHybBadge(g);
@@ -507,14 +516,20 @@ function pkDraw(cv, sp, A, o) {
   const cards = [{ k: "แผง " + (pBrand || "โซลาร์เซลล์"), m: (sp.pItem && sp.pItem.model) || pkSplitModel(sp.panelName, pBrand), v: sp.wp ? String(sp.wp) : "", u: "W", r: sp.n ? "× " + sp.n : "", ru: "แผง" }];
   if (inv0) cards.push({ tag: sp.hyb ? "HYBRID" : sp.hyb === false ? "ON-GRID" : "", k: "อินเวอร์เตอร์ " + iBrand, m: (iItem && iItem.model) || pkSplitModel(inv0.name, iBrand), v: it.kw, u: "kW", r: it.n > 1 ? "× " + it.n : "", ru: it.n > 1 ? "เครื่อง" : "" });
   else cards.push({ k: "อินเวอร์เตอร์", m: "ไมโครอินเวอร์เตอร์", v: "", u: "", r: "", ru: "" });
-  if (sp.bat) cards.push({ k: "แบตเตอรี่", m: "", v: String(sp.bat), u: "kWh", r: "", ru: "" });
+  const bB = (sp.batItem && sp.batItem.brand) || "", oB = (sp.optItem && sp.optItem.brand) || "";
+  if (sp.bat) cards.push({ k: "แบตเตอรี่ " + bB, m: (sp.batItem && sp.batItem.model) || "", v: String(sp.bat), u: "kWh", r: sp.batQty > 1 ? "× " + sp.batQty : "", ru: sp.batQty > 1 ? "ก้อน" : "" });
+  if (sp.opt) {
+    const om = (sp.optItem && sp.optItem.model) || pkSplitModel(sp.optName, oB), ow = /(\d{3,4})\s*W/i.exec(om);
+    cards.push({ k: "Optimizer " + oB, m: om, v: ow ? ow[1] : "", u: ow ? "W" : "", r: "× " + sp.opt, ru: "ตัว" });
+  }
   const cy = 752, ch = 146, gap = 18, cw = (PK_W - 96 - gap * (cards.length - 1)) / cards.length;
+  const many = cards.length > 3;   // 4 การ์ด (แบต + Optimizer) ช่องแคบ: ไม่มีป้าย HYBRID ในการ์ด (มีชิปใต้ kWp แล้ว) · ตัว × n เล็กลง
   cards.forEach((c, i) => {
     const x = 48 + i * (cw + gap);
     pkGlass(g, x, cy, cw, ch, 26);
     // ป้ายชนิดอินเวอร์เตอร์มุมขวาบน (Hybrid = เขียว ต่อแบตภายหลังได้ · On-grid = กรม)
     let tw = 0;
-    if (c.tag) {
+    if (c.tag && !many) {
       g.font = "800 16px " + PK_NUM; tw = g.measureText(c.tag).width + 22;
       pkRR(g, x + cw - 20 - tw, cy + 18, tw, 28, 14); g.fillStyle = c.tag === "HYBRID" ? C.solid : C.fill; g.fill();
       g.fillStyle = "#fff"; g.textAlign = "center"; g.fillText(c.tag, x + cw - 20 - tw / 2, cy + 38); tw += 10;
@@ -524,11 +539,12 @@ function pkDraw(cv, sp, A, o) {
     if (c.r) {
       g.textAlign = "right"; g.font = "700 20px " + PK_TH; g.fillStyle = C.mute; const ruw = g.measureText(c.ru).width;
       g.fillText(c.ru, x + cw - 24, cy + 94);
-      g.font = "800 46px " + PK_NUM; g.fillStyle = C.ink; g.fillText(c.r, x + cw - 30 - ruw, cy + 94);
+      g.font = "800 " + (many ? 36 : 46) + "px " + PK_NUM; g.fillStyle = C.ink; g.fillText(c.r, x + cw - 30 - ruw, cy + 94);
       rw = g.measureText(c.r).width + ruw + 16; g.textAlign = "left";
     }
     if (c.v) {
-      pkFit(g, c.v, "800", 60, PK_NUM, cw - 80 - rw, 30); g.fillStyle = C.deep; g.fillText(c.v, x + 24, cy + 96);
+      g.font = "700 26px " + PK_NUM; const uw = c.u ? g.measureText(c.u).width + 6 : 0;   // หน่วยต่อท้ายต้องไม่ชน "× n"
+      pkFit(g, c.v, "800", 60, PK_NUM, cw - 54 - rw - uw, 30); g.fillStyle = C.deep; g.fillText(c.v, x + 24, cy + 96);
       const vw = g.measureText(c.v).width; g.font = "700 26px " + PK_NUM; g.fillStyle = C.leaf; g.fillText(c.u, x + 30 + vw, cy + 96);
       // รุ่นใต้ตัวเลข (ผู้ใช้ ต.ค. 2026 ให้ใส่รุ่นแผง/อินเวอร์เตอร์)
       if (c.m) { pkFit(g, c.m, "600", 20, PK_NUM, cw - 50, 12); g.fillStyle = C.mute; g.fillText(c.m, x + 26, cy + 128); }
@@ -576,7 +592,8 @@ function pkDrawSum(cv, rows, A, o) {
   g.font = "800 140px " + PK_NUM; g.fillStyle = C.deep; g.fillText(big, 44, 338);
   const bw = g.measureText(big).width; g.font = "700 54px " + PK_NUM; g.fillText("kWp", 44 + bw + 14, 338);
   const wps = rows.map((r) => r.sp.wp).filter((w, j, a) => w && a.indexOf(w) === j);
-  const sub = [pBrand && wps.length === 1 ? "แผง " + pBrand + " " + wps[0] + "W" : "", iBrand ? "อินเวอร์เตอร์ " + iBrand + (rows.every((r) => r.sp.hyb) ? " Hybrid" : "") : ""].filter(Boolean).join(" · ") || "ติดตั้งครบ จบในที่เดียว";
+  const sub = [pBrand && wps.length === 1 ? "แผง " + pBrand + " " + wps[0] + "W" : "", iBrand ? "อินเวอร์เตอร์ " + iBrand + (rows.every((r) => r.sp.hyb) ? " Hybrid" : "") : "",
+    rows.every((r) => r.sp.bat) ? "แบตเตอรี่" + (rows.every((r) => r.sp.bat === rows[0].sp.bat) ? " " + rows[0].sp.bat + " kWh" : "") + (rows.every((r) => r.sp.opt) ? " + Optimizer" : "") : ""].filter(Boolean).join(" · ") || "ติดตั้งครบ จบในที่เดียว";
   pkFit(g, sub, "700", 30, PK_TH, 620, 16); g.fillStyle = C.leaf; g.fillText(sub, 52, 392);
 
   // ตารางแพ็คเกจ
@@ -615,7 +632,7 @@ function pkDrawSum(cv, rows, A, o) {
     pkRR(g, kx, py, ptw, 28, 14); g.fillStyle = sp.phase === 3 ? C.chip3 : C.chip1; g.fill();
     g.fillStyle = sp.phase === 3 ? C.deep : C.leaf; g.fillText(pt, kx + 9, py + 20);
     // อุปกรณ์
-    const l1 = "แผง " + sp.wp + "W × " + sp.n + (sp.bat ? " · แบต " + sp.bat + " kWh" : "");
+    const l1 = "แผง " + sp.wp + "W × " + sp.n + (sp.bat ? " · แบต " + sp.bat + " kWh" : "") + (sp.opt ? " · Optimizer" : "");
     const l2 = l2Of(sp);
     // สองบรรทัดเสมอ (8 แถวก็ยังอ่านออก) · ชนิดอินเวอร์เตอร์เป็นชิปเส้นขอบท้ายบรรทัดสอง แบบเดียวกับรูปรายอัน
     const two = rH >= 50, f1 = two ? Math.min(23, rH * .36) : 20;

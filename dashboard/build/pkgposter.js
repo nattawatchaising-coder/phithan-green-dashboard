@@ -81,7 +81,17 @@ function pkSpec(lead, items) {
   });
   const kwp = Math.round(n * wp / 10) / 100;
   const sell = +lead.expValue || +(b.pricing || {}).sell || 0;
+  const bat = +b.batteryKwh || 0,
+    batItem = bat ? pkFind(items, b.batteryModel) : null;
+  const optName = String(b.optimizerModel || "").trim(),
+    optItem = optName ? pkFind(items, optName) : null;
+  const optN = optName && window.BOQ && window.BOQ.optimizerQty ? window.BOQ.optimizerQty(optName, n) : optName ? n : 0;
   return {
+    batItem: batItem,
+    batQty: bat && b.batteryModel ? Math.max(1, Math.round(+b.batteryQty || 1)) : 0,
+    optName: optName,
+    optItem: optItem,
+    opt: optN,
     b: b,
     pItem: pItem,
     panelName: b.panelModel || "",
@@ -91,7 +101,7 @@ function pkSpec(lead, items) {
     invs: invs,
     phase: +b.phase || +(lead.survey || {}).phase || 1,
     sell: sell,
-    bat: +b.batteryKwh || 0,
+    bat: bat,
     hyb: invs.some(v => v.item && v.item.invType === "hybrid") ? true : invs.length && invs.every(v => v.item && v.item.invType) ? false : null,
     ok: !!(b.panelModel && n && (invs.length || b.microRatio))
   };
@@ -237,8 +247,10 @@ function pkBrandPhoto(item, kind) {
 async function pkAssets(sp) {
   const inv = sp && sp.invs[0] && sp.invs[0].item;
   const pItem = sp && sp.pItem;
-  const [hero, mark, pPhoto, iPhoto, pLogo, iLogo] = await Promise.all([pkImg("dashboard/assets/pkg-house-light.jpg"), pkImg(typeof brandDocURL === "function" ? brandDocURL() : ""), pkBrandPhoto(pItem, "panel").then(im => im || pkFirstImg([pItem && pItem.id, "cat_panel"])), pkBrandPhoto(inv, "inv").then(im => im || pkFirstImg([inv && inv.id, "cat_inverter"])), pkFirstImg(pkBrandKeys(pItem)), pkFirstImg(pkBrandKeys(inv))]);
+  const bItem = sp && sp.bat ? sp.batItem : null;
+  const [hero, mark, pPhoto, iPhoto, pLogo, iLogo, bPhoto] = await Promise.all([pkImg("dashboard/assets/pkg-house-light.jpg"), pkImg(typeof brandDocURL === "function" ? brandDocURL() : ""), pkBrandPhoto(pItem, "panel").then(im => im || pkFirstImg([pItem && pItem.id, "cat_panel"])), pkBrandPhoto(inv, "inv").then(im => im || pkFirstImg([inv && inv.id, "cat_inverter"])), pkFirstImg(pkBrandKeys(pItem)), pkFirstImg(pkBrandKeys(inv)), bItem ? pkBrandPhoto(bItem, "batt").then(im => im || pkFirstImg([bItem.id])) : null]);
   return {
+    bPhoto: pkTrim(bPhoto),
     hero: hero,
     mark: mark,
     pPhoto: pkTrim(pPhoto),
@@ -748,6 +760,7 @@ function pkDraw(cv, sp, A, o) {
     name: inv0 ? iBrand : ""
   }].filter(b => b.logo || b.name));
   if (A.pPhoto) pkLift(g, () => pkContain(g, A.pPhoto, 672, 150, 210, 360, .5, .5), 34);
+  if (A.bPhoto && sp.bat) pkLift(g, () => pkContain(g, A.bPhoto, 676, 330, 150, 200, 1, .5), 34);
   if (A.iPhoto) pkLift(g, () => pkContain(g, A.iPhoto, 826, 270, 210, 250, 1, .5), 34);
   if (sp.hyb && !sp.bat) pkHybBadge(g);
   pkTag(g, o.title || PK_TITLE_DEF, 168, 640);
@@ -853,23 +866,38 @@ function pkDraw(cv, sp, A, o) {
     r: "",
     ru: ""
   });
+  const bB = sp.batItem && sp.batItem.brand || "",
+    oB = sp.optItem && sp.optItem.brand || "";
   if (sp.bat) cards.push({
-    k: "แบตเตอรี่",
-    m: "",
+    k: "แบตเตอรี่ " + bB,
+    m: sp.batItem && sp.batItem.model || "",
     v: String(sp.bat),
     u: "kWh",
-    r: "",
-    ru: ""
+    r: sp.batQty > 1 ? "× " + sp.batQty : "",
+    ru: sp.batQty > 1 ? "ก้อน" : ""
   });
+  if (sp.opt) {
+    const om = sp.optItem && sp.optItem.model || pkSplitModel(sp.optName, oB),
+      ow = /(\d{3,4})\s*W/i.exec(om);
+    cards.push({
+      k: "Optimizer " + oB,
+      m: om,
+      v: ow ? ow[1] : "",
+      u: ow ? "W" : "",
+      r: "× " + sp.opt,
+      ru: "ตัว"
+    });
+  }
   const cy = 752,
     ch = 146,
     gap = 18,
     cw = (PK_W - 96 - gap * (cards.length - 1)) / cards.length;
+  const many = cards.length > 3;
   cards.forEach((c, i) => {
     const x = 48 + i * (cw + gap);
     pkGlass(g, x, cy, cw, ch, 26);
     let tw = 0;
-    if (c.tag) {
+    if (c.tag && !many) {
       g.font = "800 16px " + PK_NUM;
       tw = g.measureText(c.tag).width + 22;
       pkRR(g, x + cw - 20 - tw, cy + 18, tw, 28, 14);
@@ -891,14 +919,16 @@ function pkDraw(cv, sp, A, o) {
       g.fillStyle = C.mute;
       const ruw = g.measureText(c.ru).width;
       g.fillText(c.ru, x + cw - 24, cy + 94);
-      g.font = "800 46px " + PK_NUM;
+      g.font = "800 " + (many ? 36 : 46) + "px " + PK_NUM;
       g.fillStyle = C.ink;
       g.fillText(c.r, x + cw - 30 - ruw, cy + 94);
       rw = g.measureText(c.r).width + ruw + 16;
       g.textAlign = "left";
     }
     if (c.v) {
-      pkFit(g, c.v, "800", 60, PK_NUM, cw - 80 - rw, 30);
+      g.font = "700 26px " + PK_NUM;
+      const uw = c.u ? g.measureText(c.u).width + 6 : 0;
+      pkFit(g, c.v, "800", 60, PK_NUM, cw - 54 - rw - uw, 30);
       g.fillStyle = C.deep;
       g.fillText(c.v, x + 24, cy + 96);
       const vw = g.measureText(c.v).width;
@@ -984,7 +1014,7 @@ function pkDrawSum(cv, rows, A, o) {
   g.font = "700 54px " + PK_NUM;
   g.fillText("kWp", 44 + bw + 14, 338);
   const wps = rows.map(r => r.sp.wp).filter((w, j, a) => w && a.indexOf(w) === j);
-  const sub = [pBrand && wps.length === 1 ? "แผง " + pBrand + " " + wps[0] + "W" : "", iBrand ? "อินเวอร์เตอร์ " + iBrand + (rows.every(r => r.sp.hyb) ? " Hybrid" : "") : ""].filter(Boolean).join(" · ") || "ติดตั้งครบ จบในที่เดียว";
+  const sub = [pBrand && wps.length === 1 ? "แผง " + pBrand + " " + wps[0] + "W" : "", iBrand ? "อินเวอร์เตอร์ " + iBrand + (rows.every(r => r.sp.hyb) ? " Hybrid" : "") : "", rows.every(r => r.sp.bat) ? "แบตเตอรี่" + (rows.every(r => r.sp.bat === rows[0].sp.bat) ? " " + rows[0].sp.bat + " kWh" : "") + (rows.every(r => r.sp.opt) ? " + Optimizer" : "") : ""].filter(Boolean).join(" · ") || "ติดตั้งครบ จบในที่เดียว";
   pkFit(g, sub, "700", 30, PK_TH, 620, 16);
   g.fillStyle = C.leaf;
   g.fillText(sub, 52, 392);
@@ -1062,7 +1092,7 @@ function pkDrawSum(cv, rows, A, o) {
     g.fill();
     g.fillStyle = sp.phase === 3 ? C.deep : C.leaf;
     g.fillText(pt, kx + 9, py + 20);
-    const l1 = "แผง " + sp.wp + "W × " + sp.n + (sp.bat ? " · แบต " + sp.bat + " kWh" : "");
+    const l1 = "แผง " + sp.wp + "W × " + sp.n + (sp.bat ? " · แบต " + sp.bat + " kWh" : "") + (sp.opt ? " · Optimizer" : "");
     const l2 = l2Of(sp);
     const two = rH >= 50,
       f1 = two ? Math.min(23, rH * .36) : 20;
