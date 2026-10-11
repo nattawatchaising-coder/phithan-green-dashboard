@@ -362,6 +362,8 @@
      ว่างไว้ทั้งอาเรย์ — setOptimizers() จะเติมจากคลังสินค้าเหมือน PANELS/INVERTERS */
   const OPTIMIZERS = [];
 
+  /* ── อุปกรณ์ Growatt งานบ้าน (ผู้ใช้ ต.ค. 2026): มิเตอร์ CT ตามเฟส + ShineWiFi-X 1 ตัว/งาน — ชื่อต้องตรงคลังทุกตัวอักษร ── */
+  const GW = { meter1: "Growatt - SPM-CT-E", meter3: "Growatt - TPM-CT-E", wifi: "Growatt - ShineWiFi-X" };
   // ── ชื่อรุ่นอุปกรณ์ Huawei (ต้องตรงกับชื่อในคลังสินค้า เพื่อจับคู่ราคา) ──
   const HW = {
     meter1: "Smart Meter DDSU666-H + CT 100A/40mA (1 เฟส)",
@@ -945,6 +947,7 @@
   function findPanel(model) { return PANELS.find((p) => p.model === model) || null; }
   /* อินเวอร์เตอร์ Huawei (SUN2000 / LUNA) — อุปกรณ์เสริมในชุด HW ใช้ได้เฉพาะยี่ห้อนี้ */
   function isHwInv(model) { return /huawei|sun2000|luna2000/i.test(String(model || "")); }
+  function isGwInv(model) { return /growatt/i.test(String(model || "")); }
   function findInverter(model) { return INVERTERS.find((x) => x.model === model) || null; }
   // ── คำนวณการต่ออนุกรมแผง (String) + สาย DC ──
   // panel = { voc, isc, vmp, imp } · inv = { mpptVmin, mpptVmax, maxVdc, maxInA }
@@ -2218,6 +2221,11 @@
            งานโครงการใช้ SmartLogger รวมศูนย์ตัวเดียว (อ่านหลายอินเวอร์เตอร์ผ่าน RS485) ไม่ใช้ Smart Meter + Dongle
            งานบ้านใช้ Smart Meter วัดที่จุดต่อกริด + Dongle 1 ตัว */
         if (!hw) {
+          // Growatt งานบ้าน: มิเตอร์ CT วัดที่จุดต่อกริด + ShineWiFi-X 1 ตัว (งานโครงการยังให้เพิ่มเอง)
+          if (isGwInv(selInv.model) && !isProject) {
+            invItems.push({ name: ph === 3 ? GW.meter3 : GW.meter1, qty: 1, unit: "ชุด" });
+            invItems.push({ name: GW.wifi, qty: 1, unit: "ตัว" });
+          }
           // ยี่ห้ออื่น: ยังไม่มีชุดมอนิเตอร์/มิเตอร์ของยี่ห้อนั้นในระบบ — ให้เพิ่มเองในใบ · แบตใช้รุ่นกลางเดิม
           pushBatt(invItems);
         } else if (isProject) {
@@ -2255,6 +2263,10 @@
         // String / Hybrid ทั่วไป: จำนวนตัว = ปัดขึ้น(kW รวม ÷ kW ต่อตัว) + แบต
         invItems = [{ name: selInv.model, qty: invCount, unit: "ตัว" }];
         if (selInv2) invItems.push({ name: selInv2.model, qty: inv2Count, unit: "ตัว" });
+        if (isGwInv(selInv.model) && !isProject) {   // Growatt ที่คลังยังไม่มีสเปค MPPT ก็ยังได้มิเตอร์ + WiFi
+          invItems.push({ name: selInv.phase === 3 ? GW.meter3 : GW.meter1, qty: 1, unit: "ชุด" });
+          invItems.push({ name: GW.wifi, qty: 1, unit: "ตัว" });
+        }
         pushBatt(invItems);
       }
     } else {
@@ -2990,7 +3002,7 @@
     UPVC_CONDUIT, conduitFillLimit, conduitDim, conduitCheck,
     AMP_CORE_LABEL, ampGroupMeta, ampCoresFor, ampCoreKey, WIRE_METHOD_LEGACY, normWireMethod,
     G_TRAY, G_SUPPORT, G_LABOR, G_PERMIT, G_OM, OM_DEF, OM_CLEAN_TIERS, OM_SVC_TIERS, OM_CLEAN_DEF, OM_SVC_DEF, omTierNorm, setOmTiers, omTierPrice, omDefaults, omCalc, SERVICE_GROUPS, mergeItems,
-    RULE_SECS, RULE_DEFS, RULES, RULES_T, setRules, ruleVal, ruleTxt, ruleOnly, ruleFlat, ruleRaw, pairPick, spdName, isHwInv };
+    RULE_SECS, RULE_DEFS, RULES, RULES_T, setRules, ruleVal, ruleTxt, ruleOnly, ruleFlat, ruleRaw, pairPick, spdName, isHwInv, isGwInv };
   /* ห่อฟังก์ชันที่ส่งออก: เจออาร์กิวเมนต์ที่เป็นใบ BOQ (jobType) หรืองาน (type) = สลับ RULES เป็นชุดของประเภทนั้นก่อนคิด
      ฟังก์ชันข้างในเรียกกันตรง ๆ (ไม่ผ่านตัวห่อ) จึงใช้ชุดเดียวกันตลอดการคิดหนึ่งครั้ง */
   const typeHint = (a) => {
