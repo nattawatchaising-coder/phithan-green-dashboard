@@ -226,6 +226,7 @@ function pkBrandKeys(item) {
 }
 const PK_BRAND_PHOTO = {
   "inv:huawei": "dashboard/assets/pkg-inv-huawei.jpg",
+  "inv:growatt": "dashboard/assets/pkg-inv-growatt.jpg",
   "panel:longi": "dashboard/assets/pkg-panel-longi.webp"
 };
 function pkBrandPhoto(item, kind) {
