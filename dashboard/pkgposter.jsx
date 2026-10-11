@@ -740,8 +740,9 @@ function pkAddon(items, rows, mg, mgBig) {
   return { bI: bI, pI: pI, oI: oI, bats: bats, opts: opts, mg: m, mgBig: mb };
 }
 /* รับประกันบนรูป Add-on = แยกรายอุปกรณ์ (ผู้ใช้ ต.ค. 2026) — ปีจาก warY ในคลัง · งานติดตั้งเอาบรรทัดจากชุดหลัก */
-function pkAddonWty(ad, wty) {
-  const ins = String(wty || "").split("\n").map((x) => x.trim()).find((x) => /งานติดตั้ง/.test(x)) || "รับประกันงานติดตั้ง 2 ปี";
+/* ไม่ดึงจากชุดรับประกันรูปแพ็คเกจแล้ว (ผู้ใช้ "สองช่องนี้ต้องแยกกัน") */
+function pkAddonWty(ad) {
+  const ins = "รับประกันงานติดตั้ง 2 ปี";
   const w = (it, nm) => it && +it.warY ? "รับประกัน" + nm + " " + it.warY + " ปี" : "";
   return [w(ad.bI, "แบตเตอรี่"), ad.pI && ad.bI && +ad.pI.warY !== +ad.bI.warY ? w(ad.pI, " Power Module") : "", w(ad.oI, " Optimizer"), ins].filter(Boolean).join("\n");
 }
@@ -1095,6 +1096,10 @@ function PkPosterModal({ lead, leads, stock, quotes, onClose }) {
     return (base.length || sel ? base : have).slice(0, PK_SUM_MAX);
   }, [sum, sel, cands]);
   const [row, setRow] = React.useState({});   // { [leadId]: { disc, rec } } ไม่บันทึก
+  /* ตัวกรองรายการแพ็คเกจ (ผู้ใช้ ต.ค. 2026 "ทำฟิวเตอร์แยกให้เลือก") — แค่ซ่อนในรายการ ไม่เปลี่ยนที่เลือก */
+  const pkBr = (c) => { const v = c.sp.invs[0] || {}; return String((v.item && v.item.brand) || String(v.name || "").split(/\s+/)[0] || "อื่น ๆ").trim(); };
+  const brands = React.useMemo(() => Array.from(new Set(cands.map(pkBr))).sort(), [cands]);
+  const [fBr, setFBr] = React.useState(""), [fPh, setFPh] = React.useState(0), [fOn, setFOn] = React.useState(false);
   const setR = (id, k, v) => setRow((p) => Object.assign({}, p, { [id]: Object.assign({}, p[id], { [k]: v }) }));
   const toggleSel = (id) => {
     const on = selIds.indexOf(id) >= 0;
@@ -1152,7 +1157,8 @@ function PkPosterModal({ lead, leads, stock, quotes, onClose }) {
       const v = s.val();
       if (v) {
         setTxSaved({ title: v.title || "", wty: v.wty || "", wtyAdd: v.wtyAdd || "", loads: v.loads || "", mg: v.mg || "", mgBig: v.mgBig || "" });
-        if (v.title) setTitle(v.title); if (v.wty) setWty(v.wty); if (v.wtyAdd) setWtyAdd(v.wtyAdd); if (v.loads) setLoads(v.loads);
+        if (v.title) setTitle(v.title); const wAdd = v.wty && !v.wtyAdd && /Optimizer|แบตเตอรี่/i.test(v.wty);   // ชุดเก่าที่บันทึกก่อนแยกช่อง
+        if (v.wty && !wAdd) setWty(v.wty); if (v.wtyAdd || wAdd) setWtyAdd(v.wtyAdd || v.wty); if (v.loads) setLoads(v.loads);
         if (v.mg) setMg(String(v.mg)); if (v.mgBig) setMgBig(String(v.mgBig));
       }
       else setTxSaved({ title: "", wty: "", wtyAdd: "", loads: "", mg: "", mgBig: "" });
@@ -1211,7 +1217,7 @@ function PkPosterModal({ lead, leads, stock, quotes, onClose }) {
   }, [assetKey]);
   React.useEffect(() => {
     if (!A || !cv.current) return;
-    const o = { theme: theme, logo: logo, contact: contact, price: price, vat: vat, disc: pkNum(disc) || 0, title: title, wty: (addon && ad ? wtyAdd || pkAddonWty(ad, wty) : wty).split("\n").map((s) => s.trim()),
+    const o = { theme: theme, logo: logo, contact: contact, price: price, vat: vat, disc: pkNum(disc) || 0, title: title, wty: (addon && ad ? wtyAdd || pkAddonWty(ad) : wty).split("\n").map((s) => s.trim()),
       loads: loads, co: Object.assign({}, co, { markIm: co.mark ? markIm : null }) };
     if (addon) { if (ad && (ad.bats.length || ad.opts.length)) pkDrawAddon(cv.current, A, Object.assign(o, { title: "" }), ad); }
     else if (sum) { if (sumRows.length) pkDrawSum(cv.current, sumRows, A, o); }
@@ -1285,13 +1291,15 @@ function PkPosterModal({ lead, leads, stock, quotes, onClose }) {
                     <input inputMode="decimal" value={mgBig} onChange={(e) => setMgBig(e.target.value)} style={well} />
                     <span style={{ fontSize: 12, color: "var(--text-3)" }}>%</span>
                   </div>
-                  {ad.bats.map((b) => <div key={"b" + b.q} style={{ display: "flex", fontSize: 12.5, color: "var(--text-2)" }}><span style={{ flex: 1 }}>แบต {b.kwh} kWh ({b.q} ก้อน · ก้อนละ ฿{pkFmt(b.p / b.q)})</span><b style={{ color: "var(--text-1)" }}>+฿{pkFmt(b.p)}</b></div>)}
-                  {ad.opts.map((c) => <div key={"o" + c.n} style={{ display: "flex", fontSize: 12.5, color: "var(--text-2)" }}><span style={{ flex: 1 }}>Optimizer {c.kwp} kWp ({c.n} ตัว · ตัวละ ฿{pkFmt(c.u)})</span><b style={{ color: "var(--text-1)" }}>+฿{pkFmt(c.p)}</b></div>)}
+                  {/* ย่อ (ผู้ใช้ ต.ค. 2026) — บรรทัดเดียวต่อรายการ ราคาต่อหน่วยอยู่ใน title */}
+                  <div style={{ display: "grid", gridTemplateColumns: "1fr auto", columnGap: 8, rowGap: 3, fontSize: 12, color: "var(--text-2)", padding: "6px 10px", borderRadius: "var(--r-tile)", background: "var(--surface2)" }}>
+                    {ad.bats.map((b) => [<span key={"b" + b.q} title={"ก้อนละ ฿" + pkFmt(b.p / b.q)}>แบต {b.kwh} kWh</span>, <b key={"bp" + b.q} style={{ color: "var(--text-1)", textAlign: "right" }}>฿{pkFmt(b.p)}</b>])}
+                    {ad.opts.map((c) => [<span key={"o" + c.n} title={"ตัวละ ฿" + pkFmt(c.u)}>Opt {c.kwp} kWp · {c.n} ตัว</span>, <b key={"op" + c.n} style={{ color: "var(--text-1)", textAlign: "right" }}>฿{pkFmt(c.p)}</b>])}
+                  </div>
                   <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
                     <button type="button" className="btn btn-pri" disabled={!txDiff || txBusy} onClick={saveTx} style={{ padding: "7px 14px", fontSize: 12.5 }}>{txBusy ? "กำลังบันทึก…" : txDiff ? "บันทึก" : "บันทึกแล้ว"}</button>
                     <span style={{ fontSize: 11.5, color: "var(--text-3)" }}>บันทึกแล้วใช้ทุกเครื่อง</span>
                   </div>
-                  <div style={{ fontSize: 11.5, color: "var(--text-3)", lineHeight: 1.45 }}>ราคา = ทุนในคลัง ÷ (1 − กำไร%) ปัดขึ้น (แบตหลักพัน · Optimizer หลัก 500) · กำไรไล่ลงจากขนาดเล็กสุดถึงใหญ่สุดทั้งแบตและ Optimizer ติดเยอะยิ่งถูก · แบตรวม Power Module · ขนาด Optimizer ตามแพ็คเกจที่เลือกด้านล่าง (สูงสุด 5 ขนาด) · ยังไม่รวมค่าแรงติดตั้งแบต</div>
                 </div>
               )}
               {addon && ad && ad.bats.length > 0 && (
@@ -1309,7 +1317,20 @@ function PkPosterModal({ lead, leads, stock, quotes, onClose }) {
               {sum && (
                 <div style={card}>
                   <div style={{ fontSize: 13, fontWeight: 700, color: "var(--text-1)" }}>แพ็คเกจในรูป <span style={{ fontWeight: 600, color: "var(--text-3)", fontSize: 11.5 }}>เลือกได้ {PK_SUM_MAX} · {selIds.length} ที่เลือก</span></div>
-                  {cands.map((c) => {
+                  {(() => {
+                    const chip = (act, lab, fn, k) => <button key={k} type="button" onClick={fn} style={{ border: "none", cursor: "pointer", fontFamily: "inherit", fontSize: 11.5, fontWeight: 700, padding: "5px 10px", borderRadius: "var(--r-pill)",
+                      background: act ? "var(--primary-soft)" : "var(--surface2)", color: act ? "var(--primary-dark)" : "var(--text-3)", boxShadow: act ? "inset 0 0 0 1px var(--primary)" : "none" }}>{lab}</button>;
+                    return (
+                      <div style={{ display: "flex", flexWrap: "wrap", gap: 5 }}>
+                        {chip(!fBr, "ทุกยี่ห้อ", () => setFBr(""), "a")}
+                        {brands.map((b) => chip(fBr === b, b, () => setFBr(fBr === b ? "" : b), "b" + b))}
+                        {chip(fPh === 1, "1 เฟส", () => setFPh(fPh === 1 ? 0 : 1), "p1")}
+                        {chip(fPh === 3, "3 เฟส", () => setFPh(fPh === 3 ? 0 : 3), "p3")}
+                        {chip(fOn, "เฉพาะที่เลือก", () => setFOn(!fOn), "on")}
+                      </div>
+                    );
+                  })()}
+                  {cands.filter((c) => (!fBr || pkBr(c) === fBr) && (!fPh || c.sp.phase === fPh) && (!fOn || selIds.indexOf(c.l.id) >= 0)).map((c) => {
                     const on = selIds.indexOf(c.l.id) >= 0, r = row[c.l.id] || {};
                     return (
                       <div key={c.l.id} style={{ display: "flex", flexDirection: "column", gap: 6, padding: "8px 10px", borderRadius: "var(--r-tile)",
@@ -1318,7 +1339,7 @@ function PkPosterModal({ lead, leads, stock, quotes, onClose }) {
                           <input type="checkbox" checked={on} onChange={() => toggleSel(c.l.id)} style={{ accentColor: "var(--primary)", width: 15, height: 15, flexShrink: 0 }} />
                           <span style={{ flex: 1, minWidth: 0 }}>
                             <span style={{ display: "block", fontSize: 12.5, fontWeight: 800, color: "var(--text-1)" }}>{c.sp.kwp} kWp · {c.sp.phase} เฟส{c.sp.sell ? " · ฿" + pkFmt(c.sp.sell) : ""}</span>
-                            <span style={{ display: "block", fontSize: 11, color: "var(--text-3)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{c.l.code} · {c.l.name}</span>
+                            <span style={{ display: "block", fontSize: 11, color: "var(--text-3)", lineHeight: 1.35, overflowWrap: "anywhere" }}>{c.l.code} · {c.l.name}</span>
                           </span>
                         </label>
                         {on && !addon && (
@@ -1406,7 +1427,8 @@ function PkPosterModal({ lead, leads, stock, quotes, onClose }) {
                 {!addon && <div style={{ fontSize: 12, fontWeight: 700, color: "var(--text-2)" }}>หัวข้อ</div>}
                 {!addon && <input value={title} onChange={(e) => setTitle(e.target.value)} style={well} />}
                 <div style={{ fontSize: 12, fontWeight: 700, color: "var(--text-2)", marginTop: 4 }}>รับประกัน · บริการ (บรรทัดละข้อ · ขึ้นในรูป 6 ข้อแรก)</div>
-                <textarea value={addon && ad ? wtyAdd || pkAddonWty(ad, wty) : wty} onChange={(e) => (addon ? setWtyAdd : setWty)(e.target.value)} rows={6} style={Object.assign({}, well, { resize: "vertical", lineHeight: 1.5 })} />
+                <textarea value={addon ? wtyAdd || (ad ? pkAddonWty(ad) : "") : wty} onChange={(e) => (addon ? setWtyAdd : setWty)(e.target.value)} rows={6} style={Object.assign({}, well, { resize: "vertical", lineHeight: 1.5 })} />
+                {!addon && wty !== ((q && q.warranties) || PK_WTY_DEF).join("\n") && <div style={{ fontSize: 11.5, color: "var(--text-3)" }}>เฉพาะรูปแพ็คเกจ (รูป Add-on มีช่องของตัวเอง)<button type="button" onClick={() => setWty(((q && q.warranties) || PK_WTY_DEF).join("\n"))} style={{ border: "none", background: "none", padding: "0 0 0 6px", cursor: "pointer", fontSize: 11.5, color: "var(--primary-dark)", fontFamily: "inherit" }}>คืนค่าเดิม</button></div>}
                 {addon && <div style={{ fontSize: 11.5, color: "var(--text-3)", lineHeight: 1.45 }}>รูป Add-on ใช้ชุดรับประกันแยกจากรูปแพ็คเกจ — ปีของแบต/Optimizer ดึงจากคลัง{wtyAdd ? "" : " (ยังไม่ได้แก้)"}{wtyAdd && <button type="button" onClick={() => setWtyAdd("")} style={{ border: "none", background: "none", padding: "0 0 0 6px", cursor: "pointer", fontSize: 11.5, color: "var(--primary-dark)", fontFamily: "inherit" }}>คืนค่าตามคลัง</button>}</div>}
                 <div style={{ display: "flex", alignItems: "center", gap: 10, marginTop: 2 }}>
                   <button type="button" className="btn btn-pri" disabled={!txDiff || txBusy} onClick={saveTx} style={{ padding: "7px 14px", fontSize: 12.5 }}>

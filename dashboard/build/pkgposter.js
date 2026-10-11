@@ -1264,8 +1264,8 @@ function pkAddon(items, rows, mg, mgBig) {
     mgBig: mb
   };
 }
-function pkAddonWty(ad, wty) {
-  const ins = String(wty || "").split("\n").map(x => x.trim()).find(x => /งานติดตั้ง/.test(x)) || "รับประกันงานติดตั้ง 2 ปี";
+function pkAddonWty(ad) {
+  const ins = "รับประกันงานติดตั้ง 2 ปี";
   const w = (it, nm) => it && +it.warY ? "รับประกัน" + nm + " " + it.warY + " ปี" : "";
   return [w(ad.bI, "แบตเตอรี่"), ad.pI && ad.bI && +ad.pI.warY !== +ad.bI.warY ? w(ad.pI, " Power Module") : "", w(ad.oI, " Optimizer"), ins].filter(Boolean).join("\n");
 }
@@ -1955,6 +1955,14 @@ function PkPosterModal({
     return (base.length || sel ? base : have).slice(0, PK_SUM_MAX);
   }, [sum, sel, cands]);
   const [row, setRow] = React.useState({});
+  const pkBr = c => {
+    const v = c.sp.invs[0] || {};
+    return String(v.item && v.item.brand || String(v.name || "").split(/\s+/)[0] || "อื่น ๆ").trim();
+  };
+  const brands = React.useMemo(() => Array.from(new Set(cands.map(pkBr))).sort(), [cands]);
+  const [fBr, setFBr] = React.useState(""),
+    [fPh, setFPh] = React.useState(0),
+    [fOn, setFOn] = React.useState(false);
   const setR = (id, k, v) => setRow(p => Object.assign({}, p, {
     [id]: Object.assign({}, p[id], {
       [k]: v
@@ -2040,8 +2048,9 @@ function PkPosterModal({
           mgBig: v.mgBig || ""
         });
         if (v.title) setTitle(v.title);
-        if (v.wty) setWty(v.wty);
-        if (v.wtyAdd) setWtyAdd(v.wtyAdd);
+        const wAdd = v.wty && !v.wtyAdd && /Optimizer|แบตเตอรี่/i.test(v.wty);
+        if (v.wty && !wAdd) setWty(v.wty);
+        if (v.wtyAdd || wAdd) setWtyAdd(v.wtyAdd || v.wty);
         if (v.loads) setLoads(v.loads);
         if (v.mg) setMg(String(v.mg));
         if (v.mgBig) setMgBig(String(v.mgBig));
@@ -2153,7 +2162,7 @@ function PkPosterModal({
       vat: vat,
       disc: pkNum(disc) || 0,
       title: title,
-      wty: (addon && ad ? wtyAdd || pkAddonWty(ad, wty) : wty).split("\n").map(s => s.trim()),
+      wty: (addon && ad ? wtyAdd || pkAddonWty(ad) : wty).split("\n").map(s => s.trim()),
       loads: loads,
       co: Object.assign({}, co, {
         markIm: co.mark ? markIm : null
@@ -2433,37 +2442,37 @@ function PkPosterModal({
       fontSize: 12,
       color: "var(--text-3)"
     }
-  }, "%")), ad.bats.map(b => React.createElement("div", {
+  }, "%")), React.createElement("div", {
+    style: {
+      display: "grid",
+      gridTemplateColumns: "1fr auto",
+      columnGap: 8,
+      rowGap: 3,
+      fontSize: 12,
+      color: "var(--text-2)",
+      padding: "6px 10px",
+      borderRadius: "var(--r-tile)",
+      background: "var(--surface2)"
+    }
+  }, ad.bats.map(b => [React.createElement("span", {
     key: "b" + b.q,
+    title: "ก้อนละ ฿" + pkFmt(b.p / b.q)
+  }, "\u0E41\u0E1A\u0E15 ", b.kwh, " kWh"), React.createElement("b", {
+    key: "bp" + b.q,
     style: {
-      display: "flex",
-      fontSize: 12.5,
-      color: "var(--text-2)"
+      color: "var(--text-1)",
+      textAlign: "right"
     }
-  }, React.createElement("span", {
-    style: {
-      flex: 1
-    }
-  }, "\u0E41\u0E1A\u0E15 ", b.kwh, " kWh (", b.q, " \u0E01\u0E49\u0E2D\u0E19 \xB7 \u0E01\u0E49\u0E2D\u0E19\u0E25\u0E30 \u0E3F", pkFmt(b.p / b.q), ")"), React.createElement("b", {
-    style: {
-      color: "var(--text-1)"
-    }
-  }, "+\u0E3F", pkFmt(b.p)))), ad.opts.map(c => React.createElement("div", {
+  }, "\u0E3F", pkFmt(b.p))]), ad.opts.map(c => [React.createElement("span", {
     key: "o" + c.n,
+    title: "ตัวละ ฿" + pkFmt(c.u)
+  }, "Opt ", c.kwp, " kWp \xB7 ", c.n, " \u0E15\u0E31\u0E27"), React.createElement("b", {
+    key: "op" + c.n,
     style: {
-      display: "flex",
-      fontSize: 12.5,
-      color: "var(--text-2)"
+      color: "var(--text-1)",
+      textAlign: "right"
     }
-  }, React.createElement("span", {
-    style: {
-      flex: 1
-    }
-  }, "Optimizer ", c.kwp, " kWp (", c.n, " \u0E15\u0E31\u0E27 \xB7 \u0E15\u0E31\u0E27\u0E25\u0E30 \u0E3F", pkFmt(c.u), ")"), React.createElement("b", {
-    style: {
-      color: "var(--text-1)"
-    }
-  }, "+\u0E3F", pkFmt(c.p)))), React.createElement("div", {
+  }, "\u0E3F", pkFmt(c.p))])), React.createElement("div", {
     style: {
       display: "flex",
       alignItems: "center",
@@ -2483,13 +2492,7 @@ function PkPosterModal({
       fontSize: 11.5,
       color: "var(--text-3)"
     }
-  }, "\u0E1A\u0E31\u0E19\u0E17\u0E36\u0E01\u0E41\u0E25\u0E49\u0E27\u0E43\u0E0A\u0E49\u0E17\u0E38\u0E01\u0E40\u0E04\u0E23\u0E37\u0E48\u0E2D\u0E07")), React.createElement("div", {
-    style: {
-      fontSize: 11.5,
-      color: "var(--text-3)",
-      lineHeight: 1.45
-    }
-  }, "\u0E23\u0E32\u0E04\u0E32 = \u0E17\u0E38\u0E19\u0E43\u0E19\u0E04\u0E25\u0E31\u0E07 \xF7 (1 \u2212 \u0E01\u0E33\u0E44\u0E23%) \u0E1B\u0E31\u0E14\u0E02\u0E36\u0E49\u0E19 (\u0E41\u0E1A\u0E15\u0E2B\u0E25\u0E31\u0E01\u0E1E\u0E31\u0E19 \xB7 Optimizer \u0E2B\u0E25\u0E31\u0E01 500) \xB7 \u0E01\u0E33\u0E44\u0E23\u0E44\u0E25\u0E48\u0E25\u0E07\u0E08\u0E32\u0E01\u0E02\u0E19\u0E32\u0E14\u0E40\u0E25\u0E47\u0E01\u0E2A\u0E38\u0E14\u0E16\u0E36\u0E07\u0E43\u0E2B\u0E0D\u0E48\u0E2A\u0E38\u0E14\u0E17\u0E31\u0E49\u0E07\u0E41\u0E1A\u0E15\u0E41\u0E25\u0E30 Optimizer \u0E15\u0E34\u0E14\u0E40\u0E22\u0E2D\u0E30\u0E22\u0E34\u0E48\u0E07\u0E16\u0E39\u0E01 \xB7 \u0E41\u0E1A\u0E15\u0E23\u0E27\u0E21 Power Module \xB7 \u0E02\u0E19\u0E32\u0E14 Optimizer \u0E15\u0E32\u0E21\u0E41\u0E1E\u0E47\u0E04\u0E40\u0E01\u0E08\u0E17\u0E35\u0E48\u0E40\u0E25\u0E37\u0E2D\u0E01\u0E14\u0E49\u0E32\u0E19\u0E25\u0E48\u0E32\u0E07 (\u0E2A\u0E39\u0E07\u0E2A\u0E38\u0E14 5 \u0E02\u0E19\u0E32\u0E14) \xB7 \u0E22\u0E31\u0E07\u0E44\u0E21\u0E48\u0E23\u0E27\u0E21\u0E04\u0E48\u0E32\u0E41\u0E23\u0E07\u0E15\u0E34\u0E14\u0E15\u0E31\u0E49\u0E07\u0E41\u0E1A\u0E15")), addon && ad && ad.bats.length > 0 && React.createElement("div", {
+  }, "\u0E1A\u0E31\u0E19\u0E17\u0E36\u0E01\u0E41\u0E25\u0E49\u0E27\u0E43\u0E0A\u0E49\u0E17\u0E38\u0E01\u0E40\u0E04\u0E23\u0E37\u0E48\u0E2D\u0E07"))), addon && ad && ad.bats.length > 0 && React.createElement("div", {
     style: card
   }, React.createElement("div", {
     style: {
@@ -2573,7 +2576,32 @@ function PkPosterModal({
       color: "var(--text-3)",
       fontSize: 11.5
     }
-  }, "\u0E40\u0E25\u0E37\u0E2D\u0E01\u0E44\u0E14\u0E49 ", PK_SUM_MAX, " \xB7 ", selIds.length, " \u0E17\u0E35\u0E48\u0E40\u0E25\u0E37\u0E2D\u0E01")), cands.map(c => {
+  }, "\u0E40\u0E25\u0E37\u0E2D\u0E01\u0E44\u0E14\u0E49 ", PK_SUM_MAX, " \xB7 ", selIds.length, " \u0E17\u0E35\u0E48\u0E40\u0E25\u0E37\u0E2D\u0E01")), (() => {
+    const chip = (act, lab, fn, k) => React.createElement("button", {
+      key: k,
+      type: "button",
+      onClick: fn,
+      style: {
+        border: "none",
+        cursor: "pointer",
+        fontFamily: "inherit",
+        fontSize: 11.5,
+        fontWeight: 700,
+        padding: "5px 10px",
+        borderRadius: "var(--r-pill)",
+        background: act ? "var(--primary-soft)" : "var(--surface2)",
+        color: act ? "var(--primary-dark)" : "var(--text-3)",
+        boxShadow: act ? "inset 0 0 0 1px var(--primary)" : "none"
+      }
+    }, lab);
+    return React.createElement("div", {
+      style: {
+        display: "flex",
+        flexWrap: "wrap",
+        gap: 5
+      }
+    }, chip(!fBr, "ทุกยี่ห้อ", () => setFBr(""), "a"), brands.map(b => chip(fBr === b, b, () => setFBr(fBr === b ? "" : b), "b" + b)), chip(fPh === 1, "1 เฟส", () => setFPh(fPh === 1 ? 0 : 1), "p1"), chip(fPh === 3, "3 เฟส", () => setFPh(fPh === 3 ? 0 : 3), "p3"), chip(fOn, "เฉพาะที่เลือก", () => setFOn(!fOn), "on"));
+  })(), cands.filter(c => (!fBr || pkBr(c) === fBr) && (!fPh || c.sp.phase === fPh) && (!fOn || selIds.indexOf(c.l.id) >= 0)).map(c => {
     const on = selIds.indexOf(c.l.id) >= 0,
       r = row[c.l.id] || {};
     return React.createElement("div", {
@@ -2621,9 +2649,8 @@ function PkPosterModal({
         display: "block",
         fontSize: 11,
         color: "var(--text-3)",
-        whiteSpace: "nowrap",
-        overflow: "hidden",
-        textOverflow: "ellipsis"
+        lineHeight: 1.35,
+        overflowWrap: "anywhere"
       }
     }, c.l.code, " \xB7 ", c.l.name))), on && !addon && React.createElement("div", {
       style: {
@@ -2932,14 +2959,31 @@ function PkPosterModal({
       marginTop: 4
     }
   }, "\u0E23\u0E31\u0E1A\u0E1B\u0E23\u0E30\u0E01\u0E31\u0E19 \xB7 \u0E1A\u0E23\u0E34\u0E01\u0E32\u0E23 (\u0E1A\u0E23\u0E23\u0E17\u0E31\u0E14\u0E25\u0E30\u0E02\u0E49\u0E2D \xB7 \u0E02\u0E36\u0E49\u0E19\u0E43\u0E19\u0E23\u0E39\u0E1B 6 \u0E02\u0E49\u0E2D\u0E41\u0E23\u0E01)"), React.createElement("textarea", {
-    value: addon && ad ? wtyAdd || pkAddonWty(ad, wty) : wty,
+    value: addon ? wtyAdd || (ad ? pkAddonWty(ad) : "") : wty,
     onChange: e => (addon ? setWtyAdd : setWty)(e.target.value),
     rows: 6,
     style: Object.assign({}, well, {
       resize: "vertical",
       lineHeight: 1.5
     })
-  }), addon && React.createElement("div", {
+  }), !addon && wty !== (q && q.warranties || PK_WTY_DEF).join("\n") && React.createElement("div", {
+    style: {
+      fontSize: 11.5,
+      color: "var(--text-3)"
+    }
+  }, "\u0E40\u0E09\u0E1E\u0E32\u0E30\u0E23\u0E39\u0E1B\u0E41\u0E1E\u0E47\u0E04\u0E40\u0E01\u0E08 (\u0E23\u0E39\u0E1B Add-on \u0E21\u0E35\u0E0A\u0E48\u0E2D\u0E07\u0E02\u0E2D\u0E07\u0E15\u0E31\u0E27\u0E40\u0E2D\u0E07)", React.createElement("button", {
+    type: "button",
+    onClick: () => setWty((q && q.warranties || PK_WTY_DEF).join("\n")),
+    style: {
+      border: "none",
+      background: "none",
+      padding: "0 0 0 6px",
+      cursor: "pointer",
+      fontSize: 11.5,
+      color: "var(--primary-dark)",
+      fontFamily: "inherit"
+    }
+  }, "\u0E04\u0E37\u0E19\u0E04\u0E48\u0E32\u0E40\u0E14\u0E34\u0E21")), addon && React.createElement("div", {
     style: {
       fontSize: 11.5,
       color: "var(--text-3)",
