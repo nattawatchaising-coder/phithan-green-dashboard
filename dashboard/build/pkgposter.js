@@ -1140,7 +1140,7 @@ function pkDrawSum(cv, rows, A, o) {
   g.textAlign = "center";
   g.font = "600 19px " + PK_TH;
   g.fillStyle = C.mute;
-  g.fillText((o.price ? "ราคารวมติดตั้ง · " : "") + "ขออนุญาตการไฟฟ้า · ขนส่ง · สำรวจหน้างานฟรี", PK_W / 2, ty + th - 20);
+  g.fillText((o.price ? "ราคารวมติดตั้ง · " : "") + "ขออนุญาตการไฟฟ้า · ขนส่ง", PK_W / 2, ty + th - 20);
   if (o.price) {
     g.textAlign = "right";
     g.font = "700 20px " + PK_TH;
