@@ -706,15 +706,23 @@ const PK_ADD = { bat: "HUAWEI LUNA2000-7-E1", pm: "HUAWEI LUNA2000-10KW-C1 (Powe
 const PK_ADD_OPT_DEF = [[5, 3.25], [8, 5.2], [16, 10.4], [24, 15.6], [32, 20.8]];   // [แผง, kWp] เมื่อยังไม่ได้เลือกแพ็คเกจ
 function pkAddon(items, rows, mg, mgBig) {
   const bI = pkFind(items, PK_ADD.bat), pI = pkFind(items, PK_ADD.pm), oI = pkFind(items, PK_ADD.opt);
-  const m = Math.min(90, Math.max(0, +mg || 0)), sell = (c) => Math.ceil(c / (1 - m / 100) / 1000) * 1000;
+  const m = Math.min(90, Math.max(0, +mg || 0));
   const per = (window.BOQ && window.BOQ.RULES && +window.BOQ.RULES.battS1Per) || 3, kwh = (bI && +bI.kwh) || 7;
-  const bats = bI ? [1, 2, 3].map((q) => ({ kwh: kwh * q, q: q, p: sell(q * (+bI.price || 0) + Math.ceil(q / per) * ((pI && +pI.price) || 0)) })) : [];
+  const mb = Math.min(m, Math.max(0, mgBig == null || mgBig === "" ? m : +mgBig || 0));
+  /* แบตก็ยิ่งติดเยอะยิ่งถูก (ผู้ใช้ ต.ค. 2026): กำไรไล่ m → mb ตาม 1–3 ก้อน · ราคาต่อ kWh ต้องลดลง (ไม่ต่ำกว่าทุน) */
+  let prevB = Infinity;
+  const bats = !bI ? [] : [1, 2, 3].map((q, i) => {
+    const cost = q * (+bI.price || 0) + Math.ceil(q / per) * ((pI && +pI.price) || 0), mm = m - (m - mb) * i / 2;
+    let p = Math.ceil(cost / (1 - mm / 100) / 1000) * 1000;
+    while (p / q >= prevB && p - 1000 >= cost) p -= 1000;
+    prevB = p / q;
+    return { kwh: kwh * q, q: q, p: p };
+  });
   // ขนาด Optimizer = จำนวนแผงของแพ็คเกจที่เลือก (ไม่ซ้ำ · สูงสุด 5 ช่อง)
   const seen = {}, ns = rows.map((r) => [r.sp.n, r.sp.kwp]).filter((x) => x[0] && !seen[x[0]] && (seen[x[0]] = 1)).sort((a, b) => a[0] - b[0]).slice(0, 5);
   const optQ = (n) => (window.BOQ && window.BOQ.optimizerQty ? window.BOQ.optimizerQty(PK_ADD.opt, n) : n);
   /* Optimizer ยิ่งติดเยอะยิ่งถูก (ผู้ใช้ ต.ค. 2026): กำไรไล่จาก mg (ขนาดเล็กสุด) ลงถึง mgBig (ใหญ่สุด) · ปัดขึ้นหลัก 500
      แล้วบังคับราคาต่อตัวต้องต่ำกว่าขนาดก่อนหน้า (ไม่ต่ำกว่าทุน) */
-  const mb = Math.min(m, Math.max(0, mgBig == null || mgBig === "" ? m : +mgBig || 0));
   const oc = (oI && +oI.price) || 0, sz = ns.length ? ns : PK_ADD_OPT_DEF;
   let prevU = Infinity;
   const opts = !oI ? [] : sz.map((x, i) => {
@@ -725,6 +733,12 @@ function pkAddon(items, rows, mg, mgBig) {
     return { kwp: x[1], n: n, p: p, u: n ? p / n : 0 };
   });
   return { bI: bI, pI: pI, oI: oI, bats: bats, opts: opts, mg: m, mgBig: mb };
+}
+/* รับประกันบนรูป Add-on = แยกรายอุปกรณ์ (ผู้ใช้ ต.ค. 2026) — ปีจาก warY ในคลัง · งานติดตั้งเอาบรรทัดจากชุดหลัก */
+function pkAddonWty(ad, wty) {
+  const ins = String(wty || "").split("\n").map((x) => x.trim()).find((x) => /งานติดตั้ง/.test(x)) || "รับประกันงานติดตั้ง 2 ปี";
+  const w = (it, nm) => it && +it.warY ? "รับประกัน" + nm + " " + it.warY + " ปี" : "";
+  return [w(ad.bI, "แบตเตอรี่"), ad.pI && ad.bI && +ad.pI.warY !== +ad.bI.warY ? w(ad.pI, " Power Module") : "", w(ad.oI, " Optimizer"), ins].filter(Boolean).join("\n");
 }
 function pkDrawAddon(cv, A, o, ad) {
   const g = cv.getContext("2d"), C = PK_C;
@@ -759,7 +773,7 @@ function pkDrawAddon(cv, A, o, ad) {
       g.font = "700 28px " + PK_NUM; const uw = g.measureText(" kWh").width, x0 = x + tw / 2 - (kw + uw) / 2;
       g.font = "800 64px " + PK_NUM; g.fillStyle = C.deep; g.fillText(kt, x0, o.price ? ty + 74 : ty + 96);
       g.font = "700 28px " + PK_NUM; g.fillStyle = C.leaf; g.fillText(" kWh", x0 + kw, o.price ? ty + 74 : ty + 96);
-      g.textAlign = "center"; g.font = "600 20px " + PK_TH; g.fillStyle = C.mute; g.fillText(b.q + " ก้อน", x + tw / 2, o.price ? ty + 108 : ty + 136);
+      g.textAlign = "center"; g.font = "600 20px " + PK_TH; g.fillStyle = C.mute; g.fillText(b.q + " ก้อน" + (o.price && b.q > 1 ? " · ก้อนละ ฿" + pkFmt(pkPrice(b.p / b.q, o)) : ""), x + tw / 2, o.price ? ty + 108 : ty + 136);
       if (o.price) { g.font = "800 38px " + PK_NUM; g.fillStyle = C.price; g.fillText(pr(b.p), x + tw / 2, ty + 154); }
       g.textAlign = "left";
     });
@@ -858,6 +872,7 @@ function PkPosterModal({ lead, leads, stock, quotes, onClose }) {
   const [title, setTitle] = React.useState(PK_TITLE_DEF);
   const [disc, setDisc] = React.useState("");
   const [wty, setWty] = React.useState(() => ((q && q.warranties) || PK_WTY_DEF).join("\n"));
+  const [wtyAdd, setWtyAdd] = React.useState("");   // รับประกันรูป Add-on ("" = ตามคลังอัตโนมัติ)
   const [A, setA] = React.useState(null);
   const [coSaved, setCoSaved] = React.useState(null);  // ค่าที่บันทึกไว้ใน RTDB (null = ยังโหลดไม่เสร็จ)
   const [co, setCo] = React.useState(PK_CO_DEF);
@@ -878,16 +893,16 @@ function PkPosterModal({ lead, leads, stock, quotes, onClose }) {
     // หัวข้อ/จุดเด่นที่บันทึกไว้ (ใช้ร่วมทุกลูกค้า · ไม่มี = จุดเด่นจากใบเสนอราคา)
     window.FBDB.ref(PK_TX_PATH).once("value", (s) => {
       const v = s.val();
-      if (v) { setTxSaved({ title: v.title || "", wty: v.wty || "" }); if (v.title) setTitle(v.title); if (v.wty) setWty(v.wty); }
-      else setTxSaved({ title: "", wty: "" });
+      if (v) { setTxSaved({ title: v.title || "", wty: v.wty || "", wtyAdd: v.wtyAdd || "" }); if (v.title) setTitle(v.title); if (v.wty) setWty(v.wty); if (v.wtyAdd) setWtyAdd(v.wtyAdd); }
+      else setTxSaved({ title: "", wty: "", wtyAdd: "" });
     });
   }, []);
   const [txSaved, setTxSaved] = React.useState(null);
   const [txBusy, setTxBusy] = React.useState(false);
-  const txDiff = !!txSaved && (title !== (txSaved.title || PK_TITLE_DEF) || (txSaved.wty ? wty !== txSaved.wty : true));
+  const txDiff = !!txSaved && (title !== (txSaved.title || PK_TITLE_DEF) || (txSaved.wty ? wty !== txSaved.wty : true) || wtyAdd !== (txSaved.wtyAdd || ""));
   const saveTx = () => {
     if (!window.FBDB) return;
-    const v = { title: title, wty: wty };
+    const v = { title: title, wty: wty, wtyAdd: wtyAdd };
     setTxBusy(true);
     window.FBDB.ref(PK_TX_PATH).set(v).then(() => { setTxSaved(v); setTxBusy(false); },
       (e) => { setTxBusy(false); alert("บันทึกไม่สำเร็จ: " + (e && e.message || e)); });
@@ -934,12 +949,12 @@ function PkPosterModal({ lead, leads, stock, quotes, onClose }) {
   }, [assetKey]);
   React.useEffect(() => {
     if (!A || !cv.current) return;
-    const o = { theme: theme, logo: logo, contact: contact, price: price, vat: vat, disc: pkNum(disc) || 0, title: title, wty: wty.split("\n").map((s) => s.trim()),
+    const o = { theme: theme, logo: logo, contact: contact, price: price, vat: vat, disc: pkNum(disc) || 0, title: title, wty: (addon && ad ? wtyAdd || pkAddonWty(ad, wty) : wty).split("\n").map((s) => s.trim()),
       co: Object.assign({}, co, { markIm: co.mark ? markIm : null }) };
     if (addon) { if (ad && (ad.bats.length || ad.opts.length)) pkDrawAddon(cv.current, A, Object.assign(o, { title: "" }), ad); }
     else if (sum) { if (sumRows.length) pkDrawSum(cv.current, sumRows, A, o); }
     else pkDraw(cv.current, sp, A, o);
-  }, [A, sp, sumRows, ad, theme, logo, contact, price, vat, disc, title, wty, co, markIm]);
+  }, [A, sp, sumRows, ad, theme, logo, contact, price, vat, disc, title, wty, wtyAdd, co, markIm]);
 
   const download = () => {
     if (!cv.current) return;
@@ -999,20 +1014,18 @@ function PkPosterModal({ lead, leads, stock, quotes, onClose }) {
                 <div style={card}>
                   <div style={{ fontSize: 13, fontWeight: 700, color: "var(--text-1)" }}>ราคา Add-on</div>
                   <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                    <span style={{ fontSize: 12, fontWeight: 700, color: "var(--text-2)", whiteSpace: "nowrap" }}>กำไร</span>
+                    <span style={{ fontSize: 12, fontWeight: 700, color: "var(--text-2)", whiteSpace: "nowrap" }}>กำไร ขนาดเล็กสุด</span>
                     <input inputMode="decimal" value={mg} onChange={(e) => setMg(e.target.value)} style={well} />
                     <span style={{ fontSize: 12, color: "var(--text-3)" }}>%</span>
                   </div>
-                  {ad.bats.map((b) => <div key={"b" + b.q} style={{ display: "flex", fontSize: 12.5, color: "var(--text-2)" }}><span style={{ flex: 1 }}>แบต {b.kwh} kWh ({b.q} ก้อน)</span><b style={{ color: "var(--text-1)" }}>+฿{pkFmt(b.p)}</b></div>)}
-                  {ad.opts.length > 1 && (
-                    <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                      <span style={{ fontSize: 12, fontWeight: 700, color: "var(--text-2)", whiteSpace: "nowrap" }}>Optimizer ขนาดใหญ่สุด กำไร</span>
-                      <input inputMode="decimal" value={mgBig} onChange={(e) => setMgBig(e.target.value)} style={well} />
-                      <span style={{ fontSize: 12, color: "var(--text-3)" }}>%</span>
-                    </div>
-                  )}
+                  <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                    <span style={{ fontSize: 12, fontWeight: 700, color: "var(--text-2)", whiteSpace: "nowrap" }}>กำไร ขนาดใหญ่สุด</span>
+                    <input inputMode="decimal" value={mgBig} onChange={(e) => setMgBig(e.target.value)} style={well} />
+                    <span style={{ fontSize: 12, color: "var(--text-3)" }}>%</span>
+                  </div>
+                  {ad.bats.map((b) => <div key={"b" + b.q} style={{ display: "flex", fontSize: 12.5, color: "var(--text-2)" }}><span style={{ flex: 1 }}>แบต {b.kwh} kWh ({b.q} ก้อน · ก้อนละ ฿{pkFmt(b.p / b.q)})</span><b style={{ color: "var(--text-1)" }}>+฿{pkFmt(b.p)}</b></div>)}
                   {ad.opts.map((c) => <div key={"o" + c.n} style={{ display: "flex", fontSize: 12.5, color: "var(--text-2)" }}><span style={{ flex: 1 }}>Optimizer {c.kwp} kWp ({c.n} ตัว · ตัวละ ฿{pkFmt(c.u)})</span><b style={{ color: "var(--text-1)" }}>+฿{pkFmt(c.p)}</b></div>)}
-                  <div style={{ fontSize: 11.5, color: "var(--text-3)", lineHeight: 1.45 }}>ราคา = ทุนในคลัง ÷ (1 − กำไร%) ปัดขึ้น (แบตหลักพัน · Optimizer หลัก 500) · Optimizer กำไรไล่ลงจากขนาดเล็กสุดถึงใหญ่สุด ติดเยอะตัวละถูกลง · แบตรวม Power Module · ขนาด Optimizer ตามแพ็คเกจที่เลือกด้านล่าง (สูงสุด 5 ขนาด) · ยังไม่รวมค่าแรงติดตั้งแบต</div>
+                  <div style={{ fontSize: 11.5, color: "var(--text-3)", lineHeight: 1.45 }}>ราคา = ทุนในคลัง ÷ (1 − กำไร%) ปัดขึ้น (แบตหลักพัน · Optimizer หลัก 500) · กำไรไล่ลงจากขนาดเล็กสุดถึงใหญ่สุดทั้งแบตและ Optimizer ติดเยอะยิ่งถูก · แบตรวม Power Module · ขนาด Optimizer ตามแพ็คเกจที่เลือกด้านล่าง (สูงสุด 5 ขนาด) · ยังไม่รวมค่าแรงติดตั้งแบต</div>
                 </div>
               )}
               {sum && (
@@ -1115,7 +1128,8 @@ function PkPosterModal({ lead, leads, stock, quotes, onClose }) {
                 {!addon && <div style={{ fontSize: 12, fontWeight: 700, color: "var(--text-2)" }}>หัวข้อ</div>}
                 {!addon && <input value={title} onChange={(e) => setTitle(e.target.value)} style={well} />}
                 <div style={{ fontSize: 12, fontWeight: 700, color: "var(--text-2)", marginTop: 4 }}>รับประกัน · บริการ (บรรทัดละข้อ · ขึ้นในรูป 6 ข้อแรก)</div>
-                <textarea value={wty} onChange={(e) => setWty(e.target.value)} rows={6} style={Object.assign({}, well, { resize: "vertical", lineHeight: 1.5 })} />
+                <textarea value={addon && ad ? wtyAdd || pkAddonWty(ad, wty) : wty} onChange={(e) => (addon ? setWtyAdd : setWty)(e.target.value)} rows={6} style={Object.assign({}, well, { resize: "vertical", lineHeight: 1.5 })} />
+                {addon && <div style={{ fontSize: 11.5, color: "var(--text-3)", lineHeight: 1.45 }}>รูป Add-on ใช้ชุดรับประกันแยกจากรูปแพ็คเกจ — ปีของแบต/Optimizer ดึงจากคลัง{wtyAdd ? "" : " (ยังไม่ได้แก้)"}{wtyAdd && <button type="button" onClick={() => setWtyAdd("")} style={{ border: "none", background: "none", padding: "0 0 0 6px", cursor: "pointer", fontSize: 11.5, color: "var(--primary-dark)", fontFamily: "inherit" }}>คืนค่าตามคลัง</button>}</div>}
                 <div style={{ display: "flex", alignItems: "center", gap: 10, marginTop: 2 }}>
                   <button type="button" className="btn btn-pri" disabled={!txDiff || txBusy} onClick={saveTx} style={{ padding: "7px 14px", fontSize: 12.5 }}>
                     {txBusy ? "กำลังบันทึก…" : txDiff ? "บันทึกหัวข้อ · จุดเด่น" : "บันทึกแล้ว"}

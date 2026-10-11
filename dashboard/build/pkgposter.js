@@ -1212,19 +1212,26 @@ function pkAddon(items, rows, mg, mgBig) {
   const bI = pkFind(items, PK_ADD.bat),
     pI = pkFind(items, PK_ADD.pm),
     oI = pkFind(items, PK_ADD.opt);
-  const m = Math.min(90, Math.max(0, +mg || 0)),
-    sell = c => Math.ceil(c / (1 - m / 100) / 1000) * 1000;
+  const m = Math.min(90, Math.max(0, +mg || 0));
   const per = window.BOQ && window.BOQ.RULES && +window.BOQ.RULES.battS1Per || 3,
     kwh = bI && +bI.kwh || 7;
-  const bats = bI ? [1, 2, 3].map(q => ({
-    kwh: kwh * q,
-    q: q,
-    p: sell(q * (+bI.price || 0) + Math.ceil(q / per) * (pI && +pI.price || 0))
-  })) : [];
+  const mb = Math.min(m, Math.max(0, mgBig == null || mgBig === "" ? m : +mgBig || 0));
+  let prevB = Infinity;
+  const bats = !bI ? [] : [1, 2, 3].map((q, i) => {
+    const cost = q * (+bI.price || 0) + Math.ceil(q / per) * (pI && +pI.price || 0),
+      mm = m - (m - mb) * i / 2;
+    let p = Math.ceil(cost / (1 - mm / 100) / 1000) * 1000;
+    while (p / q >= prevB && p - 1000 >= cost) p -= 1000;
+    prevB = p / q;
+    return {
+      kwh: kwh * q,
+      q: q,
+      p: p
+    };
+  });
   const seen = {},
     ns = rows.map(r => [r.sp.n, r.sp.kwp]).filter(x => x[0] && !seen[x[0]] && (seen[x[0]] = 1)).sort((a, b) => a[0] - b[0]).slice(0, 5);
   const optQ = n => window.BOQ && window.BOQ.optimizerQty ? window.BOQ.optimizerQty(PK_ADD.opt, n) : n;
-  const mb = Math.min(m, Math.max(0, mgBig == null || mgBig === "" ? m : +mgBig || 0));
   const oc = oI && +oI.price || 0,
     sz = ns.length ? ns : PK_ADD_OPT_DEF;
   let prevU = Infinity;
@@ -1250,6 +1257,11 @@ function pkAddon(items, rows, mg, mgBig) {
     mg: m,
     mgBig: mb
   };
+}
+function pkAddonWty(ad, wty) {
+  const ins = String(wty || "").split("\n").map(x => x.trim()).find(x => /งานติดตั้ง/.test(x)) || "รับประกันงานติดตั้ง 2 ปี";
+  const w = (it, nm) => it && +it.warY ? "รับประกัน" + nm + " " + it.warY + " ปี" : "";
+  return [w(ad.bI, "แบตเตอรี่"), ad.pI && ad.bI && +ad.pI.warY !== +ad.bI.warY ? w(ad.pI, " Power Module") : "", w(ad.oI, " Optimizer"), ins].filter(Boolean).join("\n");
 }
 function pkDrawAddon(cv, A, o, ad) {
   const g = cv.getContext("2d"),
@@ -1317,7 +1329,7 @@ function pkDrawAddon(cv, A, o, ad) {
       g.textAlign = "center";
       g.font = "600 20px " + PK_TH;
       g.fillStyle = C.mute;
-      g.fillText(b.q + " ก้อน", x + tw / 2, o.price ? ty + 108 : ty + 136);
+      g.fillText(b.q + " ก้อน" + (o.price && b.q > 1 ? " · ก้อนละ ฿" + pkFmt(pkPrice(b.p / b.q, o)) : ""), x + tw / 2, o.price ? ty + 108 : ty + 136);
       if (o.price) {
         g.font = "800 38px " + PK_NUM;
         g.fillStyle = C.price;
@@ -1470,6 +1482,7 @@ function PkPosterModal({
   const [title, setTitle] = React.useState(PK_TITLE_DEF);
   const [disc, setDisc] = React.useState("");
   const [wty, setWty] = React.useState(() => (q && q.warranties || PK_WTY_DEF).join("\n"));
+  const [wtyAdd, setWtyAdd] = React.useState("");
   const [A, setA] = React.useState(null);
   const [coSaved, setCoSaved] = React.useState(null);
   const [co, setCo] = React.useState(PK_CO_DEF);
@@ -1495,24 +1508,28 @@ function PkPosterModal({
       if (v) {
         setTxSaved({
           title: v.title || "",
-          wty: v.wty || ""
+          wty: v.wty || "",
+          wtyAdd: v.wtyAdd || ""
         });
         if (v.title) setTitle(v.title);
         if (v.wty) setWty(v.wty);
+        if (v.wtyAdd) setWtyAdd(v.wtyAdd);
       } else setTxSaved({
         title: "",
-        wty: ""
+        wty: "",
+        wtyAdd: ""
       });
     });
   }, []);
   const [txSaved, setTxSaved] = React.useState(null);
   const [txBusy, setTxBusy] = React.useState(false);
-  const txDiff = !!txSaved && (title !== (txSaved.title || PK_TITLE_DEF) || (txSaved.wty ? wty !== txSaved.wty : true));
+  const txDiff = !!txSaved && (title !== (txSaved.title || PK_TITLE_DEF) || (txSaved.wty ? wty !== txSaved.wty : true) || wtyAdd !== (txSaved.wtyAdd || ""));
   const saveTx = () => {
     if (!window.FBDB) return;
     const v = {
       title: title,
-      wty: wty
+      wty: wty,
+      wtyAdd: wtyAdd
     };
     setTxBusy(true);
     window.FBDB.ref(PK_TX_PATH).set(v).then(() => {
@@ -1599,7 +1616,7 @@ function PkPosterModal({
       vat: vat,
       disc: pkNum(disc) || 0,
       title: title,
-      wty: wty.split("\n").map(s => s.trim()),
+      wty: (addon && ad ? wtyAdd || pkAddonWty(ad, wty) : wty).split("\n").map(s => s.trim()),
       co: Object.assign({}, co, {
         markIm: co.mark ? markIm : null
       })
@@ -1611,7 +1628,7 @@ function PkPosterModal({
     } else if (sum) {
       if (sumRows.length) pkDrawSum(cv.current, sumRows, A, o);
     } else pkDraw(cv.current, sp, A, o);
-  }, [A, sp, sumRows, ad, theme, logo, contact, price, vat, disc, title, wty, co, markIm]);
+  }, [A, sp, sumRows, ad, theme, logo, contact, price, vat, disc, title, wty, wtyAdd, co, markIm]);
   const download = () => {
     if (!cv.current) return;
     const a = document.createElement("a");
@@ -1845,10 +1862,33 @@ function PkPosterModal({
       color: "var(--text-2)",
       whiteSpace: "nowrap"
     }
-  }, "\u0E01\u0E33\u0E44\u0E23"), React.createElement("input", {
+  }, "\u0E01\u0E33\u0E44\u0E23 \u0E02\u0E19\u0E32\u0E14\u0E40\u0E25\u0E47\u0E01\u0E2A\u0E38\u0E14"), React.createElement("input", {
     inputMode: "decimal",
     value: mg,
     onChange: e => setMg(e.target.value),
+    style: well
+  }), React.createElement("span", {
+    style: {
+      fontSize: 12,
+      color: "var(--text-3)"
+    }
+  }, "%")), React.createElement("div", {
+    style: {
+      display: "flex",
+      alignItems: "center",
+      gap: 8
+    }
+  }, React.createElement("span", {
+    style: {
+      fontSize: 12,
+      fontWeight: 700,
+      color: "var(--text-2)",
+      whiteSpace: "nowrap"
+    }
+  }, "\u0E01\u0E33\u0E44\u0E23 \u0E02\u0E19\u0E32\u0E14\u0E43\u0E2B\u0E0D\u0E48\u0E2A\u0E38\u0E14"), React.createElement("input", {
+    inputMode: "decimal",
+    value: mgBig,
+    onChange: e => setMgBig(e.target.value),
     style: well
   }), React.createElement("span", {
     style: {
@@ -1866,34 +1906,11 @@ function PkPosterModal({
     style: {
       flex: 1
     }
-  }, "\u0E41\u0E1A\u0E15 ", b.kwh, " kWh (", b.q, " \u0E01\u0E49\u0E2D\u0E19)"), React.createElement("b", {
+  }, "\u0E41\u0E1A\u0E15 ", b.kwh, " kWh (", b.q, " \u0E01\u0E49\u0E2D\u0E19 \xB7 \u0E01\u0E49\u0E2D\u0E19\u0E25\u0E30 \u0E3F", pkFmt(b.p / b.q), ")"), React.createElement("b", {
     style: {
       color: "var(--text-1)"
     }
-  }, "+\u0E3F", pkFmt(b.p)))), ad.opts.length > 1 && React.createElement("div", {
-    style: {
-      display: "flex",
-      alignItems: "center",
-      gap: 8
-    }
-  }, React.createElement("span", {
-    style: {
-      fontSize: 12,
-      fontWeight: 700,
-      color: "var(--text-2)",
-      whiteSpace: "nowrap"
-    }
-  }, "Optimizer \u0E02\u0E19\u0E32\u0E14\u0E43\u0E2B\u0E0D\u0E48\u0E2A\u0E38\u0E14 \u0E01\u0E33\u0E44\u0E23"), React.createElement("input", {
-    inputMode: "decimal",
-    value: mgBig,
-    onChange: e => setMgBig(e.target.value),
-    style: well
-  }), React.createElement("span", {
-    style: {
-      fontSize: 12,
-      color: "var(--text-3)"
-    }
-  }, "%")), ad.opts.map(c => React.createElement("div", {
+  }, "+\u0E3F", pkFmt(b.p)))), ad.opts.map(c => React.createElement("div", {
     key: "o" + c.n,
     style: {
       display: "flex",
@@ -1914,7 +1931,7 @@ function PkPosterModal({
       color: "var(--text-3)",
       lineHeight: 1.45
     }
-  }, "\u0E23\u0E32\u0E04\u0E32 = \u0E17\u0E38\u0E19\u0E43\u0E19\u0E04\u0E25\u0E31\u0E07 \xF7 (1 \u2212 \u0E01\u0E33\u0E44\u0E23%) \u0E1B\u0E31\u0E14\u0E02\u0E36\u0E49\u0E19 (\u0E41\u0E1A\u0E15\u0E2B\u0E25\u0E31\u0E01\u0E1E\u0E31\u0E19 \xB7 Optimizer \u0E2B\u0E25\u0E31\u0E01 500) \xB7 Optimizer \u0E01\u0E33\u0E44\u0E23\u0E44\u0E25\u0E48\u0E25\u0E07\u0E08\u0E32\u0E01\u0E02\u0E19\u0E32\u0E14\u0E40\u0E25\u0E47\u0E01\u0E2A\u0E38\u0E14\u0E16\u0E36\u0E07\u0E43\u0E2B\u0E0D\u0E48\u0E2A\u0E38\u0E14 \u0E15\u0E34\u0E14\u0E40\u0E22\u0E2D\u0E30\u0E15\u0E31\u0E27\u0E25\u0E30\u0E16\u0E39\u0E01\u0E25\u0E07 \xB7 \u0E41\u0E1A\u0E15\u0E23\u0E27\u0E21 Power Module \xB7 \u0E02\u0E19\u0E32\u0E14 Optimizer \u0E15\u0E32\u0E21\u0E41\u0E1E\u0E47\u0E04\u0E40\u0E01\u0E08\u0E17\u0E35\u0E48\u0E40\u0E25\u0E37\u0E2D\u0E01\u0E14\u0E49\u0E32\u0E19\u0E25\u0E48\u0E32\u0E07 (\u0E2A\u0E39\u0E07\u0E2A\u0E38\u0E14 5 \u0E02\u0E19\u0E32\u0E14) \xB7 \u0E22\u0E31\u0E07\u0E44\u0E21\u0E48\u0E23\u0E27\u0E21\u0E04\u0E48\u0E32\u0E41\u0E23\u0E07\u0E15\u0E34\u0E14\u0E15\u0E31\u0E49\u0E07\u0E41\u0E1A\u0E15")), sum && React.createElement("div", {
+  }, "\u0E23\u0E32\u0E04\u0E32 = \u0E17\u0E38\u0E19\u0E43\u0E19\u0E04\u0E25\u0E31\u0E07 \xF7 (1 \u2212 \u0E01\u0E33\u0E44\u0E23%) \u0E1B\u0E31\u0E14\u0E02\u0E36\u0E49\u0E19 (\u0E41\u0E1A\u0E15\u0E2B\u0E25\u0E31\u0E01\u0E1E\u0E31\u0E19 \xB7 Optimizer \u0E2B\u0E25\u0E31\u0E01 500) \xB7 \u0E01\u0E33\u0E44\u0E23\u0E44\u0E25\u0E48\u0E25\u0E07\u0E08\u0E32\u0E01\u0E02\u0E19\u0E32\u0E14\u0E40\u0E25\u0E47\u0E01\u0E2A\u0E38\u0E14\u0E16\u0E36\u0E07\u0E43\u0E2B\u0E0D\u0E48\u0E2A\u0E38\u0E14\u0E17\u0E31\u0E49\u0E07\u0E41\u0E1A\u0E15\u0E41\u0E25\u0E30 Optimizer \u0E15\u0E34\u0E14\u0E40\u0E22\u0E2D\u0E30\u0E22\u0E34\u0E48\u0E07\u0E16\u0E39\u0E01 \xB7 \u0E41\u0E1A\u0E15\u0E23\u0E27\u0E21 Power Module \xB7 \u0E02\u0E19\u0E32\u0E14 Optimizer \u0E15\u0E32\u0E21\u0E41\u0E1E\u0E47\u0E04\u0E40\u0E01\u0E08\u0E17\u0E35\u0E48\u0E40\u0E25\u0E37\u0E2D\u0E01\u0E14\u0E49\u0E32\u0E19\u0E25\u0E48\u0E32\u0E07 (\u0E2A\u0E39\u0E07\u0E2A\u0E38\u0E14 5 \u0E02\u0E19\u0E32\u0E14) \xB7 \u0E22\u0E31\u0E07\u0E44\u0E21\u0E48\u0E23\u0E27\u0E21\u0E04\u0E48\u0E32\u0E41\u0E23\u0E07\u0E15\u0E34\u0E14\u0E15\u0E31\u0E49\u0E07\u0E41\u0E1A\u0E15")), sum && React.createElement("div", {
     style: card
   }, React.createElement("div", {
     style: {
@@ -2287,14 +2304,32 @@ function PkPosterModal({
       marginTop: 4
     }
   }, "\u0E23\u0E31\u0E1A\u0E1B\u0E23\u0E30\u0E01\u0E31\u0E19 \xB7 \u0E1A\u0E23\u0E34\u0E01\u0E32\u0E23 (\u0E1A\u0E23\u0E23\u0E17\u0E31\u0E14\u0E25\u0E30\u0E02\u0E49\u0E2D \xB7 \u0E02\u0E36\u0E49\u0E19\u0E43\u0E19\u0E23\u0E39\u0E1B 6 \u0E02\u0E49\u0E2D\u0E41\u0E23\u0E01)"), React.createElement("textarea", {
-    value: wty,
-    onChange: e => setWty(e.target.value),
+    value: addon && ad ? wtyAdd || pkAddonWty(ad, wty) : wty,
+    onChange: e => (addon ? setWtyAdd : setWty)(e.target.value),
     rows: 6,
     style: Object.assign({}, well, {
       resize: "vertical",
       lineHeight: 1.5
     })
-  }), React.createElement("div", {
+  }), addon && React.createElement("div", {
+    style: {
+      fontSize: 11.5,
+      color: "var(--text-3)",
+      lineHeight: 1.45
+    }
+  }, "\u0E23\u0E39\u0E1B Add-on \u0E43\u0E0A\u0E49\u0E0A\u0E38\u0E14\u0E23\u0E31\u0E1A\u0E1B\u0E23\u0E30\u0E01\u0E31\u0E19\u0E41\u0E22\u0E01\u0E08\u0E32\u0E01\u0E23\u0E39\u0E1B\u0E41\u0E1E\u0E47\u0E04\u0E40\u0E01\u0E08 \u2014 \u0E1B\u0E35\u0E02\u0E2D\u0E07\u0E41\u0E1A\u0E15/Optimizer \u0E14\u0E36\u0E07\u0E08\u0E32\u0E01\u0E04\u0E25\u0E31\u0E07", wtyAdd ? "" : " (ยังไม่ได้แก้)", wtyAdd && React.createElement("button", {
+    type: "button",
+    onClick: () => setWtyAdd(""),
+    style: {
+      border: "none",
+      background: "none",
+      padding: "0 0 0 6px",
+      cursor: "pointer",
+      fontSize: 11.5,
+      color: "var(--primary-dark)",
+      fontFamily: "inherit"
+    }
+  }, "\u0E04\u0E37\u0E19\u0E04\u0E48\u0E32\u0E15\u0E32\u0E21\u0E04\u0E25\u0E31\u0E07")), React.createElement("div", {
     style: {
       display: "flex",
       alignItems: "center",
