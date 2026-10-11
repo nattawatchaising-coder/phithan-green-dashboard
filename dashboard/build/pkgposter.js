@@ -255,7 +255,9 @@ async function pkAssets(sp) {
   const bItem = sp && sp.bat ? sp.batItem : null;
   const oItem = sp && sp.opt ? sp.optItem : null;
   const [hero, mark, pPhoto, iPhoto, pLogo, iLogo, bPhoto, bSet, oPhoto, oPhoto2] = await Promise.all([pkImg("dashboard/assets/pkg-house-light.jpg"), pkImg(typeof brandDocURL === "function" ? brandDocURL() : ""), pkBrandPhoto(pItem, "panel").then(im => im || pkFirstImg([pItem && pItem.id, "cat_panel"])), pkBrandPhoto(inv, "inv").then(im => im || pkFirstImg([inv && inv.id, "cat_inverter"])), pkFirstImg(pkBrandKeys(pItem)), pkFirstImg(pkBrandKeys(inv)), bItem ? pkBrandPhoto(bItem, "batt").then(im => im || pkFirstImg([bItem.id])) : null, bItem ? pkBrandPhoto(bItem, "battset") : null, oItem ? pkBrandPhoto(oItem, "opt").then(im => im || pkFirstImg([oItem.id])) : null, oItem ? pkBrandPhoto(oItem, "opt2") : null]);
+  const hero2 = sp && sp.addon ? await pkImg("dashboard/assets/pkg-house-night.jpg") : null;
   return {
+    hero2: hero2,
     oPhoto: pkTrim(oPhoto),
     oPhoto2: pkTrim(oPhoto2),
     bPhoto: pkTrim(bPhoto),
@@ -1271,121 +1273,208 @@ function pkDrawAddon(cv, A, o, ad) {
   g.imageSmoothingQuality = "high";
   g.textBaseline = "alphabetic";
   pkTheme(o.theme);
-  pkHero(g, A, 560);
+  const HH = 700,
+    NB = "#0B1630";
+  g.fillStyle = NB;
+  g.fillRect(0, 0, PK_W, PK_H);
+  g.save();
+  g.beginPath();
+  g.rect(0, 0, PK_W, HH);
+  g.clip();
+  const bg = A.hero2 || A.hero;
+  if (bg) pkCover(g, bg, 0, 0, PK_W, HH, .25);
+  let gr = g.createLinearGradient(0, 0, PK_W * .7, 0);
+  gr.addColorStop(0, "rgba(11,22,48,.88)");
+  gr.addColorStop(.6, "rgba(11,22,48,.55)");
+  gr.addColorStop(1, "rgba(11,22,48,0)");
+  g.fillStyle = gr;
+  g.fillRect(0, 0, PK_W, HH);
+  gr = g.createLinearGradient(0, HH - 260, 0, HH);
+  gr.addColorStop(0, "rgba(11,22,48,0)");
+  gr.addColorStop(1, NB);
+  g.fillStyle = gr;
+  g.fillRect(0, HH - 260, PK_W, 260);
+  g.restore();
   const brand = ad.bI && ad.bI.brand || ad.oI && ad.oI.brand || "";
+  if (A.iLogo) {
+    const lw = Math.min(190, 46 * (A.iLogo.naturalWidth || A.iLogo.width) / (A.iLogo.naturalHeight || A.iLogo.height));
+    g.save();
+    pkShadow(g, "rgba(0,0,0,.3)", 14, 4);
+    pkRR(g, PK_W - 52 - lw - 22, 50, lw + 44, 66, 33);
+    g.fillStyle = "rgba(255,255,255,.96)";
+    g.fill();
+    g.restore();
+  }
+  const keep = {
+    ink: C.ink,
+    mute: C.mute,
+    deep: C.deep
+  };
+  C.ink = "#FFFFFF";
+  C.mute = "rgba(255,255,255,.72)";
+  if (!A.iLogo) C.deep = "#FFFFFF";
   pkTop(g, A, o, [{
     logo: A.iLogo,
     name: brand
   }]);
-  if (A.bSet) pkLift(g, () => pkContain(g, A.bSet, 690, 140, 230, 270, 1, .5), 30);
-  if (A.oPhoto) pkLift(g, () => pkContain(g, A.oPhoto, 920, 170, 90, 240, 1, .5), 24);
-  if (A.oPhoto2) pkLift(g, () => pkContain(g, A.oPhoto2, 610, 250, 64, 160, 1, .5), 20);
-  pkTag(g, o.title || "อัปเกรดแพ็คเกจ " + brand, 156, 560);
+  Object.assign(C, keep);
+  g.save();
+  const pg = g.createRadialGradient(840, 626, 10, 840, 626, 270);
+  pg.addColorStop(0, "rgba(255,226,170,.55)");
+  pg.addColorStop(.55, "rgba(255,210,140,.22)");
+  pg.addColorStop(1, "rgba(255,210,140,0)");
+  g.fillStyle = pg;
+  g.beginPath();
+  g.ellipse(840, 626, 270, 64, 0, 0, Math.PI * 2);
+  g.fill();
+  g.restore();
+  if (A.oPhoto2) pkLift(g, () => pkContain(g, A.oPhoto2, 624, 470, 62, 156, 1, .5), 18);
+  if (A.bSet) pkLift(g, () => pkContain(g, A.bSet, 700, 360, 260, 268, 1, .5), 34);
+  if (A.oPhoto) pkLift(g, () => pkContain(g, A.oPhoto, 970, 420, 86, 206, 1, .5), 22);
+  const fl = C.fill;
+  C.fill = C.solid;
+  pkTag(g, o.title || "อัปเกรดแพ็คเกจ " + brand, 156, 0);
+  C.fill = fl;
   const head = ad.bats.length ? "เพิ่มแบตเตอรี่" : "เพิ่ม Optimizer";
-  pkFit(g, head, "800", 92, PK_TH, 560, 50);
-  g.fillStyle = C.deep;
-  g.fillText(head, 44, 300);
+  pkFit(g, head, "800", 96, PK_TH, 580, 50);
+  g.fillStyle = "#FFFFFF";
+  g.fillText(head, 44, 306);
   if (ad.bats.length && ad.opts.length) {
-    g.font = "800 52px " + PK_NUM;
-    g.fillStyle = C.leaf;
-    g.fillText("+ Optimizer", 52, 362);
+    g.font = "800 58px " + PK_NUM;
+    g.fillStyle = C.sun;
+    g.fillText("+ Optimizer", 50, 374);
   }
   const sub = "ต่อเพิ่มจากแพ็คเกจโซลาร์ " + brand + " Hybrid ได้ทุกขนาด";
-  pkFit(g, sub, "600", 24, PK_TH, 540, 16);
-  g.fillStyle = C.ink;
-  g.fillText(sub, 52, 404);
+  pkFit(g, sub, "600", 24, PK_TH, 560, 16);
+  g.fillStyle = "rgba(255,255,255,.88)";
+  g.fillText(sub, 52, 418);
+  const chips = [ad.bats.length ? "เก็บไฟไว้ใช้กลางคืน" : "", ad.opts.length ? "ดูผลผลิตรายแผง" : "", ad.opts.length ? "แผงโดนเงาไม่ฉุดทั้งสตริง" : "", ad.opts.length ? "ตัดไฟ DC ที่แผงได้" : ""].filter(Boolean);
+  let cx = 52,
+    cy = 446;
+  g.font = "700 19px " + PK_TH;
+  chips.forEach(t => {
+    const w = g.measureText(t).width + 44;
+    if (cx + w > 600) {
+      cx = 52;
+      cy += 48;
+    }
+    pkRR(g, cx, cy, w, 38, 19);
+    g.fillStyle = "rgba(255,255,255,.14)";
+    g.fill();
+    g.save();
+    pkRR(g, cx + .75, cy + .75, w - 1.5, 36.5, 18);
+    g.lineWidth = 1.5;
+    g.strokeStyle = "rgba(255,255,255,.28)";
+    g.stroke();
+    g.restore();
+    g.beginPath();
+    g.arc(cx + 18, cy + 19, 5, 0, Math.PI * 2);
+    g.fillStyle = C.sun;
+    g.fill();
+    g.fillStyle = "#FFFFFF";
+    g.fillText(t, cx + 30, cy + 26);
+    cx += w + 10;
+  });
   const pr = p => "+฿" + pkFmt(pkPrice(p, o));
-  let y = 432;
+  const top = 640,
+    bot = 1010,
+    both = ad.bats.length && ad.opts.length;
+  const colW = both ? (PK_W - 96 - 20) / 2 : PK_W - 96;
+  const col = (x, w, title, sub2, rows, drawRow) => {
+    pkGlass(g, x, top, w, bot - top, 30, .96);
+    pkRR(g, x + 26, top + 28, 6, 52, 3);
+    g.fillStyle = C.solid;
+    g.fill();
+    pkFit(g, title, "800", 27, PK_TH, w - 70, 18);
+    g.fillStyle = C.deep;
+    g.fillText(title, x + 46, top + 56);
+    pkFit(g, sub2, "600", 17, PK_TH, w - 70, 12);
+    g.fillStyle = C.mute;
+    g.fillText(sub2, x + 46, top + 82);
+    const ry = top + 104,
+      rh = (bot - 18 - ry) / rows.length;
+    rows.forEach((r, i) => drawRow(r, i, x + 18, ry + i * rh, w - 36, rh));
+  };
+  const priceR = (txt, x, y, size) => {
+    if (!o.price) return;
+    g.textAlign = "right";
+    g.font = "800 " + size + "px " + PK_NUM;
+    g.fillStyle = C.price;
+    g.fillText(txt, x, y);
+    g.textAlign = "left";
+  };
+  let x = 48;
   if (ad.bats.length) {
     const bm = String(ad.bI && ad.bI.model || "").split("-")[0];
-    pkGlass(g, 48, y, PK_W - 96, 270, 30, .94);
-    g.font = "700 28px " + PK_TH;
-    g.fillStyle = C.deep;
-    g.fillText("แบตเตอรี่ " + brand + " " + bm, 80, y + 48);
-    g.font = "600 20px " + PK_TH;
-    g.fillStyle = C.mute;
-    g.textAlign = "right";
-    g.fillText("ก้อนละ " + ad.bats[0].kwh + " kWh" + (ad.pI ? " + Power Module" : "") + " · เก็บไฟไว้ใช้กลางคืน", PK_W - 80, y + 48);
-    g.textAlign = "left";
-    const tw = (PK_W - 96 - 60 - 40) / 3;
-    ad.bats.forEach((b, i) => {
-      const x = 78 + i * (tw + 20),
-        ty = y + 72;
-      pkRR(g, x, ty, tw, 174, 22);
+    col(x, colW, "แบตเตอรี่ " + brand + " " + bm, "ก้อนละ " + ad.bats[0].kwh + " kWh" + (ad.pI ? " + Power Module" : "") + " · เก็บไฟไว้ใช้กลางคืน", ad.bats, (b, i, rx, ry, rw, rh) => {
+      const h = rh - 10;
+      pkRR(g, rx, ry, rw, h, 18);
       g.fillStyle = i === 1 ? C.recRow : C.alt;
       g.fill();
-      const kt = String(b.kwh);
-      g.font = "800 64px " + PK_NUM;
-      const kw = g.measureText(kt).width;
-      g.font = "700 28px " + PK_NUM;
-      const uw = g.measureText(" kWh").width,
-        x0 = x + tw / 2 - (kw + uw) / 2;
-      g.font = "800 64px " + PK_NUM;
-      g.fillStyle = C.deep;
-      g.fillText(kt, x0, o.price ? ty + 74 : ty + 96);
-      g.font = "700 28px " + PK_NUM;
-      g.fillStyle = C.leaf;
-      g.fillText(" kWh", x0 + kw, o.price ? ty + 74 : ty + 96);
-      g.textAlign = "center";
-      g.font = "600 20px " + PK_TH;
-      g.fillStyle = C.mute;
-      g.fillText(b.q + " ก้อน", x + tw / 2, o.price ? ty + 108 : ty + 136);
-      if (o.price) {
-        g.font = "800 38px " + PK_NUM;
-        g.fillStyle = C.price;
-        g.fillText(pr(b.p), x + tw / 2, ty + 154);
+      const mw = 34,
+        mh = 14,
+        bx = rx + 20,
+        by = ry + h / 2 + b.q * (mh + 4) / 2;
+      for (let k = 0; k < b.q; k++) {
+        pkRR(g, bx, by - (k + 1) * (mh + 4), mw, mh, 4);
+        g.fillStyle = k === b.q - 1 ? C.solid : C.leaf;
+        g.globalAlpha = .55 + .45 * (k + 1) / b.q;
+        g.fill();
+        g.globalAlpha = 1;
       }
-      g.textAlign = "left";
+      const tx = rx + 72,
+        mid = ry + h / 2;
+      g.font = "800 46px " + PK_NUM;
+      g.fillStyle = C.deep;
+      const kt = String(b.kwh);
+      g.fillText(kt, tx, mid + 8);
+      const kw = g.measureText(kt).width;
+      g.font = "700 22px " + PK_NUM;
+      g.fillStyle = C.leaf;
+      g.fillText("kWh", tx + kw + 6, mid + 8);
+      g.font = "600 17px " + PK_TH;
+      g.fillStyle = C.mute;
+      g.fillText(b.q + " ก้อน", tx, mid + 34);
+      priceR(pr(b.p), rx + rw - 18, mid + 14, 34);
     });
-    y = 722;
+    x += colW + 20;
   }
   if (ad.opts.length) {
     const om = String(ad.oI && ad.oI.model || "").replace(/-PA\d*$/i, "");
-    const k = ad.opts.length,
-      ow = (PK_W - 96 - 60 - (k - 1) * 16) / k,
-      top = ad.bats.length ? y : 470,
-      h = 290;
-    pkGlass(g, 48, top, PK_W - 96, h, 30, .94);
-    g.font = "700 28px " + PK_TH;
-    g.fillStyle = C.deep;
-    g.fillText("Optimizer " + brand + " " + om + " (ใส่ทุกแผง)", 80, top + 48);
-    const why = "ดูผลผลิตรายแผงในแอป · แผงโดนเงาบางแผงไม่ฉุดทั้งสตริง · ตัดไฟ DC ที่แผงได้เพื่อความปลอดภัย";
-    pkFit(g, why, "600", 20, PK_TH, PK_W - 160, 14);
-    g.fillStyle = C.mute;
-    g.fillText(why, 80, top + 84);
-    ad.opts.forEach((c, i) => {
-      const x = 78 + i * (ow + 16),
-        ty = top + 106;
-      pkRR(g, x, ty, ow, 156, 20);
+    col(x, colW, "Optimizer " + brand + " " + om, "ใส่ทุกแผง · ราคาตามขนาดระบบ", ad.opts, (c, i, rx, ry, rw, rh) => {
+      const h = rh - 8,
+        mid = ry + h / 2;
+      pkRR(g, rx, ry, rw, h, 16);
       g.fillStyle = C.alt;
       g.fill();
-      g.textAlign = "center";
-      g.font = "800 44px " + PK_NUM;
+      const mx = Math.max.apply(null, ad.opts.map(z => z.n)) || 1;
+      pkRR(g, rx + 14, ry + h - 9, Math.max(16, rw * .42 * c.n / mx), 4, 2);
+      g.fillStyle = C.solid;
+      g.globalAlpha = .55;
+      g.fill();
+      g.globalAlpha = 1;
+      g.font = "800 32px " + PK_NUM;
       g.fillStyle = C.deep;
-      g.fillText(String(c.kwp), x + ow / 2, ty + 56);
-      g.font = "700 18px " + PK_NUM;
+      const kt = String(c.kwp);
+      g.fillText(kt, rx + 16, mid + 9);
+      const kw = g.measureText(kt).width;
+      g.font = "700 17px " + PK_NUM;
       g.fillStyle = C.leaf;
-      g.fillText("kWp", x + ow / 2, ty + 80);
-      g.font = "600 18px " + PK_TH;
+      g.fillText("kWp", rx + 16 + kw + 5, mid + 9);
+      g.font = "600 16px " + PK_TH;
       g.fillStyle = C.mute;
-      g.fillText(c.n + " ตัว", x + ow / 2, ty + 106);
-      if (o.price) {
-        pkFit(g, pr(c.p), "800", 30, PK_NUM, ow - 16, 18);
-        g.fillStyle = C.price;
-        g.fillText(pr(c.p), x + ow / 2, ty + 142);
-      }
-      g.textAlign = "left";
+      g.fillText(c.n + " ตัว", rx + 16 + kw + 5 + g.measureText("kWp ").width + 14, mid + 9);
+      priceR(pr(c.p), rx + rw - 16, mid + 11, 28);
     });
-    y = top + h;
   }
   if (o.price) {
     g.textAlign = "right";
-    g.font = "700 20px " + PK_TH;
-    g.fillStyle = C.deep;
-    g.fillText("* " + pkPriceNote(o), PK_W - 56, Math.min(y + 30, 1040));
+    g.font = "700 18px " + PK_TH;
+    g.fillStyle = "rgba(255,255,255,.8)";
+    g.fillText("* " + pkPriceNote(o), PK_W - 56, 1040);
     g.textAlign = "left";
   }
-  pkBand(g, o, 1050);
+  pkBand(g, o, 1070);
 }
 async function pkFonts() {
   if (!document.fonts || !document.fonts.load) return;
@@ -1462,6 +1551,7 @@ function PkPosterModal({
       item: items.find(x => /huawei/i.test(x.brand || "") && x.invType === "hybrid") || null
     }],
     pItem: null,
+    addon: true,
     bat: ad.bI ? 1 : 0,
     batItem: ad.bI,
     opt: ad.oI ? 1 : 0,
