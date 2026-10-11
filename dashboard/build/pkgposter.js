@@ -163,6 +163,7 @@ function pkTrim(im) {
       p = od.data,
       seen = new Uint8Array(w * h),
       st = [];
+    if (p[3] < 20 && p[(w * h - 1) * 4 + 3] < 20) return o;
     const light = k => Math.min(p[k * 4], p[k * 4 + 1], p[k * 4 + 2]) > 248 || p[k * 4 + 3] < 20;
     for (let x = 0; x < w; x++) st.push(x, (h - 1) * w + x);
     for (let y = 0; y < h; y++) st.push(y * w, y * w + w - 1);
@@ -226,7 +227,7 @@ function pkBrandKeys(item) {
 }
 const PK_BRAND_PHOTO = {
   "inv:huawei": "dashboard/assets/pkg-inv-huawei.jpg",
-  "inv:growatt": "dashboard/assets/pkg-inv-growatt.jpg",
+  "inv:growatt": "dashboard/assets/pkg-inv-growatt.png",
   "panel:longi": "dashboard/assets/pkg-panel-longi.webp"
 };
 function pkBrandPhoto(item, kind) {

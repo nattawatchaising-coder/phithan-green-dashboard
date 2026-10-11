@@ -125,6 +125,8 @@ function pkTrim(im) {
     /* พื้นขาวที่ยังติดอยู่ทำให้โปร่ง — ไล่จากขอบรูปเข้าไปเฉพาะพื้นขาวที่ต่อกับขอบ (flood fill)
        ตัวสินค้าสีขาว (อินเวอร์เตอร์) จึงไม่โปร่งเป็นผีตามไปด้วย */
     const od = og.getImageData(0, 0, w, h), p = od.data, seen = new Uint8Array(w * h), st = [];
+    /* รูปที่ตัดพื้นมาแล้ว (PNG มุมโปร่ง) ไม่ต้องไล่ซ้ำ — ขอบบนอินเวอร์เตอร์ขาว 248–254 เคยโดนกินจนแหว่ง (Growatt ต.ค. 2026) */
+    if (p[3] < 20 && p[(w * h - 1) * 4 + 3] < 20) return o;
     /* ไล่เฉพาะขาวเกือบบริสุทธิ์ (> 248) — หน้าเครื่องสีขาวของอินเวอร์เตอร์อยู่ราว 237–246 เกณฑ์ต่ำกว่านี้ไหลเข้าหน้าเครื่องจนเป็นจุด ๆ */
     const light = (k) => Math.min(p[k * 4], p[k * 4 + 1], p[k * 4 + 2]) > 248 || p[k * 4 + 3] < 20;
     for (let x = 0; x < w; x++) st.push(x, (h - 1) * w + x);
@@ -174,7 +176,7 @@ function pkBrandKeys(item) {
   return out;
 }
 /* รูปสินค้าประจำยี่ห้อสำหรับโพสต์ (ไฟล์ใน repo · ผู้ใช้ให้มา) — มาก่อนรูปในคลัง ไม่มี = รูปคลัง */
-const PK_BRAND_PHOTO = { "inv:huawei": "dashboard/assets/pkg-inv-huawei.jpg", "inv:growatt": "dashboard/assets/pkg-inv-growatt.jpg", "panel:longi": "dashboard/assets/pkg-panel-longi.webp" };
+const PK_BRAND_PHOTO = { "inv:huawei": "dashboard/assets/pkg-inv-huawei.jpg", "inv:growatt": "dashboard/assets/pkg-inv-growatt.png", "panel:longi": "dashboard/assets/pkg-panel-longi.webp" };
 function pkBrandPhoto(item, kind) {
   const k = kind + ":" + String((item && item.brand) || "").trim().toLowerCase();
   return pkImg(PK_BRAND_PHOTO[k] || "");   // ไม่มีไฟล์ = null → รูปคลัง
