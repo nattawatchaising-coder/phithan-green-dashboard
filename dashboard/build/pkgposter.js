@@ -1015,23 +1015,24 @@ function pkDrawSum(cv, rows, A, o) {
     g.font = "700 " + Math.round(ks2 * .45) + "px " + PK_NUM;
     g.fillText("kWp", col.k + kw2 + 6, mid + ks2 * .36);
     const kx = col.k + kMax + 12;
-    const pt = sp.phase + " เฟส";
+    const pt = sp.phase + " เฟส",
+      py = r.rec ? mid - 27 : mid - 14;
     g.font = "700 16px " + PK_TH;
     const ptw = g.measureText(pt).width + 18;
-    pkRR(g, kx, mid - 14, ptw, 28, 14);
+    pkRR(g, kx, py, ptw, 28, 14);
     g.fillStyle = sp.phase === 3 ? "rgba(10,77,104,.12)" : "rgba(19,137,106,.14)";
     g.fill();
     g.fillStyle = sp.phase === 3 ? C.deep : C.leaf;
-    g.fillText(pt, kx + 9, mid + 6);
+    g.fillText(pt, kx + 9, py + 20);
     if (r.rec) {
-      g.font = "800 14px " + PK_TH;
+      g.font = "800 15px " + PK_TH;
       const rt = "แนะนำ",
-        rtw = g.measureText(rt).width + 16;
-      pkRR(g, col.k - 6, y + 4, rtw, 22, 11);
+        rtw = g.measureText(rt).width + 18;
+      pkRR(g, kx, mid + 3, rtw, 25, 12.5);
       g.fillStyle = C.leaf;
       g.fill();
       g.fillStyle = "#fff";
-      g.fillText(rt, col.k + 2, y + 20);
+      g.fillText(rt, kx + 9, mid + 21);
     }
     const l1 = "แผง " + sp.wp + "W × " + sp.n + (sp.bat ? " · แบต " + sp.bat + " kWh" : "");
     const l2 = l2Of(sp);
