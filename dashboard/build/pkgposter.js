@@ -152,6 +152,7 @@ function pkTrim(im) {
       y0 = H,
       x1 = -1,
       y1 = -1;
+    if (d[3] < 20 && d[d.length - 1] < 20) return im;
     for (let y = 0; y < H; y += 2) for (let x = 0; x < W; x += 2) {
       const i = (y * W + x) * 4;
       if (d[i + 3] > 20 && Math.min(d[i], d[i + 1], d[i + 2]) < 238) {

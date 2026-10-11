@@ -120,6 +120,8 @@ function pkTrim(im) {
     const W = im.naturalWidth, H = im.naturalHeight, c = document.createElement("canvas");
     c.width = W; c.height = H; const g = c.getContext("2d"); g.drawImage(im, 0, 0);
     const d = g.getImageData(0, 0, W, H).data; let x0 = W, y0 = H, x1 = -1, y1 = -1;
+    /* รูปที่ตัดพื้น+ครอปมาแล้ว (PNG มุมโปร่ง) ใช้ตามไฟล์เลย — ครอปด้วยเกณฑ์ < 238 ตัดฝาบนแบตขาวทิ้ง แล้ว flood กินต่อจนพัง (ผู้ใช้ ต.ค. 2026) */
+    if (d[3] < 20 && d[d.length - 1] < 20) return im;
     for (let y = 0; y < H; y += 2) for (let x = 0; x < W; x += 2) {
       const i = (y * W + x) * 4;
       if (d[i + 3] > 20 && Math.min(d[i], d[i + 1], d[i + 2]) < 238) { if (x < x0) x0 = x; if (x > x1) x1 = x; if (y < y0) y0 = y; if (y > y1) y1 = y; }
