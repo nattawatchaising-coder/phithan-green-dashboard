@@ -163,6 +163,43 @@ function TmDaySheet({
     const res = await admin.removeDay(r.userId, date);
     setMsg(res.ok ? "ลบใบลงเวลาของ " + nameOf(r) + " แล้ว" : "ลบไม่สำเร็จ — " + res.why);
   };
+  const isAdmin = window.usePgAdmin();
+  const [ed, setEd] = React.useState(null);
+  const openEd = (uid, nm, inHM, outHM) => {
+    const u = (users || []).find(x => x && x.id === uid) || {
+      id: uid,
+      name: nm
+    };
+    const c = window.tmWhNorm(cfg);
+    setEd({
+      user: u,
+      inHM: inHM || c.startEarly,
+      outHM: outHM != null ? outHM : c.end,
+      why: "",
+      busy: false,
+      err: ""
+    });
+  };
+  const saveEd = async () => {
+    if (!ed || ed.busy) return;
+    setEd(Object.assign({}, ed, {
+      busy: true,
+      err: ""
+    }));
+    const res = await admin.setTimes(ed.user, date, ed.inHM, ed.outHM, ed.why, cfg).catch(e => ({
+      ok: false,
+      why: String(e && e.message || e)
+    }));
+    if (!res.ok) {
+      setEd(Object.assign({}, ed, {
+        busy: false,
+        err: res.why
+      }));
+      return;
+    }
+    setMsg("แก้เวลาของ " + (ed.user.name || "") + " แล้ว · " + ed.inHM + " – " + (ed.outHM || "ยังไม่ออก"));
+    setEd(null);
+  };
   const holiday = window.tmIsHoliday(date, cfg);
   const workday = window.tmIsWorkday(date, cfg);
   const missing = React.useMemo(() => {
@@ -323,7 +360,18 @@ function TmDaySheet({
       fontWeight: 700,
       color: "var(--text-1)"
     }
-  }, nameOf(r)), React.createElement("td", {
+  }, nameOf(r), r.fix && React.createElement("span", {
+    title: "\u0E40\u0E27\u0E25\u0E32\u0E43\u0E19\u0E43\u0E1A\u0E19\u0E35\u0E49\u0E41\u0E2D\u0E14\u0E21\u0E34\u0E19\u0E41\u0E01\u0E49\u0E43\u0E2B\u0E49",
+    style: {
+      marginLeft: 6,
+      padding: "1px 7px",
+      borderRadius: "var(--r-pill)",
+      background: "var(--tint-amber-bg)",
+      color: "var(--tint-amber-tx)",
+      fontSize: 10.5,
+      fontWeight: 800
+    }
+  }, "\u0E41\u0E01\u0E49\u0E42\u0E14\u0E22\u0E41\u0E2D\u0E14\u0E21\u0E34\u0E19")), React.createElement("td", {
     style: {
       padding: "9px 13px",
       textAlign: "center",
@@ -366,7 +414,24 @@ function TmDaySheet({
       padding: "9px 13px",
       textAlign: "right"
     }
-  }, React.createElement("button", {
+  }, isAdmin && React.createElement("button", {
+    onClick: () => openEd(r.userId, nameOf(r), r.in, r.out || ""),
+    title: "\u0E41\u0E01\u0E49\u0E40\u0E27\u0E25\u0E32\u0E40\u0E02\u0E49\u0E32-\u0E2D\u0E2D\u0E01\u0E02\u0E2D\u0E07\u0E04\u0E19\u0E19\u0E35\u0E49",
+    style: {
+      marginRight: 6,
+      padding: "5px 11px",
+      borderRadius: 8,
+      border: "none",
+      boxShadow: "var(--shadow-sm)",
+      background: "var(--surface)",
+      color: "var(--primary-dark)",
+      cursor: "pointer",
+      fontFamily: "inherit",
+      fontSize: 11.5,
+      fontWeight: 700,
+      whiteSpace: "nowrap"
+    }
+  }, "\u0E41\u0E01\u0E49\u0E40\u0E27\u0E25\u0E32"), React.createElement("button", {
     onClick: () => del(r),
     title: "\u0E25\u0E1A\u0E43\u0E1A\u0E25\u0E07\u0E40\u0E27\u0E25\u0E32\u0E02\u0E2D\u0E07\u0E04\u0E19\u0E19\u0E35\u0E49",
     style: {
@@ -418,19 +483,201 @@ function TmDaySheet({
       color: "var(--text-3)"
     }
   }, u.name), React.createElement("td", {
-    colSpan: 6,
+    colSpan: 5,
     style: {
       padding: "9px 13px",
       fontSize: 12,
       color: "var(--text-3)"
     }
-  }, "\u0E22\u0E31\u0E07\u0E44\u0E21\u0E48\u0E44\u0E14\u0E49\u0E25\u0E07\u0E40\u0E27\u0E25\u0E32")))))), msg && React.createElement("div", {
+  }, "\u0E22\u0E31\u0E07\u0E44\u0E21\u0E48\u0E44\u0E14\u0E49\u0E25\u0E07\u0E40\u0E27\u0E25\u0E32"), React.createElement("td", {
+    style: {
+      padding: "9px 13px",
+      textAlign: "right"
+    }
+  }, isAdmin && React.createElement("button", {
+    onClick: () => openEd(u.id, u.name, "", null),
+    title: "\u0E25\u0E07\u0E40\u0E27\u0E25\u0E32\u0E41\u0E17\u0E19\u0E04\u0E19\u0E17\u0E35\u0E48\u0E25\u0E37\u0E21\u0E25\u0E07",
+    style: {
+      padding: "5px 11px",
+      borderRadius: 8,
+      border: "none",
+      boxShadow: "var(--shadow-sm)",
+      background: "var(--surface)",
+      color: "var(--primary-dark)",
+      cursor: "pointer",
+      fontFamily: "inherit",
+      fontSize: 11.5,
+      fontWeight: 700,
+      whiteSpace: "nowrap"
+    }
+  }, "\u0E25\u0E07\u0E40\u0E27\u0E25\u0E32\u0E41\u0E17\u0E19"))))))), isAdmin && React.createElement("div", {
+    style: {
+      display: "flex",
+      alignItems: "center",
+      gap: 8,
+      flexWrap: "wrap"
+    }
+  }, React.createElement("span", {
+    style: {
+      fontSize: 12,
+      fontWeight: 700,
+      color: "var(--text-3)"
+    }
+  }, "\u0E25\u0E07\u0E40\u0E27\u0E25\u0E32\u0E41\u0E17\u0E19"), React.createElement("select", {
+    value: "",
+    onChange: e => {
+      const u = (users || []).find(x => x && x.id === e.target.value);
+      if (!u) return;
+      const r = (day.rows || []).find(x => x.userId === u.id);
+      openEd(u.id, u.name, r ? r.in : "", r ? r.out || "" : null);
+    },
+    style: Object.assign({}, TM_IN, {
+      minWidth: 180
+    })
+  }, React.createElement("option", {
+    value: ""
+  }, "\u2014 \u0E40\u0E25\u0E37\u0E2D\u0E01\u0E04\u0E19 \u2014"), (users || []).filter(u => u && u.active !== false && window.can(window.userRoles(u), "attend")).map(u => React.createElement("option", {
+    key: u.id,
+    value: u.id
+  }, u.name)))), msg && React.createElement("div", {
     style: {
       fontSize: 12.5,
       fontWeight: 700,
       color: "var(--text-2)"
     }
-  }, msg), React.createElement("div", {
+  }, msg), ed && React.createElement("div", {
+    style: {
+      position: "fixed",
+      inset: 0,
+      zIndex: 90,
+      background: "rgba(15,23,42,.45)",
+      display: "grid",
+      placeItems: "center",
+      padding: 18
+    },
+    onMouseDown: e => {
+      if (e.target === e.currentTarget && !ed.busy) setEd(null);
+    }
+  }, React.createElement("div", {
+    style: {
+      width: "min(420px,100%)",
+      background: "var(--bg)",
+      boxShadow: "var(--shadow-card)",
+      borderRadius: 17,
+      padding: 20,
+      display: "grid",
+      gap: 12
+    }
+  }, React.createElement("div", null, React.createElement("div", {
+    style: {
+      fontSize: 12,
+      color: "var(--text-3)",
+      fontWeight: 700
+    }
+  }, "\u0E41\u0E01\u0E49\u0E40\u0E27\u0E25\u0E32\u0E25\u0E07\u0E07\u0E32\u0E19 \xB7 ", window.drDateTH(date, true)), React.createElement("div", {
+    style: {
+      fontSize: 17,
+      fontWeight: 800,
+      color: "var(--text-1)"
+    }
+  }, ed.user.name)), React.createElement("div", {
+    style: {
+      display: "grid",
+      gridTemplateColumns: "minmax(0,1fr) auto minmax(0,1fr)",
+      gap: 9,
+      alignItems: "end"
+    }
+  }, React.createElement("label", {
+    style: TM_LB
+  }, React.createElement("span", {
+    style: {
+      fontSize: 11.5,
+      fontWeight: 700,
+      color: "var(--text-3)"
+    }
+  }, "\u0E40\u0E02\u0E49\u0E32\u0E07\u0E32\u0E19"), React.createElement(window.PgTime, {
+    value: ed.inHM,
+    ariaLabel: "\u0E40\u0E02\u0E49\u0E32\u0E07\u0E32\u0E19",
+    onChange: t => setEd(p => Object.assign({}, p, {
+      inHM: t
+    })),
+    style: TM_IN_W
+  })), React.createElement("span", {
+    style: {
+      fontSize: 12.5,
+      fontWeight: 700,
+      color: "var(--text-3)",
+      paddingBottom: 10
+    }
+  }, "\u0E16\u0E36\u0E07"), React.createElement("label", {
+    style: TM_LB
+  }, React.createElement("span", {
+    style: {
+      fontSize: 11.5,
+      fontWeight: 700,
+      color: "var(--text-3)"
+    }
+  }, "\u0E2D\u0E2D\u0E01\u0E07\u0E32\u0E19 (\u0E27\u0E48\u0E32\u0E07 = \u0E22\u0E31\u0E07\u0E44\u0E21\u0E48\u0E2D\u0E2D\u0E01)"), React.createElement(window.PgTime, {
+    value: ed.outHM,
+    ariaLabel: "\u0E2D\u0E2D\u0E01\u0E07\u0E32\u0E19",
+    onChange: t => setEd(p => Object.assign({}, p, {
+      outHM: t
+    })),
+    style: TM_IN_W
+  }))), React.createElement("label", {
+    style: {
+      display: "grid",
+      gap: 4
+    }
+  }, React.createElement("span", {
+    style: {
+      fontSize: 11.5,
+      fontWeight: 700,
+      color: "var(--text-3)"
+    }
+  }, "\u0E40\u0E2B\u0E15\u0E38\u0E1C\u0E25 *"), React.createElement("textarea", {
+    rows: 2,
+    value: ed.why,
+    onChange: e => {
+      const v = e.target.value;
+      setEd(p => Object.assign({}, p, {
+        why: v
+      }));
+    },
+    placeholder: "\u0E40\u0E0A\u0E48\u0E19 \u0E25\u0E37\u0E21\u0E01\u0E14\u0E2D\u0E2D\u0E01\u0E07\u0E32\u0E19 \u0E2B\u0E31\u0E27\u0E2B\u0E19\u0E49\u0E32\u0E22\u0E37\u0E19\u0E22\u0E31\u0E19\u0E27\u0E48\u0E32\u0E40\u0E25\u0E34\u0E01 17:30",
+    style: Object.assign({}, TM_IN, {
+      resize: "vertical",
+      lineHeight: 1.6
+    })
+  })), ed.err && React.createElement("div", {
+    style: {
+      fontSize: 12,
+      fontWeight: 700,
+      color: "var(--tint-red-tx2)"
+    }
+  }, ed.err), React.createElement("div", {
+    style: {
+      fontSize: 11,
+      color: "var(--text-3)",
+      lineHeight: 1.6
+    }
+  }, "\u0E43\u0E1A\u0E08\u0E30\u0E15\u0E34\u0E14\u0E1B\u0E49\u0E32\u0E22 \"\u0E41\u0E01\u0E49\u0E42\u0E14\u0E22\u0E41\u0E2D\u0E14\u0E21\u0E34\u0E19\" \u0E41\u0E25\u0E30\u0E40\u0E01\u0E47\u0E1A\u0E40\u0E27\u0E25\u0E32\u0E40\u0E14\u0E34\u0E21 \xB7 \u0E0A\u0E37\u0E48\u0E2D\u0E04\u0E19\u0E41\u0E01\u0E49 \xB7 \u0E40\u0E2B\u0E15\u0E38\u0E1C\u0E25\u0E44\u0E27\u0E49\u0E43\u0E19\u0E1B\u0E23\u0E30\u0E27\u0E31\u0E15\u0E34"), React.createElement("div", {
+    style: {
+      display: "flex",
+      gap: 8,
+      justifyContent: "flex-end"
+    }
+  }, React.createElement("button", {
+    type: "button",
+    className: "btn",
+    disabled: ed.busy,
+    onClick: () => setEd(null)
+  }, "\u0E22\u0E01\u0E40\u0E25\u0E34\u0E01"), React.createElement("button", {
+    type: "button",
+    className: "btn btn-pri",
+    disabled: ed.busy || !ed.why.trim() || !ed.inHM,
+    onClick: saveEd
+  }, ed.busy ? "กำลังบันทึก…" : "บันทึกเวลา")))), React.createElement("div", {
     style: {
       fontSize: 11.5,
       color: "var(--text-3)",
@@ -1641,15 +1888,16 @@ function TmOtModal({
   const mine = currentUser && f.userId === currentUser.id;
   const editable = mine && f.status === "draft";
   const set = (k, v) => setF(p => {
-    const next = Object.assign({}, p, {
+    let next = Object.assign({}, p, {
       [k]: v
     });
-    next.mins = window.tmOtMinutes(next.date, next.from, next.to, cfg);
     if (k === "kind") next.rate = window.tmOtRate(v, cfg);
+    if (next.status === "draft") next = window.tmOtFill(next, cfg);
     return next;
   });
-  const mins = window.tmOtMinutes(f.date, f.from, f.to, cfg);
-  const rate = window.tmOtRate(f, cfg);
+  const cur = editable ? window.tmOtFill(f, cfg) : f;
+  const mins = editable ? cur.mins : +f.mins || 0;
+  const rate = window.tmOtRate(cur, cfg);
   const span = window.tmSpanMins(f.from, f.to);
   const nexts = window.tmOtNext(f, role, currentUser);
   const why = window.tmOtApproveCheck(f, currentUser, role).why;
@@ -1830,19 +2078,21 @@ function TmOtModal({
       fontWeight: 800,
       color: "var(--text-1)"
     }
-  }, window.tmRateTH(rate)), React.createElement("span", {
+  }, cur.parts && cur.parts.length ? window.tmOtPartsTH(cur.parts) : window.tmRateTH(rate)), React.createElement("span", {
     style: {
       fontSize: 12,
       color: "var(--text-2)"
     }
-  }, "= ", (Math.round(mins * rate / 60 * 100) / 100).toFixed(2), " \u0E0A\u0E21.\u0E04\u0E34\u0E14\u0E04\u0E48\u0E32\u0E41\u0E23\u0E07")), React.createElement("div", {
+  }, "= ", (Math.round(window.tmOtPayMins(Object.assign({}, cur, {
+    mins: mins
+  }), cfg) / 60 * 100) / 100).toFixed(2), " \u0E0A\u0E21.\u0E04\u0E34\u0E14\u0E04\u0E48\u0E32\u0E41\u0E23\u0E07")), React.createElement("div", {
     style: {
       marginTop: 5,
       fontSize: 11,
       color: "var(--text-3)",
       lineHeight: 1.6
     }
-  }, window.tmIsWorkday(f.date, cfg) ? "วันทำงานปกติ — ตัดช่วงที่ทับเวลางาน " + window.tmWhNorm(cfg).start + "-" + window.tmWhNorm(cfg).end + " ออกแล้ว (ช่วงนี้เลื่อนตามเวลาที่เข้างานจริง)" : "นอกวันทำงาน — นับทั้งช่วง", window.tmWhNorm(cfg).roundMins > 0 ? " · ปัดลงทีละ " + window.tmWhNorm(cfg).roundMins + " นาที" : "", window.tmWhNorm(cfg).minOtMins > 0 ? " · ไม่ถึง " + window.tmWhNorm(cfg).minOtMins + " นาทีไม่นับ" : "")), React.createElement("label", {
+  }, window.tmIsWorkday(f.date, cfg) ? "วันทำงาน — นับตามช่วงที่กรอกทั้งช่วง" : "วันหยุด — " + window.tmDur(window.tmWhNorm(cfg).workMins) + " แรก (หักพัก " + window.tmDur(window.tmWhNorm(cfg).lunchMins) + ") ×" + window.tmWhNorm(cfg).otRates.holiday + " · เกินจากนั้น ×" + window.tmWhNorm(cfg).otRates.holidayOt, window.tmWhNorm(cfg).roundMins > 0 ? " · ปัดลงทีละ " + window.tmWhNorm(cfg).roundMins + " นาที" : "", window.tmWhNorm(cfg).minOtMins > 0 ? " · ไม่ถึง " + window.tmWhNorm(cfg).minOtMins + " นาทีไม่นับ" : "")), React.createElement("label", {
     style: {
       marginTop: 12,
       display: "grid",
@@ -1967,9 +2217,7 @@ function TmOtModal({
     }
   }, editable && React.createElement("button", {
     onClick: () => {
-      onSave(Object.assign({}, f, {
-        mins
-      }));
+      onSave(cur);
       onClose();
     },
     style: {
@@ -1989,9 +2237,7 @@ function TmOtModal({
     return React.createElement("button", {
       key: s.key,
       onClick: () => {
-        onMove(Object.assign({}, f, {
-          mins
-        }), s.key);
+        onMove(cur, s.key);
         onClose();
       },
       style: {

@@ -876,6 +876,7 @@ function LnOtForm({ me, users, cfg, jobs, otStore, limit, onClose }) {
   /* limit = ช่วงที่ทำเกินจริงจากใบลงเวลาวันนี้ (tmOtEarned) — ส่งมาเมื่อกดจากการ์ดลงเวลา
      มาทางนี้แล้ววันที่ล็อกและเวลาถูกตรึงอยู่ในช่วงที่อยู่ที่ทำงานจริง
      เปิดฟอร์มเปล่าจากปุ่ม "+ ขอ OT" ยังกรอกอิสระได้เหมือนเดิม */
+  /* วิธีคิดใหม่ (ผู้ใช้ ต.ค. 2026 "ให้กดระบุช่วงทำ OT เองเลย") — limit ใช้แค่เติมค่าเริ่ม ไม่ล็อกวัน/เวลาแล้ว */
   const locked = !!(limit && limit.has && limit.mins > 0);
   const [f, setF] = React.useState(() => {
     const b = window.tmOtBlank(me, users, otStore.rows, null, cfg);
@@ -898,17 +899,16 @@ function LnOtForm({ me, users, cfg, jobs, otStore, limit, onClose }) {
 
   /* ตัดช่วงที่ทับเวลางานปกติออกโดยอิงเวลาเข้างานจริงของวันนี้ ไม่ใช่เวลามาตรฐาน
      เข้า 09:30 ก็ต้องเลิก 18:30 — ใช้เวลามาตรฐานจะนับ 17:30-18:30 เป็น OT ทั้งที่ยังไม่ครบ 8 ชม. */
-  const win = locked && f.date === limit.date ? limit.win : null;
-  const mins = window.tmOtMinutes(f.date, f.from, f.to, cfg, win);
-  const inLimit = window.tmOtInLimit(f.date, f.from, f.to, limit);
+  const calc = window.tmOtFill(f, cfg), mins = calc.mins;
+  const c = window.tmWhNorm(cfg), workday = window.tmIsWorkday(f.date, cfg);
   const approvers = React.useMemo(() => window.tmOtApprovers(users, me), [users, me]);
-  const ready = mins > 0 && inLimit && !!f.reason.trim();
+  const ready = mins > 0 && !!f.reason.trim();
 
   const send = () => {
     if (!ready || sending) return;
     setSending(true);
     const j = (jobs || []).find((x) => x.id === f.jobId);
-    const rec = window.tmOtMove(Object.assign({}, f, { mins, jobCode: j ? j.code : "" }), "sent", me, "");
+    const rec = window.tmOtMove(Object.assign({}, calc, { jobCode: j ? j.code : "" }), "sent", me, "");
     otStore.save(rec);
     const when = window.drShort(rec.date) + " " + rec.from + "-" + rec.to;
     /* เตือนคนอนุมัติ — ถ้าโปรไฟล์ไม่ได้ตั้งผู้อนุมัติไว้ ส่งเข้ากองกลางแทน
@@ -929,8 +929,7 @@ function LnOtForm({ me, users, cfg, jobs, otStore, limit, onClose }) {
 
       <div style={{ padding: "2px 16px 22px", display: "grid", gap: 14 }}>
         <LnField label="วันที่">
-          <input type="date" value={f.date} disabled={locked} onChange={(e) => set("date", e.target.value)}
-            style={Object.assign({}, LN_FIELD, locked ? { background: "var(--surface3)", color: "var(--text-2)", boxShadow: "none" } : null)} />
+          <input type="date" value={f.date} onChange={(e) => set("date", e.target.value)} style={LN_FIELD} />
         </LnField>
 
         {/* ── ช่วงเวลา ──
@@ -945,27 +944,19 @@ function LnOtForm({ me, users, cfg, jobs, otStore, limit, onClose }) {
         <div style={{ display: "grid", gap: 6, minWidth: 0 }}>
           <span style={LN_LABEL}>ช่วงเวลาที่ทำ</span>
           <div style={{ display: "grid", gridTemplateColumns: "minmax(0,1fr) auto minmax(0,1fr)", gap: 9, alignItems: "center" }}>
-            <window.PgTime value={f.from} min={locked ? limit.lo : undefined} max={locked ? limit.hi : undefined}
-              ariaLabel="ตั้งแต่" onChange={(t) => set("from", t)} style={LN_FIELD} />
+            <window.PgTime value={f.from} ariaLabel="ตั้งแต่" onChange={(t) => set("from", t)} style={LN_FIELD} />
             <span style={{ fontSize: 12.5, fontWeight: 700, color: "var(--text-3)" }}>ถึง</span>
-            <window.PgTime value={f.to} min={locked ? limit.lo : undefined} max={locked ? limit.hi : undefined}
-              ariaLabel="ถึง" onChange={(t) => set("to", t)} style={LN_FIELD} />
+            <window.PgTime value={f.to} ariaLabel="ถึง" onChange={(t) => set("to", t)} style={LN_FIELD} />
           </div>
+          {/* วันหยุดกดทั้งวันได้ (ผู้ใช้ ต.ค. 2026) = เวลางานปกติทั้งวัน */}
+          {!workday && (
+            <button type="button" onClick={() => setF((p) => Object.assign({}, p, { from: c.startEarly, to: c.end }))}
+              style={{ justifySelf: "start", border: "none", cursor: "pointer", fontFamily: "inherit", fontSize: 12.5, fontWeight: 800,
+                padding: "8px 14px", borderRadius: "var(--r-pill)", background: "var(--surface2)", color: "var(--primary-dark)", boxShadow: "var(--soft)" }}>
+              ทั้งวัน {c.startEarly} – {c.end}
+            </button>
+          )}
         </div>
-
-        {/* min/max ของ input[type=time] เป็นแค่คำแนะนำ เบราว์เซอร์ไม่ได้กันทุกตัว
-            ตัวที่กันจริงคือ tmOtInLimit ที่ปิดปุ่มส่ง — บรรทัดนี้บอกว่าทำไมถึงกด */}
-        {locked && (
-          <div style={{ padding: "11px 14px", borderRadius: 16, fontSize: 11.5, lineHeight: 1.7,
-            border: "none",
-            background: inLimit ? "var(--surface)" : "var(--tint-amber-bg)",
-            boxShadow: inLimit ? "var(--soft)" : "none",
-            color: inLimit ? "var(--text-3)" : "var(--tint-amber-tx)" }}>
-            {inLimit
-              ? "ขอได้เฉพาะช่วงที่อยู่ที่ทำงานจริงวันนี้ — ลงเวลา " + limit.lo + " ถึง " + limit.hi
-              : "ช่วงนี้อยู่นอกเวลาที่ลงไว้ (" + limit.lo + " – " + limit.hi + ") ขอไม่ได้"}
-          </div>
-        )}
 
         {/* ยอด OT ที่นับได้ — เป็นผลลัพธ์ ไม่ใช่ช่องกรอก จึงเป็นการ์ดเต็มใบ ไม่มีป้ายกำกับแบบช่องอื่น */}
         <div style={Object.assign({ padding: "13px 15px" }, LN_CARD)}>
@@ -975,8 +966,10 @@ function LnOtForm({ me, users, cfg, jobs, otStore, limit, onClose }) {
               color: mins ? "var(--primary-dark)" : "var(--text-3)" }}>{window.tmDur(mins)}</span>
           </div>
           <div style={{ marginTop: 4, fontSize: 11, color: "var(--text-3)", lineHeight: 1.6 }}>
-            {window.tmOtKindOf(f.kind).th}
-            {window.tmIsWorkday(f.date, cfg) ? " · ตัดช่วงที่ทับเวลางานปกติออกแล้ว" : " · นอกวันทำงาน นับทั้งช่วง"}
+            {window.tmOtKindOf(calc.kind).th}
+            {calc.parts && calc.parts.length ? " · " + window.tmOtPartsTH(calc.parts)
+              : workday ? " · นับตามช่วงที่กรอก ×" + window.tmOtRate(calc, cfg) : ""}
+            {!workday && <div>วันหยุด: {window.tmDur(c.workMins)} แรก (หักพัก {window.tmDur(c.lunchMins)}) ×{c.otRates.holiday} · เกินจากนั้น ×{c.otRates.holidayOt}</div>}
           </div>
         </div>
 
@@ -1018,8 +1011,7 @@ function LnOtForm({ me, users, cfg, jobs, otStore, limit, onClose }) {
 
         {mins <= 0 && (
           <div style={{ fontSize: 11.5, color: "var(--text-3)", textAlign: "center", lineHeight: 1.7 }}>
-            ช่วงเวลานี้ยังไม่นับเป็น OT — ต้องอยู่นอกเวลางานปกติ และนานพอตามที่บริษัทตั้งไว้
-            {win ? " (วันนี้เวลางานปกติจบ " + win.end + " เพราะเข้างาน " + limit.lo + ")" : ""}
+            ช่วงเวลานี้ยังไม่นับเป็น OT — ต้องนานอย่างน้อย {window.tmDur(c.minOtMins)}
           </div>
         )}
         {mins > 0 && !f.reason.trim() && (

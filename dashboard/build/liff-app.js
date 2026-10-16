@@ -1348,17 +1348,17 @@ function LnOtForm({
     if (k === "date" || k === "from") n.kind = window.tmOtKindGuess(n.date, n.from, cfg);
     return n;
   });
-  const win = locked && f.date === limit.date ? limit.win : null;
-  const mins = window.tmOtMinutes(f.date, f.from, f.to, cfg, win);
-  const inLimit = window.tmOtInLimit(f.date, f.from, f.to, limit);
+  const calc = window.tmOtFill(f, cfg),
+    mins = calc.mins;
+  const c = window.tmWhNorm(cfg),
+    workday = window.tmIsWorkday(f.date, cfg);
   const approvers = React.useMemo(() => window.tmOtApprovers(users, me), [users, me]);
-  const ready = mins > 0 && inLimit && !!f.reason.trim();
+  const ready = mins > 0 && !!f.reason.trim();
   const send = () => {
     if (!ready || sending) return;
     setSending(true);
     const j = (jobs || []).find(x => x.id === f.jobId);
-    const rec = window.tmOtMove(Object.assign({}, f, {
-      mins,
+    const rec = window.tmOtMove(Object.assign({}, calc, {
       jobCode: j ? j.code : ""
     }), "sent", me, "");
     otStore.save(rec);
@@ -1395,13 +1395,8 @@ function LnOtForm({
   }, React.createElement("input", {
     type: "date",
     value: f.date,
-    disabled: locked,
     onChange: e => set("date", e.target.value),
-    style: Object.assign({}, LN_FIELD, locked ? {
-      background: "var(--surface3)",
-      color: "var(--text-2)",
-      boxShadow: "none"
-    } : null)
+    style: LN_FIELD
   })), React.createElement("div", {
     style: {
       display: "grid",
@@ -1419,8 +1414,6 @@ function LnOtForm({
     }
   }, React.createElement(window.PgTime, {
     value: f.from,
-    min: locked ? limit.lo : undefined,
-    max: locked ? limit.hi : undefined,
     ariaLabel: "\u0E15\u0E31\u0E49\u0E07\u0E41\u0E15\u0E48",
     onChange: t => set("from", t),
     style: LN_FIELD
@@ -1432,23 +1425,29 @@ function LnOtForm({
     }
   }, "\u0E16\u0E36\u0E07"), React.createElement(window.PgTime, {
     value: f.to,
-    min: locked ? limit.lo : undefined,
-    max: locked ? limit.hi : undefined,
     ariaLabel: "\u0E16\u0E36\u0E07",
     onChange: t => set("to", t),
     style: LN_FIELD
-  }))), locked && React.createElement("div", {
+  })), !workday && React.createElement("button", {
+    type: "button",
+    onClick: () => setF(p => Object.assign({}, p, {
+      from: c.startEarly,
+      to: c.end
+    })),
     style: {
-      padding: "11px 14px",
-      borderRadius: 16,
-      fontSize: 11.5,
-      lineHeight: 1.7,
+      justifySelf: "start",
       border: "none",
-      background: inLimit ? "var(--surface)" : "var(--tint-amber-bg)",
-      boxShadow: inLimit ? "var(--soft)" : "none",
-      color: inLimit ? "var(--text-3)" : "var(--tint-amber-tx)"
+      cursor: "pointer",
+      fontFamily: "inherit",
+      fontSize: 12.5,
+      fontWeight: 800,
+      padding: "8px 14px",
+      borderRadius: "var(--r-pill)",
+      background: "var(--surface2)",
+      color: "var(--primary-dark)",
+      boxShadow: "var(--soft)"
     }
-  }, inLimit ? "ขอได้เฉพาะช่วงที่อยู่ที่ทำงานจริงวันนี้ — ลงเวลา " + limit.lo + " ถึง " + limit.hi : "ช่วงนี้อยู่นอกเวลาที่ลงไว้ (" + limit.lo + " – " + limit.hi + ") ขอไม่ได้"), React.createElement("div", {
+  }, "\u0E17\u0E31\u0E49\u0E07\u0E27\u0E31\u0E19 ", c.startEarly, " \u2013 ", c.end)), React.createElement("div", {
     style: Object.assign({
       padding: "13px 15px"
     }, LN_CARD)
@@ -1478,7 +1477,7 @@ function LnOtForm({
       color: "var(--text-3)",
       lineHeight: 1.6
     }
-  }, window.tmOtKindOf(f.kind).th, window.tmIsWorkday(f.date, cfg) ? " · ตัดช่วงที่ทับเวลางานปกติออกแล้ว" : " · นอกวันทำงาน นับทั้งช่วง")), React.createElement(LnField, {
+  }, window.tmOtKindOf(calc.kind).th, calc.parts && calc.parts.length ? " · " + window.tmOtPartsTH(calc.parts) : workday ? " · นับตามช่วงที่กรอก ×" + window.tmOtRate(calc, cfg) : "", !workday && React.createElement("div", null, "\u0E27\u0E31\u0E19\u0E2B\u0E22\u0E38\u0E14: ", window.tmDur(c.workMins), " \u0E41\u0E23\u0E01 (\u0E2B\u0E31\u0E01\u0E1E\u0E31\u0E01 ", window.tmDur(c.lunchMins), ") \xD7", c.otRates.holiday, " \xB7 \u0E40\u0E01\u0E34\u0E19\u0E08\u0E32\u0E01\u0E19\u0E31\u0E49\u0E19 \xD7", c.otRates.holidayOt))), React.createElement(LnField, {
     label: "\u0E07\u0E32\u0E19\u0E17\u0E35\u0E48\u0E40\u0E01\u0E35\u0E48\u0E22\u0E27\u0E02\u0E49\u0E2D\u0E07 (\u0E44\u0E21\u0E48\u0E1A\u0E31\u0E07\u0E04\u0E31\u0E1A)"
   }, React.createElement("select", {
     value: f.jobId || "",
@@ -1534,7 +1533,7 @@ function LnOtForm({
       textAlign: "center",
       lineHeight: 1.7
     }
-  }, "\u0E0A\u0E48\u0E27\u0E07\u0E40\u0E27\u0E25\u0E32\u0E19\u0E35\u0E49\u0E22\u0E31\u0E07\u0E44\u0E21\u0E48\u0E19\u0E31\u0E1A\u0E40\u0E1B\u0E47\u0E19 OT \u2014 \u0E15\u0E49\u0E2D\u0E07\u0E2D\u0E22\u0E39\u0E48\u0E19\u0E2D\u0E01\u0E40\u0E27\u0E25\u0E32\u0E07\u0E32\u0E19\u0E1B\u0E01\u0E15\u0E34 \u0E41\u0E25\u0E30\u0E19\u0E32\u0E19\u0E1E\u0E2D\u0E15\u0E32\u0E21\u0E17\u0E35\u0E48\u0E1A\u0E23\u0E34\u0E29\u0E31\u0E17\u0E15\u0E31\u0E49\u0E07\u0E44\u0E27\u0E49", win ? " (วันนี้เวลางานปกติจบ " + win.end + " เพราะเข้างาน " + limit.lo + ")" : ""), mins > 0 && !f.reason.trim() && React.createElement("div", {
+  }, "\u0E0A\u0E48\u0E27\u0E07\u0E40\u0E27\u0E25\u0E32\u0E19\u0E35\u0E49\u0E22\u0E31\u0E07\u0E44\u0E21\u0E48\u0E19\u0E31\u0E1A\u0E40\u0E1B\u0E47\u0E19 OT \u2014 \u0E15\u0E49\u0E2D\u0E07\u0E19\u0E32\u0E19\u0E2D\u0E22\u0E48\u0E32\u0E07\u0E19\u0E49\u0E2D\u0E22 ", window.tmDur(c.minOtMins)), mins > 0 && !f.reason.trim() && React.createElement("div", {
     style: {
       fontSize: 11.5,
       color: "var(--text-3)",

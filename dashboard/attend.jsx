@@ -102,7 +102,8 @@ const TM_WH_DEFAULT = {
        งานกลางคืน        1.5 เท่า (กฎหมายไม่ได้กำหนดอัตรากลางคืนไว้ต่างหาก แต่ละที่ตกลงกันเอง)
      บริษัทตกลงกับพนักงานสูงกว่ากฎหมายได้ จึงต้องแก้ได้ทุกช่อง
      ระบบใช้ตัวคูณนี้คิดแค่ "ชั่วโมงคิดค่าแรง" ไม่ได้คิดเป็นเงิน เพราะอัตราค่าจ้างรายคนไม่ได้อยู่ในระบบนี้ */
-  otRates: { ot: 1.5, holiday: 2, holidayOt: 3, night: 1.5 },
+  /* วันหยุด 1.5 / เกินวันปกติ 2 — อัตราที่บริษัทใช้ (ผู้ใช้ ต.ค. 2026) แทนค่ากฎหมาย 2/3 */
+  otRates: { ot: 1.5, holiday: 1.5, holidayOt: 2, night: 1.5 },
   /* ── พิกัดออฟฟิศ ──
      มีไว้ตอบคำถามเดียว: คนที่กด "ออฟฟิศ" ตอนนั้นอยู่ห่างออฟฟิศเท่าไร
      lat/lng = null แปลว่ายังไม่ได้ตั้ง ระบบจะไม่โชว์ระยะเลย ไม่ใช่โชว์ระยะจากจุด 0,0
@@ -274,7 +275,12 @@ function tmOtRate(recOrKind, cfg) {
 }
 /* นาทีคิดค่าแรง = นาทีจริง × ตัวคูณ — ฝ่ายบุคคลเอาไปคูณอัตราต่อชั่วโมงของคนนั้นได้เลย
    ระบบไม่คูณเป็นเงินให้ เพราะค่าจ้างรายคนไม่ได้อยู่ในระบบนี้ (ดูหมายเหตุที่ TM_OT_KIND) */
-const tmOtPayMins = (rec, cfg) => Math.round((+((rec || {}).mins) || 0) * tmOtRate(rec, cfg));
+/* ใบวันหยุดแบบใหม่มี parts (ช่วง ×1.5 + ช่วงเกิน ×2) ถ่ายตัวคูณไว้ในใบ — ใบเก่าไม่มี ใช้ mins × rate เดิม */
+const tmOtPayMins = (rec, cfg) => {
+  const ps = rec && Array.isArray(rec.parts) ? rec.parts.filter(Boolean) : [];
+  if (ps.length) return ps.reduce((a, p) => a + Math.round((+p.mins || 0) * (+p.rate || 0)), 0);
+  return Math.round((+((rec || {}).mins) || 0) * tmOtRate(rec, cfg));
+};
 const tmRateTH = (r) => (Math.round((+r || 0) * 100) / 100).toString().replace(/\.00$/, "") + " เท่า";
 
 /* เดาประเภทให้จากวันที่ — เดาเฉย ๆ ช่างแก้ทับได้เสมอ */
@@ -285,29 +291,44 @@ function tmOtKindGuess(dateISO, from, cfg) {
   return "ot";
 }
 
-/* ── นาที OT = เวลาที่อยู่ "นอก" เวลางานมาตรฐาน ──
-   วันหยุด/วันไม่ทำงาน = นับทั้งช่วง · วันทำงาน = ตัดส่วนที่ทับเวลางานออก
-   ปัดลงเป็นช่วงละ roundMins แล้วตัดทิ้งถ้าไม่ถึง minOtMins
-   ปัด "ลง" ตั้งใจ — ปัดขึ้นทำให้บริษัทจ่ายเกินจริงทุกใบ และคนจะเริ่มยืดเวลาให้ถึงขั้นถัดไป */
-function tmOtMinutes(dateISO, from, to, cfg, win) {
+/* ══ วิธีคิดแบบใหม่ (ผู้ใช้ ต.ค. 2026) ══
+   "ให้กดระบุช่วงทำ OT เองเลย" — นับตามช่วงที่ผู้ขอกรอกทั้งช่วง ไม่ตัดเวลางาน ไม่ล็อกกับเวลาลงเข้า-ออก
+   วันหยุด: กดทั้งวันได้ · ช่วงแรกเท่าวันงานปกติ (8 ชม. + พัก 1 ชม. หักพัก) ×1.5 (holiday) · เกินจากนั้น ×2 (holidayOt)
+   ยังปัดลงทีละ roundMins และไม่ถึง minOtMins ไม่นับ เหมือนเดิม
+   คืน { mins, parts } — parts มีเฉพาะวันหยุด (ถ่ายตัวคูณติดใบ) */
+function tmOtCalc(dateISO, from, to, cfg) {
   const c = tmWhNorm(cfg);
   const span = tmSpanMins(from, to);
-  if (span <= 0) return 0;
-
-  let outside = span;
+  const rnd = (m) => (c.roundMins > 0 ? Math.floor(Math.max(0, m) / c.roundMins) * c.roundMins : Math.max(0, m));
+  if (span <= 0) return { mins: 0, parts: null };
   if (tmIsWorkday(dateISO, c)) {
-    /* win = ช่วงเวลางานจริงของวันนั้นจาก tmDayWindow — ส่งมาเมื่อมีใบลงเวลาให้อ้างอิง
-       ไม่ส่งมาก็ถอยไปใช้ช่วงอนุมานจากค่าตั้ง (คนกรอกใบล่วงหน้าก่อนถึงวันนั้น) */
-    const ws = win && win.startMins != null ? win.startMins : tmHM(c.start);
-    const we = win && win.endMins != null ? win.endMins : tmHM(c.end);
-    const a = tmHM(from);
-    /* คิดบนแกนนาทีที่ยืดข้ามเที่ยงคืนได้ แล้วหาส่วนที่ทับกับเวลางานของวันนั้น */
-    const s = a, e = a + span;
-    const lo = Math.max(s, ws), hi = Math.min(e, we);
-    outside = span - Math.max(0, hi - lo);
+    const m = rnd(span);
+    return { mins: m >= c.minOtMins ? m : 0, parts: null };
   }
-  if (c.roundMins > 0) outside = Math.floor(outside / c.roundMins) * c.roundMins;
-  return outside >= c.minOtMins ? outside : 0;
+  const base = c.workMins + c.lunchMins, first = Math.min(span, base);
+  /* หักพักเฉพาะช่วงที่ยาวเกิน 6 ชม. (กฎเดียวกับ tmWorkedMins) — ทำครึ่งวันไม่โดนหักข้าวเที่ยง */
+  const lunch = span > 360 ? Math.min(c.lunchMins, first) : 0;
+  const m1 = rnd(first - lunch), m2 = rnd(span - first);
+  if (m1 + m2 < c.minOtMins) return { mins: 0, parts: null };
+  const parts = [];
+  if (m1) parts.push({ kind: "holiday", mins: m1, rate: c.otRates.holiday });
+  if (m2) parts.push({ kind: "holidayOt", mins: m2, rate: c.otRates.holidayOt });
+  return { mins: m1 + m2, parts: parts };
+}
+/* เติม mins/parts/kind ลงใบตามช่วงที่กรอก — ใช้ทั้งฟอร์มไลน์และหน้าเว็บ */
+function tmOtFill(rec, cfg) {
+  const r = tmOtCalc(rec.date, rec.from, rec.to, cfg);
+  const n = Object.assign({}, rec, { mins: r.mins, parts: r.parts });
+  if (r.parts) { n.kind = "holiday"; n.rate = tmWhNorm(cfg).otRates.holiday; }
+  else if (n.kind === "holiday" || n.kind === "holidayOt") { n.kind = tmOtKindGuess(n.date, n.from, cfg); n.rate = tmOtRate(n.kind, cfg); }
+  return n;
+}
+/* ข้อความแยกส่วนของใบวันหยุด "8 ชม. ×1.5 + 2 ชม. ×2" */
+const tmOtPartsTH = (parts) => (parts || []).filter(Boolean).map((p) => tmDur(p.mins) + " ×" + (Math.round(p.rate * 100) / 100)).join(" + ");
+
+/* ช่องทางเดิม — ตอนนี้ = tmOtCalc().mins (win ไม่ใช้แล้ว เก็บพารามิเตอร์ไว้ให้ผู้เรียกเดิมไม่พัง) */
+function tmOtMinutes(dateISO, from, to, cfg) {
+  return tmOtCalc(dateISO, from, to, cfg).mins;
 }
 
 /* ================================================================
@@ -533,6 +554,8 @@ const tmDayIndex = (rec, cfg) => ({
   lat: (rec.in && rec.in.lat) != null ? rec.in.lat : null,
   lng: (rec.in && rec.in.lng) != null ? rec.in.lng : null,
   place: (rec.in && rec.in.place) || rec.place || "",
+  /* แอดมินแก้เวลาให้ — แผ่นรายวันติดป้าย "แก้โดยแอดมิน" */
+  fix: !!((rec.in && rec.in.adminFix) || (rec.out && rec.out.adminFix)),
 });
 
 /* ================================================================
@@ -868,7 +891,39 @@ function useAttendAdmin(actor) {
     return { ok: true, rec: old };
   }, [actor]);
 
-  return { removeDay };
+  /* ── แอดมินแก้/ลงเวลาแทนคนลืมลง (ผู้ใช้ ต.ค. 2026) ──
+     แก้ได้ทั้งเวลาเข้าและออก · ต้องมีเหตุผล · ปั๊มที่ถูกแก้ติดธง adminFix + เวลาเดิม (was) + ใครแก้
+     พิกัดเดิมของปั๊มนั้นคงไว้ (เป็นที่ที่กดจริง) · ประวัติลง hist "admin-edit" · กะเพิ่ม (extra) ไม่แตะ
+     outHM ว่าง = ยังไม่ออก · ออกน้อยกว่าเข้า = ข้ามเที่ยงคืน (tmSpanMins วนให้) */
+  const setTimes = React.useCallback(async (user, date, inHM, outHM, why, cfg) => {
+    const uid = (user || {}).id;
+    if (!uid || !date) return { ok: false, why: "ข้อมูลไม่ครบ" };
+    if (!_TMFB()) return { ok: false, why: "ยังเชื่อมต่อฐานข้อมูลไม่ได้" };
+    if (tmHM(inHM) == null) return { ok: false, why: "เวลาเข้างานไม่ถูกต้อง" };
+    if (outHM && tmHM(outHM) == null) return { ok: false, why: "เวลาออกงานไม่ถูกต้อง" };
+    if (outHM && tmSpanMins(inHM, outHM) <= 0) return { ok: false, why: "เวลาออกต้องไม่เท่ากับเวลาเข้า" };
+    if (!String(why || "").trim()) return { ok: false, why: "ต้องใส่เหตุผล" };
+    const snap = await _tmRef("attend/" + uid + "/" + date).once("value").catch(() => null);
+    const old = (snap && snap.val()) || null;
+    const rec = Object.assign({}, tmAttendBlank(user, date), old || {});
+    const at = new Date().toISOString(), by = { byId: (actor || {}).id || null, byName: (actor || {}).name || "" };
+    const mk = (prev, hm) => Object.assign({}, prev || {}, { hm: hm, at: at, src: "admin", adminFix: true, was: (prev && prev.hm) || "" }, by);
+    const wasIn = (rec.in && rec.in.hm) || "", wasOut = (rec.out && rec.out.hm) || "";
+    if (wasIn !== inHM) rec.in = mk(rec.in, inHM);
+    if (!outHM) rec.out = null;
+    else if (wasOut !== outHM) rec.out = mk(rec.out, outHM);
+    rec.extra = Array.isArray(rec.extra) ? rec.extra : [];
+    rec.mins = tmWorkedMins(rec, cfg);
+    rec.updatedAt = at;
+    rec.hist = (rec.hist || []).concat([Object.assign({ at: at, what: "admin-edit", in: inHM, out: outHM || "", wasIn: wasIn, wasOut: wasOut, why: String(why).trim() }, by)]);
+    const patch = {};
+    patch["attend/" + uid + "/" + date] = rec;
+    patch["attendDay/" + date + "/" + uid] = tmDayIndex(rec, cfg);
+    await _tmRoot().update(patch);
+    return { ok: true, rec: rec };
+  }, [actor]);
+
+  return { removeDay, setTimes };
 }
 
 /* ใบ OT — แบน อ่านทั้งต้นไม้ได้ (ใบละไม่กี่ร้อยไบต์ ไม่มีรูป) */
@@ -1044,7 +1099,7 @@ Object.assign(window, { tmNameOf,
   tmNotify,
   TM_ROOT, TM_WH_DEFAULT, TM_OT_KIND, TM_OT_STATUS, TM_PLACE,
   tmHM, tmHHMM, tmNowHM, tmSpanMins, TM_NIGHT_CUT, tmCarryOver, tmDur, tmWhNorm, tmIsHoliday, tmIsWorkday,
-  tmOtKindOf, tmOtKindGuess, tmOtMinutes, tmDayWindow, tmOtEarned, tmOtInLimit, tmLastHM,
+  tmOtKindOf, tmOtKindGuess, tmOtMinutes, tmOtCalc, tmOtFill, tmOtPartsTH, tmDayWindow, tmOtEarned, tmOtInLimit, tmLastHM,
   tmOtRate, tmOtPayMins, tmRateTH,
   tmWorkedMins, tmOpen, tmAttendBlank, tmPunch, tmDayIndex, tmPlaceOf,
   TM_GPS_ERR, tmGpsTH, tmGpsUrl, tmDistM, tmOfficeDist, tmOfficeNear, tmDistTH, tmLockDeny,

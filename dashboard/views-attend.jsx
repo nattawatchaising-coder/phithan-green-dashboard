@@ -101,6 +101,22 @@ function TmDaySheet({ date, setDate, cfg, users, currentUser }) {
     const res = await admin.removeDay(r.userId, date);
     setMsg(res.ok ? "ลบใบลงเวลาของ " + nameOf(r) + " แล้ว" : "ลบไม่สำเร็จ — " + res.why);
   };
+  /* แอดมินแก้เวลา / ลงเวลาแทนคนลืมลง (ผู้ใช้ ต.ค. 2026) — เฉพาะแอดมิน · ต้องมีเหตุผล · เก็บเวลาเดิมไว้ในใบ */
+  const isAdmin = window.usePgAdmin();
+  const [ed, setEd] = React.useState(null);   // { user, inHM, outHM, why, busy, err }
+  const openEd = (uid, nm, inHM, outHM) => {
+    const u = (users || []).find((x) => x && x.id === uid) || { id: uid, name: nm };
+    const c = window.tmWhNorm(cfg);
+    setEd({ user: u, inHM: inHM || c.startEarly, outHM: outHM != null ? outHM : c.end, why: "", busy: false, err: "" });
+  };
+  const saveEd = async () => {
+    if (!ed || ed.busy) return;
+    setEd(Object.assign({}, ed, { busy: true, err: "" }));
+    const res = await admin.setTimes(ed.user, date, ed.inHM, ed.outHM, ed.why, cfg).catch((e) => ({ ok: false, why: String(e && e.message || e) }));
+    if (!res.ok) { setEd(Object.assign({}, ed, { busy: false, err: res.why })); return; }
+    setMsg("แก้เวลาของ " + (ed.user.name || "") + " แล้ว · " + ed.inHM + " – " + (ed.outHM || "ยังไม่ออก"));
+    setEd(null);
+  };
   const holiday = window.tmIsHoliday(date, cfg);
   const workday = window.tmIsWorkday(date, cfg);
 
@@ -156,7 +172,9 @@ function TmDaySheet({ date, setDate, cfg, users, currentUser }) {
             )}
             {(day.rows || []).map((r) => (
               <tr key={r.userId} style={{ borderBottom: "1px solid var(--divider)" }}>
-                <td style={{ padding: "9px 13px", fontWeight: 700, color: "var(--text-1)" }}>{nameOf(r)}</td>
+                <td style={{ padding: "9px 13px", fontWeight: 700, color: "var(--text-1)" }}>{nameOf(r)}
+                  {r.fix && <span title="เวลาในใบนี้แอดมินแก้ให้" style={{ marginLeft: 6, padding: "1px 7px", borderRadius: "var(--r-pill)", background: "var(--tint-amber-bg)", color: "var(--tint-amber-tx)", fontSize: 10.5, fontWeight: 800 }}>แก้โดยแอดมิน</span>}
+                </td>
                 <td style={{ padding: "9px 13px", textAlign: "center", fontFamily: "var(--mono)", fontWeight: 700 }}>{r.in || "—"}</td>
                 <td style={{ padding: "9px 13px", textAlign: "center", fontFamily: "var(--mono)", fontWeight: 700,
                   color: r.in && !r.out ? "#EF4444" : "var(--text-1)" }}>{r.out || (r.in ? "ยังไม่ออก" : "—")}</td>
@@ -170,6 +188,10 @@ function TmDaySheet({ date, setDate, cfg, users, currentUser }) {
                 <td style={{ padding: "9px 13px", textAlign: "right" }}>
                   {/* ลบทั้งใบ ไม่ใช่แก้เวลาทีละช่อง — เวลาที่พิมพ์เองไม่ใช่หลักฐาน
                       ให้เจ้าตัวกดใหม่จะได้พิกัดกับเวลาจริงติดมาด้วยเหมือนเดิม */}
+                  {isAdmin && <button onClick={() => openEd(r.userId, nameOf(r), r.in, r.out || "")} title="แก้เวลาเข้า-ออกของคนนี้"
+                    style={{ marginRight: 6, padding: "5px 11px", borderRadius: 8, border: "none", boxShadow: "var(--shadow-sm)",
+                      background: "var(--surface)", color: "var(--primary-dark)", cursor: "pointer", fontFamily: "inherit",
+                      fontSize: 11.5, fontWeight: 700, whiteSpace: "nowrap" }}>แก้เวลา</button>}
                   <button onClick={() => del(r)} title="ลบใบลงเวลาของคนนี้"
                     style={{ padding: "5px 11px", borderRadius: 8, border: "none", boxShadow: "var(--shadow-sm)",
                       background: "var(--surface)", color: "var(--tint-red-tx2)", cursor: "pointer", fontFamily: "inherit",
@@ -191,14 +213,63 @@ function TmDaySheet({ date, setDate, cfg, users, currentUser }) {
             {missing.map((u) => (
               <tr key={u.id} style={{ borderBottom: "1px solid var(--divider)", background: "var(--surface2)" }}>
                 <td style={{ padding: "9px 13px", fontWeight: 700, color: "var(--text-3)" }}>{u.name}</td>
-                <td colSpan={6} style={{ padding: "9px 13px", fontSize: 12, color: "var(--text-3)" }}>ยังไม่ได้ลงเวลา</td>
+                <td colSpan={5} style={{ padding: "9px 13px", fontSize: 12, color: "var(--text-3)" }}>ยังไม่ได้ลงเวลา</td>
+                <td style={{ padding: "9px 13px", textAlign: "right" }}>
+                  {isAdmin && <button onClick={() => openEd(u.id, u.name, "", null)} title="ลงเวลาแทนคนที่ลืมลง"
+                    style={{ padding: "5px 11px", borderRadius: 8, border: "none", boxShadow: "var(--shadow-sm)",
+                      background: "var(--surface)", color: "var(--primary-dark)", cursor: "pointer", fontFamily: "inherit",
+                      fontSize: 11.5, fontWeight: 700, whiteSpace: "nowrap" }}>ลงเวลาแทน</button>}
+                </td>
               </tr>
             ))}
           </tbody>
         </table>
       </div>
 
+      {/* ลงเวลาแทนคนที่ไม่อยู่ในรายการ (เช่น วันหยุดที่ไม่มีแถว "ยังไม่ได้ลงเวลา") */}
+      {isAdmin && (
+        <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+          <span style={{ fontSize: 12, fontWeight: 700, color: "var(--text-3)" }}>ลงเวลาแทน</span>
+          <select value="" onChange={(e) => { const u = (users || []).find((x) => x && x.id === e.target.value); if (!u) return;
+              const r = (day.rows || []).find((x) => x.userId === u.id); openEd(u.id, u.name, r ? r.in : "", r ? r.out || "" : null); }}
+            style={Object.assign({}, TM_IN, { minWidth: 180 })}>
+            <option value="">— เลือกคน —</option>
+            {(users || []).filter((u) => u && u.active !== false && window.can(window.userRoles(u), "attend")).map((u) => <option key={u.id} value={u.id}>{u.name}</option>)}
+          </select>
+        </div>
+      )}
+
       {msg && <div style={{ fontSize: 12.5, fontWeight: 700, color: "var(--text-2)" }}>{msg}</div>}
+
+      {ed && (
+        <div style={{ position: "fixed", inset: 0, zIndex: 90, background: "rgba(15,23,42,.45)", display: "grid", placeItems: "center", padding: 18 }}
+          onMouseDown={(e) => { if (e.target === e.currentTarget && !ed.busy) setEd(null); }}>
+          <div style={{ width: "min(420px,100%)", background: "var(--bg)", boxShadow: "var(--shadow-card)", borderRadius: 17, padding: 20, display: "grid", gap: 12 }}>
+            <div>
+              <div style={{ fontSize: 12, color: "var(--text-3)", fontWeight: 700 }}>แก้เวลาลงงาน · {window.drDateTH(date, true)}</div>
+              <div style={{ fontSize: 17, fontWeight: 800, color: "var(--text-1)" }}>{ed.user.name}</div>
+            </div>
+            <div style={{ display: "grid", gridTemplateColumns: "minmax(0,1fr) auto minmax(0,1fr)", gap: 9, alignItems: "end" }}>
+              <label style={TM_LB}><span style={{ fontSize: 11.5, fontWeight: 700, color: "var(--text-3)" }}>เข้างาน</span>
+                <window.PgTime value={ed.inHM} ariaLabel="เข้างาน" onChange={(t) => setEd((p) => Object.assign({}, p, { inHM: t }))} style={TM_IN_W} /></label>
+              <span style={{ fontSize: 12.5, fontWeight: 700, color: "var(--text-3)", paddingBottom: 10 }}>ถึง</span>
+              <label style={TM_LB}><span style={{ fontSize: 11.5, fontWeight: 700, color: "var(--text-3)" }}>ออกงาน (ว่าง = ยังไม่ออก)</span>
+                <window.PgTime value={ed.outHM} ariaLabel="ออกงาน" onChange={(t) => setEd((p) => Object.assign({}, p, { outHM: t }))} style={TM_IN_W} /></label>
+            </div>
+            <label style={{ display: "grid", gap: 4 }}>
+              <span style={{ fontSize: 11.5, fontWeight: 700, color: "var(--text-3)" }}>เหตุผล *</span>
+              <textarea rows={2} value={ed.why} onChange={(e) => { const v = e.target.value; setEd((p) => Object.assign({}, p, { why: v })); }}
+                placeholder="เช่น ลืมกดออกงาน หัวหน้ายืนยันว่าเลิก 17:30" style={Object.assign({}, TM_IN, { resize: "vertical", lineHeight: 1.6 })} />
+            </label>
+            {ed.err && <div style={{ fontSize: 12, fontWeight: 700, color: "var(--tint-red-tx2)" }}>{ed.err}</div>}
+            <div style={{ fontSize: 11, color: "var(--text-3)", lineHeight: 1.6 }}>ใบจะติดป้าย "แก้โดยแอดมิน" และเก็บเวลาเดิม · ชื่อคนแก้ · เหตุผลไว้ในประวัติ</div>
+            <div style={{ display: "flex", gap: 8, justifyContent: "flex-end" }}>
+              <button type="button" className="btn" disabled={ed.busy} onClick={() => setEd(null)}>ยกเลิก</button>
+              <button type="button" className="btn btn-pri" disabled={ed.busy || !ed.why.trim() || !ed.inHM} onClick={saveEd}>{ed.busy ? "กำลังบันทึก…" : "บันทึกเวลา"}</button>
+            </div>
+          </div>
+        </div>
+      )}
 
       <div style={{ fontSize: 11.5, color: "var(--text-3)", lineHeight: 1.7 }}>
         ปุ่ม “ลบ” ลบใบลงเวลาของวันนั้นทั้งใบ แล้วให้เจ้าตัวกดเข้า-ออกใหม่ —
@@ -700,15 +771,18 @@ function TmOtModal({ rec, cfg, jobs, users, role, currentUser, onSave, onMove, o
   const mine = currentUser && f.userId === currentUser.id;
   const editable = mine && (f.status === "draft");
   const set = (k, v) => setF((p) => {
-    const next = Object.assign({}, p, { [k]: v });
-    next.mins = window.tmOtMinutes(next.date, next.from, next.to, cfg);
+    let next = Object.assign({}, p, { [k]: v });
     /* เปลี่ยนประเภทแล้วตัวคูณต้องตามไปด้วย — ใบที่ยังเป็นร่างยังไม่มีใครเซ็น จึงยึดอัตราปัจจุบัน
        (ใบที่ส่งไปแล้วแก้ไม่ได้อยู่แล้ว อัตราที่ถ่ายไว้ตอนนั้นจึงถูกตรึงไปเอง) */
     if (k === "kind") next.rate = window.tmOtRate(v, cfg);
+    /* วิธีคิดใหม่ (tmOtFill): นับทั้งช่วงที่กรอก · วันหยุดแยก ×1.5 / ×2 */
+    if (next.status === "draft") next = window.tmOtFill(next, cfg);
     return next;
   });
-  const mins = window.tmOtMinutes(f.date, f.from, f.to, cfg);
-  const rate = window.tmOtRate(f, cfg);
+  /* ใบที่ส่งแล้ว/อนุมัติแล้ว ยึดยอดที่ถ่ายไว้ในใบ — ไม่คิดใหม่ตอนกดอนุมัติ (ใบเก่าคิดแบบเดิม) */
+  const cur = editable ? window.tmOtFill(f, cfg) : f;
+  const mins = editable ? cur.mins : (+f.mins || 0);
+  const rate = window.tmOtRate(cur, cfg);
   const span = window.tmSpanMins(f.from, f.to);
   const nexts = window.tmOtNext(f, role, currentUser);
   const why = window.tmOtApproveCheck(f, currentUser, role).why;
@@ -761,19 +835,16 @@ function TmOtModal({ rec, cfg, jobs, users, role, currentUser, onSave, onMove, o
           <div style={{ display: "flex", alignItems: "baseline", gap: 8, flexWrap: "wrap", marginTop: 4 }}>
             <span style={{ fontSize: 12, color: "var(--text-3)", fontWeight: 700 }}>คิดค่าแรง</span>
             <span style={{ fontFamily: "var(--mono)", fontSize: 15, fontWeight: 800, color: "var(--text-1)" }}>
-              {window.tmRateTH(rate)}
+              {cur.parts && cur.parts.length ? window.tmOtPartsTH(cur.parts) : window.tmRateTH(rate)}
             </span>
             <span style={{ fontSize: 12, color: "var(--text-2)" }}>
-              = {(Math.round((mins * rate / 60) * 100) / 100).toFixed(2)} ชม.คิดค่าแรง
+              = {(Math.round((window.tmOtPayMins(Object.assign({}, cur, { mins: mins }), cfg) / 60) * 100) / 100).toFixed(2)} ชม.คิดค่าแรง
             </span>
           </div>
           <div style={{ marginTop: 5, fontSize: 11, color: "var(--text-3)", lineHeight: 1.6 }}>
             {window.tmIsWorkday(f.date, cfg)
-              /* หน้านี้ไม่ได้ถือใบลงเวลาของเจ้าของใบไว้ จึงใช้ช่วงอนุมานจากเวลาเข้างานเร็วสุด
-                 ตัวเลขที่ช่างเห็นตอนกดขอในไลน์คิดจากเวลาที่เขากดเข้าจริง อาจต่างกันได้เมื่อเข้าสาย */
-              ? "วันทำงานปกติ — ตัดช่วงที่ทับเวลางาน " + window.tmWhNorm(cfg).start + "-" + window.tmWhNorm(cfg).end
-                + " ออกแล้ว (ช่วงนี้เลื่อนตามเวลาที่เข้างานจริง)"
-              : "นอกวันทำงาน — นับทั้งช่วง"}
+              ? "วันทำงาน — นับตามช่วงที่กรอกทั้งช่วง"
+              : "วันหยุด — " + window.tmDur(window.tmWhNorm(cfg).workMins) + " แรก (หักพัก " + window.tmDur(window.tmWhNorm(cfg).lunchMins) + ") ×" + window.tmWhNorm(cfg).otRates.holiday + " · เกินจากนั้น ×" + window.tmWhNorm(cfg).otRates.holidayOt}
             {window.tmWhNorm(cfg).roundMins > 0 ? " · ปัดลงทีละ " + window.tmWhNorm(cfg).roundMins + " นาที" : ""}
             {window.tmWhNorm(cfg).minOtMins > 0 ? " · ไม่ถึง " + window.tmWhNorm(cfg).minOtMins + " นาทีไม่นับ" : ""}
           </div>
@@ -841,7 +912,7 @@ function TmOtModal({ rec, cfg, jobs, users, role, currentUser, onSave, onMove, o
 
         <div style={{ marginTop: 16, display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
           {editable && (
-            <button onClick={() => { onSave(Object.assign({}, f, { mins })); onClose(); }}
+            <button onClick={() => { onSave(cur); onClose(); }}
               style={{ padding: "9px 16px", borderRadius: "var(--r-chip)", border: "1px solid var(--border-strong)", background: "var(--surface)",
                 cursor: "pointer", fontFamily: "inherit", fontSize: 12.5, fontWeight: 800, color: "var(--text-1)" }}>บันทึกร่าง</button>
           )}
@@ -855,7 +926,7 @@ function TmOtModal({ rec, cfg, jobs, users, role, currentUser, onSave, onMove, o
               : s.key === "cancelled" ? "ยกเลิกใบนี้"
               : mine ? "เอากลับมาแก้" : "ตีกลับให้แก้";
             return (
-              <button key={s.key} onClick={() => { onMove(Object.assign({}, f, { mins }), s.key); onClose(); }}
+              <button key={s.key} onClick={() => { onMove(cur, s.key); onClose(); }}
                 style={{ padding: "9px 16px", borderRadius: "var(--r-chip)", cursor: "pointer", fontFamily: "inherit",
                   fontSize: 12.5, fontWeight: 800,
                   border: soft ? "1px solid var(--border-strong)" : "none",
