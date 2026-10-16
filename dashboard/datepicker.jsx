@@ -28,7 +28,7 @@
   const css = `
 .pgdp-wrap{position:fixed;inset:0;z-index:10050;-webkit-tap-highlight-color:transparent}
 .pgdp{position:fixed;width:316px;box-sizing:border-box;padding:14px 14px 14px;border-radius:var(--r-card);
-  background:var(--surface,#fff);color:var(--text-1,#0F2B33);font-family:inherit;
+  background:var(--bg,#fff);color:var(--text-1,#0F2B33);font-family:inherit;
   box-shadow:var(--shadow-card),0 28px 56px -16px rgba(15,43,51,.22);
   opacity:0;transform:translateY(-4px) scale(.985);transform-origin:top center;transition:opacity .14s ease,transform .18s ease}
 .pgdp.on{opacity:1;transform:none}

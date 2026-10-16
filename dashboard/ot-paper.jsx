@@ -175,8 +175,13 @@ function TmOtPaper({ person, period, rows, jobs, users, cfg, byName, onClose }) 
                     <td style={Object.assign({}, td, { fontFamily: "var(--mono)" })}>{o.to || "—"}</td>
                     <td style={Object.assign({}, td, { fontFamily: "var(--mono)", fontWeight: 700 })}>{tmHrDec(o.mins)}</td>
                     <td style={td}>{window.tmOtKindOf(o.kind).th}</td>
-                    <td style={Object.assign({}, td, { fontFamily: "var(--mono)" })}>×{Math.round(rt * 100) / 100}</td>
-                    <td style={Object.assign({}, td, { fontFamily: "var(--mono)", fontWeight: 700 })}>{tmHrDec((+o.mins || 0) * rt)}</td>
+                    {/* วันหยุดแบบใหม่แยกช่วง (8 ชม.แรก ×1.5 + เกิน ×2) — โชว์ทุกช่วง ไม่ใช่ตัวคูณเดียว */}
+                    <td style={Object.assign({}, td, { fontFamily: "var(--mono)" })}>
+                      {o.parts && o.parts.length
+                        ? o.parts.map((p, k) => <span key={k} style={{ display: "block", whiteSpace: "nowrap" }}>{tmHrDec(p.mins)}×{Math.round(p.rate * 100) / 100}</span>)
+                        : "×" + Math.round(rt * 100) / 100}
+                    </td>
+                    <td style={Object.assign({}, td, { fontFamily: "var(--mono)", fontWeight: 700 })}>{tmHrDec(window.tmOtPayMins(o, cfg))}</td>
                     <td style={tdL}>
                       {o.jobCode ? <span style={{ fontFamily: "var(--mono)", fontWeight: 700 }}>{o.jobCode}</span> : <span style={{ color: "var(--paper-mute)" }}>ไม่ระบุงาน</span>}
                       {nm && <span style={{ display: "block", color: "var(--paper-ink2)" }}>{nm}</span>}

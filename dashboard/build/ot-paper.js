@@ -396,12 +396,18 @@ function TmOtPaper({
       style: Object.assign({}, td, {
         fontFamily: "var(--mono)"
       })
-    }, "\xD7", Math.round(rt * 100) / 100), React.createElement("td", {
+    }, o.parts && o.parts.length ? o.parts.map((p, k) => React.createElement("span", {
+      key: k,
+      style: {
+        display: "block",
+        whiteSpace: "nowrap"
+      }
+    }, tmHrDec(p.mins), "\xD7", Math.round(p.rate * 100) / 100)) : "×" + Math.round(rt * 100) / 100), React.createElement("td", {
       style: Object.assign({}, td, {
         fontFamily: "var(--mono)",
         fontWeight: 700
       })
-    }, tmHrDec((+o.mins || 0) * rt)), React.createElement("td", {
+    }, tmHrDec(window.tmOtPayMins(o, cfg))), React.createElement("td", {
       style: tdL
     }, o.jobCode ? React.createElement("span", {
       style: {

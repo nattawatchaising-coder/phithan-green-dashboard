@@ -653,7 +653,7 @@ function tmPersonSheet(X, person, list, recs, days, ym, cfg, FONT, C) {
     const mins = +o.mins || 0;
     const rt = window.tmOtRate(o, cfg);
     push([i + 1, window.drDateTH(o.date), o.from || "", o.to || "", H(mins),
-      window.tmOtKindOf(o.kind).th, rt, H(mins * rt), o.jobCode || "—", o.reason || "",
+      window.tmOtKindOf(o.kind).th, o.parts && o.parts.length ? window.tmOtPartsTH(o.parts) : rt, H(window.tmOtPayMins(o, cfg)), o.jobCode || "—", o.reason || "",
       window.tmOtStatusOf(o.status).th, o.approverName || "—", ""], alt ? "itemAlt2" : "item2", 19);
     alt = !alt;
   });
@@ -767,6 +767,7 @@ function TmOtModal({ rec, cfg, jobs, users, role, currentUser, onSave, onMove, o
   const [f, setF] = React.useState(rec);
   React.useEffect(() => { setF(rec); }, [rec && rec.id]);
   const box = window.useBackdropClose ? window.useBackdropClose(onClose) : {};
+  const isAdmin = window.usePgAdmin ? window.usePgAdmin() : false;
   if (!f) return null;
 
   const mine = currentUser && f.userId === currentUser.id;
@@ -941,8 +942,12 @@ function TmOtModal({ rec, cfg, jobs, users, role, currentUser, onSave, onMove, o
           {f.status === "sent" && !mine && why && (
             <span style={{ fontSize: 11.5, color: "var(--text-3)" }}>{why}</span>
           )}
-          {mine && f.status === "draft" && onDelete && (
-            <button onClick={() => { onDelete(f.id); onClose(); }}
+          {/* เจ้าของลบร่างตัวเองได้ · แอดมินลบได้ทุกสถานะ (ใบซ้ำ/ใบผิด) — ลบแล้วกู้ไม่ได้ จึงต้องยืนยันก่อน */}
+          {((mine && f.status === "draft") || isAdmin) && onDelete && (
+            <button onClick={async () => {
+              const ok = await window.askConfirm({ title: "ลบใบ " + (f.no || "OT") + " ?", body: "ลบแล้วกู้คืนไม่ได้", ok: "ลบใบนี้", danger: true });
+              if (ok) { onDelete(f.id); onClose(); }
+            }}
               style={{ marginLeft: "auto", padding: "9px 14px", borderRadius: "var(--r-chip)", border: "1px solid var(--border-strong)",
                 background: "var(--surface)", cursor: "pointer", fontFamily: "inherit", fontSize: 12.5, fontWeight: 700, color: "var(--tint-red-tx2)" }}>ลบใบนี้</button>
           )}
@@ -1504,7 +1509,26 @@ function AttendView({ jobs, users, role, currentUser }) {
               ? <div style={{ padding: 34, textAlign: "center", color: "var(--text-3)", fontSize: 13 }}>
                   {tab === "inbox" ? "ไม่มีใบรอคุณอนุมัติ" : "ยังไม่มีใบ OT"}
                 </div>
-              : list.map((r) => <TmOtRow key={r.id} rec={r} users={users} onOpen={(x) => setOpen(x.id)} />)}
+              : list.map((r, i) => {
+                  /* แบ่งหัวรายเดือน — list เรียงวันที่ใหม่→เก่าอยู่แล้ว จึงขึ้นหัวใหม่เมื่อเดือนเปลี่ยน */
+                  const ym = String(r.date || "").slice(0, 7);
+                  const head = i === 0 || String(list[i - 1].date || "").slice(0, 7) !== ym;
+                  const inM = head ? list.filter((x) => String(x.date || "").slice(0, 7) === ym) : null;
+                  const okM = inM ? inM.filter((x) => x.status === "approved").reduce((s, x) => s + (Number(x.mins) || 0), 0) : 0;
+                  return (
+                    <React.Fragment key={r.id}>
+                      {head && (
+                        <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "9px 14px", background: "var(--surface2)",
+                          fontSize: 12.5, fontWeight: 800, color: "var(--text-1)" }}>
+                          {ym ? window.tmYmTH(ym) : "ไม่ระบุวันที่"}
+                          <span style={{ fontSize: 11.5, fontWeight: 600, color: "var(--text-3)" }}>{inM.length} ใบ</span>
+                          {okM > 0 && <span style={{ marginLeft: "auto", fontSize: 11.5, fontWeight: 700, color: "var(--text-2)" }}>อนุมัติแล้ว {window.tmDur(okM)}</span>}
+                        </div>
+                      )}
+                      <TmOtRow rec={r} users={users} onOpen={(x) => setOpen(x.id)} />
+                    </React.Fragment>
+                  );
+                })}
           </div>
         </React.Fragment>
       )}

@@ -1435,7 +1435,7 @@ function tmPersonSheet(X, person, list, recs, days, ym, cfg, FONT, C) {
   list.forEach((o, i) => {
     const mins = +o.mins || 0;
     const rt = window.tmOtRate(o, cfg);
-    push([i + 1, window.drDateTH(o.date), o.from || "", o.to || "", H(mins), window.tmOtKindOf(o.kind).th, rt, H(mins * rt), o.jobCode || "—", o.reason || "", window.tmOtStatusOf(o.status).th, o.approverName || "—", ""], alt ? "itemAlt2" : "item2", 19);
+    push([i + 1, window.drDateTH(o.date), o.from || "", o.to || "", H(mins), window.tmOtKindOf(o.kind).th, o.parts && o.parts.length ? window.tmOtPartsTH(o.parts) : rt, H(window.tmOtPayMins(o, cfg)), o.jobCode || "—", o.reason || "", window.tmOtStatusOf(o.status).th, o.approverName || "—", ""], alt ? "itemAlt2" : "item2", 19);
     alt = !alt;
   });
   if (list.length) {
@@ -1879,6 +1879,7 @@ function TmOtModal({
     setF(rec);
   }, [rec && rec.id]);
   const box = window.useBackdropClose ? window.useBackdropClose(onClose) : {};
+  const isAdmin = window.usePgAdmin ? window.usePgAdmin() : false;
   if (!f) return null;
   const mine = currentUser && f.userId === currentUser.id;
   const editable = mine && f.status === "draft";
@@ -2253,10 +2254,18 @@ function TmOtModal({
       fontSize: 11.5,
       color: "var(--text-3)"
     }
-  }, why), mine && f.status === "draft" && onDelete && React.createElement("button", {
-    onClick: () => {
-      onDelete(f.id);
-      onClose();
+  }, why), (mine && f.status === "draft" || isAdmin) && onDelete && React.createElement("button", {
+    onClick: async () => {
+      const ok = await window.askConfirm({
+        title: "ลบใบ " + (f.no || "OT") + " ?",
+        body: "ลบแล้วกู้คืนไม่ได้",
+        ok: "ลบใบนี้",
+        danger: true
+      });
+      if (ok) {
+        onDelete(f.id);
+        onClose();
+      }
     },
     style: {
       marginLeft: "auto",
@@ -3442,12 +3451,43 @@ function AttendView({
       color: "var(--text-3)",
       fontSize: 13
     }
-  }, tab === "inbox" ? "ไม่มีใบรอคุณอนุมัติ" : "ยังไม่มีใบ OT") : list.map(r => React.createElement(TmOtRow, {
-    key: r.id,
-    rec: r,
-    users: users,
-    onOpen: x => setOpen(x.id)
-  })))), cur && React.createElement(TmOtModal, {
+  }, tab === "inbox" ? "ไม่มีใบรอคุณอนุมัติ" : "ยังไม่มีใบ OT") : list.map((r, i) => {
+    const ym = String(r.date || "").slice(0, 7);
+    const head = i === 0 || String(list[i - 1].date || "").slice(0, 7) !== ym;
+    const inM = head ? list.filter(x => String(x.date || "").slice(0, 7) === ym) : null;
+    const okM = inM ? inM.filter(x => x.status === "approved").reduce((s, x) => s + (Number(x.mins) || 0), 0) : 0;
+    return React.createElement(React.Fragment, {
+      key: r.id
+    }, head && React.createElement("div", {
+      style: {
+        display: "flex",
+        alignItems: "center",
+        gap: 10,
+        padding: "9px 14px",
+        background: "var(--surface2)",
+        fontSize: 12.5,
+        fontWeight: 800,
+        color: "var(--text-1)"
+      }
+    }, ym ? window.tmYmTH(ym) : "ไม่ระบุวันที่", React.createElement("span", {
+      style: {
+        fontSize: 11.5,
+        fontWeight: 600,
+        color: "var(--text-3)"
+      }
+    }, inM.length, " \u0E43\u0E1A"), okM > 0 && React.createElement("span", {
+      style: {
+        marginLeft: "auto",
+        fontSize: 11.5,
+        fontWeight: 700,
+        color: "var(--text-2)"
+      }
+    }, "\u0E2D\u0E19\u0E38\u0E21\u0E31\u0E15\u0E34\u0E41\u0E25\u0E49\u0E27 ", window.tmDur(okM))), React.createElement(TmOtRow, {
+      rec: r,
+      users: users,
+      onOpen: x => setOpen(x.id)
+    }));
+  }))), cur && React.createElement(TmOtModal, {
     rec: cur,
     cfg: wh.cfg,
     jobs: jobSorted,
