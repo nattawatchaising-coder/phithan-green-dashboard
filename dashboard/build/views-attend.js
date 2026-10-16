@@ -2455,16 +2455,31 @@ function TmLegend({
 const TM_LEG = [["var(--primary-soft)", "เวลางานปกติ"], ["var(--primary)", "ทำงาน"], ["repeating-linear-gradient(-45deg,var(--primary) 0 3px,var(--primary-bright) 3px 6px)", "ยังไม่ออก"], ["var(--tint-red-tx2)", "ลืมกดออก"]];
 function TmEmpty({
   icon,
+  tone,
   children
 }) {
   return React.createElement("div", {
     className: "tmv-empty"
-  }, React.createElement("i", null, React.createElement(Icon, {
+  }, React.createElement("i", {
+    style: tone ? {
+      background: "var(--st-design-soft)"
+    } : undefined
+  }, React.createElement(Icon, {
     name: icon || "clock",
     size: 22,
-    color: "var(--text-3)"
+    color: tone || "var(--text-3)"
   })), children);
 }
+const TM_WD_FULL = ["วันอาทิตย์", "วันจันทร์", "วันอังคาร", "วันพุธ", "วันพฤหัสบดี", "วันศุกร์", "วันเสาร์"];
+function tmOffTH(d, cfg) {
+  if (window.tmIsWorkday(d, cfg)) return "";
+  const n = window.tmWhNorm(cfg).holidays[String(d || "").slice(0, 10)];
+  return "วันหยุด · " + (n || TM_WD_FULL[tmWdOf(d)]);
+}
+const TM_OFF_PILL = {
+  background: "var(--st-design-soft)",
+  color: "var(--st-design-fg)"
+};
 function TmHero({
   me,
   cfg,
@@ -2477,8 +2492,15 @@ function TmHero({
   const t = me.today;
   const inHM = t && t.in && t.in.hm,
     outHM = t && t.out && t.out.hm;
-  const state = !inHM ? "none" : outHM ? "done" : "live";
+  const offTH = tmOffTH(window.drToday(), cfg);
+  const state = !inHM ? offTH ? "off" : "none" : outHM ? "done" : "live";
   const ST = {
+    off: {
+      th: offTH,
+      bg: TM_OFF_PILL.background,
+      fg: TM_OFF_PILL.color,
+      ic: "calendar"
+    },
     none: {
       th: "ยังไม่ได้ลงเวลา",
       bg: "var(--tint-amber-bg2)",
@@ -2527,9 +2549,9 @@ function TmHero({
   }, "\u0E22\u0E31\u0E07\u0E44\u0E21\u0E48\u0E2D\u0E2D\u0E01")) : React.createElement("span", {
     style: {
       fontSize: 21,
-      color: "var(--text-2)"
+      color: state === "off" ? "var(--st-design-fg)" : "var(--text-2)"
     }
-  }, "\u0E22\u0E31\u0E07\u0E44\u0E21\u0E48\u0E44\u0E14\u0E49\u0E25\u0E07\u0E40\u0E27\u0E25\u0E32")), React.createElement("div", {
+  }, state === "off" ? "วันนี้วันหยุด" : "ยังไม่ได้ลงเวลา")), React.createElement("div", {
     style: {
       display: "flex",
       gap: 8,
@@ -2543,12 +2565,15 @@ function TmHero({
       background: ST.bg,
       color: ST.fg
     }
-  }, ST.th), React.createElement("span", {
+  }, ST.th), offTH && state !== "off" && React.createElement("span", {
+    className: "tmv-pill",
+    style: TM_OFF_PILL
+  }, offTH), React.createElement("span", {
     className: "tmv-k",
     style: {
       fontWeight: 600
     }
-  }, state === "none" ? "ลงเวลาจากแอปในไลน์" : state === "done" ? "ทำงาน " + window.tmDur(window.tmWorkedMins(t, cfg)) : "เข้างานแล้ว"), React.createElement("span", {
+  }, state === "off" ? "ถ้ามาทำงานให้ลงเวลาตามปกติ" : state === "none" ? "ลงเวลาจากแอปในไลน์" : state === "done" ? "ทำงาน " + window.tmDur(window.tmWorkedMins(t, cfg)) : "เข้างานแล้ว"), React.createElement("span", {
     className: "tmv-k",
     style: {
       fontWeight: 600
@@ -2704,8 +2729,8 @@ function TmDaySheet({
     setMsg("แก้เวลาของ " + (ed.user.name || "") + " แล้ว · " + ed.inHM + " – " + (ed.outHM || "ยังไม่ออก"));
     setEd(null);
   };
-  const holiday = window.tmIsHoliday(date, cfg);
   const workday = st.workday;
+  const offTH = tmOffTH(date, cfg);
   const rows = st.rows.slice().sort((a, b) => String(a.in || "99").localeCompare(String(b.in || "99")));
   const totalMins = rows.reduce((a, r) => a + (+r.mins || 0), 0);
   const items = rows.map(r => {
@@ -2808,19 +2833,15 @@ function TmDaySheet({
   }), !isToday && React.createElement("button", {
     className: "btn btn-sm",
     onClick: () => setDate(today)
-  }, "\u0E01\u0E25\u0E31\u0E1A\u0E21\u0E32\u0E27\u0E31\u0E19\u0E19\u0E35\u0E49"), holiday ? React.createElement("span", {
+  }, "\u0E01\u0E25\u0E31\u0E1A\u0E21\u0E32\u0E27\u0E31\u0E19\u0E19\u0E35\u0E49"), offTH && React.createElement("span", {
     className: "tmv-pill",
-    style: {
-      background: "var(--tint-red-bg)",
-      color: "var(--tint-red-tx)"
-    }
-  }, "\u0E27\u0E31\u0E19\u0E2B\u0E22\u0E38\u0E14 \xB7 ", window.tmWhNorm(cfg).holidays[date]) : !workday ? React.createElement("span", {
-    className: "tmv-pill",
-    style: {
-      background: "var(--surface3)",
-      color: "var(--text-2)"
-    }
-  }, "\u0E19\u0E2D\u0E01\u0E27\u0E31\u0E19\u0E17\u0E33\u0E07\u0E32\u0E19") : null, isAdmin && React.createElement("select", {
+    style: TM_OFF_PILL
+  }, React.createElement(Icon, {
+    name: "calendar",
+    size: 12,
+    color: "var(--st-design-fg)",
+    sw: 2.2
+  }), " ", offTH), isAdmin && React.createElement("select", {
     value: "",
     title: "\u0E25\u0E07\u0E40\u0E27\u0E25\u0E32\u0E41\u0E17\u0E19",
     onChange: e => {
@@ -2909,11 +2930,26 @@ function TmDaySheet({
     className: "t"
   }, "\u0E40\u0E02\u0E49\u0E32-\u0E2D\u0E2D\u0E01\u0E07\u0E32\u0E19"), React.createElement("span", {
     className: "s"
-  }, rows.length, " \u0E04\u0E19 \xB7 \u0E23\u0E27\u0E21 ", window.tmDur(totalMins), stillIn ? " · ยังทำงานอยู่ " + stillIn : "", forgotN ? " · ลืมกดออก " + forgotN : ""), React.createElement("span", {
+  }, rows.length, " \u0E04\u0E19 \xB7 \u0E23\u0E27\u0E21 ", window.tmDur(totalMins), stillIn ? " · ยังทำงานอยู่ " + stillIn : "", forgotN ? " · ลืมกดออก " + forgotN : ""), offTH && React.createElement("span", {
+    className: "tmv-pill",
+    style: TM_OFF_PILL
+  }, offTH), React.createElement("span", {
     className: "r"
   }, React.createElement(TmLegend, {
     items: TM_LEG
-  }))), st.loading ? React.createElement(TmEmpty, null, "\u0E01\u0E33\u0E25\u0E31\u0E07\u0E42\u0E2B\u0E25\u0E14\u2026") : rows.length === 0 ? React.createElement(TmEmpty, null, "\u0E22\u0E31\u0E07\u0E44\u0E21\u0E48\u0E21\u0E35\u0E43\u0E04\u0E23\u0E25\u0E07\u0E40\u0E27\u0E25\u0E32\u0E43\u0E19\u0E27\u0E31\u0E19\u0E19\u0E35\u0E49", React.createElement("br", null), React.createElement("span", {
+  }))), st.loading ? React.createElement(TmEmpty, null, "\u0E01\u0E33\u0E25\u0E31\u0E07\u0E42\u0E2B\u0E25\u0E14\u2026") : rows.length === 0 ? offTH ? React.createElement(TmEmpty, {
+    icon: "calendar",
+    tone: "var(--st-design-fg)"
+  }, React.createElement("b", {
+    style: {
+      fontSize: 14,
+      color: "var(--st-design-fg)"
+    }
+  }, offTH), React.createElement("span", {
+    style: {
+      fontSize: 11.5
+    }
+  }, "\u0E44\u0E21\u0E48\u0E21\u0E35\u0E43\u0E04\u0E23\u0E21\u0E32\u0E17\u0E33\u0E07\u0E32\u0E19 \u2014 \u0E16\u0E49\u0E32\u0E21\u0E35\u0E04\u0E19\u0E21\u0E32\u0E17\u0E33\u0E07\u0E32\u0E19\u0E27\u0E31\u0E19\u0E2B\u0E22\u0E38\u0E14\u0E08\u0E30\u0E02\u0E36\u0E49\u0E19\u0E17\u0E35\u0E48\u0E19\u0E35\u0E48")) : React.createElement(TmEmpty, null, "\u0E22\u0E31\u0E07\u0E44\u0E21\u0E48\u0E21\u0E35\u0E43\u0E04\u0E23\u0E25\u0E07\u0E40\u0E27\u0E25\u0E32\u0E43\u0E19\u0E27\u0E31\u0E19\u0E19\u0E35\u0E49", React.createElement("br", null), React.createElement("span", {
     style: {
       fontSize: 11.5
     }
@@ -3058,6 +3094,7 @@ function TmMyDays({
     const forgot = !!(r.date !== today && inHM && !outHM);
     if (live) b = Math.max(nowM, a + 5);
     const wd = TM_WD_TH[tmWdOf(r.date)];
+    const offTH = tmOffTH(r.date, cfg);
     return {
       key: r.date,
       a: a,
@@ -3070,7 +3107,7 @@ function TmMyDays({
           width: 38,
           height: 38,
           borderRadius: "var(--r-chip)",
-          background: "var(--surface2)",
+          background: offTH ? "var(--st-design-soft)" : "var(--surface2)",
           display: "grid",
           placeItems: "center",
           flexShrink: 0,
@@ -3085,14 +3122,14 @@ function TmMyDays({
           display: "block",
           fontSize: 9.5,
           fontWeight: 700,
-          color: "var(--text-3)"
+          color: offTH ? "var(--st-design-fg)" : "var(--text-3)"
         }
       }, wd), React.createElement("span", {
         style: {
           fontFamily: "var(--display)",
           fontSize: 15,
           fontWeight: 700,
-          color: "var(--text-1)"
+          color: offTH ? "var(--st-design-fg)" : "var(--text-1)"
         }
       }, +String(r.date).slice(8)))), React.createElement("div", {
         style: {
@@ -3102,7 +3139,12 @@ function TmMyDays({
         className: "tmv-who-n"
       }, window.drDateTH(r.date)), React.createElement("div", {
         className: "tmv-who-s"
-      }, r.jobCode ? React.createElement("span", {
+      }, offTH ? React.createElement("span", {
+        style: {
+          color: "var(--st-design-fg)",
+          fontWeight: 700
+        }
+      }, offTH) : null, r.jobCode ? React.createElement("span", {
         style: {
           fontFamily: "var(--mono)"
         }
@@ -4020,6 +4062,7 @@ Object.assign(window, {
   TmCard,
   TmReqCard,
   TmHeat,
+  tmOffTH,
   useTmDayStatus,
   tmExportMonthXlsx,
   tmPersonSheet,

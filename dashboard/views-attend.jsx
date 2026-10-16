@@ -1168,16 +1168,28 @@ function TmLegend({ items }) {
 const TM_LEG = [["var(--primary-soft)", "เวลางานปกติ"], ["var(--primary)", "ทำงาน"],
   ["repeating-linear-gradient(-45deg,var(--primary) 0 3px,var(--primary-bright) 3px 6px)", "ยังไม่ออก"], ["var(--tint-red-tx2)", "ลืมกดออก"]];
 
-function TmEmpty({ icon, children }) {
-  return <div className="tmv-empty"><i><Icon name={icon || "clock"} size={22} color="var(--text-3)" /></i>{children}</div>;
+function TmEmpty({ icon, tone, children }) {
+  return <div className="tmv-empty"><i style={tone ? { background: "var(--st-design-soft)" } : undefined}><Icon name={icon || "clock"} size={22} color={tone || "var(--text-3)"} /></i>{children}</div>;
 }
+
+/* วันหยุด → ข้อความที่โชว์ "วันหยุด · วันปิยมหาราช" / "วันหยุด · วันเสาร์" · วันทำงาน = ""
+   (ผู้ใช้สั่ง ต.ค. 2026: วันหยุดต้องระบุให้เห็น) — สีม่วง --st-design ตรงกับช่องวันหยุดในแถบสีรายวัน */
+const TM_WD_FULL = ["วันอาทิตย์", "วันจันทร์", "วันอังคาร", "วันพุธ", "วันพฤหัสบดี", "วันศุกร์", "วันเสาร์"];
+function tmOffTH(d, cfg) {
+  if (window.tmIsWorkday(d, cfg)) return "";
+  const n = window.tmWhNorm(cfg).holidays[String(d || "").slice(0, 10)];
+  return "วันหยุด · " + (n || TM_WD_FULL[tmWdOf(d)]);
+}
+const TM_OFF_PILL = { background: "var(--st-design-soft)", color: "var(--st-design-fg)" };
 
 /* ── แถบบนสุด ── */
 function TmHero({ me, cfg, users, canAll, otMonthMins, canOt, onNewOt }) {
   const t = me.today;
   const inHM = t && t.in && t.in.hm, outHM = t && t.out && t.out.hm;
-  const state = !inHM ? "none" : outHM ? "done" : "live";
+  const offTH = tmOffTH(window.drToday(), cfg);
+  const state = !inHM ? (offTH ? "off" : "none") : outHM ? "done" : "live";
   const ST = {
+    off: { th: offTH, bg: TM_OFF_PILL.background, fg: TM_OFF_PILL.color, ic: "calendar" },
     none: { th: "ยังไม่ได้ลงเวลา", bg: "var(--tint-amber-bg2)", fg: "var(--tint-amber-tx)", ic: "clock" },
     live: { th: "กำลังทำงาน", bg: "var(--primary-soft)", fg: "var(--primary-dark)", ic: "clock" },
     done: { th: "ออกงานแล้ว", bg: "var(--surface2)", fg: "var(--text-2)", ic: "check" },
@@ -1190,12 +1202,13 @@ function TmHero({ me, cfg, users, canAll, otMonthMins, canOt, onNewOt }) {
           <div className="tmv-k">วันนี้ของฉัน · {window.drDateTH(window.drToday(), true)}</div>
           <div className="tmv-big">
             {inHM ? <React.Fragment>{inHM}<small>→</small>{outHM || <small style={{ margin: 0 }}>ยังไม่ออก</small>}</React.Fragment>
-              : <span style={{ fontSize: 21, color: "var(--text-2)" }}>ยังไม่ได้ลงเวลา</span>}
+              : <span style={{ fontSize: 21, color: state === "off" ? "var(--st-design-fg)" : "var(--text-2)" }}>{state === "off" ? "วันนี้วันหยุด" : "ยังไม่ได้ลงเวลา"}</span>}
           </div>
           <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap", marginTop: 3 }}>
             <span className="tmv-pill" style={{ background: ST.bg, color: ST.fg }}>{ST.th}</span>
+            {offTH && state !== "off" && <span className="tmv-pill" style={TM_OFF_PILL}>{offTH}</span>}
             <span className="tmv-k" style={{ fontWeight: 600 }}>
-              {state === "none" ? "ลงเวลาจากแอปในไลน์" : state === "done" ? "ทำงาน " + window.tmDur(window.tmWorkedMins(t, cfg)) : "เข้างานแล้ว"}
+              {state === "off" ? "ถ้ามาทำงานให้ลงเวลาตามปกติ" : state === "none" ? "ลงเวลาจากแอปในไลน์" : state === "done" ? "ทำงาน " + window.tmDur(window.tmWorkedMins(t, cfg)) : "เข้างานแล้ว"}
             </span>
             <span className="tmv-k" style={{ fontWeight: 600 }}>· OT อนุมัติเดือนนี้ <b style={{ color: "var(--text-1)" }}>{otMonthMins ? window.tmDur(otMonthMins) : "—"}</b></span>
           </div>
@@ -1299,8 +1312,8 @@ function TmDaySheet({ date, setDate, cfg, users, currentUser }) {
     setMsg("แก้เวลาของ " + (ed.user.name || "") + " แล้ว · " + ed.inHM + " – " + (ed.outHM || "ยังไม่ออก"));
     setEd(null);
   };
-  const holiday = window.tmIsHoliday(date, cfg);
   const workday = st.workday;
+  const offTH = tmOffTH(date, cfg);
 
   const rows = st.rows.slice().sort((a, b) => String(a.in || "99").localeCompare(String(b.in || "99")));
   const totalMins = rows.reduce((a, r) => a + (+r.mins || 0), 0);
@@ -1356,8 +1369,7 @@ function TmDaySheet({ date, setDate, cfg, users, currentUser }) {
         <input type="date" value={date} onChange={(e) => setDate(e.target.value || today)} title="เลือกวัน"
           style={Object.assign({}, TM_IN, { padding: "7px 10px", fontSize: 12.5 })} />
         {!isToday && <button className="btn btn-sm" onClick={() => setDate(today)}>กลับมาวันนี้</button>}
-        {holiday ? <span className="tmv-pill" style={{ background: "var(--tint-red-bg)", color: "var(--tint-red-tx)" }}>วันหยุด · {window.tmWhNorm(cfg).holidays[date]}</span>
-          : !workday ? <span className="tmv-pill" style={{ background: "var(--surface3)", color: "var(--text-2)" }}>นอกวันทำงาน</span> : null}
+        {offTH && <span className="tmv-pill" style={TM_OFF_PILL}><Icon name="calendar" size={12} color="var(--st-design-fg)" sw={2.2} /> {offTH}</span>}
         {/* ลงเวลาแทนคนที่ไม่อยู่ในรายการ (เช่น วันหยุดที่ไม่มีแถว "ยังไม่ลงเวลา") */}
         {isAdmin && (
           <select value="" title="ลงเวลาแทน" onChange={(e) => { const u = attendUsers.find((x) => x.id === e.target.value); if (!u) return;
@@ -1414,10 +1426,13 @@ function TmDaySheet({ date, setDate, cfg, users, currentUser }) {
           <span className="t">เข้า-ออกงาน</span>
           <span className="s">{rows.length} คน · รวม {window.tmDur(totalMins)}
             {stillIn ? " · ยังทำงานอยู่ " + stillIn : ""}{forgotN ? " · ลืมกดออก " + forgotN : ""}</span>
+          {offTH && <span className="tmv-pill" style={TM_OFF_PILL}>{offTH}</span>}
           <span className="r"><TmLegend items={TM_LEG} /></span>
         </div>
         {st.loading ? <TmEmpty>กำลังโหลด…</TmEmpty>
-          : rows.length === 0 ? <TmEmpty>ยังไม่มีใครลงเวลาในวันนี้<br /><span style={{ fontSize: 11.5 }}>ช่างลงเวลาเข้า-ออกจากแอปในไลน์</span></TmEmpty>
+          : rows.length === 0 ? (offTH
+            ? <TmEmpty icon="calendar" tone="var(--st-design-fg)"><b style={{ fontSize: 14, color: "var(--st-design-fg)" }}>{offTH}</b><span style={{ fontSize: 11.5 }}>ไม่มีใครมาทำงาน — ถ้ามีคนมาทำงานวันหยุดจะขึ้นที่นี่</span></TmEmpty>
+            : <TmEmpty>ยังไม่มีใครลงเวลาในวันนี้<br /><span style={{ fontSize: 11.5 }}>ช่างลงเวลาเข้า-ออกจากแอปในไลน์</span></TmEmpty>)
           : <TmTimeline items={items} range={range} nowM={isToday ? nowM : null} band={workday ? range.band : null} />}
       </TmCard>
 
@@ -1478,18 +1493,20 @@ function TmMyDays({ rows, cfg }) {
     const forgot = !!(r.date !== today && inHM && !outHM);
     if (live) b = Math.max(nowM, a + 5);
     const wd = TM_WD_TH[tmWdOf(r.date)];
+    const offTH = tmOffTH(r.date, cfg);
     return {
       key: r.date, a: a, b: forgot ? null : b, live: live, forgot: forgot, now: r.date === today,
       who: <React.Fragment>
-        <span style={{ width: 38, height: 38, borderRadius: "var(--r-chip)", background: "var(--surface2)", display: "grid", placeItems: "center", flexShrink: 0, lineHeight: 1.05 }}>
+        <span style={{ width: 38, height: 38, borderRadius: "var(--r-chip)", background: offTH ? "var(--st-design-soft)" : "var(--surface2)", display: "grid", placeItems: "center", flexShrink: 0, lineHeight: 1.05 }}>
           <span style={{ textAlign: "center" }}>
-            <span style={{ display: "block", fontSize: 9.5, fontWeight: 700, color: "var(--text-3)" }}>{wd}</span>
-            <span style={{ fontFamily: "var(--display)", fontSize: 15, fontWeight: 700, color: "var(--text-1)" }}>{+String(r.date).slice(8)}</span>
+            <span style={{ display: "block", fontSize: 9.5, fontWeight: 700, color: offTH ? "var(--st-design-fg)" : "var(--text-3)" }}>{wd}</span>
+            <span style={{ fontFamily: "var(--display)", fontSize: 15, fontWeight: 700, color: offTH ? "var(--st-design-fg)" : "var(--text-1)" }}>{+String(r.date).slice(8)}</span>
           </span>
         </span>
         <div style={{ minWidth: 0 }}>
           <div className="tmv-who-n">{window.drDateTH(r.date)}</div>
           <div className="tmv-who-s">
+            {offTH ? <span style={{ color: "var(--st-design-fg)", fontWeight: 700 }}>{offTH}</span> : null}
             {r.jobCode ? <span style={{ fontFamily: "var(--mono)" }}>{r.jobCode}</span> : null}
             {!(r.in && r.in.lat) && <span style={{ color: "var(--tint-amber-tx)", fontWeight: 700 }}>ไม่มีพิกัด</span>}
           </div>
@@ -1994,6 +2011,6 @@ function AttendView({ jobs, users, role, currentUser }) {
 }
 
 Object.assign(window, { TM_IN, TM_IN_W, TM_LB, TM_WD_TH, tmWdOf, AttendView, TmDaySheet, TmMonthAll, TmRequests, TmSettings, TmDayGrid,
-  TmMyDays, TmOtModal, TmOtRow, TmWorkHours, TmFacts, TmHelp, TmHero, TmTeamToday, TmTimeline, TmAvatar, TmSeg, TmCard, TmReqCard, TmHeat,
+  TmMyDays, TmOtModal, TmOtRow, TmWorkHours, TmFacts, TmHelp, TmHero, TmTeamToday, TmTimeline, TmAvatar, TmSeg, TmCard, TmReqCard, TmHeat, tmOffTH,
   useTmDayStatus, tmExportMonthXlsx, tmPersonSheet, tmSheetName,
   TmStat, TmPill });
