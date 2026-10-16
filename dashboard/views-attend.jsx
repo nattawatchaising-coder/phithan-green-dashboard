@@ -49,237 +49,6 @@ function TmStat({ label, value, unit, color, hint, on, onClick }) {
   );
 }
 
-/* ── แผ่นเวลารายวัน ── */
-function TmDaySheet({ date, setDate, cfg, users, currentUser }) {
-  /* คนที่ลา (อนุมัติแล้ว) ไม่ได้ "ขาด" — แยกออกจากรายการยังไม่ได้ลงเวลา */
-  const lvRows = window.useLeaves().rows;
-  const lvTypes = window.useLeaveTypes().types;
-  const onLeave = React.useMemo(() => window.lvOnDay(lvRows, date), [lvRows, date]);
-  const day = window.useAttendDay(date);
-  const admin = window.useAttendAdmin(currentUser);
-  /* ข้อความผลลัพธ์ของการลบ — ลบแล้วแถวหายไปเฉย ๆ อ่านเหมือนกดพลาดแล้วจอเพี้ยน
-     ต้องมีบรรทัดบอกว่าลบของใครไปแล้ว ไม่ใช่ให้เดาจากตารางที่สั้นลงหนึ่งแถว */
-  const [msg, setMsg] = React.useState("");
-
-  /* ชื่อจากทะเบียนผู้ใช้ ไม่ใช่ชื่อที่ถ่ายสำเนาไว้ในใบตอนปั๊มเวลา — ดู tmNameOf */
-  const nameOf = (r) => window.tmNameOf(users, r.userId, r.name);
-
-  /* ช่องพิกัด — สี่สภาพที่ต้องแยกให้ขาด ไม่ใช่ยุบเป็น มี/ไม่มี:
-       ไม่มีพิกัดเลย · มีพิกัดแต่เป็นใบเก่าที่ยังไม่ได้เก็บตัวเลขไว้ในดัชนี ·
-       มีพิกัดแต่ยังไม่ได้ตั้งพิกัดออฟฟิศ · มีครบทั้งสองฝั่งจึงบอกระยะได้
-     ระยะเป็นข้อมูลให้คนอ่านตัดสิน ไม่ได้แปลว่าใบนั้นใช้ไม่ได้ */
-  const gpsCell = (r) => {
-    /* แอดมินแก้/ลงเวลาแทน — ไม่เตือนไม่มีพิกัด (ผู้ใช้ 2026-10-16 ไม่ต้องมีป้าย "แก้โดยแอดมิน" ด้วย) */
-    if (!r.gps && r.fix) return <span style={{ fontSize: 11.5, color: "var(--text-3)" }}>—</span>;
-    if (!r.gps) return <span style={{ fontSize: 11.5, color: "#F59E0B", fontWeight: 700 }}>ไม่มีพิกัด</span>;
-    const ok = <span style={{ fontSize: 11.5, color: "#10B981", fontWeight: 700 }}>มีพิกัด</span>;
-    if (r.lat == null || r.lng == null) return ok;
-    const d = window.tmOfficeDist(r, cfg);
-    const link = (kid) => (
-      <a href={window.tmGpsUrl(r)} target="_blank" rel="noreferrer"
-        title={"พิกัดตอนเข้างาน " + window.tmGpsTH(r)}
-        style={{ fontSize: 11.5, fontWeight: 700, textDecoration: "none" }}>{kid}</a>
-    );
-    if (d == null) return link(ok);
-    const near = d <= window.tmWhNorm(cfg).office.radius;
-    const office = r.place === "office";
-    /* คนที่กด "ออฟฟิศ" แต่อยู่นอกรัศมี คือเรื่องเดียวที่ควรสะดุดตา
-       คนที่กด "หน้างาน" ห่างออฟฟิศเป็นเรื่องปกติ ต้องไม่ระบายสีเตือน */
-    const color = !office ? "var(--text-3)" : near ? "#10B981" : "#EF4444";
-    const txt = office
-      ? (near ? "ถึงออฟฟิศ · " : "ห่างออฟฟิศ ") + window.tmDistTH(d)
-      : "ห่างออฟฟิศ " + window.tmDistTH(d);
-    return link(<span style={{ color: color }}>{txt}</span>);
-  };
-
-  const del = async (r) => {
-    const ok = await window.askConfirm({
-      title: "ลบใบลงเวลาของ " + nameOf(r) + "?",
-      body: window.drDateTH(date, true) + " · " + (r.in || "—") + " – " + (r.out || "—") +
-        " · " + window.tmDur(r.mins) + "\nลบแล้วคนคนนี้กดลงเวลาของวันนี้ใหม่ได้ตั้งแต่ต้น",
-      ok: "ลบใบนี้", danger: true, icon: "trash",
-    });
-    if (!ok) return;
-    const res = await admin.removeDay(r.userId, date);
-    setMsg(res.ok ? "ลบใบลงเวลาของ " + nameOf(r) + " แล้ว" : "ลบไม่สำเร็จ — " + res.why);
-  };
-  /* แอดมินแก้เวลา / ลงเวลาแทนคนลืมลง (ผู้ใช้ ต.ค. 2026) — เฉพาะแอดมิน · ต้องมีเหตุผล · เก็บเวลาเดิมไว้ในใบ */
-  const isAdmin = window.usePgAdmin();
-  const [ed, setEd] = React.useState(null);   // { user, inHM, outHM, why, busy, err }
-  const openEd = (uid, nm, inHM, outHM) => {
-    const u = (users || []).find((x) => x && x.id === uid) || { id: uid, name: nm };
-    const c = window.tmWhNorm(cfg);
-    setEd({ user: u, inHM: inHM || c.startEarly, outHM: outHM != null ? outHM : c.end, why: "", busy: false, err: "" });
-  };
-  const saveEd = async () => {
-    if (!ed || ed.busy) return;
-    setEd(Object.assign({}, ed, { busy: true, err: "" }));
-    const res = await admin.setTimes(ed.user, date, ed.inHM, ed.outHM, ed.why, cfg).catch((e) => ({ ok: false, why: String(e && e.message || e) }));
-    if (!res.ok) { setEd(Object.assign({}, ed, { busy: false, err: res.why })); return; }
-    setMsg("แก้เวลาของ " + (ed.user.name || "") + " แล้ว · " + ed.inHM + " – " + (ed.outHM || "ยังไม่ออก"));
-    setEd(null);
-  };
-  const holiday = window.tmIsHoliday(date, cfg);
-  const workday = window.tmIsWorkday(date, cfg);
-
-  /* คนที่ "ควรจะมา" แต่ไม่มีใบเลย — สำคัญกว่าคนที่มาแล้ว เพราะช่องว่างมองไม่เห็นด้วยตา */
-  const missing = React.useMemo(() => {
-    if (!workday) return [];
-    const have = {}; (day.rows || []).forEach((r) => { have[r.userId] = 1; });
-    return (users || []).filter((u) => u && u.active !== false && !window.tmIsSysAcct(u) && window.can(window.userRoles(u), "attend") && !have[u.id] && !onLeave[u.id]);
-  }, [day.rows, users, workday, onLeave]);
-  const leaving = (users || []).filter((u) => u && onLeave[u.id] && !(day.rows || []).some((r) => r.userId === u.id));
-
-  const totalMins = (day.rows || []).reduce((a, r) => a + (+r.mins || 0), 0);
-  /* ใบที่แอดมินลงแทนไม่มีพิกัดเป็นปกติ — ไม่นับเป็น "ไม่มีพิกัด" (ผู้ใช้ 2026-10-16) */
-  const noGps = (day.rows || []).filter((r) => !r.gps && !r.fix).length;
-  const stillIn = (day.rows || []).filter((r) => r.in && !r.out).length;
-
-  return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-      <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
-        <button onClick={() => setDate(window.drAddDays(date, -1))} style={TM_NAV} title="วันก่อนหน้า">‹</button>
-        <input type="date" value={date} onChange={(e) => setDate(e.target.value || window.drToday())} style={TM_IN} />
-        <button onClick={() => setDate(window.drAddDays(date, 1))} style={TM_NAV} title="วันถัดไป">›</button>
-        {date !== window.drToday() && <button onClick={() => setDate(window.drToday())} style={TM_NAV}>วันนี้</button>}
-        <div style={{ fontSize: 13.5, fontWeight: 800, color: "var(--text-1)" }}>{window.drDateTH(date, true)}</div>
-        {holiday ? <span style={{ padding: "3px 10px", borderRadius: "var(--r-pill)", background: "var(--tint-red-bg)", color: "var(--tint-red-tx)", fontSize: 11.5, fontWeight: 800 }}>
-          วันหยุด · {window.tmWhNorm(cfg).holidays[date]}</span>
-          : !workday ? <span style={{ padding: "3px 10px", borderRadius: "var(--r-pill)", background: "var(--surface3)", color: "var(--text-2)", fontSize: 11.5, fontWeight: 800 }}>นอกวันทำงาน</span> : null}
-      </div>
-
-      <TmFacts items={[
-        { label: "ลงเวลาแล้ว", value: (day.rows || []).length, unit: "คน" },
-        workday && { label: "ยังไม่ลง", value: missing.length, unit: "คน", color: missing.length ? "#F59E0B" : "" },
-        leaving.length > 0 && { label: "ลา", value: leaving.length, unit: "คน", color: "#0EA5E9" },
-        { label: "ยังไม่ออกงาน", value: stillIn, unit: "คน", color: stillIn ? "#EF4444" : "", hint: stillIn ? "อาจลืมกดออก — ทักถามก่อนหักเวลา" : "" },
-        { label: "ชั่วโมงรวม", value: Math.round(totalMins / 60), unit: "ชม." },
-        noGps > 0 && { label: "ไม่มีพิกัด", value: noGps, unit: "ใบ", color: "#F59E0B" },
-      ]} />
-
-      <div style={{ overflowX: "auto", border: "none", boxShadow: "var(--shadow-sm)", borderRadius: "var(--r-tile)", background: "var(--surface)" }}>
-        <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
-          <thead>
-            <tr style={{ background: "var(--surface2)" }}>
-              {["ชื่อ", "เข้า", "ออก", "ชั่วโมง", "งานที่แจ้ง", "พิกัด / ห่างจากออฟฟิศ", ""].map((h, i) => (
-                <th key={i} style={{ textAlign: i >= 1 && i <= 3 ? "center" : "left", padding: "10px 13px", fontSize: 11.5,
-                  fontWeight: 800, color: "var(--text-3)", borderBottom: "1px solid var(--divider)", whiteSpace: "nowrap" }}>{h}</th>
-              ))}
-            </tr>
-          </thead>
-          <tbody>
-            {day.loading && <tr><td colSpan={7} style={{ padding: 26, textAlign: "center", color: "var(--text-3)" }}>กำลังโหลด…</td></tr>}
-            {!day.loading && (day.rows || []).length === 0 && (
-              <tr><td colSpan={7} style={{ padding: 26, textAlign: "center", color: "var(--text-3)" }}>ยังไม่มีใครลงเวลาในวันนี้</td></tr>
-            )}
-            {(day.rows || []).map((r) => (
-              <tr key={r.userId} style={{ borderBottom: "1px solid var(--divider)" }}>
-                <td style={{ padding: "9px 13px", fontWeight: 700, color: "var(--text-1)" }}>{nameOf(r)}</td>
-                <td style={{ padding: "9px 13px", textAlign: "center", fontFamily: "var(--mono)", fontWeight: 700 }}>{r.in || "—"}</td>
-                <td style={{ padding: "9px 13px", textAlign: "center", fontFamily: "var(--mono)", fontWeight: 700,
-                  color: r.in && !r.out ? "#EF4444" : "var(--text-1)" }}>{r.out || (r.in ? "ยังไม่ออก" : "—")}</td>
-                <td style={{ padding: "9px 13px", textAlign: "center", color: "var(--text-2)" }}>{window.tmDur(r.mins)}</td>
-                <td style={{ padding: "9px 13px", fontFamily: "var(--mono)", fontSize: 12, color: "var(--text-2)" }}>
-                  {/* คนที่กด "ออฟฟิศ" ไม่มีรหัสงานให้แสดง และช่องว่างเปล่า ๆ อ่านเหมือนลืมกรอก */}
-                  {r.place === "office" || (r.fix && !r.jobCode) ? <span style={{ fontFamily: "inherit", fontSize: 11.5, color: "var(--text-3)" }}>ออฟฟิศ</span>
-                    : (r.jobCode || "—")}
-                </td>
-                <td style={{ padding: "9px 13px" }}>{gpsCell(r)}</td>
-                <td style={{ padding: "9px 13px", textAlign: "right" }}>
-                  {/* ลบทั้งใบ ไม่ใช่แก้เวลาทีละช่อง — เวลาที่พิมพ์เองไม่ใช่หลักฐาน
-                      ให้เจ้าตัวกดใหม่จะได้พิกัดกับเวลาจริงติดมาด้วยเหมือนเดิม */}
-                  {isAdmin && <button onClick={() => openEd(r.userId, nameOf(r), r.in, r.out || "")} title="แก้เวลาเข้า-ออกของคนนี้"
-                    style={{ marginRight: 6, padding: "5px 11px", borderRadius: 8, border: "none", boxShadow: "var(--shadow-sm)",
-                      background: "var(--surface)", color: "var(--primary-dark)", cursor: "pointer", fontFamily: "inherit",
-                      fontSize: 11.5, fontWeight: 700, whiteSpace: "nowrap" }}>แก้เวลา</button>}
-                  <button onClick={() => del(r)} title="ลบใบลงเวลาของคนนี้"
-                    style={{ padding: "5px 11px", borderRadius: 8, border: "none", boxShadow: "var(--shadow-sm)",
-                      background: "var(--surface)", color: "var(--tint-red-tx2)", cursor: "pointer", fontFamily: "inherit",
-                      fontSize: 11.5, fontWeight: 700, whiteSpace: "nowrap" }}>ลบ</button>
-                </td>
-              </tr>
-            ))}
-            {leaving.map((u) => {
-              const lr = onLeave[u.id], lt = window.lvTypeOf(lvTypes, lr.type);
-              return (
-                <tr key={"lv" + u.id} style={{ borderBottom: "1px solid var(--divider)" }}>
-                  <td style={{ padding: "9px 13px", fontWeight: 700, color: "var(--text-2)" }}>{u.name}</td>
-                  <td colSpan={6} style={{ padding: "9px 13px", fontSize: 12, fontWeight: 700, color: lt.color }}>
-                    {lt.th} · {window.lvRangeTH(lr)} · {lr.no}
-                  </td>
-                </tr>
-              );
-            })}
-            {missing.map((u) => (
-              <tr key={u.id} style={{ borderBottom: "1px solid var(--divider)", background: "var(--surface2)" }}>
-                <td style={{ padding: "9px 13px", fontWeight: 700, color: "var(--text-3)" }}>{u.name}</td>
-                <td colSpan={5} style={{ padding: "9px 13px", fontSize: 12, color: "var(--text-3)" }}>ยังไม่ได้ลงเวลา</td>
-                <td style={{ padding: "9px 13px", textAlign: "right" }}>
-                  {isAdmin && <button onClick={() => openEd(u.id, u.name, "", null)} title="ลงเวลาแทนคนที่ลืมลง"
-                    style={{ padding: "5px 11px", borderRadius: 8, border: "none", boxShadow: "var(--shadow-sm)",
-                      background: "var(--surface)", color: "var(--primary-dark)", cursor: "pointer", fontFamily: "inherit",
-                      fontSize: 11.5, fontWeight: 700, whiteSpace: "nowrap" }}>ลงเวลาแทน</button>}
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-
-      {/* ลงเวลาแทนคนที่ไม่อยู่ในรายการ (เช่น วันหยุดที่ไม่มีแถว "ยังไม่ได้ลงเวลา") */}
-      {isAdmin && (
-        <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
-          <span style={{ fontSize: 12, fontWeight: 700, color: "var(--text-3)" }}>ลงเวลาแทน</span>
-          <select value="" onChange={(e) => { const u = (users || []).find((x) => x && x.id === e.target.value); if (!u) return;
-              const r = (day.rows || []).find((x) => x.userId === u.id); openEd(u.id, u.name, r ? r.in : "", r ? r.out || "" : null); }}
-            style={Object.assign({}, TM_IN, { minWidth: 180 })}>
-            <option value="">— เลือกคน —</option>
-            {(users || []).filter((u) => u && u.active !== false && !window.tmIsSysAcct(u) && window.can(window.userRoles(u), "attend")).map((u) => <option key={u.id} value={u.id}>{u.name}</option>)}
-          </select>
-        </div>
-      )}
-
-      {msg && <div style={{ fontSize: 12.5, fontWeight: 700, color: "var(--text-2)" }}>{msg}</div>}
-
-      {ed && (
-        <div style={{ position: "fixed", inset: 0, zIndex: 90, background: "rgba(15,23,42,.45)", display: "grid", placeItems: "center", padding: 18 }}
-          onMouseDown={(e) => { if (e.target === e.currentTarget && !ed.busy) setEd(null); }}>
-          <div style={{ width: "min(420px,100%)", background: "var(--bg)", boxShadow: "var(--shadow-card)", borderRadius: 17, padding: 20, display: "grid", gap: 12 }}>
-            <div>
-              <div style={{ fontSize: 12, color: "var(--text-3)", fontWeight: 700 }}>แก้เวลาลงงาน · {window.drDateTH(date, true)}</div>
-              <div style={{ fontSize: 17, fontWeight: 800, color: "var(--text-1)" }}>{ed.user.name}</div>
-            </div>
-            <div style={{ display: "grid", gridTemplateColumns: "minmax(0,1fr) auto minmax(0,1fr)", gap: 9, alignItems: "end" }}>
-              <label style={TM_LB}><span style={{ fontSize: 11.5, fontWeight: 700, color: "var(--text-3)" }}>เข้างาน</span>
-                <window.PgTime value={ed.inHM} ariaLabel="เข้างาน" onChange={(t) => setEd((p) => Object.assign({}, p, { inHM: t }))} style={TM_IN_W} /></label>
-              <span style={{ fontSize: 12.5, fontWeight: 700, color: "var(--text-3)", paddingBottom: 10 }}>ถึง</span>
-              <label style={TM_LB}><span style={{ fontSize: 11.5, fontWeight: 700, color: "var(--text-3)" }}>ออกงาน (ว่าง = ยังไม่ออก)</span>
-                <window.PgTime value={ed.outHM} ariaLabel="ออกงาน" onChange={(t) => setEd((p) => Object.assign({}, p, { outHM: t }))} style={TM_IN_W} /></label>
-            </div>
-            {/* ไม่มีช่องเหตุผลแล้ว (ผู้ใช้สั่ง ต.ค. 2026) — ประวัติยังเก็บเวลาเดิม + ชื่อคนแก้ไว้ในใบ */}
-            {ed.err && <div style={{ fontSize: 12, fontWeight: 700, color: "var(--tint-red-tx2)" }}>{ed.err}</div>}
-            <div style={{ display: "flex", gap: 8, justifyContent: "flex-end" }}>
-              <button type="button" className="btn" disabled={ed.busy} onClick={() => setEd(null)}>ยกเลิก</button>
-              <button type="button" className="btn btn-pri" disabled={ed.busy || !ed.inHM} onClick={saveEd}>{ed.busy ? "กำลังบันทึก…" : "บันทึกเวลา"}</button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      <TmHelp>
-        ปุ่ม “ลบ” ลบใบลงเวลาของวันนั้นทั้งใบ แล้วให้เจ้าตัวกดเข้า-ออกใหม่ —
-        ระบบเก็บสำเนาใบที่ลบไว้พร้อมชื่อคนลบ เผื่อมีข้อโต้เถียงเรื่องชั่วโมงตอนสิ้นเดือน
-        <br />ช่อง “งานที่แจ้ง” คือสิ่งที่ผู้ลงเวลาเลือกเอง ระบบไม่ได้ตรวจว่าอยู่ที่ไซต์นั้นจริงหรือไม่ —
-        ยังไม่มีพิกัดไซต์ที่เชื่อถือได้ในระบบ จึงเทียบระยะไม่ได้
-        <br />“ไม่มีพิกัด” เกิดได้ทั้งจากปิดสิทธิ์ตำแหน่ง สัญญาณไม่ถึง หรืออยู่ในอาคาร — ระบบไม่เคยบล็อกการลงเวลาด้วยเหตุนี้
-        <br />ระยะห่างจากออฟฟิศคิดจากพิกัดที่ตั้งไว้ในแท็บ “ตั้งค่า” เทียบกับตำแหน่งตอนกดเข้างาน —
-        ขึ้นสีแดงเฉพาะคนที่กด “ออฟฟิศ” แต่อยู่นอกรัศมี ส่วนงานหน้าไซต์ห่างออฟฟิศเป็นเรื่องปกติ
-        <br />ใบที่ปั๊มก่อนรุ่นที่เก็บพิกัดลงดัชนีจะขึ้นว่า “มีพิกัด” เฉย ๆ ไม่มีระยะ — ตัวเลขอยู่ในใบเต็ม ดูได้จากไฟล์ Excel
-      </TmHelp>
-    </div>
-  );
-}
-
 /* ออกไฟล์ Excel — ตารางคน × วัน แบบใบลงเวลากระดาษ ที่ฝ่ายบัญชีอ่านออกโดยไม่ต้องอธิบาย
    + แท็บรายละเอียดแยกรายคน คนละแท็บ (ดู tmPersonSheet ข้างล่าง)
 
@@ -1108,33 +877,168 @@ function TmWorkHours({ cfg, onSave }) {
 }
 
 /* ============================================================
-   หน้า "เวลาทำงาน" ชุดใหม่ (ผู้ใช้สั่ง ต.ค. 2026: เดิม 8 แท็บ + การ์ด 4 ใบ กดแล้วงง เอกสารออกหลายจุด)
-   เหลือ 4 แท็บ: วันนี้ · คำขอ (OT + ลา รวมที่เดียว) · สรุปเดือน (จุดออกเอกสารจุดเดียว) · ตั้งค่า
-   ตัวเลขด้านบนย่อเป็นแถบบรรทัดเดียว · ตัวเลขรออนุมัติไปอยู่บนแท็บ · คำอธิบายยาวพับไว้ใต้ "อ่านวิธีคิด"
+   หน้า "เวลาทำงาน" — หน้าตาชุดใหม่ (ผู้ใช้สั่ง ต.ค. 2026 สองรอบ:
+   รอบแรก "กดแล้วงง ซับซ้อน เอกสารออกหลายจุด" → ยุบ 8 แท็บเหลือ 4
+   รอบสอง "แค่ยุบแต่ไม่ได้แก้หน้าตา ช่วยออกแบบให้" → ชุดนี้)
+   หลักของหน้าตา:
+   - แถบบนสุด (TmHero) ตอบสองคำถามแรกที่คนเปิดหน้านี้: ฉันลงเวลาหรือยัง · วันนี้ทีมมากันกี่คน
+   - แท็บเป็นสวิตช์แบบหลุม (TmSeg) ไม่ใช่ชิปเรียงกัน
+   - วันนี้ = เส้นเวลา (TmTimeline) แต่ละคนเป็นแถบเข้า→ออกบนแกนชั่วโมง เห็นคนสาย/ลืมออก/ทำเกินด้วยตา
+   - คำขอ = การ์ดต่อใบ (TmReqCard) ไอคอนสีตามชนิด อนุมัติได้จากการ์ดเลย
+   - สรุปเดือน = ตัวเลขใหญ่แถวเดียว + การ์ดต่อคนพร้อมแถบสีรายวันทั้งเดือน (heatmap)
+   CSS คำนำหน้า .tmv- (TM_CSS) · การ์ดใหญ่ใส่ boxShadow --shadow-card แบบ inline ให้ธีมกระจกจับ blur ได้
    ============================================================ */
+const TM_CSS = `
+.tmv{display:flex;flex-direction:column;gap:16px;min-height:0}
+.tmv-card{background:var(--surface);border:1px solid var(--card-bd);border-radius:var(--r-card);padding:18px 20px}
+.tmv-hero{display:flex;flex-wrap:wrap;justify-content:space-between;gap:18px 28px;align-items:center;padding:20px 24px}
+.tmv-hero-me{display:flex;align-items:center;gap:16px;min-width:0;flex:1 1 300px}
+.tmv-hero-ic{width:54px;height:54px;border-radius:var(--r-tile);display:grid;place-items:center;flex-shrink:0}
+.tmv-k{font-size:12px;font-weight:700;color:var(--text-3)}
+.tmv-big{font-family:var(--display);font-size:30px;font-weight:700;line-height:1.2;color:var(--text-1);font-variant-numeric:tabular-nums;white-space:nowrap}
+.tmv-big small{font-size:16px;font-weight:600;color:var(--text-3);margin:0 4px}
+.tmv-hero-r{display:flex;align-items:center;gap:16px 24px;flex-wrap:wrap;justify-content:flex-end;flex:0 1 auto}
+.tmv-team{display:grid;gap:8px;width:310px;max-width:100%}
+.tmv-stack{display:flex;gap:2px;height:9px;border-radius:var(--r-pill);overflow:hidden;background:var(--surface3)}
+.tmv-stack i{display:block;height:100%}
+.tmv-leg{display:flex;gap:6px 14px;flex-wrap:wrap;font-size:11.5px;font-weight:700;color:var(--text-3)}
+.tmv-leg span{display:inline-flex;align-items:center;gap:5px}
+.tmv-leg b{font-family:var(--display);font-size:17px;font-weight:700;color:var(--text-1)}
+.tmv-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+.tmv-pill{display:inline-flex;align-items:center;gap:5px;padding:3px 10px;border-radius:var(--r-pill);font-size:11px;font-weight:700;white-space:nowrap}
+.tmv-seg{display:flex;gap:3px;padding:4px;border-radius:var(--r-pill);background:var(--surface2);box-shadow:var(--shadow-inset);width:fit-content;max-width:100%;overflow-x:auto;scrollbar-width:none}
+.tmv-seg::-webkit-scrollbar{display:none}
+.tmv-seg>button{display:inline-flex;align-items:center;gap:7px;padding:9px 18px;border:none;border-radius:var(--r-pill);background:transparent;color:var(--text-3);font-family:inherit;font-size:13px;font-weight:700;cursor:pointer;white-space:nowrap;flex-shrink:0}
+.tmv-seg>button:hover{color:var(--text-1)}
+.tmv-seg>button.on{background:var(--surface);color:var(--text-1);box-shadow:var(--shadow-sm)}
+.tmv-seg.sm>button{padding:6px 13px;font-size:12px}
+.tmv-badge{min-width:19px;padding:1px 6px;border-radius:var(--r-pill);background:var(--tint-amber-bg2);color:var(--tint-amber-tx);font-family:var(--mono);font-size:10.5px;font-weight:800;text-align:center}
+.tmv-bar{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.tmv-hd{display:flex;align-items:baseline;gap:6px 10px;flex-wrap:wrap;margin-bottom:12px}
+.tmv-hd .t{font-size:14px;font-weight:700;color:var(--text-1)}
+.tmv-hd .s{font-size:11.5px;color:var(--text-3)}
+.tmv-hd .r{margin-left:auto;display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.tmv-ib{width:34px;height:34px;display:grid;place-items:center;border:none;border-radius:var(--r-chip);background:var(--surface2);box-shadow:var(--shadow-sm);color:var(--text-2);cursor:pointer;flex-shrink:0;padding:0}
+.tmv-ib:hover{background:var(--surface3);color:var(--text-1)}
+.tmv-ib.dngr{color:var(--tint-red-tx2)}
+.tmv-ib.xs{width:30px;height:30px}
+.tmv-date{font-family:var(--display);font-size:19px;font-weight:700;color:var(--text-1);padding:0 6px;white-space:nowrap}
+.tmv-sw{display:inline-block;width:16px;height:8px;border-radius:var(--r-pill)}
+.tmv-tl-row{display:grid;grid-template-columns:230px minmax(0,1fr) 112px 72px;grid-template-areas:"who trk tim act";align-items:center;column-gap:16px;padding:9px 0;border-top:1px solid var(--divider)}
+.tmv-tl-row.axis{border-top:none;padding:0 0 2px}
+.tmv-who{grid-area:who;display:flex;align-items:center;gap:10px;min-width:0}
+.tmv-who-n{font-size:13.5px;font-weight:700;color:var(--text-1);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tmv-who-s{font-size:11px;color:var(--text-3);display:flex;gap:4px 8px;align-items:center;flex-wrap:wrap;margin-top:1px}
+.tmv-trk{grid-area:trk;position:relative;height:26px;border-radius:8px;background:var(--surface2);overflow:visible}
+.tmv-axis{grid-area:trk;position:relative;height:16px}
+.tmv-axis span{position:absolute;top:0;transform:translateX(-50%);font-family:var(--mono);font-size:10px;font-weight:600;color:var(--text-3)}
+.tmv-band{position:absolute;top:0;bottom:0;background:var(--primary-soft)}
+.tmv-tick{position:absolute;top:0;bottom:0;width:1px;background:var(--divider)}
+.tmv-span{position:absolute;top:6px;bottom:6px;border-radius:var(--r-pill);background:var(--primary);min-width:8px}
+.tmv-span.live{background:repeating-linear-gradient(-45deg,var(--primary) 0 5px,var(--primary-bright) 5px 10px)}
+.tmv-span.forgot{background:var(--tint-red-tx2)}
+.tmv-now{position:absolute;top:-4px;bottom:-4px;width:2px;margin-left:-1px;border-radius:2px;background:var(--tint-red-tx2)}
+.tmv-tim{grid-area:tim;text-align:right;line-height:1.35}
+.tmv-tim b{display:block;font-family:var(--mono);font-size:12.5px;font-weight:700;color:var(--text-1);white-space:nowrap}
+.tmv-tim span{font-size:11px;color:var(--text-3);white-space:nowrap}
+.tmv-act{grid-area:act;display:flex;gap:6px;justify-content:flex-end}
+.tmv-empty{display:grid;justify-items:center;gap:8px;padding:30px 12px;text-align:center;font-size:13px;color:var(--text-3)}
+.tmv-empty i{width:46px;height:46px;border-radius:50%;display:grid;place-items:center;background:var(--surface2)}
+.tmv-people{display:flex;flex-wrap:wrap;gap:8px}
+.tmv-person{display:inline-flex;align-items:center;gap:8px;padding:4px 5px 4px 4px;border-radius:var(--r-pill);background:var(--surface2);box-shadow:var(--shadow-sm);font-size:12.5px;font-weight:700;color:var(--text-1)}
+.tmv-person>span:last-child:not(.tmv-av){padding-right:8px}
+.tmv-person .x{padding:4px 10px;border:none;border-radius:var(--r-pill);background:var(--primary-soft);color:var(--primary-dark);font-family:inherit;font-size:11.5px;font-weight:700;cursor:pointer}
+.tmv-list{display:grid;gap:9px}
+.tmv-grp{display:flex;align-items:baseline;gap:8px;margin:10px 4px 0;font-size:13px;font-weight:700;color:var(--text-1)}
+.tmv-grp:first-child{margin-top:0}
+.tmv-grp span{font-size:11.5px;font-weight:600;color:var(--text-3)}
+.tmv-req{display:grid;grid-template-columns:44px minmax(0,1fr) auto;gap:0 14px;align-items:center;padding:13px 16px;border-radius:var(--r-tile);background:var(--surface);box-shadow:var(--shadow-sm);cursor:pointer;transition:transform .15s,box-shadow .15s;outline:none}
+.tmv-req:hover,.tmv-req:focus-visible{transform:translateY(-2px);box-shadow:var(--hov-sh)}
+.tmv-req:active{transform:translateY(0)}
+.tmv-req-ic{width:44px;height:44px;border-radius:var(--r-tile);display:grid;place-items:center}
+.tmv-req-t{display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-size:14px;font-weight:700;color:var(--text-1)}
+.tmv-req-s{margin-top:3px;font-size:12px;color:var(--text-2);display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+.tmv-req-r{font-size:11.5px;color:var(--text-3);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tmv-req-amt{display:grid;gap:6px;justify-items:end}
+.tmv-req-amt b{font-family:var(--display);font-size:20px;font-weight:700;color:var(--text-1);white-space:nowrap}
+.tmv-no{font-family:var(--mono);font-size:10.5px;font-weight:600;color:var(--text-3)}
+.tmv-search{display:flex;align-items:center;gap:8px;padding:0 14px;height:40px;border-radius:var(--r-pill);background:var(--surface2);box-shadow:var(--shadow-inset);flex:1 1 220px;max-width:300px}
+.tmv-search input{flex:1;min-width:0;border:none !important;background:transparent !important;box-shadow:none !important;outline:none;font-family:inherit;font-size:13px;color:var(--text-1);padding:0}
+.tmv-stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));padding:8px 4px}
+.tmv-stat{padding:8px 20px;border-left:1px solid var(--divider)}
+.tmv-stat:first-child{border-left:none}
+.tmv-stat .l{font-size:11.5px;font-weight:700;color:var(--text-3)}
+.tmv-stat .v{font-family:var(--display);font-size:28px;font-weight:700;line-height:1.25;color:var(--text-1);font-variant-numeric:tabular-nums;white-space:nowrap}
+.tmv-stat .v small{font-family:var(--sans);font-size:12px;font-weight:600;color:var(--text-3);margin-left:5px}
+.tmv-pp{border-radius:var(--r-tile);background:var(--surface);box-shadow:var(--shadow-sm)}
+.tmv-pp.dim{opacity:.6}
+.tmv-pp-row{display:grid;grid-template-columns:210px minmax(0,1fr) 170px auto;grid-template-areas:"who heat ot act";align-items:center;gap:10px 20px;padding:13px 16px}
+.tmv-heat{grid-area:heat;min-width:0;max-width:560px}
+.tmv-heat-g{display:grid;gap:3px}
+.tmv-heat-g i{display:block;height:24px;border-radius:5px;background:var(--surface2)}
+.tmv-heat-g i.wk{opacity:.4}
+.tmv-heat-g i.forgot{background:var(--tint-red-tx2)}
+.tmv-heat-ax{display:flex;justify-content:space-between;font-family:var(--mono);font-size:9.5px;color:var(--text-3);margin-top:3px}
+.tmv-ot{grid-area:ot;display:grid;gap:3px;font-size:11.5px;color:var(--text-3)}
+.tmv-ot b{font-family:var(--display);font-size:16px;font-weight:700;color:var(--text-1);margin-right:3px}
+.tmv-pp-act{grid-area:act;display:flex;gap:6px;align-items:center;justify-content:flex-end}
+.tmv-pp-more{padding:2px 16px 16px}
+.tmv-cal{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:6px;max-width:760px}
+.tmv-cal .h{text-align:center;font-size:10.5px;font-weight:700;color:var(--text-3)}
+.tmv-cal .d{min-width:0;min-height:58px;padding:7px 9px;border-radius:var(--r-chip);background:var(--surface2)}
+.tmv-cal .d.on{background:var(--surface);box-shadow:var(--shadow-sm)}
+.tmv-cal .d.bad{box-shadow:inset 0 0 0 1px var(--tint-red-bd)}
+.tmv-cal .d.off{opacity:.45}
+/* แคบ (กว้างของพื้นที่หน้า < 860 ไม่ใช่กว้างจอ — แถบเมนูข้างกินที่ไปแล้ว) ดู useTmNarrow */
+.tmv.nw .tmv-hero{padding:16px}
+.tmv.nw .tmv-hero-r{justify-content:flex-end;flex:1 1 100%}
+.tmv.nw .tmv-team{width:auto;flex:1 1 220px}
+.tmv.nw .tmv-big{font-size:26px}
+.tmv.nw .tmv-card{padding:14px}
+.tmv.nw .tmv-tl-row{grid-template-columns:minmax(0,1fr) auto auto;grid-template-areas:"who tim act" "trk trk trk";row-gap:8px}
+.tmv.nw .tmv-tl-row.axis{display:none}
+.tmv.nw .tmv-pp-row{grid-template-columns:minmax(0,1fr) auto;grid-template-areas:"who act" "heat heat" "ot ot"}
+.tmv.nw .tmv-ot{grid-auto-flow:column;justify-content:start;gap:14px}
+.tmv.nw .tmv-stats{grid-template-columns:repeat(2,minmax(0,1fr))}
+.tmv.nw .tmv-stat{padding:8px 12px}
+.tmv.nw .tmv-stat:nth-child(odd){border-left:none}
+.tmv.nw .tmv-req{grid-template-columns:40px minmax(0,1fr) auto;gap:0 12px;padding:12px 13px}
+.tmv.nw .tmv-req-ic{width:40px;height:40px}
+.tmv.nw .tmv-req-amt b{font-size:17px}
+.tmv.nw .tmv-search{max-width:none}
+@media (prefers-reduced-motion:reduce){.tmv-req:hover,.tmv-req:focus-visible{transform:none}}`;
 
-const tmChip = (on) => ({
-  display: "inline-flex", alignItems: "center", gap: 6, padding: "7px 13px", borderRadius: "var(--r-pill)", border: "none",
-  boxShadow: on ? "inset 0 0 0 1px var(--primary)" : "var(--shadow-sm)", background: on ? "var(--primary-soft)" : "var(--surface)",
-  cursor: "pointer", fontFamily: "inherit", fontSize: 12.5, fontWeight: 700, color: on ? "var(--primary-dark)" : "var(--text-2)",
-});
-const TM_NAV = Object.assign({}, TM_IN, { cursor: "pointer", fontWeight: 700 });
-const tmBadge = (n, warn) => n > 0
-  ? <span style={{ minWidth: 18, padding: "1px 6px", borderRadius: "var(--r-pill)", background: warn ? "#F59E0B" : "var(--primary)",
-      color: "#fff", fontFamily: "var(--mono)", fontSize: 10.5, fontWeight: 800, textAlign: "center" }}>{n}</span>
-  : null;
+const tmMinOf = (s) => { const m = /^(\d{1,2}):(\d{2})/.exec(String(s || "")); return m ? +m[1] * 60 + +m[2] : null; };
+const tmHrs = (m) => (!m ? "0" : (Math.round((m / 60) * 10) / 10).toLocaleString("en-US", { maximumFractionDigits: 1 }));
 
-/* ตัวเลขสั้นบรรทัดเดียว แทนการ์ดใหญ่หลายใบ */
-function TmFacts({ items }) {
+/* การ์ดใหญ่บนพื้นหน้า — เงา inline เพื่อให้กฎ backdrop-filter ของธีมกระจกจับได้ */
+function TmCard({ children, className, style }) {
+  return <div className={"tmv-card" + (className ? " " + className : "")} style={Object.assign({ boxShadow: "var(--shadow-card)" }, style)}>{children}</div>;
+}
+
+/* รูปโปรไฟล์ หรือวงกลมอักษรแรก — สีวงกลมเลือกจากรหัสผู้ใช้ จึงเป็นสีเดิมของคนนั้นทุกหน้า */
+const TM_AV_K = ["takeoff", "design", "install", "done", "queue"];
+function TmAvatar({ uid, name, size }) {
+  const s = size || 32;
+  const img = window.useUserAvatar ? window.useUserAvatar(uid).avatar : null;
+  const k = TM_AV_K[Array.from(String(uid || name || "")).reduce((a, c) => a + c.charCodeAt(0), 0) % TM_AV_K.length];
+  const ini = (String(name || "?").replace(/^(นาย|นางสาว|นาง|คุณ)\s*/, "").replace(/^[เแโใไ]/, "").trim().charAt(0) || "?").toUpperCase();
+  return img
+    ? <img className="tmv-av" src={img} alt="" style={{ width: s, height: s, borderRadius: "50%", objectFit: "cover", flexShrink: 0 }} />
+    : <span className="tmv-av" style={{ width: s, height: s, borderRadius: "50%", flexShrink: 0, display: "grid", placeItems: "center",
+        background: "var(--st-" + k + "-soft)", color: "var(--st-" + k + "-fg)", fontSize: Math.round(s * 0.42), fontWeight: 700 }}>{ini}</span>;
+}
+
+/* สวิตช์แบบหลุม — ตัวที่เลือกนูนขึ้นมา */
+function TmSeg({ items, value, onChange, sm }) {
   return (
-    <div style={{ display: "flex", flexWrap: "wrap", gap: "6px 20px", padding: "10px 14px", borderRadius: "var(--r-tile)",
-      background: "var(--surface)", boxShadow: "var(--shadow-sm)" }}>
-      {items.filter(Boolean).map((it, i) => (
-        <span key={i} title={it.hint || ""} style={{ display: "inline-flex", alignItems: "baseline", gap: 5, fontSize: 12, color: "var(--text-3)", fontWeight: 700 }}>
-          {it.label}
-          <b style={{ fontFamily: "var(--mono)", fontSize: 15, fontWeight: 800, color: it.color || "var(--text-1)" }}>{it.value}</b>
-          {it.unit}
-        </span>
+    <div className={"tmv-seg" + (sm ? " sm" : "")} role="tablist">
+      {items.map((it) => (
+        <button key={it.k} role="tab" aria-selected={value === it.k} className={value === it.k ? "on" : ""} onClick={() => onChange(it.k)}>
+          {it.ic && <Icon name={it.ic} size={sm ? 13 : 15} color={value === it.k ? "var(--primary)" : "currentColor"} />}
+          {it.th}
+          {it.n > 0 && <span className="tmv-badge">{it.n}</span>}
+        </button>
       ))}
     </div>
   );
@@ -1143,199 +1047,516 @@ function TmFacts({ items }) {
 /* คำอธิบายยาว ๆ พับไว้ — ยังอ่านได้เมื่ออยากรู้ แต่ไม่กินจอทุกครั้ง */
 function TmHelp({ children }) {
   return (
-    <details style={{ fontSize: 11.5, color: "var(--text-3)", lineHeight: 1.7 }}>
+    <details style={{ fontSize: 11.5, color: "var(--text-3)", lineHeight: 1.7, padding: "0 4px" }}>
       <summary style={{ cursor: "pointer", fontWeight: 700, color: "var(--text-2)", width: "fit-content" }}>อ่านวิธีคิด / หมายเหตุ</summary>
       <div style={{ marginTop: 6 }}>{children}</div>
     </details>
   );
 }
 
-/* ปฏิทินรายวันของคนหนึ่งคนในเดือน — เจ็ดคอลัมน์ต่อสัปดาห์ เห็นทันทีว่าวันที่ขาดเป็นเสาร์อาทิตย์หรือลืมปั๊ม */
-function TmDayGrid({ days, byDay }) {
+/* ตัวเลขสั้นบรรทัดเดียว (ของชุดก่อน — ยังเก็บไว้ให้หน้าอื่นเรียกได้) */
+function TmFacts({ items }) {
   return (
-    <div style={{ display: "grid", gridTemplateColumns: "repeat(7, minmax(0, 1fr))", gap: 6, maxWidth: 760 }}>
-      {TM_WD_TH.map((w, i) => (
-        <div key={w} style={{ textAlign: "center", padding: "0 0 2px", fontSize: 10.5, fontWeight: 800,
-          color: i === 0 || i === 6 ? "var(--text-3)" : "var(--text-2)" }}>{w}</div>
-      ))}
-      {Array.from({ length: tmWdOf(days[0]) }, (_, i) => <div key={"pad" + i} />)}
-      {days.map((d) => {
-        const x = byDay[d];
-        const open = x && x.in && !x.out;
-        const wk = tmWdOf(d) === 0 || tmWdOf(d) === 6;
-        return (
-          <div key={d} title={d}
-            style={{ minWidth: 0, padding: "7px 9px", borderRadius: 9, minHeight: 58,
-              background: wk && !x ? "var(--surface2)" : "var(--surface)",
-              border: "none", boxShadow: open ? "inset 0 0 0 1px var(--tint-red-bd)" : x ? "var(--shadow-sm)" : "none",
-              opacity: x ? 1 : 0.45 }}>
-            <div style={{ fontSize: 10.5, color: "var(--text-3)", fontWeight: 700 }}>{+d.slice(8)}</div>
-            <div style={{ fontFamily: "var(--mono)", fontSize: 11.5, fontWeight: 700, color: open ? "#EF4444" : "var(--text-1)" }}>
-              {x ? (x.in || "—") + " – " + (x.out || "?") : "—"}
-            </div>
-            <div style={{ fontSize: 10.5, color: "var(--text-3)" }}>{x ? window.tmDur(x.mins) : ""}</div>
-          </div>
-        );
-      })}
+    <div className="tmv-leg">
+      {items.filter(Boolean).map((it, i) => <span key={i} title={it.hint || ""}>{it.label} <b style={{ color: it.color || undefined }}>{it.value}</b> {it.unit}</span>)}
     </div>
   );
 }
 
-/* ── สรุปเดือน ── รวม "สรุปรายเดือน" กับ "สรุป OT รายคน" เดิมเป็นตารางเดียว
-   ออกเอกสารจากที่นี่ที่เดียว: Excel ทั้งเดือน (ปุ่มบน) · ใบ OT ให้หัวหน้าเซ็น (ปุ่มท้ายแถวของแต่ละคน)
-   เวลาเข้า-ออกนับตามเดือนปฏิทิน · OT นับตามรอบตัดยอด (ตั้งวันตัดไว้ = รอบที่จบในเดือนนี้ ไม่ตั้ง = เดือนเดียวกัน) */
-function TmMonthAll({ cfg, users, jobs, otRows, byName, canAll }) {
-  const [ym, setYm] = React.useState(window.tmYmNow);
-  const { byDate, loading } = window.useAttendMonth(canAll ? ym : null);
-  const [pick, setPick] = React.useState(null);
-  const [busy, setBusy] = React.useState(false);
-  const [onlyApproved, setOnlyApproved] = React.useState(false);
-  const [paper, setPaper] = React.useState(null);
+/* ใครมา/ไม่มา/ลา ของวันหนึ่ง — ใช้ทั้งแถบบนสุดและแท็บวันนี้ */
+function useTmDayStatus(date, cfg, users) {
+  const lvRows = window.useLeaves().rows;
+  const lvTypes = window.useLeaveTypes().types;
+  const onLeave = React.useMemo(() => window.lvOnDay(lvRows, date), [lvRows, date]);
+  const day = window.useAttendDay(date);
+  const workday = window.tmIsWorkday(date, cfg);
+  /* บัญชีระบบ ADMIN ไม่ใช่คนทำงาน (ผู้ใช้สั่ง) — ใบที่ปั๊มไว้ไม่ขึ้นในแผ่นเวลา */
+  const rows = React.useMemo(() => (day.rows || []).filter((r) => !window.tmIsSysAcct({ id: r.userId })), [day.rows]);
+  /* คนที่ "ควรจะมา" แต่ไม่มีใบเลย — สำคัญกว่าคนที่มาแล้ว เพราะช่องว่างมองไม่เห็นด้วยตา */
+  const missing = React.useMemo(() => {
+    if (!workday) return [];
+    const have = {}; rows.forEach((r) => { have[r.userId] = 1; });
+    return (users || []).filter((u) => u && u.active !== false && !window.tmIsSysAcct(u) && window.can(window.userRoles(u), "attend") && !have[u.id] && !onLeave[u.id]);
+  }, [rows, users, workday, onLeave]);
+  const leaving = (users || []).filter((u) => u && onLeave[u.id] && !rows.some((r) => r.userId === u.id));
+  return { rows, loading: day.loading, missing, leaving, onLeave, lvTypes, workday };
+}
 
-  const days = React.useMemo(() => window.tmMonthDays(ym), [ym]);
-  const cut = window.tmWhNorm(cfg).cutoffDay;
-  /* รอบ OT ที่ "จบในเดือนนี้" — วันตัดยอดของเดือนนี้อยู่ในรอบนั้นพอดี · ไม่ตั้งวันตัด = เดือนปฏิทิน */
-  const period = React.useMemo(() => window.tmPeriodOf(cut ? days[Math.min(cut, days.length) - 1] : days[0], cfg), [days, cfg, cut]);
+/* พื้นที่หน้าแคบไหม — วัดกล่องจริง ไม่ใช่กว้างจอ (จอ 1100 ที่มีแถบเมนูข้างเหลือที่จริงไม่ถึง 860)
+   ไม่ใช้ container query เพราะกล่องที่เป็น container อาจกลายเป็นกรอบของโมดัล position:fixed ข้างใน */
+function useTmNarrow() {
+  const ref = React.useRef(null);
+  const [nw, setNw] = React.useState(false);
+  React.useEffect(() => {
+    const el = ref.current;
+    if (!el || !window.ResizeObserver) return;
+    const ro = new ResizeObserver(() => setNw(el.clientWidth < 860));
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
+  return [nw, ref];
+}
 
-  const att = React.useMemo(() => (canAll ? window.tmMonthRollup(byDate, users, cfg, otRows, ym) : []),
-    [canAll, byDate, users, cfg, otRows, ym]);
-  const otPeople = React.useMemo(() => {
-    const src = (otRows || []).filter((r) => window.tmInPeriod(r && r.date, period) && (!onlyApproved || r.status === "approved"));
-    return window.tmOtByPerson(src, users, cfg);
-  }, [otRows, period, onlyApproved, users, cfg]);
+/* นาฬิกาเดินทุกนาที — ให้แถบของคนที่ยังทำงานอยู่ยืดตามเวลาจริง */
+function useTmNow(on) {
+  const [, setT] = React.useState(0);
+  React.useEffect(() => {
+    if (!on) return;
+    const id = setInterval(() => setT((x) => x + 1), 60000);
+    return () => clearInterval(id);
+  }, [on]);
+  const d = new Date();
+  return d.getHours() * 60 + d.getMinutes();
+}
 
-  /* แถวเดียวต่อคน: ลงเวลา (ถ้ามีสิทธิ์ดู) + OT */
-  const rows = React.useMemo(() => {
-    const map = {}, order = [];
-    const get = (id, name) => { const k = id || "name:" + name; if (!map[k]) { map[k] = { key: k, id: id, name: name, a: null, o: null }; order.push(k); } return map[k]; };
-    att.forEach((a) => { get(a.userId, a.name).a = a; });
-    otPeople.forEach((g) => { const r = get(g.id, g.name); r.o = g; if (!r.name) r.name = g.name; });
-    return order.map((k) => map[k]).sort((x, y) => String(x.name).localeCompare(String(y.name), "th"));
-  }, [att, otPeople]);
+/* ช่วงแกนเวลา — ครอบเวลางานปกติและทุกแถบ ปัดเป็นชั่วโมงเต็มแล้วเผื่อข้างละชั่วโมง */
+function tmTlRange(items, cfg, nowM) {
+  const w = window.tmDayWindow(null, cfg);
+  let lo = w.startMins, hi = w.endMins;
+  items.forEach((it) => {
+    if (it.a != null) lo = Math.min(lo, it.a);
+    if (it.b != null) hi = Math.max(hi, it.b);
+    if (it.live && nowM != null) hi = Math.max(hi, nowM);
+  });
+  lo = Math.max(0, Math.floor(lo / 60) * 60 - 60);
+  hi = Math.min(30 * 60, Math.ceil(hi / 60) * 60 + 60);
+  return { lo, hi, band: [w.startMins, w.endMins] };
+}
 
-  const tot = rows.reduce((t, r) => ({
-    days: t.days + (r.a ? r.a.days : 0), mins: t.mins + (r.a ? r.a.mins : 0), noOut: t.noOut + (r.a ? r.a.noOut : 0),
-    otOk: t.otOk + (r.o ? r.o.minsApproved : 0), pay: t.pay + (r.o ? r.o.payApproved : 0), wait: t.wait + (r.o ? r.o.minsWaiting : 0),
-  }), { days: 0, mins: 0, noOut: 0, otOk: 0, pay: 0, wait: 0 });
-  const hrs = (m) => (!m ? "—" : (Math.round((m / 60) * 100) / 100).toLocaleString("en-US", { maximumFractionDigits: 2 }));
-
-  const th = (t, align) => (
-    <th key={t} style={{ textAlign: align || "left", padding: "10px 12px", fontSize: 11.5, fontWeight: 800,
-      color: "var(--text-3)", borderBottom: "1px solid var(--divider)", whiteSpace: "nowrap" }}>{t}</th>
+/* เส้นเวลา — แถวละคน (หรือแถวละวัน) แถบเขียว = ทำงาน · ลาย = ยังไม่ออก · แดง = ลืมกดออก · พื้นจาง = เวลางานปกติ */
+function TmTimeline({ items, range, nowM, band }) {
+  const lo = range.lo, hi = range.hi, span = Math.max(1, hi - lo);
+  const pct = (m) => Math.max(0, Math.min(100, ((m - lo) / span) * 100));
+  const step = span > 12 * 60 ? 120 : 60;
+  const ticks = [];
+  for (let m = Math.ceil(lo / step) * step; m <= hi; m += step) ticks.push(m);
+  const lab = (m) => String(Math.floor(m / 60) % 24).padStart(2, "0");
+  return (
+    <div>
+      <div className="tmv-tl-row axis">
+        <div className="tmv-axis">{ticks.map((m) => <span key={m} style={{ left: pct(m) + "%" }}>{lab(m)}</span>)}</div>
+      </div>
+      {items.map((it) => (
+        <div key={it.key} className="tmv-tl-row">
+          <div className="tmv-who">{it.who}</div>
+          <div className="tmv-trk" title={it.title || ""}>
+            {band && <i className="tmv-band" style={{ left: pct(band[0]) + "%", width: Math.max(0, pct(band[1]) - pct(band[0])) + "%" }} />}
+            {ticks.map((m) => <i key={m} className="tmv-tick" style={{ left: pct(m) + "%" }} />)}
+            {it.trk}
+            {it.a != null && (
+              <i className={"tmv-span" + (it.live ? " live" : it.forgot ? " forgot" : "")}
+                style={{ left: pct(it.a) + "%", width: it.b != null ? Math.max(0, pct(it.b) - pct(it.a)) + "%" : 8 }} />
+            )}
+            {it.now && nowM != null && nowM > lo && nowM < hi && <i className="tmv-now" style={{ left: pct(nowM) + "%" }} />}
+          </div>
+          <div className="tmv-tim">{it.tim}</div>
+          <div className="tmv-act">{it.act}</div>
+        </div>
+      ))}
+    </div>
   );
-  const td = (v, o) => <td style={Object.assign({ padding: "9px 12px", textAlign: "center", fontFamily: "var(--mono)", fontWeight: 700 }, o)}>{v}</td>;
-  const cols = canAll ? 9 : 5;
+}
+
+function TmLegend({ items }) {
+  return (
+    <span className="tmv-leg" style={{ fontWeight: 600, fontSize: 11 }}>
+      {items.map(([bg, th]) => <span key={th}><i className="tmv-sw" style={{ background: bg }} />{th}</span>)}
+    </span>
+  );
+}
+const TM_LEG = [["var(--primary-soft)", "เวลางานปกติ"], ["var(--primary)", "ทำงาน"],
+  ["repeating-linear-gradient(-45deg,var(--primary) 0 3px,var(--primary-bright) 3px 6px)", "ยังไม่ออก"], ["var(--tint-red-tx2)", "ลืมกดออก"]];
+
+function TmEmpty({ icon, children }) {
+  return <div className="tmv-empty"><i><Icon name={icon || "clock"} size={22} color="var(--text-3)" /></i>{children}</div>;
+}
+
+/* ── แถบบนสุด ── */
+function TmHero({ me, cfg, users, canAll, otMonthMins, canOt, onNewOt }) {
+  const t = me.today;
+  const inHM = t && t.in && t.in.hm, outHM = t && t.out && t.out.hm;
+  const state = !inHM ? "none" : outHM ? "done" : "live";
+  const ST = {
+    none: { th: "ยังไม่ได้ลงเวลา", bg: "var(--tint-amber-bg2)", fg: "var(--tint-amber-tx)", ic: "clock" },
+    live: { th: "กำลังทำงาน", bg: "var(--primary-soft)", fg: "var(--primary-dark)", ic: "clock" },
+    done: { th: "ออกงานแล้ว", bg: "var(--surface2)", fg: "var(--text-2)", ic: "check" },
+  }[state];
+  return (
+    <TmCard className="tmv-hero">
+      <div className="tmv-hero-me">
+        <div className="tmv-hero-ic" style={{ background: ST.bg }}><Icon name={ST.ic} size={26} color={ST.fg} sw={2} /></div>
+        <div style={{ minWidth: 0 }}>
+          <div className="tmv-k">วันนี้ของฉัน · {window.drDateTH(window.drToday(), true)}</div>
+          <div className="tmv-big">
+            {inHM ? <React.Fragment>{inHM}<small>→</small>{outHM || <small style={{ margin: 0 }}>ยังไม่ออก</small>}</React.Fragment>
+              : <span style={{ fontSize: 21, color: "var(--text-2)" }}>ยังไม่ได้ลงเวลา</span>}
+          </div>
+          <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap", marginTop: 3 }}>
+            <span className="tmv-pill" style={{ background: ST.bg, color: ST.fg }}>{ST.th}</span>
+            <span className="tmv-k" style={{ fontWeight: 600 }}>
+              {state === "none" ? "ลงเวลาจากแอปในไลน์" : state === "done" ? "ทำงาน " + window.tmDur(window.tmWorkedMins(t, cfg)) : "เข้างานแล้ว"}
+            </span>
+            <span className="tmv-k" style={{ fontWeight: 600 }}>· OT อนุมัติเดือนนี้ <b style={{ color: "var(--text-1)" }}>{otMonthMins ? window.tmDur(otMonthMins) : "—"}</b></span>
+          </div>
+        </div>
+      </div>
+      <div className="tmv-hero-r">
+        {canAll && <TmTeamToday cfg={cfg} users={users} />}
+        <button className="btn btn-pri" onClick={onNewOt} disabled={!canOt}>
+          <Icon name="plus" size={15} color="#fff" sw={2.2} /> เปิดใบ OT
+        </button>
+      </div>
+    </TmCard>
+  );
+}
+
+/* ทีมวันนี้ — แถบสีแบ่งสัดส่วน ทำงานอยู่ / ออกแล้ว / ลา / ยังไม่ลง */
+function TmTeamToday({ cfg, users }) {
+  const st = useTmDayStatus(window.drToday(), cfg, users);
+  const live = st.rows.filter((r) => r.in && !r.out).length;
+  const out = st.rows.filter((r) => r.out).length;
+  const seg = [
+    [live, "var(--primary)", "ทำงานอยู่"],
+    [out, "var(--st-takeoff-fg)", "ออกแล้ว"],
+    [st.leaving.length, "var(--st-design-fg)", "ลา"],
+    [st.missing.length, "var(--st-queue-fg)", "ยังไม่ลง"],
+  ];
+  const tot = seg.reduce((a, s) => a + s[0], 0);
+  return (
+    <div className="tmv-team">
+      <div className="tmv-k">ทีมวันนี้ · ลงเวลาแล้ว {st.rows.length}{tot ? " จาก " + (tot - st.leaving.length) : ""} คน</div>
+      <div className="tmv-stack">
+        {seg.filter((s) => s[0] > 0).map((s) => <i key={s[2]} style={{ flex: s[0], background: s[1] }} />)}
+      </div>
+      <div className="tmv-leg">
+        {seg.filter((s) => s[0] > 0 || s[2] === "ทำงานอยู่").map((s) => (
+          <span key={s[2]}><i className="tmv-dot" style={{ background: s[1] }} /><b>{s[0]}</b>{s[2]}</span>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+/* ── แท็บวันนี้ (คนที่ดูได้ทุกคน) ── */
+function TmDaySheet({ date, setDate, cfg, users, currentUser }) {
+  const st = useTmDayStatus(date, cfg, users);
+  const admin = window.useAttendAdmin(currentUser);
+  /* ข้อความผลลัพธ์ของการลบ — ลบแล้วแถวหายไปเฉย ๆ อ่านเหมือนกดพลาดแล้วจอเพี้ยน */
+  const [msg, setMsg] = React.useState("");
+  const today = window.drToday();
+  const isToday = date === today;
+  const nowM = useTmNow(isToday);
+
+  /* ชื่อจากทะเบียนผู้ใช้ ไม่ใช่ชื่อที่ถ่ายสำเนาไว้ในใบตอนปั๊มเวลา — ดู tmNameOf */
+  const nameOf = (r) => window.tmNameOf(users, r.userId, r.name);
+
+  /* พิกัด — สี่สภาพที่ต้องแยกให้ขาด: ไม่มีพิกัด · ใบเก่าไม่มีตัวเลข · ยังไม่ตั้งพิกัดออฟฟิศ · บอกระยะได้
+     ระยะเป็นข้อมูลให้คนอ่านตัดสิน ไม่ได้แปลว่าใบนั้นใช้ไม่ได้ */
+  const gpsCell = (r) => {
+    /* แอดมินแก้/ลงเวลาแทน — ไม่เตือนไม่มีพิกัด (ผู้ใช้ 2026-10-16) */
+    if (!r.gps && r.fix) return null;
+    if (!r.gps) return <span style={{ color: "var(--tint-amber-tx)", fontWeight: 700 }}>ไม่มีพิกัด</span>;
+    const ok = <span style={{ color: "var(--tint-ok-tx)", fontWeight: 700 }}>มีพิกัด</span>;
+    if (r.lat == null || r.lng == null) return ok;
+    const d = window.tmOfficeDist(r, cfg);
+    const link = (kid) => (
+      <a href={window.tmGpsUrl(r)} target="_blank" rel="noreferrer" title={"พิกัดตอนเข้างาน " + window.tmGpsTH(r)}
+        style={{ fontWeight: 700, textDecoration: "none" }}>{kid}</a>
+    );
+    if (d == null) return link(ok);
+    const near = d <= window.tmWhNorm(cfg).office.radius;
+    const office = r.place === "office";
+    /* คนที่กด "ออฟฟิศ" แต่อยู่นอกรัศมี คือเรื่องเดียวที่ควรสะดุดตา */
+    const color = !office ? "var(--text-3)" : near ? "var(--tint-ok-tx)" : "var(--tint-red-tx2)";
+    return link(<span style={{ color: color }}>{office ? (near ? "ถึงออฟฟิศ" : "ห่างออฟฟิศ " + window.tmDistTH(d)) : "ห่างออฟฟิศ " + window.tmDistTH(d)}</span>);
+  };
+
+  const del = async (r) => {
+    const ok = await window.askConfirm({
+      title: "ลบใบลงเวลาของ " + nameOf(r) + "?",
+      body: window.drDateTH(date, true) + " · " + (r.in || "—") + " – " + (r.out || "—") +
+        " · " + window.tmDur(r.mins) + "\nลบแล้วคนคนนี้กดลงเวลาของวันนี้ใหม่ได้ตั้งแต่ต้น",
+      ok: "ลบใบนี้", danger: true, icon: "trash",
+    });
+    if (!ok) return;
+    const res = await admin.removeDay(r.userId, date);
+    setMsg(res.ok ? "ลบใบลงเวลาของ " + nameOf(r) + " แล้ว" : "ลบไม่สำเร็จ — " + res.why);
+  };
+  /* แอดมินแก้เวลา / ลงเวลาแทนคนลืมลง — เก็บเวลาเดิม + ชื่อคนแก้ไว้ในใบ */
+  const isAdmin = window.usePgAdmin();
+  const [ed, setEd] = React.useState(null);   // { user, inHM, outHM, why, busy, err }
+  const openEd = (uid, nm, inHM, outHM) => {
+    const u = (users || []).find((x) => x && x.id === uid) || { id: uid, name: nm };
+    const c = window.tmWhNorm(cfg);
+    setEd({ user: u, inHM: inHM || c.startEarly, outHM: outHM != null ? outHM : c.end, why: "", busy: false, err: "" });
+  };
+  const saveEd = async () => {
+    if (!ed || ed.busy) return;
+    setEd(Object.assign({}, ed, { busy: true, err: "" }));
+    const res = await admin.setTimes(ed.user, date, ed.inHM, ed.outHM, ed.why, cfg).catch((e) => ({ ok: false, why: String(e && e.message || e) }));
+    if (!res.ok) { setEd(Object.assign({}, ed, { busy: false, err: res.why })); return; }
+    setMsg("แก้เวลาของ " + (ed.user.name || "") + " แล้ว · " + ed.inHM + " – " + (ed.outHM || "ยังไม่ออก"));
+    setEd(null);
+  };
+  const holiday = window.tmIsHoliday(date, cfg);
+  const workday = st.workday;
+
+  const rows = st.rows.slice().sort((a, b) => String(a.in || "99").localeCompare(String(b.in || "99")));
+  const totalMins = rows.reduce((a, r) => a + (+r.mins || 0), 0);
+  const items = rows.map((r) => {
+    const a = tmMinOf(r.in);
+    let b = tmMinOf(r.out);
+    if (a != null && b != null && b < a) b += 1440;   // OT ข้ามเที่ยงคืน
+    const live = !!(isToday && r.in && !r.out);
+    const forgot = !!(!isToday && r.in && !r.out);
+    if (live) b = Math.max(nowM, a + 5);
+    const late = !!(workday && r.in && window.tmDayWindow({ in: { hm: r.in } }, cfg).late);
+    /* คนที่กด "ออฟฟิศ" ไม่มีรหัสงานให้แสดง — ช่องว่างเปล่า ๆ อ่านเหมือนลืมกรอก */
+    const job = r.place === "office" || (r.fix && !r.jobCode) ? "ออฟฟิศ" : (r.jobCode || "");
+    const nm = nameOf(r);
+    return {
+      key: r.userId, a: a, b: forgot ? null : b, live: live, forgot: forgot, now: isToday,
+      title: nm + " · " + (r.in || "—") + " – " + (r.out || (live ? "ยังไม่ออก" : "ลืมกดออก")),
+      who: <React.Fragment>
+        <TmAvatar uid={r.userId} name={nm} />
+        <div style={{ minWidth: 0 }}>
+          <div className="tmv-who-n">{nm}</div>
+          <div className="tmv-who-s">
+            {job && <span style={{ fontFamily: job === "ออฟฟิศ" ? "inherit" : "var(--mono)" }}>{job}</span>}
+            {gpsCell(r)}
+          </div>
+        </div>
+      </React.Fragment>,
+      tim: <React.Fragment>
+        <b>{r.in || "—"} – {r.out || "…"}</b>
+        <span style={{ fontWeight: forgot || live || late ? 700 : 500,
+          color: forgot ? "var(--tint-red-tx2)" : late ? "var(--tint-amber-tx)" : live ? "var(--primary-dark)" : undefined }}>
+          {forgot ? "ลืมกดออก" : live ? "กำลังทำงาน" : window.tmDur(r.mins)}{late ? " · สาย" : ""}
+        </span>
+      </React.Fragment>,
+      act: <React.Fragment>
+        {isAdmin && <button className="tmv-ib xs" title="แก้เวลาเข้า-ออก" onClick={() => openEd(r.userId, nm, r.in, r.out || "")}><Icon name="pen" size={14} /></button>}
+        {/* ลบทั้งใบ — ให้เจ้าตัวกดใหม่จะได้พิกัดกับเวลาจริงติดมาด้วย */}
+        <button className="tmv-ib xs dngr" title="ลบใบลงเวลา" onClick={() => del(r)}><Icon name="trash" size={14} /></button>
+      </React.Fragment>,
+    };
+  });
+  const range = tmTlRange(items, cfg, isToday ? nowM : null);
+  const stillIn = items.filter((x) => x.live).length;
+  const forgotN = items.filter((x) => x.forgot).length;
+  const attendUsers = (users || []).filter((u) => u && u.active !== false && !window.tmIsSysAcct(u) && window.can(window.userRoles(u), "attend"));
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-      <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
-        <button onClick={() => setYm(window.tmYmShift(ym, -1))} style={TM_NAV}>‹</button>
-        <div style={{ fontSize: 14, fontWeight: 800, color: "var(--text-1)", minWidth: 120, textAlign: "center" }}>{window.tmYmTH(ym)}</div>
-        <button onClick={() => setYm(window.tmYmShift(ym, 1))} style={TM_NAV}>›</button>
-        {ym !== window.tmYmNow() && <button onClick={() => setYm(window.tmYmNow())} style={TM_NAV}>เดือนนี้</button>}
-        {cut ? <span style={{ fontSize: 11.5, color: "var(--text-3)" }}>OT รอบ {window.tmPeriodTH(period)}</span> : null}
-        {canAll && (
-          <button onClick={async () => {
-            if (busy) return;
-            setBusy(true);
-            try { await tmExportMonthXlsx(att, days, ym, otRows, users, cfg); }
-            finally { setBusy(false); }
-          }} disabled={busy}
-            style={{ marginLeft: "auto", display: "inline-flex", alignItems: "center", gap: 6, padding: "9px 15px", borderRadius: "var(--r-chip)",
-              border: "none", background: busy ? "var(--text-3)" : "var(--primary)", color: "#fff",
-              cursor: busy ? "default" : "pointer", fontFamily: "inherit", fontSize: 12.5, fontWeight: 800 }}>
-            <Icon name="file" size={14} color="#fff" /> {busy ? "กำลังเตรียมไฟล์…" : "ออก Excel ทั้งเดือน"}
-          </button>
+    <div className="tmv" style={{ gap: 14 }}>
+      <div className="tmv-bar">
+        <button className="tmv-ib" title="วันก่อนหน้า" onClick={() => setDate(window.drAddDays(date, -1))}><Icon name="chevronLeft" size={16} /></button>
+        <span className="tmv-date">{window.drDateTH(date, true)}</span>
+        <button className="tmv-ib" title="วันถัดไป" onClick={() => setDate(window.drAddDays(date, 1))}><Icon name="chevronRight" size={16} /></button>
+        <input type="date" value={date} onChange={(e) => setDate(e.target.value || today)} title="เลือกวัน"
+          style={Object.assign({}, TM_IN, { padding: "7px 10px", fontSize: 12.5 })} />
+        {!isToday && <button className="btn btn-sm" onClick={() => setDate(today)}>กลับมาวันนี้</button>}
+        {holiday ? <span className="tmv-pill" style={{ background: "var(--tint-red-bg)", color: "var(--tint-red-tx)" }}>วันหยุด · {window.tmWhNorm(cfg).holidays[date]}</span>
+          : !workday ? <span className="tmv-pill" style={{ background: "var(--surface3)", color: "var(--text-2)" }}>นอกวันทำงาน</span> : null}
+        {/* ลงเวลาแทนคนที่ไม่อยู่ในรายการ (เช่น วันหยุดที่ไม่มีแถว "ยังไม่ลงเวลา") */}
+        {isAdmin && (
+          <select value="" title="ลงเวลาแทน" onChange={(e) => { const u = attendUsers.find((x) => x.id === e.target.value); if (!u) return;
+              const r = rows.find((x) => x.userId === u.id); openEd(u.id, u.name, r ? r.in : "", r ? r.out || "" : null); }}
+            style={Object.assign({}, TM_IN, { marginLeft: "auto", minWidth: 170, padding: "8px 10px", fontSize: 12.5 })}>
+            <option value="">+ ลงเวลาแทน…</option>
+            {attendUsers.map((u) => <option key={u.id} value={u.id}>{u.name}</option>)}
+          </select>
         )}
       </div>
 
-      <TmFacts items={[
-        canAll && { label: "วัน-คนที่ลงเวลา", value: tot.days, unit: "วัน" },
-        canAll && { label: "ชั่วโมงทำงาน", value: hrs(tot.mins), unit: "ชม." },
-        { label: "OT อนุมัติ", value: hrs(tot.otOk), unit: "ชม." },
-        { label: "คิดค่าแรง", value: hrs(tot.pay), unit: "ชม.", color: "var(--primary-dark)" },
-        tot.wait > 0 && { label: "OT รออนุมัติ", value: hrs(tot.wait), unit: "ชม.", color: "#F59E0B" },
-        canAll && tot.noOut > 0 && { label: "ลืมกดออก", value: tot.noOut, unit: "ใบ", color: "#EF4444" },
-      ]} />
+      {(st.missing.length > 0 || st.leaving.length > 0) && (
+        <TmCard>
+          {st.missing.length > 0 && (
+            <div>
+              <div className="tmv-hd" style={{ marginBottom: 10 }}>
+                <span className="t">ยังไม่ลงเวลา</span>
+                <span className="tmv-badge" style={{ alignSelf: "center" }}>{st.missing.length}</span>
+                <span className="s">ทักถามก่อน{isAdmin ? " หรือกดลงเวลาแทน" : ""}</span>
+              </div>
+              <div className="tmv-people">
+                {st.missing.map((u) => (
+                  <span key={u.id} className="tmv-person">
+                    <TmAvatar uid={u.id} name={u.name} size={26} />
+                    <span style={{ paddingRight: isAdmin ? 0 : 8 }}>{u.name}</span>
+                    {isAdmin && <button className="x" onClick={() => openEd(u.id, u.name, "", null)}>ลงแทน</button>}
+                  </span>
+                ))}
+              </div>
+            </div>
+          )}
+          {st.leaving.length > 0 && (
+            <div style={{ marginTop: st.missing.length ? 16 : 0 }}>
+              <div className="tmv-hd" style={{ marginBottom: 10 }}><span className="t">ลาวันนี้</span><span className="s">{st.leaving.length} คน</span></div>
+              <div className="tmv-people">
+                {st.leaving.map((u) => {
+                  const lr = st.onLeave[u.id], lt = window.lvTypeOf(st.lvTypes, lr.type);
+                  return (
+                    <span key={u.id} className="tmv-person" title={lr.no + " · " + window.lvRangeTH(lr)}>
+                      <TmAvatar uid={u.id} name={u.name} size={26} />
+                      {u.name}
+                      <span className="tmv-pill" style={{ background: lt.color + "1A", color: lt.color }}>{lt.th}</span>
+                    </span>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+        </TmCard>
+      )}
 
-      <div style={{ overflowX: "auto", border: "none", boxShadow: "var(--shadow-sm)", borderRadius: "var(--r-tile)", background: "var(--surface)" }}>
-        <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
-          <thead>
-            <tr style={{ background: "var(--surface2)" }}>
-              {th("ชื่อ")}
-              {canAll && th("วันที่มา", "center")}{canAll && th("ชม.ทำงาน", "center")}{canAll && th("ลืมออก", "center")}
-              {th("OT อนุมัติ", "center")}{th("ชม.คิดค่าแรง", "center")}{th("OT รออนุมัติ", "center")}
-              {canAll && th("", "center")}{th("เอกสาร", "right")}
-            </tr>
-          </thead>
-          <tbody>
-            {canAll && loading && <tr><td colSpan={cols} style={{ padding: 26, textAlign: "center", color: "var(--text-3)" }}>กำลังโหลด…</td></tr>}
-            {!(canAll && loading) && rows.length === 0 && (
-              <tr><td colSpan={cols} style={{ padding: 26, textAlign: "center", color: "var(--text-3)" }}>ไม่มีข้อมูลเดือนนี้</td></tr>
-            )}
-            {!(canAll && loading) && rows.map((r) => {
-              const a = r.a, o = r.o;
-              return (
-                <React.Fragment key={r.key}>
-                  <tr style={{ borderBottom: "1px solid var(--divider)" }}>
-                    <td style={{ padding: "9px 12px", fontWeight: 700, color: (a && a.days) || o ? "var(--text-1)" : "var(--text-3)" }}>{r.name}</td>
-                    {canAll && td(a && a.days ? a.days : "—")}
-                    {canAll && td(hrs(a && a.mins))}
-                    {canAll && td(a && a.noOut ? a.noOut : "—", { color: a && a.noOut ? "#EF4444" : "var(--text-3)" })}
-                    {td(hrs(o && o.minsApproved))}
-                    {td(hrs(o && o.payApproved), { fontWeight: 800, color: o && o.payApproved ? "var(--primary-dark)" : "var(--text-3)" })}
-                    {td(hrs(o && o.minsWaiting), { color: o && o.minsWaiting ? "#F59E0B" : "var(--text-3)" })}
-                    {canAll && <td style={{ padding: "9px 6px", textAlign: "center" }}>
-                      {a && a.days > 0 && <button onClick={() => setPick(pick === r.key ? null : r.key)} style={tmChip(pick === r.key)}>
-                        {pick === r.key ? "ซ่อน" : "รายวัน"}</button>}
-                    </td>}
-                    <td style={{ padding: "9px 12px", textAlign: "right" }}>
-                      {o && o.rows.length > 0 && (
-                        <button onClick={() => setPaper(o)}
-                          style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "7px 12px", borderRadius: 9,
-                            border: "none", background: "var(--primary)", color: "#fff", cursor: "pointer",
-                            fontFamily: "inherit", fontSize: 12, fontWeight: 800, whiteSpace: "nowrap" }}>
-                          <Icon name="file" size={13} color="#fff" /> ใบ OT
-                        </button>
-                      )}
-                    </td>
-                  </tr>
-                  {pick === r.key && a && (
-                    <tr><td colSpan={cols} style={{ padding: "10px 13px 14px", background: "var(--surface2)", borderBottom: "1px solid var(--divider)" }}>
-                      <TmDayGrid days={days} byDay={a.byDay} />
-                    </td></tr>
-                  )}
-                </React.Fragment>
-              );
-            })}
-          </tbody>
-        </table>
-      </div>
+      <TmCard>
+        <div className="tmv-hd">
+          <span className="t">เข้า-ออกงาน</span>
+          <span className="s">{rows.length} คน · รวม {window.tmDur(totalMins)}
+            {stillIn ? " · ยังทำงานอยู่ " + stillIn : ""}{forgotN ? " · ลืมกดออก " + forgotN : ""}</span>
+          <span className="r"><TmLegend items={TM_LEG} /></span>
+        </div>
+        {st.loading ? <TmEmpty>กำลังโหลด…</TmEmpty>
+          : rows.length === 0 ? <TmEmpty>ยังไม่มีใครลงเวลาในวันนี้<br /><span style={{ fontSize: 11.5 }}>ช่างลงเวลาเข้า-ออกจากแอปในไลน์</span></TmEmpty>
+          : <TmTimeline items={items} range={range} nowM={isToday ? nowM : null} band={workday ? range.band : null} />}
+      </TmCard>
 
-      <label style={{ display: "inline-flex", alignItems: "center", gap: 7, fontSize: 12, fontWeight: 700, color: "var(--text-2)", cursor: "pointer", width: "fit-content" }}>
-        <input type="checkbox" checked={onlyApproved} onChange={(e) => setOnlyApproved(e.target.checked)} style={{ width: 15, height: 15 }} />
-        ใบ OT ที่พิมพ์ — เอาเฉพาะใบที่อนุมัติแล้ว
-      </label>
+      {msg && <div style={{ fontSize: 12.5, fontWeight: 700, color: "var(--text-2)", padding: "0 4px" }}>{msg}</div>}
+
+      {ed && (
+        <div style={{ position: "fixed", inset: 0, zIndex: 90, background: "rgba(15,23,42,.45)", display: "grid", placeItems: "center", padding: 18 }}
+          onMouseDown={(e) => { if (e.target === e.currentTarget && !ed.busy) setEd(null); }}>
+          <div style={{ width: "min(420px,100%)", background: "var(--bg)", boxShadow: "var(--shadow-modal)", borderRadius: "var(--r-card)", padding: 20, display: "grid", gap: 14 }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+              <TmAvatar uid={ed.user.id} name={ed.user.name} size={40} />
+              <div>
+                <div style={{ fontSize: 16.5, fontWeight: 800, color: "var(--text-1)" }}>{ed.user.name}</div>
+                <div style={{ fontSize: 11.5, color: "var(--text-3)", fontWeight: 600 }}>แก้เวลาลงงาน · {window.drDateTH(date, true)}</div>
+              </div>
+            </div>
+            <div style={{ display: "grid", gridTemplateColumns: "minmax(0,1fr) auto minmax(0,1fr)", gap: 9, alignItems: "end" }}>
+              <label style={TM_LB}><span style={{ fontSize: 11.5, fontWeight: 700, color: "var(--text-3)" }}>เข้างาน</span>
+                <window.PgTime value={ed.inHM} ariaLabel="เข้างาน" onChange={(t) => setEd((p) => Object.assign({}, p, { inHM: t }))} style={TM_IN_W} /></label>
+              <span style={{ fontSize: 12.5, fontWeight: 700, color: "var(--text-3)", paddingBottom: 10 }}>ถึง</span>
+              <label style={TM_LB}><span style={{ fontSize: 11.5, fontWeight: 700, color: "var(--text-3)" }}>ออกงาน (ว่าง = ยังไม่ออก)</span>
+                <window.PgTime value={ed.outHM} ariaLabel="ออกงาน" onChange={(t) => setEd((p) => Object.assign({}, p, { outHM: t }))} style={TM_IN_W} /></label>
+            </div>
+            {/* ไม่มีช่องเหตุผลแล้ว (ผู้ใช้สั่ง ต.ค. 2026) — ประวัติยังเก็บเวลาเดิม + ชื่อคนแก้ไว้ในใบ */}
+            {ed.err && <div style={{ fontSize: 12, fontWeight: 700, color: "var(--tint-red-tx2)" }}>{ed.err}</div>}
+            <div style={{ display: "flex", gap: 8, justifyContent: "flex-end" }}>
+              <button type="button" className="btn" disabled={ed.busy} onClick={() => setEd(null)}>ยกเลิก</button>
+              <button type="button" className="btn btn-pri" disabled={ed.busy || !ed.inHM} onClick={saveEd}>{ed.busy ? "กำลังบันทึก…" : "บันทึกเวลา"}</button>
+            </div>
+          </div>
+        </div>
+      )}
 
       <TmHelp>
-        <b>Excel ทั้งเดือน</b> = แผ่นสรุปหนึ่งแผ่น + แผ่นรายละเอียดแยกรายคน (เข้า · ออก · ชั่วโมง · งานที่แจ้ง · พิกัดพร้อมลิงก์แผนที่) ต่อด้วยใบ OT ของเดือนและช่องเซ็น
-        <br /><b>ใบ OT</b> = ใบ A4 ของคนนั้นหนึ่งใบต่อรอบ ให้หัวหน้าเซ็น (ผู้ขอ · หัวหน้างาน · ฝ่ายบุคคล) — ใบที่ยังไม่อนุมัติพิมพ์ติดไปด้วยพร้อมสถานะ แต่ยอดแยกบรรทัด
-        <br />ชั่วโมงทำงานคิดจากเวลาที่ปั๊มเข้า-ออก หักพักกลางวันตามที่ตั้งไว้ · ใบที่ลืมกดออกชั่วโมงเป็นศูนย์ ต้องแก้เวลาที่แท็บ "วันนี้"
-        <br />“ชม.คิดค่าแรง” = ชั่วโมง OT × ตัวคูณของประเภท (วันหยุด: 8 ชม.แรก × อัตราวันหยุด ส่วนเกิน × อัตราล่วงเวลาวันหยุด) เฉพาะใบที่อนุมัติแล้ว — ยังไม่ใช่จำนวนเงิน
-        <br />รอบ OT {cut ? "ตัดยอดทุกวันที่ " + cut + " — เดือนนี้นับ " + window.tmPeriodTH(period) : "ใช้เดือนปฏิทิน (ยังไม่ได้ตั้งวันตัดยอดในหน้าตั้งค่า)"}
+        ปุ่มถังขยะลบใบลงเวลาของวันนั้นทั้งใบ แล้วให้เจ้าตัวกดเข้า-ออกใหม่ —
+        ระบบเก็บสำเนาใบที่ลบไว้พร้อมชื่อคนลบ เผื่อมีข้อโต้เถียงเรื่องชั่วโมงตอนสิ้นเดือน
+        <br />รหัสงานใต้ชื่อคือสิ่งที่ผู้ลงเวลาเลือกเอง ระบบไม่ได้ตรวจว่าอยู่ที่ไซต์นั้นจริงหรือไม่ —
+        ยังไม่มีพิกัดไซต์ที่เชื่อถือได้ในระบบ จึงเทียบระยะไม่ได้
+        <br />“ไม่มีพิกัด” เกิดได้ทั้งจากปิดสิทธิ์ตำแหน่ง สัญญาณไม่ถึง หรืออยู่ในอาคาร — ระบบไม่เคยบล็อกการลงเวลาด้วยเหตุนี้
+        <br />ระยะห่างจากออฟฟิศคิดจากพิกัดที่ตั้งไว้ในแท็บ “ตั้งค่า” เทียบกับตำแหน่งตอนกดเข้างาน —
+        ขึ้นสีแดงเฉพาะคนที่กด “ออฟฟิศ” แต่อยู่นอกรัศมี ส่วนงานหน้าไซต์ห่างออฟฟิศเป็นเรื่องปกติ
+        <br />“สาย” = เข้างานหลังเวลาเข้างานช้าสุดที่ตั้งไว้ · พื้นเขียวจางบนแถบคือเวลางานปกติของคนที่เข้าเช้าสุด
       </TmHelp>
-
-      {paper && window.TmOtPaper && (
-        <window.TmOtPaper person={paper} period={period} rows={paper.rows} jobs={jobs} users={users}
-          cfg={cfg} byName={byName} onClose={() => setPaper(null)} />
-      )}
     </div>
   );
 }
 
-/* ── คำขอ ── ใบ OT กับใบลารวมเป็นรายการเดียว แบ่งรายเดือน
-   ขอบเขต: รอฉันอนุมัติ / ของฉัน / ทั้งหมด · ชนิด: ทั้งหมด / OT / ลา */
-function TmRequests({ cfg, users, role, currentUser, ot, otVisible, lv, lvTypes, lvQuota, onOpenOt, onOpenLv, otWaiting, lvWaiting }) {
+/* เวลาของตัวเอง — สำหรับคนที่ไม่มีสิทธิ์ดูของทุกคน (ทุกคนต้องตรวจเวลาตัวเองย้อนหลังได้) */
+function TmMyDays({ rows, cfg }) {
+  const today = window.drToday();
+  const nowM = useTmNow(true);
+  const items = (rows || []).map((r) => {
+    const inHM = r.in && r.in.hm, outHM = r.out && r.out.hm;
+    const a = tmMinOf(inHM);
+    let b = tmMinOf(outHM);
+    if (a != null && b != null && b < a) b += 1440;
+    const live = !!(r.date === today && inHM && !outHM);
+    const forgot = !!(r.date !== today && inHM && !outHM);
+    if (live) b = Math.max(nowM, a + 5);
+    const wd = TM_WD_TH[tmWdOf(r.date)];
+    return {
+      key: r.date, a: a, b: forgot ? null : b, live: live, forgot: forgot, now: r.date === today,
+      who: <React.Fragment>
+        <span style={{ width: 38, height: 38, borderRadius: "var(--r-chip)", background: "var(--surface2)", display: "grid", placeItems: "center", flexShrink: 0, lineHeight: 1.05 }}>
+          <span style={{ textAlign: "center" }}>
+            <span style={{ display: "block", fontSize: 9.5, fontWeight: 700, color: "var(--text-3)" }}>{wd}</span>
+            <span style={{ fontFamily: "var(--display)", fontSize: 15, fontWeight: 700, color: "var(--text-1)" }}>{+String(r.date).slice(8)}</span>
+          </span>
+        </span>
+        <div style={{ minWidth: 0 }}>
+          <div className="tmv-who-n">{window.drDateTH(r.date)}</div>
+          <div className="tmv-who-s">
+            {r.jobCode ? <span style={{ fontFamily: "var(--mono)" }}>{r.jobCode}</span> : null}
+            {!(r.in && r.in.lat) && <span style={{ color: "var(--tint-amber-tx)", fontWeight: 700 }}>ไม่มีพิกัด</span>}
+          </div>
+        </div>
+      </React.Fragment>,
+      tim: <React.Fragment>
+        <b>{inHM || "—"} – {outHM || "…"}</b>
+        <span style={{ fontWeight: forgot || live ? 700 : 500, color: forgot ? "var(--tint-red-tx2)" : live ? "var(--primary-dark)" : undefined }}>
+          {forgot ? "ลืมกดออก" : live ? "กำลังทำงาน" : window.tmDur(window.tmWorkedMins(r, cfg))}</span>
+      </React.Fragment>,
+    };
+  });
+  const range = tmTlRange(items, cfg, nowM);
+  return (
+    <TmCard>
+      <div className="tmv-hd">
+        <span className="t">เวลาของฉัน</span><span className="s">ย้อนหลัง 30 วัน</span>
+        <span className="r"><TmLegend items={TM_LEG} /></span>
+      </div>
+      {items.length === 0
+        ? <TmEmpty>ยังไม่มีประวัติการลงเวลา<br /><span style={{ fontSize: 11.5 }}>ลงเวลาได้จากแอปในไลน์</span></TmEmpty>
+        : <TmTimeline items={items} range={range} nowM={nowM} band={range.band} />}
+    </TmCard>
+  );
+}
+
+/* ── การ์ดคำขอหนึ่งใบ (OT หรือ ลา) ── */
+function TmReqCard({ x, users, lvTypes, onOpen, onApprove }) {
+  const r = x.r;
+  const nm = window.tmNameOf(users, r.userId, r.userName);
+  let color, icon, title, amt, line;
+  if (x.t === "ot") {
+    const k = window.tmOtKindOf(r.kind);
+    color = k.color; icon = "clock"; title = "OT · " + k.th; amt = window.tmDur(r.mins);
+    line = window.drDateTH(r.date) + " · " + (r.from || "") + "–" + (r.to || "") + (r.jobCode ? " · " + r.jobCode : "");
+  } else {
+    const lt = window.lvTypeOf(lvTypes, r.type);
+    color = lt.color; icon = "calendar"; title = lt.th; amt = window.lvDaysTH(r.days);
+    line = window.lvRangeTH(r);
+  }
+  return (
+    <div className="tmv-req" role="button" tabIndex={0} onClick={() => onOpen(x)}
+      onKeyDown={(e) => { if (e.key === "Enter") onOpen(x); }}>
+      <div className="tmv-req-ic" style={{ background: color + "1A" }}><Icon name={icon} size={20} color={color} sw={2} /></div>
+      <div style={{ minWidth: 0 }}>
+        <div className="tmv-req-t">{title}<TmPill s={r.status} size="sm" /><span className="tmv-no">{r.no}</span></div>
+        <div className="tmv-req-s">
+          <TmAvatar uid={r.userId} name={nm} size={20} />
+          <span style={{ fontWeight: 700, color: "var(--text-1)" }}>{nm}</span>
+          <span style={{ color: "var(--text-3)" }}>·</span>
+          <span>{line}</span>
+        </div>
+        {r.reason && String(r.reason).trim() !== "-" ? <div className="tmv-req-r">{r.reason}</div> : null}
+      </div>
+      <div className="tmv-req-amt">
+        <b>{amt}</b>
+        {onApprove && (
+          <button className="btn btn-soft btn-sm" onClick={(e) => { e.stopPropagation(); onApprove(x); }}>
+            <Icon name="check" size={13} sw={2.4} /> อนุมัติ
+          </button>
+        )}
+      </div>
+    </div>
+  );
+}
+
+/* ── แท็บคำขอ ── ใบ OT กับใบลารวมเป็นรายการเดียว แบ่งรายเดือน */
+function TmRequests({ users, role, currentUser, otVisible, lv, lvTypes, lvQuota, onOpenOt, onOpenLv, otWaiting, lvWaiting, onApprove }) {
   const uid = (currentUser || {}).id || null;
   const canApprove = window.tmCanOtApprove(role) || window.lvCanApprove(role);
   const canAll = canApprove || window.tmCanAttendAll(role);
@@ -1345,7 +1566,8 @@ function TmRequests({ cfg, users, role, currentUser, ot, otVisible, lv, lvTypes,
 
   const lvVis = React.useMemo(() => window.lvVisible(lv.rows, currentUser, role), [lv.rows, currentUser, role]);
   const year = +String(window.drToday()).slice(0, 4);
-  const myBal = React.useMemo(() => window.lvBalance(lv.rows, lvQuota.map, uid, year, lvTypes), [lv.rows, lvQuota.map, uid, year, lvTypes]);
+  const myBal = React.useMemo(() => window.lvBalance(lv.rows, lvQuota.map, uid, year, lvTypes)
+    .filter((b) => b.quota !== 0 || b.used || b.pending), [lv.rows, lvQuota.map, uid, year, lvTypes]);
 
   const list = React.useMemo(() => {
     const pickOt = scope === "inbox" ? otWaiting : scope === "mine" ? otVisible.filter((r) => r.userId === uid) : otVisible;
@@ -1362,82 +1584,268 @@ function TmRequests({ cfg, users, role, currentUser, ot, otVisible, lv, lvTypes,
     return out;
   }, [scope, kind, q, otVisible, otWaiting, lvVis, lvWaiting, uid, lvTypes]);
 
-  const SC = (canApprove ? [["inbox", "รอฉันอนุมัติ", otWaiting.length + lvWaiting.length]] : [])
-    .concat([["mine", "ของฉัน", 0]])
-    .concat(canAll ? [["all", "ทั้งหมด", 0]] : []);
+  const SC = (canApprove ? [{ k: "inbox", th: "รอฉันอนุมัติ", n: otWaiting.length + lvWaiting.length }] : [])
+    .concat([{ k: "mine", th: "ของฉัน" }])
+    .concat(canAll ? [{ k: "all", th: "ทั้งหมด" }] : []);
+
+  /* แบ่งหัวรายเดือน — list เรียงใหม่→เก่าแล้ว */
+  const groups = [];
+  list.forEach((x) => {
+    const ym = String(x.d || "").slice(0, 7);
+    const g = groups[groups.length - 1];
+    if (g && g.ym === ym) g.items.push(x); else groups.push({ ym: ym, items: [x] });
+  });
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-      <div style={{ display: "flex", gap: 7, flexWrap: "wrap", alignItems: "center" }}>
-        {SC.map(([k, th, n]) => (
-          <button key={k} onClick={() => setScope(k)} style={tmChip(scope === k)}>{th}{tmBadge(n, true)}</button>
-        ))}
-        <span style={{ width: 1, height: 22, background: "var(--divider)", margin: "0 4px" }} />
-        {[["all", "ทุกชนิด"], ["ot", "OT"], ["lv", "ลา"]].map(([k, th]) => (
-          <button key={k} onClick={() => setKind(k)} style={tmChip(kind === k)}>{th}</button>
-        ))}
-        <div className="search-box" style={{ marginLeft: "auto", width: "100%", maxWidth: 260 }}>
+    <div className="tmv" style={{ gap: 14 }}>
+      <div className="tmv-bar" style={{ gap: 10 }}>
+        <TmSeg items={SC} value={scope} onChange={setScope} />
+        <TmSeg sm items={[{ k: "all", th: "ทุกชนิด" }, { k: "ot", th: "OT", ic: "clock" }, { k: "lv", th: "ลา", ic: "calendar" }]} value={kind} onChange={setKind} />
+        <label className="tmv-search" style={{ marginLeft: "auto" }}>
           <Icon name="search" size={15} color="var(--text-3)" />
           <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="ค้นหา ชื่อ · เลขที่ · เหตุผล" />
-        </div>
+        </label>
       </div>
 
-      {scope === "mine" && kind !== "ot" && window.LvBalanceCards && (
-        <div style={{ display: "grid", gap: 6 }}>
-          <span style={{ fontSize: 11.5, fontWeight: 700, color: "var(--text-3)" }}>วันลาคงเหลือของฉัน ปี {year + 543}</span>
-          <window.LvBalanceCards bal={myBal} />
+      {scope === "mine" && kind !== "ot" && myBal.length > 0 && (
+        <div className="tmv-bar" style={{ gap: 8, padding: "0 4px" }}>
+          <span className="tmv-k">วันลาคงเหลือ ปี {year + 543}</span>
+          {myBal.map((b) => (
+            <span key={b.type.key} className="tmv-pill" style={{ background: b.type.color + "1A", color: b.type.color, padding: "5px 12px", fontSize: 12 }}>
+              {b.type.th}
+              <b style={{ fontFamily: "var(--display)", fontSize: 15, color: b.left != null && b.left <= 0 ? "var(--tint-red-tx2)" : "var(--text-1)" }}>
+                {b.left == null ? "∞" : Math.round(b.left * 10) / 10}</b>
+              <span style={{ color: "var(--text-3)", fontWeight: 600 }}>{b.quota == null ? "ไม่จำกัด" : "/ " + Math.round(b.quota * 10) / 10 + " วัน"}</span>
+            </span>
+          ))}
         </div>
       )}
 
-      <div style={{ border: "none", boxShadow: "var(--shadow-sm)", borderRadius: "var(--r-tile)", overflow: "hidden", background: "var(--surface)" }}>
-        {list.length === 0
-          ? <div style={{ padding: 34, textAlign: "center", color: "var(--text-3)", fontSize: 13 }}>
-              {scope === "inbox" ? "ไม่มีคำขอรอคุณอนุมัติ" : "ยังไม่มีคำขอ"}
-            </div>
-          : list.map((x, i) => {
-              const ym = String(x.d || "").slice(0, 7);
-              const head = i === 0 || String(list[i - 1].d || "").slice(0, 7) !== ym;
-              const n = head ? list.filter((y) => String(y.d || "").slice(0, 7) === ym).length : 0;
-              return (
-                <React.Fragment key={x.t + x.r.id}>
-                  {head && (
-                    <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "9px 14px", background: "var(--surface2)",
-                      fontSize: 12.5, fontWeight: 800, color: "var(--text-1)" }}>
-                      {ym ? window.tmYmTH(ym) : "ไม่ระบุวันที่"}
-                      <span style={{ fontSize: 11.5, fontWeight: 600, color: "var(--text-3)" }}>{n} ใบ</span>
-                    </div>
-                  )}
-                  {x.t === "ot"
-                    ? <TmOtRow rec={x.r} users={users} onOpen={(r) => onOpenOt(r.id)} />
-                    : <window.LvRow rec={x.r} users={users} types={lvTypes} onOpen={(r) => onOpenLv(r.id)} />}
-                </React.Fragment>
-              );
-            })}
-      </div>
-      <div style={{ fontSize: 11.5, color: "var(--text-3)" }}>ช่างเปิดใบ OT และยื่นใบลาจากแอปในไลน์ — กดที่รายการเพื่อเปิดใบ อนุมัติ หรือแก้</div>
+      {list.length === 0
+        ? <TmCard><TmEmpty icon={scope === "inbox" ? "check" : "list"}>
+            {scope === "inbox" ? "ไม่มีคำขอรอคุณอนุมัติ — เคลียร์หมดแล้ว" : "ยังไม่มีคำขอ"}
+          </TmEmpty></TmCard>
+        : (
+          <div className="tmv-list">
+            {groups.map((g) => (
+              <React.Fragment key={g.ym || "none"}>
+                <div className="tmv-grp">{g.ym ? window.tmYmTH(g.ym) : "ไม่ระบุวันที่"}<span>{g.items.length} ใบ</span></div>
+                {g.items.map((x) => (
+                  <TmReqCard key={x.t + x.r.id} x={x} users={users} lvTypes={lvTypes}
+                    onOpen={(y) => (y.t === "ot" ? onOpenOt(y.r.id) : onOpenLv(y.r.id))}
+                    onApprove={scope === "inbox" ? onApprove : null} />
+                ))}
+              </React.Fragment>
+            ))}
+          </div>
+        )}
+      <div style={{ fontSize: 11.5, color: "var(--text-3)", padding: "0 4px" }}>ช่างเปิดใบ OT และยื่นใบลาจากแอปในไลน์ — กดการ์ดเพื่อเปิดใบ ดูรายละเอียด แก้ หรือไม่อนุมัติ</div>
     </div>
   );
 }
 
-/* ── ตั้งค่า ── เวลาทำงาน/วันหยุด/อัตรา OT · ประเภทการลา · ยอดวันลารายคน รวมไว้ที่เดียว */
+/* ปฏิทินรายวันของคนหนึ่งคนในเดือน — เจ็ดคอลัมน์ต่อสัปดาห์ */
+function TmDayGrid({ days, byDay }) {
+  return (
+    <div className="tmv-cal">
+      {TM_WD_TH.map((w) => <div key={w} className="h">{w}</div>)}
+      {Array.from({ length: tmWdOf(days[0]) }, (_, i) => <div key={"pad" + i} />)}
+      {days.map((d) => {
+        const x = byDay[d];
+        const open = x && x.in && !x.out;
+        return (
+          <div key={d} title={d} className={"d" + (x ? " on" : " off") + (open ? " bad" : "")}>
+            <div style={{ fontSize: 10.5, color: "var(--text-3)", fontWeight: 700 }}>{+d.slice(8)}</div>
+            <div style={{ fontFamily: "var(--mono)", fontSize: 11.5, fontWeight: 700, color: open ? "var(--tint-red-tx2)" : "var(--text-1)" }}>
+              {x ? (x.in || "—") + "–" + (x.out || "?") : "—"}
+            </div>
+            <div style={{ fontSize: 10.5, color: "var(--text-3)" }}>{x ? window.tmDur(x.mins) : ""}</div>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+/* แถบสีรายวันทั้งเดือน — เข้มตามชั่วโมงที่ทำ · แดง = ลืมกดออก · วันหยุดจาง */
+function TmHeat({ days, byDay, cfg }) {
+  const full = window.tmWhNorm(cfg).workMins || 480;
+  return (
+    <div className="tmv-heat">
+      <div className="tmv-heat-g" style={{ gridTemplateColumns: "repeat(" + days.length + ", minmax(0,1fr))" }}>
+        {days.map((d) => {
+          const x = byDay[d];
+          const off = !window.tmIsWorkday(d, cfg);
+          if (!x || !x.in) return <i key={d} className={off ? "wk" : ""} title={window.drDateTH(d) + " · ไม่มีใบ"} />;
+          if (!x.out) return <i key={d} className="forgot" title={window.drDateTH(d) + " · " + x.in + " – ลืมกดออก"} />;
+          const p = Math.round(35 + 65 * Math.min(1, (+x.mins || 0) / full));
+          return <i key={d} title={window.drDateTH(d) + " · " + x.in + "–" + x.out + " · " + window.tmDur(x.mins)}
+            style={{ background: "color-mix(in srgb, var(--primary) " + p + "%, var(--surface2))" }} />;
+        })}
+      </div>
+      <div className="tmv-heat-ax"><span>1</span><span>{Math.ceil(days.length / 2)}</span><span>{days.length}</span></div>
+    </div>
+  );
+}
+
+/* ── แท็บสรุปเดือน ── จุดออกเอกสารจุดเดียว: Excel ทั้งเดือน (ปุ่มบน) · ใบ OT ให้หัวหน้าเซ็น (ปุ่มบนการ์ดแต่ละคน)
+   เวลาเข้า-ออกนับตามเดือนปฏิทิน · OT นับตามรอบตัดยอดที่จบในเดือนนี้ (ไม่ตั้งวันตัด = เดือนเดียวกัน) */
+function TmMonthAll({ cfg, users, jobs, otRows, byName, canAll }) {
+  const [ym, setYm] = React.useState(window.tmYmNow);
+  const { byDate, loading } = window.useAttendMonth(canAll ? ym : null);
+  const [pick, setPick] = React.useState(null);
+  const [busy, setBusy] = React.useState(false);
+  const [onlyApproved, setOnlyApproved] = React.useState(false);
+  const [paper, setPaper] = React.useState(null);
+
+  const days = React.useMemo(() => window.tmMonthDays(ym), [ym]);
+  const cut = window.tmWhNorm(cfg).cutoffDay;
+  const period = React.useMemo(() => window.tmPeriodOf(cut ? days[Math.min(cut, days.length) - 1] : days[0], cfg), [days, cfg, cut]);
+
+  const att = React.useMemo(() => (canAll ? window.tmMonthRollup(byDate, users, cfg, otRows, ym) : []),
+    [canAll, byDate, users, cfg, otRows, ym]);
+  const otPeople = React.useMemo(() => {
+    const src = (otRows || []).filter((r) => window.tmInPeriod(r && r.date, period) && (!onlyApproved || r.status === "approved"));
+    return window.tmOtByPerson(src, users, cfg);
+  }, [otRows, period, onlyApproved, users, cfg]);
+
+  /* การ์ดเดียวต่อคน: ลงเวลา (ถ้ามีสิทธิ์ดู) + OT */
+  const rows = React.useMemo(() => {
+    const map = {}, order = [];
+    const get = (id, name) => { const k = id || "name:" + name; if (!map[k]) { map[k] = { key: k, id: id, name: name, a: null, o: null }; order.push(k); } return map[k]; };
+    att.forEach((a) => { get(a.userId, a.name).a = a; });
+    otPeople.forEach((g) => { const r = get(g.id, g.name); r.o = g; if (!r.name) r.name = g.name; });
+    const has = (r) => (r.a && r.a.days) || (r.o && r.o.rows.length) ? 1 : 0;
+    return order.map((k) => map[k]).sort((x, y) => has(y) - has(x) || String(x.name).localeCompare(String(y.name), "th"));
+  }, [att, otPeople]);
+
+  const tot = rows.reduce((t, r) => ({
+    days: t.days + (r.a ? r.a.days : 0), mins: t.mins + (r.a ? r.a.mins : 0), noOut: t.noOut + (r.a ? r.a.noOut : 0),
+    otOk: t.otOk + (r.o ? r.o.minsApproved : 0), pay: t.pay + (r.o ? r.o.payApproved : 0), wait: t.wait + (r.o ? r.o.minsWaiting : 0),
+  }), { days: 0, mins: 0, noOut: 0, otOk: 0, pay: 0, wait: 0 });
+
+  const stat = (l, v, u, color) => (
+    <div className="tmv-stat"><div className="l">{l}</div><div className="v" style={{ color: color || undefined }}>{v}<small>{u}</small></div></div>
+  );
+
+  return (
+    <div className="tmv" style={{ gap: 14 }}>
+      <div className="tmv-bar">
+        <button className="tmv-ib" title="เดือนก่อน" onClick={() => setYm(window.tmYmShift(ym, -1))}><Icon name="chevronLeft" size={16} /></button>
+        <span className="tmv-date" style={{ minWidth: 130, textAlign: "center" }}>{window.tmYmTH(ym)}</span>
+        <button className="tmv-ib" title="เดือนถัดไป" onClick={() => setYm(window.tmYmShift(ym, 1))}><Icon name="chevronRight" size={16} /></button>
+        {ym !== window.tmYmNow() && <button className="btn btn-sm" onClick={() => setYm(window.tmYmNow())}>เดือนนี้</button>}
+        {cut ? <span className="tmv-k" style={{ fontWeight: 600 }}>OT รอบ {window.tmPeriodTH(period)}</span> : null}
+        {canAll && (
+          <button className="btn btn-pri" style={{ marginLeft: "auto" }} disabled={busy} onClick={async () => {
+            if (busy) return;
+            setBusy(true);
+            try { await tmExportMonthXlsx(att, days, ym, otRows, users, cfg); }
+            finally { setBusy(false); }
+          }}>
+            <Icon name="download" size={15} color="#fff" sw={2} /> {busy ? "กำลังเตรียมไฟล์…" : "ออก Excel ทั้งเดือน"}
+          </button>
+        )}
+      </div>
+
+      <TmCard className="tmv-stats" style={{ padding: "8px 4px" }}>
+        {canAll && stat("ชั่วโมงทำงานรวม", tmHrs(tot.mins), "ชม. · " + tot.days + " วัน-คน")}
+        {stat("OT อนุมัติแล้ว", tmHrs(tot.otOk), "ชม.")}
+        {stat("ชม.คิดค่าแรง OT", tmHrs(tot.pay), "ชม.", "var(--primary-dark)")}
+        {tot.wait > 0 ? stat("OT รออนุมัติ", tmHrs(tot.wait), "ชม.", "var(--tint-amber-tx)") : null}
+        {canAll && stat("ลืมกดออก", tot.noOut, "ใบ", tot.noOut ? "var(--tint-red-tx2)" : undefined)}
+      </TmCard>
+
+      {canAll && loading ? <TmCard><TmEmpty>กำลังโหลด…</TmEmpty></TmCard>
+        : rows.length === 0 ? <TmCard><TmEmpty icon="calendar">ไม่มีข้อมูลเดือนนี้</TmEmpty></TmCard>
+        : (
+          <div className="tmv-list">
+            {rows.map((r) => {
+              const a = r.a, o = r.o;
+              const empty = !(a && a.days) && !(o && o.rows.length);
+              return (
+                <div key={r.key} className={"tmv-pp" + (empty ? " dim" : "")}>
+                  <div className="tmv-pp-row">
+                    <div className="tmv-who">
+                      <TmAvatar uid={r.id} name={r.name} size={36} />
+                      <div style={{ minWidth: 0 }}>
+                        <div className="tmv-who-n">{r.name}</div>
+                        <div className="tmv-who-s">
+                          {canAll && (a && a.days ? <span>มา {a.days} วัน · {tmHrs(a.mins)} ชม.</span> : <span>ไม่มีใบลงเวลา</span>)}
+                          {a && a.noOut ? <span style={{ color: "var(--tint-red-tx2)", fontWeight: 700 }}>ลืมออก {a.noOut}</span> : null}
+                        </div>
+                      </div>
+                    </div>
+                    {canAll && a ? <TmHeat days={days} byDay={a.byDay} cfg={cfg} /> : <div style={{ gridArea: "heat" }} />}
+                    <div className="tmv-ot">
+                      {o && (o.minsApproved || o.minsWaiting)
+                        ? <React.Fragment>
+                            <span><b>{tmHrs(o.minsApproved)}</b>ชม. OT อนุมัติ</span>
+                            <span><b style={{ color: "var(--primary-dark)" }}>{tmHrs(o.payApproved)}</b>ชม.คิดค่าแรง</span>
+                            {o.minsWaiting ? <span style={{ color: "var(--tint-amber-tx)", fontWeight: 700 }}>รออนุมัติ {tmHrs(o.minsWaiting)} ชม.</span> : null}
+                          </React.Fragment>
+                        : <span>ไม่มี OT</span>}
+                    </div>
+                    <div className="tmv-pp-act">
+                      {o && o.rows.length > 0 && (
+                        <button className="btn btn-soft btn-sm" onClick={() => setPaper(o)} title="ใบสรุป OT ของคนนี้ ให้หัวหน้าเซ็น">
+                          <Icon name="file" size={13} /> ใบ OT
+                        </button>
+                      )}
+                      {canAll && a && a.days > 0 && (
+                        <button className="tmv-ib xs" title={pick === r.key ? "ซ่อนรายวัน" : "ดูรายวัน"} onClick={() => setPick(pick === r.key ? null : r.key)}>
+                          <Icon name="chevronDown" size={15} style={{ transform: pick === r.key ? "rotate(180deg)" : "none", transition: "transform .15s" }} />
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                  {pick === r.key && a && <div className="tmv-pp-more"><TmDayGrid days={days} byDay={a.byDay} /></div>}
+                </div>
+              );
+            })}
+          </div>
+        )}
+
+      <label style={{ display: "inline-flex", alignItems: "center", gap: 7, fontSize: 12, fontWeight: 700, color: "var(--text-2)", cursor: "pointer", width: "fit-content", padding: "0 4px" }}>
+        <input type="checkbox" checked={onlyApproved} onChange={(e) => setOnlyApproved(e.target.checked)} style={{ width: 15, height: 15 }} />
+        ใบ OT ที่พิมพ์ — เอาเฉพาะใบที่อนุมัติแล้ว
+      </label>
+
+      <TmHelp>
+        <b>ออก Excel ทั้งเดือน</b> = แผ่นสรุปหนึ่งแผ่น + แผ่นรายละเอียดแยกรายคน (เข้า · ออก · ชั่วโมง · งานที่แจ้ง · พิกัดพร้อมลิงก์แผนที่) ต่อด้วยใบ OT ของเดือนและช่องเซ็น
+        <br /><b>ใบ OT</b> = ใบ A4 ของคนนั้นหนึ่งใบต่อรอบ ให้หัวหน้าเซ็น (ผู้ขอ · หัวหน้างาน · ฝ่ายบุคคล) — ใบที่ยังไม่อนุมัติพิมพ์ติดไปด้วยพร้อมสถานะ แต่ยอดแยกบรรทัด
+        <br />แถบสีรายวัน: เข้มตามชั่วโมงที่ทำ · แดง = ลืมกดออก · ช่องจาง = วันหยุด — ชี้ที่ช่องเพื่อดูเวลา กดลูกศรท้ายการ์ดเพื่อกางปฏิทิน
+        <br />ชั่วโมงทำงานคิดจากเวลาที่ปั๊มเข้า-ออก หักพักกลางวันตามที่ตั้งไว้ · ใบที่ลืมกดออกชั่วโมงเป็นศูนย์ ต้องแก้เวลาที่แท็บ "วันนี้"
+        <br />“ชม.คิดค่าแรง” = ชั่วโมง OT × ตัวคูณของประเภท (วันหยุด: 8 ชม.แรก × อัตราวันหยุด ส่วนเกิน × อัตราล่วงเวลาวันหยุด) เฉพาะใบที่อนุมัติแล้ว — ยังไม่ใช่จำนวนเงิน
+        <br />รอบ OT {cut ? "ตัดยอดทุกวันที่ " + cut + " — เดือนนี้นับ " + window.tmPeriodTH(period) : "ใช้เดือนปฏิทิน (ยังไม่ได้ตั้งวันตัดยอดในแท็บตั้งค่า)"}
+      </TmHelp>
+
+      {paper && window.TmOtPaper && (
+        <window.TmOtPaper person={paper} period={period} rows={paper.rows} jobs={jobs} users={users}
+          cfg={cfg} byName={byName} onClose={() => setPaper(null)} />
+      )}
+    </div>
+  );
+}
+
+/* ── แท็บตั้งค่า ── เวลาทำงาน/วันหยุด/อัตรา OT · ประเภทการลา · ยอดวันลารายคน */
 function TmSettings({ wh, users, role, lv, lvTp, lvQuota }) {
   const canWh = window.can(role, "manageUsers");
-  const canTypes = window.can(role, "manageUsers");
   const canQuota = window.lvCanQuota(role);
-  const SUBS = [].concat(canWh ? [["wh", "เวลาทำงาน · วันหยุด · อัตรา OT"]] : [])
-    .concat(canTypes ? [["types", "ประเภทการลา"]] : [])
-    .concat(canQuota ? [["quota", "ยอดวันลารายคน"]] : []);
-  const [sub, setSub] = React.useState(SUBS.length ? SUBS[0][0] : "");
+  const SUBS = [].concat(canWh ? [{ k: "wh", th: "เวลาทำงาน · วันหยุด · อัตรา OT", ic: "clock" }] : [])
+    .concat(canWh ? [{ k: "types", th: "ประเภทการลา", ic: "list" }] : [])
+    .concat(canQuota ? [{ k: "quota", th: "ยอดวันลารายคน", ic: "users" }] : []);
+  const [sub, setSub] = React.useState(SUBS.length ? SUBS[0].k : "");
   const [year, setYear] = React.useState(+String(window.drToday()).slice(0, 4));
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-      <div style={{ display: "flex", gap: 7, flexWrap: "wrap", alignItems: "center" }}>
-        {SUBS.map(([k, th]) => <button key={k} onClick={() => setSub(k)} style={tmChip(sub === k)}>{th}</button>)}
+    <div className="tmv" style={{ gap: 14 }}>
+      <div className="tmv-bar">
+        <TmSeg sm items={SUBS} value={sub} onChange={setSub} />
         {sub === "quota" && (
           <span style={{ marginLeft: "auto", display: "inline-flex", alignItems: "center", gap: 4 }}>
-            <button onClick={() => setYear(year - 1)} style={TM_NAV}>‹</button>
-            <span style={{ fontFamily: "var(--mono)", fontSize: 13, fontWeight: 800, minWidth: 64, textAlign: "center" }}>ปี {year + 543}</span>
-            <button onClick={() => setYear(year + 1)} style={TM_NAV}>›</button>
+            <button className="tmv-ib" onClick={() => setYear(year - 1)}><Icon name="chevronLeft" size={16} /></button>
+            <span className="tmv-date" style={{ fontSize: 16 }}>ปี {year + 543}</span>
+            <button className="tmv-ib" onClick={() => setYear(year + 1)}><Icon name="chevronRight" size={16} /></button>
           </span>
         )}
       </div>
@@ -1463,7 +1871,6 @@ function AttendView({ jobs, users, role, currentUser }) {
   const [openLv, setOpenLv] = React.useState(null);
 
   const canAll = window.tmCanAttendAll(role);
-  const canApprove = window.tmCanOtApprove(role);
   const uid = (currentUser || {}).id || null;
 
   const visible = React.useMemo(() => window.tmOtVisible(ot.rows, currentUser, role), [ot.rows, currentUser, role]);
@@ -1514,59 +1921,54 @@ function AttendView({ jobs, users, role, currentUser }) {
     window.lvNotifyMove(rec, next, currentUser, lvTypes);
   };
 
+  /* อนุมัติจากการ์ดเลย (ผู้ใช้: กดไปมาหลายชั้น) — ยังถามยืนยันหนึ่งครั้ง · ไม่อนุมัติ/ตีกลับยังต้องเปิดใบ เพราะควรใส่เหตุผล */
+  const approve = async (x) => {
+    const r = x.r;
+    const nm = window.tmNameOf(users, r.userId, r.userName);
+    if (x.t === "ot") {
+      const ok = await window.askConfirm({ title: "อนุมัติ OT " + (r.no || "") + " ?",
+        body: nm + " · " + window.drDateTH(r.date) + " " + r.from + "–" + r.to + " · " + window.tmDur(r.mins) + (r.reason ? "\n" + r.reason : ""),
+        ok: "อนุมัติ", icon: "check" });
+      if (ok) move(window.tmOtFill(r, wh.cfg), "approved");
+    } else {
+      const lt = window.lvTypeOf(lvTypes, r.type);
+      const b = window.lvBalance(lv.rows, lvQuota.map, r.userId, window.lvYearOf(r.from), lvTypes).find((y) => y.type.key === r.type);
+      const ok = await window.askConfirm({ title: "อนุมัติ" + lt.th + " " + (r.no || "") + " ?",
+        body: nm + " · " + window.lvRangeTH(r) + " · " + window.lvDaysTH(r.days) +
+          (b && b.left != null ? "\nคงเหลือหลังอนุมัติ " + Math.round(b.left * 10) / 10 + " วัน" : "") + (r.reason ? "\n" + r.reason : ""),
+        ok: "อนุมัติ", icon: "check" });
+      if (ok) moveLv(r, "approved", "");
+    }
+  };
+
   const canSet = window.can(role, "manageUsers") || window.lvCanQuota(role);
-  const TABS = [["day", canAll ? "วันนี้" : "เวลาของฉัน", "calendar", 0]]
-    .concat([["req", "คำขอ OT · ลา", "list", otWaiting.length + lvWaiting.length]])
-    .concat([["month", "สรุปเดือน · ออกเอกสาร", "file", 0]])
-    .concat(canSet ? [["cfg", "ตั้งค่า", "settings", 0]] : []);
+  const TABS = [{ k: "day", th: canAll ? "วันนี้" : "เวลาของฉัน", ic: "clock" },
+    { k: "req", th: "คำขอ OT · ลา", ic: "list", n: otWaiting.length + lvWaiting.length },
+    { k: "month", th: "สรุปเดือน", ic: "chart" }]
+    .concat(canSet ? [{ k: "cfg", th: "ตั้งค่า", ic: "settings" }] : []);
 
   const cur = (ot.rows || []).find((r) => r.id === open) || null;
   const curLv = (lv.rows || []).find((r) => r.id === openLv) || null;
   const jobSorted = React.useMemo(() => (jobs || []).slice()
     .sort((a, b) => String(a.code || "").localeCompare(String(b.code || ""))), [jobs]);
-  const t = me.today;
+
+  const [narrow, rootRef] = useTmNarrow();
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 14, minHeight: 0 }}>
+    <div className={"tmv" + (narrow ? " nw" : "")} ref={rootRef}>
+      <style>{TM_CSS}</style>
+      <TmHero me={me} cfg={wh.cfg} users={users} canAll={canAll} otMonthMins={myOtMonth}
+        canOt={window.tmCanOt(role)} onNewOt={openNew} />
 
-      {/* แถบของฉัน — บรรทัดเดียว แทนการ์ดตัวเลขสี่ใบ */}
-      <div style={{ display: "flex", gap: "8px 18px", flexWrap: "wrap", alignItems: "center", padding: "11px 14px",
-        borderRadius: "var(--r-tile)", background: "var(--surface)", boxShadow: "var(--shadow-sm)" }}>
-        <span style={{ fontSize: 12, fontWeight: 700, color: "var(--text-3)" }}>วันนี้คุณ</span>
-        <span style={{ fontFamily: "var(--mono)", fontSize: 16, fontWeight: 800, color: "var(--text-1)" }}>
-          {t && t.in && t.in.hm ? t.in.hm + " → " + ((t.out && t.out.hm) || "ยังไม่ออก") : "ยังไม่ได้ลงเวลา"}
-        </span>
-        <span style={{ fontSize: 12, fontWeight: 700, color: "var(--text-3)" }}>
-          OT อนุมัติเดือนนี้ <b style={{ fontFamily: "var(--mono)", color: "var(--text-1)" }}>{window.tmDur(myOtMonth)}</b>
-        </span>
-        <button onClick={openNew} disabled={!window.tmCanOt(role)}
-          style={{ marginLeft: "auto", display: "inline-flex", alignItems: "center", gap: 6, padding: "9px 15px", borderRadius: "var(--r-chip)", border: "none",
-            background: window.tmCanOt(role) ? "var(--primary)" : "var(--surface3)", color: window.tmCanOt(role) ? "#fff" : "var(--text-3)",
-            cursor: window.tmCanOt(role) ? "pointer" : "default", fontFamily: "inherit", fontSize: 12.5, fontWeight: 800 }}>
-          <Icon name="plus" size={14} color={window.tmCanOt(role) ? "#fff" : "var(--text-3)"} /> เปิดใบ OT
-        </button>
-      </div>
-
-      <div style={{ display: "flex", gap: 7, flexWrap: "wrap" }}>
-        {TABS.map(([k, th, ic, n]) => (
-          <button key={k} onClick={() => setTab(k)}
-            style={{ display: "inline-flex", alignItems: "center", gap: 7, padding: "9px 16px", borderRadius: "var(--r-pill)",
-              border: "none", boxShadow: tab === k ? "inset 0 0 0 1px var(--primary)" : "var(--shadow-sm)",
-              background: tab === k ? "var(--primary-soft)" : "var(--surface)", cursor: "pointer", fontFamily: "inherit",
-              fontSize: 13, fontWeight: 800, color: tab === k ? "var(--primary-dark)" : "var(--text-2)" }}>
-            <Icon name={ic} size={15} color={tab === k ? "var(--primary-dark)" : "var(--text-3)"} /> {th}
-            {tmBadge(n, true)}
-          </button>
-        ))}
-      </div>
+      <TmSeg items={TABS} value={tab} onChange={setTab} />
 
       {tab === "day" && (canAll
         ? <TmDaySheet date={date} setDate={setDate} cfg={wh.cfg} users={users} currentUser={currentUser} />
         : <TmMyDays rows={me.rows} cfg={wh.cfg} />)}
 
-      {tab === "req" && <TmRequests cfg={wh.cfg} users={users} role={role} currentUser={currentUser}
-        ot={ot} otVisible={visible} lv={lv} lvTypes={lvTypes} lvQuota={lvQuota}
-        otWaiting={otWaiting} lvWaiting={lvWaiting} onOpenOt={setOpen} onOpenLv={setOpenLv} />}
+      {tab === "req" && <TmRequests users={users} role={role} currentUser={currentUser}
+        otVisible={visible} lv={lv} lvTypes={lvTypes} lvQuota={lvQuota}
+        otWaiting={otWaiting} lvWaiting={lvWaiting} onOpenOt={setOpen} onOpenLv={setOpenLv} onApprove={approve} />}
 
       {tab === "month" && <TmMonthAll cfg={wh.cfg} users={users} jobs={jobSorted} otRows={canAll ? ot.rows : visible}
         byName={(currentUser || {}).name || ""} canAll={canAll} />}
@@ -1581,29 +1983,7 @@ function AttendView({ jobs, users, role, currentUser }) {
   );
 }
 
-/* เวลาของตัวเอง — สำหรับคนที่ไม่มีสิทธิ์ดูของทุกคน
-   ตั้งใจให้มี ไม่ใช่ซ่อนแท็บทิ้ง เพราะทุกคนต้องตรวจเวลาตัวเองย้อนหลังได้ */
-function TmMyDays({ rows, cfg }) {
-  return (
-    <div style={{ border: "none", boxShadow: "var(--shadow-sm)", borderRadius: "var(--r-tile)", overflow: "hidden", background: "var(--surface)" }}>
-      {(rows || []).length === 0
-        ? <div style={{ padding: 34, textAlign: "center", color: "var(--text-3)", fontSize: 13 }}>ยังไม่มีประวัติการลงเวลา — ลงเวลาได้จากแอปในไลน์</div>
-        : (rows || []).map((r) => (
-          <div key={r.date} style={{ display: "flex", alignItems: "center", gap: 12, padding: "10px 14px", borderBottom: "1px solid var(--divider)" }}>
-            <span style={{ fontSize: 12.5, fontWeight: 700, color: "var(--text-1)", minWidth: 130 }}>{window.drDateTH(r.date, true)}</span>
-            <span style={{ fontFamily: "var(--mono)", fontSize: 13, fontWeight: 700 }}>
-              {(r.in && r.in.hm) || "—"} → {(r.out && r.out.hm) || (r.in ? "ยังไม่ออก" : "—")}
-            </span>
-            <span style={{ fontSize: 12, color: "var(--text-2)" }}>{window.tmDur(window.tmWorkedMins(r, cfg))}</span>
-            {r.jobCode && <span style={{ fontFamily: "var(--mono)", fontSize: 11.5, color: "var(--text-3)" }}>{r.jobCode}</span>}
-            {!(r.in && r.in.lat) && <span style={{ marginLeft: "auto", fontSize: 11, color: "#F59E0B", fontWeight: 700 }}>ไม่มีพิกัด</span>}
-          </div>
-        ))}
-    </div>
-  );
-}
-
 Object.assign(window, { TM_IN, TM_IN_W, TM_LB, TM_WD_TH, tmWdOf, AttendView, TmDaySheet, TmMonthAll, TmRequests, TmSettings, TmDayGrid,
-  TmMyDays, TmOtModal, TmOtRow, TmWorkHours, TmFacts, TmHelp,
-  tmExportMonthXlsx, tmPersonSheet, tmSheetName,
+  TmMyDays, TmOtModal, TmOtRow, TmWorkHours, TmFacts, TmHelp, TmHero, TmTeamToday, TmTimeline, TmAvatar, TmSeg, TmCard, TmReqCard, TmHeat,
+  useTmDayStatus, tmExportMonthXlsx, tmPersonSheet, tmSheetName,
   TmStat, TmPill });

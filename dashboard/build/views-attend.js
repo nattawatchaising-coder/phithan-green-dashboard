@@ -98,543 +98,6 @@ function TmStat({
     }
   }, hint));
 }
-function TmDaySheet({
-  date,
-  setDate,
-  cfg,
-  users,
-  currentUser
-}) {
-  const lvRows = window.useLeaves().rows;
-  const lvTypes = window.useLeaveTypes().types;
-  const onLeave = React.useMemo(() => window.lvOnDay(lvRows, date), [lvRows, date]);
-  const day = window.useAttendDay(date);
-  const admin = window.useAttendAdmin(currentUser);
-  const [msg, setMsg] = React.useState("");
-  const nameOf = r => window.tmNameOf(users, r.userId, r.name);
-  const gpsCell = r => {
-    if (!r.gps && r.fix) return React.createElement("span", {
-      style: {
-        fontSize: 11.5,
-        color: "var(--text-3)"
-      }
-    }, "\u2014");
-    if (!r.gps) return React.createElement("span", {
-      style: {
-        fontSize: 11.5,
-        color: "#F59E0B",
-        fontWeight: 700
-      }
-    }, "\u0E44\u0E21\u0E48\u0E21\u0E35\u0E1E\u0E34\u0E01\u0E31\u0E14");
-    const ok = React.createElement("span", {
-      style: {
-        fontSize: 11.5,
-        color: "#10B981",
-        fontWeight: 700
-      }
-    }, "\u0E21\u0E35\u0E1E\u0E34\u0E01\u0E31\u0E14");
-    if (r.lat == null || r.lng == null) return ok;
-    const d = window.tmOfficeDist(r, cfg);
-    const link = kid => React.createElement("a", {
-      href: window.tmGpsUrl(r),
-      target: "_blank",
-      rel: "noreferrer",
-      title: "พิกัดตอนเข้างาน " + window.tmGpsTH(r),
-      style: {
-        fontSize: 11.5,
-        fontWeight: 700,
-        textDecoration: "none"
-      }
-    }, kid);
-    if (d == null) return link(ok);
-    const near = d <= window.tmWhNorm(cfg).office.radius;
-    const office = r.place === "office";
-    const color = !office ? "var(--text-3)" : near ? "#10B981" : "#EF4444";
-    const txt = office ? (near ? "ถึงออฟฟิศ · " : "ห่างออฟฟิศ ") + window.tmDistTH(d) : "ห่างออฟฟิศ " + window.tmDistTH(d);
-    return link(React.createElement("span", {
-      style: {
-        color: color
-      }
-    }, txt));
-  };
-  const del = async r => {
-    const ok = await window.askConfirm({
-      title: "ลบใบลงเวลาของ " + nameOf(r) + "?",
-      body: window.drDateTH(date, true) + " · " + (r.in || "—") + " – " + (r.out || "—") + " · " + window.tmDur(r.mins) + "\nลบแล้วคนคนนี้กดลงเวลาของวันนี้ใหม่ได้ตั้งแต่ต้น",
-      ok: "ลบใบนี้",
-      danger: true,
-      icon: "trash"
-    });
-    if (!ok) return;
-    const res = await admin.removeDay(r.userId, date);
-    setMsg(res.ok ? "ลบใบลงเวลาของ " + nameOf(r) + " แล้ว" : "ลบไม่สำเร็จ — " + res.why);
-  };
-  const isAdmin = window.usePgAdmin();
-  const [ed, setEd] = React.useState(null);
-  const openEd = (uid, nm, inHM, outHM) => {
-    const u = (users || []).find(x => x && x.id === uid) || {
-      id: uid,
-      name: nm
-    };
-    const c = window.tmWhNorm(cfg);
-    setEd({
-      user: u,
-      inHM: inHM || c.startEarly,
-      outHM: outHM != null ? outHM : c.end,
-      why: "",
-      busy: false,
-      err: ""
-    });
-  };
-  const saveEd = async () => {
-    if (!ed || ed.busy) return;
-    setEd(Object.assign({}, ed, {
-      busy: true,
-      err: ""
-    }));
-    const res = await admin.setTimes(ed.user, date, ed.inHM, ed.outHM, ed.why, cfg).catch(e => ({
-      ok: false,
-      why: String(e && e.message || e)
-    }));
-    if (!res.ok) {
-      setEd(Object.assign({}, ed, {
-        busy: false,
-        err: res.why
-      }));
-      return;
-    }
-    setMsg("แก้เวลาของ " + (ed.user.name || "") + " แล้ว · " + ed.inHM + " – " + (ed.outHM || "ยังไม่ออก"));
-    setEd(null);
-  };
-  const holiday = window.tmIsHoliday(date, cfg);
-  const workday = window.tmIsWorkday(date, cfg);
-  const missing = React.useMemo(() => {
-    if (!workday) return [];
-    const have = {};
-    (day.rows || []).forEach(r => {
-      have[r.userId] = 1;
-    });
-    return (users || []).filter(u => u && u.active !== false && !window.tmIsSysAcct(u) && window.can(window.userRoles(u), "attend") && !have[u.id] && !onLeave[u.id]);
-  }, [day.rows, users, workday, onLeave]);
-  const leaving = (users || []).filter(u => u && onLeave[u.id] && !(day.rows || []).some(r => r.userId === u.id));
-  const totalMins = (day.rows || []).reduce((a, r) => a + (+r.mins || 0), 0);
-  const noGps = (day.rows || []).filter(r => !r.gps && !r.fix).length;
-  const stillIn = (day.rows || []).filter(r => r.in && !r.out).length;
-  return React.createElement("div", {
-    style: {
-      display: "flex",
-      flexDirection: "column",
-      gap: 12
-    }
-  }, React.createElement("div", {
-    style: {
-      display: "flex",
-      gap: 8,
-      alignItems: "center",
-      flexWrap: "wrap"
-    }
-  }, React.createElement("button", {
-    onClick: () => setDate(window.drAddDays(date, -1)),
-    style: TM_NAV,
-    title: "\u0E27\u0E31\u0E19\u0E01\u0E48\u0E2D\u0E19\u0E2B\u0E19\u0E49\u0E32"
-  }, "\u2039"), React.createElement("input", {
-    type: "date",
-    value: date,
-    onChange: e => setDate(e.target.value || window.drToday()),
-    style: TM_IN
-  }), React.createElement("button", {
-    onClick: () => setDate(window.drAddDays(date, 1)),
-    style: TM_NAV,
-    title: "\u0E27\u0E31\u0E19\u0E16\u0E31\u0E14\u0E44\u0E1B"
-  }, "\u203A"), date !== window.drToday() && React.createElement("button", {
-    onClick: () => setDate(window.drToday()),
-    style: TM_NAV
-  }, "\u0E27\u0E31\u0E19\u0E19\u0E35\u0E49"), React.createElement("div", {
-    style: {
-      fontSize: 13.5,
-      fontWeight: 800,
-      color: "var(--text-1)"
-    }
-  }, window.drDateTH(date, true)), holiday ? React.createElement("span", {
-    style: {
-      padding: "3px 10px",
-      borderRadius: "var(--r-pill)",
-      background: "var(--tint-red-bg)",
-      color: "var(--tint-red-tx)",
-      fontSize: 11.5,
-      fontWeight: 800
-    }
-  }, "\u0E27\u0E31\u0E19\u0E2B\u0E22\u0E38\u0E14 \xB7 ", window.tmWhNorm(cfg).holidays[date]) : !workday ? React.createElement("span", {
-    style: {
-      padding: "3px 10px",
-      borderRadius: "var(--r-pill)",
-      background: "var(--surface3)",
-      color: "var(--text-2)",
-      fontSize: 11.5,
-      fontWeight: 800
-    }
-  }, "\u0E19\u0E2D\u0E01\u0E27\u0E31\u0E19\u0E17\u0E33\u0E07\u0E32\u0E19") : null), React.createElement(TmFacts, {
-    items: [{
-      label: "ลงเวลาแล้ว",
-      value: (day.rows || []).length,
-      unit: "คน"
-    }, workday && {
-      label: "ยังไม่ลง",
-      value: missing.length,
-      unit: "คน",
-      color: missing.length ? "#F59E0B" : ""
-    }, leaving.length > 0 && {
-      label: "ลา",
-      value: leaving.length,
-      unit: "คน",
-      color: "#0EA5E9"
-    }, {
-      label: "ยังไม่ออกงาน",
-      value: stillIn,
-      unit: "คน",
-      color: stillIn ? "#EF4444" : "",
-      hint: stillIn ? "อาจลืมกดออก — ทักถามก่อนหักเวลา" : ""
-    }, {
-      label: "ชั่วโมงรวม",
-      value: Math.round(totalMins / 60),
-      unit: "ชม."
-    }, noGps > 0 && {
-      label: "ไม่มีพิกัด",
-      value: noGps,
-      unit: "ใบ",
-      color: "#F59E0B"
-    }]
-  }), React.createElement("div", {
-    style: {
-      overflowX: "auto",
-      border: "none",
-      boxShadow: "var(--shadow-sm)",
-      borderRadius: "var(--r-tile)",
-      background: "var(--surface)"
-    }
-  }, React.createElement("table", {
-    style: {
-      width: "100%",
-      borderCollapse: "collapse",
-      fontSize: 13
-    }
-  }, React.createElement("thead", null, React.createElement("tr", {
-    style: {
-      background: "var(--surface2)"
-    }
-  }, ["ชื่อ", "เข้า", "ออก", "ชั่วโมง", "งานที่แจ้ง", "พิกัด / ห่างจากออฟฟิศ", ""].map((h, i) => React.createElement("th", {
-    key: i,
-    style: {
-      textAlign: i >= 1 && i <= 3 ? "center" : "left",
-      padding: "10px 13px",
-      fontSize: 11.5,
-      fontWeight: 800,
-      color: "var(--text-3)",
-      borderBottom: "1px solid var(--divider)",
-      whiteSpace: "nowrap"
-    }
-  }, h)))), React.createElement("tbody", null, day.loading && React.createElement("tr", null, React.createElement("td", {
-    colSpan: 7,
-    style: {
-      padding: 26,
-      textAlign: "center",
-      color: "var(--text-3)"
-    }
-  }, "\u0E01\u0E33\u0E25\u0E31\u0E07\u0E42\u0E2B\u0E25\u0E14\u2026")), !day.loading && (day.rows || []).length === 0 && React.createElement("tr", null, React.createElement("td", {
-    colSpan: 7,
-    style: {
-      padding: 26,
-      textAlign: "center",
-      color: "var(--text-3)"
-    }
-  }, "\u0E22\u0E31\u0E07\u0E44\u0E21\u0E48\u0E21\u0E35\u0E43\u0E04\u0E23\u0E25\u0E07\u0E40\u0E27\u0E25\u0E32\u0E43\u0E19\u0E27\u0E31\u0E19\u0E19\u0E35\u0E49")), (day.rows || []).map(r => React.createElement("tr", {
-    key: r.userId,
-    style: {
-      borderBottom: "1px solid var(--divider)"
-    }
-  }, React.createElement("td", {
-    style: {
-      padding: "9px 13px",
-      fontWeight: 700,
-      color: "var(--text-1)"
-    }
-  }, nameOf(r)), React.createElement("td", {
-    style: {
-      padding: "9px 13px",
-      textAlign: "center",
-      fontFamily: "var(--mono)",
-      fontWeight: 700
-    }
-  }, r.in || "—"), React.createElement("td", {
-    style: {
-      padding: "9px 13px",
-      textAlign: "center",
-      fontFamily: "var(--mono)",
-      fontWeight: 700,
-      color: r.in && !r.out ? "#EF4444" : "var(--text-1)"
-    }
-  }, r.out || (r.in ? "ยังไม่ออก" : "—")), React.createElement("td", {
-    style: {
-      padding: "9px 13px",
-      textAlign: "center",
-      color: "var(--text-2)"
-    }
-  }, window.tmDur(r.mins)), React.createElement("td", {
-    style: {
-      padding: "9px 13px",
-      fontFamily: "var(--mono)",
-      fontSize: 12,
-      color: "var(--text-2)"
-    }
-  }, r.place === "office" || r.fix && !r.jobCode ? React.createElement("span", {
-    style: {
-      fontFamily: "inherit",
-      fontSize: 11.5,
-      color: "var(--text-3)"
-    }
-  }, "\u0E2D\u0E2D\u0E1F\u0E1F\u0E34\u0E28") : r.jobCode || "—"), React.createElement("td", {
-    style: {
-      padding: "9px 13px"
-    }
-  }, gpsCell(r)), React.createElement("td", {
-    style: {
-      padding: "9px 13px",
-      textAlign: "right"
-    }
-  }, isAdmin && React.createElement("button", {
-    onClick: () => openEd(r.userId, nameOf(r), r.in, r.out || ""),
-    title: "\u0E41\u0E01\u0E49\u0E40\u0E27\u0E25\u0E32\u0E40\u0E02\u0E49\u0E32-\u0E2D\u0E2D\u0E01\u0E02\u0E2D\u0E07\u0E04\u0E19\u0E19\u0E35\u0E49",
-    style: {
-      marginRight: 6,
-      padding: "5px 11px",
-      borderRadius: 8,
-      border: "none",
-      boxShadow: "var(--shadow-sm)",
-      background: "var(--surface)",
-      color: "var(--primary-dark)",
-      cursor: "pointer",
-      fontFamily: "inherit",
-      fontSize: 11.5,
-      fontWeight: 700,
-      whiteSpace: "nowrap"
-    }
-  }, "\u0E41\u0E01\u0E49\u0E40\u0E27\u0E25\u0E32"), React.createElement("button", {
-    onClick: () => del(r),
-    title: "\u0E25\u0E1A\u0E43\u0E1A\u0E25\u0E07\u0E40\u0E27\u0E25\u0E32\u0E02\u0E2D\u0E07\u0E04\u0E19\u0E19\u0E35\u0E49",
-    style: {
-      padding: "5px 11px",
-      borderRadius: 8,
-      border: "none",
-      boxShadow: "var(--shadow-sm)",
-      background: "var(--surface)",
-      color: "var(--tint-red-tx2)",
-      cursor: "pointer",
-      fontFamily: "inherit",
-      fontSize: 11.5,
-      fontWeight: 700,
-      whiteSpace: "nowrap"
-    }
-  }, "\u0E25\u0E1A")))), leaving.map(u => {
-    const lr = onLeave[u.id],
-      lt = window.lvTypeOf(lvTypes, lr.type);
-    return React.createElement("tr", {
-      key: "lv" + u.id,
-      style: {
-        borderBottom: "1px solid var(--divider)"
-      }
-    }, React.createElement("td", {
-      style: {
-        padding: "9px 13px",
-        fontWeight: 700,
-        color: "var(--text-2)"
-      }
-    }, u.name), React.createElement("td", {
-      colSpan: 6,
-      style: {
-        padding: "9px 13px",
-        fontSize: 12,
-        fontWeight: 700,
-        color: lt.color
-      }
-    }, lt.th, " \xB7 ", window.lvRangeTH(lr), " \xB7 ", lr.no));
-  }), missing.map(u => React.createElement("tr", {
-    key: u.id,
-    style: {
-      borderBottom: "1px solid var(--divider)",
-      background: "var(--surface2)"
-    }
-  }, React.createElement("td", {
-    style: {
-      padding: "9px 13px",
-      fontWeight: 700,
-      color: "var(--text-3)"
-    }
-  }, u.name), React.createElement("td", {
-    colSpan: 5,
-    style: {
-      padding: "9px 13px",
-      fontSize: 12,
-      color: "var(--text-3)"
-    }
-  }, "\u0E22\u0E31\u0E07\u0E44\u0E21\u0E48\u0E44\u0E14\u0E49\u0E25\u0E07\u0E40\u0E27\u0E25\u0E32"), React.createElement("td", {
-    style: {
-      padding: "9px 13px",
-      textAlign: "right"
-    }
-  }, isAdmin && React.createElement("button", {
-    onClick: () => openEd(u.id, u.name, "", null),
-    title: "\u0E25\u0E07\u0E40\u0E27\u0E25\u0E32\u0E41\u0E17\u0E19\u0E04\u0E19\u0E17\u0E35\u0E48\u0E25\u0E37\u0E21\u0E25\u0E07",
-    style: {
-      padding: "5px 11px",
-      borderRadius: 8,
-      border: "none",
-      boxShadow: "var(--shadow-sm)",
-      background: "var(--surface)",
-      color: "var(--primary-dark)",
-      cursor: "pointer",
-      fontFamily: "inherit",
-      fontSize: 11.5,
-      fontWeight: 700,
-      whiteSpace: "nowrap"
-    }
-  }, "\u0E25\u0E07\u0E40\u0E27\u0E25\u0E32\u0E41\u0E17\u0E19"))))))), isAdmin && React.createElement("div", {
-    style: {
-      display: "flex",
-      alignItems: "center",
-      gap: 8,
-      flexWrap: "wrap"
-    }
-  }, React.createElement("span", {
-    style: {
-      fontSize: 12,
-      fontWeight: 700,
-      color: "var(--text-3)"
-    }
-  }, "\u0E25\u0E07\u0E40\u0E27\u0E25\u0E32\u0E41\u0E17\u0E19"), React.createElement("select", {
-    value: "",
-    onChange: e => {
-      const u = (users || []).find(x => x && x.id === e.target.value);
-      if (!u) return;
-      const r = (day.rows || []).find(x => x.userId === u.id);
-      openEd(u.id, u.name, r ? r.in : "", r ? r.out || "" : null);
-    },
-    style: Object.assign({}, TM_IN, {
-      minWidth: 180
-    })
-  }, React.createElement("option", {
-    value: ""
-  }, "\u2014 \u0E40\u0E25\u0E37\u0E2D\u0E01\u0E04\u0E19 \u2014"), (users || []).filter(u => u && u.active !== false && !window.tmIsSysAcct(u) && window.can(window.userRoles(u), "attend")).map(u => React.createElement("option", {
-    key: u.id,
-    value: u.id
-  }, u.name)))), msg && React.createElement("div", {
-    style: {
-      fontSize: 12.5,
-      fontWeight: 700,
-      color: "var(--text-2)"
-    }
-  }, msg), ed && React.createElement("div", {
-    style: {
-      position: "fixed",
-      inset: 0,
-      zIndex: 90,
-      background: "rgba(15,23,42,.45)",
-      display: "grid",
-      placeItems: "center",
-      padding: 18
-    },
-    onMouseDown: e => {
-      if (e.target === e.currentTarget && !ed.busy) setEd(null);
-    }
-  }, React.createElement("div", {
-    style: {
-      width: "min(420px,100%)",
-      background: "var(--bg)",
-      boxShadow: "var(--shadow-card)",
-      borderRadius: 17,
-      padding: 20,
-      display: "grid",
-      gap: 12
-    }
-  }, React.createElement("div", null, React.createElement("div", {
-    style: {
-      fontSize: 12,
-      color: "var(--text-3)",
-      fontWeight: 700
-    }
-  }, "\u0E41\u0E01\u0E49\u0E40\u0E27\u0E25\u0E32\u0E25\u0E07\u0E07\u0E32\u0E19 \xB7 ", window.drDateTH(date, true)), React.createElement("div", {
-    style: {
-      fontSize: 17,
-      fontWeight: 800,
-      color: "var(--text-1)"
-    }
-  }, ed.user.name)), React.createElement("div", {
-    style: {
-      display: "grid",
-      gridTemplateColumns: "minmax(0,1fr) auto minmax(0,1fr)",
-      gap: 9,
-      alignItems: "end"
-    }
-  }, React.createElement("label", {
-    style: TM_LB
-  }, React.createElement("span", {
-    style: {
-      fontSize: 11.5,
-      fontWeight: 700,
-      color: "var(--text-3)"
-    }
-  }, "\u0E40\u0E02\u0E49\u0E32\u0E07\u0E32\u0E19"), React.createElement(window.PgTime, {
-    value: ed.inHM,
-    ariaLabel: "\u0E40\u0E02\u0E49\u0E32\u0E07\u0E32\u0E19",
-    onChange: t => setEd(p => Object.assign({}, p, {
-      inHM: t
-    })),
-    style: TM_IN_W
-  })), React.createElement("span", {
-    style: {
-      fontSize: 12.5,
-      fontWeight: 700,
-      color: "var(--text-3)",
-      paddingBottom: 10
-    }
-  }, "\u0E16\u0E36\u0E07"), React.createElement("label", {
-    style: TM_LB
-  }, React.createElement("span", {
-    style: {
-      fontSize: 11.5,
-      fontWeight: 700,
-      color: "var(--text-3)"
-    }
-  }, "\u0E2D\u0E2D\u0E01\u0E07\u0E32\u0E19 (\u0E27\u0E48\u0E32\u0E07 = \u0E22\u0E31\u0E07\u0E44\u0E21\u0E48\u0E2D\u0E2D\u0E01)"), React.createElement(window.PgTime, {
-    value: ed.outHM,
-    ariaLabel: "\u0E2D\u0E2D\u0E01\u0E07\u0E32\u0E19",
-    onChange: t => setEd(p => Object.assign({}, p, {
-      outHM: t
-    })),
-    style: TM_IN_W
-  }))), ed.err && React.createElement("div", {
-    style: {
-      fontSize: 12,
-      fontWeight: 700,
-      color: "var(--tint-red-tx2)"
-    }
-  }, ed.err), React.createElement("div", {
-    style: {
-      display: "flex",
-      gap: 8,
-      justifyContent: "flex-end"
-    }
-  }, React.createElement("button", {
-    type: "button",
-    className: "btn",
-    disabled: ed.busy,
-    onClick: () => setEd(null)
-  }, "\u0E22\u0E01\u0E40\u0E25\u0E34\u0E01"), React.createElement("button", {
-    type: "button",
-    className: "btn btn-pri",
-    disabled: ed.busy || !ed.inHM,
-    onClick: saveEd
-  }, ed.busy ? "กำลังบันทึก…" : "บันทึกเวลา")))), React.createElement(TmHelp, null, "\u0E1B\u0E38\u0E48\u0E21 \u201C\u0E25\u0E1A\u201D \u0E25\u0E1A\u0E43\u0E1A\u0E25\u0E07\u0E40\u0E27\u0E25\u0E32\u0E02\u0E2D\u0E07\u0E27\u0E31\u0E19\u0E19\u0E31\u0E49\u0E19\u0E17\u0E31\u0E49\u0E07\u0E43\u0E1A \u0E41\u0E25\u0E49\u0E27\u0E43\u0E2B\u0E49\u0E40\u0E08\u0E49\u0E32\u0E15\u0E31\u0E27\u0E01\u0E14\u0E40\u0E02\u0E49\u0E32-\u0E2D\u0E2D\u0E01\u0E43\u0E2B\u0E21\u0E48 \u2014 \u0E23\u0E30\u0E1A\u0E1A\u0E40\u0E01\u0E47\u0E1A\u0E2A\u0E33\u0E40\u0E19\u0E32\u0E43\u0E1A\u0E17\u0E35\u0E48\u0E25\u0E1A\u0E44\u0E27\u0E49\u0E1E\u0E23\u0E49\u0E2D\u0E21\u0E0A\u0E37\u0E48\u0E2D\u0E04\u0E19\u0E25\u0E1A \u0E40\u0E1C\u0E37\u0E48\u0E2D\u0E21\u0E35\u0E02\u0E49\u0E2D\u0E42\u0E15\u0E49\u0E40\u0E16\u0E35\u0E22\u0E07\u0E40\u0E23\u0E37\u0E48\u0E2D\u0E07\u0E0A\u0E31\u0E48\u0E27\u0E42\u0E21\u0E07\u0E15\u0E2D\u0E19\u0E2A\u0E34\u0E49\u0E19\u0E40\u0E14\u0E37\u0E2D\u0E19", React.createElement("br", null), "\u0E0A\u0E48\u0E2D\u0E07 \u201C\u0E07\u0E32\u0E19\u0E17\u0E35\u0E48\u0E41\u0E08\u0E49\u0E07\u201D \u0E04\u0E37\u0E2D\u0E2A\u0E34\u0E48\u0E07\u0E17\u0E35\u0E48\u0E1C\u0E39\u0E49\u0E25\u0E07\u0E40\u0E27\u0E25\u0E32\u0E40\u0E25\u0E37\u0E2D\u0E01\u0E40\u0E2D\u0E07 \u0E23\u0E30\u0E1A\u0E1A\u0E44\u0E21\u0E48\u0E44\u0E14\u0E49\u0E15\u0E23\u0E27\u0E08\u0E27\u0E48\u0E32\u0E2D\u0E22\u0E39\u0E48\u0E17\u0E35\u0E48\u0E44\u0E0B\u0E15\u0E4C\u0E19\u0E31\u0E49\u0E19\u0E08\u0E23\u0E34\u0E07\u0E2B\u0E23\u0E37\u0E2D\u0E44\u0E21\u0E48 \u2014 \u0E22\u0E31\u0E07\u0E44\u0E21\u0E48\u0E21\u0E35\u0E1E\u0E34\u0E01\u0E31\u0E14\u0E44\u0E0B\u0E15\u0E4C\u0E17\u0E35\u0E48\u0E40\u0E0A\u0E37\u0E48\u0E2D\u0E16\u0E37\u0E2D\u0E44\u0E14\u0E49\u0E43\u0E19\u0E23\u0E30\u0E1A\u0E1A \u0E08\u0E36\u0E07\u0E40\u0E17\u0E35\u0E22\u0E1A\u0E23\u0E30\u0E22\u0E30\u0E44\u0E21\u0E48\u0E44\u0E14\u0E49", React.createElement("br", null), "\u201C\u0E44\u0E21\u0E48\u0E21\u0E35\u0E1E\u0E34\u0E01\u0E31\u0E14\u201D \u0E40\u0E01\u0E34\u0E14\u0E44\u0E14\u0E49\u0E17\u0E31\u0E49\u0E07\u0E08\u0E32\u0E01\u0E1B\u0E34\u0E14\u0E2A\u0E34\u0E17\u0E18\u0E34\u0E4C\u0E15\u0E33\u0E41\u0E2B\u0E19\u0E48\u0E07 \u0E2A\u0E31\u0E0D\u0E0D\u0E32\u0E13\u0E44\u0E21\u0E48\u0E16\u0E36\u0E07 \u0E2B\u0E23\u0E37\u0E2D\u0E2D\u0E22\u0E39\u0E48\u0E43\u0E19\u0E2D\u0E32\u0E04\u0E32\u0E23 \u2014 \u0E23\u0E30\u0E1A\u0E1A\u0E44\u0E21\u0E48\u0E40\u0E04\u0E22\u0E1A\u0E25\u0E47\u0E2D\u0E01\u0E01\u0E32\u0E23\u0E25\u0E07\u0E40\u0E27\u0E25\u0E32\u0E14\u0E49\u0E27\u0E22\u0E40\u0E2B\u0E15\u0E38\u0E19\u0E35\u0E49", React.createElement("br", null), "\u0E23\u0E30\u0E22\u0E30\u0E2B\u0E48\u0E32\u0E07\u0E08\u0E32\u0E01\u0E2D\u0E2D\u0E1F\u0E1F\u0E34\u0E28\u0E04\u0E34\u0E14\u0E08\u0E32\u0E01\u0E1E\u0E34\u0E01\u0E31\u0E14\u0E17\u0E35\u0E48\u0E15\u0E31\u0E49\u0E07\u0E44\u0E27\u0E49\u0E43\u0E19\u0E41\u0E17\u0E47\u0E1A \u201C\u0E15\u0E31\u0E49\u0E07\u0E04\u0E48\u0E32\u201D \u0E40\u0E17\u0E35\u0E22\u0E1A\u0E01\u0E31\u0E1A\u0E15\u0E33\u0E41\u0E2B\u0E19\u0E48\u0E07\u0E15\u0E2D\u0E19\u0E01\u0E14\u0E40\u0E02\u0E49\u0E32\u0E07\u0E32\u0E19 \u2014 \u0E02\u0E36\u0E49\u0E19\u0E2A\u0E35\u0E41\u0E14\u0E07\u0E40\u0E09\u0E1E\u0E32\u0E30\u0E04\u0E19\u0E17\u0E35\u0E48\u0E01\u0E14 \u201C\u0E2D\u0E2D\u0E1F\u0E1F\u0E34\u0E28\u201D \u0E41\u0E15\u0E48\u0E2D\u0E22\u0E39\u0E48\u0E19\u0E2D\u0E01\u0E23\u0E31\u0E28\u0E21\u0E35 \u0E2A\u0E48\u0E27\u0E19\u0E07\u0E32\u0E19\u0E2B\u0E19\u0E49\u0E32\u0E44\u0E0B\u0E15\u0E4C\u0E2B\u0E48\u0E32\u0E07\u0E2D\u0E2D\u0E1F\u0E1F\u0E34\u0E28\u0E40\u0E1B\u0E47\u0E19\u0E40\u0E23\u0E37\u0E48\u0E2D\u0E07\u0E1B\u0E01\u0E15\u0E34", React.createElement("br", null), "\u0E43\u0E1A\u0E17\u0E35\u0E48\u0E1B\u0E31\u0E4A\u0E21\u0E01\u0E48\u0E2D\u0E19\u0E23\u0E38\u0E48\u0E19\u0E17\u0E35\u0E48\u0E40\u0E01\u0E47\u0E1A\u0E1E\u0E34\u0E01\u0E31\u0E14\u0E25\u0E07\u0E14\u0E31\u0E0A\u0E19\u0E35\u0E08\u0E30\u0E02\u0E36\u0E49\u0E19\u0E27\u0E48\u0E32 \u201C\u0E21\u0E35\u0E1E\u0E34\u0E01\u0E31\u0E14\u201D \u0E40\u0E09\u0E22 \u0E46 \u0E44\u0E21\u0E48\u0E21\u0E35\u0E23\u0E30\u0E22\u0E30 \u2014 \u0E15\u0E31\u0E27\u0E40\u0E25\u0E02\u0E2D\u0E22\u0E39\u0E48\u0E43\u0E19\u0E43\u0E1A\u0E40\u0E15\u0E47\u0E21 \u0E14\u0E39\u0E44\u0E14\u0E49\u0E08\u0E32\u0E01\u0E44\u0E1F\u0E25\u0E4C Excel"));
-}
 async function tmExportMonthXlsx(rows, days, ym, otRows, users, cfg) {
   if (!window.XLSX) {
     alert("ไม่พบไลบรารี Excel (ลองโหลดหน้าใหม่)");
@@ -2608,70 +2071,203 @@ function TmWorkHours({
     }
   }, "\u0E1A\u0E31\u0E19\u0E17\u0E36\u0E01\u0E40\u0E27\u0E25\u0E32\u0E17\u0E33\u0E07\u0E32\u0E19")));
 }
-const tmChip = on => ({
-  display: "inline-flex",
-  alignItems: "center",
-  gap: 6,
-  padding: "7px 13px",
-  borderRadius: "var(--r-pill)",
-  border: "none",
-  boxShadow: on ? "inset 0 0 0 1px var(--primary)" : "var(--shadow-sm)",
-  background: on ? "var(--primary-soft)" : "var(--surface)",
-  cursor: "pointer",
-  fontFamily: "inherit",
-  fontSize: 12.5,
-  fontWeight: 700,
-  color: on ? "var(--primary-dark)" : "var(--text-2)"
+const TM_CSS = `
+.tmv{display:flex;flex-direction:column;gap:16px;min-height:0}
+.tmv-card{background:var(--surface);border:1px solid var(--card-bd);border-radius:var(--r-card);padding:18px 20px}
+.tmv-hero{display:flex;flex-wrap:wrap;justify-content:space-between;gap:18px 28px;align-items:center;padding:20px 24px}
+.tmv-hero-me{display:flex;align-items:center;gap:16px;min-width:0;flex:1 1 300px}
+.tmv-hero-ic{width:54px;height:54px;border-radius:var(--r-tile);display:grid;place-items:center;flex-shrink:0}
+.tmv-k{font-size:12px;font-weight:700;color:var(--text-3)}
+.tmv-big{font-family:var(--display);font-size:30px;font-weight:700;line-height:1.2;color:var(--text-1);font-variant-numeric:tabular-nums;white-space:nowrap}
+.tmv-big small{font-size:16px;font-weight:600;color:var(--text-3);margin:0 4px}
+.tmv-hero-r{display:flex;align-items:center;gap:16px 24px;flex-wrap:wrap;justify-content:flex-end;flex:0 1 auto}
+.tmv-team{display:grid;gap:8px;width:310px;max-width:100%}
+.tmv-stack{display:flex;gap:2px;height:9px;border-radius:var(--r-pill);overflow:hidden;background:var(--surface3)}
+.tmv-stack i{display:block;height:100%}
+.tmv-leg{display:flex;gap:6px 14px;flex-wrap:wrap;font-size:11.5px;font-weight:700;color:var(--text-3)}
+.tmv-leg span{display:inline-flex;align-items:center;gap:5px}
+.tmv-leg b{font-family:var(--display);font-size:17px;font-weight:700;color:var(--text-1)}
+.tmv-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+.tmv-pill{display:inline-flex;align-items:center;gap:5px;padding:3px 10px;border-radius:var(--r-pill);font-size:11px;font-weight:700;white-space:nowrap}
+.tmv-seg{display:flex;gap:3px;padding:4px;border-radius:var(--r-pill);background:var(--surface2);box-shadow:var(--shadow-inset);width:fit-content;max-width:100%;overflow-x:auto;scrollbar-width:none}
+.tmv-seg::-webkit-scrollbar{display:none}
+.tmv-seg>button{display:inline-flex;align-items:center;gap:7px;padding:9px 18px;border:none;border-radius:var(--r-pill);background:transparent;color:var(--text-3);font-family:inherit;font-size:13px;font-weight:700;cursor:pointer;white-space:nowrap;flex-shrink:0}
+.tmv-seg>button:hover{color:var(--text-1)}
+.tmv-seg>button.on{background:var(--surface);color:var(--text-1);box-shadow:var(--shadow-sm)}
+.tmv-seg.sm>button{padding:6px 13px;font-size:12px}
+.tmv-badge{min-width:19px;padding:1px 6px;border-radius:var(--r-pill);background:var(--tint-amber-bg2);color:var(--tint-amber-tx);font-family:var(--mono);font-size:10.5px;font-weight:800;text-align:center}
+.tmv-bar{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.tmv-hd{display:flex;align-items:baseline;gap:6px 10px;flex-wrap:wrap;margin-bottom:12px}
+.tmv-hd .t{font-size:14px;font-weight:700;color:var(--text-1)}
+.tmv-hd .s{font-size:11.5px;color:var(--text-3)}
+.tmv-hd .r{margin-left:auto;display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.tmv-ib{width:34px;height:34px;display:grid;place-items:center;border:none;border-radius:var(--r-chip);background:var(--surface2);box-shadow:var(--shadow-sm);color:var(--text-2);cursor:pointer;flex-shrink:0;padding:0}
+.tmv-ib:hover{background:var(--surface3);color:var(--text-1)}
+.tmv-ib.dngr{color:var(--tint-red-tx2)}
+.tmv-ib.xs{width:30px;height:30px}
+.tmv-date{font-family:var(--display);font-size:19px;font-weight:700;color:var(--text-1);padding:0 6px;white-space:nowrap}
+.tmv-sw{display:inline-block;width:16px;height:8px;border-radius:var(--r-pill)}
+.tmv-tl-row{display:grid;grid-template-columns:230px minmax(0,1fr) 112px 72px;grid-template-areas:"who trk tim act";align-items:center;column-gap:16px;padding:9px 0;border-top:1px solid var(--divider)}
+.tmv-tl-row.axis{border-top:none;padding:0 0 2px}
+.tmv-who{grid-area:who;display:flex;align-items:center;gap:10px;min-width:0}
+.tmv-who-n{font-size:13.5px;font-weight:700;color:var(--text-1);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tmv-who-s{font-size:11px;color:var(--text-3);display:flex;gap:4px 8px;align-items:center;flex-wrap:wrap;margin-top:1px}
+.tmv-trk{grid-area:trk;position:relative;height:26px;border-radius:8px;background:var(--surface2);overflow:visible}
+.tmv-axis{grid-area:trk;position:relative;height:16px}
+.tmv-axis span{position:absolute;top:0;transform:translateX(-50%);font-family:var(--mono);font-size:10px;font-weight:600;color:var(--text-3)}
+.tmv-band{position:absolute;top:0;bottom:0;background:var(--primary-soft)}
+.tmv-tick{position:absolute;top:0;bottom:0;width:1px;background:var(--divider)}
+.tmv-span{position:absolute;top:6px;bottom:6px;border-radius:var(--r-pill);background:var(--primary);min-width:8px}
+.tmv-span.live{background:repeating-linear-gradient(-45deg,var(--primary) 0 5px,var(--primary-bright) 5px 10px)}
+.tmv-span.forgot{background:var(--tint-red-tx2)}
+.tmv-now{position:absolute;top:-4px;bottom:-4px;width:2px;margin-left:-1px;border-radius:2px;background:var(--tint-red-tx2)}
+.tmv-tim{grid-area:tim;text-align:right;line-height:1.35}
+.tmv-tim b{display:block;font-family:var(--mono);font-size:12.5px;font-weight:700;color:var(--text-1);white-space:nowrap}
+.tmv-tim span{font-size:11px;color:var(--text-3);white-space:nowrap}
+.tmv-act{grid-area:act;display:flex;gap:6px;justify-content:flex-end}
+.tmv-empty{display:grid;justify-items:center;gap:8px;padding:30px 12px;text-align:center;font-size:13px;color:var(--text-3)}
+.tmv-empty i{width:46px;height:46px;border-radius:50%;display:grid;place-items:center;background:var(--surface2)}
+.tmv-people{display:flex;flex-wrap:wrap;gap:8px}
+.tmv-person{display:inline-flex;align-items:center;gap:8px;padding:4px 5px 4px 4px;border-radius:var(--r-pill);background:var(--surface2);box-shadow:var(--shadow-sm);font-size:12.5px;font-weight:700;color:var(--text-1)}
+.tmv-person>span:last-child:not(.tmv-av){padding-right:8px}
+.tmv-person .x{padding:4px 10px;border:none;border-radius:var(--r-pill);background:var(--primary-soft);color:var(--primary-dark);font-family:inherit;font-size:11.5px;font-weight:700;cursor:pointer}
+.tmv-list{display:grid;gap:9px}
+.tmv-grp{display:flex;align-items:baseline;gap:8px;margin:10px 4px 0;font-size:13px;font-weight:700;color:var(--text-1)}
+.tmv-grp:first-child{margin-top:0}
+.tmv-grp span{font-size:11.5px;font-weight:600;color:var(--text-3)}
+.tmv-req{display:grid;grid-template-columns:44px minmax(0,1fr) auto;gap:0 14px;align-items:center;padding:13px 16px;border-radius:var(--r-tile);background:var(--surface);box-shadow:var(--shadow-sm);cursor:pointer;transition:transform .15s,box-shadow .15s;outline:none}
+.tmv-req:hover,.tmv-req:focus-visible{transform:translateY(-2px);box-shadow:var(--hov-sh)}
+.tmv-req:active{transform:translateY(0)}
+.tmv-req-ic{width:44px;height:44px;border-radius:var(--r-tile);display:grid;place-items:center}
+.tmv-req-t{display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-size:14px;font-weight:700;color:var(--text-1)}
+.tmv-req-s{margin-top:3px;font-size:12px;color:var(--text-2);display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+.tmv-req-r{font-size:11.5px;color:var(--text-3);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tmv-req-amt{display:grid;gap:6px;justify-items:end}
+.tmv-req-amt b{font-family:var(--display);font-size:20px;font-weight:700;color:var(--text-1);white-space:nowrap}
+.tmv-no{font-family:var(--mono);font-size:10.5px;font-weight:600;color:var(--text-3)}
+.tmv-search{display:flex;align-items:center;gap:8px;padding:0 14px;height:40px;border-radius:var(--r-pill);background:var(--surface2);box-shadow:var(--shadow-inset);flex:1 1 220px;max-width:300px}
+.tmv-search input{flex:1;min-width:0;border:none !important;background:transparent !important;box-shadow:none !important;outline:none;font-family:inherit;font-size:13px;color:var(--text-1);padding:0}
+.tmv-stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));padding:8px 4px}
+.tmv-stat{padding:8px 20px;border-left:1px solid var(--divider)}
+.tmv-stat:first-child{border-left:none}
+.tmv-stat .l{font-size:11.5px;font-weight:700;color:var(--text-3)}
+.tmv-stat .v{font-family:var(--display);font-size:28px;font-weight:700;line-height:1.25;color:var(--text-1);font-variant-numeric:tabular-nums;white-space:nowrap}
+.tmv-stat .v small{font-family:var(--sans);font-size:12px;font-weight:600;color:var(--text-3);margin-left:5px}
+.tmv-pp{border-radius:var(--r-tile);background:var(--surface);box-shadow:var(--shadow-sm)}
+.tmv-pp.dim{opacity:.6}
+.tmv-pp-row{display:grid;grid-template-columns:210px minmax(0,1fr) 170px auto;grid-template-areas:"who heat ot act";align-items:center;gap:10px 20px;padding:13px 16px}
+.tmv-heat{grid-area:heat;min-width:0;max-width:560px}
+.tmv-heat-g{display:grid;gap:3px}
+.tmv-heat-g i{display:block;height:24px;border-radius:5px;background:var(--surface2)}
+.tmv-heat-g i.wk{opacity:.4}
+.tmv-heat-g i.forgot{background:var(--tint-red-tx2)}
+.tmv-heat-ax{display:flex;justify-content:space-between;font-family:var(--mono);font-size:9.5px;color:var(--text-3);margin-top:3px}
+.tmv-ot{grid-area:ot;display:grid;gap:3px;font-size:11.5px;color:var(--text-3)}
+.tmv-ot b{font-family:var(--display);font-size:16px;font-weight:700;color:var(--text-1);margin-right:3px}
+.tmv-pp-act{grid-area:act;display:flex;gap:6px;align-items:center;justify-content:flex-end}
+.tmv-pp-more{padding:2px 16px 16px}
+.tmv-cal{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:6px;max-width:760px}
+.tmv-cal .h{text-align:center;font-size:10.5px;font-weight:700;color:var(--text-3)}
+.tmv-cal .d{min-width:0;min-height:58px;padding:7px 9px;border-radius:var(--r-chip);background:var(--surface2)}
+.tmv-cal .d.on{background:var(--surface);box-shadow:var(--shadow-sm)}
+.tmv-cal .d.bad{box-shadow:inset 0 0 0 1px var(--tint-red-bd)}
+.tmv-cal .d.off{opacity:.45}
+/* แคบ (กว้างของพื้นที่หน้า < 860 ไม่ใช่กว้างจอ — แถบเมนูข้างกินที่ไปแล้ว) ดู useTmNarrow */
+.tmv.nw .tmv-hero{padding:16px}
+.tmv.nw .tmv-hero-r{justify-content:flex-end;flex:1 1 100%}
+.tmv.nw .tmv-team{width:auto;flex:1 1 220px}
+.tmv.nw .tmv-big{font-size:26px}
+.tmv.nw .tmv-card{padding:14px}
+.tmv.nw .tmv-tl-row{grid-template-columns:minmax(0,1fr) auto auto;grid-template-areas:"who tim act" "trk trk trk";row-gap:8px}
+.tmv.nw .tmv-tl-row.axis{display:none}
+.tmv.nw .tmv-pp-row{grid-template-columns:minmax(0,1fr) auto;grid-template-areas:"who act" "heat heat" "ot ot"}
+.tmv.nw .tmv-ot{grid-auto-flow:column;justify-content:start;gap:14px}
+.tmv.nw .tmv-stats{grid-template-columns:repeat(2,minmax(0,1fr))}
+.tmv.nw .tmv-stat{padding:8px 12px}
+.tmv.nw .tmv-stat:nth-child(odd){border-left:none}
+.tmv.nw .tmv-req{grid-template-columns:40px minmax(0,1fr) auto;gap:0 12px;padding:12px 13px}
+.tmv.nw .tmv-req-ic{width:40px;height:40px}
+.tmv.nw .tmv-req-amt b{font-size:17px}
+.tmv.nw .tmv-search{max-width:none}
+@media (prefers-reduced-motion:reduce){.tmv-req:hover,.tmv-req:focus-visible{transform:none}}`;
+const tmMinOf = s => {
+  const m = /^(\d{1,2}):(\d{2})/.exec(String(s || ""));
+  return m ? +m[1] * 60 + +m[2] : null;
+};
+const tmHrs = m => !m ? "0" : (Math.round(m / 60 * 10) / 10).toLocaleString("en-US", {
+  maximumFractionDigits: 1
 });
-const TM_NAV = Object.assign({}, TM_IN, {
-  cursor: "pointer",
-  fontWeight: 700
-});
-const tmBadge = (n, warn) => n > 0 ? React.createElement("span", {
-  style: {
-    minWidth: 18,
-    padding: "1px 6px",
-    borderRadius: "var(--r-pill)",
-    background: warn ? "#F59E0B" : "var(--primary)",
-    color: "#fff",
-    fontFamily: "var(--mono)",
-    fontSize: 10.5,
-    fontWeight: 800,
-    textAlign: "center"
-  }
-}, n) : null;
-function TmFacts({
-  items
+function TmCard({
+  children,
+  className,
+  style
 }) {
   return React.createElement("div", {
+    className: "tmv-card" + (className ? " " + className : ""),
+    style: Object.assign({
+      boxShadow: "var(--shadow-card)"
+    }, style)
+  }, children);
+}
+const TM_AV_K = ["takeoff", "design", "install", "done", "queue"];
+function TmAvatar({
+  uid,
+  name,
+  size
+}) {
+  const s = size || 32;
+  const img = window.useUserAvatar ? window.useUserAvatar(uid).avatar : null;
+  const k = TM_AV_K[Array.from(String(uid || name || "")).reduce((a, c) => a + c.charCodeAt(0), 0) % TM_AV_K.length];
+  const ini = (String(name || "?").replace(/^(นาย|นางสาว|นาง|คุณ)\s*/, "").replace(/^[เแโใไ]/, "").trim().charAt(0) || "?").toUpperCase();
+  return img ? React.createElement("img", {
+    className: "tmv-av",
+    src: img,
+    alt: "",
     style: {
-      display: "flex",
-      flexWrap: "wrap",
-      gap: "6px 20px",
-      padding: "10px 14px",
-      borderRadius: "var(--r-tile)",
-      background: "var(--surface)",
-      boxShadow: "var(--shadow-sm)"
+      width: s,
+      height: s,
+      borderRadius: "50%",
+      objectFit: "cover",
+      flexShrink: 0
     }
-  }, items.filter(Boolean).map((it, i) => React.createElement("span", {
-    key: i,
-    title: it.hint || "",
+  }) : React.createElement("span", {
+    className: "tmv-av",
     style: {
-      display: "inline-flex",
-      alignItems: "baseline",
-      gap: 5,
-      fontSize: 12,
-      color: "var(--text-3)",
+      width: s,
+      height: s,
+      borderRadius: "50%",
+      flexShrink: 0,
+      display: "grid",
+      placeItems: "center",
+      background: "var(--st-" + k + "-soft)",
+      color: "var(--st-" + k + "-fg)",
+      fontSize: Math.round(s * 0.42),
       fontWeight: 700
     }
-  }, it.label, React.createElement("b", {
-    style: {
-      fontFamily: "var(--mono)",
-      fontSize: 15,
-      fontWeight: 800,
-      color: it.color || "var(--text-1)"
-    }
-  }, it.value), it.unit)));
+  }, ini);
+}
+function TmSeg({
+  items,
+  value,
+  onChange,
+  sm
+}) {
+  return React.createElement("div", {
+    className: "tmv-seg" + (sm ? " sm" : ""),
+    role: "tablist"
+  }, items.map(it => React.createElement("button", {
+    key: it.k,
+    role: "tab",
+    "aria-selected": value === it.k,
+    className: value === it.k ? "on" : "",
+    onClick: () => onChange(it.k)
+  }, it.ic && React.createElement(Icon, {
+    name: it.ic,
+    size: sm ? 13 : 15,
+    color: value === it.k ? "var(--primary)" : "currentColor"
+  }), it.th, it.n > 0 && React.createElement("span", {
+    className: "tmv-badge"
+  }, it.n))));
 }
 function TmHelp({
   children
@@ -2680,7 +2276,8 @@ function TmHelp({
     style: {
       fontSize: 11.5,
       color: "var(--text-3)",
-      lineHeight: 1.7
+      lineHeight: 1.7,
+      padding: "0 4px"
     }
   }, React.createElement("summary", {
     style: {
@@ -2695,26 +2292,1105 @@ function TmHelp({
     }
   }, children));
 }
+function TmFacts({
+  items
+}) {
+  return React.createElement("div", {
+    className: "tmv-leg"
+  }, items.filter(Boolean).map((it, i) => React.createElement("span", {
+    key: i,
+    title: it.hint || ""
+  }, it.label, " ", React.createElement("b", {
+    style: {
+      color: it.color || undefined
+    }
+  }, it.value), " ", it.unit)));
+}
+function useTmDayStatus(date, cfg, users) {
+  const lvRows = window.useLeaves().rows;
+  const lvTypes = window.useLeaveTypes().types;
+  const onLeave = React.useMemo(() => window.lvOnDay(lvRows, date), [lvRows, date]);
+  const day = window.useAttendDay(date);
+  const workday = window.tmIsWorkday(date, cfg);
+  const rows = React.useMemo(() => (day.rows || []).filter(r => !window.tmIsSysAcct({
+    id: r.userId
+  })), [day.rows]);
+  const missing = React.useMemo(() => {
+    if (!workday) return [];
+    const have = {};
+    rows.forEach(r => {
+      have[r.userId] = 1;
+    });
+    return (users || []).filter(u => u && u.active !== false && !window.tmIsSysAcct(u) && window.can(window.userRoles(u), "attend") && !have[u.id] && !onLeave[u.id]);
+  }, [rows, users, workday, onLeave]);
+  const leaving = (users || []).filter(u => u && onLeave[u.id] && !rows.some(r => r.userId === u.id));
+  return {
+    rows,
+    loading: day.loading,
+    missing,
+    leaving,
+    onLeave,
+    lvTypes,
+    workday
+  };
+}
+function useTmNarrow() {
+  const ref = React.useRef(null);
+  const [nw, setNw] = React.useState(false);
+  React.useEffect(() => {
+    const el = ref.current;
+    if (!el || !window.ResizeObserver) return;
+    const ro = new ResizeObserver(() => setNw(el.clientWidth < 860));
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
+  return [nw, ref];
+}
+function useTmNow(on) {
+  const [, setT] = React.useState(0);
+  React.useEffect(() => {
+    if (!on) return;
+    const id = setInterval(() => setT(x => x + 1), 60000);
+    return () => clearInterval(id);
+  }, [on]);
+  const d = new Date();
+  return d.getHours() * 60 + d.getMinutes();
+}
+function tmTlRange(items, cfg, nowM) {
+  const w = window.tmDayWindow(null, cfg);
+  let lo = w.startMins,
+    hi = w.endMins;
+  items.forEach(it => {
+    if (it.a != null) lo = Math.min(lo, it.a);
+    if (it.b != null) hi = Math.max(hi, it.b);
+    if (it.live && nowM != null) hi = Math.max(hi, nowM);
+  });
+  lo = Math.max(0, Math.floor(lo / 60) * 60 - 60);
+  hi = Math.min(30 * 60, Math.ceil(hi / 60) * 60 + 60);
+  return {
+    lo,
+    hi,
+    band: [w.startMins, w.endMins]
+  };
+}
+function TmTimeline({
+  items,
+  range,
+  nowM,
+  band
+}) {
+  const lo = range.lo,
+    hi = range.hi,
+    span = Math.max(1, hi - lo);
+  const pct = m => Math.max(0, Math.min(100, (m - lo) / span * 100));
+  const step = span > 12 * 60 ? 120 : 60;
+  const ticks = [];
+  for (let m = Math.ceil(lo / step) * step; m <= hi; m += step) ticks.push(m);
+  const lab = m => String(Math.floor(m / 60) % 24).padStart(2, "0");
+  return React.createElement("div", null, React.createElement("div", {
+    className: "tmv-tl-row axis"
+  }, React.createElement("div", {
+    className: "tmv-axis"
+  }, ticks.map(m => React.createElement("span", {
+    key: m,
+    style: {
+      left: pct(m) + "%"
+    }
+  }, lab(m))))), items.map(it => React.createElement("div", {
+    key: it.key,
+    className: "tmv-tl-row"
+  }, React.createElement("div", {
+    className: "tmv-who"
+  }, it.who), React.createElement("div", {
+    className: "tmv-trk",
+    title: it.title || ""
+  }, band && React.createElement("i", {
+    className: "tmv-band",
+    style: {
+      left: pct(band[0]) + "%",
+      width: Math.max(0, pct(band[1]) - pct(band[0])) + "%"
+    }
+  }), ticks.map(m => React.createElement("i", {
+    key: m,
+    className: "tmv-tick",
+    style: {
+      left: pct(m) + "%"
+    }
+  })), it.trk, it.a != null && React.createElement("i", {
+    className: "tmv-span" + (it.live ? " live" : it.forgot ? " forgot" : ""),
+    style: {
+      left: pct(it.a) + "%",
+      width: it.b != null ? Math.max(0, pct(it.b) - pct(it.a)) + "%" : 8
+    }
+  }), it.now && nowM != null && nowM > lo && nowM < hi && React.createElement("i", {
+    className: "tmv-now",
+    style: {
+      left: pct(nowM) + "%"
+    }
+  })), React.createElement("div", {
+    className: "tmv-tim"
+  }, it.tim), React.createElement("div", {
+    className: "tmv-act"
+  }, it.act))));
+}
+function TmLegend({
+  items
+}) {
+  return React.createElement("span", {
+    className: "tmv-leg",
+    style: {
+      fontWeight: 600,
+      fontSize: 11
+    }
+  }, items.map(([bg, th]) => React.createElement("span", {
+    key: th
+  }, React.createElement("i", {
+    className: "tmv-sw",
+    style: {
+      background: bg
+    }
+  }), th)));
+}
+const TM_LEG = [["var(--primary-soft)", "เวลางานปกติ"], ["var(--primary)", "ทำงาน"], ["repeating-linear-gradient(-45deg,var(--primary) 0 3px,var(--primary-bright) 3px 6px)", "ยังไม่ออก"], ["var(--tint-red-tx2)", "ลืมกดออก"]];
+function TmEmpty({
+  icon,
+  children
+}) {
+  return React.createElement("div", {
+    className: "tmv-empty"
+  }, React.createElement("i", null, React.createElement(Icon, {
+    name: icon || "clock",
+    size: 22,
+    color: "var(--text-3)"
+  })), children);
+}
+function TmHero({
+  me,
+  cfg,
+  users,
+  canAll,
+  otMonthMins,
+  canOt,
+  onNewOt
+}) {
+  const t = me.today;
+  const inHM = t && t.in && t.in.hm,
+    outHM = t && t.out && t.out.hm;
+  const state = !inHM ? "none" : outHM ? "done" : "live";
+  const ST = {
+    none: {
+      th: "ยังไม่ได้ลงเวลา",
+      bg: "var(--tint-amber-bg2)",
+      fg: "var(--tint-amber-tx)",
+      ic: "clock"
+    },
+    live: {
+      th: "กำลังทำงาน",
+      bg: "var(--primary-soft)",
+      fg: "var(--primary-dark)",
+      ic: "clock"
+    },
+    done: {
+      th: "ออกงานแล้ว",
+      bg: "var(--surface2)",
+      fg: "var(--text-2)",
+      ic: "check"
+    }
+  }[state];
+  return React.createElement(TmCard, {
+    className: "tmv-hero"
+  }, React.createElement("div", {
+    className: "tmv-hero-me"
+  }, React.createElement("div", {
+    className: "tmv-hero-ic",
+    style: {
+      background: ST.bg
+    }
+  }, React.createElement(Icon, {
+    name: ST.ic,
+    size: 26,
+    color: ST.fg,
+    sw: 2
+  })), React.createElement("div", {
+    style: {
+      minWidth: 0
+    }
+  }, React.createElement("div", {
+    className: "tmv-k"
+  }, "\u0E27\u0E31\u0E19\u0E19\u0E35\u0E49\u0E02\u0E2D\u0E07\u0E09\u0E31\u0E19 \xB7 ", window.drDateTH(window.drToday(), true)), React.createElement("div", {
+    className: "tmv-big"
+  }, inHM ? React.createElement(React.Fragment, null, inHM, React.createElement("small", null, "\u2192"), outHM || React.createElement("small", {
+    style: {
+      margin: 0
+    }
+  }, "\u0E22\u0E31\u0E07\u0E44\u0E21\u0E48\u0E2D\u0E2D\u0E01")) : React.createElement("span", {
+    style: {
+      fontSize: 21,
+      color: "var(--text-2)"
+    }
+  }, "\u0E22\u0E31\u0E07\u0E44\u0E21\u0E48\u0E44\u0E14\u0E49\u0E25\u0E07\u0E40\u0E27\u0E25\u0E32")), React.createElement("div", {
+    style: {
+      display: "flex",
+      gap: 8,
+      alignItems: "center",
+      flexWrap: "wrap",
+      marginTop: 3
+    }
+  }, React.createElement("span", {
+    className: "tmv-pill",
+    style: {
+      background: ST.bg,
+      color: ST.fg
+    }
+  }, ST.th), React.createElement("span", {
+    className: "tmv-k",
+    style: {
+      fontWeight: 600
+    }
+  }, state === "none" ? "ลงเวลาจากแอปในไลน์" : state === "done" ? "ทำงาน " + window.tmDur(window.tmWorkedMins(t, cfg)) : "เข้างานแล้ว"), React.createElement("span", {
+    className: "tmv-k",
+    style: {
+      fontWeight: 600
+    }
+  }, "\xB7 OT \u0E2D\u0E19\u0E38\u0E21\u0E31\u0E15\u0E34\u0E40\u0E14\u0E37\u0E2D\u0E19\u0E19\u0E35\u0E49 ", React.createElement("b", {
+    style: {
+      color: "var(--text-1)"
+    }
+  }, otMonthMins ? window.tmDur(otMonthMins) : "—"))))), React.createElement("div", {
+    className: "tmv-hero-r"
+  }, canAll && React.createElement(TmTeamToday, {
+    cfg: cfg,
+    users: users
+  }), React.createElement("button", {
+    className: "btn btn-pri",
+    onClick: onNewOt,
+    disabled: !canOt
+  }, React.createElement(Icon, {
+    name: "plus",
+    size: 15,
+    color: "#fff",
+    sw: 2.2
+  }), " \u0E40\u0E1B\u0E34\u0E14\u0E43\u0E1A OT")));
+}
+function TmTeamToday({
+  cfg,
+  users
+}) {
+  const st = useTmDayStatus(window.drToday(), cfg, users);
+  const live = st.rows.filter(r => r.in && !r.out).length;
+  const out = st.rows.filter(r => r.out).length;
+  const seg = [[live, "var(--primary)", "ทำงานอยู่"], [out, "var(--st-takeoff-fg)", "ออกแล้ว"], [st.leaving.length, "var(--st-design-fg)", "ลา"], [st.missing.length, "var(--st-queue-fg)", "ยังไม่ลง"]];
+  const tot = seg.reduce((a, s) => a + s[0], 0);
+  return React.createElement("div", {
+    className: "tmv-team"
+  }, React.createElement("div", {
+    className: "tmv-k"
+  }, "\u0E17\u0E35\u0E21\u0E27\u0E31\u0E19\u0E19\u0E35\u0E49 \xB7 \u0E25\u0E07\u0E40\u0E27\u0E25\u0E32\u0E41\u0E25\u0E49\u0E27 ", st.rows.length, tot ? " จาก " + (tot - st.leaving.length) : "", " \u0E04\u0E19"), React.createElement("div", {
+    className: "tmv-stack"
+  }, seg.filter(s => s[0] > 0).map(s => React.createElement("i", {
+    key: s[2],
+    style: {
+      flex: s[0],
+      background: s[1]
+    }
+  }))), React.createElement("div", {
+    className: "tmv-leg"
+  }, seg.filter(s => s[0] > 0 || s[2] === "ทำงานอยู่").map(s => React.createElement("span", {
+    key: s[2]
+  }, React.createElement("i", {
+    className: "tmv-dot",
+    style: {
+      background: s[1]
+    }
+  }), React.createElement("b", null, s[0]), s[2]))));
+}
+function TmDaySheet({
+  date,
+  setDate,
+  cfg,
+  users,
+  currentUser
+}) {
+  const st = useTmDayStatus(date, cfg, users);
+  const admin = window.useAttendAdmin(currentUser);
+  const [msg, setMsg] = React.useState("");
+  const today = window.drToday();
+  const isToday = date === today;
+  const nowM = useTmNow(isToday);
+  const nameOf = r => window.tmNameOf(users, r.userId, r.name);
+  const gpsCell = r => {
+    if (!r.gps && r.fix) return null;
+    if (!r.gps) return React.createElement("span", {
+      style: {
+        color: "var(--tint-amber-tx)",
+        fontWeight: 700
+      }
+    }, "\u0E44\u0E21\u0E48\u0E21\u0E35\u0E1E\u0E34\u0E01\u0E31\u0E14");
+    const ok = React.createElement("span", {
+      style: {
+        color: "var(--tint-ok-tx)",
+        fontWeight: 700
+      }
+    }, "\u0E21\u0E35\u0E1E\u0E34\u0E01\u0E31\u0E14");
+    if (r.lat == null || r.lng == null) return ok;
+    const d = window.tmOfficeDist(r, cfg);
+    const link = kid => React.createElement("a", {
+      href: window.tmGpsUrl(r),
+      target: "_blank",
+      rel: "noreferrer",
+      title: "พิกัดตอนเข้างาน " + window.tmGpsTH(r),
+      style: {
+        fontWeight: 700,
+        textDecoration: "none"
+      }
+    }, kid);
+    if (d == null) return link(ok);
+    const near = d <= window.tmWhNorm(cfg).office.radius;
+    const office = r.place === "office";
+    const color = !office ? "var(--text-3)" : near ? "var(--tint-ok-tx)" : "var(--tint-red-tx2)";
+    return link(React.createElement("span", {
+      style: {
+        color: color
+      }
+    }, office ? near ? "ถึงออฟฟิศ" : "ห่างออฟฟิศ " + window.tmDistTH(d) : "ห่างออฟฟิศ " + window.tmDistTH(d)));
+  };
+  const del = async r => {
+    const ok = await window.askConfirm({
+      title: "ลบใบลงเวลาของ " + nameOf(r) + "?",
+      body: window.drDateTH(date, true) + " · " + (r.in || "—") + " – " + (r.out || "—") + " · " + window.tmDur(r.mins) + "\nลบแล้วคนคนนี้กดลงเวลาของวันนี้ใหม่ได้ตั้งแต่ต้น",
+      ok: "ลบใบนี้",
+      danger: true,
+      icon: "trash"
+    });
+    if (!ok) return;
+    const res = await admin.removeDay(r.userId, date);
+    setMsg(res.ok ? "ลบใบลงเวลาของ " + nameOf(r) + " แล้ว" : "ลบไม่สำเร็จ — " + res.why);
+  };
+  const isAdmin = window.usePgAdmin();
+  const [ed, setEd] = React.useState(null);
+  const openEd = (uid, nm, inHM, outHM) => {
+    const u = (users || []).find(x => x && x.id === uid) || {
+      id: uid,
+      name: nm
+    };
+    const c = window.tmWhNorm(cfg);
+    setEd({
+      user: u,
+      inHM: inHM || c.startEarly,
+      outHM: outHM != null ? outHM : c.end,
+      why: "",
+      busy: false,
+      err: ""
+    });
+  };
+  const saveEd = async () => {
+    if (!ed || ed.busy) return;
+    setEd(Object.assign({}, ed, {
+      busy: true,
+      err: ""
+    }));
+    const res = await admin.setTimes(ed.user, date, ed.inHM, ed.outHM, ed.why, cfg).catch(e => ({
+      ok: false,
+      why: String(e && e.message || e)
+    }));
+    if (!res.ok) {
+      setEd(Object.assign({}, ed, {
+        busy: false,
+        err: res.why
+      }));
+      return;
+    }
+    setMsg("แก้เวลาของ " + (ed.user.name || "") + " แล้ว · " + ed.inHM + " – " + (ed.outHM || "ยังไม่ออก"));
+    setEd(null);
+  };
+  const holiday = window.tmIsHoliday(date, cfg);
+  const workday = st.workday;
+  const rows = st.rows.slice().sort((a, b) => String(a.in || "99").localeCompare(String(b.in || "99")));
+  const totalMins = rows.reduce((a, r) => a + (+r.mins || 0), 0);
+  const items = rows.map(r => {
+    const a = tmMinOf(r.in);
+    let b = tmMinOf(r.out);
+    if (a != null && b != null && b < a) b += 1440;
+    const live = !!(isToday && r.in && !r.out);
+    const forgot = !!(!isToday && r.in && !r.out);
+    if (live) b = Math.max(nowM, a + 5);
+    const late = !!(workday && r.in && window.tmDayWindow({
+      in: {
+        hm: r.in
+      }
+    }, cfg).late);
+    const job = r.place === "office" || r.fix && !r.jobCode ? "ออฟฟิศ" : r.jobCode || "";
+    const nm = nameOf(r);
+    return {
+      key: r.userId,
+      a: a,
+      b: forgot ? null : b,
+      live: live,
+      forgot: forgot,
+      now: isToday,
+      title: nm + " · " + (r.in || "—") + " – " + (r.out || (live ? "ยังไม่ออก" : "ลืมกดออก")),
+      who: React.createElement(React.Fragment, null, React.createElement(TmAvatar, {
+        uid: r.userId,
+        name: nm
+      }), React.createElement("div", {
+        style: {
+          minWidth: 0
+        }
+      }, React.createElement("div", {
+        className: "tmv-who-n"
+      }, nm), React.createElement("div", {
+        className: "tmv-who-s"
+      }, job && React.createElement("span", {
+        style: {
+          fontFamily: job === "ออฟฟิศ" ? "inherit" : "var(--mono)"
+        }
+      }, job), gpsCell(r)))),
+      tim: React.createElement(React.Fragment, null, React.createElement("b", null, r.in || "—", " \u2013 ", r.out || "…"), React.createElement("span", {
+        style: {
+          fontWeight: forgot || live || late ? 700 : 500,
+          color: forgot ? "var(--tint-red-tx2)" : late ? "var(--tint-amber-tx)" : live ? "var(--primary-dark)" : undefined
+        }
+      }, forgot ? "ลืมกดออก" : live ? "กำลังทำงาน" : window.tmDur(r.mins), late ? " · สาย" : "")),
+      act: React.createElement(React.Fragment, null, isAdmin && React.createElement("button", {
+        className: "tmv-ib xs",
+        title: "\u0E41\u0E01\u0E49\u0E40\u0E27\u0E25\u0E32\u0E40\u0E02\u0E49\u0E32-\u0E2D\u0E2D\u0E01",
+        onClick: () => openEd(r.userId, nm, r.in, r.out || "")
+      }, React.createElement(Icon, {
+        name: "pen",
+        size: 14
+      })), React.createElement("button", {
+        className: "tmv-ib xs dngr",
+        title: "\u0E25\u0E1A\u0E43\u0E1A\u0E25\u0E07\u0E40\u0E27\u0E25\u0E32",
+        onClick: () => del(r)
+      }, React.createElement(Icon, {
+        name: "trash",
+        size: 14
+      })))
+    };
+  });
+  const range = tmTlRange(items, cfg, isToday ? nowM : null);
+  const stillIn = items.filter(x => x.live).length;
+  const forgotN = items.filter(x => x.forgot).length;
+  const attendUsers = (users || []).filter(u => u && u.active !== false && !window.tmIsSysAcct(u) && window.can(window.userRoles(u), "attend"));
+  return React.createElement("div", {
+    className: "tmv",
+    style: {
+      gap: 14
+    }
+  }, React.createElement("div", {
+    className: "tmv-bar"
+  }, React.createElement("button", {
+    className: "tmv-ib",
+    title: "\u0E27\u0E31\u0E19\u0E01\u0E48\u0E2D\u0E19\u0E2B\u0E19\u0E49\u0E32",
+    onClick: () => setDate(window.drAddDays(date, -1))
+  }, React.createElement(Icon, {
+    name: "chevronLeft",
+    size: 16
+  })), React.createElement("span", {
+    className: "tmv-date"
+  }, window.drDateTH(date, true)), React.createElement("button", {
+    className: "tmv-ib",
+    title: "\u0E27\u0E31\u0E19\u0E16\u0E31\u0E14\u0E44\u0E1B",
+    onClick: () => setDate(window.drAddDays(date, 1))
+  }, React.createElement(Icon, {
+    name: "chevronRight",
+    size: 16
+  })), React.createElement("input", {
+    type: "date",
+    value: date,
+    onChange: e => setDate(e.target.value || today),
+    title: "\u0E40\u0E25\u0E37\u0E2D\u0E01\u0E27\u0E31\u0E19",
+    style: Object.assign({}, TM_IN, {
+      padding: "7px 10px",
+      fontSize: 12.5
+    })
+  }), !isToday && React.createElement("button", {
+    className: "btn btn-sm",
+    onClick: () => setDate(today)
+  }, "\u0E01\u0E25\u0E31\u0E1A\u0E21\u0E32\u0E27\u0E31\u0E19\u0E19\u0E35\u0E49"), holiday ? React.createElement("span", {
+    className: "tmv-pill",
+    style: {
+      background: "var(--tint-red-bg)",
+      color: "var(--tint-red-tx)"
+    }
+  }, "\u0E27\u0E31\u0E19\u0E2B\u0E22\u0E38\u0E14 \xB7 ", window.tmWhNorm(cfg).holidays[date]) : !workday ? React.createElement("span", {
+    className: "tmv-pill",
+    style: {
+      background: "var(--surface3)",
+      color: "var(--text-2)"
+    }
+  }, "\u0E19\u0E2D\u0E01\u0E27\u0E31\u0E19\u0E17\u0E33\u0E07\u0E32\u0E19") : null, isAdmin && React.createElement("select", {
+    value: "",
+    title: "\u0E25\u0E07\u0E40\u0E27\u0E25\u0E32\u0E41\u0E17\u0E19",
+    onChange: e => {
+      const u = attendUsers.find(x => x.id === e.target.value);
+      if (!u) return;
+      const r = rows.find(x => x.userId === u.id);
+      openEd(u.id, u.name, r ? r.in : "", r ? r.out || "" : null);
+    },
+    style: Object.assign({}, TM_IN, {
+      marginLeft: "auto",
+      minWidth: 170,
+      padding: "8px 10px",
+      fontSize: 12.5
+    })
+  }, React.createElement("option", {
+    value: ""
+  }, "+ \u0E25\u0E07\u0E40\u0E27\u0E25\u0E32\u0E41\u0E17\u0E19\u2026"), attendUsers.map(u => React.createElement("option", {
+    key: u.id,
+    value: u.id
+  }, u.name)))), (st.missing.length > 0 || st.leaving.length > 0) && React.createElement(TmCard, null, st.missing.length > 0 && React.createElement("div", null, React.createElement("div", {
+    className: "tmv-hd",
+    style: {
+      marginBottom: 10
+    }
+  }, React.createElement("span", {
+    className: "t"
+  }, "\u0E22\u0E31\u0E07\u0E44\u0E21\u0E48\u0E25\u0E07\u0E40\u0E27\u0E25\u0E32"), React.createElement("span", {
+    className: "tmv-badge",
+    style: {
+      alignSelf: "center"
+    }
+  }, st.missing.length), React.createElement("span", {
+    className: "s"
+  }, "\u0E17\u0E31\u0E01\u0E16\u0E32\u0E21\u0E01\u0E48\u0E2D\u0E19", isAdmin ? " หรือกดลงเวลาแทน" : "")), React.createElement("div", {
+    className: "tmv-people"
+  }, st.missing.map(u => React.createElement("span", {
+    key: u.id,
+    className: "tmv-person"
+  }, React.createElement(TmAvatar, {
+    uid: u.id,
+    name: u.name,
+    size: 26
+  }), React.createElement("span", {
+    style: {
+      paddingRight: isAdmin ? 0 : 8
+    }
+  }, u.name), isAdmin && React.createElement("button", {
+    className: "x",
+    onClick: () => openEd(u.id, u.name, "", null)
+  }, "\u0E25\u0E07\u0E41\u0E17\u0E19"))))), st.leaving.length > 0 && React.createElement("div", {
+    style: {
+      marginTop: st.missing.length ? 16 : 0
+    }
+  }, React.createElement("div", {
+    className: "tmv-hd",
+    style: {
+      marginBottom: 10
+    }
+  }, React.createElement("span", {
+    className: "t"
+  }, "\u0E25\u0E32\u0E27\u0E31\u0E19\u0E19\u0E35\u0E49"), React.createElement("span", {
+    className: "s"
+  }, st.leaving.length, " \u0E04\u0E19")), React.createElement("div", {
+    className: "tmv-people"
+  }, st.leaving.map(u => {
+    const lr = st.onLeave[u.id],
+      lt = window.lvTypeOf(st.lvTypes, lr.type);
+    return React.createElement("span", {
+      key: u.id,
+      className: "tmv-person",
+      title: lr.no + " · " + window.lvRangeTH(lr)
+    }, React.createElement(TmAvatar, {
+      uid: u.id,
+      name: u.name,
+      size: 26
+    }), u.name, React.createElement("span", {
+      className: "tmv-pill",
+      style: {
+        background: lt.color + "1A",
+        color: lt.color
+      }
+    }, lt.th));
+  })))), React.createElement(TmCard, null, React.createElement("div", {
+    className: "tmv-hd"
+  }, React.createElement("span", {
+    className: "t"
+  }, "\u0E40\u0E02\u0E49\u0E32-\u0E2D\u0E2D\u0E01\u0E07\u0E32\u0E19"), React.createElement("span", {
+    className: "s"
+  }, rows.length, " \u0E04\u0E19 \xB7 \u0E23\u0E27\u0E21 ", window.tmDur(totalMins), stillIn ? " · ยังทำงานอยู่ " + stillIn : "", forgotN ? " · ลืมกดออก " + forgotN : ""), React.createElement("span", {
+    className: "r"
+  }, React.createElement(TmLegend, {
+    items: TM_LEG
+  }))), st.loading ? React.createElement(TmEmpty, null, "\u0E01\u0E33\u0E25\u0E31\u0E07\u0E42\u0E2B\u0E25\u0E14\u2026") : rows.length === 0 ? React.createElement(TmEmpty, null, "\u0E22\u0E31\u0E07\u0E44\u0E21\u0E48\u0E21\u0E35\u0E43\u0E04\u0E23\u0E25\u0E07\u0E40\u0E27\u0E25\u0E32\u0E43\u0E19\u0E27\u0E31\u0E19\u0E19\u0E35\u0E49", React.createElement("br", null), React.createElement("span", {
+    style: {
+      fontSize: 11.5
+    }
+  }, "\u0E0A\u0E48\u0E32\u0E07\u0E25\u0E07\u0E40\u0E27\u0E25\u0E32\u0E40\u0E02\u0E49\u0E32-\u0E2D\u0E2D\u0E01\u0E08\u0E32\u0E01\u0E41\u0E2D\u0E1B\u0E43\u0E19\u0E44\u0E25\u0E19\u0E4C")) : React.createElement(TmTimeline, {
+    items: items,
+    range: range,
+    nowM: isToday ? nowM : null,
+    band: workday ? range.band : null
+  })), msg && React.createElement("div", {
+    style: {
+      fontSize: 12.5,
+      fontWeight: 700,
+      color: "var(--text-2)",
+      padding: "0 4px"
+    }
+  }, msg), ed && React.createElement("div", {
+    style: {
+      position: "fixed",
+      inset: 0,
+      zIndex: 90,
+      background: "rgba(15,23,42,.45)",
+      display: "grid",
+      placeItems: "center",
+      padding: 18
+    },
+    onMouseDown: e => {
+      if (e.target === e.currentTarget && !ed.busy) setEd(null);
+    }
+  }, React.createElement("div", {
+    style: {
+      width: "min(420px,100%)",
+      background: "var(--bg)",
+      boxShadow: "var(--shadow-modal)",
+      borderRadius: "var(--r-card)",
+      padding: 20,
+      display: "grid",
+      gap: 14
+    }
+  }, React.createElement("div", {
+    style: {
+      display: "flex",
+      alignItems: "center",
+      gap: 12
+    }
+  }, React.createElement(TmAvatar, {
+    uid: ed.user.id,
+    name: ed.user.name,
+    size: 40
+  }), React.createElement("div", null, React.createElement("div", {
+    style: {
+      fontSize: 16.5,
+      fontWeight: 800,
+      color: "var(--text-1)"
+    }
+  }, ed.user.name), React.createElement("div", {
+    style: {
+      fontSize: 11.5,
+      color: "var(--text-3)",
+      fontWeight: 600
+    }
+  }, "\u0E41\u0E01\u0E49\u0E40\u0E27\u0E25\u0E32\u0E25\u0E07\u0E07\u0E32\u0E19 \xB7 ", window.drDateTH(date, true)))), React.createElement("div", {
+    style: {
+      display: "grid",
+      gridTemplateColumns: "minmax(0,1fr) auto minmax(0,1fr)",
+      gap: 9,
+      alignItems: "end"
+    }
+  }, React.createElement("label", {
+    style: TM_LB
+  }, React.createElement("span", {
+    style: {
+      fontSize: 11.5,
+      fontWeight: 700,
+      color: "var(--text-3)"
+    }
+  }, "\u0E40\u0E02\u0E49\u0E32\u0E07\u0E32\u0E19"), React.createElement(window.PgTime, {
+    value: ed.inHM,
+    ariaLabel: "\u0E40\u0E02\u0E49\u0E32\u0E07\u0E32\u0E19",
+    onChange: t => setEd(p => Object.assign({}, p, {
+      inHM: t
+    })),
+    style: TM_IN_W
+  })), React.createElement("span", {
+    style: {
+      fontSize: 12.5,
+      fontWeight: 700,
+      color: "var(--text-3)",
+      paddingBottom: 10
+    }
+  }, "\u0E16\u0E36\u0E07"), React.createElement("label", {
+    style: TM_LB
+  }, React.createElement("span", {
+    style: {
+      fontSize: 11.5,
+      fontWeight: 700,
+      color: "var(--text-3)"
+    }
+  }, "\u0E2D\u0E2D\u0E01\u0E07\u0E32\u0E19 (\u0E27\u0E48\u0E32\u0E07 = \u0E22\u0E31\u0E07\u0E44\u0E21\u0E48\u0E2D\u0E2D\u0E01)"), React.createElement(window.PgTime, {
+    value: ed.outHM,
+    ariaLabel: "\u0E2D\u0E2D\u0E01\u0E07\u0E32\u0E19",
+    onChange: t => setEd(p => Object.assign({}, p, {
+      outHM: t
+    })),
+    style: TM_IN_W
+  }))), ed.err && React.createElement("div", {
+    style: {
+      fontSize: 12,
+      fontWeight: 700,
+      color: "var(--tint-red-tx2)"
+    }
+  }, ed.err), React.createElement("div", {
+    style: {
+      display: "flex",
+      gap: 8,
+      justifyContent: "flex-end"
+    }
+  }, React.createElement("button", {
+    type: "button",
+    className: "btn",
+    disabled: ed.busy,
+    onClick: () => setEd(null)
+  }, "\u0E22\u0E01\u0E40\u0E25\u0E34\u0E01"), React.createElement("button", {
+    type: "button",
+    className: "btn btn-pri",
+    disabled: ed.busy || !ed.inHM,
+    onClick: saveEd
+  }, ed.busy ? "กำลังบันทึก…" : "บันทึกเวลา")))), React.createElement(TmHelp, null, "\u0E1B\u0E38\u0E48\u0E21\u0E16\u0E31\u0E07\u0E02\u0E22\u0E30\u0E25\u0E1A\u0E43\u0E1A\u0E25\u0E07\u0E40\u0E27\u0E25\u0E32\u0E02\u0E2D\u0E07\u0E27\u0E31\u0E19\u0E19\u0E31\u0E49\u0E19\u0E17\u0E31\u0E49\u0E07\u0E43\u0E1A \u0E41\u0E25\u0E49\u0E27\u0E43\u0E2B\u0E49\u0E40\u0E08\u0E49\u0E32\u0E15\u0E31\u0E27\u0E01\u0E14\u0E40\u0E02\u0E49\u0E32-\u0E2D\u0E2D\u0E01\u0E43\u0E2B\u0E21\u0E48 \u2014 \u0E23\u0E30\u0E1A\u0E1A\u0E40\u0E01\u0E47\u0E1A\u0E2A\u0E33\u0E40\u0E19\u0E32\u0E43\u0E1A\u0E17\u0E35\u0E48\u0E25\u0E1A\u0E44\u0E27\u0E49\u0E1E\u0E23\u0E49\u0E2D\u0E21\u0E0A\u0E37\u0E48\u0E2D\u0E04\u0E19\u0E25\u0E1A \u0E40\u0E1C\u0E37\u0E48\u0E2D\u0E21\u0E35\u0E02\u0E49\u0E2D\u0E42\u0E15\u0E49\u0E40\u0E16\u0E35\u0E22\u0E07\u0E40\u0E23\u0E37\u0E48\u0E2D\u0E07\u0E0A\u0E31\u0E48\u0E27\u0E42\u0E21\u0E07\u0E15\u0E2D\u0E19\u0E2A\u0E34\u0E49\u0E19\u0E40\u0E14\u0E37\u0E2D\u0E19", React.createElement("br", null), "\u0E23\u0E2B\u0E31\u0E2A\u0E07\u0E32\u0E19\u0E43\u0E15\u0E49\u0E0A\u0E37\u0E48\u0E2D\u0E04\u0E37\u0E2D\u0E2A\u0E34\u0E48\u0E07\u0E17\u0E35\u0E48\u0E1C\u0E39\u0E49\u0E25\u0E07\u0E40\u0E27\u0E25\u0E32\u0E40\u0E25\u0E37\u0E2D\u0E01\u0E40\u0E2D\u0E07 \u0E23\u0E30\u0E1A\u0E1A\u0E44\u0E21\u0E48\u0E44\u0E14\u0E49\u0E15\u0E23\u0E27\u0E08\u0E27\u0E48\u0E32\u0E2D\u0E22\u0E39\u0E48\u0E17\u0E35\u0E48\u0E44\u0E0B\u0E15\u0E4C\u0E19\u0E31\u0E49\u0E19\u0E08\u0E23\u0E34\u0E07\u0E2B\u0E23\u0E37\u0E2D\u0E44\u0E21\u0E48 \u2014 \u0E22\u0E31\u0E07\u0E44\u0E21\u0E48\u0E21\u0E35\u0E1E\u0E34\u0E01\u0E31\u0E14\u0E44\u0E0B\u0E15\u0E4C\u0E17\u0E35\u0E48\u0E40\u0E0A\u0E37\u0E48\u0E2D\u0E16\u0E37\u0E2D\u0E44\u0E14\u0E49\u0E43\u0E19\u0E23\u0E30\u0E1A\u0E1A \u0E08\u0E36\u0E07\u0E40\u0E17\u0E35\u0E22\u0E1A\u0E23\u0E30\u0E22\u0E30\u0E44\u0E21\u0E48\u0E44\u0E14\u0E49", React.createElement("br", null), "\u201C\u0E44\u0E21\u0E48\u0E21\u0E35\u0E1E\u0E34\u0E01\u0E31\u0E14\u201D \u0E40\u0E01\u0E34\u0E14\u0E44\u0E14\u0E49\u0E17\u0E31\u0E49\u0E07\u0E08\u0E32\u0E01\u0E1B\u0E34\u0E14\u0E2A\u0E34\u0E17\u0E18\u0E34\u0E4C\u0E15\u0E33\u0E41\u0E2B\u0E19\u0E48\u0E07 \u0E2A\u0E31\u0E0D\u0E0D\u0E32\u0E13\u0E44\u0E21\u0E48\u0E16\u0E36\u0E07 \u0E2B\u0E23\u0E37\u0E2D\u0E2D\u0E22\u0E39\u0E48\u0E43\u0E19\u0E2D\u0E32\u0E04\u0E32\u0E23 \u2014 \u0E23\u0E30\u0E1A\u0E1A\u0E44\u0E21\u0E48\u0E40\u0E04\u0E22\u0E1A\u0E25\u0E47\u0E2D\u0E01\u0E01\u0E32\u0E23\u0E25\u0E07\u0E40\u0E27\u0E25\u0E32\u0E14\u0E49\u0E27\u0E22\u0E40\u0E2B\u0E15\u0E38\u0E19\u0E35\u0E49", React.createElement("br", null), "\u0E23\u0E30\u0E22\u0E30\u0E2B\u0E48\u0E32\u0E07\u0E08\u0E32\u0E01\u0E2D\u0E2D\u0E1F\u0E1F\u0E34\u0E28\u0E04\u0E34\u0E14\u0E08\u0E32\u0E01\u0E1E\u0E34\u0E01\u0E31\u0E14\u0E17\u0E35\u0E48\u0E15\u0E31\u0E49\u0E07\u0E44\u0E27\u0E49\u0E43\u0E19\u0E41\u0E17\u0E47\u0E1A \u201C\u0E15\u0E31\u0E49\u0E07\u0E04\u0E48\u0E32\u201D \u0E40\u0E17\u0E35\u0E22\u0E1A\u0E01\u0E31\u0E1A\u0E15\u0E33\u0E41\u0E2B\u0E19\u0E48\u0E07\u0E15\u0E2D\u0E19\u0E01\u0E14\u0E40\u0E02\u0E49\u0E32\u0E07\u0E32\u0E19 \u2014 \u0E02\u0E36\u0E49\u0E19\u0E2A\u0E35\u0E41\u0E14\u0E07\u0E40\u0E09\u0E1E\u0E32\u0E30\u0E04\u0E19\u0E17\u0E35\u0E48\u0E01\u0E14 \u201C\u0E2D\u0E2D\u0E1F\u0E1F\u0E34\u0E28\u201D \u0E41\u0E15\u0E48\u0E2D\u0E22\u0E39\u0E48\u0E19\u0E2D\u0E01\u0E23\u0E31\u0E28\u0E21\u0E35 \u0E2A\u0E48\u0E27\u0E19\u0E07\u0E32\u0E19\u0E2B\u0E19\u0E49\u0E32\u0E44\u0E0B\u0E15\u0E4C\u0E2B\u0E48\u0E32\u0E07\u0E2D\u0E2D\u0E1F\u0E1F\u0E34\u0E28\u0E40\u0E1B\u0E47\u0E19\u0E40\u0E23\u0E37\u0E48\u0E2D\u0E07\u0E1B\u0E01\u0E15\u0E34", React.createElement("br", null), "\u201C\u0E2A\u0E32\u0E22\u201D = \u0E40\u0E02\u0E49\u0E32\u0E07\u0E32\u0E19\u0E2B\u0E25\u0E31\u0E07\u0E40\u0E27\u0E25\u0E32\u0E40\u0E02\u0E49\u0E32\u0E07\u0E32\u0E19\u0E0A\u0E49\u0E32\u0E2A\u0E38\u0E14\u0E17\u0E35\u0E48\u0E15\u0E31\u0E49\u0E07\u0E44\u0E27\u0E49 \xB7 \u0E1E\u0E37\u0E49\u0E19\u0E40\u0E02\u0E35\u0E22\u0E27\u0E08\u0E32\u0E07\u0E1A\u0E19\u0E41\u0E16\u0E1A\u0E04\u0E37\u0E2D\u0E40\u0E27\u0E25\u0E32\u0E07\u0E32\u0E19\u0E1B\u0E01\u0E15\u0E34\u0E02\u0E2D\u0E07\u0E04\u0E19\u0E17\u0E35\u0E48\u0E40\u0E02\u0E49\u0E32\u0E40\u0E0A\u0E49\u0E32\u0E2A\u0E38\u0E14"));
+}
+function TmMyDays({
+  rows,
+  cfg
+}) {
+  const today = window.drToday();
+  const nowM = useTmNow(true);
+  const items = (rows || []).map(r => {
+    const inHM = r.in && r.in.hm,
+      outHM = r.out && r.out.hm;
+    const a = tmMinOf(inHM);
+    let b = tmMinOf(outHM);
+    if (a != null && b != null && b < a) b += 1440;
+    const live = !!(r.date === today && inHM && !outHM);
+    const forgot = !!(r.date !== today && inHM && !outHM);
+    if (live) b = Math.max(nowM, a + 5);
+    const wd = TM_WD_TH[tmWdOf(r.date)];
+    return {
+      key: r.date,
+      a: a,
+      b: forgot ? null : b,
+      live: live,
+      forgot: forgot,
+      now: r.date === today,
+      who: React.createElement(React.Fragment, null, React.createElement("span", {
+        style: {
+          width: 38,
+          height: 38,
+          borderRadius: "var(--r-chip)",
+          background: "var(--surface2)",
+          display: "grid",
+          placeItems: "center",
+          flexShrink: 0,
+          lineHeight: 1.05
+        }
+      }, React.createElement("span", {
+        style: {
+          textAlign: "center"
+        }
+      }, React.createElement("span", {
+        style: {
+          display: "block",
+          fontSize: 9.5,
+          fontWeight: 700,
+          color: "var(--text-3)"
+        }
+      }, wd), React.createElement("span", {
+        style: {
+          fontFamily: "var(--display)",
+          fontSize: 15,
+          fontWeight: 700,
+          color: "var(--text-1)"
+        }
+      }, +String(r.date).slice(8)))), React.createElement("div", {
+        style: {
+          minWidth: 0
+        }
+      }, React.createElement("div", {
+        className: "tmv-who-n"
+      }, window.drDateTH(r.date)), React.createElement("div", {
+        className: "tmv-who-s"
+      }, r.jobCode ? React.createElement("span", {
+        style: {
+          fontFamily: "var(--mono)"
+        }
+      }, r.jobCode) : null, !(r.in && r.in.lat) && React.createElement("span", {
+        style: {
+          color: "var(--tint-amber-tx)",
+          fontWeight: 700
+        }
+      }, "\u0E44\u0E21\u0E48\u0E21\u0E35\u0E1E\u0E34\u0E01\u0E31\u0E14")))),
+      tim: React.createElement(React.Fragment, null, React.createElement("b", null, inHM || "—", " \u2013 ", outHM || "…"), React.createElement("span", {
+        style: {
+          fontWeight: forgot || live ? 700 : 500,
+          color: forgot ? "var(--tint-red-tx2)" : live ? "var(--primary-dark)" : undefined
+        }
+      }, forgot ? "ลืมกดออก" : live ? "กำลังทำงาน" : window.tmDur(window.tmWorkedMins(r, cfg))))
+    };
+  });
+  const range = tmTlRange(items, cfg, nowM);
+  return React.createElement(TmCard, null, React.createElement("div", {
+    className: "tmv-hd"
+  }, React.createElement("span", {
+    className: "t"
+  }, "\u0E40\u0E27\u0E25\u0E32\u0E02\u0E2D\u0E07\u0E09\u0E31\u0E19"), React.createElement("span", {
+    className: "s"
+  }, "\u0E22\u0E49\u0E2D\u0E19\u0E2B\u0E25\u0E31\u0E07 30 \u0E27\u0E31\u0E19"), React.createElement("span", {
+    className: "r"
+  }, React.createElement(TmLegend, {
+    items: TM_LEG
+  }))), items.length === 0 ? React.createElement(TmEmpty, null, "\u0E22\u0E31\u0E07\u0E44\u0E21\u0E48\u0E21\u0E35\u0E1B\u0E23\u0E30\u0E27\u0E31\u0E15\u0E34\u0E01\u0E32\u0E23\u0E25\u0E07\u0E40\u0E27\u0E25\u0E32", React.createElement("br", null), React.createElement("span", {
+    style: {
+      fontSize: 11.5
+    }
+  }, "\u0E25\u0E07\u0E40\u0E27\u0E25\u0E32\u0E44\u0E14\u0E49\u0E08\u0E32\u0E01\u0E41\u0E2D\u0E1B\u0E43\u0E19\u0E44\u0E25\u0E19\u0E4C")) : React.createElement(TmTimeline, {
+    items: items,
+    range: range,
+    nowM: nowM,
+    band: range.band
+  }));
+}
+function TmReqCard({
+  x,
+  users,
+  lvTypes,
+  onOpen,
+  onApprove
+}) {
+  const r = x.r;
+  const nm = window.tmNameOf(users, r.userId, r.userName);
+  let color, icon, title, amt, line;
+  if (x.t === "ot") {
+    const k = window.tmOtKindOf(r.kind);
+    color = k.color;
+    icon = "clock";
+    title = "OT · " + k.th;
+    amt = window.tmDur(r.mins);
+    line = window.drDateTH(r.date) + " · " + (r.from || "") + "–" + (r.to || "") + (r.jobCode ? " · " + r.jobCode : "");
+  } else {
+    const lt = window.lvTypeOf(lvTypes, r.type);
+    color = lt.color;
+    icon = "calendar";
+    title = lt.th;
+    amt = window.lvDaysTH(r.days);
+    line = window.lvRangeTH(r);
+  }
+  return React.createElement("div", {
+    className: "tmv-req",
+    role: "button",
+    tabIndex: 0,
+    onClick: () => onOpen(x),
+    onKeyDown: e => {
+      if (e.key === "Enter") onOpen(x);
+    }
+  }, React.createElement("div", {
+    className: "tmv-req-ic",
+    style: {
+      background: color + "1A"
+    }
+  }, React.createElement(Icon, {
+    name: icon,
+    size: 20,
+    color: color,
+    sw: 2
+  })), React.createElement("div", {
+    style: {
+      minWidth: 0
+    }
+  }, React.createElement("div", {
+    className: "tmv-req-t"
+  }, title, React.createElement(TmPill, {
+    s: r.status,
+    size: "sm"
+  }), React.createElement("span", {
+    className: "tmv-no"
+  }, r.no)), React.createElement("div", {
+    className: "tmv-req-s"
+  }, React.createElement(TmAvatar, {
+    uid: r.userId,
+    name: nm,
+    size: 20
+  }), React.createElement("span", {
+    style: {
+      fontWeight: 700,
+      color: "var(--text-1)"
+    }
+  }, nm), React.createElement("span", {
+    style: {
+      color: "var(--text-3)"
+    }
+  }, "\xB7"), React.createElement("span", null, line)), r.reason && String(r.reason).trim() !== "-" ? React.createElement("div", {
+    className: "tmv-req-r"
+  }, r.reason) : null), React.createElement("div", {
+    className: "tmv-req-amt"
+  }, React.createElement("b", null, amt), onApprove && React.createElement("button", {
+    className: "btn btn-soft btn-sm",
+    onClick: e => {
+      e.stopPropagation();
+      onApprove(x);
+    }
+  }, React.createElement(Icon, {
+    name: "check",
+    size: 13,
+    sw: 2.4
+  }), " \u0E2D\u0E19\u0E38\u0E21\u0E31\u0E15\u0E34")));
+}
+function TmRequests({
+  users,
+  role,
+  currentUser,
+  otVisible,
+  lv,
+  lvTypes,
+  lvQuota,
+  onOpenOt,
+  onOpenLv,
+  otWaiting,
+  lvWaiting,
+  onApprove
+}) {
+  const uid = (currentUser || {}).id || null;
+  const canApprove = window.tmCanOtApprove(role) || window.lvCanApprove(role);
+  const canAll = canApprove || window.tmCanAttendAll(role);
+  const [scope, setScope] = React.useState(() => otWaiting.length + lvWaiting.length > 0 ? "inbox" : "mine");
+  const [kind, setKind] = React.useState("all");
+  const [q, setQ] = React.useState("");
+  const lvVis = React.useMemo(() => window.lvVisible(lv.rows, currentUser, role), [lv.rows, currentUser, role]);
+  const year = +String(window.drToday()).slice(0, 4);
+  const myBal = React.useMemo(() => window.lvBalance(lv.rows, lvQuota.map, uid, year, lvTypes).filter(b => b.quota !== 0 || b.used || b.pending), [lv.rows, lvQuota.map, uid, year, lvTypes]);
+  const list = React.useMemo(() => {
+    const pickOt = scope === "inbox" ? otWaiting : scope === "mine" ? otVisible.filter(r => r.userId === uid) : otVisible;
+    const pickLv = scope === "inbox" ? lvWaiting : scope === "mine" ? lvVis.filter(r => r.userId === uid) : lvVis;
+    let out = [];
+    if (kind !== "lv") out = out.concat(pickOt.map(r => ({
+      t: "ot",
+      d: r.date,
+      r: r
+    })));
+    if (kind !== "ot") out = out.concat(pickLv.map(r => ({
+      t: "lv",
+      d: r.from,
+      r: r
+    })));
+    const kw = q.trim().toLowerCase();
+    if (kw) out = out.filter(x => (x.t === "ot" ? [x.r.no, x.r.userName, x.r.jobCode, x.r.reason, window.tmOtKindOf(x.r.kind).th] : [x.r.no, x.r.userName, x.r.reason, window.lvTypeOf(lvTypes, x.r.type).th]).some(v => String(v || "").toLowerCase().includes(kw)));
+    out.sort((a, b) => String(b.d || "").localeCompare(String(a.d || "")) || String(b.r.createdAt || "").localeCompare(String(a.r.createdAt || "")));
+    return out;
+  }, [scope, kind, q, otVisible, otWaiting, lvVis, lvWaiting, uid, lvTypes]);
+  const SC = (canApprove ? [{
+    k: "inbox",
+    th: "รอฉันอนุมัติ",
+    n: otWaiting.length + lvWaiting.length
+  }] : []).concat([{
+    k: "mine",
+    th: "ของฉัน"
+  }]).concat(canAll ? [{
+    k: "all",
+    th: "ทั้งหมด"
+  }] : []);
+  const groups = [];
+  list.forEach(x => {
+    const ym = String(x.d || "").slice(0, 7);
+    const g = groups[groups.length - 1];
+    if (g && g.ym === ym) g.items.push(x);else groups.push({
+      ym: ym,
+      items: [x]
+    });
+  });
+  return React.createElement("div", {
+    className: "tmv",
+    style: {
+      gap: 14
+    }
+  }, React.createElement("div", {
+    className: "tmv-bar",
+    style: {
+      gap: 10
+    }
+  }, React.createElement(TmSeg, {
+    items: SC,
+    value: scope,
+    onChange: setScope
+  }), React.createElement(TmSeg, {
+    sm: true,
+    items: [{
+      k: "all",
+      th: "ทุกชนิด"
+    }, {
+      k: "ot",
+      th: "OT",
+      ic: "clock"
+    }, {
+      k: "lv",
+      th: "ลา",
+      ic: "calendar"
+    }],
+    value: kind,
+    onChange: setKind
+  }), React.createElement("label", {
+    className: "tmv-search",
+    style: {
+      marginLeft: "auto"
+    }
+  }, React.createElement(Icon, {
+    name: "search",
+    size: 15,
+    color: "var(--text-3)"
+  }), React.createElement("input", {
+    value: q,
+    onChange: e => setQ(e.target.value),
+    placeholder: "\u0E04\u0E49\u0E19\u0E2B\u0E32 \u0E0A\u0E37\u0E48\u0E2D \xB7 \u0E40\u0E25\u0E02\u0E17\u0E35\u0E48 \xB7 \u0E40\u0E2B\u0E15\u0E38\u0E1C\u0E25"
+  }))), scope === "mine" && kind !== "ot" && myBal.length > 0 && React.createElement("div", {
+    className: "tmv-bar",
+    style: {
+      gap: 8,
+      padding: "0 4px"
+    }
+  }, React.createElement("span", {
+    className: "tmv-k"
+  }, "\u0E27\u0E31\u0E19\u0E25\u0E32\u0E04\u0E07\u0E40\u0E2B\u0E25\u0E37\u0E2D \u0E1B\u0E35 ", year + 543), myBal.map(b => React.createElement("span", {
+    key: b.type.key,
+    className: "tmv-pill",
+    style: {
+      background: b.type.color + "1A",
+      color: b.type.color,
+      padding: "5px 12px",
+      fontSize: 12
+    }
+  }, b.type.th, React.createElement("b", {
+    style: {
+      fontFamily: "var(--display)",
+      fontSize: 15,
+      color: b.left != null && b.left <= 0 ? "var(--tint-red-tx2)" : "var(--text-1)"
+    }
+  }, b.left == null ? "∞" : Math.round(b.left * 10) / 10), React.createElement("span", {
+    style: {
+      color: "var(--text-3)",
+      fontWeight: 600
+    }
+  }, b.quota == null ? "ไม่จำกัด" : "/ " + Math.round(b.quota * 10) / 10 + " วัน")))), list.length === 0 ? React.createElement(TmCard, null, React.createElement(TmEmpty, {
+    icon: scope === "inbox" ? "check" : "list"
+  }, scope === "inbox" ? "ไม่มีคำขอรอคุณอนุมัติ — เคลียร์หมดแล้ว" : "ยังไม่มีคำขอ")) : React.createElement("div", {
+    className: "tmv-list"
+  }, groups.map(g => React.createElement(React.Fragment, {
+    key: g.ym || "none"
+  }, React.createElement("div", {
+    className: "tmv-grp"
+  }, g.ym ? window.tmYmTH(g.ym) : "ไม่ระบุวันที่", React.createElement("span", null, g.items.length, " \u0E43\u0E1A")), g.items.map(x => React.createElement(TmReqCard, {
+    key: x.t + x.r.id,
+    x: x,
+    users: users,
+    lvTypes: lvTypes,
+    onOpen: y => y.t === "ot" ? onOpenOt(y.r.id) : onOpenLv(y.r.id),
+    onApprove: scope === "inbox" ? onApprove : null
+  }))))), React.createElement("div", {
+    style: {
+      fontSize: 11.5,
+      color: "var(--text-3)",
+      padding: "0 4px"
+    }
+  }, "\u0E0A\u0E48\u0E32\u0E07\u0E40\u0E1B\u0E34\u0E14\u0E43\u0E1A OT \u0E41\u0E25\u0E30\u0E22\u0E37\u0E48\u0E19\u0E43\u0E1A\u0E25\u0E32\u0E08\u0E32\u0E01\u0E41\u0E2D\u0E1B\u0E43\u0E19\u0E44\u0E25\u0E19\u0E4C \u2014 \u0E01\u0E14\u0E01\u0E32\u0E23\u0E4C\u0E14\u0E40\u0E1E\u0E37\u0E48\u0E2D\u0E40\u0E1B\u0E34\u0E14\u0E43\u0E1A \u0E14\u0E39\u0E23\u0E32\u0E22\u0E25\u0E30\u0E40\u0E2D\u0E35\u0E22\u0E14 \u0E41\u0E01\u0E49 \u0E2B\u0E23\u0E37\u0E2D\u0E44\u0E21\u0E48\u0E2D\u0E19\u0E38\u0E21\u0E31\u0E15\u0E34"));
+}
 function TmDayGrid({
   days,
   byDay
 }) {
   return React.createElement("div", {
-    style: {
-      display: "grid",
-      gridTemplateColumns: "repeat(7, minmax(0, 1fr))",
-      gap: 6,
-      maxWidth: 760
-    }
-  }, TM_WD_TH.map((w, i) => React.createElement("div", {
+    className: "tmv-cal"
+  }, TM_WD_TH.map(w => React.createElement("div", {
     key: w,
-    style: {
-      textAlign: "center",
-      padding: "0 0 2px",
-      fontSize: 10.5,
-      fontWeight: 800,
-      color: i === 0 || i === 6 ? "var(--text-3)" : "var(--text-2)"
-    }
+    className: "h"
   }, w)), Array.from({
     length: tmWdOf(days[0])
   }, (_, i) => React.createElement("div", {
@@ -2722,20 +3398,10 @@ function TmDayGrid({
   })), days.map(d => {
     const x = byDay[d];
     const open = x && x.in && !x.out;
-    const wk = tmWdOf(d) === 0 || tmWdOf(d) === 6;
     return React.createElement("div", {
       key: d,
       title: d,
-      style: {
-        minWidth: 0,
-        padding: "7px 9px",
-        borderRadius: 9,
-        minHeight: 58,
-        background: wk && !x ? "var(--surface2)" : "var(--surface)",
-        border: "none",
-        boxShadow: open ? "inset 0 0 0 1px var(--tint-red-bd)" : x ? "var(--shadow-sm)" : "none",
-        opacity: x ? 1 : 0.45
-      }
+      className: "d" + (x ? " on" : " off") + (open ? " bad" : "")
     }, React.createElement("div", {
       style: {
         fontSize: 10.5,
@@ -2747,15 +3413,53 @@ function TmDayGrid({
         fontFamily: "var(--mono)",
         fontSize: 11.5,
         fontWeight: 700,
-        color: open ? "#EF4444" : "var(--text-1)"
+        color: open ? "var(--tint-red-tx2)" : "var(--text-1)"
       }
-    }, x ? (x.in || "—") + " – " + (x.out || "?") : "—"), React.createElement("div", {
+    }, x ? (x.in || "—") + "–" + (x.out || "?") : "—"), React.createElement("div", {
       style: {
         fontSize: 10.5,
         color: "var(--text-3)"
       }
     }, x ? window.tmDur(x.mins) : ""));
   }));
+}
+function TmHeat({
+  days,
+  byDay,
+  cfg
+}) {
+  const full = window.tmWhNorm(cfg).workMins || 480;
+  return React.createElement("div", {
+    className: "tmv-heat"
+  }, React.createElement("div", {
+    className: "tmv-heat-g",
+    style: {
+      gridTemplateColumns: "repeat(" + days.length + ", minmax(0,1fr))"
+    }
+  }, days.map(d => {
+    const x = byDay[d];
+    const off = !window.tmIsWorkday(d, cfg);
+    if (!x || !x.in) return React.createElement("i", {
+      key: d,
+      className: off ? "wk" : "",
+      title: window.drDateTH(d) + " · ไม่มีใบ"
+    });
+    if (!x.out) return React.createElement("i", {
+      key: d,
+      className: "forgot",
+      title: window.drDateTH(d) + " · " + x.in + " – ลืมกดออก"
+    });
+    const p = Math.round(35 + 65 * Math.min(1, (+x.mins || 0) / full));
+    return React.createElement("i", {
+      key: d,
+      title: window.drDateTH(d) + " · " + x.in + "–" + x.out + " · " + window.tmDur(x.mins),
+      style: {
+        background: "color-mix(in srgb, var(--primary) " + p + "%, var(--surface2))"
+      }
+    });
+  })), React.createElement("div", {
+    className: "tmv-heat-ax"
+  }, React.createElement("span", null, "1"), React.createElement("span", null, Math.ceil(days.length / 2)), React.createElement("span", null, days.length)));
 }
 function TmMonthAll({
   cfg,
@@ -2807,7 +3511,8 @@ function TmMonthAll({
       r.o = g;
       if (!r.name) r.name = g.name;
     });
-    return order.map(k => map[k]).sort((x, y) => String(x.name).localeCompare(String(y.name), "th"));
+    const has = r => r.a && r.a.days || r.o && r.o.rows.length ? 1 : 0;
+    return order.map(k => map[k]).sort((x, y) => has(y) - has(x) || String(x.name).localeCompare(String(y.name), "th"));
   }, [att, otPeople]);
   const tot = rows.reduce((t, r) => ({
     days: t.days + (r.a ? r.a.days : 0),
@@ -2824,66 +3529,57 @@ function TmMonthAll({
     pay: 0,
     wait: 0
   });
-  const hrs = m => !m ? "—" : (Math.round(m / 60 * 100) / 100).toLocaleString("en-US", {
-    maximumFractionDigits: 2
-  });
-  const th = (t, align) => React.createElement("th", {
-    key: t,
+  const stat = (l, v, u, color) => React.createElement("div", {
+    className: "tmv-stat"
+  }, React.createElement("div", {
+    className: "l"
+  }, l), React.createElement("div", {
+    className: "v",
     style: {
-      textAlign: align || "left",
-      padding: "10px 12px",
-      fontSize: 11.5,
-      fontWeight: 800,
-      color: "var(--text-3)",
-      borderBottom: "1px solid var(--divider)",
-      whiteSpace: "nowrap"
+      color: color || undefined
     }
-  }, t);
-  const td = (v, o) => React.createElement("td", {
-    style: Object.assign({
-      padding: "9px 12px",
-      textAlign: "center",
-      fontFamily: "var(--mono)",
-      fontWeight: 700
-    }, o)
-  }, v);
-  const cols = canAll ? 9 : 5;
+  }, v, React.createElement("small", null, u)));
   return React.createElement("div", {
+    className: "tmv",
     style: {
-      display: "flex",
-      flexDirection: "column",
-      gap: 12
+      gap: 14
     }
   }, React.createElement("div", {
-    style: {
-      display: "flex",
-      gap: 8,
-      alignItems: "center",
-      flexWrap: "wrap"
-    }
+    className: "tmv-bar"
   }, React.createElement("button", {
-    onClick: () => setYm(window.tmYmShift(ym, -1)),
-    style: TM_NAV
-  }, "\u2039"), React.createElement("div", {
+    className: "tmv-ib",
+    title: "\u0E40\u0E14\u0E37\u0E2D\u0E19\u0E01\u0E48\u0E2D\u0E19",
+    onClick: () => setYm(window.tmYmShift(ym, -1))
+  }, React.createElement(Icon, {
+    name: "chevronLeft",
+    size: 16
+  })), React.createElement("span", {
+    className: "tmv-date",
     style: {
-      fontSize: 14,
-      fontWeight: 800,
-      color: "var(--text-1)",
-      minWidth: 120,
+      minWidth: 130,
       textAlign: "center"
     }
   }, window.tmYmTH(ym)), React.createElement("button", {
-    onClick: () => setYm(window.tmYmShift(ym, 1)),
-    style: TM_NAV
-  }, "\u203A"), ym !== window.tmYmNow() && React.createElement("button", {
-    onClick: () => setYm(window.tmYmNow()),
-    style: TM_NAV
+    className: "tmv-ib",
+    title: "\u0E40\u0E14\u0E37\u0E2D\u0E19\u0E16\u0E31\u0E14\u0E44\u0E1B",
+    onClick: () => setYm(window.tmYmShift(ym, 1))
+  }, React.createElement(Icon, {
+    name: "chevronRight",
+    size: 16
+  })), ym !== window.tmYmNow() && React.createElement("button", {
+    className: "btn btn-sm",
+    onClick: () => setYm(window.tmYmNow())
   }, "\u0E40\u0E14\u0E37\u0E2D\u0E19\u0E19\u0E35\u0E49"), cut ? React.createElement("span", {
+    className: "tmv-k",
     style: {
-      fontSize: 11.5,
-      color: "var(--text-3)"
+      fontWeight: 600
     }
   }, "OT \u0E23\u0E2D\u0E1A ", window.tmPeriodTH(period)) : null, canAll && React.createElement("button", {
+    className: "btn btn-pri",
+    style: {
+      marginLeft: "auto"
+    },
+    disabled: busy,
     onClick: async () => {
       if (busy) return;
       setBusy(true);
@@ -2892,156 +3588,95 @@ function TmMonthAll({
       } finally {
         setBusy(false);
       }
-    },
-    disabled: busy,
-    style: {
-      marginLeft: "auto",
-      display: "inline-flex",
-      alignItems: "center",
-      gap: 6,
-      padding: "9px 15px",
-      borderRadius: "var(--r-chip)",
-      border: "none",
-      background: busy ? "var(--text-3)" : "var(--primary)",
-      color: "#fff",
-      cursor: busy ? "default" : "pointer",
-      fontFamily: "inherit",
-      fontSize: 12.5,
-      fontWeight: 800
     }
   }, React.createElement(Icon, {
-    name: "file",
-    size: 14,
-    color: "#fff"
-  }), " ", busy ? "กำลังเตรียมไฟล์…" : "ออก Excel ทั้งเดือน")), React.createElement(TmFacts, {
-    items: [canAll && {
-      label: "วัน-คนที่ลงเวลา",
-      value: tot.days,
-      unit: "วัน"
-    }, canAll && {
-      label: "ชั่วโมงทำงาน",
-      value: hrs(tot.mins),
-      unit: "ชม."
-    }, {
-      label: "OT อนุมัติ",
-      value: hrs(tot.otOk),
-      unit: "ชม."
-    }, {
-      label: "คิดค่าแรง",
-      value: hrs(tot.pay),
-      unit: "ชม.",
-      color: "var(--primary-dark)"
-    }, tot.wait > 0 && {
-      label: "OT รออนุมัติ",
-      value: hrs(tot.wait),
-      unit: "ชม.",
-      color: "#F59E0B"
-    }, canAll && tot.noOut > 0 && {
-      label: "ลืมกดออก",
-      value: tot.noOut,
-      unit: "ใบ",
-      color: "#EF4444"
-    }]
-  }), React.createElement("div", {
+    name: "download",
+    size: 15,
+    color: "#fff",
+    sw: 2
+  }), " ", busy ? "กำลังเตรียมไฟล์…" : "ออก Excel ทั้งเดือน")), React.createElement(TmCard, {
+    className: "tmv-stats",
     style: {
-      overflowX: "auto",
-      border: "none",
-      boxShadow: "var(--shadow-sm)",
-      borderRadius: "var(--r-tile)",
-      background: "var(--surface)"
+      padding: "8px 4px"
     }
-  }, React.createElement("table", {
-    style: {
-      width: "100%",
-      borderCollapse: "collapse",
-      fontSize: 13
-    }
-  }, React.createElement("thead", null, React.createElement("tr", {
-    style: {
-      background: "var(--surface2)"
-    }
-  }, th("ชื่อ"), canAll && th("วันที่มา", "center"), canAll && th("ชม.ทำงาน", "center"), canAll && th("ลืมออก", "center"), th("OT อนุมัติ", "center"), th("ชม.คิดค่าแรง", "center"), th("OT รออนุมัติ", "center"), canAll && th("", "center"), th("เอกสาร", "right"))), React.createElement("tbody", null, canAll && loading && React.createElement("tr", null, React.createElement("td", {
-    colSpan: cols,
-    style: {
-      padding: 26,
-      textAlign: "center",
-      color: "var(--text-3)"
-    }
-  }, "\u0E01\u0E33\u0E25\u0E31\u0E07\u0E42\u0E2B\u0E25\u0E14\u2026")), !(canAll && loading) && rows.length === 0 && React.createElement("tr", null, React.createElement("td", {
-    colSpan: cols,
-    style: {
-      padding: 26,
-      textAlign: "center",
-      color: "var(--text-3)"
-    }
-  }, "\u0E44\u0E21\u0E48\u0E21\u0E35\u0E02\u0E49\u0E2D\u0E21\u0E39\u0E25\u0E40\u0E14\u0E37\u0E2D\u0E19\u0E19\u0E35\u0E49")), !(canAll && loading) && rows.map(r => {
+  }, canAll && stat("ชั่วโมงทำงานรวม", tmHrs(tot.mins), "ชม. · " + tot.days + " วัน-คน"), stat("OT อนุมัติแล้ว", tmHrs(tot.otOk), "ชม."), stat("ชม.คิดค่าแรง OT", tmHrs(tot.pay), "ชม.", "var(--primary-dark)"), tot.wait > 0 ? stat("OT รออนุมัติ", tmHrs(tot.wait), "ชม.", "var(--tint-amber-tx)") : null, canAll && stat("ลืมกดออก", tot.noOut, "ใบ", tot.noOut ? "var(--tint-red-tx2)" : undefined)), canAll && loading ? React.createElement(TmCard, null, React.createElement(TmEmpty, null, "\u0E01\u0E33\u0E25\u0E31\u0E07\u0E42\u0E2B\u0E25\u0E14\u2026")) : rows.length === 0 ? React.createElement(TmCard, null, React.createElement(TmEmpty, {
+    icon: "calendar"
+  }, "\u0E44\u0E21\u0E48\u0E21\u0E35\u0E02\u0E49\u0E2D\u0E21\u0E39\u0E25\u0E40\u0E14\u0E37\u0E2D\u0E19\u0E19\u0E35\u0E49")) : React.createElement("div", {
+    className: "tmv-list"
+  }, rows.map(r => {
     const a = r.a,
       o = r.o;
-    return React.createElement(React.Fragment, {
-      key: r.key
-    }, React.createElement("tr", {
+    const empty = !(a && a.days) && !(o && o.rows.length);
+    return React.createElement("div", {
+      key: r.key,
+      className: "tmv-pp" + (empty ? " dim" : "")
+    }, React.createElement("div", {
+      className: "tmv-pp-row"
+    }, React.createElement("div", {
+      className: "tmv-who"
+    }, React.createElement(TmAvatar, {
+      uid: r.id,
+      name: r.name,
+      size: 36
+    }), React.createElement("div", {
       style: {
-        borderBottom: "1px solid var(--divider)"
+        minWidth: 0
       }
-    }, React.createElement("td", {
+    }, React.createElement("div", {
+      className: "tmv-who-n"
+    }, r.name), React.createElement("div", {
+      className: "tmv-who-s"
+    }, canAll && (a && a.days ? React.createElement("span", null, "\u0E21\u0E32 ", a.days, " \u0E27\u0E31\u0E19 \xB7 ", tmHrs(a.mins), " \u0E0A\u0E21.") : React.createElement("span", null, "\u0E44\u0E21\u0E48\u0E21\u0E35\u0E43\u0E1A\u0E25\u0E07\u0E40\u0E27\u0E25\u0E32")), a && a.noOut ? React.createElement("span", {
       style: {
-        padding: "9px 12px",
-        fontWeight: 700,
-        color: a && a.days || o ? "var(--text-1)" : "var(--text-3)"
+        color: "var(--tint-red-tx2)",
+        fontWeight: 700
       }
-    }, r.name), canAll && td(a && a.days ? a.days : "—"), canAll && td(hrs(a && a.mins)), canAll && td(a && a.noOut ? a.noOut : "—", {
-      color: a && a.noOut ? "#EF4444" : "var(--text-3)"
-    }), td(hrs(o && o.minsApproved)), td(hrs(o && o.payApproved), {
-      fontWeight: 800,
-      color: o && o.payApproved ? "var(--primary-dark)" : "var(--text-3)"
-    }), td(hrs(o && o.minsWaiting), {
-      color: o && o.minsWaiting ? "#F59E0B" : "var(--text-3)"
-    }), canAll && React.createElement("td", {
+    }, "\u0E25\u0E37\u0E21\u0E2D\u0E2D\u0E01 ", a.noOut) : null))), canAll && a ? React.createElement(TmHeat, {
+      days: days,
+      byDay: a.byDay,
+      cfg: cfg
+    }) : React.createElement("div", {
       style: {
-        padding: "9px 6px",
-        textAlign: "center"
+        gridArea: "heat"
       }
-    }, a && a.days > 0 && React.createElement("button", {
-      onClick: () => setPick(pick === r.key ? null : r.key),
-      style: tmChip(pick === r.key)
-    }, pick === r.key ? "ซ่อน" : "รายวัน")), React.createElement("td", {
+    }), React.createElement("div", {
+      className: "tmv-ot"
+    }, o && (o.minsApproved || o.minsWaiting) ? React.createElement(React.Fragment, null, React.createElement("span", null, React.createElement("b", null, tmHrs(o.minsApproved)), "\u0E0A\u0E21. OT \u0E2D\u0E19\u0E38\u0E21\u0E31\u0E15\u0E34"), React.createElement("span", null, React.createElement("b", {
       style: {
-        padding: "9px 12px",
-        textAlign: "right"
+        color: "var(--primary-dark)"
       }
+    }, tmHrs(o.payApproved)), "\u0E0A\u0E21.\u0E04\u0E34\u0E14\u0E04\u0E48\u0E32\u0E41\u0E23\u0E07"), o.minsWaiting ? React.createElement("span", {
+      style: {
+        color: "var(--tint-amber-tx)",
+        fontWeight: 700
+      }
+    }, "\u0E23\u0E2D\u0E2D\u0E19\u0E38\u0E21\u0E31\u0E15\u0E34 ", tmHrs(o.minsWaiting), " \u0E0A\u0E21.") : null) : React.createElement("span", null, "\u0E44\u0E21\u0E48\u0E21\u0E35 OT")), React.createElement("div", {
+      className: "tmv-pp-act"
     }, o && o.rows.length > 0 && React.createElement("button", {
+      className: "btn btn-soft btn-sm",
       onClick: () => setPaper(o),
-      style: {
-        display: "inline-flex",
-        alignItems: "center",
-        gap: 6,
-        padding: "7px 12px",
-        borderRadius: 9,
-        border: "none",
-        background: "var(--primary)",
-        color: "#fff",
-        cursor: "pointer",
-        fontFamily: "inherit",
-        fontSize: 12,
-        fontWeight: 800,
-        whiteSpace: "nowrap"
-      }
+      title: "\u0E43\u0E1A\u0E2A\u0E23\u0E38\u0E1B OT \u0E02\u0E2D\u0E07\u0E04\u0E19\u0E19\u0E35\u0E49 \u0E43\u0E2B\u0E49\u0E2B\u0E31\u0E27\u0E2B\u0E19\u0E49\u0E32\u0E40\u0E0B\u0E47\u0E19"
     }, React.createElement(Icon, {
       name: "file",
-      size: 13,
-      color: "#fff"
-    }), " \u0E43\u0E1A OT"))), pick === r.key && a && React.createElement("tr", null, React.createElement("td", {
-      colSpan: cols,
+      size: 13
+    }), " \u0E43\u0E1A OT"), canAll && a && a.days > 0 && React.createElement("button", {
+      className: "tmv-ib xs",
+      title: pick === r.key ? "ซ่อนรายวัน" : "ดูรายวัน",
+      onClick: () => setPick(pick === r.key ? null : r.key)
+    }, React.createElement(Icon, {
+      name: "chevronDown",
+      size: 15,
       style: {
-        padding: "10px 13px 14px",
-        background: "var(--surface2)",
-        borderBottom: "1px solid var(--divider)"
+        transform: pick === r.key ? "rotate(180deg)" : "none",
+        transition: "transform .15s"
       }
+    })))), pick === r.key && a && React.createElement("div", {
+      className: "tmv-pp-more"
     }, React.createElement(TmDayGrid, {
       days: days,
       byDay: a.byDay
-    }))));
-  })))), React.createElement("label", {
+    })));
+  })), React.createElement("label", {
     style: {
       display: "inline-flex",
       alignItems: "center",
@@ -3050,7 +3685,8 @@ function TmMonthAll({
       fontWeight: 700,
       color: "var(--text-2)",
       cursor: "pointer",
-      width: "fit-content"
+      width: "fit-content",
+      padding: "0 4px"
     }
   }, React.createElement("input", {
     type: "checkbox",
@@ -3060,7 +3696,7 @@ function TmMonthAll({
       width: 15,
       height: 15
     }
-  }), "\u0E43\u0E1A OT \u0E17\u0E35\u0E48\u0E1E\u0E34\u0E21\u0E1E\u0E4C \u2014 \u0E40\u0E2D\u0E32\u0E40\u0E09\u0E1E\u0E32\u0E30\u0E43\u0E1A\u0E17\u0E35\u0E48\u0E2D\u0E19\u0E38\u0E21\u0E31\u0E15\u0E34\u0E41\u0E25\u0E49\u0E27"), React.createElement(TmHelp, null, React.createElement("b", null, "Excel \u0E17\u0E31\u0E49\u0E07\u0E40\u0E14\u0E37\u0E2D\u0E19"), " = \u0E41\u0E1C\u0E48\u0E19\u0E2A\u0E23\u0E38\u0E1B\u0E2B\u0E19\u0E36\u0E48\u0E07\u0E41\u0E1C\u0E48\u0E19 + \u0E41\u0E1C\u0E48\u0E19\u0E23\u0E32\u0E22\u0E25\u0E30\u0E40\u0E2D\u0E35\u0E22\u0E14\u0E41\u0E22\u0E01\u0E23\u0E32\u0E22\u0E04\u0E19 (\u0E40\u0E02\u0E49\u0E32 \xB7 \u0E2D\u0E2D\u0E01 \xB7 \u0E0A\u0E31\u0E48\u0E27\u0E42\u0E21\u0E07 \xB7 \u0E07\u0E32\u0E19\u0E17\u0E35\u0E48\u0E41\u0E08\u0E49\u0E07 \xB7 \u0E1E\u0E34\u0E01\u0E31\u0E14\u0E1E\u0E23\u0E49\u0E2D\u0E21\u0E25\u0E34\u0E07\u0E01\u0E4C\u0E41\u0E1C\u0E19\u0E17\u0E35\u0E48) \u0E15\u0E48\u0E2D\u0E14\u0E49\u0E27\u0E22\u0E43\u0E1A OT \u0E02\u0E2D\u0E07\u0E40\u0E14\u0E37\u0E2D\u0E19\u0E41\u0E25\u0E30\u0E0A\u0E48\u0E2D\u0E07\u0E40\u0E0B\u0E47\u0E19", React.createElement("br", null), React.createElement("b", null, "\u0E43\u0E1A OT"), " = \u0E43\u0E1A A4 \u0E02\u0E2D\u0E07\u0E04\u0E19\u0E19\u0E31\u0E49\u0E19\u0E2B\u0E19\u0E36\u0E48\u0E07\u0E43\u0E1A\u0E15\u0E48\u0E2D\u0E23\u0E2D\u0E1A \u0E43\u0E2B\u0E49\u0E2B\u0E31\u0E27\u0E2B\u0E19\u0E49\u0E32\u0E40\u0E0B\u0E47\u0E19 (\u0E1C\u0E39\u0E49\u0E02\u0E2D \xB7 \u0E2B\u0E31\u0E27\u0E2B\u0E19\u0E49\u0E32\u0E07\u0E32\u0E19 \xB7 \u0E1D\u0E48\u0E32\u0E22\u0E1A\u0E38\u0E04\u0E04\u0E25) \u2014 \u0E43\u0E1A\u0E17\u0E35\u0E48\u0E22\u0E31\u0E07\u0E44\u0E21\u0E48\u0E2D\u0E19\u0E38\u0E21\u0E31\u0E15\u0E34\u0E1E\u0E34\u0E21\u0E1E\u0E4C\u0E15\u0E34\u0E14\u0E44\u0E1B\u0E14\u0E49\u0E27\u0E22\u0E1E\u0E23\u0E49\u0E2D\u0E21\u0E2A\u0E16\u0E32\u0E19\u0E30 \u0E41\u0E15\u0E48\u0E22\u0E2D\u0E14\u0E41\u0E22\u0E01\u0E1A\u0E23\u0E23\u0E17\u0E31\u0E14", React.createElement("br", null), "\u0E0A\u0E31\u0E48\u0E27\u0E42\u0E21\u0E07\u0E17\u0E33\u0E07\u0E32\u0E19\u0E04\u0E34\u0E14\u0E08\u0E32\u0E01\u0E40\u0E27\u0E25\u0E32\u0E17\u0E35\u0E48\u0E1B\u0E31\u0E4A\u0E21\u0E40\u0E02\u0E49\u0E32-\u0E2D\u0E2D\u0E01 \u0E2B\u0E31\u0E01\u0E1E\u0E31\u0E01\u0E01\u0E25\u0E32\u0E07\u0E27\u0E31\u0E19\u0E15\u0E32\u0E21\u0E17\u0E35\u0E48\u0E15\u0E31\u0E49\u0E07\u0E44\u0E27\u0E49 \xB7 \u0E43\u0E1A\u0E17\u0E35\u0E48\u0E25\u0E37\u0E21\u0E01\u0E14\u0E2D\u0E2D\u0E01\u0E0A\u0E31\u0E48\u0E27\u0E42\u0E21\u0E07\u0E40\u0E1B\u0E47\u0E19\u0E28\u0E39\u0E19\u0E22\u0E4C \u0E15\u0E49\u0E2D\u0E07\u0E41\u0E01\u0E49\u0E40\u0E27\u0E25\u0E32\u0E17\u0E35\u0E48\u0E41\u0E17\u0E47\u0E1A \"\u0E27\u0E31\u0E19\u0E19\u0E35\u0E49\"", React.createElement("br", null), "\u201C\u0E0A\u0E21.\u0E04\u0E34\u0E14\u0E04\u0E48\u0E32\u0E41\u0E23\u0E07\u201D = \u0E0A\u0E31\u0E48\u0E27\u0E42\u0E21\u0E07 OT \xD7 \u0E15\u0E31\u0E27\u0E04\u0E39\u0E13\u0E02\u0E2D\u0E07\u0E1B\u0E23\u0E30\u0E40\u0E20\u0E17 (\u0E27\u0E31\u0E19\u0E2B\u0E22\u0E38\u0E14: 8 \u0E0A\u0E21.\u0E41\u0E23\u0E01 \xD7 \u0E2D\u0E31\u0E15\u0E23\u0E32\u0E27\u0E31\u0E19\u0E2B\u0E22\u0E38\u0E14 \u0E2A\u0E48\u0E27\u0E19\u0E40\u0E01\u0E34\u0E19 \xD7 \u0E2D\u0E31\u0E15\u0E23\u0E32\u0E25\u0E48\u0E27\u0E07\u0E40\u0E27\u0E25\u0E32\u0E27\u0E31\u0E19\u0E2B\u0E22\u0E38\u0E14) \u0E40\u0E09\u0E1E\u0E32\u0E30\u0E43\u0E1A\u0E17\u0E35\u0E48\u0E2D\u0E19\u0E38\u0E21\u0E31\u0E15\u0E34\u0E41\u0E25\u0E49\u0E27 \u2014 \u0E22\u0E31\u0E07\u0E44\u0E21\u0E48\u0E43\u0E0A\u0E48\u0E08\u0E33\u0E19\u0E27\u0E19\u0E40\u0E07\u0E34\u0E19", React.createElement("br", null), "\u0E23\u0E2D\u0E1A OT ", cut ? "ตัดยอดทุกวันที่ " + cut + " — เดือนนี้นับ " + window.tmPeriodTH(period) : "ใช้เดือนปฏิทิน (ยังไม่ได้ตั้งวันตัดยอดในหน้าตั้งค่า)"), paper && window.TmOtPaper && React.createElement(window.TmOtPaper, {
+  }), "\u0E43\u0E1A OT \u0E17\u0E35\u0E48\u0E1E\u0E34\u0E21\u0E1E\u0E4C \u2014 \u0E40\u0E2D\u0E32\u0E40\u0E09\u0E1E\u0E32\u0E30\u0E43\u0E1A\u0E17\u0E35\u0E48\u0E2D\u0E19\u0E38\u0E21\u0E31\u0E15\u0E34\u0E41\u0E25\u0E49\u0E27"), React.createElement(TmHelp, null, React.createElement("b", null, "\u0E2D\u0E2D\u0E01 Excel \u0E17\u0E31\u0E49\u0E07\u0E40\u0E14\u0E37\u0E2D\u0E19"), " = \u0E41\u0E1C\u0E48\u0E19\u0E2A\u0E23\u0E38\u0E1B\u0E2B\u0E19\u0E36\u0E48\u0E07\u0E41\u0E1C\u0E48\u0E19 + \u0E41\u0E1C\u0E48\u0E19\u0E23\u0E32\u0E22\u0E25\u0E30\u0E40\u0E2D\u0E35\u0E22\u0E14\u0E41\u0E22\u0E01\u0E23\u0E32\u0E22\u0E04\u0E19 (\u0E40\u0E02\u0E49\u0E32 \xB7 \u0E2D\u0E2D\u0E01 \xB7 \u0E0A\u0E31\u0E48\u0E27\u0E42\u0E21\u0E07 \xB7 \u0E07\u0E32\u0E19\u0E17\u0E35\u0E48\u0E41\u0E08\u0E49\u0E07 \xB7 \u0E1E\u0E34\u0E01\u0E31\u0E14\u0E1E\u0E23\u0E49\u0E2D\u0E21\u0E25\u0E34\u0E07\u0E01\u0E4C\u0E41\u0E1C\u0E19\u0E17\u0E35\u0E48) \u0E15\u0E48\u0E2D\u0E14\u0E49\u0E27\u0E22\u0E43\u0E1A OT \u0E02\u0E2D\u0E07\u0E40\u0E14\u0E37\u0E2D\u0E19\u0E41\u0E25\u0E30\u0E0A\u0E48\u0E2D\u0E07\u0E40\u0E0B\u0E47\u0E19", React.createElement("br", null), React.createElement("b", null, "\u0E43\u0E1A OT"), " = \u0E43\u0E1A A4 \u0E02\u0E2D\u0E07\u0E04\u0E19\u0E19\u0E31\u0E49\u0E19\u0E2B\u0E19\u0E36\u0E48\u0E07\u0E43\u0E1A\u0E15\u0E48\u0E2D\u0E23\u0E2D\u0E1A \u0E43\u0E2B\u0E49\u0E2B\u0E31\u0E27\u0E2B\u0E19\u0E49\u0E32\u0E40\u0E0B\u0E47\u0E19 (\u0E1C\u0E39\u0E49\u0E02\u0E2D \xB7 \u0E2B\u0E31\u0E27\u0E2B\u0E19\u0E49\u0E32\u0E07\u0E32\u0E19 \xB7 \u0E1D\u0E48\u0E32\u0E22\u0E1A\u0E38\u0E04\u0E04\u0E25) \u2014 \u0E43\u0E1A\u0E17\u0E35\u0E48\u0E22\u0E31\u0E07\u0E44\u0E21\u0E48\u0E2D\u0E19\u0E38\u0E21\u0E31\u0E15\u0E34\u0E1E\u0E34\u0E21\u0E1E\u0E4C\u0E15\u0E34\u0E14\u0E44\u0E1B\u0E14\u0E49\u0E27\u0E22\u0E1E\u0E23\u0E49\u0E2D\u0E21\u0E2A\u0E16\u0E32\u0E19\u0E30 \u0E41\u0E15\u0E48\u0E22\u0E2D\u0E14\u0E41\u0E22\u0E01\u0E1A\u0E23\u0E23\u0E17\u0E31\u0E14", React.createElement("br", null), "\u0E41\u0E16\u0E1A\u0E2A\u0E35\u0E23\u0E32\u0E22\u0E27\u0E31\u0E19: \u0E40\u0E02\u0E49\u0E21\u0E15\u0E32\u0E21\u0E0A\u0E31\u0E48\u0E27\u0E42\u0E21\u0E07\u0E17\u0E35\u0E48\u0E17\u0E33 \xB7 \u0E41\u0E14\u0E07 = \u0E25\u0E37\u0E21\u0E01\u0E14\u0E2D\u0E2D\u0E01 \xB7 \u0E0A\u0E48\u0E2D\u0E07\u0E08\u0E32\u0E07 = \u0E27\u0E31\u0E19\u0E2B\u0E22\u0E38\u0E14 \u2014 \u0E0A\u0E35\u0E49\u0E17\u0E35\u0E48\u0E0A\u0E48\u0E2D\u0E07\u0E40\u0E1E\u0E37\u0E48\u0E2D\u0E14\u0E39\u0E40\u0E27\u0E25\u0E32 \u0E01\u0E14\u0E25\u0E39\u0E01\u0E28\u0E23\u0E17\u0E49\u0E32\u0E22\u0E01\u0E32\u0E23\u0E4C\u0E14\u0E40\u0E1E\u0E37\u0E48\u0E2D\u0E01\u0E32\u0E07\u0E1B\u0E0F\u0E34\u0E17\u0E34\u0E19", React.createElement("br", null), "\u0E0A\u0E31\u0E48\u0E27\u0E42\u0E21\u0E07\u0E17\u0E33\u0E07\u0E32\u0E19\u0E04\u0E34\u0E14\u0E08\u0E32\u0E01\u0E40\u0E27\u0E25\u0E32\u0E17\u0E35\u0E48\u0E1B\u0E31\u0E4A\u0E21\u0E40\u0E02\u0E49\u0E32-\u0E2D\u0E2D\u0E01 \u0E2B\u0E31\u0E01\u0E1E\u0E31\u0E01\u0E01\u0E25\u0E32\u0E07\u0E27\u0E31\u0E19\u0E15\u0E32\u0E21\u0E17\u0E35\u0E48\u0E15\u0E31\u0E49\u0E07\u0E44\u0E27\u0E49 \xB7 \u0E43\u0E1A\u0E17\u0E35\u0E48\u0E25\u0E37\u0E21\u0E01\u0E14\u0E2D\u0E2D\u0E01\u0E0A\u0E31\u0E48\u0E27\u0E42\u0E21\u0E07\u0E40\u0E1B\u0E47\u0E19\u0E28\u0E39\u0E19\u0E22\u0E4C \u0E15\u0E49\u0E2D\u0E07\u0E41\u0E01\u0E49\u0E40\u0E27\u0E25\u0E32\u0E17\u0E35\u0E48\u0E41\u0E17\u0E47\u0E1A \"\u0E27\u0E31\u0E19\u0E19\u0E35\u0E49\"", React.createElement("br", null), "\u201C\u0E0A\u0E21.\u0E04\u0E34\u0E14\u0E04\u0E48\u0E32\u0E41\u0E23\u0E07\u201D = \u0E0A\u0E31\u0E48\u0E27\u0E42\u0E21\u0E07 OT \xD7 \u0E15\u0E31\u0E27\u0E04\u0E39\u0E13\u0E02\u0E2D\u0E07\u0E1B\u0E23\u0E30\u0E40\u0E20\u0E17 (\u0E27\u0E31\u0E19\u0E2B\u0E22\u0E38\u0E14: 8 \u0E0A\u0E21.\u0E41\u0E23\u0E01 \xD7 \u0E2D\u0E31\u0E15\u0E23\u0E32\u0E27\u0E31\u0E19\u0E2B\u0E22\u0E38\u0E14 \u0E2A\u0E48\u0E27\u0E19\u0E40\u0E01\u0E34\u0E19 \xD7 \u0E2D\u0E31\u0E15\u0E23\u0E32\u0E25\u0E48\u0E27\u0E07\u0E40\u0E27\u0E25\u0E32\u0E27\u0E31\u0E19\u0E2B\u0E22\u0E38\u0E14) \u0E40\u0E09\u0E1E\u0E32\u0E30\u0E43\u0E1A\u0E17\u0E35\u0E48\u0E2D\u0E19\u0E38\u0E21\u0E31\u0E15\u0E34\u0E41\u0E25\u0E49\u0E27 \u2014 \u0E22\u0E31\u0E07\u0E44\u0E21\u0E48\u0E43\u0E0A\u0E48\u0E08\u0E33\u0E19\u0E27\u0E19\u0E40\u0E07\u0E34\u0E19", React.createElement("br", null), "\u0E23\u0E2D\u0E1A OT ", cut ? "ตัดยอดทุกวันที่ " + cut + " — เดือนนี้นับ " + window.tmPeriodTH(period) : "ใช้เดือนปฏิทิน (ยังไม่ได้ตั้งวันตัดยอดในแท็บตั้งค่า)"), paper && window.TmOtPaper && React.createElement(window.TmOtPaper, {
     person: paper,
     period: period,
     rows: paper.rows,
@@ -3071,161 +3707,6 @@ function TmMonthAll({
     onClose: () => setPaper(null)
   }));
 }
-function TmRequests({
-  cfg,
-  users,
-  role,
-  currentUser,
-  ot,
-  otVisible,
-  lv,
-  lvTypes,
-  lvQuota,
-  onOpenOt,
-  onOpenLv,
-  otWaiting,
-  lvWaiting
-}) {
-  const uid = (currentUser || {}).id || null;
-  const canApprove = window.tmCanOtApprove(role) || window.lvCanApprove(role);
-  const canAll = canApprove || window.tmCanAttendAll(role);
-  const [scope, setScope] = React.useState(() => otWaiting.length + lvWaiting.length > 0 ? "inbox" : "mine");
-  const [kind, setKind] = React.useState("all");
-  const [q, setQ] = React.useState("");
-  const lvVis = React.useMemo(() => window.lvVisible(lv.rows, currentUser, role), [lv.rows, currentUser, role]);
-  const year = +String(window.drToday()).slice(0, 4);
-  const myBal = React.useMemo(() => window.lvBalance(lv.rows, lvQuota.map, uid, year, lvTypes), [lv.rows, lvQuota.map, uid, year, lvTypes]);
-  const list = React.useMemo(() => {
-    const pickOt = scope === "inbox" ? otWaiting : scope === "mine" ? otVisible.filter(r => r.userId === uid) : otVisible;
-    const pickLv = scope === "inbox" ? lvWaiting : scope === "mine" ? lvVis.filter(r => r.userId === uid) : lvVis;
-    let out = [];
-    if (kind !== "lv") out = out.concat(pickOt.map(r => ({
-      t: "ot",
-      d: r.date,
-      r: r
-    })));
-    if (kind !== "ot") out = out.concat(pickLv.map(r => ({
-      t: "lv",
-      d: r.from,
-      r: r
-    })));
-    const kw = q.trim().toLowerCase();
-    if (kw) out = out.filter(x => (x.t === "ot" ? [x.r.no, x.r.userName, x.r.jobCode, x.r.reason, window.tmOtKindOf(x.r.kind).th] : [x.r.no, x.r.userName, x.r.reason, window.lvTypeOf(lvTypes, x.r.type).th]).some(v => String(v || "").toLowerCase().includes(kw)));
-    out.sort((a, b) => String(b.d || "").localeCompare(String(a.d || "")) || String(b.r.createdAt || "").localeCompare(String(a.r.createdAt || "")));
-    return out;
-  }, [scope, kind, q, otVisible, otWaiting, lvVis, lvWaiting, uid, lvTypes]);
-  const SC = (canApprove ? [["inbox", "รอฉันอนุมัติ", otWaiting.length + lvWaiting.length]] : []).concat([["mine", "ของฉัน", 0]]).concat(canAll ? [["all", "ทั้งหมด", 0]] : []);
-  return React.createElement("div", {
-    style: {
-      display: "flex",
-      flexDirection: "column",
-      gap: 12
-    }
-  }, React.createElement("div", {
-    style: {
-      display: "flex",
-      gap: 7,
-      flexWrap: "wrap",
-      alignItems: "center"
-    }
-  }, SC.map(([k, th, n]) => React.createElement("button", {
-    key: k,
-    onClick: () => setScope(k),
-    style: tmChip(scope === k)
-  }, th, tmBadge(n, true))), React.createElement("span", {
-    style: {
-      width: 1,
-      height: 22,
-      background: "var(--divider)",
-      margin: "0 4px"
-    }
-  }), [["all", "ทุกชนิด"], ["ot", "OT"], ["lv", "ลา"]].map(([k, th]) => React.createElement("button", {
-    key: k,
-    onClick: () => setKind(k),
-    style: tmChip(kind === k)
-  }, th)), React.createElement("div", {
-    className: "search-box",
-    style: {
-      marginLeft: "auto",
-      width: "100%",
-      maxWidth: 260
-    }
-  }, React.createElement(Icon, {
-    name: "search",
-    size: 15,
-    color: "var(--text-3)"
-  }), React.createElement("input", {
-    value: q,
-    onChange: e => setQ(e.target.value),
-    placeholder: "\u0E04\u0E49\u0E19\u0E2B\u0E32 \u0E0A\u0E37\u0E48\u0E2D \xB7 \u0E40\u0E25\u0E02\u0E17\u0E35\u0E48 \xB7 \u0E40\u0E2B\u0E15\u0E38\u0E1C\u0E25"
-  }))), scope === "mine" && kind !== "ot" && window.LvBalanceCards && React.createElement("div", {
-    style: {
-      display: "grid",
-      gap: 6
-    }
-  }, React.createElement("span", {
-    style: {
-      fontSize: 11.5,
-      fontWeight: 700,
-      color: "var(--text-3)"
-    }
-  }, "\u0E27\u0E31\u0E19\u0E25\u0E32\u0E04\u0E07\u0E40\u0E2B\u0E25\u0E37\u0E2D\u0E02\u0E2D\u0E07\u0E09\u0E31\u0E19 \u0E1B\u0E35 ", year + 543), React.createElement(window.LvBalanceCards, {
-    bal: myBal
-  })), React.createElement("div", {
-    style: {
-      border: "none",
-      boxShadow: "var(--shadow-sm)",
-      borderRadius: "var(--r-tile)",
-      overflow: "hidden",
-      background: "var(--surface)"
-    }
-  }, list.length === 0 ? React.createElement("div", {
-    style: {
-      padding: 34,
-      textAlign: "center",
-      color: "var(--text-3)",
-      fontSize: 13
-    }
-  }, scope === "inbox" ? "ไม่มีคำขอรอคุณอนุมัติ" : "ยังไม่มีคำขอ") : list.map((x, i) => {
-    const ym = String(x.d || "").slice(0, 7);
-    const head = i === 0 || String(list[i - 1].d || "").slice(0, 7) !== ym;
-    const n = head ? list.filter(y => String(y.d || "").slice(0, 7) === ym).length : 0;
-    return React.createElement(React.Fragment, {
-      key: x.t + x.r.id
-    }, head && React.createElement("div", {
-      style: {
-        display: "flex",
-        alignItems: "center",
-        gap: 10,
-        padding: "9px 14px",
-        background: "var(--surface2)",
-        fontSize: 12.5,
-        fontWeight: 800,
-        color: "var(--text-1)"
-      }
-    }, ym ? window.tmYmTH(ym) : "ไม่ระบุวันที่", React.createElement("span", {
-      style: {
-        fontSize: 11.5,
-        fontWeight: 600,
-        color: "var(--text-3)"
-      }
-    }, n, " \u0E43\u0E1A")), x.t === "ot" ? React.createElement(TmOtRow, {
-      rec: x.r,
-      users: users,
-      onOpen: r => onOpenOt(r.id)
-    }) : React.createElement(window.LvRow, {
-      rec: x.r,
-      users: users,
-      types: lvTypes,
-      onOpen: r => onOpenLv(r.id)
-    }));
-  })), React.createElement("div", {
-    style: {
-      fontSize: 11.5,
-      color: "var(--text-3)"
-    }
-  }, "\u0E0A\u0E48\u0E32\u0E07\u0E40\u0E1B\u0E34\u0E14\u0E43\u0E1A OT \u0E41\u0E25\u0E30\u0E22\u0E37\u0E48\u0E19\u0E43\u0E1A\u0E25\u0E32\u0E08\u0E32\u0E01\u0E41\u0E2D\u0E1B\u0E43\u0E19\u0E44\u0E25\u0E19\u0E4C \u2014 \u0E01\u0E14\u0E17\u0E35\u0E48\u0E23\u0E32\u0E22\u0E01\u0E32\u0E23\u0E40\u0E1E\u0E37\u0E48\u0E2D\u0E40\u0E1B\u0E34\u0E14\u0E43\u0E1A \u0E2D\u0E19\u0E38\u0E21\u0E31\u0E15\u0E34 \u0E2B\u0E23\u0E37\u0E2D\u0E41\u0E01\u0E49"));
-}
 function TmSettings({
   wh,
   users,
@@ -3235,29 +3716,35 @@ function TmSettings({
   lvQuota
 }) {
   const canWh = window.can(role, "manageUsers");
-  const canTypes = window.can(role, "manageUsers");
   const canQuota = window.lvCanQuota(role);
-  const SUBS = [].concat(canWh ? [["wh", "เวลาทำงาน · วันหยุด · อัตรา OT"]] : []).concat(canTypes ? [["types", "ประเภทการลา"]] : []).concat(canQuota ? [["quota", "ยอดวันลารายคน"]] : []);
-  const [sub, setSub] = React.useState(SUBS.length ? SUBS[0][0] : "");
+  const SUBS = [].concat(canWh ? [{
+    k: "wh",
+    th: "เวลาทำงาน · วันหยุด · อัตรา OT",
+    ic: "clock"
+  }] : []).concat(canWh ? [{
+    k: "types",
+    th: "ประเภทการลา",
+    ic: "list"
+  }] : []).concat(canQuota ? [{
+    k: "quota",
+    th: "ยอดวันลารายคน",
+    ic: "users"
+  }] : []);
+  const [sub, setSub] = React.useState(SUBS.length ? SUBS[0].k : "");
   const [year, setYear] = React.useState(+String(window.drToday()).slice(0, 4));
   return React.createElement("div", {
+    className: "tmv",
     style: {
-      display: "flex",
-      flexDirection: "column",
-      gap: 12
+      gap: 14
     }
   }, React.createElement("div", {
-    style: {
-      display: "flex",
-      gap: 7,
-      flexWrap: "wrap",
-      alignItems: "center"
-    }
-  }, SUBS.map(([k, th]) => React.createElement("button", {
-    key: k,
-    onClick: () => setSub(k),
-    style: tmChip(sub === k)
-  }, th)), sub === "quota" && React.createElement("span", {
+    className: "tmv-bar"
+  }, React.createElement(TmSeg, {
+    sm: true,
+    items: SUBS,
+    value: sub,
+    onChange: setSub
+  }), sub === "quota" && React.createElement("span", {
     style: {
       marginLeft: "auto",
       display: "inline-flex",
@@ -3265,20 +3752,23 @@ function TmSettings({
       gap: 4
     }
   }, React.createElement("button", {
-    onClick: () => setYear(year - 1),
-    style: TM_NAV
-  }, "\u2039"), React.createElement("span", {
+    className: "tmv-ib",
+    onClick: () => setYear(year - 1)
+  }, React.createElement(Icon, {
+    name: "chevronLeft",
+    size: 16
+  })), React.createElement("span", {
+    className: "tmv-date",
     style: {
-      fontFamily: "var(--mono)",
-      fontSize: 13,
-      fontWeight: 800,
-      minWidth: 64,
-      textAlign: "center"
+      fontSize: 16
     }
   }, "\u0E1B\u0E35 ", year + 543), React.createElement("button", {
-    onClick: () => setYear(year + 1),
-    style: TM_NAV
-  }, "\u203A"))), sub === "wh" && React.createElement(TmWorkHours, {
+    className: "tmv-ib",
+    onClick: () => setYear(year + 1)
+  }, React.createElement(Icon, {
+    name: "chevronRight",
+    size: 16
+  })))), sub === "wh" && React.createElement(TmWorkHours, {
     cfg: wh.cfg,
     onSave: wh.save
   }), sub === "types" && window.LvTypesEditor && React.createElement(window.LvTypesEditor, {
@@ -3309,7 +3799,6 @@ function AttendView({
   const [open, setOpen] = React.useState(null);
   const [openLv, setOpenLv] = React.useState(null);
   const canAll = window.tmCanAttendAll(role);
-  const canApprove = window.tmCanOtApprove(role);
   const uid = (currentUser || {}).id || null;
   const visible = React.useMemo(() => window.tmOtVisible(ot.rows, currentUser, role), [ot.rows, currentUser, role]);
   const otWaiting = React.useMemo(() => visible.filter(r => r.status === "sent" && window.tmOtApproveCheck(r, currentUser, role).ok), [visible, currentUser, role]);
@@ -3368,105 +3857,68 @@ function AttendView({
     lv.save(next);
     window.lvNotifyMove(rec, next, currentUser, lvTypes);
   };
+  const approve = async x => {
+    const r = x.r;
+    const nm = window.tmNameOf(users, r.userId, r.userName);
+    if (x.t === "ot") {
+      const ok = await window.askConfirm({
+        title: "อนุมัติ OT " + (r.no || "") + " ?",
+        body: nm + " · " + window.drDateTH(r.date) + " " + r.from + "–" + r.to + " · " + window.tmDur(r.mins) + (r.reason ? "\n" + r.reason : ""),
+        ok: "อนุมัติ",
+        icon: "check"
+      });
+      if (ok) move(window.tmOtFill(r, wh.cfg), "approved");
+    } else {
+      const lt = window.lvTypeOf(lvTypes, r.type);
+      const b = window.lvBalance(lv.rows, lvQuota.map, r.userId, window.lvYearOf(r.from), lvTypes).find(y => y.type.key === r.type);
+      const ok = await window.askConfirm({
+        title: "อนุมัติ" + lt.th + " " + (r.no || "") + " ?",
+        body: nm + " · " + window.lvRangeTH(r) + " · " + window.lvDaysTH(r.days) + (b && b.left != null ? "\nคงเหลือหลังอนุมัติ " + Math.round(b.left * 10) / 10 + " วัน" : "") + (r.reason ? "\n" + r.reason : ""),
+        ok: "อนุมัติ",
+        icon: "check"
+      });
+      if (ok) moveLv(r, "approved", "");
+    }
+  };
   const canSet = window.can(role, "manageUsers") || window.lvCanQuota(role);
-  const TABS = [["day", canAll ? "วันนี้" : "เวลาของฉัน", "calendar", 0]].concat([["req", "คำขอ OT · ลา", "list", otWaiting.length + lvWaiting.length]]).concat([["month", "สรุปเดือน · ออกเอกสาร", "file", 0]]).concat(canSet ? [["cfg", "ตั้งค่า", "settings", 0]] : []);
+  const TABS = [{
+    k: "day",
+    th: canAll ? "วันนี้" : "เวลาของฉัน",
+    ic: "clock"
+  }, {
+    k: "req",
+    th: "คำขอ OT · ลา",
+    ic: "list",
+    n: otWaiting.length + lvWaiting.length
+  }, {
+    k: "month",
+    th: "สรุปเดือน",
+    ic: "chart"
+  }].concat(canSet ? [{
+    k: "cfg",
+    th: "ตั้งค่า",
+    ic: "settings"
+  }] : []);
   const cur = (ot.rows || []).find(r => r.id === open) || null;
   const curLv = (lv.rows || []).find(r => r.id === openLv) || null;
   const jobSorted = React.useMemo(() => (jobs || []).slice().sort((a, b) => String(a.code || "").localeCompare(String(b.code || ""))), [jobs]);
-  const t = me.today;
+  const [narrow, rootRef] = useTmNarrow();
   return React.createElement("div", {
-    style: {
-      display: "flex",
-      flexDirection: "column",
-      gap: 14,
-      minHeight: 0
-    }
-  }, React.createElement("div", {
-    style: {
-      display: "flex",
-      gap: "8px 18px",
-      flexWrap: "wrap",
-      alignItems: "center",
-      padding: "11px 14px",
-      borderRadius: "var(--r-tile)",
-      background: "var(--surface)",
-      boxShadow: "var(--shadow-sm)"
-    }
-  }, React.createElement("span", {
-    style: {
-      fontSize: 12,
-      fontWeight: 700,
-      color: "var(--text-3)"
-    }
-  }, "\u0E27\u0E31\u0E19\u0E19\u0E35\u0E49\u0E04\u0E38\u0E13"), React.createElement("span", {
-    style: {
-      fontFamily: "var(--mono)",
-      fontSize: 16,
-      fontWeight: 800,
-      color: "var(--text-1)"
-    }
-  }, t && t.in && t.in.hm ? t.in.hm + " → " + (t.out && t.out.hm || "ยังไม่ออก") : "ยังไม่ได้ลงเวลา"), React.createElement("span", {
-    style: {
-      fontSize: 12,
-      fontWeight: 700,
-      color: "var(--text-3)"
-    }
-  }, "OT \u0E2D\u0E19\u0E38\u0E21\u0E31\u0E15\u0E34\u0E40\u0E14\u0E37\u0E2D\u0E19\u0E19\u0E35\u0E49 ", React.createElement("b", {
-    style: {
-      fontFamily: "var(--mono)",
-      color: "var(--text-1)"
-    }
-  }, window.tmDur(myOtMonth))), React.createElement("button", {
-    onClick: openNew,
-    disabled: !window.tmCanOt(role),
-    style: {
-      marginLeft: "auto",
-      display: "inline-flex",
-      alignItems: "center",
-      gap: 6,
-      padding: "9px 15px",
-      borderRadius: "var(--r-chip)",
-      border: "none",
-      background: window.tmCanOt(role) ? "var(--primary)" : "var(--surface3)",
-      color: window.tmCanOt(role) ? "#fff" : "var(--text-3)",
-      cursor: window.tmCanOt(role) ? "pointer" : "default",
-      fontFamily: "inherit",
-      fontSize: 12.5,
-      fontWeight: 800
-    }
-  }, React.createElement(Icon, {
-    name: "plus",
-    size: 14,
-    color: window.tmCanOt(role) ? "#fff" : "var(--text-3)"
-  }), " \u0E40\u0E1B\u0E34\u0E14\u0E43\u0E1A OT")), React.createElement("div", {
-    style: {
-      display: "flex",
-      gap: 7,
-      flexWrap: "wrap"
-    }
-  }, TABS.map(([k, th, ic, n]) => React.createElement("button", {
-    key: k,
-    onClick: () => setTab(k),
-    style: {
-      display: "inline-flex",
-      alignItems: "center",
-      gap: 7,
-      padding: "9px 16px",
-      borderRadius: "var(--r-pill)",
-      border: "none",
-      boxShadow: tab === k ? "inset 0 0 0 1px var(--primary)" : "var(--shadow-sm)",
-      background: tab === k ? "var(--primary-soft)" : "var(--surface)",
-      cursor: "pointer",
-      fontFamily: "inherit",
-      fontSize: 13,
-      fontWeight: 800,
-      color: tab === k ? "var(--primary-dark)" : "var(--text-2)"
-    }
-  }, React.createElement(Icon, {
-    name: ic,
-    size: 15,
-    color: tab === k ? "var(--primary-dark)" : "var(--text-3)"
-  }), " ", th, tmBadge(n, true)))), tab === "day" && (canAll ? React.createElement(TmDaySheet, {
+    className: "tmv" + (narrow ? " nw" : ""),
+    ref: rootRef
+  }, React.createElement("style", null, TM_CSS), React.createElement(TmHero, {
+    me: me,
+    cfg: wh.cfg,
+    users: users,
+    canAll: canAll,
+    otMonthMins: myOtMonth,
+    canOt: window.tmCanOt(role),
+    onNewOt: openNew
+  }), React.createElement(TmSeg, {
+    items: TABS,
+    value: tab,
+    onChange: setTab
+  }), tab === "day" && (canAll ? React.createElement(TmDaySheet, {
     date: date,
     setDate: setDate,
     cfg: wh.cfg,
@@ -3476,11 +3928,9 @@ function AttendView({
     rows: me.rows,
     cfg: wh.cfg
   })), tab === "req" && React.createElement(TmRequests, {
-    cfg: wh.cfg,
     users: users,
     role: role,
     currentUser: currentUser,
-    ot: ot,
     otVisible: visible,
     lv: lv,
     lvTypes: lvTypes,
@@ -3488,7 +3938,8 @@ function AttendView({
     otWaiting: otWaiting,
     lvWaiting: lvWaiting,
     onOpenOt: setOpen,
-    onOpenLv: setOpenLv
+    onOpenLv: setOpenLv,
+    onApprove: approve
   }), tab === "month" && React.createElement(TmMonthAll, {
     cfg: wh.cfg,
     users: users,
@@ -3529,67 +3980,6 @@ function AttendView({
     onClose: () => setOpenLv(null)
   }));
 }
-function TmMyDays({
-  rows,
-  cfg
-}) {
-  return React.createElement("div", {
-    style: {
-      border: "none",
-      boxShadow: "var(--shadow-sm)",
-      borderRadius: "var(--r-tile)",
-      overflow: "hidden",
-      background: "var(--surface)"
-    }
-  }, (rows || []).length === 0 ? React.createElement("div", {
-    style: {
-      padding: 34,
-      textAlign: "center",
-      color: "var(--text-3)",
-      fontSize: 13
-    }
-  }, "\u0E22\u0E31\u0E07\u0E44\u0E21\u0E48\u0E21\u0E35\u0E1B\u0E23\u0E30\u0E27\u0E31\u0E15\u0E34\u0E01\u0E32\u0E23\u0E25\u0E07\u0E40\u0E27\u0E25\u0E32 \u2014 \u0E25\u0E07\u0E40\u0E27\u0E25\u0E32\u0E44\u0E14\u0E49\u0E08\u0E32\u0E01\u0E41\u0E2D\u0E1B\u0E43\u0E19\u0E44\u0E25\u0E19\u0E4C") : (rows || []).map(r => React.createElement("div", {
-    key: r.date,
-    style: {
-      display: "flex",
-      alignItems: "center",
-      gap: 12,
-      padding: "10px 14px",
-      borderBottom: "1px solid var(--divider)"
-    }
-  }, React.createElement("span", {
-    style: {
-      fontSize: 12.5,
-      fontWeight: 700,
-      color: "var(--text-1)",
-      minWidth: 130
-    }
-  }, window.drDateTH(r.date, true)), React.createElement("span", {
-    style: {
-      fontFamily: "var(--mono)",
-      fontSize: 13,
-      fontWeight: 700
-    }
-  }, r.in && r.in.hm || "—", " \u2192 ", r.out && r.out.hm || (r.in ? "ยังไม่ออก" : "—")), React.createElement("span", {
-    style: {
-      fontSize: 12,
-      color: "var(--text-2)"
-    }
-  }, window.tmDur(window.tmWorkedMins(r, cfg))), r.jobCode && React.createElement("span", {
-    style: {
-      fontFamily: "var(--mono)",
-      fontSize: 11.5,
-      color: "var(--text-3)"
-    }
-  }, r.jobCode), !(r.in && r.in.lat) && React.createElement("span", {
-    style: {
-      marginLeft: "auto",
-      fontSize: 11,
-      color: "#F59E0B",
-      fontWeight: 700
-    }
-  }, "\u0E44\u0E21\u0E48\u0E21\u0E35\u0E1E\u0E34\u0E01\u0E31\u0E14"))));
-}
 Object.assign(window, {
   TM_IN,
   TM_IN_W,
@@ -3608,6 +3998,15 @@ Object.assign(window, {
   TmWorkHours,
   TmFacts,
   TmHelp,
+  TmHero,
+  TmTeamToday,
+  TmTimeline,
+  TmAvatar,
+  TmSeg,
+  TmCard,
+  TmReqCard,
+  TmHeat,
+  useTmDayStatus,
   tmExportMonthXlsx,
   tmPersonSheet,
   tmSheetName,
