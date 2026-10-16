@@ -257,16 +257,11 @@ function TmDaySheet({ date, setDate, cfg, users, currentUser }) {
               <label style={TM_LB}><span style={{ fontSize: 11.5, fontWeight: 700, color: "var(--text-3)" }}>ออกงาน (ว่าง = ยังไม่ออก)</span>
                 <window.PgTime value={ed.outHM} ariaLabel="ออกงาน" onChange={(t) => setEd((p) => Object.assign({}, p, { outHM: t }))} style={TM_IN_W} /></label>
             </div>
-            <label style={{ display: "grid", gap: 4 }}>
-              <span style={{ fontSize: 11.5, fontWeight: 700, color: "var(--text-3)" }}>เหตุผล *</span>
-              <textarea rows={2} value={ed.why} onChange={(e) => { const v = e.target.value; setEd((p) => Object.assign({}, p, { why: v })); }}
-                placeholder="เช่น ลืมกดออกงาน หัวหน้ายืนยันว่าเลิก 17:30" style={Object.assign({}, TM_IN, { resize: "vertical", lineHeight: 1.6 })} />
-            </label>
+            {/* ไม่มีช่องเหตุผลแล้ว (ผู้ใช้สั่ง ต.ค. 2026) — ประวัติยังเก็บเวลาเดิม + ชื่อคนแก้ไว้ในใบ */}
             {ed.err && <div style={{ fontSize: 12, fontWeight: 700, color: "var(--tint-red-tx2)" }}>{ed.err}</div>}
-            <div style={{ fontSize: 11, color: "var(--text-3)", lineHeight: 1.6 }}>ใบจะติดป้าย "แก้โดยแอดมิน" และเก็บเวลาเดิม · ชื่อคนแก้ · เหตุผลไว้ในประวัติ</div>
             <div style={{ display: "flex", gap: 8, justifyContent: "flex-end" }}>
               <button type="button" className="btn" disabled={ed.busy} onClick={() => setEd(null)}>ยกเลิก</button>
-              <button type="button" className="btn btn-pri" disabled={ed.busy || !ed.why.trim() || !ed.inHM} onClick={saveEd}>{ed.busy ? "กำลังบันทึก…" : "บันทึกเวลา"}</button>
+              <button type="button" className="btn btn-pri" disabled={ed.busy || !ed.inHM} onClick={saveEd}>{ed.busy ? "กำลังบันทึก…" : "บันทึกเวลา"}</button>
             </div>
           </div>
         </div>

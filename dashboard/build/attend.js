@@ -907,10 +907,6 @@ function useAttendAdmin(actor) {
       ok: false,
       why: "เวลาออกต้องไม่เท่ากับเวลาเข้า"
     };
-    if (!String(why || "").trim()) return {
-      ok: false,
-      why: "ต้องใส่เหตุผล"
-    };
     const snap = await _tmRef("attend/" + uid + "/" + date).once("value").catch(() => null);
     const old = snap && snap.val() || null;
     const rec = Object.assign({}, tmAttendBlank(user, date), old || {});
@@ -943,7 +939,7 @@ function useAttendAdmin(actor) {
       out: outHM || "",
       wasIn: wasIn,
       wasOut: wasOut,
-      why: String(why).trim()
+      why: String(why || "").trim()
     }, by)]);
     const patch = {};
     patch["attend/" + uid + "/" + date] = rec;

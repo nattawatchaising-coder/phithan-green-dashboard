@@ -619,44 +619,13 @@ function TmDaySheet({
       outHM: t
     })),
     style: TM_IN_W
-  }))), React.createElement("label", {
-    style: {
-      display: "grid",
-      gap: 4
-    }
-  }, React.createElement("span", {
-    style: {
-      fontSize: 11.5,
-      fontWeight: 700,
-      color: "var(--text-3)"
-    }
-  }, "\u0E40\u0E2B\u0E15\u0E38\u0E1C\u0E25 *"), React.createElement("textarea", {
-    rows: 2,
-    value: ed.why,
-    onChange: e => {
-      const v = e.target.value;
-      setEd(p => Object.assign({}, p, {
-        why: v
-      }));
-    },
-    placeholder: "\u0E40\u0E0A\u0E48\u0E19 \u0E25\u0E37\u0E21\u0E01\u0E14\u0E2D\u0E2D\u0E01\u0E07\u0E32\u0E19 \u0E2B\u0E31\u0E27\u0E2B\u0E19\u0E49\u0E32\u0E22\u0E37\u0E19\u0E22\u0E31\u0E19\u0E27\u0E48\u0E32\u0E40\u0E25\u0E34\u0E01 17:30",
-    style: Object.assign({}, TM_IN, {
-      resize: "vertical",
-      lineHeight: 1.6
-    })
-  })), ed.err && React.createElement("div", {
+  }))), ed.err && React.createElement("div", {
     style: {
       fontSize: 12,
       fontWeight: 700,
       color: "var(--tint-red-tx2)"
     }
   }, ed.err), React.createElement("div", {
-    style: {
-      fontSize: 11,
-      color: "var(--text-3)",
-      lineHeight: 1.6
-    }
-  }, "\u0E43\u0E1A\u0E08\u0E30\u0E15\u0E34\u0E14\u0E1B\u0E49\u0E32\u0E22 \"\u0E41\u0E01\u0E49\u0E42\u0E14\u0E22\u0E41\u0E2D\u0E14\u0E21\u0E34\u0E19\" \u0E41\u0E25\u0E30\u0E40\u0E01\u0E47\u0E1A\u0E40\u0E27\u0E25\u0E32\u0E40\u0E14\u0E34\u0E21 \xB7 \u0E0A\u0E37\u0E48\u0E2D\u0E04\u0E19\u0E41\u0E01\u0E49 \xB7 \u0E40\u0E2B\u0E15\u0E38\u0E1C\u0E25\u0E44\u0E27\u0E49\u0E43\u0E19\u0E1B\u0E23\u0E30\u0E27\u0E31\u0E15\u0E34"), React.createElement("div", {
     style: {
       display: "flex",
       gap: 8,
@@ -670,7 +639,7 @@ function TmDaySheet({
   }, "\u0E22\u0E01\u0E40\u0E25\u0E34\u0E01"), React.createElement("button", {
     type: "button",
     className: "btn btn-pri",
-    disabled: ed.busy || !ed.why.trim() || !ed.inHM,
+    disabled: ed.busy || !ed.inHM,
     onClick: saveEd
   }, ed.busy ? "กำลังบันทึก…" : "บันทึกเวลา")))), React.createElement("div", {
     style: {

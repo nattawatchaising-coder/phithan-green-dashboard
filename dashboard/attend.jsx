@@ -904,7 +904,6 @@ function useAttendAdmin(actor) {
     if (tmHM(inHM) == null) return { ok: false, why: "เวลาเข้างานไม่ถูกต้อง" };
     if (outHM && tmHM(outHM) == null) return { ok: false, why: "เวลาออกงานไม่ถูกต้อง" };
     if (outHM && tmSpanMins(inHM, outHM) <= 0) return { ok: false, why: "เวลาออกต้องไม่เท่ากับเวลาเข้า" };
-    if (!String(why || "").trim()) return { ok: false, why: "ต้องใส่เหตุผล" };
     const snap = await _tmRef("attend/" + uid + "/" + date).once("value").catch(() => null);
     const old = (snap && snap.val()) || null;
     const rec = Object.assign({}, tmAttendBlank(user, date), old || {});
@@ -919,7 +918,7 @@ function useAttendAdmin(actor) {
     rec.extra = Array.isArray(rec.extra) ? rec.extra : [];
     rec.mins = tmWorkedMins(rec, cfg);
     rec.updatedAt = at;
-    rec.hist = (rec.hist || []).concat([Object.assign({ at: at, what: "admin-edit", in: inHM, out: outHM || "", wasIn: wasIn, wasOut: wasOut, why: String(why).trim() }, by)]);
+    rec.hist = (rec.hist || []).concat([Object.assign({ at: at, what: "admin-edit", in: inHM, out: outHM || "", wasIn: wasIn, wasOut: wasOut, why: String(why || "").trim() }, by)]);
     const patch = {};
     patch["attend/" + uid + "/" + date] = rec;
     patch["attendDay/" + date + "/" + uid] = tmDayIndex(rec, cfg);
