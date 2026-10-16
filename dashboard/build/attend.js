@@ -253,11 +253,13 @@ function tmOtCalc(dateISO, from, to, cfg) {
       parts: null
     };
   }
-  const base = c.workMins + c.lunchMins,
-    first = Math.min(span, base);
-  const lunch = span > 360 ? Math.min(c.lunchMins, first) : 0;
-  const m1 = rnd(first - lunch),
-    m2 = rnd(span - first);
+  const a = tmHM(from),
+    L0 = 12 * 60,
+    L1 = L0 + c.lunchMins;
+  const lunch = Math.max(0, Math.min(a + span, L1) - Math.max(a, L0)) + Math.max(0, Math.min(a + span, L1 + 1440) - Math.max(a, L0 + 1440));
+  const work = span - lunch;
+  const m1 = rnd(Math.min(work, c.workMins)),
+    m2 = rnd(work - Math.min(work, c.workMins));
   if (m1 + m2 < c.minOtMins) return {
     mins: 0,
     parts: null
