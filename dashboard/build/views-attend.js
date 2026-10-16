@@ -113,6 +113,12 @@ function TmDaySheet({
   const [msg, setMsg] = React.useState("");
   const nameOf = r => window.tmNameOf(users, r.userId, r.name);
   const gpsCell = r => {
+    if (!r.gps && r.fix) return React.createElement("span", {
+      style: {
+        fontSize: 11.5,
+        color: "var(--text-3)"
+      }
+    }, "\u2014");
     if (!r.gps) return React.createElement("span", {
       style: {
         fontSize: 11.5,
@@ -212,7 +218,7 @@ function TmDaySheet({
   }, [day.rows, users, workday, onLeave]);
   const leaving = (users || []).filter(u => u && onLeave[u.id] && !(day.rows || []).some(r => r.userId === u.id));
   const totalMins = (day.rows || []).reduce((a, r) => a + (+r.mins || 0), 0);
-  const noGps = (day.rows || []).filter(r => !r.gps).length;
+  const noGps = (day.rows || []).filter(r => !r.gps && !r.fix).length;
   const stillIn = (day.rows || []).filter(r => r.in && !r.out).length;
   return React.createElement("div", {
     style: {
@@ -360,18 +366,7 @@ function TmDaySheet({
       fontWeight: 700,
       color: "var(--text-1)"
     }
-  }, nameOf(r), r.fix && React.createElement("span", {
-    title: "\u0E40\u0E27\u0E25\u0E32\u0E43\u0E19\u0E43\u0E1A\u0E19\u0E35\u0E49\u0E41\u0E2D\u0E14\u0E21\u0E34\u0E19\u0E41\u0E01\u0E49\u0E43\u0E2B\u0E49",
-    style: {
-      marginLeft: 6,
-      padding: "1px 7px",
-      borderRadius: "var(--r-pill)",
-      background: "var(--tint-amber-bg)",
-      color: "var(--tint-amber-tx)",
-      fontSize: 10.5,
-      fontWeight: 800
-    }
-  }, "\u0E41\u0E01\u0E49\u0E42\u0E14\u0E22\u0E41\u0E2D\u0E14\u0E21\u0E34\u0E19")), React.createElement("td", {
+  }, nameOf(r)), React.createElement("td", {
     style: {
       padding: "9px 13px",
       textAlign: "center",
@@ -399,7 +394,7 @@ function TmDaySheet({
       fontSize: 12,
       color: "var(--text-2)"
     }
-  }, r.place === "office" ? React.createElement("span", {
+  }, r.place === "office" || r.fix && !r.jobCode ? React.createElement("span", {
     style: {
       fontFamily: "inherit",
       fontSize: 11.5,
@@ -1895,8 +1890,9 @@ function TmOtModal({
     if (next.status === "draft") next = window.tmOtFill(next, cfg);
     return next;
   });
-  const cur = editable ? window.tmOtFill(f, cfg) : f;
-  const mins = editable ? cur.mins : +f.mins || 0;
+  const pend = f.status === "draft" || f.status === "sent";
+  const cur = pend ? window.tmOtFill(f, cfg) : f;
+  const mins = pend ? cur.mins : +f.mins || 0;
   const rate = window.tmOtRate(cur, cfg);
   const span = window.tmSpanMins(f.from, f.to);
   const nexts = window.tmOtNext(f, role, currentUser);
@@ -1916,7 +1912,7 @@ function TmOtModal({
       width: "min(620px,100%)",
       maxHeight: "90vh",
       overflow: "auto",
-      background: "var(--surface)",
+      background: "var(--bg)",
       border: "none",
       boxShadow: "var(--shadow-sm)",
       borderRadius: 17,
@@ -3212,7 +3208,7 @@ function AttendView({
   currentUser
 }) {
   const wh = window.useWorkHours();
-  const ot = window.useOtClaims();
+  const ot = window.useOtClaims(wh.cfg);
   const [tab, setTab] = React.useState("day");
   const [date, setDate] = React.useState(window.drToday());
   const [open, setOpen] = React.useState(null);

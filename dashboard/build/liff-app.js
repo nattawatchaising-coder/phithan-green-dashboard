@@ -1551,7 +1551,7 @@ function LnTimeTab({
   startSub
 }) {
   const wh = window.useWorkHours();
-  const otStore = window.useOtClaims();
+  const otStore = window.useOtClaims(wh.cfg);
   const [form, setForm] = React.useState(!!startOt && window.tmCanOt(role));
   const [limit, setLimit] = React.useState(null);
   const closeForm = () => {

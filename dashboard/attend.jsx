@@ -907,7 +907,9 @@ function useAttendAdmin(actor) {
     const old = (snap && snap.val()) || null;
     const rec = Object.assign({}, tmAttendBlank(user, date), old || {});
     const at = new Date().toISOString(), by = { byId: (actor || {}).id || null, byName: (actor || {}).name || "" };
-    const mk = (prev, hm) => Object.assign({}, prev || {}, { hm: hm, at: at, src: "admin", adminFix: true, was: (prev && prev.hm) || "" }, by);
+    /* ลงแทน (ไม่มีปั๊มเดิม) = ที่ออฟฟิศ (ผู้ใช้ 2026-10-16 "งานที่ทำคือออฟฟิศ") */
+    const mk = (prev, hm) => Object.assign({ place: "office" }, prev || {}, { hm: hm, at: at, src: "admin", adminFix: true, was: (prev && prev.hm) || "" }, by);
+    if (!rec.place && !rec.jobCode) rec.place = "office";
     const wasIn = (rec.in && rec.in.hm) || "", wasOut = (rec.out && rec.out.hm) || "";
     if (wasIn !== inHM) rec.in = mk(rec.in, inHM);
     if (!outHM) rec.out = null;
@@ -927,8 +929,11 @@ function useAttendAdmin(actor) {
 }
 
 /* ใบ OT — แบน อ่านทั้งต้นไม้ได้ (ใบละไม่กี่ร้อยไบต์ ไม่มีรูป) */
-function useOtClaims() {
-  const [rows, setRows] = React.useState([]);
+/* cfg ส่งมา = ใบที่ยังไม่ตัดสิน (ร่าง/รออนุมัติ) คิดเวลาใหม่ตามวิธีใหม่ตอนแสดง (ผู้ใช้ 2026-10-16 "คำนวนเวลาให้ใหม่")
+   — กดอนุมัติแล้วค่าใหม่ถูกบันทึกลงใบ · ใบที่ตัดสินแล้วไม่แตะ */
+function useOtClaims(cfg) {
+  const [raw, setRows] = React.useState([]);
+  const rows = React.useMemo(() => (!cfg ? raw : raw.map((r) => (r && (r.status === "draft" || r.status === "sent") && r.from && r.to ? tmOtFill(r, cfg) : r))), [raw, cfg]);
   const [loading, setLoading] = React.useState(true);
 
   React.useEffect(() => {

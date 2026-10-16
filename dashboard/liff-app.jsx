@@ -1027,7 +1027,7 @@ function LnOtForm({ me, users, cfg, jobs, otStore, limit, onClose }) {
 /* ── แท็บ "เวลา" = ลงเวลา + ใบ OT ของฉัน ── */
 function LnTimeTab({ me, users, role, jobs, startOt, startSub }) {
   const wh = window.useWorkHours();
-  const otStore = window.useOtClaims();
+  const otStore = window.useOtClaims(wh.cfg);
   /* เปิดฟอร์มทันทีเมื่อมาจากปุ่ม "ขอ OT" บนเมนูล่าง — แต่ยังต้องผ่านสิทธิ์
      ลิงก์ไม่ใช่ใบอนุญาต ใครก็พิมพ์ ?tab=ot เองได้ */
   const [form, setForm] = React.useState(!!startOt && window.tmCanOt(role));

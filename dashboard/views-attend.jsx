@@ -69,6 +69,8 @@ function TmDaySheet({ date, setDate, cfg, users, currentUser }) {
        มีพิกัดแต่ยังไม่ได้ตั้งพิกัดออฟฟิศ · มีครบทั้งสองฝั่งจึงบอกระยะได้
      ระยะเป็นข้อมูลให้คนอ่านตัดสิน ไม่ได้แปลว่าใบนั้นใช้ไม่ได้ */
   const gpsCell = (r) => {
+    /* แอดมินแก้/ลงเวลาแทน — ไม่เตือนไม่มีพิกัด (ผู้ใช้ 2026-10-16 ไม่ต้องมีป้าย "แก้โดยแอดมิน" ด้วย) */
+    if (!r.gps && r.fix) return <span style={{ fontSize: 11.5, color: "var(--text-3)" }}>—</span>;
     if (!r.gps) return <span style={{ fontSize: 11.5, color: "#F59E0B", fontWeight: 700 }}>ไม่มีพิกัด</span>;
     const ok = <span style={{ fontSize: 11.5, color: "#10B981", fontWeight: 700 }}>มีพิกัด</span>;
     if (r.lat == null || r.lng == null) return ok;
@@ -129,7 +131,8 @@ function TmDaySheet({ date, setDate, cfg, users, currentUser }) {
   const leaving = (users || []).filter((u) => u && onLeave[u.id] && !(day.rows || []).some((r) => r.userId === u.id));
 
   const totalMins = (day.rows || []).reduce((a, r) => a + (+r.mins || 0), 0);
-  const noGps = (day.rows || []).filter((r) => !r.gps).length;
+  /* ใบที่แอดมินลงแทนไม่มีพิกัดเป็นปกติ — ไม่นับเป็น "ไม่มีพิกัด" (ผู้ใช้ 2026-10-16) */
+  const noGps = (day.rows || []).filter((r) => !r.gps && !r.fix).length;
   const stillIn = (day.rows || []).filter((r) => r.in && !r.out).length;
 
   return (
@@ -172,16 +175,14 @@ function TmDaySheet({ date, setDate, cfg, users, currentUser }) {
             )}
             {(day.rows || []).map((r) => (
               <tr key={r.userId} style={{ borderBottom: "1px solid var(--divider)" }}>
-                <td style={{ padding: "9px 13px", fontWeight: 700, color: "var(--text-1)" }}>{nameOf(r)}
-                  {r.fix && <span title="เวลาในใบนี้แอดมินแก้ให้" style={{ marginLeft: 6, padding: "1px 7px", borderRadius: "var(--r-pill)", background: "var(--tint-amber-bg)", color: "var(--tint-amber-tx)", fontSize: 10.5, fontWeight: 800 }}>แก้โดยแอดมิน</span>}
-                </td>
+                <td style={{ padding: "9px 13px", fontWeight: 700, color: "var(--text-1)" }}>{nameOf(r)}</td>
                 <td style={{ padding: "9px 13px", textAlign: "center", fontFamily: "var(--mono)", fontWeight: 700 }}>{r.in || "—"}</td>
                 <td style={{ padding: "9px 13px", textAlign: "center", fontFamily: "var(--mono)", fontWeight: 700,
                   color: r.in && !r.out ? "#EF4444" : "var(--text-1)" }}>{r.out || (r.in ? "ยังไม่ออก" : "—")}</td>
                 <td style={{ padding: "9px 13px", textAlign: "center", color: "var(--text-2)" }}>{window.tmDur(r.mins)}</td>
                 <td style={{ padding: "9px 13px", fontFamily: "var(--mono)", fontSize: 12, color: "var(--text-2)" }}>
                   {/* คนที่กด "ออฟฟิศ" ไม่มีรหัสงานให้แสดง และช่องว่างเปล่า ๆ อ่านเหมือนลืมกรอก */}
-                  {r.place === "office" ? <span style={{ fontFamily: "inherit", fontSize: 11.5, color: "var(--text-3)" }}>ออฟฟิศ</span>
+                  {r.place === "office" || (r.fix && !r.jobCode) ? <span style={{ fontFamily: "inherit", fontSize: 11.5, color: "var(--text-3)" }}>ออฟฟิศ</span>
                     : (r.jobCode || "—")}
                 </td>
                 <td style={{ padding: "9px 13px" }}>{gpsCell(r)}</td>
@@ -780,8 +781,10 @@ function TmOtModal({ rec, cfg, jobs, users, role, currentUser, onSave, onMove, o
     return next;
   });
   /* ใบที่ส่งแล้ว/อนุมัติแล้ว ยึดยอดที่ถ่ายไว้ในใบ — ไม่คิดใหม่ตอนกดอนุมัติ (ใบเก่าคิดแบบเดิม) */
-  const cur = editable ? window.tmOtFill(f, cfg) : f;
-  const mins = editable ? cur.mins : (+f.mins || 0);
+  /* ร่าง/รออนุมัติ คิดใหม่ตามวิธีใหม่ (ผู้ใช้สั่ง) — อนุมัติแล้วบันทึกค่าใหม่ลงใบ · ตัดสินแล้วไม่แตะ */
+  const pend = f.status === "draft" || f.status === "sent";
+  const cur = pend ? window.tmOtFill(f, cfg) : f;
+  const mins = pend ? cur.mins : (+f.mins || 0);
   const rate = window.tmOtRate(cur, cfg);
   const span = window.tmSpanMins(f.from, f.to);
   const nexts = window.tmOtNext(f, role, currentUser);
@@ -789,7 +792,7 @@ function TmOtModal({ rec, cfg, jobs, users, role, currentUser, onSave, onMove, o
 
   return (
     <div style={{ position: "fixed", inset: 0, zIndex: 90, background: "rgba(15,23,42,.45)", display: "grid", placeItems: "center", padding: 18 }} {...box}>
-      <div style={{ width: "min(620px,100%)", maxHeight: "90vh", overflow: "auto", background: "var(--surface)",
+      <div style={{ width: "min(620px,100%)", maxHeight: "90vh", overflow: "auto", background: "var(--bg)",
         border: "none", boxShadow: "var(--shadow-sm)", borderRadius: 17, padding: 20 }}>
 
         <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
@@ -1366,7 +1369,7 @@ function TmOtPeriod({ cfg, users, jobs, rows, byName }) {
 /* ── หน้าหลัก ── */
 function AttendView({ jobs, users, role, currentUser }) {
   const wh = window.useWorkHours();
-  const ot = window.useOtClaims();
+  const ot = window.useOtClaims(wh.cfg);
   const [tab, setTab] = React.useState("day");
   const [date, setDate] = React.useState(window.drToday());
   const [open, setOpen] = React.useState(null);

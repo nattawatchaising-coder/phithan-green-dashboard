@@ -917,13 +917,16 @@ function useAttendAdmin(actor) {
         byId: (actor || {}).id || null,
         byName: (actor || {}).name || ""
       };
-    const mk = (prev, hm) => Object.assign({}, prev || {}, {
+    const mk = (prev, hm) => Object.assign({
+      place: "office"
+    }, prev || {}, {
       hm: hm,
       at: at,
       src: "admin",
       adminFix: true,
       was: prev && prev.hm || ""
     }, by);
+    if (!rec.place && !rec.jobCode) rec.place = "office";
     const wasIn = rec.in && rec.in.hm || "",
       wasOut = rec.out && rec.out.hm || "";
     if (wasIn !== inHM) rec.in = mk(rec.in, inHM);
@@ -954,8 +957,9 @@ function useAttendAdmin(actor) {
     setTimes
   };
 }
-function useOtClaims() {
-  const [rows, setRows] = React.useState([]);
+function useOtClaims(cfg) {
+  const [raw, setRows] = React.useState([]);
+  const rows = React.useMemo(() => !cfg ? raw : raw.map(r => r && (r.status === "draft" || r.status === "sent") && r.from && r.to ? tmOtFill(r, cfg) : r), [raw, cfg]);
   const [loading, setLoading] = React.useState(true);
   React.useEffect(() => {
     if (!_TMFB()) {
