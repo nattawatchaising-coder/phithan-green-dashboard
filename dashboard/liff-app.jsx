@@ -445,6 +445,8 @@ function LnJobSheet({ job, techs, onClose }) {
 /* ── ปุ่มลงเวลา ──
    ปุ่มเดียวที่เปลี่ยนความหมายตามสถานะของวันนี้ ไม่ใช่สองปุ่มวางข้างกัน
    ช่างกดตอนรีบและมือเปื้อน — สองปุ่มคือเวลาที่ผิดแล้วเจ้าตัวแก้เองไม่ได้ */
+/* ค่าในดรอปดาวน์งาน = พิมพ์ชื่องานเอง (งานที่ยังไม่มีในระบบ เช่น สำรวจลูกค้าใหม่) */
+const LN_JOB_TXT = "__txt";
 function LnClock({ me, cfg, jobs, ot, onAskOt }) {
   /* 95 วัน ไม่ใช่ 14 — ปฏิทินเปิดย้อนไปได้สองเดือน ถ้าดึงมาแค่ 14 วัน เดือนก่อนจะว่างทั้งเดือน
      ทั้งที่มีใบอยู่จริง ซึ่งอ่านแล้วเข้าใจผิดว่า "ไม่ได้ลงเวลา" ไม่ใช่ "ยังไม่ได้โหลดมา" */
@@ -487,18 +489,23 @@ function LnClock({ me, cfg, jobs, ot, onAskOt }) {
     () => (jobs || []).filter((j) => jobType === "all" || j.type === jobType).slice(0, 80),
     [jobs, jobType]);
 
+  /* งานที่ไม่มีในระบบ เช่น สำรวจลูกค้าใหม่ (ผู้ใช้ ต.ค. 2026) — พิมพ์เอง เก็บลง jobCode ตรง ๆ ไม่มี jobId
+     ใช้ jobCode เพราะแผ่นรายวัน/Excel/ใบ OT โชว์ช่องนี้อยู่แล้ว ไม่ต้องแก้ทุกจุด */
+  const [jobTxt, setJobTxt] = React.useState("");
   React.useEffect(() => {
     if (today && today.jobId) setJobId(today.jobId);
+    else if (today && today.jobCode) { setJobId(LN_JOB_TXT); setJobTxt(today.jobCode); }
     if (today && today.place) setPlace(today.place);
-  }, [today && today.jobId, today && today.place]);
+  }, [today && today.jobId, today && today.jobCode, today && today.place]);
 
   const go = async (redo) => {
     if (busy) return;
     setBusy(true); setMsg(null);
-    const j = place === "office" ? null : (jobs || []).find((x) => x.id === jobId);
+    const txt = place !== "office" && jobId === LN_JOB_TXT ? jobTxt.trim().slice(0, 80) : "";
+    const j = place === "office" || txt ? null : (jobs || []).find((x) => x.id === jobId);
     const which = redo ? "out" : open ? "out" : "in";
     const res = await writer.punch(which, {
-      src: "liff", place: place, jobId: j ? j.id : null, jobCode: j ? j.code : "", redo: !!redo,
+      src: "liff", place: place, jobId: j ? j.id : null, jobCode: j ? j.code : txt, redo: !!redo,
     });
     setBusy(false);
     if (!res.ok) { setMsg({ bad: true, text: res.why }); return; }
@@ -648,9 +655,14 @@ function LnClock({ me, cfg, jobs, ot, onAskOt }) {
           </div>
           <select value={jobId} onChange={(e) => setJobId(e.target.value)} style={LN_FIELD}>
             <option value="">— ไม่ระบุ —</option>
+            <option value={LN_JOB_TXT}>✎ พิมพ์เอง (เช่น สำรวจลูกค้าใหม่)</option>
             {jobPick.map((j) => <option key={j.id} value={j.id}>{j.code} · {j.name}</option>)}
           </select>
-          {jobPick.length === 0 && (
+          {jobId === LN_JOB_TXT && (
+            <input value={jobTxt} onChange={(e) => setJobTxt(e.target.value)} maxLength={80} autoFocus
+              placeholder="เช่น สำรวจหน้างาน บ้านคุณสมชาย บางนา" style={Object.assign({}, LN_FIELD, { marginTop: 7 })} />
+          )}
+          {jobPick.length === 0 && jobId !== LN_JOB_TXT && (
             <div style={{ marginTop: 5, fontSize: 11, color: "var(--text-3)" }}>ไม่มีงานประเภทนี้ในมือ — ลงเวลาโดยไม่ระบุงานก็ได้</div>
           )}
         </div>
@@ -907,8 +919,11 @@ function LnOtForm({ me, users, cfg, jobs, otStore, limit, onClose }) {
   const send = () => {
     if (!ready || sending) return;
     setSending(true);
-    const j = (jobs || []).find((x) => x.id === f.jobId);
-    const rec = window.tmOtMove(Object.assign({}, calc, { jobCode: j ? j.code : "" }), "sent", me, "");
+    const txt = f.jobId === LN_JOB_TXT ? String(f.jobTxt || "").trim().slice(0, 80) : "";
+    const j = txt ? null : (jobs || []).find((x) => x.id === f.jobId);
+    const base = Object.assign({}, calc, { jobId: j ? j.id : null, jobCode: j ? j.code : txt });
+    delete base.jobTxt;
+    const rec = window.tmOtMove(base, "sent", me, "");
     otStore.save(rec);
     const when = window.drShort(rec.date) + " " + rec.from + "-" + rec.to;
     /* เตือนคนอนุมัติ — ถ้าโปรไฟล์ไม่ได้ตั้งผู้อนุมัติไว้ ส่งเข้ากองกลางแทน
@@ -976,8 +991,13 @@ function LnOtForm({ me, users, cfg, jobs, otStore, limit, onClose }) {
         <LnField label="งานที่เกี่ยวข้อง (ไม่บังคับ)">
           <select value={f.jobId || ""} onChange={(e) => set("jobId", e.target.value || null)} style={LN_FIELD}>
             <option value="">— ไม่ระบุ —</option>
+            <option value={LN_JOB_TXT}>✎ พิมพ์เอง (เช่น สำรวจลูกค้าใหม่)</option>
             {(jobs || []).slice(0, 80).map((j) => <option key={j.id} value={j.id}>{j.code} · {j.name}</option>)}
           </select>
+          {f.jobId === LN_JOB_TXT && (
+            <input value={f.jobTxt || ""} onChange={(e) => set("jobTxt", e.target.value)} maxLength={80} autoFocus
+              placeholder="เช่น สำรวจหน้างาน บ้านคุณสมชาย บางนา" style={Object.assign({}, LN_FIELD, { marginTop: 7 })} />
+          )}
         </LnField>
 
         {/* ── ส่งให้ใครอนุมัติ ──

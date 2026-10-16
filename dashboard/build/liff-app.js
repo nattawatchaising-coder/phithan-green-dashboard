@@ -685,6 +685,7 @@ function LnJobSheet({
     }
   }, "\u0E1B\u0E34\u0E14")));
 }
+const LN_JOB_TXT = "__txt";
 function LnClock({
   me,
   cfg,
@@ -713,21 +714,26 @@ function LnClock({
   const closed = !open && !!(today && today.in && today.in.hm);
   const shifts = (today && Array.isArray(today.extra) ? today.extra : []).filter(x => x && x.in && x.in.hm);
   const jobPick = React.useMemo(() => (jobs || []).filter(j => jobType === "all" || j.type === jobType).slice(0, 80), [jobs, jobType]);
+  const [jobTxt, setJobTxt] = React.useState("");
   React.useEffect(() => {
-    if (today && today.jobId) setJobId(today.jobId);
+    if (today && today.jobId) setJobId(today.jobId);else if (today && today.jobCode) {
+      setJobId(LN_JOB_TXT);
+      setJobTxt(today.jobCode);
+    }
     if (today && today.place) setPlace(today.place);
-  }, [today && today.jobId, today && today.place]);
+  }, [today && today.jobId, today && today.jobCode, today && today.place]);
   const go = async redo => {
     if (busy) return;
     setBusy(true);
     setMsg(null);
-    const j = place === "office" ? null : (jobs || []).find(x => x.id === jobId);
+    const txt = place !== "office" && jobId === LN_JOB_TXT ? jobTxt.trim().slice(0, 80) : "";
+    const j = place === "office" || txt ? null : (jobs || []).find(x => x.id === jobId);
     const which = redo ? "out" : open ? "out" : "in";
     const res = await writer.punch(which, {
       src: "liff",
       place: place,
       jobId: j ? j.id : null,
-      jobCode: j ? j.code : "",
+      jobCode: j ? j.code : txt,
       redo: !!redo
     });
     setBusy(false);
@@ -995,10 +1001,21 @@ function LnClock({
     style: LN_FIELD
   }, React.createElement("option", {
     value: ""
-  }, "\u2014 \u0E44\u0E21\u0E48\u0E23\u0E30\u0E1A\u0E38 \u2014"), jobPick.map(j => React.createElement("option", {
+  }, "\u2014 \u0E44\u0E21\u0E48\u0E23\u0E30\u0E1A\u0E38 \u2014"), React.createElement("option", {
+    value: LN_JOB_TXT
+  }, "\u270E \u0E1E\u0E34\u0E21\u0E1E\u0E4C\u0E40\u0E2D\u0E07 (\u0E40\u0E0A\u0E48\u0E19 \u0E2A\u0E33\u0E23\u0E27\u0E08\u0E25\u0E39\u0E01\u0E04\u0E49\u0E32\u0E43\u0E2B\u0E21\u0E48)"), jobPick.map(j => React.createElement("option", {
     key: j.id,
     value: j.id
-  }, j.code, " \xB7 ", j.name))), jobPick.length === 0 && React.createElement("div", {
+  }, j.code, " \xB7 ", j.name))), jobId === LN_JOB_TXT && React.createElement("input", {
+    value: jobTxt,
+    onChange: e => setJobTxt(e.target.value),
+    maxLength: 80,
+    autoFocus: true,
+    placeholder: "\u0E40\u0E0A\u0E48\u0E19 \u0E2A\u0E33\u0E23\u0E27\u0E08\u0E2B\u0E19\u0E49\u0E32\u0E07\u0E32\u0E19 \u0E1A\u0E49\u0E32\u0E19\u0E04\u0E38\u0E13\u0E2A\u0E21\u0E0A\u0E32\u0E22 \u0E1A\u0E32\u0E07\u0E19\u0E32",
+    style: Object.assign({}, LN_FIELD, {
+      marginTop: 7
+    })
+  }), jobPick.length === 0 && jobId !== LN_JOB_TXT && React.createElement("div", {
     style: {
       marginTop: 5,
       fontSize: 11,
@@ -1357,10 +1374,14 @@ function LnOtForm({
   const send = () => {
     if (!ready || sending) return;
     setSending(true);
-    const j = (jobs || []).find(x => x.id === f.jobId);
-    const rec = window.tmOtMove(Object.assign({}, calc, {
-      jobCode: j ? j.code : ""
-    }), "sent", me, "");
+    const txt = f.jobId === LN_JOB_TXT ? String(f.jobTxt || "").trim().slice(0, 80) : "";
+    const j = txt ? null : (jobs || []).find(x => x.id === f.jobId);
+    const base = Object.assign({}, calc, {
+      jobId: j ? j.id : null,
+      jobCode: j ? j.code : txt
+    });
+    delete base.jobTxt;
+    const rec = window.tmOtMove(base, "sent", me, "");
     otStore.save(rec);
     const when = window.drShort(rec.date) + " " + rec.from + "-" + rec.to;
     if (rec.approverId) {
@@ -1485,10 +1506,21 @@ function LnOtForm({
     style: LN_FIELD
   }, React.createElement("option", {
     value: ""
-  }, "\u2014 \u0E44\u0E21\u0E48\u0E23\u0E30\u0E1A\u0E38 \u2014"), (jobs || []).slice(0, 80).map(j => React.createElement("option", {
+  }, "\u2014 \u0E44\u0E21\u0E48\u0E23\u0E30\u0E1A\u0E38 \u2014"), React.createElement("option", {
+    value: LN_JOB_TXT
+  }, "\u270E \u0E1E\u0E34\u0E21\u0E1E\u0E4C\u0E40\u0E2D\u0E07 (\u0E40\u0E0A\u0E48\u0E19 \u0E2A\u0E33\u0E23\u0E27\u0E08\u0E25\u0E39\u0E01\u0E04\u0E49\u0E32\u0E43\u0E2B\u0E21\u0E48)"), (jobs || []).slice(0, 80).map(j => React.createElement("option", {
     key: j.id,
     value: j.id
-  }, j.code, " \xB7 ", j.name)))), React.createElement(LnField, {
+  }, j.code, " \xB7 ", j.name))), f.jobId === LN_JOB_TXT && React.createElement("input", {
+    value: f.jobTxt || "",
+    onChange: e => set("jobTxt", e.target.value),
+    maxLength: 80,
+    autoFocus: true,
+    placeholder: "\u0E40\u0E0A\u0E48\u0E19 \u0E2A\u0E33\u0E23\u0E27\u0E08\u0E2B\u0E19\u0E49\u0E32\u0E07\u0E32\u0E19 \u0E1A\u0E49\u0E32\u0E19\u0E04\u0E38\u0E13\u0E2A\u0E21\u0E0A\u0E32\u0E22 \u0E1A\u0E32\u0E07\u0E19\u0E32",
+    style: Object.assign({}, LN_FIELD, {
+      marginTop: 7
+    })
+  })), React.createElement(LnField, {
     label: "\u0E2A\u0E48\u0E07\u0E43\u0E2B\u0E49\u0E43\u0E04\u0E23\u0E2D\u0E19\u0E38\u0E21\u0E31\u0E15\u0E34"
   }, React.createElement("select", {
     value: f.approverId || "",

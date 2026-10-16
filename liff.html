@@ -22,6 +22,8 @@ body {
 }
 /* ช่องกรอกบน iOS: ถ้าตัวอักษรเล็กกว่า 16px Safari จะซูมหน้าจอเข้าไปเองตอนโฟกัส แล้วซูมออกไม่กลับ */
 input, select, textarea, button { font-family: inherit; font-size: 16px; }
+/* ปุ่มที่ไม่ได้สั่ง border เองเคยโชว์ขอบนูนของเบราว์เซอร์ (outset 2px) — ระบบไม่ใช้เส้นขอบ (DESIGN.md) */
+button { border: 0; }
 /* ⚠ ต้นเหตุที่หน้าจอเลื่อนซ้ายขวาได้แล้วช่องทับกันบนมือถือ
    input (โดยเฉพาะ type=date/time บน iOS) มีความกว้างขั้นต่ำในตัว และ min-width ของ
    flex/grid item ดีฟอลต์เป็น auto — มันจึงไม่ยอมหดตาม width:100% แต่ไปดันคอลัมน์จนล้นจอ
@@ -123,7 +125,7 @@ window.LN_LIFF_ID = "2011577974-yzS9mgQQ";
 <script src="dashboard/build/liff-ui.js?v=4"></script>
 <script src="dashboard/build/liff-ec.js?v=8"></script>
 <script src="dashboard/build/liff-daily.js?v=8"></script>
-<script src="dashboard/build/liff-app.js?v=33"></script>
+<script src="dashboard/build/liff-app.js?v=34"></script>
 <!-- แท็บอนุมัติ โหลดหลัง liff-app เพราะใช้ LnPick จากไฟล์นั้น -->
 <script src="dashboard/build/liff-approve.js?v=7"></script>
 <script src="dashboard/build/liff-leave.js?v=4"></script>
