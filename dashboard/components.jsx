@@ -631,15 +631,79 @@ function pgTimeFix(raw, min, max) {
   }
   return out;
 }
+/* หน้าต่างนาฬิกาให้กดเลือก ชั่วโมง → นาที (ผู้ใช้สั่ง ต.ค. 2026: พิมพ์แล้วได้เลขแปลก ๆ)
+   นาทีเป็นขั้นละ 5 — ต้องการนาทีอื่นยังพิมพ์เองในช่องได้เหมือนเดิม
+   พื้นใช้ --bg ทึบ ไม่ใช่ --surface (ธีมกระจก --surface โปร่ง ข้างหลังทะลุ) */
+const PGTP_CSS = `
+.pgtp-wrap{position:fixed;inset:0;z-index:10050}
+.pgtp{position:fixed;width:300px;box-sizing:border-box;padding:12px;border-radius:var(--r-card);background:var(--bg,#fff);color:var(--text-1);
+  box-shadow:var(--shadow-card),0 28px 56px -16px rgba(15,43,51,.22);font-family:inherit}
+.pgtp-big{display:flex;justify-content:center;align-items:baseline;gap:4px;font-family:var(--mono);font-size:30px;font-weight:800;padding:2px 0 10px}
+.pgtp-big button{border:none;background:none;font:inherit;color:var(--text-3);cursor:pointer;padding:0 6px;border-radius:10px}
+.pgtp-big button.on{color:var(--primary-dark);background:var(--primary-soft)}
+.pgtp-lb{font-size:11.5px;font-weight:700;color:var(--text-3);margin:2px 2px 6px}
+.pgtp-g{display:grid;grid-template-columns:repeat(6,1fr);gap:4px;background:var(--surface2);border-radius:14px;padding:6px;box-shadow:var(--shadow-inset)}
+.pgtp-c{height:36px;border:none;border-radius:var(--r-pill);background:transparent;font-family:var(--mono);font-size:13.5px;font-weight:700;color:var(--text-1);cursor:pointer;padding:0}
+.pgtp-c:hover{background:var(--primary-soft);color:var(--primary-dark)}
+.pgtp-c.sel,.pgtp-c.sel:hover{background:var(--primary);color:#fff}
+.pgtp-f{display:flex;gap:8px;margin-top:10px}
+.pgtp-b{flex:1;height:40px;border:none;border-radius:var(--r-tile);font-family:inherit;font-size:13px;font-weight:700;cursor:pointer;background:var(--surface2);color:var(--text-2);box-shadow:var(--shadow-sm)}
+.pgtp-b.pri{background:var(--primary-soft);color:var(--primary-dark)}
+@media (max-width:559px){.pgtp-wrap{background:rgba(8,20,14,.36)}
+  .pgtp{left:50% !important;top:auto !important;bottom:max(14px,env(safe-area-inset-bottom));width:min(360px,calc(100vw - 24px));transform:translateX(-50%)}}`;
+function PgTimePop({ anchor, value, min, max, onPick, onClose }) {
+  React.useEffect(() => {
+    if (document.getElementById("pgtp-css")) return;
+    const st = document.createElement("style"); st.id = "pgtp-css"; st.textContent = PGTP_CSS; document.head.appendChild(st);
+  }, []);
+  const v = /^\d{2}:\d{2}$/.test(value || "") ? value : "";
+  const [h, setH] = React.useState(v ? v.slice(0, 2) : "");
+  const [m, setM] = React.useState(v ? v.slice(3) : "");
+  const [step, setStep] = React.useState("h");
+  const p2 = (x) => (x < 10 ? "0" : "") + x;
+  const r = anchor ? anchor.getBoundingClientRect() : { left: 0, bottom: 0, top: 0 };
+  const W = 300, H = 400;
+  const left = Math.max(8, Math.min(r.left, window.innerWidth - W - 8));
+  const top = r.bottom + 6 + H > window.innerHeight ? Math.max(8, r.top - 6 - H) : r.bottom + 6;
+  const ok = (hh, mm) => { onPick(pgTimeFix((hh || "00") + ":" + (mm || "00"), min, max)); onClose(); };
+  return ReactDOM.createPortal(
+    <div className="pgtp-wrap" onMouseDown={(e) => { if (e.target === e.currentTarget) onClose(); }}>
+      <div className="pgtp" role="dialog" aria-label="เลือกเวลา" style={{ left: left, top: top }}>
+        <div className="pgtp-big">
+          <button type="button" className={step === "h" ? "on" : ""} onClick={() => setStep("h")}>{h || "--"}</button>:
+          <button type="button" className={step === "m" ? "on" : ""} onClick={() => setStep("m")}>{m || "--"}</button>
+        </div>
+        <div className="pgtp-lb">{step === "h" ? "เลือกชั่วโมง" : "เลือกนาที"}</div>
+        <div className="pgtp-g">
+          {step === "h"
+            ? Array.from({ length: 24 }, (_, i) => p2(i)).map((x) => (
+              <button type="button" key={x} className={"pgtp-c" + (x === h ? " sel" : "")}
+                onClick={() => { setH(x); if (!m) setM("00"); setStep("m"); }}>{x}</button>))
+            : Array.from({ length: 12 }, (_, i) => p2(i * 5)).map((x) => (
+              <button type="button" key={x} className={"pgtp-c" + (x === m ? " sel" : "")}
+                onClick={() => { setM(x); ok(h, x); }}>{x}</button>))}
+        </div>
+        <div className="pgtp-f">
+          <button type="button" className="pgtp-b" onClick={onClose}>ยกเลิก</button>
+          <button type="button" className="pgtp-b pri" disabled={!h} onClick={() => ok(h, m)}>ตกลง</button>
+        </div>
+      </div>
+    </div>, document.body);
+}
 function PgTime({ value, onChange, disabled, min, max, style, placeholder, ariaLabel }) {
   const [txt, setTxt] = React.useState(value || "");
   const [typing, setTyping] = React.useState(false);
+  const [pop, setPop] = React.useState(false);
+  const ref = React.useRef(null);
+  /* จอสัมผัส: ไม่เด้งคีย์บอร์ด ให้กดเลือกจากนาฬิกาอย่างเดียว */
+  const touch = React.useMemo(() => { try { return window.matchMedia("(pointer: coarse)").matches; } catch (e) { return false; } }, []);
   /* ระหว่างพิมพ์อย่าเอาค่าจากข้างนอกมาทับ ไม่งั้นพิมพ์เลขแรกแล้วถูกดีดกลับทันที */
   React.useEffect(() => { if (!typing) setTxt(value || ""); }, [value, typing]);
 
   const type = (e) => {
     let t = String(e.target.value).replace(/[^0-9:]/g, "").slice(0, 5);
-    if (t.indexOf(":") < 0 && t.length > 2) t = t.slice(0, t.length - 2) + ":" + t.slice(-2);
+    /* เติม : ให้เฉพาะตอนพิมพ์ครบ 4 ตัว — เดิมเติมตั้งแต่ตัวที่ 3 พิมพ์ 1730 กลายเป็น 1:73 → 01:59 */
+    if (t.indexOf(":") < 0 && t.length === 4) t = t.slice(0, 2) + ":" + t.slice(2);
     setTyping(true);
     setTxt(t);
     /* ครบรูปแล้วส่งออกทันที ไม่ต้องรอออกจากช่อง — ที่เหลือค่อยจัดให้ตอน blur */
@@ -656,10 +720,16 @@ function PgTime({ value, onChange, disabled, min, max, style, placeholder, ariaL
   };
 
   return (
-    <input type="text" inputMode="numeric" value={txt} disabled={disabled} aria-label={ariaLabel}
-      placeholder={placeholder || "--:--"} onChange={type} onBlur={done}
-      onKeyDown={(e) => { if (e.key === "Enter") e.currentTarget.blur(); }}
-      style={style} />
+    <React.Fragment>
+      <input ref={ref} type="text" inputMode="numeric" value={txt} disabled={disabled} aria-label={ariaLabel}
+        readOnly={touch} placeholder={placeholder || "--:--"} onChange={type} onBlur={done}
+        onClick={() => { if (!disabled) setPop(true); }}
+        onKeyDown={(e) => { if (e.key === "Enter") { setPop(false); e.currentTarget.blur(); } else if (e.key !== "Tab") setPop(false); }}
+        style={Object.assign({ cursor: "pointer" }, style)} />
+      {pop && <PgTimePop anchor={ref.current} value={value} min={min} max={max}
+        onPick={(v) => { setTyping(false); setTxt(v); if (v !== (value || "")) onChange(v); }}
+        onClose={() => setPop(false)} />}
+    </React.Fragment>
   );
 }
 

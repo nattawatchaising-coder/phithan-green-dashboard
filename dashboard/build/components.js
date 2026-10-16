@@ -1022,6 +1022,117 @@ function pgTimeFix(raw, min, max) {
   }
   return out;
 }
+const PGTP_CSS = `
+.pgtp-wrap{position:fixed;inset:0;z-index:10050}
+.pgtp{position:fixed;width:300px;box-sizing:border-box;padding:12px;border-radius:var(--r-card);background:var(--bg,#fff);color:var(--text-1);
+  box-shadow:var(--shadow-card),0 28px 56px -16px rgba(15,43,51,.22);font-family:inherit}
+.pgtp-big{display:flex;justify-content:center;align-items:baseline;gap:4px;font-family:var(--mono);font-size:30px;font-weight:800;padding:2px 0 10px}
+.pgtp-big button{border:none;background:none;font:inherit;color:var(--text-3);cursor:pointer;padding:0 6px;border-radius:10px}
+.pgtp-big button.on{color:var(--primary-dark);background:var(--primary-soft)}
+.pgtp-lb{font-size:11.5px;font-weight:700;color:var(--text-3);margin:2px 2px 6px}
+.pgtp-g{display:grid;grid-template-columns:repeat(6,1fr);gap:4px;background:var(--surface2);border-radius:14px;padding:6px;box-shadow:var(--shadow-inset)}
+.pgtp-c{height:36px;border:none;border-radius:var(--r-pill);background:transparent;font-family:var(--mono);font-size:13.5px;font-weight:700;color:var(--text-1);cursor:pointer;padding:0}
+.pgtp-c:hover{background:var(--primary-soft);color:var(--primary-dark)}
+.pgtp-c.sel,.pgtp-c.sel:hover{background:var(--primary);color:#fff}
+.pgtp-f{display:flex;gap:8px;margin-top:10px}
+.pgtp-b{flex:1;height:40px;border:none;border-radius:var(--r-tile);font-family:inherit;font-size:13px;font-weight:700;cursor:pointer;background:var(--surface2);color:var(--text-2);box-shadow:var(--shadow-sm)}
+.pgtp-b.pri{background:var(--primary-soft);color:var(--primary-dark)}
+@media (max-width:559px){.pgtp-wrap{background:rgba(8,20,14,.36)}
+  .pgtp{left:50% !important;top:auto !important;bottom:max(14px,env(safe-area-inset-bottom));width:min(360px,calc(100vw - 24px));transform:translateX(-50%)}}`;
+function PgTimePop({
+  anchor,
+  value,
+  min,
+  max,
+  onPick,
+  onClose
+}) {
+  React.useEffect(() => {
+    if (document.getElementById("pgtp-css")) return;
+    const st = document.createElement("style");
+    st.id = "pgtp-css";
+    st.textContent = PGTP_CSS;
+    document.head.appendChild(st);
+  }, []);
+  const v = /^\d{2}:\d{2}$/.test(value || "") ? value : "";
+  const [h, setH] = React.useState(v ? v.slice(0, 2) : "");
+  const [m, setM] = React.useState(v ? v.slice(3) : "");
+  const [step, setStep] = React.useState("h");
+  const p2 = x => (x < 10 ? "0" : "") + x;
+  const r = anchor ? anchor.getBoundingClientRect() : {
+    left: 0,
+    bottom: 0,
+    top: 0
+  };
+  const W = 300,
+    H = 400;
+  const left = Math.max(8, Math.min(r.left, window.innerWidth - W - 8));
+  const top = r.bottom + 6 + H > window.innerHeight ? Math.max(8, r.top - 6 - H) : r.bottom + 6;
+  const ok = (hh, mm) => {
+    onPick(pgTimeFix((hh || "00") + ":" + (mm || "00"), min, max));
+    onClose();
+  };
+  return ReactDOM.createPortal(React.createElement("div", {
+    className: "pgtp-wrap",
+    onMouseDown: e => {
+      if (e.target === e.currentTarget) onClose();
+    }
+  }, React.createElement("div", {
+    className: "pgtp",
+    role: "dialog",
+    "aria-label": "\u0E40\u0E25\u0E37\u0E2D\u0E01\u0E40\u0E27\u0E25\u0E32",
+    style: {
+      left: left,
+      top: top
+    }
+  }, React.createElement("div", {
+    className: "pgtp-big"
+  }, React.createElement("button", {
+    type: "button",
+    className: step === "h" ? "on" : "",
+    onClick: () => setStep("h")
+  }, h || "--"), ":", React.createElement("button", {
+    type: "button",
+    className: step === "m" ? "on" : "",
+    onClick: () => setStep("m")
+  }, m || "--")), React.createElement("div", {
+    className: "pgtp-lb"
+  }, step === "h" ? "เลือกชั่วโมง" : "เลือกนาที"), React.createElement("div", {
+    className: "pgtp-g"
+  }, step === "h" ? Array.from({
+    length: 24
+  }, (_, i) => p2(i)).map(x => React.createElement("button", {
+    type: "button",
+    key: x,
+    className: "pgtp-c" + (x === h ? " sel" : ""),
+    onClick: () => {
+      setH(x);
+      if (!m) setM("00");
+      setStep("m");
+    }
+  }, x)) : Array.from({
+    length: 12
+  }, (_, i) => p2(i * 5)).map(x => React.createElement("button", {
+    type: "button",
+    key: x,
+    className: "pgtp-c" + (x === m ? " sel" : ""),
+    onClick: () => {
+      setM(x);
+      ok(h, x);
+    }
+  }, x))), React.createElement("div", {
+    className: "pgtp-f"
+  }, React.createElement("button", {
+    type: "button",
+    className: "pgtp-b",
+    onClick: onClose
+  }, "\u0E22\u0E01\u0E40\u0E25\u0E34\u0E01"), React.createElement("button", {
+    type: "button",
+    className: "pgtp-b pri",
+    disabled: !h,
+    onClick: () => ok(h, m)
+  }, "\u0E15\u0E01\u0E25\u0E07")))), document.body);
+}
 function PgTime({
   value,
   onChange,
@@ -1034,12 +1145,21 @@ function PgTime({
 }) {
   const [txt, setTxt] = React.useState(value || "");
   const [typing, setTyping] = React.useState(false);
+  const [pop, setPop] = React.useState(false);
+  const ref = React.useRef(null);
+  const touch = React.useMemo(() => {
+    try {
+      return window.matchMedia("(pointer: coarse)").matches;
+    } catch (e) {
+      return false;
+    }
+  }, []);
   React.useEffect(() => {
     if (!typing) setTxt(value || "");
   }, [value, typing]);
   const type = e => {
     let t = String(e.target.value).replace(/[^0-9:]/g, "").slice(0, 5);
-    if (t.indexOf(":") < 0 && t.length > 2) t = t.slice(0, t.length - 2) + ":" + t.slice(-2);
+    if (t.indexOf(":") < 0 && t.length === 4) t = t.slice(0, 2) + ":" + t.slice(2);
     setTyping(true);
     setTxt(t);
     if (/^([01]?[0-9]|2[0-3]):[0-5][0-9]$/.test(t)) {
@@ -1053,20 +1173,41 @@ function PgTime({
     setTxt(fix);
     if (fix !== (value || "")) onChange(fix);
   };
-  return React.createElement("input", {
+  return React.createElement(React.Fragment, null, React.createElement("input", {
+    ref: ref,
     type: "text",
     inputMode: "numeric",
     value: txt,
     disabled: disabled,
     "aria-label": ariaLabel,
+    readOnly: touch,
     placeholder: placeholder || "--:--",
     onChange: type,
     onBlur: done,
-    onKeyDown: e => {
-      if (e.key === "Enter") e.currentTarget.blur();
+    onClick: () => {
+      if (!disabled) setPop(true);
     },
-    style: style
-  });
+    onKeyDown: e => {
+      if (e.key === "Enter") {
+        setPop(false);
+        e.currentTarget.blur();
+      } else if (e.key !== "Tab") setPop(false);
+    },
+    style: Object.assign({
+      cursor: "pointer"
+    }, style)
+  }), pop && React.createElement(PgTimePop, {
+    anchor: ref.current,
+    value: value,
+    min: min,
+    max: max,
+    onPick: v => {
+      setTyping(false);
+      setTxt(v);
+      if (v !== (value || "")) onChange(v);
+    },
+    onClose: () => setPop(false)
+  }));
 }
 function pgSetViewer(u) {
   const a = !!u && !!window.hasRole && window.hasRole(window.userRoles(u), "admin");
