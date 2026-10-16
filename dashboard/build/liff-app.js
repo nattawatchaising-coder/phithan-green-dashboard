@@ -713,12 +713,13 @@ function LnClock({
   const left = Math.max(0, window.tmWhNorm(cfg).workMins - worked);
   const closed = !open && !!(today && today.in && today.in.hm);
   const shifts = (today && Array.isArray(today.extra) ? today.extra : []).filter(x => x && x.in && x.in.hm);
-  const jobPick = React.useMemo(() => (jobs || []).filter(j => jobType === "all" || j.type === jobType).slice(0, 80), [jobs, jobType]);
+  const jobPick = React.useMemo(() => (jobs || []).filter(j => jobType === "all" || jobType === "txt" || j.type === jobType).slice(0, 80), [jobs, jobType]);
   const [jobTxt, setJobTxt] = React.useState("");
   React.useEffect(() => {
     if (today && today.jobId) setJobId(today.jobId);else if (today && today.jobCode) {
       setJobId(LN_JOB_TXT);
       setJobTxt(today.jobCode);
+      setJobType("txt");
     }
     if (today && today.place) setPlace(today.place);
   }, [today && today.jobId, today && today.jobCode, today && today.place]);
@@ -975,10 +976,21 @@ function LnClock({
   }, [{
     key: "all",
     th: "ทั้งหมด"
-  }].concat(window.SF.TYPES).map(t => React.createElement("button", {
+  }].concat(window.SF.TYPES, [{
+    key: "txt",
+    th: "พิมพ์เอง"
+  }]).map(t => React.createElement("button", {
     key: t.key,
     onClick: () => {
       setJobType(t.key);
+      if (t.key === "txt") {
+        setJobId(LN_JOB_TXT);
+        return;
+      }
+      if (jobId === LN_JOB_TXT) {
+        setJobId("");
+        return;
+      }
       const cur = (jobs || []).find(x => x.id === jobId);
       if (cur && t.key !== "all" && cur.type !== t.key) setJobId("");
     },
@@ -995,27 +1007,22 @@ function LnClock({
       background: jobType === t.key ? "var(--primary-soft)" : "var(--surface)",
       color: jobType === t.key ? "var(--primary-dark)" : "var(--text-2)"
     }
-  }, t.th))), React.createElement("select", {
+  }, t.th))), jobId === LN_JOB_TXT ? React.createElement("input", {
+    value: jobTxt,
+    onChange: e => setJobTxt(e.target.value),
+    maxLength: 80,
+    placeholder: "\u0E17\u0E33\u0E07\u0E32\u0E19\u0E2D\u0E30\u0E44\u0E23 \u0E40\u0E0A\u0E48\u0E19 \u0E2A\u0E33\u0E23\u0E27\u0E08\u0E25\u0E39\u0E01\u0E04\u0E49\u0E32\u0E43\u0E2B\u0E21\u0E48 \u0E1A\u0E32\u0E07\u0E19\u0E32",
+    style: LN_FIELD
+  }) : React.createElement("select", {
     value: jobId,
     onChange: e => setJobId(e.target.value),
     style: LN_FIELD
   }, React.createElement("option", {
     value: ""
-  }, "\u2014 \u0E44\u0E21\u0E48\u0E23\u0E30\u0E1A\u0E38 \u2014"), React.createElement("option", {
-    value: LN_JOB_TXT
-  }, "\u270E \u0E1E\u0E34\u0E21\u0E1E\u0E4C\u0E40\u0E2D\u0E07 (\u0E40\u0E0A\u0E48\u0E19 \u0E2A\u0E33\u0E23\u0E27\u0E08\u0E25\u0E39\u0E01\u0E04\u0E49\u0E32\u0E43\u0E2B\u0E21\u0E48)"), jobPick.map(j => React.createElement("option", {
+  }, "\u2014 \u0E44\u0E21\u0E48\u0E23\u0E30\u0E1A\u0E38 \u2014"), jobPick.map(j => React.createElement("option", {
     key: j.id,
     value: j.id
-  }, j.code, " \xB7 ", j.name))), jobId === LN_JOB_TXT && React.createElement("input", {
-    value: jobTxt,
-    onChange: e => setJobTxt(e.target.value),
-    maxLength: 80,
-    autoFocus: true,
-    placeholder: "\u0E40\u0E0A\u0E48\u0E19 \u0E2A\u0E33\u0E23\u0E27\u0E08\u0E2B\u0E19\u0E49\u0E32\u0E07\u0E32\u0E19 \u0E1A\u0E49\u0E32\u0E19\u0E04\u0E38\u0E13\u0E2A\u0E21\u0E0A\u0E32\u0E22 \u0E1A\u0E32\u0E07\u0E19\u0E32",
-    style: Object.assign({}, LN_FIELD, {
-      marginTop: 7
-    })
-  }), jobPick.length === 0 && jobId !== LN_JOB_TXT && React.createElement("div", {
+  }, j.code, " \xB7 ", j.name))), jobPick.length === 0 && jobId !== LN_JOB_TXT && React.createElement("div", {
     style: {
       marginTop: 5,
       fontSize: 11,
@@ -1500,27 +1507,48 @@ function LnOtForm({
     }
   }, window.tmOtKindOf(calc.kind).th, calc.parts && calc.parts.length ? " · " + window.tmOtPartsTH(calc.parts) : workday ? " · นับตามช่วงที่กรอก ×" + window.tmOtRate(calc, cfg) : "", !workday && React.createElement("div", null, "\u0E27\u0E31\u0E19\u0E2B\u0E22\u0E38\u0E14: ", window.tmDur(c.workMins), " \u0E41\u0E23\u0E01 (\u0E2B\u0E31\u0E01\u0E1E\u0E31\u0E01 ", window.tmDur(c.lunchMins), ") \xD7", c.otRates.holiday, " \xB7 \u0E40\u0E01\u0E34\u0E19\u0E08\u0E32\u0E01\u0E19\u0E31\u0E49\u0E19 \xD7", c.otRates.holidayOt))), React.createElement(LnField, {
     label: "\u0E07\u0E32\u0E19\u0E17\u0E35\u0E48\u0E40\u0E01\u0E35\u0E48\u0E22\u0E27\u0E02\u0E49\u0E2D\u0E07 (\u0E44\u0E21\u0E48\u0E1A\u0E31\u0E07\u0E04\u0E31\u0E1A)"
-  }, React.createElement("select", {
+  }, React.createElement("div", {
+    style: {
+      display: "flex",
+      gap: 7,
+      marginBottom: 7
+    }
+  }, [["list", "เลือกจากรายการ"], ["txt", "พิมพ์เอง"]].map(([k, th]) => {
+    const on = f.jobId === LN_JOB_TXT === (k === "txt");
+    return React.createElement("button", {
+      key: k,
+      type: "button",
+      onClick: () => set("jobId", k === "txt" ? LN_JOB_TXT : null),
+      style: {
+        flex: 1,
+        padding: "8px 6px",
+        borderRadius: 13,
+        cursor: "pointer",
+        fontFamily: "inherit",
+        fontSize: 12.5,
+        fontWeight: 800,
+        border: "none",
+        boxShadow: on ? "inset 0 0 0 1px var(--primary)" : "var(--shadow-sm)",
+        background: on ? "var(--primary-soft)" : "var(--surface)",
+        color: on ? "var(--primary-dark)" : "var(--text-2)"
+      }
+    }, th);
+  })), f.jobId === LN_JOB_TXT ? React.createElement("input", {
+    value: f.jobTxt || "",
+    onChange: e => set("jobTxt", e.target.value),
+    maxLength: 80,
+    placeholder: "\u0E17\u0E33\u0E07\u0E32\u0E19\u0E2D\u0E30\u0E44\u0E23 \u0E40\u0E0A\u0E48\u0E19 \u0E2A\u0E33\u0E23\u0E27\u0E08\u0E25\u0E39\u0E01\u0E04\u0E49\u0E32\u0E43\u0E2B\u0E21\u0E48 \u0E1A\u0E32\u0E07\u0E19\u0E32",
+    style: LN_FIELD
+  }) : React.createElement("select", {
     value: f.jobId || "",
     onChange: e => set("jobId", e.target.value || null),
     style: LN_FIELD
   }, React.createElement("option", {
     value: ""
-  }, "\u2014 \u0E44\u0E21\u0E48\u0E23\u0E30\u0E1A\u0E38 \u2014"), React.createElement("option", {
-    value: LN_JOB_TXT
-  }, "\u270E \u0E1E\u0E34\u0E21\u0E1E\u0E4C\u0E40\u0E2D\u0E07 (\u0E40\u0E0A\u0E48\u0E19 \u0E2A\u0E33\u0E23\u0E27\u0E08\u0E25\u0E39\u0E01\u0E04\u0E49\u0E32\u0E43\u0E2B\u0E21\u0E48)"), (jobs || []).slice(0, 80).map(j => React.createElement("option", {
+  }, "\u2014 \u0E44\u0E21\u0E48\u0E23\u0E30\u0E1A\u0E38 \u2014"), (jobs || []).slice(0, 80).map(j => React.createElement("option", {
     key: j.id,
     value: j.id
-  }, j.code, " \xB7 ", j.name))), f.jobId === LN_JOB_TXT && React.createElement("input", {
-    value: f.jobTxt || "",
-    onChange: e => set("jobTxt", e.target.value),
-    maxLength: 80,
-    autoFocus: true,
-    placeholder: "\u0E40\u0E0A\u0E48\u0E19 \u0E2A\u0E33\u0E23\u0E27\u0E08\u0E2B\u0E19\u0E49\u0E32\u0E07\u0E32\u0E19 \u0E1A\u0E49\u0E32\u0E19\u0E04\u0E38\u0E13\u0E2A\u0E21\u0E0A\u0E32\u0E22 \u0E1A\u0E32\u0E07\u0E19\u0E32",
-    style: Object.assign({}, LN_FIELD, {
-      marginTop: 7
-    })
-  })), React.createElement(LnField, {
+  }, j.code, " \xB7 ", j.name)))), React.createElement(LnField, {
     label: "\u0E2A\u0E48\u0E07\u0E43\u0E2B\u0E49\u0E43\u0E04\u0E23\u0E2D\u0E19\u0E38\u0E21\u0E31\u0E15\u0E34"
   }, React.createElement("select", {
     value: f.approverId || "",

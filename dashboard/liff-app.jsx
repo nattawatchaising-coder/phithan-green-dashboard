@@ -486,7 +486,7 @@ function LnClock({ me, cfg, jobs, ot, onAskOt }) {
   const shifts = (today && Array.isArray(today.extra) ? today.extra : [])
     .filter((x) => x && x.in && x.in.hm);
   const jobPick = React.useMemo(
-    () => (jobs || []).filter((j) => jobType === "all" || j.type === jobType).slice(0, 80),
+    () => (jobs || []).filter((j) => jobType === "all" || jobType === "txt" || j.type === jobType).slice(0, 80),
     [jobs, jobType]);
 
   /* งานที่ไม่มีในระบบ เช่น สำรวจลูกค้าใหม่ (ผู้ใช้ ต.ค. 2026) — พิมพ์เอง เก็บลง jobCode ตรง ๆ ไม่มี jobId
@@ -494,7 +494,7 @@ function LnClock({ me, cfg, jobs, ot, onAskOt }) {
   const [jobTxt, setJobTxt] = React.useState("");
   React.useEffect(() => {
     if (today && today.jobId) setJobId(today.jobId);
-    else if (today && today.jobCode) { setJobId(LN_JOB_TXT); setJobTxt(today.jobCode); }
+    else if (today && today.jobCode) { setJobId(LN_JOB_TXT); setJobTxt(today.jobCode); setJobType("txt"); }
     if (today && today.place) setPlace(today.place);
   }, [today && today.jobId, today && today.jobCode, today && today.place]);
 
@@ -637,9 +637,12 @@ function LnClock({ me, cfg, jobs, ot, onAskOt }) {
           {/* ชิปประเภทงาน — ตัดรายการใน select ให้สั้นลงก่อนหา
               ไม่ได้กรองใบลงเวลา — เลือกงานไหนก็บันทึกงานนั้น ชิปนี้แค่ช่วยหา */}
           <div style={{ display: "flex", gap: 7, marginBottom: 7 }}>
-            {[{ key: "all", th: "ทั้งหมด" }].concat(window.SF.TYPES).map((t) => (
+            {/* "พิมพ์เอง" เป็นชิปตัวสุดท้าย ไม่ใส่ไว้ในดรอปดาวน์ (ผู้ใช้: ใส่ในดรอปดาวน์แล้วดูไม่ดี) */}
+            {[{ key: "all", th: "ทั้งหมด" }].concat(window.SF.TYPES, [{ key: "txt", th: "พิมพ์เอง" }]).map((t) => (
               <button key={t.key} onClick={() => {
                 setJobType(t.key);
+                if (t.key === "txt") { setJobId(LN_JOB_TXT); return; }
+                if (jobId === LN_JOB_TXT) { setJobId(""); return; }
                 /* งานที่เลือกค้างไว้หลุดจากรายการแล้วต้องล้าง ไม่งั้นจะค้างอยู่แบบมองไม่เห็น */
                 const cur = (jobs || []).find((x) => x.id === jobId);
                 if (cur && t.key !== "all" && cur.type !== t.key) setJobId("");
@@ -653,15 +656,13 @@ function LnClock({ me, cfg, jobs, ot, onAskOt }) {
               </button>
             ))}
           </div>
-          <select value={jobId} onChange={(e) => setJobId(e.target.value)} style={LN_FIELD}>
-            <option value="">— ไม่ระบุ —</option>
-            <option value={LN_JOB_TXT}>✎ พิมพ์เอง (เช่น สำรวจลูกค้าใหม่)</option>
-            {jobPick.map((j) => <option key={j.id} value={j.id}>{j.code} · {j.name}</option>)}
-          </select>
-          {jobId === LN_JOB_TXT && (
-            <input value={jobTxt} onChange={(e) => setJobTxt(e.target.value)} maxLength={80} autoFocus
-              placeholder="เช่น สำรวจหน้างาน บ้านคุณสมชาย บางนา" style={Object.assign({}, LN_FIELD, { marginTop: 7 })} />
-          )}
+          {jobId === LN_JOB_TXT
+            ? <input value={jobTxt} onChange={(e) => setJobTxt(e.target.value)} maxLength={80}
+                placeholder="ทำงานอะไร เช่น สำรวจลูกค้าใหม่ บางนา" style={LN_FIELD} />
+            : <select value={jobId} onChange={(e) => setJobId(e.target.value)} style={LN_FIELD}>
+                <option value="">— ไม่ระบุ —</option>
+                {jobPick.map((j) => <option key={j.id} value={j.id}>{j.code} · {j.name}</option>)}
+              </select>}
           {jobPick.length === 0 && jobId !== LN_JOB_TXT && (
             <div style={{ marginTop: 5, fontSize: 11, color: "var(--text-3)" }}>ไม่มีงานประเภทนี้ในมือ — ลงเวลาโดยไม่ระบุงานก็ได้</div>
           )}
@@ -989,15 +990,24 @@ function LnOtForm({ me, users, cfg, jobs, otStore, limit, onClose }) {
         </div>
 
         <LnField label="งานที่เกี่ยวข้อง (ไม่บังคับ)">
-          <select value={f.jobId || ""} onChange={(e) => set("jobId", e.target.value || null)} style={LN_FIELD}>
-            <option value="">— ไม่ระบุ —</option>
-            <option value={LN_JOB_TXT}>✎ พิมพ์เอง (เช่น สำรวจลูกค้าใหม่)</option>
-            {(jobs || []).slice(0, 80).map((j) => <option key={j.id} value={j.id}>{j.code} · {j.name}</option>)}
-          </select>
-          {f.jobId === LN_JOB_TXT && (
-            <input value={f.jobTxt || ""} onChange={(e) => set("jobTxt", e.target.value)} maxLength={80} autoFocus
-              placeholder="เช่น สำรวจหน้างาน บ้านคุณสมชาย บางนา" style={Object.assign({}, LN_FIELD, { marginTop: 7 })} />
-          )}
+          <div style={{ display: "flex", gap: 7, marginBottom: 7 }}>
+            {[["list", "เลือกจากรายการ"], ["txt", "พิมพ์เอง"]].map(([k, th]) => {
+              const on = (f.jobId === LN_JOB_TXT) === (k === "txt");
+              return (
+                <button key={k} type="button" onClick={() => set("jobId", k === "txt" ? LN_JOB_TXT : null)}
+                  style={{ flex: 1, padding: "8px 6px", borderRadius: 13, cursor: "pointer", fontFamily: "inherit", fontSize: 12.5, fontWeight: 800,
+                    border: "none", boxShadow: on ? "inset 0 0 0 1px var(--primary)" : "var(--shadow-sm)",
+                    background: on ? "var(--primary-soft)" : "var(--surface)", color: on ? "var(--primary-dark)" : "var(--text-2)" }}>{th}</button>
+              );
+            })}
+          </div>
+          {f.jobId === LN_JOB_TXT
+            ? <input value={f.jobTxt || ""} onChange={(e) => set("jobTxt", e.target.value)} maxLength={80}
+                placeholder="ทำงานอะไร เช่น สำรวจลูกค้าใหม่ บางนา" style={LN_FIELD} />
+            : <select value={f.jobId || ""} onChange={(e) => set("jobId", e.target.value || null)} style={LN_FIELD}>
+                <option value="">— ไม่ระบุ —</option>
+                {(jobs || []).slice(0, 80).map((j) => <option key={j.id} value={j.id}>{j.code} · {j.name}</option>)}
+              </select>}
         </LnField>
 
         {/* ── ส่งให้ใครอนุมัติ ──
