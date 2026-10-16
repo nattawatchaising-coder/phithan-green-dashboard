@@ -1024,22 +1024,20 @@ function pgTimeFix(raw, min, max) {
 }
 const PGTP_CSS = `
 .pgtp-wrap{position:fixed;inset:0;z-index:10050}
-.pgtp{position:fixed;width:300px;box-sizing:border-box;padding:12px;border-radius:var(--r-card);background:var(--bg,#fff);color:var(--text-1);
-  box-shadow:var(--shadow-card),0 28px 56px -16px rgba(15,43,51,.22);font-family:inherit}
-.pgtp-big{text-align:center;font-family:var(--mono);font-size:28px;font-weight:800;color:var(--primary-dark);padding:0 0 8px}
-.pgtp-lb{font-size:11.5px;font-weight:700;color:var(--text-3);margin:4px 2px 6px;display:flex;justify-content:space-between;align-items:center}
-.pgtp-g{display:grid;grid-template-columns:repeat(6,1fr);gap:4px;background:var(--surface2);border-radius:14px;padding:6px;box-shadow:var(--shadow-inset)}
-.pgtp-g.m4{grid-template-columns:repeat(4,1fr)}
-.pgtp-c{height:36px;border:none;border-radius:var(--r-pill);background:transparent;font-family:var(--mono);font-size:13.5px;font-weight:700;color:var(--text-1);cursor:pointer;padding:0}
-.pgtp-g.m4 .pgtp-c{height:40px;font-size:15px}
-.pgtp-c:hover{background:var(--primary-soft);color:var(--primary-dark)}
-.pgtp-c.sel,.pgtp-c.sel:hover{background:var(--primary);color:#fff}
-.pgtp-x{border:none;background:none;padding:0;font-family:inherit;font-size:11.5px;font-weight:700;color:var(--primary);cursor:pointer}
-.pgtp-f{display:flex;gap:8px;margin-top:10px}
+.pgtp{position:fixed;width:300px;box-sizing:border-box;padding:16px 16px 12px;border-radius:var(--r-card);background:var(--bg,#fff);color:var(--text-1);
+  box-shadow:var(--shadow-card),0 28px 56px -16px rgba(15,43,51,.22);font-family:inherit;user-select:none;-webkit-user-select:none}
+.pgtp-t{font-size:13px;font-weight:700;color:var(--text-3);margin:0 2px 8px}
+.pgtp-big{display:flex;align-items:center;justify-content:center;gap:6px;margin-bottom:14px}
+.pgtp-big button{border:none;width:88px;height:68px;border-radius:14px;font-family:var(--mono);font-size:40px;font-weight:700;cursor:pointer;
+  background:var(--surface2);color:var(--text-1);padding:0}
+.pgtp-big button.on{background:var(--primary);color:#fff}
+.pgtp-big span{font-family:var(--mono);font-size:36px;font-weight:800;color:var(--text-1)}
+.pgtp-dial{display:block;margin:0 auto;touch-action:none;cursor:pointer}
+.pgtp-f{display:flex;gap:8px;margin-top:12px}
 .pgtp-b{flex:1;height:40px;border:none;border-radius:var(--r-tile);font-family:inherit;font-size:13px;font-weight:700;cursor:pointer;background:var(--surface2);color:var(--text-2);box-shadow:var(--shadow-sm)}
 .pgtp-b.pri{background:var(--primary-soft);color:var(--primary-dark)}
 @media (max-width:559px){.pgtp-wrap{background:rgba(8,20,14,.36)}
-  .pgtp{left:50% !important;top:auto !important;bottom:max(14px,env(safe-area-inset-bottom));width:min(360px,calc(100vw - 24px));transform:translateX(-50%)}}`;
+  .pgtp{left:50% !important;top:auto !important;bottom:max(14px,env(safe-area-inset-bottom));width:min(340px,calc(100vw - 24px));transform:translateX(-50%)}}`;
 function PgTimePop({
   anchor,
   value,
@@ -1057,27 +1055,114 @@ function PgTimePop({
     document.head.appendChild(st);
   }, []);
   const v = /^\d{2}:\d{2}$/.test(value || "") ? value : "";
-  const [h, setH] = React.useState(v ? v.slice(0, 2) : "");
-  const [m, setM] = React.useState(v ? v.slice(3) : "00");
+  const [h, setH] = React.useState(v ? +v.slice(0, 2) : 8);
+  const [m, setM] = React.useState(v ? +v.slice(3) : 0);
+  const [mode, setMode] = React.useState("h");
+  const drag = React.useRef(false);
+  const svg = React.useRef(null);
   const p2 = x => (x < 10 ? "0" : "") + x;
-  const MAIN = ["00", "15", "30", "45"];
-  const [fine, setFine] = React.useState(MAIN.indexOf(m) < 0);
+  const S = 240,
+    C = S / 2,
+    RO = 98,
+    RI = 62;
+  const pick = (e, snap) => {
+    const b = svg.current.getBoundingClientRect();
+    const x = (e.clientX - b.left) * S / b.width - C,
+      y = (e.clientY - b.top) * S / b.height - C;
+    let ang = Math.atan2(x, -y) * 180 / Math.PI;
+    if (ang < 0) ang += 360;
+    const dist = Math.sqrt(x * x + y * y);
+    if (mode === "h") {
+      const i = Math.round(ang / 30) % 12;
+      setH(dist < (RO + RI) / 2 ? i + 12 : i);
+    } else {
+      let mm = Math.round(ang / 6) % 60;
+      if (snap) mm = Math.round(mm / 5) * 5 % 60;
+      setM(mm);
+    }
+  };
+  const moved = React.useRef(false);
+  const down = e => {
+    drag.current = true;
+    moved.current = false;
+    try {
+      e.currentTarget.setPointerCapture(e.pointerId);
+    } catch (er) {}
+    pick(e, false);
+  };
+  const move = e => {
+    if (drag.current) {
+      moved.current = true;
+      pick(e, false);
+    }
+  };
+  const up = e => {
+    if (!drag.current) return;
+    drag.current = false;
+    pick(e, mode === "m" && !moved.current);
+    if (mode === "h") setMode("m");
+  };
+  const pos = (i, r) => {
+    const a = i * 30 * Math.PI / 180;
+    return [C + r * Math.sin(a), C - r * Math.cos(a)];
+  };
+  const selI = mode === "h" ? h % 12 : m / 5;
+  const selR = mode === "h" ? h >= 12 ? RI : RO : RO;
+  const [kx, ky] = pos(selI, selR);
   const r = anchor ? anchor.getBoundingClientRect() : {
     left: 0,
     bottom: 0,
     top: 0
   };
   const W = 300,
-    H = 380;
+    H = 440;
   const left = Math.max(8, Math.min(r.left, window.innerWidth - W - 8));
   const top = r.bottom + 6 + H > window.innerHeight ? Math.max(8, r.top - 6 - H) : r.bottom + 6;
-  const ok = (hh, mm) => {
-    onPick(pgTimeFix((hh || "00") + ":" + (mm || "00"), min, max));
+  const ok = () => {
+    onPick(pgTimeFix(p2(h) + ":" + p2(m), min, max));
     onClose();
   };
-  const mins = fine ? Array.from({
-    length: 12
-  }, (_, i) => p2(i * 5)) : MAIN;
+  const nums = [];
+  for (let i = 0; i < 12; i++) {
+    if (mode === "h") {
+      [[i, RO, 15], [i + 12, RI, 12.5]].forEach(([val, rad, fs]) => {
+        const [x, y] = pos(i, rad),
+          on = val === h;
+        nums.push(React.createElement("text", {
+          key: val,
+          x: x,
+          y: y,
+          textAnchor: "middle",
+          dominantBaseline: "central",
+          fontSize: fs,
+          fontWeight: on ? 800 : 600,
+          fill: on ? "#fff" : rad === RO ? "var(--text-1)" : "var(--text-2)",
+          style: {
+            pointerEvents: "none"
+          }
+        }, p2(val)));
+      });
+    } else {
+      const val = i * 5,
+        [x, y] = pos(i, RO),
+        on = val === m;
+      nums.push(React.createElement("text", {
+        key: val,
+        x: x,
+        y: y,
+        textAnchor: "middle",
+        dominantBaseline: "central",
+        fontSize: 15,
+        fontWeight: on ? 800 : 600,
+        fill: on ? "#fff" : "var(--text-1)",
+        style: {
+          pointerEvents: "none"
+        }
+      }, p2(val)));
+    }
+  }
+  const hx = kx,
+    hy = ky;
   return ReactDOM.createPortal(React.createElement("div", {
     className: "pgtp-wrap",
     onMouseDown: e => {
@@ -1092,35 +1177,49 @@ function PgTimePop({
       top: top
     }
   }, React.createElement("div", {
+    className: "pgtp-t"
+  }, mode === "h" ? "เลือกชั่วโมง" : "เลือกนาที"), React.createElement("div", {
     className: "pgtp-big"
-  }, h || "--", ":", m || "--"), React.createElement("div", {
-    className: "pgtp-lb"
-  }, React.createElement("span", null, "\u0E0A\u0E31\u0E48\u0E27\u0E42\u0E21\u0E07")), React.createElement("div", {
-    className: "pgtp-g"
-  }, Array.from({
-    length: 24
-  }, (_, i) => p2(i)).map(x => React.createElement("button", {
+  }, React.createElement("button", {
     type: "button",
-    key: x,
-    className: "pgtp-c" + (x === h ? " sel" : ""),
-    onClick: () => setH(x)
-  }, x))), React.createElement("div", {
-    className: "pgtp-lb"
-  }, React.createElement("span", null, "\u0E19\u0E32\u0E17\u0E35 ", h ? "— แตะแล้วเสร็จเลย" : ""), React.createElement("button", {
+    className: mode === "h" ? "on" : "",
+    onClick: () => setMode("h")
+  }, p2(h)), React.createElement("span", null, ":"), React.createElement("button", {
     type: "button",
-    className: "pgtp-x",
-    onClick: () => setFine(!fine)
-  }, fine ? "แบบย่อ" : "นาทีอื่น")), React.createElement("div", {
-    className: "pgtp-g" + (fine ? "" : " m4")
-  }, mins.map(x => React.createElement("button", {
-    type: "button",
-    key: x,
-    className: "pgtp-c" + (x === m ? " sel" : ""),
-    onClick: () => {
-      setM(x);
-      if (h) ok(h, x);
-    }
-  }, x))), React.createElement("div", {
+    className: mode === "m" ? "on" : "",
+    onClick: () => setMode("m")
+  }, p2(m))), React.createElement("svg", {
+    ref: svg,
+    className: "pgtp-dial",
+    width: S,
+    height: S,
+    viewBox: "0 0 " + S + " " + S,
+    onPointerDown: down,
+    onPointerMove: move,
+    onPointerUp: up
+  }, React.createElement("circle", {
+    cx: C,
+    cy: C,
+    r: C - 2,
+    fill: "var(--primary-soft)"
+  }), React.createElement("line", {
+    x1: C,
+    y1: C,
+    x2: hx,
+    y2: hy,
+    stroke: "var(--primary)",
+    strokeWidth: 2
+  }), React.createElement("circle", {
+    cx: C,
+    cy: C,
+    r: 4,
+    fill: "var(--primary)"
+  }), React.createElement("circle", {
+    cx: kx,
+    cy: ky,
+    r: mode === "h" && h >= 12 ? 16 : 19,
+    fill: "var(--primary)"
+  }), nums), React.createElement("div", {
     className: "pgtp-f"
   }, React.createElement("button", {
     type: "button",
@@ -1129,8 +1228,7 @@ function PgTimePop({
   }, "\u0E22\u0E01\u0E40\u0E25\u0E34\u0E01"), React.createElement("button", {
     type: "button",
     className: "pgtp-b pri",
-    disabled: !h,
-    onClick: () => ok(h, m)
+    onClick: ok
   }, "\u0E15\u0E01\u0E25\u0E07")))), document.body);
 }
 function PgTime({
