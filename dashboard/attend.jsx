@@ -1077,6 +1077,7 @@ function tmMonthRollup(byDate, users, cfg, otRows, ym) {
   tmMonthDays(ym).forEach((d) => {
     const row = (byDate || {})[d] || {};
     Object.keys(row).forEach((uid) => {
+      if (tmIsSysAcct({ id: uid })) return;   // บัญชีระบบ ADMIN ไม่ใช่คนทำงาน (ผู้ใช้สั่ง) — ตัดจากสรุปและ Excel ด้วย
       const r = row[uid] || {};
       const u = touch(uid, r.name);
       u.byDay[d] = r;

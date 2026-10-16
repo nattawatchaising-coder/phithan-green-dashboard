@@ -401,7 +401,7 @@ function LeaveTab({ users, role, currentUser, cfg }) {
           <button onClick={() => setYear(year + 1)} style={lvBtn(false)}>›</button>
         </div>
         {can && <span style={{ marginLeft: "auto", fontSize: 12, color: "var(--text-3)", fontWeight: 700 }}>
-          ยื่นใบลาได้ทางแอปไลน์เท่านั้น — ปุ่ม "ขอลา" ที่เมนูล่าง หรือแท็บเวลา → การลา
+          ยื่นใบลาได้ทางแอปไลน์เท่านั้น — ปุ่ม "ขอลา" ที่เมนูล่าง หรือแท็บเวลา → การลา (หน้าเว็บ: เวลาทำงาน → คำขอ)
         </span>}
       </div>
 

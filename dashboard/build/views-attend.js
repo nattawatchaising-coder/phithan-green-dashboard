@@ -235,27 +235,20 @@ function TmDaySheet({
     }
   }, React.createElement("button", {
     onClick: () => setDate(window.drAddDays(date, -1)),
-    style: Object.assign({}, TM_IN, {
-      cursor: "pointer",
-      fontWeight: 700
-    })
-  }, "\u2039 \u0E01\u0E48\u0E2D\u0E19\u0E2B\u0E19\u0E49\u0E32"), React.createElement("input", {
+    style: TM_NAV,
+    title: "\u0E27\u0E31\u0E19\u0E01\u0E48\u0E2D\u0E19\u0E2B\u0E19\u0E49\u0E32"
+  }, "\u2039"), React.createElement("input", {
     type: "date",
     value: date,
     onChange: e => setDate(e.target.value || window.drToday()),
     style: TM_IN
   }), React.createElement("button", {
     onClick: () => setDate(window.drAddDays(date, 1)),
-    style: Object.assign({}, TM_IN, {
-      cursor: "pointer",
-      fontWeight: 700
-    })
-  }, "\u0E16\u0E31\u0E14\u0E44\u0E1B \u203A"), React.createElement("button", {
+    style: TM_NAV,
+    title: "\u0E27\u0E31\u0E19\u0E16\u0E31\u0E14\u0E44\u0E1B"
+  }, "\u203A"), date !== window.drToday() && React.createElement("button", {
     onClick: () => setDate(window.drToday()),
-    style: Object.assign({}, TM_IN, {
-      cursor: "pointer",
-      fontWeight: 700
-    })
+    style: TM_NAV
   }, "\u0E27\u0E31\u0E19\u0E19\u0E35\u0E49"), React.createElement("div", {
     style: {
       fontSize: 13.5,
@@ -280,39 +273,38 @@ function TmDaySheet({
       fontSize: 11.5,
       fontWeight: 800
     }
-  }, "\u0E19\u0E2D\u0E01\u0E27\u0E31\u0E19\u0E17\u0E33\u0E07\u0E32\u0E19") : null), React.createElement("div", {
-    style: {
-      display: "flex",
-      gap: 10,
-      flexWrap: "wrap"
-    }
-  }, React.createElement(TmStat, {
-    label: "\u0E25\u0E07\u0E40\u0E27\u0E25\u0E32\u0E41\u0E25\u0E49\u0E27",
-    value: (day.rows || []).length,
-    unit: "\u0E04\u0E19"
-  }), React.createElement(TmStat, {
-    label: "\u0E22\u0E31\u0E07\u0E44\u0E21\u0E48\u0E44\u0E14\u0E49\u0E25\u0E07\u0E40\u0E27\u0E25\u0E32",
-    value: missing.length,
-    unit: "\u0E04\u0E19",
-    color: missing.length ? "#F59E0B" : "var(--text-1)",
-    hint: workday ? "" : "วันนี้ไม่ใช่วันทำงานมาตรฐาน"
-  }), leaving.length > 0 && React.createElement(TmStat, {
-    label: "\u0E25\u0E32",
-    value: leaving.length,
-    unit: "\u0E04\u0E19",
-    color: "#0EA5E9"
-  }), React.createElement(TmStat, {
-    label: "\u0E22\u0E31\u0E07\u0E44\u0E21\u0E48\u0E2D\u0E2D\u0E01\u0E07\u0E32\u0E19",
-    value: stillIn,
-    unit: "\u0E04\u0E19",
-    color: stillIn ? "#EF4444" : "var(--text-1)",
-    hint: stillIn ? "อาจลืมกดออก — ทักถามก่อนหักเวลา" : ""
-  }), React.createElement(TmStat, {
-    label: "\u0E0A\u0E31\u0E48\u0E27\u0E42\u0E21\u0E07\u0E23\u0E27\u0E21",
-    value: Math.round(totalMins / 60),
-    unit: "\u0E0A\u0E21.",
-    hint: noGps ? noGps + " ใบไม่มีพิกัด" : "ทุกใบมีพิกัด"
-  })), React.createElement("div", {
+  }, "\u0E19\u0E2D\u0E01\u0E27\u0E31\u0E19\u0E17\u0E33\u0E07\u0E32\u0E19") : null), React.createElement(TmFacts, {
+    items: [{
+      label: "ลงเวลาแล้ว",
+      value: (day.rows || []).length,
+      unit: "คน"
+    }, workday && {
+      label: "ยังไม่ลง",
+      value: missing.length,
+      unit: "คน",
+      color: missing.length ? "#F59E0B" : ""
+    }, leaving.length > 0 && {
+      label: "ลา",
+      value: leaving.length,
+      unit: "คน",
+      color: "#0EA5E9"
+    }, {
+      label: "ยังไม่ออกงาน",
+      value: stillIn,
+      unit: "คน",
+      color: stillIn ? "#EF4444" : "",
+      hint: stillIn ? "อาจลืมกดออก — ทักถามก่อนหักเวลา" : ""
+    }, {
+      label: "ชั่วโมงรวม",
+      value: Math.round(totalMins / 60),
+      unit: "ชม."
+    }, noGps > 0 && {
+      label: "ไม่มีพิกัด",
+      value: noGps,
+      unit: "ใบ",
+      color: "#F59E0B"
+    }]
+  }), React.createElement("div", {
     style: {
       overflowX: "auto",
       border: "none",
@@ -641,331 +633,7 @@ function TmDaySheet({
     className: "btn btn-pri",
     disabled: ed.busy || !ed.inHM,
     onClick: saveEd
-  }, ed.busy ? "กำลังบันทึก…" : "บันทึกเวลา")))), React.createElement("div", {
-    style: {
-      fontSize: 11.5,
-      color: "var(--text-3)",
-      lineHeight: 1.7
-    }
-  }, "\u0E1B\u0E38\u0E48\u0E21 \u201C\u0E25\u0E1A\u201D \u0E25\u0E1A\u0E43\u0E1A\u0E25\u0E07\u0E40\u0E27\u0E25\u0E32\u0E02\u0E2D\u0E07\u0E27\u0E31\u0E19\u0E19\u0E31\u0E49\u0E19\u0E17\u0E31\u0E49\u0E07\u0E43\u0E1A \u0E41\u0E25\u0E49\u0E27\u0E43\u0E2B\u0E49\u0E40\u0E08\u0E49\u0E32\u0E15\u0E31\u0E27\u0E01\u0E14\u0E40\u0E02\u0E49\u0E32-\u0E2D\u0E2D\u0E01\u0E43\u0E2B\u0E21\u0E48 \u2014 \u0E23\u0E30\u0E1A\u0E1A\u0E40\u0E01\u0E47\u0E1A\u0E2A\u0E33\u0E40\u0E19\u0E32\u0E43\u0E1A\u0E17\u0E35\u0E48\u0E25\u0E1A\u0E44\u0E27\u0E49\u0E1E\u0E23\u0E49\u0E2D\u0E21\u0E0A\u0E37\u0E48\u0E2D\u0E04\u0E19\u0E25\u0E1A \u0E40\u0E1C\u0E37\u0E48\u0E2D\u0E21\u0E35\u0E02\u0E49\u0E2D\u0E42\u0E15\u0E49\u0E40\u0E16\u0E35\u0E22\u0E07\u0E40\u0E23\u0E37\u0E48\u0E2D\u0E07\u0E0A\u0E31\u0E48\u0E27\u0E42\u0E21\u0E07\u0E15\u0E2D\u0E19\u0E2A\u0E34\u0E49\u0E19\u0E40\u0E14\u0E37\u0E2D\u0E19", React.createElement("br", null), "\u0E0A\u0E48\u0E2D\u0E07 \u201C\u0E07\u0E32\u0E19\u0E17\u0E35\u0E48\u0E41\u0E08\u0E49\u0E07\u201D \u0E04\u0E37\u0E2D\u0E2A\u0E34\u0E48\u0E07\u0E17\u0E35\u0E48\u0E1C\u0E39\u0E49\u0E25\u0E07\u0E40\u0E27\u0E25\u0E32\u0E40\u0E25\u0E37\u0E2D\u0E01\u0E40\u0E2D\u0E07 \u0E23\u0E30\u0E1A\u0E1A\u0E44\u0E21\u0E48\u0E44\u0E14\u0E49\u0E15\u0E23\u0E27\u0E08\u0E27\u0E48\u0E32\u0E2D\u0E22\u0E39\u0E48\u0E17\u0E35\u0E48\u0E44\u0E0B\u0E15\u0E4C\u0E19\u0E31\u0E49\u0E19\u0E08\u0E23\u0E34\u0E07\u0E2B\u0E23\u0E37\u0E2D\u0E44\u0E21\u0E48 \u2014 \u0E22\u0E31\u0E07\u0E44\u0E21\u0E48\u0E21\u0E35\u0E1E\u0E34\u0E01\u0E31\u0E14\u0E44\u0E0B\u0E15\u0E4C\u0E17\u0E35\u0E48\u0E40\u0E0A\u0E37\u0E48\u0E2D\u0E16\u0E37\u0E2D\u0E44\u0E14\u0E49\u0E43\u0E19\u0E23\u0E30\u0E1A\u0E1A \u0E08\u0E36\u0E07\u0E40\u0E17\u0E35\u0E22\u0E1A\u0E23\u0E30\u0E22\u0E30\u0E44\u0E21\u0E48\u0E44\u0E14\u0E49", React.createElement("br", null), "\u201C\u0E44\u0E21\u0E48\u0E21\u0E35\u0E1E\u0E34\u0E01\u0E31\u0E14\u201D \u0E40\u0E01\u0E34\u0E14\u0E44\u0E14\u0E49\u0E17\u0E31\u0E49\u0E07\u0E08\u0E32\u0E01\u0E1B\u0E34\u0E14\u0E2A\u0E34\u0E17\u0E18\u0E34\u0E4C\u0E15\u0E33\u0E41\u0E2B\u0E19\u0E48\u0E07 \u0E2A\u0E31\u0E0D\u0E0D\u0E32\u0E13\u0E44\u0E21\u0E48\u0E16\u0E36\u0E07 \u0E2B\u0E23\u0E37\u0E2D\u0E2D\u0E22\u0E39\u0E48\u0E43\u0E19\u0E2D\u0E32\u0E04\u0E32\u0E23 \u2014 \u0E23\u0E30\u0E1A\u0E1A\u0E44\u0E21\u0E48\u0E40\u0E04\u0E22\u0E1A\u0E25\u0E47\u0E2D\u0E01\u0E01\u0E32\u0E23\u0E25\u0E07\u0E40\u0E27\u0E25\u0E32\u0E14\u0E49\u0E27\u0E22\u0E40\u0E2B\u0E15\u0E38\u0E19\u0E35\u0E49", React.createElement("br", null), "\u0E23\u0E30\u0E22\u0E30\u0E2B\u0E48\u0E32\u0E07\u0E08\u0E32\u0E01\u0E2D\u0E2D\u0E1F\u0E1F\u0E34\u0E28\u0E04\u0E34\u0E14\u0E08\u0E32\u0E01\u0E1E\u0E34\u0E01\u0E31\u0E14\u0E17\u0E35\u0E48\u0E15\u0E31\u0E49\u0E07\u0E44\u0E27\u0E49\u0E43\u0E19\u0E2B\u0E19\u0E49\u0E32 \u201C\u0E15\u0E31\u0E49\u0E07\u0E04\u0E48\u0E32\u0E40\u0E27\u0E25\u0E32\u0E17\u0E33\u0E07\u0E32\u0E19\u201D \u0E40\u0E17\u0E35\u0E22\u0E1A\u0E01\u0E31\u0E1A\u0E15\u0E33\u0E41\u0E2B\u0E19\u0E48\u0E07\u0E15\u0E2D\u0E19\u0E01\u0E14\u0E40\u0E02\u0E49\u0E32\u0E07\u0E32\u0E19 \u2014 \u0E02\u0E36\u0E49\u0E19\u0E2A\u0E35\u0E41\u0E14\u0E07\u0E40\u0E09\u0E1E\u0E32\u0E30\u0E04\u0E19\u0E17\u0E35\u0E48\u0E01\u0E14 \u201C\u0E2D\u0E2D\u0E1F\u0E1F\u0E34\u0E28\u201D \u0E41\u0E15\u0E48\u0E2D\u0E22\u0E39\u0E48\u0E19\u0E2D\u0E01\u0E23\u0E31\u0E28\u0E21\u0E35 \u0E2A\u0E48\u0E27\u0E19\u0E07\u0E32\u0E19\u0E2B\u0E19\u0E49\u0E32\u0E44\u0E0B\u0E15\u0E4C\u0E2B\u0E48\u0E32\u0E07\u0E2D\u0E2D\u0E1F\u0E1F\u0E34\u0E28\u0E40\u0E1B\u0E47\u0E19\u0E40\u0E23\u0E37\u0E48\u0E2D\u0E07\u0E1B\u0E01\u0E15\u0E34", React.createElement("br", null), "\u0E43\u0E1A\u0E17\u0E35\u0E48\u0E1B\u0E31\u0E4A\u0E21\u0E01\u0E48\u0E2D\u0E19\u0E23\u0E38\u0E48\u0E19\u0E17\u0E35\u0E48\u0E40\u0E01\u0E47\u0E1A\u0E1E\u0E34\u0E01\u0E31\u0E14\u0E25\u0E07\u0E14\u0E31\u0E0A\u0E19\u0E35\u0E08\u0E30\u0E02\u0E36\u0E49\u0E19\u0E27\u0E48\u0E32 \u201C\u0E21\u0E35\u0E1E\u0E34\u0E01\u0E31\u0E14\u201D \u0E40\u0E09\u0E22 \u0E46 \u0E44\u0E21\u0E48\u0E21\u0E35\u0E23\u0E30\u0E22\u0E30 \u2014 \u0E15\u0E31\u0E27\u0E40\u0E25\u0E02\u0E2D\u0E22\u0E39\u0E48\u0E43\u0E19\u0E43\u0E1A\u0E40\u0E15\u0E47\u0E21 \u0E14\u0E39\u0E44\u0E14\u0E49\u0E08\u0E32\u0E01\u0E44\u0E1F\u0E25\u0E4C Excel"));
-}
-function TmMonth({
-  cfg,
-  users,
-  ot
-}) {
-  const [ym, setYm] = React.useState(window.tmYmNow);
-  const {
-    byDate,
-    loading
-  } = window.useAttendMonth(ym);
-  const [pick, setPick] = React.useState(null);
-  const [busy, setBusy] = React.useState(false);
-  const days = React.useMemo(() => window.tmMonthDays(ym), [ym]);
-  const rows = React.useMemo(() => window.tmMonthRollup(byDate, users, cfg, (ot || {}).rows, ym), [byDate, users, cfg, ot, ym]);
-  const tot = React.useMemo(() => rows.reduce((a, r) => ({
-    days: a.days + r.days,
-    mins: a.mins + r.mins,
-    noOut: a.noOut + r.noOut,
-    noGps: a.noGps + r.noGps,
-    otMins: a.otMins + r.otMins
-  }), {
-    days: 0,
-    mins: 0,
-    noOut: 0,
-    noGps: 0,
-    otMins: 0
-  }), [rows]);
-  const worked = rows.filter(r => r.days > 0).length;
-  const hrs = m => !m ? "—" : (Math.round(m / 60 * 10) / 10).toLocaleString("en-US");
-  const th = (t, align) => React.createElement("th", {
-    key: t,
-    style: {
-      textAlign: align || "left",
-      padding: "10px 13px",
-      fontSize: 11.5,
-      fontWeight: 800,
-      color: "var(--text-3)",
-      borderBottom: "1px solid var(--divider)",
-      whiteSpace: "nowrap"
-    }
-  }, t);
-  return React.createElement("div", {
-    style: {
-      display: "flex",
-      flexDirection: "column",
-      gap: 12
-    }
-  }, React.createElement("div", {
-    style: {
-      display: "flex",
-      gap: 8,
-      alignItems: "center",
-      flexWrap: "wrap"
-    }
-  }, React.createElement("button", {
-    onClick: () => setYm(window.tmYmShift(ym, -1)),
-    style: Object.assign({}, TM_IN, {
-      cursor: "pointer",
-      fontWeight: 700
-    })
-  }, "\u2039 \u0E40\u0E14\u0E37\u0E2D\u0E19\u0E01\u0E48\u0E2D\u0E19"), React.createElement("input", {
-    type: "month",
-    value: ym,
-    onChange: e => setYm(e.target.value || window.tmYmNow()),
-    style: TM_IN
-  }), React.createElement("button", {
-    onClick: () => setYm(window.tmYmShift(ym, 1)),
-    style: Object.assign({}, TM_IN, {
-      cursor: "pointer",
-      fontWeight: 700
-    })
-  }, "\u0E40\u0E14\u0E37\u0E2D\u0E19\u0E16\u0E31\u0E14\u0E44\u0E1B \u203A"), React.createElement("button", {
-    onClick: () => setYm(window.tmYmNow()),
-    style: Object.assign({}, TM_IN, {
-      cursor: "pointer",
-      fontWeight: 700
-    })
-  }, "\u0E40\u0E14\u0E37\u0E2D\u0E19\u0E19\u0E35\u0E49"), React.createElement("div", {
-    style: {
-      fontSize: 13.5,
-      fontWeight: 800,
-      color: "var(--text-1)"
-    }
-  }, window.tmYmTH(ym)), React.createElement("button", {
-    onClick: async () => {
-      if (busy) return;
-      setBusy(true);
-      try {
-        await tmExportMonthXlsx(rows, days, ym, (ot || {}).rows, users, cfg);
-      } finally {
-        setBusy(false);
-      }
-    },
-    disabled: busy,
-    style: {
-      marginLeft: "auto",
-      display: "inline-flex",
-      alignItems: "center",
-      gap: 6,
-      padding: "9px 15px",
-      borderRadius: "var(--r-chip)",
-      border: "none",
-      background: busy ? "var(--text-3)" : "var(--primary)",
-      color: "#fff",
-      cursor: busy ? "default" : "pointer",
-      fontFamily: "inherit",
-      fontSize: 12.5,
-      fontWeight: 800
-    }
-  }, React.createElement(Icon, {
-    name: "file",
-    size: 14,
-    color: "#fff"
-  }), " ", busy ? "กำลังเตรียมไฟล์…" : "ออกไฟล์ Excel")), React.createElement("div", {
-    style: {
-      fontSize: 11.5,
-      color: "var(--text-3)",
-      lineHeight: 1.7,
-      marginTop: -4
-    }
-  }, "\u0E44\u0E1F\u0E25\u0E4C\u0E17\u0E35\u0E48\u0E2D\u0E2D\u0E01\u0E21\u0E35\u0E41\u0E1C\u0E48\u0E19\u0E2A\u0E23\u0E38\u0E1B\u0E40\u0E27\u0E25\u0E32\u0E17\u0E33\u0E07\u0E32\u0E19\u0E2B\u0E19\u0E36\u0E48\u0E07\u0E41\u0E1C\u0E48\u0E19 + ", React.createElement("b", null, "\u0E41\u0E1C\u0E48\u0E19\u0E23\u0E32\u0E22\u0E25\u0E30\u0E40\u0E2D\u0E35\u0E22\u0E14\u0E41\u0E22\u0E01\u0E23\u0E32\u0E22\u0E04\u0E19"), " \u0E04\u0E19\u0E25\u0E30\u0E41\u0E17\u0E47\u0E1A\u0E14\u0E49\u0E32\u0E19\u0E25\u0E48\u0E32\u0E07 \u2014 \u0E17\u0E38\u0E01\u0E27\u0E31\u0E19\u0E17\u0E35\u0E48\u0E25\u0E07\u0E40\u0E27\u0E25\u0E32 (\u0E40\u0E02\u0E49\u0E32 \xB7 \u0E2D\u0E2D\u0E01 \xB7 \u0E0A\u0E31\u0E48\u0E27\u0E42\u0E21\u0E07 \xB7 \u0E07\u0E32\u0E19\u0E17\u0E35\u0E48\u0E41\u0E08\u0E49\u0E07 \xB7 ", React.createElement("b", null, "\u0E1E\u0E34\u0E01\u0E31\u0E14\u0E15\u0E2D\u0E19\u0E40\u0E02\u0E49\u0E32\u0E41\u0E25\u0E30\u0E15\u0E2D\u0E19\u0E2D\u0E2D\u0E01 \u0E1E\u0E23\u0E49\u0E2D\u0E21\u0E25\u0E34\u0E07\u0E01\u0E4C\u0E41\u0E1C\u0E19\u0E17\u0E35\u0E48"), ") \u0E15\u0E48\u0E2D\u0E14\u0E49\u0E27\u0E22\u0E43\u0E1A OT \u0E02\u0E2D\u0E07\u0E40\u0E14\u0E37\u0E2D\u0E19\u0E19\u0E31\u0E49\u0E19\u0E27\u0E48\u0E32\u0E02\u0E2D\u0E27\u0E31\u0E19\u0E44\u0E2B\u0E19\u0E1A\u0E49\u0E32\u0E07 \u0E1B\u0E23\u0E30\u0E40\u0E20\u0E17\u0E2D\u0E30\u0E44\u0E23 \u0E2D\u0E31\u0E15\u0E23\u0E32\u0E40\u0E17\u0E48\u0E32\u0E44\u0E23 \u0E41\u0E25\u0E30\u0E0A\u0E48\u0E2D\u0E07\u0E40\u0E0B\u0E47\u0E19\u0E2D\u0E19\u0E38\u0E21\u0E31\u0E15\u0E34"), React.createElement("div", {
-    style: {
-      display: "flex",
-      gap: 10,
-      flexWrap: "wrap"
-    }
-  }, React.createElement(TmStat, {
-    label: "\u0E21\u0E35\u0E43\u0E1A\u0E25\u0E07\u0E40\u0E27\u0E25\u0E32",
-    value: worked,
-    unit: "/ " + rows.length + " คน"
-  }), React.createElement(TmStat, {
-    label: "\u0E27\u0E31\u0E19-\u0E04\u0E19\u0E17\u0E35\u0E48\u0E25\u0E07\u0E40\u0E27\u0E25\u0E32",
-    value: tot.days,
-    unit: "\u0E27\u0E31\u0E19"
-  }), React.createElement(TmStat, {
-    label: "\u0E0A\u0E31\u0E48\u0E27\u0E42\u0E21\u0E07\u0E23\u0E27\u0E21\u0E17\u0E31\u0E49\u0E07\u0E40\u0E14\u0E37\u0E2D\u0E19",
-    value: hrs(tot.mins),
-    unit: "\u0E0A\u0E21."
-  }), React.createElement(TmStat, {
-    label: "OT \u0E17\u0E35\u0E48\u0E2D\u0E19\u0E38\u0E21\u0E31\u0E15\u0E34\u0E41\u0E25\u0E49\u0E27",
-    value: hrs(tot.otMins),
-    unit: "\u0E0A\u0E21."
-  }), React.createElement(TmStat, {
-    label: "\u0E25\u0E37\u0E21\u0E01\u0E14\u0E2D\u0E2D\u0E01\u0E07\u0E32\u0E19",
-    value: tot.noOut,
-    unit: "\u0E43\u0E1A",
-    color: tot.noOut ? "#EF4444" : "var(--text-1)",
-    hint: tot.noOut ? "ใบพวกนี้ชั่วโมงเป็นศูนย์ ต้องทักถามก่อนคิดค่าแรง" : ""
-  })), React.createElement("div", {
-    style: {
-      overflowX: "auto",
-      border: "none",
-      boxShadow: "var(--shadow-sm)",
-      borderRadius: "var(--r-tile)",
-      background: "var(--surface)"
-    }
-  }, React.createElement("table", {
-    style: {
-      width: "100%",
-      borderCollapse: "collapse",
-      fontSize: 13
-    }
-  }, React.createElement("thead", null, React.createElement("tr", {
-    style: {
-      background: "var(--surface2)"
-    }
-  }, th("ชื่อ"), th("วันที่ลงเวลา", "center"), th("ชั่วโมงรวม", "center"), th("OT อนุมัติแล้ว", "center"), th("ลืมกดออก", "center"), th("ไม่มีพิกัด", "center"), th(""))), React.createElement("tbody", null, loading && React.createElement("tr", null, React.createElement("td", {
-    colSpan: 7,
-    style: {
-      padding: 26,
-      textAlign: "center",
-      color: "var(--text-3)"
-    }
-  }, "\u0E01\u0E33\u0E25\u0E31\u0E07\u0E42\u0E2B\u0E25\u0E14\u2026")), !loading && rows.length === 0 && React.createElement("tr", null, React.createElement("td", {
-    colSpan: 7,
-    style: {
-      padding: 26,
-      textAlign: "center",
-      color: "var(--text-3)"
-    }
-  }, "\u0E22\u0E31\u0E07\u0E44\u0E21\u0E48\u0E21\u0E35\u0E43\u0E04\u0E23\u0E25\u0E07\u0E40\u0E27\u0E25\u0E32\u0E43\u0E19\u0E40\u0E14\u0E37\u0E2D\u0E19\u0E19\u0E35\u0E49")), !loading && rows.map(r => React.createElement(React.Fragment, {
-    key: r.userId
-  }, React.createElement("tr", {
-    style: {
-      borderBottom: "1px solid var(--divider)",
-      background: r.days ? "transparent" : "var(--surface2)"
-    }
-  }, React.createElement("td", {
-    style: {
-      padding: "9px 13px",
-      fontWeight: 700,
-      color: r.days ? "var(--text-1)" : "var(--text-3)"
-    }
-  }, r.name), React.createElement("td", {
-    style: {
-      padding: "9px 13px",
-      textAlign: "center",
-      fontFamily: "var(--mono)",
-      fontWeight: 700
-    }
-  }, r.days || "—"), React.createElement("td", {
-    style: {
-      padding: "9px 13px",
-      textAlign: "center",
-      fontFamily: "var(--mono)",
-      fontWeight: 700
-    }
-  }, hrs(r.mins)), React.createElement("td", {
-    style: {
-      padding: "9px 13px",
-      textAlign: "center",
-      fontFamily: "var(--mono)",
-      color: "var(--text-2)"
-    }
-  }, hrs(r.otMins)), React.createElement("td", {
-    style: {
-      padding: "9px 13px",
-      textAlign: "center",
-      fontWeight: 700,
-      color: r.noOut ? "#EF4444" : "var(--text-3)"
-    }
-  }, r.noOut || "—"), React.createElement("td", {
-    style: {
-      padding: "9px 13px",
-      textAlign: "center",
-      fontWeight: 700,
-      color: r.noGps ? "#F59E0B" : "var(--text-3)"
-    }
-  }, r.noGps || "—"), React.createElement("td", {
-    style: {
-      padding: "9px 13px",
-      textAlign: "right"
-    }
-  }, r.days > 0 && React.createElement("button", {
-    onClick: () => setPick(pick === r.userId ? null : r.userId),
-    style: {
-      padding: "6px 12px",
-      borderRadius: 9,
-      border: "none",
-      boxShadow: "var(--shadow-sm)",
-      background: "var(--surface)",
-      cursor: "pointer",
-      fontFamily: "inherit",
-      fontSize: 12,
-      fontWeight: 700,
-      color: "var(--text-2)"
-    }
-  }, pick === r.userId ? "ซ่อนรายวัน" : "ดูรายวัน"))), pick === r.userId && React.createElement("tr", null, React.createElement("td", {
-    colSpan: 7,
-    style: {
-      padding: "10px 13px 14px",
-      background: "var(--surface2)",
-      borderBottom: "1px solid var(--divider)"
-    }
-  }, React.createElement("div", {
-    style: {
-      display: "grid",
-      gridTemplateColumns: "repeat(7, minmax(0, 1fr))",
-      gap: 6,
-      maxWidth: 760
-    }
-  }, TM_WD_TH.map((w, i) => React.createElement("div", {
-    key: w,
-    style: {
-      textAlign: "center",
-      padding: "0 0 2px",
-      fontSize: 10.5,
-      fontWeight: 800,
-      color: i === 0 || i === 6 ? "var(--text-3)" : "var(--text-2)"
-    }
-  }, w)), Array.from({
-    length: tmWdOf(days[0])
-  }, (_, i) => React.createElement("div", {
-    key: "pad" + i
-  })), days.map(d => {
-    const x = r.byDay[d];
-    const open = x && x.in && !x.out;
-    const wk = tmWdOf(d) === 0 || tmWdOf(d) === 6;
-    return React.createElement("div", {
-      key: d,
-      title: d,
-      style: {
-        minWidth: 0,
-        padding: "7px 9px",
-        borderRadius: 9,
-        minHeight: 58,
-        background: wk && !x ? "var(--surface2)" : "var(--surface)",
-        border: "none",
-        boxShadow: open ? "inset 0 0 0 1px var(--tint-red-bd)" : x ? "var(--shadow-sm)" : "none",
-        opacity: x ? 1 : 0.45
-      }
-    }, React.createElement("div", {
-      style: {
-        fontSize: 10.5,
-        color: "var(--text-3)",
-        fontWeight: 700
-      }
-    }, +d.slice(8)), React.createElement("div", {
-      style: {
-        fontFamily: "var(--mono)",
-        fontSize: 11.5,
-        fontWeight: 700,
-        color: open ? "#EF4444" : "var(--text-1)"
-      }
-    }, x ? (x.in || "—") + " – " + (x.out || "?") : "—"), React.createElement("div", {
-      style: {
-        fontSize: 10.5,
-        color: "var(--text-3)"
-      }
-    }, x ? window.tmDur(x.mins) : ""));
-  }))))))))), React.createElement("div", {
-    style: {
-      fontSize: 11.5,
-      color: "var(--text-3)",
-      lineHeight: 1.7
-    }
-  }, "\u0E0A\u0E31\u0E48\u0E27\u0E42\u0E21\u0E07\u0E04\u0E34\u0E14\u0E08\u0E32\u0E01\u0E40\u0E27\u0E25\u0E32\u0E40\u0E02\u0E49\u0E32-\u0E2D\u0E2D\u0E01\u0E17\u0E35\u0E48\u0E1B\u0E31\u0E4A\u0E21\u0E44\u0E27\u0E49 \u0E2B\u0E31\u0E01\u0E1E\u0E31\u0E01\u0E01\u0E25\u0E32\u0E07\u0E27\u0E31\u0E19\u0E40\u0E09\u0E1E\u0E32\u0E30\u0E43\u0E1A\u0E17\u0E35\u0E48\u0E17\u0E33\u0E07\u0E32\u0E19\u0E40\u0E01\u0E34\u0E19\u0E2B\u0E01\u0E0A\u0E31\u0E48\u0E27\u0E42\u0E21\u0E07 \u0E15\u0E32\u0E21\u0E17\u0E35\u0E48\u0E15\u0E31\u0E49\u0E07\u0E44\u0E27\u0E49\u0E43\u0E19\u0E2B\u0E19\u0E49\u0E32 \u201C\u0E15\u0E31\u0E49\u0E07\u0E04\u0E48\u0E32\u0E40\u0E27\u0E25\u0E32\u0E17\u0E33\u0E07\u0E32\u0E19\u201D", React.createElement("br", null), "\u0E43\u0E1A\u0E17\u0E35\u0E48 \u201C\u0E25\u0E37\u0E21\u0E01\u0E14\u0E2D\u0E2D\u0E01\u201D \u0E0A\u0E31\u0E48\u0E27\u0E42\u0E21\u0E07\u0E08\u0E30\u0E40\u0E1B\u0E47\u0E19\u0E28\u0E39\u0E19\u0E22\u0E4C \u0E40\u0E1E\u0E23\u0E32\u0E30\u0E23\u0E30\u0E1A\u0E1A\u0E44\u0E21\u0E48\u0E40\u0E14\u0E32\u0E40\u0E27\u0E25\u0E32\u0E40\u0E25\u0E34\u0E01\u0E07\u0E32\u0E19\u0E43\u0E2B\u0E49 \u2014 \u0E15\u0E49\u0E2D\u0E07\u0E16\u0E32\u0E21\u0E40\u0E08\u0E49\u0E32\u0E15\u0E31\u0E27\u0E41\u0E25\u0E49\u0E27\u0E41\u0E01\u0E49\u0E17\u0E35\u0E48\u0E15\u0E49\u0E19\u0E17\u0E32\u0E07", React.createElement("br", null), "OT \u0E19\u0E31\u0E1A\u0E40\u0E09\u0E1E\u0E32\u0E30\u0E43\u0E1A\u0E17\u0E35\u0E48\u0E2D\u0E19\u0E38\u0E21\u0E31\u0E15\u0E34\u0E41\u0E25\u0E49\u0E27\u0E41\u0E25\u0E30\u0E2D\u0E22\u0E39\u0E48\u0E43\u0E19\u0E40\u0E14\u0E37\u0E2D\u0E19\u0E19\u0E35\u0E49 \xB7 \u0E15\u0E31\u0E27\u0E40\u0E25\u0E02\u0E17\u0E31\u0E49\u0E07\u0E2B\u0E21\u0E14\u0E22\u0E31\u0E07\u0E44\u0E21\u0E48\u0E43\u0E0A\u0E48\u0E22\u0E2D\u0E14\u0E08\u0E48\u0E32\u0E22 \u0E15\u0E49\u0E2D\u0E07\u0E1C\u0E48\u0E32\u0E19\u0E01\u0E32\u0E23\u0E15\u0E23\u0E27\u0E08\u0E02\u0E2D\u0E07\u0E1C\u0E39\u0E49\u0E21\u0E35\u0E2D\u0E33\u0E19\u0E32\u0E08\u0E01\u0E48\u0E2D\u0E19"));
+  }, ed.busy ? "กำลังบันทึก…" : "บันทึกเวลา")))), React.createElement(TmHelp, null, "\u0E1B\u0E38\u0E48\u0E21 \u201C\u0E25\u0E1A\u201D \u0E25\u0E1A\u0E43\u0E1A\u0E25\u0E07\u0E40\u0E27\u0E25\u0E32\u0E02\u0E2D\u0E07\u0E27\u0E31\u0E19\u0E19\u0E31\u0E49\u0E19\u0E17\u0E31\u0E49\u0E07\u0E43\u0E1A \u0E41\u0E25\u0E49\u0E27\u0E43\u0E2B\u0E49\u0E40\u0E08\u0E49\u0E32\u0E15\u0E31\u0E27\u0E01\u0E14\u0E40\u0E02\u0E49\u0E32-\u0E2D\u0E2D\u0E01\u0E43\u0E2B\u0E21\u0E48 \u2014 \u0E23\u0E30\u0E1A\u0E1A\u0E40\u0E01\u0E47\u0E1A\u0E2A\u0E33\u0E40\u0E19\u0E32\u0E43\u0E1A\u0E17\u0E35\u0E48\u0E25\u0E1A\u0E44\u0E27\u0E49\u0E1E\u0E23\u0E49\u0E2D\u0E21\u0E0A\u0E37\u0E48\u0E2D\u0E04\u0E19\u0E25\u0E1A \u0E40\u0E1C\u0E37\u0E48\u0E2D\u0E21\u0E35\u0E02\u0E49\u0E2D\u0E42\u0E15\u0E49\u0E40\u0E16\u0E35\u0E22\u0E07\u0E40\u0E23\u0E37\u0E48\u0E2D\u0E07\u0E0A\u0E31\u0E48\u0E27\u0E42\u0E21\u0E07\u0E15\u0E2D\u0E19\u0E2A\u0E34\u0E49\u0E19\u0E40\u0E14\u0E37\u0E2D\u0E19", React.createElement("br", null), "\u0E0A\u0E48\u0E2D\u0E07 \u201C\u0E07\u0E32\u0E19\u0E17\u0E35\u0E48\u0E41\u0E08\u0E49\u0E07\u201D \u0E04\u0E37\u0E2D\u0E2A\u0E34\u0E48\u0E07\u0E17\u0E35\u0E48\u0E1C\u0E39\u0E49\u0E25\u0E07\u0E40\u0E27\u0E25\u0E32\u0E40\u0E25\u0E37\u0E2D\u0E01\u0E40\u0E2D\u0E07 \u0E23\u0E30\u0E1A\u0E1A\u0E44\u0E21\u0E48\u0E44\u0E14\u0E49\u0E15\u0E23\u0E27\u0E08\u0E27\u0E48\u0E32\u0E2D\u0E22\u0E39\u0E48\u0E17\u0E35\u0E48\u0E44\u0E0B\u0E15\u0E4C\u0E19\u0E31\u0E49\u0E19\u0E08\u0E23\u0E34\u0E07\u0E2B\u0E23\u0E37\u0E2D\u0E44\u0E21\u0E48 \u2014 \u0E22\u0E31\u0E07\u0E44\u0E21\u0E48\u0E21\u0E35\u0E1E\u0E34\u0E01\u0E31\u0E14\u0E44\u0E0B\u0E15\u0E4C\u0E17\u0E35\u0E48\u0E40\u0E0A\u0E37\u0E48\u0E2D\u0E16\u0E37\u0E2D\u0E44\u0E14\u0E49\u0E43\u0E19\u0E23\u0E30\u0E1A\u0E1A \u0E08\u0E36\u0E07\u0E40\u0E17\u0E35\u0E22\u0E1A\u0E23\u0E30\u0E22\u0E30\u0E44\u0E21\u0E48\u0E44\u0E14\u0E49", React.createElement("br", null), "\u201C\u0E44\u0E21\u0E48\u0E21\u0E35\u0E1E\u0E34\u0E01\u0E31\u0E14\u201D \u0E40\u0E01\u0E34\u0E14\u0E44\u0E14\u0E49\u0E17\u0E31\u0E49\u0E07\u0E08\u0E32\u0E01\u0E1B\u0E34\u0E14\u0E2A\u0E34\u0E17\u0E18\u0E34\u0E4C\u0E15\u0E33\u0E41\u0E2B\u0E19\u0E48\u0E07 \u0E2A\u0E31\u0E0D\u0E0D\u0E32\u0E13\u0E44\u0E21\u0E48\u0E16\u0E36\u0E07 \u0E2B\u0E23\u0E37\u0E2D\u0E2D\u0E22\u0E39\u0E48\u0E43\u0E19\u0E2D\u0E32\u0E04\u0E32\u0E23 \u2014 \u0E23\u0E30\u0E1A\u0E1A\u0E44\u0E21\u0E48\u0E40\u0E04\u0E22\u0E1A\u0E25\u0E47\u0E2D\u0E01\u0E01\u0E32\u0E23\u0E25\u0E07\u0E40\u0E27\u0E25\u0E32\u0E14\u0E49\u0E27\u0E22\u0E40\u0E2B\u0E15\u0E38\u0E19\u0E35\u0E49", React.createElement("br", null), "\u0E23\u0E30\u0E22\u0E30\u0E2B\u0E48\u0E32\u0E07\u0E08\u0E32\u0E01\u0E2D\u0E2D\u0E1F\u0E1F\u0E34\u0E28\u0E04\u0E34\u0E14\u0E08\u0E32\u0E01\u0E1E\u0E34\u0E01\u0E31\u0E14\u0E17\u0E35\u0E48\u0E15\u0E31\u0E49\u0E07\u0E44\u0E27\u0E49\u0E43\u0E19\u0E41\u0E17\u0E47\u0E1A \u201C\u0E15\u0E31\u0E49\u0E07\u0E04\u0E48\u0E32\u201D \u0E40\u0E17\u0E35\u0E22\u0E1A\u0E01\u0E31\u0E1A\u0E15\u0E33\u0E41\u0E2B\u0E19\u0E48\u0E07\u0E15\u0E2D\u0E19\u0E01\u0E14\u0E40\u0E02\u0E49\u0E32\u0E07\u0E32\u0E19 \u2014 \u0E02\u0E36\u0E49\u0E19\u0E2A\u0E35\u0E41\u0E14\u0E07\u0E40\u0E09\u0E1E\u0E32\u0E30\u0E04\u0E19\u0E17\u0E35\u0E48\u0E01\u0E14 \u201C\u0E2D\u0E2D\u0E1F\u0E1F\u0E34\u0E28\u201D \u0E41\u0E15\u0E48\u0E2D\u0E22\u0E39\u0E48\u0E19\u0E2D\u0E01\u0E23\u0E31\u0E28\u0E21\u0E35 \u0E2A\u0E48\u0E27\u0E19\u0E07\u0E32\u0E19\u0E2B\u0E19\u0E49\u0E32\u0E44\u0E0B\u0E15\u0E4C\u0E2B\u0E48\u0E32\u0E07\u0E2D\u0E2D\u0E1F\u0E1F\u0E34\u0E28\u0E40\u0E1B\u0E47\u0E19\u0E40\u0E23\u0E37\u0E48\u0E2D\u0E07\u0E1B\u0E01\u0E15\u0E34", React.createElement("br", null), "\u0E43\u0E1A\u0E17\u0E35\u0E48\u0E1B\u0E31\u0E4A\u0E21\u0E01\u0E48\u0E2D\u0E19\u0E23\u0E38\u0E48\u0E19\u0E17\u0E35\u0E48\u0E40\u0E01\u0E47\u0E1A\u0E1E\u0E34\u0E01\u0E31\u0E14\u0E25\u0E07\u0E14\u0E31\u0E0A\u0E19\u0E35\u0E08\u0E30\u0E02\u0E36\u0E49\u0E19\u0E27\u0E48\u0E32 \u201C\u0E21\u0E35\u0E1E\u0E34\u0E01\u0E31\u0E14\u201D \u0E40\u0E09\u0E22 \u0E46 \u0E44\u0E21\u0E48\u0E21\u0E35\u0E23\u0E30\u0E22\u0E30 \u2014 \u0E15\u0E31\u0E27\u0E40\u0E25\u0E02\u0E2D\u0E22\u0E39\u0E48\u0E43\u0E19\u0E43\u0E1A\u0E40\u0E15\u0E47\u0E21 \u0E14\u0E39\u0E44\u0E14\u0E49\u0E08\u0E32\u0E01\u0E44\u0E1F\u0E25\u0E4C Excel"));
 }
 async function tmExportMonthXlsx(rows, days, ym, otRows, users, cfg) {
   if (!window.XLSX) {
@@ -2925,7 +2593,7 @@ function TmWorkHours({
       color: "var(--text-3)",
       lineHeight: 1.7
     }
-  }, "\u0E27\u0E31\u0E19\u0E15\u0E31\u0E14\u0E22\u0E2D\u0E14\u0E43\u0E0A\u0E49\u0E41\u0E1A\u0E48\u0E07\u0E23\u0E2D\u0E1A\u0E43\u0E19\u0E41\u0E17\u0E47\u0E1A \u201C\u0E2A\u0E23\u0E38\u0E1B OT \u0E23\u0E32\u0E22\u0E04\u0E19\u201D \u0E41\u0E25\u0E30\u0E1A\u0E19\u0E43\u0E1A OT \u0E17\u0E35\u0E48\u0E1E\u0E34\u0E21\u0E1E\u0E4C\u0E2D\u0E2D\u0E01\u0E44\u0E1B \u0E44\u0E21\u0E48\u0E44\u0E14\u0E49\u0E40\u0E1B\u0E25\u0E35\u0E48\u0E22\u0E19\u0E15\u0E31\u0E27\u0E43\u0E1A\u0E17\u0E35\u0E48\u0E40\u0E1B\u0E34\u0E14\u0E44\u0E1B\u0E41\u0E25\u0E49\u0E27", React.createElement("br", null), "\u0E04\u0E48\u0E32\u0E1E\u0E27\u0E01\u0E19\u0E35\u0E49\u0E43\u0E0A\u0E49\u0E04\u0E33\u0E19\u0E27\u0E13\u0E27\u0E48\u0E32 \u201C\u0E0A\u0E48\u0E27\u0E07\u0E40\u0E27\u0E25\u0E32\u0E17\u0E35\u0E48\u0E02\u0E2D\u0E21\u0E32\u0E19\u0E31\u0E1A\u0E40\u0E1B\u0E47\u0E19 OT \u0E01\u0E35\u0E48\u0E19\u0E32\u0E17\u0E35\u201D \u0E40\u0E17\u0E48\u0E32\u0E19\u0E31\u0E49\u0E19 \u0E23\u0E30\u0E1A\u0E1A\u0E44\u0E21\u0E48\u0E04\u0E34\u0E14\u0E04\u0E48\u0E32\u0E15\u0E2D\u0E1A\u0E41\u0E17\u0E19\u0E43\u0E2B\u0E49 \u0E40\u0E1E\u0E23\u0E32\u0E30\u0E2D\u0E31\u0E15\u0E23\u0E32\u0E04\u0E48\u0E32\u0E41\u0E23\u0E07\u0E23\u0E32\u0E22\u0E04\u0E19\u0E44\u0E21\u0E48\u0E44\u0E14\u0E49\u0E2D\u0E22\u0E39\u0E48\u0E43\u0E19\u0E23\u0E30\u0E1A\u0E1A\u0E19\u0E35\u0E49 \u2014 \u0E01\u0E32\u0E23\u0E40\u0E14\u0E32\u0E41\u0E17\u0E19\u0E1D\u0E48\u0E32\u0E22\u0E1A\u0E38\u0E04\u0E04\u0E25\u0E2D\u0E31\u0E19\u0E15\u0E23\u0E32\u0E22\u0E01\u0E27\u0E48\u0E32\u0E44\u0E21\u0E48\u0E1A\u0E2D\u0E01\u0E40\u0E25\u0E22", React.createElement("br", null), "\u0E01\u0E32\u0E23\u0E41\u0E01\u0E49\u0E04\u0E48\u0E32\u0E17\u0E35\u0E48\u0E19\u0E35\u0E48\u0E44\u0E21\u0E48\u0E22\u0E49\u0E2D\u0E19\u0E44\u0E1B\u0E40\u0E1B\u0E25\u0E35\u0E48\u0E22\u0E19\u0E43\u0E1A\u0E40\u0E01\u0E48\u0E32 \u0E43\u0E1A\u0E17\u0E35\u0E48\u0E2D\u0E19\u0E38\u0E21\u0E31\u0E15\u0E34\u0E44\u0E1B\u0E41\u0E25\u0E49\u0E27\u0E40\u0E01\u0E47\u0E1A\u0E08\u0E33\u0E19\u0E27\u0E19\u0E19\u0E32\u0E17\u0E35\u0E44\u0E27\u0E49\u0E43\u0E19\u0E15\u0E31\u0E27\u0E43\u0E1A\u0E02\u0E2D\u0E07\u0E21\u0E31\u0E19\u0E40\u0E2D\u0E07"), React.createElement("div", null, React.createElement("button", {
+  }, "\u0E27\u0E31\u0E19\u0E15\u0E31\u0E14\u0E22\u0E2D\u0E14\u0E43\u0E0A\u0E49\u0E41\u0E1A\u0E48\u0E07\u0E23\u0E2D\u0E1A\u0E43\u0E19\u0E41\u0E17\u0E47\u0E1A \u201C\u0E2A\u0E23\u0E38\u0E1B\u0E40\u0E14\u0E37\u0E2D\u0E19\u201D \u0E41\u0E25\u0E30\u0E1A\u0E19\u0E43\u0E1A OT \u0E17\u0E35\u0E48\u0E1E\u0E34\u0E21\u0E1E\u0E4C\u0E2D\u0E2D\u0E01\u0E44\u0E1B \u0E44\u0E21\u0E48\u0E44\u0E14\u0E49\u0E40\u0E1B\u0E25\u0E35\u0E48\u0E22\u0E19\u0E15\u0E31\u0E27\u0E43\u0E1A\u0E17\u0E35\u0E48\u0E40\u0E1B\u0E34\u0E14\u0E44\u0E1B\u0E41\u0E25\u0E49\u0E27", React.createElement("br", null), "\u0E04\u0E48\u0E32\u0E1E\u0E27\u0E01\u0E19\u0E35\u0E49\u0E43\u0E0A\u0E49\u0E04\u0E33\u0E19\u0E27\u0E13\u0E27\u0E48\u0E32 \u201C\u0E0A\u0E48\u0E27\u0E07\u0E40\u0E27\u0E25\u0E32\u0E17\u0E35\u0E48\u0E02\u0E2D\u0E21\u0E32\u0E19\u0E31\u0E1A\u0E40\u0E1B\u0E47\u0E19 OT \u0E01\u0E35\u0E48\u0E19\u0E32\u0E17\u0E35\u201D \u0E40\u0E17\u0E48\u0E32\u0E19\u0E31\u0E49\u0E19 \u0E23\u0E30\u0E1A\u0E1A\u0E44\u0E21\u0E48\u0E04\u0E34\u0E14\u0E04\u0E48\u0E32\u0E15\u0E2D\u0E1A\u0E41\u0E17\u0E19\u0E43\u0E2B\u0E49 \u0E40\u0E1E\u0E23\u0E32\u0E30\u0E2D\u0E31\u0E15\u0E23\u0E32\u0E04\u0E48\u0E32\u0E41\u0E23\u0E07\u0E23\u0E32\u0E22\u0E04\u0E19\u0E44\u0E21\u0E48\u0E44\u0E14\u0E49\u0E2D\u0E22\u0E39\u0E48\u0E43\u0E19\u0E23\u0E30\u0E1A\u0E1A\u0E19\u0E35\u0E49 \u2014 \u0E01\u0E32\u0E23\u0E40\u0E14\u0E32\u0E41\u0E17\u0E19\u0E1D\u0E48\u0E32\u0E22\u0E1A\u0E38\u0E04\u0E04\u0E25\u0E2D\u0E31\u0E19\u0E15\u0E23\u0E32\u0E22\u0E01\u0E27\u0E48\u0E32\u0E44\u0E21\u0E48\u0E1A\u0E2D\u0E01\u0E40\u0E25\u0E22", React.createElement("br", null), "\u0E01\u0E32\u0E23\u0E41\u0E01\u0E49\u0E04\u0E48\u0E32\u0E17\u0E35\u0E48\u0E19\u0E35\u0E48\u0E44\u0E21\u0E48\u0E22\u0E49\u0E2D\u0E19\u0E44\u0E1B\u0E40\u0E1B\u0E25\u0E35\u0E48\u0E22\u0E19\u0E43\u0E1A\u0E40\u0E01\u0E48\u0E32 \u0E43\u0E1A\u0E17\u0E35\u0E48\u0E2D\u0E19\u0E38\u0E21\u0E31\u0E15\u0E34\u0E44\u0E1B\u0E41\u0E25\u0E49\u0E27\u0E40\u0E01\u0E47\u0E1A\u0E08\u0E33\u0E19\u0E27\u0E19\u0E19\u0E32\u0E17\u0E35\u0E44\u0E27\u0E49\u0E43\u0E19\u0E15\u0E31\u0E27\u0E43\u0E1A\u0E02\u0E2D\u0E07\u0E21\u0E31\u0E19\u0E40\u0E2D\u0E07"), React.createElement("div", null, React.createElement("button", {
     onClick: () => onSave(f),
     style: {
       padding: "10px 20px",
@@ -2940,43 +2608,230 @@ function TmWorkHours({
     }
   }, "\u0E1A\u0E31\u0E19\u0E17\u0E36\u0E01\u0E40\u0E27\u0E25\u0E32\u0E17\u0E33\u0E07\u0E32\u0E19")));
 }
-function TmOtPeriod({
+const tmChip = on => ({
+  display: "inline-flex",
+  alignItems: "center",
+  gap: 6,
+  padding: "7px 13px",
+  borderRadius: "var(--r-pill)",
+  border: "none",
+  boxShadow: on ? "inset 0 0 0 1px var(--primary)" : "var(--shadow-sm)",
+  background: on ? "var(--primary-soft)" : "var(--surface)",
+  cursor: "pointer",
+  fontFamily: "inherit",
+  fontSize: 12.5,
+  fontWeight: 700,
+  color: on ? "var(--primary-dark)" : "var(--text-2)"
+});
+const TM_NAV = Object.assign({}, TM_IN, {
+  cursor: "pointer",
+  fontWeight: 700
+});
+const tmBadge = (n, warn) => n > 0 ? React.createElement("span", {
+  style: {
+    minWidth: 18,
+    padding: "1px 6px",
+    borderRadius: "var(--r-pill)",
+    background: warn ? "#F59E0B" : "var(--primary)",
+    color: "#fff",
+    fontFamily: "var(--mono)",
+    fontSize: 10.5,
+    fontWeight: 800,
+    textAlign: "center"
+  }
+}, n) : null;
+function TmFacts({
+  items
+}) {
+  return React.createElement("div", {
+    style: {
+      display: "flex",
+      flexWrap: "wrap",
+      gap: "6px 20px",
+      padding: "10px 14px",
+      borderRadius: "var(--r-tile)",
+      background: "var(--surface)",
+      boxShadow: "var(--shadow-sm)"
+    }
+  }, items.filter(Boolean).map((it, i) => React.createElement("span", {
+    key: i,
+    title: it.hint || "",
+    style: {
+      display: "inline-flex",
+      alignItems: "baseline",
+      gap: 5,
+      fontSize: 12,
+      color: "var(--text-3)",
+      fontWeight: 700
+    }
+  }, it.label, React.createElement("b", {
+    style: {
+      fontFamily: "var(--mono)",
+      fontSize: 15,
+      fontWeight: 800,
+      color: it.color || "var(--text-1)"
+    }
+  }, it.value), it.unit)));
+}
+function TmHelp({
+  children
+}) {
+  return React.createElement("details", {
+    style: {
+      fontSize: 11.5,
+      color: "var(--text-3)",
+      lineHeight: 1.7
+    }
+  }, React.createElement("summary", {
+    style: {
+      cursor: "pointer",
+      fontWeight: 700,
+      color: "var(--text-2)",
+      width: "fit-content"
+    }
+  }, "\u0E2D\u0E48\u0E32\u0E19\u0E27\u0E34\u0E18\u0E35\u0E04\u0E34\u0E14 / \u0E2B\u0E21\u0E32\u0E22\u0E40\u0E2B\u0E15\u0E38"), React.createElement("div", {
+    style: {
+      marginTop: 6
+    }
+  }, children));
+}
+function TmDayGrid({
+  days,
+  byDay
+}) {
+  return React.createElement("div", {
+    style: {
+      display: "grid",
+      gridTemplateColumns: "repeat(7, minmax(0, 1fr))",
+      gap: 6,
+      maxWidth: 760
+    }
+  }, TM_WD_TH.map((w, i) => React.createElement("div", {
+    key: w,
+    style: {
+      textAlign: "center",
+      padding: "0 0 2px",
+      fontSize: 10.5,
+      fontWeight: 800,
+      color: i === 0 || i === 6 ? "var(--text-3)" : "var(--text-2)"
+    }
+  }, w)), Array.from({
+    length: tmWdOf(days[0])
+  }, (_, i) => React.createElement("div", {
+    key: "pad" + i
+  })), days.map(d => {
+    const x = byDay[d];
+    const open = x && x.in && !x.out;
+    const wk = tmWdOf(d) === 0 || tmWdOf(d) === 6;
+    return React.createElement("div", {
+      key: d,
+      title: d,
+      style: {
+        minWidth: 0,
+        padding: "7px 9px",
+        borderRadius: 9,
+        minHeight: 58,
+        background: wk && !x ? "var(--surface2)" : "var(--surface)",
+        border: "none",
+        boxShadow: open ? "inset 0 0 0 1px var(--tint-red-bd)" : x ? "var(--shadow-sm)" : "none",
+        opacity: x ? 1 : 0.45
+      }
+    }, React.createElement("div", {
+      style: {
+        fontSize: 10.5,
+        color: "var(--text-3)",
+        fontWeight: 700
+      }
+    }, +d.slice(8)), React.createElement("div", {
+      style: {
+        fontFamily: "var(--mono)",
+        fontSize: 11.5,
+        fontWeight: 700,
+        color: open ? "#EF4444" : "var(--text-1)"
+      }
+    }, x ? (x.in || "—") + " – " + (x.out || "?") : "—"), React.createElement("div", {
+      style: {
+        fontSize: 10.5,
+        color: "var(--text-3)"
+      }
+    }, x ? window.tmDur(x.mins) : ""));
+  }));
+}
+function TmMonthAll({
   cfg,
   users,
   jobs,
-  rows,
-  byName
+  otRows,
+  byName,
+  canAll
 }) {
-  const cut = window.tmWhNorm(cfg).cutoffDay;
-  const [period, setPeriod] = React.useState(() => window.tmPeriodOf(window.drToday(), cfg));
-  React.useEffect(() => {
-    setPeriod(window.tmPeriodOf(window.drToday(), cfg));
-  }, [cut]);
+  const [ym, setYm] = React.useState(window.tmYmNow);
+  const {
+    byDate,
+    loading
+  } = window.useAttendMonth(canAll ? ym : null);
+  const [pick, setPick] = React.useState(null);
+  const [busy, setBusy] = React.useState(false);
   const [onlyApproved, setOnlyApproved] = React.useState(false);
   const [paper, setPaper] = React.useState(null);
-  const inRange = React.useMemo(() => (rows || []).filter(r => window.tmInPeriod(r && r.date, period)), [rows, period]);
-  const people = React.useMemo(() => {
-    const src = onlyApproved ? inRange.filter(r => r.status === "approved") : inRange;
+  const days = React.useMemo(() => window.tmMonthDays(ym), [ym]);
+  const cut = window.tmWhNorm(cfg).cutoffDay;
+  const period = React.useMemo(() => window.tmPeriodOf(cut ? days[Math.min(cut, days.length) - 1] : days[0], cfg), [days, cfg, cut]);
+  const att = React.useMemo(() => canAll ? window.tmMonthRollup(byDate, users, cfg, otRows, ym) : [], [canAll, byDate, users, cfg, otRows, ym]);
+  const otPeople = React.useMemo(() => {
+    const src = (otRows || []).filter(r => window.tmInPeriod(r && r.date, period) && (!onlyApproved || r.status === "approved"));
     return window.tmOtByPerson(src, users, cfg);
-  }, [inRange, users, onlyApproved, cfg]);
-  const tot = React.useMemo(() => people.reduce((a, g) => ({
-    slips: a.slips + g.rows.length,
-    approved: a.approved + g.minsApproved,
-    waiting: a.waiting + g.minsWaiting,
-    pay: a.pay + g.payApproved
+  }, [otRows, period, onlyApproved, users, cfg]);
+  const rows = React.useMemo(() => {
+    const map = {},
+      order = [];
+    const get = (id, name) => {
+      const k = id || "name:" + name;
+      if (!map[k]) {
+        map[k] = {
+          key: k,
+          id: id,
+          name: name,
+          a: null,
+          o: null
+        };
+        order.push(k);
+      }
+      return map[k];
+    };
+    att.forEach(a => {
+      get(a.userId, a.name).a = a;
+    });
+    otPeople.forEach(g => {
+      const r = get(g.id, g.name);
+      r.o = g;
+      if (!r.name) r.name = g.name;
+    });
+    return order.map(k => map[k]).sort((x, y) => String(x.name).localeCompare(String(y.name), "th"));
+  }, [att, otPeople]);
+  const tot = rows.reduce((t, r) => ({
+    days: t.days + (r.a ? r.a.days : 0),
+    mins: t.mins + (r.a ? r.a.mins : 0),
+    noOut: t.noOut + (r.a ? r.a.noOut : 0),
+    otOk: t.otOk + (r.o ? r.o.minsApproved : 0),
+    pay: t.pay + (r.o ? r.o.payApproved : 0),
+    wait: t.wait + (r.o ? r.o.minsWaiting : 0)
   }), {
-    slips: 0,
-    approved: 0,
-    waiting: 0,
-    pay: 0
-  }), [people]);
-  const nav = n => setPeriod(p => window.tmPeriodShift(p, n, cfg));
-  const hrs = m => !m ? "—" : (Math.round(m / 60 * 100) / 100).toFixed(2);
+    days: 0,
+    mins: 0,
+    noOut: 0,
+    otOk: 0,
+    pay: 0,
+    wait: 0
+  });
+  const hrs = m => !m ? "—" : (Math.round(m / 60 * 100) / 100).toLocaleString("en-US", {
+    maximumFractionDigits: 2
+  });
   const th = (t, align) => React.createElement("th", {
     key: t,
     style: {
       textAlign: align || "left",
-      padding: "10px 13px",
+      padding: "10px 12px",
       fontSize: 11.5,
       fontWeight: 800,
       color: "var(--text-3)",
@@ -2984,6 +2839,15 @@ function TmOtPeriod({
       whiteSpace: "nowrap"
     }
   }, t);
+  const td = (v, o) => React.createElement("td", {
+    style: Object.assign({
+      padding: "9px 12px",
+      textAlign: "center",
+      fontFamily: "var(--mono)",
+      fontWeight: 700
+    }, o)
+  }, v);
+  const cols = canAll ? 9 : 5;
   return React.createElement("div", {
     style: {
       display: "flex",
@@ -2998,80 +2862,87 @@ function TmOtPeriod({
       flexWrap: "wrap"
     }
   }, React.createElement("button", {
-    onClick: () => nav(-1),
-    style: Object.assign({}, TM_IN, {
-      cursor: "pointer",
-      fontWeight: 700
-    })
-  }, "\u2039 \u0E23\u0E2D\u0E1A\u0E01\u0E48\u0E2D\u0E19"), React.createElement("button", {
-    onClick: () => setPeriod(window.tmPeriodOf(window.drToday(), cfg)),
-    style: Object.assign({}, TM_IN, {
-      cursor: "pointer",
-      fontWeight: 700
-    })
-  }, "\u0E23\u0E2D\u0E1A\u0E1B\u0E31\u0E08\u0E08\u0E38\u0E1A\u0E31\u0E19"), React.createElement("button", {
-    onClick: () => nav(1),
-    style: Object.assign({}, TM_IN, {
-      cursor: "pointer",
-      fontWeight: 700
-    })
-  }, "\u0E23\u0E2D\u0E1A\u0E16\u0E31\u0E14\u0E44\u0E1B \u203A"), React.createElement("div", {
+    onClick: () => setYm(window.tmYmShift(ym, -1)),
+    style: TM_NAV
+  }, "\u2039"), React.createElement("div", {
     style: {
-      fontSize: 13.5,
+      fontSize: 14,
       fontWeight: 800,
-      color: "var(--text-1)"
+      color: "var(--text-1)",
+      minWidth: 120,
+      textAlign: "center"
     }
-  }, window.tmPeriodTH(period)), React.createElement("label", {
+  }, window.tmYmTH(ym)), React.createElement("button", {
+    onClick: () => setYm(window.tmYmShift(ym, 1)),
+    style: TM_NAV
+  }, "\u203A"), ym !== window.tmYmNow() && React.createElement("button", {
+    onClick: () => setYm(window.tmYmNow()),
+    style: TM_NAV
+  }, "\u0E40\u0E14\u0E37\u0E2D\u0E19\u0E19\u0E35\u0E49"), cut ? React.createElement("span", {
+    style: {
+      fontSize: 11.5,
+      color: "var(--text-3)"
+    }
+  }, "OT \u0E23\u0E2D\u0E1A ", window.tmPeriodTH(period)) : null, canAll && React.createElement("button", {
+    onClick: async () => {
+      if (busy) return;
+      setBusy(true);
+      try {
+        await tmExportMonthXlsx(att, days, ym, otRows, users, cfg);
+      } finally {
+        setBusy(false);
+      }
+    },
+    disabled: busy,
     style: {
       marginLeft: "auto",
       display: "inline-flex",
       alignItems: "center",
-      gap: 7,
+      gap: 6,
+      padding: "9px 15px",
+      borderRadius: "var(--r-chip)",
+      border: "none",
+      background: busy ? "var(--text-3)" : "var(--primary)",
+      color: "#fff",
+      cursor: busy ? "default" : "pointer",
+      fontFamily: "inherit",
       fontSize: 12.5,
-      fontWeight: 700,
-      color: "var(--text-2)",
-      cursor: "pointer"
+      fontWeight: 800
     }
-  }, React.createElement("input", {
-    type: "checkbox",
-    checked: onlyApproved,
-    onChange: e => setOnlyApproved(e.target.checked),
-    style: {
-      width: 15,
-      height: 15
-    }
-  }), "\u0E1E\u0E34\u0E21\u0E1E\u0E4C\u0E40\u0E09\u0E1E\u0E32\u0E30\u0E43\u0E1A\u0E17\u0E35\u0E48\u0E2D\u0E19\u0E38\u0E21\u0E31\u0E15\u0E34\u0E41\u0E25\u0E49\u0E27")), React.createElement("div", {
-    style: {
-      display: "flex",
-      gap: 10,
-      flexWrap: "wrap"
-    }
-  }, React.createElement(TmStat, {
-    label: "\u0E04\u0E19\u0E17\u0E35\u0E48\u0E21\u0E35 OT \u0E43\u0E19\u0E23\u0E2D\u0E1A\u0E19\u0E35\u0E49",
-    value: people.length,
-    unit: "\u0E04\u0E19"
-  }), React.createElement(TmStat, {
-    label: "\u0E43\u0E1A OT \u0E43\u0E19\u0E23\u0E2D\u0E1A\u0E19\u0E35\u0E49",
-    value: tot.slips,
-    unit: "\u0E43\u0E1A"
-  }), React.createElement(TmStat, {
-    label: "\u0E2D\u0E19\u0E38\u0E21\u0E31\u0E15\u0E34\u0E41\u0E25\u0E49\u0E27",
-    value: hrs(tot.approved),
-    unit: "\u0E0A\u0E21.",
-    hint: "\u0E0A\u0E31\u0E48\u0E27\u0E42\u0E21\u0E07\u0E08\u0E23\u0E34\u0E07\u0E17\u0E35\u0E48\u0E17\u0E33"
-  }), React.createElement(TmStat, {
-    label: "\u0E0A\u0E31\u0E48\u0E27\u0E42\u0E21\u0E07\u0E04\u0E34\u0E14\u0E04\u0E48\u0E32\u0E41\u0E23\u0E07",
-    value: hrs(tot.pay),
-    unit: "\u0E0A\u0E21.",
-    color: "var(--primary-dark)",
-    hint: "\u0E04\u0E39\u0E13\u0E15\u0E31\u0E27\u0E04\u0E39\u0E13\u0E02\u0E2D\u0E07\u0E41\u0E15\u0E48\u0E25\u0E30\u0E1B\u0E23\u0E30\u0E40\u0E20\u0E17\u0E41\u0E25\u0E49\u0E27 (\u0E40\u0E09\u0E1E\u0E32\u0E30\u0E43\u0E1A\u0E17\u0E35\u0E48\u0E2D\u0E19\u0E38\u0E21\u0E31\u0E15\u0E34)"
-  }), React.createElement(TmStat, {
-    label: "\u0E22\u0E31\u0E07\u0E23\u0E2D\u0E2D\u0E19\u0E38\u0E21\u0E31\u0E15\u0E34",
-    value: hrs(tot.waiting),
-    unit: "\u0E0A\u0E21.",
-    color: tot.waiting ? "#F59E0B" : "var(--text-1)",
-    hint: tot.waiting ? "ต้องกดอนุมัติในระบบก่อน ไม่ใช่แค่เซ็นบนกระดาษ" : ""
-  })), React.createElement("div", {
+  }, React.createElement(Icon, {
+    name: "file",
+    size: 14,
+    color: "#fff"
+  }), " ", busy ? "กำลังเตรียมไฟล์…" : "ออก Excel ทั้งเดือน")), React.createElement(TmFacts, {
+    items: [canAll && {
+      label: "วัน-คนที่ลงเวลา",
+      value: tot.days,
+      unit: "วัน"
+    }, canAll && {
+      label: "ชั่วโมงทำงาน",
+      value: hrs(tot.mins),
+      unit: "ชม."
+    }, {
+      label: "OT อนุมัติ",
+      value: hrs(tot.otOk),
+      unit: "ชม."
+    }, {
+      label: "คิดค่าแรง",
+      value: hrs(tot.pay),
+      unit: "ชม.",
+      color: "var(--primary-dark)"
+    }, tot.wait > 0 && {
+      label: "OT รออนุมัติ",
+      value: hrs(tot.wait),
+      unit: "ชม.",
+      color: "#F59E0B"
+    }, canAll && tot.noOut > 0 && {
+      label: "ลืมกดออก",
+      value: tot.noOut,
+      unit: "ใบ",
+      color: "#EF4444"
+    }]
+  }), React.createElement("div", {
     style: {
       overflowX: "auto",
       border: "none",
@@ -3089,86 +2960,107 @@ function TmOtPeriod({
     style: {
       background: "var(--surface2)"
     }
-  }, th("ชื่อ"), th("ใบ OT", "center"), th("อนุมัติแล้ว (ชม.)", "center"), th("ชม.คิดค่าแรง", "center"), th("รออนุมัติ (ชม.)", "center"), th(""))), React.createElement("tbody", null, people.length === 0 && React.createElement("tr", null, React.createElement("td", {
-    colSpan: 6,
+  }, th("ชื่อ"), canAll && th("วันที่มา", "center"), canAll && th("ชม.ทำงาน", "center"), canAll && th("ลืมออก", "center"), th("OT อนุมัติ", "center"), th("ชม.คิดค่าแรง", "center"), th("OT รออนุมัติ", "center"), canAll && th("", "center"), th("เอกสาร", "right"))), React.createElement("tbody", null, canAll && loading && React.createElement("tr", null, React.createElement("td", {
+    colSpan: cols,
     style: {
       padding: 26,
       textAlign: "center",
       color: "var(--text-3)"
     }
-  }, "\u0E44\u0E21\u0E48\u0E21\u0E35\u0E43\u0E1A OT \u0E43\u0E19\u0E23\u0E2D\u0E1A\u0E19\u0E35\u0E49", onlyApproved ? " (ที่อนุมัติแล้ว)" : "")), people.map(g => React.createElement("tr", {
-    key: g.id || g.name,
+  }, "\u0E01\u0E33\u0E25\u0E31\u0E07\u0E42\u0E2B\u0E25\u0E14\u2026")), !(canAll && loading) && rows.length === 0 && React.createElement("tr", null, React.createElement("td", {
+    colSpan: cols,
     style: {
-      borderBottom: "1px solid var(--divider)"
-    }
-  }, React.createElement("td", {
-    style: {
-      padding: "9px 13px",
-      fontWeight: 700,
-      color: "var(--text-1)"
-    }
-  }, g.name), React.createElement("td", {
-    style: {
-      padding: "9px 13px",
+      padding: 26,
       textAlign: "center",
-      fontFamily: "var(--mono)",
-      fontWeight: 700
+      color: "var(--text-3)"
     }
-  }, g.rows.length), React.createElement("td", {
-    style: {
-      padding: "9px 13px",
-      textAlign: "center",
-      fontFamily: "var(--mono)",
-      fontWeight: 700
-    }
-  }, hrs(g.minsApproved)), React.createElement("td", {
-    style: {
-      padding: "9px 13px",
-      textAlign: "center",
-      fontFamily: "var(--mono)",
+  }, "\u0E44\u0E21\u0E48\u0E21\u0E35\u0E02\u0E49\u0E2D\u0E21\u0E39\u0E25\u0E40\u0E14\u0E37\u0E2D\u0E19\u0E19\u0E35\u0E49")), !(canAll && loading) && rows.map(r => {
+    const a = r.a,
+      o = r.o;
+    return React.createElement(React.Fragment, {
+      key: r.key
+    }, React.createElement("tr", {
+      style: {
+        borderBottom: "1px solid var(--divider)"
+      }
+    }, React.createElement("td", {
+      style: {
+        padding: "9px 12px",
+        fontWeight: 700,
+        color: a && a.days || o ? "var(--text-1)" : "var(--text-3)"
+      }
+    }, r.name), canAll && td(a && a.days ? a.days : "—"), canAll && td(hrs(a && a.mins)), canAll && td(a && a.noOut ? a.noOut : "—", {
+      color: a && a.noOut ? "#EF4444" : "var(--text-3)"
+    }), td(hrs(o && o.minsApproved)), td(hrs(o && o.payApproved), {
       fontWeight: 800,
-      color: g.payApproved ? "var(--primary-dark)" : "var(--text-3)"
-    }
-  }, hrs(g.payApproved)), React.createElement("td", {
-    style: {
-      padding: "9px 13px",
-      textAlign: "center",
-      fontFamily: "var(--mono)",
-      color: g.minsWaiting ? "#F59E0B" : "var(--text-3)",
-      fontWeight: g.minsWaiting ? 700 : 400
-    }
-  }, hrs(g.minsWaiting)), React.createElement("td", {
-    style: {
-      padding: "9px 13px",
-      textAlign: "right"
-    }
-  }, React.createElement("button", {
-    onClick: () => setPaper(g),
+      color: o && o.payApproved ? "var(--primary-dark)" : "var(--text-3)"
+    }), td(hrs(o && o.minsWaiting), {
+      color: o && o.minsWaiting ? "#F59E0B" : "var(--text-3)"
+    }), canAll && React.createElement("td", {
+      style: {
+        padding: "9px 6px",
+        textAlign: "center"
+      }
+    }, a && a.days > 0 && React.createElement("button", {
+      onClick: () => setPick(pick === r.key ? null : r.key),
+      style: tmChip(pick === r.key)
+    }, pick === r.key ? "ซ่อน" : "รายวัน")), React.createElement("td", {
+      style: {
+        padding: "9px 12px",
+        textAlign: "right"
+      }
+    }, o && o.rows.length > 0 && React.createElement("button", {
+      onClick: () => setPaper(o),
+      style: {
+        display: "inline-flex",
+        alignItems: "center",
+        gap: 6,
+        padding: "7px 12px",
+        borderRadius: 9,
+        border: "none",
+        background: "var(--primary)",
+        color: "#fff",
+        cursor: "pointer",
+        fontFamily: "inherit",
+        fontSize: 12,
+        fontWeight: 800,
+        whiteSpace: "nowrap"
+      }
+    }, React.createElement(Icon, {
+      name: "file",
+      size: 13,
+      color: "#fff"
+    }), " \u0E43\u0E1A OT"))), pick === r.key && a && React.createElement("tr", null, React.createElement("td", {
+      colSpan: cols,
+      style: {
+        padding: "10px 13px 14px",
+        background: "var(--surface2)",
+        borderBottom: "1px solid var(--divider)"
+      }
+    }, React.createElement(TmDayGrid, {
+      days: days,
+      byDay: a.byDay
+    }))));
+  })))), React.createElement("label", {
     style: {
       display: "inline-flex",
       alignItems: "center",
-      gap: 6,
-      padding: "7px 13px",
-      borderRadius: 9,
-      border: "none",
-      background: "var(--primary)",
-      color: "#fff",
-      cursor: "pointer",
-      fontFamily: "inherit",
+      gap: 7,
       fontSize: 12,
-      fontWeight: 800
+      fontWeight: 700,
+      color: "var(--text-2)",
+      cursor: "pointer",
+      width: "fit-content"
     }
-  }, React.createElement(Icon, {
-    name: "file",
-    size: 13,
-    color: "#fff"
-  }), " \u0E1E\u0E34\u0E21\u0E1E\u0E4C / PDF"))))))), React.createElement("div", {
+  }, React.createElement("input", {
+    type: "checkbox",
+    checked: onlyApproved,
+    onChange: e => setOnlyApproved(e.target.checked),
     style: {
-      fontSize: 11.5,
-      color: "var(--text-3)",
-      lineHeight: 1.7
+      width: 15,
+      height: 15
     }
-  }, "\u201C\u0E0A\u0E21.\u0E04\u0E34\u0E14\u0E04\u0E48\u0E32\u0E41\u0E23\u0E07\u201D = \u0E0A\u0E31\u0E48\u0E27\u0E42\u0E21\u0E07\u0E08\u0E23\u0E34\u0E07 \xD7 \u0E15\u0E31\u0E27\u0E04\u0E39\u0E13\u0E02\u0E2D\u0E07\u0E1B\u0E23\u0E30\u0E40\u0E20\u0E17 OT \u0E19\u0E31\u0E49\u0E19 (\u0E15\u0E31\u0E49\u0E07\u0E44\u0E14\u0E49\u0E43\u0E19\u0E2B\u0E19\u0E49\u0E32 \u201C\u0E15\u0E31\u0E49\u0E07\u0E04\u0E48\u0E32\u0E40\u0E27\u0E25\u0E32\u0E17\u0E33\u0E07\u0E32\u0E19\u201D) \u0E19\u0E31\u0E1A\u0E40\u0E09\u0E1E\u0E32\u0E30\u0E43\u0E1A\u0E17\u0E35\u0E48\u0E2D\u0E19\u0E38\u0E21\u0E31\u0E15\u0E34\u0E41\u0E25\u0E49\u0E27 \xB7 \u0E22\u0E31\u0E07\u0E44\u0E21\u0E48\u0E43\u0E0A\u0E48\u0E08\u0E33\u0E19\u0E27\u0E19\u0E40\u0E07\u0E34\u0E19 \u0E1D\u0E48\u0E32\u0E22\u0E1A\u0E38\u0E04\u0E04\u0E25\u0E15\u0E49\u0E2D\u0E07\u0E04\u0E39\u0E13\u0E2D\u0E31\u0E15\u0E23\u0E32\u0E04\u0E48\u0E32\u0E08\u0E49\u0E32\u0E07\u0E02\u0E2D\u0E07\u0E41\u0E15\u0E48\u0E25\u0E30\u0E04\u0E19\u0E2D\u0E35\u0E01\u0E17\u0E35", React.createElement("br", null), "\u0E43\u0E1A\u0E17\u0E35\u0E48\u0E1E\u0E34\u0E21\u0E1E\u0E4C\u0E40\u0E1B\u0E47\u0E19\u0E02\u0E2D\u0E07\u0E04\u0E19\u0E25\u0E30\u0E2B\u0E19\u0E36\u0E48\u0E07\u0E43\u0E1A\u0E15\u0E48\u0E2D\u0E2B\u0E19\u0E36\u0E48\u0E07\u0E23\u0E2D\u0E1A \u0E21\u0E35\u0E27\u0E31\u0E19 \xB7 \u0E0A\u0E48\u0E27\u0E07\u0E40\u0E27\u0E25\u0E32 \xB7 \u0E07\u0E32\u0E19\u0E17\u0E35\u0E48\u0E44\u0E1B\u0E17\u0E33 \xB7 \u0E2B\u0E19\u0E49\u0E32\u0E17\u0E35\u0E48\u0E17\u0E35\u0E48\u0E1B\u0E0F\u0E34\u0E1A\u0E31\u0E15\u0E34 \xB7 \u0E41\u0E25\u0E30\u0E0A\u0E48\u0E2D\u0E07\u0E40\u0E0B\u0E47\u0E19\u0E2A\u0E32\u0E21\u0E0A\u0E48\u0E2D\u0E07 (\u0E1C\u0E39\u0E49\u0E02\u0E2D \xB7 \u0E2B\u0E31\u0E27\u0E2B\u0E19\u0E49\u0E32\u0E07\u0E32\u0E19\u0E1C\u0E39\u0E49\u0E2D\u0E19\u0E38\u0E21\u0E31\u0E15\u0E34 \xB7 \u0E1D\u0E48\u0E32\u0E22\u0E1A\u0E38\u0E04\u0E04\u0E25)", React.createElement("br", null), "\u0E23\u0E2D\u0E1A\u0E41\u0E1A\u0E48\u0E07\u0E15\u0E32\u0E21\u0E27\u0E31\u0E19\u0E15\u0E31\u0E14\u0E22\u0E2D\u0E14\u0E17\u0E35\u0E48\u0E15\u0E31\u0E49\u0E07\u0E44\u0E27\u0E49\u0E43\u0E19\u0E2B\u0E19\u0E49\u0E32 \u201C\u0E15\u0E31\u0E49\u0E07\u0E04\u0E48\u0E32\u0E40\u0E27\u0E25\u0E32\u0E17\u0E33\u0E07\u0E32\u0E19\u201D", cut ? " — ตอนนี้ตัดทุกวันที่ " + cut : " — ตอนนี้ใช้เดือนปฏิทิน (ยังไม่ได้ตั้งวันตัดยอด)", React.createElement("br", null), "\u0E43\u0E1A\u0E17\u0E35\u0E48\u0E22\u0E31\u0E07\u0E44\u0E21\u0E48\u0E2D\u0E19\u0E38\u0E21\u0E31\u0E15\u0E34\u0E01\u0E47\u0E1E\u0E34\u0E21\u0E1E\u0E4C\u0E15\u0E34\u0E14\u0E44\u0E1B\u0E14\u0E49\u0E27\u0E22\u0E41\u0E25\u0E30\u0E02\u0E36\u0E49\u0E19\u0E2A\u0E16\u0E32\u0E19\u0E30\u0E01\u0E33\u0E01\u0E31\u0E1A \u0E40\u0E1E\u0E37\u0E48\u0E2D\u0E43\u0E2B\u0E49\u0E2B\u0E31\u0E27\u0E2B\u0E19\u0E49\u0E32\u0E40\u0E2B\u0E47\u0E19\u0E04\u0E23\u0E1A\u0E27\u0E48\u0E32\u0E25\u0E39\u0E01\u0E19\u0E49\u0E2D\u0E07\u0E02\u0E2D\u0E2D\u0E30\u0E44\u0E23\u0E21\u0E32\u0E1A\u0E49\u0E32\u0E07 \u2014 \u0E41\u0E15\u0E48\u0E22\u0E2D\u0E14\u0E23\u0E27\u0E21\u0E17\u0E35\u0E48\u0E2D\u0E19\u0E38\u0E21\u0E31\u0E15\u0E34\u0E41\u0E25\u0E49\u0E27\u0E01\u0E31\u0E1A\u0E22\u0E2D\u0E14\u0E17\u0E35\u0E48\u0E22\u0E31\u0E07\u0E23\u0E2D \u0E41\u0E22\u0E01\u0E04\u0E19\u0E25\u0E30\u0E1A\u0E23\u0E23\u0E17\u0E31\u0E14\u0E1A\u0E19\u0E01\u0E23\u0E30\u0E14\u0E32\u0E29\u0E40\u0E2A\u0E21\u0E2D"), paper && window.TmOtPaper && React.createElement(window.TmOtPaper, {
+  }), "\u0E43\u0E1A OT \u0E17\u0E35\u0E48\u0E1E\u0E34\u0E21\u0E1E\u0E4C \u2014 \u0E40\u0E2D\u0E32\u0E40\u0E09\u0E1E\u0E32\u0E30\u0E43\u0E1A\u0E17\u0E35\u0E48\u0E2D\u0E19\u0E38\u0E21\u0E31\u0E15\u0E34\u0E41\u0E25\u0E49\u0E27"), React.createElement(TmHelp, null, React.createElement("b", null, "Excel \u0E17\u0E31\u0E49\u0E07\u0E40\u0E14\u0E37\u0E2D\u0E19"), " = \u0E41\u0E1C\u0E48\u0E19\u0E2A\u0E23\u0E38\u0E1B\u0E2B\u0E19\u0E36\u0E48\u0E07\u0E41\u0E1C\u0E48\u0E19 + \u0E41\u0E1C\u0E48\u0E19\u0E23\u0E32\u0E22\u0E25\u0E30\u0E40\u0E2D\u0E35\u0E22\u0E14\u0E41\u0E22\u0E01\u0E23\u0E32\u0E22\u0E04\u0E19 (\u0E40\u0E02\u0E49\u0E32 \xB7 \u0E2D\u0E2D\u0E01 \xB7 \u0E0A\u0E31\u0E48\u0E27\u0E42\u0E21\u0E07 \xB7 \u0E07\u0E32\u0E19\u0E17\u0E35\u0E48\u0E41\u0E08\u0E49\u0E07 \xB7 \u0E1E\u0E34\u0E01\u0E31\u0E14\u0E1E\u0E23\u0E49\u0E2D\u0E21\u0E25\u0E34\u0E07\u0E01\u0E4C\u0E41\u0E1C\u0E19\u0E17\u0E35\u0E48) \u0E15\u0E48\u0E2D\u0E14\u0E49\u0E27\u0E22\u0E43\u0E1A OT \u0E02\u0E2D\u0E07\u0E40\u0E14\u0E37\u0E2D\u0E19\u0E41\u0E25\u0E30\u0E0A\u0E48\u0E2D\u0E07\u0E40\u0E0B\u0E47\u0E19", React.createElement("br", null), React.createElement("b", null, "\u0E43\u0E1A OT"), " = \u0E43\u0E1A A4 \u0E02\u0E2D\u0E07\u0E04\u0E19\u0E19\u0E31\u0E49\u0E19\u0E2B\u0E19\u0E36\u0E48\u0E07\u0E43\u0E1A\u0E15\u0E48\u0E2D\u0E23\u0E2D\u0E1A \u0E43\u0E2B\u0E49\u0E2B\u0E31\u0E27\u0E2B\u0E19\u0E49\u0E32\u0E40\u0E0B\u0E47\u0E19 (\u0E1C\u0E39\u0E49\u0E02\u0E2D \xB7 \u0E2B\u0E31\u0E27\u0E2B\u0E19\u0E49\u0E32\u0E07\u0E32\u0E19 \xB7 \u0E1D\u0E48\u0E32\u0E22\u0E1A\u0E38\u0E04\u0E04\u0E25) \u2014 \u0E43\u0E1A\u0E17\u0E35\u0E48\u0E22\u0E31\u0E07\u0E44\u0E21\u0E48\u0E2D\u0E19\u0E38\u0E21\u0E31\u0E15\u0E34\u0E1E\u0E34\u0E21\u0E1E\u0E4C\u0E15\u0E34\u0E14\u0E44\u0E1B\u0E14\u0E49\u0E27\u0E22\u0E1E\u0E23\u0E49\u0E2D\u0E21\u0E2A\u0E16\u0E32\u0E19\u0E30 \u0E41\u0E15\u0E48\u0E22\u0E2D\u0E14\u0E41\u0E22\u0E01\u0E1A\u0E23\u0E23\u0E17\u0E31\u0E14", React.createElement("br", null), "\u0E0A\u0E31\u0E48\u0E27\u0E42\u0E21\u0E07\u0E17\u0E33\u0E07\u0E32\u0E19\u0E04\u0E34\u0E14\u0E08\u0E32\u0E01\u0E40\u0E27\u0E25\u0E32\u0E17\u0E35\u0E48\u0E1B\u0E31\u0E4A\u0E21\u0E40\u0E02\u0E49\u0E32-\u0E2D\u0E2D\u0E01 \u0E2B\u0E31\u0E01\u0E1E\u0E31\u0E01\u0E01\u0E25\u0E32\u0E07\u0E27\u0E31\u0E19\u0E15\u0E32\u0E21\u0E17\u0E35\u0E48\u0E15\u0E31\u0E49\u0E07\u0E44\u0E27\u0E49 \xB7 \u0E43\u0E1A\u0E17\u0E35\u0E48\u0E25\u0E37\u0E21\u0E01\u0E14\u0E2D\u0E2D\u0E01\u0E0A\u0E31\u0E48\u0E27\u0E42\u0E21\u0E07\u0E40\u0E1B\u0E47\u0E19\u0E28\u0E39\u0E19\u0E22\u0E4C \u0E15\u0E49\u0E2D\u0E07\u0E41\u0E01\u0E49\u0E40\u0E27\u0E25\u0E32\u0E17\u0E35\u0E48\u0E41\u0E17\u0E47\u0E1A \"\u0E27\u0E31\u0E19\u0E19\u0E35\u0E49\"", React.createElement("br", null), "\u201C\u0E0A\u0E21.\u0E04\u0E34\u0E14\u0E04\u0E48\u0E32\u0E41\u0E23\u0E07\u201D = \u0E0A\u0E31\u0E48\u0E27\u0E42\u0E21\u0E07 OT \xD7 \u0E15\u0E31\u0E27\u0E04\u0E39\u0E13\u0E02\u0E2D\u0E07\u0E1B\u0E23\u0E30\u0E40\u0E20\u0E17 (\u0E27\u0E31\u0E19\u0E2B\u0E22\u0E38\u0E14: 8 \u0E0A\u0E21.\u0E41\u0E23\u0E01 \xD7 \u0E2D\u0E31\u0E15\u0E23\u0E32\u0E27\u0E31\u0E19\u0E2B\u0E22\u0E38\u0E14 \u0E2A\u0E48\u0E27\u0E19\u0E40\u0E01\u0E34\u0E19 \xD7 \u0E2D\u0E31\u0E15\u0E23\u0E32\u0E25\u0E48\u0E27\u0E07\u0E40\u0E27\u0E25\u0E32\u0E27\u0E31\u0E19\u0E2B\u0E22\u0E38\u0E14) \u0E40\u0E09\u0E1E\u0E32\u0E30\u0E43\u0E1A\u0E17\u0E35\u0E48\u0E2D\u0E19\u0E38\u0E21\u0E31\u0E15\u0E34\u0E41\u0E25\u0E49\u0E27 \u2014 \u0E22\u0E31\u0E07\u0E44\u0E21\u0E48\u0E43\u0E0A\u0E48\u0E08\u0E33\u0E19\u0E27\u0E19\u0E40\u0E07\u0E34\u0E19", React.createElement("br", null), "\u0E23\u0E2D\u0E1A OT ", cut ? "ตัดยอดทุกวันที่ " + cut + " — เดือนนี้นับ " + window.tmPeriodTH(period) : "ใช้เดือนปฏิทิน (ยังไม่ได้ตั้งวันตัดยอดในหน้าตั้งค่า)"), paper && window.TmOtPaper && React.createElement(window.TmOtPaper, {
     person: paper,
     period: period,
     rows: paper.rows,
@@ -3179,6 +3071,227 @@ function TmOtPeriod({
     onClose: () => setPaper(null)
   }));
 }
+function TmRequests({
+  cfg,
+  users,
+  role,
+  currentUser,
+  ot,
+  otVisible,
+  lv,
+  lvTypes,
+  lvQuota,
+  onOpenOt,
+  onOpenLv,
+  otWaiting,
+  lvWaiting
+}) {
+  const uid = (currentUser || {}).id || null;
+  const canApprove = window.tmCanOtApprove(role) || window.lvCanApprove(role);
+  const canAll = canApprove || window.tmCanAttendAll(role);
+  const [scope, setScope] = React.useState(() => otWaiting.length + lvWaiting.length > 0 ? "inbox" : "mine");
+  const [kind, setKind] = React.useState("all");
+  const [q, setQ] = React.useState("");
+  const lvVis = React.useMemo(() => window.lvVisible(lv.rows, currentUser, role), [lv.rows, currentUser, role]);
+  const year = +String(window.drToday()).slice(0, 4);
+  const myBal = React.useMemo(() => window.lvBalance(lv.rows, lvQuota.map, uid, year, lvTypes), [lv.rows, lvQuota.map, uid, year, lvTypes]);
+  const list = React.useMemo(() => {
+    const pickOt = scope === "inbox" ? otWaiting : scope === "mine" ? otVisible.filter(r => r.userId === uid) : otVisible;
+    const pickLv = scope === "inbox" ? lvWaiting : scope === "mine" ? lvVis.filter(r => r.userId === uid) : lvVis;
+    let out = [];
+    if (kind !== "lv") out = out.concat(pickOt.map(r => ({
+      t: "ot",
+      d: r.date,
+      r: r
+    })));
+    if (kind !== "ot") out = out.concat(pickLv.map(r => ({
+      t: "lv",
+      d: r.from,
+      r: r
+    })));
+    const kw = q.trim().toLowerCase();
+    if (kw) out = out.filter(x => (x.t === "ot" ? [x.r.no, x.r.userName, x.r.jobCode, x.r.reason, window.tmOtKindOf(x.r.kind).th] : [x.r.no, x.r.userName, x.r.reason, window.lvTypeOf(lvTypes, x.r.type).th]).some(v => String(v || "").toLowerCase().includes(kw)));
+    out.sort((a, b) => String(b.d || "").localeCompare(String(a.d || "")) || String(b.r.createdAt || "").localeCompare(String(a.r.createdAt || "")));
+    return out;
+  }, [scope, kind, q, otVisible, otWaiting, lvVis, lvWaiting, uid, lvTypes]);
+  const SC = (canApprove ? [["inbox", "รอฉันอนุมัติ", otWaiting.length + lvWaiting.length]] : []).concat([["mine", "ของฉัน", 0]]).concat(canAll ? [["all", "ทั้งหมด", 0]] : []);
+  return React.createElement("div", {
+    style: {
+      display: "flex",
+      flexDirection: "column",
+      gap: 12
+    }
+  }, React.createElement("div", {
+    style: {
+      display: "flex",
+      gap: 7,
+      flexWrap: "wrap",
+      alignItems: "center"
+    }
+  }, SC.map(([k, th, n]) => React.createElement("button", {
+    key: k,
+    onClick: () => setScope(k),
+    style: tmChip(scope === k)
+  }, th, tmBadge(n, true))), React.createElement("span", {
+    style: {
+      width: 1,
+      height: 22,
+      background: "var(--divider)",
+      margin: "0 4px"
+    }
+  }), [["all", "ทุกชนิด"], ["ot", "OT"], ["lv", "ลา"]].map(([k, th]) => React.createElement("button", {
+    key: k,
+    onClick: () => setKind(k),
+    style: tmChip(kind === k)
+  }, th)), React.createElement("div", {
+    className: "search-box",
+    style: {
+      marginLeft: "auto",
+      width: "100%",
+      maxWidth: 260
+    }
+  }, React.createElement(Icon, {
+    name: "search",
+    size: 15,
+    color: "var(--text-3)"
+  }), React.createElement("input", {
+    value: q,
+    onChange: e => setQ(e.target.value),
+    placeholder: "\u0E04\u0E49\u0E19\u0E2B\u0E32 \u0E0A\u0E37\u0E48\u0E2D \xB7 \u0E40\u0E25\u0E02\u0E17\u0E35\u0E48 \xB7 \u0E40\u0E2B\u0E15\u0E38\u0E1C\u0E25"
+  }))), scope === "mine" && kind !== "ot" && window.LvBalanceCards && React.createElement("div", {
+    style: {
+      display: "grid",
+      gap: 6
+    }
+  }, React.createElement("span", {
+    style: {
+      fontSize: 11.5,
+      fontWeight: 700,
+      color: "var(--text-3)"
+    }
+  }, "\u0E27\u0E31\u0E19\u0E25\u0E32\u0E04\u0E07\u0E40\u0E2B\u0E25\u0E37\u0E2D\u0E02\u0E2D\u0E07\u0E09\u0E31\u0E19 \u0E1B\u0E35 ", year + 543), React.createElement(window.LvBalanceCards, {
+    bal: myBal
+  })), React.createElement("div", {
+    style: {
+      border: "none",
+      boxShadow: "var(--shadow-sm)",
+      borderRadius: "var(--r-tile)",
+      overflow: "hidden",
+      background: "var(--surface)"
+    }
+  }, list.length === 0 ? React.createElement("div", {
+    style: {
+      padding: 34,
+      textAlign: "center",
+      color: "var(--text-3)",
+      fontSize: 13
+    }
+  }, scope === "inbox" ? "ไม่มีคำขอรอคุณอนุมัติ" : "ยังไม่มีคำขอ") : list.map((x, i) => {
+    const ym = String(x.d || "").slice(0, 7);
+    const head = i === 0 || String(list[i - 1].d || "").slice(0, 7) !== ym;
+    const n = head ? list.filter(y => String(y.d || "").slice(0, 7) === ym).length : 0;
+    return React.createElement(React.Fragment, {
+      key: x.t + x.r.id
+    }, head && React.createElement("div", {
+      style: {
+        display: "flex",
+        alignItems: "center",
+        gap: 10,
+        padding: "9px 14px",
+        background: "var(--surface2)",
+        fontSize: 12.5,
+        fontWeight: 800,
+        color: "var(--text-1)"
+      }
+    }, ym ? window.tmYmTH(ym) : "ไม่ระบุวันที่", React.createElement("span", {
+      style: {
+        fontSize: 11.5,
+        fontWeight: 600,
+        color: "var(--text-3)"
+      }
+    }, n, " \u0E43\u0E1A")), x.t === "ot" ? React.createElement(TmOtRow, {
+      rec: x.r,
+      users: users,
+      onOpen: r => onOpenOt(r.id)
+    }) : React.createElement(window.LvRow, {
+      rec: x.r,
+      users: users,
+      types: lvTypes,
+      onOpen: r => onOpenLv(r.id)
+    }));
+  })), React.createElement("div", {
+    style: {
+      fontSize: 11.5,
+      color: "var(--text-3)"
+    }
+  }, "\u0E0A\u0E48\u0E32\u0E07\u0E40\u0E1B\u0E34\u0E14\u0E43\u0E1A OT \u0E41\u0E25\u0E30\u0E22\u0E37\u0E48\u0E19\u0E43\u0E1A\u0E25\u0E32\u0E08\u0E32\u0E01\u0E41\u0E2D\u0E1B\u0E43\u0E19\u0E44\u0E25\u0E19\u0E4C \u2014 \u0E01\u0E14\u0E17\u0E35\u0E48\u0E23\u0E32\u0E22\u0E01\u0E32\u0E23\u0E40\u0E1E\u0E37\u0E48\u0E2D\u0E40\u0E1B\u0E34\u0E14\u0E43\u0E1A \u0E2D\u0E19\u0E38\u0E21\u0E31\u0E15\u0E34 \u0E2B\u0E23\u0E37\u0E2D\u0E41\u0E01\u0E49"));
+}
+function TmSettings({
+  wh,
+  users,
+  role,
+  lv,
+  lvTp,
+  lvQuota
+}) {
+  const canWh = window.can(role, "manageUsers");
+  const canTypes = window.can(role, "manageUsers");
+  const canQuota = window.lvCanQuota(role);
+  const SUBS = [].concat(canWh ? [["wh", "เวลาทำงาน · วันหยุด · อัตรา OT"]] : []).concat(canTypes ? [["types", "ประเภทการลา"]] : []).concat(canQuota ? [["quota", "ยอดวันลารายคน"]] : []);
+  const [sub, setSub] = React.useState(SUBS.length ? SUBS[0][0] : "");
+  const [year, setYear] = React.useState(+String(window.drToday()).slice(0, 4));
+  return React.createElement("div", {
+    style: {
+      display: "flex",
+      flexDirection: "column",
+      gap: 12
+    }
+  }, React.createElement("div", {
+    style: {
+      display: "flex",
+      gap: 7,
+      flexWrap: "wrap",
+      alignItems: "center"
+    }
+  }, SUBS.map(([k, th]) => React.createElement("button", {
+    key: k,
+    onClick: () => setSub(k),
+    style: tmChip(sub === k)
+  }, th)), sub === "quota" && React.createElement("span", {
+    style: {
+      marginLeft: "auto",
+      display: "inline-flex",
+      alignItems: "center",
+      gap: 4
+    }
+  }, React.createElement("button", {
+    onClick: () => setYear(year - 1),
+    style: TM_NAV
+  }, "\u2039"), React.createElement("span", {
+    style: {
+      fontFamily: "var(--mono)",
+      fontSize: 13,
+      fontWeight: 800,
+      minWidth: 64,
+      textAlign: "center"
+    }
+  }, "\u0E1B\u0E35 ", year + 543), React.createElement("button", {
+    onClick: () => setYear(year + 1),
+    style: TM_NAV
+  }, "\u203A"))), sub === "wh" && React.createElement(TmWorkHours, {
+    cfg: wh.cfg,
+    onSave: wh.save
+  }), sub === "types" && window.LvTypesEditor && React.createElement(window.LvTypesEditor, {
+    types: lvTp.types,
+    onSave: lvTp.save
+  }), sub === "quota" && window.LvQuotaTable && React.createElement(window.LvQuotaTable, {
+    users: (users || []).filter(u => !window.tmIsSysAcct(u)),
+    types: lvTp.types,
+    rows: lv.rows,
+    quota: lvQuota,
+    year: year
+  }));
+}
 function AttendView({
   jobs,
   users,
@@ -3187,28 +3300,28 @@ function AttendView({
 }) {
   const wh = window.useWorkHours();
   const ot = window.useOtClaims(wh.cfg);
+  const lv = window.useLeaves();
+  const lvTp = window.useLeaveTypes();
+  const lvQuota = window.useLeaveQuota();
+  const lvTypes = lvTp.types;
   const [tab, setTab] = React.useState("day");
   const [date, setDate] = React.useState(window.drToday());
   const [open, setOpen] = React.useState(null);
-  const [q, setQ] = React.useState("");
+  const [openLv, setOpenLv] = React.useState(null);
   const canAll = window.tmCanAttendAll(role);
   const canApprove = window.tmCanOtApprove(role);
   const uid = (currentUser || {}).id || null;
   const visible = React.useMemo(() => window.tmOtVisible(ot.rows, currentUser, role), [ot.rows, currentUser, role]);
-  const roll = React.useMemo(() => window.tmOtRollup(visible, currentUser, role), [visible, currentUser, role]);
+  const otWaiting = React.useMemo(() => visible.filter(r => r.status === "sent" && window.tmOtApproveCheck(r, currentUser, role).ok), [visible, currentUser, role]);
+  const lvWaiting = React.useMemo(() => window.lvVisible(lv.rows, currentUser, role).filter(r => r.status === "sent" && window.lvApproveCheck(r, currentUser, role).ok), [lv.rows, currentUser, role]);
   const me = window.useAttend(uid, 30);
-  const list = React.useMemo(() => {
-    const kw = q.trim().toLowerCase();
-    let out = visible;
-    if (tab === "mine") out = out.filter(r => r.userId === uid);else if (tab === "inbox") out = out.filter(r => r.status === "sent" && window.tmOtApproveCheck(r, currentUser, role).ok);
-    if (kw) out = out.filter(r => [r.no, r.userName, r.jobCode, r.reason, window.tmOtKindOf(r.kind).th].some(v => String(v || "").toLowerCase().includes(kw)));
-    return out;
-  }, [visible, tab, q, uid, currentUser, role]);
+  const ymNow = window.tmYmNow();
+  const myOtMonth = visible.filter(r => r.userId === uid && r.status === "approved" && String(r.date || "").slice(0, 7) === ymNow).reduce((a, r) => a + (+r.mins || 0), 0);
   const openNew = () => {
     const rec = window.tmOtBlank(currentUser, users, ot.rows, null, wh.cfg);
     ot.save(rec);
     setOpen(rec.id);
-    setTab("mine");
+    setTab("req");
   };
   const move = (rec, to) => {
     const next = window.tmOtMove(rec, to, currentUser, "");
@@ -3247,9 +3360,20 @@ function AttendView({
       });
     }
   };
-  const TABS = [["day", "แผ่นเวลารายวัน", "calendar", 0]].concat(canAll ? [["month", "สรุปรายเดือน", "table", 0]] : []).concat([["mine", "ใบ OT ของฉัน", "pen", roll.mineOpen]]).concat(canApprove ? [["inbox", "รอฉันอนุมัติ", "check", roll.waitingMine]] : []).concat(canApprove || canAll ? [["all", "ใบ OT ทั้งหมด", "list", 0]] : []).concat([["otsum", "สรุป OT รายคน", "file", 0]]).concat(window.LeaveTab ? [["leave", "การลา", "calendar", 0]] : []).concat(window.can(role, "manageUsers") ? [["cfg", "ตั้งค่าเวลาทำงาน", "settings", 0]] : []);
+  const moveLv = (rec, to, note) => {
+    const next = window.lvMove(Object.assign({}, rec, {
+      days: window.lvCountDays(rec.from, rec.to, rec.part, wh.cfg)
+    }), to, currentUser, note || "");
+    if (!next) return;
+    lv.save(next);
+    window.lvNotifyMove(rec, next, currentUser, lvTypes);
+  };
+  const canSet = window.can(role, "manageUsers") || window.lvCanQuota(role);
+  const TABS = [["day", canAll ? "วันนี้" : "เวลาของฉัน", "calendar", 0]].concat([["req", "คำขอ OT · ลา", "list", otWaiting.length + lvWaiting.length]]).concat([["month", "สรุปเดือน · ออกเอกสาร", "file", 0]]).concat(canSet ? [["cfg", "ตั้งค่า", "settings", 0]] : []);
   const cur = (ot.rows || []).find(r => r.id === open) || null;
+  const curLv = (lv.rows || []).find(r => r.id === openLv) || null;
   const jobSorted = React.useMemo(() => (jobs || []).slice().sort((a, b) => String(a.code || "").localeCompare(String(b.code || ""))), [jobs]);
+  const t = me.today;
   return React.createElement("div", {
     style: {
       display: "flex",
@@ -3260,54 +3384,43 @@ function AttendView({
   }, React.createElement("div", {
     style: {
       display: "flex",
-      gap: 10,
-      flexWrap: "wrap"
-    }
-  }, React.createElement(TmStat, {
-    label: "\u0E27\u0E31\u0E19\u0E19\u0E35\u0E49\u0E04\u0E38\u0E13\u0E25\u0E07\u0E40\u0E27\u0E25\u0E32",
-    value: me.today && me.today.in && me.today.in.hm ? me.today.in.hm : "—",
-    hint: me.today && me.today.out && me.today.out.hm ? "ออกงาน " + me.today.out.hm : me.today && me.today.in ? "ยังไม่ได้ลงเวลาออก" : "ลงเวลาได้จากแอปในไลน์"
-  }), React.createElement(TmStat, {
-    label: "\u0E43\u0E1A OT \u0E02\u0E2D\u0E07\u0E09\u0E31\u0E19\u0E17\u0E35\u0E48\u0E22\u0E31\u0E07\u0E44\u0E21\u0E48\u0E08\u0E1A",
-    value: roll.mineOpen,
-    unit: "\u0E43\u0E1A",
-    on: tab === "mine",
-    onClick: () => setTab("mine")
-  }), canApprove && React.createElement(TmStat, {
-    label: "\u0E23\u0E2D\u0E09\u0E31\u0E19\u0E2D\u0E19\u0E38\u0E21\u0E31\u0E15\u0E34",
-    value: roll.waitingMine,
-    unit: "\u0E43\u0E1A",
-    color: roll.waitingMine ? "#F59E0B" : "var(--text-1)",
-    hint: "รออนุมัติทั้งระบบ " + roll.sent + " ใบ",
-    on: tab === "inbox",
-    onClick: () => setTab("inbox")
-  }), React.createElement(TmStat, {
-    label: "OT \u0E17\u0E35\u0E48\u0E2D\u0E19\u0E38\u0E21\u0E31\u0E15\u0E34\u0E41\u0E25\u0E49\u0E27",
-    value: Math.round(roll.minsApproved / 60),
-    unit: "\u0E0A\u0E21.",
-    hint: roll.rejected ? "ไม่อนุมัติ " + roll.rejected + " ใบ" : ""
-  })), React.createElement("div", {
-    style: {
-      display: "flex",
-      gap: 8,
+      gap: "8px 18px",
       flexWrap: "wrap",
       alignItems: "center",
-      padding: "11px 13px",
-      borderRadius: "var(--r-chip)",
-      background: "var(--surface2)",
-      border: "none",
+      padding: "11px 14px",
+      borderRadius: "var(--r-tile)",
+      background: "var(--surface)",
       boxShadow: "var(--shadow-sm)"
     }
   }, React.createElement("span", {
     style: {
-      fontSize: 12.5,
+      fontSize: 12,
       fontWeight: 700,
-      color: "var(--text-2)"
+      color: "var(--text-3)"
     }
-  }, "\u0E02\u0E2D\u0E17\u0E33\u0E07\u0E32\u0E19\u0E25\u0E48\u0E27\u0E07\u0E40\u0E27\u0E25\u0E32"), React.createElement("button", {
+  }, "\u0E27\u0E31\u0E19\u0E19\u0E35\u0E49\u0E04\u0E38\u0E13"), React.createElement("span", {
+    style: {
+      fontFamily: "var(--mono)",
+      fontSize: 16,
+      fontWeight: 800,
+      color: "var(--text-1)"
+    }
+  }, t && t.in && t.in.hm ? t.in.hm + " → " + (t.out && t.out.hm || "ยังไม่ออก") : "ยังไม่ได้ลงเวลา"), React.createElement("span", {
+    style: {
+      fontSize: 12,
+      fontWeight: 700,
+      color: "var(--text-3)"
+    }
+  }, "OT \u0E2D\u0E19\u0E38\u0E21\u0E31\u0E15\u0E34\u0E40\u0E14\u0E37\u0E2D\u0E19\u0E19\u0E35\u0E49 ", React.createElement("b", {
+    style: {
+      fontFamily: "var(--mono)",
+      color: "var(--text-1)"
+    }
+  }, window.tmDur(myOtMonth))), React.createElement("button", {
     onClick: openNew,
     disabled: !window.tmCanOt(role),
     style: {
+      marginLeft: "auto",
       display: "inline-flex",
       alignItems: "center",
       gap: 6,
@@ -3325,12 +3438,7 @@ function AttendView({
     name: "plus",
     size: 14,
     color: window.tmCanOt(role) ? "#fff" : "var(--text-3)"
-  }), " \u0E40\u0E1B\u0E34\u0E14\u0E43\u0E1A OT"), React.createElement("span", {
-    style: {
-      fontSize: 11.5,
-      color: "var(--text-3)"
-    }
-  }, "\u0E0A\u0E48\u0E32\u0E07\u0E40\u0E1B\u0E34\u0E14\u0E43\u0E1A\u0E08\u0E32\u0E01\u0E41\u0E2D\u0E1B\u0E43\u0E19\u0E44\u0E25\u0E19\u0E4C\u0E44\u0E14\u0E49\u0E40\u0E2B\u0E21\u0E37\u0E2D\u0E19\u0E01\u0E31\u0E19")), React.createElement("div", {
+  }), " \u0E40\u0E1B\u0E34\u0E14\u0E43\u0E1A OT")), React.createElement("div", {
     style: {
       display: "flex",
       gap: 7,
@@ -3342,29 +3450,23 @@ function AttendView({
     style: {
       display: "inline-flex",
       alignItems: "center",
-      gap: 6,
-      padding: "8px 14px",
+      gap: 7,
+      padding: "9px 16px",
       borderRadius: "var(--r-pill)",
       border: "none",
       boxShadow: tab === k ? "inset 0 0 0 1px var(--primary)" : "var(--shadow-sm)",
       background: tab === k ? "var(--primary-soft)" : "var(--surface)",
       cursor: "pointer",
       fontFamily: "inherit",
-      fontSize: 12.5,
-      fontWeight: 700,
+      fontSize: 13,
+      fontWeight: 800,
       color: tab === k ? "var(--primary-dark)" : "var(--text-2)"
     }
   }, React.createElement(Icon, {
     name: ic,
-    size: 14,
+    size: 15,
     color: tab === k ? "var(--primary-dark)" : "var(--text-3)"
-  }), " ", th, n > 0 && React.createElement("span", {
-    style: {
-      fontFamily: "var(--mono)",
-      fontSize: 11,
-      fontWeight: 800
-    }
-  }, n)))), tab === "day" && (canAll ? React.createElement(TmDaySheet, {
+  }), " ", th, tmBadge(n, true)))), tab === "day" && (canAll ? React.createElement(TmDaySheet, {
     date: date,
     setDate: setDate,
     cfg: wh.cfg,
@@ -3373,90 +3475,35 @@ function AttendView({
   }) : React.createElement(TmMyDays, {
     rows: me.rows,
     cfg: wh.cfg
-  })), tab === "month" && canAll && React.createElement(TmMonth, {
+  })), tab === "req" && React.createElement(TmRequests, {
     cfg: wh.cfg,
-    users: users,
-    ot: ot
-  }), tab === "otsum" && React.createElement(TmOtPeriod, {
-    cfg: wh.cfg,
-    users: users,
-    jobs: jobSorted,
-    rows: visible,
-    byName: (currentUser || {}).name || ""
-  }), tab === "cfg" && React.createElement(TmWorkHours, {
-    cfg: wh.cfg,
-    onSave: wh.save
-  }), tab === "leave" && window.LeaveTab && React.createElement(window.LeaveTab, {
     users: users,
     role: role,
     currentUser: currentUser,
-    cfg: wh.cfg
-  }), (tab === "mine" || tab === "inbox" || tab === "all") && React.createElement(React.Fragment, null, React.createElement("div", {
-    className: "search-box",
-    style: {
-      width: "100%",
-      maxWidth: 420
-    }
-  }, React.createElement(Icon, {
-    name: "search",
-    size: 15,
-    color: "var(--text-3)"
-  }), React.createElement("input", {
-    value: q,
-    onChange: e => setQ(e.target.value),
-    placeholder: "\u0E04\u0E49\u0E19\u0E2B\u0E32"
-  })), React.createElement("div", {
-    style: {
-      border: "none",
-      boxShadow: "var(--shadow-sm)",
-      borderRadius: "var(--r-tile)",
-      overflow: "hidden",
-      background: "var(--surface)"
-    }
-  }, list.length === 0 ? React.createElement("div", {
-    style: {
-      padding: 34,
-      textAlign: "center",
-      color: "var(--text-3)",
-      fontSize: 13
-    }
-  }, tab === "inbox" ? "ไม่มีใบรอคุณอนุมัติ" : "ยังไม่มีใบ OT") : list.map((r, i) => {
-    const ym = String(r.date || "").slice(0, 7);
-    const head = i === 0 || String(list[i - 1].date || "").slice(0, 7) !== ym;
-    const inM = head ? list.filter(x => String(x.date || "").slice(0, 7) === ym) : null;
-    const okM = inM ? inM.filter(x => x.status === "approved").reduce((s, x) => s + (Number(x.mins) || 0), 0) : 0;
-    return React.createElement(React.Fragment, {
-      key: r.id
-    }, head && React.createElement("div", {
-      style: {
-        display: "flex",
-        alignItems: "center",
-        gap: 10,
-        padding: "9px 14px",
-        background: "var(--surface2)",
-        fontSize: 12.5,
-        fontWeight: 800,
-        color: "var(--text-1)"
-      }
-    }, ym ? window.tmYmTH(ym) : "ไม่ระบุวันที่", React.createElement("span", {
-      style: {
-        fontSize: 11.5,
-        fontWeight: 600,
-        color: "var(--text-3)"
-      }
-    }, inM.length, " \u0E43\u0E1A"), okM > 0 && React.createElement("span", {
-      style: {
-        marginLeft: "auto",
-        fontSize: 11.5,
-        fontWeight: 700,
-        color: "var(--text-2)"
-      }
-    }, "\u0E2D\u0E19\u0E38\u0E21\u0E31\u0E15\u0E34\u0E41\u0E25\u0E49\u0E27 ", window.tmDur(okM))), React.createElement(TmOtRow, {
-      rec: r,
-      users: users,
-      onOpen: x => setOpen(x.id)
-    }));
-  }))), cur && React.createElement(TmOtModal, {
+    ot: ot,
+    otVisible: visible,
+    lv: lv,
+    lvTypes: lvTypes,
+    lvQuota: lvQuota,
+    otWaiting: otWaiting,
+    lvWaiting: lvWaiting,
+    onOpenOt: setOpen,
+    onOpenLv: setOpenLv
+  }), tab === "month" && React.createElement(TmMonthAll, {
+    cfg: wh.cfg,
+    users: users,
+    jobs: jobSorted,
+    otRows: canAll ? ot.rows : visible,
+    byName: (currentUser || {}).name || "",
+    canAll: canAll
+  }), tab === "cfg" && canSet && React.createElement(TmSettings, {
+    wh: wh,
+    users: users,
+    role: role,
+    lv: lv,
+    lvTp: lvTp,
+    lvQuota: lvQuota
+  }), cur && React.createElement(TmOtModal, {
     rec: cur,
     cfg: wh.cfg,
     jobs: jobSorted,
@@ -3467,6 +3514,19 @@ function AttendView({
     onMove: move,
     onDelete: ot.remove,
     onClose: () => setOpen(null)
+  }), curLv && window.LvModal && React.createElement(window.LvModal, {
+    rec: curLv,
+    cfg: wh.cfg,
+    types: lvTypes,
+    users: users,
+    rows: lv.rows,
+    quota: lvQuota.map,
+    role: role,
+    currentUser: currentUser,
+    onSave: lv.save,
+    onMove: moveLv,
+    onDelete: lv.remove,
+    onClose: () => setOpenLv(null)
   }));
 }
 function TmMyDays({
@@ -3538,17 +3598,19 @@ Object.assign(window, {
   tmWdOf,
   AttendView,
   TmDaySheet,
-  TmMonth,
+  TmMonthAll,
+  TmRequests,
+  TmSettings,
+  TmDayGrid,
   TmMyDays,
   TmOtModal,
   TmOtRow,
   TmWorkHours,
-  TmOtPeriod,
+  TmFacts,
+  TmHelp,
   tmExportMonthXlsx,
   tmPersonSheet,
   tmSheetName,
   TmStat,
-  TmPill,
-  TM_IN,
-  tmExportMonthXlsx
+  TmPill
 });

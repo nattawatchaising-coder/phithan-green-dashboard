@@ -1116,6 +1116,9 @@ function tmMonthRollup(byDate, users, cfg, otRows, ym) {
   tmMonthDays(ym).forEach(d => {
     const row = (byDate || {})[d] || {};
     Object.keys(row).forEach(uid => {
+      if (tmIsSysAcct({
+        id: uid
+      })) return;
       const r = row[uid] || {};
       const u = touch(uid, r.name);
       u.byDay[d] = r;
