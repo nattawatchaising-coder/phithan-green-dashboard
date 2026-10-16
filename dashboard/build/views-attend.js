@@ -2158,8 +2158,9 @@ const TM_CSS = `
 .tmv-pp-row{display:grid;grid-template-columns:210px minmax(0,1fr) 170px auto;grid-template-areas:"who heat ot act";align-items:center;gap:10px 20px;padding:13px 16px}
 .tmv-heat{grid-area:heat;min-width:0;max-width:560px}
 .tmv-heat-g{display:grid;gap:3px}
-.tmv-heat-g i{display:block;height:24px;border-radius:5px;background:var(--surface2)}
-.tmv-heat-g i.wk{opacity:.4}
+.tmv-heat-g i{display:block;height:24px;border-radius:5px;background:color-mix(in srgb,var(--text-3) 20%,transparent)}
+.tmv-heat-g i.off{background:color-mix(in srgb,var(--st-design-fg) 34%,transparent)}
+.tmv-heat-g i.offw{box-shadow:inset 0 -4px 0 var(--st-design-fg)}
 .tmv-heat-g i.forgot{background:var(--tint-red-tx2)}
 .tmv-heat-ax{display:flex;justify-content:space-between;font-family:var(--mono);font-size:9.5px;color:var(--text-3);margin-top:3px}
 .tmv-ot{grid-area:ot;display:grid;gap:3px;font-size:11.5px;color:var(--text-3)}
@@ -3423,12 +3424,15 @@ function TmDayGrid({
     }, x ? window.tmDur(x.mins) : ""));
   }));
 }
+const TM_HEAT_LEG = [["color-mix(in srgb, var(--primary) 100%, transparent)", "ทำงาน (เข้ม = นาน)"], ["color-mix(in srgb, var(--text-3) 20%, transparent)", "ไม่มีใบ"], ["color-mix(in srgb, var(--st-design-fg) 34%, transparent)", "วันหยุด"], ["var(--tint-red-tx2)", "ลืมกดออก"]];
 function TmHeat({
   days,
   byDay,
   cfg
 }) {
-  const full = window.tmWhNorm(cfg).workMins || 480;
+  const wh = window.tmWhNorm(cfg);
+  const full = wh.workMins || 480;
+  const offTH = d => wh.holidays[d] ? "วันหยุด " + wh.holidays[d] : "วันหยุด";
   return React.createElement("div", {
     className: "tmv-heat"
   }, React.createElement("div", {
@@ -3439,20 +3443,22 @@ function TmHeat({
   }, days.map(d => {
     const x = byDay[d];
     const off = !window.tmIsWorkday(d, cfg);
+    const tag = off ? " · " + offTH(d) : "";
     if (!x || !x.in) return React.createElement("i", {
       key: d,
-      className: off ? "wk" : "",
-      title: window.drDateTH(d) + " · ไม่มีใบ"
+      className: off ? "off" : "",
+      title: window.drDateTH(d) + (off ? tag : " · ไม่มีใบ")
     });
     if (!x.out) return React.createElement("i", {
       key: d,
       className: "forgot",
-      title: window.drDateTH(d) + " · " + x.in + " – ลืมกดออก"
+      title: window.drDateTH(d) + tag + " · " + x.in + " – ลืมกดออก"
     });
     const p = Math.round(35 + 65 * Math.min(1, (+x.mins || 0) / full));
     return React.createElement("i", {
       key: d,
-      title: window.drDateTH(d) + " · " + x.in + "–" + x.out + " · " + window.tmDur(x.mins),
+      className: off ? "offw" : "",
+      title: window.drDateTH(d) + tag + " · " + x.in + "–" + x.out + " · " + window.tmDur(x.mins),
       style: {
         background: "color-mix(in srgb, var(--primary) " + p + "%, var(--surface2))"
       }
@@ -3599,7 +3605,15 @@ function TmMonthAll({
     style: {
       padding: "8px 4px"
     }
-  }, canAll && stat("ชั่วโมงทำงานรวม", tmHrs(tot.mins), "ชม. · " + tot.days + " วัน-คน"), stat("OT อนุมัติแล้ว", tmHrs(tot.otOk), "ชม."), stat("ชม.คิดค่าแรง OT", tmHrs(tot.pay), "ชม.", "var(--primary-dark)"), tot.wait > 0 ? stat("OT รออนุมัติ", tmHrs(tot.wait), "ชม.", "var(--tint-amber-tx)") : null, canAll && stat("ลืมกดออก", tot.noOut, "ใบ", tot.noOut ? "var(--tint-red-tx2)" : undefined)), canAll && loading ? React.createElement(TmCard, null, React.createElement(TmEmpty, null, "\u0E01\u0E33\u0E25\u0E31\u0E07\u0E42\u0E2B\u0E25\u0E14\u2026")) : rows.length === 0 ? React.createElement(TmCard, null, React.createElement(TmEmpty, {
+  }, canAll && stat("ชั่วโมงทำงานรวม", tmHrs(tot.mins), "ชม. · " + tot.days + " วัน-คน"), stat("OT อนุมัติแล้ว", tmHrs(tot.otOk), "ชม."), stat("ชม.คิดค่าแรง OT", tmHrs(tot.pay), "ชม.", "var(--primary-dark)"), tot.wait > 0 ? stat("OT รออนุมัติ", tmHrs(tot.wait), "ชม.", "var(--tint-amber-tx)") : null, canAll && stat("ลืมกดออก", tot.noOut, "ใบ", tot.noOut ? "var(--tint-red-tx2)" : undefined)), canAll && rows.length > 0 && React.createElement("div", {
+    style: {
+      display: "flex",
+      justifyContent: "flex-end",
+      padding: "0 4px"
+    }
+  }, React.createElement(TmLegend, {
+    items: TM_HEAT_LEG
+  })), canAll && loading ? React.createElement(TmCard, null, React.createElement(TmEmpty, null, "\u0E01\u0E33\u0E25\u0E31\u0E07\u0E42\u0E2B\u0E25\u0E14\u2026")) : rows.length === 0 ? React.createElement(TmCard, null, React.createElement(TmEmpty, {
     icon: "calendar"
   }, "\u0E44\u0E21\u0E48\u0E21\u0E35\u0E02\u0E49\u0E2D\u0E21\u0E39\u0E25\u0E40\u0E14\u0E37\u0E2D\u0E19\u0E19\u0E35\u0E49")) : React.createElement("div", {
     className: "tmv-list"
@@ -3696,7 +3710,7 @@ function TmMonthAll({
       width: 15,
       height: 15
     }
-  }), "\u0E43\u0E1A OT \u0E17\u0E35\u0E48\u0E1E\u0E34\u0E21\u0E1E\u0E4C \u2014 \u0E40\u0E2D\u0E32\u0E40\u0E09\u0E1E\u0E32\u0E30\u0E43\u0E1A\u0E17\u0E35\u0E48\u0E2D\u0E19\u0E38\u0E21\u0E31\u0E15\u0E34\u0E41\u0E25\u0E49\u0E27"), React.createElement(TmHelp, null, React.createElement("b", null, "\u0E2D\u0E2D\u0E01 Excel \u0E17\u0E31\u0E49\u0E07\u0E40\u0E14\u0E37\u0E2D\u0E19"), " = \u0E41\u0E1C\u0E48\u0E19\u0E2A\u0E23\u0E38\u0E1B\u0E2B\u0E19\u0E36\u0E48\u0E07\u0E41\u0E1C\u0E48\u0E19 + \u0E41\u0E1C\u0E48\u0E19\u0E23\u0E32\u0E22\u0E25\u0E30\u0E40\u0E2D\u0E35\u0E22\u0E14\u0E41\u0E22\u0E01\u0E23\u0E32\u0E22\u0E04\u0E19 (\u0E40\u0E02\u0E49\u0E32 \xB7 \u0E2D\u0E2D\u0E01 \xB7 \u0E0A\u0E31\u0E48\u0E27\u0E42\u0E21\u0E07 \xB7 \u0E07\u0E32\u0E19\u0E17\u0E35\u0E48\u0E41\u0E08\u0E49\u0E07 \xB7 \u0E1E\u0E34\u0E01\u0E31\u0E14\u0E1E\u0E23\u0E49\u0E2D\u0E21\u0E25\u0E34\u0E07\u0E01\u0E4C\u0E41\u0E1C\u0E19\u0E17\u0E35\u0E48) \u0E15\u0E48\u0E2D\u0E14\u0E49\u0E27\u0E22\u0E43\u0E1A OT \u0E02\u0E2D\u0E07\u0E40\u0E14\u0E37\u0E2D\u0E19\u0E41\u0E25\u0E30\u0E0A\u0E48\u0E2D\u0E07\u0E40\u0E0B\u0E47\u0E19", React.createElement("br", null), React.createElement("b", null, "\u0E43\u0E1A OT"), " = \u0E43\u0E1A A4 \u0E02\u0E2D\u0E07\u0E04\u0E19\u0E19\u0E31\u0E49\u0E19\u0E2B\u0E19\u0E36\u0E48\u0E07\u0E43\u0E1A\u0E15\u0E48\u0E2D\u0E23\u0E2D\u0E1A \u0E43\u0E2B\u0E49\u0E2B\u0E31\u0E27\u0E2B\u0E19\u0E49\u0E32\u0E40\u0E0B\u0E47\u0E19 (\u0E1C\u0E39\u0E49\u0E02\u0E2D \xB7 \u0E2B\u0E31\u0E27\u0E2B\u0E19\u0E49\u0E32\u0E07\u0E32\u0E19 \xB7 \u0E1D\u0E48\u0E32\u0E22\u0E1A\u0E38\u0E04\u0E04\u0E25) \u2014 \u0E43\u0E1A\u0E17\u0E35\u0E48\u0E22\u0E31\u0E07\u0E44\u0E21\u0E48\u0E2D\u0E19\u0E38\u0E21\u0E31\u0E15\u0E34\u0E1E\u0E34\u0E21\u0E1E\u0E4C\u0E15\u0E34\u0E14\u0E44\u0E1B\u0E14\u0E49\u0E27\u0E22\u0E1E\u0E23\u0E49\u0E2D\u0E21\u0E2A\u0E16\u0E32\u0E19\u0E30 \u0E41\u0E15\u0E48\u0E22\u0E2D\u0E14\u0E41\u0E22\u0E01\u0E1A\u0E23\u0E23\u0E17\u0E31\u0E14", React.createElement("br", null), "\u0E41\u0E16\u0E1A\u0E2A\u0E35\u0E23\u0E32\u0E22\u0E27\u0E31\u0E19: \u0E40\u0E02\u0E49\u0E21\u0E15\u0E32\u0E21\u0E0A\u0E31\u0E48\u0E27\u0E42\u0E21\u0E07\u0E17\u0E35\u0E48\u0E17\u0E33 \xB7 \u0E41\u0E14\u0E07 = \u0E25\u0E37\u0E21\u0E01\u0E14\u0E2D\u0E2D\u0E01 \xB7 \u0E0A\u0E48\u0E2D\u0E07\u0E08\u0E32\u0E07 = \u0E27\u0E31\u0E19\u0E2B\u0E22\u0E38\u0E14 \u2014 \u0E0A\u0E35\u0E49\u0E17\u0E35\u0E48\u0E0A\u0E48\u0E2D\u0E07\u0E40\u0E1E\u0E37\u0E48\u0E2D\u0E14\u0E39\u0E40\u0E27\u0E25\u0E32 \u0E01\u0E14\u0E25\u0E39\u0E01\u0E28\u0E23\u0E17\u0E49\u0E32\u0E22\u0E01\u0E32\u0E23\u0E4C\u0E14\u0E40\u0E1E\u0E37\u0E48\u0E2D\u0E01\u0E32\u0E07\u0E1B\u0E0F\u0E34\u0E17\u0E34\u0E19", React.createElement("br", null), "\u0E0A\u0E31\u0E48\u0E27\u0E42\u0E21\u0E07\u0E17\u0E33\u0E07\u0E32\u0E19\u0E04\u0E34\u0E14\u0E08\u0E32\u0E01\u0E40\u0E27\u0E25\u0E32\u0E17\u0E35\u0E48\u0E1B\u0E31\u0E4A\u0E21\u0E40\u0E02\u0E49\u0E32-\u0E2D\u0E2D\u0E01 \u0E2B\u0E31\u0E01\u0E1E\u0E31\u0E01\u0E01\u0E25\u0E32\u0E07\u0E27\u0E31\u0E19\u0E15\u0E32\u0E21\u0E17\u0E35\u0E48\u0E15\u0E31\u0E49\u0E07\u0E44\u0E27\u0E49 \xB7 \u0E43\u0E1A\u0E17\u0E35\u0E48\u0E25\u0E37\u0E21\u0E01\u0E14\u0E2D\u0E2D\u0E01\u0E0A\u0E31\u0E48\u0E27\u0E42\u0E21\u0E07\u0E40\u0E1B\u0E47\u0E19\u0E28\u0E39\u0E19\u0E22\u0E4C \u0E15\u0E49\u0E2D\u0E07\u0E41\u0E01\u0E49\u0E40\u0E27\u0E25\u0E32\u0E17\u0E35\u0E48\u0E41\u0E17\u0E47\u0E1A \"\u0E27\u0E31\u0E19\u0E19\u0E35\u0E49\"", React.createElement("br", null), "\u201C\u0E0A\u0E21.\u0E04\u0E34\u0E14\u0E04\u0E48\u0E32\u0E41\u0E23\u0E07\u201D = \u0E0A\u0E31\u0E48\u0E27\u0E42\u0E21\u0E07 OT \xD7 \u0E15\u0E31\u0E27\u0E04\u0E39\u0E13\u0E02\u0E2D\u0E07\u0E1B\u0E23\u0E30\u0E40\u0E20\u0E17 (\u0E27\u0E31\u0E19\u0E2B\u0E22\u0E38\u0E14: 8 \u0E0A\u0E21.\u0E41\u0E23\u0E01 \xD7 \u0E2D\u0E31\u0E15\u0E23\u0E32\u0E27\u0E31\u0E19\u0E2B\u0E22\u0E38\u0E14 \u0E2A\u0E48\u0E27\u0E19\u0E40\u0E01\u0E34\u0E19 \xD7 \u0E2D\u0E31\u0E15\u0E23\u0E32\u0E25\u0E48\u0E27\u0E07\u0E40\u0E27\u0E25\u0E32\u0E27\u0E31\u0E19\u0E2B\u0E22\u0E38\u0E14) \u0E40\u0E09\u0E1E\u0E32\u0E30\u0E43\u0E1A\u0E17\u0E35\u0E48\u0E2D\u0E19\u0E38\u0E21\u0E31\u0E15\u0E34\u0E41\u0E25\u0E49\u0E27 \u2014 \u0E22\u0E31\u0E07\u0E44\u0E21\u0E48\u0E43\u0E0A\u0E48\u0E08\u0E33\u0E19\u0E27\u0E19\u0E40\u0E07\u0E34\u0E19", React.createElement("br", null), "\u0E23\u0E2D\u0E1A OT ", cut ? "ตัดยอดทุกวันที่ " + cut + " — เดือนนี้นับ " + window.tmPeriodTH(period) : "ใช้เดือนปฏิทิน (ยังไม่ได้ตั้งวันตัดยอดในแท็บตั้งค่า)"), paper && window.TmOtPaper && React.createElement(window.TmOtPaper, {
+  }), "\u0E43\u0E1A OT \u0E17\u0E35\u0E48\u0E1E\u0E34\u0E21\u0E1E\u0E4C \u2014 \u0E40\u0E2D\u0E32\u0E40\u0E09\u0E1E\u0E32\u0E30\u0E43\u0E1A\u0E17\u0E35\u0E48\u0E2D\u0E19\u0E38\u0E21\u0E31\u0E15\u0E34\u0E41\u0E25\u0E49\u0E27"), React.createElement(TmHelp, null, React.createElement("b", null, "\u0E2D\u0E2D\u0E01 Excel \u0E17\u0E31\u0E49\u0E07\u0E40\u0E14\u0E37\u0E2D\u0E19"), " = \u0E41\u0E1C\u0E48\u0E19\u0E2A\u0E23\u0E38\u0E1B\u0E2B\u0E19\u0E36\u0E48\u0E07\u0E41\u0E1C\u0E48\u0E19 + \u0E41\u0E1C\u0E48\u0E19\u0E23\u0E32\u0E22\u0E25\u0E30\u0E40\u0E2D\u0E35\u0E22\u0E14\u0E41\u0E22\u0E01\u0E23\u0E32\u0E22\u0E04\u0E19 (\u0E40\u0E02\u0E49\u0E32 \xB7 \u0E2D\u0E2D\u0E01 \xB7 \u0E0A\u0E31\u0E48\u0E27\u0E42\u0E21\u0E07 \xB7 \u0E07\u0E32\u0E19\u0E17\u0E35\u0E48\u0E41\u0E08\u0E49\u0E07 \xB7 \u0E1E\u0E34\u0E01\u0E31\u0E14\u0E1E\u0E23\u0E49\u0E2D\u0E21\u0E25\u0E34\u0E07\u0E01\u0E4C\u0E41\u0E1C\u0E19\u0E17\u0E35\u0E48) \u0E15\u0E48\u0E2D\u0E14\u0E49\u0E27\u0E22\u0E43\u0E1A OT \u0E02\u0E2D\u0E07\u0E40\u0E14\u0E37\u0E2D\u0E19\u0E41\u0E25\u0E30\u0E0A\u0E48\u0E2D\u0E07\u0E40\u0E0B\u0E47\u0E19", React.createElement("br", null), React.createElement("b", null, "\u0E43\u0E1A OT"), " = \u0E43\u0E1A A4 \u0E02\u0E2D\u0E07\u0E04\u0E19\u0E19\u0E31\u0E49\u0E19\u0E2B\u0E19\u0E36\u0E48\u0E07\u0E43\u0E1A\u0E15\u0E48\u0E2D\u0E23\u0E2D\u0E1A \u0E43\u0E2B\u0E49\u0E2B\u0E31\u0E27\u0E2B\u0E19\u0E49\u0E32\u0E40\u0E0B\u0E47\u0E19 (\u0E1C\u0E39\u0E49\u0E02\u0E2D \xB7 \u0E2B\u0E31\u0E27\u0E2B\u0E19\u0E49\u0E32\u0E07\u0E32\u0E19 \xB7 \u0E1D\u0E48\u0E32\u0E22\u0E1A\u0E38\u0E04\u0E04\u0E25) \u2014 \u0E43\u0E1A\u0E17\u0E35\u0E48\u0E22\u0E31\u0E07\u0E44\u0E21\u0E48\u0E2D\u0E19\u0E38\u0E21\u0E31\u0E15\u0E34\u0E1E\u0E34\u0E21\u0E1E\u0E4C\u0E15\u0E34\u0E14\u0E44\u0E1B\u0E14\u0E49\u0E27\u0E22\u0E1E\u0E23\u0E49\u0E2D\u0E21\u0E2A\u0E16\u0E32\u0E19\u0E30 \u0E41\u0E15\u0E48\u0E22\u0E2D\u0E14\u0E41\u0E22\u0E01\u0E1A\u0E23\u0E23\u0E17\u0E31\u0E14", React.createElement("br", null), "\u0E41\u0E16\u0E1A\u0E2A\u0E35\u0E23\u0E32\u0E22\u0E27\u0E31\u0E19: \u0E40\u0E02\u0E35\u0E22\u0E27\u0E40\u0E02\u0E49\u0E21\u0E15\u0E32\u0E21\u0E0A\u0E31\u0E48\u0E27\u0E42\u0E21\u0E07\u0E17\u0E35\u0E48\u0E17\u0E33 \xB7 \u0E41\u0E14\u0E07 = \u0E25\u0E37\u0E21\u0E01\u0E14\u0E2D\u0E2D\u0E01 \xB7 \u0E21\u0E48\u0E27\u0E07 = \u0E27\u0E31\u0E19\u0E2B\u0E22\u0E38\u0E14 (\u0E17\u0E33\u0E07\u0E32\u0E19\u0E27\u0E31\u0E19\u0E2B\u0E22\u0E38\u0E14 = \u0E40\u0E02\u0E35\u0E22\u0E27\u0E21\u0E35\u0E02\u0E35\u0E14\u0E21\u0E48\u0E27\u0E07\u0E25\u0E48\u0E32\u0E07) \xB7 \u0E40\u0E17\u0E32 = \u0E27\u0E31\u0E19\u0E17\u0E33\u0E07\u0E32\u0E19\u0E17\u0E35\u0E48\u0E44\u0E21\u0E48\u0E21\u0E35\u0E43\u0E1A \u2014 \u0E0A\u0E35\u0E49\u0E17\u0E35\u0E48\u0E0A\u0E48\u0E2D\u0E07\u0E40\u0E1E\u0E37\u0E48\u0E2D\u0E14\u0E39\u0E40\u0E27\u0E25\u0E32 \u0E01\u0E14\u0E25\u0E39\u0E01\u0E28\u0E23\u0E17\u0E49\u0E32\u0E22\u0E01\u0E32\u0E23\u0E4C\u0E14\u0E40\u0E1E\u0E37\u0E48\u0E2D\u0E01\u0E32\u0E07\u0E1B\u0E0F\u0E34\u0E17\u0E34\u0E19", React.createElement("br", null), "\u0E0A\u0E31\u0E48\u0E27\u0E42\u0E21\u0E07\u0E17\u0E33\u0E07\u0E32\u0E19\u0E04\u0E34\u0E14\u0E08\u0E32\u0E01\u0E40\u0E27\u0E25\u0E32\u0E17\u0E35\u0E48\u0E1B\u0E31\u0E4A\u0E21\u0E40\u0E02\u0E49\u0E32-\u0E2D\u0E2D\u0E01 \u0E2B\u0E31\u0E01\u0E1E\u0E31\u0E01\u0E01\u0E25\u0E32\u0E07\u0E27\u0E31\u0E19\u0E15\u0E32\u0E21\u0E17\u0E35\u0E48\u0E15\u0E31\u0E49\u0E07\u0E44\u0E27\u0E49 \xB7 \u0E43\u0E1A\u0E17\u0E35\u0E48\u0E25\u0E37\u0E21\u0E01\u0E14\u0E2D\u0E2D\u0E01\u0E0A\u0E31\u0E48\u0E27\u0E42\u0E21\u0E07\u0E40\u0E1B\u0E47\u0E19\u0E28\u0E39\u0E19\u0E22\u0E4C \u0E15\u0E49\u0E2D\u0E07\u0E41\u0E01\u0E49\u0E40\u0E27\u0E25\u0E32\u0E17\u0E35\u0E48\u0E41\u0E17\u0E47\u0E1A \"\u0E27\u0E31\u0E19\u0E19\u0E35\u0E49\"", React.createElement("br", null), "\u201C\u0E0A\u0E21.\u0E04\u0E34\u0E14\u0E04\u0E48\u0E32\u0E41\u0E23\u0E07\u201D = \u0E0A\u0E31\u0E48\u0E27\u0E42\u0E21\u0E07 OT \xD7 \u0E15\u0E31\u0E27\u0E04\u0E39\u0E13\u0E02\u0E2D\u0E07\u0E1B\u0E23\u0E30\u0E40\u0E20\u0E17 (\u0E27\u0E31\u0E19\u0E2B\u0E22\u0E38\u0E14: 8 \u0E0A\u0E21.\u0E41\u0E23\u0E01 \xD7 \u0E2D\u0E31\u0E15\u0E23\u0E32\u0E27\u0E31\u0E19\u0E2B\u0E22\u0E38\u0E14 \u0E2A\u0E48\u0E27\u0E19\u0E40\u0E01\u0E34\u0E19 \xD7 \u0E2D\u0E31\u0E15\u0E23\u0E32\u0E25\u0E48\u0E27\u0E07\u0E40\u0E27\u0E25\u0E32\u0E27\u0E31\u0E19\u0E2B\u0E22\u0E38\u0E14) \u0E40\u0E09\u0E1E\u0E32\u0E30\u0E43\u0E1A\u0E17\u0E35\u0E48\u0E2D\u0E19\u0E38\u0E21\u0E31\u0E15\u0E34\u0E41\u0E25\u0E49\u0E27 \u2014 \u0E22\u0E31\u0E07\u0E44\u0E21\u0E48\u0E43\u0E0A\u0E48\u0E08\u0E33\u0E19\u0E27\u0E19\u0E40\u0E07\u0E34\u0E19", React.createElement("br", null), "\u0E23\u0E2D\u0E1A OT ", cut ? "ตัดยอดทุกวันที่ " + cut + " — เดือนนี้นับ " + window.tmPeriodTH(period) : "ใช้เดือนปฏิทิน (ยังไม่ได้ตั้งวันตัดยอดในแท็บตั้งค่า)"), paper && window.TmOtPaper && React.createElement(window.TmOtPaper, {
     person: paper,
     period: period,
     rows: paper.rows,

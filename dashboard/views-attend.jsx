@@ -975,8 +975,9 @@ const TM_CSS = `
 .tmv-pp-row{display:grid;grid-template-columns:210px minmax(0,1fr) 170px auto;grid-template-areas:"who heat ot act";align-items:center;gap:10px 20px;padding:13px 16px}
 .tmv-heat{grid-area:heat;min-width:0;max-width:560px}
 .tmv-heat-g{display:grid;gap:3px}
-.tmv-heat-g i{display:block;height:24px;border-radius:5px;background:var(--surface2)}
-.tmv-heat-g i.wk{opacity:.4}
+.tmv-heat-g i{display:block;height:24px;border-radius:5px;background:color-mix(in srgb,var(--text-3) 20%,transparent)}
+.tmv-heat-g i.off{background:color-mix(in srgb,var(--st-design-fg) 34%,transparent)}
+.tmv-heat-g i.offw{box-shadow:inset 0 -4px 0 var(--st-design-fg)}
 .tmv-heat-g i.forgot{background:var(--tint-red-tx2)}
 .tmv-heat-ax{display:flex;justify-content:space-between;font-family:var(--mono);font-size:9.5px;color:var(--text-3);margin-top:3px}
 .tmv-ot{grid-area:ot;display:grid;gap:3px;font-size:11.5px;color:var(--text-3)}
@@ -1667,19 +1668,26 @@ function TmDayGrid({ days, byDay }) {
   );
 }
 
-/* แถบสีรายวันทั้งเดือน — เข้มตามชั่วโมงที่ทำ · แดง = ลืมกดออก · วันหยุดจาง */
+/* แถบสีรายวันทั้งเดือน — เขียวเข้มตามชั่วโมงที่ทำ · แดง = ลืมกดออก · ม่วง = วันหยุด · เทา = วันทำงานที่ไม่มีใบ
+   (ผู้ใช้สั่ง ต.ค. 2026: ช่องว่างจางมองไม่เห็น + วันหยุดต้องมีสีของตัวเอง) — ทำงานวันหยุด = เขียวมีขีดม่วงล่าง */
+const TM_HEAT_LEG = [["color-mix(in srgb, var(--primary) 100%, transparent)", "ทำงาน (เข้ม = นาน)"],
+  ["color-mix(in srgb, var(--text-3) 20%, transparent)", "ไม่มีใบ"],
+  ["color-mix(in srgb, var(--st-design-fg) 34%, transparent)", "วันหยุด"], ["var(--tint-red-tx2)", "ลืมกดออก"]];
 function TmHeat({ days, byDay, cfg }) {
-  const full = window.tmWhNorm(cfg).workMins || 480;
+  const wh = window.tmWhNorm(cfg);
+  const full = wh.workMins || 480;
+  const offTH = (d) => wh.holidays[d] ? "วันหยุด " + wh.holidays[d] : "วันหยุด";
   return (
     <div className="tmv-heat">
       <div className="tmv-heat-g" style={{ gridTemplateColumns: "repeat(" + days.length + ", minmax(0,1fr))" }}>
         {days.map((d) => {
           const x = byDay[d];
           const off = !window.tmIsWorkday(d, cfg);
-          if (!x || !x.in) return <i key={d} className={off ? "wk" : ""} title={window.drDateTH(d) + " · ไม่มีใบ"} />;
-          if (!x.out) return <i key={d} className="forgot" title={window.drDateTH(d) + " · " + x.in + " – ลืมกดออก"} />;
+          const tag = off ? " · " + offTH(d) : "";
+          if (!x || !x.in) return <i key={d} className={off ? "off" : ""} title={window.drDateTH(d) + (off ? tag : " · ไม่มีใบ")} />;
+          if (!x.out) return <i key={d} className="forgot" title={window.drDateTH(d) + tag + " · " + x.in + " – ลืมกดออก"} />;
           const p = Math.round(35 + 65 * Math.min(1, (+x.mins || 0) / full));
-          return <i key={d} title={window.drDateTH(d) + " · " + x.in + "–" + x.out + " · " + window.tmDur(x.mins)}
+          return <i key={d} className={off ? "offw" : ""} title={window.drDateTH(d) + tag + " · " + x.in + "–" + x.out + " · " + window.tmDur(x.mins)}
             style={{ background: "color-mix(in srgb, var(--primary) " + p + "%, var(--surface2))" }} />;
         })}
       </div>
@@ -1756,6 +1764,8 @@ function TmMonthAll({ cfg, users, jobs, otRows, byName, canAll }) {
         {canAll && stat("ลืมกดออก", tot.noOut, "ใบ", tot.noOut ? "var(--tint-red-tx2)" : undefined)}
       </TmCard>
 
+      {canAll && rows.length > 0 && <div style={{ display: "flex", justifyContent: "flex-end", padding: "0 4px" }}><TmLegend items={TM_HEAT_LEG} /></div>}
+
       {canAll && loading ? <TmCard><TmEmpty>กำลังโหลด…</TmEmpty></TmCard>
         : rows.length === 0 ? <TmCard><TmEmpty icon="calendar">ไม่มีข้อมูลเดือนนี้</TmEmpty></TmCard>
         : (
@@ -1814,7 +1824,7 @@ function TmMonthAll({ cfg, users, jobs, otRows, byName, canAll }) {
       <TmHelp>
         <b>ออก Excel ทั้งเดือน</b> = แผ่นสรุปหนึ่งแผ่น + แผ่นรายละเอียดแยกรายคน (เข้า · ออก · ชั่วโมง · งานที่แจ้ง · พิกัดพร้อมลิงก์แผนที่) ต่อด้วยใบ OT ของเดือนและช่องเซ็น
         <br /><b>ใบ OT</b> = ใบ A4 ของคนนั้นหนึ่งใบต่อรอบ ให้หัวหน้าเซ็น (ผู้ขอ · หัวหน้างาน · ฝ่ายบุคคล) — ใบที่ยังไม่อนุมัติพิมพ์ติดไปด้วยพร้อมสถานะ แต่ยอดแยกบรรทัด
-        <br />แถบสีรายวัน: เข้มตามชั่วโมงที่ทำ · แดง = ลืมกดออก · ช่องจาง = วันหยุด — ชี้ที่ช่องเพื่อดูเวลา กดลูกศรท้ายการ์ดเพื่อกางปฏิทิน
+        <br />แถบสีรายวัน: เขียวเข้มตามชั่วโมงที่ทำ · แดง = ลืมกดออก · ม่วง = วันหยุด (ทำงานวันหยุด = เขียวมีขีดม่วงล่าง) · เทา = วันทำงานที่ไม่มีใบ — ชี้ที่ช่องเพื่อดูเวลา กดลูกศรท้ายการ์ดเพื่อกางปฏิทิน
         <br />ชั่วโมงทำงานคิดจากเวลาที่ปั๊มเข้า-ออก หักพักกลางวันตามที่ตั้งไว้ · ใบที่ลืมกดออกชั่วโมงเป็นศูนย์ ต้องแก้เวลาที่แท็บ "วันนี้"
         <br />“ชม.คิดค่าแรง” = ชั่วโมง OT × ตัวคูณของประเภท (วันหยุด: 8 ชม.แรก × อัตราวันหยุด ส่วนเกิน × อัตราล่วงเวลาวันหยุด) เฉพาะใบที่อนุมัติแล้ว — ยังไม่ใช่จำนวนเงิน
         <br />รอบ OT {cut ? "ตัดยอดทุกวันที่ " + cut + " — เดือนนี้นับ " + window.tmPeriodTH(period) : "ใช้เดือนปฏิทิน (ยังไม่ได้ตั้งวันตัดยอดในแท็บตั้งค่า)"}
