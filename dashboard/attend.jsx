@@ -658,10 +658,14 @@ function tmOtDocNo(list, dateISO) {
    เอาไว้ให้เลือกตอนเปิดใบ ไม่ใช่ปล่อยให้ใบลอยอยู่ในกองกลาง
    ใบที่ไม่มีชื่อคนอนุมัติ = ทุกคนคิดว่าเป็นหน้าที่คนอื่น แล้วใบก็ค้างจนเจ้าตัวลืม
    ตัดตัวเองออกเสมอ เพราะ tmOtApproveCheck ห้ามอนุมัติใบตัวเองอยู่แล้ว */
+/* บัญชีระบบ "ADMIN" (u-admin จาก ADMIN_SEED) ไม่ใช่พนักงาน — ไม่โผล่ในเรื่องลงเวลา/OT/การลา (ผู้ใช้สั่ง ต.ค. 2026)
+   ไม่ได้ตัดตาม role แอดมิน เพราะคนจริงที่เป็นแอดมินก็ลงเวลา/ขอ OT/อนุมัติได้ */
+const tmIsSysAcct = (u) => !!u && u.id === "u-admin";
+
 function tmOtApprovers(users, forUser) {
   const skip = (forUser || {}).id || null;
   return (users || [])
-    .filter((u) => u && u.id && u.active !== false && u.id !== skip
+    .filter((u) => u && u.id && u.active !== false && u.id !== skip && !tmIsSysAcct(u)
       && window.can(window.userRoles(u), "otApprove"))
     .sort((a, b) => String(a.name || "").localeCompare(String(b.name || ""), "th"));
 }
@@ -1089,7 +1093,7 @@ function tmMonthRollup(byDate, users, cfg, otRows, ym) {
   /* คนที่มีสิทธิ์ลงเวลาแต่ทั้งเดือนไม่มีใบเลย ต้องขึ้นเป็นแถวศูนย์
      ศูนย์ที่มองเห็นกับแถวที่หายไปเป็นคนละเรื่องกันตอนคิดค่าแรง */
   (users || []).forEach((u) => {
-    if (!u || u.active === false || !u.id) return;
+    if (!u || u.active === false || !u.id || tmIsSysAcct(u)) return;
     if (!window.can(window.userRoles(u), "attend")) return;
     touch(u.id, u.name);
   });
@@ -1106,7 +1110,7 @@ Object.assign(window, { tmNameOf,
   TM_ROOT, TM_WH_DEFAULT, TM_OT_KIND, TM_OT_STATUS, TM_PLACE,
   tmHM, tmHHMM, tmNowHM, tmSpanMins, TM_NIGHT_CUT, tmCarryOver, tmDur, tmWhNorm, tmIsHoliday, tmIsWorkday,
   tmOtKindOf, tmOtKindGuess, tmOtMinutes, tmOtCalc, tmOtFill, tmOtPartsTH, tmDayWindow, tmOtEarned, tmOtInLimit, tmLastHM,
-  tmOtRate, tmOtPayMins, tmRateTH,
+  tmOtRate, tmOtPayMins, tmRateTH, tmIsSysAcct,
   tmWorkedMins, tmOpen, tmAttendBlank, tmPunch, tmDayIndex, tmPlaceOf,
   TM_GPS_ERR, tmGpsTH, tmGpsUrl, tmDistM, tmOfficeDist, tmOfficeNear, tmDistTH, tmLockDeny,
   tmOtStatusOf, tmOtOpen, tmCanAttend, tmCanAttendAll, tmCanOt, tmCanOtApprove,

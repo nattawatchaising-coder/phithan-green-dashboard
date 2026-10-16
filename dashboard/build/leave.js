@@ -198,7 +198,7 @@ function lvDocNo(list, dateISO) {
 }
 function lvApprovers(users, forUser) {
   const skip = (forUser || {}).id || null;
-  return (users || []).filter(u => u && u.id && u.active !== false && u.id !== skip && window.can(window.userRoles(u), "leaveApprove")).sort((a, b) => String(a.name || "").localeCompare(String(b.name || ""), "th"));
+  return (users || []).filter(u => u && u.id && u.active !== false && u.id !== skip && !(window.tmIsSysAcct && window.tmIsSysAcct(u)) && window.can(window.userRoles(u), "leaveApprove")).sort((a, b) => String(a.name || "").localeCompare(String(b.name || ""), "th"));
 }
 function lvPickApprover(user, users) {
   const all = lvApprovers(users, user);

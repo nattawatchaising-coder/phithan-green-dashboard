@@ -214,7 +214,7 @@ function TmDaySheet({
     (day.rows || []).forEach(r => {
       have[r.userId] = 1;
     });
-    return (users || []).filter(u => u && u.active !== false && window.can(window.userRoles(u), "attend") && !have[u.id] && !onLeave[u.id]);
+    return (users || []).filter(u => u && u.active !== false && !window.tmIsSysAcct(u) && window.can(window.userRoles(u), "attend") && !have[u.id] && !onLeave[u.id]);
   }, [day.rows, users, workday, onLeave]);
   const leaving = (users || []).filter(u => u && onLeave[u.id] && !(day.rows || []).some(r => r.userId === u.id));
   const totalMins = (day.rows || []).reduce((a, r) => a + (+r.mins || 0), 0);
@@ -531,7 +531,7 @@ function TmDaySheet({
     })
   }, React.createElement("option", {
     value: ""
-  }, "\u2014 \u0E40\u0E25\u0E37\u0E2D\u0E01\u0E04\u0E19 \u2014"), (users || []).filter(u => u && u.active !== false && window.can(window.userRoles(u), "attend")).map(u => React.createElement("option", {
+  }, "\u2014 \u0E40\u0E25\u0E37\u0E2D\u0E01\u0E04\u0E19 \u2014"), (users || []).filter(u => u && u.active !== false && !window.tmIsSysAcct(u) && window.can(window.userRoles(u), "attend")).map(u => React.createElement("option", {
     key: u.id,
     value: u.id
   }, u.name)))), msg && React.createElement("div", {

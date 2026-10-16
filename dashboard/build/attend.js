@@ -622,9 +622,10 @@ function tmOtDocNo(list, dateISO) {
   const n = (list || []).filter(r => r && String(r.no || "").indexOf("OT-" + ym) === 0).length + 1;
   return "OT-" + ym + "-" + window.drPad2(n);
 }
+const tmIsSysAcct = u => !!u && u.id === "u-admin";
 function tmOtApprovers(users, forUser) {
   const skip = (forUser || {}).id || null;
-  return (users || []).filter(u => u && u.id && u.active !== false && u.id !== skip && window.can(window.userRoles(u), "otApprove")).sort((a, b) => String(a.name || "").localeCompare(String(b.name || ""), "th"));
+  return (users || []).filter(u => u && u.id && u.active !== false && u.id !== skip && !tmIsSysAcct(u) && window.can(window.userRoles(u), "otApprove")).sort((a, b) => String(a.name || "").localeCompare(String(b.name || ""), "th"));
 }
 function tmOtPickApprover(user, users) {
   const all = tmOtApprovers(users, user);
@@ -1129,7 +1130,7 @@ function tmMonthRollup(byDate, users, cfg, otRows, ym) {
     touch(o.userId, o.userName).otMins += +o.mins || 0;
   });
   (users || []).forEach(u => {
-    if (!u || u.active === false || !u.id) return;
+    if (!u || u.active === false || !u.id || tmIsSysAcct(u)) return;
     if (!window.can(window.userRoles(u), "attend")) return;
     touch(u.id, u.name);
   });
@@ -1174,6 +1175,7 @@ Object.assign(window, {
   tmOtRate,
   tmOtPayMins,
   tmRateTH,
+  tmIsSysAcct,
   tmWorkedMins,
   tmOpen,
   tmAttendBlank,

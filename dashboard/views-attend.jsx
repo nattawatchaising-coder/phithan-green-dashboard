@@ -126,7 +126,7 @@ function TmDaySheet({ date, setDate, cfg, users, currentUser }) {
   const missing = React.useMemo(() => {
     if (!workday) return [];
     const have = {}; (day.rows || []).forEach((r) => { have[r.userId] = 1; });
-    return (users || []).filter((u) => u && u.active !== false && window.can(window.userRoles(u), "attend") && !have[u.id] && !onLeave[u.id]);
+    return (users || []).filter((u) => u && u.active !== false && !window.tmIsSysAcct(u) && window.can(window.userRoles(u), "attend") && !have[u.id] && !onLeave[u.id]);
   }, [day.rows, users, workday, onLeave]);
   const leaving = (users || []).filter((u) => u && onLeave[u.id] && !(day.rows || []).some((r) => r.userId === u.id));
 
@@ -235,7 +235,7 @@ function TmDaySheet({ date, setDate, cfg, users, currentUser }) {
               const r = (day.rows || []).find((x) => x.userId === u.id); openEd(u.id, u.name, r ? r.in : "", r ? r.out || "" : null); }}
             style={Object.assign({}, TM_IN, { minWidth: 180 })}>
             <option value="">— เลือกคน —</option>
-            {(users || []).filter((u) => u && u.active !== false && window.can(window.userRoles(u), "attend")).map((u) => <option key={u.id} value={u.id}>{u.name}</option>)}
+            {(users || []).filter((u) => u && u.active !== false && !window.tmIsSysAcct(u) && window.can(window.userRoles(u), "attend")).map((u) => <option key={u.id} value={u.id}>{u.name}</option>)}
           </select>
         </div>
       )}
