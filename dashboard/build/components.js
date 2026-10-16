@@ -1026,14 +1026,15 @@ const PGTP_CSS = `
 .pgtp-wrap{position:fixed;inset:0;z-index:10050}
 .pgtp{position:fixed;width:300px;box-sizing:border-box;padding:12px;border-radius:var(--r-card);background:var(--bg,#fff);color:var(--text-1);
   box-shadow:var(--shadow-card),0 28px 56px -16px rgba(15,43,51,.22);font-family:inherit}
-.pgtp-big{display:flex;justify-content:center;align-items:baseline;gap:4px;font-family:var(--mono);font-size:30px;font-weight:800;padding:2px 0 10px}
-.pgtp-big button{border:none;background:none;font:inherit;color:var(--text-3);cursor:pointer;padding:0 6px;border-radius:10px}
-.pgtp-big button.on{color:var(--primary-dark);background:var(--primary-soft)}
-.pgtp-lb{font-size:11.5px;font-weight:700;color:var(--text-3);margin:2px 2px 6px}
+.pgtp-big{text-align:center;font-family:var(--mono);font-size:28px;font-weight:800;color:var(--primary-dark);padding:0 0 8px}
+.pgtp-lb{font-size:11.5px;font-weight:700;color:var(--text-3);margin:4px 2px 6px;display:flex;justify-content:space-between;align-items:center}
 .pgtp-g{display:grid;grid-template-columns:repeat(6,1fr);gap:4px;background:var(--surface2);border-radius:14px;padding:6px;box-shadow:var(--shadow-inset)}
+.pgtp-g.m4{grid-template-columns:repeat(4,1fr)}
 .pgtp-c{height:36px;border:none;border-radius:var(--r-pill);background:transparent;font-family:var(--mono);font-size:13.5px;font-weight:700;color:var(--text-1);cursor:pointer;padding:0}
+.pgtp-g.m4 .pgtp-c{height:40px;font-size:15px}
 .pgtp-c:hover{background:var(--primary-soft);color:var(--primary-dark)}
 .pgtp-c.sel,.pgtp-c.sel:hover{background:var(--primary);color:#fff}
+.pgtp-x{border:none;background:none;padding:0;font-family:inherit;font-size:11.5px;font-weight:700;color:var(--primary);cursor:pointer}
 .pgtp-f{display:flex;gap:8px;margin-top:10px}
 .pgtp-b{flex:1;height:40px;border:none;border-radius:var(--r-tile);font-family:inherit;font-size:13px;font-weight:700;cursor:pointer;background:var(--surface2);color:var(--text-2);box-shadow:var(--shadow-sm)}
 .pgtp-b.pri{background:var(--primary-soft);color:var(--primary-dark)}
@@ -1048,7 +1049,8 @@ function PgTimePop({
   onClose
 }) {
   React.useEffect(() => {
-    if (document.getElementById("pgtp-css")) return;
+    const old = document.getElementById("pgtp-css");
+    if (old) old.remove();
     const st = document.createElement("style");
     st.id = "pgtp-css";
     st.textContent = PGTP_CSS;
@@ -1056,22 +1058,26 @@ function PgTimePop({
   }, []);
   const v = /^\d{2}:\d{2}$/.test(value || "") ? value : "";
   const [h, setH] = React.useState(v ? v.slice(0, 2) : "");
-  const [m, setM] = React.useState(v ? v.slice(3) : "");
-  const [step, setStep] = React.useState("h");
+  const [m, setM] = React.useState(v ? v.slice(3) : "00");
   const p2 = x => (x < 10 ? "0" : "") + x;
+  const MAIN = ["00", "15", "30", "45"];
+  const [fine, setFine] = React.useState(MAIN.indexOf(m) < 0);
   const r = anchor ? anchor.getBoundingClientRect() : {
     left: 0,
     bottom: 0,
     top: 0
   };
   const W = 300,
-    H = 400;
+    H = 380;
   const left = Math.max(8, Math.min(r.left, window.innerWidth - W - 8));
   const top = r.bottom + 6 + H > window.innerHeight ? Math.max(8, r.top - 6 - H) : r.bottom + 6;
   const ok = (hh, mm) => {
     onPick(pgTimeFix((hh || "00") + ":" + (mm || "00"), min, max));
     onClose();
   };
+  const mins = fine ? Array.from({
+    length: 12
+  }, (_, i) => p2(i * 5)) : MAIN;
   return ReactDOM.createPortal(React.createElement("div", {
     className: "pgtp-wrap",
     onMouseDown: e => {
@@ -1087,38 +1093,32 @@ function PgTimePop({
     }
   }, React.createElement("div", {
     className: "pgtp-big"
-  }, React.createElement("button", {
-    type: "button",
-    className: step === "h" ? "on" : "",
-    onClick: () => setStep("h")
-  }, h || "--"), ":", React.createElement("button", {
-    type: "button",
-    className: step === "m" ? "on" : "",
-    onClick: () => setStep("m")
-  }, m || "--")), React.createElement("div", {
+  }, h || "--", ":", m || "--"), React.createElement("div", {
     className: "pgtp-lb"
-  }, step === "h" ? "เลือกชั่วโมง" : "เลือกนาที"), React.createElement("div", {
+  }, React.createElement("span", null, "\u0E0A\u0E31\u0E48\u0E27\u0E42\u0E21\u0E07")), React.createElement("div", {
     className: "pgtp-g"
-  }, step === "h" ? Array.from({
+  }, Array.from({
     length: 24
   }, (_, i) => p2(i)).map(x => React.createElement("button", {
     type: "button",
     key: x,
     className: "pgtp-c" + (x === h ? " sel" : ""),
-    onClick: () => {
-      setH(x);
-      if (!m) setM("00");
-      setStep("m");
-    }
-  }, x)) : Array.from({
-    length: 12
-  }, (_, i) => p2(i * 5)).map(x => React.createElement("button", {
+    onClick: () => setH(x)
+  }, x))), React.createElement("div", {
+    className: "pgtp-lb"
+  }, React.createElement("span", null, "\u0E19\u0E32\u0E17\u0E35 ", h ? "— แตะแล้วเสร็จเลย" : ""), React.createElement("button", {
+    type: "button",
+    className: "pgtp-x",
+    onClick: () => setFine(!fine)
+  }, fine ? "แบบย่อ" : "นาทีอื่น")), React.createElement("div", {
+    className: "pgtp-g" + (fine ? "" : " m4")
+  }, mins.map(x => React.createElement("button", {
     type: "button",
     key: x,
     className: "pgtp-c" + (x === m ? " sel" : ""),
     onClick: () => {
       setM(x);
-      ok(h, x);
+      if (h) ok(h, x);
     }
   }, x))), React.createElement("div", {
     className: "pgtp-f"

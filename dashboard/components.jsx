@@ -631,21 +631,23 @@ function pgTimeFix(raw, min, max) {
   }
   return out;
 }
-/* หน้าต่างนาฬิกาให้กดเลือก ชั่วโมง → นาที (ผู้ใช้สั่ง ต.ค. 2026: พิมพ์แล้วได้เลขแปลก ๆ)
-   นาทีเป็นขั้นละ 5 — ต้องการนาทีอื่นยังพิมพ์เองในช่องได้เหมือนเดิม
+/* หน้าต่างนาฬิกาให้กดเลือก (ผู้ใช้สั่ง ต.ค. 2026: พิมพ์แล้วได้เลขแปลก ๆ · แล้วขอให้ง่ายกว่าแบบสลับหน้า)
+   ชั่วโมงกับนาทีอยู่หน้าเดียวกัน: แตะชั่วโมง → แตะนาที = จบ ปิดเอง
+   นาทีหลักมีแค่ 00 15 30 45 (OT/เวลางานแทบทั้งหมดลงตัวแบบนี้) · "นาทีอื่น" กางขั้นละ 5 · ต้องละเอียดกว่านั้นพิมพ์เองในช่อง
    พื้นใช้ --bg ทึบ ไม่ใช่ --surface (ธีมกระจก --surface โปร่ง ข้างหลังทะลุ) */
 const PGTP_CSS = `
 .pgtp-wrap{position:fixed;inset:0;z-index:10050}
 .pgtp{position:fixed;width:300px;box-sizing:border-box;padding:12px;border-radius:var(--r-card);background:var(--bg,#fff);color:var(--text-1);
   box-shadow:var(--shadow-card),0 28px 56px -16px rgba(15,43,51,.22);font-family:inherit}
-.pgtp-big{display:flex;justify-content:center;align-items:baseline;gap:4px;font-family:var(--mono);font-size:30px;font-weight:800;padding:2px 0 10px}
-.pgtp-big button{border:none;background:none;font:inherit;color:var(--text-3);cursor:pointer;padding:0 6px;border-radius:10px}
-.pgtp-big button.on{color:var(--primary-dark);background:var(--primary-soft)}
-.pgtp-lb{font-size:11.5px;font-weight:700;color:var(--text-3);margin:2px 2px 6px}
+.pgtp-big{text-align:center;font-family:var(--mono);font-size:28px;font-weight:800;color:var(--primary-dark);padding:0 0 8px}
+.pgtp-lb{font-size:11.5px;font-weight:700;color:var(--text-3);margin:4px 2px 6px;display:flex;justify-content:space-between;align-items:center}
 .pgtp-g{display:grid;grid-template-columns:repeat(6,1fr);gap:4px;background:var(--surface2);border-radius:14px;padding:6px;box-shadow:var(--shadow-inset)}
+.pgtp-g.m4{grid-template-columns:repeat(4,1fr)}
 .pgtp-c{height:36px;border:none;border-radius:var(--r-pill);background:transparent;font-family:var(--mono);font-size:13.5px;font-weight:700;color:var(--text-1);cursor:pointer;padding:0}
+.pgtp-g.m4 .pgtp-c{height:40px;font-size:15px}
 .pgtp-c:hover{background:var(--primary-soft);color:var(--primary-dark)}
 .pgtp-c.sel,.pgtp-c.sel:hover{background:var(--primary);color:#fff}
+.pgtp-x{border:none;background:none;padding:0;font-family:inherit;font-size:11.5px;font-weight:700;color:var(--primary);cursor:pointer}
 .pgtp-f{display:flex;gap:8px;margin-top:10px}
 .pgtp-b{flex:1;height:40px;border:none;border-radius:var(--r-tile);font-family:inherit;font-size:13px;font-weight:700;cursor:pointer;background:var(--surface2);color:var(--text-2);box-shadow:var(--shadow-sm)}
 .pgtp-b.pri{background:var(--primary-soft);color:var(--primary-dark)}
@@ -653,35 +655,38 @@ const PGTP_CSS = `
   .pgtp{left:50% !important;top:auto !important;bottom:max(14px,env(safe-area-inset-bottom));width:min(360px,calc(100vw - 24px));transform:translateX(-50%)}}`;
 function PgTimePop({ anchor, value, min, max, onPick, onClose }) {
   React.useEffect(() => {
-    if (document.getElementById("pgtp-css")) return;
+    const old = document.getElementById("pgtp-css"); if (old) old.remove();
     const st = document.createElement("style"); st.id = "pgtp-css"; st.textContent = PGTP_CSS; document.head.appendChild(st);
   }, []);
   const v = /^\d{2}:\d{2}$/.test(value || "") ? value : "";
   const [h, setH] = React.useState(v ? v.slice(0, 2) : "");
-  const [m, setM] = React.useState(v ? v.slice(3) : "");
-  const [step, setStep] = React.useState("h");
+  const [m, setM] = React.useState(v ? v.slice(3) : "00");
   const p2 = (x) => (x < 10 ? "0" : "") + x;
+  const MAIN = ["00", "15", "30", "45"];
+  const [fine, setFine] = React.useState(MAIN.indexOf(m) < 0);
   const r = anchor ? anchor.getBoundingClientRect() : { left: 0, bottom: 0, top: 0 };
-  const W = 300, H = 400;
+  const W = 300, H = 380;
   const left = Math.max(8, Math.min(r.left, window.innerWidth - W - 8));
   const top = r.bottom + 6 + H > window.innerHeight ? Math.max(8, r.top - 6 - H) : r.bottom + 6;
   const ok = (hh, mm) => { onPick(pgTimeFix((hh || "00") + ":" + (mm || "00"), min, max)); onClose(); };
+  const mins = fine ? Array.from({ length: 12 }, (_, i) => p2(i * 5)) : MAIN;
   return ReactDOM.createPortal(
     <div className="pgtp-wrap" onMouseDown={(e) => { if (e.target === e.currentTarget) onClose(); }}>
       <div className="pgtp" role="dialog" aria-label="เลือกเวลา" style={{ left: left, top: top }}>
-        <div className="pgtp-big">
-          <button type="button" className={step === "h" ? "on" : ""} onClick={() => setStep("h")}>{h || "--"}</button>:
-          <button type="button" className={step === "m" ? "on" : ""} onClick={() => setStep("m")}>{m || "--"}</button>
-        </div>
-        <div className="pgtp-lb">{step === "h" ? "เลือกชั่วโมง" : "เลือกนาที"}</div>
+        <div className="pgtp-big">{h || "--"}:{m || "--"}</div>
+        <div className="pgtp-lb"><span>ชั่วโมง</span></div>
         <div className="pgtp-g">
-          {step === "h"
-            ? Array.from({ length: 24 }, (_, i) => p2(i)).map((x) => (
-              <button type="button" key={x} className={"pgtp-c" + (x === h ? " sel" : "")}
-                onClick={() => { setH(x); if (!m) setM("00"); setStep("m"); }}>{x}</button>))
-            : Array.from({ length: 12 }, (_, i) => p2(i * 5)).map((x) => (
-              <button type="button" key={x} className={"pgtp-c" + (x === m ? " sel" : "")}
-                onClick={() => { setM(x); ok(h, x); }}>{x}</button>))}
+          {Array.from({ length: 24 }, (_, i) => p2(i)).map((x) => (
+            <button type="button" key={x} className={"pgtp-c" + (x === h ? " sel" : "")} onClick={() => setH(x)}>{x}</button>))}
+        </div>
+        <div className="pgtp-lb">
+          <span>นาที {h ? "— แตะแล้วเสร็จเลย" : ""}</span>
+          <button type="button" className="pgtp-x" onClick={() => setFine(!fine)}>{fine ? "แบบย่อ" : "นาทีอื่น"}</button>
+        </div>
+        <div className={"pgtp-g" + (fine ? "" : " m4")}>
+          {mins.map((x) => (
+            <button type="button" key={x} className={"pgtp-c" + (x === m ? " sel" : "")}
+              onClick={() => { setM(x); if (h) ok(h, x); }}>{x}</button>))}
         </div>
         <div className="pgtp-f">
           <button type="button" className="pgtp-b" onClick={onClose}>ยกเลิก</button>
