@@ -191,6 +191,228 @@ function LnSub({
     }, it.n) : null);
   }));
 }
+function LnSelect({
+  value,
+  onChange,
+  options,
+  placeholder,
+  title,
+  style
+}) {
+  const [open, setOpen] = React.useState(false);
+  const [q, setQ] = React.useState("");
+  const opts = options || [];
+  const cur = opts.find(o => o.value === (value || ""));
+  React.useEffect(() => {
+    if (!open) setQ("");
+  }, [open]);
+  const qq = q.trim().toLowerCase();
+  const shown = [{
+    value: "",
+    label: placeholder || "— ไม่ระบุ —"
+  }].concat(opts.filter(o => o.value !== "").filter(o => !qq || (o.label + " " + (o.sub || "")).toLowerCase().includes(qq)));
+  let lastGroup = null;
+  return React.createElement(React.Fragment, null, React.createElement("button", {
+    type: "button",
+    onClick: () => setOpen(true),
+    style: Object.assign({}, LN_FIELD, {
+      display: "flex",
+      alignItems: "center",
+      gap: 8,
+      textAlign: "left",
+      cursor: "pointer",
+      boxSizing: "border-box"
+    }, style || {})
+  }, React.createElement("span", {
+    style: {
+      flex: 1,
+      minWidth: 0,
+      overflow: "hidden",
+      textOverflow: "ellipsis",
+      whiteSpace: "nowrap",
+      color: cur && cur.value ? "var(--text-1)" : "var(--text-3)"
+    }
+  }, cur && cur.value ? cur.label : placeholder || "— ไม่ระบุ —", cur && cur.value && cur.sub ? React.createElement("span", {
+    style: {
+      marginLeft: 6,
+      fontSize: 12.5,
+      color: "var(--text-3)"
+    }
+  }, cur.sub) : null), React.createElement(Icon, {
+    name: "chevronDown",
+    size: 18,
+    color: "var(--text-3)"
+  })), open && ReactDOM.createPortal(React.createElement("div", {
+    onClick: () => setOpen(false),
+    style: {
+      position: "fixed",
+      inset: 0,
+      zIndex: 80,
+      background: "rgba(15,43,51,.38)",
+      display: "flex",
+      alignItems: "flex-end"
+    }
+  }, React.createElement("div", {
+    onClick: e => e.stopPropagation(),
+    style: {
+      width: "100%",
+      maxHeight: "78vh",
+      display: "flex",
+      flexDirection: "column",
+      background: "var(--bg)",
+      borderRadius: "22px 22px 0 0",
+      boxShadow: "0 -10px 30px rgba(0,0,0,.18)",
+      paddingBottom: "env(safe-area-inset-bottom, 0px)"
+    }
+  }, React.createElement("div", {
+    style: {
+      display: "flex",
+      alignItems: "center",
+      gap: 10,
+      padding: "14px 16px 10px"
+    }
+  }, React.createElement("b", {
+    style: {
+      flex: 1,
+      fontSize: 16,
+      fontWeight: 800,
+      color: "var(--text-1)"
+    }
+  }, title || "เลือก"), React.createElement("button", {
+    type: "button",
+    onClick: () => setOpen(false),
+    "aria-label": "\u0E1B\u0E34\u0E14",
+    style: {
+      width: 32,
+      height: 32,
+      borderRadius: 99,
+      padding: 0,
+      border: "none",
+      cursor: "pointer",
+      boxShadow: "var(--shadow-sm)",
+      background: "var(--surface)",
+      display: "grid",
+      placeItems: "center"
+    }
+  }, React.createElement(Icon, {
+    name: "x",
+    size: 16,
+    color: "var(--text-2)"
+  }))), opts.length > 8 && React.createElement("div", {
+    style: {
+      padding: "0 16px 10px",
+      position: "relative"
+    }
+  }, React.createElement("input", {
+    value: q,
+    onChange: e => setQ(e.target.value),
+    placeholder: "\u0E04\u0E49\u0E19\u0E2B\u0E32",
+    style: Object.assign({}, LN_FIELD, {
+      boxSizing: "border-box",
+      paddingLeft: 40
+    })
+  }), React.createElement("span", {
+    style: {
+      position: "absolute",
+      left: 30,
+      top: 15,
+      pointerEvents: "none"
+    }
+  }, React.createElement(Icon, {
+    name: "search",
+    size: 17,
+    color: "var(--text-3)"
+  }))), React.createElement("div", {
+    style: {
+      overflowY: "auto",
+      padding: "0 16px 16px",
+      display: "grid",
+      gap: 6
+    }
+  }, shown.map(o => {
+    const on = (value || "") === o.value;
+    const head = o.group && o.group !== lastGroup ? o.group : null;
+    if (o.value) lastGroup = o.group || null;
+    return React.createElement(React.Fragment, {
+      key: o.value || "__none"
+    }, head && React.createElement("div", {
+      style: {
+        margin: "6px 2px 0",
+        fontSize: 11.5,
+        fontWeight: 800,
+        color: "var(--text-3)"
+      }
+    }, head), React.createElement("button", {
+      type: "button",
+      onClick: () => {
+        onChange(o.value);
+        setOpen(false);
+      },
+      style: {
+        display: "flex",
+        alignItems: "center",
+        gap: 10,
+        width: "100%",
+        textAlign: "left",
+        padding: "12px 14px",
+        borderRadius: "var(--r-tile)",
+        border: "none",
+        cursor: "pointer",
+        fontFamily: "inherit",
+        background: on ? "var(--primary-soft)" : "var(--surface)",
+        boxShadow: on ? "inset 0 0 0 1px var(--primary)" : "var(--shadow-sm)"
+      }
+    }, React.createElement("span", {
+      style: {
+        flex: 1,
+        minWidth: 0
+      }
+    }, React.createElement("span", {
+      style: {
+        display: "block",
+        fontSize: 14.5,
+        fontWeight: 700,
+        color: on ? "var(--primary-dark)" : o.value ? "var(--text-1)" : "var(--text-3)"
+      }
+    }, o.label), o.sub && React.createElement("span", {
+      style: {
+        display: "block",
+        marginTop: 2,
+        fontSize: 12,
+        color: "var(--text-3)"
+      }
+    }, o.sub)), on && React.createElement(Icon, {
+      name: "check",
+      size: 18,
+      color: "var(--primary-dark)"
+    })));
+  }), shown.length === 1 && qq && React.createElement("div", {
+    style: {
+      padding: 14,
+      textAlign: "center",
+      fontSize: 13,
+      color: "var(--text-3)"
+    }
+  }, "\u0E44\u0E21\u0E48\u0E1E\u0E1A \"", q, "\"")))), document.body));
+}
+function lnJobOpts(jobs, grouped) {
+  const T = window.SF && window.SF.TYPES || [];
+  const order = j => {
+    const i = T.findIndex(t => t.key === j.type);
+    return i < 0 ? 99 : i;
+  };
+  const list = (jobs || []).slice(0, 80);
+  if (grouped) list.sort((a, b) => order(a) - order(b));
+  return list.map(j => {
+    const t = T.find(x => x.key === j.type);
+    return {
+      value: j.id,
+      label: j.name || j.code,
+      sub: j.code,
+      group: grouped && t ? t.th : undefined
+    };
+  });
+}
 Object.assign(window, {
   LN_CARD,
   LN_LIST_PAD,
@@ -202,5 +424,7 @@ Object.assign(window, {
   LN_SHEET,
   LnField,
   LnSheetHead,
-  LnSub
+  LnSub,
+  LnSelect,
+  lnJobOpts
 });

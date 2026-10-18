@@ -121,7 +121,99 @@ function LnSub({ items, value, onPick }) {
   );
 }
 
+/* ── ช่องเลือกแบบแผ่นเลื่อนขึ้นจากล่าง แทน <select> ──
+   ผู้ใช้สั่ง ต.ค. 2026 "dropdown ไม่สวย" — ดรอปดาวน์ของระบบหน้าตาไม่ตรงแอป และรายการงานยาวอ่านยาก
+   options: [{ value, label, sub?, group? }] · value "" = ตัวเลือกว่าง (placeholder)
+   รายการเกิน 8 มีช่องค้นหา · มี group = ขึ้นหัวกลุ่ม (เรียงตามลำดับที่ส่งมา) */
+function LnSelect({ value, onChange, options, placeholder, title, style }) {
+  const [open, setOpen] = React.useState(false);
+  const [q, setQ] = React.useState("");
+  const opts = options || [];
+  const cur = opts.find((o) => o.value === (value || ""));
+  React.useEffect(() => { if (!open) setQ(""); }, [open]);
+  const qq = q.trim().toLowerCase();
+  const shown = [{ value: "", label: placeholder || "— ไม่ระบุ —" }].concat(opts.filter((o) => o.value !== "")
+    .filter((o) => !qq || (o.label + " " + (o.sub || "")).toLowerCase().includes(qq)));
+  let lastGroup = null;
+  return (
+    <React.Fragment>
+      <button type="button" onClick={() => setOpen(true)}
+        style={Object.assign({}, LN_FIELD, { display: "flex", alignItems: "center", gap: 8, textAlign: "left", cursor: "pointer",
+          boxSizing: "border-box" }, style || {})}>
+        <span style={{ flex: 1, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
+          color: cur && cur.value ? "var(--text-1)" : "var(--text-3)" }}>
+          {cur && cur.value ? cur.label : (placeholder || "— ไม่ระบุ —")}
+          {cur && cur.value && cur.sub ? <span style={{ marginLeft: 6, fontSize: 12.5, color: "var(--text-3)" }}>{cur.sub}</span> : null}
+        </span>
+        <Icon name="chevronDown" size={18} color="var(--text-3)" />
+      </button>
+      {open && ReactDOM.createPortal(
+        <div onClick={() => setOpen(false)}
+          style={{ position: "fixed", inset: 0, zIndex: 80, background: "rgba(15,43,51,.38)", display: "flex", alignItems: "flex-end" }}>
+          <div onClick={(e) => e.stopPropagation()}
+            style={{ width: "100%", maxHeight: "78vh", display: "flex", flexDirection: "column", background: "var(--bg)",
+              borderRadius: "22px 22px 0 0", boxShadow: "0 -10px 30px rgba(0,0,0,.18)",
+              paddingBottom: "env(safe-area-inset-bottom, 0px)" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "14px 16px 10px" }}>
+              <b style={{ flex: 1, fontSize: 16, fontWeight: 800, color: "var(--text-1)" }}>{title || "เลือก"}</b>
+              <button type="button" onClick={() => setOpen(false)} aria-label="ปิด"
+                style={{ width: 32, height: 32, borderRadius: 99, padding: 0, border: "none", cursor: "pointer",
+                  boxShadow: "var(--shadow-sm)", background: "var(--surface)", display: "grid", placeItems: "center" }}>
+                <Icon name="x" size={16} color="var(--text-2)" />
+              </button>
+            </div>
+            {opts.length > 8 && (
+              <div style={{ padding: "0 16px 10px", position: "relative" }}>
+                <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="ค้นหา"
+                  style={Object.assign({}, LN_FIELD, { boxSizing: "border-box", paddingLeft: 40 })} />
+                <span style={{ position: "absolute", left: 30, top: 15, pointerEvents: "none" }}>
+                  <Icon name="search" size={17} color="var(--text-3)" />
+                </span>
+              </div>
+            )}
+            <div style={{ overflowY: "auto", padding: "0 16px 16px", display: "grid", gap: 6 }}>
+              {shown.map((o) => {
+                const on = (value || "") === o.value;
+                const head = o.group && o.group !== lastGroup ? o.group : null;
+                if (o.value) lastGroup = o.group || null;
+                return (
+                  <React.Fragment key={o.value || "__none"}>
+                    {head && <div style={{ margin: "6px 2px 0", fontSize: 11.5, fontWeight: 800, color: "var(--text-3)" }}>{head}</div>}
+                    <button type="button" onClick={() => { onChange(o.value); setOpen(false); }}
+                      style={{ display: "flex", alignItems: "center", gap: 10, width: "100%", textAlign: "left", padding: "12px 14px",
+                        borderRadius: "var(--r-tile)", border: "none", cursor: "pointer", fontFamily: "inherit",
+                        background: on ? "var(--primary-soft)" : "var(--surface)", boxShadow: on ? "inset 0 0 0 1px var(--primary)" : "var(--shadow-sm)" }}>
+                      <span style={{ flex: 1, minWidth: 0 }}>
+                        <span style={{ display: "block", fontSize: 14.5, fontWeight: 700,
+                          color: on ? "var(--primary-dark)" : o.value ? "var(--text-1)" : "var(--text-3)" }}>{o.label}</span>
+                        {o.sub && <span style={{ display: "block", marginTop: 2, fontSize: 12, color: "var(--text-3)" }}>{o.sub}</span>}
+                      </span>
+                      {on && <Icon name="check" size={18} color="var(--primary-dark)" />}
+                    </button>
+                  </React.Fragment>
+                );
+              })}
+              {shown.length === 1 && qq && <div style={{ padding: 14, textAlign: "center", fontSize: 13, color: "var(--text-3)" }}>ไม่พบ "{q}"</div>}
+            </div>
+          </div>
+        </div>, document.body)}
+    </React.Fragment>
+  );
+}
+
+/* ตัวเลือกงานสำหรับ LnSelect — ชื่องานเป็นตัวหลัก รหัสเป็นบรรทัดรอง · แบ่งกลุ่มตามประเภทงาน */
+function lnJobOpts(jobs, grouped) {
+  const T = (window.SF && window.SF.TYPES) || [];
+  const order = (j) => { const i = T.findIndex((t) => t.key === j.type); return i < 0 ? 99 : i; };
+  const list = (jobs || []).slice(0, 80);
+  if (grouped) list.sort((a, b) => order(a) - order(b));
+  return list.map((j) => {
+    const t = T.find((x) => x.key === j.type);
+    return { value: j.id, label: j.name || j.code, sub: j.code, group: grouped && t ? t.th : undefined };
+  });
+}
+
 Object.assign(window, {
   LN_CARD, LN_LIST_PAD, lnCardBtn, LN_FIELD, LN_LABEL, LN_BTN, lnChip,
-  LN_SHEET, LnField, LnSheetHead, LnSub,
+  LN_SHEET, LnField, LnSheetHead, LnSub, LnSelect, lnJobOpts,
 });

@@ -627,10 +627,8 @@ function LnClock({ me, cfg, jobs, ot, onAskOt }) {
               {jobId === LN_JOB_TXT
                 ? <input value={jobTxt} onChange={(e) => setJobTxt(e.target.value)} maxLength={80} autoFocus
                     placeholder="ทำงานอะไร เช่น สำรวจลูกค้าใหม่" style={Object.assign({}, LN_FIELD, { boxSizing: "border-box", height: "100%" })} />
-                : <select value={jobId} onChange={(e) => setJobId(e.target.value)} style={Object.assign({}, LN_FIELD, { boxSizing: "border-box", height: "100%" })}>
-                    <option value="">— ไม่ระบุ —</option>
-                    {jobPick.map((j) => <option key={j.id} value={j.id}>{j.code} · {j.name}</option>)}
-                  </select>}
+                : <LnSelect value={jobId} onChange={setJobId} title="วันนี้ไปงานไหน" options={lnJobOpts(jobPick)}
+                    style={{ height: "100%" }} />}
             </div>
             <button onClick={() => { if (jobId === LN_JOB_TXT) setJobId(""); else { setJobType("all"); setJobId(LN_JOB_TXT); } }}
               style={{ flexShrink: 0, display: "inline-flex", alignItems: "center", gap: 6, padding: "0 14px",
@@ -979,40 +977,40 @@ function LnOtForm({ me, users, cfg, jobs, otStore, limit, onClose }) {
           </div>
         </div>
 
-        <LnField label="งานที่เกี่ยวข้อง (ไม่บังคับ)">
-          <div style={{ display: "flex", gap: 7, marginBottom: 7 }}>
-            {[["list", "เลือกจากรายการ"], ["txt", "พิมพ์เอง"]].map(([k, th]) => {
-              const on = (f.jobId === LN_JOB_TXT) === (k === "txt");
-              return (
-                <button key={k} type="button" onClick={() => set("jobId", k === "txt" ? LN_JOB_TXT : null)}
-                  style={{ flex: 1, padding: "8px 6px", borderRadius: 13, cursor: "pointer", fontFamily: "inherit", fontSize: 12.5, fontWeight: 800,
-                    border: "none", boxShadow: on ? "inset 0 0 0 1px var(--primary)" : "var(--shadow-sm)",
-                    background: on ? "var(--primary-soft)" : "var(--surface)", color: on ? "var(--primary-dark)" : "var(--text-2)" }}>{th}</button>
-              );
-            })}
+        {/* งาน: แผ่นเลือก (LnSelect) + ปุ่ม "พิมพ์เอง" ข้าง ๆ แบบเดียวกับหน้าลงเวลา (ผู้ใช้สั่ง ต.ค. 2026)
+            ไม่ใช้ LnField (<label>) เพราะแตะป้ายแล้วเบราว์เซอร์จะกดปุ่มตัวแรกในนั้นให้เอง */}
+        <div style={{ display: "grid", gap: 6, minWidth: 0 }}>
+          <span style={LN_LABEL}>งานที่เกี่ยวข้อง</span>
+          <div style={{ display: "flex", gap: 8, alignItems: "stretch" }}>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              {f.jobId === LN_JOB_TXT
+                ? <input value={f.jobTxt || ""} onChange={(e) => set("jobTxt", e.target.value)} maxLength={80} autoFocus
+                    placeholder="ทำงานอะไร เช่น สำรวจลูกค้าใหม่" style={Object.assign({}, LN_FIELD, { boxSizing: "border-box", height: "100%" })} />
+                : <LnSelect value={f.jobId || ""} onChange={(v) => set("jobId", v || null)} title="งานที่เกี่ยวข้อง"
+                    options={lnJobOpts(jobs, true)} style={{ height: "100%" }} />}
+            </div>
+            <button type="button" onClick={() => set("jobId", f.jobId === LN_JOB_TXT ? null : LN_JOB_TXT)}
+              style={{ flexShrink: 0, display: "inline-flex", alignItems: "center", gap: 6, padding: "0 14px",
+                borderRadius: "var(--r-tile)", border: "none", boxShadow: "var(--shadow-sm)", background: "var(--surface)",
+                cursor: "pointer", fontFamily: "inherit", fontSize: 13, fontWeight: 800, color: "var(--primary-dark)", whiteSpace: "nowrap" }}>
+              <Icon name={f.jobId === LN_JOB_TXT ? "list" : "pen"} size={15} color="var(--primary-dark)" />
+              {f.jobId === LN_JOB_TXT ? "รายการ" : "พิมพ์เอง"}
+            </button>
           </div>
-          {f.jobId === LN_JOB_TXT
-            ? <input value={f.jobTxt || ""} onChange={(e) => set("jobTxt", e.target.value)} maxLength={80}
-                placeholder="ทำงานอะไร เช่น สำรวจลูกค้าใหม่ บางนา" style={LN_FIELD} />
-            : <select value={f.jobId || ""} onChange={(e) => set("jobId", e.target.value || null)} style={LN_FIELD}>
-                <option value="">— ไม่ระบุ —</option>
-                {(jobs || []).slice(0, 80).map((j) => <option key={j.id} value={j.id}>{j.code} · {j.name}</option>)}
-              </select>}
-        </LnField>
+        </div>
 
         {/* ── ส่งให้ใครอนุมัติ ──
             เดิมใบไปตามสายอนุมัติในโปรไฟล์ ซึ่งหลายคนยังไม่ได้ตั้ง ใบจึงเข้ากองกลาง
             แล้วก็ค้างเพราะไม่มีใครรู้สึกว่าเป็นหน้าที่ตัวเอง — ถามตรงนี้ให้จบ */}
-        <LnField label="ส่งให้ใครอนุมัติ">
-          <select value={f.approverId || ""}
-            onChange={(e) => {
-              const u = approvers.find((x) => x.id === e.target.value);
+        <div style={{ display: "grid", gap: 6, minWidth: 0 }}>
+          <span style={LN_LABEL}>ส่งให้ใครอนุมัติ</span>
+          <LnSelect value={f.approverId || ""} title="ส่งให้ใครอนุมัติ" placeholder="— ใครก็ได้ที่มีสิทธิ์ —"
+            options={approvers.map((u) => ({ value: u.id, label: u.name }))}
+            onChange={(v) => {
+              const u = approvers.find((x) => x.id === v);
               setF((p) => Object.assign({}, p, { approverId: u ? u.id : null, approverName: u ? u.name : "" }));
-            }} style={LN_FIELD}>
-            <option value="">— ใครก็ได้ที่มีสิทธิ์ —</option>
-            {approvers.map((u) => <option key={u.id} value={u.id}>{u.name}</option>)}
-          </select>
-        </LnField>
+            }} />
+        </div>
 
         <LnField label="เหตุผล" req>
           <textarea rows={3} value={f.reason} onChange={(e) => set("reason", e.target.value)}
