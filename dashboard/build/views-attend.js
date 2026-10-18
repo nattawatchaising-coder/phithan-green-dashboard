@@ -2214,13 +2214,14 @@ const TM_CSS = `
 .tmv-pp-more{padding:2px 16px 16px}
 .tmv-cal{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:6px;max-width:760px}
 .tmv-cal .h{text-align:center;font-size:10.5px;font-weight:700;color:var(--text-3)}
-.tmv-cal .d{min-width:0;min-height:58px;padding:7px 9px;border-radius:var(--r-chip);background:var(--surface2)}
+.tmv-cal .d{position:relative;min-width:0;min-height:58px;padding:7px 9px;border-radius:var(--r-chip);background:var(--surface2)}
 .tmv-cal .d.on{background:var(--surface);box-shadow:var(--shadow-sm)}
 .tmv-cal .d.bad{box-shadow:inset 0 0 0 1px var(--tint-red-bd)}
 .tmv-cal .d.off{opacity:.45}
 .tmv-cal .d.pk{cursor:pointer;transition:transform .12s,box-shadow .12s,opacity .12s}
 .tmv-cal .d.pk:hover{opacity:1;transform:translateY(-2px);box-shadow:var(--hov-sh)}
-.tmv-cal .d.pk.off:hover::after{content:"+ ลงแทน";display:block;font-size:10.5px;font-weight:700;color:var(--primary-dark);margin-top:2px}
+/* ป้าย "+ ลงแทน" ลอยทับมุมล่าง ไม่ดันความสูงช่อง — เดิมเป็นบรรทัดใหม่ แถวทั้งแถวสูงขึ้น หน้าขยับทั้งหน้าตอนชี้ (ผู้ใช้ทัก ต.ค. 2026) */
+.tmv-cal .d.pk.off:hover::after{content:"+ ลงแทน";position:absolute;left:9px;bottom:7px;font-size:10.5px;font-weight:700;color:var(--primary-dark)}
 /* แคบ (กว้างของพื้นที่หน้า < 860 ไม่ใช่กว้างจอ — แถบเมนูข้างกินที่ไปแล้ว) ดู useTmNarrow */
 .tmv.nw .tmv-hero{padding:16px}
 .tmv.nw .tmv-hero-r{justify-content:flex-end;flex:1 1 100%}
