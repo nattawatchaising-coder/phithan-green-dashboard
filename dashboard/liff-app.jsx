@@ -632,18 +632,15 @@ function LnClock({ me, cfg, jobs, ot, onAskOt }) {
         </div>
       )}
 
-      {/* วันหยุดยังไม่เข้างาน = ปุ่มสีอ่อน "มาทำงานวันหยุด" ให้รู้ว่าเป็นกรณีพิเศษ แต่กดได้เหมือนเดิม (ผู้ใช้สั่ง ต.ค. 2026) */}
-      {!closed && (() => {
-        const offIn = !open && !!lnOffTH(window.drToday(), cfg);
-        return (
-          <button onClick={() => go(false)} disabled={busy}
-            style={Object.assign({}, LN_BTN, { marginTop: 14,
-              background: busy ? "var(--surface3)" : open ? "#EF4444" : offIn ? "var(--primary-soft)" : "var(--primary)",
-              color: busy ? "var(--text-3)" : offIn ? "var(--primary-dark)" : "#fff" })}>
-            {busy ? "กำลังบันทึก…" : open ? "ลงเวลาออกงาน" : offIn ? "มาทำงานวันหยุด · ลงเวลาเข้า" : "ลงเวลาเข้างาน"}
-          </button>
-        );
-      })()}
+      {/* วันหยุดก็ปุ่มเขียว "ลงเวลาเข้างาน" แบบเดิม — ผู้ใช้ลองปุ่มสีอ่อน "มาทำงานวันหยุด" แล้วไม่เอา (ต.ค. 2026) */}
+      {!closed && (
+        <button onClick={() => go(false)} disabled={busy}
+          style={Object.assign({}, LN_BTN, { marginTop: 14,
+            background: busy ? "var(--surface3)" : open ? "#EF4444" : "var(--primary)",
+            color: busy ? "var(--text-3)" : "#fff" })}>
+          {busy ? "กำลังบันทึก…" : open ? "ลงเวลาออกงาน" : "ลงเวลาเข้างาน"}
+        </button>
+      )}
 
       {/* ── กดออกงานทับ ──
           กดออกเร็วไปเพราะนึกว่าจะกลับแล้วไม่ได้กลับ เป็นเรื่องที่เกิดทุกวัน

@@ -1029,18 +1029,15 @@ function LnClock({
       fontSize: 11,
       color: "var(--text-3)"
     }
-  }, "\u0E44\u0E21\u0E48\u0E21\u0E35\u0E07\u0E32\u0E19\u0E1B\u0E23\u0E30\u0E40\u0E20\u0E17\u0E19\u0E35\u0E49\u0E43\u0E19\u0E21\u0E37\u0E2D \u2014 \u0E25\u0E07\u0E40\u0E27\u0E25\u0E32\u0E42\u0E14\u0E22\u0E44\u0E21\u0E48\u0E23\u0E30\u0E1A\u0E38\u0E07\u0E32\u0E19\u0E01\u0E47\u0E44\u0E14\u0E49")), !closed && (() => {
-    const offIn = !open && !!lnOffTH(window.drToday(), cfg);
-    return React.createElement("button", {
-      onClick: () => go(false),
-      disabled: busy,
-      style: Object.assign({}, LN_BTN, {
-        marginTop: 14,
-        background: busy ? "var(--surface3)" : open ? "#EF4444" : offIn ? "var(--primary-soft)" : "var(--primary)",
-        color: busy ? "var(--text-3)" : offIn ? "var(--primary-dark)" : "#fff"
-      })
-    }, busy ? "กำลังบันทึก…" : open ? "ลงเวลาออกงาน" : offIn ? "มาทำงานวันหยุด · ลงเวลาเข้า" : "ลงเวลาเข้างาน");
-  })(), closed && React.createElement(React.Fragment, null, React.createElement("button", {
+  }, "\u0E44\u0E21\u0E48\u0E21\u0E35\u0E07\u0E32\u0E19\u0E1B\u0E23\u0E30\u0E40\u0E20\u0E17\u0E19\u0E35\u0E49\u0E43\u0E19\u0E21\u0E37\u0E2D \u2014 \u0E25\u0E07\u0E40\u0E27\u0E25\u0E32\u0E42\u0E14\u0E22\u0E44\u0E21\u0E48\u0E23\u0E30\u0E1A\u0E38\u0E07\u0E32\u0E19\u0E01\u0E47\u0E44\u0E14\u0E49")), !closed && React.createElement("button", {
+    onClick: () => go(false),
+    disabled: busy,
+    style: Object.assign({}, LN_BTN, {
+      marginTop: 14,
+      background: busy ? "var(--surface3)" : open ? "#EF4444" : "var(--primary)",
+      color: busy ? "var(--text-3)" : "#fff"
+    })
+  }, busy ? "กำลังบันทึก…" : open ? "ลงเวลาออกงาน" : "ลงเวลาเข้างาน"), closed && React.createElement(React.Fragment, null, React.createElement("button", {
     onClick: () => go(true),
     disabled: busy,
     style: Object.assign({}, LN_BTN, {
