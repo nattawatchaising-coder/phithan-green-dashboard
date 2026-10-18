@@ -780,8 +780,8 @@ function TmWorkHours({ cfg, onSave }) {
         <span style={{ color: "var(--text-3)" }}> (ทำงาน {window.tmDur(f.workMins)} + พัก {window.tmDur(f.lunchMins)})</span>
         <br />เข้า {f.startLate} → เลิก <b>{window.tmDayWindow({ in: { hm: f.startLate } }, f).end}</b>
         <br /><span style={{ color: "var(--text-3)" }}>
-          กดเข้าก่อน {f.startEarly} ไม่ทำให้เลิกเร็วขึ้น · เข้าหลัง {f.startLate} ถือว่าสายและเวลาเลิกเลื่อนตามจริง
-          เพราะหน้าที่คือทำให้ครบ {window.tmDur(f.workMins)} ไม่ใช่อยู่ถึงเวลาที่กำหนด
+          กดเข้าก่อน {f.startEarly} ไม่ทำให้เลิกเร็วขึ้น · เข้าหลัง {f.startLate} เวลาเลิกเลื่อนตามจริง
+          — นับว่าสายเฉพาะคนที่เข้าหลัง {f.startLate} แล้วทำไม่ครบ {window.tmDur(f.workMins)} (ทำครบแล้วไม่นับสาย)
         </span>
       </div>
 
@@ -1322,6 +1322,8 @@ function TmDaySheet({ date, setDate, cfg, users, currentUser }) {
   const gpsCell = (r) => {
     /* แอดมินแก้/ลงเวลาแทน — ไม่เตือนไม่มีพิกัด (ผู้ใช้ 2026-10-16) */
     if (!r.gps && r.fix) return null;
+    if (r.geoBy === "admin") return <a href={window.tmGpsUrl(r)} target="_blank" rel="noreferrer" title="พิกัดออฟฟิศ — แอดมินลงเวลาแทน"
+      style={{ fontWeight: 700, textDecoration: "none", color: "var(--text-3)" }}>พิกัดออฟฟิศ</a>;
     if (!r.gps) return <span style={{ color: "var(--tint-amber-tx)", fontWeight: 700 }}>ไม่มีพิกัด</span>;
     const ok = <span style={{ color: "var(--tint-ok-tx)", fontWeight: 700 }}>มีพิกัด</span>;
     if (r.lat == null || r.lng == null) return ok;
@@ -1365,7 +1367,7 @@ function TmDaySheet({ date, setDate, cfg, users, currentUser }) {
     const live = !!(isToday && r.in && !r.out);
     const forgot = !!(!isToday && r.in && !r.out);
     if (live) b = Math.max(nowM, a + 5);
-    const late = !!(workday && r.in && window.tmDayWindow({ in: { hm: r.in } }, cfg).late);
+    const late = !!(workday && window.tmIsLate(r.in, r.out, r.mins, cfg));
     /* คนที่กด "ออฟฟิศ" ไม่มีรหัสงานให้แสดง — ช่องว่างเปล่า ๆ อ่านเหมือนลืมกรอก */
     const job = r.place === "office" || (r.fix && !r.jobCode) ? "ออฟฟิศ" : (r.jobCode || "");
     const nm = nameOf(r);
@@ -1482,16 +1484,6 @@ function TmDaySheet({ date, setDate, cfg, users, currentUser }) {
       {ed && <TmTimeEdit ed={ed} cfg={cfg} currentUser={currentUser} onClose={() => setEd(null)}
         onSaved={(t) => { setMsg("แก้เวลาของ " + (ed.user.name || "") + " แล้ว · " + t); setEd(null); }} />}
 
-      <TmHelp>
-        ปุ่มถังขยะลบใบลงเวลาของวันนั้นทั้งใบ แล้วให้เจ้าตัวกดเข้า-ออกใหม่ —
-        ระบบเก็บสำเนาใบที่ลบไว้พร้อมชื่อคนลบ เผื่อมีข้อโต้เถียงเรื่องชั่วโมงตอนสิ้นเดือน
-        <br />รหัสงานใต้ชื่อคือสิ่งที่ผู้ลงเวลาเลือกเอง ระบบไม่ได้ตรวจว่าอยู่ที่ไซต์นั้นจริงหรือไม่ —
-        ยังไม่มีพิกัดไซต์ที่เชื่อถือได้ในระบบ จึงเทียบระยะไม่ได้
-        <br />“ไม่มีพิกัด” เกิดได้ทั้งจากปิดสิทธิ์ตำแหน่ง สัญญาณไม่ถึง หรืออยู่ในอาคาร — ระบบไม่เคยบล็อกการลงเวลาด้วยเหตุนี้
-        <br />ระยะห่างจากออฟฟิศคิดจากพิกัดที่ตั้งไว้ในแท็บ “ตั้งค่า” เทียบกับตำแหน่งตอนกดเข้างาน —
-        ขึ้นสีแดงเฉพาะคนที่กด “ออฟฟิศ” แต่อยู่นอกรัศมี ส่วนงานหน้าไซต์ห่างออฟฟิศเป็นเรื่องปกติ
-        <br />“สาย” = เข้างานหลังเวลาเข้างานช้าสุดที่ตั้งไว้ · พื้นเขียวจางบนแถบคือเวลางานปกติของคนที่เข้าเช้าสุด
-      </TmHelp>
     </div>
   );
 }

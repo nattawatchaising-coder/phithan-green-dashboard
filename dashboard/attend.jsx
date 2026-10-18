@@ -86,7 +86,7 @@ function tmDur(mins) {
    holidays = { "2026-12-10": "วันรัฐธรรมนูญ" } — วันหยุดพิเศษที่บริษัทประกาศเอง */
 const TM_WH_DEFAULT = {
   startEarly: "08:30",   // เข้างานได้ตั้งแต่
-  startLate: "09:00",    // เข้าช้ากว่านี้ถือว่าสาย (ยังลงเวลาได้ ระบบแค่ติดธงไว้)
+  startLate: "09:00",    // เข้าช้ากว่านี้ + ทำไม่ครบ workMins = สาย (tmIsLate · ทำครบแล้วไม่นับสาย)
   workMins: 480,         // เวลาทำงานจริงต่อวัน
   lunchMins: 60,         // พัก — อยู่ที่ทำงานแต่ไม่นับเป็นเวลาทำงาน
   days: [1, 2, 3, 4, 5, 6],
@@ -247,6 +247,15 @@ function tmDayWindow(rec, cfg) {
     lateMins: inHM != null && inHM > hi ? inHM - hi : 0,
     cfg: c,
   };
+}
+
+/* ── สาย = เข้าหลัง startLate และทำไม่ครบ workMins (ผู้ใช้สั่ง ต.ค. 2026: "ทำงานถึง 8 ชั่วโมงถึงว่าครบตามปกติ")
+   เข้าช้าแต่อยู่จนครบ = ไม่สาย · ยังไม่กดออก = ยังตัดสินไม่ได้ → ไม่ติดธง */
+function tmIsLate(inHM, outHM, mins, cfg) {
+  const c = tmWhNorm(cfg);
+  const i = tmHM(inHM);
+  if (i == null || i <= tmHM(c.startLate) || !outHM) return false;
+  return (+mins || 0) < c.workMins;
 }
 
 /* ── ประเภทของ OT ──
@@ -558,6 +567,7 @@ const tmDayIndex = (rec, cfg) => ({
   place: (rec.in && rec.in.place) || rec.place || "",
   /* แอดมินแก้เวลาให้ — แผ่นรายวันติดป้าย "แก้โดยแอดมิน" */
   fix: !!((rec.in && rec.in.adminFix) || (rec.out && rec.out.adminFix)),
+  geoBy: (rec.in && rec.in.geoBy) || "",
 });
 
 /* ================================================================
@@ -912,13 +922,19 @@ function useAttendAdmin(actor) {
     const old = (snap && snap.val()) || null;
     const rec = Object.assign({}, tmAttendBlank(user, date), old || {});
     const at = new Date().toISOString(), by = { byId: (actor || {}).id || null, byName: (actor || {}).name || "" };
-    /* ลงแทน (ไม่มีปั๊มเดิม) = ที่ออฟฟิศ (ผู้ใช้ 2026-10-16 "งานที่ทำคือออฟฟิศ") */
+    /* ลงแทน (ไม่มีปั๊มเดิม) = ที่ออฟฟิศ (ผู้ใช้ 2026-10-16 "งานที่ทำคือออฟฟิศ")
+       ปั๊มที่ไม่มีพิกัด + ที่ออฟฟิศ → ใส่พิกัดออฟฟิศให้ (ผู้ใช้สั่ง ต.ค. 2026) ติด geoBy "admin" ไว้ แยกจากพิกัดที่ GPS จับจริง */
+    const office = tmWhNorm(cfg).office;
+    const geo = (pt) => (!pt || pt.lat != null || (pt.place || rec.place) !== "office" || office.lat == null || office.lng == null) ? pt
+      : Object.assign({}, pt, { lat: office.lat, lng: office.lng, geoBy: "admin" });
     const mk = (prev, hm) => Object.assign({ place: "office" }, prev || {}, { hm: hm, at: at, src: "admin", adminFix: true, was: (prev && prev.hm) || "" }, by);
     if (!rec.place && !rec.jobCode) rec.place = "office";
     const wasIn = (rec.in && rec.in.hm) || "", wasOut = (rec.out && rec.out.hm) || "";
     if (wasIn !== inHM) rec.in = mk(rec.in, inHM);
     if (!outHM) rec.out = null;
     else if (wasOut !== outHM) rec.out = mk(rec.out, outHM);
+    if (rec.in) rec.in = geo(rec.in);
+    if (rec.out) rec.out = geo(rec.out);
     rec.extra = Array.isArray(rec.extra) ? rec.extra : [];
     rec.mins = tmWorkedMins(rec, cfg);
     rec.updatedAt = at;
@@ -1109,7 +1125,7 @@ function tmMonthRollup(byDate, users, cfg, otRows, ym) {
 Object.assign(window, { tmNameOf,
   tmNotify,
   TM_ROOT, TM_WH_DEFAULT, TM_OT_KIND, TM_OT_STATUS, TM_PLACE,
-  tmHM, tmHHMM, tmNowHM, tmSpanMins, TM_NIGHT_CUT, tmCarryOver, tmDur, tmWhNorm, tmIsHoliday, tmIsWorkday,
+  tmHM, tmHHMM, tmNowHM, tmIsLate, tmSpanMins, TM_NIGHT_CUT, tmCarryOver, tmDur, tmWhNorm, tmIsHoliday, tmIsWorkday,
   tmOtKindOf, tmOtKindGuess, tmOtMinutes, tmOtCalc, tmOtFill, tmOtPartsTH, tmDayWindow, tmOtEarned, tmOtInLimit, tmLastHM,
   tmOtRate, tmOtPayMins, tmRateTH, tmIsSysAcct,
   tmWorkedMins, tmOpen, tmAttendBlank, tmPunch, tmDayIndex, tmPlaceOf,

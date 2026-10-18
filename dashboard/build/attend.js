@@ -194,6 +194,12 @@ function tmDayWindow(rec, cfg) {
     cfg: c
   };
 }
+function tmIsLate(inHM, outHM, mins, cfg) {
+  const c = tmWhNorm(cfg);
+  const i = tmHM(inHM);
+  if (i == null || i <= tmHM(c.startLate) || !outHM) return false;
+  return (+mins || 0) < c.workMins;
+}
 const TM_OT_KIND = [{
   key: "ot",
   th: "ล่วงเวลาวันทำงาน",
@@ -500,7 +506,8 @@ const tmDayIndex = (rec, cfg) => ({
   lat: (rec.in && rec.in.lat) != null ? rec.in.lat : null,
   lng: (rec.in && rec.in.lng) != null ? rec.in.lng : null,
   place: rec.in && rec.in.place || rec.place || "",
-  fix: !!(rec.in && rec.in.adminFix || rec.out && rec.out.adminFix)
+  fix: !!(rec.in && rec.in.adminFix || rec.out && rec.out.adminFix),
+  geoBy: rec.in && rec.in.geoBy || ""
 });
 const TM_OT_STATUS = [{
   key: "draft",
@@ -916,6 +923,12 @@ function useAttendAdmin(actor) {
         byId: (actor || {}).id || null,
         byName: (actor || {}).name || ""
       };
+    const office = tmWhNorm(cfg).office;
+    const geo = pt => !pt || pt.lat != null || (pt.place || rec.place) !== "office" || office.lat == null || office.lng == null ? pt : Object.assign({}, pt, {
+      lat: office.lat,
+      lng: office.lng,
+      geoBy: "admin"
+    });
     const mk = (prev, hm) => Object.assign({
       place: "office"
     }, prev || {}, {
@@ -930,6 +943,8 @@ function useAttendAdmin(actor) {
       wasOut = rec.out && rec.out.hm || "";
     if (wasIn !== inHM) rec.in = mk(rec.in, inHM);
     if (!outHM) rec.out = null;else if (wasOut !== outHM) rec.out = mk(rec.out, outHM);
+    if (rec.in) rec.in = geo(rec.in);
+    if (rec.out) rec.out = geo(rec.out);
     rec.extra = Array.isArray(rec.extra) ? rec.extra : [];
     rec.mins = tmWorkedMins(rec, cfg);
     rec.updatedAt = at;
@@ -1158,6 +1173,7 @@ Object.assign(window, {
   tmHM,
   tmHHMM,
   tmNowHM,
+  tmIsLate,
   tmSpanMins,
   TM_NIGHT_CUT,
   tmCarryOver,

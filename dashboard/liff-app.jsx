@@ -573,7 +573,7 @@ function LnClock({ me, cfg, jobs, ot, onAskOt }) {
             )}
             {win.late && (
               <div style={{ marginTop: 5, fontSize: 11.5, color: "#F59E0B", fontWeight: 700 }}>
-                เข้างานหลัง {window.tmWhNorm(cfg).startLate} · สาย {window.tmDur(win.lateMins)} — เวลาเลิกเลื่อนตามจริง
+                เข้างานหลัง {window.tmWhNorm(cfg).startLate} — ทำให้ครบ {window.tmDur(window.tmWhNorm(cfg).workMins)} (ถึง {win.end}) ไม่นับสาย
               </div>
             )}
           </div>
