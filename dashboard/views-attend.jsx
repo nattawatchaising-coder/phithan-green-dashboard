@@ -1053,6 +1053,26 @@ const TM_CSS = `
 .tmv.nw .tmv-req-ic{width:40px;height:40px}
 .tmv.nw .tmv-req-amt b{font-size:17px}
 .tmv.nw .tmv-search{max-width:none}
+.tmv-seg .sh{display:none}
+/* มือถือ (<520 วัดจากกล่องจริง) — ผู้ใช้สั่ง ต.ค. 2026: แท็บล้นจอ · หัวบนกินที่ · แถวเลือกวันกระจัดกระจาย */
+.tmv.xs .tmv-seg{width:100%;box-sizing:border-box}
+.tmv.xs .tmv-seg>button{flex:1 1 0;justify-content:center;padding:9px 4px;gap:5px;font-size:12.5px}
+.tmv.xs .tmv-seg>button svg{display:none}
+.tmv.xs .tmv-seg .lg{display:none}
+.tmv.xs .tmv-seg .sh{display:inline}
+.tmv.xs .tmv-hero{padding:14px 16px;gap:12px}
+.tmv.xs .tmv-hero-ic{width:40px;height:40px;align-self:flex-start}
+.tmv.xs .tmv-hero-ic svg{width:20px;height:20px}
+.tmv.xs .tmv-hero-me{gap:12px;flex-basis:100%}
+.tmv.xs .tmv-big{font-size:23px}
+.tmv.xs .tmv-hero-r{gap:12px}
+.tmv.xs .tmv-team{flex:1 1 100%}
+.tmv.xs .tmv-hero-r>.btn{flex:1 1 100%;justify-content:center}
+.tmv.xs .tmv-bar{gap:8px}
+.tmv.xs .tmv-date{flex:1 1 calc(100% - 100px);min-width:0;font-size:17px}
+.tmv.xs .tmv-bar>input{flex:1 1 120px;min-width:0}
+.tmv.xs .tmv-bar-off{display:none}
+.tmv.xs .tmv-pick{margin-left:0}
 @media (prefers-reduced-motion:reduce){.tmv-req:hover,.tmv-req:focus-visible{transform:none}}`;
 
 const tmMinOf = (s) => { const m = /^(\d{1,2}):(\d{2})/.exec(String(s || "")); return m ? +m[1] * 60 + +m[2] : null; };
@@ -1083,7 +1103,7 @@ function TmSeg({ items, value, onChange, sm }) {
       {items.map((it) => (
         <button key={it.k} role="tab" aria-selected={value === it.k} className={value === it.k ? "on" : ""} onClick={() => onChange(it.k)}>
           {it.ic && <Icon name={it.ic} size={sm ? 13 : 15} color={value === it.k ? "var(--primary)" : "currentColor"} />}
-          {it.th}
+          {it.sh ? <React.Fragment><span className="lg">{it.th}</span><span className="sh">{it.sh}</span></React.Fragment> : it.th}
           {it.n > 0 && <span className="tmv-badge">{it.n}</span>}
         </button>
       ))}
@@ -1132,16 +1152,18 @@ function useTmDayStatus(date, cfg, users) {
 /* พื้นที่หน้าแคบไหม — วัดกล่องจริง ไม่ใช่กว้างจอ (จอ 1100 ที่มีแถบเมนูข้างเหลือที่จริงไม่ถึง 860)
    ไม่ใช้ container query เพราะกล่องที่เป็น container อาจกลายเป็นกรอบของโมดัล position:fixed ข้างใน */
 function useTmNarrow() {
-  const ref = React.useRef(null);
-  const [nw, setNw] = React.useState(false);
+  /* callback ref — กล่องอาจโผล่ทีหลัง (หน้าโหลดก่อน) useRef + effect ครั้งเดียวจะพลาดไม่ได้วัดเลย */
+  const [el, ref] = React.useState(null);
+  const [w, setW] = React.useState(1000);
   React.useEffect(() => {
-    const el = ref.current;
-    if (!el || !window.ResizeObserver) return;
-    const ro = new ResizeObserver(() => setNw(el.clientWidth < 860));
+    if (!el) return;
+    setW(el.clientWidth);   // วัดทันทีหนึ่งครั้ง ไม่รอ ResizeObserver (บางที่ยิงช้า/ไม่ยิงตอนหน้าไม่ได้แสดง)
+    if (!window.ResizeObserver) return;
+    const ro = new ResizeObserver(() => setW(el.clientWidth));
     ro.observe(el);
     return () => ro.disconnect();
-  }, []);
-  return [nw, ref];
+  }, [el]);
+  return [w < 860, ref, w < 520];   // nw = จอแคบ · xs = มือถือ
 }
 
 /* นาฬิกาเดินทุกนาที — ให้แถบของคนที่ยังทำงานอยู่ยืดตามเวลาจริง */
@@ -1491,7 +1513,7 @@ function TmDaySheet({ date, setDate, cfg, users, currentUser }) {
         <input type="date" value={date} onChange={(e) => setDate(e.target.value || today)} title="เลือกวัน"
           style={Object.assign({}, TM_IN, { padding: "7px 10px", fontSize: 12.5 })} />
         {!isToday && <button className="btn btn-sm" onClick={() => setDate(today)}>กลับมาวันนี้</button>}
-        {offTH && <span className="tmv-pill" style={TM_OFF_PILL}><Icon name="calendar" size={12} color="var(--st-design-fg)" sw={2.2} /> {offTH}</span>}
+        {offTH && <span className="tmv-pill tmv-bar-off" style={TM_OFF_PILL}><Icon name="calendar" size={12} color="var(--st-design-fg)" sw={2.2} /> {offTH}</span>}
         {/* ลงเวลาแทนคนที่ไม่อยู่ในรายการ (เช่น วันหยุดที่ไม่มีแถว "ยังไม่ลงเวลา") */}
         {isAdmin && (
           <TmPickPerson users={attendUsers} rows={rows} onPick={(u) => {
@@ -1948,9 +1970,9 @@ function TmMonthAll({ cfg, users, jobs, otRows, byName, canAll, currentUser }) {
 function TmSettings({ wh, users, role, lv, lvTp, lvQuota }) {
   const canWh = window.can(role, "manageUsers");
   const canQuota = window.lvCanQuota(role);
-  const SUBS = [].concat(canWh ? [{ k: "wh", th: "เวลาทำงาน · วันหยุด · อัตรา OT", ic: "clock" }] : [])
-    .concat(canWh ? [{ k: "types", th: "ประเภทการลา", ic: "list" }] : [])
-    .concat(canQuota ? [{ k: "quota", th: "ยอดวันลารายคน", ic: "users" }] : []);
+  const SUBS = [].concat(canWh ? [{ k: "wh", th: "เวลาทำงาน · วันหยุด · อัตรา OT", sh: "เวลางาน", ic: "clock" }] : [])
+    .concat(canWh ? [{ k: "types", th: "ประเภทการลา", sh: "ประเภทลา", ic: "list" }] : [])
+    .concat(canQuota ? [{ k: "quota", th: "ยอดวันลารายคน", sh: "ยอดวันลา", ic: "users" }] : []);
   const [sub, setSub] = React.useState(SUBS.length ? SUBS[0].k : "");
   const [year, setYear] = React.useState(+String(window.drToday()).slice(0, 4));
   return (
@@ -2059,7 +2081,7 @@ function AttendView({ jobs, users, role, currentUser }) {
 
   const canSet = window.can(role, "manageUsers") || window.lvCanQuota(role);
   const TABS = [{ k: "day", th: canAll ? "วันนี้" : "เวลาของฉัน", ic: "clock" },
-    { k: "req", th: "คำขอ OT · ลา", ic: "list", n: otWaiting.length + lvWaiting.length },
+    { k: "req", th: "คำขอ OT · ลา", sh: "คำขอ", ic: "list", n: otWaiting.length + lvWaiting.length },
     { k: "month", th: "สรุปเดือน", ic: "chart" }]
     .concat(canSet ? [{ k: "cfg", th: "ตั้งค่า", ic: "settings" }] : []);
 
@@ -2068,10 +2090,10 @@ function AttendView({ jobs, users, role, currentUser }) {
   const jobSorted = React.useMemo(() => (jobs || []).slice()
     .sort((a, b) => String(a.code || "").localeCompare(String(b.code || ""))), [jobs]);
 
-  const [narrow, rootRef] = useTmNarrow();
+  const [narrow, rootRef, phone] = useTmNarrow();
 
   return (
-    <div className={"tmv" + (narrow ? " nw" : "")} ref={rootRef}>
+    <div className={"tmv" + (narrow ? " nw" : "") + (phone ? " xs" : "")} ref={rootRef}>
       <style>{TM_CSS}</style>
       <TmHero me={me} cfg={wh.cfg} users={users} canAll={canAll} otMonthMins={myOtMonth}
         canOt={window.tmCanOt(role)} onNewOt={openNew} />
