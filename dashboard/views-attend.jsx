@@ -758,10 +758,6 @@ function TmWorkHours({ cfg, onSave }) {
           <window.PgTime value={f.startEarly} onChange={(t) => set("startEarly", t)} style={TM_IN_W} />
         </label>
         <label style={TM_LB}>
-          <span style={{ fontSize: 11.5, fontWeight: 700, color: "var(--text-3)" }}>เข้างานช้าสุด</span>
-          <window.PgTime value={f.startLate} onChange={(t) => set("startLate", t)} style={TM_IN_W} />
-        </label>
-        <label style={TM_LB}>
           <span style={{ fontSize: 11.5, fontWeight: 700, color: "var(--text-3)" }}>ทำงานวันละ (นาที)</span>
           <input type="number" min={0} step={30} value={f.workMins} onChange={(e) => set("workMins", +e.target.value)} style={TM_IN_W} />
         </label>
@@ -801,10 +797,10 @@ function TmWorkHours({ cfg, onSave }) {
         border: "none", boxShadow: "var(--shadow-sm)", fontSize: 12, color: "var(--text-2)", lineHeight: 1.8 }}>
         เข้า {f.startEarly} → เลิก <b>{window.tmWhNorm(f).end}</b>
         <span style={{ color: "var(--text-3)" }}> (ทำงาน {window.tmDur(f.workMins)} + พัก {window.tmDur(f.lunchMins)})</span>
-        <br />เข้า {f.startLate} → เลิก <b>{window.tmDayWindow({ in: { hm: f.startLate } }, f).end}</b>
+        <br />เข้า 10:00 → เลิก <b>{window.tmDayWindow({ in: { hm: "10:00" } }, f).end}</b>
         <br /><span style={{ color: "var(--text-3)" }}>
-          กดเข้าก่อน {f.startEarly} ไม่ทำให้เลิกเร็วขึ้น · เข้าหลัง {f.startLate} เวลาเลิกเลื่อนตามจริง
-          — นับว่าสายเฉพาะคนที่เข้าหลัง {f.startLate} แล้วทำไม่ครบ {window.tmDur(f.workMins)} (ทำครบแล้วไม่นับสาย)
+          ไม่มีสาย — เข้ากี่โมงก็ได้ ขอแค่อยู่ครบ {window.tmDur((+f.workMins || 0) + (+f.lunchMins || 0))} (รวมพัก) · กดเข้าก่อน {f.startEarly} นับจาก {f.startEarly}
+          · กดออกก่อนครบ ขึ้น "ไม่ครบ" ในแผ่นรายวัน
         </span>
       </div>
 
@@ -1468,7 +1464,7 @@ function TmDaySheet({ date, setDate, cfg, users, currentUser }) {
     const live = !!(isToday && r.in && !r.out);
     const forgot = !!(!isToday && r.in && !r.out);
     if (live) b = Math.max(nowM, a + 5);
-    const late = !!(workday && window.tmIsLate(r.in, r.out, r.mins, cfg));
+    const late = !!(workday && window.tmIsShort(r.in, r.out, r.mins, cfg));   // ไม่ครบเวลา (ไม่มีสายแล้ว)
     /* คนที่กด "ออฟฟิศ" ไม่มีรหัสงานให้แสดง — ช่องว่างเปล่า ๆ อ่านเหมือนลืมกรอก */
     const job = r.place === "office" || (r.fix && !r.jobCode) ? "ออฟฟิศ" : (r.jobCode || "");
     const nm = nameOf(r);
@@ -1489,7 +1485,7 @@ function TmDaySheet({ date, setDate, cfg, users, currentUser }) {
         <b>{r.in || "—"} – {r.out || "…"}</b>
         <span style={{ fontWeight: forgot || live || late ? 700 : 500,
           color: forgot ? "var(--tint-red-tx2)" : late ? "var(--tint-amber-tx)" : live ? "var(--primary-dark)" : undefined }}>
-          {forgot ? "ลืมกดออก" : live ? "กำลังทำงาน" : window.tmDur(r.mins)}{late ? " · สาย" : ""}
+          {forgot ? "ลืมกดออก" : live ? "กำลังทำงาน" : window.tmDur(r.mins)}{late ? " · ไม่ครบ" : ""}
         </span>
       </React.Fragment>,
       act: <React.Fragment>

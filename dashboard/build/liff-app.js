@@ -686,6 +686,144 @@ function LnJobSheet({
   }, "\u0E1B\u0E34\u0E14")));
 }
 const LN_JOB_TXT = "__txt";
+function LnRing({
+  today,
+  cfg,
+  open,
+  nowHM,
+  win
+}) {
+  const c = window.tmWhNorm(cfg);
+  const goal = c.workMins + c.lunchMins;
+  const inHM = today && today.in && today.in.hm;
+  const endHM = inHM ? today.out && today.out.hm || (open ? nowHM : null) : null;
+  let on = 0;
+  if (inHM && endHM) {
+    const e = window.tmHM(endHM),
+      st = win.startMins;
+    const d = e - st;
+    on = d >= 0 ? d : d < -720 ? d + 1440 : 0;
+  }
+  const p = goal ? Math.min(1, on / goal) : 0;
+  const full = !!inHM && on >= goal;
+  const R = 70,
+    W = 13,
+    L = 2 * Math.PI * R;
+  const col = "var(--primary)";
+  const hh = Math.floor(on / 60),
+    mm = on % 60;
+  return React.createElement("div", {
+    style: {
+      marginTop: 6,
+      display: "grid",
+      justifyItems: "center",
+      gap: 10
+    }
+  }, React.createElement("div", {
+    style: {
+      position: "relative",
+      width: 2 * (R + W),
+      height: 2 * (R + W)
+    }
+  }, React.createElement("svg", {
+    width: 2 * (R + W),
+    height: 2 * (R + W),
+    style: {
+      display: "block",
+      transform: "rotate(-90deg)"
+    }
+  }, React.createElement("circle", {
+    cx: R + W,
+    cy: R + W,
+    r: R,
+    fill: "none",
+    stroke: "color-mix(in srgb, var(--text-3) 18%, transparent)",
+    strokeWidth: W
+  }), p > 0 && React.createElement("circle", {
+    cx: R + W,
+    cy: R + W,
+    r: R,
+    fill: "none",
+    stroke: col,
+    strokeWidth: W,
+    strokeLinecap: "round",
+    strokeDasharray: L,
+    strokeDashoffset: L * (1 - p),
+    style: {
+      transition: "stroke-dashoffset .6s ease"
+    }
+  })), React.createElement("div", {
+    style: {
+      position: "absolute",
+      inset: 0,
+      display: "grid",
+      placeContent: "center",
+      textAlign: "center"
+    }
+  }, inHM ? React.createElement(React.Fragment, null, React.createElement("div", {
+    style: {
+      fontFamily: "var(--mono)",
+      fontSize: 30,
+      fontWeight: 800,
+      color: full ? "var(--primary-dark)" : "var(--text-1)",
+      lineHeight: 1.05
+    }
+  }, hh, ":", String(mm).padStart(2, "0")), React.createElement("div", {
+    style: {
+      marginTop: 3,
+      fontSize: 11.5,
+      fontWeight: 700,
+      color: full ? "var(--primary-dark)" : "var(--text-3)"
+    }
+  }, full ? "ครบแล้ว ✓" : "จาก " + window.tmDur(goal))) : React.createElement(React.Fragment, null, React.createElement("div", {
+    style: {
+      fontFamily: "var(--mono)",
+      fontSize: 28,
+      fontWeight: 800,
+      color: "var(--text-3)",
+      lineHeight: 1.05
+    }
+  }, "0:00"), React.createElement("div", {
+    style: {
+      marginTop: 3,
+      fontSize: 11.5,
+      fontWeight: 700,
+      color: "var(--text-3)"
+    }
+  }, "\u0E40\u0E1B\u0E49\u0E32 ", window.tmDur(goal))))), React.createElement("div", {
+    style: {
+      display: "flex",
+      justifyContent: "center",
+      gap: 26
+    }
+  }, [["เข้างาน", inHM], ["ออกงาน", today && today.out && today.out.hm]].map(([k, v]) => React.createElement("div", {
+    key: k
+  }, React.createElement("div", {
+    style: {
+      fontSize: 11,
+      color: "var(--text-3)",
+      fontWeight: 700
+    }
+  }, k), React.createElement("div", {
+    style: {
+      fontFamily: "var(--mono)",
+      fontSize: 19,
+      fontWeight: 800,
+      color: v ? "var(--text-1)" : "var(--text-3)"
+    }
+  }, v || "--:--")))), inHM && React.createElement("div", {
+    style: {
+      fontSize: 12.5,
+      color: "var(--text-2)",
+      lineHeight: 1.6
+    }
+  }, full ? React.createElement(React.Fragment, null, "\u0E04\u0E23\u0E1A ", window.tmDur(goal), " \u0E15\u0E31\u0E49\u0E07\u0E41\u0E15\u0E48 ", React.createElement("b", null, win.end)) : open ? React.createElement(React.Fragment, null, "\u0E04\u0E23\u0E1A\u0E40\u0E27\u0E25\u0E32 ", React.createElement("b", null, win.end), " \xB7 \u0E40\u0E2B\u0E25\u0E37\u0E2D\u0E2D\u0E35\u0E01 ", window.tmDur(goal - on)) : React.createElement("span", {
+    style: {
+      color: "var(--tint-amber-tx)",
+      fontWeight: 700
+    }
+  }, "\u0E2D\u0E2D\u0E01\u0E01\u0E48\u0E2D\u0E19\u0E04\u0E23\u0E1A \xB7 \u0E02\u0E32\u0E14\u0E2D\u0E35\u0E01 ", window.tmDur(goal - on))));
+}
 function LnClock({
   me,
   cfg,
@@ -770,67 +908,13 @@ function LnClock({
       color: "var(--text-3)",
       fontWeight: 700
     }
-  }, window.drDateTH(window.drToday())), React.createElement("div", {
-    style: {
-      marginTop: 9,
-      display: "flex",
-      justifyContent: "center",
-      gap: 26
-    }
-  }, React.createElement("div", null, React.createElement("div", {
-    style: {
-      fontSize: 11,
-      color: "var(--text-3)",
-      fontWeight: 700
-    }
-  }, "\u0E40\u0E02\u0E49\u0E32\u0E07\u0E32\u0E19"), React.createElement("div", {
-    style: {
-      fontFamily: "var(--mono)",
-      fontSize: 26,
-      fontWeight: 800,
-      color: today && today.in ? "var(--text-1)" : "var(--text-3)"
-    }
-  }, today && today.in && today.in.hm || "--:--")), React.createElement("div", null, React.createElement("div", {
-    style: {
-      fontSize: 11,
-      color: "var(--text-3)",
-      fontWeight: 700
-    }
-  }, "\u0E2D\u0E2D\u0E01\u0E07\u0E32\u0E19"), React.createElement("div", {
-    style: {
-      fontFamily: "var(--mono)",
-      fontSize: 26,
-      fontWeight: 800,
-      color: today && today.out ? "var(--text-1)" : "var(--text-3)"
-    }
-  }, today && today.out && today.out.hm || "--:--"))), today && today.in && React.createElement("div", {
-    style: {
-      marginTop: 10,
-      paddingTop: 10,
-      borderTop: "1px solid var(--divider)"
-    }
-  }, React.createElement("div", {
-    style: {
-      fontFamily: "var(--mono)",
-      fontSize: 30,
-      fontWeight: 800,
-      color: "var(--text-1)",
-      lineHeight: 1.1
-    }
-  }, window.tmDur(worked)), React.createElement("div", {
-    style: {
-      marginTop: 2,
-      fontSize: 12,
-      color: "var(--text-3)"
-    }
-  }, open ? "ทำงานแล้ว · กำลังนับอยู่" : "ทำงานทั้งวัน"), React.createElement("div", {
-    style: {
-      marginTop: 7,
-      fontSize: 12.5,
-      color: "var(--text-2)",
-      lineHeight: 1.7
-    }
-  }, open && left > 0 ? React.createElement(React.Fragment, null, "\u0E04\u0E23\u0E1A ", window.tmDur(window.tmWhNorm(cfg).workMins), " \u0E40\u0E27\u0E25\u0E32 ", React.createElement("b", null, win.end), " \xB7 \u0E40\u0E2B\u0E25\u0E37\u0E2D\u0E2D\u0E35\u0E01 ", window.tmDur(left)) : React.createElement(React.Fragment, null, "\u0E04\u0E23\u0E1A\u0E40\u0E27\u0E25\u0E32\u0E07\u0E32\u0E19\u0E1B\u0E01\u0E15\u0E34\u0E41\u0E25\u0E49\u0E27\u0E15\u0E31\u0E49\u0E07\u0E41\u0E15\u0E48 ", React.createElement("b", null, win.end))), open && left === 0 && React.createElement("div", {
+  }, window.drDateTH(window.drToday())), React.createElement(LnRing, {
+    today: today,
+    cfg: cfg,
+    open: open,
+    nowHM: nowHM,
+    win: win
+  }), today && today.in && React.createElement("div", null, open && left === 0 && React.createElement("div", {
     style: {
       marginTop: 5,
       fontSize: 11.5,
@@ -848,14 +932,7 @@ function LnClock({
     style: {
       fontFamily: "var(--mono)"
     }
-  }, shifts.map(x => x.in.hm + "–" + (x.out && x.out.hm || "?")).join(", ")), " ", "\u2014 \u0E23\u0E27\u0E21\u0E2D\u0E22\u0E39\u0E48\u0E43\u0E19\u0E0A\u0E31\u0E48\u0E27\u0E42\u0E21\u0E07\u0E02\u0E49\u0E32\u0E07\u0E1A\u0E19\u0E41\u0E25\u0E49\u0E27 \u0E16\u0E49\u0E32\u0E44\u0E21\u0E48\u0E16\u0E39\u0E01\u0E15\u0E49\u0E2D\u0E07\u0E41\u0E08\u0E49\u0E07\u0E2D\u0E2D\u0E1F\u0E1F\u0E34\u0E28"), win.late && React.createElement("div", {
-    style: {
-      marginTop: 5,
-      fontSize: 11.5,
-      color: "#F59E0B",
-      fontWeight: 700
-    }
-  }, "\u0E40\u0E02\u0E49\u0E32\u0E07\u0E32\u0E19\u0E2B\u0E25\u0E31\u0E07 ", window.tmWhNorm(cfg).startLate, " \u2014 \u0E17\u0E33\u0E43\u0E2B\u0E49\u0E04\u0E23\u0E1A ", window.tmDur(window.tmWhNorm(cfg).workMins), " (\u0E16\u0E36\u0E07 ", win.end, ") \u0E44\u0E21\u0E48\u0E19\u0E31\u0E1A\u0E2A\u0E32\u0E22"))), earned.mins > 0 && React.createElement("div", {
+  }, shifts.map(x => x.in.hm + "–" + (x.out && x.out.hm || "?")).join(", ")), " ", "\u2014 \u0E23\u0E27\u0E21\u0E2D\u0E22\u0E39\u0E48\u0E43\u0E19\u0E0A\u0E31\u0E48\u0E27\u0E42\u0E21\u0E07\u0E02\u0E49\u0E32\u0E07\u0E1A\u0E19\u0E41\u0E25\u0E49\u0E27 \u0E16\u0E49\u0E32\u0E44\u0E21\u0E48\u0E16\u0E39\u0E01\u0E15\u0E49\u0E2D\u0E07\u0E41\u0E08\u0E49\u0E07\u0E2D\u0E2D\u0E1F\u0E1F\u0E34\u0E28"))), earned.mins > 0 && React.createElement("div", {
     style: {
       marginTop: 12,
       padding: "13px 15px",
@@ -1323,9 +1400,17 @@ function LnClockCal({
       color: "var(--text-3)"
     }
   }, otg.rows.length > 1 ? otg.rows.length + " ใบ" : window.tmOtStatusOf(otg.rows[0].status).th)), onAskOt && React.createElement("button", {
-    onClick: () => onAskOt({
-      date: pick
-    }),
+    onClick: () => {
+      const e = rec ? window.tmOtEarned(Object.assign({
+        date: pick
+      }, rec), cfg) : null;
+      onAskOt(e && e.has && e.mins > 0 ? Object.assign({}, e, {
+        date: pick,
+        win: window.tmDayWindow(rec, cfg)
+      }) : {
+        date: pick
+      });
+    },
     style: {
       marginTop: 9,
       width: "100%",
@@ -2823,6 +2908,7 @@ Object.assign(window, {
   LnBellFab,
   LnClock,
   LnClockCal,
+  LnRing,
   LnOtForm,
   LnTimeTab,
   LnFixTab,

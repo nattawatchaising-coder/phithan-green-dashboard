@@ -1762,18 +1762,6 @@ function TmWorkHours({
       fontWeight: 700,
       color: "var(--text-3)"
     }
-  }, "\u0E40\u0E02\u0E49\u0E32\u0E07\u0E32\u0E19\u0E0A\u0E49\u0E32\u0E2A\u0E38\u0E14"), React.createElement(window.PgTime, {
-    value: f.startLate,
-    onChange: t => set("startLate", t),
-    style: TM_IN_W
-  })), React.createElement("label", {
-    style: TM_LB
-  }, React.createElement("span", {
-    style: {
-      fontSize: 11.5,
-      fontWeight: 700,
-      color: "var(--text-3)"
-    }
   }, "\u0E17\u0E33\u0E07\u0E32\u0E19\u0E27\u0E31\u0E19\u0E25\u0E30 (\u0E19\u0E32\u0E17\u0E35)"), React.createElement("input", {
     type: "number",
     min: 0,
@@ -1868,15 +1856,15 @@ function TmWorkHours({
     style: {
       color: "var(--text-3)"
     }
-  }, " (\u0E17\u0E33\u0E07\u0E32\u0E19 ", window.tmDur(f.workMins), " + \u0E1E\u0E31\u0E01 ", window.tmDur(f.lunchMins), ")"), React.createElement("br", null), "\u0E40\u0E02\u0E49\u0E32 ", f.startLate, " \u2192 \u0E40\u0E25\u0E34\u0E01 ", React.createElement("b", null, window.tmDayWindow({
+  }, " (\u0E17\u0E33\u0E07\u0E32\u0E19 ", window.tmDur(f.workMins), " + \u0E1E\u0E31\u0E01 ", window.tmDur(f.lunchMins), ")"), React.createElement("br", null), "\u0E40\u0E02\u0E49\u0E32 10:00 \u2192 \u0E40\u0E25\u0E34\u0E01 ", React.createElement("b", null, window.tmDayWindow({
     in: {
-      hm: f.startLate
+      hm: "10:00"
     }
   }, f).end), React.createElement("br", null), React.createElement("span", {
     style: {
       color: "var(--text-3)"
     }
-  }, "\u0E01\u0E14\u0E40\u0E02\u0E49\u0E32\u0E01\u0E48\u0E2D\u0E19 ", f.startEarly, " \u0E44\u0E21\u0E48\u0E17\u0E33\u0E43\u0E2B\u0E49\u0E40\u0E25\u0E34\u0E01\u0E40\u0E23\u0E47\u0E27\u0E02\u0E36\u0E49\u0E19 \xB7 \u0E40\u0E02\u0E49\u0E32\u0E2B\u0E25\u0E31\u0E07 ", f.startLate, " \u0E40\u0E27\u0E25\u0E32\u0E40\u0E25\u0E34\u0E01\u0E40\u0E25\u0E37\u0E48\u0E2D\u0E19\u0E15\u0E32\u0E21\u0E08\u0E23\u0E34\u0E07 \u2014 \u0E19\u0E31\u0E1A\u0E27\u0E48\u0E32\u0E2A\u0E32\u0E22\u0E40\u0E09\u0E1E\u0E32\u0E30\u0E04\u0E19\u0E17\u0E35\u0E48\u0E40\u0E02\u0E49\u0E32\u0E2B\u0E25\u0E31\u0E07 ", f.startLate, " \u0E41\u0E25\u0E49\u0E27\u0E17\u0E33\u0E44\u0E21\u0E48\u0E04\u0E23\u0E1A ", window.tmDur(f.workMins), " (\u0E17\u0E33\u0E04\u0E23\u0E1A\u0E41\u0E25\u0E49\u0E27\u0E44\u0E21\u0E48\u0E19\u0E31\u0E1A\u0E2A\u0E32\u0E22)")), React.createElement(TmOfficeCfg, {
+  }, "\u0E44\u0E21\u0E48\u0E21\u0E35\u0E2A\u0E32\u0E22 \u2014 \u0E40\u0E02\u0E49\u0E32\u0E01\u0E35\u0E48\u0E42\u0E21\u0E07\u0E01\u0E47\u0E44\u0E14\u0E49 \u0E02\u0E2D\u0E41\u0E04\u0E48\u0E2D\u0E22\u0E39\u0E48\u0E04\u0E23\u0E1A ", window.tmDur((+f.workMins || 0) + (+f.lunchMins || 0)), " (\u0E23\u0E27\u0E21\u0E1E\u0E31\u0E01) \xB7 \u0E01\u0E14\u0E40\u0E02\u0E49\u0E32\u0E01\u0E48\u0E2D\u0E19 ", f.startEarly, " \u0E19\u0E31\u0E1A\u0E08\u0E32\u0E01 ", f.startEarly, "\xB7 \u0E01\u0E14\u0E2D\u0E2D\u0E01\u0E01\u0E48\u0E2D\u0E19\u0E04\u0E23\u0E1A \u0E02\u0E36\u0E49\u0E19 \"\u0E44\u0E21\u0E48\u0E04\u0E23\u0E1A\" \u0E43\u0E19\u0E41\u0E1C\u0E48\u0E19\u0E23\u0E32\u0E22\u0E27\u0E31\u0E19")), React.createElement(TmOfficeCfg, {
     office: f.office,
     onChange: o => set("office", o)
   }), React.createElement("div", null, React.createElement("div", {
@@ -3017,7 +3005,7 @@ function TmDaySheet({
     const live = !!(isToday && r.in && !r.out);
     const forgot = !!(!isToday && r.in && !r.out);
     if (live) b = Math.max(nowM, a + 5);
-    const late = !!(workday && window.tmIsLate(r.in, r.out, r.mins, cfg));
+    const late = !!(workday && window.tmIsShort(r.in, r.out, r.mins, cfg));
     const job = r.place === "office" || r.fix && !r.jobCode ? "ออฟฟิศ" : r.jobCode || "";
     const nm = nameOf(r);
     return {
@@ -3049,7 +3037,7 @@ function TmDaySheet({
           fontWeight: forgot || live || late ? 700 : 500,
           color: forgot ? "var(--tint-red-tx2)" : late ? "var(--tint-amber-tx)" : live ? "var(--primary-dark)" : undefined
         }
-      }, forgot ? "ลืมกดออก" : live ? "กำลังทำงาน" : window.tmDur(r.mins), late ? " · สาย" : "")),
+      }, forgot ? "ลืมกดออก" : live ? "กำลังทำงาน" : window.tmDur(r.mins), late ? " · ไม่ครบ" : "")),
       act: React.createElement(React.Fragment, null, isAdmin && React.createElement("button", {
         className: "tmv-ib xs",
         title: "\u0E41\u0E01\u0E49\u0E40\u0E27\u0E25\u0E32\u0E40\u0E02\u0E49\u0E32-\u0E2D\u0E2D\u0E01",

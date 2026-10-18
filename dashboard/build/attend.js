@@ -194,11 +194,9 @@ function tmDayWindow(rec, cfg) {
     cfg: c
   };
 }
-function tmIsLate(inHM, outHM, mins, cfg) {
-  const c = tmWhNorm(cfg);
-  const i = tmHM(inHM);
-  if (i == null || i <= tmHM(c.startLate) || !outHM) return false;
-  return (+mins || 0) < c.workMins;
+function tmIsShort(inHM, outHM, mins, cfg) {
+  if (!inHM || !outHM) return false;
+  return (+mins || 0) < tmWhNorm(cfg).workMins;
 }
 const TM_OT_KIND = [{
   key: "ot",
@@ -1173,7 +1171,7 @@ Object.assign(window, {
   tmHM,
   tmHHMM,
   tmNowHM,
-  tmIsLate,
+  tmIsShort,
   tmSpanMins,
   TM_NIGHT_CUT,
   tmCarryOver,

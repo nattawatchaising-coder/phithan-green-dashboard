@@ -447,6 +447,69 @@ function LnJobSheet({ job, techs, onClose }) {
    ช่างกดตอนรีบและมือเปื้อน — สองปุ่มคือเวลาที่ผิดแล้วเจ้าตัวแก้เองไม่ได้ */
 /* ค่าในดรอปดาวน์งาน = พิมพ์ชื่องานเอง (งานที่ยังไม่มีในระบบ เช่น สำรวจลูกค้าใหม่) */
 const LN_JOB_TXT = "__txt";
+/* ── วงล้อเวลา — อยู่งานครบหรือยัง (ผู้ใช้สั่ง ต.ค. 2026 "ขอแค่ครบ 9 ชั่วโมงก็พอ เพราะรวมพักแล้ว") ──
+   เป้า = workMins + lunchMins (8 + 1 = 9 ชม.) นับจากเวลาเริ่มของวัน (win.startMins: กดก่อน startEarly นับจาก startEarly)
+   ไม่มีสายแล้ว · ครบเมื่อไหร่ = win.end ตัวเดียวกับที่ OT ใช้ ตัวเลขจะไม่ขัดกัน */
+function LnRing({ today, cfg, open, nowHM, win }) {
+  const c = window.tmWhNorm(cfg);
+  const goal = c.workMins + c.lunchMins;
+  const inHM = today && today.in && today.in.hm;
+  const endHM = inHM ? ((today.out && today.out.hm) || (open ? nowHM : null)) : null;
+  let on = 0;
+  if (inHM && endHM) {
+    const e = window.tmHM(endHM), st = win.startMins;
+    const d = e - st;
+    on = d >= 0 ? d : (d < -720 ? d + 1440 : 0);   // ข้ามเที่ยงคืน = บวกวัน · ยังไม่ถึงเวลาเริ่ม = 0
+  }
+  const p = goal ? Math.min(1, on / goal) : 0;
+  const full = !!inHM && on >= goal;
+  const R = 70, W = 13, L = 2 * Math.PI * R;
+  const col = "var(--primary)";
+  const hh = Math.floor(on / 60), mm = on % 60;
+  return (
+    <div style={{ marginTop: 6, display: "grid", justifyItems: "center", gap: 10 }}>
+      <div style={{ position: "relative", width: 2 * (R + W), height: 2 * (R + W) }}>
+        <svg width={2 * (R + W)} height={2 * (R + W)} style={{ display: "block", transform: "rotate(-90deg)" }}>
+          <circle cx={R + W} cy={R + W} r={R} fill="none" stroke="color-mix(in srgb, var(--text-3) 18%, transparent)" strokeWidth={W} />
+          {p > 0 && <circle cx={R + W} cy={R + W} r={R} fill="none" stroke={col} strokeWidth={W} strokeLinecap="round"
+            strokeDasharray={L} strokeDashoffset={L * (1 - p)} style={{ transition: "stroke-dashoffset .6s ease" }} />}
+        </svg>
+        <div style={{ position: "absolute", inset: 0, display: "grid", placeContent: "center", textAlign: "center" }}>
+          {inHM ? (
+            <React.Fragment>
+              <div style={{ fontFamily: "var(--mono)", fontSize: 30, fontWeight: 800, color: full ? "var(--primary-dark)" : "var(--text-1)", lineHeight: 1.05 }}>
+                {hh}:{String(mm).padStart(2, "0")}
+              </div>
+              <div style={{ marginTop: 3, fontSize: 11.5, fontWeight: 700, color: full ? "var(--primary-dark)" : "var(--text-3)" }}>
+                {full ? "ครบแล้ว ✓" : "จาก " + window.tmDur(goal)}
+              </div>
+            </React.Fragment>
+          ) : (
+            <React.Fragment>
+              <div style={{ fontFamily: "var(--mono)", fontSize: 28, fontWeight: 800, color: "var(--text-3)", lineHeight: 1.05 }}>0:00</div>
+              <div style={{ marginTop: 3, fontSize: 11.5, fontWeight: 700, color: "var(--text-3)" }}>เป้า {window.tmDur(goal)}</div>
+            </React.Fragment>
+          )}
+        </div>
+      </div>
+      <div style={{ display: "flex", justifyContent: "center", gap: 26 }}>
+        {[["เข้างาน", inHM], ["ออกงาน", today && today.out && today.out.hm]].map(([k, v]) => (
+          <div key={k}>
+            <div style={{ fontSize: 11, color: "var(--text-3)", fontWeight: 700 }}>{k}</div>
+            <div style={{ fontFamily: "var(--mono)", fontSize: 19, fontWeight: 800, color: v ? "var(--text-1)" : "var(--text-3)" }}>{v || "--:--"}</div>
+          </div>
+        ))}
+      </div>
+      {/* ยังไม่ลงเวลา = ไม่มีบรรทัดนี้ (ผู้ใช้สั่งเอาข้อความ "เข้ากี่โมงก็ได้…" ออก) */}
+      {inHM && <div style={{ fontSize: 12.5, color: "var(--text-2)", lineHeight: 1.6 }}>
+        {full ? <React.Fragment>ครบ {window.tmDur(goal)} ตั้งแต่ <b>{win.end}</b></React.Fragment>
+          : open ? <React.Fragment>ครบเวลา <b>{win.end}</b> · เหลืออีก {window.tmDur(goal - on)}</React.Fragment>
+          : <span style={{ color: "var(--tint-amber-tx)", fontWeight: 700 }}>ออกก่อนครบ · ขาดอีก {window.tmDur(goal - on)}</span>}
+      </div>}
+    </div>
+  );
+}
+
 function LnClock({ me, cfg, jobs, ot, onAskOt }) {
   /* 95 วัน ไม่ใช่ 14 — ปฏิทินเปิดย้อนไปได้สองเดือน ถ้าดึงมาแค่ 14 วัน เดือนก่อนจะว่างทั้งเดือน
      ทั้งที่มีใบอยู่จริง ซึ่งอ่านแล้วเข้าใจผิดว่า "ไม่ได้ลงเวลา" ไม่ใช่ "ยังไม่ได้โหลดมา" */
@@ -521,38 +584,9 @@ function LnClock({ me, cfg, jobs, ot, onAskOt }) {
       <div style={{ padding: "18px 16px", borderRadius: 22, background: "var(--surface)",
         boxShadow: "var(--soft)", textAlign: "center" }}>
         <div style={{ fontSize: 12.5, color: "var(--text-3)", fontWeight: 700 }}>{window.drDateTH(window.drToday())}</div>
-        <div style={{ marginTop: 9, display: "flex", justifyContent: "center", gap: 26 }}>
-          <div>
-            <div style={{ fontSize: 11, color: "var(--text-3)", fontWeight: 700 }}>เข้างาน</div>
-            <div style={{ fontFamily: "var(--mono)", fontSize: 26, fontWeight: 800,
-              color: today && today.in ? "var(--text-1)" : "var(--text-3)" }}>
-              {(today && today.in && today.in.hm) || "--:--"}
-            </div>
-          </div>
-          <div>
-            <div style={{ fontSize: 11, color: "var(--text-3)", fontWeight: 700 }}>ออกงาน</div>
-            <div style={{ fontFamily: "var(--mono)", fontSize: 26, fontWeight: 800,
-              color: today && today.out ? "var(--text-1)" : "var(--text-3)" }}>
-              {(today && today.out && today.out.hm) || "--:--"}
-            </div>
-          </div>
-        </div>
-        {/* ── ทำงานแล้วกี่ชั่วโมง ──
-            คำถามที่ช่างเปิดแอปมาถามบ่อยที่สุดคือ "เลิกได้กี่โมง" ไม่ใช่ "เข้ามากี่โมง"
-            เวลาเลิกไม่ตายตัว เพราะนับ 8 ชม. + พัก 1 ชม. จากเวลาที่กดเข้าจริง */}
+        <LnRing today={today} cfg={cfg} open={open} nowHM={nowHM} win={win} />
         {today && today.in && (
-          <div style={{ marginTop: 10, paddingTop: 10, borderTop: "1px solid var(--divider)" }}>
-            <div style={{ fontFamily: "var(--mono)", fontSize: 30, fontWeight: 800, color: "var(--text-1)", lineHeight: 1.1 }}>
-              {window.tmDur(worked)}
-            </div>
-            <div style={{ marginTop: 2, fontSize: 12, color: "var(--text-3)" }}>
-              {open ? "ทำงานแล้ว · กำลังนับอยู่" : "ทำงานทั้งวัน"}
-            </div>
-            <div style={{ marginTop: 7, fontSize: 12.5, color: "var(--text-2)", lineHeight: 1.7 }}>
-              {open && left > 0
-                ? <React.Fragment>ครบ {window.tmDur(window.tmWhNorm(cfg).workMins)} เวลา <b>{win.end}</b> · เหลืออีก {window.tmDur(left)}</React.Fragment>
-                : <React.Fragment>ครบเวลางานปกติแล้วตั้งแต่ <b>{win.end}</b></React.Fragment>}
-            </div>
+          <div>
             {/* OT ขึ้นตอนกดออกงาน ไม่ใช่ตอนนาฬิกาเดินเลยเวลาเลิก — ต้องบอกไว้
                 ไม่งั้นช่างจะรอดูการ์ด OT ที่ไม่มีวันขึ้น แล้วคิดว่าระบบไม่นับ OT ให้ */}
             {open && left === 0 && (
@@ -569,11 +603,6 @@ function LnClock({ me, cfg, jobs, ot, onAskOt }) {
                   {shifts.map((x) => x.in.hm + "–" + ((x.out && x.out.hm) || "?")).join(", ")}
                 </span>
                 {" "}— รวมอยู่ในชั่วโมงข้างบนแล้ว ถ้าไม่ถูกต้องแจ้งออฟฟิศ
-              </div>
-            )}
-            {win.late && (
-              <div style={{ marginTop: 5, fontSize: 11.5, color: "#F59E0B", fontWeight: 700 }}>
-                เข้างานหลัง {window.tmWhNorm(cfg).startLate} — ทำให้ครบ {window.tmDur(window.tmWhNorm(cfg).workMins)} (ถึง {win.end}) ไม่นับสาย
               </div>
             )}
           </div>
@@ -867,8 +896,16 @@ function LnClockCal({ rows, cfg, ot, onAskOt }) {
 
           {/* กดขอ OT ของวันที่เลือกได้จากตรงนี้เลย — ปกติต้องเลื่อนลงไปกดปุ่ม "+ ขอ OT"
               แล้วเปลี่ยนวันในฟอร์มอีกที ซึ่งเป็นจังหวะที่คนกรอกวันผิดบ่อยที่สุด */}
+          {/* ดึงช่วงที่ทำเกินจากใบลงเวลาของวันนั้นไปเติมฟอร์มด้วย (ผู้ใช้สั่ง ต.ค. 2026)
+              วันปกติ = เฉพาะหลังครบ 9 ชม. (win.end) · วันหยุด = ทั้งช่วงเข้า–ออก — tmOtEarned ตัวเดียวกับการ์ดลงเวลา
+              ไม่มีใบ / ยังไม่กดออก / ไม่ได้ทำเกิน = ส่งแค่วันที่เหมือนเดิม */}
           {onAskOt && (
-            <button onClick={() => onAskOt({ date: pick })}
+            <button onClick={() => {
+              const e = rec ? window.tmOtEarned(Object.assign({ date: pick }, rec), cfg) : null;
+              onAskOt(e && e.has && e.mins > 0
+                ? Object.assign({}, e, { date: pick, win: window.tmDayWindow(rec, cfg) })
+                : { date: pick });
+            }}
               style={{ marginTop: 9, width: "100%", padding: "10px 0", borderRadius: 14, cursor: "pointer",
                 background: "var(--surface2)",
                 fontFamily: "inherit", fontSize: 12.5, fontWeight: 800, color: "var(--primary-dark)" }}>
@@ -1751,4 +1788,4 @@ function LnApp() {
   );
 }
 
-Object.assign(window, { LN_NOTIF_KIND, LN_JOB_SUB, LN_CARD, LN_LIST_PAD, lnCardBtn, lnNotifKind, LnApp, LnJobRow, LnJobSheet, LnJobFiles, LnHead, LnTabs, LnSub, LnMeSheet, LnBellFab, LnClock, LnClockCal, LnOtForm, LnTimeTab, LnFixTab, LnFixSheet, LnFixNew, LnPick });
+Object.assign(window, { LN_NOTIF_KIND, LN_JOB_SUB, LN_CARD, LN_LIST_PAD, lnCardBtn, lnNotifKind, LnApp, LnJobRow, LnJobSheet, LnJobFiles, LnHead, LnTabs, LnSub, LnMeSheet, LnBellFab, LnClock, LnClockCal, LnRing, LnOtForm, LnTimeTab, LnFixTab, LnFixSheet, LnFixNew, LnPick });

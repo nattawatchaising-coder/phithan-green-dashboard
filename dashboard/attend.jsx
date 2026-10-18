@@ -86,7 +86,7 @@ function tmDur(mins) {
    holidays = { "2026-12-10": "วันรัฐธรรมนูญ" } — วันหยุดพิเศษที่บริษัทประกาศเอง */
 const TM_WH_DEFAULT = {
   startEarly: "08:30",   // เข้างานได้ตั้งแต่
-  startLate: "09:00",    // เข้าช้ากว่านี้ + ทำไม่ครบ workMins = สาย (tmIsLate · ทำครบแล้วไม่นับสาย)
+  startLate: "09:00",    // ไม่ใช้ตัดสินสายแล้ว (ผู้ใช้สั่ง ต.ค. 2026 ไม่มีสาย ขอแค่อยู่ครบ) — เก็บไว้ให้ค่าตั้งเก่าอ่านได้
   workMins: 480,         // เวลาทำงานจริงต่อวัน
   lunchMins: 60,         // พัก — อยู่ที่ทำงานแต่ไม่นับเป็นเวลาทำงาน
   days: [1, 2, 3, 4, 5, 6],
@@ -249,13 +249,11 @@ function tmDayWindow(rec, cfg) {
   };
 }
 
-/* ── สาย = เข้าหลัง startLate และทำไม่ครบ workMins (ผู้ใช้สั่ง ต.ค. 2026: "ทำงานถึง 8 ชั่วโมงถึงว่าครบตามปกติ")
-   เข้าช้าแต่อยู่จนครบ = ไม่สาย · ยังไม่กดออก = ยังตัดสินไม่ได้ → ไม่ติดธง */
-function tmIsLate(inHM, outHM, mins, cfg) {
-  const c = tmWhNorm(cfg);
-  const i = tmHM(inHM);
-  if (i == null || i <= tmHM(c.startLate) || !outHM) return false;
-  return (+mins || 0) < c.workMins;
+/* ── ไม่ครบเวลา = กดออกแล้วแต่ทำไม่ถึง workMins (8 ชม. = อยู่ 9 ชม. รวมพัก)
+   ไม่มี "สาย" แล้ว — เข้ากี่โมงก็ได้ ขอแค่อยู่ครบ (ผู้ใช้สั่ง ต.ค. 2026) · ยังไม่กดออก = ยังตัดสินไม่ได้ → ไม่ติดธง */
+function tmIsShort(inHM, outHM, mins, cfg) {
+  if (!inHM || !outHM) return false;
+  return (+mins || 0) < tmWhNorm(cfg).workMins;
 }
 
 /* ── ประเภทของ OT ──
@@ -1125,7 +1123,7 @@ function tmMonthRollup(byDate, users, cfg, otRows, ym) {
 Object.assign(window, { tmNameOf,
   tmNotify,
   TM_ROOT, TM_WH_DEFAULT, TM_OT_KIND, TM_OT_STATUS, TM_PLACE,
-  tmHM, tmHHMM, tmNowHM, tmIsLate, tmSpanMins, TM_NIGHT_CUT, tmCarryOver, tmDur, tmWhNorm, tmIsHoliday, tmIsWorkday,
+  tmHM, tmHHMM, tmNowHM, tmIsShort, tmSpanMins, TM_NIGHT_CUT, tmCarryOver, tmDur, tmWhNorm, tmIsHoliday, tmIsWorkday,
   tmOtKindOf, tmOtKindGuess, tmOtMinutes, tmOtCalc, tmOtFill, tmOtPartsTH, tmDayWindow, tmOtEarned, tmOtInLimit, tmLastHM,
   tmOtRate, tmOtPayMins, tmRateTH, tmIsSysAcct,
   tmWorkedMins, tmOpen, tmAttendBlank, tmPunch, tmDayIndex, tmPlaceOf,
