@@ -1057,68 +1057,43 @@ function LnOtForm({ me, users, cfg, jobs, otStore, limit, edit, onClose }) {
 }
 
 /* ── แท็บ "เวลา" = ลงเวลา + ใบ OT ของฉัน ── */
-/* ── สรุป OT ของฉันรายเดือน (ผู้ใช้สั่ง ต.ค. 2026 "ทำสรุป OT ให้หน่อย") ──
-   นับเฉพาะใบที่อนุมัติแล้วเป็นตัวเลขหลัก · รออนุมัติ/ไม่อนุมัติ บอกแยก · ยกเลิก/ร่าง ไม่นับ
-   แยกตามตัวคูณ (×1 ×1.5 ×3 …) เพื่อให้ช่างเทียบกับสลิปเงินเดือนได้ — ใบวันหยุดใช้ parts ที่ติดใบ */
+/* ── สรุป OT ของฉันรายเดือน (ผู้ใช้สั่ง ต.ค. 2026 "ทำสรุป OT ให้หน่อย" → "ขอเล็ก ๆ อยู่ตรงนี้") ──
+   แถบเล็กในแถวหัว "ใบขอ OT ของฉัน" ไม่ใช่การ์ดใหญ่ · ‹ เดือน › + ชั่วโมงอนุมัติแล้ว + ชั่วโมงคิดค่าแรง (คูณแล้ว)
+   นับเฉพาะใบอนุมัติแล้ว · รออนุมัติขึ้นเป็นตัวเลขส้มเล็ก · แยกตามตัวคูณอยู่ใน title (กดค้าง/ชี้ดู) */
+const LN_MON_SH = ["ม.ค.", "ก.พ.", "มี.ค.", "เม.ย.", "พ.ค.", "มิ.ย.", "ก.ค.", "ส.ค.", "ก.ย.", "ต.ค.", "พ.ย.", "ธ.ค."];
 function LnOtSummary({ rows, cfg, ym, onShift }) {
-  const y = +ym.slice(0, 4), mo = +ym.slice(5, 7);
+  const mo = +ym.slice(5, 7);
   const sum = React.useMemo(() => {
-    const o = { ok: 0, pay: 0, wait: 0, waitN: 0, rejN: 0, okN: 0, rates: {} };
+    const o = { ok: 0, pay: 0, wait: 0, rates: {} };
     rows.forEach((r) => {
       const m = +r.mins || 0;
       if (r.status === "approved") {
-        o.ok += m; o.okN++; o.pay += window.tmOtPayMins(r, cfg);
+        o.ok += m; o.pay += window.tmOtPayMins(r, cfg);
         const ps = Array.isArray(r.parts) && r.parts.filter(Boolean).length
           ? r.parts.filter(Boolean) : [{ mins: m, rate: window.tmOtRate(r, cfg) }];
         ps.forEach((p) => { const k = String(Math.round((+p.rate || 0) * 100) / 100); o.rates[k] = (o.rates[k] || 0) + (+p.mins || 0); });
-      } else if (r.status === "sent") { o.wait += m; o.waitN++; }
-      else if (r.status === "rejected") o.rejN++;
+      } else if (r.status === "sent") o.wait += m;
     });
     return o;
   }, [rows, cfg]);
   const hrs = (m) => (Math.round(m / 60 * 100) / 100).toString();
-  const rates = Object.keys(sum.rates).filter((k) => sum.rates[k]).sort((a, b) => +a - +b);
-  const navBtn = { width: 28, height: 28, display: "grid", placeItems: "center", borderRadius: 12, cursor: "pointer",
-    border: "none", background: "var(--surface2)", boxShadow: "var(--shadow-sm)", padding: 0 };
+  const tip = Object.keys(sum.rates).filter((k) => sum.rates[k]).sort((x, y) => +x - +y)
+    .map((k) => hrs(sum.rates[k]) + " ชม. ×" + k).join(" · ");
+  const arrow = { width: 22, height: 22, display: "grid", placeItems: "center", borderRadius: 99, border: "none",
+    background: "transparent", padding: 0, cursor: "pointer", flexShrink: 0 };
   return (
-    <div style={Object.assign({ padding: "13px 14px", marginBottom: 12 }, LN_CARD)}>
-      <div style={{ display: "flex", alignItems: "center", gap: 7 }}>
-        <span style={{ fontSize: 12, fontWeight: 800, color: "var(--text-3)" }}>สรุป OT</span>
-        <div style={{ marginLeft: "auto", display: "flex", alignItems: "center", gap: 7 }}>
-          <button onClick={() => onShift(-1)} aria-label="เดือนก่อนหน้า" style={navBtn}>
-            <Icon name="chevronLeft" size={15} color="var(--text-2)" />
-          </button>
-          <b style={{ fontSize: 12.5, color: "var(--text-1)", minWidth: 92, textAlign: "center" }}>{LN_MON_TH[mo - 1]} {y + 543}</b>
-          <button onClick={() => onShift(1)} aria-label="เดือนถัดไป" style={navBtn}>
-            <Icon name="chevronRight" size={15} color="var(--text-2)" />
-          </button>
-        </div>
-      </div>
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginTop: 11 }}>
-        <div style={{ padding: "10px 12px", borderRadius: 14, background: "var(--surface2)", boxShadow: "var(--shadow-inset)" }}>
-          <div style={{ fontSize: 11, fontWeight: 700, color: "var(--text-3)" }}>อนุมัติแล้ว{sum.okN ? " · " + sum.okN + " ใบ" : ""}</div>
-          <div style={{ marginTop: 2, fontFamily: "var(--mono)", fontSize: 22, fontWeight: 800, color: "var(--text-1)" }}>
-            {hrs(sum.ok)}<span style={{ fontSize: 12, marginLeft: 4, color: "var(--text-3)" }}>ชม.</span></div>
-        </div>
-        <div style={{ padding: "10px 12px", borderRadius: 14, background: "var(--surface2)", boxShadow: "var(--shadow-inset)" }}>
-          <div style={{ fontSize: 11, fontWeight: 700, color: "var(--text-3)" }}>คิดค่าแรง (คูณแล้ว)</div>
-          <div style={{ marginTop: 2, fontFamily: "var(--mono)", fontSize: 22, fontWeight: 800, color: "var(--primary-dark)" }}>
-            {hrs(sum.pay)}<span style={{ fontSize: 12, marginLeft: 4, color: "var(--text-3)" }}>ชม.</span></div>
-        </div>
-      </div>
-      {rates.length > 0 && (
-        <div style={{ marginTop: 9, fontSize: 11.5, color: "var(--text-2)" }}>
-          {rates.map((k) => hrs(sum.rates[k]) + " ชม. ×" + k).join(" · ")}
-        </div>
-      )}
-      {(sum.waitN > 0 || sum.rejN > 0) && (
-        <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginTop: 9 }}>
-          {sum.waitN > 0 && <span style={{ padding: "3px 9px", borderRadius: 99, background: "#F59E0B1A", color: "#B45309", fontSize: 11, fontWeight: 800 }}>
-            รออนุมัติ {hrs(sum.wait)} ชม. · {sum.waitN} ใบ</span>}
-          {sum.rejN > 0 && <span style={{ padding: "3px 9px", borderRadius: 99, background: "#EF44441A", color: "#DC2626", fontSize: 11, fontWeight: 800 }}>
-            ไม่อนุมัติ {sum.rejN} ใบ</span>}
-        </div>
-      )}
+    <div title={tip ? "อนุมัติแล้ว: " + tip : ""}
+      style={{ display: "flex", alignItems: "center", gap: 2, minWidth: 0, padding: "3px 8px 3px 3px", borderRadius: 99,
+        background: "var(--surface2)", boxShadow: "var(--shadow-inset)", fontSize: 11.5, color: "var(--text-2)", whiteSpace: "nowrap" }}>
+      <button onClick={() => onShift(-1)} aria-label="เดือนก่อนหน้า" style={arrow}><Icon name="chevronLeft" size={13} color="var(--text-3)" /></button>
+      <b style={{ color: "var(--text-1)", minWidth: 30, textAlign: "center" }}>{LN_MON_SH[mo - 1]}</b>
+      <button onClick={() => onShift(1)} aria-label="เดือนถัดไป" style={arrow}><Icon name="chevronRight" size={13} color="var(--text-3)" /></button>
+      {/* สองบรรทัดเล็ก — จอมือถือแถวหัวเหลือที่ไม่ถึง 160px บรรทัดเดียวโดนตัด */}
+      <span style={{ marginLeft: 4, display: "grid", lineHeight: 1.15, minWidth: 0 }}>
+        <span><b style={{ fontFamily: "var(--mono)", fontWeight: 800, color: "var(--text-1)" }}>{hrs(sum.ok)}</b> ชม.
+          {sum.wait ? <b style={{ marginLeft: 5, color: "#B45309" }}>รอ {hrs(sum.wait)}</b> : null}</span>
+        <span style={{ fontSize: 10, color: "var(--text-3)" }}>ค่าแรง <b style={{ fontFamily: "var(--mono)", color: "var(--primary-dark)" }}>{hrs(sum.pay)}</b> ชม.</span>
+      </span>
     </div>
   );
 }
@@ -1205,14 +1180,15 @@ function LnTimeTab({ me, users, role, jobs, startOt, startSub }) {
           {window.tmCanOt(role) && (
             <div style={{ padding: "0 14px 28px" }}>
               <div style={{ display: "flex", alignItems: "center", gap: 9, margin: "0 4px 9px" }}>
-                <b style={{ fontSize: 13, color: "var(--text-1)" }}>ใบขอ OT ของฉัน</b>
+                <b style={{ fontSize: 13, color: "var(--text-1)", flexShrink: 0 }}>ใบขอ OT ของฉัน</b>
+                <div style={{ marginLeft: "auto", minWidth: 0, display: "flex" }}>
+                  <LnOtSummary rows={myOtM} cfg={wh.cfg} ym={otYm} onShift={shiftOtYm} />
+                </div>
                 <button onClick={() => { setLimit(null); setForm(true); }}
-                  style={{ marginLeft: "auto", padding: "8px 15px", borderRadius: 99, border: "none",
+                  style={{ flexShrink: 0, whiteSpace: "nowrap", padding: "8px 15px", borderRadius: 99, border: "none",
                     background: "var(--primary)", color: "#fff", fontFamily: "inherit", fontSize: 12.5,
                     fontWeight: 800, cursor: "pointer" }}>+ ขอ OT</button>
               </div>
-
-              <LnOtSummary rows={myOtM} cfg={wh.cfg} ym={otYm} onShift={shiftOtYm} />
 
               {myOtM.length === 0
                 ? <div style={Object.assign({ padding: 22, textAlign: "center", color: "var(--text-3)", fontSize: 12.5 }, LN_CARD)}>
