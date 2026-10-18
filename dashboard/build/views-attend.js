@@ -2113,7 +2113,7 @@ const TM_CSS = `
 .tmv-ib:hover{background:var(--surface3);color:var(--text-1)}
 .tmv-ib.dngr{color:var(--tint-red-tx2)}
 .tmv-ib.xs{width:30px;height:30px}
-.tmv-date{font-family:var(--display);font-size:19px;font-weight:700;color:var(--text-1);padding:0 6px;white-space:nowrap}
+.tmv-date{font-family:var(--display);font-size:19px;font-weight:700;color:var(--text-1);padding:0 6px;white-space:nowrap;display:inline-block;box-sizing:border-box;min-width:210px;text-align:center}
 .tmv-sw{display:inline-block;width:16px;height:8px;border-radius:var(--r-pill)}
 .tmv-tl-row{display:grid;grid-template-columns:230px minmax(0,1fr) 112px 72px;grid-template-areas:"who trk tim act";align-items:center;column-gap:16px;padding:9px 0;border-top:1px solid var(--divider)}
 .tmv-tl-row.axis{border-top:none;padding:0 0 2px}
