@@ -2097,6 +2097,14 @@ const TM_CSS = `
 .tmv-seg.sm>button{padding:6px 13px;font-size:12px}
 .tmv-badge{min-width:19px;padding:1px 6px;border-radius:var(--r-pill);background:var(--tint-amber-bg2);color:var(--tint-amber-tx);font-family:var(--mono);font-size:10.5px;font-weight:800;text-align:center}
 .tmv-bar{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.tmv-pick{position:relative;margin-left:auto}
+.tmv-pick-pop{position:absolute;right:0;top:calc(100% + 6px);z-index:40;width:280px;max-height:360px;overflow:auto;padding:6px;border-radius:var(--r-tile);background:var(--bg);box-shadow:var(--shadow-card),0 18px 40px -14px rgba(15,43,51,.25)}
+.tmv-pick-t{font-size:11px;font-weight:700;color:var(--text-3);padding:6px 8px 4px}
+.tmv-pick-i{display:flex;align-items:center;gap:10px;width:100%;border:none;background:transparent;padding:7px 8px;border-radius:var(--r-chip);cursor:pointer;font-family:inherit;text-align:left;color:var(--text-1)}
+.tmv-pick-i:hover{background:var(--surface2)}
+.tmv-pick-i .n{flex:1;min-width:0;font-size:13px;font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.tmv-pick-i .s{font-size:11px;font-weight:600;color:var(--tint-amber-tx);font-family:var(--mono)}
+.tmv-pick-i .s.on{color:var(--text-3)}
 .tmv-hd{display:flex;align-items:baseline;gap:6px 10px;flex-wrap:wrap;margin-bottom:12px}
 .tmv-hd .t{font-size:14px;font-weight:700;color:var(--text-1)}
 .tmv-hd .s{font-size:11.5px;color:var(--text-3)}
@@ -2793,6 +2801,65 @@ function TmTimeEdit({
     onClick: save
   }, busy ? "กำลังบันทึก…" : "บันทึกเวลา"))));
 }
+function TmPickPerson({
+  users,
+  rows,
+  onPick
+}) {
+  const [open, setOpen] = React.useState(false);
+  const box = React.useRef(null);
+  React.useEffect(() => {
+    if (!open) return;
+    const h = e => {
+      if (box.current && !box.current.contains(e.target)) setOpen(false);
+    };
+    const k = e => {
+      if (e.key === "Escape") setOpen(false);
+    };
+    document.addEventListener("mousedown", h);
+    document.addEventListener("keydown", k);
+    return () => {
+      document.removeEventListener("mousedown", h);
+      document.removeEventListener("keydown", k);
+    };
+  }, [open]);
+  return React.createElement("div", {
+    ref: box,
+    className: "tmv-pick"
+  }, React.createElement("button", {
+    className: "btn btn-soft",
+    onClick: () => setOpen(!open)
+  }, React.createElement(Icon, {
+    name: "plus",
+    size: 14,
+    sw: 2.2
+  }), " \u0E25\u0E07\u0E40\u0E27\u0E25\u0E32\u0E41\u0E17\u0E19 ", React.createElement(Icon, {
+    name: "chevronDown",
+    size: 14
+  })), open && React.createElement("div", {
+    className: "tmv-pick-pop"
+  }, React.createElement("div", {
+    className: "tmv-pick-t"
+  }, "\u0E40\u0E25\u0E37\u0E2D\u0E01\u0E04\u0E19\u0E17\u0E35\u0E48\u0E08\u0E30\u0E25\u0E07\u0E40\u0E27\u0E25\u0E32\u0E43\u0E2B\u0E49"), users.map(u => {
+    const r = rows.find(x => x.userId === u.id);
+    return React.createElement("button", {
+      key: u.id,
+      className: "tmv-pick-i",
+      onClick: () => {
+        setOpen(false);
+        onPick(u);
+      }
+    }, React.createElement(TmAvatar, {
+      uid: u.id,
+      name: u.name,
+      size: 28
+    }), React.createElement("span", {
+      className: "n"
+    }, u.name), React.createElement("span", {
+      className: "s" + (r ? " on" : "")
+    }, r ? (r.in || "") + (r.out ? "–" + r.out : " · ยังไม่ออก") : "ยังไม่ลง"));
+  })));
+}
 function TmDaySheet({
   date,
   setDate,
@@ -2817,9 +2884,9 @@ function TmDaySheet({
       style: {
         fontWeight: 700,
         textDecoration: "none",
-        color: "var(--text-3)"
+        color: "var(--tint-ok-tx)"
       }
-    }, "\u0E1E\u0E34\u0E01\u0E31\u0E14\u0E2D\u0E2D\u0E1F\u0E1F\u0E34\u0E28");
+    }, "\u0E16\u0E36\u0E07\u0E2D\u0E2D\u0E1F\u0E1F\u0E34\u0E28");
     if (!r.gps) return React.createElement("span", {
       style: {
         color: "var(--tint-amber-tx)",
@@ -2977,27 +3044,14 @@ function TmDaySheet({
     size: 12,
     color: "var(--st-design-fg)",
     sw: 2.2
-  }), " ", offTH), isAdmin && React.createElement("select", {
-    value: "",
-    title: "\u0E25\u0E07\u0E40\u0E27\u0E25\u0E32\u0E41\u0E17\u0E19",
-    onChange: e => {
-      const u = attendUsers.find(x => x.id === e.target.value);
-      if (!u) return;
+  }), " ", offTH), isAdmin && React.createElement(TmPickPerson, {
+    users: attendUsers,
+    rows: rows,
+    onPick: u => {
       const r = rows.find(x => x.userId === u.id);
       openEd(u.id, u.name, r ? r.in : "", r ? r.out || "" : null);
-    },
-    style: Object.assign({}, TM_IN, {
-      marginLeft: "auto",
-      minWidth: 170,
-      padding: "8px 10px",
-      fontSize: 12.5
-    })
-  }, React.createElement("option", {
-    value: ""
-  }, "+ \u0E25\u0E07\u0E40\u0E27\u0E25\u0E32\u0E41\u0E17\u0E19\u2026"), attendUsers.map(u => React.createElement("option", {
-    key: u.id,
-    value: u.id
-  }, u.name)))), (st.missing.length > 0 || st.leaving.length > 0) && React.createElement(TmCard, null, st.missing.length > 0 && React.createElement("div", null, React.createElement("div", {
+    }
+  })), (st.missing.length > 0 || st.leaving.length > 0) && React.createElement(TmCard, null, st.missing.length > 0 && React.createElement("div", null, React.createElement("div", {
     className: "tmv-hd",
     style: {
       marginBottom: 10
@@ -4129,6 +4183,7 @@ Object.assign(window, {
   TmHeat,
   tmOffTH,
   TmTimeEdit,
+  TmPickPerson,
   useTmDayStatus,
   tmExportMonthXlsx,
   tmPersonSheet,

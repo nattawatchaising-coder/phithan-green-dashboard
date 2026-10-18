@@ -914,6 +914,14 @@ const TM_CSS = `
 .tmv-seg.sm>button{padding:6px 13px;font-size:12px}
 .tmv-badge{min-width:19px;padding:1px 6px;border-radius:var(--r-pill);background:var(--tint-amber-bg2);color:var(--tint-amber-tx);font-family:var(--mono);font-size:10.5px;font-weight:800;text-align:center}
 .tmv-bar{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.tmv-pick{position:relative;margin-left:auto}
+.tmv-pick-pop{position:absolute;right:0;top:calc(100% + 6px);z-index:40;width:280px;max-height:360px;overflow:auto;padding:6px;border-radius:var(--r-tile);background:var(--bg);box-shadow:var(--shadow-card),0 18px 40px -14px rgba(15,43,51,.25)}
+.tmv-pick-t{font-size:11px;font-weight:700;color:var(--text-3);padding:6px 8px 4px}
+.tmv-pick-i{display:flex;align-items:center;gap:10px;width:100%;border:none;background:transparent;padding:7px 8px;border-radius:var(--r-chip);cursor:pointer;font-family:inherit;text-align:left;color:var(--text-1)}
+.tmv-pick-i:hover{background:var(--surface2)}
+.tmv-pick-i .n{flex:1;min-width:0;font-size:13px;font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.tmv-pick-i .s{font-size:11px;font-weight:600;color:var(--tint-amber-tx);font-family:var(--mono)}
+.tmv-pick-i .s.on{color:var(--text-3)}
 .tmv-hd{display:flex;align-items:baseline;gap:6px 10px;flex-wrap:wrap;margin-bottom:12px}
 .tmv-hd .t{font-size:14px;font-weight:700;color:var(--text-1)}
 .tmv-hd .s{font-size:11.5px;color:var(--text-3)}
@@ -1305,6 +1313,41 @@ function TmTimeEdit({ ed, cfg, currentUser, onClose, onSaved }) {
   );
 }
 
+/* ปุ่ม "+ ลงเวลาแทน" + รายชื่อแบบป๊อปอัป (แทน <select> เดิม — ผู้ใช้: ดรอปดาวน์ไม่สวย) */
+function TmPickPerson({ users, rows, onPick }) {
+  const [open, setOpen] = React.useState(false);
+  const box = React.useRef(null);
+  React.useEffect(() => {
+    if (!open) return;
+    const h = (e) => { if (box.current && !box.current.contains(e.target)) setOpen(false); };
+    const k = (e) => { if (e.key === "Escape") setOpen(false); };
+    document.addEventListener("mousedown", h); document.addEventListener("keydown", k);
+    return () => { document.removeEventListener("mousedown", h); document.removeEventListener("keydown", k); };
+  }, [open]);
+  return (
+    <div ref={box} className="tmv-pick">
+      <button className="btn btn-soft" onClick={() => setOpen(!open)}>
+        <Icon name="plus" size={14} sw={2.2} /> ลงเวลาแทน <Icon name="chevronDown" size={14} />
+      </button>
+      {open && (
+        <div className="tmv-pick-pop">
+          <div className="tmv-pick-t">เลือกคนที่จะลงเวลาให้</div>
+          {users.map((u) => {
+            const r = rows.find((x) => x.userId === u.id);
+            return (
+              <button key={u.id} className="tmv-pick-i" onClick={() => { setOpen(false); onPick(u); }}>
+                <TmAvatar uid={u.id} name={u.name} size={28} />
+                <span className="n">{u.name}</span>
+                <span className={"s" + (r ? " on" : "")}>{r ? (r.in || "") + (r.out ? "–" + r.out : " · ยังไม่ออก") : "ยังไม่ลง"}</span>
+              </button>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
+
 function TmDaySheet({ date, setDate, cfg, users, currentUser }) {
   const st = useTmDayStatus(date, cfg, users);
   const admin = window.useAttendAdmin(currentUser);
@@ -1322,8 +1365,9 @@ function TmDaySheet({ date, setDate, cfg, users, currentUser }) {
   const gpsCell = (r) => {
     /* แอดมินแก้/ลงเวลาแทน — ไม่เตือนไม่มีพิกัด (ผู้ใช้ 2026-10-16) */
     if (!r.gps && r.fix) return null;
+    /* แอดมินลงแทน = พิกัดออฟฟิศ — โชว์เขียว "ถึงออฟฟิศ" เหมือนคนอื่น (ผู้ใช้สั่ง) แยกได้จาก title */
     if (r.geoBy === "admin") return <a href={window.tmGpsUrl(r)} target="_blank" rel="noreferrer" title="พิกัดออฟฟิศ — แอดมินลงเวลาแทน"
-      style={{ fontWeight: 700, textDecoration: "none", color: "var(--text-3)" }}>พิกัดออฟฟิศ</a>;
+      style={{ fontWeight: 700, textDecoration: "none", color: "var(--tint-ok-tx)" }}>ถึงออฟฟิศ</a>;
     if (!r.gps) return <span style={{ color: "var(--tint-amber-tx)", fontWeight: 700 }}>ไม่มีพิกัด</span>;
     const ok = <span style={{ color: "var(--tint-ok-tx)", fontWeight: 700 }}>มีพิกัด</span>;
     if (r.lat == null || r.lng == null) return ok;
@@ -1415,12 +1459,8 @@ function TmDaySheet({ date, setDate, cfg, users, currentUser }) {
         {offTH && <span className="tmv-pill" style={TM_OFF_PILL}><Icon name="calendar" size={12} color="var(--st-design-fg)" sw={2.2} /> {offTH}</span>}
         {/* ลงเวลาแทนคนที่ไม่อยู่ในรายการ (เช่น วันหยุดที่ไม่มีแถว "ยังไม่ลงเวลา") */}
         {isAdmin && (
-          <select value="" title="ลงเวลาแทน" onChange={(e) => { const u = attendUsers.find((x) => x.id === e.target.value); if (!u) return;
-              const r = rows.find((x) => x.userId === u.id); openEd(u.id, u.name, r ? r.in : "", r ? r.out || "" : null); }}
-            style={Object.assign({}, TM_IN, { marginLeft: "auto", minWidth: 170, padding: "8px 10px", fontSize: 12.5 })}>
-            <option value="">+ ลงเวลาแทน…</option>
-            {attendUsers.map((u) => <option key={u.id} value={u.id}>{u.name}</option>)}
-          </select>
+          <TmPickPerson users={attendUsers} rows={rows} onPick={(u) => {
+            const r = rows.find((x) => x.userId === u.id); openEd(u.id, u.name, r ? r.in : "", r ? r.out || "" : null); }} />
         )}
       </div>
 
@@ -2033,6 +2073,6 @@ function AttendView({ jobs, users, role, currentUser }) {
 }
 
 Object.assign(window, { TM_IN, TM_IN_W, TM_LB, TM_WD_TH, tmWdOf, AttendView, TmDaySheet, TmMonthAll, TmRequests, TmSettings, TmDayGrid,
-  TmMyDays, TmOtModal, TmOtRow, TmWorkHours, TmFacts, TmHelp, TmHero, TmTeamToday, TmTimeline, TmAvatar, TmSeg, TmCard, TmReqCard, TmHeat, tmOffTH, TmTimeEdit,
+  TmMyDays, TmOtModal, TmOtRow, TmWorkHours, TmFacts, TmHelp, TmHero, TmTeamToday, TmTimeline, TmAvatar, TmSeg, TmCard, TmReqCard, TmHeat, tmOffTH, TmTimeEdit, TmPickPerson,
   useTmDayStatus, tmExportMonthXlsx, tmPersonSheet, tmSheetName,
   TmStat, TmPill });
