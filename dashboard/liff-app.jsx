@@ -596,7 +596,7 @@ function LnClock({ me, cfg, jobs, ot, onAskOt }) {
 
       {place !== "office" && (
         <div style={{ marginTop: 12 }}>
-          <div style={{ fontSize: 11.5, fontWeight: 700, color: "var(--text-3)", marginBottom: 5 }}>วันนี้ไปงานไหน (ไม่บังคับ)</div>
+          <div style={{ fontSize: 11.5, fontWeight: 700, color: "var(--text-3)", marginBottom: 5 }}>วันนี้ไปงานไหน</div>
           {/* ชิปประเภทงาน — ตัดรายการใน select ให้สั้นลงก่อนหา
               ไม่ได้กรองใบลงเวลา — เลือกงานไหนก็บันทึกงานนั้น ชิปนี้แค่ช่วยหา
               ไม่มีชิป "ทั้งหมด"/"พิมพ์เอง" แล้ว (ผู้ใช้สั่ง ต.ค. 2026): ไม่เลือกชิป = เห็นทุกงาน · กดชิปเดิมซ้ำ = ยกเลิกกรอง
