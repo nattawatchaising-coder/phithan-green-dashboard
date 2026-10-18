@@ -484,8 +484,7 @@ function tmLockDeny(p, cfg) {
   const o = tmWhNorm(cfg).office;
   if (!o.lock || o.lat == null || o.lng == null) return null;
   if (!p || p.lat == null || p.lng == null) {
-    const why = p && p.err ? TM_GPS_ERR[p.err] || p.err : "ไม่มีพิกัด";
-    return "เปิดล็อกพิกัดไว้ ต้องรู้ตำแหน่งก่อนถึงจะลงเวลาเข้างานได้ — " + why;
+    return p && p.err === "denied" ? "เปิดตำแหน่ง (GPS) ก่อน ถึงจะลงเวลาเข้างานได้" : "หาตำแหน่งไม่เจอ — ลองกดใหม่อีกครั้ง";
   }
   const d = tmDistM(p, o);
   if (d != null && d <= o.radius) return null;
