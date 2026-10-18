@@ -1427,6 +1427,10 @@ function LnOtForm({
       return e;
     }
     const b = window.tmOtBlank(me, users, otStore.rows, null, cfg);
+    if (!locked) {
+      b.from = "";
+      b.to = "";
+    }
     if (!locked) return limit && limit.date ? Object.assign(b, {
       date: limit.date,
       kind: window.tmOtKindGuess(limit.date, b.from, cfg),
@@ -1694,7 +1698,14 @@ function LnOtForm({
       boxShadow: ready && !sending ? "0 8px 20px rgba(27,155,117,.28)" : "none",
       color: ready && !sending ? "#fff" : "var(--text-3)"
     })
-  }, sending ? "กำลังส่ง…" : edit ? "บันทึกการแก้ไข" : "ส่งขออนุมัติ"), mins <= 0 && React.createElement("div", {
+  }, sending ? "กำลังส่ง…" : edit ? "บันทึกการแก้ไข" : "ส่งขออนุมัติ"), mins <= 0 && (!f.from || !f.to) && React.createElement("div", {
+    style: {
+      fontSize: 11.5,
+      color: "var(--text-3)",
+      textAlign: "center",
+      lineHeight: 1.7
+    }
+  }, "\u0E01\u0E23\u0E2D\u0E01\u0E0A\u0E48\u0E27\u0E07\u0E40\u0E27\u0E25\u0E32\u0E17\u0E35\u0E48\u0E17\u0E33 OT \u0E01\u0E48\u0E2D\u0E19"), mins <= 0 && f.from && f.to && React.createElement("div", {
     style: {
       fontSize: 11.5,
       color: "var(--text-3)",

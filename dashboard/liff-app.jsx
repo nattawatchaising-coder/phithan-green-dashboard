@@ -890,6 +890,9 @@ function LnOtForm({ me, users, cfg, jobs, otStore, limit, edit, onClose }) {
       return e;
     }
     const b = window.tmOtBlank(me, users, otStore.rows, null, cfg);
+    /* ไม่มีเวลาเข้างานจริงมาล็อก = ไม่เติม 17:00–20:00 ให้ก่อน ช่างกรอกเองทั้งสองช่อง
+       (ผู้ใช้สั่ง ต.ค. 2026 "ไม่ต้องกำหนดให้แต่แรก" — ค่าตั้งต้นทำให้กดส่งทั้งที่ไม่ได้ทำช่วงนั้นจริง) */
+    if (!locked) { b.from = ""; b.to = ""; }
     /* กดมาจากปฏิทินจะส่งมาแค่ { date } — ตั้งวันให้ตามที่เลือก แต่ไม่ล็อกช่วงเวลา
        เพราะยังไม่รู้ว่าวันนั้นทำเกินจริงช่วงไหน (มีแต่วันที่กดจากใบลงเวลาวันนี้ถึงจะรู้) */
     if (!locked) return limit && limit.date
@@ -1043,7 +1046,12 @@ function LnOtForm({ me, users, cfg, jobs, otStore, limit, edit, onClose }) {
           {sending ? "กำลังส่ง…" : edit ? "บันทึกการแก้ไข" : "ส่งขออนุมัติ"}
         </button>
 
-        {mins <= 0 && (
+        {mins <= 0 && (!f.from || !f.to) && (
+          <div style={{ fontSize: 11.5, color: "var(--text-3)", textAlign: "center", lineHeight: 1.7 }}>
+            กรอกช่วงเวลาที่ทำ OT ก่อน
+          </div>
+        )}
+        {mins <= 0 && f.from && f.to && (
           <div style={{ fontSize: 11.5, color: "var(--text-3)", textAlign: "center", lineHeight: 1.7 }}>
             ช่วงเวลานี้ยังไม่นับเป็น OT — ต้องนานอย่างน้อย {window.tmDur(c.minOtMins)}
           </div>
