@@ -811,18 +811,7 @@ function LnRing({
       fontWeight: 800,
       color: v ? "var(--text-1)" : "var(--text-3)"
     }
-  }, v || "--:--")))), inHM && React.createElement("div", {
-    style: {
-      fontSize: 12.5,
-      color: "var(--text-2)",
-      lineHeight: 1.6
-    }
-  }, full ? React.createElement(React.Fragment, null, "\u0E04\u0E23\u0E1A ", window.tmDur(goal), " \u0E15\u0E31\u0E49\u0E07\u0E41\u0E15\u0E48 ", React.createElement("b", null, win.end)) : open ? React.createElement(React.Fragment, null, "\u0E04\u0E23\u0E1A\u0E40\u0E27\u0E25\u0E32 ", React.createElement("b", null, win.end)) : React.createElement("span", {
-    style: {
-      color: "var(--tint-amber-tx)",
-      fontWeight: 700
-    }
-  }, "\u0E2D\u0E2D\u0E01\u0E01\u0E48\u0E2D\u0E19\u0E04\u0E23\u0E1A\u0E40\u0E27\u0E25\u0E32")));
+  }, v || "--:--")))));
 }
 function LnClock({
   me,

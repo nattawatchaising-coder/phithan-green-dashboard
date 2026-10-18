@@ -500,12 +500,7 @@ function LnRing({ today, cfg, open, nowHM, win }) {
           </div>
         ))}
       </div>
-      {/* ยังไม่ลงเวลา = ไม่มีบรรทัดนี้ (ผู้ใช้สั่งเอาข้อความ "เข้ากี่โมงก็ได้…" ออก) */}
-      {inHM && <div style={{ fontSize: 12.5, color: "var(--text-2)", lineHeight: 1.6 }}>
-        {full ? <React.Fragment>ครบ {window.tmDur(goal)} ตั้งแต่ <b>{win.end}</b></React.Fragment>
-          : open ? <React.Fragment>ครบเวลา <b>{win.end}</b></React.Fragment>
-          : <span style={{ color: "var(--tint-amber-tx)", fontWeight: 700 }}>ออกก่อนครบเวลา</span>}
-      </div>}
+      {/* ไม่มีบรรทัดข้อความใต้วงแล้ว — กลางวงบอกเหลือ/ขาด/ครบอยู่แล้ว (ผู้ใช้สั่งเอาออก) */}
     </div>
   );
 }
