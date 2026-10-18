@@ -1779,12 +1779,11 @@ function LnOtSummary({
     name: "chevronLeft",
     size: 13,
     color: "var(--text-3)"
-  })), React.createElement("b", {
+  })), onShift && React.createElement("b", {
     style: {
       color: "var(--text-1)",
       minWidth: 30,
-      textAlign: "center",
-      paddingLeft: onShift ? 0 : 6
+      textAlign: "center"
     }
   }, LN_MON_SH[mo - 1]), onShift && React.createElement("button", {
     onClick: () => onShift(1),
@@ -1796,14 +1795,15 @@ function LnOtSummary({
     color: "var(--text-3)"
   })), React.createElement("span", {
     style: {
-      marginLeft: 4,
+      marginLeft: onShift ? 4 : 7,
       display: "grid",
       lineHeight: 1.15,
       minWidth: 0
     }
-  }, React.createElement("span", null, React.createElement("b", {
+  }, React.createElement("span", null, "OT ", React.createElement("b", {
     style: {
       fontFamily: "var(--mono)",
+      fontSize: 13.5,
       fontWeight: 800,
       color: "var(--text-1)"
     }
@@ -1814,12 +1814,13 @@ function LnOtSummary({
     }
   }, "\u0E23\u0E2D ", hrs(sum.wait)) : null), React.createElement("span", {
     style: {
-      fontSize: 10,
+      fontSize: 10.5,
       color: "var(--text-3)"
     }
   }, "\u0E04\u0E48\u0E32\u0E41\u0E23\u0E07 ", React.createElement("b", {
     style: {
       fontFamily: "var(--mono)",
+      fontSize: 12,
       color: "var(--primary-dark)"
     }
   }, hrs(sum.pay)), " \u0E0A\u0E21.")));

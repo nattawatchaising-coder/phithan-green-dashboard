@@ -1089,13 +1089,13 @@ function LnOtSummary({ rows, cfg, ym, onShift }) {
         background: "var(--surface2)", boxShadow: "var(--shadow-inset)", fontSize: 11.5, color: "var(--text-2)", whiteSpace: "nowrap" }}>
       {/* เลื่อนเดือนที่ปฏิทินด้านบนที่เดียว — ลูกศรที่นี่มีเฉพาะบัญชีที่ไม่มีปฏิทินลงเวลา (onShift ส่งมา) */}
       {onShift && <button onClick={() => onShift(-1)} aria-label="เดือนก่อนหน้า" style={arrow}><Icon name="chevronLeft" size={13} color="var(--text-3)" /></button>}
-      <b style={{ color: "var(--text-1)", minWidth: 30, textAlign: "center", paddingLeft: onShift ? 0 : 6 }}>{LN_MON_SH[mo - 1]}</b>
+      {/* ไม่เขียนชื่อเดือน — ปฏิทินด้านบนบอกอยู่แล้ว เอาที่ให้ตัวเลขชั่วโมง (ผู้ใช้สั่ง ต.ค. 2026) · มีเฉพาะตอนมีลูกศรของตัวเอง */}
+      {onShift && <b style={{ color: "var(--text-1)", minWidth: 30, textAlign: "center" }}>{LN_MON_SH[mo - 1]}</b>}
       {onShift && <button onClick={() => onShift(1)} aria-label="เดือนถัดไป" style={arrow}><Icon name="chevronRight" size={13} color="var(--text-3)" /></button>}
-      {/* สองบรรทัดเล็ก — จอมือถือแถวหัวเหลือที่ไม่ถึง 160px บรรทัดเดียวโดนตัด */}
-      <span style={{ marginLeft: 4, display: "grid", lineHeight: 1.15, minWidth: 0 }}>
-        <span><b style={{ fontFamily: "var(--mono)", fontWeight: 800, color: "var(--text-1)" }}>{hrs(sum.ok)}</b> ชม.
+      <span style={{ marginLeft: onShift ? 4 : 7, display: "grid", lineHeight: 1.15, minWidth: 0 }}>
+        <span>OT <b style={{ fontFamily: "var(--mono)", fontSize: 13.5, fontWeight: 800, color: "var(--text-1)" }}>{hrs(sum.ok)}</b> ชม.
           {sum.wait ? <b style={{ marginLeft: 5, color: "#B45309" }}>รอ {hrs(sum.wait)}</b> : null}</span>
-        <span style={{ fontSize: 10, color: "var(--text-3)" }}>ค่าแรง <b style={{ fontFamily: "var(--mono)", color: "var(--primary-dark)" }}>{hrs(sum.pay)}</b> ชม.</span>
+        <span style={{ fontSize: 10.5, color: "var(--text-3)" }}>ค่าแรง <b style={{ fontFamily: "var(--mono)", fontSize: 12, color: "var(--primary-dark)" }}>{hrs(sum.pay)}</b> ชม.</span>
       </span>
     </div>
   );
