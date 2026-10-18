@@ -813,6 +813,12 @@ function LnRing({
     }
   }, v || "--:--")))));
 }
+const LN_WD_FULL = ["วันอาทิตย์", "วันจันทร์", "วันอังคาร", "วันพุธ", "วันพฤหัสบดี", "วันศุกร์", "วันเสาร์"];
+function lnOffTH(d, cfg) {
+  if (!d || window.tmIsWorkday(d, cfg)) return "";
+  const n = window.tmWhNorm(cfg).holidays[String(d).slice(0, 10)];
+  return "วันหยุด · " + (n || LN_WD_FULL[new Date(d + "T00:00:00").getDay()]);
+}
 function LnClock({
   me,
   cfg,
@@ -885,6 +891,7 @@ function LnClock({
     }
   }, React.createElement("div", {
     style: {
+      position: "relative",
       padding: "18px 16px",
       borderRadius: 22,
       background: "var(--surface)",
@@ -897,7 +904,18 @@ function LnClock({
       color: "var(--text-3)",
       fontWeight: 700
     }
-  }, window.drDateTH(window.drToday())), React.createElement(LnRing, {
+  }, window.drDateTH(window.drToday())), lnOffTH(window.drToday(), cfg) && React.createElement("span", {
+    style: {
+      display: "inline-block",
+      marginTop: 6,
+      padding: "3px 11px",
+      borderRadius: 99,
+      fontSize: 11.5,
+      fontWeight: 800,
+      background: "var(--st-design-soft)",
+      color: "var(--st-design-fg)"
+    }
+  }, lnOffTH(window.drToday(), cfg)), React.createElement(LnRing, {
     today: today,
     cfg: cfg,
     open: open,
@@ -1304,7 +1322,7 @@ function LnClockCal({
         fontFamily: "inherit",
         fontSize: 12.5,
         fontWeight: on || isToday ? 800 : 600,
-        color: on ? "#fff" : r ? "var(--text-1)" : "var(--text-3)"
+        color: on ? "#fff" : !window.tmIsWorkday(k, cfg) ? "var(--st-design-fg)" : r ? "var(--text-1)" : "var(--text-3)"
       }
     }, d, React.createElement("span", {
       style: {
@@ -1363,7 +1381,7 @@ function LnClockCal({
       fontSize: 11.5,
       color: pick <= today && window.tmIsWorkday(pick, cfg) ? "#DC2626" : "var(--text-3)"
     }
-  }, pick > today ? "ยังไม่ถึงวัน" : window.tmIsWorkday(pick, cfg) ? "ไม่ได้ลงเวลา" : "วันหยุด")), otg && React.createElement("div", {
+  }, !window.tmIsWorkday(pick, cfg) ? lnOffTH(pick, cfg) : pick > today ? "ยังไม่ถึงวัน" : "ไม่ได้ลงเวลา")), otg && React.createElement("div", {
     style: {
       marginTop: 7,
       display: "flex",

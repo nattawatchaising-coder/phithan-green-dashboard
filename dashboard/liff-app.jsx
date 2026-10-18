@@ -505,6 +505,14 @@ function LnRing({ today, cfg, open, nowHM, win }) {
   );
 }
 
+/* ชื่อวันหยุด — วันหยุดบริษัทใช้ชื่อที่ตั้ง · วันหยุดประจำสัปดาห์ใช้ชื่อวัน · วันทำงาน = "" */
+const LN_WD_FULL = ["วันอาทิตย์", "วันจันทร์", "วันอังคาร", "วันพุธ", "วันพฤหัสบดี", "วันศุกร์", "วันเสาร์"];
+function lnOffTH(d, cfg) {
+  if (!d || window.tmIsWorkday(d, cfg)) return "";
+  const n = window.tmWhNorm(cfg).holidays[String(d).slice(0, 10)];
+  return "วันหยุด · " + (n || LN_WD_FULL[new Date(d + "T00:00:00").getDay()]);
+}
+
 function LnClock({ me, cfg, jobs, ot, onAskOt }) {
   /* 95 วัน ไม่ใช่ 14 — ปฏิทินเปิดย้อนไปได้สองเดือน ถ้าดึงมาแค่ 14 วัน เดือนก่อนจะว่างทั้งเดือน
      ทั้งที่มีใบอยู่จริง ซึ่งอ่านแล้วเข้าใจผิดว่า "ไม่ได้ลงเวลา" ไม่ใช่ "ยังไม่ได้โหลดมา" */
@@ -576,9 +584,16 @@ function LnClock({ me, cfg, jobs, ot, onAskOt }) {
 
   return (
     <div style={{ padding: 18 }}>
-      <div style={{ padding: "18px 16px", borderRadius: 22, background: "var(--surface)",
+      <div style={{ position: "relative", padding: "18px 16px", borderRadius: 22, background: "var(--surface)",
         boxShadow: "var(--soft)", textAlign: "center" }}>
         <div style={{ fontSize: 12.5, color: "var(--text-3)", fontWeight: 700 }}>{window.drDateTH(window.drToday())}</div>
+        {/* วันหยุด — ป้ายม่วงใต้วันที่ สีชุดเดียวกับเว็บ (ผู้ใช้สั่ง ต.ค. 2026 · มุมขวาบนชนวันที่บนจอมือถือ) */}
+        {lnOffTH(window.drToday(), cfg) && (
+          <span style={{ display: "inline-block", marginTop: 6, padding: "3px 11px", borderRadius: 99, fontSize: 11.5, fontWeight: 800,
+            background: "var(--st-design-soft)", color: "var(--st-design-fg)" }}>
+            {lnOffTH(window.drToday(), cfg)}
+          </span>
+        )}
         <LnRing today={today} cfg={cfg} open={open} nowHM={nowHM} win={win} />
         {today && today.in && (
           <div>
@@ -840,7 +855,8 @@ function LnClockCal({ rows, cfg, ot, onAskOt }) {
                   border: "none", boxShadow: isToday && !on ? "inset 0 0 0 1px var(--primary)" : "none",
                   background: on ? "var(--primary)" : "transparent",
                   fontFamily: "inherit", fontSize: 12.5, fontWeight: on || isToday ? 800 : 600,
-                  color: on ? "#fff" : r ? "var(--text-1)" : "var(--text-3)" }}>
+                  /* วันหยุดตัวเลขสีม่วง (ผู้ใช้สั่ง) */
+                  color: on ? "#fff" : !window.tmIsWorkday(k, cfg) ? "var(--st-design-fg)" : r ? "var(--text-1)" : "var(--text-3)" }}>
                 {d}
                 <span style={{ position: "absolute", left: 0, right: 0, bottom: 5, display: "flex",
                   justifyContent: "center", gap: 3, pointerEvents: "none" }}>
@@ -868,7 +884,7 @@ function LnClockCal({ rows, cfg, ot, onAskOt }) {
             ) : (
               <span style={{ marginLeft: "auto", fontSize: 11.5,
                 color: pick <= today && window.tmIsWorkday(pick, cfg) ? "#DC2626" : "var(--text-3)" }}>
-                {pick > today ? "ยังไม่ถึงวัน" : window.tmIsWorkday(pick, cfg) ? "ไม่ได้ลงเวลา" : "วันหยุด"}
+                {!window.tmIsWorkday(pick, cfg) ? lnOffTH(pick, cfg) : pick > today ? "ยังไม่ถึงวัน" : "ไม่ได้ลงเวลา"}
               </span>
             )}
           </div>
