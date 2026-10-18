@@ -244,9 +244,10 @@ function LineAdminView({ users, currentUser }) {
 
       <div style={{ display: "flex", gap: 9, alignItems: "center", flexWrap: "wrap" }}>
         <span style={{ fontSize: 12.5, fontWeight: 700, color: "var(--text-2)" }}>เดือน</span>
-        <select value={month} onChange={(e) => setMonth(e.target.value)} style={window.TM_IN}>
-          {months.map((m) => <option key={m} value={m}>{window.drDateTH(m + "-01").replace(/^\d+ /, "")}</option>)}
-        </select>
+        <div style={{ width: 170 }}>
+          <window.Dropdown value={month} onChange={setMonth}
+            options={months.map((m) => ({ value: m, label: window.drDateTH(m + "-01").replace(/^\d+ /, "") }))} />
+        </div>
         <span style={{ fontSize: 11.5, color: "var(--text-3)" }}>
           ผูก LINE แล้ว {bound} คน{unbound.length ? " · ยังไม่ผูก " + unbound.length + " คน" : ""}
         </span>

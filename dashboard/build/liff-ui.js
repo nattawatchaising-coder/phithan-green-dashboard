@@ -191,6 +191,7 @@ function LnSub({
     }, it.n) : null);
   }));
 }
+const LN_SEL_MAX = 60;
 function LnSelect({
   value,
   onChange,
@@ -202,18 +203,8 @@ function LnSelect({
   disabled
 }) {
   const [open, setOpen] = React.useState(false);
-  const [q, setQ] = React.useState("");
   const opts = options || [];
   const cur = opts.find(o => o.value === (value || ""));
-  React.useEffect(() => {
-    if (!open) setQ("");
-  }, [open]);
-  const qq = q.trim().toLowerCase();
-  const shown = (required ? [] : [{
-    value: "",
-    label: placeholder || "— ไม่ระบุ —"
-  }]).concat(opts.filter(o => o.value !== "").filter(o => !qq || (o.label + " " + (o.sub || "")).toLowerCase().includes(qq)));
-  let lastGroup = null;
   return React.createElement(React.Fragment, null, React.createElement("button", {
     type: "button",
     disabled: disabled,
@@ -247,8 +238,85 @@ function LnSelect({
     name: "chevronDown",
     size: 18,
     color: "var(--text-3)"
-  })), open && ReactDOM.createPortal(React.createElement("div", {
-    onClick: () => setOpen(false),
+  })), open && React.createElement(LnSelectSheet, {
+    value: value,
+    opts: opts,
+    placeholder: placeholder,
+    title: title,
+    required: required,
+    onPick: v => {
+      onChange(v);
+      setOpen(false);
+    },
+    onClose: () => setOpen(false)
+  }));
+}
+function lnSelCss() {
+  if (document.getElementById("ln-sel-css")) return;
+  const st = document.createElement("style");
+  st.id = "ln-sel-css";
+  st.textContent = "@keyframes lnSelUp{from{transform:translateY(100%)}to{transform:none}}" + "@keyframes lnSelFade{from{opacity:0}to{opacity:1}}" + ".ln-sel-bg{animation:lnSelFade .18s ease-out}.ln-sel-pan{animation:lnSelUp .24s cubic-bezier(.2,.8,.25,1)}" + "@media (prefers-reduced-motion:reduce){.ln-sel-bg,.ln-sel-pan{animation:none}}";
+  document.head.appendChild(st);
+}
+function LnSelectSheet({
+  value,
+  opts,
+  placeholder,
+  title,
+  required,
+  onPick,
+  onClose
+}) {
+  const [q, setQ] = React.useState("");
+  const bgRef = React.useRef(null),
+    listRef = React.useRef(null);
+  const closeRef = React.useRef(onClose);
+  closeRef.current = onClose;
+  React.useEffect(() => {
+    lnSelCss();
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    const bg = bgRef.current;
+    const stop = e => {
+      if (!(listRef.current && listRef.current.contains(e.target))) e.preventDefault();
+    };
+    bg.addEventListener("touchmove", stop, {
+      passive: false
+    });
+    let popped = false;
+    const onPop = () => {
+      popped = true;
+      closeRef.current();
+    };
+    try {
+      history.pushState({
+        lnSel: 1
+      }, "");
+    } catch (e) {}
+    window.addEventListener("popstate", onPop);
+    return () => {
+      document.body.style.overflow = prev;
+      bg.removeEventListener("touchmove", stop);
+      window.removeEventListener("popstate", onPop);
+      if (!popped && history.state && history.state.lnSel) {
+        try {
+          history.back();
+        } catch (e) {}
+      }
+    };
+  }, []);
+  const qq = q.trim().toLowerCase();
+  const hits = opts.filter(o => o.value !== "").filter(o => !qq || (o.label + " " + (o.sub || "")).toLowerCase().includes(qq));
+  const shown = (required ? [] : [{
+    value: "",
+    label: placeholder || "— ไม่ระบุ —"
+  }]).concat(hits.slice(0, LN_SEL_MAX));
+  const more = hits.length - LN_SEL_MAX;
+  let lastGroup = null;
+  return ReactDOM.createPortal(React.createElement("div", {
+    ref: bgRef,
+    className: "ln-sel-bg",
+    onClick: onClose,
     style: {
       position: "fixed",
       inset: 0,
@@ -258,10 +326,11 @@ function LnSelect({
       alignItems: "flex-end"
     }
   }, React.createElement("div", {
+    className: "ln-sel-pan",
     onClick: e => e.stopPropagation(),
     style: {
       width: "100%",
-      maxHeight: "78vh",
+      maxHeight: "78dvh",
       display: "flex",
       flexDirection: "column",
       background: "var(--bg)",
@@ -285,7 +354,7 @@ function LnSelect({
     }
   }, title || "เลือก"), React.createElement("button", {
     type: "button",
-    onClick: () => setOpen(false),
+    onClick: onClose,
     "aria-label": "\u0E1B\u0E34\u0E14",
     style: {
       width: 32,
@@ -311,7 +380,7 @@ function LnSelect({
   }, React.createElement("input", {
     value: q,
     onChange: e => setQ(e.target.value),
-    placeholder: "\u0E04\u0E49\u0E19\u0E2B\u0E32",
+    placeholder: "\u0E04\u0E49\u0E19\u0E2B\u0E32\u0E0A\u0E37\u0E48\u0E2D\u0E2B\u0E23\u0E37\u0E2D\u0E23\u0E2B\u0E31\u0E2A",
     style: Object.assign({}, LN_FIELD, {
       boxSizing: "border-box",
       paddingLeft: 40
@@ -328,8 +397,11 @@ function LnSelect({
     size: 17,
     color: "var(--text-3)"
   }))), React.createElement("div", {
+    ref: listRef,
     style: {
       overflowY: "auto",
+      overscrollBehavior: "contain",
+      WebkitOverflowScrolling: "touch",
       padding: "0 16px 16px",
       display: "grid",
       gap: 6
@@ -349,10 +421,7 @@ function LnSelect({
       }
     }, head), React.createElement("button", {
       type: "button",
-      onClick: () => {
-        onChange(o.value);
-        setOpen(false);
-      },
+      onClick: () => onPick(o.value),
       style: {
         display: "flex",
         alignItems: "center",
@@ -391,14 +460,21 @@ function LnSelect({
       size: 18,
       color: "var(--primary-dark)"
     })));
-  }), shown.length <= (required ? 0 : 1) && qq && React.createElement("div", {
+  }), more > 0 && React.createElement("div", {
+    style: {
+      padding: "8px 4px",
+      textAlign: "center",
+      fontSize: 12,
+      color: "var(--text-3)"
+    }
+  }, "\u0E2D\u0E35\u0E01 ", more, " \u0E23\u0E32\u0E22\u0E01\u0E32\u0E23 \u2014 \u0E1E\u0E34\u0E21\u0E1E\u0E4C\u0E04\u0E49\u0E19\u0E2B\u0E32\u0E14\u0E49\u0E32\u0E19\u0E1A\u0E19"), !hits.length && qq && React.createElement("div", {
     style: {
       padding: 14,
       textAlign: "center",
       fontSize: 13,
       color: "var(--text-3)"
     }
-  }, "\u0E44\u0E21\u0E48\u0E1E\u0E1A \"", q, "\"")))), document.body));
+  }, "\u0E44\u0E21\u0E48\u0E1E\u0E1A \"", q, "\"")))), document.body);
 }
 function lnJobOpts(jobs, grouped) {
   const T = window.SF && window.SF.TYPES || [];
@@ -406,7 +482,7 @@ function lnJobOpts(jobs, grouped) {
     const i = T.findIndex(t => t.key === j.type);
     return i < 0 ? 99 : i;
   };
-  const list = (jobs || []).slice(0, 80);
+  const list = (jobs || []).slice();
   if (grouped) list.sort((a, b) => order(a) - order(b));
   return list.map(j => {
     const t = T.find(x => x.key === j.type);

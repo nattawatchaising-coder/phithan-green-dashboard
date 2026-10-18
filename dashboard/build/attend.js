@@ -488,7 +488,7 @@ function tmLockDeny(p, cfg) {
   }
   const d = tmDistM(p, o);
   if (d != null && d <= o.radius) return null;
-  return "อยู่ห่าง" + (o.name ? o.name : "ออฟฟิศ") + " " + tmDistTH(d) + " เกินรัศมีที่ตั้งไว้ " + o.radius + " ม. — ลงเวลาเข้างานไม่ได้";
+  return "อยู่ห่าง" + (o.name ? o.name : "ออฟฟิศ") + " " + tmDistTH(d) + " (เกิน " + o.radius + " ม.) — ลงเวลาเข้าไม่ได้";
 }
 const tmGpsUrl = pt => pt && pt.lat != null && pt.lng != null ? "https://www.google.com/maps?q=" + (+pt.lat).toFixed(6) + "," + (+pt.lng).toFixed(6) : "";
 const tmDayIndex = (rec, cfg) => ({

@@ -762,7 +762,7 @@ function LnClock({
   const left = Math.max(0, window.tmWhNorm(cfg).workMins - worked);
   const closed = !open && !!(today && today.in && today.in.hm);
   const shifts = (today && Array.isArray(today.extra) ? today.extra : []).filter(x => x && x.in && x.in.hm);
-  const jobPick = React.useMemo(() => (jobs || []).filter(j => jobType === "all" || j.type === jobType).slice(0, 80), [jobs, jobType]);
+  const jobPick = React.useMemo(() => (jobs || []).filter(j => jobType === "all" || j.type === jobType), [jobs, jobType]);
   const [jobTxt, setJobTxt] = React.useState("");
   React.useEffect(() => {
     if (today && today.jobId) setJobId(today.jobId);else if (today && today.jobCode) {
@@ -1057,7 +1057,7 @@ function LnClock({
       fontSize: 11,
       color: "var(--text-3)"
     }
-  }, "\u0E44\u0E21\u0E48\u0E21\u0E35\u0E07\u0E32\u0E19\u0E1B\u0E23\u0E30\u0E40\u0E20\u0E17\u0E19\u0E35\u0E49\u0E43\u0E19\u0E21\u0E37\u0E2D \u2014 \u0E01\u0E14 \"\u0E1E\u0E34\u0E21\u0E1E\u0E4C\u0E40\u0E2D\u0E07\" \u0E2B\u0E23\u0E37\u0E2D\u0E25\u0E07\u0E40\u0E27\u0E25\u0E32\u0E42\u0E14\u0E22\u0E44\u0E21\u0E48\u0E23\u0E30\u0E1A\u0E38\u0E07\u0E32\u0E19\u0E01\u0E47\u0E44\u0E14\u0E49")), !closed && React.createElement("button", {
+  }, jobType === "all" ? "ยังไม่มีงานในมือ" : "ไม่มีงานประเภทนี้ในมือ", " \u2014 \u0E01\u0E14 \"\u0E1E\u0E34\u0E21\u0E1E\u0E4C\u0E40\u0E2D\u0E07\" \u0E2B\u0E23\u0E37\u0E2D\u0E25\u0E07\u0E40\u0E27\u0E25\u0E32\u0E42\u0E14\u0E22\u0E44\u0E21\u0E48\u0E23\u0E30\u0E1A\u0E38\u0E07\u0E32\u0E19\u0E01\u0E47\u0E44\u0E14\u0E49")), !closed && React.createElement("button", {
     onClick: () => go(false),
     disabled: busy,
     style: Object.assign({}, LN_BTN, {
@@ -1963,22 +1963,10 @@ function LnFixNew({
     if (!rec.techId) rec.techId = (me || {}).techId || "";
     onSave(rec);
   };
-  const field = {
-    width: "100%",
-    padding: "12px 13px",
-    borderRadius: 16,
-    border: "1px solid var(--border-strong)",
-    background: "var(--surface2)",
-    color: "var(--text-1)",
-    fontFamily: "inherit",
-    fontSize: 16,
-    outline: "none"
-  };
-  const label = {
-    fontSize: 11.5,
-    fontWeight: 800,
-    color: "var(--text-3)"
-  };
+  const field = Object.assign({}, LN_FIELD, {
+    boxSizing: "border-box"
+  });
+  const label = LN_LABEL;
   return React.createElement("div", {
     onClick: onClose,
     style: {

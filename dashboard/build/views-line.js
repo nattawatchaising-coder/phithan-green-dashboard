@@ -351,14 +351,18 @@ function LineAdminView({
       fontWeight: 700,
       color: "var(--text-2)"
     }
-  }, "\u0E40\u0E14\u0E37\u0E2D\u0E19"), React.createElement("select", {
+  }, "\u0E40\u0E14\u0E37\u0E2D\u0E19"), React.createElement("div", {
+    style: {
+      width: 170
+    }
+  }, React.createElement(window.Dropdown, {
     value: month,
-    onChange: e => setMonth(e.target.value),
-    style: window.TM_IN
-  }, months.map(m => React.createElement("option", {
-    key: m,
-    value: m
-  }, window.drDateTH(m + "-01").replace(/^\d+ /, "")))), React.createElement("span", {
+    onChange: setMonth,
+    options: months.map(m => ({
+      value: m,
+      label: window.drDateTH(m + "-01").replace(/^\d+ /, "")
+    }))
+  })), React.createElement("span", {
     style: {
       fontSize: 11.5,
       color: "var(--text-3)"

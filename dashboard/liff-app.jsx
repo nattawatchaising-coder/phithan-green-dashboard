@@ -475,7 +475,7 @@ function LnClock({ me, cfg, jobs, ot, onAskOt }) {
   const shifts = (today && Array.isArray(today.extra) ? today.extra : [])
     .filter((x) => x && x.in && x.in.hm);
   const jobPick = React.useMemo(
-    () => (jobs || []).filter((j) => jobType === "all" || j.type === jobType).slice(0, 80),
+    () => (jobs || []).filter((j) => jobType === "all" || j.type === jobType),
     [jobs, jobType]);
 
   /* งานที่ไม่มีในระบบ เช่น สำรวจลูกค้าใหม่ (ผู้ใช้ ต.ค. 2026) — พิมพ์เอง เก็บลง jobCode ตรง ๆ ไม่มี jobId
@@ -639,7 +639,7 @@ function LnClock({ me, cfg, jobs, ot, onAskOt }) {
             </button>
           </div>
           {jobPick.length === 0 && jobId !== LN_JOB_TXT && (
-            <div style={{ marginTop: 5, fontSize: 11, color: "var(--text-3)" }}>ไม่มีงานประเภทนี้ในมือ — กด "พิมพ์เอง" หรือลงเวลาโดยไม่ระบุงานก็ได้</div>
+            <div style={{ marginTop: 5, fontSize: 11, color: "var(--text-3)" }}>{jobType === "all" ? "ยังไม่มีงานในมือ" : "ไม่มีงานประเภทนี้ในมือ"} — กด "พิมพ์เอง" หรือลงเวลาโดยไม่ระบุงานก็ได้</div>
           )}
         </div>
       )}
@@ -1230,9 +1230,9 @@ function LnFixNew({ me, tickets, onSave, onClose }) {
     onSave(rec);
   };
 
-  const field = { width: "100%", padding: "12px 13px", borderRadius: 16, border: "1px solid var(--border-strong)",
-    background: "var(--surface2)", color: "var(--text-1)", fontFamily: "inherit", fontSize: 16, outline: "none" };
-  const label = { fontSize: 11.5, fontWeight: 800, color: "var(--text-3)" };
+  /* ช่องหลุมกลางของแอป (LN_FIELD) — เดิมเขียนทรงเองมีเส้นขอบ ไม่ตรงหน้าอื่น */
+  const field = Object.assign({}, LN_FIELD, { boxSizing: "border-box" });
+  const label = LN_LABEL;
 
   return (
     <div onClick={onClose} style={{ position: "fixed", inset: 0, zIndex: 60, background: "rgba(15,43,51,.42)", display: "flex", alignItems: "flex-end" }}>

@@ -542,8 +542,7 @@ function tmLockDeny(p, cfg) {
   }
   const d = tmDistM(p, o);
   if (d != null && d <= o.radius) return null;
-  return "อยู่ห่าง" + (o.name ? o.name : "ออฟฟิศ") + " " + tmDistTH(d)
-    + " เกินรัศมีที่ตั้งไว้ " + o.radius + " ม. — ลงเวลาเข้างานไม่ได้";
+  return "อยู่ห่าง" + (o.name ? o.name : "ออฟฟิศ") + " " + tmDistTH(d) + " (เกิน " + o.radius + " ม.) — ลงเวลาเข้าไม่ได้";
 }
 
 /* ลิงก์แผนที่ — เปิดจาก Excel ได้เลย ไม่ต้องก๊อปตัวเลขไปวาง

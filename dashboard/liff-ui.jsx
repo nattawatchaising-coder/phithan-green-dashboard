@@ -126,17 +126,13 @@ function LnSub({ items, value, onPick }) {
    options: [{ value, label, sub?, group? }] · value "" = ตัวเลือกว่าง (placeholder)
    รายการเกิน 8 มีช่องค้นหา · มี group = ขึ้นหัวกลุ่ม (เรียงตามลำดับที่ส่งมา)
    required = ไม่มีแถว "ว่าง" ให้เลือกกลับ · disabled = กดไม่ได้ (ใบที่ล็อกแล้ว)
+   ส่งตัวเลือกมาให้ครบทุกตัว อย่าตัดเอง — ช่องค้นหาต้องค้นได้ทั้งหมด แผ่นตัดเฉพาะตอนวาด (LN_SEL_MAX)
    ⚠ แอป LINE ใช้ตัวนี้ทุกช่องเลือก ห้ามกลับไปใช้ <select> (ผู้ใช้สั่ง ต.ค. 2026) */
+const LN_SEL_MAX = 60;
 function LnSelect({ value, onChange, options, placeholder, title, style, required, disabled }) {
   const [open, setOpen] = React.useState(false);
-  const [q, setQ] = React.useState("");
   const opts = options || [];
   const cur = opts.find((o) => o.value === (value || ""));
-  React.useEffect(() => { if (!open) setQ(""); }, [open]);
-  const qq = q.trim().toLowerCase();
-  const shown = (required ? [] : [{ value: "", label: placeholder || "— ไม่ระบุ —" }]).concat(opts.filter((o) => o.value !== "")
-    .filter((o) => !qq || (o.label + " " + (o.sub || "")).toLowerCase().includes(qq)));
-  let lastGroup = null;
   return (
     <React.Fragment>
       <button type="button" disabled={disabled} onClick={() => { if (!disabled) setOpen(true); }}
@@ -149,65 +145,121 @@ function LnSelect({ value, onChange, options, placeholder, title, style, require
         </span>
         {!disabled && <Icon name="chevronDown" size={18} color="var(--text-3)" />}
       </button>
-      {open && ReactDOM.createPortal(
-        <div onClick={() => setOpen(false)}
-          style={{ position: "fixed", inset: 0, zIndex: 80, background: "rgba(15,43,51,.38)", display: "flex", alignItems: "flex-end" }}>
-          <div onClick={(e) => e.stopPropagation()}
-            style={{ width: "100%", maxHeight: "78vh", display: "flex", flexDirection: "column", background: "var(--bg)",
-              borderRadius: "22px 22px 0 0", boxShadow: "0 -10px 30px rgba(0,0,0,.18)",
-              paddingBottom: "env(safe-area-inset-bottom, 0px)" }}>
-            <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "14px 16px 10px" }}>
-              <b style={{ flex: 1, fontSize: 16, fontWeight: 800, color: "var(--text-1)" }}>{title || "เลือก"}</b>
-              <button type="button" onClick={() => setOpen(false)} aria-label="ปิด"
-                style={{ width: 32, height: 32, borderRadius: 99, padding: 0, border: "none", cursor: "pointer",
-                  boxShadow: "var(--shadow-sm)", background: "var(--surface)", display: "grid", placeItems: "center" }}>
-                <Icon name="x" size={16} color="var(--text-2)" />
-              </button>
-            </div>
-            {opts.length > 8 && (
-              <div style={{ padding: "0 16px 10px", position: "relative" }}>
-                <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="ค้นหา"
-                  style={Object.assign({}, LN_FIELD, { boxSizing: "border-box", paddingLeft: 40 })} />
-                <span style={{ position: "absolute", left: 30, top: 15, pointerEvents: "none" }}>
-                  <Icon name="search" size={17} color="var(--text-3)" />
-                </span>
-              </div>
-            )}
-            <div style={{ overflowY: "auto", padding: "0 16px 16px", display: "grid", gap: 6 }}>
-              {shown.map((o) => {
-                const on = (value || "") === o.value;
-                const head = o.group && o.group !== lastGroup ? o.group : null;
-                if (o.value) lastGroup = o.group || null;
-                return (
-                  <React.Fragment key={o.value || "__none"}>
-                    {head && <div style={{ margin: "6px 2px 0", fontSize: 11.5, fontWeight: 800, color: "var(--text-3)" }}>{head}</div>}
-                    <button type="button" onClick={() => { onChange(o.value); setOpen(false); }}
-                      style={{ display: "flex", alignItems: "center", gap: 10, width: "100%", textAlign: "left", padding: "12px 14px",
-                        borderRadius: "var(--r-tile)", border: "none", cursor: "pointer", fontFamily: "inherit",
-                        background: on ? "var(--primary-soft)" : "var(--surface)", boxShadow: on ? "inset 0 0 0 1px var(--primary)" : "var(--shadow-sm)" }}>
-                      <span style={{ flex: 1, minWidth: 0 }}>
-                        <span style={{ display: "block", fontSize: 14.5, fontWeight: 700,
-                          color: on ? "var(--primary-dark)" : o.value ? "var(--text-1)" : "var(--text-3)" }}>{o.label}</span>
-                        {o.sub && <span style={{ display: "block", marginTop: 2, fontSize: 12, color: "var(--text-3)" }}>{o.sub}</span>}
-                      </span>
-                      {on && <Icon name="check" size={18} color="var(--primary-dark)" />}
-                    </button>
-                  </React.Fragment>
-                );
-              })}
-              {shown.length <= (required ? 0 : 1) && qq && <div style={{ padding: 14, textAlign: "center", fontSize: 13, color: "var(--text-3)" }}>ไม่พบ "{q}"</div>}
-            </div>
-          </div>
-        </div>, document.body)}
+      {open && <LnSelectSheet value={value} opts={opts} placeholder={placeholder} title={title} required={required}
+        onPick={(v) => { onChange(v); setOpen(false); }} onClose={() => setOpen(false)} />}
     </React.Fragment>
   );
+}
+
+/* แอนิเมชันเลื่อนขึ้น — ใส่ <style> ครั้งเดียว · คนที่ตั้งลดการเคลื่อนไหวไว้ไม่ต้องเห็น */
+function lnSelCss() {
+  if (document.getElementById("ln-sel-css")) return;
+  const st = document.createElement("style");
+  st.id = "ln-sel-css";
+  st.textContent = "@keyframes lnSelUp{from{transform:translateY(100%)}to{transform:none}}"
+    + "@keyframes lnSelFade{from{opacity:0}to{opacity:1}}"
+    + ".ln-sel-bg{animation:lnSelFade .18s ease-out}.ln-sel-pan{animation:lnSelUp .24s cubic-bezier(.2,.8,.25,1)}"
+    + "@media (prefers-reduced-motion:reduce){.ln-sel-bg,.ln-sel-pan{animation:none}}";
+  document.head.appendChild(st);
+}
+
+function LnSelectSheet({ value, opts, placeholder, title, required, onPick, onClose }) {
+  const [q, setQ] = React.useState("");
+  const bgRef = React.useRef(null), listRef = React.useRef(null);
+  const closeRef = React.useRef(onClose);
+  closeRef.current = onClose;
+
+  React.useEffect(() => {
+    lnSelCss();
+    /* ล็อกพื้นหลัง — ปัดรายการบนไอโฟนแล้วหน้าข้างหลังเลื่อนตาม
+       touchmove ของ React เป็น passive (preventDefault ไม่ได้) จึงผูกเองแบบ passive:false
+       ปล่อยให้เลื่อนได้เฉพาะในรายการ (overscrollBehavior contain กันไหลออกตอนสุดขอบ) */
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    const bg = bgRef.current;
+    const stop = (e) => { if (!(listRef.current && listRef.current.contains(e.target))) e.preventDefault(); };
+    bg.addEventListener("touchmove", stop, { passive: false });
+
+    /* ปุ่มย้อนกลับของ Android = ปิดแผ่น ไม่ใช่ออกจากหน้า — ดันประวัติไว้หนึ่งขั้น
+       ปิดด้วยวิธีอื่น (เลือก/กดพื้น/กากบาท) ต้องถอยขั้นที่ดันไว้คืน ไม่งั้นกดย้อนครั้งถัดไปจะดูเหมือนไม่มีอะไรเกิดขึ้น */
+    let popped = false;
+    const onPop = () => { popped = true; closeRef.current(); };
+    try { history.pushState({ lnSel: 1 }, ""); } catch (e) {}
+    window.addEventListener("popstate", onPop);
+    return () => {
+      document.body.style.overflow = prev;
+      bg.removeEventListener("touchmove", stop);
+      window.removeEventListener("popstate", onPop);
+      if (!popped && history.state && history.state.lnSel) { try { history.back(); } catch (e) {} }
+    };
+  }, []);
+
+  const qq = q.trim().toLowerCase();
+  const hits = opts.filter((o) => o.value !== "")
+    .filter((o) => !qq || (o.label + " " + (o.sub || "")).toLowerCase().includes(qq));
+  const shown = (required ? [] : [{ value: "", label: placeholder || "— ไม่ระบุ —" }]).concat(hits.slice(0, LN_SEL_MAX));
+  const more = hits.length - LN_SEL_MAX;
+  let lastGroup = null;
+  return ReactDOM.createPortal(
+    <div ref={bgRef} className="ln-sel-bg" onClick={onClose}
+      style={{ position: "fixed", inset: 0, zIndex: 80, background: "rgba(15,43,51,.38)", display: "flex", alignItems: "flex-end" }}>
+      <div className="ln-sel-pan" onClick={(e) => e.stopPropagation()}
+        style={{ width: "100%", maxHeight: "78dvh", display: "flex", flexDirection: "column", background: "var(--bg)",
+          borderRadius: "22px 22px 0 0", boxShadow: "0 -10px 30px rgba(0,0,0,.18)",
+          paddingBottom: "env(safe-area-inset-bottom, 0px)" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "14px 16px 10px" }}>
+          <b style={{ flex: 1, fontSize: 16, fontWeight: 800, color: "var(--text-1)" }}>{title || "เลือก"}</b>
+          <button type="button" onClick={onClose} aria-label="ปิด"
+            style={{ width: 32, height: 32, borderRadius: 99, padding: 0, border: "none", cursor: "pointer",
+              boxShadow: "var(--shadow-sm)", background: "var(--surface)", display: "grid", placeItems: "center" }}>
+            <Icon name="x" size={16} color="var(--text-2)" />
+          </button>
+        </div>
+        {opts.length > 8 && (
+          <div style={{ padding: "0 16px 10px", position: "relative" }}>
+            <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="ค้นหาชื่อหรือรหัส"
+              style={Object.assign({}, LN_FIELD, { boxSizing: "border-box", paddingLeft: 40 })} />
+            <span style={{ position: "absolute", left: 30, top: 15, pointerEvents: "none" }}>
+              <Icon name="search" size={17} color="var(--text-3)" />
+            </span>
+          </div>
+        )}
+        <div ref={listRef} style={{ overflowY: "auto", overscrollBehavior: "contain", WebkitOverflowScrolling: "touch",
+          padding: "0 16px 16px", display: "grid", gap: 6 }}>
+          {shown.map((o) => {
+            const on = (value || "") === o.value;
+            const head = o.group && o.group !== lastGroup ? o.group : null;
+            if (o.value) lastGroup = o.group || null;
+            return (
+              <React.Fragment key={o.value || "__none"}>
+                {head && <div style={{ margin: "6px 2px 0", fontSize: 11.5, fontWeight: 800, color: "var(--text-3)" }}>{head}</div>}
+                <button type="button" onClick={() => onPick(o.value)}
+                  style={{ display: "flex", alignItems: "center", gap: 10, width: "100%", textAlign: "left", padding: "12px 14px",
+                    borderRadius: "var(--r-tile)", border: "none", cursor: "pointer", fontFamily: "inherit",
+                    background: on ? "var(--primary-soft)" : "var(--surface)", boxShadow: on ? "inset 0 0 0 1px var(--primary)" : "var(--shadow-sm)" }}>
+                  <span style={{ flex: 1, minWidth: 0 }}>
+                    <span style={{ display: "block", fontSize: 14.5, fontWeight: 700,
+                      color: on ? "var(--primary-dark)" : o.value ? "var(--text-1)" : "var(--text-3)" }}>{o.label}</span>
+                    {o.sub && <span style={{ display: "block", marginTop: 2, fontSize: 12, color: "var(--text-3)" }}>{o.sub}</span>}
+                  </span>
+                  {on && <Icon name="check" size={18} color="var(--primary-dark)" />}
+                </button>
+              </React.Fragment>
+            );
+          })}
+          {more > 0 && <div style={{ padding: "8px 4px", textAlign: "center", fontSize: 12, color: "var(--text-3)" }}>
+            อีก {more} รายการ — พิมพ์ค้นหาด้านบน</div>}
+          {!hits.length && qq && <div style={{ padding: 14, textAlign: "center", fontSize: 13, color: "var(--text-3)" }}>ไม่พบ "{q}"</div>}
+        </div>
+      </div>
+    </div>, document.body);
 }
 
 /* ตัวเลือกงานสำหรับ LnSelect — ชื่องานเป็นตัวหลัก รหัสเป็นบรรทัดรอง · แบ่งกลุ่มตามประเภทงาน */
 function lnJobOpts(jobs, grouped) {
   const T = (window.SF && window.SF.TYPES) || [];
   const order = (j) => { const i = T.findIndex((t) => t.key === j.type); return i < 0 ? 99 : i; };
-  const list = (jobs || []).slice(0, 80);
+  const list = (jobs || []).slice();   // ไม่ตัด — ค้นหาต้องเจอทุกงาน (แผ่นตัดตอนวาดเอง)
   if (grouped) list.sort((a, b) => order(a) - order(b));
   return list.map((j) => {
     const t = T.find((x) => x.key === j.type);
