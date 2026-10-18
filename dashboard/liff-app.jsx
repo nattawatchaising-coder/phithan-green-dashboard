@@ -481,7 +481,7 @@ function LnRing({ today, cfg, open, nowHM, win }) {
                 {hh}:{String(mm).padStart(2, "0")}
               </div>
               <div style={{ marginTop: 3, fontSize: 11.5, fontWeight: 700, color: full ? "var(--primary-dark)" : "var(--text-3)" }}>
-                {full ? "ครบแล้ว ✓" : "จาก " + window.tmDur(goal)}
+                {full ? "ครบแล้ว ✓" : (open ? "เหลือ " : "ขาด ") + window.tmDur(goal - on)}
               </div>
             </React.Fragment>
           ) : (
@@ -503,8 +503,8 @@ function LnRing({ today, cfg, open, nowHM, win }) {
       {/* ยังไม่ลงเวลา = ไม่มีบรรทัดนี้ (ผู้ใช้สั่งเอาข้อความ "เข้ากี่โมงก็ได้…" ออก) */}
       {inHM && <div style={{ fontSize: 12.5, color: "var(--text-2)", lineHeight: 1.6 }}>
         {full ? <React.Fragment>ครบ {window.tmDur(goal)} ตั้งแต่ <b>{win.end}</b></React.Fragment>
-          : open ? <React.Fragment>ครบเวลา <b>{win.end}</b> · เหลืออีก {window.tmDur(goal - on)}</React.Fragment>
-          : <span style={{ color: "var(--tint-amber-tx)", fontWeight: 700 }}>ออกก่อนครบ · ขาดอีก {window.tmDur(goal - on)}</span>}
+          : open ? <React.Fragment>ครบเวลา <b>{win.end}</b></React.Fragment>
+          : <span style={{ color: "var(--tint-amber-tx)", fontWeight: 700 }}>ออกก่อนครบเวลา</span>}
       </div>}
     </div>
   );

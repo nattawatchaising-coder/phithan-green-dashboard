@@ -775,7 +775,7 @@ function LnRing({
       fontWeight: 700,
       color: full ? "var(--primary-dark)" : "var(--text-3)"
     }
-  }, full ? "ครบแล้ว ✓" : "จาก " + window.tmDur(goal))) : React.createElement(React.Fragment, null, React.createElement("div", {
+  }, full ? "ครบแล้ว ✓" : (open ? "เหลือ " : "ขาด ") + window.tmDur(goal - on))) : React.createElement(React.Fragment, null, React.createElement("div", {
     style: {
       fontFamily: "var(--mono)",
       fontSize: 28,
@@ -817,12 +817,12 @@ function LnRing({
       color: "var(--text-2)",
       lineHeight: 1.6
     }
-  }, full ? React.createElement(React.Fragment, null, "\u0E04\u0E23\u0E1A ", window.tmDur(goal), " \u0E15\u0E31\u0E49\u0E07\u0E41\u0E15\u0E48 ", React.createElement("b", null, win.end)) : open ? React.createElement(React.Fragment, null, "\u0E04\u0E23\u0E1A\u0E40\u0E27\u0E25\u0E32 ", React.createElement("b", null, win.end), " \xB7 \u0E40\u0E2B\u0E25\u0E37\u0E2D\u0E2D\u0E35\u0E01 ", window.tmDur(goal - on)) : React.createElement("span", {
+  }, full ? React.createElement(React.Fragment, null, "\u0E04\u0E23\u0E1A ", window.tmDur(goal), " \u0E15\u0E31\u0E49\u0E07\u0E41\u0E15\u0E48 ", React.createElement("b", null, win.end)) : open ? React.createElement(React.Fragment, null, "\u0E04\u0E23\u0E1A\u0E40\u0E27\u0E25\u0E32 ", React.createElement("b", null, win.end)) : React.createElement("span", {
     style: {
       color: "var(--tint-amber-tx)",
       fontWeight: 700
     }
-  }, "\u0E2D\u0E2D\u0E01\u0E01\u0E48\u0E2D\u0E19\u0E04\u0E23\u0E1A \xB7 \u0E02\u0E32\u0E14\u0E2D\u0E35\u0E01 ", window.tmDur(goal - on))));
+  }, "\u0E2D\u0E2D\u0E01\u0E01\u0E48\u0E2D\u0E19\u0E04\u0E23\u0E1A\u0E40\u0E27\u0E25\u0E32")));
 }
 function LnClock({
   me,
