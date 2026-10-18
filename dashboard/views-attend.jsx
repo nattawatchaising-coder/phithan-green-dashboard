@@ -1018,7 +1018,11 @@ const TM_CSS = `
 .tmv-heat-g i.off{background:color-mix(in srgb,var(--st-design-fg) 34%,transparent)}
 .tmv-heat-g i.offw{box-shadow:inset 0 -4px 0 var(--st-design-fg)}
 .tmv-heat-g i.forgot{background:var(--tint-red-tx2)}
-.tmv-heat-ax{display:flex;justify-content:space-between;font-family:var(--mono);font-size:9.5px;color:var(--text-3);margin-top:3px}
+.tmv-heat-g i.fut{background:transparent;box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--text-3) 45%,transparent)}
+.tmv-heat-g i.off.fut{background:color-mix(in srgb,var(--st-design-fg) 16%,transparent);box-shadow:none}
+.tmv-heat-g i.today{position:relative}
+.tmv-heat-g i.today::after{content:"";position:absolute;left:50%;bottom:-7px;width:5px;height:5px;margin-left:-2.5px;border-radius:99px;background:var(--text-1)}
+.tmv-heat-ax{display:flex;justify-content:space-between;font-family:var(--mono);font-size:9.5px;color:var(--text-3);margin-top:8px}
 .tmv-ot{grid-area:ot;display:grid;gap:3px;font-size:11.5px;color:var(--text-3)}
 .tmv-ot b{font-family:var(--display);font-size:16px;font-weight:700;color:var(--text-1);margin-right:3px}
 .tmv-pp-act{grid-area:act;display:flex;gap:6px;align-items:center;justify-content:flex-end}
@@ -1041,6 +1045,9 @@ const TM_CSS = `
 .tmv.nw .tmv-tl-row{grid-template-columns:minmax(0,1fr) auto auto;grid-template-areas:"who tim act" "trk trk trk";row-gap:8px}
 .tmv.nw .tmv-tl-row.axis{display:none}
 .tmv.nw .tmv-pp-row{grid-template-columns:minmax(0,1fr) auto;grid-template-areas:"who act" "heat heat" "ot ot"}
+.tmv.nw .tmv-heat{max-width:none}
+.tmv-idle{display:flex;flex-wrap:wrap;align-items:center;gap:6px 10px;padding:12px 16px;border-radius:var(--r-tile);background:var(--surface);box-shadow:var(--shadow-sm);font-size:12.5px;color:var(--text-2)}
+.tmv-idle b{font-size:12px;color:var(--text-3);font-weight:700}
 .tmv.nw .tmv-ot{grid-auto-flow:column;justify-content:start;gap:14px}
 .tmv.nw .tmv-stats{grid-template-columns:repeat(2,minmax(0,1fr))}
 .tmv.nw .tmv-stat{padding:8px 12px}
@@ -1225,7 +1232,7 @@ function TmTimeline({ items, range, nowM, band }) {
 function TmLegend({ items }) {
   return (
     <span className="tmv-leg" style={{ fontWeight: 600, fontSize: 11 }}>
-      {items.map(([bg, th]) => <span key={th}><i className="tmv-sw" style={{ background: bg }} />{th}</span>)}
+      {items.map(([bg, th, sh]) => <span key={th}><i className="tmv-sw" style={{ background: bg, boxShadow: sh || undefined }} />{th}</span>)}
     </span>
   );
 }
@@ -1791,13 +1798,15 @@ function TmDayGrid({ days, byDay, onPick }) {
 
 /* แถบสีรายวันทั้งเดือน — เขียวเข้มตามชั่วโมงที่ทำ · แดง = ลืมกดออก · ม่วง = วันหยุด · เทา = วันทำงานที่ไม่มีใบ
    (ผู้ใช้สั่ง ต.ค. 2026: ช่องว่างจางมองไม่เห็น + วันหยุดต้องมีสีของตัวเอง) — ทำงานวันหยุด = เขียวมีขีดม่วงล่าง */
-const TM_HEAT_LEG = [["color-mix(in srgb, var(--primary) 100%, transparent)", "ทำงาน (เข้ม = นาน)"],
+const TM_HEAT_LEG = [["color-mix(in srgb, var(--primary) 100%, transparent)", "ทำงาน (จาง = ไม่ครบ)"],
   ["color-mix(in srgb, var(--text-3) 20%, transparent)", "ไม่มีใบ"],
+  ["transparent", "ยังไม่ถึง", "inset 0 0 0 1px color-mix(in srgb, var(--text-3) 45%, transparent)"],
   ["color-mix(in srgb, var(--st-design-fg) 34%, transparent)", "วันหยุด"], ["var(--tint-red-tx2)", "ลืมกดออก"]];
 function TmHeat({ days, byDay, cfg }) {
   const wh = window.tmWhNorm(cfg);
   const full = wh.workMins || 480;
   const offTH = (d) => wh.holidays[d] ? "วันหยุด " + wh.holidays[d] : "วันหยุด";
+  const today = window.drToday();
   return (
     <div className="tmv-heat">
       {/* จำนวนคอลัมน์ส่งเป็นตัวแปร CSS ไม่ใช่ gridTemplateColumns ตรง ๆ — index.html มีกฎจอแคบ [style*="grid-template-columns"] → 1fr !important
@@ -1807,10 +1816,14 @@ function TmHeat({ days, byDay, cfg }) {
           const x = byDay[d];
           const off = !window.tmIsWorkday(d, cfg);
           const tag = off ? " · " + offTH(d) : "";
-          if (!x || !x.in) return <i key={d} className={off ? "off" : ""} title={window.drDateTH(d) + (off ? tag : " · ไม่มีใบ")} />;
-          if (!x.out) return <i key={d} className="forgot" title={window.drDateTH(d) + tag + " · " + x.in + " – ลืมกดออก"} />;
+          /* วันที่ยังไม่ถึง = ช่องโปร่งมีกรอบ ไม่ใช่เทาแบบ "ไม่มีใบ" (เดิมดูเหมือนขาดงานครึ่งเดือนหลัง — ผู้ใช้สั่ง ต.ค. 2026)
+             วันนี้ = มีจุดใต้ช่อง (.today) */
+          const fut = d > today, td = d === today ? " today" : "";
+          if (!x || !x.in) return <i key={d} className={(off ? "off" : "") + (fut ? " fut" : "") + td}
+            title={window.drDateTH(d) + (off ? tag : fut ? " · ยังไม่ถึง" : " · ไม่มีใบ")} />;
+          if (!x.out) return <i key={d} className={"forgot" + td} title={window.drDateTH(d) + tag + " · " + x.in + " – ลืมกดออก"} />;
           const p = Math.round(35 + 65 * Math.min(1, (+x.mins || 0) / full));
-          return <i key={d} className={off ? "offw" : ""} title={window.drDateTH(d) + tag + " · " + x.in + "–" + x.out + " · " + window.tmDur(x.mins)}
+          return <i key={d} className={(off ? "offw" : "") + td} title={window.drDateTH(d) + tag + " · " + x.in + "–" + x.out + " · " + window.tmDur(x.mins)}
             style={{ background: "color-mix(in srgb, var(--primary) " + p + "%, var(--surface2))" }} />;
         })}
       </div>
@@ -1821,6 +1834,7 @@ function TmHeat({ days, byDay, cfg }) {
 
 /* ── แท็บสรุปเดือน ── จุดออกเอกสารจุดเดียว: Excel ทั้งเดือน (ปุ่มบน) · ใบ OT ให้หัวหน้าเซ็น (ปุ่มบนการ์ดแต่ละคน)
    เวลาเข้า-ออกนับตามเดือนปฏิทิน · OT นับตามรอบตัดยอดที่จบในเดือนนี้ (ไม่ตั้งวันตัด = เดือนเดียวกัน) */
+const tmPpIdle = (r) => !(r.a && r.a.days) && !(r.o && r.o.rows.length);
 function TmMonthAll({ cfg, users, jobs, otRows, byName, canAll, currentUser }) {
   const isAdmin = window.usePgAdmin();
   const [ed, setEd] = React.useState(null);
@@ -1896,9 +1910,9 @@ function TmMonthAll({ cfg, users, jobs, otRows, byName, canAll, currentUser }) {
         : rows.length === 0 ? <TmCard><TmEmpty icon="calendar">ไม่มีข้อมูลเดือนนี้</TmEmpty></TmCard>
         : (
           <div className="tmv-list">
-            {rows.map((r) => {
+            {rows.filter((r) => !tmPpIdle(r)).map((r) => {
               const a = r.a, o = r.o;
-              const empty = !(a && a.days) && !(o && o.rows.length);
+              const empty = false;
               return (
                 <div key={r.key} className={"tmv-pp" + (empty ? " dim" : "")}>
                   <div className="tmv-pp-row">
@@ -1913,15 +1927,14 @@ function TmMonthAll({ cfg, users, jobs, otRows, byName, canAll, currentUser }) {
                       </div>
                     </div>
                     {canAll && a ? <TmHeat days={days} byDay={a.byDay} cfg={cfg} /> : <div style={{ gridArea: "heat" }} />}
-                    <div className="tmv-ot">
-                      {o && (o.minsApproved || o.minsWaiting)
-                        ? <React.Fragment>
-                            <span><b>{tmHrs(o.minsApproved)}</b>ชม. OT อนุมัติ</span>
-                            <span><b style={{ color: "var(--primary-dark)" }}>{tmHrs(o.payApproved)}</b>ชม.คิดค่าแรง</span>
-                            {o.minsWaiting ? <span style={{ color: "var(--tint-amber-tx)", fontWeight: 700 }}>รออนุมัติ {tmHrs(o.minsWaiting)} ชม.</span> : null}
-                          </React.Fragment>
-                        : <span>ไม่มี OT</span>}
-                    </div>
+                    {/* ไม่มี OT = ไม่ต้องเขียนบอก (เดิมขึ้น "ไม่มี OT" ทุกการ์ดจนรก — ผู้ใช้สั่ง ต.ค. 2026) */}
+                    {o && (o.minsApproved || o.minsWaiting) ? (
+                      <div className="tmv-ot">
+                        <span><b>{tmHrs(o.minsApproved)}</b>ชม. OT อนุมัติ</span>
+                        <span><b style={{ color: "var(--primary-dark)" }}>{tmHrs(o.payApproved)}</b>ชม.คิดค่าแรง</span>
+                        {o.minsWaiting ? <span style={{ color: "var(--tint-amber-tx)", fontWeight: 700 }}>รออนุมัติ {tmHrs(o.minsWaiting)} ชม.</span> : null}
+                      </div>
+                    ) : null}
                     <div className="tmv-pp-act">
                       {o && o.rows.length > 0 && (
                         <button className="btn btn-soft btn-sm" onClick={() => setPaper(o)} title="ใบสรุป OT ของคนนี้ ให้หัวหน้าเซ็น">
@@ -1943,6 +1956,17 @@ function TmMonthAll({ cfg, users, jobs, otRows, byName, canAll, currentUser }) {
                 </div>
               );
             })}
+            {/* คนที่ไม่มีใบลงเวลาและไม่มี OT ทั้งเดือน — แถวเดียว ไม่ต้องกินที่การ์ดละคน (ผู้ใช้สั่ง ต.ค. 2026) */}
+            {rows.some(tmPpIdle) && (
+              <div className="tmv-idle">
+                <b>ยังไม่ได้ลงเวลาเดือนนี้ ({rows.filter(tmPpIdle).length})</b>
+                {rows.filter(tmPpIdle).map((r) => (
+                  <span key={r.key} style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
+                    <TmAvatar uid={r.id} name={r.name} size={22} />{r.name}
+                  </span>
+                ))}
+              </div>
+            )}
           </div>
         )}
 
