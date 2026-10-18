@@ -653,7 +653,7 @@ function LnClock({ me, cfg, jobs, ot, onAskOt }) {
           ไม่ใช่ทุกคนอยู่หน้างาน คนที่เข้าออฟฟิศทั้งวันก็ต้องลงเวลา
           เลือกออฟฟิศแล้วไม่ต้องถามว่าไปงานไหน — ถามไปก็ไม่มีคำตอบที่ถูก */}
       <div style={{ marginTop: 14 }}>
-        <div style={{ fontSize: 11.5, fontWeight: 700, color: "var(--text-3)", marginBottom: 5 }}>ลงเวลาที่ไหน</div>
+        {/* ไม่มีหัวข้อ "ลงเวลาที่ไหน" แล้ว — ปุ่มบอกตัวเอง (ผู้ใช้สั่งเอาออก) */}
         <div style={{ display: "flex", gap: 9 }}>
           {window.TM_PLACE.map((p) => (
             <button key={p.key} onClick={() => setPlace(p.key)}
@@ -742,14 +742,7 @@ function LnClock({ me, cfg, jobs, ot, onAskOt }) {
           color: msg.bad ? "var(--tint-amber-tx)" : "var(--primary-dark)" }}>{msg.text}</div>
       )}
 
-      {/* ข้อความนี้ไม่ใช่คำโฆษณา — ช่างต้องรู้ล่วงหน้าว่าระบบเก็บพิกัด
-          และต้องไม่เข้าใจผิดว่าระบบตรวจว่าอยู่หน้างานจริงหรือไม่ (ยังไม่มีพิกัดไซต์ที่เชื่อถือได้) */}
-      <div style={{ marginTop: 10, fontSize: 11, color: "var(--text-3)", lineHeight: 1.7, textAlign: "center" }}>
-        ระบบขอพิกัดตอนกด — ถ้าไม่ได้ ก็ลงเวลาให้ตามปกติแล้วบันทึกไว้ว่าไม่มีพิกัด
-        {/* บรรทัดเรื่อง "งานที่เลือก" ขึ้นเฉพาะตอนอยู่โหมดหน้างาน
-            โหมดออฟฟิศไม่มีช่องเลือกงานให้กรอก คำเตือนเรื่องงานจึงเป็นตัวหนังสือที่ไม่มีที่อ้างถึง */}
-        {place === "site" && <React.Fragment><br />งานที่เลือกเป็นข้อมูลที่คุณแจ้งเอง ระบบไม่ได้ตรวจระยะทาง</React.Fragment>}
-      </div>
+      {/* ข้อความเรื่องพิกัดใต้ปุ่มเอาออกแล้ว (ผู้ใช้สั่ง ต.ค. 2026) */}
 
       <LnClockCal rows={at.rows} cfg={cfg} ot={ot} onAskOt={onAskOt} />
     </div>
