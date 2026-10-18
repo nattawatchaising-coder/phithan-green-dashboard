@@ -91,7 +91,7 @@ const LN_START = (() => {
 /* ── แถบหัว: เหลือแค่ตราบริษัท ──
    แท็บย้ายลงไปอยู่ขอบล่างจอแล้ว (LnTabs) — มือถือจอยาว นิ้วโป้งเอื้อมถึงขอบล่าง ไม่ถึงขอบบน
    และแถบบนที่เตี้ยลงคืนพื้นที่ให้เนื้องานอีกหนึ่งแถว */
-function LnHead({ me, onMe }) {
+function LnHead({ me, onMe, unread, bellOn, onBell }) {
   const nm = String((me || {}).name || "").trim();
   return (
     /* ไม่มีพื้นขาวและไม่มีเส้นคั่น — แถบหัวกลืนไปกับพื้นหน้า ปล่อยให้การ์ดข้างล่างเป็นของที่ลอยอยู่ชิ้นเดียว
@@ -105,9 +105,24 @@ function LnHead({ me, onMe }) {
         {window.BrandLockup ? <window.BrandLockup size={26} /> : <b>flash+solar</b>}
         {/* "ฉัน" ไม่ใช่ที่ที่คนเข้าไปทำงาน เข้าไปหยิบนามบัตรตอนยืนคุยกับลูกค้าเท่านั้น
             ของแบบนั้นไม่ควรกินช่องหนึ่งในแถบล่างเท่ากับ "ลงเวลา" ที่กดทุกวันวันละสองครั้ง */}
+        {/* กระดิ่งอยู่หัวหน้าข้างปุ่มฉัน — เดิมเป็นปุ่มลอยลากได้ แต่บังแท็บ/การ์ดบ่อย (ผู้ใช้สั่ง ต.ค. 2026 ย้ายมาที่หัว)
+            เปิดอยู่ = เขียวเข้ม (--primary-dark) ไม่ใช่เขียวสด เพราะแค่สลับหน้า ไม่ใช่ปุ่มทำงาน */}
+        {me && onBell && (
+          <button onClick={onBell} aria-label="แจ้งเตือน" title={"แจ้งเตือน" + (unread ? " " + unread + " เรื่อง" : "")}
+            style={{ marginLeft: "auto", position: "relative", flexShrink: 0, width: 38, height: 38, borderRadius: 99, padding: 0, border: "none",
+              boxShadow: "var(--soft)", background: bellOn ? "var(--primary-dark)" : "var(--surface)",
+              cursor: "pointer", display: "grid", placeItems: "center" }}>
+            <Icon name="bell" size={18} color={bellOn ? "#fff" : "var(--text-2)"} />
+            {unread > 0 && (
+              <span style={{ position: "absolute", top: -4, right: -4, minWidth: 18, height: 18, padding: "0 5px",
+                borderRadius: 99, background: "#D93025", color: "#fff", fontSize: 10.5, fontWeight: 800,
+                border: "2px solid var(--bg)", display: "inline-grid", placeItems: "center" }}>{unread}</span>
+            )}
+          </button>
+        )}
         {me && (
           <button onClick={onMe} aria-label="ข้อมูลของฉัน"
-            style={{ marginLeft: "auto", flexShrink: 0, width: 38, height: 38, borderRadius: 99, padding: 0,
+            style={{ marginLeft: onBell ? 0 : "auto", flexShrink: 0, width: 38, height: 38, borderRadius: 99, padding: 0,
               boxShadow: "var(--soft)", background: "var(--surface)",
               color: "var(--primary-dark)", fontFamily: "inherit", fontSize: 15, fontWeight: 800,
               cursor: "pointer", display: "grid", placeItems: "center" }}>
@@ -187,98 +202,6 @@ function LnTabs({ tab, setTab, tabs }) {
 }
 
 
-
-/* ── ปุ่มแจ้งเตือนลอย ──
-   ย้ายออกจากแถบแท็บมาเป็นปุ่มกลมลอย ลากย้ายได้แบบปุ่มช่วยเหลือของไอโฟน
-   ปล่อยแล้วดีดไปติดขอบซ้ายหรือขวาที่ใกล้กว่า และจำตำแหน่งไว้ใน localStorage
-   ที่ต้องลากได้ เพราะปุ่มลอยที่ขยับไม่ได้จะไปบังของบางอย่างในบางหน้าเสมอ แล้วผู้ใช้ทำอะไรไม่ได้เลย
-   zIndex 30 สูงกว่าแถบแท็บ (20) แต่ต่ำกว่าแผ่นซ้อน (60) — เปิดใบงานหรือชีตแล้วปุ่มต้องหลบ */
-const LN_FAB = 52, LN_FAB_PAD = 12, LN_FAB_KEY = "ln_bell_pos";
-const lnFabClamp = (q) => ({
-  x: Math.max(LN_FAB_PAD, Math.min(q.x, window.innerWidth - LN_FAB - LN_FAB_PAD)),
-  y: Math.max(LN_FAB_PAD, Math.min(q.y, window.innerHeight - LN_FAB - LN_FAB_PAD)),
-});
-function lnFabLoad() {
-  /* บีบเข้ากรอบทุกครั้งที่อ่าน — ตำแหน่งที่จำไว้มาจากจอเดิม หมุนจอหรือเปลี่ยนเครื่องแล้วอาจอยู่นอกจอ */
-  try {
-    const v = JSON.parse(localStorage.getItem(LN_FAB_KEY) || "null");
-    if (v && isFinite(v.x) && isFinite(v.y)) return lnFabClamp(v);
-  } catch (e) {}
-  return { x: window.innerWidth - LN_FAB - LN_FAB_PAD, y: 82 };
-}
-
-function LnBellFab({ unread, on, onClick }) {
-  const [pos, setPos] = React.useState(lnFabLoad);
-  const drag = React.useRef(null);
-  const [moving, setMoving] = React.useState(false);
-
-  React.useEffect(() => {
-    const fit = () => setPos((q) => lnFabClamp(q));
-    window.addEventListener("resize", fit);
-    window.addEventListener("orientationchange", fit);
-    return () => { window.removeEventListener("resize", fit); window.removeEventListener("orientationchange", fit); };
-  }, []);
-
-  /* ── ลากด้วย listener บน window ไม่ใช่ setPointerCapture ──
-     setPointerCapture โยน NotFoundError ได้ถ้าตัวชี้หลุดไปก่อน (นิ้วที่สองแตะ · ระบบยึดสัมผัสไปทำท่าอื่น)
-     ซึ่งเจอตอนทดสอบจริง ถ้าปล่อยให้โยนตรงนั้น drag.current จะไม่ถูกตั้ง แล้วปุ่มจะลากไม่ได้ทั้งตัว
-     ผูกที่ window แทน ได้ pointermove/pointerup ครบแม้นิ้วจะเลื่อนออกนอกปุ่มไปแล้ว */
-  const down = (e) => {
-    e.preventDefault();
-    const c = { dx: e.clientX - pos.x, dy: e.clientY - pos.y, sx: e.clientX, sy: e.clientY, far: 0, id: e.pointerId };
-    drag.current = c;
-    setMoving(true);
-
-    const move = (ev) => {
-      if (ev.pointerId !== c.id) return;
-      c.far = Math.max(c.far, Math.abs(ev.clientX - c.sx) + Math.abs(ev.clientY - c.sy));
-      setPos(lnFabClamp({ x: ev.clientX - c.dx, y: ev.clientY - c.dy }));
-    };
-    const up = (ev) => {
-      if (ev.pointerId !== c.id) return;
-      window.removeEventListener("pointermove", move);
-      window.removeEventListener("pointerup", up);
-      window.removeEventListener("pointercancel", up);
-      drag.current = null;
-      setMoving(false);
-      /* ขยับไม่ถึง 8px ถือว่าตั้งใจกด ไม่ใช่ตั้งใจลาก — นิ้วคนไม่เคยนิ่งสนิท */
-      if (c.far < 8) { onClick(); return; }
-      setPos((q) => {
-        const left = q.x + LN_FAB / 2 < window.innerWidth / 2;
-        const snap = lnFabClamp({ x: left ? LN_FAB_PAD : window.innerWidth - LN_FAB - LN_FAB_PAD, y: q.y });
-        try { localStorage.setItem(LN_FAB_KEY, JSON.stringify(snap)); } catch (er) {}
-        return snap;
-      });
-    };
-    window.addEventListener("pointermove", move);
-    window.addEventListener("pointerup", up);
-    window.addEventListener("pointercancel", up);
-  };
-
-  return (
-    <button onPointerDown={down}
-      title={"แจ้งเตือน" + (unread ? " " + unread + " เรื่อง" : "")} aria-label="แจ้งเตือน"
-      style={{ position: "fixed", left: pos.x, top: pos.y, width: LN_FAB, height: LN_FAB, zIndex: 30,
-        padding: 0, borderRadius: 99, cursor: moving ? "grabbing" : "grab",
-        /* touchAction none — ไม่งั้นนิ้วที่ลากปุ่มจะไปเลื่อนหน้าแทน */
-        touchAction: "none", WebkitTapHighlightColor: "transparent",
-        /* ตอนเปิดอยู่ใช้เขียวเข้ม (--primary-dark) ไม่ใช่เขียวสด (--primary)
-           เพราะเขียวสดเป็นสีของ "ปุ่มกดแล้วมีอะไรเกิดขึ้น" ทั้งแอป
-           ปุ่มนี้แค่สลับหน้า ทาสีเดียวกันแล้วมันแย่งสายตาไปจากปุ่มจริง ๆ และดูจัดจ้านเกิน */
-        border: "none",
-        background: on ? "var(--primary-dark)" : "var(--surface)",
-        boxShadow: moving ? "0 12px 28px rgba(8,20,14,.3)" : "0 6px 20px rgba(8,20,14,.2)",
-        display: "grid", placeItems: "center",
-        transition: moving ? "none" : "left .18s ease, top .18s ease, box-shadow .15s ease" }}>
-      <Icon name="bell" size={22} color={on ? "#fff" : "var(--text-2)"} />
-      {unread > 0 && (
-        <span style={{ position: "absolute", top: -2, right: -2, minWidth: 19, height: 19, padding: "0 5px",
-          borderRadius: 99, background: "#D93025", color: "#fff", fontSize: 11, fontWeight: 800,
-          border: "2px solid var(--surface)", display: "inline-grid", placeItems: "center" }}>{unread}</span>
-      )}
-    </button>
-  );
-}
 
 /* ── แถวงานหนึ่งใบ ── */
 function LnJobRow({ job, onOpen }) {
@@ -654,15 +577,16 @@ function LnClock({ me, cfg, jobs, ot, onAskOt }) {
           เลือกออฟฟิศแล้วไม่ต้องถามว่าไปงานไหน — ถามไปก็ไม่มีคำตอบที่ถูก */}
       <div style={{ marginTop: 14 }}>
         {/* ไม่มีหัวข้อ "ลงเวลาที่ไหน" แล้ว — ปุ่มบอกตัวเอง (ผู้ใช้สั่งเอาออก) */}
-        <div style={{ display: "flex", gap: 9 }}>
+        {/* หลุมสวิตช์แบบเดียวกับแท็บด้านบน (LnSub) — ทั้งหน้าเป็นชุดเดียว (ผู้ใช้สั่ง ต.ค. 2026) */}
+        <div style={{ display: "flex", gap: 4, padding: 4, borderRadius: "var(--r-tile)", background: "var(--surface3)" }}>
           {window.TM_PLACE.map((p) => (
             <button key={p.key} onClick={() => setPlace(p.key)}
               style={{ flex: 1, display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 7,
-                padding: "13px 10px", borderRadius: 18, cursor: "pointer", fontFamily: "inherit",
-                fontSize: 14, fontWeight: 800,
-                border: "none", boxShadow: place === p.key ? "inset 0 0 0 1px var(--primary)" : "var(--shadow-sm)",
-                background: place === p.key ? "var(--primary-soft)" : "var(--surface)",
-                color: place === p.key ? "var(--primary-dark)" : "var(--text-2)" }}>
+                padding: "11px 10px", borderRadius: "var(--r-chip)", cursor: "pointer", fontFamily: "inherit",
+                fontSize: 14, fontWeight: 800, border: "none",
+                boxShadow: place === p.key ? "var(--shadow-sm)" : "none",
+                background: place === p.key ? "var(--surface)" : "transparent",
+                color: place === p.key ? "var(--primary-dark)" : "var(--text-3)" }}>
               <Icon name={p.icon} size={16} color={place === p.key ? "var(--primary-dark)" : "var(--text-3)"} />
               {p.th}
             </button>
@@ -675,7 +599,7 @@ function LnClock({ me, cfg, jobs, ot, onAskOt }) {
           <div style={{ fontSize: 11.5, fontWeight: 700, color: "var(--text-3)", marginBottom: 5 }}>วันนี้ไปงานไหน (ไม่บังคับ)</div>
           {/* ชิปประเภทงาน — ตัดรายการใน select ให้สั้นลงก่อนหา
               ไม่ได้กรองใบลงเวลา — เลือกงานไหนก็บันทึกงานนั้น ชิปนี้แค่ช่วยหา */}
-          <div style={{ display: "flex", gap: 7, marginBottom: 7 }}>
+          <div style={{ display: "flex", gap: 4, padding: 4, marginBottom: 7, borderRadius: "var(--r-tile)", background: "var(--surface3)" }}>
             {/* "พิมพ์เอง" เป็นชิปตัวสุดท้าย ไม่ใส่ไว้ในดรอปดาวน์ (ผู้ใช้: ใส่ในดรอปดาวน์แล้วดูไม่ดี) */}
             {[{ key: "all", th: "ทั้งหมด" }].concat(window.SF.TYPES, [{ key: "txt", th: "พิมพ์เอง" }]).map((t) => (
               <button key={t.key} onClick={() => {
@@ -686,11 +610,11 @@ function LnClock({ me, cfg, jobs, ot, onAskOt }) {
                 const cur = (jobs || []).find((x) => x.id === jobId);
                 if (cur && t.key !== "all" && cur.type !== t.key) setJobId("");
               }}
-                style={{ flex: 1, padding: "8px 6px", borderRadius: 13, cursor: "pointer", fontFamily: "inherit",
-                  fontSize: 12.5, fontWeight: 800,
-                  border: "none", boxShadow: jobType === t.key ? "inset 0 0 0 1px var(--primary)" : "var(--shadow-sm)",
-                  background: jobType === t.key ? "var(--primary-soft)" : "var(--surface)",
-                  color: jobType === t.key ? "var(--primary-dark)" : "var(--text-2)" }}>
+                style={{ flex: 1, minWidth: 0, padding: "8px 4px", borderRadius: "var(--r-chip)", cursor: "pointer", fontFamily: "inherit",
+                  fontSize: 12.5, fontWeight: 800, whiteSpace: "nowrap", border: "none",
+                  boxShadow: jobType === t.key ? "var(--shadow-sm)" : "none",
+                  background: jobType === t.key ? "var(--surface)" : "transparent",
+                  color: jobType === t.key ? "var(--primary-dark)" : "var(--text-3)" }}>
                 {t.th}
               </button>
             ))}
@@ -708,14 +632,18 @@ function LnClock({ me, cfg, jobs, ot, onAskOt }) {
         </div>
       )}
 
-      {!closed && (
-        <button onClick={() => go(false)} disabled={busy}
-          style={Object.assign({}, LN_BTN, { marginTop: 14,
-            background: busy ? "var(--surface3)" : open ? "#EF4444" : "var(--primary)",
-            color: busy ? "var(--text-3)" : "#fff" })}>
-          {busy ? "กำลังบันทึก…" : open ? "ลงเวลาออกงาน" : "ลงเวลาเข้างาน"}
-        </button>
-      )}
+      {/* วันหยุดยังไม่เข้างาน = ปุ่มสีอ่อน "มาทำงานวันหยุด" ให้รู้ว่าเป็นกรณีพิเศษ แต่กดได้เหมือนเดิม (ผู้ใช้สั่ง ต.ค. 2026) */}
+      {!closed && (() => {
+        const offIn = !open && !!lnOffTH(window.drToday(), cfg);
+        return (
+          <button onClick={() => go(false)} disabled={busy}
+            style={Object.assign({}, LN_BTN, { marginTop: 14,
+              background: busy ? "var(--surface3)" : open ? "#EF4444" : offIn ? "var(--primary-soft)" : "var(--primary)",
+              color: busy ? "var(--text-3)" : offIn ? "var(--primary-dark)" : "#fff" })}>
+            {busy ? "กำลังบันทึก…" : open ? "ลงเวลาออกงาน" : offIn ? "มาทำงานวันหยุด · ลงเวลาเข้า" : "ลงเวลาเข้างาน"}
+          </button>
+        );
+      })()}
 
       {/* ── กดออกงานทับ ──
           กดออกเร็วไปเพราะนึกว่าจะกลับแล้วไม่ได้กลับ เป็นเรื่องที่เกิดทุกวัน
@@ -862,6 +790,16 @@ function LnClockCal({ rows, cfg, ot, onAskOt }) {
           })}
         </div>
 
+        {/* คำอธิบายสี — จุด/ตัวเลขสีไม่มีใครเดาออกเอง (ผู้ใช้สั่ง ต.ค. 2026) · สีต้องตรงกับ lnCalDots */}
+        <div style={{ marginTop: 8, display: "flex", flexWrap: "wrap", justifyContent: "center", gap: "4px 12px", fontSize: 10.5, fontWeight: 700, color: "var(--text-3)" }}>
+          {[["var(--primary)", "ลงครบ"], ["#D97706", "ลืมออก"], ["#DC2626", "ไม่ได้ลง"], ["#2563EB", "มีใบ OT"]].map(([c, t]) => (
+            <span key={t} style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>
+              <i style={{ width: 6, height: 6, borderRadius: 99, background: c }} />{t}
+            </span>
+          ))}
+          <span style={{ color: "var(--st-design-fg)" }}>ตัวม่วง = วันหยุด</span>
+        </div>
+
         <div style={{ marginTop: 8, paddingTop: 10, borderTop: "1px solid var(--divider)" }}>
           <div style={{ display: "flex", alignItems: "center", gap: 10, minHeight: 24 }}>
             <span style={{ fontSize: 12, color: "var(--text-2)" }}>{lnCalDateTH(pick)}</span>
@@ -913,7 +851,7 @@ function LnClockCal({ rows, cfg, ot, onAskOt }) {
               style={{ marginTop: 9, width: "100%", padding: "10px 0", borderRadius: 14, cursor: "pointer",
                 background: "var(--surface2)",
                 fontFamily: "inherit", fontSize: 12.5, fontWeight: 800, color: "var(--primary-dark)" }}>
-              + ขอ OT วันที่ {lnCalDateTH(pick)}
+              + ขอ OT {pick === today ? "วันนี้" : window.drShort(pick)}
             </button>
           )}
         </div>
@@ -1647,7 +1585,8 @@ function LnApp() {
   return (
     <div style={{ minHeight: "100dvh", background: "var(--bg)",
       paddingBottom: "calc(" + (LN_TABBAR_H + LN_TABBAR_GAP * 2) + "px + env(safe-area-inset-bottom, 0px))" }}>
-      <LnHead me={me} onMe={() => setMeOpen(true)} />
+      <LnHead me={me} onMe={() => setMeOpen(true)} unread={unread} bellOn={tab === "bell"}
+        onBell={() => setTab(tab === "bell" ? "jobs" : "bell")} />
 
       {tab === "jobs" && (
         <React.Fragment>
@@ -1783,8 +1722,6 @@ function LnApp() {
       <LnJobSheet job={open} techs={techStore.techs} onClose={() => setOpen(null)} />
       {meOpen && <LnMeSheet me={me} onClose={() => setMeOpen(false)} />}
 
-      <LnBellFab unread={unread} on={tab === "bell"}
-        onClick={() => setTab(tab === "bell" ? "jobs" : "bell")} />
       {/* แถบล่างไม่ไฮไลต์อะไรเลยตอนเปิดหน้าแจ้งเตือน — ถูกแล้ว หน้านั้นไม่ใช่แท็บ
           กดปุ่มกระดิ่งซ้ำหรือกดแท็บไหนก็ได้เพื่อออก */}
       <LnTabs tab={tab} setTab={setTab} tabs={LN_TAB} />
@@ -1792,4 +1729,4 @@ function LnApp() {
   );
 }
 
-Object.assign(window, { LN_NOTIF_KIND, LN_JOB_SUB, LN_CARD, LN_LIST_PAD, lnCardBtn, lnNotifKind, LnApp, LnJobRow, LnJobSheet, LnJobFiles, LnHead, LnTabs, LnSub, LnMeSheet, LnBellFab, LnClock, LnClockCal, LnRing, LnOtForm, LnTimeTab, LnFixTab, LnFixSheet, LnFixNew, LnPick });
+Object.assign(window, { LN_NOTIF_KIND, LN_JOB_SUB, LN_CARD, LN_LIST_PAD, lnCardBtn, lnNotifKind, LnApp, LnJobRow, LnJobSheet, LnJobFiles, LnHead, LnTabs, LnSub, LnMeSheet, LnClock, LnClockCal, LnRing, LnOtForm, LnTimeTab, LnFixTab, LnFixSheet, LnFixNew, LnPick });

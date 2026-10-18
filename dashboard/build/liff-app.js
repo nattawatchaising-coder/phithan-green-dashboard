@@ -92,7 +92,10 @@ const LN_START = (() => {
 })();
 function LnHead({
   me,
-  onMe
+  onMe,
+  unread,
+  bellOn,
+  onBell
 }) {
   const nm = String((me || {}).name || "").trim();
   return (React.createElement("div", {
@@ -112,11 +115,51 @@ function LnHead({
       }
     }, window.BrandLockup ? React.createElement(window.BrandLockup, {
       size: 26
-    }) : React.createElement("b", null, "flash+solar"), me && React.createElement("button", {
+    }) : React.createElement("b", null, "flash+solar"), me && onBell && React.createElement("button", {
+      onClick: onBell,
+      "aria-label": "\u0E41\u0E08\u0E49\u0E07\u0E40\u0E15\u0E37\u0E2D\u0E19",
+      title: "แจ้งเตือน" + (unread ? " " + unread + " เรื่อง" : ""),
+      style: {
+        marginLeft: "auto",
+        position: "relative",
+        flexShrink: 0,
+        width: 38,
+        height: 38,
+        borderRadius: 99,
+        padding: 0,
+        border: "none",
+        boxShadow: "var(--soft)",
+        background: bellOn ? "var(--primary-dark)" : "var(--surface)",
+        cursor: "pointer",
+        display: "grid",
+        placeItems: "center"
+      }
+    }, React.createElement(Icon, {
+      name: "bell",
+      size: 18,
+      color: bellOn ? "#fff" : "var(--text-2)"
+    }), unread > 0 && React.createElement("span", {
+      style: {
+        position: "absolute",
+        top: -4,
+        right: -4,
+        minWidth: 18,
+        height: 18,
+        padding: "0 5px",
+        borderRadius: 99,
+        background: "#D93025",
+        color: "#fff",
+        fontSize: 10.5,
+        fontWeight: 800,
+        border: "2px solid var(--bg)",
+        display: "inline-grid",
+        placeItems: "center"
+      }
+    }, unread)), me && React.createElement("button", {
       onClick: onMe,
       "aria-label": "\u0E02\u0E49\u0E2D\u0E21\u0E39\u0E25\u0E02\u0E2D\u0E07\u0E09\u0E31\u0E19",
       style: {
-        marginLeft: "auto",
+        marginLeft: onBell ? 0 : "auto",
         flexShrink: 0,
         width: 38,
         height: 38,
@@ -243,133 +286,6 @@ function LnTabs({
       }), t.th)
     );
   })));
-}
-const LN_FAB = 52,
-  LN_FAB_PAD = 12,
-  LN_FAB_KEY = "ln_bell_pos";
-const lnFabClamp = q => ({
-  x: Math.max(LN_FAB_PAD, Math.min(q.x, window.innerWidth - LN_FAB - LN_FAB_PAD)),
-  y: Math.max(LN_FAB_PAD, Math.min(q.y, window.innerHeight - LN_FAB - LN_FAB_PAD))
-});
-function lnFabLoad() {
-  try {
-    const v = JSON.parse(localStorage.getItem(LN_FAB_KEY) || "null");
-    if (v && isFinite(v.x) && isFinite(v.y)) return lnFabClamp(v);
-  } catch (e) {}
-  return {
-    x: window.innerWidth - LN_FAB - LN_FAB_PAD,
-    y: 82
-  };
-}
-function LnBellFab({
-  unread,
-  on,
-  onClick
-}) {
-  const [pos, setPos] = React.useState(lnFabLoad);
-  const drag = React.useRef(null);
-  const [moving, setMoving] = React.useState(false);
-  React.useEffect(() => {
-    const fit = () => setPos(q => lnFabClamp(q));
-    window.addEventListener("resize", fit);
-    window.addEventListener("orientationchange", fit);
-    return () => {
-      window.removeEventListener("resize", fit);
-      window.removeEventListener("orientationchange", fit);
-    };
-  }, []);
-  const down = e => {
-    e.preventDefault();
-    const c = {
-      dx: e.clientX - pos.x,
-      dy: e.clientY - pos.y,
-      sx: e.clientX,
-      sy: e.clientY,
-      far: 0,
-      id: e.pointerId
-    };
-    drag.current = c;
-    setMoving(true);
-    const move = ev => {
-      if (ev.pointerId !== c.id) return;
-      c.far = Math.max(c.far, Math.abs(ev.clientX - c.sx) + Math.abs(ev.clientY - c.sy));
-      setPos(lnFabClamp({
-        x: ev.clientX - c.dx,
-        y: ev.clientY - c.dy
-      }));
-    };
-    const up = ev => {
-      if (ev.pointerId !== c.id) return;
-      window.removeEventListener("pointermove", move);
-      window.removeEventListener("pointerup", up);
-      window.removeEventListener("pointercancel", up);
-      drag.current = null;
-      setMoving(false);
-      if (c.far < 8) {
-        onClick();
-        return;
-      }
-      setPos(q => {
-        const left = q.x + LN_FAB / 2 < window.innerWidth / 2;
-        const snap = lnFabClamp({
-          x: left ? LN_FAB_PAD : window.innerWidth - LN_FAB - LN_FAB_PAD,
-          y: q.y
-        });
-        try {
-          localStorage.setItem(LN_FAB_KEY, JSON.stringify(snap));
-        } catch (er) {}
-        return snap;
-      });
-    };
-    window.addEventListener("pointermove", move);
-    window.addEventListener("pointerup", up);
-    window.addEventListener("pointercancel", up);
-  };
-  return React.createElement("button", {
-    onPointerDown: down,
-    title: "แจ้งเตือน" + (unread ? " " + unread + " เรื่อง" : ""),
-    "aria-label": "\u0E41\u0E08\u0E49\u0E07\u0E40\u0E15\u0E37\u0E2D\u0E19",
-    style: {
-      position: "fixed",
-      left: pos.x,
-      top: pos.y,
-      width: LN_FAB,
-      height: LN_FAB,
-      zIndex: 30,
-      padding: 0,
-      borderRadius: 99,
-      cursor: moving ? "grabbing" : "grab",
-      touchAction: "none",
-      WebkitTapHighlightColor: "transparent",
-      border: "none",
-      background: on ? "var(--primary-dark)" : "var(--surface)",
-      boxShadow: moving ? "0 12px 28px rgba(8,20,14,.3)" : "0 6px 20px rgba(8,20,14,.2)",
-      display: "grid",
-      placeItems: "center",
-      transition: moving ? "none" : "left .18s ease, top .18s ease, box-shadow .15s ease"
-    }
-  }, React.createElement(Icon, {
-    name: "bell",
-    size: 22,
-    color: on ? "#fff" : "var(--text-2)"
-  }), unread > 0 && React.createElement("span", {
-    style: {
-      position: "absolute",
-      top: -2,
-      right: -2,
-      minWidth: 19,
-      height: 19,
-      padding: "0 5px",
-      borderRadius: 99,
-      background: "#D93025",
-      color: "#fff",
-      fontSize: 11,
-      fontWeight: 800,
-      border: "2px solid var(--surface)",
-      display: "inline-grid",
-      placeItems: "center"
-    }
-  }, unread));
 }
 function LnJobRow({
   job,
@@ -1007,7 +923,10 @@ function LnClock({
   }, React.createElement("div", {
     style: {
       display: "flex",
-      gap: 9
+      gap: 4,
+      padding: 4,
+      borderRadius: "var(--r-tile)",
+      background: "var(--surface3)"
     }
   }, window.TM_PLACE.map(p => React.createElement("button", {
     key: p.key,
@@ -1018,16 +937,16 @@ function LnClock({
       alignItems: "center",
       justifyContent: "center",
       gap: 7,
-      padding: "13px 10px",
-      borderRadius: 18,
+      padding: "11px 10px",
+      borderRadius: "var(--r-chip)",
       cursor: "pointer",
       fontFamily: "inherit",
       fontSize: 14,
       fontWeight: 800,
       border: "none",
-      boxShadow: place === p.key ? "inset 0 0 0 1px var(--primary)" : "var(--shadow-sm)",
-      background: place === p.key ? "var(--primary-soft)" : "var(--surface)",
-      color: place === p.key ? "var(--primary-dark)" : "var(--text-2)"
+      boxShadow: place === p.key ? "var(--shadow-sm)" : "none",
+      background: place === p.key ? "var(--surface)" : "transparent",
+      color: place === p.key ? "var(--primary-dark)" : "var(--text-3)"
     }
   }, React.createElement(Icon, {
     name: p.icon,
@@ -1047,8 +966,11 @@ function LnClock({
   }, "\u0E27\u0E31\u0E19\u0E19\u0E35\u0E49\u0E44\u0E1B\u0E07\u0E32\u0E19\u0E44\u0E2B\u0E19 (\u0E44\u0E21\u0E48\u0E1A\u0E31\u0E07\u0E04\u0E31\u0E1A)"), React.createElement("div", {
     style: {
       display: "flex",
-      gap: 7,
-      marginBottom: 7
+      gap: 4,
+      padding: 4,
+      marginBottom: 7,
+      borderRadius: "var(--r-tile)",
+      background: "var(--surface3)"
     }
   }, [{
     key: "all",
@@ -1073,16 +995,18 @@ function LnClock({
     },
     style: {
       flex: 1,
-      padding: "8px 6px",
-      borderRadius: 13,
+      minWidth: 0,
+      padding: "8px 4px",
+      borderRadius: "var(--r-chip)",
       cursor: "pointer",
       fontFamily: "inherit",
       fontSize: 12.5,
       fontWeight: 800,
+      whiteSpace: "nowrap",
       border: "none",
-      boxShadow: jobType === t.key ? "inset 0 0 0 1px var(--primary)" : "var(--shadow-sm)",
-      background: jobType === t.key ? "var(--primary-soft)" : "var(--surface)",
-      color: jobType === t.key ? "var(--primary-dark)" : "var(--text-2)"
+      boxShadow: jobType === t.key ? "var(--shadow-sm)" : "none",
+      background: jobType === t.key ? "var(--surface)" : "transparent",
+      color: jobType === t.key ? "var(--primary-dark)" : "var(--text-3)"
     }
   }, t.th))), jobId === LN_JOB_TXT ? React.createElement("input", {
     value: jobTxt,
@@ -1105,15 +1029,18 @@ function LnClock({
       fontSize: 11,
       color: "var(--text-3)"
     }
-  }, "\u0E44\u0E21\u0E48\u0E21\u0E35\u0E07\u0E32\u0E19\u0E1B\u0E23\u0E30\u0E40\u0E20\u0E17\u0E19\u0E35\u0E49\u0E43\u0E19\u0E21\u0E37\u0E2D \u2014 \u0E25\u0E07\u0E40\u0E27\u0E25\u0E32\u0E42\u0E14\u0E22\u0E44\u0E21\u0E48\u0E23\u0E30\u0E1A\u0E38\u0E07\u0E32\u0E19\u0E01\u0E47\u0E44\u0E14\u0E49")), !closed && React.createElement("button", {
-    onClick: () => go(false),
-    disabled: busy,
-    style: Object.assign({}, LN_BTN, {
-      marginTop: 14,
-      background: busy ? "var(--surface3)" : open ? "#EF4444" : "var(--primary)",
-      color: busy ? "var(--text-3)" : "#fff"
-    })
-  }, busy ? "กำลังบันทึก…" : open ? "ลงเวลาออกงาน" : "ลงเวลาเข้างาน"), closed && React.createElement(React.Fragment, null, React.createElement("button", {
+  }, "\u0E44\u0E21\u0E48\u0E21\u0E35\u0E07\u0E32\u0E19\u0E1B\u0E23\u0E30\u0E40\u0E20\u0E17\u0E19\u0E35\u0E49\u0E43\u0E19\u0E21\u0E37\u0E2D \u2014 \u0E25\u0E07\u0E40\u0E27\u0E25\u0E32\u0E42\u0E14\u0E22\u0E44\u0E21\u0E48\u0E23\u0E30\u0E1A\u0E38\u0E07\u0E32\u0E19\u0E01\u0E47\u0E44\u0E14\u0E49")), !closed && (() => {
+    const offIn = !open && !!lnOffTH(window.drToday(), cfg);
+    return React.createElement("button", {
+      onClick: () => go(false),
+      disabled: busy,
+      style: Object.assign({}, LN_BTN, {
+        marginTop: 14,
+        background: busy ? "var(--surface3)" : open ? "#EF4444" : offIn ? "var(--primary-soft)" : "var(--primary)",
+        color: busy ? "var(--text-3)" : offIn ? "var(--primary-dark)" : "#fff"
+      })
+    }, busy ? "กำลังบันทึก…" : open ? "ลงเวลาออกงาน" : offIn ? "มาทำงานวันหยุด · ลงเวลาเข้า" : "ลงเวลาเข้างาน");
+  })(), closed && React.createElement(React.Fragment, null, React.createElement("button", {
     onClick: () => go(true),
     disabled: busy,
     style: Object.assign({}, LN_BTN, {
@@ -1332,6 +1259,35 @@ function LnClockCal({
   })), React.createElement("div", {
     style: {
       marginTop: 8,
+      display: "flex",
+      flexWrap: "wrap",
+      justifyContent: "center",
+      gap: "4px 12px",
+      fontSize: 10.5,
+      fontWeight: 700,
+      color: "var(--text-3)"
+    }
+  }, [["var(--primary)", "ลงครบ"], ["#D97706", "ลืมออก"], ["#DC2626", "ไม่ได้ลง"], ["#2563EB", "มีใบ OT"]].map(([c, t]) => React.createElement("span", {
+    key: t,
+    style: {
+      display: "inline-flex",
+      alignItems: "center",
+      gap: 4
+    }
+  }, React.createElement("i", {
+    style: {
+      width: 6,
+      height: 6,
+      borderRadius: 99,
+      background: c
+    }
+  }), t)), React.createElement("span", {
+    style: {
+      color: "var(--st-design-fg)"
+    }
+  }, "\u0E15\u0E31\u0E27\u0E21\u0E48\u0E27\u0E07 = \u0E27\u0E31\u0E19\u0E2B\u0E22\u0E38\u0E14")), React.createElement("div", {
+    style: {
+      marginTop: 8,
       paddingTop: 10,
       borderTop: "1px solid var(--divider)"
     }
@@ -1415,7 +1371,7 @@ function LnClockCal({
       fontWeight: 800,
       color: "var(--primary-dark)"
     }
-  }, "+ \u0E02\u0E2D OT \u0E27\u0E31\u0E19\u0E17\u0E35\u0E48 ", lnCalDateTH(pick)))));
+  }, "+ \u0E02\u0E2D OT ", pick === today ? "วันนี้" : window.drShort(pick)))));
 }
 function LnOtForm({
   me,
@@ -2618,7 +2574,10 @@ function LnApp() {
     }
   }, React.createElement(LnHead, {
     me: me,
-    onMe: () => setMeOpen(true)
+    onMe: () => setMeOpen(true),
+    unread: unread,
+    bellOn: tab === "bell",
+    onBell: () => setTab(tab === "bell" ? "jobs" : "bell")
   }), tab === "jobs" && React.createElement(React.Fragment, null, React.createElement(LnSub, {
     items: LN_JOB_SUB,
     value: jobSub,
@@ -2872,10 +2831,6 @@ function LnApp() {
   }), meOpen && React.createElement(LnMeSheet, {
     me: me,
     onClose: () => setMeOpen(false)
-  }), React.createElement(LnBellFab, {
-    unread: unread,
-    on: tab === "bell",
-    onClick: () => setTab(tab === "bell" ? "jobs" : "bell")
   }), React.createElement(LnTabs, {
     tab: tab,
     setTab: setTab,
@@ -2897,7 +2852,6 @@ Object.assign(window, {
   LnTabs,
   LnSub,
   LnMeSheet,
-  LnBellFab,
   LnClock,
   LnClockCal,
   LnRing,
