@@ -1763,7 +1763,7 @@ function LnOtSummary({
       alignItems: "center",
       gap: 2,
       minWidth: 0,
-      padding: "3px 8px 3px 3px",
+      padding: "5px 9px 5px 2px",
       borderRadius: 99,
       background: "var(--surface2)",
       boxShadow: "var(--shadow-inset)",
@@ -1796,34 +1796,35 @@ function LnOtSummary({
   })), React.createElement("span", {
     style: {
       marginLeft: onShift ? 4 : 7,
-      display: "grid",
-      lineHeight: 1.15,
-      minWidth: 0
+      minWidth: 0,
+      overflow: "hidden",
+      textOverflow: "ellipsis"
     }
-  }, React.createElement("span", null, "OT ", React.createElement("b", {
+  }, "OT ", React.createElement("b", {
     style: {
       fontFamily: "var(--mono)",
-      fontSize: 13.5,
+      fontSize: 13,
       fontWeight: 800,
       color: "var(--text-1)"
     }
-  }, hrs(sum.ok)), " \u0E0A\u0E21.", sum.wait ? React.createElement("b", {
+  }, hrs(sum.ok)), React.createElement("span", {
     style: {
-      marginLeft: 5,
-      color: "#B45309"
-    }
-  }, "\u0E23\u0E2D ", hrs(sum.wait)) : null), React.createElement("span", {
-    style: {
-      fontSize: 10.5,
+      margin: "0 4px",
       color: "var(--text-3)"
     }
-  }, "\u0E04\u0E48\u0E32\u0E41\u0E23\u0E07 ", React.createElement("b", {
+  }, "\xB7"), "\u0E04\u0E48\u0E32\u0E41\u0E23\u0E07 ", React.createElement("b", {
     style: {
       fontFamily: "var(--mono)",
-      fontSize: 12,
+      fontSize: 13,
+      fontWeight: 800,
       color: "var(--primary-dark)"
     }
-  }, hrs(sum.pay)), " \u0E0A\u0E21.")));
+  }, hrs(sum.pay)), " \u0E0A\u0E21.", sum.wait ? React.createElement("b", {
+    style: {
+      marginLeft: 6,
+      color: "#B45309"
+    }
+  }, "\u0E23\u0E2D ", hrs(sum.wait)) : null));
 }
 function LnTimeTab({
   me,
@@ -1938,7 +1939,7 @@ function LnTimeTab({
     style: {
       display: "flex",
       alignItems: "center",
-      gap: 9,
+      gap: 7,
       margin: "0 4px 9px"
     }
   }, React.createElement("b", {
@@ -1966,7 +1967,7 @@ function LnTimeTab({
     style: {
       flexShrink: 0,
       whiteSpace: "nowrap",
-      padding: "8px 15px",
+      padding: "8px 13px",
       borderRadius: 99,
       border: "none",
       background: "var(--primary)",

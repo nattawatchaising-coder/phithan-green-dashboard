@@ -1085,17 +1085,19 @@ function LnOtSummary({ rows, cfg, ym, onShift }) {
     background: "transparent", padding: 0, cursor: "pointer", flexShrink: 0 };
   return (
     <div title={tip ? "อนุมัติแล้ว: " + tip : ""}
-      style={{ display: "flex", alignItems: "center", gap: 2, minWidth: 0, padding: "3px 8px 3px 3px", borderRadius: 99,
+      style={{ display: "flex", alignItems: "center", gap: 2, minWidth: 0, padding: "5px 9px 5px 2px", borderRadius: 99,
         background: "var(--surface2)", boxShadow: "var(--shadow-inset)", fontSize: 11.5, color: "var(--text-2)", whiteSpace: "nowrap" }}>
       {/* เลื่อนเดือนที่ปฏิทินด้านบนที่เดียว — ลูกศรที่นี่มีเฉพาะบัญชีที่ไม่มีปฏิทินลงเวลา (onShift ส่งมา) */}
       {onShift && <button onClick={() => onShift(-1)} aria-label="เดือนก่อนหน้า" style={arrow}><Icon name="chevronLeft" size={13} color="var(--text-3)" /></button>}
       {/* ไม่เขียนชื่อเดือน — ปฏิทินด้านบนบอกอยู่แล้ว เอาที่ให้ตัวเลขชั่วโมง (ผู้ใช้สั่ง ต.ค. 2026) · มีเฉพาะตอนมีลูกศรของตัวเอง */}
       {onShift && <b style={{ color: "var(--text-1)", minWidth: 30, textAlign: "center" }}>{LN_MON_SH[mo - 1]}</b>}
       {onShift && <button onClick={() => onShift(1)} aria-label="เดือนถัดไป" style={arrow}><Icon name="chevronRight" size={13} color="var(--text-3)" /></button>}
-      <span style={{ marginLeft: onShift ? 4 : 7, display: "grid", lineHeight: 1.15, minWidth: 0 }}>
-        <span>OT <b style={{ fontFamily: "var(--mono)", fontSize: 13.5, fontWeight: 800, color: "var(--text-1)" }}>{hrs(sum.ok)}</b> ชม.
-          {sum.wait ? <b style={{ marginLeft: 5, color: "#B45309" }}>รอ {hrs(sum.wait)}</b> : null}</span>
-        <span style={{ fontSize: 10.5, color: "var(--text-3)" }}>ค่าแรง <b style={{ fontFamily: "var(--mono)", fontSize: 12, color: "var(--primary-dark)" }}>{hrs(sum.pay)}</b> ชม.</span>
+      {/* บรรทัดเดียว ไม่ซ้อนสองชั้น (ผู้ใช้สั่ง ต.ค. 2026) — ล้นจอแคบให้ตัดท้ายด้วย … ไม่ดันปุ่ม "+ ขอ OT" */}
+      <span style={{ marginLeft: onShift ? 4 : 7, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis" }}>
+        OT <b style={{ fontFamily: "var(--mono)", fontSize: 13, fontWeight: 800, color: "var(--text-1)" }}>{hrs(sum.ok)}</b>
+        <span style={{ margin: "0 4px", color: "var(--text-3)" }}>·</span>
+        ค่าแรง <b style={{ fontFamily: "var(--mono)", fontSize: 13, fontWeight: 800, color: "var(--primary-dark)" }}>{hrs(sum.pay)}</b> ชม.
+        {sum.wait ? <b style={{ marginLeft: 6, color: "#B45309" }}>รอ {hrs(sum.wait)}</b> : null}
       </span>
     </div>
   );
@@ -1182,13 +1184,13 @@ function LnTimeTab({ me, users, role, jobs, startOt, startSub }) {
 
           {window.tmCanOt(role) && (
             <div style={{ padding: "0 14px 28px" }}>
-              <div style={{ display: "flex", alignItems: "center", gap: 9, margin: "0 4px 9px" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 7, margin: "0 4px 9px" }}>
                 <b style={{ fontSize: 13, color: "var(--text-1)", flexShrink: 0 }}>ใบขอ OT ของฉัน</b>
                 <div style={{ marginLeft: "auto", minWidth: 0, display: "flex" }}>
                   <LnOtSummary rows={myOtM} cfg={wh.cfg} ym={otYm} onShift={window.tmCanAttend(role) ? null : shiftOtYm} />
                 </div>
                 <button onClick={() => { setLimit(null); setForm(true); }}
-                  style={{ flexShrink: 0, whiteSpace: "nowrap", padding: "8px 15px", borderRadius: 99, border: "none",
+                  style={{ flexShrink: 0, whiteSpace: "nowrap", padding: "8px 13px", borderRadius: 99, border: "none",
                     background: "var(--primary)", color: "#fff", fontFamily: "inherit", fontSize: 12.5,
                     fontWeight: 800, cursor: "pointer" }}>+ ขอ OT</button>
               </div>
