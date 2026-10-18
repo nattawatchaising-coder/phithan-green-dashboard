@@ -2198,7 +2198,7 @@ const TM_CSS = `
 .tmv-pp.dim{opacity:.6}
 .tmv-pp-row{display:grid;grid-template-columns:210px minmax(0,1fr) 170px auto;grid-template-areas:"who heat ot act";align-items:center;gap:10px 20px;padding:13px 16px}
 .tmv-heat{grid-area:heat;min-width:0;max-width:560px}
-.tmv-heat-g{display:grid;gap:3px}
+.tmv-heat-g{display:grid;gap:3px;grid-template-columns:repeat(var(--hd,31),minmax(0,1fr))}
 .tmv-heat-g i{display:block;height:24px;border-radius:5px;background:color-mix(in srgb,var(--text-3) 20%,transparent)}
 .tmv-heat-g i.off{background:color-mix(in srgb,var(--st-design-fg) 34%,transparent)}
 .tmv-heat-g i.offw{box-shadow:inset 0 -4px 0 var(--st-design-fg)}
@@ -3629,7 +3629,7 @@ function TmHeat({
   }, React.createElement("div", {
     className: "tmv-heat-g",
     style: {
-      gridTemplateColumns: "repeat(" + days.length + ", minmax(0,1fr))"
+      "--hd": days.length
     }
   }, days.map(d => {
     const x = byDay[d];
