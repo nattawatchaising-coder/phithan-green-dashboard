@@ -1057,6 +1057,72 @@ function LnOtForm({ me, users, cfg, jobs, otStore, limit, edit, onClose }) {
 }
 
 /* ── แท็บ "เวลา" = ลงเวลา + ใบ OT ของฉัน ── */
+/* ── สรุป OT ของฉันรายเดือน (ผู้ใช้สั่ง ต.ค. 2026 "ทำสรุป OT ให้หน่อย") ──
+   นับเฉพาะใบที่อนุมัติแล้วเป็นตัวเลขหลัก · รออนุมัติ/ไม่อนุมัติ บอกแยก · ยกเลิก/ร่าง ไม่นับ
+   แยกตามตัวคูณ (×1 ×1.5 ×3 …) เพื่อให้ช่างเทียบกับสลิปเงินเดือนได้ — ใบวันหยุดใช้ parts ที่ติดใบ */
+function LnOtSummary({ rows, cfg, ym, onShift }) {
+  const y = +ym.slice(0, 4), mo = +ym.slice(5, 7);
+  const sum = React.useMemo(() => {
+    const o = { ok: 0, pay: 0, wait: 0, waitN: 0, rejN: 0, okN: 0, rates: {} };
+    rows.forEach((r) => {
+      const m = +r.mins || 0;
+      if (r.status === "approved") {
+        o.ok += m; o.okN++; o.pay += window.tmOtPayMins(r, cfg);
+        const ps = Array.isArray(r.parts) && r.parts.filter(Boolean).length
+          ? r.parts.filter(Boolean) : [{ mins: m, rate: window.tmOtRate(r, cfg) }];
+        ps.forEach((p) => { const k = String(Math.round((+p.rate || 0) * 100) / 100); o.rates[k] = (o.rates[k] || 0) + (+p.mins || 0); });
+      } else if (r.status === "sent") { o.wait += m; o.waitN++; }
+      else if (r.status === "rejected") o.rejN++;
+    });
+    return o;
+  }, [rows, cfg]);
+  const hrs = (m) => (Math.round(m / 60 * 100) / 100).toString();
+  const rates = Object.keys(sum.rates).filter((k) => sum.rates[k]).sort((a, b) => +a - +b);
+  const navBtn = { width: 28, height: 28, display: "grid", placeItems: "center", borderRadius: 12, cursor: "pointer",
+    border: "none", background: "var(--surface2)", boxShadow: "var(--shadow-sm)", padding: 0 };
+  return (
+    <div style={Object.assign({ padding: "13px 14px", marginBottom: 12 }, LN_CARD)}>
+      <div style={{ display: "flex", alignItems: "center", gap: 7 }}>
+        <span style={{ fontSize: 12, fontWeight: 800, color: "var(--text-3)" }}>สรุป OT</span>
+        <div style={{ marginLeft: "auto", display: "flex", alignItems: "center", gap: 7 }}>
+          <button onClick={() => onShift(-1)} aria-label="เดือนก่อนหน้า" style={navBtn}>
+            <Icon name="chevronLeft" size={15} color="var(--text-2)" />
+          </button>
+          <b style={{ fontSize: 12.5, color: "var(--text-1)", minWidth: 92, textAlign: "center" }}>{LN_MON_TH[mo - 1]} {y + 543}</b>
+          <button onClick={() => onShift(1)} aria-label="เดือนถัดไป" style={navBtn}>
+            <Icon name="chevronRight" size={15} color="var(--text-2)" />
+          </button>
+        </div>
+      </div>
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginTop: 11 }}>
+        <div style={{ padding: "10px 12px", borderRadius: 14, background: "var(--surface2)", boxShadow: "var(--shadow-inset)" }}>
+          <div style={{ fontSize: 11, fontWeight: 700, color: "var(--text-3)" }}>อนุมัติแล้ว{sum.okN ? " · " + sum.okN + " ใบ" : ""}</div>
+          <div style={{ marginTop: 2, fontFamily: "var(--mono)", fontSize: 22, fontWeight: 800, color: "var(--text-1)" }}>
+            {hrs(sum.ok)}<span style={{ fontSize: 12, marginLeft: 4, color: "var(--text-3)" }}>ชม.</span></div>
+        </div>
+        <div style={{ padding: "10px 12px", borderRadius: 14, background: "var(--surface2)", boxShadow: "var(--shadow-inset)" }}>
+          <div style={{ fontSize: 11, fontWeight: 700, color: "var(--text-3)" }}>คิดค่าแรง (คูณแล้ว)</div>
+          <div style={{ marginTop: 2, fontFamily: "var(--mono)", fontSize: 22, fontWeight: 800, color: "var(--primary-dark)" }}>
+            {hrs(sum.pay)}<span style={{ fontSize: 12, marginLeft: 4, color: "var(--text-3)" }}>ชม.</span></div>
+        </div>
+      </div>
+      {rates.length > 0 && (
+        <div style={{ marginTop: 9, fontSize: 11.5, color: "var(--text-2)" }}>
+          {rates.map((k) => hrs(sum.rates[k]) + " ชม. ×" + k).join(" · ")}
+        </div>
+      )}
+      {(sum.waitN > 0 || sum.rejN > 0) && (
+        <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginTop: 9 }}>
+          {sum.waitN > 0 && <span style={{ padding: "3px 9px", borderRadius: 99, background: "#F59E0B1A", color: "#B45309", fontSize: 11, fontWeight: 800 }}>
+            รออนุมัติ {hrs(sum.wait)} ชม. · {sum.waitN} ใบ</span>}
+          {sum.rejN > 0 && <span style={{ padding: "3px 9px", borderRadius: 99, background: "#EF44441A", color: "#DC2626", fontSize: 11, fontWeight: 800 }}>
+            ไม่อนุมัติ {sum.rejN} ใบ</span>}
+        </div>
+      )}
+    </div>
+  );
+}
+
 function LnTimeTab({ me, users, role, jobs, startOt, startSub }) {
   const wh = window.useWorkHours();
   const otStore = window.useOtClaims(wh.cfg);
@@ -1102,6 +1168,13 @@ function LnTimeTab({ me, users, role, jobs, startOt, startSub }) {
   const myOt = React.useMemo(
     () => (otStore.rows || []).filter((r) => r && r.userId === (me || {}).id),
     [otStore.rows, me]);
+  /* เดือนของสรุป OT — รายการใบข้างล่างกรองตามเดือนเดียวกัน (ดูสรุปกับใบที่มาของตัวเลขคู่กัน) */
+  const [otYm, setOtYm] = React.useState(() => window.drToday().slice(0, 7));
+  const shiftOtYm = (n) => {
+    const d = new Date(+otYm.slice(0, 4), +otYm.slice(5, 7) - 1 + n, 1);
+    setOtYm(d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0"));
+  };
+  const myOtM = React.useMemo(() => myOt.filter((r) => String(r.date || "").slice(0, 7) === otYm), [myOt, otYm]);
 
   return (
     <React.Fragment>
@@ -1139,11 +1212,13 @@ function LnTimeTab({ me, users, role, jobs, startOt, startSub }) {
                     fontWeight: 800, cursor: "pointer" }}>+ ขอ OT</button>
               </div>
 
-              {myOt.length === 0
+              <LnOtSummary rows={myOtM} cfg={wh.cfg} ym={otYm} onShift={shiftOtYm} />
+
+              {myOtM.length === 0
                 ? <div style={Object.assign({ padding: 22, textAlign: "center", color: "var(--text-3)", fontSize: 12.5 }, LN_CARD)}>
-                    ยังไม่มีใบขอ OT
+                    ไม่มีใบขอ OT เดือนนี้
                   </div>
-                : myOt.slice(0, 15).map((r) => {
+                : myOtM.map((r) => {
                     const st = window.tmOtStatusOf(r.status);
                     return (
                       <div key={r.id} style={Object.assign({ padding: "12px 14px", marginBottom: 10 }, LN_CARD)}>

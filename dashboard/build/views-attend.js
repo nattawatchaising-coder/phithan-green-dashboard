@@ -975,6 +975,7 @@ function TmOtModal({
   onClose
 }) {
   const [f, setF] = React.useState(rec);
+  const [jobTxt, setJobTxt] = React.useState(() => !!(rec.jobCode && !(jobs || []).some(j => j.id === rec.jobId)));
   React.useEffect(() => {
     setF(rec);
   }, [rec && rec.id]);
@@ -1201,10 +1202,57 @@ function TmOtModal({
       fontWeight: 700,
       color: "var(--text-3)"
     }
-  }, "\u0E07\u0E32\u0E19\u0E17\u0E35\u0E48\u0E40\u0E01\u0E35\u0E48\u0E22\u0E27\u0E02\u0E49\u0E2D\u0E07"), React.createElement("select", {
+  }, "\u0E07\u0E32\u0E19\u0E17\u0E35\u0E48\u0E40\u0E01\u0E35\u0E48\u0E22\u0E27\u0E02\u0E49\u0E2D\u0E07"), jobTxt ? React.createElement("div", {
+    style: {
+      display: "flex",
+      gap: 8
+    }
+  }, React.createElement("input", {
+    value: f.jobCode || "",
+    disabled: !editable,
+    maxLength: 80,
+    placeholder: "\u0E17\u0E33\u0E07\u0E32\u0E19\u0E2D\u0E30\u0E44\u0E23 \u0E40\u0E0A\u0E48\u0E19 \u0E2A\u0E33\u0E23\u0E27\u0E08\u0E25\u0E39\u0E01\u0E04\u0E49\u0E32\u0E43\u0E2B\u0E21\u0E48",
+    onChange: e => setF(p => Object.assign({}, p, {
+      jobId: null,
+      jobCode: e.target.value
+    })),
+    style: Object.assign({}, TM_IN, {
+      flex: 1,
+      minWidth: 0
+    })
+  }), editable ? React.createElement("button", {
+    type: "button",
+    onClick: () => {
+      setJobTxt(false);
+      setF(p => Object.assign({}, p, {
+        jobId: null,
+        jobCode: ""
+      }));
+    },
+    style: Object.assign({}, TM_IN, {
+      cursor: "pointer",
+      fontWeight: 700,
+      whiteSpace: "nowrap"
+    })
+  }, "\u2630 \u0E23\u0E32\u0E22\u0E01\u0E32\u0E23") : React.createElement("span", {
+    style: {
+      alignSelf: "center",
+      fontSize: 11,
+      color: "var(--text-3)",
+      whiteSpace: "nowrap"
+    }
+  }, "\u0E0A\u0E48\u0E32\u0E07\u0E1E\u0E34\u0E21\u0E1E\u0E4C\u0E40\u0E2D\u0E07")) : React.createElement("select", {
     value: f.jobId || "",
     disabled: !editable,
     onChange: e => {
+      if (e.target.value === "__txt") {
+        setJobTxt(true);
+        setF(p => Object.assign({}, p, {
+          jobId: null,
+          jobCode: ""
+        }));
+        return;
+      }
       const j = (jobs || []).find(x => x.id === e.target.value);
       setF(p => Object.assign({}, p, {
         jobId: j ? j.id : null,
@@ -1217,7 +1265,9 @@ function TmOtModal({
   }, "\u2014 \u0E44\u0E21\u0E48\u0E23\u0E30\u0E1A\u0E38\u0E07\u0E32\u0E19 \u2014"), (jobs || []).map(j => React.createElement("option", {
     key: j.id,
     value: j.id
-  }, j.code, " \xB7 ", j.name)))), React.createElement("label", {
+  }, j.code, " \xB7 ", j.name)), React.createElement("option", {
+    value: "__txt"
+  }, "\u270E \u0E1E\u0E34\u0E21\u0E1E\u0E4C\u0E40\u0E2D\u0E07 (\u0E07\u0E32\u0E19\u0E17\u0E35\u0E48\u0E44\u0E21\u0E48\u0E21\u0E35\u0E43\u0E19\u0E23\u0E30\u0E1A\u0E1A)"))), React.createElement("label", {
     style: {
       marginTop: 10,
       display: "grid",

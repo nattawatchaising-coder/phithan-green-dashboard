@@ -381,6 +381,9 @@ function tmPersonSheet(X, person, list, recs, days, ym, cfg, FONT, C) {
 /* ── ใบ OT หนึ่งใบ ── */
 function TmOtModal({ rec, cfg, jobs, users, role, currentUser, onSave, onMove, onDelete, onClose }) {
   const [f, setF] = React.useState(rec);
+  /* งานที่ช่างพิมพ์เองในไลน์ (ไม่มีในระบบ) เก็บใน jobCode ไม่มี jobId — ดรอปดาวน์หาไม่เจอเลยขึ้น "ไม่ระบุงาน"
+     ทั้งที่ใบมีงานระบุอยู่ (ผู้ใช้ทัก ต.ค. 2026 OT-6910-05/06) → โหมดพิมพ์ แสดงข้อความนั้นตรง ๆ */
+  const [jobTxt, setJobTxt] = React.useState(() => !!(rec.jobCode && !(jobs || []).some((j) => j.id === rec.jobId)));
   React.useEffect(() => { setF(rec); }, [rec && rec.id]);
   const box = window.useBackdropClose ? window.useBackdropClose(onClose) : {};
   const isAdmin = window.usePgAdmin ? window.usePgAdmin() : false;
@@ -472,14 +475,26 @@ function TmOtModal({ rec, cfg, jobs, users, role, currentUser, onSave, onMove, o
 
         <label style={{ marginTop: 12, display: "grid", gap: 4 }}>
           <span style={{ fontSize: 11.5, fontWeight: 700, color: "var(--text-3)" }}>งานที่เกี่ยวข้อง</span>
-          <select value={f.jobId || ""} disabled={!editable}
-            onChange={(e) => {
-              const j = (jobs || []).find((x) => x.id === e.target.value);
-              setF((p) => Object.assign({}, p, { jobId: j ? j.id : null, jobCode: j ? j.code : "" }));
-            }} style={TM_IN}>
-            <option value="">— ไม่ระบุงาน —</option>
-            {(jobs || []).map((j) => <option key={j.id} value={j.id}>{j.code} · {j.name}</option>)}
-          </select>
+          {jobTxt
+            ? <div style={{ display: "flex", gap: 8 }}>
+                <input value={f.jobCode || ""} disabled={!editable} maxLength={80} placeholder="ทำงานอะไร เช่น สำรวจลูกค้าใหม่"
+                  onChange={(e) => setF((p) => Object.assign({}, p, { jobId: null, jobCode: e.target.value }))}
+                  style={Object.assign({}, TM_IN, { flex: 1, minWidth: 0 })} />
+                {editable
+                  ? <button type="button" onClick={() => { setJobTxt(false); setF((p) => Object.assign({}, p, { jobId: null, jobCode: "" })); }}
+                      style={Object.assign({}, TM_IN, { cursor: "pointer", fontWeight: 700, whiteSpace: "nowrap" })}>☰ รายการ</button>
+                  : <span style={{ alignSelf: "center", fontSize: 11, color: "var(--text-3)", whiteSpace: "nowrap" }}>ช่างพิมพ์เอง</span>}
+              </div>
+            : <select value={f.jobId || ""} disabled={!editable}
+                onChange={(e) => {
+                  if (e.target.value === "__txt") { setJobTxt(true); setF((p) => Object.assign({}, p, { jobId: null, jobCode: "" })); return; }
+                  const j = (jobs || []).find((x) => x.id === e.target.value);
+                  setF((p) => Object.assign({}, p, { jobId: j ? j.id : null, jobCode: j ? j.code : "" }));
+                }} style={TM_IN}>
+                <option value="">— ไม่ระบุงาน —</option>
+                {(jobs || []).map((j) => <option key={j.id} value={j.id}>{j.code} · {j.name}</option>)}
+                <option value="__txt">✎ พิมพ์เอง (งานที่ไม่มีในระบบ)</option>
+              </select>}
         </label>
 
         <label style={{ marginTop: 10, display: "grid", gap: 4 }}>
