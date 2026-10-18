@@ -1248,10 +1248,8 @@ function LnFixNew({ me, tickets, onSave, onClose }) {
             <LnPick items={[{ key: "all", th: "ทั้งหมด" }].concat(
                 (window.SF.TYPES || []).map((t) => ({ key: t.key, th: t.th })))}
               value={siteType} onPick={(k) => { setSiteType(k); set({ siteId: "" }); }} />
-            <select value={f.siteId} onChange={(e) => set({ siteId: e.target.value })} style={field}>
-              <option value="">— เลือกไซต์ —</option>
-              {sites.map((x) => <option key={x.id} value={x.id}>{(x.code || x.id) + " · " + (x.name || "")}</option>)}
-            </select>
+            <LnSelect value={f.siteId} onChange={(v) => set({ siteId: v })} style={field} title="ไซต์ที่เกิดเรื่อง"
+              placeholder="— เลือกไซต์ —" options={sites.map((x) => ({ value: x.id, label: x.name || x.code || x.id, sub: x.code || "" }))} />
           </div>
 
           <label style={{ display: "grid", gap: 5 }}>

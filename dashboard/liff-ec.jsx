@@ -117,16 +117,14 @@ function LnEcForm({ me, users, role, jobs, store, claim, onClose }) {
                 onChange={(v) => set({ payMethod: v, owedToId: null, owedToName: "" })} />}
           {c.payMethod === "mate" && (locked
             ? <b style={{ fontSize: 13.5, color: "var(--text-1)" }}>{c.owedToName || "ยังไม่ได้ระบุคน"}</b>
-            : <select value={c.owedToId || ""}
-                onChange={(e) => {
-                  const u = (users || []).filter((x) => x.id === e.target.value)[0];
+            : <LnSelect value={c.owedToId || ""} title="ใครออกเงินให้" placeholder="— เลือกคนที่ออกเงินให้ —"
+                options={(users || []).filter((u) => u.active !== false && u.id !== c.byId)
+                  .map((u) => ({ value: u.id, label: u.name || u.username }))}
+                onChange={(v) => {
+                  const u = (users || []).filter((x) => x.id === v)[0];
                   set({ owedToId: u ? u.id : null, owedToName: u ? (u.name || u.username || "") : "" });
                 }}
-                style={lnEcF(locked)}>
-                <option value="">— เลือกคนที่ออกเงินให้ —</option>
-                {(users || []).filter((u) => u.active !== false && u.id !== c.byId)
-                  .map((u) => <option key={u.id} value={u.id}>{u.name || u.username}</option>)}
-              </select>)}
+                style={lnEcF(locked)} />)}
           {!locked && <div style={{ fontSize: 11, color: "var(--text-3)", lineHeight: 1.6 }}>
             {c.payMethod === "mate" && !c.owedToId
               ? "ยังไม่ได้เลือกคน — ถ้าปล่อยไว้ เงินคืนจะเข้าชื่อคนเปิดใบ"
@@ -139,15 +137,13 @@ function LnEcForm({ me, users, role, jobs, store, claim, onClose }) {
         </LnField>
 
         <LnField label="งานที่เกี่ยวข้อง (ไม่บังคับ)">
-          <select value={c.jobId || ""} disabled={locked} style={lnEcF(locked)}
-            onChange={(e) => {
-              const j = (jobs || []).find((x) => x.id === e.target.value);
+          <LnSelect value={c.jobId || ""} disabled={locked} style={lnEcF(locked)} title="งานที่เกี่ยวข้อง"
+            options={lnJobOpts(jobs, true)}
+            onChange={(v) => {
+              const j = (jobs || []).find((x) => x.id === v);
               /* ถ่ายสำเนารหัส/ชื่อไซต์ไว้ในใบ เพราะเป็นเอกสารการเงิน ต้องอ่านรู้เรื่องแม้ใบงานถูกลบ */
               set({ jobId: j ? j.id : null, siteCode: j ? j.code : "", siteName: j ? j.name : "" });
-            }}>
-            <option value="">— ไม่ระบุ —</option>
-            {(jobs || []).slice(0, 80).map((j) => <option key={j.id} value={j.id}>{j.code} · {j.name}</option>)}
-          </select>
+            }} />
         </LnField>
 
         <div style={{ display: "grid", gap: 8 }}>

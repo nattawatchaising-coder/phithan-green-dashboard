@@ -124,28 +124,30 @@ function LnSub({ items, value, onPick }) {
 /* ── ช่องเลือกแบบแผ่นเลื่อนขึ้นจากล่าง แทน <select> ──
    ผู้ใช้สั่ง ต.ค. 2026 "dropdown ไม่สวย" — ดรอปดาวน์ของระบบหน้าตาไม่ตรงแอป และรายการงานยาวอ่านยาก
    options: [{ value, label, sub?, group? }] · value "" = ตัวเลือกว่าง (placeholder)
-   รายการเกิน 8 มีช่องค้นหา · มี group = ขึ้นหัวกลุ่ม (เรียงตามลำดับที่ส่งมา) */
-function LnSelect({ value, onChange, options, placeholder, title, style }) {
+   รายการเกิน 8 มีช่องค้นหา · มี group = ขึ้นหัวกลุ่ม (เรียงตามลำดับที่ส่งมา)
+   required = ไม่มีแถว "ว่าง" ให้เลือกกลับ · disabled = กดไม่ได้ (ใบที่ล็อกแล้ว)
+   ⚠ แอป LINE ใช้ตัวนี้ทุกช่องเลือก ห้ามกลับไปใช้ <select> (ผู้ใช้สั่ง ต.ค. 2026) */
+function LnSelect({ value, onChange, options, placeholder, title, style, required, disabled }) {
   const [open, setOpen] = React.useState(false);
   const [q, setQ] = React.useState("");
   const opts = options || [];
   const cur = opts.find((o) => o.value === (value || ""));
   React.useEffect(() => { if (!open) setQ(""); }, [open]);
   const qq = q.trim().toLowerCase();
-  const shown = [{ value: "", label: placeholder || "— ไม่ระบุ —" }].concat(opts.filter((o) => o.value !== "")
+  const shown = (required ? [] : [{ value: "", label: placeholder || "— ไม่ระบุ —" }]).concat(opts.filter((o) => o.value !== "")
     .filter((o) => !qq || (o.label + " " + (o.sub || "")).toLowerCase().includes(qq)));
   let lastGroup = null;
   return (
     <React.Fragment>
-      <button type="button" onClick={() => setOpen(true)}
-        style={Object.assign({}, LN_FIELD, { display: "flex", alignItems: "center", gap: 8, textAlign: "left", cursor: "pointer",
+      <button type="button" disabled={disabled} onClick={() => { if (!disabled) setOpen(true); }}
+        style={Object.assign({}, LN_FIELD, { display: "flex", alignItems: "center", gap: 8, textAlign: "left", cursor: disabled ? "default" : "pointer",
           boxSizing: "border-box" }, style || {})}>
         <span style={{ flex: 1, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
           color: cur && cur.value ? "var(--text-1)" : "var(--text-3)" }}>
           {cur && cur.value ? cur.label : (placeholder || "— ไม่ระบุ —")}
           {cur && cur.value && cur.sub ? <span style={{ marginLeft: 6, fontSize: 12.5, color: "var(--text-3)" }}>{cur.sub}</span> : null}
         </span>
-        <Icon name="chevronDown" size={18} color="var(--text-3)" />
+        {!disabled && <Icon name="chevronDown" size={18} color="var(--text-3)" />}
       </button>
       {open && ReactDOM.createPortal(
         <div onClick={() => setOpen(false)}
@@ -193,7 +195,7 @@ function LnSelect({ value, onChange, options, placeholder, title, style }) {
                   </React.Fragment>
                 );
               })}
-              {shown.length === 1 && qq && <div style={{ padding: 14, textAlign: "center", fontSize: 13, color: "var(--text-3)" }}>ไม่พบ "{q}"</div>}
+              {shown.length <= (required ? 0 : 1) && qq && <div style={{ padding: 14, textAlign: "center", fontSize: 13, color: "var(--text-3)" }}>ไม่พบ "{q}"</div>}
             </div>
           </div>
         </div>, document.body)}

@@ -161,22 +161,23 @@ function LnEcForm({
       fontSize: 13.5,
       color: "var(--text-1)"
     }
-  }, c.owedToName || "ยังไม่ได้ระบุคน") : React.createElement("select", {
+  }, c.owedToName || "ยังไม่ได้ระบุคน") : React.createElement(LnSelect, {
     value: c.owedToId || "",
-    onChange: e => {
-      const u = (users || []).filter(x => x.id === e.target.value)[0];
+    title: "\u0E43\u0E04\u0E23\u0E2D\u0E2D\u0E01\u0E40\u0E07\u0E34\u0E19\u0E43\u0E2B\u0E49",
+    placeholder: "\u2014 \u0E40\u0E25\u0E37\u0E2D\u0E01\u0E04\u0E19\u0E17\u0E35\u0E48\u0E2D\u0E2D\u0E01\u0E40\u0E07\u0E34\u0E19\u0E43\u0E2B\u0E49 \u2014",
+    options: (users || []).filter(u => u.active !== false && u.id !== c.byId).map(u => ({
+      value: u.id,
+      label: u.name || u.username
+    })),
+    onChange: v => {
+      const u = (users || []).filter(x => x.id === v)[0];
       set({
         owedToId: u ? u.id : null,
         owedToName: u ? u.name || u.username || "" : ""
       });
     },
     style: lnEcF(locked)
-  }, React.createElement("option", {
-    value: ""
-  }, "\u2014 \u0E40\u0E25\u0E37\u0E2D\u0E01\u0E04\u0E19\u0E17\u0E35\u0E48\u0E2D\u0E2D\u0E01\u0E40\u0E07\u0E34\u0E19\u0E43\u0E2B\u0E49 \u2014"), (users || []).filter(u => u.active !== false && u.id !== c.byId).map(u => React.createElement("option", {
-    key: u.id,
-    value: u.id
-  }, u.name || u.username)))), !locked && React.createElement("div", {
+  })), !locked && React.createElement("div", {
     style: {
       fontSize: 11,
       color: "var(--text-3)",
@@ -194,24 +195,21 @@ function LnEcForm({
     style: lnEcF(locked)
   })), React.createElement(LnField, {
     label: "\u0E07\u0E32\u0E19\u0E17\u0E35\u0E48\u0E40\u0E01\u0E35\u0E48\u0E22\u0E27\u0E02\u0E49\u0E2D\u0E07 (\u0E44\u0E21\u0E48\u0E1A\u0E31\u0E07\u0E04\u0E31\u0E1A)"
-  }, React.createElement("select", {
+  }, React.createElement(LnSelect, {
     value: c.jobId || "",
     disabled: locked,
     style: lnEcF(locked),
-    onChange: e => {
-      const j = (jobs || []).find(x => x.id === e.target.value);
+    title: "\u0E07\u0E32\u0E19\u0E17\u0E35\u0E48\u0E40\u0E01\u0E35\u0E48\u0E22\u0E27\u0E02\u0E49\u0E2D\u0E07",
+    options: lnJobOpts(jobs, true),
+    onChange: v => {
+      const j = (jobs || []).find(x => x.id === v);
       set({
         jobId: j ? j.id : null,
         siteCode: j ? j.code : "",
         siteName: j ? j.name : ""
       });
     }
-  }, React.createElement("option", {
-    value: ""
-  }, "\u2014 \u0E44\u0E21\u0E48\u0E23\u0E30\u0E1A\u0E38 \u2014"), (jobs || []).slice(0, 80).map(j => React.createElement("option", {
-    key: j.id,
-    value: j.id
-  }, j.code, " \xB7 ", j.name)))), React.createElement("div", {
+  })), React.createElement("div", {
     style: {
       display: "grid",
       gap: 8

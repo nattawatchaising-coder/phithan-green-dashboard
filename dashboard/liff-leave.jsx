@@ -112,14 +112,13 @@ function LnLvForm({ me, users, rows, quota, types, cfg, onSave, onClose }) {
             style={Object.assign({}, LN_FIELD, { resize: "vertical", lineHeight: 1.6 })} />
         </LnField>
         <LnField label="ผู้อนุมัติ" req>
-          <select value={f.approverId || ""} style={LN_FIELD}
-            onChange={(e) => {
-              const u = approvers.find((x) => x.id === e.target.value);
+          {/* required = ไม่มีแถวว่างให้เลือก — ใบลาต้องเลือกผู้อนุมัติเสมอ (lvSendWhy) */}
+          <LnSelect value={f.approverId || ""} required title="ผู้อนุมัติ" placeholder="— เลือกผู้อนุมัติ —"
+            options={approvers.map((u) => ({ value: u.id, label: u.name }))}
+            onChange={(v) => {
+              const u = approvers.find((x) => x.id === v);
               setF((p) => Object.assign({}, p, { approverId: u ? u.id : null, approverName: u ? u.name : "" }));
-            }}>
-            <option value="" disabled>— เลือกผู้อนุมัติ —</option>
-            {approvers.map((u) => <option key={u.id} value={u.id}>{u.name}</option>)}
-          </select>
+            }} />
         </LnField>
         {f.type && <div style={{ fontSize: 11.5, color: "var(--text-3)", marginTop: -6 }}>
           {window.lvTypeOf(types, f.type).th} · {window.lvAdvTH(window.lvTypeOf(types, f.type))}</div>}

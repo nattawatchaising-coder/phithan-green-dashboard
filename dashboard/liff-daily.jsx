@@ -128,11 +128,9 @@ function LnDailyForm({ me, role, job, date, store, notify }) {
           {[["weatherAm", "ช่วงเช้า"], ["weatherPm", "ช่วงบ่าย"]].map(([k, th]) => (
             <div key={k} style={{ flex: 1 }}>
               <div style={{ fontSize: 11, color: "var(--text-3)", marginBottom: 4 }}>{th}</div>
-              <select value={form[k] || ""} disabled={locked} onChange={(e) => set({ [k]: e.target.value })}
-                style={Object.assign({}, lnDrF(locked), { fontSize: 14 })}>
-                <option value="">—</option>
-                {window.DR_WEATHER.map((w) => <option key={w.key} value={w.key}>{w.th}</option>)}
-              </select>
+              <LnSelect value={form[k] || ""} disabled={locked} onChange={(v) => set({ [k]: v })} title={"อากาศ" + th}
+                placeholder="—" options={window.DR_WEATHER.map((w) => ({ value: w.key, label: w.th }))}
+                style={Object.assign({}, lnDrF(locked), { fontSize: 14 })} />
             </div>
           ))}
         </div>
@@ -379,10 +377,7 @@ function LnDailyTab({ me, role, jobs, allJobs, notify }) {
                 ((window.SF || {}).TYPES || []).map((t) => ({ key: t.key, th: t.th })))}
               value={jobType} onPick={(k) => { setJobType(k); setJobId(""); }} />
           )}
-          <select value={jobId} onChange={(e) => setJobId(e.target.value)} style={LN_FIELD}>
-            <option value="">— เลือกงาน —</option>
-            {show.slice(0, 80).map((j) => <option key={j.id} value={j.id}>{j.code} · {j.name}</option>)}
-          </select>
+          <LnSelect value={jobId} onChange={setJobId} title="เลือกงาน" placeholder="— เลือกงาน —" options={lnJobOpts(show)} />
         </div>
         <LnField label="วันที่">
           <input type="date" value={date} onChange={(e) => setDate(e.target.value || window.drToday())} style={LN_FIELD} />

@@ -141,21 +141,22 @@ function LnDailyForm({
       color: "var(--text-3)",
       marginBottom: 4
     }
-  }, th), React.createElement("select", {
+  }, th), React.createElement(LnSelect, {
     value: form[k] || "",
     disabled: locked,
-    onChange: e => set({
-      [k]: e.target.value
+    onChange: v => set({
+      [k]: v
     }),
+    title: "อากาศ" + th,
+    placeholder: "\u2014",
+    options: window.DR_WEATHER.map(w => ({
+      value: w.key,
+      label: w.th
+    })),
     style: Object.assign({}, lnDrF(locked), {
       fontSize: 14
     })
-  }, React.createElement("option", {
-    value: ""
-  }, "\u2014"), window.DR_WEATHER.map(w => React.createElement("option", {
-    key: w.key,
-    value: w.key
-  }, w.th))))))), React.createElement(LnField, {
+  }))))), React.createElement(LnField, {
     label: "\u0E27\u0E31\u0E19\u0E19\u0E35\u0E49\u0E17\u0E33\u0E2D\u0E30\u0E44\u0E23\u0E44\u0E1B\u0E1A\u0E49\u0E32\u0E07",
     req: true
   }, React.createElement("textarea", {
@@ -607,16 +608,13 @@ function LnDailyTab({
       setJobType(k);
       setJobId("");
     }
-  }), React.createElement("select", {
+  }), React.createElement(LnSelect, {
     value: jobId,
-    onChange: e => setJobId(e.target.value),
-    style: LN_FIELD
-  }, React.createElement("option", {
-    value: ""
-  }, "\u2014 \u0E40\u0E25\u0E37\u0E2D\u0E01\u0E07\u0E32\u0E19 \u2014"), show.slice(0, 80).map(j => React.createElement("option", {
-    key: j.id,
-    value: j.id
-  }, j.code, " \xB7 ", j.name)))), React.createElement(LnField, {
+    onChange: setJobId,
+    title: "\u0E40\u0E25\u0E37\u0E2D\u0E01\u0E07\u0E32\u0E19",
+    placeholder: "\u2014 \u0E40\u0E25\u0E37\u0E2D\u0E01\u0E07\u0E32\u0E19 \u2014",
+    options: lnJobOpts(show)
+  })), React.createElement(LnField, {
     label: "\u0E27\u0E31\u0E19\u0E17\u0E35\u0E48"
   }, React.createElement("input", {
     type: "date",

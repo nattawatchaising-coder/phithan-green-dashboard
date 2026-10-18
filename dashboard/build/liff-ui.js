@@ -197,7 +197,9 @@ function LnSelect({
   options,
   placeholder,
   title,
-  style
+  style,
+  required,
+  disabled
 }) {
   const [open, setOpen] = React.useState(false);
   const [q, setQ] = React.useState("");
@@ -207,20 +209,23 @@ function LnSelect({
     if (!open) setQ("");
   }, [open]);
   const qq = q.trim().toLowerCase();
-  const shown = [{
+  const shown = (required ? [] : [{
     value: "",
     label: placeholder || "— ไม่ระบุ —"
-  }].concat(opts.filter(o => o.value !== "").filter(o => !qq || (o.label + " " + (o.sub || "")).toLowerCase().includes(qq)));
+  }]).concat(opts.filter(o => o.value !== "").filter(o => !qq || (o.label + " " + (o.sub || "")).toLowerCase().includes(qq)));
   let lastGroup = null;
   return React.createElement(React.Fragment, null, React.createElement("button", {
     type: "button",
-    onClick: () => setOpen(true),
+    disabled: disabled,
+    onClick: () => {
+      if (!disabled) setOpen(true);
+    },
     style: Object.assign({}, LN_FIELD, {
       display: "flex",
       alignItems: "center",
       gap: 8,
       textAlign: "left",
-      cursor: "pointer",
+      cursor: disabled ? "default" : "pointer",
       boxSizing: "border-box"
     }, style || {})
   }, React.createElement("span", {
@@ -238,7 +243,7 @@ function LnSelect({
       fontSize: 12.5,
       color: "var(--text-3)"
     }
-  }, cur.sub) : null), React.createElement(Icon, {
+  }, cur.sub) : null), !disabled && React.createElement(Icon, {
     name: "chevronDown",
     size: 18,
     color: "var(--text-3)"
@@ -386,7 +391,7 @@ function LnSelect({
       size: 18,
       color: "var(--primary-dark)"
     })));
-  }), shown.length === 1 && qq && React.createElement("div", {
+  }), shown.length <= (required ? 0 : 1) && qq && React.createElement("div", {
     style: {
       padding: 14,
       textAlign: "center",

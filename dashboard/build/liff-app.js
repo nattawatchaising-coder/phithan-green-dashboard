@@ -2043,18 +2043,20 @@ function LnFixNew({
         siteId: ""
       });
     }
-  }), React.createElement("select", {
+  }), React.createElement(LnSelect, {
     value: f.siteId,
-    onChange: e => set({
-      siteId: e.target.value
+    onChange: v => set({
+      siteId: v
     }),
-    style: field
-  }, React.createElement("option", {
-    value: ""
-  }, "\u2014 \u0E40\u0E25\u0E37\u0E2D\u0E01\u0E44\u0E0B\u0E15\u0E4C \u2014"), sites.map(x => React.createElement("option", {
-    key: x.id,
-    value: x.id
-  }, (x.code || x.id) + " · " + (x.name || ""))))), React.createElement("label", {
+    style: field,
+    title: "\u0E44\u0E0B\u0E15\u0E4C\u0E17\u0E35\u0E48\u0E40\u0E01\u0E34\u0E14\u0E40\u0E23\u0E37\u0E48\u0E2D\u0E07",
+    placeholder: "\u2014 \u0E40\u0E25\u0E37\u0E2D\u0E01\u0E44\u0E0B\u0E15\u0E4C \u2014",
+    options: sites.map(x => ({
+      value: x.id,
+      label: x.name || x.code || x.id,
+      sub: x.code || ""
+    }))
+  })), React.createElement("label", {
     style: {
       display: "grid",
       gap: 5

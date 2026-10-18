@@ -213,23 +213,23 @@ function LnLvForm({
   })), React.createElement(LnField, {
     label: "\u0E1C\u0E39\u0E49\u0E2D\u0E19\u0E38\u0E21\u0E31\u0E15\u0E34",
     req: true
-  }, React.createElement("select", {
+  }, React.createElement(LnSelect, {
     value: f.approverId || "",
-    style: LN_FIELD,
-    onChange: e => {
-      const u = approvers.find(x => x.id === e.target.value);
+    required: true,
+    title: "\u0E1C\u0E39\u0E49\u0E2D\u0E19\u0E38\u0E21\u0E31\u0E15\u0E34",
+    placeholder: "\u2014 \u0E40\u0E25\u0E37\u0E2D\u0E01\u0E1C\u0E39\u0E49\u0E2D\u0E19\u0E38\u0E21\u0E31\u0E15\u0E34 \u2014",
+    options: approvers.map(u => ({
+      value: u.id,
+      label: u.name
+    })),
+    onChange: v => {
+      const u = approvers.find(x => x.id === v);
       setF(p => Object.assign({}, p, {
         approverId: u ? u.id : null,
         approverName: u ? u.name : ""
       }));
     }
-  }, React.createElement("option", {
-    value: "",
-    disabled: true
-  }, "\u2014 \u0E40\u0E25\u0E37\u0E2D\u0E01\u0E1C\u0E39\u0E49\u0E2D\u0E19\u0E38\u0E21\u0E31\u0E15\u0E34 \u2014"), approvers.map(u => React.createElement("option", {
-    key: u.id,
-    value: u.id
-  }, u.name)))), f.type && React.createElement("div", {
+  })), f.type && React.createElement("div", {
     style: {
       fontSize: 11.5,
       color: "var(--text-3)",
