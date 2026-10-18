@@ -551,7 +551,7 @@ function LvQuotaTable({
       fontSize: 11.5,
       color: "var(--text-3)"
     }
-  }, "\u0E1B\u0E35 ", year + 543, " \xB7 \u0E0A\u0E48\u0E2D\u0E07\u0E27\u0E48\u0E32\u0E07 = \u0E43\u0E0A\u0E49\u0E22\u0E2D\u0E14\u0E15\u0E31\u0E49\u0E07\u0E15\u0E49\u0E19 (\u0E15\u0E31\u0E27\u0E08\u0E32\u0E07) \xB7 \u0E1E\u0E34\u0E21\u0E1E\u0E4C\u0E40\u0E25\u0E02 = \u0E22\u0E2D\u0E14\u0E40\u0E09\u0E1E\u0E32\u0E30\u0E04\u0E19\u0E19\u0E35\u0E49 \xB7 \u0E1A\u0E31\u0E19\u0E17\u0E36\u0E01\u0E40\u0E21\u0E37\u0E48\u0E2D\u0E2D\u0E2D\u0E01\u0E08\u0E32\u0E01\u0E0A\u0E48\u0E2D\u0E07")), React.createElement("div", {
+  }, "\u0E1B\u0E35 ", year + 543, " \xB7 \u0E15\u0E31\u0E27\u0E43\u0E2B\u0E0D\u0E48 = \u0E27\u0E31\u0E19\u0E25\u0E32\u0E04\u0E07\u0E40\u0E2B\u0E25\u0E37\u0E2D \xB7 \u0E0A\u0E48\u0E2D\u0E07 \u201C\u0E2A\u0E34\u0E17\u0E18\u0E34\u0E4C\u201D \u0E27\u0E48\u0E32\u0E07 = \u0E43\u0E0A\u0E49\u0E22\u0E2D\u0E14\u0E15\u0E31\u0E49\u0E07\u0E15\u0E49\u0E19 \xB7 \u0E1E\u0E34\u0E21\u0E1E\u0E4C\u0E40\u0E25\u0E02 = \u0E22\u0E2D\u0E14\u0E40\u0E09\u0E1E\u0E32\u0E30\u0E04\u0E19\u0E19\u0E35\u0E49 \xB7 \u0E1A\u0E31\u0E19\u0E17\u0E36\u0E01\u0E40\u0E21\u0E37\u0E48\u0E2D\u0E2D\u0E2D\u0E01\u0E08\u0E32\u0E01\u0E0A\u0E48\u0E2D\u0E07")), React.createElement("div", {
     style: Object.assign({
       overflow: "auto"
     }, LV_CARD)
@@ -606,14 +606,40 @@ function LvQuotaTable({
       return React.createElement("td", {
         key: b.type.key,
         style: {
-          padding: "6px 10px",
+          padding: "8px 10px",
           textAlign: "center"
         }
-      }, React.createElement("input", {
+      }, React.createElement("div", {
+        style: {
+          fontFamily: "var(--display)",
+          fontSize: 20,
+          fontWeight: 800,
+          lineHeight: 1.1,
+          color: b.left != null && b.left < 0 ? "#EF4444" : b.left === 0 ? "var(--text-3)" : "var(--text-1)"
+        }
+      }, b.left != null ? Math.round(b.left * 10) / 10 : "∞", React.createElement("span", {
+        style: {
+          fontSize: 10.5,
+          fontWeight: 700,
+          color: "var(--text-3)",
+          marginLeft: 3
+        }
+      }, b.left != null ? "วัน" : "")), React.createElement("div", {
+        style: {
+          marginTop: 4,
+          display: "inline-flex",
+          alignItems: "center",
+          gap: 5,
+          fontSize: 10.5,
+          color: "var(--text-3)",
+          whiteSpace: "nowrap"
+        }
+      }, "\u0E43\u0E0A\u0E49 ", Math.round(b.used * 10) / 10, b.pending ? " +รอ " + Math.round(b.pending * 10) / 10 : "", " \xB7 \u0E2A\u0E34\u0E17\u0E18\u0E34\u0E4C", React.createElement("input", {
         key: u.id + b.type.key + String(v),
         defaultValue: v === "inf" ? "" : v == null ? "" : v,
         placeholder: b.type.days == null ? "∞" : String(b.type.days),
         inputMode: "decimal",
+        title: "\u0E2A\u0E34\u0E17\u0E18\u0E34\u0E4C\u0E27\u0E31\u0E19\u0E25\u0E32\u0E02\u0E2D\u0E07\u0E04\u0E19\u0E19\u0E35\u0E49 (\u0E40\u0E27\u0E49\u0E19\u0E27\u0E48\u0E32\u0E07 = \u0E22\u0E2D\u0E14\u0E15\u0E31\u0E49\u0E07\u0E15\u0E49\u0E19)",
         onBlur: e => {
           const raw = e.target.value.trim();
           const cur = v == null ? "" : String(v);
@@ -621,19 +647,13 @@ function LvQuotaTable({
           quota.set(u.id, year, b.type.key, raw === "" ? null : raw);
         },
         style: Object.assign({}, LV_IN, {
-          width: 64,
+          width: 42,
           textAlign: "center",
           fontFamily: "var(--mono)",
-          padding: "6px 6px"
+          padding: "3px 4px",
+          fontSize: 11.5
         })
-      }), React.createElement("div", {
-        style: {
-          marginTop: 3,
-          fontSize: 10.5,
-          color: b.left != null && b.left < 0 ? "#EF4444" : "var(--text-3)",
-          whiteSpace: "nowrap"
-        }
-      }, "\u0E43\u0E0A\u0E49 ", Math.round(b.used * 10) / 10, b.pending ? " +รอ " + Math.round(b.pending * 10) / 10 : "", b.left != null ? " · เหลือ " + Math.round(b.left * 10) / 10 : ""));
+      })));
     }));
   }))), !list.length && React.createElement("div", {
     style: {

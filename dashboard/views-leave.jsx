@@ -239,7 +239,7 @@ function LvQuotaTable({ users, types, rows, quota, year }) {
           <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="ค้นหาชื่อ" />
         </div>
         <span style={{ fontSize: 11.5, color: "var(--text-3)" }}>
-          ปี {year + 543} · ช่องว่าง = ใช้ยอดตั้งต้น (ตัวจาง) · พิมพ์เลข = ยอดเฉพาะคนนี้ · บันทึกเมื่อออกจากช่อง
+          ปี {year + 543} · ตัวใหญ่ = วันลาคงเหลือ · ช่อง “สิทธิ์” ว่าง = ใช้ยอดตั้งต้น · พิมพ์เลข = ยอดเฉพาะคนนี้ · บันทึกเมื่อออกจากช่อง
         </span>
       </div>
       <div style={Object.assign({ overflow: "auto" }, LV_CARD)}>
@@ -264,19 +264,24 @@ function LvQuotaTable({ users, types, rows, quota, year }) {
                   {bal.map((b) => {
                     const v = own[b.type.key];
                     return (
-                      <td key={b.type.key} style={{ padding: "6px 10px", textAlign: "center" }}>
-                        <input key={u.id + b.type.key + String(v)} defaultValue={v === "inf" ? "" : v == null ? "" : v}
-                          placeholder={b.type.days == null ? "∞" : String(b.type.days)} inputMode="decimal"
-                          onBlur={(e) => {
-                            const raw = e.target.value.trim();
-                            const cur = v == null ? "" : String(v);
-                            if (raw === cur) return;
-                            quota.set(u.id, year, b.type.key, raw === "" ? null : raw);
-                          }}
-                          style={Object.assign({}, LV_IN, { width: 64, textAlign: "center", fontFamily: "var(--mono)", padding: "6px 6px" })} />
-                        <div style={{ marginTop: 3, fontSize: 10.5, color: b.left != null && b.left < 0 ? "#EF4444" : "var(--text-3)", whiteSpace: "nowrap" }}>
-                          ใช้ {Math.round(b.used * 10) / 10}{b.pending ? " +รอ " + Math.round(b.pending * 10) / 10 : ""}
-                          {b.left != null ? " · เหลือ " + Math.round(b.left * 10) / 10 : ""}
+                      <td key={b.type.key} style={{ padding: "8px 10px", textAlign: "center" }}>
+                        {/* ตัวใหญ่ = วันลาคงเหลือ (ผู้ใช้สั่ง ต.ค. 2026: เอาส่วนที่เหลือมาแสดง) · ช่องกรอกสิทธิ์ย่อลงมาบรรทัดล่าง */}
+                        <div style={{ fontFamily: "var(--display)", fontSize: 20, fontWeight: 800, lineHeight: 1.1,
+                          color: b.left != null && b.left < 0 ? "#EF4444" : b.left === 0 ? "var(--text-3)" : "var(--text-1)" }}>
+                          {b.left != null ? Math.round(b.left * 10) / 10 : "∞"}
+                          <span style={{ fontSize: 10.5, fontWeight: 700, color: "var(--text-3)", marginLeft: 3 }}>{b.left != null ? "วัน" : ""}</span>
+                        </div>
+                        <div style={{ marginTop: 4, display: "inline-flex", alignItems: "center", gap: 5, fontSize: 10.5, color: "var(--text-3)", whiteSpace: "nowrap" }}>
+                          ใช้ {Math.round(b.used * 10) / 10}{b.pending ? " +รอ " + Math.round(b.pending * 10) / 10 : ""} · สิทธิ์
+                          <input key={u.id + b.type.key + String(v)} defaultValue={v === "inf" ? "" : v == null ? "" : v}
+                            placeholder={b.type.days == null ? "∞" : String(b.type.days)} inputMode="decimal" title="สิทธิ์วันลาของคนนี้ (เว้นว่าง = ยอดตั้งต้น)"
+                            onBlur={(e) => {
+                              const raw = e.target.value.trim();
+                              const cur = v == null ? "" : String(v);
+                              if (raw === cur) return;
+                              quota.set(u.id, year, b.type.key, raw === "" ? null : raw);
+                            }}
+                            style={Object.assign({}, LV_IN, { width: 42, textAlign: "center", fontFamily: "var(--mono)", padding: "3px 4px", fontSize: 11.5 })} />
                         </div>
                       </td>
                     );
