@@ -407,7 +407,38 @@ function LnWebForm({ reason, onDone }) {
 /* ── ประตูหน้า LIFF ── ผ่านแล้วค่อย render แอปจริง
    ต้องรอให้ localStorage ถูกตั้งก่อน children ถึงจะ mount ได้
    เพราะ useAuthStore อ่านค่าเซสชันตอน mount ครั้งแรกครั้งเดียว */
+/* ── แอดมินกดปุ่ม "เปิดหน้าช่าง" จากเว็บ (/liff.html?web=1) — ผู้ใช้สั่ง ต.ค. 2026 ──
+   ไม่ใช่ทางลัดรหัสผ่าน: ใช้ได้เฉพาะเบราว์เซอร์ที่ล็อกอินเว็บอยู่แล้ว (uid ของ Firebase Auth ตรงกับเซสชันที่จด)
+   และบัญชีนั้นเป็นแอดมิน · ไม่ตรงเงื่อนไข = ไปทางปกติ (LIFF / ฟอร์มรหัส) เหมือนเดิม
+   ต้องตัดสินก่อนเรียก liff.init เพราะนอกแอป LINE มันจะเด้งไปหน้าล็อกอิน LINE ทันที */
+function lnWebSelf() {
+  try {
+    if (!/[?&]web=1(&|$)/.test(location.search)) return null;
+    const fu = window.FBAUTH && window.FBAUTH.currentUser;
+    const sid = localStorage.getItem(LN_SESSION_KEY);
+    return fu && sid && fu.uid === sid ? sid : null;
+  } catch (e) { return null; }
+}
+
+function LnAdminPass({ uid, children }) {
+  const [ok, setOk] = React.useState(undefined);   // undefined = กำลังเช็ก
+  React.useEffect(() => {
+    window.firebase.database().ref("users/" + uid).once("value").then((snap) => {
+      const u = snap.val();
+      setOk(!!(u && u.active !== false && window.hasRole(window.userRoles(u), "admin")));
+    }, () => setOk(false));
+  }, [uid]);
+  if (ok === undefined) return <LnSplash text="กำลังเข้าสู่ระบบ…" />;
+  return ok ? children : <LnGateLine>{children}</LnGateLine>;
+}
+
 function LnGate({ children }) {
+  const [self] = React.useState(lnWebSelf);
+  if (self) return <LnAdminPass uid={self}>{children}</LnAdminPass>;
+  return <LnGateLine>{children}</LnGateLine>;
+}
+
+function LnGateLine({ children }) {
   const s = useLnSession();
   /* ผ่านด้วยรหัสเว็บแล้ว — เก็บไว้ใน state ไม่ใช่รอ useLnSession รอบใหม่
      เพราะทางนั้นต้องมี ID token ของ LINE ซึ่งเบราว์เซอร์ธรรมดาไม่มีวันมี */

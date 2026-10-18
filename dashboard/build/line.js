@@ -702,7 +702,42 @@ function LnWebForm({
     }
   }, "\u0E17\u0E32\u0E07\u0E19\u0E35\u0E49\u0E44\u0E21\u0E48\u0E1C\u0E39\u0E01\u0E1A\u0E31\u0E0D\u0E0A\u0E35 LINE \u0E43\u0E2B\u0E49 \xB7 \u0E0A\u0E48\u0E32\u0E07\u0E17\u0E35\u0E48\u0E22\u0E31\u0E07\u0E44\u0E21\u0E48\u0E40\u0E04\u0E22\u0E1C\u0E39\u0E01 \u0E15\u0E49\u0E2D\u0E07\u0E40\u0E1B\u0E34\u0E14\u0E08\u0E32\u0E01\u0E40\u0E21\u0E19\u0E39\u0E43\u0E19\u0E41\u0E0A\u0E15\u0E04\u0E23\u0E31\u0E49\u0E07\u0E41\u0E23\u0E01\u0E40\u0E2A\u0E21\u0E2D")));
 }
+function lnWebSelf() {
+  try {
+    if (!/[?&]web=1(&|$)/.test(location.search)) return null;
+    const fu = window.FBAUTH && window.FBAUTH.currentUser;
+    const sid = localStorage.getItem(LN_SESSION_KEY);
+    return fu && sid && fu.uid === sid ? sid : null;
+  } catch (e) {
+    return null;
+  }
+}
+function LnAdminPass({
+  uid,
+  children
+}) {
+  const [ok, setOk] = React.useState(undefined);
+  React.useEffect(() => {
+    window.firebase.database().ref("users/" + uid).once("value").then(snap => {
+      const u = snap.val();
+      setOk(!!(u && u.active !== false && window.hasRole(window.userRoles(u), "admin")));
+    }, () => setOk(false));
+  }, [uid]);
+  if (ok === undefined) return React.createElement(LnSplash, {
+    text: "\u0E01\u0E33\u0E25\u0E31\u0E07\u0E40\u0E02\u0E49\u0E32\u0E2A\u0E39\u0E48\u0E23\u0E30\u0E1A\u0E1A\u2026"
+  });
+  return ok ? children : React.createElement(LnGateLine, null, children);
+}
 function LnGate({
+  children
+}) {
+  const [self] = React.useState(lnWebSelf);
+  if (self) return React.createElement(LnAdminPass, {
+    uid: self
+  }, children);
+  return React.createElement(LnGateLine, null, children);
+}
+function LnGateLine({
   children
 }) {
   const s = useLnSession();

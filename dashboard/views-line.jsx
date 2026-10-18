@@ -128,6 +128,15 @@ function LnWebSwitch({ currentUser }) {
         <br />ช่างไม่ได้ใช้ทางนี้ (เขาเข้าจากเมนูในแชต) ปกติจึงควรปิดไว้ แล้วเปิดเฉพาะตอนจะใช้
       </div>
 
+      {/* แอดมินที่ล็อกอินเว็บอยู่ กดเข้าหน้าช่างได้เลย ไม่ต้องกรอกรหัสซ้ำ ไม่ขึ้นกับสวิตช์ข้างล่าง (ผู้ใช้สั่ง ต.ค. 2026)
+          เปิดเป็นหน้าต่างขนาดมือถือ · หน้า LIFF เช็กเองว่าเป็นแอดมินจริง (lnWebSelf ใน line.jsx) */}
+      <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap", marginBottom: 12 }}>
+        <button className="btn btn-pri" onClick={() => window.open("/liff.html?web=1", "lnPreview", "width=420,height=860")}>
+          {window.Icon ? <window.Icon name="phone" size={14} /> : null} เปิดหน้าช่าง (ในชื่อ {(currentUser || {}).name || "ฉัน"})
+        </button>
+        <span style={{ fontSize: 11.5, color: "var(--text-3)" }}>เฉพาะแอดมิน · เข้าได้เลยไม่ต้องใส่รหัส · ไม่ต้องเปิดสวิตช์ข้างล่าง</span>
+      </div>
+
       <div style={{ padding: "15px 17px", borderRadius: "var(--r-tile)", background: "var(--surface)",
         border: "none", boxShadow: gate.open ? "inset 0 0 0 1px " + tone : "var(--shadow-sm)" }}>
         <div style={{ display: "flex", alignItems: "center", gap: 12 }}>

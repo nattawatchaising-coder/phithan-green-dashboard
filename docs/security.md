@@ -60,6 +60,7 @@
 - `firebase-config.js` — `window.FBAUTH` + `window.FB_AUTH_READY` · `app.jsx` / `liff.html` รอ `FB_AUTH_READY` ก่อน mount (listener ที่ถูกปฏิเสธสิทธิ์ไม่ต่อใหม่เอง → เว็บ `location.reload()` หลังล็อกอิน)
 - `auth.jsx` — `sfServerLogin` / `sfSignInToken` · เซสชันใช้ได้เมื่อ `FBAUTH uid === solarflow_session_v1` เท่านั้น (ตั้ง localStorage เองเข้าไม่ได้แล้ว) · เซิร์ฟเวอร์ตอบ fallback = เทียบ PIN ในเบราว์เซอร์แบบเดิมและจด `solarflow_auth_legacy=1` — พอเซิร์ฟเวอร์ตั้งค่าแล้ว เซสชันแบบเก่าถูกบังคับล็อกอินใหม่เอง
 - `line.jsx` — LIFF signIn ด้วย token จาก session/bind · หน้าเปิดนอก LINE (`LnWebForm`) ล็อกอินผ่านเซิร์ฟเวอร์
+- `line.jsx` `lnWebSelf`/`LnAdminPass` — ปุ่ม "เปิดหน้าช่าง" ในหน้าแจ้งเตือน LINE (`LnWebSwitch`) เปิด `/liff.html?web=1` · ข้าม LIFF ได้เฉพาะเมื่อ uid ของ Firebase Auth ตรงกับเซสชันใน localStorage **และ** บัญชีเป็นแอดมิน (ไม่ใช่ทางลัดรหัส — ต้องล็อกอินเว็บอยู่แล้ว) ไม่ผ่าน = ทางปกติ · ไม่ขึ้นกับสวิตช์ `config/lnWebLogin` (ผู้ใช้สั่ง ต.ค. 2026)
 
 - `tools/devserver.js` — ส่งต่อ `/api/auth/login` (เส้นเดียว) ไป `https://flashsolar.vercel.app` (เปลี่ยนด้วย env `DEV_API`) — localhost จึงได้ใบผ่านและอ่านข้อมูลได้หลังรัดกฎ · **เฉพาะตอนใช้ฐานจริง** — ถ้ามี `firebase-config.local.js` (ฐานทดสอบ) จะรัน `login.mjs` ในเครื่องด้วยกุญแจโปรเจกต์ทดสอบแทน ไม่ส่งต่อ (`docs/test-db.md`)
 
