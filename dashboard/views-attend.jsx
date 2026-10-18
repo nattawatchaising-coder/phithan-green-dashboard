@@ -719,6 +719,29 @@ function TmOfficeCfg({ office, onChange }) {
   );
 }
 
+/* วันหยุดตามประเพณีที่วันที่ตายตัว (ผู้ใช้สั่ง ต.ค. 2026: "เพิ่มวันหยุดตามปกติให้หน่อย")
+   วันพระ (มาฆะ วิสาขะ อาสาฬหะ เข้าพรรษา) ขยับตามจันทรคติทุกปี — ไม่เดา ให้แอดมินเพิ่มเองตามประกาศ
+   ตรงกับวันหยุดประจำสัปดาห์ของบริษัท → ชดเชยวันทำงานถัดไป (พ.ร.บ.คุ้มครองแรงงาน ม.29) */
+const TM_TH_HOLIDAYS = [["01-01", "วันขึ้นปีใหม่"], ["04-06", "วันจักรี"], ["04-13", "วันสงกรานต์"], ["04-14", "วันสงกรานต์"],
+  ["04-15", "วันสงกรานต์"], ["05-01", "วันแรงงานแห่งชาติ"], ["05-04", "วันฉัตรมงคล"], ["06-03", "วันเฉลิมพระชนมพรรษาพระราชินี"],
+  ["07-28", "วันเฉลิมพระชนมพรรษา ร.10"], ["08-12", "วันแม่แห่งชาติ"], ["10-13", "วันคล้ายวันสวรรคต ร.9"],
+  ["10-23", "วันปิยมหาราช"], ["12-05", "วันพ่อแห่งชาติ"], ["12-10", "วันรัฐธรรมนูญ"], ["12-31", "วันสิ้นปี"]];
+function tmThHolidays(y, f) {
+  const out = {}, have = Object.assign({}, f.holidays || {});
+  const work = (d) => (f.days || []).indexOf(tmWdOf(d)) >= 0;
+  TM_TH_HOLIDAYS.forEach(([md, th]) => {
+    const d = y + "-" + md;
+    if (have[d] || out[d]) return;   // มีอยู่แล้ว (รวมชดเชยของมัน) — ไม่ทับชื่อที่แอดมินตั้งเอง
+    out[d] = th;
+    if (!work(d)) {   // ตรงวันหยุดประจำสัปดาห์ → วันทำงานถัดไปที่ยังไม่ใช่วันหยุด
+      let n = window.drAddDays(d, 1);
+      while (!work(n) || have[n] || out[n] || TM_TH_HOLIDAYS.some(([m]) => y + "-" + m === n)) n = window.drAddDays(n, 1);
+      out[n] = "ชดเชย" + th;
+    }
+  });
+  return out;
+}
+
 function TmWorkHours({ cfg, onSave }) {
   const [f, setF] = React.useState(window.tmWhNorm(cfg));
   React.useEffect(() => { setF(window.tmWhNorm(cfg)); }, [cfg]);
@@ -849,9 +872,21 @@ function TmWorkHours({ cfg, onSave }) {
             style={{ padding: "9px 15px", borderRadius: "var(--r-chip)", border: "none", background: hDate ? "var(--primary)" : "var(--surface3)",
               color: hDate ? "#fff" : "var(--text-3)", cursor: hDate ? "pointer" : "default", fontFamily: "inherit", fontSize: 12.5, fontWeight: 800 }}>เพิ่ม</button>
         </div>
+        <div style={{ display: "flex", gap: 7, flexWrap: "wrap", alignItems: "center", marginBottom: 8 }}>
+          {[new Date().getFullYear(), new Date().getFullYear() + 1].map((y) => {
+            const add = tmThHolidays(y, f), n = Object.keys(add).length;
+            return (
+              <button key={y} className="btn btn-soft btn-sm" disabled={!n} onClick={() => set("holidays", Object.assign({}, f.holidays, add))}
+                title={n ? Object.keys(add).sort().map((d) => window.drDateTH(d) + " " + add[d]).join(" · ") : "เพิ่มครบแล้ว"}>
+                <Icon name="plus" size={13} sw={2.2} /> วันหยุดตามประเพณี ปี {y + 543}{n ? " (" + n + " วัน)" : " ✓"}
+              </button>
+            );
+          })}
+          <span style={{ fontSize: 11, color: "var(--text-3)" }}>วันพระ (มาฆะ · วิสาขะ · อาสาฬหะ · เข้าพรรษา) เปลี่ยนทุกปี เพิ่มเองตามประกาศ · กดแล้วอย่าลืมกดบันทึก</span>
+        </div>
         {Object.keys(f.holidays || {}).sort().map((d) => (
           <div key={d} style={{ display: "flex", alignItems: "center", gap: 9, padding: "7px 11px", borderBottom: "1px solid var(--divider)" }}>
-            <span style={{ fontFamily: "var(--mono)", fontSize: 12, color: "var(--text-2)" }}>{window.drDateTH(d)}</span>
+            <span style={{ fontFamily: "var(--mono)", fontSize: 12, color: "var(--text-2)", minWidth: 118 }}>{TM_WD_TH[tmWdOf(d)]} {window.drDateTH(d)}</span>
             <span style={{ fontSize: 12.5, color: "var(--text-1)" }}>{f.holidays[d]}</span>
             <button onClick={() => { const h = Object.assign({}, f.holidays); delete h[d]; set("holidays", h); }}
               style={{ marginLeft: "auto", border: "none", background: "none", cursor: "pointer", color: "var(--tint-red-tx2)", fontFamily: "inherit", fontSize: 12, fontWeight: 700 }}>ลบ</button>

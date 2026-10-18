@@ -1698,6 +1698,23 @@ function TmOfficeCfg({
     }
   }, "\u0E01\u0E14\u0E1B\u0E38\u0E48\u0E21 \u201C\u0E43\u0E0A\u0E49\u0E15\u0E33\u0E41\u0E2B\u0E19\u0E48\u0E07\u0E17\u0E35\u0E48\u0E22\u0E37\u0E19\u0E2D\u0E22\u0E39\u0E48\u0E15\u0E2D\u0E19\u0E19\u0E35\u0E49\u201D \u0E44\u0E14\u0E49\u0E40\u0E09\u0E1E\u0E32\u0E30\u0E15\u0E2D\u0E19\u0E17\u0E35\u0E48\u0E22\u0E37\u0E19\u0E2D\u0E22\u0E39\u0E48\u0E17\u0E35\u0E48\u0E2D\u0E2D\u0E1F\u0E1F\u0E34\u0E28\u0E08\u0E23\u0E34\u0E07 \u2014 \u0E01\u0E14\u0E08\u0E32\u0E01\u0E17\u0E35\u0E48\u0E1A\u0E49\u0E32\u0E19\u0E41\u0E25\u0E49\u0E27\u0E1E\u0E34\u0E01\u0E31\u0E14\u0E2D\u0E2D\u0E1F\u0E1F\u0E34\u0E28\u0E08\u0E30\u0E01\u0E25\u0E32\u0E22\u0E40\u0E1B\u0E47\u0E19\u0E1A\u0E49\u0E32\u0E19 \u0E42\u0E14\u0E22\u0E17\u0E35\u0E48\u0E44\u0E21\u0E48\u0E21\u0E35\u0E2D\u0E30\u0E44\u0E23\u0E40\u0E15\u0E37\u0E2D\u0E19", React.createElement("br", null), "\u0E1B\u0E01\u0E15\u0E34\u0E23\u0E30\u0E22\u0E30\u0E17\u0E35\u0E48\u0E41\u0E2A\u0E14\u0E07\u0E40\u0E1B\u0E47\u0E19\u0E02\u0E49\u0E2D\u0E21\u0E39\u0E25\u0E43\u0E2B\u0E49\u0E04\u0E19\u0E2D\u0E48\u0E32\u0E19\u0E15\u0E31\u0E14\u0E2A\u0E34\u0E19\u0E40\u0E2D\u0E07 \u0E23\u0E30\u0E1A\u0E1A\u0E44\u0E21\u0E48\u0E1A\u0E25\u0E47\u0E2D\u0E01\u0E01\u0E32\u0E23\u0E25\u0E07\u0E40\u0E27\u0E25\u0E32\u0E40\u0E1E\u0E23\u0E32\u0E30\u0E2D\u0E22\u0E39\u0E48\u0E44\u0E01\u0E25 \u0E08\u0E30\u0E1A\u0E25\u0E47\u0E2D\u0E01\u0E01\u0E47\u0E15\u0E48\u0E2D\u0E40\u0E21\u0E37\u0E48\u0E2D\u0E40\u0E1B\u0E34\u0E14 ", React.createElement("b", null, "\u0E25\u0E47\u0E2D\u0E01\u0E1E\u0E34\u0E01\u0E31\u0E14"), " \u0E43\u0E19\u0E01\u0E25\u0E48\u0E2D\u0E07\u0E02\u0E49\u0E32\u0E07\u0E25\u0E48\u0E32\u0E07\u0E40\u0E17\u0E48\u0E32\u0E19\u0E31\u0E49\u0E19", React.createElement("br", null), "\u0E43\u0E0A\u0E49\u0E01\u0E31\u0E1A\u0E04\u0E19\u0E17\u0E35\u0E48\u0E01\u0E14 \u201C\u0E2D\u0E2D\u0E1F\u0E1F\u0E34\u0E28\u201D \u0E40\u0E17\u0E48\u0E32\u0E19\u0E31\u0E49\u0E19 \xB7 \u0E07\u0E32\u0E19\u0E2B\u0E19\u0E49\u0E32\u0E44\u0E0B\u0E15\u0E4C\u0E40\u0E17\u0E35\u0E22\u0E1A\u0E23\u0E30\u0E22\u0E30\u0E44\u0E21\u0E48\u0E44\u0E14\u0E49 \u0E40\u0E1E\u0E23\u0E32\u0E30\u0E23\u0E30\u0E1A\u0E1A\u0E22\u0E31\u0E07\u0E44\u0E21\u0E48\u0E21\u0E35\u0E1E\u0E34\u0E01\u0E31\u0E14\u0E44\u0E0B\u0E15\u0E4C\u0E17\u0E35\u0E48\u0E40\u0E0A\u0E37\u0E48\u0E2D\u0E16\u0E37\u0E2D\u0E44\u0E14\u0E49")));
 }
+const TM_TH_HOLIDAYS = [["01-01", "วันขึ้นปีใหม่"], ["04-06", "วันจักรี"], ["04-13", "วันสงกรานต์"], ["04-14", "วันสงกรานต์"], ["04-15", "วันสงกรานต์"], ["05-01", "วันแรงงานแห่งชาติ"], ["05-04", "วันฉัตรมงคล"], ["06-03", "วันเฉลิมพระชนมพรรษาพระราชินี"], ["07-28", "วันเฉลิมพระชนมพรรษา ร.10"], ["08-12", "วันแม่แห่งชาติ"], ["10-13", "วันคล้ายวันสวรรคต ร.9"], ["10-23", "วันปิยมหาราช"], ["12-05", "วันพ่อแห่งชาติ"], ["12-10", "วันรัฐธรรมนูญ"], ["12-31", "วันสิ้นปี"]];
+function tmThHolidays(y, f) {
+  const out = {},
+    have = Object.assign({}, f.holidays || {});
+  const work = d => (f.days || []).indexOf(tmWdOf(d)) >= 0;
+  TM_TH_HOLIDAYS.forEach(([md, th]) => {
+    const d = y + "-" + md;
+    if (have[d] || out[d]) return;
+    out[d] = th;
+    if (!work(d)) {
+      let n = window.drAddDays(d, 1);
+      while (!work(n) || have[n] || out[n] || TM_TH_HOLIDAYS.some(([m]) => y + "-" + m === n)) n = window.drAddDays(n, 1);
+      out[n] = "ชดเชย" + th;
+    }
+  });
+  return out;
+}
 function TmWorkHours({
   cfg,
   onSave
@@ -2009,7 +2026,34 @@ function TmWorkHours({
       fontSize: 12.5,
       fontWeight: 800
     }
-  }, "\u0E40\u0E1E\u0E34\u0E48\u0E21")), Object.keys(f.holidays || {}).sort().map(d => React.createElement("div", {
+  }, "\u0E40\u0E1E\u0E34\u0E48\u0E21")), React.createElement("div", {
+    style: {
+      display: "flex",
+      gap: 7,
+      flexWrap: "wrap",
+      alignItems: "center",
+      marginBottom: 8
+    }
+  }, [new Date().getFullYear(), new Date().getFullYear() + 1].map(y => {
+    const add = tmThHolidays(y, f),
+      n = Object.keys(add).length;
+    return React.createElement("button", {
+      key: y,
+      className: "btn btn-soft btn-sm",
+      disabled: !n,
+      onClick: () => set("holidays", Object.assign({}, f.holidays, add)),
+      title: n ? Object.keys(add).sort().map(d => window.drDateTH(d) + " " + add[d]).join(" · ") : "เพิ่มครบแล้ว"
+    }, React.createElement(Icon, {
+      name: "plus",
+      size: 13,
+      sw: 2.2
+    }), " \u0E27\u0E31\u0E19\u0E2B\u0E22\u0E38\u0E14\u0E15\u0E32\u0E21\u0E1B\u0E23\u0E30\u0E40\u0E1E\u0E13\u0E35 \u0E1B\u0E35 ", y + 543, n ? " (" + n + " วัน)" : " ✓");
+  }), React.createElement("span", {
+    style: {
+      fontSize: 11,
+      color: "var(--text-3)"
+    }
+  }, "\u0E27\u0E31\u0E19\u0E1E\u0E23\u0E30 (\u0E21\u0E32\u0E06\u0E30 \xB7 \u0E27\u0E34\u0E2A\u0E32\u0E02\u0E30 \xB7 \u0E2D\u0E32\u0E2A\u0E32\u0E2C\u0E2B\u0E30 \xB7 \u0E40\u0E02\u0E49\u0E32\u0E1E\u0E23\u0E23\u0E29\u0E32) \u0E40\u0E1B\u0E25\u0E35\u0E48\u0E22\u0E19\u0E17\u0E38\u0E01\u0E1B\u0E35 \u0E40\u0E1E\u0E34\u0E48\u0E21\u0E40\u0E2D\u0E07\u0E15\u0E32\u0E21\u0E1B\u0E23\u0E30\u0E01\u0E32\u0E28 \xB7 \u0E01\u0E14\u0E41\u0E25\u0E49\u0E27\u0E2D\u0E22\u0E48\u0E32\u0E25\u0E37\u0E21\u0E01\u0E14\u0E1A\u0E31\u0E19\u0E17\u0E36\u0E01")), Object.keys(f.holidays || {}).sort().map(d => React.createElement("div", {
     key: d,
     style: {
       display: "flex",
@@ -2022,9 +2066,10 @@ function TmWorkHours({
     style: {
       fontFamily: "var(--mono)",
       fontSize: 12,
-      color: "var(--text-2)"
+      color: "var(--text-2)",
+      minWidth: 118
     }
-  }, window.drDateTH(d)), React.createElement("span", {
+  }, TM_WD_TH[tmWdOf(d)], " ", window.drDateTH(d)), React.createElement("span", {
     style: {
       fontSize: 12.5,
       color: "var(--text-1)"
