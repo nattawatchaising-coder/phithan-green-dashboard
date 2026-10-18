@@ -475,7 +475,7 @@ function LnClock({ me, cfg, jobs, ot, onAskOt }) {
   const shifts = (today && Array.isArray(today.extra) ? today.extra : [])
     .filter((x) => x && x.in && x.in.hm);
   const jobPick = React.useMemo(
-    () => (jobs || []).filter((j) => jobType === "all" || jobType === "txt" || j.type === jobType).slice(0, 80),
+    () => (jobs || []).filter((j) => jobType === "all" || j.type === jobType).slice(0, 80),
     [jobs, jobType]);
 
   /* งานที่ไม่มีในระบบ เช่น สำรวจลูกค้าใหม่ (ผู้ใช้ ต.ค. 2026) — พิมพ์เอง เก็บลง jobCode ตรง ๆ ไม่มี jobId
@@ -483,7 +483,7 @@ function LnClock({ me, cfg, jobs, ot, onAskOt }) {
   const [jobTxt, setJobTxt] = React.useState("");
   React.useEffect(() => {
     if (today && today.jobId) setJobId(today.jobId);
-    else if (today && today.jobCode) { setJobId(LN_JOB_TXT); setJobTxt(today.jobCode); setJobType("txt"); }
+    else if (today && today.jobCode) { setJobId(LN_JOB_TXT); setJobTxt(today.jobCode); }
     if (today && today.place) setPlace(today.place);
   }, [today && today.jobId, today && today.jobCode, today && today.place]);
 
@@ -598,17 +598,18 @@ function LnClock({ me, cfg, jobs, ot, onAskOt }) {
         <div style={{ marginTop: 12 }}>
           <div style={{ fontSize: 11.5, fontWeight: 700, color: "var(--text-3)", marginBottom: 5 }}>วันนี้ไปงานไหน (ไม่บังคับ)</div>
           {/* ชิปประเภทงาน — ตัดรายการใน select ให้สั้นลงก่อนหา
-              ไม่ได้กรองใบลงเวลา — เลือกงานไหนก็บันทึกงานนั้น ชิปนี้แค่ช่วยหา */}
+              ไม่ได้กรองใบลงเวลา — เลือกงานไหนก็บันทึกงานนั้น ชิปนี้แค่ช่วยหา
+              ไม่มีชิป "ทั้งหมด"/"พิมพ์เอง" แล้ว (ผู้ใช้สั่ง ต.ค. 2026): ไม่เลือกชิป = เห็นทุกงาน · กดชิปเดิมซ้ำ = ยกเลิกกรอง
+              พิมพ์เอง = ลิงก์เล็กใต้ช่อง (ใส่ในดรอปดาวน์ผู้ใช้เคยบอกว่าดูไม่ดี) */}
+          {jobId !== LN_JOB_TXT && (
           <div style={{ display: "flex", gap: 4, padding: 4, marginBottom: 7, borderRadius: "var(--r-tile)", background: "var(--surface3)" }}>
-            {/* "พิมพ์เอง" เป็นชิปตัวสุดท้าย ไม่ใส่ไว้ในดรอปดาวน์ (ผู้ใช้: ใส่ในดรอปดาวน์แล้วดูไม่ดี) */}
-            {[{ key: "all", th: "ทั้งหมด" }].concat(window.SF.TYPES, [{ key: "txt", th: "พิมพ์เอง" }]).map((t) => (
+            {window.SF.TYPES.map((t) => (
               <button key={t.key} onClick={() => {
-                setJobType(t.key);
-                if (t.key === "txt") { setJobId(LN_JOB_TXT); return; }
-                if (jobId === LN_JOB_TXT) { setJobId(""); return; }
+                const k = jobType === t.key ? "all" : t.key;
+                setJobType(k);
                 /* งานที่เลือกค้างไว้หลุดจากรายการแล้วต้องล้าง ไม่งั้นจะค้างอยู่แบบมองไม่เห็น */
                 const cur = (jobs || []).find((x) => x.id === jobId);
-                if (cur && t.key !== "all" && cur.type !== t.key) setJobId("");
+                if (cur && k !== "all" && cur.type !== k) setJobId("");
               }}
                 style={{ flex: 1, minWidth: 0, padding: "8px 4px", borderRadius: "var(--r-chip)", cursor: "pointer", fontFamily: "inherit",
                   fontSize: 12.5, fontWeight: 800, whiteSpace: "nowrap", border: "none",
@@ -619,6 +620,7 @@ function LnClock({ me, cfg, jobs, ot, onAskOt }) {
               </button>
             ))}
           </div>
+          )}
           {jobId === LN_JOB_TXT
             ? <input value={jobTxt} onChange={(e) => setJobTxt(e.target.value)} maxLength={80}
                 placeholder="ทำงานอะไร เช่น สำรวจลูกค้าใหม่ บางนา" style={LN_FIELD} />
@@ -629,6 +631,11 @@ function LnClock({ me, cfg, jobs, ot, onAskOt }) {
           {jobPick.length === 0 && jobId !== LN_JOB_TXT && (
             <div style={{ marginTop: 5, fontSize: 11, color: "var(--text-3)" }}>ไม่มีงานประเภทนี้ในมือ — ลงเวลาโดยไม่ระบุงานก็ได้</div>
           )}
+          <button onClick={() => { if (jobId === LN_JOB_TXT) setJobId(""); else { setJobType("all"); setJobId(LN_JOB_TXT); } }}
+            style={{ marginTop: 6, padding: "2px 0", border: "none", background: "transparent", cursor: "pointer",
+              fontFamily: "inherit", fontSize: 12, fontWeight: 700, color: "var(--primary-dark)" }}>
+            {jobId === LN_JOB_TXT ? "← เลือกจากรายการงาน" : "ไม่มีในรายการ? พิมพ์เอง"}
+          </button>
         </div>
       )}
 

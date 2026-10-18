@@ -762,13 +762,12 @@ function LnClock({
   const left = Math.max(0, window.tmWhNorm(cfg).workMins - worked);
   const closed = !open && !!(today && today.in && today.in.hm);
   const shifts = (today && Array.isArray(today.extra) ? today.extra : []).filter(x => x && x.in && x.in.hm);
-  const jobPick = React.useMemo(() => (jobs || []).filter(j => jobType === "all" || jobType === "txt" || j.type === jobType).slice(0, 80), [jobs, jobType]);
+  const jobPick = React.useMemo(() => (jobs || []).filter(j => jobType === "all" || j.type === jobType).slice(0, 80), [jobs, jobType]);
   const [jobTxt, setJobTxt] = React.useState("");
   React.useEffect(() => {
     if (today && today.jobId) setJobId(today.jobId);else if (today && today.jobCode) {
       setJobId(LN_JOB_TXT);
       setJobTxt(today.jobCode);
-      setJobType("txt");
     }
     if (today && today.place) setPlace(today.place);
   }, [today && today.jobId, today && today.jobCode, today && today.place]);
@@ -963,7 +962,7 @@ function LnClock({
       color: "var(--text-3)",
       marginBottom: 5
     }
-  }, "\u0E27\u0E31\u0E19\u0E19\u0E35\u0E49\u0E44\u0E1B\u0E07\u0E32\u0E19\u0E44\u0E2B\u0E19 (\u0E44\u0E21\u0E48\u0E1A\u0E31\u0E07\u0E04\u0E31\u0E1A)"), React.createElement("div", {
+  }, "\u0E27\u0E31\u0E19\u0E19\u0E35\u0E49\u0E44\u0E1B\u0E07\u0E32\u0E19\u0E44\u0E2B\u0E19 (\u0E44\u0E21\u0E48\u0E1A\u0E31\u0E07\u0E04\u0E31\u0E1A)"), jobId !== LN_JOB_TXT && React.createElement("div", {
     style: {
       display: "flex",
       gap: 4,
@@ -972,26 +971,13 @@ function LnClock({
       borderRadius: "var(--r-tile)",
       background: "var(--surface3)"
     }
-  }, [{
-    key: "all",
-    th: "ทั้งหมด"
-  }].concat(window.SF.TYPES, [{
-    key: "txt",
-    th: "พิมพ์เอง"
-  }]).map(t => React.createElement("button", {
+  }, window.SF.TYPES.map(t => React.createElement("button", {
     key: t.key,
     onClick: () => {
-      setJobType(t.key);
-      if (t.key === "txt") {
-        setJobId(LN_JOB_TXT);
-        return;
-      }
-      if (jobId === LN_JOB_TXT) {
-        setJobId("");
-        return;
-      }
+      const k = jobType === t.key ? "all" : t.key;
+      setJobType(k);
       const cur = (jobs || []).find(x => x.id === jobId);
-      if (cur && t.key !== "all" && cur.type !== t.key) setJobId("");
+      if (cur && k !== "all" && cur.type !== k) setJobId("");
     },
     style: {
       flex: 1,
@@ -1029,7 +1015,25 @@ function LnClock({
       fontSize: 11,
       color: "var(--text-3)"
     }
-  }, "\u0E44\u0E21\u0E48\u0E21\u0E35\u0E07\u0E32\u0E19\u0E1B\u0E23\u0E30\u0E40\u0E20\u0E17\u0E19\u0E35\u0E49\u0E43\u0E19\u0E21\u0E37\u0E2D \u2014 \u0E25\u0E07\u0E40\u0E27\u0E25\u0E32\u0E42\u0E14\u0E22\u0E44\u0E21\u0E48\u0E23\u0E30\u0E1A\u0E38\u0E07\u0E32\u0E19\u0E01\u0E47\u0E44\u0E14\u0E49")), !closed && React.createElement("button", {
+  }, "\u0E44\u0E21\u0E48\u0E21\u0E35\u0E07\u0E32\u0E19\u0E1B\u0E23\u0E30\u0E40\u0E20\u0E17\u0E19\u0E35\u0E49\u0E43\u0E19\u0E21\u0E37\u0E2D \u2014 \u0E25\u0E07\u0E40\u0E27\u0E25\u0E32\u0E42\u0E14\u0E22\u0E44\u0E21\u0E48\u0E23\u0E30\u0E1A\u0E38\u0E07\u0E32\u0E19\u0E01\u0E47\u0E44\u0E14\u0E49"), React.createElement("button", {
+    onClick: () => {
+      if (jobId === LN_JOB_TXT) setJobId("");else {
+        setJobType("all");
+        setJobId(LN_JOB_TXT);
+      }
+    },
+    style: {
+      marginTop: 6,
+      padding: "2px 0",
+      border: "none",
+      background: "transparent",
+      cursor: "pointer",
+      fontFamily: "inherit",
+      fontSize: 12,
+      fontWeight: 700,
+      color: "var(--primary-dark)"
+    }
+  }, jobId === LN_JOB_TXT ? "← เลือกจากรายการงาน" : "ไม่มีในรายการ? พิมพ์เอง")), !closed && React.createElement("button", {
     onClick: () => go(false),
     disabled: busy,
     style: Object.assign({}, LN_BTN, {
