@@ -740,7 +740,9 @@ function LnClock({
   cfg,
   jobs,
   ot,
-  onAskOt
+  onAskOt,
+  ym,
+  onYm
 }) {
   const at = window.useAttend(me ? me.id : null, 95);
   const writer = window.useAttendWriter(me, cfg);
@@ -1097,7 +1099,9 @@ function LnClock({
     rows: at.rows,
     cfg: cfg,
     ot: ot,
-    onAskOt: onAskOt
+    onAskOt: onAskOt,
+    ym: ym,
+    onYm: onYm
   }));
 }
 const LN_MON_TH = ["มกราคม", "กุมภาพันธ์", "มีนาคม", "เมษายน", "พฤษภาคม", "มิถุนายน", "กรกฎาคม", "สิงหาคม", "กันยายน", "ตุลาคม", "พฤศจิกายน", "ธันวาคม"];
@@ -1116,10 +1120,14 @@ function LnClockCal({
   rows,
   cfg,
   ot,
-  onAskOt
+  onAskOt,
+  ym: ymIn,
+  onYm
 }) {
   const today = window.drToday();
-  const [ym, setYm] = React.useState(today.slice(0, 7));
+  const [ymOwn, setYmOwn] = React.useState(today.slice(0, 7));
+  const ym = ymIn || ymOwn,
+    setYm = onYm || setYmOwn;
   const [pick, setPick] = React.useState(today);
   const byDay = React.useMemo(() => {
     const m = {};
@@ -1763,7 +1771,7 @@ function LnOtSummary({
       color: "var(--text-2)",
       whiteSpace: "nowrap"
     }
-  }, React.createElement("button", {
+  }, onShift && React.createElement("button", {
     onClick: () => onShift(-1),
     "aria-label": "\u0E40\u0E14\u0E37\u0E2D\u0E19\u0E01\u0E48\u0E2D\u0E19\u0E2B\u0E19\u0E49\u0E32",
     style: arrow
@@ -1775,9 +1783,10 @@ function LnOtSummary({
     style: {
       color: "var(--text-1)",
       minWidth: 30,
-      textAlign: "center"
+      textAlign: "center",
+      paddingLeft: onShift ? 0 : 6
     }
-  }, LN_MON_SH[mo - 1]), React.createElement("button", {
+  }, LN_MON_SH[mo - 1]), onShift && React.createElement("button", {
     onClick: () => onShift(1),
     "aria-label": "\u0E40\u0E14\u0E37\u0E2D\u0E19\u0E16\u0E31\u0E14\u0E44\u0E1B",
     style: arrow
@@ -1907,6 +1916,8 @@ function LnTimeTab({
     cfg: wh.cfg,
     jobs: jobs,
     ot: myOt,
+    ym: otYm,
+    onYm: setOtYm,
     onAskOt: window.tmCanOt(role) ? lim => {
       setLimit(lim);
       setForm(true);
@@ -1945,7 +1956,7 @@ function LnTimeTab({
     rows: myOtM,
     cfg: wh.cfg,
     ym: otYm,
-    onShift: shiftOtYm
+    onShift: window.tmCanAttend(role) ? null : shiftOtYm
   })), React.createElement("button", {
     onClick: () => {
       setLimit(null);

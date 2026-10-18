@@ -436,7 +436,7 @@ function lnOffTH(d, cfg) {
   return "วันหยุด · " + (n || LN_WD_FULL[new Date(d + "T00:00:00").getDay()]);
 }
 
-function LnClock({ me, cfg, jobs, ot, onAskOt }) {
+function LnClock({ me, cfg, jobs, ot, onAskOt, ym, onYm }) {
   /* 95 วัน ไม่ใช่ 14 — ปฏิทินเปิดย้อนไปได้สองเดือน ถ้าดึงมาแค่ 14 วัน เดือนก่อนจะว่างทั้งเดือน
      ทั้งที่มีใบอยู่จริง ซึ่งอ่านแล้วเข้าใจผิดว่า "ไม่ได้ลงเวลา" ไม่ใช่ "ยังไม่ได้โหลดมา" */
   const at = window.useAttend(me ? me.id : null, 95);
@@ -681,7 +681,7 @@ function LnClock({ me, cfg, jobs, ot, onAskOt }) {
 
       {/* ข้อความเรื่องพิกัดใต้ปุ่มเอาออกแล้ว (ผู้ใช้สั่ง ต.ค. 2026) */}
 
-      <LnClockCal rows={at.rows} cfg={cfg} ot={ot} onAskOt={onAskOt} />
+      <LnClockCal rows={at.rows} cfg={cfg} ot={ot} onAskOt={onAskOt} ym={ym} onYm={onYm} />
     </div>
   );
 }
@@ -716,9 +716,11 @@ function lnCalDots(k, rec, otg, today, cfg) {
   return [];
 }
 
-function LnClockCal({ rows, cfg, ot, onAskOt }) {
+/* ym/onYm ส่งมา = เดือนคุมจากข้างนอก (สรุป OT ใต้ปฏิทินเปลี่ยนตามเดือนนี้ — ผู้ใช้สั่ง ต.ค. 2026 "เลื่อนแค่ด้านบนแล้วเปลี่ยนตาม") */
+function LnClockCal({ rows, cfg, ot, onAskOt, ym: ymIn, onYm }) {
   const today = window.drToday();
-  const [ym, setYm] = React.useState(today.slice(0, 7));
+  const [ymOwn, setYmOwn] = React.useState(today.slice(0, 7));
+  const ym = ymIn || ymOwn, setYm = onYm || setYmOwn;
   const [pick, setPick] = React.useState(today);
   const byDay = React.useMemo(() => {
     const m = {};
@@ -1085,9 +1087,10 @@ function LnOtSummary({ rows, cfg, ym, onShift }) {
     <div title={tip ? "อนุมัติแล้ว: " + tip : ""}
       style={{ display: "flex", alignItems: "center", gap: 2, minWidth: 0, padding: "3px 8px 3px 3px", borderRadius: 99,
         background: "var(--surface2)", boxShadow: "var(--shadow-inset)", fontSize: 11.5, color: "var(--text-2)", whiteSpace: "nowrap" }}>
-      <button onClick={() => onShift(-1)} aria-label="เดือนก่อนหน้า" style={arrow}><Icon name="chevronLeft" size={13} color="var(--text-3)" /></button>
-      <b style={{ color: "var(--text-1)", minWidth: 30, textAlign: "center" }}>{LN_MON_SH[mo - 1]}</b>
-      <button onClick={() => onShift(1)} aria-label="เดือนถัดไป" style={arrow}><Icon name="chevronRight" size={13} color="var(--text-3)" /></button>
+      {/* เลื่อนเดือนที่ปฏิทินด้านบนที่เดียว — ลูกศรที่นี่มีเฉพาะบัญชีที่ไม่มีปฏิทินลงเวลา (onShift ส่งมา) */}
+      {onShift && <button onClick={() => onShift(-1)} aria-label="เดือนก่อนหน้า" style={arrow}><Icon name="chevronLeft" size={13} color="var(--text-3)" /></button>}
+      <b style={{ color: "var(--text-1)", minWidth: 30, textAlign: "center", paddingLeft: onShift ? 0 : 6 }}>{LN_MON_SH[mo - 1]}</b>
+      {onShift && <button onClick={() => onShift(1)} aria-label="เดือนถัดไป" style={arrow}><Icon name="chevronRight" size={13} color="var(--text-3)" /></button>}
       {/* สองบรรทัดเล็ก — จอมือถือแถวหัวเหลือที่ไม่ถึง 160px บรรทัดเดียวโดนตัด */}
       <span style={{ marginLeft: 4, display: "grid", lineHeight: 1.15, minWidth: 0 }}>
         <span><b style={{ fontFamily: "var(--mono)", fontWeight: 800, color: "var(--text-1)" }}>{hrs(sum.ok)}</b> ชม.
@@ -1171,7 +1174,7 @@ function LnTimeTab({ me, users, role, jobs, startOt, startSub }) {
         : (
         <React.Fragment>
           {window.tmCanAttend(role)
-            ? <LnClock me={me} cfg={wh.cfg} jobs={jobs} ot={myOt}
+            ? <LnClock me={me} cfg={wh.cfg} jobs={jobs} ot={myOt} ym={otYm} onYm={setOtYm}
                 onAskOt={window.tmCanOt(role) ? ((lim) => { setLimit(lim); setForm(true); }) : null} />
             : <div style={{ padding: 34, textAlign: "center", color: "var(--text-3)", fontSize: 13.5 }}>
                 บัญชีนี้ยังไม่ได้เปิดสิทธิ์ลงเวลา
@@ -1182,7 +1185,7 @@ function LnTimeTab({ me, users, role, jobs, startOt, startSub }) {
               <div style={{ display: "flex", alignItems: "center", gap: 9, margin: "0 4px 9px" }}>
                 <b style={{ fontSize: 13, color: "var(--text-1)", flexShrink: 0 }}>ใบขอ OT ของฉัน</b>
                 <div style={{ marginLeft: "auto", minWidth: 0, display: "flex" }}>
-                  <LnOtSummary rows={myOtM} cfg={wh.cfg} ym={otYm} onShift={shiftOtYm} />
+                  <LnOtSummary rows={myOtM} cfg={wh.cfg} ym={otYm} onShift={window.tmCanAttend(role) ? null : shiftOtYm} />
                 </div>
                 <button onClick={() => { setLimit(null); setForm(true); }}
                   style={{ flexShrink: 0, whiteSpace: "nowrap", padding: "8px 15px", borderRadius: 99, border: "none",
