@@ -994,28 +994,40 @@ function LnClock({
       background: jobType === t.key ? "var(--surface)" : "transparent",
       color: jobType === t.key ? "var(--primary-dark)" : "var(--text-3)"
     }
-  }, t.th))), jobId === LN_JOB_TXT ? React.createElement("input", {
+  }, t.th))), React.createElement("div", {
+    style: {
+      display: "flex",
+      gap: 8,
+      alignItems: "stretch"
+    }
+  }, React.createElement("div", {
+    style: {
+      flex: 1,
+      minWidth: 0
+    }
+  }, jobId === LN_JOB_TXT ? React.createElement("input", {
     value: jobTxt,
     onChange: e => setJobTxt(e.target.value),
     maxLength: 80,
-    placeholder: "\u0E17\u0E33\u0E07\u0E32\u0E19\u0E2D\u0E30\u0E44\u0E23 \u0E40\u0E0A\u0E48\u0E19 \u0E2A\u0E33\u0E23\u0E27\u0E08\u0E25\u0E39\u0E01\u0E04\u0E49\u0E32\u0E43\u0E2B\u0E21\u0E48 \u0E1A\u0E32\u0E07\u0E19\u0E32",
-    style: LN_FIELD
+    autoFocus: true,
+    placeholder: "\u0E17\u0E33\u0E07\u0E32\u0E19\u0E2D\u0E30\u0E44\u0E23 \u0E40\u0E0A\u0E48\u0E19 \u0E2A\u0E33\u0E23\u0E27\u0E08\u0E25\u0E39\u0E01\u0E04\u0E49\u0E32\u0E43\u0E2B\u0E21\u0E48",
+    style: Object.assign({}, LN_FIELD, {
+      boxSizing: "border-box",
+      height: "100%"
+    })
   }) : React.createElement("select", {
     value: jobId,
     onChange: e => setJobId(e.target.value),
-    style: LN_FIELD
+    style: Object.assign({}, LN_FIELD, {
+      boxSizing: "border-box",
+      height: "100%"
+    })
   }, React.createElement("option", {
     value: ""
   }, "\u2014 \u0E44\u0E21\u0E48\u0E23\u0E30\u0E1A\u0E38 \u2014"), jobPick.map(j => React.createElement("option", {
     key: j.id,
     value: j.id
-  }, j.code, " \xB7 ", j.name))), jobPick.length === 0 && jobId !== LN_JOB_TXT && React.createElement("div", {
-    style: {
-      marginTop: 5,
-      fontSize: 11,
-      color: "var(--text-3)"
-    }
-  }, "\u0E44\u0E21\u0E48\u0E21\u0E35\u0E07\u0E32\u0E19\u0E1B\u0E23\u0E30\u0E40\u0E20\u0E17\u0E19\u0E35\u0E49\u0E43\u0E19\u0E21\u0E37\u0E2D \u2014 \u0E25\u0E07\u0E40\u0E27\u0E25\u0E32\u0E42\u0E14\u0E22\u0E44\u0E21\u0E48\u0E23\u0E30\u0E1A\u0E38\u0E07\u0E32\u0E19\u0E01\u0E47\u0E44\u0E14\u0E49"), React.createElement("button", {
+  }, j.code, " \xB7 ", j.name)))), React.createElement("button", {
     onClick: () => {
       if (jobId === LN_JOB_TXT) setJobId("");else {
         setJobType("all");
@@ -1023,17 +1035,33 @@ function LnClock({
       }
     },
     style: {
-      marginTop: 6,
-      padding: "2px 0",
+      flexShrink: 0,
+      display: "inline-flex",
+      alignItems: "center",
+      gap: 6,
+      padding: "0 14px",
+      borderRadius: "var(--r-tile)",
       border: "none",
-      background: "transparent",
+      boxShadow: "var(--shadow-sm)",
+      background: "var(--surface)",
       cursor: "pointer",
       fontFamily: "inherit",
-      fontSize: 12,
-      fontWeight: 700,
-      color: "var(--primary-dark)"
+      fontSize: 13,
+      fontWeight: 800,
+      color: "var(--primary-dark)",
+      whiteSpace: "nowrap"
     }
-  }, jobId === LN_JOB_TXT ? "← เลือกจากรายการงาน" : "ไม่มีในรายการ? พิมพ์เอง")), !closed && React.createElement("button", {
+  }, React.createElement(Icon, {
+    name: jobId === LN_JOB_TXT ? "list" : "pen",
+    size: 15,
+    color: "var(--primary-dark)"
+  }), jobId === LN_JOB_TXT ? "รายการ" : "พิมพ์เอง")), jobPick.length === 0 && jobId !== LN_JOB_TXT && React.createElement("div", {
+    style: {
+      marginTop: 5,
+      fontSize: 11,
+      color: "var(--text-3)"
+    }
+  }, "\u0E44\u0E21\u0E48\u0E21\u0E35\u0E07\u0E32\u0E19\u0E1B\u0E23\u0E30\u0E40\u0E20\u0E17\u0E19\u0E35\u0E49\u0E43\u0E19\u0E21\u0E37\u0E2D \u2014 \u0E01\u0E14 \"\u0E1E\u0E34\u0E21\u0E1E\u0E4C\u0E40\u0E2D\u0E07\" \u0E2B\u0E23\u0E37\u0E2D\u0E25\u0E07\u0E40\u0E27\u0E25\u0E32\u0E42\u0E14\u0E22\u0E44\u0E21\u0E48\u0E23\u0E30\u0E1A\u0E38\u0E07\u0E32\u0E19\u0E01\u0E47\u0E44\u0E14\u0E49")), !closed && React.createElement("button", {
     onClick: () => go(false),
     disabled: busy,
     style: Object.assign({}, LN_BTN, {

@@ -621,21 +621,28 @@ function LnClock({ me, cfg, jobs, ot, onAskOt }) {
             ))}
           </div>
           )}
-          {jobId === LN_JOB_TXT
-            ? <input value={jobTxt} onChange={(e) => setJobTxt(e.target.value)} maxLength={80}
-                placeholder="ทำงานอะไร เช่น สำรวจลูกค้าใหม่ บางนา" style={LN_FIELD} />
-            : <select value={jobId} onChange={(e) => setJobId(e.target.value)} style={LN_FIELD}>
-                <option value="">— ไม่ระบุ —</option>
-                {jobPick.map((j) => <option key={j.id} value={j.id}>{j.code} · {j.name}</option>)}
-              </select>}
+          {/* ปุ่ม "พิมพ์เอง" อยู่ข้างช่องเลือก กดแล้วช่องกลายเป็นช่องพิมพ์ (ผู้ใช้สั่ง ต.ค. 2026 ขอเป็นปุ่ม ไม่ใช่ลิงก์) */}
+          <div style={{ display: "flex", gap: 8, alignItems: "stretch" }}>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              {jobId === LN_JOB_TXT
+                ? <input value={jobTxt} onChange={(e) => setJobTxt(e.target.value)} maxLength={80} autoFocus
+                    placeholder="ทำงานอะไร เช่น สำรวจลูกค้าใหม่" style={Object.assign({}, LN_FIELD, { boxSizing: "border-box", height: "100%" })} />
+                : <select value={jobId} onChange={(e) => setJobId(e.target.value)} style={Object.assign({}, LN_FIELD, { boxSizing: "border-box", height: "100%" })}>
+                    <option value="">— ไม่ระบุ —</option>
+                    {jobPick.map((j) => <option key={j.id} value={j.id}>{j.code} · {j.name}</option>)}
+                  </select>}
+            </div>
+            <button onClick={() => { if (jobId === LN_JOB_TXT) setJobId(""); else { setJobType("all"); setJobId(LN_JOB_TXT); } }}
+              style={{ flexShrink: 0, display: "inline-flex", alignItems: "center", gap: 6, padding: "0 14px",
+                borderRadius: "var(--r-tile)", border: "none", boxShadow: "var(--shadow-sm)", background: "var(--surface)",
+                cursor: "pointer", fontFamily: "inherit", fontSize: 13, fontWeight: 800, color: "var(--primary-dark)", whiteSpace: "nowrap" }}>
+              <Icon name={jobId === LN_JOB_TXT ? "list" : "pen"} size={15} color="var(--primary-dark)" />
+              {jobId === LN_JOB_TXT ? "รายการ" : "พิมพ์เอง"}
+            </button>
+          </div>
           {jobPick.length === 0 && jobId !== LN_JOB_TXT && (
-            <div style={{ marginTop: 5, fontSize: 11, color: "var(--text-3)" }}>ไม่มีงานประเภทนี้ในมือ — ลงเวลาโดยไม่ระบุงานก็ได้</div>
+            <div style={{ marginTop: 5, fontSize: 11, color: "var(--text-3)" }}>ไม่มีงานประเภทนี้ในมือ — กด "พิมพ์เอง" หรือลงเวลาโดยไม่ระบุงานก็ได้</div>
           )}
-          <button onClick={() => { if (jobId === LN_JOB_TXT) setJobId(""); else { setJobType("all"); setJobId(LN_JOB_TXT); } }}
-            style={{ marginTop: 6, padding: "2px 0", border: "none", background: "transparent", cursor: "pointer",
-              fontFamily: "inherit", fontSize: 12, fontWeight: 700, color: "var(--primary-dark)" }}>
-            {jobId === LN_JOB_TXT ? "← เลือกจากรายการงาน" : "ไม่มีในรายการ? พิมพ์เอง"}
-          </button>
         </div>
       )}
 
