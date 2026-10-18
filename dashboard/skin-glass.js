@@ -180,6 +180,10 @@
     L + " [style*='position: absolute'][style*='background: var(--surface)']," + L + " [style*='position: fixed'][style*='background: var(--surface)']{--surface:rgba(250,252,252,.94)}",
     D + " [style*='position: absolute'][style*='background: var(--surface)']," + D + " [style*='position: fixed'][style*='background: var(--surface)']{--surface:rgba(30,33,44,.95)}",
     G + " [style*='position: absolute'][style*='background: var(--surface)']," + G + " [style*='position: fixed'][style*='background: var(--surface)']{-webkit-backdrop-filter:blur(28px) saturate(1.5);backdrop-filter:blur(28px) saturate(1.5)}",
+    /* แถบหัวของเอกสารพิมพ์ (ใบสรุป OT / ใบเบิก ฯลฯ) ติดบนขณะเลื่อน — โปร่งแล้วตัวเอกสารโผล่ทะลุ (ผู้ใช้ทัก ต.ค. 2026) */
+    L + " .sv-rep-noprint[style*='position: sticky']{--surface:rgba(250,252,252,.97)}",
+    D + " .sv-rep-noprint[style*='position: sticky']{--surface:rgba(30,33,44,.97)}",
+    G + " .sv-rep-noprint[style*='position: sticky']{-webkit-backdrop-filter:blur(20px);backdrop-filter:blur(20px)}",
 
     /* ปุ่มย่อ/ขยายแถบเมนู: แท็บครึ่งแคปซูลสีเขียวยื่นออกจากขอบขวาของแถบเมนู เหมือนหูลิ้นชัก (ผู้ใช้เลือกแบบ 2 จากตัวเลือก 6 แบบ)
        ไม่มีวงแหวนสีพื้น · มุมโค้งเฉพาะฝั่งขวา ฝั่งซ้ายแนบขอบเมนู · ชี้แล้วยืดออกนิดหนึ่ง */

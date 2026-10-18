@@ -873,13 +873,20 @@ function LnClockCal({ rows, cfg, ot, onAskOt }) {
    ฟอร์มสั้นที่สุดที่ยังมีความหมาย: วัน · ตั้งแต่-ถึง · เหตุผล
    ประเภท (ปกติ/วันหยุด/กลางคืน) เดาให้จากวันและเวลา ไม่ถาม —
    ช่างไม่ควรต้องจำว่าระเบียบบริษัทนับ "กลางคืน" เริ่มกี่โมง */
-function LnOtForm({ me, users, cfg, jobs, otStore, limit, onClose }) {
+/* edit = ใบเดิมที่ยังไม่มีใครตัดสิน (tmOtOpen) — แก้แล้วส่งใหม่ทับใบเดิม เลขใบ/ประวัติคงเดิม (ผู้ใช้สั่ง ต.ค. 2026) */
+function LnOtForm({ me, users, cfg, jobs, otStore, limit, edit, onClose }) {
   /* limit = ช่วงที่ทำเกินจริงจากใบลงเวลาวันนี้ (tmOtEarned) — ส่งมาเมื่อกดจากการ์ดลงเวลา
      มาทางนี้แล้ววันที่ล็อกและเวลาถูกตรึงอยู่ในช่วงที่อยู่ที่ทำงานจริง
      เปิดฟอร์มเปล่าจากปุ่ม "+ ขอ OT" ยังกรอกอิสระได้เหมือนเดิม */
   /* วิธีคิดใหม่ (ผู้ใช้ ต.ค. 2026 "ให้กดระบุช่วงทำ OT เองเลย") — limit ใช้แค่เติมค่าเริ่ม ไม่ล็อกวัน/เวลาแล้ว */
   const locked = !!(limit && limit.has && limit.mins > 0);
   const [f, setF] = React.useState(() => {
+    if (edit) {
+      const e = Object.assign({}, edit);
+      /* งานที่พิมพ์เอง เก็บไว้ใน jobCode ไม่มี jobId — เปิดกลับมาต้องเป็นช่องพิมพ์ */
+      if (!e.jobId && e.jobCode) { e.jobId = LN_JOB_TXT; e.jobTxt = e.jobCode; }
+      return e;
+    }
     const b = window.tmOtBlank(me, users, otStore.rows, null, cfg);
     /* กดมาจากปฏิทินจะส่งมาแค่ { date } — ตั้งวันให้ตามที่เลือก แต่ไม่ล็อกช่วงเวลา
        เพราะยังไม่รู้ว่าวันนั้นทำเกินจริงช่วงไหน (มีแต่วันที่กดจากใบลงเวลาวันนี้ถึงจะรู้) */
@@ -891,6 +898,7 @@ function LnOtForm({ me, users, cfg, jobs, otStore, limit, onClose }) {
       kind: window.tmOtKindGuess(limit.date || b.date, limit.from, cfg) });
   });
   const [sending, setSending] = React.useState(false);
+  const [err, setErr] = React.useState("");
 
   const set = (k, v) => setF((p) => {
     const n = Object.assign({}, p, { [k]: v });
@@ -907,21 +915,27 @@ function LnOtForm({ me, users, cfg, jobs, otStore, limit, onClose }) {
 
   const send = () => {
     if (!ready || sending) return;
+    /* ระหว่างแก้ หัวหน้าอาจอนุมัติ/ไม่อนุมัติไปแล้ว — ห้ามเขียนทับผลตัดสิน */
+    if (edit) {
+      const now = (otStore.rows || []).find((x) => x.id === edit.id);
+      if (now && !window.tmOtOpen(now)) { setErr("ใบนี้ถูก" + window.tmOtStatusOf(now.status).th + "ไปแล้ว แก้ไม่ได้"); return; }
+    }
     setSending(true);
     const txt = f.jobId === LN_JOB_TXT ? String(f.jobTxt || "").trim().slice(0, 80) : "";
     const j = txt ? null : (jobs || []).find((x) => x.id === f.jobId);
     const base = Object.assign({}, calc, { jobId: j ? j.id : null, jobCode: j ? j.code : txt });
     delete base.jobTxt;
-    const rec = window.tmOtMove(base, "sent", me, "");
+    const rec = window.tmOtMove(base, "sent", me, edit ? "แก้ไขใบ" : "");
     otStore.save(rec);
     const when = window.drShort(rec.date) + " " + rec.from + "-" + rec.to;
+    const head = (edit ? "แก้ไขใบขอ OT · " : "ขออนุมัติ OT · ") + rec.no;
     /* เตือนคนอนุมัติ — ถ้าโปรไฟล์ไม่ได้ตั้งผู้อนุมัติไว้ ส่งเข้ากองกลางแทน
        (กฎเดียวกับหน้าเดสก์ท็อป ใบต้องไม่ค้างเงียบรอคนที่ไม่มีอยู่จริง) */
     if (rec.approverId) {
-      window.tmNotify({ toUserId: rec.approverId, title: "ขออนุมัติ OT · " + rec.no,
+      window.tmNotify({ toUserId: rec.approverId, title: head,
         body: rec.userName + " · " + when + " · " + window.tmDur(rec.mins) });
     } else {
-      window.tmNotify({ toPerm: "otApprove", title: "ขออนุมัติ OT · " + rec.no,
+      window.tmNotify({ toPerm: "otApprove", title: head,
         body: rec.userName + " · " + when + " · " + window.tmDur(rec.mins) });
     }
     onClose();
@@ -929,7 +943,7 @@ function LnOtForm({ me, users, cfg, jobs, otStore, limit, onClose }) {
 
   return (
     <div style={LN_SHEET}>
-      <LnSheetHead title="ขอทำงานล่วงเวลา" no={f.no} onClose={onClose} />
+      <LnSheetHead title={edit ? "แก้ไขใบขอ OT" : "ขอทำงานล่วงเวลา"} no={f.no} onClose={onClose} />
 
       <div style={{ padding: "2px 16px 22px", display: "grid", gap: 14 }}>
         <LnField label="วันที่">
@@ -1024,7 +1038,7 @@ function LnOtForm({ me, users, cfg, jobs, otStore, limit, onClose }) {
             background: ready && !sending ? "var(--primary)" : "var(--surface3)",
             boxShadow: ready && !sending ? "0 8px 20px rgba(27,155,117,.28)" : "none",
             color: ready && !sending ? "#fff" : "var(--text-3)" })}>
-          {sending ? "กำลังส่ง…" : "ส่งขออนุมัติ"}
+          {sending ? "กำลังส่ง…" : edit ? "บันทึกการแก้ไข" : "ส่งขออนุมัติ"}
         </button>
 
         {mins <= 0 && (
@@ -1052,7 +1066,8 @@ function LnTimeTab({ me, users, role, jobs, startOt, startSub }) {
   /* ช่วงที่ทำเกินจริงของวันนี้ — มีค่าเมื่อเปิดฟอร์มจากปุ่มบนการ์ดลงเวลา
      ต้องล้างทุกครั้งที่ปิดฟอร์ม ไม่งั้นกด "+ ขอ OT" ครั้งถัดไปจะยังโดนล็อกอยู่ */
   const [limit, setLimit] = React.useState(null);
-  const closeForm = () => { setForm(false); setLimit(null); };
+  const [editOt, setEditOt] = React.useState(null);
+  const closeForm = () => { setForm(false); setLimit(null); setEditOt(null); };
 
   /* ── กล่องขาเข้าของคนอนุมัติใบ OT อยู่ในแท็บนี้ ไม่ใช่แท็บแยก ──
      ⚠ ไม่มีการ subscribe เพิ่มเลย — otStore ข้างบนคือโหนดเดียวกับที่รายการรออนุมัติใช้
@@ -1146,13 +1161,22 @@ function LnTimeTab({ me, users, role, jobs, startOt, startSub }) {
                         {r.decidedNote && <div style={{ marginTop: 3, fontSize: 11.5, color: st.color }}>“{r.decidedNote}”</div>}
                         {/* ยกเลิกได้เองตราบใดที่ยังไม่มีใครตัดสิน — ใบที่อนุมัติแล้วแตะไม่ได้
                             ยกเลิกไม่ใช่การลบ ใบยังอยู่ให้ตรวจย้อนหลังว่าเคยขอแล้วถอน */}
+                        {/* แก้ไขได้เหมือนยกเลิก — ตราบใดที่ยังไม่มีใครตัดสิน (ผู้ใช้สั่ง ต.ค. 2026) */}
                         {window.tmOtOpen(r) && (
-                          <button onClick={() => cancelOt(r)}
-                            style={{ marginTop: 8, padding: "7px 13px", borderRadius: 12,
-                              border: "1px solid var(--border-strong)", background: "var(--surface)",
-                              color: "#EF4444", fontFamily: "inherit", fontSize: 12, fontWeight: 700, cursor: "pointer" }}>
-                            ยกเลิกใบนี้
-                          </button>
+                          <div style={{ display: "flex", gap: 8, marginTop: 9 }}>
+                            <button onClick={() => { setEditOt(r); setLimit(null); setForm(true); }}
+                              style={{ display: "inline-flex", alignItems: "center", gap: 5, padding: "7px 13px", borderRadius: 12, border: "none",
+                                background: "var(--surface2)", boxShadow: "var(--shadow-sm)", color: "var(--primary-dark)",
+                                fontFamily: "inherit", fontSize: 12, fontWeight: 800, cursor: "pointer" }}>
+                              <Icon name="pen" size={13} color="var(--primary-dark)" /> แก้ไข
+                            </button>
+                            <button onClick={() => cancelOt(r)}
+                              style={{ padding: "7px 13px", borderRadius: 12, border: "none",
+                                background: "var(--surface2)", boxShadow: "var(--shadow-sm)",
+                                color: "#EF4444", fontFamily: "inherit", fontSize: 12, fontWeight: 700, cursor: "pointer" }}>
+                              ยกเลิกใบนี้
+                            </button>
+                          </div>
                         )}
                       </div>
                     );
@@ -1162,8 +1186,8 @@ function LnTimeTab({ me, users, role, jobs, startOt, startSub }) {
         </React.Fragment>
       )}
 
-      {form && <LnOtForm me={me} users={users} cfg={wh.cfg} jobs={jobs} otStore={otStore}
-        limit={limit} onClose={closeForm} />}
+      {form && <LnOtForm key={editOt ? editOt.id : "new"} me={me} users={users} cfg={wh.cfg} jobs={jobs} otStore={otStore}
+        limit={limit} edit={editOt} onClose={closeForm} />}
     </React.Fragment>
   );
 }

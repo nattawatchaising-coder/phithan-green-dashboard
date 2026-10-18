@@ -1405,10 +1405,19 @@ function LnOtForm({
   jobs,
   otStore,
   limit,
+  edit,
   onClose
 }) {
   const locked = !!(limit && limit.has && limit.mins > 0);
   const [f, setF] = React.useState(() => {
+    if (edit) {
+      const e = Object.assign({}, edit);
+      if (!e.jobId && e.jobCode) {
+        e.jobId = LN_JOB_TXT;
+        e.jobTxt = e.jobCode;
+      }
+      return e;
+    }
     const b = window.tmOtBlank(me, users, otStore.rows, null, cfg);
     if (!locked) return limit && limit.date ? Object.assign(b, {
       date: limit.date,
@@ -1423,6 +1432,7 @@ function LnOtForm({
     });
   });
   const [sending, setSending] = React.useState(false);
+  const [err, setErr] = React.useState("");
   const set = (k, v) => setF(p => {
     const n = Object.assign({}, p, {
       [k]: v
@@ -1438,6 +1448,13 @@ function LnOtForm({
   const ready = mins > 0 && !!f.reason.trim();
   const send = () => {
     if (!ready || sending) return;
+    if (edit) {
+      const now = (otStore.rows || []).find(x => x.id === edit.id);
+      if (now && !window.tmOtOpen(now)) {
+        setErr("ใบนี้ถูก" + window.tmOtStatusOf(now.status).th + "ไปแล้ว แก้ไม่ได้");
+        return;
+      }
+    }
     setSending(true);
     const txt = f.jobId === LN_JOB_TXT ? String(f.jobTxt || "").trim().slice(0, 80) : "";
     const j = txt ? null : (jobs || []).find(x => x.id === f.jobId);
@@ -1446,19 +1463,20 @@ function LnOtForm({
       jobCode: j ? j.code : txt
     });
     delete base.jobTxt;
-    const rec = window.tmOtMove(base, "sent", me, "");
+    const rec = window.tmOtMove(base, "sent", me, edit ? "แก้ไขใบ" : "");
     otStore.save(rec);
     const when = window.drShort(rec.date) + " " + rec.from + "-" + rec.to;
+    const head = (edit ? "แก้ไขใบขอ OT · " : "ขออนุมัติ OT · ") + rec.no;
     if (rec.approverId) {
       window.tmNotify({
         toUserId: rec.approverId,
-        title: "ขออนุมัติ OT · " + rec.no,
+        title: head,
         body: rec.userName + " · " + when + " · " + window.tmDur(rec.mins)
       });
     } else {
       window.tmNotify({
         toPerm: "otApprove",
-        title: "ขออนุมัติ OT · " + rec.no,
+        title: head,
         body: rec.userName + " · " + when + " · " + window.tmDur(rec.mins)
       });
     }
@@ -1467,7 +1485,7 @@ function LnOtForm({
   return React.createElement("div", {
     style: LN_SHEET
   }, React.createElement(LnSheetHead, {
-    title: "\u0E02\u0E2D\u0E17\u0E33\u0E07\u0E32\u0E19\u0E25\u0E48\u0E27\u0E07\u0E40\u0E27\u0E25\u0E32",
+    title: edit ? "แก้ไขใบขอ OT" : "ขอทำงานล่วงเวลา",
     no: f.no,
     onClose: onClose
   }), React.createElement("div", {
@@ -1668,7 +1686,7 @@ function LnOtForm({
       boxShadow: ready && !sending ? "0 8px 20px rgba(27,155,117,.28)" : "none",
       color: ready && !sending ? "#fff" : "var(--text-3)"
     })
-  }, sending ? "กำลังส่ง…" : "ส่งขออนุมัติ"), mins <= 0 && React.createElement("div", {
+  }, sending ? "กำลังส่ง…" : edit ? "บันทึกการแก้ไข" : "ส่งขออนุมัติ"), mins <= 0 && React.createElement("div", {
     style: {
       fontSize: 11.5,
       color: "var(--text-3)",
@@ -1696,9 +1714,11 @@ function LnTimeTab({
   const otStore = window.useOtClaims(wh.cfg);
   const [form, setForm] = React.useState(!!startOt && window.tmCanOt(role));
   const [limit, setLimit] = React.useState(null);
+  const [editOt, setEditOt] = React.useState(null);
   const closeForm = () => {
     setForm(false);
     setLimit(null);
+    setEditOt(null);
   };
   const canApprOt = !!window.tmCanOtApprove && window.tmCanOtApprove(role);
   const canApprLv = !!window.lvCanApprove && window.lvCanApprove(role);
@@ -1874,28 +1894,61 @@ function LnTimeTab({
         fontSize: 11.5,
         color: st.color
       }
-    }, "\u201C", r.decidedNote, "\u201D"), window.tmOtOpen(r) && React.createElement("button", {
-      onClick: () => cancelOt(r),
+    }, "\u201C", r.decidedNote, "\u201D"), window.tmOtOpen(r) && React.createElement("div", {
       style: {
-        marginTop: 8,
+        display: "flex",
+        gap: 8,
+        marginTop: 9
+      }
+    }, React.createElement("button", {
+      onClick: () => {
+        setEditOt(r);
+        setLimit(null);
+        setForm(true);
+      },
+      style: {
+        display: "inline-flex",
+        alignItems: "center",
+        gap: 5,
         padding: "7px 13px",
         borderRadius: 12,
-        border: "1px solid var(--border-strong)",
-        background: "var(--surface)",
+        border: "none",
+        background: "var(--surface2)",
+        boxShadow: "var(--shadow-sm)",
+        color: "var(--primary-dark)",
+        fontFamily: "inherit",
+        fontSize: 12,
+        fontWeight: 800,
+        cursor: "pointer"
+      }
+    }, React.createElement(Icon, {
+      name: "pen",
+      size: 13,
+      color: "var(--primary-dark)"
+    }), " \u0E41\u0E01\u0E49\u0E44\u0E02"), React.createElement("button", {
+      onClick: () => cancelOt(r),
+      style: {
+        padding: "7px 13px",
+        borderRadius: 12,
+        border: "none",
+        background: "var(--surface2)",
+        boxShadow: "var(--shadow-sm)",
         color: "#EF4444",
         fontFamily: "inherit",
         fontSize: 12,
         fontWeight: 700,
         cursor: "pointer"
       }
-    }, "\u0E22\u0E01\u0E40\u0E25\u0E34\u0E01\u0E43\u0E1A\u0E19\u0E35\u0E49"));
+    }, "\u0E22\u0E01\u0E40\u0E25\u0E34\u0E01\u0E43\u0E1A\u0E19\u0E35\u0E49")));
   }))), form && React.createElement(LnOtForm, {
+    key: editOt ? editOt.id : "new",
     me: me,
     users: users,
     cfg: wh.cfg,
     jobs: jobs,
     otStore: otStore,
     limit: limit,
+    edit: editOt,
     onClose: closeForm
   }));
 }
