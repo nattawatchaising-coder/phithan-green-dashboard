@@ -1284,6 +1284,7 @@ function suReportHTML(D) {
     '<div class="two">' +
     "<div>" + rpTable(["สเปคแผง (STC)", "ค่า"], [
       ["รุ่น", panel.model || "—"],
+      ["จำนวน", rpN(D.totalPanels || 0) + " แผง" + (E ? " · " + rpN(E.dcKw, 2) + " kWp" : "")],
       ["กำลังสูงสุด Pmax", rpN(panel.wp) + " W"],
       ["แรงดันวงจรเปิด Voc", rpN(panel.voc, 2) + " V"],
       ["กระแสลัดวงจร Isc", rpN(panel.isc, 2) + " A"],
