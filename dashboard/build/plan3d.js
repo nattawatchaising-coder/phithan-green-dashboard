@@ -743,6 +743,27 @@ function p3MinRect(pts) {
   }
   return best;
 }
+function p3GableGeo(roof) {
+  const span = Math.max(0.5, +roof.span || 8),
+    half = span / 2;
+  const rise = half * Math.tan((+roof.pitch || 0) * P3_DEG);
+  const lim = Math.max(0, half - 0.25);
+  const off = Math.max(-lim, Math.min(lim, +roof.rOff || 0));
+  const hA = half - off,
+    hB = half + off;
+  return {
+    span,
+    half,
+    rise,
+    off,
+    hA,
+    hB,
+    pA: Math.atan2(rise, hA),
+    pB: Math.atan2(rise, hB),
+    slA: Math.hypot(hA, rise),
+    slB: Math.hypot(hB, rise)
+  };
+}
 function p3HipFaces(roof) {
   const pitchR = (+roof.pitch || 0) * P3_DEG;
   const cosP = Math.max(0.25, Math.cos(pitchR));
@@ -1325,7 +1346,7 @@ function p3Xf(roof, pan) {
     y: v.y,
     z: -v.x * Math.sin(a) + v.z * Math.cos(a)
   });
-  const half = (+roof.span || 8) / 2;
+  const GG = roof.kind === "gable" ? p3GableGeo(roof) : null;
   const hip = roof.kind === "hip" ? pan && pan.hip || p3HipFaces(roof) : null;
   const hipF = {};
   if (hip) hip.faces.forEach(f => {
@@ -1348,9 +1369,12 @@ function p3Xf(roof, pan) {
       return RY(p, f.wrapY);
     }
     if (roof.kind === "gable") {
-      p = RX(p, pitchR);
-      if (!isDir) p.z += half;
-      return side === "B" ? RY(p, Math.PI) : p;
+      const isB = side === "B";
+      p = RX(p, isB ? GG.pB : GG.pA);
+      if (!isDir) p.z += isB ? GG.hB : GG.hA;
+      if (isB) p = RY(p, Math.PI);
+      if (!isDir) p.z += GG.off;
+      return p;
     }
     return RX(p, pitchR);
   };
@@ -2335,12 +2359,10 @@ function p3Faces(roof, pan) {
     }));
   }
   if (roof.kind === "gable") {
-    const cosP = Math.max(0.25, Math.cos((+roof.pitch || 0) * P3_DEG));
-    const half = (+roof.span || 8) / 2,
-      sl = half / cosP,
+    const GG = p3GableGeo(roof),
       rg = (+roof.ridge || 8) / 2;
-    pan.slopeLen = sl;
-    const rect = [{
+    pan.slopeLen = GG.slA;
+    const rect = sl => [{
       x: -rg,
       z: 0
     }, {
@@ -2358,7 +2380,7 @@ function p3Faces(roof, pan) {
       keyPfx: s + "_",
       anchor: "topCenter",
       test: false,
-      poly: rect
+      poly: rect(s === "B" ? GG.slB : GG.slA)
     }));
   }
   if (roof.kind === "poly" && pan.plane) {

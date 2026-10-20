@@ -3427,6 +3427,11 @@ function Plan3DStudio({ job, ver, onClose, currentUser }) {
         const q = toS((+selRoof.x || 0) + e.x * h * sg, (+selRoof.z || 0) + e.z * h * sg);
         handles.push({ t: "side", i: ax + sg, ax, sg, x: q.x, y: q.y });
       });
+      if (selRoof.kind === "gable") {   // จุดจับสัน: ลากขวางสันเพื่อเลื่อนสันออกจากกลาง (rOff)
+        const off = p3GableGeo(selRoof).off, c0 = { x: (+selRoof.x || 0) + ez.x * off, z: (+selRoof.z || 0) + ez.z * off };
+        const a = toS(c0.x - ex.x * hx, c0.z - ex.z * hx), b = toS(c0.x + ex.x * hx, c0.z + ex.z * hx), q = toS(c0.x + ex.x * hx * 0.5, c0.z + ex.z * hx * 0.5);
+        handles.push({ t: "ridge", x: q.x, y: q.y, ax: a.x, ay: a.y, bx: b.x, by: b.y, off });
+      }
     }
     const ol = p3sOutline(selRoof).map((p) => toS(p.x, p.z));
     if (ol.length) {
@@ -3584,6 +3589,7 @@ function Plan3DStudio({ job, ver, onClose, currentUser }) {
       if (h.t === "vert") { setSelVert(h.i); gest.current = Object.assign(base, { type: "vert", i: h.i, roofId: selRoof.id }); return; }
       if (h.t === "mid") { gest.current = Object.assign(base, { type: "mid", i: h.i, roofId: selRoof.id }); return; }
       if (h.t === "side") { gest.current = Object.assign(base, { type: "side", ax: h.ax, sg: h.sg, roofId: selRoof.id, r0: selRoof }); return; }
+      if (h.t === "ridge") { gest.current = Object.assign(base, { type: "ridge", roofId: selRoof.id, r0: selRoof }); return; }
       if (h.t === "rot") { const c = p3sRoofCenter(selRoof); gest.current = Object.assign(base, { type: "rotRoof", roofId: selRoof.id, c, r0: selRoof }); return; }
       if (h.t === "ocorner" || h.t === "orad" || h.t === "orot") { gest.current = Object.assign(base, { type: h.t, id: selObs.id, o0: selObs }); return; }
       if (h.t === "mpt") { gest.current = Object.assign(base, { type: "mpt", i: h.i, id: selMeas.id }); return; }
@@ -3832,7 +3838,22 @@ function Plan3DStudio({ job, ver, onClose, currentUser }) {
         }
         L = Math.max(1, L);
         const patch = { x: p3sR(O.x + ex * L / 2), z: p3sR(O.z + ez * L / 2) }; patch[key] = p3sR(L);
+        if (isG && G.ax === "z" && +r0.rOff) {   // สันเยื้อง: ลากขอบจั่วแล้วสันอยู่ที่เดิม (ไม่วิ่งตามกลาง)
+          const off0 = p3GableGeo(r0).off, R = { x: (+r0.x || 0) + e0.x * off0, z: (+r0.z || 0) + e0.z * off0 };
+          const lim = Math.max(0, L / 2 - 0.25), o = (R.x - patch.x) * e0.x + (R.z - patch.z) * e0.z;
+          patch.rOff = p3sR(Math.max(-lim, Math.min(lim, o)));
+        }
         setRoof(G.roofId, () => patch);
+        return;
+      }
+      case "ridge": {   // เลื่อนสันจั่วขวางแนวสัน · ใกล้กลางดูดเข้ากลาง (Shift = ไม่ดูด)
+        ensurePushed(G);
+        const r0 = G.r0, rY = -(((+r0.az || 180) - 180) * P3_DEG), e0 = p3sRY(0, 1, rY);
+        const lim = Math.max(0, Math.max(0.5, +r0.span || 8) / 2 - 0.25);
+        let o = (w.x - (+r0.x || 0)) * e0.x + (w.z - (+r0.z || 0)) * e0.z;
+        if (!free && Math.abs(o) < SNAP_PX / viewRef.current.s) o = 0;
+        o = Math.max(-lim, Math.min(lim, o));
+        setRoof(G.roofId, () => ({ rOff: p3sR(o) }));
         return;
       }
       case "axisDrag": {
@@ -4042,7 +4063,7 @@ function Plan3DStudio({ job, ver, onClose, currentUser }) {
       if (!wizAllowRef.current) setToolRaw("select");
       return;
     }
-    if (G.type === "vert" || G.type === "mid" || G.type === "side") {
+    if (G.type === "vert" || G.type === "mid" || G.type === "side" || G.type === "ridge") {
       setCur(null);
       const r = (G.type === "vert" || G.type === "mid") && S.roofs.find((x) => x.id === G.roofId);
       if (r && r.p3sFacet) weldLive([r.id]);
@@ -4456,6 +4477,12 @@ function Plan3DStudio({ job, ver, onClose, currentUser }) {
           <path d={"M" + (h.x - 3.5) + " " + (h.y + 1) + "a3.6 3.6 0 1 1 1.4 2.6"} fill="none" stroke="#fff" strokeWidth={1.6} strokeLinecap="round" />
         </g>);
     }
+    if (h.t === "ridge") return (
+      <g key={"h" + i}>
+        <line x1={h.ax} y1={h.ay} x2={h.bx} y2={h.by} stroke="#16a34a" strokeWidth={on ? 3 : 2} strokeDasharray="6 4" opacity={0.9} />
+        <rect x={h.x - HR + 1} y={h.y - HR + 1} width={2 * HR - 2} height={2 * HR - 2} rx={3} transform={"rotate(45 " + h.x + " " + h.y + ")"} fill={on ? "#16a34a" : "#fff"} stroke="#16a34a" strokeWidth={2.4} />
+        {Math.abs(h.off) >= 0.01 && <text x={h.x + HR + 4} y={h.y - HR - 2} fontSize={11} fontWeight={700} fill="#15803d" stroke="#fff" strokeWidth={3} paintOrder="stroke">สันเยื้อง {p3sR(Math.abs(h.off), 100)} ม.</text>}
+      </g>);
     if (h.t === "side") return <rect key={"h" + i} x={h.x - HR + 1} y={h.y - HR + 1} width={2 * HR - 2} height={2 * HR - 2} rx={3} fill={on ? "#16a34a" : "#fff"} stroke="#16a34a" strokeWidth={2.4} />;
     if (h.t === "mid") return <circle key={"h" + i} cx={h.x} cy={h.y} r={on ? HR : HR - 2.5} fill="rgba(255,255,255,.85)" stroke="#16a34a" strokeWidth={1.6} strokeDasharray="2 2" />;
     const isSelV = h.t === "vert" && selVert === h.i;
@@ -4664,7 +4691,7 @@ function Plan3DStudio({ job, ver, onClose, currentUser }) {
           )}
           {(roof.kind === "gable" || roof.kind === "hip") && (
             <button className="p3s-btn wide" onClick={() => patchRoof(roof.id, (r) => (r.kind === "gable"
-              ? { ridge: r.span, span: r.ridge, az: p3sR(((+r.az || 180) + 90) % 360, 10) }
+              ? { ridge: r.span, span: r.ridge, rOff: 0, az: p3sR(((+r.az || 180) + 90) % 360, 10) }
               : { w: r.d, d: r.w, az: p3sR(((+r.az || 180) + 90) % 360, 10) }))}><P3SIcon name="rotate" size={15} />สลับแนวสันหลังคา</button>
           )}
           {isPoly && (
@@ -4718,7 +4745,10 @@ function Plan3DStudio({ job, ver, onClose, currentUser }) {
                 <P3SNum label="กว้างจั่ว" unit="ม." step={0.1} min={1} value={roof.span} onChange={(v) => patchRoof(roof.id, { span: v }, "span")} />
                 <P3SNum label="ความชัน" unit="°" step={1} min={0} max={60} digits={1} value={roof.pitch} onChange={(v) => patchRoof(roof.id, { pitch: v }, "pitch")} />
                 <P3SNum label="ความสูงชายคา" unit="ม." step={0.1} min={0} value={roof.h} onChange={(v) => patchRoof(roof.id, { h: v }, "h")} />
+                <P3SNum label="สันเยื้องไปทาง A" unit="ม." step={0.1} digits={2} value={+roof.rOff || 0} onChange={(v) => patchRoof(roof.id, { rOff: v }, "rOff")} />
               </div>}
+              {!panOnly && +roof.rOff ? (() => { const GG = p3GableGeo(roof);
+                return <div className="p3s-note keep">สันเยื้อง · ด้าน A กว้าง {p3sR(GG.hA, 100)} ม. ชัน {p3sR(GG.pA / P3_DEG, 10)}° · ด้าน B กว้าง {p3sR(GG.hB, 100)} ม. ชัน {p3sR(GG.pB / P3_DEG, 10)}° <button className="p3s-btn" style={{ height: 24, fontSize: 12, marginLeft: 6 }} onClick={() => patchRoof(roof.id, { rOff: 0 })}>สันกลาง</button></div>; })() : null}
               {!noPanUI && <div className="p3s-fld"><span className="lb">วางแผงด้าน</span>
                 <P3SSeg full value={(roof.sideA !== false ? "A" : "") + (roof.sideB !== false ? "B" : "")} onChange={(v) => patchRoof(roof.id, (r) => p3sSideFix(r, { sideA: v.indexOf("A") >= 0, sideB: v.indexOf("B") >= 0 }))}
                   options={[["AB", "ทั้งสองด้าน"], ["A", "ด้าน A (" + azTxt(roof.az) + ")"], ["B", "ด้าน B (" + p3sCompass((+roof.az || 180) + 180) + ")"]]} />
@@ -5051,7 +5081,7 @@ function Plan3DStudio({ job, ver, onClose, currentUser }) {
     return p3sCompass(f + 90) + "–" + p3sCompass(f - 90);
   };
   const flipRidge = (r) => patchRoof(r.id, (q) => (q.kind === "gable"
-    ? { ridge: q.span, span: q.ridge, az: p3sR(((+q.az || 180) + 90) % 360, 10) }
+    ? { ridge: q.span, span: q.ridge, rOff: 0, az: p3sR(((+q.az || 180) + 90) % 360, 10) }
     : { w: q.d, d: q.w, az: p3sR(((+q.az || 180) + 90) % 360, 10) }));
   const pickRoof = (r) => {
     setSel({ t: "roof", id: r.id });
@@ -5121,6 +5151,14 @@ function Plan3DStudio({ job, ver, onClose, currentUser }) {
                     <P3SNum label={D.a[0]} unit="ม." step={0.1} min={0.5} value={D.a[1]} onChange={D.a[2]} />
                     <P3SNum label={D.b[0]} unit="ม." step={0.1} min={0.5} value={D.b[1]} onChange={D.b[2]} />
                   </div>); })()}
+                {r.kind === "gable" && (() => { const GG = p3GableGeo(r); return (
+                  <React.Fragment>
+                    <P3SNum label="สันเยื้องไปทาง A" unit="ม." step={0.1} digits={2} value={+r.rOff || 0} onChange={(v) => patchRoof(r.id, { rOff: v }, "rOff")} />
+                    <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                    <span className="p3s-note keep" style={{ flex: 1 }}>{GG.off ? "ด้าน A กว้าง " + p3sR(GG.hA, 100) + " ม. ชัน " + p3sR(GG.pA / P3_DEG, 10) + "° · ด้าน B กว้าง " + p3sR(GG.hB, 100) + " ม. ชัน " + p3sR(GG.pB / P3_DEG, 10) + "°" : "ลากจุดจับรูปข้าวหลามตัดบนสัน (โหมดเลือก) เพื่อเลื่อนสัน · Shift = ไม่ดูดเข้ากลาง"}</span>
+                    {!!GG.off && <button type="button" className="p3s-btn" style={{ height: 28, fontSize: 12 }} onClick={() => patchRoof(r.id, { rOff: 0 })}>สันกลาง</button>}
+                    </div>
+                  </React.Fragment>); })()}
                 <div className="p3s-g2">
                   <P3SNum label="ความสูงอาคาร" unit="ม." step={0.1} min={0} value={p3sR(roofEaveOf(r), 100)} onChange={(v) => setRoofEave(r, v)} />
                   {pc != null

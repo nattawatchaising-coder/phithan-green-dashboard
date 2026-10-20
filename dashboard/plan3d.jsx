@@ -405,6 +405,18 @@ function p3MinRect(pts) {
   }
   return best;
 }
+/* ── จั่ว: สันเยื้องจากกลางได้ (roof.rOff ม. · + = เยื้องไปทางด้าน A · ผู้ใช้สั่ง ต.ค. 2026 "ย้ายสันไม่ได้") ──
+   ความสูงสันคงเดิม = ครึ่งกว้าง × tan(ความชัน) · ชายคาสองข้างสูงเท่ากัน → ด้านที่แคบลงชันขึ้น (โรงงานจริงเป็นแบบนี้)
+   rOff = 0 → ได้ค่าเดิมทุกตัว (hA = hB = ครึ่งกว้าง · pA = pB = ความชัน) */
+function p3GableGeo(roof) {
+  const span = Math.max(0.5, +roof.span || 8), half = span / 2;
+  const rise = half * Math.tan((+roof.pitch || 0) * P3_DEG);
+  const lim = Math.max(0, half - 0.25);
+  const off = Math.max(-lim, Math.min(lim, +roof.rOff || 0));
+  const hA = half - off, hB = half + off;
+  return { span, half, rise, off, hA, hB, pA: Math.atan2(rise, hA), pB: Math.atan2(rise, hB),
+    slA: Math.hypot(hA, rise), slB: Math.hypot(hB, rise) };
+}
 /* ผืนทั้ง 4 ของปั้นหยา (พิกัดผิวลาดต่อผืน + การหมุน/ตำแหน่งของแต่ละผืน) */
 function p3HipFaces(roof) {
   const pitchR = (+roof.pitch || 0) * P3_DEG;
@@ -842,7 +854,7 @@ function p3Xf(roof, pan) {
   const rotY = -(((+roof.az || 180) - 180) * P3_DEG);            // เท่ากับ g.rotation.y ของ renderer
   const RX = (v, a) => ({ x: v.x, y: v.y * Math.cos(a) - v.z * Math.sin(a), z: v.y * Math.sin(a) + v.z * Math.cos(a) });
   const RY = (v, a) => ({ x: v.x * Math.cos(a) + v.z * Math.sin(a), y: v.y, z: -v.x * Math.sin(a) + v.z * Math.cos(a) });
-  const half = (+roof.span || 8) / 2;
+  const GG = roof.kind === "gable" ? p3GableGeo(roof) : null;
   const hip = roof.kind === "hip" ? ((pan && pan.hip) || p3HipFaces(roof)) : null;
   const hipF = {};
   if (hip) hip.faces.forEach((f) => { hipF[f.side] = f; });
@@ -856,9 +868,13 @@ function p3Xf(roof, pan) {
       return RY(p, f.wrapY);
     }
     if (roof.kind === "gable") {
-      p = RX(p, pitchR);
-      if (!isDir) p.z += half;
-      return side === "B" ? RY(p, Math.PI) : p;
+      /* แต่ละด้านชัน/กว้างของตัวเอง (สันเยื้องได้) แล้วเลื่อนทั้งคู่ไปให้สันอยู่ที่ z = off */
+      const isB = side === "B";
+      p = RX(p, isB ? GG.pB : GG.pA);
+      if (!isDir) p.z += isB ? GG.hB : GG.hA;
+      if (isB) p = RY(p, Math.PI);
+      if (!isDir) p.z += GG.off;
+      return p;
     }
     return RX(p, pitchR);                                          // สี่เหลี่ยม
   };
@@ -1503,12 +1519,11 @@ function p3Faces(roof, pan) {
       .map((f) => ({ side: f.side, keyPfx: f.side + "_", anchor: "topLeft", poly: f.poly }));
   }
   if (roof.kind === "gable") {
-    const cosP = Math.max(0.25, Math.cos((+roof.pitch || 0) * P3_DEG));
-    const half = (+roof.span || 8) / 2, sl = half / cosP, rg = (+roof.ridge || 8) / 2;
-    pan.slopeLen = sl;
-    const rect = [{ x: -rg, z: 0 }, { x: rg, z: 0 }, { x: rg, z: -sl }, { x: -rg, z: -sl }];
+    const GG = p3GableGeo(roof), rg = (+roof.ridge || 8) / 2;
+    pan.slopeLen = GG.slA;
+    const rect = (sl) => [{ x: -rg, z: 0 }, { x: rg, z: 0 }, { x: rg, z: -sl }, { x: -rg, z: -sl }];
     return ["A", "B"].filter((s) => (s === "A" ? roof.sideA !== false : roof.sideB !== false))
-      .map((s) => ({ side: s, keyPfx: s + "_", anchor: "topCenter", test: false, poly: rect }));
+      .map((s) => ({ side: s, keyPfx: s + "_", anchor: "topCenter", test: false, poly: rect(s === "B" ? GG.slB : GG.slA) }));
   }
   if (roof.kind === "poly" && pan.plane) {
     const { c, u, v } = pan.plane;

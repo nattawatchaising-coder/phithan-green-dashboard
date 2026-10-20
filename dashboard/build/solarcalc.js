@@ -176,8 +176,10 @@ function scPanelIndex(st) {
           C: az0 + 90,
           D: az0 - 90
         };
+        const GG = roof.kind === "gable" && typeof window.p3GableGeo === "function" ? window.p3GableGeo(roof) : null;
+        const tl = GG ? (p.side === "B" ? GG.pB : GG.pA) / SC_DEG : scNum(roof.pitch, 0);
         const g = scNormalToTiltAz(scPanelNormal({
-          tilt: scNum(roof.pitch, 0),
+          tilt: tl,
           az: p.side ? faceAz[p.side] : az0
         }, blkOf(p.blk)));
         add(p, p.blk, p.side, g.tilt, g.az);

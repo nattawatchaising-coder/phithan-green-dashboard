@@ -7548,6 +7548,26 @@ function Plan3DStudio({
           y: q.y
         });
       });
+      if (selRoof.kind === "gable") {
+        const off = p3GableGeo(selRoof).off,
+          c0 = {
+            x: (+selRoof.x || 0) + ez.x * off,
+            z: (+selRoof.z || 0) + ez.z * off
+          };
+        const a = toS(c0.x - ex.x * hx, c0.z - ex.z * hx),
+          b = toS(c0.x + ex.x * hx, c0.z + ex.z * hx),
+          q = toS(c0.x + ex.x * hx * 0.5, c0.z + ex.z * hx * 0.5);
+        handles.push({
+          t: "ridge",
+          x: q.x,
+          y: q.y,
+          ax: a.x,
+          ay: a.y,
+          bx: b.x,
+          by: b.y,
+          off
+        });
+      }
     }
     const ol = p3sOutline(selRoof).map(p => toS(p.x, p.z));
     if (ol.length) {
@@ -7912,6 +7932,14 @@ function Plan3DStudio({
           type: "side",
           ax: h.ax,
           sg: h.sg,
+          roofId: selRoof.id,
+          r0: selRoof
+        });
+        return;
+      }
+      if (h.t === "ridge") {
+        gest.current = Object.assign(base, {
+          type: "ridge",
           roofId: selRoof.id,
           r0: selRoof
         });
@@ -8575,7 +8603,32 @@ function Plan3DStudio({
             z: p3sR(O.z + ez * L / 2)
           };
           patch[key] = p3sR(L);
+          if (isG && G.ax === "z" && +r0.rOff) {
+            const off0 = p3GableGeo(r0).off,
+              R = {
+                x: (+r0.x || 0) + e0.x * off0,
+                z: (+r0.z || 0) + e0.z * off0
+              };
+            const lim = Math.max(0, L / 2 - 0.25),
+              o = (R.x - patch.x) * e0.x + (R.z - patch.z) * e0.z;
+            patch.rOff = p3sR(Math.max(-lim, Math.min(lim, o)));
+          }
           setRoof(G.roofId, () => patch);
+          return;
+        }
+      case "ridge":
+        {
+          ensurePushed(G);
+          const r0 = G.r0,
+            rY = -(((+r0.az || 180) - 180) * P3_DEG),
+            e0 = p3sRY(0, 1, rY);
+          const lim = Math.max(0, Math.max(0.5, +r0.span || 8) / 2 - 0.25);
+          let o = (w.x - (+r0.x || 0)) * e0.x + (w.z - (+r0.z || 0)) * e0.z;
+          if (!free && Math.abs(o) < SNAP_PX / viewRef.current.s) o = 0;
+          o = Math.max(-lim, Math.min(lim, o));
+          setRoof(G.roofId, () => ({
+            rOff: p3sR(o)
+          }));
           return;
         }
       case "axisDrag":
@@ -9114,7 +9167,7 @@ function Plan3DStudio({
       if (!wizAllowRef.current) setToolRaw("select");
       return;
     }
-    if (G.type === "vert" || G.type === "mid" || G.type === "side") {
+    if (G.type === "vert" || G.type === "mid" || G.type === "side" || G.type === "ridge") {
       setCur(null);
       const r = (G.type === "vert" || G.type === "mid") && S.roofs.find(x => x.id === G.roofId);
       if (r && r.p3sFacet) weldLive([r.id]);
@@ -10422,6 +10475,37 @@ function Plan3DStudio({
         strokeLinecap: "round"
       }));
     }
+    if (h.t === "ridge") return React.createElement("g", {
+      key: "h" + i
+    }, React.createElement("line", {
+      x1: h.ax,
+      y1: h.ay,
+      x2: h.bx,
+      y2: h.by,
+      stroke: "#16a34a",
+      strokeWidth: on ? 3 : 2,
+      strokeDasharray: "6 4",
+      opacity: 0.9
+    }), React.createElement("rect", {
+      x: h.x - HR + 1,
+      y: h.y - HR + 1,
+      width: 2 * HR - 2,
+      height: 2 * HR - 2,
+      rx: 3,
+      transform: "rotate(45 " + h.x + " " + h.y + ")",
+      fill: on ? "#16a34a" : "#fff",
+      stroke: "#16a34a",
+      strokeWidth: 2.4
+    }), Math.abs(h.off) >= 0.01 && React.createElement("text", {
+      x: h.x + HR + 4,
+      y: h.y - HR - 2,
+      fontSize: 11,
+      fontWeight: 700,
+      fill: "#15803d",
+      stroke: "#fff",
+      strokeWidth: 3,
+      paintOrder: "stroke"
+    }, "\u0E2A\u0E31\u0E19\u0E40\u0E22\u0E37\u0E49\u0E2D\u0E07 ", p3sR(Math.abs(h.off), 100), " \u0E21."));
     if (h.t === "side") return React.createElement("rect", {
       key: "h" + i,
       x: h.x - HR + 1,
@@ -10818,6 +10902,7 @@ function Plan3DStudio({
       onClick: () => patchRoof(roof.id, r => r.kind === "gable" ? {
         ridge: r.span,
         span: r.ridge,
+        rOff: 0,
         az: p3sR(((+r.az || 180) + 90) % 360, 10)
       } : {
         w: r.d,
@@ -10994,7 +11079,31 @@ function Plan3DStudio({
       onChange: v => patchRoof(roof.id, {
         h: v
       }, "h")
-    })), !noPanUI && React.createElement("div", {
+    }), React.createElement(P3SNum, {
+      label: "\u0E2A\u0E31\u0E19\u0E40\u0E22\u0E37\u0E49\u0E2D\u0E07\u0E44\u0E1B\u0E17\u0E32\u0E07 A",
+      unit: "\u0E21.",
+      step: 0.1,
+      digits: 2,
+      value: +roof.rOff || 0,
+      onChange: v => patchRoof(roof.id, {
+        rOff: v
+      }, "rOff")
+    })), !panOnly && +roof.rOff ? (() => {
+      const GG = p3GableGeo(roof);
+      return React.createElement("div", {
+        className: "p3s-note keep"
+      }, "\u0E2A\u0E31\u0E19\u0E40\u0E22\u0E37\u0E49\u0E2D\u0E07 \xB7 \u0E14\u0E49\u0E32\u0E19 A \u0E01\u0E27\u0E49\u0E32\u0E07 ", p3sR(GG.hA, 100), " \u0E21. \u0E0A\u0E31\u0E19 ", p3sR(GG.pA / P3_DEG, 10), "\xB0 \xB7 \u0E14\u0E49\u0E32\u0E19 B \u0E01\u0E27\u0E49\u0E32\u0E07 ", p3sR(GG.hB, 100), " \u0E21. \u0E0A\u0E31\u0E19 ", p3sR(GG.pB / P3_DEG, 10), "\xB0 ", React.createElement("button", {
+        className: "p3s-btn",
+        style: {
+          height: 24,
+          fontSize: 12,
+          marginLeft: 6
+        },
+        onClick: () => patchRoof(roof.id, {
+          rOff: 0
+        })
+      }, "\u0E2A\u0E31\u0E19\u0E01\u0E25\u0E32\u0E07"));
+    })() : null, !noPanUI && React.createElement("div", {
       className: "p3s-fld"
     }, React.createElement("span", {
       className: "lb"
@@ -12066,6 +12175,7 @@ function Plan3DStudio({
   const flipRidge = r => patchRoof(r.id, q => q.kind === "gable" ? {
     ridge: q.span,
     span: q.ridge,
+    rOff: 0,
     az: p3sR(((+q.az || 180) + 90) % 360, 10)
   } : {
     w: q.d,
@@ -12322,6 +12432,39 @@ function Plan3DStudio({
           value: D.b[1],
           onChange: D.b[2]
         }));
+      })(), r.kind === "gable" && (() => {
+        const GG = p3GableGeo(r);
+        return React.createElement(React.Fragment, null, React.createElement(P3SNum, {
+          label: "\u0E2A\u0E31\u0E19\u0E40\u0E22\u0E37\u0E49\u0E2D\u0E07\u0E44\u0E1B\u0E17\u0E32\u0E07 A",
+          unit: "\u0E21.",
+          step: 0.1,
+          digits: 2,
+          value: +r.rOff || 0,
+          onChange: v => patchRoof(r.id, {
+            rOff: v
+          }, "rOff")
+        }), React.createElement("div", {
+          style: {
+            display: "flex",
+            alignItems: "center",
+            gap: 8
+          }
+        }, React.createElement("span", {
+          className: "p3s-note keep",
+          style: {
+            flex: 1
+          }
+        }, GG.off ? "ด้าน A กว้าง " + p3sR(GG.hA, 100) + " ม. ชัน " + p3sR(GG.pA / P3_DEG, 10) + "° · ด้าน B กว้าง " + p3sR(GG.hB, 100) + " ม. ชัน " + p3sR(GG.pB / P3_DEG, 10) + "°" : "ลากจุดจับรูปข้าวหลามตัดบนสัน (โหมดเลือก) เพื่อเลื่อนสัน · Shift = ไม่ดูดเข้ากลาง"), !!GG.off && React.createElement("button", {
+          type: "button",
+          className: "p3s-btn",
+          style: {
+            height: 28,
+            fontSize: 12
+          },
+          onClick: () => patchRoof(r.id, {
+            rOff: 0
+          })
+        }, "\u0E2A\u0E31\u0E19\u0E01\u0E25\u0E32\u0E07")));
       })(), React.createElement("div", {
         className: "p3s-g2"
       }, React.createElement(P3SNum, {

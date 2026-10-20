@@ -137,7 +137,10 @@ function scPanelIndex(st) {
       } else {
         /* สี่เหลี่ยม / จั่ว / ปั้นหยา — ทิศของแต่ละด้านเทียบกับ roof.az */
         const faceAz = { A: az0, B: az0 + 180, C: az0 + 90, D: az0 - 90 };
-        const g = scNormalToTiltAz(scPanelNormal({ tilt: scNum(roof.pitch, 0), az: p.side ? faceAz[p.side] : az0 }, blkOf(p.blk)));
+        /* จั่วสันเยื้อง: สองด้านชันไม่เท่ากัน (p3GableGeo) */
+        const GG = roof.kind === "gable" && typeof window.p3GableGeo === "function" ? window.p3GableGeo(roof) : null;
+        const tl = GG ? (p.side === "B" ? GG.pB : GG.pA) / SC_DEG : scNum(roof.pitch, 0);
+        const g = scNormalToTiltAz(scPanelNormal({ tilt: tl, az: p.side ? faceAz[p.side] : az0 }, blkOf(p.blk)));
         add(p, p.blk, p.side, g.tilt, g.az);
       }
     });
