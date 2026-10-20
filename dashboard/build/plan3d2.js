@@ -11129,7 +11129,7 @@ function Plan3DStudio({
       style: {
         gap: 5
       }
-    }, [["ครึ่งวงกลม", 2], ["1/3", 3], ["1/4", 4], ["1/6", 6]].map(([lb, k]) => {
+    }, [["ครึ่งวง", 2], ["1/3", 3], ["1/4", 4], ["1/6", 6], ["1/8", 8], ["1/10", 10]].map(([lb, k]) => {
       const v = p3sR((+roof.span || 10) / k);
       return React.createElement("button", {
         key: k,
@@ -12479,7 +12479,7 @@ function Plan3DStudio({
           gap: 5,
           flexWrap: "wrap"
         }
-      }, [["ครึ่งวง", 2], ["1/3", 3], ["1/4", 4], ["1/6", 6]].map(([lb, k]) => {
+      }, [["ครึ่งวง", 2], ["1/3", 3], ["1/4", 4], ["1/6", 6], ["1/8", 8], ["1/10", 10]].map(([lb, k]) => {
         const v = p3sR((+r.span || 10) / k);
         return React.createElement("button", {
           key: k,
@@ -12501,6 +12501,7 @@ function Plan3DStudio({
           height: 28,
           fontSize: 12
         },
+        title: "แกนยาวตอนนี้แนว" + ridgeTxt(r, +r.ridge || 0) + " — กดเพื่อหมุนแนวโค้ง 90°",
         onClick: () => patchRoof(r.id, q => {
           const sp0 = +q.span || 10,
             sp1 = +q.ridge || 12,
@@ -12515,7 +12516,7 @@ function Plan3DStudio({
       }, React.createElement(P3SIcon, {
         name: "rotate",
         size: 14
-      }), "\u0E01\u0E25\u0E31\u0E1A\u0E17\u0E34\u0E28\u0E42\u0E04\u0E49\u0E07 \xB7 \u0E15\u0E2D\u0E19\u0E19\u0E35\u0E49\u0E41\u0E01\u0E19\u0E22\u0E32\u0E27\u0E41\u0E19\u0E27", ridgeTxt(r, +r.ridge || 0))));
+      }), "\u0E01\u0E25\u0E31\u0E1A\u0E17\u0E34\u0E28\u0E42\u0E04\u0E49\u0E07")));
     })),
     act: roofs.length > 0 ? React.createElement(React.Fragment, null, React.createElement("button", {
       className: "p3s-btn pri wide",

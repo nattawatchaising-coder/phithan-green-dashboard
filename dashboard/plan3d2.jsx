@@ -4757,7 +4757,7 @@ function Plan3DStudio({ job, ver, onClose, currentUser }) {
               })}><P3SIcon name="rotate" size={15} />กลับทิศโค้ง (สลับด้านกว้าง/ยาว)</button>
               <div className="p3s-fld"><span className="lb">ความสูงโค้งด่วน</span>
                 <div className="p3s-row" style={{ gap: 5 }}>
-                  {[["ครึ่งวงกลม", 2], ["1/3", 3], ["1/4", 4], ["1/6", 6]].map(([lb, k]) => {
+                  {[["ครึ่งวง", 2], ["1/3", 3], ["1/4", 4], ["1/6", 6], ["1/8", 8], ["1/10", 10]].map(([lb, k]) => {
                     const v = p3sR((+roof.span || 10) / k);
                     return <button key={k} className={"p3s-btn" + (Math.abs((+roof.rise || 0) - v) < 0.02 ? " pri" : "")} style={{ flex: 1, padding: 0, height: 32, fontSize: 12 }} onClick={() => patchRoof(roof.id, { rise: v })}>{lb}</button>;
                   })}
@@ -5173,11 +5173,11 @@ function Plan3DStudio({ job, ver, onClose, currentUser }) {
                 })()}
                 {r.kind === "dome" && (
                   <div className="p3s-row" style={{ gap: 5, flexWrap: "wrap" }}>
-                    {[["ครึ่งวง", 2], ["1/3", 3], ["1/4", 4], ["1/6", 6]].map(([lb, k]) => { const v = p3sR((+r.span || 10) / k); return <button key={k} className={"p3s-btn" + (Math.abs((+r.rise || 0) - v) < 0.02 ? " pri" : "")} style={{ flex: 1, padding: 0, height: 28, fontSize: 11.5 }} onClick={() => patchRoof(r.id, { rise: v })}>{lb}</button>; })}
-                    <button className="p3s-btn" style={{ flex: "1 1 100%", height: 28, fontSize: 12 }} onClick={() => patchRoof(r.id, (q) => {
+                    {[["ครึ่งวง", 2], ["1/3", 3], ["1/4", 4], ["1/6", 6], ["1/8", 8], ["1/10", 10]].map(([lb, k]) => { const v = p3sR((+r.span || 10) / k); return <button key={k} className={"p3s-btn" + (Math.abs((+r.rise || 0) - v) < 0.02 ? " pri" : "")} style={{ flex: 1, padding: 0, height: 28, fontSize: 11.5 }} onClick={() => patchRoof(r.id, { rise: v })}>{lb}</button>; })}
+                    <button className="p3s-btn" style={{ flex: "1 1 100%", height: 28, fontSize: 12 }} title={"แกนยาวตอนนี้แนว" + ridgeTxt(r, +r.ridge || 0) + " — กดเพื่อหมุนแนวโค้ง 90°"} onClick={() => patchRoof(r.id, (q) => {
                       const sp0 = +q.span || 10, sp1 = +q.ridge || 12, rs = +q.rise || sp0 / 2;
                       return { ridge: sp0, span: sp1, rise: p3sR(Math.min(sp1 / 2, rs * sp1 / sp0)), az: p3sR(((+q.az || 180) + 90) % 360, 10) };
-                    })}><P3SIcon name="rotate" size={14} />กลับทิศโค้ง · ตอนนี้แกนยาวแนว{ridgeTxt(r, +r.ridge || 0)}</button>
+                    })}><P3SIcon name="rotate" size={14} />กลับทิศโค้ง</button>
                   </div>)}
               </div>
             );
