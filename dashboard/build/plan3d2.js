@@ -6074,7 +6074,7 @@ function Plan3DStudio({
   const [marq, setMarq] = React.useState(null);
   const [roofArm, setRoofArm] = React.useState(false);
   const roofLock = tool === "roof" && !roofArm && !draw && !!(st && (st.roofs || []).length);
-  const [obsType, setObsType] = React.useState("turbine");
+  const [obsType, setObsType] = React.useState(null);
   const [obsHov, setObsHov] = React.useState(null);
   const [obsPts, setObsPts] = React.useState(null);
   const [obsMsg, setObsMsg] = React.useState(null);
@@ -8090,6 +8090,10 @@ function Plan3DStudio({
     }
     if (tool === "obs") {
       const ho = hitBody(w);
+      if (!(ho && ho.t === "obs") && !obsType) {
+        setObsMsg("เลือกชนิดสิ่งบดบังก่อน แล้วค่อยแตะบนผัง");
+        return;
+      }
       if (!(ho && ho.t === "obs")) {
         gest.current = Object.assign(base, {
           type: "obsRect"
@@ -9766,7 +9770,7 @@ function Plan3DStudio({
   const obsEls = (st.obstacles || []).map(o => obsEl(o, selObs && selObs.id === o.id || !!selObs && multi.indexOf(o.id) >= 0, hover === "obs:" + o.id));
   let obsGhost = null,
     ladderFar = false;
-  if (tool === "obs" && mxy && !view3d && !gest.current && !obsPts && !P3S_OBS_LINE[obsType] && !(hover && hover.indexOf("obs:") === 0)) {
+  if (tool === "obs" && obsType && mxy && !view3d && !gest.current && !obsPts && !P3S_OBS_LINE[obsType] && !(hover && hover.indexOf("obs:") === 0)) {
     const T = P3S_OBS.find(x => x[0] === obsType) || P3S_OBS[0],
       gw = toW(mxy);
     let g = null;
@@ -10496,6 +10500,7 @@ function Plan3DStudio({
     if (tool === "area") return React.createElement("span", null, React.createElement("b", null, "\u0E25\u0E32\u0E01\u0E01\u0E23\u0E2D\u0E1A"), " \u0E04\u0E25\u0E38\u0E21\u0E2D\u0E32\u0E04\u0E32\u0E23/\u0E2B\u0E25\u0E31\u0E07\u0E04\u0E32\u0E17\u0E35\u0E48\u0E08\u0E30\u0E15\u0E34\u0E14\u0E15\u0E31\u0E49\u0E07 \u2014 \u0E43\u0E0A\u0E49\u0E0B\u0E39\u0E21\u0E41\u0E25\u0E30\u0E2B\u0E32\u0E41\u0E19\u0E27\u0E2B\u0E25\u0E31\u0E07\u0E04\u0E32\u0E2D\u0E31\u0E15\u0E42\u0E19\u0E21\u0E31\u0E15\u0E34\u0E43\u0E19\u0E01\u0E23\u0E2D\u0E1A\u0E19\u0E35\u0E49");
     if (tool === "obs" && P3S_OBS_LINE[obsType]) return obsPts ? React.createElement("span", null, "\u0E04\u0E25\u0E34\u0E01\u0E08\u0E38\u0E14\u0E16\u0E31\u0E14\u0E44\u0E1B\u0E15\u0E48\u0E2D\u0E40\u0E1B\u0E47\u0E19\u0E40\u0E2A\u0E49\u0E19\u0E22\u0E32\u0E27 \xB7 ", React.createElement("kbd", null, "Enter"), "/\u0E14\u0E31\u0E1A\u0E40\u0E1A\u0E34\u0E25\u0E04\u0E25\u0E34\u0E01/\u0E41\u0E15\u0E30\u0E08\u0E38\u0E14\u0E2A\u0E38\u0E14\u0E17\u0E49\u0E32\u0E22\u0E0B\u0E49\u0E33 = \u0E08\u0E1A \xB7 ", React.createElement("kbd", null, "\u232B"), " \u0E16\u0E2D\u0E22\u0E08\u0E38\u0E14") : React.createElement("span", null, "\u0E27\u0E32\u0E07", React.createElement("b", null, obsType === "rail" ? "ราวกันตก" : "ทางเดิน"), " \xB7 ", React.createElement("b", null, "\u0E04\u0E25\u0E34\u0E01\u0E17\u0E35\u0E25\u0E30\u0E08\u0E38\u0E14"), "\u0E15\u0E48\u0E2D\u0E01\u0E31\u0E19\u0E40\u0E1B\u0E47\u0E19\u0E40\u0E2A\u0E49\u0E19 (\u0E14\u0E39\u0E14\u0E40\u0E02\u0E49\u0E32\u0E02\u0E2D\u0E1A\u0E2B\u0E25\u0E31\u0E07\u0E04\u0E32)");
     if (tool === "obs" && obsType === "ladder") return React.createElement("span", null, "\u0E27\u0E32\u0E07", React.createElement("b", null, "\u0E1A\u0E31\u0E19\u0E44\u0E14\u0E25\u0E34\u0E07"), " \xB7 ", React.createElement("b", null, "\u0E41\u0E15\u0E30\u0E17\u0E35\u0E48\u0E02\u0E2D\u0E1A\u0E2B\u0E25\u0E31\u0E07\u0E04\u0E32"), " \u2014 \u0E15\u0E34\u0E14\u0E0A\u0E34\u0E14\u0E1C\u0E19\u0E31\u0E07\u0E14\u0E49\u0E32\u0E19\u0E19\u0E2D\u0E01\u0E40\u0E2D\u0E07");
+    if (tool === "obs" && !obsType) return React.createElement("span", null, React.createElement("b", null, "\u0E40\u0E25\u0E37\u0E2D\u0E01\u0E0A\u0E19\u0E34\u0E14\u0E2A\u0E34\u0E48\u0E07\u0E1A\u0E14\u0E1A\u0E31\u0E07"), "\u0E14\u0E49\u0E32\u0E19\u0E25\u0E48\u0E32\u0E07\u0E01\u0E48\u0E2D\u0E19 \u0E41\u0E25\u0E49\u0E27\u0E04\u0E48\u0E2D\u0E22\u0E41\u0E15\u0E30/\u0E25\u0E32\u0E01\u0E1A\u0E19\u0E1C\u0E31\u0E07");
     if (tool === "obs") return React.createElement("span", null, "\u0E27\u0E32\u0E07", React.createElement("b", null, (P3S_OBS.find(x => x[0] === obsType) || P3S_OBS[0])[1]), " \xB7 ", React.createElement("b", null, "\u0E41\u0E15\u0E30"), " = \u0E02\u0E19\u0E32\u0E14\u0E21\u0E32\u0E15\u0E23\u0E10\u0E32\u0E19 \xB7 ", React.createElement("b", null, "\u0E25\u0E32\u0E01"), " = \u0E15\u0E32\u0E21\u0E02\u0E19\u0E32\u0E14\u0E08\u0E23\u0E34\u0E07");
     if (tool === "meas") return measPts ? React.createElement("span", null, "\u0E04\u0E25\u0E34\u0E01\u0E08\u0E38\u0E14\u0E16\u0E31\u0E14\u0E44\u0E1B \xB7 ", React.createElement("kbd", null, "Enter"), "/\u0E14\u0E31\u0E1A\u0E40\u0E1A\u0E34\u0E25\u0E04\u0E25\u0E34\u0E01 = \u0E08\u0E1A\u0E40\u0E2A\u0E49\u0E19 \xB7 ", React.createElement("kbd", null, "\u232B"), " \u0E16\u0E2D\u0E22\u0E08\u0E38\u0E14") : React.createElement("span", null, React.createElement("b", null, "\u0E04\u0E25\u0E34\u0E01\u0E44\u0E25\u0E48\u0E08\u0E38\u0E14"), " \u0E15\u0E32\u0E21\u0E41\u0E19\u0E27\u0E40\u0E14\u0E34\u0E19\u0E2A\u0E32\u0E22/\u0E23\u0E32\u0E07 \u0E44\u0E14\u0E49\u0E23\u0E30\u0E22\u0E30\u0E08\u0E23\u0E34\u0E07\u0E44\u0E1B\u0E01\u0E23\u0E2D\u0E01 BOQ");
     if (tool === "bg") {
@@ -12621,7 +12626,12 @@ function Plan3DStudio({
         flex: "1 1 100%"
       }
     }, obsMsg)),
-    go: () => setTool("obs")
+    go: () => {
+      setObsType(null);
+      setObsPts(null);
+      setObsMsg(null);
+      setTool("obs");
+    }
   }, {
     t: "วางแผง ทีละหลังคา",
     tools: ["panel"],
@@ -12943,9 +12953,9 @@ function Plan3DStudio({
   const hk = wizHomeRef.current,
     hT = P3S_TOOLS.find(t => t.k === hk);
   const ftList = (hT && hk !== "select" && hk !== "pan" ? [[hk, hT.ic, hT.lb]] : []).concat([["select", "cursor", "ย้าย (V)"], ["pan", "hand", "เลื่อนภาพ (H)"]]);
-  const modeTxt = tool === "obs" ? "วาง" + p3sObsName({
+  const modeTxt = tool === "obs" ? obsType ? "วาง" + p3sObsName({
     p3sType: obsType
-  }) : tool === "panel" && panGateRef.current ? "วางแผง · เลือกรุ่นแผงก่อน" : {
+  }) : "สิ่งบดบัง · เลือกชนิดก่อน" : tool === "panel" && panGateRef.current ? "วางแผง · เลือกรุ่นแผงก่อน" : {
     select: "เลือก / ย้าย",
     pan: "เลื่อนภาพ",
     area: "กำหนดพื้นที่ติดตั้ง",

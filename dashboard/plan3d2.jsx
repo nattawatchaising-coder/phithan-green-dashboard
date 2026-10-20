@@ -2729,7 +2729,7 @@ function Plan3DStudio({ job, ver, onClose, currentUser }) {
   const [roofArm, setRoofArm] = React.useState(false);  // กดเพิ่มหลังคา/เลือกทรงแล้ว ยังวาดไม่เสร็จ → โชว์แถบเครื่องมือบนผัง
   // มีหลังคาแล้ว ต้องกด "เพิ่มหลังคา" ก่อนถึงวาด/หาขอบหลังใหม่ได้ — ไม่งั้นแตะผัง = เลือก/ลากหลังคาเดิม (กันวาดเกินโดยไม่ตั้งใจ)
   const roofLock = tool === "roof" && !roofArm && !draw && !!(st && (st.roofs || []).length);
-  const [obsType, setObsType] = React.useState("turbine");  // ชนิดสิ่งบดบังที่จะวางต่อไป
+  const [obsType, setObsType] = React.useState(null);  // ชนิดสิ่งบดบังที่จะวางต่อไป (null = ยังไม่เลือก — ไม่เลือกให้เอง)
   const [obsHov, setObsHov] = React.useState(null);          // ชี้ปุ่มชนิดสิ่งบดบัง → ป๊อปโมเดล 3D {k, r: กรอบปุ่ม}
   const [obsPts, setObsPts] = React.useState(null);   // กำลังวาดราวกันตก/ทางเดิน (คลิกต่อจุด · พิกัดโลก)
   const [obsMsg, setObsMsg] = React.useState(null);   // ข้อความเตือนตอนวางสิ่งบดบัง (เช่น บันไดต้องอยู่ที่ขอบ)
@@ -3634,7 +3634,7 @@ function Plan3DStudio({ job, ver, onClose, currentUser }) {
       setObsPts((obsPts || []).concat([{ x: p3sR(sp.x), z: p3sR(sp.z) }])); setSel(null); setObsMsg(null);
       return;
     }
-    if (tool === "obs") { const ho = hitBody(w); if (!(ho && ho.t === "obs")) { gest.current = Object.assign(base, { type: "obsRect" }); return; } }
+    if (tool === "obs") { const ho = hitBody(w); if (!(ho && ho.t === "obs") && !obsType) { setObsMsg("เลือกชนิดสิ่งบดบังก่อน แล้วค่อยแตะบนผัง"); return; } if (!(ho && ho.t === "obs")) { gest.current = Object.assign(base, { type: "obsRect" }); return; } }
     if (tool === "area") { gest.current = Object.assign(base, { type: "areaRect" }); return; }
     if (tool === "bg") {
       if (calib) { const pts = calib.pts.length >= 2 ? [w] : calib.pts.concat([w]); setCalib({ pts, len: calib.len }); return; }
@@ -4274,7 +4274,7 @@ function Plan3DStudio({ job, ver, onClose, currentUser }) {
   const obsEls = (st.obstacles || []).map((o) => obsEl(o, (selObs && selObs.id === o.id) || (!!selObs && multi.indexOf(o.id) >= 0), hover === "obs:" + o.id));
   /* เงาของที่กำลังจะวางตามเมาส์ — เห็นรูปร่าง/ขนาดก่อนแตะ · บันไดลิงดูดเข้าขอบให้เห็นจุดที่จะติดจริง */
   let obsGhost = null, ladderFar = false;
-  if (tool === "obs" && mxy && !view3d && !gest.current && !obsPts && !P3S_OBS_LINE[obsType] && !(hover && hover.indexOf("obs:") === 0)) {
+  if (tool === "obs" && obsType && mxy && !view3d && !gest.current && !obsPts && !P3S_OBS_LINE[obsType] && !(hover && hover.indexOf("obs:") === 0)) {
     const T = P3S_OBS.find((x) => x[0] === obsType) || P3S_OBS[0], gw = toW(mxy);
     let g = null;
     if (T[0] === "ladder") { const at = ladderAt(gw.x, gw.z); if (at) g = Object.assign({ id: "__ghost", kind: "box", p3sType: "ladder", w: T[2], d: T[3], h: T[4] }, at); else ladderFar = true; }
@@ -4515,6 +4515,7 @@ function Plan3DStudio({ job, ver, onClose, currentUser }) {
     if (tool === "obs" && P3S_OBS_LINE[obsType]) return obsPts ? <span>คลิกจุดถัดไปต่อเป็นเส้นยาว · <kbd>Enter</kbd>/ดับเบิลคลิก/แตะจุดสุดท้ายซ้ำ = จบ · <kbd>⌫</kbd> ถอยจุด</span>
       : <span>วาง<b>{obsType === "rail" ? "ราวกันตก" : "ทางเดิน"}</b> · <b>คลิกทีละจุด</b>ต่อกันเป็นเส้น (ดูดเข้าขอบหลังคา)</span>;
     if (tool === "obs" && obsType === "ladder") return <span>วาง<b>บันไดลิง</b> · <b>แตะที่ขอบหลังคา</b> — ติดชิดผนังด้านนอกเอง</span>;
+    if (tool === "obs" && !obsType) return <span><b>เลือกชนิดสิ่งบดบัง</b>ด้านล่างก่อน แล้วค่อยแตะ/ลากบนผัง</span>;
     if (tool === "obs") return <span>วาง<b>{(P3S_OBS.find((x) => x[0] === obsType) || P3S_OBS[0])[1]}</b> · <b>แตะ</b> = ขนาดมาตรฐาน · <b>ลาก</b> = ตามขนาดจริง</span>;
     if (tool === "meas") return measPts ? <span>คลิกจุดถัดไป · <kbd>Enter</kbd>/ดับเบิลคลิก = จบเส้น · <kbd>⌫</kbd> ถอยจุด</span>
       : <span><b>คลิกไล่จุด</b> ตามแนวเดินสาย/ราง ได้ระยะจริงไปกรอก BOQ</span>;
@@ -5205,7 +5206,7 @@ function Plan3DStudio({ job, ver, onClose, currentUser }) {
           </div>}
           {obsMsg && <span className="p3s-badge warn" style={{ flex: "1 1 100%" }}>{obsMsg}</span>}
         </div>),
-      go: () => setTool("obs") },
+      go: () => { setObsType(null); setObsPts(null); setObsMsg(null); setTool("obs"); } },
     { t: "วางแผง ทีละหลังคา", tools: ["panel"], done: total > 0,
       d: !panelOk
         ? <span><b>เลือกรุ่นแผงก่อน</b> — ขนาดแผงจริงของรุ่นใช้คิดว่าหลังคาวางได้กี่แผ่น · ไม่มีในคลังกรอกกำลังแผงเองแล้วกดใช้ขนาดมาตรฐาน</span>
@@ -5329,7 +5330,7 @@ function Plan3DStudio({ job, ver, onClose, currentUser }) {
   /* ปุ่มลอยซ้ายบน: เครื่องมือของขั้น (ถ้ามี) · เลือก/ย้าย · เลื่อนภาพ — ป้ายข้างปุ่มบอกโหมดที่ใช้อยู่ */
   const hk = wizHomeRef.current, hT = P3S_TOOLS.find((t) => t.k === hk);
   const ftList = (hT && hk !== "select" && hk !== "pan" ? [[hk, hT.ic, hT.lb]] : []).concat([["select", "cursor", "ย้าย (V)"], ["pan", "hand", "เลื่อนภาพ (H)"]]);
-  const modeTxt = tool === "obs" ? "วาง" + p3sObsName({ p3sType: obsType })
+  const modeTxt = tool === "obs" ? (obsType ? "วาง" + p3sObsName({ p3sType: obsType }) : "สิ่งบดบัง · เลือกชนิดก่อน")
     : tool === "panel" && panGateRef.current ? "วางแผง · เลือกรุ่นแผงก่อน"
     : ({ select: "เลือก / ย้าย", pan: "เลื่อนภาพ", area: "กำหนดพื้นที่ติดตั้ง", axis: "ตั้งแนวหลังคา", roof: "วาดหลังคา", panel: "วางแผง · ลากกรอบ", walk: "วาดทางเดิน", meas: "วัดระยะ", bg: "จัดภาพพื้น" })[tool] || tool;
 
