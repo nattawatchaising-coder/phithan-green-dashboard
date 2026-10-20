@@ -1557,23 +1557,37 @@ function p3PanelsCalc(roof, want) {
     out.rowTilts = [];
     blocks.forEach((blk) => {
       const pw = p3BlkPW(blk), pd = p3BlkPD(blk), gap = blk.gap;
-      const mc = Math.max(0, Math.floor(((D.len - 2 * m) + gap) / (pw + gap)));
-      const mr = Math.max(0, Math.floor(((D.arc - 2 * m) + gap) / (pd + gap)));
+      /* ทางเดินแบ่งกลุ่ม (gc/gr/gg) — เดิมโดมไม่อ่านเลย ตั้งทางเดินกว้างเท่าไรแผงก็ไม่ขยับ (ผู้ใช้ทัก ต.ค. 2026)
+         คอลัมน์ = ตามแนวสัน (len) · แถว = ตามส่วนโค้ง (arc) · ชุด patch นับกลุ่มจากแถว/คอลัมน์แรกของชุดเอง เหมือน p3FillBlk */
+      const gc = blk.gc, gr = blk.gr, gg = blk.gg;
+      const spanW = (k) => k * pw + (k - 1) * gap + (gc > 0 && gg > 0 ? (Math.ceil(k / gc) - 1) * gg : 0);
+      const spanA = (k) => k * pd + (k - 1) * gap + (gr > 0 && gg > 0 ? (Math.ceil(k / gr) - 1) * gg : 0);
+      const fitN = (avail, span) => { let k = 0; while (span(k + 1) <= avail + 1e-9) k++; return k; };
+      const mc = fitN(D.len - 2 * m, spanW);
+      const mr = fitN(D.arc - 2 * m, spanA);
       out.maxCols = Math.max(out.maxCols, mc); out.maxRows = Math.max(out.maxRows, mr);
       const cols = blk.cols > 0 ? Math.min(blk.cols, mc) : mc;
       const rows = blk.rows > 0 ? Math.min(blk.rows, mr) : mr;
-      const gridW = cols * pw + (cols - 1) * gap, gridA = rows * pd + (rows - 1) * gap;
+      let pr0 = 0, pc0 = 0;
+      if (blk.patch && blk.only) {
+        let a = Infinity, b = Infinity;
+        Object.keys(blk.only).forEach((k) => { if (k.indexOf(blk.pfx) !== 0) return; const mm = /^(-?d+)_(-?d+)$/.exec(k.slice(blk.pfx.length)); if (mm) { a = Math.min(a, +mm[1]); b = Math.min(b, +mm[2]); } });
+        if (a < Infinity) { pr0 = a; pc0 = b; }
+      }
+      const offC = (c) => (gc > 0 && gg > 0 ? Math.floor((c - pc0) / gc) * gg : 0);
+      const offR = (r) => (gr > 0 && gg > 0 ? Math.floor((r - pr0) / gr) * gg : 0);
+      const gridW = spanW(cols), gridA = spanA(rows);
       const x0 = -gridW / 2 + blk.du, s0 = (D.arc - gridA) / 2 + blk.dv;
       let n = 0;
       for (let r = 0; r < rows; r++) {
-        const t = -D.th + (s0 + r * (pd + gap) + pd / 2) / D.rad;
+        const t = -D.th + (s0 + r * (pd + gap) + offR(r) + pd / 2) / D.rad;
         if (Math.abs(t) > maxT + 1e-6 || t < -D.th || t > D.th) continue;
         if (blk.i === 0) out.rowTilts.push(Math.abs(Math.round(t / P3_DEG)));
         const yc = D.yAt(t), zc = D.zAt(t);
         for (let c = 0; c < cols; c++) {
           const key = blk.pfx + r + "_" + c, skip = !!blk.skips[key];
           if (blk.patch && !blk.only[key]) continue;
-          out.list.push({ key, x: x0 + c * (pw + gap) + pw / 2, y: yc, z: zc, rx: t, pw, pd, blk: blk.i, skip });
+          out.list.push({ key, x: x0 + c * (pw + gap) + offC(c) + pw / 2, y: yc, z: zc, rx: t, pw, pd, blk: blk.i, skip });
           if (!skip) { out.count++; n++; }
         }
       }
