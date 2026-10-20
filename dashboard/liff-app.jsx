@@ -436,7 +436,7 @@ function lnOffTH(d, cfg) {
   return "วันหยุด · " + (n || LN_WD_FULL[new Date(d + "T00:00:00").getDay()]);
 }
 
-function LnClock({ me, cfg, jobs, ot, onAskOt, ym, onYm }) {
+function LnClock({ me, cfg, jobs, ot, onAskOt, ym, onYm, leaves, lvTypes }) {
   /* 95 วัน ไม่ใช่ 14 — ปฏิทินเปิดย้อนไปได้สองเดือน ถ้าดึงมาแค่ 14 วัน เดือนก่อนจะว่างทั้งเดือน
      ทั้งที่มีใบอยู่จริง ซึ่งอ่านแล้วเข้าใจผิดว่า "ไม่ได้ลงเวลา" ไม่ใช่ "ยังไม่ได้โหลดมา" */
   const at = window.useAttend(me ? me.id : null, 95);
@@ -681,7 +681,7 @@ function LnClock({ me, cfg, jobs, ot, onAskOt, ym, onYm }) {
 
       {/* ข้อความเรื่องพิกัดใต้ปุ่มเอาออกแล้ว (ผู้ใช้สั่ง ต.ค. 2026) */}
 
-      <LnClockCal rows={at.rows} cfg={cfg} ot={ot} onAskOt={onAskOt} ym={ym} onYm={onYm} />
+      <LnClockCal rows={at.rows} cfg={cfg} ot={ot} onAskOt={onAskOt} ym={ym} onYm={onYm} leaves={leaves} lvTypes={lvTypes} />
     </div>
   );
 }
@@ -709,15 +709,18 @@ const lnCalDateTH = (iso) => {
 /* คืนรายการสีจุดของวันหนึ่ง — วันที่มีใบ OT เอาจุดน้ำเงินจุดเดียวพอ
    จุดสองสีในช่องกว้างสี่สิบพิกเซลอ่านเป็น "จุดเบลอ ๆ" มากกว่าอ่านเป็นสองเรื่อง
    สถานะลงเวลาของวันนั้นไม่ได้หายไปไหน — แตะวันที่แล้วบรรทัดล่างบอกครบทั้งเวลาเข้าออกและชั่วโมง OT */
-function lnCalDots(k, rec, otg, today, cfg) {
-  if (otg && otg.rows.length) return ["#2563EB"];
-  if (rec && rec.in && rec.in.hm) return [rec.out && rec.out.hm ? "var(--primary)" : "#D97706"];
-  if (k <= today && window.tmIsWorkday(k, cfg)) return ["#DC2626"];
-  return [];
+const LN_LV_DOT = "#0EA5E9";   // วันลา — สีเดียวกับเมนูการลา (LN_KIND.leave)
+function lnCalDots(k, rec, otg, today, cfg, lv) {
+  const out = [];
+  if (otg && otg.rows.length) out.push("#2563EB");
+  else if (rec && rec.in && rec.in.hm) out.push(rec.out && rec.out.hm ? "var(--primary)" : "#D97706");
+  else if (!lv && k <= today && window.tmIsWorkday(k, cfg)) out.push("#DC2626");   // ลาอยู่ = ไม่ใช่ "ไม่ได้ลง"
+  if (lv) out.push(LN_LV_DOT);
+  return out;
 }
 
 /* ym/onYm ส่งมา = เดือนคุมจากข้างนอก (สรุป OT ใต้ปฏิทินเปลี่ยนตามเดือนนี้ — ผู้ใช้สั่ง ต.ค. 2026 "เลื่อนแค่ด้านบนแล้วเปลี่ยนตาม") */
-function LnClockCal({ rows, cfg, ot, onAskOt, ym: ymIn, onYm }) {
+function LnClockCal({ rows, cfg, ot, onAskOt, ym: ymIn, onYm, leaves, lvTypes }) {
   const today = window.drToday();
   const [ymOwn, setYmOwn] = React.useState(today.slice(0, 7));
   const ym = ymIn || ymOwn, setYm = onYm || setYmOwn;
@@ -741,6 +744,9 @@ function LnClockCal({ rows, cfg, ot, onAskOt, ym: ymIn, onYm }) {
     return m;
   }, [ot]);
 
+  /* วันลาของฉัน (รออนุมัติ/อนุมัติแล้ว · เฉพาะวันทำงาน เพราะวันหยุดไม่นับเป็นวันลา) — ผู้ใช้สั่ง ต.ค. 2026 */
+  const lvOf = (iso) => window.tmIsWorkday(iso, cfg) && window.lvCovers
+    ? (leaves || []).find((r) => window.lvCovers(r, iso)) || null : null;
   const y = +ym.slice(0, 4), mo = +ym.slice(5, 7);
   const days = new Date(y, mo, 0).getDate();
   const lead = new Date(y, mo - 1, 1).getDay();
@@ -752,6 +758,7 @@ function LnClockCal({ rows, cfg, ot, onAskOt, ym: ymIn, onYm }) {
   const rec = byDay[pick];
 
   const otg = otDay[pick];
+  const lvp = lvOf(pick), lvt = lvp && window.lvTypeOf ? window.lvTypeOf(lvTypes, lvp.type) : null;
   const navBtn = {
     width: 28, height: 28, display: "grid", placeItems: "center", borderRadius: 12, cursor: "pointer",
     background: "var(--surface)", padding: 0,
@@ -792,7 +799,7 @@ function LnClockCal({ rows, cfg, ot, onAskOt, ym: ymIn, onYm }) {
                 {d}
                 <span style={{ position: "absolute", left: 0, right: 0, bottom: 5, display: "flex",
                   justifyContent: "center", gap: 3, pointerEvents: "none" }}>
-                  {lnCalDots(k, r, otDay[k], today, cfg).map((c, n) => (
+                  {lnCalDots(k, r, otDay[k], today, cfg, lvOf(k)).map((c, n) => (
                     <i key={n} style={{ width: 5, height: 5, borderRadius: 99, background: on ? "#fff" : c }} />
                   ))}
                 </span>
@@ -803,7 +810,7 @@ function LnClockCal({ rows, cfg, ot, onAskOt, ym: ymIn, onYm }) {
 
         {/* คำอธิบายสี — จุด/ตัวเลขสีไม่มีใครเดาออกเอง (ผู้ใช้สั่ง ต.ค. 2026) · สีต้องตรงกับ lnCalDots */}
         <div style={{ marginTop: 8, display: "flex", flexWrap: "wrap", justifyContent: "center", gap: "4px 12px", fontSize: 10.5, fontWeight: 700, color: "var(--text-3)" }}>
-          {[["var(--primary)", "ลงครบ"], ["#D97706", "ลืมออก"], ["#DC2626", "ไม่ได้ลง"], ["#2563EB", "มีใบ OT"]].map(([c, t]) => (
+          {[["var(--primary)", "ลงครบ"], ["#D97706", "ลืมออก"], ["#DC2626", "ไม่ได้ลง"], ["#2563EB", "มีใบ OT"]].concat(leaves ? [[LN_LV_DOT, "ลา"]] : []).map(([c, t]) => (
             <span key={t} style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>
               <i style={{ width: 6, height: 6, borderRadius: 99, background: c }} />{t}
             </span>
@@ -825,11 +832,22 @@ function LnClockCal({ rows, cfg, ot, onAskOt, ym: ymIn, onYm }) {
               </React.Fragment>
             ) : (
               <span style={{ marginLeft: "auto", fontSize: 11.5,
-                color: pick <= today && window.tmIsWorkday(pick, cfg) ? "#DC2626" : "var(--text-3)" }}>
-                {!window.tmIsWorkday(pick, cfg) ? lnOffTH(pick, cfg) : pick > today ? "ยังไม่ถึงวัน" : "ไม่ได้ลงเวลา"}
+                color: lvp ? LN_LV_DOT : pick <= today && window.tmIsWorkday(pick, cfg) ? "#DC2626" : "var(--text-3)" }}>
+                {!window.tmIsWorkday(pick, cfg) ? lnOffTH(pick, cfg) : lvp ? "ลา" : pick > today ? "ยังไม่ถึงวัน" : "ไม่ได้ลงเวลา"}
               </span>
             )}
           </div>
+
+          {/* วันลา: ประเภท (+ครึ่งวัน) และสถานะใบ */}
+          {lvp && (
+            <div style={{ marginTop: 7, display: "flex", alignItems: "center", gap: 7 }}>
+              <i style={{ width: 6, height: 6, borderRadius: 99, background: LN_LV_DOT }} />
+              <span style={{ fontSize: 11.5, fontWeight: 700, color: LN_LV_DOT }}>
+                {lvt.th}{lvp.part && lvp.part !== "full" && window.lvPartTH ? " (" + window.lvPartTH(lvp.part) + ")" : ""}
+              </span>
+              <span style={{ fontSize: 11.5, color: "var(--text-3)" }}>{lvp.no ? lvp.no + " · " : ""}{window.tmOtStatusOf(lvp.status).th}</span>
+            </div>
+          )}
 
           {/* ขอ OT ไปกี่ชั่วโมง — รวมทุกใบของวันนั้น และบอกสถานะเมื่อมีใบเดียว
               หลายใบไม่บอกสถานะ เพราะสองใบคนละสถานะจะสรุปเป็นคำเดียวไม่ได้โดยไม่โกหก */}
@@ -1162,6 +1180,9 @@ function LnTimeTab({ me, users, role, jobs, startOt, startSub }) {
     const d = new Date(+otYm.slice(0, 4), +otYm.slice(5, 7) - 1 + n, 1);
     setOtYm(d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0"));
   };
+  /* ใบลาของฉันที่ยังมีผล (รออนุมัติ/อนุมัติแล้ว) — ปฏิทินลงเวลาบอกว่าวันไหนลา */
+  const myLv = React.useMemo(() => (lvStore.rows || []).filter((r) => r && me && r.userId === me.id
+    && (r.status === "sent" || r.status === "approved")), [lvStore.rows, me]);
   const myOtM = React.useMemo(() => myOt.filter((r) => String(r.date || "").slice(0, 7) === otYm), [myOt, otYm]);
 
   return (
@@ -1184,7 +1205,7 @@ function LnTimeTab({ me, users, role, jobs, startOt, startSub }) {
         : (
         <React.Fragment>
           {window.tmCanAttend(role)
-            ? <LnClock me={me} cfg={wh.cfg} jobs={jobs} ot={myOt} ym={otYm} onYm={setOtYm}
+            ? <LnClock me={me} cfg={wh.cfg} jobs={jobs} ot={myOt} ym={otYm} onYm={setOtYm} leaves={canLeave ? myLv : null} lvTypes={lvTypes}
                 onAskOt={window.tmCanOt(role) ? ((lim) => { setLimit(lim); setForm(true); }) : null} />
             : <div style={{ padding: 34, textAlign: "center", color: "var(--text-3)", fontSize: 13.5 }}>
                 บัญชีนี้ยังไม่ได้เปิดสิทธิ์ลงเวลา

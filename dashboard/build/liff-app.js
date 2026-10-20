@@ -742,7 +742,9 @@ function LnClock({
   ot,
   onAskOt,
   ym,
-  onYm
+  onYm,
+  leaves,
+  lvTypes
 }) {
   const at = window.useAttend(me ? me.id : null, 95);
   const writer = window.useAttendWriter(me, cfg);
@@ -1101,7 +1103,9 @@ function LnClock({
     ot: ot,
     onAskOt: onAskOt,
     ym: ym,
-    onYm: onYm
+    onYm: onYm,
+    leaves: leaves,
+    lvTypes: lvTypes
   }));
 }
 const LN_MON_TH = ["มกราคม", "กุมภาพันธ์", "มีนาคม", "เมษายน", "พฤษภาคม", "มิถุนายน", "กรกฎาคม", "สิงหาคม", "กันยายน", "ตุลาคม", "พฤศจิกายน", "ธันวาคม"];
@@ -1110,11 +1114,12 @@ const lnCalDateTH = iso => {
   if (a.length !== 3) return iso || "";
   return +a[2] + " " + LN_MON_TH[+a[1] - 1] + " " + (+a[0] + 543);
 };
-function lnCalDots(k, rec, otg, today, cfg) {
-  if (otg && otg.rows.length) return ["#2563EB"];
-  if (rec && rec.in && rec.in.hm) return [rec.out && rec.out.hm ? "var(--primary)" : "#D97706"];
-  if (k <= today && window.tmIsWorkday(k, cfg)) return ["#DC2626"];
-  return [];
+const LN_LV_DOT = "#0EA5E9";
+function lnCalDots(k, rec, otg, today, cfg, lv) {
+  const out = [];
+  if (otg && otg.rows.length) out.push("#2563EB");else if (rec && rec.in && rec.in.hm) out.push(rec.out && rec.out.hm ? "var(--primary)" : "#D97706");else if (!lv && k <= today && window.tmIsWorkday(k, cfg)) out.push("#DC2626");
+  if (lv) out.push(LN_LV_DOT);
+  return out;
 }
 function LnClockCal({
   rows,
@@ -1122,7 +1127,9 @@ function LnClockCal({
   ot,
   onAskOt,
   ym: ymIn,
-  onYm
+  onYm,
+  leaves,
+  lvTypes
 }) {
   const today = window.drToday();
   const [ymOwn, setYmOwn] = React.useState(today.slice(0, 7));
@@ -1150,6 +1157,7 @@ function LnClockCal({
     });
     return m;
   }, [ot]);
+  const lvOf = iso => window.tmIsWorkday(iso, cfg) && window.lvCovers ? (leaves || []).find(r => window.lvCovers(r, iso)) || null : null;
   const y = +ym.slice(0, 4),
     mo = +ym.slice(5, 7);
   const days = new Date(y, mo, 0).getDate();
@@ -1161,6 +1169,8 @@ function LnClockCal({
   const key = d => ym + "-" + String(d).padStart(2, "0");
   const rec = byDay[pick];
   const otg = otDay[pick];
+  const lvp = lvOf(pick),
+    lvt = lvp && window.lvTypeOf ? window.lvTypeOf(lvTypes, lvp.type) : null;
   const navBtn = {
     width: 28,
     height: 28,
@@ -1280,7 +1290,7 @@ function LnClockCal({
         gap: 3,
         pointerEvents: "none"
       }
-    }, lnCalDots(k, r, otDay[k], today, cfg).map((c, n) => React.createElement("i", {
+    }, lnCalDots(k, r, otDay[k], today, cfg, lvOf(k)).map((c, n) => React.createElement("i", {
       key: n,
       style: {
         width: 5,
@@ -1300,7 +1310,7 @@ function LnClockCal({
       fontWeight: 700,
       color: "var(--text-3)"
     }
-  }, [["var(--primary)", "ลงครบ"], ["#D97706", "ลืมออก"], ["#DC2626", "ไม่ได้ลง"], ["#2563EB", "มีใบ OT"]].map(([c, t]) => React.createElement("span", {
+  }, [["var(--primary)", "ลงครบ"], ["#D97706", "ลืมออก"], ["#DC2626", "ไม่ได้ลง"], ["#2563EB", "มีใบ OT"]].concat(leaves ? [[LN_LV_DOT, "ลา"]] : []).map(([c, t]) => React.createElement("span", {
     key: t,
     style: {
       display: "inline-flex",
@@ -1353,9 +1363,34 @@ function LnClockCal({
     style: {
       marginLeft: "auto",
       fontSize: 11.5,
-      color: pick <= today && window.tmIsWorkday(pick, cfg) ? "#DC2626" : "var(--text-3)"
+      color: lvp ? LN_LV_DOT : pick <= today && window.tmIsWorkday(pick, cfg) ? "#DC2626" : "var(--text-3)"
     }
-  }, !window.tmIsWorkday(pick, cfg) ? lnOffTH(pick, cfg) : pick > today ? "ยังไม่ถึงวัน" : "ไม่ได้ลงเวลา")), otg && React.createElement("div", {
+  }, !window.tmIsWorkday(pick, cfg) ? lnOffTH(pick, cfg) : lvp ? "ลา" : pick > today ? "ยังไม่ถึงวัน" : "ไม่ได้ลงเวลา")), lvp && React.createElement("div", {
+    style: {
+      marginTop: 7,
+      display: "flex",
+      alignItems: "center",
+      gap: 7
+    }
+  }, React.createElement("i", {
+    style: {
+      width: 6,
+      height: 6,
+      borderRadius: 99,
+      background: LN_LV_DOT
+    }
+  }), React.createElement("span", {
+    style: {
+      fontSize: 11.5,
+      fontWeight: 700,
+      color: LN_LV_DOT
+    }
+  }, lvt.th, lvp.part && lvp.part !== "full" && window.lvPartTH ? " (" + window.lvPartTH(lvp.part) + ")" : ""), React.createElement("span", {
+    style: {
+      fontSize: 11.5,
+      color: "var(--text-3)"
+    }
+  }, lvp.no ? lvp.no + " · " : "", window.tmOtStatusOf(lvp.status).th)), otg && React.createElement("div", {
     style: {
       marginTop: 7,
       display: "flex",
@@ -1881,6 +1916,7 @@ function LnTimeTab({
     const d = new Date(+otYm.slice(0, 4), +otYm.slice(5, 7) - 1 + n, 1);
     setOtYm(d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0"));
   };
+  const myLv = React.useMemo(() => (lvStore.rows || []).filter(r => r && me && r.userId === me.id && (r.status === "sent" || r.status === "approved")), [lvStore.rows, me]);
   const myOtM = React.useMemo(() => myOt.filter(r => String(r.date || "").slice(0, 7) === otYm), [myOt, otYm]);
   return React.createElement(React.Fragment, null, React.createElement(LnSub, {
     items: [{
@@ -1931,6 +1967,8 @@ function LnTimeTab({
     ot: myOt,
     ym: otYm,
     onYm: setOtYm,
+    leaves: canLeave ? myLv : null,
+    lvTypes: lvTypes,
     onAskOt: window.tmCanOt(role) ? lim => {
       setLimit(lim);
       setForm(true);
