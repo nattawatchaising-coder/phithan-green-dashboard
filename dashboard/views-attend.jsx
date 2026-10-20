@@ -1048,6 +1048,9 @@ const TM_CSS = `
 .tmv-cal .d.on{background:var(--surface);box-shadow:var(--shadow-sm)}
 .tmv-cal .d.bad{box-shadow:inset 0 0 0 1px var(--tint-red-bd)}
 .tmv-cal .d.off{opacity:.45}
+.tmv-cal .d.off.hl{opacity:1}
+.tmv-cal .d.pk.off:hover .lab{visibility:hidden}
+.tmv-cal .lab{font-size:10.5px;font-weight:700;line-height:1.35;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .tmv-cal .d.pk{cursor:pointer;transition:transform .12s,box-shadow .12s,opacity .12s}
 .tmv-cal .d.pk:hover{opacity:1;transform:translateY(-2px);box-shadow:var(--hov-sh)}
 /* ป้าย "+ ลงแทน" ลอยทับมุมล่าง ไม่ดันความสูงช่อง — เดิมเป็นบรรทัดใหม่ แถวทั้งแถวสูงขึ้น หน้าขยับทั้งหน้าตอนชี้ (ผู้ใช้ทัก ต.ค. 2026) */
@@ -1787,8 +1790,10 @@ function TmRequests({ users, role, currentUser, otVisible, lv, lvTypes, lvQuota,
 }
 
 /* ปฏิทินรายวันของคนหนึ่งคนในเดือน — เจ็ดคอลัมน์ต่อสัปดาห์ */
-function TmDayGrid({ days, byDay, onPick }) {
+/* วันหยุด (ประจำสัปดาห์ + บริษัทประกาศ) ตัวม่วงพร้อมชื่อ · วันลา (ใบรออนุมัติ/อนุมัติแล้ว) สีของประเภทลา — ผู้ใช้สั่ง ต.ค. 2026 */
+function TmDayGrid({ days, byDay, onPick, cfg, leaves, lvTypes }) {
   const today = window.drToday();
+  const lvOf = (d) => window.lvCovers && window.tmIsWorkday(d, cfg) ? (leaves || []).find((r) => window.lvCovers(r, d)) || null : null;
   return (
     <div className="tmv-cal">
       {TM_WD_TH.map((w) => <div key={w} className="h">{w}</div>)}
@@ -1796,8 +1801,15 @@ function TmDayGrid({ days, byDay, onPick }) {
       {days.map((d) => {
         const x = byDay[d];
         const open = x && x.in && !x.out;
+        const hol = cfg && !window.tmIsWorkday(d, cfg) ? (window.tmWhNorm(cfg).holidays[d] || "วันหยุด") : "";
+        const lv = lvOf(d), lt = lv && window.lvTypeOf ? window.lvTypeOf(lvTypes, lv.type) : null;
+        const lab = lt
+          ? <div className="lab" style={{ color: lt.color }} title={lt.th + " · " + (lv.no || "") + " · " + window.tmOtStatusOf(lv.status).th}>
+              {lt.th}{lv.part && lv.part !== "full" && window.lvPartTH ? " (" + window.lvPartTH(lv.part) + ")" : ""}{lv.status !== "approved" ? " ·รอ" : ""}</div>
+          : hol ? <div className="lab" style={{ color: "var(--st-design-fg)" }} title={hol}>{hol}</div> : null;
         return (
-          <div key={d} className={"d" + (x ? " on" : " off") + (open ? " bad" : "") + (onPick && d <= today ? " pk" : "")}
+          <div key={d} className={"d" + (x ? " on" : " off") + (open ? " bad" : "") + (onPick && d <= today ? " pk" : "") + (lab && !x ? " hl" : "")}
+            style={hol && !x ? { background: "var(--st-design-soft)" } : undefined}
             title={onPick && d <= today ? (x ? "กดเพื่อแก้เวลา" : "กดเพื่อลงเวลาแทน") + " · " + window.drDateTH(d) : window.drDateTH(d)}
             onClick={onPick && d <= today ? () => onPick(d, x) : undefined}>
             <div style={{ fontSize: 10.5, color: "var(--text-3)", fontWeight: 700 }}>{+d.slice(8)}</div>
@@ -1805,6 +1817,7 @@ function TmDayGrid({ days, byDay, onPick }) {
               {x ? (x.in || "—") + "–" + (x.out || "?") : "—"}
             </div>
             <div style={{ fontSize: 10.5, color: "var(--text-3)" }}>{x ? window.tmDur(x.mins) : ""}</div>
+            {lab}
           </div>
         );
       })}
@@ -1852,6 +1865,8 @@ function TmHeat({ days, byDay, cfg }) {
    เวลาเข้า-ออกนับตามเดือนปฏิทิน · OT นับตามรอบตัดยอดที่จบในเดือนนี้ (ไม่ตั้งวันตัด = เดือนเดียวกัน) */
 const tmPpIdle = (r) => !(r.a && r.a.days) && !(r.o && r.o.rows.length);
 function TmMonthAll({ cfg, users, jobs, otRows, byName, canAll, currentUser }) {
+  const lvRows = window.useLeaves ? window.useLeaves().rows : [];
+  const lvTypes = window.useLeaveTypes ? window.useLeaveTypes().types : [];
   const isAdmin = window.usePgAdmin();
   const [ed, setEd] = React.useState(null);
   const [msg, setMsg] = React.useState("");
@@ -1965,7 +1980,8 @@ function TmMonthAll({ cfg, users, jobs, otRows, byName, canAll, currentUser }) {
                     </div>
                   </div>
                   {pick === r.key && a && <div className="tmv-pp-more">
-                    <TmDayGrid days={days} byDay={a.byDay}
+                    <TmDayGrid days={days} byDay={a.byDay} cfg={cfg} lvTypes={lvTypes}
+                      leaves={r.id ? (lvRows || []).filter((q) => q && q.userId === r.id && (q.status === "sent" || q.status === "approved")) : null}
                       onPick={isAdmin && r.id ? (d, x) => setEd(tmEdOf(users, cfg, r.id, r.name, d, x && x.in, x && x.in ? x.out || "" : null)) : null} />
                     {isAdmin && <div style={{ fontSize: 11.5, color: "var(--text-3)", marginTop: 8 }}>กดช่องวันเพื่อแก้เวลา หรือลงเวลาแทนวันที่ไม่มีใบ</div>}
                   </div>}

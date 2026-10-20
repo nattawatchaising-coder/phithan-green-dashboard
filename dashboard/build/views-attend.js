@@ -2268,6 +2268,9 @@ const TM_CSS = `
 .tmv-cal .d.on{background:var(--surface);box-shadow:var(--shadow-sm)}
 .tmv-cal .d.bad{box-shadow:inset 0 0 0 1px var(--tint-red-bd)}
 .tmv-cal .d.off{opacity:.45}
+.tmv-cal .d.off.hl{opacity:1}
+.tmv-cal .d.pk.off:hover .lab{visibility:hidden}
+.tmv-cal .lab{font-size:10.5px;font-weight:700;line-height:1.35;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .tmv-cal .d.pk{cursor:pointer;transition:transform .12s,box-shadow .12s,opacity .12s}
 .tmv-cal .d.pk:hover{opacity:1;transform:translateY(-2px);box-shadow:var(--hov-sh)}
 /* ป้าย "+ ลงแทน" ลอยทับมุมล่าง ไม่ดันความสูงช่อง — เดิมเป็นบรรทัดใหม่ แถวทั้งแถวสูงขึ้น หน้าขยับทั้งหน้าตอนชี้ (ผู้ใช้ทัก ต.ค. 2026) */
@@ -3633,9 +3636,13 @@ function TmRequests({
 function TmDayGrid({
   days,
   byDay,
-  onPick
+  onPick,
+  cfg,
+  leaves,
+  lvTypes
 }) {
   const today = window.drToday();
+  const lvOf = d => window.lvCovers && window.tmIsWorkday(d, cfg) ? (leaves || []).find(r => window.lvCovers(r, d)) || null : null;
   return React.createElement("div", {
     className: "tmv-cal"
   }, TM_WD_TH.map(w => React.createElement("div", {
@@ -3648,9 +3655,28 @@ function TmDayGrid({
   })), days.map(d => {
     const x = byDay[d];
     const open = x && x.in && !x.out;
+    const hol = cfg && !window.tmIsWorkday(d, cfg) ? window.tmWhNorm(cfg).holidays[d] || "วันหยุด" : "";
+    const lv = lvOf(d),
+      lt = lv && window.lvTypeOf ? window.lvTypeOf(lvTypes, lv.type) : null;
+    const lab = lt ? React.createElement("div", {
+      className: "lab",
+      style: {
+        color: lt.color
+      },
+      title: lt.th + " · " + (lv.no || "") + " · " + window.tmOtStatusOf(lv.status).th
+    }, lt.th, lv.part && lv.part !== "full" && window.lvPartTH ? " (" + window.lvPartTH(lv.part) + ")" : "", lv.status !== "approved" ? " ·รอ" : "") : hol ? React.createElement("div", {
+      className: "lab",
+      style: {
+        color: "var(--st-design-fg)"
+      },
+      title: hol
+    }, hol) : null;
     return React.createElement("div", {
       key: d,
-      className: "d" + (x ? " on" : " off") + (open ? " bad" : "") + (onPick && d <= today ? " pk" : ""),
+      className: "d" + (x ? " on" : " off") + (open ? " bad" : "") + (onPick && d <= today ? " pk" : "") + (lab && !x ? " hl" : ""),
+      style: hol && !x ? {
+        background: "var(--st-design-soft)"
+      } : undefined,
       title: onPick && d <= today ? (x ? "กดเพื่อแก้เวลา" : "กดเพื่อลงเวลาแทน") + " · " + window.drDateTH(d) : window.drDateTH(d),
       onClick: onPick && d <= today ? () => onPick(d, x) : undefined
     }, React.createElement("div", {
@@ -3671,7 +3697,7 @@ function TmDayGrid({
         fontSize: 10.5,
         color: "var(--text-3)"
       }
-    }, x ? window.tmDur(x.mins) : ""));
+    }, x ? window.tmDur(x.mins) : ""), lab);
   }));
 }
 const TM_HEAT_LEG = [["color-mix(in srgb, var(--primary) 100%, transparent)", "ทำงาน (จาง = ไม่ครบ)"], ["color-mix(in srgb, var(--text-3) 20%, transparent)", "ไม่มีใบ"], ["transparent", "ยังไม่ถึง", "inset 0 0 0 1px color-mix(in srgb, var(--text-3) 45%, transparent)"], ["color-mix(in srgb, var(--st-design-fg) 34%, transparent)", "วันหยุด"], ["var(--tint-red-tx2)", "ลืมกดออก"]];
@@ -3730,6 +3756,8 @@ function TmMonthAll({
   canAll,
   currentUser
 }) {
+  const lvRows = window.useLeaves ? window.useLeaves().rows : [];
+  const lvTypes = window.useLeaveTypes ? window.useLeaveTypes().types : [];
   const isAdmin = window.usePgAdmin();
   const [ed, setEd] = React.useState(null);
   const [msg, setMsg] = React.useState("");
@@ -3947,6 +3975,9 @@ function TmMonthAll({
     }, React.createElement(TmDayGrid, {
       days: days,
       byDay: a.byDay,
+      cfg: cfg,
+      lvTypes: lvTypes,
+      leaves: r.id ? (lvRows || []).filter(q => q && q.userId === r.id && (q.status === "sent" || q.status === "approved")) : null,
       onPick: isAdmin && r.id ? (d, x) => setEd(tmEdOf(users, cfg, r.id, r.name, d, x && x.in, x && x.in ? x.out || "" : null)) : null
     }), isAdmin && React.createElement("div", {
       style: {
