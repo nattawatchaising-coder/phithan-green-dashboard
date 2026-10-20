@@ -1544,6 +1544,7 @@ function SuReportView({
       flexDirection: "column"
     }
   }, React.createElement("div", {
+    className: "su-rep-hd",
     style: {
       display: "flex",
       gap: 9,
