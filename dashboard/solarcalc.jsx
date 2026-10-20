@@ -731,8 +731,11 @@ function scLayoutOrder(footPanels, byPanel, dir) {
   (footPanels || []).forEach((f) => {
     const g = byPanel ? byPanel[f.uid] : "all";
     if (!g) return;
-    const b = g + "|" + f.roofId + "|" + (f.blk || 0) + "|" + (f.side || "");
-    const B = blocks[b] || (blocks[b] = { g, ps: [], lines: {}, ls: [], x: 0, z: 0, n: 0 });
+    /* โดม: กลุ่มทิศแยกทีละแถว (แต่ละแถวเอียงไม่เท่ากัน) แต่แนวเดินสายต้องคิดทั้งชุดแผง
+       ไม่งั้นแต่ละแถวเป็นชุดของตัวเอง ไล่ตามแนวลาดไม่ได้ และเส้นกระโดดข้ามแถวตามชื่อกลุ่ม */
+    const gp = String(g).split("|"), gb = gp[2] && gp[2].indexOf("row") === 0 ? gp[0] + "|" + gp[1] + "|dome" : g;
+    const b = gb + "|" + f.roofId + "|" + (f.blk || 0) + "|" + (f.side || "");
+    const B = blocks[b] || (blocks[b] = { g: gb, ps: [], lines: {}, ls: [], x: 0, z: 0, n: 0 });
     B.ps.push(f); B.x += f.cx || 0; B.z += f.cz || 0; B.n++;
     gOf[f.uid] = g;
   });
@@ -777,9 +780,9 @@ function scLayoutOrder(footPanels, byPanel, dir) {
       const L = B.lines[l].sort((x, y) => x.k - y.k);
       if (i % 2) L.reverse();
       B.lines[l] = L.map((q) => q.uid);
-      const lc = (lenCount[B.g] = lenCount[B.g] || {});
+      const g0 = gOf[L[0].uid], lc = (lenCount[g0] = lenCount[g0] || {});
       lc[L.length] = (lc[L.length] || 0) + 1;
-      L.forEach((q) => { (order[B.g] = order[B.g] || []).push(q.uid); rank[q.uid] = ri++; });
+      L.forEach((q) => { const g = gOf[q.uid]; (order[g] = order[g] || []).push(q.uid); rank[q.uid] = ri++; });
     });
   });
   const lineLen = {};
