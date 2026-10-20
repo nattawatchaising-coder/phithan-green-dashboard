@@ -1029,8 +1029,8 @@ function useWorkHours() {
     return () => ref.off("value", h);
   }, []);
   const save = React.useCallback(next => {
-    if (!_TMFB()) return;
-    window.FBDB.ref("config/workHours").set(tmWhNorm(next));
+    if (!_TMFB()) return Promise.reject(new Error("ยังไม่ได้เชื่อมฐานข้อมูล"));
+    return window.FBDB.ref("config/workHours").set(tmWhNorm(next));
   }, []);
   return {
     cfg,

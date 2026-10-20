@@ -764,6 +764,17 @@ function TmWorkHours({ cfg, onSave }) {
   const [hName, setHName] = React.useState("");
   const set = (k, v) => setF((p) => Object.assign({}, p, { [k]: v }));
   const DAYS = ["อา", "จ", "อ", "พ", "พฤ", "ศ", "ส"];
+  /* กดบันทึกแล้วต้องเห็นว่าบันทึกแล้ว (ผู้ใช้ทัก ต.ค. 2026 "มันนิ่ง ๆ") — busy → ok 2.5 วิ / err ค้างจนกดใหม่ */
+  const [sv, setSv] = React.useState("");
+  const svT = React.useRef(0);
+  React.useEffect(() => () => clearTimeout(svT.current), []);
+  const doSave = () => {
+    if (sv === "busy") return;
+    setSv("busy"); clearTimeout(svT.current);
+    Promise.resolve(onSave(f)).then(() => {
+      setSv("ok"); svT.current = setTimeout(() => setSv(""), 2500);
+    }, (e) => { console.error(e); setSv("err"); });
+  };
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 14, maxWidth: 640 }}>
@@ -914,9 +925,13 @@ function TmWorkHours({ cfg, onSave }) {
       </div>
 
       <div>
-        <button onClick={() => onSave(f)}
-          style={{ padding: "10px 20px", borderRadius: "var(--r-chip)", border: "none", background: "var(--primary)", color: "#fff",
-            cursor: "pointer", fontFamily: "inherit", fontSize: 13, fontWeight: 800 }}>บันทึกเวลาทำงาน</button>
+        <button onClick={doSave} disabled={sv === "busy"}
+          style={{ display: "inline-flex", alignItems: "center", gap: 7, padding: "10px 20px", borderRadius: "var(--r-chip)", border: "none",
+            background: sv === "ok" ? "var(--primary-dark)" : "var(--primary)", color: "#fff", transition: "background .2s",
+            cursor: sv === "busy" ? "wait" : "pointer", opacity: sv === "busy" ? 0.7 : 1, fontFamily: "inherit", fontSize: 13, fontWeight: 800 }}>
+          {sv === "ok" && <Icon name="check" size={14} sw={2.6} />}
+          {sv === "busy" ? "กำลังบันทึก…" : sv === "ok" ? "บันทึกแล้ว" : "บันทึกเวลาทำงาน"}</button>
+        {sv === "err" && <span style={{ marginLeft: 10, fontSize: 12, fontWeight: 700, color: "var(--tint-red-tx2)" }}>บันทึกไม่สำเร็จ — ลองใหม่อีกครั้ง</span>}
       </div>
     </div>
   );
