@@ -294,7 +294,23 @@ function p3sSurfFn(roof, side) {
   } catch (e) {
     return null;
   }
-  if (!pan.toMesh || roof.kind === "dome") return null;
+  if (roof.kind === "dome") {
+    const D = pan.dome || p3DomeGeo(roof),
+      X = p3Xf(roof, pan);
+    return (u, v) => {
+      const t = -D.th + v / D.rad;
+      const c = X.world(X.chain(null, {
+        x: u,
+        y: D.yAt(t),
+        z: D.zAt(t)
+      }, false), false);
+      return {
+        x: c.x,
+        z: c.z
+      };
+    };
+  }
+  if (!pan.toMesh) return null;
   const X = p3Xf(roof, pan);
   return (u, v) => {
     const m = pan.toMesh({
@@ -11324,7 +11340,7 @@ function Plan3DStudio({
         className: "p3s-note"
       }, React.createElement("b", null, "\u0E41\u0E15\u0E30\u0E41\u0E1C\u0E07\u0E1A\u0E19\u0E1C\u0E31\u0E07"), " = \u0E40\u0E25\u0E37\u0E2D\u0E01\u0E01\u0E25\u0E38\u0E48\u0E21 (\u0E41\u0E1C\u0E07\u0E40\u0E1B\u0E25\u0E35\u0E48\u0E22\u0E19\u0E40\u0E1B\u0E47\u0E19\u0E2A\u0E35\u0E1F\u0E49\u0E32) \u0E41\u0E25\u0E49\u0E27\u0E2B\u0E21\u0E38\u0E19/\u0E25\u0E1A\u0E44\u0E14\u0E49\u0E17\u0E35\u0E48\u0E19\u0E35\u0E48 \xB7 ", React.createElement("b", null, "Shift+\u0E41\u0E15\u0E30"), " = \u0E40\u0E25\u0E37\u0E2D\u0E01\u0E2B\u0E25\u0E32\u0E22\u0E01\u0E25\u0E38\u0E48\u0E21 \u0E2B\u0E21\u0E38\u0E19/\u0E22\u0E49\u0E32\u0E22\u0E1E\u0E23\u0E49\u0E2D\u0E21\u0E01\u0E31\u0E19"), blkSel && React.createElement(React.Fragment, null, React.createElement("span", {
         className: "p3s-note"
-      }, nG > 1 ? "ค่าด้านล่างแก้ทุกกลุ่มที่เลือก (สีฟ้า) · ลากแผงกลุ่มใดก็ย้ายไปด้วยกัน · Shift+แตะ = ถอดออกจากที่เลือก" : "ค่าด้านล่างแก้เฉพาะกลุ่มนี้ (สีฟ้า) · Shift+แตะกลุ่มอื่น = เลือกเพิ่ม"), React.createElement(P3SRange, {
+      }, nG > 1 ? "ค่าด้านล่างแก้ทุกกลุ่มที่เลือก (สีฟ้า) · ลากแผงกลุ่มใดก็ย้ายไปด้วยกัน · Shift+แตะ = ถอดออกจากที่เลือก" : "ค่าด้านล่างแก้เฉพาะกลุ่มนี้ (สีฟ้า) · Shift+แตะกลุ่มอื่น = เลือกเพิ่ม"), !isDome && React.createElement(React.Fragment, null, React.createElement(P3SRange, {
         label: nG > 1 ? "หมุน " + nG + " กลุ่มที่เลือก" : "หมุนกลุ่มนี้",
         right: p3sR(blkSel.rot, 10) + "°",
         min: -90,
@@ -11368,7 +11384,7 @@ function Plan3DStudio({
       }, React.createElement(P3SIcon, {
         name: "align",
         size: 15
-      }), "\u0E15\u0E23\u0E07\u0E02\u0E2D\u0E1A")), !blkSel.patch && React.createElement(React.Fragment, null, React.createElement("div", {
+      }), "\u0E15\u0E23\u0E07\u0E02\u0E2D\u0E1A"))), !blkSel.patch && React.createElement(React.Fragment, null, React.createElement("div", {
         className: "p3s-g2"
       }, React.createElement(P3SNum, {
         label: "\u0E08\u0E33\u0E19\u0E27\u0E19\u0E41\u0E16\u0E27",
@@ -11422,7 +11438,7 @@ function Plan3DStudio({
         })
       }), "\u0E08\u0E31\u0E14\u0E40\u0E1B\u0E47\u0E19\u0E2A\u0E35\u0E48\u0E40\u0E2B\u0E25\u0E35\u0E48\u0E22\u0E21\u0E40\u0E15\u0E47\u0E21\u0E41\u0E16\u0E27 (\u0E44\u0E21\u0E48\u0E15\u0E31\u0E14\u0E15\u0E32\u0E21\u0E02\u0E2D\u0E1A)")), React.createElement("div", {
         className: "p3s-g2"
-      }, React.createElement(P3SNum, {
+      }, !isDome && React.createElement(P3SNum, {
         label: "\u0E02\u0E32\u0E15\u0E31\u0E49\u0E07\u0E40\u0E2D\u0E35\u0E22\u0E07",
         unit: "\xB0",
         step: 1,

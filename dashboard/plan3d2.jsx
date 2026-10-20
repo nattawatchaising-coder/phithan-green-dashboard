@@ -152,7 +152,17 @@ function p3sCount(roof) { try { return p3Panels(roof).count; } catch (e) { retur
 /* ── แผนที่ผิวหลังคา (u,v) → ผัง (x,z) ของด้านหนึ่ง — ใช้แปลงการลากบนผังเป็นการเลื่อนชุดแผง ── */
 function p3sSurfFn(roof, side) {
   let pan; try { pan = p3Panels(roof); } catch (e) { return null; }
-  if (!pan.toMesh || roof.kind === "dome") return null;
+  if (roof.kind === "dome") {
+    /* โดม: u = แนวสัน (x ในหลังคา) · v = ระยะตามส่วนโค้งจากขอบหนึ่ง (s) → จุดบนผิวโค้ง → ผัง
+       ตรงกับสูตรวางแผงในสาขา dome ของ p3Panels (t = −th + s/rad) */
+    const D = pan.dome || p3DomeGeo(roof), X = p3Xf(roof, pan);
+    return (u, v) => {
+      const t = -D.th + v / D.rad;
+      const c = X.world(X.chain(null, { x: u, y: D.yAt(t), z: D.zAt(t) }, false), false);
+      return { x: c.x, z: c.z };
+    };
+  }
+  if (!pan.toMesh) return null;
   const X = p3Xf(roof, pan);
   return (u, v) => {
     const m = pan.toMesh({ u, v });
@@ -4819,6 +4829,8 @@ function Plan3DStudio({ job, ver, onClose, currentUser }) {
               {blkSel && (
                 <React.Fragment>
                   <span className="p3s-note">{nG > 1 ? "ค่าด้านล่างแก้ทุกกลุ่มที่เลือก (สีฟ้า) · ลากแผงกลุ่มใดก็ย้ายไปด้วยกัน · Shift+แตะ = ถอดออกจากที่เลือก" : "ค่าด้านล่างแก้เฉพาะกลุ่มนี้ (สีฟ้า) · Shift+แตะกลุ่มอื่น = เลือกเพิ่ม"}</span>
+                  {/* โดม: แผงแนบผิวโค้ง หมุน/ตั้งขาเอียงไม่ได้ (เอนจินไม่อ่าน rot/tilt ของโดม) — ไม่ต้องมีให้เลือก (ผู้ใช้สั่ง ต.ค. 2026) */}
+                  {!isDome && <React.Fragment>
                   <P3SRange label={nG > 1 ? "หมุน " + nG + " กลุ่มที่เลือก" : "หมุนกลุ่มนี้"} right={p3sR(blkSel.rot, 10) + "°"} min={-90} max={90} step={0.5} value={blkSel.rot} onChange={(v) => rotSel(() => v, "rot")} />
                   <div className="p3s-row" style={{ gap: 6, flexWrap: "nowrap", alignItems: "flex-end" }}>
                     <div style={{ flex: "1 1 0", minWidth: 0 }}>
@@ -4826,6 +4838,7 @@ function Plan3DStudio({ job, ver, onClose, currentUser }) {
                     </div>
                     <button className="p3s-btn" style={{ flex: "0 0 auto", padding: "0 10px", height: 42, whiteSpace: "nowrap" }} title="หมุนให้ตรงขอบหลังคา" onClick={() => rotSel((v, i) => alignRotFor(roof, blkSide(i)))}><P3SIcon name="align" size={15} />ตรงขอบ</button>
                   </div>
+                  </React.Fragment>}
                   {!blkSel.patch && (
                     <React.Fragment>
                       <div className="p3s-g2">
@@ -4843,7 +4856,7 @@ function Plan3DStudio({ job, ver, onClose, currentUser }) {
                     </React.Fragment>
                   )}
                   <div className="p3s-g2">
-                    <P3SNum label="ขาตั้งเอียง" unit="°" step={1} min={0} max={60} digits={0} value={blkSel.tilt} onChange={(v) => patchSel({ tilt: v }, "tilt")} />
+                    {!isDome && <P3SNum label="ขาตั้งเอียง" unit="°" step={1} min={0} max={60} digits={0} value={blkSel.tilt} onChange={(v) => patchSel({ tilt: v }, "tilt")} />}
                     <P3SNum label="ช่องห่างแผง" unit="ซม." step={1} min={0} max={200} digits={0} value={p3sR(blkSel.gap * 100, 1)} onChange={(v) => patchSel({ gap: v / 100 }, "gap")} />
                   </div>
                   <button className="p3s-btn wide dngr" onClick={() => { const js = sIdx; patchRoof(roof.id, (r) => ({ blocks: p3sPatchGroups(p3sBlkStore(r).map((b, i) => (js.indexOf(i) >= 0 ? Object.assign({}, b, { patch: true, only: {}, skips: {}, adds: {} }) : b))) })); setSelBlk(null); }}>

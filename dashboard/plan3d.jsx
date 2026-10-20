@@ -1553,6 +1553,9 @@ function p3PanelsCalc(roof, want) {
     // ── โดม: ผิวโค้ง หมุน/ตั้งขาเอียงไม่ได้ (แผงต้องแนบโค้ง) แต่เลื่อน/ซ้อนหลายบล็อกได้ ──
     const D = p3DomeGeo(roof);
     out.dome = D;
+    /* rects = กรอบชุดในพิกัดผิว (u = แนวสัน x · v = ระยะตามส่วนโค้ง s) — ผังใช้แปลงการลากเป็น du/dv
+       (p3sSurfFn ทรงโดม) เดิมโดมไม่มี rects ลากแผงแล้วไม่ขยับ (ผู้ใช้ทัก ต.ค. 2026) */
+    out.rects = [];
     const maxT = (roof.maxTilt == null ? 90 : +roof.maxTilt) * P3_DEG;
     out.rowTilts = [];
     blocks.forEach((blk) => {
@@ -1571,13 +1574,26 @@ function p3PanelsCalc(roof, want) {
       let pr0 = 0, pc0 = 0;
       if (blk.patch && blk.only) {
         let a = Infinity, b = Infinity;
-        Object.keys(blk.only).forEach((k) => { if (k.indexOf(blk.pfx) !== 0) return; const mm = /^(-?d+)_(-?d+)$/.exec(k.slice(blk.pfx.length)); if (mm) { a = Math.min(a, +mm[1]); b = Math.min(b, +mm[2]); } });
+        Object.keys(blk.only).forEach((k) => { if (k.indexOf(blk.pfx) !== 0) return; const mm = /^(-?\d+)_(-?\d+)$/.exec(k.slice(blk.pfx.length)); if (mm) { a = Math.min(a, +mm[1]); b = Math.min(b, +mm[2]); } });
         if (a < Infinity) { pr0 = a; pc0 = b; }
       }
       const offC = (c) => (gc > 0 && gg > 0 ? Math.floor((c - pc0) / gc) * gg : 0);
       const offR = (r) => (gr > 0 && gg > 0 ? Math.floor((r - pr0) / gr) * gg : 0);
       const gridW = spanW(cols), gridA = spanA(rows);
       const x0 = -gridW / 2 + blk.du, s0 = (D.arc - gridA) / 2 + blk.dv;
+      /* ชุดลากกรอบ: จุดกลาง = กลางแผงของชุดเอง (ผิวโค้ง — จาโคเบียนที่กลางกริดทั้งผืนทำให้ลากแล้วแผงตามเมาส์ไม่ตรง) */
+      let cu = x0 + gridW / 2, cv = s0 + gridA / 2;
+      if (blk.patch && blk.only) {
+        let r0 = Infinity, r1 = -Infinity, c0 = Infinity, c1 = -Infinity;
+        Object.keys(blk.only).forEach((k) => { if (k.indexOf(blk.pfx) !== 0) return; const mm = /^(-?\d+)_(-?\d+)$/.exec(k.slice(blk.pfx.length)); if (!mm) return;
+          r0 = Math.min(r0, +mm[1]); r1 = Math.max(r1, +mm[1]); c0 = Math.min(c0, +mm[2]); c1 = Math.max(c1, +mm[2]); });
+        if (r0 < Infinity) {
+          const xc = (c) => x0 + c * (pw + gap) + offC(c) + pw / 2, sc = (r) => s0 + r * (pd + gap) + offR(r) + pd / 2;
+          cu = (xc(c0) + xc(c1)) / 2; cv = (sc(r0) + sc(r1)) / 2;
+        }
+      }
+      out.rects.push({ blk: blk.i, side: null, cu, cv, w: gridW, h: gridA, rot: 0, rows, cols,
+        maxRows: mr, maxCols: mc, pw, pd, gap, m, gc, gr, gg });
       let n = 0;
       for (let r = 0; r < rows; r++) {
         const t = -D.th + (s0 + r * (pd + gap) + offR(r) + pd / 2) / D.rad;

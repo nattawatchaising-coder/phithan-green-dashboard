@@ -2444,6 +2444,7 @@ function p3PanelsCalc(roof, want) {
   if (roof.kind === "dome") {
     const D = p3DomeGeo(roof);
     out.dome = D;
+    out.rects = [];
     const maxT = (roof.maxTilt == null ? 90 : +roof.maxTilt) * P3_DEG;
     out.rowTilts = [];
     blocks.forEach(blk => {
@@ -2473,7 +2474,7 @@ function p3PanelsCalc(roof, want) {
           b = Infinity;
         Object.keys(blk.only).forEach(k => {
           if (k.indexOf(blk.pfx) !== 0) return;
-          const mm = /^(-?d+)_(-?d+)$/.exec(k.slice(blk.pfx.length));
+          const mm = /^(-?\d+)_(-?\d+)$/.exec(k.slice(blk.pfx.length));
           if (mm) {
             a = Math.min(a, +mm[1]);
             b = Math.min(b, +mm[2]);
@@ -2490,6 +2491,49 @@ function p3PanelsCalc(roof, want) {
         gridA = spanA(rows);
       const x0 = -gridW / 2 + blk.du,
         s0 = (D.arc - gridA) / 2 + blk.dv;
+      let cu = x0 + gridW / 2,
+        cv = s0 + gridA / 2;
+      if (blk.patch && blk.only) {
+        let r0 = Infinity,
+          r1 = -Infinity,
+          c0 = Infinity,
+          c1 = -Infinity;
+        Object.keys(blk.only).forEach(k => {
+          if (k.indexOf(blk.pfx) !== 0) return;
+          const mm = /^(-?\d+)_(-?\d+)$/.exec(k.slice(blk.pfx.length));
+          if (!mm) return;
+          r0 = Math.min(r0, +mm[1]);
+          r1 = Math.max(r1, +mm[1]);
+          c0 = Math.min(c0, +mm[2]);
+          c1 = Math.max(c1, +mm[2]);
+        });
+        if (r0 < Infinity) {
+          const xc = c => x0 + c * (pw + gap) + offC(c) + pw / 2,
+            sc = r => s0 + r * (pd + gap) + offR(r) + pd / 2;
+          cu = (xc(c0) + xc(c1)) / 2;
+          cv = (sc(r0) + sc(r1)) / 2;
+        }
+      }
+      out.rects.push({
+        blk: blk.i,
+        side: null,
+        cu,
+        cv,
+        w: gridW,
+        h: gridA,
+        rot: 0,
+        rows,
+        cols,
+        maxRows: mr,
+        maxCols: mc,
+        pw,
+        pd,
+        gap,
+        m,
+        gc,
+        gr,
+        gg
+      });
       let n = 0;
       for (let r = 0; r < rows; r++) {
         const t = -D.th + (s0 + r * (pd + gap) + offR(r) + pd / 2) / D.rad;
