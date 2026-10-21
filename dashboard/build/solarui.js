@@ -9224,7 +9224,7 @@ function SolarWorkspace({
       flex: 1,
       minWidth: 0
     }
-  }, React.createElement("h4", null, "\u0E0A\u0E38\u0E14\u0E41\u0E1A\u0E1A DXF", job && job.code ? " · " + job.code : ""), React.createElement("p", null, "A3 \u0E41\u0E19\u0E27\u0E19\u0E2D\u0E19 420 \xD7 297 \u0E21\u0E21. \xB7 ", dxf.prep.sheets.length, " \u0E41\u0E1C\u0E48\u0E19", isMicro ? "" : " · " + (plan ? plan.strings.length : 0) + " สตริงตามที่จัดไว้", dxf.prep.files.length ? " · ภาพพื้นหลัง " + dxf.prep.files.length + " ไฟล์ (วางโฟลเดอร์เดียวกับ DXF)" : "")), typeof PG_FONTS !== "undefined" && React.createElement("label", {
+  }, React.createElement("h4", null, "\u0E0A\u0E38\u0E14\u0E41\u0E1A\u0E1A DXF", job && job.code ? " · " + job.code : ""), React.createElement("p", null, "A3 \u0E41\u0E19\u0E27\u0E19\u0E2D\u0E19 420 \xD7 297 \u0E21\u0E21. \xB7 ", dxf.prep.sheets.length, " \u0E41\u0E1C\u0E48\u0E19", isMicro ? "" : " · " + (plan ? plan.strings.length : 0) + " สตริงตามที่จัดไว้", dxf.prep.files.length ? " · ไฟล์รูป (ภาพพื้นหลัง/โลโก้) " + dxf.prep.files.length + " ไฟล์ (วางโฟลเดอร์เดียวกับ DXF)" : "")), typeof PG_FONTS !== "undefined" && React.createElement("label", {
     style: {
       display: "flex",
       alignItems: "center",

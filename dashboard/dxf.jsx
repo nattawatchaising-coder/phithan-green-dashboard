@@ -19,11 +19,12 @@
    จึงขยายให้ตัวที่เห็นใหญ่ใกล้กัน (ตารางไม่ล้น) · wf = บีบความกว้างตั้งต้น (Tahoma กว้าง บีบ 0.85 · ฟอนต์ไทยแคบอยู่แล้ว)
    fam = ค่า 1071 ใน XDATA ของ STYLE (pitch/family + ชุดอักขระไทย 222<<8) ให้ AutoCAD หาฟอนต์ตามชื่อได้แม้ชื่อไฟล์ไม่ตรง */
 const PG_FONTS = [
-  /* ค่าตั้งต้น — ผู้ใช้เลือก (ฟอนต์ราชการ ต้องติดตั้งในเครื่องที่เปิด CAD: THSarabun.ttf) */
+  /* ค่าตั้งต้น — ผู้ใช้เลือก Cordia New (ต.ค. 2026 · มีใน Windows ภาษาไทย cordia.ttc) */
+  { key: "cordia", th: "Cordia New", file: "cordia.ttc", css: "'Cordia New', CordiaUPC, sans-serif", k: 1.45, wf: 1, fam: 34 },
+  /* ฟอนต์ราชการ ต้องติดตั้งในเครื่องที่เปิด CAD: THSarabun.ttf */
   { key: "sarabunpsk", th: "TH SarabunPSK", file: "THSarabun.ttf", css: "'TH SarabunPSK', 'TH Sarabun New', Sarabun, sans-serif", k: 1.3, wf: 1, fam: 34 },
   { key: "tahoma", th: "Tahoma", file: "tahoma.ttf", css: "Tahoma, sans-serif", k: 1, wf: 0.85, fam: 34 },
   { key: "angsana", th: "Angsana New", file: "angsana.ttc", css: "'Angsana New', AngsanaUPC, serif", k: 1.45, wf: 1, fam: 18 },
-  { key: "cordia", th: "Cordia New", file: "cordia.ttc", css: "'Cordia New', CordiaUPC, sans-serif", k: 1.45, wf: 1, fam: 34 },
   { key: "sarabun", th: "TH Sarabun New", file: "THSarabunNew.ttf", css: "'TH Sarabun New', 'TH SarabunPSK', Sarabun, sans-serif", k: 1.35, wf: 1, fam: 34 },
 ];
 function pgFont(key) {
@@ -200,7 +201,7 @@ function pgDxf(opt) {
       w(12, num(vx)); w(22, num(vy)); w(32, 0);
       w(13, num(pxW)); w(23, num(pxH));
       w(340, def.h);
-      w(70, 7);                       // แสดงรูป + พิมพ์ออกด้วย
+      w(70, o.transp ? 15 : 7);       // แสดงรูป + พิมพ์ออกด้วย (+8 = พื้นโปร่งตามไฟล์ PNG)
       w(280, 0);                      // ไม่ตัดขอบ
       w(281, 50); w(282, 50);         // ความสว่าง / ความต่างสี ค่ากลาง
       w(283, Math.max(0, Math.min(100, Math.round(+o.fade || 0))));
@@ -753,13 +754,16 @@ function pgSheet(doc, o) {
   pen.line(F.tb, tx0, IN.y0, tx0, IN.y1);
   ROW.forEach((r) => { if (Y[r[0]].bot > IN.y0 + 0.01) pen.line(F.tb, tx0, Y[r[0]].bot, tx1, Y[r[0]].bot); });
 
-  const CHW = 0.55;                                    // ความกว้างตัวอักษรโดยประมาณ ต่อความสูง (Tahoma บีบ 0.85)
+  /* ขนาดตัวหนังสือในหัวแบบ — ข้อมูลชนิดเดียวกันขนาดเท่ากันทุกช่อง (ผู้ใช้: เล็ก ๆ ใหญ่ ๆ ดูแปลก)
+     ข้อความยาวให้ตัดบรรทัด ไม่ย่อตัว · fitH เป็นแค่กันล้นสุดทาง (ข้อความยาวผิดปกติ) */
+  const TS = { lab: 1.3, val: 1.9, no: 2.2, name: 1.5, det: 1.15, stat: 1.6, head: 1.15, cell: 1.25 };
+  const CHW = 0.55;                                    // ความกว้างตัวอักษรโดยประมาณ ต่อความสูง
   const fitH = (s, w, hMax) => Math.min(hMax, w / (Math.max(1, String(s).length) * CHW));
-  const lab = (y, s) => pen.text(F.txt, tx0 + 1.2, y - 2.2, 1.4, s);
+  const lab = (y, s) => pen.text(F.txt, tx0 + 1.2, y - 2.2, TS.lab, s);
   const mid = (y, h, s, va) => pen.text(F.txt, cx, y, h, s, { align: 1, valign: va == null ? 1 : va });
-  /* ข้อความกึ่งกลางช่อง (ใต้ป้ายหัวช่อง) — ตัดบรรทัดตามความกว้าง ไม่พอก็ลดขนาดทีละ 0.1 มม. จนลงได้ไม่เกิน maxL บรรทัด */
-  const block = (R, s, hMax, maxL) => {
-    let h = hMax, L = [];
+  /* ข้อความกึ่งกลางช่อง (ใต้ป้ายหัวช่อง) — ขนาด TS.val เสมอ ตัดบรรทัดตามความกว้าง · ลดขนาดเฉพาะเมื่อเกิน maxL บรรทัดจริง ๆ */
+  const block = (R, s, maxL) => {
+    let h = TS.val, L = [];
     for (; h >= 1.2; h -= 0.1) {
       L = pgWrap(s, Math.max(4, Math.floor((TW - 3) / (h * CHW))));
       if (L.length <= maxL && L.length * h * 1.6 <= R.h - 3.5) break;
@@ -771,31 +775,44 @@ function pgSheet(doc, o) {
 
   /* 1 · ที่อยู่หน้างาน */
   lab(Y.site.top, "SITE LOCATION MAP :");
-  block(Y.site, I.address || "-", 2.2, 9);
+  block(Y.site, I.address || "-", 12);
 
   /* 2 · พิกัดจริงจากแผนที่ดาวเทียม */
   lab(Y.loc.top, "LOCATION :");
-  block(Y.loc, I.location || "-", 2.0, 1);
+  block(Y.loc, I.location || "-", 1);
 
   /* 3 · ชื่อโครงการ (ระบุขนาดระบบ) */
   lab(Y.proj.top, "PROJECT :");
-  block(Y.proj, I.project || "-", 2.0, 2);
+  block(Y.proj, I.project || "-", 2);
 
   /* 4 · เจ้าของงาน */
   lab(Y.own.top, "OWNER :");
-  block(Y.own, I.owner || "-", 2.0, 2);
+  block(Y.own, I.owner || "-", 2);
 
   /* 5 · บล็อกบริษัท — ตราสี + ชื่อ flash+solar (บวกสีเขียว) + ชื่อจดทะเบียนไทย/อังกฤษ + ที่อยู่ ดึงจาก brand.jsx ที่เดียว */
   const B = window.BRANDING || {};
-  pgLogoMark(pen, cx - 4.5, Y.logo.top - 10.2, 9);
-  const wh = 2.8, wy = Y.logo.top - 12.6;
-  pen.text(F.txt, cx - wh * 0.4, wy, wh, "flash", { align: 2, valign: 2, wf: 1 });
-  pen.text("PG-LOGO-5", cx, wy, wh, "+", { align: 1, valign: 2, wf: 1 });
-  pen.text(F.txt, cx + wh * 0.4, wy, wh, "solar", { align: 0, valign: 2, wf: 1 });
-  mid(Y.logo.top - 15.8, fitH(B.legalTH || "", TW - 3, 1.6), B.legalTH || "", 2);
-  mid(Y.logo.top - 18.2, fitH(B.legal || "", TW - 3, 1.4), B.legal || "", 2);
-  pgWrap(B.addrTH || "", 44).slice(0, 2).concat(["TEL : " + (B.tel || ""), "E-mail : " + (B.email || "")])
-    .forEach((ln, i) => mid(Y.logo.top - 20.6 - i * 1.75, fitH(ln, TW - 3, 1.1), ln, 2));
+  /* โลโก้จริงของบริษัท (รูป PNG ตัดขอบแล้ว · I.logo จาก p3LogoPrep) — DXF อ้างไฟล์รูปวางโฟลเดอร์เดียวกัน
+     ไม่มีรูป (เตรียมไม่ได้/เรียกจากที่อื่น) = ตราหกเหลี่ยมเวกเตอร์ + ชื่อ flash+solar แบบเดิม */
+  const LG = I.logo;
+  let ly = 0;                                           // ระยะที่ใช้ไปจากขอบบนของบล็อก
+  if (LG && LG.pxW && LG.pxH) {
+    let lh = 14, lw = lh * LG.pxW / LG.pxH;
+    if (lw > TW - 6) { lw = TW - 6; lh = lw * LG.pxH / LG.pxW; }
+    doc.layer("PG-LOGO-IMG", PG_ACI.white, "CONTINUOUS", 0);
+    doc.image("PG-LOGO-IMG", { file: LG.file, href: LG.href, pxW: LG.pxW, pxH: LG.pxH, transp: true,
+      x: pen.X(cx - lw / 2), y: pen.Y(Y.logo.top - 1.2 - lh), w: pen.S(lw), h: pen.S(lh) });
+    ly = 1.2 + lh + 2.2 - 15.6;                          // กึ่งกลางชื่อบริษัทต่ำกว่าขอบล่างรูป 2.2 มม.
+  } else {
+    pgLogoMark(pen, cx - 4.5, Y.logo.top - 10.2, 9);
+    const wh = 2.6, wy = Y.logo.top - 12.6;
+    pen.text(F.txt, cx - wh * 0.4, wy, wh, "flash", { align: 2, valign: 2, wf: 1 });
+    pen.text("PG-LOGO-5", cx, wy, wh, "+", { align: 1, valign: 2, wf: 1 });
+    pen.text(F.txt, cx + wh * 0.4, wy, wh, "solar", { align: 0, valign: 2, wf: 1 });
+  }
+  mid(Y.logo.top - ly - 15.6, fitH(B.legalTH || "", TW - 3, TS.name), B.legalTH || "", 2);
+  mid(Y.logo.top - ly - 18.1, fitH(B.legal || "", TW - 3, TS.name), B.legal || "", 2);
+  pgWrap(B.addrTH || "", Math.floor((TW - 3) / (TS.det * CHW))).slice(0, 2).concat(["TEL : " + (B.tel || ""), "E-mail : " + (B.email || "")])
+    .forEach((ln, i) => mid(Y.logo.top - ly - 20.6 - i * 1.85, fitH(ln, TW - 3, TS.det), ln, 2));
 
   /* 6 · สถานะของแบบ — วงกลมหนา จุดแดงทึบคืออันที่ใช้อยู่ */
   [["FOR PRELIMINARY", "prelim"], ["FOR PERMISSION", "permit"],
@@ -803,7 +820,7 @@ function pgSheet(doc, o) {
     const y = Y.stat.top - 3.4 - i * 4.4;
     pen.circle(F.frame, tx0 + 4, y, 1.3);
     if ((I.status || "construct") === s[1]) pen.dot("PG-TB-MARK", tx0 + 4, y, 0.95);
-    pen.text(F.txt, tx0 + 7.5, y, 1.7, s[0], { valign: 2 });
+    pen.text(F.txt, tx0 + 7.5, y, TS.stat, s[0], { valign: 2 });
   });
 
   /* 7-8 · ช่องลงนามวิศวกรโครงสร้าง/เครื่องกล — เส้นว่าง 3 เส้น */
@@ -819,7 +836,7 @@ function pgSheet(doc, o) {
   lab(Y.ee.top, "ELECTRICAL ENGINEERS :");
   pen.rect(F.tb, tx0 + 4, Y.ee.bot + 8, TW - 8, Y.ee.h - 12);
   pen.line(F.thin, tx0 + 6, Y.ee.bot + 4.8, tx1 - 6, Y.ee.bot + 4.8);
-  pen.text(F.txt, tx0 + 6, Y.ee.bot + 1.5, 1.4, "ภฟก.", { valign: 1 });
+  pen.text(F.txt, tx0 + 6, Y.ee.bot + 1.5, TS.lab, "ภฟก.", { valign: 1 });
   pen.line(F.thin, tx0 + 11, Y.ee.bot + 1.5, tx1 - 6, Y.ee.bot + 1.5);
 
   /* 10 · ตารางแก้แบบ — แถวแรกคือออกแบบครั้งแรก (REV 0) */
@@ -829,14 +846,14 @@ function pgSheet(doc, o) {
   let rx = tx0;
   pen.line(F.tb, tx0, rHead, tx1, rHead);
   RC.forEach((w2, i) => {
-    pen.text(F.txt, rx + w2 / 2, rHead + hH / 2, fitH(RH[i], w2 - 1, 1.3), RH[i], { align: 1, valign: 2 });
+    pen.text(F.txt, rx + w2 / 2, rHead + hH / 2, fitH(RH[i], w2 - 1, TS.head), RH[i], { align: 1, valign: 2 });
     rx += w2; if (i < RC.length - 1) pen.line(F.tb, rx, Y.rev.top, rx, Y.rev.bot);
   });
   for (let i = 1; i < 5; i++) pen.line(F.thin, tx0, rHead - i * rH, tx1, rHead - i * rH);
   const r0 = [I.rev || "0", "FIRST ISSUE", "", I.date || ""];
   rx = tx0;
   RC.forEach((w2, i) => {
-    if (r0[i]) pen.text(F.txt, i === 1 ? rx + 0.8 : rx + w2 / 2, rHead - rH / 2, fitH(r0[i], w2 - 1, 1.3), r0[i],
+    if (r0[i]) pen.text(F.txt, i === 1 ? rx + 0.8 : rx + w2 / 2, rHead - rH / 2, fitH(r0[i], w2 - 1, TS.cell), r0[i],
       { align: i === 1 ? 0 : 1, valign: 2 });
     rx += w2;
   });
@@ -848,19 +865,19 @@ function pgSheet(doc, o) {
     .forEach((r, i) => {
       const yb = Y.sign.top - (i + 1) * 4.5;
       if (i < 3) pen.line(F.tb, tx0, yb, tx1, yb);
-      pen.text(F.txt, tx0 + 1.2, yb + 2.25, 1.4, r[0], { valign: 2 });
-      if (r[1]) pen.text(F.txt, (sx + tx1) / 2, yb + 2.25, fitH(r[1], tx1 - sx - 1, 1.8), r[1], { align: 1, valign: 2 });
+      pen.text(F.txt, tx0 + 1.2, yb + 2.25, TS.lab, r[0], { valign: 2 });
+      if (r[1]) pen.text(F.txt, (sx + tx1) / 2, yb + 2.25, fitH(r[1], tx1 - sx - 1, TS.val), r[1], { align: 1, valign: 2 });
     });
 
   /* 12 · เลขที่โครงการ / เลขที่แบบ (เลขแบบตัวใหญ่ ย่อให้พอดีช่อง) */
   const pHead = Y.pno.top - 3.6, px = tx0 + TW * 0.4;
   pen.line(F.tb, tx0, pHead, tx1, pHead);
   pen.line(F.tb, px, Y.pno.top, px, Y.pno.bot);
-  pen.text(F.txt, (tx0 + px) / 2, pHead + 1.8, fitH("PROJECT NO.", px - tx0 - 1, 1.2), "PROJECT NO.", { align: 1, valign: 2 });
-  pen.text(F.txt, (px + tx1) / 2, pHead + 1.8, 1.2, "DRAWING NUMBER", { align: 1, valign: 2 });
+  pen.text(F.txt, (tx0 + px) / 2, pHead + 1.8, fitH("PROJECT NO.", px - tx0 - 1, TS.head), "PROJECT NO.", { align: 1, valign: 2 });
+  pen.text(F.txt, (px + tx1) / 2, pHead + 1.8, TS.head, "DRAWING NUMBER", { align: 1, valign: 2 });
   const pno = I.projectNo || "", dno = I.drawingNo || "";
-  pen.text(F.txt, (tx0 + px) / 2, (pHead + Y.pno.bot) / 2, fitH(pno, px - tx0 - 1.5, 2.4), pno, { align: 1, valign: 2 });
-  pen.text(F.txt, (px + tx1) / 2, (pHead + Y.pno.bot) / 2, fitH(dno, tx1 - px - 1.5, 4.5), dno, { align: 1, valign: 2 });
+  pen.text(F.txt, (tx0 + px) / 2, (pHead + Y.pno.bot) / 2, fitH(pno, px - tx0 - 1.5, TS.val), pno, { align: 1, valign: 2 });
+  pen.text(F.txt, (px + tx1) / 2, (pHead + Y.pno.bot) / 2, fitH(dno, tx1 - px - 1.5, TS.no), dno, { align: 1, valign: 2 });
 
   /* 13 · มาตราส่วน / วันที่ / แผ่นที่ / ครั้งที่แก้ */
   const sHead = Y.scale.top - 3.6, sw = TW / 4;
@@ -868,8 +885,8 @@ function pgSheet(doc, o) {
   [["SCALE", I.scale], ["DATE", I.date], ["SHEET NO.", I.sheetNo], ["REV.", I.rev]].forEach((r, i) => {
     const x = tx0 + i * sw;
     if (i) pen.line(F.tb, x, Y.scale.top, x, IN.y0);
-    pen.text(F.txt, x + sw / 2, sHead + 1.8, fitH(r[0], sw - 1, 1.1), r[0], { align: 1, valign: 2 });
-    pen.text(F.txt, x + sw / 2, (sHead + IN.y0) / 2, fitH(r[1] || "", sw - 1, 1.5), r[1] || "", { align: 1, valign: 2 });
+    pen.text(F.txt, x + sw / 2, sHead + 1.8, fitH(r[0], sw - 1, TS.head), r[0], { align: 1, valign: 2 });
+    pen.text(F.txt, x + sw / 2, (sHead + IN.y0) / 2, fitH(r[1] || "", sw - 1, TS.cell), r[1] || "", { align: 1, valign: 2 });
   });
 
   /* หมายเหตุประจำแบบ — วางใต้กรอบแบบ ไม่ให้ไปทับแถบพิกัด */

@@ -582,6 +582,36 @@ async function p3CropAll(st, imgs, files) {
   return out;
 }
 
+/* โลโก้บริษัทบนหัวแบบ — ไฟล์เดียวกับหัวเอกสาร (BRANDING.docMark · flashplussolar-mark.png ผู้ใช้ส่งมาให้ใช้ในแบบ)
+   ตัดขอบโปร่ง/ขาวออกครั้งเดียวด้วย canvas · DXF อ้างไฟล์รูปแบบสัมพัทธ์ จึงต้องดาวน์โหลด P3_LOGO_FILE ไปวางโฟลเดอร์เดียวกัน
+   (p3PrepSet/p3ExportPlan ใส่ไว้ใน files ให้เอง) · ยังไม่เตรียม = p3Logo null → หัวแบบใช้ตราเวกเตอร์แทน */
+const P3_LOGO_FILE = "FLASHPLUSSOLAR-LOGO.png";
+let p3Logo = null;
+async function p3LogoPrep() {
+  if (p3Logo) return p3Logo;
+  try {
+    const url = typeof brandDocURL === "function" ? brandDocURL() : "dashboard/assets/flashplussolar-mark.png";
+    const im = await new Promise((res, rej) => { const i = new Image(); i.onload = () => res(i); i.onerror = rej; i.src = url; });
+    const W = im.naturalWidth, H = im.naturalHeight;
+    const c = document.createElement("canvas"); c.width = W; c.height = H;
+    const g = c.getContext("2d"); g.drawImage(im, 0, 0);
+    const d = g.getImageData(0, 0, W, H).data;
+    let x0 = W, y0 = H, x1 = -1, y1 = -1;
+    for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
+      const i = (y * W + x) * 4;
+      if (d[i + 3] > 20 && !(d[i] > 245 && d[i + 1] > 245 && d[i + 2] > 245)) {
+        if (x < x0) x0 = x; if (x > x1) x1 = x; if (y < y0) y0 = y; if (y > y1) y1 = y;
+      }
+    }
+    if (x1 < 0) return null;
+    const w = x1 - x0 + 1, h = y1 - y0 + 1, o = document.createElement("canvas");
+    o.width = w; o.height = h;
+    o.getContext("2d").drawImage(c, x0, y0, w, h, 0, 0, w, h);
+    p3Logo = { file: P3_LOGO_FILE, href: o.toDataURL("image/png"), pxW: w, pxH: h };
+  } catch (e) { p3Logo = null; }
+  return p3Logo;
+}
+
 /* องศา-ลิปดา-ฟิลิปดา · %%d คือรหัสของ "องศา" ในไฟล์ DXF */
 function p3Dms(v, pos, neg) {
   const s = v < 0 ? neg : pos, x = Math.abs(+v || 0);
@@ -609,6 +639,7 @@ function p3SheetInfo(st, job, o) {
     date: dd(d.getDate()) + "/" + dd(d.getMonth() + 1) + "/" + d.getFullYear(),
     sheetNo: o.sheetNo || "1/1",
     rev: "0",
+    logo: p3Logo,
   };
 }
 
@@ -2664,6 +2695,8 @@ async function p3ExportPlan(st, job) {
     files.push({ name: file, url: w.url });
   }
   const imgsC = await p3CropAll(st, imgs, files);
+  const logo = await p3LogoPrep();
+  if (logo) files.push({ name: logo.file, url: logo.href });
   p3SaveBlob(new Blob([p3Dxf(st, job, { imgs: imgsC })], { type: "application/dxf" }), base + "-PLAN.dxf");
   for (let i = 0; i < files.length; i++) {
     const b = await (await fetch(files[i].url)).blob();
@@ -2701,6 +2734,8 @@ async function p3PrepSet(st, job, photos, design) {
     files.push({ name: file, url: w.url });
   }
   const imgsC = await p3CropAll(st, imgs, files);
+  const logo = await p3LogoPrep();
+  if (logo) files.push({ name: logo.file, url: logo.href });
 
   const ph = [], src = (photos || []).slice(0, P3_PHOTO_MAX);
   for (let i = 0; i < src.length; i++) {

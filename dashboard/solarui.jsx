@@ -4736,7 +4736,7 @@ function SolarWorkspace({ job, st, sys, onChange, onClose, snap }) {
               <div style={{ flex: 1, minWidth: 0 }}>
                 <h4>ชุดแบบ DXF{job && job.code ? " · " + job.code : ""}</h4>
                 <p>A3 แนวนอน 420 × 297 มม. · {dxf.prep.sheets.length} แผ่น{isMicro ? "" : " · " + (plan ? plan.strings.length : 0) + " สตริงตามที่จัดไว้"}
-                  {dxf.prep.files.length ? " · ภาพพื้นหลัง " + dxf.prep.files.length + " ไฟล์ (วางโฟลเดอร์เดียวกับ DXF)" : ""}</p>
+                  {dxf.prep.files.length ? " · ไฟล์รูป (ภาพพื้นหลัง/โลโก้) " + dxf.prep.files.length + " ไฟล์ (วางโฟลเดอร์เดียวกับ DXF)" : ""}</p>
               </div>
               {typeof PG_FONTS !== "undefined" && (
                 <label style={{ display: "flex", alignItems: "center", gap: 7, fontSize: 12, fontWeight: 700, color: "var(--text-2)", flexShrink: 0 }}>
