@@ -1905,13 +1905,13 @@ function JobTaskCard({
     sw: 2.5
   }), " ", advOverdue ? "เลยกำหนด " + daysLate + " วัน · " : "", "\u0E40\u0E2A\u0E23\u0E47\u0E08 \u201C", curStage.th, "\u201D \u2192 ", nextStage.th)));
 }
-function buildMySchedItems(appts, jobs, techId) {
-  if (!techId) return [];
+function buildMySchedItems(appts, jobs, techId, allEe) {
+  if (!techId && !allEe) return [];
   const SF = window.SF;
   const out = [];
   const todayY = _ymdLocal(new Date());
   (appts || []).forEach(a => {
-    if (a.engineerId !== techId || a.status === "canceled") return;
+    if ((techId ? a.engineerId !== techId : false) || a.status === "canceled") return;
     const day = a.start ? _ymdLocal(a.start) : "";
     if ((a.status === "done" || a.status === "rescheduled") && day !== todayY) return;
     out.push({
@@ -1923,7 +1923,7 @@ function buildMySchedItems(appts, jobs, techId) {
     });
   });
   (jobs || []).forEach(j => {
-    if (j.tech !== techId || j.stage === "done") return;
+    if (!techId || j.tech !== techId || j.stage === "done") return;
     const STAGES = SF.STAGES || [];
     const cur = Math.max(0, STAGES.findIndex(s => s.key === j.stage));
     const curStage = STAGES[cur] || {
@@ -1959,10 +1959,11 @@ function MyScheduleView({
   onAdvance
 }) {
   const techId = me && me.techId;
+  const allEe = !techId && !!me && window.hasRole(window.userRoles(me), "ee");
   const jobsById = React.useMemo(() => Object.fromEntries((jobs || []).map(j => [j.id, j])), [jobs]);
   const leadsById = React.useMemo(() => Object.fromEntries((leads || []).map(l => [l.id, l])), [leads]);
   const targetOf = a => a.leadId ? leadAsJob(leadsById[a.leadId]) : jobsById[a.projectId];
-  const items = React.useMemo(() => buildMySchedItems(appts, jobs, techId), [appts, jobs, techId]);
+  const items = React.useMemo(() => buildMySchedItems(appts, jobs, techId, allEe), [appts, jobs, techId, allEe]);
   const todayY = _ymdLocal(new Date());
   const grp = it => {
     if (!it.day) return "nodate";
@@ -1990,7 +1991,7 @@ function MyScheduleView({
   }].filter(g => g.items.length);
   const nAppt = items.filter(i => i.type === "survey").length;
   const nJob = items.filter(i => i.type === "job").length;
-  const sub = !techId ? "บัญชียังไม่ผูกกับพนักงาน — แจ้งแอดมิน" : items.length ? [nJob ? nJob + " งานติดตั้งที่นัดแล้ว" : null, nAppt ? nAppt + " นัดสำรวจ" : null].filter(Boolean).join(" · ") : "ยังไม่มีงานที่นัดวันแล้ว";
+  const sub = !techId && !allEe ? "บัญชียังไม่ผูกกับพนักงาน — แจ้งแอดมิน" : (allEe ? "นัดสำรวจของวิศวกรทุกคน · " : "") + (items.length ? [nJob ? nJob + " งานติดตั้งที่นัดแล้ว" : null, nAppt ? nAppt + " นัดสำรวจ" : null].filter(Boolean).join(" · ") : "ยังไม่มีงานที่นัดวันแล้ว");
   const renderCard = it => it.type === "survey" ? React.createElement(ApptCard, {
     key: it.key,
     a: it.a,
@@ -2013,7 +2014,7 @@ function MyScheduleView({
     sub: sub
   }), React.createElement("div", {
     className: "app-content"
-  }, !techId ? React.createElement("div", {
+  }, !techId && !allEe ? React.createElement("div", {
     style: {
       padding: 40,
       textAlign: "center",

@@ -134,7 +134,7 @@ const HDR_SEARCH = {
   billing: "ค้นหา",
 };
 const navForRole = (roles, techId) => NAV
-  .filter((n) => (n.own ? !!techId : (!n.perm || can(roles, n.perm))))
+  .filter((n) => (n.own ? (!!techId || hasRole(roles, "ee")) : (!n.perm || can(roles, n.perm))))
   .map((n, i, list) => {
     /* ยุบเป็นแท็บได้เฉพาะตอน "ตัวแม่อยู่ในเมนูของคนคนนี้ด้วย" — คนที่มีสิทธิ์เห็นยอดขาย (price)
        แต่ไม่มีสิทธิ์เห็นงานขาย (leads) จะไม่เหลือทางเข้าเลยถ้ายุบไปดื้อ ๆ กรณีนั้นให้ยืนเป็นแถวของตัวเอง

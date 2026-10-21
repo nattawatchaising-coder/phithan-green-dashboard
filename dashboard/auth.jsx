@@ -1666,7 +1666,9 @@ function UserEditModal({ initial, existing, meId, onSave, onClose }) {
   const set = (k, v) => { setF((p) => Object.assign({}, p, { [k]: v })); setErr(""); };
   const isNew = !existing.some((u) => u.id === initial.id);
   /* ตำแหน่งที่ต้องผูกกับพนักงานในระบบ เพราะมีการมอบหมายงาน/นัดสำรวจส่งถึงตัวคน */
-  const needTech = f.roles.some((r) => r === "tech" || r === "ee" || r === "sales");
+  const needTech = f.roles.some((r) => r === "tech" || r === "sales");
+  /* วิศวกรไม่ต้องผูกก็ได้ — บัญชีที่ไม่ผูกเห็นนัดสำรวจของวิศวกรทุกคน (ผู้ใช้ขอ) */
+  const showTech = needTech || f.roles.indexOf("ee") !== -1;
 
   const save = () => {
     const uname = String(f.username || "").trim();
@@ -1704,10 +1706,10 @@ function UserEditModal({ initial, existing, meId, onSave, onClose }) {
           <AField label={"ตำแหน่ง — ติ๊กได้หลายอัน (เลือกไว้ " + f.roles.length + ")"} required>
             <RolePicker value={f.roles} onChange={(v) => set("roles", v)} />
           </AField>
-          {needTech && (
-            <AField label="ผูกกับพนักงานในระบบ (เพื่อรับงาน / นัดสำรวจ)" required>
+          {showTech && (
+            <AField label="ผูกกับพนักงานในระบบ (เพื่อรับงาน / นัดสำรวจ)" required={needTech}>
               <select style={A_INPUT} value={f.techId || ""} onChange={(e) => set("techId", e.target.value || null)}>
-                <option value="">— เลือกพนักงาน —</option>
+                <option value="">{needTech ? "— เลือกพนักงาน —" : "— ไม่ผูก · เห็นนัดสำรวจของวิศวกรทุกคน —"}</option>
                 {SF.TECHS.map((t) => {
                   const own = existing.filter((u) => u.id !== f.id && u.techId === t.id)[0];
                   return <option key={t.id} value={t.id} disabled={!!own}>

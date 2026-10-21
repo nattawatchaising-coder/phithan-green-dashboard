@@ -3389,7 +3389,8 @@ function UserEditModal({
     setErr("");
   };
   const isNew = !existing.some(u => u.id === initial.id);
-  const needTech = f.roles.some(r => r === "tech" || r === "ee" || r === "sales");
+  const needTech = f.roles.some(r => r === "tech" || r === "sales");
+  const showTech = needTech || f.roles.indexOf("ee") !== -1;
   const save = () => {
     const uname = String(f.username || "").trim();
     if (!f.name.trim()) {
@@ -3533,16 +3534,16 @@ function UserEditModal({
   }, React.createElement(RolePicker, {
     value: f.roles,
     onChange: v => set("roles", v)
-  })), needTech && React.createElement(AField, {
+  })), showTech && React.createElement(AField, {
     label: "\u0E1C\u0E39\u0E01\u0E01\u0E31\u0E1A\u0E1E\u0E19\u0E31\u0E01\u0E07\u0E32\u0E19\u0E43\u0E19\u0E23\u0E30\u0E1A\u0E1A (\u0E40\u0E1E\u0E37\u0E48\u0E2D\u0E23\u0E31\u0E1A\u0E07\u0E32\u0E19 / \u0E19\u0E31\u0E14\u0E2A\u0E33\u0E23\u0E27\u0E08)",
-    required: true
+    required: needTech
   }, React.createElement("select", {
     style: A_INPUT,
     value: f.techId || "",
     onChange: e => set("techId", e.target.value || null)
   }, React.createElement("option", {
     value: ""
-  }, "\u2014 \u0E40\u0E25\u0E37\u0E2D\u0E01\u0E1E\u0E19\u0E31\u0E01\u0E07\u0E32\u0E19 \u2014"), SF.TECHS.map(t => {
+  }, needTech ? "— เลือกพนักงาน —" : "— ไม่ผูก · เห็นนัดสำรวจของวิศวกรทุกคน —"), SF.TECHS.map(t => {
     const own = existing.filter(u => u.id !== f.id && u.techId === t.id)[0];
     return React.createElement("option", {
       key: t.id,

@@ -176,7 +176,7 @@ const HDR_SEARCH = {
   table: "ค้นหา",
   billing: "ค้นหา"
 };
-const navForRole = (roles, techId) => NAV.filter(n => n.own ? !!techId : !n.perm || can(roles, n.perm)).map((n, i, list) => {
+const navForRole = (roles, techId) => NAV.filter(n => n.own ? !!techId || hasRole(roles, "ee") : !n.perm || can(roles, n.perm)).map((n, i, list) => {
   const orphan = n.group && !list.some(x => x.key === n.group);
   return n.group && !orphan || NAV_IN_BOARD.indexOf(n.key) !== -1 ? Object.assign({}, n, {
     hidden: true

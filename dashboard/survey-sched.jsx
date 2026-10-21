@@ -664,13 +664,14 @@ function JobTaskCard({ job, stages, day, dayEnd, onOpen, onAdvance }) {
    ============================================================ */
 // สร้างรายการ "ตารางงานของฉัน" = นัดสำรวจ (engineerId===คนนี้) + งานติดตั้งที่นัดวันแล้ว (tech===คนนี้, ยังไม่เสร็จ)
 // กระจายงานติดตั้งครบทุกวันในช่วงนัดติดตั้ง · เรียงตามเวลา · ใช้ร่วมกับพาเนลหน้าภาพรวม
-function buildMySchedItems(appts, jobs, techId) {
-  if (!techId) return [];
+// allEe = วิศวกรที่ไม่ได้ผูกกับพนักงาน → เห็นนัดสำรวจของวิศวกรทุกคน (ไม่มีงานติดตั้งของตัวเอง)
+function buildMySchedItems(appts, jobs, techId, allEe) {
+  if (!techId && !allEe) return [];
   const SF = window.SF;
   const out = [];
   const todayY = _ymdLocal(new Date());
   (appts || []).forEach((a) => {
-    if (a.engineerId !== techId || a.status === "canceled") return;
+    if ((techId ? a.engineerId !== techId : false) || a.status === "canceled") return;
     const day = a.start ? _ymdLocal(a.start) : "";
     /* นัดที่ปิดจบไปแล้ว (สำรวจเสร็จ / เลื่อนไปนัดใหม่) ไม่ใช่งานค้าง — เดิมค้างอยู่ในช่อง
        "เลยกำหนด / ผ่านมา" ตลอดไป ทำให้ตารางงานดูเหมือนมีงานค้างทั้งที่ทำเสร็จแล้ว
@@ -679,7 +680,7 @@ function buildMySchedItems(appts, jobs, techId) {
     out.push({ type: "survey", key: "a-" + a.id, a: a, day: day, ts: a.start ? new Date(a.start).getTime() : 0 });
   });
   (jobs || []).forEach((j) => {
-    if (j.tech !== techId || j.stage === "done") return;
+    if (!techId || j.tech !== techId || j.stage === "done") return;
     const STAGES = SF.STAGES || [];
     const cur = Math.max(0, STAGES.findIndex((s) => s.key === j.stage));
     const curStage = STAGES[cur] || { key: j.stage, th: j.stage, en: "", color: "#64748B" };
@@ -694,13 +695,14 @@ function buildMySchedItems(appts, jobs, techId) {
 
 function MyScheduleView({ appts, jobs, leads, me, onMenuOpen, onStatus, onOpenSurvey, onOpen, onAdvance }) {
   const techId = me && me.techId;
+  const allEe = !techId && !!me && window.hasRole(window.userRoles(me), "ee");
   const jobsById = React.useMemo(() => Object.fromEntries((jobs || []).map((j) => [j.id, j])), [jobs]);
   const leadsById = React.useMemo(() => Object.fromEntries((leads || []).map((l) => [l.id, l])), [leads]);
   // นัดสำรวจอาจผูกกับ "ลูกค้าสำรวจ" (ยังไม่เป็นงาน) — แปลงเป็นรูปงานให้ wizard ใช้ได้เหมือนกัน
   const targetOf = (a) => a.leadId ? leadAsJob(leadsById[a.leadId]) : jobsById[a.projectId];
 
   // รวมรายการ: นัดสำรวจ + งานติดตั้งที่นัดวันแล้ว (ตรรกะร่วมใน buildMySchedItems)
-  const items = React.useMemo(() => buildMySchedItems(appts, jobs, techId), [appts, jobs, techId]);
+  const items = React.useMemo(() => buildMySchedItems(appts, jobs, techId, allEe), [appts, jobs, techId, allEe]);
 
   const todayY = _ymdLocal(new Date());
   const grp = (it) => {
@@ -719,8 +721,8 @@ function MyScheduleView({ appts, jobs, leads, me, onMenuOpen, onStatus, onOpenSu
 
   const nAppt = items.filter((i) => i.type === "survey").length;
   const nJob = items.filter((i) => i.type === "job").length;
-  const sub = !techId ? "บัญชียังไม่ผูกกับพนักงาน — แจ้งแอดมิน"
-    : (items.length ? [nJob ? nJob + " งานติดตั้งที่นัดแล้ว" : null, nAppt ? nAppt + " นัดสำรวจ" : null].filter(Boolean).join(" · ") : "ยังไม่มีงานที่นัดวันแล้ว");
+  const sub = !techId && !allEe ? "บัญชียังไม่ผูกกับพนักงาน — แจ้งแอดมิน"
+    : (allEe ? "นัดสำรวจของวิศวกรทุกคน · " : "") + (items.length ? [nJob ? nJob + " งานติดตั้งที่นัดแล้ว" : null, nAppt ? nAppt + " นัดสำรวจ" : null].filter(Boolean).join(" · ") : "ยังไม่มีงานที่นัดวันแล้ว");
 
   const renderCard = (it) => it.type === "survey"
     ? <ApptCard key={it.key} a={it.a} job={targetOf(it.a)} onStatus={onStatus} onOpenSurvey={onOpenSurvey} />
@@ -730,7 +732,7 @@ function MyScheduleView({ appts, jobs, leads, me, onMenuOpen, onStatus, onOpenSu
     <React.Fragment>
       <SchedHeader icon="list" title="ตารางงาน" onMenuOpen={onMenuOpen} sub={sub} />
       <div className="app-content">
-        {!techId ? (
+        {!techId && !allEe ? (
           <div style={{ padding: 40, textAlign: "center", color: "var(--text-3)", fontSize: 14, background: "var(--surface)", border: "none", boxShadow: "var(--shadow-sm)", borderRadius: "var(--r-tile)" }}>
             บัญชีของคุณยังไม่ได้ผูกกับข้อมูลพนักงาน · กรุณาให้แอดมินตั้งค่าในเมนูจัดการผู้ใช้งาน
           </div>
