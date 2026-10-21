@@ -2769,14 +2769,18 @@ async function p3PrepSet(st, job, photos, design) {
       make: (svg) => L.fn({ sheetNo: no, svg: !!svg, design }) };
   });
   if (!design) sheets[0].file = base + "-PLAN.dxf";
-  return { base, sheets, files, st, job };
+  /* ทั้งชุดในไฟล์เดียว (pgCombine) — ดาวน์โหลดเป็นค่าตั้งต้น · ยังแยกไฟล์ละแผ่นได้ */
+  const all = sheets.length > 1 ? { file: base + "-SET.dxf", make: (svg) => pgCombine(sheets.map((s) => () => s.make(svg)), svg) } : null;
+  return { base, sheets, all, files, st, job };
 }
 
 /* ส่งออกทั้งชุด — prep = ผลจาก p3PrepSet (ส่งมาได้ถ้าเตรียมไว้แล้วตอนดูตัวอย่าง) */
-async function p3ExportSet(st, job, photos, prep) {
+async function p3ExportSet(st, job, photos, prep, separate) {
   const P = prep || await p3PrepSet(st, job, photos);
-  for (let i = 0; i < P.sheets.length; i++) {
-    p3SaveBlob(new Blob([P.sheets[i].make(false, st)], { type: "application/dxf" }), P.sheets[i].file);
+  /* ค่าตั้งต้น = ไฟล์ DXF เดียวรวมทุกแผ่น · separate = แยกไฟล์ละแผ่นแบบเดิม */
+  const out = P.all && !separate ? [P.all] : P.sheets;
+  for (let i = 0; i < out.length; i++) {
+    p3SaveBlob(new Blob([out[i].make(false, st)], { type: "application/dxf" }), out[i].file);
     await new Promise((r) => setTimeout(r, 350));   // เบราว์เซอร์บล็อกถ้ายิงดาวน์โหลดรัวเกินไป
   }
   for (let i = 0; i < P.files.length; i++) {
@@ -2784,7 +2788,7 @@ async function p3ExportSet(st, job, photos, prep) {
     await new Promise((r) => setTimeout(r, 350));
     p3SaveBlob(b, P.files[i].name);
   }
-  return { sheets: P.sheets.length, files: P.files.length };
+  return { sheets: out.length, files: P.files.length };
 }
 
 Object.assign(window, { p3MpptRows, p3MpptTable, p3StrLayout });

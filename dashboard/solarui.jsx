@@ -2200,16 +2200,16 @@ function SolarWorkspace({ job, st, sys, onChange, onClose, snap }) {
     } catch (e) { console.error(e); alert("เตรียมชุดแบบไม่สำเร็จ: " + (e && e.message)); }
     setDxfBusy("");
   }
-  async function downloadDxf() {
+  async function downloadDxf(separate) {
     if (!dxf) return;
     setDxfBusy("กำลังดาวน์โหลด");
-    try { await p3ExportSet(dxf.prep.st, job, null, dxf.prep); }
+    try { await p3ExportSet(dxf.prep.st, job, null, dxf.prep, separate); }
     catch (e) { console.error(e); alert("ดาวน์โหลดไม่สำเร็จ: " + (e && e.message)); }
     setDxfBusy("");
   }
   const dxfSvg = React.useMemo(() => {
     if (!dxf) return "";
-    try { return dxf.prep.sheets[dxf.i].make(true); } catch (e) { console.error(e); return ""; }
+    try { return dxf.i === "all" ? dxf.prep.all.make(true) : dxf.prep.sheets[dxf.i].make(true); } catch (e) { console.error(e); return ""; }
   }, [dxf]);
   const microPlans = React.useMemo(() => (isMicro ? scMicroPlan(groups, panel, micros, S.env, S) : null),
     [isMicro, groups, panel, micros, S.env, S.microRatio, S.micro]);
@@ -4756,6 +4756,9 @@ function SolarWorkspace({ job, st, sys, onChange, onClose, snap }) {
                   {sh.no} · {sh.label}
                 </button>
               ))}
+              {dxf.prep.all && (
+                <button data-on={dxf.i === "all" ? "1" : "0"} onClick={() => setDxf({ prep: dxf.prep, i: "all" })}>รวมทุกแผ่น</button>
+              )}
             </span></div>
             <div style={{ flex: 1, minHeight: 0, margin: 12, borderRadius: "var(--r-chip)", background: "#fff", boxShadow: "var(--shadow-inset)", overflow: "hidden", position: "relative", display: "grid", placeItems: "center" }}>
               {dxfSvg
@@ -4764,11 +4767,15 @@ function SolarWorkspace({ job, st, sys, onChange, onClose, snap }) {
             </div>
             <div className="su-sheet-ft">
               <span style={{ fontSize: 11, color: "var(--text-3)", fontWeight: 600 }}>
-                ไฟล์: {dxf.prep.sheets[dxf.i].file}
+                ไฟล์: {dxf.prep.all ? dxf.prep.all.file + " (ทุกแผ่นในไฟล์เดียว)" : dxf.prep.sheets[0].file}
               </span>
               <span style={{ flex: 1 }} />
-              <button className="p3-b pri" style={{ padding: "9px 18px" }} onClick={downloadDxf} disabled={!!dxfBusy}>
-                <P3Icon name="save" size={14} />{dxfBusy || "ดาวน์โหลดทั้งชุด"}
+              {dxf.prep.all && (
+                <button className="p3-b" style={{ padding: "9px 14px" }} onClick={() => downloadDxf(true)} disabled={!!dxfBusy}
+                  title="ดาวน์โหลดแยกไฟล์ละแผ่นแบบเดิม">แยกไฟล์ละแผ่น</button>
+              )}
+              <button className="p3-b pri" style={{ padding: "9px 18px" }} onClick={() => downloadDxf(false)} disabled={!!dxfBusy}>
+                <P3Icon name="save" size={14} />{dxfBusy || (dxf.prep.all ? "ดาวน์โหลด (ไฟล์เดียว)" : "ดาวน์โหลด")}
               </button>
             </div>
           </div>

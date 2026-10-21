@@ -989,7 +989,82 @@ function pgSvg(opt) {
   return api;
 }
 function pgDoc(opt, svg) {
+  if (PG_CAPTURE) return PG_CAPTURE(opt);
   return svg ? pgSvg(opt) : pgDxf(opt);
+}
+const PG_SET_GAP = 40;
+let PG_CAPTURE = null;
+function pgCombine(makers, svg) {
+  const n = makers.length,
+    W = PG_SHEET.W,
+    H = PG_SHEET.H;
+  const out = svg ? pgSvg({}) : pgDxf({
+    units: "mm",
+    ltscale: 1
+  });
+  if (svg) out.plot({
+    x0: 0,
+    y0: 0,
+    w: n * W + (n - 1) * PG_SET_GAP,
+    h: H,
+    k: 1
+  });
+  let idx = -1;
+  PG_CAPTURE = () => {
+    idx++;
+    const OX = idx * (W + PG_SET_GAP),
+      first = idx === 0;
+    let T = {
+      k: 1,
+      x0: 0,
+      y0: 0
+    };
+    const X = x => (x - T.x0) / T.k + OX,
+      Y = y => (y - T.y0) / T.k,
+      S = v => v / T.k;
+    const P = p => [X(p[0]), Y(p[1])];
+    return {
+      layer: (a, b, c, d) => out.layer(a, b, c, d),
+      ltype: (a, b, c) => out.ltype(a, b, c),
+      line: (l, x1, y1, x2, y2) => out.line(l, X(x1), Y(y1), X(x2), Y(y2)),
+      pline: (l, pts, c, w) => out.pline(l, (pts || []).map(P), c, w && S(w)),
+      rect: (l, x, y, w, h) => out.rect(l, X(x), Y(y), S(w), S(h)),
+      circle: (l, x, y, r) => out.circle(l, X(x), Y(y), S(r)),
+      arc: (l, x, y, r, a1, a2) => out.arc(l, X(x), Y(y), S(r), a1, a2),
+      solid: (l, a, b, c, d) => out.solid(l, P(a), P(b), P(c), d && P(d)),
+      text: (l, x, y, h, s, o) => out.text(l, X(x), Y(y), S(h), s, o),
+      image: (l, o) => out.image(l, Object.assign({}, o, {
+        x: X(o.x),
+        y: Y(o.y),
+        w: S(o.w),
+        h: S(o.h)
+      })),
+      plot: o => {
+        T = {
+          k: +o.k || 1,
+          x0: +o.x0 || 0,
+          y0: +o.y0 || 0
+        };
+        if (first && !svg) out.plot({
+          x0: OX,
+          y0: 0,
+          w: +o.w || W,
+          h: +o.h || H,
+          k: 1
+        });
+      },
+      get extents() {
+        return out.extents;
+      },
+      build: () => ""
+    };
+  };
+  try {
+    makers.forEach(m => m());
+  } finally {
+    PG_CAPTURE = null;
+  }
+  return out.build();
 }
 function pgPen(doc, k, ox, oy) {
   k = k || 1;
@@ -2803,6 +2878,7 @@ Object.assign(window, {
   pgDxf,
   pgSvg,
   pgDoc,
+  pgCombine,
   pgPen,
   pgSheet,
   pgSheetTitle,

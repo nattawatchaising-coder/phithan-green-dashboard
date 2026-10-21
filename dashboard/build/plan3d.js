@@ -4354,20 +4354,26 @@ async function p3PrepSet(st, job, photos, design) {
     };
   });
   if (!design) sheets[0].file = base + "-PLAN.dxf";
+  const all = sheets.length > 1 ? {
+    file: base + "-SET.dxf",
+    make: svg => pgCombine(sheets.map(s => () => s.make(svg)), svg)
+  } : null;
   return {
     base,
     sheets,
+    all,
     files,
     st,
     job
   };
 }
-async function p3ExportSet(st, job, photos, prep) {
+async function p3ExportSet(st, job, photos, prep, separate) {
   const P = prep || (await p3PrepSet(st, job, photos));
-  for (let i = 0; i < P.sheets.length; i++) {
-    p3SaveBlob(new Blob([P.sheets[i].make(false, st)], {
+  const out = P.all && !separate ? [P.all] : P.sheets;
+  for (let i = 0; i < out.length; i++) {
+    p3SaveBlob(new Blob([out[i].make(false, st)], {
       type: "application/dxf"
-    }), P.sheets[i].file);
+    }), out[i].file);
     await new Promise(r => setTimeout(r, 350));
   }
   for (let i = 0; i < P.files.length; i++) {
@@ -4376,7 +4382,7 @@ async function p3ExportSet(st, job, photos, prep) {
     p3SaveBlob(b, P.files[i].name);
   }
   return {
-    sheets: P.sheets.length,
+    sheets: out.length,
     files: P.files.length
   };
 }

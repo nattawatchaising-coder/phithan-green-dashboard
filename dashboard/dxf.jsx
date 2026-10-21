@@ -629,7 +629,48 @@ function pgSvg(opt) {
 }
 
 /* เลือกตัวเขียนตามงาน — svg = true คือทำไว้ดูบนจอ ไม่ใช่ไฟล์ที่จะโหลด */
-function pgDoc(opt, svg) { return svg ? pgSvg(opt) : pgDxf(opt); }
+function pgDoc(opt, svg) { if (PG_CAPTURE) return PG_CAPTURE(opt); return svg ? pgSvg(opt) : pgDxf(opt); }
+
+/* ── รวมทุกแผ่นไว้ในไฟล์เดียว (ผู้ใช้: ชุดแบบแยกไฟล์ละแผ่นต้องเปิดหลายไฟล์) ──
+   แต่ละแผ่นเขียนด้วยหน่วยของตัวเอง (ผัง/ผังสตริง = เมตรตามมาตราส่วน · SLD/ต่อสาย/วัสดุ = มม.)
+   ระหว่างรวม pgDoc คืน "ตัวแปลง" แทน: รู้ตำแหน่งกระดาษกับมาตราส่วนของแผ่นจาก doc.plot ที่ pgSheet เรียก (x0,y0,k)
+   แล้วแปลงทุกพิกัด/ขนาดกลับเป็น "มม.บนกระดาษ" วางแผ่นที่ i ห่างกัน PG_SET_GAP มม. เรียงซ้าย→ขวา ในไฟล์หน่วย มม. ไฟล์เดียว
+   makers = [() => แผ่น.make(svg)] · svg = true คืนภาพตัวอย่างทั้งชุด · DXF ตั้งค่าพิมพ์ไว้ที่แผ่นแรก */
+const PG_SET_GAP = 40;
+let PG_CAPTURE = null;
+function pgCombine(makers, svg) {
+  const n = makers.length, W = PG_SHEET.W, H = PG_SHEET.H;
+  const out = svg ? pgSvg({}) : pgDxf({ units: "mm", ltscale: 1 });
+  if (svg) out.plot({ x0: 0, y0: 0, w: n * W + (n - 1) * PG_SET_GAP, h: H, k: 1 });
+  let idx = -1;
+  PG_CAPTURE = () => {
+    idx++;
+    const OX = idx * (W + PG_SET_GAP), first = idx === 0;
+    let T = { k: 1, x0: 0, y0: 0 };
+    const X = (x) => (x - T.x0) / T.k + OX, Y = (y) => (y - T.y0) / T.k, S = (v) => v / T.k;
+    const P = (p) => [X(p[0]), Y(p[1])];
+    return {
+      layer: (a, b, c, d) => out.layer(a, b, c, d),
+      ltype: (a, b, c) => out.ltype(a, b, c),
+      line: (l, x1, y1, x2, y2) => out.line(l, X(x1), Y(y1), X(x2), Y(y2)),
+      pline: (l, pts, c, w) => out.pline(l, (pts || []).map(P), c, w && S(w)),
+      rect: (l, x, y, w, h) => out.rect(l, X(x), Y(y), S(w), S(h)),
+      circle: (l, x, y, r) => out.circle(l, X(x), Y(y), S(r)),
+      arc: (l, x, y, r, a1, a2) => out.arc(l, X(x), Y(y), S(r), a1, a2),
+      solid: (l, a, b, c, d) => out.solid(l, P(a), P(b), P(c), d && P(d)),
+      text: (l, x, y, h, s, o) => out.text(l, X(x), Y(y), S(h), s, o),
+      image: (l, o) => out.image(l, Object.assign({}, o, { x: X(o.x), y: Y(o.y), w: S(o.w), h: S(o.h) })),
+      plot: (o) => {
+        T = { k: +o.k || 1, x0: +o.x0 || 0, y0: +o.y0 || 0 };
+        if (first && !svg) out.plot({ x0: OX, y0: 0, w: +o.w || W, h: +o.h || H, k: 1 });
+      },
+      get extents() { return out.extents; },
+      build: () => "",
+    };
+  };
+  try { makers.forEach((m) => m()); } finally { PG_CAPTURE = null; }
+  return out.build();
+}
 
 function pgPen(doc, k, ox, oy) {
   k = k || 1; ox = ox || 0; oy = oy || 0;
@@ -2010,7 +2051,7 @@ function pgSldDraw(doc, sheet, M) {
 }
 
 Object.assign(window, {
-  PG_FONTS, pgFont, pgSetFont, pgDxf, pgSvg, pgDoc, pgPen, pgSheet, pgSheetTitle, pgSheetLayers, pgLogoMark, pgWrap,
+  PG_FONTS, pgFont, pgSetFont, pgDxf, pgSvg, pgDoc, pgCombine, pgPen, pgSheet, pgSheetTitle, pgSheetLayers, pgLogoMark, pgWrap,
   pgSldLayers, pgSldDraw, pgSldPro, pgSldTable, pgSldEquip, pgSym,
   pgTableLayers, pgGrid, pgSpecBlock, pgCompass, pgModuleDetail, pgPhotoFrame, pgDcString, pgDcSize,
   PG_SHEET, PG_LAY, PG_ACI, PG_SLD, PG_TBL,

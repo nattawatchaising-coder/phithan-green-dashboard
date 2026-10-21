@@ -4142,11 +4142,11 @@ function SolarWorkspace({
     }
     setDxfBusy("");
   }
-  async function downloadDxf() {
+  async function downloadDxf(separate) {
     if (!dxf) return;
     setDxfBusy("กำลังดาวน์โหลด");
     try {
-      await p3ExportSet(dxf.prep.st, job, null, dxf.prep);
+      await p3ExportSet(dxf.prep.st, job, null, dxf.prep, separate);
     } catch (e) {
       console.error(e);
       alert("ดาวน์โหลดไม่สำเร็จ: " + (e && e.message));
@@ -4156,7 +4156,7 @@ function SolarWorkspace({
   const dxfSvg = React.useMemo(() => {
     if (!dxf) return "";
     try {
-      return dxf.prep.sheets[dxf.i].make(true);
+      return dxf.i === "all" ? dxf.prep.all.make(true) : dxf.prep.sheets[dxf.i].make(true);
     } catch (e) {
       console.error(e);
       return "";
@@ -9272,7 +9272,13 @@ function SolarWorkspace({
       prep: dxf.prep,
       i
     })
-  }, sh.no, " \xB7 ", sh.label)))), React.createElement("div", {
+  }, sh.no, " \xB7 ", sh.label)), dxf.prep.all && React.createElement("button", {
+    "data-on": dxf.i === "all" ? "1" : "0",
+    onClick: () => setDxf({
+      prep: dxf.prep,
+      i: "all"
+    })
+  }, "\u0E23\u0E27\u0E21\u0E17\u0E38\u0E01\u0E41\u0E1C\u0E48\u0E19"))), React.createElement("div", {
     style: {
       flex: 1,
       minHeight: 0,
@@ -9298,21 +9304,29 @@ function SolarWorkspace({
       color: "var(--text-3)",
       fontWeight: 600
     }
-  }, "\u0E44\u0E1F\u0E25\u0E4C: ", dxf.prep.sheets[dxf.i].file), React.createElement("span", {
+  }, "\u0E44\u0E1F\u0E25\u0E4C: ", dxf.prep.all ? dxf.prep.all.file + " (ทุกแผ่นในไฟล์เดียว)" : dxf.prep.sheets[0].file), React.createElement("span", {
     style: {
       flex: 1
     }
-  }), React.createElement("button", {
+  }), dxf.prep.all && React.createElement("button", {
+    className: "p3-b",
+    style: {
+      padding: "9px 14px"
+    },
+    onClick: () => downloadDxf(true),
+    disabled: !!dxfBusy,
+    title: "\u0E14\u0E32\u0E27\u0E19\u0E4C\u0E42\u0E2B\u0E25\u0E14\u0E41\u0E22\u0E01\u0E44\u0E1F\u0E25\u0E4C\u0E25\u0E30\u0E41\u0E1C\u0E48\u0E19\u0E41\u0E1A\u0E1A\u0E40\u0E14\u0E34\u0E21"
+  }, "\u0E41\u0E22\u0E01\u0E44\u0E1F\u0E25\u0E4C\u0E25\u0E30\u0E41\u0E1C\u0E48\u0E19"), React.createElement("button", {
     className: "p3-b pri",
     style: {
       padding: "9px 18px"
     },
-    onClick: downloadDxf,
+    onClick: () => downloadDxf(false),
     disabled: !!dxfBusy
   }, React.createElement(P3Icon, {
     name: "save",
     size: 14
-  }), dxfBusy || "ดาวน์โหลดทั้งชุด")))), dxfBusy && !dxf && React.createElement("div", {
+  }), dxfBusy || (dxf.prep.all ? "ดาวน์โหลด (ไฟล์เดียว)" : "ดาวน์โหลด"))))), dxfBusy && !dxf && React.createElement("div", {
     style: {
       position: "fixed",
       left: 0,
