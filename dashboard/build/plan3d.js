@@ -1150,11 +1150,23 @@ function p3CableRows(st) {
   });
   return Object.keys(sum).map(n => [n, Math.ceil(sum[n]), "m."]);
 }
-function p3PlanSpec(st, job, M, nStr) {
+function p3StrSum(SS) {
+  if (!SS || !SS.length) return "-";
+  const g = {};
+  SS.forEach(x => {
+    g[x.n] = (g[x.n] || 0) + 1;
+  });
+  const ks = Object.keys(g).map(Number).sort((a, b) => b - a);
+  const head = SS.length + " STRING";
+  if (ks.length === 1) return head + "  (" + ks[0] + " MODULE / STRING)";
+  if (ks.length <= 3) return head + "  (" + ks.map(k => g[k] + " x " + k).join(" + ") + " MODULE)";
+  return head + "  (" + ks[ks.length - 1] + "-" + ks[0] + " MODULE / STRING)";
+}
+function p3PlanSpec(st, job, M, SS) {
   const kwp = Math.round(p3CountAll(st) * (+st.wp || 650) / 10) / 100;
   const I = p3SheetInfo(st, job, {});
   const perInv = Math.round(M.panel.count / Math.max(1, M.units.length) * 10) / 10;
-  return [["PROJECT", "SOLAR ROOFTOP " + kwp.toFixed(2) + " kWp."], ["LOCATION", I.location], ["INVERTER", M.inv.model + "   " + M.units.length + " Ea."], ["PV MODULE", M.panel.model + "   " + M.panel.count + " Ea."], ["PV MODULE / INVERTER", perInv + " MODULE"], ["STRING", nStr ? nStr + " STRING  (" + Math.round(M.panel.count / nStr * 10) / 10 + " MODULE / STRING)" : "-"], ["BATTERY", M.batt ? M.batt.kwh + " kWh." : "-"], ["COMBINER", "COMBINER BOX   1 Ea.   (" + M.panel.count + " MODULE)"]];
+  return [["PROJECT", "SOLAR ROOFTOP " + kwp.toFixed(2) + " kWp."], ["LOCATION", I.location], ["INVERTER", M.inv.model + "   " + M.units.length + " Ea."], ["PV MODULE", M.panel.model + "   " + M.panel.count + " Ea."], ["PV MODULE / INVERTER", perInv + " MODULE"], ["STRING", p3StrSum(SS)], ["BATTERY", M.batt ? M.batt.kwh + " kWh." : "-"], ["COMBINER", "COMBINER BOX   1 Ea.   (" + M.panel.count + " MODULE)"]];
 }
 function p3AreaRows(st, M, nStr, paths) {
   const wp = +st.wp || 650;
@@ -1359,7 +1371,7 @@ function p3Dxf(st, job, media) {
   let botY = AR.y0 + 3;
   if (M) {
     const area = p3AreaRows(st, M, SS.length, media.design && media.design.paths),
-      spec = p3PlanSpec(st, job, M, SS.length);
+      spec = p3PlanSpec(st, job, M, SS);
     const areaH = area.length * RH,
       specH = spec.length * RH;
     pgGrid(pen, RX0, botY + areaH, RW, [1.6, 1, 1.25, 1, 1, 1, 1], area, {
