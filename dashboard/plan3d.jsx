@@ -2763,29 +2763,43 @@ async function p3PrepSet(st, job, photos, design) {
     files.push({ name: file, url: u });
   }
 
-  /* ออกเฉพาะแผ่นผังติดตั้ง — แผ่น SLD · รูปถ่าย · ต่อสาย DC · วัสดุหน้างาน
-     โค้ดยังอยู่ครบ (p3Sld · p3PhotoSheet · p3DcSheet · p3EquipSheet) แค่ไม่ได้ใส่ในชุดที่ออก
-     make(svg) คืนไฟล์ DXF หรือ SVG (ตัวอย่างบนจอ) จากโค้ดวาดชุดเดียวกัน */
-  /* design (จากหน้าออกแบบระบบ) มีเมื่อไร ออกครบชุด: ผัง + SLD + ต่อสาย DC + วัสดุหน้างาน (+ รูปถ่ายถ้ามี)
-     ไม่มี = ผังติดตั้งแผ่นเดียวแบบเดิม */
-  const list = [{ key: "PLAN", label: "ผังติดตั้ง", fn: (o) => p3Dxf(st, job, Object.assign({ imgs: imgsC }, o)) }];
-  if (design && (design.paths || []).some((q) => q.uids && q.uids.length))
-    list.push({ key: "STRING", label: "ผังสตริงหน้างาน", fn: (o) => p3StrLayout(st, job, o) });
+  /* make(svg) คืนไฟล์ DXF หรือ SVG (ตัวอย่างบนจอ/PDF) จากโค้ดวาดชุดเดียวกัน
+     design (จากหน้าออกแบบระบบ) มีเมื่อไร ออกครบชุด SHOP DRAWING · ไม่มี = ผังติดตั้งแผ่นเดียวแบบเดิม */
+  const plan = { key: "PLAN", label: "ผังติดตั้ง", fn: (o) => p3Dxf(st, job, Object.assign({ imgs: imgsC }, o)) };
+  const list = [plan];
   if (design) {
+    /* ชุด SHOP DRAWING ตามแบบที่บริษัทใช้จริง (dwgset.jsx · ขั้นที่ 1 ต.ค. 2026): ปก → รายการประกอบแบบ → ผัง → ผังวางแผง
+       → ผังสตริง → รูปการเดินสายสตริง → SLD → ต่อสาย DC → ระบบต่อลงดิน → ผังราง/ทางเดิน/บันได → ท่อน้ำ → รูปถ่าย → วัสดุ
+       แผ่นที่ไม่มีข้อมูลรองรับ (ไม่มีราง ฯลฯ) ไม่ขึ้น */
+    const X = typeof dsSheetDefs === "function" ? dsSheetDefs(st, job, design, imgsC) : {};
+    const add = (k) => { if (X[k]) list.push(X[k]); };
+    list.length = 0;
+    add("COVER"); add("NOTES"); list.push(plan); add("PANEL");
+    if ((design.paths || []).some((q) => q.uids && q.uids.length))
+      list.push({ key: "STRING", label: "ผังสตริงหน้างาน", fn: (o) => p3StrLayout(st, job, o) });
+    add("STRDET");
     list.push({ key: "SLD", label: "แผนภาพไฟฟ้า (SLD)", fn: (o) => p3Sld(st, job, o) });
-    if (ph.length) list.push({ key: "PHOTO", label: "รูปถ่ายจุดติดตั้ง", fn: (o) => p3PhotoSheet(st, job, Object.assign({ photos: ph }, o)) });
     list.push({ key: "DC", label: "ต่อสาย DC", fn: (o) => p3DcSheet(st, job, o) });
+    add("GROUND"); add("TRAY"); add("WALK"); add("SAFETY"); add("WATER");
+    if (ph.length) list.push({ key: "PHOTO", label: "รูปถ่ายจุดติดตั้ง", fn: (o) => p3PhotoSheet(st, job, Object.assign({ photos: ph }, o)) });
     list.push({ key: "MAT", label: "วัสดุหน้างาน", fn: (o) => p3EquipSheet(st, job, o) });
   }
+  const SET_EN = Object.assign({ PLAN: "OVERALL LAYOUT", STRING: "STRING LAYOUT", SLD: "SINGLE LINE DIAGRAM", PHOTO: "SITE PHOTO", DC: "DC WIRING", MAT: "MATERIAL LIST" },
+    typeof DS_SET_EN !== "undefined" ? DS_SET_EN : {});
+  /* สารบัญแบบ (แผ่นรายการประกอบแบบ) — เลขแบบตรงกับช่อง DRAWING NUMBER ของแต่ละแผ่น (p3SheetInfo) */
+  const index = list.map((L, i) => ({ no: i + 1, key: L.key, th: L.label, en: SET_EN[L.key] || L.key,
+    dwg: "PG-" + ((job && job.code) || "0000") + "-" + L.key }));
   const sheets = list.map((L, i) => {
     const no = (i + 1) + "/" + list.length;
     return { key: L.key, label: L.label, no, file: base + "-" + (i + 1) + "-" + L.key + ".dxf",
-      make: (svg) => L.fn({ sheetNo: no, svg: !!svg, design }) };
+      make: (svg) => L.fn({ sheetNo: no, svg: !!svg, design, index }) };
   });
   if (!design) sheets[0].file = base + "-PLAN.dxf";
   /* ทั้งชุดในไฟล์เดียว (pgCombine) — ดาวน์โหลดเป็นค่าตั้งต้น · ยังแยกไฟล์ละแผ่นได้ */
-  const SET_EN = { PLAN: "OVERALL LAYOUT", STRING: "STRING LAYOUT", SLD: "SINGLE LINE DIAGRAM", PHOTO: "SITE PHOTO", DC: "DC WIRING", MAT: "MATERIAL LIST" };
-  const setOpt = { title: "SOLAR · " + base, labels: sheets.map((s) => s.no + "  " + (SET_EN[s.key] || s.key)) };
+  /* ไฟล์รวม: แถวละหมวด (ปก · ผัง · ไฟฟ้า · งานติดตั้ง · ระบบน้ำ · หน้างาน) กรอบแดงแยกหมวด แบบที่ผู้ใช้จัดใน CAD */
+  const GRP = typeof DS_SET_GROUP !== "undefined" ? DS_SET_GROUP : null;
+  const setOpt = { title: "SOLAR · " + base, labels: sheets.map((s) => s.no + "  " + (SET_EN[s.key] || s.key)),
+    groups: GRP ? sheets.map((s) => GRP[s.key] || "OTHER") : null };
   const all = sheets.length > 1 ? { file: base + "-SET.dxf", make: (svg) => pgCombine(sheets.map((s) => () => s.make(svg)), svg, setOpt) } : null;
   return { base, sheets, all, files, st, job };
 }

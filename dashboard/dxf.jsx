@@ -636,27 +636,45 @@ function pgDoc(opt, svg) { if (PG_CAPTURE) return PG_CAPTURE(opt); return svg ? 
    ระหว่างรวม pgDoc คืน "ตัวแปลง" แทน: รู้ตำแหน่งกระดาษกับมาตราส่วนของแผ่นจาก doc.plot ที่ pgSheet เรียก (x0,y0,k)
    แล้วแปลงทุกพิกัด/ขนาดกลับเป็น "มม.บนกระดาษ" วางแผ่นที่ i ห่างกัน PG_SET_GAP มม. เรียงซ้าย→ขวา ในไฟล์หน่วย มม. ไฟล์เดียว
    makers = [() => แผ่น.make(svg)] · svg = true คืนภาพตัวอย่างทั้งชุด · DXF ตั้งค่าพิมพ์ไว้ที่แผ่นแรก
-   o = { title, labels[] } — จัดแบบที่ผู้ใช้ทำใน CAD เอง: ชื่อแผ่นเหนือแต่ละแผ่น + กรอบแดงล้อมทั้งกลุ่ม ชื่อกลุ่มเหนือกรอบ */
-const PG_SET_GAP = 40, PG_SET_PAD = 30;
+   o = { title, labels[], groups[] } — จัดแบบที่ผู้ใช้ทำใน CAD เอง: ชื่อแผ่นเหนือแต่ละแผ่น + กรอบแดงล้อมกลุ่ม ชื่อกลุ่มเหนือกรอบ
+   groups[i] = ชื่อหมวดของแผ่นที่ i (COVER / LAYOUT / ELECTRICAL …) — แผ่นติดกันหมวดเดียวกันอยู่แถวเดียวกันในกรอบเดียว
+   หมวดถัดไปขึ้นแถวใหม่ใต้แถวเดิม (ชุดแบบ 15 แผ่นเรียงแถวเดียวยาวเกินไป) · ไม่ส่ง groups = แถวเดียวทั้งชุดแบบเดิม */
+const PG_SET_GAP = 40, PG_SET_PAD = 30, PG_SET_ROWGAP = 60;
 let PG_CAPTURE = null;
 function pgCombine(makers, svg, o) {
   o = o || {};
   const n = makers.length, W = PG_SHEET.W, H = PG_SHEET.H, PAD = PG_SET_PAD;
   const out = svg ? pgSvg({}) : pgDxf({ units: "mm", ltscale: 1 });
-  const FW = n * W + (n - 1) * PG_SET_GAP + PAD * 2, FH = H + PAD * 2 + 16;
-  if (svg) out.plot({ x0: -PAD, y0: -PAD, w: FW, h: FH + 26, k: 1 });
+  /* แผ่นละตำแหน่ง (แถว/คอลัมน์) ตามหมวด */
+  const G = o.groups && o.groups.length === n ? o.groups : null;
+  const rows = [];
+  for (let i = 0; i < n; i++) {
+    const g = G ? G[i] : "";
+    if (!rows.length || rows[rows.length - 1].g !== g) rows.push({ g, from: i, n: 0 });
+    rows[rows.length - 1].n++;
+  }
+  const FH = H + PAD * 2 + 16, PITCH = FH + PG_SET_ROWGAP;
+  const pos = [];
+  rows.forEach((r, ri) => { for (let j = 0; j < r.n; j++) pos[r.from + j] = { ox: j * (W + PG_SET_GAP), oy: -ri * PITCH }; });
+  const maxN = Math.max.apply(null, rows.map((r) => r.n));
+  const FWmax = maxN * W + (maxN - 1) * PG_SET_GAP + PAD * 2;
+  if (svg) out.plot({ x0: -PAD, y0: -PAD - (rows.length - 1) * PITCH, w: FWmax, h: FH + 26 + (rows.length - 1) * PITCH, k: 1 });
   /* กรอบกลุ่ม + ชื่อกลุ่ม + ชื่อแผ่น (layer แยก ปิดดูเฉพาะแบบได้) */
   out.layer("PG-SET-FRAME", PG_ACI.red, "CONTINUOUS", 50);
   out.layer("PG-SET-LABEL", PG_ACI.grey, "CONTINUOUS", 35);
-  out.rect("PG-SET-FRAME", -PAD, -PAD, FW, FH);
-  if (o.title) out.text("PG-SET-LABEL", -PAD + FW, -PAD + FH + 6, 16, String(o.title), { align: 2 });
-  (o.labels || []).forEach((s, i) => { if (s) out.text("PG-SET-LABEL", i * (W + PG_SET_GAP) + W / 2, H + 6, 9, String(s), { align: 1 }); });
+  rows.forEach((r, ri) => {
+    const FW = r.n * W + (r.n - 1) * PG_SET_GAP + PAD * 2, oy = -ri * PITCH;
+    out.rect("PG-SET-FRAME", -PAD, oy - PAD, FW, FH);
+    const t = [o.title, r.g].filter(Boolean).join("  ·  ");
+    if (t) out.text("PG-SET-LABEL", -PAD + FW, oy - PAD + FH + 6, 16, t, { align: 2 });
+  });
+  (o.labels || []).forEach((s, i) => { if (s) out.text("PG-SET-LABEL", pos[i].ox + W / 2, pos[i].oy + H + 6, 9, String(s), { align: 1 }); });
   let idx = -1;
   PG_CAPTURE = () => {
     idx++;
-    const OX = idx * (W + PG_SET_GAP), first = idx === 0;
+    const OX = pos[idx].ox, OY = pos[idx].oy, first = idx === 0;
     let T = { k: 1, x0: 0, y0: 0 };
-    const X = (x) => (x - T.x0) / T.k + OX, Y = (y) => (y - T.y0) / T.k, S = (v) => v / T.k;
+    const X = (x) => (x - T.x0) / T.k + OX, Y = (y) => (y - T.y0) / T.k + OY, S = (v) => v / T.k;
     const P = (p) => [X(p[0]), Y(p[1])];
     return {
       layer: (a, b, c, d) => out.layer(a, b, c, d),
@@ -671,7 +689,7 @@ function pgCombine(makers, svg, o) {
       image: (l, o) => out.image(l, Object.assign({}, o, { x: X(o.x), y: Y(o.y), w: S(o.w), h: S(o.h) })),
       plot: (o) => {
         T = { k: +o.k || 1, x0: +o.x0 || 0, y0: +o.y0 || 0 };
-        if (first && !svg) out.plot({ x0: OX, y0: 0, w: +o.w || W, h: +o.h || H, k: 1 });
+        if (first && !svg) out.plot({ x0: OX, y0: OY, w: +o.w || W, h: +o.h || H, k: 1 });
       },
       get extents() { return out.extents; },
       build: () => "",

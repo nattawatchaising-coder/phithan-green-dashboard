@@ -30,7 +30,7 @@ deploy อัตโนมัติด้วย Vercel จาก `master` บน 
 |---|---|
 | `plan3d2.jsx` ตัวออกแบบหลังคา/วางแผง · ขั้นพาทำ · สิ่งบดบัง · วางแผง | `docs/plan3d.md` |
 | ภาพ 3D · เงา · ถ่ายภาพ/วิดีโอ · วัสดุ/สีหลังคา (`P3SView3D` `p3sBuild3D`) | `docs/plan3d-3d.md` |
-| ออกแบบระบบ · สตริง · MPPT · ชุดแบบ DXF/SLD (`solarui` `solarcalc` `solariv` `dxf.jsx` `p3SldModel`) | `docs/solar-design.md` |
+| ออกแบบระบบ · สตริง · MPPT · ชุดแบบ DXF/SLD/SHOP DRAWING · PDF ทั้งเล่ม (`solarui` `solarcalc` `solariv` `dxf.jsx` `dwgset.jsx` `p3SldModel`) | `docs/solar-design.md` |
 | ถอด BOQ · ตู้ไฟ · หน้าตั้งค่าคำนวณ BOQ · O&M · ค่าขออนุญาต (`boq.jsx` `boq.js` `views-stock.jsx`) | `docs/boq.md` |
 | หลายเวอร์ชันแบบ 3D/BOQ (`versions.jsx`) | `docs/versions.md` |
 | ห้องอุปกรณ์ 3D (`eroom.jsx`) | `docs/eroom.md` |

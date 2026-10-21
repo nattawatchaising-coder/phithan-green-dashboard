@@ -4316,24 +4316,45 @@ async function p3PrepSet(st, job, photos, design) {
       url: u
     });
   }
-  const list = [{
+  const plan = {
     key: "PLAN",
     label: "ผังติดตั้ง",
     fn: o => p3Dxf(st, job, Object.assign({
       imgs: imgsC
     }, o))
-  }];
-  if (design && (design.paths || []).some(q => q.uids && q.uids.length)) list.push({
-    key: "STRING",
-    label: "ผังสตริงหน้างาน",
-    fn: o => p3StrLayout(st, job, o)
-  });
+  };
+  const list = [plan];
   if (design) {
+    const X = typeof dsSheetDefs === "function" ? dsSheetDefs(st, job, design, imgsC) : {};
+    const add = k => {
+      if (X[k]) list.push(X[k]);
+    };
+    list.length = 0;
+    add("COVER");
+    add("NOTES");
+    list.push(plan);
+    add("PANEL");
+    if ((design.paths || []).some(q => q.uids && q.uids.length)) list.push({
+      key: "STRING",
+      label: "ผังสตริงหน้างาน",
+      fn: o => p3StrLayout(st, job, o)
+    });
+    add("STRDET");
     list.push({
       key: "SLD",
       label: "แผนภาพไฟฟ้า (SLD)",
       fn: o => p3Sld(st, job, o)
     });
+    list.push({
+      key: "DC",
+      label: "ต่อสาย DC",
+      fn: o => p3DcSheet(st, job, o)
+    });
+    add("GROUND");
+    add("TRAY");
+    add("WALK");
+    add("SAFETY");
+    add("WATER");
     if (ph.length) list.push({
       key: "PHOTO",
       label: "รูปถ่ายจุดติดตั้ง",
@@ -4342,16 +4363,26 @@ async function p3PrepSet(st, job, photos, design) {
       }, o))
     });
     list.push({
-      key: "DC",
-      label: "ต่อสาย DC",
-      fn: o => p3DcSheet(st, job, o)
-    });
-    list.push({
       key: "MAT",
       label: "วัสดุหน้างาน",
       fn: o => p3EquipSheet(st, job, o)
     });
   }
+  const SET_EN = Object.assign({
+    PLAN: "OVERALL LAYOUT",
+    STRING: "STRING LAYOUT",
+    SLD: "SINGLE LINE DIAGRAM",
+    PHOTO: "SITE PHOTO",
+    DC: "DC WIRING",
+    MAT: "MATERIAL LIST"
+  }, typeof DS_SET_EN !== "undefined" ? DS_SET_EN : {});
+  const index = list.map((L, i) => ({
+    no: i + 1,
+    key: L.key,
+    th: L.label,
+    en: SET_EN[L.key] || L.key,
+    dwg: "PG-" + (job && job.code || "0000") + "-" + L.key
+  }));
   const sheets = list.map((L, i) => {
     const no = i + 1 + "/" + list.length;
     return {
@@ -4362,22 +4393,17 @@ async function p3PrepSet(st, job, photos, design) {
       make: svg => L.fn({
         sheetNo: no,
         svg: !!svg,
-        design
+        design,
+        index
       })
     };
   });
   if (!design) sheets[0].file = base + "-PLAN.dxf";
-  const SET_EN = {
-    PLAN: "OVERALL LAYOUT",
-    STRING: "STRING LAYOUT",
-    SLD: "SINGLE LINE DIAGRAM",
-    PHOTO: "SITE PHOTO",
-    DC: "DC WIRING",
-    MAT: "MATERIAL LIST"
-  };
+  const GRP = typeof DS_SET_GROUP !== "undefined" ? DS_SET_GROUP : null;
   const setOpt = {
     title: "SOLAR · " + base,
-    labels: sheets.map(s => s.no + "  " + (SET_EN[s.key] || s.key))
+    labels: sheets.map(s => s.no + "  " + (SET_EN[s.key] || s.key)),
+    groups: GRP ? sheets.map(s => GRP[s.key] || "OTHER") : null
   };
   const all = sheets.length > 1 ? {
     file: base + "-SET.dxf",

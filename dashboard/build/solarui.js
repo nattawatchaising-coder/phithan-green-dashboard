@@ -4153,6 +4153,17 @@ function SolarWorkspace({
     }
     setDxfBusy("");
   }
+  async function downloadPdf() {
+    if (!dxf || typeof dsExportPdf !== "function") return;
+    setDxfBusy("กำลังทำ PDF");
+    try {
+      await dsExportPdf(dxf.prep, (i, n) => setDxfBusy("กำลังทำ PDF " + i + "/" + n));
+    } catch (e) {
+      console.error(e);
+      alert("ทำ PDF ไม่สำเร็จ: " + (e && e.message));
+    }
+    setDxfBusy("");
+  }
   const dxfSvg = React.useMemo(() => {
     if (!dxf) return "";
     try {
@@ -9308,7 +9319,17 @@ function SolarWorkspace({
     style: {
       flex: 1
     }
-  }), React.createElement("button", {
+  }), typeof dsExportPdf === "function" && React.createElement("button", {
+    className: "p3-b",
+    style: {
+      padding: "9px 14px"
+    },
+    onClick: downloadPdf,
+    disabled: !!dxfBusy
+  }, React.createElement(P3Icon, {
+    name: "doc",
+    size: 14
+  }), "PDF \u0E17\u0E31\u0E49\u0E07\u0E40\u0E25\u0E48\u0E21"), React.createElement("button", {
     className: "p3-b pri",
     style: {
       padding: "9px 18px"

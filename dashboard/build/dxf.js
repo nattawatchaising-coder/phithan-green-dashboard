@@ -993,7 +993,8 @@ function pgDoc(opt, svg) {
   return svg ? pgSvg(opt) : pgDxf(opt);
 }
 const PG_SET_GAP = 40,
-  PG_SET_PAD = 30;
+  PG_SET_PAD = 30,
+  PG_SET_ROWGAP = 60;
 let PG_CAPTURE = null;
 function pgCombine(makers, svg, o) {
   o = o || {};
@@ -1005,30 +1006,56 @@ function pgCombine(makers, svg, o) {
     units: "mm",
     ltscale: 1
   });
-  const FW = n * W + (n - 1) * PG_SET_GAP + PAD * 2,
-    FH = H + PAD * 2 + 16;
+  const G = o.groups && o.groups.length === n ? o.groups : null;
+  const rows = [];
+  for (let i = 0; i < n; i++) {
+    const g = G ? G[i] : "";
+    if (!rows.length || rows[rows.length - 1].g !== g) rows.push({
+      g,
+      from: i,
+      n: 0
+    });
+    rows[rows.length - 1].n++;
+  }
+  const FH = H + PAD * 2 + 16,
+    PITCH = FH + PG_SET_ROWGAP;
+  const pos = [];
+  rows.forEach((r, ri) => {
+    for (let j = 0; j < r.n; j++) pos[r.from + j] = {
+      ox: j * (W + PG_SET_GAP),
+      oy: -ri * PITCH
+    };
+  });
+  const maxN = Math.max.apply(null, rows.map(r => r.n));
+  const FWmax = maxN * W + (maxN - 1) * PG_SET_GAP + PAD * 2;
   if (svg) out.plot({
     x0: -PAD,
-    y0: -PAD,
-    w: FW,
-    h: FH + 26,
+    y0: -PAD - (rows.length - 1) * PITCH,
+    w: FWmax,
+    h: FH + 26 + (rows.length - 1) * PITCH,
     k: 1
   });
   out.layer("PG-SET-FRAME", PG_ACI.red, "CONTINUOUS", 50);
   out.layer("PG-SET-LABEL", PG_ACI.grey, "CONTINUOUS", 35);
-  out.rect("PG-SET-FRAME", -PAD, -PAD, FW, FH);
-  if (o.title) out.text("PG-SET-LABEL", -PAD + FW, -PAD + FH + 6, 16, String(o.title), {
-    align: 2
+  rows.forEach((r, ri) => {
+    const FW = r.n * W + (r.n - 1) * PG_SET_GAP + PAD * 2,
+      oy = -ri * PITCH;
+    out.rect("PG-SET-FRAME", -PAD, oy - PAD, FW, FH);
+    const t = [o.title, r.g].filter(Boolean).join("  ·  ");
+    if (t) out.text("PG-SET-LABEL", -PAD + FW, oy - PAD + FH + 6, 16, t, {
+      align: 2
+    });
   });
   (o.labels || []).forEach((s, i) => {
-    if (s) out.text("PG-SET-LABEL", i * (W + PG_SET_GAP) + W / 2, H + 6, 9, String(s), {
+    if (s) out.text("PG-SET-LABEL", pos[i].ox + W / 2, pos[i].oy + H + 6, 9, String(s), {
       align: 1
     });
   });
   let idx = -1;
   PG_CAPTURE = () => {
     idx++;
-    const OX = idx * (W + PG_SET_GAP),
+    const OX = pos[idx].ox,
+      OY = pos[idx].oy,
       first = idx === 0;
     let T = {
       k: 1,
@@ -1036,7 +1063,7 @@ function pgCombine(makers, svg, o) {
       y0: 0
     };
     const X = x => (x - T.x0) / T.k + OX,
-      Y = y => (y - T.y0) / T.k,
+      Y = y => (y - T.y0) / T.k + OY,
       S = v => v / T.k;
     const P = p => [X(p[0]), Y(p[1])];
     return {
@@ -1063,7 +1090,7 @@ function pgCombine(makers, svg, o) {
         };
         if (first && !svg) out.plot({
           x0: OX,
-          y0: 0,
+          y0: OY,
           w: +o.w || W,
           h: +o.h || H,
           k: 1

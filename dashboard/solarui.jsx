@@ -2207,6 +2207,14 @@ function SolarWorkspace({ job, st, sys, onChange, onClose, snap }) {
     catch (e) { console.error(e); alert("ดาวน์โหลดไม่สำเร็จ: " + (e && e.message)); }
     setDxfBusy("");
   }
+  /* PDF ทั้งเล่ม (dwgset.jsx) — ทุกแผ่นเป็นหน้า A3 ไฟล์เดียว ส่งลูกค้า/พิมพ์ได้เลย */
+  async function downloadPdf() {
+    if (!dxf || typeof dsExportPdf !== "function") return;
+    setDxfBusy("กำลังทำ PDF");
+    try { await dsExportPdf(dxf.prep, (i, n) => setDxfBusy("กำลังทำ PDF " + i + "/" + n)); }
+    catch (e) { console.error(e); alert("ทำ PDF ไม่สำเร็จ: " + (e && e.message)); }
+    setDxfBusy("");
+  }
   const dxfSvg = React.useMemo(() => {
     if (!dxf) return "";
     try { return dxf.i === "all" ? dxf.prep.all.make(true) : dxf.prep.sheets[dxf.i].make(true); } catch (e) { console.error(e); return ""; }
@@ -4770,6 +4778,11 @@ function SolarWorkspace({ job, st, sys, onChange, onClose, snap }) {
                 ไฟล์: {dxf.prep.base}-SET.zip — ข้างในมี {(dxf.prep.all || dxf.prep.sheets[0]).file} ไฟล์เดียว (ทุกแผ่น){dxf.prep.files.length ? " + รูปพื้นหลัง/โลโก้" : ""}
               </span>
               <span style={{ flex: 1 }} />
+              {typeof dsExportPdf === "function" && (
+                <button className="p3-b" style={{ padding: "9px 14px" }} onClick={downloadPdf} disabled={!!dxfBusy}>
+                  <P3Icon name="doc" size={14} />PDF ทั้งเล่ม
+                </button>
+              )}
               <button className="p3-b pri" style={{ padding: "9px 18px" }} onClick={() => downloadDxf(false)} disabled={!!dxfBusy}>
                 <P3Icon name="save" size={14} />{dxfBusy || "ดาวน์โหลดแบบ"}
               </button>
