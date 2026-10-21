@@ -1666,7 +1666,8 @@ function UserEditModal({ initial, existing, meId, onSave, onClose }) {
   const set = (k, v) => { setF((p) => Object.assign({}, p, { [k]: v })); setErr(""); };
   const isNew = !existing.some((u) => u.id === initial.id);
   /* ตำแหน่งที่ต้องผูกกับพนักงานในระบบ เพราะมีการมอบหมายงาน/นัดสำรวจส่งถึงตัวคน */
-  const needTech = f.roles.some((r) => r === "tech" || r === "sales");
+  /* เซลล์ไม่ต้องผูก — ลูกค้า/งานของเซลล์ผูกกับ id บัญชี (ownerId/salesId) ไม่ใช่ techId */
+  const needTech = f.roles.some((r) => r === "tech");
   /* วิศวกรไม่ต้องผูกก็ได้ — บัญชีที่ไม่ผูกเห็นนัดสำรวจของวิศวกรทุกคน (ผู้ใช้ขอ) */
   const showTech = needTech || f.roles.indexOf("ee") !== -1;
 

@@ -3389,7 +3389,7 @@ function UserEditModal({
     setErr("");
   };
   const isNew = !existing.some(u => u.id === initial.id);
-  const needTech = f.roles.some(r => r === "tech" || r === "sales");
+  const needTech = f.roles.some(r => r === "tech");
   const showTech = needTech || f.roles.indexOf("ee") !== -1;
   const save = () => {
     const uname = String(f.username || "").trim();
