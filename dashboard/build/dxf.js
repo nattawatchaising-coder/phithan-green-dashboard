@@ -733,7 +733,14 @@ const PG_ACI_HEX = {
   9: "#a8a8a8",
   30: "#d97706",
   140: "#2b7bbd",
-  200: "#8b5cf6"
+  200: "#8b5cf6",
+  154: "#0A4D68",
+  144: "#0E6478",
+  134: "#148080",
+  124: "#1B9B75",
+  112: "#22B36A",
+  142: "#147A8C",
+  255: "#ffffff"
 };
 function pgSvg(opt) {
   opt = opt || {};
@@ -969,16 +976,26 @@ function pgSheetLayers(doc) {
 }
 const PG_LOGO_HEX = [[100, 30], [160.6, 65], [160.6, 135], [100, 170], [39.4, 135], [39.4, 65]];
 const PG_LOGO_BOLT = [[104, 55], [74, 101], [92, 101], [84, 145], [120, 91], [98, 91]];
+const PG_LOGO_ACI = [154, 144, 134, 124, 112, 142];
+function pgLogoLayers(doc) {
+  PG_LOGO_ACI.forEach((c, i) => doc.layer("PG-LOGO-" + (i + 1), c, "CONTINUOUS", 0));
+  doc.layer("PG-LOGO-BOLT", 255, "CONTINUOUS", 0);
+}
 function pgLogoMark(pen, x, y, s) {
-  const L = PG_LAY.logo;
   const at = p => [x + p[0] / 200 * s, y + s - p[1] / 200 * s];
-  pen.pline(L, PG_LOGO_HEX.map(at), true);
-  pen.pline(L, PG_LOGO_BOLT.map(at), true);
+  const C = at([100, 100]);
+  const H = [[160.6, 65], [100, 30], [39.4, 65], [39.4, 135], [100, 170], [160.6, 135]];
+  H.forEach((p, i) => pen.solid("PG-LOGO-" + (i + 1), C, at(p), at(H[(i + 1) % 6])));
+  const B = PG_LOGO_BOLT.map(at);
+  pen.solid("PG-LOGO-BOLT", B[0], B[1], B[2], B[5]);
+  pen.solid("PG-LOGO-BOLT", B[5], B[4], B[3], B[2]);
 }
 function pgSheet(doc, o) {
   o = o || {};
   const I = o.info || {};
   pgSheetLayers(doc);
+  pgLogoLayers(doc);
+  doc.layer("PG-TB-MARK", PG_ACI.red, "CONTINUOUS", 25);
   const K = o.k == null ? 1 : o.k;
   const pen = pgPen(doc, K, o.ox || 0, o.oy || 0);
   const S = PG_SHEET,
@@ -1036,8 +1053,9 @@ function pgSheet(doc, o) {
   }
   const tx0 = IN.x1 - S.TB,
     tx1 = IN.x1,
-    TW = S.TB;
-  const ROW = [["site", 49], ["loc", 11], ["proj", 11], ["own", 16], ["logo", 34], ["stat", 26], ["se", 17], ["me", 17], ["ee", 17], ["rev", 27], ["sign", 18], ["pno", 11.5], ["scale", 10.5]];
+    TW = S.TB,
+    cx = (tx0 + tx1) / 2;
+  const ROW = [["site", 46], ["loc", 12], ["proj", 12], ["own", 14], ["logo", 34], ["stat", 24], ["se", 13], ["me", 13], ["ee", 27], ["rev", 27], ["sign", 18], ["pno", 15], ["scale", 10]];
   const Y = {};
   let cy = IN.y1;
   ROW.forEach(r => {
@@ -1053,94 +1071,140 @@ function pgSheet(doc, o) {
     if (Y[r[0]].bot > IN.y0 + 0.01) pen.line(F.tb, tx0, Y[r[0]].bot, tx1, Y[r[0]].bot);
   });
   const lab = (y, s) => pen.text(F.txt, tx0 + 1.6, y - 2.7, 1.7, s);
-  const mid = (y, h, s, va) => pen.text(F.txt, (tx0 + tx1) / 2, y, h, s, {
+  const mid = (y, h, s, va) => pen.text(F.txt, cx, y, h, s, {
     align: 1,
     valign: va == null ? 1 : va
   });
+  const block = (R, lines, h, gap) => {
+    const n = lines.length;
+    if (!n) return;
+    const yc = (R.top - 4 + R.bot) / 2;
+    lines.forEach((ln, i) => mid(yc + ((n - 1) / 2 - i) * gap, h, ln, 2));
+  };
   lab(Y.site.top, "SITE LOCATION MAP :");
-  pgWrap(I.address || "", 34).slice(0, 8).forEach((ln, i) => mid(Y.site.top - 12 - i * 4.4, 2.3, ln));
+  block(Y.site, pgWrap(I.address || "-", 26).slice(0, 8), 2.7, 4.4);
   lab(Y.loc.top, "LOCATION :");
-  mid(Y.loc.bot + 2.6, 2.6, I.location || "-");
+  block(Y.loc, [I.location || "-"], 2.6, 0);
   lab(Y.proj.top, "PROJECT :");
-  mid(Y.proj.bot + 2.6, 2.9, I.project || "-");
+  block(Y.proj, [I.project || "-"], 2.7, 0);
   lab(Y.own.top, "OWNER :");
-  pgWrap(I.owner || "-", 30).slice(0, 2).forEach((ln, i) => mid(Y.own.bot + 6.2 - i * 4.6, 3.0, ln));
-  pgLogoMark(pen, tx0 + 5, Y.logo.top - 15.5, 12);
-  pen.text(F.logo, tx0 + 20, Y.logo.top - 7.5, 4.0, "FLASHPLUS", {
-    valign: 2
+  block(Y.own, pgWrap(I.owner || "-", 30).slice(0, 2), 2.7, 3.8);
+  const B = window.BRANDING || {};
+  pgLogoMark(pen, cx - 6, Y.logo.top - 13.5, 12);
+  const wh = 3.6,
+    wy = Y.logo.top - 16.2;
+  pen.text(F.txt, cx - wh * 0.4, wy, wh, "flash", {
+    align: 2,
+    valign: 2,
+    wf: 1
   });
-  pen.text(F.logo, tx0 + 20, Y.logo.top - 13.5, 4.0, "SOLAR CO.,LTD.", {
-    valign: 2
+  pen.text("PG-LOGO-5", cx, wy, wh, "+", {
+    align: 1,
+    valign: 2,
+    wf: 1
   });
-  ["8/90 Moo 16, Bangkaew, Bangplee,", "Samutprakarn 10540", "TEL : " + ((window.BRANDING || {}).tel || ""), "http://" + ((window.BRANDING || {}).site || ""), "E-mail : " + ((window.BRANDING || {}).email || "")].forEach((ln, i) => mid(Y.logo.top - 21.5 - i * 2.5, 1.7, ln));
+  pen.text(F.txt, cx + wh * 0.4, wy, wh, "solar", {
+    align: 0,
+    valign: 2,
+    wf: 1
+  });
+  mid(Y.logo.top - 21.2, 2.2, B.legalTH || "", 2);
+  mid(Y.logo.top - 24.4, 1.9, B.legal || "", 2);
+  pgWrap(B.addrTH || "", 44).slice(0, 2).concat(["TEL : " + (B.tel || "") + "   E-mail : " + (B.email || "")]).forEach((ln, i) => mid(Y.logo.top - 27.4 - i * 2.4, 1.5, ln, 2));
   [["FOR PRELIMINARY", "prelim"], ["FOR PERMISSION", "permit"], ["FOR CONSTRUCTION", "construct"], ["FOR AS-BUILT", "asbuilt"]].forEach((s, i) => {
-    const y = Y.stat.top - 5.5 - i * 5.6;
-    pen.circle(F.tb, tx0 + 10, y, 1.7);
-    if ((I.status || "construct") === s[1]) pen.dot(F.tb, tx0 + 10, y, 1.25);
-    pen.text(F.txt, tx0 + 15, y, 2.5, s[0], {
+    const y = Y.stat.top - 4 - i * 5.4;
+    pen.circle(F.frame, tx0 + 7, y, 1.9);
+    if ((I.status || "construct") === s[1]) pen.dot("PG-TB-MARK", tx0 + 7, y, 1.35);
+    pen.text(F.txt, tx0 + 12, y, 2.5, s[0], {
       valign: 2
     });
   });
-  [["se", "STRUCTURAL ENGINEERS :"], ["me", "MECHANICAL ENGINEERS :"], ["ee", "ELECTRICAL ENGINEERS :"]].forEach(r => {
+  [["se", "STRUCTURAL ENGINEERS :"], ["me", "MECHANICAL ENGINEERS :"]].forEach(r => {
     lab(Y[r[0]].top, r[1]);
-    for (let i = 0; i < 4; i++) {
-      const y = Y[r[0]].bot + 2.2 + i * 3.3;
+    for (let i = 0; i < 3; i++) {
+      const y = Y[r[0]].bot + 1.8 + i * 2.7;
       pen.line(F.thin, tx0 + 2, y, tx1 - 2, y);
     }
   });
+  lab(Y.ee.top, "ELECTRICAL ENGINEERS :");
+  pen.rect(F.tb, tx0 + 9, Y.ee.bot + 8.5, TW - 18, Y.ee.h - 13.5);
+  pen.line(F.thin, tx0 + 13, Y.ee.bot + 5, tx1 - 13, Y.ee.bot + 5);
+  pen.text(F.txt, tx0 + 13, Y.ee.bot + 1.6, 1.8, "ภฟก.", {
+    valign: 1
+  });
+  pen.line(F.thin, tx0 + 20, Y.ee.bot + 1.6, tx1 - 13, Y.ee.bot + 1.6);
   const RC = [9, 24, 15, 14],
-    RH = ["REV.", "DESCRIPTION", "APPROVED", "DATE"];
-  const rHead = Y.rev.top - 4.5;
+    RH = ["REV.", "DESCRIPTION", "APPROVED", "DATE"],
+    rH = 4.5;
+  const rHead = Y.rev.top - rH;
   let rx = tx0;
   pen.line(F.tb, tx0, rHead, tx1, rHead);
   RC.forEach((w2, i) => {
-    pen.text(F.txt, rx + w2 / 2, rHead + 1.3, 2.2, RH[i], {
+    pen.text(F.txt, rx + w2 / 2, rHead + rH / 2, 1.9, RH[i], {
       align: 1,
-      valign: 1
+      valign: 2
     });
     rx += w2;
     if (i < RC.length - 1) pen.line(F.tb, rx, Y.rev.top, rx, Y.rev.bot);
   });
-  for (let i = 1; i <= 5; i++) pen.line(F.tb, tx0, rHead - i * 4.5, tx1, rHead - i * 4.5);
+  for (let i = 1; i < 5; i++) pen.line(F.thin, tx0, rHead - i * rH, tx1, rHead - i * rH);
+  const r0 = [I.rev || "0", "FIRST ISSUE", "", I.date || ""];
+  rx = tx0;
+  RC.forEach((w2, i) => {
+    if (r0[i]) pen.text(F.txt, i === 1 ? rx + 1.5 : rx + w2 / 2, rHead - rH / 2, 1.8, r0[i], {
+      align: i === 1 ? 0 : 1,
+      valign: 2
+    });
+    rx += w2;
+  });
   pen.line(F.tb, tx0 + 18, Y.sign.top, tx0 + 18, Y.sign.bot);
   [["DRAWN", I.drawn], ["DESIGN", I.design], ["CHECKED", I.checked], ["APPROVED", I.approved]].forEach((r, i) => {
     const yb = Y.sign.top - (i + 1) * 4.5;
     if (i < 3) pen.line(F.tb, tx0, yb, tx1, yb);
-    pen.text(F.txt, tx0 + 1.6, yb + 1.5, 2.1, r[0]);
-    if (r[1]) pen.text(F.txt, tx0 + 20, yb + 1.5, 2.3, r[1]);
+    pen.text(F.txt, tx0 + 1.6, yb + 2.25, 1.9, r[0], {
+      valign: 2
+    });
+    if (r[1]) pen.text(F.txt, tx0 + 18 + (TW - 18) / 2, yb + 2.25, 2.3, r[1], {
+      align: 1,
+      valign: 2
+    });
   });
-  const pHead = Y.pno.top - 4.5;
+  const pHead = Y.pno.top - 4.5,
+    px = tx0 + TW * 0.4;
   pen.line(F.tb, tx0, pHead, tx1, pHead);
-  pen.line(F.tb, tx0 + TW / 2, Y.pno.top, tx0 + TW / 2, Y.pno.bot);
-  pen.text(F.txt, tx0 + TW / 4, pHead + 1.3, 2.2, "PROJECT NO", {
+  pen.line(F.tb, px, Y.pno.top, px, Y.pno.bot);
+  pen.text(F.txt, (tx0 + px) / 2, pHead + 2.25, 1.9, "PROJECT NO.", {
     align: 1,
-    valign: 1
+    valign: 2
   });
-  pen.text(F.txt, tx0 + TW * 3 / 4, pHead + 1.3, 2.2, "DRAWING NUMBER", {
+  pen.text(F.txt, (px + tx1) / 2, pHead + 2.25, 1.9, "DRAWING NUMBER", {
     align: 1,
-    valign: 1
+    valign: 2
   });
-  pen.text(F.txt, tx0 + TW / 4, Y.pno.bot + 2.2, 2.8, I.projectNo || "", {
+  const fitH = (s, w, hMax) => Math.min(hMax, w / (Math.max(1, String(s).length) * 0.6));
+  const pno = I.projectNo || "",
+    dno = I.drawingNo || "";
+  pen.text(F.txt, (tx0 + px) / 2, (pHead + Y.pno.bot) / 2, fitH(pno, px - tx0 - 3, 3.2), pno, {
     align: 1,
-    valign: 1
+    valign: 2
   });
-  pen.text(F.txt, tx0 + TW * 3 / 4, Y.pno.bot + 2.2, 2.8, I.drawingNo || "", {
+  pen.text(F.txt, (px + tx1) / 2, (pHead + Y.pno.bot) / 2, fitH(dno, tx1 - px - 3, 5.5), dno, {
     align: 1,
-    valign: 1
+    valign: 2
   });
   const sHead = Y.scale.top - 4.5,
     sw = TW / 4;
   pen.line(F.tb, tx0, sHead, tx1, sHead);
-  [["SCALE", I.scale], ["DATE", I.date], ["SHEET NO", I.sheetNo], ["REV.", I.rev]].forEach((r, i) => {
+  [["SCALE", I.scale], ["DATE", I.date], ["SHEET NO.", I.sheetNo], ["REV.", I.rev]].forEach((r, i) => {
     const x = tx0 + i * sw;
     if (i) pen.line(F.tb, x, Y.scale.top, x, IN.y0);
-    pen.text(F.txt, x + sw / 2, sHead + 1.3, 2.2, r[0], {
+    pen.text(F.txt, x + sw / 2, sHead + 2.25, 1.8, r[0], {
       align: 1,
-      valign: 1
+      valign: 2
     });
-    pen.text(F.txt, x + sw / 2, IN.y0 + 1.8, 2.3, r[1] || "", {
+    pen.text(F.txt, x + sw / 2, (sHead + IN.y0) / 2, 2.1, r[1] || "", {
       align: 1,
-      valign: 1
+      valign: 2
     });
   });
   pen.text(F.txt, 20, 6.4, 2.2, "GENERAL NOTE:  THIS DRAWING IS THE PROPERTY OF FLASHPLUSSOLAR CO., LTD. AND SHALL NOT BE USED OR REPRODUCED WITHOUT PERMISSION." + "  DO NOT SCALE THIS DRAWING. USE FIGURED DIMENSION ONLY.", {
