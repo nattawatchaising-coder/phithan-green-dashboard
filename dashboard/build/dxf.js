@@ -700,7 +700,7 @@ function pgDxf(opt) {
 const PG_SHEET = {
   W: 420,
   H: 297,
-  TB: 62,
+  TB: 36,
   IN: {
     x0: 26,
     y0: 16,
@@ -1055,7 +1055,7 @@ function pgSheet(doc, o) {
     tx1 = IN.x1,
     TW = S.TB,
     cx = (tx0 + tx1) / 2;
-  const ROW = [["site", 46], ["loc", 12], ["proj", 12], ["own", 14], ["logo", 34], ["stat", 24], ["se", 13], ["me", 13], ["ee", 27], ["rev", 27], ["sign", 18], ["pno", 15], ["scale", 10]];
+  const ROW = [["site", 63], ["loc", 10], ["proj", 10], ["own", 11], ["logo", 32], ["stat", 20], ["se", 12], ["me", 12], ["ee", 27], ["rev", 27], ["sign", 18], ["pno", 14], ["scale", 9]];
   const Y = {};
   let cy = IN.y1;
   ROW.forEach(r => {
@@ -1070,29 +1070,37 @@ function pgSheet(doc, o) {
   ROW.forEach(r => {
     if (Y[r[0]].bot > IN.y0 + 0.01) pen.line(F.tb, tx0, Y[r[0]].bot, tx1, Y[r[0]].bot);
   });
-  const lab = (y, s) => pen.text(F.txt, tx0 + 1.6, y - 2.7, 1.7, s);
+  const CHW = 0.55;
+  const fitH = (s, w, hMax) => Math.min(hMax, w / (Math.max(1, String(s).length) * CHW));
+  const lab = (y, s) => pen.text(F.txt, tx0 + 1.2, y - 2.2, 1.4, s);
   const mid = (y, h, s, va) => pen.text(F.txt, cx, y, h, s, {
     align: 1,
     valign: va == null ? 1 : va
   });
-  const block = (R, lines, h, gap) => {
-    const n = lines.length;
-    if (!n) return;
-    const yc = (R.top - 4 + R.bot) / 2;
-    lines.forEach((ln, i) => mid(yc + ((n - 1) / 2 - i) * gap, h, ln, 2));
+  const block = (R, s, hMax, maxL) => {
+    let h = hMax,
+      L = [];
+    for (; h >= 1.2; h -= 0.1) {
+      L = pgWrap(s, Math.max(4, Math.floor((TW - 3) / (h * CHW))));
+      if (L.length <= maxL && L.length * h * 1.6 <= R.h - 3.5) break;
+    }
+    L = L.slice(0, maxL);
+    const gap = h * 1.6,
+      yc = (R.top - 3 + R.bot) / 2;
+    L.forEach((ln, i) => mid(yc + ((L.length - 1) / 2 - i) * gap, h, ln, 2));
   };
   lab(Y.site.top, "SITE LOCATION MAP :");
-  block(Y.site, pgWrap(I.address || "-", 26).slice(0, 8), 2.7, 4.4);
+  block(Y.site, I.address || "-", 2.2, 9);
   lab(Y.loc.top, "LOCATION :");
-  block(Y.loc, [I.location || "-"], 2.6, 0);
+  block(Y.loc, I.location || "-", 2.0, 1);
   lab(Y.proj.top, "PROJECT :");
-  block(Y.proj, [I.project || "-"], 2.7, 0);
+  block(Y.proj, I.project || "-", 2.0, 2);
   lab(Y.own.top, "OWNER :");
-  block(Y.own, pgWrap(I.owner || "-", 30).slice(0, 2), 2.7, 3.8);
+  block(Y.own, I.owner || "-", 2.0, 2);
   const B = window.BRANDING || {};
-  pgLogoMark(pen, cx - 6, Y.logo.top - 13.5, 12);
-  const wh = 3.6,
-    wy = Y.logo.top - 16.2;
+  pgLogoMark(pen, cx - 4.5, Y.logo.top - 10.2, 9);
+  const wh = 2.8,
+    wy = Y.logo.top - 12.6;
   pen.text(F.txt, cx - wh * 0.4, wy, wh, "flash", {
     align: 2,
     valign: 2,
@@ -1108,39 +1116,40 @@ function pgSheet(doc, o) {
     valign: 2,
     wf: 1
   });
-  mid(Y.logo.top - 21.2, 2.2, B.legalTH || "", 2);
-  mid(Y.logo.top - 24.4, 1.9, B.legal || "", 2);
-  pgWrap(B.addrTH || "", 44).slice(0, 2).concat(["TEL : " + (B.tel || "") + "   E-mail : " + (B.email || "")]).forEach((ln, i) => mid(Y.logo.top - 27.4 - i * 2.4, 1.5, ln, 2));
+  mid(Y.logo.top - 15.8, fitH(B.legalTH || "", TW - 3, 1.6), B.legalTH || "", 2);
+  mid(Y.logo.top - 18.2, fitH(B.legal || "", TW - 3, 1.4), B.legal || "", 2);
+  pgWrap(B.addrTH || "", 44).slice(0, 2).concat(["TEL : " + (B.tel || ""), "E-mail : " + (B.email || "")]).forEach((ln, i) => mid(Y.logo.top - 20.6 - i * 1.75, fitH(ln, TW - 3, 1.1), ln, 2));
   [["FOR PRELIMINARY", "prelim"], ["FOR PERMISSION", "permit"], ["FOR CONSTRUCTION", "construct"], ["FOR AS-BUILT", "asbuilt"]].forEach((s, i) => {
-    const y = Y.stat.top - 4 - i * 5.4;
-    pen.circle(F.frame, tx0 + 7, y, 1.9);
-    if ((I.status || "construct") === s[1]) pen.dot("PG-TB-MARK", tx0 + 7, y, 1.35);
-    pen.text(F.txt, tx0 + 12, y, 2.5, s[0], {
+    const y = Y.stat.top - 3.4 - i * 4.4;
+    pen.circle(F.frame, tx0 + 4, y, 1.3);
+    if ((I.status || "construct") === s[1]) pen.dot("PG-TB-MARK", tx0 + 4, y, 0.95);
+    pen.text(F.txt, tx0 + 7.5, y, 1.7, s[0], {
       valign: 2
     });
   });
   [["se", "STRUCTURAL ENGINEERS :"], ["me", "MECHANICAL ENGINEERS :"]].forEach(r => {
     lab(Y[r[0]].top, r[1]);
     for (let i = 0; i < 3; i++) {
-      const y = Y[r[0]].bot + 1.8 + i * 2.7;
-      pen.line(F.thin, tx0 + 2, y, tx1 - 2, y);
+      const y = Y[r[0]].bot + 1.6 + i * 2.4;
+      pen.line(F.thin, tx0 + 1.5, y, tx1 - 1.5, y);
     }
   });
   lab(Y.ee.top, "ELECTRICAL ENGINEERS :");
-  pen.rect(F.tb, tx0 + 9, Y.ee.bot + 8.5, TW - 18, Y.ee.h - 13.5);
-  pen.line(F.thin, tx0 + 13, Y.ee.bot + 5, tx1 - 13, Y.ee.bot + 5);
-  pen.text(F.txt, tx0 + 13, Y.ee.bot + 1.6, 1.8, "ภฟก.", {
+  pen.rect(F.tb, tx0 + 4, Y.ee.bot + 8, TW - 8, Y.ee.h - 12);
+  pen.line(F.thin, tx0 + 6, Y.ee.bot + 4.8, tx1 - 6, Y.ee.bot + 4.8);
+  pen.text(F.txt, tx0 + 6, Y.ee.bot + 1.5, 1.4, "ภฟก.", {
     valign: 1
   });
-  pen.line(F.thin, tx0 + 20, Y.ee.bot + 1.6, tx1 - 13, Y.ee.bot + 1.6);
-  const RC = [9, 24, 15, 14],
-    RH = ["REV.", "DESCRIPTION", "APPROVED", "DATE"],
-    rH = 4.5;
-  const rHead = Y.rev.top - rH;
+  pen.line(F.thin, tx0 + 11, Y.ee.bot + 1.5, tx1 - 6, Y.ee.bot + 1.5);
+  const RC = [5, 14, 9, 8].map(v => v / 36 * TW),
+    RH = ["REV.", "DESCRIPTION", "APPROVED", "DATE"];
+  const hH = 4,
+    rH = (Y.rev.h - hH) / 5;
+  const rHead = Y.rev.top - hH;
   let rx = tx0;
   pen.line(F.tb, tx0, rHead, tx1, rHead);
   RC.forEach((w2, i) => {
-    pen.text(F.txt, rx + w2 / 2, rHead + rH / 2, 1.9, RH[i], {
+    pen.text(F.txt, rx + w2 / 2, rHead + hH / 2, fitH(RH[i], w2 - 1, 1.3), RH[i], {
       align: 1,
       valign: 2
     });
@@ -1151,58 +1160,58 @@ function pgSheet(doc, o) {
   const r0 = [I.rev || "0", "FIRST ISSUE", "", I.date || ""];
   rx = tx0;
   RC.forEach((w2, i) => {
-    if (r0[i]) pen.text(F.txt, i === 1 ? rx + 1.5 : rx + w2 / 2, rHead - rH / 2, 1.8, r0[i], {
+    if (r0[i]) pen.text(F.txt, i === 1 ? rx + 0.8 : rx + w2 / 2, rHead - rH / 2, fitH(r0[i], w2 - 1, 1.3), r0[i], {
       align: i === 1 ? 0 : 1,
       valign: 2
     });
     rx += w2;
   });
-  pen.line(F.tb, tx0 + 18, Y.sign.top, tx0 + 18, Y.sign.bot);
+  const sx = tx0 + 12;
+  pen.line(F.tb, sx, Y.sign.top, sx, Y.sign.bot);
   [["DRAWN", I.drawn], ["DESIGN", I.design], ["CHECKED", I.checked], ["APPROVED", I.approved]].forEach((r, i) => {
     const yb = Y.sign.top - (i + 1) * 4.5;
     if (i < 3) pen.line(F.tb, tx0, yb, tx1, yb);
-    pen.text(F.txt, tx0 + 1.6, yb + 2.25, 1.9, r[0], {
+    pen.text(F.txt, tx0 + 1.2, yb + 2.25, 1.4, r[0], {
       valign: 2
     });
-    if (r[1]) pen.text(F.txt, tx0 + 18 + (TW - 18) / 2, yb + 2.25, 2.3, r[1], {
+    if (r[1]) pen.text(F.txt, (sx + tx1) / 2, yb + 2.25, fitH(r[1], tx1 - sx - 1, 1.8), r[1], {
       align: 1,
       valign: 2
     });
   });
-  const pHead = Y.pno.top - 4.5,
+  const pHead = Y.pno.top - 3.6,
     px = tx0 + TW * 0.4;
   pen.line(F.tb, tx0, pHead, tx1, pHead);
   pen.line(F.tb, px, Y.pno.top, px, Y.pno.bot);
-  pen.text(F.txt, (tx0 + px) / 2, pHead + 2.25, 1.9, "PROJECT NO.", {
+  pen.text(F.txt, (tx0 + px) / 2, pHead + 1.8, fitH("PROJECT NO.", px - tx0 - 1, 1.2), "PROJECT NO.", {
     align: 1,
     valign: 2
   });
-  pen.text(F.txt, (px + tx1) / 2, pHead + 2.25, 1.9, "DRAWING NUMBER", {
+  pen.text(F.txt, (px + tx1) / 2, pHead + 1.8, 1.2, "DRAWING NUMBER", {
     align: 1,
     valign: 2
   });
-  const fitH = (s, w, hMax) => Math.min(hMax, w / (Math.max(1, String(s).length) * 0.6));
   const pno = I.projectNo || "",
     dno = I.drawingNo || "";
-  pen.text(F.txt, (tx0 + px) / 2, (pHead + Y.pno.bot) / 2, fitH(pno, px - tx0 - 3, 3.2), pno, {
+  pen.text(F.txt, (tx0 + px) / 2, (pHead + Y.pno.bot) / 2, fitH(pno, px - tx0 - 1.5, 2.4), pno, {
     align: 1,
     valign: 2
   });
-  pen.text(F.txt, (px + tx1) / 2, (pHead + Y.pno.bot) / 2, fitH(dno, tx1 - px - 3, 5.5), dno, {
+  pen.text(F.txt, (px + tx1) / 2, (pHead + Y.pno.bot) / 2, fitH(dno, tx1 - px - 1.5, 4.5), dno, {
     align: 1,
     valign: 2
   });
-  const sHead = Y.scale.top - 4.5,
+  const sHead = Y.scale.top - 3.6,
     sw = TW / 4;
   pen.line(F.tb, tx0, sHead, tx1, sHead);
   [["SCALE", I.scale], ["DATE", I.date], ["SHEET NO.", I.sheetNo], ["REV.", I.rev]].forEach((r, i) => {
     const x = tx0 + i * sw;
     if (i) pen.line(F.tb, x, Y.scale.top, x, IN.y0);
-    pen.text(F.txt, x + sw / 2, sHead + 2.25, 1.8, r[0], {
+    pen.text(F.txt, x + sw / 2, sHead + 1.8, fitH(r[0], sw - 1, 1.1), r[0], {
       align: 1,
       valign: 2
     });
-    pen.text(F.txt, x + sw / 2, (sHead + IN.y0) / 2, 2.1, r[1] || "", {
+    pen.text(F.txt, x + sw / 2, (sHead + IN.y0) / 2, fitH(r[1] || "", sw - 1, 1.5), r[1] || "", {
       align: 1,
       valign: 2
     });
