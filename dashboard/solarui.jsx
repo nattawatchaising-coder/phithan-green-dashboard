@@ -4767,15 +4767,11 @@ function SolarWorkspace({ job, st, sys, onChange, onClose, snap }) {
             </div>
             <div className="su-sheet-ft">
               <span style={{ fontSize: 11, color: "var(--text-3)", fontWeight: 600 }}>
-                ไฟล์: {dxf.prep.all ? dxf.prep.all.file + " (ทุกแผ่นในไฟล์เดียว)" : dxf.prep.sheets[0].file}
+                ไฟล์: {dxf.prep.base}-SET.zip — ข้างในมี {(dxf.prep.all || dxf.prep.sheets[0]).file} ไฟล์เดียว (ทุกแผ่น){dxf.prep.files.length ? " + รูปพื้นหลัง/โลโก้" : ""}
               </span>
               <span style={{ flex: 1 }} />
-              {dxf.prep.all && (
-                <button className="p3-b" style={{ padding: "9px 14px" }} onClick={() => downloadDxf(true)} disabled={!!dxfBusy}
-                  title="ดาวน์โหลดแยกไฟล์ละแผ่นแบบเดิม">แยกไฟล์ละแผ่น</button>
-              )}
               <button className="p3-b pri" style={{ padding: "9px 18px" }} onClick={() => downloadDxf(false)} disabled={!!dxfBusy}>
-                <P3Icon name="save" size={14} />{dxfBusy || (dxf.prep.all ? "ดาวน์โหลด (ไฟล์เดียว)" : "ดาวน์โหลด")}
+                <P3Icon name="save" size={14} />{dxfBusy || "ดาวน์โหลดแบบ"}
               </button>
             </div>
           </div>

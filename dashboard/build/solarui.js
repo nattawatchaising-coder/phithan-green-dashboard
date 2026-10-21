@@ -9304,19 +9304,11 @@ function SolarWorkspace({
       color: "var(--text-3)",
       fontWeight: 600
     }
-  }, "\u0E44\u0E1F\u0E25\u0E4C: ", dxf.prep.all ? dxf.prep.all.file + " (ทุกแผ่นในไฟล์เดียว)" : dxf.prep.sheets[0].file), React.createElement("span", {
+  }, "\u0E44\u0E1F\u0E25\u0E4C: ", dxf.prep.base, "-SET.zip \u2014 \u0E02\u0E49\u0E32\u0E07\u0E43\u0E19\u0E21\u0E35 ", (dxf.prep.all || dxf.prep.sheets[0]).file, " \u0E44\u0E1F\u0E25\u0E4C\u0E40\u0E14\u0E35\u0E22\u0E27 (\u0E17\u0E38\u0E01\u0E41\u0E1C\u0E48\u0E19)", dxf.prep.files.length ? " + รูปพื้นหลัง/โลโก้" : ""), React.createElement("span", {
     style: {
       flex: 1
     }
-  }), dxf.prep.all && React.createElement("button", {
-    className: "p3-b",
-    style: {
-      padding: "9px 14px"
-    },
-    onClick: () => downloadDxf(true),
-    disabled: !!dxfBusy,
-    title: "\u0E14\u0E32\u0E27\u0E19\u0E4C\u0E42\u0E2B\u0E25\u0E14\u0E41\u0E22\u0E01\u0E44\u0E1F\u0E25\u0E4C\u0E25\u0E30\u0E41\u0E1C\u0E48\u0E19\u0E41\u0E1A\u0E1A\u0E40\u0E14\u0E34\u0E21"
-  }, "\u0E41\u0E22\u0E01\u0E44\u0E1F\u0E25\u0E4C\u0E25\u0E30\u0E41\u0E1C\u0E48\u0E19"), React.createElement("button", {
+  }), React.createElement("button", {
     className: "p3-b pri",
     style: {
       padding: "9px 18px"
@@ -9326,7 +9318,7 @@ function SolarWorkspace({
   }, React.createElement(P3Icon, {
     name: "save",
     size: 14
-  }), dxfBusy || (dxf.prep.all ? "ดาวน์โหลด (ไฟล์เดียว)" : "ดาวน์โหลด"))))), dxfBusy && !dxf && React.createElement("div", {
+  }), dxfBusy || "ดาวน์โหลดแบบ")))), dxfBusy && !dxf && React.createElement("div", {
     style: {
       position: "fixed",
       left: 0,

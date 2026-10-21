@@ -656,34 +656,40 @@ function p3CableRows(st) {
 }
 
 /* ── ตารางสรุปโครงการท้ายผัง — รูปแบบเดียวกับที่บริษัทใช้อยู่ ── */
-function p3PlanSpec(st, job, M) {
+function p3PlanSpec(st, job, M, nStr) {
   const kwp = Math.round(p3CountAll(st) * (+st.wp || 650) / 10) / 100;
   const I = p3SheetInfo(st, job, {});
   const perInv = Math.round(M.panel.count / Math.max(1, M.units.length) * 10) / 10;
   return [
     ["PROJECT", "SOLAR ROOFTOP " + kwp.toFixed(2) + " kWp."],
     ["LOCATION", I.location],
-    ["INVERTER", M.inv.model + "   " + M.units.length + " Ea.", "PV MODULE / INVERTER", perInv + " MODULE"],
-    ["PV MODULE", M.panel.model + "   " + M.panel.count + " Ea.", "BATTERY", M.batt ? M.batt.kwh + " kWh." : "-"],
-    ["COMBINER", "COMBINER BOX   1 Ea.", "COMBINER / PV MODULE", M.panel.count + " MODULE"],
+    /* แถวละคู่เดียวเต็มความกว้าง — ชื่อรุ่นยาว (LONGi Hi-MO X10 ...) วางสองคู่ต่อแถวแล้วทับกัน */
+    ["INVERTER", M.inv.model + "   " + M.units.length + " Ea."],
+    ["PV MODULE", M.panel.model + "   " + M.panel.count + " Ea."],
+    ["PV MODULE / INVERTER", perInv + " MODULE"],
+    ["STRING", nStr ? nStr + " STRING  (" + Math.round(M.panel.count / nStr * 10) / 10 + " MODULE / STRING)" : "-"],
+    ["BATTERY", M.batt ? M.batt.kwh + " kWh." : "-"],
+    ["COMBINER", "COMBINER BOX   1 Ea.   (" + M.panel.count + " MODULE)"],
   ];
 }
 
 /* ตาราง AREA — แยกตามผืนหลังคา ผืนไหนไม่มีแผงก็ไม่ต้องขึ้น */
-function p3AreaRows(st, M) {
+/* paths = แนวเดินสายจากหน้าออกแบบระบบ (uids = "roofId|key") → นับสตริงต่อหลังคาจากแผงใบแรกของสตริง */
+function p3AreaRows(st, M, nStr, paths) {
   const wp = +st.wp || 650;
   const rows = [["AREA", "PV MODULE", "CAPACITY", "INVERTER", "STRING", "BACK UP", "REMARK"]];
   const roofs = (st.roofs || []).map((r, i) => {
     let n = 0;
     try { n = p3Panels(r).count; } catch (e) { n = 0; }
-    return { name: (r.name || "").trim() || ("ROOFTOP " + (i + 1)), n: n };
+    const ns = (paths || []).filter((q) => q.uids && q.uids[0] && String(q.uids[0]).split("|")[0] === String(r.id)).length;
+    return { name: (r.name || "").trim() || ("ROOFTOP " + (i + 1)), n: n, ns: ns };
   }).filter((r) => r.n > 0);
   const tot = roofs.reduce((s, r) => s + r.n, 0) || M.panel.count;
   const invOf = (n) => Math.round(M.units.length * n / Math.max(1, tot));
   roofs.forEach((r) => rows.push([r.name.toUpperCase(), r.n, (r.n * wp / 1000).toFixed(2) + " kWp.",
-    invOf(r.n) || "-", M.mode === "string" ? "-" : "-", M.batt ? "YES" : "-", "-"]));
+    invOf(r.n) || "-", r.ns || "-", M.batt ? "YES" : "-", "-"]));
   rows.push(["TOTAL", tot, (tot * wp / 1000).toFixed(2) + " kWp.", M.units.length,
-    "-", M.batt ? "YES" : "-", "-"]);
+    nStr || "-", M.batt ? "YES" : "-", "-"]);
   return rows;
 }
 
@@ -703,8 +709,8 @@ function p3Dxf(st, job, media) {
   const P3_COL = P3_PLAN_COL;                            // คอลัมน์ขวา (หัวเรื่อง/มาตราส่วน/เข็มทิศ)
   const RH = 4.6;
 
-  /* ผังกินความสูงเต็มกรอบ — ตารางสรุปโครงการ ตาราง AREA และรูปตัดแผงเอาออกแล้ว
-     จะได้เห็นภาพถ่ายกับผังใหญ่ที่สุดเท่าที่กระดาษ A3 ให้ได้ */
+  /* ผังกินความสูงเต็มกรอบ (รูปตัดแผงเอาออกแล้ว) · ตารางสรุปโครงการ + ตาราง AREA กลับมาอยู่ล่างคอลัมน์ขวา (ผู้ใช้ขอ ต.ค. 2026)
+     ไม่กินที่ผัง ภาพถ่ายกับผังยังใหญ่เท่าเดิม */
   const A = { w: AW - P3_COL - 8, h: IN.y1 - IN.y0 };
   const SC = V.SC, k = V.k;                // 1 มม.บนกระดาษ = k เมตรจริง
 
@@ -837,31 +843,28 @@ function p3Dxf(st, job, media) {
   pen.text("PG-NOTE", RX1 - 28, AR.y1 - 22.5, 2.4, "A3=1:" + SC);
   pgCompass(pen, RX1 - 12, AR.y1 - 40, 6.5);
 
-  /* ตารางสตริง — ต่อเข้าอินเวอร์เตอร์/MPPT ไหน กี่แผง (จากหน้าออกแบบระบบ)
-     สตริงเยอะจนไม่พอที่ ยุบเป็นแถวละอินเวอร์เตอร์ */
   const SS = (media.design && media.design.strings) || [];
-  if (SS.length) {
-    let rows = [["#", "STRING SCHEDULE"], ["สตริง", "ต่อเข้า", "แผง"]];
-    const maxRows = Math.floor((AR.y1 - 52 - AR.y0 - 70) / RH) - 2;
-    if (SS.length <= maxRows) {
-      SS.forEach((s) => rows.push(["S" + s.id, s.addr || (s.inv != null ? "INV " + (s.inv + 1) : "-"), s.n + ""]));
-    } else {
-      const g = {};
-      SS.forEach((s) => { const k = s.inv != null ? s.inv : -1; (g[k] = g[k] || []).push(s); });
-      Object.keys(g).sort((a, b) => a - b).forEach((k) => {
-        const a = g[k], ids = a.map((s) => s.id).sort((x, y) => x - y);
-        rows.push(["S" + ids[0] + "–" + ids[ids.length - 1] + " (" + a.length + ")", +k >= 0 ? "INV " + (+k + 1) : "-",
-          a.reduce((t, s) => t + s.n, 0) + ""]);
-      });
-    }
-    rows.push(["รวม " + SS.length + " สตริง", "", SS.reduce((t, s) => t + s.n, 0) + ""]);
-    pgGrid(pen, RX0, AR.y1 - 52, RW, [1.3, 1.5, 0.6], rows, { rh: RH, th: 2.2, align: [0, 0, 2], headRow: 1 });
-  }
 
-  /* ตารางระยะสายหน้างาน — ขึ้นเฉพาะเมื่อวัดระยะไว้จริง ไม่มีก็ไม่ต้องมีตารางเปล่า */
+  /* ── ล่างคอลัมน์ขวา (ไล่จากล่างขึ้นบน): ตาราง AREA → บล็อกสรุปโครงการ → ตารางระยะสาย ──
+     ความสูงแถวคงที่ จึงรู้ความสูงล่วงหน้า ตารางสตริงด้านบนจะได้ยุบแถวไม่ให้ชนกัน */
+  let M = null;
+  try { M = p3SldModel(st, job, media.design); } catch (e) { M = null; }
+  let botY = AR.y0 + 3;
+  if (M) {
+    const area = p3AreaRows(st, M, SS.length, media.design && media.design.paths), spec = p3PlanSpec(st, job, M, SS.length);
+    const areaH = area.length * RH, specH = spec.length * RH;
+    pgGrid(pen, RX0, botY + areaH, RW, [1.6, 1, 1.25, 1, 1, 1, 1], area, { rh: RH, th: PG_TS.cell, headRow: 0 });
+    pgSpecBlock(pen, RX0, botY + areaH + specH, RW, spec[0][0] + "   :   " + spec[0][1], spec.slice(1),
+      { rh: RH, th: PG_TS.cell, kw: 0.3 });
+    botY += areaH + specH + 6;
+  }
   const cab = p3CableRows(st);
+
+  /* ตาราง STRING SCHEDULE เอาออกแล้ว (ผู้ใช้ ต.ค. 2026) — จำนวนสตริงอยู่ในบล็อกสรุปโครงการ/ตาราง AREA · รายละเอียดดูแผ่นผังสตริง/SLD */
+
+  /* ตารางระยะสายหน้างาน — ขึ้นเฉพาะเมื่อวัดระยะไว้จริง ไม่มีก็ไม่ต้องมีตารางเปล่า · วางเหนือบล็อกสรุปโครงการ */
   if (cab.length) {
-    pgGrid(pen, RX0, AR.y0 + 4 + (cab.length + 2) * RH, RW, [2.4, 1, 0.6],
+    pgGrid(pen, RX0, botY + (cab.length + 2) * RH, RW, [2.4, 1, 0.6],
       [["#", "ระยะสายหน้างาน โดยประมาณ"], ["ประเภท", "ระยะ", ""]].concat(cab),
       { rh: RH, th: 2.2, align: [0, 2, 0], headRow: 1 });
   }
@@ -2774,11 +2777,57 @@ async function p3PrepSet(st, job, photos, design) {
   return { base, sheets, all, files, st, job };
 }
 
+/* ── zip แบบไม่บีบอัด (STORE) — รวม DXF กับไฟล์รูปเป็นการดาวน์โหลดครั้งเดียว (ผู้ใช้: โหลดแล้วได้หลายไฟล์)
+   DXF ฝังรูปในตัวไม่ได้ (รูปแบบไฟล์ไม่รองรับ) จึงต้องมีไฟล์รูปข้างกัน · แตกไฟล์แล้วเปิด DXF ไฟล์เดียวเห็นครบ
+   files = [{ name, data: Uint8Array }] */
+function p3Zip(files) {
+  const crcT = p3Zip.T || (p3Zip.T = Array.from({ length: 256 }, (_, n) => {
+    let c = n; for (let k = 0; k < 8; k++) c = c & 1 ? 0xEDB88320 ^ (c >>> 1) : c >>> 1; return c >>> 0;
+  }));
+  const crc = (d) => { let c = 0xFFFFFFFF; for (let i = 0; i < d.length; i++) c = crcT[(c ^ d[i]) & 255] ^ (c >>> 8); return (c ^ 0xFFFFFFFF) >>> 0; };
+  const enc = new TextEncoder(), parts = [], cen = [];
+  let off = 0;
+  const now = new Date();
+  const dt = ((now.getHours() << 11) | (now.getMinutes() << 5) | (now.getSeconds() >> 1)) & 0xFFFF;
+  const dd = (((now.getFullYear() - 1980) << 9) | ((now.getMonth() + 1) << 5) | now.getDate()) & 0xFFFF;
+  files.forEach((f) => {
+    const nm = enc.encode(f.name), d = f.data, c = crc(d);
+    const h = new DataView(new ArrayBuffer(30));
+    h.setUint32(0, 0x04034b50, true); h.setUint16(4, 20, true); h.setUint16(6, 0x0800, true); h.setUint16(8, 0, true);
+    h.setUint16(10, dt, true); h.setUint16(12, dd, true); h.setUint32(14, c, true);
+    h.setUint32(18, d.length, true); h.setUint32(22, d.length, true); h.setUint16(26, nm.length, true); h.setUint16(28, 0, true);
+    parts.push(new Uint8Array(h.buffer), nm, d);
+    const e = new DataView(new ArrayBuffer(46));
+    e.setUint32(0, 0x02014b50, true); e.setUint16(4, 20, true); e.setUint16(6, 20, true); e.setUint16(8, 0x0800, true);
+    e.setUint16(10, 0, true); e.setUint16(12, dt, true); e.setUint16(14, dd, true); e.setUint32(16, c, true);
+    e.setUint32(20, d.length, true); e.setUint32(24, d.length, true); e.setUint16(28, nm.length, true);
+    e.setUint32(42, off, true);
+    cen.push(new Uint8Array(e.buffer), nm);
+    off += 30 + nm.length + d.length;
+  });
+  const cenLen = cen.reduce((t, a) => t + a.length, 0);
+  const z = new DataView(new ArrayBuffer(22));
+  z.setUint32(0, 0x06054b50, true); z.setUint16(8, files.length, true); z.setUint16(10, files.length, true);
+  z.setUint32(12, cenLen, true); z.setUint32(16, off, true);
+  return new Blob(parts.concat(cen, [new Uint8Array(z.buffer)]), { type: "application/zip" });
+}
+
 /* ส่งออกทั้งชุด — prep = ผลจาก p3PrepSet (ส่งมาได้ถ้าเตรียมไว้แล้วตอนดูตัวอย่าง) */
 async function p3ExportSet(st, job, photos, prep, separate) {
   const P = prep || await p3PrepSet(st, job, photos);
   /* ค่าตั้งต้น = ไฟล์ DXF เดียวรวมทุกแผ่น · separate = แยกไฟล์ละแผ่นแบบเดิม */
-  const out = P.all && !separate ? [P.all] : P.sheets;
+  if (!separate) {
+    /* ค่าตั้งต้น = ดาวน์โหลดครั้งเดียว: {base}-SET.zip ข้างในมี DXF ไฟล์เดียว (ทุกแผ่น) + ไฟล์รูปพื้นหลัง/โลโก้ */
+    const enc = new TextEncoder(), dx = P.all || P.sheets[0];
+    const list = [{ name: dx.file, data: enc.encode(dx.make(false, st)) }];
+    for (let i = 0; i < P.files.length; i++) {
+      try { list.push({ name: P.files[i].name, data: new Uint8Array(await (await (await fetch(P.files[i].url)).blob()).arrayBuffer()) }); }
+      catch (e) { console.error(e); }
+    }
+    p3SaveBlob(p3Zip(list), P.base + "-SET.zip");
+    return { sheets: 1, files: list.length - 1 };
+  }
+  const out = P.sheets;
   for (let i = 0; i < out.length; i++) {
     p3SaveBlob(new Blob([out[i].make(false, st)], { type: "application/dxf" }), out[i].file);
     await new Promise((r) => setTimeout(r, 350));   // เบราว์เซอร์บล็อกถ้ายิงดาวน์โหลดรัวเกินไป

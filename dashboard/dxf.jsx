@@ -1023,7 +1023,8 @@ function pgSpecBlock(pen, x, y, w, title, pairs, o) {
       pen.text(T, cx + cw * 0.34, cy - rh + (rh - th) / 2, th, ":  " + String(val == null ? "" : val));
     };
     const wide = p[2] == null;
-    cell(x, wide ? w : half, p[0], p[1]);
+    if (wide && o.kw) { pen.text(T, x + 2, cy - rh + (rh - th) / 2, th, String(p[0])); pen.text(T, x + w * o.kw, cy - rh + (rh - th) / 2, th, ":  " + String(p[1] == null ? "" : p[1])); }
+    else cell(x, wide ? w : half, p[0], p[1]);
     if (!wide) { pen.line(L, x + half, cy, x + half, cy - rh); cell(x + half, w - half, p[2], p[3]); }
     cy -= rh;
   });
