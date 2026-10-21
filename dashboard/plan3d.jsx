@@ -2773,7 +2773,9 @@ async function p3PrepSet(st, job, photos, design) {
   });
   if (!design) sheets[0].file = base + "-PLAN.dxf";
   /* ทั้งชุดในไฟล์เดียว (pgCombine) — ดาวน์โหลดเป็นค่าตั้งต้น · ยังแยกไฟล์ละแผ่นได้ */
-  const all = sheets.length > 1 ? { file: base + "-SET.dxf", make: (svg) => pgCombine(sheets.map((s) => () => s.make(svg)), svg) } : null;
+  const SET_EN = { PLAN: "OVERALL LAYOUT", STRING: "STRING LAYOUT", SLD: "SINGLE LINE DIAGRAM", PHOTO: "SITE PHOTO", DC: "DC WIRING", MAT: "MATERIAL LIST" };
+  const setOpt = { title: "SOLAR · " + base, labels: sheets.map((s) => s.no + "  " + (SET_EN[s.key] || s.key)) };
+  const all = sheets.length > 1 ? { file: base + "-SET.dxf", make: (svg) => pgCombine(sheets.map((s) => () => s.make(svg)), svg, setOpt) } : null;
   return { base, sheets, all, files, st, job };
 }
 

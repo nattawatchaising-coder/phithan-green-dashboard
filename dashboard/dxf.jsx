@@ -635,13 +635,22 @@ function pgDoc(opt, svg) { if (PG_CAPTURE) return PG_CAPTURE(opt); return svg ? 
    แต่ละแผ่นเขียนด้วยหน่วยของตัวเอง (ผัง/ผังสตริง = เมตรตามมาตราส่วน · SLD/ต่อสาย/วัสดุ = มม.)
    ระหว่างรวม pgDoc คืน "ตัวแปลง" แทน: รู้ตำแหน่งกระดาษกับมาตราส่วนของแผ่นจาก doc.plot ที่ pgSheet เรียก (x0,y0,k)
    แล้วแปลงทุกพิกัด/ขนาดกลับเป็น "มม.บนกระดาษ" วางแผ่นที่ i ห่างกัน PG_SET_GAP มม. เรียงซ้าย→ขวา ในไฟล์หน่วย มม. ไฟล์เดียว
-   makers = [() => แผ่น.make(svg)] · svg = true คืนภาพตัวอย่างทั้งชุด · DXF ตั้งค่าพิมพ์ไว้ที่แผ่นแรก */
-const PG_SET_GAP = 40;
+   makers = [() => แผ่น.make(svg)] · svg = true คืนภาพตัวอย่างทั้งชุด · DXF ตั้งค่าพิมพ์ไว้ที่แผ่นแรก
+   o = { title, labels[] } — จัดแบบที่ผู้ใช้ทำใน CAD เอง: ชื่อแผ่นเหนือแต่ละแผ่น + กรอบแดงล้อมทั้งกลุ่ม ชื่อกลุ่มเหนือกรอบ */
+const PG_SET_GAP = 40, PG_SET_PAD = 30;
 let PG_CAPTURE = null;
-function pgCombine(makers, svg) {
-  const n = makers.length, W = PG_SHEET.W, H = PG_SHEET.H;
+function pgCombine(makers, svg, o) {
+  o = o || {};
+  const n = makers.length, W = PG_SHEET.W, H = PG_SHEET.H, PAD = PG_SET_PAD;
   const out = svg ? pgSvg({}) : pgDxf({ units: "mm", ltscale: 1 });
-  if (svg) out.plot({ x0: 0, y0: 0, w: n * W + (n - 1) * PG_SET_GAP, h: H, k: 1 });
+  const FW = n * W + (n - 1) * PG_SET_GAP + PAD * 2, FH = H + PAD * 2 + 16;
+  if (svg) out.plot({ x0: -PAD, y0: -PAD, w: FW, h: FH + 26, k: 1 });
+  /* กรอบกลุ่ม + ชื่อกลุ่ม + ชื่อแผ่น (layer แยก ปิดดูเฉพาะแบบได้) */
+  out.layer("PG-SET-FRAME", PG_ACI.red, "CONTINUOUS", 50);
+  out.layer("PG-SET-LABEL", PG_ACI.grey, "CONTINUOUS", 35);
+  out.rect("PG-SET-FRAME", -PAD, -PAD, FW, FH);
+  if (o.title) out.text("PG-SET-LABEL", -PAD + FW, -PAD + FH + 6, 16, String(o.title), { align: 2 });
+  (o.labels || []).forEach((s, i) => { if (s) out.text("PG-SET-LABEL", i * (W + PG_SET_GAP) + W / 2, H + 6, 9, String(s), { align: 1 }); });
   let idx = -1;
   PG_CAPTURE = () => {
     idx++;
