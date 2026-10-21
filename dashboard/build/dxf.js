@@ -1,3 +1,72 @@
+const PG_FONTS = [{
+  key: "sarabunpsk",
+  th: "TH SarabunPSK",
+  file: "THSarabun.ttf",
+  css: "'TH SarabunPSK', 'TH Sarabun New', Sarabun, sans-serif",
+  k: 1.3,
+  wf: 1,
+  fam: 34
+}, {
+  key: "tahoma",
+  th: "Tahoma",
+  file: "tahoma.ttf",
+  css: "Tahoma, sans-serif",
+  k: 1,
+  wf: 0.85,
+  fam: 34
+}, {
+  key: "angsana",
+  th: "Angsana New",
+  file: "angsana.ttc",
+  css: "'Angsana New', AngsanaUPC, serif",
+  k: 1.45,
+  wf: 1,
+  fam: 18
+}, {
+  key: "cordia",
+  th: "Cordia New",
+  file: "cordia.ttc",
+  css: "'Cordia New', CordiaUPC, sans-serif",
+  k: 1.45,
+  wf: 1,
+  fam: 34
+}, {
+  key: "sarabun",
+  th: "TH Sarabun New",
+  file: "THSarabunNew.ttf",
+  css: "'TH Sarabun New', 'TH SarabunPSK', Sarabun, sans-serif",
+  k: 1.35,
+  wf: 1,
+  fam: 34
+}];
+function pgFont(key) {
+  if (key == null) {
+    try {
+      key = localStorage.getItem("pg_font");
+    } catch (e) {}
+  }
+  return PG_FONTS.find(f => f.key === key) || PG_FONTS[0];
+}
+const _pgFontOk = {};
+function pgFontAvail(ft) {
+  if (ft.key === "tahoma") return true;
+  if (_pgFontOk[ft.key] != null) return _pgFontOk[ft.key];
+  let ok = false;
+  try {
+    const c = document.createElement("canvas").getContext("2d"),
+      t = "ทดสอบ Test 123";
+    c.font = "40px monospace";
+    const a = c.measureText(t).width;
+    c.font = "40px '" + ft.th + "', monospace";
+    ok = c.measureText(t).width !== a;
+  } catch (e) {}
+  return _pgFontOk[ft.key] = ok;
+}
+function pgSetFont(key) {
+  try {
+    localStorage.setItem("pg_font", key);
+  } catch (e) {}
+}
 const PG_ACI = {
   red: 1,
   yellow: 2,
@@ -12,6 +81,7 @@ const PG_ACI = {
 };
 function pgDxf(opt) {
   opt = opt || {};
+  const FT = pgFont(opt.font);
   const MM = opt.units !== "m";
   const INSUNITS = MM ? 4 : 6;
   const RASTUNIT = MM ? 1 : 3;
@@ -176,10 +246,10 @@ function pgDxf(opt) {
       w(10, num(x));
       w(20, num(y));
       w(30, 0);
-      w(40, num(h2));
+      w(40, num(h2 * FT.k));
       w(1, esc(s));
       if (o.rot) w(50, num(o.rot));
-      w(41, num(o.wf == null ? 0.85 : o.wf));
+      w(41, num(o.wf == null ? FT.wf : o.wf));
       w(7, o.style || "PG-TH");
       const ha = +o.align || 0,
         va = +o.valign || 0;
@@ -465,12 +535,15 @@ function pgDxf(opt) {
       w(4, "");
       recHead("STYLE", hStyleTh, hTab.style, "AcDbTextStyleTableRecord", "PG-TH", 0);
       w(40, "0.0");
-      w(41, "0.85");
+      w(41, num(FT.wf));
       w(50, "0.0");
       w(71, 0);
       w(42, "2.5");
-      w(3, "tahoma.ttf");
+      w(3, FT.file);
       w(4, "");
+      w(1001, "ACAD");
+      w(1000, FT.th);
+      w(1071, FT.fam + (222 << 8));
       w(0, "ENDTAB");
       tabHead("VIEW", hTab.view, 0);
       w(0, "ENDTAB");
@@ -744,6 +817,10 @@ const PG_ACI_HEX = {
 };
 function pgSvg(opt) {
   opt = opt || {};
+  const FT0 = pgFont(opt.font);
+  const FT = pgFontAvail(FT0) ? FT0 : Object.assign({}, PG_FONTS.find(f => f.key === "tahoma"), {
+    css: "'" + FT0.th + "', Tahoma, sans-serif"
+  });
   const layers = new Map(),
     ltypes = new Map(),
     body = [];
@@ -846,7 +923,7 @@ function pgSvg(opt) {
         va = +o.valign || 0;
       const anchor = ha === 1 ? "middle" : ha === 2 ? "end" : "start";
       const dy = va === 2 ? h2 * 0.36 : va === 3 ? h2 * 0.88 : va === 1 ? 0 : 0;
-      const wf = o.wf == null ? 0.85 : o.wf;
+      const wf = o.wf == null ? FT.wf : o.wf;
       const col = PG_ACI_HEX[(layers.get(layer) || {}).color] || "#111111";
       const txt = enc(plain(s));
       grow(x, y);
@@ -858,7 +935,7 @@ function pgSvg(opt) {
         if (o.rot) tr.push("rotate(" + n(-o.rot) + " " + n(tx) + " " + n(ty) + ")");
         tr.push("translate(" + n(tx) + " " + n(ty) + ")");
         if (wf !== 1) tr.push("scale(" + n(wf) + " 1)");
-        return '<text transform="' + tr.join(" ") + '" font-size="' + n(h2) + '" fill="' + col + '" text-anchor="' + anchor + '" font-family="Tahoma, sans-serif" style="white-space:pre">' + txt + "</text>";
+        return '<text transform="' + tr.join(" ") + '" font-size="' + n(h2 * FT.k) + '" fill="' + col + '" text-anchor="' + anchor + '" font-family="' + FT.css.replace(/'/g, "&#39;") + '" style="white-space:pre">' + txt + "</text>";
       }]);
     },
     image(layer, o) {
@@ -2686,6 +2763,9 @@ function pgSldDraw(doc, sheet, M) {
   pgSheetTitle(pen, (TX0 + TX1) / 2, eqY + 11, "SINGLE LINE DIAGRAM SOLAR CELL SYSTEM", 6.2, TX1 - TX0 - 16);
 }
 Object.assign(window, {
+  PG_FONTS,
+  pgFont,
+  pgSetFont,
   pgDxf,
   pgSvg,
   pgDoc,

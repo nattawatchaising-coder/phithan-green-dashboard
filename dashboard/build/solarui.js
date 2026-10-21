@@ -9224,7 +9224,34 @@ function SolarWorkspace({
       flex: 1,
       minWidth: 0
     }
-  }, React.createElement("h4", null, "\u0E0A\u0E38\u0E14\u0E41\u0E1A\u0E1A DXF", job && job.code ? " · " + job.code : ""), React.createElement("p", null, "A3 \u0E41\u0E19\u0E27\u0E19\u0E2D\u0E19 420 \xD7 297 \u0E21\u0E21. \xB7 ", dxf.prep.sheets.length, " \u0E41\u0E1C\u0E48\u0E19", isMicro ? "" : " · " + (plan ? plan.strings.length : 0) + " สตริงตามที่จัดไว้", dxf.prep.files.length ? " · ภาพพื้นหลัง " + dxf.prep.files.length + " ไฟล์ (วางโฟลเดอร์เดียวกับ DXF)" : "")), React.createElement("button", {
+  }, React.createElement("h4", null, "\u0E0A\u0E38\u0E14\u0E41\u0E1A\u0E1A DXF", job && job.code ? " · " + job.code : ""), React.createElement("p", null, "A3 \u0E41\u0E19\u0E27\u0E19\u0E2D\u0E19 420 \xD7 297 \u0E21\u0E21. \xB7 ", dxf.prep.sheets.length, " \u0E41\u0E1C\u0E48\u0E19", isMicro ? "" : " · " + (plan ? plan.strings.length : 0) + " สตริงตามที่จัดไว้", dxf.prep.files.length ? " · ภาพพื้นหลัง " + dxf.prep.files.length + " ไฟล์ (วางโฟลเดอร์เดียวกับ DXF)" : "")), typeof PG_FONTS !== "undefined" && React.createElement("label", {
+    style: {
+      display: "flex",
+      alignItems: "center",
+      gap: 7,
+      fontSize: 12,
+      fontWeight: 700,
+      color: "var(--text-2)",
+      flexShrink: 0
+    }
+  }, "\u0E1F\u0E2D\u0E19\u0E15\u0E4C", React.createElement("select", {
+    className: "p3-inp",
+    style: {
+      width: "auto",
+      padding: "6px 8px"
+    },
+    value: pgFont().key,
+    onChange: e => {
+      pgSetFont(e.target.value);
+      setDxf({
+        prep: dxf.prep,
+        i: dxf.i
+      });
+    }
+  }, PG_FONTS.map(f => React.createElement("option", {
+    key: f.key,
+    value: f.key
+  }, f.th)))), React.createElement("button", {
     className: "ghost x-close",
     onClick: () => setDxf(null),
     title: "\u0E1B\u0E34\u0E14"

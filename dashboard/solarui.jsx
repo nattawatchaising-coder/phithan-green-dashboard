@@ -4738,6 +4738,16 @@ function SolarWorkspace({ job, st, sys, onChange, onClose, snap }) {
                 <p>A3 แนวนอน 420 × 297 มม. · {dxf.prep.sheets.length} แผ่น{isMicro ? "" : " · " + (plan ? plan.strings.length : 0) + " สตริงตามที่จัดไว้"}
                   {dxf.prep.files.length ? " · ภาพพื้นหลัง " + dxf.prep.files.length + " ไฟล์ (วางโฟลเดอร์เดียวกับ DXF)" : ""}</p>
               </div>
+              {typeof PG_FONTS !== "undefined" && (
+                <label style={{ display: "flex", alignItems: "center", gap: 7, fontSize: 12, fontWeight: 700, color: "var(--text-2)", flexShrink: 0 }}>
+                  ฟอนต์
+                  {/* ทั้งตัวอย่างและไฟล์ที่ดาวน์โหลดใช้ฟอนต์นี้ · จำไว้ในเครื่อง · เปลี่ยนแล้ววาดแผ่นใหม่ */}
+                  <select className="p3-inp" style={{ width: "auto", padding: "6px 8px" }} value={pgFont().key}
+                    onChange={(e) => { pgSetFont(e.target.value); setDxf({ prep: dxf.prep, i: dxf.i }); }}>
+                    {PG_FONTS.map((f) => <option key={f.key} value={f.key}>{f.th}</option>)}
+                  </select>
+                </label>
+              )}
               <button className="ghost x-close" onClick={() => setDxf(null)} title="ปิด"><Icon name="x" size={15} /></button>
             </div>
             <div style={{ padding: "10px 16px 0", overflowX: "auto" }}><span className="p3-seg">

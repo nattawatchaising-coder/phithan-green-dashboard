@@ -14,11 +14,44 @@
      (romans.shx/txt.shx สวยกว่าในเชิงเขียนแบบ แต่ไม่มีสระวรรณยุกต์ไทย)
    ================================================================== */
 
+/* ── ฟอนต์ของชุดแบบ (เลือกได้ในหน้าชุดแบบ DXF · จำที่ localStorage.pg_font) ──
+   ทุกตัวมีไทยครบ · k = ตัวคูณความสูง: ฟอนต์ไทยตระกูล Angsana/Cordia/Sarabun ตัวเล็กกว่า Tahoma มากที่ความสูงเท่ากัน
+   จึงขยายให้ตัวที่เห็นใหญ่ใกล้กัน (ตารางไม่ล้น) · wf = บีบความกว้างตั้งต้น (Tahoma กว้าง บีบ 0.85 · ฟอนต์ไทยแคบอยู่แล้ว)
+   fam = ค่า 1071 ใน XDATA ของ STYLE (pitch/family + ชุดอักขระไทย 222<<8) ให้ AutoCAD หาฟอนต์ตามชื่อได้แม้ชื่อไฟล์ไม่ตรง */
+const PG_FONTS = [
+  /* ค่าตั้งต้น — ผู้ใช้เลือก (ฟอนต์ราชการ ต้องติดตั้งในเครื่องที่เปิด CAD: THSarabun.ttf) */
+  { key: "sarabunpsk", th: "TH SarabunPSK", file: "THSarabun.ttf", css: "'TH SarabunPSK', 'TH Sarabun New', Sarabun, sans-serif", k: 1.3, wf: 1, fam: 34 },
+  { key: "tahoma", th: "Tahoma", file: "tahoma.ttf", css: "Tahoma, sans-serif", k: 1, wf: 0.85, fam: 34 },
+  { key: "angsana", th: "Angsana New", file: "angsana.ttc", css: "'Angsana New', AngsanaUPC, serif", k: 1.45, wf: 1, fam: 18 },
+  { key: "cordia", th: "Cordia New", file: "cordia.ttc", css: "'Cordia New', CordiaUPC, sans-serif", k: 1.45, wf: 1, fam: 34 },
+  { key: "sarabun", th: "TH Sarabun New", file: "THSarabunNew.ttf", css: "'TH Sarabun New', 'TH SarabunPSK', Sarabun, sans-serif", k: 1.35, wf: 1, fam: 34 },
+];
+function pgFont(key) {
+  if (key == null) { try { key = localStorage.getItem("pg_font"); } catch (e) {} }
+  return PG_FONTS.find((f) => f.key === key) || PG_FONTS[0];
+}
+/* เครื่องที่ดูตัวอย่างมีฟอนต์นี้ไหม (เทียบความกว้างกับฟอนต์สำรอง) — ไม่มี = ตัวอย่างบนจอวาดด้วยขนาดแบบ Tahoma
+   ไม่งั้นฟอนต์สำรองถูกขยาย k เท่าจนล้นช่อง · ไฟล์ DXF ยังใช้ฟอนต์ที่เลือกเสมอ */
+const _pgFontOk = {};
+function pgFontAvail(ft) {
+  if (ft.key === "tahoma") return true;
+  if (_pgFontOk[ft.key] != null) return _pgFontOk[ft.key];
+  let ok = false;
+  try {
+    const c = document.createElement("canvas").getContext("2d"), t = "ทดสอบ Test 123";
+    c.font = "40px monospace"; const a = c.measureText(t).width;
+    c.font = "40px '" + ft.th + "', monospace"; ok = c.measureText(t).width !== a;
+  } catch (e) {}
+  return (_pgFontOk[ft.key] = ok);
+}
+function pgSetFont(key) { try { localStorage.setItem("pg_font", key); } catch (e) {} }
+
 /* สีมาตรฐาน AutoCAD Color Index ที่ใช้ประจำในแบบชุดนี้ */
 const PG_ACI = { red: 1, yellow: 2, green: 3, cyan: 4, blue: 5, magenta: 6, white: 7, grey: 8, ltgrey: 9, orange: 30 };
 
 function pgDxf(opt) {
   opt = opt || {};
+  const FT = pgFont(opt.font);
   const MM = opt.units !== "m";               // ค่าปริยาย = มิลลิเมตร (แบบขนาดกระดาษ)
   const INSUNITS = MM ? 4 : 6;                // 4 = มม. · 6 = ม.
   const RASTUNIT = MM ? 1 : 3;                // หน่วยของรูปแรสเตอร์ 1 = มม. · 3 = ม.
@@ -133,9 +166,9 @@ function pgDxf(opt) {
       o = o || {};
       const b = []; const w = head(b, "TEXT", "AcDbText", layer);
       w(10, num(x)); w(20, num(y)); w(30, 0);
-      w(40, num(h2)); w(1, esc(s));
+      w(40, num(h2 * FT.k)); w(1, esc(s));
       if (o.rot) w(50, num(o.rot));
-      w(41, num(o.wf == null ? 0.85 : o.wf));
+      w(41, num(o.wf == null ? FT.wf : o.wf));
       w(7, o.style || "PG-TH");
       const ha = +o.align || 0, va = +o.valign || 0;
       if (ha) w(72, ha);
@@ -281,13 +314,14 @@ function pgDxf(opt) {
       });
       w(0, "ENDTAB");
 
-      /* STYLE — PG-TH ผูกกับ tahoma.ttf เพราะมีอักขระไทยครบและติดมากับ Windows ทุกเครื่อง
+      /* STYLE — PG-TH ผูกกับฟอนต์ที่เลือก (ค่าตั้งต้น tahoma.ttf มีอักขระไทยครบและติดมากับ Windows ทุกเครื่อง) + XDATA ชื่อฟอนต์
          ถ้าใช้ txt.shx/romans.shx ตามธรรมเนียมเขียนแบบ สระกับวรรณยุกต์ไทยจะหายทั้งแผ่น */
       tabHead("STYLE", hTab.style, 2);
       recHead("STYLE", hStyleStd, hTab.style, "AcDbTextStyleTableRecord", "STANDARD", 0);
       w(40, "0.0"); w(41, "1.0"); w(50, "0.0"); w(71, 0); w(42, "2.5"); w(3, "txt"); w(4, "");
       recHead("STYLE", hStyleTh, hTab.style, "AcDbTextStyleTableRecord", "PG-TH", 0);
-      w(40, "0.0"); w(41, "0.85"); w(50, "0.0"); w(71, 0); w(42, "2.5"); w(3, "tahoma.ttf"); w(4, "");
+      w(40, "0.0"); w(41, num(FT.wf)); w(50, "0.0"); w(71, 0); w(42, "2.5"); w(3, FT.file); w(4, "");
+      w(1001, "ACAD"); w(1000, FT.th); w(1071, FT.fam + (222 << 8));
       w(0, "ENDTAB");
 
       tabHead("VIEW", hTab.view, 0); w(0, "ENDTAB");
@@ -456,6 +490,8 @@ const PG_ACI_HEX = {
 };
 function pgSvg(opt) {
   opt = opt || {};
+  const FT0 = pgFont(opt.font);
+  const FT = pgFontAvail(FT0) ? FT0 : Object.assign({}, PG_FONTS.find((f) => f.key === "tahoma"), { css: "'" + FT0.th + "', Tahoma, sans-serif" });
   const layers = new Map(), ltypes = new Map(), body = [];
   let PLOT = null;
   const ext = { minX: Infinity, minY: Infinity, maxX: -Infinity, maxY: -Infinity };
@@ -542,7 +578,7 @@ function pgSvg(opt) {
       const anchor = ha === 1 ? "middle" : ha === 2 ? "end" : "start";
       /* DXF: valign 0 ฐาน · 1 ล่างสุด · 2 กลาง · 3 บนสุด — เลื่อนเองจะได้คุมตำแหน่งเป๊ะ */
       const dy = va === 2 ? h2 * 0.36 : va === 3 ? h2 * 0.88 : va === 1 ? 0 : 0;
-      const wf = o.wf == null ? 0.85 : o.wf;
+      const wf = o.wf == null ? FT.wf : o.wf;
       const col = (PG_ACI_HEX[(layers.get(layer) || {}).color] || "#111111");
       const txt = enc(plain(s));
       grow(x, y); grow(x + String(s || "").length * h2 * 0.6, y + h2);
@@ -552,9 +588,9 @@ function pgSvg(opt) {
         if (o.rot) tr.push("rotate(" + n(-o.rot) + " " + n(tx) + " " + n(ty) + ")");
         tr.push("translate(" + n(tx) + " " + n(ty) + ")");
         if (wf !== 1) tr.push("scale(" + n(wf) + " 1)");
-        return '<text transform="' + tr.join(" ") + '" font-size="' + n(h2) +
+        return '<text transform="' + tr.join(" ") + '" font-size="' + n(h2 * FT.k) +
           '" fill="' + col + '" text-anchor="' + anchor +
-          '" font-family="Tahoma, sans-serif" style="white-space:pre">' + txt + "</text>";
+          '" font-family="' + FT.css.replace(/'/g, "&#39;") + '" style="white-space:pre">' + txt + "</text>";
       }]);
     },
     /* o.href = ตัวรูปจริง (data URL) — DXF ไม่สนใจช่องนี้ แต่ SVG ฝังลงไปได้เลย */
@@ -1957,7 +1993,7 @@ function pgSldDraw(doc, sheet, M) {
 }
 
 Object.assign(window, {
-  pgDxf, pgSvg, pgDoc, pgPen, pgSheet, pgSheetTitle, pgSheetLayers, pgLogoMark, pgWrap,
+  PG_FONTS, pgFont, pgSetFont, pgDxf, pgSvg, pgDoc, pgPen, pgSheet, pgSheetTitle, pgSheetLayers, pgLogoMark, pgWrap,
   pgSldLayers, pgSldDraw, pgSldPro, pgSldTable, pgSldEquip, pgSym,
   pgTableLayers, pgGrid, pgSpecBlock, pgCompass, pgModuleDetail, pgPhotoFrame, pgDcString, pgDcSize,
   PG_SHEET, PG_LAY, PG_ACI, PG_SLD, PG_TBL,
