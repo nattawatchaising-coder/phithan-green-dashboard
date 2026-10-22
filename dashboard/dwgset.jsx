@@ -81,7 +81,7 @@ function dsMm(st, job, media, key, title) {
    o.img = ใส่ภาพดาวเทียม/โดรนจาง ๆ · o.panels = "full" (แผงเข้ม) | false (ไม่วาดแผง) | อื่น ๆ = แผงจาง ── */
 function dsPlan(st, job, media, key, o) {
   media = media || {}; o = o || {};
-  const V = p3PlanView(st), k = V.k, IN = PG_SHEET.IN;
+  const V = p3PlanView(st, o.top), k = V.k, IN = PG_SHEET.IN;
   const doc = pgDoc({ units: "m", ltscale: k }, media.svg);
   doc.layer("PG-BG", 8, "CONTINUOUS", 5);
   pgTableLayers(doc); dsLayers(doc);
@@ -134,12 +134,13 @@ function dsPlanHead(P, title) {
 function dsRight(P, rows, cols, notes, align) {
   const pen = P.pen, AR = P.AR, RH = 4.6;
   const nh = notes && notes.length ? dsNoteH(notes, P.RW) : 0;
-  const yTop = AR.y1 - 54, yMin = AR.y0 + 4 + nh + 6;
+  const yTop = AR.y1 - 54, yMin = P.V.wide ? AR.y1 - P.V.top + 4 : AR.y0 + 4 + nh + 6;
   const fit = Math.max(4, Math.floor((yTop - yMin) / RH));
   let R = rows;
   if (R.length > fit) R = R.slice(0, fit - 2).concat([cols.map((_, i) => (i ? "" : "…"))], [rows[rows.length - 1]]);
   const used = pgGrid(pen, P.RX0, yTop, P.RW, cols, R, { rh: RH, th: PG_TS.cell, headRow: 0, align });
-  if (nh) dsNoteBlock(pen, P.RX0, AR.y0 + 4 + nh, P.RW, notes);
+  if (nh && P.V.wide) dsNoteBlock(pen, AR.x0 + 6, AR.y1 - 6, Math.min(150, P.RX0 - AR.x0 - 16), notes);
+  else if (nh) dsNoteBlock(pen, P.RX0, AR.y0 + 4 + nh, P.RW, notes);
   return used;
 }
 
@@ -414,7 +415,9 @@ function dsGroups(panels) {
 }
 function dsPanelSheet(st, job, media) {
   media = media || {};
-  const P = dsPlan(st, job, media, "PANEL", { panels: "full" });
+  /* แถบบนของคอลัมน์ขวา = หัวแผ่น 54 มม. + ตาราง (หลังคาที่มีแผง + หัว + รวม) */
+  const nRoof = (() => { try { const f = p3FootAll(st).panels || []; return new Set(f.map((p) => p.roofId)).size; } catch (e) { return 1; } })();
+  const P = dsPlan(st, job, media, "PANEL", { panels: "full", top: 54 + (nRoof + 2) * 4.6 + 8 });
   dsPlanHead(P, "PV MODULE LAYOUT");
   const k = P.k, doc = P.doc, panels = P.foot.panels || [];
   const G = dsGroups(panels);
@@ -664,7 +667,12 @@ function dsStrDetSheet(st, job, media) {
   };
   /* รูปที่ 1 */
   const l1 = dsShow(1, n, 14);
-  const pw1 = Math.min(20, (X1 - X0 - gap * (l1.length - 1)) / l1.length), ph1 = Math.min(40, pw1 * 2.05);
+  /* แผงรูปที่ 1 กับรูปที่ 2 ขนาดเท่ากัน (เดิมคิดแยก รูปที่ 1 แผงเล็กกว่า — ผู้ใช้ว่าบนล่างไม่เท่ากัน) */
+  const m = Math.ceil(n / 2);
+  const lt = dsShow(1, m, 12), lb = dsShow(m + 1, n, 12), gapR = 12;
+  const phMax = (A.y1 - 28 - 32 - gapR - (A.y0 + 22)) / 3;
+  const pw1 = Math.min(20, (X1 - X0 - gap * (l1.length - 1)) / l1.length, (X1 - X0 - gap * (lt.length - 1)) / lt.length, phMax / 2.05);
+  const ph1 = Math.min(40, pw1 * 2.05);
   const y1 = A.y1 - 28 - ph1;
   const R1 = dsRow(pen, l1, X1, -1, y1, pw1, ph1, gap, false, false);
   dsChain(pen, R1, "n", "p");
@@ -675,11 +683,7 @@ function dsStrDetSheet(st, job, media) {
   cap(y1 - 18, "รูปที่ 1  การเดินสาย PV STRING แบบแถวเดียว  (" + n + " แผง / สตริง)");
 
   /* รูปที่ 2 — แถวบน 1..m (ขวา→ซ้าย) แถวล่าง m+1..n (ซ้าย→ขวา) */
-  const m = Math.ceil(n / 2);
-  const lt = dsShow(1, m, 12), lb = dsShow(m + 1, n, 12);
-  const pw2 = Math.min(20, (X1 - X0 - gap * (lt.length - 1)) / lt.length);
-  const top0 = y1 - 32, gapR = 12;
-  const ph2 = Math.min(40, pw2 * 2.05, (top0 - (A.y0 + 22) - gapR) / 2);
+  const pw2 = pw1, ph2 = ph1, top0 = y1 - 32;
   const yT = top0 - ph2, yB = yT - gapR - ph2;
   const RT = dsRow(pen, lt, X1, -1, yT, pw2, ph2, gap, false, false);
   const xL = X1 - lt.length * pw2 - (lt.length - 1) * gap;

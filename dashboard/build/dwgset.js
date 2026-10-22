@@ -119,7 +119,7 @@ function dsMm(st, job, media, key, title) {
 function dsPlan(st, job, media, key, o) {
   media = media || {};
   o = o || {};
-  const V = p3PlanView(st),
+  const V = p3PlanView(st, o.top),
     k = V.k,
     IN = PG_SHEET.IN;
   const doc = pgDoc({
@@ -230,7 +230,7 @@ function dsRight(P, rows, cols, notes, align) {
     RH = 4.6;
   const nh = notes && notes.length ? dsNoteH(notes, P.RW) : 0;
   const yTop = AR.y1 - 54,
-    yMin = AR.y0 + 4 + nh + 6;
+    yMin = P.V.wide ? AR.y1 - P.V.top + 4 : AR.y0 + 4 + nh + 6;
   const fit = Math.max(4, Math.floor((yTop - yMin) / RH));
   let R = rows;
   if (R.length > fit) R = R.slice(0, fit - 2).concat([cols.map((_, i) => i ? "" : "…")], [rows[rows.length - 1]]);
@@ -240,7 +240,7 @@ function dsRight(P, rows, cols, notes, align) {
     headRow: 0,
     align
   });
-  if (nh) dsNoteBlock(pen, P.RX0, AR.y0 + 4 + nh, P.RW, notes);
+  if (nh && P.V.wide) dsNoteBlock(pen, AR.x0 + 6, AR.y1 - 6, Math.min(150, P.RX0 - AR.x0 - 16), notes);else if (nh) dsNoteBlock(pen, P.RX0, AR.y0 + 4 + nh, P.RW, notes);
   return used;
 }
 function dsPath(o) {
@@ -682,8 +682,17 @@ function dsGroups(panels) {
 }
 function dsPanelSheet(st, job, media) {
   media = media || {};
+  const nRoof = (() => {
+    try {
+      const f = p3FootAll(st).panels || [];
+      return new Set(f.map(p => p.roofId)).size;
+    } catch (e) {
+      return 1;
+    }
+  })();
   const P = dsPlan(st, job, media, "PANEL", {
-    panels: "full"
+    panels: "full",
+    top: 54 + (nRoof + 2) * 4.6 + 8
   });
   dsPlanHead(P, "PV MODULE LAYOUT");
   const k = P.k,
@@ -999,8 +1008,13 @@ function dsStrDetSheet(st, job, media) {
     });
   };
   const l1 = dsShow(1, n, 14);
-  const pw1 = Math.min(20, (X1 - X0 - gap * (l1.length - 1)) / l1.length),
-    ph1 = Math.min(40, pw1 * 2.05);
+  const m = Math.ceil(n / 2);
+  const lt = dsShow(1, m, 12),
+    lb = dsShow(m + 1, n, 12),
+    gapR = 12;
+  const phMax = (A.y1 - 28 - 32 - gapR - (A.y0 + 22)) / 3;
+  const pw1 = Math.min(20, (X1 - X0 - gap * (l1.length - 1)) / l1.length, (X1 - X0 - gap * (lt.length - 1)) / lt.length, phMax / 2.05);
+  const ph1 = Math.min(40, pw1 * 2.05);
   const y1 = A.y1 - 28 - ph1;
   const R1 = dsRow(pen, l1, X1, -1, y1, pw1, ph1, gap, false, false);
   dsChain(pen, R1, "n", "p");
@@ -1009,13 +1023,9 @@ function dsStrDetSheet(st, job, media) {
   pen.line(DL("dcn"), last.n[0], last.n[1], last.n[0], last.n[1] - 5);
   toBox([last.n[0], last.n[1] - 5], "To DC Box (-)", DL("dcn"));
   cap(y1 - 18, "รูปที่ 1  การเดินสาย PV STRING แบบแถวเดียว  (" + n + " แผง / สตริง)");
-  const m = Math.ceil(n / 2);
-  const lt = dsShow(1, m, 12),
-    lb = dsShow(m + 1, n, 12);
-  const pw2 = Math.min(20, (X1 - X0 - gap * (lt.length - 1)) / lt.length);
-  const top0 = y1 - 32,
-    gapR = 12;
-  const ph2 = Math.min(40, pw2 * 2.05, (top0 - (A.y0 + 22) - gapR) / 2);
+  const pw2 = pw1,
+    ph2 = ph1,
+    top0 = y1 - 32;
   const yT = top0 - ph2,
     yB = yT - gapR - ph2;
   const RT = dsRow(pen, lt, X1, -1, yT, pw2, ph2, gap, false, false);

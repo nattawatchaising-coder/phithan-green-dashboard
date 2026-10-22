@@ -537,15 +537,23 @@ function p3PlanBox(st, imgs) {
    ซูมที่ตัวอาคาร/แผง (+ ขอบ 5% อย่างน้อย 3 ม. — เดิม 15%/6 ม. อาคารยาว 100 ม. เหลือที่ว่างเยอะจนผังเล็ก ผู้ใช้ว่าเล็กไป) ไม่ใช่ครอบทั้งภาพดาวเทียม — เดิมภาพกว้างแผงเลยเล็กจนดูไม่ออก
    คืน { SC, k, cx, cy, W, H } · cx/cy = กลางกรอบ (เมตร แกน y ขึ้น) · W/H = ขนาดพื้นที่วาดผังเป็นเมตร */
 const P3_PLAN_COL = 128;
-function p3PlanView(st) {
+function p3PlanView(st, top) {
   const IN = PG_SHEET.IN;
   const A = { w: IN.x1 - PG_SHEET.TB - IN.x0 - P3_PLAN_COL - 8, h: IN.y1 - IN.y0 };
   const B = p3PlanBox(st, null);
   const m = Math.max(3, 0.05 * Math.max(B.maxX - B.minX, B.maxY - B.minY));
   const needW = B.maxX - B.minX + 2 * m, needH = B.maxY - B.minY + 2 * m;
-  const SC = P3_SCALES.find((s) => needW * 1000 <= A.w * s && needH * 1000 <= A.h * s) || P3_SCALES[P3_SCALES.length - 1];
+  const fit = (A) => P3_SCALES.find((s) => needW * 1000 <= A.w * s && needH * 1000 <= A.h * s) || P3_SCALES[P3_SCALES.length - 1];
+  /* top = แผ่นที่คอลัมน์ขวาใช้แค่แถบบนสูง top มม. (ไม่มีภาพพื้นหลัง) — อาคารยาวแนวนอนให้ผังกินกว้างเต็มแผ่นใต้แถบนั้น
+     ถ้าได้มาตราส่วนใหญ่กว่า (ผู้ใช้: ผังวางแผงเล็ก ที่ว่างล่างคอลัมน์ขวาเหลือเยอะ) · wide = true → ผู้เรียกจัดหมายเหตุไว้แถบบนซ้าย */
+  let SC = fit(A), wide = false;
+  if (top) {
+    const A2 = { w: IN.x1 - PG_SHEET.TB - IN.x0 - 6, h: IN.y1 - IN.y0 - top };
+    const S2 = fit(A2);
+    if (S2 < SC) { SC = S2; A.w = A2.w; A.h = A2.h; wide = true; }
+  }
   const k = SC / 1000;
-  return { SC, k, A, cx: (B.minX + B.maxX) / 2, cy: (B.minY + B.maxY) / 2, W: A.w * k, H: A.h * k };
+  return { SC, k, A, wide, top: wide ? top : 0, cx: (B.minX + B.maxX) / 2, cy: (B.minY + B.maxY) / 2, W: A.w * k, H: A.h * k };
 }
 /* ตัดภาพพื้นหลังให้พอดีกรอบมองของผัง (หมุนตามภาพจริงแล้ววาดลงผืนตั้งตรง)
    ภาพในไฟล์ DXF จึงไม่ล้นกรอบแบบ และไฟล์รูปที่แนบไปเล็กลงด้วย · คืน null = ใช้ภาพเดิม */
@@ -1153,14 +1161,7 @@ function p3StrLayout(st, job, media) {
   pen.text("PG-NOTE", RX1 - 28, AR.y1 - 22.5, PG_TS.cell, "A3=1:" + SC);
   pgCompass(pen, RX1 - 12, AR.y1 - 40, 6.5);
 
-  const notes = [
-    "สีแผง = สตริง (layer PG-STR-1.." + P3_STR_ACI.length + " วนสี) · เส้น = แนวเดินสายตามลำดับที่ต่อ",
-    "วงกลมเลข = แผงแรกของสตริง (ต้นสาย)  จุดเข้ม = แผงสุดท้าย (ปลายสาย)",
-    "วัดแรงดัน/ขั้วทุกสตริงก่อนเสียบเข้าอินเวอร์เตอร์",
-  ];
-  const noteY0 = AR.y0 + 6;
-  notes.slice().reverse().forEach((t, i) => pen.text("PG-NOTE", RX0, noteY0 + i * 4.2, PG_TS.body, t));
-
+  /* (เดิมมีหมายเหตุอธิบายสี/เส้นมุมล่าง — ผู้ใช้ให้เอาออก) */
   const MR = p3MpptRows(DS);
   if (MR.rows.length) {
     const top = AR.y1 - 52, bottom = noteY0 + notes.length * 4.2 + 4;

@@ -1857,7 +1857,7 @@ function pgSldPro(doc, sheet, M) {
     wrapT(s, TS.note, RW - ind).forEach((t, i) => nLines.push({ t, x: i ? RX0 + ind : RX0 }));
   });
   const noteH = 4.5 + nLines.length * 2.2;
-  if (ty - (titleY + 9) > noteH) {
+  if (ty - (titleY + 13) > noteH) {
     pen.text(LB, RX0, ty - 1, TS.head, "NOTES", { valign: 3 });
     nLines.forEach((l, i) => pen.text(T, l.x, ty - 4.6 - i * 2.2, TS.note, l.t, { valign: 3 }));
     ty -= noteH + 2;
@@ -1873,7 +1873,7 @@ function pgSldPro(doc, sheet, M) {
     [(x, y) => pen.line(CM, x, y, x + 10, y), "COMM. / BOX"],
   ];
   const legH = 4.5 + Math.ceil(legs.length / 2) * 4.6;
-  if (ty - (titleY + 9) > legH) {
+  if (ty - (titleY + 13) > legH) {
     pen.text(LB, RX0, ty - 1, TS.head, "LEGEND", { valign: 3 });
     legs.forEach((l, i) => {
       const lx = RX0 + 1 + (i % 2) * (RW / 2), ly = ty - 7.2 - Math.floor(i / 2) * 4.6;
@@ -1881,7 +1881,9 @@ function pgSldPro(doc, sheet, M) {
       pen.text(T, lx + 12, ly, TS.legend, l[1], { valign: 2 });
     });
   }
-  pgSheetTitle(pen, (RX0 + RX1) / 2, titleY, "SINGLE LINE DIAGRAM - SOLAR PV SYSTEM", 4.4, RW - 2);
+  /* ชื่อแผ่นขนาดเดียวกับแผ่นอื่น (เดิม 4.4 บรรทัดเดียว — ผู้ใช้ว่าเล็กไป) · บรรทัดรองใต้เส้น */
+  pgSheetTitle(pen, (RX0 + RX1) / 2, titleY + 3.5, "SINGLE LINE DIAGRAM", PG_TS.title, RW - 2);
+  pen.text(PG_LAY.txt, (RX0 + RX1) / 2, A.y0 + 1.6, PG_TS.head, "SOLAR PV SYSTEM", { align: 1, valign: 1 });
 }
 function pgSldDraw(doc, sheet, M) {
   if (M.pro && M.mppt && M.mppt.rows.some((r) => r.ins.length) && M.mode === "string" && !M.batt) return pgSldPro(doc, sheet, M);
