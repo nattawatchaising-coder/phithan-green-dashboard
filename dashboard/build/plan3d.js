@@ -1594,7 +1594,7 @@ function p3Dxf(st, job, media) {
       headRow: 1
     });
   }
-  pen.text("PG-NOTE", AR.x0 + 4, AR.y0 + 9, 2.2, st.baseMap ? "SCALE TAKEN FROM SATELLITE IMAGERY" : "SCALE NOT TAKEN FROM MAP - VERIFY ON SITE");
+  pen.text("PG-NOTE", AR.x0 + 4 + 60, AR.y0 + 4.4, 2.2, st.baseMap ? "SCALE TAKEN FROM SATELLITE IMAGERY" : "SCALE NOT TAKEN FROM MAP - VERIFY ON SITE");
   return doc.build();
 }
 function p3Xf(roof, pan) {
@@ -2416,7 +2416,7 @@ function p3StrLayout(st, job, media) {
   if (TB) pgGrid(pen, RX1 - TB.tw, AR.y0 + 4 + TB.h, TB.tw, TB.cw, TB.rows, {
     rh: P3_TBL_RH,
     th: PG_TS.body,
-    align: [0, 0, 2],
+    align: [0, 0, 1],
     headRow: 1
   });
   return doc.build();
