@@ -233,16 +233,18 @@ function dsPlanHead(P, title) {
 function dsRight(P, rows, cols, notes, align) {
   const pen = P.pen,
     AR = P.AR,
-    RH = 4.6;
+    RH = 5.8;
   const nh = notes && notes.length ? dsNoteH(notes, P.RW) : 0;
   const yTop = P.V.wide ? PG_SHEET.IN.y0 + P3_WIDE_B - 8 : AR.y1 - 54,
     yMin = AR.y0 + 4 + nh + 6;
   const fit = Math.max(4, Math.floor((yTop - yMin) / RH));
   let R = rows;
   if (R.length > fit) R = R.slice(0, fit - 2).concat([cols.map((_, i) => i ? "" : "…")], [rows[rows.length - 1]]);
-  const used = pgGrid(pen, P.RX0, yTop, P.RW, cols, R, {
+  const cw = cols.map((_, i) => Math.max(...R.map(r => String(r[i] == null ? "" : r[i]).length)) * PG_TS.body * 0.52 + 6);
+  const tw = Math.min(P.RW, cw.reduce((t, w) => t + w, 0));
+  const used = pgGrid(pen, P.RX0, yTop, tw, cw, R, {
     rh: RH,
-    th: PG_TS.cell,
+    th: PG_TS.body,
     headRow: 0,
     align
   });
@@ -527,7 +529,7 @@ function dsNotesSheet(st, job, media) {
   const legend = (x, y, w, head, items) => {
     pen.text(T, x, y, PG_TS.head, head);
     let cy = y - 3.5;
-    const h = Math.min(20, Math.max(9, (cy - yBot) / items.length));
+    const h = Math.min(11, Math.max(9, (cy - yBot) / items.length));
     items.forEach(it => {
       pen.rect(LN, x, cy - h, w, h);
       pen.line(LN, x + 32, cy, x + 32, cy - h);
@@ -1017,7 +1019,7 @@ function dsStrDetSheet(st, job, media) {
       align: 1,
       valign: 1
     });
-    const w = s.length * PG_TS.head * 0.5;
+    const w = pgTextW(s, PG_TS.head) + 3;
     pen.line(T, xc - w / 2, y - 1.2, xc + w / 2, y - 1.2);
   };
   const toBox = (p, s, L) => {

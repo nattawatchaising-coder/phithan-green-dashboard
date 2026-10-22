@@ -1320,9 +1320,10 @@ function p3StrLayout(st, job, media) {
     const rows = [["#", head], ["INV · MPPT", "สตริง (แผง)", "แผง"]].concat(body);
     rows.push(["รวม", SS.length + " สตริง", SS.reduce((t, s) => t + s.n, 0) + ""]);
     /* ความกว้างคอลัมน์ตามข้อความจริง (ผู้ใช้: ช่องยาวเกินไป — เดิมยืดเต็มคอลัมน์ขวา 128 มม.) · หัวตารางต้องพอด้วย */
-    const cw = [0, 1, 2].map((i) => Math.max.apply(null, rows.filter((r) => r[0] !== "#").map((r) => String(r[i] == null ? "" : r[i]).length)) * PG_TS.cell * 0.52 + 4.5);
-    const tw = Math.min(COL, Math.max(cw[0] + cw[1] + cw[2], head.length * PG_TS.cell * 1.15 * 0.52 + 6));
-    TB = { rows, cw, tw, h: rows.length * RH };
+    /* ตัวหนังสือ/แถวใหญ่ขึ้น (ผู้ใช้: ตารางเล็กไป ไม่สมส่วน) */
+    const cw = [0, 1, 2].map((i) => Math.max.apply(null, rows.filter((r) => r[0] !== "#").map((r) => String(r[i] == null ? "" : r[i]).length)) * PG_TS.body * 0.52 + 6);
+    const tw = Math.min(COL + 20, Math.max(cw[0] + cw[1] + cw[2], head.length * PG_TS.body * 1.15 * 0.52 + 8));
+    TB = { rows, cw, tw, h: rows.length * 5.8 };
   }
   const needW = B.maxX - B.minX, needH = B.maxY - B.minY;
   const fitSc = (A) => P3_SCALES.find((s) => needW * 1000 <= A.w * 0.94 * s && needH * 1000 <= A.h * 0.94 * s) || P3_SCALES[P3_SCALES.length - 1];
@@ -1406,7 +1407,7 @@ function p3StrLayout(st, job, media) {
   pgCompass(pen, RX1 - 12, AR.y1 - 40, 6.5, null, rot);
 
   /* (เดิมมีหมายเหตุอธิบายสี/เส้นมุมล่าง — ผู้ใช้ให้เอาออก) · ตาราง MPPT ชิดขวาล่าง */
-  if (TB) pgGrid(pen, RX1 - TB.tw, AR.y0 + 4 + TB.h, TB.tw, TB.cw, TB.rows, { rh: RH, th: PG_TS.cell, align: [0, 0, 2], headRow: 1 });
+  if (TB) pgGrid(pen, RX1 - TB.tw, AR.y0 + 4 + TB.h, TB.tw, TB.cw, TB.rows, { rh: 5.8, th: PG_TS.body, align: [0, 0, 2], headRow: 1 });
   return doc.build();
 }
 

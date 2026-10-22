@@ -2097,13 +2097,13 @@ function p3StrLayout(st, job, media) {
     const SS = DS.strings || [];
     const rows = [["#", head], ["INV · MPPT", "สตริง (แผง)", "แผง"]].concat(body);
     rows.push(["รวม", SS.length + " สตริง", SS.reduce((t, s) => t + s.n, 0) + ""]);
-    const cw = [0, 1, 2].map(i => Math.max.apply(null, rows.filter(r => r[0] !== "#").map(r => String(r[i] == null ? "" : r[i]).length)) * PG_TS.cell * 0.52 + 4.5);
-    const tw = Math.min(COL, Math.max(cw[0] + cw[1] + cw[2], head.length * PG_TS.cell * 1.15 * 0.52 + 6));
+    const cw = [0, 1, 2].map(i => Math.max.apply(null, rows.filter(r => r[0] !== "#").map(r => String(r[i] == null ? "" : r[i]).length)) * PG_TS.body * 0.52 + 6);
+    const tw = Math.min(COL + 20, Math.max(cw[0] + cw[1] + cw[2], head.length * PG_TS.body * 1.15 * 0.52 + 8));
     TB = {
       rows,
       cw,
       tw,
-      h: rows.length * RH
+      h: rows.length * 5.8
     };
   }
   const needW = B.maxX - B.minX,
@@ -2246,8 +2246,8 @@ function p3StrLayout(st, job, media) {
   }
   pgCompass(pen, RX1 - 12, AR.y1 - 40, 6.5, null, rot);
   if (TB) pgGrid(pen, RX1 - TB.tw, AR.y0 + 4 + TB.h, TB.tw, TB.cw, TB.rows, {
-    rh: RH,
-    th: PG_TS.cell,
+    rh: 5.8,
+    th: PG_TS.body,
     align: [0, 0, 2],
     headRow: 1
   });

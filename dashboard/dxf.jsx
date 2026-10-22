@@ -974,13 +974,23 @@ function pgSheet(doc, o) {
 
 /* หัวเรื่องใหญ่ประจำแผ่น พร้อมเส้นใต้ ตามธรรมเนียมของแบบชุดนี้
    maxW = ความกว้างที่ยอมให้กินได้ (มม.) — ถ้าเกินจะย่อขนาดตัวอักษรลงให้พอดี ไม่ให้ล้ำไปทับรูป */
+/* ความกว้างโดยประมาณของข้อความสูง h (มม.) — นับทีละตัว: สระบน/ล่าง+วรรณยุกต์ไทยไม่กินที่ · ตัวใหญ่กว้างกว่าตัวเล็ก
+   ใช้ลากเส้นใต้ให้ยาวพอดีข้อความ (ผู้ใช้: เส้นใต้สั้นกว่าตัวหนังสือ) */
+function pgTextW(s, h) {
+  let w = 0;
+  for (const ch of String(s == null ? "" : s)) {
+    if (/[\u0E31\u0E34-\u0E3A\u0E47-\u0E4E]/.test(ch)) continue;
+    w += /[\u0E00-\u0E7F]/.test(ch) ? 0.56 : /[A-Z0-9]/.test(ch) ? 0.64 : ch === " " ? 0.32 : /[a-z]/.test(ch) ? 0.52 : 0.45;
+  }
+  return w * h;
+}
 function pgSheetTitle(pen, x, y, s, h, maxW, align) {
   h = h || 6.5;
   const n = String(s).length || 1;
   if (maxW) h = Math.min(h, maxW / (n * 0.62));
   const a = align == null ? 1 : align;                 // 0 = ชิดซ้าย · 1 = กึ่งกลาง · 2 = ชิดขวา
   pen.text(PG_LAY.txt, x, y, h, s, { align: a, valign: 1, wf: 1.0 });
-  const w = n * h * 0.62;
+  const w = pgTextW(s, h) + h * 0.4;
   const x0 = a === 0 ? x : a === 2 ? x - w : x - w / 2;
   pen.line(PG_LAY.txt, x0, y - h * 0.3, x0 + w, y - h * 0.3);
 }
@@ -1108,7 +1118,7 @@ function pgModuleDetail(pen, x, y, h, o) {
   const gap = 6;
   const cap = (cx, s) => {
     pen.text(T, cx, y - 4.4, 2.2, s, { align: 1, valign: 1 });
-    const hw = s.length * 2.2 * 0.32 + 1.5;
+    const hw = Math.max(pgTextW(s, 2.2) / 2 + 2.5, 6);
     pen.line(L, cx - hw, y - 5.2, cx + hw, y - 5.2);
   };
   /* ด้านหน้า — กรอบคู่ + เซลล์ 6 × 12 */
@@ -1155,7 +1165,7 @@ function pgModuleDetail(pen, x, y, h, o) {
   dim(x - 3.5, y, x - 3.5, y + h, String(hMm), true);
   if (o.caption) {
     pen.text(T, x, y - 11, 2.6, o.caption);
-    pen.line(L, x, y - 12.6, x + (bx + w - x), y - 12.6);
+    pen.line(L, x, y - 12.6, x + Math.max(bx + w - x, pgTextW(o.caption, 2.6) + 2), y - 12.6);
   }
   return bx + w - x;
 }
@@ -2120,6 +2130,6 @@ function pgSldDraw(doc, sheet, M) {
 Object.assign(window, {
   PG_FONTS, pgFont, pgSetFont, pgDxf, pgSvg, pgDoc, pgCombine, pgPen, pgSheet, pgSheetTitle, pgSheetLayers, pgLogoMark, pgWrap,
   pgSldLayers, pgSldDraw, pgSldPro, pgSldTable, pgSldEquip, pgSym,
-  pgTableLayers, pgGrid, pgSpecBlock, pgCompass, pgModuleDetail, pgModFace, pgPhotoFrame, pgDcString, pgDcSize,
+  pgTableLayers, pgGrid, pgSpecBlock, pgCompass, pgModuleDetail, pgModFace, pgTextW, pgPhotoFrame, pgDcString, pgDcSize,
   PG_SHEET, PG_LAY, PG_ACI, PG_SLD, PG_TBL,
 });

@@ -1472,6 +1472,14 @@ function pgSheet(doc, o) {
     }
   };
 }
+function pgTextW(s, h) {
+  let w = 0;
+  for (const ch of String(s == null ? "" : s)) {
+    if (/[\u0E31\u0E34-\u0E3A\u0E47-\u0E4E]/.test(ch)) continue;
+    w += /[\u0E00-\u0E7F]/.test(ch) ? 0.56 : /[A-Z0-9]/.test(ch) ? 0.64 : ch === " " ? 0.32 : /[a-z]/.test(ch) ? 0.52 : 0.45;
+  }
+  return w * h;
+}
 function pgSheetTitle(pen, x, y, s, h, maxW, align) {
   h = h || 6.5;
   const n = String(s).length || 1;
@@ -1482,7 +1490,7 @@ function pgSheetTitle(pen, x, y, s, h, maxW, align) {
     valign: 1,
     wf: 1.0
   });
-  const w = n * h * 0.62;
+  const w = pgTextW(s, h) + h * 0.4;
   const x0 = a === 0 ? x : a === 2 ? x - w : x - w / 2;
   pen.line(PG_LAY.txt, x0, y - h * 0.3, x0 + w, y - h * 0.3);
 }
@@ -1630,7 +1638,7 @@ function pgModuleDetail(pen, x, y, h, o) {
       align: 1,
       valign: 1
     });
-    const hw = s.length * 2.2 * 0.32 + 1.5;
+    const hw = Math.max(pgTextW(s, 2.2) / 2 + 2.5, 6);
     pen.line(L, cx - hw, y - 5.2, cx + hw, y - 5.2);
   };
   pgModFace(pen, L, C, x, y, w, h, 6, 12, false);
@@ -1693,7 +1701,7 @@ function pgModuleDetail(pen, x, y, h, o) {
   dim(x - 3.5, y, x - 3.5, y + h, String(hMm), true);
   if (o.caption) {
     pen.text(T, x, y - 11, 2.6, o.caption);
-    pen.line(L, x, y - 12.6, x + (bx + w - x), y - 12.6);
+    pen.line(L, x, y - 12.6, x + Math.max(bx + w - x, pgTextW(o.caption, 2.6) + 2), y - 12.6);
   }
   return bx + w - x;
 }
@@ -2991,6 +2999,7 @@ Object.assign(window, {
   pgCompass,
   pgModuleDetail,
   pgModFace,
+  pgTextW,
   pgPhotoFrame,
   pgDcString,
   pgDcSize,
