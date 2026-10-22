@@ -179,7 +179,8 @@ function dsPlan(st, job, media, key, o) {
     }
   });
   const RP = p3RoofPlan(st, k);
-  [[DL("rtex"), RP.tex], [DL("ridge"), RP.ridge], [DL("roof"), RP.edges]].forEach(([L, E]) => E.forEach(e => doc.line(L, e[0][0], e[0][1], e[1][0], e[1][1])));
+  if (doc.hatch) RP.hatch.forEach(h => doc.hatch(DL("rtex"), h.loops, h));
+  [[DL("rtex"), doc.hatch ? [] : RP.tex], [DL("ridge"), RP.ridge], [DL("roof"), RP.edges]].forEach(([L, E]) => E.forEach(e => doc.line(L, e[0][0], e[0][1], e[1][0], e[1][1])));
   let foot = {
     panels: []
   };

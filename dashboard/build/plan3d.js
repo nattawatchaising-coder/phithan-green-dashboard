@@ -1014,6 +1014,9 @@ function p3RotDoc(doc, deg) {
       }));
     },
     block: doc.block ? (name, draw) => doc.block(name, draw) : undefined,
+    hatch: doc.hatch ? (l, loops, o) => doc.hatch(l, loops.map(L => L.map(P)), Object.assign({}, o, {
+      ang: (o.ang || 0) + deg
+    })) : undefined,
     insert: (l, name, x, y, sx, sy, rot) => {
       const a = R(x, y);
       doc.insert(l, name, a[0], a[1], sx, sy, (rot || 0) + deg);
@@ -1415,7 +1418,8 @@ function p3Dxf(st, job, media) {
   });
   const poly = (lay, pts, closed) => doc.pline(lay, pts.map(p => [p[0], -p[1]]), closed);
   const RP = p3RoofPlan(st, k);
-  [["PG-ROOF-TEX", RP.tex], ["PG-ROOF-RIDGE", RP.ridge], ["PG-ROOF", RP.edges]].forEach(([L, E]) => E.forEach(e => doc.line(L, e[0][0], e[0][1], e[1][0], e[1][1])));
+  if (doc.hatch) RP.hatch.forEach(h => doc.hatch("PG-ROOF-TEX", h.loops, h));
+  [["PG-ROOF-TEX", doc.hatch ? [] : RP.tex], ["PG-ROOF-RIDGE", RP.ridge], ["PG-ROOF", RP.edges]].forEach(([L, E]) => E.forEach(e => doc.line(L, e[0][0], e[0][1], e[1][0], e[1][1])));
   (st.roofs || []).forEach(roof => {
     let faces = [];
     try {
@@ -1808,7 +1812,8 @@ function p3RoofPlan(st, k) {
     shingle: [0, 0.25]
   };
   const minSp = 1.2 * k;
-  const tex = [];
+  const tex = [],
+    hatch = [];
   F.forEach(g => {
     const M = MSP[g.mat];
     if (!M) return;
@@ -1864,12 +1869,112 @@ function p3RoofPlan(st, k) {
     };
     fam(dx, dy, M[0]);
     fam(-dy, dx, M[1]);
+    const C = p3PolyConvex(g.P) ? g.P : p3Hull(g.P);
+    const isl = [];
+    const addIsl = Q => {
+      const I = p3ClipPoly(Q, C);
+      if (I.length >= 3 && Math.abs(p3PolyArea(I)) > 1e-3) isl.push(I);
+      return I;
+    };
+    PNg.forEach(p => addIsl(p.P));
+    RCg.forEach(P => addIsl(P));
+    F.forEach(h => {
+      if (h.ri === g.ri || h.bb[0] > g.bb[2] || h.bb[2] < g.bb[0] || h.bb[1] > g.bb[3] || h.bb[3] < g.bb[1]) return;
+      const I = p3ClipPoly(h.P, C);
+      if (I.length < 3 || Math.abs(p3PolyArea(I)) < 1e-3) return;
+      const cx = I.reduce((t, q) => t + q[0], 0) / I.length,
+        cy = I.reduce((t, q) => t + q[1], 0) / I.length;
+      if (hAt(h, cx, cy) > hAt(g, cx, cy) + 0.05) isl.push(I);
+    });
+    const ang = Math.atan2(dy, dx) / P3_DEG,
+      loops = [g.P].concat(isl);
+    if (M[0]) hatch.push({
+      loops,
+      ang,
+      sp: Math.max(M[0], minSp)
+    });
+    if (M[1]) hatch.push({
+      loops,
+      ang: ang + 90,
+      sp: Math.max(M[1], minSp)
+    });
   });
   return {
     edges,
     tex,
-    ridge
+    ridge,
+    hatch
   };
+}
+function p3PolyArea(P) {
+  let a = 0;
+  P.forEach((p, i) => {
+    const q = P[(i + 1) % P.length];
+    a += p[0] * q[1] - q[0] * p[1];
+  });
+  return a / 2;
+}
+function p3PolyConvex(P) {
+  let sg = 0;
+  for (let i = 0; i < P.length; i++) {
+    const a = P[i],
+      b = P[(i + 1) % P.length],
+      c = P[(i + 2) % P.length];
+    const cr = (b[0] - a[0]) * (c[1] - b[1]) - (b[1] - a[1]) * (c[0] - b[0]);
+    if (Math.abs(cr) < 1e-9) continue;
+    if (sg && Math.sign(cr) !== sg) return false;
+    sg = Math.sign(cr);
+  }
+  return true;
+}
+function p3Hull(P) {
+  const pts = P.slice().sort((a, b) => a[0] - b[0] || a[1] - b[1]);
+  const cr = (o, a, b) => (a[0] - o[0]) * (b[1] - o[1]) - (a[1] - o[1]) * (b[0] - o[0]);
+  const lo = [],
+    up = [];
+  pts.forEach(p => {
+    while (lo.length >= 2 && cr(lo[lo.length - 2], lo[lo.length - 1], p) <= 0) lo.pop();
+    lo.push(p);
+  });
+  pts.slice().reverse().forEach(p => {
+    while (up.length >= 2 && cr(up[up.length - 2], up[up.length - 1], p) <= 0) up.pop();
+    up.push(p);
+  });
+  return lo.slice(0, -1).concat(up.slice(0, -1));
+}
+function p3ClipPoly(S, C) {
+  const ccw = p3PolyArea(C) > 0;
+  let out = S.slice();
+  for (let i = 0; i < C.length && out.length; i++) {
+    const a = C[i],
+      b = C[(i + 1) % C.length];
+    const ins = p => {
+      const v = (b[0] - a[0]) * (p[1] - a[1]) - (b[1] - a[1]) * (p[0] - a[0]);
+      return ccw ? v >= -1e-9 : v <= 1e-9;
+    };
+    const X = (p, q) => {
+      const dx1 = q[0] - p[0],
+        dy1 = q[1] - p[1],
+        dx2 = b[0] - a[0],
+        dy2 = b[1] - a[1];
+      const den = dx1 * dy2 - dy1 * dx2;
+      if (Math.abs(den) < 1e-12) return q;
+      const t = ((a[0] - p[0]) * dy2 - (a[1] - p[1]) * dx2) / den;
+      return [p[0] + dx1 * t, p[1] + dy1 * t];
+    };
+    const inp = out;
+    out = [];
+    inp.forEach((p, j) => {
+      const q = inp[(j + 1) % inp.length],
+        pi = ins(p),
+        qi = ins(q);
+      if (pi) {
+        out.push(p);
+        if (!qi) out.push(X(p, q));
+      } else if (qi) out.push(X(p, q));
+    });
+  }
+  return out;
 }
 const p3RoofEdges = st => p3RoofPlan(st).edges;
 function p3RoofSurf(roof) {
@@ -2218,7 +2323,14 @@ function p3StrLayout(st, job, media) {
   const NL = P3_STR_ACI.length;
   const lay = id => "PG-STR-" + ((((+id || 1) - 1) % NL + NL) % NL + 1);
   const RP = p3RoofPlan(st, k);
-  [["PG-ROOF-TEX", RP.tex], ["PG-ROOF-RIDGE", RP.ridge], ["PG-ROOF", RP.edges]].forEach(([L, E]) => E.forEach(e => {
+  const VBP = [[VB.x0, VB.y0], [VB.x1, VB.y0], [VB.x1, VB.y1], [VB.x0, VB.y1]];
+  if (doc.hatch) RP.hatch.forEach(h => {
+    const loops = h.loops.map(Lp => p3ClipPoly(Lp.map(q => RR(q[0], q[1])), VBP)).filter(Lp => Lp.length >= 3);
+    if (loops.length && h.loops.length && p3ClipPoly(h.loops[0].map(q => RR(q[0], q[1])), VBP).length >= 3) doc.hatch("PG-ROOF-TEX", loops, Object.assign({}, h, {
+      ang: h.ang + rot
+    }));
+  });
+  [["PG-ROOF-TEX", doc.hatch ? [] : RP.tex], ["PG-ROOF-RIDGE", RP.ridge], ["PG-ROOF", RP.edges]].forEach(([L, E]) => E.forEach(e => {
     const s = p3ClipSeg(RR(e[0][0], e[0][1]), RR(e[1][0], e[1][1]), VB);
     if (s) doc.line(L, s[0][0], s[0][1], s[1][0], s[1][1]);
   }));

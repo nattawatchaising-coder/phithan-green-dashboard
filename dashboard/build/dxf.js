@@ -353,6 +353,55 @@ function pgDxf(opt) {
       }
       return name;
     },
+    hatch(layer, loops, o) {
+      o = o || {};
+      loops = (loops || []).filter(L => L && L.length >= 3);
+      if (!loops.length) return null;
+      const b = [];
+      const w = head(b, "HATCH", "AcDbHatch", layer);
+      w(10, 0);
+      w(20, 0);
+      w(30, 0);
+      w(210, 0);
+      w(220, 0);
+      w(230, 1);
+      w(2, "_USER");
+      w(70, 0);
+      w(71, 0);
+      w(91, loops.length);
+      loops.forEach((L, i) => {
+        w(92, i ? 2 : 3);
+        w(72, 0);
+        w(73, 1);
+        w(93, L.length);
+        L.forEach(p => {
+          w(10, num(p[0]));
+          w(20, num(p[1]));
+          grow(p[0], p[1]);
+        });
+        w(97, 0);
+      });
+      const sp = Math.max(1e-6, +o.sp || 1),
+        a0 = +o.ang || 0;
+      w(75, 1);
+      w(76, 0);
+      w(52, num(a0));
+      w(41, num(sp));
+      w(77, o.dbl ? 1 : 0);
+      const lines = o.dbl ? [a0, a0 + 90] : [a0];
+      w(78, lines.length);
+      lines.forEach(a => {
+        const r = a * Math.PI / 180;
+        w(53, num(a));
+        w(43, 0);
+        w(44, 0);
+        w(45, num(-sp * Math.sin(r)));
+        w(46, num(sp * Math.cos(r)));
+        w(79, 0);
+      });
+      w(98, 0);
+      return push(b);
+    },
     insert(layer, name, x, y, sx, sy, rot) {
       const b = [];
       const w = head(b, "INSERT", "AcDbBlockReference", layer);
@@ -1184,6 +1233,9 @@ function pgCombine(makers, svg, o) {
         h: S(o.h)
       })),
       block: (name, draw) => out.block(name, draw),
+      hatch: out.hatch ? (l, loops, o) => out.hatch(l, loops.map(L => L.map(P)), Object.assign({}, o, {
+        sp: S(o.sp || 1)
+      })) : undefined,
       insert: (l, name, x, y, sx, sy, rot) => out.insert(l, name, X(x), Y(y), S(sx == null ? 1 : sx), S(sy == null ? 1 : sy), rot),
       plot: o => {
         T = {

@@ -110,7 +110,8 @@ function dsPlan(st, job, media, key, o) {
   });
   /* หลังคา: ลายผิวตามวัสดุ + ครอบสัน + ขอบ — ส่วนที่หลังคาอื่นที่สูงกว่าบังไม่วาด (p3RoofPlan) */
   const RP = p3RoofPlan(st, k);
-  [[DL("rtex"), RP.tex], [DL("ridge"), RP.ridge], [DL("roof"), RP.edges]].forEach(([L, E]) =>
+  if (doc.hatch) RP.hatch.forEach((h) => doc.hatch(DL("rtex"), h.loops, h));   // DXF = HATCH · บนจอ = เส้น
+  [[DL("rtex"), doc.hatch ? [] : RP.tex], [DL("ridge"), RP.ridge], [DL("roof"), RP.edges]].forEach(([L, E]) =>
     E.forEach((e) => doc.line(L, e[0][0], e[0][1], e[1][0], e[1][1])));
   let foot = { panels: [] };
   try { foot = p3FootAll(st); } catch (e) { foot = { panels: [] }; }
