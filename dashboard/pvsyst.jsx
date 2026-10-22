@@ -173,15 +173,102 @@ ${vis.join("\n")}
 `;
 }
 
-/* ดาวน์โหลด .pvc2 + .dae · คืนจำนวนแผง/สิ่งบังเงา */
-async function pvcExport(st, job) {
+/* ── ใบสรุปตั้งค่า PVsyst (.txt) — ผู้ใช้: import แล้วต้องตั้งระบบใน PVsyst เอง ขอใบไว้กรอกตาม ──
+   กลุ่มตามทิศ (มุมเอียง/ทิศจาก normal ของแผงแต่ละแผ่น ปัด 1°) · สตริงเข้ากลุ่มตามแผงส่วนใหญ่ในสตริง (paths.uids)
+   · อินเวอร์เตอร์/MPPT จาก addr "INV1 / MPPT2 / ช่อง1" · Voc ที่อุณหภูมิต่ำสุดจาก p3SldModel */
+function pvcSetupText(st, job, design) {
+  design = design || {};
+  const L = [], ln = (s) => L.push(s == null ? "" : s);
+  const name = (job && (job.code || job.name)) || "";
+  const Mo = pvcModule(st);
+  let M = null;
+  try { M = p3SldModel(st, job, design); } catch (e) { M = null; }
+  const fp = p3FootAll(st).panels;
+  const ori = {}, keyOf = {};
+  fp.forEach((p) => {
+    const n = p.n || { x: 0, y: 1, z: 0 };
+    const tilt = Math.acos(Math.max(-1, Math.min(1, n.y))) / P3_DEG;
+    let az = (Math.atan2(n.x, -n.z) / P3_DEG + 360) % 360;
+    if (tilt < 0.5) az = 180;
+    const t = Math.round(tilt), a = Math.round(az) % 360, k = t + "|" + a;
+    (ori[k] = ori[k] || { tilt: t, az: a, n: 0, strings: [] }).n++;
+    keyOf[p.uid] = k;
+  });
+  const SS = design.strings || [], PA = {};
+  (design.paths || []).forEach((q) => { PA[q.id] = q.uids || []; });
+  const loose = [];
+  SS.forEach((s) => {
+    const cnt = {};
+    (PA[s.id] || []).forEach((u) => { const k = keyOf[u]; if (k) cnt[k] = (cnt[k] || 0) + 1; });
+    const ks = Object.keys(cnt).sort((a, b) => cnt[b] - cnt[a]);
+    const m = /INV(\d+)\s*\/\s*MPPT(\d+)/.exec(s.addr || "");
+    const x = { id: s.id, n: s.n, inv: m ? +m[1] : null, mppt: m ? +m[2] : null, mixed: ks.length > 1 };
+    if (ks.length) ori[ks[0]].strings.push(x); else loose.push(x);
+  });
+  const pvAz = (a) => { const d = ((a - 180 + 540) % 360) - 180; return (d > 0 ? "+" : "") + d; };   // PVsyst: 0 = ใต้ · ตะวันตก +
+  const dirTh = (a) => ["เหนือ", "ตะวันออกเฉียงเหนือ", "ตะวันออก", "ตะวันออกเฉียงใต้", "ใต้", "ตะวันตกเฉียงใต้", "ตะวันตก", "ตะวันตกเฉียงเหนือ"][Math.round(a / 45) % 8];
+
+  ln("ใบสรุปตั้งค่า PVsyst · " + name);
+  ln("สร้างจาก flash+solar " + new Date().toLocaleString("th-TH"));
+  ln("ใช้คู่กับไฟล์ " + name + "-PVsyst.pvc2 (Near Shadings → File → Import a 3D scene)");
+  ln("================================================================");
+  ln("");
+  ln("1) แผง (System → Select the PV module)");
+  ln("   รุ่น          : " + Mo.name);
+  ln("   กำลัง         : " + Mo.wp + " Wp");
+  ln("   จำนวนทั้งหมด  : " + fp.length + " แผง = " + (fp.length * Mo.wp / 1000).toFixed(2) + " kWp");
+  ln("");
+  ln("2) อินเวอร์เตอร์ (System → Select the inverter)");
+  if (M && M.inv) {
+    ln("   รุ่น          : " + M.inv.model);
+    ln("   จำนวน         : " + (M.units ? M.units.length : M.inv.count) + " เครื่อง" + (M.mppt && M.mppt.per ? " · " + M.mppt.per + " MPPT/เครื่อง" : "") + (M.mppt && M.mppt.phys ? " · " + M.mppt.phys + " ช่อง/MPPT" : ""));
+  } else ln("   (ยังไม่ได้เลือกในหน้าออกแบบระบบ)");
+  ln("");
+  ln("3) Orientation — กลุ่มตามทิศ (หน้า Orientation เลือก \"Multi-orientation\" ถ้ามีมากกว่า 1 กลุ่ม)");
+  ln("   ทิศแบบ PVsyst: 0° = ใต้ · ลบ = ตะวันออก · บวก = ตะวันตก");
+  const G = Object.keys(ori).map((k) => ori[k]).sort((a, b) => b.n - a.n);
+  G.forEach((g, i) => ln("   กลุ่ม " + (i + 1) + " : เอียง " + g.tilt + "° · ทิศ " + pvAz(g.az) + "° (หัน" + dirTh(g.az) + " · " + g.az + "° จากเหนือ) · " + g.n + " แผง"));
+  ln("");
+  ln("4) System — Sub-array (1 กลุ่มทิศ = 1 sub-array · สตริงยาวไม่เท่ากันแยก sub-array)");
+  G.forEach((g, i) => {
+    if (!g.strings.length) { ln("   กลุ่ม " + (i + 1) + " : ไม่มีสตริง (ยังไม่ได้จัดสตริงในหน้าออกแบบระบบ)"); return; }
+    const byN = {};
+    g.strings.forEach((s) => { (byN[s.n] = byN[s.n] || []).push(s); });
+    Object.keys(byN).sort((a, b) => b - a).forEach((n) => {
+      const A = byN[n], invs = {};
+      A.forEach((s) => { if (s.inv) (invs[s.inv] = invs[s.inv] || new Set()).add(s.mppt); });
+      ln("   กลุ่ม " + (i + 1) + " (เอียง " + g.tilt + "° ทิศ " + pvAz(g.az) + "°) : " + A.length + " สตริง × " + n + " แผง = " + A.length * n + " แผง");
+      ln("      Modules in series = " + n + " · Number of strings = " + A.length);
+      Object.keys(invs).sort((a, b) => a - b).forEach((iv) => ln("      INV" + iv + " : MPPT " + Array.from(invs[iv]).sort((a, b) => a - b).join(", ")));
+      ln("      สตริง: " + A.map((s) => "S" + s.id + (s.mixed ? "*" : "")).join(" "));
+    });
+  });
+  if (loose.length) ln("   สตริงที่หาทิศไม่ได้ (ไม่มีแนวเดินสาย): " + loose.map((s) => "S" + s.id + "(" + s.n + ")").join(" "));
+  if (G.some((g) => g.strings.some((s) => s.mixed)))
+    ln("   * = สตริงนี้มีแผงอยู่หลายทิศ (คร่อมสันหลังคา) — PVsyst ต้องการ 1 สตริงอยู่ทิศเดียว ใส่ไว้กลุ่มที่แผงส่วนใหญ่อยู่");
+  ln("");
+  ln("5) เช็กแรงดัน");
+  if (M && M.pro && M.pro.vocMax) ln("   Voc สตริงยาวสุด @ " + M.pro.tMin + "°C = " + M.pro.vocMax + " V (อินเวอร์เตอร์รับได้ " + M.pro.maxVdc + " V) — PVsyst เตือนเกินค่านี้ = จัดสตริงใหม่");
+  else ln("   (ไม่มีข้อมูล Voc)");
+  ln("");
+  ln("6) Near Shadings");
+  ln("   Import ไฟล์ .pvc2 แล้วกด \"Table\" ดูค่าเงา · ถ้าจะคิดผลเงาตามสตริง (Module layout / electrical effect) ต้องจัดแผงเข้าสตริงใน PVsyst อีกครั้ง");
+  return "\uFEFF" + L.join("\r\n") + "\r\n";
+}
+
+/* ดาวน์โหลด .pvc2 + .dae (+ ใบสรุปตั้งค่า .txt ถ้ามี design) · คืนจำนวนแผง/สิ่งบังเงา */
+async function pvcExport(st, job, design) {
   const S = await pvcScene(st);
   if (!S.pvq.length) throw new Error("ยังไม่มีแผงในแบบ 3D");
   const base = ((job && (job.code || job.name)) || "plan3d") + "-PVsyst";
   p3SaveBlob(new Blob([pvcBuild2(st, job, S)], { type: "application/xml" }), base + ".pvc2");
   await new Promise((r) => setTimeout(r, 400));   // เบราว์เซอร์บล็อกถ้ายิงดาวน์โหลดรัว
   p3SaveBlob(new Blob([pvcBuildDae(st, job, S)], { type: "model/vnd.collada+xml" }), base + ".dae");
+  if (design) {
+    await new Promise((r) => setTimeout(r, 400));
+    p3SaveBlob(new Blob([pvcSetupText(st, job, design)], { type: "text/plain;charset=utf-8" }), base + "-ตั้งค่า.txt");
+  }
   return { panels: S.pvq.length, shades: S.shade.length };
 }
 
-Object.assign(window, { pvcScene, pvcRack, pvcBuild2, pvcBuildDae, pvcExport });
+Object.assign(window, { pvcScene, pvcRack, pvcBuild2, pvcBuildDae, pvcSetupText, pvcExport });

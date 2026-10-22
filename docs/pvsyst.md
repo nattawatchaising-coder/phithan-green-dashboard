@@ -12,3 +12,4 @@
 - จุดกำเนิด = จุด 0,0 ของแบบ 3D · lat/lng จาก `st.baseMap` (ถ้ามี) ใส่ `geographic_location` ให้ PVsyst เช็กระยะห่างจากที่ตั้งโครงการ
 - ข้อกำหนด: github.com/pvlib/pvcollada (ตัวอย่าง `Examples/PVCollada_2.0/01 - ...pvc2` · schema `schema/PVCollada_2.0/pvcollada_schema_2.0.xsd` ลำดับแท็กใน rack/module ต้องตามนี้)
 - **ยังไม่ได้ทดสอบเปิดใน PVsyst จริง** — ผู้ใช้ลองแล้วแจ้งผลกลับมาปรับ · ที่อาจต้องปรับ: รวมแผงติดกันเป็นโต๊ะใหญ่ (rows × cols) แทน 1 แผงต่อโต๊ะ · ใส่ circuit/สตริง
+- **ใบสรุปตั้งค่า** `<รหัส>-PVsyst-ตั้งค่า.txt` (`pvcSetupText(st, job, design)` ดาวน์โหลดคู่กัน): แผง · อินเวอร์เตอร์/MPPT · กลุ่มตามทิศ (ปัด 1° ทิศแบบ PVsyst 0 = ใต้) · sub-array ต่อกลุ่ม (สตริงเข้ากลุ่มตามแผงส่วนใหญ่ · * = คร่อมหลายทิศ) · Voc @ tMin — PVsyst ไม่อ่านวงจรจากไฟล์ 3D ผู้ใช้ต้องตั้ง System เอง

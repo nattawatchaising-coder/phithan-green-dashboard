@@ -4218,7 +4218,7 @@ function SolarWorkspace({
     if (typeof pvcExport !== "function") return;
     setDxfBusy("กำลังทำไฟล์ PVsyst");
     try {
-      await pvcExport(dxfSt(), job);
+      await pvcExport(dxfSt(), job, dxfDesign());
     } catch (e) {
       console.error(e);
       alert("ทำไฟล์ PVsyst ไม่สำเร็จ: " + (e && e.message));
