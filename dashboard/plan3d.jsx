@@ -489,7 +489,7 @@ const P3_DXF_LAYERS = [
 ];
 const p3MeasLayer = (k) => "PG-MEAS-" + String(k || "other").toUpperCase();
 /* บันไดมาตราส่วนมาตรฐานงานเขียนแบบ — เลือกตัวที่เล็กที่สุดที่ผังยังลงกระดาษ A3 ได้ */
-const P3_SCALES = [50, 75, 100, 125, 150, 200, 250, 300, 400, 500, 600, 750, 800, 1000, 1250, 1500, 2000];   // มีขั้นกลาง (75/125/750) ผังจะได้ไม่เล็กลงทีละมาก
+const P3_SCALES = [50, 75, 100, 125, 150, 200, 250, 300, 350, 400, 500, 600, 750, 800, 1000, 1250, 1500, 2000];   // มีขั้นกลาง (75/125/750) ผังจะได้ไม่เล็กลงทีละมาก
 
 /* ที่วางของรูปพื้นหลังในพิกัดแบบ (เมตร) — ต้องตรงกับที่ฉาก 3D วางไว้เป๊ะ ๆ
    ฉาก 3D หมุนรูปด้วย rotation.y = −มุม เมื่อพลิกเป็นแกนแบบ (Y = −Z) จึงได้มุมหมุนทวนเข็ม = −มุม */
@@ -508,10 +508,67 @@ function p3ImgCorner(p) {
   return { x: p.cx + ux * ca - uy * sa, y: p.cy + ux * sa + uy * ca };
 }
 
-/* ขอบเขตของทุกอย่างที่จะพิมพ์ลงผัง (พิกัดแบบ เมตร) */
+/* ── หมุนผังให้อาคารวางตรงกระดาษ (ผู้ใช้: ทำให้รูปอยู่แนวตรง + ขยับทิศเหนือตาม) ──
+   มุมจากขอบผิวหลังคาบนผัง: ทิศขอบ (mod 90°) ถ่วงตามความยาว เลือกทิศที่มีขอบยาวรวมมากสุด แล้วหมุนกลับให้ขนานแกนกระดาษ
+   st.planRot (องศา) = กำหนดเองได้ · หมุนรอบจุด (0, 0) ทวนเข็ม = บวก · เข็มทิศในแผ่นผังหมุนตามมุมเดียวกัน */
+function p3PlanRot(st) {
+  if (st && st.planRot != null && st.planRot !== "" && isFinite(+st.planRot)) return +st.planRot;
+  const H = {};
+  (st.roofs || []).forEach((roof) => {
+    let faces = [];
+    try { faces = p3RoofSurf(roof) || []; } catch (e) { faces = []; }
+    faces.forEach((f) => (f.pts || []).forEach((p, i, Q) => {
+      const q = Q[(i + 1) % Q.length], dx = q.x - p.x, dy = p.z - q.z, L = Math.hypot(dx, dy);
+      if (L < 0.5) return;
+      let t = Math.atan2(dy, dx) / P3_DEG; t = ((t % 90) + 90) % 90;
+      const b = Math.round(t * 2) % 180;                     // ช่องละ 0.5°
+      H[b] = H[b] || { w: 0, s: 0 };
+      H[b].w += L; H[b].s += L * t;
+    }));
+  });
+  let best = null;
+  Object.keys(H).forEach((b) => {
+    const nb = (+b + 1) % 180, pb = (+b + 179) % 180;
+    const w = H[b].w + ((H[nb] || {}).w || 0) + ((H[pb] || {}).w || 0);
+    if (!best || w > best.w) best = { b: +b, w };
+  });
+  if (!best) return 0;
+  let phi = H[best.b].s / H[best.b].w;
+  if (phi > 45) phi -= 90;
+  return Math.abs(phi) < 0.3 ? 0 : -phi;
+}
+/* หมุนจุด (x, y) ทวนเข็ม deg องศา รอบ (0, 0) */
+function p3RotPt(deg) {
+  const a = (+deg || 0) * P3_DEG, c = Math.cos(a), s = Math.sin(a);
+  return (x, y) => [x * c - y * s, x * s + y * c];
+}
+/* ตัวห่อ doc ที่หมุนทุกอย่างที่วาดด้วยพิกัดแบบ (เมตร) ก่อนส่งต่อ — กรอบแบบ/หัวแบบ (pen ของ pgSheet) ใช้ doc ตัวจริง ไม่หมุน
+   ตัวหนังสือที่ตั้งมุม rot ไว้ (ตามแนวกลุ่มแผง/ราง) หมุนตาม · ไม่ตั้งมุม = ตั้งตรงบนกระดาษเหมือนเดิม */
+function p3RotDoc(doc, deg) {
+  if (!deg) return doc;
+  const R = p3RotPt(deg), P = (p) => R(p[0], p[1]);
+  return {
+    layer: (a, b, c, d) => doc.layer(a, b, c, d),
+    ltype: (a, b, c) => doc.ltype(a, b, c),
+    plot: (o) => doc.plot(o),
+    build: () => doc.build(),
+    get extents() { return doc.extents; },
+    line: (l, x1, y1, x2, y2) => { const a = R(x1, y1), b = R(x2, y2); doc.line(l, a[0], a[1], b[0], b[1]); },
+    pline: (l, pts, c, w) => doc.pline(l, (pts || []).map(P), c, w),
+    rect: (l, x, y, w, h) => doc.pline(l, [[x, y], [x + w, y], [x + w, y + h], [x, y + h]].map(P), true),
+    circle: (l, x, y, r) => { const a = R(x, y); doc.circle(l, a[0], a[1], r); },
+    arc: (l, x, y, r, a1, a2) => { const a = R(x, y); doc.arc(l, a[0], a[1], r, a1 + deg, a2 + deg); },
+    solid: (l, a, b, c, d) => doc.solid(l, P(a), P(b), P(c), d && P(d)),
+    text: (l, x, y, h, t, o) => { const a = R(x, y); doc.text(l, a[0], a[1], h, t, o && o.rot != null ? Object.assign({}, o, { rot: o.rot + deg }) : o); },
+    image: (l, o) => { const a = R(o.x, o.y); doc.image(l, Object.assign({}, o, { x: a[0], y: a[1], rot: (o.rot || 0) + deg })); },
+  };
+}
+
+/* ขอบเขตของทุกอย่างที่จะพิมพ์ลงผัง (พิกัดแบบ เมตร · หมุนตาม p3PlanRot แล้ว) */
 function p3PlanBox(st, imgs) {
   let a = Infinity, b = Infinity, c = -Infinity, d = -Infinity;
-  const put = (x, y) => { if (x < a) a = x; if (x > c) c = x; if (y < b) b = y; if (y > d) d = y; };
+  const RR = p3RotPt(p3PlanRot(st));
+  const put = (x0, y0) => { const q = RR(x0, y0), x = q[0], y = q[1]; if (x < a) a = x; if (x > c) c = x; if (y < b) b = y; if (y > d) d = y; };
   const add = (x, z) => put(x, -z);
   (st.roofs || []).forEach((r) => {
     try { (p3RoofSurf(r) || []).forEach((f) => (f.pts || []).forEach((p) => add(p.x, p.z))); } catch (e) { /* หลังคาที่ยังตั้งไม่ครบ ข้ามไป */ }
@@ -554,12 +611,14 @@ function p3PlanView(st) {
   if (S2 < SC) { SC = S2; A.w = A2.w; A.h = A2.h; wide = true; px = IN.x0 + A2.w / 2; py = IN.y0 + P3_WIDE_B + A2.h / 2; }
   const k = SC / 1000;
   /* px/py = จุดกลางกรอบผังบนกระดาษ (มม.) — ผู้เรียกตั้ง ox = cx − px·k */
-  return { SC, k, A, wide, px, py, cx: (B.minX + B.maxX) / 2, cy: (B.minY + B.maxY) / 2, W: A.w * k, H: A.h * k };
+  return { SC, k, A, wide, px, py, rot: p3PlanRot(st), cx: (B.minX + B.maxX) / 2, cy: (B.minY + B.maxY) / 2, W: A.w * k, H: A.h * k };
 }
 /* ตัดภาพพื้นหลังให้พอดีกรอบมองของผัง (หมุนตามภาพจริงแล้ววาดลงผืนตั้งตรง)
    ภาพในไฟล์ DXF จึงไม่ล้นกรอบแบบ และไฟล์รูปที่แนบไปเล็กลงด้วย · คืน null = ใช้ภาพเดิม */
 async function p3CropImg(im, view) {
-  const p = p3ImgPlace(im.kind, view.st, (+im.pxH || 3) / (+im.pxW || 4));
+  /* กรอบมองอยู่ในพิกัดที่หมุนแล้ว (view.rot) → หมุนที่วางรูปตามก่อนตัด */
+  const p0 = p3ImgPlace(im.kind, view.st, (+im.pxH || 3) / (+im.pxW || 4)), vr = view.rot || 0, q0 = p3RotPt(vr)(p0.cx, p0.cy);
+  const p = Object.assign({}, p0, { cx: q0[0], cy: q0[1], rot: (p0.rot || 0) + vr });
   const src = await new Promise((res) => { const i = new Image(); i.onload = () => res(i); i.onerror = () => res(null); i.src = im.href; });
   if (!src) return null;
   const den = Math.min(im.pxW / p.w, 4000 / Math.max(view.W, view.H));   // พิกเซลต่อเมตร
@@ -576,7 +635,8 @@ async function p3CropImg(im, view) {
   g.drawImage(src, 0, 0);
   const href = cv.toDataURL("image/jpeg", 0.86);
   return Object.assign({}, im, { href, pxW: oW, pxH: oH, file: im.file.replace(/\.[a-z0-9]+$/i, ".jpg"),
-    place: { cx: view.cx, cy: view.cy, w: view.W, h: view.H, rot: 0 } });
+    /* ที่วางเก็บเป็นพิกัดแบบเดิม (ยังไม่หมุน) — ตัวห่อ p3RotDoc หมุนกลับให้ตั้งตรงกรอบเอง */
+    place: (() => { const c = p3RotPt(-vr)(view.cx, view.cy); return { cx: c[0], cy: c[1], w: view.W, h: view.H, rot: -vr }; })() });
 }
 async function p3CropAll(st, imgs, files) {
   const view = Object.assign(p3PlanView(st), { st });
@@ -734,7 +794,8 @@ function p3Dxf(st, job, media) {
   const A = { w: AW - P3_COL - 8, h: IN.y1 - IN.y0 };
   const SC = V.SC, k = V.k;                // 1 มม.บนกระดาษ = k เมตรจริง
 
-  const doc = pgDoc({ units: "m", ltscale: k }, media.svg);
+  const docRaw = pgDoc({ units: "m", ltscale: k }, media.svg);
+  const doc = p3RotDoc(docRaw, V.rot);     // ตัวผังหมุนให้อาคารตรงกระดาษ · กรอบ/หัวแบบใช้ docRaw
   P3_DXF_LAYERS.forEach((L) => doc.layer(L[0], L[1], "CONTINUOUS", L[2]));
   pgTableLayers(doc);
 
@@ -743,7 +804,7 @@ function p3Dxf(st, job, media) {
   const ox = V.cx - px * k;
   const oy = V.cy - py * k;
 
-  const sheet = pgSheet(doc, { k, ox, oy, info: p3SheetInfo(st, job, { sheet: "PLAN", scale: "1:" + SC, sheetNo: media.sheetNo || "1/1" }) });
+  const sheet = pgSheet(docRaw, { k, ox, oy, info: p3SheetInfo(st, job, { sheet: "PLAN", scale: "1:" + SC, sheetNo: media.sheetNo || "1/1" }) });
   const pen = sheet.pen;
   const TH = 2.0 * k;                      // ตัวหนังสือสูง 2 มม. บนกระดาษเสมอ ไม่ว่าจะย่อขยายแค่ไหน
 
@@ -864,7 +925,7 @@ function p3Dxf(st, job, media) {
   pen.text("PG-NOTE", RX0, AR.y1 - 19, 2.4, "SCALE");
   pen.text("PG-NOTE", RX1 - 28, AR.y1 - 18, 2.4, "A1=1:" + Math.round(SC / 1.414));
   pen.text("PG-NOTE", RX1 - 28, AR.y1 - 22.5, 2.4, "A3=1:" + SC);
-  pgCompass(pen, RX1 - 12, AR.y1 - 40, 6.5);
+  pgCompass(pen, RX1 - 12, AR.y1 - 40, 6.5, null, V.rot);
 
   const SS = (media.design && media.design.strings) || [];
 
@@ -1230,41 +1291,64 @@ function p3StrLayout(st, job, media) {
   try { foot = p3FootAll(st); } catch (e) { foot = { panels: [] }; }
   const sOf = {};
   (DS.paths || []).forEach((q) => { const us = q.uids || []; us.forEach((u, i) => { sOf[u] = { id: q.id, k: i + 1, n: us.length }; }); });
+  /* หมุนผังตามแนวอาคาร (p3PlanRot) · กรอบ = แผง + หลังคาที่มีแผง (ผู้ใช้: ปรับหลังคามากลางๆ — เดิมกรอบเฉพาะแผง หลังคาล้นไปข้างเดียว) */
+  const rot = p3PlanRot(st), RR = p3RotPt(rot);
   let a = Infinity, b = Infinity, c = -Infinity, d = -Infinity;
-  (foot.panels || []).forEach((p) => p.pts.forEach((q) => {
-    const x = q[0], y = -q[1];
-    if (x < a) a = x; if (x > c) c = x; if (y < b) b = y; if (y > d) d = y;
-  }));
+  const put = (x0, y0) => { const q = RR(x0, y0), x = q[0], y = q[1]; if (x < a) a = x; if (x > c) c = x; if (y < b) b = y; if (y > d) d = y; };
+  (foot.panels || []).forEach((p) => p.pts.forEach((q) => put(q[0], -q[1])));
   if (!isFinite(a)) return p3Dxf(st, job, media);
+  const rid = new Set((foot.panels || []).map((p) => p.roofId));
+  (st.roofs || []).forEach((r) => {
+    if (!rid.has(r.id)) return;
+    let fs = [];
+    try { fs = p3RoofSurf(r) || []; } catch (e) { fs = []; }
+    fs.forEach((f) => (f.pts || []).forEach((q) => put(q.x, -q.z)));
+  });
   const MG = 1.5;
   const B = { minX: a - MG, minY: b - MG, maxX: c + MG, maxY: d + MG };
 
   const IN = PG_SHEET.IN;
   const AW = IN.x1 - PG_SHEET.TB - IN.x0;
   const COL = 128, RH = 4.6;
-  const A = { w: AW - COL - 8, h: IN.y1 - IN.y0 };
+  /* ตาราง MPPT อยู่มุมขวาล่าง (ผู้ใช้ย้าย) — เตรียมก่อนเพื่อรู้ความสูงแถบล่าง */
+  const MR = p3MpptRows(DS);
+  let TB = null;
+  if (MR.rows.length) {
+    const body = p3MpptTable(MR, 14);
+    const head = "MPPT CONNECTION" + (MR.per ? " · " + MR.per + " MPPT/เครื่อง" : "") + (MR.phys ? " · " + MR.phys + " ช่อง/MPPT" : "");
+    const SS = DS.strings || [];
+    const rows = [["#", head], ["INV · MPPT", "สตริง (แผง)", "แผง"]].concat(body);
+    rows.push(["รวม", SS.length + " สตริง", SS.reduce((t, s) => t + s.n, 0) + ""]);
+    /* ความกว้างคอลัมน์ตามข้อความจริง (ผู้ใช้: ช่องยาวเกินไป — เดิมยืดเต็มคอลัมน์ขวา 128 มม.) · หัวตารางต้องพอด้วย */
+    const cw = [0, 1, 2].map((i) => Math.max.apply(null, rows.filter((r) => r[0] !== "#").map((r) => String(r[i] == null ? "" : r[i]).length)) * PG_TS.cell * 0.52 + 4.5);
+    const tw = Math.min(COL, Math.max(cw[0] + cw[1] + cw[2], head.length * PG_TS.cell * 1.15 * 0.52 + 6));
+    TB = { rows, cw, tw, h: rows.length * RH };
+  }
   const needW = B.maxX - B.minX, needH = B.maxY - B.minY;
-  const SC = P3_SCALES.find((s) => needW * 1000 <= A.w * 0.94 * s && needH * 1000 <= A.h * 0.94 * s)
-    || P3_SCALES[P3_SCALES.length - 1];
+  const fitSc = (A) => P3_SCALES.find((s) => needW * 1000 <= A.w * 0.94 * s && needH * 1000 <= A.h * 0.94 * s) || P3_SCALES[P3_SCALES.length - 1];
+  /* แบบคอลัมน์ (ผังซ้ายเต็มสูง) หรือแบบกว้าง (ผังเต็มกว้างระหว่างแถบบนกับแถบตารางล่าง) — เลือกอันที่ผังใหญ่กว่า */
+  let A = { w: AW - COL - 8, h: IN.y1 - IN.y0 }, px = IN.x0 + A.w / 2, py = IN.y0 + A.h / 2, SC = fitSc(A);
+  const Bt = (TB ? TB.h : 0) + 10, A2 = { w: AW - 6, h: IN.y1 - IN.y0 - P3_WIDE_T - Bt }, S2 = fitSc(A2);
+  if (S2 < SC) { A = A2; SC = S2; px = IN.x0 + A2.w / 2; py = IN.y0 + Bt + A2.h / 2; }
   const k = SC / 1000;
   const doc = pgDoc({ units: "m", ltscale: k }, media.svg);
+  const gd = p3RotDoc(doc, rot);           // ตัวผังหมุนตามแนวอาคาร · กรอบ/หัวแบบใช้ doc ตรง
   P3_DXF_LAYERS.forEach((L) => doc.layer(L[0], L[1], "CONTINUOUS", L[2]));
   P3_STR_ACI.forEach((col, i) => doc.layer("PG-STR-" + (i + 1), col, "CONTINUOUS", 25));
   doc.layer("PG-STR-EDGE", 250, "CONTINUOUS", 18);      // ขอบแผง + เส้นเดินสาย (เข้ม)
   doc.layer("PG-STR-HALO", 255, "CONTINUOUS", 70);      // เส้นขาวรองใต้เส้นเดินสาย + พื้นวงกลมเลข
   pgTableLayers(doc);
-  const px = IN.x0 + A.w / 2, py = IN.y0 + A.h / 2;
   const ox = (B.minX + B.maxX) / 2 - px * k, oy = (B.minY + B.maxY) / 2 - py * k;
   const sheet = pgSheet(doc, { k, ox, oy, info: p3SheetInfo(st, job, { sheet: "STRING", scale: "1:" + SC, sheetNo: media.sheetNo || "1/1" }) });
   const pen = sheet.pen, AR = sheet.area;
-  const VB = { x0: ox + (IN.x0 + 1) * k, y0: oy + (IN.y0 + 1) * k, x1: ox + (IN.x0 + A.w) * k, y1: oy + (IN.y1 - 1) * k };
+  const VB = { x0: ox + (px - A.w / 2 + 1) * k, y0: oy + (py - A.h / 2 + 1) * k, x1: ox + (px + A.w / 2) * k, y1: oy + (py + A.h / 2 - 1) * k };
   const NL = P3_STR_ACI.length;
   const lay = (id) => "PG-STR-" + ((((+id || 1) - 1) % NL + NL) % NL + 1);
 
   /* หลังคา — ตัดส่วนที่เกินกรอบผังทิ้ง */
   const RP = p3RoofPlan(st, k);
   [["PG-ROOF-TEX", RP.tex], ["PG-ROOF-RIDGE", RP.ridge], ["PG-ROOF", RP.edges]].forEach(([L, E]) =>
-    E.forEach((e) => { const s = p3ClipSeg(e[0], e[1], VB); if (s) doc.line(L, s[0][0], s[0][1], s[1][0], s[1][1]); }));
+    E.forEach((e) => { const s = p3ClipSeg(RR(e[0][0], e[0][1]), RR(e[1][0], e[1][1]), VB); if (s) doc.line(L, s[0][0], s[0][1], s[1][0], s[1][1]); }));
 
   const fp = foot.panels || [];
   const pw = Math.min.apply(null, fp.map((p) => {
@@ -1274,19 +1358,19 @@ function p3StrLayout(st, job, media) {
   /* แผง: ระบายสีสตริง + ขอบเข้ม · แผงที่ยังไม่อยู่สตริงไหน = กรอบเทาอย่างเดียว */
   fp.forEach((p) => {
     const s = sOf[p.uid], P = p.pts.map((q) => [q[0], -q[1]]);
-    if (s) { doc.solid(lay(s.id), P[0], P[1], P[2], P[3]); doc.pline("PG-STR-EDGE", P, true); }
-    else doc.pline("PG-PANEL", P, true);
+    if (s) { gd.solid(lay(s.id), P[0], P[1], P[2], P[3]); gd.pline("PG-STR-EDGE", P, true); }
+    else gd.pline("PG-PANEL", P, true);
   });
   /* วงกลม/จุดทึบ — DXF ไม่มีวงกลมทึบ ใช้แปดเหลี่ยมจาก SOLID 3 ชิ้น */
   const disc = (L, x, y, r) => {
     const v = [];
     for (let i = 0; i < 8; i++) { const t = (i + 0.5) * Math.PI / 4; v.push([x + r * Math.cos(t), y + r * Math.sin(t)]); }
-    doc.solid(L, v[0], v[1], v[2], v[3]); doc.solid(L, v[0], v[3], v[4], v[7]); doc.solid(L, v[7], v[4], v[5], v[6]);
+    gd.solid(L, v[0], v[1], v[2], v[3]); gd.solid(L, v[0], v[3], v[4], v[7]); gd.solid(L, v[7], v[4], v[5], v[6]);
   };
   /* เส้นเดินสายผ่านกลางแผงตามลำดับในสตริง — เส้นขาวกว้างรองใต้ เส้นเข้มทับ (แบบผังในหน้าออกแบบระบบ) */
   const PS = (DS.paths || []).map((q) => ({ id: q.id, pts: (q.pts || []).map((t) => [t[0], -t[1]]) })).filter((q) => q.pts.length);
-  PS.forEach((q) => { if (q.pts.length > 1) doc.pline("PG-STR-HALO", q.pts, false); });
-  PS.forEach((q) => { if (q.pts.length > 1) doc.pline("PG-STR-EDGE", q.pts, false); });
+  PS.forEach((q) => { if (q.pts.length > 1) gd.pline("PG-STR-HALO", q.pts, false); });
+  PS.forEach((q) => { if (q.pts.length > 1) gd.pline("PG-STR-EDGE", q.pts, false); });
   /* ต้นสาย = วงกลมขาวขอบสีสตริง + เลขสตริง · ปลายสาย = จุดเข้ม · เล็กสุด 1.2 มม. บนกระดาษ (งานใหญ่แผงเล็กยังอ่านเลขได้) */
   const R0 = Math.max(Math.min(pw * 0.34, 2.6 * k), 1.2 * k);
   PS.forEach((q) => {
@@ -1296,9 +1380,9 @@ function p3StrLayout(st, job, media) {
   PS.forEach((q) => {
     const c0 = q.pts[0], t = String(q.id);
     disc("PG-STR-HALO", c0[0], c0[1], R0);
-    doc.circle(lay(q.id), c0[0], c0[1], R0);
-    doc.circle(lay(q.id), c0[0], c0[1], R0 * 0.9);
-    doc.text(lay(q.id), c0[0], c0[1], R0 * (t.length > 2 ? 0.72 : t.length > 1 ? 0.95 : 1.1), t, { align: 1, valign: 2, wf: 1 });
+    gd.circle(lay(q.id), c0[0], c0[1], R0);
+    gd.circle(lay(q.id), c0[0], c0[1], R0 * 0.9);
+    gd.text(lay(q.id), c0[0], c0[1], R0 * (t.length > 2 ? 0.72 : t.length > 1 ? 0.95 : 1.1), t, { align: 1, valign: 2, wf: 1 });
   });
 
   const barM = SC / 1000 * 40, bx = AR.x0 + 4, by = AR.y0 + 4;
@@ -1313,23 +1397,10 @@ function p3StrLayout(st, job, media) {
   pen.text("PG-NOTE", RX0, AR.y1 - 19, PG_TS.cell, "SCALE");
   pen.text("PG-NOTE", RX1 - 28, AR.y1 - 18, PG_TS.cell, "A1=1:" + Math.round(SC / 1.414));
   pen.text("PG-NOTE", RX1 - 28, AR.y1 - 22.5, PG_TS.cell, "A3=1:" + SC);
-  pgCompass(pen, RX1 - 12, AR.y1 - 40, 6.5);
+  pgCompass(pen, RX1 - 12, AR.y1 - 40, 6.5, null, rot);
 
-  /* (เดิมมีหมายเหตุอธิบายสี/เส้นมุมล่าง — ผู้ใช้ให้เอาออก) */
-  const MR = p3MpptRows(DS);
-  if (MR.rows.length) {
-    const top = AR.y1 - 52, bottom = AR.y0 + 6;
-    const fit = Math.floor((top - bottom) / RH) - 4;
-    const body = p3MpptTable(MR, Math.max(1, fit));
-    const head = "MPPT CONNECTION" + (MR.per ? " · " + MR.per + " MPPT/เครื่อง" : "") + (MR.phys ? " · " + MR.phys + " ช่อง/MPPT" : "");
-    const SS = DS.strings || [];
-    const rows = [["#", head], ["INV · MPPT", "สตริง (แผง)", "แผง"]].concat(body);
-    rows.push(["รวม", SS.length + " สตริง", SS.reduce((t, s) => t + s.n, 0) + ""]);
-    /* ความกว้างคอลัมน์ตามข้อความจริง (ผู้ใช้: ช่องยาวเกินไป — เดิมยืดเต็มคอลัมน์ขวา 128 มม.) · หัวตารางต้องพอด้วย */
-    const cw = [0, 1, 2].map((i) => Math.max.apply(null, rows.filter((r) => r[0] !== "#").map((r) => String(r[i] == null ? "" : r[i]).length)) * PG_TS.cell * 0.52 + 4.5);
-    const tw = Math.min(COL, Math.max(cw[0] + cw[1] + cw[2], head.length * PG_TS.cell * 1.15 * 0.52 + 6));
-    pgGrid(pen, RX0, top, tw, cw, rows, { rh: RH, th: PG_TS.cell, align: [0, 0, 2], headRow: 1 });
-  }
+  /* (เดิมมีหมายเหตุอธิบายสี/เส้นมุมล่าง — ผู้ใช้ให้เอาออก) · ตาราง MPPT ชิดขวาล่าง */
+  if (TB) pgGrid(pen, RX1 - TB.tw, AR.y0 + 4 + TB.h, TB.tw, TB.cw, TB.rows, { rh: RH, th: PG_TS.cell, align: [0, 0, 2], headRow: 1 });
   return doc.build();
 }
 

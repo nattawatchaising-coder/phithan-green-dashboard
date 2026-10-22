@@ -743,8 +743,8 @@ function pgWrap(s, per) {
 function pgSheetLayers(doc) {
   doc.ltype("PG-DASH", "Dashed __ __ __", [6, -3]);
   doc.ltype("PG-DOT", "Dotted . . . .", [0.4, -2.4]);
-  doc.layer(PG_LAY.frame, PG_ACI.white, "CONTINUOUS", 50);
-  doc.layer(PG_LAY.tb, PG_ACI.white, "CONTINUOUS", 25);
+  doc.layer(PG_LAY.frame, PG_ACI.white, "CONTINUOUS", 35);   // เดิม 0.50 / 0.25 — ผู้ใช้ว่าเส้นกรอบหนาไป
+  doc.layer(PG_LAY.tb, PG_ACI.white, "CONTINUOUS", 13);
   doc.layer(PG_LAY.txt, PG_ACI.white, "CONTINUOUS", 18);
   doc.layer(PG_LAY.thin, PG_ACI.ltgrey, "CONTINUOUS", 9);
   doc.layer(PG_LAY.logo, PG_ACI.green, "CONTINUOUS", 35);
@@ -1061,18 +1061,23 @@ function pgSpecBlock(pen, x, y, w, title, pairs, o) {
 }
 
 /* เข็มทิศแบบที่ใช้ในแบบจริง — เข็มทึบชี้เหนือ มีองศา 0/90/180 กำกับ */
-function pgCompass(pen, x, y, r, layer) {
+/* เข็มทิศ · rot = องศาที่ผังถูกหมุน (ทวนเข็ม) — ลูกศรชี้ทิศเหนือจริงของผัง ตัวหนังสือตั้งตรง */
+function pgCompass(pen, x, y, r, layer, rot) {
   const L = layer || "PG-NORTH";
+  const a = (+rot || 0) * Math.PI / 180, ca = Math.cos(a), sa = Math.sin(a);
+  const R = (dx, dy) => [x + dx * ca - dy * sa, y + dx * sa + dy * ca];
+  const ln = (p, q) => pen.line(L, p[0], p[1], q[0], q[1]);
+  const tx = (dx, dy, h, s) => { const p = R(dx, dy); pen.text(L, p[0], p[1], h, s, { align: 1, valign: 2 }); };
   pen.circle(L, x, y, r);
-  pen.line(L, x - r * 1.25, y, x + r * 1.25, y);
-  pen.line(L, x, y - r * 1.25, x, y + r * 1.25);
+  ln(R(-r * 1.25, 0), R(r * 1.25, 0));
+  ln(R(0, -r * 1.25), R(0, r * 1.25));
   const q = r * 0.26;
-  pen.solid(L, [x, y + r * 1.15], [x - q, y - r * 0.55], [x, y - r * 0.3], [x + q, y - r * 0.55]);
-  pen.text(L, x, y + r * 1.9, 2.4, "NORTH", { align: 1, valign: 1 });
-  pen.text(L, x, y + r * 1.42, 2.0, "0" + "%%d", { align: 1, valign: 1 });
-  pen.text(L, x, y - r * 1.95, 2.0, "180" + "%%d", { align: 1, valign: 1 });
-  pen.text(L, x - r * 1.35, y, 2.0, "90" + "%%d", { align: 2, valign: 2 });
-  pen.text(L, x + r * 1.35, y, 2.0, "90" + "%%d", { align: 0, valign: 2 });
+  pen.solid(L, R(0, r * 1.15), R(-q, -r * 0.55), R(0, -r * 0.3), R(q, -r * 0.55));
+  tx(0, r * 2.15, 2.4, "NORTH");
+  tx(0, r * 1.55, 2.0, "0" + "%%d");
+  tx(0, -r * 1.65, 2.0, "180" + "%%d");
+  tx(-r * 1.75, 0, 2.0, "270" + "%%d");
+  tx(r * 1.75, 0, 2.0, "90" + "%%d");
 }
 
 /* หน้าแผงแบบแบบจริง: กรอบอะลูมิเนียมเส้นคู่ + ตารางเซลล์ nc × nr อยู่ในกรอบใน + รูยึดเล็กบนขอบยาว (ผู้ใช้: รูปแผงเดิมดูไม่สวย)
