@@ -1592,53 +1592,87 @@ function pgCompass(pen, x, y, r, layer) {
     valign: 2
   });
 }
+function pgModFace(pen, L, Lc, x, y, w, h, nc, nr, holes) {
+  const f = Math.max(0.35, Math.min(w, h) * 0.035);
+  pen.rect(L, x, y, w, h);
+  pen.rect(L, x + f, y + f, w - 2 * f, h - 2 * f);
+  const ix = x + f,
+    iy = y + f,
+    iw = w - 2 * f,
+    ih = h - 2 * f;
+  if (nc) for (let i = 1; i < nc; i++) pen.line(Lc, ix + iw * i / nc, iy, ix + iw * i / nc, iy + ih);
+  if (nr) for (let j = 1; j < nr; j++) pen.line(Lc, ix, iy + ih * j / nr, ix + iw, iy + ih * j / nr);
+  if (holes) [0.22, 0.78].forEach(t => {
+    const hy = y + h * t,
+      hh = Math.max(0.6, f * 1.6),
+      hw = f * 0.55;
+    pen.rect(L, x + f * 0.2, hy - hh / 2, hw, hh);
+    pen.rect(L, x + w - f * 0.2 - hw, hy - hh / 2, hw, hh);
+  });
+  return {
+    x: ix,
+    y: iy,
+    w: iw,
+    h: ih,
+    f
+  };
+}
 function pgModuleDetail(pen, x, y, h, o) {
   o = o || {};
   const L = PG_TBL.line,
     T = PG_TBL.txt,
-    R = "PG-DETAIL";
+    C = PG_TBL.txt;
   const wMm = +o.wMm || 1134,
     hMm = +o.hMm || 2382,
     tMm = +o.tMm || 30;
   const w = h * (wMm / hMm);
-  const tw = Math.max(1.2, h * (tMm / hMm) * 6);
-  const gap = 5;
-  pen.rect(R, x, y, w, h);
-  const nc = 6;
-  for (let i = 1; i < nc; i++) pen.line(L, x + w * i / nc, y + 1, x + w * i / nc, y + h - 1);
-  for (let i = 1; i < 12; i++) pen.line(L, x + 1, y + h * i / 12, x + w - 1, y + h * i / 12);
-  pen.text(T, x + w / 2, y - 4.4, 2.2, "FRONT", {
-    align: 1,
-    valign: 1
-  });
-  pen.line(L, x + w / 2 - 6, y - 5.2, x + w / 2 + 6, y - 5.2);
+  const tw = Math.max(1.6, h * (tMm / hMm) * 4);
+  const gap = 6;
+  const cap = (cx, s) => {
+    pen.text(T, cx, y - 4.4, 2.2, s, {
+      align: 1,
+      valign: 1
+    });
+    const hw = s.length * 2.2 * 0.32 + 1.5;
+    pen.line(L, cx - hw, y - 5.2, cx + hw, y - 5.2);
+  };
+  pgModFace(pen, L, C, x, y, w, h, 6, 12, true);
+  cap(x + w / 2, "FRONT");
   const sx = x + w + gap;
-  pen.rect(R, sx, y, tw, h);
-  pen.text(T, sx + tw / 2, y - 4.4, 2.2, "SIDE", {
-    align: 1,
-    valign: 1
-  });
-  pen.line(L, sx + tw / 2 - 5, y - 5.2, sx + tw / 2 + 5, y - 5.2);
+  pen.rect(L, sx, y, tw, h);
+  pen.line(C, sx + tw * 0.3, y + 0.6, sx + tw * 0.3, y + h - 0.6);
+  pen.line(L, sx, y + 1.2, sx + tw, y + 1.2);
+  pen.line(L, sx, y + h - 1.2, sx + tw, y + h - 1.2);
+  cap(sx + tw / 2, "SIDE");
   const bx = sx + tw + gap;
-  pen.rect(R, bx, y, w, h);
-  const jy = y + h * 0.62,
-    jx = bx + w / 2;
-  pen.dot(L, jx, jy, 0.7);
-  pen.text(T, jx, jy - 3.4, 1.9, "Junction Box", {
+  const fi = pgModFace(pen, L, null, bx, y, w, h, 0, 0, true);
+  pen.line(C, fi.x, y + h * 0.5, fi.x + fi.w, y + h * 0.5);
+  const jw = w * 0.26,
+    jh = h * 0.045,
+    jx = bx + w / 2 - jw / 2,
+    jy = y + h * 0.84;
+  pen.rect(L, jx, jy, jw, jh);
+  pen.line(C, jx + jw * 0.33, jy, jx + jw * 0.33, jy + jh);
+  pen.line(C, jx + jw * 0.67, jy, jx + jw * 0.67, jy + jh);
+  const mc = (sgn, lab) => {
+    const x0 = sgn < 0 ? jx : jx + jw,
+      x1 = x0 + sgn * w * 0.16,
+      y1 = jy - h * 0.14;
+    pen.line(L, x0, jy + jh / 2, x1, jy + jh / 2);
+    pen.line(L, x1, jy + jh / 2, x1, y1);
+    pen.rect(L, x1 - 0.8, y1 - 2.6, 1.6, 2.6);
+    pen.text(T, x1, y1 - 3.6, 1.9, lab, {
+      align: 1,
+      valign: 3
+    });
+  };
+  mc(-1, "+");
+  mc(1, "-");
+  pen.text(T, bx + w / 2, jy + jh + 1.2, 1.7, "JUNCTION BOX", {
     align: 1,
     valign: 1
   });
-  pen.line(L, jx, jy, jx - w * 0.3, jy + h * 0.055);
-  pen.line(L, jx, jy, jx + w * 0.3, jy + h * 0.055);
-  pen.text(T, bx + 2, jy + h * 0.075, 1.9, "+ Anode");
-  pen.text(T, bx + w - 2, jy + h * 0.075, 1.9, "Cathode -", {
-    align: 2
-  });
-  pen.text(T, bx + w / 2, y - 4.4, 2.2, "BACK SIDE", {
-    align: 1,
-    valign: 1
-  });
-  pen.line(L, bx + w / 2 - 8, y - 5.2, bx + w / 2 + 8, y - 5.2);
+  cap(bx + w / 2, "BACK SIDE");
   const dim = (x0, y0, x1, y1, txt, vert) => {
     pen.line(L, x0, y0, x1, y1);
     pen.dot(L, x0, y0, 0.5);
@@ -2950,6 +2984,7 @@ Object.assign(window, {
   pgSpecBlock,
   pgCompass,
   pgModuleDetail,
+  pgModFace,
   pgPhotoFrame,
   pgDcString,
   pgDcSize,

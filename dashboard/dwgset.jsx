@@ -359,7 +359,7 @@ function dsNotesSheet(st, job, media) {
       pen.circle(PG_SLD.sym, x - 3.4, y, 0.75); pen.circle(PG_SLD.sym, x + 3.4, y, 0.75); pen.arc(PG_SLD.sym, x, y, 4.3, 28, 152); }, "เบรกเกอร์", "MCB / MCCB / RCCB"],
     [(x, y) => { pen.rect(PG_SLD.sym, x - 3.2, y - 1.2, 6.4, 2.4); pen.line(PG_SLD.wire, x - 9, y, x + 9, y); }, "ฟิวส์", "FUSE (gPV / gG)"],
     [(x, y) => pgSym.spd(pen, x, y), "อุปกรณ์ป้องกันฟ้าผ่า/แรงดันเกิน", "SPD"],
-    [(x, y) => { pen.line(PG_SLD.wire, x - 3, y - 4, x - 3, y + 4); pgSym.ct(pen, x - 3, y); }, "หม้อแปลงกระแส", "CT"],
+    [(x, y) => { pen.line(PG_SLD.wire, x - 9, y, x + 9, y); pen.circle(PG_SLD.sym, x, y, 2.6); pen.line(PG_SLD.sym, x - 1, y - 2.5, x - 1, y - 4); pen.line(PG_SLD.sym, x + 1, y - 2.5, x + 1, y - 4); pen.dot(PG_SLD.sym, x - 1, y - 4, 0.35); pen.dot(PG_SLD.sym, x + 1, y - 4, 0.35); }, "หม้อแปลงกระแส (สายเมนผ่านวงแหวน)", "CT"],
     [(x, y) => { pen.circle(PG_SLD.sym, x, y, 3.3); pen.text(PG_SLD.txt, x, y, 1.9, "kWh", { align: 1, valign: 2 }); }, "มิเตอร์ไฟฟ้า", "kWh METER"],
     [(x, y) => { pen.line(PG_SLD.pe, x, y + 3.5, x, y + 0.6); pgSym.ground(pen, x, y + 0.6); }, "หลักดิน", "EARTH ROD"],
     [(x, y) => pgSym.utility(pen, x, y, 3.2), "ระบบไฟฟ้าของการไฟฟ้า", "UTILITY GRID"],
@@ -583,9 +583,10 @@ function dsShow(a, b, max) {
 }
 /* แผงหนึ่งใบแนวตั้ง (x, y = มุมล่างซ้าย) · up = ขั้วออกขอบบน · negR = ขั้วลบอยู่ขวา · คืนปลายขั้ว */
 function dsModule(pen, x, y, w, h, label, up, negR) {
-  pen.rect(DL("mod"), x, y, w, h);
-  for (let r = 1; r < 6; r++) pen.line(DL("cell"), x + 0.8, y + h * r / 6, x + w - 0.8, y + h * r / 6);
-  pen.text(PG_TBL.txt, x + w / 2, y + h * 11 / 12, Math.min(PG_TS.cell, w / (label.length * 0.62)), label, { align: 1, valign: 2 });
+  /* หน้าแผงแบบเดียวกับรูปแผง (กรอบคู่ + เซลล์ 6 × 12) · ชื่อแผงอยู่นอกแผงฝั่งที่ไม่มีสาย ไม่ทับเซลล์ */
+  pgModFace(pen, DL("mod"), DL("cell"), x, y, w, h, 6, 12, false);
+  const th = Math.min(PG_TS.cell, w / (label.length * 0.62));
+  pen.text(PG_TBL.txt, x + w / 2, up ? y - 1.2 : y + h + 1.2, th, label, { align: 1, valign: up ? 3 : 1 });
   const yl = up ? y + h : y, d = up ? 4 : -4;
   const xl = x + w * 0.3, xr = x + w * 0.7, xn = negR ? xr : xl, xp = negR ? xl : xr;
   pen.line(DL("dcn"), xn, yl, xn, yl + d); pen.line(DL("dcp"), xp, yl, xp, yl + d);

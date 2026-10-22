@@ -891,7 +891,7 @@ function p3MeasLen(m) {
 }
 const P3_DXF_LAYERS = [["PG-BG", 8, 5], ["PG-ROOF", 7, 35], ["PG-PANEL", 5, 25], ["PG-OBSTACLE", 3, 20], ["PG-MEAS-CABLE", 30, 30], ["PG-MEAS-CONDUIT", 140, 30], ["PG-MEAS-TRAY", 200, 30], ["PG-MEAS-LADDER", 6, 30], ["PG-MEAS-WALKWAY", 4, 30], ["PG-MEAS-GUARDRAIL", 1, 30], ["PG-MEAS-OTHER", 8, 30], ["PG-DIM", 1, 18], ["PG-NORTH", 8, 25], ["PG-NOTE", 8, 18], ["PG-STRING", 6, 25]];
 const p3MeasLayer = k => "PG-MEAS-" + String(k || "other").toUpperCase();
-const P3_SCALES = [50, 100, 150, 200, 250, 300, 400, 500, 600, 800, 1000, 1250, 1500, 2000];
+const P3_SCALES = [50, 75, 100, 125, 150, 200, 250, 300, 400, 500, 600, 750, 800, 1000, 1250, 1500, 2000];
 function p3ImgPlace(kind, st, aspect) {
   if (kind === "map") {
     const W = Math.max(2, +(st.baseMap && st.baseMap.widthM) || 30);
@@ -981,7 +981,7 @@ function p3PlanView(st) {
     h: IN.y1 - IN.y0
   };
   const B = p3PlanBox(st, null);
-  const m = Math.max(6, 0.15 * Math.max(B.maxX - B.minX, B.maxY - B.minY));
+  const m = Math.max(3, 0.05 * Math.max(B.maxX - B.minX, B.maxY - B.minY));
   const needW = B.maxX - B.minX + 2 * m,
     needH = B.maxY - B.minY + 2 * m;
   const SC = P3_SCALES.find(s => needW * 1000 <= A.w * s && needH * 1000 <= A.h * s) || P3_SCALES[P3_SCALES.length - 1];
