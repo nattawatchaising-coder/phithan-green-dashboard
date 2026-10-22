@@ -2867,8 +2867,7 @@ function pgSldPro(doc, sheet, M) {
       });
     });
   }
-  const tcx = (A.x0 + RX0) / 2;
-  pgSheetTitle(pen, tcx, titleY + 3.5, "SINGLE LINE DIAGRAM SOLAR PV SYSTEM", PG_TS.title, RX0 - A.x0 - 10, 1, null);
+  pgSheetTitle(pen, A.x0 + 4, titleY + 4, "SINGLE LINE DIAGRAM SOLAR PV SYSTEM", PG_TS.title, RX0 - A.x0 - 10, 0, null);
 }
 function pgSldDraw(doc, sheet, M) {
   if (M.pro && M.mppt && M.mppt.rows.some(r => r.ins.length) && M.mode === "string" && !M.batt) return pgSldPro(doc, sheet, M);

@@ -1996,8 +1996,7 @@ function pgSldPro(doc, sheet, M) {
   }
   /* ชื่อแผ่นขนาดเดียวกับแผ่นอื่น (เดิม 4.4 บรรทัดเดียว — ผู้ใช้ว่าเล็กไป) · บรรทัดรองใต้เส้น */
   /* ชื่อแผ่นอยู่ใต้ตัวไดอะแกรม (ผู้ใช้ย้ายจากล่างคอลัมน์ขวา) — คอลัมน์ขวาได้ที่ให้หมายเหตุ/สัญลักษณ์เพิ่ม */
-  const tcx = (A.x0 + RX0) / 2;
-  pgSheetTitle(pen, tcx, titleY + 3.5, "SINGLE LINE DIAGRAM SOLAR PV SYSTEM", PG_TS.title, RX0 - A.x0 - 10, 1, null);   // บรรทัดเดียวยาว (ผู้ใช้: เขียนยาวไปเลย)
+  pgSheetTitle(pen, A.x0 + 4, titleY + 4, "SINGLE LINE DIAGRAM SOLAR PV SYSTEM", PG_TS.title, RX0 - A.x0 - 10, 0, null);   // บรรทัดเดียวยาว · มุมซ้ายล่างชิดซ้ายแบบแผ่นอื่น (ผู้ใช้ย้าย)
 }
 function pgSldDraw(doc, sheet, M) {
   if (M.pro && M.mppt && M.mppt.rows.some((r) => r.ins.length) && M.mode === "string" && !M.batt) return pgSldPro(doc, sheet, M);
