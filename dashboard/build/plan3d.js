@@ -2156,6 +2156,34 @@ function p3MpptRows(design) {
   };
 }
 const p3MpptCell = r => r.ins.length ? r.ins.map(x => "S" + x.id + "(" + x.n + ")").join(" + ") : "ว่าง";
+function p3MpptMatrix(MR) {
+  const g = {};
+  let nm = MR.per || 0;
+  MR.rows.forEach(r => {
+    (g[r.inv] = g[r.inv] || {})[r.mppt] = r;
+    nm = Math.max(nm, r.mppt);
+  });
+  const head = ["INV"].concat(Array.from({
+    length: nm
+  }, (_, j) => "MPPT" + (j + 1)), ["แผง"]);
+  const rows = Object.keys(g).sort((a, b) => a - b).map(i => {
+    const R = g[i];
+    let p = 0;
+    const cells = Array.from({
+      length: nm
+    }, (_, j) => {
+      const r = R[j + 1];
+      if (!r || !r.ins.length) return "-";
+      p += r.panels;
+      return r.ins.map(x => "S" + x.id).join("+");
+    });
+    return ["INV" + i].concat(cells, [p + ""]);
+  });
+  return {
+    head,
+    rows
+  };
+}
 function p3MpptTable(MR, fit) {
   if (MR.rows.length <= fit) return MR.rows.map(r => ["INV" + r.inv + " · MPPT" + r.mppt, p3MpptCell(r), r.panels ? r.panels + "" : "-"]);
   const g = {};
@@ -2261,17 +2289,31 @@ function p3StrLayout(st, job, media) {
   const MR = p3MpptRows(DS);
   let TB = null;
   if (MR.rows.length) {
-    const body = p3MpptTable(MR, 14);
     const head = "MPPT CONNECTION" + (MR.per ? " · " + MR.per + " MPPT/เครื่อง" : "") + (MR.phys ? " · " + MR.phys + " ช่อง/MPPT" : "");
     const SS = DS.strings || [];
-    const rows = [["#", head], ["INV · MPPT", "สตริง (แผง)", "แผง"]].concat(body);
-    rows.push(["รวม", SS.length + " สตริง", SS.reduce((t, s) => t + s.n, 0) + ""]);
-    const cw = [0, 1, 2].map(i => Math.max.apply(null, rows.filter(r => r[0] !== "#").map(r => String(r[i] == null ? "" : r[i]).length)) * PG_TS.body * 0.52 + 6);
-    const tw = Math.min(COL + 20, Math.max(cw[0] + cw[1] + cw[2], head.length * PG_TS.body * 1.15 * 0.52 + 8));
+    const nS = SS.length,
+      nP = SS.reduce((t, s) => t + s.n, 0);
+    const MX = MR.rows.length > 14 ? p3MpptMatrix(MR) : null;
+    let rows, align;
+    if (MX) {
+      rows = [["#", head], MX.head].concat(MX.rows);
+      rows.push(["รวม"].concat(MX.head.slice(1, -1).map((_, i) => i ? "" : nS + " สตริง"), [nP + ""]));
+      align = MX.head.map((_, i) => i ? 1 : 0);
+    } else {
+      rows = [["#", head], ["INV · MPPT", "สตริง (แผง)", "แผง"]].concat(p3MpptTable(MR, 14));
+      rows.push(["รวม", nS + " สตริง", nP + ""]);
+      align = [0, 0, 1];
+    }
+    const nc = rows[1].length;
+    const cw = Array.from({
+      length: nc
+    }, (_, i) => Math.max.apply(null, rows.filter(r => r[0] !== "#" && r[0] !== "รวม").map(r => String(r[i] == null ? "" : r[i]).length)) * PG_TS.body * 0.52 + (MX ? 4 : 6));
+    const tw = Math.min(MX ? AW - 20 : COL + 20, Math.max(cw.reduce((t, w) => t + w, 0), head.length * PG_TS.body * 1.15 * 0.52 + 8));
     TB = {
       rows,
       cw,
       tw,
+      align,
       h: rows.length * P3_TBL_RH
     };
   }
@@ -2416,7 +2458,7 @@ function p3StrLayout(st, job, media) {
   if (TB) pgGrid(pen, RX1 - TB.tw, AR.y0 + 4 + TB.h, TB.tw, TB.cw, TB.rows, {
     rh: P3_TBL_RH,
     th: PG_TS.body,
-    align: [0, 0, 1],
+    align: TB.align,
     headRow: 1
   });
   return doc.build();
