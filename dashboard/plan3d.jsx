@@ -1170,7 +1170,10 @@ function p3StrLayout(st, job, media) {
     const SS = DS.strings || [];
     const rows = [["#", head], ["INV · MPPT", "สตริง (แผง)", "แผง"]].concat(body);
     rows.push(["รวม", SS.length + " สตริง", SS.reduce((t, s) => t + s.n, 0) + ""]);
-    pgGrid(pen, RX0, top, COL, [1.1, 2.4, 0.5], rows, { rh: RH, th: PG_TS.cell, align: [0, 0, 2], headRow: 1 });
+    /* ความกว้างคอลัมน์ตามข้อความจริง (ผู้ใช้: ช่องยาวเกินไป — เดิมยืดเต็มคอลัมน์ขวา 128 มม.) · หัวตารางต้องพอด้วย */
+    const cw = [0, 1, 2].map((i) => Math.max.apply(null, rows.filter((r) => r[0] !== "#").map((r) => String(r[i] == null ? "" : r[i]).length)) * PG_TS.cell * 0.52 + 4.5);
+    const tw = Math.min(COL, Math.max(cw[0] + cw[1] + cw[2], head.length * PG_TS.cell * 1.15 * 0.52 + 6));
+    pgGrid(pen, RX0, top, tw, cw, rows, { rh: RH, th: PG_TS.cell, align: [0, 0, 2], headRow: 1 });
   }
   return doc.build();
 }
