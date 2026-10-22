@@ -262,7 +262,7 @@ function pgDxf(opt) {
       w(21, num(y));
       w(31, 0);
       w(100, "AcDbText");
-      if (va) w(73, va);
+      if (va > 1) w(73, va);
       grow(x, y);
       grow(x + String(s || "").length * h2 * 0.6, y + h2);
       return push(b);

@@ -570,6 +570,9 @@ function p3RotDoc(doc, deg) {
 /* ── แผงบนผังเป็น BLOCK "PV-PANEL" (ผู้ใช้: ทำแผงที่วาดเป็น block — แก้/นับ/เปลี่ยนรูปใน CAD ทีเดียวทั้งแบบ) ──
    บล็อกขนาด 1 × 1 (x = ด้านสั้น 3 แถวเซลล์ · y = ด้านยาว 6 แถว) วางด้วย insert ย่อ/ขยายตามขนาดแผงจริง หมุนตามแนวแผง
    P = สี่มุมบนผัง [[x, y] ×4] (y ขึ้น) · รอยเท้าไม่เป็นสี่เหลี่ยมมุมฉาก (หลังคาเอียง+ชุดหมุนแปลก ๆ) = วาดเส้นรอบรูปเหมือนเดิม */
+/* แถวตารางใหญ่ (MPPT ผังสตริง · ตารางผังวางแผง) สัดส่วนแถว:ตัวหนังสือ ≈ 2.1 เท่าตารางสรุปโครงการ (4.6 : 2.2)
+   (ผู้ใช้: ตาราง 5.8 สูงไป ไม่สมส่วน ชอบแบบตารางสรุปโครงการ) */
+const P3_TBL_RH = 5.2;
 function p3PanelBlock(doc, name) {
   if (!doc.block) return false;
   /* PV-PANEL-L = กรอบอย่างเดียว ใช้ทับพื้นสีสตริงในผังสตริง (ผู้ใช้: แผงหน้านี้อยากได้สี ๆ) */
@@ -1430,7 +1433,7 @@ function p3StrLayout(st, job, media) {
     /* ตัวหนังสือ/แถวใหญ่ขึ้น (ผู้ใช้: ตารางเล็กไป ไม่สมส่วน) */
     const cw = [0, 1, 2].map((i) => Math.max.apply(null, rows.filter((r) => r[0] !== "#").map((r) => String(r[i] == null ? "" : r[i]).length)) * PG_TS.body * 0.52 + 6);
     const tw = Math.min(COL + 20, Math.max(cw[0] + cw[1] + cw[2], head.length * PG_TS.body * 1.15 * 0.52 + 8));
-    TB = { rows, cw, tw, h: rows.length * 5.8 };
+    TB = { rows, cw, tw, h: rows.length * P3_TBL_RH };
   }
   const needW = B.maxX - B.minX, needH = B.maxY - B.minY;
   const fitSc = (A) => P3_SCALES.find((s) => needW * 1000 <= A.w * 0.94 * s && needH * 1000 <= A.h * 0.94 * s) || P3_SCALES[P3_SCALES.length - 1];
@@ -1521,7 +1524,7 @@ function p3StrLayout(st, job, media) {
   pgCompass(pen, RX1 - 12, AR.y1 - 40, 6.5, null, rot);
 
   /* (เดิมมีหมายเหตุอธิบายสี/เส้นมุมล่าง — ผู้ใช้ให้เอาออก) · ตาราง MPPT ชิดขวาล่าง */
-  if (TB) pgGrid(pen, RX1 - TB.tw, AR.y0 + 4 + TB.h, TB.tw, TB.cw, TB.rows, { rh: 5.8, th: PG_TS.body, align: [0, 0, 2], headRow: 1 });
+  if (TB) pgGrid(pen, RX1 - TB.tw, AR.y0 + 4 + TB.h, TB.tw, TB.cw, TB.rows, { rh: P3_TBL_RH, th: PG_TS.body, align: [0, 0, 2], headRow: 1 });
   return doc.build();
 }
 

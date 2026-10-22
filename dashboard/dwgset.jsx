@@ -139,7 +139,7 @@ function dsPlanHead(P, title) {
 }
 /* ตาราง + หมายเหตุในคอลัมน์ขวา · ตารางยาวเกินที่ = ยุบแถวกลาง เหลือแถวท้าย (รวม) เสมอ */
 function dsRight(P, rows, cols, notes, align) {
-  const pen = P.pen, AR = P.AR, RH = 5.8;   // แถว/ตัวหนังสือขนาดเดียวกับตาราง MPPT ผังสตริง
+  const pen = P.pen, AR = P.AR, RH = P3_TBL_RH;   // แถว/ตัวหนังสือขนาดเดียวกับตาราง MPPT ผังสตริง
   const nh = notes && notes.length ? dsNoteH(notes, P.RW) : 0;
   /* โหมดกว้าง: ตารางย้ายลงแถบล่าง (เหนือหมายเหตุ) ไม่ทับผังกลางแผ่น */
   const yTop = P.V.wide ? PG_SHEET.IN.y0 + P3_WIDE_B - 8 : AR.y1 - 54, yMin = AR.y0 + 4 + nh + 6;

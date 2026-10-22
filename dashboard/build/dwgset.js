@@ -234,7 +234,7 @@ function dsPlanHead(P, title) {
 function dsRight(P, rows, cols, notes, align) {
   const pen = P.pen,
     AR = P.AR,
-    RH = 5.8;
+    RH = P3_TBL_RH;
   const nh = notes && notes.length ? dsNoteH(notes, P.RW) : 0;
   const yTop = P.V.wide ? PG_SHEET.IN.y0 + P3_WIDE_B - 8 : AR.y1 - 54,
     yMin = AR.y0 + 4 + nh + 6;

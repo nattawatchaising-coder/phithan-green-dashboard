@@ -182,7 +182,9 @@ function pgDxf(opt) {
       if (ha) w(72, ha);
       w(11, num(x)); w(21, num(y)); w(31, 0);
       w(100, "AcDbText");                 // R2000 ต้องซ้ำ subclass ก่อนกลุ่ม 73
-      if (va) w(73, va);
+      /* valign 1 = เส้นฐาน เหมือนตัวอย่าง SVG — 73=1 ของ CAD คือ "ล่างสุดรวมหางตัวอักษร" ฟอนต์ไทยหางยาว ตัวหนังสือเลยลอยชิดเส้นบนของช่องตาราง
+         (ผู้ใช้: ตารางใน CAD ไม่สมส่วน) */
+      if (va > 1) w(73, va);
       grow(x, y); grow(x + String(s || "").length * h2 * 0.6, y + h2);
       return push(b);
     },

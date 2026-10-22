@@ -1023,6 +1023,7 @@ function p3RotDoc(doc, deg) {
     }
   };
 }
+const P3_TBL_RH = 5.2;
 function p3PanelBlock(doc, name) {
   if (!doc.block) return false;
   if (name === "PV-PANEL-L") {
@@ -2273,7 +2274,7 @@ function p3StrLayout(st, job, media) {
       rows,
       cw,
       tw,
-      h: rows.length * 5.8
+      h: rows.length * P3_TBL_RH
     };
   }
   const needW = B.maxX - B.minX,
@@ -2423,7 +2424,7 @@ function p3StrLayout(st, job, media) {
   }
   pgCompass(pen, RX1 - 12, AR.y1 - 40, 6.5, null, rot);
   if (TB) pgGrid(pen, RX1 - TB.tw, AR.y0 + 4 + TB.h, TB.tw, TB.cw, TB.rows, {
-    rh: 5.8,
+    rh: P3_TBL_RH,
     th: PG_TS.body,
     align: [0, 0, 2],
     headRow: 1
