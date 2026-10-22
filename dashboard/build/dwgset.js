@@ -18,10 +18,10 @@ const DS_LAY = {
   earth: ["DS-EARTH", 3, 35],
   eq: ["DS-EQUIP", 7, 30],
   flow: ["DS-FLOW", 8, 13],
-  cov: ["DS-COVER", 5, 50],
-  cov2: ["DS-COVER-2", 6, 18],
-  covT: ["DS-COVER-TEXT", 5, 25],
-  covC: ["DS-COVER-CO", 3, 25]
+  cov: ["DS-COVER", 7, 50],
+  cov2: ["DS-COVER-2", 7, 18],
+  covT: ["DS-COVER-TEXT", 7, 25],
+  covC: ["DS-COVER-CO", 7, 25]
 };
 const DL = k => DS_LAY[k][0];
 function dsLayers(doc) {
@@ -405,47 +405,47 @@ function dsCover(st, job, media) {
   const ground = withPanel.length > 0 && withPanel.every(r => r.p3sGround);
   const th = "ระบบผลิตไฟฟ้าด้วยเซลล์แสงอาทิตย์ชนิดติดตั้ง" + (ground ? "บนพื้นดิน" : "บนหลังคา") + "ขนาด " + kwp + " กิโลวัตต์";
   const en = "(Solar PV " + (ground ? "Ground-Mounted" : "Rooftop") + " System - " + kwp + " kWp.)";
-  pen.text(T, cx, 232, 7.2, th, {
+  pen.text(T, cx, 238, 10.5, th, {
     align: 1,
     valign: 2
   });
-  pen.text(T, cx, 219, 6.0, en, {
+  pen.text(T, cx, 221, 8.5, en, {
     align: 1,
     valign: 2
   });
-  const own = pgWrap(job && job.name || "-", 70);
-  own.slice(0, 2).forEach((s, i) => pen.text(T, cx, 186 - i * 7.5, 6.0, s, {
+  const own = pgWrap(job && job.name || "-", 50);
+  own.slice(0, 2).forEach((s, i) => pen.text(T, cx, 190 - i * 11, 9.0, s, {
     align: 1,
     valign: 2
   }));
   const bm = st.baseMap || {},
     lat = +bm.lat,
     lng = +bm.lng;
-  const yLoc = 186 - Math.min(2, own.length) * 7.5 - 1.5;
-  if (isFinite(lat) && isFinite(lng) && (lat || lng)) pen.text(T, cx, yLoc, 4.6, "Location : " + lat.toFixed(6) + ", " + lng.toFixed(6), {
+  const yLoc = 190 - Math.min(2, own.length) * 11 - 1;
+  if (isFinite(lat) && isFinite(lng) && (lat || lng)) pen.text(T, cx, yLoc, 6.5, "Location : " + lat.toFixed(6) + ", " + lng.toFixed(6), {
     align: 1,
     valign: 2
-  });else if (I.address) pen.text(T, cx, yLoc, 4.2, pgWrap(I.address, 90)[0], {
+  });else if (I.address) pen.text(T, cx, yLoc, 6.0, pgWrap(I.address, 70)[0], {
     align: 1,
     valign: 2
   });
-  pen.text(T, cx, 136, 9.0, "SHOP-DRAWING", {
+  pen.text(T, cx, 132, 15.0, "SHOP-DRAWING", {
     align: 1,
     valign: 2,
     wf: 1
   });
   const nEN = B.legal || "FLASHPLUSSOLAR CO., LTD.",
     nTH = B.legalTH || "";
-  const tW = Math.max(nEN.length * 7 * 0.6, nTH.length * 5.6 * 0.5);
+  const tW = Math.max(nEN.length * 9.5 * 0.6, nTH.length * 7.5 * 0.5);
   const LG = I.logo;
   let lw = 0,
-    lh = 24;
+    lh = 30;
   if (LG && LG.pxW && LG.pxH) {
     lw = Math.min(70, lh * LG.pxW / LG.pxH);
     lh = lw * LG.pxH / LG.pxW;
   } else lw = 22;
-  const gx = cx - (lw + 6 + tW) / 2,
-    gy = 80;
+  const gx = cx - (lw + 7 + tW) / 2,
+    gy = 74;
   if (LG && LG.pxW && LG.pxH) {
     doc.layer("PG-LOGO-IMG", PG_ACI.white, "CONTINUOUS", 0);
     doc.image("PG-LOGO-IMG", {
@@ -460,15 +460,15 @@ function dsCover(st, job, media) {
       h: lh
     });
   } else pgLogoMark(pen, gx, gy - 11, 22);
-  pen.line(DL("covC"), gx + lw + 3, gy - 11, gx + lw + 3, gy + 11);
-  pen.text(DL("covC"), gx + lw + 6, gy + 2.2, 7.0, nEN, {
+  pen.line(DL("covC"), gx + lw + 3.5, gy - 14, gx + lw + 3.5, gy + 14);
+  pen.text(DL("covC"), gx + lw + 7, gy + 2.5, 9.5, nEN, {
     valign: 1,
     wf: 1
   });
-  if (nTH) pen.text(DL("covC"), gx + lw + 6, gy - 8.2, 5.6, nTH, {
+  if (nTH) pen.text(DL("covC"), gx + lw + 7, gy - 11, 7.5, nTH, {
     valign: 1
   });
-  pen.text(PG_LAY.txt, cx, 30, 3.0, "PROJECT NO. " + (I.projectNo || "-") + "      DATE " + (I.date || "") + "      REV. " + (I.rev || "0"), {
+  pen.text(PG_LAY.txt, cx, 30, 4.2, "PROJECT NO. " + (I.projectNo || "-") + "      DATE " + (I.date || "") + "      REV. " + (I.rev || "0"), {
     align: 1,
     valign: 2
   });
