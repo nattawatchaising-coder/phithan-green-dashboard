@@ -1667,7 +1667,7 @@ function p3ClipSeg(a, c, b) {
   }
   return [[a[0] + t0 * dx, a[1] + t0 * dy], [a[0] + t1 * dx, a[1] + t1 * dy]];
 }
-const P3_STR_ACI = [5, 1, 3, 6, 30, 4, 140, 200, 2];
+const P3_STR_ACI = [124, 160, 30, 190, 10, 142, 230, 72, 20, 180];
 function p3StrLayout(st, job, media) {
   media = media || {};
   const DS = media.design || {};
@@ -1730,6 +1730,8 @@ function p3StrLayout(st, job, media) {
   }, media.svg);
   P3_DXF_LAYERS.forEach(L => doc.layer(L[0], L[1], "CONTINUOUS", L[2]));
   P3_STR_ACI.forEach((col, i) => doc.layer("PG-STR-" + (i + 1), col, "CONTINUOUS", 25));
+  doc.layer("PG-STR-EDGE", 250, "CONTINUOUS", 18);
+  doc.layer("PG-STR-HALO", 255, "CONTINUOUS", 70);
   pgTableLayers(doc);
   const px = IN.x0 + A.w / 2,
     py = IN.y0 + A.h / 2;
@@ -1747,7 +1749,6 @@ function p3StrLayout(st, job, media) {
   });
   const pen = sheet.pen,
     AR = sheet.area;
-  const TH = PG_TS.cell * k;
   const VB = {
     x0: ox + (IN.x0 + 1) * k,
     y0: oy + (IN.y0 + 1) * k,
@@ -1778,53 +1779,51 @@ function p3StrLayout(st, job, media) {
     return Math.min(Math.max.apply(null, xs) - Math.min.apply(null, xs), Math.max.apply(null, zs) - Math.min.apply(null, zs));
   }));
   fp.forEach(p => {
-    const s = sOf[p.uid];
-    doc.pline(s ? lay(s.id) : "PG-PANEL", p.pts.map(q => [q[0], -q[1]]), true);
+    const s = sOf[p.uid],
+      P = p.pts.map(q => [q[0], -q[1]]);
+    if (s) {
+      doc.solid(lay(s.id), P[0], P[1], P[2], P[3]);
+      doc.pline("PG-STR-EDGE", P, true);
+    } else doc.pline("PG-PANEL", P, true);
   });
-  const pl = Math.max.apply(null, fp.map(p => {
-    const xs = p.pts.map(q => q[0]),
-      zs = p.pts.map(q => q[1]);
-    return Math.max(Math.max.apply(null, xs) - Math.min.apply(null, xs), Math.max.apply(null, zs) - Math.min.apply(null, zs));
-  }));
-  const fpAt = {};
-  fp.forEach(p => {
-    fpAt[Math.round(p.cx * 20) + ":" + Math.round(p.cz * 20)] = p;
-  });
-  const halfN = (c, nx, ny) => {
-    const p = fpAt[Math.round(c[0] * 20) + ":" + Math.round(-c[1] * 20)];
-    if (!p) return pw / 2;
-    return Math.max.apply(null, p.pts.map(t => (t[0] - p.cx) * nx + (-t[1] + p.cz) * ny));
+  const disc = (L, x, y, r) => {
+    const v = [];
+    for (let i = 0; i < 8; i++) {
+      const t = (i + 0.5) * Math.PI / 4;
+      v.push([x + r * Math.cos(t), y + r * Math.sin(t)]);
+    }
+    doc.solid(L, v[0], v[1], v[2], v[3]);
+    doc.solid(L, v[0], v[3], v[4], v[7]);
+    doc.solid(L, v[7], v[4], v[5], v[6]);
   };
-  (DS.paths || []).forEach(q => {
-    const pts = (q.pts || []).map(t => [t[0], -t[1]]);
-    for (let i = 1; i < pts.length; i++) {
-      const a0 = pts[i - 1],
-        b0 = pts[i];
-      const L = Math.hypot(b0[0] - a0[0], b0[1] - a0[1]);
-      if (L <= pl * 1.15) continue;
-      let nx = -(b0[1] - a0[1]) / L,
-        ny = (b0[0] - a0[0]) / L;
-      if (ny > 0 || ny === 0 && nx > 0) {
-        nx = -nx;
-        ny = -ny;
-      }
-      const da = halfN(a0, nx, ny) * 0.6,
-        db = halfN(b0, nx, ny) * 0.6;
-      doc.line(lay(q.id), a0[0] + nx * da, a0[1] + ny * da, b0[0] + nx * db, b0[1] + ny * db);
+  const PS = (DS.paths || []).map(q => ({
+    id: q.id,
+    pts: (q.pts || []).map(t => [t[0], -t[1]])
+  })).filter(q => q.pts.length);
+  PS.forEach(q => {
+    if (q.pts.length > 1) doc.pline("PG-STR-HALO", q.pts, false);
+  });
+  PS.forEach(q => {
+    if (q.pts.length > 1) doc.pline("PG-STR-EDGE", q.pts, false);
+  });
+  const R0 = Math.max(Math.min(pw * 0.34, 2.6 * k), 1.2 * k);
+  PS.forEach(q => {
+    const e = q.pts[q.pts.length - 1];
+    if (q.pts.length > 1) {
+      disc("PG-STR-HALO", e[0], e[1], R0 * 0.42);
+      disc("PG-STR-EDGE", e[0], e[1], R0 * 0.3);
     }
   });
-  const lh = Math.min(TH, pw * 0.24);
-  const each = lh / k >= 1.0;
-  fp.forEach(p => {
-    const s = sOf[p.uid];
-    if (!s) return;
-    const first = s.k === 1,
-      last = s.k === s.n;
-    if (!each && !first && !last) return;
-    const t = first ? "S" + s.id + "+" : last ? "S" + s.id + "-" : s.id + "-" + s.k;
-    doc.text(lay(s.id), p.cx, -p.cz, each ? lh : Math.max(lh, TH * 0.8), t, {
+  PS.forEach(q => {
+    const c0 = q.pts[0],
+      t = String(q.id);
+    disc("PG-STR-HALO", c0[0], c0[1], R0);
+    doc.circle(lay(q.id), c0[0], c0[1], R0);
+    doc.circle(lay(q.id), c0[0], c0[1], R0 * 0.9);
+    doc.text(lay(q.id), c0[0], c0[1], R0 * (t.length > 2 ? 0.72 : t.length > 1 ? 0.95 : 1.1), t, {
       align: 1,
-      valign: 2
+      valign: 2,
+      wf: 1
     });
   });
   const barM = SC / 1000 * 40,
@@ -1845,7 +1844,7 @@ function p3StrLayout(st, job, media) {
   pen.text("PG-NOTE", RX1 - 28, AR.y1 - 18, PG_TS.cell, "A1=1:" + Math.round(SC / 1.414));
   pen.text("PG-NOTE", RX1 - 28, AR.y1 - 22.5, PG_TS.cell, "A3=1:" + SC);
   pgCompass(pen, RX1 - 12, AR.y1 - 40, 6.5);
-  const notes = [each ? "ป้าย 3-5 = สตริง 3 แผงที่ 5 นับจากต้นสาย" : "แผงเล็กเกินใส่ป้ายทุกใบ - ไล่ลำดับตามเส้นเดินสาย", "S3+ = แผงแรกของสตริง (ต้นสาย)  S3- = แผงสุดท้าย (ปลายสาย)", "สีกรอบแผง = สตริง (layer PG-STR-1..9)", "วัดแรงดัน/ขั้วทุกสตริงก่อนเสียบเข้าอินเวอร์เตอร์"];
+  const notes = ["สีแผง = สตริง (layer PG-STR-1.." + P3_STR_ACI.length + " วนสี) · เส้น = แนวเดินสายตามลำดับที่ต่อ", "วงกลมเลข = แผงแรกของสตริง (ต้นสาย)  จุดเข้ม = แผงสุดท้าย (ปลายสาย)", "วัดแรงดัน/ขั้วทุกสตริงก่อนเสียบเข้าอินเวอร์เตอร์"];
   const noteY0 = AR.y0 + 6;
   notes.slice().reverse().forEach((t, i) => pen.text("PG-NOTE", RX0, noteY0 + i * 4.2, PG_TS.body, t));
   const MR = p3MpptRows(DS);
