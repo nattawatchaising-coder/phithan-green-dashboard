@@ -2254,6 +2254,14 @@ function SolarWorkspace({ job, st, sys, onChange, onClose, snap }) {
     catch (e) { console.error(e); alert("ดาวน์โหลดไม่สำเร็จ: " + (e && e.message)); }
     setDxfBusy("");
   }
+  /* ไฟล์ 3D สำหรับ PVsyst (pvsyst.jsx) — .pvc2 (PVsyst 8.1.5+ แผงเป็นโต๊ะ PV) + .dae สำรอง (ผู้ใช้: เอาแบบ 3D ไปรัน PVsyst) */
+  async function downloadPvc() {
+    if (typeof pvcExport !== "function") return;
+    setDxfBusy("กำลังทำไฟล์ PVsyst");
+    try { await pvcExport(dxfSt(), job); }
+    catch (e) { console.error(e); alert("ทำไฟล์ PVsyst ไม่สำเร็จ: " + (e && e.message)); }
+    setDxfBusy("");
+  }
   /* PDF ทั้งเล่ม (dwgset.jsx) — ทุกแผ่นเป็นหน้า A3 ไฟล์เดียว ส่งลูกค้า/พิมพ์ได้เลย */
   async function downloadPdf() {
     if (!dxf || typeof dsExportPdf !== "function") return;
@@ -4713,6 +4721,10 @@ function SolarWorkspace({ job, st, sys, onChange, onClose, snap }) {
         <button className="p3-b" style={{ padding: "10px 16px", marginRight: 8 }} onClick={openDxf} disabled={!!dxfBusy}
           title="ผังติดตั้ง + แนวเดินสายสตริง · SLD · ต่อสาย DC · วัสดุหน้างาน — ใช้รุ่นอุปกรณ์และการจัดสตริงจากหน้านี้">
           <P3Icon name="layers" size={15} />ชุดแบบ DXF
+        </button>
+        <button className="p3-b" style={{ padding: "10px 16px", marginRight: 8 }} onClick={downloadPvc} disabled={!!dxfBusy}
+          title="ไฟล์ 3D ไปเปิดใน PVsyst (Near Shadings → File → Import): .pvc2 สำหรับ PVsyst 8.1.5 ขึ้นไป (แผงเป็นโต๊ะ PV) + .dae สำรอง">
+          <P3Icon name="cube" size={15} />ไฟล์ PVsyst
         </button>
         <button className="p3-b" style={{ padding: "10px 16px", marginRight: 8 }} onClick={() => setRepOpen(true)} disabled={!energy}
           title="เลือกหัวข้อที่จะออก แล้วสั่งพิมพ์/บันทึกเป็น PDF">

@@ -3067,6 +3067,7 @@ const P3S_CSS = `
 `;
 function p3sBuild3D(THREE, grp, st, tex) {
   const pans = [];
+  const pvq = [];
   const add = o => {
     grp.add(o);
     return o;
@@ -4017,6 +4018,12 @@ function p3sBuild3D(THREE, grp, st, tex) {
           if (y != null && y + 0.05 > q.y) lift += y + 0.05 - q.y;
         });
       }
+      pvq.push({
+        c: P(0, 0),
+        U,
+        V,
+        n
+      });
       const lu = Math.hypot(U.x, U.y, U.z) || 1,
         lv = Math.hypot(V.x, V.y, V.z) || 1,
         fu = 1 - 0.03 / lu,
@@ -4121,6 +4128,7 @@ function p3sBuild3D(THREE, grp, st, tex) {
       })));
       rm.castShadow = true;
       rm.receiveShadow = true;
+      rm.userData.pv = 1;
     }
     if (ft.length) {
       const fg2 = new THREE.BufferGeometry();
@@ -4133,6 +4141,7 @@ function p3sBuild3D(THREE, grp, st, tex) {
       })));
       fm2.castShadow = true;
       fm2.receiveShadow = true;
+      fm2.userData.pv = 1;
     }
     const g = new THREE.BufferGeometry();
     g.setAttribute("position", new THREE.Float32BufferAttribute(pos, 3));
@@ -4146,6 +4155,7 @@ function p3sBuild3D(THREE, grp, st, tex) {
     })));
     pm.castShadow = true;
     pm.receiveShadow = true;
+    pm.userData.pv = 1;
     const fg = new THREE.BufferGeometry();
     fg.setAttribute("position", new THREE.Float32BufferAttribute(fr, 3));
     fg.computeVertexNormals();
@@ -4157,6 +4167,7 @@ function p3sBuild3D(THREE, grp, st, tex) {
     })));
     fm.castShadow = true;
     fm.receiveShadow = true;
+    fm.userData.pv = 1;
     const lg = new THREE.BufferGeometry();
     lg.setAttribute("position", new THREE.Float32BufferAttribute(ln, 3));
     add(new THREE.LineSegments(lg, new THREE.LineBasicMaterial({
@@ -5025,7 +5036,8 @@ function p3sBuild3D(THREE, grp, st, tex) {
     cz: (minZ + maxZ) / 2,
     R: Math.max(8, Math.hypot(maxX - minX, maxZ - minZ) / 2),
     maxY,
-    pans
+    pans,
+    pvq
   };
 }
 function P3SView3D({

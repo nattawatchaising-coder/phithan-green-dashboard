@@ -4214,6 +4214,17 @@ function SolarWorkspace({
     }
     setDxfBusy("");
   }
+  async function downloadPvc() {
+    if (typeof pvcExport !== "function") return;
+    setDxfBusy("กำลังทำไฟล์ PVsyst");
+    try {
+      await pvcExport(dxfSt(), job);
+    } catch (e) {
+      console.error(e);
+      alert("ทำไฟล์ PVsyst ไม่สำเร็จ: " + (e && e.message));
+    }
+    setDxfBusy("");
+  }
   async function downloadPdf() {
     if (!dxf || typeof dsExportPdf !== "function") return;
     setDxfBusy("กำลังทำ PDF");
@@ -9131,6 +9142,18 @@ function SolarWorkspace({
     name: "layers",
     size: 15
   }), "\u0E0A\u0E38\u0E14\u0E41\u0E1A\u0E1A DXF"), React.createElement("button", {
+    className: "p3-b",
+    style: {
+      padding: "10px 16px",
+      marginRight: 8
+    },
+    onClick: downloadPvc,
+    disabled: !!dxfBusy,
+    title: "\u0E44\u0E1F\u0E25\u0E4C 3D \u0E44\u0E1B\u0E40\u0E1B\u0E34\u0E14\u0E43\u0E19 PVsyst (Near Shadings \u2192 File \u2192 Import): .pvc2 \u0E2A\u0E33\u0E2B\u0E23\u0E31\u0E1A PVsyst 8.1.5 \u0E02\u0E36\u0E49\u0E19\u0E44\u0E1B (\u0E41\u0E1C\u0E07\u0E40\u0E1B\u0E47\u0E19\u0E42\u0E15\u0E4A\u0E30 PV) + .dae \u0E2A\u0E33\u0E23\u0E2D\u0E07"
+  }, React.createElement(P3Icon, {
+    name: "cube",
+    size: 15
+  }), "\u0E44\u0E1F\u0E25\u0E4C PVsyst"), React.createElement("button", {
     className: "p3-b",
     style: {
       padding: "10px 16px",

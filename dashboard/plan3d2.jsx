@@ -1525,6 +1525,7 @@ const P3S_CSS = `
    ============================================================ */
 function p3sBuild3D(THREE, grp, st, tex) {
   const pans = [];   // จุดกลางแผง + ทิศตั้งฉาก (มุมกล้องใกล้แผง)
+  const pvq = [];    // ผิวแผงจริงใน 3D { c, U, V, n } (ครึ่งด้าน) — ไฟล์ PVsyst (pvsyst.jsx) ใช้ทำโต๊ะแผง
   const add = (o) => { grp.add(o); return o; };
   const bH = +st.buildH || 0;
   let minX = 1e9, maxX = -1e9, minZ = 1e9, maxZ = -1e9, maxY = 0;
@@ -1908,6 +1909,7 @@ function p3sBuild3D(THREE, grp, st, tex) {
           if (y != null && y + 0.05 > q.y) lift += y + 0.05 - q.y;
         });
       }
+      pvq.push({ c: P(0, 0), U, V, n });
       // กรอบอะลูมิเนียมกว้าง 3 ซม. หนา 3.5 ซม. · กระจกจมในกรอบ · ลายเซลล์ 6 × 10/12 บนกระจก
       const lu = Math.hypot(U.x, U.y, U.z) || 1, lv = Math.hypot(V.x, V.y, V.z) || 1, fu = 1 - 0.03 / lu, fv = 1 - 0.03 / lv, T = 0.035, up = 0.006;
       Q(pos, P(-fu, -fv), P(fu, -fv), P(fu, fv), P(-fu, fv));
@@ -1952,18 +1954,18 @@ function p3sBuild3D(THREE, grp, st, tex) {
     });
     if (rl.length) {
       const rg = new THREE.BufferGeometry(); rg.setAttribute("position", new THREE.Float32BufferAttribute(rl, 3)); rg.computeVertexNormals();
-      const rm = add(new THREE.Mesh(rg, new THREE.MeshStandardMaterial({ color: 0xbfc6ce, roughness: 0.38, metalness: 0.55 }))); rm.castShadow = true; rm.receiveShadow = true;
+      const rm = add(new THREE.Mesh(rg, new THREE.MeshStandardMaterial({ color: 0xbfc6ce, roughness: 0.38, metalness: 0.55 }))); rm.castShadow = true; rm.receiveShadow = true; rm.userData.pv = 1;
     }
     if (ft.length) {
       const fg2 = new THREE.BufferGeometry(); fg2.setAttribute("position", new THREE.Float32BufferAttribute(ft, 3)); fg2.computeVertexNormals();
-      const fm2 = add(new THREE.Mesh(fg2, new THREE.MeshStandardMaterial({ color: 0x9aa4ae, roughness: 0.45, metalness: 0.5 }))); fm2.castShadow = true; fm2.receiveShadow = true;
+      const fm2 = add(new THREE.Mesh(fg2, new THREE.MeshStandardMaterial({ color: 0x9aa4ae, roughness: 0.45, metalness: 0.5 }))); fm2.castShadow = true; fm2.receiveShadow = true; fm2.userData.pv = 1;
     }
     const g = new THREE.BufferGeometry(); g.setAttribute("position", new THREE.Float32BufferAttribute(pos, 3)); g.computeVertexNormals();
     const pm = add(new THREE.Mesh(g, new THREE.MeshStandardMaterial({ color: 0x0a1a48, roughness: 0.2, metalness: 0.1, envMapIntensity: 0.5, side: THREE.DoubleSide })   /* โลหะต่ำ = สีน้ำเงินสด ไม่สะท้อนพื้นจนเทา */));
-    pm.castShadow = true; pm.receiveShadow = true;
+    pm.castShadow = true; pm.receiveShadow = true; pm.userData.pv = 1;   // userData.pv = ชิ้นส่วนแผง (ไฟล์ PVsyst ไม่นับเป็นสิ่งบังเงา)
     const fg = new THREE.BufferGeometry(); fg.setAttribute("position", new THREE.Float32BufferAttribute(fr, 3)); fg.computeVertexNormals();
     const fm = add(new THREE.Mesh(fg, new THREE.MeshStandardMaterial({ color: 0xc9d0d8, roughness: 0.4, metalness: 0.6, side: THREE.DoubleSide })));
-    fm.castShadow = true; fm.receiveShadow = true;
+    fm.castShadow = true; fm.receiveShadow = true; fm.userData.pv = 1;
     const lg = new THREE.BufferGeometry(); lg.setAttribute("position", new THREE.Float32BufferAttribute(ln, 3));
     add(new THREE.LineSegments(lg, new THREE.LineBasicMaterial({ color: 0x8aa0d6, transparent: true, opacity: 0.35 })));
   });
@@ -2276,7 +2278,7 @@ function p3sBuild3D(THREE, grp, st, tex) {
   });
   aoMesh(apP, apU, panAO || (panAO = new THREE.MeshBasicMaterial({ map: p3sPanAOTex(THREE), transparent: true, depthWrite: false, side: THREE.DoubleSide, polygonOffset: true, polygonOffsetFactor: -1, polygonOffsetUnits: -1 })));
   if (minX > maxX) { minX = -10; maxX = 10; minZ = -10; maxZ = 10; }
-  return { cx: (minX + maxX) / 2, cz: (minZ + maxZ) / 2, R: Math.max(8, Math.hypot(maxX - minX, maxZ - minZ) / 2), maxY, pans };
+  return { cx: (minX + maxX) / 2, cz: (minZ + maxZ) / 2, R: Math.max(8, Math.hypot(maxX - minX, maxZ - minZ) / 2), maxY, pans, pvq };
 }
 
 function P3SView3D({ st, sun, api }) {
