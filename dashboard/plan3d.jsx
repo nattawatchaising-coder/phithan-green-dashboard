@@ -573,6 +573,8 @@ function p3RotDoc(doc, deg) {
 /* แถวตารางใหญ่ (MPPT ผังสตริง · ตารางผังวางแผง) สัดส่วนแถว:ตัวหนังสือ ≈ 2.1 เท่าตารางสรุปโครงการ (4.6 : 2.2)
    (ผู้ใช้: ตาราง 5.8 สูงไป ไม่สมส่วน ชอบแบบตารางสรุปโครงการ) */
 const P3_TBL_RH = 5.2;
+/* เข็มทิศชิดมุมขวาบนของพื้นที่วาด (ผู้ใช้: ไว้มุมนี้สวย ๆ — เดิมลงมา 40 มม.) · ห่างขอบพอให้ป้ายองศาไม่ชนกรอบ */
+const P3_COMPASS_DY = 15;
 function p3PanelBlock(doc, name) {
   if (!doc.block) return false;
   /* PV-PANEL-L = กรอบอย่างเดียว ใช้ทับพื้นสีสตริงในผังสตริง (ผู้ใช้: แผงหน้านี้อยากได้สี ๆ) */
@@ -964,16 +966,15 @@ function p3Dxf(st, job, media) {
   pen.solid("PG-NORTH", [bx, by], [bx + 10, by], [bx + 10, by + 2.2], [bx, by + 2.2]);
   pen.solid("PG-NORTH", [bx + 20, by], [bx + 30, by], [bx + 30, by + 2.2], [bx + 20, by + 2.2]);
   [0, 0.5, 1].forEach((f) => pen.text("PG-NORTH", bx + 40 * f, by + 3, 2.2, (barM * f).toFixed(0), { align: 1, valign: 1 }));
-  pen.text("PG-NORTH", bx + 44, by + 0.4, 2.2, "METRES   SCALE 1:" + SC);
+  pen.text("PG-NORTH", bx + 44, by + 0.4, 2.2, "METRES");
 
   /* ── คอลัมน์ขวา: หัวเรื่อง + มาตราส่วน + เข็มทิศ → ตารางระยะสาย ── */
   const RX1 = AR.x1 - 2, RX0 = RX1 - P3_COL, RW = P3_COL;
 
-  pgSheetTitle(pen, RX0, AR.y1 - 12, "OVERALL LAYOUT", 7.4, RW - 30, 0);
-  pen.text("PG-NOTE", RX0, AR.y1 - 19, 2.4, "SCALE");
-  pen.text("PG-NOTE", RX1 - 28, AR.y1 - 18, 2.4, "A1=1:" + Math.round(SC / 1.414));
-  pen.text("PG-NOTE", RX1 - 28, AR.y1 - 22.5, 2.4, "A3=1:" + SC);
-  pgCompass(pen, RX1 - 12, AR.y1 - 40, 6.5, null, V.rot);
+  /* โหมดกว้าง: ชื่อแผ่น + มาตราส่วนลงมุมซ้ายล่างเหนือมาตราส่วนเส้น แบบแผ่นผังวางแผง (ผู้ใช้ย้าย) */
+  if (V.wide) pgSheetTitle(pen, AR.x0 + 4, AR.y0 + 18, "OVERALL LAYOUT", PG_TS.title, 170, 0, SC);
+  else pgSheetTitle(pen, RX0, AR.y1 - 12, "OVERALL LAYOUT", PG_TS.title, RW - 30, 0, SC);
+  pgCompass(pen, RX1 - 12, AR.y1 - P3_COMPASS_DY, 6.5, null, V.rot);
 
   const SS = (media.design && media.design.strings) || [];
 
@@ -1508,20 +1509,13 @@ function p3StrLayout(st, job, media) {
   pen.solid("PG-NORTH", [bx, by], [bx + 10, by], [bx + 10, by + 2.2], [bx, by + 2.2]);
   pen.solid("PG-NORTH", [bx + 20, by], [bx + 30, by], [bx + 30, by + 2.2], [bx + 20, by + 2.2]);
   [0, 0.5, 1].forEach((f) => pen.text("PG-NORTH", bx + 40 * f, by + 3, PG_TS.cell, (barM * f).toFixed(0), { align: 1, valign: 1 }));
-  pen.text("PG-NORTH", bx + 44, by + 0.4, PG_TS.cell, "METRES   SCALE 1:" + SC);
+  pen.text("PG-NORTH", bx + 44, by + 0.4, PG_TS.cell, "METRES");
 
   const RX1 = AR.x1 - 2, RX0 = RX1 - COL;
   /* โหมดกว้าง: ชื่อแผ่น + มาตราส่วนลงมุมซ้ายล่างเหนือมาตราส่วนเส้น (ผู้ใช้ย้าย) */
-  if (wide) {
-    pgSheetTitle(pen, AR.x0 + 4, AR.y0 + 18, "STRING LAYOUT", PG_TS.title, 170, 0);
-    pen.text("PG-NOTE", AR.x0 + 4, AR.y0 + 11, 2.4, "SCALE   A3 = 1:" + SC + "   A1 = 1:" + Math.round(SC / 1.414));
-  } else {
-    pgSheetTitle(pen, RX0, AR.y1 - 12, "STRING LAYOUT", PG_TS.title, COL - 30, 0);
-    pen.text("PG-NOTE", RX0, AR.y1 - 19, PG_TS.cell, "SCALE");
-    pen.text("PG-NOTE", RX1 - 28, AR.y1 - 18, PG_TS.cell, "A1=1:" + Math.round(SC / 1.414));
-    pen.text("PG-NOTE", RX1 - 28, AR.y1 - 22.5, PG_TS.cell, "A3=1:" + SC);
-  }
-  pgCompass(pen, RX1 - 12, AR.y1 - 40, 6.5, null, rot);
+  if (wide) pgSheetTitle(pen, AR.x0 + 4, AR.y0 + 18, "STRING LAYOUT", PG_TS.title, 170, 0, SC);
+  else pgSheetTitle(pen, RX0, AR.y1 - 12, "STRING LAYOUT", PG_TS.title, COL - 30, 0, SC);
+  pgCompass(pen, RX1 - 12, AR.y1 - P3_COMPASS_DY, 6.5, null, rot);
 
   /* (เดิมมีหมายเหตุอธิบายสี/เส้นมุมล่าง — ผู้ใช้ให้เอาออก) · ตาราง MPPT ชิดขวาล่าง */
   if (TB) pgGrid(pen, RX1 - TB.tw, AR.y0 + 4 + TB.h, TB.tw, TB.cw, TB.rows, { rh: P3_TBL_RH, th: PG_TS.body, align: [0, 0, 2], headRow: 1 });
@@ -2764,7 +2758,7 @@ function p3PhotoSheet(st, job, media) {
   const sheet = pgSheet(doc, { k: 1, ox: 0, oy: 0,
     info: p3SheetInfo(st, job, { sheet: "PHOTO", scale: "NONE", sheetNo: media.sheetNo || "1/1" }) });
   const pen = sheet.pen, A = sheet.area;
-  pgSheetTitle(pen, A.x0 + 4, A.y1 - 10, "INSTALLATION POINT", 7.4, 150, 0);
+  pgSheetTitle(pen, A.x0 + 4, A.y1 - 10, "INSTALLATION POINT", PG_TS.title, 150, 0, null);
   const n = items.length;
   if (!n) {
     pen.text(PG_TBL.txt, (A.x0 + A.x1) / 2, (A.y0 + A.y1) / 2, 4.5,
@@ -2776,7 +2770,7 @@ function p3PhotoSheet(st, job, media) {
   const gx = 6, gy = 9, pad = 4, capH = 6.4;
   /* กรอบรูปทำตามสัดส่วนรูปจริง (เฉลี่ย) จะได้ไม่มีขอบดำเหลือรอบรูป */
   const ar = items.reduce((s, p) => s + (+p.pxH || 3) / (+p.pxW || 4), 0) / n;
-  const availW = A.x1 - A.x0 - pad * 2, availH = A.y1 - A.y0 - pad * 2 - 18;
+  const availW = A.x1 - A.x0 - pad * 2, availH = A.y1 - A.y0 - pad * 2 - 22;
   let W = (availW - (cols - 1) * gx) / cols;
   let H = W * ar + capH;
   const maxH = (availH - (rows - 1) * gy) / rows;
@@ -2858,12 +2852,12 @@ function p3EquipSheet(st, job, media) {
   const sheet = pgSheet(doc, { k: 1, ox: 0, oy: 0,
     info: p3SheetInfo(st, job, { sheet: "MAT", scale: "NONE", sheetNo: media.sheetNo || "1/1" }) });
   const pen = sheet.pen, A = sheet.area;
-  pgSheetTitle(pen, A.x0 + 4, A.y1 - 10, "EQUIPMENT MATERIAL ON SITE", PG_TS.title, 180, 0);
+  pgSheetTitle(pen, A.x0 + 4, A.y1 - 10, "EQUIPMENT MATERIAL ON SITE", PG_TS.title, 180, 0, null);
   const rows = p3EquipRows(st, job, M);
   const W = A.x1 - A.x0 - 8;
   /* ยืดความสูงแถวให้ตารางกินพื้นที่แผ่นพอดี แต่ไม่เกินสูงสุดที่ยังดูดี */
   const rh = Math.max(5.2, Math.min(9.5, (A.y1 - A.y0 - 112) / rows.length));
-  const used = pgGrid(pen, A.x0 + 4, A.y1 - 18, W, [1.1, 3.4, 1.2, 1.2], rows,
+  const used = pgGrid(pen, A.x0 + 4, A.y1 - 22, W, [1.1, 3.4, 1.2, 1.2], rows,
     { rh, th: PG_TS.body, align: [0, 0, 1, 1], headRow: 0 });
 
   /* รูปตัดแผงใต้ตาราง ให้เห็นว่าแผงที่ลงหน้างานหน้าตาแบบไหน */
@@ -2889,7 +2883,7 @@ function p3DcSheet(st, job, media) {
   const sheet = pgSheet(doc, { k: 1, ox: 0, oy: 0,
     info: p3SheetInfo(st, job, { sheet: "DC", scale: "NONE", sheetNo: media.sheetNo || "1/1" }) });
   const pen = sheet.pen, A = sheet.area;
-  pgSheetTitle(pen, A.x0 + 4, A.y1 - 10, "DC CONNECTION DIAGRAM", PG_TS.title, 150, 0);
+  pgSheetTitle(pen, A.x0 + 4, A.y1 - 10, "DC CONNECTION DIAGRAM", PG_TS.title, 150, 0, null);
   doc.layer("PG-EARTH", PG_ACI.green, "CONTINUOUS", 35);
   const P = M.pro;                                   // มี = สตริงอินเวอร์เตอร์ที่จัดสตริงแล้ว (อุปกรณ์ตรงกับ SLD)
 
@@ -2906,7 +2900,7 @@ function p3DcSheet(st, job, media) {
   const colW = LW / show.length;
   const bw = Math.min(colW - 14, 150);
   /* จัดรูปให้อยู่กลางช่องที่เหลือ — ล่างกันไว้ให้หมายเหตุ บนกันไว้ให้หัวเรื่อง */
-  const yLo = A.y0 + 40, yHi = A.y1 - 16, IVH = 13, IVGAP = P ? 64 : 24;
+  const yLo = A.y0 + 40, yHi = A.y1 - 22, IVH = 13, IVGAP = P ? 64 : 24;
   const maxPh = (yHi - yLo) - IVGAP - 22;
   const blockH = IVGAP + Math.max.apply(null, show.map((g) => pgDcSize(bw, g.per, maxPh).h));
   const baseY = yLo + IVGAP + Math.max(0, (yHi - yLo - blockH) / 2);

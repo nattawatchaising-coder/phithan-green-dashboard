@@ -1024,6 +1024,7 @@ function p3RotDoc(doc, deg) {
   };
 }
 const P3_TBL_RH = 5.2;
+const P3_COMPASS_DY = 15;
 function p3PanelBlock(doc, name) {
   if (!doc.block) return false;
   if (name === "PV-PANEL-L") {
@@ -1553,15 +1554,12 @@ function p3Dxf(st, job, media) {
     align: 1,
     valign: 1
   }));
-  pen.text("PG-NORTH", bx + 44, by + 0.4, 2.2, "METRES   SCALE 1:" + SC);
+  pen.text("PG-NORTH", bx + 44, by + 0.4, 2.2, "METRES");
   const RX1 = AR.x1 - 2,
     RX0 = RX1 - P3_COL,
     RW = P3_COL;
-  pgSheetTitle(pen, RX0, AR.y1 - 12, "OVERALL LAYOUT", 7.4, RW - 30, 0);
-  pen.text("PG-NOTE", RX0, AR.y1 - 19, 2.4, "SCALE");
-  pen.text("PG-NOTE", RX1 - 28, AR.y1 - 18, 2.4, "A1=1:" + Math.round(SC / 1.414));
-  pen.text("PG-NOTE", RX1 - 28, AR.y1 - 22.5, 2.4, "A3=1:" + SC);
-  pgCompass(pen, RX1 - 12, AR.y1 - 40, 6.5, null, V.rot);
+  if (V.wide) pgSheetTitle(pen, AR.x0 + 4, AR.y0 + 18, "OVERALL LAYOUT", PG_TS.title, 170, 0, SC);else pgSheetTitle(pen, RX0, AR.y1 - 12, "OVERALL LAYOUT", PG_TS.title, RW - 30, 0, SC);
+  pgCompass(pen, RX1 - 12, AR.y1 - P3_COMPASS_DY, 6.5, null, V.rot);
   const SS = media.design && media.design.strings || [];
   let M = null;
   try {
@@ -2410,19 +2408,11 @@ function p3StrLayout(st, job, media) {
     align: 1,
     valign: 1
   }));
-  pen.text("PG-NORTH", bx + 44, by + 0.4, PG_TS.cell, "METRES   SCALE 1:" + SC);
+  pen.text("PG-NORTH", bx + 44, by + 0.4, PG_TS.cell, "METRES");
   const RX1 = AR.x1 - 2,
     RX0 = RX1 - COL;
-  if (wide) {
-    pgSheetTitle(pen, AR.x0 + 4, AR.y0 + 18, "STRING LAYOUT", PG_TS.title, 170, 0);
-    pen.text("PG-NOTE", AR.x0 + 4, AR.y0 + 11, 2.4, "SCALE   A3 = 1:" + SC + "   A1 = 1:" + Math.round(SC / 1.414));
-  } else {
-    pgSheetTitle(pen, RX0, AR.y1 - 12, "STRING LAYOUT", PG_TS.title, COL - 30, 0);
-    pen.text("PG-NOTE", RX0, AR.y1 - 19, PG_TS.cell, "SCALE");
-    pen.text("PG-NOTE", RX1 - 28, AR.y1 - 18, PG_TS.cell, "A1=1:" + Math.round(SC / 1.414));
-    pen.text("PG-NOTE", RX1 - 28, AR.y1 - 22.5, PG_TS.cell, "A3=1:" + SC);
-  }
-  pgCompass(pen, RX1 - 12, AR.y1 - 40, 6.5, null, rot);
+  if (wide) pgSheetTitle(pen, AR.x0 + 4, AR.y0 + 18, "STRING LAYOUT", PG_TS.title, 170, 0, SC);else pgSheetTitle(pen, RX0, AR.y1 - 12, "STRING LAYOUT", PG_TS.title, COL - 30, 0, SC);
+  pgCompass(pen, RX1 - 12, AR.y1 - P3_COMPASS_DY, 6.5, null, rot);
   if (TB) pgGrid(pen, RX1 - TB.tw, AR.y0 + 4 + TB.h, TB.tw, TB.cw, TB.rows, {
     rh: P3_TBL_RH,
     th: PG_TS.body,
@@ -4419,7 +4409,7 @@ function p3PhotoSheet(st, job, media) {
   });
   const pen = sheet.pen,
     A = sheet.area;
-  pgSheetTitle(pen, A.x0 + 4, A.y1 - 10, "INSTALLATION POINT", 7.4, 150, 0);
+  pgSheetTitle(pen, A.x0 + 4, A.y1 - 10, "INSTALLATION POINT", PG_TS.title, 150, 0, null);
   const n = items.length;
   if (!n) {
     pen.text(PG_TBL.txt, (A.x0 + A.x1) / 2, (A.y0 + A.y1) / 2, 4.5, "ยังไม่มีรูปถ่ายหน้างานในระบบ", {
@@ -4436,7 +4426,7 @@ function p3PhotoSheet(st, job, media) {
     capH = 6.4;
   const ar = items.reduce((s, p) => s + (+p.pxH || 3) / (+p.pxW || 4), 0) / n;
   const availW = A.x1 - A.x0 - pad * 2,
-    availH = A.y1 - A.y0 - pad * 2 - 18;
+    availH = A.y1 - A.y0 - pad * 2 - 22;
   let W = (availW - (cols - 1) * gx) / cols;
   let H = W * ar + capH;
   const maxH = (availH - (rows - 1) * gy) / rows;
@@ -4535,11 +4525,11 @@ function p3EquipSheet(st, job, media) {
   });
   const pen = sheet.pen,
     A = sheet.area;
-  pgSheetTitle(pen, A.x0 + 4, A.y1 - 10, "EQUIPMENT MATERIAL ON SITE", PG_TS.title, 180, 0);
+  pgSheetTitle(pen, A.x0 + 4, A.y1 - 10, "EQUIPMENT MATERIAL ON SITE", PG_TS.title, 180, 0, null);
   const rows = p3EquipRows(st, job, M);
   const W = A.x1 - A.x0 - 8;
   const rh = Math.max(5.2, Math.min(9.5, (A.y1 - A.y0 - 112) / rows.length));
-  const used = pgGrid(pen, A.x0 + 4, A.y1 - 18, W, [1.1, 3.4, 1.2, 1.2], rows, {
+  const used = pgGrid(pen, A.x0 + 4, A.y1 - 22, W, [1.1, 3.4, 1.2, 1.2], rows, {
     rh,
     th: PG_TS.body,
     align: [0, 0, 1, 1],
@@ -4577,7 +4567,7 @@ function p3DcSheet(st, job, media) {
   });
   const pen = sheet.pen,
     A = sheet.area;
-  pgSheetTitle(pen, A.x0 + 4, A.y1 - 10, "DC CONNECTION DIAGRAM", PG_TS.title, 150, 0);
+  pgSheetTitle(pen, A.x0 + 4, A.y1 - 10, "DC CONNECTION DIAGRAM", PG_TS.title, 150, 0, null);
   doc.layer("PG-EARTH", PG_ACI.green, "CONTINUOUS", 35);
   const P = M.pro;
   const grp = {};
@@ -4596,7 +4586,7 @@ function p3DcSheet(st, job, media) {
   const colW = LW / show.length;
   const bw = Math.min(colW - 14, 150);
   const yLo = A.y0 + 40,
-    yHi = A.y1 - 16,
+    yHi = A.y1 - 22,
     IVH = 13,
     IVGAP = P ? 64 : 24;
   const maxPh = yHi - yLo - IVGAP - 22;

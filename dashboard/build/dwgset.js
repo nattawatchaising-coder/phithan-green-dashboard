@@ -110,7 +110,7 @@ function dsMm(st, job, media, key, title) {
     })
   });
   const A = sheet.area;
-  if (title) pgSheetTitle(sheet.pen, A.x0 + 4, A.y1 - 10, title, PG_TS.title, 220, 0);
+  if (title) pgSheetTitle(sheet.pen, A.x0 + 4, A.y1 - 10, title, PG_TS.title, 220, 0, null);
   return {
     doc,
     pen: sheet.pen,
@@ -216,9 +216,9 @@ function dsPlanHead(P, title) {
     AR = P.AR;
   const tx = P.V.wide ? AR.x0 + 4 : P.RX0,
     ty = P.V.wide ? AR.y0 + 18 : AR.y1 - 12;
-  pgSheetTitle(pen, tx, ty, title, PG_TS.title, P.V.wide ? 170 : P.RW - 4, 0);
-  pen.text("PG-NOTE", tx, ty - 7, 2.4, "SCALE   A3 = 1:" + P.SC + "   A1 = 1:" + Math.round(P.SC / 1.414));
-  pgCompass(pen, P.RX1 - 12, AR.y1 - 38, 6.5, null, P.V.rot);
+  pgSheetTitle(pen, tx, ty, title, PG_TS.title, P.V.wide ? 170 : P.RW - 30, 0, P.SC);
+  pgCompass(pen, P.RX1 - 12, AR.y1 - P3_COMPASS_DY, 6.5, null, P.V.rot);
+  P.titleW = pgTextW(title, PG_TS.title) + 8;
   const barM = P.SC / 1000 * 40,
     bx = AR.x0 + 4,
     by = AR.y0 + 4;
@@ -243,7 +243,20 @@ function dsRight(P, rows, cols, notes, align) {
   if (R.length > fit) R = R.slice(0, fit - 2).concat([cols.map((_, i) => i ? "" : "…")], [rows[rows.length - 1]]);
   const cw = cols.map((_, i) => Math.max(...R.map(r => String(r[i] == null ? "" : r[i]).length)) * PG_TS.body * 0.52 + 6);
   const tw = Math.min(P.RW, cw.reduce((t, w) => t + w, 0));
-  const used = pgGrid(pen, P.RX0, yTop, tw, cw, R, {
+  let tx = P.RX0,
+    ty = yTop;
+  if (P.V.wide) {
+    const xL = AR.x0 + 4 + Math.max(P.titleW || 110, 50) + 8,
+      xR = P.RX0 - 8;
+    const hNeed = R.length * RH;
+    if (xR - xL >= tw && hNeed <= yTop - AR.y0 - 10) {
+      tx = (xL + xR - tw) / 2;
+      ty = AR.y0 + 4 + hNeed;
+    }
+  }
+  P.tbX = tx;
+  P.tbTop = ty;
+  const used = pgGrid(pen, tx, ty, tw, cw, R, {
     rh: RH,
     th: PG_TS.body,
     headRow: 0,
@@ -762,7 +775,7 @@ function dsPanelSheet(st, job, media) {
     }
   })();
   dsRight(P, rows, [2.2, 1, 1.1, 1.1], ["ตัวเลขกลางกลุ่ม = จำนวนแถว x แผงต่อแถว = จำนวนแผง (กลุ่มที่ไม่เป็นสี่เหลี่ยมบอกจำนวนแผงอย่างเดียว)", "แผง " + (M0 ? M0.panel.model + " " : "") + wp + " Wp · รวม " + tot + " แผง = " + (tot * wp / 1000).toFixed(2) + " kWp", "ตำแหน่งแผงอ้างอิงแบบ 3D — ตรวจระยะห่างขอบหลังคา/สิ่งกีดขวางที่หน้างานก่อนวางราง"], [0, 1, 1, 1]);
-  P.pen.text(PG_TBL.txt, P.RX0, P.V.wide ? PG_SHEET.IN.y0 + P3_WIDE_B - 5 : P.AR.y1 - 48, PG_TS.head, "TOTAL PV MODULE  " + tot + " PCS.  (" + (tot * wp / 1000).toFixed(2) + " kWp)");
+  P.pen.text(PG_TBL.txt, P.tbX, P.V.wide ? P.tbTop + 3 : P.AR.y1 - 48, PG_TS.head, "TOTAL PV MODULE  " + tot + " PCS.  (" + (tot * wp / 1000).toFixed(2) + " kWp)");
   return doc.build();
 }
 function dsObs(st, t) {
@@ -969,7 +982,7 @@ function dsStrDetSheet(st, job, media) {
   const pen = S.pen,
     A = S.A,
     T = PG_TBL.txt;
-  pgSheetTitle(pen, A.x1 - 6, A.y0 + 12, "DETAIL PV MODULE STRING", PG_TS.title, 170, 2);
+  pgSheetTitle(pen, A.x1 - 6, A.y0 + 12, "DETAIL PV MODULE STRING", PG_TS.title, 170, 2, null);
   let M = null;
   try {
     M = p3SldModel(st, job, media.design);
@@ -988,13 +1001,14 @@ function dsStrDetSheet(st, job, media) {
     bandTop = A.y0 + 92;
   const pairs = [["PV MODULE", M ? M.panel.model + " " + M.panel.wp + " Wp" : "-"], ["STRING", typeof p3StrSum === "function" ? p3StrSum(SS) : SS.length + " STRING"], ["DC CABLE", M && M.pro && M.pro.dcCable || "PV1-F 1x4 mm2 1.5kV DC"]];
   if (M && M.pro && M.pro.vocMax) pairs.push(["Voc @" + M.pro.tMin + "%%dC", M.pro.vocMax + " V (MAX " + M.pro.maxVdc + " V)"]);
-  const used = pgSpecBlock(pen, sx, bandTop - 6, lw, "STRING DATA", pairs, {
+  const specTop = A.y0 + 22 + (pairs.length + 1) * 4.6;
+  const used = pgSpecBlock(pen, sx, specTop, lw, "STRING DATA", pairs, {
     rh: 4.6,
     th: PG_TS.cell,
     kw: 0.3
   });
   const lgx = sx + lw + 12;
-  let ly = bandTop - 8;
+  let ly = specTop - 2;
   pen.text(T, lgx, ly, PG_TS.body, "LEGEND");
   [[DL("dcp"), "สาย DC ขั้วบวก (+) ไปตู้ DC"], [DL("dcn"), "สาย DC ขั้วลบ (-) ไปตู้ DC"], [DL("jmp"), "สายต่อระหว่างแผง (สายของแผงเอง)"], [DL("flow"), "แผงช่วงกลางที่ไม่ได้วาด (ต่อแบบเดียวกัน)"]].forEach((r, i) => {
     const y = ly - 5 - i * 4.6;
@@ -1054,6 +1068,7 @@ function dsStrDetSheet(st, job, media) {
   const pw2 = pw1,
     ph2 = ph1,
     top0 = y1 - 32;
+  XR = (X0 + X1) / 2 + (lt.length * pw2 + (lt.length - 1) * gap) / 2;
   const yT = top0 - ph2,
     yB = yT - gapR - ph2;
   const RT = dsRow(pen, lt, XR, -1, yT, pw2, ph2, gap, false, false);

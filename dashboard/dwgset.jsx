@@ -73,7 +73,7 @@ function dsMm(st, job, media, key, title) {
   const sheet = pgSheet(doc, { k: 1, ox: 0, oy: 0,
     info: p3SheetInfo(st, job, { sheet: key, scale: "NONE", sheetNo: media.sheetNo || "1/1" }) });
   const A = sheet.area;
-  if (title) pgSheetTitle(sheet.pen, A.x0 + 4, A.y1 - 10, title, PG_TS.title, 220, 0);
+  if (title) pgSheetTitle(sheet.pen, A.x0 + 4, A.y1 - 10, title, PG_TS.title, 220, 0, null);
   return { doc, pen: sheet.pen, A, sheet };
 }
 
@@ -127,9 +127,9 @@ function dsPlanHead(P, title) {
   const pen = P.pen, AR = P.AR;
   /* โหมดกว้าง: ชื่อแผ่น + มาตราส่วนลงมุมซ้ายล่าง (เหนือมาตราส่วนเส้น) แถบบนเหลือแค่เข็มทิศ (ผู้ใช้ย้าย) */
   const tx = P.V.wide ? AR.x0 + 4 : P.RX0, ty = P.V.wide ? AR.y0 + 18 : AR.y1 - 12;
-  pgSheetTitle(pen, tx, ty, title, PG_TS.title, P.V.wide ? 170 : P.RW - 4, 0);
-  pen.text("PG-NOTE", tx, ty - 7, 2.4, "SCALE   A3 = 1:" + P.SC + "   A1 = 1:" + Math.round(P.SC / 1.414));
-  pgCompass(pen, P.RX1 - 12, AR.y1 - 38, 6.5, null, P.V.rot);
+  pgSheetTitle(pen, tx, ty, title, PG_TS.title, P.V.wide ? 170 : P.RW - 30, 0, P.SC);   // แบบคอลัมน์: เว้นที่ให้เข็มทิศมุมขวาบน
+  pgCompass(pen, P.RX1 - 12, AR.y1 - P3_COMPASS_DY, 6.5, null, P.V.rot);
+  P.titleW = pgTextW(title, PG_TS.title) + 8;
   const barM = P.SC / 1000 * 40, bx = AR.x0 + 4, by = AR.y0 + 4;
   pen.rect("PG-NORTH", bx, by, 40, 2.2);
   pen.solid("PG-NORTH", [bx, by], [bx + 10, by], [bx + 10, by + 2.2], [bx, by + 2.2]);
@@ -149,7 +149,15 @@ function dsRight(P, rows, cols, notes, align) {
   /* กว้างตามข้อความจริง ไม่ยืดเต็มคอลัมน์ (ผู้ใช้: ตารางยาวไป) · ข้อความยาวเกินคอลัมน์ = ย่อตามสัดส่วน */
   const cw = cols.map((_, i) => Math.max(...R.map((r) => String(r[i] == null ? "" : r[i]).length)) * PG_TS.body * 0.52 + 6);
   const tw = Math.min(P.RW, cw.reduce((t, w) => t + w, 0));
-  const used = pgGrid(pen, P.RX0, yTop, tw, cw, R, { rh: RH, th: PG_TS.body, headRow: 0, align });
+  /* โหมดกว้าง: ตารางไปกลางแถบล่างระหว่างชื่อแผ่นกับหมายเหตุ ชิดล่าง (ผู้ใช้ย้าย) — ไม่พอที่ = ที่เดิมเหนือหมายเหตุ */
+  let tx = P.RX0, ty = yTop;
+  if (P.V.wide) {
+    const xL = AR.x0 + 4 + Math.max(P.titleW || 110, 50) + 8, xR = P.RX0 - 8;
+    const hNeed = R.length * RH;
+    if (xR - xL >= tw && hNeed <= yTop - AR.y0 - 10) { tx = (xL + xR - tw) / 2; ty = AR.y0 + 4 + hNeed; }
+  }
+  P.tbX = tx; P.tbTop = ty;
+  const used = pgGrid(pen, tx, ty, tw, cw, R, { rh: RH, th: PG_TS.body, headRow: 0, align });
   if (nh) dsNoteBlock(pen, P.RX0, AR.y0 + 4 + nh, P.RW, notes);
   return used;
 }
@@ -469,7 +477,7 @@ function dsPanelSheet(st, job, media) {
     "ตำแหน่งแผงอ้างอิงแบบ 3D — ตรวจระยะห่างขอบหลังคา/สิ่งกีดขวางที่หน้างานก่อนวางราง",
   ], [0, 1, 1, 1]);
   /* ตัวใหญ่ใต้ตาราง แบบแผ่นจริง (TOTAL ... MODULE) */
-  P.pen.text(PG_TBL.txt, P.RX0, P.V.wide ? PG_SHEET.IN.y0 + P3_WIDE_B - 5 : P.AR.y1 - 48, PG_TS.head, "TOTAL PV MODULE  " + tot + " PCS.  (" + (tot * wp / 1000).toFixed(2) + " kWp)");
+  P.pen.text(PG_TBL.txt, P.tbX, P.V.wide ? P.tbTop + 3 : P.AR.y1 - 48, PG_TS.head, "TOTAL PV MODULE  " + tot + " PCS.  (" + (tot * wp / 1000).toFixed(2) + " kWp)");
   return doc.build();
 }
 
@@ -643,7 +651,7 @@ function dsStrDetSheet(st, job, media) {
   const S = dsMm(st, job, media, "STRDET", null);
   const pen = S.pen, A = S.A, T = PG_TBL.txt;
   /* ชื่อแผ่นอยู่มุมขวาล่าง (ผู้ใช้ย้าย) ด้านบนทั้งแผ่นให้รูปที่ 1/2 */
-  pgSheetTitle(pen, A.x1 - 6, A.y0 + 12, "DETAIL PV MODULE STRING", PG_TS.title, 170, 2);
+  pgSheetTitle(pen, A.x1 - 6, A.y0 + 12, "DETAIL PV MODULE STRING", PG_TS.title, 170, 2, null);
   let M = null;
   try { M = p3SldModel(st, job, media.design); } catch (e) { M = null; }
   const SS = (media.design && media.design.strings) || [];
@@ -658,9 +666,11 @@ function dsStrDetSheet(st, job, media) {
     ["STRING", typeof p3StrSum === "function" ? p3StrSum(SS) : SS.length + " STRING"],
     ["DC CABLE", (M && M.pro && M.pro.dcCable) || "PV1-F 1x4 mm2 1.5kV DC"]];
   if (M && M.pro && M.pro.vocMax) pairs.push(["Voc @" + M.pro.tMin + "%%dC", M.pro.vocMax + " V (MAX " + M.pro.maxVdc + " V)"]);
-  const used = pgSpecBlock(pen, sx, bandTop - 6, lw, "STRING DATA", pairs, { rh: 4.6, th: PG_TS.cell, kw: 0.3 });
+  /* ข้อมูลสตริง + LEGEND ลงล่าง ชิดระดับฐานรูปแผงซ้าย (ผู้ใช้ย้ายลง) */
+  const specTop = A.y0 + 22 + (pairs.length + 1) * 4.6;
+  const used = pgSpecBlock(pen, sx, specTop, lw, "STRING DATA", pairs, { rh: 4.6, th: PG_TS.cell, kw: 0.3 });
   const lgx = sx + lw + 12;
-  let ly = bandTop - 8;
+  let ly = specTop - 2;
   pen.text(T, lgx, ly, PG_TS.body, "LEGEND");
   [[DL("dcp"), "สาย DC ขั้วบวก (+) ไปตู้ DC"], [DL("dcn"), "สาย DC ขั้วลบ (-) ไปตู้ DC"], [DL("jmp"), "สายต่อระหว่างแผง (สายของแผงเอง)"],
     [DL("flow"), "แผงช่วงกลางที่ไม่ได้วาด (ต่อแบบเดียวกัน)"]].forEach((r, i) => {
@@ -708,8 +718,9 @@ function dsStrDetSheet(st, job, media) {
   toBox([last.n[0], last.n[1] - 5], "To DC Box (-)", DL("dcn"));
   cap(y1 - 18, "รูปที่ 1  การเดินสาย PV STRING แบบแถวเดียว  (" + n + " แผง / สตริง)");
 
-  /* รูปที่ 2 — แถวบน 1..m (ขวา→ซ้าย) แถวล่าง m+1..n (ซ้าย→ขวา) */
+  /* รูปที่ 2 — แถวบน 1..m (ขวา→ซ้าย) แถวล่าง m+1..n (ซ้าย→ขวา) · จัดกลางแผ่นของตัวเอง (ผู้ใช้: เดิมชิดขวาตามรูปที่ 1) */
   const pw2 = pw1, ph2 = ph1, top0 = y1 - 32;
+  XR = (X0 + X1) / 2 + (lt.length * pw2 + (lt.length - 1) * gap) / 2;
   const yT = top0 - ph2, yB = yT - gapR - ph2;
   const RT = dsRow(pen, lt, XR, -1, yT, pw2, ph2, gap, false, false);
   const xL = XR - lt.length * pw2 - (lt.length - 1) * gap;

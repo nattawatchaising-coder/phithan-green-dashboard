@@ -1074,7 +1074,11 @@ function pgTextW(s, h) {
   }
   return w * h;
 }
-function pgSheetTitle(pen, x, y, s, h, maxW, align) {
+/* sub = บรรทัดมาตราส่วนใต้เส้น (ตัวเลข = "SCALE A3 = 1:n A1 = 1:m" · null = N.T.S. · undefined = ไม่มี)
+   ทุกแผ่นใช้รูปแบบเดียวกับหัวแผ่นผังวางแผง (ผู้ใช้: ทำแบบนี้ทุกหน้าที่เป็นหัวข้อ) */
+function pgScaleTxt(sc) { return sc ? "SCALE   A3 = 1:" + sc + "   A1 = 1:" + Math.round(sc / 1.414) : "SCALE   N.T.S."; }
+function pgSheetTitle(pen, x, y, s, h, maxW, align, sub) {
+  if (sub !== undefined) pen.text("PG-NOTE", x, y - 7, 2.4, typeof sub === "string" ? sub : pgScaleTxt(sub), { align: align == null ? 1 : align });
   h = h || 6.5;
   const n = String(s).length || 1;
   if (maxW) h = Math.min(h, maxW / (n * 0.62));
@@ -1993,8 +1997,7 @@ function pgSldPro(doc, sheet, M) {
   /* ชื่อแผ่นขนาดเดียวกับแผ่นอื่น (เดิม 4.4 บรรทัดเดียว — ผู้ใช้ว่าเล็กไป) · บรรทัดรองใต้เส้น */
   /* ชื่อแผ่นอยู่ใต้ตัวไดอะแกรม (ผู้ใช้ย้ายจากล่างคอลัมน์ขวา) — คอลัมน์ขวาได้ที่ให้หมายเหตุ/สัญลักษณ์เพิ่ม */
   const tcx = (A.x0 + RX0) / 2;
-  pgSheetTitle(pen, tcx, titleY + 3.5, "SINGLE LINE DIAGRAM", PG_TS.title, RX0 - A.x0 - 10);
-  pen.text(PG_LAY.txt, tcx, A.y0 + 1.6, PG_TS.head, "SOLAR PV SYSTEM", { align: 1, valign: 1 });
+  pgSheetTitle(pen, tcx, titleY + 3.5, "SINGLE LINE DIAGRAM SOLAR PV SYSTEM", PG_TS.title, RX0 - A.x0 - 10, 1, null);   // บรรทัดเดียวยาว (ผู้ใช้: เขียนยาวไปเลย)
 }
 function pgSldDraw(doc, sheet, M) {
   if (M.pro && M.mppt && M.mppt.rows.some((r) => r.ins.length) && M.mode === "string" && !M.batt) return pgSldPro(doc, sheet, M);
@@ -2214,11 +2217,11 @@ function pgSldDraw(doc, sheet, M) {
   const eqH = 5.4 + 4.6 * (M.equip.length + 1);
   const eqY = Math.min(ty - 4, A.y0 + 8 + eqH);
   pgSldEquip(pen, TX0, eqY, TX1 - TX0, M.equip);
-  pgSheetTitle(pen, (TX0 + TX1) / 2, eqY + 11, "SINGLE LINE DIAGRAM SOLAR CELL SYSTEM", 6.2, TX1 - TX0 - 16);
+  pgSheetTitle(pen, (TX0 + TX1) / 2, eqY + 11, "SINGLE LINE DIAGRAM SOLAR CELL SYSTEM", 6.2, TX1 - TX0 - 16, 1, null);
 }
 
 Object.assign(window, {
-  PG_FONTS, pgFont, pgSetFont, pgDxf, pgSvg, pgDoc, pgCombine, pgPen, pgSheet, pgSheetTitle, pgSheetLayers, pgLogoMark, pgWrap,
+  PG_FONTS, pgFont, pgSetFont, pgDxf, pgSvg, pgDoc, pgCombine, pgPen, pgSheet, pgSheetTitle, pgScaleTxt, pgSheetLayers, pgLogoMark, pgWrap,
   pgSldLayers, pgSldDraw, pgSldPro, pgSldTable, pgSldEquip, pgSym,
   pgTableLayers, pgGrid, pgSpecBlock, pgCompass, pgModuleDetail, pgModFace, pgTextW, pgPhotoFrame, pgDcString, pgDcSize,
   PG_SHEET, PG_LAY, PG_ACI, PG_SLD, PG_TBL,
