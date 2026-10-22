@@ -10,7 +10,7 @@
 
 /* ── layer ของแผ่นใหม่ — สีเดียวกันทุกแผ่น (สัญลักษณ์ในหน้ารายการประกอบแบบวาดด้วยชุดนี้ จึงตรงกับผังเสมอ) ── */
 const DS_LAY = {
-  roof: ["DS-ROOF", 8, 25], pan: ["DS-PANEL", 140, 13], panB: ["DS-PANEL-B", 5, 18],
+  roof: ["DS-ROOF", 8, 15], pan: ["DS-PANEL", 140, 13], panB: ["DS-PANEL-B", 5, 18],
   tray: ["DS-TRAY", 30, 50], pipe: ["DS-PIPE", 3, 40], tap: ["DS-TAP", 4, 30],
   walk: ["DS-WALKWAY", 2, 50], rail: ["DS-GUARDRAIL", 6, 40], lad: ["DS-LADDER", 1, 40],
   tag: ["DS-TAG", 7, 18], grp: ["DS-GROUP", 1, 18], dcp: ["DS-DC-POS", 1, 35], dcn: ["DS-DC-NEG", 7, 35],
@@ -98,7 +98,6 @@ function dsPlan(st, job, media, key, o) {
   (st.roofs || []).forEach((roof) => {
     let faces = [];
     try { faces = p3RoofSurf(roof) || []; } catch (e) { faces = []; }
-    faces.forEach((f) => doc.pline(DL("roof"), (f.pts || []).map((p) => [p.x, -p.z]), true));
     if (!faces.length && roof.kind === "poly" && Array.isArray(roof.pts))
       doc.pline(DL("roof"), roof.pts.map((p) => [(+p.x || 0) + (+roof.x || 0), -((+p.z || 0) + (+roof.z || 0))]), true);
     /* โดม (ครึ่งวงกลม) ไม่มีผิวผืน — ใช้ขอบผังของตัวแก้ (p3sOutline · plan3d2) ถ้ามี */
@@ -108,6 +107,8 @@ function dsPlan(st, job, media, key, o) {
       if (ol.length >= 3) doc.pline(DL("roof"), ol.map((p) => [p.x, -p.z]), true);
     }
   });
+  /* ขอบหลังคา — ส่วนที่หลังคาอื่นที่สูงกว่าบังไม่วาด (p3RoofEdges) */
+  p3RoofEdges(st).forEach((e) => doc.line(DL("roof"), e[0][0], e[0][1], e[1][0], e[1][1]));
   let foot = { panels: [] };
   try { foot = p3FootAll(st); } catch (e) { foot = { panels: [] }; }
   if (o.panels !== false) {

@@ -482,7 +482,7 @@ function p3MeasLen(m) {
    ชื่อภาษาไทยเขียนเป็น \U+XXXX ตามที่ DXF กำหนด ไฟล์จึงเป็น ASCII ล้วนและไม่เพี้ยน
    .dwg เขียนเองไม่ได้ (ไบนารีปิด) ให้เปิดไฟล์นี้แล้ว Save As เอาใน AutoCAD */
 const P3_DXF_LAYERS = [
-  ["PG-BG", 8, 5], ["PG-ROOF", 7, 35], ["PG-PANEL", 5, 25], ["PG-OBSTACLE", 3, 20],
+  ["PG-BG", 8, 5], ["PG-ROOF", 7, 18], ["PG-PANEL", 5, 25], ["PG-OBSTACLE", 3, 20],
   ["PG-MEAS-CABLE", 30, 30], ["PG-MEAS-CONDUIT", 140, 30], ["PG-MEAS-TRAY", 200, 30],
   ["PG-MEAS-LADDER", 6, 30], ["PG-MEAS-WALKWAY", 4, 30], ["PG-MEAS-GUARDRAIL", 1, 30], ["PG-MEAS-OTHER", 8, 30],
   ["PG-DIM", 1, 18], ["PG-NORTH", 8, 25], ["PG-NOTE", 8, 18], ["PG-STRING", 6, 25],
@@ -758,10 +758,11 @@ function p3Dxf(st, job, media) {
   /* ── หลังคา — วาดทีละผิว (ผืนลาด/คางหมู/สามเหลี่ยมของปั้นหยา) ที่ฉายลงผัง
      ได้เส้นสัน/เส้นตะเข้มาด้วยในตัว และตรงกับที่ระบบใช้วางแผงจริง ── */
   const poly = (lay, pts, closed) => doc.pline(lay, pts.map((p) => [p[0], -p[1]]), closed);
+  /* ขอบหลังคา — ส่วนที่หลังคาอื่นที่สูงกว่าบังไม่วาด (p3RoofEdges) */
+  p3RoofEdges(st).forEach((e) => doc.line("PG-ROOF", e[0][0], e[0][1], e[1][0], e[1][1]));
   (st.roofs || []).forEach((roof) => {
     let faces = [];
     try { faces = p3RoofSurf(roof) || []; } catch (e) { faces = []; }
-    faces.forEach((f) => poly("PG-ROOF", (f.pts || []).map((p) => [p.x, p.z]), true));
     if (!faces.length && roof.kind === "poly" && Array.isArray(roof.pts)) {
       poly("PG-ROOF", roof.pts.map((p) => [(+p.x || 0) + (+roof.x || 0), (+p.z || 0) + (+roof.z || 0)]), true);
     }
@@ -943,6 +944,70 @@ function p3Xf(roof, pan) {
 /* ── ผิวหลังคาในพิกัดโลก (ใช้เป็น "ตัวบังแสง" ตอนคำนวณเงา) ──
    คืน [{ roofId, side, pts:[{x,y,z}...] }] — ใช้ขอบผืนชุดเดียวกับที่ใช้วางแผง จึงตรงกับที่เห็นในจอ
    โดมคืนค่าว่าง (ผิวโค้ง ใช้ตัวแผงเองเป็นตัวบังแทน) */
+/* ── เส้นหลังคาบนผัง ตัดส่วนที่ถูกหลังคาอื่นที่สูงกว่าบังทิ้ง ──
+   หลังคาซ้อนกัน (หลังคาต่ำสอดใต้หลังคาสูง) เดิมวาดทุกขอบเลยเห็นเส้นทับกัน — ผู้ใช้: เอาแค่เส้นที่อยู่บนในแบบ 3D
+   ขอบแต่ละเส้นถูกแบ่งตรงจุดที่ตัดขอบผิวหลังคาอื่น แล้วเช็กกลางช่วง: อยู่ในผิวของหลังคาอื่นที่สูงกว่า (ระดับผิวตรงจุดนั้น) = ซ่อน
+   ผิวหลังคาเดียวกันไม่บังกันเอง · คืน [[[x, y], [x, y]], …] พิกัดผัง (y = −z แกนขึ้น) */
+function p3RoofEdges(st) {
+  const F = [];
+  (st.roofs || []).forEach((roof, ri) => {
+    let faces = [];
+    try { faces = p3RoofSurf(roof) || []; } catch (e) { faces = []; }
+    faces.forEach((f) => {
+      const Q = f.pts || [];
+      if (Q.length < 3) return;
+      let nx = 0, ny = 0, nz = 0, cx = 0, cy = 0, cz = 0;
+      Q.forEach((a, i) => {
+        const b = Q[(i + 1) % Q.length];
+        nx += (a.y - b.y) * (a.z + b.z); ny += (a.z - b.z) * (a.x + b.x); nz += (a.x - b.x) * (a.y + b.y);
+        cx += a.x; cy += a.y; cz += a.z;
+      });
+      const P = Q.map((p) => [p.x, -p.z]), xs = P.map((p) => p[0]), ys = P.map((p) => p[1]);
+      F.push({ ri, Q, P, n: [nx, ny, nz], c: [cx / Q.length, cy / Q.length, cz / Q.length],
+        bb: [Math.min(...xs), Math.min(...ys), Math.max(...xs), Math.max(...ys)] });
+    });
+  });
+  const hAt = (f, x, y) => Math.abs(f.n[1]) < 1e-9 ? -Infinity
+    : f.c[1] - (f.n[0] * (x - f.c[0]) + f.n[2] * (-y - f.c[2])) / f.n[1];
+  const inside = (P, x, y) => {
+    let r = false;
+    for (let i = 0, j = P.length - 1; i < P.length; j = i++) {
+      const a = P[i], b = P[j];
+      if ((a[1] > y) !== (b[1] > y) && x < (b[0] - a[0]) * (y - a[1]) / (b[1] - a[1]) + a[0]) r = !r;
+    }
+    return r;
+  };
+  const out = [];
+  F.forEach((f) => {
+    const others = F.filter((g) => g.ri !== f.ri);
+    f.Q.forEach((A3, i) => {
+      const B3 = f.Q[(i + 1) % f.Q.length], a = f.P[i], b = f.P[(i + 1) % f.P.length];
+      const dx = b[0] - a[0], dy = b[1] - a[1];
+      const ts = [0, 1];
+      others.forEach((g) => g.P.forEach((p, j) => {
+        const q = g.P[(j + 1) % g.P.length], ex = q[0] - p[0], ey = q[1] - p[1];
+        const den = dx * ey - dy * ex;
+        if (Math.abs(den) < 1e-12) return;
+        const t = ((p[0] - a[0]) * ey - (p[1] - a[1]) * ex) / den, u = ((p[0] - a[0]) * dy - (p[1] - a[1]) * dx) / den;
+        if (t > 1e-6 && t < 1 - 1e-6 && u >= -1e-6 && u <= 1 + 1e-6) ts.push(t);
+      }));
+      ts.sort((x, y) => x - y);
+      let run = null;
+      for (let k = 0; k < ts.length - 1; k++) {
+        const t0 = ts[k], t1 = ts[k + 1];
+        if (t1 - t0 < 1e-9) continue;
+        const tm = (t0 + t1) / 2, mx = a[0] + dx * tm, my = a[1] + dy * tm, mh = A3.y + (B3.y - A3.y) * tm;
+        const hid = others.some((g) => mx >= g.bb[0] && mx <= g.bb[2] && my >= g.bb[1] && my <= g.bb[3]
+          && inside(g.P, mx, my) && hAt(g, mx, my) > mh + 0.05);
+        if (hid) { if (run) { out.push(run); run = null; } continue; }
+        const p0 = [a[0] + dx * t0, a[1] + dy * t0], p1 = [a[0] + dx * t1, a[1] + dy * t1];
+        if (run) run[1] = p1; else run = [p0, p1];
+      }
+      if (run) out.push(run);
+    });
+  });
+  return out;
+}
 function p3RoofSurf(roof) {
   const pan = p3Panels(roof);
   if (roof.kind === "dome" || !pan.faces || !pan.toMesh) return [];
@@ -1105,14 +1170,7 @@ function p3StrLayout(st, job, media) {
   const lay = (id) => "PG-STR-" + ((((+id || 1) - 1) % NL + NL) % NL + 1);
 
   /* หลังคา — ตัดส่วนที่เกินกรอบผังทิ้ง */
-  (st.roofs || []).forEach((roof) => {
-    let faces = [];
-    try { faces = p3RoofSurf(roof) || []; } catch (e) { faces = []; }
-    faces.forEach((f) => {
-      const P = (f.pts || []).map((p) => [p.x, -p.z]);
-      P.forEach((p, i) => { const s = p3ClipSeg(p, P[(i + 1) % P.length], VB); if (s) doc.line("PG-ROOF", s[0][0], s[0][1], s[1][0], s[1][1]); });
-    });
-  });
+  p3RoofEdges(st).forEach((e) => { const s = p3ClipSeg(e[0], e[1], VB); if (s) doc.line("PG-ROOF", s[0][0], s[0][1], s[1][0], s[1][1]); });
 
   const fp = foot.panels || [];
   const pw = Math.min.apply(null, fp.map((p) => {

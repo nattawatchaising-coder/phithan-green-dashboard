@@ -1,5 +1,5 @@
 const DS_LAY = {
-  roof: ["DS-ROOF", 8, 25],
+  roof: ["DS-ROOF", 8, 15],
   pan: ["DS-PANEL", 140, 13],
   panB: ["DS-PANEL-B", 5, 18],
   tray: ["DS-TRAY", 30, 50],
@@ -165,7 +165,6 @@ function dsPlan(st, job, media, key, o) {
     } catch (e) {
       faces = [];
     }
-    faces.forEach(f => doc.pline(DL("roof"), (f.pts || []).map(p => [p.x, -p.z]), true));
     if (!faces.length && roof.kind === "poly" && Array.isArray(roof.pts)) doc.pline(DL("roof"), roof.pts.map(p => [(+p.x || 0) + (+roof.x || 0), -((+p.z || 0) + (+roof.z || 0))]), true);else if (!faces.length && typeof p3sOutline === "function") {
       let ol = [];
       try {
@@ -176,6 +175,7 @@ function dsPlan(st, job, media, key, o) {
       if (ol.length >= 3) doc.pline(DL("roof"), ol.map(p => [p.x, -p.z]), true);
     }
   });
+  p3RoofEdges(st).forEach(e => doc.line(DL("roof"), e[0][0], e[0][1], e[1][0], e[1][1]));
   let foot = {
     panels: []
   };
