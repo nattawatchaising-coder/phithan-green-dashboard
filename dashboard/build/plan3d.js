@@ -1012,8 +1012,49 @@ function p3RotDoc(doc, deg) {
         y: a[1],
         rot: (o.rot || 0) + deg
       }));
+    },
+    block: doc.block ? (name, draw) => doc.block(name, draw) : undefined,
+    insert: (l, name, x, y, sx, sy, rot) => {
+      const a = R(x, y);
+      doc.insert(l, name, a[0], a[1], sx, sy, (rot || 0) + deg);
     }
   };
+}
+function p3PanelBlock(doc) {
+  if (!doc.block) return false;
+  doc.block("PV-PANEL", b => {
+    b.rect("0", 0, 0, 1, 1);
+    for (let i = 1; i < 3; i++) b.line("0", i / 3, 0, i / 3, 1);
+    for (let j = 1; j < 6; j++) b.line("0", 0, j / 6, 1, j / 6);
+  });
+  return true;
+}
+function p3PanelIns(doc, layer, P) {
+  if (!P || P.length < 4 || !p3PanelBlock(doc)) {
+    doc.pline(layer, P, true);
+    return;
+  }
+  let o = P[0],
+    ex = [P[1][0] - P[0][0], P[1][1] - P[0][1]],
+    ey = [P[3][0] - P[0][0], P[3][1] - P[0][1]];
+  if (Math.hypot(ex[0], ex[1]) > Math.hypot(ey[0], ey[1])) {
+    const t = ex;
+    ex = ey;
+    ey = t;
+  }
+  let cr = ex[0] * ey[1] - ex[1] * ey[0];
+  if (cr < 0) {
+    o = [o[0] + ey[0], o[1] + ey[1]];
+    ey = [-ey[0], -ey[1]];
+    cr = -cr;
+  }
+  const lx = Math.hypot(ex[0], ex[1]),
+    ly = Math.hypot(ey[0], ey[1]);
+  if (lx < 1e-6 || ly < 1e-6 || Math.abs(ex[0] * ey[0] + ex[1] * ey[1]) / (lx * ly) > 0.02) {
+    doc.pline(layer, P, true);
+    return;
+  }
+  doc.insert(layer, "PV-PANEL", o[0], o[1], lx, ly, Math.atan2(ex[1], ex[0]) / P3_DEG);
 }
 function p3PlanBox(st, imgs) {
   let a = Infinity,
@@ -1396,7 +1437,7 @@ function p3Dxf(st, job, media) {
       panels: []
     };
   }
-  (foot.panels || []).forEach(p => poly("PG-PANEL", p.pts, true));
+  (foot.panels || []).forEach(p => p3PanelIns(doc, "PG-PANEL", p.pts.map(q => [q[0], -q[1]])));
   (st.obstacles || []).forEach(o => {
     const x = +o.x || 0,
       z = +o.z || 0,
@@ -1456,8 +1497,21 @@ function p3Dxf(st, job, media) {
   SP.forEach(q => {
     const pts = (q.pts || []).map(t => [t[0], -t[1]]);
     if (!pts.length) return;
-    if (pts.length > 1) doc.pline("PG-STRING", pts, false);
     const r = Math.min(pw * 0.42 || TH, TH * 1.1);
+    if (pts.length > 1) {
+      const d = Math.hypot(pts[1][0] - pts[0][0], pts[1][1] - pts[0][1]);
+      const L = d > r ? [[pts[0][0] + (pts[1][0] - pts[0][0]) * r / d, pts[0][1] + (pts[1][1] - pts[0][1]) * r / d]].concat(pts.slice(1)) : pts.slice(1);
+      if (L.length > 1) doc.pline("PG-STRING", L, false);
+    }
+    const v = [];
+    for (let i = 0; i < 8; i++) {
+      const t = (i + 0.5) * Math.PI / 4;
+      v.push([pts[0][0] + r * Math.cos(t), pts[0][1] + r * Math.sin(t)]);
+    }
+    doc.layer("PG-STRING-BG", 255, "CONTINUOUS", 0);
+    doc.solid("PG-STRING-BG", v[0], v[1], v[2], v[3]);
+    doc.solid("PG-STRING-BG", v[0], v[3], v[4], v[7]);
+    doc.solid("PG-STRING-BG", v[7], v[4], v[5], v[6]);
     doc.circle("PG-STRING", pts[0][0], pts[0][1], r);
     doc.text("PG-STRING", pts[0][0], pts[0][1], r * 1.05, String(q.id), {
       align: 1,
@@ -2179,8 +2233,8 @@ function p3StrLayout(st, job, media) {
       P = p.pts.map(q => [q[0], -q[1]]);
     if (s) {
       gd.solid(lay(s.id), P[0], P[1], P[2], P[3]);
-      gd.pline("PG-STR-EDGE", P, true);
-    } else gd.pline("PG-PANEL", P, true);
+      p3PanelIns(gd, "PG-STR-EDGE", P);
+    } else p3PanelIns(gd, "PG-PANEL", P);
   });
   const disc = (L, x, y, r) => {
     const v = [];

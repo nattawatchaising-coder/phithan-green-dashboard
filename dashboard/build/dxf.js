@@ -140,19 +140,21 @@ function pgDxf(opt) {
   const W = buf => (c, v) => {
     buf.push(String(c), String(v));
   };
+  const blocks = new Map();
+  let CUR = null;
   const head = (buf, type, sub, layer) => {
     const w = W(buf);
     buf.h = nh();
     w(0, type);
     w(5, buf.h);
-    w(330, hBrecModel);
+    w(330, CUR ? CUR.hRec : hBrecModel);
     w(100, "AcDbEntity");
     w(8, layer || "0");
     w(100, sub);
     return w;
   };
   const push = buf => {
-    ents.push(buf);
+    (CUR ? CUR.ents : ents).push(buf);
     return buf;
   };
   const api = {
@@ -329,6 +331,43 @@ function pgDxf(opt) {
         h: +o.h || 297,
         k: +o.k || 1
       };
+    },
+    block(name, draw) {
+      if (blocks.has(name)) return name;
+      const B = {
+        name,
+        hRec: nh(),
+        hB: nh(),
+        hE: nh(),
+        ents: []
+      };
+      blocks.set(name, B);
+      const prev = CUR;
+      const save = Object.assign({}, ext);
+      CUR = B;
+      try {
+        draw(api);
+      } finally {
+        CUR = prev;
+        Object.assign(ext, save);
+      }
+      return name;
+    },
+    insert(layer, name, x, y, sx, sy, rot) {
+      const b = [];
+      const w = head(b, "INSERT", "AcDbBlockReference", layer);
+      w(2, name);
+      w(10, num(x));
+      w(20, num(y));
+      w(30, 0);
+      w(41, num(sx == null ? 1 : sx));
+      w(42, num(sy == null ? 1 : sy));
+      w(43, 1);
+      if (rot) w(50, num(rot));
+      const r = Math.hypot(sx || 1, sy || 1);
+      grow(x - r, y - r);
+      grow(x + r, y + r);
+      return push(b);
     },
     build() {
       const out = [];
@@ -565,16 +604,20 @@ function pgDxf(opt) {
       w(70, 0);
       w(340, hStyleTh);
       w(0, "ENDTAB");
-      tabHead("BLOCK_RECORD", hTab.brec, 2);
+      tabHead("BLOCK_RECORD", hTab.brec, 2 + blocks.size);
       recHead("BLOCK_RECORD", hBrecModel, hTab.brec, "AcDbBlockTableRecord", "*Model_Space", 0);
       w(340, hLayoutModel);
       recHead("BLOCK_RECORD", hBrecPaper, hTab.brec, "AcDbBlockTableRecord", "*Paper_Space", 0);
       w(340, hLayoutPaper);
+      blocks.forEach(B => {
+        recHead("BLOCK_RECORD", B.hRec, hTab.brec, "AcDbBlockTableRecord", B.name, 0);
+        w(340, 0);
+      });
       w(0, "ENDTAB");
       w(0, "ENDSEC");
       w(0, "SECTION");
       w(2, "BLOCKS");
-      const blk = (hB, hE, brec, name) => {
+      const blk = (hB, hE, brec, name, list) => {
         w(0, "BLOCK");
         w(5, hB);
         w(330, brec);
@@ -588,6 +631,9 @@ function pgDxf(opt) {
         w(30, 0);
         w(3, name);
         w(1, "");
+        (list || []).forEach(b => {
+          for (let i = 0; i < b.length; i++) out.push(b[i]);
+        });
         w(0, "ENDBLK");
         w(5, hE);
         w(330, brec);
@@ -597,6 +643,7 @@ function pgDxf(opt) {
       };
       blk(hBlkModel, hBlkEndModel, hBrecModel, "*Model_Space");
       blk(hBlkPaper, hBlkEndPaper, hBrecPaper, "*Paper_Space");
+      blocks.forEach(B => blk(B.hB, B.hE, B.hRec, B.name, B.ents));
       w(0, "ENDSEC");
       w(0, "SECTION");
       w(2, "ENTITIES");
@@ -873,7 +920,16 @@ function pgSvg(opt) {
     const s = style(layer);
     return ' fill="none" stroke="' + s.c + '" stroke-width="' + n(s.w) + '"' + s.dash + (extra || "");
   };
+  const svgBlocks = new Map();
   const api = {
+    block(name, draw) {
+      if (!svgBlocks.has(name)) svgBlocks.set(name, draw);
+      return name;
+    },
+    insert(layer, name, x, y, sx, sy, rot) {
+      const draw = svgBlocks.get(name);
+      if (draw) draw(pgXfApi(api, layer, x, y, sx, sy, rot));
+    },
     layer(name, color, ltype, lw) {
       if (!layers.has(name)) layers.set(name, {
         name,
@@ -997,6 +1053,42 @@ function pgSvg(opt) {
   };
   return api;
 }
+function pgXfApi(base, layer, x, y, sx, sy, rot) {
+  const a = (+rot || 0) * Math.PI / 180,
+    c = Math.cos(a),
+    s = Math.sin(a);
+  sx = sx == null ? 1 : +sx;
+  sy = sy == null ? 1 : +sy;
+  const P = p => {
+    const u = p[0] * sx,
+      v = p[1] * sy;
+    return [x + u * c - v * s, y + u * s + v * c];
+  };
+  const L = l => !l || l === "0" ? layer : l;
+  const k = Math.sqrt(Math.abs(sx * sy)) || 1;
+  return {
+    layer: (...q) => base.layer(...q),
+    ltype: (...q) => base.ltype(...q),
+    line: (l, x1, y1, x2, y2) => {
+      const p = P([x1, y1]),
+        q = P([x2, y2]);
+      base.line(L(l), p[0], p[1], q[0], q[1]);
+    },
+    pline: (l, pts, cl) => base.pline(L(l), (pts || []).map(P), cl),
+    rect: (l, x0, y0, w, h) => base.pline(L(l), [[x0, y0], [x0 + w, y0], [x0 + w, y0 + h], [x0, y0 + h]].map(P), true),
+    circle: (l, cx, cy, r) => {
+      const p = P([cx, cy]);
+      base.circle(L(l), p[0], p[1], r * k);
+    },
+    solid: (l, p1, p2, p3, p4) => base.solid(L(l), P(p1), P(p2), P(p3), p4 && P(p4)),
+    text: (l, tx, ty, h, t, o) => {
+      const p = P([tx, ty]);
+      base.text(L(l), p[0], p[1], h * k, t, Object.assign({}, o, {
+        rot: (o && o.rot || 0) + (+rot || 0)
+      }));
+    }
+  };
+}
 function pgDoc(opt, svg) {
   if (PG_CAPTURE) return PG_CAPTURE(opt);
   return svg ? pgSvg(opt) : pgDxf(opt);
@@ -1091,6 +1183,8 @@ function pgCombine(makers, svg, o) {
         w: S(o.w),
         h: S(o.h)
       })),
+      block: (name, draw) => out.block(name, draw),
+      insert: (l, name, x, y, sx, sy, rot) => out.insert(l, name, X(x), Y(y), S(sx == null ? 1 : sx), S(sy == null ? 1 : sy), rot),
       plot: o => {
         T = {
           k: +o.k || 1,

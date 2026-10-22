@@ -192,7 +192,7 @@ function dsPlan(st, job, media, key, o) {
   }
   if (o.panels !== false) {
     const L = o.panels === "full" ? DL("panB") : DL("pan");
-    foot.panels.forEach(p => doc.pline(L, p.pts.map(q => [q[0], -q[1]]), true));
+    foot.panels.forEach(p => p3PanelIns(doc, L, p.pts.map(q => [q[0], -q[1]])));
   }
   const AR = sheet.area,
     RX1 = AR.x1 - 2;

@@ -116,7 +116,7 @@ function dsPlan(st, job, media, key, o) {
   try { foot = p3FootAll(st); } catch (e) { foot = { panels: [] }; }
   if (o.panels !== false) {
     const L = o.panels === "full" ? DL("panB") : DL("pan");
-    foot.panels.forEach((p) => doc.pline(L, p.pts.map((q) => [q[0], -q[1]]), true));
+    foot.panels.forEach((p) => p3PanelIns(doc, L, p.pts.map((q) => [q[0], -q[1]])));   // BLOCK PV-PANEL
   }
   const AR = sheet.area, RX1 = AR.x1 - 2;
   return { doc, pen: sheet.pen, sheet, AR, V, k, SC: V.SC, foot, RX0: RX1 - P3_PLAN_COL, RX1, RW: P3_PLAN_COL };
