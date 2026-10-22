@@ -39,6 +39,7 @@ const PG_FONTS = [{
   wf: 1,
   fam: 34
 }];
+const PG_DXF_CAP = 0.7;
 function pgFont(key) {
   if (key == null) {
     try {
@@ -246,7 +247,7 @@ function pgDxf(opt) {
       w(10, num(x));
       w(20, num(y));
       w(30, 0);
-      w(40, num(h2 * FT.k));
+      w(40, num(h2 * PG_DXF_CAP));
       w(1, esc(s));
       if (o.rot) w(50, num(o.rot));
       w(41, num(o.wf == null ? FT.wf : o.wf));

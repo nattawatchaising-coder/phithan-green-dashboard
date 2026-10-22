@@ -27,6 +27,7 @@ const PG_FONTS = [
   { key: "angsana", th: "Angsana New", file: "angsana.ttc", css: "'Angsana New', AngsanaUPC, serif", k: 1.45, wf: 1, fam: 18 },
   { key: "sarabun", th: "TH Sarabun New", file: "THSarabunNew.ttf", css: "'TH Sarabun New', 'TH SarabunPSK', Sarabun, sans-serif", k: 1.35, wf: 1, fam: 34 },
 ];
+const PG_DXF_CAP = 0.7;   // ความสูงตัวพิมพ์ใหญ่ ÷ ขนาดตัวอักษรบนจอ
 function pgFont(key) {
   if (key == null) { try { key = localStorage.getItem("pg_font"); } catch (e) {} }
   return PG_FONTS.find((f) => f.key === key) || PG_FONTS[0];
@@ -167,7 +168,9 @@ function pgDxf(opt) {
       o = o || {};
       const b = []; const w = head(b, "TEXT", "AcDbText", layer);
       w(10, num(x)); w(20, num(y)); w(30, 0);
-      w(40, num(h2 * FT.k)); w(1, esc(s));
+      /* CAD นับความสูงตัวหนังสือ TrueType เป็นความสูงตัวพิมพ์ใหญ่ (ไม่ใช่ em แบบเบราว์เซอร์) — ใช้ h × 0.7 ทุกฟอนต์
+         เดิมคูณ FT.k (Cordia 1.45) ตัวหนังสือใน CAD เลยใหญ่ล้นช่องตาราง/หัวแบบ (ผู้ใช้เปิดใน CAD แล้วไม่ตรง) */
+      w(40, num(h2 * PG_DXF_CAP)); w(1, esc(s));
       if (o.rot) w(50, num(o.rot));
       w(41, num(o.wf == null ? FT.wf : o.wf));
       w(7, o.style || "PG-TH");
