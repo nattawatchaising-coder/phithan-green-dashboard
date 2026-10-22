@@ -1107,6 +1107,8 @@ function pgTableLayers(doc) {
 /* ตารางหลายคอลัมน์ · cols = สัดส่วนความกว้าง · rows = [[cell,…],…]
    แถวที่ขึ้นต้นด้วย "#" คือแถวหัวเรื่องพาดยาวเต็มความกว้าง
    คืนความสูงที่ใช้ไป เพื่อให้ผู้เรียกวางของถัดไปต่อได้ */
+/* ใส่ PG_SPAN ในช่อง = รวมกับช่องทางซ้าย (ช่องยาว เช่นแถว รวม ของตารางเมทริกซ์ MPPT — ผู้ใช้: ทำเป็นช่องยาวเลย) */
+const PG_SPAN = "~~SPAN~~";
 function pgGrid(pen, x, y, w, cols, rows, o) {
   o = o || {};
   const L = PG_TBL.line, T = PG_TBL.txt;
@@ -1123,13 +1125,16 @@ function pgGrid(pen, x, y, w, cols, rows, o) {
       pen.text(T, x + 2, cy - h + (h - th) / 2, th * 1.15, String(r[1] == null ? "" : r[1]));
     } else {
       let cx = x;
-      CW.forEach((cw, i) => {
+      CW.forEach((cw0, i) => {
+        if (r[i] === PG_SPAN) { cx += cw0; return; }     // ช่องที่ถูกรวมกับช่องก่อนหน้า — ไม่มีเส้นแบ่ง ไม่มีข้อความ
         if (i) pen.line(L, cx, cy, cx, cy - h);
+        let cw = cw0;
+        for (let j = i + 1; j < CW.length && r[j] === PG_SPAN; j++) cw += CW[j];
         const v = r[i] == null ? "" : String(r[i]);
         const a = AL[i] == null ? 1 : AL[i];
         pen.text(T, a === 0 ? cx + 2 : a === 2 ? cx + cw - 2 : cx + cw / 2, cy - h + (h - th) / 2, th, v,
           { align: a, valign: 1 });
-        cx += cw;
+        cx += cw0;
       });
     }
     cy -= h;
@@ -2220,7 +2225,7 @@ function pgSldDraw(doc, sheet, M) {
 }
 
 Object.assign(window, {
-  PG_FONTS, pgFont, pgSetFont, pgDxf, pgSvg, pgDoc, pgCombine, pgPen, pgSheet, pgSheetTitle, pgScaleTxt, pgSheetLayers, pgLogoMark, pgWrap,
+  PG_FONTS, pgFont, pgSetFont, pgDxf, pgSvg, pgDoc, pgCombine, pgPen, pgSheet, pgSheetTitle, pgScaleTxt, PG_SPAN, pgSheetLayers, pgLogoMark, pgWrap,
   pgSldLayers, pgSldDraw, pgSldPro, pgSldTable, pgSldEquip, pgSym,
   pgTableLayers, pgGrid, pgSpecBlock, pgCompass, pgModuleDetail, pgModFace, pgTextW, pgPhotoFrame, pgDcString, pgDcSize,
   PG_SHEET, PG_LAY, PG_ACI, PG_SLD, PG_TBL,

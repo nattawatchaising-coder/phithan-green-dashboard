@@ -2297,7 +2297,7 @@ function p3StrLayout(st, job, media) {
     let rows, align;
     if (MX) {
       rows = [["#", head], MX.head].concat(MX.rows);
-      rows.push(["รวม"].concat(MX.head.slice(1, -1).map((_, i) => i ? "" : nS + " สตริง"), [nP + ""]));
+      rows.push(["รวม"].concat(MX.head.slice(1, -1).map((_, i) => i ? PG_SPAN : nS + " สตริง"), [nP + ""]));
       align = MX.head.map((_, i) => i ? 1 : 0);
     } else {
       rows = [["#", head], ["INV · MPPT", "สตริง (แผง)", "แผง"]].concat(p3MpptTable(MR, 14));

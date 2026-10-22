@@ -1667,6 +1667,7 @@ function pgTableLayers(doc) {
   doc.layer("PG-NORTH", PG_ACI.grey, "CONTINUOUS", 25);
   doc.layer("PG-PHOTO", PG_ACI.grey, "CONTINUOUS", 9);
 }
+const PG_SPAN = "~~SPAN~~";
 function pgGrid(pen, x, y, w, cols, rows, o) {
   o = o || {};
   const L = PG_TBL.line,
@@ -1685,15 +1686,21 @@ function pgGrid(pen, x, y, w, cols, rows, o) {
       pen.text(T, x + 2, cy - h + (h - th) / 2, th * 1.15, String(r[1] == null ? "" : r[1]));
     } else {
       let cx = x;
-      CW.forEach((cw, i) => {
+      CW.forEach((cw0, i) => {
+        if (r[i] === PG_SPAN) {
+          cx += cw0;
+          return;
+        }
         if (i) pen.line(L, cx, cy, cx, cy - h);
+        let cw = cw0;
+        for (let j = i + 1; j < CW.length && r[j] === PG_SPAN; j++) cw += CW[j];
         const v = r[i] == null ? "" : String(r[i]);
         const a = AL[i] == null ? 1 : AL[i];
         pen.text(T, a === 0 ? cx + 2 : a === 2 ? cx + cw - 2 : cx + cw / 2, cy - h + (h - th) / 2, th, v, {
           align: a,
           valign: 1
         });
-        cx += cw;
+        cx += cw0;
       });
     }
     cy -= h;
@@ -3140,6 +3147,7 @@ Object.assign(window, {
   pgSheet,
   pgSheetTitle,
   pgScaleTxt,
+  PG_SPAN,
   pgSheetLayers,
   pgLogoMark,
   pgWrap,
