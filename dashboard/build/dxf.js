@@ -1636,7 +1636,7 @@ function pgModuleDetail(pen, x, y, h, o) {
     const hw = s.length * 2.2 * 0.32 + 1.5;
     pen.line(L, cx - hw, y - 5.2, cx + hw, y - 5.2);
   };
-  pgModFace(pen, L, C, x, y, w, h, 6, 12, true);
+  pgModFace(pen, L, C, x, y, w, h, 6, 12, false);
   cap(x + w / 2, "FRONT");
   const sx = x + w + gap;
   pen.rect(L, sx, y, tw, h);
@@ -1645,33 +1645,39 @@ function pgModuleDetail(pen, x, y, h, o) {
   pen.line(L, sx, y + h - 1.2, sx + tw, y + h - 1.2);
   cap(sx + tw / 2, "SIDE");
   const bx = sx + tw + gap;
-  const fi = pgModFace(pen, L, null, bx, y, w, h, 0, 0, true);
-  pen.line(C, fi.x, y + h * 0.5, fi.x + fi.w, y + h * 0.5);
-  const jw = w * 0.26,
-    jh = h * 0.045,
-    jx = bx + w / 2 - jw / 2,
-    jy = y + h * 0.84;
+  pgModFace(pen, L, null, bx, y, w, h, 0, 0, false);
+  const cx = bx + w / 2,
+    jw = w * 0.34,
+    jh = Math.max(2.4, h * 0.055),
+    jx = cx - jw / 2,
+    jy = y + h / 2 - jh / 2;
   pen.rect(L, jx, jy, jw, jh);
-  pen.line(C, jx + jw * 0.33, jy, jx + jw * 0.33, jy + jh);
-  pen.line(C, jx + jw * 0.67, jy, jx + jw * 0.67, jy + jh);
-  const mc = (sgn, lab) => {
-    const x0 = sgn < 0 ? jx : jx + jw,
-      x1 = x0 + sgn * w * 0.16,
-      y1 = jy - h * 0.14;
-    pen.line(L, x0, jy + jh / 2, x1, jy + jh / 2);
-    pen.line(L, x1, jy + jh / 2, x1, y1);
-    pen.rect(L, x1 - 0.8, y1 - 2.6, 1.6, 2.6);
-    pen.text(T, x1, y1 - 3.6, 1.9, lab, {
-      align: 1,
-      valign: 3
-    });
-  };
-  mc(-1, "+");
-  mc(1, "-");
-  pen.text(T, bx + w / 2, jy + jh + 1.2, 1.7, "JUNCTION BOX", {
+  pen.rect(C, jx + jw * 0.08, jy + jh * 0.2, jw * 0.84, jh * 0.6);
+  pen.line(C, jx + jw / 3, jy + jh * 0.2, jx + jw / 3, jy + jh * 0.8);
+  pen.line(C, jx + jw * 2 / 3, jy + jh * 0.2, jx + jw * 2 / 3, jy + jh * 0.8);
+  pen.text(T, cx, jy + jh + 1.4, 1.8, "JUNCTION BOX", {
     align: 1,
     valign: 1
   });
+  const mc = (sgn, lab) => {
+    const x0 = cx + sgn * jw / 2,
+      x1 = cx + sgn * w * 0.3,
+      yc = jy + jh / 2,
+      y1 = y + h * 0.26;
+    pen.line(L, x0, yc, x1, yc);
+    pen.line(L, x1, yc, x1, y1);
+    const cw = Math.max(1.4, w * 0.07),
+      ch = cw * 2.4;
+    pen.rect(L, x1 - cw / 2, y1 - ch, cw, ch);
+    pen.line(C, x1 - cw / 2, y1 - ch * 0.35, x1 + cw / 2, y1 - ch * 0.35);
+    pen.rect(L, x1 - cw * 0.3, y1 - ch - cw * 0.7, cw * 0.6, cw * 0.7);
+    pen.text(T, x1 + sgn * (cw / 2 + 1.0), y1 - ch / 2, 2.2, lab, {
+      align: sgn < 0 ? 2 : 0,
+      valign: 2
+    });
+  };
+  mc(-1, "+");
+  mc(1, "−");
   cap(bx + w / 2, "BACK SIDE");
   const dim = (x0, y0, x1, y1, txt, vert) => {
     pen.line(L, x0, y0, x1, y1);
@@ -1765,9 +1771,7 @@ function pgDcString(pen, x, y, w, o) {
   const yb = y + 16;
   for (let i = 0; i < n; i++) {
     const px = x + i * (pw + gap);
-    pen.rect(R, px, yb, pw, ph);
-    for (let c = 1; c < 3; c++) pen.line(L, px + pw * c / 3, yb + 1, px + pw * c / 3, yb + ph - 1);
-    for (let c = 1; c < 6; c++) pen.line(L, px + 1, yb + ph * c / 6, px + pw - 1, yb + ph * c / 6);
+    pgModFace(pen, L, L, px, yb, pw, ph, 6, 12, false);
     pen.text(T, px + pw / 2, yb + ph + 2.2, PG_TS.cell, "PV " + (i + 1 === n && skip ? nAll : i + 1), {
       align: 1,
       valign: 1
@@ -1806,7 +1810,7 @@ function pgDcString(pen, x, y, w, o) {
   };
   mc(lx, "MC4 -");
   mc(rx, "MC4 +");
-  if (skip) pen.text(T, x + w / 2, yb + ph / 2, PG_TS.body, "( x " + nAll + " PANEL )", {
+  if (skip) pen.text(T, x + w / 2, yb + ph + 2.2, PG_TS.cell, "( x " + nAll + " PANEL )", {
     align: 1,
     valign: 1
   });

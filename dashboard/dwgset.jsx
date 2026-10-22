@@ -81,12 +81,12 @@ function dsMm(st, job, media, key, title) {
    o.img = ใส่ภาพดาวเทียม/โดรนจาง ๆ · o.panels = "full" (แผงเข้ม) | false (ไม่วาดแผง) | อื่น ๆ = แผงจาง ── */
 function dsPlan(st, job, media, key, o) {
   media = media || {}; o = o || {};
-  const V = p3PlanView(st, o.top), k = V.k, IN = PG_SHEET.IN;
+  const V = p3PlanView(st), k = V.k, IN = PG_SHEET.IN;
   const doc = pgDoc({ units: "m", ltscale: k }, media.svg);
   doc.layer("PG-BG", 8, "CONTINUOUS", 5);
   pgTableLayers(doc); dsLayers(doc);
   doc.layer("PG-STRING", 6, "CONTINUOUS", 25);
-  const ox = V.cx - (IN.x0 + V.A.w / 2) * k, oy = V.cy - (IN.y0 + V.A.h / 2) * k;
+  const ox = V.cx - V.px * k, oy = V.cy - V.py * k;
   const sheet = pgSheet(doc, { k, ox, oy,
     info: p3SheetInfo(st, job, { sheet: key, scale: "1:" + V.SC, sheetNo: media.sheetNo || "1/1" }) });
   if (o.img) (media.imgs || []).forEach((im) => {
@@ -134,13 +134,13 @@ function dsPlanHead(P, title) {
 function dsRight(P, rows, cols, notes, align) {
   const pen = P.pen, AR = P.AR, RH = 4.6;
   const nh = notes && notes.length ? dsNoteH(notes, P.RW) : 0;
-  const yTop = AR.y1 - 54, yMin = P.V.wide ? AR.y1 - P.V.top + 4 : AR.y0 + 4 + nh + 6;
+  /* โหมดกว้าง: ตารางย้ายลงแถบล่าง (เหนือหมายเหตุ) ไม่ทับผังกลางแผ่น */
+  const yTop = P.V.wide ? PG_SHEET.IN.y0 + P3_WIDE_B - 2 : AR.y1 - 54, yMin = AR.y0 + 4 + nh + 6;
   const fit = Math.max(4, Math.floor((yTop - yMin) / RH));
   let R = rows;
   if (R.length > fit) R = R.slice(0, fit - 2).concat([cols.map((_, i) => (i ? "" : "…"))], [rows[rows.length - 1]]);
   const used = pgGrid(pen, P.RX0, yTop, P.RW, cols, R, { rh: RH, th: PG_TS.cell, headRow: 0, align });
-  if (nh && P.V.wide) dsNoteBlock(pen, AR.x0 + 6, AR.y1 - 6, Math.min(150, P.RX0 - AR.x0 - 16), notes);
-  else if (nh) dsNoteBlock(pen, P.RX0, AR.y0 + 4 + nh, P.RW, notes);
+  if (nh) dsNoteBlock(pen, P.RX0, AR.y0 + 4 + nh, P.RW, notes);
   return used;
 }
 
@@ -415,9 +415,8 @@ function dsGroups(panels) {
 }
 function dsPanelSheet(st, job, media) {
   media = media || {};
-  /* แถบบนของคอลัมน์ขวา = หัวแผ่น 54 มม. + ตาราง (หลังคาที่มีแผง + หัว + รวม) */
-  const nRoof = (() => { try { const f = p3FootAll(st).panels || []; return new Set(f.map((p) => p.roofId)).size; } catch (e) { return 1; } })();
-  const P = dsPlan(st, job, media, "PANEL", { panels: "full", top: 54 + (nRoof + 2) * 4.6 + 8 });
+  const P = dsPlan(st, job, media, "PANEL", { panels: "full" });
+  P.doc.layer("PG-GRP-BG", 255, "CONTINUOUS", 0);   // พื้นขาวรองตัวเลขกลุ่ม
   dsPlanHead(P, "PV MODULE LAYOUT");
   const k = P.k, doc = P.doc, panels = P.foot.panels || [];
   const G = dsGroups(panels);
@@ -429,7 +428,13 @@ function dsPanelSheet(st, job, media) {
     const h = Math.min(2.6, wP * 0.85 / (s.length * 0.6), hP * 0.5, 2 * Math.hypot(g.v.x, g.v.z) / k * 0.55);
     /* จำนวนแถวคู่ = จุดกลางกลุ่มตกบนรอยต่อแถวพอดี (เส้นขอบแผงขีดทับตัวหนังสือ) → เลื่อนไปกลางแถวแผง */
     const sh = g.rows % 2 === 0 ? 1 : 0;
-    if (h >= 1.0) doc.text(DL("grp"), g.cx + g.v.x * sh, -(g.cz + g.v.z * sh), h * k, s, { align: 1, valign: 2, rot: ang });
+    if (h < 1.0) return;
+    /* พื้นขาวรองตัวเลข ไม่ให้เส้นแผงขีดทับ (ผู้ใช้ขอ) — สี่เหลี่ยมหมุนตามแนวกลุ่ม */
+    const tx = g.cx + g.v.x * sh, ty = -(g.cz + g.v.z * sh);
+    const hw = (s.length * 0.56 * h / 2 + 0.6) * k, hh = (h / 2 + 0.5) * k, ra = ang * P3_DEG, ca = Math.cos(ra), sa = Math.sin(ra);
+    const c = (u, v) => [tx + u * ca - v * sa, ty + u * sa + v * ca];
+    doc.solid("PG-GRP-BG", c(-hw, -hh), c(hw, -hh), c(hw, hh), c(-hw, hh));
+    doc.text(DL("grp"), tx, ty, h * k, s, { align: 1, valign: 2, rot: ang });
   });
   /* ชื่อหลังคาเหนือขอบบนของหลังคานั้น */
   const wp = +st.wp || 650, rows = [["ROOF", "GROUP", "MODULE", "kWp"]];
@@ -727,8 +732,7 @@ function dsGroundSheet(st, job, media) {
   rowsY.forEach((ry) => {
     for (let i = 0; i < 4; i++) {
       const x = ax + i * (pw + g);
-      pen.rect(DL("mod"), x, ry, pw, ph);
-      for (let r = 1; r < 6; r++) pen.line(DL("cell"), x + 0.6, ry + ph * r / 6, x + pw - 0.6, ry + ph * r / 6);
+      pgModFace(pen, DL("mod"), DL("cell"), x, ry, pw, ph, 6, 12, false);
     }
     [0.25, 0.75].forEach((f) => {
       const y = ry + ph * f, x1 = ax + 4 * pw + 3 * g + 3;

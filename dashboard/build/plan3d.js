@@ -974,7 +974,9 @@ function p3PlanBox(st, imgs) {
   };
 }
 const P3_PLAN_COL = 128;
-function p3PlanView(st, top) {
+const P3_WIDE_T = 58,
+  P3_WIDE_B = 66;
+function p3PlanView(st) {
   const IN = PG_SHEET.IN;
   const A = {
     w: IN.x1 - PG_SHEET.TB - IN.x0 - P3_PLAN_COL - 8,
@@ -986,19 +988,21 @@ function p3PlanView(st, top) {
     needH = B.maxY - B.minY + 2 * m;
   const fit = A => P3_SCALES.find(s => needW * 1000 <= A.w * s && needH * 1000 <= A.h * s) || P3_SCALES[P3_SCALES.length - 1];
   let SC = fit(A),
-    wide = false;
-  if (top) {
-    const A2 = {
-      w: IN.x1 - PG_SHEET.TB - IN.x0 - 6,
-      h: IN.y1 - IN.y0 - top
-    };
-    const S2 = fit(A2);
-    if (S2 < SC) {
-      SC = S2;
-      A.w = A2.w;
-      A.h = A2.h;
-      wide = true;
-    }
+    wide = false,
+    px = IN.x0 + A.w / 2,
+    py = IN.y0 + A.h / 2;
+  const A2 = {
+    w: IN.x1 - PG_SHEET.TB - IN.x0 - 6,
+    h: IN.y1 - IN.y0 - P3_WIDE_T - P3_WIDE_B
+  };
+  const S2 = fit(A2);
+  if (S2 < SC) {
+    SC = S2;
+    A.w = A2.w;
+    A.h = A2.h;
+    wide = true;
+    px = IN.x0 + A2.w / 2;
+    py = IN.y0 + P3_WIDE_B + A2.h / 2;
   }
   const k = SC / 1000;
   return {
@@ -1006,7 +1010,8 @@ function p3PlanView(st, top) {
     k,
     A,
     wide,
-    top: wide ? top : 0,
+    px,
+    py,
     cx: (B.minX + B.maxX) / 2,
     cy: (B.minY + B.maxY) / 2,
     W: A.w * k,
@@ -1228,8 +1233,8 @@ function p3Dxf(st, job, media) {
   }, media.svg);
   P3_DXF_LAYERS.forEach(L => doc.layer(L[0], L[1], "CONTINUOUS", L[2]));
   pgTableLayers(doc);
-  const px = IN.x0 + A.w / 2,
-    py = IN.y0 + A.h / 2;
+  const px = V.px,
+    py = V.py;
   const ox = V.cx - px * k;
   const oy = V.cy - py * k;
   const sheet = pgSheet(doc, {
@@ -1404,7 +1409,7 @@ function p3Dxf(st, job, media) {
     botY += areaH + specH + 6;
   }
   const cab = p3CableRows(st);
-  if (cab.length) {
+  if (cab.length && (!V.wide || botY + (cab.length + 2) * RH <= IN.y0 + P3_WIDE_B)) {
     pgGrid(pen, RX0, botY + (cab.length + 2) * RH, RW, [2.4, 1, 0.6], [["#", "ระยะสายหน้างาน โดยประมาณ"], ["ประเภท", "ระยะ", ""]].concat(cab), {
       rh: RH,
       th: 2.2,
@@ -1864,7 +1869,7 @@ function p3StrLayout(st, job, media) {
   const MR = p3MpptRows(DS);
   if (MR.rows.length) {
     const top = AR.y1 - 52,
-      bottom = noteY0 + notes.length * 4.2 + 4;
+      bottom = AR.y0 + 6;
     const fit = Math.floor((top - bottom) / RH) - 4;
     const body = p3MpptTable(MR, Math.max(1, fit));
     const head = "MPPT CONNECTION" + (MR.per ? " · " + MR.per + " MPPT/เครื่อง" : "") + (MR.phys ? " · " + MR.phys + " ช่อง/MPPT" : "");

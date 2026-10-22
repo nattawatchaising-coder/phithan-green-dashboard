@@ -537,23 +537,24 @@ function p3PlanBox(st, imgs) {
    ซูมที่ตัวอาคาร/แผง (+ ขอบ 5% อย่างน้อย 3 ม. — เดิม 15%/6 ม. อาคารยาว 100 ม. เหลือที่ว่างเยอะจนผังเล็ก ผู้ใช้ว่าเล็กไป) ไม่ใช่ครอบทั้งภาพดาวเทียม — เดิมภาพกว้างแผงเลยเล็กจนดูไม่ออก
    คืน { SC, k, cx, cy, W, H } · cx/cy = กลางกรอบ (เมตร แกน y ขึ้น) · W/H = ขนาดพื้นที่วาดผังเป็นเมตร */
 const P3_PLAN_COL = 128;
-function p3PlanView(st, top) {
+/* โหมดกว้าง: คอลัมน์ขวาใช้แค่แถบบน (ชื่อแผ่น/มาตราส่วน/เข็มทิศ) สูง P3_WIDE_T กับแถบล่าง (ตาราง/หมายเหตุ) สูง P3_WIDE_B
+   ผังกินความกว้างทั้งแผ่นตรงกลาง — อาคารยาวแนวนอนผังใหญ่ขึ้นมาก (ผู้ใช้: อยากให้หลังคาอยู่กลางแผ่นเต็มกว้าง ผังวางแผงเล็ก)
+   ทุกแผ่นผัง (ผังติดตั้ง/ผังวางแผง/ผังราง·ท่อ·ทางเดิน) ใช้กรอบมองเดียวกัน ภาพพื้นหลังที่ตัดไว้ครั้งเดียวจึงวางพอดีทุกแผ่น */
+const P3_WIDE_T = 58, P3_WIDE_B = 66;
+function p3PlanView(st) {
   const IN = PG_SHEET.IN;
   const A = { w: IN.x1 - PG_SHEET.TB - IN.x0 - P3_PLAN_COL - 8, h: IN.y1 - IN.y0 };
   const B = p3PlanBox(st, null);
   const m = Math.max(3, 0.05 * Math.max(B.maxX - B.minX, B.maxY - B.minY));
   const needW = B.maxX - B.minX + 2 * m, needH = B.maxY - B.minY + 2 * m;
   const fit = (A) => P3_SCALES.find((s) => needW * 1000 <= A.w * s && needH * 1000 <= A.h * s) || P3_SCALES[P3_SCALES.length - 1];
-  /* top = แผ่นที่คอลัมน์ขวาใช้แค่แถบบนสูง top มม. (ไม่มีภาพพื้นหลัง) — อาคารยาวแนวนอนให้ผังกินกว้างเต็มแผ่นใต้แถบนั้น
-     ถ้าได้มาตราส่วนใหญ่กว่า (ผู้ใช้: ผังวางแผงเล็ก ที่ว่างล่างคอลัมน์ขวาเหลือเยอะ) · wide = true → ผู้เรียกจัดหมายเหตุไว้แถบบนซ้าย */
-  let SC = fit(A), wide = false;
-  if (top) {
-    const A2 = { w: IN.x1 - PG_SHEET.TB - IN.x0 - 6, h: IN.y1 - IN.y0 - top };
-    const S2 = fit(A2);
-    if (S2 < SC) { SC = S2; A.w = A2.w; A.h = A2.h; wide = true; }
-  }
+  let SC = fit(A), wide = false, px = IN.x0 + A.w / 2, py = IN.y0 + A.h / 2;
+  const A2 = { w: IN.x1 - PG_SHEET.TB - IN.x0 - 6, h: IN.y1 - IN.y0 - P3_WIDE_T - P3_WIDE_B };
+  const S2 = fit(A2);
+  if (S2 < SC) { SC = S2; A.w = A2.w; A.h = A2.h; wide = true; px = IN.x0 + A2.w / 2; py = IN.y0 + P3_WIDE_B + A2.h / 2; }
   const k = SC / 1000;
-  return { SC, k, A, wide, top: wide ? top : 0, cx: (B.minX + B.maxX) / 2, cy: (B.minY + B.maxY) / 2, W: A.w * k, H: A.h * k };
+  /* px/py = จุดกลางกรอบผังบนกระดาษ (มม.) — ผู้เรียกตั้ง ox = cx − px·k */
+  return { SC, k, A, wide, px, py, cx: (B.minX + B.maxX) / 2, cy: (B.minY + B.maxY) / 2, W: A.w * k, H: A.h * k };
 }
 /* ตัดภาพพื้นหลังให้พอดีกรอบมองของผัง (หมุนตามภาพจริงแล้ววาดลงผืนตั้งตรง)
    ภาพในไฟล์ DXF จึงไม่ล้นกรอบแบบ และไฟล์รูปที่แนบไปเล็กลงด้วย · คืน null = ใช้ภาพเดิม */
@@ -738,7 +739,7 @@ function p3Dxf(st, job, media) {
   pgTableLayers(doc);
 
   /* วางกึ่งกลางผังในพื้นที่ที่เหลือ (ซ้ายของคอลัมน์ขวา) */
-  const px = IN.x0 + A.w / 2, py = IN.y0 + A.h / 2;
+  const px = V.px, py = V.py;   // โหมดกว้าง = ผังอยู่แถบกลางเต็มกว้าง (p3PlanView)
   const ox = V.cx - px * k;
   const oy = V.cy - py * k;
 
@@ -882,7 +883,8 @@ function p3Dxf(st, job, media) {
   /* ตาราง STRING SCHEDULE เอาออกแล้ว (ผู้ใช้ ต.ค. 2026) — จำนวนสตริงอยู่ในบล็อกสรุปโครงการ/ตาราง AREA · รายละเอียดดูแผ่นผังสตริง/SLD */
 
   /* ตารางระยะสายหน้างาน — ขึ้นเฉพาะเมื่อวัดระยะไว้จริง ไม่มีก็ไม่ต้องมีตารางเปล่า · วางเหนือบล็อกสรุปโครงการ */
-  if (cab.length) {
+  /* โหมดกว้าง: ตารางต้องไม่ล้นแถบล่างขึ้นไปทับผัง — ไม่พอที่ก็ไม่ใส่ */
+  if (cab.length && (!V.wide || botY + (cab.length + 2) * RH <= IN.y0 + P3_WIDE_B)) {
     pgGrid(pen, RX0, botY + (cab.length + 2) * RH, RW, [2.4, 1, 0.6],
       [["#", "ระยะสายหน้างาน โดยประมาณ"], ["ประเภท", "ระยะ", ""]].concat(cab),
       { rh: RH, th: 2.2, align: [0, 2, 0], headRow: 1 });
@@ -1164,7 +1166,7 @@ function p3StrLayout(st, job, media) {
   /* (เดิมมีหมายเหตุอธิบายสี/เส้นมุมล่าง — ผู้ใช้ให้เอาออก) */
   const MR = p3MpptRows(DS);
   if (MR.rows.length) {
-    const top = AR.y1 - 52, bottom = noteY0 + notes.length * 4.2 + 4;
+    const top = AR.y1 - 52, bottom = AR.y0 + 6;
     const fit = Math.floor((top - bottom) / RH) - 4;
     const body = p3MpptTable(MR, Math.max(1, fit));
     const head = "MPPT CONNECTION" + (MR.per ? " · " + MR.per + " MPPT/เครื่อง" : "") + (MR.phys ? " · " + MR.phys + " ช่อง/MPPT" : "");
