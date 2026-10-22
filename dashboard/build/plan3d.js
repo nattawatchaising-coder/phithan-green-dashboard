@@ -1023,8 +1023,15 @@ function p3RotDoc(doc, deg) {
     }
   };
 }
-function p3PanelBlock(doc) {
+function p3PanelBlock(doc, name) {
   if (!doc.block) return false;
+  if (name === "PV-PANEL-L") {
+    doc.block(name, b => {
+      b.rect("0", 0, 0, 1, 1);
+      b.rect("0", 0.035, 0.0175, 0.93, 0.965);
+    });
+    return true;
+  }
   doc.block("PV-PANEL", b => {
     if (b.hatch) b.hatch("0", [[[0, 0], [1, 0], [1, 1], [0, 1]]], {
       solid: true,
@@ -1035,8 +1042,9 @@ function p3PanelBlock(doc) {
   });
   return true;
 }
-function p3PanelIns(doc, layer, P) {
-  if (!P || P.length < 4 || !p3PanelBlock(doc)) {
+function p3PanelIns(doc, layer, P, name) {
+  name = name || "PV-PANEL";
+  if (!P || P.length < 4 || !p3PanelBlock(doc, name)) {
     doc.pline(layer, P, true);
     return;
   }
@@ -1060,7 +1068,7 @@ function p3PanelIns(doc, layer, P) {
     doc.pline(layer, P, true);
     return;
   }
-  doc.insert(layer, "PV-PANEL", o[0], o[1], lx, ly, Math.atan2(ex[1], ex[0]) / P3_DEG);
+  doc.insert(layer, name, o[0], o[1], lx, ly, Math.atan2(ex[1], ex[0]) / P3_DEG);
 }
 function p3PlanBox(st, imgs) {
   let a = Infinity,
@@ -2348,7 +2356,7 @@ function p3StrLayout(st, job, media) {
       P = p.pts.map(q => [q[0], -q[1]]);
     if (s) {
       gd.solid(lay(s.id), P[0], P[1], P[2], P[3]);
-      p3PanelIns(gd, "PG-STR-EDGE", P);
+      p3PanelIns(gd, "PG-STR-EDGE", P, "PV-PANEL-L");
     } else p3PanelIns(gd, "PG-PANEL", P);
   });
   const disc = (L, x, y, r) => {
