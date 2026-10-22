@@ -124,8 +124,10 @@ function dsPlan(st, job, media, key, o) {
 /* หัวคอลัมน์ขวาของแผ่นผัง (ชื่อแผ่น + มาตราส่วน + เข็มทิศ) + มาตราส่วนเส้นมุมซ้ายล่าง — แบบเดียวกับผังติดตั้ง */
 function dsPlanHead(P, title) {
   const pen = P.pen, AR = P.AR;
-  pgSheetTitle(pen, P.RX0, AR.y1 - 12, title, PG_TS.title, P.RW - 4, 0);
-  pen.text("PG-NOTE", P.RX0, AR.y1 - 19, 2.4, "SCALE   A3 = 1:" + P.SC + "   A1 = 1:" + Math.round(P.SC / 1.414));
+  /* โหมดกว้าง: ชื่อแผ่น + มาตราส่วนลงมุมซ้ายล่าง (เหนือมาตราส่วนเส้น) แถบบนเหลือแค่เข็มทิศ (ผู้ใช้ย้าย) */
+  const tx = P.V.wide ? AR.x0 + 4 : P.RX0, ty = P.V.wide ? AR.y0 + 18 : AR.y1 - 12;
+  pgSheetTitle(pen, tx, ty, title, PG_TS.title, P.V.wide ? 170 : P.RW - 4, 0);
+  pen.text("PG-NOTE", tx, ty - 7, 2.4, "SCALE   A3 = 1:" + P.SC + "   A1 = 1:" + Math.round(P.SC / 1.414));
   pgCompass(pen, P.RX1 - 12, AR.y1 - 38, 6.5, null, P.V.rot);
   const barM = P.SC / 1000 * 40, bx = AR.x0 + 4, by = AR.y0 + 4;
   pen.rect("PG-NORTH", bx, by, 40, 2.2);
@@ -139,7 +141,7 @@ function dsRight(P, rows, cols, notes, align) {
   const pen = P.pen, AR = P.AR, RH = 4.6;
   const nh = notes && notes.length ? dsNoteH(notes, P.RW) : 0;
   /* โหมดกว้าง: ตารางย้ายลงแถบล่าง (เหนือหมายเหตุ) ไม่ทับผังกลางแผ่น */
-  const yTop = P.V.wide ? PG_SHEET.IN.y0 + P3_WIDE_B - 2 : AR.y1 - 54, yMin = AR.y0 + 4 + nh + 6;
+  const yTop = P.V.wide ? PG_SHEET.IN.y0 + P3_WIDE_B - 8 : AR.y1 - 54, yMin = AR.y0 + 4 + nh + 6;
   const fit = Math.max(4, Math.floor((yTop - yMin) / RH));
   let R = rows;
   if (R.length > fit) R = R.slice(0, fit - 2).concat([cols.map((_, i) => (i ? "" : "…"))], [rows[rows.length - 1]]);
@@ -314,36 +316,38 @@ function dsNotesSheet(st, job, media) {
   let M = null;
   try { M = p3SldModel(st, job, media.design); } catch (e) { M = null; }
 
+  /* สามคอลัมน์กว้างเท่ากันเต็มแผ่น · ตารางสัญลักษณ์สูงตามที่ว่าง (ผู้ใช้: จัดให้สวย — เดิมกองอยู่ครึ่งบน ล่างว่าง) */
+  const gapC = 10, wc = (A.x1 - A.x0 - 8 - 2 * gapC) / 3, yTop = A.y1 - 20, yBot = A.y0 + 6;
   /* คอลัมน์ 1 · รายการประกอบแบบ + สารบัญแบบ */
-  const c1 = A.x0 + 4, w1 = 128;
-  const used = dsNoteBlock(pen, c1, A.y1 - 20, w1, dsGeneralNotes(st, job, M), { head: "รายการประกอบแบบ (GENERAL NOTES)" });
+  const c1 = A.x0 + 4, w1 = wc;
+  const used = dsNoteBlock(pen, c1, yTop, w1, dsGeneralNotes(st, job, M), { head: "รายการประกอบแบบ (GENERAL NOTES)", th: PG_TS.body });
   const IX = media.index || [];
   if (IX.length) {
-    const yI = A.y1 - 20 - used - 8;
-    pen.text(T, c1, yI, PG_TS.body, "สารบัญแบบ (DRAWING INDEX)");
+    const yI = yTop - used - 10;
+    pen.text(T, c1, yI, PG_TS.head, "สารบัญแบบ (DRAWING INDEX)");
     const rows = [["NO.", "DRAWING NO.", "TITLE"]].concat(IX.map((r) => [r.no, r.dwg, r.en]));
-    const rh = Math.max(3.6, Math.min(4.6, (yI - 4 - A.y0 - 4) / rows.length));
+    const rh = Math.max(3.6, Math.min(7, (yI - 4 - yBot) / rows.length));
     pgGrid(pen, c1, yI - 3, w1, [0.45, 1.5, 2.6], rows, { rh, th: Math.min(PG_TS.cell, rh * 0.5), headRow: 0, align: [1, 0, 0] });
   }
 
-  /* ตารางสัญลักษณ์: แถวละ 9 มม. ช่องรูป 30 มม. + คำอธิบาย */
+  /* ตารางสัญลักษณ์: ความสูงแถวตามที่ว่าง (9–20 มม. · ตารางยาวถึงล่างแผ่น) ช่องรูป 32 มม. + คำอธิบายไทย/อังกฤษ */
   const legend = (x, y, w, head, items) => {
-    pen.text(T, x, y, PG_TS.body, head);
-    let cy = y - 3;
+    pen.text(T, x, y, PG_TS.head, head);
+    let cy = y - 3.5;
+    const h = Math.min(20, Math.max(9, (cy - yBot) / items.length));
     items.forEach((it) => {
-      const h = 9;
       pen.rect(LN, x, cy - h, w, h);
-      pen.line(LN, x + 30, cy, x + 30, cy - h);
-      it[0](x + 15, cy - h / 2);
-      pen.text(T, x + 32.5, cy - h / 2 + 1.5, PG_TS.cell, it[1], { valign: 2 });
-      if (it[2]) pen.text(T, x + 32.5, cy - h / 2 - 1.7, PG_TS.cell * 0.85, it[2], { valign: 2 });
+      pen.line(LN, x + 32, cy, x + 32, cy - h);
+      it[0](x + 16, cy - h / 2);
+      pen.text(T, x + 35, cy - h / 2 + 1.7, PG_TS.body, it[1], { valign: 2 });
+      if (it[2]) pen.text(T, x + 35, cy - h / 2 - 2.0, PG_TS.cell * 0.9, it[2], { valign: 2 });
       cy -= h;
     });
     return y - cy;
   };
   const seg = (L, x, y) => pen.line(L, x - 11, y, x + 11, y);
-  const c2 = A.x0 + 140, w2 = 100;
-  legend(c2, A.y1 - 20, w2, "สัญลักษณ์ผังติดตั้ง (LAYOUT LEGEND)", [
+  const c2 = c1 + wc + gapC, w2 = wc;
+  legend(c2, yTop, w2, "สัญลักษณ์ผังติดตั้ง (LAYOUT LEGEND)", [
     [(x, y) => pen.rect(DL("roof"), x - 11, y - 3, 22, 6), "ขอบหลังคา", "ROOF OUTLINE"],
     [(x, y) => { [-7.5, -2.5, 2.5, 7.5].forEach((d) => pen.rect(DL("panB"), x + d - 2.3, y - 3.2, 4.6, 6.4)); }, "แผงเซลล์แสงอาทิตย์", "PV MODULE"],
     [(x, y) => { pen.line("PG-STRING", x - 11, y, x + 8, y); pen.circle("PG-STRING", x - 11, y, 1.8); pen.text("PG-STRING", x - 11, y, 1.8, "1", { align: 1, valign: 2 }); }, "แนวเดินสายสตริง (เลขสตริงที่แผงแรก)", "STRING ROUTE"],
@@ -356,8 +360,8 @@ function dsNotesSheet(st, job, media) {
     [(x, y) => seg(DL("earth"), x, y), "สายต่อลงดิน", "EARTH CONDUCTOR"],
     [(x, y) => { pen.line(DL("dcp"), x - 11, y + 1.5, x + 11, y + 1.5); pen.line(DL("dcn"), x - 11, y - 1.5, x + 11, y - 1.5); }, "สาย DC ขั้วบวก (แดง) / ขั้วลบ (ดำ)", "DC CABLE (+) / (-)"],
   ]);
-  const c3 = A.x0 + 250, w3 = A.x1 - 4 - c3;
-  legend(c3, A.y1 - 20, w3, "สัญลักษณ์แบบไฟฟ้า (ELECTRICAL SYMBOLS)", [
+  const c3 = c2 + wc + gapC, w3 = wc;
+  legend(c3, yTop, w3, "สัญลักษณ์แบบไฟฟ้า (ELECTRICAL SYMBOLS)", [
     [(x, y) => pgSym.pv(pen, x, y, 13, 5.4, null, true), "แผงเซลล์แสงอาทิตย์", "PV MODULE"],
     [(x, y) => pgSym.inverter(pen, x, y, 10, 7), "อินเวอร์เตอร์", "INVERTER (DC/AC)"],
     [(x, y) => { pen.line(PG_SLD.wire, x - 9, y, x - 4.15, y); pen.line(PG_SLD.wire, x + 4.15, y, x + 9, y);
@@ -461,7 +465,7 @@ function dsPanelSheet(st, job, media) {
     "ตำแหน่งแผงอ้างอิงแบบ 3D — ตรวจระยะห่างขอบหลังคา/สิ่งกีดขวางที่หน้างานก่อนวางราง",
   ], [0, 1, 1, 1]);
   /* ตัวใหญ่ใต้ตาราง แบบแผ่นจริง (TOTAL ... MODULE) */
-  P.pen.text(PG_TBL.txt, P.RX0, P.AR.y1 - 48, PG_TS.head, "TOTAL PV MODULE  " + tot + " PCS.  (" + (tot * wp / 1000).toFixed(2) + " kWp)");
+  P.pen.text(PG_TBL.txt, P.RX0, P.V.wide ? PG_SHEET.IN.y0 + P3_WIDE_B - 5 : P.AR.y1 - 48, PG_TS.head, "TOTAL PV MODULE  " + tot + " PCS.  (" + (tot * wp / 1000).toFixed(2) + " kWp)");
   return doc.build();
 }
 
@@ -632,8 +636,10 @@ function dsChain(pen, T, from, to) {   // ต่อขั้ว from (−) ไ�
 }
 function dsStrDetSheet(st, job, media) {
   media = media || {};
-  const S = dsMm(st, job, media, "STRDET", "DETAIL PV MODULE STRING");
+  const S = dsMm(st, job, media, "STRDET", null);
   const pen = S.pen, A = S.A, T = PG_TBL.txt;
+  /* ชื่อแผ่นอยู่มุมขวาล่าง (ผู้ใช้ย้าย) ด้านบนทั้งแผ่นให้รูปที่ 1/2 */
+  pgSheetTitle(pen, A.x1 - 6, A.y0 + 12, "DETAIL PV MODULE STRING", PG_TS.title, 170, 2);
   let M = null;
   try { M = p3SldModel(st, job, media.design); } catch (e) { M = null; }
   const SS = (media.design && media.design.strings) || [];
@@ -682,7 +688,7 @@ function dsStrDetSheet(st, job, media) {
   /* แผงรูปที่ 1 กับรูปที่ 2 ขนาดเท่ากัน (เดิมคิดแยก รูปที่ 1 แผงเล็กกว่า — ผู้ใช้ว่าบนล่างไม่เท่ากัน) */
   const m = Math.ceil(n / 2);
   const lt = dsShow(1, m, 12), lb = dsShow(m + 1, n, 12), gapR = 12;
-  const yHi = A.y1 - 28, yLo = bandTop + 6 + 11;          // ขอบบนแถวแรก · ขอบล่างคำบรรยายรูปที่ 2
+  const yHi = A.y1 - 14, yLo = bandTop + 6 + 11;          // ขอบบนแถวแรก · ขอบล่างคำบรรยายรูปที่ 2
   const phMax = (yHi - yLo - 32 - gapR) / 3;
   const pw1 = Math.min(20, (X1 - X0 - gap * (l1.length - 1)) / l1.length, (X1 - X0 - gap * (lt.length - 1)) / lt.length, phMax / 2.05);
   const ph1 = Math.min(40, pw1 * 2.05);
@@ -878,11 +884,11 @@ function dsSheetDefs(st, job, design, imgs) {
   add("NOTES", "รายการประกอบแบบ", (o) => dsNotesSheet(st, job, o));
   let n = 0;
   try { n = p3CountAll(st); } catch (e) { n = 0; }
-  if (n) add("PANEL", "ผังวางแผง", (o) => dsPanelSheet(st, job, o));
+  const withImg = (fn) => (o) => fn(st, job, Object.assign({ imgs }, o));
+  if (n) add("PANEL", "ผังวางแผง", withImg(dsPanelSheet));   // ภาพพื้นหลังแบบผังติดตั้ง (ผู้ใช้ขอ)
   if (design && (design.strings || []).length && (st.sys || {}).mode !== "micro")
     add("STRDET", "รูปการเดินสายสตริง", (o) => dsStrDetSheet(st, job, o));
   add("GROUND", "ระบบต่อลงดิน", (o) => dsGroundSheet(st, job, o));
-  const withImg = (fn) => (o) => fn(st, job, Object.assign({ imgs }, o));
   if (dsObs(st, "tray").length) add("TRAY", "ผังรางไฟ", withImg(dsTraySheet));
   if (dsObs(st, "pipe").length) add("WATER", "ผังท่อน้ำ", withImg(dsWaterSheet));
   if (dsObs(st, "walkway").length) add("WALK", "ผังทางเดิน", withImg(dsWalkSheet));

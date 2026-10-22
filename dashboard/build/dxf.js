@@ -2664,7 +2664,7 @@ function pgSldPro(doc, sheet, M) {
     }));
   });
   const noteH = 4.5 + nLines.length * 2.2;
-  if (ty - (titleY + 13) > noteH) {
+  if (ty - (A.y0 + 4) > noteH) {
     pen.text(LB, RX0, ty - 1, TS.head, "NOTES", {
       valign: 3
     });
@@ -2686,7 +2686,7 @@ function pgSldPro(doc, sheet, M) {
     ctH(x + 5, y);
   }, "CT"], [(x, y) => meter(x + 5, y, 1.8), "kWh METER"], [(x, y) => pen.line(PE, x, y, x + 10, y), "EARTH (PE)"], [(x, y) => pen.line(CM, x, y, x + 10, y), "COMM. / BOX"]];
   const legH = 4.5 + Math.ceil(legs.length / 2) * 4.6;
-  if (ty - (titleY + 13) > legH) {
+  if (ty - (A.y0 + 4) > legH) {
     pen.text(LB, RX0, ty - 1, TS.head, "LEGEND", {
       valign: 3
     });
@@ -2699,8 +2699,9 @@ function pgSldPro(doc, sheet, M) {
       });
     });
   }
-  pgSheetTitle(pen, (RX0 + RX1) / 2, titleY + 3.5, "SINGLE LINE DIAGRAM", PG_TS.title, RW - 2);
-  pen.text(PG_LAY.txt, (RX0 + RX1) / 2, A.y0 + 1.6, PG_TS.head, "SOLAR PV SYSTEM", {
+  const tcx = (A.x0 + RX0) / 2;
+  pgSheetTitle(pen, tcx, titleY + 3.5, "SINGLE LINE DIAGRAM", PG_TS.title, RX0 - A.x0 - 10);
+  pen.text(PG_LAY.txt, tcx, A.y0 + 1.6, PG_TS.head, "SOLAR PV SYSTEM", {
     align: 1,
     valign: 1
   });

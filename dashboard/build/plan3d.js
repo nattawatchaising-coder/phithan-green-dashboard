@@ -2115,7 +2115,8 @@ function p3StrLayout(st, job, media) {
     },
     px = IN.x0 + A.w / 2,
     py = IN.y0 + A.h / 2,
-    SC = fitSc(A);
+    SC = fitSc(A),
+    wide = false;
   const Bt = (TB ? TB.h : 0) + 10,
     A2 = {
       w: AW - 6,
@@ -2127,6 +2128,7 @@ function p3StrLayout(st, job, media) {
     SC = S2;
     px = IN.x0 + A2.w / 2;
     py = IN.y0 + Bt + A2.h / 2;
+    wide = true;
   }
   const k = SC / 1000;
   const doc = pgDoc({
@@ -2233,10 +2235,15 @@ function p3StrLayout(st, job, media) {
   pen.text("PG-NORTH", bx + 44, by + 0.4, PG_TS.cell, "METRES   SCALE 1:" + SC);
   const RX1 = AR.x1 - 2,
     RX0 = RX1 - COL;
-  pgSheetTitle(pen, RX0, AR.y1 - 12, "STRING LAYOUT", PG_TS.title, COL - 30, 0);
-  pen.text("PG-NOTE", RX0, AR.y1 - 19, PG_TS.cell, "SCALE");
-  pen.text("PG-NOTE", RX1 - 28, AR.y1 - 18, PG_TS.cell, "A1=1:" + Math.round(SC / 1.414));
-  pen.text("PG-NOTE", RX1 - 28, AR.y1 - 22.5, PG_TS.cell, "A3=1:" + SC);
+  if (wide) {
+    pgSheetTitle(pen, AR.x0 + 4, AR.y0 + 18, "STRING LAYOUT", PG_TS.title, 170, 0);
+    pen.text("PG-NOTE", AR.x0 + 4, AR.y0 + 11, 2.4, "SCALE   A3 = 1:" + SC + "   A1 = 1:" + Math.round(SC / 1.414));
+  } else {
+    pgSheetTitle(pen, RX0, AR.y1 - 12, "STRING LAYOUT", PG_TS.title, COL - 30, 0);
+    pen.text("PG-NOTE", RX0, AR.y1 - 19, PG_TS.cell, "SCALE");
+    pen.text("PG-NOTE", RX1 - 28, AR.y1 - 18, PG_TS.cell, "A1=1:" + Math.round(SC / 1.414));
+    pen.text("PG-NOTE", RX1 - 28, AR.y1 - 22.5, PG_TS.cell, "A3=1:" + SC);
+  }
   pgCompass(pen, RX1 - 12, AR.y1 - 40, 6.5, null, rot);
   if (TB) pgGrid(pen, RX1 - TB.tw, AR.y0 + 4 + TB.h, TB.tw, TB.cw, TB.rows, {
     rh: RH,
@@ -4526,12 +4533,6 @@ function p3DcSheet(st, job, media) {
     });
   } else kinds.forEach((g, i) => dcRows.push([(M.mode === "micro" ? "MICRO " : "INV ") + (i + 1) + (g.n > 1 ? " x" + g.n : ""), g.per + " แผง", "PV1-F 1x4"]));
   dcRows.push(["รวม", M.panel.count + " แผง", "-"]);
-  let ry = A.y1 - 20;
-  ry -= pgGrid(pen, RX, ry, RW, [1.1, 1, 1.2], dcRows, {
-    rh: 5.4,
-    th: PG_TS.cell,
-    headRow: 1
-  }) + 8;
   const spec = [["PV MODULE", M.panel.model], ["กำลังไฟต่อแผง", M.panel.wp + " Wp."], ["จำนวนแผงทั้งหมด", M.panel.count + " แผง"]];
   if (sp.mpptVmin && sp.mpptVmax) spec.push(["MPPT VOLTAGE", sp.mpptVmin + " - " + sp.mpptVmax + " Vdc"]);
   if (sp.maxVdc) spec.push(["MAX. DC VOLTAGE", sp.maxVdc + " Vdc"]);
@@ -4544,6 +4545,12 @@ function p3DcSheet(st, job, media) {
     spec.push(["สายดินโครงแผง", "THW(G) " + Math.max(6, Math.min(16, P.earthCu)) + " mm2 เขียว/เหลือง"]);
   } else spec.push(["สาย DC", "PV1-F 1x4 Sq.mm. DC1500V"]);
   spec.push(["หัวต่อ", "MC4 1500VDC IP68"]);
+  let ry = Math.min(A.y1 - 20, A.y0 + 6 + (spec.length + 1) * 5.4 + 8 + dcRows.length * 5.4);
+  ry -= pgGrid(pen, RX, ry, RW, [1.1, 1, 1.2], dcRows, {
+    rh: 5.4,
+    th: PG_TS.cell,
+    headRow: 1
+  }) + 8;
   ry -= pgSpecBlock(pen, RX, ry, RW, "DC SPECIFICATION", spec, {
     rh: 5.4,
     th: PG_TS.cell,

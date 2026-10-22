@@ -213,8 +213,10 @@ function dsPlan(st, job, media, key, o) {
 function dsPlanHead(P, title) {
   const pen = P.pen,
     AR = P.AR;
-  pgSheetTitle(pen, P.RX0, AR.y1 - 12, title, PG_TS.title, P.RW - 4, 0);
-  pen.text("PG-NOTE", P.RX0, AR.y1 - 19, 2.4, "SCALE   A3 = 1:" + P.SC + "   A1 = 1:" + Math.round(P.SC / 1.414));
+  const tx = P.V.wide ? AR.x0 + 4 : P.RX0,
+    ty = P.V.wide ? AR.y0 + 18 : AR.y1 - 12;
+  pgSheetTitle(pen, tx, ty, title, PG_TS.title, P.V.wide ? 170 : P.RW - 4, 0);
+  pen.text("PG-NOTE", tx, ty - 7, 2.4, "SCALE   A3 = 1:" + P.SC + "   A1 = 1:" + Math.round(P.SC / 1.414));
   pgCompass(pen, P.RX1 - 12, AR.y1 - 38, 6.5, null, P.V.rot);
   const barM = P.SC / 1000 * 40,
     bx = AR.x0 + 4,
@@ -233,7 +235,7 @@ function dsRight(P, rows, cols, notes, align) {
     AR = P.AR,
     RH = 4.6;
   const nh = notes && notes.length ? dsNoteH(notes, P.RW) : 0;
-  const yTop = P.V.wide ? PG_SHEET.IN.y0 + P3_WIDE_B - 2 : AR.y1 - 54,
+  const yTop = P.V.wide ? PG_SHEET.IN.y0 + P3_WIDE_B - 8 : AR.y1 - 54,
     yMin = AR.y0 + 4 + nh + 6;
   const fit = Math.max(4, Math.floor((yTop - yMin) / RH));
   let R = rows;
@@ -499,17 +501,22 @@ function dsNotesSheet(st, job, media) {
   } catch (e) {
     M = null;
   }
+  const gapC = 10,
+    wc = (A.x1 - A.x0 - 8 - 2 * gapC) / 3,
+    yTop = A.y1 - 20,
+    yBot = A.y0 + 6;
   const c1 = A.x0 + 4,
-    w1 = 128;
-  const used = dsNoteBlock(pen, c1, A.y1 - 20, w1, dsGeneralNotes(st, job, M), {
-    head: "รายการประกอบแบบ (GENERAL NOTES)"
+    w1 = wc;
+  const used = dsNoteBlock(pen, c1, yTop, w1, dsGeneralNotes(st, job, M), {
+    head: "รายการประกอบแบบ (GENERAL NOTES)",
+    th: PG_TS.body
   });
   const IX = media.index || [];
   if (IX.length) {
-    const yI = A.y1 - 20 - used - 8;
-    pen.text(T, c1, yI, PG_TS.body, "สารบัญแบบ (DRAWING INDEX)");
+    const yI = yTop - used - 10;
+    pen.text(T, c1, yI, PG_TS.head, "สารบัญแบบ (DRAWING INDEX)");
     const rows = [["NO.", "DRAWING NO.", "TITLE"]].concat(IX.map(r => [r.no, r.dwg, r.en]));
-    const rh = Math.max(3.6, Math.min(4.6, (yI - 4 - A.y0 - 4) / rows.length));
+    const rh = Math.max(3.6, Math.min(7, (yI - 4 - yBot) / rows.length));
     pgGrid(pen, c1, yI - 3, w1, [0.45, 1.5, 2.6], rows, {
       rh,
       th: Math.min(PG_TS.cell, rh * 0.5),
@@ -518,17 +525,17 @@ function dsNotesSheet(st, job, media) {
     });
   }
   const legend = (x, y, w, head, items) => {
-    pen.text(T, x, y, PG_TS.body, head);
-    let cy = y - 3;
+    pen.text(T, x, y, PG_TS.head, head);
+    let cy = y - 3.5;
+    const h = Math.min(20, Math.max(9, (cy - yBot) / items.length));
     items.forEach(it => {
-      const h = 9;
       pen.rect(LN, x, cy - h, w, h);
-      pen.line(LN, x + 30, cy, x + 30, cy - h);
-      it[0](x + 15, cy - h / 2);
-      pen.text(T, x + 32.5, cy - h / 2 + 1.5, PG_TS.cell, it[1], {
+      pen.line(LN, x + 32, cy, x + 32, cy - h);
+      it[0](x + 16, cy - h / 2);
+      pen.text(T, x + 35, cy - h / 2 + 1.7, PG_TS.body, it[1], {
         valign: 2
       });
-      if (it[2]) pen.text(T, x + 32.5, cy - h / 2 - 1.7, PG_TS.cell * 0.85, it[2], {
+      if (it[2]) pen.text(T, x + 35, cy - h / 2 - 2.0, PG_TS.cell * 0.9, it[2], {
         valign: 2
       });
       cy -= h;
@@ -536,9 +543,9 @@ function dsNotesSheet(st, job, media) {
     return y - cy;
   };
   const seg = (L, x, y) => pen.line(L, x - 11, y, x + 11, y);
-  const c2 = A.x0 + 140,
-    w2 = 100;
-  legend(c2, A.y1 - 20, w2, "สัญลักษณ์ผังติดตั้ง (LAYOUT LEGEND)", [[(x, y) => pen.rect(DL("roof"), x - 11, y - 3, 22, 6), "ขอบหลังคา", "ROOF OUTLINE"], [(x, y) => {
+  const c2 = c1 + wc + gapC,
+    w2 = wc;
+  legend(c2, yTop, w2, "สัญลักษณ์ผังติดตั้ง (LAYOUT LEGEND)", [[(x, y) => pen.rect(DL("roof"), x - 11, y - 3, 22, 6), "ขอบหลังคา", "ROOF OUTLINE"], [(x, y) => {
     [-7.5, -2.5, 2.5, 7.5].forEach(d => pen.rect(DL("panB"), x + d - 2.3, y - 3.2, 4.6, 6.4));
   }, "แผงเซลล์แสงอาทิตย์", "PV MODULE"], [(x, y) => {
     pen.line("PG-STRING", x - 11, y, x + 8, y);
@@ -571,9 +578,9 @@ function dsNotesSheet(st, job, media) {
     pen.line(DL("dcp"), x - 11, y + 1.5, x + 11, y + 1.5);
     pen.line(DL("dcn"), x - 11, y - 1.5, x + 11, y - 1.5);
   }, "สาย DC ขั้วบวก (แดง) / ขั้วลบ (ดำ)", "DC CABLE (+) / (-)"]]);
-  const c3 = A.x0 + 250,
-    w3 = A.x1 - 4 - c3;
-  legend(c3, A.y1 - 20, w3, "สัญลักษณ์แบบไฟฟ้า (ELECTRICAL SYMBOLS)", [[(x, y) => pgSym.pv(pen, x, y, 13, 5.4, null, true), "แผงเซลล์แสงอาทิตย์", "PV MODULE"], [(x, y) => pgSym.inverter(pen, x, y, 10, 7), "อินเวอร์เตอร์", "INVERTER (DC/AC)"], [(x, y) => {
+  const c3 = c2 + wc + gapC,
+    w3 = wc;
+  legend(c3, yTop, w3, "สัญลักษณ์แบบไฟฟ้า (ELECTRICAL SYMBOLS)", [[(x, y) => pgSym.pv(pen, x, y, 13, 5.4, null, true), "แผงเซลล์แสงอาทิตย์", "PV MODULE"], [(x, y) => pgSym.inverter(pen, x, y, 10, 7), "อินเวอร์เตอร์", "INVERTER (DC/AC)"], [(x, y) => {
     pen.line(PG_SLD.wire, x - 9, y, x - 4.15, y);
     pen.line(PG_SLD.wire, x + 4.15, y, x + 9, y);
     pen.circle(PG_SLD.sym, x - 3.4, y, 0.75);
@@ -752,7 +759,7 @@ function dsPanelSheet(st, job, media) {
     }
   })();
   dsRight(P, rows, [2.2, 1, 1.1, 1.1], ["ตัวเลขกลางกลุ่ม = จำนวนแถว x แผงต่อแถว = จำนวนแผง (กลุ่มที่ไม่เป็นสี่เหลี่ยมบอกจำนวนแผงอย่างเดียว)", "แผง " + (M0 ? M0.panel.model + " " : "") + wp + " Wp · รวม " + tot + " แผง = " + (tot * wp / 1000).toFixed(2) + " kWp", "ตำแหน่งแผงอ้างอิงแบบ 3D — ตรวจระยะห่างขอบหลังคา/สิ่งกีดขวางที่หน้างานก่อนวางราง"], [0, 1, 1, 1]);
-  P.pen.text(PG_TBL.txt, P.RX0, P.AR.y1 - 48, PG_TS.head, "TOTAL PV MODULE  " + tot + " PCS.  (" + (tot * wp / 1000).toFixed(2) + " kWp)");
+  P.pen.text(PG_TBL.txt, P.RX0, P.V.wide ? PG_SHEET.IN.y0 + P3_WIDE_B - 5 : P.AR.y1 - 48, PG_TS.head, "TOTAL PV MODULE  " + tot + " PCS.  (" + (tot * wp / 1000).toFixed(2) + " kWp)");
   return doc.build();
 }
 function dsObs(st, t) {
@@ -955,10 +962,11 @@ function dsChain(pen, T, from, to) {
 }
 function dsStrDetSheet(st, job, media) {
   media = media || {};
-  const S = dsMm(st, job, media, "STRDET", "DETAIL PV MODULE STRING");
+  const S = dsMm(st, job, media, "STRDET", null);
   const pen = S.pen,
     A = S.A,
     T = PG_TBL.txt;
+  pgSheetTitle(pen, A.x1 - 6, A.y0 + 12, "DETAIL PV MODULE STRING", PG_TS.title, 170, 2);
   let M = null;
   try {
     M = p3SldModel(st, job, media.design);
@@ -1023,7 +1031,7 @@ function dsStrDetSheet(st, job, media) {
   const lt = dsShow(1, m, 12),
     lb = dsShow(m + 1, n, 12),
     gapR = 12;
-  const yHi = A.y1 - 28,
+  const yHi = A.y1 - 14,
     yLo = bandTop + 6 + 11;
   const phMax = (yHi - yLo - 32 - gapR) / 3;
   const pw1 = Math.min(20, (X1 - X0 - gap * (l1.length - 1)) / l1.length, (X1 - X0 - gap * (lt.length - 1)) / lt.length, phMax / 2.05);
@@ -1269,12 +1277,12 @@ function dsSheetDefs(st, job, design, imgs) {
   } catch (e) {
     n = 0;
   }
-  if (n) add("PANEL", "ผังวางแผง", o => dsPanelSheet(st, job, o));
-  if (design && (design.strings || []).length && (st.sys || {}).mode !== "micro") add("STRDET", "รูปการเดินสายสตริง", o => dsStrDetSheet(st, job, o));
-  add("GROUND", "ระบบต่อลงดิน", o => dsGroundSheet(st, job, o));
   const withImg = fn => o => fn(st, job, Object.assign({
     imgs
   }, o));
+  if (n) add("PANEL", "ผังวางแผง", withImg(dsPanelSheet));
+  if (design && (design.strings || []).length && (st.sys || {}).mode !== "micro") add("STRDET", "รูปการเดินสายสตริง", o => dsStrDetSheet(st, job, o));
+  add("GROUND", "ระบบต่อลงดิน", o => dsGroundSheet(st, job, o));
   if (dsObs(st, "tray").length) add("TRAY", "ผังรางไฟ", withImg(dsTraySheet));
   if (dsObs(st, "pipe").length) add("WATER", "ผังท่อน้ำ", withImg(dsWaterSheet));
   if (dsObs(st, "walkway").length) add("WALK", "ผังทางเดิน", withImg(dsWalkSheet));

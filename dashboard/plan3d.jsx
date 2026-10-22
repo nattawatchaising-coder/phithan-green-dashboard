@@ -1327,9 +1327,9 @@ function p3StrLayout(st, job, media) {
   const needW = B.maxX - B.minX, needH = B.maxY - B.minY;
   const fitSc = (A) => P3_SCALES.find((s) => needW * 1000 <= A.w * 0.94 * s && needH * 1000 <= A.h * 0.94 * s) || P3_SCALES[P3_SCALES.length - 1];
   /* แบบคอลัมน์ (ผังซ้ายเต็มสูง) หรือแบบกว้าง (ผังเต็มกว้างระหว่างแถบบนกับแถบตารางล่าง) — เลือกอันที่ผังใหญ่กว่า */
-  let A = { w: AW - COL - 8, h: IN.y1 - IN.y0 }, px = IN.x0 + A.w / 2, py = IN.y0 + A.h / 2, SC = fitSc(A);
+  let A = { w: AW - COL - 8, h: IN.y1 - IN.y0 }, px = IN.x0 + A.w / 2, py = IN.y0 + A.h / 2, SC = fitSc(A), wide = false;
   const Bt = (TB ? TB.h : 0) + 10, A2 = { w: AW - 6, h: IN.y1 - IN.y0 - P3_WIDE_T - Bt }, S2 = fitSc(A2);
-  if (S2 < SC) { A = A2; SC = S2; px = IN.x0 + A2.w / 2; py = IN.y0 + Bt + A2.h / 2; }
+  if (S2 < SC) { A = A2; SC = S2; px = IN.x0 + A2.w / 2; py = IN.y0 + Bt + A2.h / 2; wide = true; }
   const k = SC / 1000;
   const doc = pgDoc({ units: "m", ltscale: k }, media.svg);
   const gd = p3RotDoc(doc, rot);           // ตัวผังหมุนตามแนวอาคาร · กรอบ/หัวแบบใช้ doc ตรง
@@ -1393,10 +1393,16 @@ function p3StrLayout(st, job, media) {
   pen.text("PG-NORTH", bx + 44, by + 0.4, PG_TS.cell, "METRES   SCALE 1:" + SC);
 
   const RX1 = AR.x1 - 2, RX0 = RX1 - COL;
-  pgSheetTitle(pen, RX0, AR.y1 - 12, "STRING LAYOUT", PG_TS.title, COL - 30, 0);
-  pen.text("PG-NOTE", RX0, AR.y1 - 19, PG_TS.cell, "SCALE");
-  pen.text("PG-NOTE", RX1 - 28, AR.y1 - 18, PG_TS.cell, "A1=1:" + Math.round(SC / 1.414));
-  pen.text("PG-NOTE", RX1 - 28, AR.y1 - 22.5, PG_TS.cell, "A3=1:" + SC);
+  /* โหมดกว้าง: ชื่อแผ่น + มาตราส่วนลงมุมซ้ายล่างเหนือมาตราส่วนเส้น (ผู้ใช้ย้าย) */
+  if (wide) {
+    pgSheetTitle(pen, AR.x0 + 4, AR.y0 + 18, "STRING LAYOUT", PG_TS.title, 170, 0);
+    pen.text("PG-NOTE", AR.x0 + 4, AR.y0 + 11, 2.4, "SCALE   A3 = 1:" + SC + "   A1 = 1:" + Math.round(SC / 1.414));
+  } else {
+    pgSheetTitle(pen, RX0, AR.y1 - 12, "STRING LAYOUT", PG_TS.title, COL - 30, 0);
+    pen.text("PG-NOTE", RX0, AR.y1 - 19, PG_TS.cell, "SCALE");
+    pen.text("PG-NOTE", RX1 - 28, AR.y1 - 18, PG_TS.cell, "A1=1:" + Math.round(SC / 1.414));
+    pen.text("PG-NOTE", RX1 - 28, AR.y1 - 22.5, PG_TS.cell, "A3=1:" + SC);
+  }
   pgCompass(pen, RX1 - 12, AR.y1 - 40, 6.5, null, rot);
 
   /* (เดิมมีหมายเหตุอธิบายสี/เส้นมุมล่าง — ผู้ใช้ให้เอาออก) · ตาราง MPPT ชิดขวาล่าง */
@@ -2862,9 +2868,6 @@ function p3DcSheet(st, job, media) {
     g.per + " แผง", "PV1-F 1x4",
   ]));
   dcRows.push(["รวม", M.panel.count + " แผง", "-"]);
-  let ry = A.y1 - 20;
-  ry -= pgGrid(pen, RX, ry, RW, [1.1, 1, 1.2], dcRows, { rh: 5.4, th: PG_TS.cell, headRow: 1 }) + 8;
-
   const spec = [["PV MODULE", M.panel.model],
     ["กำลังไฟต่อแผง", M.panel.wp + " Wp."],
     ["จำนวนแผงทั้งหมด", M.panel.count + " แผง"]];
@@ -2879,6 +2882,9 @@ function p3DcSheet(st, job, media) {
     spec.push(["สายดินโครงแผง", "THW(G) " + Math.max(6, Math.min(16, P.earthCu)) + " mm2 เขียว/เหลือง"]);
   } else spec.push(["สาย DC", "PV1-F 1x4 Sq.mm. DC1500V"]);
   spec.push(["หัวต่อ", "MC4 1500VDC IP68"]);
+  /* ตาราง DC STRING + DC SPECIFICATION ชิดล่างขวา (ผู้ใช้ย้ายลง — เดิมชิดบน ล่างว่าง) */
+  let ry = Math.min(A.y1 - 20, A.y0 + 6 + (spec.length + 1) * 5.4 + 8 + dcRows.length * 5.4);
+  ry -= pgGrid(pen, RX, ry, RW, [1.1, 1, 1.2], dcRows, { rh: 5.4, th: PG_TS.cell, headRow: 1 }) + 8;
   ry -= pgSpecBlock(pen, RX, ry, RW, "DC SPECIFICATION", spec, { rh: 5.4, th: PG_TS.cell, split: 1 });
 
   const note = [
