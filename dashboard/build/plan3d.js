@@ -1026,9 +1026,12 @@ function p3RotDoc(doc, deg) {
 function p3PanelBlock(doc) {
   if (!doc.block) return false;
   doc.block("PV-PANEL", b => {
+    if (b.hatch) b.hatch("0", [[[0, 0], [1, 0], [1, 1], [0, 1]]], {
+      solid: true,
+      color: 253
+    });
     b.rect("0", 0, 0, 1, 1);
-    for (let i = 1; i < 3; i++) b.line("0", i / 3, 0, i / 3, 1);
-    for (let j = 1; j < 6; j++) b.line("0", 0, j / 6, 1, j / 6);
+    b.rect("0", 0.035, 0.0175, 0.93, 0.965);
   });
   return true;
 }

@@ -102,11 +102,12 @@ function pgDxf(opt) {
   /* CUR = ที่เก็บ entity ปัจจุบัน — ปกติคือ model space · ระหว่างนิยาม BLOCK (api.block) ชี้ไปที่ตัวบล็อก */
   const blocks = new Map();   // ชื่อ → { name, hRec, hB, hE, ents }
   let CUR = null;
-  const head = (buf, type, sub, layer) => {
+  const head = (buf, type, sub, layer, col) => {
     const w = W(buf);
     buf.h = nh();
     w(0, type); w(5, buf.h); w(330, CUR ? CUR.hRec : hBrecModel);
     w(100, "AcDbEntity"); w(8, layer || "0");
+    if (col != null) w(62, col);          // สีเฉพาะตัว (ไม่ตาม layer)
     w(100, sub);
     return w;
   };
@@ -241,19 +242,21 @@ function pgDxf(opt) {
       return name;
     },
     /* HATCH ลายเส้นขนานแบบ user-defined · loops[0] = ขอบนอก · loops[1..] = เกาะ (ไม่ลาย)
-       o = { ang (องศา), sp (ระยะห่างเส้น หน่วยแบบ), dbl (ไขว้ 90°) } — ผู้ใช้: texture หลังคาเป็น HATCH */
+       o = { ang (องศา), sp (ระยะห่างเส้น หน่วยแบบ), dbl (ไขว้ 90°) } — ผู้ใช้: texture หลังคาเป็น HATCH
+       o.solid = ทึบเต็ม (SOLID) · o.color = สี ACI เฉพาะตัว */
     hatch(layer, loops, o) {
       o = o || {};
       loops = (loops || []).filter((L) => L && L.length >= 3);
       if (!loops.length) return null;
-      const b = []; const w = head(b, "HATCH", "AcDbHatch", layer);
+      const b = []; const w = head(b, "HATCH", "AcDbHatch", layer, o.color);
       w(10, 0); w(20, 0); w(30, 0); w(210, 0); w(220, 0); w(230, 1);
-      w(2, "_USER"); w(70, 0); w(71, 0); w(91, loops.length);
+      w(2, o.solid ? "SOLID" : "_USER"); w(70, o.solid ? 1 : 0); w(71, 0); w(91, loops.length);
       loops.forEach((L, i) => {
         w(92, i ? 2 : 3); w(72, 0); w(73, 1); w(93, L.length);
         L.forEach((p) => { w(10, num(p[0])); w(20, num(p[1])); grow(p[0], p[1]); });
         w(97, 0);
       });
+      if (o.solid) { w(75, 1); w(76, 1); w(98, 0); return push(b); }
       const sp = Math.max(1e-6, +o.sp || 1), a0 = +o.ang || 0;
       w(75, 1); w(76, 0); w(52, num(a0)); w(41, num(sp)); w(77, o.dbl ? 1 : 0);   // 75=1 outer: เกาะซ้อนกันก็ไม่ลายกลับ
       const lines = o.dbl ? [a0, a0 + 90] : [a0];

@@ -142,7 +142,7 @@ function pgDxf(opt) {
   };
   const blocks = new Map();
   let CUR = null;
-  const head = (buf, type, sub, layer) => {
+  const head = (buf, type, sub, layer, col) => {
     const w = W(buf);
     buf.h = nh();
     w(0, type);
@@ -150,6 +150,7 @@ function pgDxf(opt) {
     w(330, CUR ? CUR.hRec : hBrecModel);
     w(100, "AcDbEntity");
     w(8, layer || "0");
+    if (col != null) w(62, col);
     w(100, sub);
     return w;
   };
@@ -358,15 +359,15 @@ function pgDxf(opt) {
       loops = (loops || []).filter(L => L && L.length >= 3);
       if (!loops.length) return null;
       const b = [];
-      const w = head(b, "HATCH", "AcDbHatch", layer);
+      const w = head(b, "HATCH", "AcDbHatch", layer, o.color);
       w(10, 0);
       w(20, 0);
       w(30, 0);
       w(210, 0);
       w(220, 0);
       w(230, 1);
-      w(2, "_USER");
-      w(70, 0);
+      w(2, o.solid ? "SOLID" : "_USER");
+      w(70, o.solid ? 1 : 0);
       w(71, 0);
       w(91, loops.length);
       loops.forEach((L, i) => {
@@ -381,6 +382,12 @@ function pgDxf(opt) {
         });
         w(97, 0);
       });
+      if (o.solid) {
+        w(75, 1);
+        w(76, 1);
+        w(98, 0);
+        return push(b);
+      }
       const sp = Math.max(1e-6, +o.sp || 1),
         a0 = +o.ang || 0;
       w(75, 1);
