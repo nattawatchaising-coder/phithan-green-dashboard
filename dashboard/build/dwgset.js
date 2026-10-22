@@ -1,5 +1,7 @@
 const DS_LAY = {
   roof: ["DS-ROOF", 8, 15],
+  rtex: ["DS-ROOF-TEX", 9, 5],
+  ridge: ["DS-ROOF-RIDGE", 8, 9],
   pan: ["DS-PANEL", 140, 13],
   panB: ["DS-PANEL-B", 5, 18],
   tray: ["DS-TRAY", 30, 50],
@@ -175,7 +177,8 @@ function dsPlan(st, job, media, key, o) {
       if (ol.length >= 3) doc.pline(DL("roof"), ol.map(p => [p.x, -p.z]), true);
     }
   });
-  p3RoofEdges(st).forEach(e => doc.line(DL("roof"), e[0][0], e[0][1], e[1][0], e[1][1]));
+  const RP = p3RoofPlan(st, k);
+  [[DL("rtex"), RP.tex], [DL("ridge"), RP.ridge], [DL("roof"), RP.edges]].forEach(([L, E]) => E.forEach(e => doc.line(L, e[0][0], e[0][1], e[1][0], e[1][1])));
   let foot = {
     panels: []
   };

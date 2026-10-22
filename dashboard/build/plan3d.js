@@ -889,7 +889,7 @@ function p3MeasLen(m) {
   for (let i = 1; i < pts.length; i++) s += Math.hypot((+pts[i].x || 0) - (+pts[i - 1].x || 0), (+pts[i].z || 0) - (+pts[i - 1].z || 0));
   return Math.round((s + Math.abs(+(m && m.rise) || 0)) * 100) / 100;
 }
-const P3_DXF_LAYERS = [["PG-BG", 8, 5], ["PG-ROOF", 7, 18], ["PG-PANEL", 5, 25], ["PG-OBSTACLE", 3, 20], ["PG-MEAS-CABLE", 30, 30], ["PG-MEAS-CONDUIT", 140, 30], ["PG-MEAS-TRAY", 200, 30], ["PG-MEAS-LADDER", 6, 30], ["PG-MEAS-WALKWAY", 4, 30], ["PG-MEAS-GUARDRAIL", 1, 30], ["PG-MEAS-OTHER", 8, 30], ["PG-DIM", 1, 18], ["PG-NORTH", 8, 25], ["PG-NOTE", 8, 18], ["PG-STRING", 6, 25]];
+const P3_DXF_LAYERS = [["PG-BG", 8, 5], ["PG-ROOF", 7, 18], ["PG-ROOF-TEX", 8, 5], ["PG-ROOF-RIDGE", 8, 13], ["PG-PANEL", 5, 25], ["PG-OBSTACLE", 3, 20], ["PG-MEAS-CABLE", 30, 30], ["PG-MEAS-CONDUIT", 140, 30], ["PG-MEAS-TRAY", 200, 30], ["PG-MEAS-LADDER", 6, 30], ["PG-MEAS-WALKWAY", 4, 30], ["PG-MEAS-GUARDRAIL", 1, 30], ["PG-MEAS-OTHER", 8, 30], ["PG-DIM", 1, 18], ["PG-NORTH", 8, 25], ["PG-NOTE", 8, 18], ["PG-STRING", 6, 25]];
 const p3MeasLayer = k => "PG-MEAS-" + String(k || "other").toUpperCase();
 const P3_SCALES = [50, 75, 100, 125, 150, 200, 250, 300, 400, 500, 600, 750, 800, 1000, 1250, 1500, 2000];
 function p3ImgPlace(kind, st, aspect) {
@@ -1265,7 +1265,8 @@ function p3Dxf(st, job, media) {
     });
   });
   const poly = (lay, pts, closed) => doc.pline(lay, pts.map(p => [p[0], -p[1]]), closed);
-  p3RoofEdges(st).forEach(e => doc.line("PG-ROOF", e[0][0], e[0][1], e[1][0], e[1][1]));
+  const RP = p3RoofPlan(st, k);
+  [["PG-ROOF-TEX", RP.tex], ["PG-ROOF-RIDGE", RP.ridge], ["PG-ROOF", RP.edges]].forEach(([L, E]) => E.forEach(e => doc.line(L, e[0][0], e[0][1], e[1][0], e[1][1])));
   (st.roofs || []).forEach(roof => {
     let faces = [];
     try {
@@ -1482,7 +1483,8 @@ function p3Xf(roof, pan) {
     rotY
   };
 }
-function p3RoofEdges(st) {
+function p3RoofPlan(st, k) {
+  k = k || 0.1;
   const F = [];
   (st.roofs || []).forEach((roof, ri) => {
     let faces = [];
@@ -1491,8 +1493,9 @@ function p3RoofEdges(st) {
     } catch (e) {
       faces = [];
     }
-    faces.forEach(f => {
-      const Q = f.pts || [];
+    const mat = typeof p3sRoofMat === "function" ? p3sRoofMat(roof) : "metal";
+    faces.forEach(fc => {
+      const Q = fc.pts || [];
       if (Q.length < 3) return;
       let nx = 0,
         ny = 0,
@@ -1500,20 +1503,26 @@ function p3RoofEdges(st) {
         cx = 0,
         cy = 0,
         cz = 0;
-      Q.forEach((a, i) => {
-        const b = Q[(i + 1) % Q.length];
-        nx += (a.y - b.y) * (a.z + b.z);
-        ny += (a.z - b.z) * (a.x + b.x);
-        nz += (a.x - b.x) * (a.y + b.y);
-        cx += a.x;
-        cy += a.y;
-        cz += a.z;
+      Q.forEach((p, i) => {
+        const q = Q[(i + 1) % Q.length];
+        nx += (p.y - q.y) * (p.z + q.z);
+        ny += (p.z - q.z) * (p.x + q.x);
+        nz += (p.x - q.x) * (p.y + q.y);
+        cx += p.x;
+        cy += p.y;
+        cz += p.z;
       });
+      if (ny < 0) {
+        nx = -nx;
+        ny = -ny;
+        nz = -nz;
+      }
       const P = Q.map(p => [p.x, -p.z]),
         xs = P.map(p => p[0]),
         ys = P.map(p => p[1]);
       F.push({
         ri,
+        mat,
         Q,
         P,
         n: [nx, ny, nz],
@@ -1522,63 +1531,185 @@ function p3RoofEdges(st) {
       });
     });
   });
-  const hAt = (f, x, y) => Math.abs(f.n[1]) < 1e-9 ? -Infinity : f.c[1] - (f.n[0] * (x - f.c[0]) + f.n[2] * (-y - f.c[2])) / f.n[1];
+  const hAt = (g, x, y) => Math.abs(g.n[1]) < 1e-9 ? -Infinity : g.c[1] - (g.n[0] * (x - g.c[0]) + g.n[2] * (-y - g.c[2])) / g.n[1];
   const inside = (P, x, y) => {
     let r = false;
     for (let i = 0, j = P.length - 1; i < P.length; j = i++) {
-      const a = P[i],
-        b = P[j];
-      if (a[1] > y !== b[1] > y && x < (b[0] - a[0]) * (y - a[1]) / (b[1] - a[1]) + a[0]) r = !r;
+      const p = P[i],
+        q = P[j];
+      if (p[1] > y !== q[1] > y && x < (q[0] - p[0]) * (y - p[1]) / (q[1] - p[1]) + p[0]) r = !r;
     }
     return r;
   };
-  const out = [];
-  F.forEach(f => {
-    const others = F.filter(g => g.ri !== f.ri);
-    f.Q.forEach((A3, i) => {
-      const B3 = f.Q[(i + 1) % f.Q.length],
-        a = f.P[i],
-        b = f.P[(i + 1) % f.P.length];
-      const dx = b[0] - a[0],
-        dy = b[1] - a[1];
-      const ts = [0, 1];
-      others.forEach(g => g.P.forEach((p, j) => {
-        const q = g.P[(j + 1) % g.P.length],
-          ex = q[0] - p[0],
-          ey = q[1] - p[1];
-        const den = dx * ey - dy * ex;
-        if (Math.abs(den) < 1e-12) return;
-        const t = ((p[0] - a[0]) * ey - (p[1] - a[1]) * ex) / den,
-          u = ((p[0] - a[0]) * dy - (p[1] - a[1]) * dx) / den;
-        if (t > 1e-6 && t < 1 - 1e-6 && u >= -1e-6 && u <= 1 + 1e-6) ts.push(t);
-      }));
-      ts.sort((x, y) => x - y);
-      let run = null;
-      for (let k = 0; k < ts.length - 1; k++) {
-        const t0 = ts[k],
-          t1 = ts[k + 1];
-        if (t1 - t0 < 1e-9) continue;
-        const tm = (t0 + t1) / 2,
-          mx = a[0] + dx * tm,
-          my = a[1] + dy * tm,
-          mh = A3.y + (B3.y - A3.y) * tm;
-        const hid = others.some(g => mx >= g.bb[0] && mx <= g.bb[2] && my >= g.bb[1] && my <= g.bb[3] && inside(g.P, mx, my) && hAt(g, mx, my) > mh + 0.05);
-        if (hid) {
-          if (run) {
-            out.push(run);
-            run = null;
-          }
-          continue;
+  const inBB = (bb, x, y) => x >= bb[0] && x <= bb[2] && y >= bb[1] && y <= bb[3];
+  const cut = (a, b, polys, keep, out) => {
+    const dx = b[0] - a[0],
+      dy = b[1] - a[1],
+      ts = [0, 1];
+    polys.forEach(P => P.forEach((p, j) => {
+      const q = P[(j + 1) % P.length],
+        ex = q[0] - p[0],
+        ey = q[1] - p[1];
+      const den = dx * ey - dy * ex;
+      if (Math.abs(den) < 1e-12) return;
+      const t = ((p[0] - a[0]) * ey - (p[1] - a[1]) * ex) / den,
+        u = ((p[0] - a[0]) * dy - (p[1] - a[1]) * dx) / den;
+      if (t > 1e-6 && t < 1 - 1e-6 && u >= -1e-6 && u <= 1 + 1e-6) ts.push(t);
+    }));
+    ts.sort((x, y) => x - y);
+    let run = null;
+    for (let i = 0; i < ts.length - 1; i++) {
+      const t0 = ts[i],
+        t1 = ts[i + 1];
+      if (t1 - t0 < 1e-9) continue;
+      const tm = (t0 + t1) / 2;
+      if (!keep(a[0] + dx * tm, a[1] + dy * tm, tm)) {
+        if (run) {
+          out.push(run);
+          run = null;
         }
-        const p0 = [a[0] + dx * t0, a[1] + dy * t0],
-          p1 = [a[0] + dx * t1, a[1] + dy * t1];
-        if (run) run[1] = p1;else run = [p0, p1];
+        continue;
       }
-      if (run) out.push(run);
+      const p1 = [a[0] + dx * t1, a[1] + dy * t1];
+      if (run) run[1] = p1;else run = [[a[0] + dx * t0, a[1] + dy * t0], p1];
+    }
+    if (run) out.push(run);
+  };
+  const hid = (ri, x, y, h) => F.some(g => g.ri !== ri && inBB(g.bb, x, y) && inside(g.P, x, y) && hAt(g, x, y) > h + 0.05);
+  const others = ri => F.filter(g => g.ri !== ri).map(g => g.P);
+  const edges = [];
+  F.forEach(g => {
+    const O = others(g.ri);
+    g.Q.forEach((A3, i) => {
+      const B3 = g.Q[(i + 1) % g.Q.length];
+      cut(g.P[i], g.P[(i + 1) % g.P.length], O, (x, y, t) => !hid(g.ri, x, y, A3.y + (B3.y - A3.y) * t), edges);
     });
   });
-  return out;
+  let PN = [];
+  try {
+    PN = (p3FootAll(st).panels || []).map(p => {
+      const P = p.pts.map(q => [q[0], -q[1]]),
+        xs = P.map(q => q[0]),
+        ys = P.map(q => q[1]);
+      return {
+        P,
+        bb: [Math.min(...xs), Math.min(...ys), Math.max(...xs), Math.max(...ys)]
+      };
+    });
+  } catch (e) {
+    PN = [];
+  }
+  const ridge = [],
+    RC = [],
+    hw = Math.max(0.15, 0.35 * k);
+  const key = p => Math.round(p.x * 50) + "," + Math.round(p.z * 50);
+  const seen = {};
+  F.forEach((g, gi) => g.Q.forEach((A3, i) => {
+    const B3 = g.Q[(i + 1) % g.Q.length];
+    const id = [key(A3), key(B3)].sort().join("|");
+    (seen[id] = seen[id] || []).push({
+      gi,
+      A3,
+      B3
+    });
+  }));
+  Object.keys(seen).forEach(id => {
+    const E = seen[id];
+    if (E.length !== 2 || F[E[0].gi].ri !== F[E[1].gi].ri) return;
+    const A3 = E[0].A3,
+      B3 = E[0].B3,
+      my = (A3.y + B3.y) / 2;
+    if (!E.every(e => F[e.gi].c[1] < my - 0.05)) return;
+    const ri = F[E[0].gi].ri;
+    const a = [A3.x, -A3.z],
+      b = [B3.x, -B3.z],
+      L = Math.hypot(b[0] - a[0], b[1] - a[1]);
+    if (L < 0.05) return;
+    const ox = -(b[1] - a[1]) / L * hw,
+      oy = (b[0] - a[0]) / L * hw;
+    RC.push({
+      ri,
+      a,
+      b,
+      L,
+      P: [[a[0] + ox, a[1] + oy], [b[0] + ox, b[1] + oy], [b[0] - ox, b[1] - oy], [a[0] - ox, a[1] - oy]]
+    });
+    [1, -1].forEach(sg => cut([a[0] + ox * sg, a[1] + oy * sg], [b[0] + ox * sg, b[1] + oy * sg], others(ri), (x, y, t) => !hid(ri, x, y, A3.y + (B3.y - A3.y) * t + 0.05), ridge));
+  });
+  const MSP = {
+    metal: [0.25, 0],
+    sandwich: [0.25, 0],
+    fiber: [0.18, 0],
+    kliplok: [0.5, 0],
+    cpac: [0.33, 0.33],
+    ceramic: [0.25, 0.3],
+    shingle: [0, 0.25]
+  };
+  const minSp = 1.2 * k;
+  const tex = [];
+  F.forEach(g => {
+    const M = MSP[g.mat];
+    if (!M) return;
+    let dx = g.n[0],
+      dy = -g.n[2],
+      L = Math.hypot(dx, dy);
+    if (L < 0.02 * Math.hypot(g.n[0], g.n[1], g.n[2])) {
+      let best = 0;
+      g.P.forEach((p, i) => {
+        const q = g.P[(i + 1) % g.P.length],
+          l = Math.hypot(q[0] - p[0], q[1] - p[1]);
+        if (l > best) {
+          best = l;
+          dx = -(q[1] - p[1]);
+          dy = q[0] - p[0];
+        }
+      });
+      L = Math.hypot(dx, dy) || 1;
+    }
+    dx /= L;
+    dy /= L;
+    const O = others(g.ri).concat([g.P], RC.filter(r => r.ri === g.ri).map(r => r.P));
+    const PNg = PN.filter(p => p.bb[0] <= g.bb[2] && p.bb[2] >= g.bb[0] && p.bb[1] <= g.bb[3] && p.bb[3] >= g.bb[1]);
+    const RCg = RC.filter(r => r.ri === g.ri).map(r => r.P);
+    const keep = (x, y) => inside(g.P, x, y) && !hid(g.ri, x, y, hAt(g, x, y)) && !PNg.some(p => inBB(p.bb, x, y) && inside(p.P, x, y)) && !RCg.some(P => inside(P, x, y));
+    const fam = (ux, uy, sp) => {
+      if (!sp) return;
+      sp = Math.max(sp, minSp);
+      const vx = -uy,
+        vy = ux;
+      let u0 = Infinity,
+        u1 = -Infinity,
+        v0 = Infinity,
+        v1 = -Infinity;
+      g.P.forEach(p => {
+        const u = p[0] * ux + p[1] * uy,
+          v = p[0] * vx + p[1] * vy;
+        u0 = Math.min(u0, u);
+        u1 = Math.max(u1, u);
+        v0 = Math.min(v0, v);
+        v1 = Math.max(v1, v);
+      });
+      if ((v1 - v0) / sp > 2000) return;
+      const PV = PNg.map(p => {
+        const q = p.P.map(r => r[0] * vx + r[1] * vy);
+        return [Math.min(...q), Math.max(...q), p.P];
+      });
+      for (let v = Math.ceil(v0 / sp) * sp; v < v1; v += sp) {
+        const a = [ux * (u0 - 0.1) + vx * v, uy * (u0 - 0.1) + vy * v],
+          b = [ux * (u1 + 0.1) + vx * v, uy * (u1 + 0.1) + vy * v];
+        cut(a, b, O.concat(PV.filter(p => p[0] <= v && p[1] >= v).map(p => p[2])), keep, tex);
+      }
+    };
+    fam(dx, dy, M[0]);
+    fam(-dy, dx, M[1]);
+  });
+  return {
+    edges,
+    tex,
+    ridge
+  };
 }
+const p3RoofEdges = st => p3RoofPlan(st).edges;
 function p3RoofSurf(roof) {
   const pan = p3Panels(roof);
   if (roof.kind === "dome" || !pan.faces || !pan.toMesh) return [];
@@ -1876,10 +2007,11 @@ function p3StrLayout(st, job, media) {
   };
   const NL = P3_STR_ACI.length;
   const lay = id => "PG-STR-" + ((((+id || 1) - 1) % NL + NL) % NL + 1);
-  p3RoofEdges(st).forEach(e => {
+  const RP = p3RoofPlan(st, k);
+  [["PG-ROOF-TEX", RP.tex], ["PG-ROOF-RIDGE", RP.ridge], ["PG-ROOF", RP.edges]].forEach(([L, E]) => E.forEach(e => {
     const s = p3ClipSeg(e[0], e[1], VB);
-    if (s) doc.line("PG-ROOF", s[0][0], s[0][1], s[1][0], s[1][1]);
-  });
+    if (s) doc.line(L, s[0][0], s[0][1], s[1][0], s[1][1]);
+  }));
   const fp = foot.panels || [];
   const pw = Math.min.apply(null, fp.map(p => {
     const xs = p.pts.map(q => q[0]),
