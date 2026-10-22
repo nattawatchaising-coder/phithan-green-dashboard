@@ -418,6 +418,48 @@ function SuVoltBand({ rows, inv, sel, onPick }) {
 const SU_SCOLOR = ["#1B9B75", "#2563EB", "#D97706", "#7C3AED", "var(--tint-red-tx2)", "#0891B2", "#DB2777", "#65A30D", "#EA580C", "#4F46E5"];
 const suColor = (i) => SU_SCOLOR[(i - 1 + SU_SCOLOR.length) % SU_SCOLOR.length];
 
+/* ── แนวเดินสายของสตริงที่คร่อมหลายช่วง (ผู้ใช้: เส้นต้องไม่ทับกัน) ──
+   ลำดับงูเลื้อยของผัง (lay.rank) ต่อช่วงแผงที่แยกกันตามลำดับรวมทั้งผัง → สายจัมเปอร์ลากย้อนข้ามช่วงอื่นได้
+   แบ่งเป็น "ช่วง" (แผงที่ติดกันตามลำดับ · ห่าง > jump = ขาดช่วง) แล้วเลือกลำดับช่วง + ทิศของแต่ละช่วงให้สายจัมเปอร์รวมสั้นสุด
+   (DP แบบเส้นทางเปิดบนชุดช่วง ≤ 10 ช่วง · สั้นสุดไม่มีเส้นไขว้กันเอง) · ในช่วงเดิมไม่เปลี่ยนลำดับ แค่กลับทิศได้
+   ใช้ทั้งผังในหน้านี้ ตารางสตริง และชุดแบบ DXF (design.paths) */
+function suRouteFix(us, ctr, jump) {
+  const runs = [];
+  us.forEach((u, i) => {
+    const p = ctr[u], q = i ? ctr[us[i - 1]] : null;
+    if (!q || Math.hypot(p[0] - q[0], p[1] - q[1]) > jump) runs.push([u]); else runs[runs.length - 1].push(u);
+  });
+  const n = runs.length;
+  if (n < 2 || n > 10) return us;
+  const end = (r, d, last) => ctr[(d ? r.slice().reverse() : r)[last ? r.length - 1 : 0]];   // d = กลับทิศ
+  const dist = (a, b) => Math.hypot(a[0] - b[0], a[1] - b[1]);
+  /* best[mask][i*2+d] = ระยะจัมเปอร์รวมต่ำสุด เมื่อเดินครบ mask และจบที่ช่วง i ทิศ d */
+  const S = 1 << n, INF = 1e18;
+  const best = Array.from({ length: S }, () => new Float64Array(n * 2).fill(INF));
+  const from = Array.from({ length: S }, () => new Int32Array(n * 2).fill(-1));
+  for (let i = 0; i < n; i++) { best[1 << i][i * 2] = 0; best[1 << i][i * 2 + 1] = 0; }
+  for (let m = 1; m < S; m++) for (let s2 = 0; s2 < n * 2; s2++) {
+    const c = best[m][s2]; if (c >= INF) continue;
+    const i = s2 >> 1, e = end(runs[i], s2 & 1, true);
+    for (let j = 0; j < n; j++) {
+      if (m & (1 << j)) continue;
+      for (let d = 0; d < 2; d++) {
+        const v = c + dist(e, end(runs[j], d, false)), m2 = m | (1 << j);
+        if (v < best[m2][j * 2 + d] - 1e-9) { best[m2][j * 2 + d] = v; from[m2][j * 2 + d] = s2; }
+      }
+    }
+  }
+  let bs = 0;
+  for (let s2 = 1; s2 < n * 2; s2++) if (best[S - 1][s2] < best[S - 1][bs]) bs = s2;
+  const seq = [];
+  for (let m = S - 1, s2 = bs; s2 >= 0;) { seq.unshift(s2); const p = from[m][s2]; m &= ~(1 << (s2 >> 1)); s2 = p; }
+  /* ทิศรวม: เริ่มที่ปลายเดิมของสตริง (ใกล้แผงแรกเดิมที่สุด) — เลขสตริงไม่กระโดดไปอีกฝั่ง */
+  let out = [].concat.apply([], seq.map((s2) => ((s2 & 1) ? runs[s2 >> 1].slice().reverse() : runs[s2 >> 1])));
+  const p0 = ctr[us[0]];
+  if (dist(ctr[out[out.length - 1]], p0) < dist(ctr[out[0]], p0)) out = out.reverse();
+  return out;
+}
+
 /* ── ผังแผง 2D (มองจากด้านบน) — แตะ/ลากเพื่อจัดแผงเข้าสตริง ──
    foot = ผลจาก p3FootAll(st) · assign = { uid: หมายเลขสตริง } */
 /* labels = { uid: "L1" } เขียนทับบนแผง · colorOf(uid, กลุ่ม) = แทนที่สีประจำกลุ่ม · unitName = คำเรียกในทูลทิป */
@@ -2172,11 +2214,16 @@ function SolarWorkspace({ job, st, sys, onChange, onClose, snap }) {
   const wirePaths = React.useMemo(() => {
     if (isMicro) return [];
     const ctr = {};
-    foot.panels.forEach((q) => { ctr[q.uid] = [q.pts.reduce((x, t) => x + t[0], 0) / q.pts.length, q.pts.reduce((x, t) => x + t[1], 0) / q.pts.length]; });
+    let Lmax = 0;
+    foot.panels.forEach((q) => {
+      ctr[q.uid] = [q.pts.reduce((x, t) => x + t[0], 0) / q.pts.length, q.pts.reduce((x, t) => x + t[1], 0) / q.pts.length];
+      if (!Lmax) for (let i = 0; i < q.pts.length; i++) { const a = q.pts[i], b = q.pts[(i + 1) % q.pts.length]; Lmax = Math.max(Lmax, Math.hypot(b[0] - a[0], b[1] - a[1])); }
+    });
     const bag = {};
     Object.keys(effAssign || {}).forEach((u) => { const v = effAssign[u]; if (v && ctr[u]) (bag[v] = bag[v] || []).push(u); });
     return Object.keys(bag).map((k) => {
-      const us = bag[k].sort((x, y) => (lay.rank[x] != null ? lay.rank[x] : 1e9) - (lay.rank[y] != null ? lay.rank[y] : 1e9));
+      const us0 = bag[k].sort((x, y) => (lay.rank[x] != null ? lay.rank[x] : 1e9) - (lay.rank[y] != null ? lay.rank[y] : 1e9));
+      const us = suRouteFix(us0, ctr, (Lmax || 2.4) * 1.25);
       return { id: +k, color: suColor(+k), pts: us.map((u) => ctr[u]), uids: us };
     });
   }, [isMicro, foot, effAssign, lay]);
