@@ -267,6 +267,8 @@
     stop(d);
     if (fl && fl !== d) endFly(fl);
     fl = d;
+    document.addEventListener("wheel", onScrollFly, { capture: true, passive: true });
+    document.addEventListener("scroll", onScrollFly, true);
     var p = pos(d);
     d.g.style.transition = "none";
     d.f = { t0: performance.now(), s0: performance.now(), x0: p.x + d.w / 2, y0: p.y + d.h / 2, sc0: d.s, r0: d.rot, k0: 1, aim: aim, el: null, n2: null, last: null,
@@ -331,13 +333,25 @@
     if (t >= 1 && a.el && (!f.n2 || now - f.n0 >= FLY * .65)) { endFly(d); return; }
     d.raf = requestAnimationFrame(flyTick);
   }
-  function endFly(d) {
+  /* ผู้ใช้เลื่อนจอ/คอลัมน์ระหว่างบินลง — เลิกบิน เผยการ์ดจริงในที่ของมัน สำเนาจางหายเร็ว ๆ
+     (สำเนาลอยบน body ไม่ถูกคอลัมน์ตัดขอบ — เดิมไล่ตามการ์ดที่เลื่อนพ้นคอลัมน์ขึ้นไปทับหัวหน้า "วางปุ้บแล้วเลื่อนลูกกลิ้งเลย") */
+  function onScrollFly() { var d = fl; if (d) { settleBack(d); endFly(d, true); } }   // ยังไม่ได้ข้อมูล = ช่องว่าง/ช่องเดิมคืนสภาพ ข้อมูลมาทีหลัง FLIP จัดให้
+  function endFly(d, fade) {
     var f = d.f;
     cancelAnimationFrame(d.raf);
     if (fl === d) fl = null;
+    if (!fl) { document.removeEventListener("wheel", onScrollFly, true); document.removeEventListener("scroll", onScrollFly, true); }
     if (f && f.el) f.el.style.visibility = "";
-    if (f && f.n2) f.n2.remove();
-    d.g.remove();
+    var cur2 = document.querySelector(d.sel);   // FLIP อาจซ่อนโหนดใหม่หลังเฟรมสุดท้ายที่เล็ง
+    if (cur2) cur2.style.visibility = "";
+    var gone = [d.g].concat(f && f.n2 ? [f.n2] : []);
+    if (fade && d.g.animate) {
+      gone.forEach(function (n) {
+        n.removeAttribute("data-pgfly");   // ไม่ให้ sweep เก็บก่อนจางเสร็จ
+        var a = n.animate([{ opacity: getComputedStyle(n).opacity }, { opacity: 0 }], { duration: 150, fill: "forwards" });
+        a.onfinish = a.oncancel = function () { n.remove(); };
+      });
+    } else gone.forEach(function (n) { n.remove(); });
     sweep();
   }
   // สำเนาที่หลงค้างบนจอ (ไม่ใช่ตัวที่กำลังลาก/บิน/บินเข้าถัง) — เก็บทิ้ง
