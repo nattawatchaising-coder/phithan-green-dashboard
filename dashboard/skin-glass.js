@@ -6,7 +6,7 @@
    ธีมเดิมยังอยู่ครบ: ทุกกฎอยู่ใต้ html[data-skin="glass"] และเปลี่ยนแค่ค่าตัวแปร (token) + ชั้นกระจก
    เลือกได้ต่อเครื่อง (localStorage "pg-skin" = glass/off · "pg-skin-bg" = mesh/photo)
      - ต่อท้าย URL ?skin=mesh (ไล่สี) · ?skin=glass (รูป) · ?skin=off (กลับไปธีมเดิม)
-     - localhost มีปุ่มลอยมุมขวาล่าง กดวน ปิด → รูป → ไล่สี
+     - (เคยมีปุ่มลอยบน localhost กดวนธีม/สุ่มสี — ผู้ใช้สั่งเอาออก ต.ค. 2026 · ชุดสี/ตำแหน่งวงที่เคยสุ่มไว้ใน "pg-skin-mesh" ยังอ่านอยู่)
    ห้ามเอาคลาส lg-* ของหน้าล็อกอินมาใช้ (DESIGN.md) — ชุดนี้ใช้ตัวแปร --sk-* ของตัวเอง
    ================================================================ */
 (function () {
@@ -78,19 +78,6 @@
     return M + ':not([data-theme="aurora"]) .app-root::before{' + layer(pal.l, true) + "}" +
       M + '[data-theme="aurora"] .app-root::before{' + layer(pal.d, false) + "}";
   };
-  var r2 = function (a, b) { return Math.round(a + Math.random() * (b - a)); };
-  // สุ่ม: ชุดสีใหม่ (ไม่ซ้ำชุดเดิม) + วงสีย้ายที่ — กระจายทีละมุมกันวงกองรวมกัน
-  var shuffleMesh = function () {
-    var p = mesh.p;
-    while (MESH_PAL.length > 1 && p === mesh.p) p = Math.floor(Math.random() * MESH_PAL.length);
-    var corners = [[0, 0], [1, 0], [1, 1], [0, 1]].sort(function () { return Math.random() - 0.5; });
-    mesh = { p: p, pos: corners.map(function (c) {
-      return [c[0] ? r2(55, 100) : r2(0, 45), c[1] ? r2(55, 100) : r2(0, 45), r2(34, 56), r2(40, 62)];
-    }) };
-    try { localStorage.setItem(MKEY, JSON.stringify(mesh)); } catch (e) {}
-    mst.textContent = meshCss();
-  };
-
   var CSS = [
     /* ── ตัวแปร: แผ่นกลายเป็นกระจกขาวใส เงาเป็นแสงสะท้อนขอบบน + เงาฟุ้งอุ่นแบบการ์ดล็อกอิน ── */
     L + "{--sk-glass-a:rgba(255,255,255,.62);--sk-glass-b:rgba(255,255,255,.34);--sk-edge:rgba(255,255,255,.9);--sk-edge-lo:rgba(255,255,255,.18);",
@@ -207,13 +194,6 @@
 
     /* พิมพ์เอกสาร: ไม่มีภาพพื้นหลัง */
     "@media print{" + G + " .app-root::before," + G + " .app-root::after{display:none}}",
-
-    /* ปุ่มเปิด/ปิด (localhost) */
-    ".sk-toggle{position:fixed;right:12px;bottom:10px;z-index:2147483646;border:none;cursor:pointer;font:600 12px/1.4 system-ui,sans-serif;",
-    "padding:6px 13px;border-radius:999px;color:#1B2220;background:rgba(255,255,255,.75);",
-    "-webkit-backdrop-filter:blur(12px);backdrop-filter:blur(12px);box-shadow:inset 0 0 0 1px rgba(255,255,255,.8),0 4px 14px rgba(0,0,0,.18)}",
-    ".sk-toggle[data-on='1']{background:#1B9B75;color:#fff;box-shadow:0 4px 14px rgba(0,0,0,.2)}",
-    ".sk-toggle.sk-dice{right:auto;left:auto}",
   ].join("");
 
   var st = document.createElement("style");
@@ -224,37 +204,4 @@
   mst.id = "skin-glass-mesh";
   mst.textContent = meshCss();
   (document.head || root).appendChild(mst);
-
-  var h = location.hostname;
-  if (!(h === "localhost" || h === "127.0.0.1")) return;
-  var addBtn = function () {
-    var b = document.createElement("button");
-    b.className = "sk-toggle";
-    var LABEL = { "": "ปิด", photo: "รูป", mesh: "ไล่สี" };
-    // ปุ่มสุ่มสี — โผล่เฉพาะตอนเป็นแบบไล่สี อยู่ซ้ายปุ่มหลัก
-    var d = document.createElement("button");
-    d.className = "sk-toggle sk-dice";
-    d.textContent = "🎲 สุ่มสี";
-    d.title = "เปลี่ยนชุดสีและย้ายตำแหน่งวงสี — จำค่าเฉพาะเครื่องนี้";
-    var show = function () {
-      b.setAttribute("data-on", mode ? "1" : "0");
-      b.textContent = "ธีมกระจก · " + LABEL[mode] + (mode === "mesh" ? " · " + MESH_PAL[mesh.p].n : "");
-      d.style.display = mode === "mesh" ? "" : "none";
-      d.style.right = (b.offsetWidth + 20) + "px";
-    };
-    d.onclick = function () { shuffleMesh(); show(); };
-    show();
-    b.title = "กดวน ปิด → รูป → ไล่สี — จำค่าเฉพาะเครื่องนี้";
-    b.onclick = function () {
-      mode = mode === "" ? "photo" : mode === "photo" ? "mesh" : "";
-      save(mode);
-      apply(mode);
-      show();
-    };
-    document.body.appendChild(b);
-    document.body.appendChild(d);
-    show();
-  };
-  if (document.body) addBtn();
-  else document.addEventListener("DOMContentLoaded", addBtn);
 })();
