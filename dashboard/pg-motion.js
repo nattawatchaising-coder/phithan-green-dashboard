@@ -198,6 +198,14 @@
       slide(c, (own && all.indexOf(c) > hi ? -H : 0) + (i >= vi ? H : 0));
     });
   }
+  /* ข้ามเข้าธาตุใหม่ (dragenter) ที่ไม่มีใครรับ เบราว์เซอร์ตั้งเป็น "วางไม่ได้" ทันที จนกว่า dragover รอบถัดไป (~50ms) จะมาถึง
+     — กากบาทแดงแว้บทุกครั้งที่เมาส์ข้ามขอบการ์ด/หัวคอลัมน์ (ผู้ใช้: "เวลาลากการ์ดยังมีกระพริบห้ามแดง ๆ อยู่") จึงรับ dragenter ไว้ด้วย */
+  function onEnter(e) {
+    var d = cur;
+    if (!d || d.done) return;
+    e.preventDefault();
+    if (e.dataTransfer) e.dataTransfer.dropEffect = "move";
+  }
   function onOver(e) {
     var d = cur;
     if (!d || d.done) return;
@@ -216,6 +224,7 @@
     d.done = true;
     cancelAnimationFrame(d.raf);
     document.removeEventListener("dragover", onOver, true);
+    document.removeEventListener("dragenter", onEnter, true);
     document.removeEventListener("drop", onDropAny, true);
     document.removeEventListener("dragend", onEnd, true);
     document.removeEventListener("mousemove", onLost, true);
@@ -431,6 +440,7 @@
     document.body.appendChild(g);
     requestAnimationFrame(function () { g.style.boxShadow = "0 26px 50px -12px rgba(8,20,14,.5), 0 6px 14px -6px rgba(8,20,14,.25)"; });   // เงาค่อย ๆ ลอยขึ้น
     document.addEventListener("dragover", onOver, true);
+    document.addEventListener("dragenter", onEnter, true);
     document.addEventListener("drop", onDropAny, true);
     document.addEventListener("dragend", onEnd, true);
     document.addEventListener("mousemove", onLost, true);
