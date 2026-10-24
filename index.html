@@ -17,7 +17,7 @@
 <!-- ธีมกระจก — ค่าเริ่มของเว็บ (ไล่สีชุดทะเล) · กลับธีมเดิมด้วย ?skin=off · โหลดใน head ก่อนแอปกันหน้ากระพริบ -->
 <script src="dashboard/skin-glass.js?v=23"></script>
 <!-- การ์ดขยายเป็นใบตอนเปิดใบลูกค้าฝ่ายขาย หดกลับตอนปิด (ลิ้นชักเรียก pgZoomFromCard / pgZoomToCard) -->
-<script src="dashboard/pg-motion.js?v=27"></script>
+<script src="dashboard/pg-motion.js?v=28"></script>
 <style>
 
 * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -728,13 +728,14 @@ html.theme-anim, html.theme-anim * { transition: background-color .34s ease, bor
   border-radius:var(--r-card) var(--r-card) 0 0}
 /* scrollbar-gutter: เผื่อที่แถบเลื่อนทุกคอลัมน์ — การ์ดกว้างเท่ากันทั้งคอลัมน์ที่ล้นและไม่ล้น ลากย้ายแล้วชื่อไม่ตัดบรรทัดใหม่ (ผู้ใช้: ตัวหนังสือขยับตอนย้ายจากติดต่อแล้วไปนัดสำรวจ) */
 .bd-col>.bd{position:relative;scrollbar-gutter:stable;padding:0 11px 11px;display:flex;flex-direction:column;gap:10px;overflow-y:auto;flex:1;min-height:80px}
-/* แถบเลื่อนในคอลัมน์บอร์ด — ชี้ที่แถบ = เข้ม (ผู้ใช้: "เกินขอบงาน ทำสีเข้มกว่านี้หน่อย") */
 /* เว้นห่างขอบขวา 3px + รางหยุดก่อนมุมโค้งล่าง (คอลัมน์โค้ง 26px) — ไม่ทับเส้นขอบคอลัมน์ (ผู้ใช้: "มันทับขอบคอลัมน์") */
 .bd-col>.bd::-webkit-scrollbar-track{margin:2px 0 22px}
 .bd-col>.bd::-webkit-scrollbar-thumb{background-clip:padding-box;border-width:2px 3px 2px 1px}
-/* ปกติจางสีเดิม เลื่อนอยู่ค่อยเข้ม (คลาส is-scrolling ใส่/ถอดจาก pg-motion.js) — ผู้ใช้: "ทำสีจางแบบเดิม เวลาเลื่อนค่อยเข้ม" */
+/* ชี้ตรงตัวแถบ — คงสีจางไว้ (กัน :hover ทั่วไปที่เข้มทันที) ให้ JS หน่วงก่อนเข้ม */
+.bd-col>.bd:not(.is-scrolling)::-webkit-scrollbar-thumb:hover{background:var(--border-strong);background-clip:padding-box}
+[data-theme="aurora"] .bd-col>.bd:not(.is-scrolling)::-webkit-scrollbar-thumb:hover{background:rgba(255,255,255,.16);background-clip:padding-box}
+/* ปกติจางสีเดิม เลื่อนอยู่ค่อยเข้ม (คลาส is-scrolling ใส่/ถอดจาก pg-motion.js — ชี้ค้างที่แถบ 0.4 วิก็เข้ม) — ผู้ใช้: "ทำสีจางแบบเดิม เวลาเลื่อนค่อยเข้ม" */
 .bd-col>.bd.is-scrolling::-webkit-scrollbar-thumb{background:var(--text-3);background-clip:padding-box}
-.bd-col>.bd::-webkit-scrollbar-thumb:hover{background:var(--text-2);background-clip:padding-box}
 /* ช่องว่างตอนยังไม่มีงาน — เส้นประมนตามการ์ด ไม่ใช่มุมเหลี่ยมกว่าของที่มันรอ */
 .bd-col .empty{padding:22px 0;text-align:center;font-size:12px;color:var(--text-3);
   border:1.5px dashed var(--border-strong);border-radius:var(--r-tile)}

@@ -482,20 +482,26 @@
   };
 })();
 
-/* ── แถบเลื่อนคอลัมน์บอร์ดเข้มเฉพาะตอนเลื่อน/ชี้ ── ใส่คลาส is-scrolling ให้ .bd ที่กำลังเลื่อน หรือเมาส์อยู่บนแถบเลื่อน (ขอบขวา 14px)
-   แล้วค้างไว้อีก 1.5 วิค่อยถอด (สีอยู่ใน index.html) · ผู้ใช้: "ทำสีจางแบบเดิม เวลาเลื่อนค่อยเข้ม" + "เพิ่มหน่วงเวลา เอาเมาส์ไปชี้โดนแล้วสีเข้ม" */
+/* ── แถบเลื่อนคอลัมน์บอร์ดเข้มเฉพาะตอนเลื่อน/ชี้ค้าง ── คลาส is-scrolling บน .bd (สีอยู่ใน index.html)
+   - เลื่อน = เข้มทันที หยุดเลื่อน 1.5 วิค่อยจาง
+   - เมาส์บนแถบเลื่อน (ขอบขวา 14px) ต้องค้าง 0.4 วิถึงเข้ม — แค่ลากผ่านไม่เข้ม · ออกจากแถบแล้วจางตามเวลาเดียวกัน
+   ผู้ใช้: "ทำสีจางแบบเดิม เวลาเลื่อนค่อยเข้ม" · "หน่วงเวลาตอนเอาเมาส์ไปผ่าน" (ไม่ใช้ CSS :hover ของแถบ — หน่วงไม่ได้) */
 (function () {
-  var T = new Map(), HOLD = 1500;
+  var T = new Map(), HOLD = 1500, DWELL = 400, hov = null, dw = 0;
   function isCol(el) { return el && el.classList && el.classList.contains("bd") && el.parentElement && el.parentElement.classList.contains("bd-col"); }
-  function show(el) {
+  function show(el, keep) {
     if (!T.has(el)) el.classList.add("is-scrolling");
     clearTimeout(T.get(el));
-    T.set(el, setTimeout(function () { el.classList.remove("is-scrolling"); T.delete(el); }, HOLD));
+    T.set(el, keep ? 0 : setTimeout(function () { el.classList.remove("is-scrolling"); T.delete(el); }, HOLD));
   }
-  document.addEventListener("scroll", function (e) { if (isCol(e.target)) show(e.target); }, true);
+  document.addEventListener("scroll", function (e) { if (isCol(e.target)) show(e.target, e.target === hov && !dw); }, true);
   document.addEventListener("mousemove", function (e) {
     var el = e.target && e.target.closest ? e.target.closest(".bd-col > .bd") : null;
-    if (!el || el.scrollHeight <= el.clientHeight) return;
-    if (e.clientX >= el.getBoundingClientRect().right - 14) show(el);
+    if (el && (el.scrollHeight <= el.clientHeight || e.clientX < el.getBoundingClientRect().right - 14)) el = null;
+    if (el === hov) return;
+    if (hov && !dw) show(hov);   // ออกจากแถบ — จางหลังหน่วง
+    clearTimeout(dw); dw = 0;
+    hov = el;
+    if (el) dw = setTimeout(function () { dw = 0; if (hov === el) show(el, true); }, DWELL);
   }, { passive: true });
 })();
