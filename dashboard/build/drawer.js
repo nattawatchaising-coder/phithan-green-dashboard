@@ -1298,7 +1298,7 @@ function DetailDrawer({
       backdropFilter: "blur(2px)",
       opacity: open ? 1 : 0,
       pointerEvents: open ? "auto" : "none",
-      transition: "opacity .3s",
+      transition: "opacity .45s ease",
       zIndex: 80
     }
   }), React.createElement("aside", {
@@ -1314,7 +1314,7 @@ function DetailDrawer({
       boxShadow: "-20px 0 60px rgba(8,20,14,.18)",
       zIndex: 90,
       transform: open ? "translateX(0)" : "translateX(100%)",
-      transition: "transform .34s cubic-bezier(.3,.9,.3,1)",
+      transition: open ? "transform .56s cubic-bezier(.22,1,.36,1)" : "transform .38s cubic-bezier(.4,0,.2,1)",
       display: "flex",
       flexDirection: "column"
     }

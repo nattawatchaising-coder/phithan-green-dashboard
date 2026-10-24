@@ -3353,6 +3353,7 @@ function SalesCard({
       onClick: () => onOpen(lead),
       className: "bd-card",
       "data-drag": dragging ? dragging === "trash" ? "trash" : "1" : null,
+      "data-lid": lead.id,
       style: {
         "--rail": late ? "#EF4444" : st.color
       }

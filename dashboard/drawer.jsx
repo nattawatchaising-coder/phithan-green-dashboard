@@ -550,11 +550,12 @@ function DetailDrawer({ job, onClose, onAdvance, onSetMat, onEdit, currentUser, 
     <React.Fragment>
       <div onClick={onClose} style={{ position: "fixed", inset: 0, background: "rgba(8,20,14,.34)",
         backdropFilter: "blur(2px)", opacity: open ? 1 : 0, pointerEvents: open ? "auto" : "none",
-        transition: "opacity .3s", zIndex: 80 }} />
+        transition: "opacity .45s ease", zIndex: 80 }} />
       <aside className="drawer-panel" style={{ position: "fixed", top: 0, right: 0, width: "min(540px, 94vw)",
         height: "100dvh", maxHeight: "100dvh",
         background: "var(--bg)", boxShadow: "-20px 0 60px rgba(8,20,14,.18)", zIndex: 90,
-        transform: open ? "translateX(0)" : "translateX(100%)", transition: "transform .34s cubic-bezier(.3,.9,.3,1)",
+        /* เลื่อนเข้านุ่มขึ้น: นานขึ้นนิด + เร่งต้นผ่อนปลาย (เดิม .34s ผู้ใช้บอกมาปั้บเกินไป ต.ค. 2026) */
+        transform: open ? "translateX(0)" : "translateX(100%)", transition: open ? "transform .56s cubic-bezier(.22,1,.36,1)" : "transform .38s cubic-bezier(.4,0,.2,1)",
         display: "flex", flexDirection: "column" }}>
         {job && (
           <React.Fragment>

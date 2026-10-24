@@ -2509,6 +2509,7 @@ function LeadDrawer({
     setStage: (l, key) => leadSetStage(leadStore, l, key)
   };
   return React.createElement(React.Fragment, null, React.createElement("div", _extends({}, bdClose, {
+    className: "pg-bd-in",
     style: {
       position: "fixed",
       inset: 0,
@@ -2521,6 +2522,7 @@ function LeadDrawer({
     }
   }), React.createElement("div", {
     onClick: e => e.stopPropagation(),
+    className: "pg-sheet-in",
     style: {
       width: isMobile ? "100%" : "min(680px,100%)",
       height: isMobile ? "88dvh" : "min(820px, 90vh)",

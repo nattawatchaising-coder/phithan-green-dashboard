@@ -269,37 +269,69 @@ function FlSalesDock({
   trashSt,
   trashDnD
 }) {
-  const [open, setOpen] = React.useState(null);
+  const [open, setOpen] = React.useState(false);
+  const [mounted, setMounted] = React.useState(false);
   const capRef = React.useRef(null),
-    bodyRef = React.useRef(null),
-    boxRef = React.useRef(null);
-  const [capW, setCapW] = React.useState(0);
-  const [bodyH, setBodyH] = React.useState(0);
+    boxRef = React.useRef(null),
+    animRef = React.useRef(null);
+  const capW = React.useRef(0);
+  const [phW, setPhW] = React.useState(0);
   const n = trash ? trash.length : 0;
-  const openRef = React.useRef(open);
-  openRef.current = open;
+  const CAP_H = 30,
+    PANEL_W = 340;
+  const mountedRef = React.useRef(mounted);
+  mountedRef.current = mounted;
   React.useLayoutEffect(() => {
-    if (!open && capRef.current) setCapW(capRef.current.offsetWidth);
-  });
-  React.useLayoutEffect(() => {
-    const cap = capRef.current,
-      el = bodyRef.current;
-    if (!window.ResizeObserver) return;
-    const ro = new ResizeObserver(() => {
-      if (el) setBodyH(el.offsetHeight);
-      if (cap && !openRef.current) setCapW(cap.offsetWidth);
-    });
-    if (cap) ro.observe(cap);
-    if (el) ro.observe(el);
+    const cap = capRef.current;
+    const measure = () => {
+      if (cap && !mountedRef.current) {
+        capW.current = cap.offsetWidth;
+        setPhW(cap.offsetWidth);
+      }
+    };
+    measure();
+    if (!window.ResizeObserver || !cap) return;
+    const ro = new ResizeObserver(measure);
+    ro.observe(cap);
     return () => ro.disconnect();
   }, []);
+  const shut = el => "inset(0px " + Math.max(0, el.offsetWidth - capW.current) + "px " + Math.max(0, el.offsetHeight - CAP_H) + "px 0px round 15px)";
+  const OPEN_CLIP = "inset(0px 0px 0px 0px round 18px)";
+  React.useLayoutEffect(() => {
+    const el = boxRef.current;
+    if (!el || !mounted || !el.animate) {
+      if (!open && mounted) setMounted(false);
+      return;
+    }
+    const running = animRef.current && animRef.current.playState === "running";
+    const from = running ? getComputedStyle(el).clipPath : open ? shut(el) : OPEN_CLIP;
+    if (animRef.current) animRef.current.cancel();
+    const to = open ? OPEN_CLIP : shut(el);
+    const an = el.animate([{
+      clipPath: from
+    }, {
+      clipPath: to
+    }], open ? {
+      duration: 560,
+      easing: "cubic-bezier(.22,1,.36,1)"
+    } : {
+      duration: 380,
+      easing: "cubic-bezier(.4,0,.2,1)"
+    });
+    el.style.clipPath = to;
+    animRef.current = an;
+    if (!open) an.onfinish = () => {
+      el.style.clipPath = "";
+      setMounted(false);
+    };
+  }, [open, mounted]);
   React.useEffect(() => {
     if (!open) return;
     const away = e => {
-      if (boxRef.current && !boxRef.current.contains(e.target)) setOpen(null);
+      if (boxRef.current && !boxRef.current.contains(e.target)) setOpen(false);
     };
     const esc = e => {
-      if (e.key === "Escape") setOpen(null);
+      if (e.key === "Escape") setOpen(false);
     };
     document.addEventListener("mousedown", away);
     window.addEventListener("keydown", esc);
@@ -308,12 +340,74 @@ function FlSalesDock({
       window.removeEventListener("keydown", esc);
     };
   }, [open]);
+  const toggle = () => {
+    if (open) setOpen(false);else {
+      setMounted(true);
+      setOpen(true);
+    }
+  };
+  const [hov, setHov] = React.useState(null);
+  const [hi, setHi] = React.useState(null);
+  const hiRef = React.useRef(null);
+  const segRefs = React.useRef({});
+  const target = hov || (open ? "trash" : null);
+  const place = React.useCallback(() => {
+    const el = target && segRefs.current[target];
+    setHi(p => {
+      if (!el) return p ? Object.assign({}, p, {
+        hidden: true
+      }) : null;
+      const snap = !p || p.hidden;
+      const x = el.offsetLeft,
+        w = el.offsetWidth,
+        r = el.offsetParent ? el.offsetParent.clientWidth - x - w : 0;
+      if (p && !snap && p.x === x && p.w === w && p.r === r) return p;
+      return {
+        x: x,
+        w: w,
+        r: r,
+        dir: p && x < p.x ? "l" : "r",
+        snap: snap,
+        hidden: false
+      };
+    });
+  }, [target]);
+  React.useLayoutEffect(place, [place]);
+  const hx = hi && !hi.snap && !hi.hidden ? hi.x : null;
+  React.useEffect(() => {
+    const el = hiRef.current;
+    if (hx == null || !el || !el.animate || window.matchMedia && matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+    el.animate([{
+      transform: "scale(1,1)"
+    }, {
+      transform: "scale(1.04,.8)",
+      offset: .4
+    }, {
+      transform: "scale(.98,1.06)",
+      offset: .72
+    }, {
+      transform: "scale(1,1)"
+    }], {
+      duration: 620,
+      easing: "ease-out"
+    });
+  }, [hx]);
+  React.useEffect(() => {
+    const cap = capRef.current;
+    if (!cap || !window.ResizeObserver) return;
+    const ro = new ResizeObserver(() => place());
+    ro.observe(cap);
+    return () => ro.disconnect();
+  }, [place]);
   const stop = e => e.stopPropagation();
-  const CAP_H = 30,
-    PANEL_W = 340;
   const seg = (key, icon, label, onClick, extra) => React.createElement("button", _extends({
+    ref: el => {
+      segRefs.current[key] = el;
+    },
     className: "fl-seg",
-    "data-on": open === key ? "1" : null,
+    "data-on": key === "trash" && open ? "1" : null,
+    "data-hi": target === key ? "1" : null,
+    onMouseEnter: () => setHov(key),
     onClick: e => {
       stop(e);
       onClick();
@@ -328,11 +422,13 @@ function FlSalesDock({
   }, label));
   return React.createElement("div", {
     onClick: stop,
+    className: "fl-dock-ph",
+    "data-m": mounted ? "1" : null,
     style: {
       position: "relative",
       flexShrink: 0,
       height: CAP_H,
-      width: capW || "auto"
+      width: phW || "auto"
     }
   }, React.createElement("div", {
     ref: boxRef,
@@ -340,31 +436,43 @@ function FlSalesDock({
     "data-open": open ? "1" : null,
     style: {
       "--dock-c": color,
-      width: open ? PANEL_W : capW || "auto",
-      height: open ? CAP_H + bodyH : CAP_H
+      width: mounted ? PANEL_W : "auto"
     }
   }, React.createElement("div", {
     ref: capRef,
-    className: "fl-cap"
-  }, onNewLead && seg("new", "plus", "ลูกค้าใหม่", () => {
-    setOpen(null);
+    className: "fl-cap",
+    onMouseLeave: () => setHov(null)
+  }, React.createElement("span", {
+    ref: hiRef,
+    className: "fl-hi",
+    "data-snap": hi && hi.snap ? "1" : null,
+    "data-dir": hi ? hi.dir : null,
+    style: hi ? {
+      left: hi.x,
+      right: hi.r,
+      opacity: hi.hidden ? 0 : 1
+    } : {
+      opacity: 0
+    }
+  }), onNewLead && seg("new", "plus", "ลูกค้าใหม่", () => {
+    setOpen(false);
     onNewLead();
   }, {
     style: {
       color: color
     }
   }), onPoster && seg("poster", "image", "รูปสรุปแพ็คเกจ", () => {
-    setOpen(null);
+    setOpen(false);
     onPoster();
   }), trash && seg("trash", "trash", React.createElement(React.Fragment, null, trashSt === "over" ? "ปล่อยเพื่อทิ้ง" : "ถังขยะ", n ? React.createElement("span", {
     className: "fl-n"
-  }, n) : null), () => setOpen(o => o === "trash" ? null : "trash"), Object.assign({
+  }, n) : null), toggle, Object.assign({
     "data-st": trashSt,
+    "data-trash": "1",
     title: trashSt ? "ปล่อยเพื่อย้ายลงถังขยะ" : "ถังขยะ — ลากการ์ดลูกค้ามาวางเพื่อทิ้ง · กดเพื่อดู/กู้คืน"
-  }, trashDnD))), React.createElement("div", {
-    ref: bodyRef,
+  }, trashDnD))), mounted && React.createElement("div", {
     className: "fl-body"
-  }, open === "trash" && React.createElement("div", {
+  }, React.createElement("div", {
     style: {
       padding: "4px 6px 8px"
     }
@@ -382,7 +490,7 @@ function FlSalesDock({
     }
   }, n ? n + " ราย · กู้คืนได้ตลอด" : ""), onOpenAll && n > 0 && React.createElement("button", {
     onClick: () => {
-      setOpen(null);
+      setOpen(false);
       onOpenAll();
     },
     style: {
@@ -524,7 +632,6 @@ function FlowBoardView({
     setOverTrash(false);
   };
   const [overTrash, setOverTrash] = React.useState(false);
-  const [gulpId, setGulpId] = React.useState(null);
   const [trashFx, setTrashFx] = React.useState(false);
   const [undo, setUndo] = React.useState(null);
   const canTrash = !!(onTrashLead && drag && drag.kind === "lead");
@@ -537,17 +644,80 @@ function FlowBoardView({
     const d = drag;
     clearDrag();
     if (!d || d.kind !== "lead" || !onTrashLead) return;
-    setGulpId(d.id);
-    setTrashFx(true);
-    setTimeout(() => {
+    const done = () => {
       onTrashLead(d.id);
-      setGulpId(null);
-      setTrashFx(false);
+      setTrashFx(true);
+      setTimeout(() => setTrashFx(false), 480);
       setUndo({
         id: d.id,
         name: d.rec.name || d.rec.code || "ลูกค้า"
       });
-    }, 420);
+    };
+    const el = document.querySelector('.bd-card[data-lid="' + String(d.id).replace(/"/g, "") + '"]');
+    const tb = document.querySelector('.fl-seg[data-trash]');
+    const still = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    if (!el || !tb || !el.animate || still) {
+      done();
+      return;
+    }
+    const r = el.getBoundingClientRect(),
+      t = tb.getBoundingClientRect();
+    const fly = el.cloneNode(true);
+    fly.removeAttribute("data-drag");
+    Object.assign(fly.style, {
+      position: "fixed",
+      left: r.left + "px",
+      top: r.top + "px",
+      width: r.width + "px",
+      height: r.height + "px",
+      margin: "0",
+      zIndex: "300",
+      pointerEvents: "none",
+      transition: "none",
+      boxShadow: "var(--hov-sh-lg)"
+    });
+    document.body.appendChild(fly);
+    el.style.visibility = "hidden";
+    const dx = t.left + t.width / 2 - (r.left + r.width / 2),
+      dy = t.top + t.height / 2 - (r.top + r.height / 2);
+    const anim = fly.animate([{
+      transform: "translate(0,0) scale(1) rotate(0deg)",
+      opacity: 1
+    }, {
+      transform: "translate(" + dx * 0.45 + "px," + (dy * 0.45 - 46) + "px) scale(.5) rotate(-6deg)",
+      opacity: 1,
+      offset: 0.5
+    }, {
+      transform: "translate(" + dx + "px," + dy + "px) scale(.06) rotate(-12deg)",
+      opacity: 0.35
+    }], {
+      duration: 640,
+      easing: "cubic-bezier(.45,0,.25,1)",
+      fill: "forwards"
+    });
+    const gap = parseFloat(getComputedStyle(el.parentNode).rowGap) || 0;
+    const cs = getComputedStyle(el);
+    el.style.overflow = "hidden";
+    el.animate([{
+      height: r.height + "px",
+      paddingTop: cs.paddingTop,
+      paddingBottom: cs.paddingBottom,
+      marginBottom: "0px"
+    }, {
+      height: "0px",
+      paddingTop: "0px",
+      paddingBottom: "0px",
+      marginBottom: -gap + "px"
+    }], {
+      duration: 420,
+      delay: 160,
+      easing: "cubic-bezier(.4,0,.2,1)",
+      fill: "forwards"
+    });
+    anim.onfinish = () => {
+      fly.remove();
+      done();
+    };
   };
   const leadPool = React.useMemo(() => {
     const q = String(search || "").trim().toLowerCase();
@@ -720,10 +890,7 @@ function FlowBoardView({
         dragging: dragging && overTrash ? "trash" : dragging,
         onDragStart: (e, l) => startDrag(e, l, g)
       });
-      return gulpId === rec.id ? React.createElement("div", {
-        key: "gulp" + rec.id,
-        className: "fl-gulp"
-      }, card) : card;
+      return card;
     }
     if (g.kind === "permit") return React.createElement(PermitCard, {
       key: g.key + rec.id,

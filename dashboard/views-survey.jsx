@@ -1035,12 +1035,13 @@ function LeadDrawer({ lead, leadStore, appts, jobs, quotes, users, currentUser, 
 
   return (
     <React.Fragment>
-      <div {...bdClose} style={{ position: "fixed", inset: 0, background: "rgba(8,20,14,.45)", backdropFilter: "blur(3px)", zIndex: 116,
+      {/* pg-bd-in / pg-sheet-in (index.html) — ใบค่อย ๆ ลอยขึ้นมา ไม่โผล่ทันที (ผู้ใช้: กดปุ้บมาปั้บเกินไป ต.ค. 2026) */}
+      <div {...bdClose} className="pg-bd-in" style={{ position: "fixed", inset: 0, background: "rgba(8,20,14,.45)", backdropFilter: "blur(3px)", zIndex: 116,
         display: "grid", placeItems: isMobile ? "end center" : "center", padding: isMobile ? 0 : 20 }}>
         {/* แท็บแฟ้มยื่นออกมาเหนือตัวใบ — แท็บที่เลือกสีเดียวกับหัวใบ ต่อเป็นแผ่นเดียวกัน
             แท็บอื่นจมอยู่ข้างหลัง หน้าตาอยู่ในคลาส .ld-tab (index.html)
             ความสูงตายตัว (ไม่ใช่ maxHeight) — แต่ละแท็บยาวไม่เท่ากัน ถ้าปล่อยยืดหด ลิ้นชักที่จัดกลางจอจะกระโดดทุกครั้งที่สลับแท็บ */}
-        <div onClick={(e) => e.stopPropagation()} style={{ width: isMobile ? "100%" : "min(680px,100%)", height: isMobile ? "88dvh" : "min(820px, 90vh)",
+        <div onClick={(e) => e.stopPropagation()} className="pg-sheet-in" style={{ width: isMobile ? "100%" : "min(680px,100%)", height: isMobile ? "88dvh" : "min(820px, 90vh)",
           display: "flex", flexDirection: "column", minHeight: 0 }}>
         <div className="ld-tabs" role="tablist">
           {TABS.map((t, i) => (
