@@ -990,7 +990,11 @@ function LeadDrawer({ lead, leadStore, appts, jobs, quotes, users, currentUser, 
                       canManage, canDesign, onSaveBoq, onClose,
                       onOpenSurvey, onReport, onOpenQuote, onPlan3d, onConvert, canConvert }) {
   const isMobile = window.matchMedia("(max-width: 860px)").matches;
-  const bdClose = window.useBackdropClose(onClose);
+  /* การ์ดขยายเป็นใบตอนเปิด / หดกลับเข้าการ์ดตอนปิด (dashboard/pg-motion.js) — ctx.onClose (ปิดหลังทิ้งลงถัง) ไม่หด เพราะการ์ดกำลังหาย */
+  const sheetRef = React.useRef(null);
+  React.useLayoutEffect(() => { if (window.pgZoomFromCard) window.pgZoomFromCard(sheetRef.current); }, [lead && lead.id]);
+  const closeZoom = React.useCallback(() => { if (window.pgZoomToCard) window.pgZoomToCard(sheetRef.current); onClose(); }, [onClose]);
+  const bdClose = window.useBackdropClose(closeZoom);
   const [edit, setEdit] = React.useState(null);
   const [log, setLog] = React.useState(null);
   const [poster, setPoster] = React.useState(false);   // รูปแพ็คเกจขาย (pkgposter.jsx)
@@ -1001,10 +1005,10 @@ function LeadDrawer({ lead, leadStore, appts, jobs, quotes, users, currentUser, 
 
   /* ปิดด้วยปุ่ม Esc — มือยังอยู่บนคีย์บอร์ดตอนไล่ดูทีละราย */
   React.useEffect(() => {
-    const onKey = (e) => { if (e.key === "Escape" && !edit && !log) onClose(); };
+    const onKey = (e) => { if (e.key === "Escape" && !edit && !log) closeZoom(); };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [onClose, edit, log]);
+  }, [closeZoom, edit, log]);
 
   if (!lead) return null;
 
@@ -1041,7 +1045,7 @@ function LeadDrawer({ lead, leadStore, appts, jobs, quotes, users, currentUser, 
         {/* แท็บแฟ้มยื่นออกมาเหนือตัวใบ — แท็บที่เลือกสีเดียวกับหัวใบ ต่อเป็นแผ่นเดียวกัน
             แท็บอื่นจมอยู่ข้างหลัง หน้าตาอยู่ในคลาส .ld-tab (index.html)
             ความสูงตายตัว (ไม่ใช่ maxHeight) — แต่ละแท็บยาวไม่เท่ากัน ถ้าปล่อยยืดหด ลิ้นชักที่จัดกลางจอจะกระโดดทุกครั้งที่สลับแท็บ */}
-        <div onClick={(e) => e.stopPropagation()} className="pg-sheet-in" style={{ width: isMobile ? "100%" : "min(680px,100%)", height: isMobile ? "88dvh" : "min(820px, 90vh)",
+        <div ref={sheetRef} onClick={(e) => e.stopPropagation()} className="pg-sheet-in" style={{ width: isMobile ? "100%" : "min(680px,100%)", height: isMobile ? "88dvh" : "min(820px, 90vh)",
           display: "flex", flexDirection: "column", minHeight: 0 }}>
         <div className="ld-tabs" role="tablist">
           {TABS.map((t, i) => (
@@ -1070,7 +1074,7 @@ function LeadDrawer({ lead, leadStore, appts, jobs, quotes, users, currentUser, 
                 style={{ flexShrink: 0, height: 32, padding: "0 13px 0 11px", fontSize: 12.5, borderRadius: "var(--r-pill)", display: "inline-flex", alignItems: "center", gap: 6 }}>
                 <Icon name="image" size={15} color="currentColor" sw={2} />รูปแพ็คเกจ</button>
             )}
-            <button className="x-close" onClick={onClose} aria-label="ปิด" style={{ flexShrink: 0, width: 32, height: 32, borderRadius: "var(--r-pill)", border: "none", background: "var(--surface2)", boxShadow: "var(--shadow-sm)", color: "var(--text-2)", cursor: "pointer", fontFamily: "inherit", fontSize: 16, lineHeight: 1 }}>×</button>
+            <button className="x-close" onClick={closeZoom} aria-label="ปิด" style={{ flexShrink: 0, width: 32, height: 32, borderRadius: "var(--r-pill)", border: "none", background: "var(--surface2)", boxShadow: "var(--shadow-sm)", color: "var(--text-2)", cursor: "pointer", fontFamily: "inherit", fontSize: 16, lineHeight: 1 }}>×</button>
           </div>
           <div style={{ padding: "14px 16px 0", overflowY: "auto", flex: 1, minHeight: 0, display: "flex", flexDirection: "column" }}>
             <LeadDetail l={lead} ctx={ctx} tab={tab} />

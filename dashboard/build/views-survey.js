@@ -2438,7 +2438,15 @@ function LeadDrawer({
   canConvert
 }) {
   const isMobile = window.matchMedia("(max-width: 860px)").matches;
-  const bdClose = window.useBackdropClose(onClose);
+  const sheetRef = React.useRef(null);
+  React.useLayoutEffect(() => {
+    if (window.pgZoomFromCard) window.pgZoomFromCard(sheetRef.current);
+  }, [lead && lead.id]);
+  const closeZoom = React.useCallback(() => {
+    if (window.pgZoomToCard) window.pgZoomToCard(sheetRef.current);
+    onClose();
+  }, [onClose]);
+  const bdClose = window.useBackdropClose(closeZoom);
   const [edit, setEdit] = React.useState(null);
   const [log, setLog] = React.useState(null);
   const [poster, setPoster] = React.useState(false);
@@ -2449,11 +2457,11 @@ function LeadDrawer({
   }, [lead && lead.id]);
   React.useEffect(() => {
     const onKey = e => {
-      if (e.key === "Escape" && !edit && !log) onClose();
+      if (e.key === "Escape" && !edit && !log) closeZoom();
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [onClose, edit, log]);
+  }, [closeZoom, edit, log]);
   if (!lead) return null;
   const stageKey = window.salesStageKey || (l => l.status || "open");
   const apptsOf = {};
@@ -2521,6 +2529,7 @@ function LeadDrawer({
       padding: isMobile ? 0 : 20
     }
   }), React.createElement("div", {
+    ref: sheetRef,
     onClick: e => e.stopPropagation(),
     className: "pg-sheet-in",
     style: {
@@ -2620,7 +2629,7 @@ function LeadDrawer({
     sw: 2
   }), "\u0E23\u0E39\u0E1B\u0E41\u0E1E\u0E47\u0E04\u0E40\u0E01\u0E08"), React.createElement("button", {
     className: "x-close",
-    onClick: onClose,
+    onClick: closeZoom,
     "aria-label": "\u0E1B\u0E34\u0E14",
     style: {
       flexShrink: 0,
