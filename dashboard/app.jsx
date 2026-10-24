@@ -994,6 +994,8 @@ function App() {
               onPatchJob={can(role, "editJob") ? (id, f) => store.patch(id, f) : null}
               onPatchLead={(id, f) => leadStore.patch(id, f)}
               leadTrashCount={(leadStore.trash || []).length} onOpenLeadTrash={can(role, "leads") ? () => setLeadTrashOpen(true) : null}
+              onTrashLead={can(role, "leads") ? (id) => leadStore.remove(id, auth.current ? auth.current.name : "") : null}
+              onRestoreLead={(id) => leadStore.restore(id)}
               onPatchPermit={patchPermit}
               onOpenReview={(id) => setPermitReview(id)} />
           )}

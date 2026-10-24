@@ -2119,7 +2119,7 @@ function SalesCard({ lead, quotes, onOpen, onDragStart, dragging }) {
     /* หน้าตาทั้งใบอยู่ในคลาส .bd-card (index.html) — ชุดเดียวกับการ์ดงานติดตั้งและเอกสารราชการ
        ขีดสีซ้ายบอกขั้นของใบ และเปลี่ยนเป็นแดงเมื่อเลยวันติดตาม */
     <div draggable onDragStart={(e) => onDragStart(e, lead)} onClick={() => onOpen(lead)}
-      className="bd-card" data-drag={dragging ? "1" : null}
+      className="bd-card" data-drag={dragging ? (dragging === "trash" ? "trash" : "1") : null}
       style={{ "--rail": late ? "#EF4444" : st.color }}>
       {/* หัวการ์ด — รหัส + ป้าย ชุดเดียวกับการ์ดงาน จะได้กวาดตาอ่านบอร์ดเดียวกันได้แบบเดียวกัน
           ป้ายตกบรรทัดใหม่ได้ ไม่งั้นการ์ดแคบ ๆ จะโดนขอบตัดจนอ่านไม่ออก */}

@@ -141,7 +141,7 @@ const flSumValue = (leadsArr) => {
 };
 
 function FlowBoardView({ jobs, leads, quotes, stock, search, role, currentUser,
-  onOpenJob, onOpenLead, onNewLead, onNewPermitJob, onNewJob, onMoveStage, onPatchJob, onPatchLead, onPatchPermit, onOpenReview, leadTrashCount, onOpenLeadTrash }) {
+  onOpenJob, onOpenLead, onNewLead, onNewPermitJob, onNewJob, onMoveStage, onPatchJob, onPatchLead, onPatchPermit, onOpenReview, leadTrashCount, onOpenLeadTrash, onTrashLead, onRestoreLead }) {
   const SF = window.SF;
   const isMobile = window.matchMedia("(max-width: 860px)").matches;
   const groups = React.useMemo(() => flGroups(role), [role]);
@@ -162,7 +162,33 @@ function FlowBoardView({ jobs, leads, quotes, stock, search, role, currentUser,
      ลากข้ามชนิดไม่ได้ (ลูกค้ากับงานคนละตาราง เดินขั้นแทนกันไม่ได้) */
   const [drag, setDrag] = React.useState(null);
   const [over, setOver] = React.useState(null);
-  const clearDrag = () => { setDrag(null); setOver(null); };
+  const clearDrag = () => { setDrag(null); setOver(null); setOverTrash(false); };
+
+  /* ── ลากการ์ดลูกค้าไปทิ้งที่ปุ่มถังขยะบนหัวช่วงขาย (ผู้ใช้สั่ง ต.ค. 2026) ──
+     ระหว่างลาก ปุ่มขึ้นขอบประแดงรอรับ · ชี้อยู่ = แดงเต็ม ขยาย ใบเดิมในคอลัมน์ย่อตัวลง
+     ปล่อย = ใบหดหายเข้าถัง (.fl-gulp) แล้วค่อยย้ายลงถังขยะจริง + แถบ "เลิกทำ" ค้าง 6 วินาที
+     ไม่ถามยืนยัน — ไม่ได้ลบจริง กู้คืนได้ทั้งจากแถบเลิกทำและในถังขยะ · ใบงานรออนุมัติ (kind job) ทิ้งตรงนี้ไม่ได้ */
+  const [overTrash, setOverTrash] = React.useState(false);
+  const [gulpId, setGulpId] = React.useState(null);
+  const [trashFx, setTrashFx] = React.useState(false);
+  const [undo, setUndo] = React.useState(null);
+  const canTrash = !!(onTrashLead && drag && drag.kind === "lead");
+  React.useEffect(() => {
+    if (!undo) return;
+    const t = setTimeout(() => setUndo(null), 6000);
+    return () => clearTimeout(t);
+  }, [undo]);
+  const dropTrash = () => {
+    const d = drag;
+    clearDrag();
+    if (!d || d.kind !== "lead" || !onTrashLead) return;
+    setGulpId(d.id); setTrashFx(true);
+    setTimeout(() => {
+      onTrashLead(d.id);
+      setGulpId(null); setTrashFx(false);
+      setUndo({ id: d.id, name: d.rec.name || d.rec.code || "ลูกค้า" });
+    }, 420);
+  };
 
   /* ค้นหาบนหัวหน้ากรอง jobs มาแล้ว (prop filtered) แต่ลูกค้ายังไม่ถูกกรอง ต้องกรองเอง */
   const leadPool = React.useMemo(() => {
@@ -312,15 +338,28 @@ function FlowBoardView({ jobs, leads, quotes, stock, search, role, currentUser,
   /* kind ติดมากับการ์ด ไม่ใช่กับช่วง — ใบงานรออนุมัติไปนั่งอยู่ในช่วงขาย แต่ยังเป็นงาน ไม่ใช่ลูกค้า */
   const kindOf = (g, rec) => (g.kind === "lead" && rec.pendingApproval ? "job" : g.kind);
   const startDrag = (e, rec, g) => {
-    setDrag({ id: rec.id, rec: rec, group: g.key, kind: kindOf(g, rec) });
+    const kind = kindOf(g, rec);
+    setDrag({ id: rec.id, rec: rec, group: g.key, kind: kind });
     e.dataTransfer.effectAllowed = "move";
+    /* การ์ดลูกค้า: ภาพติดเมาส์เป็นการ์ดย่อส่วน (รหัส+ชื่อ) แทนภาพเต็มใบ — เล็งถังขยะ/คอลัมน์ได้ง่าย ไม่บังของ */
+    if (kind === "lead" && e.dataTransfer.setDragImage) {
+      const gh = document.createElement("div");
+      gh.className = "fl-ghost";
+      const sm = document.createElement("small"); sm.textContent = rec.code || "";
+      gh.appendChild(sm); gh.appendChild(document.createTextNode(rec.name || "(ไม่มีชื่อ)"));
+      document.body.appendChild(gh);
+      e.dataTransfer.setDragImage(gh, 18, 14);
+      setTimeout(() => gh.remove(), 0);
+    }
   };
 
   const renderCard = (g, rec) => {
     const dragging = !!drag && drag.id === rec.id && drag.group === g.key;
-    if (g.kind === "lead" && !rec.pendingApproval)
-      return <SalesCard key={g.key + rec.id} lead={rec} quotes={quotes} onOpen={onOpenLead}
-        dragging={dragging} onDragStart={(e, l) => startDrag(e, l, g)} />;
+    if (g.kind === "lead" && !rec.pendingApproval) {
+      const card = <SalesCard key={g.key + rec.id} lead={rec} quotes={quotes} onOpen={onOpenLead}
+        dragging={dragging && overTrash ? "trash" : dragging} onDragStart={(e, l) => startDrag(e, l, g)} />;
+      return gulpId === rec.id ? <div key={"gulp" + rec.id} className="fl-gulp">{card}</div> : card;
+    }
     if (g.kind === "permit")
       return <PermitCard key={g.key + rec.id} job={rec} onOpen={onOpenJob} dragging={dragging}
         draggable={!!PERMIT_MOVES[permitColOf(rec)]} onDragStart={(e, j) => startDrag(e, j, g)} />;
@@ -362,12 +401,17 @@ function FlowBoardView({ jobs, leads, quotes, stock, search, role, currentUser,
                   cursor: "pointer", fontFamily: "inherit", fontSize: 11.5, fontWeight: 700, flexShrink: 0, whiteSpace: "nowrap" }}>
                 <Icon name="image" size={13} color={g.color} sw={2.2} /> รูปสรุปแพ็คเกจ
               </button>}
-              {onOpenLeadTrash && <button onClick={(e) => { e.stopPropagation(); onOpenLeadTrash(); }} title="ลูกค้าที่ย้ายลงถังขยะ — กู้คืนได้"
+              {onOpenLeadTrash && <button className="fl-trash" data-st={trashFx ? "gulp" : canTrash ? (overTrash ? "over" : "ready") : null}
+                onClick={(e) => { e.stopPropagation(); onOpenLeadTrash(); }}
+                title={canTrash ? "ปล่อยเพื่อย้ายลงถังขยะ" : "ลูกค้าที่ย้ายลงถังขยะ — กู้คืนได้ · ลากการ์ดลูกค้ามาวางที่นี่เพื่อทิ้ง"}
+                onDragOver={(e) => { if (!canTrash) return; e.preventDefault(); e.dataTransfer.dropEffect = "move"; if (!overTrash) setOverTrash(true); }}
+                onDragLeave={(e) => { if (!e.currentTarget.contains(e.relatedTarget)) setOverTrash(false); }}
+                onDrop={(e) => { e.preventDefault(); e.stopPropagation(); dropTrash(); }}
                 style={{ display: "inline-flex", alignItems: "center", gap: 5, height: 24, padding: "0 10px",
                   borderRadius: "var(--r-chip)", border: "1px solid color-mix(in srgb, var(--text-3) 30%, transparent)",
                   background: "transparent", color: "var(--text-2)",
                   cursor: "pointer", fontFamily: "inherit", fontSize: 11.5, fontWeight: 700, flexShrink: 0, whiteSpace: "nowrap" }}>
-                <Icon name="trash" size={13} color="var(--text-3)" sw={2.2} /> ถังขยะ
+                <Icon name="trash" size={13} color={canTrash ? "currentColor" : "var(--text-3)"} sw={2.2} /> {canTrash && overTrash ? "ปล่อยเพื่อทิ้ง" : "ถังขยะ"}
                 {leadTrashCount ? <span style={{ fontFamily: "var(--mono)", color: "var(--text-3)" }}>{leadTrashCount}</span> : null}
               </button>}
             </React.Fragment>) : null}>
@@ -388,6 +432,15 @@ function FlowBoardView({ jobs, leads, quotes, stock, search, role, currentUser,
           </FlGroup>
         ))}
       </div>
+      {undo && (
+        <div className="fl-undo" role="status">
+          <Icon name="trash" size={14} color="#fff" />
+          <span>ย้าย “{undo.name}” ลงถังขยะแล้ว</span>
+          {onRestoreLead && <button onClick={() => { onRestoreLead(undo.id); setUndo(null); }}
+            style={{ border: "none", borderRadius: "var(--r-pill)", padding: "5px 12px", background: "rgba(255,255,255,.16)", color: "#fff",
+              fontFamily: "inherit", fontSize: 12, fontWeight: 700, cursor: "pointer" }}>เลิกทำ</button>}
+        </div>
+      )}
       {pkSum && pkAdmin && window.PkPosterModal && <window.PkPosterModal leads={leads} stock={stock} quotes={quotes} onClose={() => setPkSum(false)} />}
     </div>
   );

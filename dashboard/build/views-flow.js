@@ -312,7 +312,9 @@ function FlowBoardView({
   onPatchPermit,
   onOpenReview,
   leadTrashCount,
-  onOpenLeadTrash
+  onOpenLeadTrash,
+  onTrashLead,
+  onRestoreLead
 }) {
   const SF = window.SF;
   const isMobile = window.matchMedia("(max-width: 860px)").matches;
@@ -337,6 +339,33 @@ function FlowBoardView({
   const clearDrag = () => {
     setDrag(null);
     setOver(null);
+    setOverTrash(false);
+  };
+  const [overTrash, setOverTrash] = React.useState(false);
+  const [gulpId, setGulpId] = React.useState(null);
+  const [trashFx, setTrashFx] = React.useState(false);
+  const [undo, setUndo] = React.useState(null);
+  const canTrash = !!(onTrashLead && drag && drag.kind === "lead");
+  React.useEffect(() => {
+    if (!undo) return;
+    const t = setTimeout(() => setUndo(null), 6000);
+    return () => clearTimeout(t);
+  }, [undo]);
+  const dropTrash = () => {
+    const d = drag;
+    clearDrag();
+    if (!d || d.kind !== "lead" || !onTrashLead) return;
+    setGulpId(d.id);
+    setTrashFx(true);
+    setTimeout(() => {
+      onTrashLead(d.id);
+      setGulpId(null);
+      setTrashFx(false);
+      setUndo({
+        id: d.id,
+        name: d.rec.name || d.rec.code || "ลูกค้า"
+      });
+    }, 420);
   };
   const leadPool = React.useMemo(() => {
     const q = String(search || "").trim().toLowerCase();
@@ -478,24 +507,42 @@ function FlowBoardView({
   };
   const kindOf = (g, rec) => g.kind === "lead" && rec.pendingApproval ? "job" : g.kind;
   const startDrag = (e, rec, g) => {
+    const kind = kindOf(g, rec);
     setDrag({
       id: rec.id,
       rec: rec,
       group: g.key,
-      kind: kindOf(g, rec)
+      kind: kind
     });
     e.dataTransfer.effectAllowed = "move";
+    if (kind === "lead" && e.dataTransfer.setDragImage) {
+      const gh = document.createElement("div");
+      gh.className = "fl-ghost";
+      const sm = document.createElement("small");
+      sm.textContent = rec.code || "";
+      gh.appendChild(sm);
+      gh.appendChild(document.createTextNode(rec.name || "(ไม่มีชื่อ)"));
+      document.body.appendChild(gh);
+      e.dataTransfer.setDragImage(gh, 18, 14);
+      setTimeout(() => gh.remove(), 0);
+    }
   };
   const renderCard = (g, rec) => {
     const dragging = !!drag && drag.id === rec.id && drag.group === g.key;
-    if (g.kind === "lead" && !rec.pendingApproval) return React.createElement(SalesCard, {
-      key: g.key + rec.id,
-      lead: rec,
-      quotes: quotes,
-      onOpen: onOpenLead,
-      dragging: dragging,
-      onDragStart: (e, l) => startDrag(e, l, g)
-    });
+    if (g.kind === "lead" && !rec.pendingApproval) {
+      const card = React.createElement(SalesCard, {
+        key: g.key + rec.id,
+        lead: rec,
+        quotes: quotes,
+        onOpen: onOpenLead,
+        dragging: dragging && overTrash ? "trash" : dragging,
+        onDragStart: (e, l) => startDrag(e, l, g)
+      });
+      return gulpId === rec.id ? React.createElement("div", {
+        key: "gulp" + rec.id,
+        className: "fl-gulp"
+      }, card) : card;
+    }
     if (g.kind === "permit") return React.createElement(PermitCard, {
       key: g.key + rec.id,
       job: rec,
@@ -579,11 +626,27 @@ function FlowBoardView({
       color: g.color,
       sw: 2.2
     }), " \u0E23\u0E39\u0E1B\u0E2A\u0E23\u0E38\u0E1B\u0E41\u0E1E\u0E47\u0E04\u0E40\u0E01\u0E08"), onOpenLeadTrash && React.createElement("button", {
+      className: "fl-trash",
+      "data-st": trashFx ? "gulp" : canTrash ? overTrash ? "over" : "ready" : null,
       onClick: e => {
         e.stopPropagation();
         onOpenLeadTrash();
       },
-      title: "\u0E25\u0E39\u0E01\u0E04\u0E49\u0E32\u0E17\u0E35\u0E48\u0E22\u0E49\u0E32\u0E22\u0E25\u0E07\u0E16\u0E31\u0E07\u0E02\u0E22\u0E30 \u2014 \u0E01\u0E39\u0E49\u0E04\u0E37\u0E19\u0E44\u0E14\u0E49",
+      title: canTrash ? "ปล่อยเพื่อย้ายลงถังขยะ" : "ลูกค้าที่ย้ายลงถังขยะ — กู้คืนได้ · ลากการ์ดลูกค้ามาวางที่นี่เพื่อทิ้ง",
+      onDragOver: e => {
+        if (!canTrash) return;
+        e.preventDefault();
+        e.dataTransfer.dropEffect = "move";
+        if (!overTrash) setOverTrash(true);
+      },
+      onDragLeave: e => {
+        if (!e.currentTarget.contains(e.relatedTarget)) setOverTrash(false);
+      },
+      onDrop: e => {
+        e.preventDefault();
+        e.stopPropagation();
+        dropTrash();
+      },
       style: {
         display: "inline-flex",
         alignItems: "center",
@@ -604,9 +667,9 @@ function FlowBoardView({
     }, React.createElement(Icon, {
       name: "trash",
       size: 13,
-      color: "var(--text-3)",
+      color: canTrash ? "currentColor" : "var(--text-3)",
       sw: 2.2
-    }), " \u0E16\u0E31\u0E07\u0E02\u0E22\u0E30", leadTrashCount ? React.createElement("span", {
+    }), " ", canTrash && overTrash ? "ปล่อยเพื่อทิ้ง" : "ถังขยะ", leadTrashCount ? React.createElement("span", {
       style: {
         fontFamily: "var(--mono)",
         color: "var(--text-3)"
@@ -630,7 +693,30 @@ function FlowBoardView({
       onDragLeave: () => setOver(o => o === g.key + ":" + c.key ? null : o),
       onDrop: () => doDrop(g, c.key)
     }, cards.map(rec => renderCard(g, rec)));
-  })))), pkSum && pkAdmin && window.PkPosterModal && React.createElement(window.PkPosterModal, {
+  })))), undo && React.createElement("div", {
+    className: "fl-undo",
+    role: "status"
+  }, React.createElement(Icon, {
+    name: "trash",
+    size: 14,
+    color: "#fff"
+  }), React.createElement("span", null, "\u0E22\u0E49\u0E32\u0E22 \u201C", undo.name, "\u201D \u0E25\u0E07\u0E16\u0E31\u0E07\u0E02\u0E22\u0E30\u0E41\u0E25\u0E49\u0E27"), onRestoreLead && React.createElement("button", {
+    onClick: () => {
+      onRestoreLead(undo.id);
+      setUndo(null);
+    },
+    style: {
+      border: "none",
+      borderRadius: "var(--r-pill)",
+      padding: "5px 12px",
+      background: "rgba(255,255,255,.16)",
+      color: "#fff",
+      fontFamily: "inherit",
+      fontSize: 12,
+      fontWeight: 700,
+      cursor: "pointer"
+    }
+  }, "\u0E40\u0E25\u0E34\u0E01\u0E17\u0E33")), pkSum && pkAdmin && window.PkPosterModal && React.createElement(window.PkPosterModal, {
     leads: leads,
     stock: stock,
     quotes: quotes,
