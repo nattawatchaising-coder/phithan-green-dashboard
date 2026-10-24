@@ -15,7 +15,7 @@ function KanbanCard({ job, onOpen, onDragStart, dragging }) {
     /* หน้าตาทั้งใบอยู่ในคลาส .bd-card (index.html) — ที่นี่เหลือแค่ "ขีดสีซ้ายหมายถึงอะไร"
        ส่งสีเข้าไปทางตัวแปร --rail · ไม่ตั้ง = งานปกติ = ไม่มีขีด */
     <div draggable onDragStart={(e) => onDragStart(e, job)} onClick={() => onOpen(job)}
-      className="bd-card" data-drag={dragging ? "1" : null}
+      className="bd-card" data-drag={dragging ? "1" : null} data-jid={job.id}
       style={{ "--rail": job.problem ? "var(--mark-danger)" : (job.delayed ? "var(--mark-warn)" : null) }}>
       {/* แถวหัวการ์ด — ให้ขึ้นบรรทัดใหม่ได้
          การ์ดกว้าง ~200px พอมีป้ายสองใบ (รออนุมัติ + ประเภทงาน) ป้ายท้ายสุดจะล้นออกนอกการ์ด

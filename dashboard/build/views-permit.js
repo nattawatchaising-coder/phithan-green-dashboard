@@ -103,6 +103,7 @@ function PermitCard({
       className: "bd-card",
       "data-drag": dragging ? "1" : null,
       "data-nodrag": draggable ? null : "1",
+      "data-jid": job.id,
       style: {
         "--rail": st ? st.color : "var(--border-strong)"
       }

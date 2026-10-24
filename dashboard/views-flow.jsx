@@ -359,19 +359,24 @@ function FlowBoardView({ jobs, leads, quotes, stock, search, role, currentUser,
     const still = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
     if (!el || !tb || !el.animate || still) { done(); return; }
     const r = el.getBoundingClientRect(), t = tb.getBoundingClientRect();
-    const fly = el.cloneNode(true);
-    fly.removeAttribute("data-drag");
-    Object.assign(fly.style, { position: "fixed", left: r.left + "px", top: r.top + "px", width: r.width + "px", height: r.height + "px",
-      margin: "0", zIndex: "300", pointerEvents: "none", transition: "none", boxShadow: "var(--hov-sh-lg)" });
-    document.body.appendChild(fly);
+    // การ์ดลอยตามเมาส์อยู่แล้ว (pgDragLift) — บินตัวที่ลอยเข้าถังต่อเลย ใบเดิมในคอลัมน์แค่ยุบช่อง
+    const floated = window.pgDragTrash && window.pgDragTrash(t, done);
+    const fly = floated ? null : el.cloneNode(true);
+    if (fly) {
+      fly.removeAttribute("data-drag");
+      Object.assign(fly.style, { position: "fixed", left: r.left + "px", top: r.top + "px", width: r.width + "px", height: r.height + "px",
+        margin: "0", zIndex: "300", pointerEvents: "none", transition: "none", boxShadow: "var(--hov-sh-lg)" });
+      document.body.appendChild(fly);
+      const dx = t.left + t.width / 2 - (r.left + r.width / 2), dy = t.top + t.height / 2 - (r.top + r.height / 2);
+      // เส้นทางโค้ง: ยกขึ้นเหนือเส้นตรงเล็กน้อยกลางทาง แล้วดิ่งเข้าปากถัง
+      const anim = fly.animate([
+        { transform: "translate(0,0) scale(1) rotate(0deg)", opacity: 1 },
+        { transform: "translate(" + dx * 0.45 + "px," + (dy * 0.45 - 46) + "px) scale(.5) rotate(-6deg)", opacity: 1, offset: 0.5 },
+        { transform: "translate(" + dx + "px," + dy + "px) scale(.06) rotate(-12deg)", opacity: 0.35 },
+      ], { duration: 640, easing: "cubic-bezier(.45,0,.25,1)", fill: "forwards" });
+      anim.onfinish = () => { fly.remove(); done(); };
+    }
     el.style.visibility = "hidden";
-    const dx = t.left + t.width / 2 - (r.left + r.width / 2), dy = t.top + t.height / 2 - (r.top + r.height / 2);
-    // เส้นทางโค้ง: ยกขึ้นเหนือเส้นตรงเล็กน้อยกลางทาง แล้วดิ่งเข้าปากถัง
-    const anim = fly.animate([
-      { transform: "translate(0,0) scale(1) rotate(0deg)", opacity: 1 },
-      { transform: "translate(" + dx * 0.45 + "px," + (dy * 0.45 - 46) + "px) scale(.5) rotate(-6deg)", opacity: 1, offset: 0.5 },
-      { transform: "translate(" + dx + "px," + dy + "px) scale(.06) rotate(-12deg)", opacity: 0.35 },
-    ], { duration: 640, easing: "cubic-bezier(.45,0,.25,1)", fill: "forwards" });
     const gap = parseFloat(getComputedStyle(el.parentNode).rowGap) || 0;
     const cs = getComputedStyle(el);
     el.style.overflow = "hidden";
@@ -379,7 +384,6 @@ function FlowBoardView({ jobs, leads, quotes, stock, search, role, currentUser,
       { height: r.height + "px", paddingTop: cs.paddingTop, paddingBottom: cs.paddingBottom, marginBottom: "0px" },
       { height: "0px", paddingTop: "0px", paddingBottom: "0px", marginBottom: -gap + "px" },
     ], { duration: 420, delay: 160, easing: "cubic-bezier(.4,0,.2,1)", fill: "forwards" });
-    anim.onfinish = () => { fly.remove(); done(); };
   };
 
 
@@ -480,6 +484,7 @@ function FlowBoardView({ jobs, leads, quotes, stock, search, role, currentUser,
   const doDrop = (g, key) => {
     const d = drag;
     clearDrag();
+    if (window.pgDragDrop) window.pgDragDrop();   // สำเนาที่ลอยอยู่บินลงที่ใหม่ (ย้ายไม่ได้ = บินกลับที่เดิม · pg-motion.js)
     if (!d) return;
     const rec = d.rec;
     /* ใบงานรออนุมัติ — ลากเข้า "ต่อรอง" = ติดธง · ลากกลับช่วงหน้างาน = ปลดธงแล้วเดินขั้นตามคอลัมน์
@@ -534,6 +539,9 @@ function FlowBoardView({ jobs, leads, quotes, stock, search, role, currentUser,
     const kind = kindOf(g, rec);
     setDrag({ id: rec.id, rec: rec, group: g.key, kind: kind });
     e.dataTransfer.effectAllowed = "move";
+    /* การ์ดลอยตามเมาส์ หยิบ/เอียง/บินลงที่ใหม่ (pg-motion.js) — ทำไม่ได้ (ลดการเคลื่อนไหว) ค่อยใช้ภาพลากแบบเดิม */
+    const sel = kind === "lead" ? '.bd-card[data-lid="' + rec.id + '"]' : '.bd-card[data-jid="' + rec.id + '"]';
+    if (window.pgDragLift && window.pgDragLift(e, e.currentTarget, sel)) return;
     /* การ์ดลูกค้า: ภาพติดเมาส์เป็นการ์ดย่อส่วน (รหัส+ชื่อ) แทนภาพเต็มใบ — เล็งถังขยะ/คอลัมน์ได้ง่าย ไม่บังของ */
     if (kind === "lead" && e.dataTransfer.setDragImage) {
       const gh = document.createElement("div");

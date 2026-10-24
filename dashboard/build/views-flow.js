@@ -700,39 +700,46 @@ function FlowBoardView({
     }
     const r = el.getBoundingClientRect(),
       t = tb.getBoundingClientRect();
-    const fly = el.cloneNode(true);
-    fly.removeAttribute("data-drag");
-    Object.assign(fly.style, {
-      position: "fixed",
-      left: r.left + "px",
-      top: r.top + "px",
-      width: r.width + "px",
-      height: r.height + "px",
-      margin: "0",
-      zIndex: "300",
-      pointerEvents: "none",
-      transition: "none",
-      boxShadow: "var(--hov-sh-lg)"
-    });
-    document.body.appendChild(fly);
+    const floated = window.pgDragTrash && window.pgDragTrash(t, done);
+    const fly = floated ? null : el.cloneNode(true);
+    if (fly) {
+      fly.removeAttribute("data-drag");
+      Object.assign(fly.style, {
+        position: "fixed",
+        left: r.left + "px",
+        top: r.top + "px",
+        width: r.width + "px",
+        height: r.height + "px",
+        margin: "0",
+        zIndex: "300",
+        pointerEvents: "none",
+        transition: "none",
+        boxShadow: "var(--hov-sh-lg)"
+      });
+      document.body.appendChild(fly);
+      const dx = t.left + t.width / 2 - (r.left + r.width / 2),
+        dy = t.top + t.height / 2 - (r.top + r.height / 2);
+      const anim = fly.animate([{
+        transform: "translate(0,0) scale(1) rotate(0deg)",
+        opacity: 1
+      }, {
+        transform: "translate(" + dx * 0.45 + "px," + (dy * 0.45 - 46) + "px) scale(.5) rotate(-6deg)",
+        opacity: 1,
+        offset: 0.5
+      }, {
+        transform: "translate(" + dx + "px," + dy + "px) scale(.06) rotate(-12deg)",
+        opacity: 0.35
+      }], {
+        duration: 640,
+        easing: "cubic-bezier(.45,0,.25,1)",
+        fill: "forwards"
+      });
+      anim.onfinish = () => {
+        fly.remove();
+        done();
+      };
+    }
     el.style.visibility = "hidden";
-    const dx = t.left + t.width / 2 - (r.left + r.width / 2),
-      dy = t.top + t.height / 2 - (r.top + r.height / 2);
-    const anim = fly.animate([{
-      transform: "translate(0,0) scale(1) rotate(0deg)",
-      opacity: 1
-    }, {
-      transform: "translate(" + dx * 0.45 + "px," + (dy * 0.45 - 46) + "px) scale(.5) rotate(-6deg)",
-      opacity: 1,
-      offset: 0.5
-    }, {
-      transform: "translate(" + dx + "px," + dy + "px) scale(.06) rotate(-12deg)",
-      opacity: 0.35
-    }], {
-      duration: 640,
-      easing: "cubic-bezier(.45,0,.25,1)",
-      fill: "forwards"
-    });
     const gap = parseFloat(getComputedStyle(el.parentNode).rowGap) || 0;
     const cs = getComputedStyle(el);
     el.style.overflow = "hidden";
@@ -752,10 +759,6 @@ function FlowBoardView({
       easing: "cubic-bezier(.4,0,.2,1)",
       fill: "forwards"
     });
-    anim.onfinish = () => {
-      fly.remove();
-      done();
-    };
   };
   const leadPool = React.useMemo(() => {
     const q = String(search || "").trim().toLowerCase();
@@ -843,6 +846,7 @@ function FlowBoardView({
   const doDrop = (g, key) => {
     const d = drag;
     clearDrag();
+    if (window.pgDragDrop) window.pgDragDrop();
     if (!d) return;
     const rec = d.rec;
     if (d.kind === "job" && canMoveJob) {
@@ -905,6 +909,8 @@ function FlowBoardView({
       kind: kind
     });
     e.dataTransfer.effectAllowed = "move";
+    const sel = kind === "lead" ? '.bd-card[data-lid="' + rec.id + '"]' : '.bd-card[data-jid="' + rec.id + '"]';
+    if (window.pgDragLift && window.pgDragLift(e, e.currentTarget, sel)) return;
     if (kind === "lead" && e.dataTransfer.setDragImage) {
       const gh = document.createElement("div");
       gh.className = "fl-ghost";

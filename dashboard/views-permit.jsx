@@ -76,7 +76,7 @@ function PermitCard({ job, onOpen, onDragStart, dragging, draggable }) {
     /* หน้าตาทั้งใบอยู่ในคลาส .bd-card (index.html) — ชุดเดียวกับการ์ดงานติดตั้งและใบลูกค้า
        ใบที่ลากไม่ได้ตั้ง data-nodrag ให้เคอร์เซอร์เป็นนิ้วชี้ ไม่ใช่มือลาก */
     <div draggable={!!draggable} onDragStart={(e) => draggable && onDragStart(e, job)} onClick={() => onOpen(job)}
-      className="bd-card" data-drag={dragging ? "1" : null} data-nodrag={draggable ? null : "1"}
+      className="bd-card" data-drag={dragging ? "1" : null} data-nodrag={draggable ? null : "1"} data-jid={job.id}
       style={{ "--rail": st ? st.color : "var(--border-strong)" }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8, marginBottom: 6 }}>
         <span style={{ fontFamily: "var(--mono)", fontSize: 11, fontWeight: 600, color: "var(--text-3)" }}>{job.code}</span>

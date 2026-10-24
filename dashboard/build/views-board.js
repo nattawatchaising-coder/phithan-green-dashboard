@@ -14,6 +14,7 @@ function KanbanCard({
       onClick: () => onOpen(job),
       className: "bd-card",
       "data-drag": dragging ? "1" : null,
+      "data-jid": job.id,
       style: {
         "--rail": job.problem ? "var(--mark-danger)" : job.delayed ? "var(--mark-warn)" : null
       }
