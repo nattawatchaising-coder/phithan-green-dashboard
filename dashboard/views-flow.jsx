@@ -534,6 +534,7 @@ function FlowBoardView({ jobs, leads, quotes, stock, search, role, currentUser,
         return;
       }
       if (key === "won") {
+        if (window.pgDragSettle) window.pgDragSettle();   // รอยืนยัน — บินกลับที่เดิมก่อน ไม่ไปค้างรอที่ช่องว่าง
         window.askConfirm({
           title: "ปิดการขาย “" + (rec.name || "รายนี้") + "” ?",
           body: "ปิดแล้วให้กด “แปลงเป็นงานติดตั้ง” ที่หน้าลูกค้าสำรวจ เพื่อย้ายเข้าฐานข้อมูลงานพร้อมแบบสำรวจและรูป",
@@ -621,7 +622,7 @@ function FlowBoardView({ jobs, leads, quotes, stock, search, role, currentUser,
                 trashDnD={{
                   onDragOver: (e) => { if (!canTrash) return; e.preventDefault(); e.dataTransfer.dropEffect = "move"; if (!overTrash) setOverTrash(true); },
                   onDragLeave: (e) => { if (!e.currentTarget.contains(e.relatedTarget)) setOverTrash(false); },
-                  onDrop: (e) => { e.preventDefault(); e.stopPropagation(); dropTrash(); },
+                  onDrop: (e) => { e.preventDefault(); e.stopPropagation(); if (canTrash) dropTrash(); },
                 }} />
             ) : null}>
             {g.cols.map((c) => {
@@ -633,8 +634,13 @@ function FlowBoardView({ jobs, leads, quotes, stock, search, role, currentUser,
                   sub={g.kind === "lead" ? flSumValue(cards) : null}
                   reorder={ok && g.kind === "lead" && !!onRankLeads && !!drag && drag.kind === "lead"}
                   onDragOver={(e) => { if (!ok) return; e.preventDefault(); setOver(g.key + ":" + c.key); }}
-                  onDragLeave={() => setOver((o) => (o === g.key + ":" + c.key ? null : o))}
-                  onDrop={() => doDrop(g, c.key)}>
+                  onDragLeave={(e) => {
+                    /* dragleave ยิงทุกครั้งที่เมาส์ข้ามการ์ดลูกในคอลัมน์ (การ์ดหลบให้ที่เลื่อนผ่านใต้เมาส์ด้วย) — ล้างเฉพาะตอนออกนอกคอลัมน์จริง
+                       ไม่งั้นกรอบสีคอลัมน์ติด/ดับรัว ๆ (ผู้ใช้: "กรอบมันกระพริบ") */
+                    if (e.currentTarget.contains(e.relatedTarget)) return;
+                    setOver((o) => (o === g.key + ":" + c.key ? null : o));
+                  }}
+                  onDrop={() => { if (ok) doDrop(g, c.key); }}>
                   {cards.map((rec) => renderCard(g, rec))}
                 </FlCol>
               );

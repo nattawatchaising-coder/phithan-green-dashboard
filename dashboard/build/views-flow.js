@@ -896,6 +896,7 @@ function FlowBoardView({
         return;
       }
       if (key === "won") {
+        if (window.pgDragSettle) window.pgDragSettle();
         window.askConfirm({
           title: "ปิดการขาย “" + (rec.name || "รายนี้") + "” ?",
           body: "ปิดแล้วให้กด “แปลงเป็นงานติดตั้ง” ที่หน้าลูกค้าสำรวจ เพื่อย้ายเข้าฐานข้อมูลงานพร้อมแบบสำรวจและรูป",
@@ -1035,7 +1036,7 @@ function FlowBoardView({
         onDrop: e => {
           e.preventDefault();
           e.stopPropagation();
-          dropTrash();
+          if (canTrash) dropTrash();
         }
       }
     }) : null
@@ -1055,8 +1056,13 @@ function FlowBoardView({
         e.preventDefault();
         setOver(g.key + ":" + c.key);
       },
-      onDragLeave: () => setOver(o => o === g.key + ":" + c.key ? null : o),
-      onDrop: () => doDrop(g, c.key)
+      onDragLeave: e => {
+        if (e.currentTarget.contains(e.relatedTarget)) return;
+        setOver(o => o === g.key + ":" + c.key ? null : o);
+      },
+      onDrop: () => {
+        if (ok) doDrop(g, c.key);
+      }
     }, cards.map(rec => renderCard(g, rec)));
   })))), undo && React.createElement("div", {
     className: "fl-undo",
