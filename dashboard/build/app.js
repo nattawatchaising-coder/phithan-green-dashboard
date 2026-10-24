@@ -1276,7 +1276,7 @@ function App() {
     onMoveStage: (id, s) => store.setStage(id, s),
     onPatchJob: can(role, "editJob") ? (id, f) => store.patch(id, f) : null,
     onPatchLead: (id, f) => leadStore.patch(id, f),
-    leadTrashCount: (leadStore.trash || []).length,
+    leadTrash: leadStore.trash,
     onOpenLeadTrash: can(role, "leads") ? () => setLeadTrashOpen(true) : null,
     onTrashLead: can(role, "leads") ? id => leadStore.remove(id, auth.current ? auth.current.name : "") : null,
     onRestoreLead: id => leadStore.restore(id),

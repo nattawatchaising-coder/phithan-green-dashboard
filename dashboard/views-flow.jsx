@@ -111,6 +111,93 @@ function FlGroup({ g, count, collapsed, onToggle, onAdd, addLabel, extra, childr
   );
 }
 
+/* ── แคปซูลหัวช่วงฝ่ายขาย (FlSalesDock) ──
+   ต้นแบบจากวิดีโอที่ผู้ใช้ส่ง: แถบแคปซูล กดแท็บแล้วตัวแคปซูลเองยืดออกเป็นแผง (ไม่ใช่หน้าต่างใหม่เด้งขึ้น)
+   ปุ่มอื่นหดเหลือไอคอน เนื้อหาค่อย ๆ ชัดขึ้น ปิดแล้วหดกลับเป็นแคปซูลเท่าเดิม
+   - กล่องจริงลอย (absolute) ทับคอลัมน์ ส่วนตัวกันที่ (placeholder) กว้างเท่าแคปซูลตอนปิดเสมอ → หัวช่วงไม่ขยับ
+   - ลูกค้าใหม่/รูปสรุปแพ็คเกจเป็นปุ่มทำงานทันที (เปิดฟอร์ม/ป๊อปเดิม) · ถังขยะเป็นแท็บเดียวที่มีแผง
+   - ลากการ์ดลูกค้ามาวางที่ปุ่มถังขยะยังได้เหมือนเดิม (trashDnD · trashSt มาจาก FlowBoardView)
+   - ลบถาวรไม่ทำในแผง — ปุ่ม "เปิดทั้งหมด" ไป TrashModal ที่กั้นแอดมิน + รหัสผ่าน */
+function FlSalesDock({ color, onNewLead, onPoster, trash, onRestore, onOpenAll, trashSt, trashDnD }) {
+  const [open, setOpen] = React.useState(null);   // null | "trash"
+  const capRef = React.useRef(null), bodyRef = React.useRef(null), boxRef = React.useRef(null);
+  const [capW, setCapW] = React.useState(0);
+  const [bodyH, setBodyH] = React.useState(0);
+  const n = trash ? trash.length : 0;
+  /* วัดความกว้างแคปซูลตอนปิดเท่านั้น — ตอนเปิด ปุ่มหดเหลือไอคอน และตอนเพิ่งปิด ปุ่มยังคลายตัวอยู่
+     จึงฟังขนาดจริงด้วย ResizeObserver (วัดซ้ำเมื่อคลายเสร็จ) ไม่ใช่วัดครั้งเดียวตอน render */
+  const openRef = React.useRef(open);
+  openRef.current = open;
+  React.useLayoutEffect(() => { if (!open && capRef.current) setCapW(capRef.current.offsetWidth); });
+  React.useLayoutEffect(() => {
+    const cap = capRef.current, el = bodyRef.current;
+    if (!window.ResizeObserver) return;
+    const ro = new ResizeObserver(() => {
+      if (el) setBodyH(el.offsetHeight);
+      if (cap && !openRef.current) setCapW(cap.offsetWidth);
+    });
+    if (cap) ro.observe(cap);
+    if (el) ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
+  React.useEffect(() => {
+    if (!open) return;
+    const away = (e) => { if (boxRef.current && !boxRef.current.contains(e.target)) setOpen(null); };
+    const esc = (e) => { if (e.key === "Escape") setOpen(null); };
+    document.addEventListener("mousedown", away);
+    window.addEventListener("keydown", esc);
+    return () => { document.removeEventListener("mousedown", away); window.removeEventListener("keydown", esc); };
+  }, [open]);
+  const stop = (e) => e.stopPropagation();   // หัวช่วงกดแล้วพับ — กดในแคปซูลต้องไม่พับ
+  const CAP_H = 30, PANEL_W = 340;
+  const seg = (key, icon, label, onClick, extra) => (
+    <button className="fl-seg" data-on={open === key ? "1" : null} onClick={(e) => { stop(e); onClick(); }} {...(extra || {})}>
+      <Icon name={icon} size={13} color="currentColor" sw={2.4} />
+      <span className="fl-lbl">{label}</span>
+    </button>
+  );
+  return (
+    <div onClick={stop} style={{ position: "relative", flexShrink: 0, height: CAP_H, width: capW || "auto" }}>
+      <div ref={boxRef} className="fl-dock" data-open={open ? "1" : null}
+        style={{ "--dock-c": color, width: open ? PANEL_W : (capW || "auto"), height: open ? CAP_H + bodyH : CAP_H }}>
+        <div ref={capRef} className="fl-cap">
+          {onNewLead && seg("new", "plus", "ลูกค้าใหม่", () => { setOpen(null); onNewLead(); }, { style: { color: color } })}
+          {onPoster && seg("poster", "image", "รูปสรุปแพ็คเกจ", () => { setOpen(null); onPoster(); })}
+          {trash && seg("trash", "trash", <React.Fragment>{trashSt === "over" ? "ปล่อยเพื่อทิ้ง" : "ถังขยะ"}{n ? <span className="fl-n">{n}</span> : null}</React.Fragment>,
+            () => setOpen((o) => (o === "trash" ? null : "trash")),
+            Object.assign({ "data-st": trashSt, title: trashSt ? "ปล่อยเพื่อย้ายลงถังขยะ" : "ถังขยะ — ลากการ์ดลูกค้ามาวางเพื่อทิ้ง · กดเพื่อดู/กู้คืน" }, trashDnD))}
+        </div>
+        <div ref={bodyRef} className="fl-body">
+          {open === "trash" && (
+            <div style={{ padding: "4px 6px 8px" }}>
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "6px 6px 8px" }}>
+                <span style={{ fontSize: 11.5, color: "var(--text-3)" }}>{n ? n + " ราย · กู้คืนได้ตลอด" : ""}</span>
+                {onOpenAll && n > 0 && <button onClick={() => { setOpen(null); onOpenAll(); }}
+                  style={{ border: "none", background: "none", color: "var(--text-3)", fontFamily: "inherit", fontSize: 11.5, fontWeight: 700, cursor: "pointer", padding: 0 }}>
+                  เปิดทั้งหมด / ลบถาวร</button>}
+              </div>
+              {n === 0 && <div style={{ padding: "18px 0 14px", textAlign: "center", fontSize: 12, color: "var(--text-3)" }}>ถังขยะว่าง — ลากการ์ดลูกค้ามาวางที่ปุ่มถังขยะเพื่อทิ้ง</div>}
+              <div style={{ maxHeight: 280, overflowY: "auto", display: "flex", flexDirection: "column", gap: 6 }}>
+                {(trash || []).map((l) => (
+                  <div key={l.id} className="fl-row">
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ fontSize: 12.5, fontWeight: 700, color: "var(--text-1)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{l.name || "(ไม่มีชื่อ)"}</div>
+                      <div style={{ fontSize: 10.5, color: "var(--text-3)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                        {l.code}{l.deletedAt ? " · ลบ " + thDate(String(l.deletedAt).slice(0, 10), true) : ""}{l.deletedBy ? " โดย " + l.deletedBy : ""}
+                      </div>
+                    </div>
+                    {onRestore && <button onClick={() => onRestore(l.id)} className="fl-restore">กู้คืน</button>}
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 /* ช่วงที่ผู้ใช้คนนี้เห็น — ช่างไม่ต้องเห็นฝ่ายขาย ฝ่ายขายไม่ต้องเห็นคิวเอกสาร
 
    ถ้าเห็นช่วงเอกสาร คอลัมน์ "เสร็จสิ้น" จะถูกถอดออกจากช่วงหน้างาน แล้วงานที่ติดตั้งเสร็จ
@@ -141,7 +228,7 @@ const flSumValue = (leadsArr) => {
 };
 
 function FlowBoardView({ jobs, leads, quotes, stock, search, role, currentUser,
-  onOpenJob, onOpenLead, onNewLead, onNewPermitJob, onNewJob, onMoveStage, onPatchJob, onPatchLead, onPatchPermit, onOpenReview, leadTrashCount, onOpenLeadTrash, onTrashLead, onRestoreLead }) {
+  onOpenJob, onOpenLead, onNewLead, onNewPermitJob, onNewJob, onMoveStage, onPatchJob, onPatchLead, onPatchPermit, onOpenReview, leadTrash, onOpenLeadTrash, onTrashLead, onRestoreLead }) {
   const SF = window.SF;
   const isMobile = window.matchMedia("(max-width: 860px)").matches;
   const groups = React.useMemo(() => flGroups(role), [role]);
@@ -388,33 +475,22 @@ function FlowBoardView({ jobs, leads, quotes, stock, search, role, currentUser,
         {groups.map((g) => (
           <FlGroup key={g.key} g={g} count={groupCount(g)} collapsed={!!collapsed[g.key]} onToggle={() => toggle(g.key)}
             /* ช่วงหน้างาน = ปุ่มเปิดใบงานใหม่ ซึ่งเดิมอยู่บนหัวจอทุกหน้า ย้ายมาอยู่ตรงกองงานที่มันจะไปโผล่ */
-            onAdd={g.kind === "lead" ? (onNewLead || null) : g.kind === "permit" ? (onNewPermitJob || null)
+            /* ช่วงขายไม่ใช้ปุ่มเพิ่มของ FlGroup — ลูกค้าใหม่ไปอยู่ในแคปซูล FlSalesDock แทน */
+            onAdd={g.kind === "lead" ? null : g.kind === "permit" ? (onNewPermitJob || null)
               : g.kind === "job" ? (onNewJob || null) : null}
             addLabel={g.kind === "permit" ? "งานขออนุญาต" : g.kind === "job" ? "เพิ่มงาน" : "ลูกค้าใหม่"}
-            /* ช่วงขาย: รูปสรุปหลายแพ็คเกจ (เช่น 3–20 kWp) จาก BOQ ของลูกค้าที่เป็นแพ็คเกจ
-               + ปุ่มถังขยะ — ลูกค้าที่กด "ลงถังขยะ" ในใบลูกค้ามาอยู่ที่นี่ กู้คืนได้ (ผู้ใช้สั่ง ต.ค. 2026) */
-            extra={g.kind === "lead" ? (<React.Fragment>
-              {pkAdmin && window.PkPosterModal && <button onClick={(e) => { e.stopPropagation(); setPkSum(true); }} title="ทำรูปโพสต์สรุปหลายแพ็คเกจในรูปเดียว"
-                style={{ display: "inline-flex", alignItems: "center", gap: 5, height: 24, padding: "0 10px",
-                  borderRadius: "var(--r-chip)", border: "1px solid color-mix(in srgb, " + g.color + " 33%, transparent)",
-                  background: "color-mix(in srgb, " + g.color + " 8%, transparent)", color: g.color,
-                  cursor: "pointer", fontFamily: "inherit", fontSize: 11.5, fontWeight: 700, flexShrink: 0, whiteSpace: "nowrap" }}>
-                <Icon name="image" size={13} color={g.color} sw={2.2} /> รูปสรุปแพ็คเกจ
-              </button>}
-              {onOpenLeadTrash && <button className="fl-trash" data-st={trashFx ? "gulp" : canTrash ? (overTrash ? "over" : "ready") : null}
-                onClick={(e) => { e.stopPropagation(); onOpenLeadTrash(); }}
-                title={canTrash ? "ปล่อยเพื่อย้ายลงถังขยะ" : "ลูกค้าที่ย้ายลงถังขยะ — กู้คืนได้ · ลากการ์ดลูกค้ามาวางที่นี่เพื่อทิ้ง"}
-                onDragOver={(e) => { if (!canTrash) return; e.preventDefault(); e.dataTransfer.dropEffect = "move"; if (!overTrash) setOverTrash(true); }}
-                onDragLeave={(e) => { if (!e.currentTarget.contains(e.relatedTarget)) setOverTrash(false); }}
-                onDrop={(e) => { e.preventDefault(); e.stopPropagation(); dropTrash(); }}
-                style={{ display: "inline-flex", alignItems: "center", gap: 5, height: 24, padding: "0 10px",
-                  borderRadius: "var(--r-chip)", border: "1px solid color-mix(in srgb, var(--text-3) 30%, transparent)",
-                  background: "transparent", color: "var(--text-2)",
-                  cursor: "pointer", fontFamily: "inherit", fontSize: 11.5, fontWeight: 700, flexShrink: 0, whiteSpace: "nowrap" }}>
-                <Icon name="trash" size={13} color={canTrash ? "currentColor" : "var(--text-3)"} sw={2.2} /> {canTrash && overTrash ? "ปล่อยเพื่อทิ้ง" : "ถังขยะ"}
-                {leadTrashCount ? <span style={{ fontFamily: "var(--mono)", color: "var(--text-3)" }}>{leadTrashCount}</span> : null}
-              </button>}
-            </React.Fragment>) : null}>
+            /* ช่วงขาย: แคปซูลเดียว ลูกค้าใหม่ · รูปสรุปแพ็คเกจ · ถังขยะ (กดถังขยะแล้วยืดเป็นแผง — ผู้ใช้ส่งวิดีโอต้นแบบ ต.ค. 2026) */
+            extra={g.kind === "lead" ? (
+              <FlSalesDock color={g.color} onNewLead={onNewLead}
+                onPoster={pkAdmin && window.PkPosterModal ? () => setPkSum(true) : null}
+                trash={onOpenLeadTrash ? (leadTrash || []) : null} onRestore={onRestoreLead} onOpenAll={onOpenLeadTrash}
+                trashSt={trashFx ? "gulp" : canTrash ? (overTrash ? "over" : "ready") : null}
+                trashDnD={{
+                  onDragOver: (e) => { if (!canTrash) return; e.preventDefault(); e.dataTransfer.dropEffect = "move"; if (!overTrash) setOverTrash(true); },
+                  onDragLeave: (e) => { if (!e.currentTarget.contains(e.relatedTarget)) setOverTrash(false); },
+                  onDrop: (e) => { e.preventDefault(); e.stopPropagation(); dropTrash(); },
+                }} />
+            ) : null}>
             {g.cols.map((c) => {
               const cards = cardsOf(g, c.key);
               const ok = canDrop(g, c.key);

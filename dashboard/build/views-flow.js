@@ -1,3 +1,4 @@
+function _extends() { return _extends = Object.assign ? Object.assign.bind() : function (n) { for (var e = 1; e < arguments.length; e++) { var t = arguments[e]; for (var r in t) ({}).hasOwnProperty.call(t, r) && (n[r] = t[r]); } return n; }, _extends.apply(null, arguments); }
 const FL_GRP_KEY = "pg-boardgroups";
 const flReadCollapsed = () => {
   try {
@@ -258,6 +259,187 @@ function FlGroup({
     }
   }, children));
 }
+function FlSalesDock({
+  color,
+  onNewLead,
+  onPoster,
+  trash,
+  onRestore,
+  onOpenAll,
+  trashSt,
+  trashDnD
+}) {
+  const [open, setOpen] = React.useState(null);
+  const capRef = React.useRef(null),
+    bodyRef = React.useRef(null),
+    boxRef = React.useRef(null);
+  const [capW, setCapW] = React.useState(0);
+  const [bodyH, setBodyH] = React.useState(0);
+  const n = trash ? trash.length : 0;
+  const openRef = React.useRef(open);
+  openRef.current = open;
+  React.useLayoutEffect(() => {
+    if (!open && capRef.current) setCapW(capRef.current.offsetWidth);
+  });
+  React.useLayoutEffect(() => {
+    const cap = capRef.current,
+      el = bodyRef.current;
+    if (!window.ResizeObserver) return;
+    const ro = new ResizeObserver(() => {
+      if (el) setBodyH(el.offsetHeight);
+      if (cap && !openRef.current) setCapW(cap.offsetWidth);
+    });
+    if (cap) ro.observe(cap);
+    if (el) ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
+  React.useEffect(() => {
+    if (!open) return;
+    const away = e => {
+      if (boxRef.current && !boxRef.current.contains(e.target)) setOpen(null);
+    };
+    const esc = e => {
+      if (e.key === "Escape") setOpen(null);
+    };
+    document.addEventListener("mousedown", away);
+    window.addEventListener("keydown", esc);
+    return () => {
+      document.removeEventListener("mousedown", away);
+      window.removeEventListener("keydown", esc);
+    };
+  }, [open]);
+  const stop = e => e.stopPropagation();
+  const CAP_H = 30,
+    PANEL_W = 340;
+  const seg = (key, icon, label, onClick, extra) => React.createElement("button", _extends({
+    className: "fl-seg",
+    "data-on": open === key ? "1" : null,
+    onClick: e => {
+      stop(e);
+      onClick();
+    }
+  }, extra || {}), React.createElement(Icon, {
+    name: icon,
+    size: 13,
+    color: "currentColor",
+    sw: 2.4
+  }), React.createElement("span", {
+    className: "fl-lbl"
+  }, label));
+  return React.createElement("div", {
+    onClick: stop,
+    style: {
+      position: "relative",
+      flexShrink: 0,
+      height: CAP_H,
+      width: capW || "auto"
+    }
+  }, React.createElement("div", {
+    ref: boxRef,
+    className: "fl-dock",
+    "data-open": open ? "1" : null,
+    style: {
+      "--dock-c": color,
+      width: open ? PANEL_W : capW || "auto",
+      height: open ? CAP_H + bodyH : CAP_H
+    }
+  }, React.createElement("div", {
+    ref: capRef,
+    className: "fl-cap"
+  }, onNewLead && seg("new", "plus", "ลูกค้าใหม่", () => {
+    setOpen(null);
+    onNewLead();
+  }, {
+    style: {
+      color: color
+    }
+  }), onPoster && seg("poster", "image", "รูปสรุปแพ็คเกจ", () => {
+    setOpen(null);
+    onPoster();
+  }), trash && seg("trash", "trash", React.createElement(React.Fragment, null, trashSt === "over" ? "ปล่อยเพื่อทิ้ง" : "ถังขยะ", n ? React.createElement("span", {
+    className: "fl-n"
+  }, n) : null), () => setOpen(o => o === "trash" ? null : "trash"), Object.assign({
+    "data-st": trashSt,
+    title: trashSt ? "ปล่อยเพื่อย้ายลงถังขยะ" : "ถังขยะ — ลากการ์ดลูกค้ามาวางเพื่อทิ้ง · กดเพื่อดู/กู้คืน"
+  }, trashDnD))), React.createElement("div", {
+    ref: bodyRef,
+    className: "fl-body"
+  }, open === "trash" && React.createElement("div", {
+    style: {
+      padding: "4px 6px 8px"
+    }
+  }, React.createElement("div", {
+    style: {
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "space-between",
+      padding: "6px 6px 8px"
+    }
+  }, React.createElement("span", {
+    style: {
+      fontSize: 11.5,
+      color: "var(--text-3)"
+    }
+  }, n ? n + " ราย · กู้คืนได้ตลอด" : ""), onOpenAll && n > 0 && React.createElement("button", {
+    onClick: () => {
+      setOpen(null);
+      onOpenAll();
+    },
+    style: {
+      border: "none",
+      background: "none",
+      color: "var(--text-3)",
+      fontFamily: "inherit",
+      fontSize: 11.5,
+      fontWeight: 700,
+      cursor: "pointer",
+      padding: 0
+    }
+  }, "\u0E40\u0E1B\u0E34\u0E14\u0E17\u0E31\u0E49\u0E07\u0E2B\u0E21\u0E14 / \u0E25\u0E1A\u0E16\u0E32\u0E27\u0E23")), n === 0 && React.createElement("div", {
+    style: {
+      padding: "18px 0 14px",
+      textAlign: "center",
+      fontSize: 12,
+      color: "var(--text-3)"
+    }
+  }, "\u0E16\u0E31\u0E07\u0E02\u0E22\u0E30\u0E27\u0E48\u0E32\u0E07 \u2014 \u0E25\u0E32\u0E01\u0E01\u0E32\u0E23\u0E4C\u0E14\u0E25\u0E39\u0E01\u0E04\u0E49\u0E32\u0E21\u0E32\u0E27\u0E32\u0E07\u0E17\u0E35\u0E48\u0E1B\u0E38\u0E48\u0E21\u0E16\u0E31\u0E07\u0E02\u0E22\u0E30\u0E40\u0E1E\u0E37\u0E48\u0E2D\u0E17\u0E34\u0E49\u0E07"), React.createElement("div", {
+    style: {
+      maxHeight: 280,
+      overflowY: "auto",
+      display: "flex",
+      flexDirection: "column",
+      gap: 6
+    }
+  }, (trash || []).map(l => React.createElement("div", {
+    key: l.id,
+    className: "fl-row"
+  }, React.createElement("div", {
+    style: {
+      flex: 1,
+      minWidth: 0
+    }
+  }, React.createElement("div", {
+    style: {
+      fontSize: 12.5,
+      fontWeight: 700,
+      color: "var(--text-1)",
+      whiteSpace: "nowrap",
+      overflow: "hidden",
+      textOverflow: "ellipsis"
+    }
+  }, l.name || "(ไม่มีชื่อ)"), React.createElement("div", {
+    style: {
+      fontSize: 10.5,
+      color: "var(--text-3)",
+      whiteSpace: "nowrap",
+      overflow: "hidden",
+      textOverflow: "ellipsis"
+    }
+  }, l.code, l.deletedAt ? " · ลบ " + thDate(String(l.deletedAt).slice(0, 10), true) : "", l.deletedBy ? " โดย " + l.deletedBy : "")), onRestore && React.createElement("button", {
+    onClick: () => onRestore(l.id),
+    className: "fl-restore"
+  }, "\u0E01\u0E39\u0E49\u0E04\u0E37\u0E19"))))))));
+}
 function flGroups(role) {
   const out = [];
   const doc = window.can(role, "permit");
@@ -311,7 +493,7 @@ function FlowBoardView({
   onPatchLead,
   onPatchPermit,
   onOpenReview,
-  leadTrashCount,
+  leadTrash,
   onOpenLeadTrash,
   onTrashLead,
   onRestoreLead
@@ -595,86 +777,33 @@ function FlowBoardView({
     count: groupCount(g),
     collapsed: !!collapsed[g.key],
     onToggle: () => toggle(g.key),
-    onAdd: g.kind === "lead" ? onNewLead || null : g.kind === "permit" ? onNewPermitJob || null : g.kind === "job" ? onNewJob || null : null,
+    onAdd: g.kind === "lead" ? null : g.kind === "permit" ? onNewPermitJob || null : g.kind === "job" ? onNewJob || null : null,
     addLabel: g.kind === "permit" ? "งานขออนุญาต" : g.kind === "job" ? "เพิ่มงาน" : "ลูกค้าใหม่",
-    extra: g.kind === "lead" ? React.createElement(React.Fragment, null, pkAdmin && window.PkPosterModal && React.createElement("button", {
-      onClick: e => {
-        e.stopPropagation();
-        setPkSum(true);
-      },
-      title: "\u0E17\u0E33\u0E23\u0E39\u0E1B\u0E42\u0E1E\u0E2A\u0E15\u0E4C\u0E2A\u0E23\u0E38\u0E1B\u0E2B\u0E25\u0E32\u0E22\u0E41\u0E1E\u0E47\u0E04\u0E40\u0E01\u0E08\u0E43\u0E19\u0E23\u0E39\u0E1B\u0E40\u0E14\u0E35\u0E22\u0E27",
-      style: {
-        display: "inline-flex",
-        alignItems: "center",
-        gap: 5,
-        height: 24,
-        padding: "0 10px",
-        borderRadius: "var(--r-chip)",
-        border: "1px solid color-mix(in srgb, " + g.color + " 33%, transparent)",
-        background: "color-mix(in srgb, " + g.color + " 8%, transparent)",
-        color: g.color,
-        cursor: "pointer",
-        fontFamily: "inherit",
-        fontSize: 11.5,
-        fontWeight: 700,
-        flexShrink: 0,
-        whiteSpace: "nowrap"
-      }
-    }, React.createElement(Icon, {
-      name: "image",
-      size: 13,
+    extra: g.kind === "lead" ? React.createElement(FlSalesDock, {
       color: g.color,
-      sw: 2.2
-    }), " \u0E23\u0E39\u0E1B\u0E2A\u0E23\u0E38\u0E1B\u0E41\u0E1E\u0E47\u0E04\u0E40\u0E01\u0E08"), onOpenLeadTrash && React.createElement("button", {
-      className: "fl-trash",
-      "data-st": trashFx ? "gulp" : canTrash ? overTrash ? "over" : "ready" : null,
-      onClick: e => {
-        e.stopPropagation();
-        onOpenLeadTrash();
-      },
-      title: canTrash ? "ปล่อยเพื่อย้ายลงถังขยะ" : "ลูกค้าที่ย้ายลงถังขยะ — กู้คืนได้ · ลากการ์ดลูกค้ามาวางที่นี่เพื่อทิ้ง",
-      onDragOver: e => {
-        if (!canTrash) return;
-        e.preventDefault();
-        e.dataTransfer.dropEffect = "move";
-        if (!overTrash) setOverTrash(true);
-      },
-      onDragLeave: e => {
-        if (!e.currentTarget.contains(e.relatedTarget)) setOverTrash(false);
-      },
-      onDrop: e => {
-        e.preventDefault();
-        e.stopPropagation();
-        dropTrash();
-      },
-      style: {
-        display: "inline-flex",
-        alignItems: "center",
-        gap: 5,
-        height: 24,
-        padding: "0 10px",
-        borderRadius: "var(--r-chip)",
-        border: "1px solid color-mix(in srgb, var(--text-3) 30%, transparent)",
-        background: "transparent",
-        color: "var(--text-2)",
-        cursor: "pointer",
-        fontFamily: "inherit",
-        fontSize: 11.5,
-        fontWeight: 700,
-        flexShrink: 0,
-        whiteSpace: "nowrap"
+      onNewLead: onNewLead,
+      onPoster: pkAdmin && window.PkPosterModal ? () => setPkSum(true) : null,
+      trash: onOpenLeadTrash ? leadTrash || [] : null,
+      onRestore: onRestoreLead,
+      onOpenAll: onOpenLeadTrash,
+      trashSt: trashFx ? "gulp" : canTrash ? overTrash ? "over" : "ready" : null,
+      trashDnD: {
+        onDragOver: e => {
+          if (!canTrash) return;
+          e.preventDefault();
+          e.dataTransfer.dropEffect = "move";
+          if (!overTrash) setOverTrash(true);
+        },
+        onDragLeave: e => {
+          if (!e.currentTarget.contains(e.relatedTarget)) setOverTrash(false);
+        },
+        onDrop: e => {
+          e.preventDefault();
+          e.stopPropagation();
+          dropTrash();
+        }
       }
-    }, React.createElement(Icon, {
-      name: "trash",
-      size: 13,
-      color: canTrash ? "currentColor" : "var(--text-3)",
-      sw: 2.2
-    }), " ", canTrash && overTrash ? "ปล่อยเพื่อทิ้ง" : "ถังขยะ", leadTrashCount ? React.createElement("span", {
-      style: {
-        fontFamily: "var(--mono)",
-        color: "var(--text-3)"
-      }
-    }, leadTrashCount) : null)) : null
+    }) : null
   }, g.cols.map(c => {
     const cards = cardsOf(g, c.key);
     const ok = canDrop(g, c.key);
