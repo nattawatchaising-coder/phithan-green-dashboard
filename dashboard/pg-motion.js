@@ -481,3 +481,16 @@
     return true;
   };
 })();
+
+/* ── แถบเลื่อนคอลัมน์บอร์ดเข้มเฉพาะตอนเลื่อน ── ใส่คลาส is-scrolling ให้ .bd ที่กำลังเลื่อน หยุดเลื่อน 800ms แล้วถอด (สีอยู่ใน index.html)
+   ผู้ใช้: "ทำสีจางแบบเดิม เวลาเลื่อนค่อยเข้ม" */
+(function () {
+  var T = new Map();
+  document.addEventListener("scroll", function (e) {
+    var el = e.target;
+    if (!el || !el.classList || !el.classList.contains("bd") || !el.parentElement || !el.parentElement.classList.contains("bd-col")) return;
+    if (!T.has(el)) el.classList.add("is-scrolling");
+    clearTimeout(T.get(el));
+    T.set(el, setTimeout(function () { el.classList.remove("is-scrolling"); T.delete(el); }, 800));
+  }, true);
+})();
