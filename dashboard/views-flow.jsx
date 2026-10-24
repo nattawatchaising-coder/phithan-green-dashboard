@@ -601,7 +601,7 @@ function FlowBoardView({ jobs, leads, quotes, stock, search, role, currentUser,
           ทั้งที่อ่านแค่ครั้งเดียวก็พอ ตัวความสามารถยังอยู่ครบ ไม่ได้ปิดอะไร */}
       {/* ปล่อยการ์ดนอกคอลัมน์ = เลิกลาก — ไม่มีอันนี้ คอลัมน์ที่วางไม่ได้จะค้างหรี่ทั้งบอร์ด
           จนกว่าจะเริ่มลากใหม่แล้ววางให้สำเร็จสักครั้ง */}
-      <div onDragEnd={clearDrag}
+      <div onDragEnd={clearDrag} className="fl-board"
         style={{ display: "flex", gap: 18, overflowX: "auto", paddingBottom: 12, minHeight: 0, flex: 1, alignItems: "stretch" }}>
         {/* ปุ่มเพิ่มของแต่ละช่วง — ช่วงขายเปิดใบลูกค้าใหม่
             ช่วงเอกสารเปิดใบงานที่ติดตั้งเสร็จไปแล้ว (งานเก่า/รับช่วงต่อ) ที่ไม่เคยเดินผ่านบอร์ดหน้างาน

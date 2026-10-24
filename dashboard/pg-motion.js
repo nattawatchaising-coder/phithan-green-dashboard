@@ -483,12 +483,22 @@
 })();
 
 /* ── แถบเลื่อนคอลัมน์บอร์ดเข้มเฉพาะตอนเลื่อน/ชี้ค้าง ── คลาส is-scrolling บน .bd (สีอยู่ใน index.html)
+   แถบเลื่อนแนวนอนใต้บอร์ด (.fl-board) ทำแบบเดียวกัน — ชี้ค้างที่ขอบล่าง 14px แทนขอบขวา (ผู้ใช้: "ทำตัวด้านล่างนี้ด้วย")
    - เลื่อน = เข้มทันที หยุดเลื่อน 0.4 วิค่อยจาง (ผู้ใช้: "ตอนใช้ลูกกลิ้งเลื่อนแล้วปล่อยด้วยดิ" → 0.15 วิหมุนต่อ ๆ กันแล้วกระพริบ "เพิ่มนิดนึง แต่ไม่เยอะเท่าก่อน" (0.8))
    - เมาส์บนแถบเลื่อน (ขอบขวา 14px) ต้องค้าง 0.4 วิถึงเข้ม — แค่ลากผ่านไม่เข้ม · ออกจากแถบแล้วจางทันที
    ผู้ใช้: "ทำสีจางแบบเดิม เวลาเลื่อนค่อยเข้ม" · "หน่วงเวลาตอนเอาเมาส์ไปผ่าน" (ไม่ใช้ CSS :hover ของแถบ — หน่วงไม่ได้) */
 (function () {
   var T = new Map(), HOLD = 400, DWELL = 400, hov = null, dw = 0;
-  function isCol(el) { return el && el.classList && el.classList.contains("bd") && el.parentElement && el.parentElement.classList.contains("bd-col"); }
+  function isCol(el) { return el && el.classList && (el.classList.contains("fl-board") || (el.classList.contains("bd") && el.parentElement && el.parentElement.classList.contains("bd-col"))); }
+  // แถบที่เมาส์ชี้อยู่ — คอลัมน์ (ขอบขวา) ก่อน ไม่โดนค่อยดูบอร์ด (ขอบล่าง)
+  function bar(e) {
+    if (!e.target || !e.target.closest) return null;
+    var el = e.target.closest(".bd-col > .bd");
+    if (el && el.scrollHeight > el.clientHeight && e.clientX >= el.getBoundingClientRect().right - 14) return el;
+    el = e.target.closest(".fl-board");
+    if (el && el.scrollWidth > el.clientWidth && e.clientY >= el.getBoundingClientRect().bottom - 14) return el;
+    return null;
+  }
   function show(el, keep) {
     if (!T.has(el)) el.classList.add("is-scrolling");
     clearTimeout(T.get(el));
@@ -497,8 +507,7 @@
   function hide(el) { clearTimeout(T.get(el)); T.delete(el); el.classList.remove("is-scrolling"); }
   document.addEventListener("scroll", function (e) { if (isCol(e.target)) show(e.target, e.target === hov && !dw); }, true);
   document.addEventListener("mousemove", function (e) {
-    var el = e.target && e.target.closest ? e.target.closest(".bd-col > .bd") : null;
-    if (el && (el.scrollHeight <= el.clientHeight || e.clientX < el.getBoundingClientRect().right - 14)) el = null;
+    var el = bar(e);
     if (el === hov) return;
     if (hov && !dw) hide(hov);   // ออกจากแถบ — จางทันที (ผู้ใช้: "ไม่ต้องหน่วงตอนไม่ชี้")
     clearTimeout(dw); dw = 0;

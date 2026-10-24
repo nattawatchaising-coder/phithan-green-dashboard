@@ -998,6 +998,7 @@ function FlowBoardView({
     }
   }, React.createElement("div", {
     onDragEnd: clearDrag,
+    className: "fl-board",
     style: {
       display: "flex",
       gap: 18,
