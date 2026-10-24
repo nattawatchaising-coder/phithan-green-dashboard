@@ -21,11 +21,12 @@ const flReadCollapsed = () => {
 
 /* ── เปลือกคอลัมน์ — ใช้ร่วมกันทั้งสามช่วง ──
    col = { key, th, color, soft } · dimmed = กำลังลากการ์ดที่วางที่นี่ไม่ได้ (หรี่ลงให้เห็นชัดว่าห้าม) */
-function FlCol({ col, count, isOver, dimmed, sub, onDragOver, onDragLeave, onDrop, children }) {
+function FlCol({ col, count, isOver, dimmed, sub, reorder, onDragOver, onDragLeave, onDrop, children }) {
   return (
     /* หน้าตาของรางอยู่ในคลาส .bd-col ใน index.html — ที่นี่เหลือแค่ค่าที่เปลี่ยนตามสถานะ
        (กำลังลากของมาวาง / ถูกหรี่) เท่านั้น */
-    <div onDragOver={onDragOver} onDragLeave={onDragLeave} onDrop={onDrop} className="bd-col"
+    /* data-reorder = วางแทรกระหว่างการ์ดได้ การ์ดขยับหลบให้ที่ระหว่างลาก (pg-motion.js) */
+    <div onDragOver={onDragOver} onDragLeave={onDragLeave} onDrop={onDrop} className="bd-col" data-reorder={reorder ? "1" : null}
       style={{ width: 262, flexShrink: 0, display: "flex", flexDirection: "column",
         background: isOver ? col.soft : null, borderColor: isOver ? col.color : null,
         opacity: dimmed ? 0.5 : 1 }}>
@@ -308,7 +309,7 @@ const flSumValue = (leadsArr) => {
 };
 
 function FlowBoardView({ jobs, leads, quotes, stock, search, role, currentUser,
-  onOpenJob, onOpenLead, onNewLead, onNewPermitJob, onNewJob, onMoveStage, onPatchJob, onPatchLead, onPatchPermit, onOpenReview, leadTrash, onOpenLeadTrash, onTrashLead, onRestoreLead }) {
+  onOpenJob, onOpenLead, onNewLead, onNewPermitJob, onNewJob, onMoveStage, onPatchJob, onPatchLead, onRankLeads, onPatchPermit, onOpenReview, leadTrash, onOpenLeadTrash, onTrashLead, onRestoreLead }) {
   const SF = window.SF;
   const isMobile = window.matchMedia("(max-width: 860px)").matches;
   const groups = React.useMemo(() => flGroups(role), [role]);
@@ -450,6 +451,10 @@ function FlowBoardView({ jobs, leads, quotes, stock, search, role, currentUser,
       const k = salesStageKey(l); (m[k] || (m[k] = [])).push(l);
     });
     Object.keys(m).forEach((k) => m[k].sort((a, b) => {
+      /* ลำดับที่ผู้ใช้ลากจัดเอง (boardRank) มาก่อนกฎอัตโนมัติ · รายที่ยังไม่เคยถูกจัด (เพิ่งเข้าคอลัมน์) อยู่บนสุด ให้เห็นก่อน */
+      const ra = a.boardRank != null, rb = b.boardRank != null;
+      if (ra !== rb) return ra ? 1 : -1;
+      if (ra && a.boardRank !== b.boardRank) return a.boardRank - b.boardRank;
       /* คนที่เลยวันติดตามอยู่บนสุด — บอร์ดนี้มีไว้บอกว่าวันนี้ต้องโทรหาใคร */
       const la = sOverdue(a.nextFollow) ? 0 : 1, lb = sOverdue(b.nextFollow) ? 0 : 1;
       if (la !== lb) return la - lb;
@@ -476,7 +481,7 @@ function FlowBoardView({ jobs, leads, quotes, stock, search, role, currentUser,
       return false;
     }
     if (drag.group !== g.key) return false;
-    if (g.kind === "lead") return salesStageKey(drag.rec) !== key;
+    if (g.kind === "lead") return salesStageKey(drag.rec) !== key || !!onRankLeads;   // คอลัมน์เดิม = ลากจัดลำดับ
     const from = permitColOf(drag.rec);
     return from !== key && (PERMIT_MOVES[from] || []).indexOf(key) !== -1;
   };
@@ -514,15 +519,29 @@ function FlowBoardView({ jobs, leads, quotes, stock, search, role, currentUser,
     }
     if (d.group !== g.key) return;
     if (g.kind === "lead") {
-      if (salesStageKey(rec) === key) return;
+      /* ลำดับใหม่ของคอลัมน์ปลายทาง — ช่องที่การ์ดอื่นขยับหลบให้ (pgDragIndex นับเฉพาะการ์ดลูกค้า ไม่รวมตัวที่ลาก) */
+      const idx = window.pgDragIndex ? window.pgDragIndex() : null;
+      let ranks = null;
+      if (idx != null && onRankLeads) {
+        const list = (leadCols[key] || []).filter((l) => l.id !== rec.id);
+        list.splice(Math.min(idx, list.length), 0, rec);
+        ranks = {};
+        list.forEach((l, i) => { if (l.boardRank !== i + 1) ranks[l.id] = i + 1; });
+      }
+      if (salesStageKey(rec) === key) {
+        if (ranks && Object.keys(ranks).length) onRankLeads(ranks);
+        else if (window.pgDragSettle) window.pgDragSettle();   // วางที่เดิม — ไม่มีอะไรเปลี่ยน บินกลับเลยไม่ต้องรอ
+        return;
+      }
       if (key === "won") {
         window.askConfirm({
           title: "ปิดการขาย “" + (rec.name || "รายนี้") + "” ?",
           body: "ปิดแล้วให้กด “แปลงเป็นงานติดตั้ง” ที่หน้าลูกค้าสำรวจ เพื่อย้ายเข้าฐานข้อมูลงานพร้อมแบบสำรวจและรูป",
           ok: "ปิดการขาย", danger: false, icon: "check",
-        }).then((ok) => { if (ok) onPatchLead(rec.id, salesStagePatch(key)); });
+        }).then((ok) => { if (ok) { if (ranks) onRankLeads(ranks); onPatchLead(rec.id, salesStagePatch(key)); } });
         return;
       }
+      if (ranks) onRankLeads(ranks);
       onPatchLead(rec.id, salesStagePatch(key));
       return;
     }
@@ -612,6 +631,7 @@ function FlowBoardView({ jobs, leads, quotes, stock, search, role, currentUser,
                 <FlCol key={c.key} col={c} count={cards.length} isOver={over === g.key + ":" + c.key && ok}
                   dimmed={!!drag && !ok}
                   sub={g.kind === "lead" ? flSumValue(cards) : null}
+                  reorder={ok && g.kind === "lead" && !!onRankLeads && !!drag && drag.kind === "lead"}
                   onDragOver={(e) => { if (!ok) return; e.preventDefault(); setOver(g.key + ":" + c.key); }}
                   onDragLeave={() => setOver((o) => (o === g.key + ":" + c.key ? null : o))}
                   onDrop={() => doDrop(g, c.key)}>

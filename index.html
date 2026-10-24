@@ -17,7 +17,7 @@
 <!-- ธีมกระจก — ค่าเริ่มของเว็บ (ไล่สีชุดทะเล) · กลับธีมเดิมด้วย ?skin=off · โหลดใน head ก่อนแอปกันหน้ากระพริบ -->
 <script src="dashboard/skin-glass.js?v=23"></script>
 <!-- การ์ดขยายเป็นใบตอนเปิดใบลูกค้าฝ่ายขาย หดกลับตอนปิด (ลิ้นชักเรียก pgZoomFromCard / pgZoomToCard) -->
-<script src="dashboard/pg-motion.js?v=15"></script>
+<script src="dashboard/pg-motion.js?v=18"></script>
 <style>
 
 * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -726,7 +726,8 @@ html.theme-anim, html.theme-anim * { transition: background-color .34s ease, bor
 /* หัวรางค้างบนสุดเวลาเลื่อน จึงต้องพื้นทึบ — ไม่มีเส้นคาดใต้ ที่ว่างแยกหัวออกจากกองการ์ดพอแล้ว */
 .bd-col>.hd{padding:14px 16px 10px;position:sticky;top:0;z-index:1;background:inherit;
   border-radius:var(--r-card) var(--r-card) 0 0}
-.bd-col>.bd{padding:0 11px 11px;display:flex;flex-direction:column;gap:10px;overflow-y:auto;flex:1;min-height:80px}
+/* scrollbar-gutter: เผื่อที่แถบเลื่อนทุกคอลัมน์ — การ์ดกว้างเท่ากันทั้งคอลัมน์ที่ล้นและไม่ล้น ลากย้ายแล้วชื่อไม่ตัดบรรทัดใหม่ (ผู้ใช้: ตัวหนังสือขยับตอนย้ายจากติดต่อแล้วไปนัดสำรวจ) */
+.bd-col>.bd{position:relative;scrollbar-gutter:stable;padding:0 11px 11px;display:flex;flex-direction:column;gap:10px;overflow-y:auto;flex:1;min-height:80px}
 /* ช่องว่างตอนยังไม่มีงาน — เส้นประมนตามการ์ด ไม่ใช่มุมเหลี่ยมกว่าของที่มันรอ */
 .bd-col .empty{padding:22px 0;text-align:center;font-size:12px;color:var(--text-3);
   border:1.5px dashed var(--border-strong);border-radius:var(--r-tile)}
@@ -747,12 +748,15 @@ html.theme-anim, html.theme-anim * { transition: background-color .34s ease, bor
   background-image:radial-gradient(150% 170% at 100% 40%,
     color-mix(in srgb,var(--rail,transparent) 15%,transparent) 0%,transparent 62%);
   border:1px solid var(--card-bd);border-radius:var(--r-tile);padding:13px 15px;cursor:grab;
-  box-shadow:var(--shadow-sm);
-  transition:box-shadow .16s ease,transform .16s ease,opacity .15s ease,background-image .16s ease}
-/* ตอนชี้ ผ้าคลุมเข้มขึ้นแทนการขึ้นเส้นขอบ — สีที่มีอยู่แล้วเข้มขึ้น ไม่ใช่ของชิ้นใหม่โผล่มา */
-.bd-card:hover{transform:translateY(-2px);box-shadow:var(--hov-sh);
-  background-image:radial-gradient(150% 170% at 100% 40%,
-    color-mix(in srgb,var(--rail,transparent) 24%,transparent) 0%,transparent 62%)}
+  box-shadow:var(--shadow-sm);isolation:isolate;
+  transition:box-shadow .16s ease,transform .16s ease,opacity .15s ease}
+/* ตอนชี้ ผ้าคลุมเข้มขึ้นแทนการขึ้นเส้นขอบ — สีที่มีอยู่แล้วเข้มขึ้น ไม่ใช่ของชิ้นใหม่โผล่มา
+   ส่วนที่เข้มขึ้นเป็นผ้าคลุมอีกชั้น (::after ใต้เนื้อหา) ค่อย ๆ จางเข้า — เดิมเปลี่ยน background-image ซึ่ง CSS ไล่ค่าไม่ได้ สีเข้มขึ้นพรวด
+   (ผู้ใช้: "ชี้ค้างไว้แล้วมันมีสีเข้มอีกที รู้สึกเหมือนกระตุก" — เห็นชัดตอนวางการ์ดแล้วเมาส์ยังค้างอยู่บนใบ) */
+.bd-card::after{content:"";position:absolute;inset:0;z-index:-1;border-radius:inherit;pointer-events:none;opacity:0;transition:opacity .3s ease;
+  background:radial-gradient(150% 170% at 100% 40%,color-mix(in srgb,var(--rail,transparent) var(--hov-tint,11%),transparent) 0%,transparent var(--hov-end,62%))}
+.bd-card:hover{transform:translateY(-2px);box-shadow:var(--hov-sh)}
+.bd-card:hover::after{opacity:1}
 .bd-card:active{transform:none;box-shadow:var(--shadow-sm)}
 .bd-card[data-drag="1"]{opacity:.4}
 /* ลากการ์ดลูกค้าไปชี้ถังขยะ — ใบเดิมในคอลัมน์ย่อตัวลงจาง ๆ บอกว่ากำลังจะถูกทิ้ง (views-flow.jsx) */
@@ -835,8 +839,7 @@ html.theme-anim, html.theme-anim * { transition: background-color .34s ease, bor
    จุดจบขยับมาที่ 70% แทน 62% — ผ้าคลุมที่เข้มขึ้นต้องจางยาวขึ้นด้วย ไม่งั้นขอบที่ตัดจะชัด */
 [data-theme="aurora"] .bd-card{background-image:radial-gradient(150% 170% at 100% 40%,
   color-mix(in srgb,var(--rail,transparent) 26%,transparent) 0%,transparent 70%)}
-[data-theme="aurora"] .bd-card:hover{background-image:radial-gradient(150% 170% at 100% 40%,
-  color-mix(in srgb,var(--rail,transparent) 38%,transparent) 0%,transparent 70%)}
+[data-theme="aurora"] .bd-card{--hov-tint:16%;--hov-end:70%}
 
 /* แถบความคืบหน้า — ไล่เฉดจากจางไปเข้ม ไม่ใช่แท่งสีตัน
    แท่งสีตันบอกได้อย่างเดียวว่า "มาถึงตรงนี้" · การไล่เฉดบอกทิศทางที่มันวิ่งไปด้วย
@@ -1198,7 +1201,7 @@ H-@G1I margin-top D'IC*D%L-1'@- 6H
 <script src="dashboard/build/sales.js?v=90"></script>
 <script src="dashboard/build/pkgposter.js?v=66"></script>
 <script src="dashboard/build/views-survey.js?v=67"></script>
-<script src="dashboard/build/survey-sched.js?v=49"></script>
+<script src="dashboard/build/survey-sched.js?v=50"></script>
 <script src="dashboard/build/permit.js?v=14"></script>
 <script src="dashboard/build/views-permit.js?v=27"></script>
 <!-- เอกสารงวดงาน · วางบิล: ตรรกะ → กระดาษ → หน้าจอ -->
@@ -1206,7 +1209,7 @@ H-@G1I margin-top D'IC*D%L-1'@- 6H
 <script src="dashboard/build/bill-paper.js?v=8"></script>
 <script src="dashboard/build/views-billing.js?v=15"></script>
 <script src="dashboard/build/views-lead.js?v=23"></script>
-<script src="dashboard/build/views-flow.js?v=28"></script>
+<script src="dashboard/build/views-flow.js?v=29"></script>
 <script src="dashboard/build/daily.js?v=19"></script>
 <script src="dashboard/build/views-daily.js?v=41"></script>
 <script src="dashboard/build/om.js?v=13"></script>
@@ -1227,6 +1230,6 @@ H-@G1I margin-top D'IC*D%L-1'@- 6H
 <script src="dashboard/build/ot-paper.js?v=9"></script>
 <script src="dashboard/build/views-line.js?v=9"></script>
 <script src="dashboard/build/guide.js?v=12"></script>
-<script src="dashboard/build/app.js?v=228"></script>
+<script src="dashboard/build/app.js?v=229"></script>
 </body>
 </html>

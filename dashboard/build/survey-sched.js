@@ -194,6 +194,19 @@ function useSurveyLeadStore() {
     });
     if (_FB()) _fbUpd("surveyLeads/" + id, f);else setLeads(p => (p || []).map(x => x.id === id ? Object.assign({}, x, f) : x));
   }, []);
+  const rank = React.useCallback(ranks => {
+    const ids = Object.keys(ranks || {});
+    if (!ids.length) return;
+    if (_FB()) {
+      const u = {};
+      ids.forEach(id => {
+        u[id + "/boardRank"] = ranks[id];
+      });
+      _fbUpd("surveyLeads", u);
+    } else setLeads(p => (p || []).map(x => ranks[x.id] != null ? Object.assign({}, x, {
+      boardRank: ranks[x.id]
+    }) : x));
+  }, []);
   const remove = React.useCallback((id, by) => {
     const f = {
       deleted: true,
@@ -228,6 +241,7 @@ function useSurveyLeadStore() {
     trash,
     upsert,
     patch,
+    rank,
     remove,
     restore,
     purge,

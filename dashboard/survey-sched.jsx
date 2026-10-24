@@ -118,6 +118,14 @@ function useSurveyLeadStore() {
     if (_FB()) _fbUpd("surveyLeads/" + id, f);
     else setLeads((p) => (p || []).map((x) => x.id === id ? Object.assign({}, x, f) : x));
   }, []);
+  /* ลำดับการ์ดในคอลัมน์บอร์ดที่ผู้ใช้ลากจัดเอง (ผู้ใช้: "เลื่อนจัดลำดับงานเองได้ไหม" ต.ค. 2026) — ranks = { id: ลำดับ }
+     เขียนทีเดียวหลายราย (multi-path) ไม่แตะ updatedAt — แค่จัดที่บนบอร์ด ไม่ใช่แก้ข้อมูลลูกค้า */
+  const rank = React.useCallback((ranks) => {
+    const ids = Object.keys(ranks || {});
+    if (!ids.length) return;
+    if (_FB()) { const u = {}; ids.forEach((id) => { u[id + "/boardRank"] = ranks[id]; }); _fbUpd("surveyLeads", u); }
+    else setLeads((p) => (p || []).map((x) => ranks[x.id] != null ? Object.assign({}, x, { boardRank: ranks[x.id] }) : x));
+  }, []);
   /* ลบ = ย้ายเข้าถังขยะ (ติดธง deleted แบบเดียวกับงาน) — แบบสำรวจ/รูป/ใบเสนอราคายังอยู่ครบ กู้คืนได้ (ผู้ใช้สั่ง ต.ค. 2026)
      by = ชื่อคนที่กดลบ ไว้ดูย้อนหลังในถังขยะ */
   const remove = React.useCallback((id, by) => {
@@ -143,7 +151,7 @@ function useSurveyLeadStore() {
   const hidden = React.useMemo(() => new Set((leads || []).filter((l) => l.deleted || !seen(l)).map((l) => l.id)), [leads, admin]);
   const trash = React.useMemo(() => (leads || []).filter((l) => l.deleted && seen(l))
     .sort((a, b) => String(b.deletedAt || "").localeCompare(String(a.deletedAt || ""))), [leads, admin]);
-  return { leads: vis, hidden, trash, upsert, patch, remove, restore, purge, blank: () => Object.assign(blankLead(ref.current || []), window.pgAdminFlag()) };
+  return { leads: vis, hidden, trash, upsert, patch, rank, remove, restore, purge, blank: () => Object.assign(blankLead(ref.current || []), window.pgAdminFlag()) };
 }
 
 /* ย้ายรูป checklist จากลูกค้าสำรวจ → งานจริง (คนละคีย์ใน surveyPhotos) */

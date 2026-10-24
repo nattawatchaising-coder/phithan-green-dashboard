@@ -14,6 +14,7 @@ function FlCol({
   isOver,
   dimmed,
   sub,
+  reorder,
   onDragOver,
   onDragLeave,
   onDrop,
@@ -24,6 +25,7 @@ function FlCol({
       onDragLeave: onDragLeave,
       onDrop: onDrop,
       className: "bd-col",
+      "data-reorder": reorder ? "1" : null,
       style: {
         width: 262,
         flexShrink: 0,
@@ -637,6 +639,7 @@ function FlowBoardView({
   onMoveStage,
   onPatchJob,
   onPatchLead,
+  onRankLeads,
   onPatchPermit,
   onOpenReview,
   leadTrash,
@@ -822,6 +825,10 @@ function FlowBoardView({
       (m[k] || (m[k] = [])).push(l);
     });
     Object.keys(m).forEach(k => m[k].sort((a, b) => {
+      const ra = a.boardRank != null,
+        rb = b.boardRank != null;
+      if (ra !== rb) return ra ? 1 : -1;
+      if (ra && a.boardRank !== b.boardRank) return a.boardRank - b.boardRank;
       const la = sOverdue(a.nextFollow) ? 0 : 1,
         lb = sOverdue(b.nextFollow) ? 0 : 1;
       if (la !== lb) return la - lb;
@@ -839,7 +846,7 @@ function FlowBoardView({
       return false;
     }
     if (drag.group !== g.key) return false;
-    if (g.kind === "lead") return salesStageKey(drag.rec) !== key;
+    if (g.kind === "lead") return salesStageKey(drag.rec) !== key || !!onRankLeads;
     const from = permitColOf(drag.rec);
     return from !== key && (PERMIT_MOVES[from] || []).indexOf(key) !== -1;
   };
@@ -874,7 +881,20 @@ function FlowBoardView({
     }
     if (d.group !== g.key) return;
     if (g.kind === "lead") {
-      if (salesStageKey(rec) === key) return;
+      const idx = window.pgDragIndex ? window.pgDragIndex() : null;
+      let ranks = null;
+      if (idx != null && onRankLeads) {
+        const list = (leadCols[key] || []).filter(l => l.id !== rec.id);
+        list.splice(Math.min(idx, list.length), 0, rec);
+        ranks = {};
+        list.forEach((l, i) => {
+          if (l.boardRank !== i + 1) ranks[l.id] = i + 1;
+        });
+      }
+      if (salesStageKey(rec) === key) {
+        if (ranks && Object.keys(ranks).length) onRankLeads(ranks);else if (window.pgDragSettle) window.pgDragSettle();
+        return;
+      }
       if (key === "won") {
         window.askConfirm({
           title: "ปิดการขาย “" + (rec.name || "รายนี้") + "” ?",
@@ -883,10 +903,14 @@ function FlowBoardView({
           danger: false,
           icon: "check"
         }).then(ok => {
-          if (ok) onPatchLead(rec.id, salesStagePatch(key));
+          if (ok) {
+            if (ranks) onRankLeads(ranks);
+            onPatchLead(rec.id, salesStagePatch(key));
+          }
         });
         return;
       }
+      if (ranks) onRankLeads(ranks);
       onPatchLead(rec.id, salesStagePatch(key));
       return;
     }
@@ -1025,6 +1049,7 @@ function FlowBoardView({
       isOver: over === g.key + ":" + c.key && ok,
       dimmed: !!drag && !ok,
       sub: g.kind === "lead" ? flSumValue(cards) : null,
+      reorder: ok && g.kind === "lead" && !!onRankLeads && !!drag && drag.kind === "lead",
       onDragOver: e => {
         if (!ok) return;
         e.preventDefault();
