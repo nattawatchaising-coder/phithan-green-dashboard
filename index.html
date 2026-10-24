@@ -768,13 +768,11 @@ html.theme-anim, html.theme-anim * { transition: background-color .34s ease, bor
 .fl-dock-ph[data-m="1"] .fl-dock{box-shadow:none;border-radius:18px}
 .fl-dock-ph[data-m="1"]{z-index:40;filter:drop-shadow(0 18px 30px rgba(8,20,14,.22)) drop-shadow(0 2px 6px rgba(8,20,14,.08))}
 .fl-cap{position:relative;display:flex;align-items:center;gap:2px;padding:3px;width:max-content;height:30px;box-sizing:border-box}
-/* เม็ดไฮไลต์ตามเมาส์ แบบหยดน้ำ — ขอบด้านที่วิ่งไปเร็ว ขอบหลังช้าตามมา (ยืดแล้วหด) เม็ดเขียวอ่อนมีเงา+ประกายบน */
-.fl-hi{position:absolute;top:3px;height:24px;border-radius:999px;pointer-events:none;
+/* เม็ดไฮไลต์ตามเมาส์ แบบหยดน้ำ — ตำแหน่ง/ความกว้างขยับด้วยสปริงใน JS (FlSalesDock) ที่นี่คุมแค่หน้าตา+จางเข้าออก */
+.fl-hi{position:absolute;top:3px;left:0;height:24px;will-change:transform,width;border-radius:999px;pointer-events:none;
   background:linear-gradient(180deg,rgba(255,255,255,.55),rgba(255,255,255,0) 62%),var(--primary-soft);
   box-shadow:inset 0 1px 0 rgba(255,255,255,.7),0 6px 14px -5px rgba(20,90,50,.45),0 1px 2px rgba(20,90,50,.18);
-  transition:right .3s cubic-bezier(.3,.9,.4,1),left .62s cubic-bezier(.5,1.35,.45,1),opacity .22s ease}
-.fl-hi[data-dir="l"]{transition:left .3s cubic-bezier(.3,.9,.4,1),right .62s cubic-bezier(.5,1.35,.45,1),opacity .22s ease}
-.fl-hi[data-snap="1"]{transition:opacity .22s ease}
+  transition:opacity .22s ease}
 .fl-seg{position:relative;z-index:1;display:inline-flex;align-items:center;gap:5px;height:24px;padding:0 10px;border:none;border-radius:999px;background:transparent;
   color:var(--text-2);font-size:11.5px;font-weight:700;line-height:1;font-family:inherit;cursor:pointer;white-space:nowrap;
   transition:background-color .2s ease,color .2s ease,padding .4s cubic-bezier(.32,.72,0,1),transform .16s ease,box-shadow .16s ease}
@@ -812,7 +810,7 @@ html.theme-anim, html.theme-anim * { transition: background-color .34s ease, bor
 .pg-sheet-in{animation:pgSheetIn .52s cubic-bezier(.22,1,.36,1) both}
 @keyframes pgBdIn{from{opacity:0}to{opacity:1}}
 @keyframes pgSheetIn{from{opacity:0;transform:translateY(24px) scale(.965)}to{opacity:1;transform:none}}
-@media (prefers-reduced-motion: reduce){.pg-bd-in,.pg-sheet-in,.fl-seg,.fl-seg svg,.fl-undo{animation:none!important}.fl-hi{transition:opacity .22s ease!important}.fl-dock,.fl-body,.fl-lbl{transition:none!important}}
+@media (prefers-reduced-motion: reduce){.pg-bd-in,.pg-sheet-in,.fl-seg,.fl-seg svg,.fl-undo{animation:none!important}.fl-dock,.fl-body,.fl-lbl{transition:none!important}}
 /* ใบที่กดดูได้อย่างเดียว (ลากไม่ได้) — เคอร์เซอร์ต้องไม่หลอกว่าลากได้ */
 .bd-card[data-nodrag="1"]{cursor:pointer}
 @media (prefers-reduced-motion: reduce){.bd-card:hover{transform:none}}
@@ -1205,7 +1203,7 @@ H-@G1I margin-top D'IC*D%L-1'@- 6H
 <script src="dashboard/build/bill-paper.js?v=8"></script>
 <script src="dashboard/build/views-billing.js?v=15"></script>
 <script src="dashboard/build/views-lead.js?v=23"></script>
-<script src="dashboard/build/views-flow.js?v=25"></script>
+<script src="dashboard/build/views-flow.js?v=26"></script>
 <script src="dashboard/build/daily.js?v=19"></script>
 <script src="dashboard/build/views-daily.js?v=41"></script>
 <script src="dashboard/build/om.js?v=13"></script>

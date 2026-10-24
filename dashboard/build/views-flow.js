@@ -347,51 +347,95 @@ function FlSalesDock({
     }
   };
   const [hov, setHov] = React.useState(null);
-  const [hi, setHi] = React.useState(null);
+  const [hiOn, setHiOn] = React.useState(false);
   const hiRef = React.useRef(null);
   const segRefs = React.useRef({});
+  const sp = React.useRef({
+    l: 0,
+    r: 0,
+    vl: 0,
+    vr: 0,
+    tl: 0,
+    tr: 0,
+    dir: 1,
+    raf: 0,
+    t: 0,
+    shown: false
+  });
   const target = hov || (open ? "trash" : null);
+  const drawHi = () => {
+    const s = sp.current,
+      el = hiRef.current;
+    if (!el) return;
+    const w = Math.max(0, s.r - s.l),
+      tw = s.tr - s.tl,
+      st = tw > 0 ? Math.max(0, w / tw - 1) : 0;
+    el.style.width = w + "px";
+    el.style.transform = "translateX(" + s.l + "px) scaleY(" + Math.max(.84, 1 - st * .2) + ")";
+  };
+  const tickHi = now => {
+    const s = sp.current;
+    const dt = Math.min(1 / 30, s.t ? (now - s.t) / 1000 : 1 / 60);
+    s.t = now;
+    const H = [430, 36],
+      S = [170, 20];
+    const L = s.dir < 0 ? H : S,
+      R = s.dir > 0 ? H : S;
+    for (let i = 0; i < 2; i++) {
+      const h = dt / 2;
+      s.vl += (L[0] * (s.tl - s.l) - L[1] * s.vl) * h;
+      s.l += s.vl * h;
+      s.vr += (R[0] * (s.tr - s.r) - R[1] * s.vr) * h;
+      s.r += s.vr * h;
+    }
+    if (Math.abs(s.tl - s.l) + Math.abs(s.tr - s.r) < .4 && Math.abs(s.vl) + Math.abs(s.vr) < 8) {
+      s.l = s.tl;
+      s.r = s.tr;
+      s.vl = s.vr = 0;
+      s.raf = 0;
+      s.t = 0;
+      drawHi();
+      return;
+    }
+    drawHi();
+    s.raf = requestAnimationFrame(tickHi);
+  };
   const place = React.useCallback(() => {
-    const el = target && segRefs.current[target];
-    setHi(p => {
-      if (!el) return p ? Object.assign({}, p, {
-        hidden: true
-      }) : null;
-      const snap = !p || p.hidden;
-      const x = el.offsetLeft,
-        w = el.offsetWidth,
-        r = el.offsetParent ? el.offsetParent.clientWidth - x - w : 0;
-      if (p && !snap && p.x === x && p.w === w && p.r === r) return p;
-      return {
-        x: x,
-        w: w,
+    const el = target && segRefs.current[target],
+      s = sp.current;
+    if (!el) {
+      s.shown = false;
+      setHiOn(false);
+      return;
+    }
+    const l = el.offsetLeft,
+      r = l + el.offsetWidth;
+    if (s.shown && s.tl === l && s.tr === r) return;
+    s.tl = l;
+    s.tr = r;
+    const still = window.matchMedia && matchMedia("(prefers-reduced-motion: reduce)").matches;
+    if (!s.shown || still) {
+      if (s.raf) cancelAnimationFrame(s.raf);
+      Object.assign(s, {
+        l: l,
         r: r,
-        dir: p && x < p.x ? "l" : "r",
-        snap: snap,
-        hidden: false
-      };
-    });
+        vl: 0,
+        vr: 0,
+        raf: 0,
+        t: 0,
+        shown: true
+      });
+      drawHi();
+      setHiOn(true);
+      return;
+    }
+    s.dir = Math.sign(l + r - (s.l + s.r)) || s.dir;
+    if (!s.raf) s.raf = requestAnimationFrame(tickHi);
   }, [target]);
   React.useLayoutEffect(place, [place]);
-  const hx = hi && !hi.snap && !hi.hidden ? hi.x : null;
-  React.useEffect(() => {
-    const el = hiRef.current;
-    if (hx == null || !el || !el.animate || window.matchMedia && matchMedia("(prefers-reduced-motion: reduce)").matches) return;
-    el.animate([{
-      transform: "scale(1,1)"
-    }, {
-      transform: "scale(1.04,.8)",
-      offset: .4
-    }, {
-      transform: "scale(.98,1.06)",
-      offset: .72
-    }, {
-      transform: "scale(1,1)"
-    }], {
-      duration: 620,
-      easing: "ease-out"
-    });
-  }, [hx]);
+  React.useEffect(() => () => {
+    if (sp.current.raf) cancelAnimationFrame(sp.current.raf);
+  }, []);
   React.useEffect(() => {
     const cap = capRef.current;
     if (!cap || !window.ResizeObserver) return;
@@ -445,14 +489,8 @@ function FlSalesDock({
   }, React.createElement("span", {
     ref: hiRef,
     className: "fl-hi",
-    "data-snap": hi && hi.snap ? "1" : null,
-    "data-dir": hi ? hi.dir : null,
-    style: hi ? {
-      left: hi.x,
-      right: hi.r,
-      opacity: hi.hidden ? 0 : 1
-    } : {
-      opacity: 0
+    style: {
+      opacity: hiOn ? 1 : 0
     }
   }), onNewLead && seg("new", "plus", "ลูกค้าใหม่", () => {
     setOpen(false);
