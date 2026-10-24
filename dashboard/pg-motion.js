@@ -482,15 +482,20 @@
   };
 })();
 
-/* ── แถบเลื่อนคอลัมน์บอร์ดเข้มเฉพาะตอนเลื่อน ── ใส่คลาส is-scrolling ให้ .bd ที่กำลังเลื่อน หยุดเลื่อน 800ms แล้วถอด (สีอยู่ใน index.html)
-   ผู้ใช้: "ทำสีจางแบบเดิม เวลาเลื่อนค่อยเข้ม" */
+/* ── แถบเลื่อนคอลัมน์บอร์ดเข้มเฉพาะตอนเลื่อน/ชี้ ── ใส่คลาส is-scrolling ให้ .bd ที่กำลังเลื่อน หรือเมาส์อยู่บนแถบเลื่อน (ขอบขวา 14px)
+   แล้วค้างไว้อีก 1.5 วิค่อยถอด (สีอยู่ใน index.html) · ผู้ใช้: "ทำสีจางแบบเดิม เวลาเลื่อนค่อยเข้ม" + "เพิ่มหน่วงเวลา เอาเมาส์ไปชี้โดนแล้วสีเข้ม" */
 (function () {
-  var T = new Map();
-  document.addEventListener("scroll", function (e) {
-    var el = e.target;
-    if (!el || !el.classList || !el.classList.contains("bd") || !el.parentElement || !el.parentElement.classList.contains("bd-col")) return;
+  var T = new Map(), HOLD = 1500;
+  function isCol(el) { return el && el.classList && el.classList.contains("bd") && el.parentElement && el.parentElement.classList.contains("bd-col"); }
+  function show(el) {
     if (!T.has(el)) el.classList.add("is-scrolling");
     clearTimeout(T.get(el));
-    T.set(el, setTimeout(function () { el.classList.remove("is-scrolling"); T.delete(el); }, 800));
-  }, true);
+    T.set(el, setTimeout(function () { el.classList.remove("is-scrolling"); T.delete(el); }, HOLD));
+  }
+  document.addEventListener("scroll", function (e) { if (isCol(e.target)) show(e.target); }, true);
+  document.addEventListener("mousemove", function (e) {
+    var el = e.target && e.target.closest ? e.target.closest(".bd-col > .bd") : null;
+    if (!el || el.scrollHeight <= el.clientHeight) return;
+    if (e.clientX >= el.getBoundingClientRect().right - 14) show(el);
+  }, { passive: true });
 })();
