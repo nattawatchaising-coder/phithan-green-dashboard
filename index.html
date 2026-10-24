@@ -728,6 +728,9 @@ html.theme-anim, html.theme-anim * { transition: background-color .34s ease, bor
   border-radius:var(--r-card) var(--r-card) 0 0}
 /* scrollbar-gutter: เผื่อที่แถบเลื่อนทุกคอลัมน์ — การ์ดกว้างเท่ากันทั้งคอลัมน์ที่ล้นและไม่ล้น ลากย้ายแล้วชื่อไม่ตัดบรรทัดใหม่ (ผู้ใช้: ตัวหนังสือขยับตอนย้ายจากติดต่อแล้วไปนัดสำรวจ) */
 .bd-col>.bd{position:relative;scrollbar-gutter:stable;padding:0 11px 11px;display:flex;flex-direction:column;gap:10px;overflow-y:auto;flex:1;min-height:80px}
+/* แถบเลื่อนในคอลัมน์บอร์ดเข้มกว่าแถบทั่วไป — สี --border-strong จางจนมองไม่ออกว่ามีงานเกินขอบคอลัมน์ (ผู้ใช้: "เกินขอบงาน ทำสีเข้มกว่านี้หน่อย") */
+.bd-col>.bd::-webkit-scrollbar-thumb{background:var(--text-3);background-clip:padding-box}
+.bd-col>.bd::-webkit-scrollbar-thumb:hover{background:var(--text-2);background-clip:padding-box}
 /* ช่องว่างตอนยังไม่มีงาน — เส้นประมนตามการ์ด ไม่ใช่มุมเหลี่ยมกว่าของที่มันรอ */
 .bd-col .empty{padding:22px 0;text-align:center;font-size:12px;color:var(--text-3);
   border:1.5px dashed var(--border-strong);border-radius:var(--r-tile)}
