@@ -118,16 +118,32 @@ function useSurveyLeadStore() {
     if (_FB()) _fbUpd("surveyLeads/" + id, f);
     else setLeads((p) => (p || []).map((x) => x.id === id ? Object.assign({}, x, f) : x));
   }, []);
-  const remove = React.useCallback((id) => {
+  /* ลบ = ย้ายเข้าถังขยะ (ติดธง deleted แบบเดียวกับงาน) — แบบสำรวจ/รูป/ใบเสนอราคายังอยู่ครบ กู้คืนได้ (ผู้ใช้สั่ง ต.ค. 2026)
+     by = ชื่อคนที่กดลบ ไว้ดูย้อนหลังในถังขยะ */
+  const remove = React.useCallback((id, by) => {
+    const f = { deleted: true, deletedAt: new Date().toISOString(), deletedBy: by || "" };
+    if (_FB()) _fbUpd("surveyLeads/" + id, f);
+    else setLeads((p) => (p || []).map((x) => x.id === id ? Object.assign({}, x, f) : x));
+  }, []);
+  const restore = React.useCallback((id) => {
+    if (_FB()) _fbUpd("surveyLeads/" + id, { deleted: null, deletedAt: null, deletedBy: null });
+    else setLeads((p) => (p || []).map((x) => x.id === id ? Object.assign({}, x, { deleted: false }) : x));
+  }, []);
+  /* ลบถาวร — ออกจากฐานจริงพร้อมรูปสำรวจ กู้คืนไม่ได้ (ถังขยะกั้นด้วยแอดมิน + รหัสผ่านก่อนเรียกตัวนี้) */
+  const purge = React.useCallback((id) => {
     if (_FB()) { _fbRem("surveyLeads/" + id); _fbRem("surveyPhotos/" + id); }
     else setLeads((p) => (p || []).filter((x) => x.id !== id));
   }, []);
 
-  /* ลูกค้าเฉพาะแอดมิน (adminOnly) — คนที่ไม่ใช่แอดมินไม่เห็น · blankLead ยังนับเลขจากทั้งหมด */
+  /* ลูกค้าเฉพาะแอดมิน (adminOnly) — คนที่ไม่ใช่แอดมินไม่เห็น · blankLead ยังนับเลขจากทั้งหมด (รวมในถังขยะ รหัสไม่ซ้ำ)
+     ลูกค้าในถังขยะไม่ขึ้นที่ไหนเลย และนับเป็น hidden ด้วย — ใบเสนอราคา/นัดของรายนั้นหายตามจนกว่าจะกู้คืน */
   const admin = window.usePgAdmin();
-  const vis = React.useMemo(() => admin ? (leads || []) : (leads || []).filter((l) => !l.adminOnly), [leads, admin]);
-  const hidden = React.useMemo(() => new Set(admin ? [] : (leads || []).filter((l) => l.adminOnly).map((l) => l.id)), [leads, admin]);
-  return { leads: vis, hidden, upsert, patch, remove, blank: () => Object.assign(blankLead(ref.current || []), window.pgAdminFlag()) };
+  const seen = (l) => admin || !l.adminOnly;
+  const vis = React.useMemo(() => (leads || []).filter((l) => !l.deleted && seen(l)), [leads, admin]);
+  const hidden = React.useMemo(() => new Set((leads || []).filter((l) => l.deleted || !seen(l)).map((l) => l.id)), [leads, admin]);
+  const trash = React.useMemo(() => (leads || []).filter((l) => l.deleted && seen(l))
+    .sort((a, b) => String(b.deletedAt || "").localeCompare(String(a.deletedAt || ""))), [leads, admin]);
+  return { leads: vis, hidden, trash, upsert, patch, remove, restore, purge, blank: () => Object.assign(blankLead(ref.current || []), window.pgAdminFlag()) };
 }
 
 /* ย้ายรูป checklist จากลูกค้าสำรวจ → งานจริง (คนละคีย์ใน surveyPhotos) */

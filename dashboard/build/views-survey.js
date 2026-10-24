@@ -2352,13 +2352,18 @@ function LeadDetail({
       lineHeight: 1.5,
       color: ask.kind === "del" ? "#EF4444" : "var(--tint-green-tx)"
     }
-  }, ask.kind === "del" ? "ลบ “" + (l.name || "รายนี้") + "” ? แบบสำรวจและรูปของรายนี้จะถูกลบด้วย" : "ย้าย “" + (l.name || "รายนี้") + "” เข้าฐานข้อมูลงานติดตั้ง? แบบสำรวจและรูปถ่ายจะถูกย้ายไปกับงานใหม่ด้วย"), ask.kind === "del" ? React.createElement("button", {
+  }, ask.kind === "del" ? "ย้าย “" + (l.name || "รายนี้") + "” ลงถังขยะ? หายจากบอร์ดและรายการ แต่กู้คืนได้ที่ปุ่มถังขยะบนบอร์ด (แบบสำรวจ/รูปยังอยู่)" : "ย้าย “" + (l.name || "รายนี้") + "” เข้าฐานข้อมูลงานติดตั้ง? แบบสำรวจและรูปถ่ายจะถูกย้ายไปกับงานใหม่ด้วย"), ask.kind === "del" ? React.createElement("button", {
     onClick: () => {
-      leadStore.remove(l.id);
+      leadStore.remove(l.id, ctx.currentUser ? ctx.currentUser.name : "");
       setAsk(null);
+      if (ctx.onClose) ctx.onClose();
     },
     style: leadBtn("#EF4444", true)
-  }, "\u0E25\u0E1A\u0E40\u0E25\u0E22") : React.createElement("button", {
+  }, React.createElement(Icon, {
+    name: "trash",
+    size: 14,
+    color: "#fff"
+  }), " \u0E22\u0E49\u0E32\u0E22\u0E25\u0E07\u0E16\u0E31\u0E07\u0E02\u0E22\u0E30") : React.createElement("button", {
     onClick: () => {
       setAsk(null);
       onConvert(l);
@@ -2393,7 +2398,11 @@ function LeadDetail({
       kind: "del"
     }),
     style: leadBtn("#EF4444")
-  }, "\u0E25\u0E1A"), canConvert && sKey !== "won" && React.createElement("button", {
+  }, React.createElement(Icon, {
+    name: "trash",
+    size: 14,
+    color: "#EF4444"
+  }), " \u0E25\u0E07\u0E16\u0E31\u0E07\u0E02\u0E22\u0E30"), canConvert && sKey !== "won" && React.createElement("button", {
     onClick: () => setAsk({
       kind: "conv"
     }),
@@ -2494,6 +2503,7 @@ function LeadDrawer({
     onPlan3d,
     onConvert,
     canConvert,
+    onClose,
     setEdit,
     setLog,
     setStage: (l, key) => leadSetStage(leadStore, l, key)

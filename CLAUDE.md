@@ -40,6 +40,7 @@ deploy อัตโนมัติด้วย Vercel จาก `master` บน 
 | สำรองข้อมูล Firebase · กู้คืน (`api/cron/backup.mjs` `tools/backup-*.mjs`) | `docs/backup.md` |
 | ความปลอดภัยฐานข้อมูล · Firebase Rules · ล็อกอิน/สิทธิ์ (`auth.jsx` `api/_lib/line.mjs`) | `docs/security.md` |
 | ไฟล์ 3D ส่งออกไป PVsyst (.pvc2/.dae · `pvsyst.jsx`) | `docs/pvsyst.md` |
+| ลูกค้าฝ่ายขาย · ถังขยะลูกค้า (`survey-sched.jsx` ตัวเก็บ · `views-survey.jsx` ใบลูกค้า · `sales.jsx` บอร์ดงานขาย) | `docs/sales.md` |
 | ฐานข้อมูลทดสอบบน localhost (`firebase-config.js` `firebase-config.local.js` `devserver.js`) | `docs/test-db.md` |
 
 ข้อตกลงใหม่ของเรื่องไหนให้เขียนลงไฟล์ของเรื่องนั้น (ไม่ใช่ที่นี่) · เรื่องใหม่ที่ยังไม่มีไฟล์ = สร้าง `docs/<เรื่อง>.md` แล้วเพิ่มแถวในตารางนี้

@@ -310,7 +310,9 @@ function FlowBoardView({
   onPatchJob,
   onPatchLead,
   onPatchPermit,
-  onOpenReview
+  onOpenReview,
+  leadTrashCount,
+  onOpenLeadTrash
 }) {
   const SF = window.SF;
   const isMobile = window.matchMedia("(max-width: 860px)").matches;
@@ -548,7 +550,7 @@ function FlowBoardView({
     onToggle: () => toggle(g.key),
     onAdd: g.kind === "lead" ? onNewLead || null : g.kind === "permit" ? onNewPermitJob || null : g.kind === "job" ? onNewJob || null : null,
     addLabel: g.kind === "permit" ? "งานขออนุญาต" : g.kind === "job" ? "เพิ่มงาน" : "ลูกค้าใหม่",
-    extra: g.kind === "lead" && pkAdmin && window.PkPosterModal ? React.createElement("button", {
+    extra: g.kind === "lead" ? React.createElement(React.Fragment, null, pkAdmin && window.PkPosterModal && React.createElement("button", {
       onClick: e => {
         e.stopPropagation();
         setPkSum(true);
@@ -576,7 +578,40 @@ function FlowBoardView({
       size: 13,
       color: g.color,
       sw: 2.2
-    }), " \u0E23\u0E39\u0E1B\u0E2A\u0E23\u0E38\u0E1B\u0E41\u0E1E\u0E47\u0E04\u0E40\u0E01\u0E08") : null
+    }), " \u0E23\u0E39\u0E1B\u0E2A\u0E23\u0E38\u0E1B\u0E41\u0E1E\u0E47\u0E04\u0E40\u0E01\u0E08"), onOpenLeadTrash && React.createElement("button", {
+      onClick: e => {
+        e.stopPropagation();
+        onOpenLeadTrash();
+      },
+      title: "\u0E25\u0E39\u0E01\u0E04\u0E49\u0E32\u0E17\u0E35\u0E48\u0E22\u0E49\u0E32\u0E22\u0E25\u0E07\u0E16\u0E31\u0E07\u0E02\u0E22\u0E30 \u2014 \u0E01\u0E39\u0E49\u0E04\u0E37\u0E19\u0E44\u0E14\u0E49",
+      style: {
+        display: "inline-flex",
+        alignItems: "center",
+        gap: 5,
+        height: 24,
+        padding: "0 10px",
+        borderRadius: "var(--r-chip)",
+        border: "1px solid color-mix(in srgb, var(--text-3) 30%, transparent)",
+        background: "transparent",
+        color: "var(--text-2)",
+        cursor: "pointer",
+        fontFamily: "inherit",
+        fontSize: 11.5,
+        fontWeight: 700,
+        flexShrink: 0,
+        whiteSpace: "nowrap"
+      }
+    }, React.createElement(Icon, {
+      name: "trash",
+      size: 13,
+      color: "var(--text-3)",
+      sw: 2.2
+    }), " \u0E16\u0E31\u0E07\u0E02\u0E22\u0E30", leadTrashCount ? React.createElement("span", {
+      style: {
+        fontFamily: "var(--mono)",
+        color: "var(--text-3)"
+      }
+    }, leadTrashCount) : null)) : null
   }, g.cols.map(c => {
     const cards = cardsOf(g, c.key);
     const ok = canDrop(g, c.key);

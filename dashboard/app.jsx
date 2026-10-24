@@ -724,12 +724,14 @@ function App() {
   );
 
   const salesOnly = isSalesOnly(role);
+  const [leadTrashOpen, setLeadTrashOpen] = React.useState(false);   // ถังขยะลูกค้าฝ่ายขาย (ปุ่มบนบอร์ดงานขาย + หัวช่วงขายของบอร์ดงานติดตั้ง)
   const salesBoard = (
     <SalesBoardView leads={leadStore.leads} quotes={quoteStore.quotes} search={search} currentUser={auth.current}
       /* กดการ์ด = เปิดใบเต็มทับบอร์ด ใบเดียวกับที่เด้งจากบอร์ดงานและหน้ารายการ */
       onOpenLead={(l) => { if (l) setBoardLead(l.id); }}
       onNewLead={can(role, "leads") ? newLead : null}
-      onPatchLead={(id, fields) => leadStore.patch(id, fields)} />
+      onPatchLead={(id, fields) => leadStore.patch(id, fields)}
+      trashCount={(leadStore.trash || []).length} onOpenTrash={can(role, "leads") ? () => setLeadTrashOpen(true) : null} />
   );
   const salesHead = React.useMemo(() => {
     const L = leadStore.leads || [];
@@ -991,6 +993,7 @@ function App() {
               onMoveStage={(id, s) => store.setStage(id, s)}
               onPatchJob={can(role, "editJob") ? (id, f) => store.patch(id, f) : null}
               onPatchLead={(id, f) => leadStore.patch(id, f)}
+              leadTrashCount={(leadStore.trash || []).length} onOpenLeadTrash={can(role, "leads") ? () => setLeadTrashOpen(true) : null}
               onPatchPermit={patchPermit}
               onOpenReview={(id) => setPermitReview(id)} />
           )}
@@ -1171,6 +1174,8 @@ function App() {
         onConfirm={() => { store.remove(delAsk.id, auth.current ? auth.current.name : ""); setSelected((s) => s === delAsk.id ? null : s); setDelAsk(null); }} />}
       {trashOpen && <TrashModal trash={store.trash} me={auth.current} onClose={() => setTrashOpen(false)}
         onRestore={(id) => store.restore(id)} onPurge={(id) => store.purge(id)} />}
+      {leadTrashOpen && <TrashModal title="ถังขยะฝ่ายขาย" noun="ราย" trash={leadStore.trash} me={auth.current} onClose={() => setLeadTrashOpen(false)}
+        onRestore={(id) => leadStore.restore(id)} onPurge={(id) => leadStore.purge(id)} />}
       {mapOpen && <MapModal jobs={filtered} onOpen={(j) => { setMapOpen(false); openJob(j); }} onClose={() => setMapOpen(false)} />}
 
       <TweaksPanel>
@@ -1800,12 +1805,12 @@ function DeleteJobAsk({ job, onConfirm, onClose }) {
 }
 
 /* ============================================================
-   TrashModal — ถังขยะงานติดตั้ง: กู้คืน หรือลบถาวร
+   TrashModal — ถังขยะ: กู้คืน หรือลบถาวร · ใช้ทั้งงานติดตั้ง และลูกค้าฝ่ายขาย (title/noun ต่างกัน)
    ------------------------------------------------------------
    ลบถาวรต้องเป็นแอดมิน + ใส่รหัสผ่านของบัญชีที่ล็อกอินอยู่ซ้ำอีกครั้ง
    (กันเผลอกด และกันคนที่มาใช้เครื่องต่อจากคนอื่นลบทิ้ง)
    ============================================================ */
-function TrashModal({ trash, me, onRestore, onPurge, onClose }) {
+function TrashModal({ trash, me, onRestore, onPurge, onClose, title = "ถังขยะ", noun = "งาน" }) {
   const isMobile = window.matchMedia("(max-width: 860px)").matches;
   const bdClose = window.useBackdropClose(onClose);
   const isAdmin = !!me && hasRole(userRoles(me), "admin");
@@ -1829,15 +1834,15 @@ function TrashModal({ trash, me, onRestore, onPurge, onClose }) {
           <div style={{ display: "flex", alignItems: "center", gap: 11, minWidth: 0 }}>
             <span style={{ width: 36, height: 36, borderRadius: "var(--r-chip)", background: "var(--tint-red-bg)", display: "grid", placeItems: "center", flexShrink: 0 }}><Icon name="trash" size={17} color="#EF4444" /></span>
             <div style={{ minWidth: 0 }}>
-              <h2 style={{ fontSize: 16, fontWeight: 700, color: "var(--text-1)", margin: 0 }}>ถังขยะ</h2>
-              <span style={{ fontSize: 11.5, color: "var(--text-3)" }}>{trash.length} งาน · กู้คืนได้ตลอด · ลบถาวรต้องใส่รหัสผ่าน</span>
+              <h2 style={{ fontSize: 16, fontWeight: 700, color: "var(--text-1)", margin: 0 }}>{title}</h2>
+              <span style={{ fontSize: 11.5, color: "var(--text-3)" }}>{trash.length} {noun} · กู้คืนได้ตลอด · ลบถาวรต้องใส่รหัสผ่าน</span>
             </div>
           </div>
           <button className="x-close" onClick={onClose} style={{ width: 32, height: 32, borderRadius: 9, border: "none", boxShadow: "var(--shadow-sm)", background: "var(--surface)", cursor: "pointer", display: "grid", placeItems: "center", color: "var(--text-2)", flexShrink: 0 }}><Icon name="x" size={16} /></button>
         </div>
         <div style={{ flex: 1, minHeight: 0, overflowY: "auto", padding: 14, display: "flex", flexDirection: "column", gap: 9 }}>
           {trash.length === 0 && (
-            <div style={{ padding: 40, textAlign: "center", color: "var(--text-3)", fontSize: 13.5 }}>ถังขยะว่าง — ยังไม่มีงานที่ถูกลบ</div>
+            <div style={{ padding: 40, textAlign: "center", color: "var(--text-3)", fontSize: 13.5 }}>ถังขยะว่าง — ยังไม่มี{noun}ที่ถูกลบ</div>
           )}
           {trash.map((j) => (
             <div key={j.id} style={{ background: "var(--surface)", border: "none", boxShadow: "var(--shadow-sm)", borderRadius: "var(--r-chip)", padding: 12 }}>
@@ -1845,7 +1850,7 @@ function TrashModal({ trash, me, onRestore, onPurge, onClose }) {
                 <div style={{ flex: 1, minWidth: 150 }}>
                   <div style={{ fontSize: 13.5, fontWeight: 700, color: "var(--text-1)" }}>{j.name || "(ไม่มีชื่อ)"}</div>
                   <div style={{ fontSize: 11, color: "var(--text-3)", marginTop: 2 }}>
-                    {j.code}{j.province ? " · " + j.province : ""}{j.kw ? " · " + j.kw + " kW" : ""}
+                    {j.code}{j.province ? " · " + j.province : ""}{(j.kw || j.expKwp) ? " · " + (j.kw || j.expKwp) + " kW" : ""}
                     {j.deletedAt ? " · ลบเมื่อ " + thDate(String(j.deletedAt).slice(0, 10), true) : ""}
                     {j.deletedBy ? " โดย " + j.deletedBy : ""}
                   </div>
@@ -1882,7 +1887,7 @@ function TrashModal({ trash, me, onRestore, onPurge, onClose }) {
         </div>
         {!isAdmin && trash.length > 0 && (
           <div style={{ padding: "10px 16px", borderTop: "1px solid var(--divider)", background: "var(--surface)", fontSize: 11.5, color: "var(--text-3)" }}>
-            ลบถาวรได้เฉพาะแอดมิน — งานในถังขยะจะอยู่ตรงนี้จนกว่าแอดมินจะจัดการ
+            ลบถาวรได้เฉพาะแอดมิน — {noun}ในถังขยะจะอยู่ตรงนี้จนกว่าแอดมินจะจัดการ
           </div>
         )}
       </div>

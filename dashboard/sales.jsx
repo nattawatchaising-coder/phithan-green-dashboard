@@ -2173,7 +2173,7 @@ function SalesCard({ lead, quotes, onOpen, onDragStart, dragging }) {
   );
 }
 
-function SalesBoardView({ leads, quotes, search, currentUser, onOpenLead, onPatchLead, onConvert, onNewLead }) {
+function SalesBoardView({ leads, quotes, search, currentUser, onOpenLead, onPatchLead, onConvert, onNewLead, trashCount, onOpenTrash }) {
   const isMobile = window.matchMedia("(max-width: 860px)").matches;
   const [drag, setDrag] = React.useState(null);
   const [over, setOver] = React.useState(null);
@@ -2234,6 +2234,14 @@ function SalesBoardView({ leads, quotes, search, currentUser, onOpenLead, onPatc
             fontSize: 12.5, fontWeight: 700, border: "none", boxShadow: "var(--shadow-sm)",
             background: mine ? "var(--primary-soft)" : "var(--surface2)", color: mine ? "var(--primary-dark)" : "var(--text-2)" }}>
           <Icon name="user" size={13} color={mine ? "var(--primary-dark)" : "var(--text-2)"} /> เฉพาะลูกค้าของฉัน
+        </button>
+      )}
+      {/* ถังขยะ — ลูกค้าที่กด "ลงถังขยะ" ในใบลูกค้า กู้คืนได้ (ตัวเดียวกับปุ่มบนหัวช่วงขายของบอร์ดงานติดตั้ง) */}
+      {onOpenTrash && (
+        <button onClick={onOpenTrash} title="ลูกค้าที่ย้ายลงถังขยะ — กู้คืนได้"
+          style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "7px 13px", borderRadius: "var(--r-pill)", cursor: "pointer", fontFamily: "inherit",
+            fontSize: 12.5, fontWeight: 700, border: "none", boxShadow: "var(--shadow-sm)", background: "var(--surface2)", color: "var(--text-2)" }}>
+          <Icon name="trash" size={13} color="var(--text-2)" /> ถังขยะ{trashCount ? " " + trashCount : ""}
         </button>
       )}
     </div>

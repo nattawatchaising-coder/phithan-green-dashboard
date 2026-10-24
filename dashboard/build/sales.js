@@ -3520,7 +3520,9 @@ function SalesBoardView({
   onOpenLead,
   onPatchLead,
   onConvert,
-  onNewLead
+  onNewLead,
+  trashCount,
+  onOpenTrash
 }) {
   const isMobile = window.matchMedia("(max-width: 860px)").matches;
   const [drag, setDrag] = React.useState(null);
@@ -3618,7 +3620,29 @@ function SalesBoardView({
     name: "user",
     size: 13,
     color: mine ? "var(--primary-dark)" : "var(--text-2)"
-  }), " \u0E40\u0E09\u0E1E\u0E32\u0E30\u0E25\u0E39\u0E01\u0E04\u0E49\u0E32\u0E02\u0E2D\u0E07\u0E09\u0E31\u0E19"));
+  }), " \u0E40\u0E09\u0E1E\u0E32\u0E30\u0E25\u0E39\u0E01\u0E04\u0E49\u0E32\u0E02\u0E2D\u0E07\u0E09\u0E31\u0E19"), onOpenTrash && React.createElement("button", {
+    onClick: onOpenTrash,
+    title: "\u0E25\u0E39\u0E01\u0E04\u0E49\u0E32\u0E17\u0E35\u0E48\u0E22\u0E49\u0E32\u0E22\u0E25\u0E07\u0E16\u0E31\u0E07\u0E02\u0E22\u0E30 \u2014 \u0E01\u0E39\u0E49\u0E04\u0E37\u0E19\u0E44\u0E14\u0E49",
+    style: {
+      display: "inline-flex",
+      alignItems: "center",
+      gap: 6,
+      padding: "7px 13px",
+      borderRadius: "var(--r-pill)",
+      cursor: "pointer",
+      fontFamily: "inherit",
+      fontSize: 12.5,
+      fontWeight: 700,
+      border: "none",
+      boxShadow: "var(--shadow-sm)",
+      background: "var(--surface2)",
+      color: "var(--text-2)"
+    }
+  }, React.createElement(Icon, {
+    name: "trash",
+    size: 13,
+    color: "var(--text-2)"
+  }), " \u0E16\u0E31\u0E07\u0E02\u0E22\u0E30", trashCount ? " " + trashCount : ""));
   if (isMobile) {
     return React.createElement("div", {
       style: {

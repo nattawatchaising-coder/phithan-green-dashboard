@@ -141,7 +141,7 @@ const flSumValue = (leadsArr) => {
 };
 
 function FlowBoardView({ jobs, leads, quotes, stock, search, role, currentUser,
-  onOpenJob, onOpenLead, onNewLead, onNewPermitJob, onNewJob, onMoveStage, onPatchJob, onPatchLead, onPatchPermit, onOpenReview }) {
+  onOpenJob, onOpenLead, onNewLead, onNewPermitJob, onNewJob, onMoveStage, onPatchJob, onPatchLead, onPatchPermit, onOpenReview, leadTrashCount, onOpenLeadTrash }) {
   const SF = window.SF;
   const isMobile = window.matchMedia("(max-width: 860px)").matches;
   const groups = React.useMemo(() => flGroups(role), [role]);
@@ -352,15 +352,25 @@ function FlowBoardView({ jobs, leads, quotes, stock, search, role, currentUser,
             onAdd={g.kind === "lead" ? (onNewLead || null) : g.kind === "permit" ? (onNewPermitJob || null)
               : g.kind === "job" ? (onNewJob || null) : null}
             addLabel={g.kind === "permit" ? "งานขออนุญาต" : g.kind === "job" ? "เพิ่มงาน" : "ลูกค้าใหม่"}
-            /* ช่วงขาย: รูปสรุปหลายแพ็คเกจ (เช่น 3–20 kWp) จาก BOQ ของลูกค้าที่เป็นแพ็คเกจ */
-            extra={g.kind === "lead" && pkAdmin && window.PkPosterModal ? (
-              <button onClick={(e) => { e.stopPropagation(); setPkSum(true); }} title="ทำรูปโพสต์สรุปหลายแพ็คเกจในรูปเดียว"
+            /* ช่วงขาย: รูปสรุปหลายแพ็คเกจ (เช่น 3–20 kWp) จาก BOQ ของลูกค้าที่เป็นแพ็คเกจ
+               + ปุ่มถังขยะ — ลูกค้าที่กด "ลงถังขยะ" ในใบลูกค้ามาอยู่ที่นี่ กู้คืนได้ (ผู้ใช้สั่ง ต.ค. 2026) */
+            extra={g.kind === "lead" ? (<React.Fragment>
+              {pkAdmin && window.PkPosterModal && <button onClick={(e) => { e.stopPropagation(); setPkSum(true); }} title="ทำรูปโพสต์สรุปหลายแพ็คเกจในรูปเดียว"
                 style={{ display: "inline-flex", alignItems: "center", gap: 5, height: 24, padding: "0 10px",
                   borderRadius: "var(--r-chip)", border: "1px solid color-mix(in srgb, " + g.color + " 33%, transparent)",
                   background: "color-mix(in srgb, " + g.color + " 8%, transparent)", color: g.color,
                   cursor: "pointer", fontFamily: "inherit", fontSize: 11.5, fontWeight: 700, flexShrink: 0, whiteSpace: "nowrap" }}>
                 <Icon name="image" size={13} color={g.color} sw={2.2} /> รูปสรุปแพ็คเกจ
-              </button>) : null}>
+              </button>}
+              {onOpenLeadTrash && <button onClick={(e) => { e.stopPropagation(); onOpenLeadTrash(); }} title="ลูกค้าที่ย้ายลงถังขยะ — กู้คืนได้"
+                style={{ display: "inline-flex", alignItems: "center", gap: 5, height: 24, padding: "0 10px",
+                  borderRadius: "var(--r-chip)", border: "1px solid color-mix(in srgb, var(--text-3) 30%, transparent)",
+                  background: "transparent", color: "var(--text-2)",
+                  cursor: "pointer", fontFamily: "inherit", fontSize: 11.5, fontWeight: 700, flexShrink: 0, whiteSpace: "nowrap" }}>
+                <Icon name="trash" size={13} color="var(--text-3)" sw={2.2} /> ถังขยะ
+                {leadTrashCount ? <span style={{ fontFamily: "var(--mono)", color: "var(--text-3)" }}>{leadTrashCount}</span> : null}
+              </button>}
+            </React.Fragment>) : null}>
             {g.cols.map((c) => {
               const cards = cardsOf(g, c.key);
               const ok = canDrop(g, c.key);

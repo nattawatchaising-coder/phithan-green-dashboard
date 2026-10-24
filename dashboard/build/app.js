@@ -898,6 +898,7 @@ function App() {
     onPatchPermit: patchPermit
   });
   const salesOnly = isSalesOnly(role);
+  const [leadTrashOpen, setLeadTrashOpen] = React.useState(false);
   const salesBoard = React.createElement(SalesBoardView, {
     leads: leadStore.leads,
     quotes: quoteStore.quotes,
@@ -907,7 +908,9 @@ function App() {
       if (l) setBoardLead(l.id);
     },
     onNewLead: can(role, "leads") ? newLead : null,
-    onPatchLead: (id, fields) => leadStore.patch(id, fields)
+    onPatchLead: (id, fields) => leadStore.patch(id, fields),
+    trashCount: (leadStore.trash || []).length,
+    onOpenTrash: can(role, "leads") ? () => setLeadTrashOpen(true) : null
   });
   const salesHead = React.useMemo(() => {
     const L = leadStore.leads || [];
@@ -1273,6 +1276,8 @@ function App() {
     onMoveStage: (id, s) => store.setStage(id, s),
     onPatchJob: can(role, "editJob") ? (id, f) => store.patch(id, f) : null,
     onPatchLead: (id, f) => leadStore.patch(id, f),
+    leadTrashCount: (leadStore.trash || []).length,
+    onOpenLeadTrash: can(role, "leads") ? () => setLeadTrashOpen(true) : null,
     onPatchPermit: patchPermit,
     onOpenReview: id => setPermitReview(id)
   }), view === "table" && React.createElement(TableView, {
@@ -1631,6 +1636,14 @@ function App() {
     onClose: () => setTrashOpen(false),
     onRestore: id => store.restore(id),
     onPurge: id => store.purge(id)
+  }), leadTrashOpen && React.createElement(TrashModal, {
+    title: "\u0E16\u0E31\u0E07\u0E02\u0E22\u0E30\u0E1D\u0E48\u0E32\u0E22\u0E02\u0E32\u0E22",
+    noun: "\u0E23\u0E32\u0E22",
+    trash: leadStore.trash,
+    me: auth.current,
+    onClose: () => setLeadTrashOpen(false),
+    onRestore: id => leadStore.restore(id),
+    onPurge: id => leadStore.purge(id)
   }), mapOpen && React.createElement(MapModal, {
     jobs: filtered,
     onOpen: j => {
@@ -2930,7 +2943,9 @@ function TrashModal({
   me,
   onRestore,
   onPurge,
-  onClose
+  onClose,
+  title = "ถังขยะ",
+  noun = "งาน"
 }) {
   const isMobile = window.matchMedia("(max-width: 860px)").matches;
   const bdClose = window.useBackdropClose(onClose);
@@ -3017,12 +3032,12 @@ function TrashModal({
       color: "var(--text-1)",
       margin: 0
     }
-  }, "\u0E16\u0E31\u0E07\u0E02\u0E22\u0E30"), React.createElement("span", {
+  }, title), React.createElement("span", {
     style: {
       fontSize: 11.5,
       color: "var(--text-3)"
     }
-  }, trash.length, " \u0E07\u0E32\u0E19 \xB7 \u0E01\u0E39\u0E49\u0E04\u0E37\u0E19\u0E44\u0E14\u0E49\u0E15\u0E25\u0E2D\u0E14 \xB7 \u0E25\u0E1A\u0E16\u0E32\u0E27\u0E23\u0E15\u0E49\u0E2D\u0E07\u0E43\u0E2A\u0E48\u0E23\u0E2B\u0E31\u0E2A\u0E1C\u0E48\u0E32\u0E19"))), React.createElement("button", {
+  }, trash.length, " ", noun, " \xB7 \u0E01\u0E39\u0E49\u0E04\u0E37\u0E19\u0E44\u0E14\u0E49\u0E15\u0E25\u0E2D\u0E14 \xB7 \u0E25\u0E1A\u0E16\u0E32\u0E27\u0E23\u0E15\u0E49\u0E2D\u0E07\u0E43\u0E2A\u0E48\u0E23\u0E2B\u0E31\u0E2A\u0E1C\u0E48\u0E32\u0E19"))), React.createElement("button", {
     className: "x-close",
     onClick: onClose,
     style: {
@@ -3058,7 +3073,7 @@ function TrashModal({
       color: "var(--text-3)",
       fontSize: 13.5
     }
-  }, "\u0E16\u0E31\u0E07\u0E02\u0E22\u0E30\u0E27\u0E48\u0E32\u0E07 \u2014 \u0E22\u0E31\u0E07\u0E44\u0E21\u0E48\u0E21\u0E35\u0E07\u0E32\u0E19\u0E17\u0E35\u0E48\u0E16\u0E39\u0E01\u0E25\u0E1A"), trash.map(j => React.createElement("div", {
+  }, "\u0E16\u0E31\u0E07\u0E02\u0E22\u0E30\u0E27\u0E48\u0E32\u0E07 \u2014 \u0E22\u0E31\u0E07\u0E44\u0E21\u0E48\u0E21\u0E35", noun, "\u0E17\u0E35\u0E48\u0E16\u0E39\u0E01\u0E25\u0E1A"), trash.map(j => React.createElement("div", {
     key: j.id,
     style: {
       background: "var(--surface)",
@@ -3091,7 +3106,7 @@ function TrashModal({
       color: "var(--text-3)",
       marginTop: 2
     }
-  }, j.code, j.province ? " · " + j.province : "", j.kw ? " · " + j.kw + " kW" : "", j.deletedAt ? " · ลบเมื่อ " + thDate(String(j.deletedAt).slice(0, 10), true) : "", j.deletedBy ? " โดย " + j.deletedBy : "")), React.createElement("button", {
+  }, j.code, j.province ? " · " + j.province : "", j.kw || j.expKwp ? " · " + (j.kw || j.expKwp) + " kW" : "", j.deletedAt ? " · ลบเมื่อ " + thDate(String(j.deletedAt).slice(0, 10), true) : "", j.deletedBy ? " โดย " + j.deletedBy : "")), React.createElement("button", {
     onClick: () => onRestore(j.id),
     style: {
       padding: "8px 13px",
@@ -3212,7 +3227,7 @@ function TrashModal({
       fontSize: 11.5,
       color: "var(--text-3)"
     }
-  }, "\u0E25\u0E1A\u0E16\u0E32\u0E27\u0E23\u0E44\u0E14\u0E49\u0E40\u0E09\u0E1E\u0E32\u0E30\u0E41\u0E2D\u0E14\u0E21\u0E34\u0E19 \u2014 \u0E07\u0E32\u0E19\u0E43\u0E19\u0E16\u0E31\u0E07\u0E02\u0E22\u0E30\u0E08\u0E30\u0E2D\u0E22\u0E39\u0E48\u0E15\u0E23\u0E07\u0E19\u0E35\u0E49\u0E08\u0E19\u0E01\u0E27\u0E48\u0E32\u0E41\u0E2D\u0E14\u0E21\u0E34\u0E19\u0E08\u0E30\u0E08\u0E31\u0E14\u0E01\u0E32\u0E23")));
+  }, "\u0E25\u0E1A\u0E16\u0E32\u0E27\u0E23\u0E44\u0E14\u0E49\u0E40\u0E09\u0E1E\u0E32\u0E30\u0E41\u0E2D\u0E14\u0E21\u0E34\u0E19 \u2014 ", noun, "\u0E43\u0E19\u0E16\u0E31\u0E07\u0E02\u0E22\u0E30\u0E08\u0E30\u0E2D\u0E22\u0E39\u0E48\u0E15\u0E23\u0E07\u0E19\u0E35\u0E49\u0E08\u0E19\u0E01\u0E27\u0E48\u0E32\u0E41\u0E2D\u0E14\u0E21\u0E34\u0E19\u0E08\u0E30\u0E08\u0E31\u0E14\u0E01\u0E32\u0E23")));
 }
 function MapModal({
   jobs,

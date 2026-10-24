@@ -953,11 +953,11 @@ function LeadDetail({ l, ctx, tab }) {
             <span style={{ flex: 1, minWidth: 140, fontSize: 12, fontWeight: 700, lineHeight: 1.5,
               color: ask.kind === "del" ? "#EF4444" : "var(--tint-green-tx)" }}>
               {ask.kind === "del"
-                ? "ลบ “" + (l.name || "รายนี้") + "” ? แบบสำรวจและรูปของรายนี้จะถูกลบด้วย"
+                ? "ย้าย “" + (l.name || "รายนี้") + "” ลงถังขยะ? หายจากบอร์ดและรายการ แต่กู้คืนได้ที่ปุ่มถังขยะบนบอร์ด (แบบสำรวจ/รูปยังอยู่)"
                 : "ย้าย “" + (l.name || "รายนี้") + "” เข้าฐานข้อมูลงานติดตั้ง? แบบสำรวจและรูปถ่ายจะถูกย้ายไปกับงานใหม่ด้วย"}
             </span>
             {ask.kind === "del"
-              ? <button onClick={() => { leadStore.remove(l.id); setAsk(null); }} style={leadBtn("#EF4444", true)}>ลบเลย</button>
+              ? <button onClick={() => { leadStore.remove(l.id, ctx.currentUser ? ctx.currentUser.name : ""); setAsk(null); if (ctx.onClose) ctx.onClose(); }} style={leadBtn("#EF4444", true)}><Icon name="trash" size={14} color="#fff" /> ย้ายลงถังขยะ</button>
               : <button onClick={() => { setAsk(null); onConvert(l); }} style={leadBtn("var(--tint-green-tx)", true)}><Icon name="check" size={14} color="#fff" sw={2.4} /> ย้ายเลย</button>}
             <button onClick={() => setAsk(null)} style={leadBtn("var(--text-2)")}>ยกเลิก</button>
           </React.Fragment>
@@ -968,7 +968,7 @@ function LeadDetail({ l, ctx, tab }) {
             </button>
             {sKey !== "lost" && sKey !== "won" && <button onClick={() => setStage(l, "lost")} style={leadBtn("var(--text-2)")}>ไม่ติดตั้ง</button>}
             {sKey === "lost" && <button onClick={() => setStage(l, "nego")} style={leadBtn("var(--text-2)")}>กลับมาไล่ต่อ</button>}
-            <button onClick={() => setAsk({ kind: "del" })} style={leadBtn("#EF4444")}>ลบ</button>
+            <button onClick={() => setAsk({ kind: "del" })} style={leadBtn("#EF4444")}><Icon name="trash" size={14} color="#EF4444" /> ลงถังขยะ</button>
             {canConvert && sKey !== "won" && (
               <button onClick={() => setAsk({ kind: "conv" })} style={Object.assign({}, leadBtn("var(--tint-green-tx)", true), { marginLeft: "auto" })}>
                 <Icon name="check" size={14} color="#fff" sw={2.4} /> แปลงเป็นงานติดตั้ง
@@ -1029,7 +1029,7 @@ function LeadDrawer({ lead, leadStore, appts, jobs, quotes, users, currentUser, 
   const ctx = {
     leadStore, jobs, quotes, apptsOf, currentUser, stock, priceMap, canManage, canDesign, onSaveBoq,
     STATUS: window.SALES_STAGES || [], STATUS_BY: window.SALES_BY || {}, stageKey,
-    onOpenSurvey, onReport, onOpenQuote, onPlan3d, onConvert, canConvert,
+    onOpenSurvey, onReport, onOpenQuote, onPlan3d, onConvert, canConvert, onClose,
     setEdit, setLog, setStage: (l, key) => leadSetStage(leadStore, l, key),
   };
 

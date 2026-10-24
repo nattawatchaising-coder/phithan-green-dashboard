@@ -194,21 +194,43 @@ function useSurveyLeadStore() {
     });
     if (_FB()) _fbUpd("surveyLeads/" + id, f);else setLeads(p => (p || []).map(x => x.id === id ? Object.assign({}, x, f) : x));
   }, []);
-  const remove = React.useCallback(id => {
+  const remove = React.useCallback((id, by) => {
+    const f = {
+      deleted: true,
+      deletedAt: new Date().toISOString(),
+      deletedBy: by || ""
+    };
+    if (_FB()) _fbUpd("surveyLeads/" + id, f);else setLeads(p => (p || []).map(x => x.id === id ? Object.assign({}, x, f) : x));
+  }, []);
+  const restore = React.useCallback(id => {
+    if (_FB()) _fbUpd("surveyLeads/" + id, {
+      deleted: null,
+      deletedAt: null,
+      deletedBy: null
+    });else setLeads(p => (p || []).map(x => x.id === id ? Object.assign({}, x, {
+      deleted: false
+    }) : x));
+  }, []);
+  const purge = React.useCallback(id => {
     if (_FB()) {
       _fbRem("surveyLeads/" + id);
       _fbRem("surveyPhotos/" + id);
     } else setLeads(p => (p || []).filter(x => x.id !== id));
   }, []);
   const admin = window.usePgAdmin();
-  const vis = React.useMemo(() => admin ? leads || [] : (leads || []).filter(l => !l.adminOnly), [leads, admin]);
-  const hidden = React.useMemo(() => new Set(admin ? [] : (leads || []).filter(l => l.adminOnly).map(l => l.id)), [leads, admin]);
+  const seen = l => admin || !l.adminOnly;
+  const vis = React.useMemo(() => (leads || []).filter(l => !l.deleted && seen(l)), [leads, admin]);
+  const hidden = React.useMemo(() => new Set((leads || []).filter(l => l.deleted || !seen(l)).map(l => l.id)), [leads, admin]);
+  const trash = React.useMemo(() => (leads || []).filter(l => l.deleted && seen(l)).sort((a, b) => String(b.deletedAt || "").localeCompare(String(a.deletedAt || ""))), [leads, admin]);
   return {
     leads: vis,
     hidden,
+    trash,
     upsert,
     patch,
     remove,
+    restore,
+    purge,
     blank: () => Object.assign(blankLead(ref.current || []), window.pgAdminFlag())
   };
 }
