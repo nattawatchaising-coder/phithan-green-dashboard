@@ -218,6 +218,8 @@
     document.removeEventListener("dragover", onOver, true);
     document.removeEventListener("drop", onDropAny, true);
     document.removeEventListener("dragend", onEnd, true);
+    document.removeEventListener("mousemove", onLost, true);
+    document.removeEventListener("pointerdown", onLost, true);
     if (cur === d) cur = null;
   }
   function settleBack(d) {   // ไม่มีอะไรย้าย — การ์ดที่หลบไว้กลับที่เดิม ช่องเดิมกลับมา
@@ -252,15 +254,15 @@
     if (el) {
       var r = rectOf(el);
       var moved = el !== d.home || !h || Math.abs(r.left - h.left) > 4 || Math.abs(r.top - h.top) > 4;
-      if (moved && (!d.col || el.closest(".bd-col") === d.col)) return { el: el, r: r };
+      if (moved && (!d.col || el.closest(".bd-col") === d.col)) return { el: el, r: r, k: "el" };
     }
     var lim = d.col ? 900 : 400;
-    if (ms < lim) return d.col ? { r: hole(d) } : null;
+    if (ms < lim) return d.col ? { r: hole(d), k: "hole" } : null;
     settleBack(d);
     d.f.aim = aimHome;
     return aimHome(d);
   }
-  function aimHome(d) { var el = find(d) || d.home; return el && el.isConnected ? { el: el, r: rectOf(el) } : null; }
+  function aimHome(d) { var el = find(d) || d.home; return el && el.isConnected ? { el: el, r: rectOf(el), k: "home" } : null; }
   function fly(d, aim) {
     stop(d);
     if (fl && fl !== d) endFly(fl);
@@ -281,6 +283,7 @@
   function flyStep(now) {
     var d = fl;
     if (!d) return;
+    if (now - d.f.s0 > 2500) { endFly(d); return; }   // กันบินไม่จบ (เป้ากระโดดไปมา) — จบเลย ไม่ค้างจอ
     var f = d.f, a = f.aim(d, now - f.s0);
     if (!a || !a.r) {
       if (now - f.s0 > 1500) { endFly(d); return; }
@@ -290,8 +293,10 @@
     }
     var r = a.r;
     var jump = f.last ? Math.abs(r.top - f.last.top) + Math.abs(r.left - f.last.left) : 0;
-    if (jump > 40 || (f.t >= 1 && jump > 1)) rebase(d, now);
-    f.last = r;
+    /* ออกตัวใหม่เฉพาะตอนเปลี่ยนชนิดเป้า (ช่องว่าง → การ์ดจริง → ที่เดิม) แล้วเป้าไกล — เป้าขยับเพราะเลื่อนจอ/คอลัมน์ ให้ตามไปเฉย ๆ
+       (เดิมเลื่อนลูกกลิ้งทันทีหลังวาง เป้าวิ่งทุกเฟรม ออกตัวใหม่ทุกเฟรม บินไม่จบ สำเนาค้างจอ) */
+    if (f.last && ((a.k !== f.k && jump > 40) || (f.t >= 1 && !a.el && jump > 1))) rebase(d, now);
+    f.last = r; f.k = a.k;
     if (a.el !== f.el) {
       if (f.el) f.el.style.visibility = "";
       f.el = a.el || null;
@@ -333,6 +338,14 @@
     if (f && f.el) f.el.style.visibility = "";
     if (f && f.n2) f.n2.remove();
     d.g.remove();
+    sweep();
+  }
+  // สำเนาที่หลงค้างบนจอ (ไม่ใช่ตัวที่กำลังลาก/บิน/บินเข้าถัง) — เก็บทิ้ง
+  function sweep() {
+    [].forEach.call(document.querySelectorAll("[data-pgfly]"), function (n) {
+      if (n.getAttribute("data-pgfly") === "trash" || (cur && n === cur.g) || (fl && (n === fl.g || n === fl.f.n2))) return;
+      n.remove();
+    });
   }
   /* React ย้ายการ์ดแล้ว (ก่อนวาดจอ) — การ์ดอื่นเลื่อนจากตำแหน่งที่เห็นอยู่เข้าตำแหน่งใหม่ (FLIP) คงความเร็วสปริงเดิมไว้ ไม่หยุดแล้วออกตัวใหม่
      lay = ตำแหน่งตามเลย์เอาต์ (ไม่รวม translate ของเรา) ก่อนเปลี่ยน · ทำซ้ำได้ถ้า React วาดใหม่หลายรอบ */
@@ -369,6 +382,12 @@
     if (col && (e.clientX || e.clientY)) room(d, col, e.clientY);
     setTimeout(function () { if (cur === d && !d.claimed) { settleBack(d); fly(d, aimHome); } }, 0);   // วางตรงที่ไม่มีใครรับ
   }
+  /* ปล่อยนอกหน้าเว็บ หรือการ์ดต้นทางถูกวาดใหม่ระหว่างลาก — เบราว์เซอร์ไม่ส่ง dragend มาถึง document สำเนาเลยลอยค้าง
+     ระหว่างลากจริงไม่มี mousemove · มี mousemove/กดเมาส์ = การลากจบไปแล้ว บินกลับที่เดิม */
+  function onLost() {
+    var d = cur;
+    if (d && !d.claimed) { settleBack(d); fly(d, aimHome); }
+  }
   function onEnd() {
     var d = cur;
     if (d && !d.claimed) setTimeout(function () { if (cur === d && !d.claimed) { settleBack(d); fly(d, aimHome); } }, 0);
@@ -400,6 +419,8 @@
     document.addEventListener("dragover", onOver, true);
     document.addEventListener("drop", onDropAny, true);
     document.addEventListener("dragend", onEnd, true);
+    document.addEventListener("mousemove", onLost, true);
+    document.addEventListener("pointerdown", onLost, true);
     d.raf = requestAnimationFrame(tick);
     return true;
   };
