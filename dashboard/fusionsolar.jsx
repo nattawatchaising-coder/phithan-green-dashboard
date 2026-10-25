@@ -269,25 +269,27 @@ function FsFleetHero({ roll, nowKw, liveN, lastAt, isMobile, hCount, health, onH
       </div>
     </div>
   );
-  const house = window.FsHouseArt ? <window.FsHouseArt /> : null;
+  const backdrop = (cx) => (window.FsHouseBackdrop ? <window.FsHouseBackdrop cx={cx} /> : null);
   const bg = "radial-gradient(ellipse 48% 62% at " + (isMobile ? "50% 42%" : "66% 40%") + ", color-mix(in srgb, var(--fs-sun) 16%, transparent), transparent 72%),"
     + " linear-gradient(180deg, color-mix(in srgb, var(--primary) 7%, var(--surface)) 0%, var(--surface) 78%)";
   const wrap = { position: "relative", overflow: "hidden", borderRadius: "var(--r-card)", background: bg, boxShadow: "var(--shadow-card)", isolation: "isolate" };
+  const vfade = "linear-gradient(180deg, transparent 0, #000 16%, #000 84%, transparent 100%)";   // มือถือ: ขอบบน/ล่างของภาพจางเข้าพื้นกรอบ
   if (isMobile) return (
     <div className="fs-hero" style={wrap}>
       <div style={{ padding: "16px 14px 0" }}>{titleBlock}</div>
-      <div style={{ position: "relative", height: 240 }}>{house}</div>
+      <div style={{ position: "relative", height: 230, WebkitMaskImage: vfade, maskImage: vfade }}>{backdrop(0.5)}</div>
       <div className="kpi-grid" style={{ display: "grid", gap: 10, gridTemplateColumns: "1fr 1fr", padding: "0 14px 14px" }}>
         {cards.map((c) => <FsFloatCard key={c.k} {...c} flat />)}
       </div>
     </div>
   );
-  /* หัวข้อ | บ้าน | การ์ด 4 ใบเรียงเป็นคอลัมน์ขวา — การ์ดไม่ทับภาพบ้าน (ผู้ใช้ทักว่าการ์ดลอยบังบ้าน) */
+  /* ภาพบ้านเต็มกรอบเป็นพื้นหลัง (ผู้ใช้ขอ) · หัวข้อ | ช่องว่างให้เห็นบ้าน | การ์ด 4 ใบเรียงคอลัมน์ขวา — การ์ดไม่ทับตัวบ้าน (ผู้ใช้ทักว่าการ์ดลอยบังบ้าน) */
   return (
     <div className="fs-hero" style={wrap}>
-      <div style={{ display: "grid", gridTemplateColumns: "minmax(230px, .8fr) minmax(0, 1.7fr) 220px", gap: 14, padding: "20px 22px", alignItems: "center" }}>
+      {backdrop(0.52)}
+      <div style={{ position: "relative", display: "grid", gridTemplateColumns: "minmax(230px, .8fr) minmax(0, 1.7fr) 220px", gap: 14, padding: "20px 22px", alignItems: "center" }}>
         {titleBlock}
-        <div style={{ position: "relative", height: 380 }}>{house}</div>
+        <div style={{ height: 360 }} />
         <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
           {cards.map((c) => <FsFloatCard key={c.k} {...c} style={{ padding: "10px 14px" }} />)}
         </div>

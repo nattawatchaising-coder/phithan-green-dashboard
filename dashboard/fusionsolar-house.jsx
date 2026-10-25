@@ -1,6 +1,6 @@
 /* ============================================================
    flash+solar — ภาพบ้านโซลาร์ของหน้า FusionSolar (docs/fusionsolar.md)
-   ภาพเรนเดอร์ที่ผู้ใช้ gen มาเอง ตามแบบอ้างอิง Solis / Lumos / SolarSync / Sunsolar — ธีมสว่าง = ภาพกลางวัน (พื้นเทาอ่อน) · ธีมมืด = ภาพกลางคืน (พื้นเกือบดำ)
+   ภาพเรนเดอร์ที่ผู้ใช้ gen มาเอง ตามแบบอ้างอิง Solis / Lumos / SolarSync / Sunsolar — ธีมสว่าง = สลับตามเวลาไทย (กลางวัน 06–16 · แดดเย็น 16–18 · เปิดไฟตอนค่ำ 18–06 พื้นสว่างทั้งหมด) · ธีมมืด = ภาพกลางคืน (พื้นเกือบดำ)
    - fsHouseCutout   ตัดพื้นของภาพเป็นโปร่งใสตอนโหลด: นอกเส้นรอบบ้าน (outline วาดมือตามภาพ) = พื้นทั้งหมด · ในเส้นไล่เข้าไปเฉพาะสีพื้นแท้
                      พื้นที่พื้นแปลงเป็นสีโปร่งตามความต่างจากสีพื้น (เงา = ดำโปร่ง · แสงไฟตกพื้นตอนกลางคืน = สว่างโปร่ง) · ตัวบ้านทึบเสมอ
    - FsHouseStage    กล่องวางภาพแบบ contain + pt("roof") = พิกัดพิกเซลของจุดบนภาพ ให้ของที่วางทับ
@@ -12,15 +12,19 @@
 /* bg(dc, sat) = พิกเซลในเส้นรอบบ้านที่ยังนับเป็นพื้น — dc = ความต่างจากสีพื้นรายช่อง r,g,b และเฉลี่ย (ค่าบวก = สว่างกว่าพื้น) */
 const FS_HOUSE = {
   day: {
-    src: "dashboard/assets/fs-house.jpg?v=1", w: 1376, h: 768,
+    src: "dashboard/assets/fs-house.jpg?v=1", w: 1376, h: 768, fill: "rgb(232,232,231)",
     outline: [[136, 499], [186, 462], [168, 426], [192, 372], [232, 334], [275, 322], [330, 336], [372, 352], [376, 214], [362, 182], [768, 90], [938, 192],
       [985, 163], [1048, 170], [1096, 215], [1106, 300], [1104, 330], [1104, 420], [1150, 425], [1195, 440], [1282, 495], [1180, 530], [1070, 568], [1000, 596],
       [930, 604], [640, 686]],
     pt: { roof: [0.5, 0.27], grid: [0.3, 0.6], home: [0.56, 0.64], bat: [0.79, 0.56] },
-    bg: (dc, sat) => sat <= 10 && dc[3] >= -48 && dc[3] <= 7,
+    shadowOnly: true,   // พื้นสว่างไล่เฉดไม่เท่ากัน → เก็บเฉพาะส่วนที่มืดกว่าพื้น (เงา) ไม่งั้นเป็นด่างขาวจาง ๆ
+    bg: (dc) => Math.max(dc[0], dc[1], dc[2]) - Math.min(dc[0], dc[1], dc[2]) <= 10 && dc[3] >= -48 && dc[3] <= 7,
   },
+  /* แดดเย็น / เปิดไฟตอนค่ำ = มุมและขนาดเดียวกับภาพกลางวัน ใช้ outline/pt ชุดเดียวกัน */
+  dusk: { src: "dashboard/assets/fs-house-dusk.jpg?v=1", fill: "rgb(241,237,226)" },
+  eve: { src: "dashboard/assets/fs-house-eve.jpg?v=1", fill: "rgb(218,223,229)" },
   night: {
-    src: "dashboard/assets/fs-house-night.jpg?v=1", w: 1024, h: 572,
+    src: "dashboard/assets/fs-house-night.jpg?v=1", w: 1024, h: 572, fill: "rgb(15,20,24)",
     outline: [[98, 374], [128, 330], [132, 290], [160, 256], [200, 243], [245, 258], [268, 290], [282, 300], [282, 140], [272, 132], [568, 70], [700, 150],
       [712, 128], [760, 122], [805, 150], [822, 200], [818, 245], [818, 330], [838, 318], [842, 270], [875, 228], [912, 222], [945, 258], [952, 312], [922, 332],
       [954, 370], [880, 392], [770, 425], [700, 442], [482, 508]],
@@ -28,6 +32,8 @@ const FS_HOUSE = {
     bg: (dc) => Math.max(Math.abs(dc[0]), Math.abs(dc[1]), Math.abs(dc[2])) <= 12,
   },
 };
+
+["dusk", "eve"].forEach((k) => { FS_HOUSE[k] = Object.assign({}, FS_HOUSE.day, FS_HOUSE[k]); });
 
 const _fsHouseP = {};
 function fsHouseCutout(kind) {
@@ -76,9 +82,9 @@ function fsHouseCutout(kind) {
           if (!seen[j]) continue;
           const i = j * 4;
           let a = 0;
-          for (let k = 0; k < 3; k++) { const v = p[i + k], b = B[k]; a = Math.max(a, v > b ? (v - b) / (255 - b) : (b - v) / b); }
+          for (let k = 0; k < 3; k++) { const v = p[i + k], b = B[k]; a = Math.max(a, v > b ? (V.shadowOnly ? 0 : (v - b) / (255 - b)) : (b - v) / b); }
           a = Math.max(0, (a - 0.02) / 0.98);   // ตัดสัญญาณรบกวนของ JPEG ที่พื้น
-          for (let k = 0; k < 3; k++) p[i + k] = a > 0 ? Math.max(0, Math.min(255, B[k] + (p[i + k] - B[k]) / a)) : 0;
+          for (let k = 0; k < 3; k++) p[i + k] = V.shadowOnly ? 0 : a > 0 ? Math.max(0, Math.min(255, B[k] + (p[i + k] - B[k]) / a)) : 0;
           p[i + 3] = Math.round(Math.min(1, a) * 255);
         }
         g.putImageData(d, 0, 0);
@@ -92,21 +98,27 @@ function fsHouseCutout(kind) {
   return pr;
 }
 
-/* ธีมมืดตอนนี้ไหม — ติดตามการสลับธีมสด */
-function useFsNight() {
-  const get = () => document.documentElement.getAttribute("data-theme") === "aurora";
-  const [night, setNight] = React.useState(get);
+/* ภาพไหนตอนนี้ — ธีมมืด = night · ธีมสว่างตามชั่วโมงเวลาไทย · ติดตามการสลับธีมสดและเช็กเวลาทุกนาที */
+function fsHouseKind() {
+  if (document.documentElement.getAttribute("data-theme") === "aurora") return "night";
+  const h = (new Date().getUTCHours() + 7) % 24;
+  return h >= 6 && h < 16 ? "day" : h >= 16 && h < 18 ? "dusk" : "eve";
+}
+function useFsHouseKind() {
+  const [kind, setKind] = React.useState(fsHouseKind);
   React.useEffect(() => {
-    const mo = new MutationObserver(() => setNight(get()));
+    const upd = () => setKind(fsHouseKind());
+    const mo = new MutationObserver(upd);
     mo.observe(document.documentElement, { attributes: true, attributeFilter: ["data-theme"] });
-    return () => mo.disconnect();
+    const t = setInterval(upd, 60000);
+    return () => { mo.disconnect(); clearInterval(t); };
   }, []);
-  return night;
+  return kind;
 }
 
 /* ภาพบ้าน contain ในกล่อง · overlay(pt, box, img) วาดของทับ — pt("roof") = พิกัดพิกเซลของจุดนั้นบนภาพของธีมปัจจุบัน */
 function FsHouseStage({ height, overlay, pad }) {
-  const kind = useFsNight() ? "night" : "day", V = FS_HOUSE[kind];
+  const kind = useFsHouseKind(), V = FS_HOUSE[kind];
   const box = React.useRef(null);
   const [sz, setSz] = React.useState(null);
   const [src, setSrc] = React.useState({});
@@ -144,7 +156,19 @@ function FsHouseStage({ height, overlay, pad }) {
   );
 }
 
-/* ส่วนบนหน้าไซต์ทั้งหมด: ภาพบ้านเฉย ๆ (การ์ดลอยวางโดย FsFleetHero) */
+/* ส่วนบนหน้าไซต์ทั้งหมด: ภาพเต็มกรอบ (ผู้ใช้ขอ "ภาพเต็มกรอบ") — กรอบทั้งกล่องเป็นสีพื้นของภาพ (fill) + ภาพเต็มความสูง ไม่ตัดพื้น
+   ขอบซ้าย/ขวาของภาพจางเข้าสีพื้นให้เนียน · cx = ตำแหน่งกึ่งกลางบ้านตามแนวนอนของกล่อง (0..1) · ข้อความ/การ์ดวางทับโดย FsFleetHero */
+function FsHouseBackdrop({ cx }) {
+  const kind = useFsHouseKind(), V = FS_HOUSE[kind];
+  const fade = "linear-gradient(90deg, transparent 0, #000 9%, #000 91%, transparent 100%)";
+  return (
+    <div aria-hidden="true" style={{ position: "absolute", inset: 0, background: V.fill, overflow: "hidden", pointerEvents: "none" }}>
+      <img key={kind} src={V.src} alt="" draggable="false"
+        style={{ position: "absolute", top: 0, height: "100%", width: "auto", left: (cx == null ? 50 : cx * 100) + "%", transform: "translateX(-50%)", maxWidth: "none",
+          WebkitMaskImage: fade, maskImage: fade, userSelect: "none" }} />
+    </div>
+  );
+}
 function FsHouseArt() {
   return <div style={{ position: "absolute", inset: 0 }}><FsHouseStage height="100%" /></div>;
 }
@@ -261,4 +285,4 @@ function FsHouseFlow({ em, site, compact, at }) {
   );
 }
 
-Object.assign(window, { FsHouseArt, FsHouseFlow, FsHouseStage, fsHouseCutout });
+Object.assign(window, { FsHouseArt, FsHouseBackdrop, FsHouseFlow, FsHouseStage, fsHouseCutout });

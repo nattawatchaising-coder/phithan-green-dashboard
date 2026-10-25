@@ -680,7 +680,9 @@ function FsFleetHero({
       background: FS_HG[k]
     }
   }), FS_HEALTH[k].th, " ", hCount[k]))));
-  const house = window.FsHouseArt ? React.createElement(window.FsHouseArt, null) : null;
+  const backdrop = cx => window.FsHouseBackdrop ? React.createElement(window.FsHouseBackdrop, {
+    cx: cx
+  }) : null;
   const bg = "radial-gradient(ellipse 48% 62% at " + (isMobile ? "50% 42%" : "66% 40%") + ", color-mix(in srgb, var(--fs-sun) 16%, transparent), transparent 72%)," + " linear-gradient(180deg, color-mix(in srgb, var(--primary) 7%, var(--surface)) 0%, var(--surface) 78%)";
   const wrap = {
     position: "relative",
@@ -690,6 +692,7 @@ function FsFleetHero({
     boxShadow: "var(--shadow-card)",
     isolation: "isolate"
   };
+  const vfade = "linear-gradient(180deg, transparent 0, #000 16%, #000 84%, transparent 100%)";
   if (isMobile) return React.createElement("div", {
     className: "fs-hero",
     style: wrap
@@ -700,9 +703,11 @@ function FsFleetHero({
   }, titleBlock), React.createElement("div", {
     style: {
       position: "relative",
-      height: 240
+      height: 230,
+      WebkitMaskImage: vfade,
+      maskImage: vfade
     }
-  }, house), React.createElement("div", {
+  }, backdrop(0.5)), React.createElement("div", {
     className: "kpi-grid",
     style: {
       display: "grid",
@@ -718,8 +723,9 @@ function FsFleetHero({
   return React.createElement("div", {
     className: "fs-hero",
     style: wrap
-  }, React.createElement("div", {
+  }, backdrop(0.52), React.createElement("div", {
     style: {
+      position: "relative",
       display: "grid",
       gridTemplateColumns: "minmax(230px, .8fr) minmax(0, 1.7fr) 220px",
       gap: 14,
@@ -728,10 +734,9 @@ function FsFleetHero({
     }
   }, titleBlock, React.createElement("div", {
     style: {
-      position: "relative",
-      height: 380
+      height: 360
     }
-  }, house), React.createElement("div", {
+  }), React.createElement("div", {
     style: {
       display: "flex",
       flexDirection: "column",

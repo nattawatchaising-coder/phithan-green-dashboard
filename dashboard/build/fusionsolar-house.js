@@ -4,6 +4,7 @@ const FS_HOUSE = {
     src: "dashboard/assets/fs-house.jpg?v=1",
     w: 1376,
     h: 768,
+    fill: "rgb(232,232,231)",
     outline: [[136, 499], [186, 462], [168, 426], [192, 372], [232, 334], [275, 322], [330, 336], [372, 352], [376, 214], [362, 182], [768, 90], [938, 192], [985, 163], [1048, 170], [1096, 215], [1106, 300], [1104, 330], [1104, 420], [1150, 425], [1195, 440], [1282, 495], [1180, 530], [1070, 568], [1000, 596], [930, 604], [640, 686]],
     pt: {
       roof: [0.5, 0.27],
@@ -11,12 +12,22 @@ const FS_HOUSE = {
       home: [0.56, 0.64],
       bat: [0.79, 0.56]
     },
-    bg: (dc, sat) => sat <= 10 && dc[3] >= -48 && dc[3] <= 7
+    shadowOnly: true,
+    bg: dc => Math.max(dc[0], dc[1], dc[2]) - Math.min(dc[0], dc[1], dc[2]) <= 10 && dc[3] >= -48 && dc[3] <= 7
+  },
+  dusk: {
+    src: "dashboard/assets/fs-house-dusk.jpg?v=1",
+    fill: "rgb(241,237,226)"
+  },
+  eve: {
+    src: "dashboard/assets/fs-house-eve.jpg?v=1",
+    fill: "rgb(218,223,229)"
   },
   night: {
     src: "dashboard/assets/fs-house-night.jpg?v=1",
     w: 1024,
     h: 572,
+    fill: "rgb(15,20,24)",
     outline: [[98, 374], [128, 330], [132, 290], [160, 256], [200, 243], [245, 258], [268, 290], [282, 300], [282, 140], [272, 132], [568, 70], [700, 150], [712, 128], [760, 122], [805, 150], [822, 200], [818, 245], [818, 330], [838, 318], [842, 270], [875, 228], [912, 222], [945, 258], [952, 312], [922, 332], [954, 370], [880, 392], [770, 425], [700, 442], [482, 508]],
     pt: {
       roof: [0.49, 0.26],
@@ -27,6 +38,9 @@ const FS_HOUSE = {
     bg: dc => Math.max(Math.abs(dc[0]), Math.abs(dc[1]), Math.abs(dc[2])) <= 12
   }
 };
+["dusk", "eve"].forEach(k => {
+  FS_HOUSE[k] = Object.assign({}, FS_HOUSE.day, FS_HOUSE[k]);
+});
 const _fsHouseP = {};
 function fsHouseCutout(kind) {
   const V = FS_HOUSE[kind];
@@ -99,10 +113,10 @@ function fsHouseCutout(kind) {
           for (let k = 0; k < 3; k++) {
             const v = p[i + k],
               b = B[k];
-            a = Math.max(a, v > b ? (v - b) / (255 - b) : (b - v) / b);
+            a = Math.max(a, v > b ? V.shadowOnly ? 0 : (v - b) / (255 - b) : (b - v) / b);
           }
           a = Math.max(0, (a - 0.02) / 0.98);
-          for (let k = 0; k < 3; k++) p[i + k] = a > 0 ? Math.max(0, Math.min(255, B[k] + (p[i + k] - B[k]) / a)) : 0;
+          for (let k = 0; k < 3; k++) p[i + k] = V.shadowOnly ? 0 : a > 0 ? Math.max(0, Math.min(255, B[k] + (p[i + k] - B[k]) / a)) : 0;
           p[i + 3] = Math.round(Math.min(1, a) * 255);
         }
         g.putImageData(d, 0, 0);
@@ -119,25 +133,34 @@ function fsHouseCutout(kind) {
   });
   return pr;
 }
-function useFsNight() {
-  const get = () => document.documentElement.getAttribute("data-theme") === "aurora";
-  const [night, setNight] = React.useState(get);
+function fsHouseKind() {
+  if (document.documentElement.getAttribute("data-theme") === "aurora") return "night";
+  const h = (new Date().getUTCHours() + 7) % 24;
+  return h >= 6 && h < 16 ? "day" : h >= 16 && h < 18 ? "dusk" : "eve";
+}
+function useFsHouseKind() {
+  const [kind, setKind] = React.useState(fsHouseKind);
   React.useEffect(() => {
-    const mo = new MutationObserver(() => setNight(get()));
+    const upd = () => setKind(fsHouseKind());
+    const mo = new MutationObserver(upd);
     mo.observe(document.documentElement, {
       attributes: true,
       attributeFilter: ["data-theme"]
     });
-    return () => mo.disconnect();
+    const t = setInterval(upd, 60000);
+    return () => {
+      mo.disconnect();
+      clearInterval(t);
+    };
   }, []);
-  return night;
+  return kind;
 }
 function FsHouseStage({
   height,
   overlay,
   pad
 }) {
-  const kind = useFsNight() ? "night" : "day",
+  const kind = useFsHouseKind(),
     V = FS_HOUSE[kind];
   const box = React.useRef(null);
   const [sz, setSz] = React.useState(null);
@@ -207,6 +230,40 @@ function FsHouseStage({
       mixBlendMode: raw ? kind === "night" ? "screen" : "multiply" : "normal"
     }
   }), img && overlay && overlay(pt, sz, img));
+}
+function FsHouseBackdrop({
+  cx
+}) {
+  const kind = useFsHouseKind(),
+    V = FS_HOUSE[kind];
+  const fade = "linear-gradient(90deg, transparent 0, #000 9%, #000 91%, transparent 100%)";
+  return React.createElement("div", {
+    "aria-hidden": "true",
+    style: {
+      position: "absolute",
+      inset: 0,
+      background: V.fill,
+      overflow: "hidden",
+      pointerEvents: "none"
+    }
+  }, React.createElement("img", {
+    key: kind,
+    src: V.src,
+    alt: "",
+    draggable: "false",
+    style: {
+      position: "absolute",
+      top: 0,
+      height: "100%",
+      width: "auto",
+      left: (cx == null ? 50 : cx * 100) + "%",
+      transform: "translateX(-50%)",
+      maxWidth: "none",
+      WebkitMaskImage: fade,
+      maskImage: fade,
+      userSelect: "none"
+    }
+  }));
 }
 function FsHouseArt() {
   return React.createElement("div", {
@@ -536,6 +593,7 @@ function FsHouseFlow({
 }
 Object.assign(window, {
   FsHouseArt,
+  FsHouseBackdrop,
   FsHouseFlow,
   FsHouseStage,
   fsHouseCutout
