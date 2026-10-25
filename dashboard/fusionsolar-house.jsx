@@ -199,15 +199,21 @@ function FsHwCard({ icon, color, on, title, value, sub, style }) {
     </div>
   );
 }
-/* เส้นพลังงานแบบน้ำไหล (ผู้ใช้ว่าจุดวิ่งเร็วเกิน ขอเป็นเส้นไหลเข้า → ขอ "เส้นน้ำสวย ๆ" → ว่ายังอ่อนไป ขอ 4 แบบให้เลือก)
-   glass = ท่อแก้วใสฝ้า มีแสงสีเรืองไหลอยู่ข้างใน ตามภาพอ้างอิงที่ผู้ใช้ส่งมา (ค่าเริ่มต้น) — ทางเดินท่อแบบเดียวกับ conduit
-   conduit = ท่อร้อยสายเกาะผนังแบบภาพอ้างอิง Tesla ที่ผู้ใช้ส่งมา (ค่าเริ่มต้น): ลงตรงตามผนังแล้ววิ่งขนานแนวผนังออกไปหาการ์ด
-     ท่อเทาเข้ม + สายสีทึบเรืองแสง + แถบสว่างวิ่งข้างใน · ไม่มีไฟ = ท่อเทาเปล่า
-   tube = ท่อแก้วมีน้ำไหลข้างใน · neon = ลำแสงนีออนมีหัวดาวหางวิ่ง · wave = สายน้ำสองเส้นพันกันเป็นคลื่น · drops = หยดน้ำไหลเป็นสาย
-   ทุกแบบ: วงกระเพื่อมที่ปลายทางของน้ำ · ลวดลายเลื่อนเป็นรอบละ 64px (keyframes fsFlowFwd/Rev) */
-const FS_WIRE_STYLES = ["glass", "conduit", "tube", "neon", "wave", "drops"];
-/* ทางเดินท่อแบบภาพอ้างอิง (ท่อเกาะผนังตามมุมมอง 3D): จากจุดบนบ้าน b ลงตรงตามผนัง แล้ววิ่งตามแนวผนัง/พื้นของภาพ
-   (เส้นขนานกับขอบผนัง ชัน ~0.25 — ไปทางซ้ายยกขึ้น ไปทางขวาก็ยกขึ้น ตามภาพบ้านมุมนี้) ออกไปจบที่ขอบการ์ด a · มุมเลี้ยวโค้งมน */
+/* ท่อพลังงาน = ท่อแก้วใส มีแสงสีตามประเภทไฟไหลอยู่ข้างใน (ผู้ใช้เลือกจาก 4 แบบ ตามภาพอ้างอิงท่อใสมีแสงข้างใน)
+   ทางเดินท่อเกาะผนังตามมุมมองของภาพ · แสงเลื่อนรอบละ 64px (keyframes fsFlowFwd/Rev) · วงกระเพื่อมที่ปลายทาง · ไม่มีไฟ = ท่อใสเปล่า */
+(function fsInjectHouseCss() {
+  if (document.getElementById("fs-house-css")) return;
+  const el = document.createElement("style");
+  el.id = "fs-house-css";
+  el.textContent = "@keyframes fsFlowFwd{to{stroke-dashoffset:-64}}@keyframes fsFlowRev{to{stroke-dashoffset:64}}"
+    + "@keyframes fsRipple{0%{transform:scale(1);opacity:.7}100%{transform:scale(3.6);opacity:0}}"
+    + ".fs-flow{animation:fsFlowFwd 2s linear infinite}.fs-flow.rev{animation-name:fsFlowRev}"
+    + ".fs-ripple{transform-box:fill-box;transform-origin:center;animation:fsRipple 2.2s ease-out infinite}"
+    + "@media (prefers-reduced-motion: reduce){.fs-flow,.fs-ripple{animation:none!important}.fs-ripple{opacity:0}}";
+  document.head.appendChild(el);
+})();
+/* ทางเดินท่อ: จากจุดบนบ้าน b ลงตรงตามผนัง แล้ววิ่งขนานขอบผนัง/พื้นของภาพ (ชัน ~0.25 ยกขึ้นเมื่อออกห่างบ้าน ตามภาพบ้านมุมนี้)
+   ไปจบที่ขอบการ์ด a · มุมเลี้ยวโค้งมน */
 const FS_ISO = 0.25;
 function fsConduitPath(a, b) {
   const f = (q) => q[0].toFixed(1) + "," + q[1].toFixed(1);
@@ -217,118 +223,29 @@ function fsConduitPath(a, b) {
   const m = [b[0], ym], k = r / Math.hypot(1, FS_ISO);
   return "M" + f(a) + " L" + f([m[0] + sx * k, m[1] - FS_ISO * k]) + " Q" + f(m) + " " + f([m[0], m[1] - sy * r]) + " L" + f(b);
 }
-/* จุดบนเส้นโค้ง cubic ทุก ~2px → เส้นคลื่นสองเส้นเยื้องเฟสกัน (แบบ wave) */
-function fsWavePaths(p0, p1, p2, p3) {
-  const at = (t) => { const u = 1 - t; return [0, 1].map((k) => u * u * u * p0[k] + 3 * u * u * t * p1[k] + 3 * u * t * t * p2[k] + t * t * t * p3[k]); };
-  let len = 0, prev = p0;
-  for (let i = 1; i <= 40; i++) { const q = at(i / 40); len += Math.hypot(q[0] - prev[0], q[1] - prev[1]); prev = q; }
-  const n = Math.max(12, Math.round(len / 2)), A = 3.6, WL = 26, out = ["", ""];
-  for (let i = 0; i <= n; i++) {
-    const t = i / n, q = at(t), q2 = at(Math.min(1, t + 0.002)), q1 = at(Math.max(0, t - 0.002));
-    const dx = q2[0] - q1[0], dy = q2[1] - q1[1], m = Math.hypot(dx, dy) || 1, nx = -dy / m, ny = dx / m;
-    const env = Math.min(1, t * 6, (1 - t) * 6);   // ปลายสองข้างบีบเข้าหากัน
-    [0, Math.PI].forEach((ph, s) => {
-      const o = A * env * Math.sin((t * len * 2 * Math.PI) / WL + ph);
-      out[s] += (i ? " L" : "M") + (q[0] + nx * o).toFixed(1) + "," + (q[1] + ny * o).toFixed(1);
-    });
-  }
-  return out;
-}
-/* เส้นโค้งจากการ์ด (a) เข้าจุดบนบ้าน (b) · rev = ไหลจากบ้านออกไปหาการ์ด · ยิ่ง kW มากยิ่งไหลเร็ว (ช้าสุด 3.4 วิ เร็วสุด 1.6 วิ ต่อรอบ 64px) */
-function FsHwWire({ a, b, color, on, rel, rev, calm, sty }) {
-  const mx = (a[0] + b[0]) / 2, c1 = [mx, a[1]], c2 = [mx, b[1]];
-  const d = "M" + a[0].toFixed(1) + "," + a[1].toFixed(1) + " C" + mx.toFixed(1) + "," + a[1].toFixed(1) + " " + mx.toFixed(1) + "," + b[1].toFixed(1) + " " + b[0].toFixed(1) + "," + b[1].toFixed(1);
-  const dur = 3.4 - 1.8 * Math.sqrt(fsClamp(rel || 0.5, 0, 1));
-  const cls = "fs-flow" + (rev ? " rev" : "");
-  const anim = (k, extra) => Object.assign({ animationDuration: (dur * (k || 1)).toFixed(2) + "s", animationPlayState: calm ? "paused" : "running" }, extra);
-  const S = FS_WIRE_STYLES.includes(sty) ? sty : FS_WIRE_STYLES[0];
-  if (S === "glass") {
-    const cd = fsConduitPath(a, b), e = rev ? a : b;
-    const C = (st, c) => <path d={cd} fill="none" className={c} style={Object.assign({ strokeLinecap: "round", strokeLinejoin: "round" }, st)} />;
-    return (
-      <g>
-        {C({ stroke: "#000", strokeWidth: 15, opacity: 0.14, filter: "blur(2px)", transform: "translate(2px,3px)" })}
-        {C({ stroke: "color-mix(in srgb, var(--text-1) 28%, transparent)", strokeWidth: 13 })}
-        {C({ stroke: "color-mix(in srgb, var(--surface) 62%, transparent)", strokeWidth: 10.5 })}
-        {on && C({ stroke: color, strokeWidth: 7, opacity: 0.8, filter: "blur(3px)" })}
-        {on && C(anim(1.2, { stroke: "color-mix(in srgb, " + color + " 70%, #fff)", strokeWidth: 5, strokeDasharray: "40 24", filter: "blur(1.2px) drop-shadow(0 0 4px " + color + ")" }), cls)}
-        {on && C(anim(1.2, { stroke: "#fff", strokeWidth: 1.6, strokeDasharray: "26 38", opacity: 0.8 }), cls)}
-        {C({ stroke: "rgba(255,255,255,0.55)", strokeWidth: 1.3, transform: "translate(-2.5px,-2.5px)" })}
-        {on && <circle cx={e[0]} cy={e[1]} r="6" className="fs-ripple" style={{ fill: "none", stroke: color, strokeWidth: 2, animationPlayState: calm ? "paused" : "running" }} />}
-        <circle cx={b[0]} cy={b[1]} r="7.5" style={{ fill: "rgba(255,255,255,0.85)", stroke: "color-mix(in srgb, var(--text-1) 25%, transparent)", strokeWidth: 1 }} />
-        <circle cx={b[0]} cy={b[1]} r="3.5" style={{ fill: on ? color : "var(--border-strong)", filter: on ? "drop-shadow(0 0 4px " + color + ")" : "none" }} />
-      </g>
-    );
-  }
-  if (S === "conduit") {
-    const cd = fsConduitPath(a, b), e = rev ? a : b;
-    const C = (st, c) => <path d={cd} fill="none" className={c} style={Object.assign({ strokeLinecap: "round", strokeLinejoin: "round" }, st)} />;
-    return (
-      <g>
-        {C({ stroke: "#000", strokeWidth: 11, opacity: 0.18, strokeLinecap: "butt" })}
-        {!on && C({ stroke: "color-mix(in srgb, var(--text-1) 38%, var(--surface))", strokeWidth: 8, strokeLinecap: "butt" })}
-        {on && C({ stroke: color, strokeWidth: 8, strokeLinecap: "butt", filter: "drop-shadow(0 0 7px " + color + ")" })}
-        {on && C(anim(1.3, { stroke: "color-mix(in srgb, " + color + " 30%, #fff)", strokeWidth: 3, strokeDasharray: "34 30", opacity: 0.9 }), cls)}
-        {on && <circle cx={e[0]} cy={e[1]} r="5" className="fs-ripple" style={{ fill: "none", stroke: color, strokeWidth: 2, animationPlayState: calm ? "paused" : "running" }} />}
-        <rect x={b[0] - 6} y={b[1] - 6} width="12" height="12" rx="3" style={{ fill: on ? color : "color-mix(in srgb, var(--text-1) 40%, var(--surface))", stroke: "var(--surface)", strokeWidth: 2,
-          filter: on ? "drop-shadow(0 0 4px " + color + ")" : "none" }} />
-      </g>
-    );
-  }
-  if (!on) return (
-    <g>
-      <path d={d} fill="none" style={{ stroke: "var(--border-strong)", strokeWidth: 2, strokeLinecap: "round", opacity: 0.7, strokeDasharray: "3 5" }} />
-      <circle cx={b[0]} cy={b[1]} r="4" style={{ fill: "var(--surface)", stroke: "var(--border-strong)", strokeWidth: 2 }} />
-    </g>
-  );
-  const P = (st, c) => <path d={d} fill="none" className={c} style={Object.assign({ strokeLinecap: "round" }, st)} />;
-  let body;
-  if (S === "tube") body = (
-    <g>
-      {P({ stroke: color, strokeWidth: 15, opacity: 0.22 })}
-      {P({ stroke: "var(--surface)", strokeWidth: 10, opacity: 0.9 })}
-      {P({ stroke: color, strokeWidth: 6, opacity: 0.35 })}
-      {P(anim(1, { stroke: color, strokeWidth: 6, strokeDasharray: "38 26" }), cls)}
-      {P(anim(0.85, { stroke: "#fff", strokeWidth: 2, strokeDasharray: "9 55", opacity: 0.9 }), cls)}
-    </g>
-  );
-  else if (S === "neon") body = (
-    <g>
-      {P({ stroke: color, strokeWidth: 12, opacity: 0.35, filter: "blur(5px)" })}
-      {P({ stroke: color, strokeWidth: 3.5 })}
-      {P(anim(1, { stroke: color, strokeWidth: 7, strokeDasharray: "22 42", filter: "drop-shadow(0 0 6px " + color + ") drop-shadow(0 0 2px " + color + ")" }), cls)}
-      {P(anim(1, { stroke: "#fff", strokeWidth: 3, strokeDasharray: "12 52", strokeDashoffset: 0 }), cls)}
-    </g>
-  );
-  else if (S === "wave") {
-    const w = fsWavePaths(a, c1, c2, b);
-    body = (
-      <g>
-        {P({ stroke: color, strokeWidth: 12, opacity: 0.14 })}
-        {w.map((wd, i) => <path key={i} d={wd} fill="none" style={{ stroke: color, strokeWidth: 2.6, strokeLinecap: "round", strokeLinejoin: "round", opacity: 0.55 }} />)}
-        {w.map((wd, i) => <path key={"f" + i} d={wd} fill="none" className={cls}
-          style={anim(1, { stroke: color, strokeWidth: 3.4, strokeLinecap: "round", strokeDasharray: "20 12", filter: "drop-shadow(0 0 3px " + color + ")" })} />)}
-        {P(anim(0.8, { stroke: "#fff", strokeWidth: 2, strokeDasharray: "6 58", opacity: 0.9 }), cls)}
-      </g>
-    );
-  } else body = (
-    <g>
-      {P({ stroke: color, strokeWidth: 10, opacity: 0.12 })}
-      {P({ stroke: color, strokeWidth: 3, opacity: 0.4 })}
-      {P(anim(1, { stroke: color, strokeWidth: 9, strokeDasharray: "0.1 15.9", filter: "drop-shadow(0 0 4px " + color + ")" }), cls)}
-      {P(anim(1, { stroke: "#fff", strokeWidth: 3.2, strokeDasharray: "0.1 15.9", opacity: 0.85 }), cls)}
-    </g>
-  );
-  const e = rev ? a : b;
+/* ท่อจากการ์ด (a) เข้าจุดบนบ้าน (b) · rev = ไหลจากบ้านออกไปหาการ์ด · ยิ่ง kW มากยิ่งไหลเร็ว (ช้าสุด 4.1 วิ เร็วสุด 1.9 วิ ต่อรอบ 64px) */
+function FsHwWire({ a, b, color, on, rel, rev, calm }) {
+  const dur = 1.2 * (3.4 - 1.8 * Math.sqrt(fsClamp(rel || 0.5, 0, 1)));
+  const cls = "fs-flow" + (rev ? " rev" : ""), play = calm ? "paused" : "running";
+  const cd = fsConduitPath(a, b), e = rev ? a : b;
+  const C = (st, c) => <path d={cd} fill="none" className={c} style={Object.assign({ strokeLinecap: "round", strokeLinejoin: "round" }, st)} />;
+  const flow = (st) => C(Object.assign({ animationDuration: dur.toFixed(2) + "s", animationPlayState: play }, st), cls);
   return (
     <g>
-      {body}
-      <circle cx={e[0]} cy={e[1]} r="5" className="fs-ripple" style={{ fill: "none", stroke: color, strokeWidth: 2, animationPlayState: calm ? "paused" : "running" }} />
-      <circle cx={b[0]} cy={b[1]} r="5.5" style={{ fill: color, stroke: "var(--surface)", strokeWidth: 2.5, filter: "drop-shadow(0 0 4px " + color + ")" }} />
+      {C({ stroke: "#000", strokeWidth: 15, opacity: 0.14, filter: "blur(2px)", transform: "translate(2px,3px)" })}
+      {C({ stroke: "color-mix(in srgb, var(--text-1) 28%, transparent)", strokeWidth: 13 })}
+      {C({ stroke: "color-mix(in srgb, var(--surface) 62%, transparent)", strokeWidth: 10.5 })}
+      {on && C({ stroke: color, strokeWidth: 7, opacity: 0.8, filter: "blur(3px)" })}
+      {on && flow({ stroke: "color-mix(in srgb, " + color + " 70%, #fff)", strokeWidth: 5, strokeDasharray: "40 24", filter: "blur(1.2px) drop-shadow(0 0 4px " + color + ")" })}
+      {on && flow({ stroke: "#fff", strokeWidth: 1.6, strokeDasharray: "26 38", opacity: 0.8 })}
+      {C({ stroke: "rgba(255,255,255,0.55)", strokeWidth: 1.3, transform: "translate(-2.5px,-2.5px)" })}
+      {on && <circle cx={e[0]} cy={e[1]} r="6" className="fs-ripple" style={{ fill: "none", stroke: color, strokeWidth: 2, animationPlayState: play }} />}
+      <circle cx={b[0]} cy={b[1]} r="7.5" style={{ fill: "rgba(255,255,255,0.85)", stroke: "color-mix(in srgb, var(--text-1) 25%, transparent)", strokeWidth: 1 }} />
+      <circle cx={b[0]} cy={b[1]} r="3.5" style={{ fill: on ? color : "var(--border-strong)", filter: on ? "drop-shadow(0 0 4px " + color + ")" : "none" }} />
     </g>
   );
 }
-function FsHouseFlow({ em, site, compact, at, wire }) {
+function FsHouseFlow({ em, site, compact, at }) {
   const calm = fsCalm();
   const cap = fsN(site.capacity_kw) || em.cap || null;
   const pv = em.pvKw, g = em.gridKw, bk = em.battKw, load = em.loadKw;
@@ -377,7 +294,7 @@ function FsHouseFlow({ em, site, compact, at, wire }) {
             <svg width={sz.w} height={sz.h} style={{ position: "absolute", inset: 0, pointerEvents: "none" }} aria-hidden="true">
               {all.map((c) => (
                 <FsHwWire key={c.k} a={[c.side === "L" ? c.x + CW - 8 : c.x + 8, c.y]} b={pt(c.pt)}
-                  color={c.color} on={c.on} rel={rel(c.kw)} rev={c.out} calm={calm} sty={wire || window.FS_WIRE_STYLE} />
+                  color={c.color} on={c.on} rel={rel(c.kw)} rev={c.out} calm={calm} />
               ))}
             </svg>
             {all.map((c) => <FsHwCard key={c.k} {...c} style={{ position: "absolute", left: c.x, top: c.y, width: CW, transform: "translateY(-50%)" }} />)}
