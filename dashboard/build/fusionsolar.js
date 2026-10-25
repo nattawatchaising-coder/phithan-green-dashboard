@@ -312,7 +312,6 @@ function FsCard({
   }, right)), children);
 }
 const fsYield = s => s.fs_status !== "not_found_in_fusionsolar" && fsN(s.day_kwh) != null && fsN(s.capacity_kw) > 0 ? s.day_kwh / s.capacity_kw : null;
-const FS_HEALTH_ORDER = [["ok", "var(--tint-ok-tx)"], ["warn", "var(--tint-amber-tx)"], ["off", "var(--text-3)"], ["lost", "var(--tint-red-tx)"], ["wait", "var(--border-strong)"], ["none", "var(--surface3)"]];
 function FsAttention({
   items,
   onOpen
@@ -528,67 +527,6 @@ function FsFleetHero({
       color: "var(--text-3)"
     }
   }, roll.n, " \u0E44\u0E0B\u0E15\u0E4C \xB7 \u0E15\u0E34\u0E14\u0E15\u0E31\u0E49\u0E07\u0E23\u0E27\u0E21 ", fsFmt(roll.kw, 0), " kWp \xB7 ", lastAt ? "อัปเดต " + fsAgo(new Date(lastAt).toISOString()) : "ยังไม่มีข้อมูลผลิต"));
-}
-function FsRing({
-  frac,
-  size,
-  color,
-  children
-}) {
-  const S = size || 56,
-    sw = 6,
-    r = (S - sw) / 2,
-    C = 2 * Math.PI * r;
-  const f = frac == null || isNaN(frac) ? 0 : Math.max(0, Math.min(1, frac));
-  return React.createElement("div", {
-    style: {
-      position: "relative",
-      width: S,
-      height: S,
-      flexShrink: 0
-    }
-  }, React.createElement("svg", {
-    viewBox: "0 0 " + S + " " + S,
-    width: S,
-    height: S,
-    style: {
-      display: "block",
-      transform: "rotate(-90deg)"
-    },
-    "aria-hidden": "true"
-  }, React.createElement("circle", {
-    cx: S / 2,
-    cy: S / 2,
-    r: r,
-    fill: "none",
-    style: {
-      stroke: "var(--surface3)",
-      strokeWidth: sw
-    }
-  }), f > 0 && React.createElement("circle", {
-    cx: S / 2,
-    cy: S / 2,
-    r: r,
-    fill: "none",
-    className: "fs-tr",
-    strokeDasharray: C * f + " " + C,
-    style: {
-      stroke: color || "var(--fs-sun)",
-      strokeWidth: sw,
-      strokeLinecap: "round"
-    }
-  })), React.createElement("div", {
-    style: {
-      position: "absolute",
-      inset: 0,
-      display: "grid",
-      placeItems: "center",
-      fontSize: 11,
-      fontWeight: 800,
-      color: "var(--text-1)",
-      fontFamily: "var(--mono)"
-    }
-  }, children));
 }
 function FsRanking({
   sites,
@@ -1883,52 +1821,6 @@ function FsIssues({
     }
   }), React.createElement("span", null, x.text))));
 }
-function FsHero({
-  label,
-  value,
-  unit,
-  sub,
-  extra
-}) {
-  return React.createElement("div", {
-    style: {
-      background: "var(--surface)",
-      boxShadow: "var(--shadow-card)",
-      borderRadius: "var(--r-tile)",
-      padding: "13px 15px",
-      minWidth: 0
-    }
-  }, React.createElement("div", {
-    style: {
-      fontSize: 11,
-      fontWeight: 700,
-      color: "var(--text-3)"
-    }
-  }, label), React.createElement("div", {
-    style: {
-      fontFamily: "var(--display)",
-      fontSize: 25,
-      fontWeight: 700,
-      color: "var(--text-1)",
-      lineHeight: 1.25,
-      fontVariantNumeric: "tabular-nums",
-      whiteSpace: "nowrap"
-    }
-  }, value, unit && value !== "–" && React.createElement("span", {
-    style: {
-      fontSize: 12,
-      fontWeight: 600,
-      color: "var(--text-3)",
-      marginLeft: 5
-    }
-  }, unit)), extra, sub && React.createElement("div", {
-    style: {
-      fontSize: 11,
-      color: "var(--text-3)",
-      marginTop: 3
-    }
-  }, sub));
-}
 function FsHistoryCard({
   site,
   isMobile
@@ -2352,8 +2244,7 @@ function FsSiteModal({
   const tot = fsEnergy(totK);
   const [tab, setTab] = React.useState(code ? "over" : "info");
   const [exporting, setExporting] = React.useState(false);
-  const pvNow = em.pvKw,
-    co2 = totK != null ? totK * FS_GRID_EF / 1000 : null;
+  const co2 = totK != null ? totK * FS_GRID_EF / 1000 : null;
   return React.createElement(FsModal, {
     width: 1000,
     onClose: onClose,
@@ -2463,10 +2354,16 @@ function FsSiteModal({
     onClick: merge
   }, "\u0E23\u0E27\u0E21\u0E2A\u0E2D\u0E07\u0E44\u0E0B\u0E15\u0E4C"))), code && React.createElement("div", {
     style: {
+      display: "grid",
+      gridTemplateColumns: isMobile ? "1fr" : "minmax(0,1fr) 230px",
       background: "var(--surface)",
-      boxShadow: "var(--shadow-sm)",
-      borderRadius: "var(--r-tile)",
-      padding: isMobile ? 8 : 10
+      boxShadow: "var(--shadow-card)",
+      borderRadius: "var(--r-card)"
+    }
+  }, React.createElement("div", {
+    style: {
+      padding: isMobile ? "14px 12px 12px" : "18px 22px 14px",
+      minWidth: 0
     }
   }, window.FsScene ? React.createElement(window.FsScene, {
     em: em,
@@ -2485,59 +2382,64 @@ function FsSiteModal({
       fontWeight: 700,
       marginTop: 7
     }
-  }, "\u0E02\u0E49\u0E2D\u0E21\u0E39\u0E25\u0E04\u0E49\u0E32\u0E07\u0E40\u0E01\u0E34\u0E19 3 \u0E0A\u0E21. \u2014 \u0E20\u0E32\u0E1E\u0E41\u0E2A\u0E14\u0E07\u0E04\u0E48\u0E32\u0E25\u0E48\u0E32\u0E2A\u0E38\u0E14\u0E17\u0E35\u0E48\u0E44\u0E14\u0E49\u0E23\u0E31\u0E1A")), code && React.createElement("div", {
-    className: "kpi-grid",
+  }, "\u0E02\u0E49\u0E2D\u0E21\u0E39\u0E25\u0E04\u0E49\u0E32\u0E07\u0E40\u0E01\u0E34\u0E19 3 \u0E0A\u0E21. \u2014 \u0E41\u0E2A\u0E14\u0E07\u0E04\u0E48\u0E32\u0E25\u0E48\u0E32\u0E2A\u0E38\u0E14\u0E17\u0E35\u0E48\u0E44\u0E14\u0E49\u0E23\u0E31\u0E1A")), React.createElement("div", {
+    className: isMobile ? "kpi-grid" : "",
     style: {
       display: "grid",
-      gridTemplateColumns: isMobile ? "1fr 1fr" : "repeat(4, 1fr)",
-      gap: 10
+      gridTemplateColumns: isMobile ? "repeat(3, minmax(0,1fr))" : "1fr",
+      alignContent: "center",
+      gap: isMobile ? 8 : 0,
+      padding: isMobile ? "0 12px 14px" : "10px 22px",
+      boxShadow: isMobile ? "none" : "inset 1px 0 0 var(--divider)"
+    }
+  }, [["ผลิตวันนี้", dayK == null ? "–" : React.createElement(FsCountUp, {
+    value: dayK,
+    digits: dayK >= 1000 ? 0 : 1
+  }), "kWh", avg30 && dayK != null ? Math.round(dayK / avg30 * 100) + "% ของเฉลี่ย 30 วัน" : cap > 0 && dayK != null ? fsFmt(dayK / cap, 2) + " kWh/kWp" : null], ["ผลิตเดือนนี้", monK == null ? "–" : React.createElement(FsCountUp, {
+    value: monK,
+    digits: 0
+  }), "kWh", monK != null ? "เฉลี่ย " + fsFmt(monK / domDays, 1) + " kWh/วัน" : null], ["ผลิตสะสม", totK == null ? "–" : React.createElement(FsCountUp, {
+    value: totK >= 10000 ? totK / 1000 : totK,
+    digits: 1
+  }), tot[1], co2 != null ? "ลด CO₂ " + fsFmt(co2, 1) + " ตัน" : null]].map(([l, v, u, sub], i) => React.createElement("div", {
+    key: l,
+    style: {
+      padding: isMobile ? 0 : "12px 0",
+      boxShadow: !isMobile && i ? "inset 0 1px 0 var(--divider)" : "none",
+      minWidth: 0
     }
   }, React.createElement("div", {
     style: {
-      background: "var(--surface)",
-      boxShadow: "var(--shadow-card)",
-      borderRadius: "var(--r-tile)",
-      padding: "14px 10px 12px"
+      fontSize: 11.5,
+      fontWeight: 600,
+      color: "var(--text-3)"
     }
-  }, React.createElement(FsGauge, {
-    frac: cap > 0 && pvNow != null ? pvNow / cap : null,
-    value: fsFmt(pvNow, pvNow >= 100 ? 0 : 1),
-    unit: "kW",
-    label: "\u0E01\u0E33\u0E25\u0E31\u0E07\u0E1C\u0E25\u0E34\u0E15\u0E15\u0E2D\u0E19\u0E19\u0E35\u0E49",
-    sub: cap > 0 && pvNow != null ? Math.round(pvNow / cap * 100) + "% ของ " + fsFmt(cap, 0) + " kWp" : em.hasInv ? null : "ไม่มีข้อมูลอินเวอร์เตอร์",
-    color: "var(--fs-sun)",
-    size: isMobile ? 120 : 150
-  })), React.createElement("div", {
+  }, l), React.createElement("div", {
     style: {
-      background: "var(--surface)",
-      boxShadow: "var(--shadow-card)",
-      borderRadius: "var(--r-tile)",
-      padding: "14px 10px 12px"
+      fontFamily: "var(--display)",
+      fontSize: isMobile ? 18 : 24,
+      fontWeight: 700,
+      color: "var(--text-1)",
+      lineHeight: 1.2,
+      whiteSpace: "nowrap",
+      fontVariantNumeric: "tabular-nums"
     }
-  }, React.createElement(FsGauge, {
-    frac: dayK == null ? null : avg30 ? dayK / (avg30 * 1.5) : cap > 0 ? dayK / cap / 6 : null,
-    value: fsFmt(dayK, dayK >= 1000 ? 0 : 1),
-    unit: "kWh",
-    label: "\u0E1C\u0E25\u0E34\u0E15\u0E27\u0E31\u0E19\u0E19\u0E35\u0E49",
-    sub: avg30 && dayK != null ? Math.round(dayK / avg30 * 100) + "% ของเฉลี่ย 30 วัน" : cap > 0 && dayK != null ? fsFmt(dayK / cap, 2) + " kWh/kWp" : null,
-    size: isMobile ? 120 : 150
-  })), React.createElement(FsHero, {
-    label: "\u0E1C\u0E25\u0E34\u0E15\u0E40\u0E14\u0E37\u0E2D\u0E19\u0E19\u0E35\u0E49",
-    value: monK == null ? "–" : React.createElement(FsCountUp, {
-      value: monK,
-      digits: 0
-    }),
-    unit: "kWh",
-    sub: monK != null ? "เฉลี่ย " + fsFmt(monK / domDays, 1) + " kWh/วัน" + (cap > 0 ? " · " + fsFmt(monK / cap / domDays, 2) + " kWh/kWp/วัน" : "") : null
-  }), React.createElement(FsHero, {
-    label: "\u0E1C\u0E25\u0E34\u0E15\u0E2A\u0E30\u0E2A\u0E21",
-    value: totK == null ? "–" : React.createElement(FsCountUp, {
-      value: totK >= 10000 ? totK / 1000 : totK,
-      digits: 1
-    }),
-    unit: tot[1],
-    sub: co2 != null ? "ลด CO₂ " + fsFmt(co2, 1) + " ตัน ≈ ต้นไม้ " + fsFmt(co2 * 1000 / FS_TREE_KG, 0) + " ต้นดูดซับใน 1 ปี" : null
-  })), window.Segmented && React.createElement("div", {
+  }, v, v !== "–" && React.createElement("span", {
+    style: {
+      fontSize: 12,
+      fontWeight: 600,
+      color: "var(--text-3)",
+      marginLeft: 4
+    }
+  }, u)), sub && React.createElement("div", {
+    style: {
+      fontSize: 11,
+      color: "var(--text-3)",
+      overflow: "hidden",
+      textOverflow: "ellipsis",
+      whiteSpace: "nowrap"
+    }
+  }, sub))))), window.Segmented && React.createElement("div", {
     style: {
       display: "flex",
       overflowX: "auto"

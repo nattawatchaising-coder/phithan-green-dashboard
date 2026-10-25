@@ -2,9 +2,8 @@
    flash+solar — ภาพ/อนิเมชันของหน้า FusionSolar (docs/fusionsolar.md)
    โหลดหลัง fusionsolar-viz.jsx ก่อน fusionsolar.jsx · ไม่มีการเขียนฐานข้อมูลในไฟล์นี้
 
-   - FsScene        อาคาร+แผงโซลาร์แบบสามมิติ (isometric) · ท้องฟ้า/ดวงอาทิตย์ตามเวลาไทย · แผงเรืองตามกำลังผลิต
-                    จุดวิ่งตามทิศพลังงาน (โซลาร์→อาคาร · ขาย/ซื้อกับกริด · ชาร์จ/จ่ายแบต) ยิ่ง kW มากยิ่งเร็ว
-   - FsFleetScene   ภาพรวมทุกไซต์ (หลายอาคาร) ของหน้า "ไซต์ทั้งหมด"
+   - FsScene        แผนภาพการไหลของพลังงานตอนนี้แบบ 2D เรียบ: โซลาร์ · กริด · อาคาร · แบต ผ่านจุดกลาง
+                    จุดเรืองวิ่งตามทิศพลังงาน ยิ่ง kW มากยิ่งเร็ว · วงรอบโซลาร์ = % ของกำลังติดตั้ง · วงรอบแบต = SOC
    - FsGauge หน้าปัดครึ่งวง · FsDonut วงสัดส่วน · FsCountUp ตัวเลขวิ่ง
    - FsKvGroups     ค่าดิบจากอุปกรณ์จัดเป็นหมวด (สถานะ · พลังงาน · ไฟสลับ · ไฟตรง/สตริง · แบต · อุณหภูมิ)
    - FsStringGrid   สตริง PV แบบแผนที่ความร้อน
@@ -18,23 +17,15 @@
   if (document.getElementById("fs-scene-css")) return;
   const el = document.createElement("style");
   el.id = "fs-scene-css";
-  el.textContent = ":root{--fs-sun:#F6A623;--fs-panel:#1D3557;--fs-panel-hi:#4C9BF0;--fs-bat:#7C5CD6;--fs-ground:#D5EBDD;--fs-ground2:#BFDFCB;"
-    + "--fs-wall:#FFFFFF;--fs-wall2:#DCE5EC;--fs-roof:#C3CFD9;--fs-glass:#B9D6EE;--fs-tree:#3FA372;--fs-dim:0}"
-    + "[data-theme=\"aurora\"]{--fs-bat:#9A80F0;--fs-ground:#1C3A31;--fs-ground2:#152C25;--fs-wall:#33475A;--fs-wall2:#26384A;--fs-roof:#455A6D;"
-    + "--fs-glass:#4A6A86;--fs-tree:#2F8A5E;--fs-dim:.22}"
+  el.textContent = ":root{--fs-sun:#E8930C;--fs-bat:#7C5CD6}[data-theme=\"aurora\"]{--fs-sun:#F6A623;--fs-bat:#9A80F0}"
     + "@keyframes fsDash{to{stroke-dashoffset:-24}}.fs-dash{stroke-dasharray:6 6;animation:fsDash 1s linear infinite}"
-    + "@keyframes fsGlow{0%,100%{opacity:.75}50%{opacity:1}}.fs-glow{animation:fsGlow 3.2s ease-in-out infinite}"
-    + "@keyframes fsTwinkle{0%,100%{opacity:.25}50%{opacity:.95}}.fs-star{animation:fsTwinkle 2.8s ease-in-out infinite}"
-    + "@keyframes fsSpin{to{transform:rotate(360deg)}}.fs-rays{transform-box:fill-box;transform-origin:center;animation:fsSpin 46s linear infinite}"
-    + "@keyframes fsDrift{from{transform:translateX(-26px)}to{transform:translateX(26px)}}.fs-cloud{animation:fsDrift 16s ease-in-out infinite alternate}"
-    + "@keyframes fsRise{from{opacity:0;transform:translate(-50%,-38%)}to{opacity:1;transform:translate(-50%,-50%)}}.fs-tag{animation:fsRise .5s ease both}"
     + "@keyframes fsIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}.fs-in{animation:fsIn .45s ease both}"
     + ".fs-tr{transition:stroke-dasharray .9s cubic-bezier(.2,.8,.2,1),width .6s ease}"
     + "@keyframes fsPing{0%{transform:scale(1);opacity:.55}100%{transform:scale(2.4);opacity:0}}"
     + ".fs-pin{position:relative;display:block;border-radius:50%;box-shadow:0 0 0 2.5px var(--surface),0 2px 6px rgba(0,0,0,.3);cursor:pointer}"
     + ".fs-pin.live::after{content:'';position:absolute;inset:0;border-radius:50%;background:inherit;animation:fsPing 2s ease-out infinite}"
     + ".fs-card-hov{transition:transform .15s ease,box-shadow .15s ease}.fs-card-hov:hover{transform:translateY(-2px);box-shadow:var(--shadow-card)}"
-    + "@media (prefers-reduced-motion: reduce){.fs-dash,.fs-glow,.fs-star,.fs-rays,.fs-cloud,.fs-tag,.fs-in,.fs-pin.live::after{animation:none!important}"
+    + "@media (prefers-reduced-motion: reduce){.fs-dash,.fs-in,.fs-pin.live::after{animation:none!important}"
     + ".fs-tr,.fs-card-hov{transition:none!important}.fs-card-hov:hover{transform:none}}";
   document.head.appendChild(el);
 })();
@@ -141,154 +132,60 @@ function FsDonut({ parts, center, centerSub, size, title, onPick, picked }) {
 }
 
 /* ================================================================
-   ภาพสามมิติ (isometric) — แกน x ไปขวาล่าง · y ไปซ้ายล่าง · z ขึ้น
+   แผนภาพการไหลของพลังงานตอนนี้ (2D เรียบ) — โซลาร์ด้านบน · กริดซ้าย · อาคารขวา · แบตล่าง วิ่งผ่านจุดกลาง (อินเวอร์เตอร์)
+   วาดตามความกว้างจริง (ResizeObserver) ให้วงกลมไม่บิด · จุดวิ่งเร็วตาม kW เทียบกำลังติดตั้ง
    ================================================================ */
-const fsIso = (ox, oy) => (x, y, z) => [ox + (x - y) * 0.866, oy + (x + y) * 0.5 - (z || 0)];
-const fsPts = (a) => a.map((p) => p[0].toFixed(1) + "," + p[1].toFixed(1)).join(" ");
-const fsXY = (p) => p[0].toFixed(1) + "," + p[1].toFixed(1);
-/* ช่วงเวลาของวันตามเวลาไทย: t 0 = 6 โมงเช้า · 1 = 6 โมงเย็น */
-function fsDayPhase(ms) {
-  const d = new Date((ms || Date.now()) + 7 * 3600e3);
-  const hf = d.getUTCHours() + d.getUTCMinutes() / 60;
-  const t = (hf - 6) / 12;
-  const phase = t < -0.03 || t > 1.05 ? "night" : t < 0.1 || t > 0.9 ? "dusk" : "day";
-  return { t, hf, phase };
-}
-const FS_SKY = { day: ["#6FB3EA", "#D6ECFB"], dusk: ["#6C87C9", "#FFC596"], night: ["#0A1430", "#26375F"] };
-const FS_STARS = [[40, 30], [96, 62], [150, 22], [212, 48], [268, 18], [330, 40], [392, 24], [450, 58], [506, 20], [600, 44], [70, 104], [560, 96], [250, 84], [620, 120]];
-
-/* ท้องฟ้า + ดวงอาทิตย์/ดวงจันทร์ + เมฆ — ภาพกว้าง 640 สูง H เส้นขอบฟ้าที่ hz */
-function FsSky({ uid, ph, H, hz, calm, clouds }) {
-  const sky = FS_SKY[ph.phase];
-  const t = fsClamp(ph.t, 0, 1);
-  const sx = 40 + t * 560, sy = hz - 8 - Math.sin(Math.PI * t) * (hz - 40);
+const FS_TOWER = "M8 22 12 2l4 20M9.2 15h5.6M10.3 9.5h3.4M5 6.5h14M7 6.5v2M17 6.5v2";
+function FsFlowIcon({ name, size, color }) {
+  if (name !== "tower") return <Icon name={name} size={size} color={color} />;
   return (
-    <g>
-      <defs>
-        <linearGradient id={uid + "sky"} x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0" stopColor={sky[0]} /><stop offset="1" stopColor={sky[1]} />
-        </linearGradient>
-        <radialGradient id={uid + "sun"}><stop offset="0" stopColor="#FFF4C2" /><stop offset=".55" stopColor="#FFD25A" stopOpacity=".55" /><stop offset="1" stopColor="#FFD25A" stopOpacity="0" /></radialGradient>
-      </defs>
-      <rect x="0" y="0" width="640" height={H} fill={"url(#" + uid + "sky)"} />
-      {ph.phase === "night" ? (
-        <g>
-          {FS_STARS.map(([x, y], i) => <circle key={i} cx={x} cy={y} r={i % 3 ? 1.1 : 1.6} fill="#fff" className={calm ? "" : "fs-star"} style={{ animationDelay: (i * 0.37) % 2.8 + "s" }} />)}
-          <circle cx="548" cy="52" r="15" fill="#F5F1DC" />
-          <circle cx="555" cy="47" r="13" fill={sky[0]} />
-        </g>
-      ) : (
-        <g>
-          <circle cx={sx} cy={sy} r="44" fill={"url(#" + uid + "sun)"} />
-          <g className={calm ? "" : "fs-rays"}>
-            {[0, 1, 2, 3, 4, 5, 6, 7].map((i) => {
-              const a = (i * Math.PI) / 4;
-              return <line key={i} x1={sx + Math.cos(a) * 21} y1={sy + Math.sin(a) * 21} x2={sx + Math.cos(a) * 29} y2={sy + Math.sin(a) * 29}
-                style={{ stroke: ph.phase === "dusk" ? "#FF9C55" : "var(--fs-sun)", strokeWidth: 2.6, strokeLinecap: "round" }} />;
-            })}
-          </g>
-          <circle cx={sx} cy={sy} r="16" style={{ fill: ph.phase === "dusk" ? "#FF9C55" : "var(--fs-sun)" }} />
-          {clouds && (
-            <g className={calm ? "" : "fs-cloud"} opacity=".9">
-              <g transform="translate(120 52)"><ellipse cx="0" cy="0" rx="26" ry="10" fill="#fff" /><ellipse cx="14" cy="-7" rx="15" ry="11" fill="#fff" /><ellipse cx="-12" cy="-4" rx="11" ry="8" fill="#fff" /></g>
-              <g transform="translate(470 76) scale(.8)"><ellipse cx="0" cy="0" rx="26" ry="10" fill="#fff" /><ellipse cx="14" cy="-7" rx="15" ry="11" fill="#fff" /><ellipse cx="-12" cy="-4" rx="11" ry="8" fill="#fff" /></g>
-            </g>
-          )}
-        </g>
-      )}
-    </g>
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
+      {FS_TOWER.split("M").filter(Boolean).map((seg, i) => <path key={i} d={"M" + seg} />)}
+    </svg>
   );
 }
-
-/* อาคารสามมิติ + แผงบนหลังคา · inten 0..1 = แผงเรือง · night = หน้าต่างเปิดไฟ */
-function FsIsoBuilding({ ox, oy, w, d, h, nc, nr, inten, night, calm, door }) {
-  const P = fsIso(ox, oy);
-  const face = (pts, fill) => <polygon points={fsPts(pts)} style={{ fill, stroke: "rgba(0,0,0,.08)", strokeWidth: 0.6 }} />;
-  const win = night ? "#FFD27A" : "var(--fs-glass)";
-  const wins = [];
-  const nw = Math.max(2, Math.round(w / 26));
-  const wz0 = h * 0.5, wz1 = Math.min(h - 6, h * 0.5 + 13);
-  for (let i = 0; i < nw; i++) {
-    const x0 = 10 + i * ((w - 20) / nw) + 3, x1 = x0 + (w - 20) / nw - 6;
-    if (door && x0 < 44) continue;
-    wins.push(<polygon key={"l" + i} points={fsPts([P(x0, d, wz0), P(x1, d, wz0), P(x1, d, wz1), P(x0, d, wz1)])} style={{ fill: win, opacity: night ? 0.9 : 0.85 }} />);
-  }
-  const nwr = Math.max(2, Math.round(d / 24));
-  for (let i = 0; i < nwr; i++) {
-    const y0 = 8 + i * ((d - 16) / nwr) + 3, y1 = y0 + (d - 16) / nwr - 6;
-    wins.push(<polygon key={"r" + i} points={fsPts([P(w, y0, wz0), P(w, y1, wz0), P(w, y1, wz1), P(w, y0, wz1)])} style={{ fill: win, opacity: night ? 0.85 : 0.75 }} />);
-  }
-  /* แผง: เอียงขึ้นด้านหลังเล็กน้อย · มีเส้นแบ่งเซลล์ */
-  const panels = [];
-  const m = 9, gx = 3, gy = 4, pw = (w - 2 * m - (nc - 1) * gx) / nc, pd = (d - 2 * m - (nr - 1) * gy) / nr;
-  for (let r = 0; r < nr; r++) for (let c = 0; c < nc; c++) {
-    const x0 = m + c * (pw + gx), y0 = m + r * (pd + gy), x1 = x0 + pw, y1 = y0 + pd;
-    const q = [P(x0, y0, h + 6), P(x1, y0, h + 6), P(x1, y1, h + 1.5), P(x0, y1, h + 1.5)];
-    panels.push(
-      <g key={r + "-" + c}>
-        <polygon points={fsPts(q)} style={{ fill: "var(--fs-panel)", stroke: "rgba(255,255,255,.35)", strokeWidth: 0.6 }} />
-        {inten > 0.02 && <polygon points={fsPts(q)} className={calm ? "" : "fs-glow"}
-          style={{ fill: "var(--fs-panel-hi)", opacity: 0.18 + inten * 0.72, animationDelay: ((r * nc + c) * 0.21) % 3.2 + "s" }} />}
-        <line x1={fsXY(P((x0 + x1) / 2, y0, h + 6)).split(",")[0]} y1={fsXY(P((x0 + x1) / 2, y0, h + 6)).split(",")[1]}
-          x2={fsXY(P((x0 + x1) / 2, y1, h + 1.5)).split(",")[0]} y2={fsXY(P((x0 + x1) / 2, y1, h + 1.5)).split(",")[1]}
-          style={{ stroke: "rgba(255,255,255,.28)", strokeWidth: 0.6 }} />
-      </g>
-    );
-  }
+/* วงกลมของแต่ละจุด · ring 0..1 = วงความคืบหน้ารอบนอก (โซลาร์ = % ของกำลังติดตั้ง · แบต = SOC) */
+function FsFlowNode({ x, y, r, icon, color, on, ring }) {
+  const S = r * 2 + 10, rr = r + 3, C = 2 * Math.PI * rr;
   return (
-    <g>
-      <polygon points={fsPts([P(-8, -8, 0), P(w + 8, -8, 0), P(w + 8, d + 8, 0), P(-8, d + 8, 0)])} style={{ fill: "rgba(0,0,0,.09)" }} />
-      {face([P(0, d, 0), P(w, d, 0), P(w, d, h), P(0, d, h)], "var(--fs-wall)")}
-      {face([P(w, 0, 0), P(w, d, 0), P(w, d, h), P(w, 0, h)], "var(--fs-wall2)")}
-      {face([P(0, 0, h), P(w, 0, h), P(w, d, h), P(0, d, h)], "var(--fs-roof)")}
-      {wins}
-      {door && <polygon points={fsPts([P(18, d, 0), P(38, d, 0), P(38, d, 24), P(18, d, 24)])} style={{ fill: night ? "#FFC85C" : "var(--fs-panel)", opacity: 0.8 }} />}
-      {panels}
-    </g>
+    <div style={{ position: "absolute", left: x - S / 2, top: y - S / 2, width: S, height: S }}>
+      <svg width={S} height={S} style={{ position: "absolute", inset: 0, transform: "rotate(-90deg)" }} aria-hidden="true">
+        {ring != null && <circle cx={S / 2} cy={S / 2} r={rr} fill="none" style={{ stroke: "var(--surface3)", strokeWidth: 3 }} />}
+        {ring > 0 && <circle cx={S / 2} cy={S / 2} r={rr} fill="none" className="fs-tr" strokeDasharray={C * fsClamp(ring, 0, 1) + " " + C}
+          style={{ stroke: color, strokeWidth: 3, strokeLinecap: "round" }} />}
+      </svg>
+      <div style={{ position: "absolute", left: 5, top: 5, width: r * 2, height: r * 2, borderRadius: "50%", display: "grid", placeItems: "center",
+        background: on ? "color-mix(in srgb, " + color + " 14%, var(--surface))" : "var(--surface2)", boxShadow: "var(--shadow-sm)" }}>
+        <FsFlowIcon name={icon} size={Math.round(r * 0.9)} color={on ? color : "var(--text-3)"} />
+      </div>
+    </div>
   );
 }
-
-/* เสาไฟฟ้าแรงสูง (กริด) */
-function FsPylon({ x, y, hgt }) {
-  const H = hgt || 120, top = y - H;
-  const st = { stroke: "var(--text-3)", strokeWidth: 1.6, fill: "none", strokeLinecap: "round" };
-  const L = (a, b, c, e) => <line x1={a} y1={b} x2={c} y2={e} style={st} />;
+function FsFlowLabel({ x, y, align, title, value, sub, W }) {
+  const w = 128;
+  const st = align === "right" ? { left: x, top: y, transform: "translateY(-50%)" }
+    : { left: fsClamp(x - w / 2, 0, W - w), top: y, width: w, textAlign: "center" };
   return (
-    <g>
-      <ellipse cx={x} cy={y + 2} rx="20" ry="5" style={{ fill: "rgba(0,0,0,.1)" }} />
-      {L(x - 15, y, x - 4, top)}{L(x + 15, y, x + 4, top)}
-      {L(x - 12, y - 25, x + 12, y - 25)}{L(x - 9, y - 55, x + 9, y - 55)}{L(x - 6, y - 85, x + 6, y - 85)}
-      {L(x - 12, y - 25, x + 9, y - 55)}{L(x + 12, y - 25, x - 9, y - 55)}{L(x - 9, y - 55, x + 6, y - 85)}{L(x + 9, y - 55, x - 6, y - 85)}
-      {L(x - 26, top + 12, x + 26, top + 12)}{L(x - 19, top + 28, x + 19, top + 28)}
-      {L(x - 4, top, x + 4, top)}
-      {[-24, 24, -17, 17].map((dx, i) => <line key={i} x1={x + dx} y1={top + (i < 2 ? 12 : 28)} x2={x + dx} y2={top + (i < 2 ? 19 : 35)} style={Object.assign({}, st, { strokeWidth: 2.4 })} />)}
-    </g>
+    <div style={Object.assign({ position: "absolute", pointerEvents: "none" }, st)}>
+      <div style={{ fontSize: 11, fontWeight: 700, color: "var(--text-3)", whiteSpace: "nowrap" }}>{title}</div>
+      <div style={{ fontFamily: "var(--display)", fontSize: 19, fontWeight: 700, color: "var(--text-1)", lineHeight: 1.2, whiteSpace: "nowrap", fontVariantNumeric: "tabular-nums" }}>{value}</div>
+      {sub && <div style={{ fontSize: 11, color: "var(--text-3)", whiteSpace: "nowrap" }}>{sub}</div>}
+    </div>
   );
 }
-
-/* ต้นไม้ */
-const FsTree = ({ x, y, s }) => (
-  <g transform={"translate(" + x + " " + y + ") scale(" + (s || 1) + ")"}>
-    <ellipse cx="0" cy="1" rx="10" ry="3" style={{ fill: "rgba(0,0,0,.1)" }} />
-    <rect x="-1.6" y="-12" width="3.2" height="13" rx="1" style={{ fill: "#8A6A4A" }} />
-    <circle cx="0" cy="-20" r="11" style={{ fill: "var(--fs-tree)" }} />
-    <circle cx="-5" cy="-16" r="7" style={{ fill: "var(--fs-tree)", opacity: 0.85 }} />
-  </g>
-);
-
-/* เส้นทางพลังงาน + จุดวิ่ง · kw/cap กำหนดความเร็ว · reverse = วิ่งจากปลายมาต้น */
-function FsFlowPath({ id, d, kw, cap, color, reverse, calm }) {
-  const on = kw != null && Math.abs(kw) > 0.02;
+/* เส้นหนึ่งเส้น: ราง (จาง) + เส้นสี + จุดเรืองวิ่งจาก a ไป b */
+function FsFlowLine({ id, a, b, kw, cap, color, calm, off }) {
+  const on = !off && kw != null && Math.abs(kw) > 0.02;
+  const d = "M" + a[0].toFixed(1) + "," + a[1].toFixed(1) + " L" + b[0].toFixed(1) + "," + b[1].toFixed(1);
   const rel = on ? (cap > 0 ? fsClamp(Math.abs(kw) / cap, 0, 1) : 0.5) : 0;
-  const dur = 3.6 - 2.5 * Math.sqrt(rel);
+  const dur = 2.8 - 1.9 * Math.sqrt(rel);
   return (
     <g>
-      <path id={id} d={d} fill="none" style={{ stroke: on ? color : "var(--text-3)", strokeWidth: 3.2, opacity: on ? 0.3 : 0.14, strokeLinecap: "round" }} />
-      {on && calm && <path d={d} fill="none" className="fs-dash" style={{ stroke: color, strokeWidth: 2.2, strokeLinecap: "round" }} />}
-      {on && !calm && [0, 1, 2, 3].map((i) => (
-        <circle key={i} r="3.8" style={{ fill: color, stroke: "var(--surface)", strokeWidth: 1.4 }}>
-          <animateMotion dur={dur.toFixed(2) + "s"} repeatCount="indefinite" begin={(-(i * dur) / 4).toFixed(2) + "s"}
-            keyPoints={reverse ? "1;0" : "0;1"} keyTimes="0;1" calcMode="linear">
+      <path id={id} d={d} fill="none" style={{ stroke: "var(--surface3)", strokeWidth: 3, strokeLinecap: "round" }} />
+      {on && <path d={d} fill="none" style={{ stroke: color, strokeWidth: 3, strokeLinecap: "round", opacity: 0.45 }} />}
+      {on && !calm && [0, 1, 2].map((i) => (
+        <circle key={i} r="3.6" style={{ fill: color, filter: "drop-shadow(0 0 3px " + color + ")" }}>
+          <animateMotion dur={dur.toFixed(2) + "s"} repeatCount="indefinite" begin={(-(i * dur) / 3).toFixed(2) + "s"} calcMode="linear">
             <mpath xlinkHref={"#" + id} />
           </animateMotion>
         </circle>
@@ -296,136 +193,69 @@ function FsFlowPath({ id, d, kw, cap, color, reverse, calm }) {
     </g>
   );
 }
-
-/* ป้ายลอยบนภาพ (ตำแหน่งเป็นพิกัดภาพ 640×300) · ไม่มี x = ป้ายธรรมดา (วางเป็นตารางใต้ภาพบนมือถือ) */
-function FsSceneTag({ icon, title, value, sub, color, x, y, vw, vh, delay }) {
-  const st = x == null ? {} : { position: "absolute", left: fsClamp((x / (vw || 640)) * 100, 11, 89) + "%", top: (y / (vh || 300)) * 100 + "%",
-    transform: "translate(-50%,-50%)", animationDelay: (delay || 0) + "s" };
-  return (
-    <div className={x == null ? "fs-in" : "fs-tag"} style={Object.assign({ background: "var(--surface)", boxShadow: "var(--shadow-pop)", borderRadius: "var(--r-tile)",
-      padding: "7px 11px", minWidth: 0, pointerEvents: "none" }, st)}>
-      <div style={{ display: "flex", alignItems: "center", gap: 5, fontSize: 10.5, fontWeight: 700, color: "var(--text-3)", whiteSpace: "nowrap" }}>
-        {icon ? <Icon name={icon} size={12} color={color} /> : <span style={{ width: 8, height: 8, borderRadius: 4, background: color }} />}{title}
-      </div>
-      <div style={{ fontFamily: "var(--display)", fontSize: 17, fontWeight: 700, color: "var(--text-1)", fontVariantNumeric: "tabular-nums", whiteSpace: "nowrap", lineHeight: 1.25 }}>{value}</div>
-      {sub && <div style={{ fontSize: 10.5, color: "var(--text-3)", whiteSpace: "nowrap" }}>{sub}</div>}
-    </div>
-  );
-}
-
-/* ── ภาพไซต์: อาคาร + แผง + กริด + แบต พร้อมการไหลของพลังงานตอนซิงก์ล่าสุด ── */
 function FsScene({ em, site, compact, at }) {
-  const uid = React.useRef("fss" + Math.random().toString(36).slice(2, 8)).current;
+  const uid = React.useRef("ff" + Math.random().toString(36).slice(2, 8)).current;
+  const box = React.useRef(null);
+  const [W, setW] = React.useState(560);
+  React.useEffect(() => {
+    if (!box.current) return;
+    const upd = () => box.current && setW(box.current.clientWidth || 560);
+    upd();
+    if (!window.ResizeObserver) return;
+    const ro = new ResizeObserver(upd); ro.observe(box.current);
+    return () => ro.disconnect();
+  }, []);
   const calm = fsCalm();
-  const ph = fsDayPhase(Date.now());
   const cap = fsN(site.capacity_kw) || em.cap || null;
-  const pv = em.pvKw, g = em.gridKw, bk = em.battKw;
-  const inten = cap > 0 && pv > 0 ? fsClamp(pv / cap, 0, 1) : 0;
-  const offline = +site.health_state === 1 || site.fs_status === "not_found_in_fusionsolar";
-  const W = 150, D = 90, H = 56, ox = 300, oy = 150;
-  const P = fsIso(ox, oy);
-  const big = cap > 150;
-  const roof = P(W / 2, D / 2, H + 5), door = P(28, D, 12), wire = P(W, 18, H - 8);
-  const Pb = fsIso(112, 216), battTop = Pb(11, 8, 34);
-  const pylon = { x: 568, y: 240 };
-  const wireEnd = [pylon.x - 24, pylon.y - 120 + 19];
-  const loadFromPv = em.loadKw != null && pv != null ? Math.max(0, Math.min(em.loadKw, pv - Math.max(0, g || 0) - Math.max(0, bk || 0))) : (pv > 0 ? pv - Math.max(0, g || 0) : null);
+  const pv = em.pvKw, g = em.gridKw, bk = em.battKw, load = em.loadKw;
+  const off = +site.health_state === 1 || site.fs_status === "not_found_in_fusionsolar";
+  const hasB = !!em.batt;
+  /* แนวตั้ง: โซลาร์ → จุดกลาง → (ป้ายใต้กริด/อาคาร) → แบต · จอแคบป้ายแบตชนป้ายอาคารได้ จึงดันแบตลงใต้ป้าย */
+  const r = compact || W < 480 ? 22 : 26;
+  const pvY = r + 14, hubY = pvY + r + (W < 480 ? 50 : 60), labEnd = hubY + r + 12 + 54;
+  const batY = W < 480 ? labEnd + r + 6 : hubY + 92;
+  const H = hasB ? batY + r + 14 : labEnd + 6;
+  const hub = [W / 2, hubY];
+  const P = { pv: [W / 2, pvY], grid: [Math.max(r + 16, W * 0.13), hubY], load: [Math.min(W - r - 16, W * 0.87), hubY], bat: [W / 2, batY] };
   const kw = (v) => (v == null ? "–" : fsFmt(Math.abs(v), Math.abs(v) >= 100 ? 0 : 1) + " kW");
-  const gTitle = g == null ? "กริด" : g > 0.02 ? "ขายเข้ากริด" : g < -0.02 ? "ซื้อจากกริด" : "กริด (สมดุล)";
-  const gColor = g > 0.02 ? "var(--fs-exp)" : g < -0.02 ? "var(--fs-imp)" : "var(--text-3)";
-  const tags = [
-    { key: "pv", icon: "sun", title: "โซลาร์ผลิต", value: kw(pv), sub: cap > 0 && pv != null ? Math.round(inten * 100) + "% ของ " + fsFmt(cap, 0) + " kWp" : em.hasInv ? null : "ไม่มีข้อมูลอินเวอร์เตอร์",
-      color: "var(--fs-sun)", x: 196, y: 70 },
-    { key: "load", icon: "building", title: "อาคารใช้ไฟ", value: kw(em.loadKw), sub: em.loadKw > 0.05 && loadFromPv != null ? "จากโซลาร์ " + Math.round(fsClamp(loadFromPv / em.loadKw, 0, 1) * 100) + "%" : em.meter ? null : "ไม่มีมิเตอร์",
-      color: "var(--fs-self)", x: 168, y: 272 },
-    { key: "grid", icon: "bolt", title: gTitle, value: kw(g), sub: em.meter ? null : "ไม่มีมิเตอร์", color: gColor, x: 560, y: 40 },
+  const gOn = g != null && Math.abs(g) > 0.02, gColor = g > 0.02 ? "var(--fs-exp)" : g < -0.02 ? "var(--fs-imp)" : "var(--text-3)";
+  const bOn = bk != null && Math.abs(bk) > 0.02;
+  const fromPv = load > 0.05 && pv != null ? fsClamp((pv - Math.max(0, g || 0) - Math.max(0, bk || 0)) / load, 0, 1) : null;
+  const gap = r + 9, hg = 7;
+  const lines = [
+    { id: "p", a: [P.pv[0], P.pv[1] + gap], b: [hub[0], hub[1] - hg], kw: pv, color: "var(--fs-sun)" },
+    { id: "l", a: [hub[0] + hg, hub[1]], b: [P.load[0] - gap, P.load[1]], kw: load, color: "var(--fs-self)" },
   ];
-  if (em.batt) tags.push({ key: "bat", icon: "battery", title: bk > 0.02 ? "แบตกำลังชาร์จ" : bk < -0.02 ? "แบตกำลังจ่าย" : "แบตเตอรี่",
-    value: em.soc != null ? em.soc + "%" : "–", sub: bk != null && Math.abs(bk) > 0.02 ? kw(bk) : "SOC", color: "var(--fs-bat)", x: 84, y: 150 });
-  const soc = em.soc != null ? fsClamp(em.soc / 100, 0, 1) : 0;
+  if (em.meter) lines.push(g < 0 ? { id: "g", a: [P.grid[0] + gap, hub[1]], b: [hub[0] - hg, hub[1]], kw: g, color: gColor }
+    : { id: "g", a: [hub[0] - hg, hub[1]], b: [P.grid[0] + gap, hub[1]], kw: g, color: gColor });
+  else lines.push({ id: "g", a: [hub[0] - hg, hub[1]], b: [P.grid[0] + gap, hub[1]], kw: null });
+  if (hasB) lines.push(bk < 0 ? { id: "b", a: [P.bat[0], P.bat[1] - gap], b: [hub[0], hub[1] + hg], kw: bk, color: "var(--fs-bat)" }
+    : { id: "b", a: [hub[0], hub[1] + hg], b: [P.bat[0], P.bat[1] - gap], kw: bk, color: "var(--fs-bat)" });
+  const chip = { fontSize: 10.5, fontWeight: 700, padding: "3px 9px", borderRadius: "var(--r-pill)", background: "var(--surface2)" };
   return (
-    <div>
-      <div style={{ position: "relative", borderRadius: "var(--r-tile)", overflow: "hidden", background: "var(--surface2)" }}>
-        <svg viewBox="0 0 640 300" style={{ display: "block", width: "100%", height: "auto" }} role="img"
-          aria-label={"ภาพไซต์: โซลาร์ " + kw(pv) + " · " + gTitle + " " + kw(g)}>
-          <FsSky uid={uid} ph={ph} H={300} hz={196} calm={calm} clouds={!offline && ph.phase === "day"} />
-          <defs>
-            <linearGradient id={uid + "gr"} x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0" style={{ stopColor: "var(--fs-ground)" }} /><stop offset="1" style={{ stopColor: "var(--fs-ground2)" }} />
-            </linearGradient>
-          </defs>
-          <rect x="0" y="194" width="640" height="106" fill={"url(#" + uid + "gr)"} />
-          {/* แสงจากดวงอาทิตย์ลงแผง */}
-          {ph.phase !== "night" && inten > 0.02 && !offline && [-30, 0, 30].map((dx, i) => {
-            const t = fsClamp(ph.t, 0, 1), sx = 40 + t * 560, sy = 188 - Math.sin(Math.PI * t) * 156;
-            return <line key={i} x1={sx} y1={sy} x2={roof[0] + dx} y2={roof[1] - 6} className={calm ? "" : "fs-dash"}
-              style={{ stroke: "var(--fs-sun)", strokeWidth: 1.6, opacity: 0.25 + inten * 0.5, strokeDasharray: "3 7" }} />;
-          })}
-          <FsTree x={196} y={206} s={0.9} />
-          <FsTree x={470} y={262} s={1.1} />
-          <FsTree x={600} y={286} s={0.8} />
-          <FsPylon x={pylon.x} y={pylon.y} hgt={120} />
-          <FsIsoBuilding ox={ox} oy={oy} w={W} d={D} h={H} nc={big ? 7 : 5} nr={big ? 4 : 3} inten={offline ? 0 : inten} night={ph.phase === "night"} calm={calm} door />
-          {em.batt && (
-            <g>
-              <polygon points={fsPts([Pb(0, 16, 0), Pb(22, 16, 0), Pb(22, 16, 34), Pb(0, 16, 34)])} style={{ fill: "var(--fs-wall)", stroke: "rgba(0,0,0,.1)", strokeWidth: 0.6 }} />
-              <polygon points={fsPts([Pb(22, 0, 0), Pb(22, 16, 0), Pb(22, 16, 34), Pb(22, 0, 34)])} style={{ fill: "var(--fs-wall2)" }} />
-              <polygon points={fsPts([Pb(0, 0, 34), Pb(22, 0, 34), Pb(22, 16, 34), Pb(0, 16, 34)])} style={{ fill: "var(--fs-roof)" }} />
-              <polygon points={fsPts([Pb(4, 16, 4), Pb(18, 16, 4), Pb(18, 16, 4 + 24 * soc), Pb(4, 16, 4 + 24 * soc)])} style={{ fill: "var(--fs-bat)", opacity: 0.85 }} />
-              <polygon points={fsPts([Pb(4, 16, 4), Pb(18, 16, 4), Pb(18, 16, 28), Pb(4, 16, 28)])} style={{ fill: "none", stroke: "var(--fs-bat)", strokeWidth: 1 }} />
-            </g>
-          )}
-          {!offline && (
-            <g>
-              <FsFlowPath id={uid + "l"} d={"M" + fsXY(roof) + " Q" + (roof[0] - 70) + "," + (roof[1] + 6) + " " + fsXY(door)} kw={loadFromPv} cap={cap} color="var(--fs-self)" calm={calm} />
-              {em.meter && <FsFlowPath id={uid + "g"} d={"M" + fsXY(wire) + " Q" + (wire[0] + 70) + "," + (wire[1] - 8) + " " + wireEnd[0] + "," + wireEnd[1]}
-                kw={g} cap={cap} color={gColor} reverse={g < 0} calm={calm} />}
-              {em.batt && (bk < -0.02
-                ? <FsFlowPath id={uid + "b"} d={"M" + fsXY(battTop) + " Q" + (battTop[0] + 60) + "," + (battTop[1] + 40) + " " + fsXY(door)} kw={bk} cap={cap} color="var(--fs-bat)" calm={calm} />
-                : <FsFlowPath id={uid + "b"} d={"M" + fsXY(roof) + " Q" + (roof[0] - 120) + "," + (roof[1] - 60) + " " + fsXY(battTop)} kw={bk} cap={cap} color="var(--fs-bat)" calm={calm} />)}
-            </g>
-          )}
-          <rect x="0" y="0" width="640" height="300" style={{ fill: "#000", opacity: "var(--fs-dim)", pointerEvents: "none" }} />
-        </svg>
-        {!compact && tags.map((t, i) => <FsSceneTag key={t.key} {...t} delay={0.1 + i * 0.08} />)}
-        <div style={{ position: "absolute", left: 10, bottom: 9, display: "flex", gap: 6, flexWrap: "wrap" }}>
-          {offline && <span style={{ fontSize: 10.5, fontWeight: 700, padding: "3px 9px", borderRadius: "var(--r-pill)", background: "var(--surface)", color: "var(--tint-red-tx)", boxShadow: "var(--shadow-sm)" }}>ไม่ได้รับข้อมูล — ภาพแสดงค่าล่าสุด</span>}
-          {at && <span style={{ fontSize: 10.5, fontWeight: 700, padding: "3px 9px", borderRadius: "var(--r-pill)", background: "var(--surface)", color: "var(--text-2)", boxShadow: "var(--shadow-sm)" }}>{at}</span>}
-        </div>
+    <div ref={box} style={{ position: "relative", height: H }} role="img"
+      aria-label={"การไหลของพลังงาน: โซลาร์ " + kw(pv) + " · อาคาร " + kw(load) + " · กริด " + kw(g) + (hasB ? " · แบต " + (em.soc != null ? em.soc + "%" : "–") : "")}>
+      <svg width={W} height={H} style={{ position: "absolute", inset: 0, display: "block" }} aria-hidden="true">
+        {lines.map((l) => <FsFlowLine key={l.id} id={uid + l.id} a={l.a} b={l.b} kw={l.kw} cap={cap} color={l.color} calm={calm} off={off} />)}
+        <circle cx={hub[0]} cy={hub[1]} r={hg} style={{ fill: "var(--surface)", stroke: off ? "var(--text-3)" : "var(--primary)", strokeWidth: 2 }} />
+        <circle cx={hub[0]} cy={hub[1]} r={2.6} style={{ fill: off ? "var(--text-3)" : "var(--primary)" }} />
+      </svg>
+      <FsFlowNode x={P.pv[0]} y={P.pv[1]} r={r} icon="panel" color="var(--fs-sun)" on={!off && pv > 0.02} ring={cap > 0 && pv != null ? pv / cap : null} />
+      <FsFlowLabel x={P.pv[0] + r + 16} y={P.pv[1]} align="right" W={W} title="โซลาร์ผลิต" value={kw(pv)}
+        sub={cap > 0 && pv != null ? Math.round(fsClamp(pv / cap, 0, 1) * 100) + "% ของ " + fsFmt(cap, 0) + " kWp" : em.hasInv ? null : "ไม่มีข้อมูลอินเวอร์เตอร์"} />
+      <FsFlowNode x={P.grid[0]} y={P.grid[1]} r={r} icon="tower" color={gColor} on={!off && gOn} />
+      <FsFlowLabel x={P.grid[0]} y={P.grid[1] + r + 12} W={W} title={g > 0.02 ? "ขายเข้ากริด" : g < -0.02 ? "ซื้อจากกริด" : "กริด"} value={kw(g)} sub={em.meter ? null : "ไม่มีมิเตอร์"} />
+      <FsFlowNode x={P.load[0]} y={P.load[1]} r={r} icon="building" color="var(--fs-self)" on={!off && load > 0.02} />
+      <FsFlowLabel x={P.load[0]} y={P.load[1] + r + 12} W={W} title="อาคารใช้ไฟ" value={kw(load)}
+        sub={fromPv != null ? "จากโซลาร์ " + Math.round(fromPv * 100) + "%" : em.meter ? null : "ไม่มีมิเตอร์"} />
+      {hasB && <FsFlowNode x={P.bat[0]} y={P.bat[1]} r={r} icon="battery" color="var(--fs-bat)" on={!off && bOn} ring={em.soc != null ? em.soc / 100 : null} />}
+      {hasB && <FsFlowLabel x={P.bat[0] + r + 16} y={P.bat[1]} align="right" W={W} title={bk > 0.02 ? "แบตกำลังชาร์จ" : bk < -0.02 ? "แบตกำลังจ่าย" : "แบตเตอรี่"}
+        value={em.soc != null ? em.soc + "%" : "–"} sub={bOn ? kw(bk) : null} />}
+      <div style={{ position: "absolute", left: 0, top: 0, display: "flex", flexDirection: "column", gap: 5, alignItems: "flex-start" }}>
+        {at && <span style={{ fontSize: 11, fontWeight: 600, color: "var(--text-3)", maxWidth: Math.max(120, W / 2 - r - 30) }}>{at}</span>}
+        {off && <span style={Object.assign({}, chip, { color: "var(--tint-red-tx)" })}>ไม่ได้รับข้อมูล</span>}
       </div>
-      {compact && (
-        <div className="kpi-grid" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginTop: 8 }}>
-          {tags.map((t) => <FsSceneTag key={t.key} {...t} x={null} />)}
-        </div>
-      )}
     </div>
-  );
-}
-
-/* ── ภาพรวมทุกไซต์: อาคารสามหลัง แผงเรืองตามกำลังผลิตรวม ── */
-function FsFleetScene({ inten, height }) {
-  const uid = React.useRef("fsf" + Math.random().toString(36).slice(2, 8)).current;
-  const calm = fsCalm();
-  const ph = fsDayPhase(Date.now());
-  const night = ph.phase === "night";
-  const I = fsClamp(inten || 0, 0, 1);
-  return (
-    <svg viewBox="0 0 640 300" preserveAspectRatio="xMidYMax slice" style={{ display: "block", width: "100%", height: height || "100%" }} aria-hidden="true">
-      <FsSky uid={uid} ph={ph} H={300} hz={200} calm={calm} clouds={ph.phase === "day"} />
-      <defs>
-        <linearGradient id={uid + "gr"} x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0" style={{ stopColor: "var(--fs-ground)" }} /><stop offset="1" style={{ stopColor: "var(--fs-ground2)" }} />
-        </linearGradient>
-      </defs>
-      <rect x="0" y="198" width="640" height="102" fill={"url(#" + uid + "gr)"} />
-      <FsTree x={92} y={232} s={1} />
-      <FsTree x={560} y={262} s={1.15} />
-      <FsPylon x={606} y={236} hgt={112} />
-      <FsIsoBuilding ox={250} oy={128} w={92} d={64} h={84} nc={4} nr={3} inten={I} night={night} calm={calm} />
-      <FsIsoBuilding ox={410} oy={166} w={150} d={84} h={42} nc={7} nr={4} inten={I} night={night} calm={calm} door />
-      <FsIsoBuilding ox={168} oy={210} w={80} d={56} h={30} nc={4} nr={2} inten={I} night={night} calm={calm} door />
-      <rect x="0" y="0" width="640" height="300" style={{ fill: "#000", opacity: "var(--fs-dim)" }} />
-    </svg>
   );
 }
 
@@ -735,6 +565,6 @@ async function fsExportSiteXlsx(site, devs, mon) {
 }
 
 Object.assign(window, {
-  fsCalm, FS_TREE_KG, FsCountUp, FsGauge, FsDonut, FsScene, FsFleetScene, FsKvGroups, FsStringGrid, fsStringsAll,
+  fsCalm, FS_TREE_KG, FsCountUp, FsGauge, FsDonut, FsScene, FsKvGroups, FsStringGrid, fsStringsAll,
   fsExportMonthXlsx, fsExportSiteXlsx, fsMonFullTH,
 });

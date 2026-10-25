@@ -163,7 +163,6 @@ function FsCard({ title, sub, right, children }) {
    ================================================================ */
 /* ผลิตต่อ kWp วันนี้ — ตัวเทียบไซต์ต่างขนาดกัน (ไซต์ไม่พบใน FusionSolar ไม่นับ ค่าค้าง) */
 const fsYield = (s) => (s.fs_status !== "not_found_in_fusionsolar" && fsN(s.day_kwh) != null && fsN(s.capacity_kw) > 0 ? s.day_kwh / s.capacity_kw : null);
-const FS_HEALTH_ORDER = [["ok", "var(--tint-ok-tx)"], ["warn", "var(--tint-amber-tx)"], ["off", "var(--text-3)"], ["lost", "var(--tint-red-tx)"], ["wait", "var(--border-strong)"], ["none", "var(--surface3)"]];
 /* รายการไซต์ที่ต้องดูแล — เรียงเรื่องหนัก (bad) ก่อน */
 function FsAttention({ items, onOpen }) {
   const [all, setAll] = React.useState(false);
@@ -234,21 +233,6 @@ function FsFleetHero({ roll, nowKw, liveN, lastAt, isMobile }) {
       <div style={{ padding: isMobile ? "0 14px 12px" : "0 22px 14px", fontSize: 11, color: "var(--text-3)" }}>
         {roll.n} ไซต์ · ติดตั้งรวม {fsFmt(roll.kw, 0)} kWp · {lastAt ? "อัปเดต " + fsAgo(new Date(lastAt).toISOString()) : "ยังไม่มีข้อมูลผลิต"}
       </div>
-    </div>
-  );
-}
-
-/* ── วงเล็ก: กำลังตอนนี้เทียบกำลังติดตั้ง ── */
-function FsRing({ frac, size, color, children }) {
-  const S = size || 56, sw = 6, r = (S - sw) / 2, C = 2 * Math.PI * r;
-  const f = frac == null || isNaN(frac) ? 0 : Math.max(0, Math.min(1, frac));
-  return (
-    <div style={{ position: "relative", width: S, height: S, flexShrink: 0 }}>
-      <svg viewBox={"0 0 " + S + " " + S} width={S} height={S} style={{ display: "block", transform: "rotate(-90deg)" }} aria-hidden="true">
-        <circle cx={S / 2} cy={S / 2} r={r} fill="none" style={{ stroke: "var(--surface3)", strokeWidth: sw }} />
-        {f > 0 && <circle cx={S / 2} cy={S / 2} r={r} fill="none" className="fs-tr" strokeDasharray={C * f + " " + C} style={{ stroke: color || "var(--fs-sun)", strokeWidth: sw, strokeLinecap: "round" }} />}
-      </svg>
-      <div style={{ position: "absolute", inset: 0, display: "grid", placeItems: "center", fontSize: 11, fontWeight: 800, color: "var(--text-1)", fontFamily: "var(--mono)" }}>{children}</div>
     </div>
   );
 }
@@ -737,19 +721,6 @@ function FsIssues({ list }) {
   );
 }
 
-function FsHero({ label, value, unit, sub, extra }) {
-  return (
-    <div style={{ background: "var(--surface)", boxShadow: "var(--shadow-card)", borderRadius: "var(--r-tile)", padding: "13px 15px", minWidth: 0 }}>
-      <div style={{ fontSize: 11, fontWeight: 700, color: "var(--text-3)" }}>{label}</div>
-      <div style={{ fontFamily: "var(--display)", fontSize: 25, fontWeight: 700, color: "var(--text-1)", lineHeight: 1.25, fontVariantNumeric: "tabular-nums", whiteSpace: "nowrap" }}>
-        {value}{unit && value !== "–" && <span style={{ fontSize: 12, fontWeight: 600, color: "var(--text-3)", marginLeft: 5 }}>{unit}</span>}
-      </div>
-      {extra}
-      {sub && <div style={{ fontSize: 11, color: "var(--text-3)", marginTop: 3 }}>{sub}</div>}
-    </div>
-  );
-}
-
 /* กราฟประวัติ — ประวัติเริ่มนับจากวันที่ซิงก์ข้อมูลผลิตรอบแรก (Huawei ไม่ให้ย้อนหลังในรอบรายชั่วโมง) */
 function FsHistoryCard({ site, isMobile }) {
   const [tab, setTab] = React.useState("day");
@@ -961,7 +932,7 @@ function FsSiteModal({ site, sites, medMonth, jobs, canWrite, currentUser, onClo
   const tot = fsEnergy(totK);
   const [tab, setTab] = React.useState(code ? "over" : "info");
   const [exporting, setExporting] = React.useState(false);
-  const pvNow = em.pvKw, co2 = totK != null ? (totK * FS_GRID_EF) / 1000 : null;
+  const co2 = totK != null ? (totK * FS_GRID_EF) / 1000 : null;
 
   return (
     <FsModal width={1000} onClose={onClose} title={site.name || "(ไม่มีชื่อ)"}
@@ -1002,29 +973,32 @@ function FsSiteModal({ site, sites, medMonth, jobs, canWrite, currentUser, onClo
         </FsCard>
       )}
 
+      {/* ตอนนี้ (แผนภาพการไหล) + ตัวเลขผลิต 3 ตัว ในแผ่นเดียว */}
       {code && (
-        <div style={{ background: "var(--surface)", boxShadow: "var(--shadow-sm)", borderRadius: "var(--r-tile)", padding: isMobile ? 8 : 10 }}>
-          {window.FsScene ? <window.FsScene em={em} site={site} compact={isMobile}
-            at={site.kpi_updated_at ? "ข้อมูล ณ " + new Date(site.kpi_updated_at).toLocaleTimeString("th-TH", { timeStyle: "short", timeZone: "Asia/Bangkok" }) + " · " + fsAgo(site.kpi_updated_at) : "ยังไม่มีข้อมูลผลิต"} />
-            : <FsEnergyFlow em={em} />}
-          {staleH > 3 && <div style={{ fontSize: 11.5, color: "var(--tint-amber-tx)", fontWeight: 700, marginTop: 7 }}>ข้อมูลค้างเกิน 3 ชม. — ภาพแสดงค่าล่าสุดที่ได้รับ</div>}
-        </div>
-      )}
-
-      {code && (
-        <div className="kpi-grid" style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr 1fr" : "repeat(4, 1fr)", gap: 10 }}>
-          <div style={{ background: "var(--surface)", boxShadow: "var(--shadow-card)", borderRadius: "var(--r-tile)", padding: "14px 10px 12px" }}>
-            <FsGauge frac={cap > 0 && pvNow != null ? pvNow / cap : null} value={fsFmt(pvNow, pvNow >= 100 ? 0 : 1)} unit="kW" label="กำลังผลิตตอนนี้"
-              sub={cap > 0 && pvNow != null ? Math.round((pvNow / cap) * 100) + "% ของ " + fsFmt(cap, 0) + " kWp" : em.hasInv ? null : "ไม่มีข้อมูลอินเวอร์เตอร์"} color="var(--fs-sun)" size={isMobile ? 120 : 150} />
+        <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "minmax(0,1fr) 230px", background: "var(--surface)", boxShadow: "var(--shadow-card)", borderRadius: "var(--r-card)" }}>
+          <div style={{ padding: isMobile ? "14px 12px 12px" : "18px 22px 14px", minWidth: 0 }}>
+            {window.FsScene ? <window.FsScene em={em} site={site} compact={isMobile}
+              at={site.kpi_updated_at ? "ข้อมูล ณ " + new Date(site.kpi_updated_at).toLocaleTimeString("th-TH", { timeStyle: "short", timeZone: "Asia/Bangkok" }) + " · " + fsAgo(site.kpi_updated_at) : "ยังไม่มีข้อมูลผลิต"} />
+              : <FsEnergyFlow em={em} />}
+            {staleH > 3 && <div style={{ fontSize: 11.5, color: "var(--tint-amber-tx)", fontWeight: 700, marginTop: 7 }}>ข้อมูลค้างเกิน 3 ชม. — แสดงค่าล่าสุดที่ได้รับ</div>}
           </div>
-          <div style={{ background: "var(--surface)", boxShadow: "var(--shadow-card)", borderRadius: "var(--r-tile)", padding: "14px 10px 12px" }}>
-            <FsGauge frac={dayK == null ? null : avg30 ? dayK / (avg30 * 1.5) : cap > 0 ? dayK / cap / 6 : null} value={fsFmt(dayK, dayK >= 1000 ? 0 : 1)} unit="kWh" label="ผลิตวันนี้"
-              sub={avg30 && dayK != null ? Math.round((dayK / avg30) * 100) + "% ของเฉลี่ย 30 วัน" : cap > 0 && dayK != null ? fsFmt(dayK / cap, 2) + " kWh/kWp" : null} size={isMobile ? 120 : 150} />
+          <div className={isMobile ? "kpi-grid" : ""} style={{ display: "grid", gridTemplateColumns: isMobile ? "repeat(3, minmax(0,1fr))" : "1fr", alignContent: "center",
+            gap: isMobile ? 8 : 0, padding: isMobile ? "0 12px 14px" : "10px 22px", boxShadow: isMobile ? "none" : "inset 1px 0 0 var(--divider)" }}>
+            {[
+              ["ผลิตวันนี้", dayK == null ? "–" : <FsCountUp value={dayK} digits={dayK >= 1000 ? 0 : 1} />, "kWh",
+                avg30 && dayK != null ? Math.round((dayK / avg30) * 100) + "% ของเฉลี่ย 30 วัน" : cap > 0 && dayK != null ? fsFmt(dayK / cap, 2) + " kWh/kWp" : null],
+              ["ผลิตเดือนนี้", monK == null ? "–" : <FsCountUp value={monK} digits={0} />, "kWh", monK != null ? "เฉลี่ย " + fsFmt(monK / domDays, 1) + " kWh/วัน" : null],
+              ["ผลิตสะสม", totK == null ? "–" : <FsCountUp value={totK >= 10000 ? totK / 1000 : totK} digits={1} />, tot[1], co2 != null ? "ลด CO₂ " + fsFmt(co2, 1) + " ตัน" : null],
+            ].map(([l, v, u, sub], i) => (
+              <div key={l} style={{ padding: isMobile ? 0 : "12px 0", boxShadow: !isMobile && i ? "inset 0 1px 0 var(--divider)" : "none", minWidth: 0 }}>
+                <div style={{ fontSize: 11.5, fontWeight: 600, color: "var(--text-3)" }}>{l}</div>
+                <div style={{ fontFamily: "var(--display)", fontSize: isMobile ? 18 : 24, fontWeight: 700, color: "var(--text-1)", lineHeight: 1.2, whiteSpace: "nowrap", fontVariantNumeric: "tabular-nums" }}>
+                  {v}{v !== "–" && <span style={{ fontSize: 12, fontWeight: 600, color: "var(--text-3)", marginLeft: 4 }}>{u}</span>}
+                </div>
+                {sub && <div style={{ fontSize: 11, color: "var(--text-3)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{sub}</div>}
+              </div>
+            ))}
           </div>
-          <FsHero label="ผลิตเดือนนี้" value={monK == null ? "–" : <FsCountUp value={monK} digits={0} />} unit="kWh"
-            sub={monK != null ? "เฉลี่ย " + fsFmt(monK / domDays, 1) + " kWh/วัน" + (cap > 0 ? " · " + fsFmt(monK / cap / domDays, 2) + " kWh/kWp/วัน" : "") : null} />
-          <FsHero label="ผลิตสะสม" value={totK == null ? "–" : <FsCountUp value={totK >= 10000 ? totK / 1000 : totK} digits={1} />} unit={tot[1]}
-            sub={co2 != null ? "ลด CO₂ " + fsFmt(co2, 1) + " ตัน ≈ ต้นไม้ " + fsFmt((co2 * 1000) / FS_TREE_KG, 0) + " ต้นดูดซับใน 1 ปี" : null} />
         </div>
       )}
 
