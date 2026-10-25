@@ -203,14 +203,13 @@ const fsSortVal = (s, k, live) => ({
   at: Date.parse(s.kpi_updated_at || s.last_synced_at || "") || 0,
 }[k]);
 
-/* ── ภาพรวมทุกไซต์: แผ่นมืดพื้นหลังแผงโซลาร์เรือง (วาดด้วย CSS) + การ์ดกระจก — แบบอ้างอิงที่ผู้ใช้ส่งมา (Ekova)
-   สีในแผ่นนี้คงที่ทุกธีม (เป็นภาพประกอบพื้นมืด) · กดแท่ง = เปิดไซต์ · กดแถบสถานะ = กรองรายการ ── */
-const FS_NEON = "#E3F23A", FS_HG = { ok: "#2FD27F", warn: "#F5B83D", off: "#7D8984", lost: "#F0605A", wait: "#5B6661", none: "#3E4743" };
-const FS_GL = { tx: "#FFFFFF", sub: "rgba(255,255,255,.62)", dim: "rgba(255,255,255,.4)" };
+/* ── ภาพรวมทุกไซต์: วางแบบอ้างอิงที่ผู้ใช้ส่งมา (Ekova) แต่ใช้สีปกติของแอป (ผู้ใช้ไม่เอาพื้นมืด)
+   พื้นหลังเป็นแผงโซลาร์วาดด้วย CSS จาง ๆ มุมซ้ายบน · การ์ดเป็นแผ่น --surface · กดแท่ง = เปิดไซต์ · กดแถบสถานะ = กรองรายการ ── */
+const FS_NEON = "var(--primary)", FS_HG = { ok: "var(--tint-ok-tx)", warn: "var(--tint-amber-tx)", off: "var(--text-3)", lost: "var(--tint-red-tx)", wait: "var(--border-strong)", none: "var(--surface3)" };
+const FS_GL = { tx: "var(--text-1)", sub: "var(--text-3)", dim: "var(--text-3)" };
 function FsGlass({ title, right, children, style, onClick }) {
   return (
-    <div onClick={onClick} className="fs-glass" style={Object.assign({ background: "rgba(12,20,17,.6)", backdropFilter: "blur(14px)", WebkitBackdropFilter: "blur(14px)",
-      borderRadius: 18, boxShadow: "inset 0 0 0 1px rgba(255,255,255,.08), 0 10px 30px rgba(0,0,0,.25)", padding: "14px 16px", minWidth: 0, color: FS_GL.tx,
+    <div onClick={onClick} className="fs-glass" style={Object.assign({ background: "var(--surface)", borderRadius: "var(--r-tile)", boxShadow: "var(--shadow-sm)", padding: "14px 16px", minWidth: 0, color: FS_GL.tx,
       display: "flex", flexDirection: "column", gap: 8 }, style)}>
       {(title || right) && (
         <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
@@ -233,16 +232,16 @@ function FsNeonRing({ frac, size, children }) {
   for (let i = 0; i < 60; i++) {
     const a = (i / 60) * 2 * Math.PI, r1 = S / 2 - 2, r2 = S / 2 - 6;
     ticks.push(<line key={i} x1={S / 2 + r1 * Math.cos(a)} y1={S / 2 + r1 * Math.sin(a)} x2={S / 2 + r2 * Math.cos(a)} y2={S / 2 + r2 * Math.sin(a)}
-      stroke="rgba(255,255,255,.28)" strokeWidth="1.4" strokeLinecap="round" />);
+      stroke="var(--border-strong)" strokeWidth="1.4" strokeLinecap="round" />);
   }
   return (
     <div style={{ position: "relative", width: S, height: S, flexShrink: 0 }}>
       <svg width={S} height={S} style={{ display: "block" }} aria-hidden="true">
         {ticks}
         <g transform={"rotate(-90 " + S / 2 + " " + S / 2 + ")"}>
-          <circle cx={S / 2} cy={S / 2} r={r} fill="none" stroke="rgba(255,255,255,.1)" strokeWidth="9" />
+          <circle cx={S / 2} cy={S / 2} r={r} fill="none" stroke="var(--surface3)" strokeWidth="9" />
           {f > 0 && <circle cx={S / 2} cy={S / 2} r={r} fill="none" stroke={FS_NEON} strokeWidth="9" strokeLinecap="round" className="fs-tr"
-            strokeDasharray={Math.max(0.5, C * f) + " " + C} style={{ filter: "drop-shadow(0 0 6px rgba(227,242,58,.55))" }} />}
+            strokeDasharray={Math.max(0.5, C * f) + " " + C} />}
         </g>
       </svg>
       <div style={{ position: "absolute", inset: 0, display: "grid", placeItems: "center", textAlign: "center" }}>{children}</div>
@@ -260,7 +259,7 @@ function FsSiteBars({ sites, onOpen, h }) {
         const bh = Math.max(1.5, (x.v / max) * (h - 2));
         return (
           <rect key={x.s.id} x={i * bw + bw * 0.22} y={h - bh} width={bw * 0.56} height={bh} rx={Math.min(bw * 0.28, 1)}
-            fill={x.v >= med ? FS_NEON : "rgba(255,255,255,.82)"} style={{ cursor: "pointer" }} onClick={() => onOpen(x.s.id)}>
+            fill={x.v >= med ? FS_NEON : "color-mix(in srgb, var(--primary) 28%, var(--surface3))"} style={{ cursor: "pointer" }} onClick={() => onOpen(x.s.id)}>
             <title>{(x.s.name || x.s.id) + " · " + fsFmt(x.v, 2) + " kWh/kWp"}</title>
           </rect>
         );
@@ -281,18 +280,18 @@ function FsFleetHero({ roll, nowKw, liveN, lastAt, isMobile, sites, hCount, heal
   const tag = { fontSize: 11.5, fontWeight: 600, color: FS_GL.sub };
   const titleBlock = (
     <div style={{ display: "flex", flexDirection: "column", gap: 10, padding: isMobile ? "4px 2px 6px" : "6px 4px", minWidth: 0 }}>
-      <div style={{ fontFamily: "var(--display)", fontSize: isMobile ? 28 : 40, fontWeight: 700, lineHeight: 1.12, color: FS_GL.tx, textShadow: "0 2px 18px rgba(0,0,0,.4)" }}>
+      <div style={{ fontFamily: "var(--display)", fontSize: isMobile ? 28 : 40, fontWeight: 700, lineHeight: 1.12, color: FS_GL.tx }}>
         พลังงานสะอาด<br />จาก {roll.n} ไซต์
       </div>
-      <div style={{ fontSize: 13, color: "rgba(255,255,255,.8)", maxWidth: 300 }}>
+      <div style={{ fontSize: 13, color: "var(--text-2)", maxWidth: 300 }}>
         ติดตั้งรวม {fsFmt(roll.kw, 0)} kWp · {lastAt ? "อัปเดต " + fsAgo(new Date(lastAt).toISOString()) : "ยังไม่มีข้อมูลผลิต"} · ซิงก์ทุกชั่วโมง
       </div>
       <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
         {hs.map((k) => (
           <button key={k} type="button" onClick={() => onHealth(health === k ? "all" : k)}
             style={{ display: "inline-flex", alignItems: "center", gap: 6, border: "none", cursor: "pointer", fontFamily: "inherit", fontSize: 11.5, fontWeight: 700,
-              padding: "5px 11px", borderRadius: 999, color: FS_GL.tx, background: health === k ? "rgba(255,255,255,.22)" : "rgba(255,255,255,.1)",
-              backdropFilter: "blur(8px)", boxShadow: "inset 0 0 0 1px rgba(255,255,255,.1)" }}>
+              padding: "5px 11px", borderRadius: 999, color: health === k ? "var(--primary-dark)" : "var(--text-2)", background: health === k ? "var(--primary-soft)" : "var(--surface)",
+              boxShadow: "var(--shadow-sm)" }}>
             <span style={{ width: 7, height: 7, borderRadius: 4, background: FS_HG[k] }} />{FS_HEALTH[k].th} {hCount[k]}
           </button>
         ))}
@@ -326,8 +325,8 @@ function FsFleetHero({ roll, nowKw, liveN, lastAt, isMobile, sites, hCount, heal
       <div style={{ display: "flex", justifyContent: "space-between", fontSize: 11.5, color: FS_GL.sub }}>
         <span>เทียบเฉลี่ยต่อวันเดือนนี้</span><span style={{ color: FS_NEON, fontWeight: 700 }}>{dayFrac == null ? "–" : Math.round(dayFrac * 100) + "%"}</span>
       </div>
-      <div style={{ height: 14, borderRadius: 999, background: "repeating-linear-gradient(-60deg, rgba(255,255,255,.3) 0 2px, transparent 2px 6px)", overflow: "hidden" }}>
-        <div className="fs-tr" style={{ width: (dayFrac == null ? 0 : fsClamp(dayFrac, 0, 1) * 100) + "%", height: "100%", borderRadius: 999, background: FS_NEON, boxShadow: "0 0 12px rgba(227,242,58,.5)" }} />
+      <div style={{ height: 14, borderRadius: 999, background: "repeating-linear-gradient(-60deg, var(--surface3) 0 2px, transparent 2px 6px)", overflow: "hidden" }}>
+        <div className="fs-tr" style={{ width: (dayFrac == null ? 0 : fsClamp(dayFrac, 0, 1) * 100) + "%", height: "100%", borderRadius: 999, background: FS_NEON }} />
       </div>
     </FsGlass>
   );
@@ -350,7 +349,7 @@ function FsFleetHero({ roll, nowKw, liveN, lastAt, isMobile, sites, hCount, heal
           <button key={k} type="button" onClick={() => onHealth(health === k ? "all" : k)} title={FS_HEALTH[k].th}
             style={{ flex: Math.max(hCount[k], roll.n * 0.06) + " 1 0", minWidth: 0, border: "none", background: "transparent", padding: 0, cursor: "pointer", fontFamily: "inherit", textAlign: "left" }}>
             <div style={{ fontSize: 11, fontWeight: 700, color: FS_GL.tx, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", marginBottom: 4 }}>{hCount[k]}</div>
-            <div style={{ height: 26, borderRadius: 999, background: FS_HG[k], opacity: health === "all" || health === k ? 1 : 0.35, boxShadow: k === "ok" ? "0 0 12px rgba(47,210,127,.4)" : "none" }} />
+            <div style={{ height: 26, borderRadius: 999, background: FS_HG[k], opacity: health === "all" || health === k ? 1 : 0.35 }} />
             <div style={{ fontSize: 10.5, color: FS_GL.sub, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", marginTop: 4 }}>{FS_HEALTH[k].th}</div>
           </button>
         ))}
@@ -358,10 +357,10 @@ function FsFleetHero({ roll, nowKw, liveN, lastAt, isMobile, sites, hCount, heal
     </FsGlass>
   );
   return (
-    <div className="fs-hero" style={{ position: "relative", overflow: "hidden", borderRadius: "var(--r-card)", background: "#08110D", boxShadow: "var(--shadow-card)", isolation: "isolate" }}>
+    <div className="fs-hero" style={{ position: "relative", overflow: "hidden", borderRadius: "var(--r-card)", background: "var(--fs-hero-bg)", boxShadow: "var(--shadow-card)", isolation: "isolate" }}>
       <div className="fs-pv" aria-hidden="true" />
       <div aria-hidden="true" style={{ position: "absolute", inset: 0, zIndex: 0, pointerEvents: "none",
-        background: "radial-gradient(ellipse at 22% 18%, rgba(70,255,160,.22), transparent 55%), linear-gradient(180deg, rgba(8,17,13,0) 30%, rgba(8,17,13,.85) 100%), linear-gradient(90deg, rgba(8,17,13,.05) 0%, rgba(8,17,13,.6) 70%)" }} />
+        background: "linear-gradient(180deg, transparent 25%, var(--fs-hero-bg) 70%), linear-gradient(90deg, transparent 0%, var(--fs-hero-bg) 52%)" }} />
       {isMobile ? (
         <div className="kpi-grid" style={{ position: "relative", zIndex: 1, padding: 14, display: "grid", gap: 10, gridTemplateColumns: "1fr 1fr" }}>
           <div style={{ gridColumn: "1 / -1" }}>{titleBlock}</div>

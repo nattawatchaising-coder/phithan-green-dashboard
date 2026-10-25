@@ -439,19 +439,19 @@ const fsSortVal = (s, k, live) => ({
   address: (s.address || "").toLowerCase(),
   at: Date.parse(s.kpi_updated_at || s.last_synced_at || "") || 0
 })[k];
-const FS_NEON = "#E3F23A",
+const FS_NEON = "var(--primary)",
   FS_HG = {
-    ok: "#2FD27F",
-    warn: "#F5B83D",
-    off: "#7D8984",
-    lost: "#F0605A",
-    wait: "#5B6661",
-    none: "#3E4743"
+    ok: "var(--tint-ok-tx)",
+    warn: "var(--tint-amber-tx)",
+    off: "var(--text-3)",
+    lost: "var(--tint-red-tx)",
+    wait: "var(--border-strong)",
+    none: "var(--surface3)"
   };
 const FS_GL = {
-  tx: "#FFFFFF",
-  sub: "rgba(255,255,255,.62)",
-  dim: "rgba(255,255,255,.4)"
+  tx: "var(--text-1)",
+  sub: "var(--text-3)",
+  dim: "var(--text-3)"
 };
 function FsGlass({
   title,
@@ -464,11 +464,9 @@ function FsGlass({
     onClick: onClick,
     className: "fs-glass",
     style: Object.assign({
-      background: "rgba(12,20,17,.6)",
-      backdropFilter: "blur(14px)",
-      WebkitBackdropFilter: "blur(14px)",
-      borderRadius: 18,
-      boxShadow: "inset 0 0 0 1px rgba(255,255,255,.08), 0 10px 30px rgba(0,0,0,.25)",
+      background: "var(--surface)",
+      borderRadius: "var(--r-tile)",
+      boxShadow: "var(--shadow-sm)",
       padding: "14px 16px",
       minWidth: 0,
       color: FS_GL.tx,
@@ -532,7 +530,7 @@ function FsNeonRing({
       y1: S / 2 + r1 * Math.sin(a),
       x2: S / 2 + r2 * Math.cos(a),
       y2: S / 2 + r2 * Math.sin(a),
-      stroke: "rgba(255,255,255,.28)",
+      stroke: "var(--border-strong)",
       strokeWidth: "1.4",
       strokeLinecap: "round"
     }));
@@ -558,7 +556,7 @@ function FsNeonRing({
     cy: S / 2,
     r: r,
     fill: "none",
-    stroke: "rgba(255,255,255,.1)",
+    stroke: "var(--surface3)",
     strokeWidth: "9"
   }), f > 0 && React.createElement("circle", {
     cx: S / 2,
@@ -569,10 +567,7 @@ function FsNeonRing({
     strokeWidth: "9",
     strokeLinecap: "round",
     className: "fs-tr",
-    strokeDasharray: Math.max(0.5, C * f) + " " + C,
-    style: {
-      filter: "drop-shadow(0 0 6px rgba(227,242,58,.55))"
-    }
+    strokeDasharray: Math.max(0.5, C * f) + " " + C
   }))), React.createElement("div", {
     style: {
       position: "absolute",
@@ -623,7 +618,7 @@ function FsSiteBars({
       width: bw * 0.56,
       height: bh,
       rx: Math.min(bw * 0.28, 1),
-      fill: x.v >= med ? FS_NEON : "rgba(255,255,255,.82)",
+      fill: x.v >= med ? FS_NEON : "color-mix(in srgb, var(--primary) 28%, var(--surface3))",
       style: {
         cursor: "pointer"
       },
@@ -671,13 +666,12 @@ function FsFleetHero({
       fontSize: isMobile ? 28 : 40,
       fontWeight: 700,
       lineHeight: 1.12,
-      color: FS_GL.tx,
-      textShadow: "0 2px 18px rgba(0,0,0,.4)"
+      color: FS_GL.tx
     }
   }, "\u0E1E\u0E25\u0E31\u0E07\u0E07\u0E32\u0E19\u0E2A\u0E30\u0E2D\u0E32\u0E14", React.createElement("br", null), "\u0E08\u0E32\u0E01 ", roll.n, " \u0E44\u0E0B\u0E15\u0E4C"), React.createElement("div", {
     style: {
       fontSize: 13,
-      color: "rgba(255,255,255,.8)",
+      color: "var(--text-2)",
       maxWidth: 300
     }
   }, "\u0E15\u0E34\u0E14\u0E15\u0E31\u0E49\u0E07\u0E23\u0E27\u0E21 ", fsFmt(roll.kw, 0), " kWp \xB7 ", lastAt ? "อัปเดต " + fsAgo(new Date(lastAt).toISOString()) : "ยังไม่มีข้อมูลผลิต", " \xB7 \u0E0B\u0E34\u0E07\u0E01\u0E4C\u0E17\u0E38\u0E01\u0E0A\u0E31\u0E48\u0E27\u0E42\u0E21\u0E07"), React.createElement("div", {
@@ -701,10 +695,9 @@ function FsFleetHero({
       fontWeight: 700,
       padding: "5px 11px",
       borderRadius: 999,
-      color: FS_GL.tx,
-      background: health === k ? "rgba(255,255,255,.22)" : "rgba(255,255,255,.1)",
-      backdropFilter: "blur(8px)",
-      boxShadow: "inset 0 0 0 1px rgba(255,255,255,.1)"
+      color: health === k ? "var(--primary-dark)" : "var(--text-2)",
+      background: health === k ? "var(--primary-soft)" : "var(--surface)",
+      boxShadow: "var(--shadow-sm)"
     }
   }, React.createElement("span", {
     style: {
@@ -798,7 +791,7 @@ function FsFleetHero({
     style: {
       height: 14,
       borderRadius: 999,
-      background: "repeating-linear-gradient(-60deg, rgba(255,255,255,.3) 0 2px, transparent 2px 6px)",
+      background: "repeating-linear-gradient(-60deg, var(--surface3) 0 2px, transparent 2px 6px)",
       overflow: "hidden"
     }
   }, React.createElement("div", {
@@ -807,8 +800,7 @@ function FsFleetHero({
       width: (dayFrac == null ? 0 : fsClamp(dayFrac, 0, 1) * 100) + "%",
       height: "100%",
       borderRadius: 999,
-      background: FS_NEON,
-      boxShadow: "0 0 12px rgba(227,242,58,.5)"
+      background: FS_NEON
     }
   })));
   const monTile = React.createElement(FsGlass, {
@@ -891,8 +883,7 @@ function FsFleetHero({
       height: 26,
       borderRadius: 999,
       background: FS_HG[k],
-      opacity: health === "all" || health === k ? 1 : 0.35,
-      boxShadow: k === "ok" ? "0 0 12px rgba(47,210,127,.4)" : "none"
+      opacity: health === "all" || health === k ? 1 : 0.35
     }
   }), React.createElement("div", {
     style: {
@@ -910,7 +901,7 @@ function FsFleetHero({
       position: "relative",
       overflow: "hidden",
       borderRadius: "var(--r-card)",
-      background: "#08110D",
+      background: "var(--fs-hero-bg)",
       boxShadow: "var(--shadow-card)",
       isolation: "isolate"
     }
@@ -924,7 +915,7 @@ function FsFleetHero({
       inset: 0,
       zIndex: 0,
       pointerEvents: "none",
-      background: "radial-gradient(ellipse at 22% 18%, rgba(70,255,160,.22), transparent 55%), linear-gradient(180deg, rgba(8,17,13,0) 30%, rgba(8,17,13,.85) 100%), linear-gradient(90deg, rgba(8,17,13,.05) 0%, rgba(8,17,13,.6) 70%)"
+      background: "linear-gradient(180deg, transparent 25%, var(--fs-hero-bg) 70%), linear-gradient(90deg, transparent 0%, var(--fs-hero-bg) 52%)"
     }
   }), isMobile ? React.createElement("div", {
     className: "kpi-grid",
