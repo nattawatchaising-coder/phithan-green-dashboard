@@ -374,7 +374,7 @@ function FsHwCard({
   if (document.getElementById("fs-house-css")) return;
   const el = document.createElement("style");
   el.id = "fs-house-css";
-  el.textContent = "@keyframes fsFlowFwd{to{stroke-dashoffset:-40}}@keyframes fsFlowRev{to{stroke-dashoffset:40}}" + ".fs-flow{stroke-dasharray:16 24;animation:fsFlowFwd 2s linear infinite}.fs-flow.rev{animation-name:fsFlowRev}" + "@media (prefers-reduced-motion: reduce){.fs-flow{animation:none!important}}";
+  el.textContent = "@keyframes fsFlowFwd{to{stroke-dashoffset:-64}}@keyframes fsFlowRev{to{stroke-dashoffset:64}}" + "@keyframes fsRipple{0%{transform:scale(1);opacity:.55}100%{transform:scale(3.4);opacity:0}}" + ".fs-flow{stroke-dasharray:30 34;animation:fsFlowFwd 2s linear infinite}.fs-flow.rev{animation-name:fsFlowRev}" + ".fs-flow.glint{stroke-dasharray:5 59}" + ".fs-ripple{transform-box:fill-box;transform-origin:center;animation:fsRipple 2.4s ease-out infinite}" + "@media (prefers-reduced-motion: reduce){.fs-flow,.fs-ripple{animation:none!important}.fs-ripple{opacity:0}}";
   document.head.appendChild(el);
 })();
 function FsHwWire({
@@ -388,28 +388,18 @@ function FsHwWire({
 }) {
   const mx = (a[0] + b[0]) / 2;
   const d = "M" + a[0].toFixed(1) + "," + a[1].toFixed(1) + " C" + mx.toFixed(1) + "," + a[1].toFixed(1) + " " + mx.toFixed(1) + "," + b[1].toFixed(1) + " " + b[0].toFixed(1) + "," + b[1].toFixed(1);
-  const dur = 2.6 - 1.4 * Math.sqrt(fsClamp(rel || 0.5, 0, 1));
-  return React.createElement("g", null, React.createElement("path", {
+  const dur = 3.4 - 1.8 * Math.sqrt(fsClamp(rel || 0.5, 0, 1));
+  const play = calm ? "paused" : "running",
+    cls = "fs-flow" + (rev ? " rev" : "");
+  if (!on) return React.createElement("g", null, React.createElement("path", {
     d: d,
     fill: "none",
     style: {
-      stroke: on ? color : "var(--border-strong)",
-      strokeWidth: on ? 5 : 2,
+      stroke: "var(--border-strong)",
+      strokeWidth: 2,
       strokeLinecap: "round",
-      opacity: on ? 0.16 : 0.7,
-      strokeDasharray: on ? "none" : "3 5"
-    }
-  }), on && React.createElement("path", {
-    d: d,
-    fill: "none",
-    className: "fs-flow" + (rev ? " rev" : ""),
-    style: {
-      stroke: color,
-      strokeWidth: 2.6,
-      strokeLinecap: "round",
-      animationDuration: dur.toFixed(2) + "s",
-      animationPlayState: calm ? "paused" : "running",
-      filter: "drop-shadow(0 0 2px " + color + ")"
+      opacity: 0.7,
+      strokeDasharray: "3 5"
     }
   }), React.createElement("circle", {
     cx: b[0],
@@ -417,8 +407,73 @@ function FsHwWire({
     r: "4",
     style: {
       fill: "var(--surface)",
-      stroke: on ? color : "var(--border-strong)",
+      stroke: "var(--border-strong)",
       strokeWidth: 2
+    }
+  }));
+  return React.createElement("g", null, React.createElement("path", {
+    d: d,
+    fill: "none",
+    style: {
+      stroke: color,
+      strokeWidth: 12,
+      strokeLinecap: "round",
+      opacity: 0.07
+    }
+  }), React.createElement("path", {
+    d: d,
+    fill: "none",
+    style: {
+      stroke: color,
+      strokeWidth: 5,
+      strokeLinecap: "round",
+      opacity: 0.2
+    }
+  }), React.createElement("path", {
+    d: d,
+    fill: "none",
+    className: cls,
+    style: {
+      stroke: color,
+      strokeWidth: 3.6,
+      strokeLinecap: "round",
+      opacity: 0.95,
+      animationDuration: dur.toFixed(2) + "s",
+      animationPlayState: play,
+      filter: "drop-shadow(0 0 4px " + color + ")"
+    }
+  }), React.createElement("path", {
+    d: d,
+    fill: "none",
+    className: cls + " glint",
+    style: {
+      stroke: "#fff",
+      strokeWidth: 1.4,
+      strokeLinecap: "round",
+      opacity: 0.85,
+      animationDuration: (dur * 0.8).toFixed(2) + "s",
+      animationPlayState: play
+    }
+  }), React.createElement("circle", {
+    cx: (rev ? a : b)[0],
+    cy: (rev ? a : b)[1],
+    r: "4",
+    className: "fs-ripple",
+    style: {
+      fill: "none",
+      stroke: color,
+      strokeWidth: 1.5,
+      animationPlayState: play
+    }
+  }), React.createElement("circle", {
+    cx: b[0],
+    cy: b[1],
+    r: "4.5",
+    style: {
+      fill: color,
+      stroke: "var(--surface)",
+      strokeWidth: 2,
+      filter: "drop-shadow(0 0 3px " + color + ")"
     }
   }));
 }

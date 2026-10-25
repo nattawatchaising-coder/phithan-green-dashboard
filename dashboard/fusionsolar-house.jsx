@@ -199,28 +199,42 @@ function FsHwCard({ icon, color, on, title, value, sub, style }) {
     </div>
   );
 }
-/* เส้นพลังงานแบบน้ำไหล: รางจาง + ขีดยาวสีเลื่อนช้า ๆ ตามทิศ (ผู้ใช้ว่าจุดวิ่งเร็วเกิน ขอเป็นเส้นไหลเข้า) */
+/* เส้นพลังงานแบบน้ำไหล (ผู้ใช้ว่าจุดวิ่งเร็วเกิน ขอเป็นเส้นไหลเข้า แล้วขอ "เส้นน้ำสวย ๆ"):
+   ท่อเรืองจาง + ช่องน้ำ + สายน้ำเป็นช่วง ๆ เรืองแสงเลื่อนตามทิศ + ประกายขาวบนผิวน้ำวิ่งเร็วกว่าเล็กน้อย + วงกระเพื่อมที่ปลายทางของน้ำ */
 (function fsInjectHouseCss() {
   if (document.getElementById("fs-house-css")) return;
   const el = document.createElement("style");
   el.id = "fs-house-css";
-  el.textContent = "@keyframes fsFlowFwd{to{stroke-dashoffset:-40}}@keyframes fsFlowRev{to{stroke-dashoffset:40}}"
-    + ".fs-flow{stroke-dasharray:16 24;animation:fsFlowFwd 2s linear infinite}.fs-flow.rev{animation-name:fsFlowRev}"
-    + "@media (prefers-reduced-motion: reduce){.fs-flow{animation:none!important}}";
+  el.textContent = "@keyframes fsFlowFwd{to{stroke-dashoffset:-64}}@keyframes fsFlowRev{to{stroke-dashoffset:64}}"
+    + "@keyframes fsRipple{0%{transform:scale(1);opacity:.55}100%{transform:scale(3.4);opacity:0}}"
+    + ".fs-flow{stroke-dasharray:30 34;animation:fsFlowFwd 2s linear infinite}.fs-flow.rev{animation-name:fsFlowRev}"
+    + ".fs-flow.glint{stroke-dasharray:5 59}"
+    + ".fs-ripple{transform-box:fill-box;transform-origin:center;animation:fsRipple 2.4s ease-out infinite}"
+    + "@media (prefers-reduced-motion: reduce){.fs-flow,.fs-ripple{animation:none!important}.fs-ripple{opacity:0}}";
   document.head.appendChild(el);
 })();
-/* เส้นโค้งจากการ์ด (a) เข้าจุดบนบ้าน (b) · rev = ไหลจากบ้านออกไปหาการ์ด · ยิ่ง kW มากยิ่งไหลเร็ว (ช้าสุด 2.6 วิ เร็วสุด 1.2 วิ ต่อช่วง 40px) */
+/* เส้นโค้งจากการ์ด (a) เข้าจุดบนบ้าน (b) · rev = ไหลจากบ้านออกไปหาการ์ด · ยิ่ง kW มากยิ่งไหลเร็ว (ช้าสุด 3.4 วิ เร็วสุด 1.6 วิ ต่อช่วง 64px) */
 function FsHwWire({ a, b, color, on, rel, rev, calm }) {
   const mx = (a[0] + b[0]) / 2;
   const d = "M" + a[0].toFixed(1) + "," + a[1].toFixed(1) + " C" + mx.toFixed(1) + "," + a[1].toFixed(1) + " " + mx.toFixed(1) + "," + b[1].toFixed(1) + " " + b[0].toFixed(1) + "," + b[1].toFixed(1);
-  const dur = 2.6 - 1.4 * Math.sqrt(fsClamp(rel || 0.5, 0, 1));
+  const dur = 3.4 - 1.8 * Math.sqrt(fsClamp(rel || 0.5, 0, 1));
+  const play = calm ? "paused" : "running", cls = "fs-flow" + (rev ? " rev" : "");
+  if (!on) return (
+    <g>
+      <path d={d} fill="none" style={{ stroke: "var(--border-strong)", strokeWidth: 2, strokeLinecap: "round", opacity: 0.7, strokeDasharray: "3 5" }} />
+      <circle cx={b[0]} cy={b[1]} r="4" style={{ fill: "var(--surface)", stroke: "var(--border-strong)", strokeWidth: 2 }} />
+    </g>
+  );
   return (
     <g>
-      <path d={d} fill="none" style={{ stroke: on ? color : "var(--border-strong)", strokeWidth: on ? 5 : 2, strokeLinecap: "round", opacity: on ? 0.16 : 0.7,
-        strokeDasharray: on ? "none" : "3 5" }} />
-      {on && <path d={d} fill="none" className={"fs-flow" + (rev ? " rev" : "")} style={{ stroke: color, strokeWidth: 2.6, strokeLinecap: "round",
-        animationDuration: dur.toFixed(2) + "s", animationPlayState: calm ? "paused" : "running", filter: "drop-shadow(0 0 2px " + color + ")" }} />}
-      <circle cx={b[0]} cy={b[1]} r="4" style={{ fill: "var(--surface)", stroke: on ? color : "var(--border-strong)", strokeWidth: 2 }} />
+      <path d={d} fill="none" style={{ stroke: color, strokeWidth: 12, strokeLinecap: "round", opacity: 0.07 }} />
+      <path d={d} fill="none" style={{ stroke: color, strokeWidth: 5, strokeLinecap: "round", opacity: 0.2 }} />
+      <path d={d} fill="none" className={cls} style={{ stroke: color, strokeWidth: 3.6, strokeLinecap: "round", opacity: 0.95,
+        animationDuration: dur.toFixed(2) + "s", animationPlayState: play, filter: "drop-shadow(0 0 4px " + color + ")" }} />
+      <path d={d} fill="none" className={cls + " glint"} style={{ stroke: "#fff", strokeWidth: 1.4, strokeLinecap: "round", opacity: 0.85,
+        animationDuration: (dur * 0.8).toFixed(2) + "s", animationPlayState: play }} />
+      <circle cx={(rev ? a : b)[0]} cy={(rev ? a : b)[1]} r="4" className="fs-ripple" style={{ fill: "none", stroke: color, strokeWidth: 1.5, animationPlayState: play }} />
+      <circle cx={b[0]} cy={b[1]} r="4.5" style={{ fill: color, stroke: "var(--surface)", strokeWidth: 2, filter: "drop-shadow(0 0 3px " + color + ")" }} />
     </g>
   );
 }
