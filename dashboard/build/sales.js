@@ -2182,7 +2182,9 @@ function QuoteEditor({
   const isMobile = window.matchMedia("(max-width: 860px)").matches;
   const [q, setQ] = React.useState(() => Object.assign({}, quote, {
     customer: Object.assign({}, quote.customer),
-    items: (quote.items || []).map(x => Object.assign({}, x)),
+    items: (quote.items || []).map((x, i) => Object.assign({}, x, x.id ? null : {
+      id: "qi" + Date.now().toString(36) + i
+    })),
     terms: (quote.terms || []).slice(),
     warranties: (quote.warranties || []).slice()
   }));
@@ -2293,6 +2295,14 @@ function QuoteEditor({
   const delItem = i => setQ(p => Object.assign({}, p, {
     items: p.items.filter((_, j) => j !== i)
   }));
+  const moveItem = (from, to) => setQ(p => {
+    const a = p.items.slice();
+    const it = a.splice(from, 1)[0];
+    a.splice(to, 0, it);
+    return Object.assign({}, p, {
+      items: a
+    });
+  });
   const locked = q.status === "accepted";
   const boqSell = job && job.boq && job.boq.pricing ? +job.boq.pricing.sell || 0 : 0;
   const pullBoq = () => {
@@ -2825,6 +2835,7 @@ function QuoteEditor({
     color: "var(--primary-dark)"
   }), " \u0E14\u0E36\u0E07\u0E23\u0E32\u0E04\u0E32\u0E02\u0E32\u0E22\u0E08\u0E32\u0E01 BOQ (\u0E3F", sBaht(boqSell), ")")), q.items.map((it, i) => React.createElement("div", {
     key: it.id || i,
+    "data-row": "",
     style: {
       boxShadow: "var(--shadow-sm)",
       borderRadius: "var(--r-tile)",
@@ -2840,7 +2851,17 @@ function QuoteEditor({
       gap: 8,
       alignItems: "center"
     }
-  }, React.createElement("input", {
+  }, !locked && q.items.length > 1 && React.createElement("span", {
+    title: "\u0E25\u0E32\u0E01\u0E40\u0E1E\u0E37\u0E48\u0E2D\u0E2A\u0E25\u0E31\u0E1A\u0E25\u0E33\u0E14\u0E31\u0E1A",
+    "aria-label": "\u0E25\u0E32\u0E01\u0E40\u0E1E\u0E37\u0E48\u0E2D\u0E2A\u0E25\u0E31\u0E1A\u0E25\u0E33\u0E14\u0E31\u0E1A",
+    className: "row-grip",
+    onPointerDown: e => window.pgRowDrag && window.pgRowDrag(e, e.currentTarget.closest("[data-row]"), moveItem)
+  }, React.createElement(Icon, {
+    name: "grip",
+    size: 16,
+    sw: 3,
+    color: "var(--text-3)"
+  })), React.createElement("input", {
     value: it.name || "",
     disabled: locked,
     placeholder: "\u0E0A\u0E37\u0E48\u0E2D\u0E23\u0E32\u0E22\u0E01\u0E32\u0E23",

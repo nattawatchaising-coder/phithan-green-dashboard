@@ -1593,7 +1593,8 @@ function QuoteEditor({ quote, job, target, stock, onClose, onSave, onDelete, cur
   const isMobile = window.matchMedia("(max-width: 860px)").matches;
   const [q, setQ] = React.useState(() => Object.assign({}, quote, {
     customer: Object.assign({}, quote.customer),
-    items: (quote.items || []).map((x) => Object.assign({}, x)),
+    /* ทุกรายการต้องมี id — ใช้เป็น key ของแถว ลากสลับลำดับแล้ว React ย้ายแถวจริง (ใบเก่าบางใบไม่มี) */
+    items: (quote.items || []).map((x, i) => Object.assign({}, x, x.id ? null : { id: "qi" + Date.now().toString(36) + i })),
     terms: (quote.terms || []).slice(), warranties: (quote.warranties || []).slice(),
   }));
   const [rep, setRep] = React.useState(null);
@@ -1669,6 +1670,8 @@ function QuoteEditor({ quote, job, target, stock, onClose, onSave, onDelete, cur
   const addItem = () => setQ((p) => Object.assign({}, p, {
     items: p.items.concat([{ id: "qi" + Date.now().toString(36), name: "", detail: "", qty: 1, unit: "งาน", price: 0 }]) }));
   const delItem = (i) => setQ((p) => Object.assign({}, p, { items: p.items.filter((_, j) => j !== i) }));
+  // ลากสลับลำดับ (ปุ่มจับหน้าชื่อรายการ · pgRowDrag ใน pg-motion.js) — ลำดับนี้คือลำดับในใบที่ออกให้ลูกค้า
+  const moveItem = (from, to) => setQ((p) => { const a = p.items.slice(); const it = a.splice(from, 1)[0]; a.splice(to, 0, it); return Object.assign({}, p, { items: a }); });
 
   const locked = q.status === "accepted";   /* ตกลงแล้วห้ามแก้ตัวเลข ไม่งั้นยอดขายที่สรุปไปแล้วจะเพี้ยน */
 
@@ -1900,8 +1903,15 @@ function QuoteEditor({ quote, job, target, stock, onClose, onSave, onDelete, cur
                 )}
               </div>
               {q.items.map((it, i) => (
-                <div key={it.id || i} style={{ boxShadow: "var(--shadow-sm)", borderRadius: "var(--r-tile)", padding: 11, background: "var(--surface)", display: "flex", flexDirection: "column", gap: 7 }}>
+                <div key={it.id || i} data-row="" style={{ boxShadow: "var(--shadow-sm)", borderRadius: "var(--r-tile)", padding: 11, background: "var(--surface)", display: "flex", flexDirection: "column", gap: 7 }}>
                   <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+                    {/* ปุ่มจับ — กดค้างแล้วลากขึ้น/ลงเพื่อสลับลำดับรายการ (ผู้ใช้: ลากสลับบรรทัดในใบเสนอราคา) */}
+                    {!locked && q.items.length > 1 && (
+                      <span title="ลากเพื่อสลับลำดับ" aria-label="ลากเพื่อสลับลำดับ" className="row-grip"
+                        onPointerDown={(e) => window.pgRowDrag && window.pgRowDrag(e, e.currentTarget.closest("[data-row]"), moveItem)}>
+                        <Icon name="grip" size={16} sw={3} color="var(--text-3)" />
+                      </span>
+                    )}
                     <input value={it.name || ""} disabled={locked} placeholder="ชื่อรายการ" onChange={(e) => setItem(i, "name", e.target.value)}
                       style={Object.assign({}, cell, { flex: 1, fontWeight: 700 })} />
                     {!locked && (

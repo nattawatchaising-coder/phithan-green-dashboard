@@ -525,3 +525,197 @@
     if (el) dw = setTimeout(function () { dw = 0; if (hov === el) show(el, true); }, DWELL);
   }, { passive: true });
 })();
+/* ── ลากสลับลำดับแถวในรายการ (รายการในใบเสนอราคา) ── ท่าเดียวกับลากการ์ดบนบอร์ด: แถวลอยตามเมาส์ แถวอื่นหลบให้ที่ (สปริง)
+   ลากชิดขอบบน/ล่างของกล่องที่เลื่อนได้ = เลื่อนเองแบบเร่ง/ผ่อน · ปล่อยแล้วสำเนาบินลงช่องใหม่ แถวอื่นเลื่อนเข้าที่ต่อจากท่าเดิม (FLIP)
+   ใช้ pointer events ไม่ใช่ลากของเบราว์เซอร์ — แถวมีช่องกรอก/ข้อความ ลากของเบราว์เซอร์ไปลากข้อความแทน และมีเคอร์เซอร์กากบาทแดง
+   วิธีใช้: แถวใส่ data-row (ลูกตรงของกล่องเดียวกัน · key ต้องคงที่ ไม่ใช่เลขลำดับ — React ต้องย้ายโหนดจริง FLIP ถึงจับได้)
+   ปุ่มจับ onPointerDown={(e) => window.pgRowDrag(e, แถว, (from, to) => ย้ายในข้อมูล)} (ผู้ใช้: "ลากสลับบรรทัดในใบเสนอราคา" ต.ค. 2026) */
+(function () {
+  var K = 170, C = 26, d = null;
+  var SP = new Map(), raf = 0, last = 0;
+  function still() { return !document.body.animate || (window.matchMedia && matchMedia("(prefers-reduced-motion: reduce)").matches); }
+  function spTick(now) {
+    var dt = Math.min(.032, (now - last) / 1000), live = 0;
+    last = now;
+    SP.forEach(function (st, el) {
+      if (!el.isConnected) { SP.delete(el); return; }
+      for (var i = 0; i < 2; i++) { var a = -K * (st.y - st.t) - C * st.v; st.v += a * dt / 2; st.y += st.v * dt / 2; }
+      if (Math.abs(st.y - st.t) < .3 && Math.abs(st.v) < 4) {
+        st.y = st.t; st.v = 0;
+        if (!st.t) { SP.delete(el); el.style.transform = ""; return; }
+      } else live++;
+      el.style.transform = "translateY(" + st.y.toFixed(2) + "px)";
+    });
+    raf = live ? requestAnimationFrame(spTick) : 0;
+  }
+  function slide(el, y, from) {
+    var st = SP.get(el);
+    if (!st) { st = { y: 0, v: 0, t: 0 }; SP.set(el, st); }
+    if (from != null) { st.y = from; st.v = 0; }
+    st.t = y;
+    if (still()) { st.y = y; st.v = 0; el.style.transform = y ? "translateY(" + y + "px)" : ""; if (!y) SP.delete(el); return; }
+    if (!raf) { last = performance.now(); raf = requestAnimationFrame(spTick); }
+  }
+  function rowsOf(list) { return [].filter.call(list.children, function (c) { return c.hasAttribute("data-row"); }); }
+  // ตำแหน่งตามเลย์เอาต์ (ไม่รวม translate ที่เราขยับเอง)
+  function layTop(el) { var st = SP.get(el); return el.getBoundingClientRect().top - (st ? st.y : 0); }
+  function scroller(el) {
+    for (var p = el.parentElement; p && p !== document.body; p = p.parentElement) {
+      var oy = getComputedStyle(p).overflowY;
+      if ((oy === "auto" || oy === "scroll") && p.scrollHeight > p.clientHeight + 1) return p;
+    }
+    return document.scrollingElement || document.documentElement;
+  }
+  function place(d) {
+    var y = d.r0.top + (d.py - d.y0), s = d.s;
+    d.g.style.transform = "translate(" + d.r0.left.toFixed(1) + "px," + y.toFixed(1) + "px) scale(" + s.toFixed(4) + ")";
+    d.cy = y + d.r0.height / 2;
+  }
+  function aim(d) {
+    var to = 0;
+    d.rows.forEach(function (r, i) { if (i !== d.from && layTop(r) + r.offsetHeight / 2 < d.cy) to++; });
+    if (to === d.to) return;
+    d.to = to;
+    d.rows.forEach(function (r, i) {
+      if (i === d.from) return;
+      var y = 0;
+      if (d.from < to && i > d.from && i <= to) y = -d.H;
+      else if (to < d.from && i >= to && i < d.from) y = d.H;
+      slide(r, y);
+    });
+  }
+  function edge(d, now) {
+    var dt = d.lt ? Math.min(.032, (now - d.lt) / 1000) : 0, want = 0, sc = d.sc;
+    d.lt = now;
+    var top = 0, bot = window.innerHeight;
+    if (sc !== document.scrollingElement && sc !== document.documentElement) { var r = sc.getBoundingClientRect(); top = Math.max(0, r.top); bot = Math.min(bot, r.bottom); }
+    var z = Math.min(80, (bot - top) / 4);
+    if (d.py < top + z) want = -Math.pow(Math.min(1, (top + z - d.py) / z), 2);
+    else if (d.py > bot - z) want = Math.pow(Math.min(1, (d.py - bot + z) / z), 2);
+    d.as += (want * 620 - d.as) * Math.min(1, dt * 5);
+    if (Math.abs(d.as) < 3) { d.acc = 0; return; }
+    d.acc += d.as * dt;
+    var step = d.acc < 0 ? Math.ceil(d.acc) : Math.floor(d.acc);
+    if (!step) return;
+    d.acc -= step;
+    sc.scrollTop += step;   // สำเนาลอยกับจอ ไม่ต้องเลื่อนตาม — tick คิดช่องใหม่จากตำแหน่งแถวที่เลื่อนไปเอง
+  }
+  function tick(now) {
+    if (!d || d.end) return;
+    edge(d, now);
+    d.vs += (1.025 - d.s) * .16; d.vs *= .72; d.s += d.vs;
+    place(d);
+    aim(d);
+    d.raf = requestAnimationFrame(tick);
+  }
+  function onMove(e) {
+    if (!d || e.pointerId !== d.pid) return;
+    d.py = e.clientY;
+    if (!d.live) {
+      if (Math.abs(e.clientY - d.y0) < 4 && Math.abs(e.clientX - d.x0) < 4) return;
+      lift(d);
+    }
+    e.preventDefault();
+  }
+  function lift(d) {
+    d.live = true;
+    var row = d.row, r = d.r0 = row.getBoundingClientRect();
+    var g = d.g = row.cloneNode(true);
+    // ค่าที่พิมพ์ในช่องกรอกไม่ติดมากับ cloneNode — คัดลอกให้สำเนาหน้าตาตรงกัน
+    var a = row.querySelectorAll("input,textarea,select"), b = g.querySelectorAll("input,textarea,select");
+    for (var i = 0; i < a.length; i++) { if (a[i].type === "checkbox" || a[i].type === "radio") b[i].checked = a[i].checked; else b[i].value = a[i].value; }
+    g.removeAttribute("data-row");
+    g.setAttribute("data-pgfly", "row");
+    Object.assign(g.style, { position: "fixed", left: "0", top: "0", margin: "0", width: r.width + "px", height: r.height + "px", boxSizing: "border-box",
+      zIndex: "300", pointerEvents: "none", transition: "box-shadow .3s ease", transformOrigin: "50% 50%", willChange: "transform" });
+    document.body.appendChild(g);
+    requestAnimationFrame(function () { g.style.boxShadow = "0 22px 44px -14px rgba(8,20,14,.45), 0 6px 14px -6px rgba(8,20,14,.22)"; });
+    var gap = parseFloat(getComputedStyle(d.list).rowGap) || 0;
+    d.H = r.height + gap;
+    row.style.visibility = "hidden";   // ช่องเดิมว่าง — ตัวที่ลอยคือตัวมัน
+    document.documentElement.style.cursor = "grabbing";
+    document.body.style.userSelect = "none";
+    place(d);
+    d.raf = requestAnimationFrame(tick);
+  }
+  function onUp(e) {
+    if (!d || (e && e.pointerId != null && e.pointerId !== d.pid)) return;
+    finish(d, e && e.type === "pointerup");
+  }
+  function onKey(e) { if (d && e.key === "Escape") { d.to = d.from; finish(d, false); } }
+  function unlisten() {
+    window.removeEventListener("pointermove", onMove, true);
+    window.removeEventListener("pointerup", onUp, true);
+    window.removeEventListener("pointercancel", onUp, true);
+    window.removeEventListener("blur", onUp);
+    window.removeEventListener("keydown", onKey, true);
+  }
+  function finish(dd, commit) {
+    unlisten();
+    dd.end = true;
+    cancelAnimationFrame(dd.raf);
+    if (d === dd) d = null;
+    document.documentElement.style.cursor = "";
+    document.body.style.userSelect = "";
+    if (!dd.live) return;   // แค่กดปุ่มจับ ไม่ได้ลาก
+    var moved = commit && dd.to != null && dd.to !== dd.from;
+    var list = dd.list, done = false;
+    function settle() {   // จัดแถวเข้าที่จากท่าที่เห็นอยู่ แล้วสำเนาบินลงแถวตัวจริง
+      if (done) return;
+      done = true;
+      mo.disconnect();
+      clearTimeout(t);
+      var rows = rowsOf(list);
+      var vis = rows.map(function (r) { var st = SP.get(r); return { y: (seen.has(r) ? seen.get(r) : r.getBoundingClientRect().top), v: st ? st.v : 0 }; });
+      rows.forEach(function (r) { SP.delete(r); r.style.transform = ""; });
+      rows.forEach(function (r, i) {
+        if (r === dd.row) return;
+        var dy = vis[i].y - r.getBoundingClientRect().top;
+        if (Math.abs(dy) < .5 && Math.abs(vis[i].v) < 4) return;
+        var st = { y: dy, v: vis[i].v, t: 0 }; SP.set(r, st);
+        r.style.transform = "translateY(" + dy.toFixed(2) + "px)";
+      });
+      if (SP.size && !raf) { last = performance.now(); raf = requestAnimationFrame(spTick); }
+      fly(dd);
+    }
+    // ตำแหน่งที่เห็นบนจอตอนปล่อย (รวมที่หลบไว้) — React ย้ายโหนดแล้วจะเลื่อนต่อจากตรงนี้
+    var seen = new Map();
+    rowsOf(list).forEach(function (r) { seen.set(r, r.getBoundingClientRect().top); });
+    var mo = new MutationObserver(settle);
+    mo.observe(list, { childList: true });
+    var t = setTimeout(settle, moved ? 400 : 0);   // ข้อมูลไม่ได้ย้าย (หรือ React ไม่ได้ย้ายโหนด) — คืนที่เดิม
+    if (moved) { try { dd.cb(dd.from, dd.to); } catch (err) { settle(); throw err; } }
+  }
+  // สำเนาบินลงตำแหน่งแถวตัวจริง (อ่านเป้าใหม่ทุกเฟรม — เลื่อนจอระหว่างบินก็ยังลงตรง) แล้วเผยแถวจริง
+  function fly(dd) {
+    var g = dd.g, row = dd.row, t0 = performance.now(), D = still() ? 0 : 280;
+    var m = /translate\(([-\d.]+)px,([-\d.]+)px\) scale\(([\d.]+)\)/.exec(g.style.transform) || [0, dd.r0.left, dd.r0.top, 1];
+    var x0 = +m[1], y0 = +m[2], s0 = +m[3];
+    g.style.boxShadow = "0 2px 6px rgba(8,20,14,.12)";
+    function step(now) {
+      var el = row.isConnected ? row : null;
+      var p = D ? Math.min(1, (now - t0) / D) : 1, e = 1 - Math.pow(1 - p, 3);
+      if (!el || p >= 1) { if (el) el.style.visibility = ""; g.remove(); return; }
+      var r = el.getBoundingClientRect(), st = SP.get(el);
+      var ty = r.top - (st ? st.y : 0);
+      g.style.transform = "translate(" + (x0 + (r.left - x0) * e).toFixed(1) + "px," + (y0 + (ty - y0) * e).toFixed(1) + "px) scale(" + (s0 + (1 - s0) * e).toFixed(4) + ")";
+      requestAnimationFrame(step);
+    }
+    step(performance.now());
+  }
+  window.pgRowDrag = function (e, row, cb) {
+    if (d || !row || !row.parentElement || (e.button != null && e.button !== 0)) return;
+    var list = row.parentElement, rows = rowsOf(list), from = rows.indexOf(row);
+    if (from < 0 || rows.length < 2) return;
+    e.preventDefault();   // ไม่เลือกข้อความ ไม่ย้ายโฟกัส
+    try { e.currentTarget.setPointerCapture(e.pointerId); } catch (er) {}   // ลากออกนอกหน้าต่างแล้วปล่อย ยังได้ pointerup
+    [].forEach.call(document.querySelectorAll('[data-pgfly="row"]'), function (n) { n.remove(); });
+    d = { row: row, list: list, rows: rows, from: from, to: from, cb: cb, pid: e.pointerId, x0: e.clientX, y0: e.clientY, py: e.clientY,
+      s: 1, vs: 0, as: 0, acc: 0, sc: scroller(list), live: false };
+    window.addEventListener("pointermove", onMove, true);
+    window.addEventListener("pointerup", onUp, true);
+    window.addEventListener("pointercancel", onUp, true);
+    window.addEventListener("blur", onUp);
+    window.addEventListener("keydown", onKey, true);
+  };
+})();

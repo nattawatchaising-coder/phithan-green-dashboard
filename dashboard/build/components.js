@@ -1,6 +1,7 @@
 const ICONS = {
   grid: "M4 4h6v6H4zM14 4h6v6h-6zM14 14h6v6h-6zM4 14h6v6H4z",
   kanban: "M4 4h16M5.5 6.5v13.5M12 6.5v8.5M18.5 6.5v11",
+  grip: "M9 6h.01M9 12h.01M9 18h.01M15 6h.01M15 12h.01M15 18h.01",
   table: "M4 5h16v14H4zM4 10h16M10 10v9",
   calendar: "M4 5h16v15H4zM4 10h16M8.5 3v4M15.5 3v4M8.5 15h0M12 15h0M15.5 15h0",
   map: "M9 4 3 6v14l6-2 6 2 6-2V4l-6 2zM9 4v14M15 6v14",
