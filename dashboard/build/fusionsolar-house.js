@@ -1,16 +1,37 @@
 function _extends() { return _extends = Object.assign ? Object.assign.bind() : function (n) { for (var e = 1; e < arguments.length; e++) { var t = arguments[e]; for (var r in t) ({}).hasOwnProperty.call(t, r) && (n[r] = t[r]); } return n; }, _extends.apply(null, arguments); }
-const FS_HOUSE_IMG = "dashboard/assets/fs-house.jpg?v=1";
-const FS_HOUSE_PT = {
-  roof: [0.5, 0.27],
-  grid: [0.3, 0.6],
-  home: [0.56, 0.64],
-  bat: [0.79, 0.56]
+const FS_HOUSE = {
+  day: {
+    src: "dashboard/assets/fs-house.jpg?v=1",
+    w: 1376,
+    h: 768,
+    outline: [[136, 499], [186, 462], [168, 426], [192, 372], [232, 334], [275, 322], [330, 336], [372, 352], [376, 214], [362, 182], [768, 90], [938, 192], [985, 163], [1048, 170], [1096, 215], [1106, 300], [1104, 330], [1104, 420], [1150, 425], [1195, 440], [1282, 495], [1180, 530], [1070, 568], [1000, 596], [930, 604], [640, 686]],
+    pt: {
+      roof: [0.5, 0.27],
+      grid: [0.3, 0.6],
+      home: [0.56, 0.64],
+      bat: [0.79, 0.56]
+    },
+    bg: (dc, sat) => sat <= 10 && dc[3] >= -48 && dc[3] <= 7
+  },
+  night: {
+    src: "dashboard/assets/fs-house-night.jpg?v=1",
+    w: 1024,
+    h: 572,
+    outline: [[98, 374], [128, 330], [132, 290], [160, 256], [200, 243], [245, 258], [268, 290], [282, 300], [282, 140], [272, 132], [568, 70], [700, 150], [712, 128], [760, 122], [805, 150], [822, 200], [818, 245], [818, 330], [838, 318], [842, 270], [875, 228], [912, 222], [945, 258], [952, 312], [922, 332], [954, 370], [880, 392], [770, 425], [700, 442], [482, 508]],
+    pt: {
+      roof: [0.49, 0.26],
+      grid: [0.3, 0.59],
+      home: [0.56, 0.62],
+      bat: [0.77, 0.55]
+    },
+    bg: dc => Math.max(Math.abs(dc[0]), Math.abs(dc[1]), Math.abs(dc[2])) <= 12
+  }
 };
-const FS_HOUSE_OUTLINE = [[136, 499], [186, 462], [168, 426], [192, 372], [232, 334], [275, 322], [330, 336], [372, 352], [376, 214], [362, 182], [768, 90], [938, 192], [985, 163], [1048, 170], [1096, 215], [1106, 300], [1104, 330], [1104, 420], [1150, 425], [1195, 440], [1282, 495], [1180, 530], [1070, 568], [1000, 596], [930, 604], [640, 686]];
-let _fsHouseP = null;
-function fsHouseCutout() {
-  if (_fsHouseP) return _fsHouseP;
-  _fsHouseP = new Promise((res, rej) => {
+const _fsHouseP = {};
+function fsHouseCutout(kind) {
+  const V = FS_HOUSE[kind];
+  if (_fsHouseP[kind]) return _fsHouseP[kind];
+  const pr = new Promise((res, rej) => {
     const im = new Image();
     im.onerror = () => rej(new Error("โหลดภาพบ้านไม่ได้"));
     im.onload = () => {
@@ -24,10 +45,10 @@ function fsHouseCutout() {
         g.drawImage(im, 0, 0);
         const d = g.getImageData(0, 0, W, H),
           p = d.data;
-        let B = 0;
+        const B = [0, 0, 0];
         [[2, 2], [W - 3, 2], [2, H - 3], [W - 3, H - 3]].forEach(([x, y]) => {
           const i = (y * W + x) * 4;
-          B += (p[i] + p[i + 1] + p[i + 2]) / 12;
+          for (let k = 0; k < 3; k++) B[k] += p[i + k] / 4;
         });
         const N = W * H,
           seen = new Uint8Array(N),
@@ -36,10 +57,10 @@ function fsHouseCutout() {
         mc.width = W;
         mc.height = H;
         const mg = mc.getContext("2d"),
-          sx = W / 1376,
-          sy = H / 768;
+          sx = W / V.w,
+          sy = H / V.h;
         mg.beginPath();
-        FS_HOUSE_OUTLINE.forEach(([x, y], i) => i ? mg.lineTo(x * sx, y * sy) : mg.moveTo(x * sx, y * sy));
+        V.outline.forEach(([x, y], i) => i ? mg.lineTo(x * sx, y * sy) : mg.moveTo(x * sx, y * sy));
         mg.closePath();
         mg.fillStyle = "#000";
         mg.fill();
@@ -50,13 +71,12 @@ function fsHouseCutout() {
           seen[j] = 1;
           q[qt++] = j;
         }
+        const dc = [0, 0, 0, 0];
         const isBg = j => {
-          const i = j * 4,
-            r = p[i],
-            gg = p[i + 1],
-            bb = p[i + 2],
-            v = (r + gg + bb) / 3;
-          return Math.max(r, gg, bb) - Math.min(r, gg, bb) <= 10 && v >= B - 48 && v <= B + 7;
+          const i = j * 4;
+          for (let k = 0; k < 3; k++) dc[k] = p[i + k] - B[k];
+          dc[3] = (dc[0] + dc[1] + dc[2]) / 3;
+          return V.bg(dc, Math.max(p[i], p[i + 1], p[i + 2]) - Math.min(p[i], p[i + 1], p[i + 2]));
         };
         const push = j => {
           if (!seen[j] && isBg(j)) {
@@ -72,27 +92,18 @@ function fsHouseCutout() {
           if (j >= W) push(j - W);
           if (j < N - W) push(j + W);
         }
-        for (let pass = 0; pass < 2; pass++) {
-          const add = [];
-          for (let j = W; j < N - W; j++) {
-            if (seen[j] || !(seen[j - 1] || seen[j + 1] || seen[j - W] || seen[j + W])) continue;
-            const i = j * 4,
-              r = p[i],
-              gg = p[i + 1],
-              bb = p[i + 2];
-            if (Math.max(r, gg, bb) - Math.min(r, gg, bb) <= 16 && (r + gg + bb) / 3 >= B - 60) add.push(j);
-          }
-          add.forEach(j => {
-            seen[j] = 1;
-          });
-        }
         for (let j = 0; j < N; j++) {
           if (!seen[j]) continue;
-          const i = j * 4,
-            v = (p[i] + p[i + 1] + p[i + 2]) / 3;
-          const al = Math.max(0, (B - v) / B - 0.015);
-          p[i] = p[i + 1] = p[i + 2] = 0;
-          p[i + 3] = Math.round(Math.min(1, al) * 255);
+          const i = j * 4;
+          let a = 0;
+          for (let k = 0; k < 3; k++) {
+            const v = p[i + k],
+              b = B[k];
+            a = Math.max(a, v > b ? (v - b) / (255 - b) : (b - v) / b);
+          }
+          a = Math.max(0, (a - 0.02) / 0.98);
+          for (let k = 0; k < 3; k++) p[i + k] = a > 0 ? Math.max(0, Math.min(255, B[k] + (p[i + k] - B[k]) / a)) : 0;
+          p[i + 3] = Math.round(Math.min(1, a) * 255);
         }
         g.putImageData(d, 0, 0);
         c.toBlob(b => b ? res(URL.createObjectURL(b)) : rej(new Error("toBlob")), "image/png");
@@ -100,25 +111,38 @@ function fsHouseCutout() {
         rej(e);
       }
     };
-    im.src = FS_HOUSE_IMG;
+    im.src = V.src;
   });
-  _fsHouseP.catch(() => {
-    _fsHouseP = null;
+  _fsHouseP[kind] = pr;
+  pr.catch(() => {
+    delete _fsHouseP[kind];
   });
-  return _fsHouseP;
+  return pr;
+}
+function useFsNight() {
+  const get = () => document.documentElement.getAttribute("data-theme") === "aurora";
+  const [night, setNight] = React.useState(get);
+  React.useEffect(() => {
+    const mo = new MutationObserver(() => setNight(get()));
+    mo.observe(document.documentElement, {
+      attributes: true,
+      attributeFilter: ["data-theme"]
+    });
+    return () => mo.disconnect();
+  }, []);
+  return night;
 }
 function FsHouseStage({
   height,
   overlay,
   pad
 }) {
+  const kind = useFsNight() ? "night" : "day",
+    V = FS_HOUSE[kind];
   const box = React.useRef(null);
   const [sz, setSz] = React.useState(null);
-  const [src, setSrc] = React.useState(null);
-  const [raw, setRaw] = React.useState(false);
+  const [src, setSrc] = React.useState({});
   React.useEffect(() => {
-    let dead = false;
-    fsHouseCutout().then(u => !dead && setSrc(u)).catch(() => !dead && setRaw(true));
     const upd = () => box.current && setSz({
       w: box.current.clientWidth,
       h: box.current.clientHeight
@@ -126,12 +150,20 @@ function FsHouseStage({
     upd();
     const ro = window.ResizeObserver ? new ResizeObserver(upd) : null;
     ro && ro.observe(box.current);
+    return () => ro && ro.disconnect();
+  }, []);
+  React.useEffect(() => {
+    let dead = false;
+    fsHouseCutout(kind).then(u => !dead && setSrc(o => Object.assign({}, o, {
+      [kind]: u
+    }))).catch(() => !dead && setSrc(o => Object.assign({}, o, {
+      [kind]: "raw"
+    })));
     return () => {
       dead = true;
-      ro && ro.disconnect();
     };
-  }, []);
-  const AR = 1376 / 768,
+  }, [kind]);
+  const AR = V.w / V.h,
     P = pad || 0;
   let img = null,
     pt = null;
@@ -146,9 +178,10 @@ function FsHouseStage({
       w,
       h
     };
-    pt = f => [img.x + f[0] * img.w, img.y + f[1] * img.h];
+    pt = name => [img.x + V.pt[name][0] * img.w, img.y + V.pt[name][1] * img.h];
   }
-  const shown = src || (raw ? FS_HOUSE_IMG : null);
+  const s = src[kind],
+    raw = s === "raw";
   return React.createElement("div", {
     ref: box,
     style: {
@@ -156,8 +189,9 @@ function FsHouseStage({
       height,
       minWidth: 0
     }
-  }, img && shown && React.createElement("img", {
-    src: shown,
+  }, img && s && React.createElement("img", {
+    key: kind,
+    src: raw ? V.src : s,
     alt: "",
     "aria-hidden": "true",
     draggable: "false",
@@ -170,7 +204,7 @@ function FsHouseStage({
       height: img.h,
       pointerEvents: "none",
       userSelect: "none",
-      mixBlendMode: src ? "normal" : "multiply"
+      mixBlendMode: raw ? kind === "night" ? "screen" : "multiply" : "normal"
     }
   }), img && overlay && overlay(pt, sz, img));
 }
@@ -472,7 +506,7 @@ function FsHouseFlow({
       }, all.map(c => React.createElement(FsHwWire, {
         key: c.k,
         a: [c.side === "L" ? c.x + CW - 8 : c.x + 8, c.y],
-        b: pt(FS_HOUSE_PT[c.pt]),
+        b: pt(c.pt),
         color: c.color,
         on: c.on,
         rel: rel(c.kw),
