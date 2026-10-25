@@ -439,42 +439,38 @@ const fsSortVal = (s, k, live) => ({
   address: (s.address || "").toLowerCase(),
   at: Date.parse(s.kpi_updated_at || s.last_synced_at || "") || 0
 })[k];
-const FS_NEON = "var(--primary)",
-  FS_HG = {
-    ok: "var(--tint-ok-tx)",
-    warn: "var(--tint-amber-tx)",
-    off: "var(--text-3)",
-    lost: "var(--tint-red-tx)",
-    wait: "var(--border-strong)",
-    none: "var(--surface3)"
-  };
-const FS_GL = {
-  tx: "var(--text-1)",
-  sub: "var(--text-3)",
-  dim: "var(--text-3)"
+const FS_HG = {
+  ok: "var(--tint-ok-tx)",
+  warn: "var(--tint-amber-tx)",
+  off: "var(--text-3)",
+  lost: "var(--tint-red-tx)",
+  wait: "var(--border-strong)",
+  none: "var(--surface3)"
 };
-function FsGlass({
-  title,
-  right,
-  children,
+function FsFloatCard({
+  icon,
+  label,
+  value,
+  unit,
+  sub,
+  frac,
   style,
-  onClick
+  flat
 }) {
   return React.createElement("div", {
-    onClick: onClick,
-    className: "fs-glass",
     style: Object.assign({
-      background: "var(--surface)",
-      borderRadius: "var(--r-tile)",
-      boxShadow: "var(--shadow-sm)",
-      padding: "14px 16px",
       minWidth: 0,
-      color: FS_GL.tx,
+      padding: "12px 14px",
+      borderRadius: 16,
       display: "flex",
       flexDirection: "column",
-      gap: 8
+      gap: 6,
+      background: flat ? "var(--surface)" : "color-mix(in srgb, var(--surface) 84%, transparent)",
+      boxShadow: flat ? "var(--shadow-sm)" : "var(--shadow-card)",
+      backdropFilter: flat ? "none" : "blur(10px)",
+      WebkitBackdropFilter: flat ? "none" : "blur(10px)"
     }, style)
-  }, (title || right) && React.createElement("div", {
+  }, React.createElement("div", {
     style: {
       display: "flex",
       alignItems: "center",
@@ -482,149 +478,68 @@ function FsGlass({
     }
   }, React.createElement("span", {
     style: {
-      flex: 1,
-      fontSize: 13,
-      fontWeight: 700,
-      color: FS_GL.tx
-    }
-  }, title), right), children);
-}
-const FsBig = ({
-  v,
-  unit,
-  size
-}) => React.createElement("div", {
-  style: {
-    fontFamily: "var(--display)",
-    fontSize: size || 30,
-    fontWeight: 700,
-    lineHeight: 1.1,
-    whiteSpace: "nowrap",
-    fontVariantNumeric: "tabular-nums"
-  }
-}, v, React.createElement("span", {
-  style: {
-    fontSize: 13,
-    fontWeight: 600,
-    color: FS_GL.sub,
-    marginLeft: 4
-  }
-}, unit));
-function FsNeonRing({
-  frac,
-  size,
-  children
-}) {
-  const S = size,
-    r = S / 2 - 12,
-    C = 2 * Math.PI * r,
-    f = frac == null ? 0 : fsClamp(frac, 0, 1);
-  const ticks = [];
-  for (let i = 0; i < 60; i++) {
-    const a = i / 60 * 2 * Math.PI,
-      r1 = S / 2 - 2,
-      r2 = S / 2 - 6;
-    ticks.push(React.createElement("line", {
-      key: i,
-      x1: S / 2 + r1 * Math.cos(a),
-      y1: S / 2 + r1 * Math.sin(a),
-      x2: S / 2 + r2 * Math.cos(a),
-      y2: S / 2 + r2 * Math.sin(a),
-      stroke: "var(--border-strong)",
-      strokeWidth: "1.4",
-      strokeLinecap: "round"
-    }));
-  }
-  return React.createElement("div", {
-    style: {
-      position: "relative",
-      width: S,
-      height: S,
-      flexShrink: 0
-    }
-  }, React.createElement("svg", {
-    width: S,
-    height: S,
-    style: {
-      display: "block"
-    },
-    "aria-hidden": "true"
-  }, ticks, React.createElement("g", {
-    transform: "rotate(-90 " + S / 2 + " " + S / 2 + ")"
-  }, React.createElement("circle", {
-    cx: S / 2,
-    cy: S / 2,
-    r: r,
-    fill: "none",
-    stroke: "var(--surface3)",
-    strokeWidth: "9"
-  }), f > 0 && React.createElement("circle", {
-    cx: S / 2,
-    cy: S / 2,
-    r: r,
-    fill: "none",
-    stroke: FS_NEON,
-    strokeWidth: "9",
-    strokeLinecap: "round",
-    className: "fs-tr",
-    strokeDasharray: Math.max(0.5, C * f) + " " + C
-  }))), React.createElement("div", {
-    style: {
-      position: "absolute",
-      inset: 0,
+      width: 28,
+      height: 28,
+      borderRadius: 14,
       display: "grid",
       placeItems: "center",
-      textAlign: "center"
+      flexShrink: 0,
+      background: "color-mix(in srgb, var(--fs-sun) 16%, var(--surface))"
     }
-  }, children));
-}
-function FsSiteBars({
-  sites,
-  onOpen,
-  h
-}) {
-  const list = sites.map(s => ({
-    s,
-    v: fsYield(s)
-  })).filter(x => x.v != null && x.v > 0).sort((a, b) => b.v - a.v);
-  if (!list.length) return React.createElement("div", {
+  }, React.createElement(Icon, {
+    name: icon,
+    size: 15,
+    color: "var(--fs-sun)"
+  })), React.createElement("span", {
     style: {
       fontSize: 12,
-      color: FS_GL.dim,
-      padding: "20px 0"
+      fontWeight: 600,
+      color: "var(--text-3)",
+      whiteSpace: "nowrap",
+      overflow: "hidden",
+      textOverflow: "ellipsis"
     }
-  }, "\u0E22\u0E31\u0E07\u0E44\u0E21\u0E48\u0E21\u0E35\u0E02\u0E49\u0E2D\u0E21\u0E39\u0E25\u0E27\u0E31\u0E19\u0E19\u0E35\u0E49");
-  const max = list[0].v,
-    med = fsMedian(list.map(x => x.v)),
-    n = list.length,
-    W = 100,
-    bw = W / n;
-  return React.createElement("svg", {
-    viewBox: "0 0 " + W + " " + h,
-    preserveAspectRatio: "none",
+  }, label)), React.createElement("div", {
     style: {
-      width: "100%",
-      height: h,
-      display: "block"
-    },
-    role: "img",
-    "aria-label": "\u0E1C\u0E25\u0E34\u0E15\u0E15\u0E48\u0E2D kWp \u0E27\u0E31\u0E19\u0E19\u0E35\u0E49\u0E02\u0E2D\u0E07\u0E41\u0E15\u0E48\u0E25\u0E30\u0E44\u0E0B\u0E15\u0E4C"
-  }, list.map((x, i) => {
-    const bh = Math.max(1.5, x.v / max * (h - 2));
-    return React.createElement("rect", {
-      key: x.s.id,
-      x: i * bw + bw * 0.22,
-      y: h - bh,
-      width: bw * 0.56,
-      height: bh,
-      rx: Math.min(bw * 0.28, 1),
-      fill: x.v >= med ? FS_NEON : "color-mix(in srgb, var(--primary) 28%, var(--surface3))",
-      style: {
-        cursor: "pointer"
-      },
-      onClick: () => onOpen(x.s.id)
-    }, React.createElement("title", null, (x.s.name || x.s.id) + " · " + fsFmt(x.v, 2) + " kWh/kWp"));
-  }));
+      fontFamily: "var(--display)",
+      fontSize: flat ? 22 : 26,
+      fontWeight: 700,
+      color: "var(--text-1)",
+      lineHeight: 1.1,
+      whiteSpace: "nowrap",
+      fontVariantNumeric: "tabular-nums"
+    }
+  }, value, value !== "–" && React.createElement("span", {
+    style: {
+      fontSize: 12.5,
+      fontWeight: 600,
+      color: "var(--text-3)",
+      marginLeft: 4
+    }
+  }, unit)), frac != null && React.createElement("div", {
+    style: {
+      height: 5,
+      borderRadius: 3,
+      background: "var(--surface3)",
+      overflow: "hidden"
+    }
+  }, React.createElement("div", {
+    className: "fs-tr",
+    style: {
+      width: fsClamp(frac, 0, 1) * 100 + "%",
+      height: "100%",
+      borderRadius: 3,
+      background: "var(--fs-sun)"
+    }
+  })), sub && React.createElement("div", {
+    style: {
+      fontSize: 11.5,
+      color: "var(--text-3)",
+      whiteSpace: "nowrap",
+      overflow: "hidden",
+      textOverflow: "ellipsis"
+    }
+  }, sub));
 }
 function FsFleetHero({
   roll,
@@ -632,11 +547,9 @@ function FsFleetHero({
   liveN,
   lastAt,
   isMobile,
-  sites,
   hCount,
   health,
-  onHealth,
-  onOpen
+  onHealth
 }) {
   const co2 = roll.total * FS_GRID_EF / 1000;
   const big = v => Math.abs(v) >= 10000 ? v / 1000 : v;
@@ -646,35 +559,95 @@ function FsFleetHero({
   const dayFrac = avgDay > 0 ? roll.day / avgDay : null;
   const nowFrac = roll.kwOn > 0 && nowKw != null ? nowKw / roll.kwOn : null;
   const hs = ["ok", "warn", "off", "lost", "none"].filter(k => hCount[k] > 0);
-  const okPct = roll.n ? Math.round((hCount.ok || 0) / roll.n * 100) : 0;
-  const tag = {
-    fontSize: 11.5,
-    fontWeight: 600,
-    color: FS_GL.sub
-  };
+  const cards = [{
+    k: "now",
+    icon: "bolt",
+    label: "กำลังผลิตตอนนี้",
+    value: nowKw == null ? "–" : React.createElement(FsCountUp, {
+      value: big(nowKw),
+      digits: nowKw >= 10000 ? 2 : 0
+    }),
+    unit: nowKw >= 10000 ? "MW" : "kW",
+    frac: nowFrac,
+    sub: nowFrac == null ? liveN + " ไซต์ออนไลน์" : Math.round(nowFrac * 100) + "% ของกำลังติดตั้ง · " + liveN + " ไซต์"
+  }, {
+    k: "day",
+    icon: "sun",
+    label: "ผลิตวันนี้",
+    value: React.createElement(FsCountUp, {
+      value: big(roll.day),
+      digits: 1
+    }),
+    unit: E(roll.day),
+    frac: dayFrac,
+    sub: dayFrac == null ? null : Math.round(dayFrac * 100) + "% ของเฉลี่ยต่อวันเดือนนี้"
+  }, {
+    k: "mon",
+    icon: "calendar",
+    label: "ผลิตเดือนนี้",
+    value: React.createElement(FsCountUp, {
+      value: big(roll.month),
+      digits: 1
+    }),
+    unit: E(roll.month),
+    sub: "เฉลี่ย " + fsEnergy(roll.month / dom).join(" ") + "/วัน"
+  }, {
+    k: "tot",
+    icon: "trend",
+    label: "ผลิตสะสม",
+    value: React.createElement(FsCountUp, {
+      value: big(roll.total),
+      digits: 1
+    }),
+    unit: E(roll.total),
+    sub: "ลด CO₂ " + fsFmt(co2, 0) + " ตัน"
+  }];
   const titleBlock = React.createElement("div", {
     style: {
       display: "flex",
       flexDirection: "column",
-      gap: 10,
-      padding: isMobile ? "4px 2px 6px" : "6px 4px",
+      gap: 12,
       minWidth: 0
     }
-  }, React.createElement("div", {
+  }, React.createElement("span", {
+    style: {
+      alignSelf: "flex-start",
+      display: "inline-flex",
+      alignItems: "center",
+      gap: 7,
+      fontSize: 11.5,
+      fontWeight: 700,
+      padding: "5px 11px",
+      borderRadius: 999,
+      background: "color-mix(in srgb, var(--fs-sun) 14%, var(--surface))",
+      color: "var(--text-2)"
+    }
+  }, React.createElement("span", {
+    style: {
+      width: 7,
+      height: 7,
+      borderRadius: 4,
+      background: "var(--fs-sun)"
+    }
+  }), lastAt ? "อัปเดต " + fsAgo(new Date(lastAt).toISOString()) : "ยังไม่มีข้อมูลผลิต"), React.createElement("div", {
     style: {
       fontFamily: "var(--display)",
-      fontSize: isMobile ? 28 : 40,
+      fontSize: isMobile ? 28 : 38,
       fontWeight: 700,
       lineHeight: 1.12,
-      color: FS_GL.tx
+      color: "var(--text-1)"
     }
-  }, "\u0E1E\u0E25\u0E31\u0E07\u0E07\u0E32\u0E19\u0E2A\u0E30\u0E2D\u0E32\u0E14", React.createElement("br", null), "\u0E08\u0E32\u0E01 ", roll.n, " \u0E44\u0E0B\u0E15\u0E4C"), React.createElement("div", {
+  }, "\u0E1E\u0E25\u0E31\u0E07\u0E07\u0E32\u0E19\u0E2A\u0E30\u0E2D\u0E32\u0E14", React.createElement("br", null), "\u0E08\u0E32\u0E01 ", React.createElement("span", {
+    style: {
+      color: "var(--fs-sun)"
+    }
+  }, roll.n), " \u0E44\u0E0B\u0E15\u0E4C"), React.createElement("div", {
     style: {
       fontSize: 13,
       color: "var(--text-2)",
       maxWidth: 300
     }
-  }, "\u0E15\u0E34\u0E14\u0E15\u0E31\u0E49\u0E07\u0E23\u0E27\u0E21 ", fsFmt(roll.kw, 0), " kWp \xB7 ", lastAt ? "อัปเดต " + fsAgo(new Date(lastAt).toISOString()) : "ยังไม่มีข้อมูลผลิต", " \xB7 \u0E0B\u0E34\u0E07\u0E01\u0E4C\u0E17\u0E38\u0E01\u0E0A\u0E31\u0E48\u0E27\u0E42\u0E21\u0E07"), React.createElement("div", {
+  }, "\u0E15\u0E34\u0E14\u0E15\u0E31\u0E49\u0E07\u0E23\u0E27\u0E21 ", fsFmt(roll.kw, 0), " kWp \xB7 \u0E14\u0E36\u0E07\u0E02\u0E49\u0E2D\u0E21\u0E39\u0E25\u0E08\u0E32\u0E01 FusionSolar \u0E17\u0E38\u0E01\u0E0A\u0E31\u0E48\u0E27\u0E42\u0E21\u0E07"), React.createElement("div", {
     style: {
       display: "flex",
       gap: 6,
@@ -707,265 +680,84 @@ function FsFleetHero({
       background: FS_HG[k]
     }
   }), FS_HEALTH[k].th, " ", hCount[k]))));
-  const nowTile = React.createElement(FsGlass, {
-    title: "\u0E01\u0E33\u0E25\u0E31\u0E07\u0E1C\u0E25\u0E34\u0E15\u0E15\u0E2D\u0E19\u0E19\u0E35\u0E49",
-    style: {
-      alignItems: "stretch"
-    }
-  }, React.createElement("div", {
-    style: {
-      display: "flex",
-      alignItems: "center",
-      gap: 14,
-      justifyContent: "center",
-      flex: 1
-    }
-  }, React.createElement(FsNeonRing, {
-    frac: nowFrac,
-    size: isMobile ? 112 : 128
-  }, React.createElement("div", null, React.createElement("div", {
-    style: {
-      fontFamily: "var(--display)",
-      fontSize: isMobile ? 22 : 26,
-      fontWeight: 700
-    }
-  }, nowFrac == null ? "–" : Math.round(nowFrac * 100) + "%"), React.createElement("div", {
-    style: {
-      fontSize: 10.5,
-      color: FS_GL.sub
-    }
-  }, "\u0E02\u0E2D\u0E07\u0E01\u0E33\u0E25\u0E31\u0E07\u0E15\u0E34\u0E14\u0E15\u0E31\u0E49\u0E07")))), React.createElement("div", {
-    style: Object.assign({
-      textAlign: "center"
-    }, tag)
-  }, React.createElement("span", {
-    style: {
-      color: FS_GL.tx,
-      fontWeight: 700
-    }
-  }, nowKw == null ? "–" : fsFmt(big(nowKw), nowKw >= 10000 ? 2 : 0) + (nowKw >= 10000 ? " MW" : " kW")), " \xB7 ", liveN, " \u0E44\u0E0B\u0E15\u0E4C\u0E2D\u0E2D\u0E19\u0E44\u0E25\u0E19\u0E4C"));
-  const barsTile = React.createElement(FsGlass, {
-    title: "\u0E1C\u0E25\u0E34\u0E15\u0E15\u0E48\u0E2D kWp \u0E27\u0E31\u0E19\u0E19\u0E35\u0E49 \u0E23\u0E32\u0E22\u0E44\u0E0B\u0E15\u0E4C",
-    right: React.createElement("span", {
-      style: tag
-    }, "\u0E41\u0E17\u0E48\u0E07\u0E40\u0E2B\u0E25\u0E37\u0E2D\u0E07 = \u0E2A\u0E39\u0E07\u0E01\u0E27\u0E48\u0E32\u0E04\u0E48\u0E32\u0E01\u0E25\u0E32\u0E07")
-  }, React.createElement("div", {
-    style: {
-      flex: 1,
-      display: "flex",
-      alignItems: "flex-end"
-    }
-  }, React.createElement("div", {
-    style: {
-      width: "100%"
-    }
-  }, React.createElement(FsSiteBars, {
-    sites: sites,
-    onOpen: onOpen,
-    h: isMobile ? 70 : 96
-  }))), React.createElement("div", {
-    style: tag
-  }, "\u0E01\u0E14\u0E17\u0E35\u0E48\u0E41\u0E17\u0E48\u0E07\u0E40\u0E1E\u0E37\u0E48\u0E2D\u0E40\u0E1B\u0E34\u0E14\u0E44\u0E0B\u0E15\u0E4C"));
-  const dayTile = React.createElement(FsGlass, {
-    title: "\u0E1C\u0E25\u0E34\u0E15\u0E27\u0E31\u0E19\u0E19\u0E35\u0E49"
-  }, React.createElement(FsBig, {
-    v: React.createElement(FsCountUp, {
-      value: big(roll.day),
-      digits: 1
-    }),
-    unit: E(roll.day),
-    size: isMobile ? 24 : 30
-  }), React.createElement("div", {
-    style: {
-      display: "flex",
-      justifyContent: "space-between",
-      fontSize: 11.5,
-      color: FS_GL.sub
-    }
-  }, React.createElement("span", null, "\u0E40\u0E17\u0E35\u0E22\u0E1A\u0E40\u0E09\u0E25\u0E35\u0E48\u0E22\u0E15\u0E48\u0E2D\u0E27\u0E31\u0E19\u0E40\u0E14\u0E37\u0E2D\u0E19\u0E19\u0E35\u0E49"), React.createElement("span", {
-    style: {
-      color: FS_NEON,
-      fontWeight: 700
-    }
-  }, dayFrac == null ? "–" : Math.round(dayFrac * 100) + "%")), React.createElement("div", {
-    style: {
-      height: 14,
-      borderRadius: 999,
-      background: "repeating-linear-gradient(-60deg, var(--surface3) 0 2px, transparent 2px 6px)",
-      overflow: "hidden"
-    }
-  }, React.createElement("div", {
-    className: "fs-tr",
-    style: {
-      width: (dayFrac == null ? 0 : fsClamp(dayFrac, 0, 1) * 100) + "%",
-      height: "100%",
-      borderRadius: 999,
-      background: FS_NEON
-    }
-  })));
-  const monTile = React.createElement(FsGlass, {
-    title: "\u0E1C\u0E25\u0E34\u0E15\u0E40\u0E14\u0E37\u0E2D\u0E19\u0E19\u0E35\u0E49"
-  }, React.createElement(FsBig, {
-    v: React.createElement(FsCountUp, {
-      value: big(roll.month),
-      digits: 1
-    }),
-    unit: E(roll.month),
-    size: isMobile ? 24 : 30
-  }), React.createElement("div", {
-    style: tag
-  }, "\u0E40\u0E09\u0E25\u0E35\u0E48\u0E22 ", fsEnergy(roll.month / dom).join(" "), "/\u0E27\u0E31\u0E19"));
-  const totTile = React.createElement(FsGlass, {
-    title: "\u0E1C\u0E25\u0E34\u0E15\u0E2A\u0E30\u0E2A\u0E21"
-  }, React.createElement(FsBig, {
-    v: React.createElement(FsCountUp, {
-      value: big(roll.total),
-      digits: 1
-    }),
-    unit: E(roll.total),
-    size: isMobile ? 24 : 30
-  }), React.createElement("div", {
-    style: tag
-  }, "\u0E25\u0E14 CO\u2082 ", React.createElement("span", {
-    style: {
-      color: FS_HG.ok,
-      fontWeight: 700
-    }
-  }, fsFmt(co2, 0), " \u0E15\u0E31\u0E19")));
-  const stTile = React.createElement(FsGlass, {
-    title: "\u0E2A\u0E16\u0E32\u0E19\u0E30\u0E44\u0E0B\u0E15\u0E4C",
-    right: React.createElement("span", {
-      style: {
-        fontFamily: "var(--display)",
-        fontSize: 17,
-        fontWeight: 700
-      }
-    }, okPct, "%", React.createElement("span", {
-      style: {
-        fontSize: 11,
-        color: FS_GL.sub,
-        marginLeft: 4
-      }
-    }, "\u0E1B\u0E01\u0E15\u0E34"))
-  }, React.createElement("div", {
-    style: {
-      display: "flex",
-      gap: 4,
-      marginTop: "auto"
-    }
-  }, hs.map(k => React.createElement("button", {
-    key: k,
-    type: "button",
-    onClick: () => onHealth(health === k ? "all" : k),
-    title: FS_HEALTH[k].th,
-    style: {
-      flex: Math.max(hCount[k], roll.n * 0.06) + " 1 0",
-      minWidth: 0,
-      border: "none",
-      background: "transparent",
-      padding: 0,
-      cursor: "pointer",
-      fontFamily: "inherit",
-      textAlign: "left"
-    }
-  }, React.createElement("div", {
-    style: {
-      fontSize: 11,
-      fontWeight: 700,
-      color: FS_GL.tx,
-      whiteSpace: "nowrap",
-      overflow: "hidden",
-      textOverflow: "ellipsis",
-      marginBottom: 4
-    }
-  }, hCount[k]), React.createElement("div", {
-    style: {
-      height: 26,
-      borderRadius: 999,
-      background: FS_HG[k],
-      opacity: health === "all" || health === k ? 1 : 0.35
-    }
-  }), React.createElement("div", {
-    style: {
-      fontSize: 10.5,
-      color: FS_GL.sub,
-      whiteSpace: "nowrap",
-      overflow: "hidden",
-      textOverflow: "ellipsis",
-      marginTop: 4
-    }
-  }, FS_HEALTH[k].th)))));
-  return React.createElement("div", {
+  const house = window.FsHouse3D ? React.createElement(window.FsHouse3D, null) : null;
+  const bg = "radial-gradient(ellipse 48% 62% at " + (isMobile ? "50% 42%" : "66% 40%") + ", color-mix(in srgb, var(--fs-sun) 16%, transparent), transparent 72%)," + " linear-gradient(180deg, color-mix(in srgb, var(--primary) 7%, var(--surface)) 0%, var(--surface) 78%)";
+  const wrap = {
+    position: "relative",
+    overflow: "hidden",
+    borderRadius: "var(--r-card)",
+    background: bg,
+    boxShadow: "var(--shadow-card)",
+    isolation: "isolate"
+  };
+  if (isMobile) return React.createElement("div", {
     className: "fs-hero",
+    style: wrap
+  }, React.createElement("div", {
+    style: {
+      padding: "16px 14px 0"
+    }
+  }, titleBlock), React.createElement("div", {
     style: {
       position: "relative",
-      overflow: "hidden",
-      borderRadius: "var(--r-card)",
-      background: "var(--fs-hero-bg)",
-      boxShadow: "var(--shadow-card)",
-      isolation: "isolate"
+      height: 240
     }
-  }, React.createElement("div", {
-    className: "fs-pv",
-    "aria-hidden": "true"
-  }), React.createElement("div", {
-    "aria-hidden": "true",
-    style: {
-      position: "absolute",
-      inset: 0,
-      zIndex: 0,
-      pointerEvents: "none",
-      background: "linear-gradient(180deg, transparent 25%, var(--fs-hero-bg) 70%), linear-gradient(90deg, transparent 0%, var(--fs-hero-bg) 52%)"
-    }
-  }), isMobile ? React.createElement("div", {
+  }, house), React.createElement("div", {
     className: "kpi-grid",
     style: {
-      position: "relative",
-      zIndex: 1,
-      padding: 14,
       display: "grid",
       gap: 10,
-      gridTemplateColumns: "1fr 1fr"
+      gridTemplateColumns: "1fr 1fr",
+      padding: "0 14px 14px"
     }
+  }, cards.map(c => React.createElement(FsFloatCard, _extends({
+    key: c.k
+  }, c, {
+    flat: true
+  })))));
+  const pos = {
+    now: {
+      left: 0,
+      top: 18
+    },
+    day: {
+      right: 0,
+      top: 6
+    },
+    mon: {
+      left: 18,
+      bottom: 14
+    },
+    tot: {
+      right: 10,
+      bottom: 22
+    }
+  };
+  return React.createElement("div", {
+    className: "fs-hero",
+    style: wrap
   }, React.createElement("div", {
     style: {
-      gridColumn: "1 / -1"
+      display: "grid",
+      gridTemplateColumns: "minmax(250px, .72fr) minmax(0, 2fr)",
+      gap: 8,
+      padding: "20px 22px",
+      alignItems: "center"
     }
-  }, titleBlock), nowTile, dayTile, monTile, totTile, React.createElement("div", {
-    style: {
-      gridColumn: "1 / -1",
-      display: "grid"
-    }
-  }, stTile), React.createElement("div", {
-    style: {
-      gridColumn: "1 / -1",
-      display: "grid"
-    }
-  }, barsTile)) : React.createElement("div", {
+  }, titleBlock, React.createElement("div", {
     style: {
       position: "relative",
-      zIndex: 1,
-      padding: 20,
-      display: "grid",
-      gap: 14
+      height: 400
     }
-  }, React.createElement("div", {
-    style: {
-      display: "grid",
-      gap: 14,
-      gridTemplateColumns: "minmax(0,1.15fr) minmax(0,.8fr) minmax(0,1.25fr)"
-    }
-  }, React.createElement("div", {
-    style: {
-      alignSelf: "center"
-    }
-  }, titleBlock), nowTile, barsTile), React.createElement("div", {
-    style: {
-      display: "grid",
-      gap: 14,
-      gridTemplateColumns: "repeat(4, minmax(0,1fr))"
-    }
-  }, dayTile, monTile, totTile, stTile)));
+  }, house, cards.map(c => React.createElement(FsFloatCard, _extends({
+    key: c.k
+  }, c, {
+    style: Object.assign({
+      position: "absolute",
+      width: 210,
+      zIndex: 1
+    }, pos[c.k])
+  }))))));
 }
 function FsRanking({
   sites,
@@ -1911,11 +1703,9 @@ function FsSitesView({
     liveN: Object.keys(live).length,
     lastAt: lastAt,
     isMobile: isMobile,
-    sites: sites,
     hCount: hCount,
     health: health,
-    onHealth: setHealth,
-    onOpen: setOpen
+    onHealth: setHealth
   }), sites.length > 0 && React.createElement("div", {
     style: {
       display: "grid",
