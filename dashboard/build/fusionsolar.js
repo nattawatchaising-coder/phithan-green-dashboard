@@ -2284,18 +2284,29 @@ function FsHistoryCard({
     const h = rec.h || {},
       p = rec.p || {};
     const hours = Object.keys(h).map(Number).sort((a, b) => a - b);
-    if (!hours.length) return [];
+    if (!hours.length) return {
+      bars: [],
+      pre: null
+    };
     const from = Math.min(6, hours[0]),
       to = Math.max(18, hours[hours.length - 1]);
     const out = [];
     let prevH = null,
-      prevV = 0;
+      prevV = 0,
+      pre = null;
     for (let x = from; x <= to; x++) {
       const key = String(x).padStart(2, "0");
       const v = fsN(h[key]);
       let val = null,
         rng = key + ":00";
-      if (v != null) {
+      if (v != null && prevH == null && x > 7 && v > 0) {
+        pre = {
+          h: key,
+          v
+        };
+        prevH = x;
+        prevV = v;
+      } else if (v != null) {
         val = Math.max(0, v - prevV);
         rng = String(prevH == null ? 0 : prevH).padStart(2, "0") + ":00–" + key + ":00";
         prevH = x;
@@ -2310,7 +2321,10 @@ function FsHistoryCard({
         tip: ["ช่วง " + rng, v != null ? "รวมทั้งวันถึงตอนนั้น " + fsFmt(v, 1) + " kWh" : null, pw != null ? "กำลังตอนซิงก์ " + fsFmt(pw, 2) + " kW" : null].filter(Boolean)
       });
     }
-    return out;
+    return {
+      bars: out,
+      pre
+    };
   }, [dayVal, now.day, now.h]);
   const days = React.useMemo(() => {
     const out = [];
@@ -2380,11 +2394,17 @@ function FsHistoryCard({
       marginBottom: 8
     }
   }, sub), tab === "day" && React.createElement(FsBarChart, {
-    bars: today,
+    bars: today.bars.some(b => b.value != null) ? today.bars : [],
     unit: "kWh",
     height: 190,
-    empty: "\u0E22\u0E31\u0E07\u0E44\u0E21\u0E48\u0E21\u0E35\u0E02\u0E49\u0E2D\u0E21\u0E39\u0E25\u0E23\u0E32\u0E22\u0E0A\u0E31\u0E48\u0E27\u0E42\u0E21\u0E07\u0E02\u0E2D\u0E07\u0E27\u0E31\u0E19\u0E19\u0E35\u0E49 \u2014 \u0E40\u0E01\u0E47\u0E1A\u0E17\u0E38\u0E01\u0E04\u0E23\u0E31\u0E49\u0E07\u0E17\u0E35\u0E48\u0E0B\u0E34\u0E07\u0E01\u0E4C\u0E02\u0E49\u0E2D\u0E21\u0E39\u0E25\u0E1C\u0E25\u0E34\u0E15 (\u0E17\u0E38\u0E01\u0E0A\u0E31\u0E48\u0E27\u0E42\u0E21\u0E07)"
-  }), tab === "30" && React.createElement(FsBarChart, {
+    empty: today.pre ? "รายชั่วโมงจะเริ่มแสดงตั้งแต่ชั่วโมงถัดไป" : "ยังไม่มีข้อมูลรายชั่วโมงของวันนี้ — เก็บทุกครั้งที่ซิงก์ข้อมูลผลิต (ทุกชั่วโมง)"
+  }), tab === "day" && today.pre && React.createElement("div", {
+    style: {
+      fontSize: 11.5,
+      color: "var(--text-3)",
+      marginTop: 6
+    }
+  }, "\u0E01\u0E48\u0E2D\u0E19 ", today.pre.h, ":00 \u0E1C\u0E25\u0E34\u0E15\u0E44\u0E1B\u0E41\u0E25\u0E49\u0E27 ", fsFmt(today.pre.v, 1), " kWh \u2014 \u0E0A\u0E48\u0E27\u0E07\u0E19\u0E31\u0E49\u0E19\u0E22\u0E31\u0E07\u0E44\u0E21\u0E48\u0E44\u0E14\u0E49\u0E40\u0E01\u0E47\u0E1A\u0E23\u0E32\u0E22\u0E0A\u0E31\u0E48\u0E27\u0E42\u0E21\u0E07 (\u0E40\u0E23\u0E34\u0E48\u0E21\u0E40\u0E01\u0E47\u0E1A\u0E15\u0E2D\u0E19\u0E0B\u0E34\u0E07\u0E01\u0E4C\u0E23\u0E2D\u0E1A\u0E41\u0E23\u0E01\u0E02\u0E2D\u0E07\u0E27\u0E31\u0E19)"), tab === "30" && React.createElement(FsBarChart, {
     bars: days,
     unit: "kWh",
     avg: dayAvg,

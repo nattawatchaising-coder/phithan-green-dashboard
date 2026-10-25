@@ -878,19 +878,21 @@ function FsHistoryCard({ site, isMobile }) {
     const rec = (dayVal || {})[now.day] || {};
     const h = rec.h || {}, p = rec.p || {};
     const hours = Object.keys(h).map(Number).sort((a, b) => a - b);
-    if (!hours.length) return [];
+    if (!hours.length) return { bars: [], pre: null };
     const from = Math.min(6, hours[0]), to = Math.max(18, hours[hours.length - 1]);
-    const out = []; let prevH = null, prevV = 0;
+    const out = []; let prevH = null, prevV = 0, pre = null;
     for (let x = from; x <= to; x++) {
       const key = String(x).padStart(2, "0");
       const v = fsN(h[key]);
       let val = null, rng = key + ":00";
-      if (v != null) { val = Math.max(0, v - prevV); rng = String(prevH == null ? 0 : prevH).padStart(2, "0") + ":00–" + key + ":00"; prevH = x; prevV = v; }
+      /* ค่าแรกของวันที่มาหลัง 7 โมง = ยอดสะสมตั้งแต่เช้า (ยังไม่ได้เก็บรายชั่วโมง เช่นวันที่เริ่มซิงก์) — ไม่ลงเป็นแท่งชั่วโมงเดียว ไม่งั้นแท่งสูงผิด */
+      if (v != null && prevH == null && x > 7 && v > 0) { pre = { h: key, v }; prevH = x; prevV = v; }
+      else if (v != null) { val = Math.max(0, v - prevV); rng = String(prevH == null ? 0 : prevH).padStart(2, "0") + ":00–" + key + ":00"; prevH = x; prevV = v; }
       const pw = p[key] ? Object.keys(p[key]).reduce((s, k) => s + (+p[key][k] || 0), 0) : null;
       out.push({ k: key, label: key, value: val, partial: x === now.h,
         tip: ["ช่วง " + rng, v != null ? "รวมทั้งวันถึงตอนนั้น " + fsFmt(v, 1) + " kWh" : null, pw != null ? "กำลังตอนซิงก์ " + fsFmt(pw, 2) + " kW" : null].filter(Boolean) });
     }
-    return out;
+    return { bars: out, pre };
   }, [dayVal, now.day, now.h]);
 
   const days = React.useMemo(() => {
@@ -932,8 +934,13 @@ function FsHistoryCard({ site, isMobile }) {
   return (
     <FsCard title="ประวัติการผลิต" sub={isMobile ? null : sub} right={seg}>
       {isMobile && <div style={{ fontSize: 11.5, color: "var(--text-3)", marginTop: -4, marginBottom: 8 }}>{sub}</div>}
-      {tab === "day" && <FsBarChart bars={today} unit="kWh" height={190}
-        empty="ยังไม่มีข้อมูลรายชั่วโมงของวันนี้ — เก็บทุกครั้งที่ซิงก์ข้อมูลผลิต (ทุกชั่วโมง)" />}
+      {tab === "day" && <FsBarChart bars={today.bars.some((b) => b.value != null) ? today.bars : []} unit="kWh" height={190}
+        empty={today.pre ? "รายชั่วโมงจะเริ่มแสดงตั้งแต่ชั่วโมงถัดไป" : "ยังไม่มีข้อมูลรายชั่วโมงของวันนี้ — เก็บทุกครั้งที่ซิงก์ข้อมูลผลิต (ทุกชั่วโมง)"} />}
+      {tab === "day" && today.pre && (
+        <div style={{ fontSize: 11.5, color: "var(--text-3)", marginTop: 6 }}>
+          ก่อน {today.pre.h}:00 ผลิตไปแล้ว {fsFmt(today.pre.v, 1)} kWh — ช่วงนั้นยังไม่ได้เก็บรายชั่วโมง (เริ่มเก็บตอนซิงก์รอบแรกของวัน)
+        </div>
+      )}
       {tab === "30" && <FsBarChart bars={days} unit="kWh" avg={dayAvg} avgLabel="เฉลี่ย" height={190}
         empty="ยังไม่มีประวัติรายวัน — เริ่มเก็บตั้งแต่ซิงก์ข้อมูลผลิตรอบแรก" />}
       {tab === "12" && <FsBarChart bars={mons} unit="kWh" avg={monAvg} avgLabel="เฉลี่ย" height={190}
