@@ -1005,7 +1005,8 @@ function LeadDrawer({ lead, leadStore, appts, jobs, quotes, users, currentUser, 
 
   /* ปิดด้วยปุ่ม Esc — มือยังอยู่บนคีย์บอร์ดตอนไล่ดูทีละราย */
   React.useEffect(() => {
-    const onKey = (e) => { if (e.key === "Escape" && !edit && !log) closeZoom(); };
+    // มีหน้าต่างเปิดทับแผงอยู่ (data-layer เช่นใบเสนอราคา) = Esc ไม่ใช่ของแผงนี้ ไม่งั้นแผงข้างใต้ปิดหนีไป
+    const onKey = (e) => { if (e.key === "Escape" && !edit && !log && !document.querySelector("[data-layer]")) closeZoom(); };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   }, [closeZoom, edit, log]);

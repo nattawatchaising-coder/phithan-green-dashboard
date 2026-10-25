@@ -591,7 +591,7 @@ function SalesQuoteList({ job, lead, quotes, leads, onOpenQuote, card }) {
       <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 7 }}>
         <span style={{ fontSize: 11, fontWeight: 700, letterSpacing: ".05em", color: "var(--text-3)" }}>ใบเสนอราคา</span>
         {onOpenQuote && (
-          <button onClick={() => onOpenQuote(null)} style={{ marginLeft: "auto", display: "inline-flex", alignItems: "center", gap: 4,
+          <button data-zoom="" onClick={() => onOpenQuote(null)} style={{ marginLeft: "auto", display: "inline-flex", alignItems: "center", gap: 4,
             background: "var(--surface2)", boxShadow: "var(--shadow-sm)", borderRadius: "var(--r-chip)", padding: "5px 10px", cursor: "pointer",
             fontFamily: "inherit", fontSize: 11.5, fontWeight: 700, color: "var(--primary-dark)" }}>
             <Icon name="plus" size={13} color="var(--primary-dark)" /> ทำใบใหม่
@@ -609,7 +609,7 @@ function SalesQuoteList({ job, lead, quotes, leads, onOpenQuote, card }) {
            เสนอไปหลายรอบแล้วต้องรู้ว่ากำลังคุยกันอยู่ที่ฉบับไหน ไม่ใช่เห็นแต่เลขที่ใบซึ่งดูไม่ออกว่าใบไหนก่อนหลัง */
         const ver = qs.length - i;
         return (
-          <button key={q.id} onClick={() => onOpenQuote && onOpenQuote(q)} disabled={!onOpenQuote}
+          <button key={q.id} data-zoom="" onClick={() => onOpenQuote && onOpenQuote(q)} disabled={!onOpenQuote}
             style={{ width: "100%", display: "flex", alignItems: "center", gap: 10, padding: "10px 12px", marginBottom: 6,
               background: i === 0 ? "var(--surface2)" : "var(--surface)", boxShadow: "var(--shadow-sm)", borderRadius: "var(--r-tile)",
               cursor: onOpenQuote ? "pointer" : "default", fontFamily: "inherit", textAlign: "left" }}>
@@ -1598,6 +1598,10 @@ function QuoteEditor({ quote, job, target, stock, onClose, onSave, onDelete, cur
     terms: (quote.terms || []).slice(), warranties: (quote.warranties || []).slice(),
   }));
   const [rep, setRep] = React.useState(null);
+  /* ขยายออกมาจากแถวใบที่กดในใบลูกค้า (data-zoom) / หดกลับเข้าแถวเดิมตอนปิด — dashboard/pg-motion.js · เปิดจากที่อื่น = เด้งแบบเดิม */
+  const sheetRef = React.useRef(null);
+  React.useLayoutEffect(() => { if (window.pgZoomFromCard) window.pgZoomFromCard(sheetRef.current); }, []);
+  const closeZoom = () => { if (window.pgZoomToCard) window.pgZoomToCard(sheetRef.current); onClose(); };
   /* แท็บแฟ้มเหนือตัวใบ — ชุดเดียวกับลิ้นชักลูกค้า (.ld-tab ใน index.html) ใบยาวมากจนหาของไม่เจอ */
   const [tab, setTab] = React.useState("main");
   const show = (k) => tab === k;
@@ -1813,11 +1817,11 @@ function QuoteEditor({ quote, job, target, stock, onClose, onSave, onDelete, cur
 
   return (
     <React.Fragment>
-      <div style={{ position: "fixed", inset: 0, background: "rgba(8,20,14,.45)", backdropFilter: "blur(3px)", zIndex: 118,
+      <div data-layer="quote" style={{ position: "fixed", inset: 0, background: "rgba(8,20,14,.45)", backdropFilter: "blur(3px)", zIndex: 118,
         display: "grid", placeItems: isMobile ? "end center" : "center", padding: isMobile ? 0 : 20 }}>
         {/* ความสูงตายตัว สลับแท็บแล้วใบไม่กระโดด · เงาตัวใบหดขอบให้ตกลงล่างอย่างเดียว ไม่ฟุ้งขึ้นไปทาทับแท็บ
             ⚠ ห้ามใช้ filter: drop-shadow ที่กรอบนอก — มันขัง position:fixed ข้างในไว้ในกรอบ */}
-        <div style={{ width: isMobile ? "100%" : "min(880px,100%)", height: isMobile ? "92dvh" : "min(900px, 92vh)",
+        <div ref={sheetRef} style={{ width: isMobile ? "100%" : "min(880px,100%)", height: isMobile ? "92dvh" : "min(900px, 92vh)",
           display: "flex", flexDirection: "column", minHeight: 0 }}>
         <div className="ld-tabs" role="tablist">
           {QUOTE_TABS.map((t, i) => (
@@ -1845,7 +1849,7 @@ function QuoteEditor({ quote, job, target, stock, onClose, onSave, onDelete, cur
             {(() => { const s = QUOTE_STATUS_BY[q.status] || QUOTE_STATUS_BY.draft; return (
               <span style={{ fontSize: 11, fontWeight: 700, color: s.color, background: s.color + "16", padding: "4px 11px", borderRadius: "var(--r-pill)", whiteSpace: "nowrap" }}>{s.th}</span>
             ); })()}
-            <button className="x-close" onClick={onClose} style={{ width: 32, height: 32, borderRadius: "var(--r-chip)", boxShadow: "var(--shadow-sm)", background: "var(--surface2)", cursor: "pointer", display: "grid", placeItems: "center", color: "var(--text-2)" }}>
+            <button className="x-close" onClick={closeZoom} style={{ width: 32, height: 32, borderRadius: "var(--r-chip)", boxShadow: "var(--shadow-sm)", background: "var(--surface2)", cursor: "pointer", display: "grid", placeItems: "center", color: "var(--text-2)" }}>
               <Icon name="x" size={16} />
             </button>
           </div>

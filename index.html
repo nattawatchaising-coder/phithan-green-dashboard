@@ -17,7 +17,7 @@
 <!-- ธีมกระจก — ค่าเริ่มของเว็บ (ไล่สีชุดทะเล) · กลับธีมเดิมด้วย ?skin=off · โหลดใน head ก่อนแอปกันหน้ากระพริบ -->
 <script src="dashboard/skin-glass.js?v=23"></script>
 <!-- การ์ดขยายเป็นใบตอนเปิดใบลูกค้าฝ่ายขาย หดกลับตอนปิด (ลิ้นชักเรียก pgZoomFromCard / pgZoomToCard) -->
-<script src="dashboard/pg-motion.js?v=34"></script>
+<script src="dashboard/pg-motion.js?v=35"></script>
 <style>
 
 * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -400,7 +400,9 @@ html.theme-anim, html.theme-anim * { transition: background-color .34s ease, bor
    z-index ตั้งใน style ของแต่ละแท็บ — แท็บซ้ายทับแท็บขวา แท็บที่เลือกทับทุกตัว
    ⚠ แท็บที่เลือกต้องย้อมสีเท่ากับหัวใบ ถ้าต่างกันรอยต่อจะเห็นเป็นเส้น */
 .ld-tabs { display: flex; align-items: flex-end; padding-right: 22px; overflow-x: auto; scrollbar-width: none; flex-shrink: 0;
-  width: 0; min-width: 100%; margin-bottom: -2px; }
+  width: 0; min-width: 100%; margin-bottom: -2px; height: 44px; }
+/* height 44 ตายตัว (= แท็บที่เลือก) — เดิมสูงตามแท็บ ระหว่างสลับแท็บเก่าหด/แท็บใหม่ยืดพร้อมกัน แถวเตี้ยลง 2px แล้วกลับ ตัวใบใต้แท็บกระตุกทุกครั้งที่กด
+   (ผู้ใช้: "เวลากดแทบด้านบนไม่ต้องสั่นได้ไหม") · margin-bottom ต้องเลื่อนพร้อม height ด้วย ไม่งั้นแท็บเก่าสูงเกินแถวชั่ววูบ */
 /* ⚠ แถวแท็บต้องอยู่ "ใต้" ตัวใบ (ตัวใบ z-index 11) — ป๊อปอัปเต็มจอที่เปิดจากในใบ (BOQ ฯลฯ) อยู่ในชั้นของตัวใบ
    ถ้ายกแท็บขึ้นเหนือใบ แท็บจะลอยทับป๊อปอัปพวกนั้น · เงาตัวใบจึงหดขอบให้ตกลงล่างอย่างเดียวแทน */
 /* margin-bottom -2px = แท็บมุดลงใต้หัวใบ 2px — ขอบบนหัวใบกับก้นแท็บชนกันพอดีเป๊ะแล้วจอบางความละเอียด (ซูม/DPR ไม่ลงตัว) เห็นเป็นรอยต่อจาง ๆ */
@@ -416,7 +418,7 @@ html.theme-anim, html.theme-anim * { transition: background-color .34s ease, bor
   padding: 0 16px; margin-right: 5px; border: none; border-radius: 14px 14px 0 0; cursor: pointer;
   font-family: inherit; font-size: 13px; font-weight: 700; white-space: nowrap;
   background: var(--tb); color: color-mix(in oklab, var(--tc) 72%, #0F2B33);
-  transition: background .18s ease, color .18s ease, height .18s ease; }
+  transition: background .18s ease, color .18s ease, height .18s ease, margin-bottom .18s ease; }
 .ld-tab:not(.on) { margin-bottom: 2px; }  /* แท็บที่ไม่ได้เลือกจบพอดีขอบบนใบ ไม่จมทับหัวใบ 2px เหมือนแท็บที่เลือก */
 .ld-tab:hover { --tb: color-mix(in oklab, var(--tc) 27%, var(--surface)); }
 .ld-tab.on { --tb: var(--surface); height: 44px; color: color-mix(in oklab, var(--tc) 80%, #0F2B33);
@@ -1213,9 +1215,9 @@ H-@G1I margin-top D'IC*D%L-1'@- 6H
 <script src="dashboard/build/form.js?v=46"></script>
 <script src="dashboard/build/survey.js?v=39"></script>
 <script src="dashboard/build/survey-report.js?v=16"></script>
-<script src="dashboard/build/sales.js?v=92"></script>
+<script src="dashboard/build/sales.js?v=94"></script>
 <script src="dashboard/build/pkgposter.js?v=66"></script>
-<script src="dashboard/build/views-survey.js?v=67"></script>
+<script src="dashboard/build/views-survey.js?v=68"></script>
 <script src="dashboard/build/survey-sched.js?v=50"></script>
 <script src="dashboard/build/permit.js?v=14"></script>
 <script src="dashboard/build/views-permit.js?v=28"></script>
@@ -1245,6 +1247,6 @@ H-@G1I margin-top D'IC*D%L-1'@- 6H
 <script src="dashboard/build/ot-paper.js?v=9"></script>
 <script src="dashboard/build/views-line.js?v=9"></script>
 <script src="dashboard/build/guide.js?v=12"></script>
-<script src="dashboard/build/app.js?v=229"></script>
+<script src="dashboard/build/app.js?v=230"></script>
 </body>
 </html>

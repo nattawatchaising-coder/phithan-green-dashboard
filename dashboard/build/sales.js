@@ -884,6 +884,7 @@ function SalesQuoteList({
       color: "var(--text-3)"
     }
   }, "\u0E43\u0E1A\u0E40\u0E2A\u0E19\u0E2D\u0E23\u0E32\u0E04\u0E32"), onOpenQuote && React.createElement("button", {
+    "data-zoom": "",
     onClick: () => onOpenQuote(null),
     style: {
       marginLeft: "auto",
@@ -915,6 +916,7 @@ function SalesQuoteList({
     const ver = qs.length - i;
     return React.createElement("button", {
       key: q.id,
+      "data-zoom": "",
       onClick: () => onOpenQuote && onOpenQuote(q),
       disabled: !onOpenQuote,
       style: {
@@ -2189,6 +2191,14 @@ function QuoteEditor({
     warranties: (quote.warranties || []).slice()
   }));
   const [rep, setRep] = React.useState(null);
+  const sheetRef = React.useRef(null);
+  React.useLayoutEffect(() => {
+    if (window.pgZoomFromCard) window.pgZoomFromCard(sheetRef.current);
+  }, []);
+  const closeZoom = () => {
+    if (window.pgZoomToCard) window.pgZoomToCard(sheetRef.current);
+    onClose();
+  };
   const [tab, setTab] = React.useState("main");
   const show = k => tab === k;
   const [qLang, setQLang] = React.useState(() => window.pgLang ? window.pgLang() : "th");
@@ -2534,6 +2544,7 @@ function QuoteEditor({
     pages: QUOTE_PAGES.filter(p => quotePageOn(q, p.key)).length
   };
   return React.createElement(React.Fragment, null, React.createElement("div", {
+    "data-layer": "quote",
     style: {
       position: "fixed",
       inset: 0,
@@ -2545,6 +2556,7 @@ function QuoteEditor({
       padding: isMobile ? 0 : 20
     }
   }, React.createElement("div", {
+    ref: sheetRef,
     style: {
       width: isMobile ? "100%" : "min(880px,100%)",
       height: isMobile ? "92dvh" : "min(900px, 92vh)",
@@ -2628,7 +2640,7 @@ function QuoteEditor({
     }, s.th);
   })(), React.createElement("button", {
     className: "x-close",
-    onClick: onClose,
+    onClick: closeZoom,
     style: {
       width: 32,
       height: 32,

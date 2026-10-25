@@ -5,11 +5,13 @@
      (รอบแรกเป็นสำเนาการ์ดยืดเปล่า ๆ แล้วจางเป็นใบ — ผู้ใช้: "smooth แล้วแต่การแสดงมันแปลกๆ" กลางทางเป็นแผ่นว่าง)
    - ปิดด้วยปุ่ม × / Esc / คลิกพื้นหลัง เรียก pgZoomToCard(แผ่นใบ) ก่อน onClose: สำเนาใบ (ตัวจริงถูกถอดทันที) หดกลับเข้าการ์ดเดิมท่าเดียวกันแบบย้อน
    - ใบงานติดตั้ง (DetailDrawer ลิ้นชักขวา) ไม่ใช้ — ผู้ใช้บอกเลื่อนเข้าจากด้านข้างดีกว่า
-   - ไม่ได้เปิดจากการ์ด (ปฏิทิน/ค้นหา) หรือการ์ดหายไปแล้ว = คืน false ใช้ท่าเข้า/ออกปกติของลิ้นชักนั้น */
+   - ไม่ได้เปิดจากการ์ด (ปฏิทิน/ค้นหา) หรือการ์ดหายไปแล้ว = คืน false ใช้ท่าเข้า/ออกปกติของลิ้นชักนั้น
+   - ปุ่มอื่นที่อยากให้ใบขยายออกมาจากตัวมัน ใส่ data-zoom (แถวใบเสนอราคาในใบลูกค้า → QuoteEditor · ผู้ใช้: "หน้าภายใน กดไปมันก็เด้งขึ้นมาปกติ")
+     ใบซ้อนใบได้ (ใบลูกค้าเปิดอยู่ แล้วเปิดใบเสนอราคาทับ) — จึงจำการ์ดต้นทางไว้ที่ตัวใบแต่ละใบ (el._pgz) ไม่ใช่ตัวแปรเดียวรวม */
 (function () {
-  var from = null, last = null;
+  var from = null;
   document.addEventListener("click", function (e) {
-    var c = e.target && e.target.closest && e.target.closest(".bd-card");
+    var c = e.target && e.target.closest && e.target.closest(".bd-card, [data-zoom]");
     if (c) from = { r: c.getBoundingClientRect(), t: Date.now(), el: c };
   }, true);
   function still() { return !document.body.animate || (window.matchMedia && matchMedia("(prefers-reduced-motion: reduce)").matches); }
@@ -42,8 +44,8 @@
     return fr;
   }
 
-  var hid = null, watch = 0;
-  function unhide() { clearInterval(watch); watch = 0; if (hid) hid.style.visibility = ""; hid = null; }
+  // z = el._pgz = { card: ต้นทาง, watch } — ซ่อนต้นทางไว้จนใบนั้นปิด
+  function unhide(el) { var z = el && el._pgz; if (!z) return; el._pgz = null; clearInterval(z.watch); z.card.style.visibility = ""; }
 
   window.pgZoomFromCard = function (el) {
     var ok = fresh(), o = from;
@@ -51,25 +53,22 @@
     if (!el || !ok) return false;
     var r = el.getBoundingClientRect();
     if (!r.width || !r.height) return false;
-    unhide();
-    last = o.el;
+    unhide(el);   // ใบเดิมเปลี่ยนไปแสดงลูกค้าอีกราย — คืนการ์ดรายก่อน
     el.style.animation = "none";   // แทนท่าเข้าเดิม (.pg-sheet-in)
     /* ซ่อนการ์ดไว้ตลอดที่ใบเปิด — ใบมาจากการ์ดนั้น ที่เดิมว่างไว้ ปิดแล้วใบหดกลับไปเติมที่ (ผู้ใช้: "เปิดมาแล้วให้หายไปก่อน ปิดค่อยกลับไปที่เดิม")
        ปิดทางอื่นที่ไม่เรียก pgZoomToCard (ย้ายลงถัง ฯลฯ) = เฝ้าดูใบถูกถอดจากหน้า แล้วคืนการ์ด */
     o.el.style.visibility = "hidden";
-    hid = o.el;
-    watch = setInterval(function () { if (!el.isConnected) unhide(); }, 250);
+    el._pgz = { card: o.el, watch: setInterval(function () { if (!el.isConnected) unhide(el); }, 250) };
     el.animate(flight(el, r, o.r, easeOut, 36), { duration: OPEN_DUR });
     return true;
   };
 
   window.pgZoomToCard = function (el) {
-    var card = last;
-    last = null;
-    if (!el || !card || !card.isConnected || still()) { unhide(); return false; }
+    var z = el && el._pgz, card = z && z.card;
+    if (!card || !card.isConnected || still()) { unhide(el); return false; }
     var c = card.getBoundingClientRect(), r = el.getBoundingClientRect();
-    if (!c.width || !r.width || c.bottom < 0 || c.top > innerHeight) { unhide(); return false; }
-    clearInterval(watch); watch = 0; hid = null;   // การ์ดยังซ่อนอยู่ ท่าปิดเผยเองตอนใบถึงที่
+    if (!c.width || !r.width || c.bottom < 0 || c.top > innerHeight) { unhide(el); return false; }
+    clearInterval(z.watch); el._pgz = null;   // การ์ดยังซ่อนอยู่ ท่าปิดเผยเองตอนใบถึงที่
     var bd = document.createElement("div");   // พื้นหลังมืดจางออกตาม (ตัวจริงหายพร้อมลิ้นชัก)
     Object.assign(bd.style, { position: "fixed", inset: "0", background: "rgba(8,20,14,.45)", zIndex: "2147482999", pointerEvents: "none" });
     var g = el.cloneNode(true);

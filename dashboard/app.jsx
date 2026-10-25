@@ -1049,7 +1049,9 @@ function App() {
         onClose={() => setBoardLead(null)}
         onOpenSurvey={(can(role, "doSurvey") || can(role, "dispatch")) ? (pseudo) => { setBoardLead(null); openSurvey(pseudo); } : null}
         onReport={(pseudo) => { setBoardLead(null); setReportJob(pseudo); }}
-        onOpenQuote={can(role, "price") ? (l, q) => { setBoardLead(null); openQuoteForLead(l, q); } : null}
+        /* ใบเสนอราคาเปิดทับแผงลูกค้า (QuoteEditor z 118 > แผง 116) ไม่ปิดแผงก่อน — ใบขยายออกจากแถวที่กด ปิดแล้วหดกลับแถวเดิม
+           (เดิมปิดแผงทันที ใบขยายจากแถวที่หายไปแล้ว ดูแปลก · ผู้ใช้: "หน้าภายใน กดไปมันก็เด้งขึ้นมาปกติ" / "มันดูแปลกๆไหม") */
+        onOpenQuote={can(role, "price") ? (l, q) => openQuoteForLead(l, q) : null}
         /* วางแผง 3D เปิดทับแผงลูกค้า — ปิดจอ 3D แล้วกลับมาที่ใบเดิม ไม่ต้องหาการ์ดใหม่ */
         onPlan3d={can(role, "design") && window.Plan3DEntry ? (pseudo, ver) => setPlan3dLead({ job: pseudo, ver: ver || "1" }) : null}
         onConvert={(l) => { setBoardLead(null); convertLead(l); }} canConvert={can(role, "addJob")} />}

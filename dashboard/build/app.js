@@ -1400,10 +1400,7 @@ function App() {
       setBoardLead(null);
       setReportJob(pseudo);
     },
-    onOpenQuote: can(role, "price") ? (l, q) => {
-      setBoardLead(null);
-      openQuoteForLead(l, q);
-    } : null,
+    onOpenQuote: can(role, "price") ? (l, q) => openQuoteForLead(l, q) : null,
     onPlan3d: can(role, "design") && window.Plan3DEntry ? (pseudo, ver) => setPlan3dLead({
       job: pseudo,
       ver: ver || "1"

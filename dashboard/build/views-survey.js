@@ -2457,7 +2457,7 @@ function LeadDrawer({
   }, [lead && lead.id]);
   React.useEffect(() => {
     const onKey = e => {
-      if (e.key === "Escape" && !edit && !log) closeZoom();
+      if (e.key === "Escape" && !edit && !log && !document.querySelector("[data-layer]")) closeZoom();
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
