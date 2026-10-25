@@ -16,7 +16,7 @@
   el.id = "fs-viz-css";
   el.textContent = ":root{--fs-self:#1B9B75;--fs-exp:#2F6FDB;--fs-imp:#C2410C}"
     + "[data-theme=\"aurora\"]{--fs-self:#21A77D;--fs-exp:#4A84E8;--fs-imp:#DB6E2E}"
-    + ".fs-row:hover td,.fs-att:hover{background:var(--surface2)}";
+    + ":root{--fs-zebra:color-mix(in srgb,var(--surface2) 55%,transparent)}.fs-row:hover td{background:var(--surface2)!important}.fs-att:hover{background:var(--surface2)}";
   document.head.appendChild(el);
 })();
 
@@ -399,7 +399,7 @@ function FsRawToggle({ k, meter }) {
         fontFamily: "inherit", fontSize: 11.5, fontWeight: 700, color: "var(--primary)" }}>
         {open ? "ซ่อนค่าทั้งหมด" : "ดูค่าทั้งหมดจากอุปกรณ์ (" + Object.keys(k).length + ")"}
       </button>
-      {open && <div style={{ marginTop: 7 }}><FsKv k={k} meter={meter} /></div>}
+      {open && <div className="fs-in" style={{ marginTop: 9 }}>{window.FsKvGroups ? <window.FsKvGroups k={k} meter={meter} /> : <FsKv k={k} meter={meter} />}</div>}
     </div>
   );
 }
@@ -447,7 +447,8 @@ function FsInverterBody({ d, k, isMobile }) {
         <FsTile label="ความถี่ · PF" value={+k.elec_freq > 0 ? fsFmt(k.elec_freq, 2) + " Hz · " + fsFmt(k.power_factor, 3) : "–"} />
         <FsTile label="เริ่มทำงานวันนี้" value={fsKpiValue("open_time", k.open_time)} />
       </div>
-      {strs.length > 0 && (
+      {strs.length > 0 && window.FsStringGrid && <window.FsStringGrid strs={strs} />}
+      {strs.length > 0 && !window.FsStringGrid && (
         <div>
           <div style={{ fontSize: 11, fontWeight: 700, color: "var(--text-3)", marginBottom: 6 }}>สตริง PV ({strs.length}) — เทียบกระแสกันเพื่อหาสตริงที่ผิดปกติ</div>
           <div style={{ borderRadius: "var(--r-tile)", background: "var(--surface2)", overflow: "hidden" }}>

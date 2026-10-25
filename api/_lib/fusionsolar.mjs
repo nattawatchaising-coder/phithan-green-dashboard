@@ -148,6 +148,15 @@ export function planSites(stations, sites, now) {
   const t = now || iso();
   const idx = siteIndex(sites);
   const patch = {}, created = [], updated = [], changed = [], notFound = [], seen = {};
+  /* พิกัด/วันเชื่อมกริด — มีเฉพาะ /stations · ไม่มีค่า = ไม่เขียน (ไม่ลบค่าเดิม)
+     ไซต์ที่ไม่ได้ปักหมุดใน FusionSolar ส่งพิกัดหลอก 0,0 / 1,1 / -1,-1 (ข้อมูลจริง 14 ไซต์) → ล้างค่าทิ้ง ไม่ให้ไปโผล่กลางทะเลแอฟริกา */
+  const geo = (id, st) => {
+    if (st.lat != null && st.lng != null) {
+      const ok = Math.abs(st.lat) <= 90 && Math.abs(st.lng) <= 180 && !(Math.abs(st.lat) <= 1 && Math.abs(st.lng) <= 1);
+      patch[id + "/lat"] = ok ? st.lat : null; patch[id + "/lng"] = ok ? st.lng : null;
+    }
+    if (st.gridDate) patch[id + "/grid_date"] = String(st.gridDate);
+  };
   (stations || []).forEach((st) => {
     if (!st || !st.code || seen[st.code]) return;
     seen[st.code] = 1;
@@ -160,6 +169,7 @@ export function planSites(stations, sites, now) {
         [nid + "/capacity_kw"]: st.kw, [nid + "/address"]: st.address || "", [nid + "/source"]: "fusionsolar",
         [nid + "/fs_status"]: "found", [nid + "/last_synced_at"]: t, [nid + "/created_at"]: t,
       });
+      geo(nid, st);
       created.push({ id: nid, code: st.code, name: st.name || "" });
       return;
     }
@@ -176,6 +186,7 @@ export function planSites(stations, sites, now) {
       [id + "/last_synced_at"]: t,
     });
     if (cur.fs_status !== "found") patch[id + "/fs_status"] = "found";
+    geo(id, st);
     updated.push({ id, code: st.code, name: st.name || "" });
     if (diff || cur.fs_status !== "found") changed.push({ id, code: st.code, name: st.name || "" });
   });
@@ -342,7 +353,8 @@ export async function runSync(o) {
     for (let p = 1; ; p++) {
       if (left() < GAP_MS + REQ_TIMEOUT) throw new FsError("/stations", null, "ดึงรายชื่อไม่ครบทุกหน้าในเวลาที่มี (ถึงหน้า " + (p - 1) + ")");
       const d = await c.call("/stations", { pageNo: p });
-      ((d && d.list) || []).forEach((s) => out.push({ code: s.plantCode, name: s.plantName || "", address: s.plantAddress || "", kw: num(s.capacity) }));
+      ((d && d.list) || []).forEach((s) => out.push({ code: s.plantCode, name: s.plantName || "", address: s.plantAddress || "", kw: num(s.capacity),
+        lat: num(s.latitude), lng: num(s.longitude), gridDate: s.gridConnectionDate || null }));
       if (!d || p >= (Number(d.pageCount) || 1)) break;
     }
     st.station_api = "stations";

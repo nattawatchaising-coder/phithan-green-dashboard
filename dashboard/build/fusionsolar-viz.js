@@ -2,7 +2,7 @@
   if (document.getElementById("fs-viz-css")) return;
   const el = document.createElement("style");
   el.id = "fs-viz-css";
-  el.textContent = ":root{--fs-self:#1B9B75;--fs-exp:#2F6FDB;--fs-imp:#C2410C}" + "[data-theme=\"aurora\"]{--fs-self:#21A77D;--fs-exp:#4A84E8;--fs-imp:#DB6E2E}" + ".fs-row:hover td,.fs-att:hover{background:var(--surface2)}";
+  el.textContent = ":root{--fs-self:#1B9B75;--fs-exp:#2F6FDB;--fs-imp:#C2410C}" + "[data-theme=\"aurora\"]{--fs-self:#21A77D;--fs-exp:#4A84E8;--fs-imp:#DB6E2E}" + ":root{--fs-zebra:color-mix(in srgb,var(--surface2) 55%,transparent)}.fs-row:hover td{background:var(--surface2)!important}.fs-att:hover{background:var(--surface2)}";
   document.head.appendChild(el);
 })();
 const fsN = v => v == null || v === "" || isNaN(+v) ? null : +v;
@@ -840,10 +840,14 @@ function FsRawToggle({
       color: "var(--primary)"
     }
   }, open ? "ซ่อนค่าทั้งหมด" : "ดูค่าทั้งหมดจากอุปกรณ์ (" + Object.keys(k).length + ")"), open && React.createElement("div", {
+    className: "fs-in",
     style: {
-      marginTop: 7
+      marginTop: 9
     }
-  }, React.createElement(FsKv, {
+  }, window.FsKvGroups ? React.createElement(window.FsKvGroups, {
+    k: k,
+    meter: meter
+  }) : React.createElement(FsKv, {
     k: k,
     meter: meter
   })));
@@ -996,7 +1000,9 @@ function FsInverterBody({
   }), React.createElement(FsTile, {
     label: "\u0E40\u0E23\u0E34\u0E48\u0E21\u0E17\u0E33\u0E07\u0E32\u0E19\u0E27\u0E31\u0E19\u0E19\u0E35\u0E49",
     value: fsKpiValue("open_time", k.open_time)
-  })), strs.length > 0 && React.createElement("div", null, React.createElement("div", {
+  })), strs.length > 0 && window.FsStringGrid && React.createElement(window.FsStringGrid, {
+    strs: strs
+  }), strs.length > 0 && !window.FsStringGrid && React.createElement("div", null, React.createElement("div", {
     style: {
       fontSize: 11,
       fontWeight: 700,

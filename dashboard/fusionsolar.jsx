@@ -116,21 +116,6 @@ function FsSrcChip({ s }) {
     </span>
   );
 }
-function FsStat({ label, value, unit, hint, tone, on, onClick }) {
-  return (
-    <button type="button" onClick={onClick} disabled={!onClick}
-      style={{ flex: "1 1 150px", textAlign: "left", padding: "14px 16px", border: "none", fontFamily: "inherit",
-        borderRadius: "var(--r-tile)", background: "var(--surface)", cursor: onClick ? "pointer" : "default",
-        boxShadow: on ? "inset 0 0 0 1px var(--primary), var(--shadow-sm)" : "var(--shadow-card)" }}>
-      <div style={{ fontSize: 11, fontWeight: 700, color: "var(--text-3)" }}>{label}</div>
-      <div style={{ fontFamily: "var(--display)", fontSize: 24, fontWeight: 700, color: tone || "var(--text-1)", lineHeight: 1.25,
-        fontVariantNumeric: "tabular-nums" }}>
-        {value}{unit && <span style={{ fontSize: 12, fontWeight: 600, color: "var(--text-3)", marginLeft: 5 }}>{unit}</span>}
-      </div>
-      {hint && <div style={{ fontSize: 11, color: "var(--text-3)", marginTop: 2 }}>{hint}</div>}
-    </button>
-  );
-}
 function FsChips({ value, onChange, options }) {
   return (
     <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
@@ -176,48 +161,9 @@ function FsCard({ title, sub, right, children }) {
 /* ================================================================
    หน้า "ไซต์ทั้งหมด"
    ================================================================ */
-const FS_COLS = [
-  { key: "name", th: "ชื่อไซต์" },
-  { key: "code", th: "Station code" },
-  { key: "kw", th: "kWp", num: true },
-  { key: "day", th: "วันนี้ kWh", num: true },
-  { key: "yield", th: "kWh/kWp วันนี้", num: true },
-  { key: "month", th: "เดือนนี้ kWh", num: true },
-  { key: "total", th: "สะสม kWh", num: true },
-  { key: "health", th: "สถานะ" },
-  { key: "address", th: "ที่อยู่" },
-  { key: "at", th: "อัปเดตล่าสุด" },
-];
 /* ผลิตต่อ kWp วันนี้ — ตัวเทียบไซต์ต่างขนาดกัน (ไซต์ไม่พบใน FusionSolar ไม่นับ ค่าค้าง) */
 const fsYield = (s) => (s.fs_status !== "not_found_in_fusionsolar" && fsN(s.day_kwh) != null && fsN(s.capacity_kw) > 0 ? s.day_kwh / s.capacity_kw : null);
 const FS_HEALTH_ORDER = [["ok", "var(--tint-ok-tx)"], ["warn", "var(--tint-amber-tx)"], ["off", "var(--text-3)"], ["lost", "var(--tint-red-tx)"], ["wait", "var(--border-strong)"], ["none", "var(--surface3)"]];
-/* แถบสัดส่วนสถานะไซต์ — สีสถานะมีป้ายชื่อ+จำนวนกำกับเสมอ · กดชื่อ = กรอง */
-function FsHealthBar({ count, total, value, onPick }) {
-  const list = FS_HEALTH_ORDER.filter(([k]) => count[k] > 0);
-  if (!total) return null;
-  return (
-    <div style={{ background: "var(--surface)", boxShadow: "var(--shadow-card)", borderRadius: "var(--r-tile)", padding: "13px 15px" }}>
-      <div style={{ display: "flex", alignItems: "baseline", gap: 8, marginBottom: 8 }}>
-        <span style={{ fontSize: 12.5, fontWeight: 700, color: "var(--text-1)" }}>สถานะไซต์</span>
-        <span style={{ fontSize: 11.5, color: "var(--text-3)" }}>{total} ไซต์</span>
-      </div>
-      <div style={{ display: "flex", gap: 2, height: 12, borderRadius: 6, overflow: "hidden" }}>
-        {list.map(([k, c]) => <div key={k} title={FS_HEALTH[k].th + " " + count[k]} style={{ width: (count[k] / total) * 100 + "%", minWidth: 4, background: c }} />)}
-      </div>
-      <div style={{ display: "flex", flexWrap: "wrap", gap: "6px 16px", marginTop: 8 }}>
-        {list.map(([k, c]) => (
-          <button key={k} type="button" onClick={() => onPick(value === k ? "all" : k)}
-            style={{ display: "flex", alignItems: "center", gap: 6, border: "none", background: "transparent", padding: 0, cursor: "pointer", fontFamily: "inherit",
-              fontSize: 12, color: value === k ? "var(--primary)" : "var(--text-2)", fontWeight: value === k ? 800 : 500 }}>
-            <span style={{ width: 9, height: 9, borderRadius: 3, background: c }} />{FS_HEALTH[k].th}
-            <b style={{ fontFamily: "var(--mono)", color: "var(--text-1)" }}>{count[k]}</b>
-            <span style={{ color: "var(--text-3)", fontSize: 11 }}>{Math.round((count[k] / total) * 100)}%</span>
-          </button>
-        ))}
-      </div>
-    </div>
-  );
-}
 /* รายการไซต์ที่ต้องดูแล — เรียงเรื่องหนัก (bad) ก่อน */
 function FsAttention({ items, onOpen }) {
   const [all, setAll] = React.useState(false);
@@ -250,15 +196,339 @@ function FsAttention({ items, onOpen }) {
   );
 }
 const FS_HEALTH_RANK = { off: 0, warn: 1, lost: 2, wait: 3, ok: 4, none: 5 };
-const fsSortVal = (s, k) => ({
+const fsSortVal = (s, k, live) => ({
+  now: live && live[s.id] != null ? live[s.id] : -1,
   name: (s.name || "").toLowerCase(), code: s.fusionsolar_station_code || "", kw: +s.capacity_kw || 0,
   day: +s.day_kwh || 0, yield: fsYield(s) || 0, month: +s.month_kwh || 0, total: +s.total_kwh || 0,
   health: FS_HEALTH_RANK[fsHealthKey(s)], address: (s.address || "").toLowerCase(),
   at: Date.parse(s.kpi_updated_at || s.last_synced_at || "") || 0,
 }[k]);
 
+/* ── ภาพรวมทุกไซต์: ตัวเลขหลักสี่ตัว เท่านั้น (ผู้ใช้ขอให้โล่ง ไม่อัดข้อมูล) ── */
+function FsFleetHero({ roll, nowKw, liveN, lastAt, isMobile }) {
+  const co2 = (roll.total * FS_GRID_EF) / 1000;
+  const big = (v) => (Math.abs(v) >= 10000 ? v / 1000 : v);
+  const E = (v) => fsEnergy(v)[1];
+  const cell = (icon, label, node, unit, sub, i) => (
+    <div key={label} style={{ minWidth: 0, padding: isMobile ? "14px 14px" : "18px 22px",
+      borderLeft: !isMobile && i > 0 ? "1px solid var(--divider)" : "none" }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12, fontWeight: 600, color: "var(--text-3)" }}>
+        <Icon name={icon} size={14} color="var(--text-3)" />{label}
+      </div>
+      <div style={{ fontFamily: "var(--display)", fontSize: isMobile ? 26 : 34, fontWeight: 700, color: "var(--text-1)", lineHeight: 1.2, marginTop: 4, whiteSpace: "nowrap" }}>
+        {node}<span style={{ fontSize: 13, fontWeight: 600, color: "var(--text-3)", marginLeft: 5 }}>{unit}</span>
+      </div>
+      {sub && <div style={{ fontSize: 11.5, color: "var(--text-3)", marginTop: 2, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{sub}</div>}
+    </div>
+  );
+  return (
+    <div style={{ background: "var(--surface)", boxShadow: "var(--shadow-card)", borderRadius: "var(--r-card)" }}>
+      <div className="kpi-grid" style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr 1fr" : "repeat(4, minmax(0,1fr))" }}>
+        {[
+          ["sun", "ผลิตวันนี้", <FsCountUp value={big(roll.day)} digits={1} />, E(roll.day), roll.kwOn > 0 ? fsFmt(roll.day / roll.kwOn, 2) + " kWh ต่อ kWp" : null],
+          ["bolt", "กำลังผลิตตอนนี้", nowKw == null ? "–" : <FsCountUp value={big(nowKw)} digits={nowKw >= 10000 ? 2 : 0} />, nowKw >= 10000 ? "MW" : "kW", liveN + " จาก " + roll.n + " ไซต์ออนไลน์"],
+          ["calendar", "ผลิตเดือนนี้", <FsCountUp value={big(roll.month)} digits={1} />, E(roll.month), null],
+          ["chart", "ผลิตสะสม", <FsCountUp value={big(roll.total)} digits={1} />, E(roll.total), "ลด CO₂ " + fsFmt(co2, 0) + " ตัน"],
+        ].map((c, i) => cell(c[0], c[1], c[2], c[3], c[4], i))}
+      </div>
+      <div style={{ padding: isMobile ? "0 14px 12px" : "0 22px 14px", fontSize: 11, color: "var(--text-3)" }}>
+        {roll.n} ไซต์ · ติดตั้งรวม {fsFmt(roll.kw, 0)} kWp · {lastAt ? "อัปเดต " + fsAgo(new Date(lastAt).toISOString()) : "ยังไม่มีข้อมูลผลิต"}
+      </div>
+    </div>
+  );
+}
+
+/* ── วงเล็ก: กำลังตอนนี้เทียบกำลังติดตั้ง ── */
+function FsRing({ frac, size, color, children }) {
+  const S = size || 56, sw = 6, r = (S - sw) / 2, C = 2 * Math.PI * r;
+  const f = frac == null || isNaN(frac) ? 0 : Math.max(0, Math.min(1, frac));
+  return (
+    <div style={{ position: "relative", width: S, height: S, flexShrink: 0 }}>
+      <svg viewBox={"0 0 " + S + " " + S} width={S} height={S} style={{ display: "block", transform: "rotate(-90deg)" }} aria-hidden="true">
+        <circle cx={S / 2} cy={S / 2} r={r} fill="none" style={{ stroke: "var(--surface3)", strokeWidth: sw }} />
+        {f > 0 && <circle cx={S / 2} cy={S / 2} r={r} fill="none" className="fs-tr" strokeDasharray={C * f + " " + C} style={{ stroke: color || "var(--fs-sun)", strokeWidth: sw, strokeLinecap: "round" }} />}
+      </svg>
+      <div style={{ position: "absolute", inset: 0, display: "grid", placeItems: "center", fontSize: 11, fontWeight: 800, color: "var(--text-1)", fontFamily: "var(--mono)" }}>{children}</div>
+    </div>
+  );
+}
+
+/* ── ผลิตดีที่สุด (ต่อ kWp — เทียบไซต์ต่างขนาดกันได้) ── */
+function FsRanking({ sites, live, onOpen }) {
+  const [m, setM] = React.useState("day");
+  const [on, setOn] = React.useState(false);
+  React.useEffect(() => { const id = requestAnimationFrame(() => setOn(true)); return () => cancelAnimationFrame(id); }, []);
+  const val = (s) => (m === "day" ? fsYield(s) : m === "month" ? fsMonthYield(s)
+    : live[s.id] != null && +s.capacity_kw > 0 ? (live[s.id] / s.capacity_kw) * 100 : null);
+  const list = sites.filter((s) => +s.health_state === 3).map((s) => ({ s, v: val(s) })).filter((x) => x.v != null && x.v > 0)
+    .sort((a, b) => b.v - a.v).slice(0, 8);
+  const max = list.length ? list[0].v : 1;
+  const unit = m === "now" ? "%" : m === "day" ? "kWh/kWp" : "kWh/kWp/วัน";
+  return (
+    <FsCard title="ผลิตดีที่สุด" sub={"ต่อ kWp · " + unit}
+      right={window.Segmented ? <window.Segmented flat value={m} onChange={setM} options={[{ value: "now", label: "ตอนนี้" }, { value: "day", label: "วันนี้" }, { value: "month", label: "เดือนนี้" }]} /> : null}>
+      {!list.length ? <div style={{ fontSize: 12.5, color: "var(--text-3)", padding: "8px 0" }}>ยังไม่มีข้อมูล</div> : (
+        <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+          {list.map((x, i) => (
+            <button key={x.s.id} type="button" onClick={() => onOpen(x.s.id)} className="fs-att"
+              style={{ display: "grid", gridTemplateColumns: "20px minmax(0,1.1fr) minmax(40px,1fr) 52px", gap: 8, alignItems: "center", border: "none", background: "transparent",
+                padding: "4px 4px", borderRadius: "var(--r-chip)", cursor: "pointer", fontFamily: "inherit", textAlign: "left" }}>
+              <span style={{ width: 20, height: 20, borderRadius: 10, display: "grid", placeItems: "center", fontSize: 10.5, fontWeight: 800,
+                background: i < 3 ? "var(--primary-soft)" : "var(--surface2)", color: i < 3 ? "var(--primary-dark)" : "var(--text-3)" }}>{i + 1}</span>
+              <span style={{ fontSize: 12, fontWeight: 600, color: "var(--text-1)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{x.s.name || x.s.id}</span>
+              <span style={{ height: 8, borderRadius: 4, background: "var(--surface3)", overflow: "hidden" }}>
+                <span className="fs-tr" style={{ display: "block", height: "100%", borderRadius: 4, background: "var(--primary)", width: (on ? (x.v / max) * 100 : 0) + "%" }} />
+              </span>
+              <span style={{ fontFamily: "var(--mono)", fontSize: 11.5, fontWeight: 700, color: "var(--text-1)", textAlign: "right" }}>{fsFmt(x.v, m === "now" ? 0 : 2)}{m === "now" ? "%" : ""}</span>
+            </button>
+          ))}
+        </div>
+      )}
+    </FsCard>
+  );
+}
+
+/* ── แผนที่ไซต์ (Leaflet + OpenStreetMap แบบเดียวกับปฏิทินงาน) ──
+   วงใหญ่ = กำลังติดตั้งมาก · สีตามสถานะ · วงกระเพื่อม = กำลังผลิตอยู่ · กด = เปิดไซต์ */
+/* พิกัดหลอกของไซต์ที่ไม่ได้ปักหมุด (0,0 · 1,1 · -1,-1) ไม่นับ — ซิงก์ล้างให้แล้ว กันค่าเก่าค้าง */
+const fsGeoOk = (s) => fsN(s.lat) != null && fsN(s.lng) != null && !(Math.abs(s.lat) <= 1 && Math.abs(s.lng) <= 1);
+const FS_PIN_COLOR = { ok: "var(--tint-ok-tx)", warn: "var(--tint-amber-tx)", off: "var(--text-3)", lost: "var(--tint-red-tx)", wait: "var(--border-strong)", none: "var(--border-strong)" };
+const fsEsc = (s) => String(s == null ? "" : s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+function FsSitesMap({ sites, live, onOpen, isMobile }) {
+  const box = React.useRef(null), mapRef = React.useRef(null), layer = React.useRef(null), fitted = React.useRef(false);
+  const openRef = React.useRef(onOpen); openRef.current = onOpen;
+  const pts = React.useMemo(() => sites.filter((s) => fsGeoOk(s)), [sites]);
+  React.useEffect(() => {
+    if (!window.L || !box.current || mapRef.current) return;
+    const map = window.L.map(box.current, { scrollWheelZoom: false, zoomControl: true }).setView([13.7, 100.6], 6);
+    window.L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", { maxZoom: 19, attribution: "&copy; OpenStreetMap" }).addTo(map);
+    layer.current = window.L.layerGroup().addTo(map);
+    mapRef.current = map;
+    setTimeout(() => map.invalidateSize(), 200);
+    return () => { map.remove(); mapRef.current = null; layer.current = null; fitted.current = false; };
+  }, []);
+  React.useEffect(() => {
+    const L = window.L, map = mapRef.current;
+    if (!L || !map || !layer.current) return;
+    layer.current.clearLayers();
+    pts.forEach((s) => {
+      const kwp = +s.capacity_kw || 0, sz = Math.round(Math.max(11, Math.min(30, 9 + Math.sqrt(kwp) * 0.75)));
+      const lv = live[s.id], hk = fsHealthKey(s);
+      const html = '<span class="fs-pin' + (lv > 0.05 && hk === "ok" ? " live" : "") + '" style="width:' + sz + "px;height:" + sz + "px;background:" + FS_PIN_COLOR[hk] + '"></span>';
+      const icon = L.divIcon({ className: "", html, iconSize: [sz, sz], iconAnchor: [sz / 2, sz / 2] });
+      L.marker([+s.lat, +s.lng], { icon, keyboard: false })
+        .bindTooltip("<b>" + fsEsc(s.name || s.id) + "</b><br>" + fsFmt(kwp, 0) + " kWp · " + FS_HEALTH[hk].th
+          + (lv != null ? "<br>ตอนนี้ " + fsFmt(lv, 1) + " kW" : "") + (fsN(s.day_kwh) != null ? " · วันนี้ " + fsFmt(s.day_kwh, 0) + " kWh" : ""), { direction: "top", offset: [0, -sz / 2] })
+        .on("click", () => openRef.current(s.id))
+        .addTo(layer.current);
+    });
+    if (pts.length && !fitted.current) {
+      fitted.current = true;
+      map.fitBounds(L.latLngBounds(pts.map((s) => [+s.lat, +s.lng])), { padding: [26, 26], maxZoom: 12 });
+    }
+  }, [pts, live]);
+  if (!window.L) return null;
+  return (
+    <FsCard title="แผนที่ไซต์" sub={pts.length + " จาก " + sites.length + " ไซต์มีพิกัด"}>
+      <div ref={box} style={{ height: isMobile ? 280 : 380, borderRadius: "var(--r-tile)", overflow: "hidden", isolation: "isolate", background: "var(--surface2)" }} />
+      <div style={{ display: "flex", flexWrap: "wrap", gap: "6px 16px", marginTop: 9, fontSize: 11.5, color: "var(--text-2)" }}>
+        {["ok", "warn", "off", "lost"].map((k) => (
+          <span key={k} style={{ display: "flex", alignItems: "center", gap: 6 }}><span style={{ width: 10, height: 10, borderRadius: 5, background: FS_PIN_COLOR[k] }} />{FS_HEALTH[k].th}</span>
+        ))}
+        <span style={{ color: "var(--text-3)" }}>วงใหญ่ = กำลังติดตั้งมาก · วงกระเพื่อม = กำลังผลิตอยู่ · กดที่วง = เปิดไซต์</span>
+      </div>
+    </FsCard>
+  );
+}
+
+/* ── การ์ดไซต์: ชื่อ · ผลิตวันนี้ตัวใหญ่ตัวเดียว · แถบเทียบเพื่อน — ที่เหลือดูในหน้ารายละเอียด ── */
+function FsSiteCard({ s, lv, issues, maxYield, medMonth, onOpen }) {
+  const cap = fsN(s.capacity_kw), y = fsYield(s), hk = fsHealthKey(s);
+  const low = medMonth && fsMonthYield(s) != null && fsMonthYield(s) < medMonth * 0.6;
+  const bad = issues && issues.some((x) => x.tone === "bad");
+  const day = fsN(s.day_kwh);
+  return (
+    <button type="button" onClick={() => onOpen(s.id)} className="fs-card-hov"
+      style={{ textAlign: "left", border: "none", background: "var(--surface)", boxShadow: "var(--shadow-sm)", borderRadius: "var(--r-tile)",
+        padding: "14px 16px", fontFamily: "inherit", cursor: "pointer", display: "flex", flexDirection: "column", gap: 8, minWidth: 0 }}>
+      <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+        <span title={FS_HEALTH[hk].th} style={{ width: 8, height: 8, borderRadius: 4, flexShrink: 0, background: FS_PIN_COLOR[hk] }} />
+        <div style={{ flex: 1, minWidth: 0, fontSize: 13.5, fontWeight: 700, color: "var(--text-1)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{s.name || "(ไม่มีชื่อ)"}</div>
+        <span style={{ fontSize: 11, color: "var(--text-3)", whiteSpace: "nowrap" }}>{cap ? fsFmt(cap, cap >= 100 ? 0 : 1) + " kWp" : ""}</span>
+      </div>
+      <div style={{ display: "flex", alignItems: "baseline", gap: 6 }}>
+        <span style={{ fontFamily: "var(--display)", fontSize: 24, fontWeight: 700, color: day == null ? "var(--text-3)" : "var(--text-1)", lineHeight: 1.15 }}>{day == null ? "–" : fsFmt(day, day >= 100 ? 0 : 1)}</span>
+        <span style={{ fontSize: 11.5, color: "var(--text-3)" }}>kWh วันนี้</span>
+        {lv != null && lv > 0.05 && <span style={{ marginLeft: "auto", fontSize: 11.5, fontWeight: 600, color: "var(--text-2)", whiteSpace: "nowrap" }}>ตอนนี้ {fsFmt(lv, lv >= 100 ? 0 : 1)} kW</span>}
+      </div>
+      {issues ? (
+        <div style={{ display: "flex", gap: 6, alignItems: "center", fontSize: 11.5, color: bad ? "var(--tint-red-tx)" : "var(--tint-amber-tx)", fontWeight: 600, minWidth: 0 }}>
+          <Icon name="alert" size={13} color="currentColor" />
+          <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", minWidth: 0 }}>{issues[0].text}{issues.length > 1 ? " · +" + (issues.length - 1) : ""}</span>
+        </div>
+      ) : y != null ? (
+        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+          <div style={{ flex: 1 }}><FsMeter value={y} max={maxYield} h={4} tone={low ? "var(--tint-amber-tx)" : "var(--primary)"} /></div>
+          <span style={{ fontSize: 10.5, color: "var(--text-3)", whiteSpace: "nowrap", fontVariantNumeric: "tabular-nums" }}>{fsFmt(y, 2)} ต่อ kWp</span>
+        </div>
+      ) : <div style={{ fontSize: 11.5, color: "var(--text-3)" }}>{FS_HEALTH[hk].th}</div>}
+    </button>
+  );
+}
+
+/* ── ตารางไซต์ (มุมมองหลักบนจอคอม) — ไม่มีเส้น แถวสลับสีอ่อน · ตัวเลขชิดขวาทศนิยมเท่ากันทั้งคอลัมน์ · ที่อยู่ดูใน tooltip/หน้ารายละเอียด ── */
+const FS_COLS = [
+  { key: "name", th: "ไซต์" },
+  { key: "health", th: "สถานะ" },
+  { key: "kw", th: "ขนาด", unit: "kWp", num: true },
+  { key: "now", th: "ตอนนี้", unit: "kW", num: true },
+  { key: "day", th: "วันนี้", unit: "kWh", num: true },
+  { key: "yield", th: "ต่อ kWp วันนี้", unit: "kWh/kWp", num: true },
+  { key: "month", th: "เดือนนี้", unit: "kWh", num: true },
+  { key: "total", th: "สะสม", unit: "MWh", num: true },
+  { key: "at", th: "อัปเดต" },
+];
+function FsSitesTable({ rows, live, issueMap, maxYield, medMonth, sort, onSort, onOpen }) {
+  const th = (c) => ({ padding: "12px 14px 10px", textAlign: c.num ? "right" : "left",
+    fontSize: 11.5, fontWeight: 700, whiteSpace: "nowrap", cursor: "pointer", userSelect: "none", color: sort.k === c.key ? "var(--primary-dark)" : "var(--text-3)",
+    boxShadow: "inset 0 -1px 0 var(--divider)" });
+  const N = (v, d) => (v == null ? <span style={{ color: "var(--text-3)" }}>–</span> : fsFmt(v, d));
+  return (
+    <div style={{ background: "var(--surface)", boxShadow: "var(--shadow-sm)", borderRadius: "var(--r-card)", overflowX: "auto" }}>
+      <table style={{ width: "100%", borderCollapse: "separate", borderSpacing: 0, fontSize: 13 }}>
+        <thead>
+          <tr>
+            {FS_COLS.map((c) => (
+              <th key={c.key} onClick={() => onSort(c.key)} style={th(c)}>
+                {c.th}{c.unit && <span style={{ fontWeight: 500, color: "var(--text-3)", marginLeft: 4 }}>{c.unit}</span>}
+                <span style={{ display: "inline-block", width: 10, marginLeft: 2 }}>{sort.k === c.key ? (sort.dir > 0 ? "↑" : "↓") : ""}</span>
+              </th>
+            ))}
+          </tr>
+        </thead>
+        <tbody>
+          {rows.map((s, i) => {
+            const hk = fsHealthKey(s), dim = hk === "off" || hk === "lost" || hk === "none";
+            const y = fsYield(s), lv = live[s.id], iss = issueMap[s.id];
+            const low = medMonth && fsMonthYield(s) != null && fsMonthYield(s) < medMonth * 0.6;
+            const td = { padding: "11px 14px", verticalAlign: "middle", background: i % 2 ? "var(--fs-zebra)" : "transparent" };
+            const nm = Object.assign({}, td, { textAlign: "right", fontVariantNumeric: "tabular-nums", whiteSpace: "nowrap", color: dim ? "var(--text-3)" : "var(--text-1)" });
+            return (
+              <tr key={s.id} onClick={() => onOpen(s.id)} className="fs-row" style={{ cursor: "pointer" }}>
+                <td style={Object.assign({}, td, { maxWidth: 300 })} title={s.address || ""}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 6, minWidth: 0 }}>
+                    <span style={{ fontWeight: 700, color: "var(--text-1)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{s.name || "(ไม่มีชื่อ)"}</span>
+                    {iss && <span title={iss.map((x) => x.text).join("\n")} style={{ display: "flex", flexShrink: 0 }}><Icon name="alert" size={13} color={iss.some((x) => x.tone === "bad") ? "var(--tint-red-tx)" : "var(--tint-amber-tx)"} /></span>}
+                    {Object.keys(s.jobIds || {}).length > 0 && <span title={"ผูกงาน " + Object.keys(s.jobIds).length + " งาน"} style={{ display: "flex", flexShrink: 0 }}><Icon name="link" size={12} color="var(--text-3)" /></span>}
+                  </div>
+                  <div style={{ fontSize: 11, color: "var(--text-3)", fontFamily: "var(--mono)", marginTop: 1 }}>
+                    {s.fusionsolar_station_code || "ไม่มี station code"}{s.source === "manual" ? " · เพิ่มเอง" : ""}
+                  </div>
+                </td>
+                <td style={Object.assign({}, td, { whiteSpace: "nowrap" })}>
+                  <span style={{ display: "inline-flex", alignItems: "center", gap: 7, fontSize: 12, fontWeight: 600, color: "var(--text-2)" }}>
+                    <span style={{ width: 8, height: 8, borderRadius: 4, background: FS_PIN_COLOR[hk] }} />{FS_HEALTH[hk].th}
+                  </span>
+                </td>
+                <td style={nm}>{N(fsN(s.capacity_kw), 1)}</td>
+                <td style={nm}>{lv != null && lv > 0.05 ? <span style={{ fontWeight: 700 }}>{fsFmt(lv, lv >= 100 ? 0 : 1)}</span> : N(lv == null ? null : 0, 0)}</td>
+                <td style={Object.assign({}, nm, { fontWeight: 700 })}>{N(fsN(s.day_kwh), 1)}</td>
+                <td style={nm}>
+                  {y == null ? N(null) : (
+                    <div style={{ display: "flex", alignItems: "center", gap: 8, justifyContent: "flex-end" }}>
+                      <div style={{ width: 56 }}><FsMeter value={y} max={maxYield} h={6} tone={low ? "var(--tint-amber-tx)" : "var(--primary)"} /></div>
+                      <span style={{ minWidth: 34 }}>{fsFmt(y, 2)}</span>
+                    </div>
+                  )}
+                </td>
+                <td style={nm}>{N(fsN(s.month_kwh), 0)}</td>
+                <td style={nm}>{N(fsN(s.total_kwh) == null ? null : s.total_kwh / 1000, 1)}</td>
+                <td style={Object.assign({}, td, { color: "var(--text-3)", whiteSpace: "nowrap", fontSize: 12 })} title={fsWhen(s.kpi_updated_at || s.last_synced_at)}>
+                  {fsAgo(s.kpi_updated_at || s.last_synced_at)}
+                </td>
+              </tr>
+            );
+          })}
+        </tbody>
+      </table>
+      {!rows.length && <div style={{ padding: 22, textAlign: "center", color: "var(--text-3)", fontSize: 12.5 }}>ไม่พบไซต์ที่ตรงกับตัวกรอง</div>}
+    </div>
+  );
+}
+
+/* ── ส่งออก Excel: ทุกไซต์ (สรุป · รายไซต์ · รายวัน) หรือไซต์เดียว (รายวัน · รายเดือน · อุปกรณ์) ── */
+function FsExportDialog({ sites, site, devs, onClose }) {
+  const now = fsBkk(Date.now()).mon;
+  const months = React.useMemo(() => {
+    const [y, m] = now.split("-").map(Number), out = [];
+    for (let i = 0; i < 12; i++) out.push(new Date(Date.UTC(y, m - 1 - i, 1)).toISOString().slice(0, 7));
+    return out;
+  }, [now]);
+  const [mon, setMon] = React.useState(months[0]);
+  const [busy, setBusy] = React.useState(false);
+  const [msg, setMsg] = React.useState(null);
+  const go = async () => {
+    setBusy(true); setMsg(null);
+    try {
+      if (site) { await window.fsExportSiteXlsx(site, devs, mon); setMsg({ ok: true, text: "ดาวน์โหลดไฟล์แล้ว" }); }
+      else { const r = await window.fsExportMonthXlsx(sites, mon); setMsg({ ok: true, text: "ดาวน์โหลดแล้ว · " + r.sites + " ไซต์ · " + fsEnergy(r.kwh).join(" ") }); }
+    } catch (e) { setMsg({ ok: false, text: e.message || String(e) }); }
+    setBusy(false);
+  };
+  const sheets = site
+    ? [["calendar", "รายวัน", "ผลิตแต่ละวันของเดือน · kWh/kWp · ชั่วโมงเริ่ม/หยุด"], ["chart", "รายเดือน", "ย้อนหลังสูงสุด 24 เดือน · CO₂"], ["box", "อุปกรณ์", "รุ่น · SN · ผลิตสะสม"]]
+    : [["chart", "สรุป", "ผลิตรวม · เฉลี่ยต่อ kWp · CO₂ · อันดับสูงสุด/ต่ำสุด"], ["list", "รายไซต์", "ทุกไซต์ · kWh/kWp/วัน · % ของค่ากลาง · สถานะ"], ["calendar", "รายวัน", "ตารางไซต์ × วัน พร้อมยอดรวม"]];
+  return (
+    <FsModal width={520} onClose={onClose} title={site ? "ส่งออก Excel — " + (site.name || site.id) : "สรุปรายเดือนเป็น Excel"}
+      sub="ไฟล์ .xlsx เปิดได้ใน Excel / Google Sheets"
+      foot={<React.Fragment>
+        <button className="btn" onClick={onClose}>ปิด</button>
+        <button className="btn btn-pri" disabled={busy} onClick={go} style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
+          <Icon name="download" size={14} color="#fff" />{busy ? "กำลังสร้างไฟล์…" : "ดาวน์โหลด " + fsMonTH(mon)}
+        </button>
+      </React.Fragment>}>
+      <div>
+        <div style={FS_LBL}>เลือกเดือน</div>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 6 }}>
+          {months.map((k) => (
+            <button key={k} type="button" onClick={() => setMon(k)}
+              style={{ padding: "8px 4px", border: "none", borderRadius: "var(--r-chip)", fontFamily: "inherit", fontSize: 12, fontWeight: 700, cursor: "pointer",
+                background: mon === k ? "var(--primary-soft)" : "var(--surface2)", color: mon === k ? "var(--primary-dark)" : "var(--text-2)",
+                boxShadow: mon === k ? "inset 0 0 0 1px var(--primary)" : "var(--shadow-sm)" }}>
+              {fsMonTH(k)}{k === now ? <span style={{ display: "block", fontSize: 9.5, fontWeight: 600, opacity: 0.75 }}>ยังไม่จบเดือน</span> : null}
+            </button>
+          ))}
+        </div>
+      </div>
+      <div>
+        <div style={FS_LBL}>ในไฟล์มี</div>
+        <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+          {sheets.map(([ic, th, desc]) => (
+            <div key={th} style={{ display: "flex", gap: 10, alignItems: "center", padding: "9px 12px", background: "var(--surface)", boxShadow: "var(--shadow-sm)", borderRadius: "var(--r-tile)" }}>
+              <span style={{ width: 30, height: 30, borderRadius: "var(--r-chip)", background: "var(--primary-soft)", display: "grid", placeItems: "center", flexShrink: 0 }}>
+                <Icon name={ic} size={15} color="var(--primary-dark)" />
+              </span>
+              <div style={{ minWidth: 0 }}>
+                <div style={{ fontSize: 12.5, fontWeight: 700, color: "var(--text-1)" }}>แผ่น "{th}"</div>
+                <div style={{ fontSize: 11.5, color: "var(--text-3)" }}>{desc}</div>
+              </div>
+            </div>
+          ))}
+        </div>
+        <div style={{ fontSize: 11, color: "var(--text-3)", marginTop: 8 }}>ตัวเลขรายวันมาจากประวัติที่ระบบเก็บเอง (เริ่มนับตั้งแต่ซิงก์ข้อมูลผลิตครั้งแรก) · เดือนที่ยังไม่มีประวัติจะว่าง</div>
+      </div>
+      {msg && <div style={{ padding: "10px 12px", borderRadius: "var(--r-tile)", fontSize: 12.5, fontWeight: 700,
+        background: msg.ok ? "var(--tint-ok-bg)" : "var(--tint-red-bg)", color: msg.ok ? "var(--tint-ok-tx)" : "var(--tint-red-tx)" }}>{msg.text}</div>}
+    </FsModal>
+  );
+}
+
+const fsLoadPref = (k, d) => { try { return localStorage.getItem(k) || d; } catch (e) { return d; } };
+const fsSavePref = (k, v) => { try { localStorage.setItem(k, v); } catch (e) { /* ไม่มีที่เก็บ — ไม่เป็นไร */ } };
+
 function FsSitesView({ jobs, role, currentUser, onOpenJob, onOpenOm }) {
   const isMobile = window.matchMedia("(max-width: 860px)").matches;
+  const isMid = window.matchMedia("(max-width: 1100px)").matches;
   const { sites, all, loading } = useFsSites();
   const [q, setQ] = React.useState("");
   const [health, setHealth] = React.useState("all");
@@ -266,19 +536,39 @@ function FsSitesView({ jobs, role, currentUser, onOpenJob, onOpenOm }) {
   const [sort, setSort] = React.useState({ k: "name", dir: 1 });
   const [open, setOpen] = React.useState(null);
   const [adding, setAdding] = React.useState(false);
+  const [exporting, setExporting] = React.useState(false);
+  const [view, setViewRaw] = React.useState(() => fsLoadPref("fsSitesView", "table"));
+  const setView = (v) => { setViewRaw(v); fsSavePref("fsSitesView", v); };
   const canWrite = window.can ? window.can(role, "om") : true;
   const { val: devVal } = useFsNode("fsDevices");
 
   /* เรื่องที่ควรดูของทุกไซต์ (ตัวตรวจชุดเดียวกับหน้ารายละเอียด) + ค่ากลางผลิตต่อ kWp ไว้หาไซต์ที่ผลิตต่ำกว่าเพื่อน */
   const yields = React.useMemo(() => sites.filter((s) => +s.health_state === 3).map(fsMonthYield).filter((v) => v != null), [sites]);
   const medMonth = yields.length >= 3 ? fsMedian(yields) : null;
-  const issueMap = React.useMemo(() => {
+  const byDev = React.useMemo(() => {
     const by = {};
     Object.keys(devVal || {}).forEach((k) => { const d = Object.assign({ id: k }, devVal[k]); if (d.site_id) (by[d.site_id] = by[d.site_id] || []).push(d); });
+    return by;
+  }, [devVal]);
+  const issueMap = React.useMemo(() => {
     const m = {};
-    sites.forEach((s) => { const l = fsSiteIssues(s, by[s.id] || [], { medMonth }); if (l.length) m[s.id] = l; });
+    sites.forEach((s) => { const l = fsSiteIssues(s, byDev[s.id] || [], { medMonth }); if (l.length) m[s.id] = l; });
     return m;
-  }, [sites, devVal, medMonth]);
+  }, [sites, byDev, medMonth]);
+  /* กำลังผลิตตอนนี้ของแต่ละไซต์ = รวม active_power ของอินเวอร์เตอร์ · ไซต์ที่ข้อมูลค้างเกิน 3 ชม./ออฟไลน์ ไม่นับ */
+  const live = React.useMemo(() => {
+    const m = {};
+    sites.forEach((s) => {
+      const at = Date.parse(s.kpi_updated_at || "");
+      if (!at || Date.now() - at > 3 * 3600e3 || +s.health_state === 1 || s.fs_status === "not_found_in_fusionsolar") return;
+      (byDev[s.id] || []).forEach((d) => {
+        const t = +d.dev_type_id; if (t !== 1 && t !== 38) return;
+        const p = fsN(fsKpi(d).active_power); if (p != null) m[s.id] = (m[s.id] || 0) + p;
+      });
+    });
+    return m;
+  }, [sites, byDev]);
+  const nowKw = Object.keys(live).length ? Object.keys(live).reduce((a, k) => a + live[k], 0) : null;
   const attention = React.useMemo(() => sites.filter((s) => issueMap[s.id]).map((s) => ({ s, list: issueMap[s.id] }))
     .sort((a, b) => (b.list.some((x) => x.tone === "bad") - a.list.some((x) => x.tone === "bad")) || b.list.length - a.list.length), [sites, issueMap]);
   const maxYield = Math.max.apply(null, sites.map(fsYield).filter((v) => v != null).concat([0.001]));
@@ -308,32 +598,30 @@ function FsSitesView({ jobs, role, currentUser, onOpenJob, onOpenOm }) {
         .some((v) => String(v || "").toLowerCase().includes(kw));
     });
     out.sort((a, b) => {
-      const x = fsSortVal(a, sort.k), y = fsSortVal(b, sort.k);
+      const x = fsSortVal(a, sort.k, live), y = fsSortVal(b, sort.k, live);
       return (x < y ? -1 : x > y ? 1 : 0) * sort.dir || String(a.name).localeCompare(String(b.name), "th");
     });
     return out;
-  }, [sites, q, health, src, sort]);
+  }, [sites, q, health, src, sort, live]);
 
   const pickSort = (k) => setSort((s) => (s.k === k ? { k, dir: -s.dir } : { k, dir: FS_COLS.find((c) => c.key === k).num ? -1 : 1 }));
   const cur = all.find((s) => s.id === open) || null;
   const lastAt = sites.reduce((m, s) => Math.max(m, Date.parse(s.kpi_updated_at || "") || 0), 0);
+  const hasGeo = sites.some((s) => fsGeoOk(s));
+  const mapView = view === "map" && hasGeo;
+  const cardView = !mapView && (isMobile || view !== "table");
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 14, minHeight: 0 }}>
-      <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
-        <FsStat label="จำนวนไซต์" value={fsNum(roll.n, 0)} hint={lastAt ? "ข้อมูลผลิตล่าสุด " + fsAgo(new Date(lastAt).toISOString()) : "ยังไม่มีข้อมูลผลิต"} />
-        <FsStat label="กำลังติดตั้งรวม" value={fsNum(roll.kw, 1)} unit="kWp" />
-        <FsStat label="ผลิตวันนี้" value={fsEnergy(roll.day)[0]} unit={fsEnergy(roll.day)[1]}
-          hint={roll.kwOn > 0 ? "เฉลี่ย " + fsFmt(roll.day / roll.kwOn, 2) + " kWh/kWp" : null} />
-        <FsStat label="ผลิตเดือนนี้" value={fsEnergy(roll.month)[0]} unit={fsEnergy(roll.month)[1]} />
-        <FsStat label="ผลิตสะสมทุกไซต์" value={fsEnergy(roll.total)[0]} unit={fsEnergy(roll.total)[1]}
-          hint={roll.total > 0 ? "ลด CO₂ ราว " + fsFmt((roll.total * FS_GRID_EF) / 1000, 0) + " ตัน" : null} />
-      </div>
+      {sites.length > 0 && <FsFleetHero roll={roll} nowKw={nowKw} liveN={Object.keys(live).length} lastAt={lastAt} isMobile={isMobile} />}
 
       {sites.length > 0 && (
-        <div style={{ display: "grid", gridTemplateColumns: isMobile || !attention.length ? "1fr" : "minmax(0,1fr) minmax(0,1.2fr)", gap: 12, alignItems: "start" }}>
-          <FsHealthBar count={hCount} total={sites.length} value={health} onPick={setHealth} />
-          <FsAttention items={attention} onOpen={setOpen} />
+        <div style={{ display: "grid", gridTemplateColumns: isMobile || isMid ? "1fr" : "minmax(0,1.3fr) minmax(0,1fr)", gap: 12, alignItems: "start" }}>
+          {attention.length ? <FsAttention items={attention} onOpen={setOpen} /> : (
+            <FsCard title="ต้องดูแล"><div style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 12.5, color: "var(--tint-ok-tx)", fontWeight: 700 }}>
+              <Icon name="check" size={16} color="currentColor" />ทุกไซต์ปกติ ไม่มีเรื่องต้องดู</div></FsCard>
+          )}
+          <FsRanking sites={sites} live={live} onOpen={setOpen} />
         </div>
       )}
 
@@ -348,12 +636,19 @@ function FsSitesView({ jobs, role, currentUser, onOpenJob, onOpenOm }) {
         <FsChips value={health} onChange={setHealth} options={[["all", "ทุกสถานะ", hCount.all], ["ok", "ปกติ", hCount.ok || 0],
           ["warn", "มีปัญหา", hCount.warn || 0], ["off", "ออฟไลน์", hCount.off || 0], ["lost", "ไม่พบใน FusionSolar", hCount.lost || 0],
           ["none", "ไม่มีข้อมูล", hCount.none || 0]].filter((o) => o[0] === "all" || o[2] > 0 || o[0] === health)} />
-        <FsChips value={src} onChange={setSrc} options={[["all", "ทุกแหล่ง"], ["fusionsolar", "FusionSolar"], ["manual", "เพิ่มเอง"]]} />
-        {canWrite && (
-          <button className="btn-add" style={{ marginLeft: "auto" }} onClick={() => setAdding(true)}>
-            <Icon name="plus" size={15} color="#fff" /><span>เพิ่มไซต์เอง</span>
-          </button>
-        )}
+        <div style={{ marginLeft: "auto", display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
+          {window.Segmented && <window.Segmented flat value={view} onChange={setView} options={[{ value: "card", label: "การ์ด" }].concat(isMobile ? [] : [{ value: "table", label: "ตาราง" }], hasGeo ? [{ value: "map", label: "แผนที่" }] : [])} />}
+          {sites.length > 0 && (
+            <button className="btn" onClick={() => setExporting(true)} style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
+              <Icon name="download" size={14} /><span>{isMobile ? "Excel" : "สรุปรายเดือน Excel"}</span>
+            </button>
+          )}
+          {canWrite && (
+            <button className="btn-add" onClick={() => setAdding(true)}>
+              <Icon name="plus" size={15} color="#fff" /><span>เพิ่มไซต์เอง</span>
+            </button>
+          )}
+        </div>
       </div>
 
       {loading ? (
@@ -363,84 +658,17 @@ function FsSitesView({ jobs, role, currentUser, onOpenJob, onOpenOm }) {
           borderRadius: "var(--r-card)", color: "var(--text-2)", fontSize: 13 }}>
           ยังไม่มีไซต์ — แอดมินกด "ซิงก์ตอนนี้" ในเมนูตั้งค่า → ซิงก์ FusionSolar หรือเพิ่มไซต์เอง
         </div>
-      ) : isMobile ? (
-        <div style={{ display: "flex", flexDirection: "column", gap: 9 }}>
-          {rows.map((s) => (
-            <button key={s.id} type="button" onClick={() => setOpen(s.id)}
-              style={{ textAlign: "left", border: "none", background: "var(--surface)", boxShadow: "var(--shadow-sm)", borderRadius: "var(--r-tile)",
-                padding: "12px 14px", fontFamily: "inherit", cursor: "pointer", display: "flex", flexDirection: "column", gap: 6 }}>
-              <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
-                <div style={{ flex: 1, minWidth: 0, fontSize: 14, fontWeight: 700, color: "var(--text-1)" }}>{s.name || "(ไม่มีชื่อ)"}</div>
-                {issueMap[s.id] && <Icon name="alert" size={14} color="var(--tint-amber-tx)" />}
-                <FsPill k={fsHealthKey(s)} />
-              </div>
-              <div style={{ fontSize: 11, color: "var(--text-3)", fontFamily: "var(--mono)" }}>{s.fusionsolar_station_code || "ไม่มี station code"} · {fsNum(s.capacity_kw)} kWp</div>
-              <div style={{ display: "flex", gap: 14, fontSize: 12, color: "var(--text-2)", fontVariantNumeric: "tabular-nums" }}>
-                <span>วันนี้ <b>{fsNum(s.day_kwh)}</b>{fsYield(s) != null ? " (" + fsFmt(fsYield(s), 2) + "/kWp)" : ""}</span><span>เดือนนี้ <b>{fsNum(s.month_kwh, 0)}</b></span><span>สะสม <b>{fsNum(s.total_kwh, 0)}</b> kWh</span>
-              </div>
-            </button>
-          ))}
-        </div>
-      ) : (
-        <div style={{ background: "var(--surface)", boxShadow: "var(--shadow-sm)", borderRadius: "var(--r-card)", overflow: "auto" }}>
-          <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12.5 }}>
-            <thead>
-              <tr>
-                {FS_COLS.map((c) => (
-                  <th key={c.key} onClick={() => pickSort(c.key)}
-                    style={{ padding: "11px 12px", textAlign: c.num ? "right" : "left", fontSize: 11, fontWeight: 700, whiteSpace: "nowrap",
-                      color: sort.k === c.key ? "var(--primary-dark)" : "var(--text-3)", cursor: "pointer", userSelect: "none",
-                      borderBottom: "1px solid var(--divider)" }}>
-                    {c.th}{sort.k === c.key ? (sort.dir > 0 ? " ↑" : " ↓") : ""}
-                  </th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {rows.map((s) => {
-                const lost = s.fs_status === "not_found_in_fusionsolar";
-                const td = { padding: "10px 12px", borderBottom: "1px solid var(--divider)", verticalAlign: "middle" };
-                const nm = Object.assign({}, td, { textAlign: "right", fontVariantNumeric: "tabular-nums", whiteSpace: "nowrap", color: lost ? "var(--text-3)" : "var(--text-1)" });
-                return (
-                  <tr key={s.id} onClick={() => setOpen(s.id)} className="fs-row" style={{ cursor: "pointer" }}>
-                    <td style={td}>
-                      <div style={{ display: "flex", alignItems: "center", gap: 7 }}>
-                        <span style={{ fontWeight: 700, color: "var(--text-1)" }}>{s.name || "(ไม่มีชื่อ)"}</span>
-                        {issueMap[s.id] && <span title={issueMap[s.id].map((x) => x.text).join("\n")} style={{ display: "flex" }}><Icon name="alert" size={13} color={issueMap[s.id].some((x) => x.tone === "bad") ? "var(--tint-red-tx)" : "var(--tint-amber-tx)"} /></span>}
-                        {s.source === "manual" && <FsSrcChip s={s} />}
-                        {Object.keys(s.jobIds || {}).length > 0 && (
-                          <span title={"ผูกงาน " + Object.keys(s.jobIds).join(", ")} style={{ display: "flex" }}><Icon name="link" size={13} color="var(--text-3)" /></span>
-                        )}
-                      </div>
-                    </td>
-                    <td style={Object.assign({}, td, { fontFamily: "var(--mono)", fontSize: 11.5, color: "var(--text-2)", whiteSpace: "nowrap" })}>
-                      {s.fusionsolar_station_code || <span style={{ color: "var(--text-3)" }}>–</span>}
-                    </td>
-                    <td style={nm}>{fsNum(s.capacity_kw, 2)}</td>
-                    <td style={nm}>{fsNum(s.day_kwh)}</td>
-                    <td style={nm}>
-                      {fsYield(s) == null ? "–" : (
-                        <div style={{ display: "flex", alignItems: "center", gap: 7, justifyContent: "flex-end" }}>
-                          <div style={{ width: 46 }}><FsMeter value={fsYield(s)} max={maxYield} h={5}
-                            tone={medMonth && fsMonthYield(s) != null && fsMonthYield(s) < medMonth * 0.6 ? "var(--tint-amber-tx)" : "var(--primary)"} /></div>
-                          <span style={{ minWidth: 32 }}>{fsFmt(fsYield(s), 2)}</span>
-                        </div>
-                      )}
-                    </td>
-                    <td style={nm}>{fsNum(s.month_kwh, 0)}</td>
-                    <td style={nm}>{fsNum(s.total_kwh, 0)}</td>
-                    <td style={td}><FsPill k={fsHealthKey(s)} /></td>
-                    <td style={Object.assign({}, td, { color: "var(--text-2)", maxWidth: 220, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" })}
-                      title={s.address || ""}>{s.address || "–"}</td>
-                    <td style={Object.assign({}, td, { color: "var(--text-3)", whiteSpace: "nowrap", fontSize: 11.5 })}
-                      title={fsWhen(s.kpi_updated_at || s.last_synced_at)}>{fsAgo(s.kpi_updated_at || s.last_synced_at)}</td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
+      ) : mapView ? (
+        <FsSitesMap sites={rows} live={live} onOpen={setOpen} isMobile={isMobile} />
+      ) : cardView ? (
+        <div>
+          <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "repeat(auto-fill, minmax(258px, 1fr))", gap: 10 }}>
+            {rows.map((s) => <FsSiteCard key={s.id} s={s} lv={live[s.id]} issues={issueMap[s.id]} maxYield={maxYield} medMonth={medMonth} onOpen={setOpen} />)}
+          </div>
           {!rows.length && <div style={{ padding: 22, textAlign: "center", color: "var(--text-3)", fontSize: 12.5 }}>ไม่พบไซต์ที่ตรงกับตัวกรอง</div>}
         </div>
+      ) : (
+        <FsSitesTable rows={rows} live={live} issueMap={issueMap} maxYield={maxYield} medMonth={medMonth} sort={sort} onSort={pickSort} onOpen={setOpen} />
       )}
 
       {cur && <FsSiteModal site={cur} sites={all} medMonth={medMonth} jobs={jobs} canWrite={canWrite} currentUser={currentUser}
@@ -449,6 +677,7 @@ function FsSitesView({ jobs, role, currentUser, onOpenJob, onOpenOm }) {
         onOpenOm={onOpenOm ? (id) => { setOpen(null); onOpenOm(id); } : null} />}
       {adding && <FsManualForm jobs={jobs} sites={all} currentUser={currentUser}
         onClose={() => setAdding(false)} onCreated={(id) => { setAdding(false); setOpen(id); }} />}
+      {exporting && <FsExportDialog sites={sites} onClose={() => setExporting(false)} />}
     </div>
   );
 }
@@ -603,33 +832,33 @@ function FsHistoryCard({ site, isMobile }) {
   );
 }
 
+/* ไฟที่ผลิตไปไหน · ไฟที่ใช้มาจากไหน — จากตัวเลขสะสมของมิเตอร์เทียบอินเวอร์เตอร์ (ภาพการไหลตอนนี้อยู่ใน FsScene) */
 function FsEnergyCard({ em, isMobile }) {
-  if (!em.meter && !em.batt) return null;
-  const pv = em.pvTotal;
+  if (em.selfTotal == null || !window.FsDonut) return null;
+  const pv = em.pvTotal, use = em.importTotal != null ? em.selfTotal + em.importTotal : null;
+  const D = window.FsDonut;
+  const E = (v) => fsEnergy(v).join(" ");
   return (
-    <FsCard title="การไหลของพลังงาน" sub="จากอินเวอร์เตอร์ + มิเตอร์ + แบตเตอรี่ ตอนซิงก์ล่าสุด">
-      <FsEnergyFlow em={em} />
-      {em.selfTotal != null && (
-        <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr", gap: 18, marginTop: 16 }}>
-          <FsSplitBar title="ไฟที่โซลาร์ผลิตไปไหน" total={fsEnergy(pv).join(" ")}
-            parts={[{ label: "ใช้เอง", value: em.selfTotal, color: "var(--fs-self)" }, { label: "ขายเข้ากริด", value: em.exportTotal, color: "var(--fs-exp)" }]} />
-          {em.importTotal != null && (
-            <FsSplitBar title="ไฟที่ใช้มาจากไหน" total={fsEnergy(em.selfTotal + em.importTotal).join(" ")}
-              parts={[{ label: "จากโซลาร์", value: em.selfTotal, color: "var(--fs-self)" }, { label: "ซื้อจากกริด", value: em.importTotal, color: "var(--fs-imp)" }]} />
-          )}
-        </div>
-      )}
-      {em.selfTotal != null && (
-        <div className="kpi-grid" style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr 1fr" : "repeat(4, 1fr)", gap: 8, marginTop: 14 }}>
-          <FsTile label="สัดส่วนใช้เอง (self-consumption)" value={Math.round(em.selfRate * 100) + "%"} />
-          <FsTile label="พึ่งตัวเองได้ (self-sufficiency)" value={em.sufficiency != null ? Math.round(em.sufficiency * 100) + "%" : "–"} />
-          <FsTile label="ใช้ไฟจากโซลาร์สะสม" value={fsEnergy(em.selfTotal)[0]} unit={fsEnergy(em.selfTotal)[1]} />
-          <FsTile label="ลด CO₂ สะสม" value={fsFmt((pv * FS_GRID_EF) / 1000, 1)} unit="ตัน" />
-        </div>
-      )}
-      {em.selfTotal != null && <div style={{ fontSize: 11, color: "var(--text-3)", marginTop: 8 }}>
-        คิดจากตัวเลขสะสมของมิเตอร์เทียบกับอินเวอร์เตอร์ — ถูกต้องเมื่อติดตั้งมิเตอร์พร้อมระบบ (ถ้าเพิ่มมิเตอร์ทีหลัง สัดส่วนใช้เองจะออกมาสูงกว่าจริง)
-      </div>}
+    <FsCard title="พลังงานไปไหน · มาจากไหน" sub="นับสะสมตั้งแต่ติดตั้ง">
+      <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr", gap: isMobile ? 18 : 26 }}>
+        <D title="ไฟที่โซลาร์ผลิต" center={fsEnergy(pv)[0]} centerSub={fsEnergy(pv)[1]}
+          parts={[{ key: "self", label: "ใช้เองในอาคาร", value: em.selfTotal, color: "var(--fs-self)", note: E(em.selfTotal) },
+            { key: "exp", label: "ขายเข้ากริด", value: em.exportTotal, color: "var(--fs-exp)", note: E(em.exportTotal) }]} />
+        {use != null && (
+          <D title="ไฟที่อาคารใช้" center={fsEnergy(use)[0]} centerSub={fsEnergy(use)[1]}
+            parts={[{ key: "self", label: "จากโซลาร์", value: em.selfTotal, color: "var(--fs-self)", note: E(em.selfTotal) },
+              { key: "imp", label: "ซื้อจากกริด", value: em.importTotal, color: "var(--fs-imp)", note: E(em.importTotal) }]} />
+        )}
+      </div>
+      <div className="kpi-grid" style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr 1fr" : "repeat(4, 1fr)", gap: 8, marginTop: 16 }}>
+        <FsTile label="สัดส่วนใช้เอง (self-consumption)" value={Math.round(em.selfRate * 100) + "%"} />
+        <FsTile label="พึ่งตัวเองได้ (self-sufficiency)" value={em.sufficiency != null ? Math.round(em.sufficiency * 100) + "%" : "–"} />
+        <FsTile label="ซื้อไฟลดลง" value={fsEnergy(em.selfTotal)[0]} unit={fsEnergy(em.selfTotal)[1]} />
+        <FsTile label="ลด CO₂ สะสม" value={fsFmt((pv * FS_GRID_EF) / 1000, 1)} unit="ตัน" />
+      </div>
+      <div style={{ fontSize: 11, color: "var(--text-3)", marginTop: 8 }}>
+        ถูกต้องเมื่อติดตั้งมิเตอร์พร้อมระบบ (ถ้าเพิ่มมิเตอร์ทีหลัง สัดส่วนใช้เองจะออกมาสูงกว่าจริง)
+      </div>
     </FsCard>
   );
 }
@@ -648,7 +877,7 @@ function FsDeviceCard({ d, em, isMobile }) {
       {inv ? <FsInverterBody d={d} k={k} isMobile={isMobile} />
         : t === 47 || t === 17 ? <FsMeterBody d={d} k={k} em={em} isMobile={isMobile} />
         : t === 39 ? <FsBatteryBody k={k} em={em} isMobile={isMobile} />
-        : <FsKv k={k} />}
+        : window.FsKvGroups ? <window.FsKvGroups k={k} /> : <FsKv k={k} />}
     </FsDevBox>
   );
 }
@@ -730,11 +959,16 @@ function FsSiteModal({ site, sites, medMonth, jobs, canWrite, currentUser, onClo
   const [note, setNote] = React.useState(site.note || "");
   React.useEffect(() => { setNote(site.note || ""); }, [site.id, site.note]);
   const tot = fsEnergy(totK);
+  const [tab, setTab] = React.useState(code ? "over" : "info");
+  const [exporting, setExporting] = React.useState(false);
+  const pvNow = em.pvKw, co2 = totK != null ? (totK * FS_GRID_EF) / 1000 : null;
 
   return (
     <FsModal width={1000} onClose={onClose} title={site.name || "(ไม่มีชื่อ)"}
       sub={(code ? code : "ไม่มี station code") + " · " + fsNum(site.capacity_kw, 2) + " kWp" + (site.address ? " · " + site.address : "")}
-      right={<div style={{ display: "flex", gap: 6, alignItems: "center", flexWrap: "wrap" }}><FsSrcChip s={site} /><FsPill k={hk} /></div>}>
+      right={<div style={{ display: "flex", gap: 6, alignItems: "center", flexWrap: "wrap" }}><FsSrcChip s={site} /><FsPill k={hk} />
+        {code && <button type="button" className="btn btn-sm" onClick={() => setExporting(true)} title="ส่งออก Excel ของไซต์นี้"
+          style={{ display: "inline-flex", alignItems: "center", gap: 5 }}><Icon name="download" size={13} />Excel</button>}</div>}>
 
       {!code && (
         <div style={{ display: "flex", alignItems: "center", gap: 9, padding: "11px 13px", borderRadius: "var(--r-tile)", background: "var(--surface2)" }}>
@@ -769,87 +1003,122 @@ function FsSiteModal({ site, sites, medMonth, jobs, canWrite, currentUser, onClo
       )}
 
       {code && (
-        <div>
-          <div className="kpi-grid" style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr 1fr" : "repeat(4, 1fr)", gap: 10 }}>
-            <FsHero label="กำลังผลิตตอนนี้" value={fsFmt(em.pvKw, 2)} unit="kW"
-              extra={cap > 0 && em.pvKw != null ? <div style={{ marginTop: 6 }}><FsMeter value={em.pvKw} max={cap} /></div> : null}
-              sub={cap > 0 && em.pvKw != null ? Math.round((em.pvKw / cap) * 100) + "% ของ " + fsFmt(cap, 2) + " kWp" : em.hasInv ? null : "ยังไม่มีข้อมูลอินเวอร์เตอร์"} />
-            <FsHero label="ผลิตวันนี้" value={fsFmt(dayK, 1)} unit="kWh"
-              sub={[cap > 0 && dayK != null ? fsFmt(dayK / cap, 2) + " kWh/kWp" : null, avg30 && dayK != null ? Math.round((dayK / avg30) * 100) + "% ของเฉลี่ย 30 วัน" : null].filter(Boolean).join(" · ") || null} />
-            <FsHero label="ผลิตเดือนนี้" value={fsFmt(monK, 0)} unit="kWh"
-              sub={monK != null ? "เฉลี่ย " + fsFmt(monK / domDays, 1) + " kWh/วัน" + (cap > 0 ? " · " + fsFmt(monK / cap, 0) + " kWh/kWp" : "") : null} />
-            <FsHero label="ผลิตสะสม" value={tot[0]} unit={tot[1]}
-              sub={totK != null ? "ลด CO₂ ได้ราว " + fsFmt((totK * FS_GRID_EF) / 1000, 1) + " ตัน" : null} />
-          </div>
-          <div style={{ fontSize: 11, color: staleH > 3 ? "var(--tint-amber-tx)" : "var(--text-3)", marginTop: 7, fontWeight: staleH > 3 ? 700 : 500 }}>
-            {site.kpi_updated_at ? "ข้อมูลผลิต ณ " + fsWhen(site.kpi_updated_at) + " (" + fsAgo(site.kpi_updated_at) + ")" + (staleH > 3 ? " — ค้างเกิน 3 ชม." : "") + " · ซิงก์ทุกชั่วโมง" : "ยังไม่มีข้อมูลผลิต — รอซิงก์รอบถัดไป"}
-          </div>
+        <div style={{ background: "var(--surface)", boxShadow: "var(--shadow-sm)", borderRadius: "var(--r-tile)", padding: isMobile ? 8 : 10 }}>
+          {window.FsScene ? <window.FsScene em={em} site={site} compact={isMobile}
+            at={site.kpi_updated_at ? "ข้อมูล ณ " + new Date(site.kpi_updated_at).toLocaleTimeString("th-TH", { timeStyle: "short", timeZone: "Asia/Bangkok" }) + " · " + fsAgo(site.kpi_updated_at) : "ยังไม่มีข้อมูลผลิต"} />
+            : <FsEnergyFlow em={em} />}
+          {staleH > 3 && <div style={{ fontSize: 11.5, color: "var(--tint-amber-tx)", fontWeight: 700, marginTop: 7 }}>ข้อมูลค้างเกิน 3 ชม. — ภาพแสดงค่าล่าสุดที่ได้รับ</div>}
         </div>
       )}
 
-      {code && <FsHistoryCard site={site} isMobile={isMobile} />}
-      <FsEnergyCard em={em} isMobile={isMobile} />
+      {code && (
+        <div className="kpi-grid" style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr 1fr" : "repeat(4, 1fr)", gap: 10 }}>
+          <div style={{ background: "var(--surface)", boxShadow: "var(--shadow-card)", borderRadius: "var(--r-tile)", padding: "14px 10px 12px" }}>
+            <FsGauge frac={cap > 0 && pvNow != null ? pvNow / cap : null} value={fsFmt(pvNow, pvNow >= 100 ? 0 : 1)} unit="kW" label="กำลังผลิตตอนนี้"
+              sub={cap > 0 && pvNow != null ? Math.round((pvNow / cap) * 100) + "% ของ " + fsFmt(cap, 0) + " kWp" : em.hasInv ? null : "ไม่มีข้อมูลอินเวอร์เตอร์"} color="var(--fs-sun)" size={isMobile ? 120 : 150} />
+          </div>
+          <div style={{ background: "var(--surface)", boxShadow: "var(--shadow-card)", borderRadius: "var(--r-tile)", padding: "14px 10px 12px" }}>
+            <FsGauge frac={dayK == null ? null : avg30 ? dayK / (avg30 * 1.5) : cap > 0 ? dayK / cap / 6 : null} value={fsFmt(dayK, dayK >= 1000 ? 0 : 1)} unit="kWh" label="ผลิตวันนี้"
+              sub={avg30 && dayK != null ? Math.round((dayK / avg30) * 100) + "% ของเฉลี่ย 30 วัน" : cap > 0 && dayK != null ? fsFmt(dayK / cap, 2) + " kWh/kWp" : null} size={isMobile ? 120 : 150} />
+          </div>
+          <FsHero label="ผลิตเดือนนี้" value={monK == null ? "–" : <FsCountUp value={monK} digits={0} />} unit="kWh"
+            sub={monK != null ? "เฉลี่ย " + fsFmt(monK / domDays, 1) + " kWh/วัน" + (cap > 0 ? " · " + fsFmt(monK / cap / domDays, 2) + " kWh/kWp/วัน" : "") : null} />
+          <FsHero label="ผลิตสะสม" value={totK == null ? "–" : <FsCountUp value={totK >= 10000 ? totK / 1000 : totK} digits={1} />} unit={tot[1]}
+            sub={co2 != null ? "ลด CO₂ " + fsFmt(co2, 1) + " ตัน ≈ ต้นไม้ " + fsFmt((co2 * 1000) / FS_TREE_KG, 0) + " ต้นดูดซับใน 1 ปี" : null} />
+        </div>
+      )}
+
+      {window.Segmented && (
+        <div style={{ display: "flex", overflowX: "auto" }}>
+          <window.Segmented value={tab} onChange={setTab} options={[
+            { value: "over", label: "ภาพรวม" },
+            { value: "dev", label: "อุปกรณ์" + (devs.length ? " " + devs.length.toLocaleString("th-TH") : "") },
+            { value: "info", label: "ข้อมูลและงาน" + (linked.length ? " (" + linked.length + ")" : "") }]} />
+        </div>
+      )}
+
+      {tab === "over" && code && <FsHistoryCard site={site} isMobile={isMobile} />}
+      {tab === "over" && <FsEnergyCard em={em} isMobile={isMobile} />}
+      {tab === "over" && !code && <div style={{ fontSize: 12.5, color: "var(--text-3)", padding: "6px 2px" }}>ผูก station code ก่อนจึงจะมีข้อมูลการผลิต</div>}
 
       {/* อุปกรณ์ เรียง อินเวอร์เตอร์ → มิเตอร์ → แบต → อื่น ๆ */}
-      <FsCard title="อุปกรณ์" sub={devs.length ? devs.length.toLocaleString("th-TH") + " ชิ้น" : (code ? "ยังไม่มีข้อมูลอุปกรณ์ — รอซิงก์รอบถัดไป" : "")}>
-        {!devs.length ? <div style={{ fontSize: 12.5, color: "var(--text-3)" }}>–</div> : (
-          <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-            {devGroups.single.map((d) => <FsDeviceCard key={d.id} d={d} em={em} isMobile={isMobile} />)}
-            {devGroups.bulk.map((g) => <FsDevGroup key={g.type} type={g.type} list={g.list} />)}
-          </div>
-        )}
-      </FsCard>
-
-      <FsCard title="ข้อมูลไซต์">
-        <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr 1fr", gap: 9 }}>
-          <FsSpec label="Station code" value={code || "–"} mono />
-          <FsSpec label="แหล่งที่มา" value={site.source === "manual" ? "เพิ่มเองในเว็บ" : "FusionSolar"} />
-          <FsSpec label="ซิงก์รายชื่อล่าสุด" value={fsWhen(site.last_synced_at)} />
-        </div>
-        {site.address && <div style={{ fontSize: 12.5, color: "var(--text-2)", marginTop: 10 }}>{site.address}</div>}
-        {site.manual_saved && (site.manual_name || site.manual_address) && (
-          <div style={{ fontSize: 11.5, color: "var(--text-3)", marginTop: 8 }}>
-            ค่าที่กรอกเองก่อนผูก FusionSolar: {[site.manual_name, site.manual_address, site.manual_capacity_kw ? site.manual_capacity_kw + " kWp" : ""].filter(Boolean).join(" · ")}
-          </div>
-        )}
-      </FsCard>
-
-      {/* งานในเว็บของไซต์นี้ — อ่านจากใบงานตามเดิม ไม่แก้ใบงาน */}
-      <FsCard title="งานในเว็บ" sub={linked.length ? linked.length + " งาน" : "ยังไม่ได้ผูกงาน"}>
-        <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-          {linked.map((id) => {
-            const j = jobById[id];
-            const om = (omVal || {})[id];
-            return (
-              <div key={id} style={{ display: "flex", gap: 10, alignItems: "center", padding: "10px 12px", borderRadius: "var(--r-tile)",
-                background: "var(--surface)", boxShadow: "var(--shadow-sm)", flexWrap: "wrap" }}>
-                <div style={{ flex: "1 1 220px", minWidth: 0 }}>
-                  <div style={{ fontSize: 11, fontFamily: "var(--mono)", color: "var(--text-3)" }}>{(j && j.code) || id}</div>
-                  <div style={{ fontSize: 13.5, fontWeight: 700, color: "var(--text-1)" }}>{j ? j.name || "(ไม่มีชื่องาน)" : "ไม่พบใบงาน (ถูกลบ/ไม่มีสิทธิ์ดู)"}</div>
-                  {j && <div style={{ fontSize: 11.5, color: "var(--text-3)" }}>
-                    {[stageTH(j.stage), j.kw ? j.kw + " kWp" : "", j.address].filter(Boolean).join(" · ")}
-                  </div>}
-                </div>
-                {j && onOpenJob && <button className="btn btn-sm" onClick={() => onOpenJob(id)}>เปิดใบงาน</button>}
-                {om && onOpenOm && <button className="btn btn-sm" onClick={() => onOpenOm(id)}>ทะเบียน O&M</button>}
-                {canWrite && <button className="btn btn-sm btn-dngr" onClick={() => unlink(id)}>เลิกผูก</button>}
-              </div>
-            );
-          })}
-          {canWrite && window.Dropdown && (
-            <div style={{ maxWidth: 420 }}>
-              <window.Dropdown value="" onChange={link} options={jobOpts} placeholder="+ ผูกงานกับไซต์นี้" wrap />
+      {tab === "dev" && (
+        <FsCard title="อุปกรณ์" sub={devs.length ? devs.length.toLocaleString("th-TH") + " ชิ้น" : (code ? "ยังไม่มีข้อมูลอุปกรณ์ — รอซิงก์รอบถัดไป" : "")}>
+          {!devs.length ? <div style={{ fontSize: 12.5, color: "var(--text-3)" }}>–</div> : (
+            <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+              {devGroups.single.map((d) => <FsDeviceCard key={d.id} d={d} em={em} isMobile={isMobile} />)}
+              {devGroups.bulk.map((g) => <FsDevGroup key={g.type} type={g.type} list={g.list} />)}
             </div>
           )}
-        </div>
-      </FsCard>
+        </FsCard>
+      )}
 
-      <FsCard title="หมายเหตุ">
-        <textarea value={note} disabled={!canWrite} onChange={(e) => setNote(e.target.value)} rows={2}
-          onBlur={() => { if ((site.note || "") !== note) fsPatchSite(site.id, { note: note || null }); }}
-          placeholder="บันทึกของทีมเกี่ยวกับไซต์นี้ (ซิงก์ไม่เขียนทับ)"
-          style={{ width: "100%", padding: "10px 12px", borderRadius: "var(--r-tile)", fontFamily: "inherit", fontSize: 13, resize: "vertical", boxSizing: "border-box" }} />
-      </FsCard>
+      {tab === "info" && (
+        <FsCard title="ข้อมูลไซต์">
+          <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr 1fr" : "repeat(4, 1fr)", gap: 9 }}>
+            <FsSpec label="Station code" value={code || "–"} mono />
+            <FsSpec label="แหล่งที่มา" value={site.source === "manual" ? "เพิ่มเองในเว็บ" : "FusionSolar"} />
+            <FsSpec label="เชื่อมกริดเมื่อ" value={site.grid_date && Date.parse(site.grid_date) ? new Date(site.grid_date).toLocaleDateString("th-TH", { dateStyle: "medium" }) : "–"} />
+            <FsSpec label="ซิงก์รายชื่อล่าสุด" value={fsWhen(site.last_synced_at)} />
+          </div>
+          {(site.address || fsGeoOk(site)) && (
+            <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap", marginTop: 10 }}>
+              {site.address && <div style={{ flex: "1 1 260px", fontSize: 12.5, color: "var(--text-2)" }}>{site.address}</div>}
+              {fsGeoOk(site) && (
+                <a className="btn btn-sm" href={"https://www.google.com/maps?q=" + site.lat + "," + site.lng} target="_blank" rel="noopener noreferrer"
+                  style={{ display: "inline-flex", alignItems: "center", gap: 5, textDecoration: "none" }}><Icon name="pin" size={13} />เปิดแผนที่</a>
+              )}
+            </div>
+          )}
+          {site.manual_saved && (site.manual_name || site.manual_address) && (
+            <div style={{ fontSize: 11.5, color: "var(--text-3)", marginTop: 8 }}>
+              ค่าที่กรอกเองก่อนผูก FusionSolar: {[site.manual_name, site.manual_address, site.manual_capacity_kw ? site.manual_capacity_kw + " kWp" : ""].filter(Boolean).join(" · ")}
+            </div>
+          )}
+        </FsCard>
+      )}
+
+      {/* งานในเว็บของไซต์นี้ — อ่านจากใบงานตามเดิม ไม่แก้ใบงาน */}
+      {tab === "info" && (
+        <FsCard title="งานในเว็บ" sub={linked.length ? linked.length + " งาน" : "ยังไม่ได้ผูกงาน"}>
+          <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+            {linked.map((id) => {
+              const j = jobById[id];
+              const om = (omVal || {})[id];
+              return (
+                <div key={id} style={{ display: "flex", gap: 10, alignItems: "center", padding: "10px 12px", borderRadius: "var(--r-tile)",
+                  background: "var(--surface)", boxShadow: "var(--shadow-sm)", flexWrap: "wrap" }}>
+                  <div style={{ flex: "1 1 220px", minWidth: 0 }}>
+                    <div style={{ fontSize: 11, fontFamily: "var(--mono)", color: "var(--text-3)" }}>{(j && j.code) || id}</div>
+                    <div style={{ fontSize: 13.5, fontWeight: 700, color: "var(--text-1)" }}>{j ? j.name || "(ไม่มีชื่องาน)" : "ไม่พบใบงาน (ถูกลบ/ไม่มีสิทธิ์ดู)"}</div>
+                    {j && <div style={{ fontSize: 11.5, color: "var(--text-3)" }}>
+                      {[stageTH(j.stage), j.kw ? j.kw + " kWp" : "", j.address].filter(Boolean).join(" · ")}
+                    </div>}
+                  </div>
+                  {j && onOpenJob && <button className="btn btn-sm" onClick={() => onOpenJob(id)}>เปิดใบงาน</button>}
+                  {om && onOpenOm && <button className="btn btn-sm" onClick={() => onOpenOm(id)}>ทะเบียน O&M</button>}
+                  {canWrite && <button className="btn btn-sm btn-dngr" onClick={() => unlink(id)}>เลิกผูก</button>}
+                </div>
+              );
+            })}
+            {canWrite && window.Dropdown && (
+              <div style={{ maxWidth: 420 }}>
+                <window.Dropdown value="" onChange={link} options={jobOpts} placeholder="+ ผูกงานกับไซต์นี้" wrap />
+              </div>
+            )}
+          </div>
+        </FsCard>
+      )}
+
+      {tab === "info" && (
+        <FsCard title="หมายเหตุ">
+          <textarea value={note} disabled={!canWrite} onChange={(e) => setNote(e.target.value)} rows={2}
+            onBlur={() => { if ((site.note || "") !== note) fsPatchSite(site.id, { note: note || null }); }}
+            placeholder="บันทึกของทีมเกี่ยวกับไซต์นี้ (ซิงก์ไม่เขียนทับ)"
+            style={{ width: "100%", padding: "10px 12px", borderRadius: "var(--r-tile)", fontFamily: "inherit", fontSize: 13, resize: "vertical", boxSizing: "border-box" }} />
+        </FsCard>
+      )}
+      {exporting && <FsExportDialog site={site} devs={devs} onClose={() => setExporting(false)} />}
     </FsModal>
   );
 }
