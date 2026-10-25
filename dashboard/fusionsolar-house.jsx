@@ -183,10 +183,12 @@ function FsHwIcon({ name, size, color }) {
     </svg>
   );
 }
-function FsHwCard({ icon, color, on, title, value, sub, style }) {
+/* flip = ไอคอนอยู่ขวา ข้อความชิดขวา (การ์ดฝั่งซ้าย — ผู้ใช้ขอให้ไอคอนอยู่ตรงที่ท่อต่อเข้าการ์ด) */
+function FsHwCard({ icon, color, on, title, value, sub, style, flip }) {
   return (
     <div style={Object.assign({ minWidth: 0, padding: "10px 12px", borderRadius: 14, background: "color-mix(in srgb, var(--surface) 88%, transparent)",
-      boxShadow: "var(--shadow-card)", backdropFilter: "blur(8px)", WebkitBackdropFilter: "blur(8px)", display: "flex", gap: 10, alignItems: "center" }, style)}>
+      boxShadow: "var(--shadow-card)", backdropFilter: "blur(8px)", WebkitBackdropFilter: "blur(8px)", display: "flex", gap: 10, alignItems: "center",
+      flexDirection: flip ? "row-reverse" : "row", textAlign: flip ? "right" : "left" }, style)}>
       <span style={{ width: 34, height: 34, borderRadius: 17, display: "grid", placeItems: "center", flexShrink: 0,
         background: on ? "color-mix(in srgb, " + color + " 16%, var(--surface))" : "var(--surface2)" }}>
         <FsHwIcon name={icon} size={17} color={on ? color : "var(--text-3)"} />
@@ -293,11 +295,11 @@ function FsHouseFlow({ em, site, compact, at }) {
           <React.Fragment>
             <svg width={sz.w} height={sz.h} style={{ position: "absolute", inset: 0, pointerEvents: "none" }} aria-hidden="true">
               {all.map((c) => (
-                <FsHwWire key={c.k} a={[c.side === "L" ? c.x + CW - 8 : c.x + 8, c.y]} b={pt(c.pt)}
+                <FsHwWire key={c.k} a={[c.side === "L" ? c.x + CW - 2 : c.x + 2, c.y]} b={pt(c.pt)}
                   color={c.color} on={c.on} rel={rel(c.kw)} rev={c.out} calm={calm} />
               ))}
             </svg>
-            {all.map((c) => <FsHwCard key={c.k} {...c} style={{ position: "absolute", left: c.x, top: c.y, width: CW, transform: "translateY(-50%)" }} />)}
+            {all.map((c) => <FsHwCard key={c.k} {...c} flip={c.side === "L"} style={{ position: "absolute", left: c.x, top: c.y, width: CW, transform: "translateY(-50%)" }} />)}
           </React.Fragment>
         );
       }} />

@@ -310,7 +310,8 @@ function FsHwCard({
   title,
   value,
   sub,
-  style
+  style,
+  flip
 }) {
   return React.createElement("div", {
     style: Object.assign({
@@ -323,7 +324,9 @@ function FsHwCard({
       WebkitBackdropFilter: "blur(8px)",
       display: "flex",
       gap: 10,
-      alignItems: "center"
+      alignItems: "center",
+      flexDirection: flip ? "row-reverse" : "row",
+      textAlign: flip ? "right" : "left"
     }, style)
   }, React.createElement("span", {
     style: {
@@ -617,7 +620,7 @@ function FsHouseFlow({
         "aria-hidden": "true"
       }, all.map(c => React.createElement(FsHwWire, {
         key: c.k,
-        a: [c.side === "L" ? c.x + CW - 8 : c.x + 8, c.y],
+        a: [c.side === "L" ? c.x + CW - 2 : c.x + 2, c.y],
         b: pt(c.pt),
         color: c.color,
         on: c.on,
@@ -627,6 +630,7 @@ function FsHouseFlow({
       }))), all.map(c => React.createElement(FsHwCard, _extends({
         key: c.k
       }, c, {
+        flip: c.side === "L",
         style: {
           position: "absolute",
           left: c.x,
