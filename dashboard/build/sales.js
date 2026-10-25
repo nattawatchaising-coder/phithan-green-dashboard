@@ -3542,12 +3542,18 @@ function SalesBoardView({
     if (la !== lb) return la - lb;
     return String(a.nextFollow || "9999-99-99").localeCompare(String(b.nextFollow || "9999-99-99"));
   }), [pool]);
+  const startDrag = (e, lead) => {
+    setDrag(lead.id);
+    e.dataTransfer.effectAllowed = "move";
+    if (window.pgDragLift) window.pgDragLift(e, e.currentTarget, '.bd-card[data-lid="' + lead.id + '"]');
+  };
   const onDrop = to => {
     const l = drag && pool.find(x => x.id === drag);
     setDrag(null);
     setOver(null);
     if (!l) return;
     const from = salesStageKey(l);
+    if ((from === to || to === "won") && window.pgDragSettle) window.pgDragSettle();
     if (from === to) return;
     if (to === "won") {
       window.askConfirm({
@@ -3561,6 +3567,7 @@ function SalesBoardView({
       });
       return;
     }
+    if (window.pgDragDrop) window.pgDragDrop();
     onPatchLead(l.id, salesStagePatch(to));
   };
   const head = React.createElement("div", {
@@ -3706,6 +3713,11 @@ function SalesBoardView({
       flex: 1
     }
   }, head, React.createElement("div", {
+    onDragEnd: () => {
+      setDrag(null);
+      setOver(null);
+    },
+    className: "fl-board",
     style: {
       display: "flex",
       gap: 14,
@@ -3717,90 +3729,33 @@ function SalesBoardView({
   }, SALES_STAGES.map(c => {
     const col = byCol(c.key);
     const ok = !!drag;
-    const isOver = over === c.key && ok;
     const sum = col.reduce((s, l) => s + (+l.expValue || 0), 0);
-    return React.createElement("div", {
+    return React.createElement(FlCol, {
       key: c.key,
+      col: c,
+      count: col.length,
+      isOver: over === c.key && ok,
+      sub: sum > 0 ? "มูลค่ารวม ฿" + fmtBaht(sum) : null,
       onDragOver: e => {
         if (!ok) return;
         e.preventDefault();
         setOver(c.key);
       },
-      onDragLeave: () => setOver(o => o === c.key ? null : o),
-      onDrop: () => onDrop(c.key),
-      className: "bd-col",
-      style: {
-        width: 262,
-        flexShrink: 0,
-        display: "flex",
-        flexDirection: "column",
-        background: isOver ? c.soft : null,
-        borderColor: isOver ? c.color : null
+      onDragLeave: e => {
+        if (e.currentTarget.contains(e.relatedTarget)) return;
+        setOver(o => o === c.key ? null : o);
+      },
+      onDrop: () => {
+        if (ok) onDrop(c.key);
       }
-    }, React.createElement("div", {
-      className: "hd"
-    }, React.createElement("div", {
-      style: {
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "space-between",
-        gap: 8
-      }
-    }, React.createElement("span", {
-      style: {
-        display: "flex",
-        alignItems: "center",
-        gap: 8,
-        minWidth: 0
-      }
-    }, React.createElement("span", {
-      style: {
-        width: 7,
-        height: 7,
-        borderRadius: "var(--r-pill)",
-        background: c.color,
-        flexShrink: 0
-      }
-    }), React.createElement("span", {
-      style: {
-        fontSize: 12,
-        fontWeight: 700,
-        color: "var(--text-2)",
-        whiteSpace: "nowrap",
-        overflow: "hidden",
-        textOverflow: "ellipsis"
-      }
-    }, c.th)), React.createElement("span", {
-      style: {
-        fontFamily: "var(--display)",
-        fontSize: 15,
-        fontWeight: 700,
-        letterSpacing: "-.02em",
-        color: col.length ? "var(--text-1)" : "var(--text-3)",
-        fontVariantNumeric: "tabular-nums"
-      }
-    }, col.length)), sum > 0 && React.createElement("div", {
-      style: {
-        fontSize: 10.5,
-        color: "var(--text-3)",
-        marginTop: 3,
-        fontVariantNumeric: "tabular-nums"
-      }
-    }, "\u0E21\u0E39\u0E25\u0E04\u0E48\u0E32\u0E23\u0E27\u0E21 \u0E3F", fmtBaht(sum))), React.createElement("div", {
-      className: "bd"
     }, col.map(l => React.createElement(SalesCard, {
       key: l.id,
       lead: l,
       quotes: quotes,
       onOpen: onOpenLead,
       dragging: drag === l.id,
-      onDragStart: (e, lead) => {
-        setDrag(lead.id);
-        e.dataTransfer.effectAllowed = "move";
-      }
-    })), col.length === 0 && React.createElement("div", {
-      className: "empty"
-    }, isOver ? "วางที่นี่" : "ว่าง")));
+      onDragStart: startDrag
+    })));
   })));
 }
 const SALES_MON_TH = ["มกราคม", "กุมภาพันธ์", "มีนาคม", "เมษายน", "พฤษภาคม", "มิถุนายน", "กรกฎาคม", "สิงหาคม", "กันยายน", "ตุลาคม", "พฤศจิกายน", "ธันวาคม"];

@@ -2195,11 +2195,19 @@ function SalesBoardView({ leads, quotes, search, currentUser, onOpenLead, onPatc
       return String(a.nextFollow || "9999-99-99").localeCompare(String(b.nextFollow || "9999-99-99"));
     }), [pool]);
 
+  /* การ์ดลอยตามเมาส์ หยิบ/เอียง/บินลงที่ใหม่ — ระบบเดียวกับบอร์ดงานติดตั้ง (pg-motion.js) · ลดการเคลื่อนไหวอยู่ = ภาพลากเดิมของเบราว์เซอร์ */
+  const startDrag = (e, lead) => {
+    setDrag(lead.id);
+    e.dataTransfer.effectAllowed = "move";
+    if (window.pgDragLift) window.pgDragLift(e, e.currentTarget, '.bd-card[data-lid="' + lead.id + '"]');
+  };
   const onDrop = (to) => {
     const l = drag && pool.find((x) => x.id === drag);
     setDrag(null); setOver(null);
-    if (!l) return;
+    if (!l) return;   // ไม่มีใครรับ — สำเนาที่ลอยอยู่บินกลับที่เดิมเอง
     const from = salesStageKey(l);
+    // วางที่เดิม / รอยืนยันปิดการขาย — บินกลับที่เดิมก่อน ไม่ไปค้างรอ
+    if ((from === to || to === "won") && window.pgDragSettle) window.pgDragSettle();
     if (from === to) return;
     if (to === "won") {
       window.askConfirm({
@@ -2209,6 +2217,7 @@ function SalesBoardView({ leads, quotes, search, currentUser, onOpenLead, onPatc
       }).then((ok) => { if (ok) onPatchLead(l.id, salesStagePatch(to)); });
       return;
     }
+    if (window.pgDragDrop) window.pgDragDrop();   // บินลงคอลัมน์ใหม่ การ์ดในคอลัมน์เดิมเลื่อนปิดช่อง
     onPatchLead(l.id, salesStagePatch(to));
   };
 
@@ -2272,41 +2281,27 @@ function SalesBoardView({ leads, quotes, search, currentUser, onOpenLead, onPatc
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 12, minHeight: 0, flex: 1 }}>
       {head}
-      <div style={{ display: "flex", gap: 14, overflowX: "auto", paddingBottom: 12, minHeight: 0, flex: 1 }}>
+      {/* ปล่อยนอกคอลัมน์ = เลิกลาก ล้างสถานะ (ระหว่างลากทั้งหน้ารับ drop ไว้ กันเคอร์เซอร์กากบาทแดง — ดู pg-motion.js) */}
+      <div onDragEnd={() => { setDrag(null); setOver(null); }} className="fl-board"
+        style={{ display: "flex", gap: 14, overflowX: "auto", paddingBottom: 12, minHeight: 0, flex: 1 }}>
         {SALES_STAGES.map((c) => {
           const col = byCol(c.key);
           const ok = !!drag;
-          const isOver = over === c.key && ok;
           const sum = col.reduce((s, l) => s + (+l.expValue || 0), 0);
+          /* เปลือกคอลัมน์ตัวเดียวกับบอร์ดงานติดตั้ง (FlCol ใน views-flow.jsx) — หน้าตา/การลากเหมือนกันทุกบอร์ด */
           return (
-            <div key={c.key}
+            <FlCol key={c.key} col={c} count={col.length} isOver={over === c.key && ok}
+              sub={sum > 0 ? "มูลค่ารวม ฿" + fmtBaht(sum) : null}
               onDragOver={(e) => { if (!ok) return; e.preventDefault(); setOver(c.key); }}
-              onDragLeave={() => setOver((o) => (o === c.key ? null : o))}
-              onDrop={() => onDrop(c.key)}
-              className="bd-col"
-              style={{ width: 262, flexShrink: 0, display: "flex", flexDirection: "column",
-                background: isOver ? c.soft : null, borderColor: isOver ? c.color : null }}>
-              <div className="hd">
-                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
-                  <span style={{ display: "flex", alignItems: "center", gap: 8, minWidth: 0 }}>
-                    <span style={{ width: 7, height: 7, borderRadius: "var(--r-pill)", background: c.color, flexShrink: 0 }} />
-                    {/* ไม่ถ่างตัวอักษร — ชื่อขั้นเป็นภาษาไทย การถ่างจะดันสระกับวรรณยุกต์หลุดตำแหน่ง */}
-                    <span style={{ fontSize: 12, fontWeight: 700, color: "var(--text-2)",
-                      whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{c.th}</span>
-                  </span>
-                  <span style={{ fontFamily: "var(--display)", fontSize: 15, fontWeight: 700, letterSpacing: "-.02em",
-                    color: col.length ? "var(--text-1)" : "var(--text-3)", fontVariantNumeric: "tabular-nums" }}>{col.length}</span>
-                </div>
-                {sum > 0 && <div style={{ fontSize: 10.5, color: "var(--text-3)", marginTop: 3, fontVariantNumeric: "tabular-nums" }}>มูลค่ารวม ฿{fmtBaht(sum)}</div>}
-              </div>
-              <div className="bd">
-                {col.map((l) => (
-                  <SalesCard key={l.id} lead={l} quotes={quotes} onOpen={onOpenLead} dragging={drag === l.id}
-                    onDragStart={(e, lead) => { setDrag(lead.id); e.dataTransfer.effectAllowed = "move"; }} />
-                ))}
-                {col.length === 0 && <div className="empty">{isOver ? "วางที่นี่" : "ว่าง"}</div>}
-              </div>
-            </div>
+              onDragLeave={(e) => {
+                if (e.currentTarget.contains(e.relatedTarget)) return;   // ข้ามการ์ดลูกในคอลัมน์ — ไม่ใช่ออกจริง (กันกรอบกระพริบ)
+                setOver((o) => (o === c.key ? null : o));
+              }}
+              onDrop={() => { if (ok) onDrop(c.key); }}>
+              {col.map((l) => (
+                <SalesCard key={l.id} lead={l} quotes={quotes} onOpen={onOpenLead} dragging={drag === l.id} onDragStart={startDrag} />
+              ))}
+            </FlCol>
           );
         })}
       </div>

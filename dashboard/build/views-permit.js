@@ -288,10 +288,17 @@ function PermitQueueView({
     const from = permitColOf(j);
     if (!canDrop(from, to)) return;
     if (to === "rejected") {
+      if (window.pgDragSettle) window.pgDragSettle();
       openReview(j.id);
       return;
     }
+    if (window.pgDragDrop) window.pgDragDrop();
     onPatchPermit(j.id, permitMovePatch(from, to, p, currentUser));
+  };
+  const startDrag = (e, job) => {
+    setDrag(job.id);
+    e.dataTransfer.effectAllowed = "move";
+    if (window.pgDragLift) window.pgDragLift(e, e.currentTarget, '.bd-card[data-jid="' + job.id + '"]');
   };
   const cardOpen = j => {
     onOpenJob && onOpenJob(j.id);
@@ -386,6 +393,7 @@ function PermitQueueView({
         setDrag(null);
         setOver(null);
       },
+      className: "fl-board",
       style: {
         display: "flex",
         gap: 14,
@@ -398,84 +406,23 @@ function PermitQueueView({
       const col = byCol(c.key);
       const dragging = drag ? jobs.find(x => x.id === drag) || null : null;
       const ok = dragging ? canDrop(permitColOf(dragging), c.key) : false;
-      const isOver = over === c.key && ok;
-      return React.createElement("div", {
+      return React.createElement(FlCol, {
         key: c.key,
+        col: c,
+        count: col.length,
+        isOver: over === c.key && ok,
+        dimmed: !!drag && !ok,
         onDragOver: e => {
           if (!ok) return;
           e.preventDefault();
           setOver(c.key);
         },
-        onDragLeave: () => setOver(o => o === c.key ? null : o),
-        onDrop: () => onDrop(c.key),
-        style: {
-          width: 268,
-          flexShrink: 0,
-          display: "flex",
-          flexDirection: "column",
-          borderRadius: "var(--r-card)",
-          background: isOver ? c.soft : "var(--surface2)",
-          border: "none",
-          boxShadow: isOver ? "inset 0 0 0 1px " + c.color : "var(--shadow-sm)",
-          opacity: drag && !ok ? .55 : 1,
-          transition: "background .15s, border-color .15s, opacity .15s"
-        }
-      }, React.createElement("div", {
-        style: {
-          padding: "13px 14px",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "space-between",
-          borderBottom: "1px solid var(--divider)",
-          position: "sticky",
-          top: 0,
-          zIndex: 1,
-          background: isOver ? c.soft : "var(--surface2)",
-          borderRadius: "17px 17px 0 0"
-        }
-      }, React.createElement("span", {
-        style: {
-          display: "flex",
-          alignItems: "center",
-          gap: 8,
-          minWidth: 0
-        }
-      }, React.createElement("span", {
-        style: {
-          width: 7,
-          height: 7,
-          borderRadius: "var(--r-pill)",
-          background: c.color,
-          flexShrink: 0
-        }
-      }), React.createElement("span", {
-        style: {
-          fontSize: 11.5,
-          fontWeight: 700,
-          letterSpacing: ".05em",
-          color: "var(--text-2)",
-          whiteSpace: "nowrap",
-          overflow: "hidden",
-          textOverflow: "ellipsis"
-        }
-      }, c.th)), React.createElement("span", {
-        style: {
-          fontFamily: "var(--display)",
-          fontSize: 15,
-          fontWeight: 700,
-          letterSpacing: "-.02em",
-          color: col.length ? "var(--text-1)" : "var(--text-3)",
-          fontVariantNumeric: "tabular-nums"
-        }
-      }, col.length)), React.createElement("div", {
-        style: {
-          padding: 11,
-          display: "flex",
-          flexDirection: "column",
-          gap: 11,
-          overflowY: "auto",
-          flex: 1,
-          minHeight: 80
+        onDragLeave: e => {
+          if (e.currentTarget.contains(e.relatedTarget)) return;
+          setOver(o => o === c.key ? null : o);
+        },
+        onDrop: () => {
+          if (ok) onDrop(c.key);
         }
       }, col.map(j => React.createElement(PermitCard, {
         key: j.id,
@@ -483,20 +430,8 @@ function PermitQueueView({
         onOpen: cardOpen,
         dragging: drag === j.id,
         draggable: !!PERMIT_MOVES[permitColOf(j)],
-        onDragStart: (e, job) => {
-          setDrag(job.id);
-          e.dataTransfer.effectAllowed = "move";
-        }
-      })), col.length === 0 && React.createElement("div", {
-        style: {
-          padding: "20px 0",
-          textAlign: "center",
-          fontSize: 12,
-          color: "var(--text-3)",
-          border: "1.5px dashed var(--border-strong)",
-          borderRadius: "var(--r-chip)"
-        }
-      }, isOver ? "วางที่นี่" : "ว่าง")));
+        onDragStart: startDrag
+      })));
     })), review);
   }
   return React.createElement("div", {

@@ -162,12 +162,19 @@ function PermitQueueView({ jobs, search, stock, onOpenJob, onOpenReview, onPatch
   const onDrop = (to) => {
     const j = drag && jobs.find((x) => x.id === drag);
     setDrag(null); setOver(null);
-    if (!j) return;
+    if (!j) return;   // ไม่มีใครรับ — สำเนาที่ลอยอยู่บินกลับที่เดิมเอง (pg-motion.js)
     const p = j.permit || {};
     const from = permitColOf(j);
     if (!canDrop(from, to)) return;
-    if (to === "rejected") { openReview(j.id); return; }   // ตีกลับต้องมีเหตุผล — เปิดการ์ดให้พิมพ์
+    if (to === "rejected") { if (window.pgDragSettle) window.pgDragSettle(); openReview(j.id); return; }   // ตีกลับต้องมีเหตุผล — บินกลับที่เดิมแล้วเปิดการ์ดให้พิมพ์
+    if (window.pgDragDrop) window.pgDragDrop();   // บินลงคอลัมน์ใหม่ การ์ดในคอลัมน์เดิมเลื่อนปิดช่อง
     onPatchPermit(j.id, permitMovePatch(from, to, p, currentUser));
+  };
+  /* การ์ดลอยตามเมาส์ หยิบ/เอียง/บินลงที่ใหม่ — ระบบเดียวกับบอร์ดงานติดตั้ง · ลดการเคลื่อนไหวอยู่ = ภาพลากเดิมของเบราว์เซอร์ */
+  const startDrag = (e, job) => {
+    setDrag(job.id);
+    e.dataTransfer.effectAllowed = "move";
+    if (window.pgDragLift) window.pgDragLift(e, e.currentTarget, '.bd-card[data-jid="' + job.id + '"]');
   };
   /* กดการ์ด = เปิด "ใบงาน" ก่อนเสมอ (เหมือนหน้าฐานข้อมูล) ให้เห็นภาพรวมและขั้นตอน
      แล้วค่อยกดเข้าชุดข้อมูลขออนุญาตจากในใบงาน — เดิมกระโดดเข้าชุดข้อมูลเลย เห็นแต่ฟอร์ม */
@@ -209,45 +216,26 @@ function PermitQueueView({ jobs, search, stock, onOpenJob, onOpenReview, onPatch
           </span>
           {modeSwitch}
         </div>
-        <div onDragEnd={() => { setDrag(null); setOver(null); }}
+        <div onDragEnd={() => { setDrag(null); setOver(null); }} className="fl-board"
           style={{ display: "flex", gap: 14, overflowX: "auto", paddingBottom: 12, minHeight: 0, flex: 1 }}>
           {PERMIT_COLS.map((c) => {
             const col = byCol(c.key);
             const dragging = drag ? (jobs.find((x) => x.id === drag) || null) : null;
             const ok = dragging ? canDrop(permitColOf(dragging), c.key) : false;
-            const isOver = over === c.key && ok;
+            /* เปลือกคอลัมน์ตัวเดียวกับบอร์ดงานติดตั้ง (FlCol ใน views-flow.jsx) — การ์ดลอย/หลบ/บินลง (pg-motion.js) อ่านคลาส .bd-col/.bd ของมัน */
             return (
-              <div key={c.key}
+              <FlCol key={c.key} col={c} count={col.length} isOver={over === c.key && ok} dimmed={!!drag && !ok}
                 onDragOver={(e) => { if (!ok) return; e.preventDefault(); setOver(c.key); }}
-                onDragLeave={() => setOver((o) => (o === c.key ? null : o))}
-                onDrop={() => onDrop(c.key)}
-                style={{ width: 268, flexShrink: 0, display: "flex", flexDirection: "column", borderRadius: "var(--r-card)",
-                  background: isOver ? c.soft : "var(--surface2)", border: "none", boxShadow: isOver ? "inset 0 0 0 1px " + c.color : "var(--shadow-sm)",
-                  opacity: drag && !ok ? .55 : 1, transition: "background .15s, border-color .15s, opacity .15s" }}>
-                <div style={{ padding: "13px 14px", display: "flex", alignItems: "center", justifyContent: "space-between",
-                  borderBottom: "1px solid var(--divider)", position: "sticky", top: 0, zIndex: 1,
-                  background: isOver ? c.soft : "var(--surface2)", borderRadius: "17px 17px 0 0" }}>
-                  <span style={{ display: "flex", alignItems: "center", gap: 8, minWidth: 0 }}>
-                    <span style={{ width: 7, height: 7, borderRadius: "var(--r-pill)", background: c.color, flexShrink: 0 }} />
-                    <span style={{ fontSize: 11.5, fontWeight: 700, letterSpacing: ".05em", color: "var(--text-2)",
-                      whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{c.th}</span>
-                  </span>
-                  <span style={{ fontFamily: "var(--display)", fontSize: 15, fontWeight: 700, letterSpacing: "-.02em",
-                    color: col.length ? "var(--text-1)" : "var(--text-3)", fontVariantNumeric: "tabular-nums" }}>{col.length}</span>
-                </div>
-                <div style={{ padding: 11, display: "flex", flexDirection: "column", gap: 11, overflowY: "auto", flex: 1, minHeight: 80 }}>
-                  {col.map((j) => (
-                    <PermitCard key={j.id} job={j} onOpen={cardOpen} dragging={drag === j.id}
-                      draggable={!!PERMIT_MOVES[permitColOf(j)]}
-                      onDragStart={(e, job) => { setDrag(job.id); e.dataTransfer.effectAllowed = "move"; }} />
-                  ))}
-                  {col.length === 0 && (
-                    <div style={{ padding: "20px 0", textAlign: "center", fontSize: 12, color: "var(--text-3)", border: "1.5px dashed var(--border-strong)", borderRadius: "var(--r-chip)" }}>
-                      {isOver ? "วางที่นี่" : "ว่าง"}
-                    </div>
-                  )}
-                </div>
-              </div>
+                onDragLeave={(e) => {
+                  if (e.currentTarget.contains(e.relatedTarget)) return;   // ข้ามการ์ดลูกในคอลัมน์ — ไม่ใช่ออกจริง (กันกรอบกระพริบ)
+                  setOver((o) => (o === c.key ? null : o));
+                }}
+                onDrop={() => { if (ok) onDrop(c.key); }}>
+                {col.map((j) => (
+                  <PermitCard key={j.id} job={j} onOpen={cardOpen} dragging={drag === j.id}
+                    draggable={!!PERMIT_MOVES[permitColOf(j)]} onDragStart={startDrag} />
+                ))}
+              </FlCol>
             );
           })}
         </div>
