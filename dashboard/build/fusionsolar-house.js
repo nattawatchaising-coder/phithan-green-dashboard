@@ -370,7 +370,7 @@ function FsHwCard({
     }
   }, sub)));
 }
-const FS_WIRE_STYLES = ["conduit", "tube", "neon", "wave", "drops"];
+const FS_WIRE_STYLES = ["glass", "conduit", "tube", "neon", "wave", "drops"];
 const FS_ISO = 0.25;
 function fsConduitPath(a, b) {
   const f = q => q[0].toFixed(1) + "," + q[1].toFixed(1);
@@ -438,6 +438,79 @@ function FsHwWire({
     animationPlayState: calm ? "paused" : "running"
   }, extra);
   const S = FS_WIRE_STYLES.includes(sty) ? sty : FS_WIRE_STYLES[0];
+  if (S === "glass") {
+    const cd = fsConduitPath(a, b),
+      e = rev ? a : b;
+    const C = (st, c) => React.createElement("path", {
+      d: cd,
+      fill: "none",
+      className: c,
+      style: Object.assign({
+        strokeLinecap: "round",
+        strokeLinejoin: "round"
+      }, st)
+    });
+    return React.createElement("g", null, C({
+      stroke: "#000",
+      strokeWidth: 15,
+      opacity: 0.14,
+      filter: "blur(2px)",
+      transform: "translate(2px,3px)"
+    }), C({
+      stroke: "color-mix(in srgb, var(--text-1) 28%, transparent)",
+      strokeWidth: 13
+    }), C({
+      stroke: "color-mix(in srgb, var(--surface) 62%, transparent)",
+      strokeWidth: 10.5
+    }), on && C({
+      stroke: color,
+      strokeWidth: 7,
+      opacity: 0.8,
+      filter: "blur(3px)"
+    }), on && C(anim(1.2, {
+      stroke: "color-mix(in srgb, " + color + " 70%, #fff)",
+      strokeWidth: 5,
+      strokeDasharray: "40 24",
+      filter: "blur(1.2px) drop-shadow(0 0 4px " + color + ")"
+    }), cls), on && C(anim(1.2, {
+      stroke: "#fff",
+      strokeWidth: 1.6,
+      strokeDasharray: "26 38",
+      opacity: 0.8
+    }), cls), C({
+      stroke: "rgba(255,255,255,0.55)",
+      strokeWidth: 1.3,
+      transform: "translate(-2.5px,-2.5px)"
+    }), on && React.createElement("circle", {
+      cx: e[0],
+      cy: e[1],
+      r: "6",
+      className: "fs-ripple",
+      style: {
+        fill: "none",
+        stroke: color,
+        strokeWidth: 2,
+        animationPlayState: calm ? "paused" : "running"
+      }
+    }), React.createElement("circle", {
+      cx: b[0],
+      cy: b[1],
+      r: "7.5",
+      style: {
+        fill: "rgba(255,255,255,0.85)",
+        stroke: "color-mix(in srgb, var(--text-1) 25%, transparent)",
+        strokeWidth: 1
+      }
+    }), React.createElement("circle", {
+      cx: b[0],
+      cy: b[1],
+      r: "3.5",
+      style: {
+        fill: on ? color : "var(--border-strong)",
+        filter: on ? "drop-shadow(0 0 4px " + color + ")" : "none"
+      }
+    }));
+  }
   if (S === "conduit") {
     const cd = fsConduitPath(a, b),
       e = rev ? a : b;

@@ -200,11 +200,12 @@ function FsHwCard({ icon, color, on, title, value, sub, style }) {
   );
 }
 /* เส้นพลังงานแบบน้ำไหล (ผู้ใช้ว่าจุดวิ่งเร็วเกิน ขอเป็นเส้นไหลเข้า → ขอ "เส้นน้ำสวย ๆ" → ว่ายังอ่อนไป ขอ 4 แบบให้เลือก)
+   glass = ท่อแก้วใสฝ้า มีแสงสีเรืองไหลอยู่ข้างใน ตามภาพอ้างอิงที่ผู้ใช้ส่งมา (ค่าเริ่มต้น) — ทางเดินท่อแบบเดียวกับ conduit
    conduit = ท่อร้อยสายเกาะผนังแบบภาพอ้างอิง Tesla ที่ผู้ใช้ส่งมา (ค่าเริ่มต้น): ลงตรงตามผนังแล้ววิ่งขนานแนวผนังออกไปหาการ์ด
      ท่อเทาเข้ม + สายสีทึบเรืองแสง + แถบสว่างวิ่งข้างใน · ไม่มีไฟ = ท่อเทาเปล่า
    tube = ท่อแก้วมีน้ำไหลข้างใน · neon = ลำแสงนีออนมีหัวดาวหางวิ่ง · wave = สายน้ำสองเส้นพันกันเป็นคลื่น · drops = หยดน้ำไหลเป็นสาย
    ทุกแบบ: วงกระเพื่อมที่ปลายทางของน้ำ · ลวดลายเลื่อนเป็นรอบละ 64px (keyframes fsFlowFwd/Rev) */
-const FS_WIRE_STYLES = ["conduit", "tube", "neon", "wave", "drops"];
+const FS_WIRE_STYLES = ["glass", "conduit", "tube", "neon", "wave", "drops"];
 /* ทางเดินท่อแบบภาพอ้างอิง (ท่อเกาะผนังตามมุมมอง 3D): จากจุดบนบ้าน b ลงตรงตามผนัง แล้ววิ่งตามแนวผนัง/พื้นของภาพ
    (เส้นขนานกับขอบผนัง ชัน ~0.25 — ไปทางซ้ายยกขึ้น ไปทางขวาก็ยกขึ้น ตามภาพบ้านมุมนี้) ออกไปจบที่ขอบการ์ด a · มุมเลี้ยวโค้งมน */
 const FS_ISO = 0.25;
@@ -241,6 +242,24 @@ function FsHwWire({ a, b, color, on, rel, rev, calm, sty }) {
   const cls = "fs-flow" + (rev ? " rev" : "");
   const anim = (k, extra) => Object.assign({ animationDuration: (dur * (k || 1)).toFixed(2) + "s", animationPlayState: calm ? "paused" : "running" }, extra);
   const S = FS_WIRE_STYLES.includes(sty) ? sty : FS_WIRE_STYLES[0];
+  if (S === "glass") {
+    const cd = fsConduitPath(a, b), e = rev ? a : b;
+    const C = (st, c) => <path d={cd} fill="none" className={c} style={Object.assign({ strokeLinecap: "round", strokeLinejoin: "round" }, st)} />;
+    return (
+      <g>
+        {C({ stroke: "#000", strokeWidth: 15, opacity: 0.14, filter: "blur(2px)", transform: "translate(2px,3px)" })}
+        {C({ stroke: "color-mix(in srgb, var(--text-1) 28%, transparent)", strokeWidth: 13 })}
+        {C({ stroke: "color-mix(in srgb, var(--surface) 62%, transparent)", strokeWidth: 10.5 })}
+        {on && C({ stroke: color, strokeWidth: 7, opacity: 0.8, filter: "blur(3px)" })}
+        {on && C(anim(1.2, { stroke: "color-mix(in srgb, " + color + " 70%, #fff)", strokeWidth: 5, strokeDasharray: "40 24", filter: "blur(1.2px) drop-shadow(0 0 4px " + color + ")" }), cls)}
+        {on && C(anim(1.2, { stroke: "#fff", strokeWidth: 1.6, strokeDasharray: "26 38", opacity: 0.8 }), cls)}
+        {C({ stroke: "rgba(255,255,255,0.55)", strokeWidth: 1.3, transform: "translate(-2.5px,-2.5px)" })}
+        {on && <circle cx={e[0]} cy={e[1]} r="6" className="fs-ripple" style={{ fill: "none", stroke: color, strokeWidth: 2, animationPlayState: calm ? "paused" : "running" }} />}
+        <circle cx={b[0]} cy={b[1]} r="7.5" style={{ fill: "rgba(255,255,255,0.85)", stroke: "color-mix(in srgb, var(--text-1) 25%, transparent)", strokeWidth: 1 }} />
+        <circle cx={b[0]} cy={b[1]} r="3.5" style={{ fill: on ? color : "var(--border-strong)", filter: on ? "drop-shadow(0 0 4px " + color + ")" : "none" }} />
+      </g>
+    );
+  }
   if (S === "conduit") {
     const cd = fsConduitPath(a, b), e = rev ? a : b;
     const C = (st, c) => <path d={cd} fill="none" className={c} style={Object.assign({ strokeLinecap: "round", strokeLinejoin: "round" }, st)} />;
