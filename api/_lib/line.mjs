@@ -84,6 +84,25 @@ export async function rtdbDelete(path) {
   return true;
 }
 
+/* อ่านพร้อม ETag แล้วเขียนเฉพาะเมื่อยังไม่มีใครแก้ (REST ไม่มี transaction — ใช้แทนได้กับจุดเดียว)
+   ใช้กับล็อกงานซิงก์ FusionSolar (fsState/lock) กัน cron กับปุ่มแอดมินยิงซ้อนกัน */
+export async function rtdbEtag(path) {
+  if (!ENV.rtdb()) throw new Error("RTDB_URL not set");
+  const r = await fetch(dbUrl(path), { headers: await dbHeaders({ "x-firebase-etag": "true" }) });
+  if (!r.ok) throw new Error("rtdb get " + r.status);
+  return { etag: r.headers.get("etag") || "", value: await r.json() };
+}
+/* คืน false เมื่อมีคนเขียนตัดหน้า (412) */
+export async function rtdbSetIf(path, data, etag) {
+  if (!ENV.rtdb()) throw new Error("RTDB_URL not set");
+  const r = await fetch(dbUrl(path), {
+    method: "PUT", headers: await dbHeaders({ "content-type": "application/json", "if-match": etag }), body: JSON.stringify(data),
+  });
+  if (r.status === 412) return false;
+  if (!r.ok) throw new Error("rtdb put " + r.status);
+  return true;
+}
+
 /* ================================================================
    เทียบชื่อผู้ใช้ + PIN — กฎเดียวกับ sfMatchCred (dashboard/auth.jsx) เป๊ะ
    รวมทางลัดของบัญชีเก่าที่ยังไม่ตั้ง username · ใช้ร่วมกันทั้ง /api/auth/login และ /api/line/bind

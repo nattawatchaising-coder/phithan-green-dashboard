@@ -26,7 +26,7 @@ function sa() {
     const j = JSON.parse(raw.startsWith("{") ? raw : Buffer.from(raw, "base64").toString("utf8"));
     /* private_key ที่ผ่านการก๊อปมักเหลือ \n เป็นตัวอักษรสองตัว ไม่ใช่ขึ้นบรรทัดจริง */
     const key = String(j.private_key || "").replace(/\\n/g, "\n");
-    if (j.client_email && key.includes("PRIVATE KEY")) _sa = { email: j.client_email, key };
+    if (j.client_email && key.includes("PRIVATE KEY")) _sa = { email: j.client_email, key, project: String(j.project_id || "") };
   } catch (e) {}
   return _sa;
 }
@@ -72,4 +72,40 @@ export async function accessToken() {
   const j = await r.json();
   _tok = j.access_token; _tokExp = Date.now() + (Number(j.expires_in) || 3600) * 1000;
   return _tok;
+}
+
+/* ================================================================
+   ตรวจ Firebase ID token ที่เบราว์เซอร์ส่งมา (FBAUTH.currentUser.getIdToken())
+   ใช้กับ endpoint ที่ต้องรู้ว่าใครกด เช่นปุ่ม "ซิงก์ตอนนี้" ของแอดมิน (api/fusionsolar/sync.mjs)
+   เซ็นด้วยกุญแจของ Google (securetoken) — ตรวจด้วยใบรับรองสาธารณะ ไม่ต้องใช้ API key
+   คืน { uid, claims } เมื่อผ่าน · null เมื่อไม่ผ่าน/ยังไม่ตั้ง service account (ไม่รู้ project id)
+   ================================================================ */
+const CERT_URL = "https://www.googleapis.com/robot/v1/metadata/x509/securetoken@system.gserviceaccount.com";
+let _certs = null, _certsExp = 0;
+async function idCerts() {
+  if (_certs && Date.now() < _certsExp) return _certs;
+  const r = await fetch(CERT_URL);
+  if (!r.ok) throw new Error("google certs " + r.status);
+  const m = /max-age=(d+)/.exec(r.headers.get("cache-control") || "");
+  _certs = await r.json(); _certsExp = Date.now() + (m ? +m[1] : 3600) * 1000;
+  return _certs;
+}
+export async function verifyFirebaseIdToken(idToken) {
+  const s = sa();
+  if (!s || !s.project || !idToken) return null;
+  const parts = String(idToken).split(".");
+  if (parts.length !== 3) return null;
+  let head, pay;
+  try {
+    head = JSON.parse(Buffer.from(parts[0], "base64url").toString("utf8"));
+    pay = JSON.parse(Buffer.from(parts[1], "base64url").toString("utf8"));
+  } catch (e) { return null; }
+  if (head.alg !== "RS256" || !head.kid) return null;
+  const cert = (await idCerts().catch(() => ({})))[head.kid];
+  if (!cert) return null;
+  const ok = crypto.createVerify("RSA-SHA256").update(parts[0] + "." + parts[1]).verify(cert, Buffer.from(parts[2], "base64url"));
+  const now = Math.floor(Date.now() / 1000);
+  if (!ok || pay.aud !== s.project || pay.iss !== "https://securetoken.google.com/" + s.project) return null;
+  if (!(pay.exp > now) || pay.iat > now + 300 || !pay.sub) return null;
+  return { uid: String(pay.sub), claims: pay };
 }

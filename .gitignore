@@ -27,3 +27,6 @@ firebase-sa.local.json
 *-firebase-adminsdk-*.json
 *-export.json
 *-rtdb-export*.json
+
+# รหัส Huawei FusionSolar ของแต่ละเครื่อง (docs/fusionsolar.md) — ห้ามขึ้น git
+fusionsolar.local.json

@@ -31,6 +31,8 @@ const NAV = [
   { sect: "work", key: "permit",     th: "ขออนุญาตการไฟฟ้า", en: "Permit",        icon: "shield",   perm: "permit" },
   /* งานบริการหลังการขาย — ทะเบียนประกัน · รอบล้างแผง · ใบแจ้งซ่อม · ใบรายงานเข้าบริการ */
   { sect: "work", key: "om",         th: "งานบริการหลังการขาย", en: "O&M",         icon: "wrench",   perm: "om" },
+  /* ไซต์ที่ติดตั้งแล้ว — ดึงจาก Huawei FusionSolar (fusionsolar.jsx · docs/fusionsolar.md) ใช้สิทธิ์เดียวกับ O&M */
+  { sect: "work", key: "sites",      th: "ไซต์ทั้งหมด",       en: "Sites",         icon: "sun",      perm: "om" },
   /* ใบเบิกเงินหน้างาน — ซื้อของหน้างาน · ค่าขนส่ง · ค่าใช้จ่ายอื่น และยอดค้างจ่ายรายคน
      sep = ขีดเส้นคั่นเหนือแถวนี้ แยก "ของและเงินหน้างาน" (เบิกเงิน · คลังสินค้า) ออกจากเรื่องโปรเจกต์
      สองแถวนี้เป็นที่อยู่ของเลขค้างเกือบทั้งหมดในแถบเมนู แยกกองไว้จะได้กวาดตาหาเจอโดยไม่ต้องอ่านชื่อ
@@ -53,6 +55,8 @@ const NAV = [
      inSettings — คนที่เปิดคู่มือคือคนที่เพิ่งมาหรือติดอยู่เรื่องเดียว ไม่ใช่หน้าที่เข้าทุกวัน
      จึงไม่ควรกินแถวในแถบเมนูเท่ากับเมนูงานที่กดทุกวัน */
   { key: "guide",      th: "คู่มือการใช้งาน",  en: "Guide",         icon: "book",     inSettings: true },
+  /* ผลซิงก์ FusionSolar แต่ละรอบ + ปุ่มซิงก์ตอนนี้ — แอดมินกดได้ (เซิร์ฟเวอร์ตรวจสิทธิ์ซ้ำ) */
+  { key: "fslog",      th: "ซิงก์ FusionSolar", en: "FusionSolar",  icon: "history",  perm: "manageUsers", inSettings: true },
   /* "รายงานสรุป" ถอดออกจากเมนูแล้ว — โค้ดหน้ายังอยู่ที่ views-report.jsx ถ้าอยากได้คืนให้เติมแถวนี้กลับ
      { key: "report", th: "รายงานสรุป", en: "Report", icon: "file", perm: "viewAll" } */
 ];
@@ -75,6 +79,8 @@ const PLAIN_SUB = {
   daily: "ใบรายงานหน้างานรายวัน · รูปหน้างาน · ลายเซ็น",
   line: "โควตาข้อความ · เลือกเรื่องที่ส่งเข้าแชต · บัญชีที่ผูกไว้",
   guide: "ขั้นตอนการใช้งานทีละข้อ แยกตามหน้าที่ · พิมพ์เป็นใบแจกได้",
+  sites: "ไซต์จาก Huawei FusionSolar และไซต์ที่เพิ่มเอง · การผลิต · อุปกรณ์ · งานที่ผูก",
+  fslog: "ผลการซิงก์แต่ละรอบ · ทดลองก่อนบันทึก · ซิงก์ตอนนี้",
 };
 const NAV_BADGE_TONE = { stock: "warn", calendar: "info" };
 /* ความด่วนของโทนเลขท้ายเมนู — เลขรวมบนแถวแม่ต้องใช้โทนของเรื่องที่ด่วนที่สุดที่ยังค้างอยู่
@@ -1011,6 +1017,9 @@ function App() {
             onOpen={(j, d) => setDailyJob(d ? Object.assign({}, j, { _openDate: d }) : j)} />}
           {/* ทะเบียนบริการเป็นภาระผูกพันของบริษัท ไม่ใช่คิวงานของใครคนหนึ่ง จึงดูจากงานทั้งหมดที่ผู้ใช้เห็น */}
           {view === "om" && <window.OmView jobs={jobs} users={auth.users} role={role} currentUser={auth.current} focus={omFocus} />}
+          {view === "sites" && window.FsSitesView && <window.FsSitesView jobs={jobs} role={role} currentUser={auth.current}
+            onOpenJob={(id) => setSelected(id)} onOpenOm={(id) => openOm({ siteId: id })} />}
+          {view === "fslog" && window.FsLogView && <window.FsLogView role={role} currentUser={auth.current} />}
           {view === "expense" && <window.ExpenseView jobs={jobs} users={auth.users} role={role} currentUser={auth.current} focus={ecFocus} />}
           {/* งวดงานเป็นเรื่องของสัญญาทั้งฉบับ ไม่ใช่คิวงานของใครคนหนึ่ง จึงดูจากงานทั้งหมดที่ผู้ใช้เห็น
               onSaveBills เป็น null เมื่อไม่มีสิทธิ์ — กั้นที่จุดต่อสาย หน้าจอจึงเขียนอะไรไม่ได้เลยแม้กดถึงปุ่ม */}

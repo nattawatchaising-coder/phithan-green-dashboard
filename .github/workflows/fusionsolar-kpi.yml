@@ -1,0 +1,26 @@
+# ดึงข้อมูลผลิต (KPI) จาก Huawei FusionSolar ทุกชั่วโมง — docs/fusionsolar.md
+# Vercel Hobby ให้ cron ได้วันละครั้ง จึงให้ GitHub เป็นคนเคาะ /api/cron/fusionsolar?job=kpi แทน
+# ต้องตั้ง secret CRON_SECRET ใน GitHub (Settings → Secrets → Actions) ให้ตรงกับ env CRON_SECRET บน Vercel
+# ไม่มี secret = ข้ามเงียบ ๆ (ไม่ fail) · ซิงก์จะไม่ทำอะไรจนกว่าแอดมินกด "บันทึกจริงครั้งแรก" ในเว็บ
+name: fusionsolar-kpi
+
+on:
+  schedule:
+    - cron: '7 * * * *'
+  workflow_dispatch:
+
+jobs:
+  kpi:
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - name: เรียกซิงก์ข้อมูลผลิต
+        env:
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+        run: |
+          if [ -z "$CRON_SECRET" ]; then echo "ไม่มี secret CRON_SECRET — ข้าม"; exit 0; fi
+          code=$(curl -s -o out.json -w '%{http_code}' --max-time 90 \
+            -H "Authorization: Bearer $CRON_SECRET" \
+            "https://flashsolar.vercel.app/api/cron/fusionsolar?job=kpi&src=gh")
+          cat out.json; echo
+          if [ "$code" -ge 400 ]; then echo "::warning::ซิงก์ตอบ HTTP $code"; exit 1; fi

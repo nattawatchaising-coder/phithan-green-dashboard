@@ -85,6 +85,13 @@ const NAV = [{
   icon: "wrench",
   perm: "om"
 }, {
+  sect: "work",
+  key: "sites",
+  th: "ไซต์ทั้งหมด",
+  en: "Sites",
+  icon: "sun",
+  perm: "om"
+}, {
   sect: "yard",
   key: "expense",
   th: "เบิกเงินหน้างาน",
@@ -127,6 +134,13 @@ const NAV = [{
   en: "Guide",
   icon: "book",
   inSettings: true
+}, {
+  key: "fslog",
+  th: "ซิงก์ FusionSolar",
+  en: "FusionSolar",
+  icon: "history",
+  perm: "manageUsers",
+  inSettings: true
 }];
 const PLAIN_SUB = {
   om: "",
@@ -135,7 +149,9 @@ const PLAIN_SUB = {
   billing: "งวดงานทุกงาน · วางบิล · รับมอบ · รับเงิน",
   daily: "ใบรายงานหน้างานรายวัน · รูปหน้างาน · ลายเซ็น",
   line: "โควตาข้อความ · เลือกเรื่องที่ส่งเข้าแชต · บัญชีที่ผูกไว้",
-  guide: "ขั้นตอนการใช้งานทีละข้อ แยกตามหน้าที่ · พิมพ์เป็นใบแจกได้"
+  guide: "ขั้นตอนการใช้งานทีละข้อ แยกตามหน้าที่ · พิมพ์เป็นใบแจกได้",
+  sites: "ไซต์จาก Huawei FusionSolar และไซต์ที่เพิ่มเอง · การผลิต · อุปกรณ์ · งานที่ผูก",
+  fslog: "ผลการซิงก์แต่ละรอบ · ทดลองก่อนบันทึก · ซิงก์ตอนนี้"
 };
 const NAV_BADGE_TONE = {
   stock: "warn",
@@ -1315,6 +1331,17 @@ function App() {
     role: role,
     currentUser: auth.current,
     focus: omFocus
+  }), view === "sites" && window.FsSitesView && React.createElement(window.FsSitesView, {
+    jobs: jobs,
+    role: role,
+    currentUser: auth.current,
+    onOpenJob: id => setSelected(id),
+    onOpenOm: id => openOm({
+      siteId: id
+    })
+  }), view === "fslog" && window.FsLogView && React.createElement(window.FsLogView, {
+    role: role,
+    currentUser: auth.current
   }), view === "expense" && React.createElement(window.ExpenseView, {
     jobs: jobs,
     users: auth.users,

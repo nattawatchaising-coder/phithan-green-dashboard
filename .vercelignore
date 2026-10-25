@@ -17,3 +17,6 @@ firebase-config.local.js
 firebase-sa.local.json
 *-firebase-adminsdk-*.json
 firebase-config.local.example.js
+
+# รหัส Huawei FusionSolar ของเครื่อง
+fusionsolar.local.json

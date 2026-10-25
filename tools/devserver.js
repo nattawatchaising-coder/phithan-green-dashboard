@@ -84,6 +84,31 @@ async function localLogin(req, bodyBuf, cfg, sa) {
   return loginMod.GET();
 }
 
+// งานซิงก์ FusionSolar (api/fusionsolar/sync.mjs) — รันในเครื่องได้เฉพาะฐานทดสอบ + มีกุญแจทดสอบ (docs/fusionsolar.md)
+// รหัส Huawei: env FUSIONSOLAR_USER/PASS หรือ fusionsolar.local.json {"user","pass"} (ไม่ขึ้น git)
+// ทดสอบกับของปลอม: รัน tools/fusionsolar-mock.mjs แล้วเปิด devserver ด้วย FUSIONSOLAR_BASE=http://localhost:8790/thirdData
+let fsMod = null;
+async function localFsSync(req, bodyBuf, cfg, sa) {
+  const key = cfg.databaseURL + '|' + sa;
+  if (loginKey && key !== loginKey) return new Response(JSON.stringify({ error: 'เปลี่ยน config/กุญแจฐานทดสอบแล้ว — รีสตาร์ต devserver' }), { status: 503 });
+  if (!fsMod) {
+    process.env.FIREBASE_SERVICE_ACCOUNT = sa;
+    process.env.RTDB_URL = cfg.databaseURL;
+    loginKey = key;
+    let loc = {};
+    try { loc = JSON.parse(readLocalFile('fusionsolar.local.json') || '{}'); } catch (e) {}
+    if (!process.env.FUSIONSOLAR_USER) process.env.FUSIONSOLAR_USER = loc.user || 'api_tarnthanawat';
+    if (!process.env.FUSIONSOLAR_PASS && loc.pass) process.env.FUSIONSOLAR_PASS = loc.pass;
+    if (!process.env.FUSIONSOLAR_PASS && /localhost/.test(process.env.FUSIONSOLAR_BASE || '')) process.env.FUSIONSOLAR_PASS = 'mock';
+    fsMod = await import(pathToFileURL(path.join(ROOT, 'api/fusionsolar/sync.mjs')).href);
+  }
+  if (req.method === 'POST') {
+    return fsMod.POST(new Request('http://localhost/api/fusionsolar/sync', { method: 'POST', body: bodyBuf,
+      headers: { authorization: req.headers.authorization || '', 'content-type': 'application/json' } }));
+  }
+  return fsMod.GET();
+}
+
 const TYPES = {
   '.html': 'text/html; charset=utf-8',
   '.js': 'text/javascript; charset=utf-8',
@@ -147,6 +172,26 @@ http
         })
           .then(send)
           .catch(() => res.writeHead(502, { 'Content-Type': 'application/json; charset=utf-8' }).end('{"error":"proxy"}'));
+      });
+      return;
+    }
+    if (rel === '/api/fusionsolar/sync') {
+      const chunks = [];
+      req.on('data', (c) => chunks.push(c));
+      req.on('end', () => {
+        const cfg = testConfig();
+        const sa = cfg && testServiceAccount(cfg).sa;
+        const head = { 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'no-store' };
+        if (!cfg || !sa) {
+          res.writeHead(503, head).end(JSON.stringify({ error: 'ซิงก์ FusionSolar ในเครื่องใช้ได้เฉพาะฐานทดสอบที่มี firebase-sa.local.json (docs/fusionsolar.md)' }));
+          return;
+        }
+        localFsSync(req, Buffer.concat(chunks), cfg, sa)
+          .then(async (r) => res.writeHead(r.status, head).end(await r.text()))
+          .catch((e) => {
+            console.error('[ซิงก์ FusionSolar]', e && e.message);
+            res.writeHead(502, head).end(JSON.stringify({ error: 'local sync: ' + (e && e.message) }));
+          });
       });
       return;
     }
