@@ -93,11 +93,13 @@
     "authFails":   { ".read": false, ".write": false },
     "fsDevices":   { ".read": "auth != null", ".write": false },
     "fsSyncLogs":  { ".read": "auth != null", ".write": false },
-    "fsState":     { ".read": "auth != null", ".write": false }
+    "fsState":     { ".read": "auth != null", ".write": false },
+    "fsKpiDay":    { ".read": "auth != null", ".write": false },
+    "fsKpiMonth":  { ".read": "auth != null", ".write": false }
   }
 }
 ```
-- `fsDevices` `fsSyncLogs` `fsState` ซิงก์ FusionSolar (service account) เขียนคนเดียว — docs/fusionsolar.md · `fsSites` อยู่ใต้ `$top` (เว็บเขียน jobIds/note/ไซต์เพิ่มเอง)
+- `fsDevices` `fsSyncLogs` `fsState` `fsKpiDay` `fsKpiMonth` ซิงก์ FusionSolar (service account) เขียนคนเดียว — docs/fusionsolar.md · `fsSites` อยู่ใต้ `$top` (เว็บเขียน jobIds/note/ไซต์เพิ่มเอง)
 - หลังรัดกฎ: หน้า LIFF เปิดนอกแอป LINE จะขึ้น "ปิดอยู่" เสมอ เพราะอ่าน `config/lnWebLogin` ก่อนล็อกอินไม่ได้ · `test-data.html` ใช้ไม่ได้ (ไม่มี auth)
 - คนที่ถูกระงับบัญชียังมีเซสชัน Firebase ค้างอยู่ (แอปซ่อนให้ แต่ฐานข้อมูลยังให้อ่าน) — ปิดได้ในขั้น 2 ด้วยกฎเช็ก `users/$uid/active`
 - ใช้ `$top` แทนการไล่ชื่อทุกกลุ่ม เพราะมี ~70 กลุ่มชั้นบนสุด บางชื่อประกอบจากตัวแปร (`*_ROOT + p`) — ไล่ชื่อตกไปตัวเดียว = ฟีเจอร์นั้นพังเงียบ

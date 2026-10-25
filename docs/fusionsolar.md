@@ -11,6 +11,7 @@
 | `api/fusionsolar/sync.mjs` | ปุ่ม "ซิงก์ตอนนี้" — ต้องมี Firebase ID token ของแอดมิน (เซิร์ฟเวอร์เช็ก `users/<uid>` เอง) |
 | `api/_lib/gauth.mjs` `verifyFirebaseIdToken` | ตรวจ ID token (RS256 · aud/iss = โปรเจกต์ของ service account) |
 | `dashboard/fusionsolar.jsx` | หน้า "ไซต์ทั้งหมด" · รายละเอียดไซต์ · เพิ่มไซต์เอง/ผูกรหัส/รวมไซต์ · หน้า log (ตั้งค่า → ซิงก์ FusionSolar) |
+| `dashboard/fusionsolar-viz.jsx` | ตัวแปลค่าดิบ (ชื่อ key ไทย · สถานะอินเวอร์เตอร์/แบต) · ตัวตรวจ "ควรดู" · โมเดลการไหลของพลังงาน · กราฟแท่ง/แถบสัดส่วน · การ์ดอุปกรณ์ — โหลดก่อน `fusionsolar.js` |
 | `.github/workflows/fusionsolar-kpi.yml` | เคาะ KPI ทุกชั่วโมง (นาทีที่ 7) |
 | `tools/fusionsolar-mock.mjs` | Huawei ปลอม port 8790 (`/thirdData`) ไว้ทดสอบ |
 | `tools/fusionsolar-run.mjs` | สั่งซิงก์จากเครื่องลง**ฐานทดสอบเท่านั้น** |
@@ -45,6 +46,10 @@
 
 **`fsSyncLogs/L<เวลา>`** — `started_at` `finished_at` `job` `trigger` (cron/gh/manual/tool) `by` `ok` `skipped` · ไซต์ `created` `updated` `not_found` · อุปกรณ์ `dev_created` `dev_updated` `dev_not_found` · `stations` `kpi_sites` `kpi_devices` `requests` `pending` `errors[]` `note` `ms`
 
+**`fsKpiDay/{siteId}/{YYYY-MM-DD}`** — `kwh` (ผลิตทั้งวันล่าสุด) · `h/{HH}` ผลิตสะสมของวันถึงรอบซิงก์ชั่วโมงนั้น · `p/{HH}/{devId}` kW ของอินเวอร์เตอร์ตอนซิงก์ — รอบ KPI เขียนเพิ่มเอง ไม่ยิง API เพิ่ม (Huawei ให้แค่ค่าปัจจุบัน) · วัน/ชั่วโมงตามเวลาไทย
+**`fsKpiMonth/{siteId}/{YYYY-MM}`** — ผลิตทั้งเดือนล่าสุด (kWh)
+ประวัติเริ่มนับวันที่ซิงก์ KPI รอบแรก · ชั่วโมงที่ซิงก์พลาด ผลต่างไปรวมกับแท่งถัดไป (กล่องค่าบอกช่วงเวลาจริง)
+
 **`fsState`** — `lock` (กันสองรอบชนกัน · etag · หมดอายุ 90 วิ) `blocked_until` `last_call_at` `dev_cursor` `kpi_cursor` `station_api` `last_sites_at` `last_kpi_at` `approved_at` `approved_by`
 
 ## ผูกกับงานในเว็บ — ทำไมแยกโหนด
@@ -63,18 +68,33 @@
 
 ## ประเภทอุปกรณ์ (devTypeId)
 1 String inverter · 38 Residential inverter · 2/63 SmartLogger · 62 Smart Dongle · 17 Grid meter · 47 Power meter · 39 Battery · 41 ESS · 46 Optimizer · อื่น ๆ = "ไม่ทราบประเภท (devTypeId X)" แต่เก็บข้อมูลตามปกติ
-- อินเวอร์เตอร์ (1, 38): `total_cap` `day_cap` `active_power`
-- มิเตอร์ (17, 47): `active_cap` `reverse_active_cap` `active_power` `meter_u` `meter_i`
-- อื่น ๆ: ตาราง key/value ของ `last_kpi_json` ทั้งหมด
+## การแสดงผล (ผู้ใช้สั่ง: "นำเสนอรายละเอียดข้อมูลให้ดีกว่านี้ สุดความสามารถ")
+**รายละเอียดไซต์** เรียง: กล่อง "ควรดู" → ตัวเลขหลัก 4 ช่อง (กำลังตอนนี้เทียบ kWp · วันนี้ kWh/kWp และ % ของเฉลี่ย 30 วัน · เดือนนี้เฉลี่ย/วัน · สะสม + CO₂) + บอกความสดของข้อมูล → กราฟประวัติ (วันนี้รายชั่วโมง / 30 วัน / 12 เดือน · เส้นเฉลี่ยประ · ชี้ดูค่า · ปุ่มตาราง) → การไหลของพลังงาน (มีมิเตอร์/แบตเท่านั้น) → อุปกรณ์ → ข้อมูลไซต์ → งาน → หมายเหตุ
+- อินเวอร์เตอร์: ป้ายสถานะ `inverter_state` เป็นไทย · กำลังเทียบพิกัด (พิกัดอ่านจากชื่อรุ่น `SUN2000-10KTL` = 10 kW) · ผลิต/ประสิทธิภาพ/อุณหภูมิ/แรงดัน-กระแสกริด (3 เฟสถ้ามี) · **ตารางสตริง PV** (ตัดช่องที่ไม่ได้ต่อ · แถบเทียบกัน · กระแส < 60% ของค่ากลาง = "ต่ำ")
+- มิเตอร์: ซื้อ/ขายสะสม · กำลังซื้อ/ขายตอนนี้ · แรงดัน/กระแส/ความถี่/PF · แบต: SOC แถบ · SOH · ชาร์จ/คาย · โหมด
+- ทุกอุปกรณ์มี "ดูค่าทั้งหมดจากอุปกรณ์" = ทุก key ของ `last_kpi_json` พร้อมชื่อไทย + หน่วย (key ที่ไม่รู้จักแสดงชื่อเดิม)
+
+**หน้าไซต์ทั้งหมด**: ตัวเลขรวม (วันนี้ + เฉลี่ย kWh/kWp · เดือน · สะสมทุกไซต์ + CO₂) · แถบสัดส่วนสถานะ (กดกรองได้) · กล่อง "ต้องดูแล" (เรื่องหนักก่อน) · คอลัมน์ **kWh/kWp วันนี้** พร้อมแถบ (ตัวเทียบไซต์ต่างขนาด) · ไอคอนเตือนหน้าชื่อไซต์
+
+**กติกาที่ตัดสินเอง** (Huawei ไม่บอกตรง ๆ — แก้ที่ `fusionsolar-viz.jsx`):
+- ทิศมิเตอร์: ปกติ `reverse_active_cap` = ขายเข้ากริด · ถ้า reverse เกินผลิตสะสมของอินเวอร์เตอร์ (×1.02) แต่ `active_cap` ไม่เกิน → สลับ (มิเตอร์ต่อกลับทิศ) · กำลังตอนนี้ใช้ทิศเดียวกัน (ปกติติดลบ = ขาย)
+- หน่วยกำลัง: แบต `ch_discharge_power` เป็น **W** (บวก = ชาร์จ) · มิเตอร์ถ้าค่าเกิน 3 เท่าของ kWp → ถือว่าเป็น W
+- บ้านใช้ = โซลาร์ − ขาย − ชาร์จแบต · ใช้เอง = ผลิตสะสม − ขายสะสม · พึ่งตัวเอง = ใช้เอง ÷ (ใช้เอง + ซื้อ) — คิดจากตัวเลขสะสม ถูกเมื่อมิเตอร์ติดพร้อมระบบ (หน้าเว็บมีหมายเหตุบอก)
+- CO₂ = kWh × 0.4999 kg (ค่า Grid Emission Factor ของไทย อบก.)
+- "ควรดู": ออฟไลน์/มีปัญหา/ไม่พบ · ข้อมูลผลิตค้าง > 3 ชม. · อินเวอร์เตอร์สถานะหยุด (768–774, 45056) · อุณหภูมิ ≥ 75 °C · สตริงกระแสต่ำ (เช็กเฉพาะ 09–15 น.) · แบตผิดพลาด · ด็องเกิล/ล็อกเกอร์ขาดการเชื่อมต่อ · ผลิตต่อ kWp < 60% ของค่ากลางไซต์อื่น (หลัง 11 น. · ต้องมีไซต์ปกติ ≥ 3)
+- สีสัดส่วนพลังงาน `--fs-self` `--fs-exp` `--fs-imp` (ผ่านตัวตรวจสี dataviz ทั้งสว่าง/มืด) · กราฟชุดเดียวใช้ `--primary`
+- มือถือ: index.html บังคับ grid ใน `.app-content` เป็นคอลัมน์เดียว → ช่องตัวเลข 2 คอลัมน์ใส่ `className="kpi-grid"` · แถวสตริงใช้ flex
 
 ## Firebase Rules (ผู้ใช้วางเองใน Console — Claude ไม่แก้กฎ)
 `fsSites` อยู่ใต้ `$top` เดิมแล้ว (เว็บเขียน `jobIds`/`note`/ไซต์เพิ่มเอง) · โหนดที่ซิงก์เขียนคนเดียวปิดการเขียนจากเว็บ (service account ข้ามกฎได้):
 ```json
 "fsDevices":  { ".read": "auth != null", ".write": false },
 "fsSyncLogs": { ".read": "auth != null", ".write": false },
-"fsState":    { ".read": "auth != null", ".write": false }
+"fsState":    { ".read": "auth != null", ".write": false },
+"fsKpiDay":   { ".read": "auth != null", ".write": false },
+"fsKpiMonth": { ".read": "auth != null", ".write": false }
 ```
-เติมสามบรรทัดนี้ข้าง `userSecrets` / `authFails` ในกฎขั้น 1 ของ `docs/security.md`
+เติมห้าบรรทัดนี้ข้าง `userSecrets` / `authFails` ในกฎขั้น 1 ของ `docs/security.md`
 
 ## ทดสอบ
 - **ห้ามซิงก์ลงฐานจริงโดยไม่ได้รับอนุญาต** · รอบแรกต้อง dry run
@@ -83,5 +103,6 @@
 - รหัสจริงในเครื่อง: env หรือไฟล์ `fusionsolar.local.json` `{"user":"api_tarnthanawat","pass":"…"}` ที่โฟลเดอร์หลักของ repo (อยู่ใน `.gitignore`/`.vercelignore`)
 - หน้าเว็บบน localhost: `FUSIONSOLAR_BASE=http://localhost:8790/thirdData node tools/devserver.js` → ปุ่มในหน้า log เรียก `api/fusionsolar/sync.mjs` ในเครื่อง (เฉพาะเมื่อมีฐานทดสอบ + `firebase-sa.local.json` ไม่งั้นตอบ 503)
 
+**2026-10-25 รอบสอง:** หน้าแสดงผลใหม่ทั้งหมด (ด้านบน) + ประวัติ fsKpiDay/fsKpiMonth · ทดสอบกับ mock + ฐานทดสอบ (สว่าง/มืด/มือถือ) · แก้บั๊ก `bkk` ถูกเรียกก่อนประกาศ (ทำให้รอบ KPI พังทุกชุด)
 **สถานะ 2026-10-25 (เครื่อง 2):** ทดสอบกับ mock + ฐานทดสอบผ่านครบ (dry run · เขียนจริง · 305 · 407 · fallback /stations · ไม่พบแล้วไม่ลบ · รหัสผิดหยุดที่ login ครั้งเดียว · หน้าเว็บ 4 หน้า · ผูกงาน · รวมไซต์) · **ยังไม่ได้ลอง API จริง** — เครื่องนี้ไม่มี `FUSIONSOLAR_PASS` · ยังไม่ merge ลง master
 ผู้ใช้ทดสอบในฐานทดสอบ: `users/U__fstest` (แอดมิน · ปิดใช้งานแล้ว)

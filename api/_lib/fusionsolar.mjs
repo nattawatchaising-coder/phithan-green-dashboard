@@ -344,6 +344,11 @@ export async function runSync(o) {
     return out;
   }
 
+  /* ประวัติไว้วาดกราฟ (Huawei ให้แค่ค่าปัจจุบัน — เก็บเองทุกรอบ KPI ไม่ต้องยิง API เพิ่ม) · วัน/ชั่วโมงตามเวลาไทย
+     fsKpiDay/{siteId}/{YYYY-MM-DD} = { kwh: ผลิตทั้งวันล่าสุด, h: {HH: ผลิตสะสมของวันถึงชั่วโมงนั้น}, p: {HH: {devId: kW อินเวอร์เตอร์}} }
+     fsKpiMonth/{siteId}/{YYYY-MM} = ผลิตทั้งเดือนล่าสุด */
+  function bkk(ms) { const x = new Date(ms + 7 * 3600e3).toISOString(); return { day: x.slice(0, 10), mon: x.slice(0, 7), hh: x.slice(11, 13) }; }  // function: doKpi ถูกเรียกก่อนบรรทัดนี้
+
   async function doKpi() {
     const idx = siteIndex(sites);
     const codes = Object.keys(idx).filter((k) => sites[idx[k]].fs_status === "found").sort();
@@ -367,28 +372,32 @@ export async function runSync(o) {
       try {
         if (b.kind === "st") {
           const data = await c.call("/getStationRealKpi", { stationCodes: b.ids.join(",") });
-          const patch = {};
+          const patch = {}, dayP = {}, monP = {}, k = bkk(Date.now());
           (Array.isArray(data) ? data : []).forEach((r) => {
             const id = idx[r && r.stationCode]; if (!id) return;
             const m = r.dataItemMap || {};
+            if (num(m.day_power) != null) { dayP[id + "/" + k.day + "/kwh"] = num(m.day_power); dayP[id + "/" + k.day + "/h/" + k.hh] = num(m.day_power); }
+            if (num(m.month_power) != null) monP[id + "/" + k.mon] = num(m.month_power);
             Object.assign(patch, { [id + "/day_kwh"]: num(m.day_power), [id + "/month_kwh"]: num(m.month_power),
               [id + "/total_kwh"]: num(m.total_power), [id + "/health_state"]: num(m.real_health_state), [id + "/kpi_updated_at"]: t });
             log.kpi_sites++;
             if (preview.kpi.length < 20) preview.kpi.push({ code: r.stationCode, name: sites[id].name || "", day_kwh: num(m.day_power),
               month_kwh: num(m.month_power), total_kwh: num(m.total_power), health_state: num(m.real_health_state) });
           });
-          if (!dry) await writePatch("fsSites", patch);
+          if (!dry) { await writePatch("fsSites", patch); await writePatch("fsKpiDay", dayP); await writePatch("fsKpiMonth", monP); }
         } else {
           const data = await c.call("/getDevRealKpi", { devIds: b.ids.join(","), devTypeId: b.type });
-          const patch = {};
+          const patch = {}, dayP = {}, k = bkk(Date.now());
           (Array.isArray(data) ? data : []).forEach((r) => {
             const id = safeKey(String(r && r.devId)); if (!devices[id]) return;
+            const pw = num((r.dataItemMap || {}).active_power);
+            if ((b.type === 1 || b.type === 38) && pw != null && devices[id].site_id) dayP[devices[id].site_id + "/" + k.day + "/p/" + k.hh + "/" + id] = pw;
             Object.assign(patch, { [id + "/last_kpi_json"]: JSON.stringify(r.dataItemMap || {}), [id + "/last_kpi_at"]: t });
             log.kpi_devices++;
             if (preview.kpi.length < 20) preview.kpi.push({ devId: String(r.devId), dev_name: devices[id].dev_name || "",
               dev_type_id: b.type, dataItemMap: r.dataItemMap || {} });
           });
-          if (!dry) await writePatch("fsDevices", patch);
+          if (!dry) { await writePatch("fsDevices", patch); await writePatch("fsKpiDay", dayP); }
         }
       } catch (e) {
         if (e.fatal) { st.kpi_cursor = i; throw e; }

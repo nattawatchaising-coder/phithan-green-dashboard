@@ -22,15 +22,25 @@ const STATIONS = [
 const DEVS = [
   { id: 1000000057489895, devName: 'INV-Phatcha', devTypeId: 38, esnCode: 'HV2250000001', model: 'SUN2000-10KTL-M1', softwareVersion: 'V100R001C00SPC138', stationCode: 'NE=57489892' },
   { id: 1000000057489896, devName: 'Meter-Phatcha', devTypeId: 47, esnCode: 'DTSU666H001', model: 'DTSU666-H', softwareVersion: '', stationCode: 'NE=57489892' },
+  { id: 1000000057489898, devName: 'LUNA-Phatcha', devTypeId: 39, esnCode: 'LUNA2000001', model: 'LUNA2000-10-S0', softwareVersion: 'V100R002C00', stationCode: 'NE=57489892' },
   { id: 1000000057489897, devName: 'Dongle-Phatcha', devTypeId: 62, esnCode: 'SDONGLE001', model: 'SDongleA-05', softwareVersion: 'V100R001', stationCode: 'NE=57489892' },
   { id: 1000000011110011, devName: 'INV-A1', devTypeId: 1, esnCode: 'HVA0001', model: 'SUN2000-100KTL-M1', softwareVersion: 'V100R001C10', stationCode: 'NE=11110001' },
   { id: 1000000011110012, devName: 'Logger-A', devTypeId: 63, esnCode: 'LOGA0001', model: 'SmartLogger3000A', softwareVersion: 'V300R023', stationCode: 'NE=11110001' },
   { id: 9123456789012345678, devName: 'แปลก-B', devTypeId: 999, esnCode: 'X1', model: 'Unknown', softwareVersion: '', stationCode: 'NE=11110002' },
 ];
+// ชื่อ key ตามเอกสาร Northbound (getDevRealKpi) · ค่าตัวอย่างพอให้หน้าจอมีของจริงให้แสดง
+const strings = (n, u, i, weak) => { const o = {}; for (let k = 1; k <= n; k++) { o['pv' + k + '_u'] = u + k % 3; o['pv' + k + '_i'] = k === weak ? +(i * 0.35).toFixed(2) : i; } return o; };
 const KPI = {
-  38: (h) => ({ total_cap: 15234.5 + h, day_cap: 32.1 + h, active_power: 6.42, efficiency: 98.1, temperature: 41.2, inverter_state: 512 }),
-  1:  (h) => ({ total_cap: 402311 + h, day_cap: 512.4, active_power: 88.1, inverter_state: 512 }),
-  47: (h) => ({ active_cap: 8021.4 + h, reverse_active_cap: 4110.2, active_power: -2.31, meter_u: 229.8, meter_i: 10.1, meter_status: 1 }),
+  38: (h) => Object.assign({ inverter_state: 512, run_state: 1, total_cap: 15234.5 + h, day_cap: 32.1 + h, active_power: 6.42, reactive_power: 0.08,
+    efficiency: 98.1, temperature: 41.2, power_factor: 0.999, elec_freq: 50.01, a_u: 231.4, a_i: 27.8, mppt_power: 6.6,
+    open_time: Date.now() - 6 * 3600e3, close_time: 'N/A' }, strings(2, 412, 8.05)),
+  1:  (h) => Object.assign({ inverter_state: 512, run_state: 1, total_cap: 402311 + h, day_cap: 512.4, active_power: 88.1, reactive_power: 1.2,
+    efficiency: 98.6, temperature: 47.5, power_factor: 0.998, elec_freq: 49.98, ab_u: 401.2, bc_u: 399.8, ca_u: 400.5,
+    a_i: 127.1, b_i: 126.8, c_i: 127.4, mppt_power: 90.2 }, strings(8, 610, 9.2, 5)),
+  47: (h) => ({ meter_status: 1, run_state: 1, active_cap: 8021.4 + h, reverse_active_cap: 4110.2, active_power: -2.31, reactive_power: 0.12,
+    power_factor: 0.98, grid_frequency: 50.01, meter_u: 229.8, meter_i: 10.1 }),
+  39: () => ({ battery_status: 2, run_state: 1, battery_soc: 76, battery_soh: 99, ch_discharge_power: 1850, max_charge_power: 5000,
+    max_discharge_power: 5000, busbar_u: 412.3, charge_cap: 1820.4, discharge_cap: 1675.9, ch_discharge_model: 4 }),
   62: () => ({ run_state: 1 }),
   63: () => ({ run_state: 1 }),
   999: () => ({ foo: 1, bar: 'x' }),
