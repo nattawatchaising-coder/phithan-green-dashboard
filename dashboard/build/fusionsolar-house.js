@@ -1,444 +1,486 @@
-function fsHousePanelTex(THREE) {
-  const cv = document.createElement("canvas"),
-    W = 240,
-    H = 400,
-    cols = 6,
-    rows = 10;
-  cv.width = W;
-  cv.height = H;
-  const g = cv.getContext("2d");
-  const bg = g.createLinearGradient(0, 0, W, H);
-  bg.addColorStop(0, "#22324d");
-  bg.addColorStop(1, "#111b2e");
-  g.fillStyle = "#c9d1dc";
-  g.fillRect(0, 0, W, H);
-  const cw = W / cols,
-    ch = H / rows;
-  for (let r = 0; r < rows; r++) for (let c = 0; c < cols; c++) {
-    g.fillStyle = bg;
-    g.fillRect(c * cw + 1.2, r * ch + 1.2, cw - 2.4, ch - 2.4);
-    g.fillStyle = "rgba(160,185,220,.14)";
-    for (let b = 1; b <= 3; b++) g.fillRect(c * cw + b * cw / 4 - 0.5, r * ch + 2, 1, ch - 4);
-  }
-  const t = new THREE.CanvasTexture(cv);
-  t.encoding = THREE.sRGBEncoding;
-  return t;
-}
-function fsHouseWoodTex(THREE) {
-  const cv = document.createElement("canvas");
-  cv.width = 256;
-  cv.height = 64;
-  const g = cv.getContext("2d");
-  for (let i = 0; i < 16; i++) {
-    const l = 52 + i * 37 % 9;
-    g.fillStyle = "hsl(28,42%," + l + "%)";
-    g.fillRect(i * 16, 0, 14, 64);
-    g.fillStyle = "hsl(26,35%,30%)";
-    g.fillRect(i * 16 + 14, 0, 2, 64);
-  }
-  const t = new THREE.CanvasTexture(cv);
-  t.encoding = THREE.sRGBEncoding;
-  t.wrapS = t.wrapT = THREE.RepeatWrapping;
-  return t;
-}
-function fsHouseBuild(THREE, scene) {
-  const M = o => {
-    ["color", "emissive"].forEach(k => {
-      if (o[k] != null) o[k] = new THREE.Color(o[k]).convertSRGBToLinear();
-    });
-    return new THREE.MeshStandardMaterial(o);
-  };
-  const mat = {
-    white: M({
-      color: 0xf2f0ec,
-      roughness: 0.9
-    }),
-    plinth: M({
-      color: 0xe9e6e0,
-      roughness: 0.95
-    }),
-    roof: M({
-      color: 0x40454d,
-      roughness: 0.7
-    }),
-    trim: M({
-      color: 0x3a3f46,
-      roughness: 0.55,
-      metalness: 0.2
-    }),
-    glass: M({
-      color: 0x24313f,
-      roughness: 0.06,
-      metalness: 0.55
-    }),
-    glow: M({
-      color: 0x000000,
-      emissive: 0xffc77a,
-      emissiveIntensity: 0.25,
-      roughness: 1
-    }),
-    alu: M({
-      color: 0xc8ced6,
-      roughness: 0.35,
-      metalness: 0.75
-    }),
-    cell: M({
-      map: fsHousePanelTex(THREE),
-      roughness: 0.22,
-      metalness: 0.35
-    }),
-    wood: M({
-      map: fsHouseWoodTex(THREE),
-      roughness: 0.8
-    }),
-    grass: M({
-      color: 0xa9c995,
-      roughness: 1
-    }),
-    pave: M({
-      color: 0xdedad2,
-      roughness: 0.9
-    }),
-    leaf: M({
-      color: 0x86ad73,
-      roughness: 0.95,
-      flatShading: true
-    }),
-    trunk: M({
-      color: 0x8a6d55,
-      roughness: 1
-    }),
-    unit: M({
-      color: 0xfafafa,
-      roughness: 0.5
-    })
-  };
-  const root = new THREE.Group();
-  scene.add(root);
-  const add = (geo, m, x, y, z, parent, cast) => {
-    const o = new THREE.Mesh(geo, m);
-    o.position.set(x, y, z);
-    o.castShadow = cast !== false;
-    o.receiveShadow = true;
-    (parent || root).add(o);
-    return o;
-  };
-  const box = (w, h, d) => new THREE.BoxGeometry(w, h, d);
-  add(new THREE.CylinderGeometry(12.5, 12.8, 0.5, 72), mat.plinth, 0, -0.25, 0, null, false);
-  add(new THREE.CylinderGeometry(12.1, 12.1, 0.06, 72), mat.grass, 0, 0.03, 0, null, false);
-  add(box(6.5, 0.08, 3.2), mat.pave, -0.6, 0.06, 5.2, null, false);
-  add(box(1.6, 0.08, 4.6), mat.pave, -1.4, 0.06, 8.9, null, false);
-  add(box(4.4, 0.08, 4.4), mat.pave, 6.5, 0.06, 5.4, null, false);
-  const D = 6.6,
-    Wd = 9,
-    h0 = 5.6,
-    h1 = 7.5;
-  const prof = new THREE.Shape();
-  prof.moveTo(D / 2, 0);
-  prof.lineTo(D / 2, h0);
-  prof.lineTo(-D / 2, h1);
-  prof.lineTo(-D / 2, 0);
-  prof.lineTo(D / 2, 0);
-  const body = new THREE.Mesh(new THREE.ExtrudeGeometry(prof, {
-    depth: Wd,
-    bevelEnabled: false
-  }), mat.white);
-  body.rotation.y = -Math.PI / 2;
-  body.position.set(Wd / 2, 0, 0);
-  body.castShadow = body.receiveShadow = true;
-  root.add(body);
-  const slope = Math.atan2(h1 - h0, D),
-    L = Math.hypot(D, h1 - h0) + 0.9;
-  const roofG = new THREE.Group();
-  roofG.position.set(0, (h0 + h1) / 2 + 0.14, 0);
-  roofG.rotation.x = slope;
-  root.add(roofG);
-  add(box(Wd + 0.8, 0.26, L), mat.roof, 0, 0, 0, roofG);
-  add(box(Wd + 0.8, 0.1, 0.12), mat.trim, 0, -0.02, L / 2, roofG);
-  const pw = 1.12,
-    pl = 1.86,
-    gap = 0.06,
-    cols = 7,
-    rows = 3;
-  const frameG = box(pw, 0.06, pl),
-    cellG = new THREE.PlaneGeometry(pw - 0.07, pl - 0.07);
-  for (let r = 0; r < rows; r++) for (let c = 0; c < cols; c++) {
-    const x = (c - (cols - 1) / 2) * (pw + gap),
-      z = (r - (rows - 1) / 2) * (pl + gap) + 0.1;
-    add(frameG, mat.alu, x, 0.2, z, roofG);
-    const cell = add(cellG, mat.cell, x, 0.235, z, roofG, false);
-    cell.rotation.x = -Math.PI / 2;
-  }
-  const zf = D / 2;
-  const pane = (x, y, w, h) => {
-    add(box(w, h, 0.05), mat.glow, x, y, zf - 0.08, null, false);
-    add(box(w, h, 0.04), mat.glass, x, y, zf + 0.02, null, false);
-    add(box(w + 0.16, 0.1, 0.12), mat.trim, x, y + h / 2 + 0.05, zf + 0.04);
-    add(box(w + 0.16, 0.1, 0.12), mat.trim, x, y - h / 2 - 0.05, zf + 0.04);
-    add(box(0.08, h, 0.12), mat.trim, x - w / 2 - 0.04, y, zf + 0.04);
-    add(box(0.08, h, 0.12), mat.trim, x + w / 2 + 0.04, y, zf + 0.04);
-  };
-  [-3.1, -1.5, 0.1].forEach(x => pane(x, 1.45, 1.5, 2.5));
-  pane(2.7, 1.45, 1.1, 2.5);
-  pane(-1.6, 4.25, 4.6, 1.1);
-  pane(2.7, 4.25, 1.7, 1.1);
-  add(box(Wd - 0.6, 0.14, 1.3), mat.white, -0.2, 3.05, zf + 0.62);
-  const side = (z, y, w, h) => {
-    add(box(0.05, h, w), mat.glow, -Wd / 2 + 0.08, y, z, null, false);
-    add(box(0.04, h, w), mat.glass, -Wd / 2 - 0.02, y, z, null, false);
-    add(box(0.12, h + 0.2, 0.08), mat.trim, -Wd / 2 - 0.04, y, z - w / 2 - 0.04);
-    add(box(0.12, h + 0.2, 0.08), mat.trim, -Wd / 2 - 0.04, y, z + w / 2 + 0.04);
-  };
-  side(1.2, 1.5, 1.2, 2.2);
-  side(1.2, 4.3, 1.2, 1.2);
-  side(-1.6, 4.6, 1.2, 1.6);
-  const wx = Wd / 2 + 2.3,
-    ww = 4.6,
-    wd = 5.6,
-    wh = 3.2;
-  const wood = mat.wood.clone();
-  wood.map = mat.wood.map.clone();
-  wood.map.needsUpdate = true;
-  wood.map.repeat.set(2.4, 1);
-  add(box(ww, wh, wd), wood, wx, wh / 2, -0.4);
-  add(box(ww + 0.6, 0.24, wd + 0.7), mat.white, wx, wh + 0.12, -0.15);
-  add(box(3.4, 2.4, 0.06), mat.trim, wx, 1.2, wd / 2 - 0.37);
-  for (let i = 1; i < 6; i++) add(box(3.3, 0.02, 0.02), mat.alu, wx, i * 0.4, wd / 2 - 0.33, null, false);
-  add(box(0.7, 0.9, 0.22), mat.unit, wx + ww / 2 + 0.11, 1.9, 0.9);
-  add(box(0.7, 1.3, 0.3), mat.unit, wx + ww / 2 + 0.15, 0.75, -0.3);
-  add(box(0.5, 0.08, 0.02), mat.trim, wx + ww / 2 + 0.31, 0.95, -0.3, null, false).rotation.y = Math.PI / 2;
-  add(box(1.0, 2.3, 0.08), mat.wood, 2.7 + 1.3, 1.15, zf + 0.04);
-  const tree = (x, z, s) => {
-    add(new THREE.CylinderGeometry(0.1 * s, 0.14 * s, 1.6 * s, 8), mat.trunk, x, 0.8 * s, z);
-    add(new THREE.IcosahedronGeometry(1.15 * s, 1), mat.leaf, x, 2.2 * s, z);
-    add(new THREE.IcosahedronGeometry(0.8 * s, 1), mat.leaf, x + 0.5 * s, 2.9 * s, z - 0.2 * s);
-  };
-  tree(-8.2, 3.2, 1.25);
-  tree(-7.2, -4.2, 1.6);
-  tree(9.6, -4.6, 1.1);
-  [[-5.4, 4.9], [-4.6, 5.3], [3.4, 4.6]].forEach(([x, z]) => add(new THREE.IcosahedronGeometry(0.42, 1), mat.leaf, x, 0.36, z));
-  return {
-    mat,
-    root
-  };
-}
-function fsHouseEnv(THREE, renderer) {
-  const s = new THREE.Scene(),
-    geo = new THREE.SphereGeometry(50, 32, 16),
-    col = [];
-  const lin = h => new THREE.Color(h).convertSRGBToLinear();
-  const top = lin(0x9cc4ef),
-    mid = lin(0xfff4e2),
-    bot = lin(0xd9d3c6);
-  const p = geo.attributes.position;
-  for (let i = 0; i < p.count; i++) {
-    const y = p.getY(i) / 50,
-      c = y > 0 ? mid.clone().lerp(top, Math.pow(y, 0.6)) : mid.clone().lerp(bot, Math.min(1, -y * 3));
-    col.push(c.r, c.g, c.b);
-  }
-  geo.setAttribute("color", new THREE.Float32BufferAttribute(col, 3));
-  s.add(new THREE.Mesh(geo, new THREE.MeshBasicMaterial({
-    vertexColors: true,
-    side: THREE.BackSide
-  })));
-  const pm = new THREE.PMREMGenerator(renderer),
-    rt = pm.fromScene(s, 0.02);
-  pm.dispose();
-  geo.dispose();
-  return rt;
-}
-function FsHouse3D({
-  style
-}) {
-  const host = React.useRef(null);
-  const [ready, setReady] = React.useState(false);
-  const [failed, setFailed] = React.useState(false);
-  React.useEffect(() => {
-    let dead = false,
-      cleanup = null;
-    if (!window.p3LoadThree) {
-      setFailed(true);
-      return;
-    }
-    window.p3LoadThree().then(THREE => {
-      if (dead || !host.current) return;
+function _extends() { return _extends = Object.assign ? Object.assign.bind() : function (n) { for (var e = 1; e < arguments.length; e++) { var t = arguments[e]; for (var r in t) ({}).hasOwnProperty.call(t, r) && (n[r] = t[r]); } return n; }, _extends.apply(null, arguments); }
+const FS_HOUSE_IMG = "dashboard/assets/fs-house.jpg?v=1";
+const FS_HOUSE_PT = {
+  roof: [0.5, 0.27],
+  grid: [0.3, 0.6],
+  home: [0.56, 0.64],
+  bat: [0.79, 0.56]
+};
+let _fsHouseP = null;
+function fsHouseCutout() {
+  if (_fsHouseP) return _fsHouseP;
+  _fsHouseP = new Promise((res, rej) => {
+    const im = new Image();
+    im.onerror = () => rej(new Error("โหลดภาพบ้านไม่ได้"));
+    im.onload = () => {
       try {
-        cleanup = fsHouseMount(THREE, host.current, () => !dead && setReady(true));
+        const W = im.naturalWidth,
+          H = im.naturalHeight,
+          c = document.createElement("canvas");
+        c.width = W;
+        c.height = H;
+        const g = c.getContext("2d");
+        g.drawImage(im, 0, 0);
+        const d = g.getImageData(0, 0, W, H),
+          p = d.data;
+        let B = 0;
+        [[2, 2], [W - 3, 2], [2, H - 3], [W - 3, H - 3]].forEach(([x, y]) => {
+          const i = (y * W + x) * 4;
+          B += (p[i] + p[i + 1] + p[i + 2]) / 12;
+        });
+        const N = W * H,
+          seen = new Uint8Array(N),
+          q = new Int32Array(N);
+        let qh = 0,
+          qt = 0;
+        const isBg = j => {
+          const i = j * 4,
+            r = p[i],
+            gg = p[i + 1],
+            bb = p[i + 2],
+            v = (r + gg + bb) / 3;
+          return Math.max(r, gg, bb) - Math.min(r, gg, bb) <= 10 && v >= B - 48 && v <= B + 7;
+        };
+        const push = j => {
+          if (!seen[j] && isBg(j)) {
+            seen[j] = 1;
+            q[qt++] = j;
+          }
+        };
+        for (let x = 0; x < W; x++) {
+          push(x);
+          push((H - 1) * W + x);
+        }
+        for (let y = 0; y < H; y++) {
+          push(y * W);
+          push(y * W + W - 1);
+        }
+        while (qh < qt) {
+          const j = q[qh++],
+            x = j % W;
+          if (x > 0) push(j - 1);
+          if (x < W - 1) push(j + 1);
+          if (j >= W) push(j - W);
+          if (j < N - W) push(j + W);
+        }
+        for (let j = 0; j < N; j++) {
+          if (!seen[j]) continue;
+          const i = j * 4,
+            v = (p[i] + p[i + 1] + p[i + 2]) / 3;
+          const al = Math.max(0, (B - v) / B - 0.015);
+          p[i] = p[i + 1] = p[i + 2] = 0;
+          p[i + 3] = Math.round(Math.min(1, al) * 255);
+        }
+        g.putImageData(d, 0, 0);
+        c.toBlob(b => b ? res(URL.createObjectURL(b)) : rej(new Error("toBlob")), "image/png");
       } catch (e) {
-        console.warn("FsHouse3D", e);
-        setFailed(true);
+        rej(e);
       }
-    }).catch(() => !dead && setFailed(true));
+    };
+    im.src = FS_HOUSE_IMG;
+  });
+  _fsHouseP.catch(() => {
+    _fsHouseP = null;
+  });
+  return _fsHouseP;
+}
+function FsHouseStage({
+  height,
+  overlay,
+  pad
+}) {
+  const box = React.useRef(null);
+  const [sz, setSz] = React.useState(null);
+  const [src, setSrc] = React.useState(null);
+  const [raw, setRaw] = React.useState(false);
+  React.useEffect(() => {
+    let dead = false;
+    fsHouseCutout().then(u => !dead && setSrc(u)).catch(() => !dead && setRaw(true));
+    const upd = () => box.current && setSz({
+      w: box.current.clientWidth,
+      h: box.current.clientHeight
+    });
+    upd();
+    const ro = window.ResizeObserver ? new ResizeObserver(upd) : null;
+    ro && ro.observe(box.current);
     return () => {
       dead = true;
-      cleanup && cleanup();
+      ro && ro.disconnect();
     };
   }, []);
+  const AR = 1376 / 768,
+    P = pad || 0;
+  let img = null,
+    pt = null;
+  if (sz) {
+    const aw = Math.max(1, sz.w - P * 2),
+      ah = Math.max(1, sz.h - P * 2);
+    const w = Math.min(aw, ah * AR),
+      h = w / AR;
+    img = {
+      x: (sz.w - w) / 2,
+      y: (sz.h - h) / 2,
+      w,
+      h
+    };
+    pt = f => [img.x + f[0] * img.w, img.y + f[1] * img.h];
+  }
+  const shown = src || (raw ? FS_HOUSE_IMG : null);
   return React.createElement("div", {
-    ref: host,
+    ref: box,
+    style: {
+      position: "relative",
+      height,
+      minWidth: 0
+    }
+  }, img && shown && React.createElement("img", {
+    src: shown,
+    alt: "",
     "aria-hidden": "true",
-    style: Object.assign({
+    draggable: "false",
+    className: "fs-in",
+    style: {
       position: "absolute",
-      inset: 0,
-      opacity: ready && !failed ? 1 : 0,
-      transition: "opacity .8s ease",
-      cursor: "grab",
-      touchAction: "pan-y"
-    }, style)
-  });
+      left: img.x,
+      top: img.y,
+      width: img.w,
+      height: img.h,
+      pointerEvents: "none",
+      userSelect: "none",
+      mixBlendMode: src ? "normal" : "multiply"
+    }
+  }), img && overlay && overlay(pt, sz, img));
 }
-function fsHouseMount(THREE, el, onFirst) {
-  const calm = window.fsCalm ? window.fsCalm() : false;
-  const renderer = new THREE.WebGLRenderer({
-    antialias: true,
-    alpha: true
-  });
-  renderer.setPixelRatio(Math.min(2, window.devicePixelRatio || 1));
-  renderer.setClearColor(0x000000, 0);
-  renderer.outputEncoding = THREE.sRGBEncoding;
-  renderer.toneMapping = THREE.ACESFilmicToneMapping;
-  renderer.shadowMap.enabled = true;
-  renderer.shadowMap.type = THREE.PCFSoftShadowMap;
-  renderer.domElement.style.cssText = "display:block;width:100%;height:100%;outline:none";
-  el.appendChild(renderer.domElement);
-  const scene = new THREE.Scene();
-  const env = fsHouseEnv(THREE, renderer);
-  scene.environment = env.texture;
-  const {
-    mat
-  } = fsHouseBuild(THREE, scene);
-  const hemi = new THREE.HemisphereLight(0xffffff, 0xd8cfbf, 0.55);
-  scene.add(hemi);
-  const sun = new THREE.DirectionalLight(0xfff1dc, 2.1);
-  sun.position.set(14, 22, 12);
-  sun.castShadow = true;
-  sun.shadow.mapSize.set(2048, 2048);
-  Object.assign(sun.shadow.camera, {
-    left: -16,
-    right: 16,
-    top: 16,
-    bottom: -16,
-    near: 1,
-    far: 70
-  });
-  sun.shadow.bias = -0.0004;
-  sun.shadow.normalBias = 0.03;
-  sun.shadow.radius = 4;
-  scene.add(sun);
-  const theme = () => {
-    const night = document.documentElement.getAttribute("data-theme") === "aurora";
-    hemi.color.set(night ? 0x8fa3d6 : 0xffffff);
-    hemi.intensity = night ? 0.45 : 0.6;
-    sun.color.set(night ? 0xb9c6ff : 0xfff1dc);
-    sun.intensity = night ? 0.7 : 2.6;
-    Object.values(mat).forEach(m => {
-      m.envMapIntensity = night ? 0.35 : 0.8;
-    });
-    mat.glow.emissiveIntensity = night ? 1.6 : 0.25;
-    renderer.toneMappingExposure = night ? 1.1 : 1;
-    want = true;
-  };
-  const target = new THREE.Vector3(1.2, 2.2, 0);
-  const camera = new THREE.PerspectiveCamera(26, 1, 1, 200);
-  camera.position.set(17, 12.5, 25);
-  const ctl = new THREE.OrbitControls(camera, renderer.domElement);
-  ctl.target.copy(target);
-  Object.assign(ctl, {
-    enableZoom: false,
-    enablePan: false,
-    enableDamping: true,
-    dampingFactor: 0.08,
-    rotateSpeed: 0.5,
-    minPolarAngle: 0.85,
-    maxPolarAngle: 1.32
-  });
-  const sph0 = new THREE.Spherical().setFromVector3(camera.position.clone().sub(target));
-  ctl.minAzimuthAngle = sph0.theta - 1.1;
-  ctl.maxAzimuthAngle = sph0.theta + 0.9;
-  ctl.update();
-  let want = true,
-    busy = false,
-    idleAt = 0,
-    t0 = performance.now(),
-    raf = 0,
-    vis = true,
-    first = true;
-  ctl.addEventListener("start", () => {
-    busy = true;
-    el.style.cursor = "grabbing";
-  });
-  ctl.addEventListener("end", () => {
-    busy = false;
-    idleAt = performance.now();
-    el.style.cursor = "grab";
-  });
-  ctl.addEventListener("change", () => {
-    want = true;
-  });
-  const fit = () => {
-    const w = el.clientWidth || 1,
-      h = el.clientHeight || 1;
-    renderer.setSize(w, h, false);
-    camera.aspect = w / h;
-    const s = new THREE.Spherical().setFromVector3(camera.position.clone().sub(target));
-    s.radius = 46 * Math.max(1, 1.5 / camera.aspect);
-    camera.position.setFromSpherical(s).add(target);
-    camera.updateProjectionMatrix();
-    want = true;
-  };
-  const ro = window.ResizeObserver ? new ResizeObserver(fit) : null;
-  ro ? ro.observe(el) : window.addEventListener("resize", fit);
-  const io = window.IntersectionObserver ? new IntersectionObserver(es => {
-    vis = es[0].isIntersecting;
-  }) : null;
-  io && io.observe(el);
-  const mo = new MutationObserver(theme);
-  mo.observe(document.documentElement, {
-    attributes: true,
-    attributeFilter: ["data-theme"]
-  });
-  theme();
-  fit();
-  const sph = new THREE.Spherical();
-  const loop = now => {
-    raf = requestAnimationFrame(loop);
-    if (!vis || document.hidden) return;
-    if (!calm && !busy && now - idleAt > 2500) {
-      sph.setFromVector3(camera.position.clone().sub(target));
-      const goal = sph0.theta + 0.42 * Math.sin((now - t0) / 9000);
-      sph.theta += (goal - sph.theta) * 0.02;
-      camera.position.setFromSpherical(sph).add(target);
-      want = true;
+function FsHouseArt() {
+  return React.createElement("div", {
+    style: {
+      position: "absolute",
+      inset: 0
     }
-    if (ctl.update()) want = true;
-    if (!want) return;
-    want = false;
-    renderer.render(scene, camera);
-    if (first) {
-      first = false;
-      onFirst();
+  }, React.createElement(FsHouseStage, {
+    height: "100%"
+  }));
+}
+const FS_HW_TOWER = "M8 22 12 2l4 20M9.2 15h5.6M10.3 9.5h3.4M5 6.5h14M7 6.5v2M17 6.5v2";
+function FsHwIcon({
+  name,
+  size,
+  color
+}) {
+  if (name !== "tower") return React.createElement(Icon, {
+    name: name,
+    size: size,
+    color: color
+  });
+  return React.createElement("svg", {
+    width: size,
+    height: size,
+    viewBox: "0 0 24 24",
+    fill: "none",
+    stroke: color,
+    strokeWidth: "1.75",
+    strokeLinecap: "round",
+    strokeLinejoin: "round",
+    style: {
+      flexShrink: 0
     }
-  };
-  raf = requestAnimationFrame(loop);
-  return () => {
-    cancelAnimationFrame(raf);
-    ro ? ro.disconnect() : window.removeEventListener("resize", fit);
-    io && io.disconnect();
-    mo.disconnect();
-    ctl.dispose();
-    scene.traverse(o => {
-      if (o.geometry) o.geometry.dispose();
-      if (o.material) [].concat(o.material).forEach(m => {
-        m.map && m.map.dispose();
-        m.dispose();
-      });
-    });
-    env.dispose();
-    renderer.dispose();
-    renderer.forceContextLoss && renderer.forceContextLoss();
-    renderer.domElement.remove();
-  };
+  }, FS_HW_TOWER.split("M").filter(Boolean).map((seg, i) => React.createElement("path", {
+    key: i,
+    d: "M" + seg
+  })));
+}
+function FsHwCard({
+  icon,
+  color,
+  on,
+  title,
+  value,
+  sub,
+  style
+}) {
+  return React.createElement("div", {
+    style: Object.assign({
+      minWidth: 0,
+      padding: "10px 12px",
+      borderRadius: 14,
+      background: "color-mix(in srgb, var(--surface) 88%, transparent)",
+      boxShadow: "var(--shadow-card)",
+      backdropFilter: "blur(8px)",
+      WebkitBackdropFilter: "blur(8px)",
+      display: "flex",
+      gap: 10,
+      alignItems: "center"
+    }, style)
+  }, React.createElement("span", {
+    style: {
+      width: 34,
+      height: 34,
+      borderRadius: 17,
+      display: "grid",
+      placeItems: "center",
+      flexShrink: 0,
+      background: on ? "color-mix(in srgb, " + color + " 16%, var(--surface))" : "var(--surface2)"
+    }
+  }, React.createElement(FsHwIcon, {
+    name: icon,
+    size: 17,
+    color: on ? color : "var(--text-3)"
+  })), React.createElement("div", {
+    style: {
+      minWidth: 0
+    }
+  }, React.createElement("div", {
+    style: {
+      fontSize: 11.5,
+      fontWeight: 600,
+      color: "var(--text-3)",
+      whiteSpace: "nowrap"
+    }
+  }, title), React.createElement("div", {
+    style: {
+      fontFamily: "var(--display)",
+      fontSize: 19,
+      fontWeight: 700,
+      color: "var(--text-1)",
+      lineHeight: 1.15,
+      whiteSpace: "nowrap",
+      fontVariantNumeric: "tabular-nums"
+    }
+  }, value), sub && React.createElement("div", {
+    style: {
+      fontSize: 11,
+      color: "var(--text-3)",
+      whiteSpace: "nowrap",
+      overflow: "hidden",
+      textOverflow: "ellipsis"
+    }
+  }, sub)));
+}
+function FsHwWire({
+  id,
+  a,
+  b,
+  color,
+  on,
+  rel,
+  rev,
+  calm
+}) {
+  const mx = (a[0] + b[0]) / 2;
+  const d = "M" + a[0].toFixed(1) + "," + a[1].toFixed(1) + " C" + mx.toFixed(1) + "," + a[1].toFixed(1) + " " + mx.toFixed(1) + "," + b[1].toFixed(1) + " " + b[0].toFixed(1) + "," + b[1].toFixed(1);
+  const dur = 3 - 1.9 * Math.sqrt(fsClamp(rel || 0.5, 0, 1));
+  return React.createElement("g", null, React.createElement("path", {
+    id: id,
+    d: d,
+    fill: "none",
+    style: {
+      stroke: on ? color : "var(--border-strong)",
+      strokeWidth: 2,
+      strokeLinecap: "round",
+      opacity: on ? 0.6 : 0.7,
+      strokeDasharray: on ? "none" : "3 5"
+    }
+  }), React.createElement("circle", {
+    cx: b[0],
+    cy: b[1],
+    r: "4",
+    style: {
+      fill: "var(--surface)",
+      stroke: on ? color : "var(--border-strong)",
+      strokeWidth: 2
+    }
+  }), on && !calm && [0, 1, 2].map(i => React.createElement("circle", {
+    key: i,
+    r: "3.4",
+    style: {
+      fill: color,
+      filter: "drop-shadow(0 0 3px " + color + ")"
+    }
+  }, React.createElement("animateMotion", {
+    dur: dur.toFixed(2) + "s",
+    repeatCount: "indefinite",
+    begin: (-(i * dur) / 3).toFixed(2) + "s",
+    calcMode: "linear",
+    keyPoints: rev ? "1;0" : "0;1",
+    keyTimes: "0;1"
+  }, React.createElement("mpath", {
+    xlinkHref: "#" + id
+  })))));
+}
+function FsHouseFlow({
+  em,
+  site,
+  compact,
+  at
+}) {
+  const uid = React.useRef("hw" + Math.random().toString(36).slice(2, 8)).current;
+  const calm = fsCalm();
+  const cap = fsN(site.capacity_kw) || em.cap || null;
+  const pv = em.pvKw,
+    g = em.gridKw,
+    bk = em.battKw,
+    load = em.loadKw;
+  const off = +site.health_state === 1 || site.fs_status === "not_found_in_fusionsolar";
+  const kw = v => v == null ? "–" : fsFmt(Math.abs(v), Math.abs(v) >= 100 ? 0 : 1) + " kW";
+  const act = v => !off && v != null && Math.abs(v) > 0.02;
+  const rel = v => cap > 0 && v != null ? Math.abs(v) / cap : 0.5;
+  const gColor = g > 0.02 ? "var(--fs-exp)" : g < -0.02 ? "var(--fs-imp)" : "var(--text-3)";
+  const fromPv = load > 0.05 && pv != null ? fsClamp((pv - Math.max(0, g || 0) - Math.max(0, bk || 0)) / load, 0, 1) : null;
+  const cards = [{
+    k: "pv",
+    pt: "roof",
+    side: "L",
+    icon: "panel",
+    color: "var(--fs-sun)",
+    on: act(pv),
+    out: true,
+    kw: pv,
+    title: "โซลาร์ผลิต",
+    value: kw(pv),
+    sub: cap > 0 && pv != null ? Math.round(fsClamp(pv / cap, 0, 1) * 100) + "% ของ " + fsFmt(cap, 0) + " kWp" : em.hasInv ? null : "ไม่มีข้อมูลอินเวอร์เตอร์"
+  }, {
+    k: "grid",
+    pt: "grid",
+    side: "L",
+    icon: "tower",
+    color: gColor,
+    on: !!em.meter && act(g),
+    out: g > 0,
+    kw: g,
+    title: g > 0.02 ? "ขายเข้ากริด" : g < -0.02 ? "ซื้อจากกริด" : "กริด",
+    value: kw(g),
+    sub: em.meter ? null : "ไม่มีมิเตอร์"
+  }, {
+    k: "home",
+    pt: "home",
+    side: "R",
+    icon: "home",
+    color: "var(--fs-self)",
+    on: act(load),
+    out: true,
+    kw: load,
+    title: "บ้าน/อาคารใช้ไฟ",
+    value: kw(load),
+    sub: fromPv != null ? "จากโซลาร์ " + Math.round(fromPv * 100) + "%" : em.meter ? null : "ไม่มีมิเตอร์"
+  }];
+  if (em.batt) cards.push({
+    k: "bat",
+    pt: "bat",
+    side: "R",
+    icon: "battery",
+    color: "var(--fs-bat)",
+    on: act(bk),
+    out: bk > 0,
+    kw: bk,
+    title: bk > 0.02 ? "แบตกำลังชาร์จ" : bk < -0.02 ? "แบตกำลังจ่าย" : "แบตเตอรี่",
+    value: em.soc != null ? em.soc + "%" : "–",
+    sub: act(bk) ? kw(bk) : null
+  });
+  const label = "การไหลของพลังงาน: " + cards.map(c => c.title + " " + c.value).join(" · ");
+  const foot = React.createElement("div", {
+    style: {
+      display: "flex",
+      gap: 8,
+      alignItems: "center",
+      flexWrap: "wrap",
+      fontSize: 11,
+      fontWeight: 600,
+      color: "var(--text-3)"
+    }
+  }, off && React.createElement("span", {
+    style: {
+      fontSize: 10.5,
+      fontWeight: 700,
+      padding: "3px 9px",
+      borderRadius: 999,
+      background: "var(--surface2)",
+      color: "var(--tint-red-tx)"
+    }
+  }, "\u0E44\u0E21\u0E48\u0E44\u0E14\u0E49\u0E23\u0E31\u0E1A\u0E02\u0E49\u0E2D\u0E21\u0E39\u0E25"), at);
+  if (compact) return React.createElement("div", {
+    role: "img",
+    "aria-label": label,
+    style: {
+      display: "flex",
+      flexDirection: "column",
+      gap: 10
+    }
+  }, foot, React.createElement(FsHouseStage, {
+    height: 190
+  }), React.createElement("div", {
+    className: "kpi-grid",
+    style: {
+      display: "grid",
+      gap: 8,
+      gridTemplateColumns: "1fr 1fr"
+    }
+  }, cards.map(c => React.createElement(FsHwCard, _extends({
+    key: c.k
+  }, c, {
+    style: {
+      boxShadow: "var(--shadow-sm)",
+      padding: "9px 10px"
+    }
+  })))));
+  const CW = 166;
+  return React.createElement("div", {
+    role: "img",
+    "aria-label": label,
+    style: {
+      position: "relative"
+    }
+  }, React.createElement(FsHouseStage, {
+    height: 300,
+    overlay: (pt, sz) => {
+      const place = list => list.map((c, i) => Object.assign({}, c, {
+        y: sz.h * (i ? 0.8 : 0.2),
+        x: c.side === "L" ? 0 : sz.w - CW
+      }));
+      const all = place(cards.filter(c => c.side === "L")).concat(place(cards.filter(c => c.side === "R")));
+      return React.createElement(React.Fragment, null, React.createElement("svg", {
+        width: sz.w,
+        height: sz.h,
+        style: {
+          position: "absolute",
+          inset: 0,
+          pointerEvents: "none"
+        },
+        "aria-hidden": "true"
+      }, all.map(c => React.createElement(FsHwWire, {
+        key: c.k,
+        id: uid + c.k,
+        a: [c.side === "L" ? c.x + CW - 8 : c.x + 8, c.y],
+        b: pt(FS_HOUSE_PT[c.pt]),
+        color: c.color,
+        on: c.on,
+        rel: rel(c.kw),
+        rev: c.out,
+        calm: calm
+      }))), all.map(c => React.createElement(FsHwCard, _extends({
+        key: c.k
+      }, c, {
+        style: {
+          position: "absolute",
+          left: c.x,
+          top: c.y,
+          width: CW,
+          transform: "translateY(-50%)"
+        }
+      }))));
+    }
+  }), React.createElement("div", {
+    style: {
+      position: "absolute",
+      left: "50%",
+      bottom: 0,
+      transform: "translateX(-50%)",
+      whiteSpace: "nowrap"
+    }
+  }, foot));
 }
 Object.assign(window, {
-  FsHouse3D
+  FsHouseArt,
+  FsHouseFlow,
+  FsHouseStage,
+  fsHouseCutout
 });

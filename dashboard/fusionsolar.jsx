@@ -269,7 +269,7 @@ function FsFleetHero({ roll, nowKw, liveN, lastAt, isMobile, hCount, health, onH
       </div>
     </div>
   );
-  const house = window.FsHouse3D ? <window.FsHouse3D /> : null;
+  const house = window.FsHouseArt ? <window.FsHouseArt /> : null;
   const bg = "radial-gradient(ellipse 48% 62% at " + (isMobile ? "50% 42%" : "66% 40%") + ", color-mix(in srgb, var(--fs-sun) 16%, transparent), transparent 72%),"
     + " linear-gradient(180deg, color-mix(in srgb, var(--primary) 7%, var(--surface)) 0%, var(--surface) 78%)";
   const wrap = { position: "relative", overflow: "hidden", borderRadius: "var(--r-card)", background: bg, boxShadow: "var(--shadow-card)", isolation: "isolate" };
@@ -871,7 +871,7 @@ function FsHistoryCard({ site, isMobile }) {
   );
 }
 
-/* ไฟที่ผลิตไปไหน · ไฟที่ใช้มาจากไหน — จากตัวเลขสะสมของมิเตอร์เทียบอินเวอร์เตอร์ (ภาพการไหลตอนนี้อยู่ใน FsScene) */
+/* ไฟที่ผลิตไปไหน · ไฟที่ใช้มาจากไหน — จากตัวเลขสะสมของมิเตอร์เทียบอินเวอร์เตอร์ (ภาพการไหลตอนนี้อยู่ใน FsHouseFlow) */
 function FsEnergyCard({ em, isMobile }) {
   if (em.selfTotal == null || !window.FsDonut) return null;
   const pv = em.pvTotal, use = em.importTotal != null ? em.selfTotal + em.importTotal : null;
@@ -1045,7 +1045,7 @@ function FsSiteModal({ site, sites, medMonth, jobs, canWrite, currentUser, onClo
       {code && (
         <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "minmax(0,1fr) 230px", background: "var(--surface)", boxShadow: "var(--shadow-card)", borderRadius: "var(--r-card)" }}>
           <div style={{ padding: isMobile ? "14px 12px 12px" : "18px 22px 14px", minWidth: 0 }}>
-            {window.FsScene ? <window.FsScene em={em} site={site} compact={isMobile}
+            {window.FsHouseFlow ? <window.FsHouseFlow em={em} site={site} compact={isMobile}
               at={site.kpi_updated_at ? "ข้อมูล ณ " + new Date(site.kpi_updated_at).toLocaleTimeString("th-TH", { timeStyle: "short", timeZone: "Asia/Bangkok" }) + " · " + fsAgo(site.kpi_updated_at) : "ยังไม่มีข้อมูลผลิต"} />
               : <FsEnergyFlow em={em} />}
             {staleH > 3 && <div style={{ fontSize: 11.5, color: "var(--tint-amber-tx)", fontWeight: 700, marginTop: 7 }}>ข้อมูลค้างเกิน 3 ชม. — แสดงค่าล่าสุดที่ได้รับ</div>}

@@ -680,7 +680,7 @@ function FsFleetHero({
       background: FS_HG[k]
     }
   }), FS_HEALTH[k].th, " ", hCount[k]))));
-  const house = window.FsHouse3D ? React.createElement(window.FsHouse3D, null) : null;
+  const house = window.FsHouseArt ? React.createElement(window.FsHouseArt, null) : null;
   const bg = "radial-gradient(ellipse 48% 62% at " + (isMobile ? "50% 42%" : "66% 40%") + ", color-mix(in srgb, var(--fs-sun) 16%, transparent), transparent 72%)," + " linear-gradient(180deg, color-mix(in srgb, var(--primary) 7%, var(--surface)) 0%, var(--surface) 78%)";
   const wrap = {
     position: "relative",
@@ -2619,7 +2619,7 @@ function FsSiteModal({
       padding: isMobile ? "14px 12px 12px" : "18px 22px 14px",
       minWidth: 0
     }
-  }, window.FsScene ? React.createElement(window.FsScene, {
+  }, window.FsHouseFlow ? React.createElement(window.FsHouseFlow, {
     em: em,
     site: site,
     compact: isMobile,
