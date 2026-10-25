@@ -715,48 +715,34 @@ function FsFleetHero({
   }, c, {
     flat: true
   })))));
-  const pos = {
-    now: {
-      left: 0,
-      top: 18
-    },
-    day: {
-      right: 0,
-      top: 6
-    },
-    mon: {
-      left: 18,
-      bottom: 14
-    },
-    tot: {
-      right: 10,
-      bottom: 22
-    }
-  };
   return React.createElement("div", {
     className: "fs-hero",
     style: wrap
   }, React.createElement("div", {
     style: {
       display: "grid",
-      gridTemplateColumns: "minmax(250px, .72fr) minmax(0, 2fr)",
-      gap: 8,
+      gridTemplateColumns: "minmax(230px, .8fr) minmax(0, 1.7fr) 220px",
+      gap: 14,
       padding: "20px 22px",
       alignItems: "center"
     }
   }, titleBlock, React.createElement("div", {
     style: {
       position: "relative",
-      height: 400
+      height: 380
     }
-  }, house, cards.map(c => React.createElement(FsFloatCard, _extends({
+  }, house), React.createElement("div", {
+    style: {
+      display: "flex",
+      flexDirection: "column",
+      gap: 10
+    }
+  }, cards.map(c => React.createElement(FsFloatCard, _extends({
     key: c.k
   }, c, {
-    style: Object.assign({
-      position: "absolute",
-      width: 210,
-      zIndex: 1
-    }, pos[c.k])
+    style: {
+      padding: "10px 14px"
+    }
   }))))));
 }
 function FsRanking({

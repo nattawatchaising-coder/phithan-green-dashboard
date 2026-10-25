@@ -282,15 +282,14 @@ function FsFleetHero({ roll, nowKw, liveN, lastAt, isMobile, hCount, health, onH
       </div>
     </div>
   );
-  /* ตำแหน่งการ์ดลอย: สองใบบนมุม สองใบล่างมุม เว้นกลางให้บ้าน */
-  const pos = { now: { left: 0, top: 18 }, day: { right: 0, top: 6 }, mon: { left: 18, bottom: 14 }, tot: { right: 10, bottom: 22 } };
+  /* หัวข้อ | บ้าน | การ์ด 4 ใบเรียงเป็นคอลัมน์ขวา — การ์ดไม่ทับภาพบ้าน (ผู้ใช้ทักว่าการ์ดลอยบังบ้าน) */
   return (
     <div className="fs-hero" style={wrap}>
-      <div style={{ display: "grid", gridTemplateColumns: "minmax(250px, .72fr) minmax(0, 2fr)", gap: 8, padding: "20px 22px", alignItems: "center" }}>
+      <div style={{ display: "grid", gridTemplateColumns: "minmax(230px, .8fr) minmax(0, 1.7fr) 220px", gap: 14, padding: "20px 22px", alignItems: "center" }}>
         {titleBlock}
-        <div style={{ position: "relative", height: 400 }}>
-          {house}
-          {cards.map((c) => <FsFloatCard key={c.k} {...c} style={Object.assign({ position: "absolute", width: 210, zIndex: 1 }, pos[c.k])} />)}
+        <div style={{ position: "relative", height: 380 }}>{house}</div>
+        <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+          {cards.map((c) => <FsFloatCard key={c.k} {...c} style={{ padding: "10px 14px" }} />)}
         </div>
       </div>
     </div>

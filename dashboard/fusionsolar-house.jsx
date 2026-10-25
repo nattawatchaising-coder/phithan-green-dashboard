@@ -1,16 +1,20 @@
 /* ============================================================
    flash+solar — ภาพบ้านโซลาร์ของหน้า FusionSolar (docs/fusionsolar.md)
    ภาพเรนเดอร์ที่ผู้ใช้ gen มาเอง (assets/fs-house.jpg พื้นเทาอ่อน) ตามแบบอ้างอิง Solis / Lumos / SolarSync / Sunsolar
-   - fsHouseCutout   ตัดพื้นเทาของภาพเป็นโปร่งใสตอนโหลด (ไล่จากขอบภาพ · เงาใต้บ้านเหลือเป็นเงาดำโปร่ง · ตัวบ้านทึบ) → วางได้ทั้งธีมสว่าง/มืด
+   - fsHouseCutout   ตัดพื้นเทาของภาพเป็นโปร่งใสตอนโหลด (นอกเส้นรอบบ้าน FS_HOUSE_OUTLINE = พื้น · เงาเหลือเป็นเงาดำโปร่ง · ตัวบ้านทึบ) → วางได้ทั้งธีมสว่าง/มืด
    - FsHouseStage    กล่องวางภาพแบบ contain + ส่งตำแหน่งจุดบนภาพ (สัดส่วน 0..1) เป็นพิกเซลให้ของที่วางทับ
-   - FsHouseFlow     หน้ารายละเอียดไซต์: บ้านกลาง + การ์ดโซลาร์/กริด/บ้านใช้ไฟ/แบต รอบ ๆ ต่อเส้นเข้าจุดบนบ้าน จุดวิ่งตามทิศพลังงาน
-   ไม่มีการเขียนฐานข้อมูลในไฟล์นี้ · ลดการเคลื่อนไหว (fsCalm) = ไม่มีจุดวิ่ง
+   - FsHouseFlow     หน้ารายละเอียดไซต์: บ้านกลาง + การ์ดโซลาร์/กริด/บ้านใช้ไฟ/แบต รอบ ๆ ต่อเส้นเข้าจุดบนบ้าน เส้นไหลแบบน้ำตามทิศพลังงาน
+   ไม่มีการเขียนฐานข้อมูลในไฟล์นี้ · ลดการเคลื่อนไหว (fsCalm) = เส้นนิ่ง
    ============================================================ */
 
 const FS_HOUSE_IMG = "dashboard/assets/fs-house.jpg?v=1";
 /* จุดบนภาพ (สัดส่วนของกว้าง/สูงภาพ) ที่เส้นพลังงานวิ่งเข้า */
 const FS_HOUSE_PT = { roof: [0.5, 0.27], grid: [0.3, 0.6], home: [0.56, 0.64], bat: [0.79, 0.56] };
 
+/* เส้นรอบบ้าน+สนาม+ต้นไม้ในภาพ (พิกเซลของภาพ 1376×768) — เปลี่ยนภาพต้องวาดเส้นนี้ใหม่ */
+const FS_HOUSE_OUTLINE = [[136, 499], [186, 462], [168, 426], [192, 372], [232, 334], [275, 322], [330, 336], [372, 352], [376, 214], [362, 182], [768, 90], [938, 192],
+  [985, 163], [1048, 170], [1096, 215], [1106, 300], [1104, 330], [1104, 420], [1150, 425], [1195, 440], [1282, 495], [1180, 530], [1070, 568], [1000, 596],
+  [930, 604], [640, 686]];
 let _fsHouseP = null;
 function fsHouseCutout() {
   if (_fsHouseP) return _fsHouseP;
@@ -27,23 +31,40 @@ function fsHouseCutout() {
         /* สีพื้น = ค่าเฉลี่ยมุมทั้งสี่ */
         let B = 0;
         [[2, 2], [W - 3, 2], [2, H - 3], [W - 3, H - 3]].forEach(([x, y]) => { const i = (y * W + x) * 4; B += (p[i] + p[i + 1] + p[i + 2]) / 12; });
-        /* ไล่จากขอบภาพเข้าไปทางพิกเซลที่เป็นพื้น (เทาไม่มีสี ไม่สว่างกว่าพื้น · เข้มกว่าได้ = เงา) — ตัวบ้านไม่ถูกแตะ ทึบเต็มเสมอ
-           ในพื้นที่พื้น: สีดำโปร่งตามความเข้ม (B - v) / B → วางบนพื้นสว่างได้ภาพเดิม · บนพื้นมืดเงาจางไปเอง */
+        /* นอกเส้นรอบบ้าน+สนาม (FS_HOUSE_OUTLINE วาดมือตามภาพนี้) = พื้นทั้งหมด · ในเส้น: ไล่จากขอบเส้นเข้าไปเฉพาะพิกเซลสีพื้นแท้ (เทา ไม่มีสี)
+           ตัดด้วยสีอย่างเดียวไม่พอ — เงาอมสีและผนังด้านร่มไล่สีจางเข้าพื้นเหมือนกัน แยกกันไม่ออก
+           ในพื้นที่พื้น: สีดำโปร่งตามความเข้ม (B - v) / B → บนพื้นสว่างได้ภาพเดิม (เงาครบ) · บนพื้นมืดเงาจางไปเอง */
         const N = W * H, seen = new Uint8Array(N), q = new Int32Array(N);
+        const mc = document.createElement("canvas");
+        mc.width = W; mc.height = H;
+        const mg = mc.getContext("2d"), sx = W / 1376, sy = H / 768;
+        mg.beginPath();
+        FS_HOUSE_OUTLINE.forEach(([x, y], i) => (i ? mg.lineTo(x * sx, y * sy) : mg.moveTo(x * sx, y * sy)));
+        mg.closePath(); mg.fillStyle = "#000"; mg.fill();
+        const inside = mg.getImageData(0, 0, W, H).data;
         let qh = 0, qt = 0;
+        for (let j = 0; j < N; j++) if (inside[j * 4 + 3] < 128) { seen[j] = 1; q[qt++] = j; }
         const isBg = (j) => {
           const i = j * 4, r = p[i], gg = p[i + 1], bb = p[i + 2], v = (r + gg + bb) / 3;
           return Math.max(r, gg, bb) - Math.min(r, gg, bb) <= 10 && v >= B - 48 && v <= B + 7;
         };
         const push = (j) => { if (!seen[j] && isBg(j)) { seen[j] = 1; q[qt++] = j; } };
-        for (let x = 0; x < W; x++) { push(x); push((H - 1) * W + x); }
-        for (let y = 0; y < H; y++) { push(y * W); push(y * W + W - 1); }
         while (qh < qt) {
           const j = q[qh++], x = j % W;
           if (x > 0) push(j - 1);
           if (x < W - 1) push(j + 1);
           if (j >= W) push(j - W);
           if (j < N - W) push(j + W);
+        }
+        /* ขยายพื้นที่พื้นเข้าไปอีก 2 พิกเซลที่ขอบภาพบ้าน (พิกเซลเทา/ขาวไม่มีสีที่ติดพื้น) — กันขอบขาวรอบบ้านบนพื้นมืด */
+        for (let pass = 0; pass < 2; pass++) {
+          const add = [];
+          for (let j = W; j < N - W; j++) {
+            if (seen[j] || !(seen[j - 1] || seen[j + 1] || seen[j - W] || seen[j + W])) continue;
+            const i = j * 4, r = p[i], gg = p[i + 1], bb = p[i + 2];
+            if (Math.max(r, gg, bb) - Math.min(r, gg, bb) <= 16 && (r + gg + bb) / 3 >= B - 60) add.push(j);
+          }
+          add.forEach((j) => { seen[j] = 1; });
         }
         for (let j = 0; j < N; j++) {
           if (!seen[j]) continue;
@@ -129,29 +150,32 @@ function FsHwCard({ icon, color, on, title, value, sub, style }) {
     </div>
   );
 }
-/* เส้นโค้งจากการ์ด (a) เข้าจุดบนบ้าน (b) · rev = จุดวิ่งจากบ้านออกไปหาการ์ด */
-function FsHwWire({ id, a, b, color, on, rel, rev, calm }) {
+/* เส้นพลังงานแบบน้ำไหล: รางจาง + ขีดยาวสีเลื่อนช้า ๆ ตามทิศ (ผู้ใช้ว่าจุดวิ่งเร็วเกิน ขอเป็นเส้นไหลเข้า) */
+(function fsInjectHouseCss() {
+  if (document.getElementById("fs-house-css")) return;
+  const el = document.createElement("style");
+  el.id = "fs-house-css";
+  el.textContent = "@keyframes fsFlowFwd{to{stroke-dashoffset:-40}}@keyframes fsFlowRev{to{stroke-dashoffset:40}}"
+    + ".fs-flow{stroke-dasharray:16 24;animation:fsFlowFwd 2s linear infinite}.fs-flow.rev{animation-name:fsFlowRev}"
+    + "@media (prefers-reduced-motion: reduce){.fs-flow{animation:none!important}}";
+  document.head.appendChild(el);
+})();
+/* เส้นโค้งจากการ์ด (a) เข้าจุดบนบ้าน (b) · rev = ไหลจากบ้านออกไปหาการ์ด · ยิ่ง kW มากยิ่งไหลเร็ว (ช้าสุด 2.6 วิ เร็วสุด 1.2 วิ ต่อช่วง 40px) */
+function FsHwWire({ a, b, color, on, rel, rev, calm }) {
   const mx = (a[0] + b[0]) / 2;
   const d = "M" + a[0].toFixed(1) + "," + a[1].toFixed(1) + " C" + mx.toFixed(1) + "," + a[1].toFixed(1) + " " + mx.toFixed(1) + "," + b[1].toFixed(1) + " " + b[0].toFixed(1) + "," + b[1].toFixed(1);
-  const dur = 3 - 1.9 * Math.sqrt(fsClamp(rel || 0.5, 0, 1));
+  const dur = 2.6 - 1.4 * Math.sqrt(fsClamp(rel || 0.5, 0, 1));
   return (
     <g>
-      <path id={id} d={d} fill="none" style={{ stroke: on ? color : "var(--border-strong)", strokeWidth: 2, strokeLinecap: "round", opacity: on ? 0.6 : 0.7,
+      <path d={d} fill="none" style={{ stroke: on ? color : "var(--border-strong)", strokeWidth: on ? 5 : 2, strokeLinecap: "round", opacity: on ? 0.16 : 0.7,
         strokeDasharray: on ? "none" : "3 5" }} />
+      {on && <path d={d} fill="none" className={"fs-flow" + (rev ? " rev" : "")} style={{ stroke: color, strokeWidth: 2.6, strokeLinecap: "round",
+        animationDuration: dur.toFixed(2) + "s", animationPlayState: calm ? "paused" : "running", filter: "drop-shadow(0 0 2px " + color + ")" }} />}
       <circle cx={b[0]} cy={b[1]} r="4" style={{ fill: "var(--surface)", stroke: on ? color : "var(--border-strong)", strokeWidth: 2 }} />
-      {on && !calm && [0, 1, 2].map((i) => (
-        <circle key={i} r="3.4" style={{ fill: color, filter: "drop-shadow(0 0 3px " + color + ")" }}>
-          <animateMotion dur={dur.toFixed(2) + "s"} repeatCount="indefinite" begin={(-(i * dur) / 3).toFixed(2) + "s"} calcMode="linear"
-            keyPoints={rev ? "1;0" : "0;1"} keyTimes="0;1">
-            <mpath xlinkHref={"#" + id} />
-          </animateMotion>
-        </circle>
-      ))}
     </g>
   );
 }
 function FsHouseFlow({ em, site, compact, at }) {
-  const uid = React.useRef("hw" + Math.random().toString(36).slice(2, 8)).current;
   const calm = fsCalm();
   const cap = fsN(site.capacity_kw) || em.cap || null;
   const pv = em.pvKw, g = em.gridKw, bk = em.battKw, load = em.loadKw;
@@ -199,7 +223,7 @@ function FsHouseFlow({ em, site, compact, at }) {
           <React.Fragment>
             <svg width={sz.w} height={sz.h} style={{ position: "absolute", inset: 0, pointerEvents: "none" }} aria-hidden="true">
               {all.map((c) => (
-                <FsHwWire key={c.k} id={uid + c.k} a={[c.side === "L" ? c.x + CW - 8 : c.x + 8, c.y]} b={pt(FS_HOUSE_PT[c.pt])}
+                <FsHwWire key={c.k} a={[c.side === "L" ? c.x + CW - 8 : c.x + 8, c.y]} b={pt(FS_HOUSE_PT[c.pt])}
                   color={c.color} on={c.on} rel={rel(c.kw)} rev={c.out} calm={calm} />
               ))}
             </svg>

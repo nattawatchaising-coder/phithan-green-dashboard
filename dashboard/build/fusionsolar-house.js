@@ -6,6 +6,7 @@ const FS_HOUSE_PT = {
   home: [0.56, 0.64],
   bat: [0.79, 0.56]
 };
+const FS_HOUSE_OUTLINE = [[136, 499], [186, 462], [168, 426], [192, 372], [232, 334], [275, 322], [330, 336], [372, 352], [376, 214], [362, 182], [768, 90], [938, 192], [985, 163], [1048, 170], [1096, 215], [1106, 300], [1104, 330], [1104, 420], [1150, 425], [1195, 440], [1282, 495], [1180, 530], [1070, 568], [1000, 596], [930, 604], [640, 686]];
 let _fsHouseP = null;
 function fsHouseCutout() {
   if (_fsHouseP) return _fsHouseP;
@@ -31,8 +32,24 @@ function fsHouseCutout() {
         const N = W * H,
           seen = new Uint8Array(N),
           q = new Int32Array(N);
+        const mc = document.createElement("canvas");
+        mc.width = W;
+        mc.height = H;
+        const mg = mc.getContext("2d"),
+          sx = W / 1376,
+          sy = H / 768;
+        mg.beginPath();
+        FS_HOUSE_OUTLINE.forEach(([x, y], i) => i ? mg.lineTo(x * sx, y * sy) : mg.moveTo(x * sx, y * sy));
+        mg.closePath();
+        mg.fillStyle = "#000";
+        mg.fill();
+        const inside = mg.getImageData(0, 0, W, H).data;
         let qh = 0,
           qt = 0;
+        for (let j = 0; j < N; j++) if (inside[j * 4 + 3] < 128) {
+          seen[j] = 1;
+          q[qt++] = j;
+        }
         const isBg = j => {
           const i = j * 4,
             r = p[i],
@@ -47,14 +64,6 @@ function fsHouseCutout() {
             q[qt++] = j;
           }
         };
-        for (let x = 0; x < W; x++) {
-          push(x);
-          push((H - 1) * W + x);
-        }
-        for (let y = 0; y < H; y++) {
-          push(y * W);
-          push(y * W + W - 1);
-        }
         while (qh < qt) {
           const j = q[qh++],
             x = j % W;
@@ -62,6 +71,20 @@ function fsHouseCutout() {
           if (x < W - 1) push(j + 1);
           if (j >= W) push(j - W);
           if (j < N - W) push(j + W);
+        }
+        for (let pass = 0; pass < 2; pass++) {
+          const add = [];
+          for (let j = W; j < N - W; j++) {
+            if (seen[j] || !(seen[j - 1] || seen[j + 1] || seen[j - W] || seen[j + W])) continue;
+            const i = j * 4,
+              r = p[i],
+              gg = p[i + 1],
+              bb = p[i + 2];
+            if (Math.max(r, gg, bb) - Math.min(r, gg, bb) <= 16 && (r + gg + bb) / 3 >= B - 60) add.push(j);
+          }
+          add.forEach(j => {
+            seen[j] = 1;
+          });
         }
         for (let j = 0; j < N; j++) {
           if (!seen[j]) continue;
@@ -256,8 +279,14 @@ function FsHwCard({
     }
   }, sub)));
 }
+(function fsInjectHouseCss() {
+  if (document.getElementById("fs-house-css")) return;
+  const el = document.createElement("style");
+  el.id = "fs-house-css";
+  el.textContent = "@keyframes fsFlowFwd{to{stroke-dashoffset:-40}}@keyframes fsFlowRev{to{stroke-dashoffset:40}}" + ".fs-flow{stroke-dasharray:16 24;animation:fsFlowFwd 2s linear infinite}.fs-flow.rev{animation-name:fsFlowRev}" + "@media (prefers-reduced-motion: reduce){.fs-flow{animation:none!important}}";
+  document.head.appendChild(el);
+})();
 function FsHwWire({
-  id,
   a,
   b,
   color,
@@ -268,17 +297,28 @@ function FsHwWire({
 }) {
   const mx = (a[0] + b[0]) / 2;
   const d = "M" + a[0].toFixed(1) + "," + a[1].toFixed(1) + " C" + mx.toFixed(1) + "," + a[1].toFixed(1) + " " + mx.toFixed(1) + "," + b[1].toFixed(1) + " " + b[0].toFixed(1) + "," + b[1].toFixed(1);
-  const dur = 3 - 1.9 * Math.sqrt(fsClamp(rel || 0.5, 0, 1));
+  const dur = 2.6 - 1.4 * Math.sqrt(fsClamp(rel || 0.5, 0, 1));
   return React.createElement("g", null, React.createElement("path", {
-    id: id,
     d: d,
     fill: "none",
     style: {
       stroke: on ? color : "var(--border-strong)",
-      strokeWidth: 2,
+      strokeWidth: on ? 5 : 2,
       strokeLinecap: "round",
-      opacity: on ? 0.6 : 0.7,
+      opacity: on ? 0.16 : 0.7,
       strokeDasharray: on ? "none" : "3 5"
+    }
+  }), on && React.createElement("path", {
+    d: d,
+    fill: "none",
+    className: "fs-flow" + (rev ? " rev" : ""),
+    style: {
+      stroke: color,
+      strokeWidth: 2.6,
+      strokeLinecap: "round",
+      animationDuration: dur.toFixed(2) + "s",
+      animationPlayState: calm ? "paused" : "running",
+      filter: "drop-shadow(0 0 2px " + color + ")"
     }
   }), React.createElement("circle", {
     cx: b[0],
@@ -289,23 +329,7 @@ function FsHwWire({
       stroke: on ? color : "var(--border-strong)",
       strokeWidth: 2
     }
-  }), on && !calm && [0, 1, 2].map(i => React.createElement("circle", {
-    key: i,
-    r: "3.4",
-    style: {
-      fill: color,
-      filter: "drop-shadow(0 0 3px " + color + ")"
-    }
-  }, React.createElement("animateMotion", {
-    dur: dur.toFixed(2) + "s",
-    repeatCount: "indefinite",
-    begin: (-(i * dur) / 3).toFixed(2) + "s",
-    calcMode: "linear",
-    keyPoints: rev ? "1;0" : "0;1",
-    keyTimes: "0;1"
-  }, React.createElement("mpath", {
-    xlinkHref: "#" + id
-  })))));
+  }));
 }
 function FsHouseFlow({
   em,
@@ -313,7 +337,6 @@ function FsHouseFlow({
   compact,
   at
 }) {
-  const uid = React.useRef("hw" + Math.random().toString(36).slice(2, 8)).current;
   const calm = fsCalm();
   const cap = fsN(site.capacity_kw) || em.cap || null;
   const pv = em.pvKw,
@@ -448,7 +471,6 @@ function FsHouseFlow({
         "aria-hidden": "true"
       }, all.map(c => React.createElement(FsHwWire, {
         key: c.k,
-        id: uid + c.k,
         a: [c.side === "L" ? c.x + CW - 8 : c.x + 8, c.y],
         b: pt(FS_HOUSE_PT[c.pt]),
         color: c.color,
