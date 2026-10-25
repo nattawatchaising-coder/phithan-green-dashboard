@@ -51,8 +51,9 @@ export const DEV_TYPES = {
   17: "Grid meter", 47: "Power meter", 39: "Battery", 41: "ESS", 46: "Optimizer", 10: "EMI (environmental monitor)",
   23070: "EMMA (energy manager)", 23071: "SmartGuard (backup box)", 23076: "External meter",
 };
-/* ประเภทที่ดึงค่า KPI รายชั่วโมง — ไม่รวมออปติไมเซอร์ (46): ข้อมูลจริงมี 1,346 ตัว = 14 คำขอ/รอบ ดันอุปกรณ์อื่นเลยงบเวลาและเสี่ยง 407
-   ประเภทที่ไม่รู้จักก็ไม่ดึง (Huawei อาจไม่รองรับ getDevRealKpi) แต่ยังเก็บรายชื่ออุปกรณ์ตามปกติ */
+/* ประเภทที่ไม่เก็บเลย — ออปติไมเซอร์ (46) ข้อมูลจริง 1,346 ตัว = 38% ของ fsDevices แต่ไม่ได้ใช้ (ผู้ใช้: "ออปติไมเซอร์ ไม่ต้องเอามาก็ได้") */
+export const SKIP_TYPES = { 46: 1 };
+/* ประเภทที่ดึงค่า KPI รายชั่วโมง · ประเภทที่ไม่รู้จักไม่ดึง (Huawei อาจไม่รองรับ getDevRealKpi) แต่ยังเก็บรายชื่ออุปกรณ์ตามปกติ */
 export const KPI_TYPES = { 1: 1, 38: 1, 2: 1, 63: 1, 62: 1, 17: 1, 47: 1, 39: 1, 41: 1, 10: 1 };
 export const devTypeName = (t) => DEV_TYPES[t] || ("ไม่ทราบประเภท (devTypeId " + t + ")");
 
@@ -192,7 +193,7 @@ export function planDevices(devs, codes, devices, codeToSite, now) {
   const t = now || iso();
   const patch = {}, out = { created: 0, updated: 0, notFound: 0 }, seen = {};
   (devs || []).forEach((d) => {
-    if (!d || d.id == null) return;
+    if (!d || d.id == null || SKIP_TYPES[num(d.devTypeId)]) return;
     const id = safeKey(String(d.id));
     seen[id] = 1;
     const had = !!(devices || {})[id];
@@ -207,7 +208,7 @@ export function planDevices(devs, codes, devices, codeToSite, now) {
   const inRun = {}; (codes || []).forEach((c) => { inRun[c] = 1; });
   Object.keys(devices || {}).forEach((id) => {
     const d = devices[id] || {};
-    if (seen[id] || !inRun[d.station_code]) return;
+    if (seen[id] || !inRun[d.station_code] || SKIP_TYPES[d.dev_type_id]) return;
     if (d.fs_status !== "not_found_in_fusionsolar") patch[id + "/fs_status"] = "not_found_in_fusionsolar";
     out.notFound++;
   });

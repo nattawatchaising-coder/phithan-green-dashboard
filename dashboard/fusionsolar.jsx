@@ -667,14 +667,14 @@ function FsSiteModal({ site, sites, medMonth, jobs, canWrite, currentUser, onClo
   const linked = Object.keys(site.jobIds || {});
   const stageTH = (k) => (((window.SF && window.SF.STAGES) || []).find((s) => s.key === k) || {}).th || k || "";
   const em = React.useMemo(() => fsEnergyModel(site, devs), [site, devs]);
-  /* ออปติไมเซอร์ (และประเภทอื่นที่มีเกิน 8 ตัวและไม่ใช่อินเวอร์เตอร์/มิเตอร์/แบต) รวมเป็นการ์ดเดียว — ไซต์จริงมีถึง 816 ตัว */
+  /* ประเภทที่มีเกิน 8 ตัวและไม่ใช่อินเวอร์เตอร์/มิเตอร์/แบต รวมเป็นการ์ดเดียว (ออปติไมเซอร์ไม่ซิงก์มาแล้ว — SKIP_TYPES) */
   const devGroups = React.useMemo(() => {
     const byT = {};
     devs.forEach((d) => { (byT[d.dev_type_id] = byT[d.dev_type_id] || []).push(d); });
     const single = [], bulk = [];
     Object.keys(byT).forEach((t) => {
       const main = fsDevRank(t) < 3;
-      if (+t === 46 || (!main && byT[t].length > 8)) bulk.push({ type: +t, list: byT[t] });
+      if (!main && byT[t].length > 8) bulk.push({ type: +t, list: byT[t] });
       else single.push.apply(single, byT[t]);
     });
     single.sort((a, b) => fsDevRank(a.dev_type_id) - fsDevRank(b.dev_type_id) || String(a.dev_name).localeCompare(String(b.dev_name)));
@@ -854,7 +854,7 @@ function FsSiteModal({ site, sites, medMonth, jobs, canWrite, currentUser, onClo
   );
 }
 
-/* อุปกรณ์จำนวนมากชนิดเดียวกัน — สรุปจำนวน/รุ่น กดดูรายชื่อ (ไม่ดึงค่า KPI ของออปติไมเซอร์ — docs/fusionsolar.md) */
+/* อุปกรณ์จำนวนมากชนิดเดียวกัน — สรุปจำนวน/รุ่น กดดูรายชื่อ */
 function FsDevGroup({ type, list }) {
   const [open, setOpen] = React.useState(false);
   const [q, setQ] = React.useState("");
@@ -875,7 +875,6 @@ function FsDevGroup({ type, list }) {
       </div>
       <div style={{ fontSize: 11, color: "var(--text-3)", marginTop: 3 }}>
         {Object.keys(models).map((m) => m + " × " + models[m]).join(" · ")}
-        {type === 46 ? " · ไม่ได้ดึงค่ารายตัว (ดูในแอป FusionSolar)" : ""}
       </div>
       {open && (
         <div style={{ marginTop: 10 }}>

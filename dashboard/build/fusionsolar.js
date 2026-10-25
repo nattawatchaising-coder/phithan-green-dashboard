@@ -1621,7 +1621,7 @@ function FsSiteModal({
       bulk = [];
     Object.keys(byT).forEach(t => {
       const main = fsDevRank(t) < 3;
-      if (+t === 46 || !main && byT[t].length > 8) bulk.push({
+      if (!main && byT[t].length > 8) bulk.push({
         type: +t,
         list: byT[t]
       });else single.push.apply(single, byT[t]);
@@ -2048,7 +2048,7 @@ function FsDevGroup({
       color: "var(--text-3)",
       marginTop: 3
     }
-  }, Object.keys(models).map(m => m + " × " + models[m]).join(" · "), type === 46 ? " · ไม่ได้ดึงค่ารายตัว (ดูในแอป FusionSolar)" : ""), open && React.createElement("div", {
+  }, Object.keys(models).map(m => m + " × " + models[m]).join(" · ")), open && React.createElement("div", {
     style: {
       marginTop: 10
     }
