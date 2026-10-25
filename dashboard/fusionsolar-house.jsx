@@ -200,35 +200,22 @@ function FsHwCard({ icon, color, on, title, value, sub, style }) {
   );
 }
 /* เส้นพลังงานแบบน้ำไหล (ผู้ใช้ว่าจุดวิ่งเร็วเกิน ขอเป็นเส้นไหลเข้า → ขอ "เส้นน้ำสวย ๆ" → ว่ายังอ่อนไป ขอ 4 แบบให้เลือก)
-   conduit = ท่อร้อยสายตามผนังแบบภาพอ้างอิง Tesla ที่ผู้ใช้ส่งมา (ค่าเริ่มต้น): เส้นหักมุม แนวนอนออกจากการ์ด แล้วเฉียง 26.6° แบบไอโซเมตริกเข้าจุดบนบ้าน
+   conduit = ท่อร้อยสายเกาะผนังแบบภาพอ้างอิง Tesla ที่ผู้ใช้ส่งมา (ค่าเริ่มต้น): ลงตรงตามผนังแล้ววิ่งขนานแนวผนังออกไปหาการ์ด
      ท่อเทาเข้ม + สายสีทึบเรืองแสง + แถบสว่างวิ่งข้างใน · ไม่มีไฟ = ท่อเทาเปล่า
    tube = ท่อแก้วมีน้ำไหลข้างใน · neon = ลำแสงนีออนมีหัวดาวหางวิ่ง · wave = สายน้ำสองเส้นพันกันเป็นคลื่น · drops = หยดน้ำไหลเป็นสาย
    ทุกแบบ: วงกระเพื่อมที่ปลายทางของน้ำ · ลวดลายเลื่อนเป็นรอบละ 64px (keyframes fsFlowFwd/Rev) */
 const FS_WIRE_STYLES = ["conduit", "tube", "neon", "wave", "drops"];
-/* ทางเดินท่อ: a → แนวนอน → มุมโค้ง r → เฉียงไอโซเมตริก (ชัน 0.5) เข้า b · ระยะไม่พอ = แนวนอนแล้วลง/ขึ้นตรง ๆ */
+/* ทางเดินท่อแบบภาพอ้างอิง (ท่อเกาะผนังตามมุมมอง 3D): จากจุดบนบ้าน b ลงตรงตามผนัง แล้ววิ่งตามแนวผนัง/พื้นของภาพ
+   (เส้นขนานกับขอบผนัง ชัน ~0.25 — ไปทางซ้ายยกขึ้น ไปทางขวาก็ยกขึ้น ตามภาพบ้านมุมนี้) ออกไปจบที่ขอบการ์ด a · มุมเลี้ยวโค้งมน */
+const FS_ISO = 0.25;
 function fsConduitPath(a, b) {
-  const dx = b[0] - a[0], dy = b[1] - a[1], sx = Math.sign(dx) || 1, sy = Math.sign(dy) || 1;
-  const need = Math.abs(dy) * 2;   // ระยะแนวนอนที่ช่วงเฉียงใช้
   const f = (q) => q[0].toFixed(1) + "," + q[1].toFixed(1);
-  if (need <= Math.abs(dx) - 14) {
-    const m = [b[0] - sx * need, a[1]], r = Math.min(10, need / 2, Math.abs(m[0] - a[0]));
-    const k = r / Math.hypot(2, 1);
-    return "M" + f(a) + " L" + f([m[0] - sx * r, m[1]]) + " Q" + f(m) + " " + f([m[0] + sx * 2 * k, m[1] + sy * k]) + " L" + f(b);
-  }
-  const m = [b[0], a[1]], r = Math.min(10, Math.abs(dx) / 2, Math.abs(dy) / 2);
-  return "M" + f(a) + " L" + f([m[0] - sx * r, m[1]]) + " Q" + f(m) + " " + f([m[0], m[1] + sy * r]) + " L" + f(b);
+  const run = Math.abs(a[0] - b[0]), ym = a[1] + FS_ISO * run;   // ระดับที่ท่อลงมาถึงก่อนเลี้ยวออกตามผนัง
+  const sy = Math.sign(ym - b[1]) || 1, sx = Math.sign(a[0] - b[0]) || 1;
+  const r = Math.min(12, Math.abs(ym - b[1]) / 2, run / 2);
+  const m = [b[0], ym], k = r / Math.hypot(1, FS_ISO);
+  return "M" + f(a) + " L" + f([m[0] + sx * k, m[1] - FS_ISO * k]) + " Q" + f(m) + " " + f([m[0], m[1] - sy * r]) + " L" + f(b);
 }
-(function fsInjectHouseCss() {
-  if (document.getElementById("fs-house-css")) return;
-  const el = document.createElement("style");
-  el.id = "fs-house-css";
-  el.textContent = "@keyframes fsFlowFwd{to{stroke-dashoffset:-64}}@keyframes fsFlowRev{to{stroke-dashoffset:64}}"
-    + "@keyframes fsRipple{0%{transform:scale(1);opacity:.7}100%{transform:scale(3.6);opacity:0}}"
-    + ".fs-flow{animation:fsFlowFwd 2s linear infinite}.fs-flow.rev{animation-name:fsFlowRev}"
-    + ".fs-ripple{transform-box:fill-box;transform-origin:center;animation:fsRipple 2.2s ease-out infinite}"
-    + "@media (prefers-reduced-motion: reduce){.fs-flow,.fs-ripple{animation:none!important}.fs-ripple{opacity:0}}";
-  document.head.appendChild(el);
-})();
 /* จุดบนเส้นโค้ง cubic ทุก ~2px → เส้นคลื่นสองเส้นเยื้องเฟสกัน (แบบ wave) */
 function fsWavePaths(p0, p1, p2, p3) {
   const at = (t) => { const u = 1 - t; return [0, 1].map((k) => u * u * u * p0[k] + 3 * u * u * t * p1[k] + 3 * u * t * t * p2[k] + t * t * t * p3[k]); };
@@ -259,10 +246,10 @@ function FsHwWire({ a, b, color, on, rel, rev, calm, sty }) {
     const C = (st, c) => <path d={cd} fill="none" className={c} style={Object.assign({ strokeLinecap: "round", strokeLinejoin: "round" }, st)} />;
     return (
       <g>
-        {C({ stroke: "color-mix(in srgb, var(--text-1) 55%, var(--surface))", strokeWidth: 9, opacity: on ? 0.35 : 0.22 })}
-        {!on && C({ stroke: "color-mix(in srgb, var(--text-1) 30%, var(--surface))", strokeWidth: 5, opacity: 0.6 })}
-        {on && C({ stroke: color, strokeWidth: 6, filter: "drop-shadow(0 0 5px " + color + ")" })}
-        {on && C(anim(1.3, { stroke: "color-mix(in srgb, " + color + " 35%, #fff)", strokeWidth: 3, strokeDasharray: "34 30", opacity: 0.95 }), cls)}
+        {C({ stroke: "#000", strokeWidth: 11, opacity: 0.18, strokeLinecap: "butt" })}
+        {!on && C({ stroke: "color-mix(in srgb, var(--text-1) 38%, var(--surface))", strokeWidth: 8, strokeLinecap: "butt" })}
+        {on && C({ stroke: color, strokeWidth: 8, strokeLinecap: "butt", filter: "drop-shadow(0 0 7px " + color + ")" })}
+        {on && C(anim(1.3, { stroke: "color-mix(in srgb, " + color + " 30%, #fff)", strokeWidth: 3, strokeDasharray: "34 30", opacity: 0.9 }), cls)}
         {on && <circle cx={e[0]} cy={e[1]} r="5" className="fs-ripple" style={{ fill: "none", stroke: color, strokeWidth: 2, animationPlayState: calm ? "paused" : "running" }} />}
         <rect x={b[0] - 6} y={b[1] - 6} width="12" height="12" rx="3" style={{ fill: on ? color : "color-mix(in srgb, var(--text-1) 40%, var(--surface))", stroke: "var(--surface)", strokeWidth: 2,
           filter: on ? "drop-shadow(0 0 4px " + color + ")" : "none" }} />

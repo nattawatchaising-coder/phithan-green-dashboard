@@ -371,30 +371,18 @@ function FsHwCard({
   }, sub)));
 }
 const FS_WIRE_STYLES = ["conduit", "tube", "neon", "wave", "drops"];
+const FS_ISO = 0.25;
 function fsConduitPath(a, b) {
-  const dx = b[0] - a[0],
-    dy = b[1] - a[1],
-    sx = Math.sign(dx) || 1,
-    sy = Math.sign(dy) || 1;
-  const need = Math.abs(dy) * 2;
   const f = q => q[0].toFixed(1) + "," + q[1].toFixed(1);
-  if (need <= Math.abs(dx) - 14) {
-    const m = [b[0] - sx * need, a[1]],
-      r = Math.min(10, need / 2, Math.abs(m[0] - a[0]));
-    const k = r / Math.hypot(2, 1);
-    return "M" + f(a) + " L" + f([m[0] - sx * r, m[1]]) + " Q" + f(m) + " " + f([m[0] + sx * 2 * k, m[1] + sy * k]) + " L" + f(b);
-  }
-  const m = [b[0], a[1]],
-    r = Math.min(10, Math.abs(dx) / 2, Math.abs(dy) / 2);
-  return "M" + f(a) + " L" + f([m[0] - sx * r, m[1]]) + " Q" + f(m) + " " + f([m[0], m[1] + sy * r]) + " L" + f(b);
+  const run = Math.abs(a[0] - b[0]),
+    ym = a[1] + FS_ISO * run;
+  const sy = Math.sign(ym - b[1]) || 1,
+    sx = Math.sign(a[0] - b[0]) || 1;
+  const r = Math.min(12, Math.abs(ym - b[1]) / 2, run / 2);
+  const m = [b[0], ym],
+    k = r / Math.hypot(1, FS_ISO);
+  return "M" + f(a) + " L" + f([m[0] + sx * k, m[1] - FS_ISO * k]) + " Q" + f(m) + " " + f([m[0], m[1] - sy * r]) + " L" + f(b);
 }
-(function fsInjectHouseCss() {
-  if (document.getElementById("fs-house-css")) return;
-  const el = document.createElement("style");
-  el.id = "fs-house-css";
-  el.textContent = "@keyframes fsFlowFwd{to{stroke-dashoffset:-64}}@keyframes fsFlowRev{to{stroke-dashoffset:64}}" + "@keyframes fsRipple{0%{transform:scale(1);opacity:.7}100%{transform:scale(3.6);opacity:0}}" + ".fs-flow{animation:fsFlowFwd 2s linear infinite}.fs-flow.rev{animation-name:fsFlowRev}" + ".fs-ripple{transform-box:fill-box;transform-origin:center;animation:fsRipple 2.2s ease-out infinite}" + "@media (prefers-reduced-motion: reduce){.fs-flow,.fs-ripple{animation:none!important}.fs-ripple{opacity:0}}";
-  document.head.appendChild(el);
-})();
 function fsWavePaths(p0, p1, p2, p3) {
   const at = t => {
     const u = 1 - t;
@@ -463,22 +451,24 @@ function FsHwWire({
       }, st)
     });
     return React.createElement("g", null, C({
-      stroke: "color-mix(in srgb, var(--text-1) 55%, var(--surface))",
-      strokeWidth: 9,
-      opacity: on ? 0.35 : 0.22
+      stroke: "#000",
+      strokeWidth: 11,
+      opacity: 0.18,
+      strokeLinecap: "butt"
     }), !on && C({
-      stroke: "color-mix(in srgb, var(--text-1) 30%, var(--surface))",
-      strokeWidth: 5,
-      opacity: 0.6
+      stroke: "color-mix(in srgb, var(--text-1) 38%, var(--surface))",
+      strokeWidth: 8,
+      strokeLinecap: "butt"
     }), on && C({
       stroke: color,
-      strokeWidth: 6,
-      filter: "drop-shadow(0 0 5px " + color + ")"
+      strokeWidth: 8,
+      strokeLinecap: "butt",
+      filter: "drop-shadow(0 0 7px " + color + ")"
     }), on && C(anim(1.3, {
-      stroke: "color-mix(in srgb, " + color + " 35%, #fff)",
+      stroke: "color-mix(in srgb, " + color + " 30%, #fff)",
       strokeWidth: 3,
       strokeDasharray: "34 30",
-      opacity: 0.95
+      opacity: 0.9
     }), cls), on && React.createElement("circle", {
       cx: e[0],
       cy: e[1],
