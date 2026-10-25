@@ -48,8 +48,12 @@ const chunk = (arr, n) => { const out = []; for (let i = 0; i < arr.length; i +=
 /* ── ประเภทอุปกรณ์ (สเปกข้อ 5) — ชุดเดียวกับ FS_DEV_TYPES ใน dashboard/fusionsolar.jsx ── */
 export const DEV_TYPES = {
   1: "String inverter", 38: "Residential inverter", 2: "SmartLogger", 63: "SmartLogger", 62: "Smart Dongle",
-  17: "Grid meter", 47: "Power meter", 39: "Battery", 41: "ESS", 46: "Optimizer",
+  17: "Grid meter", 47: "Power meter", 39: "Battery", 41: "ESS", 46: "Optimizer", 10: "EMI (environmental monitor)",
+  23070: "EMMA (energy manager)", 23071: "SmartGuard (backup box)", 23076: "External meter",
 };
+/* ประเภทที่ดึงค่า KPI รายชั่วโมง — ไม่รวมออปติไมเซอร์ (46): ข้อมูลจริงมี 1,346 ตัว = 14 คำขอ/รอบ ดันอุปกรณ์อื่นเลยงบเวลาและเสี่ยง 407
+   ประเภทที่ไม่รู้จักก็ไม่ดึง (Huawei อาจไม่รองรับ getDevRealKpi) แต่ยังเก็บรายชื่ออุปกรณ์ตามปกติ */
+export const KPI_TYPES = { 1: 1, 38: 1, 2: 1, 63: 1, 62: 1, 17: 1, 47: 1, 39: 1, 41: 1, 10: 1 };
 export const devTypeName = (t) => DEV_TYPES[t] || ("ไม่ทราบประเภท (devTypeId " + t + ")");
 
 /* key ของ RTDB ห้ามมี . # $ [ ] / */
@@ -355,7 +359,7 @@ export async function runSync(o) {
     const byType = {};
     Object.keys(devices).sort().forEach((id) => {
       const d = devices[id] || {};
-      if (d.fs_status === "not_found_in_fusionsolar" || d.dev_type_id == null) return;
+      if (d.fs_status === "not_found_in_fusionsolar" || d.dev_type_id == null || !KPI_TYPES[d.dev_type_id]) return;
       if (!idx[d.station_code] || sites[idx[d.station_code]].fs_status !== "found") return;
       (byType[d.dev_type_id] || (byType[d.dev_type_id] = [])).push(id);
     });

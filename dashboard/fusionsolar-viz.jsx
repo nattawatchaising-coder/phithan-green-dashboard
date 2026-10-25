@@ -50,6 +50,15 @@ const FS_KPI_LABELS = {
   ch_discharge_power: ["กำลังชาร์จ/คายประจุ", "W"], max_charge_power: ["ชาร์จได้สูงสุด", "W"], max_discharge_power: ["คายได้สูงสุด", "W"],
   busbar_u: ["แรงดันบัส", "V"], charge_cap: ["ชาร์จสะสม", "kWh"], discharge_cap: ["คายประจุสะสม", "kWh"],
   ch_discharge_model: ["โหมดการทำงาน"], open_time: ["เริ่มทำงานวันนี้"], close_time: ["หยุดทำงาน"],
+  radiant_total: ["ความเข้มแสงสะสมวันนี้", "MJ/m²"], radiant_line: ["ความเข้มแสงตอนนี้", "W/m²"], pv_temperature: ["อุณหภูมิแผง", "°C"],
+  wind_speed: ["ความเร็วลม", "m/s"], wind_direction: ["ทิศลม"],
+};
+/* มิเตอร์: กำลังเป็น W/var · ตรวจกับมิเตอร์จริง 100 ตัว (2026-10-25 กลางคืน โซลาร์ 0) — active_cap = ขาย, reverse = ซื้อ, กำลังบวก = ขาย */
+const FS_METER_LABELS = {
+  active_cap: ["ขายเข้ากริดสะสม (ทางบวก)", "kWh"], reverse_active_cap: ["ซื้อจากกริดสะสม (ย้อนกลับ)", "kWh"],
+  active_power: ["กำลังที่จุดมิเตอร์ (บวก = ขาย)", "W"], reactive_power: ["กำลังรีแอกทีฟ", "var"],
+  active_power_a: ["กำลังเฟส A", "W"], active_power_b: ["กำลังเฟส B", "W"], active_power_c: ["กำลังเฟส C", "W"],
+  total_apparent_power: ["กำลังปรากฏรวม", "kVA"], reverse_reactive_cap: ["พลังงานรีแอกทีฟย้อนกลับสะสม", "kvarh"], forward_reactive_cap: ["พลังงานรีแอกทีฟทางบวกสะสม", "kvarh"],
 };
 /* inverter_state — tone: ok ทำงาน · info ทำงานแต่ถูกจำกัด · idle รอ/ไม่มีแสง · bad หยุดผิดปกติ */
 const FS_INV_STATE = {
@@ -70,7 +79,8 @@ const FS_ENUMS = {
   ch_discharge_model: { 0: "ไม่ได้ตั้ง", 1: "บังคับชาร์จ/คาย", 2: "ตามช่วงเวลาค่าไฟ (TOU)", 3: "ชาร์จ/คายคงที่", 4: "ใช้เองให้มากที่สุด", 5: "ขายเข้ากริดทั้งหมด" },
 };
 const fsInvState = (v) => (v == null ? null : FS_INV_STATE[v] || ["รหัสสถานะ " + v, "idle"]);
-function fsKpiLabel(key) {
+function fsKpiLabel(key, meter) {
+  if (meter && FS_METER_LABELS[key]) return FS_METER_LABELS[key];
   const m = /^pv(\d+)_(u|i)$/.exec(key);
   if (m) return ["สตริง PV" + m[1] + (m[2] === "u" ? " แรงดัน" : " กระแส"), m[2] === "u" ? "V" : "A"];
   const mp = /^mppt_(\d+)_cap$/.exec(key);
@@ -81,7 +91,8 @@ function fsKpiValue(key, v) {
   if (v == null || v === "" || v === "N/A") return "–";
   if (key === "inverter_state") return fsInvState(v)[0];
   if (FS_ENUMS[key] && FS_ENUMS[key][v] != null) return FS_ENUMS[key][v];
-  if ((key === "open_time" || key === "close_time") && +v > 1e12) return new Date(+v).toLocaleTimeString("th-TH", { timeStyle: "short" });
+  /* Huawei ส่งเวลาท้องถิ่นของไซต์แต่ตีความเป็นเวลาจีน (UTC+8) — อินเวอร์เตอร์จริง 150 ตัวเริ่ม 05:0x หยุด 17:0x (พระอาทิตย์ขึ้น ~06:13) → บวก 1 ชม. */
+  if ((key === "open_time" || key === "close_time") && +v > 1e12) return new Date(+v + 3600e3).toLocaleTimeString("th-TH", { timeStyle: "short", timeZone: "Asia/Bangkok" });
   if (typeof v === "object") return JSON.stringify(v);
   return fsN(v) != null ? fsFmt(v, 2) : String(v);
 }
@@ -89,8 +100,8 @@ function fsKpiValue(key, v) {
 /* ── หน่วยกำลังที่ Huawei ส่งไม่เท่ากันทุกรุ่น (มิเตอร์/แบตบางรุ่นเป็น W) ──
    ค่าที่เกิน 3 เท่าของกำลังติดตั้งเป็นไปไม่ได้ในหน่วย kW → ถือว่าเป็น W */
 const fsKw = (v, capKw, isW) => { const n = fsN(v); if (n == null) return null; if (isW) return n / 1000; return capKw && Math.abs(n) > capKw * 3 && Math.abs(n) > 50 ? n / 1000 : n; };
-/* พิกัดอินเวอร์เตอร์จากชื่อรุ่น — SUN2000-10KTL-M1 = 10 kW */
-const fsRatedKw = (model) => { const m = /(\d+(?:\.\d+)?)\s*K(?:TL|W)/i.exec(model || ""); return m ? +m[1] : null; };
+/* พิกัดอินเวอร์เตอร์จากชื่อรุ่น — SUN2000-10KTL-M1 = 10 · SUN5000-150K-MG0 = 150 · SUN2000-5K-MAP0 = 5 kW (ทุกรุ่นในข้อมูลจริงผ่าน) */
+const fsRatedKw = (model) => { const m = /-(\d+(?:\.\d+)?)K(?:TL)?(?=-|$)/i.exec(model || ""); return m ? +m[1] : null; };
 
 /* สตริง PV ของอินเวอร์เตอร์ — Huawei ส่งมาครบทุกช่อง (ช่องว่างเป็น 0) จึงตัดช่องที่ไม่มีอะไรต่อออก
    กระแสต่ำกว่า 60% ของค่ากลางสตริงอื่น (ตอนมีแดดพอ) = ควรตรวจ (แผงสกปรก/บังเงา/ขั้วหลวม/แผงเสีย) */
@@ -109,9 +120,8 @@ function fsStrings(k) {
 }
 
 /* ── การไหลของพลังงาน ──
-   ทิศของมิเตอร์ (ค่าไหนคือขายเข้ากริด) ขึ้นกับการต่อสาย จึงตัดสินจากตัวเลขสะสมเอง:
-   ไฟที่ขายเข้ากริดสะสมต้องไม่เกินที่อินเวอร์เตอร์ผลิตสะสม · ถ้า reverse_active_cap เกิน แต่ active_cap ไม่เกิน → สลับ
-   แยกไม่ออก (ทั้งคู่ไม่เกิน) ใช้แบบมาตรฐาน: ย้อนกลับ (reverse) = ขาย · กำลังติดลบ = กำลังขาย */
+   แบบมาตรฐานของ Huawei (ตรวจกับมิเตอร์จริง 100 ตัว): active_cap (ทางบวก) = ขายเข้ากริด · reverse_active_cap = ซื้อ · active_power เป็น W บวก = ขาย
+   มิเตอร์ที่ต่อกลับทิศ: ขายสะสมต้องไม่เกินที่อินเวอร์เตอร์ผลิตสะสม → ถ้า active_cap เกิน แต่ reverse ไม่เกิน → สลับ */
 function fsEnergyModel(site, devs) {
   const cap = fsN(site.capacity_kw);
   const invs = devs.filter((d) => +d.dev_type_id === 1 || +d.dev_type_id === 38);
@@ -124,11 +134,11 @@ function fsEnergyModel(site, devs) {
   if (meter) {
     const k = K(meter);
     const pos = fsN(k.active_cap), rev = fsN(k.reverse_active_cap);
-    let revIsExport = true;
-    if (pvTotal != null && pos != null && rev != null && rev > pvTotal * 1.02 && pos <= pvTotal * 1.02) revIsExport = false;
+    let revIsExport = false;
+    if (pvTotal != null && pos != null && rev != null && pos > pvTotal * 1.02 && rev <= pvTotal * 1.02) revIsExport = true;
     out.exportTotal = revIsExport ? rev : pos;
     out.importTotal = revIsExport ? pos : rev;
-    const p = fsKw(k.active_power, cap);
+    const p = fsKw(k.active_power, cap, true);
     if (p != null) out.gridKw = revIsExport ? -p : p;            // บวก = กำลังขายเข้ากริด · ลบ = กำลังซื้อ
     out.meter = meter;
   }
@@ -151,6 +161,12 @@ function fsEnergyModel(site, devs) {
   return out;
 }
 
+/* ผลิตเฉลี่ยต่อวันของเดือนนี้ ต่อ kWp — นับตั้งแต่วันที่ 3 ของเดือน (ก่อนนั้นข้อมูลน้อยเกิน) */
+function fsMonthYield(s) {
+  const dom = +fsBkk(Date.now()).day.slice(8);
+  if (dom < 3 || s.fs_status === "not_found_in_fusionsolar" || fsN(s.month_kwh) == null || !(fsN(s.capacity_kw) > 0)) return null;
+  return s.month_kwh / s.capacity_kw / dom;
+}
 /* ── เรื่องที่ควรดูของไซต์หนึ่ง ── tone: bad (ต้องลงมือ) · warn (ควรตรวจ) */
 function fsSiteIssues(site, devs, ctx) {
   const out = [];
@@ -177,11 +193,11 @@ function fsSiteIssues(site, devs, ctx) {
     if (t === 39 && +k.battery_status === 3) out.push({ tone: "bad", text: nm + " แบตเตอรี่แจ้งผิดพลาด" });
     if ((t === 62 || t === 63 || t === 2) && fsN(k.run_state) === 0) out.push({ tone: "bad", text: nm + " ขาดการเชื่อมต่อ" });
   });
-  /* ผลิตต่ำกว่าไซต์อื่นในวันเดียวกัน — เทียบต่อ kWp กับค่ากลางของทุกไซต์ที่ออนไลน์ (ต้องมีอย่างน้อย 3 ไซต์ และสายพอให้แดดสะสม) */
-  if (ctx && ctx.medYield && sun >= 11 && +site.health_state === 3) {
-    const y = fsN(site.day_kwh) != null && fsN(site.capacity_kw) > 0 ? site.day_kwh / site.capacity_kw : null;
-    if (y != null && y < ctx.medYield * 0.6) out.push({ tone: "warn", text: "วันนี้ผลิตได้ " + Math.round((y / ctx.medYield) * 100) + "% ของไซต์อื่นเมื่อเทียบต่อ kWp" });
-  }
+  /* ผลิตต่ำกว่าไซต์อื่น — เทียบเฉลี่ยต่อวันของเดือนนี้ต่อ kWp กับค่ากลางของไซต์ที่ออนไลน์ (ctx.medMonth · ต้องมี ≥ 3 ไซต์)
+     ไม่ใช้ "วันนี้": ข้อมูลจริงวันอาทิตย์ โรงงานที่จำกัดการขายไฟผลิตต่ำเพราะไม่มีโหลด = เตือนผิด 20 กว่าไซต์ */
+  const my = fsMonthYield(site);
+  if (ctx && ctx.medMonth && my != null && +site.health_state === 3 && my < ctx.medMonth * 0.6)
+    out.push({ tone: "warn", text: "เดือนนี้ผลิตเฉลี่ย " + fsFmt(my, 2) + " kWh/kWp/วัน = " + Math.round((my / ctx.medMonth) * 100) + "% ของไซต์อื่น" });
   return out;
 }
 
@@ -354,13 +370,13 @@ function FsEnergyFlow({ em }) {
 }
 
 /* ── การ์ดอุปกรณ์ ── */
-function FsKv({ k, keys }) {
+function FsKv({ k, keys, meter }) {
   const list = (keys || Object.keys(k)).filter((x) => k[x] != null && k[x] !== "" && k[x] !== "N/A");
   if (!list.length) return <div style={{ fontSize: 12, color: "var(--text-3)" }}>ยังไม่มีค่าจากอุปกรณ์</div>;
   return (
     <div style={{ borderRadius: "var(--r-tile)", background: "var(--surface2)", overflow: "hidden" }}>
       {list.map((key, i) => {
-        const lb = fsKpiLabel(key);
+        const lb = fsKpiLabel(key, meter);
         return (
           <div key={key} style={{ display: "flex", gap: 10, padding: "6px 11px", fontSize: 12, borderTop: i ? "1px solid var(--divider)" : "none", alignItems: "baseline" }}>
             <span style={{ flex: 1, color: "var(--text-2)", minWidth: 0 }}>{lb ? lb[0] : key}
@@ -374,7 +390,7 @@ function FsKv({ k, keys }) {
     </div>
   );
 }
-function FsRawToggle({ k }) {
+function FsRawToggle({ k, meter }) {
   const [open, setOpen] = React.useState(false);
   if (!Object.keys(k).length) return null;
   return (
@@ -383,7 +399,7 @@ function FsRawToggle({ k }) {
         fontFamily: "inherit", fontSize: 11.5, fontWeight: 700, color: "var(--primary)" }}>
         {open ? "ซ่อนค่าทั้งหมด" : "ดูค่าทั้งหมดจากอุปกรณ์ (" + Object.keys(k).length + ")"}
       </button>
-      {open && <div style={{ marginTop: 7 }}><FsKv k={k} /></div>}
+      {open && <div style={{ marginTop: 7 }}><FsKv k={k} meter={meter} /></div>}
     </div>
   );
 }
@@ -428,7 +444,7 @@ function FsInverterBody({ d, k, isMobile }) {
         <FsTile label="อุณหภูมิภายใน" value={fsFmt(k.temperature, 1)} unit="°C" tone={fsN(k.temperature) >= 75 ? "var(--tint-amber-tx)" : null} />
         <FsTile label={k.ab_u != null ? "แรงดันกริด AB/BC/CA" : "แรงดันกริด"} value={grid} unit="V" />
         <FsTile label={k.b_i != null ? "กระแส A/B/C" : "กระแสกริด"} value={cur} unit="A" />
-        <FsTile label="ความถี่ · PF" value={fsFmt(k.elec_freq, 2) + " · " + fsFmt(k.power_factor, 3)} unit="Hz" />
+        <FsTile label="ความถี่ · PF" value={+k.elec_freq > 0 ? fsFmt(k.elec_freq, 2) + " Hz · " + fsFmt(k.power_factor, 3) : "–"} />
         <FsTile label="เริ่มทำงานวันนี้" value={fsKpiValue("open_time", k.open_time)} />
       </div>
       {strs.length > 0 && (
@@ -456,20 +472,22 @@ function FsInverterBody({ d, k, isMobile }) {
 }
 function FsMeterBody({ d, k, em, isMobile }) {
   const g = em && em.meter === d ? em.gridKw : null;
+  /* มิเตอร์ 3 เฟส (grid meter 17) ไม่มี meter_u/meter_i ส่งรายเฟสแทน */
+  const ph3u = fsN(k.meter_u) == null && fsN(k.a_u) != null, ph3i = fsN(k.meter_i) == null && fsN(k.a_i) != null;
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
       <div className="kpi-grid" style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr 1fr" : "repeat(4, 1fr)", gap: 8 }}>
-        <FsTile label={g == null ? "กำลังที่จุดมิเตอร์" : g > 0.02 ? "กำลังขายเข้ากริด" : g < -0.02 ? "กำลังซื้อจากกริด" : "กริด"} value={fsFmt(g != null ? Math.abs(g) : k.active_power, 2)} unit="kW"
+        <FsTile label={g == null ? "กำลังที่จุดมิเตอร์" : g > 0.02 ? "กำลังขายเข้ากริด" : g < -0.02 ? "กำลังซื้อจากกริด" : "กริด"} value={fsFmt(g != null ? Math.abs(g) : fsKw(k.active_power, null, true), 2)} unit="kW"
           tone={g > 0.02 ? "var(--fs-exp)" : g < -0.02 ? "var(--fs-imp)" : null} />
         <FsTile label="ซื้อจากกริดสะสม" value={em && em.importTotal != null ? fsEnergy(em.importTotal)[0] : "–"} unit={em && em.importTotal != null ? fsEnergy(em.importTotal)[1] : ""} />
         <FsTile label="ขายเข้ากริดสะสม" value={em && em.exportTotal != null ? fsEnergy(em.exportTotal)[0] : "–"} unit={em && em.exportTotal != null ? fsEnergy(em.exportTotal)[1] : ""} />
-        <FsTile label="สถานะ" value={fsKpiValue("meter_status", k.meter_status != null ? k.meter_status : k.run_state)} />
-        <FsTile label="แรงดัน" value={fsFmt(k.meter_u, 1)} unit="V" />
-        <FsTile label="กระแส" value={fsFmt(k.meter_i, 2)} unit="A" />
-        <FsTile label="ความถี่" value={fsFmt(k.grid_frequency, 2)} unit="Hz" />
+        {(k.meter_status != null || k.run_state != null) && <FsTile label="สถานะ" value={fsKpiValue("meter_status", k.meter_status != null ? k.meter_status : k.run_state)} />}
+        <FsTile label={ph3u ? "แรงดัน A/B/C" : "แรงดัน"} value={ph3u ? [k.a_u, k.b_u, k.c_u].map((v) => fsFmt(v, 0)).join(" / ") : fsFmt(k.meter_u, 1)} unit="V" />
+        <FsTile label={ph3i ? "กระแส A/B/C" : "กระแส"} value={ph3i ? [k.a_i, k.b_i, k.c_i].map((v) => fsFmt(fsN(v) != null ? Math.abs(v) : null, 0)).join(" / ") : fsFmt(fsN(k.meter_i) != null ? Math.abs(k.meter_i) : null, 2)} unit="A" />
+        {fsN(k.grid_frequency) != null && <FsTile label="ความถี่" value={fsFmt(k.grid_frequency, 2)} unit="Hz" />}
         <FsTile label="ตัวประกอบกำลัง" value={fsFmt(k.power_factor, 3)} />
       </div>
-      <FsRawToggle k={k} />
+      <FsRawToggle k={k} meter />
     </div>
   );
 }
@@ -486,7 +504,7 @@ function FsBatteryBody({ k, em, isMobile }) {
       </div>
       <div className="kpi-grid" style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr 1fr" : "repeat(4, 1fr)", gap: 8 }}>
         <FsTile label="สถานะ" value={fsKpiValue("battery_status", k.battery_status)} tone={+k.battery_status === 3 ? "var(--tint-red-tx)" : null} />
-        <FsTile label="สุขภาพแบต (SOH)" value={fsFmt(k.battery_soh, 0)} unit="%" />
+        <FsTile label="สุขภาพแบต (SOH)" value={+k.battery_soh > 0 ? fsFmt(k.battery_soh, 0) : "–"} unit="%" />
         <FsTile label="ชาร์จ / คายสะสม" value={fsFmt(k.charge_cap, 0) + " / " + fsFmt(k.discharge_cap, 0)} unit="kWh" />
         <FsTile label="โหมด" value={fsKpiValue("ch_discharge_model", k.ch_discharge_model)} />
       </div>
@@ -496,6 +514,6 @@ function FsBatteryBody({ k, em, isMobile }) {
 }
 
 Object.assign(window, {
-  fsN, fsFmt, fsEnergy, fsBkk, fsDayTH, fsMonTH, fsMedian, FS_GRID_EF, fsInvState, fsStrings, fsEnergyModel, fsSiteIssues,
+  fsN, fsFmt, fsEnergy, fsBkk, fsDayTH, fsMonTH, fsMedian, FS_GRID_EF, fsInvState, fsStrings, fsEnergyModel, fsSiteIssues, fsMonthYield,
   FsBarChart, FsSplitBar, FsMeter, FsEnergyFlow, FsKv, FsTile, FsChip, FsInverterBody, FsMeterBody, FsBatteryBody,
 });

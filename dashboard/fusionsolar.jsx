@@ -18,7 +18,8 @@
 /* ── ประเภทอุปกรณ์ (ชุดเดียวกับ DEV_TYPES ใน api/_lib/fusionsolar.mjs) ── */
 const FS_DEV_TYPES = {
   1: "String inverter", 38: "Residential inverter", 2: "SmartLogger", 63: "SmartLogger", 62: "Smart Dongle",
-  17: "Grid meter", 47: "Power meter", 39: "Battery", 41: "ESS", 46: "Optimizer",
+  17: "Grid meter", 47: "Power meter", 39: "Battery", 41: "ESS", 46: "Optimizer", 10: "EMI (environmental monitor)",
+  23070: "EMMA (energy manager)", 23071: "SmartGuard (backup box)", 23076: "External meter",
 };
 const fsDevTypeTH = (t) => FS_DEV_TYPES[t] || ("ไม่ทราบประเภท (devTypeId " + t + ")");
 /* ค่าที่แสดงของแต่ละกลุ่ม (สเปกข้อ 5) · กลุ่มอื่นแสดง last_kpi_json ทั้งหมดเป็นตาราง key/value */
@@ -26,7 +27,7 @@ const FS_DEV_GROUPS = [
   { key: "inv", th: "อินเวอร์เตอร์", types: [1, 38], fields: [
     ["total_cap", "ผลิตสะสม", "kWh"], ["day_cap", "ผลิตวันนี้", "kWh"], ["active_power", "กำลังไฟขณะนี้", "kW"]] },
   { key: "meter", th: "มิเตอร์", types: [17, 47], fields: [
-    ["active_cap", "ซื้อไฟสะสม", "kWh"], ["reverse_active_cap", "ขายไฟสะสม", "kWh"], ["active_power", "กำลังไฟขณะนี้", "kW"],
+    ["active_cap", "ขายไฟสะสม", "kWh"], ["reverse_active_cap", "ซื้อไฟสะสม", "kWh"], ["active_power", "กำลังไฟขณะนี้", "W"],
     ["meter_u", "แรงดัน", "V"], ["meter_i", "กระแส", "A"]] },
 ];
 const fsDevGroupOf = (t) => FS_DEV_GROUPS.find((g) => g.types.indexOf(+t) !== -1) || null;
@@ -269,15 +270,15 @@ function FsSitesView({ jobs, role, currentUser, onOpenJob, onOpenOm }) {
   const { val: devVal } = useFsNode("fsDevices");
 
   /* เรื่องที่ควรดูของทุกไซต์ (ตัวตรวจชุดเดียวกับหน้ารายละเอียด) + ค่ากลางผลิตต่อ kWp ไว้หาไซต์ที่ผลิตต่ำกว่าเพื่อน */
-  const yields = React.useMemo(() => sites.filter((s) => +s.health_state === 3).map(fsYield).filter((v) => v != null), [sites]);
-  const medYield = yields.length >= 3 ? fsMedian(yields) : null;
+  const yields = React.useMemo(() => sites.filter((s) => +s.health_state === 3).map(fsMonthYield).filter((v) => v != null), [sites]);
+  const medMonth = yields.length >= 3 ? fsMedian(yields) : null;
   const issueMap = React.useMemo(() => {
     const by = {};
     Object.keys(devVal || {}).forEach((k) => { const d = Object.assign({ id: k }, devVal[k]); if (d.site_id) (by[d.site_id] = by[d.site_id] || []).push(d); });
     const m = {};
-    sites.forEach((s) => { const l = fsSiteIssues(s, by[s.id] || [], { medYield }); if (l.length) m[s.id] = l; });
+    sites.forEach((s) => { const l = fsSiteIssues(s, by[s.id] || [], { medMonth }); if (l.length) m[s.id] = l; });
     return m;
-  }, [sites, devVal, medYield]);
+  }, [sites, devVal, medMonth]);
   const attention = React.useMemo(() => sites.filter((s) => issueMap[s.id]).map((s) => ({ s, list: issueMap[s.id] }))
     .sort((a, b) => (b.list.some((x) => x.tone === "bad") - a.list.some((x) => x.tone === "bad")) || b.list.length - a.list.length), [sites, issueMap]);
   const maxYield = Math.max.apply(null, sites.map(fsYield).filter((v) => v != null).concat([0.001]));
@@ -421,7 +422,7 @@ function FsSitesView({ jobs, role, currentUser, onOpenJob, onOpenOm }) {
                       {fsYield(s) == null ? "–" : (
                         <div style={{ display: "flex", alignItems: "center", gap: 7, justifyContent: "flex-end" }}>
                           <div style={{ width: 46 }}><FsMeter value={fsYield(s)} max={maxYield} h={5}
-                            tone={medYield && fsYield(s) < medYield * 0.6 ? "var(--tint-amber-tx)" : "var(--primary)"} /></div>
+                            tone={medMonth && fsMonthYield(s) != null && fsMonthYield(s) < medMonth * 0.6 ? "var(--tint-amber-tx)" : "var(--primary)"} /></div>
                           <span style={{ minWidth: 32 }}>{fsFmt(fsYield(s), 2)}</span>
                         </div>
                       )}
@@ -442,7 +443,7 @@ function FsSitesView({ jobs, role, currentUser, onOpenJob, onOpenOm }) {
         </div>
       )}
 
-      {cur && <FsSiteModal site={cur} sites={all} jobs={jobs} canWrite={canWrite} currentUser={currentUser}
+      {cur && <FsSiteModal site={cur} sites={all} medMonth={medMonth} jobs={jobs} canWrite={canWrite} currentUser={currentUser}
         onClose={() => setOpen(null)} onGo={(id) => setOpen(id)}
         onOpenJob={onOpenJob ? (id) => { setOpen(null); onOpenJob(id); } : null}
         onOpenOm={onOpenOm ? (id) => { setOpen(null); onOpenOm(id); } : null} />}
@@ -652,7 +653,7 @@ function FsDeviceCard({ d, em, isMobile }) {
   );
 }
 
-function FsSiteModal({ site, sites, jobs, canWrite, currentUser, onClose, onGo, onOpenJob, onOpenOm }) {
+function FsSiteModal({ site, sites, medMonth, jobs, canWrite, currentUser, onClose, onGo, onOpenJob, onOpenOm }) {
   const isMobile = window.matchMedia("(max-width: 860px)").matches;
   const { val: devVal } = useFsNode("fsDevices");
   const { val: omVal } = useFsNode("omSites");
@@ -666,7 +667,20 @@ function FsSiteModal({ site, sites, jobs, canWrite, currentUser, onClose, onGo, 
   const linked = Object.keys(site.jobIds || {});
   const stageTH = (k) => (((window.SF && window.SF.STAGES) || []).find((s) => s.key === k) || {}).th || k || "";
   const em = React.useMemo(() => fsEnergyModel(site, devs), [site, devs]);
-  const issues = React.useMemo(() => fsSiteIssues(site, devs), [site, devs]);
+  /* ออปติไมเซอร์ (และประเภทอื่นที่มีเกิน 8 ตัวและไม่ใช่อินเวอร์เตอร์/มิเตอร์/แบต) รวมเป็นการ์ดเดียว — ไซต์จริงมีถึง 816 ตัว */
+  const devGroups = React.useMemo(() => {
+    const byT = {};
+    devs.forEach((d) => { (byT[d.dev_type_id] = byT[d.dev_type_id] || []).push(d); });
+    const single = [], bulk = [];
+    Object.keys(byT).forEach((t) => {
+      const main = fsDevRank(t) < 3;
+      if (+t === 46 || (!main && byT[t].length > 8)) bulk.push({ type: +t, list: byT[t] });
+      else single.push.apply(single, byT[t]);
+    });
+    single.sort((a, b) => fsDevRank(a.dev_type_id) - fsDevRank(b.dev_type_id) || String(a.dev_name).localeCompare(String(b.dev_name)));
+    return { single, bulk };
+  }, [devs]);
+  const issues = React.useMemo(() => fsSiteIssues(site, devs, { medMonth }), [site, devs, medMonth]);
 
   /* ค่าเฉลี่ยวันที่ครบวันใน 30 วัน — ใช้เทียบ "วันนี้" ในตัวเลขหลัก */
   const today = fsBkk(Date.now()).day;
@@ -777,10 +791,11 @@ function FsSiteModal({ site, sites, jobs, canWrite, currentUser, onClose, onGo, 
       <FsEnergyCard em={em} isMobile={isMobile} />
 
       {/* อุปกรณ์ เรียง อินเวอร์เตอร์ → มิเตอร์ → แบต → อื่น ๆ */}
-      <FsCard title="อุปกรณ์" sub={devs.length ? devs.length + " ชิ้น" : (code ? "ยังไม่มีข้อมูลอุปกรณ์ — รอซิงก์รอบถัดไป" : "")}>
+      <FsCard title="อุปกรณ์" sub={devs.length ? devs.length.toLocaleString("th-TH") + " ชิ้น" : (code ? "ยังไม่มีข้อมูลอุปกรณ์ — รอซิงก์รอบถัดไป" : "")}>
         {!devs.length ? <div style={{ fontSize: 12.5, color: "var(--text-3)" }}>–</div> : (
           <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-            {devs.map((d) => <FsDeviceCard key={d.id} d={d} em={em} isMobile={isMobile} />)}
+            {devGroups.single.map((d) => <FsDeviceCard key={d.id} d={d} em={em} isMobile={isMobile} />)}
+            {devGroups.bulk.map((g) => <FsDevGroup key={g.type} type={g.type} list={g.list} />)}
           </div>
         )}
       </FsCard>
@@ -836,6 +851,48 @@ function FsSiteModal({ site, sites, jobs, canWrite, currentUser, onClose, onGo, 
           style={{ width: "100%", padding: "10px 12px", borderRadius: "var(--r-tile)", fontFamily: "inherit", fontSize: 13, resize: "vertical", boxSizing: "border-box" }} />
       </FsCard>
     </FsModal>
+  );
+}
+
+/* อุปกรณ์จำนวนมากชนิดเดียวกัน — สรุปจำนวน/รุ่น กดดูรายชื่อ (ไม่ดึงค่า KPI ของออปติไมเซอร์ — docs/fusionsolar.md) */
+function FsDevGroup({ type, list }) {
+  const [open, setOpen] = React.useState(false);
+  const [q, setQ] = React.useState("");
+  const models = {};
+  list.forEach((d) => { const m = d.model || "ไม่ทราบรุ่น"; models[m] = (models[m] || 0) + 1; });
+  const lost = list.filter((d) => d.fs_status === "not_found_in_fusionsolar").length;
+  const kw = q.trim().toLowerCase();
+  const rows = list.filter((d) => !kw || [d.dev_name, d.esn_code, d.model].some((v) => String(v || "").toLowerCase().includes(kw)))
+    .sort((a, b) => String(a.dev_name).localeCompare(String(b.dev_name), "th", { numeric: true }));
+  return (
+    <div style={{ background: "var(--surface)", boxShadow: "var(--shadow-sm)", borderRadius: "var(--r-tile)", padding: "12px 14px" }}>
+      <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
+        <span style={{ fontSize: 13.5, fontWeight: 700, color: "var(--text-1)" }}>{fsDevTypeTH(type)}</span>
+        <span style={{ fontFamily: "var(--mono)", fontSize: 12, fontWeight: 700, color: "var(--text-2)" }}>{list.length} ตัว</span>
+        {lost > 0 && <FsChip tone="bad">ไม่พบใน FusionSolar {lost}</FsChip>}
+        <button type="button" onClick={() => setOpen(!open)} style={{ marginLeft: "auto", border: "none", background: "transparent", padding: 0, cursor: "pointer",
+          fontFamily: "inherit", fontSize: 11.5, fontWeight: 700, color: "var(--primary)" }}>{open ? "ซ่อนรายชื่อ" : "ดูรายชื่อ"}</button>
+      </div>
+      <div style={{ fontSize: 11, color: "var(--text-3)", marginTop: 3 }}>
+        {Object.keys(models).map((m) => m + " × " + models[m]).join(" · ")}
+        {type === 46 ? " · ไม่ได้ดึงค่ารายตัว (ดูในแอป FusionSolar)" : ""}
+      </div>
+      {open && (
+        <div style={{ marginTop: 10 }}>
+          {list.length > 20 && <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="ค้นหาชื่อ / SN"
+            style={{ width: "100%", maxWidth: 280, padding: "8px 12px", borderRadius: "var(--r-tile)", fontSize: 12.5, fontFamily: "inherit", marginBottom: 8, boxSizing: "border-box" }} />}
+          <div style={{ maxHeight: 320, overflowY: "auto", borderRadius: "var(--r-tile)", background: "var(--surface2)" }}>
+            {rows.slice(0, 300).map((d, i) => (
+              <div key={d.id} style={{ display: "flex", gap: 10, padding: "5px 11px", fontSize: 11.5, borderTop: i ? "1px solid var(--divider)" : "none" }}>
+                <span style={{ flex: 1, minWidth: 0, color: "var(--text-1)", fontWeight: 600, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{d.dev_name || d.id}</span>
+                <span style={{ fontFamily: "var(--mono)", color: "var(--text-3)", fontSize: 10.5 }}>{d.esn_code || ""}</span>
+              </div>
+            ))}
+            {rows.length > 300 && <div style={{ padding: "6px 11px", fontSize: 11, color: "var(--text-3)" }}>แสดง 300 จาก {rows.length} — พิมพ์ค้นหาเพื่อกรอง</div>}
+          </div>
+        </div>
+      )}
+    </div>
   );
 }
 

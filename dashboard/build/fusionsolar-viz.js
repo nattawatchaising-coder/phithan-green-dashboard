@@ -74,7 +74,24 @@ const FS_KPI_LABELS = {
   discharge_cap: ["คายประจุสะสม", "kWh"],
   ch_discharge_model: ["โหมดการทำงาน"],
   open_time: ["เริ่มทำงานวันนี้"],
-  close_time: ["หยุดทำงาน"]
+  close_time: ["หยุดทำงาน"],
+  radiant_total: ["ความเข้มแสงสะสมวันนี้", "MJ/m²"],
+  radiant_line: ["ความเข้มแสงตอนนี้", "W/m²"],
+  pv_temperature: ["อุณหภูมิแผง", "°C"],
+  wind_speed: ["ความเร็วลม", "m/s"],
+  wind_direction: ["ทิศลม"]
+};
+const FS_METER_LABELS = {
+  active_cap: ["ขายเข้ากริดสะสม (ทางบวก)", "kWh"],
+  reverse_active_cap: ["ซื้อจากกริดสะสม (ย้อนกลับ)", "kWh"],
+  active_power: ["กำลังที่จุดมิเตอร์ (บวก = ขาย)", "W"],
+  reactive_power: ["กำลังรีแอกทีฟ", "var"],
+  active_power_a: ["กำลังเฟส A", "W"],
+  active_power_b: ["กำลังเฟส B", "W"],
+  active_power_c: ["กำลังเฟส C", "W"],
+  total_apparent_power: ["กำลังปรากฏรวม", "kVA"],
+  reverse_reactive_cap: ["พลังงานรีแอกทีฟย้อนกลับสะสม", "kvarh"],
+  forward_reactive_cap: ["พลังงานรีแอกทีฟทางบวกสะสม", "kvarh"]
 };
 const FS_INV_STATE = {
   0: ["สแตนด์บาย: กำลังเริ่มต้น", "idle"],
@@ -130,7 +147,8 @@ const FS_ENUMS = {
   }
 };
 const fsInvState = v => v == null ? null : FS_INV_STATE[v] || ["รหัสสถานะ " + v, "idle"];
-function fsKpiLabel(key) {
+function fsKpiLabel(key, meter) {
+  if (meter && FS_METER_LABELS[key]) return FS_METER_LABELS[key];
   const m = /^pv(\d+)_(u|i)$/.exec(key);
   if (m) return ["สตริง PV" + m[1] + (m[2] === "u" ? " แรงดัน" : " กระแส"), m[2] === "u" ? "V" : "A"];
   const mp = /^mppt_(\d+)_cap$/.exec(key);
@@ -141,8 +159,9 @@ function fsKpiValue(key, v) {
   if (v == null || v === "" || v === "N/A") return "–";
   if (key === "inverter_state") return fsInvState(v)[0];
   if (FS_ENUMS[key] && FS_ENUMS[key][v] != null) return FS_ENUMS[key][v];
-  if ((key === "open_time" || key === "close_time") && +v > 1e12) return new Date(+v).toLocaleTimeString("th-TH", {
-    timeStyle: "short"
+  if ((key === "open_time" || key === "close_time") && +v > 1e12) return new Date(+v + 3600e3).toLocaleTimeString("th-TH", {
+    timeStyle: "short",
+    timeZone: "Asia/Bangkok"
   });
   if (typeof v === "object") return JSON.stringify(v);
   return fsN(v) != null ? fsFmt(v, 2) : String(v);
@@ -154,7 +173,7 @@ const fsKw = (v, capKw, isW) => {
   return capKw && Math.abs(n) > capKw * 3 && Math.abs(n) > 50 ? n / 1000 : n;
 };
 const fsRatedKw = model => {
-  const m = /(\d+(?:\.\d+)?)\s*K(?:TL|W)/i.exec(model || "");
+  const m = /-(\d+(?:\.\d+)?)K(?:TL)?(?=-|$)/i.exec(model || "");
   return m ? +m[1] : null;
 };
 function fsStrings(k) {
@@ -203,11 +222,11 @@ function fsEnergyModel(site, devs) {
     const k = K(meter);
     const pos = fsN(k.active_cap),
       rev = fsN(k.reverse_active_cap);
-    let revIsExport = true;
-    if (pvTotal != null && pos != null && rev != null && rev > pvTotal * 1.02 && pos <= pvTotal * 1.02) revIsExport = false;
+    let revIsExport = false;
+    if (pvTotal != null && pos != null && rev != null && pos > pvTotal * 1.02 && rev <= pvTotal * 1.02) revIsExport = true;
     out.exportTotal = revIsExport ? rev : pos;
     out.importTotal = revIsExport ? pos : rev;
-    const p = fsKw(k.active_power, cap);
+    const p = fsKw(k.active_power, cap, true);
     if (p != null) out.gridKw = revIsExport ? -p : p;
     out.meter = meter;
   }
@@ -227,6 +246,11 @@ function fsEnergyModel(site, devs) {
     if (out.importTotal != null) out.sufficiency = out.selfTotal / (out.selfTotal + out.importTotal);
   }
   return out;
+}
+function fsMonthYield(s) {
+  const dom = +fsBkk(Date.now()).day.slice(8);
+  if (dom < 3 || s.fs_status === "not_found_in_fusionsolar" || fsN(s.month_kwh) == null || !(fsN(s.capacity_kw) > 0)) return null;
+  return s.month_kwh / s.capacity_kw / dom;
 }
 function fsSiteIssues(site, devs, ctx) {
   const out = [];
@@ -279,13 +303,11 @@ function fsSiteIssues(site, devs, ctx) {
       text: nm + " ขาดการเชื่อมต่อ"
     });
   });
-  if (ctx && ctx.medYield && sun >= 11 && +site.health_state === 3) {
-    const y = fsN(site.day_kwh) != null && fsN(site.capacity_kw) > 0 ? site.day_kwh / site.capacity_kw : null;
-    if (y != null && y < ctx.medYield * 0.6) out.push({
-      tone: "warn",
-      text: "วันนี้ผลิตได้ " + Math.round(y / ctx.medYield * 100) + "% ของไซต์อื่นเมื่อเทียบต่อ kWp"
-    });
-  }
+  const my = fsMonthYield(site);
+  if (ctx && ctx.medMonth && my != null && +site.health_state === 3 && my < ctx.medMonth * 0.6) out.push({
+    tone: "warn",
+    text: "เดือนนี้ผลิตเฉลี่ย " + fsFmt(my, 2) + " kWh/kWp/วัน = " + Math.round(my / ctx.medMonth * 100) + "% ของไซต์อื่น"
+  });
   return out;
 }
 const fsNice = m => {
@@ -743,7 +765,8 @@ function FsEnergyFlow({
 }
 function FsKv({
   k,
-  keys
+  keys,
+  meter
 }) {
   const list = (keys || Object.keys(k)).filter(x => k[x] != null && k[x] !== "" && k[x] !== "N/A");
   if (!list.length) return React.createElement("div", {
@@ -759,7 +782,7 @@ function FsKv({
       overflow: "hidden"
     }
   }, list.map((key, i) => {
-    const lb = fsKpiLabel(key);
+    const lb = fsKpiLabel(key, meter);
     return React.createElement("div", {
       key: key,
       style: {
@@ -794,7 +817,8 @@ function FsKv({
   }));
 }
 function FsRawToggle({
-  k
+  k,
+  meter
 }) {
   const [open, setOpen] = React.useState(false);
   if (!Object.keys(k).length) return null;
@@ -820,7 +844,8 @@ function FsRawToggle({
       marginTop: 7
     }
   }, React.createElement(FsKv, {
-    k: k
+    k: k,
+    meter: meter
   })));
 }
 function FsTile({
@@ -967,8 +992,7 @@ function FsInverterBody({
     unit: "A"
   }), React.createElement(FsTile, {
     label: "\u0E04\u0E27\u0E32\u0E21\u0E16\u0E35\u0E48 \xB7 PF",
-    value: fsFmt(k.elec_freq, 2) + " · " + fsFmt(k.power_factor, 3),
-    unit: "Hz"
+    value: +k.elec_freq > 0 ? fsFmt(k.elec_freq, 2) + " Hz · " + fsFmt(k.power_factor, 3) : "–"
   }), React.createElement(FsTile, {
     label: "\u0E40\u0E23\u0E34\u0E48\u0E21\u0E17\u0E33\u0E07\u0E32\u0E19\u0E27\u0E31\u0E19\u0E19\u0E35\u0E49",
     value: fsKpiValue("open_time", k.open_time)
@@ -1063,6 +1087,8 @@ function FsMeterBody({
   isMobile
 }) {
   const g = em && em.meter === d ? em.gridKw : null;
+  const ph3u = fsN(k.meter_u) == null && fsN(k.a_u) != null,
+    ph3i = fsN(k.meter_i) == null && fsN(k.a_i) != null;
   return React.createElement("div", {
     style: {
       display: "flex",
@@ -1078,7 +1104,7 @@ function FsMeterBody({
     }
   }, React.createElement(FsTile, {
     label: g == null ? "กำลังที่จุดมิเตอร์" : g > 0.02 ? "กำลังขายเข้ากริด" : g < -0.02 ? "กำลังซื้อจากกริด" : "กริด",
-    value: fsFmt(g != null ? Math.abs(g) : k.active_power, 2),
+    value: fsFmt(g != null ? Math.abs(g) : fsKw(k.active_power, null, true), 2),
     unit: "kW",
     tone: g > 0.02 ? "var(--fs-exp)" : g < -0.02 ? "var(--fs-imp)" : null
   }), React.createElement(FsTile, {
@@ -1089,18 +1115,18 @@ function FsMeterBody({
     label: "\u0E02\u0E32\u0E22\u0E40\u0E02\u0E49\u0E32\u0E01\u0E23\u0E34\u0E14\u0E2A\u0E30\u0E2A\u0E21",
     value: em && em.exportTotal != null ? fsEnergy(em.exportTotal)[0] : "–",
     unit: em && em.exportTotal != null ? fsEnergy(em.exportTotal)[1] : ""
-  }), React.createElement(FsTile, {
+  }), (k.meter_status != null || k.run_state != null) && React.createElement(FsTile, {
     label: "\u0E2A\u0E16\u0E32\u0E19\u0E30",
     value: fsKpiValue("meter_status", k.meter_status != null ? k.meter_status : k.run_state)
   }), React.createElement(FsTile, {
-    label: "\u0E41\u0E23\u0E07\u0E14\u0E31\u0E19",
-    value: fsFmt(k.meter_u, 1),
+    label: ph3u ? "แรงดัน A/B/C" : "แรงดัน",
+    value: ph3u ? [k.a_u, k.b_u, k.c_u].map(v => fsFmt(v, 0)).join(" / ") : fsFmt(k.meter_u, 1),
     unit: "V"
   }), React.createElement(FsTile, {
-    label: "\u0E01\u0E23\u0E30\u0E41\u0E2A",
-    value: fsFmt(k.meter_i, 2),
+    label: ph3i ? "กระแส A/B/C" : "กระแส",
+    value: ph3i ? [k.a_i, k.b_i, k.c_i].map(v => fsFmt(fsN(v) != null ? Math.abs(v) : null, 0)).join(" / ") : fsFmt(fsN(k.meter_i) != null ? Math.abs(k.meter_i) : null, 2),
     unit: "A"
-  }), React.createElement(FsTile, {
+  }), fsN(k.grid_frequency) != null && React.createElement(FsTile, {
     label: "\u0E04\u0E27\u0E32\u0E21\u0E16\u0E35\u0E48",
     value: fsFmt(k.grid_frequency, 2),
     unit: "Hz"
@@ -1108,7 +1134,8 @@ function FsMeterBody({
     label: "\u0E15\u0E31\u0E27\u0E1B\u0E23\u0E30\u0E01\u0E2D\u0E1A\u0E01\u0E33\u0E25\u0E31\u0E07",
     value: fsFmt(k.power_factor, 3)
   })), React.createElement(FsRawToggle, {
-    k: k
+    k: k,
+    meter: true
   }));
 }
 function FsBatteryBody({
@@ -1161,7 +1188,7 @@ function FsBatteryBody({
     tone: +k.battery_status === 3 ? "var(--tint-red-tx)" : null
   }), React.createElement(FsTile, {
     label: "\u0E2A\u0E38\u0E02\u0E20\u0E32\u0E1E\u0E41\u0E1A\u0E15 (SOH)",
-    value: fsFmt(k.battery_soh, 0),
+    value: +k.battery_soh > 0 ? fsFmt(k.battery_soh, 0) : "–",
     unit: "%"
   }), React.createElement(FsTile, {
     label: "\u0E0A\u0E32\u0E23\u0E4C\u0E08 / \u0E04\u0E32\u0E22\u0E2A\u0E30\u0E2A\u0E21",
@@ -1187,6 +1214,7 @@ Object.assign(window, {
   fsStrings,
   fsEnergyModel,
   fsSiteIssues,
+  fsMonthYield,
   FsBarChart,
   FsSplitBar,
   FsMeter,

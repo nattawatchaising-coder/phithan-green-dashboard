@@ -9,7 +9,11 @@ const FS_DEV_TYPES = {
   47: "Power meter",
   39: "Battery",
   41: "ESS",
-  46: "Optimizer"
+  46: "Optimizer",
+  10: "EMI (environmental monitor)",
+  23070: "EMMA (energy manager)",
+  23071: "SmartGuard (backup box)",
+  23076: "External meter"
 };
 const fsDevTypeTH = t => FS_DEV_TYPES[t] || "ไม่ทราบประเภท (devTypeId " + t + ")";
 const FS_DEV_GROUPS = [{
@@ -21,7 +25,7 @@ const FS_DEV_GROUPS = [{
   key: "meter",
   th: "มิเตอร์",
   types: [17, 47],
-  fields: [["active_cap", "ซื้อไฟสะสม", "kWh"], ["reverse_active_cap", "ขายไฟสะสม", "kWh"], ["active_power", "กำลังไฟขณะนี้", "kW"], ["meter_u", "แรงดัน", "V"], ["meter_i", "กระแส", "A"]]
+  fields: [["active_cap", "ขายไฟสะสม", "kWh"], ["reverse_active_cap", "ซื้อไฟสะสม", "kWh"], ["active_power", "กำลังไฟขณะนี้", "W"], ["meter_u", "แรงดัน", "V"], ["meter_i", "กระแส", "A"]]
 }];
 const fsDevGroupOf = t => FS_DEV_GROUPS.find(g => g.types.indexOf(+t) !== -1) || null;
 const FS_HEALTH = {
@@ -643,8 +647,8 @@ function FsSitesView({
   const {
     val: devVal
   } = useFsNode("fsDevices");
-  const yields = React.useMemo(() => sites.filter(s => +s.health_state === 3).map(fsYield).filter(v => v != null), [sites]);
-  const medYield = yields.length >= 3 ? fsMedian(yields) : null;
+  const yields = React.useMemo(() => sites.filter(s => +s.health_state === 3).map(fsMonthYield).filter(v => v != null), [sites]);
+  const medMonth = yields.length >= 3 ? fsMedian(yields) : null;
   const issueMap = React.useMemo(() => {
     const by = {};
     Object.keys(devVal || {}).forEach(k => {
@@ -656,12 +660,12 @@ function FsSitesView({
     const m = {};
     sites.forEach(s => {
       const l = fsSiteIssues(s, by[s.id] || [], {
-        medYield
+        medMonth
       });
       if (l.length) m[s.id] = l;
     });
     return m;
-  }, [sites, devVal, medYield]);
+  }, [sites, devVal, medMonth]);
   const attention = React.useMemo(() => sites.filter(s => issueMap[s.id]).map(s => ({
     s,
     list: issueMap[s.id]
@@ -1017,7 +1021,7 @@ function FsSitesView({
       value: fsYield(s),
       max: maxYield,
       h: 5,
-      tone: medYield && fsYield(s) < medYield * 0.6 ? "var(--tint-amber-tx)" : "var(--primary)"
+      tone: medMonth && fsMonthYield(s) != null && fsMonthYield(s) < medMonth * 0.6 ? "var(--tint-amber-tx)" : "var(--primary)"
     })), React.createElement("span", {
       style: {
         minWidth: 32
@@ -1057,6 +1061,7 @@ function FsSitesView({
   }, "\u0E44\u0E21\u0E48\u0E1E\u0E1A\u0E44\u0E0B\u0E15\u0E4C\u0E17\u0E35\u0E48\u0E15\u0E23\u0E07\u0E01\u0E31\u0E1A\u0E15\u0E31\u0E27\u0E01\u0E23\u0E2D\u0E07")), cur && React.createElement(FsSiteModal, {
     site: cur,
     sites: all,
+    medMonth: medMonth,
     jobs: jobs,
     canWrite: canWrite,
     currentUser: currentUser,
@@ -1573,6 +1578,7 @@ function FsDeviceCard({
 function FsSiteModal({
   site,
   sites,
+  medMonth,
   jobs,
   canWrite,
   currentUser,
@@ -1606,7 +1612,29 @@ function FsSiteModal({
   const linked = Object.keys(site.jobIds || {});
   const stageTH = k => ((window.SF && window.SF.STAGES || []).find(s => s.key === k) || {}).th || k || "";
   const em = React.useMemo(() => fsEnergyModel(site, devs), [site, devs]);
-  const issues = React.useMemo(() => fsSiteIssues(site, devs), [site, devs]);
+  const devGroups = React.useMemo(() => {
+    const byT = {};
+    devs.forEach(d => {
+      (byT[d.dev_type_id] = byT[d.dev_type_id] || []).push(d);
+    });
+    const single = [],
+      bulk = [];
+    Object.keys(byT).forEach(t => {
+      const main = fsDevRank(t) < 3;
+      if (+t === 46 || !main && byT[t].length > 8) bulk.push({
+        type: +t,
+        list: byT[t]
+      });else single.push.apply(single, byT[t]);
+    });
+    single.sort((a, b) => fsDevRank(a.dev_type_id) - fsDevRank(b.dev_type_id) || String(a.dev_name).localeCompare(String(b.dev_name)));
+    return {
+      single,
+      bulk
+    };
+  }, [devs]);
+  const issues = React.useMemo(() => fsSiteIssues(site, devs, {
+    medMonth
+  }), [site, devs, medMonth]);
   const today = fsBkk(Date.now()).day;
   const avg30 = React.useMemo(() => {
     const v = Object.keys(dayVal || {}).filter(d => d !== today).map(d => fsN(dayVal[d].kwh)).filter(x => x != null);
@@ -1814,7 +1842,7 @@ function FsSiteModal({
     isMobile: isMobile
   }), React.createElement(FsCard, {
     title: "\u0E2D\u0E38\u0E1B\u0E01\u0E23\u0E13\u0E4C",
-    sub: devs.length ? devs.length + " ชิ้น" : code ? "ยังไม่มีข้อมูลอุปกรณ์ — รอซิงก์รอบถัดไป" : ""
+    sub: devs.length ? devs.length.toLocaleString("th-TH") + " ชิ้น" : code ? "ยังไม่มีข้อมูลอุปกรณ์ — รอซิงก์รอบถัดไป" : ""
   }, !devs.length ? React.createElement("div", {
     style: {
       fontSize: 12.5,
@@ -1826,11 +1854,15 @@ function FsSiteModal({
       flexDirection: "column",
       gap: 10
     }
-  }, devs.map(d => React.createElement(FsDeviceCard, {
+  }, devGroups.single.map(d => React.createElement(FsDeviceCard, {
     key: d.id,
     d: d,
     em: em,
     isMobile: isMobile
+  })), devGroups.bulk.map(g => React.createElement(FsDevGroup, {
+    key: g.type,
+    type: g.type,
+    list: g.list
   })))), React.createElement(FsCard, {
     title: "\u0E02\u0E49\u0E2D\u0E21\u0E39\u0E25\u0E44\u0E0B\u0E15\u0E4C"
   }, React.createElement("div", {
@@ -1950,6 +1982,129 @@ function FsSiteModal({
       boxSizing: "border-box"
     }
   })));
+}
+function FsDevGroup({
+  type,
+  list
+}) {
+  const [open, setOpen] = React.useState(false);
+  const [q, setQ] = React.useState("");
+  const models = {};
+  list.forEach(d => {
+    const m = d.model || "ไม่ทราบรุ่น";
+    models[m] = (models[m] || 0) + 1;
+  });
+  const lost = list.filter(d => d.fs_status === "not_found_in_fusionsolar").length;
+  const kw = q.trim().toLowerCase();
+  const rows = list.filter(d => !kw || [d.dev_name, d.esn_code, d.model].some(v => String(v || "").toLowerCase().includes(kw))).sort((a, b) => String(a.dev_name).localeCompare(String(b.dev_name), "th", {
+    numeric: true
+  }));
+  return React.createElement("div", {
+    style: {
+      background: "var(--surface)",
+      boxShadow: "var(--shadow-sm)",
+      borderRadius: "var(--r-tile)",
+      padding: "12px 14px"
+    }
+  }, React.createElement("div", {
+    style: {
+      display: "flex",
+      gap: 8,
+      alignItems: "center",
+      flexWrap: "wrap"
+    }
+  }, React.createElement("span", {
+    style: {
+      fontSize: 13.5,
+      fontWeight: 700,
+      color: "var(--text-1)"
+    }
+  }, fsDevTypeTH(type)), React.createElement("span", {
+    style: {
+      fontFamily: "var(--mono)",
+      fontSize: 12,
+      fontWeight: 700,
+      color: "var(--text-2)"
+    }
+  }, list.length, " \u0E15\u0E31\u0E27"), lost > 0 && React.createElement(FsChip, {
+    tone: "bad"
+  }, "\u0E44\u0E21\u0E48\u0E1E\u0E1A\u0E43\u0E19 FusionSolar ", lost), React.createElement("button", {
+    type: "button",
+    onClick: () => setOpen(!open),
+    style: {
+      marginLeft: "auto",
+      border: "none",
+      background: "transparent",
+      padding: 0,
+      cursor: "pointer",
+      fontFamily: "inherit",
+      fontSize: 11.5,
+      fontWeight: 700,
+      color: "var(--primary)"
+    }
+  }, open ? "ซ่อนรายชื่อ" : "ดูรายชื่อ")), React.createElement("div", {
+    style: {
+      fontSize: 11,
+      color: "var(--text-3)",
+      marginTop: 3
+    }
+  }, Object.keys(models).map(m => m + " × " + models[m]).join(" · "), type === 46 ? " · ไม่ได้ดึงค่ารายตัว (ดูในแอป FusionSolar)" : ""), open && React.createElement("div", {
+    style: {
+      marginTop: 10
+    }
+  }, list.length > 20 && React.createElement("input", {
+    value: q,
+    onChange: e => setQ(e.target.value),
+    placeholder: "\u0E04\u0E49\u0E19\u0E2B\u0E32\u0E0A\u0E37\u0E48\u0E2D / SN",
+    style: {
+      width: "100%",
+      maxWidth: 280,
+      padding: "8px 12px",
+      borderRadius: "var(--r-tile)",
+      fontSize: 12.5,
+      fontFamily: "inherit",
+      marginBottom: 8,
+      boxSizing: "border-box"
+    }
+  }), React.createElement("div", {
+    style: {
+      maxHeight: 320,
+      overflowY: "auto",
+      borderRadius: "var(--r-tile)",
+      background: "var(--surface2)"
+    }
+  }, rows.slice(0, 300).map((d, i) => React.createElement("div", {
+    key: d.id,
+    style: {
+      display: "flex",
+      gap: 10,
+      padding: "5px 11px",
+      fontSize: 11.5,
+      borderTop: i ? "1px solid var(--divider)" : "none"
+    }
+  }, React.createElement("span", {
+    style: {
+      flex: 1,
+      minWidth: 0,
+      color: "var(--text-1)",
+      fontWeight: 600,
+      overflow: "hidden",
+      textOverflow: "ellipsis",
+      whiteSpace: "nowrap"
+    }
+  }, d.dev_name || d.id), React.createElement("span", {
+    style: {
+      fontFamily: "var(--mono)",
+      color: "var(--text-3)",
+      fontSize: 10.5
+    }
+  }, d.esn_code || ""))), rows.length > 300 && React.createElement("div", {
+    style: {
+      padding: "6px 11px",
+      fontSize: 11,
+      color: "var(--text-3)"
+    }
+  }, "\u0E41\u0E2A\u0E14\u0E07 300 \u0E08\u0E32\u0E01 ", rows.length, " \u2014 \u0E1E\u0E34\u0E21\u0E1E\u0E4C\u0E04\u0E49\u0E19\u0E2B\u0E32\u0E40\u0E1E\u0E37\u0E48\u0E2D\u0E01\u0E23\u0E2D\u0E07"))));
 }
 function FsDevBox({
   d,
