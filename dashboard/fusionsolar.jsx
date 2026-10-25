@@ -844,59 +844,148 @@ function FsHistoryCard({ site, isMobile }) {
 
   const firstDay = Object.keys(dayVal || {}).sort()[0];
   const sub = tab === "day" ? "พลังงานที่ผลิตแต่ละชั่วโมงของวันนี้ (" + fsDayTH(now.day) + ")"
-    : tab === "30" ? "ผลิตต่อวัน 30 วันล่าสุด" + (dayAvg ? " · เส้นประ = เฉลี่ยวันที่ครบวัน" : "")
-    : "ผลิตต่อเดือน 12 เดือนล่าสุด";
+    : tab === "30" ? "ผลิตต่อวัน 30 วันล่าสุด" : "ผลิตต่อเดือน 12 เดือนล่าสุด";
   const seg = window.Segmented ? (
     <window.Segmented flat value={tab} onChange={setTab} options={[{ value: "day", label: "วันนี้" }, { value: "30", label: "30 วัน" }, { value: "12", label: "12 เดือน" }]} />
   ) : null;
+  /* ตัวเลขหัวกราฟตามช่วงที่เลือก — ตัวแรกตัวใหญ่ (แบบอ้างอิง Lumos/Solis) */
+  const best = (list) => list.reduce((a, b) => (b.value != null && !b.partial && (!a || b.value > a.value) ? b : a), null);
+  const sum = (list) => { const v = list.filter((b) => b.value != null); return v.length ? v.reduce((s, b) => s + b.value, 0) : null; };
+  const dayNow = days[days.length - 1].value;
+  const stats = tab === "day" ? (() => {
+    const b = best(today.bars);
+    return [{ icon: "sun", l: "ผลิตวันนี้", v: dayNow, u: "kWh", s: perKwp(dayNow) },
+      { icon: "bolt", l: "ชั่วโมงที่ผลิตมากสุด", v: b && b.value, u: "kWh", s: b ? b.tip[0] : null },
+      { icon: "trend", l: "เทียบเฉลี่ยรายวัน", v: dayAvg && dayNow != null ? Math.round((dayNow / dayAvg) * 100) : null, u: "%", s: dayAvg ? "เฉลี่ย " + fsFmt(dayAvg, 1) + " kWh · วันนี้ยังไม่จบ" : "ต้องมีประวัติอย่างน้อย 3 วัน" }];
+  })() : tab === "30" ? (() => {
+    const b = best(days);
+    return [{ icon: "calendar", l: "รวม 30 วัน", v: sum(days), u: "kWh", s: perKwp(sum(days)) },
+      { icon: "chart", l: "เฉลี่ยต่อวัน", v: dayAvg, u: "kWh", s: dayAvg ? "นับเฉพาะวันที่ครบวัน" : "ต้องมีประวัติอย่างน้อย 3 วัน" },
+      { icon: "sparkle", l: "วันที่ผลิตมากสุด", v: b && b.value, u: "kWh", s: b ? b.tip[0] : null }];
+  })() : (() => {
+    const b = best(mons);
+    return [{ icon: "calendar", l: "รวม 12 เดือน", v: sum(mons), u: "kWh", s: perKwp(sum(mons)) },
+      { icon: "chart", l: "เฉลี่ยต่อเดือน", v: monAvg, u: "kWh", s: monAvg ? "นับเฉพาะเดือนที่ครบเดือน" : "ต้องมีประวัติอย่างน้อย 2 เดือน" },
+      { icon: "sparkle", l: "เดือนที่ผลิตมากสุด", v: b && b.value, u: "kWh", s: b ? b.tip[0] : null }];
+  })();
+  const big = (v) => (v != null && v >= 10000 ? [v / 1000, "MWh"] : [v, null]);
+  const C = window.FsTrendChart;
+  const dot = (bg, op) => <span style={{ width: 10, height: 10, borderRadius: 5, background: bg, opacity: op || 1 }} />;
   return (
     <FsCard title="ประวัติการผลิต" sub={isMobile ? null : sub} right={seg}>
       {isMobile && <div style={{ fontSize: 11.5, color: "var(--text-3)", marginTop: -4, marginBottom: 8 }}>{sub}</div>}
-      {tab === "day" && <FsBarChart bars={today.bars.some((b) => b.value != null) ? today.bars : []} unit="kWh" height={190}
+      <div className="kpi-grid" style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr 1fr" : "1.25fr 1fr 1fr", gap: isMobile ? 10 : 0, margin: "4px 0 14px" }}>
+        {stats.map((x, i) => {
+          const [v, u] = big(x.v);
+          return (
+            <div key={x.l} style={{ display: "flex", gap: 10, alignItems: "flex-start", minWidth: 0, gridColumn: isMobile && !i ? "1 / -1" : "auto",
+              padding: isMobile || !i ? 0 : "0 0 0 16px", boxShadow: !isMobile && i ? "inset 1px 0 0 var(--divider)" : "none" }}>
+              <span style={{ width: i ? 30 : 38, height: i ? 30 : 38, borderRadius: 999, display: "grid", placeItems: "center", flexShrink: 0,
+                background: i ? "var(--surface2)" : "color-mix(in srgb, var(--fs-sun) 16%, var(--surface))", boxShadow: i ? "var(--shadow-inset)" : "none" }}>
+                <Icon name={x.icon} size={i ? 15 : 19} color={i ? "var(--text-2)" : "var(--fs-sun)"} />
+              </span>
+              <div style={{ minWidth: 0 }}>
+                <div style={{ fontSize: 11.5, fontWeight: 600, color: "var(--text-3)" }}>{x.l}</div>
+                <div style={{ fontFamily: "var(--display)", fontSize: i ? 19 : 28, fontWeight: 700, color: "var(--text-1)", lineHeight: 1.15, whiteSpace: "nowrap", fontVariantNumeric: "tabular-nums" }}>
+                  {v == null ? "–" : <FsCountUp value={v} digits={x.u === "%" ? 0 : u ? 2 : 1} />}
+                  {v != null && <span style={{ fontSize: 12, fontWeight: 600, color: "var(--text-3)", marginLeft: 4 }}>{u || x.u}</span>}
+                </div>
+                {x.s && <div style={{ fontSize: 11, color: "var(--text-3)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{x.s}</div>}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+      {C && tab === "day" && <C mode="area" bars={today.bars.some((b) => b.value != null) ? today.bars : []} unit="kWh" height={isMobile ? 190 : 220}
         empty={today.pre ? "รายชั่วโมงจะเริ่มแสดงตั้งแต่ชั่วโมงถัดไป" : "ยังไม่มีข้อมูลรายชั่วโมงของวันนี้ — เก็บทุกครั้งที่ซิงก์ข้อมูลผลิต (ทุกชั่วโมง)"} />}
       {tab === "day" && today.pre && (
         <div style={{ fontSize: 11.5, color: "var(--text-3)", marginTop: 6 }}>
           ก่อน {today.pre.h}:00 ผลิตไปแล้ว {fsFmt(today.pre.v, 1)} kWh — ช่วงนั้นยังไม่ได้เก็บรายชั่วโมง (เริ่มเก็บตอนซิงก์รอบแรกของวัน)
         </div>
       )}
-      {tab === "30" && <FsBarChart bars={days} unit="kWh" avg={dayAvg} avgLabel="เฉลี่ย" height={190}
+      {C && tab === "30" && <C mode="bars" bars={days} unit="kWh" avg={dayAvg} avgLabel="เฉลี่ย" height={isMobile ? 190 : 220}
         empty="ยังไม่มีประวัติรายวัน — เริ่มเก็บตั้งแต่ซิงก์ข้อมูลผลิตรอบแรก" />}
-      {tab === "12" && <FsBarChart bars={mons} unit="kWh" avg={monAvg} avgLabel="เฉลี่ย" height={190}
+      {C && tab === "12" && <C mode="bars" bars={mons} unit="kWh" avg={monAvg} avgLabel="เฉลี่ย" height={isMobile ? 190 : 220}
         empty="ยังไม่มีประวัติรายเดือน" />}
-      <div style={{ display: "flex", gap: 14, flexWrap: "wrap", fontSize: 11, color: "var(--text-3)", marginTop: 8 }}>
-        <span style={{ display: "flex", alignItems: "center", gap: 5 }}><span style={{ width: 9, height: 9, borderRadius: 2, background: "var(--primary)" }} />ผลิตได้</span>
-        <span style={{ display: "flex", alignItems: "center", gap: 5 }}><span style={{ width: 9, height: 9, borderRadius: 2, background: "var(--primary)", opacity: .42 }} />{tab === "day" ? "ชั่วโมงนี้" : tab === "30" ? "วันนี้" : "เดือนนี้"} (ยังไม่จบ)</span>
+      <div style={{ display: "flex", gap: 14, flexWrap: "wrap", alignItems: "center", fontSize: 11, color: "var(--text-3)", marginTop: 8 }}>
+        {tab === "day" ? (
+          <React.Fragment>
+            <span style={{ display: "flex", alignItems: "center", gap: 5 }}><span style={{ width: 16, height: 3, borderRadius: 2, background: "var(--fs-sun)" }} />ผลิตต่อชั่วโมง</span>
+            {today.bars.some((b) => b.partial && b.value != null) && <span style={{ display: "flex", alignItems: "center", gap: 5 }}>{dot("var(--fs-sun)")}ตอนนี้ (ชั่วโมงยังไม่จบ)</span>}
+          </React.Fragment>
+        ) : (
+          <React.Fragment>
+            <span style={{ display: "flex", alignItems: "center", gap: 5 }}>{dot("var(--fs-sun)")}ผลิตได้</span>
+            <span style={{ display: "flex", alignItems: "center", gap: 5 }}>
+              <span style={{ width: 10, height: 10, borderRadius: 5, background: "repeating-linear-gradient(45deg, var(--fs-sun) 0 2px, color-mix(in srgb, var(--fs-sun) 30%, var(--surface)) 2px 4px)" }} />
+              {tab === "30" ? "วันนี้" : "เดือนนี้"} (ยังไม่จบ)
+            </span>
+            <span style={{ display: "flex", alignItems: "center", gap: 5 }}><span style={{ width: 16, height: 0, borderTop: "1.5px dashed var(--text-2)" }} />เฉลี่ย</span>
+          </React.Fragment>
+        )}
         {firstDay && <span style={{ marginLeft: "auto" }}>เก็บประวัติตั้งแต่ {fsDayTH(firstDay)}</span>}
       </div>
     </FsCard>
   );
 }
 
-/* ไฟที่ผลิตไปไหน · ไฟที่ใช้มาจากไหน — จากตัวเลขสะสมของมิเตอร์เทียบอินเวอร์เตอร์ (ภาพการไหลตอนนี้อยู่ใน FsHouseFlow) */
+/* ไฟที่ผลิตไปไหน · ไฟที่ใช้มาจากไหน — จากตัวเลขสะสมของมิเตอร์เทียบอินเวอร์เตอร์ (ภาพการไหลตอนนี้อยู่ใน FsHouseFlow)
+   ซ้าย = แถบผลิต/ใช้ซ้อนกันตรงส่วนใช้เอง (FsEnergyBalance) + ตัวเลข 3 ส่วน · ขวา = หน้าปัด 2 ตัว + ผลที่ได้ */
 function FsEnergyCard({ em, isMobile }) {
-  if (em.selfTotal == null || !window.FsDonut) return null;
+  if (em.selfTotal == null || !window.FsEnergyBalance) return null;
   const pv = em.pvTotal, use = em.importTotal != null ? em.selfTotal + em.importTotal : null;
-  const D = window.FsDonut;
-  const E = (v) => fsEnergy(v).join(" ");
+  const E = (v) => fsEnergy(v);
+  const co2 = (pv * FS_GRID_EF) / 1000;
+  const parts = [
+    { k: "self", c: "var(--fs-self)", l: "ใช้เองในอาคาร", v: em.selfTotal, s: Math.round(em.selfRate * 100) + "% ของที่ผลิต" + (use ? " · " + Math.round((em.selfTotal / use) * 100) + "% ของที่ใช้" : "") },
+    { k: "exp", c: "var(--fs-exp)", l: "ขายเข้ากริด", v: em.exportTotal, s: pv > 0 ? Math.round(((em.exportTotal || 0) / pv) * 100) + "% ของที่ผลิต" : null },
+  ].concat(use != null ? [{ k: "imp", c: "var(--fs-imp)", l: "ซื้อจากกริด", v: em.importTotal, s: Math.round((em.importTotal / use) * 100) + "% ของที่ใช้" }] : []);
+  const tile = (icon, color, label, value, unit, sub) => (
+    <div style={{ display: "flex", gap: 10, alignItems: "center", background: "var(--surface2)", boxShadow: "var(--shadow-inset)", borderRadius: "var(--r-tile)", padding: "10px 12px", minWidth: 0 }}>
+      <span style={{ width: 30, height: 30, borderRadius: 15, display: "grid", placeItems: "center", flexShrink: 0, background: "color-mix(in srgb, " + color + " 16%, var(--surface))" }}>
+        <Icon name={icon} size={15} color={color} />
+      </span>
+      <div style={{ minWidth: 0 }}>
+        <div style={{ fontSize: 10.5, fontWeight: 700, color: "var(--text-3)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{label}</div>
+        <div style={{ fontSize: 15, fontWeight: 800, color: "var(--text-1)", whiteSpace: "nowrap", fontVariantNumeric: "tabular-nums" }}>
+          {value}<span style={{ fontSize: 11, fontWeight: 600, color: "var(--text-3)", marginLeft: 4 }}>{unit}</span>
+        </div>
+        {sub && <div style={{ fontSize: 10.5, color: "var(--text-3)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{sub}</div>}
+      </div>
+    </div>
+  );
   return (
     <FsCard title="พลังงานไปไหน · มาจากไหน" sub="นับสะสมตั้งแต่ติดตั้ง">
-      <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr", gap: isMobile ? 18 : 26 }}>
-        <D title="ไฟที่โซลาร์ผลิต" center={fsEnergy(pv)[0]} centerSub={fsEnergy(pv)[1]}
-          parts={[{ key: "self", label: "ใช้เองในอาคาร", value: em.selfTotal, color: "var(--fs-self)", note: E(em.selfTotal) },
-            { key: "exp", label: "ขายเข้ากริด", value: em.exportTotal, color: "var(--fs-exp)", note: E(em.exportTotal) }]} />
-        {use != null && (
-          <D title="ไฟที่อาคารใช้" center={fsEnergy(use)[0]} centerSub={fsEnergy(use)[1]}
-            parts={[{ key: "self", label: "จากโซลาร์", value: em.selfTotal, color: "var(--fs-self)", note: E(em.selfTotal) },
-              { key: "imp", label: "ซื้อจากกริด", value: em.importTotal, color: "var(--fs-imp)", note: E(em.importTotal) }]} />
-        )}
+      <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "minmax(0, 1.6fr) minmax(260px, 1fr)", gap: isMobile ? 18 : 0 }}>
+        <div style={{ minWidth: 0, paddingRight: isMobile ? 0 : 22 }}>
+          <window.FsEnergyBalance self={em.selfTotal} exp={em.exportTotal} imp={em.importTotal} compact={isMobile} />
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(" + parts.length + ", minmax(0, 1fr))", gap: isMobile ? 8 : 12, marginTop: 14 }}>
+            {parts.map((p) => (
+              <div key={p.k} style={{ minWidth: 0 }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 11.5, fontWeight: 600, color: "var(--text-2)" }}>
+                  <span style={{ width: 10, height: 10, borderRadius: 5, background: p.c, flexShrink: 0 }} />
+                  <span style={{ whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{p.l}</span>
+                </div>
+                <div style={{ fontFamily: "var(--display)", fontSize: isMobile ? 17 : 21, fontWeight: 700, color: "var(--text-1)", lineHeight: 1.2, whiteSpace: "nowrap", fontVariantNumeric: "tabular-nums" }}>
+                  {E(p.v)[0]}<span style={{ fontSize: 11.5, fontWeight: 600, color: "var(--text-3)", marginLeft: 4 }}>{E(p.v)[1]}</span>
+                </div>
+                {p.s && <div style={{ fontSize: 10.5, color: "var(--text-3)", lineHeight: 1.35 }}>{p.s}</div>}
+              </div>
+            ))}
+          </div>
+        </div>
+        <div style={{ minWidth: 0, display: "flex", flexDirection: "column", gap: 12, paddingLeft: isMobile ? 0 : 22, boxShadow: isMobile ? "none" : "inset 1px 0 0 var(--divider)" }}>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+            <FsGauge frac={em.selfRate} value={Math.round(em.selfRate * 100)} unit="%" size={128} color="var(--fs-self)" label="ใช้เองได้" sub="self-consumption" />
+            <FsGauge frac={em.sufficiency} value={em.sufficiency != null ? Math.round(em.sufficiency * 100) : "–"} unit="%" size={128} color="var(--fs-sun)" label="พึ่งตัวเองได้" sub="self-sufficiency" />
+          </div>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
+            {tile("home", "var(--fs-self)", "ซื้อไฟลดลง", E(em.selfTotal)[0], E(em.selfTotal)[1], "ไฟโซลาร์ที่ใช้เอง")}
+            {tile("sparkle", "var(--tint-ok-tx)", "ลด CO₂ สะสม", fsFmt(co2, 1), "ตัน", "≈ ต้นไม้ " + fsFmt((co2 * 1000) / FS_TREE_KG, 0) + " ต้น/ปี")}
+          </div>
+        </div>
       </div>
-      <div className="kpi-grid" style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr 1fr" : "repeat(4, 1fr)", gap: 8, marginTop: 16 }}>
-        <FsTile label="สัดส่วนใช้เอง (self-consumption)" value={Math.round(em.selfRate * 100) + "%"} />
-        <FsTile label="พึ่งตัวเองได้ (self-sufficiency)" value={em.sufficiency != null ? Math.round(em.sufficiency * 100) + "%" : "–"} />
-        <FsTile label="ซื้อไฟลดลง" value={fsEnergy(em.selfTotal)[0]} unit={fsEnergy(em.selfTotal)[1]} />
-        <FsTile label="ลด CO₂ สะสม" value={fsFmt((pv * FS_GRID_EF) / 1000, 1)} unit="ตัน" />
-      </div>
-      <div style={{ fontSize: 11, color: "var(--text-3)", marginTop: 8 }}>
+      <div style={{ fontSize: 11, color: "var(--text-3)", marginTop: 12 }}>
         ถูกต้องเมื่อติดตั้งมิเตอร์พร้อมระบบ (ถ้าเพิ่มมิเตอร์ทีหลัง สัดส่วนใช้เองจะออกมาสูงกว่าจริง)
       </div>
     </FsCard>
