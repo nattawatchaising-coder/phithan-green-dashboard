@@ -21,6 +21,7 @@
 
 ## การเชื่อมต่อ (ฝั่งเซิร์ฟเวอร์เท่านั้น — เบราว์เซอร์ไม่เรียก Huawei)
 - Base `https://intl.fusionsolar.huawei.com/thirdData` (เปลี่ยนได้ด้วย env `FUSIONSOLAR_BASE` — ใช้ชี้ mock)
+- **ฟังก์ชัน Vercel ต้องรันที่สิงคโปร์ (`"regions": ["sin1"]` ใน vercel.json)** — DNS ของ Huawei แยกตามประเทศ ถามจากสหรัฐฯ (ค่าเริ่มต้น iad1) ได้คำตอบว่าง → `ENOTFOUND intl.fusionsolar.huawei.com` (เจอ 2026-10-26) · ฐาน Firebase ก็อยู่ asia-southeast1 อยู่แล้ว
 - env **`FUSIONSOLAR_USER`** = `api_tarnthanawat` · **`FUSIONSOLAR_PASS`** = รหัส — ตั้งใน Vercel → Settings → Environment Variables (Production) **ห้ามเขียนลงโค้ด/Git**
 - ทุกคำขอ POST JSON · `/login {userName, systemCode}` → token จาก header `xsrf-token` + เก็บ cookie → คำขอถัดไปส่ง `XSRF-TOKEN` + cookie เดิม
 - login ครั้งเดียวต่อรอบ · **failCode 305** → login ใหม่แล้วลองซ้ำครั้งเดียว
