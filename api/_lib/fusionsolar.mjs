@@ -388,6 +388,10 @@ export async function runSync(o) {
     Object.keys(byType).sort((a, b) => a - b).forEach((t) => chunk(byType[t], BATCH).forEach((b) => batches.push({ kind: "dev", type: +t, ids: b })));
     if (!batches.length) { log.note = (log.note ? log.note + " · " : "") + "ยังไม่มีไซต์/อุปกรณ์ให้ดึงข้อมูลผลิต"; return; }
 
+    /* ซิงก์ถี่กว่าชั่วโมงละครั้ง (ทุก 15 นาที + ตอนมีคนเปิดหน้าเว็บ) — ค่ารายชั่วโมง h/p/m จดเฉพาะรอบแรกของชั่วโมง
+       (fsState/kpi_snap = วัน+ชั่วโมงที่จดแล้ว) ไม่งั้นค่าชั่วโมงถูกเขียนทับด้วยค่าท้ายชั่วโมง แท่งเลื่อนเวลา · kwh/ค่าไซต์อัปเดตทุกรอบ */
+    const snapKey = bkk(Date.now()).day + " " + bkk(Date.now()).hh;
+    const snap = dry || state.kpi_snap !== snapKey;
     let i = dry ? 0 : Math.min(Number(state.kpi_cursor) || 0, batches.length);
     if (i >= batches.length) i = 0;
     for (; i < batches.length; i++) {
@@ -401,7 +405,7 @@ export async function runSync(o) {
           (Array.isArray(data) ? data : []).forEach((r) => {
             const id = idx[r && r.stationCode]; if (!id) return;
             const m = r.dataItemMap || {};
-            if (num(m.day_power) != null) { dayP[id + "/" + k.day + "/kwh"] = num(m.day_power); dayP[id + "/" + k.day + "/h/" + k.hh] = num(m.day_power); }
+            if (num(m.day_power) != null) { dayP[id + "/" + k.day + "/kwh"] = num(m.day_power); if (snap) dayP[id + "/" + k.day + "/h/" + k.hh] = num(m.day_power); }
             if (num(m.month_power) != null) monP[id + "/" + k.mon] = num(m.month_power);
             Object.assign(patch, { [id + "/day_kwh"]: num(m.day_power), [id + "/month_kwh"]: num(m.month_power),
               [id + "/total_kwh"]: num(m.total_power), [id + "/health_state"]: num(m.real_health_state), [id + "/kpi_updated_at"]: t });
@@ -416,8 +420,8 @@ export async function runSync(o) {
           (Array.isArray(data) ? data : []).forEach((r) => {
             const id = safeKey(String(r && r.devId)); if (!devices[id]) return;
             const pw = num((r.dataItemMap || {}).active_power);
-            if ((b.type === 1 || b.type === 38) && pw != null && devices[id].site_id) dayP[devices[id].site_id + "/" + k.day + "/p/" + k.hh + "/" + id] = pw;
-            if ((b.type === 47 || b.type === 17) && devices[id].site_id) {
+            if (snap && (b.type === 1 || b.type === 38) && pw != null && devices[id].site_id) dayP[devices[id].site_id + "/" + k.day + "/p/" + k.hh + "/" + id] = pw;
+            if (snap && (b.type === 47 || b.type === 17) && devices[id].site_id) {
               const a = num((r.dataItemMap || {}).active_cap), rv = num((r.dataItemMap || {}).reverse_active_cap);
               if (a != null && rv != null) dayP[devices[id].site_id + "/" + k.day + "/m/" + k.hh + "/" + id] = { a, r: rv };
             }
@@ -436,6 +440,7 @@ export async function runSync(o) {
     log.pending += batches.length - i;
     st.kpi_cursor = i >= batches.length ? 0 : i;
     if (!dry) st.last_kpi_at = iso();
+    if (!dry && snap && i >= batches.length) st.kpi_snap = snapKey;
   }
 
   /* ข้อมูลผลิตย้อนหลัง (ผู้ใช้สั่ง — กราฟประวัติไม่ต้องรอเก็บเองทีละชั่วโมงเป็นเดือน) · ทีละ 100 สถานี

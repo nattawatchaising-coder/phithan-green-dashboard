@@ -1,4 +1,6 @@
-# ดึงข้อมูลผลิต (KPI) จาก Huawei FusionSolar ทุกชั่วโมง — docs/fusionsolar.md
+# ดึงข้อมูลผลิต (KPI) จาก Huawei FusionSolar ทุก 15 นาที — docs/fusionsolar.md
+# GitHub เคาะไม่ตรงเวลาและข้ามบ่อย (วันแรกรันแค่ 2 ใน 13 ชม.) — หน้าเว็บจึงขอซิงก์เองด้วยตอนมีคนเปิดดู (job refresh)
+# ค่ารายชั่วโมงของกราฟจดเฉพาะรอบแรกของชั่วโมง (fsState/kpi_snap) ถี่ขึ้นแล้วกราฟไม่เพี้ยน
 # Vercel Hobby ให้ cron ได้วันละครั้ง จึงให้ GitHub เป็นคนเคาะ /api/cron/fusionsolar?job=kpi แทน
 # ต้องตั้ง secret CRON_SECRET ใน GitHub (Settings → Secrets → Actions) ให้ตรงกับ env CRON_SECRET บน Vercel
 # ไม่มี secret = ข้ามเงียบ ๆ (ไม่ fail) · ซิงก์จะไม่ทำอะไรจนกว่าแอดมินกด "บันทึกจริงครั้งแรก" ในเว็บ
@@ -6,7 +8,7 @@ name: fusionsolar-kpi
 
 on:
   schedule:
-    - cron: '7 * * * *'
+    - cron: '7,22,37,52 * * * *'
   workflow_dispatch:
 
 jobs:

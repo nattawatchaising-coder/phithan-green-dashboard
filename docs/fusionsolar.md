@@ -67,7 +67,7 @@
 - พลาดทีละคิว (เช่นบัญชีไม่มีสิทธิ์ API นี้) = จด error แล้วทำคิวถัดไป · 407/ล็อกอินพลาด = หยุดทั้งรอบเหมือนงานอื่น
 - **ยังไม่ได้ลองกับ Huawei จริง** (ทดสอบกับ mock + ฐานทดสอบเท่านั้น) — ชื่อ field/ความหมาย collectTime ตามเอกสาร Northbound ถ้าของจริงต่างให้แก้ที่ `doHist`
 
-**`fsState`** — `lock` (กันสองรอบชนกัน · etag · หมดอายุ 90 วิ) `blocked_until` `last_call_at` `dev_cursor` `kpi_cursor` `station_api` `last_sites_at` `last_kpi_at` `approved_at` `approved_by` `hist_cursor` `hist_key` `hist_done_at`
+**`fsState`** — `lock` (กันสองรอบชนกัน · etag · หมดอายุ 90 วิ) `blocked_until` `last_call_at` `dev_cursor` `kpi_cursor` `station_api` `last_sites_at` `last_kpi_at` `approved_at` `approved_by` `hist_cursor` `hist_key` `hist_done_at` `kpi_snap` `refresh_at`
 
 ## ผูกกับงานในเว็บ — ทำไมแยกโหนด
 ไซต์ ≠ ใบงาน: ไซต์หนึ่งมีได้หลายงาน (ติดตั้ง · ขยายระบบ) และไซต์ใน FusionSolar อาจไม่มีงานของเราเลย → เก็บที่ `fsSites` ผูกด้วย `jobIds` · ไม่เขียนลง `omSites` (จะทำให้ O&M แจ้งเตือนรอบล้างแผง/ประกันของไซต์ที่ไม่ได้ขายบริการ)
@@ -78,7 +78,10 @@
 
 ## รอบเวลา
 - **ไซต์+อุปกรณ์วันละครั้ง** — Vercel cron `0 21 * * *` (04:00 ไทย) `job=all`
-- **KPI ทุก 60 นาที** — Vercel Hobby ให้ cron ได้วันละครั้ง จึงให้ GitHub Actions เคาะ `?job=kpi&src=gh` · ต้องตั้ง secret `CRON_SECRET` ใน GitHub ให้ตรงกับ Vercel (ไม่มี = workflow ข้ามเงียบ)
+- **KPI ทุก 15 นาที** (ผู้ใช้บ่นว่ารายชั่วโมงช้า 2026-10-26) — Vercel Hobby ให้ cron ได้วันละครั้ง จึงให้ GitHub Actions เคาะ `?job=kpi&src=gh` นาที 7/22/37/52 · ต้องตั้ง secret `CRON_SECRET` ใน GitHub ให้ตรงกับ Vercel (ไม่มี = workflow ข้ามเงียบ)
+  - **GitHub เคาะไม่ตรงและข้ามบ่อย** (วันแรกตั้งรายชั่วโมง รันจริง 2 ครั้งใน 13 ชม.) → **หน้าไซต์ทั้งหมดขอซิงก์เองตอนเปิดดู**: `POST /api/fusionsolar/sync {job:"refresh"}` ทุกบัญชีที่ล็อกอิน · เซิร์ฟเวอร์ตัดสิน: ยังไม่อนุมัติ / `last_kpi_at` < 10 นาที / พัก 407 / มีล็อก / `fsState/refresh_at` < 10 นาที (กันรอบพังแล้วทุกคนยิงซ้ำจนบัญชี Huawei โดนล็อก) = ไม่ทำ · ไม่งั้นรัน kpi trigger `view` · หน้าเว็บเรียกตอนเปิด แล้วทุก 5 นาทีที่แท็บเปิดดูอยู่ · **ฐานทดสอบไม่เรียก** (devserver อาจมีรหัส Huawei จริงใน fusionsolar.local.json → แย่งโควตากับเว็บจริง)
+  - ไม่เพิ่มไฟล์ใน `api/` — Vercel Hobby จำกัด 12 ฟังก์ชัน (ตอนนี้ 10)
+  - **ค่ารายชั่วโมงจดเฉพาะรอบแรกของชั่วโมง** (`h/p/m` · `fsState/kpi_snap` = "YYYY-MM-DD HH" ตั้งเมื่อรอบนั้นครบทุก batch) — รอบถัดไปในชั่วโมงเดียวกันอัปเดตแค่ `kwh` + ค่าไซต์ · กราฟวันนี้มีแท่ง "HH:00–ตอนนี้" = `fsSites.day_kwh` − `h/{ชั่วโมงนี้}`
 - maxDuration 60 วิ (`vercel.json`) · งบในรอบ 42 วิ · ไม่ทัน = จด cursor ไว้ รอบหน้าทำต่อ (`pending` ใน log)
 - **ซิงก์อัตโนมัติไม่ทำอะไรจนกว่าแอดมินกด "บันทึกจริงครั้งแรก"** (`fsState/approved_at`) · ปุ่มนั้นกดได้หลังกดทดลอง (dry run) แล้วเท่านั้น
 - ปุ่มในหน้า log: "ทดลอง (dry run)" ไม่เขียนอะไรเลย แสดงสิ่งที่จะสร้าง/เปลี่ยน/ไม่พบ + ตัวอย่าง KPI · "ซิงก์ตอนนี้" เขียนจริง

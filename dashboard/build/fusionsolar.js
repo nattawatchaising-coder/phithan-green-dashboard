@@ -546,6 +546,7 @@ function FsFleetHero({
   nowKw,
   liveN,
   lastAt,
+  refreshing,
   isMobile,
   hCount,
   health,
@@ -623,13 +624,14 @@ function FsFleetHero({
       color: "var(--text-2)"
     }
   }, React.createElement("span", {
+    className: refreshing ? "fs-pulse" : "",
     style: {
       width: 7,
       height: 7,
       borderRadius: 4,
       background: "var(--fs-sun)"
     }
-  }), lastAt ? "อัปเดต " + fsAgo(new Date(lastAt).toISOString()) : "ยังไม่มีข้อมูลผลิต"), React.createElement("div", {
+  }), refreshing ? "กำลังดึงข้อมูลล่าสุด…" : lastAt ? "อัปเดต " + fsAgo(new Date(lastAt).toISOString()) : "ยังไม่มีข้อมูลผลิต"), React.createElement("div", {
     style: {
       fontFamily: "var(--display)",
       fontSize: isMobile ? 28 : 38,
@@ -647,7 +649,7 @@ function FsFleetHero({
       color: "var(--text-2)",
       maxWidth: 300
     }
-  }, "\u0E15\u0E34\u0E14\u0E15\u0E31\u0E49\u0E07\u0E23\u0E27\u0E21 ", fsFmt(roll.kw, 0), " kWp \xB7 \u0E14\u0E36\u0E07\u0E02\u0E49\u0E2D\u0E21\u0E39\u0E25\u0E08\u0E32\u0E01 FusionSolar \u0E17\u0E38\u0E01\u0E0A\u0E31\u0E48\u0E27\u0E42\u0E21\u0E07"), React.createElement("div", {
+  }, "\u0E15\u0E34\u0E14\u0E15\u0E31\u0E49\u0E07\u0E23\u0E27\u0E21 ", fsFmt(roll.kw, 0), " kWp \xB7 \u0E14\u0E36\u0E07\u0E02\u0E49\u0E2D\u0E21\u0E39\u0E25\u0E08\u0E32\u0E01 FusionSolar \u0E17\u0E38\u0E01 15 \u0E19\u0E32\u0E17\u0E35"), React.createElement("div", {
     style: {
       display: "flex",
       gap: 6,
@@ -1576,6 +1578,7 @@ function FsSitesView({
   const {
     val: devVal
   } = useFsNode("fsDevices");
+  const refreshing = useFsAutoRefresh();
   const yields = React.useMemo(() => sites.filter(s => +s.health_state === 3).map(fsMonthYield).filter(v => v != null), [sites]);
   const medMonth = yields.length >= 3 ? fsMedian(yields) : null;
   const byDev = React.useMemo(() => {
@@ -1693,6 +1696,7 @@ function FsSitesView({
     nowKw: nowKw,
     liveN: Object.keys(live).length,
     lastAt: lastAt,
+    refreshing: refreshing,
     isMobile: isMobile,
     hCount: hCount,
     health: health,
@@ -2101,8 +2105,11 @@ function FsHistoryCard({
     };
     const hasLoad = Object.keys(u).length > 0 || Object.keys(m).length > 1;
     const lit = keys.filter(x => fsN(h[K(x)]) > 0);
-    const from = hasLoad ? keys[0] : Math.min(6, lit.length ? lit[0] : keys[0]),
-      to = Math.max(hasLoad ? 23 : 18, keys[keys.length - 1]);
+    const kAt = Date.parse(site.kpi_updated_at || ""),
+      liveKwh = kAt && fsBkk(kAt).day === now.day ? fsN(site.day_kwh) : null,
+      liveH = now.h + 1;
+    const from = hasLoad ? keys[0] : Math.min(6, lit.length ? lit[0] : keys[0]);
+    const to = Math.max(hasLoad ? 23 : 18, keys[keys.length - 1], liveKwh != null ? liveH : 0);
     const out = [];
     let prevH = null,
       prevV = 0,
@@ -2141,13 +2148,17 @@ function FsHistoryCard({
       } else if (g && prevG) load = gridLoad(g, prevG);
       if (g) prevG = g;
       if (load != null) load = Math.round(load * 1000) / 1000;
+      if (x === liveH && v == null && liveKwh != null && prevH != null && liveKwh >= prevV) {
+        val = liveKwh - prevV;
+        rng = K(prevH) + ":00–ตอนนี้";
+      }
       const pw = p[key] ? Object.keys(p[key]).reduce((s, k) => s + (+p[key][k] || 0), 0) : null;
       out.push({
         k: key,
         label: key,
         value: val,
         load,
-        partial: x === now.h,
+        partial: x === liveH,
         tip: ["ช่วง " + rng, v != null ? "ผลิตรวมทั้งวันถึงตอนนั้น " + fsFmt(v, 1) + " kWh" : null, pw != null ? "กำลังตอนซิงก์ " + fsFmt(pw, 2) + " kW" : null].filter(Boolean)
       });
     }
@@ -2156,7 +2167,7 @@ function FsHistoryCard({
       pre,
       hasLoad: out.some(b => b.load != null)
     };
-  }, [dayVal, now.day, now.h, flip]);
+  }, [dayVal, now.day, now.h, flip, site.day_kwh, site.kpi_updated_at]);
   const days = React.useMemo(() => {
     const out = [];
     for (let i = 29; i >= 0; i--) {
@@ -2385,7 +2396,7 @@ function FsHistoryCard({
     bars: today.bars.some(b => b.value != null || b.load != null) ? today.bars : [],
     unit: "kWh",
     height: isMobile ? 190 : 220,
-    empty: today.pre ? "รายชั่วโมงจะเริ่มแสดงตั้งแต่ชั่วโมงถัดไป" : "ยังไม่มีข้อมูลรายชั่วโมงของวันนี้ — เก็บทุกครั้งที่ซิงก์ข้อมูลผลิต (ทุกชั่วโมง)"
+    empty: today.pre ? "รายชั่วโมงจะเริ่มแสดงตั้งแต่ชั่วโมงถัดไป" : "ยังไม่มีข้อมูลรายชั่วโมงของวันนี้ — เก็บทุกต้นชั่วโมงตอนซิงก์ข้อมูลผลิต"
   }), tab === "day" && today.pre && React.createElement("div", {
     style: {
       fontSize: 11.5,
@@ -3576,10 +3587,35 @@ const FS_JOB_TH = {
 };
 const FS_TRIG_TH = {
   cron: "อัตโนมัติ (Vercel)",
-  gh: "อัตโนมัติรายชั่วโมง",
+  gh: "อัตโนมัติ (GitHub)",
   manual: "แอดมินกด",
-  tool: "สคริปต์ในเครื่อง"
+  tool: "สคริปต์ในเครื่อง",
+  view: "มีคนเปิดดู"
 };
+function useFsAutoRefresh() {
+  const [busy, setBusy] = React.useState(false);
+  React.useEffect(() => {
+    let alive = true;
+    if (window.FB_DB_MODE === "test") return undefined;
+    const tick = () => {
+      if (document.hidden || Date.now() - (window.__fsRefAt || 0) < 4.5 * 60e3) return;
+      window.__fsRefAt = Date.now();
+      setBusy(true);
+      fsCallSync("refresh").catch(() => null).then(() => {
+        if (alive) setBusy(false);
+      });
+    };
+    tick();
+    const t = setInterval(tick, 60e3);
+    document.addEventListener("visibilitychange", tick);
+    return () => {
+      alive = false;
+      clearInterval(t);
+      document.removeEventListener("visibilitychange", tick);
+    };
+  }, []);
+  return busy;
+}
 async function fsCallSync(job, dryRun) {
   const u = window.FBAUTH && window.FBAUTH.currentUser;
   if (!u) throw new Error("ยังไม่ได้ล็อกอินผ่านเซิร์ฟเวอร์ — ออกจากระบบแล้วเข้าใหม่");
@@ -3626,7 +3662,7 @@ function FsLogView({
     if (!dryRun) {
       const ok = await window.askConfirm({
         title: approved ? "ซิงก์ตอนนี้ (" + FS_JOB_TH[job] + ")?" : "บันทึกจริงครั้งแรก?",
-        body: (approved ? "" : "หลังรอบนี้ระบบจะซิงก์อัตโนมัติ (วันละครั้ง + ข้อมูลผลิตทุกชั่วโมง) · ") + (job === "hist" ? "ดึงข้อมูลผลิตย้อนหลัง (รายเดือน 2 ปี · รายวัน 2 เดือน · รายชั่วโมงเมื่อวาน+วันนี้) เขียนเฉพาะ fsKpiDay / fsKpiMonth / fsSyncLogs · ไม่ครบในรอบเดียว = กดซ้ำจนงานค้างเป็น 0" : "เขียนเฉพาะ fsSites / fsDevices / fsSyncLogs ไม่แตะข้อมูลงาน") + " · ใช้เวลาราว 10–45 วินาที",
+        body: (approved ? "" : "หลังรอบนี้ระบบจะซิงก์อัตโนมัติ (วันละครั้ง + ข้อมูลผลิตทุก 15 นาที) · ") + (job === "hist" ? "ดึงข้อมูลผลิตย้อนหลัง (รายเดือน 2 ปี · รายวัน 2 เดือน · รายชั่วโมงเมื่อวาน+วันนี้) เขียนเฉพาะ fsKpiDay / fsKpiMonth / fsSyncLogs · ไม่ครบในรอบเดียว = กดซ้ำจนงานค้างเป็น 0" : "เขียนเฉพาะ fsSites / fsDevices / fsSyncLogs ไม่แตะข้อมูลงาน") + " · ใช้เวลาราว 10–45 วินาที",
         ok: "ซิงก์",
         danger: false,
         icon: "history"
@@ -3677,7 +3713,7 @@ function FsLogView({
       fontSize: 11.5,
       color: "var(--text-3)"
     }
-  }, "\u0E44\u0E0B\u0E15\u0E4C+\u0E2D\u0E38\u0E1B\u0E01\u0E23\u0E13\u0E4C\u0E27\u0E31\u0E19\u0E25\u0E30\u0E04\u0E23\u0E31\u0E49\u0E07 \xB7 \u0E02\u0E49\u0E2D\u0E21\u0E39\u0E25\u0E1C\u0E25\u0E34\u0E15\u0E17\u0E38\u0E01\u0E0A\u0E31\u0E48\u0E27\u0E42\u0E21\u0E07 \xB7 \u0E40\u0E27\u0E49\u0E19 3 \u0E27\u0E34\u0E19\u0E32\u0E17\u0E35\u0E15\u0E48\u0E2D\u0E04\u0E33\u0E02\u0E2D")), React.createElement("div", {
+  }, "\u0E44\u0E0B\u0E15\u0E4C+\u0E2D\u0E38\u0E1B\u0E01\u0E23\u0E13\u0E4C\u0E27\u0E31\u0E19\u0E25\u0E30\u0E04\u0E23\u0E31\u0E49\u0E07 \xB7 \u0E02\u0E49\u0E2D\u0E21\u0E39\u0E25\u0E1C\u0E25\u0E34\u0E15\u0E17\u0E38\u0E01 15 \u0E19\u0E32\u0E17\u0E35 \u0E41\u0E25\u0E30\u0E15\u0E2D\u0E19\u0E21\u0E35\u0E04\u0E19\u0E40\u0E1B\u0E34\u0E14\u0E14\u0E39 \xB7 \u0E40\u0E27\u0E49\u0E19 3 \u0E27\u0E34\u0E19\u0E32\u0E17\u0E35\u0E15\u0E48\u0E2D\u0E04\u0E33\u0E02\u0E2D")), React.createElement("div", {
     style: {
       display: "grid",
       gridTemplateColumns: "repeat(auto-fit, minmax(170px, 1fr))",

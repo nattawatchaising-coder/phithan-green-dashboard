@@ -229,7 +229,7 @@ function FsFloatCard({ icon, label, value, unit, sub, frac, style, flat }) {
     </div>
   );
 }
-function FsFleetHero({ roll, nowKw, liveN, lastAt, isMobile, hCount, health, onHealth }) {
+function FsFleetHero({ roll, nowKw, liveN, lastAt, refreshing, isMobile, hCount, health, onHealth }) {
   const co2 = (roll.total * FS_GRID_EF) / 1000;
   const big = (v) => (Math.abs(v) >= 10000 ? v / 1000 : v);
   const E = (v) => fsEnergy(v)[1];
@@ -251,12 +251,12 @@ function FsFleetHero({ roll, nowKw, liveN, lastAt, isMobile, hCount, health, onH
     <div style={{ display: "flex", flexDirection: "column", gap: 12, minWidth: 0 }}>
       <span style={{ alignSelf: "flex-start", display: "inline-flex", alignItems: "center", gap: 7, fontSize: 11.5, fontWeight: 700, padding: "5px 11px",
         borderRadius: 999, background: "color-mix(in srgb, var(--fs-sun) 14%, var(--surface))", color: "var(--text-2)" }}>
-        <span style={{ width: 7, height: 7, borderRadius: 4, background: "var(--fs-sun)" }} />{lastAt ? "อัปเดต " + fsAgo(new Date(lastAt).toISOString()) : "ยังไม่มีข้อมูลผลิต"}
+        <span className={refreshing ? "fs-pulse" : ""} style={{ width: 7, height: 7, borderRadius: 4, background: "var(--fs-sun)" }} />{refreshing ? "กำลังดึงข้อมูลล่าสุด…" : lastAt ? "อัปเดต " + fsAgo(new Date(lastAt).toISOString()) : "ยังไม่มีข้อมูลผลิต"}
       </span>
       <div style={{ fontFamily: "var(--display)", fontSize: isMobile ? 28 : 38, fontWeight: 700, lineHeight: 1.12, color: "var(--text-1)" }}>
         พลังงานสะอาด<br />จาก <span style={{ color: "var(--fs-sun)" }}>{roll.n}</span> ไซต์
       </div>
-      <div style={{ fontSize: 13, color: "var(--text-2)", maxWidth: 300 }}>ติดตั้งรวม {fsFmt(roll.kw, 0)} kWp · ดึงข้อมูลจาก FusionSolar ทุกชั่วโมง</div>
+      <div style={{ fontSize: 13, color: "var(--text-2)", maxWidth: 300 }}>ติดตั้งรวม {fsFmt(roll.kw, 0)} kWp · ดึงข้อมูลจาก FusionSolar ทุก 15 นาที</div>
       <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
         {hs.map((k) => (
           <button key={k} type="button" onClick={() => onHealth(health === k ? "all" : k)}
@@ -586,6 +586,7 @@ function FsSitesView({ jobs, role, currentUser, onOpenJob, onOpenOm }) {
   const setView = (v) => { setViewRaw(v); fsSavePref("fsSitesView", v); };
   const canWrite = window.can ? window.can(role, "om") : true;
   const { val: devVal } = useFsNode("fsDevices");
+  const refreshing = useFsAutoRefresh();
 
   /* เรื่องที่ควรดูของทุกไซต์ (ตัวตรวจชุดเดียวกับหน้ารายละเอียด) + ค่ากลางผลิตต่อ kWp ไว้หาไซต์ที่ผลิตต่ำกว่าเพื่อน */
   const yields = React.useMemo(() => sites.filter((s) => +s.health_state === 3).map(fsMonthYield).filter((v) => v != null), [sites]);
@@ -658,7 +659,7 @@ function FsSitesView({ jobs, role, currentUser, onOpenJob, onOpenOm }) {
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 14, minHeight: 0 }}>
-      {sites.length > 0 && <FsFleetHero roll={roll} nowKw={nowKw} liveN={Object.keys(live).length} lastAt={lastAt} isMobile={isMobile}
+      {sites.length > 0 && <FsFleetHero roll={roll} nowKw={nowKw} liveN={Object.keys(live).length} lastAt={lastAt} refreshing={refreshing} isMobile={isMobile}
         hCount={hCount} health={health} onHealth={setHealth} />}
 
       {sites.length > 0 && (
@@ -817,7 +818,10 @@ function FsHistoryCard({ site, isMobile, flip }) {
     const hasLoad = Object.keys(u).length > 0 || Object.keys(m).length > 1;
     /* ข้อมูลย้อนหลังรายชั่วโมงมีตั้งแต่ตีหนึ่ง (ค่า 0 ตอนกลางคืน) — ไม่มีไฟที่ใช้ = เริ่มแกนที่ชั่วโมงแรกที่ผลิตได้ ไม่เกิน 6 โมง · มีไฟที่ใช้ = ทั้งวัน */
     const lit = keys.filter((x) => fsN(h[K(x)]) > 0);
-    const from = hasLoad ? keys[0] : Math.min(6, lit.length ? lit[0] : keys[0]), to = Math.max(hasLoad ? 23 : 18, keys[keys.length - 1]);
+    /* แท่ง "ตอนนี้" = ชั่วโมงที่กำลังเดิน (ปลายช่วง = ชั่วโมงถัดไป) จากค่าผลิตวันนี้ล่าสุดของไซต์ (อัปเดตทุกรอบซิงก์ ~15 นาที) ลบค่าต้นชั่วโมง */
+    const kAt = Date.parse(site.kpi_updated_at || ""), liveKwh = kAt && fsBkk(kAt).day === now.day ? fsN(site.day_kwh) : null, liveH = now.h + 1;
+    const from = hasLoad ? keys[0] : Math.min(6, lit.length ? lit[0] : keys[0]);
+    const to = Math.max(hasLoad ? 23 : 18, keys[keys.length - 1], liveKwh != null ? liveH : 0);
     const out = []; let prevH = null, prevV = 0, pre = null, prevU = 0, prevG = null;
     /* ตัวตั้งต้นของไฟที่ใช้ = ค่าสะสมก่อนชั่วโมงแรกของแกน (กลางคืนไม่เป็น 0 แบบไฟผลิต) */
     keys.filter((x) => x < from).forEach((x) => { if (fsN(u[K(x)]) != null) prevU = +u[K(x)]; const g = grid(K(x)); if (g) prevG = g; });
@@ -833,12 +837,13 @@ function FsHistoryCard({ site, isMobile, flip }) {
       else if (g && prevG) load = gridLoad(g, prevG);
       if (g) prevG = g;
       if (load != null) load = Math.round(load * 1000) / 1000;
+      if (x === liveH && v == null && liveKwh != null && prevH != null && liveKwh >= prevV) { val = liveKwh - prevV; rng = K(prevH) + ":00–ตอนนี้"; }
       const pw = p[key] ? Object.keys(p[key]).reduce((s, k) => s + (+p[key][k] || 0), 0) : null;
-      out.push({ k: key, label: key, value: val, load, partial: x === now.h,
+      out.push({ k: key, label: key, value: val, load, partial: x === liveH,
         tip: ["ช่วง " + rng, v != null ? "ผลิตรวมทั้งวันถึงตอนนั้น " + fsFmt(v, 1) + " kWh" : null, pw != null ? "กำลังตอนซิงก์ " + fsFmt(pw, 2) + " kW" : null].filter(Boolean) });
     }
     return { bars: out, pre, hasLoad: out.some((b) => b.load != null) };
-  }, [dayVal, now.day, now.h, flip]);
+  }, [dayVal, now.day, now.h, flip, site.day_kwh, site.kpi_updated_at]);
 
   const days = React.useMemo(() => {
     const out = [];
@@ -924,7 +929,7 @@ function FsHistoryCard({ site, isMobile, flip }) {
         })}
       </div>
       {C && tab === "day" && <C mode="area" bars={today.bars.some((b) => b.value != null || b.load != null) ? today.bars : []} unit="kWh" height={isMobile ? 190 : 220}
-        empty={today.pre ? "รายชั่วโมงจะเริ่มแสดงตั้งแต่ชั่วโมงถัดไป" : "ยังไม่มีข้อมูลรายชั่วโมงของวันนี้ — เก็บทุกครั้งที่ซิงก์ข้อมูลผลิต (ทุกชั่วโมง)"} />}
+        empty={today.pre ? "รายชั่วโมงจะเริ่มแสดงตั้งแต่ชั่วโมงถัดไป" : "ยังไม่มีข้อมูลรายชั่วโมงของวันนี้ — เก็บทุกต้นชั่วโมงตอนซิงก์ข้อมูลผลิต"} />}
       {tab === "day" && today.pre && (
         <div style={{ fontSize: 11.5, color: "var(--text-3)", marginTop: 6 }}>
           ก่อน {today.pre.h}:00 ผลิตไปแล้ว {fsFmt(today.pre.v, 1)} kWh — ช่วงนั้นยังไม่ได้เก็บรายชั่วโมง (เริ่มเก็บตอนซิงก์รอบแรกของวัน)
@@ -1397,7 +1402,29 @@ function FsManualForm({ jobs, sites, currentUser, onClose, onCreated }) {
    หน้า log การซิงก์ (แอดมิน)
    ================================================================ */
 const FS_JOB_TH = { all: "ทั้งหมด", sites: "ไซต์+อุปกรณ์", kpi: "ข้อมูลผลิต", hist: "ย้อนหลัง (กราฟ)" };
-const FS_TRIG_TH = { cron: "อัตโนมัติ (Vercel)", gh: "อัตโนมัติรายชั่วโมง", manual: "แอดมินกด", tool: "สคริปต์ในเครื่อง" };
+const FS_TRIG_TH = { cron: "อัตโนมัติ (Vercel)", gh: "อัตโนมัติ (GitHub)", manual: "แอดมินกด", tool: "สคริปต์ในเครื่อง", view: "มีคนเปิดดู" };
+
+/* เปิดหน้าไซต์ทั้งหมดอยู่ = ขอให้เซิร์ฟเวอร์ซิงก์ข้อมูลผลิตถ้าเก่าเกิน 10 นาที (เซิร์ฟเวอร์ตัดสินเอง) — ตอนเปิดหน้า แล้วทุก 5 นาทีที่แท็บยังเปิดดูอยู่
+   cron ของ GitHub เคาะไม่ตรงเวลา/ข้ามบ่อย จึงไม่พึ่งอย่างเดียว · ค่าที่ได้ไหลเข้าหน้าเว็บเองผ่าน Firebase */
+function useFsAutoRefresh() {
+  const [busy, setBusy] = React.useState(false);
+  React.useEffect(() => {
+    let alive = true;
+    /* ฐานทดสอบบน localhost ไม่ขอซิงก์เอง — devserver อาจมีรหัส Huawei จริง (fusionsolar.local.json) จะไปแย่งโควตากับเว็บจริงจน 407 */
+    if (window.FB_DB_MODE === "test") return undefined;
+    const tick = () => {
+      if (document.hidden || Date.now() - (window.__fsRefAt || 0) < 4.5 * 60e3) return;
+      window.__fsRefAt = Date.now();
+      setBusy(true);
+      fsCallSync("refresh").catch(() => null).then(() => { if (alive) setBusy(false); });
+    };
+    tick();
+    const t = setInterval(tick, 60e3);
+    document.addEventListener("visibilitychange", tick);
+    return () => { alive = false; clearInterval(t); document.removeEventListener("visibilitychange", tick); };
+  }, []);
+  return busy;
+}
 
 async function fsCallSync(job, dryRun) {
   const u = window.FBAUTH && window.FBAUTH.currentUser;
@@ -1428,7 +1455,7 @@ function FsLogView({ role, currentUser }) {
     if (!dryRun) {
       const ok = await window.askConfirm({
         title: approved ? "ซิงก์ตอนนี้ (" + FS_JOB_TH[job] + ")?" : "บันทึกจริงครั้งแรก?",
-        body: (approved ? "" : "หลังรอบนี้ระบบจะซิงก์อัตโนมัติ (วันละครั้ง + ข้อมูลผลิตทุกชั่วโมง) · ")
+        body: (approved ? "" : "หลังรอบนี้ระบบจะซิงก์อัตโนมัติ (วันละครั้ง + ข้อมูลผลิตทุก 15 นาที) · ")
           + (job === "hist" ? "ดึงข้อมูลผลิตย้อนหลัง (รายเดือน 2 ปี · รายวัน 2 เดือน · รายชั่วโมงเมื่อวาน+วันนี้) เขียนเฉพาะ fsKpiDay / fsKpiMonth / fsSyncLogs · ไม่ครบในรอบเดียว = กดซ้ำจนงานค้างเป็น 0"
             : "เขียนเฉพาะ fsSites / fsDevices / fsSyncLogs ไม่แตะข้อมูลงาน") + " · ใช้เวลาราว 10–45 วินาที",
         ok: "ซิงก์", danger: false, icon: "history",
@@ -1450,7 +1477,7 @@ function FsLogView({ role, currentUser }) {
         display: "flex", flexDirection: "column", gap: 12 }}>
         <div style={{ display: "flex", gap: 10, alignItems: "baseline", flexWrap: "wrap" }}>
           <div style={{ fontSize: 13.5, fontWeight: 700 }}>ซิงก์ Huawei FusionSolar</div>
-          <div style={{ fontSize: 11.5, color: "var(--text-3)" }}>ไซต์+อุปกรณ์วันละครั้ง · ข้อมูลผลิตทุกชั่วโมง · เว้น 3 วินาทีต่อคำขอ</div>
+          <div style={{ fontSize: 11.5, color: "var(--text-3)" }}>ไซต์+อุปกรณ์วันละครั้ง · ข้อมูลผลิตทุก 15 นาที และตอนมีคนเปิดดู · เว้น 3 วินาทีต่อคำขอ</div>
         </div>
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(170px, 1fr))", gap: 9 }}>
           <FsSpec label="ซิงก์อัตโนมัติ" value={approved ? "เปิดแล้ว" : "รอบันทึกจริงครั้งแรก"} />
