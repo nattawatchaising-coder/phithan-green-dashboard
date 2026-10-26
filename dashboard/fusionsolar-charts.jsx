@@ -3,7 +3,7 @@
    ตามแบบอ้างอิงที่ผู้ใช้ส่งมา (Solis / Lumos / SolarSync / Sunsolar) · โหลดหลัง fusionsolar-scene.jsx ก่อน fusionsolar.jsx
    - FsTrendChart     ประวัติการผลิต · "area" = เส้นโค้งส้มเรืองแสงไล่สีลงพื้น + จุด "ตอนนี้" (รายชั่วโมงวันนี้)
                       "bars" = แท่งในราง แท่งที่ยังไม่จบเป็นลายเฉียง (รายวัน/รายเดือน) · ชี้ = กล่องค่า · มีมุมมองตาราง
-   - FsEnergyBalance  แถบ "ไฟที่ผลิต" กับ "ไฟที่อาคารใช้" วางเหลื่อมกันให้ส่วน "ใช้เอง" ตรงกัน + แสงไหลลงเชื่อมสองแถบ
+   - FsEnergyBalance  แถบ "ไฟที่ผลิต" กับ "ไฟที่อาคารใช้" ชิดซ้ายสเกลเดียวกัน ส่วน "ใช้เอง" อยู่หน้าสุดทั้งคู่
    ไม่มีการเขียนฐานข้อมูลในไฟล์นี้ · ลดการเคลื่อนไหว = ไม่มีอนิเมชัน
    ============================================================ */
 
@@ -238,55 +238,43 @@ function FsTrendChart({ mode, bars, unit, avg, avgLabel, height, empty }) {
    แถบบน = ไฟที่โซลาร์ผลิต [ขายเข้ากริด | ใช้เอง] · แถบล่าง = ไฟที่อาคารใช้ [ใช้เอง | ซื้อจากกริด] · มาตราส่วนเดียวกัน
    imp = null (ไม่มีมิเตอร์ฝั่งซื้อ) = แถบบนอย่างเดียว */
 function FsEnergyBalance({ self, exp, imp, compact }) {
+  /* สองแถบชิดซ้าย สเกลเดียวกัน — ส่วน "ใช้เอง" (เขียว) อยู่หน้าสุดทั้งสองแถบ ยาวเท่ากันเพราะเป็นไฟก้อนเดียวกัน
+     แถบบน = ไฟที่ผลิตไปไหน (ใช้เอง + ขาย) · แถบล่าง = ไฟที่ใช้มาจากไหน (โซลาร์ + ซื้อ) */
   const [ref, w] = useFsWidth(560);
   const s = Math.max(0, self || 0), e = Math.max(0, exp || 0), m = Math.max(0, imp || 0), hasUse = imp != null;
-  const span = e + s + (hasUse ? m : 0) || 1, k = w / span;
-  const bh = compact ? 24 : 30, rib = compact ? 30 : 40, lh = 22;
-  const y1 = lh, y2 = y1 + bh + rib, H = hasUse ? y2 + bh + lh : y1 + bh + 4;
-  const xs = e * k, xe = (e + s) * k;
+  const pv = s + e, use = s + m, k = w / (Math.max(pv, hasUse ? use : 0) || 1);
+  const bh = compact ? 26 : 30, lh = 20, gap = compact ? 14 : 16;
+  const y1 = lh, y2 = y1 + bh + gap + lh, H = (hasUse ? y2 : y1) + bh + 2, xs = s * k;
   const E = (v) => fsEnergy(v).join(" ");
   const pct = (v, t) => (t > 0 ? Math.round((v / t) * 100) + "%" : "");
   const seg = (key, x0, x1, y, color, label, delay) => {
-    const g = 3, a = x0 + (x0 > 0.5 ? g / 2 : 0), b = x1 - (x1 < w - 0.5 ? g / 2 : 0), ww = Math.max(3, b - a);
+    const g = 2, a = x0 + (x0 > 0.5 ? g / 2 : 0), ww = Math.max(3, x1 - a - g / 2);
     return (
       <g key={key}>
-        <rect x={a} y={y} width={ww} height={bh} rx={Math.min(9, bh / 2)} className="fs-wide" style={{ fill: color, animationDelay: delay + "ms" }} />
-        {ww > 40 && <text x={a + ww / 2} y={y + bh / 2 + 4} textAnchor="middle" style={{ fill: "#fff", fontSize: 11.5, fontWeight: 800, pointerEvents: "none" }}>{label}</text>}
+        <rect x={a} y={y} width={ww} height={bh} rx={Math.min(8, bh / 2)} className="fs-wide" style={{ fill: color, animationDelay: delay + "ms" }} />
+        {ww > 34 && <text x={a + 10} y={y + bh / 2 + 4} style={{ fill: "#fff", fontSize: 11.5, fontWeight: 800, pointerEvents: "none" }}>{label}</text>}
       </g>
     );
   };
-  const lines = [];
-  if (hasUse && xe - xs > 8) {
-    const nL = Math.max(1, Math.min(6, Math.floor((xe - xs) / 26)));
-    for (let i = 0; i < nL; i++) lines.push(xs + ((xe - xs) * (i + 0.5)) / nL);
-  }
-  const pv = e + s, use = s + m;
+  const head = (y, label, total, end) => (
+    <g>
+      <text x={0} y={y - 7} style={{ fill: "var(--text-2)", fontSize: 12, fontWeight: 700 }}>{label}</text>
+      <text x={Math.max(end, 150)} y={y - 7} textAnchor="end" style={{ fill: "var(--text-1)", fontSize: 12, fontWeight: 800, fontVariantNumeric: "tabular-nums" }}>{E(total)}</text>
+    </g>
+  );
   return (
     <div ref={ref} style={{ position: "relative", width: "100%" }}>
       <svg width={w} height={H} style={{ display: "block", overflow: "visible" }} role="img"
-        aria-label={"ผลิต " + E(pv) + " ใช้เอง " + E(s) + " ขาย " + E(e) + (hasUse ? " ซื้อ " + E(m) : "")}>
-        <defs>
-          <linearGradient id="fsBalRib" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0" style={{ stopColor: "var(--fs-self)", stopOpacity: 0.32 }} />
-            <stop offset="0.5" style={{ stopColor: "var(--fs-self)", stopOpacity: 0.14 }} />
-            <stop offset="1" style={{ stopColor: "var(--fs-self)", stopOpacity: 0.32 }} />
-          </linearGradient>
-        </defs>
-        <text x={0} y={14} style={{ fill: "var(--text-2)", fontSize: 12, fontWeight: 700 }}>
-          ไฟที่โซลาร์ผลิต <tspan style={{ fill: "var(--text-1)", fontWeight: 800 }}>{E(pv)}</tspan>
-        </text>
-        {seg("e", 0, xs, y1, "var(--fs-exp)", pct(e, pv), 0)}
-        {seg("s1", xs, xe, y1, "var(--fs-self)", pct(s, pv), 120)}
+        aria-label={"ผลิต " + E(pv) + " ใช้เอง " + E(s) + " ขาย " + E(e) + (hasUse ? " ใช้ไฟ " + E(use) + " ซื้อ " + E(m) : "")}>
+        {head(y1, "ไฟที่โซลาร์ผลิต", pv, pv * k)}
+        {seg("s1", 0, xs, y1, "var(--fs-self)", pct(s, pv), 0)}
+        {seg("e", xs, pv * k, y1, "var(--fs-exp)", pct(e, pv), 120)}
         {hasUse && (
           <g>
-            <rect x={xs + 1.5} y={y1 + bh + 3} width={Math.max(2, xe - xs - 3)} height={rib - 6} rx={4} className="fs-fade" style={{ fill: "url(#fsBalRib)" }} />
-            {lines.map((x, i) => <line key={i} x1={x} x2={x} y1={y1 + bh + 5} y2={y2 - 5} className={fsCalm() ? "" : "fs-drop"}
-              style={{ stroke: "var(--fs-self)", strokeWidth: 2, strokeLinecap: "round", strokeDasharray: fsCalm() ? "3 5" : undefined, opacity: 0.85 }} />)}
-            {seg("s2", xs, xe, y2, "var(--fs-self)", pct(s, use), 240)}
-            {seg("m", xe, w, y2, "var(--fs-imp)", pct(m, use), 360)}
-            <text x={Math.min(xs, Math.max(0, w - 190))} y={y2 + bh + 16} style={{ fill: "var(--text-2)", fontSize: 12, fontWeight: 700 }}>
-              ไฟที่อาคารใช้ <tspan style={{ fill: "var(--text-1)", fontWeight: 800 }}>{E(use)}</tspan>
-            </text>
+            {xs > 4 && <line x1={xs} x2={xs} y1={y1 - 2} y2={y2 + bh + 2} style={{ stroke: "var(--fs-self)", strokeWidth: 1.5, strokeDasharray: "3 4", opacity: 0.55 }} />}
+            {head(y2, "ไฟที่อาคารใช้", use, use * k)}
+            {seg("s2", 0, xs, y2, "var(--fs-self)", pct(s, use), 240)}
+            {seg("m", xs, use * k, y2, "var(--fs-imp)", pct(m, use), 360)}
           </g>
         )}
       </svg>

@@ -932,11 +932,14 @@ function FsHistoryCard({ site, isMobile }) {
 }
 
 /* ไฟที่ผลิตไปไหน · ไฟที่ใช้มาจากไหน — จากตัวเลขสะสมของมิเตอร์เทียบอินเวอร์เตอร์ (ภาพการไหลตอนนี้อยู่ใน FsHouseFlow)
-   ซ้าย = แถบผลิต/ใช้ซ้อนกันตรงส่วนใช้เอง (FsEnergyBalance) + ตัวเลข 3 ส่วน · ขวา = หน้าปัด 2 ตัว + ผลที่ได้ */
+   ซ้าย = แถบผลิต/ใช้ชิดซ้ายสเกลเดียวกัน (FsEnergyBalance) + ตัวเลข 3 ส่วน · ขวา = หน้าปัด 2 ตัว + ผลที่ได้ */
 function FsEnergyCard({ em, isMobile }) {
   if (em.selfTotal == null || !window.FsEnergyBalance) return null;
   const pv = em.pvTotal, use = em.importTotal != null ? em.selfTotal + em.importTotal : null;
   const E = (v) => fsEnergy(v);
+  /* ตัวเลข 3 ส่วนใช้หน่วยเดียวกัน (ไม่ให้ MWh ปน kWh) */
+  const mwh = Math.max(em.selfTotal || 0, em.exportTotal || 0, em.importTotal || 0) >= 10000;
+  const EP = (v) => (fsN(v) == null ? ["–", "kWh"] : mwh ? [fsFmt(v / 1000, 1), "MWh"] : [fsFmt(v, 1), "kWh"]);
   const co2 = (pv * FS_GRID_EF) / 1000;
   const parts = [
     { k: "self", c: "var(--fs-self)", l: "ใช้เองในอาคาร", v: em.selfTotal, s: Math.round(em.selfRate * 100) + "% ของที่ผลิต" + (use ? " · " + Math.round((em.selfTotal / use) * 100) + "% ของที่ใช้" : "") },
@@ -969,7 +972,7 @@ function FsEnergyCard({ em, isMobile }) {
                   <span style={{ whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{p.l}</span>
                 </div>
                 <div style={{ fontFamily: "var(--display)", fontSize: isMobile ? 17 : 21, fontWeight: 700, color: "var(--text-1)", lineHeight: 1.2, whiteSpace: "nowrap", fontVariantNumeric: "tabular-nums" }}>
-                  {E(p.v)[0]}<span style={{ fontSize: 11.5, fontWeight: 600, color: "var(--text-3)", marginLeft: 4 }}>{E(p.v)[1]}</span>
+                  {EP(p.v)[0]}<span style={{ fontSize: 11.5, fontWeight: 600, color: "var(--text-3)", marginLeft: 4 }}>{EP(p.v)[1]}</span>
                 </div>
                 {p.s && <div style={{ fontSize: 10.5, color: "var(--text-3)", lineHeight: 1.35 }}>{p.s}</div>}
               </div>

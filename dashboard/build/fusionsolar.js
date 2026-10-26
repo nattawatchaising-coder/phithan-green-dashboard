@@ -2433,6 +2433,8 @@ function FsEnergyCard({
   const pv = em.pvTotal,
     use = em.importTotal != null ? em.selfTotal + em.importTotal : null;
   const E = v => fsEnergy(v);
+  const mwh = Math.max(em.selfTotal || 0, em.exportTotal || 0, em.importTotal || 0) >= 10000;
+  const EP = v => fsN(v) == null ? ["–", "kWh"] : mwh ? [fsFmt(v / 1000, 1), "MWh"] : [fsFmt(v, 1), "kWh"];
   const co2 = pv * FS_GRID_EF / 1000;
   const parts = [{
     k: "self",
@@ -2579,14 +2581,14 @@ function FsEnergyCard({
       whiteSpace: "nowrap",
       fontVariantNumeric: "tabular-nums"
     }
-  }, E(p.v)[0], React.createElement("span", {
+  }, EP(p.v)[0], React.createElement("span", {
     style: {
       fontSize: 11.5,
       fontWeight: 600,
       color: "var(--text-3)",
       marginLeft: 4
     }
-  }, E(p.v)[1])), p.s && React.createElement("div", {
+  }, EP(p.v)[1])), p.s && React.createElement("div", {
     style: {
       fontSize: 10.5,
       color: "var(--text-3)",

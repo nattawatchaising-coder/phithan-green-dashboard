@@ -566,23 +566,22 @@ function FsEnergyBalance({
     e = Math.max(0, exp || 0),
     m = Math.max(0, imp || 0),
     hasUse = imp != null;
-  const span = e + s + (hasUse ? m : 0) || 1,
-    k = w / span;
-  const bh = compact ? 24 : 30,
-    rib = compact ? 30 : 40,
-    lh = 22;
+  const pv = s + e,
+    use = s + m,
+    k = w / (Math.max(pv, hasUse ? use : 0) || 1);
+  const bh = compact ? 26 : 30,
+    lh = 20,
+    gap = compact ? 14 : 16;
   const y1 = lh,
-    y2 = y1 + bh + rib,
-    H = hasUse ? y2 + bh + lh : y1 + bh + 4;
-  const xs = e * k,
-    xe = (e + s) * k;
+    y2 = y1 + bh + gap + lh,
+    H = (hasUse ? y2 : y1) + bh + 2,
+    xs = s * k;
   const E = v => fsEnergy(v).join(" ");
   const pct = (v, t) => t > 0 ? Math.round(v / t * 100) + "%" : "";
   const seg = (key, x0, x1, y, color, label, delay) => {
-    const g = 3,
+    const g = 2,
       a = x0 + (x0 > 0.5 ? g / 2 : 0),
-      b = x1 - (x1 < w - 0.5 ? g / 2 : 0),
-      ww = Math.max(3, b - a);
+      ww = Math.max(3, x1 - a - g / 2);
     return React.createElement("g", {
       key: key
     }, React.createElement("rect", {
@@ -590,16 +589,15 @@ function FsEnergyBalance({
       y: y,
       width: ww,
       height: bh,
-      rx: Math.min(9, bh / 2),
+      rx: Math.min(8, bh / 2),
       className: "fs-wide",
       style: {
         fill: color,
         animationDelay: delay + "ms"
       }
-    }), ww > 40 && React.createElement("text", {
-      x: a + ww / 2,
+    }), ww > 34 && React.createElement("text", {
+      x: a + 10,
       y: y + bh / 2 + 4,
-      textAnchor: "middle",
       style: {
         fill: "#fff",
         fontSize: 11.5,
@@ -608,13 +606,25 @@ function FsEnergyBalance({
       }
     }, label));
   };
-  const lines = [];
-  if (hasUse && xe - xs > 8) {
-    const nL = Math.max(1, Math.min(6, Math.floor((xe - xs) / 26)));
-    for (let i = 0; i < nL; i++) lines.push(xs + (xe - xs) * (i + 0.5) / nL);
-  }
-  const pv = e + s,
-    use = s + m;
+  const head = (y, label, total, end) => React.createElement("g", null, React.createElement("text", {
+    x: 0,
+    y: y - 7,
+    style: {
+      fill: "var(--text-2)",
+      fontSize: 12,
+      fontWeight: 700
+    }
+  }, label), React.createElement("text", {
+    x: Math.max(end, 150),
+    y: y - 7,
+    textAnchor: "end",
+    style: {
+      fill: "var(--text-1)",
+      fontSize: 12,
+      fontWeight: 800,
+      fontVariantNumeric: "tabular-nums"
+    }
+  }, E(total)));
   return React.createElement("div", {
     ref: ref,
     style: {
@@ -629,82 +639,19 @@ function FsEnergyBalance({
       overflow: "visible"
     },
     role: "img",
-    "aria-label": "ผลิต " + E(pv) + " ใช้เอง " + E(s) + " ขาย " + E(e) + (hasUse ? " ซื้อ " + E(m) : "")
-  }, React.createElement("defs", null, React.createElement("linearGradient", {
-    id: "fsBalRib",
-    x1: "0",
-    y1: "0",
-    x2: "0",
-    y2: "1"
-  }, React.createElement("stop", {
-    offset: "0",
-    style: {
-      stopColor: "var(--fs-self)",
-      stopOpacity: 0.32
-    }
-  }), React.createElement("stop", {
-    offset: "0.5",
-    style: {
-      stopColor: "var(--fs-self)",
-      stopOpacity: 0.14
-    }
-  }), React.createElement("stop", {
-    offset: "1",
-    style: {
-      stopColor: "var(--fs-self)",
-      stopOpacity: 0.32
-    }
-  }))), React.createElement("text", {
-    x: 0,
-    y: 14,
-    style: {
-      fill: "var(--text-2)",
-      fontSize: 12,
-      fontWeight: 700
-    }
-  }, "\u0E44\u0E1F\u0E17\u0E35\u0E48\u0E42\u0E0B\u0E25\u0E32\u0E23\u0E4C\u0E1C\u0E25\u0E34\u0E15 ", React.createElement("tspan", {
-    style: {
-      fill: "var(--text-1)",
-      fontWeight: 800
-    }
-  }, E(pv))), seg("e", 0, xs, y1, "var(--fs-exp)", pct(e, pv), 0), seg("s1", xs, xe, y1, "var(--fs-self)", pct(s, pv), 120), hasUse && React.createElement("g", null, React.createElement("rect", {
-    x: xs + 1.5,
-    y: y1 + bh + 3,
-    width: Math.max(2, xe - xs - 3),
-    height: rib - 6,
-    rx: 4,
-    className: "fs-fade",
-    style: {
-      fill: "url(#fsBalRib)"
-    }
-  }), lines.map((x, i) => React.createElement("line", {
-    key: i,
-    x1: x,
-    x2: x,
-    y1: y1 + bh + 5,
-    y2: y2 - 5,
-    className: fsCalm() ? "" : "fs-drop",
+    "aria-label": "ผลิต " + E(pv) + " ใช้เอง " + E(s) + " ขาย " + E(e) + (hasUse ? " ใช้ไฟ " + E(use) + " ซื้อ " + E(m) : "")
+  }, head(y1, "ไฟที่โซลาร์ผลิต", pv, pv * k), seg("s1", 0, xs, y1, "var(--fs-self)", pct(s, pv), 0), seg("e", xs, pv * k, y1, "var(--fs-exp)", pct(e, pv), 120), hasUse && React.createElement("g", null, xs > 4 && React.createElement("line", {
+    x1: xs,
+    x2: xs,
+    y1: y1 - 2,
+    y2: y2 + bh + 2,
     style: {
       stroke: "var(--fs-self)",
-      strokeWidth: 2,
-      strokeLinecap: "round",
-      strokeDasharray: fsCalm() ? "3 5" : undefined,
-      opacity: 0.85
+      strokeWidth: 1.5,
+      strokeDasharray: "3 4",
+      opacity: 0.55
     }
-  })), seg("s2", xs, xe, y2, "var(--fs-self)", pct(s, use), 240), seg("m", xe, w, y2, "var(--fs-imp)", pct(m, use), 360), React.createElement("text", {
-    x: Math.min(xs, Math.max(0, w - 190)),
-    y: y2 + bh + 16,
-    style: {
-      fill: "var(--text-2)",
-      fontSize: 12,
-      fontWeight: 700
-    }
-  }, "\u0E44\u0E1F\u0E17\u0E35\u0E48\u0E2D\u0E32\u0E04\u0E32\u0E23\u0E43\u0E0A\u0E49 ", React.createElement("tspan", {
-    style: {
-      fill: "var(--text-1)",
-      fontWeight: 800
-    }
-  }, E(use))))));
+  }), head(y2, "ไฟที่อาคารใช้", use, use * k), seg("s2", 0, xs, y2, "var(--fs-self)", pct(s, use), 240), seg("m", xs, use * k, y2, "var(--fs-imp)", pct(m, use), 360))));
 }
 Object.assign(window, {
   FsTrendChart,
