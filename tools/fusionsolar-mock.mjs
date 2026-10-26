@@ -7,6 +7,8 @@
 //   - คำขอห่างกันน้อยกว่า MOCK_MIN_GAP ms (ค่าเริ่ม 2000) → 407
 //   - MOCK_NO_STATIONLIST=1 → getStationList ตอบ failCode 401 (ทดสอบทางสำรอง /stations)
 //   - MOCK_DROP=NE=... → สถานีนี้หายจากรายชื่อ (ทดสอบ not_found)
+//   - getKpiStationHour/Day/Month (ย้อนหลัง) — collectTime = เวลาเริ่มของช่วงตามเวลาไทย · inverter_power = ผลิตในช่วงนั้น (kWh)
+//     MOCK_NO_HIST=1 → สามตัวนี้ตอบ failCode 20056 (บัญชีไม่มีสิทธิ์) ทดสอบว่าไม่ทำทั้งรอบพัง
 import http from 'node:http';
 
 const PORT = Number(process.argv[2]) || 8790;
@@ -99,6 +101,18 @@ http.createServer((req, res) => {
       const f = KPI[j.devTypeId];
       if (!f) return out(res, big({ success: false, failCode: 20013, data: null, message: 'devTypeId not supported' }));
       return out(res, big({ success: true, failCode: 0, data: ids.map((id) => ({ devId: B(id), dataItemMap: f(h) })) }));
+    }
+    if (['/getKpiStationHour', '/getKpiStationDay', '/getKpiStationMonth'].includes(api)) {
+      if (process.env.MOCK_NO_HIST) return out(res, big({ success: false, failCode: 20056, data: null, message: 'NO_PERMISSION' }));
+      // ช่วงตามเวลาไทย (+7) ของ collectTime ที่ส่งมา: ชั่วโมงของวันนั้น · วันของเดือนนั้น · เดือนของปีนั้น
+      const B7 = 7 * 3600e3, d = new Date(Number(j.collectTime) + B7), Y = d.getUTCFullYear(), M = d.getUTCMonth(), D = d.getUTCDate();
+      const slots = [];
+      if (api === '/getKpiStationHour') for (let h = 0; h < 24; h++) slots.push([Date.UTC(Y, M, D, h) - B7, Math.max(0, Math.round(1000 * 9 * Math.exp(-Math.pow((h - 12) / 2.6, 2))) / 1000)]);
+      if (api === '/getKpiStationDay') { const n = new Date(Date.UTC(Y, M + 1, 0)).getUTCDate(); for (let x = 1; x <= n; x++) slots.push([Date.UTC(Y, M, x) - B7, Math.round(600 + 250 * Math.sin(x * 1.7)) / 10]); }
+      if (api === '/getKpiStationMonth') for (let x = 0; x < 12; x++) slots.push([Date.UTC(Y, x, 1) - B7, Math.round(1800 + 450 * Math.cos(x / 1.9))]);
+      // ตอบทุกสถานีที่ขอ (ไม่กรองตาม STATIONS) — ฐานทดสอบคัดลอกไซต์จริงมา จะได้เห็นกราฟของไซต์จริงเต็ม
+      return out(res, big({ success: true, failCode: 0, data: pick(j.stationCodes).filter(Boolean).flatMap((c, i) =>
+        slots.map(([t, v]) => ({ stationCode: c, collectTime: t, dataItemMap: { inverter_power: Math.round(v * (1 + i * 0.15) * 1000) / 1000, radiation_intensity: null } }))) }));
     }
     out(res, big({ success: false, failCode: 404, data: null, message: 'no api ' + api }));
   });

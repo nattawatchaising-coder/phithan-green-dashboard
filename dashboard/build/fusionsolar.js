@@ -2069,7 +2069,8 @@ function FsHistoryCard({
       bars: [],
       pre: null
     };
-    const from = Math.min(6, hours[0]),
+    const lit = hours.filter(x => fsN(h[String(x).padStart(2, "0")]) > 0);
+    const from = Math.min(6, lit.length ? lit[0] : hours[0]),
       to = Math.max(18, hours[hours.length - 1]);
     const out = [];
     let prevH = null,
@@ -3505,7 +3506,8 @@ function FsManualForm({
 const FS_JOB_TH = {
   all: "ทั้งหมด",
   sites: "ไซต์+อุปกรณ์",
-  kpi: "ข้อมูลผลิต"
+  kpi: "ข้อมูลผลิต",
+  hist: "ย้อนหลัง (กราฟ)"
 };
 const FS_TRIG_TH = {
   cron: "อัตโนมัติ (Vercel)",
@@ -3559,7 +3561,7 @@ function FsLogView({
     if (!dryRun) {
       const ok = await window.askConfirm({
         title: approved ? "ซิงก์ตอนนี้ (" + FS_JOB_TH[job] + ")?" : "บันทึกจริงครั้งแรก?",
-        body: (approved ? "" : "หลังรอบนี้ระบบจะซิงก์อัตโนมัติ (วันละครั้ง + ข้อมูลผลิตทุกชั่วโมง) · ") + "เขียนเฉพาะ fsSites / fsDevices / fsSyncLogs ไม่แตะข้อมูลงาน · ใช้เวลาราว 10–45 วินาที",
+        body: (approved ? "" : "หลังรอบนี้ระบบจะซิงก์อัตโนมัติ (วันละครั้ง + ข้อมูลผลิตทุกชั่วโมง) · ") + (job === "hist" ? "ดึงข้อมูลผลิตย้อนหลัง (รายเดือน 2 ปี · รายวัน 2 เดือน · รายชั่วโมงเมื่อวาน+วันนี้) เขียนเฉพาะ fsKpiDay / fsKpiMonth / fsSyncLogs · ไม่ครบในรอบเดียว = กดซ้ำจนงานค้างเป็น 0" : "เขียนเฉพาะ fsSites / fsDevices / fsSyncLogs ไม่แตะข้อมูลงาน") + " · ใช้เวลาราว 10–45 วินาที",
         ok: "ซิงก์",
         danger: false,
         icon: "history"
@@ -3626,6 +3628,9 @@ function FsLogView({
     label: "\u0E02\u0E49\u0E2D\u0E21\u0E39\u0E25\u0E1C\u0E25\u0E34\u0E15\u0E25\u0E48\u0E32\u0E2A\u0E38\u0E14",
     value: fsWhen(state.last_kpi_at)
   }), React.createElement(FsSpec, {
+    label: "\u0E02\u0E49\u0E2D\u0E21\u0E39\u0E25\u0E22\u0E49\u0E2D\u0E19\u0E2B\u0E25\u0E31\u0E07 (\u0E01\u0E23\u0E32\u0E1F)",
+    value: state.hist_done_at ? "ครบ · " + fsWhen(state.hist_done_at) : state.hist_cursor ? "ค้างคิวที่ " + state.hist_cursor + " — กดซ้ำ" : "ยังไม่ได้ดึง"
+  }), React.createElement(FsSpec, {
     label: "\u0E2A\u0E16\u0E32\u0E19\u0E30",
     value: blocked ? "พัก 407 ถึง " + new Date(state.blocked_until).toLocaleTimeString("th-TH", {
       timeStyle: "short"
@@ -3640,7 +3645,7 @@ function FsLogView({
   }, React.createElement(FsChips, {
     value: job,
     onChange: setJob,
-    options: [["all", FS_JOB_TH.all], ["sites", FS_JOB_TH.sites], ["kpi", FS_JOB_TH.kpi]]
+    options: [["all", FS_JOB_TH.all], ["sites", FS_JOB_TH.sites], ["kpi", FS_JOB_TH.kpi], ["hist", FS_JOB_TH.hist]]
   }), React.createElement("div", {
     style: {
       flex: 1
@@ -3779,6 +3784,9 @@ function FsLogView({
   }), React.createElement(FsSpec, {
     label: "\u0E02\u0E49\u0E2D\u0E21\u0E39\u0E25\u0E1C\u0E25\u0E34\u0E15 \u0E44\u0E0B\u0E15\u0E4C / \u0E2D\u0E38\u0E1B\u0E01\u0E23\u0E13\u0E4C",
     value: (l.kpi_sites || 0) + " / " + (l.kpi_devices || 0)
+  }), l.job === "hist" && React.createElement(FsSpec, {
+    label: "\u0E22\u0E49\u0E2D\u0E19\u0E2B\u0E25\u0E31\u0E07 \u0E40\u0E14\u0E37\u0E2D\u0E19 / \u0E27\u0E31\u0E19 / \u0E0A\u0E31\u0E48\u0E27\u0E42\u0E21\u0E07",
+    value: (l.hist_months || 0) + " / " + (l.hist_days || 0) + " / " + (l.hist_hours || 0)
   }), React.createElement(FsSpec, {
     label: "\u0E04\u0E33\u0E02\u0E2D \xB7 \u0E40\u0E27\u0E25\u0E32",
     value: (l.requests || 0) + " · " + Math.round((l.ms || 0) / 1000) + " วิ"
@@ -3794,7 +3802,7 @@ function FsLogView({
     errors: l.errors
   }))))));
 }
-const fsLogSummary = l => [l.created || l.updated || l.not_found ? "ไซต์ +" + (l.created || 0) + " ~" + (l.updated || 0) + " ?" + (l.not_found || 0) : "", l.kpi_sites || l.kpi_devices ? "kpi " + (l.kpi_sites || 0) + "/" + (l.kpi_devices || 0) : "", (l.errors || []).length ? "ผิดพลาด " + l.errors.length : ""].filter(Boolean).join(" · ") || l.note || "";
+const fsLogSummary = l => [l.created || l.updated || l.not_found ? "ไซต์ +" + (l.created || 0) + " ~" + (l.updated || 0) + " ?" + (l.not_found || 0) : "", l.kpi_sites || l.kpi_devices ? "kpi " + (l.kpi_sites || 0) + "/" + (l.kpi_devices || 0) : "", l.hist_months || l.hist_days || l.hist_hours ? "ย้อนหลัง " + (l.hist_months || 0) + "/" + (l.hist_days || 0) + "/" + (l.hist_hours || 0) : "", l.pending ? "ค้าง " + l.pending : "", (l.errors || []).length ? "ผิดพลาด " + l.errors.length : ""].filter(Boolean).join(" · ") || l.note || "";
 function FsErrList({
   errors
 }) {
@@ -3894,7 +3902,35 @@ function FsDryResult({
   }), React.createElement(FsSpec, {
     label: "\u0E02\u0E49\u0E2D\u0E21\u0E39\u0E25\u0E1C\u0E25\u0E34\u0E15 \u0E44\u0E0B\u0E15\u0E4C / \u0E2D\u0E38\u0E1B\u0E01\u0E23\u0E13\u0E4C",
     value: (L.kpi_sites || 0) + " / " + (L.kpi_devices || 0)
-  })), list("จะสร้าง", p.create), list("ค่าจะเปลี่ยน", p.changed), list("จะตั้งเป็นไม่พบใน FusionSolar", p.not_found), p.kpi && p.kpi.length > 0 && React.createElement("div", null, React.createElement("div", {
+  }), L.job === "hist" && React.createElement(FsSpec, {
+    label: "\u0E22\u0E49\u0E2D\u0E19\u0E2B\u0E25\u0E31\u0E07 \u0E40\u0E14\u0E37\u0E2D\u0E19 / \u0E27\u0E31\u0E19 / \u0E0A\u0E31\u0E48\u0E27\u0E42\u0E21\u0E07",
+    value: (L.hist_months || 0) + " / " + (L.hist_days || 0) + " / " + (L.hist_hours || 0)
+  }), L.job === "hist" && React.createElement(FsSpec, {
+    label: "\u0E04\u0E34\u0E27\u0E17\u0E35\u0E48\u0E22\u0E31\u0E07\u0E44\u0E21\u0E48\u0E44\u0E14\u0E49\u0E17\u0E33",
+    value: L.pending || 0
+  })), p.hist && p.hist.length > 0 && React.createElement("div", null, React.createElement("div", {
+    style: FS_LBL
+  }, "\u0E15\u0E31\u0E27\u0E2D\u0E22\u0E48\u0E32\u0E07\u0E02\u0E49\u0E2D\u0E21\u0E39\u0E25\u0E22\u0E49\u0E2D\u0E19\u0E2B\u0E25\u0E31\u0E07"), React.createElement("div", {
+    style: {
+      fontSize: 11.5,
+      fontFamily: "var(--mono)",
+      color: "var(--text-2)",
+      display: "flex",
+      flexDirection: "column",
+      gap: 3
+    }
+  }, p.hist.slice(0, 12).map((k, i) => React.createElement("div", {
+    key: i,
+    style: {
+      overflow: "hidden",
+      textOverflow: "ellipsis",
+      whiteSpace: "nowrap"
+    }
+  }, k.code + " " + k.name + " · " + ({
+    mon: "เดือน",
+    day: "วัน",
+    hour: "ชั่วโมง"
+  }[k.kind] || k.kind) + " " + k.at + " · " + fsNum(k.kwh) + " kWh")))), list("จะสร้าง", p.create), list("ค่าจะเปลี่ยน", p.changed), list("จะตั้งเป็นไม่พบใน FusionSolar", p.not_found), p.kpi && p.kpi.length > 0 && React.createElement("div", null, React.createElement("div", {
     style: FS_LBL
   }, "\u0E15\u0E31\u0E27\u0E2D\u0E22\u0E48\u0E32\u0E07\u0E02\u0E49\u0E2D\u0E21\u0E39\u0E25\u0E1C\u0E25\u0E34\u0E15"), React.createElement("div", {
     style: {

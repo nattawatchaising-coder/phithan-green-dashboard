@@ -252,16 +252,17 @@ async function writePatch(root, patch) {
 /* ================================================================
    รอบซิงก์
    job: "sites" (ไซต์+อุปกรณ์ วันละครั้ง) · "kpi" (ข้อมูลผลิต+ค่าอุปกรณ์ ทุกชั่วโมง) · "all" (sites แล้ว kpi)
+        "hist" (ข้อมูลผลิตย้อนหลังไว้วาดกราฟ — แอดมินกดเอง ไม่อยู่ใน all/cron)
    ================================================================ */
 export async function runSync(o) {
-  const job = ["sites", "kpi", "all"].includes(o.job) ? o.job : "all";
+  const job = ["sites", "kpi", "all", "hist"].includes(o.job) ? o.job : "all";
   const dry = o.dryRun !== false;
   const t0 = Date.now();
   const left = () => BUDGET_MS - (Date.now() - t0);
   const log = {
     started_at: iso(), finished_at: null, job, trigger: o.trigger || "manual", by: o.by || null, dry_run: dry, ok: false,
     created: 0, updated: 0, not_found: 0, dev_created: 0, dev_updated: 0, dev_not_found: 0,
-    stations: 0, kpi_sites: 0, kpi_devices: 0, requests: 0, pending: 0, errors: [], note: "",
+    stations: 0, kpi_sites: 0, kpi_devices: 0, hist_months: 0, hist_days: 0, hist_hours: 0, requests: 0, pending: 0, errors: [], note: "",
   };
   const res = { log, preview: null };
   let c = null;           // ตัวยิง API — สร้างหลังผ่านด่านล็อก (finish อ่านจำนวนคำขอจากตัวนี้)
@@ -294,9 +295,10 @@ export async function runSync(o) {
     devices = (await rtdbGet("fsDevices")) || {};
   } catch (e) { log.errors.push(errRec(e)); return finish(); }
 
-  const preview = { create: [], update: [], changed: [], not_found: [], kpi: [] };
+  const preview = { create: [], update: [], changed: [], not_found: [], kpi: [], hist: [] };
   res.preview = preview;
   try {
+    if (job === "hist") await doHist();
     if (job === "sites" || job === "all") await doSites();
     if ((job === "kpi" || job === "all") && left() > GAP_MS * 2) await doKpi();
     else if (job === "all") { log.pending++; log.note = (log.note ? log.note + " · " : "") + "ข้อมูลผลิตไม่ทันในรอบนี้"; }
@@ -429,6 +431,68 @@ export async function runSync(o) {
     log.pending += batches.length - i;
     st.kpi_cursor = i >= batches.length ? 0 : i;
     if (!dry) st.last_kpi_at = iso();
+  }
+
+  /* ข้อมูลผลิตย้อนหลัง (ผู้ใช้สั่ง — กราฟประวัติไม่ต้องรอเก็บเองทีละชั่วโมงเป็นเดือน) · ทีละ 100 สถานี
+     คิวงานตายตัวต่อวัน: รายเดือนปีที่แล้ว+ปีนี้ (/getKpiStationMonth) → รายวันเดือนที่แล้ว+เดือนนี้ (/getKpiStationDay)
+       → รายชั่วโมงเมื่อวาน+วันนี้ (/getKpiStationHour) · ไม่ทันเวลา = fsState/hist_cursor (+ hist_key = วันที่ของคิว ข้ามวันแล้วเริ่มใหม่)
+     collectTime ที่ส่ง = เวลาเที่ยงวันไทยของวัน/กลางเดือน/กลางปีนั้น · collectTime ที่ได้กลับ = เวลาเริ่มของช่วง → แปลงเป็นวัน/ชั่วโมงไทย
+     ค่าผลิต = inverter_power (เอกสาร Northbound) ไม่มีค่อยใช้ PVYield
+     ช่วงที่ยังไม่จบ (วันนี้ · เดือนนี้) ไม่เขียน kwh ทับค่าสดของรอบ KPI · ชั่วโมงที่ยังไม่จบไม่เขียน
+     รายชั่วโมง → h/{HH+1} = ผลิตสะสมของวันถึงปลายชั่วโมง HH (ความหมายเดียวกับค่าที่รอบ KPI จดตอน HH+1:07) */
+  async function doHist() {
+    const idx = siteIndex(sites);
+    const groups = chunk(Object.keys(idx).filter((k) => sites[idx[k]].fs_status === "found").sort(), BATCH);
+    if (!groups.length) { log.note = "ยังไม่มีไซต์ให้ดึงข้อมูลย้อนหลัง"; return; }
+    const now = Date.now(), k0 = bkk(now);
+    const y = +k0.mon.slice(0, 4), m = +k0.mon.slice(5, 7);
+    const noon = (d) => Date.parse(d + "T12:00:00+07:00");
+    const pad = (n) => String(n).padStart(2, "0");
+    const tasks = [];
+    [y - 1, y].forEach((yy) => groups.forEach((g) => tasks.push({ kind: "mon", api: "/getKpiStationMonth", t: noon(yy + "-06-15"), g })));
+    [m === 1 ? (y - 1) + "-12" : y + "-" + pad(m - 1), k0.mon].forEach((mm) => groups.forEach((g) => tasks.push({ kind: "day", api: "/getKpiStationDay", t: noon(mm + "-15"), g })));
+    [bkk(now - 864e5).day, k0.day].forEach((d) => groups.forEach((g) => tasks.push({ kind: "hour", api: "/getKpiStationHour", t: noon(d), g })));
+    const yv = (mp) => { const a = num((mp || {}).inverter_power); return a != null ? a : num((mp || {}).PVYield); };
+
+    let i = dry || state.hist_key !== k0.day ? 0 : Math.min(Number(state.hist_cursor) || 0, tasks.length);
+    if (i >= tasks.length) i = 0;
+    for (; i < tasks.length; i++) {
+      if (left() < GAP_MS + REQ_TIMEOUT) break;
+      const tk = tasks[i];
+      let data;
+      try { data = await c.call(tk.api, { stationCodes: tk.g.join(","), collectTime: tk.t }); }
+      catch (e) { if (e.fatal) { st.hist_cursor = i; st.hist_key = k0.day; throw e; } log.errors.push(errRec(e)); continue; }
+      const dayP = {}, monP = {}, hrs = {};
+      (Array.isArray(data) ? data : []).forEach((r) => {
+        const id = idx[r && r.stationCode], ct = num(r && r.collectTime);
+        if (!id || ct == null) return;
+        const k = bkk(ct), v = yv(r.dataItemMap);
+        if (tk.kind === "mon") {
+          if (v == null || k.mon >= k0.mon) return;
+          monP[id + "/" + k.mon] = v; log.hist_months++;
+        } else if (tk.kind === "day") {
+          if (v == null || k.day >= k0.day) return;
+          dayP[id + "/" + k.day + "/kwh"] = v; log.hist_days++;
+        } else if (ct + 3600e3 <= now) {
+          ((hrs[id] || (hrs[id] = {}))[k.day] || (hrs[id][k.day] = [])).push([+k.hh, v || 0]);
+        }
+        if (preview.hist.length < 20) preview.hist.push({ code: r.stationCode, name: sites[id].name || "", kind: tk.kind,
+          at: tk.kind === "mon" ? k.mon : tk.kind === "day" ? k.day : k.day + " " + k.hh + ":00", kwh: v });
+      });
+      Object.keys(hrs).forEach((id) => Object.keys(hrs[id]).forEach((d) => {
+        let acc = 0;
+        hrs[id][d].sort((a, b) => a[0] - b[0]).forEach(([h, v]) => {
+          acc += v;
+          if (h + 1 > 23) return;
+          dayP[id + "/" + d + "/h/" + pad(h + 1)] = Math.round(acc * 1000) / 1000; log.hist_hours++;
+        });
+      }));
+      if (!dry) { await writePatch("fsKpiDay", dayP); await writePatch("fsKpiMonth", monP); }
+    }
+    log.pending += tasks.length - i;
+    st.hist_cursor = i >= tasks.length ? 0 : i;
+    st.hist_key = k0.day;
+    if (!dry && i >= tasks.length) st.hist_done_at = iso();
   }
 
   /* จบรอบ: dry run คืนผลเฉย ๆ · รอบจริงเขียน log + fsState แล้วปลดล็อก

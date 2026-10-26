@@ -797,7 +797,9 @@ function FsHistoryCard({ site, isMobile }) {
     const h = rec.h || {}, p = rec.p || {};
     const hours = Object.keys(h).map(Number).sort((a, b) => a - b);
     if (!hours.length) return { bars: [], pre: null };
-    const from = Math.min(6, hours[0]), to = Math.max(18, hours[hours.length - 1]);
+    /* ข้อมูลย้อนหลังรายชั่วโมงมีตั้งแต่ตีหนึ่ง (ค่า 0 ตอนกลางคืน) — เริ่มแกนที่ชั่วโมงแรกที่ผลิตได้ ไม่เกิน 6 โมง */
+    const lit = hours.filter((x) => fsN(h[String(x).padStart(2, "0")]) > 0);
+    const from = Math.min(6, lit.length ? lit[0] : hours[0]), to = Math.max(18, hours[hours.length - 1]);
     const out = []; let prevH = null, prevV = 0, pre = null;
     for (let x = from; x <= to; x++) {
       const key = String(x).padStart(2, "0");
@@ -1364,7 +1366,7 @@ function FsManualForm({ jobs, sites, currentUser, onClose, onCreated }) {
 /* ================================================================
    หน้า log การซิงก์ (แอดมิน)
    ================================================================ */
-const FS_JOB_TH = { all: "ทั้งหมด", sites: "ไซต์+อุปกรณ์", kpi: "ข้อมูลผลิต" };
+const FS_JOB_TH = { all: "ทั้งหมด", sites: "ไซต์+อุปกรณ์", kpi: "ข้อมูลผลิต", hist: "ย้อนหลัง (กราฟ)" };
 const FS_TRIG_TH = { cron: "อัตโนมัติ (Vercel)", gh: "อัตโนมัติรายชั่วโมง", manual: "แอดมินกด", tool: "สคริปต์ในเครื่อง" };
 
 async function fsCallSync(job, dryRun) {
@@ -1397,7 +1399,8 @@ function FsLogView({ role, currentUser }) {
       const ok = await window.askConfirm({
         title: approved ? "ซิงก์ตอนนี้ (" + FS_JOB_TH[job] + ")?" : "บันทึกจริงครั้งแรก?",
         body: (approved ? "" : "หลังรอบนี้ระบบจะซิงก์อัตโนมัติ (วันละครั้ง + ข้อมูลผลิตทุกชั่วโมง) · ")
-          + "เขียนเฉพาะ fsSites / fsDevices / fsSyncLogs ไม่แตะข้อมูลงาน · ใช้เวลาราว 10–45 วินาที",
+          + (job === "hist" ? "ดึงข้อมูลผลิตย้อนหลัง (รายเดือน 2 ปี · รายวัน 2 เดือน · รายชั่วโมงเมื่อวาน+วันนี้) เขียนเฉพาะ fsKpiDay / fsKpiMonth / fsSyncLogs · ไม่ครบในรอบเดียว = กดซ้ำจนงานค้างเป็น 0"
+            : "เขียนเฉพาะ fsSites / fsDevices / fsSyncLogs ไม่แตะข้อมูลงาน") + " · ใช้เวลาราว 10–45 วินาที",
         ok: "ซิงก์", danger: false, icon: "history",
       });
       if (!ok) return;
@@ -1423,12 +1426,14 @@ function FsLogView({ role, currentUser }) {
           <FsSpec label="ซิงก์อัตโนมัติ" value={approved ? "เปิดแล้ว" : "รอบันทึกจริงครั้งแรก"} />
           <FsSpec label="ไซต์+อุปกรณ์ล่าสุด" value={fsWhen(state.last_sites_at)} />
           <FsSpec label="ข้อมูลผลิตล่าสุด" value={fsWhen(state.last_kpi_at)} />
+          <FsSpec label="ข้อมูลย้อนหลัง (กราฟ)" value={state.hist_done_at ? "ครบ · " + fsWhen(state.hist_done_at)
+            : state.hist_cursor ? "ค้างคิวที่ " + state.hist_cursor + " — กดซ้ำ" : "ยังไม่ได้ดึง"} />
           <FsSpec label="สถานะ" value={blocked ? "พัก 407 ถึง " + new Date(state.blocked_until).toLocaleTimeString("th-TH", { timeStyle: "short" })
             : (state.lock ? "กำลังซิงก์…" : "พร้อม")} />
         </div>
         {isAdmin ? (
           <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
-            <FsChips value={job} onChange={setJob} options={[["all", FS_JOB_TH.all], ["sites", FS_JOB_TH.sites], ["kpi", FS_JOB_TH.kpi]]} />
+            <FsChips value={job} onChange={setJob} options={[["all", FS_JOB_TH.all], ["sites", FS_JOB_TH.sites], ["kpi", FS_JOB_TH.kpi], ["hist", FS_JOB_TH.hist]]} />
             <div style={{ flex: 1 }} />
             <button className="btn btn-soft" disabled={!!busy} onClick={() => run(true)}>
               {busy === "dry" ? "กำลังทดลอง…" : "ทดลอง (dry run)"}
@@ -1470,6 +1475,7 @@ function FsLogView({ role, currentUser }) {
                     <FsSpec label="ไซต์ สร้าง / อัปเดต / ไม่พบ" value={(l.created || 0) + " / " + (l.updated || 0) + " / " + (l.not_found || 0)} />
                     <FsSpec label="อุปกรณ์ สร้าง / อัปเดต / ไม่พบ" value={(l.dev_created || 0) + " / " + (l.dev_updated || 0) + " / " + (l.dev_not_found || 0)} />
                     <FsSpec label="ข้อมูลผลิต ไซต์ / อุปกรณ์" value={(l.kpi_sites || 0) + " / " + (l.kpi_devices || 0)} />
+                    {l.job === "hist" && <FsSpec label="ย้อนหลัง เดือน / วัน / ชั่วโมง" value={(l.hist_months || 0) + " / " + (l.hist_days || 0) + " / " + (l.hist_hours || 0)} />}
                     <FsSpec label="คำขอ · เวลา" value={(l.requests || 0) + " · " + Math.round((l.ms || 0) / 1000) + " วิ"} />
                     <FsSpec label="งานค้างไปรอบหน้า" value={l.pending || 0} />
                   </div>
@@ -1486,6 +1492,8 @@ function FsLogView({ role, currentUser }) {
 const fsLogSummary = (l) => [
   (l.created || l.updated || l.not_found) ? "ไซต์ +" + (l.created || 0) + " ~" + (l.updated || 0) + " ?" + (l.not_found || 0) : "",
   (l.kpi_sites || l.kpi_devices) ? "kpi " + (l.kpi_sites || 0) + "/" + (l.kpi_devices || 0) : "",
+  (l.hist_months || l.hist_days || l.hist_hours) ? "ย้อนหลัง " + (l.hist_months || 0) + "/" + (l.hist_days || 0) + "/" + (l.hist_hours || 0) : "",
+  l.pending ? "ค้าง " + l.pending : "",
   (l.errors || []).length ? "ผิดพลาด " + l.errors.length : "",
 ].filter(Boolean).join(" · ") || (l.note || "");
 
@@ -1528,7 +1536,19 @@ function FsDryResult({ r, onClose }) {
         <FsSpec label="ไม่พบใน FusionSolar" value={L.not_found || 0} />
         <FsSpec label="อุปกรณ์ สร้าง / อัปเดต" value={(L.dev_created || 0) + " / " + (L.dev_updated || 0)} />
         <FsSpec label="ข้อมูลผลิต ไซต์ / อุปกรณ์" value={(L.kpi_sites || 0) + " / " + (L.kpi_devices || 0)} />
+        {L.job === "hist" && <FsSpec label="ย้อนหลัง เดือน / วัน / ชั่วโมง" value={(L.hist_months || 0) + " / " + (L.hist_days || 0) + " / " + (L.hist_hours || 0)} />}
+        {L.job === "hist" && <FsSpec label="คิวที่ยังไม่ได้ทำ" value={L.pending || 0} />}
       </div>
+      {p.hist && p.hist.length > 0 && (
+        <div>
+          <div style={FS_LBL}>ตัวอย่างข้อมูลย้อนหลัง</div>
+          <div style={{ fontSize: 11.5, fontFamily: "var(--mono)", color: "var(--text-2)", display: "flex", flexDirection: "column", gap: 3 }}>
+            {p.hist.slice(0, 12).map((k, i) => <div key={i} style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+              {k.code + " " + k.name + " · " + ({ mon: "เดือน", day: "วัน", hour: "ชั่วโมง" }[k.kind] || k.kind) + " " + k.at + " · " + fsNum(k.kwh) + " kWh"}
+            </div>)}
+          </div>
+        </div>
+      )}
       {list("จะสร้าง", p.create)}{list("ค่าจะเปลี่ยน", p.changed)}{list("จะตั้งเป็นไม่พบใน FusionSolar", p.not_found)}
       {p.kpi && p.kpi.length > 0 && (
         <div>

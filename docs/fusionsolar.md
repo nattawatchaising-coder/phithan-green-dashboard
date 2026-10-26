@@ -47,13 +47,22 @@
 
 **`fsDevices/{devId}`** — `fusionsolar_dev_id` (สตริง) `site_id` `station_code` `dev_name` `dev_type_id` `esn_code` `model` `software_version` `last_kpi_json` (JSON สตริงของ dataItemMap) `last_kpi_at` `fs_status`
 
-**`fsSyncLogs/L<เวลา>`** — `started_at` `finished_at` `job` `trigger` (cron/gh/manual/tool) `by` `ok` `skipped` · ไซต์ `created` `updated` `not_found` · อุปกรณ์ `dev_created` `dev_updated` `dev_not_found` · `stations` `kpi_sites` `kpi_devices` `requests` `pending` `errors[]` `note` `ms`
+**`fsSyncLogs/L<เวลา>`** — `started_at` `finished_at` `job` `trigger` (cron/gh/manual/tool) `by` `ok` `skipped` · ไซต์ `created` `updated` `not_found` · อุปกรณ์ `dev_created` `dev_updated` `dev_not_found` · `stations` `kpi_sites` `kpi_devices` `hist_months` `hist_days` `hist_hours` `requests` `pending` `errors[]` `note` `ms`
 
 **`fsKpiDay/{siteId}/{YYYY-MM-DD}`** — `kwh` (ผลิตทั้งวันล่าสุด) · `h/{HH}` ผลิตสะสมของวันถึงรอบซิงก์ชั่วโมงนั้น · `p/{HH}/{devId}` kW ของอินเวอร์เตอร์ตอนซิงก์ — รอบ KPI เขียนเพิ่มเอง ไม่ยิง API เพิ่ม (Huawei ให้แค่ค่าปัจจุบัน) · วัน/ชั่วโมงตามเวลาไทย
 **`fsKpiMonth/{siteId}/{YYYY-MM}`** — ผลิตทั้งเดือนล่าสุด (kWh)
 ประวัติเริ่มนับวันที่ซิงก์ KPI รอบแรก · ชั่วโมงที่ซิงก์พลาด ผลต่างไปรวมกับแท่งถัดไป (กล่องค่าบอกช่วงเวลาจริง)
 
-**`fsState`** — `lock` (กันสองรอบชนกัน · etag · หมดอายุ 90 วิ) `blocked_until` `last_call_at` `dev_cursor` `kpi_cursor` `station_api` `last_sites_at` `last_kpi_at` `approved_at` `approved_by`
+### ข้อมูลย้อนหลัง (job `hist` — ผู้ใช้สั่ง 2026-10-26 ให้กราฟไม่ต้องรอเก็บเอง)
+- ปุ่ม **"ย้อนหลัง (กราฟ)"** ในหน้า log การซิงก์ (แอดมิน) · `node tools/fusionsolar-run.mjs hist [--write] [--mock]` · **ไม่อยู่ใน all/cron** — กดเองเมื่อต้องการ
+- คิวตายตัวต่อวัน ทีละ 100 สถานี: `/getKpiStationMonth` ปีที่แล้ว+ปีนี้ → `/getKpiStationDay` เดือนที่แล้ว+เดือนนี้ → `/getKpiStationHour` เมื่อวาน+วันนี้ (109 ไซต์ = 12 คำขอ ≈ 2 รอบกด) · ไม่ทัน = `fsState/hist_cursor` + `hist_key` (วันที่ของคิว ข้ามวัน = เริ่มใหม่) · ครบ = `hist_done_at`
+- ส่ง `collectTime` = เที่ยงวันไทยของวัน/กลางเดือน/กลางปี · ค่าที่ได้ `collectTime` = เวลาเริ่มของช่วง → แปลงเป็นวัน/ชั่วโมงไทย · ค่าผลิต `inverter_power` ไม่มีใช้ `PVYield`
+- ไม่เขียนทับค่าสด: วันนี้ไม่เขียน `kwh` · เดือนนี้ไม่เขียน `fsKpiMonth` · ชั่วโมงที่ยังไม่จบไม่เขียน
+- รายชั่วโมง → `h/{HH+1}` = ผลิตสะสมของวันถึงปลายชั่วโมง HH (ความหมายเดียวกับค่าที่รอบ KPI จดตอน HH+1:07) · ชั่วโมง 23 ไม่เขียน
+- พลาดทีละคิว (เช่นบัญชีไม่มีสิทธิ์ API นี้) = จด error แล้วทำคิวถัดไป · 407/ล็อกอินพลาด = หยุดทั้งรอบเหมือนงานอื่น
+- **ยังไม่ได้ลองกับ Huawei จริง** (ทดสอบกับ mock + ฐานทดสอบเท่านั้น) — ชื่อ field/ความหมาย collectTime ตามเอกสาร Northbound ถ้าของจริงต่างให้แก้ที่ `doHist`
+
+**`fsState`** — `lock` (กันสองรอบชนกัน · etag · หมดอายุ 90 วิ) `blocked_until` `last_call_at` `dev_cursor` `kpi_cursor` `station_api` `last_sites_at` `last_kpi_at` `approved_at` `approved_by` `hist_cursor` `hist_key` `hist_done_at`
 
 ## ผูกกับงานในเว็บ — ทำไมแยกโหนด
 ไซต์ ≠ ใบงาน: ไซต์หนึ่งมีได้หลายงาน (ติดตั้ง · ขยายระบบ) และไซต์ใน FusionSolar อาจไม่มีงานของเราเลย → เก็บที่ `fsSites` ผูกด้วย `jobIds` · ไม่เขียนลง `omSites` (จะทำให้ O&M แจ้งเตือนรอบล้างแผง/ประกันของไซต์ที่ไม่ได้ขายบริการ)
@@ -115,8 +124,8 @@
 
 ## ทดสอบ
 - **ห้ามซิงก์ลงฐานจริงโดยไม่ได้รับอนุญาต** · รอบแรกต้อง dry run
-- ของปลอม: `node tools/fusionsolar-mock.mjs` (สถานีทดสอบ `NE=57489892` บ้านคุณ Phatcha · อินเวอร์เตอร์ 38 · มิเตอร์ 47 id `1000000057489896` · ฯลฯ) · env `MOCK_EXPIRE` (ให้ 305) `MOCK_MIN_GAP` (ms · ค่าเริ่ม 2000 ให้ 407) `MOCK_NO_STATIONLIST` `MOCK_DROP` (ซ่อนสถานีหนึ่ง)
-- สคริปต์: `node tools/fusionsolar-run.mjs [all|sites|kpi] [--write] [--mock]` — ไม่มี `--write` = dry run · เขียนได้เฉพาะฐานทดสอบ (เช็ก config + กุญแจว่าเป็นโปรเจกต์ทดสอบ)
+- ของปลอม: `node tools/fusionsolar-mock.mjs` (สถานีทดสอบ `NE=57489892` บ้านคุณ Phatcha · อินเวอร์เตอร์ 38 · มิเตอร์ 47 id `1000000057489896` · ฯลฯ) · env `MOCK_EXPIRE` (ให้ 305) `MOCK_MIN_GAP` (ms · ค่าเริ่ม 2000 ให้ 407) `MOCK_NO_STATIONLIST` `MOCK_DROP` (ซ่อนสถานีหนึ่ง) `MOCK_NO_HIST` (API ย้อนหลังตอบไม่มีสิทธิ์) · API ย้อนหลังตอบทุกสถานีที่ขอ (ฐานทดสอบเป็นไซต์จริง)
+- สคริปต์: `node tools/fusionsolar-run.mjs [all|sites|kpi|hist] [--write] [--mock]` — ไม่มี `--write` = dry run · เขียนได้เฉพาะฐานทดสอบ (เช็ก config + กุญแจว่าเป็นโปรเจกต์ทดสอบ)
 - รหัสจริงในเครื่อง: env หรือไฟล์ `fusionsolar.local.json` `{"user":"api_tarnthanawat","pass":"…"}` ที่โฟลเดอร์หลักของ repo (อยู่ใน `.gitignore`/`.vercelignore`)
 - หน้าเว็บบน localhost: `FUSIONSOLAR_BASE=http://localhost:8790/thirdData node tools/devserver.js` → ปุ่มในหน้า log เรียก `api/fusionsolar/sync.mjs` ในเครื่อง (เฉพาะเมื่อมีฐานทดสอบ + `firebase-sa.local.json` ไม่งั้นตอบ 503)
 

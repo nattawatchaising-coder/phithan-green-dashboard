@@ -1,5 +1,5 @@
 // รันงานซิงก์ FusionSolar จากเครื่อง (ตัวเดียวกับ cron) — dry run เป็นค่าเริ่ม
-//   node tools/fusionsolar-run.mjs [all|sites|kpi] [--write] [--mock]
+//   node tools/fusionsolar-run.mjs [all|sites|kpi|hist] [--write] [--mock]   (hist = ข้อมูลผลิตย้อนหลังไว้วาดกราฟ)
 //   --write  บันทึกจริง (ยอมเฉพาะฐานทดสอบ: firebase-config.local.js + firebase-sa.local.json — docs/test-db.md)
 //   --mock   ยิง FusionSolar ปลอม http://localhost:8790 (tools/fusionsolar-mock.mjs) แทน Huawei จริง
 // รหัส Huawei: env FUSIONSOLAR_USER / FUSIONSOLAR_PASS หรือไฟล์ fusionsolar.local.json {"user","pass"} ที่โฟลเดอร์หลักของ repo
@@ -53,12 +53,14 @@ console.log((write ? 'บันทึกจริง' : 'dry run') + ' · job=' 
 const r = await runSync({ job, dryRun: !write, trigger: 'tool', by: 'tools/fusionsolar-run', approve: write });
 const L = r.log;
 console.log('สถานี', L.stations, '· ไซต์ สร้าง', L.created, 'อัปเดต', L.updated, 'ไม่พบ', L.not_found);
+if (job === 'hist') console.log('ย้อนหลัง เดือน', L.hist_months, '· วัน', L.hist_days, '· ชั่วโมง', L.hist_hours);
 console.log('อุปกรณ์ สร้าง', L.dev_created, 'อัปเดต', L.dev_updated, 'ไม่พบ', L.dev_not_found, '· KPI ไซต์', L.kpi_sites, 'อุปกรณ์', L.kpi_devices);
 console.log('คำขอ', L.requests, '· ค้าง', L.pending, '·', L.ms, 'ms', L.note ? '· ' + L.note : '', r.skipped ? '· (ข้าม)' : '');
 L.errors.forEach((e) => console.log('  ! ', e.api, 'failCode', e.failCode, e.message));
 if (r.preview) {
   const show = (t, a) => a.length && console.log(t + ':', a.slice(0, 15).map((x) => x.code + ' ' + x.name).join(' | ') + (a.length > 15 ? ' …+' + (a.length - 15) : ''));
   show('  จะสร้าง', r.preview.create); show('  เปลี่ยนค่า', r.preview.changed); show('  ไม่พบ', r.preview.not_found);
+  (r.preview.hist || []).slice(0, 8).forEach((k) => console.log('  hist', JSON.stringify(k)));
   r.preview.kpi.slice(0, 8).forEach((k) => console.log('  kpi', JSON.stringify(k).slice(0, 200)));
 }
 process.exit(L.ok ? 0 : 2);
