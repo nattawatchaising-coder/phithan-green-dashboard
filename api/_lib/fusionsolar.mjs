@@ -96,7 +96,12 @@ export function fsClient(opt) {
     try {
       r = await fetch(FS.base() + api, { method: "POST", headers, body: JSON.stringify(payload || {}), signal: AbortSignal.timeout(REQ_TIMEOUT) });
       text = await r.text();
-    } catch (e) { throw new FsError(api, null, "เชื่อมต่อไม่ได้: " + (e && e.message)); }
+    } catch (e) {
+      /* fetch failed ของ Node บอกสาเหตุจริงไว้ใน e.cause (ENOTFOUND · ECONNREFUSED · ECONNRESET · ใบรับรอง) + โฮสต์ที่ยิง — ไว้แยกว่าเป็นที่ env/เครือข่าย */
+      const c = e && e.cause, why = c ? [c.code, c.message].filter(Boolean).join(" ") : "";
+      let host = ""; try { host = new URL(FS.base()).host; } catch (x) { host = "FUSIONSOLAR_BASE ผิดรูปแบบ"; }
+      throw new FsError(api, null, "เชื่อมต่อไม่ได้: " + (e && e.message) + (why ? " (" + why + ")" : "") + " · " + host);
+    }
     let j;
     try { j = parseBody(text); } catch (e) { throw new FsError(api, null, "HTTP " + r.status + " ไม่ใช่ JSON"); }
     return { r, j: j || {} };
