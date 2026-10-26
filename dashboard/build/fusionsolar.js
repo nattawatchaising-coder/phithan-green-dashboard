@@ -2048,7 +2048,8 @@ function FsIssues({
 }
 function FsHistoryCard({
   site,
-  isMobile
+  isMobile,
+  flip
 }) {
   const [tab, setTab] = React.useState("day");
   const {
@@ -2063,24 +2064,62 @@ function FsHistoryCard({
   const today = React.useMemo(() => {
     const rec = (dayVal || {})[now.day] || {};
     const h = rec.h || {},
-      p = rec.p || {};
-    const hours = Object.keys(h).map(Number).sort((a, b) => a - b);
-    if (!hours.length) return {
-      bars: [],
-      pre: null
+      p = rec.p || {},
+      u = rec.u || {},
+      m = rec.m || {};
+    const K = x => String(x).padStart(2, "0");
+    const grid = key => {
+      const o = m[key];
+      if (!o || fsN(h[key]) == null) return null;
+      const g = {
+        pv: +h[key],
+        m: {}
+      };
+      Object.keys(o).forEach(id => {
+        const A = fsN(o[id] && o[id].a),
+          R = fsN(o[id] && o[id].r);
+        if (A != null && R != null) g.m[id] = flip ? [R, A] : [A, R];
+      });
+      return Object.keys(g.m).length ? g : null;
     };
-    const lit = hours.filter(x => fsN(h[String(x).padStart(2, "0")]) > 0);
-    const from = Math.min(6, lit.length ? lit[0] : hours[0]),
-      to = Math.max(18, hours[hours.length - 1]);
+    const gridLoad = (g, q) => {
+      const ids = Object.keys(g.m);
+      if (ids.length !== Object.keys(q.m).length || ids.some(id => !q.m[id])) return null;
+      let de = 0,
+        di = 0;
+      ids.forEach(id => {
+        de += g.m[id][0] - q.m[id][0];
+        di += g.m[id][1] - q.m[id][1];
+      });
+      return Math.max(0, g.pv - q.pv + di - de);
+    };
+    const keys = Array.from(new Set(Object.keys(h).concat(Object.keys(u), Object.keys(m)))).map(Number).sort((x, y) => x - y);
+    if (!keys.length) return {
+      bars: [],
+      pre: null,
+      hasLoad: false
+    };
+    const hasLoad = Object.keys(u).length > 0 || Object.keys(m).length > 1;
+    const lit = keys.filter(x => fsN(h[K(x)]) > 0);
+    const from = hasLoad ? keys[0] : Math.min(6, lit.length ? lit[0] : keys[0]),
+      to = Math.max(hasLoad ? 23 : 18, keys[keys.length - 1]);
     const out = [];
     let prevH = null,
       prevV = 0,
-      pre = null;
+      pre = null,
+      prevU = 0,
+      prevG = null;
+    keys.filter(x => x < from).forEach(x => {
+      if (fsN(u[K(x)]) != null) prevU = +u[K(x)];
+      const g = grid(K(x));
+      if (g) prevG = g;
+    });
     for (let x = from; x <= to; x++) {
-      const key = String(x).padStart(2, "0");
+      const key = K(x);
       const v = fsN(h[key]);
       let val = null,
-        rng = key + ":00";
+        rng = key + ":00",
+        load = null;
       if (v != null && prevH == null && x > 7 && v > 0) {
         pre = {
           h: key,
@@ -2090,24 +2129,34 @@ function FsHistoryCard({
         prevV = v;
       } else if (v != null) {
         val = Math.max(0, v - prevV);
-        rng = String(prevH == null ? 0 : prevH).padStart(2, "0") + ":00–" + key + ":00";
+        rng = K(prevH == null ? 0 : prevH) + ":00–" + key + ":00";
         prevH = x;
         prevV = v;
       }
+      const uv = fsN(u[key]),
+        g = grid(key);
+      if (uv != null) {
+        load = Math.max(0, uv - prevU);
+        prevU = uv;
+      } else if (g && prevG) load = gridLoad(g, prevG);
+      if (g) prevG = g;
+      if (load != null) load = Math.round(load * 1000) / 1000;
       const pw = p[key] ? Object.keys(p[key]).reduce((s, k) => s + (+p[key][k] || 0), 0) : null;
       out.push({
         k: key,
         label: key,
         value: val,
+        load,
         partial: x === now.h,
-        tip: ["ช่วง " + rng, v != null ? "รวมทั้งวันถึงตอนนั้น " + fsFmt(v, 1) + " kWh" : null, pw != null ? "กำลังตอนซิงก์ " + fsFmt(pw, 2) + " kW" : null].filter(Boolean)
+        tip: ["ช่วง " + rng, v != null ? "ผลิตรวมทั้งวันถึงตอนนั้น " + fsFmt(v, 1) + " kWh" : null, pw != null ? "กำลังตอนซิงก์ " + fsFmt(pw, 2) + " kW" : null].filter(Boolean)
       });
     }
     return {
       bars: out,
-      pre
+      pre,
+      hasLoad: out.some(b => b.load != null)
     };
-  }, [dayVal, now.day, now.h]);
+  }, [dayVal, now.day, now.h, flip]);
   const days = React.useMemo(() => {
     const out = [];
     for (let i = 29; i >= 0; i--) {
@@ -2148,7 +2197,7 @@ function FsHistoryCard({
   const monDone = mons.filter(b => !b.partial && b.value != null);
   const monAvg = monDone.length >= 2 ? monDone.reduce((s, b) => s + b.value, 0) / monDone.length : null;
   const firstDay = Object.keys(dayVal || {}).sort()[0];
-  const sub = tab === "day" ? "พลังงานที่ผลิตแต่ละชั่วโมงของวันนี้ (" + fsDayTH(now.day) + ")" : tab === "30" ? "ผลิตต่อวัน 30 วันล่าสุด" : "ผลิตต่อเดือน 12 เดือนล่าสุด";
+  const sub = tab === "day" ? (today.hasLoad ? "ไฟที่ผลิตเทียบไฟที่ใช้" : "พลังงานที่ผลิต") + "แต่ละชั่วโมงของวันนี้ (" + fsDayTH(now.day) + ")" : tab === "30" ? "ผลิตต่อวัน 30 วันล่าสุด" : "ผลิตต่อเดือน 12 เดือนล่าสุด";
   const seg = window.Segmented ? React.createElement(window.Segmented, {
     flat: true,
     value: tab,
@@ -2333,7 +2382,7 @@ function FsHistoryCard({
     }, x.s)));
   })), C && tab === "day" && React.createElement(C, {
     mode: "area",
-    bars: today.bars.some(b => b.value != null) ? today.bars : [],
+    bars: today.bars.some(b => b.value != null || b.load != null) ? today.bars : [],
     unit: "kWh",
     height: isMobile ? 190 : 220,
     empty: today.pre ? "รายชั่วโมงจะเริ่มแสดงตั้งแต่ชั่วโมงถัดไป" : "ยังไม่มีข้อมูลรายชั่วโมงของวันนี้ — เก็บทุกครั้งที่ซิงก์ข้อมูลผลิต (ทุกชั่วโมง)"
@@ -2382,7 +2431,20 @@ function FsHistoryCard({
       borderRadius: 2,
       background: "var(--fs-sun)"
     }
-  }), "\u0E1C\u0E25\u0E34\u0E15\u0E15\u0E48\u0E2D\u0E0A\u0E31\u0E48\u0E27\u0E42\u0E21\u0E07"), today.bars.some(b => b.partial && b.value != null) && React.createElement("span", {
+  }), "\u0E1C\u0E25\u0E34\u0E15\u0E15\u0E48\u0E2D\u0E0A\u0E31\u0E48\u0E27\u0E42\u0E21\u0E07"), today.hasLoad && React.createElement("span", {
+    style: {
+      display: "flex",
+      alignItems: "center",
+      gap: 5
+    }
+  }, React.createElement("span", {
+    style: {
+      width: 16,
+      height: 3,
+      borderRadius: 2,
+      background: "var(--fs-load)"
+    }
+  }), "\u0E43\u0E0A\u0E49\u0E44\u0E1F\u0E15\u0E48\u0E2D\u0E0A\u0E31\u0E48\u0E27\u0E42\u0E21\u0E07"), today.hasLoad && React.createElement("span", null, "\u0E2A\u0E48\u0E27\u0E19\u0E17\u0E35\u0E48\u0E0B\u0E49\u0E2D\u0E19\u0E01\u0E31\u0E19 = \u0E44\u0E1F\u0E42\u0E0B\u0E25\u0E32\u0E23\u0E4C\u0E17\u0E35\u0E48\u0E43\u0E0A\u0E49\u0E40\u0E2D\u0E07"), today.bars.some(b => b.partial && b.value != null) && React.createElement("span", {
     style: {
       display: "flex",
       alignItems: "center",
@@ -3020,7 +3082,8 @@ function FsSiteModal({
     }]
   })), tab === "over" && code && React.createElement(FsHistoryCard, {
     site: site,
-    isMobile: isMobile
+    isMobile: isMobile,
+    flip: !!(em && em.revIsExport)
   }), tab === "over" && React.createElement(FsEnergyCard, {
     em: em,
     isMobile: isMobile

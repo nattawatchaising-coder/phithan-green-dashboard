@@ -369,7 +369,8 @@ export async function runSync(o) {
   }
 
   /* ประวัติไว้วาดกราฟ (Huawei ให้แค่ค่าปัจจุบัน — เก็บเองทุกรอบ KPI ไม่ต้องยิง API เพิ่ม) · วัน/ชั่วโมงตามเวลาไทย
-     fsKpiDay/{siteId}/{YYYY-MM-DD} = { kwh: ผลิตทั้งวันล่าสุด, h: {HH: ผลิตสะสมของวันถึงชั่วโมงนั้น}, p: {HH: {devId: kW อินเวอร์เตอร์}} }
+     fsKpiDay/{siteId}/{YYYY-MM-DD} = { kwh: ผลิตทั้งวันล่าสุด, h: {HH: ผลิตสะสมของวันถึงชั่วโมงนั้น}, p: {HH: {devId: kW อินเวอร์เตอร์}},
+       m: {HH: {devId: {a: active_cap, r: reverse_active_cap}}} ตัวนับสะสมมิเตอร์ (หาไฟที่ใช้รายชั่วโมง), u: {HH: ใช้ไฟสะสมของวัน — จาก job hist} }
      fsKpiMonth/{siteId}/{YYYY-MM} = ผลิตทั้งเดือนล่าสุด */
   function bkk(ms) { const x = new Date(ms + 7 * 3600e3).toISOString(); return { day: x.slice(0, 10), mon: x.slice(0, 7), hh: x.slice(11, 13) }; }  // function: doKpi ถูกเรียกก่อนบรรทัดนี้
 
@@ -416,6 +417,10 @@ export async function runSync(o) {
             const id = safeKey(String(r && r.devId)); if (!devices[id]) return;
             const pw = num((r.dataItemMap || {}).active_power);
             if ((b.type === 1 || b.type === 38) && pw != null && devices[id].site_id) dayP[devices[id].site_id + "/" + k.day + "/p/" + k.hh + "/" + id] = pw;
+            if ((b.type === 47 || b.type === 17) && devices[id].site_id) {
+              const a = num((r.dataItemMap || {}).active_cap), rv = num((r.dataItemMap || {}).reverse_active_cap);
+              if (a != null && rv != null) dayP[devices[id].site_id + "/" + k.day + "/m/" + k.hh + "/" + id] = { a, r: rv };
+            }
             Object.assign(patch, { [id + "/last_kpi_json"]: JSON.stringify(r.dataItemMap || {}), [id + "/last_kpi_at"]: t });
             log.kpi_devices++;
             if (preview.kpi.length < 20) preview.kpi.push({ devId: String(r.devId), dev_name: devices[id].dev_name || "",
@@ -466,7 +471,7 @@ export async function runSync(o) {
       (Array.isArray(data) ? data : []).forEach((r) => {
         const id = idx[r && r.stationCode], ct = num(r && r.collectTime);
         if (!id || ct == null) return;
-        const k = bkk(ct), v = yv(r.dataItemMap);
+        const k = bkk(ct), v = yv(r.dataItemMap), u = num((r.dataItemMap || {}).use_power);
         if (tk.kind === "mon") {
           if (v == null || k.mon >= k0.mon) return;
           monP[id + "/" + k.mon] = v; log.hist_months++;
@@ -474,17 +479,19 @@ export async function runSync(o) {
           if (v == null || k.day >= k0.day) return;
           dayP[id + "/" + k.day + "/kwh"] = v; log.hist_days++;
         } else if (ct + 3600e3 <= now) {
-          ((hrs[id] || (hrs[id] = {}))[k.day] || (hrs[id][k.day] = [])).push([+k.hh, v || 0]);
+          ((hrs[id] || (hrs[id] = {}))[k.day] || (hrs[id][k.day] = [])).push([+k.hh, v || 0, u]);
         }
         if (preview.hist.length < 20) preview.hist.push({ code: r.stationCode, name: sites[id].name || "", kind: tk.kind,
           at: tk.kind === "mon" ? k.mon : tk.kind === "day" ? k.day : k.day + " " + k.hh + ":00", kwh: v });
       });
       Object.keys(hrs).forEach((id) => Object.keys(hrs[id]).forEach((d) => {
-        let acc = 0;
-        hrs[id][d].sort((a, b) => a[0] - b[0]).forEach(([h, v]) => {
-          acc += v;
+        let acc = 0, accU = 0;
+        const hasU = hrs[id][d].some((x) => x[2] != null);   // use_power มีเฉพาะไซต์ที่มีมิเตอร์
+        hrs[id][d].sort((a, b) => a[0] - b[0]).forEach(([h, v, u]) => {
+          acc += v; accU += u || 0;
           if (h + 1 > 23) return;
           dayP[id + "/" + d + "/h/" + pad(h + 1)] = Math.round(acc * 1000) / 1000; log.hist_hours++;
+          if (hasU) dayP[id + "/" + d + "/u/" + pad(h + 1)] = Math.round(accU * 1000) / 1000;
         });
       }));
       if (!dry) { await writePatch("fsKpiDay", dayP); await writePatch("fsKpiMonth", monP); }

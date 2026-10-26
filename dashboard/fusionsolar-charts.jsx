@@ -19,6 +19,7 @@
     + ".fs-pulse{transform-box:fill-box;transform-origin:center;animation:fsPulse 1.8s ease-out infinite}"
     + "@keyframes fsDrop{to{stroke-dashoffset:-20}}.fs-drop{stroke-dasharray:5 15;animation:fsDrop .8s linear infinite}"
     + "@keyframes fsWide{from{transform:scaleX(0)}to{transform:scaleX(1)}}.fs-wide{transform-box:fill-box;transform-origin:0 50%;animation:fsWide .8s cubic-bezier(.2,.8,.2,1) both}"
+    + ":root{--fs-load:#3B5BDB}[data-theme=\"aurora\"]{--fs-load:#6C8CF5}"
     + "@media (prefers-reduced-motion: reduce){.fs-grow,.fs-draw,.fs-fade,.fs-pulse,.fs-drop,.fs-wide{animation:none!important}}";
   document.head.appendChild(el);
 })();
@@ -60,10 +61,13 @@ function FsTrendChart({ mode, bars, unit, avg, avgLabel, height, empty }) {
   const [table, setTable] = React.useState(false);
   const uid = React.useMemo(() => "fst" + Math.random().toString(36).slice(2, 8), []);
   const area = mode === "area";
+  /* ไฟที่ใช้ (b.load) — เฉพาะโหมด area · วาดเป็นพื้นที่ใต้โซลาร์ ส่วนที่ซ้อนกัน = ไฟโซลาร์ที่ใช้เอง */
   const vals = bars.map((b) => b.value).filter((v) => v != null);
+  const loads = mode === "area" ? bars.map((b) => b.load).filter((v) => v != null) : [];
+  const hasLoad = loads.length > 0;
   const H = height || 210, padL = 40, padR = 8, padT = 28, padB = 26;
   const plotW = Math.max(60, w - padL - padR), plotH = H - padT - padB;
-  const max = fsNice(Math.max.apply(null, vals.concat([avg || 0, 0])) * 1.06);
+  const max = fsNice(Math.max.apply(null, vals.concat(loads, [avg || 0, 0])) * 1.06);
   const n = Math.max(1, bars.length), step = plotW / n;
   const X = (i) => padL + step * i + step / 2;
   const Y = (v) => padT + plotH * (1 - Math.max(0, v) / max);
@@ -72,7 +76,7 @@ function FsTrendChart({ mode, bars, unit, avg, avgLabel, height, empty }) {
   const fmtTick = (v) => (max >= 10000 ? fsFmt(v / 1000, 1) + "k" : fsFmt(v, max < 10 ? 1 : 0));
   const sun = "var(--fs-sun)";
   const bw = Math.max(4, Math.min(22, step * 0.6));
-  const tog = vals.length > 0 && (
+  const tog = (vals.length > 0 || hasLoad) && (
     <button type="button" onClick={() => setTable(!table)}
       style={{ position: "absolute", top: 0, right: 0, border: "none", background: "var(--surface2)", boxShadow: "var(--shadow-inset)", borderRadius: "var(--r-chip)",
         padding: "3px 10px", fontSize: 10.5, fontWeight: 700, color: "var(--text-2)", cursor: "pointer", fontFamily: "inherit", zIndex: 2 }}>{table ? "กราฟ" : "ตาราง"}</button>
@@ -86,7 +90,7 @@ function FsTrendChart({ mode, bars, unit, avg, avgLabel, height, empty }) {
   const track = (i) => <rect key={"t" + i} x={X(i) - bw / 2} y={padT} width={bw} height={plotH} rx={bw / 2} style={{ fill: "color-mix(in srgb, var(--fs-sun) 9%, var(--surface2))" }} />;
 
   /* ยังไม่มีข้อมูล = โครงกราฟจาง ๆ + ป้ายบอกเหตุ (ไม่ใช่กล่องเทาว่าง) */
-  if (!vals.length) {
+  if (!vals.length && !hasLoad) {
     const gp = [];
     for (let i = 0; i <= 24; i++) { const f = i / 24; gp.push([padL + plotW * f, padT + plotH * (1 - 0.82 * Math.exp(-Math.pow((f - 0.5) / 0.21, 2)))]); }
     return (
@@ -111,10 +115,11 @@ function FsTrendChart({ mode, bars, unit, avg, avgLabel, height, empty }) {
   if (table) return (
     <div ref={ref} style={{ position: "relative", paddingTop: 26 }}>{tog}
       <div style={{ maxHeight: H + 30, overflowY: "auto", borderRadius: "var(--r-tile)", background: "var(--surface2)", boxShadow: "var(--shadow-inset)" }}>
-        {bars.filter((b) => b.value != null).map((b, i) => (
+        {bars.filter((b) => b.value != null || b.load != null).map((b, i) => (
           <div key={b.k} style={{ display: "flex", padding: "6px 12px", fontSize: 12, borderTop: i ? "1px solid var(--divider)" : "none" }}>
             <span style={{ flex: 1, color: "var(--text-2)" }}>{(b.tip && b.tip[0]) || b.label}{b.partial ? " (ยังไม่จบ)" : ""}</span>
-            <span style={{ fontFamily: "var(--mono)", fontWeight: 700, color: "var(--text-1)" }}>{fsFmt(b.value, 1)} {unit}</span>
+            <span style={{ fontFamily: "var(--mono)", fontWeight: 700, color: "var(--text-1)" }}>{b.value == null ? "–" : fsFmt(b.value, 1)} {unit}</span>
+            {hasLoad && <span style={{ width: 96, textAlign: "right", fontFamily: "var(--mono)", fontWeight: 700, color: "var(--text-2)" }}>ใช้ {b.load == null ? "–" : fsFmt(b.load, 1)}</span>}
           </div>
         ))}
       </div>
@@ -128,12 +133,13 @@ function FsTrendChart({ mode, bars, unit, avg, avgLabel, height, empty }) {
   bars.forEach((b, i) => { if (b.value != null && !b.partial && (peak < 0 || b.value > bars[peak].value)) peak = i; });
 
   /* ส่วนเส้น = ช่วงที่มีค่าต่อเนื่องกัน (ชั่วโมงที่ไม่ได้ซิงก์ = เส้นขาด) */
-  const segs = [];
-  if (area) {
-    let cur = [];
-    bars.forEach((b, i) => { if (b.value != null) cur.push([X(i), Y(b.value)]); else if (cur.length) { segs.push(cur); cur = []; } });
-    if (cur.length) segs.push(cur);
-  }
+  const mkSegs = (get) => {
+    const out = []; let cur = [];
+    bars.forEach((b, i) => { const v = get(b); if (v != null) cur.push([X(i), Y(v)]); else if (cur.length) { out.push(cur); cur = []; } });
+    if (cur.length) out.push(cur);
+    return out;
+  };
+  const segs = area ? mkSegs((b) => b.value) : [], lsegs = hasLoad ? mkSegs((b) => b.load) : [];
   return (
     <div ref={ref} style={{ position: "relative", width: "100%" }} onMouseLeave={() => setHov(null)}>
       {tog}
@@ -151,12 +157,26 @@ function FsTrendChart({ mode, bars, unit, avg, avgLabel, height, empty }) {
             <rect width="6" height="6" style={{ fill: "color-mix(in srgb, var(--fs-sun) 30%, var(--surface))" }} />
             <rect width="2.6" height="6" style={{ fill: "var(--fs-sun)" }} />
           </pattern>
+          <linearGradient id={uid + "l"} x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0" style={{ stopColor: "var(--fs-load)", stopOpacity: 0.26 }} />
+            <stop offset="1" style={{ stopColor: "var(--fs-load)", stopOpacity: 0.04 }} />
+          </linearGradient>
           <filter id={uid + "g"} x="-5%" y="-40%" width="110%" height="180%"><feGaussianBlur stdDeviation="4" /></filter>
         </defs>
         {area ? grid : bars.map((b, i) => track(i))}
         {!area && grid.map((g) => React.cloneElement(g, { style: { pointerEvents: "none" } }))}
         <text x={0} y={10} textAnchor="start" style={{ fill: "var(--text-3)", fontSize: 10, fontWeight: 700 }}>{unit}</text>
 
+        {lsegs.map((s, k) => {
+          const d = fsMonoPath(s);
+          return (
+            <g key={"ld" + k}>
+              {s.length > 1 && <path d={d + "L" + s[s.length - 1][0] + "," + base + "L" + s[0][0] + "," + base + "Z"} className="fs-fade" style={{ fill: "url(#" + uid + "l)" }} />}
+              {s.length > 1 && <path d={d} pathLength="1" fill="none" className="fs-draw" style={{ stroke: "var(--fs-load)", strokeWidth: 2, strokeLinecap: "round", strokeLinejoin: "round" }} />}
+              {s.length === 1 && <circle cx={s[0][0]} cy={s[0][1]} r={3} style={{ fill: "var(--fs-load)" }} />}
+            </g>
+          );
+        })}
         {area && segs.map((s, k) => {
           const d = fsMonoPath(s);
           return (
@@ -204,6 +224,12 @@ function FsTrendChart({ mode, bars, unit, avg, avgLabel, height, empty }) {
             <circle cx={X(hov)} cy={Y(hb.value)} r={4.5} style={{ fill: "var(--surface)", stroke: sun, strokeWidth: 2.5 }} />
           </g>
         )}
+        {hb && hasLoad && hb.load != null && (
+          <g style={{ pointerEvents: "none" }}>
+            {hb.value == null && <line x1={X(hov)} x2={X(hov)} y1={padT - 4} y2={base} style={{ stroke: "var(--text-3)", strokeWidth: 1 }} />}
+            <circle cx={X(hov)} cy={Y(hb.load)} r={4} style={{ fill: "var(--surface)", stroke: "var(--fs-load)", strokeWidth: 2.2 }} />
+          </g>
+        )}
         {bars.map((b, i) => {
           const isNow = area && i === nowI;
           if (!isNow && !((i % every === 0) && (n - 1 - i >= every || i === n - 1)) && hov !== i) return null;
@@ -221,12 +247,17 @@ function FsTrendChart({ mode, bars, unit, avg, avgLabel, height, empty }) {
         ))}
       </svg>
       {hb && (
-        <div style={{ position: "absolute", left: tipX, top: hb.value != null ? Math.max(0, Y(hb.value) - 70) : 0, transform: "translateX(-50%)", pointerEvents: "none",
+        <div style={{ position: "absolute", left: tipX, top: hb.value != null || hb.load != null ? Math.max(0, Y(Math.max(hb.value || 0, hb.load || 0)) - (hasLoad ? 92 : 70)) : 0, transform: "translateX(-50%)", pointerEvents: "none",
           background: "var(--surface)", boxShadow: "var(--shadow-pop)", borderRadius: "var(--r-tile)", padding: "7px 11px", fontSize: 11.5, whiteSpace: "nowrap", zIndex: 3 }}>
           <div style={{ fontWeight: 700, color: "var(--text-2)", marginBottom: 1 }}>{(hb.tip && hb.tip[0]) || hb.label}{hb.partial ? " · ยังไม่จบ" : ""}</div>
           <div style={{ display: "flex", alignItems: "center", gap: 6, color: "var(--text-1)", fontFamily: "var(--mono)", fontWeight: 800, fontSize: 13 }}>
-            <span style={{ width: 8, height: 8, borderRadius: 4, background: sun }} />{hb.value == null ? "ไม่มีข้อมูล" : fsFmt(hb.value, 1) + " " + unit}
+            <span style={{ width: 8, height: 8, borderRadius: 4, background: sun }} />{hasLoad ? "ผลิต " : ""}{hb.value == null ? "ไม่มีข้อมูล" : fsFmt(hb.value, 1) + " " + unit}
           </div>
+          {hasLoad && (
+            <div style={{ display: "flex", alignItems: "center", gap: 6, color: "var(--text-1)", fontFamily: "var(--mono)", fontWeight: 800, fontSize: 13 }}>
+              <span style={{ width: 8, height: 8, borderRadius: 4, background: "var(--fs-load)" }} />ใช้ {hb.load == null ? "ไม่มีข้อมูล" : fsFmt(hb.load, 1) + " " + unit}
+            </div>
+          )}
           {(hb.tip || []).slice(1).map((t, i) => <div key={i} style={{ color: "var(--text-3)" }}>{t}</div>)}
         </div>
       )}

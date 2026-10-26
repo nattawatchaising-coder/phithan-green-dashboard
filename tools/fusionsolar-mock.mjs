@@ -112,7 +112,11 @@ http.createServer((req, res) => {
       if (api === '/getKpiStationMonth') for (let x = 0; x < 12; x++) slots.push([Date.UTC(Y, x, 1) - B7, Math.round(1800 + 450 * Math.cos(x / 1.9))]);
       // ตอบทุกสถานีที่ขอ (ไม่กรองตาม STATIONS) — ฐานทดสอบคัดลอกไซต์จริงมา จะได้เห็นกราฟของไซต์จริงเต็ม
       return out(res, big({ success: true, failCode: 0, data: pick(j.stationCodes).filter(Boolean).flatMap((c, i) =>
-        slots.map(([t, v]) => ({ stationCode: c, collectTime: t, dataItemMap: { inverter_power: Math.round(v * (1 + i * 0.15) * 1000) / 1000, radiation_intensity: null } }))) }));
+        slots.map(([t, v]) => {
+          // use_power (ใช้ไฟ) เฉพาะรายชั่วโมง: ฐาน 1.5 + ช่วงทำงาน 8–17 น. + หัวค่ำ
+          const hh = new Date(t + B7).getUTCHours(), use = api === '/getKpiStationHour' ? Math.round((1.5 + (hh >= 8 && hh <= 17 ? 5 : 0) + (hh >= 18 && hh <= 21 ? 3 : 0)) * (1 + i * 0.15) * 1000) / 1000 : null;
+          return { stationCode: c, collectTime: t, dataItemMap: { inverter_power: Math.round(v * (1 + i * 0.15) * 1000) / 1000, use_power: use, radiation_intensity: null } };
+        })) }));
     }
     out(res, big({ success: false, failCode: 404, data: null, message: 'no api ' + api }));
   });

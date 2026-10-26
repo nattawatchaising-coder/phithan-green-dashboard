@@ -2,7 +2,7 @@
   if (document.getElementById("fs-chart-css")) return;
   const el = document.createElement("style");
   el.id = "fs-chart-css";
-  el.textContent = "@keyframes fsGrow{from{transform:scaleY(0)}to{transform:scaleY(1)}}" + ".fs-grow{transform-box:fill-box;transform-origin:50% 100%;animation:fsGrow .7s cubic-bezier(.2,.8,.2,1) both}" + "@keyframes fsDraw{from{stroke-dashoffset:1}to{stroke-dashoffset:0}}.fs-draw{stroke-dasharray:1;animation:fsDraw 1.2s ease both}" + "@keyframes fsFade{from{opacity:0}to{opacity:1}}.fs-fade{animation:fsFade 1s ease both}" + "@keyframes fsPulse{0%{transform:scale(1);opacity:.55}100%{transform:scale(3.2);opacity:0}}" + ".fs-pulse{transform-box:fill-box;transform-origin:center;animation:fsPulse 1.8s ease-out infinite}" + "@keyframes fsDrop{to{stroke-dashoffset:-20}}.fs-drop{stroke-dasharray:5 15;animation:fsDrop .8s linear infinite}" + "@keyframes fsWide{from{transform:scaleX(0)}to{transform:scaleX(1)}}.fs-wide{transform-box:fill-box;transform-origin:0 50%;animation:fsWide .8s cubic-bezier(.2,.8,.2,1) both}" + "@media (prefers-reduced-motion: reduce){.fs-grow,.fs-draw,.fs-fade,.fs-pulse,.fs-drop,.fs-wide{animation:none!important}}";
+  el.textContent = "@keyframes fsGrow{from{transform:scaleY(0)}to{transform:scaleY(1)}}" + ".fs-grow{transform-box:fill-box;transform-origin:50% 100%;animation:fsGrow .7s cubic-bezier(.2,.8,.2,1) both}" + "@keyframes fsDraw{from{stroke-dashoffset:1}to{stroke-dashoffset:0}}.fs-draw{stroke-dasharray:1;animation:fsDraw 1.2s ease both}" + "@keyframes fsFade{from{opacity:0}to{opacity:1}}.fs-fade{animation:fsFade 1s ease both}" + "@keyframes fsPulse{0%{transform:scale(1);opacity:.55}100%{transform:scale(3.2);opacity:0}}" + ".fs-pulse{transform-box:fill-box;transform-origin:center;animation:fsPulse 1.8s ease-out infinite}" + "@keyframes fsDrop{to{stroke-dashoffset:-20}}.fs-drop{stroke-dasharray:5 15;animation:fsDrop .8s linear infinite}" + "@keyframes fsWide{from{transform:scaleX(0)}to{transform:scaleX(1)}}.fs-wide{transform-box:fill-box;transform-origin:0 50%;animation:fsWide .8s cubic-bezier(.2,.8,.2,1) both}" + ":root{--fs-load:#3B5BDB}[data-theme=\"aurora\"]{--fs-load:#6C8CF5}" + "@media (prefers-reduced-motion: reduce){.fs-grow,.fs-draw,.fs-fade,.fs-pulse,.fs-drop,.fs-wide{animation:none!important}}";
   document.head.appendChild(el);
 })();
 function useFsWidth(def) {
@@ -53,6 +53,8 @@ function FsTrendChart({
   const uid = React.useMemo(() => "fst" + Math.random().toString(36).slice(2, 8), []);
   const area = mode === "area";
   const vals = bars.map(b => b.value).filter(v => v != null);
+  const loads = mode === "area" ? bars.map(b => b.load).filter(v => v != null) : [];
+  const hasLoad = loads.length > 0;
   const H = height || 210,
     padL = 40,
     padR = 8,
@@ -60,7 +62,7 @@ function FsTrendChart({
     padB = 26;
   const plotW = Math.max(60, w - padL - padR),
     plotH = H - padT - padB;
-  const max = fsNice(Math.max.apply(null, vals.concat([avg || 0, 0])) * 1.06);
+  const max = fsNice(Math.max.apply(null, vals.concat(loads, [avg || 0, 0])) * 1.06);
   const n = Math.max(1, bars.length),
     step = plotW / n;
   const X = i => padL + step * i + step / 2;
@@ -70,7 +72,7 @@ function FsTrendChart({
   const fmtTick = v => max >= 10000 ? fsFmt(v / 1000, 1) + "k" : fsFmt(v, max < 10 ? 1 : 0);
   const sun = "var(--fs-sun)";
   const bw = Math.max(4, Math.min(22, step * 0.6));
-  const tog = vals.length > 0 && React.createElement("button", {
+  const tog = (vals.length > 0 || hasLoad) && React.createElement("button", {
     type: "button",
     onClick: () => setTable(!table),
     style: {
@@ -123,7 +125,7 @@ function FsTrendChart({
       fill: "color-mix(in srgb, var(--fs-sun) 9%, var(--surface2))"
     }
   });
-  if (!vals.length) {
+  if (!vals.length && !hasLoad) {
     const gp = [];
     for (let i = 0; i <= 24; i++) {
       const f = i / 24;
@@ -203,7 +205,7 @@ function FsTrendChart({
       background: "var(--surface2)",
       boxShadow: "var(--shadow-inset)"
     }
-  }, bars.filter(b => b.value != null).map((b, i) => React.createElement("div", {
+  }, bars.filter(b => b.value != null || b.load != null).map((b, i) => React.createElement("div", {
     key: b.k,
     style: {
       display: "flex",
@@ -222,7 +224,15 @@ function FsTrendChart({
       fontWeight: 700,
       color: "var(--text-1)"
     }
-  }, fsFmt(b.value, 1), " ", unit)))));
+  }, b.value == null ? "–" : fsFmt(b.value, 1), " ", unit), hasLoad && React.createElement("span", {
+    style: {
+      width: 96,
+      textAlign: "right",
+      fontFamily: "var(--mono)",
+      fontWeight: 700,
+      color: "var(--text-2)"
+    }
+  }, "\u0E43\u0E0A\u0E49 ", b.load == null ? "–" : fsFmt(b.load, 1))))));
   const hb = hov != null ? bars[hov] : null;
   const tipX = hov != null ? Math.min(Math.max(X(hov), 90), w - 90) : 0;
   const nowI = bars.findIndex(b => b.partial && b.value != null);
@@ -230,17 +240,21 @@ function FsTrendChart({
   bars.forEach((b, i) => {
     if (b.value != null && !b.partial && (peak < 0 || b.value > bars[peak].value)) peak = i;
   });
-  const segs = [];
-  if (area) {
+  const mkSegs = get => {
+    const out = [];
     let cur = [];
     bars.forEach((b, i) => {
-      if (b.value != null) cur.push([X(i), Y(b.value)]);else if (cur.length) {
-        segs.push(cur);
+      const v = get(b);
+      if (v != null) cur.push([X(i), Y(v)]);else if (cur.length) {
+        out.push(cur);
         cur = [];
       }
     });
-    if (cur.length) segs.push(cur);
-  }
+    if (cur.length) out.push(cur);
+    return out;
+  };
+  const segs = area ? mkSegs(b => b.value) : [],
+    lsegs = hasLoad ? mkSegs(b => b.load) : [];
   return React.createElement("div", {
     ref: ref,
     style: {
@@ -309,6 +323,24 @@ function FsTrendChart({
     style: {
       fill: "var(--fs-sun)"
     }
+  })), React.createElement("linearGradient", {
+    id: uid + "l",
+    x1: "0",
+    y1: "0",
+    x2: "0",
+    y2: "1"
+  }, React.createElement("stop", {
+    offset: "0",
+    style: {
+      stopColor: "var(--fs-load)",
+      stopOpacity: 0.26
+    }
+  }), React.createElement("stop", {
+    offset: "1",
+    style: {
+      stopColor: "var(--fs-load)",
+      stopOpacity: 0.04
+    }
   })), React.createElement("filter", {
     id: uid + "g",
     x: "-5%",
@@ -330,7 +362,36 @@ function FsTrendChart({
       fontSize: 10,
       fontWeight: 700
     }
-  }, unit), area && segs.map((s, k) => {
+  }, unit), lsegs.map((s, k) => {
+    const d = fsMonoPath(s);
+    return React.createElement("g", {
+      key: "ld" + k
+    }, s.length > 1 && React.createElement("path", {
+      d: d + "L" + s[s.length - 1][0] + "," + base + "L" + s[0][0] + "," + base + "Z",
+      className: "fs-fade",
+      style: {
+        fill: "url(#" + uid + "l)"
+      }
+    }), s.length > 1 && React.createElement("path", {
+      d: d,
+      pathLength: "1",
+      fill: "none",
+      className: "fs-draw",
+      style: {
+        stroke: "var(--fs-load)",
+        strokeWidth: 2,
+        strokeLinecap: "round",
+        strokeLinejoin: "round"
+      }
+    }), s.length === 1 && React.createElement("circle", {
+      cx: s[0][0],
+      cy: s[0][1],
+      r: 3,
+      style: {
+        fill: "var(--fs-load)"
+      }
+    }));
+  }), area && segs.map((s, k) => {
     const d = fsMonoPath(s);
     return React.createElement("g", {
       key: k
@@ -484,6 +545,28 @@ function FsTrendChart({
       stroke: sun,
       strokeWidth: 2.5
     }
+  })), hb && hasLoad && hb.load != null && React.createElement("g", {
+    style: {
+      pointerEvents: "none"
+    }
+  }, hb.value == null && React.createElement("line", {
+    x1: X(hov),
+    x2: X(hov),
+    y1: padT - 4,
+    y2: base,
+    style: {
+      stroke: "var(--text-3)",
+      strokeWidth: 1
+    }
+  }), React.createElement("circle", {
+    cx: X(hov),
+    cy: Y(hb.load),
+    r: 4,
+    style: {
+      fill: "var(--surface)",
+      stroke: "var(--fs-load)",
+      strokeWidth: 2.2
+    }
   })), bars.map((b, i) => {
     const isNow = area && i === nowI;
     if (!isNow && !(i % every === 0 && (n - 1 - i >= every || i === n - 1)) && hov !== i) return null;
@@ -514,7 +597,7 @@ function FsTrendChart({
     style: {
       position: "absolute",
       left: tipX,
-      top: hb.value != null ? Math.max(0, Y(hb.value) - 70) : 0,
+      top: hb.value != null || hb.load != null ? Math.max(0, Y(Math.max(hb.value || 0, hb.load || 0)) - (hasLoad ? 92 : 70)) : 0,
       transform: "translateX(-50%)",
       pointerEvents: "none",
       background: "var(--surface)",
@@ -548,7 +631,24 @@ function FsTrendChart({
       borderRadius: 4,
       background: sun
     }
-  }), hb.value == null ? "ไม่มีข้อมูล" : fsFmt(hb.value, 1) + " " + unit), (hb.tip || []).slice(1).map((t, i) => React.createElement("div", {
+  }), hasLoad ? "ผลิต " : "", hb.value == null ? "ไม่มีข้อมูล" : fsFmt(hb.value, 1) + " " + unit), hasLoad && React.createElement("div", {
+    style: {
+      display: "flex",
+      alignItems: "center",
+      gap: 6,
+      color: "var(--text-1)",
+      fontFamily: "var(--mono)",
+      fontWeight: 800,
+      fontSize: 13
+    }
+  }, React.createElement("span", {
+    style: {
+      width: 8,
+      height: 8,
+      borderRadius: 4,
+      background: "var(--fs-load)"
+    }
+  }), "\u0E43\u0E0A\u0E49 ", hb.load == null ? "ไม่มีข้อมูล" : fsFmt(hb.load, 1) + " " + unit), (hb.tip || []).slice(1).map((t, i) => React.createElement("div", {
     key: i,
     style: {
       color: "var(--text-3)"

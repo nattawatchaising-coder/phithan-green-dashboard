@@ -224,6 +224,7 @@ function fsEnergyModel(site, devs) {
       rev = fsN(k.reverse_active_cap);
     let revIsExport = false;
     if (pvTotal != null && pos != null && rev != null && pos > pvTotal * 1.02 && rev <= pvTotal * 1.02) revIsExport = true;
+    out.revIsExport = revIsExport;
     out.exportTotal = revIsExport ? rev : pos;
     out.importTotal = revIsExport ? pos : rev;
     const p = fsKw(k.active_power, cap, true);
