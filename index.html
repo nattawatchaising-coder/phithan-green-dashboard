@@ -453,6 +453,14 @@ html.theme-anim, html.theme-anim * { transition: background-color .34s ease, bor
 @keyframes spin { to { transform: rotate(360deg); } }
 
 @media (max-width: 860px) {
+  /* iOS ซูมหน้าเข้าเองทุกครั้งที่โฟกัสช่องกรอกที่ตัวหนังสือเล็กกว่า 16px แล้วไม่ซูมกลับให้
+     ช่องกรอกกลางของแอป (inputStyle ใน form.jsx) เป็น 13.5px จึงโดนทุกช่อง
+     บังคับ 16px เฉพาะจอมือถือ — ต้อง !important เพราะช่องกรอกเกือบทุกตัวตั้ง fontSize
+     มาใน style ของตัวเอง ซึ่งชนะกฎในสไตล์ชีตเสมอ
+     ⚠ ไม่ใช้ maximum-scale=1 ที่ viewport meta แทน เพราะ Android จะซูมสองนิ้วไม่ได้ไปด้วย */
+  input:where(:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="color"]):not([type="file"])),
+  textarea, select { font-size: 16px !important; }
+
   /* Sidebar: hidden by default, slides in with .sidebar--open */
   /* height ของ position:fixed วัดจากจอแบบ "แถบเบราว์เซอร์ซ่อนอยู่" เสมอ 100% จึงสูงเกินจริง
      ท้ายเมนูเลยไปจมอยู่ใต้แถบล่างของ Safari — dvh วัดตามพื้นที่ที่เห็นจริงในขณะนั้น
