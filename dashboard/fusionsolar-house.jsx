@@ -1,7 +1,10 @@
 /* ============================================================
    flash+solar — ภาพบ้านโซลาร์ของหน้า FusionSolar (docs/fusionsolar.md)
    ภาพเรนเดอร์ที่ผู้ใช้ gen มาเอง ตามแบบอ้างอิง Solis / Lumos / SolarSync / Sunsolar — ธีมสว่าง = สลับตามเวลาไทย (กลางวัน 06–16 · แดดเย็น 16–18 · เปิดไฟตอนค่ำ 18–06 พื้นสว่างทั้งหมด) · ธีมมืด = ภาพกลางคืน (พื้นเกือบดำ)
-   - fsHouseCutout   ตัดพื้นของภาพเป็นโปร่งใสตอนโหลด: นอกเส้นรอบบ้าน (outline วาดมือตามภาพ) = พื้นทั้งหมด · ในเส้นไล่เข้าไปเฉพาะสีพื้นแท้
+   - cut             ภาพตัดพื้นไว้ล่วงหน้า (WebP โปร่งใส กว้าง ≤ 1100px ~85 KB) โหลดตรง ไม่ประมวลผล — ผู้ใช้บ่น "ภาพมันมาช้า" 2026-10-27
+                     (เดิมโหลด JPG 180 KB แล้วตัดพื้นทีละพิกเซลในเบราว์เซอร์ 200–300 ms บนคอม ช้ากว่านั้นมากบนมือถือ)
+                     เปลี่ยนภาพ/outline = ทำ cut ใหม่: ในหน้าเว็บเรียก fsHouseCutout(kind) → ย่อ ≤ 1100px → canvas.toBlob webp 0.82 → บัมป์ ?v=
+   - fsHouseCutout   (สำรองเมื่อโหลด cut ไม่ได้) ตัดพื้นของภาพเป็นโปร่งใสตอนโหลด: นอกเส้นรอบบ้าน (outline วาดมือตามภาพ) = พื้นทั้งหมด · ในเส้นไล่เข้าไปเฉพาะสีพื้นแท้
                      พื้นที่พื้นแปลงเป็นสีโปร่งตามความต่างจากสีพื้น (เงา = ดำโปร่ง · แสงไฟตกพื้นตอนกลางคืน = สว่างโปร่ง) · ตัวบ้านทึบเสมอ
    - FsHouseStage    กล่องวางภาพแบบ contain + pt("roof") = พิกัดพิกเซลของจุดบนภาพ ให้ของที่วางทับ
    - FsHouseFlow     หน้ารายละเอียดไซต์: บ้านกลาง + การ์ดโซลาร์/กริด/บ้านใช้ไฟ/แบต รอบ ๆ ต่อเส้นเข้าจุดบนบ้าน เส้นไหลแบบน้ำตามทิศพลังงาน
@@ -12,7 +15,7 @@
 /* bg(dc, sat) = พิกเซลในเส้นรอบบ้านที่ยังนับเป็นพื้น — dc = ความต่างจากสีพื้นรายช่อง r,g,b และเฉลี่ย (ค่าบวก = สว่างกว่าพื้น) */
 const FS_HOUSE = {
   day: {
-    src: "dashboard/assets/fs-house.jpg?v=1", w: 1376, h: 768, fill: "rgb(232,232,231)",
+    src: "dashboard/assets/fs-house.jpg?v=1", cut: "dashboard/assets/fs-house-cut-day.webp?v=1", w: 1376, h: 768, fill: "rgb(232,232,231)",
     outline: [[136, 499], [186, 462], [168, 426], [192, 372], [232, 334], [275, 322], [330, 336], [372, 352], [376, 214], [362, 182], [768, 90], [938, 192],
       [985, 163], [1048, 170], [1096, 215], [1106, 300], [1104, 330], [1104, 420], [1150, 425], [1195, 440], [1282, 495], [1180, 530], [1070, 568], [1000, 596],
       [930, 604], [640, 686]],
@@ -21,10 +24,10 @@ const FS_HOUSE = {
     bg: (dc) => Math.max(dc[0], dc[1], dc[2]) - Math.min(dc[0], dc[1], dc[2]) <= 10 && dc[3] >= -48 && dc[3] <= 7,
   },
   /* แดดเย็น / เปิดไฟตอนค่ำ = มุมและขนาดเดียวกับภาพกลางวัน ใช้ outline/pt ชุดเดียวกัน */
-  dusk: { src: "dashboard/assets/fs-house-dusk.jpg?v=1", fill: "rgb(241,237,226)" },
-  eve: { src: "dashboard/assets/fs-house-eve.jpg?v=1", fill: "rgb(218,223,229)" },
+  dusk: { src: "dashboard/assets/fs-house-dusk.jpg?v=1", cut: "dashboard/assets/fs-house-cut-dusk.webp?v=1", fill: "rgb(241,237,226)" },
+  eve: { src: "dashboard/assets/fs-house-eve.jpg?v=1", cut: "dashboard/assets/fs-house-cut-eve.webp?v=1", fill: "rgb(218,223,229)" },
   night: {
-    src: "dashboard/assets/fs-house-night.jpg?v=1", w: 1024, h: 572, fill: "rgb(15,20,24)",
+    src: "dashboard/assets/fs-house-night.jpg?v=1", cut: "dashboard/assets/fs-house-cut-night.webp?v=1", w: 1024, h: 572, fill: "rgb(15,20,24)",
     outline: [[98, 374], [128, 330], [132, 290], [160, 256], [200, 243], [245, 258], [268, 290], [282, 300], [282, 140], [272, 132], [568, 70], [700, 150],
       [712, 128], [760, 122], [805, 150], [822, 200], [818, 245], [818, 330], [838, 318], [842, 270], [875, 228], [912, 222], [945, 258], [952, 312], [922, 332],
       [954, 370], [880, 392], [770, 425], [700, 442], [482, 508]],
@@ -129,12 +132,15 @@ function FsHouseStage({ height, overlay, pad }) {
     ro && ro.observe(box.current);
     return () => ro && ro.disconnect();
   }, []);
+  const [cutBad, setCutBad] = React.useState({});      // ภาพตัดพื้นล่วงหน้าโหลดไม่ได้ → ตัดเองในเบราว์เซอร์แบบเดิม
+  const useCut = !!V.cut && !cutBad[kind];
   React.useEffect(() => {
+    if (useCut) return undefined;
     let dead = false;
     fsHouseCutout(kind).then((u) => !dead && setSrc((o) => Object.assign({}, o, { [kind]: u })))
       .catch(() => !dead && setSrc((o) => Object.assign({}, o, { [kind]: "raw" })));
     return () => { dead = true; };
-  }, [kind]);
+  }, [kind, useCut]);
   const AR = V.w / V.h, P = pad || 0;
   let img = null, pt = null;
   if (sz) {
@@ -143,11 +149,12 @@ function FsHouseStage({ height, overlay, pad }) {
     img = { x: (sz.w - w) / 2, y: (sz.h - h) / 2, w, h };
     pt = (name) => [img.x + V.pt[name][0] * img.w, img.y + V.pt[name][1] * img.h];
   }
-  const s = src[kind], raw = s === "raw";
+  const s = useCut ? V.cut : src[kind], raw = s === "raw";
   return (
     <div ref={box} style={{ position: "relative", height, minWidth: 0 }}>
       {img && s && (
-        <img key={kind} src={raw ? V.src : s} alt="" aria-hidden="true" draggable="false" className="fs-in"
+        <img key={kind + (useCut ? "c" : "")} src={raw ? V.src : s} alt="" aria-hidden="true" draggable="false" className="fs-in" decoding="async"
+          onError={useCut ? () => setCutBad((o) => Object.assign({}, o, { [kind]: true })) : undefined}
           style={{ position: "absolute", left: img.x, top: img.y, width: img.w, height: img.h, pointerEvents: "none", userSelect: "none",
             mixBlendMode: raw ? (kind === "night" ? "screen" : "multiply") : "normal" }} />
       )}

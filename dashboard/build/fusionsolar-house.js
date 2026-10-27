@@ -2,6 +2,7 @@ function _extends() { return _extends = Object.assign ? Object.assign.bind() : f
 const FS_HOUSE = {
   day: {
     src: "dashboard/assets/fs-house.jpg?v=1",
+    cut: "dashboard/assets/fs-house-cut-day.webp?v=1",
     w: 1376,
     h: 768,
     fill: "rgb(232,232,231)",
@@ -17,14 +18,17 @@ const FS_HOUSE = {
   },
   dusk: {
     src: "dashboard/assets/fs-house-dusk.jpg?v=1",
+    cut: "dashboard/assets/fs-house-cut-dusk.webp?v=1",
     fill: "rgb(241,237,226)"
   },
   eve: {
     src: "dashboard/assets/fs-house-eve.jpg?v=1",
+    cut: "dashboard/assets/fs-house-cut-eve.webp?v=1",
     fill: "rgb(218,223,229)"
   },
   night: {
     src: "dashboard/assets/fs-house-night.jpg?v=1",
+    cut: "dashboard/assets/fs-house-cut-night.webp?v=1",
     w: 1024,
     h: 572,
     fill: "rgb(15,20,24)",
@@ -175,7 +179,10 @@ function FsHouseStage({
     ro && ro.observe(box.current);
     return () => ro && ro.disconnect();
   }, []);
+  const [cutBad, setCutBad] = React.useState({});
+  const useCut = !!V.cut && !cutBad[kind];
   React.useEffect(() => {
+    if (useCut) return undefined;
     let dead = false;
     fsHouseCutout(kind).then(u => !dead && setSrc(o => Object.assign({}, o, {
       [kind]: u
@@ -185,7 +192,7 @@ function FsHouseStage({
     return () => {
       dead = true;
     };
-  }, [kind]);
+  }, [kind, useCut]);
   const AR = V.w / V.h,
     P = pad || 0;
   let img = null,
@@ -203,7 +210,7 @@ function FsHouseStage({
     };
     pt = name => [img.x + V.pt[name][0] * img.w, img.y + V.pt[name][1] * img.h];
   }
-  const s = src[kind],
+  const s = useCut ? V.cut : src[kind],
     raw = s === "raw";
   return React.createElement("div", {
     ref: box,
@@ -213,12 +220,16 @@ function FsHouseStage({
       minWidth: 0
     }
   }, img && s && React.createElement("img", {
-    key: kind,
+    key: kind + (useCut ? "c" : ""),
     src: raw ? V.src : s,
     alt: "",
     "aria-hidden": "true",
     draggable: "false",
     className: "fs-in",
+    decoding: "async",
+    onError: useCut ? () => setCutBad(o => Object.assign({}, o, {
+      [kind]: true
+    })) : undefined,
     style: {
       position: "absolute",
       left: img.x,
