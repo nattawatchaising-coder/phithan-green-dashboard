@@ -7,6 +7,18 @@
 - **ขั้น 1 (ทำแล้ว):** ตัวยิง API + เข้ารหัส (`api/_lib/isolarcloud.mjs`) · สคริปต์สำรวจอ่านอย่างเดียว · ตัวปลอม — ผ่านกับตัวปลอมทั้งโหมดเข้ารหัส/ไม่เข้ารหัส
 - **ขั้น 2 (รอ):** รันสำรวจกับของจริง ดูชื่อฟิลด์/หน่วยจริงก่อน แล้วค่อยออกแบบการเก็บลง `fsSites`/`fsDevices` (id `SG-<ps_id>` · `source: "isolarcloud"`) + ซิงก์ผ่าน endpoint เดิม (Vercel Hobby จำกัด 12 ฟังก์ชัน ใช้อยู่ 10)
 
+## ผลสำรวจของจริง (2026-10-27 · `node tools/isolarcloud-probe.mjs`)
+- **ล็อกอินผ่านที่ `gateway.isolarcloud.com.hk` แบบเข้ารหัส** · บัญชี Flashplussolar (user_id 498435) · 6 คำขอ ไม่มี error
+- **4 ไซต์:** SAN HER PLASTIC 2 (236.25 kWp) · SAN HER PLASTIC 1 (350) · Tissin food (thailand) (717.6) · ANDYLISA (11.7)
+- **`getPowerStationList` ให้ค่าผลิตมาด้วยเลย** (ไม่ต้องยิงค่าตอนนี้แยกต่อไซต์) — ค่าเป็น `{unit, value}` หน่วยเปลี่ยนตามขนาด (เจอ `total_energy` เป็น **MWh** · `today_energy` kWh · `curr_power` kW) **ต้องแปลงตาม unit ทุกครั้ง**
+  - อื่น ๆ: `total_capcity` (สะกดผิดตามต้นทาง · kWp) · `co2_reduce(_total)` kg · `equivalent_hour` · `today_income`/`total_income` THB · `ps_status` 1 · `ps_fault_status` 3 (= ปกติ?) · `alarm_count` `fault_count` · `install_date` · `ps_current_time_zone` "GMT+7"
+  - เวลา `*_update_time` ส่งเป็น **+08:00** (เวลาจีน เหมือน Huawei) — เป็นเวลาจริงที่ตีโซนผิดหรือไม่ ยังต้องเช็ก
+  - `latitude`/`longitude` ไซต์ตัวอย่างเป็นค่าหลอก ~0.00 → ล้างทิ้งแบบ FusionSolar
+- **อุปกรณ์** (`getDeviceList`): `device_type` 1 Inverter (SG150CX · SG36CX-P2) · 7 Meter (UMG104-1) · 9 Data logger (Logger1000) · ฟิลด์ `ps_key` `device_sn` `device_name` `device_model_code` `type_name` `dev_status` `dev_fault_status` `uuid`
+- **ค่าไซต์ (device_type 11) ผ่าน `getDeviceRealTimeData` ถูกหน่วยตามที่คาด** (Wh/W) — ตรวจกับไซต์จริง: ผลิตตอนนี้ 222.7 kW ≈ ใช้ไฟ 221.5 kW · ซื้อวันนี้ 1,222 kWh ขาย 1.6 kWh (โรงงาน)
+- **point อินเวอร์เตอร์ 540 ตัว** (`getOpenPointInfo` ให้ `point_id` `point_name` `storage_unit`): 1 ผลิตวันนี้ Wh · 2 สะสม Wh · 3 ชั่วโมงทำงาน · 4 อุณหภูมิภายใน ℃ · 5/6, 7/8, 9/10, 45/46 … 51/52 MPPT1–7 V/A · 14 กำลัง DC W · 18–20 แรงดันเฟส · 21–23 กระแสเฟส · **24 กำลังไฟ AC W** · 25 var · 26 PF · 27 Hz · 29 สถานะทำงาน · 43 VA · 70+ กระแสสตริง 1… A
+- ค่าใน `device_point` เป็นสตริง · `device_time` "YYYYMMDDHHmmss" · มี `dev_fault_status` ติดมา
+
 ## ไฟล์
 | ไฟล์ | หน้าที่ |
 |---|---|
