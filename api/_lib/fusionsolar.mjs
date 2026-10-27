@@ -281,7 +281,7 @@ async function writePatch(root, patch) {
         "hist" (ข้อมูลผลิตย้อนหลังไว้วาดกราฟ — แอดมินกดเอง ไม่อยู่ใน all/cron)
    ================================================================ */
 export async function runSync(o) {
-  const job = ["sites", "kpi", "all", "hist"].includes(o.job) ? o.job : "all";
+  const job = ["sites", "kpi", "all", "hist", "histday"].includes(o.job) ? o.job : "all";
   const dry = o.dryRun !== false;
   const t0 = Date.now();
   const left = () => BUDGET_MS - (Date.now() - t0);
