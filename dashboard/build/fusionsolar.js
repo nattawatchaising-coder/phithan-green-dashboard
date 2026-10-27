@@ -2137,8 +2137,11 @@ function FsHistoryCard({
   only
 }) {
   const [range, setRange] = React.useState("30");
-  const tab = only === "hist" ? range : "day";
   const [selDay, setSelDay] = React.useState(null);
+  const [zoom, setZoom] = React.useState(false);
+  const [drill, setDrill] = React.useState(null);
+  const drillMode = only === "hist" && !!drill;
+  const tab = only === "hist" ? drill ? "day" : range : "day";
   const meterId = em && em.meter ? em.meter.id : null;
   const {
     val: dayVal
@@ -2148,7 +2151,7 @@ function FsHistoryCard({
   } = useFsNode("fsKpiMonth/" + site.id, 13);
   const cap = fsN(site.capacity_kw);
   const now = fsBkk(Date.now());
-  const sel = selDay || now.day;
+  const sel = (drillMode ? drill : selDay) || now.day;
   const perKwp = v => cap > 0 && v != null ? fsFmt(v / cap, 2) + " kWh/kWp" : null;
   const today = React.useMemo(() => {
     const isToday = sel === now.day;
@@ -2315,7 +2318,7 @@ function FsHistoryCard({
   const dayKeys = Object.keys(dayVal || {}).sort();
   const shift = n => {
     const d = fsBkk(Date.parse(sel + "T12:00:00+07:00") + n * 864e5).day;
-    setSelDay(d >= now.day ? null : d);
+    if (drillMode) setDrill(d > now.day ? now.day : d);else setSelDay(d >= now.day ? null : d);
   };
   const canBack = dayKeys.length > 0 && sel > dayKeys[0];
   const navBtn = (dir, on, lbl) => React.createElement("button", {
@@ -2440,7 +2443,55 @@ function FsHistoryCard({
       opacity: op || 1
     }
   });
-  return React.createElement(FsCard, {
+  const expand = () => setZoom(true);
+  const chartBlock = (h, big) => React.createElement(React.Fragment, null, C && tab === "day" && React.createElement(C, {
+    mode: "time",
+    t0: today.t0,
+    t1: today.t1,
+    bars: today.bars.some(b => b.value != null || b.load != null) ? today.bars : [],
+    unit: "kW",
+    height: h,
+    onExpand: big ? null : expand,
+    empty: today.isToday ? "ยังไม่มีค่ากำลังไฟของวันนี้ — จดทุกรอบซิงก์ (~15 นาที)" : "วันนี้ไม่มีข้อมูลรายชั่วโมง — แอดมินกด \"ย้อนหลัง (กราฟ)\" ในหน้า log การซิงก์ เพื่อดึงจาก Huawei (ย้อนได้ 7 วัน)"
+  }), tab === "day" && today.avgPts && React.createElement("div", {
+    style: {
+      fontSize: 11.5,
+      color: "var(--text-3)",
+      marginTop: 6
+    }
+  }, today.fine ? "ช่วงที่ยังไม่ได้จดละเอียดทุก 15 นาที แสดงเป็นค่าเฉลี่ยรายชั่วโมง" : "ค่าเฉลี่ยรายชั่วโมง (จดละเอียดทุก 15 นาทีเริ่ม 27 ต.ค. 69)"), C && tab === "30" && React.createElement(C, {
+    mode: "bars",
+    bars: days,
+    unit: "kWh",
+    avg: dayAvg,
+    avgLabel: "\u0E40\u0E09\u0E25\u0E35\u0E48\u0E22",
+    height: h,
+    onExpand: big ? null : expand,
+    onPick: big ? b => setDrill(b.k) : null,
+    empty: "\u0E22\u0E31\u0E07\u0E44\u0E21\u0E48\u0E21\u0E35\u0E1B\u0E23\u0E30\u0E27\u0E31\u0E15\u0E34\u0E23\u0E32\u0E22\u0E27\u0E31\u0E19 \u2014 \u0E40\u0E23\u0E34\u0E48\u0E21\u0E40\u0E01\u0E47\u0E1A\u0E15\u0E31\u0E49\u0E07\u0E41\u0E15\u0E48\u0E0B\u0E34\u0E07\u0E01\u0E4C\u0E02\u0E49\u0E2D\u0E21\u0E39\u0E25\u0E1C\u0E25\u0E34\u0E15\u0E23\u0E2D\u0E1A\u0E41\u0E23\u0E01"
+  }), C && tab === "12" && React.createElement(C, {
+    mode: "bars",
+    bars: mons,
+    unit: "kWh",
+    avg: monAvg,
+    avgLabel: "\u0E40\u0E09\u0E25\u0E35\u0E48\u0E22",
+    height: h,
+    onExpand: big ? null : expand,
+    empty: "\u0E22\u0E31\u0E07\u0E44\u0E21\u0E48\u0E21\u0E35\u0E1B\u0E23\u0E30\u0E27\u0E31\u0E15\u0E34\u0E23\u0E32\u0E22\u0E40\u0E14\u0E37\u0E2D\u0E19"
+  }));
+  const zoomRight = drillMode ? React.createElement("div", {
+    style: {
+      display: "flex",
+      alignItems: "center",
+      gap: 8,
+      flexWrap: "wrap"
+    }
+  }, React.createElement("button", {
+    type: "button",
+    className: "btn btn-sm",
+    onClick: () => setDrill(null)
+  }, "\u2039 ", range === "12" ? "12 เดือน" : "30 วัน"), dayNav) : seg || dayNav;
+  return React.createElement(React.Fragment, null, React.createElement(FsCard, {
     title: title,
     sub: isMobile ? null : sub,
     right: seg || dayNav
@@ -2526,37 +2577,7 @@ function FsHistoryCard({
         textOverflow: "ellipsis"
       }
     }, x.s)));
-  })), C && tab === "day" && React.createElement(C, {
-    mode: "time",
-    t0: today.t0,
-    t1: today.t1,
-    bars: today.bars.some(b => b.value != null || b.load != null) ? today.bars : [],
-    unit: "kW",
-    height: isMobile ? 190 : 220,
-    empty: today.isToday ? "ยังไม่มีค่ากำลังไฟของวันนี้ — จดทุกรอบซิงก์ (~15 นาที)" : "วันนี้ไม่มีข้อมูลรายชั่วโมง — แอดมินกด \"ย้อนหลัง (กราฟ)\" ในหน้า log การซิงก์ เพื่อดึงจาก Huawei (ย้อนได้ 7 วัน)"
-  }), tab === "day" && today.avgPts && React.createElement("div", {
-    style: {
-      fontSize: 11.5,
-      color: "var(--text-3)",
-      marginTop: 6
-    }
-  }, today.fine ? "ช่วงที่ยังไม่ได้จดละเอียดทุก 15 นาที แสดงเป็นค่าเฉลี่ยรายชั่วโมง" : "ค่าเฉลี่ยรายชั่วโมง (จดละเอียดทุก 15 นาทีเริ่ม 27 ต.ค. 69)"), C && tab === "30" && React.createElement(C, {
-    mode: "bars",
-    bars: days,
-    unit: "kWh",
-    avg: dayAvg,
-    avgLabel: "\u0E40\u0E09\u0E25\u0E35\u0E48\u0E22",
-    height: isMobile ? 190 : 220,
-    empty: "\u0E22\u0E31\u0E07\u0E44\u0E21\u0E48\u0E21\u0E35\u0E1B\u0E23\u0E30\u0E27\u0E31\u0E15\u0E34\u0E23\u0E32\u0E22\u0E27\u0E31\u0E19 \u2014 \u0E40\u0E23\u0E34\u0E48\u0E21\u0E40\u0E01\u0E47\u0E1A\u0E15\u0E31\u0E49\u0E07\u0E41\u0E15\u0E48\u0E0B\u0E34\u0E07\u0E01\u0E4C\u0E02\u0E49\u0E2D\u0E21\u0E39\u0E25\u0E1C\u0E25\u0E34\u0E15\u0E23\u0E2D\u0E1A\u0E41\u0E23\u0E01"
-  }), C && tab === "12" && React.createElement(C, {
-    mode: "bars",
-    bars: mons,
-    unit: "kWh",
-    avg: monAvg,
-    avgLabel: "\u0E40\u0E09\u0E25\u0E35\u0E48\u0E22",
-    height: isMobile ? 190 : 220,
-    empty: "\u0E22\u0E31\u0E07\u0E44\u0E21\u0E48\u0E21\u0E35\u0E1B\u0E23\u0E30\u0E27\u0E31\u0E15\u0E34\u0E23\u0E32\u0E22\u0E40\u0E14\u0E37\u0E2D\u0E19"
-  }), React.createElement("div", {
+  })), chartBlock(isMobile ? 190 : 220, false), React.createElement("div", {
     style: {
       display: "flex",
       gap: 14,
@@ -2633,7 +2654,21 @@ function FsHistoryCard({
     style: {
       marginLeft: "auto"
     }
-  }, "\u0E40\u0E01\u0E47\u0E1A\u0E1B\u0E23\u0E30\u0E27\u0E31\u0E15\u0E34\u0E15\u0E31\u0E49\u0E07\u0E41\u0E15\u0E48 ", fsDayTH(firstDay))));
+  }, "\u0E40\u0E01\u0E47\u0E1A\u0E1B\u0E23\u0E30\u0E27\u0E31\u0E15\u0E34\u0E15\u0E31\u0E49\u0E07\u0E41\u0E15\u0E48 ", fsDayTH(firstDay)))), zoom && React.createElement(FsModal, {
+    width: 1100,
+    title: title,
+    sub: sub,
+    right: zoomRight,
+    onClose: () => {
+      setZoom(false);
+      setDrill(null);
+    }
+  }, chartBlock(isMobile ? 300 : 440, true), !drillMode && tab === "30" && React.createElement("div", {
+    style: {
+      fontSize: 12,
+      color: "var(--text-3)"
+    }
+  }, "\u0E41\u0E15\u0E30\u0E41\u0E17\u0E48\u0E07\u0E02\u0E2D\u0E07\u0E27\u0E31\u0E19\u0E44\u0E2B\u0E19 \u0E40\u0E1E\u0E37\u0E48\u0E2D\u0E14\u0E39\u0E01\u0E33\u0E25\u0E31\u0E07\u0E44\u0E1F\u0E23\u0E32\u0E22\u0E0A\u0E31\u0E48\u0E27\u0E42\u0E21\u0E07\u0E02\u0E2D\u0E07\u0E27\u0E31\u0E19\u0E19\u0E31\u0E49\u0E19")));
 }
 function FsEnergyCard({
   em,

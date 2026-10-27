@@ -47,7 +47,9 @@ function FsTrendChart({
   height,
   empty,
   t0,
-  t1
+  t1,
+  onExpand,
+  onPick
 }) {
   const [ref, w] = useFsWidth(640);
   const [hov, setHov] = React.useState(null);
@@ -81,26 +83,36 @@ function FsTrendChart({
   const fmtTick = v => max >= 10000 ? fsFmt(v / 1000, 1) + "k" : fsFmt(v, max < 10 ? 1 : 0);
   const sun = "var(--fs-sun)";
   const bw = Math.max(4, Math.min(22, step * 0.6));
-  const tog = (vals.length > 0 || hasLoad) && React.createElement("button", {
-    type: "button",
-    onClick: () => setTable(!table),
+  const chipStyle = {
+    border: "none",
+    background: "var(--surface2)",
+    boxShadow: "var(--shadow-inset)",
+    borderRadius: "var(--r-chip)",
+    padding: "3px 10px",
+    fontSize: 10.5,
+    fontWeight: 700,
+    color: "var(--text-2)",
+    cursor: "pointer",
+    fontFamily: "inherit"
+  };
+  const tog = (vals.length > 0 || hasLoad) && React.createElement("div", {
     style: {
       position: "absolute",
       top: 0,
       right: 0,
-      border: "none",
-      background: "var(--surface2)",
-      boxShadow: "var(--shadow-inset)",
-      borderRadius: "var(--r-chip)",
-      padding: "3px 10px",
-      fontSize: 10.5,
-      fontWeight: 700,
-      color: "var(--text-2)",
-      cursor: "pointer",
-      fontFamily: "inherit",
+      display: "flex",
+      gap: 6,
       zIndex: 2
     }
-  }, table ? "กราฟ" : "ตาราง");
+  }, onExpand && !table && React.createElement("button", {
+    type: "button",
+    onClick: onExpand,
+    style: chipStyle
+  }, "\u0E02\u0E22\u0E32\u0E22"), React.createElement("button", {
+    type: "button",
+    onClick: () => setTable(!table),
+    style: chipStyle
+  }, table ? "กราฟ" : "ตาราง"));
   const grid = [0, 0.5, 1].map(f => React.createElement("g", {
     key: f
   }, React.createElement("line", {
@@ -628,6 +640,7 @@ function FsTrendChart({
   }), bars.map((b, i) => {
     const x0 = timeMode ? i ? (X(i - 1) + X(i)) / 2 : padL : padL + step * i;
     const x1 = timeMode ? i < bars.length - 1 ? (X(i) + X(i + 1)) / 2 : w - padR : x0 + step;
+    const tap = onPick ? () => onPick(b, i) : onExpand || null;
     return React.createElement("rect", {
       key: "h" + b.k,
       x: x0,
@@ -635,10 +648,12 @@ function FsTrendChart({
       width: Math.max(1, x1 - x0),
       height: H,
       style: {
-        fill: "transparent"
+        fill: "transparent",
+        cursor: tap ? "pointer" : "default"
       },
       onMouseEnter: () => setHov(i),
-      onTouchStart: () => setHov(i)
+      onTouchStart: () => setHov(i),
+      onClick: tap || undefined
     });
   })), hb && React.createElement("div", {
     style: {

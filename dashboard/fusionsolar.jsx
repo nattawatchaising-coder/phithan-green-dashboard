@@ -821,14 +821,20 @@ function FsIssues({ list }) {
    แล้ว "พลังงานไปไหน" อยู่ถัดลงไป */
 function FsHistoryCard({ site, isMobile, flip, em, only }) {
   const [range, setRange] = React.useState("30");
-  const tab = only === "hist" ? range : "day";
   const [selDay, setSelDay] = React.useState(null);   // null = วันนี้
+  /* กดกราฟ = ขยายเป็นหน้าต่างใหญ่ แล้วกดแท่งวันไหนต่อ = เข้าไปดูกำลังไฟรายชั่วโมงของวันนั้น
+     (ผู้ใช้สั่ง ต.ค. 2026 — กราฟในการ์ดเล็กเกินกว่าจะกดดูทีละวันบนมือถือ)
+     drill = วันที่กดจากกราฟ 30 วัน (เฉพาะการ์ดย้อนหลัง) · null = กลับไปกราฟตามช่วงที่เลือก */
+  const [zoom, setZoom] = React.useState(false);
+  const [drill, setDrill] = React.useState(null);
+  const drillMode = only === "hist" && !!drill;
+  const tab = only === "hist" ? (drill ? "day" : range) : "day";
   const meterId = em && em.meter ? em.meter.id : null;
   const { val: dayVal } = useFsNode("fsKpiDay/" + site.id, 32);
   const { val: monVal } = useFsNode("fsKpiMonth/" + site.id, 13);
   const cap = fsN(site.capacity_kw);
   const now = fsBkk(Date.now());
-  const sel = selDay || now.day;
+  const sel = (drillMode ? drill : selDay) || now.day;
   const perKwp = (v) => (cap > 0 && v != null ? fsFmt(v / cap, 2) + " kWh/kWp" : null);
 
   /* กำลังไฟรายวัน (kW) — ผู้ใช้สั่ง 2026-10-27 "ต้องเป็นกราฟ kW" + "วันก่อนหน้าก็ดูไม่ได้" → เลือกวันได้ (ปุ่ม ‹ ›) ย้อนได้เท่าที่โหลด (32 วัน)
@@ -925,7 +931,11 @@ function FsHistoryCard({ site, isMobile, flip, em, only }) {
   const title = tab === "day" ? (today.isToday ? "กำลังไฟวันนี้" : "กำลังไฟ " + fsDayTH(sel)) : "ผลิตย้อนหลัง";
   /* เลือกวันของการ์ดกำลังไฟ — ย้อนได้ถึงวันแรกที่มีประวัติ (โหลดไว้ 32 วัน) */
   const dayKeys = Object.keys(dayVal || {}).sort();
-  const shift = (n) => { const d = fsBkk(Date.parse(sel + "T12:00:00+07:00") + n * 864e5).day; setSelDay(d >= now.day ? null : d); };
+  const shift = (n) => {
+    const d = fsBkk(Date.parse(sel + "T12:00:00+07:00") + n * 864e5).day;
+    if (drillMode) setDrill(d > now.day ? now.day : d);   // ที่นี่ null แปลว่าออกจากโหมดเจาะ จึงหนีบไว้ที่วันนี้แทน
+    else setSelDay(d >= now.day ? null : d);
+  };
   const canBack = dayKeys.length > 0 && sel > dayKeys[0];
   const navBtn = (dir, on, lbl) => (
     <button type="button" className="btn btn-sm" disabled={!on} onClick={() => shift(dir)} aria-label={lbl}
@@ -964,7 +974,36 @@ function FsHistoryCard({ site, isMobile, flip, em, only }) {
   const big = (v) => (v != null && v >= 10000 ? [v / 1000, "MWh"] : [v, null]);
   const C = window.FsTrendChart;
   const dot = (bg, op) => <span style={{ width: 10, height: 10, borderRadius: 5, background: bg, opacity: op || 1 }} />;
+
+  /* กราฟชุดเดียวใช้ทั้งในการ์ดและในหน้าต่างขยาย — big = อยู่ในหน้าต่างขยายแล้ว
+     ในการ์ด: กดที่กราฟ = ขยาย · ในหน้าต่างขยาย: กดแท่งวัน = เข้าไปดูรายชั่วโมงของวันนั้น */
+  const expand = () => setZoom(true);
+  const chartBlock = (h, big) => (
+    <React.Fragment>
+      {C && tab === "day" && <C mode="time" t0={today.t0} t1={today.t1} bars={today.bars.some((b) => b.value != null || b.load != null) ? today.bars : []} unit="kW" height={h}
+        onExpand={big ? null : expand}
+        empty={today.isToday ? "ยังไม่มีค่ากำลังไฟของวันนี้ — จดทุกรอบซิงก์ (~15 นาที)" : "วันนี้ไม่มีข้อมูลรายชั่วโมง — แอดมินกด \"ย้อนหลัง (กราฟ)\" ในหน้า log การซิงก์ เพื่อดึงจาก Huawei (ย้อนได้ 7 วัน)"} />}
+      {tab === "day" && today.avgPts && (
+        <div style={{ fontSize: 11.5, color: "var(--text-3)", marginTop: 6 }}>{today.fine ? "ช่วงที่ยังไม่ได้จดละเอียดทุก 15 นาที แสดงเป็นค่าเฉลี่ยรายชั่วโมง" : "ค่าเฉลี่ยรายชั่วโมง (จดละเอียดทุก 15 นาทีเริ่ม 27 ต.ค. 69)"}</div>
+      )}
+      {C && tab === "30" && <C mode="bars" bars={days} unit="kWh" avg={dayAvg} avgLabel="เฉลี่ย" height={h}
+        onExpand={big ? null : expand}
+        onPick={big ? ((b) => setDrill(b.k)) : null}
+        empty="ยังไม่มีประวัติรายวัน — เริ่มเก็บตั้งแต่ซิงก์ข้อมูลผลิตรอบแรก" />}
+      {C && tab === "12" && <C mode="bars" bars={mons} unit="kWh" avg={monAvg} avgLabel="เฉลี่ย" height={h}
+        onExpand={big ? null : expand}
+        empty="ยังไม่มีประวัติรายเดือน" />}
+    </React.Fragment>
+  );
+  /* ปุ่มบนหัวหน้าต่างขยาย — ตอนเจาะดูรายวันเปลี่ยนเป็น "กลับ" + ปุ่มเลื่อนวัน */
+  const zoomRight = drillMode ? (
+    <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+      <button type="button" className="btn btn-sm" onClick={() => setDrill(null)}>‹ {range === "12" ? "12 เดือน" : "30 วัน"}</button>
+      {dayNav}
+    </div>
+  ) : (seg || dayNav);
   return (
+    <React.Fragment>
     <FsCard title={title} sub={isMobile ? null : sub} right={seg || dayNav}>
       {isMobile && <div style={{ fontSize: 11.5, color: "var(--text-3)", marginTop: -4, marginBottom: 8 }}>{sub}</div>}
       <div className="kpi-grid" style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr 1fr" : "1.25fr 1fr 1fr", gap: isMobile ? 10 : 0, margin: "4px 0 14px" }}>
@@ -989,15 +1028,7 @@ function FsHistoryCard({ site, isMobile, flip, em, only }) {
           );
         })}
       </div>
-      {C && tab === "day" && <C mode="time" t0={today.t0} t1={today.t1} bars={today.bars.some((b) => b.value != null || b.load != null) ? today.bars : []} unit="kW" height={isMobile ? 190 : 220}
-        empty={today.isToday ? "ยังไม่มีค่ากำลังไฟของวันนี้ — จดทุกรอบซิงก์ (~15 นาที)" : "วันนี้ไม่มีข้อมูลรายชั่วโมง — แอดมินกด \"ย้อนหลัง (กราฟ)\" ในหน้า log การซิงก์ เพื่อดึงจาก Huawei (ย้อนได้ 7 วัน)"} />}
-      {tab === "day" && today.avgPts && (
-        <div style={{ fontSize: 11.5, color: "var(--text-3)", marginTop: 6 }}>{today.fine ? "ช่วงที่ยังไม่ได้จดละเอียดทุก 15 นาที แสดงเป็นค่าเฉลี่ยรายชั่วโมง" : "ค่าเฉลี่ยรายชั่วโมง (จดละเอียดทุก 15 นาทีเริ่ม 27 ต.ค. 69)"}</div>
-      )}
-      {C && tab === "30" && <C mode="bars" bars={days} unit="kWh" avg={dayAvg} avgLabel="เฉลี่ย" height={isMobile ? 190 : 220}
-        empty="ยังไม่มีประวัติรายวัน — เริ่มเก็บตั้งแต่ซิงก์ข้อมูลผลิตรอบแรก" />}
-      {C && tab === "12" && <C mode="bars" bars={mons} unit="kWh" avg={monAvg} avgLabel="เฉลี่ย" height={isMobile ? 190 : 220}
-        empty="ยังไม่มีประวัติรายเดือน" />}
+      {chartBlock(isMobile ? 190 : 220, false)}
       <div style={{ display: "flex", gap: 14, flexWrap: "wrap", alignItems: "center", fontSize: 11, color: "var(--text-3)", marginTop: 8 }}>
         {tab === "day" ? (
           <React.Fragment>
@@ -1019,6 +1050,15 @@ function FsHistoryCard({ site, isMobile, flip, em, only }) {
         {firstDay && <span style={{ marginLeft: "auto" }}>เก็บประวัติตั้งแต่ {fsDayTH(firstDay)}</span>}
       </div>
     </FsCard>
+    {zoom && (
+      <FsModal width={1100} title={title} sub={sub} right={zoomRight} onClose={() => { setZoom(false); setDrill(null); }}>
+        {chartBlock(isMobile ? 300 : 440, true)}
+        {!drillMode && tab === "30" && (
+          <div style={{ fontSize: 12, color: "var(--text-3)" }}>แตะแท่งของวันไหน เพื่อดูกำลังไฟรายชั่วโมงของวันนั้น</div>
+        )}
+      </FsModal>
+    )}
+    </React.Fragment>
   );
 }
 

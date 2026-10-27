@@ -55,7 +55,9 @@ function fsMonoPath(P) {
 
 /* ── ประวัติการผลิต ──
    bars: [{ k, label, value, tip: [บรรทัด], partial }] · avg = เส้นค่าเฉลี่ยประ (แท่งเท่านั้น) */
-function FsTrendChart({ mode, bars, unit, avg, avgLabel, height, empty, t0, t1 }) {
+/* onExpand = กดที่กราฟแล้วเปิดเป็นหน้าต่างใหญ่ (การ์ดเล็ก) · onPick = กดแท่งแล้วเจาะดูรายวัน (ในหน้าต่างใหญ่)
+   มีอย่างใดอย่างหนึ่ง = ทั้งกราฟกดได้ · ไม่มีเลย = ชี้ดูค่าอย่างเดียวเหมือนเดิม */
+function FsTrendChart({ mode, bars, unit, avg, avgLabel, height, empty, t0, t1, onExpand, onPick }) {
   const [ref, w] = useFsWidth(640);
   const [hov, setHov] = React.useState(null);
   React.useEffect(() => { setHov(null); }, [bars.length]);
@@ -81,10 +83,13 @@ function FsTrendChart({ mode, bars, unit, avg, avgLabel, height, empty, t0, t1 }
   const fmtTick = (v) => (max >= 10000 ? fsFmt(v / 1000, 1) + "k" : fsFmt(v, max < 10 ? 1 : 0));
   const sun = "var(--fs-sun)";
   const bw = Math.max(4, Math.min(22, step * 0.6));
+  const chipStyle = { border: "none", background: "var(--surface2)", boxShadow: "var(--shadow-inset)", borderRadius: "var(--r-chip)",
+    padding: "3px 10px", fontSize: 10.5, fontWeight: 700, color: "var(--text-2)", cursor: "pointer", fontFamily: "inherit" };
   const tog = (vals.length > 0 || hasLoad) && (
-    <button type="button" onClick={() => setTable(!table)}
-      style={{ position: "absolute", top: 0, right: 0, border: "none", background: "var(--surface2)", boxShadow: "var(--shadow-inset)", borderRadius: "var(--r-chip)",
-        padding: "3px 10px", fontSize: 10.5, fontWeight: 700, color: "var(--text-2)", cursor: "pointer", fontFamily: "inherit", zIndex: 2 }}>{table ? "กราฟ" : "ตาราง"}</button>
+    <div style={{ position: "absolute", top: 0, right: 0, display: "flex", gap: 6, zIndex: 2 }}>
+      {onExpand && !table && <button type="button" onClick={onExpand} style={chipStyle}>ขยาย</button>}
+      <button type="button" onClick={() => setTable(!table)} style={chipStyle}>{table ? "กราฟ" : "ตาราง"}</button>
+    </div>
   );
   const grid = [0, 0.5, 1].map((f) => (
     <g key={f}>
@@ -266,8 +271,9 @@ function FsTrendChart({ mode, bars, unit, avg, avgLabel, height, empty, t0, t1 }
           /* พื้นที่ชี้ — แกนเวลา = จากกึ่งกลางจุดก่อนหน้าถึงกึ่งกลางจุดถัดไป */
           const x0 = timeMode ? (i ? (X(i - 1) + X(i)) / 2 : padL) : padL + step * i;
           const x1 = timeMode ? (i < bars.length - 1 ? (X(i) + X(i + 1)) / 2 : w - padR) : x0 + step;
-          return <rect key={"h" + b.k} x={x0} y={0} width={Math.max(1, x1 - x0)} height={H} style={{ fill: "transparent" }}
-            onMouseEnter={() => setHov(i)} onTouchStart={() => setHov(i)} />;
+          const tap = onPick ? () => onPick(b, i) : onExpand || null;
+          return <rect key={"h" + b.k} x={x0} y={0} width={Math.max(1, x1 - x0)} height={H} style={{ fill: "transparent", cursor: tap ? "pointer" : "default" }}
+            onMouseEnter={() => setHov(i)} onTouchStart={() => setHov(i)} onClick={tap || undefined} />;
         })}
       </svg>
       {hb && (
