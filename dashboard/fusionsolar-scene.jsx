@@ -309,7 +309,7 @@ const FS_HEALTH_XTH = { 3: "ปกติ", 2: "มีปัญหา", 1: "อ�
 async function fsExportMonthXlsx(sites, mon) {
   const X = window.XLSX;
   if (!X || !window.FBDB) throw new Error("ไม่พบไลบรารี Excel หรือฐานข้อมูล (ลองโหลดหน้าใหม่)");
-  const list = sites.filter((s) => s.fusionsolar_station_code);
+  const list = sites.filter((s) => fsCodeOf(s));
   const data = await fsLoadMonth(list, mon);
   const nd = fsMonthDays(mon), cur = mon === fsBkk(Date.now()).mon;
   const dom = cur ? +fsBkk(Date.now()).day.slice(8) : nd;
@@ -347,8 +347,8 @@ async function fsExportMonthXlsx(sites, mon) {
   data.slice().sort((a, b) => String(a.s.name).localeCompare(String(b.s.name), "th")).forEach((r, i) => {
     const pct = med && r.yd != null ? r.yd / med : null;
     const hs = FS_HEALTH_XTH[r.s.health_state] || "ไม่ทราบ";
-    R2.push({ cells: [i + 1, r.s.name || r.s.id, r.s.fusionsolar_station_code, fsN(r.s.capacity_kw), r.kwh, r.y, r.kwh != null ? r.kwh / dom : null, r.yd, pct,
-      r.nDays, r.s.fs_status === "not_found_in_fusionsolar" ? "ไม่พบใน FusionSolar" : hs, r.kwh != null ? r.kwh * FS_GRID_EF : null, fsN(r.s.total_kwh),
+    R2.push({ cells: [i + 1, r.s.name || r.s.id, fsCodeOf(r.s), fsN(r.s.capacity_kw), r.kwh, r.y, r.kwh != null ? r.kwh / dom : null, r.yd, pct,
+      r.nDays, r.s.fs_status === "not_found_in_fusionsolar" ? "ไม่พบในระบบต้นทาง" : hs, r.kwh != null ? r.kwh * FS_GRID_EF : null, fsN(r.s.total_kwh),
       Object.keys(r.s.jobIds || {}).join(", "), r.s.address || ""].map((v) => (v == null ? "" : v)),
       kind: i % 2 ? "alt" : "cell", fmt: { 0: "0", 3: "#,##0.00", 4: "#,##0.0", 5: "#,##0.00", 6: "#,##0.0", 7: "#,##0.00", 8: "0%", 9: "0", 11: "#,##0", 12: "#,##0" },
       cellKind: Object.assign({}, pct != null && pct < 0.6 ? { 8: "warn" } : {}, hs === "ออฟไลน์" ? { 10: "bad" } : hs === "มีปัญหา" ? { 10: "warn" } : {}) });
@@ -397,7 +397,7 @@ async function fsExportSiteXlsx(site, devs, mon) {
   const cap = fsN(site.capacity_kw), nd = fsMonthDays(mon), cur = mon === fsBkk(Date.now()).mon;
   const S = [], sm = [];
   S.push({ cells: [(site.name || site.id) + " — " + fsMonFullTH(mon)], kind: "title", hpt: 26 }); sm.push({ s: { r: 0, c: 0 }, e: { r: 0, c: 5 } });
-  S.push({ cells: [[site.fusionsolar_station_code, cap ? fsFmt(cap, 2) + " kWp" : "", site.address].filter(Boolean).join(" · ")], kind: "sub" }); sm.push({ s: { r: 1, c: 0 }, e: { r: 1, c: 5 } });
+  S.push({ cells: [[fsCodeOf(site), cap ? fsFmt(cap, 2) + " kWp" : "", site.address].filter(Boolean).join(" · ")], kind: "sub" }); sm.push({ s: { r: 1, c: 0 }, e: { r: 1, c: 5 } });
   S.push({ cells: [""], kind: "sub" });
   S.push({ cells: ["วันที่", "ผลิต kWh", "kWh/kWp", "ชั่วโมงแรกที่มีข้อมูล", "ชั่วโมงสุดท้าย", "หมายเหตุ"], kind: "head", hpt: 22 });
   let sum = 0, n = 0;

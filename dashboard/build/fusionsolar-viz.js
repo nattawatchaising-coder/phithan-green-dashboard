@@ -1,3 +1,10 @@
+const fsVendor = s => s && s.isc_ps_id != null ? "sungrow" : s && s.source === "manual" ? "manual" : "huawei";
+const fsCodeOf = s => !s ? "" : s.fusionsolar_station_code || (s.isc_ps_id != null ? "PS " + s.isc_ps_id : "");
+const fsVendorTH = s => ({
+  sungrow: "Sungrow iSolarCloud",
+  huawei: "Huawei FusionSolar",
+  manual: "เพิ่มเองในเว็บ"
+})[fsVendor(s)];
 (function fsInjectCss() {
   if (document.getElementById("fs-viz-css")) return;
   const el = document.createElement("style");
@@ -255,16 +262,16 @@ function fsMonthYield(s) {
 }
 function fsSiteIssues(site, devs, ctx) {
   const out = [];
-  if (!site.fusionsolar_station_code) return out;
+  if (!fsCodeOf(site)) return out;
   if (site.fs_status === "not_found_in_fusionsolar") out.push({
     tone: "bad",
-    text: "ไม่พบสถานีนี้ใน FusionSolar ในการซิงก์ล่าสุด"
+    text: "ไม่พบสถานีนี้ใน " + (fsVendor(site) === "sungrow" ? "iSolarCloud" : "FusionSolar") + " ในการซิงก์ล่าสุด"
   });else if (+site.health_state === 1) out.push({
     tone: "bad",
     text: "สถานีออฟไลน์ — ไม่ได้รับข้อมูลจากอุปกรณ์"
   });else if (+site.health_state === 2) out.push({
     tone: "warn",
-    text: "FusionSolar แจ้งว่าสถานีมีปัญหา (มีสัญญาณเตือนค้าง)"
+    text: (fsVendor(site) === "sungrow" ? "iSolarCloud" : "FusionSolar") + " แจ้งว่าสถานีมีปัญหา (มีสัญญาณเตือนค้าง)"
   });
   const at = Date.parse(site.kpi_updated_at || "");
   if (at && Date.now() - at > 3 * 3600e3 && site.fs_status !== "not_found_in_fusionsolar") out.push({
@@ -277,7 +284,7 @@ function fsSiteIssues(site, devs, ctx) {
     const nm = d.dev_name || d.id;
     if (d.fs_status === "not_found_in_fusionsolar") out.push({
       tone: "warn",
-      text: nm + " ไม่อยู่ในรายการอุปกรณ์ของ FusionSolar แล้ว"
+      text: nm + " ไม่อยู่ในรายการอุปกรณ์ของ " + (d.isc_ps_key ? "iSolarCloud" : "FusionSolar") + " แล้ว"
     });
     const t = +d.dev_type_id;
     if (t === 1 || t === 38) {
@@ -290,7 +297,7 @@ function fsSiteIssues(site, devs, ctx) {
         tone: "warn",
         text: nm + " อุณหภูมิสูง " + fsFmt(k.temperature) + " °C"
       });
-      if (sun >= 9 && sun <= 15) fsStrings(k).filter(x => x.weak).forEach(x => out.push({
+      if (sun >= 9 && sun <= 15 && !d.isc_ps_key) fsStrings(k).filter(x => x.weak).forEach(x => out.push({
         tone: "warn",
         text: nm + " สตริง PV" + x.n + " กระแสต่ำ (" + Math.round(x.ratio * 100) + "% ของสตริงอื่น) — ตรวจเงา/ความสกปรก/ขั้วต่อ"
       }));

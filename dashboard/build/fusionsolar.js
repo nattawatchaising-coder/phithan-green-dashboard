@@ -45,7 +45,7 @@ const FS_HEALTH = {
     bg: "var(--surface3)"
   },
   lost: {
-    th: "ไม่พบใน FusionSolar",
+    th: "ไม่พบในระบบต้นทาง",
     tx: "var(--tint-red-tx)",
     bg: "var(--tint-red-bg)"
   },
@@ -55,13 +55,13 @@ const FS_HEALTH = {
     bg: "var(--surface2)"
   },
   none: {
-    th: "ไม่มีข้อมูล FusionSolar",
+    th: "ไม่มีข้อมูลมอนิเตอร์",
     tx: "var(--text-3)",
     bg: "var(--surface2)"
   }
 };
 function fsHealthKey(s) {
-  if (!s || !s.fusionsolar_station_code) return "none";
+  if (!s || !fsCodeOf(s)) return "none";
   if (s.fs_status === "not_found_in_fusionsolar") return "lost";
   return {
     3: "ok",
@@ -177,21 +177,27 @@ function FsPill({
     }
   }), label || h.th);
 }
+const FS_SRC = {
+  huawei: ["Huawei", "var(--primary-dark)", "var(--primary-soft)"],
+  sungrow: ["Sungrow", "var(--tint-amber-tx)", "var(--tint-amber-bg)"],
+  manual: ["เพิ่มเอง", "var(--text-2)", "var(--surface2)"]
+};
 function FsSrcChip({
   s
 }) {
-  const fs = s.source !== "manual";
+  const [t, tx, bg] = FS_SRC[fsVendor(s)];
   return React.createElement("span", {
+    title: fsVendorTH(s),
     style: {
       fontSize: 10.5,
       fontWeight: 700,
       padding: "3px 8px",
       borderRadius: "var(--r-chip)",
       whiteSpace: "nowrap",
-      color: fs ? "var(--primary-dark)" : "var(--text-2)",
-      background: fs ? "var(--primary-soft)" : "var(--surface2)"
+      color: tx,
+      background: bg
     }
-  }, fs ? "FusionSolar" : "เพิ่มเอง");
+  }, t);
 }
 function FsChips({
   value,
@@ -429,7 +435,7 @@ const FS_HEALTH_RANK = {
 const fsSortVal = (s, k, live) => ({
   now: live && live[s.id] != null ? live[s.id] : -1,
   name: (s.name || "").toLowerCase(),
-  code: s.fusionsolar_station_code || "",
+  code: fsCodeOf(s),
   kw: +s.capacity_kw || 0,
   day: +s.day_kwh || 0,
   yield: fsYield(s) || 0,
@@ -649,7 +655,7 @@ function FsFleetHero({
       color: "var(--text-2)",
       maxWidth: 300
     }
-  }, "\u0E15\u0E34\u0E14\u0E15\u0E31\u0E49\u0E07\u0E23\u0E27\u0E21 ", fsFmt(roll.kw, 0), " kWp \xB7 \u0E14\u0E36\u0E07\u0E02\u0E49\u0E2D\u0E21\u0E39\u0E25\u0E08\u0E32\u0E01 FusionSolar \u0E17\u0E38\u0E01 15 \u0E19\u0E32\u0E17\u0E35"), React.createElement("div", {
+  }, "\u0E15\u0E34\u0E14\u0E15\u0E31\u0E49\u0E07\u0E23\u0E27\u0E21 ", fsFmt(roll.kw, 0), " kWp \xB7 \u0E14\u0E36\u0E07\u0E02\u0E49\u0E2D\u0E21\u0E39\u0E25\u0E08\u0E32\u0E01 Huawei / Sungrow \u0E17\u0E38\u0E01 15 \u0E19\u0E32\u0E17\u0E35"), React.createElement("div", {
     style: {
       display: "flex",
       gap: 6,
@@ -1298,7 +1304,7 @@ function FsSitesTable({
         fontFamily: "var(--mono)",
         marginTop: 1
       }
-    }, s.fusionsolar_station_code || "ไม่มี station code", s.source === "manual" ? " · เพิ่มเอง" : "")), React.createElement("td", {
+    }, fsCodeOf(s) || "ไม่มี station code", " · " + FS_SRC[fsVendor(s)][0])), React.createElement("td", {
       style: Object.assign({}, td, {
         whiteSpace: "nowrap"
       })
@@ -1547,7 +1553,8 @@ const fsSavePref = (k, v) => {
 };
 function FsSyncAlert({
   fail,
-  lastAt
+  lastAt,
+  vendor
 }) {
   if (!fail) return null;
   return React.createElement("div", {
@@ -1582,7 +1589,7 @@ function FsSyncAlert({
       fontWeight: 800,
       color: "var(--tint-red-tx)"
     }
-  }, "\u0E14\u0E36\u0E07\u0E02\u0E49\u0E2D\u0E21\u0E39\u0E25\u0E08\u0E32\u0E01 Huawei FusionSolar \u0E44\u0E21\u0E48\u0E44\u0E14\u0E49\u0E15\u0E31\u0E49\u0E07\u0E41\u0E15\u0E48 ", fsWhen(fail.since || fail.at)), React.createElement("div", {
+  }, "\u0E14\u0E36\u0E07\u0E02\u0E49\u0E2D\u0E21\u0E39\u0E25\u0E08\u0E32\u0E01 ", vendor || "Huawei FusionSolar", " \u0E44\u0E21\u0E48\u0E44\u0E14\u0E49\u0E15\u0E31\u0E49\u0E07\u0E41\u0E15\u0E48 ", fsWhen(fail.since || fail.at)), React.createElement("div", {
     style: {
       color: "var(--text-1)"
     }
@@ -1712,9 +1719,9 @@ function FsSitesView({
     const kw = q.trim().toLowerCase();
     const out = sites.filter(s => {
       if (health !== "all" && fsHealthKey(s) !== health) return false;
-      if (src !== "all" && (s.source === "manual" ? "manual" : "fusionsolar") !== src) return false;
+      if (src !== "all" && fsVendor(s) !== src) return false;
       if (!kw) return true;
-      return [s.name, s.fusionsolar_station_code, s.address, s.note].concat(Object.keys(s.jobIds || {})).some(v => String(v || "").toLowerCase().includes(kw));
+      return [s.name, fsCodeOf(s), s.address, s.note].concat(Object.keys(s.jobIds || {})).some(v => String(v || "").toLowerCase().includes(kw));
     });
     out.sort((a, b) => {
       const x = fsSortVal(a, sort.k, live),
@@ -1734,6 +1741,14 @@ function FsSitesView({
   const lastAt = sites.reduce((m, s) => Math.max(m, Date.parse(s.kpi_updated_at || "") || 0), 0);
   const hasGeo = sites.some(s => fsGeoOk(s));
   const mapView = view === "map" && hasGeo;
+  const vCount = React.useMemo(() => {
+    const c = {};
+    sites.forEach(s => {
+      const v = fsVendor(s);
+      c[v] = (c[v] || 0) + 1;
+    });
+    return c;
+  }, [sites]);
   const cardView = !mapView && (isMobile || view !== "table");
   return React.createElement("div", {
     style: {
@@ -1744,7 +1759,12 @@ function FsSitesView({
     }
   }, React.createElement(FsSyncAlert, {
     fail: fsSt && fsSt.login_fail,
-    lastAt: lastAt
+    lastAt: lastAt,
+    vendor: "Huawei FusionSolar"
+  }), React.createElement(FsSyncAlert, {
+    fail: fsSt && fsSt.isc && fsSt.isc.login_fail,
+    lastAt: lastAt,
+    vendor: "Sungrow iSolarCloud"
   }), sites.length > 0 && React.createElement(FsFleetHero, {
     roll: roll,
     nowKw: nowKw,
@@ -1823,7 +1843,11 @@ function FsSitesView({
   })), React.createElement(FsChips, {
     value: health,
     onChange: setHealth,
-    options: [["all", "ทุกสถานะ", hCount.all], ["ok", "ปกติ", hCount.ok || 0], ["warn", "มีปัญหา", hCount.warn || 0], ["off", "ออฟไลน์", hCount.off || 0], ["lost", "ไม่พบใน FusionSolar", hCount.lost || 0], ["none", "ไม่มีข้อมูล", hCount.none || 0]].filter(o => o[0] === "all" || o[2] > 0 || o[0] === health)
+    options: [["all", "ทุกสถานะ", hCount.all], ["ok", "ปกติ", hCount.ok || 0], ["warn", "มีปัญหา", hCount.warn || 0], ["off", "ออฟไลน์", hCount.off || 0], ["lost", "ไม่พบในระบบต้นทาง", hCount.lost || 0], ["none", "ไม่มีข้อมูล", hCount.none || 0]].filter(o => o[0] === "all" || o[2] > 0 || o[0] === health)
+  }), Object.keys(vCount).length > 1 && React.createElement(FsChips, {
+    value: src,
+    onChange: setSrc,
+    options: [["all", "ทุกยี่ห้อ", sites.length], ["huawei", "Huawei", vCount.huawei || 0], ["sungrow", "Sungrow", vCount.sungrow || 0], ["manual", "เพิ่มเอง", vCount.manual || 0]].filter(o => o[0] === "all" || o[2] > 0 || o[0] === src)
   }), React.createElement("div", {
     style: {
       marginLeft: "auto",
@@ -2830,7 +2854,7 @@ function FsSiteModal({
     val: dayVal
   } = useFsNode("fsKpiDay/" + site.id, 31);
   const hk = fsHealthKey(site);
-  const code = site.fusionsolar_station_code || "";
+  const code = fsCodeOf(site);
   const devs = React.useMemo(() => Object.keys(devVal || {}).map(k => Object.assign({
     id: k
   }, devVal[k])).filter(d => d.site_id === site.id || code && d.station_code === code).sort((a, b) => fsDevRank(a.dev_type_id) - fsDevRank(b.dev_type_id) || String(a.dev_name).localeCompare(String(b.dev_name))), [devVal, site.id, code]);
@@ -2982,7 +3006,7 @@ function FsSiteModal({
       fontWeight: 700,
       color: "var(--text-2)"
     }
-  }, "\u0E44\u0E21\u0E48\u0E21\u0E35\u0E02\u0E49\u0E2D\u0E21\u0E39\u0E25 FusionSolar"), React.createElement("span", {
+  }, "\u0E44\u0E21\u0E48\u0E21\u0E35\u0E02\u0E49\u0E2D\u0E21\u0E39\u0E25\u0E21\u0E2D\u0E19\u0E34\u0E40\u0E15\u0E2D\u0E23\u0E4C"), React.createElement("span", {
     style: {
       fontSize: 12,
       color: "var(--text-3)"
@@ -3195,7 +3219,7 @@ function FsSiteModal({
     mono: true
   }), React.createElement(FsSpec, {
     label: "\u0E41\u0E2B\u0E25\u0E48\u0E07\u0E17\u0E35\u0E48\u0E21\u0E32",
-    value: site.source === "manual" ? "เพิ่มเองในเว็บ" : "FusionSolar"
+    value: fsVendorTH(site)
   }), React.createElement(FsSpec, {
     label: "\u0E40\u0E0A\u0E37\u0E48\u0E2D\u0E21\u0E01\u0E23\u0E34\u0E14\u0E40\u0E21\u0E37\u0E48\u0E2D",
     value: site.grid_date && Date.parse(site.grid_date) ? new Date(site.grid_date).toLocaleDateString("th-TH", {
@@ -3637,7 +3661,9 @@ const FS_JOB_TH = {
   all: "ทั้งหมด",
   sites: "ไซต์+อุปกรณ์",
   kpi: "ข้อมูลผลิต",
-  hist: "ย้อนหลัง (กราฟ)"
+  hist: "ย้อนหลัง (กราฟ)",
+  isc_sites: "ไซต์+อุปกรณ์",
+  isc_kpi: "ข้อมูลผลิต"
 };
 const FS_TRIG_TH = {
   cron: "อัตโนมัติ (Vercel)",
@@ -3843,6 +3869,9 @@ function FsLogView({
   }, err)), dry && React.createElement(FsDryResult, {
     r: dry,
     onClose: () => setDry(null)
+  }), React.createElement(FsIscPanel, {
+    isAdmin: isAdmin,
+    state: state.isc || {}
   }), React.createElement("div", {
     style: {
       background: "var(--surface)",
@@ -3910,7 +3939,11 @@ function FsLogView({
       fontSize: 12,
       color: "var(--text-2)"
     }
-  }, FS_JOB_TH[l.job] || l.job, " \xB7 ", FS_TRIG_TH[l.trigger] || l.trigger, l.by ? " · " + l.by : ""), React.createElement("span", {
+  }, React.createElement("b", {
+    style: {
+      color: "var(--text-1)"
+    }
+  }, l.vendor === "isolarcloud" ? "Sungrow" : "Huawei"), " \xB7 ", FS_JOB_TH[l.job] || l.job, " \xB7 ", FS_TRIG_TH[l.trigger] || l.trigger, l.by ? " · " + l.by : ""), React.createElement("span", {
     style: {
       marginLeft: "auto",
       fontSize: 11.5,
@@ -3931,7 +3964,7 @@ function FsLogView({
       gap: 8
     }
   }, React.createElement(FsSpec, {
-    label: "\u0E2A\u0E16\u0E32\u0E19\u0E35\u0E08\u0E32\u0E01 FusionSolar",
+    label: "สถานีจาก " + (l.vendor === "isolarcloud" ? "iSolarCloud" : "FusionSolar"),
     value: l.stations || 0
   }), React.createElement(FsSpec, {
     label: "\u0E44\u0E0B\u0E15\u0E4C \u0E2A\u0E23\u0E49\u0E32\u0E07 / \u0E2D\u0E31\u0E1B\u0E40\u0E14\u0E15 / \u0E44\u0E21\u0E48\u0E1E\u0E1A",
@@ -3959,6 +3992,137 @@ function FsLogView({
   }, l.note), React.createElement(FsErrList, {
     errors: l.errors
   }))))));
+}
+const FS_ISC_JOB = {
+  isc_sites: "ไซต์+อุปกรณ์+ข้อมูลผลิต",
+  isc_kpi: "ข้อมูลผลิต"
+};
+function FsIscPanel({
+  isAdmin,
+  state
+}) {
+  const [job, setJob] = React.useState("isc_sites");
+  const [busy, setBusy] = React.useState("");
+  const [err, setErr] = React.useState("");
+  const [dry, setDry] = React.useState(null);
+  const approved = !!state.approved_at;
+  const run = async dryRun => {
+    if (!dryRun) {
+      const ok = await window.askConfirm({
+        title: approved ? "ซิงก์ Sungrow ตอนนี้ (" + FS_ISC_JOB[job] + ")?" : "บันทึก Sungrow จริงครั้งแรก?",
+        body: (approved ? "" : "หลังรอบนี้ระบบจะซิงก์ Sungrow อัตโนมัติพร้อม Huawei (วันละครั้ง + ข้อมูลผลิตทุก 15 นาที) · ") + "เขียนเฉพาะ fsSites / fsDevices / fsKpiDay / fsKpiMonth / fsSyncLogs ไม่แตะข้อมูลงานและไซต์ Huawei · ใช้เวลาราว 5–15 วินาที",
+        ok: "ซิงก์",
+        danger: false,
+        icon: "history"
+      });
+      if (!ok) return;
+    }
+    setBusy(dryRun ? "dry" : "real");
+    setErr("");
+    try {
+      const r = await fsCallSync(job, dryRun);
+      if (dryRun) setDry(r);else setDry(null);
+      if (r.log && !r.log.ok) setErr("รอบนี้มีข้อผิดพลาด — ดูรายละเอียดในผล" + (dryRun ? "ทดลอง" : " log ด้านล่าง"));
+    } catch (e) {
+      setErr(String(e.message || e));
+    }
+    setBusy("");
+  };
+  return React.createElement(React.Fragment, null, React.createElement("div", {
+    style: {
+      background: "var(--surface)",
+      boxShadow: "var(--shadow-card)",
+      borderRadius: "var(--r-card)",
+      padding: "18px 20px",
+      display: "flex",
+      flexDirection: "column",
+      gap: 12
+    }
+  }, React.createElement("div", {
+    style: {
+      display: "flex",
+      gap: 10,
+      alignItems: "baseline",
+      flexWrap: "wrap"
+    }
+  }, React.createElement("div", {
+    style: {
+      fontSize: 13.5,
+      fontWeight: 700
+    }
+  }, "\u0E0B\u0E34\u0E07\u0E01\u0E4C Sungrow iSolarCloud"), React.createElement("div", {
+    style: {
+      fontSize: 11.5,
+      color: "var(--text-3)"
+    }
+  }, "\u0E23\u0E31\u0E19\u0E1E\u0E23\u0E49\u0E2D\u0E21 Huawei \xB7 \u0E44\u0E0B\u0E15\u0E4C+\u0E2D\u0E38\u0E1B\u0E01\u0E23\u0E13\u0E4C\u0E27\u0E31\u0E19\u0E25\u0E30\u0E04\u0E23\u0E31\u0E49\u0E07 \xB7 \u0E02\u0E49\u0E2D\u0E21\u0E39\u0E25\u0E1C\u0E25\u0E34\u0E15\u0E17\u0E38\u0E01 15 \u0E19\u0E32\u0E17\u0E35 \u0E41\u0E25\u0E30\u0E15\u0E2D\u0E19\u0E21\u0E35\u0E04\u0E19\u0E40\u0E1B\u0E34\u0E14\u0E14\u0E39")), React.createElement("div", {
+    style: {
+      display: "grid",
+      gridTemplateColumns: "repeat(auto-fit, minmax(170px, 1fr))",
+      gap: 9
+    }
+  }, React.createElement(FsSpec, {
+    label: "\u0E0B\u0E34\u0E07\u0E01\u0E4C\u0E2D\u0E31\u0E15\u0E42\u0E19\u0E21\u0E31\u0E15\u0E34",
+    value: approved ? "เปิดแล้ว" : "รอบันทึกจริงครั้งแรก"
+  }), React.createElement(FsSpec, {
+    label: "\u0E44\u0E0B\u0E15\u0E4C+\u0E2D\u0E38\u0E1B\u0E01\u0E23\u0E13\u0E4C\u0E25\u0E48\u0E32\u0E2A\u0E38\u0E14",
+    value: fsWhen(state.last_sites_at)
+  }), React.createElement(FsSpec, {
+    label: "\u0E02\u0E49\u0E2D\u0E21\u0E39\u0E25\u0E1C\u0E25\u0E34\u0E15\u0E25\u0E48\u0E32\u0E2A\u0E38\u0E14",
+    value: fsWhen(state.last_kpi_at)
+  }), React.createElement(FsSpec, {
+    label: "\u0E2A\u0E16\u0E32\u0E19\u0E30",
+    value: state.lock ? "กำลังซิงก์…" : state.login_fail ? "ล็อกอินไม่ผ่าน" : "พร้อม"
+  })), React.createElement(FsSyncAlert, {
+    fail: state.login_fail,
+    lastAt: Date.parse(state.last_kpi_at || "") || 0,
+    vendor: "Sungrow iSolarCloud"
+  }), isAdmin ? React.createElement("div", {
+    style: {
+      display: "flex",
+      gap: 8,
+      alignItems: "center",
+      flexWrap: "wrap"
+    }
+  }, React.createElement(FsChips, {
+    value: job,
+    onChange: setJob,
+    options: [["isc_sites", FS_ISC_JOB.isc_sites], ["isc_kpi", FS_ISC_JOB.isc_kpi]]
+  }), React.createElement("div", {
+    style: {
+      flex: 1
+    }
+  }), React.createElement("button", {
+    className: "btn btn-soft",
+    disabled: !!busy,
+    onClick: () => run(true)
+  }, busy === "dry" ? "กำลังทดลอง…" : "ทดลอง (dry run)"), React.createElement("button", {
+    className: "btn btn-pri",
+    disabled: !!busy || !approved && !dry,
+    onClick: () => run(false),
+    title: !approved && !dry ? "รอบแรกต้องทดลอง (dry run) ก่อน" : ""
+  }, React.createElement(Icon, {
+    name: "check",
+    size: 14,
+    color: "#fff"
+  }), " ", busy === "real" ? "กำลังซิงก์…" : approved ? "ซิงก์ตอนนี้" : "บันทึกจริงครั้งแรก")) : React.createElement("div", {
+    style: {
+      fontSize: 12,
+      color: "var(--text-3)"
+    }
+  }, "\u0E1B\u0E38\u0E48\u0E21\u0E0B\u0E34\u0E07\u0E01\u0E4C\u0E43\u0E0A\u0E49\u0E44\u0E14\u0E49\u0E40\u0E09\u0E1E\u0E32\u0E30\u0E1A\u0E31\u0E0D\u0E0A\u0E35\u0E41\u0E2D\u0E14\u0E21\u0E34\u0E19"), err && React.createElement("div", {
+    style: {
+      fontSize: 12.5,
+      color: "var(--tint-red-tx)",
+      background: "var(--tint-red-bg)",
+      padding: "9px 12px",
+      borderRadius: "var(--r-tile)",
+      fontWeight: 600
+    }
+  }, err)), dry && React.createElement(FsDryResult, {
+    r: dry,
+    onClose: () => setDry(null)
+  }));
 }
 const fsLogSummary = l => [l.created || l.updated || l.not_found ? "ไซต์ +" + (l.created || 0) + " ~" + (l.updated || 0) + " ?" + (l.not_found || 0) : "", l.kpi_sites || l.kpi_devices ? "kpi " + (l.kpi_sites || 0) + "/" + (l.kpi_devices || 0) : "", l.hist_months || l.hist_days || l.hist_hours ? "ย้อนหลัง " + (l.hist_months || 0) + "/" + (l.hist_days || 0) + "/" + (l.hist_hours || 0) : "", l.pending ? "ค้าง " + l.pending : "", (l.errors || []).length ? "ผิดพลาด " + l.errors.length : ""].filter(Boolean).join(" · ") || l.note || "";
 function FsErrList({
@@ -3990,6 +4154,7 @@ function FsDryResult({
 }) {
   const L = r.log || {},
     p = r.preview || {};
+  const src = L.vendor === "isolarcloud" ? "iSolarCloud" : "FusionSolar";
   const list = (t, a) => a && a.length ? React.createElement("div", null, React.createElement("div", {
     style: FS_LBL
   }, t, " (", a.length, ")"), React.createElement("div", {
@@ -4020,7 +4185,7 @@ function FsDryResult({
       fontSize: 13.5,
       fontWeight: 700
     }
-  }, "\u0E1C\u0E25\u0E17\u0E14\u0E25\u0E2D\u0E07 (dry run) \u2014 \u0E22\u0E31\u0E07\u0E44\u0E21\u0E48\u0E44\u0E14\u0E49\u0E1A\u0E31\u0E19\u0E17\u0E36\u0E01\u0E2D\u0E30\u0E44\u0E23"), React.createElement("div", {
+  }, "\u0E1C\u0E25\u0E17\u0E14\u0E25\u0E2D\u0E07 ", L.vendor === "isolarcloud" ? "Sungrow " : "", "(dry run) \u2014 \u0E22\u0E31\u0E07\u0E44\u0E21\u0E48\u0E44\u0E14\u0E49\u0E1A\u0E31\u0E19\u0E17\u0E36\u0E01\u0E2D\u0E30\u0E44\u0E23"), React.createElement("div", {
     style: {
       fontSize: 11.5,
       color: "var(--text-3)"
@@ -4043,7 +4208,7 @@ function FsDryResult({
       gap: 8
     }
   }, React.createElement(FsSpec, {
-    label: "\u0E2A\u0E16\u0E32\u0E19\u0E35\u0E08\u0E32\u0E01 FusionSolar",
+    label: "สถานีจาก " + src,
     value: L.stations || 0
   }), React.createElement(FsSpec, {
     label: "\u0E44\u0E0B\u0E15\u0E4C\u0E17\u0E35\u0E48\u0E08\u0E30\u0E2A\u0E23\u0E49\u0E32\u0E07",
@@ -4052,7 +4217,7 @@ function FsDryResult({
     label: "\u0E44\u0E0B\u0E15\u0E4C\u0E17\u0E35\u0E48\u0E08\u0E30\u0E2D\u0E31\u0E1B\u0E40\u0E14\u0E15",
     value: L.updated || 0
   }), React.createElement(FsSpec, {
-    label: "\u0E44\u0E21\u0E48\u0E1E\u0E1A\u0E43\u0E19 FusionSolar",
+    label: "ไม่พบใน " + src,
     value: L.not_found || 0
   }), React.createElement(FsSpec, {
     label: "\u0E2D\u0E38\u0E1B\u0E01\u0E23\u0E13\u0E4C \u0E2A\u0E23\u0E49\u0E32\u0E07 / \u0E2D\u0E31\u0E1B\u0E40\u0E14\u0E15",
@@ -4088,7 +4253,7 @@ function FsDryResult({
     mon: "เดือน",
     day: "วัน",
     hour: "ชั่วโมง"
-  }[k.kind] || k.kind) + " " + k.at + " · " + fsNum(k.kwh) + " kWh")))), list("จะสร้าง", p.create), list("ค่าจะเปลี่ยน", p.changed), list("จะตั้งเป็นไม่พบใน FusionSolar", p.not_found), p.kpi && p.kpi.length > 0 && React.createElement("div", null, React.createElement("div", {
+  }[k.kind] || k.kind) + " " + k.at + " · " + fsNum(k.kwh) + " kWh")))), list("จะสร้าง", p.create), list("ค่าจะเปลี่ยน", p.changed), list("จะตั้งเป็นไม่พบใน " + src, p.not_found), p.kpi && p.kpi.length > 0 && React.createElement("div", null, React.createElement("div", {
     style: FS_LBL
   }, "\u0E15\u0E31\u0E27\u0E2D\u0E22\u0E48\u0E32\u0E07\u0E02\u0E49\u0E2D\u0E21\u0E39\u0E25\u0E1C\u0E25\u0E34\u0E15"), React.createElement("div", {
     style: {
@@ -4110,7 +4275,7 @@ function FsDryResult({
     3: "ok",
     2: "warn",
     1: "off"
-  }[k.health_state]] || FS_HEALTH.wait).th : k.dev_name + " (" + fsDevTypeTH(k.dev_type_id) + ") " + JSON.stringify(k.dataItemMap))))), L.note && React.createElement("div", {
+  }[k.health_state]] || FS_HEALTH.wait).th : k.dev_name + " (" + (k.isc_device_type != null ? "Sungrow ประเภท " + k.isc_device_type : fsDevTypeTH(k.dev_type_id)) + ") " + JSON.stringify(k.dataItemMap || k.kpi))))), L.note && React.createElement("div", {
     style: {
       fontSize: 12,
       color: "var(--text-2)"

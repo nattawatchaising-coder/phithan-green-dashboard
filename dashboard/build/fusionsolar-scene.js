@@ -847,7 +847,7 @@ const FS_HEALTH_XTH = {
 async function fsExportMonthXlsx(sites, mon) {
   const X = window.XLSX;
   if (!X || !window.FBDB) throw new Error("ไม่พบไลบรารี Excel หรือฐานข้อมูล (ลองโหลดหน้าใหม่)");
-  const list = sites.filter(s => s.fusionsolar_station_code);
+  const list = sites.filter(s => fsCodeOf(s));
   const data = await fsLoadMonth(list, mon);
   const nd = fsMonthDays(mon),
     cur = mon === fsBkk(Date.now()).mon;
@@ -975,7 +975,7 @@ async function fsExportMonthXlsx(sites, mon) {
     const pct = med && r.yd != null ? r.yd / med : null;
     const hs = FS_HEALTH_XTH[r.s.health_state] || "ไม่ทราบ";
     R2.push({
-      cells: [i + 1, r.s.name || r.s.id, r.s.fusionsolar_station_code, fsN(r.s.capacity_kw), r.kwh, r.y, r.kwh != null ? r.kwh / dom : null, r.yd, pct, r.nDays, r.s.fs_status === "not_found_in_fusionsolar" ? "ไม่พบใน FusionSolar" : hs, r.kwh != null ? r.kwh * FS_GRID_EF : null, fsN(r.s.total_kwh), Object.keys(r.s.jobIds || {}).join(", "), r.s.address || ""].map(v => v == null ? "" : v),
+      cells: [i + 1, r.s.name || r.s.id, fsCodeOf(r.s), fsN(r.s.capacity_kw), r.kwh, r.y, r.kwh != null ? r.kwh / dom : null, r.yd, pct, r.nDays, r.s.fs_status === "not_found_in_fusionsolar" ? "ไม่พบในระบบต้นทาง" : hs, r.kwh != null ? r.kwh * FS_GRID_EF : null, fsN(r.s.total_kwh), Object.keys(r.s.jobIds || {}).join(", "), r.s.address || ""].map(v => v == null ? "" : v),
       kind: i % 2 ? "alt" : "cell",
       fmt: {
         0: "0",
@@ -1104,7 +1104,7 @@ async function fsExportSiteXlsx(site, devs, mon) {
     }
   });
   S.push({
-    cells: [[site.fusionsolar_station_code, cap ? fsFmt(cap, 2) + " kWp" : "", site.address].filter(Boolean).join(" · ")],
+    cells: [[fsCodeOf(site), cap ? fsFmt(cap, 2) + " kWp" : "", site.address].filter(Boolean).join(" · ")],
     kind: "sub"
   });
   sm.push({

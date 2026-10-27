@@ -1,6 +1,7 @@
 # Huawei FusionSolar — ไซต์ · อุปกรณ์ · ข้อมูลผลิต
 
 ดึงรายชื่อไซต์ อุปกรณ์ และค่าการผลิตจาก FusionSolar Northbound API มาเก็บใน Firebase แล้วให้หน้าเว็บอ่านจากฐานข้อมูลอย่างเดียว
+**ไซต์ Sungrow iSolarCloud ใช้โหนด/หน้าเดียวกันนี้** (`isc_ps_id` · id `SG-…` · รันคู่ขนานใน cron เดียวกัน) — ดู `docs/isolarcloud.md` · แก้โค้ดที่อ่าน `fusionsolar_station_code` ให้ใช้ `fsCodeOf(s)` / `fsVendor(s)`
 **FusionSolar เป็นต้นทางของรายชื่อไซต์ · ซิงก์ไม่แก้/ไม่ลบข้อมูลงานในเว็บ (`jobs/` ไม่ถูกแตะสักฟิลด์)**
 
 ## ไฟล์

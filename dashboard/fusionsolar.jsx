@@ -37,12 +37,12 @@ const FS_HEALTH = {
   ok:   { th: "ปกติ",                tx: "var(--tint-ok-tx)",    bg: "var(--tint-ok-bg)" },
   warn: { th: "มีปัญหา",             tx: "var(--tint-amber-tx)", bg: "var(--tint-amber-bg)" },
   off:  { th: "ออฟไลน์",             tx: "var(--text-2)",        bg: "var(--surface3)" },
-  lost: { th: "ไม่พบใน FusionSolar", tx: "var(--tint-red-tx)",   bg: "var(--tint-red-bg)" },
+  lost: { th: "ไม่พบในระบบต้นทาง", tx: "var(--tint-red-tx)",   bg: "var(--tint-red-bg)" },
   wait: { th: "รอข้อมูล",            tx: "var(--text-3)",        bg: "var(--surface2)" },
-  none: { th: "ไม่มีข้อมูล FusionSolar", tx: "var(--text-3)",    bg: "var(--surface2)" },
+  none: { th: "ไม่มีข้อมูลมอนิเตอร์", tx: "var(--text-3)",    bg: "var(--surface2)" },
 };
 function fsHealthKey(s) {
-  if (!s || !s.fusionsolar_station_code) return "none";
+  if (!s || !fsCodeOf(s)) return "none";
   if (s.fs_status === "not_found_in_fusionsolar") return "lost";
   return { 3: "ok", 2: "warn", 1: "off" }[s.health_state] || "wait";
 }
@@ -107,12 +107,14 @@ function FsPill({ k, label }) {
     </span>
   );
 }
+/* ป้ายยี่ห้อ — Huawei / Sungrow / เพิ่มเอง (ไซต์เพิ่มเองที่ผูกรหัส Huawei แล้วก็ยังเป็น "เพิ่มเอง") */
+const FS_SRC = { huawei: ["Huawei", "var(--primary-dark)", "var(--primary-soft)"], sungrow: ["Sungrow", "var(--tint-amber-tx)", "var(--tint-amber-bg)"],
+  manual: ["เพิ่มเอง", "var(--text-2)", "var(--surface2)"] };
 function FsSrcChip({ s }) {
-  const fs = s.source !== "manual";
+  const [t, tx, bg] = FS_SRC[fsVendor(s)];
   return (
-    <span style={{ fontSize: 10.5, fontWeight: 700, padding: "3px 8px", borderRadius: "var(--r-chip)", whiteSpace: "nowrap",
-      color: fs ? "var(--primary-dark)" : "var(--text-2)", background: fs ? "var(--primary-soft)" : "var(--surface2)" }}>
-      {fs ? "FusionSolar" : "เพิ่มเอง"}
+    <span title={fsVendorTH(s)} style={{ fontSize: 10.5, fontWeight: 700, padding: "3px 8px", borderRadius: "var(--r-chip)", whiteSpace: "nowrap", color: tx, background: bg }}>
+      {t}
     </span>
   );
 }
@@ -197,7 +199,7 @@ function FsAttention({ items, onOpen }) {
 const FS_HEALTH_RANK = { off: 0, warn: 1, lost: 2, wait: 3, ok: 4, none: 5 };
 const fsSortVal = (s, k, live) => ({
   now: live && live[s.id] != null ? live[s.id] : -1,
-  name: (s.name || "").toLowerCase(), code: s.fusionsolar_station_code || "", kw: +s.capacity_kw || 0,
+  name: (s.name || "").toLowerCase(), code: fsCodeOf(s), kw: +s.capacity_kw || 0,
   day: +s.day_kwh || 0, yield: fsYield(s) || 0, month: +s.month_kwh || 0, total: +s.total_kwh || 0,
   health: FS_HEALTH_RANK[fsHealthKey(s)], address: (s.address || "").toLowerCase(),
   at: Date.parse(s.kpi_updated_at || s.last_synced_at || "") || 0,
@@ -256,7 +258,7 @@ function FsFleetHero({ roll, nowKw, liveN, lastAt, refreshing, isMobile, hCount,
       <div style={{ fontFamily: "var(--display)", fontSize: isMobile ? 28 : 38, fontWeight: 700, lineHeight: 1.12, color: "var(--text-1)" }}>
         พลังงานสะอาด<br />จาก <span style={{ color: "var(--fs-sun)" }}>{roll.n}</span> ไซต์
       </div>
-      <div style={{ fontSize: 13, color: "var(--text-2)", maxWidth: 300 }}>ติดตั้งรวม {fsFmt(roll.kw, 0)} kWp · ดึงข้อมูลจาก FusionSolar ทุก 15 นาที</div>
+      <div style={{ fontSize: 13, color: "var(--text-2)", maxWidth: 300 }}>ติดตั้งรวม {fsFmt(roll.kw, 0)} kWp · ดึงข้อมูลจาก Huawei / Sungrow ทุก 15 นาที</div>
       <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
         {hs.map((k) => (
           <button key={k} type="button" onClick={() => onHealth(health === k ? "all" : k)}
@@ -467,7 +469,7 @@ function FsSitesTable({ rows, live, issueMap, maxYield, medMonth, sort, onSort, 
                     {Object.keys(s.jobIds || {}).length > 0 && <span title={"ผูกงาน " + Object.keys(s.jobIds).length + " งาน"} style={{ display: "flex", flexShrink: 0 }}><Icon name="link" size={12} color="var(--text-3)" /></span>}
                   </div>
                   <div style={{ fontSize: 11, color: "var(--text-3)", fontFamily: "var(--mono)", marginTop: 1 }}>
-                    {s.fusionsolar_station_code || "ไม่มี station code"}{s.source === "manual" ? " · เพิ่มเอง" : ""}
+                    {fsCodeOf(s) || "ไม่มี station code"}{" · " + FS_SRC[fsVendor(s)][0]}
                   </div>
                 </td>
                 <td style={Object.assign({}, td, { whiteSpace: "nowrap" })}>
@@ -573,13 +575,13 @@ const fsSavePref = (k, v) => { try { localStorage.setItem(k, v); } catch (e) { /
 
 /* ป้ายบอกทุกคนว่าดึงข้อมูลจาก Huawei ไม่ได้ (fsState/login_fail จากเซิร์ฟเวอร์) — ไม่งั้นตัวเลขค้างเงียบ ๆ
    เจอจริง 2026-10-26: failCode 20003 บัญชี Northbound หมดอายุ ซิงก์พังทั้งคืนโดยไม่มีใครรู้ */
-function FsSyncAlert({ fail, lastAt }) {
+function FsSyncAlert({ fail, lastAt, vendor }) {
   if (!fail) return null;
   return (
     <div style={{ padding: "11px 14px", borderRadius: "var(--r-tile)", background: "var(--tint-red-bg)", display: "flex", gap: 9, alignItems: "flex-start" }}>
       <span style={{ display: "flex", marginTop: 1, color: "var(--tint-red-tx)" }}><Icon name="alert" size={16} color="currentColor" /></span>
       <div style={{ display: "flex", flexDirection: "column", gap: 3, fontSize: 12.5, minWidth: 0 }}>
-        <div style={{ fontWeight: 800, color: "var(--tint-red-tx)" }}>ดึงข้อมูลจาก Huawei FusionSolar ไม่ได้ตั้งแต่ {fsWhen(fail.since || fail.at)}</div>
+        <div style={{ fontWeight: 800, color: "var(--tint-red-tx)" }}>ดึงข้อมูลจาก {vendor || "Huawei FusionSolar"} ไม่ได้ตั้งแต่ {fsWhen(fail.since || fail.at)}</div>
         <div style={{ color: "var(--text-1)" }}>{fail.text || fail.message}{fail.failCode != null ? " (failCode " + fail.failCode + ")" : ""}</div>
         <div style={{ color: "var(--text-3)", fontSize: 11.5 }}>ตัวเลขด้านล่างเป็นค่าเมื่อ {lastAt ? fsWhen(new Date(lastAt).toISOString()) : "–"} · ระบบลองใหม่เองชั่วโมงละครั้ง แก้แล้วแอดมินกด "ซิงก์ตอนนี้" ในตั้งค่า → ซิงก์ FusionSolar ได้ทันที</div>
       </div>
@@ -655,9 +657,9 @@ function FsSitesView({ jobs, role, currentUser, onOpenJob, onOpenOm }) {
     const kw = q.trim().toLowerCase();
     const out = sites.filter((s) => {
       if (health !== "all" && fsHealthKey(s) !== health) return false;
-      if (src !== "all" && (s.source === "manual" ? "manual" : "fusionsolar") !== src) return false;
+      if (src !== "all" && fsVendor(s) !== src) return false;
       if (!kw) return true;
-      return [s.name, s.fusionsolar_station_code, s.address, s.note].concat(Object.keys(s.jobIds || {}))
+      return [s.name, fsCodeOf(s), s.address, s.note].concat(Object.keys(s.jobIds || {}))
         .some((v) => String(v || "").toLowerCase().includes(kw));
     });
     out.sort((a, b) => {
@@ -672,11 +674,13 @@ function FsSitesView({ jobs, role, currentUser, onOpenJob, onOpenOm }) {
   const lastAt = sites.reduce((m, s) => Math.max(m, Date.parse(s.kpi_updated_at || "") || 0), 0);
   const hasGeo = sites.some((s) => fsGeoOk(s));
   const mapView = view === "map" && hasGeo;
+  const vCount = React.useMemo(() => { const c = {}; sites.forEach((s) => { const v = fsVendor(s); c[v] = (c[v] || 0) + 1; }); return c; }, [sites]);
   const cardView = !mapView && (isMobile || view !== "table");
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 14, minHeight: 0 }}>
-      <FsSyncAlert fail={fsSt && fsSt.login_fail} lastAt={lastAt} />
+      <FsSyncAlert fail={fsSt && fsSt.login_fail} lastAt={lastAt} vendor="Huawei FusionSolar" />
+      <FsSyncAlert fail={fsSt && fsSt.isc && fsSt.isc.login_fail} lastAt={lastAt} vendor="Sungrow iSolarCloud" />
       {sites.length > 0 && <FsFleetHero roll={roll} nowKw={nowKw} liveN={Object.keys(live).length} lastAt={lastAt} refreshing={refreshing} isMobile={isMobile}
         hCount={hCount} health={health} onHealth={setHealth} />}
 
@@ -699,8 +703,11 @@ function FsSitesView({ jobs, role, currentUser, onOpenJob, onOpenOm }) {
             style={{ width: "100%", padding: "9px 14px 9px 36px", borderRadius: "var(--r-pill)", fontSize: 13, fontFamily: "inherit" }} />
         </div>
         <FsChips value={health} onChange={setHealth} options={[["all", "ทุกสถานะ", hCount.all], ["ok", "ปกติ", hCount.ok || 0],
-          ["warn", "มีปัญหา", hCount.warn || 0], ["off", "ออฟไลน์", hCount.off || 0], ["lost", "ไม่พบใน FusionSolar", hCount.lost || 0],
+          ["warn", "มีปัญหา", hCount.warn || 0], ["off", "ออฟไลน์", hCount.off || 0], ["lost", "ไม่พบในระบบต้นทาง", hCount.lost || 0],
           ["none", "ไม่มีข้อมูล", hCount.none || 0]].filter((o) => o[0] === "all" || o[2] > 0 || o[0] === health)} />
+        {/* กรองยี่ห้อ — แสดงเมื่อมีมากกว่าหนึ่งแหล่ง */}
+        {Object.keys(vCount).length > 1 && <FsChips value={src} onChange={setSrc} options={[["all", "ทุกยี่ห้อ", sites.length], ["huawei", "Huawei", vCount.huawei || 0],
+          ["sungrow", "Sungrow", vCount.sungrow || 0], ["manual", "เพิ่มเอง", vCount.manual || 0]].filter((o) => o[0] === "all" || o[2] > 0 || o[0] === src)} />}
         <div style={{ marginLeft: "auto", display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
           {window.Segmented && <window.Segmented flat value={view} onChange={setView} options={[{ value: "card", label: "การ์ด" }].concat(isMobile ? [] : [{ value: "table", label: "ตาราง" }], hasGeo ? [{ value: "map", label: "แผนที่" }] : [])} />}
           {sites.length > 0 && (
@@ -1072,7 +1079,7 @@ function FsSiteModal({ site, sites, medMonth, jobs, canWrite, currentUser, onClo
   const { val: omVal } = useFsNode("omSites");
   const { val: dayVal } = useFsNode("fsKpiDay/" + site.id, 31);
   const hk = fsHealthKey(site);
-  const code = site.fusionsolar_station_code || "";
+  const code = fsCodeOf(site);
   const devs = React.useMemo(() => Object.keys(devVal || {}).map((k) => Object.assign({ id: k }, devVal[k]))
     .filter((d) => d.site_id === site.id || (code && d.station_code === code))
     .sort((a, b) => fsDevRank(a.dev_type_id) - fsDevRank(b.dev_type_id) || String(a.dev_name).localeCompare(String(b.dev_name))), [devVal, site.id, code]);
@@ -1157,7 +1164,7 @@ function FsSiteModal({ site, sites, medMonth, jobs, canWrite, currentUser, onClo
       {!code && (
         <div style={{ display: "flex", alignItems: "center", gap: 9, padding: "11px 13px", borderRadius: "var(--r-tile)", background: "var(--surface2)" }}>
           <Icon name="alert" size={15} color="var(--text-3)" />
-          <span style={{ fontSize: 12.5, fontWeight: 700, color: "var(--text-2)" }}>ไม่มีข้อมูล FusionSolar</span>
+          <span style={{ fontSize: 12.5, fontWeight: 700, color: "var(--text-2)" }}>ไม่มีข้อมูลมอนิเตอร์</span>
           <span style={{ fontSize: 12, color: "var(--text-3)" }}>ไซต์นี้ยังไม่ได้ผูก station code</span>
         </div>
       )}
@@ -1244,7 +1251,7 @@ function FsSiteModal({ site, sites, medMonth, jobs, canWrite, currentUser, onClo
         <FsCard title="ข้อมูลไซต์">
           <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr 1fr" : "repeat(4, 1fr)", gap: 9 }}>
             <FsSpec label="Station code" value={code || "–"} mono />
-            <FsSpec label="แหล่งที่มา" value={site.source === "manual" ? "เพิ่มเองในเว็บ" : "FusionSolar"} />
+            <FsSpec label="แหล่งที่มา" value={fsVendorTH(site)} />
             <FsSpec label="เชื่อมกริดเมื่อ" value={site.grid_date && Date.parse(site.grid_date) ? new Date(site.grid_date).toLocaleDateString("th-TH", { dateStyle: "medium" }) : "–"} />
             <FsSpec label="ซิงก์รายชื่อล่าสุด" value={fsWhen(site.last_synced_at)} />
           </div>
@@ -1419,7 +1426,7 @@ function FsManualForm({ jobs, sites, currentUser, onClose, onCreated }) {
 /* ================================================================
    หน้า log การซิงก์ (แอดมิน)
    ================================================================ */
-const FS_JOB_TH = { all: "ทั้งหมด", sites: "ไซต์+อุปกรณ์", kpi: "ข้อมูลผลิต", hist: "ย้อนหลัง (กราฟ)" };
+const FS_JOB_TH = { all: "ทั้งหมด", sites: "ไซต์+อุปกรณ์", kpi: "ข้อมูลผลิต", hist: "ย้อนหลัง (กราฟ)", isc_sites: "ไซต์+อุปกรณ์", isc_kpi: "ข้อมูลผลิต" };
 const FS_TRIG_TH = { cron: "อัตโนมัติ (Vercel)", gh: "อัตโนมัติ (GitHub)", manual: "แอดมินกด", tool: "สคริปต์ในเครื่อง", view: "มีคนเปิดดู" };
 
 /* เปิดหน้าไซต์ทั้งหมดอยู่ = ขอให้เซิร์ฟเวอร์ซิงก์ข้อมูลผลิตถ้าเก่าเกิน 10 นาที (เซิร์ฟเวอร์ตัดสินเอง) — ตอนเปิดหน้า แล้วทุก 5 นาทีที่แท็บยังเปิดดูอยู่
@@ -1528,6 +1535,8 @@ function FsLogView({ role, currentUser }) {
 
       {dry && <FsDryResult r={dry} onClose={() => setDry(null)} />}
 
+      <FsIscPanel isAdmin={isAdmin} state={state.isc || {}} />
+
       <div style={{ background: "var(--surface)", boxShadow: "var(--shadow-sm)", borderRadius: "var(--r-card)", overflow: "hidden" }}>
         <div style={{ padding: "13px 16px", fontSize: 13.5, fontWeight: 700 }}>ผลแต่ละรอบ <span style={{ fontSize: 11.5, color: "var(--text-3)", fontWeight: 500 }}>60 รอบล่าสุด</span></div>
         {loading ? <div style={{ padding: 18, color: "var(--text-3)", fontSize: 12.5 }}>กำลังโหลด…</div>
@@ -1539,7 +1548,7 @@ function FsLogView({ role, currentUser }) {
                   padding: "10px 16px", display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
                 <FsPill k={l.skipped ? "wait" : l.ok ? "ok" : "lost"} label={l.skipped ? "ข้าม" : l.ok ? "สำเร็จ" : "มีข้อผิดพลาด"} />
                 <span style={{ fontSize: 12.5, fontWeight: 700, color: "var(--text-1)", minWidth: 140 }}>{fsWhen(l.started_at)}</span>
-                <span style={{ fontSize: 12, color: "var(--text-2)" }}>{FS_JOB_TH[l.job] || l.job} · {FS_TRIG_TH[l.trigger] || l.trigger}{l.by ? " · " + l.by : ""}</span>
+                <span style={{ fontSize: 12, color: "var(--text-2)" }}><b style={{ color: "var(--text-1)" }}>{l.vendor === "isolarcloud" ? "Sungrow" : "Huawei"}</b> · {FS_JOB_TH[l.job] || l.job} · {FS_TRIG_TH[l.trigger] || l.trigger}{l.by ? " · " + l.by : ""}</span>
                 <span style={{ marginLeft: "auto", fontSize: 11.5, color: "var(--text-3)", fontFamily: "var(--mono)" }}>
                   {fsLogSummary(l)}
                 </span>
@@ -1547,7 +1556,7 @@ function FsLogView({ role, currentUser }) {
               {openLog === l.id && (
                 <div style={{ padding: "0 16px 13px", display: "flex", flexDirection: "column", gap: 8 }}>
                   <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(120px, 1fr))", gap: 8 }}>
-                    <FsSpec label="สถานีจาก FusionSolar" value={l.stations || 0} />
+                    <FsSpec label={"สถานีจาก " + (l.vendor === "isolarcloud" ? "iSolarCloud" : "FusionSolar")} value={l.stations || 0} />
                     <FsSpec label="ไซต์ สร้าง / อัปเดต / ไม่พบ" value={(l.created || 0) + " / " + (l.updated || 0) + " / " + (l.not_found || 0)} />
                     <FsSpec label="อุปกรณ์ สร้าง / อัปเดต / ไม่พบ" value={(l.dev_created || 0) + " / " + (l.dev_updated || 0) + " / " + (l.dev_not_found || 0)} />
                     <FsSpec label="ข้อมูลผลิต ไซต์ / อุปกรณ์" value={(l.kpi_sites || 0) + " / " + (l.kpi_devices || 0)} />
@@ -1565,6 +1574,65 @@ function FsLogView({ role, currentUser }) {
     </div>
   );
 }
+/* แผงซิงก์ Sungrow iSolarCloud (docs/isolarcloud.md) — สถานะใน fsState/isc · รอบจริงครั้งแรกต้องทดลองก่อน = อนุมัติให้ซิงก์อัตโนมัติ */
+const FS_ISC_JOB = { isc_sites: "ไซต์+อุปกรณ์+ข้อมูลผลิต", isc_kpi: "ข้อมูลผลิต" };
+function FsIscPanel({ isAdmin, state }) {
+  const [job, setJob] = React.useState("isc_sites");
+  const [busy, setBusy] = React.useState("");
+  const [err, setErr] = React.useState("");
+  const [dry, setDry] = React.useState(null);
+  const approved = !!state.approved_at;
+  const run = async (dryRun) => {
+    if (!dryRun) {
+      const ok = await window.askConfirm({
+        title: approved ? "ซิงก์ Sungrow ตอนนี้ (" + FS_ISC_JOB[job] + ")?" : "บันทึก Sungrow จริงครั้งแรก?",
+        body: (approved ? "" : "หลังรอบนี้ระบบจะซิงก์ Sungrow อัตโนมัติพร้อม Huawei (วันละครั้ง + ข้อมูลผลิตทุก 15 นาที) · ")
+          + "เขียนเฉพาะ fsSites / fsDevices / fsKpiDay / fsKpiMonth / fsSyncLogs ไม่แตะข้อมูลงานและไซต์ Huawei · ใช้เวลาราว 5–15 วินาที",
+        ok: "ซิงก์", danger: false, icon: "history",
+      });
+      if (!ok) return;
+    }
+    setBusy(dryRun ? "dry" : "real"); setErr("");
+    try {
+      const r = await fsCallSync(job, dryRun);
+      if (dryRun) setDry(r); else setDry(null);
+      if (r.log && !r.log.ok) setErr("รอบนี้มีข้อผิดพลาด — ดูรายละเอียดในผล" + (dryRun ? "ทดลอง" : " log ด้านล่าง"));
+    } catch (e) { setErr(String(e.message || e)); }
+    setBusy("");
+  };
+  return (
+    <>
+      <div style={{ background: "var(--surface)", boxShadow: "var(--shadow-card)", borderRadius: "var(--r-card)", padding: "18px 20px",
+        display: "flex", flexDirection: "column", gap: 12 }}>
+        <div style={{ display: "flex", gap: 10, alignItems: "baseline", flexWrap: "wrap" }}>
+          <div style={{ fontSize: 13.5, fontWeight: 700 }}>ซิงก์ Sungrow iSolarCloud</div>
+          <div style={{ fontSize: 11.5, color: "var(--text-3)" }}>รันพร้อม Huawei · ไซต์+อุปกรณ์วันละครั้ง · ข้อมูลผลิตทุก 15 นาที และตอนมีคนเปิดดู</div>
+        </div>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(170px, 1fr))", gap: 9 }}>
+          <FsSpec label="ซิงก์อัตโนมัติ" value={approved ? "เปิดแล้ว" : "รอบันทึกจริงครั้งแรก"} />
+          <FsSpec label="ไซต์+อุปกรณ์ล่าสุด" value={fsWhen(state.last_sites_at)} />
+          <FsSpec label="ข้อมูลผลิตล่าสุด" value={fsWhen(state.last_kpi_at)} />
+          <FsSpec label="สถานะ" value={state.lock ? "กำลังซิงก์…" : state.login_fail ? "ล็อกอินไม่ผ่าน" : "พร้อม"} />
+        </div>
+        <FsSyncAlert fail={state.login_fail} lastAt={Date.parse(state.last_kpi_at || "") || 0} vendor="Sungrow iSolarCloud" />
+        {isAdmin ? (
+          <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
+            <FsChips value={job} onChange={setJob} options={[["isc_sites", FS_ISC_JOB.isc_sites], ["isc_kpi", FS_ISC_JOB.isc_kpi]]} />
+            <div style={{ flex: 1 }} />
+            <button className="btn btn-soft" disabled={!!busy} onClick={() => run(true)}>{busy === "dry" ? "กำลังทดลอง…" : "ทดลอง (dry run)"}</button>
+            <button className="btn btn-pri" disabled={!!busy || (!approved && !dry)} onClick={() => run(false)}
+              title={!approved && !dry ? "รอบแรกต้องทดลอง (dry run) ก่อน" : ""}>
+              <Icon name="check" size={14} color="#fff" /> {busy === "real" ? "กำลังซิงก์…" : approved ? "ซิงก์ตอนนี้" : "บันทึกจริงครั้งแรก"}
+            </button>
+          </div>
+        ) : <div style={{ fontSize: 12, color: "var(--text-3)" }}>ปุ่มซิงก์ใช้ได้เฉพาะบัญชีแอดมิน</div>}
+        {err && <div style={{ fontSize: 12.5, color: "var(--tint-red-tx)", background: "var(--tint-red-bg)", padding: "9px 12px", borderRadius: "var(--r-tile)", fontWeight: 600 }}>{err}</div>}
+      </div>
+      {dry && <FsDryResult r={dry} onClose={() => setDry(null)} />}
+    </>
+  );
+}
+
 const fsLogSummary = (l) => [
   (l.created || l.updated || l.not_found) ? "ไซต์ +" + (l.created || 0) + " ~" + (l.updated || 0) + " ?" + (l.not_found || 0) : "",
   (l.kpi_sites || l.kpi_devices) ? "kpi " + (l.kpi_sites || 0) + "/" + (l.kpi_devices || 0) : "",
@@ -1589,6 +1657,7 @@ function FsErrList({ errors }) {
 
 function FsDryResult({ r, onClose }) {
   const L = r.log || {}, p = r.preview || {};
+  const src = L.vendor === "isolarcloud" ? "iSolarCloud" : "FusionSolar";
   const list = (t, a) => (a && a.length ? (
     <div>
       <div style={FS_LBL}>{t} ({a.length})</div>
@@ -1600,16 +1669,16 @@ function FsDryResult({ r, onClose }) {
     <div style={{ background: "var(--surface)", boxShadow: "var(--shadow-card)", borderRadius: "var(--r-card)", padding: "16px 20px",
       display: "flex", flexDirection: "column", gap: 12 }}>
       <div style={{ display: "flex", alignItems: "baseline", gap: 8 }}>
-        <div style={{ fontSize: 13.5, fontWeight: 700 }}>ผลทดลอง (dry run) — ยังไม่ได้บันทึกอะไร</div>
+        <div style={{ fontSize: 13.5, fontWeight: 700 }}>ผลทดลอง {L.vendor === "isolarcloud" ? "Sungrow " : ""}(dry run) — ยังไม่ได้บันทึกอะไร</div>
         <div style={{ fontSize: 11.5, color: "var(--text-3)" }}>{FS_JOB_TH[L.job]} · {L.requests} คำขอ · {Math.round((L.ms || 0) / 1000)} วิ</div>
         <button className="btn btn-sm" style={{ marginLeft: "auto" }} onClick={onClose}>ซ่อน</button>
       </div>
       {r.skipped && <div style={{ fontSize: 12.5, color: "var(--tint-amber-tx)" }}>{L.note}</div>}
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(130px, 1fr))", gap: 8 }}>
-        <FsSpec label="สถานีจาก FusionSolar" value={L.stations || 0} />
+        <FsSpec label={"สถานีจาก " + src} value={L.stations || 0} />
         <FsSpec label="ไซต์ที่จะสร้าง" value={L.created || 0} />
         <FsSpec label="ไซต์ที่จะอัปเดต" value={L.updated || 0} />
-        <FsSpec label="ไม่พบใน FusionSolar" value={L.not_found || 0} />
+        <FsSpec label={"ไม่พบใน " + src} value={L.not_found || 0} />
         <FsSpec label="อุปกรณ์ สร้าง / อัปเดต" value={(L.dev_created || 0) + " / " + (L.dev_updated || 0)} />
         <FsSpec label="ข้อมูลผลิต ไซต์ / อุปกรณ์" value={(L.kpi_sites || 0) + " / " + (L.kpi_devices || 0)} />
         {L.job === "hist" && <FsSpec label="ย้อนหลัง เดือน / วัน / ชั่วโมง" value={(L.hist_months || 0) + " / " + (L.hist_days || 0) + " / " + (L.hist_hours || 0)} />}
@@ -1625,14 +1694,14 @@ function FsDryResult({ r, onClose }) {
           </div>
         </div>
       )}
-      {list("จะสร้าง", p.create)}{list("ค่าจะเปลี่ยน", p.changed)}{list("จะตั้งเป็นไม่พบใน FusionSolar", p.not_found)}
+      {list("จะสร้าง", p.create)}{list("ค่าจะเปลี่ยน", p.changed)}{list("จะตั้งเป็นไม่พบใน " + src, p.not_found)}
       {p.kpi && p.kpi.length > 0 && (
         <div>
           <div style={FS_LBL}>ตัวอย่างข้อมูลผลิต</div>
           <div style={{ fontSize: 11.5, fontFamily: "var(--mono)", color: "var(--text-2)", display: "flex", flexDirection: "column", gap: 3 }}>
             {p.kpi.slice(0, 10).map((k, i) => <div key={i} style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
               {k.code ? k.code + " " + k.name + " · วันนี้ " + fsNum(k.day_kwh) + " · เดือนนี้ " + fsNum(k.month_kwh) + " · สะสม " + fsNum(k.total_kwh, 0) + " kWh · " + (FS_HEALTH[{ 3: "ok", 2: "warn", 1: "off" }[k.health_state]] || FS_HEALTH.wait).th
-                : k.dev_name + " (" + fsDevTypeTH(k.dev_type_id) + ") " + JSON.stringify(k.dataItemMap)}
+                : k.dev_name + " (" + (k.isc_device_type != null ? "Sungrow ประเภท " + k.isc_device_type : fsDevTypeTH(k.dev_type_id)) + ") " + JSON.stringify(k.dataItemMap || k.kpi)}
             </div>)}
           </div>
         </div>
