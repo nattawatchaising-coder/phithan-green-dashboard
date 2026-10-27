@@ -437,8 +437,9 @@ export async function runSync(o) {
     const snapKey = bkk(Date.now()).day + " " + bkk(Date.now()).hh;
     const snap = dry || state.kpi_snap !== snapKey;
     /* กราฟกำลังไฟวันนี้ (kW) — จดทุกรอบ: w/{HHmm} = { pv: kW รวมอินเวอร์เตอร์ของไซต์, g: { มิเตอร์: kW ดิบ (ทิศตามมิเตอร์) } }
-       HHmm = เวลาไทยปัดลง 5 นาทีของรอบนี้ · ไซต์ที่อินเวอร์เตอร์แบ่งอยู่สองรอบ (งานค้าง) ค่า pv รอบนั้นจะขาด */
-    const wKey = fsWKey(Date.now()), wPv = {}, wG = {};
+       HHmm = เวลาไทยปัดลง 5 นาทีของรอบนี้ · อุปกรณ์ของไซต์ที่รอบนี้ไม่ได้ดึง (งานแบ่งหลายรอบ) ใช้ค่าล่าสุดที่อายุ ≤ 20 นาที
+       ไม่งั้นจุดหนึ่งมีแต่มิเตอร์ อีกจุดมีแต่อินเวอร์เตอร์ครึ่งเดียว — เส้นกราฟขาดเป็นจุด ๆ และค่าตกฮวบ (ผู้ใช้แจ้ง 2026-10-27) */
+    const wKey = fsWKey(Date.now()), wPv = {}, wG = {}, wSeen = {};
     let i = dry ? 0 : Math.min(Number(state.kpi_cursor) || 0, batches.length);
     if (i >= batches.length) i = 0;
     for (; i < batches.length; i++) {
@@ -468,6 +469,7 @@ export async function runSync(o) {
             const id = safeKey(String(r && r.devId)); if (!devices[id]) return;
             const pw = num((r.dataItemMap || {}).active_power);
             if (snap && (b.type === 1 || b.type === 38) && pw != null && devices[id].site_id) dayP[devices[id].site_id + "/" + k.day + "/p/" + k.hh + "/" + id] = pw;
+            if (pw != null) wSeen[id] = 1;
             if ((b.type === 1 || b.type === 38) && pw != null && devices[id].site_id) wPv[devices[id].site_id] = (wPv[devices[id].site_id] || 0) + pw;
             if ((b.type === 47 || b.type === 17) && pw != null && devices[id].site_id) wG[devices[id].site_id + "/" + id] = Math.round(pw) / 1000;   // มิเตอร์ W → kW
             if (snap && (b.type === 47 || b.type === 17) && devices[id].site_id) {
@@ -486,6 +488,17 @@ export async function runSync(o) {
         log.errors.push(errRec(e));
       }
     }
+    const wTouched = {};
+    Object.keys(wPv).forEach((s) => { wTouched[s] = 1; });
+    Object.keys(wG).forEach((k) => { wTouched[k.split("/")[0]] = 1; });
+    Object.keys(devices).forEach((id) => {
+      const d = devices[id] || {}, sid = d.site_id, ty = Number(d.dev_type_id);
+      if (!sid || !wTouched[sid] || wSeen[id] || !(ty === 1 || ty === 38 || ty === 47 || ty === 17)) return;
+      if (Date.now() - (Date.parse(d.last_kpi_at || "") || 0) > 20 * 60e3) return;
+      let pw = null; try { pw = num(JSON.parse(d.last_kpi_json || "{}").active_power); } catch (e) { return; }
+      if (pw == null) return;
+      if (ty === 1 || ty === 38) wPv[sid] = (wPv[sid] || 0) + pw; else wG[sid + "/" + id] = Math.round(pw) / 1000;
+    });
     if (!dry) await writePatch("fsKpiDay", fsWPatch(wKey, wPv, wG));
     log.pending += batches.length - i;
     st.kpi_cursor = i >= batches.length ? 0 : i;

@@ -851,7 +851,14 @@ function FsHistoryCard({ site, isMobile, flip, em, only }) {
     const gridOf = (g) => { const id = pick(g); const v = id ? fsN(g[id]) : null; return v == null ? null : (flip ? -v : v); };
     Object.keys(W).forEach((hm) => {
       const t = +hm.slice(0, 2) * 60 + +hm.slice(2, 4), pv = fsN(W[hm] && W[hm].pv), g = gridOf(W[hm] && W[hm].g);
-      pts[t] = { t, value: pv, load: pv != null && g != null ? Math.max(0, pv - g) : null };
+      pts[t] = { t, value: pv, load: pv != null && g != null ? Math.max(0, pv - g) : null, g };
+    });
+    /* จุดที่มีแต่มิเตอร์ (ข้อมูลก่อนแก้ซิงก์ 27 ต.ค.) — ยืมกำลังโซลาร์จากจุดที่ใกล้สุดไม่เกิน 20 นาที มาคิดไฟที่ใช้ */
+    const wt = Object.keys(pts).map(Number);
+    wt.forEach((t) => {
+      const p = pts[t]; if (p.load != null || p.g == null) return;
+      let best = null; wt.forEach((x) => { if (pts[x].value != null && Math.abs(x - t) <= 20 && (best == null || Math.abs(x - t) < Math.abs(best - t))) best = x; });
+      if (best != null) p.load = Math.max(0, pts[best].value - p.g);
     });
     /* เฉลี่ยรายชั่วโมงจากตัวนับสะสม */
     const meterAt = (k) => { const o = M[k], id = pick(o); if (!id) return null; const A = fsN(o[id].a), R = fsN(o[id].r); return A == null || R == null ? null : { id, exp: flip ? R : A, imp: flip ? A : R }; };

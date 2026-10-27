@@ -2179,8 +2179,19 @@ function FsHistoryCard({
       pts[t] = {
         t,
         value: pv,
-        load: pv != null && g != null ? Math.max(0, pv - g) : null
+        load: pv != null && g != null ? Math.max(0, pv - g) : null,
+        g
       };
+    });
+    const wt = Object.keys(pts).map(Number);
+    wt.forEach(t => {
+      const p = pts[t];
+      if (p.load != null || p.g == null) return;
+      let best = null;
+      wt.forEach(x => {
+        if (pts[x].value != null && Math.abs(x - t) <= 20 && (best == null || Math.abs(x - t) < Math.abs(best - t))) best = x;
+      });
+      if (best != null) p.load = Math.max(0, pts[best].value - p.g);
     });
     const meterAt = k => {
       const o = M[k],

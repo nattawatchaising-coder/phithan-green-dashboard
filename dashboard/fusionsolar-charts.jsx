@@ -145,10 +145,15 @@ function FsTrendChart({ mode, bars, unit, avg, avgLabel, height, empty, t0, t1, 
 
   /* ส่วนเส้น = ช่วงที่มีค่าต่อเนื่องกัน (ชั่วโมงที่ไม่ได้ซิงก์ = เส้นขาด) */
   const mkSegs = (get) => {
-    const out = []; let cur = [];
+    const out = []; let cur = [], last = 0;
     bars.forEach((b, i) => {
       const v = get(b);
-      if (timeMode && cur.length && i > 0 && b.t - bars[i - 1].t > 75) { out.push(cur); cur = []; }
+      /* แกนเวลา: จุดที่ไม่มีค่านี้ (เช่นรอบที่จดแต่มิเตอร์) ข้ามไป ไม่ตัดเส้น — ขาดเฉพาะช่วงห่างเกิน 75 นาที */
+      if (timeMode) {
+        if (v == null) return;
+        if (cur.length && b.t - last > 75) { out.push(cur); cur = []; }
+        cur.push([X(i), Y(v)]); last = b.t; return;
+      }
       if (v != null) cur.push([X(i), Y(v)]); else if (cur.length) { out.push(cur); cur = []; }
     });
     if (cur.length) out.push(cur);

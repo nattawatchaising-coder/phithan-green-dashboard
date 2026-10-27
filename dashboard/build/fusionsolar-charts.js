@@ -263,12 +263,19 @@ function FsTrendChart({
   });
   const mkSegs = get => {
     const out = [];
-    let cur = [];
+    let cur = [],
+      last = 0;
     bars.forEach((b, i) => {
       const v = get(b);
-      if (timeMode && cur.length && i > 0 && b.t - bars[i - 1].t > 75) {
-        out.push(cur);
-        cur = [];
+      if (timeMode) {
+        if (v == null) return;
+        if (cur.length && b.t - last > 75) {
+          out.push(cur);
+          cur = [];
+        }
+        cur.push([X(i), Y(v)]);
+        last = b.t;
+        return;
       }
       if (v != null) cur.push([X(i), Y(v)]);else if (cur.length) {
         out.push(cur);
