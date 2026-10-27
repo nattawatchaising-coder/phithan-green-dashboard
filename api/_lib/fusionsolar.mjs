@@ -82,6 +82,7 @@ const LOGIN_FAIL_TH = {
 export const loginFailText = (e) => LOGIN_FAIL_TH[Number(e && e.failCode)] || ("ล็อกอิน FusionSolar ไม่ผ่าน (" + ((e && e.message) || "") + ") — เช็ก FUSIONSOLAR_USER / FUSIONSOLAR_PASS");
 /* ล็อกอินพลาดแล้ว รอบอัตโนมัติ (cron/gh/view) เว้นเท่านี้ก่อนลองใหม่ · แอดมินกดเองลองได้ทุกเมื่อ */
 const LOGIN_RETRY_MS = 60 * 60000;
+const HOURFILL_MS = 60 * 60000;   // รอบ kpi ดึงรายชั่วโมงของวันนี้จาก Huawei ซ้ำได้ชั่วโมงละครั้ง
 
 const errRec = (e) => ({ at: iso(), api: (e && e.api) || "", failCode: e && e.failCode != null ? e.failCode : null,
   message: String((e && e.message) || e || "").slice(0, 300) });
@@ -334,6 +335,11 @@ export async function runSync(o) {
     if (job === "sites" || job === "all") await doSites();
     if ((job === "kpi" || job === "all") && left() > GAP_MS * 2) await doKpi();
     else if (job === "all") { log.pending++; log.note = (log.note ? log.note + " · " : "") + "ข้อมูลผลิตไม่ทันในรอบนี้"; }
+    /* เติมรายชั่วโมงของวันนี้ (ผลิต+ใช้ไฟ) จาก /getKpiStationHour ชั่วโมงละครั้ง — รอบ kpi (GitHub ทุก 15 นาที) ข้ามบ่อยมาก
+       หรือบัญชีหมดอายุ ชั่วโมงที่ไม่มีใครซิงก์จะว่างในกราฟ (ผู้ใช้: "กราฟมันไม่มีอะไรเลย" 2026-10-27) */
+    if (job === "kpi" && !dry && left() > GAP_MS + REQ_TIMEOUT + 2000 && Date.now() - (Date.parse(state.hourfill_at || "") || 0) >= HOURFILL_MS) {
+      st.hourfill_at = iso(); await doHist("today");
+    }
   } catch (e) {
     log.errors.push(errRec(e));
     if (e && e.rateLimited) {
@@ -494,7 +500,8 @@ export async function runSync(o) {
      ค่าผลิต = inverter_power (เอกสาร Northbound) ไม่มีค่อยใช้ PVYield
      ช่วงที่ยังไม่จบ (วันนี้ · เดือนนี้) ไม่เขียน kwh ทับค่าสดของรอบ KPI · ชั่วโมงที่ยังไม่จบไม่เขียน
      รายชั่วโมง → h/{HH+1} = ผลิตสะสมของวันถึงปลายชั่วโมง HH (ความหมายเดียวกับค่าที่รอบ KPI จดตอน HH+1:07)
-     hoursOnly (job "histday" — cron ทุกวัน 04:30) = รายชั่วโมงของเมื่อวาน+วันนี้อย่างเดียว ~2 คำขอ ไม่ใช้ hist_cursor · เติมชั่วโมงที่ซิงก์พลาด */
+     hoursOnly (job "histday" — cron ทุกวัน 04:30) = รายชั่วโมงของเมื่อวาน+วันนี้อย่างเดียว ~2 คำขอ ไม่ใช้ hist_cursor · เติมชั่วโมงที่ซิงก์พลาด
+     hoursOnly "today" = วันนี้อย่างเดียว (รอบ kpi ชั่วโมงละครั้ง) */
   async function doHist(hoursOnly) {
     const idx = siteIndex(sites);
     const groups = chunk(Object.keys(idx).filter((k) => sites[idx[k]].fs_status === "found").sort(), BATCH);
@@ -508,7 +515,7 @@ export async function runSync(o) {
       [y - 1, y].forEach((yy) => groups.forEach((g) => tasks.push({ kind: "mon", api: "/getKpiStationMonth", t: noon(yy + "-06-15"), g })));
       [m === 1 ? (y - 1) + "-12" : y + "-" + pad(m - 1), k0.mon].forEach((mm) => groups.forEach((g) => tasks.push({ kind: "day", api: "/getKpiStationDay", t: noon(mm + "-15"), g })));
     }
-    for (let b = hoursOnly ? 1 : 6; b >= 0; b--) { const d = bkk(now - b * 864e5).day; groups.forEach((g) => tasks.push({ kind: "hour", api: "/getKpiStationHour", t: noon(d), g })); }
+    for (let b = hoursOnly === "today" ? 0 : hoursOnly ? 1 : 6; b >= 0; b--) { const d = bkk(now - b * 864e5).day; groups.forEach((g) => tasks.push({ kind: "hour", api: "/getKpiStationHour", t: noon(d), g })); }
     const yv = (mp) => { const a = num((mp || {}).inverter_power); return a != null ? a : num((mp || {}).PVYield); };
 
     let i = dry || hoursOnly || state.hist_key !== k0.day ? 0 : Math.min(Number(state.hist_cursor) || 0, tasks.length);
