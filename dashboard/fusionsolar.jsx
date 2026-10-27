@@ -848,17 +848,20 @@ function FsHistoryCard({ site, isMobile, flip, em, only }) {
     const W = rec.w || {}, P = rec.p || {}, Hh = rec.h || {}, U = rec.u || {}, M = rec.m || {};
     const pts = {};
     const pick = (o) => { if (!o) return null; const ids = Object.keys(o); return ids.length ? (meterId && o[meterId] != null ? meterId : ids[0]) : null; };
+    /* ไฟที่ใช้ติดลบ = ค่าโซลาร์กับมิเตอร์ไม่ได้มาจากเวลาเดียวกัน/อินเวอร์เตอร์ไม่ครบ (ข้อมูลก่อนแก้ซิงก์ 27 ต.ค.) → ไม่แสดง แทนการปัดเป็น 0
+       แบบเดียวกับ fsEnergyModel (เดิมปัด 0 เส้นใช้ไฟเป็นยอดแหลมสลับศูนย์ — ผู้ใช้แจ้ง "ข้อมูลไม่ตรงกัน") */
+    const ld = (v) => (v == null || v < -0.05 ? null : Math.max(0, v));
     const gridOf = (g) => { const id = pick(g); const v = id ? fsN(g[id]) : null; return v == null ? null : (flip ? -v : v); };
     Object.keys(W).forEach((hm) => {
       const t = +hm.slice(0, 2) * 60 + +hm.slice(2, 4), pv = fsN(W[hm] && W[hm].pv), g = gridOf(W[hm] && W[hm].g);
-      pts[t] = { t, value: pv, load: pv != null && g != null ? Math.max(0, pv - g) : null, g };
+      pts[t] = { t, value: pv, load: pv != null && g != null ? ld(pv - g) : null, g };
     });
     /* จุดที่มีแต่มิเตอร์ (ข้อมูลก่อนแก้ซิงก์ 27 ต.ค.) — ยืมกำลังโซลาร์จากจุดที่ใกล้สุดไม่เกิน 20 นาที มาคิดไฟที่ใช้ */
     const wt = Object.keys(pts).map(Number);
     wt.forEach((t) => {
       const p = pts[t]; if (p.load != null || p.g == null) return;
       let best = null; wt.forEach((x) => { if (pts[x].value != null && Math.abs(x - t) <= 20 && (best == null || Math.abs(x - t) < Math.abs(best - t))) best = x; });
-      if (best != null) p.load = Math.max(0, pts[best].value - p.g);
+      if (best != null) p.load = ld(pts[best].value - p.g);
     });
     /* เฉลี่ยรายชั่วโมงจากตัวนับสะสม */
     const meterAt = (k) => { const o = M[k], id = pick(o); if (!id) return null; const A = fsN(o[id].a), R = fsN(o[id].r); return A == null || R == null ? null : { id, exp: flip ? R : A, imp: flip ? A : R }; };
@@ -874,7 +877,7 @@ function FsHistoryCard({ site, isMobile, flip, em, only }) {
       let load = null;
       const ua = fsN(U[a]), ub = fsN(U[b]);
       if (ua != null && ub != null && ub >= ua) load = (ub - ua) / dh;
-      else { const ma = meterAt(a), mb = meterAt(b); if (ma && mb && ma.id === mb.id && pv != null) load = Math.max(0, pv + ((mb.imp - ma.imp) - (mb.exp - ma.exp)) / dh); }
+      else { const ma = meterAt(a), mb = meterAt(b); if (ma && mb && ma.id === mb.id && pv != null) load = ld(pv + ((mb.imp - ma.imp) - (mb.exp - ma.exp)) / dh); }
       if (pv == null && load == null) continue;
       pts[t] = { t, value: pv == null ? null : Math.round(pv * 1000) / 1000, load: load == null ? null : Math.round(load * 1000) / 1000, avg: [+a, +b] };
     }

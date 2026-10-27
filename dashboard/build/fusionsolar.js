@@ -2167,6 +2167,7 @@ function FsHistoryCard({
       const ids = Object.keys(o);
       return ids.length ? meterId && o[meterId] != null ? meterId : ids[0] : null;
     };
+    const ld = v => v == null || v < -0.05 ? null : Math.max(0, v);
     const gridOf = g => {
       const id = pick(g);
       const v = id ? fsN(g[id]) : null;
@@ -2179,7 +2180,7 @@ function FsHistoryCard({
       pts[t] = {
         t,
         value: pv,
-        load: pv != null && g != null ? Math.max(0, pv - g) : null,
+        load: pv != null && g != null ? ld(pv - g) : null,
         g
       };
     });
@@ -2191,7 +2192,7 @@ function FsHistoryCard({
       wt.forEach(x => {
         if (pts[x].value != null && Math.abs(x - t) <= 20 && (best == null || Math.abs(x - t) < Math.abs(best - t))) best = x;
       });
-      if (best != null) p.load = Math.max(0, pts[best].value - p.g);
+      if (best != null) p.load = ld(pts[best].value - p.g);
     });
     const meterAt = k => {
       const o = M[k],
@@ -2223,7 +2224,7 @@ function FsHistoryCard({
       if (ua != null && ub != null && ub >= ua) load = (ub - ua) / dh;else {
         const ma = meterAt(a),
           mb = meterAt(b);
-        if (ma && mb && ma.id === mb.id && pv != null) load = Math.max(0, pv + (mb.imp - ma.imp - (mb.exp - ma.exp)) / dh);
+        if (ma && mb && ma.id === mb.id && pv != null) load = ld(pv + (mb.imp - ma.imp - (mb.exp - ma.exp)) / dh);
       }
       if (pv == null && load == null) continue;
       pts[t] = {
