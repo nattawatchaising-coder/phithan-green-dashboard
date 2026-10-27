@@ -25,7 +25,10 @@
 - env **`FUSIONSOLAR_USER`** = `api_tarnthanawat` · **`FUSIONSOLAR_PASS`** = รหัส — ตั้งใน Vercel → Settings → Environment Variables (Production) **ห้ามเขียนลงโค้ด/Git**
 - ทุกคำขอ POST JSON · `/login {userName, systemCode}` → token จาก header `xsrf-token` + เก็บ cookie → คำขอถัดไปส่ง `XSRF-TOKEN` + cookie เดิม
 - login ครั้งเดียวต่อรอบ · **failCode 305** → login ใหม่แล้วลองซ้ำครั้งเดียว
-- **login ไม่ผ่าน = หยุดทั้งรอบทันที** (ไม่ลองรหัสผิดซ้ำทุกชุด — เสี่ยงบัญชีถูกล็อก) · log บอก "เช็ก FUSIONSOLAR_USER / FUSIONSOLAR_PASS"
+- **login ไม่ผ่าน = หยุดทั้งรอบทันที** (ไม่ลองรหัสผิดซ้ำทุกชุด — เสี่ยงบัญชีถูกล็อก) · แปล failCode เป็นเหตุจริง (`loginFailText`: 20001 ไม่พบบัญชี · 20002 ถูกปิด · **20003 บัญชี Northbound หมดอายุ** · 20400 รหัสผิด)
+  - จด `fsState/login_fail` `{since, at, failCode, message, text}` → หน้าไซต์ทั้งหมด + หน้า log ขึ้นป้ายแดง `FsSyncAlert` ให้ทุกคนเห็นว่าตัวเลขค้าง · ล็อกอินผ่านครั้งไหนลบทิ้งเอง
+  - รอบอัตโนมัติ (cron/gh/view) เว้น 1 ชม. หลังพลาดก่อนลองใหม่ (log `skipped`) · แอดมินกด "ซิงก์ตอนนี้" ลองได้ทันที
+  - **เจอจริง 2026-10-26 22:08 น.: 20003 "northbound system has expired."** — ไม่ใช่รหัสผิด ต้องให้แอดมินบริษัทใน FusionSolar ต่ออายุบัญชี `api_tarnthanawat` (System → Company Management → Northbound Management · บัญชี API มีวันหมดอายุ)
 - **failCode 407** (ถี่เกิน) → หยุดทั้งรอบ จด `fsState/blocked_until` = +15 นาที เก็บ cursor ไว้ทำต่อ · รอบที่เริ่มก่อนเวลานั้นข้าม (มี log `skipped`)
 - เว้นทุกคำขอ ≥ 3 วินาที (`FUSIONSOLAR_GAP_MS`) นับข้ามรอบด้วย `fsState/last_call_at`
 - ทุกคำขอที่พลาดจด `{at, api, failCode, message}` ลง `errors` ของ log
@@ -37,7 +40,7 @@
 | `getStationList` | `capacity` เป็น **MW** ×1000 = kW · ใช้ไม่ได้ → `/stations {pageNo}` (`data.list` plantCode/plantName/plantAddress/capacity เป็น kW · `pageCount`) แล้วจำไว้ใน `fsState/station_api` · ต้องได้ครบทุกหน้าไม่งั้นยกเลิกขั้นไซต์ (กันตัดสิน "ไม่พบ" ผิด) |
 | `getStationRealKpi` | ≤100 รหัส/ครั้ง · `day_power` `month_power` `total_power` `real_health_state` (1 ออฟไลน์ · 2 มีปัญหา · 3 ปกติ) |
 | `getDevList` | ≤100 สถานี/ครั้ง |
-| `getDevRealKpi` | **devTypeId เดียวต่อคำขอ** · ≤100 devIds · เก็บ `dataItemMap` ดิบเป็น `last_kpi_json` |
+| `getDevRealKpi` | **devTypeId เดียวต่อคำขอ** · ≤100 devIds · เก็บ `dataItemMap` ดิบเป็น `last_kpi_json` · **ด็องเกิล 62 / SmartLogger 63 ตอบ failCode 20013 ทุกครั้ง → ไม่ดึง** (ตัวตรวจ "ขาดการเชื่อมต่อ" ของสองประเภทนี้จึงไม่มีค่าให้เช็ก) |
 
 ## โหนดในฐานข้อมูล (สเปกเขียนเป็นตาราง SQL — แอปใช้ RTDB จึงทำเป็นโหนด เขียนทีละฟิลด์)
 **`fsSites/{siteId}`** — id = `FS-<code>` (อักษรนอก A-Z0-9 → `_` เช่น `FS-NE_57489892`) · ไซต์ที่เพิ่มเอง `FSM-…`
@@ -67,7 +70,7 @@
 - พลาดทีละคิว (เช่นบัญชีไม่มีสิทธิ์ API นี้) = จด error แล้วทำคิวถัดไป · 407/ล็อกอินพลาด = หยุดทั้งรอบเหมือนงานอื่น
 - **ยังไม่ได้ลองกับ Huawei จริง** (ทดสอบกับ mock + ฐานทดสอบเท่านั้น) — ชื่อ field/ความหมาย collectTime ตามเอกสาร Northbound ถ้าของจริงต่างให้แก้ที่ `doHist`
 
-**`fsState`** — `lock` (กันสองรอบชนกัน · etag · หมดอายุ 90 วิ) `blocked_until` `last_call_at` `dev_cursor` `kpi_cursor` `station_api` `last_sites_at` `last_kpi_at` `approved_at` `approved_by` `hist_cursor` `hist_key` `hist_done_at` `kpi_snap` `refresh_at`
+**`fsState`** — `lock` (กันสองรอบชนกัน · etag · หมดอายุ 90 วิ) `blocked_until` `last_call_at` `dev_cursor` `kpi_cursor` `station_api` `last_sites_at` `last_kpi_at` `approved_at` `approved_by` `hist_cursor` `hist_key` `hist_done_at` `kpi_snap` `refresh_at` `login_fail`
 
 ## ผูกกับงานในเว็บ — ทำไมแยกโหนด
 ไซต์ ≠ ใบงาน: ไซต์หนึ่งมีได้หลายงาน (ติดตั้ง · ขยายระบบ) และไซต์ใน FusionSolar อาจไม่มีงานของเราเลย → เก็บที่ `fsSites` ผูกด้วย `jobIds` · ไม่เขียนลง `omSites` (จะทำให้ O&M แจ้งเตือนรอบล้างแผง/ประกันของไซต์ที่ไม่ได้ขายบริการ)

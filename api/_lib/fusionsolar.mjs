@@ -53,8 +53,9 @@ export const DEV_TYPES = {
 };
 /* ประเภทที่ไม่เก็บเลย — ออปติไมเซอร์ (46) ข้อมูลจริง 1,346 ตัว = 38% ของ fsDevices แต่ไม่ได้ใช้ (ผู้ใช้: "ออปติไมเซอร์ ไม่ต้องเอามาก็ได้") */
 export const SKIP_TYPES = { 46: 1 };
-/* ประเภทที่ดึงค่า KPI รายชั่วโมง · ประเภทที่ไม่รู้จักไม่ดึง (Huawei อาจไม่รองรับ getDevRealKpi) แต่ยังเก็บรายชื่ออุปกรณ์ตามปกติ */
-export const KPI_TYPES = { 1: 1, 38: 1, 2: 1, 63: 1, 62: 1, 17: 1, 47: 1, 39: 1, 41: 1, 10: 1 };
+/* ประเภทที่ดึงค่า KPI รายชั่วโมง · ประเภทที่ไม่รู้จักไม่ดึง (Huawei อาจไม่รองรับ getDevRealKpi) แต่ยังเก็บรายชื่ออุปกรณ์ตามปกติ
+   ด็องเกิล (62) / SmartLogger (63) ตอบ failCode 20013 ทุกรอบ (ข้อมูลจริง 2026-10-26) — ไม่ดึง เสียเวลารอบละ 2 คำขอ */
+export const KPI_TYPES = { 1: 1, 38: 1, 17: 1, 47: 1, 39: 1, 41: 1, 10: 1 };
 export const devTypeName = (t) => DEV_TYPES[t] || ("ไม่ทราบประเภท (devTypeId " + t + ")");
 
 /* key ของ RTDB ห้ามมี . # $ [ ] / */
@@ -71,6 +72,17 @@ export class FsError extends Error {
     this.fatal = this.rateLimited || api === "/login";
   }
 }
+/* failCode ตอน login → เหตุเป็นภาษาคน (20003 เจอจริง 2026-10-26: บัญชี Northbound หมดอายุ ไม่ใช่รหัสผิด) */
+const LOGIN_FAIL_TH = {
+  20001: "ไม่พบบัญชี API นี้ใน FusionSolar — เช็ก FUSIONSOLAR_USER",
+  20002: "บัญชี API ถูกปิดใช้งานใน FusionSolar — แอดมินบริษัทเปิดใน Northbound Management",
+  20003: "บัญชี API (Northbound) หมดอายุ — แอดมินบริษัทต่ออายุใน FusionSolar → System → Company Management → Northbound Management",
+  20400: "ชื่อผู้ใช้หรือรหัส API ผิด — เช็ก FUSIONSOLAR_USER / FUSIONSOLAR_PASS",
+};
+export const loginFailText = (e) => LOGIN_FAIL_TH[Number(e && e.failCode)] || ("ล็อกอิน FusionSolar ไม่ผ่าน (" + ((e && e.message) || "") + ") — เช็ก FUSIONSOLAR_USER / FUSIONSOLAR_PASS");
+/* ล็อกอินพลาดแล้ว รอบอัตโนมัติ (cron/gh/view) เว้นเท่านี้ก่อนลองใหม่ · แอดมินกดเองลองได้ทุกเมื่อ */
+const LOGIN_RETRY_MS = 60 * 60000;
+
 const errRec = (e) => ({ at: iso(), api: (e && e.api) || "", failCode: e && e.failCode != null ? e.failCode : null,
   message: String((e && e.message) || e || "").slice(0, 300) });
 
@@ -84,7 +96,7 @@ function parseBody(text) {
    ================================================================ */
 export function fsClient(opt) {
   const o = opt || {};
-  let token = "", cookie = "", dead = null, last = Number(o.lastCallAt) || 0, calls = 0;
+  let token = "", cookie = "", dead = null, last = Number(o.lastCallAt) || 0, calls = 0, loggedIn = false;
 
   async function raw(api, payload, isLogin) {
     const d = last + GAP_MS - Date.now();
@@ -118,6 +130,7 @@ export function fsClient(opt) {
     token = r.headers.get("xsrf-token") || "";
     if (!token) { const m = /XSRF-TOKEN=([^;]+)/i.exec(cookie); if (m) token = m[1]; }
     if (!token) throw new FsError("/login", null, "ไม่มี xsrf-token ในคำตอบ");
+    loggedIn = true;
   }
 
   async function call(api, payload) {
@@ -131,7 +144,7 @@ export function fsClient(opt) {
     return j.data;
   }
 
-  return { call, get calls() { return calls; }, get last() { return last; } };
+  return { call, get calls() { return calls; }, get last() { return last; }, get loggedIn() { return loggedIn; } };
 }
 
 /* ================================================================
@@ -274,6 +287,11 @@ export async function runSync(o) {
   if (state.blocked_until && Date.parse(state.blocked_until) > Date.now()) {
     log.note = "พักจาก failCode 407 ถึง " + state.blocked_until; return finish(true);
   }
+  /* ล็อกอินพลาดรอบก่อน (เช่นบัญชีหมดอายุ) — รอบอัตโนมัติไม่ลองซ้ำทุก 15 นาที รอชั่วโมงละครั้ง · แอดมินกดเองข้ามได้ */
+  const lf = state.login_fail;
+  if (lf && log.trigger !== "manual" && log.trigger !== "tool" && Date.now() - (Date.parse(lf.at) || 0) < LOGIN_RETRY_MS) {
+    log.note = "รอลองล็อกอินใหม่ (พลาดเมื่อ " + lf.at + ": " + (lf.text || lf.message || "") + ")"; return finish(true);
+  }
 
   /* ล็อก — รอบจริงเท่านั้น (dry run ไม่เขียนอะไร) */
   let lockEtag = null;
@@ -307,8 +325,14 @@ export async function runSync(o) {
     if (e && e.rateLimited) {
       log.note = "โดน failCode 407 (ถี่เกิน) — พัก " + (BLOCK_MS / 60000) + " นาที";
       st.blocked_until = new Date(Date.now() + BLOCK_MS).toISOString();
-    } else if (e && e.fatal) log.note = "ล็อกอิน FusionSolar ไม่ผ่าน — หยุดทั้งรอบ (เช็ก FUSIONSOLAR_USER / FUSIONSOLAR_PASS)";
+    } else if (e && e.fatal) {
+      log.note = loginFailText(e) + " — หยุดทั้งรอบ";
+      /* จดไว้ให้หน้าไซต์ทั้งหมดขึ้นป้ายบอกทุกคน (ตัวเลขบนหน้าค้าง) · at = ครั้งแรกที่พลาด (since) + ครั้งล่าสุด */
+      st.login_fail = { since: (state.login_fail && state.login_fail.since) || iso(), at: iso(),
+        failCode: e.failCode == null ? null : e.failCode, message: String(e.message || "").slice(0, 200), text: loginFailText(e) };
+    }
   }
+  if (c && c.loggedIn && state.login_fail) st.login_fail = null;
   return finish();
 
   async function doSites() {

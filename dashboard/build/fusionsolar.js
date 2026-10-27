@@ -1545,6 +1545,54 @@ const fsSavePref = (k, v) => {
     localStorage.setItem(k, v);
   } catch (e) {}
 };
+function FsSyncAlert({
+  fail,
+  lastAt
+}) {
+  if (!fail) return null;
+  return React.createElement("div", {
+    style: {
+      padding: "11px 14px",
+      borderRadius: "var(--r-tile)",
+      background: "var(--tint-red-bg)",
+      display: "flex",
+      gap: 9,
+      alignItems: "flex-start"
+    }
+  }, React.createElement("span", {
+    style: {
+      display: "flex",
+      marginTop: 1,
+      color: "var(--tint-red-tx)"
+    }
+  }, React.createElement(Icon, {
+    name: "alert",
+    size: 16,
+    color: "currentColor"
+  })), React.createElement("div", {
+    style: {
+      display: "flex",
+      flexDirection: "column",
+      gap: 3,
+      fontSize: 12.5,
+      minWidth: 0
+    }
+  }, React.createElement("div", {
+    style: {
+      fontWeight: 800,
+      color: "var(--tint-red-tx)"
+    }
+  }, "\u0E14\u0E36\u0E07\u0E02\u0E49\u0E2D\u0E21\u0E39\u0E25\u0E08\u0E32\u0E01 Huawei FusionSolar \u0E44\u0E21\u0E48\u0E44\u0E14\u0E49\u0E15\u0E31\u0E49\u0E07\u0E41\u0E15\u0E48 ", fsWhen(fail.since || fail.at)), React.createElement("div", {
+    style: {
+      color: "var(--text-1)"
+    }
+  }, fail.text || fail.message, fail.failCode != null ? " (failCode " + fail.failCode + ")" : ""), React.createElement("div", {
+    style: {
+      color: "var(--text-3)",
+      fontSize: 11.5
+    }
+  }, "\u0E15\u0E31\u0E27\u0E40\u0E25\u0E02\u0E14\u0E49\u0E32\u0E19\u0E25\u0E48\u0E32\u0E07\u0E40\u0E1B\u0E47\u0E19\u0E04\u0E48\u0E32\u0E40\u0E21\u0E37\u0E48\u0E2D ", lastAt ? fsWhen(new Date(lastAt).toISOString()) : "–", " \xB7 \u0E23\u0E30\u0E1A\u0E1A\u0E25\u0E2D\u0E07\u0E43\u0E2B\u0E21\u0E48\u0E40\u0E2D\u0E07\u0E0A\u0E31\u0E48\u0E27\u0E42\u0E21\u0E07\u0E25\u0E30\u0E04\u0E23\u0E31\u0E49\u0E07 \u0E41\u0E01\u0E49\u0E41\u0E25\u0E49\u0E27\u0E41\u0E2D\u0E14\u0E21\u0E34\u0E19\u0E01\u0E14 \"\u0E0B\u0E34\u0E07\u0E01\u0E4C\u0E15\u0E2D\u0E19\u0E19\u0E35\u0E49\" \u0E43\u0E19\u0E15\u0E31\u0E49\u0E07\u0E04\u0E48\u0E32 \u2192 \u0E0B\u0E34\u0E07\u0E01\u0E4C FusionSolar \u0E44\u0E14\u0E49\u0E17\u0E31\u0E19\u0E17\u0E35")));
+}
 function FsSitesView({
   jobs,
   role,
@@ -1578,6 +1626,9 @@ function FsSitesView({
   const {
     val: devVal
   } = useFsNode("fsDevices");
+  const {
+    val: fsSt
+  } = useFsNode("fsState");
   const refreshing = useFsAutoRefresh();
   const yields = React.useMemo(() => sites.filter(s => +s.health_state === 3).map(fsMonthYield).filter(v => v != null), [sites]);
   const medMonth = yields.length >= 3 ? fsMedian(yields) : null;
@@ -1691,7 +1742,10 @@ function FsSitesView({
       gap: 14,
       minHeight: 0
     }
-  }, sites.length > 0 && React.createElement(FsFleetHero, {
+  }, React.createElement(FsSyncAlert, {
+    fail: fsSt && fsSt.login_fail,
+    lastAt: lastAt
+  }), sites.length > 0 && React.createElement(FsFleetHero, {
     roll: roll,
     nowKw: nowKw,
     liveN: Object.keys(live).length,
@@ -3735,8 +3789,11 @@ function FsLogView({
     label: "\u0E2A\u0E16\u0E32\u0E19\u0E30",
     value: blocked ? "พัก 407 ถึง " + new Date(state.blocked_until).toLocaleTimeString("th-TH", {
       timeStyle: "short"
-    }) : state.lock ? "กำลังซิงก์…" : "พร้อม"
-  })), isAdmin ? React.createElement("div", {
+    }) : state.lock ? "กำลังซิงก์…" : state.login_fail ? "ล็อกอินไม่ผ่าน" : "พร้อม"
+  })), React.createElement(FsSyncAlert, {
+    fail: state.login_fail,
+    lastAt: Date.parse(state.last_kpi_at || "") || 0
+  }), isAdmin ? React.createElement("div", {
     style: {
       display: "flex",
       gap: 8,

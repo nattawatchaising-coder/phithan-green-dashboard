@@ -38,6 +38,8 @@ export async function POST(request) {
     if (age < REFRESH_MS) return json({ ran: false, why: "fresh", last_kpi_at: st.last_kpi_at });
     if (st.blocked_until && Date.parse(st.blocked_until) > Date.now()) return json({ ran: false, why: "blocked" });
     if (st.lock && Date.now() - Date.parse(st.lock.at) < 90e3) return json({ ran: false, why: "busy" });
+    /* ล็อกอิน Huawei พลาดภายในชั่วโมง (เช่นบัญชีหมดอายุ) — คนเปิดหน้าไม่ต้องยิงซ้ำ รอ cron/แอดมิน (runSync ก็กันซ้ำอีกชั้น) */
+    if (st.login_fail && Date.now() - (Date.parse(st.login_fail.at) || 0) < 60 * 60e3) return json({ ran: false, why: "login_fail" });
     /* พักระหว่างความพยายาม (refresh_at) — รอบพัง (เช่นล็อกอินไม่ผ่าน) last_kpi_at ไม่ขยับ ถ้าไม่มีตัวนี้ทุกคนที่เปิดหน้าจะยิงซ้ำจนบัญชี Huawei โดนล็อก */
     if (Date.now() - (Date.parse(st.refresh_at || "") || 0) < REFRESH_MS) return json({ ran: false, why: "cooldown" });
     await rtdbUpdate("fsState", { refresh_at: new Date().toISOString() });

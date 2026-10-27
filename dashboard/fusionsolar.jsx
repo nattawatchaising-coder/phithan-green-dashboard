@@ -571,6 +571,22 @@ function FsExportDialog({ sites, site, devs, onClose }) {
 const fsLoadPref = (k, d) => { try { return localStorage.getItem(k) || d; } catch (e) { return d; } };
 const fsSavePref = (k, v) => { try { localStorage.setItem(k, v); } catch (e) { /* ไม่มีที่เก็บ — ไม่เป็นไร */ } };
 
+/* ป้ายบอกทุกคนว่าดึงข้อมูลจาก Huawei ไม่ได้ (fsState/login_fail จากเซิร์ฟเวอร์) — ไม่งั้นตัวเลขค้างเงียบ ๆ
+   เจอจริง 2026-10-26: failCode 20003 บัญชี Northbound หมดอายุ ซิงก์พังทั้งคืนโดยไม่มีใครรู้ */
+function FsSyncAlert({ fail, lastAt }) {
+  if (!fail) return null;
+  return (
+    <div style={{ padding: "11px 14px", borderRadius: "var(--r-tile)", background: "var(--tint-red-bg)", display: "flex", gap: 9, alignItems: "flex-start" }}>
+      <span style={{ display: "flex", marginTop: 1, color: "var(--tint-red-tx)" }}><Icon name="alert" size={16} color="currentColor" /></span>
+      <div style={{ display: "flex", flexDirection: "column", gap: 3, fontSize: 12.5, minWidth: 0 }}>
+        <div style={{ fontWeight: 800, color: "var(--tint-red-tx)" }}>ดึงข้อมูลจาก Huawei FusionSolar ไม่ได้ตั้งแต่ {fsWhen(fail.since || fail.at)}</div>
+        <div style={{ color: "var(--text-1)" }}>{fail.text || fail.message}{fail.failCode != null ? " (failCode " + fail.failCode + ")" : ""}</div>
+        <div style={{ color: "var(--text-3)", fontSize: 11.5 }}>ตัวเลขด้านล่างเป็นค่าเมื่อ {lastAt ? fsWhen(new Date(lastAt).toISOString()) : "–"} · ระบบลองใหม่เองชั่วโมงละครั้ง แก้แล้วแอดมินกด "ซิงก์ตอนนี้" ในตั้งค่า → ซิงก์ FusionSolar ได้ทันที</div>
+      </div>
+    </div>
+  );
+}
+
 function FsSitesView({ jobs, role, currentUser, onOpenJob, onOpenOm }) {
   const isMobile = window.matchMedia("(max-width: 860px)").matches;
   const isMid = window.matchMedia("(max-width: 1100px)").matches;
@@ -586,6 +602,7 @@ function FsSitesView({ jobs, role, currentUser, onOpenJob, onOpenOm }) {
   const setView = (v) => { setViewRaw(v); fsSavePref("fsSitesView", v); };
   const canWrite = window.can ? window.can(role, "om") : true;
   const { val: devVal } = useFsNode("fsDevices");
+  const { val: fsSt } = useFsNode("fsState");
   const refreshing = useFsAutoRefresh();
 
   /* เรื่องที่ควรดูของทุกไซต์ (ตัวตรวจชุดเดียวกับหน้ารายละเอียด) + ค่ากลางผลิตต่อ kWp ไว้หาไซต์ที่ผลิตต่ำกว่าเพื่อน */
@@ -659,6 +676,7 @@ function FsSitesView({ jobs, role, currentUser, onOpenJob, onOpenOm }) {
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 14, minHeight: 0 }}>
+      <FsSyncAlert fail={fsSt && fsSt.login_fail} lastAt={lastAt} />
       {sites.length > 0 && <FsFleetHero roll={roll} nowKw={nowKw} liveN={Object.keys(live).length} lastAt={lastAt} refreshing={refreshing} isMobile={isMobile}
         hCount={hCount} health={health} onHealth={setHealth} />}
 
@@ -1486,8 +1504,9 @@ function FsLogView({ role, currentUser }) {
           <FsSpec label="ข้อมูลย้อนหลัง (กราฟ)" value={state.hist_done_at ? "ครบ · " + fsWhen(state.hist_done_at)
             : state.hist_cursor ? "ค้างคิวที่ " + state.hist_cursor + " — กดซ้ำ" : "ยังไม่ได้ดึง"} />
           <FsSpec label="สถานะ" value={blocked ? "พัก 407 ถึง " + new Date(state.blocked_until).toLocaleTimeString("th-TH", { timeStyle: "short" })
-            : (state.lock ? "กำลังซิงก์…" : "พร้อม")} />
+            : state.lock ? "กำลังซิงก์…" : state.login_fail ? "ล็อกอินไม่ผ่าน" : "พร้อม"} />
         </div>
+        <FsSyncAlert fail={state.login_fail} lastAt={Date.parse(state.last_kpi_at || "") || 0} />
         {isAdmin ? (
           <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
             <FsChips value={job} onChange={setJob} options={[["all", FS_JOB_TH.all], ["sites", FS_JOB_TH.sites], ["kpi", FS_JOB_TH.kpi], ["hist", FS_JOB_TH.hist]]} />
