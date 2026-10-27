@@ -110,7 +110,10 @@ label { min-width: 0; }
 .brand-name { font-family: var(--brand-font); font-size: 19px; font-weight: 700; letter-spacing: -.02em; color: var(--brand-ink); line-height: 1.05; white-space: nowrap; }
 .brand-name .plus { color: #22B36A; }
 
-.sidebar-nav { padding: 14px 12px; display: flex; flex-direction: column; gap: 3px; flex: 1; }
+/* min-height: 0 — ลูกของ flex ไม่ยอมหดต่ำกว่าความสูงเนื้อหาถ้าไม่สั่ง รายการเมนูเลยดันทะลุแถบ
+   ออกไปแทนที่จะเลื่อน ส่วน overflow-y คือตัวที่ทำให้เลื่อนดูเมนูที่ยาวเกินจอได้ */
+.sidebar-nav { padding: 14px 12px; display: flex; flex-direction: column; gap: 3px; flex: 1;
+  min-height: 0; overflow-y: auto; overscroll-behavior: contain; -webkit-overflow-scrolling: touch; }
 .sidebar[data-mode="icons"] .sidebar-nav { width: 100%; align-items: center; }
 /* เมนู: หน้าที่เปิดอยู่ใช้ "ขีดเขียวด้านซ้าย + พื้นจาง" ชุดเดียวกับสารบัญในหน้า BOQ/ออกแบบ
    (เดิมทาพื้นเขียวทั้งปุ่ม ซึ่งเด่นกว่าเนื้อหาจริงบนหน้าจอ) */
@@ -446,8 +449,11 @@ html.theme-anim, html.theme-anim * { transition: background-color .34s ease, bor
 
 @media (max-width: 860px) {
   /* Sidebar: hidden by default, slides in with .sidebar--open */
+  /* height ของ position:fixed วัดจากจอแบบ "แถบเบราว์เซอร์ซ่อนอยู่" เสมอ 100% จึงสูงเกินจริง
+     ท้ายเมนูเลยไปจมอยู่ใต้แถบล่างของ Safari — dvh วัดตามพื้นที่ที่เห็นจริงในขณะนั้น
+     (ชุดเดียวกับที่ #root กับ .app-root ใช้อยู่แล้ว) */
   .sidebar {
-    position: fixed; z-index: 80; height: 100%;
+    position: fixed; z-index: 80; height: 100%; height: 100dvh;
     transform: translateX(-100%);
     transition: transform .26s cubic-bezier(.4,0,.2,1);
     box-shadow: none;
@@ -464,6 +470,8 @@ html.theme-anim, html.theme-anim * { transition: background-color .34s ease, bor
   /* Sidebar needs relative positioning for close button */
   .sidebar { position: fixed; }
   .sidebar-brand { position: relative; padding-right: 50px; }
+  /* ปุ่มตั้งค่าท้ายแถบไม่ให้ไปอยู่ใต้ขีดโฮมของ iPhone */
+  .sidebar-foot { padding-bottom: calc(14px + env(safe-area-inset-bottom, 0px)); }
 
   /* Header: compact — เผื่อ safe-area ด้านบน (รอยบาก/แถบสถานะ iOS) */
   .app-header { padding: calc(12px + env(safe-area-inset-top, 0px)) 16px 0; min-height: 0; }
