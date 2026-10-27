@@ -1988,6 +1988,7 @@ function FsModal({
     style: {
       position: "fixed",
       inset: 0,
+      height: "calc(100dvh - var(--kb, 0px))",
       zIndex: 95,
       background: "rgba(8,20,26,.45)",
       backdropFilter: "blur(3px)",
@@ -2000,7 +2001,7 @@ function FsModal({
     style: {
       width: "100%",
       maxWidth: width || 820,
-      maxHeight: isMobile ? "94vh" : "90vh",
+      maxHeight: isMobile ? "94%" : "90vh",
       display: "flex",
       flexDirection: "column",
       background: "var(--bg)",

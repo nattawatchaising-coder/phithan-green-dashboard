@@ -578,6 +578,7 @@ function OmTicketModal({
     style: {
       position: "fixed",
       inset: 0,
+      height: "calc(100dvh - var(--kb, 0px))",
       zIndex: 95,
       background: "rgba(8,20,26,.5)",
       backdropFilter: "blur(3px)",
@@ -591,7 +592,7 @@ function OmTicketModal({
     style: {
       width: "100%",
       maxWidth: 760,
-      maxHeight: isMobile ? "94vh" : "88vh",
+      maxHeight: isMobile ? "94%" : "88vh",
       overflowY: "auto",
       background: "var(--bg)",
       border: "1px solid var(--border)",

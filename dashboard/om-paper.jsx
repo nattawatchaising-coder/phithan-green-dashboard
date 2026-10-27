@@ -114,10 +114,10 @@ function OmVisitModal({ visit, site, siteVisits, role, currentUser, onClose, onP
   return (
     <React.Fragment>
       <div onClick={onClose}
-        style={{ position: "fixed", inset: 0, zIndex: 100, background: "rgba(8,20,26,.5)", backdropFilter: "blur(3px)",
+        style={{ position: "fixed", inset: 0, height: "calc(100dvh - var(--kb, 0px))", zIndex: 100, background: "rgba(8,20,26,.5)", backdropFilter: "blur(3px)",
           display: "flex", alignItems: isMobile ? "flex-end" : "center", justifyContent: "center", padding: isMobile ? 0 : 24 }}>
         <div onClick={(e) => e.stopPropagation()}
-          style={{ width: "100%", maxWidth: 780, maxHeight: isMobile ? "94vh" : "88vh", overflowY: "auto",
+          style={{ width: "100%", maxWidth: 780, maxHeight: isMobile ? "94%" : "88vh", overflowY: "auto",
             background: "var(--bg)", border: "1px solid var(--border)",
             borderRadius: isMobile ? "18px 18px 0 0" : 18, boxShadow: "0 24px 60px rgba(0,0,0,.28)" }}>
 

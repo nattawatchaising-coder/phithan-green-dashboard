@@ -758,10 +758,17 @@ function FsSitesView({ jobs, role, currentUser, onOpenJob, onOpenOm }) {
 function FsModal({ title, sub, right, onClose, children, foot, width }) {
   const isMobile = window.matchMedia("(max-width: 860px)").matches;
   const bd = window.useBackdropClose ? window.useBackdropClose(onClose) : { onClick: onClose };
+  /* vh บน iOS วัดจากจอแบบ "แถบเบราว์เซอร์ซ่อนอยู่" เสมอ แต่ชั้น position:fixed ได้ขนาดเท่า
+     พื้นที่ที่เห็นจริง แผ่นที่สูง 94vh จึงสูงกว่าฉากหลัง แล้วล้นออกทางขอบบน (flex-end)
+     หัวแผ่นที่มีปุ่มปิดเลยหลุดจอ กดปิดไม่ได้ (ผู้ใช้แจ้ง ต.ค. 2026)
+     ให้ฉากหลังสูงตาม dvh (พื้นที่ที่เห็นจริง) แล้วคิดแผ่นเป็น % ของฉากหลัง จะไม่มีทางล้น
+     --kb = ส่วนที่คีย์บอร์ดมือถือกินไป (dashboard/kbfit.js ปกติ 0)
+     ⚠ คง inset: 0 ไว้ — skin-glass.js ใช้ [style*='inset: 0'] ปลดเบลอไม่ให้ของเต็มจอถูกขัง
+        (ตั้ง height คู่กับ top:0 จึงชนะ bottom ที่มากับ inset) */
   return (
-    <div {...bd} style={{ position: "fixed", inset: 0, zIndex: 95, background: "rgba(8,20,26,.45)", backdropFilter: "blur(3px)",
+    <div {...bd} style={{ position: "fixed", inset: 0, height: "calc(100dvh - var(--kb, 0px))", zIndex: 95, background: "rgba(8,20,26,.45)", backdropFilter: "blur(3px)",
       display: "flex", alignItems: isMobile ? "flex-end" : "center", justifyContent: "center", padding: isMobile ? 0 : 24 }}>
-      <div style={{ width: "100%", maxWidth: width || 820, maxHeight: isMobile ? "94vh" : "90vh", display: "flex", flexDirection: "column",
+      <div style={{ width: "100%", maxWidth: width || 820, maxHeight: isMobile ? "94%" : "90vh", display: "flex", flexDirection: "column",
         background: "var(--bg)", boxShadow: "var(--shadow-modal)", borderRadius: isMobile ? "var(--r-card) var(--r-card) 0 0" : "var(--r-card)", overflow: "hidden" }}>
         <div style={{ display: "flex", alignItems: "flex-start", gap: 10, padding: isMobile ? "14px 14px" : "16px 20px", background: "var(--surface)",
           boxShadow: "0 6px 16px -12px rgba(0,0,0,.35)", position: "relative", zIndex: 1 }}>
