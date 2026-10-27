@@ -5,6 +5,7 @@
    - Vercel cron วันละครั้ง (vercel.json · ไม่ใส่ job = "all": ไซต์+อุปกรณ์ แล้วข้อมูลผลิต)
      Vercel Hobby ตั้ง cron ได้วันละครั้งต่อรายการเท่านั้น — ตั้งรายชั่วโมงแล้ว deploy ไม่ผ่าน
    - Vercel cron 04:30 ไทย ?job=histday = ข้อมูลรายชั่วโมงเมื่อวาน+วันนี้จาก Huawei (กราฟกำลังไฟวันก่อนหน้า · มีไฟที่ใช้)
+   - cron-job.org ทุก 15 นาที → ?job=kpi&src=ext (ตัวหลัก · GitHub ข้ามรอบบ่อย)
    - GitHub Actions ทุกชั่วโมง (.github/workflows/fusionsolar-kpi.yml) → ?job=kpi&src=gh
 
    Authorization: Bearer $CRON_SECRET เหมือน cron ตัวอื่น

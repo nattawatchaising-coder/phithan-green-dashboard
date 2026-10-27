@@ -91,6 +91,8 @@
 ## รอบเวลา
 - **ไซต์+อุปกรณ์วันละครั้ง** — Vercel cron `0 21 * * *` (04:00 ไทย) `job=all`
 - **KPI ทุก 15 นาที** (ผู้ใช้บ่นว่ารายชั่วโมงช้า 2026-10-26) — Vercel Hobby ให้ cron ได้วันละครั้ง จึงให้ GitHub Actions เคาะ `?job=kpi&src=gh` นาที 7/22/37/52 · ต้องตั้ง secret `CRON_SECRET` ใน GitHub ให้ตรงกับ Vercel (ไม่มี = workflow ข้ามเงียบ)
+  - **ตัวเคาะหลัก = cron-job.org ทุก 15 นาที** (ตั้ง 2026-10-27 · บัญชีของผู้ใช้) → `GET /api/cron/fusionsolar?job=kpi&src=ext` header `Authorization: Bearer <CRON_SECRET>` · log trigger `ext` · ใช้ ~25 วิ (cron-job.org อาจขึ้น timeout แต่ฝั่ง Vercel ทำต่อจนจบ) · GitHub ยังเคาะซ้ำได้ ตัวกันล็อก/10 นาทีกันซ้อน
+    - `CRON_SECRET` บน Vercel เป็น Sensitive (ดูค่าไม่ได้) — เปลี่ยนรหัส = แก้ 3 ที่ให้ตรงกัน: Vercel env (+ Redeploy) · GitHub Actions secret · header ใน cron-job.org
   - **GitHub เคาะไม่ตรงและข้ามบ่อย** (วันแรกตั้งรายชั่วโมง รันจริง 2 ครั้งใน 13 ชม.) → **หน้าไซต์ทั้งหมดขอซิงก์เองตอนเปิดดู**: `POST /api/fusionsolar/sync {job:"refresh"}` ทุกบัญชีที่ล็อกอิน · เซิร์ฟเวอร์ตัดสิน: ยังไม่อนุมัติ / `last_kpi_at` < 10 นาที / พัก 407 / มีล็อก / `fsState/refresh_at` < 10 นาที (กันรอบพังแล้วทุกคนยิงซ้ำจนบัญชี Huawei โดนล็อก) = ไม่ทำ · ไม่งั้นรัน kpi trigger `view` · หน้าเว็บเรียกตอนเปิด แล้วทุก 5 นาทีที่แท็บเปิดดูอยู่ · **ฐานทดสอบไม่เรียก** (devserver อาจมีรหัส Huawei จริงใน fusionsolar.local.json → แย่งโควตากับเว็บจริง)
   - ไม่เพิ่มไฟล์ใน `api/` — Vercel Hobby จำกัด 12 ฟังก์ชัน (ตอนนี้ 10)
   - **ค่ารายชั่วโมงจดเฉพาะรอบแรกของชั่วโมง** (`h/p/m` · `fsState/kpi_snap` = "YYYY-MM-DD HH" ตั้งเมื่อรอบนั้นครบทุก batch) — รอบถัดไปในชั่วโมงเดียวกันอัปเดตแค่ `kwh` + ค่าไซต์ · กราฟวันนี้มีแท่ง "HH:00–ตอนนี้" = `fsSites.day_kwh` − `h/{ชั่วโมงนี้}`
