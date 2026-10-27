@@ -2311,7 +2311,10 @@ function SurveyWizard({
   return React.createElement(React.Fragment, null, React.createElement("div", _extends({}, bdClose, {
     style: {
       position: "fixed",
-      inset: 0,
+      top: 0,
+      left: 0,
+      right: 0,
+      bottom: "var(--kb, 0px)",
       background: "rgba(8,20,14,.45)",
       backdropFilter: "blur(3px)",
       zIndex: 115,
@@ -2323,7 +2326,7 @@ function SurveyWizard({
     onClick: e => e.stopPropagation(),
     style: {
       width: isMobile ? "100%" : "min(680px,100%)",
-      height: isMobile ? "94dvh" : "min(900px, 94vh)",
+      height: isMobile ? "calc(94dvh - var(--kb, 0px))" : "min(900px, 94vh)",
       display: "flex",
       flexDirection: "column",
       minHeight: 0

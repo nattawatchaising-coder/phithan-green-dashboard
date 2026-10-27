@@ -18,6 +18,8 @@
 <script src="dashboard/skin-glass.js?v=23"></script>
 <!-- การ์ดขยายเป็นใบตอนเปิดใบลูกค้าฝ่ายขาย หดกลับตอนปิด (ลิ้นชักเรียก pgZoomFromCard / pgZoomToCard) -->
 <script src="dashboard/pg-motion.js?v=35"></script>
+<!-- คีย์บอร์ดมือถือเด้งขึ้นมาบังช่องกรอก — หด .app-root ด้วย --kb แล้วเลื่อนช่องที่กรอกอยู่ขึ้นมาให้ -->
+<script src="dashboard/kbfit.js?v=1"></script>
 <style>
 
 * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -85,7 +87,10 @@ label { min-width: 0; }
   --page-gut: max(26px, calc((100% - var(--page-w)) / 2));
   --page-gut-sm: max(18px, calc((100% - var(--page-w)) / 2));
 }
-.app-root { display: flex; height: 100dvh; overflow: hidden; }
+/* --kb = ส่วนที่คีย์บอร์ดมือถือกินไป ตั้งค่าโดย dashboard/kbfit.js (ปกติเป็น 0)
+   ต้องหักออกเอง เพราะ dvh ไม่นับคีย์บอร์ด — ถ้าไม่หัก ท่อนล่างของหน้าจะจมอยู่ใต้คีย์บอร์ด
+   และเลื่อนขึ้นมาดูไม่ได้ ตอนกรอกฟอร์มยาว ๆ จะกดช่องถัดไปไม่ได้เลย */
+.app-root { display: flex; height: calc(100dvh - var(--kb, 0px)); overflow: hidden; }
 .app-main { flex: 1; display: flex; flex-direction: column; min-width: 0; }
 /* ── ความกว้างเนื้อหาบนจอกว้าง ──
    จอ 24 นิ้วขึ้นไปถ้าปล่อยให้ทุกอย่างยืดเต็มความกว้าง ตารางกับการ์ดจะถูกดึงจนหนึ่งบรรทัด
@@ -1221,7 +1226,7 @@ H-@G1I margin-top D'IC*D%L-1'@- 6H
 <script src="dashboard/build/views-calendar.js?v=36"></script>
 <script src="dashboard/build/views-stock.js?v=180"></script>
 <script src="dashboard/build/form.js?v=46"></script>
-<script src="dashboard/build/survey.js?v=39"></script>
+<script src="dashboard/build/survey.js?v=40"></script>
 <script src="dashboard/build/survey-report.js?v=16"></script>
 <script src="dashboard/build/sales.js?v=94"></script>
 <script src="dashboard/build/pkgposter.js?v=66"></script>

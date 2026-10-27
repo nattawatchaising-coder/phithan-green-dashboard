@@ -1080,10 +1080,17 @@ function SurveyWizard({ job, onClose, onSave, onReport, currentUser, stock }) {
 
   return (
     <React.Fragment>
-    <div {...bdClose} style={{ position: "fixed", inset: 0, background: "rgba(8,20,14,.45)", backdropFilter: "blur(3px)", zIndex: 115, display: "grid", placeItems: isMobile ? "end center" : "center", padding: isMobile ? 0 : 20 }}>
+    {/* ก้นฉากหลังยกขึ้นเท่าความสูงคีย์บอร์ด (--kb จาก dashboard/kbfit.js ปกติ 0)
+        บนมือถือแผ่นถูกวางชิดก้นฉาก (placeItems: end) ถ้าไม่ยกก้นขึ้น ต่อให้หดความสูงแผ่น
+        ขอบล่างก็ยังจมอยู่ใต้คีย์บอร์ดเหมือนเดิม ได้แค่ดันขอบบนลง */}
+    <div {...bdClose} style={{ position: "fixed", top: 0, left: 0, right: 0, bottom: "var(--kb, 0px)", background: "rgba(8,20,14,.45)", backdropFilter: "blur(3px)", zIndex: 115, display: "grid", placeItems: isMobile ? "end center" : "center", padding: isMobile ? 0 : 20 }}>
       {/* แท็บแฟ้ม = ขั้นตอนทั้ง 5 ชุดเดียวกับลิ้นชักลูกค้า (.ld-tab ใน index.html) แทนแถบวงกลมเลขขั้นเดิม
           ความสูงตายตัว สลับขั้นแล้วใบไม่กระโดด · ⚠ ห้ามใช้ filter: drop-shadow ที่กรอบนอก — มันขัง position:fixed ข้างในไว้ในกรอบ */}
-      <div onClick={(e) => e.stopPropagation()} style={{ width: isMobile ? "100%" : "min(680px,100%)", height: isMobile ? "94dvh" : "min(900px, 94vh)",
+      {/* --kb = ส่วนที่คีย์บอร์ดมือถือกินไป (dashboard/kbfit.js ตั้งให้ ปกติ 0)
+          ต้องหักเอง เพราะ dvh ไม่นับคีย์บอร์ด — ไม่หักแล้วท่อนล่างของฟอร์มจมอยู่ใต้คีย์บอร์ด
+          เลื่อนขึ้นมากรอกช่องถัดไปไม่ได้ (ผู้ใช้แจ้ง ต.ค. 2026) */}
+      <div onClick={(e) => e.stopPropagation()} style={{ width: isMobile ? "100%" : "min(680px,100%)",
+        height: isMobile ? "calc(94dvh - var(--kb, 0px))" : "min(900px, 94vh)",
         display: "flex", flexDirection: "column", minHeight: 0 }}>
       <div className="ld-tabs" role="tablist">
         {SURVEY_STEPS.map((s, i) => {
