@@ -244,6 +244,19 @@ export function planDevices(devs, codes, devices, codeToSite, now) {
   return { patch, out };
 }
 
+/* กราฟกำลังไฟวันนี้ — ใช้ร่วมกับ isolarcloud.mjs · key = { day: "YYYY-MM-DD", hm: "HHmm" } เวลาไทยปัดลง 5 นาที */
+export function fsWKey(ms) {
+  const x = new Date(ms + 7 * 3600e3).toISOString();
+  return { day: x.slice(0, 10), hm: x.slice(11, 13) + String(Math.floor(+x.slice(14, 16) / 5) * 5).padStart(2, "0") };
+}
+/* wPv = { siteId: kW } · wG = { "siteId/meterId": kW } → patch ของ fsKpiDay */
+export function fsWPatch(wk, wPv, wG) {
+  const out = {};
+  Object.keys(wPv).forEach((sid) => { out[sid + "/" + wk.day + "/w/" + wk.hm + "/pv"] = Math.round(wPv[sid] * 1000) / 1000; });
+  Object.keys(wG).forEach((k) => { const j = k.indexOf("/"); out[k.slice(0, j) + "/" + wk.day + "/w/" + wk.hm + "/g/" + k.slice(j + 1)] = wG[k]; });
+  return out;
+}
+
 /* รวม patch แบบ "<id>/<field>" เข้าก้อนในหน่วยความจำ — dry run ใช้ต่อขั้น KPI ได้เหมือนเขียนแล้ว */
 function applyPatch(obj, patch) {
   Object.keys(patch).forEach((k) => {
@@ -416,6 +429,9 @@ export async function runSync(o) {
        (fsState/kpi_snap = วัน+ชั่วโมงที่จดแล้ว) ไม่งั้นค่าชั่วโมงถูกเขียนทับด้วยค่าท้ายชั่วโมง แท่งเลื่อนเวลา · kwh/ค่าไซต์อัปเดตทุกรอบ */
     const snapKey = bkk(Date.now()).day + " " + bkk(Date.now()).hh;
     const snap = dry || state.kpi_snap !== snapKey;
+    /* กราฟกำลังไฟวันนี้ (kW) — จดทุกรอบ: w/{HHmm} = { pv: kW รวมอินเวอร์เตอร์ของไซต์, g: { มิเตอร์: kW ดิบ (ทิศตามมิเตอร์) } }
+       HHmm = เวลาไทยปัดลง 5 นาทีของรอบนี้ · ไซต์ที่อินเวอร์เตอร์แบ่งอยู่สองรอบ (งานค้าง) ค่า pv รอบนั้นจะขาด */
+    const wKey = fsWKey(Date.now()), wPv = {}, wG = {};
     let i = dry ? 0 : Math.min(Number(state.kpi_cursor) || 0, batches.length);
     if (i >= batches.length) i = 0;
     for (; i < batches.length; i++) {
@@ -445,6 +461,8 @@ export async function runSync(o) {
             const id = safeKey(String(r && r.devId)); if (!devices[id]) return;
             const pw = num((r.dataItemMap || {}).active_power);
             if (snap && (b.type === 1 || b.type === 38) && pw != null && devices[id].site_id) dayP[devices[id].site_id + "/" + k.day + "/p/" + k.hh + "/" + id] = pw;
+            if ((b.type === 1 || b.type === 38) && pw != null && devices[id].site_id) wPv[devices[id].site_id] = (wPv[devices[id].site_id] || 0) + pw;
+            if ((b.type === 47 || b.type === 17) && pw != null && devices[id].site_id) wG[devices[id].site_id + "/" + id] = Math.round(pw) / 1000;   // มิเตอร์ W → kW
             if (snap && (b.type === 47 || b.type === 17) && devices[id].site_id) {
               const a = num((r.dataItemMap || {}).active_cap), rv = num((r.dataItemMap || {}).reverse_active_cap);
               if (a != null && rv != null) dayP[devices[id].site_id + "/" + k.day + "/m/" + k.hh + "/" + id] = { a, r: rv };
@@ -461,6 +479,7 @@ export async function runSync(o) {
         log.errors.push(errRec(e));
       }
     }
+    if (!dry) await writePatch("fsKpiDay", fsWPatch(wKey, wPv, wG));
     log.pending += batches.length - i;
     st.kpi_cursor = i >= batches.length ? 0 : i;
     if (!dry) st.last_kpi_at = iso();

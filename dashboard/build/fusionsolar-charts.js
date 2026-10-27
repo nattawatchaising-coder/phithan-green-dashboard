@@ -45,15 +45,18 @@ function FsTrendChart({
   avg,
   avgLabel,
   height,
-  empty
+  empty,
+  t0,
+  t1
 }) {
   const [ref, w] = useFsWidth(640);
   const [hov, setHov] = React.useState(null);
   const [table, setTable] = React.useState(false);
   const uid = React.useMemo(() => "fst" + Math.random().toString(36).slice(2, 8), []);
-  const area = mode === "area";
+  const timeMode = mode === "time";
+  const area = mode === "area" || timeMode;
   const vals = bars.map(b => b.value).filter(v => v != null);
-  const loads = mode === "area" ? bars.map(b => b.load).filter(v => v != null) : [];
+  const loads = area ? bars.map(b => b.load).filter(v => v != null) : [];
   const hasLoad = loads.length > 0;
   const H = height || 210,
     padL = 40,
@@ -65,7 +68,10 @@ function FsTrendChart({
   const max = fsNice(Math.max.apply(null, vals.concat(loads, [avg || 0, 0])) * 1.06);
   const n = Math.max(1, bars.length),
     step = plotW / n;
-  const X = i => padL + step * i + step / 2;
+  const T0 = t0 != null ? t0 : 0,
+    T1 = t1 != null && t1 > T0 ? t1 : T0 + 1440;
+  const XT = t => padL + plotW * (t - T0) / (T1 - T0);
+  const X = i => timeMode ? XT(bars[i].t) : padL + step * i + step / 2;
   const Y = v => padT + plotH * (1 - Math.max(0, v) / max);
   const base = Y(0);
   const every = Math.max(area ? 2 : 1, Math.ceil(n * (area ? 46 : 34) / plotW));
@@ -245,6 +251,10 @@ function FsTrendChart({
     let cur = [];
     bars.forEach((b, i) => {
       const v = get(b);
+      if (timeMode && cur.length && i > 0 && b.t - bars[i - 1].t > 75) {
+        out.push(cur);
+        cur = [];
+      }
       if (v != null) cur.push([X(i), Y(v)]);else if (cur.length) {
         out.push(cur);
         cur = [];
@@ -567,7 +577,37 @@ function FsTrendChart({
       stroke: "var(--fs-load)",
       strokeWidth: 2.2
     }
-  })), bars.map((b, i) => {
+  })), timeMode && (() => {
+    const span = (T1 - T0) / 60,
+      ev = [1, 2, 3, 4, 6].find(x => plotW / span * x >= 60) || 6,
+      out = [];
+    for (let h = Math.ceil(T0 / 60 / ev) * ev; h * 60 <= T1; h += ev) {
+      const x = XT(h * 60);
+      if (nowI >= 0 && Math.abs(x - X(nowI)) < 30) continue;
+      out.push(React.createElement("text", {
+        key: "tk" + h,
+        x: x,
+        y: H - 7,
+        textAnchor: "middle",
+        style: {
+          fill: "var(--text-3)",
+          fontSize: 10
+        }
+      }, String(h).padStart(2, "0"), ":00"));
+    }
+    if (nowI >= 0) out.push(React.createElement("text", {
+      key: "tknow",
+      x: X(nowI),
+      y: H - 7,
+      textAnchor: "middle",
+      style: {
+        fill: sun,
+        fontSize: 10,
+        fontWeight: 800
+      }
+    }, "\u0E15\u0E2D\u0E19\u0E19\u0E35\u0E49"));
+    return out;
+  })(), !timeMode && bars.map((b, i) => {
     const isNow = area && i === nowI;
     if (!isNow && !(i % every === 0 && (n - 1 - i >= every || i === n - 1)) && hov !== i) return null;
     if (!isNow && area && nowI >= 0 && Math.abs(i - nowI) < every && hov !== i) return null;
@@ -582,18 +622,22 @@ function FsTrendChart({
         fontWeight: isNow || hov === i ? 800 : 500
       }
     }, isNow ? "ตอนนี้" : area ? b.label + ":00" : b.label);
-  }), bars.map((b, i) => React.createElement("rect", {
-    key: "h" + b.k,
-    x: padL + step * i,
-    y: 0,
-    width: step,
-    height: H,
-    style: {
-      fill: "transparent"
-    },
-    onMouseEnter: () => setHov(i),
-    onTouchStart: () => setHov(i)
-  }))), hb && React.createElement("div", {
+  }), bars.map((b, i) => {
+    const x0 = timeMode ? i ? (X(i - 1) + X(i)) / 2 : padL : padL + step * i;
+    const x1 = timeMode ? i < bars.length - 1 ? (X(i) + X(i + 1)) / 2 : w - padR : x0 + step;
+    return React.createElement("rect", {
+      key: "h" + b.k,
+      x: x0,
+      y: 0,
+      width: Math.max(1, x1 - x0),
+      height: H,
+      style: {
+        fill: "transparent"
+      },
+      onMouseEnter: () => setHov(i),
+      onTouchStart: () => setHov(i)
+    });
+  })), hb && React.createElement("div", {
     style: {
       position: "absolute",
       left: tipX,

@@ -18,6 +18,7 @@
   - อินเวอร์เตอร์: 24→active_power · 14→mppt_power · 1/2/87→day/total/month_cap · 4 อุณหภูมิ · 18–23 เฟส · MPPT (5/6, 7/8, 9/10, 45/46…) → `pvN_u/pvN_i` **เฉพาะ ≥ 100 V** (ไม่ได้ต่อก็มีแรงดันค้าง 40 V) · `efficiency` = AC/DC · ไม่มี `inverter_state` (p29 เก็บเป็น `isc_state` ยังไม่รู้ความหมาย)
   - **ตัวตรวจ "สตริงกระแสต่ำ" ไม่ใช้กับ Sungrow** — ค่าเป็นต่อ MPPT ที่ต่อสตริงไม่เท่ากัน (5.9/12.2/4.3 A) เทียบกันแล้วเตือนผิด
   - มิเตอร์: 8030 forward = **ซื้อ** → `reverse_active_cap` · 8031 reverse = **ขาย** → `active_cap` · `active_power` = −p8018 (W · บวก = ขาย) — ตรวจ: p8018 = ใช้ไฟ − โซลาร์ · มิเตอร์ 1 เฟส (B/C = 0) → `meter_u`/`meter_i`
+- กราฟกำลังไฟวันนี้ `fsKpiDay/…/w/{HHmm}` จดทุกรอบ (ตัวเดียวกับ Huawei — ดู docs/fusionsolar.md)
 - ประวัติ `fsKpiDay` h/p/m จดรอบแรกของชั่วโมง (`fsState/isc/kpi_snap`) ความหมายเดียวกับ Huawei · `fsKpiMonth` จาก month_kwh
 - log ใน `fsSyncLogs/L<ms>i` (`vendor: "isolarcloud"`) · สถานะ `fsState/isc` {lock approved_at approved_by last_call_at last_sites_at last_kpi_at kpi_snap login_fail refresh_at}
 - ล็อกอินพลาด → `fsState/isc/login_fail` ป้ายแดงหน้าไซต์ทั้งหมด · รอบอัตโนมัติเว้น 1 ชม. (เหมือน Huawei)

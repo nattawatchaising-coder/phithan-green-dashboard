@@ -20,6 +20,7 @@
    ============================================================ */
 import crypto from "node:crypto";
 import { rtdbGet, rtdbUpdate, rtdbSet, rtdbEtag, rtdbSetIf } from "./line.mjs";
+import { fsWKey, fsWPatch } from "./fusionsolar.mjs";
 
 const env = (k, d) => (process.env[k] == null || process.env[k] === "" ? d : String(process.env[k]).trim());
 export const ISC = {
@@ -381,7 +382,7 @@ export async function runIscSync(opt) {
       (byType[d.isc_device_type] = byType[d.isc_device_type] || []).push(id);
     });
     const PTS = { 1: INV_PTS, 7: MET_PTS, 9: LOG_PTS }, CONV = { 1: iscInvKpi, 7: iscMeterKpi, 9: iscLoggerKpi };
-    const month = {};
+    const month = {}, wKey = fsWKey(Date.now()), wPv = {}, wG = {};   // กราฟกำลังไฟวันนี้ (kW) — ความหมายเดียวกับ Huawei
     for (const t of Object.keys(byType)) {
       for (const ids of chunk(byType[t], BATCH)) {
         if (left() < 6000) { log.pending++; continue; }
@@ -397,6 +398,8 @@ export async function runIscSync(opt) {
           if (snap && +t === 1 && kpi.active_power != null) kd[sid + "/" + k.day + "/p/" + k.hh + "/" + id] = kpi.active_power;
           if (snap && +t === 7 && kpi.active_cap != null && kpi.reverse_active_cap != null) kd[sid + "/" + k.day + "/m/" + k.hh + "/" + id] = { a: kpi.active_cap, r: kpi.reverse_active_cap };
           if (+t === 1 && kpi.month_cap != null) month[sid] = (month[sid] || 0) + kpi.month_cap;
+          if (+t === 1 && kpi.active_power != null) wPv[sid] = (wPv[sid] || 0) + kpi.active_power;
+          if (+t === 7 && kpi.active_power != null) wG[sid + "/" + id] = Math.round(kpi.active_power) / 1000;
           log.kpi_devices++;
           if (preview.kpi.length < 30) preview.kpi.push({ devId: id, dev_name: devices[id].dev_name || "", isc_device_type: +t, kpi });
         });
@@ -406,7 +409,7 @@ export async function runIscSync(opt) {
     /* ผลิตเดือนนี้ = รวม "Yield this month" (p87) ของอินเวอร์เตอร์ (รายชื่อไซต์ไม่มีค่าเดือน · logger ไม่ส่ง p10593) */
     const mp = {}, mon = {};
     Object.keys(month).forEach((sid) => { mp[sid + "/month_kwh"] = r3(month[sid]); mon[sid + "/" + k.mon] = r3(month[sid]); });
-    if (!dry) { await writePatch("fsSites", mp); await writePatch("fsKpiMonth", mon); st.last_kpi_at = iso(); if (snap && !log.pending) st.kpi_snap = snapKey; }
+    if (!dry) { await writePatch("fsKpiDay", fsWPatch(wKey, wPv, wG)); await writePatch("fsSites", mp); await writePatch("fsKpiMonth", mon); st.last_kpi_at = iso(); if (snap && !log.pending) st.kpi_snap = snapKey; }
   } catch (e) {
     log.errors.push(errRec(e));
     if (e && e.fatal) {

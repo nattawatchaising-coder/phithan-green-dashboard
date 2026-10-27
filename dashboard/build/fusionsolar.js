@@ -2131,9 +2131,13 @@ function FsIssues({
 function FsHistoryCard({
   site,
   isMobile,
-  flip
+  flip,
+  em,
+  only
 }) {
-  const [tab, setTab] = React.useState("day");
+  const [range, setRange] = React.useState("30");
+  const tab = only === "hist" ? range : "day";
+  const meterId = em && em.meter ? em.meter.id : null;
   const {
     val: dayVal
   } = useFsNode("fsKpiDay/" + site.id, 32);
@@ -2145,107 +2149,74 @@ function FsHistoryCard({
   const perKwp = v => cap > 0 && v != null ? fsFmt(v / cap, 2) + " kWh/kWp" : null;
   const today = React.useMemo(() => {
     const rec = (dayVal || {})[now.day] || {};
-    const h = rec.h || {},
-      p = rec.p || {},
-      u = rec.u || {},
-      m = rec.m || {};
-    const K = x => String(x).padStart(2, "0");
-    const grid = key => {
-      const o = m[key];
-      if (!o || fsN(h[key]) == null) return null;
-      const g = {
-        pv: +h[key],
-        m: {}
+    const W = rec.w || {},
+      P = rec.p || {};
+    const pts = {};
+    const gridOf = g => {
+      if (!g) return null;
+      const ids = Object.keys(g);
+      if (!ids.length) return null;
+      const v = fsN(g[meterId && g[meterId] != null ? meterId : ids[0]]);
+      return v == null ? null : flip ? -v : v;
+    };
+    Object.keys(W).forEach(hm => {
+      const t = +hm.slice(0, 2) * 60 + +hm.slice(2, 4),
+        pv = fsN(W[hm] && W[hm].pv),
+        g = gridOf(W[hm] && W[hm].g);
+      pts[t] = {
+        t,
+        value: pv,
+        load: pv != null && g != null ? Math.max(0, pv - g) : null
       };
-      Object.keys(o).forEach(id => {
-        const A = fsN(o[id] && o[id].a),
-          R = fsN(o[id] && o[id].r);
-        if (A != null && R != null) g.m[id] = flip ? [R, A] : [A, R];
-      });
-      return Object.keys(g.m).length ? g : null;
-    };
-    const gridLoad = (g, q) => {
-      const ids = Object.keys(g.m);
-      if (ids.length !== Object.keys(q.m).length || ids.some(id => !q.m[id])) return null;
-      let de = 0,
-        di = 0;
-      ids.forEach(id => {
-        de += g.m[id][0] - q.m[id][0];
-        di += g.m[id][1] - q.m[id][1];
-      });
-      return Math.max(0, g.pv - q.pv + di - de);
-    };
-    const keys = Array.from(new Set(Object.keys(h).concat(Object.keys(u), Object.keys(m)))).map(Number).sort((x, y) => x - y);
-    if (!keys.length) return {
-      bars: [],
-      pre: null,
-      hasLoad: false
-    };
-    const hasLoad = Object.keys(u).length > 0 || Object.keys(m).length > 1;
-    const lit = keys.filter(x => fsN(h[K(x)]) > 0);
-    const kAt = Date.parse(site.kpi_updated_at || ""),
-      liveKwh = kAt && fsBkk(kAt).day === now.day ? fsN(site.day_kwh) : null,
-      liveH = now.h + 1;
-    const from = hasLoad ? keys[0] : Math.min(6, lit.length ? lit[0] : keys[0]);
-    const to = Math.max(hasLoad ? 23 : 18, keys[keys.length - 1], liveKwh != null ? liveH : 0);
-    const out = [];
-    let prevH = null,
-      prevV = 0,
-      pre = null,
-      prevU = 0,
-      prevG = null;
-    keys.filter(x => x < from).forEach(x => {
-      if (fsN(u[K(x)]) != null) prevU = +u[K(x)];
-      const g = grid(K(x));
-      if (g) prevG = g;
     });
-    for (let x = from; x <= to; x++) {
-      const key = K(x);
-      const v = fsN(h[key]);
-      let val = null,
-        rng = key + ":00",
-        load = null;
-      if (v != null && prevH == null && x > 7 && v > 0) {
-        pre = {
-          h: key,
-          v
-        };
-        prevH = x;
-        prevV = v;
-      } else if (v != null) {
-        val = Math.max(0, v - prevV);
-        rng = K(prevH == null ? 0 : prevH) + ":00–" + key + ":00";
-        prevH = x;
-        prevV = v;
-      }
-      const uv = fsN(u[key]),
-        g = grid(key);
-      if (uv != null) {
-        load = Math.max(0, uv - prevU);
-        prevU = uv;
-      } else if (g && prevG) load = gridLoad(g, prevG);
-      if (g) prevG = g;
-      if (load != null) load = Math.round(load * 1000) / 1000;
-      if (x === liveH && v == null && liveKwh != null && prevH != null && liveKwh >= prevV) {
-        val = liveKwh - prevV;
-        rng = K(prevH) + ":00–ตอนนี้";
-      }
-      const pw = p[key] ? Object.keys(p[key]).reduce((s, k) => s + (+p[key][k] || 0), 0) : null;
-      out.push({
-        k: key,
-        label: key,
-        value: val,
-        load,
-        partial: x === liveH,
-        tip: ["ช่วง " + rng, v != null ? "ผลิตรวมทั้งวันถึงตอนนั้น " + fsFmt(v, 1) + " kWh" : null, pw != null ? "กำลังตอนซิงก์ " + fsFmt(pw, 2) + " kW" : null].filter(Boolean)
+    Object.keys(P).forEach(hh => {
+      const t = +hh * 60;
+      if (Object.keys(pts).some(x => Math.abs(x - t) < 20)) return;
+      const pv = Object.keys(P[hh] || {}).reduce((a, k) => a + (+P[hh][k] || 0), 0);
+      pts[t] = {
+        t,
+        value: Math.round(pv * 1000) / 1000,
+        load: null,
+        approx: true
+      };
+    });
+    const at = Date.parse(site.kpi_updated_at || ""),
+      nowT = now.h * 60 + new Date().getMinutes();
+    if (em && em.pvKw != null && at && Date.now() - at < 30 * 60e3 && fsBkk(at).day === now.day) {
+      Object.keys(pts).forEach(x => {
+        if (nowT - x < 5 && nowT >= x) delete pts[x];
       });
+      pts[nowT] = {
+        t: nowT,
+        value: Math.round(em.pvKw * 1000) / 1000,
+        load: em.loadKw != null ? Math.round(em.loadKw * 1000) / 1000 : null,
+        partial: true
+      };
     }
+    const list = Object.keys(pts).map(Number).sort((a, b) => a - b).map(t => pts[t]);
+    const hm = t => String(Math.floor(t / 60)).padStart(2, "0") + ":" + String(t % 60).padStart(2, "0");
+    const bars = list.map(b => Object.assign(b, {
+      k: "t" + b.t,
+      label: hm(b.t),
+      tip: [(b.partial ? "ตอนนี้ " : b.approx ? "≈ " : "") + hm(b.t), b.value != null && cap > 0 ? fsFmt(b.value / cap * 100, 0) + "% ของ " + fsFmt(cap, 1) + " kWp" : null, b.approx ? "ค่าจากรอบซิงก์แรกของชั่วโมง" : null].filter(Boolean)
+    }));
+    const hasLoad = bars.some(b => b.load != null);
+    const ts = bars.map(b => b.t);
+    const t0 = hasLoad ? 0 : Math.min(300, ts.length ? Math.floor(ts[0] / 60) * 60 : 300);
+    const t1 = hasLoad ? 1440 : Math.max(1140, ts.length ? Math.ceil(ts[ts.length - 1] / 60) * 60 : 1140);
+    let peak = null;
+    bars.forEach(b => {
+      if (b.value != null && (!peak || b.value > peak.value)) peak = b;
+    });
     return {
-      bars: out,
-      pre,
-      hasLoad: out.some(b => b.load != null)
+      bars,
+      hasLoad,
+      t0,
+      t1,
+      peak,
+      approx: bars.some(b => b.approx)
     };
-  }, [dayVal, now.day, now.h, flip, site.day_kwh, site.kpi_updated_at]);
+  }, [dayVal, now.day, now.h, flip, meterId, em && em.pvKw, em && em.loadKw, site.kpi_updated_at, cap]);
   const days = React.useMemo(() => {
     const out = [];
     for (let i = 29; i >= 0; i--) {
@@ -2286,15 +2257,12 @@ function FsHistoryCard({
   const monDone = mons.filter(b => !b.partial && b.value != null);
   const monAvg = monDone.length >= 2 ? monDone.reduce((s, b) => s + b.value, 0) / monDone.length : null;
   const firstDay = Object.keys(dayVal || {}).sort()[0];
-  const sub = tab === "day" ? (today.hasLoad ? "ไฟที่ผลิตเทียบไฟที่ใช้" : "พลังงานที่ผลิต") + "แต่ละชั่วโมงของวันนี้ (" + fsDayTH(now.day) + ")" : tab === "30" ? "ผลิตต่อวัน 30 วันล่าสุด" : "ผลิตต่อเดือน 12 เดือนล่าสุด";
-  const seg = window.Segmented ? React.createElement(window.Segmented, {
+  const title = tab === "day" ? "กำลังไฟวันนี้" : "ผลิตย้อนหลัง";
+  const seg = only === "hist" && window.Segmented ? React.createElement(window.Segmented, {
     flat: true,
-    value: tab,
-    onChange: setTab,
+    value: range,
+    onChange: setRange,
     options: [{
-      value: "day",
-      label: "วันนี้"
-    }, {
       value: "30",
       label: "30 วัน"
     }, {
@@ -2302,6 +2270,7 @@ function FsHistoryCard({
       label: "12 เดือน"
     }]
   }) : null;
+  const sub = tab === "day" ? (today.hasLoad ? "กำลังผลิตเทียบกำลังใช้ไฟ" : "กำลังผลิต") + " (kW) · " + fsDayTH(now.day) : tab === "30" ? "30 วันล่าสุด (kWh)" : "12 เดือนล่าสุด (kWh)";
   const best = list => list.reduce((a, b) => b.value != null && !b.partial && (!a || b.value > a.value) ? b : a, null);
   const sum = list => {
     const v = list.filter(b => b.value != null);
@@ -2309,7 +2278,7 @@ function FsHistoryCard({
   };
   const dayNow = days[days.length - 1].value;
   const stats = tab === "day" ? (() => {
-    const b = best(today.bars);
+    const b = today.peak;
     return [{
       icon: "sun",
       l: "ผลิตวันนี้",
@@ -2318,10 +2287,10 @@ function FsHistoryCard({
       s: perKwp(dayNow)
     }, {
       icon: "bolt",
-      l: "ชั่วโมงที่ผลิตมากสุด",
+      l: "กำลังสูงสุดวันนี้",
       v: b && b.value,
-      u: "kWh",
-      s: b ? b.tip[0] : null
+      u: "kW",
+      s: b ? "เวลา " + b.label + (cap > 0 ? " · " + fsFmt(b.value / cap * 100, 0) + "% ของ kWp" : "") : null
     }, {
       icon: "trend",
       l: "เทียบเฉลี่ยรายวัน",
@@ -2384,7 +2353,7 @@ function FsHistoryCard({
     }
   });
   return React.createElement(FsCard, {
-    title: "\u0E1B\u0E23\u0E30\u0E27\u0E31\u0E15\u0E34\u0E01\u0E32\u0E23\u0E1C\u0E25\u0E34\u0E15",
+    title: title,
     sub: isMobile ? null : sub,
     right: seg
   }, isMobile && React.createElement("div", {
@@ -2470,18 +2439,20 @@ function FsHistoryCard({
       }
     }, x.s)));
   })), C && tab === "day" && React.createElement(C, {
-    mode: "area",
+    mode: "time",
+    t0: today.t0,
+    t1: today.t1,
     bars: today.bars.some(b => b.value != null || b.load != null) ? today.bars : [],
-    unit: "kWh",
+    unit: "kW",
     height: isMobile ? 190 : 220,
-    empty: today.pre ? "รายชั่วโมงจะเริ่มแสดงตั้งแต่ชั่วโมงถัดไป" : "ยังไม่มีข้อมูลรายชั่วโมงของวันนี้ — เก็บทุกต้นชั่วโมงตอนซิงก์ข้อมูลผลิต"
-  }), tab === "day" && today.pre && React.createElement("div", {
+    empty: "\u0E22\u0E31\u0E07\u0E44\u0E21\u0E48\u0E21\u0E35\u0E04\u0E48\u0E32\u0E01\u0E33\u0E25\u0E31\u0E07\u0E44\u0E1F\u0E02\u0E2D\u0E07\u0E27\u0E31\u0E19\u0E19\u0E35\u0E49 \u2014 \u0E08\u0E14\u0E17\u0E38\u0E01\u0E23\u0E2D\u0E1A\u0E0B\u0E34\u0E07\u0E01\u0E4C (~15 \u0E19\u0E32\u0E17\u0E35)"
+  }), tab === "day" && today.approx && React.createElement("div", {
     style: {
       fontSize: 11.5,
       color: "var(--text-3)",
       marginTop: 6
     }
-  }, "\u0E01\u0E48\u0E2D\u0E19 ", today.pre.h, ":00 \u0E1C\u0E25\u0E34\u0E15\u0E44\u0E1B\u0E41\u0E25\u0E49\u0E27 ", fsFmt(today.pre.v, 1), " kWh \u2014 \u0E0A\u0E48\u0E27\u0E07\u0E19\u0E31\u0E49\u0E19\u0E22\u0E31\u0E07\u0E44\u0E21\u0E48\u0E44\u0E14\u0E49\u0E40\u0E01\u0E47\u0E1A\u0E23\u0E32\u0E22\u0E0A\u0E31\u0E48\u0E27\u0E42\u0E21\u0E07 (\u0E40\u0E23\u0E34\u0E48\u0E21\u0E40\u0E01\u0E47\u0E1A\u0E15\u0E2D\u0E19\u0E0B\u0E34\u0E07\u0E01\u0E4C\u0E23\u0E2D\u0E1A\u0E41\u0E23\u0E01\u0E02\u0E2D\u0E07\u0E27\u0E31\u0E19)"), C && tab === "30" && React.createElement(C, {
+  }, "\u0E08\u0E38\u0E14\u0E17\u0E35\u0E48\u0E02\u0E36\u0E49\u0E19 \u2248 \u0E40\u0E1B\u0E47\u0E19\u0E04\u0E48\u0E32\u0E15\u0E2D\u0E19\u0E0B\u0E34\u0E07\u0E01\u0E4C\u0E23\u0E2D\u0E1A\u0E41\u0E23\u0E01\u0E02\u0E2D\u0E07\u0E0A\u0E31\u0E48\u0E27\u0E42\u0E21\u0E07 (\u0E01\u0E48\u0E2D\u0E19\u0E40\u0E23\u0E34\u0E48\u0E21\u0E08\u0E14\u0E25\u0E30\u0E40\u0E2D\u0E35\u0E22\u0E14\u0E17\u0E38\u0E01\u0E23\u0E2D\u0E1A)"), C && tab === "30" && React.createElement(C, {
     mode: "bars",
     bars: days,
     unit: "kWh",
@@ -2520,7 +2491,7 @@ function FsHistoryCard({
       borderRadius: 2,
       background: "var(--fs-sun)"
     }
-  }), "\u0E1C\u0E25\u0E34\u0E15\u0E15\u0E48\u0E2D\u0E0A\u0E31\u0E48\u0E27\u0E42\u0E21\u0E07"), today.hasLoad && React.createElement("span", {
+  }), "\u0E01\u0E33\u0E25\u0E31\u0E07\u0E1C\u0E25\u0E34\u0E15 (kW)"), today.hasLoad && React.createElement("span", {
     style: {
       display: "flex",
       alignItems: "center",
@@ -2533,13 +2504,13 @@ function FsHistoryCard({
       borderRadius: 2,
       background: "var(--fs-load)"
     }
-  }), "\u0E43\u0E0A\u0E49\u0E44\u0E1F\u0E15\u0E48\u0E2D\u0E0A\u0E31\u0E48\u0E27\u0E42\u0E21\u0E07"), today.hasLoad && React.createElement("span", null, "\u0E2A\u0E48\u0E27\u0E19\u0E17\u0E35\u0E48\u0E0B\u0E49\u0E2D\u0E19\u0E01\u0E31\u0E19 = \u0E44\u0E1F\u0E42\u0E0B\u0E25\u0E32\u0E23\u0E4C\u0E17\u0E35\u0E48\u0E43\u0E0A\u0E49\u0E40\u0E2D\u0E07"), today.bars.some(b => b.partial && b.value != null) && React.createElement("span", {
+  }), "\u0E01\u0E33\u0E25\u0E31\u0E07\u0E43\u0E0A\u0E49\u0E44\u0E1F (kW)"), today.hasLoad && React.createElement("span", null, "\u0E2A\u0E48\u0E27\u0E19\u0E17\u0E35\u0E48\u0E0B\u0E49\u0E2D\u0E19\u0E01\u0E31\u0E19 = \u0E44\u0E1F\u0E42\u0E0B\u0E25\u0E32\u0E23\u0E4C\u0E17\u0E35\u0E48\u0E43\u0E0A\u0E49\u0E40\u0E2D\u0E07"), today.bars.some(b => b.partial && b.value != null) && React.createElement("span", {
     style: {
       display: "flex",
       alignItems: "center",
       gap: 5
     }
-  }, dot("var(--fs-sun)"), "\u0E15\u0E2D\u0E19\u0E19\u0E35\u0E49 (\u0E0A\u0E31\u0E48\u0E27\u0E42\u0E21\u0E07\u0E22\u0E31\u0E07\u0E44\u0E21\u0E48\u0E08\u0E1A)")) : React.createElement(React.Fragment, null, React.createElement("span", {
+  }, dot("var(--fs-sun)"), "\u0E15\u0E2D\u0E19\u0E19\u0E35\u0E49")) : React.createElement(React.Fragment, null, React.createElement("span", {
     style: {
       display: "flex",
       alignItems: "center",
@@ -3169,11 +3140,14 @@ function FsSiteModal({
       value: "info",
       label: "ข้อมูลและงาน" + (linked.length ? " (" + linked.length + ")" : "")
     }]
-  })), tab === "over" && code && React.createElement(FsHistoryCard, {
+  })), tab === "over" && code && ["day", "hist"].map(k => React.createElement(FsHistoryCard, {
+    key: k,
+    only: k,
     site: site,
     isMobile: isMobile,
+    em: em,
     flip: !!(em && em.revIsExport)
-  }), tab === "over" && React.createElement(FsEnergyCard, {
+  })), tab === "over" && React.createElement(FsEnergyCard, {
     em: em,
     isMobile: isMobile
   }), tab === "over" && !code && React.createElement("div", {
