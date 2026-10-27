@@ -333,13 +333,13 @@ export async function runSync(o) {
     if (job === "hist") await doHist();
     if (job === "histday") await doHist(true);
     if (job === "sites" || job === "all") await doSites();
-    if ((job === "kpi" || job === "all") && left() > GAP_MS * 2) await doKpi();
-    else if (job === "all") { log.pending++; log.note = (log.note ? log.note + " · " : "") + "ข้อมูลผลิตไม่ทันในรอบนี้"; }
-    /* เติมรายชั่วโมงของวันนี้ (ผลิต+ใช้ไฟ) จาก /getKpiStationHour ชั่วโมงละครั้ง — รอบ kpi (GitHub ทุก 15 นาที) ข้ามบ่อยมาก
+    /* เติมรายชั่วโมงของวันนี้ (ผลิต+ใช้ไฟ) จาก /getKpiStationHour ชั่วโมงละครั้ง (ทำก่อน doKpi — ไว้ท้ายแล้วรอบที่มีอุปกรณ์เยอะเวลาไม่พอ ไม่ได้ทำสักที) — รอบ kpi (GitHub ทุก 15 นาที) ข้ามบ่อยมาก
        หรือบัญชีหมดอายุ ชั่วโมงที่ไม่มีใครซิงก์จะว่างในกราฟ (ผู้ใช้: "กราฟมันไม่มีอะไรเลย" 2026-10-27) */
-    if (job === "kpi" && !dry && left() > GAP_MS + REQ_TIMEOUT + 2000 && Date.now() - (Date.parse(state.hourfill_at || "") || 0) >= HOURFILL_MS) {
+    if (job === "kpi" && !dry && left() > (GAP_MS + REQ_TIMEOUT) * 2 && Date.now() - (Date.parse(state.hourfill_at || "") || 0) >= HOURFILL_MS) {
       st.hourfill_at = iso(); await doHist("today");
     }
+    if ((job === "kpi" || job === "all") && left() > GAP_MS * 2) await doKpi();
+    else if (job === "all") { log.pending++; log.note = (log.note ? log.note + " · " : "") + "ข้อมูลผลิตไม่ทันในรอบนี้"; }
   } catch (e) {
     log.errors.push(errRec(e));
     if (e && e.rateLimited) {
