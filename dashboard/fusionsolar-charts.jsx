@@ -58,6 +58,7 @@ function fsMonoPath(P) {
 function FsTrendChart({ mode, bars, unit, avg, avgLabel, height, empty, t0, t1 }) {
   const [ref, w] = useFsWidth(640);
   const [hov, setHov] = React.useState(null);
+  React.useEffect(() => { setHov(null); }, [bars.length]);
   const [table, setTable] = React.useState(false);
   const uid = React.useMemo(() => "fst" + Math.random().toString(36).slice(2, 8), []);
   /* "time" = เส้นตามเวลาจริง (กราฟกำลังไฟวันนี้ kW) — b.t = นาทีของวัน · แกน t0–t1 นาที · ห่างกันเกิน 75 นาที = เส้นขาด */
@@ -130,8 +131,9 @@ function FsTrendChart({ mode, bars, unit, avg, avgLabel, height, empty, t0, t1 }
     </div>
   );
 
-  const hb = hov != null ? bars[hov] : null;
-  const tipX = hov != null ? Math.min(Math.max(X(hov), 90), w - 90) : 0;
+  /* ชุดข้อมูลเปลี่ยน (เลือกวันอื่น/ซิงก์รอบใหม่) แล้วจุดน้อยลง — ตำแหน่งชี้เดิมเกินช่วง = ไม่แสดง (เดิมพังทั้งการ์ด) */
+  const hb = hov != null && bars[hov] ? bars[hov] : null;
+  const tipX = hb ? Math.min(Math.max(X(hov), 90), w - 90) : 0;
   const nowI = bars.findIndex((b) => b.partial && b.value != null);
   let peak = -1;
   bars.forEach((b, i) => { if (b.value != null && !b.partial && (peak < 0 || b.value > bars[peak].value)) peak = i; });

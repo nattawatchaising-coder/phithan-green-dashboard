@@ -2137,6 +2137,7 @@ function FsHistoryCard({
 }) {
   const [range, setRange] = React.useState("30");
   const tab = only === "hist" ? range : "day";
+  const [selDay, setSelDay] = React.useState(null);
   const meterId = em && em.meter ? em.meter.id : null;
   const {
     val: dayVal
@@ -2146,17 +2147,25 @@ function FsHistoryCard({
   } = useFsNode("fsKpiMonth/" + site.id, 13);
   const cap = fsN(site.capacity_kw);
   const now = fsBkk(Date.now());
+  const sel = selDay || now.day;
   const perKwp = v => cap > 0 && v != null ? fsFmt(v / cap, 2) + " kWh/kWp" : null;
   const today = React.useMemo(() => {
-    const rec = (dayVal || {})[now.day] || {};
+    const isToday = sel === now.day;
+    const rec = (dayVal || {})[sel] || {};
     const W = rec.w || {},
-      P = rec.p || {};
+      P = rec.p || {},
+      Hh = rec.h || {},
+      U = rec.u || {},
+      M = rec.m || {};
     const pts = {};
+    const pick = o => {
+      if (!o) return null;
+      const ids = Object.keys(o);
+      return ids.length ? meterId && o[meterId] != null ? meterId : ids[0] : null;
+    };
     const gridOf = g => {
-      if (!g) return null;
-      const ids = Object.keys(g);
-      if (!ids.length) return null;
-      const v = fsN(g[meterId && g[meterId] != null ? meterId : ids[0]]);
+      const id = pick(g);
+      const v = id ? fsN(g[id]) : null;
       return v == null ? null : flip ? -v : v;
     };
     Object.keys(W).forEach(hm => {
@@ -2169,20 +2178,60 @@ function FsHistoryCard({
         load: pv != null && g != null ? Math.max(0, pv - g) : null
       };
     });
+    const meterAt = k => {
+      const o = M[k],
+        id = pick(o);
+      if (!id) return null;
+      const A = fsN(o[id].a),
+        R = fsN(o[id].r);
+      return A == null || R == null ? null : {
+        id,
+        exp: flip ? R : A,
+        imp: flip ? A : R
+      };
+    };
+    const hk = Object.keys(Hh).concat(Object.keys(U), Object.keys(M)).filter((k, i, a) => a.indexOf(k) === i).sort();
+    const near = (t, d) => Object.keys(pts).some(x => Math.abs(x - t) < d);
+    for (let i = 1; i < hk.length; i++) {
+      const a = hk[i - 1],
+        b = hk[i],
+        dh = +b - +a;
+      if (dh < 1 || dh > 3) continue;
+      const t = Math.round((+a + +b) / 2 * 60);
+      if (near(t, 25)) continue;
+      const pa = fsN(Hh[a]),
+        pb = fsN(Hh[b]);
+      const pv = pa != null && pb != null && pb >= pa ? (pb - pa) / dh : +b <= 5 || +a >= 20 ? 0 : null;
+      let load = null;
+      const ua = fsN(U[a]),
+        ub = fsN(U[b]);
+      if (ua != null && ub != null && ub >= ua) load = (ub - ua) / dh;else {
+        const ma = meterAt(a),
+          mb = meterAt(b);
+        if (ma && mb && ma.id === mb.id && pv != null) load = Math.max(0, pv + (mb.imp - ma.imp - (mb.exp - ma.exp)) / dh);
+      }
+      if (pv == null && load == null) continue;
+      pts[t] = {
+        t,
+        value: pv == null ? null : Math.round(pv * 1000) / 1000,
+        load: load == null ? null : Math.round(load * 1000) / 1000,
+        avg: [+a, +b]
+      };
+    }
     Object.keys(P).forEach(hh => {
       const t = +hh * 60;
-      if (Object.keys(pts).some(x => Math.abs(x - t) < 20)) return;
-      const pv = Object.keys(P[hh] || {}).reduce((a, k) => a + (+P[hh][k] || 0), 0);
+      if (near(t, 40)) return;
+      const pv = Object.keys(P[hh] || {}).reduce((x, k) => x + (+P[hh][k] || 0), 0);
       pts[t] = {
         t,
         value: Math.round(pv * 1000) / 1000,
         load: null,
-        approx: true
+        snap: true
       };
     });
     const at = Date.parse(site.kpi_updated_at || ""),
       nowT = now.h * 60 + new Date().getMinutes();
-    if (em && em.pvKw != null && at && Date.now() - at < 30 * 60e3 && fsBkk(at).day === now.day) {
+    if (isToday && em && em.pvKw != null && at && Date.now() - at < 30 * 60e3 && fsBkk(at).day === now.day) {
       Object.keys(pts).forEach(x => {
         if (nowT - x < 5 && nowT >= x) delete pts[x];
       });
@@ -2193,12 +2242,13 @@ function FsHistoryCard({
         partial: true
       };
     }
-    const list = Object.keys(pts).map(Number).sort((a, b) => a - b).map(t => pts[t]);
+    const list = Object.keys(pts).map(Number).sort((x, y) => x - y).map(t => pts[t]);
     const hm = t => String(Math.floor(t / 60)).padStart(2, "0") + ":" + String(t % 60).padStart(2, "0");
+    const H2 = h => String(h).padStart(2, "0") + ":00";
     const bars = list.map(b => Object.assign(b, {
       k: "t" + b.t,
       label: hm(b.t),
-      tip: [(b.partial ? "ตอนนี้ " : b.approx ? "≈ " : "") + hm(b.t), b.value != null && cap > 0 ? fsFmt(b.value / cap * 100, 0) + "% ของ " + fsFmt(cap, 1) + " kWp" : null, b.approx ? "ค่าจากรอบซิงก์แรกของชั่วโมง" : null].filter(Boolean)
+      tip: [b.partial ? "ตอนนี้ " + hm(b.t) : b.avg ? "เฉลี่ย " + H2(b.avg[0]) + "–" + H2(b.avg[1]) : (b.snap ? "≈ " : "") + hm(b.t), b.value != null && cap > 0 ? fsFmt(b.value / cap * 100, 0) + "% ของ " + fsFmt(cap, 1) + " kWp" : null, b.snap ? "ค่าตอนซิงก์ (ไม่มีข้อมูลทั้งชั่วโมง)" : null].filter(Boolean)
     }));
     const hasLoad = bars.some(b => b.load != null);
     const ts = bars.map(b => b.t);
@@ -2214,9 +2264,12 @@ function FsHistoryCard({
       t0,
       t1,
       peak,
-      approx: bars.some(b => b.approx)
+      isToday,
+      kwh: fsN(rec.kwh),
+      avgPts: bars.some(b => b.avg || b.snap),
+      fine: Object.keys(W).length > 0
     };
-  }, [dayVal, now.day, now.h, flip, meterId, em && em.pvKw, em && em.loadKw, site.kpi_updated_at, cap]);
+  }, [dayVal, sel, now.day, now.h, flip, meterId, em && em.pvKw, em && em.loadKw, site.kpi_updated_at, cap]);
   const days = React.useMemo(() => {
     const out = [];
     for (let i = 29; i >= 0; i--) {
@@ -2257,7 +2310,40 @@ function FsHistoryCard({
   const monDone = mons.filter(b => !b.partial && b.value != null);
   const monAvg = monDone.length >= 2 ? monDone.reduce((s, b) => s + b.value, 0) / monDone.length : null;
   const firstDay = Object.keys(dayVal || {}).sort()[0];
-  const title = tab === "day" ? "กำลังไฟวันนี้" : "ผลิตย้อนหลัง";
+  const title = tab === "day" ? today.isToday ? "กำลังไฟวันนี้" : "กำลังไฟ " + fsDayTH(sel) : "ผลิตย้อนหลัง";
+  const dayKeys = Object.keys(dayVal || {}).sort();
+  const shift = n => {
+    const d = fsBkk(Date.parse(sel + "T12:00:00+07:00") + n * 864e5).day;
+    setSelDay(d >= now.day ? null : d);
+  };
+  const canBack = dayKeys.length > 0 && sel > dayKeys[0];
+  const navBtn = (dir, on, lbl) => React.createElement("button", {
+    type: "button",
+    className: "btn btn-sm",
+    disabled: !on,
+    onClick: () => shift(dir),
+    "aria-label": lbl,
+    style: {
+      minWidth: 32,
+      padding: "4px 9px",
+      opacity: on ? 1 : 0.4
+    }
+  }, dir < 0 ? "‹" : "›");
+  const dayNav = tab === "day" ? React.createElement("div", {
+    style: {
+      display: "flex",
+      alignItems: "center",
+      gap: 6
+    }
+  }, navBtn(-1, canBack, "วันก่อนหน้า"), React.createElement("span", {
+    style: {
+      fontSize: 12,
+      fontWeight: 700,
+      color: "var(--text-2)",
+      minWidth: 74,
+      textAlign: "center"
+    }
+  }, today.isToday ? "วันนี้" : fsDayTH(sel)), navBtn(1, !today.isToday, "วันถัดไป")) : null;
   const seg = only === "hist" && window.Segmented ? React.createElement(window.Segmented, {
     flat: true,
     value: range,
@@ -2270,7 +2356,7 @@ function FsHistoryCard({
       label: "12 เดือน"
     }]
   }) : null;
-  const sub = tab === "day" ? (today.hasLoad ? "กำลังผลิตเทียบกำลังใช้ไฟ" : "กำลังผลิต") + " (kW) · " + fsDayTH(now.day) : tab === "30" ? "30 วันล่าสุด (kWh)" : "12 เดือนล่าสุด (kWh)";
+  const sub = tab === "day" ? (today.hasLoad ? "กำลังผลิตเทียบกำลังใช้ไฟ" : "กำลังผลิต") + " (kW)" : tab === "30" ? "30 วันล่าสุด (kWh)" : "12 เดือนล่าสุด (kWh)";
   const best = list => list.reduce((a, b) => b.value != null && !b.partial && (!a || b.value > a.value) ? b : a, null);
   const sum = list => {
     const v = list.filter(b => b.value != null);
@@ -2278,25 +2364,26 @@ function FsHistoryCard({
   };
   const dayNow = days[days.length - 1].value;
   const stats = tab === "day" ? (() => {
-    const b = today.peak;
+    const b = today.peak,
+      dv = today.isToday ? dayNow : today.kwh;
     return [{
       icon: "sun",
-      l: "ผลิตวันนี้",
-      v: dayNow,
+      l: today.isToday ? "ผลิตวันนี้" : "ผลิตทั้งวัน",
+      v: dv,
       u: "kWh",
-      s: perKwp(dayNow)
+      s: perKwp(dv)
     }, {
       icon: "bolt",
-      l: "กำลังสูงสุดวันนี้",
+      l: today.isToday ? "กำลังสูงสุดวันนี้" : "กำลังสูงสุด",
       v: b && b.value,
       u: "kW",
-      s: b ? "เวลา " + b.label + (cap > 0 ? " · " + fsFmt(b.value / cap * 100, 0) + "% ของ kWp" : "") : null
+      s: b ? (b.avg ? "เฉลี่ยชั่วโมง " : "เวลา ") + b.label + (cap > 0 ? " · " + fsFmt(b.value / cap * 100, 0) + "% ของ kWp" : "") : null
     }, {
       icon: "trend",
       l: "เทียบเฉลี่ยรายวัน",
-      v: dayAvg && dayNow != null ? Math.round(dayNow / dayAvg * 100) : null,
+      v: dayAvg && dv != null ? Math.round(dv / dayAvg * 100) : null,
       u: "%",
-      s: dayAvg ? "เฉลี่ย " + fsFmt(dayAvg, 1) + " kWh · วันนี้ยังไม่จบ" : "ต้องมีประวัติอย่างน้อย 3 วัน"
+      s: dayAvg ? "เฉลี่ย " + fsFmt(dayAvg, 1) + " kWh" + (today.isToday ? " · วันนี้ยังไม่จบ" : "") : "ต้องมีประวัติอย่างน้อย 3 วัน"
     }];
   })() : tab === "30" ? (() => {
     const b = best(days);
@@ -2355,7 +2442,7 @@ function FsHistoryCard({
   return React.createElement(FsCard, {
     title: title,
     sub: isMobile ? null : sub,
-    right: seg
+    right: seg || dayNav
   }, isMobile && React.createElement("div", {
     style: {
       fontSize: 11.5,
@@ -2445,14 +2532,14 @@ function FsHistoryCard({
     bars: today.bars.some(b => b.value != null || b.load != null) ? today.bars : [],
     unit: "kW",
     height: isMobile ? 190 : 220,
-    empty: "\u0E22\u0E31\u0E07\u0E44\u0E21\u0E48\u0E21\u0E35\u0E04\u0E48\u0E32\u0E01\u0E33\u0E25\u0E31\u0E07\u0E44\u0E1F\u0E02\u0E2D\u0E07\u0E27\u0E31\u0E19\u0E19\u0E35\u0E49 \u2014 \u0E08\u0E14\u0E17\u0E38\u0E01\u0E23\u0E2D\u0E1A\u0E0B\u0E34\u0E07\u0E01\u0E4C (~15 \u0E19\u0E32\u0E17\u0E35)"
-  }), tab === "day" && today.approx && React.createElement("div", {
+    empty: today.isToday ? "ยังไม่มีค่ากำลังไฟของวันนี้ — จดทุกรอบซิงก์ (~15 นาที)" : "วันนี้ไม่มีข้อมูลรายชั่วโมง — แอดมินกด \"ย้อนหลัง (กราฟ)\" ในหน้า log การซิงก์ เพื่อดึงจาก Huawei (ย้อนได้ 7 วัน)"
+  }), tab === "day" && today.avgPts && React.createElement("div", {
     style: {
       fontSize: 11.5,
       color: "var(--text-3)",
       marginTop: 6
     }
-  }, "\u0E08\u0E38\u0E14\u0E17\u0E35\u0E48\u0E02\u0E36\u0E49\u0E19 \u2248 \u0E40\u0E1B\u0E47\u0E19\u0E04\u0E48\u0E32\u0E15\u0E2D\u0E19\u0E0B\u0E34\u0E07\u0E01\u0E4C\u0E23\u0E2D\u0E1A\u0E41\u0E23\u0E01\u0E02\u0E2D\u0E07\u0E0A\u0E31\u0E48\u0E27\u0E42\u0E21\u0E07 (\u0E01\u0E48\u0E2D\u0E19\u0E40\u0E23\u0E34\u0E48\u0E21\u0E08\u0E14\u0E25\u0E30\u0E40\u0E2D\u0E35\u0E22\u0E14\u0E17\u0E38\u0E01\u0E23\u0E2D\u0E1A)"), C && tab === "30" && React.createElement(C, {
+  }, today.fine ? "ช่วงที่ยังไม่ได้จดละเอียดทุก 15 นาที แสดงเป็นค่าเฉลี่ยรายชั่วโมง" : "ค่าเฉลี่ยรายชั่วโมง (จดละเอียดทุก 15 นาทีเริ่ม 27 ต.ค. 69)"), C && tab === "30" && React.createElement(C, {
     mode: "bars",
     bars: days,
     unit: "kWh",
@@ -3636,6 +3723,7 @@ const FS_JOB_TH = {
   sites: "ไซต์+อุปกรณ์",
   kpi: "ข้อมูลผลิต",
   hist: "ย้อนหลัง (กราฟ)",
+  histday: "รายชั่วโมงเมื่อวาน",
   isc_sites: "ไซต์+อุปกรณ์",
   isc_kpi: "ข้อมูลผลิต"
 };
@@ -3716,7 +3804,7 @@ function FsLogView({
     if (!dryRun) {
       const ok = await window.askConfirm({
         title: approved ? "ซิงก์ตอนนี้ (" + FS_JOB_TH[job] + ")?" : "บันทึกจริงครั้งแรก?",
-        body: (approved ? "" : "หลังรอบนี้ระบบจะซิงก์อัตโนมัติ (วันละครั้ง + ข้อมูลผลิตทุก 15 นาที) · ") + (job === "hist" ? "ดึงข้อมูลผลิตย้อนหลัง (รายเดือน 2 ปี · รายวัน 2 เดือน · รายชั่วโมงเมื่อวาน+วันนี้) เขียนเฉพาะ fsKpiDay / fsKpiMonth / fsSyncLogs · ไม่ครบในรอบเดียว = กดซ้ำจนงานค้างเป็น 0" : "เขียนเฉพาะ fsSites / fsDevices / fsSyncLogs ไม่แตะข้อมูลงาน") + " · ใช้เวลาราว 10–45 วินาที",
+        body: (approved ? "" : "หลังรอบนี้ระบบจะซิงก์อัตโนมัติ (วันละครั้ง + ข้อมูลผลิตทุก 15 นาที) · ") + (job === "hist" ? "ดึงข้อมูลผลิตย้อนหลัง (รายเดือน 2 ปี · รายวัน 2 เดือน · รายชั่วโมง 7 วัน มีไฟที่ใช้) เขียนเฉพาะ fsKpiDay / fsKpiMonth / fsSyncLogs · ไม่ครบในรอบเดียว = กดซ้ำจนงานค้างเป็น 0" : "เขียนเฉพาะ fsSites / fsDevices / fsSyncLogs ไม่แตะข้อมูลงาน") + " · ใช้เวลาราว 10–45 วินาที",
         ok: "ซิงก์",
         danger: false,
         icon: "history"
@@ -3949,7 +4037,7 @@ function FsLogView({
   }), React.createElement(FsSpec, {
     label: "\u0E02\u0E49\u0E2D\u0E21\u0E39\u0E25\u0E1C\u0E25\u0E34\u0E15 \u0E44\u0E0B\u0E15\u0E4C / \u0E2D\u0E38\u0E1B\u0E01\u0E23\u0E13\u0E4C",
     value: (l.kpi_sites || 0) + " / " + (l.kpi_devices || 0)
-  }), l.job === "hist" && React.createElement(FsSpec, {
+  }), (l.job === "hist" || l.job === "histday") && React.createElement(FsSpec, {
     label: "\u0E22\u0E49\u0E2D\u0E19\u0E2B\u0E25\u0E31\u0E07 \u0E40\u0E14\u0E37\u0E2D\u0E19 / \u0E27\u0E31\u0E19 / \u0E0A\u0E31\u0E48\u0E27\u0E42\u0E21\u0E07",
     value: (l.hist_months || 0) + " / " + (l.hist_days || 0) + " / " + (l.hist_hours || 0)
   }), React.createElement(FsSpec, {

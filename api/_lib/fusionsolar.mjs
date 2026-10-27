@@ -330,6 +330,7 @@ export async function runSync(o) {
   res.preview = preview;
   try {
     if (job === "hist") await doHist();
+    if (job === "histday") await doHist(true);
     if (job === "sites" || job === "all") await doSites();
     if ((job === "kpi" || job === "all") && left() > GAP_MS * 2) await doKpi();
     else if (job === "all") { log.pending++; log.note = (log.note ? log.note + " · " : "") + "ข้อมูลผลิตไม่ทันในรอบนี้"; }
@@ -488,12 +489,13 @@ export async function runSync(o) {
 
   /* ข้อมูลผลิตย้อนหลัง (ผู้ใช้สั่ง — กราฟประวัติไม่ต้องรอเก็บเองทีละชั่วโมงเป็นเดือน) · ทีละ 100 สถานี
      คิวงานตายตัวต่อวัน: รายเดือนปีที่แล้ว+ปีนี้ (/getKpiStationMonth) → รายวันเดือนที่แล้ว+เดือนนี้ (/getKpiStationDay)
-       → รายชั่วโมงเมื่อวาน+วันนี้ (/getKpiStationHour) · ไม่ทันเวลา = fsState/hist_cursor (+ hist_key = วันที่ของคิว ข้ามวันแล้วเริ่มใหม่)
+       → รายชั่วโมง 7 วันล่าสุด (/getKpiStationHour — ผู้ใช้อยากดูกราฟกำลังไฟวันก่อนหน้า 2026-10-27 · มี use_power = ไฟที่ใช้) · ไม่ทันเวลา = fsState/hist_cursor (+ hist_key = วันที่ของคิว ข้ามวันแล้วเริ่มใหม่)
      collectTime ที่ส่ง = เวลาเที่ยงวันไทยของวัน/กลางเดือน/กลางปีนั้น · collectTime ที่ได้กลับ = เวลาเริ่มของช่วง → แปลงเป็นวัน/ชั่วโมงไทย
      ค่าผลิต = inverter_power (เอกสาร Northbound) ไม่มีค่อยใช้ PVYield
      ช่วงที่ยังไม่จบ (วันนี้ · เดือนนี้) ไม่เขียน kwh ทับค่าสดของรอบ KPI · ชั่วโมงที่ยังไม่จบไม่เขียน
-     รายชั่วโมง → h/{HH+1} = ผลิตสะสมของวันถึงปลายชั่วโมง HH (ความหมายเดียวกับค่าที่รอบ KPI จดตอน HH+1:07) */
-  async function doHist() {
+     รายชั่วโมง → h/{HH+1} = ผลิตสะสมของวันถึงปลายชั่วโมง HH (ความหมายเดียวกับค่าที่รอบ KPI จดตอน HH+1:07)
+     hoursOnly (job "histday" — cron ทุกวัน 04:30) = รายชั่วโมงของเมื่อวาน+วันนี้อย่างเดียว ~2 คำขอ ไม่ใช้ hist_cursor · เติมชั่วโมงที่ซิงก์พลาด */
+  async function doHist(hoursOnly) {
     const idx = siteIndex(sites);
     const groups = chunk(Object.keys(idx).filter((k) => sites[idx[k]].fs_status === "found").sort(), BATCH);
     if (!groups.length) { log.note = "ยังไม่มีไซต์ให้ดึงข้อมูลย้อนหลัง"; return; }
@@ -502,19 +504,21 @@ export async function runSync(o) {
     const noon = (d) => Date.parse(d + "T12:00:00+07:00");
     const pad = (n) => String(n).padStart(2, "0");
     const tasks = [];
-    [y - 1, y].forEach((yy) => groups.forEach((g) => tasks.push({ kind: "mon", api: "/getKpiStationMonth", t: noon(yy + "-06-15"), g })));
-    [m === 1 ? (y - 1) + "-12" : y + "-" + pad(m - 1), k0.mon].forEach((mm) => groups.forEach((g) => tasks.push({ kind: "day", api: "/getKpiStationDay", t: noon(mm + "-15"), g })));
-    [bkk(now - 864e5).day, k0.day].forEach((d) => groups.forEach((g) => tasks.push({ kind: "hour", api: "/getKpiStationHour", t: noon(d), g })));
+    if (!hoursOnly) {
+      [y - 1, y].forEach((yy) => groups.forEach((g) => tasks.push({ kind: "mon", api: "/getKpiStationMonth", t: noon(yy + "-06-15"), g })));
+      [m === 1 ? (y - 1) + "-12" : y + "-" + pad(m - 1), k0.mon].forEach((mm) => groups.forEach((g) => tasks.push({ kind: "day", api: "/getKpiStationDay", t: noon(mm + "-15"), g })));
+    }
+    for (let b = hoursOnly ? 1 : 6; b >= 0; b--) { const d = bkk(now - b * 864e5).day; groups.forEach((g) => tasks.push({ kind: "hour", api: "/getKpiStationHour", t: noon(d), g })); }
     const yv = (mp) => { const a = num((mp || {}).inverter_power); return a != null ? a : num((mp || {}).PVYield); };
 
-    let i = dry || state.hist_key !== k0.day ? 0 : Math.min(Number(state.hist_cursor) || 0, tasks.length);
+    let i = dry || hoursOnly || state.hist_key !== k0.day ? 0 : Math.min(Number(state.hist_cursor) || 0, tasks.length);
     if (i >= tasks.length) i = 0;
     for (; i < tasks.length; i++) {
       if (left() < GAP_MS + REQ_TIMEOUT) break;
       const tk = tasks[i];
       let data;
       try { data = await c.call(tk.api, { stationCodes: tk.g.join(","), collectTime: tk.t }); }
-      catch (e) { if (e.fatal) { st.hist_cursor = i; st.hist_key = k0.day; throw e; } log.errors.push(errRec(e)); continue; }
+      catch (e) { if (e.fatal) { if (!hoursOnly) { st.hist_cursor = i; st.hist_key = k0.day; } throw e; } log.errors.push(errRec(e)); continue; }
       const dayP = {}, monP = {}, hrs = {};
       (Array.isArray(data) ? data : []).forEach((r) => {
         const id = idx[r && r.stationCode], ct = num(r && r.collectTime);
@@ -545,6 +549,7 @@ export async function runSync(o) {
       if (!dry) { await writePatch("fsKpiDay", dayP); await writePatch("fsKpiMonth", monP); }
     }
     log.pending += tasks.length - i;
+    if (hoursOnly) return;
     st.hist_cursor = i >= tasks.length ? 0 : i;
     st.hist_key = k0.day;
     if (!dry && i >= tasks.length) st.hist_done_at = iso();

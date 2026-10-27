@@ -51,6 +51,9 @@ function FsTrendChart({
 }) {
   const [ref, w] = useFsWidth(640);
   const [hov, setHov] = React.useState(null);
+  React.useEffect(() => {
+    setHov(null);
+  }, [bars.length]);
   const [table, setTable] = React.useState(false);
   const uid = React.useMemo(() => "fst" + Math.random().toString(36).slice(2, 8), []);
   const timeMode = mode === "time";
@@ -239,8 +242,8 @@ function FsTrendChart({
       color: "var(--text-2)"
     }
   }, "\u0E43\u0E0A\u0E49 ", b.load == null ? "–" : fsFmt(b.load, 1))))));
-  const hb = hov != null ? bars[hov] : null;
-  const tipX = hov != null ? Math.min(Math.max(X(hov), 90), w - 90) : 0;
+  const hb = hov != null && bars[hov] ? bars[hov] : null;
+  const tipX = hb ? Math.min(Math.max(X(hov), 90), w - 90) : 0;
   const nowI = bars.findIndex(b => b.partial && b.value != null);
   let peak = -1;
   bars.forEach((b, i) => {
