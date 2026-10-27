@@ -633,6 +633,7 @@ function ContactLogModal({
     style: {
       position: "fixed",
       inset: 0,
+      bottom: "var(--kb, 0px)",
       background: "rgba(8,20,14,.45)",
       backdropFilter: "blur(3px)",
       zIndex: 118,
@@ -646,7 +647,7 @@ function ContactLogModal({
       background: "var(--bg)",
       borderRadius: isMobile ? "20px 20px 0 0" : 18,
       width: isMobile ? "100%" : "min(480px,100%)",
-      maxHeight: isMobile ? "94dvh" : "90vh",
+      maxHeight: isMobile ? "calc(94dvh - var(--kb, 0px))" : "90vh",
       display: "flex",
       flexDirection: "column",
       overflow: "hidden",
@@ -1088,6 +1089,7 @@ function LeadModal({
     style: {
       position: "fixed",
       inset: 0,
+      bottom: "var(--kb, 0px)",
       background: "rgba(8,20,14,.45)",
       backdropFilter: "blur(3px)",
       zIndex: 118,
@@ -1101,7 +1103,7 @@ function LeadModal({
       background: "var(--bg)",
       borderRadius: isMobile ? "20px 20px 0 0" : 18,
       width: isMobile ? "100%" : "min(520px,100%)",
-      maxHeight: isMobile ? "94dvh" : "90vh",
+      maxHeight: isMobile ? "calc(94dvh - var(--kb, 0px))" : "90vh",
       display: "flex",
       flexDirection: "column",
       overflow: "hidden",
@@ -2521,6 +2523,7 @@ function LeadDrawer({
     style: {
       position: "fixed",
       inset: 0,
+      bottom: "var(--kb, 0px)",
       background: "rgba(8,20,14,.45)",
       backdropFilter: "blur(3px)",
       zIndex: 116,
@@ -2534,7 +2537,7 @@ function LeadDrawer({
     className: "pg-sheet-in",
     style: {
       width: isMobile ? "100%" : "min(680px,100%)",
-      height: isMobile ? "88dvh" : "min(820px, 90vh)",
+      height: isMobile ? "calc(88dvh - var(--kb, 0px))" : "min(820px, 90vh)",
       display: "flex",
       flexDirection: "column",
       minHeight: 0

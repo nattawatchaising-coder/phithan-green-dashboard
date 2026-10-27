@@ -1817,11 +1817,11 @@ function QuoteEditor({ quote, job, target, stock, onClose, onSave, onDelete, cur
 
   return (
     <React.Fragment>
-      <div data-layer="quote" style={{ position: "fixed", inset: 0, background: "rgba(8,20,14,.45)", backdropFilter: "blur(3px)", zIndex: 118,
+      <div data-layer="quote" style={{ position: "fixed", inset: 0, bottom: "var(--kb, 0px)", background: "rgba(8,20,14,.45)", backdropFilter: "blur(3px)", zIndex: 118,
         display: "grid", placeItems: isMobile ? "end center" : "center", padding: isMobile ? 0 : 20 }}>
         {/* ความสูงตายตัว สลับแท็บแล้วใบไม่กระโดด · เงาตัวใบหดขอบให้ตกลงล่างอย่างเดียว ไม่ฟุ้งขึ้นไปทาทับแท็บ
             ⚠ ห้ามใช้ filter: drop-shadow ที่กรอบนอก — มันขัง position:fixed ข้างในไว้ในกรอบ */}
-        <div ref={sheetRef} style={{ width: isMobile ? "100%" : "min(880px,100%)", height: isMobile ? "92dvh" : "min(900px, 92vh)",
+        <div ref={sheetRef} style={{ width: isMobile ? "100%" : "min(880px,100%)", height: isMobile ? "calc(92dvh - var(--kb, 0px))" : "min(900px, 92vh)",
           display: "flex", flexDirection: "column", minHeight: 0 }}>
         <div className="ld-tabs" role="tablist">
           {QUOTE_TABS.map((t, i) => (

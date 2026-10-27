@@ -388,10 +388,10 @@ function VcCardModal({ user, onClose }) {
   const isMobile = window.matchMedia("(max-width: 860px)").matches;
 
   return (
-    <div {...bdClose} style={{ position: "fixed", inset: 0, background: "rgba(8,20,14,.5)", zIndex: 130, display: "grid",
+    <div {...bdClose} style={{ position: "fixed", inset: 0, bottom: "var(--kb, 0px)", background: "rgba(8,20,14,.5)", zIndex: 130, display: "grid",
       placeItems: isMobile ? "end center" : "center", padding: isMobile ? 0 : 20 }}>
       <div onClick={(e) => e.stopPropagation()} style={{ background: "var(--bg)", borderRadius: isMobile ? "20px 20px 0 0" : 18,
-        width: isMobile ? "100%" : "min(640px,100%)", maxHeight: isMobile ? "94dvh" : "90vh", display: "flex", flexDirection: "column",
+        width: isMobile ? "100%" : "min(640px,100%)", maxHeight: isMobile ? "calc(94dvh - var(--kb, 0px))" : "90vh", display: "flex", flexDirection: "column",
         overflow: "hidden", boxShadow: "var(--shadow-modal)" }}>
 
         <div style={{ padding: "16px 22px", borderBottom: "1px solid var(--divider)", background: "var(--surface)",

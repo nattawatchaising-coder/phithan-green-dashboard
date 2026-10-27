@@ -992,6 +992,7 @@ function DailyReportModal({
     style: {
       position: "fixed",
       inset: 0,
+      bottom: "var(--kb, 0px)",
       zIndex: 150,
       background: "rgba(8,20,14,.55)",
       overflow: "auto",
@@ -1003,7 +1004,7 @@ function DailyReportModal({
       margin: "0 auto",
       background: "var(--bg)",
       borderRadius: isMobile ? 0 : 16,
-      minHeight: isMobile ? "100dvh" : 0,
+      minHeight: isMobile ? "calc(100dvh - var(--kb, 0px))" : 0,
       overflow: "hidden",
       boxShadow: "var(--shadow-modal)"
     }

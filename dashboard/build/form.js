@@ -283,6 +283,7 @@ function JobForm({
     style: {
       position: "fixed",
       inset: 0,
+      bottom: "var(--kb, 0px)",
       background: "rgba(8,20,14,.4)",
       backdropFilter: "blur(3px)",
       zIndex: 100,
@@ -296,7 +297,7 @@ function JobForm({
       background: "var(--bg)",
       borderRadius: isMobile ? "20px 20px 0 0" : 20,
       width: isMobile ? "100%" : "min(820px, 100%)",
-      maxHeight: isMobile ? "94dvh" : "92dvh",
+      maxHeight: isMobile ? "calc(94dvh - var(--kb, 0px))" : "92dvh",
       display: "flex",
       flexDirection: "column",
       overflow: "hidden",

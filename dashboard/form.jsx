@@ -162,10 +162,10 @@ function JobForm({ initial, isNew, onSave, onClose, onManageTechs, onManageBrand
   };
 
   return (
-    <div {...bdClose} style={{ position: "fixed", inset: 0, background: "rgba(8,20,14,.4)", backdropFilter: "blur(3px)",
+    <div {...bdClose} style={{ position: "fixed", inset: 0, bottom: "var(--kb, 0px)", background: "rgba(8,20,14,.4)", backdropFilter: "blur(3px)",
       zIndex: 100, display: "grid", placeItems: isMobile ? "end center" : "center", padding: isMobile ? 0 : 20 }}>
       <div onClick={(e) => e.stopPropagation()} style={{ background: "var(--bg)", borderRadius: isMobile ? "20px 20px 0 0" : 20,
-        width: isMobile ? "100%" : "min(820px, 100%)", maxHeight: isMobile ? "94dvh" : "92dvh",
+        width: isMobile ? "100%" : "min(820px, 100%)", maxHeight: isMobile ? "calc(94dvh - var(--kb, 0px))" : "92dvh",
         display: "flex", flexDirection: "column", overflow: "hidden", boxShadow: "var(--shadow-modal)" }}>
         {/* header */}
         <div style={{ padding: "18px 24px", borderBottom: "1px solid var(--divider)", background: "var(--surface)", display: "flex", justifyContent: "space-between", alignItems: "center" }}>

@@ -2576,6 +2576,7 @@ function SitePlanEditor({
     style: {
       position: "fixed",
       inset: 0,
+      bottom: "var(--kb, 0px)",
       background: "rgba(8,20,14,.5)",
       backdropFilter: "blur(3px)",
       zIndex: 120,
@@ -2589,7 +2590,7 @@ function SitePlanEditor({
       background: "var(--bg)",
       borderRadius: isMobile ? "18px 18px 0 0" : 18,
       width: isMobile ? "100%" : "min(920px,100%)",
-      maxHeight: isMobile ? "97dvh" : "95vh",
+      maxHeight: isMobile ? "calc(97dvh - var(--kb, 0px))" : "95vh",
       display: "flex",
       flexDirection: "column",
       overflow: "hidden",

@@ -2548,6 +2548,7 @@ function QuoteEditor({
     style: {
       position: "fixed",
       inset: 0,
+      bottom: "var(--kb, 0px)",
       background: "rgba(8,20,14,.45)",
       backdropFilter: "blur(3px)",
       zIndex: 118,
@@ -2559,7 +2560,7 @@ function QuoteEditor({
     ref: sheetRef,
     style: {
       width: isMobile ? "100%" : "min(880px,100%)",
-      height: isMobile ? "92dvh" : "min(900px, 92vh)",
+      height: isMobile ? "calc(92dvh - var(--kb, 0px))" : "min(900px, 92vh)",
       display: "flex",
       flexDirection: "column",
       minHeight: 0

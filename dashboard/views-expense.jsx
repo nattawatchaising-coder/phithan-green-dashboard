@@ -264,11 +264,11 @@ function EcClaimModal({ claim, job, users, role, currentUser, onClose, onPatch, 
 
   return (
     <div onClick={onClose}
-      style={{ position: "fixed", inset: 0, zIndex: 95, background: "rgba(8,20,26,.5)", backdropFilter: "blur(3px)",
+      style={{ position: "fixed", inset: 0, bottom: "var(--kb, 0px)", zIndex: 95, background: "rgba(8,20,26,.5)", backdropFilter: "blur(3px)",
         display: "flex", alignItems: isMobile ? "flex-end" : "center", justifyContent: "center", padding: isMobile ? 0 : 24 }}>
       <div onClick={(e) => e.stopPropagation()}
         style={{ background: "var(--bg)", borderRadius: isMobile ? "16px 16px 0 0" : 18, width: "min(760px, 100%)",
-          maxHeight: isMobile ? "94dvh" : "92dvh", display: "flex", flexDirection: "column", overflow: "hidden" }}>
+          maxHeight: isMobile ? "calc(94dvh - var(--kb, 0px))" : "92dvh", display: "flex", flexDirection: "column", overflow: "hidden" }}>
 
         {/* หัว */}
         <div style={{ display: "flex", alignItems: "center", gap: 10, padding: isMobile ? "13px 14px" : "15px 18px",
@@ -843,11 +843,11 @@ function EcPayModal({ person, claims, batches, currentUser, role, payers, onClos
 
   return (
     <div onClick={onClose}
-      style={{ position: "fixed", inset: 0, zIndex: 100, background: "rgba(8,20,26,.5)", backdropFilter: "blur(3px)",
+      style={{ position: "fixed", inset: 0, bottom: "var(--kb, 0px)", zIndex: 100, background: "rgba(8,20,26,.5)", backdropFilter: "blur(3px)",
         display: "flex", alignItems: isMobile ? "flex-end" : "center", justifyContent: "center", padding: isMobile ? 0 : 24 }}>
       <div onClick={(e) => e.stopPropagation()}
         style={{ background: "var(--bg)", borderRadius: isMobile ? "16px 16px 0 0" : 18, width: "min(560px, 100%)",
-          maxHeight: isMobile ? "94dvh" : "90dvh", display: "flex", flexDirection: "column", overflow: "hidden" }}>
+          maxHeight: isMobile ? "calc(94dvh - var(--kb, 0px))" : "90dvh", display: "flex", flexDirection: "column", overflow: "hidden" }}>
         <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "15px 18px",
           borderBottom: "1px solid var(--divider)", background: "var(--surface)" }}>
           <span style={{ width: 34, height: 34, borderRadius: "var(--r-tile)", display: "grid", placeItems: "center", background: "#10B9811a" }}>

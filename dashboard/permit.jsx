@@ -661,10 +661,10 @@ function PermitWizard({ job, onClose, onSave, onSubmit, currentUser, stock, read
   const photoDone = shownSlots.filter((s) => media.photos[s.key] && media.photos[s.key].dataUrl).length;
 
   return (
-    <div {...bdClose} style={{ position: "fixed", inset: 0, background: "rgba(8,20,14,.5)", backdropFilter: "blur(3px)",
+    <div {...bdClose} style={{ position: "fixed", inset: 0, bottom: "var(--kb, 0px)", background: "rgba(8,20,14,.5)", backdropFilter: "blur(3px)",
       zIndex: 118, display: "grid", placeItems: isMobile ? "end center" : "center", padding: isMobile ? 0 : 20 }}>
       <div onClick={(e) => e.stopPropagation()} style={{ background: "var(--bg)", borderRadius: isMobile ? "20px 20px 0 0" : 20,
-        width: isMobile ? "100%" : "min(760px,100%)", height: isMobile ? "96dvh" : "min(880px, 92vh)",
+        width: isMobile ? "100%" : "min(760px,100%)", height: isMobile ? "calc(96dvh - var(--kb, 0px))" : "min(880px, 92vh)",
         display: "flex", flexDirection: "column", overflow: "hidden", boxShadow: "var(--shadow-modal)" }}>
 
         {/* หัว + แถบความคืบหน้า */}

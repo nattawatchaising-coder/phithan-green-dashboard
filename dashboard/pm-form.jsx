@@ -602,10 +602,10 @@ function PmHandoverModal({ job, currentUser, onClose, onSummary }) {
 
   return (
     <React.Fragment>
-      <div style={{ position: "fixed", inset: 0, background: "rgba(8,20,14,.45)", backdropFilter: "blur(3px)", zIndex: 132,
+      <div style={{ position: "fixed", inset: 0, bottom: "var(--kb, 0px)", background: "rgba(8,20,14,.45)", backdropFilter: "blur(3px)", zIndex: 132,
         display: "grid", placeItems: isMobile ? "end center" : "center", padding: isMobile ? 0 : 20 }}>
         <div style={{ background: "var(--bg)", borderRadius: isMobile ? "20px 20px 0 0" : 18, width: isMobile ? "100%" : "min(760px,100%)",
-          maxHeight: isMobile ? "94dvh" : "92vh", display: "flex", flexDirection: "column", overflow: "hidden",
+          maxHeight: isMobile ? "calc(94dvh - var(--kb, 0px))" : "92vh", display: "flex", flexDirection: "column", overflow: "hidden",
           boxShadow: "var(--shadow-modal)" }}>
 
           {/* หัวหน้าต่าง */}

@@ -2616,6 +2616,7 @@ function DailyBriefing({
     style: {
       position: "fixed",
       inset: 0,
+      bottom: "var(--kb, 0px)",
       background: "rgba(8,20,14,.5)",
       backdropFilter: "blur(3px)",
       zIndex: 120,
@@ -2629,7 +2630,7 @@ function DailyBriefing({
       background: "var(--bg)",
       borderRadius: isMobile ? "20px 20px 0 0" : 18,
       width: isMobile ? "100%" : "min(480px,100%)",
-      maxHeight: isMobile ? "90dvh" : "88vh",
+      maxHeight: isMobile ? "calc(90dvh - var(--kb, 0px))" : "88vh",
       display: "flex",
       flexDirection: "column",
       overflow: "hidden",

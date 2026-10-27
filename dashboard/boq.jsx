@@ -520,10 +520,10 @@ function Meas3DModal({ list, targets, defaultTarget, onApply, onClose }) {
   const rows = (list || []).filter((m) => pick[m.id]);
   const sum = Math.round(rows.reduce((s, m) => s + measLen(m), 0) * 100) / 100;
   return (
-    <div {...bdClose} style={{ position: "fixed", inset: 0, background: "rgba(8,20,14,.45)", backdropFilter: "blur(3px)", zIndex: 130,
+    <div {...bdClose} style={{ position: "fixed", inset: 0, bottom: "var(--kb, 0px)", background: "rgba(8,20,14,.45)", backdropFilter: "blur(3px)", zIndex: 130,
       display: "grid", placeItems: isMobile ? "end center" : "center", padding: isMobile ? 0 : 20 }}>
       <div onClick={(e) => e.stopPropagation()} style={{ background: "var(--bg)", borderRadius: isMobile ? "20px 20px 0 0" : 18,
-        width: isMobile ? "100%" : "min(620px,100%)", maxHeight: isMobile ? "92dvh" : "88vh", display: "flex", flexDirection: "column",
+        width: isMobile ? "100%" : "min(620px,100%)", maxHeight: isMobile ? "calc(92dvh - var(--kb, 0px))" : "88vh", display: "flex", flexDirection: "column",
         overflow: "hidden", boxShadow: "0 30px 80px rgba(0,0,0,.45)" }}>
         <div style={{ padding: "16px 20px", borderBottom: "1px solid var(--divider)", background: "var(--surface)", flexShrink: 0 }}>
           <div style={{ fontSize: 10.5, fontWeight: 800, color: "var(--text-3)" }}>ระยะจากแบบ 3D</div>
@@ -5463,10 +5463,10 @@ function MatVariantModal({ item, stock, priceMap, matOptions, picked, onPick, re
   const inp = { background: "var(--surface2)", border: "1px solid var(--border-strong)", color: "var(--text-1)",
     fontFamily: "inherit", fontSize: 13, padding: "8px 10px", borderRadius: "var(--r-chip)", outline: "none", width: "100%" };
   return (
-    <div {...bdClose} style={{ position: "fixed", inset: 0, background: "rgba(8,20,14,.45)", backdropFilter: "blur(3px)", zIndex: 120,
+    <div {...bdClose} style={{ position: "fixed", inset: 0, bottom: "var(--kb, 0px)", background: "rgba(8,20,14,.45)", backdropFilter: "blur(3px)", zIndex: 120,
       display: "grid", placeItems: isMobile ? "end center" : "center", padding: isMobile ? 0 : 20 }}>
       <div onClick={(e) => e.stopPropagation()} style={{ background: "var(--bg)", borderRadius: isMobile ? "20px 20px 0 0" : 18,
-        width: isMobile ? "100%" : "min(520px,100%)", maxHeight: isMobile ? "92dvh" : "88vh", display: "flex", flexDirection: "column",
+        width: isMobile ? "100%" : "min(520px,100%)", maxHeight: isMobile ? "calc(92dvh - var(--kb, 0px))" : "88vh", display: "flex", flexDirection: "column",
         overflow: "hidden", boxShadow: "0 30px 80px rgba(0,0,0,.45)" }}>
         <div style={{ padding: "16px 20px", borderBottom: "1px solid var(--divider)", background: "var(--surface)", flexShrink: 0 }}>
           <div style={{ fontSize: 10.5, fontWeight: 800, color: "var(--text-3)" }}>ยี่ห้อ · รุ่น · ราคา</div>

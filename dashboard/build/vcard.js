@@ -412,6 +412,7 @@ function VcCardModal({
     style: {
       position: "fixed",
       inset: 0,
+      bottom: "var(--kb, 0px)",
       background: "rgba(8,20,14,.5)",
       zIndex: 130,
       display: "grid",
@@ -424,7 +425,7 @@ function VcCardModal({
       background: "var(--bg)",
       borderRadius: isMobile ? "20px 20px 0 0" : 18,
       width: isMobile ? "100%" : "min(640px,100%)",
-      maxHeight: isMobile ? "94dvh" : "90vh",
+      maxHeight: isMobile ? "calc(94dvh - var(--kb, 0px))" : "90vh",
       display: "flex",
       flexDirection: "column",
       overflow: "hidden",

@@ -396,8 +396,8 @@ function StickerPicker({ onPick, onClose }) {
     border: "none", boxShadow: on ? "inset 0 0 0 1px var(--primary)" : "var(--shadow-sm)", background: on ? "var(--primary-soft)" : "var(--surface)", color: on ? "var(--primary-dark)" : "var(--text-2)" });
 
   return (
-    <div style={{ position: "fixed", inset: 0, background: "rgba(8,20,14,.55)", backdropFilter: "blur(3px)", zIndex: 140, display: "grid", placeItems: isMobile ? "end center" : "center", padding: isMobile ? 0 : 20 }}>
-      <div style={{ background: "var(--bg)", borderRadius: isMobile ? "20px 20px 0 0" : 20, width: isMobile ? "100%" : "min(720px,100%)", maxHeight: isMobile ? "92dvh" : "88vh", display: "flex", flexDirection: "column", overflow: "hidden", boxShadow: "var(--shadow-modal)" }}>
+    <div style={{ position: "fixed", inset: 0, bottom: "var(--kb, 0px)", background: "rgba(8,20,14,.55)", backdropFilter: "blur(3px)", zIndex: 140, display: "grid", placeItems: isMobile ? "end center" : "center", padding: isMobile ? 0 : 20 }}>
+      <div style={{ background: "var(--bg)", borderRadius: isMobile ? "20px 20px 0 0" : 20, width: isMobile ? "100%" : "min(720px,100%)", maxHeight: isMobile ? "calc(92dvh - var(--kb, 0px))" : "88vh", display: "flex", flexDirection: "column", overflow: "hidden", boxShadow: "var(--shadow-modal)" }}>
         <div style={{ padding: "13px 16px", borderBottom: "1px solid var(--divider)", background: "var(--surface)", display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10 }}>
           <div style={{ minWidth: 0 }}>
             <div style={{ fontSize: 15, fontWeight: 800, color: "var(--text-1)" }}>คลังรูปแปะ</div>
@@ -674,8 +674,8 @@ function AnnEditor({ shot, onSave, onClose }) {
     border: "1px solid var(--border-strong)", background: "var(--surface)", color: "var(--text-2)", fontFamily: "inherit", fontSize: 12.5, fontWeight: 700, cursor: "pointer" };
 
   return (
-    <div style={{ position: "fixed", inset: 0, background: "rgba(8,20,14,.62)", backdropFilter: "blur(3px)", zIndex: 130, display: "grid", placeItems: isMobile ? "end center" : "center", padding: isMobile ? 0 : 20 }}>
-      <div style={{ background: "var(--bg)", borderRadius: isMobile ? "20px 20px 0 0" : 20, width: isMobile ? "100%" : "min(880px,100%)", maxHeight: isMobile ? "96dvh" : "94vh", display: "flex", flexDirection: "column", overflow: "hidden", boxShadow: "var(--shadow-modal)" }}>
+    <div style={{ position: "fixed", inset: 0, bottom: "var(--kb, 0px)", background: "rgba(8,20,14,.62)", backdropFilter: "blur(3px)", zIndex: 130, display: "grid", placeItems: isMobile ? "end center" : "center", padding: isMobile ? 0 : 20 }}>
+      <div style={{ background: "var(--bg)", borderRadius: isMobile ? "20px 20px 0 0" : 20, width: isMobile ? "100%" : "min(880px,100%)", maxHeight: isMobile ? "calc(96dvh - var(--kb, 0px))" : "94vh", display: "flex", flexDirection: "column", overflow: "hidden", boxShadow: "var(--shadow-modal)" }}>
         <div style={{ padding: "13px 16px", borderBottom: "1px solid var(--divider)", background: "var(--surface)", display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10 }}>
           <div style={{ minWidth: 0 }}>
             <div style={{ fontSize: 15, fontWeight: 800, color: "var(--text-1)", letterSpacing: "-.01em" }}>เขียนบนรูป</div>

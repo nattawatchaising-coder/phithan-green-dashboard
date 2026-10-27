@@ -922,6 +922,7 @@ function Meas3DModal({
     style: {
       position: "fixed",
       inset: 0,
+      bottom: "var(--kb, 0px)",
       background: "rgba(8,20,14,.45)",
       backdropFilter: "blur(3px)",
       zIndex: 130,
@@ -935,7 +936,7 @@ function Meas3DModal({
       background: "var(--bg)",
       borderRadius: isMobile ? "20px 20px 0 0" : 18,
       width: isMobile ? "100%" : "min(620px,100%)",
-      maxHeight: isMobile ? "92dvh" : "88vh",
+      maxHeight: isMobile ? "calc(92dvh - var(--kb, 0px))" : "88vh",
       display: "flex",
       flexDirection: "column",
       overflow: "hidden",
@@ -11502,6 +11503,7 @@ function MatVariantModal({
     style: {
       position: "fixed",
       inset: 0,
+      bottom: "var(--kb, 0px)",
       background: "rgba(8,20,14,.45)",
       backdropFilter: "blur(3px)",
       zIndex: 120,
@@ -11515,7 +11517,7 @@ function MatVariantModal({
       background: "var(--bg)",
       borderRadius: isMobile ? "20px 20px 0 0" : 18,
       width: isMobile ? "100%" : "min(520px,100%)",
-      maxHeight: isMobile ? "92dvh" : "88vh",
+      maxHeight: isMobile ? "calc(92dvh - var(--kb, 0px))" : "88vh",
       display: "flex",
       flexDirection: "column",
       overflow: "hidden",

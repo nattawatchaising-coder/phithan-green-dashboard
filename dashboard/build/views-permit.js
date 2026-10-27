@@ -1173,6 +1173,7 @@ function PermitReview({
     style: {
       position: "fixed",
       inset: 0,
+      bottom: "var(--kb, 0px)",
       background: "rgba(8,20,14,.5)",
       backdropFilter: "blur(3px)",
       zIndex: 118,
@@ -1186,7 +1187,7 @@ function PermitReview({
       background: "var(--bg)",
       borderRadius: isMobile ? "20px 20px 0 0" : 20,
       width: isMobile ? "100%" : "min(820px,100%)",
-      height: isMobile ? "96dvh" : "min(900px, 92vh)",
+      height: isMobile ? "calc(96dvh - var(--kb, 0px))" : "min(900px, 92vh)",
       display: "flex",
       flexDirection: "column",
       overflow: "hidden",

@@ -946,6 +946,7 @@ function SurveyApptModal({
     style: {
       position: "fixed",
       inset: 0,
+      bottom: "var(--kb, 0px)",
       background: "rgba(8,20,14,.45)",
       backdropFilter: "blur(3px)",
       zIndex: 118,
@@ -959,7 +960,7 @@ function SurveyApptModal({
       background: "var(--bg)",
       borderRadius: isMobile ? "20px 20px 0 0" : 18,
       width: isMobile ? "100%" : "min(520px,100%)",
-      maxHeight: isMobile ? "94dvh" : "90vh",
+      maxHeight: isMobile ? "calc(94dvh - var(--kb, 0px))" : "90vh",
       display: "flex",
       flexDirection: "column",
       overflow: "hidden",

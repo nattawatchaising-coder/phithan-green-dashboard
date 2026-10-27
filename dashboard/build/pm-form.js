@@ -1070,6 +1070,7 @@ function PmHandoverModal({
     style: {
       position: "fixed",
       inset: 0,
+      bottom: "var(--kb, 0px)",
       background: "rgba(8,20,14,.45)",
       backdropFilter: "blur(3px)",
       zIndex: 132,
@@ -1082,7 +1083,7 @@ function PmHandoverModal({
       background: "var(--bg)",
       borderRadius: isMobile ? "20px 20px 0 0" : 18,
       width: isMobile ? "100%" : "min(760px,100%)",
-      maxHeight: isMobile ? "94dvh" : "92vh",
+      maxHeight: isMobile ? "calc(94dvh - var(--kb, 0px))" : "92vh",
       display: "flex",
       flexDirection: "column",
       overflow: "hidden",

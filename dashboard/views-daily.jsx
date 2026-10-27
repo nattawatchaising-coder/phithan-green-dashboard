@@ -530,10 +530,10 @@ function DailyReportModal({ job, role, currentUser, onClose, onNotify, openDate 
 
   return (
     <React.Fragment>
-      <div style={{ position: "fixed", inset: 0, zIndex: 150, background: "rgba(8,20,14,.55)", overflow: "auto",
+      <div style={{ position: "fixed", inset: 0, bottom: "var(--kb, 0px)", zIndex: 150, background: "rgba(8,20,14,.55)", overflow: "auto",
         padding: isMobile ? 0 : "24px 16px" }}>
         <div style={{ maxWidth: 880, margin: "0 auto", background: "var(--bg)", borderRadius: isMobile ? 0 : 16,
-          minHeight: isMobile ? "100dvh" : 0, overflow: "hidden", boxShadow: "var(--shadow-modal)" }}>
+          minHeight: isMobile ? "calc(100dvh - var(--kb, 0px))" : 0, overflow: "hidden", boxShadow: "var(--shadow-modal)" }}>
 
           {/* หัวฟอร์ม */}
           <div style={{ position: "sticky", top: 0, zIndex: 3, background: "var(--surface)", borderBottom: "1px solid var(--divider)", padding: isMobile ? "13px 14px" : "16px 20px" }}>

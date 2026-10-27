@@ -568,10 +568,10 @@ function PermitReview({ job, currentUser, stock, onClose, onPatch, onOpenJob }) 
   };
 
   return (
-    <div {...bdClose} style={{ position: "fixed", inset: 0, background: "rgba(8,20,14,.5)", backdropFilter: "blur(3px)",
+    <div {...bdClose} style={{ position: "fixed", inset: 0, bottom: "var(--kb, 0px)", background: "rgba(8,20,14,.5)", backdropFilter: "blur(3px)",
       zIndex: 118, display: "grid", placeItems: isMobile ? "end center" : "center", padding: isMobile ? 0 : 20 }}>
       <div onClick={(e) => e.stopPropagation()} style={{ background: "var(--bg)", borderRadius: isMobile ? "20px 20px 0 0" : 20,
-        width: isMobile ? "100%" : "min(820px,100%)", height: isMobile ? "96dvh" : "min(900px, 92vh)",
+        width: isMobile ? "100%" : "min(820px,100%)", height: isMobile ? "calc(96dvh - var(--kb, 0px))" : "min(900px, 92vh)",
         display: "flex", flexDirection: "column", overflow: "hidden", boxShadow: "var(--shadow-modal)" }}>
 
         <div style={{ padding: "16px 20px", borderBottom: "1px solid var(--divider)", background: "var(--surface)", display: "flex", alignItems: "center", gap: 11, flexShrink: 0 }}>

@@ -588,6 +588,7 @@ function StickerPicker({
     style: {
       position: "fixed",
       inset: 0,
+      bottom: "var(--kb, 0px)",
       background: "rgba(8,20,14,.55)",
       backdropFilter: "blur(3px)",
       zIndex: 140,
@@ -600,7 +601,7 @@ function StickerPicker({
       background: "var(--bg)",
       borderRadius: isMobile ? "20px 20px 0 0" : 20,
       width: isMobile ? "100%" : "min(720px,100%)",
-      maxHeight: isMobile ? "92dvh" : "88vh",
+      maxHeight: isMobile ? "calc(92dvh - var(--kb, 0px))" : "88vh",
       display: "flex",
       flexDirection: "column",
       overflow: "hidden",
@@ -1236,6 +1237,7 @@ function AnnEditor({
     style: {
       position: "fixed",
       inset: 0,
+      bottom: "var(--kb, 0px)",
       background: "rgba(8,20,14,.62)",
       backdropFilter: "blur(3px)",
       zIndex: 130,
@@ -1248,7 +1250,7 @@ function AnnEditor({
       background: "var(--bg)",
       borderRadius: isMobile ? "20px 20px 0 0" : 20,
       width: isMobile ? "100%" : "min(880px,100%)",
-      maxHeight: isMobile ? "96dvh" : "94vh",
+      maxHeight: isMobile ? "calc(96dvh - var(--kb, 0px))" : "94vh",
       display: "flex",
       flexDirection: "column",
       overflow: "hidden",

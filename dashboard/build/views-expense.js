@@ -513,6 +513,7 @@ function EcClaimModal({
     style: {
       position: "fixed",
       inset: 0,
+      bottom: "var(--kb, 0px)",
       zIndex: 95,
       background: "rgba(8,20,26,.5)",
       backdropFilter: "blur(3px)",
@@ -527,7 +528,7 @@ function EcClaimModal({
       background: "var(--bg)",
       borderRadius: isMobile ? "16px 16px 0 0" : 18,
       width: "min(760px, 100%)",
-      maxHeight: isMobile ? "94dvh" : "92dvh",
+      maxHeight: isMobile ? "calc(94dvh - var(--kb, 0px))" : "92dvh",
       display: "flex",
       flexDirection: "column",
       overflow: "hidden"
@@ -1669,6 +1670,7 @@ function EcPayModal({
     style: {
       position: "fixed",
       inset: 0,
+      bottom: "var(--kb, 0px)",
       zIndex: 100,
       background: "rgba(8,20,26,.5)",
       backdropFilter: "blur(3px)",
@@ -1683,7 +1685,7 @@ function EcPayModal({
       background: "var(--bg)",
       borderRadius: isMobile ? "16px 16px 0 0" : 18,
       width: "min(560px, 100%)",
-      maxHeight: isMobile ? "94dvh" : "90dvh",
+      maxHeight: isMobile ? "calc(94dvh - var(--kb, 0px))" : "90dvh",
       display: "flex",
       flexDirection: "column",
       overflow: "hidden"
