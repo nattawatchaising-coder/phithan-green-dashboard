@@ -20,3 +20,5 @@ firebase-config.local.example.js
 
 # รหัส Huawei FusionSolar ของเครื่อง
 fusionsolar.local.json
+isolarcloud.local.json
+isolarcloud-probe.local.json

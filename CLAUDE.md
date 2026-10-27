@@ -41,6 +41,7 @@ deploy อัตโนมัติด้วย Vercel จาก `master` บน 
 | ความปลอดภัยฐานข้อมูล · Firebase Rules · ล็อกอิน/สิทธิ์ (`auth.jsx` `api/_lib/line.mjs`) | `docs/security.md` |
 | ไฟล์ 3D ส่งออกไป PVsyst (.pvc2/.dae · `pvsyst.jsx`) | `docs/pvsyst.md` |
 | ลูกค้าฝ่ายขาย · ถังขยะลูกค้า (`survey-sched.jsx` ตัวเก็บ · `views-survey.jsx` ใบลูกค้า · `sales.jsx` บอร์ดงานขาย) | `docs/sales.md` |
+| Sungrow iSolarCloud (`isolarcloud.mjs` `isolarcloud-probe/mock`) | `docs/isolarcloud.md` |
 | ฐานข้อมูลทดสอบบน localhost (`firebase-config.js` `firebase-config.local.js` `devserver.js`) | `docs/test-db.md` |
 | Huawei FusionSolar · หน้าไซต์ทั้งหมด · ซิงก์ไซต์/อุปกรณ์/ข้อมูลผลิต (`fusionsolar.jsx` `fusionsolar-scene.jsx` `fusionsolar-house.jsx` `api/_lib/fusionsolar.mjs` `api/cron/fusionsolar.mjs`) | `docs/fusionsolar.md` |
 

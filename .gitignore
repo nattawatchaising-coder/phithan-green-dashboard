@@ -30,3 +30,5 @@ firebase-sa.local.json
 
 # รหัส Huawei FusionSolar ของแต่ละเครื่อง (docs/fusionsolar.md) — ห้ามขึ้น git
 fusionsolar.local.json
+isolarcloud.local.json
+isolarcloud-probe.local.json
