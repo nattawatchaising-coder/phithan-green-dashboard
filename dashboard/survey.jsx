@@ -1082,8 +1082,11 @@ function SurveyWizard({ job, onClose, onSave, onReport, currentUser, stock }) {
     <React.Fragment>
     {/* ก้นฉากหลังยกขึ้นเท่าความสูงคีย์บอร์ด (--kb จาก dashboard/kbfit.js ปกติ 0)
         บนมือถือแผ่นถูกวางชิดก้นฉาก (placeItems: end) ถ้าไม่ยกก้นขึ้น ต่อให้หดความสูงแผ่น
-        ขอบล่างก็ยังจมอยู่ใต้คีย์บอร์ดเหมือนเดิม ได้แค่ดันขอบบนลง */}
-    <div {...bdClose} style={{ position: "fixed", top: 0, left: 0, right: 0, bottom: "var(--kb, 0px)", background: "rgba(8,20,14,.45)", backdropFilter: "blur(3px)", zIndex: 115, display: "grid", placeItems: isMobile ? "end center" : "center", padding: isMobile ? 0 : 20 }}>
+        ขอบล่างก็ยังจมอยู่ใต้คีย์บอร์ดเหมือนเดิม ได้แค่ดันขอบบนลง
+        ⚠ ต้องคง inset: 0 ไว้ด้วย แล้วค่อยทับ bottom — skin-glass.js ใช้ตัวเลือก
+        [style*='inset: 0'] เป็นตัวปลดเบลอให้ของเต็มจอไม่ถูกขังในกล่องกระจก
+        ถ้าเขียนเป็น top/left/right/bottom ล้วน จะหลุดเงื่อนไขนั้นแล้วโดนขัง */}
+    <div {...bdClose} style={{ position: "fixed", inset: 0, bottom: "var(--kb, 0px)", background: "rgba(8,20,14,.45)", backdropFilter: "blur(3px)", zIndex: 115, display: "grid", placeItems: isMobile ? "end center" : "center", padding: isMobile ? 0 : 20 }}>
       {/* แท็บแฟ้ม = ขั้นตอนทั้ง 5 ชุดเดียวกับลิ้นชักลูกค้า (.ld-tab ใน index.html) แทนแถบวงกลมเลขขั้นเดิม
           ความสูงตายตัว สลับขั้นแล้วใบไม่กระโดด · ⚠ ห้ามใช้ filter: drop-shadow ที่กรอบนอก — มันขัง position:fixed ข้างในไว้ในกรอบ */}
       {/* --kb = ส่วนที่คีย์บอร์ดมือถือกินไป (dashboard/kbfit.js ตั้งให้ ปกติ 0)

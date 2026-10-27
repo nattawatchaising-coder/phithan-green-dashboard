@@ -2311,9 +2311,7 @@ function SurveyWizard({
   return React.createElement(React.Fragment, null, React.createElement("div", _extends({}, bdClose, {
     style: {
       position: "fixed",
-      top: 0,
-      left: 0,
-      right: 0,
+      inset: 0,
       bottom: "var(--kb, 0px)",
       background: "rgba(8,20,14,.45)",
       backdropFilter: "blur(3px)",
