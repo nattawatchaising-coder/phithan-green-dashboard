@@ -1328,7 +1328,7 @@ function FsSiteModal({ site, sites, medMonth, jobs, canWrite, isAdmin, currentUs
       )}
 
       {window.Segmented && (
-        <div style={{ display: "flex", overflowX: "auto" }}>
+        <div style={{ display: "flex", overflowX: "auto", flexShrink: 0 }}>{/* flexShrink 0 — overflow:auto ในคอลัมน์ flex ถูกบีบเหลือ 12px จนมองไม่เห็นแท็บ (ผู้ใช้หาแท็บข้อมูลและงานไม่เจอ) */}
           <window.Segmented value={tab} onChange={setTab} options={[
             { value: "over", label: "ภาพรวม" },
             { value: "dev", label: "อุปกรณ์" + (devs.length ? " " + devs.length.toLocaleString("th-TH") : "") },

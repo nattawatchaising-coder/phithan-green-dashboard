@@ -3319,7 +3319,8 @@ function FsSiteModal({
   }, sub))))), window.Segmented && React.createElement("div", {
     style: {
       display: "flex",
-      overflowX: "auto"
+      overflowX: "auto",
+      flexShrink: 0
     }
   }, React.createElement(window.Segmented, {
     value: tab,
