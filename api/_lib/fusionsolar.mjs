@@ -58,6 +58,10 @@ export const SKIP_TYPES = { 46: 1 };
 /* ประเภทที่ดึงค่า KPI รายชั่วโมง · ประเภทที่ไม่รู้จักไม่ดึง (Huawei อาจไม่รองรับ getDevRealKpi) แต่ยังเก็บรายชื่ออุปกรณ์ตามปกติ
    ด็องเกิล (62) / SmartLogger (63) ตอบ failCode 20013 ทุกรอบ (ข้อมูลจริง 2026-10-26) — ไม่ดึง เสียเวลารอบละ 2 คำขอ */
 export const KPI_TYPES = { 1: 1, 38: 1, 17: 1, 47: 1, 39: 1, 41: 1, 10: 1 };
+/* ลองดึงด้วย (ผู้ใช้สั่ง 2026-10-28 "ดึงเลย" — การ์ด EMMA/External meter ขึ้น "ยังไม่มีค่า") · ถ้า Huawei ตอบ 20013 (ไม่รองรับ)
+   จดไว้ใน fsState/kpi_unsup/{type} แล้วไม่ถามอีก 7 วัน ไม่ให้เสียคำขอทุกรอบแบบด็องเกิล */
+export const KPI_TRY_TYPES = { 23070: 1, 23071: 1, 23076: 1 };
+const UNSUP_MS = 7 * 86400e3;
 export const devTypeName = (t) => DEV_TYPES[t] || ("ไม่ทราบประเภท (devTypeId " + t + ")");
 
 /* key ของ RTDB ห้ามมี . # $ [ ] / */
@@ -427,9 +431,11 @@ export async function runSync(o) {
     const idx = siteIndex(sites);
     const codes = Object.keys(idx).filter((k) => syncOn(sites[idx[k]])).sort();
     const byType = {};
+    const unsup = state.kpi_unsup || {};
+    const kpiOk = (t) => KPI_TYPES[t] || (KPI_TRY_TYPES[t] && !(Date.now() - (Date.parse(unsup[t] || "") || 0) < UNSUP_MS));
     Object.keys(devices).sort().forEach((id) => {
       const d = devices[id] || {};
-      if (d.fs_status === "not_found_in_fusionsolar" || d.dev_type_id == null || !KPI_TYPES[d.dev_type_id]) return;
+      if (d.fs_status === "not_found_in_fusionsolar" || d.dev_type_id == null || !kpiOk(d.dev_type_id)) return;
       if (!idx[d.station_code] || !syncOn(sites[idx[d.station_code]])) return;
       (byType[d.dev_type_id] || (byType[d.dev_type_id] = [])).push(id);
     });
@@ -490,7 +496,10 @@ export async function runSync(o) {
         }
       } catch (e) {
         if (e.fatal) { st.kpi_cursor = i; throw e; }
-        log.errors.push(errRec(e));
+        if (b.kind === "dev" && KPI_TRY_TYPES[b.type] && Number(e.failCode) === 20013) {
+          st.kpi_unsup = Object.assign({}, state.kpi_unsup || {}, st.kpi_unsup || {}, { [b.type]: iso() });
+          log.note = (log.note ? log.note + " · " : "") + devTypeName(b.type) + " ไม่รองรับ getDevRealKpi (20013) — พัก 7 วัน";
+        } else log.errors.push(errRec(e));
       }
     }
     const wTouched = {};
