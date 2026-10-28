@@ -253,19 +253,22 @@ function FsHouseBackdrop({
     style: {
       position: "absolute",
       inset: 0,
-      background: V.fill,
+      background: "var(--surface)",
       overflow: "hidden",
       pointerEvents: "none"
     }
   }, React.createElement("img", {
     key: kind,
-    src: V.src,
+    src: V.cut || V.src,
     alt: "",
     draggable: "false",
+    onError: e => {
+      if (V.cut && e.currentTarget.src.indexOf(V.src) < 0) e.currentTarget.src = V.src;
+    },
     style: {
       position: "absolute",
-      top: 0,
-      height: "100%",
+      top: "2%",
+      height: "96%",
       width: "auto",
       left: (cx == null ? 50 : cx * 100) + "%",
       transform: "translateX(-50%)",
