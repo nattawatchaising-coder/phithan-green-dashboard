@@ -226,7 +226,7 @@ function FsStringGrid({ strs }) {
           <span style={{ width: 9, height: 9, borderRadius: 3, background: "var(--tint-amber-bg)", boxShadow: "inset 0 0 0 1.5px var(--tint-amber-tx)", marginLeft: 6 }} />ต่ำผิดปกติ
         </span>
       </div>
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(90px, 1fr))", gap: 6 }}>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(112px, 1fr))", gap: 6 }}>
         {strs.map((s, i) => {
           const f = s.kw > 0 ? s.kw / maxKw : 0;
           return (
@@ -237,7 +237,7 @@ function FsStringGrid({ strs }) {
                 color: s.weak ? "var(--tint-amber-tx)" : "var(--text-1)" }}>{/* ตัวหนังสือสีเดียวทุกช่อง (ผู้ใช้ทักว่าดำ/ขาวสลับกัน) — ดำบนเขียวเข้มสุดยังต่างสี 4.2 ดีกว่าขาว 3.5 */}
               <div style={{ fontSize: 11.5, fontWeight: 700, opacity: 0.9 }}>PV{s.n}</div>
               <div style={{ fontFamily: "var(--display)", fontSize: 15, fontWeight: 700, lineHeight: 1.2, fontVariantNumeric: "tabular-nums" }}>{fsFmt(s.kw, 2)}<span style={{ fontSize: 10, fontWeight: 600, marginLeft: 2 }}>kW</span></div>
-              <div style={{ fontSize: 11.5, fontWeight: 600, opacity: 0.92, fontFamily: "var(--mono)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{fsFmt(s.i, 1)}A · {fsFmt(s.u, 0)}V</div>
+              <div style={{ fontSize: 11.5, fontWeight: 600, opacity: 0.92, fontFamily: "var(--mono)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{fsFmt(s.i, 1)}A · {s.u != null ? Math.round(s.u) : "–"}V</div>
             </div>
           );
         })}

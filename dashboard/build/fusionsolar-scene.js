@@ -587,7 +587,7 @@ function FsStringGrid({
   }), "\u0E15\u0E48\u0E33\u0E1C\u0E34\u0E14\u0E1B\u0E01\u0E15\u0E34")), React.createElement("div", {
     style: {
       display: "grid",
-      gridTemplateColumns: "repeat(auto-fill, minmax(90px, 1fr))",
+      gridTemplateColumns: "repeat(auto-fill, minmax(112px, 1fr))",
       gap: 6
     }
   }, strs.map((s, i) => {
@@ -635,7 +635,7 @@ function FsStringGrid({
         overflow: "hidden",
         textOverflow: "ellipsis"
       }
-    }, fsFmt(s.i, 1), "A \xB7 ", fsFmt(s.u, 0), "V"));
+    }, fsFmt(s.i, 1), "A \xB7 ", s.u != null ? Math.round(s.u) : "–", "V"));
   })));
 }
 const FS_XC = {
