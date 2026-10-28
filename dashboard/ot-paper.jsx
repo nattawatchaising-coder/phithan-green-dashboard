@@ -111,9 +111,11 @@ function TmOtPaper({ person, period, rows, jobs, users, cfg, byName, onClose }) 
     setTimeout(() => { document.title = old; }, 800);
   };
 
-  const th = { textAlign: "center", padding: "6px 7px", fontSize: 10, fontWeight: 700, color: "#FFFFFF",
-    background: "var(--paper-brand)", border: "1px solid var(--paper-line2)", whiteSpace: "nowrap" };
-  const td = { padding: "6px 7px", fontSize: 10.5, color: "var(--paper-ink)", border: "1px solid var(--paper-line)",
+  /* คอลัมน์ตัวเลขกว้างพอดีตัว หัวคอลัมน์ตัดบรรทัดได้ — ให้ช่องงาน/ปฏิบัติหน้าที่ได้ที่มากสุด
+     หน้า A4 แคบกว่าจอ ถ้าช่องข้อความเหลือนิดเดียว แถวจะยืดสูงหลายบรรทัด (ผู้ใช้ทัก) */
+  const th = { textAlign: "center", padding: "5px 4px", fontSize: 10, fontWeight: 700, color: "#FFFFFF", lineHeight: 1.3,
+    background: "var(--paper-brand)", border: "1px solid var(--paper-line2)" };
+  const td = { padding: "5px 5px", fontSize: 10.5, color: "var(--paper-ink)", border: "1px solid var(--paper-line)",
     textAlign: "center", verticalAlign: "middle" };
   const tdL = Object.assign({}, td, { textAlign: "left" });
 
@@ -149,6 +151,8 @@ function TmOtPaper({ person, period, rows, jobs, users, cfg, byName, onClose }) 
 
       <div className="sv-rep-paper" style={{ maxWidth: 900, margin: "0 auto", background: "var(--paper-bg)", color: "var(--paper-ink)",
         padding: isMobile ? "20px 16px" : "30px 34px", borderRadius: isMobile ? 0 : 12, boxShadow: "var(--shadow-modal)" }}>
+        {/* สูงเต็มหน้า A4 แล้วดันช่องเซ็นไปติดขอบล่าง (.ec-page/.ec-foot ใน index.html แบบใบเบิกเงิน · ผู้ใช้สั่ง) */}
+        <div className="ec-page">
 
         {/* หัวกระดาษ */}
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", gap: 16, flexWrap: "wrap",
@@ -188,17 +192,17 @@ function TmOtPaper({ person, period, rows, jobs, users, cfg, byName, onClose }) 
           <table style={{ width: "100%", borderCollapse: "collapse" }}>
             <thead>
               <tr>
-                <th style={Object.assign({}, th, { width: 26 })}>#</th>
-                <th style={Object.assign({}, th, { width: 92 })}>วันที่</th>
-                <th style={Object.assign({}, th, { width: 52 })}>ตั้งแต่</th>
-                <th style={Object.assign({}, th, { width: 52 })}>ถึง</th>
-                <th style={Object.assign({}, th, { width: 54 })}>รวม (ชม.)</th>
-                <th style={Object.assign({}, th, { width: 86 })}>ประเภท</th>
-                <th style={Object.assign({}, th, { width: 44 })}>อัตรา</th>
-                <th style={Object.assign({}, th, { width: 58 })}>ชม.คิดค่าแรง</th>
+                <th style={Object.assign({}, th, { width: 22 })}>#</th>
+                <th style={Object.assign({}, th, { width: 70 })}>วันที่</th>
+                <th style={Object.assign({}, th, { width: 40 })}>ตั้งแต่</th>
+                <th style={Object.assign({}, th, { width: 40 })}>ถึง</th>
+                <th style={Object.assign({}, th, { width: 40 })}>รวม (ชม.)</th>
+                <th style={Object.assign({}, th, { width: 66 })}>ประเภท</th>
+                <th style={Object.assign({}, th, { width: 50 })}>อัตรา</th>
+                <th style={Object.assign({}, th, { width: 46 })}>ชม.คิดค่าแรง</th>
                 <th style={Object.assign({}, th, { textAlign: "left" })}>งานที่ทำ OT</th>
                 <th style={Object.assign({}, th, { textAlign: "left" })}>ปฏิบัติหน้าที่</th>
-                <th style={Object.assign({}, th, { width: 72 })}>สถานะ</th>
+                <th style={Object.assign({}, th, { width: 60 })}>สถานะ</th>
               </tr>
             </thead>
             <tbody>
@@ -211,7 +215,7 @@ function TmOtPaper({ person, period, rows, jobs, users, cfg, byName, onClose }) 
                 return (
                   <tr key={o.id} style={i % 2 ? { background: "var(--paper-tint)" } : undefined}>
                     <td style={td}>{i + 1}</td>
-                    <td style={td}>{window.drDateTH(o.date)}</td>
+                    <td style={Object.assign({}, td, { whiteSpace: "nowrap" })}>{window.drDateTH(o.date)}</td>
                     <td style={Object.assign({}, td, { fontFamily: "var(--mono)" })}>{o.from || "—"}</td>
                     <td style={Object.assign({}, td, { fontFamily: "var(--mono)" })}>{o.to || "—"}</td>
                     <td style={Object.assign({}, td, { fontFamily: "var(--mono)", fontWeight: 700 })}>{tmHrDec(o.mins)}</td>
@@ -224,11 +228,11 @@ function TmOtPaper({ person, period, rows, jobs, users, cfg, byName, onClose }) 
                     </td>
                     <td style={Object.assign({}, td, { fontFamily: "var(--mono)", fontWeight: 700 })}>{tmHrDec(window.tmOtPayMins(o, cfg))}</td>
                     <td style={tdL}>
-                      {o.jobCode ? <span style={{ fontFamily: "var(--mono)", fontWeight: 700 }}>{o.jobCode}</span> : <span style={{ color: "var(--paper-mute)" }}>ไม่ระบุงาน</span>}
+                      {o.jobCode ? <span style={{ fontWeight: 700 }}>{o.jobCode}</span> : <span style={{ color: "var(--paper-mute)" }}>ไม่ระบุงาน</span>}
                       {nm && <span style={{ display: "block", color: "var(--paper-ink2)" }}>{nm}</span>}
                     </td>
                     <td style={tdL}>{o.reason || <span style={{ color: "#B04A3A" }}>— ไม่ได้กรอก —</span>}</td>
-                    <td style={Object.assign({}, td, { fontWeight: 700,
+                    <td style={Object.assign({}, td, { fontWeight: 700, whiteSpace: "nowrap",
                       color: o.status === "approved" ? "#10B981" : o.status === "rejected" || o.status === "cancelled" ? "#94A3B8" : "#D97706" })}>
                       {window.tmOtStatusOf(o.status).th}
                     </td>
@@ -265,6 +269,7 @@ function TmOtPaper({ person, period, rows, jobs, users, cfg, byName, onClose }) 
         </div>
 
         {/* ช่องเซ็น — สามช่อง เพราะเส้นทางจริงคือ เจ้าตัว → หัวหน้า → ฝ่ายบุคคล */}
+        <div className="ec-foot">
         <div style={{ marginTop: 22, display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 18, breakInside: "avoid" }}>
           {signBox.map((s) => (
             <div key={s.t}>
@@ -283,6 +288,8 @@ function TmOtPaper({ person, period, rows, jobs, users, cfg, byName, onClose }) 
 
         <div style={{ marginTop: 12, fontSize: 9.5, color: "var(--paper-mute2)", textAlign: "center" }}>
           เอกสารนี้ออกจากระบบติดตามงานติดตั้ง flash+solar · พิมพ์เมื่อ {window.drDateTH(window.drToday())}
+        </div>
+        </div>
         </div>
       </div>
     </div>

@@ -138,16 +138,16 @@ function TmOtPaper({
   };
   const th = {
     textAlign: "center",
-    padding: "6px 7px",
+    padding: "5px 4px",
     fontSize: 10,
     fontWeight: 700,
     color: "#FFFFFF",
+    lineHeight: 1.3,
     background: "var(--paper-brand)",
-    border: "1px solid var(--paper-line2)",
-    whiteSpace: "nowrap"
+    border: "1px solid var(--paper-line2)"
   };
   const td = {
-    padding: "6px 7px",
+    padding: "5px 5px",
     fontSize: 10.5,
     color: "var(--paper-ink)",
     border: "1px solid var(--paper-line)",
@@ -278,6 +278,8 @@ function TmOtPaper({
       boxShadow: "var(--shadow-modal)"
     }
   }, React.createElement("div", {
+    className: "ec-page"
+  }, React.createElement("div", {
     style: {
       display: "flex",
       justifyContent: "space-between",
@@ -394,35 +396,35 @@ function TmOtPaper({
     }
   }, React.createElement("thead", null, React.createElement("tr", null, React.createElement("th", {
     style: Object.assign({}, th, {
-      width: 26
+      width: 22
     })
   }, "#"), React.createElement("th", {
     style: Object.assign({}, th, {
-      width: 92
+      width: 70
     })
   }, "\u0E27\u0E31\u0E19\u0E17\u0E35\u0E48"), React.createElement("th", {
     style: Object.assign({}, th, {
-      width: 52
+      width: 40
     })
   }, "\u0E15\u0E31\u0E49\u0E07\u0E41\u0E15\u0E48"), React.createElement("th", {
     style: Object.assign({}, th, {
-      width: 52
+      width: 40
     })
   }, "\u0E16\u0E36\u0E07"), React.createElement("th", {
     style: Object.assign({}, th, {
-      width: 54
+      width: 40
     })
   }, "\u0E23\u0E27\u0E21 (\u0E0A\u0E21.)"), React.createElement("th", {
     style: Object.assign({}, th, {
-      width: 86
+      width: 66
     })
   }, "\u0E1B\u0E23\u0E30\u0E40\u0E20\u0E17"), React.createElement("th", {
     style: Object.assign({}, th, {
-      width: 44
+      width: 50
     })
   }, "\u0E2D\u0E31\u0E15\u0E23\u0E32"), React.createElement("th", {
     style: Object.assign({}, th, {
-      width: 58
+      width: 46
     })
   }, "\u0E0A\u0E21.\u0E04\u0E34\u0E14\u0E04\u0E48\u0E32\u0E41\u0E23\u0E07"), React.createElement("th", {
     style: Object.assign({}, th, {
@@ -434,7 +436,7 @@ function TmOtPaper({
     })
   }, "\u0E1B\u0E0F\u0E34\u0E1A\u0E31\u0E15\u0E34\u0E2B\u0E19\u0E49\u0E32\u0E17\u0E35\u0E48"), React.createElement("th", {
     style: Object.assign({}, th, {
-      width: 72
+      width: 60
     })
   }, "\u0E2A\u0E16\u0E32\u0E19\u0E30"))), React.createElement("tbody", null, list.length === 0 && React.createElement("tr", null, React.createElement("td", {
     colSpan: 11,
@@ -453,7 +455,9 @@ function TmOtPaper({
     }, React.createElement("td", {
       style: td
     }, i + 1), React.createElement("td", {
-      style: td
+      style: Object.assign({}, td, {
+        whiteSpace: "nowrap"
+      })
     }, window.drDateTH(o.date)), React.createElement("td", {
       style: Object.assign({}, td, {
         fontFamily: "var(--mono)"
@@ -488,7 +492,6 @@ function TmOtPaper({
       style: tdL
     }, o.jobCode ? React.createElement("span", {
       style: {
-        fontFamily: "var(--mono)",
         fontWeight: 700
       }
     }, o.jobCode) : React.createElement("span", {
@@ -509,6 +512,7 @@ function TmOtPaper({
     }, "\u2014 \u0E44\u0E21\u0E48\u0E44\u0E14\u0E49\u0E01\u0E23\u0E2D\u0E01 \u2014")), React.createElement("td", {
       style: Object.assign({}, td, {
         fontWeight: 700,
+        whiteSpace: "nowrap",
         color: o.status === "approved" ? "#10B981" : o.status === "rejected" || o.status === "cancelled" ? "#94A3B8" : "#D97706"
       })
     }, window.tmOtStatusOf(o.status).th));
@@ -585,6 +589,8 @@ function TmOtPaper({
       color: sum.waiting ? "#92400E" : "#7A8A81"
     })
   }, "\u0E0A\u0E31\u0E48\u0E27\u0E42\u0E21\u0E07 ", sum.waiting ? "— ต้องกดอนุมัติในระบบก่อนจึงจะนับเป็นยอดจ่าย" : ""))))), React.createElement("div", {
+    className: "ec-foot"
+  }, React.createElement("div", {
     style: {
       marginTop: 22,
       display: "grid",
@@ -638,7 +644,7 @@ function TmOtPaper({
       color: "var(--paper-mute2)",
       textAlign: "center"
     }
-  }, "\u0E40\u0E2D\u0E01\u0E2A\u0E32\u0E23\u0E19\u0E35\u0E49\u0E2D\u0E2D\u0E01\u0E08\u0E32\u0E01\u0E23\u0E30\u0E1A\u0E1A\u0E15\u0E34\u0E14\u0E15\u0E32\u0E21\u0E07\u0E32\u0E19\u0E15\u0E34\u0E14\u0E15\u0E31\u0E49\u0E07 flash+solar \xB7 \u0E1E\u0E34\u0E21\u0E1E\u0E4C\u0E40\u0E21\u0E37\u0E48\u0E2D ", window.drDateTH(window.drToday())))), document.body);
+  }, "\u0E40\u0E2D\u0E01\u0E2A\u0E32\u0E23\u0E19\u0E35\u0E49\u0E2D\u0E2D\u0E01\u0E08\u0E32\u0E01\u0E23\u0E30\u0E1A\u0E1A\u0E15\u0E34\u0E14\u0E15\u0E32\u0E21\u0E07\u0E32\u0E19\u0E15\u0E34\u0E14\u0E15\u0E31\u0E49\u0E07 flash+solar \xB7 \u0E1E\u0E34\u0E21\u0E1E\u0E4C\u0E40\u0E21\u0E37\u0E48\u0E2D ", window.drDateTH(window.drToday())))))), document.body);
 }
 function TmPRow({
   k,
