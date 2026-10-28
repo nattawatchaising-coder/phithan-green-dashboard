@@ -226,6 +226,30 @@ function fsMonthYield(s) {
   if (dom < 3 || s.fs_status === "not_found_in_fusionsolar" || fsN(s.month_kwh) == null || !(fsN(s.capacity_kw) > 0)) return null;
   return s.month_kwh / s.capacity_kw / dom;
 }
+/* ── Performance Ratio แบบประมาณ (ผู้ใช้เลือก "ค่าแดดมาตรฐาน" 2026-10-28 — มีเซ็นเซอร์แดดแค่ 2 ไซต์)
+   PR = ผลิตต่อ kWp ÷ แดดที่ควรได้ (kWh/m² ที่ 1 kW/m² = ชั่วโมงแดดเต็ม) · แดดใช้ค่าเฉลี่ยรายวันของแต่ละเดือนภาคกลางของไทย (แนวราบ GHI)
+   ไม่ใช่ PR จริง (ไม่รู้แดดวันนั้น/มุมแผง) — วันฟ้าครึ้มทุกไซต์ต่ำพร้อมกัน ใช้จัดอันดับเทียบกันได้ · แก้ค่าแดดได้ที่ FS_PSH */
+const FS_PSH = [4.9, 5.4, 5.6, 5.8, 5.3, 4.9, 4.7, 4.6, 4.6, 4.7, 4.8, 4.7];
+/* สัดส่วนแดดของวันที่ผ่านไปแล้ว — ถือว่าแดด 06:00–18:00 รูปไซน์ */
+function fsSunFrac(ms) {
+  const b = new Date(ms + 7 * 3600e3), t = (b.getUTCHours() + b.getUTCMinutes() / 60 - 6) / 12;
+  return t <= 0 ? 0 : t >= 1 ? 1 : (1 - Math.cos(Math.PI * t)) / 2;
+}
+/* mode: now (kW ตอนนี้ เทียบแดดที่ควรมีตอนนี้) · day (วันนี้ถึงตอนนี้) · month (เฉลี่ยต่อวันของเดือนนี้) — คืน % หรือ null */
+function fsPR(s, mode, liveKw) {
+  const cap = fsN(s.capacity_kw), now = Date.now();
+  if (!(cap > 0) || s.fs_status === "not_found_in_fusionsolar") return null;
+  const H = FS_PSH[+fsBkk(now).mon.slice(5) - 1];
+  if (mode === "month") { const y = fsMonthYield(s); return y == null ? null : (y / H) * 100; }
+  if (mode === "day") {
+    const f = fsSunFrac(now), kwh = fsN(s.day_kwh);
+    return f < 0.15 || kwh == null ? null : (kwh / cap / (H * f)) * 100;
+  }
+  const b = new Date(now + 7 * 3600e3), t = (b.getUTCHours() + b.getUTCMinutes() / 60 - 6) / 12;
+  if (liveKw == null || t < 0.15 || t > 0.85) return null;
+  const g = ((H * Math.PI) / 24) * Math.sin(Math.PI * t);       // kW/m² ที่ควรมีตอนนี้ (ไซน์ 12 ชม. ที่รวมแล้ว = H)
+  return (liveKw / cap / g) * 100;
+}
 /* ── เรื่องที่ควรดูของไซต์หนึ่ง ── tone: bad (ต้องลงมือ) · warn (ควรตรวจ) */
 function fsSiteIssues(site, devs, ctx) {
   const out = [];
@@ -742,6 +766,6 @@ function FsBatteryBody({ k, em, isMobile, d }) {
 }
 
 Object.assign(window, {
-  fsN, fsFmt, fsEnergy, fsBkk, fsDayTH, fsMonTH, fsMedian, FS_GRID_EF, fsInvState, fsStrings, fsStrUsed, fsProvince, fsEnergyModel, fsSiteIssues, fsMonthYield,
+  fsN, fsFmt, fsEnergy, fsBkk, fsDayTH, fsMonTH, fsMedian, FS_GRID_EF, fsInvState, fsStrings, fsStrUsed, fsProvince, fsPR, FS_PSH, fsEnergyModel, fsSiteIssues, fsMonthYield,
   FsBarChart, FsSplitBar, FsMeter, FsEnergyFlow, FsKv, FsTile, FsChip, FsInverterBody, FsMeterBody, FsBatteryBody,
 });

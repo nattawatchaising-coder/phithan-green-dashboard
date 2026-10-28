@@ -300,35 +300,40 @@ function FsFleetHero({ roll, nowKw, liveN, lastAt, refreshing, isMobile, hCount,
   );
 }
 
-/* ── ผลิตดีที่สุด (ต่อ kWp — เทียบไซต์ต่างขนาดกันได้) ── */
+/* ── ผลิตดีที่สุด — Performance Ratio (ผู้ใช้ขอ 2026-10-28 แทน kWh/kWp) เทียบค่าแดดมาตรฐานรายเดือน (fsPR ใน fusionsolar-viz.jsx) ── */
 function FsRanking({ sites, live, onOpen }) {
   const [m, setM] = React.useState("day");
   const [on, setOn] = React.useState(false);
   React.useEffect(() => { const id = requestAnimationFrame(() => setOn(true)); return () => cancelAnimationFrame(id); }, []);
-  const val = (s) => (m === "day" ? fsYield(s) : m === "month" ? fsMonthYield(s)
-    : live[s.id] != null && +s.capacity_kw > 0 ? (live[s.id] / s.capacity_kw) * 100 : null);
-  const list = sites.filter((s) => +s.health_state === 3).map((s) => ({ s, v: val(s) })).filter((x) => x.v != null && x.v > 0)
+  const list = sites.filter((s) => +s.health_state === 3).map((s) => ({ s, v: fsPR(s, m, live[s.id]) })).filter((x) => x.v != null && x.v > 0)
     .sort((a, b) => b.v - a.v).slice(0, 8);
-  const max = list.length ? list[0].v : 1;
-  const unit = m === "now" ? "%" : m === "day" ? "kWh/kWp" : "kWh/kWp/วัน";
+  const max = Math.max(100, list.length ? list[0].v : 100);
+  const H = FS_PSH[+fsBkk(Date.now()).mon.slice(5) - 1];
+  const sub = "PR · แดดมาตรฐาน " + fsFmt(H, 1) + " kWh/m²/วัน";
+  const prC = (v) => (v >= 75 ? "var(--tint-ok-tx)" : v >= 60 ? "var(--text-1)" : "var(--tint-amber-tx)");
+  const empty = m === "now" ? "แดดยังน้อยเกินไปที่จะเทียบ (ดูได้ช่วง 08–16 น.)" : m === "day" ? "เช้าเกินไป — ดูได้หลัง 08 น." : "ยังไม่มีข้อมูล";
   return (
-    <FsCard title="ผลิตดีที่สุด" sub={"ต่อ kWp · " + unit}
+    <FsCard title="ผลิตดีที่สุด" sub={sub}
       right={window.Segmented ? <window.Segmented flat value={m} onChange={setM} options={[{ value: "now", label: "ตอนนี้" }, { value: "day", label: "วันนี้" }, { value: "month", label: "เดือนนี้" }]} /> : null}>
-      {!list.length ? <div style={{ fontSize: 12.5, color: "var(--text-3)", padding: "8px 0" }}>ยังไม่มีข้อมูล</div> : (
+      {!list.length ? <div style={{ fontSize: 12.5, color: "var(--text-3)", padding: "8px 0" }}>{empty}</div> : (
         <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
           {list.map((x, i) => (
-            <button key={x.s.id} type="button" onClick={() => onOpen(x.s.id)} className="fs-att"
-              style={{ display: "grid", gridTemplateColumns: "20px minmax(0,1.1fr) minmax(40px,1fr) 52px", gap: 8, alignItems: "center", border: "none", background: "transparent",
+            <button key={x.s.id} type="button" onClick={() => onOpen(x.s.id)} className="fs-att" title={"PR " + fsFmt(x.v, 0) + "% · " + fsFmt(x.s.capacity_kw, 1) + " kWp"}
+              style={{ display: "grid", gridTemplateColumns: "20px minmax(0,1.1fr) minmax(40px,1fr) 46px", gap: 8, alignItems: "center", border: "none", background: "transparent",
                 padding: "4px 4px", borderRadius: "var(--r-chip)", cursor: "pointer", fontFamily: "inherit", textAlign: "left" }}>
               <span style={{ width: 20, height: 20, borderRadius: 10, display: "grid", placeItems: "center", fontSize: 10.5, fontWeight: 800,
-                background: i < 3 ? "var(--primary-soft)" : "var(--surface2)", color: i < 3 ? "var(--primary-dark)" : "var(--text-3)" }}>{i + 1}</span>
+                background: i < 3 ? "color-mix(in srgb, var(--fs-sun) 18%, var(--surface))" : "var(--surface2)", color: i < 3 ? "var(--fs-sun)" : "var(--text-3)" }}>{i + 1}</span>
               <span style={{ fontSize: 12, fontWeight: 600, color: "var(--text-1)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{x.s.name || x.s.id}</span>
-              <span style={{ height: 8, borderRadius: 4, background: "var(--surface3)", overflow: "hidden" }}>
-                <span className="fs-tr" style={{ display: "block", height: "100%", borderRadius: 4, background: "var(--primary)", width: (on ? (x.v / max) * 100 : 0) + "%" }} />
+              <span style={{ position: "relative", height: 8, borderRadius: 4, background: "color-mix(in srgb, var(--fs-sun) 9%, var(--surface2))", overflow: "hidden" }}>
+                <span className="fs-tr" style={{ display: "block", height: "100%", borderRadius: 4, background: "linear-gradient(90deg, var(--fs-sun), color-mix(in srgb, var(--fs-sun) 72%, #FFD27A))", width: (on ? Math.min(100, (x.v / max) * 100) : 0) + "%" }} />
+                <span style={{ position: "absolute", top: 0, bottom: 0, left: (80 / max) * 100 + "%", width: 1.5, background: "var(--text-3)", opacity: 0.5 }} title="PR 80%" />
               </span>
-              <span style={{ fontFamily: "var(--mono)", fontSize: 11.5, fontWeight: 700, color: "var(--text-1)", textAlign: "right" }}>{fsFmt(x.v, m === "now" ? 0 : 2)}{m === "now" ? "%" : ""}</span>
+              <span style={{ fontFamily: "var(--mono)", fontSize: 11.5, fontWeight: 700, color: prC(x.v), textAlign: "right" }}>{fsFmt(x.v, 0)}%</span>
             </button>
           ))}
+          <div style={{ fontSize: 11, color: "var(--text-3)", marginTop: 6 }}>
+            เส้นขีด = PR 80% (ระบบดีทั่วไป 75–85%) · ประมาณจากค่าแดดเฉลี่ยรายเดือน ไม่ใช่แดดจริงของวันนั้น — วันฟ้าครึ้มทุกไซต์จะต่ำพร้อมกัน
+          </div>
         </div>
       )}
     </FsCard>

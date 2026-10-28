@@ -285,6 +285,32 @@ function fsMonthYield(s) {
   if (dom < 3 || s.fs_status === "not_found_in_fusionsolar" || fsN(s.month_kwh) == null || !(fsN(s.capacity_kw) > 0)) return null;
   return s.month_kwh / s.capacity_kw / dom;
 }
+const FS_PSH = [4.9, 5.4, 5.6, 5.8, 5.3, 4.9, 4.7, 4.6, 4.6, 4.7, 4.8, 4.7];
+function fsSunFrac(ms) {
+  const b = new Date(ms + 7 * 3600e3),
+    t = (b.getUTCHours() + b.getUTCMinutes() / 60 - 6) / 12;
+  return t <= 0 ? 0 : t >= 1 ? 1 : (1 - Math.cos(Math.PI * t)) / 2;
+}
+function fsPR(s, mode, liveKw) {
+  const cap = fsN(s.capacity_kw),
+    now = Date.now();
+  if (!(cap > 0) || s.fs_status === "not_found_in_fusionsolar") return null;
+  const H = FS_PSH[+fsBkk(now).mon.slice(5) - 1];
+  if (mode === "month") {
+    const y = fsMonthYield(s);
+    return y == null ? null : y / H * 100;
+  }
+  if (mode === "day") {
+    const f = fsSunFrac(now),
+      kwh = fsN(s.day_kwh);
+    return f < 0.15 || kwh == null ? null : kwh / cap / (H * f) * 100;
+  }
+  const b = new Date(now + 7 * 3600e3),
+    t = (b.getUTCHours() + b.getUTCMinutes() / 60 - 6) / 12;
+  if (liveKw == null || t < 0.15 || t > 0.85) return null;
+  const g = H * Math.PI / 24 * Math.sin(Math.PI * t);
+  return liveKw / cap / g * 100;
+}
 function fsSiteIssues(site, devs, ctx) {
   const out = [];
   if (!fsCodeOf(site)) return out;
@@ -1828,6 +1854,8 @@ Object.assign(window, {
   fsStrings,
   fsStrUsed,
   fsProvince,
+  fsPR,
+  FS_PSH,
   fsEnergyModel,
   fsSiteIssues,
   fsMonthYield,

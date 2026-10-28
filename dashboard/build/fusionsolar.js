@@ -769,16 +769,18 @@ function FsRanking({
     const id = requestAnimationFrame(() => setOn(true));
     return () => cancelAnimationFrame(id);
   }, []);
-  const val = s => m === "day" ? fsYield(s) : m === "month" ? fsMonthYield(s) : live[s.id] != null && +s.capacity_kw > 0 ? live[s.id] / s.capacity_kw * 100 : null;
   const list = sites.filter(s => +s.health_state === 3).map(s => ({
     s,
-    v: val(s)
+    v: fsPR(s, m, live[s.id])
   })).filter(x => x.v != null && x.v > 0).sort((a, b) => b.v - a.v).slice(0, 8);
-  const max = list.length ? list[0].v : 1;
-  const unit = m === "now" ? "%" : m === "day" ? "kWh/kWp" : "kWh/kWp/วัน";
+  const max = Math.max(100, list.length ? list[0].v : 100);
+  const H = FS_PSH[+fsBkk(Date.now()).mon.slice(5) - 1];
+  const sub = "PR · แดดมาตรฐาน " + fsFmt(H, 1) + " kWh/m²/วัน";
+  const prC = v => v >= 75 ? "var(--tint-ok-tx)" : v >= 60 ? "var(--text-1)" : "var(--tint-amber-tx)";
+  const empty = m === "now" ? "แดดยังน้อยเกินไปที่จะเทียบ (ดูได้ช่วง 08–16 น.)" : m === "day" ? "เช้าเกินไป — ดูได้หลัง 08 น." : "ยังไม่มีข้อมูล";
   return React.createElement(FsCard, {
     title: "\u0E1C\u0E25\u0E34\u0E15\u0E14\u0E35\u0E17\u0E35\u0E48\u0E2A\u0E38\u0E14",
-    sub: "ต่อ kWp · " + unit,
+    sub: sub,
     right: window.Segmented ? React.createElement(window.Segmented, {
       flat: true,
       value: m,
@@ -800,7 +802,7 @@ function FsRanking({
       color: "var(--text-3)",
       padding: "8px 0"
     }
-  }, "\u0E22\u0E31\u0E07\u0E44\u0E21\u0E48\u0E21\u0E35\u0E02\u0E49\u0E2D\u0E21\u0E39\u0E25") : React.createElement("div", {
+  }, empty) : React.createElement("div", {
     style: {
       display: "flex",
       flexDirection: "column",
@@ -811,9 +813,10 @@ function FsRanking({
     type: "button",
     onClick: () => onOpen(x.s.id),
     className: "fs-att",
+    title: "PR " + fsFmt(x.v, 0) + "% · " + fsFmt(x.s.capacity_kw, 1) + " kWp",
     style: {
       display: "grid",
-      gridTemplateColumns: "20px minmax(0,1.1fr) minmax(40px,1fr) 52px",
+      gridTemplateColumns: "20px minmax(0,1.1fr) minmax(40px,1fr) 46px",
       gap: 8,
       alignItems: "center",
       border: "none",
@@ -833,8 +836,8 @@ function FsRanking({
       placeItems: "center",
       fontSize: 10.5,
       fontWeight: 800,
-      background: i < 3 ? "var(--primary-soft)" : "var(--surface2)",
-      color: i < 3 ? "var(--primary-dark)" : "var(--text-3)"
+      background: i < 3 ? "color-mix(in srgb, var(--fs-sun) 18%, var(--surface))" : "var(--surface2)",
+      color: i < 3 ? "var(--fs-sun)" : "var(--text-3)"
     }
   }, i + 1), React.createElement("span", {
     style: {
@@ -847,9 +850,10 @@ function FsRanking({
     }
   }, x.s.name || x.s.id), React.createElement("span", {
     style: {
+      position: "relative",
       height: 8,
       borderRadius: 4,
-      background: "var(--surface3)",
+      background: "color-mix(in srgb, var(--fs-sun) 9%, var(--surface2))",
       overflow: "hidden"
     }
   }, React.createElement("span", {
@@ -858,18 +862,35 @@ function FsRanking({
       display: "block",
       height: "100%",
       borderRadius: 4,
-      background: "var(--primary)",
-      width: (on ? x.v / max * 100 : 0) + "%"
+      background: "linear-gradient(90deg, var(--fs-sun), color-mix(in srgb, var(--fs-sun) 72%, #FFD27A))",
+      width: (on ? Math.min(100, x.v / max * 100) : 0) + "%"
     }
+  }), React.createElement("span", {
+    style: {
+      position: "absolute",
+      top: 0,
+      bottom: 0,
+      left: 80 / max * 100 + "%",
+      width: 1.5,
+      background: "var(--text-3)",
+      opacity: 0.5
+    },
+    title: "PR 80%"
   })), React.createElement("span", {
     style: {
       fontFamily: "var(--mono)",
       fontSize: 11.5,
       fontWeight: 700,
-      color: "var(--text-1)",
+      color: prC(x.v),
       textAlign: "right"
     }
-  }, fsFmt(x.v, m === "now" ? 0 : 2), m === "now" ? "%" : "")))));
+  }, fsFmt(x.v, 0), "%"))), React.createElement("div", {
+    style: {
+      fontSize: 11,
+      color: "var(--text-3)",
+      marginTop: 6
+    }
+  }, "\u0E40\u0E2A\u0E49\u0E19\u0E02\u0E35\u0E14 = PR 80% (\u0E23\u0E30\u0E1A\u0E1A\u0E14\u0E35\u0E17\u0E31\u0E48\u0E27\u0E44\u0E1B 75\u201385%) \xB7 \u0E1B\u0E23\u0E30\u0E21\u0E32\u0E13\u0E08\u0E32\u0E01\u0E04\u0E48\u0E32\u0E41\u0E14\u0E14\u0E40\u0E09\u0E25\u0E35\u0E48\u0E22\u0E23\u0E32\u0E22\u0E40\u0E14\u0E37\u0E2D\u0E19 \u0E44\u0E21\u0E48\u0E43\u0E0A\u0E48\u0E41\u0E14\u0E14\u0E08\u0E23\u0E34\u0E07\u0E02\u0E2D\u0E07\u0E27\u0E31\u0E19\u0E19\u0E31\u0E49\u0E19 \u2014 \u0E27\u0E31\u0E19\u0E1F\u0E49\u0E32\u0E04\u0E23\u0E36\u0E49\u0E21\u0E17\u0E38\u0E01\u0E44\u0E0B\u0E15\u0E4C\u0E08\u0E30\u0E15\u0E48\u0E33\u0E1E\u0E23\u0E49\u0E2D\u0E21\u0E01\u0E31\u0E19")));
 }
 const fsGeoOk = s => fsN(s.lat) != null && fsN(s.lng) != null && !(Math.abs(s.lat) <= 1 && Math.abs(s.lng) <= 1);
 const FS_PIN_COLOR = {
