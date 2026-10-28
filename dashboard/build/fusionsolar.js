@@ -2933,9 +2933,7 @@ function FsDeviceCard({
   let chip = null;
   if (d.fs_status === "not_found_in_fusionsolar") chip = React.createElement(FsPill, {
     k: "lost"
-  });else if (t === 39 && k.battery_status != null) chip = React.createElement(FsChip, {
-    tone: +k.battery_status === 3 ? "bad" : +k.battery_status === 2 ? "ok" : "idle"
-  }, fsKpiValue("battery_status", k.battery_status));else if (k.run_state != null) chip = React.createElement(FsChip, {
+  });else if (t === 39) chip = null;else if (k.run_state != null) chip = React.createElement(FsChip, {
     tone: +k.run_state === 1 ? "ok" : "bad"
   }, fsKpiValue("run_state", k.run_state));
   return React.createElement(FsDevBox, {
@@ -2951,6 +2949,7 @@ function FsDeviceCard({
     em: em,
     isMobile: isMobile
   }) : t === 39 ? React.createElement(FsBatteryBody, {
+    d: d,
     k: k,
     em: em,
     isMobile: isMobile

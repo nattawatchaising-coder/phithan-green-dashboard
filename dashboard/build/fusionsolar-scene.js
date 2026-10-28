@@ -352,6 +352,7 @@ function FsKvTile({
     title: key2,
     style: {
       background: "var(--surface2)",
+      boxShadow: "var(--shadow-inset)",
       borderRadius: "var(--r-tile)",
       padding: "7px 10px",
       minWidth: 0
@@ -573,15 +574,14 @@ function FsStringGrid({
       width: 52,
       height: 7,
       borderRadius: 4,
-      background: "linear-gradient(90deg, color-mix(in srgb, var(--fs-sun) 14%, var(--surface2)), var(--fs-sun))"
+      background: "linear-gradient(90deg, #8C9799, #D9780A)"
     }
   }), "\u0E21\u0E32\u0E01", React.createElement("span", {
     style: {
       width: 9,
       height: 9,
       borderRadius: 3,
-      background: "var(--tint-red-bg)",
-      boxShadow: "inset 0 0 0 1.5px var(--tint-red-tx)",
+      background: "#C9372C",
       marginLeft: 6
     }
   }), "\u0E15\u0E48\u0E33\u0E1C\u0E34\u0E14\u0E1B\u0E01\u0E15\u0E34")), React.createElement("div", {
@@ -601,9 +601,9 @@ function FsStringGrid({
         borderRadius: "var(--r-tile)",
         padding: "7px 8px",
         minWidth: 0,
-        background: s.weak ? "var(--tint-red-bg)" : "color-mix(in srgb, var(--fs-sun) " + Math.round(12 + f * 78) + "%, var(--surface2))",
-        boxShadow: s.weak ? "inset 0 0 0 1.5px var(--tint-red-tx)" : "none",
-        color: s.weak ? "var(--tint-red-tx)" : "var(--text-1)"
+        background: s.weak ? "#C9372C" : "color-mix(in srgb, #D9780A " + Math.round(f * 100) + "%, #8C9799)",
+        boxShadow: f > 0.6 && !s.weak ? "0 3px 10px color-mix(in srgb, #D9780A 35%, transparent)" : "none",
+        color: "#fff"
       }
     }, React.createElement("div", {
       style: {

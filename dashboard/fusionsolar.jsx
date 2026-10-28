@@ -1196,13 +1196,13 @@ function FsDeviceCard({ d, em, isMobile }) {
   let chip = null;
   if (d.fs_status === "not_found_in_fusionsolar") chip = <FsPill k="lost" />;
   /* อินเวอร์เตอร์: สถานะอยู่บนภาพเครื่องแล้ว (FsInvStage) ไม่ซ้ำที่หัวการ์ด */
-  else if (t === 39 && k.battery_status != null) chip = <FsChip tone={+k.battery_status === 3 ? "bad" : +k.battery_status === 2 ? "ok" : "idle"}>{fsKpiValue("battery_status", k.battery_status)}</FsChip>;
+  else if (t === 39) chip = null; /* แบต: สถานะอยู่ที่ไฟ LED ในการ์ดแล้ว */
   else if (k.run_state != null) chip = <FsChip tone={+k.run_state === 1 ? "ok" : "bad"}>{fsKpiValue("run_state", k.run_state)}</FsChip>;
   return (
     <FsDevBox d={d} chip={chip}>
       {inv ? <FsInverterBody d={d} k={k} isMobile={isMobile} />
         : t === 47 || t === 17 ? <FsMeterBody d={d} k={k} em={em} isMobile={isMobile} />
-        : t === 39 ? <FsBatteryBody k={k} em={em} isMobile={isMobile} />
+        : t === 39 ? <FsBatteryBody d={d} k={k} em={em} isMobile={isMobile} />
         : window.FsKvGroups ? <window.FsKvGroups k={k} /> : <FsKv k={k} />}
     </FsDevBox>
   );

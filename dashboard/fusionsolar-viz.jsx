@@ -465,7 +465,7 @@ function FsRawToggle({ k, meter }) {
 }
 function FsTile({ label, value, unit, sub, tone }) {
   return (
-    <div style={{ background: "var(--surface2)", borderRadius: "var(--r-tile)", padding: "9px 12px", minWidth: 0 }}>
+    <div style={{ background: "var(--surface2)", boxShadow: "var(--shadow-inset)", borderRadius: "var(--r-tile)", padding: "9px 12px", minWidth: 0 }}>
       <div style={{ fontSize: 10.5, fontWeight: 700, color: "var(--text-3)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{label}</div>
       <div style={{ fontSize: 14.5, fontWeight: 700, color: tone || "var(--text-1)", fontVariantNumeric: "tabular-nums", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
         {value}{unit && value !== "–" && <span style={{ fontSize: 11, fontWeight: 600, color: "var(--text-3)", marginLeft: 4 }}>{unit}</span>}
@@ -585,44 +585,157 @@ function FsInverterBody({ d, k, isMobile }) {
     </div>
   );
 }
+/* ชิ้นส่วนร่วมของการ์ดอุปกรณ์โทนส้ม (แบบเดียวกับ FsInverterBody) — ตัวเลขหลักมีไอคอนวงกลม · ค่ารองในหลุม inset */
+function FsDevStats({ items, isMobile }) {
+  return (
+    <div className="kpi-grid" style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr 1fr" : "repeat(" + items.length + ", minmax(0, 1fr))", gap: isMobile ? 10 : 0 }}>
+      {items.map((x, i) => (
+        <div key={x.l} style={{ display: "flex", gap: 9, alignItems: "center", minWidth: 0,
+          padding: isMobile || !i ? 0 : "0 0 0 14px", boxShadow: !isMobile && i ? "inset 1px 0 0 var(--divider)" : "none" }}>
+          <span style={{ width: 30, height: 30, borderRadius: 999, display: "grid", placeItems: "center", flexShrink: 0,
+            background: "color-mix(in srgb, " + (x.c || "var(--fs-sun)") + " 15%, var(--surface))" }}><Icon name={x.icon} size={15} color={x.c || "var(--fs-sun)"} /></span>
+          <div style={{ minWidth: 0 }}>
+            <div style={{ fontSize: 11.5, fontWeight: 600, color: "var(--text-3)", whiteSpace: "nowrap" }}>{x.l}</div>
+            <div style={{ fontFamily: "var(--display)", fontSize: 18, fontWeight: 700, color: x.tone || "var(--text-1)", whiteSpace: "nowrap", fontVariantNumeric: "tabular-nums" }}>
+              {x.v}{x.u && x.v !== "–" && <span style={{ fontSize: 11.5, fontWeight: 600, color: "var(--text-3)", marginLeft: 3 }}>{x.u}</span>}
+            </div>
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+function FsDevInset({ items, isMobile }) {
+  const list = items.filter(Boolean);
+  return (
+    <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr 1fr" : "repeat(" + Math.min(5, list.length) + ", minmax(0, 1fr))", gap: 8,
+      background: "var(--surface2)", boxShadow: "var(--shadow-inset)", borderRadius: "var(--r-tile)", padding: "10px 12px" }}>
+      {list.map((x) => (
+        <div key={x[0]} style={{ minWidth: 0 }}>
+          <div style={{ fontSize: 11, color: "var(--text-3)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{x[0]}</div>
+          <div style={{ fontSize: 13.5, fontWeight: 700, color: x[3] || "var(--text-1)", whiteSpace: "nowrap", fontVariantNumeric: "tabular-nums" }}>
+            {x[1]}{x[2] && x[1] !== "–" && <span style={{ fontSize: 11, fontWeight: 600, color: "var(--text-3)", marginLeft: 3 }}>{x[2]}</span>}
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+/* ไฟสถานะ (จุด + ข้อความ) */
+function FsLed({ color, children }) {
+  return (
+    <span style={{ display: "inline-flex", alignItems: "center", gap: 6, fontSize: 11.5, fontWeight: 700, color: "var(--text-2)" }}>
+      <span style={{ width: 8, height: 8, borderRadius: 4, background: color, boxShadow: "0 0 0 3px color-mix(in srgb, " + color + " 22%, transparent)" }} />{children}
+    </span>
+  );
+}
+
+/* มิเตอร์ — ภาพมิเตอร์วาดเอง (ไม่มีภาพสินค้า) · ทิศไฟตอนนี้ตัวใหญ่ + ลูกศร · ซื้อ/ขายสะสม · ค่าไฟฟ้าในหลุม */
 function FsMeterBody({ d, k, em, isMobile }) {
   const g = em && em.meter === d ? em.gridKw : null;
   /* มิเตอร์ 3 เฟส (grid meter 17) ไม่มี meter_u/meter_i ส่งรายเฟสแทน */
   const ph3u = fsN(k.meter_u) == null && fsN(k.a_u) != null, ph3i = fsN(k.meter_i) == null && fsN(k.a_i) != null;
+  const kw = g != null ? Math.abs(g) : fsKw(k.active_power, null, true);
+  const dir = g == null ? "none" : g > 0.02 ? "exp" : g < -0.02 ? "imp" : "zero";
+  const head = { exp: "กำลังขายเข้ากริด", imp: "กำลังซื้อจากกริด", zero: "ไม่ได้ซื้อ/ขายไฟ", none: "กำลังที่จุดมิเตอร์" }[dir];
+  const dirC = dir === "exp" ? "var(--fs-sun)" : dir === "imp" ? "var(--text-2)" : "var(--text-3)";
+  const st = k.meter_status != null ? k.meter_status : k.run_state;
+  const ok = st == null ? null : +st === 1;
+  const imp = em && em.importTotal != null ? fsEnergy(em.importTotal) : ["–", ""];
+  const exp = em && em.exportTotal != null ? fsEnergy(em.exportTotal) : ["–", ""];
+  const size = isMobile ? 120 : 132;
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-      <div className="kpi-grid" style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr 1fr" : "repeat(4, 1fr)", gap: 8 }}>
-        <FsTile label={g == null ? "กำลังที่จุดมิเตอร์" : g > 0.02 ? "กำลังขายเข้ากริด" : g < -0.02 ? "กำลังซื้อจากกริด" : "กริด"} value={fsFmt(g != null ? Math.abs(g) : fsKw(k.active_power, null, true), 2)} unit="kW"
-          tone={g > 0.02 ? "var(--fs-exp)" : g < -0.02 ? "var(--fs-imp)" : null} />
-        <FsTile label="ซื้อจากกริดสะสม" value={em && em.importTotal != null ? fsEnergy(em.importTotal)[0] : "–"} unit={em && em.importTotal != null ? fsEnergy(em.importTotal)[1] : ""} />
-        <FsTile label="ขายเข้ากริดสะสม" value={em && em.exportTotal != null ? fsEnergy(em.exportTotal)[0] : "–"} unit={em && em.exportTotal != null ? fsEnergy(em.exportTotal)[1] : ""} />
-        {(k.meter_status != null || k.run_state != null) && <FsTile label="สถานะ" value={fsKpiValue("meter_status", k.meter_status != null ? k.meter_status : k.run_state)} />}
-        <FsTile label={ph3u ? "แรงดัน A/B/C" : "แรงดัน"} value={ph3u ? [k.a_u, k.b_u, k.c_u].map((v) => fsFmt(v, 0)).join(" / ") : fsFmt(k.meter_u, 1)} unit="V" />
-        <FsTile label={ph3i ? "กระแส A/B/C" : "กระแส"} value={ph3i ? [k.a_i, k.b_i, k.c_i].map((v) => fsFmt(fsN(v) != null ? Math.abs(v) : null, 0)).join(" / ") : fsFmt(fsN(k.meter_i) != null ? Math.abs(k.meter_i) : null, 2)} unit="A" />
-        {fsN(k.grid_frequency) != null && <FsTile label="ความถี่" value={fsFmt(k.grid_frequency, 2)} unit="Hz" />}
-        <FsTile label="ตัวประกอบกำลัง" value={fsFmt(k.power_factor, 3)} />
+    <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+      <div style={{ display: "flex", gap: isMobile ? 12 : 18, alignItems: "center", flexDirection: isMobile ? "column" : "row" }}>
+        <svg viewBox="0 0 100 100" width={size} height={size} style={{ flexShrink: 0 }} aria-hidden="true">
+          <ellipse cx="50" cy="92" rx="30" ry="4" style={{ fill: "var(--text-3)", opacity: 0.18 }} />
+          <rect x="24" y="8" width="52" height="80" rx="8" style={{ fill: "var(--surface)", stroke: "var(--border-strong)", strokeWidth: 1.5 }} />
+          <rect x="31" y="17" width="38" height="20" rx="3" style={{ fill: "#1E2A2E" }} />
+          <text x="50" y="31.5" textAnchor="middle" style={{ fill: "#9BE7B5", fontSize: 9.5, fontFamily: "var(--mono)", fontWeight: 700 }}>{kw == null ? "--" : fsFmt(kw, 1)}</text>
+          <circle cx="38" cy="46" r="2.4" style={{ fill: ok === false ? "#E5484D" : "#2FB36B" }} />
+          <circle cx="46" cy="46" r="2.4" style={{ fill: dir === "imp" ? "#F5A524" : "var(--border-strong)" }} />
+          <circle cx="54" cy="46" r="2.4" style={{ fill: dir === "exp" ? "var(--fs-sun)" : "var(--border-strong)" }} />
+          <rect x="31" y="56" width="38" height="24" rx="3" style={{ fill: "var(--surface2)" }} />
+          <rect x="36" y="88" width="5" height="6" rx="1" style={{ fill: "var(--text-3)" }} /><rect x="47.5" y="88" width="5" height="6" rx="1" style={{ fill: "var(--text-3)" }} /><rect x="59" y="88" width="5" height="6" rx="1" style={{ fill: "var(--text-3)" }} />
+        </svg>
+        <div style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column", gap: 12, width: isMobile ? "100%" : "auto" }}>
+          <div>
+            <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
+              <span style={{ fontSize: 11.5, fontWeight: 600, color: "var(--text-3)" }}>{head}</span>
+              {ok != null && <span style={{ marginLeft: "auto" }}><FsLed color={ok ? "#2FB36B" : "#E5484D"}>{fsKpiValue("meter_status", st)}</FsLed></span>}
+            </div>
+            <div style={{ display: "flex", alignItems: "baseline", gap: 8 }}>
+              <span style={{ fontFamily: "var(--display)", fontSize: 32, fontWeight: 700, lineHeight: 1.1, color: dirC, fontVariantNumeric: "tabular-nums" }}>{fsFmt(kw, 2)}</span>
+              <span style={{ fontSize: 13, fontWeight: 600, color: "var(--text-3)" }}>kW</span>
+              {(dir === "exp" || dir === "imp") && <span style={{ fontSize: 12, color: "var(--text-2)" }}>{dir === "exp" ? "บ้าน → กริด" : "กริด → บ้าน"}</span>}
+            </div>
+          </div>
+          <FsDevStats isMobile={isMobile} items={[
+            { icon: "home", l: "ซื้อจากกริดสะสม", v: imp[0], u: imp[1], c: "var(--text-2)" },
+            { icon: "sun", l: "ขายเข้ากริดสะสม", v: exp[0], u: exp[1] },
+          ]} />
+        </div>
       </div>
+      <FsDevInset isMobile={isMobile} items={[
+        [ph3u ? "แรงดัน A/B/C" : "แรงดัน", ph3u ? [k.a_u, k.b_u, k.c_u].map((v) => fsFmt(v, 0)).join(" / ") : fsFmt(k.meter_u, 1), "V"],
+        [ph3i ? "กระแส A/B/C" : "กระแส", ph3i ? [k.a_i, k.b_i, k.c_i].map((v) => fsFmt(fsN(v) != null ? Math.abs(v) : null, 0)).join(" / ") : fsFmt(fsN(k.meter_i) != null ? Math.abs(k.meter_i) : null, 2), "A"],
+        fsN(k.grid_frequency) != null ? ["ความถี่", fsFmt(k.grid_frequency, 2), "Hz"] : null,
+        ["ตัวประกอบกำลัง", fsFmt(k.power_factor, 3), ""],
+      ]} />
       <FsRawToggle k={k} meter />
     </div>
   );
 }
-function FsBatteryBody({ k, em, isMobile }) {
+
+/* แบตเตอรี่ — Huawei (LUNA) ใช้ภาพสินค้า assets/pkg-batt-huawei-1.png (พื้นโปร่ง) · ยี่ห้ออื่นวาดเอง · SOC ตัวใหญ่ + รางส้ม */
+function FsBatteryBody({ k, em, isMobile, d }) {
   const soc = fsN(k.battery_soc), pw = em && em.battKw != null ? em.battKw : fsKw(k.ch_discharge_power, null, true);
+  const low = soc != null && soc < 15;
+  const bs = +k.battery_status;
+  const led = bs === 3 ? "#E5484D" : bs === 2 ? "#2FB36B" : "#9AA5A7";
+  const huawei = /LUNA|^ESS|huawei/i.test((d && d.model) || "") || !(d && d.model);
+  const act = pw == null ? "–" : pw > 0.02 ? "กำลังชาร์จ" : pw < -0.02 ? "กำลังจ่ายไฟ" : "พัก (ไม่ชาร์จ/จ่าย)";
+  const size = isMobile ? 120 : 132;
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-      <div>
-        <div style={{ display: "flex", alignItems: "baseline", gap: 8, marginBottom: 5 }}>
-          <span style={{ fontFamily: "var(--display)", fontSize: 22, fontWeight: 700 }}>{soc == null ? "–" : soc + "%"}</span>
-          <span style={{ fontSize: 12, color: "var(--text-3)", fontWeight: 600 }}>ประจุคงเหลือ · {pw == null ? "" : pw > 0.02 ? "กำลังชาร์จ " + fsFmt(pw, 2) + " kW" : pw < -0.02 ? "กำลังจ่าย " + fsFmt(-pw, 2) + " kW" : "ไม่ได้ชาร์จ/จ่าย"}</span>
+    <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+      <div style={{ display: "flex", gap: isMobile ? 12 : 18, alignItems: "center", flexDirection: isMobile ? "column" : "row" }}>
+        <div style={{ position: "relative", width: size, height: size, flexShrink: 0 }}>
+          {huawei
+            ? <img src="dashboard/assets/pkg-batt-huawei-1.png" alt="" loading="lazy" style={{ position: "absolute", inset: "8%", width: "84%", height: "84%", objectFit: "contain" }} />
+            : <svg viewBox="0 0 100 100" style={{ position: "absolute", inset: 0 }} aria-hidden="true">
+                <rect x="20" y="16" width="60" height="70" rx="8" style={{ fill: "var(--surface)", stroke: "var(--border-strong)", strokeWidth: 1.5 }} />
+                <rect x="38" y="24" width="24" height="7" rx="3.5" style={{ fill: "var(--surface2)" }} />
+              </svg>}
         </div>
-        <FsMeter value={soc} max={100} h={9} tone={soc != null && soc < 15 ? "var(--tint-amber-tx)" : "var(--primary)"} />
+        <div style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column", gap: 12, width: isMobile ? "100%" : "auto" }}>
+          <div>
+            <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
+              <span style={{ fontSize: 11.5, fontWeight: 600, color: "var(--text-3)" }}>ประจุคงเหลือ</span>
+              {k.battery_status != null && <span style={{ marginLeft: "auto" }}><FsLed color={led}>{fsKpiValue("battery_status", k.battery_status)}</FsLed></span>}
+            </div>
+            <div style={{ display: "flex", alignItems: "baseline", gap: 8, flexWrap: "wrap" }}>
+              <span style={{ fontFamily: "var(--display)", fontSize: 32, fontWeight: 700, lineHeight: 1.1, color: low ? "var(--tint-red-tx)" : "var(--text-1)", fontVariantNumeric: "tabular-nums" }}>{soc == null ? "–" : fsFmt(soc, 0)}</span>
+              <span style={{ fontSize: 13, fontWeight: 600, color: "var(--text-3)" }}>%</span>
+              <span style={{ marginLeft: "auto", fontSize: 12, color: "var(--text-2)" }}>{act}{pw != null && Math.abs(pw) > 0.02 && <b style={{ color: "var(--fs-sun)", marginLeft: 5 }}>{fsFmt(Math.abs(pw), 2)} kW</b>}</span>
+            </div>
+            <div style={{ height: 16, padding: 3, marginTop: 7, borderRadius: 999, background: "color-mix(in srgb, var(--fs-sun) 9%, var(--surface2))", boxShadow: "var(--shadow-inset)" }}>
+              <div className="fs-wide" style={{ width: Math.max(0, Math.min(100, soc || 0)) + "%", height: "100%", borderRadius: 999,
+                background: low ? "var(--tint-red-tx)" : "linear-gradient(90deg, var(--fs-sun), color-mix(in srgb, var(--fs-sun) 72%, #FFD27A))",
+                boxShadow: low ? "none" : "0 3px 10px color-mix(in srgb, var(--fs-sun) 45%, transparent)" }} />
+            </div>
+          </div>
+          <FsDevStats isMobile={isMobile} items={[
+            { icon: "trend", l: "ชาร์จสะสม", v: fsFmt(k.charge_cap, 0), u: "kWh" },
+            { icon: "bolt", l: "จ่ายไฟสะสม", v: fsFmt(k.discharge_cap, 0), u: "kWh" },
+            { icon: "sparkle", l: "สุขภาพแบต (SOH)", v: +k.battery_soh > 0 ? fsFmt(k.battery_soh, 0) : "–", u: "%" },
+          ]} />
+        </div>
       </div>
-      <div className="kpi-grid" style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr 1fr" : "repeat(4, 1fr)", gap: 8 }}>
-        <FsTile label="สถานะ" value={fsKpiValue("battery_status", k.battery_status)} tone={+k.battery_status === 3 ? "var(--tint-red-tx)" : null} />
-        <FsTile label="สุขภาพแบต (SOH)" value={+k.battery_soh > 0 ? fsFmt(k.battery_soh, 0) : "–"} unit="%" />
-        <FsTile label="ชาร์จ / คายสะสม" value={fsFmt(k.charge_cap, 0) + " / " + fsFmt(k.discharge_cap, 0)} unit="kWh" />
-        <FsTile label="โหมด" value={fsKpiValue("ch_discharge_model", k.ch_discharge_model)} />
-      </div>
+      <FsDevInset isMobile={isMobile} items={[
+        ["โหมดการทำงาน", fsKpiValue("ch_discharge_model", k.ch_discharge_model), ""],
+        fsN(k.max_charge_power) != null ? ["ชาร์จได้สูงสุด", fsFmt(fsKw(k.max_charge_power, null, true), 2), "kW"] : null,
+        fsN(k.max_discharge_power) != null ? ["จ่ายได้สูงสุด", fsFmt(fsKw(k.max_discharge_power, null, true), 2), "kW"] : null,
+      ]} />
       <FsRawToggle k={k} />
     </div>
   );

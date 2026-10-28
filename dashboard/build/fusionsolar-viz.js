@@ -895,6 +895,7 @@ function FsTile({
   return React.createElement("div", {
     style: {
       background: "var(--surface2)",
+      boxShadow: "var(--shadow-inset)",
       borderRadius: "var(--r-tile)",
       padding: "9px 12px",
       minWidth: 0
@@ -1290,6 +1291,138 @@ function FsInverterBody({
     k: k
   }));
 }
+function FsDevStats({
+  items,
+  isMobile
+}) {
+  return React.createElement("div", {
+    className: "kpi-grid",
+    style: {
+      display: "grid",
+      gridTemplateColumns: isMobile ? "1fr 1fr" : "repeat(" + items.length + ", minmax(0, 1fr))",
+      gap: isMobile ? 10 : 0
+    }
+  }, items.map((x, i) => React.createElement("div", {
+    key: x.l,
+    style: {
+      display: "flex",
+      gap: 9,
+      alignItems: "center",
+      minWidth: 0,
+      padding: isMobile || !i ? 0 : "0 0 0 14px",
+      boxShadow: !isMobile && i ? "inset 1px 0 0 var(--divider)" : "none"
+    }
+  }, React.createElement("span", {
+    style: {
+      width: 30,
+      height: 30,
+      borderRadius: 999,
+      display: "grid",
+      placeItems: "center",
+      flexShrink: 0,
+      background: "color-mix(in srgb, " + (x.c || "var(--fs-sun)") + " 15%, var(--surface))"
+    }
+  }, React.createElement(Icon, {
+    name: x.icon,
+    size: 15,
+    color: x.c || "var(--fs-sun)"
+  })), React.createElement("div", {
+    style: {
+      minWidth: 0
+    }
+  }, React.createElement("div", {
+    style: {
+      fontSize: 11.5,
+      fontWeight: 600,
+      color: "var(--text-3)",
+      whiteSpace: "nowrap"
+    }
+  }, x.l), React.createElement("div", {
+    style: {
+      fontFamily: "var(--display)",
+      fontSize: 18,
+      fontWeight: 700,
+      color: x.tone || "var(--text-1)",
+      whiteSpace: "nowrap",
+      fontVariantNumeric: "tabular-nums"
+    }
+  }, x.v, x.u && x.v !== "–" && React.createElement("span", {
+    style: {
+      fontSize: 11.5,
+      fontWeight: 600,
+      color: "var(--text-3)",
+      marginLeft: 3
+    }
+  }, x.u))))));
+}
+function FsDevInset({
+  items,
+  isMobile
+}) {
+  const list = items.filter(Boolean);
+  return React.createElement("div", {
+    style: {
+      display: "grid",
+      gridTemplateColumns: isMobile ? "1fr 1fr" : "repeat(" + Math.min(5, list.length) + ", minmax(0, 1fr))",
+      gap: 8,
+      background: "var(--surface2)",
+      boxShadow: "var(--shadow-inset)",
+      borderRadius: "var(--r-tile)",
+      padding: "10px 12px"
+    }
+  }, list.map(x => React.createElement("div", {
+    key: x[0],
+    style: {
+      minWidth: 0
+    }
+  }, React.createElement("div", {
+    style: {
+      fontSize: 11,
+      color: "var(--text-3)",
+      whiteSpace: "nowrap",
+      overflow: "hidden",
+      textOverflow: "ellipsis"
+    }
+  }, x[0]), React.createElement("div", {
+    style: {
+      fontSize: 13.5,
+      fontWeight: 700,
+      color: x[3] || "var(--text-1)",
+      whiteSpace: "nowrap",
+      fontVariantNumeric: "tabular-nums"
+    }
+  }, x[1], x[2] && x[1] !== "–" && React.createElement("span", {
+    style: {
+      fontSize: 11,
+      fontWeight: 600,
+      color: "var(--text-3)",
+      marginLeft: 3
+    }
+  }, x[2])))));
+}
+function FsLed({
+  color,
+  children
+}) {
+  return React.createElement("span", {
+    style: {
+      display: "inline-flex",
+      alignItems: "center",
+      gap: 6,
+      fontSize: 11.5,
+      fontWeight: 700,
+      color: "var(--text-2)"
+    }
+  }, React.createElement("span", {
+    style: {
+      width: 8,
+      height: 8,
+      borderRadius: 4,
+      background: color,
+      boxShadow: "0 0 0 3px color-mix(in srgb, " + color + " 22%, transparent)"
+    }
+  }), children);
+}
 function FsMeterBody({
   d,
   k,
@@ -1299,51 +1432,209 @@ function FsMeterBody({
   const g = em && em.meter === d ? em.gridKw : null;
   const ph3u = fsN(k.meter_u) == null && fsN(k.a_u) != null,
     ph3i = fsN(k.meter_i) == null && fsN(k.a_i) != null;
+  const kw = g != null ? Math.abs(g) : fsKw(k.active_power, null, true);
+  const dir = g == null ? "none" : g > 0.02 ? "exp" : g < -0.02 ? "imp" : "zero";
+  const head = {
+    exp: "กำลังขายเข้ากริด",
+    imp: "กำลังซื้อจากกริด",
+    zero: "ไม่ได้ซื้อ/ขายไฟ",
+    none: "กำลังที่จุดมิเตอร์"
+  }[dir];
+  const dirC = dir === "exp" ? "var(--fs-sun)" : dir === "imp" ? "var(--text-2)" : "var(--text-3)";
+  const st = k.meter_status != null ? k.meter_status : k.run_state;
+  const ok = st == null ? null : +st === 1;
+  const imp = em && em.importTotal != null ? fsEnergy(em.importTotal) : ["–", ""];
+  const exp = em && em.exportTotal != null ? fsEnergy(em.exportTotal) : ["–", ""];
+  const size = isMobile ? 120 : 132;
   return React.createElement("div", {
     style: {
       display: "flex",
       flexDirection: "column",
-      gap: 10
+      gap: 12
     }
   }, React.createElement("div", {
-    className: "kpi-grid",
     style: {
-      display: "grid",
-      gridTemplateColumns: isMobile ? "1fr 1fr" : "repeat(4, 1fr)",
+      display: "flex",
+      gap: isMobile ? 12 : 18,
+      alignItems: "center",
+      flexDirection: isMobile ? "column" : "row"
+    }
+  }, React.createElement("svg", {
+    viewBox: "0 0 100 100",
+    width: size,
+    height: size,
+    style: {
+      flexShrink: 0
+    },
+    "aria-hidden": "true"
+  }, React.createElement("ellipse", {
+    cx: "50",
+    cy: "92",
+    rx: "30",
+    ry: "4",
+    style: {
+      fill: "var(--text-3)",
+      opacity: 0.18
+    }
+  }), React.createElement("rect", {
+    x: "24",
+    y: "8",
+    width: "52",
+    height: "80",
+    rx: "8",
+    style: {
+      fill: "var(--surface)",
+      stroke: "var(--border-strong)",
+      strokeWidth: 1.5
+    }
+  }), React.createElement("rect", {
+    x: "31",
+    y: "17",
+    width: "38",
+    height: "20",
+    rx: "3",
+    style: {
+      fill: "#1E2A2E"
+    }
+  }), React.createElement("text", {
+    x: "50",
+    y: "31.5",
+    textAnchor: "middle",
+    style: {
+      fill: "#9BE7B5",
+      fontSize: 9.5,
+      fontFamily: "var(--mono)",
+      fontWeight: 700
+    }
+  }, kw == null ? "--" : fsFmt(kw, 1)), React.createElement("circle", {
+    cx: "38",
+    cy: "46",
+    r: "2.4",
+    style: {
+      fill: ok === false ? "#E5484D" : "#2FB36B"
+    }
+  }), React.createElement("circle", {
+    cx: "46",
+    cy: "46",
+    r: "2.4",
+    style: {
+      fill: dir === "imp" ? "#F5A524" : "var(--border-strong)"
+    }
+  }), React.createElement("circle", {
+    cx: "54",
+    cy: "46",
+    r: "2.4",
+    style: {
+      fill: dir === "exp" ? "var(--fs-sun)" : "var(--border-strong)"
+    }
+  }), React.createElement("rect", {
+    x: "31",
+    y: "56",
+    width: "38",
+    height: "24",
+    rx: "3",
+    style: {
+      fill: "var(--surface2)"
+    }
+  }), React.createElement("rect", {
+    x: "36",
+    y: "88",
+    width: "5",
+    height: "6",
+    rx: "1",
+    style: {
+      fill: "var(--text-3)"
+    }
+  }), React.createElement("rect", {
+    x: "47.5",
+    y: "88",
+    width: "5",
+    height: "6",
+    rx: "1",
+    style: {
+      fill: "var(--text-3)"
+    }
+  }), React.createElement("rect", {
+    x: "59",
+    y: "88",
+    width: "5",
+    height: "6",
+    rx: "1",
+    style: {
+      fill: "var(--text-3)"
+    }
+  })), React.createElement("div", {
+    style: {
+      flex: 1,
+      minWidth: 0,
+      display: "flex",
+      flexDirection: "column",
+      gap: 12,
+      width: isMobile ? "100%" : "auto"
+    }
+  }, React.createElement("div", null, React.createElement("div", {
+    style: {
+      display: "flex",
+      alignItems: "center",
+      gap: 10,
+      flexWrap: "wrap"
+    }
+  }, React.createElement("span", {
+    style: {
+      fontSize: 11.5,
+      fontWeight: 600,
+      color: "var(--text-3)"
+    }
+  }, head), ok != null && React.createElement("span", {
+    style: {
+      marginLeft: "auto"
+    }
+  }, React.createElement(FsLed, {
+    color: ok ? "#2FB36B" : "#E5484D"
+  }, fsKpiValue("meter_status", st)))), React.createElement("div", {
+    style: {
+      display: "flex",
+      alignItems: "baseline",
       gap: 8
     }
-  }, React.createElement(FsTile, {
-    label: g == null ? "กำลังที่จุดมิเตอร์" : g > 0.02 ? "กำลังขายเข้ากริด" : g < -0.02 ? "กำลังซื้อจากกริด" : "กริด",
-    value: fsFmt(g != null ? Math.abs(g) : fsKw(k.active_power, null, true), 2),
-    unit: "kW",
-    tone: g > 0.02 ? "var(--fs-exp)" : g < -0.02 ? "var(--fs-imp)" : null
-  }), React.createElement(FsTile, {
-    label: "\u0E0B\u0E37\u0E49\u0E2D\u0E08\u0E32\u0E01\u0E01\u0E23\u0E34\u0E14\u0E2A\u0E30\u0E2A\u0E21",
-    value: em && em.importTotal != null ? fsEnergy(em.importTotal)[0] : "–",
-    unit: em && em.importTotal != null ? fsEnergy(em.importTotal)[1] : ""
-  }), React.createElement(FsTile, {
-    label: "\u0E02\u0E32\u0E22\u0E40\u0E02\u0E49\u0E32\u0E01\u0E23\u0E34\u0E14\u0E2A\u0E30\u0E2A\u0E21",
-    value: em && em.exportTotal != null ? fsEnergy(em.exportTotal)[0] : "–",
-    unit: em && em.exportTotal != null ? fsEnergy(em.exportTotal)[1] : ""
-  }), (k.meter_status != null || k.run_state != null) && React.createElement(FsTile, {
-    label: "\u0E2A\u0E16\u0E32\u0E19\u0E30",
-    value: fsKpiValue("meter_status", k.meter_status != null ? k.meter_status : k.run_state)
-  }), React.createElement(FsTile, {
-    label: ph3u ? "แรงดัน A/B/C" : "แรงดัน",
-    value: ph3u ? [k.a_u, k.b_u, k.c_u].map(v => fsFmt(v, 0)).join(" / ") : fsFmt(k.meter_u, 1),
-    unit: "V"
-  }), React.createElement(FsTile, {
-    label: ph3i ? "กระแส A/B/C" : "กระแส",
-    value: ph3i ? [k.a_i, k.b_i, k.c_i].map(v => fsFmt(fsN(v) != null ? Math.abs(v) : null, 0)).join(" / ") : fsFmt(fsN(k.meter_i) != null ? Math.abs(k.meter_i) : null, 2),
-    unit: "A"
-  }), fsN(k.grid_frequency) != null && React.createElement(FsTile, {
-    label: "\u0E04\u0E27\u0E32\u0E21\u0E16\u0E35\u0E48",
-    value: fsFmt(k.grid_frequency, 2),
-    unit: "Hz"
-  }), React.createElement(FsTile, {
-    label: "\u0E15\u0E31\u0E27\u0E1B\u0E23\u0E30\u0E01\u0E2D\u0E1A\u0E01\u0E33\u0E25\u0E31\u0E07",
-    value: fsFmt(k.power_factor, 3)
-  })), React.createElement(FsRawToggle, {
+  }, React.createElement("span", {
+    style: {
+      fontFamily: "var(--display)",
+      fontSize: 32,
+      fontWeight: 700,
+      lineHeight: 1.1,
+      color: dirC,
+      fontVariantNumeric: "tabular-nums"
+    }
+  }, fsFmt(kw, 2)), React.createElement("span", {
+    style: {
+      fontSize: 13,
+      fontWeight: 600,
+      color: "var(--text-3)"
+    }
+  }, "kW"), (dir === "exp" || dir === "imp") && React.createElement("span", {
+    style: {
+      fontSize: 12,
+      color: "var(--text-2)"
+    }
+  }, dir === "exp" ? "บ้าน → กริด" : "กริด → บ้าน"))), React.createElement(FsDevStats, {
+    isMobile: isMobile,
+    items: [{
+      icon: "home",
+      l: "ซื้อจากกริดสะสม",
+      v: imp[0],
+      u: imp[1],
+      c: "var(--text-2)"
+    }, {
+      icon: "sun",
+      l: "ขายเข้ากริดสะสม",
+      v: exp[0],
+      u: exp[1]
+    }]
+  }))), React.createElement(FsDevInset, {
+    isMobile: isMobile,
+    items: [[ph3u ? "แรงดัน A/B/C" : "แรงดัน", ph3u ? [k.a_u, k.b_u, k.c_u].map(v => fsFmt(v, 0)).join(" / ") : fsFmt(k.meter_u, 1), "V"], [ph3i ? "กระแส A/B/C" : "กระแส", ph3i ? [k.a_i, k.b_i, k.c_i].map(v => fsFmt(fsN(v) != null ? Math.abs(v) : null, 0)).join(" / ") : fsFmt(fsN(k.meter_i) != null ? Math.abs(k.meter_i) : null, 2), "A"], fsN(k.grid_frequency) != null ? ["ความถี่", fsFmt(k.grid_frequency, 2), "Hz"] : null, ["ตัวประกอบกำลัง", fsFmt(k.power_factor, 3), ""]]
+  }), React.createElement(FsRawToggle, {
     k: k,
     meter: true
   }));
@@ -1351,63 +1642,176 @@ function FsMeterBody({
 function FsBatteryBody({
   k,
   em,
-  isMobile
+  isMobile,
+  d
 }) {
   const soc = fsN(k.battery_soc),
     pw = em && em.battKw != null ? em.battKw : fsKw(k.ch_discharge_power, null, true);
+  const low = soc != null && soc < 15;
+  const bs = +k.battery_status;
+  const led = bs === 3 ? "#E5484D" : bs === 2 ? "#2FB36B" : "#9AA5A7";
+  const huawei = /LUNA|^ESS|huawei/i.test(d && d.model || "") || !(d && d.model);
+  const act = pw == null ? "–" : pw > 0.02 ? "กำลังชาร์จ" : pw < -0.02 ? "กำลังจ่ายไฟ" : "พัก (ไม่ชาร์จ/จ่าย)";
+  const size = isMobile ? 120 : 132;
   return React.createElement("div", {
     style: {
       display: "flex",
       flexDirection: "column",
-      gap: 10
+      gap: 12
+    }
+  }, React.createElement("div", {
+    style: {
+      display: "flex",
+      gap: isMobile ? 12 : 18,
+      alignItems: "center",
+      flexDirection: isMobile ? "column" : "row"
+    }
+  }, React.createElement("div", {
+    style: {
+      position: "relative",
+      width: size,
+      height: size,
+      flexShrink: 0
+    }
+  }, huawei ? React.createElement("img", {
+    src: "dashboard/assets/pkg-batt-huawei-1.png",
+    alt: "",
+    loading: "lazy",
+    style: {
+      position: "absolute",
+      inset: "8%",
+      width: "84%",
+      height: "84%",
+      objectFit: "contain"
+    }
+  }) : React.createElement("svg", {
+    viewBox: "0 0 100 100",
+    style: {
+      position: "absolute",
+      inset: 0
+    },
+    "aria-hidden": "true"
+  }, React.createElement("rect", {
+    x: "20",
+    y: "16",
+    width: "60",
+    height: "70",
+    rx: "8",
+    style: {
+      fill: "var(--surface)",
+      stroke: "var(--border-strong)",
+      strokeWidth: 1.5
+    }
+  }), React.createElement("rect", {
+    x: "38",
+    y: "24",
+    width: "24",
+    height: "7",
+    rx: "3.5",
+    style: {
+      fill: "var(--surface2)"
+    }
+  }))), React.createElement("div", {
+    style: {
+      flex: 1,
+      minWidth: 0,
+      display: "flex",
+      flexDirection: "column",
+      gap: 12,
+      width: isMobile ? "100%" : "auto"
     }
   }, React.createElement("div", null, React.createElement("div", {
     style: {
       display: "flex",
+      alignItems: "center",
+      gap: 10,
+      flexWrap: "wrap"
+    }
+  }, React.createElement("span", {
+    style: {
+      fontSize: 11.5,
+      fontWeight: 600,
+      color: "var(--text-3)"
+    }
+  }, "\u0E1B\u0E23\u0E30\u0E08\u0E38\u0E04\u0E07\u0E40\u0E2B\u0E25\u0E37\u0E2D"), k.battery_status != null && React.createElement("span", {
+    style: {
+      marginLeft: "auto"
+    }
+  }, React.createElement(FsLed, {
+    color: led
+  }, fsKpiValue("battery_status", k.battery_status)))), React.createElement("div", {
+    style: {
+      display: "flex",
       alignItems: "baseline",
       gap: 8,
-      marginBottom: 5
+      flexWrap: "wrap"
     }
   }, React.createElement("span", {
     style: {
       fontFamily: "var(--display)",
-      fontSize: 22,
-      fontWeight: 700
+      fontSize: 32,
+      fontWeight: 700,
+      lineHeight: 1.1,
+      color: low ? "var(--tint-red-tx)" : "var(--text-1)",
+      fontVariantNumeric: "tabular-nums"
     }
-  }, soc == null ? "–" : soc + "%"), React.createElement("span", {
+  }, soc == null ? "–" : fsFmt(soc, 0)), React.createElement("span", {
     style: {
+      fontSize: 13,
+      fontWeight: 600,
+      color: "var(--text-3)"
+    }
+  }, "%"), React.createElement("span", {
+    style: {
+      marginLeft: "auto",
       fontSize: 12,
-      color: "var(--text-3)",
-      fontWeight: 600
+      color: "var(--text-2)"
     }
-  }, "\u0E1B\u0E23\u0E30\u0E08\u0E38\u0E04\u0E07\u0E40\u0E2B\u0E25\u0E37\u0E2D \xB7 ", pw == null ? "" : pw > 0.02 ? "กำลังชาร์จ " + fsFmt(pw, 2) + " kW" : pw < -0.02 ? "กำลังจ่าย " + fsFmt(-pw, 2) + " kW" : "ไม่ได้ชาร์จ/จ่าย")), React.createElement(FsMeter, {
-    value: soc,
-    max: 100,
-    h: 9,
-    tone: soc != null && soc < 15 ? "var(--tint-amber-tx)" : "var(--primary)"
-  })), React.createElement("div", {
-    className: "kpi-grid",
+  }, act, pw != null && Math.abs(pw) > 0.02 && React.createElement("b", {
     style: {
-      display: "grid",
-      gridTemplateColumns: isMobile ? "1fr 1fr" : "repeat(4, 1fr)",
-      gap: 8
+      color: "var(--fs-sun)",
+      marginLeft: 5
     }
-  }, React.createElement(FsTile, {
-    label: "\u0E2A\u0E16\u0E32\u0E19\u0E30",
-    value: fsKpiValue("battery_status", k.battery_status),
-    tone: +k.battery_status === 3 ? "var(--tint-red-tx)" : null
-  }), React.createElement(FsTile, {
-    label: "\u0E2A\u0E38\u0E02\u0E20\u0E32\u0E1E\u0E41\u0E1A\u0E15 (SOH)",
-    value: +k.battery_soh > 0 ? fsFmt(k.battery_soh, 0) : "–",
-    unit: "%"
-  }), React.createElement(FsTile, {
-    label: "\u0E0A\u0E32\u0E23\u0E4C\u0E08 / \u0E04\u0E32\u0E22\u0E2A\u0E30\u0E2A\u0E21",
-    value: fsFmt(k.charge_cap, 0) + " / " + fsFmt(k.discharge_cap, 0),
-    unit: "kWh"
-  }), React.createElement(FsTile, {
-    label: "\u0E42\u0E2B\u0E21\u0E14",
-    value: fsKpiValue("ch_discharge_model", k.ch_discharge_model)
-  })), React.createElement(FsRawToggle, {
+  }, fsFmt(Math.abs(pw), 2), " kW"))), React.createElement("div", {
+    style: {
+      height: 16,
+      padding: 3,
+      marginTop: 7,
+      borderRadius: 999,
+      background: "color-mix(in srgb, var(--fs-sun) 9%, var(--surface2))",
+      boxShadow: "var(--shadow-inset)"
+    }
+  }, React.createElement("div", {
+    className: "fs-wide",
+    style: {
+      width: Math.max(0, Math.min(100, soc || 0)) + "%",
+      height: "100%",
+      borderRadius: 999,
+      background: low ? "var(--tint-red-tx)" : "linear-gradient(90deg, var(--fs-sun), color-mix(in srgb, var(--fs-sun) 72%, #FFD27A))",
+      boxShadow: low ? "none" : "0 3px 10px color-mix(in srgb, var(--fs-sun) 45%, transparent)"
+    }
+  }))), React.createElement(FsDevStats, {
+    isMobile: isMobile,
+    items: [{
+      icon: "trend",
+      l: "ชาร์จสะสม",
+      v: fsFmt(k.charge_cap, 0),
+      u: "kWh"
+    }, {
+      icon: "bolt",
+      l: "จ่ายไฟสะสม",
+      v: fsFmt(k.discharge_cap, 0),
+      u: "kWh"
+    }, {
+      icon: "sparkle",
+      l: "สุขภาพแบต (SOH)",
+      v: +k.battery_soh > 0 ? fsFmt(k.battery_soh, 0) : "–",
+      u: "%"
+    }]
+  }))), React.createElement(FsDevInset, {
+    isMobile: isMobile,
+    items: [["โหมดการทำงาน", fsKpiValue("ch_discharge_model", k.ch_discharge_model), ""], fsN(k.max_charge_power) != null ? ["ชาร์จได้สูงสุด", fsFmt(fsKw(k.max_charge_power, null, true), 2), "kW"] : null, fsN(k.max_discharge_power) != null ? ["จ่ายได้สูงสุด", fsFmt(fsKw(k.max_discharge_power, null, true), 2), "kW"] : null]
+  }), React.createElement(FsRawToggle, {
     k: k
   }));
 }
