@@ -97,6 +97,13 @@ function TmOtPaper({ person, period, rows, jobs, users, cfg, byName, onClose }) 
   }, [person, appr, rev]);
   const signs = window.useEcSigns([].concat.apply([], signBox.map((s) => s.ids)));
 
+  /* แขวนกระดาษไว้กับ body + ติดคลาส sv-rep-printing แบบใบเบิกเงิน (useEcPrintBody)
+     ใบนี้เปิดจากในหน้าเวลาทำงาน ถ้าอยู่ใน <main> กฎตอนพิมพ์ใน index.html จะซ่อนไปด้วย → PDF หน้าขาวเปล่า (ผู้ใช้เจอ) */
+  React.useEffect(() => {
+    document.body.classList.add("sv-rep-printing");
+    return () => document.body.classList.remove("sv-rep-printing");
+  }, []);
+
   const doPrint = () => {
     const old = document.title;
     document.title = "ใบสรุป OT " + (person && person.name ? person.name : "") + " " + window.tmPeriodTH(period);
@@ -110,7 +117,7 @@ function TmOtPaper({ person, period, rows, jobs, users, cfg, byName, onClose }) 
     textAlign: "center", verticalAlign: "middle" };
   const tdL = Object.assign({}, td, { textAlign: "left" });
 
-  return (
+  return ReactDOM.createPortal((
     <div className="sv-rep-overlay" style={{ position: "fixed", inset: 0, zIndex: 160, background: "rgba(8,20,14,.55)",
       overflow: "auto", padding: isMobile ? 0 : "24px 16px" }}>
 
@@ -279,7 +286,7 @@ function TmOtPaper({ person, period, rows, jobs, users, cfg, byName, onClose }) 
         </div>
       </div>
     </div>
-  );
+  ), document.body);
 }
 
 /* แถวข้อมูลหัวกระดาษ — คู่กับ EcVPRow ของใบสำคัญจ่าย แต่แยกตัวไว้เพราะไฟล์นั้นไม่ได้ export ออกมา */

@@ -124,6 +124,10 @@ function TmOtPaper({
     }];
   }, [person, appr, rev]);
   const signs = window.useEcSigns([].concat.apply([], signBox.map(s => s.ids)));
+  React.useEffect(() => {
+    document.body.classList.add("sv-rep-printing");
+    return () => document.body.classList.remove("sv-rep-printing");
+  }, []);
   const doPrint = () => {
     const old = document.title;
     document.title = "ใบสรุป OT " + (person && person.name ? person.name : "") + " " + window.tmPeriodTH(period);
@@ -153,7 +157,7 @@ function TmOtPaper({
   const tdL = Object.assign({}, td, {
     textAlign: "left"
   });
-  return React.createElement("div", {
+  return ReactDOM.createPortal(React.createElement("div", {
     className: "sv-rep-overlay",
     style: {
       position: "fixed",
@@ -634,7 +638,7 @@ function TmOtPaper({
       color: "var(--paper-mute2)",
       textAlign: "center"
     }
-  }, "\u0E40\u0E2D\u0E01\u0E2A\u0E32\u0E23\u0E19\u0E35\u0E49\u0E2D\u0E2D\u0E01\u0E08\u0E32\u0E01\u0E23\u0E30\u0E1A\u0E1A\u0E15\u0E34\u0E14\u0E15\u0E32\u0E21\u0E07\u0E32\u0E19\u0E15\u0E34\u0E14\u0E15\u0E31\u0E49\u0E07 flash+solar \xB7 \u0E1E\u0E34\u0E21\u0E1E\u0E4C\u0E40\u0E21\u0E37\u0E48\u0E2D ", window.drDateTH(window.drToday()))));
+  }, "\u0E40\u0E2D\u0E01\u0E2A\u0E32\u0E23\u0E19\u0E35\u0E49\u0E2D\u0E2D\u0E01\u0E08\u0E32\u0E01\u0E23\u0E30\u0E1A\u0E1A\u0E15\u0E34\u0E14\u0E15\u0E32\u0E21\u0E07\u0E32\u0E19\u0E15\u0E34\u0E14\u0E15\u0E31\u0E49\u0E07 flash+solar \xB7 \u0E1E\u0E34\u0E21\u0E1E\u0E4C\u0E40\u0E21\u0E37\u0E48\u0E2D ", window.drDateTH(window.drToday())))), document.body);
 }
 function TmPRow({
   k,
