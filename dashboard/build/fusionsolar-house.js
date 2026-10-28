@@ -140,7 +140,7 @@ function fsHouseCutout(kind) {
 function fsHouseKind() {
   if (document.documentElement.getAttribute("data-theme") === "aurora") return "night";
   const h = (new Date().getUTCHours() + 7) % 24;
-  return h >= 6 && h < 16 ? "day" : h >= 16 && h < 18 ? "dusk" : "eve";
+  return h >= 6 && h < 18 ? "day" : "eve";
 }
 function useFsHouseKind() {
   const [kind, setKind] = React.useState(fsHouseKind);

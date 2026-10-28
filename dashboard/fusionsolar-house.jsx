@@ -105,7 +105,8 @@ function fsHouseCutout(kind) {
 function fsHouseKind() {
   if (document.documentElement.getAttribute("data-theme") === "aurora") return "night";
   const h = (new Date().getUTCHours() + 7) % 24;
-  return h >= 6 && h < 16 ? "day" : h >= 16 && h < 18 ? "dusk" : "eve";
+  /* ไม่ใช้ภาพแดดเย็น (dusk) แล้ว — ผู้ใช้ทัก 2026-10-28 ว่าพื้นหลังติดเหลือง/ส้ม · กลางวันถึง 18 น. แล้วเป็นภาพเปิดไฟ */
+  return h >= 6 && h < 18 ? "day" : "eve";
 }
 function useFsHouseKind() {
   const [kind, setKind] = React.useState(fsHouseKind);
