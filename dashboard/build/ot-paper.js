@@ -40,6 +40,7 @@ function TmOtPaper({
   users,
   cfg,
   byName,
+  byId,
   onClose
 }) {
   const isMobile = window.matchMedia("(max-width: 860px)").matches;
@@ -77,6 +78,39 @@ function TmOtPaper({
       payWaiting: payWaiting
     };
   }, [list, cfg]);
+  const day = iso => iso ? window.drLocalDay ? window.drLocalDay(iso) : String(iso).slice(0, 10) : "";
+  const lastDay = vals => vals.map(day).filter(Boolean).sort().pop() || "";
+  const signBox = React.useMemo(() => {
+    const apprMap = {};
+    list.forEach(o => {
+      if (o.status !== "approved" || !(o.decidedById || o.decidedByName)) return;
+      const k = o.decidedById || "name:" + o.decidedByName;
+      if (!apprMap[k]) apprMap[k] = {
+        id: o.decidedById || null,
+        name: o.decidedByName || window.tmNameOf(users, o.decidedById, ""),
+        at: []
+      };
+      apprMap[k].at.push(o.decidedAt);
+    });
+    const apprs = Object.keys(apprMap).map(k => apprMap[k]);
+    return [{
+      t: "ผู้ขอทำงานล่วงเวลา",
+      n: (person || {}).name || "",
+      ids: [(person || {}).id],
+      at: lastDay(list.map(o => o.sentAt)) || lastDay(list.map(o => o.date))
+    }, {
+      t: "หัวหน้างานผู้อนุมัติ",
+      n: apprs.map(a => a.name).join(" · "),
+      ids: apprs.map(a => a.id),
+      at: lastDay([].concat.apply([], apprs.map(a => a.at)))
+    }, {
+      t: "ฝ่ายบุคคล / ผู้ตรวจสอบ",
+      n: byName || "",
+      ids: [byId],
+      at: window.drToday()
+    }];
+  }, [list, users, person, byName, byId]);
+  const signs = window.useEcSigns([].concat.apply([], signBox.map(s => s.ids)));
   const doPrint = () => {
     const old = document.title;
     document.title = "ใบสรุป OT " + (person && person.name ? person.name : "") + " " + window.tmPeriodTH(period);
@@ -515,16 +549,7 @@ function TmOtPaper({
       gap: 18,
       breakInside: "avoid"
     }
-  }, [{
-    t: "ผู้ขอทำงานล่วงเวลา",
-    n: (person || {}).name || ""
-  }, {
-    t: "หัวหน้างานผู้อนุมัติ",
-    n: ""
-  }, {
-    t: "ฝ่ายบุคคล / ผู้ตรวจสอบ",
-    n: ""
-  }].map(s => React.createElement("div", {
+  }, signBox.map(s => React.createElement("div", {
     key: s.t
   }, React.createElement("div", {
     style: {
@@ -536,9 +561,23 @@ function TmOtPaper({
     style: {
       height: 42,
       borderBottom: "1px solid var(--paper-line2)",
-      marginTop: 6
+      marginTop: 6,
+      display: "flex",
+      justifyContent: "center",
+      alignItems: "center",
+      gap: 6,
+      overflow: "hidden"
     }
-  }), React.createElement("div", {
+  }, s.ids.filter(id => id && signs[id]).map(id => React.createElement("img", {
+    key: id,
+    src: signs[id],
+    alt: "",
+    style: {
+      maxWidth: s.ids.length > 1 ? "48%" : "100%",
+      maxHeight: 40,
+      objectFit: "contain"
+    }
+  }))), React.createElement("div", {
     style: {
       fontSize: 11,
       marginTop: 6,
@@ -549,18 +588,7 @@ function TmOtPaper({
       fontSize: 11,
       color: "var(--paper-ink2)"
     }
-  }, "\u0E27\u0E31\u0E19\u0E17\u0E35\u0E48: \u2026\u2026\u2026\u2026\u2026\u2026\u2026\u2026\u2026\u2026")))), React.createElement("div", {
-    style: {
-      marginTop: 16,
-      padding: "9px 12px",
-      background: "var(--paper-tint)",
-      border: "1px solid var(--paper-line)",
-      borderRadius: 7,
-      fontSize: 9.5,
-      color: "var(--paper-ink3)",
-      lineHeight: 1.8
-    }
-  }, "\u0E40\u0E27\u0E25\u0E32\u0E43\u0E19\u0E43\u0E1A\u0E19\u0E35\u0E49\u0E40\u0E1B\u0E47\u0E19\u0E40\u0E27\u0E25\u0E32\u0E17\u0E35\u0E48\u0E1C\u0E39\u0E49\u0E02\u0E2D\u0E01\u0E23\u0E2D\u0E01\u0E40\u0E2D\u0E07 \u0E44\u0E21\u0E48\u0E43\u0E0A\u0E48\u0E40\u0E27\u0E25\u0E32\u0E17\u0E35\u0E48\u0E23\u0E30\u0E1A\u0E1A\u0E08\u0E31\u0E1A\u0E44\u0E14\u0E49 \u2014 \u0E16\u0E49\u0E32\u0E44\u0E21\u0E48\u0E41\u0E19\u0E48\u0E43\u0E08\u0E43\u0E2B\u0E49\u0E40\u0E17\u0E35\u0E22\u0E1A\u0E01\u0E31\u0E1A\u0E41\u0E1C\u0E48\u0E19 \u201C\u0E40\u0E27\u0E25\u0E32\u0E17\u0E33\u0E07\u0E32\u0E19\u201D \u0E02\u0E2D\u0E07\u0E27\u0E31\u0E19\u0E19\u0E31\u0E49\u0E19", React.createElement("br", null), "\u0E01\u0E32\u0E23\u0E40\u0E0B\u0E47\u0E19\u0E1A\u0E19\u0E01\u0E23\u0E30\u0E14\u0E32\u0E29\u0E44\u0E21\u0E48\u0E44\u0E14\u0E49\u0E40\u0E1B\u0E25\u0E35\u0E48\u0E22\u0E19\u0E2A\u0E16\u0E32\u0E19\u0E30\u0E43\u0E19\u0E23\u0E30\u0E1A\u0E1A \u0E43\u0E1A\u0E17\u0E35\u0E48\u0E22\u0E31\u0E07\u0E23\u0E2D\u0E2D\u0E19\u0E38\u0E21\u0E31\u0E15\u0E34\u0E15\u0E49\u0E2D\u0E07\u0E01\u0E14\u0E2D\u0E19\u0E38\u0E21\u0E31\u0E15\u0E34\u0E43\u0E19\u0E23\u0E30\u0E1A\u0E1A\u0E14\u0E49\u0E27\u0E22", React.createElement("br", null), "\u201C\u0E0A\u0E21.\u0E04\u0E34\u0E14\u0E04\u0E48\u0E32\u0E41\u0E23\u0E07\u201D = \u0E0A\u0E31\u0E48\u0E27\u0E42\u0E21\u0E07\u0E08\u0E23\u0E34\u0E07 \xD7 \u0E2D\u0E31\u0E15\u0E23\u0E32\u0E02\u0E2D\u0E07\u0E1B\u0E23\u0E30\u0E40\u0E20\u0E17\u0E19\u0E31\u0E49\u0E19 \u0E15\u0E32\u0E21\u0E17\u0E35\u0E48\u0E1A\u0E23\u0E34\u0E29\u0E31\u0E17\u0E15\u0E31\u0E49\u0E07\u0E44\u0E27\u0E49\u0E43\u0E19\u0E23\u0E30\u0E1A\u0E1A \u0E13 \u0E27\u0E31\u0E19\u0E17\u0E35\u0E48\u0E40\u0E1B\u0E34\u0E14\u0E43\u0E1A (\u0E41\u0E15\u0E48\u0E25\u0E30\u0E43\u0E1A\u0E15\u0E23\u0E36\u0E07\u0E2D\u0E31\u0E15\u0E23\u0E32\u0E02\u0E2D\u0E07\u0E15\u0E31\u0E27\u0E40\u0E2D\u0E07\u0E44\u0E27\u0E49 \u0E01\u0E32\u0E23\u0E41\u0E01\u0E49\u0E2D\u0E31\u0E15\u0E23\u0E32\u0E17\u0E35\u0E2B\u0E25\u0E31\u0E07\u0E44\u0E21\u0E48\u0E22\u0E49\u0E2D\u0E19\u0E21\u0E32\u0E40\u0E1B\u0E25\u0E35\u0E48\u0E22\u0E19\u0E43\u0E1A\u0E19\u0E35\u0E49)", React.createElement("br", null), "\u0E43\u0E1A\u0E19\u0E35\u0E49\u0E2A\u0E23\u0E38\u0E1B\u0E16\u0E36\u0E07\u0E0A\u0E31\u0E48\u0E27\u0E42\u0E21\u0E07\u0E04\u0E34\u0E14\u0E04\u0E48\u0E32\u0E41\u0E23\u0E07\u0E40\u0E17\u0E48\u0E32\u0E19\u0E31\u0E49\u0E19 \u0E22\u0E31\u0E07\u0E44\u0E21\u0E48\u0E43\u0E0A\u0E48\u0E08\u0E33\u0E19\u0E27\u0E19\u0E40\u0E07\u0E34\u0E19 \u0E40\u0E1E\u0E23\u0E32\u0E30\u0E2D\u0E31\u0E15\u0E23\u0E32\u0E04\u0E48\u0E32\u0E08\u0E49\u0E32\u0E07\u0E23\u0E32\u0E22\u0E04\u0E19\u0E44\u0E21\u0E48\u0E44\u0E14\u0E49\u0E2D\u0E22\u0E39\u0E48\u0E43\u0E19\u0E23\u0E30\u0E1A\u0E1A\u0E19\u0E35\u0E49 \u2014 \u0E1D\u0E48\u0E32\u0E22\u0E1A\u0E38\u0E04\u0E04\u0E25\u0E15\u0E49\u0E2D\u0E07\u0E04\u0E39\u0E13\u0E2D\u0E31\u0E15\u0E23\u0E32\u0E04\u0E48\u0E32\u0E08\u0E49\u0E32\u0E07\u0E02\u0E2D\u0E07\u0E1E\u0E19\u0E31\u0E01\u0E07\u0E32\u0E19\u0E04\u0E19\u0E19\u0E35\u0E49\u0E2D\u0E35\u0E01\u0E17\u0E35"), React.createElement("div", {
+  }, "\u0E27\u0E31\u0E19\u0E17\u0E35\u0E48: ", s.at ? window.drDateTH(s.at) : "…………………………")))), React.createElement("div", {
     style: {
       marginTop: 12,
       fontSize: 9.5,

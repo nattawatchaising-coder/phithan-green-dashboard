@@ -2029,7 +2029,7 @@ function TmMonthAll({ cfg, users, jobs, otRows, byName, canAll, currentUser }) {
 
       {paper && window.TmOtPaper && (
         <window.TmOtPaper person={paper} period={period} rows={paper.rows} jobs={jobs} users={users}
-          cfg={cfg} byName={byName} onClose={() => setPaper(null)} />
+          cfg={cfg} byName={byName} byId={(currentUser || {}).id || null} onClose={() => setPaper(null)} />
       )}
     </div>
   );

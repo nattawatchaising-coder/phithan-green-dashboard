@@ -44,7 +44,7 @@ function tmOtByPerson(rows, users, cfg) {
 }
 
 /* ── ใบสรุป OT รายคน ── */
-function TmOtPaper({ person, period, rows, jobs, users, cfg, byName, onClose }) {
+function TmOtPaper({ person, period, rows, jobs, users, cfg, byName, byId, onClose }) {
   const isMobile = window.matchMedia("(max-width: 860px)").matches;
   const list = React.useMemo(() => (rows || []).slice()
     .sort((a, b) => String(a.date || "").localeCompare(String(b.date || ""))
@@ -69,6 +69,31 @@ function TmOtPaper({ person, period, rows, jobs, users, cfg, byName, onClose }) 
     });
     return { approved: approved, waiting: waiting, rejected: rejected, payApproved: payApproved, payWaiting: payWaiting };
   }, [list, cfg]);
+
+  /* ช่องเซ็น — ระบบรู้อยู่แล้วว่าใครส่ง ใครกดอนุมัติ และใครเป็นคนออกใบ
+     จึงเติมชื่อ วันที่ และลายเซ็นที่เจ้าตัวบันทึกไว้ในโปรไฟล์ (userSigns/) ให้เลย กฎเดียวกับใบเบิกเงิน
+     ใครยังไม่ได้บันทึกลายเซ็นก็เหลือเส้นว่างให้เซ็นเองตามเดิม
+     ผู้อนุมัติเอาจากใบที่อนุมัติแล้วเท่านั้น — ใบที่ยังรออยู่ยังไม่มีใครตัดสิน */
+  const day = (iso) => (iso ? (window.drLocalDay ? window.drLocalDay(iso) : String(iso).slice(0, 10)) : "");
+  const lastDay = (vals) => vals.map(day).filter(Boolean).sort().pop() || "";
+  const signBox = React.useMemo(() => {
+    const apprMap = {};
+    list.forEach((o) => {
+      if (o.status !== "approved" || !(o.decidedById || o.decidedByName)) return;
+      const k = o.decidedById || ("name:" + o.decidedByName);
+      if (!apprMap[k]) apprMap[k] = { id: o.decidedById || null, name: o.decidedByName || window.tmNameOf(users, o.decidedById, ""), at: [] };
+      apprMap[k].at.push(o.decidedAt);
+    });
+    const apprs = Object.keys(apprMap).map((k) => apprMap[k]);
+    return [
+      { t: "ผู้ขอทำงานล่วงเวลา", n: (person || {}).name || "", ids: [(person || {}).id],
+        at: lastDay(list.map((o) => o.sentAt)) || lastDay(list.map((o) => o.date)) },
+      { t: "หัวหน้างานผู้อนุมัติ", n: apprs.map((a) => a.name).join(" · "), ids: apprs.map((a) => a.id),
+        at: lastDay([].concat.apply([], apprs.map((a) => a.at))) },
+      { t: "ฝ่ายบุคคล / ผู้ตรวจสอบ", n: byName || "", ids: [byId], at: window.drToday() },
+    ];
+  }, [list, users, person, byName, byId]);
+  const signs = window.useEcSigns([].concat.apply([], signBox.map((s) => s.ids)));
 
   const doPrint = () => {
     const old = document.title;
@@ -225,26 +250,19 @@ function TmOtPaper({ person, period, rows, jobs, users, cfg, byName, onClose }) 
 
         {/* ช่องเซ็น — สามช่อง เพราะเส้นทางจริงคือ เจ้าตัว → หัวหน้า → ฝ่ายบุคคล */}
         <div style={{ marginTop: 22, display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 18, breakInside: "avoid" }}>
-          {[{ t: "ผู้ขอทำงานล่วงเวลา", n: (person || {}).name || "" },
-            { t: "หัวหน้างานผู้อนุมัติ", n: "" },
-            { t: "ฝ่ายบุคคล / ผู้ตรวจสอบ", n: "" }].map((s) => (
+          {signBox.map((s) => (
             <div key={s.t}>
               <div style={{ fontSize: 10.5, fontWeight: 700, color: "var(--paper-ink3)" }}>{s.t}</div>
-              <div style={{ height: 42, borderBottom: "1px solid var(--paper-line2)", marginTop: 6 }} />
+              <div style={{ height: 42, borderBottom: "1px solid var(--paper-line2)", marginTop: 6, display: "flex",
+                justifyContent: "center", alignItems: "center", gap: 6, overflow: "hidden" }}>
+                {s.ids.filter((id) => id && signs[id]).map((id) => (
+                  <img key={id} src={signs[id]} alt="" style={{ maxWidth: s.ids.length > 1 ? "48%" : "100%", maxHeight: 40, objectFit: "contain" }} />
+                ))}
+              </div>
               <div style={{ fontSize: 11, marginTop: 6, color: "var(--paper-ink)" }}>ชื่อ: <b>{s.n || "…………………………"}</b></div>
-              <div style={{ fontSize: 11, color: "var(--paper-ink2)" }}>วันที่: …………………………</div>
+              <div style={{ fontSize: 11, color: "var(--paper-ink2)" }}>วันที่: {s.at ? window.drDateTH(s.at) : "…………………………"}</div>
             </div>
           ))}
-        </div>
-
-        <div style={{ marginTop: 16, padding: "9px 12px", background: "var(--paper-tint)", border: "1px solid var(--paper-line)", borderRadius: 7,
-          fontSize: 9.5, color: "var(--paper-ink3)", lineHeight: 1.8 }}>
-          เวลาในใบนี้เป็นเวลาที่ผู้ขอกรอกเอง ไม่ใช่เวลาที่ระบบจับได้ — ถ้าไม่แน่ใจให้เทียบกับแผ่น “เวลาทำงาน” ของวันนั้น
-          <br />การเซ็นบนกระดาษไม่ได้เปลี่ยนสถานะในระบบ ใบที่ยังรออนุมัติต้องกดอนุมัติในระบบด้วย
-          <br />“ชม.คิดค่าแรง” = ชั่วโมงจริง × อัตราของประเภทนั้น ตามที่บริษัทตั้งไว้ในระบบ ณ วันที่เปิดใบ
-          (แต่ละใบตรึงอัตราของตัวเองไว้ การแก้อัตราทีหลังไม่ย้อนมาเปลี่ยนใบนี้)
-          <br />ใบนี้สรุปถึงชั่วโมงคิดค่าแรงเท่านั้น ยังไม่ใช่จำนวนเงิน เพราะอัตราค่าจ้างรายคนไม่ได้อยู่ในระบบนี้
-          — ฝ่ายบุคคลต้องคูณอัตราค่าจ้างของพนักงานคนนี้อีกที
         </div>
 
         <div style={{ marginTop: 12, fontSize: 9.5, color: "var(--paper-mute2)", textAlign: "center" }}>

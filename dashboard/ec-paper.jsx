@@ -798,4 +798,4 @@ function ecExportXlsx(claims, opts) {
   X.writeFile(wb, "ใบเบิกเงินหน้างาน_" + window.drToday() + ".xlsx");
 }
 
-Object.assign(window, { ecNumTH, ecBahtText, EcVoucherPaper, EcClaimPaper, ecExportXlsx });
+Object.assign(window, { ecNumTH, ecBahtText, useEcSigns, EcVoucherPaper, EcClaimPaper, ecExportXlsx });

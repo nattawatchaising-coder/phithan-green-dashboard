@@ -1633,6 +1633,7 @@ function ecExportXlsx(claims, opts) {
 Object.assign(window, {
   ecNumTH,
   ecBahtText,
+  useEcSigns,
   EcVoucherPaper,
   EcClaimPaper,
   ecExportXlsx
