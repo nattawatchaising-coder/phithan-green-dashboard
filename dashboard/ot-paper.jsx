@@ -72,33 +72,29 @@ function TmOtPaper({ person, period, rows, jobs, users, cfg, byName, onClose }) 
 
   /* ช่องเซ็น — เติมชื่อ วันที่ และลายเซ็นที่เจ้าตัวบันทึกไว้ในโปรไฟล์ (userSigns/) ให้เลย กฎเดียวกับใบเบิกเงิน
      ใครยังไม่ได้บันทึกลายเซ็นก็เหลือเส้นว่างให้เซ็นเองตามเดิม (ผู้ใช้สั่ง ต.ค. 2026)
-     ผู้ขอ = วันที่พิมพ์ · ผู้อนุมัติ = คนที่กดอนุมัติในระบบ + วันอนุมัติ (ใบที่ยังรออยู่ยังไม่มีใครตัดสิน)
-     ผู้ตรวจสอบ = คนที่เลือกจากรายชื่อบนแถบด้านบน ไม่ใช่คนที่เปิดใบ (ผู้ใช้ทัก) · วันที่เว้นให้เขียนเอง */
-  const [revId, setRevId] = React.useState(() => { try { return localStorage.getItem("tmOtPaperReviewer") || ""; } catch (e) { return ""; } });
-  const pickRev = (v) => { setRevId(v || ""); try { localStorage.setItem("tmOtPaperReviewer", v || ""); } catch (e) {} };
+     ผู้ขอ = วันที่พิมพ์ · หัวหน้าผู้อนุมัติ / ผู้ตรวจสอบ = คนที่เลือกจากรายชื่อบนแถบด้านบน (ผู้ใช้สั่ง)
+     ไม่เอาคนที่กดอนุมัติในระบบหรือคนที่เปิดใบ (ผู้ใช้ทัก — ขึ้น ADMIN) · ไม่เลือก = เว้นว่าง
+     สองช่องนี้ใส่แค่ชื่อ ไม่ใส่ลายเซ็น วันที่เว้นให้เขียนเอง (ผู้ใช้สั่ง — เซ็นด้วยปากกาเอง) */
+  const useSigner = (key) => {
+    const [id, setId] = React.useState(() => { try { return localStorage.getItem(key) || ""; } catch (e) { return ""; } });
+    const pick = (v) => { setId(v || ""); try { localStorage.setItem(key, v || ""); } catch (e) {} };
+    return [id, pick];
+  };
+  const [apprId, pickAppr] = useSigner("tmOtPaperApprover");
+  const [revId, pickRev] = useSigner("tmOtPaperReviewer");
   const revOpts = React.useMemo(() => [{ value: "", label: "— เว้นว่างให้เซ็นเอง —" }].concat((users || [])
     .filter((u) => u && u.id && u.name && u.active !== false && !(window.tmIsSysAcct && window.tmIsSysAcct(u)))
     .map((u) => ({ value: u.id, label: u.name }))
     .sort((a, b) => String(a.label).localeCompare(String(b.label), "th"))), [users]);
-  const rev = (users || []).find((u) => u && u.id === revId) || null;
-  const day = (iso) => (iso ? (window.drLocalDay ? window.drLocalDay(iso) : String(iso).slice(0, 10)) : "");
-  const lastDay = (vals) => vals.map(day).filter(Boolean).sort().pop() || "";
+  const findU = (id) => (id && (users || []).find((u) => u && u.id === id)) || null;
+  const appr = findU(apprId), rev = findU(revId);
   const signBox = React.useMemo(() => {
-    const apprMap = {};
-    list.forEach((o) => {
-      if (o.status !== "approved" || !(o.decidedById || o.decidedByName)) return;
-      const k = o.decidedById || ("name:" + o.decidedByName);
-      if (!apprMap[k]) apprMap[k] = { id: o.decidedById || null, name: o.decidedByName || window.tmNameOf(users, o.decidedById, ""), at: [] };
-      apprMap[k].at.push(o.decidedAt);
-    });
-    const apprs = Object.keys(apprMap).map((k) => apprMap[k]);
     return [
       { t: "ผู้ขอทำงานล่วงเวลา", n: (person || {}).name || "", ids: [(person || {}).id], at: window.drToday() },
-      { t: "หัวหน้างานผู้อนุมัติ", n: apprs.map((a) => a.name).join(" · "), ids: apprs.map((a) => a.id),
-        at: lastDay([].concat.apply([], apprs.map((a) => a.at))) },
-      { t: "ฝ่ายบุคคล / ผู้ตรวจสอบ", n: rev ? rev.name : "", ids: [rev ? rev.id : null], at: "" },
+      { t: "หัวหน้างานผู้อนุมัติ", n: appr ? appr.name : "", ids: [], at: "" },
+      { t: "ฝ่ายบุคคล / ผู้ตรวจสอบ", n: rev ? rev.name : "", ids: [], at: "" },
     ];
-  }, [list, users, person, rev]);
+  }, [person, appr, rev]);
   const signs = window.useEcSigns([].concat.apply([], signBox.map((s) => s.ids)));
 
   const doPrint = () => {
@@ -131,9 +127,13 @@ function TmOtPaper({ person, period, rows, jobs, users, cfg, byName, onClose }) 
             {window.tmPeriodTH(period)} · {list.length} ใบ · กดปุ่มแล้วเลือก “บันทึกเป็น PDF”
           </div>
         </div>
-        {!isMobile && <span style={{ fontSize: 11.5, fontWeight: 700, color: "var(--text-3)", flexShrink: 0 }}>ผู้ตรวจสอบ</span>}
-        <window.Dropdown value={revId} onChange={pickRev} options={revOpts} placeholder="ผู้ตรวจสอบ"
-          style={{ width: isMobile ? 130 : 200, flexShrink: 0 }} />
+        {[{ t: "ผู้อนุมัติ", v: apprId, set: pickAppr }, { t: "ผู้ตรวจสอบ", v: revId, set: pickRev }].map((d) => (
+          <React.Fragment key={d.t}>
+            {!isMobile && <span style={{ fontSize: 11.5, fontWeight: 700, color: "var(--text-3)", flexShrink: 0 }}>{d.t}</span>}
+            <window.Dropdown value={d.v} onChange={d.set} options={revOpts} placeholder={d.t}
+              style={{ width: isMobile ? 120 : 180, flexShrink: 0 }} />
+          </React.Fragment>
+        ))}
         <button onClick={doPrint} style={{ display: "inline-flex", alignItems: "center", gap: 7, padding: "11px 16px", borderRadius: 11,
           border: "none", background: "var(--primary)", color: "#fff", fontFamily: "inherit", fontSize: 13.5, fontWeight: 700, cursor: "pointer", flexShrink: 0 }}>
           <Icon name="file" size={16} color="#fff" /> บันทึก PDF

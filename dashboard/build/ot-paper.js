@@ -77,19 +77,24 @@ function TmOtPaper({
       payWaiting: payWaiting
     };
   }, [list, cfg]);
-  const [revId, setRevId] = React.useState(() => {
-    try {
-      return localStorage.getItem("tmOtPaperReviewer") || "";
-    } catch (e) {
-      return "";
-    }
-  });
-  const pickRev = v => {
-    setRevId(v || "");
-    try {
-      localStorage.setItem("tmOtPaperReviewer", v || "");
-    } catch (e) {}
+  const useSigner = key => {
+    const [id, setId] = React.useState(() => {
+      try {
+        return localStorage.getItem(key) || "";
+      } catch (e) {
+        return "";
+      }
+    });
+    const pick = v => {
+      setId(v || "");
+      try {
+        localStorage.setItem(key, v || "");
+      } catch (e) {}
+    };
+    return [id, pick];
   };
+  const [apprId, pickAppr] = useSigner("tmOtPaperApprover");
+  const [revId, pickRev] = useSigner("tmOtPaperReviewer");
   const revOpts = React.useMemo(() => [{
     value: "",
     label: "— เว้นว่างให้เซ็นเอง —"
@@ -97,22 +102,10 @@ function TmOtPaper({
     value: u.id,
     label: u.name
   })).sort((a, b) => String(a.label).localeCompare(String(b.label), "th"))), [users]);
-  const rev = (users || []).find(u => u && u.id === revId) || null;
-  const day = iso => iso ? window.drLocalDay ? window.drLocalDay(iso) : String(iso).slice(0, 10) : "";
-  const lastDay = vals => vals.map(day).filter(Boolean).sort().pop() || "";
+  const findU = id => id && (users || []).find(u => u && u.id === id) || null;
+  const appr = findU(apprId),
+    rev = findU(revId);
   const signBox = React.useMemo(() => {
-    const apprMap = {};
-    list.forEach(o => {
-      if (o.status !== "approved" || !(o.decidedById || o.decidedByName)) return;
-      const k = o.decidedById || "name:" + o.decidedByName;
-      if (!apprMap[k]) apprMap[k] = {
-        id: o.decidedById || null,
-        name: o.decidedByName || window.tmNameOf(users, o.decidedById, ""),
-        at: []
-      };
-      apprMap[k].at.push(o.decidedAt);
-    });
-    const apprs = Object.keys(apprMap).map(k => apprMap[k]);
     return [{
       t: "ผู้ขอทำงานล่วงเวลา",
       n: (person || {}).name || "",
@@ -120,16 +113,16 @@ function TmOtPaper({
       at: window.drToday()
     }, {
       t: "หัวหน้างานผู้อนุมัติ",
-      n: apprs.map(a => a.name).join(" · "),
-      ids: apprs.map(a => a.id),
-      at: lastDay([].concat.apply([], apprs.map(a => a.at)))
+      n: appr ? appr.name : "",
+      ids: [],
+      at: ""
     }, {
       t: "ฝ่ายบุคคล / ผู้ตรวจสอบ",
       n: rev ? rev.name : "",
-      ids: [rev ? rev.id : null],
+      ids: [],
       at: ""
     }];
-  }, [list, users, person, rev]);
+  }, [person, appr, rev]);
   const signs = window.useEcSigns([].concat.apply([], signBox.map(s => s.ids)));
   const doPrint = () => {
     const old = document.title;
@@ -222,23 +215,33 @@ function TmOtPaper({
       fontSize: 11,
       color: "var(--text-3)"
     }
-  }, window.tmPeriodTH(period), " \xB7 ", list.length, " \u0E43\u0E1A \xB7 \u0E01\u0E14\u0E1B\u0E38\u0E48\u0E21\u0E41\u0E25\u0E49\u0E27\u0E40\u0E25\u0E37\u0E2D\u0E01 \u201C\u0E1A\u0E31\u0E19\u0E17\u0E36\u0E01\u0E40\u0E1B\u0E47\u0E19 PDF\u201D")), !isMobile && React.createElement("span", {
+  }, window.tmPeriodTH(period), " \xB7 ", list.length, " \u0E43\u0E1A \xB7 \u0E01\u0E14\u0E1B\u0E38\u0E48\u0E21\u0E41\u0E25\u0E49\u0E27\u0E40\u0E25\u0E37\u0E2D\u0E01 \u201C\u0E1A\u0E31\u0E19\u0E17\u0E36\u0E01\u0E40\u0E1B\u0E47\u0E19 PDF\u201D")), [{
+    t: "ผู้อนุมัติ",
+    v: apprId,
+    set: pickAppr
+  }, {
+    t: "ผู้ตรวจสอบ",
+    v: revId,
+    set: pickRev
+  }].map(d => React.createElement(React.Fragment, {
+    key: d.t
+  }, !isMobile && React.createElement("span", {
     style: {
       fontSize: 11.5,
       fontWeight: 700,
       color: "var(--text-3)",
       flexShrink: 0
     }
-  }, "\u0E1C\u0E39\u0E49\u0E15\u0E23\u0E27\u0E08\u0E2A\u0E2D\u0E1A"), React.createElement(window.Dropdown, {
-    value: revId,
-    onChange: pickRev,
+  }, d.t), React.createElement(window.Dropdown, {
+    value: d.v,
+    onChange: d.set,
     options: revOpts,
-    placeholder: "\u0E1C\u0E39\u0E49\u0E15\u0E23\u0E27\u0E08\u0E2A\u0E2D\u0E1A",
+    placeholder: d.t,
     style: {
-      width: isMobile ? 130 : 200,
+      width: isMobile ? 120 : 180,
       flexShrink: 0
     }
-  }), React.createElement("button", {
+  }))), React.createElement("button", {
     onClick: doPrint,
     style: {
       display: "inline-flex",
