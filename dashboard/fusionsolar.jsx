@@ -1076,65 +1076,76 @@ function FsHistoryCard({ site, isMobile, flip, em, only }) {
 }
 
 /* ไฟที่ผลิตไปไหน · ไฟที่ใช้มาจากไหน — จากตัวเลขสะสมของมิเตอร์เทียบอินเวอร์เตอร์ (ภาพการไหลตอนนี้อยู่ใน FsHouseFlow)
-   ซ้าย = แถบผลิต/ใช้ชิดซ้ายสเกลเดียวกัน (FsEnergyBalance) + ตัวเลข 3 ส่วน · ขวา = หน้าปัด 2 ตัว + ผลที่ได้ */
+   แถบ 100% สองแถว แต่ละแถวเต็มกว้างของตัวเอง: "ผลิต → ใช้เอง/ขาย" และ "ใช้ ← โซลาร์/ซื้อ" · ขวา = CO₂
+   (ผู้ใช้ 2026-10-28 "ดูงง" — แบบเก่าแถบสองแถวสเกลเดียวกัน + หน้าปัด + การ์ดซ้ำตัวเลขเดิม 3 รอบ) */
 function FsEnergyCard({ em, isMobile }) {
-  if (em.selfTotal == null || !window.FsEnergyBalance) return null;
+  if (em.selfTotal == null) return null;
   const pv = em.pvTotal, use = em.importTotal != null ? em.selfTotal + em.importTotal : null;
-  const E = (v) => fsEnergy(v);
-  /* ตัวเลข 3 ส่วนใช้หน่วยเดียวกัน (ไม่ให้ MWh ปน kWh) */
-  const mwh = Math.max(em.selfTotal || 0, em.exportTotal || 0, em.importTotal || 0) >= 10000;
+  /* ทุกตัวเลขในการ์ดใช้หน่วยเดียวกัน (ไม่ให้ MWh ปน kWh) */
+  const mwh = Math.max(pv || 0, use || 0) >= 10000;
   const EP = (v) => (fsN(v) == null ? ["–", "kWh"] : mwh ? [fsFmt(v / 1000, 1), "MWh"] : [fsFmt(v, 1), "kWh"]);
   const co2 = (pv * FS_GRID_EF) / 1000;
-  const parts = [
-    { k: "self", c: "var(--fs-self)", l: "ใช้เองในอาคาร", v: em.selfTotal, s: Math.round(em.selfRate * 100) + "% ของที่ผลิต" + (use ? " · " + Math.round((em.selfTotal / use) * 100) + "% ของที่ใช้" : "") },
-    { k: "exp", c: "var(--fs-exp)", l: "ขายเข้ากริด", v: em.exportTotal, s: pv > 0 ? Math.round(((em.exportTotal || 0) / pv) * 100) + "% ของที่ผลิต" : null },
-  ].concat(use != null ? [{ k: "imp", c: "var(--fs-imp)", l: "ซื้อจากกริด", v: em.importTotal, s: Math.round((em.importTotal / use) * 100) + "% ของที่ใช้" }] : []);
-  const tile = (icon, color, label, value, unit, sub) => (
-    <div style={{ display: "flex", gap: 10, alignItems: "center", background: "var(--surface2)", boxShadow: "var(--shadow-inset)", borderRadius: "var(--r-tile)", padding: "10px 12px", minWidth: 0 }}>
-      <span style={{ width: 30, height: 30, borderRadius: 15, display: "grid", placeItems: "center", flexShrink: 0, background: "color-mix(in srgb, " + color + " 16%, var(--surface))" }}>
-        <Icon name={icon} size={15} color={color} />
-      </span>
-      <div style={{ minWidth: 0 }}>
-        <div style={{ fontSize: 10.5, fontWeight: 700, color: "var(--text-3)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{label}</div>
-        <div style={{ fontSize: 15, fontWeight: 800, color: "var(--text-1)", whiteSpace: "nowrap", fontVariantNumeric: "tabular-nums" }}>
-          {value}<span style={{ fontSize: 11, fontWeight: 600, color: "var(--text-3)", marginLeft: 4 }}>{unit}</span>
-        </div>
-        {sub && <div style={{ fontSize: 10.5, color: "var(--text-3)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{sub}</div>}
-      </div>
-    </div>
+  const rows = [
+    { title: "ไฟที่โซลาร์ผลิต ไปไหน", total: pv, segs: [
+      { c: "var(--fs-self)", l: "ใช้เองในอาคาร", v: em.selfTotal },
+      { c: "var(--fs-exp)", l: "ขายเข้ากริด", v: em.exportTotal || 0 }] },
+  ].concat(use ? [{ title: "ไฟที่อาคารใช้ มาจากไหน", total: use, segs: [
+      { c: "var(--fs-self)", l: "จากโซลาร์", v: em.selfTotal },
+      { c: "var(--fs-imp)", l: "ซื้อจากกริด", v: em.importTotal }] }] : []);
+  const num = (v, size) => (
+    <span style={{ fontFamily: "var(--display)", fontSize: size, fontWeight: 700, color: "var(--text-1)", whiteSpace: "nowrap", fontVariantNumeric: "tabular-nums" }}>
+      {EP(v)[0]}<span style={{ fontSize: 11.5, fontWeight: 600, color: "var(--text-3)", marginLeft: 4 }}>{EP(v)[1]}</span>
+    </span>
   );
+  const bar = (r) => {
+    const sum = r.segs.reduce((t, x) => t + Math.max(0, x.v || 0), 0) || 1;
+    return (
+      <div key={r.title} style={{ minWidth: 0 }}>
+        <div style={{ display: "flex", alignItems: "baseline", gap: 8, marginBottom: 7 }}>
+          <span style={{ fontSize: 12.5, fontWeight: 700, color: "var(--text-2)" }}>{r.title}</span>
+          <span style={{ marginLeft: "auto" }}>{num(r.total, 15)}</span>
+        </div>
+        <div style={{ display: "flex", gap: 3, height: 30, borderRadius: 9, overflow: "hidden", background: "var(--surface2)", boxShadow: "var(--shadow-inset)" }}>
+          {r.segs.map((x) => {
+            const pc = Math.round((Math.max(0, x.v || 0) / sum) * 100);
+            return pc > 0 && (
+              <div key={x.l} className="fs-wide" style={{ flex: pc + " 1 0", minWidth: 6, background: x.c, display: "flex", alignItems: "center", paddingLeft: 10, color: "#fff", fontSize: 12, fontWeight: 800, overflow: "hidden", whiteSpace: "nowrap" }}>
+                {pc >= 12 ? pc + "%" : ""}
+              </div>
+            );
+          })}
+        </div>
+        <div style={{ display: "flex", flexWrap: "wrap", gap: "6px 22px", marginTop: 8 }}>
+          {r.segs.map((x) => (
+            <div key={x.l} style={{ display: "flex", alignItems: "center", gap: 7, minWidth: 0 }}>
+              <span style={{ width: 10, height: 10, borderRadius: 5, background: x.c, flexShrink: 0 }} />
+              <span style={{ fontSize: 12, color: "var(--text-2)" }}>{x.l}</span>
+              {num(x.v, 14)}
+              <span style={{ fontSize: 11.5, color: "var(--text-3)" }}>{Math.round((Math.max(0, x.v || 0) / sum) * 100)}%</span>
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  };
   return (
     <FsCard title="พลังงานไปไหน · มาจากไหน" sub="นับสะสมตั้งแต่ติดตั้ง">
-      <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "minmax(0, 1.6fr) minmax(260px, 1fr)", gap: isMobile ? 18 : 0 }}>
-        <div style={{ minWidth: 0, paddingRight: isMobile ? 0 : 22 }}>
-          <window.FsEnergyBalance self={em.selfTotal} exp={em.exportTotal} imp={em.importTotal} compact={isMobile} />
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(" + parts.length + ", minmax(0, 1fr))", gap: isMobile ? 8 : 12, marginTop: 14 }}>
-            {parts.map((p) => (
-              <div key={p.k} style={{ minWidth: 0 }}>
-                <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 11.5, fontWeight: 600, color: "var(--text-2)" }}>
-                  <span style={{ width: 10, height: 10, borderRadius: 5, background: p.c, flexShrink: 0 }} />
-                  <span style={{ whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{p.l}</span>
-                </div>
-                <div style={{ fontFamily: "var(--display)", fontSize: isMobile ? 17 : 21, fontWeight: 700, color: "var(--text-1)", lineHeight: 1.2, whiteSpace: "nowrap", fontVariantNumeric: "tabular-nums" }}>
-                  {EP(p.v)[0]}<span style={{ fontSize: 11.5, fontWeight: 600, color: "var(--text-3)", marginLeft: 4 }}>{EP(p.v)[1]}</span>
-                </div>
-                {p.s && <div style={{ fontSize: 10.5, color: "var(--text-3)", lineHeight: 1.35 }}>{p.s}</div>}
-              </div>
-            ))}
-          </div>
-        </div>
-        <div style={{ minWidth: 0, display: "flex", flexDirection: "column", gap: 12, paddingLeft: isMobile ? 0 : 22, boxShadow: isMobile ? "none" : "inset 1px 0 0 var(--divider)" }}>
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
-            <FsGauge frac={em.selfRate} value={Math.round(em.selfRate * 100)} unit="%" size={128} color="var(--fs-self)" label="ใช้เองได้" sub="self-consumption" />
-            <FsGauge frac={em.sufficiency} value={em.sufficiency != null ? Math.round(em.sufficiency * 100) : "–"} unit="%" size={128} color="var(--fs-sun)" label="พึ่งตัวเองได้" sub="self-sufficiency" />
-          </div>
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
-            {tile("home", "var(--fs-self)", "ซื้อไฟลดลง", E(em.selfTotal)[0], E(em.selfTotal)[1], "ไฟโซลาร์ที่ใช้เอง")}
-            {tile("sparkle", "var(--tint-ok-tx)", "ลด CO₂ สะสม", fsFmt(co2, 1), "ตัน", "≈ ต้นไม้ " + fsFmt((co2 * 1000) / FS_TREE_KG, 0) + " ต้น/ปี")}
+      <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "minmax(0, 1fr) 210px", gap: isMobile ? 16 : 24, alignItems: "center" }}>
+        <div style={{ display: "flex", flexDirection: "column", gap: 18, minWidth: 0 }}>{rows.map(bar)}</div>
+        <div style={{ display: "flex", gap: 12, alignItems: "center", background: "var(--surface2)", boxShadow: "var(--shadow-inset)", borderRadius: "var(--r-tile)", padding: "14px 16px" }}>
+          <span style={{ width: 38, height: 38, borderRadius: 19, display: "grid", placeItems: "center", flexShrink: 0, background: "color-mix(in srgb, var(--tint-ok-tx) 16%, var(--surface))" }}>
+            <Icon name="sparkle" size={18} color="var(--tint-ok-tx)" />
+          </span>
+          <div style={{ minWidth: 0 }}>
+            <div style={{ fontSize: 11.5, fontWeight: 700, color: "var(--text-3)" }}>ลด CO₂ สะสม</div>
+            <div style={{ fontFamily: "var(--display)", fontSize: 22, fontWeight: 700, color: "var(--text-1)", lineHeight: 1.2, fontVariantNumeric: "tabular-nums" }}>
+              {fsFmt(co2, 1)}<span style={{ fontSize: 12, fontWeight: 600, color: "var(--text-3)", marginLeft: 4 }}>ตัน</span>
+            </div>
+            <div style={{ fontSize: 11, color: "var(--text-3)" }}>≈ ต้นไม้ {fsFmt((co2 * 1000) / FS_TREE_KG, 0)} ต้น/ปี</div>
           </div>
         </div>
       </div>
-      <div style={{ fontSize: 11, color: "var(--text-3)", marginTop: 12 }}>
+      <div style={{ fontSize: 11, color: "var(--text-3)", marginTop: 14 }}>
         ถูกต้องเมื่อติดตั้งมิเตอร์พร้อมระบบ (ถ้าเพิ่มมิเตอร์ทีหลัง สัดส่วนใช้เองจะออกมาสูงกว่าจริง)
       </div>
     </FsCard>

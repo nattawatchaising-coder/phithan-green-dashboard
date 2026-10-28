@@ -2691,213 +2691,219 @@ function FsEnergyCard({
   em,
   isMobile
 }) {
-  if (em.selfTotal == null || !window.FsEnergyBalance) return null;
+  if (em.selfTotal == null) return null;
   const pv = em.pvTotal,
     use = em.importTotal != null ? em.selfTotal + em.importTotal : null;
-  const E = v => fsEnergy(v);
-  const mwh = Math.max(em.selfTotal || 0, em.exportTotal || 0, em.importTotal || 0) >= 10000;
+  const mwh = Math.max(pv || 0, use || 0) >= 10000;
   const EP = v => fsN(v) == null ? ["–", "kWh"] : mwh ? [fsFmt(v / 1000, 1), "MWh"] : [fsFmt(v, 1), "kWh"];
   const co2 = pv * FS_GRID_EF / 1000;
-  const parts = [{
-    k: "self",
-    c: "var(--fs-self)",
-    l: "ใช้เองในอาคาร",
-    v: em.selfTotal,
-    s: Math.round(em.selfRate * 100) + "% ของที่ผลิต" + (use ? " · " + Math.round(em.selfTotal / use * 100) + "% ของที่ใช้" : "")
-  }, {
-    k: "exp",
-    c: "var(--fs-exp)",
-    l: "ขายเข้ากริด",
-    v: em.exportTotal,
-    s: pv > 0 ? Math.round((em.exportTotal || 0) / pv * 100) + "% ของที่ผลิต" : null
-  }].concat(use != null ? [{
-    k: "imp",
-    c: "var(--fs-imp)",
-    l: "ซื้อจากกริด",
-    v: em.importTotal,
-    s: Math.round(em.importTotal / use * 100) + "% ของที่ใช้"
+  const rows = [{
+    title: "ไฟที่โซลาร์ผลิต ไปไหน",
+    total: pv,
+    segs: [{
+      c: "var(--fs-self)",
+      l: "ใช้เองในอาคาร",
+      v: em.selfTotal
+    }, {
+      c: "var(--fs-exp)",
+      l: "ขายเข้ากริด",
+      v: em.exportTotal || 0
+    }]
+  }].concat(use ? [{
+    title: "ไฟที่อาคารใช้ มาจากไหน",
+    total: use,
+    segs: [{
+      c: "var(--fs-self)",
+      l: "จากโซลาร์",
+      v: em.selfTotal
+    }, {
+      c: "var(--fs-imp)",
+      l: "ซื้อจากกริด",
+      v: em.importTotal
+    }]
   }] : []);
-  const tile = (icon, color, label, value, unit, sub) => React.createElement("div", {
+  const num = (v, size) => React.createElement("span", {
     style: {
-      display: "flex",
-      gap: 10,
-      alignItems: "center",
-      background: "var(--surface2)",
-      boxShadow: "var(--shadow-inset)",
-      borderRadius: "var(--r-tile)",
-      padding: "10px 12px",
-      minWidth: 0
-    }
-  }, React.createElement("span", {
-    style: {
-      width: 30,
-      height: 30,
-      borderRadius: 15,
-      display: "grid",
-      placeItems: "center",
-      flexShrink: 0,
-      background: "color-mix(in srgb, " + color + " 16%, var(--surface))"
-    }
-  }, React.createElement(Icon, {
-    name: icon,
-    size: 15,
-    color: color
-  })), React.createElement("div", {
-    style: {
-      minWidth: 0
-    }
-  }, React.createElement("div", {
-    style: {
-      fontSize: 10.5,
+      fontFamily: "var(--display)",
+      fontSize: size,
       fontWeight: 700,
-      color: "var(--text-3)",
-      whiteSpace: "nowrap",
-      overflow: "hidden",
-      textOverflow: "ellipsis"
-    }
-  }, label), React.createElement("div", {
-    style: {
-      fontSize: 15,
-      fontWeight: 800,
       color: "var(--text-1)",
       whiteSpace: "nowrap",
       fontVariantNumeric: "tabular-nums"
     }
-  }, value, React.createElement("span", {
+  }, EP(v)[0], React.createElement("span", {
     style: {
-      fontSize: 11,
+      fontSize: 11.5,
       fontWeight: 600,
       color: "var(--text-3)",
       marginLeft: 4
     }
-  }, unit)), sub && React.createElement("div", {
-    style: {
-      fontSize: 10.5,
-      color: "var(--text-3)",
-      whiteSpace: "nowrap",
-      overflow: "hidden",
-      textOverflow: "ellipsis"
-    }
-  }, sub)));
+  }, EP(v)[1]));
+  const bar = r => {
+    const sum = r.segs.reduce((t, x) => t + Math.max(0, x.v || 0), 0) || 1;
+    return React.createElement("div", {
+      key: r.title,
+      style: {
+        minWidth: 0
+      }
+    }, React.createElement("div", {
+      style: {
+        display: "flex",
+        alignItems: "baseline",
+        gap: 8,
+        marginBottom: 7
+      }
+    }, React.createElement("span", {
+      style: {
+        fontSize: 12.5,
+        fontWeight: 700,
+        color: "var(--text-2)"
+      }
+    }, r.title), React.createElement("span", {
+      style: {
+        marginLeft: "auto"
+      }
+    }, num(r.total, 15))), React.createElement("div", {
+      style: {
+        display: "flex",
+        gap: 3,
+        height: 30,
+        borderRadius: 9,
+        overflow: "hidden",
+        background: "var(--surface2)",
+        boxShadow: "var(--shadow-inset)"
+      }
+    }, r.segs.map(x => {
+      const pc = Math.round(Math.max(0, x.v || 0) / sum * 100);
+      return pc > 0 && React.createElement("div", {
+        key: x.l,
+        className: "fs-wide",
+        style: {
+          flex: pc + " 1 0",
+          minWidth: 6,
+          background: x.c,
+          display: "flex",
+          alignItems: "center",
+          paddingLeft: 10,
+          color: "#fff",
+          fontSize: 12,
+          fontWeight: 800,
+          overflow: "hidden",
+          whiteSpace: "nowrap"
+        }
+      }, pc >= 12 ? pc + "%" : "");
+    })), React.createElement("div", {
+      style: {
+        display: "flex",
+        flexWrap: "wrap",
+        gap: "6px 22px",
+        marginTop: 8
+      }
+    }, r.segs.map(x => React.createElement("div", {
+      key: x.l,
+      style: {
+        display: "flex",
+        alignItems: "center",
+        gap: 7,
+        minWidth: 0
+      }
+    }, React.createElement("span", {
+      style: {
+        width: 10,
+        height: 10,
+        borderRadius: 5,
+        background: x.c,
+        flexShrink: 0
+      }
+    }), React.createElement("span", {
+      style: {
+        fontSize: 12,
+        color: "var(--text-2)"
+      }
+    }, x.l), num(x.v, 14), React.createElement("span", {
+      style: {
+        fontSize: 11.5,
+        color: "var(--text-3)"
+      }
+    }, Math.round(Math.max(0, x.v || 0) / sum * 100), "%")))));
+  };
   return React.createElement(FsCard, {
     title: "\u0E1E\u0E25\u0E31\u0E07\u0E07\u0E32\u0E19\u0E44\u0E1B\u0E44\u0E2B\u0E19 \xB7 \u0E21\u0E32\u0E08\u0E32\u0E01\u0E44\u0E2B\u0E19",
     sub: "\u0E19\u0E31\u0E1A\u0E2A\u0E30\u0E2A\u0E21\u0E15\u0E31\u0E49\u0E07\u0E41\u0E15\u0E48\u0E15\u0E34\u0E14\u0E15\u0E31\u0E49\u0E07"
   }, React.createElement("div", {
     style: {
       display: "grid",
-      gridTemplateColumns: isMobile ? "1fr" : "minmax(0, 1.6fr) minmax(260px, 1fr)",
-      gap: isMobile ? 18 : 0
+      gridTemplateColumns: isMobile ? "1fr" : "minmax(0, 1fr) 210px",
+      gap: isMobile ? 16 : 24,
+      alignItems: "center"
     }
   }, React.createElement("div", {
     style: {
-      minWidth: 0,
-      paddingRight: isMobile ? 0 : 22
+      display: "flex",
+      flexDirection: "column",
+      gap: 18,
+      minWidth: 0
     }
-  }, React.createElement(window.FsEnergyBalance, {
-    self: em.selfTotal,
-    exp: em.exportTotal,
-    imp: em.importTotal,
-    compact: isMobile
-  }), React.createElement("div", {
+  }, rows.map(bar)), React.createElement("div", {
     style: {
-      display: "grid",
-      gridTemplateColumns: "repeat(" + parts.length + ", minmax(0, 1fr))",
-      gap: isMobile ? 8 : 12,
-      marginTop: 14
+      display: "flex",
+      gap: 12,
+      alignItems: "center",
+      background: "var(--surface2)",
+      boxShadow: "var(--shadow-inset)",
+      borderRadius: "var(--r-tile)",
+      padding: "14px 16px"
     }
-  }, parts.map(p => React.createElement("div", {
-    key: p.k,
+  }, React.createElement("span", {
+    style: {
+      width: 38,
+      height: 38,
+      borderRadius: 19,
+      display: "grid",
+      placeItems: "center",
+      flexShrink: 0,
+      background: "color-mix(in srgb, var(--tint-ok-tx) 16%, var(--surface))"
+    }
+  }, React.createElement(Icon, {
+    name: "sparkle",
+    size: 18,
+    color: "var(--tint-ok-tx)"
+  })), React.createElement("div", {
     style: {
       minWidth: 0
     }
   }, React.createElement("div", {
     style: {
-      display: "flex",
-      alignItems: "center",
-      gap: 6,
       fontSize: 11.5,
-      fontWeight: 600,
-      color: "var(--text-2)"
+      fontWeight: 700,
+      color: "var(--text-3)"
     }
-  }, React.createElement("span", {
-    style: {
-      width: 10,
-      height: 10,
-      borderRadius: 5,
-      background: p.c,
-      flexShrink: 0
-    }
-  }), React.createElement("span", {
-    style: {
-      whiteSpace: "nowrap",
-      overflow: "hidden",
-      textOverflow: "ellipsis"
-    }
-  }, p.l)), React.createElement("div", {
+  }, "\u0E25\u0E14 CO\u2082 \u0E2A\u0E30\u0E2A\u0E21"), React.createElement("div", {
     style: {
       fontFamily: "var(--display)",
-      fontSize: isMobile ? 17 : 21,
+      fontSize: 22,
       fontWeight: 700,
       color: "var(--text-1)",
       lineHeight: 1.2,
-      whiteSpace: "nowrap",
       fontVariantNumeric: "tabular-nums"
     }
-  }, EP(p.v)[0], React.createElement("span", {
+  }, fsFmt(co2, 1), React.createElement("span", {
     style: {
-      fontSize: 11.5,
+      fontSize: 12,
       fontWeight: 600,
       color: "var(--text-3)",
       marginLeft: 4
     }
-  }, EP(p.v)[1])), p.s && React.createElement("div", {
+  }, "\u0E15\u0E31\u0E19")), React.createElement("div", {
     style: {
-      fontSize: 10.5,
-      color: "var(--text-3)",
-      lineHeight: 1.35
+      fontSize: 11,
+      color: "var(--text-3)"
     }
-  }, p.s))))), React.createElement("div", {
-    style: {
-      minWidth: 0,
-      display: "flex",
-      flexDirection: "column",
-      gap: 12,
-      paddingLeft: isMobile ? 0 : 22,
-      boxShadow: isMobile ? "none" : "inset 1px 0 0 var(--divider)"
-    }
-  }, React.createElement("div", {
-    style: {
-      display: "grid",
-      gridTemplateColumns: "1fr 1fr",
-      gap: 10
-    }
-  }, React.createElement(FsGauge, {
-    frac: em.selfRate,
-    value: Math.round(em.selfRate * 100),
-    unit: "%",
-    size: 128,
-    color: "var(--fs-self)",
-    label: "\u0E43\u0E0A\u0E49\u0E40\u0E2D\u0E07\u0E44\u0E14\u0E49",
-    sub: "self-consumption"
-  }), React.createElement(FsGauge, {
-    frac: em.sufficiency,
-    value: em.sufficiency != null ? Math.round(em.sufficiency * 100) : "–",
-    unit: "%",
-    size: 128,
-    color: "var(--fs-sun)",
-    label: "\u0E1E\u0E36\u0E48\u0E07\u0E15\u0E31\u0E27\u0E40\u0E2D\u0E07\u0E44\u0E14\u0E49",
-    sub: "self-sufficiency"
-  })), React.createElement("div", {
-    style: {
-      display: "grid",
-      gridTemplateColumns: "1fr 1fr",
-      gap: 8
-    }
-  }, tile("home", "var(--fs-self)", "ซื้อไฟลดลง", E(em.selfTotal)[0], E(em.selfTotal)[1], "ไฟโซลาร์ที่ใช้เอง"), tile("sparkle", "var(--tint-ok-tx)", "ลด CO₂ สะสม", fsFmt(co2, 1), "ตัน", "≈ ต้นไม้ " + fsFmt(co2 * 1000 / FS_TREE_KG, 0) + " ต้น/ปี")))), React.createElement("div", {
+  }, "\u2248 \u0E15\u0E49\u0E19\u0E44\u0E21\u0E49 ", fsFmt(co2 * 1000 / FS_TREE_KG, 0), " \u0E15\u0E49\u0E19/\u0E1B\u0E35")))), React.createElement("div", {
     style: {
       fontSize: 11,
       color: "var(--text-3)",
-      marginTop: 12
+      marginTop: 14
     }
   }, "\u0E16\u0E39\u0E01\u0E15\u0E49\u0E2D\u0E07\u0E40\u0E21\u0E37\u0E48\u0E2D\u0E15\u0E34\u0E14\u0E15\u0E31\u0E49\u0E07\u0E21\u0E34\u0E40\u0E15\u0E2D\u0E23\u0E4C\u0E1E\u0E23\u0E49\u0E2D\u0E21\u0E23\u0E30\u0E1A\u0E1A (\u0E16\u0E49\u0E32\u0E40\u0E1E\u0E34\u0E48\u0E21\u0E21\u0E34\u0E40\u0E15\u0E2D\u0E23\u0E4C\u0E17\u0E35\u0E2B\u0E25\u0E31\u0E07 \u0E2A\u0E31\u0E14\u0E2A\u0E48\u0E27\u0E19\u0E43\u0E0A\u0E49\u0E40\u0E2D\u0E07\u0E08\u0E30\u0E2D\u0E2D\u0E01\u0E21\u0E32\u0E2A\u0E39\u0E07\u0E01\u0E27\u0E48\u0E32\u0E08\u0E23\u0E34\u0E07)"));
 }
