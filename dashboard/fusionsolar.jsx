@@ -583,7 +583,7 @@ function FsSyncAlert({ fail, lastAt, vendor }) {
       <div style={{ display: "flex", flexDirection: "column", gap: 3, fontSize: 12.5, minWidth: 0 }}>
         <div style={{ fontWeight: 800, color: "var(--tint-red-tx)" }}>ดึงข้อมูลจาก {vendor || "Huawei FusionSolar"} ไม่ได้ตั้งแต่ {fsWhen(fail.since || fail.at)}</div>
         <div style={{ color: "var(--text-1)" }}>{fail.text || fail.message}{fail.failCode != null ? " (failCode " + fail.failCode + ")" : ""}</div>
-        <div style={{ color: "var(--text-3)", fontSize: 11.5 }}>ตัวเลขด้านล่างเป็นค่าเมื่อ {lastAt ? fsWhen(new Date(lastAt).toISOString()) : "–"} · ระบบลองใหม่เองชั่วโมงละครั้ง แก้แล้วแอดมินกด "ซิงก์ตอนนี้" ในตั้งค่า → ซิงก์ FusionSolar ได้ทันที</div>
+        <div style={{ color: "var(--text-3)", fontSize: 11.5 }}>ตัวเลขด้านล่างเป็นค่าเมื่อ {lastAt ? fsWhen(new Date(lastAt).toISOString()) : "–"} · ระบบลองใหม่เองชั่วโมงละครั้ง แก้แล้วแอดมินกด "ซิงก์ตอนนี้" ในตั้งค่า → API Monitoring ได้ทันที</div>
       </div>
     </div>
   );
@@ -732,7 +732,7 @@ function FsSitesView({ jobs, role, currentUser, onOpenJob, onOpenOm }) {
       ) : !sites.length ? (
         <div style={{ padding: "34px 20px", textAlign: "center", background: "var(--surface)", boxShadow: "var(--shadow-sm)",
           borderRadius: "var(--r-card)", color: "var(--text-2)", fontSize: 13 }}>
-          ยังไม่มีไซต์ — แอดมินกด "ซิงก์ตอนนี้" ในเมนูตั้งค่า → ซิงก์ FusionSolar หรือเพิ่มไซต์เอง
+          ยังไม่มีไซต์ — แอดมินกด "ซิงก์ตอนนี้" ในเมนูตั้งค่า → API Monitoring หรือเพิ่มไซต์เอง
         </div>
       ) : mapView ? (
         <FsSitesMap sites={rows} live={live} onOpen={setOpen} isMobile={isMobile} />
@@ -1048,7 +1048,6 @@ function FsHistoryCard({ site, isMobile, flip, em, only }) {
           <React.Fragment>
             <span style={{ display: "flex", alignItems: "center", gap: 5 }}><span style={{ width: 16, height: 3, borderRadius: 2, background: "var(--fs-sun)" }} />กำลังผลิต (kW)</span>
             {today.hasLoad && <span style={{ display: "flex", alignItems: "center", gap: 5 }}><span style={{ width: 16, height: 3, borderRadius: 2, background: "var(--fs-load)" }} />กำลังใช้ไฟ (kW)</span>}
-            {today.hasLoad && <span>ส่วนที่ซ้อนกัน = ไฟโซลาร์ที่ใช้เอง</span>}
             {today.bars.some((b) => b.partial && b.value != null) && <span style={{ display: "flex", alignItems: "center", gap: 5 }}>{dot("var(--fs-sun)")}ตอนนี้</span>}
           </React.Fragment>
         ) : (
@@ -1239,7 +1238,7 @@ function FsSiteModal({ site, sites, medMonth, jobs, canWrite, isAdmin, currentUs
   const toggleSync = async () => {
     const off = !site.sync_off;
     const ok = await window.askConfirm(off
-      ? { title: "หยุดซิงก์ไซต์นี้?", body: "ระบบจะไม่ดึงค่าผลิตและค่าอุปกรณ์ของ \"" + (site.name || site.id) + "\" อีก และซ่อนจากหน้าไซต์ทั้งหมด (ดูได้ที่ชิป \"หยุดซิงก์\") · ไม่ลบข้อมูล ประวัติเดิมอยู่ครบ กดซิงก์ต่อได้ทุกเมื่อ", ok: "หยุดซิงก์" }
+      ? { title: "หยุดซิงก์ไซต์นี้?", body: "ระบบจะไม่ดึงค่าผลิตและค่าอุปกรณ์ของ \"" + (site.name || site.id) + "\" อีก และซ่อนจากหน้า Monitoring (ดูได้ที่ชิป \"หยุดซิงก์\") · ไม่ลบข้อมูล ประวัติเดิมอยู่ครบ กดซิงก์ต่อได้ทุกเมื่อ", ok: "หยุดซิงก์" }
       : { title: "ซิงก์ไซต์นี้ต่อ?", body: "รอบซิงก์ถัดไป (ไม่เกิน 15 นาที) จะเริ่มดึงค่าผลิตและค่าอุปกรณ์อีกครั้ง · ช่วงที่หยุดไปจะไม่มีข้อมูลรายชั่วโมง", ok: "ซิงก์ต่อ", danger: false, icon: "power" });
     if (!ok) return;
     fsPatchSite(site.id, { sync_off: off ? { at: new Date().toISOString(), by: (currentUser || {}).name || null } : null });
@@ -1253,7 +1252,7 @@ function FsSiteModal({ site, sites, medMonth, jobs, canWrite, isAdmin, currentUs
 
   return (
     <FsModal width={1000} onClose={onClose} title={site.name || "(ไม่มีชื่อ)"}
-      sub={(code ? code : "ไม่มี station code") + " · " + fsNum(site.capacity_kw, 2) + " kWp" + (site.address ? " · " + site.address : "")}
+      sub={[fsNum(site.capacity_kw, 2) + " kWp", window.fsProvince(site.address)].filter(Boolean).join(" · ")}
       right={<div style={{ display: "flex", gap: 6, alignItems: "center", flexWrap: "wrap" }}><FsSrcChip s={site} /><FsPill k={hk} />
         {code && <button type="button" className="btn btn-sm" onClick={() => setExporting(true)} title="ส่งออก Excel ของไซต์นี้"
           style={{ display: "inline-flex", alignItems: "center", gap: 5 }}><Icon name="download" size={13} />Excel</button>}</div>}>
@@ -1412,7 +1411,7 @@ function FsSiteModal({ site, sites, medMonth, jobs, canWrite, isAdmin, currentUs
       {tab === "info" && isAdmin && code && !site.sync_off && (
         <FsCard title="การซิงก์">
           <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
-            <span style={{ flex: "1 1 240px", fontSize: 12.5, color: "var(--text-2)" }}>ไซต์ที่ไม่ได้ดูแลแล้ว หยุดซิงก์ได้ — ไม่ดึงข้อมูลอีก ซ่อนจากหน้าไซต์ทั้งหมด ไม่ลบประวัติ</span>
+            <span style={{ flex: "1 1 240px", fontSize: 12.5, color: "var(--text-2)" }}>ไซต์ที่ไม่ได้ดูแลแล้ว หยุดซิงก์ได้ — ไม่ดึงข้อมูลอีก ซ่อนจากหน้า Monitoring ไม่ลบประวัติ</span>
             <button type="button" className="btn btn-sm" onClick={toggleSync}>หยุดซิงก์ไซต์นี้</button>
           </div>
         </FsCard>

@@ -87,8 +87,8 @@ const NAV = [{
 }, {
   sect: "work",
   key: "sites",
-  th: "ไซต์ทั้งหมด",
-  en: "Sites",
+  th: "Monitoring",
+  en: "Monitoring",
   icon: "sun",
   perm: "om"
 }, {
@@ -136,8 +136,8 @@ const NAV = [{
   inSettings: true
 }, {
   key: "fslog",
-  th: "ซิงก์ FusionSolar",
-  en: "FusionSolar",
+  th: "API Monitoring",
+  en: "API Monitoring",
   icon: "history",
   perm: "manageUsers",
   inSettings: true

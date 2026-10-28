@@ -108,6 +108,52 @@ const fsKw = (v, capKw, isW) => { const n = fsN(v); if (n == null) return null; 
 /* พิกัดอินเวอร์เตอร์จากชื่อรุ่น — SUN2000-10KTL-M1 = 10 · SUN5000-150K-MG0 = 150 · SUN2000-5K-MAP0 = 5 kW (ทุกรุ่นในข้อมูลจริงผ่าน) */
 const fsRatedKw = (model) => { const m = /-(\d+(?:\.\d+)?)K(?:TL)?(?=-|$)/i.exec(model || ""); return m ? +m[1] : null; };
 
+/* จังหวัดจากที่อยู่ไซต์ — ที่อยู่จาก Huawei/Sungrow ปนไทย/อังกฤษและติดกันเป็นพรืด ("ThailandBang Kapi DistrictKhlong Chan")
+   ลำดับ: รหัสไปรษณีย์ 2 หลักแรก → คำบอกกรุงเทพ (เขต/แขวง/Khet) → ชื่อจังหวัด → ชื่อเขต/อำเภอที่เจอบ่อย · ไม่รู้ = "" (ผู้ใช้สั่ง 2026-10-28 หัวไซต์เหลือแค่ขนาดกับจังหวัด) */
+const FS_PROV = [
+  ["กรุงเทพฯ", "Bangkok", 10], ["นนทบุรี", "Nonthaburi", 11], ["ปทุมธานี", "Pathum Thani", 12], ["พระนครศรีอยุธยา", "Ayutthaya", 13],
+  ["อ่างทอง", "Ang Thong", 14], ["ลพบุรี", "Lop Buri", 15], ["สิงห์บุรี", "Sing Buri", 16], ["ชัยนาท", "Chai Nat", 17], ["สระบุรี", "Saraburi", 18],
+  ["ชลบุรี", "Chon Buri", 20], ["ระยอง", "Rayong", 21], ["จันทบุรี", "Chanthaburi", 22], ["ตราด", "Trat", 23], ["ฉะเชิงเทรา", "Chachoengsao", 24],
+  ["ปราจีนบุรี", "Prachin Buri", 25], ["นครนายก", "Nakhon Nayok", 26], ["สระแก้ว", "Sa Kaeo", 27], ["นครราชสีมา", "Nakhon Ratchasima", 30],
+  ["บุรีรัมย์", "Buri Ram", 31], ["สุรินทร์", "Surin", 32], ["ศรีสะเกษ", "Si Sa Ket", 33], ["อุบลราชธานี", "Ubon Ratchathani", 34], ["ยโสธร", "Yasothon", 35],
+  ["ชัยภูมิ", "Chaiyaphum", 36], ["อำนาจเจริญ", "Amnat Charoen", 37], ["บึงกาฬ", "Bueng Kan", 38], ["หนองบัวลำภู", "Nong Bua Lam Phu", 39],
+  ["ขอนแก่น", "Khon Kaen", 40], ["อุดรธานี", "Udon Thani", 41], ["เลย", "Loei", 42], ["หนองคาย", "Nong Khai", 43], ["มหาสารคาม", "Maha Sarakham", 44],
+  ["ร้อยเอ็ด", "Roi Et", 45], ["กาฬสินธุ์", "Kalasin", 46], ["สกลนคร", "Sakon Nakhon", 47], ["นครพนม", "Nakhon Phanom", 48], ["มุกดาหาร", "Mukdahan", 49],
+  ["เชียงใหม่", "Chiang Mai", 50], ["ลำพูน", "Lamphun", 51], ["ลำปาง", "Lampang", 52], ["อุตรดิตถ์", "Uttaradit", 53], ["แพร่", "Phrae", 54], ["น่าน", "Nan", 55],
+  ["พะเยา", "Phayao", 56], ["เชียงราย", "Chiang Rai", 57], ["แม่ฮ่องสอน", "Mae Hong Son", 58], ["นครสวรรค์", "Nakhon Sawan", 60], ["อุทัยธานี", "Uthai Thani", 61],
+  ["กำแพงเพชร", "Kamphaeng Phet", 62], ["ตาก", "Tak", 63], ["สุโขทัย", "Sukhothai", 64], ["พิษณุโลก", "Phitsanulok", 65], ["พิจิตร", "Phichit", 66],
+  ["เพชรบูรณ์", "Phetchabun", 67], ["ราชบุรี", "Ratchaburi", 70], ["กาญจนบุรี", "Kanchanaburi", 71], ["สุพรรณบุรี", "Suphan Buri", 72], ["นครปฐม", "Nakhon Pathom", 73],
+  ["สมุทรสาคร", "Samut Sakhon", 74], ["สมุทรสงคราม", "Samut Songkhram", 75], ["เพชรบุรี", "Phetchaburi", 76], ["ประจวบคีรีขันธ์", "Prachuap Khiri Khan", 77],
+  ["นครศรีธรรมราช", "Nakhon Si Thammarat", 80], ["กระบี่", "Krabi", 81], ["พังงา", "Phangnga", 82], ["ภูเก็ต", "Phuket", 83], ["สุราษฎร์ธานี", "Surat Thani", 84],
+  ["ระนอง", "Ranong", 85], ["ชุมพร", "Chumphon", 86], ["สงขลา", "Songkhla", 90], ["สตูล", "Satun", 91], ["ตรัง", "Trang", 92], ["พัทลุง", "Phatthalung", 93],
+  ["ปัตตานี", "Pattani", 94], ["ยะลา", "Yala", 95], ["นราธิวาส", "Narathiwat", 96], ["สมุทรปราการ", "Samut Prakan", 0],
+];
+const FS_PROV_ALIAS = [["กรุงเทพมหานคร", "กรุงเทพฯ"], ["Krung Thep", "กรุงเทพฯ"], ["Phra Nakhon Si Ayutthaya", "พระนครศรีอยุธยา"], ["Lopburi", "ลพบุรี"],
+  ["Chonburi", "ชลบุรี"], ["Prachinburi", "ปราจีนบุรี"], ["Buriram", "บุรีรัมย์"], ["Suphanburi", "สุพรรณบุรี"], ["Singburi", "สิงห์บุรี"]];
+/* เขต/อำเภอที่ไม่มีจังหวัดหรือรหัสไปรษณีย์ในที่อยู่ */
+const FS_AMPHOE = [["สมุทรปราการ", /บางพลี|บางเสาธง|พระสมุทรเจดีย์|พระประแดง|บางบ่อ|แพรกษา|Bang Phli|Bang Sao Thong|Phraeksa/],
+  ["นนทบุรี", /บางบัวทอง|ปากเกร็ด|บางใหญ่|บางกรวย|ไทรน้อย|Bang Bua Thong|Pak Kret/], ["ปทุมธานี", /คลองหลวง|ลำลูกกา|ธัญบุรี|Khlong Luang|Lam Luk Ka|Thanyaburi/],
+  ["สมุทรสาคร", /กระทุ่มแบน|บ้านแพ้ว|Krathum Baen/], ["นครปฐม", /บางเลน|สามพรา|นครชัยศรี|Bang Len|Sam Phran/], ["อ่างทอง", /วิเศษชัยชาญ|Wiset Chai Chan/],
+  ["พระนครศรีอยุธยา", /บางปะอิน|Bang Pa-in/], ["ประจวบคีรีขันธ์", /บางสะพาน|Bang Saphan/], ["สระบุรี", /พระพุทธบาท/], ["เชียงใหม่", /แม่ริม|Mae Rim/]];
+const FS_BKK = /เขต|แขวง|Khet|Khwaeng|Bang Kapi|Thung Khru|Wang Thonglang|Lat Phrao|Bang Khen|Min Buri|Prawet|Bueng Kum|Sathon|Watthana|Khlong Toei|Chatuchak|Huai Khwang|Don Mueang|Sai Mai|Lat Krabang|Nong Chok|Bang Na|Phra Khanong|Bang Bon|Bang Khun Thian|Rat Burana|Thon Buri|Taling Chan|Bang Khae|Phasi Charoen|Nong Khaem|Bang Sue|Din Daeng|Phaya Thai|Ratchathewi|Pathum Wan|Bang Rak|Sukhumvit/;
+const FS_PM_ZIP = /^(10130|10270|10280|10290|10540|10550|10560)$/;
+function fsProvince(addr) {
+  const a = String(addr || "").replace(/[​-‏‪-‮]/g, "");
+  if (!a) return "";
+  const zips = a.match(/(?<![\d/])[1-9]\d{4}(?![\d/])/g) || [];
+  for (const z of zips) {
+    if (FS_PM_ZIP.test(z)) return "สมุทรปราการ";
+    const p = FS_PROV.find((r) => r[2] === +z.slice(0, 2));
+    if (p) return p[0];
+  }
+  if (FS_BKK.test(a)) return "กรุงเทพฯ";
+  const en = (n) => new RegExp(n.replace(/ /g, "\\s*") + "(?![a-z])");
+  for (const [th, n] of FS_PROV_ALIAS) if (a.includes(th) || en(th).test(a)) return n;
+  for (const [th, n] of FS_PROV) if (a.includes(th) || en(n).test(a)) return th;
+  const m = FS_AMPHOE.find((r) => r[1].test(a));
+  return m ? m[0] : "";
+}
+
 /* สตริง PV ของอินเวอร์เตอร์ — Huawei ส่งมาครบทุกช่อง (ช่องว่างเป็น 0) จึงตัดช่องที่ไม่มีอะไรต่อออก
    ช่องที่ไม่ได้ต่อแผงแต่อยู่ MPPT เดียวกับสตริงที่ต่อ จะมีแรงดันตาม MPPT แต่กระแส 0 พอดี — ตอนสตริงอื่นมีกระแส
    ถือว่าไม่ได้ต่อ ไม่เตือน (ผู้ใช้แจ้ง 2026-10-28 Glow Film เตือน 49 เรื่อง "มันไม่ได้ต่อ กระแสเลยไม่มี") · สตริงที่ต่อแต่กระแส 0 (ฟิวส์ขาด) จึงไม่ถูกเตือนด้วย
@@ -529,6 +575,6 @@ function FsBatteryBody({ k, em, isMobile }) {
 }
 
 Object.assign(window, {
-  fsN, fsFmt, fsEnergy, fsBkk, fsDayTH, fsMonTH, fsMedian, FS_GRID_EF, fsInvState, fsStrings, fsStrUsed, fsEnergyModel, fsSiteIssues, fsMonthYield,
+  fsN, fsFmt, fsEnergy, fsBkk, fsDayTH, fsMonTH, fsMedian, FS_GRID_EF, fsInvState, fsStrings, fsStrUsed, fsProvince, fsEnergyModel, fsSiteIssues, fsMonthYield,
   FsBarChart, FsSplitBar, FsMeter, FsEnergyFlow, FsKv, FsTile, FsChip, FsInverterBody, FsMeterBody, FsBatteryBody,
 });

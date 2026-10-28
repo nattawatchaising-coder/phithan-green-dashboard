@@ -32,7 +32,7 @@ const NAV = [
   /* งานบริการหลังการขาย — ทะเบียนประกัน · รอบล้างแผง · ใบแจ้งซ่อม · ใบรายงานเข้าบริการ */
   { sect: "work", key: "om",         th: "งานบริการหลังการขาย", en: "O&M",         icon: "wrench",   perm: "om" },
   /* ไซต์ที่ติดตั้งแล้ว — ดึงจาก Huawei FusionSolar (fusionsolar.jsx · docs/fusionsolar.md) ใช้สิทธิ์เดียวกับ O&M */
-  { sect: "work", key: "sites",      th: "ไซต์ทั้งหมด",       en: "Sites",         icon: "sun",      perm: "om" },
+  { sect: "work", key: "sites",      th: "Monitoring",        en: "Monitoring",         icon: "sun",      perm: "om" },
   /* ใบเบิกเงินหน้างาน — ซื้อของหน้างาน · ค่าขนส่ง · ค่าใช้จ่ายอื่น และยอดค้างจ่ายรายคน
      sep = ขีดเส้นคั่นเหนือแถวนี้ แยก "ของและเงินหน้างาน" (เบิกเงิน · คลังสินค้า) ออกจากเรื่องโปรเจกต์
      สองแถวนี้เป็นที่อยู่ของเลขค้างเกือบทั้งหมดในแถบเมนู แยกกองไว้จะได้กวาดตาหาเจอโดยไม่ต้องอ่านชื่อ
@@ -56,7 +56,7 @@ const NAV = [
      จึงไม่ควรกินแถวในแถบเมนูเท่ากับเมนูงานที่กดทุกวัน */
   { key: "guide",      th: "คู่มือการใช้งาน",  en: "Guide",         icon: "book",     inSettings: true },
   /* ผลซิงก์ FusionSolar แต่ละรอบ + ปุ่มซิงก์ตอนนี้ — แอดมินกดได้ (เซิร์ฟเวอร์ตรวจสิทธิ์ซ้ำ) */
-  { key: "fslog",      th: "ซิงก์ FusionSolar", en: "FusionSolar",  icon: "history",  perm: "manageUsers", inSettings: true },
+  { key: "fslog",      th: "API Monitoring",    en: "API Monitoring",  icon: "history",  perm: "manageUsers", inSettings: true },
   /* "รายงานสรุป" ถอดออกจากเมนูแล้ว — โค้ดหน้ายังอยู่ที่ views-report.jsx ถ้าอยากได้คืนให้เติมแถวนี้กลับ
      { key: "report", th: "รายงานสรุป", en: "Report", icon: "file", perm: "viewAll" } */
 ];

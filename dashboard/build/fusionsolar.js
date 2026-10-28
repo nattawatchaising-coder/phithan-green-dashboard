@@ -1598,7 +1598,7 @@ function FsSyncAlert({
       color: "var(--text-3)",
       fontSize: 11.5
     }
-  }, "\u0E15\u0E31\u0E27\u0E40\u0E25\u0E02\u0E14\u0E49\u0E32\u0E19\u0E25\u0E48\u0E32\u0E07\u0E40\u0E1B\u0E47\u0E19\u0E04\u0E48\u0E32\u0E40\u0E21\u0E37\u0E48\u0E2D ", lastAt ? fsWhen(new Date(lastAt).toISOString()) : "–", " \xB7 \u0E23\u0E30\u0E1A\u0E1A\u0E25\u0E2D\u0E07\u0E43\u0E2B\u0E21\u0E48\u0E40\u0E2D\u0E07\u0E0A\u0E31\u0E48\u0E27\u0E42\u0E21\u0E07\u0E25\u0E30\u0E04\u0E23\u0E31\u0E49\u0E07 \u0E41\u0E01\u0E49\u0E41\u0E25\u0E49\u0E27\u0E41\u0E2D\u0E14\u0E21\u0E34\u0E19\u0E01\u0E14 \"\u0E0B\u0E34\u0E07\u0E01\u0E4C\u0E15\u0E2D\u0E19\u0E19\u0E35\u0E49\" \u0E43\u0E19\u0E15\u0E31\u0E49\u0E07\u0E04\u0E48\u0E32 \u2192 \u0E0B\u0E34\u0E07\u0E01\u0E4C FusionSolar \u0E44\u0E14\u0E49\u0E17\u0E31\u0E19\u0E17\u0E35")));
+  }, "\u0E15\u0E31\u0E27\u0E40\u0E25\u0E02\u0E14\u0E49\u0E32\u0E19\u0E25\u0E48\u0E32\u0E07\u0E40\u0E1B\u0E47\u0E19\u0E04\u0E48\u0E32\u0E40\u0E21\u0E37\u0E48\u0E2D ", lastAt ? fsWhen(new Date(lastAt).toISOString()) : "–", " \xB7 \u0E23\u0E30\u0E1A\u0E1A\u0E25\u0E2D\u0E07\u0E43\u0E2B\u0E21\u0E48\u0E40\u0E2D\u0E07\u0E0A\u0E31\u0E48\u0E27\u0E42\u0E21\u0E07\u0E25\u0E30\u0E04\u0E23\u0E31\u0E49\u0E07 \u0E41\u0E01\u0E49\u0E41\u0E25\u0E49\u0E27\u0E41\u0E2D\u0E14\u0E21\u0E34\u0E19\u0E01\u0E14 \"\u0E0B\u0E34\u0E07\u0E01\u0E4C\u0E15\u0E2D\u0E19\u0E19\u0E35\u0E49\" \u0E43\u0E19\u0E15\u0E31\u0E49\u0E07\u0E04\u0E48\u0E32 \u2192 API Monitoring \u0E44\u0E14\u0E49\u0E17\u0E31\u0E19\u0E17\u0E35")));
 }
 function FsSitesView({
   jobs,
@@ -1909,7 +1909,7 @@ function FsSitesView({
       color: "var(--text-2)",
       fontSize: 13
     }
-  }, "\u0E22\u0E31\u0E07\u0E44\u0E21\u0E48\u0E21\u0E35\u0E44\u0E0B\u0E15\u0E4C \u2014 \u0E41\u0E2D\u0E14\u0E21\u0E34\u0E19\u0E01\u0E14 \"\u0E0B\u0E34\u0E07\u0E01\u0E4C\u0E15\u0E2D\u0E19\u0E19\u0E35\u0E49\" \u0E43\u0E19\u0E40\u0E21\u0E19\u0E39\u0E15\u0E31\u0E49\u0E07\u0E04\u0E48\u0E32 \u2192 \u0E0B\u0E34\u0E07\u0E01\u0E4C FusionSolar \u0E2B\u0E23\u0E37\u0E2D\u0E40\u0E1E\u0E34\u0E48\u0E21\u0E44\u0E0B\u0E15\u0E4C\u0E40\u0E2D\u0E07") : mapView ? React.createElement(FsSitesMap, {
+  }, "\u0E22\u0E31\u0E07\u0E44\u0E21\u0E48\u0E21\u0E35\u0E44\u0E0B\u0E15\u0E4C \u2014 \u0E41\u0E2D\u0E14\u0E21\u0E34\u0E19\u0E01\u0E14 \"\u0E0B\u0E34\u0E07\u0E01\u0E4C\u0E15\u0E2D\u0E19\u0E19\u0E35\u0E49\" \u0E43\u0E19\u0E40\u0E21\u0E19\u0E39\u0E15\u0E31\u0E49\u0E07\u0E04\u0E48\u0E32 \u2192 API Monitoring \u0E2B\u0E23\u0E37\u0E2D\u0E40\u0E1E\u0E34\u0E48\u0E21\u0E44\u0E0B\u0E15\u0E4C\u0E40\u0E2D\u0E07") : mapView ? React.createElement(FsSitesMap, {
     sites: rows,
     live: live,
     onOpen: setOpen,
@@ -2630,7 +2630,7 @@ function FsHistoryCard({
       borderRadius: 2,
       background: "var(--fs-load)"
     }
-  }), "\u0E01\u0E33\u0E25\u0E31\u0E07\u0E43\u0E0A\u0E49\u0E44\u0E1F (kW)"), today.hasLoad && React.createElement("span", null, "\u0E2A\u0E48\u0E27\u0E19\u0E17\u0E35\u0E48\u0E0B\u0E49\u0E2D\u0E19\u0E01\u0E31\u0E19 = \u0E44\u0E1F\u0E42\u0E0B\u0E25\u0E32\u0E23\u0E4C\u0E17\u0E35\u0E48\u0E43\u0E0A\u0E49\u0E40\u0E2D\u0E07"), today.bars.some(b => b.partial && b.value != null) && React.createElement("span", {
+  }), "\u0E01\u0E33\u0E25\u0E31\u0E07\u0E43\u0E0A\u0E49\u0E44\u0E1F (kW)"), today.bars.some(b => b.partial && b.value != null) && React.createElement("span", {
     style: {
       display: "flex",
       alignItems: "center",
@@ -3065,7 +3065,7 @@ function FsSiteModal({
     const off = !site.sync_off;
     const ok = await window.askConfirm(off ? {
       title: "หยุดซิงก์ไซต์นี้?",
-      body: "ระบบจะไม่ดึงค่าผลิตและค่าอุปกรณ์ของ \"" + (site.name || site.id) + "\" อีก และซ่อนจากหน้าไซต์ทั้งหมด (ดูได้ที่ชิป \"หยุดซิงก์\") · ไม่ลบข้อมูล ประวัติเดิมอยู่ครบ กดซิงก์ต่อได้ทุกเมื่อ",
+      body: "ระบบจะไม่ดึงค่าผลิตและค่าอุปกรณ์ของ \"" + (site.name || site.id) + "\" อีก และซ่อนจากหน้า Monitoring (ดูได้ที่ชิป \"หยุดซิงก์\") · ไม่ลบข้อมูล ประวัติเดิมอยู่ครบ กดซิงก์ต่อได้ทุกเมื่อ",
       ok: "หยุดซิงก์"
     } : {
       title: "ซิงก์ไซต์นี้ต่อ?",
@@ -3094,7 +3094,7 @@ function FsSiteModal({
     width: 1000,
     onClose: onClose,
     title: site.name || "(ไม่มีชื่อ)",
-    sub: (code ? code : "ไม่มี station code") + " · " + fsNum(site.capacity_kw, 2) + " kWp" + (site.address ? " · " + site.address : ""),
+    sub: [fsNum(site.capacity_kw, 2) + " kWp", window.fsProvince(site.address)].filter(Boolean).join(" · "),
     right: React.createElement("div", {
       style: {
         display: "flex",
@@ -3512,7 +3512,7 @@ function FsSiteModal({
       fontSize: 12.5,
       color: "var(--text-2)"
     }
-  }, "\u0E44\u0E0B\u0E15\u0E4C\u0E17\u0E35\u0E48\u0E44\u0E21\u0E48\u0E44\u0E14\u0E49\u0E14\u0E39\u0E41\u0E25\u0E41\u0E25\u0E49\u0E27 \u0E2B\u0E22\u0E38\u0E14\u0E0B\u0E34\u0E07\u0E01\u0E4C\u0E44\u0E14\u0E49 \u2014 \u0E44\u0E21\u0E48\u0E14\u0E36\u0E07\u0E02\u0E49\u0E2D\u0E21\u0E39\u0E25\u0E2D\u0E35\u0E01 \u0E0B\u0E48\u0E2D\u0E19\u0E08\u0E32\u0E01\u0E2B\u0E19\u0E49\u0E32\u0E44\u0E0B\u0E15\u0E4C\u0E17\u0E31\u0E49\u0E07\u0E2B\u0E21\u0E14 \u0E44\u0E21\u0E48\u0E25\u0E1A\u0E1B\u0E23\u0E30\u0E27\u0E31\u0E15\u0E34"), React.createElement("button", {
+  }, "\u0E44\u0E0B\u0E15\u0E4C\u0E17\u0E35\u0E48\u0E44\u0E21\u0E48\u0E44\u0E14\u0E49\u0E14\u0E39\u0E41\u0E25\u0E41\u0E25\u0E49\u0E27 \u0E2B\u0E22\u0E38\u0E14\u0E0B\u0E34\u0E07\u0E01\u0E4C\u0E44\u0E14\u0E49 \u2014 \u0E44\u0E21\u0E48\u0E14\u0E36\u0E07\u0E02\u0E49\u0E2D\u0E21\u0E39\u0E25\u0E2D\u0E35\u0E01 \u0E0B\u0E48\u0E2D\u0E19\u0E08\u0E32\u0E01\u0E2B\u0E19\u0E49\u0E32 Monitoring \u0E44\u0E21\u0E48\u0E25\u0E1A\u0E1B\u0E23\u0E30\u0E27\u0E31\u0E15\u0E34"), React.createElement("button", {
     type: "button",
     className: "btn btn-sm",
     onClick: toggleSync
