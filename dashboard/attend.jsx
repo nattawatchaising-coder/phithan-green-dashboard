@@ -300,7 +300,7 @@ function tmOtKindGuess(dateISO, from, cfg) {
 
 /* ══ วิธีคิดแบบใหม่ (ผู้ใช้ ต.ค. 2026) ══
    "ให้กดระบุช่วงทำ OT เองเลย" — นับตามช่วงที่ผู้ขอกรอกทั้งช่วง ไม่ตัดเวลางาน ไม่ล็อกกับเวลาลงเข้า-ออก
-   วันหยุด: กดทั้งวันได้ · ช่วงแรกเท่าวันงานปกติ (8 ชม. + พัก 1 ชม. หักพัก) ×1.5 (holiday) · เกินจากนั้น ×2 (holidayOt)
+   วันหยุด: กดทั้งวันได้ · ช่วงแรกเท่าวันงานปกติ (8 ชม. + พัก 1 ชม. หักพัก) ×1.5 (holiday) · เกินจากนั้นหักพักอีก 1 ชม. แล้ว ×2 (holidayOt)
    ยังปัดลงทีละ roundMins และไม่ถึง minOtMins ไม่นับ เหมือนเดิม
    คืน { mins, parts } — parts มีเฉพาะวันหยุด (ถ่ายตัวคูณติดใบ) */
 function tmOtCalc(dateISO, from, to, cfg) {
@@ -313,11 +313,12 @@ function tmOtCalc(dateISO, from, to, cfg) {
     return { mins: m >= c.minOtMins ? m : 0, parts: null };
   }
   /* หักพักเฉพาะส่วนที่ช่วงที่กรอกทับเวลาพัก 12:00 + lunchMins จริง — ทำบ่ายไม่โดนหักข้าวเที่ยง
-     แล้ว workMins (8 ชม.) แรกของเวลาทำงาน ×holiday · ที่เหลือ ×holidayOt */
+     แล้ว workMins (8 ชม.) แรกของเวลาทำงาน ×holiday · ที่เหลือหักพักอีก lunchMins (1 ชม.) ก่อน แล้วจึง ×holidayOt
+     (ผู้ใช้สั่ง ต.ค. 2026 — ทำครบวันแล้วต่อ OT ต้องหักพักก่อนช่วง OT อีกชั่วโมง เช่น 10:00–21:00 = 8 ×1.5 + 1 ×2) */
   const a = tmHM(from), L0 = 12 * 60, L1 = L0 + c.lunchMins;
   const lunch = Math.max(0, Math.min(a + span, L1) - Math.max(a, L0)) + Math.max(0, Math.min(a + span, L1 + 1440) - Math.max(a, L0 + 1440));
   const work = span - lunch;
-  const m1 = rnd(Math.min(work, c.workMins)), m2 = rnd(work - Math.min(work, c.workMins));
+  const m1 = rnd(Math.min(work, c.workMins)), m2 = rnd(work - Math.min(work, c.workMins) - c.lunchMins);
   if (m1 + m2 < c.minOtMins) return { mins: 0, parts: null };
   const parts = [];
   if (m1) parts.push({ kind: "holiday", mins: m1, rate: c.otRates.holiday });

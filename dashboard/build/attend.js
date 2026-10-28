@@ -263,7 +263,7 @@ function tmOtCalc(dateISO, from, to, cfg) {
   const lunch = Math.max(0, Math.min(a + span, L1) - Math.max(a, L0)) + Math.max(0, Math.min(a + span, L1 + 1440) - Math.max(a, L0 + 1440));
   const work = span - lunch;
   const m1 = rnd(Math.min(work, c.workMins)),
-    m2 = rnd(work - Math.min(work, c.workMins));
+    m2 = rnd(work - Math.min(work, c.workMins) - c.lunchMins);
   if (m1 + m2 < c.minOtMins) return {
     mins: 0,
     parts: null

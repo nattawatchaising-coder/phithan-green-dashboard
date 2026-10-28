@@ -4075,7 +4075,6 @@ function TmMonthAll({
     users: users,
     cfg: cfg,
     byName: byName,
-    byId: (currentUser || {}).id || null,
     onClose: () => setPaper(null)
   }));
 }

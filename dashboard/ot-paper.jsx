@@ -44,7 +44,7 @@ function tmOtByPerson(rows, users, cfg) {
 }
 
 /* ── ใบสรุป OT รายคน ── */
-function TmOtPaper({ person, period, rows, jobs, users, cfg, byName, byId, onClose }) {
+function TmOtPaper({ person, period, rows, jobs, users, cfg, byName, onClose }) {
   const isMobile = window.matchMedia("(max-width: 860px)").matches;
   const list = React.useMemo(() => (rows || []).slice()
     .sort((a, b) => String(a.date || "").localeCompare(String(b.date || ""))
@@ -70,10 +70,17 @@ function TmOtPaper({ person, period, rows, jobs, users, cfg, byName, byId, onClo
     return { approved: approved, waiting: waiting, rejected: rejected, payApproved: payApproved, payWaiting: payWaiting };
   }, [list, cfg]);
 
-  /* ช่องเซ็น — ระบบรู้อยู่แล้วว่าใครส่ง ใครกดอนุมัติ และใครเป็นคนออกใบ
-     จึงเติมชื่อ วันที่ และลายเซ็นที่เจ้าตัวบันทึกไว้ในโปรไฟล์ (userSigns/) ให้เลย กฎเดียวกับใบเบิกเงิน
-     ใครยังไม่ได้บันทึกลายเซ็นก็เหลือเส้นว่างให้เซ็นเองตามเดิม
-     ผู้อนุมัติเอาจากใบที่อนุมัติแล้วเท่านั้น — ใบที่ยังรออยู่ยังไม่มีใครตัดสิน */
+  /* ช่องเซ็น — เติมชื่อ วันที่ และลายเซ็นที่เจ้าตัวบันทึกไว้ในโปรไฟล์ (userSigns/) ให้เลย กฎเดียวกับใบเบิกเงิน
+     ใครยังไม่ได้บันทึกลายเซ็นก็เหลือเส้นว่างให้เซ็นเองตามเดิม (ผู้ใช้สั่ง ต.ค. 2026)
+     ผู้ขอ = วันที่พิมพ์ · ผู้อนุมัติ = คนที่กดอนุมัติในระบบ + วันอนุมัติ (ใบที่ยังรออยู่ยังไม่มีใครตัดสิน)
+     ผู้ตรวจสอบ = คนที่เลือกจากรายชื่อบนแถบด้านบน ไม่ใช่คนที่เปิดใบ (ผู้ใช้ทัก) · วันที่เว้นให้เขียนเอง */
+  const [revId, setRevId] = React.useState(() => { try { return localStorage.getItem("tmOtPaperReviewer") || ""; } catch (e) { return ""; } });
+  const pickRev = (v) => { setRevId(v || ""); try { localStorage.setItem("tmOtPaperReviewer", v || ""); } catch (e) {} };
+  const revOpts = React.useMemo(() => [{ value: "", label: "— เว้นว่างให้เซ็นเอง —" }].concat((users || [])
+    .filter((u) => u && u.id && u.name && u.active !== false && !(window.tmIsSysAcct && window.tmIsSysAcct(u)))
+    .map((u) => ({ value: u.id, label: u.name }))
+    .sort((a, b) => String(a.label).localeCompare(String(b.label), "th"))), [users]);
+  const rev = (users || []).find((u) => u && u.id === revId) || null;
   const day = (iso) => (iso ? (window.drLocalDay ? window.drLocalDay(iso) : String(iso).slice(0, 10)) : "");
   const lastDay = (vals) => vals.map(day).filter(Boolean).sort().pop() || "";
   const signBox = React.useMemo(() => {
@@ -86,13 +93,12 @@ function TmOtPaper({ person, period, rows, jobs, users, cfg, byName, byId, onClo
     });
     const apprs = Object.keys(apprMap).map((k) => apprMap[k]);
     return [
-      { t: "ผู้ขอทำงานล่วงเวลา", n: (person || {}).name || "", ids: [(person || {}).id],
-        at: lastDay(list.map((o) => o.sentAt)) || lastDay(list.map((o) => o.date)) },
+      { t: "ผู้ขอทำงานล่วงเวลา", n: (person || {}).name || "", ids: [(person || {}).id], at: window.drToday() },
       { t: "หัวหน้างานผู้อนุมัติ", n: apprs.map((a) => a.name).join(" · "), ids: apprs.map((a) => a.id),
         at: lastDay([].concat.apply([], apprs.map((a) => a.at))) },
-      { t: "ฝ่ายบุคคล / ผู้ตรวจสอบ", n: byName || "", ids: [byId], at: window.drToday() },
+      { t: "ฝ่ายบุคคล / ผู้ตรวจสอบ", n: rev ? rev.name : "", ids: [rev ? rev.id : null], at: "" },
     ];
-  }, [list, users, person, byName, byId]);
+  }, [list, users, person, rev]);
   const signs = window.useEcSigns([].concat.apply([], signBox.map((s) => s.ids)));
 
   const doPrint = () => {
@@ -125,6 +131,9 @@ function TmOtPaper({ person, period, rows, jobs, users, cfg, byName, byId, onClo
             {window.tmPeriodTH(period)} · {list.length} ใบ · กดปุ่มแล้วเลือก “บันทึกเป็น PDF”
           </div>
         </div>
+        {!isMobile && <span style={{ fontSize: 11.5, fontWeight: 700, color: "var(--text-3)", flexShrink: 0 }}>ผู้ตรวจสอบ</span>}
+        <window.Dropdown value={revId} onChange={pickRev} options={revOpts} placeholder="ผู้ตรวจสอบ"
+          style={{ width: isMobile ? 130 : 200, flexShrink: 0 }} />
         <button onClick={doPrint} style={{ display: "inline-flex", alignItems: "center", gap: 7, padding: "11px 16px", borderRadius: 11,
           border: "none", background: "var(--primary)", color: "#fff", fontFamily: "inherit", fontSize: 13.5, fontWeight: 700, cursor: "pointer", flexShrink: 0 }}>
           <Icon name="file" size={16} color="#fff" /> บันทึก PDF

@@ -40,7 +40,6 @@ function TmOtPaper({
   users,
   cfg,
   byName,
-  byId,
   onClose
 }) {
   const isMobile = window.matchMedia("(max-width: 860px)").matches;
@@ -78,6 +77,27 @@ function TmOtPaper({
       payWaiting: payWaiting
     };
   }, [list, cfg]);
+  const [revId, setRevId] = React.useState(() => {
+    try {
+      return localStorage.getItem("tmOtPaperReviewer") || "";
+    } catch (e) {
+      return "";
+    }
+  });
+  const pickRev = v => {
+    setRevId(v || "");
+    try {
+      localStorage.setItem("tmOtPaperReviewer", v || "");
+    } catch (e) {}
+  };
+  const revOpts = React.useMemo(() => [{
+    value: "",
+    label: "— เว้นว่างให้เซ็นเอง —"
+  }].concat((users || []).filter(u => u && u.id && u.name && u.active !== false && !(window.tmIsSysAcct && window.tmIsSysAcct(u))).map(u => ({
+    value: u.id,
+    label: u.name
+  })).sort((a, b) => String(a.label).localeCompare(String(b.label), "th"))), [users]);
+  const rev = (users || []).find(u => u && u.id === revId) || null;
   const day = iso => iso ? window.drLocalDay ? window.drLocalDay(iso) : String(iso).slice(0, 10) : "";
   const lastDay = vals => vals.map(day).filter(Boolean).sort().pop() || "";
   const signBox = React.useMemo(() => {
@@ -97,7 +117,7 @@ function TmOtPaper({
       t: "ผู้ขอทำงานล่วงเวลา",
       n: (person || {}).name || "",
       ids: [(person || {}).id],
-      at: lastDay(list.map(o => o.sentAt)) || lastDay(list.map(o => o.date))
+      at: window.drToday()
     }, {
       t: "หัวหน้างานผู้อนุมัติ",
       n: apprs.map(a => a.name).join(" · "),
@@ -105,11 +125,11 @@ function TmOtPaper({
       at: lastDay([].concat.apply([], apprs.map(a => a.at)))
     }, {
       t: "ฝ่ายบุคคล / ผู้ตรวจสอบ",
-      n: byName || "",
-      ids: [byId],
-      at: window.drToday()
+      n: rev ? rev.name : "",
+      ids: [rev ? rev.id : null],
+      at: ""
     }];
-  }, [list, users, person, byName, byId]);
+  }, [list, users, person, rev]);
   const signs = window.useEcSigns([].concat.apply([], signBox.map(s => s.ids)));
   const doPrint = () => {
     const old = document.title;
@@ -202,7 +222,23 @@ function TmOtPaper({
       fontSize: 11,
       color: "var(--text-3)"
     }
-  }, window.tmPeriodTH(period), " \xB7 ", list.length, " \u0E43\u0E1A \xB7 \u0E01\u0E14\u0E1B\u0E38\u0E48\u0E21\u0E41\u0E25\u0E49\u0E27\u0E40\u0E25\u0E37\u0E2D\u0E01 \u201C\u0E1A\u0E31\u0E19\u0E17\u0E36\u0E01\u0E40\u0E1B\u0E47\u0E19 PDF\u201D")), React.createElement("button", {
+  }, window.tmPeriodTH(period), " \xB7 ", list.length, " \u0E43\u0E1A \xB7 \u0E01\u0E14\u0E1B\u0E38\u0E48\u0E21\u0E41\u0E25\u0E49\u0E27\u0E40\u0E25\u0E37\u0E2D\u0E01 \u201C\u0E1A\u0E31\u0E19\u0E17\u0E36\u0E01\u0E40\u0E1B\u0E47\u0E19 PDF\u201D")), !isMobile && React.createElement("span", {
+    style: {
+      fontSize: 11.5,
+      fontWeight: 700,
+      color: "var(--text-3)",
+      flexShrink: 0
+    }
+  }, "\u0E1C\u0E39\u0E49\u0E15\u0E23\u0E27\u0E08\u0E2A\u0E2D\u0E1A"), React.createElement(window.Dropdown, {
+    value: revId,
+    onChange: pickRev,
+    options: revOpts,
+    placeholder: "\u0E1C\u0E39\u0E49\u0E15\u0E23\u0E27\u0E08\u0E2A\u0E2D\u0E1A",
+    style: {
+      width: isMobile ? 130 : 200,
+      flexShrink: 0
+    }
+  }), React.createElement("button", {
     onClick: doPrint,
     style: {
       display: "inline-flex",
