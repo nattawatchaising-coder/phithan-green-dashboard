@@ -179,7 +179,7 @@ function FsKvGroups({ k, meter }) {
           <div key={G.key}>
             <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 11.5, fontWeight: 700, color: "var(--text-2)", marginBottom: 6 }}>
               <Icon name={G.icon} size={13} color="var(--text-3)" />{G.th}
-              {hidden > 0 && <span style={{ fontWeight: 500, color: "var(--text-3)", fontSize: 11 }}>· ซ่อน {hidden} ช่องที่ไม่ได้ต่อ (ค่า 0)</span>}
+              {hidden > 0 && <span style={{ fontWeight: 500, color: "var(--text-3)", fontSize: 11 }}>· ซ่อน {hidden} ช่องที่ไม่ได้ต่อ (กระแส 0)</span>}
             </div>
             {list.length > 0 && <div style={grid}>{list.map((x) => <FsKvTile key={x} k={k} key2={x} meter={meter} />)}</div>}
             {strings && strings.length > 0 && (
@@ -203,11 +203,11 @@ function FsKvGroups({ k, meter }) {
     </div>
   );
 }
-/* สตริงทุกช่องที่ Huawei ส่งมา (รวมช่องว่าง) — used = มีแรงดันหรือกระแส */
+/* สตริงทุกช่องที่ Huawei ส่งมา (รวมช่องว่าง) — used = fsStrUsed (มีกระแส · ช่องที่มีแต่แรงดันตาม MPPT = ไม่ได้ต่อ) */
 function fsStringsAll(k) {
   return Object.keys(k || {}).map((x) => /^pv(\d+)_u$/.exec(x)).filter(Boolean).map((m) => {
     const u = fsN(k[m[0]]), i = fsN(k["pv" + m[1] + "_i"]);
-    return { n: +m[1], u, i, kw: u != null && i != null ? (u * i) / 1000 : null, used: u > 5 || i > 0.05 };
+    return { n: +m[1], u, i, kw: u != null && i != null ? (u * i) / 1000 : null, used: fsStrUsed(k, u, i) };
   }).sort((a, b) => a.n - b.n);
 }
 

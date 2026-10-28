@@ -183,6 +183,10 @@ const fsRatedKw = model => {
   const m = /-(\d+(?:\.\d+)?)K(?:TL)?(?=-|$)/i.exec(model || "");
   return m ? +m[1] : null;
 };
+function fsStrUsed(k, u, i) {
+  if (i > 0.05) return true;
+  return u > 5 && !Object.keys(k).some(x => /^pv\d+_i$/.test(x) && fsN(k[x]) > 0.5);
+}
 function fsStrings(k) {
   const out = [];
   Object.keys(k || {}).forEach(key => {
@@ -190,7 +194,7 @@ function fsStrings(k) {
     if (!m) return;
     const u = fsN(k[key]),
       i = fsN(k["pv" + m[1] + "_i"]);
-    if (!(u > 5) && !(i > 0.05)) return;
+    if (!fsStrUsed(k, u, i)) return;
     out.push({
       n: +m[1],
       u,
@@ -1226,6 +1230,7 @@ Object.assign(window, {
   FS_GRID_EF,
   fsInvState,
   fsStrings,
+  fsStrUsed,
   fsEnergyModel,
   fsSiteIssues,
   fsMonthYield,

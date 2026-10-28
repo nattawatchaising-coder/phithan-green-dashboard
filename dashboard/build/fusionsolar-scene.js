@@ -457,7 +457,7 @@ function FsKvGroups({
         color: "var(--text-3)",
         fontSize: 11
       }
-    }, "\xB7 \u0E0B\u0E48\u0E2D\u0E19 ", hidden, " \u0E0A\u0E48\u0E2D\u0E07\u0E17\u0E35\u0E48\u0E44\u0E21\u0E48\u0E44\u0E14\u0E49\u0E15\u0E48\u0E2D (\u0E04\u0E48\u0E32 0)")), list.length > 0 && React.createElement("div", {
+    }, "\xB7 \u0E0B\u0E48\u0E2D\u0E19 ", hidden, " \u0E0A\u0E48\u0E2D\u0E07\u0E17\u0E35\u0E48\u0E44\u0E21\u0E48\u0E44\u0E14\u0E49\u0E15\u0E48\u0E2D (\u0E01\u0E23\u0E30\u0E41\u0E2A 0)")), list.length > 0 && React.createElement("div", {
       style: grid
     }, list.map(x => React.createElement(FsKvTile, {
       key: x,
@@ -530,7 +530,7 @@ function fsStringsAll(k) {
       u,
       i,
       kw: u != null && i != null ? u * i / 1000 : null,
-      used: u > 5 || i > 0.05
+      used: fsStrUsed(k, u, i)
     };
   }).sort((a, b) => a.n - b.n);
 }

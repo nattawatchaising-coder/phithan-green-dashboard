@@ -109,13 +109,20 @@ const fsKw = (v, capKw, isW) => { const n = fsN(v); if (n == null) return null; 
 const fsRatedKw = (model) => { const m = /-(\d+(?:\.\d+)?)K(?:TL)?(?=-|$)/i.exec(model || ""); return m ? +m[1] : null; };
 
 /* สตริง PV ของอินเวอร์เตอร์ — Huawei ส่งมาครบทุกช่อง (ช่องว่างเป็น 0) จึงตัดช่องที่ไม่มีอะไรต่อออก
+   ช่องที่ไม่ได้ต่อแผงแต่อยู่ MPPT เดียวกับสตริงที่ต่อ จะมีแรงดันตาม MPPT แต่กระแส 0 พอดี — ตอนสตริงอื่นมีกระแส
+   ถือว่าไม่ได้ต่อ ไม่เตือน (ผู้ใช้แจ้ง 2026-10-28 Glow Film เตือน 49 เรื่อง "มันไม่ได้ต่อ กระแสเลยไม่มี") · สตริงที่ต่อแต่กระแส 0 (ฟิวส์ขาด) จึงไม่ถูกเตือนด้วย
    กระแสต่ำกว่า 60% ของค่ากลางสตริงอื่น (ตอนมีแดดพอ) = ควรตรวจ (แผงสกปรก/บังเงา/ขั้วหลวม/แผงเสีย) */
+/* ช่องสตริงมีของต่อ — มีกระแส · หรือทั้งเครื่องไม่มีกระแส (เช้า/ค่ำ) แต่มีแรงดัน */
+function fsStrUsed(k, u, i) {
+  if (i > 0.05) return true;
+  return u > 5 && !Object.keys(k).some((x) => /^pv\d+_i$/.test(x) && fsN(k[x]) > 0.5);
+}
 function fsStrings(k) {
   const out = [];
   Object.keys(k || {}).forEach((key) => {
     const m = /^pv(\d+)_u$/.exec(key); if (!m) return;
     const u = fsN(k[key]), i = fsN(k["pv" + m[1] + "_i"]);
-    if (!(u > 5) && !(i > 0.05)) return;
+    if (!fsStrUsed(k, u, i)) return;
     out.push({ n: +m[1], u, i, kw: u != null && i != null ? (u * i) / 1000 : null });
   });
   out.sort((a, b) => a.n - b.n);
@@ -522,6 +529,6 @@ function FsBatteryBody({ k, em, isMobile }) {
 }
 
 Object.assign(window, {
-  fsN, fsFmt, fsEnergy, fsBkk, fsDayTH, fsMonTH, fsMedian, FS_GRID_EF, fsInvState, fsStrings, fsEnergyModel, fsSiteIssues, fsMonthYield,
+  fsN, fsFmt, fsEnergy, fsBkk, fsDayTH, fsMonTH, fsMedian, FS_GRID_EF, fsInvState, fsStrings, fsStrUsed, fsEnergyModel, fsSiteIssues, fsMonthYield,
   FsBarChart, FsSplitBar, FsMeter, FsEnergyFlow, FsKv, FsTile, FsChip, FsInverterBody, FsMeterBody, FsBatteryBody,
 });
