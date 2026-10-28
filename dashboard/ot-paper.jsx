@@ -124,7 +124,7 @@ function TmOtPaper({ person, period, rows, jobs, users, cfg, byName, onClose }) 
         <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{ fontSize: 13.5, fontWeight: 800, color: "var(--text-1)" }}>ใบสรุป OT · {(person || {}).name || "-"}</div>
           <div style={{ fontSize: 11, color: "var(--text-3)" }}>
-            {window.tmPeriodTH(period)} · {list.length} ใบ · กดปุ่มแล้วเลือก “บันทึกเป็น PDF”
+            {window.tmPeriodTH(period)}
           </div>
         </div>
         {[{ t: "ผู้อนุมัติ", v: apprId, set: pickAppr }, { t: "ผู้ตรวจสอบ", v: revId, set: pickRev }].map((d) => (

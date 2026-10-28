@@ -215,7 +215,7 @@ function TmOtPaper({
       fontSize: 11,
       color: "var(--text-3)"
     }
-  }, window.tmPeriodTH(period), " \xB7 ", list.length, " \u0E43\u0E1A \xB7 \u0E01\u0E14\u0E1B\u0E38\u0E48\u0E21\u0E41\u0E25\u0E49\u0E27\u0E40\u0E25\u0E37\u0E2D\u0E01 \u201C\u0E1A\u0E31\u0E19\u0E17\u0E36\u0E01\u0E40\u0E1B\u0E47\u0E19 PDF\u201D")), [{
+  }, window.tmPeriodTH(period))), [{
     t: "ผู้อนุมัติ",
     v: apprId,
     set: pickAppr
