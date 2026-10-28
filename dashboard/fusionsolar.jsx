@@ -1076,8 +1076,9 @@ function FsHistoryCard({ site, isMobile, flip, em, only }) {
 }
 
 /* ไฟที่ผลิตไปไหน · ไฟที่ใช้มาจากไหน — จากตัวเลขสะสมของมิเตอร์เทียบอินเวอร์เตอร์ (ภาพการไหลตอนนี้อยู่ใน FsHouseFlow)
-   แถบ 100% สองแถว แต่ละแถวเต็มกว้างของตัวเอง: "ผลิต → ใช้เอง/ขาย" และ "ใช้ ← โซลาร์/ซื้อ" · ขวา = CO₂
-   (ผู้ใช้ 2026-10-28 "ดูงง" — แบบเก่าแถบสองแถวสเกลเดียวกัน + หน้าปัด + การ์ดซ้ำตัวเลขเดิม 3 รอบ) */
+   โทนส้มเดียวกับกราฟประวัติการผลิต (ภาพอ้างอิง Solis/Lumos/SolarSync): แถวตัวเลขหัวการ์ดแบบเดียวกับ "กำลังไฟวันนี้"
+   + รางสองเส้น "ผลิต → ใช้เอง/ขาย" และ "ใช้ ← โซลาร์/ซื้อ" แต่ละเส้นเต็มกว้างของตัวเอง · ส่วนโซลาร์ = ส้มไล่สีเรืองแสง ขาย = ส้มอ่อน ซื้อจากกริด = เทา
+   (ผู้ใช้ 2026-10-28: แบบหน้าปัด+แถบสเกลเดียวกัน "ดูงง" · แบบเขียว/ฟ้า/แดง "ไม่เข้ากับธีมส้ม") */
 function FsEnergyCard({ em, isMobile }) {
   if (em.selfTotal == null) return null;
   const pv = em.pvTotal, use = em.importTotal != null ? em.selfTotal + em.importTotal : null;
@@ -1085,43 +1086,49 @@ function FsEnergyCard({ em, isMobile }) {
   const mwh = Math.max(pv || 0, use || 0) >= 10000;
   const EP = (v) => (fsN(v) == null ? ["–", "kWh"] : mwh ? [fsFmt(v / 1000, 1), "MWh"] : [fsFmt(v, 1), "kWh"]);
   const co2 = (pv * FS_GRID_EF) / 1000;
+  const pc = (v, t) => (t > 0 ? Math.round((Math.max(0, v || 0) / t) * 100) : 0);
+  const SUN = "linear-gradient(90deg, var(--fs-sun), color-mix(in srgb, var(--fs-sun) 72%, #FFD27A))";
+  const PALE = "color-mix(in srgb, var(--fs-sun) 34%, var(--surface))";
+  const GRID = "color-mix(in srgb, var(--text-3) 50%, var(--surface2))";
+  const stats = [
+    { icon: "home", l: "ใช้เองได้", v: pc(em.selfTotal, pv), u: "%", s: "ของไฟที่โซลาร์ผลิต" },
+    use ? { icon: "sun", l: "พึ่งโซลาร์ได้", v: pc(em.selfTotal, use), u: "%", s: "ของไฟที่อาคารใช้" } : null,
+    { icon: "sparkle", l: "ลด CO₂ สะสม", v: fsFmt(co2, 1), u: "ตัน", s: "≈ ต้นไม้ " + fsFmt((co2 * 1000) / FS_TREE_KG, 0) + " ต้น/ปี" },
+  ].filter(Boolean);
   const rows = [
-    { title: "ไฟที่โซลาร์ผลิต ไปไหน", total: pv, segs: [
-      { c: "var(--fs-self)", l: "ใช้เองในอาคาร", v: em.selfTotal },
-      { c: "var(--fs-exp)", l: "ขายเข้ากริด", v: em.exportTotal || 0 }] },
-  ].concat(use ? [{ title: "ไฟที่อาคารใช้ มาจากไหน", total: use, segs: [
-      { c: "var(--fs-self)", l: "จากโซลาร์", v: em.selfTotal },
-      { c: "var(--fs-imp)", l: "ซื้อจากกริด", v: em.importTotal }] }] : []);
+    { title: "ไฟที่โซลาร์ผลิต", verb: "ไปไหน", total: pv, segs: [
+      { bg: SUN, dot: "var(--fs-sun)", l: "ใช้เองในอาคาร", v: em.selfTotal, glow: true },
+      { bg: PALE, dot: PALE, l: "ขายเข้ากริด", v: em.exportTotal || 0 }] },
+  ].concat(use ? [{ title: "ไฟที่อาคารใช้", verb: "มาจากไหน", total: use, segs: [
+      { bg: SUN, dot: "var(--fs-sun)", l: "จากโซลาร์", v: em.selfTotal, glow: true },
+      { bg: GRID, dot: GRID, l: "ซื้อจากกริด", v: em.importTotal }] }] : []);
   const num = (v, size) => (
     <span style={{ fontFamily: "var(--display)", fontSize: size, fontWeight: 700, color: "var(--text-1)", whiteSpace: "nowrap", fontVariantNumeric: "tabular-nums" }}>
-      {EP(v)[0]}<span style={{ fontSize: 11.5, fontWeight: 600, color: "var(--text-3)", marginLeft: 4 }}>{EP(v)[1]}</span>
+      {EP(v)[0]}<span style={{ fontSize: 11, fontWeight: 600, color: "var(--text-3)", marginLeft: 3 }}>{EP(v)[1]}</span>
     </span>
   );
-  const bar = (r) => {
+  const rail = (r, ri) => {
     const sum = r.segs.reduce((t, x) => t + Math.max(0, x.v || 0), 0) || 1;
     return (
       <div key={r.title} style={{ minWidth: 0 }}>
-        <div style={{ display: "flex", alignItems: "baseline", gap: 8, marginBottom: 7 }}>
-          <span style={{ fontSize: 12.5, fontWeight: 700, color: "var(--text-2)" }}>{r.title}</span>
+        <div style={{ display: "flex", alignItems: "baseline", gap: 6, marginBottom: 8 }}>
+          <span style={{ fontSize: 12.5, fontWeight: 700, color: "var(--text-1)" }}>{r.title}</span>
+          <span style={{ fontSize: 12, color: "var(--text-3)" }}>{r.verb}</span>
           <span style={{ marginLeft: "auto" }}>{num(r.total, 15)}</span>
         </div>
-        <div style={{ display: "flex", gap: 3, height: 30, borderRadius: 9, overflow: "hidden", background: "var(--surface2)", boxShadow: "var(--shadow-inset)" }}>
-          {r.segs.map((x) => {
-            const pc = Math.round((Math.max(0, x.v || 0) / sum) * 100);
-            return pc > 0 && (
-              <div key={x.l} className="fs-wide" style={{ flex: pc + " 1 0", minWidth: 6, background: x.c, display: "flex", alignItems: "center", paddingLeft: 10, color: "#fff", fontSize: 12, fontWeight: 800, overflow: "hidden", whiteSpace: "nowrap" }}>
-                {pc >= 12 ? pc + "%" : ""}
-              </div>
-            );
-          })}
+        <div style={{ display: "flex", gap: 4, height: 14, padding: 3, borderRadius: 999, background: "color-mix(in srgb, var(--fs-sun) 9%, var(--surface2))", boxShadow: "var(--shadow-inset)" }}>
+          {r.segs.map((x, i) => pc(x.v, sum) > 0 && (
+            <div key={x.l} className="fs-wide" style={{ flex: Math.max(0, x.v || 0) / sum + " 1 0", minWidth: 8, borderRadius: 999, background: x.bg,
+              animationDelay: ri * 160 + i * 120 + "ms", boxShadow: x.glow ? "0 3px 10px color-mix(in srgb, var(--fs-sun) 45%, transparent)" : "none" }} />
+          ))}
         </div>
-        <div style={{ display: "flex", flexWrap: "wrap", gap: "6px 22px", marginTop: 8 }}>
+        <div style={{ display: "flex", flexWrap: "wrap", gap: "6px 20px", marginTop: 9 }}>
           {r.segs.map((x) => (
-            <div key={x.l} style={{ display: "flex", alignItems: "center", gap: 7, minWidth: 0 }}>
-              <span style={{ width: 10, height: 10, borderRadius: 5, background: x.c, flexShrink: 0 }} />
+            <div key={x.l} style={{ display: "flex", alignItems: "baseline", gap: 6, minWidth: 0 }}>
+              <span style={{ width: 9, height: 9, borderRadius: 5, background: x.dot, flexShrink: 0, alignSelf: "center" }} />
               <span style={{ fontSize: 12, color: "var(--text-2)" }}>{x.l}</span>
               {num(x.v, 14)}
-              <span style={{ fontSize: 11.5, color: "var(--text-3)" }}>{Math.round((Math.max(0, x.v || 0) / sum) * 100)}%</span>
+              <span style={{ fontSize: 11.5, fontWeight: 700, color: x.glow ? "var(--fs-sun)" : "var(--text-3)" }}>{pc(x.v, sum)}%</span>
             </div>
           ))}
         </div>
@@ -1130,22 +1137,29 @@ function FsEnergyCard({ em, isMobile }) {
   };
   return (
     <FsCard title="พลังงานไปไหน · มาจากไหน" sub="นับสะสมตั้งแต่ติดตั้ง">
-      <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "minmax(0, 1fr) 210px", gap: isMobile ? 16 : 24, alignItems: "center" }}>
-        <div style={{ display: "flex", flexDirection: "column", gap: 18, minWidth: 0 }}>{rows.map(bar)}</div>
-        <div style={{ display: "flex", gap: 12, alignItems: "center", background: "var(--surface2)", boxShadow: "var(--shadow-inset)", borderRadius: "var(--r-tile)", padding: "14px 16px" }}>
-          <span style={{ width: 38, height: 38, borderRadius: 19, display: "grid", placeItems: "center", flexShrink: 0, background: "color-mix(in srgb, var(--tint-ok-tx) 16%, var(--surface))" }}>
-            <Icon name="sparkle" size={18} color="var(--tint-ok-tx)" />
-          </span>
-          <div style={{ minWidth: 0 }}>
-            <div style={{ fontSize: 11.5, fontWeight: 700, color: "var(--text-3)" }}>ลด CO₂ สะสม</div>
-            <div style={{ fontFamily: "var(--display)", fontSize: 22, fontWeight: 700, color: "var(--text-1)", lineHeight: 1.2, fontVariantNumeric: "tabular-nums" }}>
-              {fsFmt(co2, 1)}<span style={{ fontSize: 12, fontWeight: 600, color: "var(--text-3)", marginLeft: 4 }}>ตัน</span>
+      <div className="kpi-grid" style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr 1fr" : "1.25fr" + " 1fr".repeat(stats.length - 1), gap: isMobile ? 10 : 0, margin: "4px 0 18px" }}>
+        {stats.map((x, i) => (
+          <div key={x.l} style={{ display: "flex", gap: 10, alignItems: "flex-start", minWidth: 0, gridColumn: isMobile && !i ? "1 / -1" : "auto",
+            padding: isMobile || !i ? 0 : "0 0 0 16px", boxShadow: !isMobile && i ? "inset 1px 0 0 var(--divider)" : "none" }}>
+            <span style={{ width: i ? 30 : 38, height: i ? 30 : 38, borderRadius: 999, display: "grid", placeItems: "center", flexShrink: 0,
+              background: i ? "var(--surface2)" : "color-mix(in srgb, var(--fs-sun) 16%, var(--surface))", boxShadow: i ? "var(--shadow-inset)" : "none" }}>
+              <Icon name={x.icon} size={i ? 15 : 19} color={i ? "var(--text-2)" : "var(--fs-sun)"} />
+            </span>
+            <div style={{ minWidth: 0 }}>
+              <div style={{ fontSize: 11.5, fontWeight: 600, color: "var(--text-3)" }}>{x.l}</div>
+              <div style={{ fontFamily: "var(--display)", fontSize: i ? 19 : 28, fontWeight: 700, color: "var(--text-1)", lineHeight: 1.15, whiteSpace: "nowrap", fontVariantNumeric: "tabular-nums" }}>
+                {x.v}<span style={{ fontSize: 12, fontWeight: 600, color: "var(--text-3)", marginLeft: 4 }}>{x.u}</span>
+              </div>
+              <div style={{ fontSize: 11, color: "var(--text-3)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{x.s}</div>
             </div>
-            <div style={{ fontSize: 11, color: "var(--text-3)" }}>≈ ต้นไม้ {fsFmt((co2 * 1000) / FS_TREE_KG, 0)} ต้น/ปี</div>
           </div>
-        </div>
+        ))}
       </div>
-      <div style={{ fontSize: 11, color: "var(--text-3)", marginTop: 14 }}>
+      <div style={{ display: "grid", gridTemplateColumns: isMobile || rows.length < 2 ? "1fr" : "1fr 1fr", gap: isMobile ? 18 : 28,
+        background: "var(--surface2)", boxShadow: "var(--shadow-inset)", borderRadius: "var(--r-tile)", padding: isMobile ? "14px 14px" : "16px 18px" }}>
+        {rows.map(rail)}
+      </div>
+      <div style={{ fontSize: 11, color: "var(--text-3)", marginTop: 12 }}>
         ถูกต้องเมื่อติดตั้งมิเตอร์พร้อมระบบ (ถ้าเพิ่มมิเตอร์ทีหลัง สัดส่วนใช้เองจะออกมาสูงกว่าจริง)
       </div>
     </FsCard>
