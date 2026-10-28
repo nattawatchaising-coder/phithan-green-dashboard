@@ -587,12 +587,11 @@ function FsStringGrid({
   }), "\u0E15\u0E48\u0E33\u0E1C\u0E34\u0E14\u0E1B\u0E01\u0E15\u0E34")), React.createElement("div", {
     style: {
       display: "grid",
-      gridTemplateColumns: "repeat(auto-fill, minmax(78px, 1fr))",
+      gridTemplateColumns: "repeat(auto-fill, minmax(90px, 1fr))",
       gap: 6
     }
   }, strs.map((s, i) => {
     const f = s.kw > 0 ? s.kw / maxKw : 0;
-    const dark = f > 0.55;
     return React.createElement("div", {
       key: s.n,
       className: "fs-in",
@@ -604,13 +603,13 @@ function FsStringGrid({
         minWidth: 0,
         background: s.weak ? "var(--tint-amber-bg)" : "color-mix(in srgb, var(--primary) " + Math.round(14 + f * 86) + "%, var(--surface2))",
         boxShadow: s.weak ? "inset 0 0 0 1.5px var(--tint-amber-tx)" : "none",
-        color: s.weak ? "var(--tint-amber-tx)" : dark ? "#fff" : "var(--text-1)"
+        color: s.weak ? "var(--tint-amber-tx)" : "var(--text-1)"
       }
     }, React.createElement("div", {
       style: {
-        fontSize: 10.5,
+        fontSize: 11.5,
         fontWeight: 700,
-        opacity: 0.85
+        opacity: 0.9
       }
     }, "PV", s.n), React.createElement("div", {
       style: {
@@ -628,10 +627,13 @@ function FsStringGrid({
       }
     }, "kW")), React.createElement("div", {
       style: {
-        fontSize: 10,
-        opacity: 0.8,
+        fontSize: 11.5,
+        fontWeight: 600,
+        opacity: 0.92,
         fontFamily: "var(--mono)",
-        whiteSpace: "nowrap"
+        whiteSpace: "nowrap",
+        overflow: "hidden",
+        textOverflow: "ellipsis"
       }
     }, fsFmt(s.i, 1), "A \xB7 ", fsFmt(s.u, 0), "V"));
   })));
