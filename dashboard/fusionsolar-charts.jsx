@@ -351,11 +351,11 @@ function FsEnergyBalance({ self, exp, imp, compact }) {
 
 /* แผนภาพสายไหล (ผู้ใช้เลือกแบบ A 2026-10-28) — ซ้าย: โซลาร์ผลิต / ซื้อจากกริด · ขวา: อาคารใช้ / ขายเข้ากริด
    ความหนาสายตามปริมาณจริง (สายบางสุด 3px ให้ยังมองเห็น) · fmt(v) → [ตัวเลข, หน่วย] จากการ์ด (หน่วยเดียวกันทั้งการ์ด) */
-function FsEnergySankey({ self, exp, imp, fmt }) {
+function FsEnergySankey({ self, exp, imp, fmt, big }) {
   const [ref, w] = useFsWidth(640);
   const small = w < 520;
-  const H = small ? 196 : 224, padY = 8, gap = 16, nw = 10;
-  const lw = small ? 82 : 116, rw = small ? 86 : 132;
+  const H = small ? 210 : big ? 300 : 240, padY = 10, gap = small ? 16 : 22, nw = small ? 10 : 12;
+  const lw = small ? 84 : 128, rw = small ? 88 : 150;
   const xL = lw, xR = w - rw - nw;
   const S = Math.max(0, self || 0), E = Math.max(0, exp || 0), I = imp == null ? 0 : Math.max(0, imp);
   const pv = S + E, use = S + I;
@@ -377,8 +377,8 @@ function FsEnergySankey({ self, exp, imp, fmt }) {
   const GRID = "color-mix(in srgb, var(--text-3) 42%, var(--surface2))";
   const lab = (x, yc, anchor, name, sub, color) => (
     <g>
-      <text x={x} y={yc - 2} textAnchor={anchor} style={{ fill: color || "var(--text-1)", fontSize: small ? 11.5 : 12.5, fontWeight: 700 }}>{name}</text>
-      <text x={x} y={yc + 13} textAnchor={anchor} style={{ fill: "var(--text-2)", fontSize: small ? 11 : 12, fontVariantNumeric: "tabular-nums" }}>{sub}</text>
+      <text x={x} y={yc - 3} textAnchor={anchor} style={{ fill: color || "var(--text-1)", fontSize: small ? 11.5 : 13.5, fontWeight: 700 }}>{name}</text>
+      <text x={x} y={yc + (small ? 12 : 15)} textAnchor={anchor} style={{ fill: "var(--text-2)", fontSize: small ? 11 : 13, fontVariantNumeric: "tabular-nums" }}>{sub}</text>
     </g>
   );
   const mid = (xL + nw + xR) / 2;
@@ -404,9 +404,9 @@ function FsEnergySankey({ self, exp, imp, fmt }) {
         {lab(xR + nw + 10, yBld + (hs + hi) / 2, "start", "อาคารใช้", hasGrid ? val(use) : "–")}
         {E > 0 && lab(xR + nw + 10, yExp + he / 2, "start", "ขายเข้ากริด", val(E) + " · " + pc(E, pv) + "%")}
         {S > 0 && (hs >= 20
-          ? <text x={mid} y={ySolar + hs / 2 + 4} textAnchor="middle" style={{ fill: "#fff", fontSize: 12, fontWeight: 800 }}>ใช้เอง {val(S)} · {pc(S, pv)}%</text>
+          ? <text x={mid} y={ySolar + hs / 2 + 4} textAnchor="middle" style={{ fill: "#fff", fontSize: small ? 12 : 13.5, fontWeight: 800 }}>ใช้เอง {val(S)} · {pc(S, pv)}%</text>
           : <text x={mid} y={ySolar + hs + 14} textAnchor="middle" style={{ fill: "var(--fs-sun)", fontSize: 12, fontWeight: 800 }}>ใช้เอง {val(S)} · {pc(S, pv)}%</text>)}
-        {hasGrid && hi >= 20 && <text x={mid} y={(yGrid + yBld + hs) / 2 + hi / 2 + 4} textAnchor="middle" style={{ fill: "var(--text-2)", fontSize: 12, fontWeight: 700 }}>ซื้อจากกริด {pc(I, use)}% ของที่ใช้</text>}
+        {hasGrid && hi >= 20 && <text x={xL + nw + 14} y={yGrid + (yBld + hs - yGrid) * 0.06 + hi / 2 + 4} style={{ fill: "var(--text-2)", fontSize: small ? 11.5 : 12.5, fontWeight: 700 }}>ซื้อจากกริด {pc(I, use)}% ของที่ใช้</text>}
       </svg>
     </div>
   );

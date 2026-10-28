@@ -2689,44 +2689,151 @@ function FsHistoryCard({
 }
 function FsEnergyCard({
   em,
-  isMobile
+  isMobile,
+  site,
+  dayVal
 }) {
+  const [per, setPer] = React.useState("month");
+  const today = fsBkk(Date.now()).day;
+  const startDay = per === "day" ? today : per === "month" ? today.slice(0, 8) + "01" : per === "year" ? today.slice(0, 5) + "01-01" : null;
+  const {
+    val: monVal
+  } = useFsNode("fsKpiMonth/" + site.id, 13);
+  const meterId = em.meter && em.meter.id;
+  const [start, setStart] = React.useState(undefined);
+  const firstM = (v, from) => {
+    for (const d of Object.keys(v || {}).filter(x => x >= from).sort()) {
+      const m = (v[d] || {}).m || {};
+      for (const hh of Object.keys(m).sort()) {
+        const r = m[hh][meterId] || Object.values(m[hh] || {})[0];
+        if (r && fsN(r.a) != null && fsN(r.r) != null) return {
+          day: d,
+          hh,
+          a: +r.a,
+          r: +r.r,
+          h: hh === "00" ? 0 : fsN((v[d].h || {})[hh]) || 0
+        };
+      }
+    }
+    return null;
+  };
+  React.useEffect(() => {
+    if (!startDay || !meterId) {
+      setStart(null);
+      return;
+    }
+    if (!dayVal) {
+      setStart(undefined);
+      return;
+    }
+    const keys = Object.keys(dayVal).sort();
+    const got = firstM(dayVal, startDay);
+    const oldest = keys[0];
+    if (got && (got.day !== oldest || oldest <= startDay)) {
+      setStart(got);
+      return;
+    }
+    if (!got && oldest && oldest <= startDay) {
+      setStart(false);
+      return;
+    }
+    let live = true;
+    setStart(undefined);
+    window.FBDB.ref("fsKpiDay/" + site.id).orderByKey().startAt(startDay).endAt(oldest || today).once("value").then(sn => {
+      if (live) setStart(firstM(sn.val(), startDay) || got || false);
+    }).catch(() => {
+      if (live) setStart(got || false);
+    });
+    return () => {
+      live = false;
+    };
+  }, [startDay, meterId, site.id, dayVal]);
   if (em.selfTotal == null) return null;
-  const pv = em.pvTotal,
-    use = em.importTotal != null ? em.selfTotal + em.importTotal : null;
-  const mwh = Math.max(pv || 0, use || 0) >= 10000;
+  let P = null,
+    E = null,
+    I = null;
+  if (per === "all") {
+    P = em.pvTotal;
+    E = em.exportTotal;
+    I = em.importTotal;
+  } else if (start) {
+    E = Math.max(0, em.exportTotal - (em.revIsExport ? start.r : start.a));
+    I = em.importTotal == null ? null : Math.max(0, em.importTotal - (em.revIsExport ? start.a : start.r));
+    const dayNow = fsN(site.day_kwh);
+    const dv = dayVal || {};
+    if (dv[start.day] || start.day === today) {
+      P = 0;
+      Object.keys(dv).filter(d => d >= start.day && d < today).forEach(d => {
+        P += fsN(dv[d].kwh) || 0;
+      });
+      P += Math.max(dayNow || 0, fsN((dv[today] || {}).kwh) || 0) - start.h;
+    } else if (per === "month") P = fsN(site.month_kwh);else {
+      const y = today.slice(0, 4),
+        cm = today.slice(0, 7);
+      P = Object.keys(monVal || {}).filter(m => m.slice(0, 4) === y && m !== cm).reduce((t, m) => t + (fsN(monVal[m]) || 0), 0) + (fsN(site.month_kwh) || 0);
+    }
+    P = Math.max(P || 0, E);
+  }
+  const S = P != null && E != null ? Math.max(0, P - E) : null;
+  const use = S != null && I != null ? S + I : null;
+  const ready = S != null;
+  const mwh = Math.max(P || 0, use || 0) >= 10000;
   const EP = v => fsN(v) == null ? ["–", "kWh"] : mwh ? [fsFmt(v / 1000, 1), "MWh"] : [fsFmt(v, 1), "kWh"];
-  const co2 = pv * FS_GRID_EF / 1000;
+  const co2 = (P || 0) * FS_GRID_EF / 1000;
   const pc = (v, t) => t > 0 ? Math.round(Math.max(0, v || 0) / t * 100) : 0;
   const stats = [{
     icon: "home",
     l: "ใช้เองได้",
-    v: pc(em.selfTotal, pv),
+    v: ready ? pc(S, P) : "–",
     u: "%",
     s: "ของไฟที่โซลาร์ผลิต"
-  }, use ? {
+  }, use != null || !ready ? {
     icon: "sun",
     l: "พึ่งโซลาร์ได้",
-    v: pc(em.selfTotal, use),
+    v: ready ? pc(S, use) : "–",
     u: "%",
     s: "ของไฟที่อาคารใช้"
   } : null, {
     icon: "sparkle",
-    l: "ลด CO₂ สะสม",
-    v: fsFmt(co2, 1),
-    u: "ตัน",
-    s: "≈ ต้นไม้ " + fsFmt(co2 * 1000 / FS_TREE_KG, 0) + " ต้น/ปี"
+    l: per === "all" ? "ลด CO₂ สะสม" : "ลด CO₂",
+    v: ready ? co2 < 1 ? fsFmt(co2 * 1000, 0) : fsFmt(co2, 1) : "–",
+    u: co2 < 1 ? "kg" : "ตัน",
+    s: ready ? "≈ ต้นไม้ " + fsFmt(co2 * 1000 / FS_TREE_KG, co2 * 1000 / FS_TREE_KG < 10 ? 1 : 0) + " ต้น/ปี" : ""
   }].filter(Boolean);
+  const perTH = {
+    day: "วันนี้",
+    month: "เดือนนี้",
+    year: "ปีนี้",
+    all: "ทั้งหมด"
+  };
+  const sub = per === "all" ? "นับสะสมตั้งแต่ติดตั้ง" : (per === "day" ? "วันนี้" : per === "month" ? "เดือนนี้" : "ปีนี้") + (start && start.day > startDay ? " · นับตั้งแต่ " + fsDayTH(start.day) : "");
+  const seg = window.Segmented ? React.createElement(window.Segmented, {
+    flat: true,
+    value: per,
+    onChange: setPer,
+    options: ["day", "month", "year", "all"].map(k => ({
+      value: k,
+      label: perTH[k]
+    }))
+  }) : null;
   return React.createElement(FsCard, {
     title: "\u0E1E\u0E25\u0E31\u0E07\u0E07\u0E32\u0E19\u0E44\u0E1B\u0E44\u0E2B\u0E19 \xB7 \u0E21\u0E32\u0E08\u0E32\u0E01\u0E44\u0E2B\u0E19",
-    sub: "\u0E19\u0E31\u0E1A\u0E2A\u0E30\u0E2A\u0E21\u0E15\u0E31\u0E49\u0E07\u0E41\u0E15\u0E48\u0E15\u0E34\u0E14\u0E15\u0E31\u0E49\u0E07"
-  }, React.createElement("div", {
+    sub: isMobile ? null : sub,
+    right: seg
+  }, isMobile && React.createElement("div", {
+    style: {
+      fontSize: 11.5,
+      color: "var(--text-3)",
+      marginTop: -4,
+      marginBottom: 8
+    }
+  }, sub), React.createElement("div", {
     className: "kpi-grid",
     style: {
       display: "grid",
       gridTemplateColumns: isMobile ? "1fr 1fr" : "1.25fr" + " 1fr".repeat(stats.length - 1),
       gap: isMobile ? 10 : 0,
-      margin: "4px 0 18px"
+      margin: "4px 0 16px"
     }
   }, stats.map((x, i) => React.createElement("div", {
     key: x.l,
@@ -2774,7 +2881,7 @@ function FsEnergyCard({
       whiteSpace: "nowrap",
       fontVariantNumeric: "tabular-nums"
     }
-  }, x.v, React.createElement("span", {
+  }, x.v, x.v !== "–" && React.createElement("span", {
     style: {
       fontSize: 12,
       fontWeight: 600,
@@ -2789,23 +2896,28 @@ function FsEnergyCard({
       overflow: "hidden",
       textOverflow: "ellipsis"
     }
-  }, x.s))))), React.createElement("div", {
+  }, x.s))))), ready && window.FsEnergySankey && React.createElement(window.FsEnergySankey, {
+    key: per,
+    self: S,
+    exp: E,
+    imp: I,
+    fmt: EP,
+    big: !isMobile
+  }), !ready && React.createElement("div", {
     style: {
-      background: "var(--surface2)",
-      boxShadow: "var(--shadow-inset)",
-      borderRadius: "var(--r-tile)",
-      padding: isMobile ? "14px 12px" : "16px 18px"
+      height: isMobile ? 160 : 220,
+      display: "grid",
+      placeItems: "center",
+      fontSize: 12.5,
+      color: "var(--text-3)",
+      textAlign: "center",
+      padding: "0 16px"
     }
-  }, window.FsEnergySankey && React.createElement(window.FsEnergySankey, {
-    self: em.selfTotal,
-    exp: em.exportTotal,
-    imp: em.importTotal,
-    fmt: EP
-  })), React.createElement("div", {
+  }, start === undefined ? "กำลังโหลด…" : "ยังไม่มีค่ามิเตอร์ที่เก็บไว้ในช่วง" + perTH[per] + " — ระบบเก็บทุกครั้งที่ซิงก์ (ทุก 15 นาที) ลองดู \"ทั้งหมด\""), per === "all" && React.createElement("div", {
     style: {
       fontSize: 11,
       color: "var(--text-3)",
-      marginTop: 12
+      marginTop: 10
     }
   }, "\u0E16\u0E39\u0E01\u0E15\u0E49\u0E2D\u0E07\u0E40\u0E21\u0E37\u0E48\u0E2D\u0E15\u0E34\u0E14\u0E15\u0E31\u0E49\u0E07\u0E21\u0E34\u0E40\u0E15\u0E2D\u0E23\u0E4C\u0E1E\u0E23\u0E49\u0E2D\u0E21\u0E23\u0E30\u0E1A\u0E1A (\u0E16\u0E49\u0E32\u0E40\u0E1E\u0E34\u0E48\u0E21\u0E21\u0E34\u0E40\u0E15\u0E2D\u0E23\u0E4C\u0E17\u0E35\u0E2B\u0E25\u0E31\u0E07 \u0E2A\u0E31\u0E14\u0E2A\u0E48\u0E27\u0E19\u0E43\u0E0A\u0E49\u0E40\u0E2D\u0E07\u0E08\u0E30\u0E2D\u0E2D\u0E01\u0E21\u0E32\u0E2A\u0E39\u0E07\u0E01\u0E27\u0E48\u0E32\u0E08\u0E23\u0E34\u0E07)"));
 }
@@ -3250,7 +3362,9 @@ function FsSiteModal({
     flip: !!(em && em.revIsExport)
   })), tab === "over" && React.createElement(FsEnergyCard, {
     em: em,
-    isMobile: isMobile
+    isMobile: isMobile,
+    site: site,
+    dayVal: dayVal
   }), tab === "over" && !code && React.createElement("div", {
     style: {
       fontSize: 12.5,

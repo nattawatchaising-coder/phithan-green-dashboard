@@ -963,6 +963,7 @@ function FsInvStage({
   const st = fsInvState(fsN(k.inverter_state));
   const led = !st ? "var(--text-3)" : st[1] === "ok" ? "#2FB36B" : st[1] === "bad" ? "#E5484D" : "#F5A524";
   const huawei = /^SUN[25]000/i.test(d.model || "");
+  const dark = document.documentElement.getAttribute("data-theme") === "aurora";
   return React.createElement("div", {
     style: {
       position: "relative",
@@ -971,8 +972,7 @@ function FsInvStage({
       flexShrink: 0,
       borderRadius: 18,
       overflow: "hidden",
-      background: "radial-gradient(circle at 50% 42%, color-mix(in srgb, var(--fs-sun) 22%, #fff) 0%, color-mix(in srgb, var(--fs-sun) 7%, #fff) 62%, #F6F4EF 100%)",
-      boxShadow: "inset 0 0 0 1px rgba(0,0,0,.03)"
+      background: "transparent"
     }
   }, huawei ? React.createElement("img", {
     src: "dashboard/assets/pkg-inv-huawei.jpg",
@@ -984,7 +984,8 @@ function FsInvStage({
       width: "88%",
       height: "88%",
       objectFit: "contain",
-      mixBlendMode: "multiply"
+      mixBlendMode: dark ? "normal" : "multiply",
+      borderRadius: dark ? 12 : 0
     }
   }) : React.createElement("svg", {
     viewBox: "0 0 100 100",

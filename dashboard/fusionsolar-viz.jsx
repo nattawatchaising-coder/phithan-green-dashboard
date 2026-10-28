@@ -481,18 +481,19 @@ function FsChip({ tone, children }) {
   return <span style={{ fontSize: 10.5, fontWeight: 700, padding: "3px 9px", borderRadius: "var(--r-pill)", color: t[0], background: t[1], whiteSpace: "nowrap" }}>{children}</span>;
 }
 
-/* ภาพอุปกรณ์บนเวทีส้มอ่อน — Huawei (รุ่น SUN2000/SUN5000) ใช้ภาพสินค้าจริง assets/pkg-inv-huawei.jpg (พื้นขาว → multiply ให้กลืนเวที)
+/* ภาพอุปกรณ์ — Huawei (รุ่น SUN2000/SUN5000) ใช้ภาพสินค้าจริง assets/pkg-inv-huawei.jpg (พื้นขาว → multiply ให้กลืนเวที)
    ยี่ห้ออื่นวาดกล่องอินเวอร์เตอร์เรียบ ๆ · ไฟสถานะมุมเวทีตามสถานะเครื่อง */
 function FsInvStage({ d, k, size }) {
   const st = fsInvState(fsN(k.inverter_state));
   const led = !st ? "var(--text-3)" : st[1] === "ok" ? "#2FB36B" : st[1] === "bad" ? "#E5484D" : "#F5A524";
   const huawei = /^SUN[25]000/i.test(d.model || "");
+  /* ไม่มีกรอบสี (ผู้ใช้ 2026-10-28 "ไม่ต้องมีกรอบมีสี") — ภาพพื้นขาว multiply ให้กลืนพื้นการ์ด · ธีมมืดแสดงภาพตามจริง */
+  const dark = document.documentElement.getAttribute("data-theme") === "aurora";
   return (
     <div style={{ position: "relative", width: size, height: size, flexShrink: 0, borderRadius: 18, overflow: "hidden",
-      background: "radial-gradient(circle at 50% 42%, color-mix(in srgb, var(--fs-sun) 22%, #fff) 0%, color-mix(in srgb, var(--fs-sun) 7%, #fff) 62%, #F6F4EF 100%)",
-      boxShadow: "inset 0 0 0 1px rgba(0,0,0,.03)" }}>
+      background: "transparent" }}>
       {huawei
-        ? <img src="dashboard/assets/pkg-inv-huawei.jpg" alt="" loading="lazy" style={{ position: "absolute", inset: "6%", width: "88%", height: "88%", objectFit: "contain", mixBlendMode: "multiply" }} />
+        ? <img src="dashboard/assets/pkg-inv-huawei.jpg" alt="" loading="lazy" style={{ position: "absolute", inset: "6%", width: "88%", height: "88%", objectFit: "contain", mixBlendMode: dark ? "normal" : "multiply", borderRadius: dark ? 12 : 0 }} />
         : <svg viewBox="0 0 100 100" style={{ position: "absolute", inset: "14%", width: "72%", height: "72%" }} aria-hidden="true">
             <rect x="18" y="10" width="64" height="78" rx="9" fill="#fff" stroke="#D8D5CC" strokeWidth="1.5" />
             <rect x="80" y="20" width="6" height="58" rx="2" fill="#C9C6BD" />

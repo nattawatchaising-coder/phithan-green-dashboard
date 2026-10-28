@@ -1075,26 +1075,88 @@ function FsHistoryCard({ site, isMobile, flip, em, only }) {
   );
 }
 
-/* ไฟที่ผลิตไปไหน · ไฟที่ใช้มาจากไหน — จากตัวเลขสะสมของมิเตอร์เทียบอินเวอร์เตอร์ (ภาพการไหลตอนนี้อยู่ใน FsHouseFlow)
-   โทนส้มเดียวกับกราฟประวัติการผลิต (ภาพอ้างอิง Solis/Lumos/SolarSync): แถวตัวเลขหัวการ์ดแบบเดียวกับ "กำลังไฟวันนี้"
-   + แผนภาพสายไหล FsEnergySankey (ผู้ใช้เลือกแบบ A จาก 3 แบบ) · สายโซลาร์ = ส้มเรืองแสง ขาย = ส้มอ่อน ซื้อจากกริด = เทา
-   (ผู้ใช้ 2026-10-28: แบบหน้าปัด+แถบสเกลเดียวกัน "ดูงง" · แบบเขียว/ฟ้า/แดง "ไม่เข้ากับธีมส้ม") */
-function FsEnergyCard({ em, isMobile }) {
+/* ไฟที่ผลิตไปไหน · ไฟที่ใช้มาจากไหน — วันนี้ / เดือนนี้ / ปีนี้ / ทั้งหมด (ผู้ใช้ถาม "มีแบบรายวัน รายเดือน รายปีไหม" 2026-10-28)
+   ทั้งหมด = ตัวนับสะสมของมิเตอร์เทียบอินเวอร์เตอร์ · ช่วงอื่น = ตัวนับมิเตอร์ตอนนี้ − ค่าที่เก็บไว้ครั้งแรกในช่วงนั้น (fsKpiDay m/{HH})
+   ผลิตในช่วง = ผลิตรายวันตั้งแต่วันนั้น − ที่ผลิตไปแล้วก่อนชั่วโมงนั้น (h/{HH}) ให้ตรงช่วงเดียวกับมิเตอร์ · ค่ามิเตอร์เริ่มเก็บทีหลังต้นช่วง → บอก "นับตั้งแต่"
+   แสดงเป็นแผนภาพสายไหล FsEnergySankey ไม่มีกรอบ (ผู้ใช้เลือกแบบ A แล้วขอเอากรอบออกให้ใหญ่) · โทนส้มเดียวกับกราฟประวัติ */
+function FsEnergyCard({ em, isMobile, site, dayVal }) {
+  const [per, setPer] = React.useState("month");
+  const today = fsBkk(Date.now()).day;
+  const startDay = per === "day" ? today : per === "month" ? today.slice(0, 8) + "01" : per === "year" ? today.slice(0, 5) + "01-01" : null;
+  const { val: monVal } = useFsNode("fsKpiMonth/" + site.id, 13);
+  const meterId = em.meter && em.meter.id;
+  const [start, setStart] = React.useState(undefined);
+  /* ค่ามิเตอร์แรกในช่วง — วันเก่าที่ดึงย้อนหลังมีแค่ kwh (ไม่มี m) จึงไล่หาในวันที่โหลดไว้แล้ว (dayVal 31 วัน) ก่อน
+     ไปอ่านฐานข้อมูลเพิ่มเฉพาะเมื่อวันแรกที่โหลดไว้ก็มี m แล้ว (อาจมีค่าเก่ากว่านั้นในช่วงปี) */
+  const firstM = (v, from) => {
+    for (const d of Object.keys(v || {}).filter((x) => x >= from).sort()) {
+      const m = (v[d] || {}).m || {};
+      for (const hh of Object.keys(m).sort()) {
+        const r = m[hh][meterId] || Object.values(m[hh] || {})[0];
+        /* h/00 เป็นยอดของเมื่อวาน (ตัวนับยังไม่รีเซ็ตตอนซิงก์หลังเที่ยงคืน) — เที่ยงคืนผลิต 0 เสมอ */
+        if (r && fsN(r.a) != null && fsN(r.r) != null) return { day: d, hh, a: +r.a, r: +r.r, h: hh === "00" ? 0 : fsN((v[d].h || {})[hh]) || 0 };
+      }
+    }
+    return null;
+  };
+  React.useEffect(() => {
+    if (!startDay || !meterId) { setStart(null); return; }
+    if (!dayVal) { setStart(undefined); return; }
+    const keys = Object.keys(dayVal).sort();
+    const got = firstM(dayVal, startDay);
+    const oldest = keys[0];
+    if (got && (got.day !== oldest || oldest <= startDay)) { setStart(got); return; }
+    if (!got && oldest && oldest <= startDay) { setStart(false); return; }
+    let live = true;
+    setStart(undefined);
+    window.FBDB.ref("fsKpiDay/" + site.id).orderByKey().startAt(startDay).endAt(oldest || today).once("value")
+      .then((sn) => { if (live) setStart(firstM(sn.val(), startDay) || got || false); })
+      .catch(() => { if (live) setStart(got || false); });
+    return () => { live = false; };
+  }, [startDay, meterId, site.id, dayVal]);
   if (em.selfTotal == null) return null;
-  const pv = em.pvTotal, use = em.importTotal != null ? em.selfTotal + em.importTotal : null;
-  /* ทุกตัวเลขในการ์ดใช้หน่วยเดียวกัน (ไม่ให้ MWh ปน kWh) */
-  const mwh = Math.max(pv || 0, use || 0) >= 10000;
+
+  /* ตัวเลขของช่วงที่เลือก */
+  let P = null, E = null, I = null;
+  if (per === "all") { P = em.pvTotal; E = em.exportTotal; I = em.importTotal; }
+  else if (start) {
+    E = Math.max(0, em.exportTotal - (em.revIsExport ? start.r : start.a));
+    I = em.importTotal == null ? null : Math.max(0, em.importTotal - (em.revIsExport ? start.a : start.r));
+    const dayNow = fsN(site.day_kwh);
+    const dv = dayVal || {};
+    if (dv[start.day] || start.day === today) {
+      P = 0;
+      Object.keys(dv).filter((d) => d >= start.day && d < today).forEach((d) => { P += fsN(dv[d].kwh) || 0; });
+      P += Math.max(dayNow || 0, fsN((dv[today] || {}).kwh) || 0) - start.h;
+    } else if (per === "month") P = fsN(site.month_kwh);
+    else {
+      const y = today.slice(0, 4), cm = today.slice(0, 7);
+      P = Object.keys(monVal || {}).filter((m) => m.slice(0, 4) === y && m !== cm).reduce((t, m) => t + (fsN(monVal[m]) || 0), 0) + (fsN(site.month_kwh) || 0);
+    }
+    P = Math.max(P || 0, E);
+  }
+  const S = P != null && E != null ? Math.max(0, P - E) : null;
+  const use = S != null && I != null ? S + I : null;
+  const ready = S != null;
+
+  const mwh = Math.max(P || 0, use || 0) >= 10000;
   const EP = (v) => (fsN(v) == null ? ["–", "kWh"] : mwh ? [fsFmt(v / 1000, 1), "MWh"] : [fsFmt(v, 1), "kWh"]);
-  const co2 = (pv * FS_GRID_EF) / 1000;
+  const co2 = ((P || 0) * FS_GRID_EF) / 1000;
   const pc = (v, t) => (t > 0 ? Math.round((Math.max(0, v || 0) / t) * 100) : 0);
   const stats = [
-    { icon: "home", l: "ใช้เองได้", v: pc(em.selfTotal, pv), u: "%", s: "ของไฟที่โซลาร์ผลิต" },
-    use ? { icon: "sun", l: "พึ่งโซลาร์ได้", v: pc(em.selfTotal, use), u: "%", s: "ของไฟที่อาคารใช้" } : null,
-    { icon: "sparkle", l: "ลด CO₂ สะสม", v: fsFmt(co2, 1), u: "ตัน", s: "≈ ต้นไม้ " + fsFmt((co2 * 1000) / FS_TREE_KG, 0) + " ต้น/ปี" },
+    { icon: "home", l: "ใช้เองได้", v: ready ? pc(S, P) : "–", u: "%", s: "ของไฟที่โซลาร์ผลิต" },
+    use != null || !ready ? { icon: "sun", l: "พึ่งโซลาร์ได้", v: ready ? pc(S, use) : "–", u: "%", s: "ของไฟที่อาคารใช้" } : null,
+    { icon: "sparkle", l: per === "all" ? "ลด CO₂ สะสม" : "ลด CO₂", v: ready ? (co2 < 1 ? fsFmt(co2 * 1000, 0) : fsFmt(co2, 1)) : "–", u: co2 < 1 ? "kg" : "ตัน",
+      s: ready ? "≈ ต้นไม้ " + fsFmt((co2 * 1000) / FS_TREE_KG, co2 * 1000 / FS_TREE_KG < 10 ? 1 : 0) + " ต้น/ปี" : "" },
   ].filter(Boolean);
+  const perTH = { day: "วันนี้", month: "เดือนนี้", year: "ปีนี้", all: "ทั้งหมด" };
+  const sub = per === "all" ? "นับสะสมตั้งแต่ติดตั้ง"
+    : (per === "day" ? "วันนี้" : per === "month" ? "เดือนนี้" : "ปีนี้") + (start && start.day > startDay ? " · นับตั้งแต่ " + fsDayTH(start.day) : "");
+  const seg = window.Segmented ? <window.Segmented flat value={per} onChange={setPer} options={["day", "month", "year", "all"].map((k) => ({ value: k, label: perTH[k] }))} /> : null;
   return (
-    <FsCard title="พลังงานไปไหน · มาจากไหน" sub="นับสะสมตั้งแต่ติดตั้ง">
-      <div className="kpi-grid" style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr 1fr" : "1.25fr" + " 1fr".repeat(stats.length - 1), gap: isMobile ? 10 : 0, margin: "4px 0 18px" }}>
+    <FsCard title="พลังงานไปไหน · มาจากไหน" sub={isMobile ? null : sub} right={seg}>
+      {isMobile && <div style={{ fontSize: 11.5, color: "var(--text-3)", marginTop: -4, marginBottom: 8 }}>{sub}</div>}
+      <div className="kpi-grid" style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr 1fr" : "1.25fr" + " 1fr".repeat(stats.length - 1), gap: isMobile ? 10 : 0, margin: "4px 0 16px" }}>
         {stats.map((x, i) => (
           <div key={x.l} style={{ display: "flex", gap: 10, alignItems: "flex-start", minWidth: 0, gridColumn: isMobile && !i ? "1 / -1" : "auto",
             padding: isMobile || !i ? 0 : "0 0 0 16px", boxShadow: !isMobile && i ? "inset 1px 0 0 var(--divider)" : "none" }}>
@@ -1105,19 +1167,24 @@ function FsEnergyCard({ em, isMobile }) {
             <div style={{ minWidth: 0 }}>
               <div style={{ fontSize: 11.5, fontWeight: 600, color: "var(--text-3)" }}>{x.l}</div>
               <div style={{ fontFamily: "var(--display)", fontSize: i ? 19 : 28, fontWeight: 700, color: "var(--text-1)", lineHeight: 1.15, whiteSpace: "nowrap", fontVariantNumeric: "tabular-nums" }}>
-                {x.v}<span style={{ fontSize: 12, fontWeight: 600, color: "var(--text-3)", marginLeft: 4 }}>{x.u}</span>
+                {x.v}{x.v !== "–" && <span style={{ fontSize: 12, fontWeight: 600, color: "var(--text-3)", marginLeft: 4 }}>{x.u}</span>}
               </div>
               <div style={{ fontSize: 11, color: "var(--text-3)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{x.s}</div>
             </div>
           </div>
         ))}
       </div>
-      <div style={{ background: "var(--surface2)", boxShadow: "var(--shadow-inset)", borderRadius: "var(--r-tile)", padding: isMobile ? "14px 12px" : "16px 18px" }}>
-        {window.FsEnergySankey && <window.FsEnergySankey self={em.selfTotal} exp={em.exportTotal} imp={em.importTotal} fmt={EP} />}
-      </div>
-      <div style={{ fontSize: 11, color: "var(--text-3)", marginTop: 12 }}>
-        ถูกต้องเมื่อติดตั้งมิเตอร์พร้อมระบบ (ถ้าเพิ่มมิเตอร์ทีหลัง สัดส่วนใช้เองจะออกมาสูงกว่าจริง)
-      </div>
+      {ready && window.FsEnergySankey && <window.FsEnergySankey key={per} self={S} exp={E} imp={I} fmt={EP} big={!isMobile} />}
+      {!ready && (
+        <div style={{ height: isMobile ? 160 : 220, display: "grid", placeItems: "center", fontSize: 12.5, color: "var(--text-3)", textAlign: "center", padding: "0 16px" }}>
+          {start === undefined ? "กำลังโหลด…" : "ยังไม่มีค่ามิเตอร์ที่เก็บไว้ในช่วง" + perTH[per] + " — ระบบเก็บทุกครั้งที่ซิงก์ (ทุก 15 นาที) ลองดู \"ทั้งหมด\""}
+        </div>
+      )}
+      {per === "all" && (
+        <div style={{ fontSize: 11, color: "var(--text-3)", marginTop: 10 }}>
+          ถูกต้องเมื่อติดตั้งมิเตอร์พร้อมระบบ (ถ้าเพิ่มมิเตอร์ทีหลัง สัดส่วนใช้เองจะออกมาสูงกว่าจริง)
+        </div>
+      )}
     </FsCard>
   );
 }
@@ -1317,7 +1384,7 @@ function FsSiteModal({ site, sites, medMonth, jobs, canWrite, isAdmin, currentUs
       )}
 
       {tab === "over" && code && ["day", "hist"].map((k) => <FsHistoryCard key={k} only={k} site={site} isMobile={isMobile} em={em} flip={!!(em && em.revIsExport)} />)}
-      {tab === "over" && <FsEnergyCard em={em} isMobile={isMobile} />}
+      {tab === "over" && <FsEnergyCard em={em} isMobile={isMobile} site={site} dayVal={dayVal} />}
       {tab === "over" && !code && <div style={{ fontSize: 12.5, color: "var(--text-3)", padding: "6px 2px" }}>ผูก station code ก่อนจึงจะมีข้อมูลการผลิต</div>}
 
       {/* อุปกรณ์ เรียง อินเวอร์เตอร์ → มิเตอร์ → แบต → อื่น ๆ */}
