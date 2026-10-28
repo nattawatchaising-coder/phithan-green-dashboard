@@ -822,8 +822,189 @@ function FsEnergyBalance({
     }
   }), head(y2, "ไฟที่อาคารใช้", use, use * k), seg("s2", 0, xs, y2, "var(--fs-self)", pct(s, use), 240), seg("m", xs, use * k, y2, "var(--fs-imp)", pct(m, use), 360))));
 }
+function FsEnergyFlow({
+  self,
+  exp,
+  imp,
+  fmt
+}) {
+  const [ref, w] = useFsWidth(640);
+  const small = w < 520;
+  const H = small ? 196 : 224,
+    padY = 8,
+    gap = 16,
+    nw = 10;
+  const lw = small ? 82 : 116,
+    rw = small ? 86 : 132;
+  const xL = lw,
+    xR = w - rw - nw;
+  const S = Math.max(0, self || 0),
+    E = Math.max(0, exp || 0),
+    I = imp == null ? 0 : Math.max(0, imp);
+  const pv = S + E,
+    use = S + I;
+  const total = pv + I || 1;
+  const hasGrid = imp != null && I > 0;
+  const k = (H - padY * 2 - (hasGrid || E > 0 ? gap : 0)) / total;
+  const h = v => v > 0 ? Math.max(3, v * k) : 0;
+  const hs = h(S),
+    he = h(E),
+    hi = h(I);
+  const ySolar = padY,
+    yGrid = padY + hs + he + gap;
+  const yBld = padY,
+    yExp = padY + hs + hi + gap;
+  const band = (x1, ya, yb, x2, yc, yd) => {
+    const m = (x1 + x2) / 2;
+    return "M" + x1 + " " + ya + "C" + m + " " + ya + " " + m + " " + yc + " " + x2 + " " + yc + "L" + x2 + " " + yd + "C" + m + " " + yd + " " + m + " " + yb + " " + x1 + " " + yb + "Z";
+  };
+  const pc = (v, t) => t > 0 ? Math.round(v / t * 100) : 0;
+  const val = v => fmt(v)[0] + " " + fmt(v)[1];
+  const uid = React.useMemo(() => "fsf" + Math.random().toString(36).slice(2, 7), []);
+  const PALE = "color-mix(in srgb, var(--fs-sun) 38%, var(--surface))";
+  const GRID = "color-mix(in srgb, var(--text-3) 42%, var(--surface2))";
+  const lab = (x, yc, anchor, name, sub, color) => React.createElement("g", null, React.createElement("text", {
+    x: x,
+    y: yc - 2,
+    textAnchor: anchor,
+    style: {
+      fill: color || "var(--text-1)",
+      fontSize: small ? 11.5 : 12.5,
+      fontWeight: 700
+    }
+  }, name), React.createElement("text", {
+    x: x,
+    y: yc + 13,
+    textAnchor: anchor,
+    style: {
+      fill: "var(--text-2)",
+      fontSize: small ? 11 : 12,
+      fontVariantNumeric: "tabular-nums"
+    }
+  }, sub));
+  const mid = (xL + nw + xR) / 2;
+  return React.createElement("div", {
+    ref: ref,
+    style: {
+      width: "100%"
+    }
+  }, React.createElement("svg", {
+    width: w,
+    height: H,
+    style: {
+      display: "block",
+      overflow: "visible"
+    },
+    role: "img",
+    "aria-label": "โซลาร์ผลิต " + val(pv) + " ใช้เอง " + val(S) + " ขาย " + val(E) + (hasGrid ? " ซื้อจากกริด " + val(I) + " อาคารใช้ " + val(use) : "")
+  }, React.createElement("defs", null, React.createElement("linearGradient", {
+    id: uid,
+    x1: "0",
+    y1: "0",
+    x2: "1",
+    y2: "0"
+  }, React.createElement("stop", {
+    offset: "0",
+    style: {
+      stopColor: "var(--fs-sun)",
+      stopOpacity: 0.95
+    }
+  }), React.createElement("stop", {
+    offset: "1",
+    style: {
+      stopColor: "var(--fs-sun)",
+      stopOpacity: 0.7
+    }
+  }))), hasGrid && React.createElement("path", {
+    className: "fs-fade",
+    d: band(xL + nw, yGrid, yGrid + hi, xR, yBld + hs, yBld + hs + hi),
+    style: {
+      fill: GRID,
+      opacity: 0.75,
+      animationDelay: "160ms"
+    }
+  }), E > 0 && React.createElement("path", {
+    className: "fs-fade",
+    d: band(xL + nw, ySolar + hs, ySolar + hs + he, xR, yExp, yExp + he),
+    style: {
+      fill: PALE,
+      animationDelay: "80ms"
+    }
+  }), S > 0 && React.createElement("path", {
+    className: "fs-fade",
+    d: band(xL + nw, ySolar, ySolar + hs, xR, yBld, yBld + hs),
+    style: {
+      fill: "url(#" + uid + ")",
+      filter: "drop-shadow(0 4px 8px color-mix(in srgb, var(--fs-sun) 40%, transparent))"
+    }
+  }), React.createElement("rect", {
+    x: xL,
+    y: ySolar,
+    width: nw,
+    height: hs + he,
+    rx: 3,
+    style: {
+      fill: "var(--fs-sun)"
+    }
+  }), hasGrid && React.createElement("rect", {
+    x: xL,
+    y: yGrid,
+    width: nw,
+    height: hi,
+    rx: 3,
+    style: {
+      fill: "var(--text-3)"
+    }
+  }), React.createElement("rect", {
+    x: xR,
+    y: yBld,
+    width: nw,
+    height: hs + hi,
+    rx: 3,
+    style: {
+      fill: "var(--text-2)"
+    }
+  }), E > 0 && React.createElement("rect", {
+    x: xR,
+    y: yExp,
+    width: nw,
+    height: he,
+    rx: 3,
+    style: {
+      fill: "color-mix(in srgb, var(--fs-sun) 70%, var(--surface))"
+    }
+  }), lab(xL - 10, ySolar + (hs + he) / 2, "end", "โซลาร์ผลิต", val(pv), "var(--fs-sun)"), hasGrid && lab(xL - 10, yGrid + hi / 2, "end", "ซื้อจากกริด", val(I)), lab(xR + nw + 10, yBld + (hs + hi) / 2, "start", "อาคารใช้", hasGrid ? val(use) : "–"), E > 0 && lab(xR + nw + 10, yExp + he / 2, "start", "ขายเข้ากริด", val(E) + " · " + pc(E, pv) + "%"), S > 0 && (hs >= 20 ? React.createElement("text", {
+    x: mid,
+    y: ySolar + hs / 2 + 4,
+    textAnchor: "middle",
+    style: {
+      fill: "#fff",
+      fontSize: 12,
+      fontWeight: 800
+    }
+  }, "\u0E43\u0E0A\u0E49\u0E40\u0E2D\u0E07 ", val(S), " \xB7 ", pc(S, pv), "%") : React.createElement("text", {
+    x: mid,
+    y: ySolar + hs + 14,
+    textAnchor: "middle",
+    style: {
+      fill: "var(--fs-sun)",
+      fontSize: 12,
+      fontWeight: 800
+    }
+  }, "\u0E43\u0E0A\u0E49\u0E40\u0E2D\u0E07 ", val(S), " \xB7 ", pc(S, pv), "%")), hasGrid && hi >= 20 && React.createElement("text", {
+    x: mid,
+    y: (yGrid + yBld + hs) / 2 + hi / 2 + 4,
+    textAnchor: "middle",
+    style: {
+      fill: "var(--text-2)",
+      fontSize: 12,
+      fontWeight: 700
+    }
+  }, "\u0E0B\u0E37\u0E49\u0E2D\u0E08\u0E32\u0E01\u0E01\u0E23\u0E34\u0E14 ", pc(I, use), "% \u0E02\u0E2D\u0E07\u0E17\u0E35\u0E48\u0E43\u0E0A\u0E49")));
+}
 Object.assign(window, {
   FsTrendChart,
   FsEnergyBalance,
+  FsEnergyFlow,
   fsMonoPath
 });

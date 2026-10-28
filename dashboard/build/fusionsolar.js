@@ -2698,9 +2698,6 @@ function FsEnergyCard({
   const EP = v => fsN(v) == null ? ["–", "kWh"] : mwh ? [fsFmt(v / 1000, 1), "MWh"] : [fsFmt(v, 1), "kWh"];
   const co2 = pv * FS_GRID_EF / 1000;
   const pc = (v, t) => t > 0 ? Math.round(Math.max(0, v || 0) / t * 100) : 0;
-  const SUN = "linear-gradient(90deg, var(--fs-sun), color-mix(in srgb, var(--fs-sun) 72%, #FFD27A))";
-  const PALE = "color-mix(in srgb, var(--fs-sun) 34%, var(--surface))";
-  const GRID = "color-mix(in srgb, var(--text-3) 50%, var(--surface2))";
   const stats = [{
     icon: "home",
     l: "ใช้เองได้",
@@ -2720,143 +2717,6 @@ function FsEnergyCard({
     u: "ตัน",
     s: "≈ ต้นไม้ " + fsFmt(co2 * 1000 / FS_TREE_KG, 0) + " ต้น/ปี"
   }].filter(Boolean);
-  const rows = [{
-    title: "ไฟที่โซลาร์ผลิต",
-    verb: "ไปไหน",
-    total: pv,
-    segs: [{
-      bg: SUN,
-      dot: "var(--fs-sun)",
-      l: "ใช้เองในอาคาร",
-      v: em.selfTotal,
-      glow: true
-    }, {
-      bg: PALE,
-      dot: PALE,
-      l: "ขายเข้ากริด",
-      v: em.exportTotal || 0
-    }]
-  }].concat(use ? [{
-    title: "ไฟที่อาคารใช้",
-    verb: "มาจากไหน",
-    total: use,
-    segs: [{
-      bg: SUN,
-      dot: "var(--fs-sun)",
-      l: "จากโซลาร์",
-      v: em.selfTotal,
-      glow: true
-    }, {
-      bg: GRID,
-      dot: GRID,
-      l: "ซื้อจากกริด",
-      v: em.importTotal
-    }]
-  }] : []);
-  const num = (v, size) => React.createElement("span", {
-    style: {
-      fontFamily: "var(--display)",
-      fontSize: size,
-      fontWeight: 700,
-      color: "var(--text-1)",
-      whiteSpace: "nowrap",
-      fontVariantNumeric: "tabular-nums"
-    }
-  }, EP(v)[0], React.createElement("span", {
-    style: {
-      fontSize: 11,
-      fontWeight: 600,
-      color: "var(--text-3)",
-      marginLeft: 3
-    }
-  }, EP(v)[1]));
-  const rail = (r, ri) => {
-    const sum = r.segs.reduce((t, x) => t + Math.max(0, x.v || 0), 0) || 1;
-    return React.createElement("div", {
-      key: r.title,
-      style: {
-        minWidth: 0
-      }
-    }, React.createElement("div", {
-      style: {
-        display: "flex",
-        alignItems: "baseline",
-        gap: 6,
-        marginBottom: 8
-      }
-    }, React.createElement("span", {
-      style: {
-        fontSize: 12.5,
-        fontWeight: 700,
-        color: "var(--text-1)"
-      }
-    }, r.title), React.createElement("span", {
-      style: {
-        fontSize: 12,
-        color: "var(--text-3)"
-      }
-    }, r.verb), React.createElement("span", {
-      style: {
-        marginLeft: "auto"
-      }
-    }, num(r.total, 15))), React.createElement("div", {
-      style: {
-        display: "flex",
-        gap: 4,
-        height: 14,
-        padding: 3,
-        borderRadius: 999,
-        background: "color-mix(in srgb, var(--fs-sun) 9%, var(--surface2))",
-        boxShadow: "var(--shadow-inset)"
-      }
-    }, r.segs.map((x, i) => pc(x.v, sum) > 0 && React.createElement("div", {
-      key: x.l,
-      className: "fs-wide",
-      style: {
-        flex: Math.max(0, x.v || 0) / sum + " 1 0",
-        minWidth: 8,
-        borderRadius: 999,
-        background: x.bg,
-        animationDelay: ri * 160 + i * 120 + "ms",
-        boxShadow: x.glow ? "0 3px 10px color-mix(in srgb, var(--fs-sun) 45%, transparent)" : "none"
-      }
-    }))), React.createElement("div", {
-      style: {
-        display: "flex",
-        flexWrap: "wrap",
-        gap: "6px 20px",
-        marginTop: 9
-      }
-    }, r.segs.map(x => React.createElement("div", {
-      key: x.l,
-      style: {
-        display: "flex",
-        alignItems: "baseline",
-        gap: 6,
-        minWidth: 0
-      }
-    }, React.createElement("span", {
-      style: {
-        width: 9,
-        height: 9,
-        borderRadius: 5,
-        background: x.dot,
-        flexShrink: 0,
-        alignSelf: "center"
-      }
-    }), React.createElement("span", {
-      style: {
-        fontSize: 12,
-        color: "var(--text-2)"
-      }
-    }, x.l), num(x.v, 14), React.createElement("span", {
-      style: {
-        fontSize: 11.5,
-        fontWeight: 700,
-        color: x.glow ? "var(--fs-sun)" : "var(--text-3)"
-      }
-    }, pc(x.v, sum), "%")))));
-  };
   return React.createElement(FsCard, {
     title: "\u0E1E\u0E25\u0E31\u0E07\u0E07\u0E32\u0E19\u0E44\u0E1B\u0E44\u0E2B\u0E19 \xB7 \u0E21\u0E32\u0E08\u0E32\u0E01\u0E44\u0E2B\u0E19",
     sub: "\u0E19\u0E31\u0E1A\u0E2A\u0E30\u0E2A\u0E21\u0E15\u0E31\u0E49\u0E07\u0E41\u0E15\u0E48\u0E15\u0E34\u0E14\u0E15\u0E31\u0E49\u0E07"
@@ -2931,15 +2791,17 @@ function FsEnergyCard({
     }
   }, x.s))))), React.createElement("div", {
     style: {
-      display: "grid",
-      gridTemplateColumns: isMobile || rows.length < 2 ? "1fr" : "1fr 1fr",
-      gap: isMobile ? 18 : 28,
       background: "var(--surface2)",
       boxShadow: "var(--shadow-inset)",
       borderRadius: "var(--r-tile)",
-      padding: isMobile ? "14px 14px" : "16px 18px"
+      padding: isMobile ? "14px 12px" : "16px 18px"
     }
-  }, rows.map(rail)), React.createElement("div", {
+  }, window.FsEnergyFlow && React.createElement(window.FsEnergyFlow, {
+    self: em.selfTotal,
+    exp: em.exportTotal,
+    imp: em.importTotal,
+    fmt: EP
+  })), React.createElement("div", {
     style: {
       fontSize: 11,
       color: "var(--text-3)",
