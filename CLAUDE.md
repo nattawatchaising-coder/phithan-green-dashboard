@@ -1,7 +1,7 @@
 # phithan-green-dashboard (flash+solar)
 
 เว็บจัดการงานติดตั้งโซลาร์ — React แบบไม่มี bundler (`dashboard/*.jsx` → babel → `dashboard/build/*.js`) ข้อมูลอยู่ Firebase Realtime DB
-deploy อัตโนมัติด้วย Vercel จาก `master` บน GitHub · ตอบผู้ใช้เป็นภาษาไทย
+deploy อัตโนมัติด้วย Vercel จาก `master` บน GitHub · **ตอบผู้ใช้เป็นภาษาไทยทุกข้อความ สรุปสั้นพอเข้าใจ** (ผู้ใช้สั่ง — ห้ามหลุดอังกฤษแม้หลังสรุปบริบท)
 
 ## ทำงานสองเครื่อง
 - เครื่อง 1: `D:\Claude code\phithan-green-dashboard` · เครื่อง 2: `D:\Woking space\Claude code\phithan-green-dashboard`
