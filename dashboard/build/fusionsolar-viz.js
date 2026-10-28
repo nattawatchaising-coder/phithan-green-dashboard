@@ -1466,12 +1466,13 @@ function FsMeterBody({
     zero: "ไม่ได้ซื้อ/ขายไฟ",
     none: "กำลังที่จุดมิเตอร์"
   }[dir];
-  const dirC = dir === "exp" ? "var(--fs-sun)" : dir === "imp" ? "var(--text-2)" : "var(--text-3)";
+  const dirC = dir === "exp" ? "var(--fs-sun)" : dir === "imp" ? "var(--text-1)" : "var(--text-3)";
   const st = k.meter_status != null ? k.meter_status : k.run_state;
   const ok = st == null ? null : +st === 1;
   const imp = em && em.importTotal != null ? fsEnergy(em.importTotal) : ["–", ""];
   const exp = em && em.exportTotal != null ? fsEnergy(em.exportTotal) : ["–", ""];
-  const size = isMobile ? 120 : 132;
+  const size = isMobile ? 120 : 140;
+  const dark = document.documentElement.getAttribute("data-theme") === "aurora";
   return React.createElement("div", {
     style: {
       display: "flex",
@@ -1485,7 +1486,19 @@ function FsMeterBody({
       alignItems: "center",
       flexDirection: isMobile ? "column" : "row"
     }
-  }, React.createElement("svg", {
+  }, !d.isc_ps_key ? React.createElement("img", {
+    src: "dashboard/assets/pkg-meter-huawei.jpg",
+    alt: "",
+    loading: "lazy",
+    style: {
+      width: size,
+      height: size,
+      objectFit: "contain",
+      flexShrink: 0,
+      mixBlendMode: dark ? "normal" : "multiply",
+      borderRadius: dark ? 12 : 0
+    }
+  }) : React.createElement("svg", {
     viewBox: "0 0 100 100",
     width: size,
     height: size,
@@ -1493,16 +1506,7 @@ function FsMeterBody({
       flexShrink: 0
     },
     "aria-hidden": "true"
-  }, React.createElement("ellipse", {
-    cx: "50",
-    cy: "92",
-    rx: "30",
-    ry: "4",
-    style: {
-      fill: "var(--text-3)",
-      opacity: 0.18
-    }
-  }), React.createElement("rect", {
+  }, React.createElement("rect", {
     x: "24",
     y: "8",
     width: "52",
@@ -1521,73 +1525,6 @@ function FsMeterBody({
     rx: "3",
     style: {
       fill: "#1E2A2E"
-    }
-  }), React.createElement("text", {
-    x: "50",
-    y: "31.5",
-    textAnchor: "middle",
-    style: {
-      fill: "#9BE7B5",
-      fontSize: 9.5,
-      fontFamily: "var(--mono)",
-      fontWeight: 700
-    }
-  }, kw == null ? "--" : fsFmt(kw, 1)), React.createElement("circle", {
-    cx: "38",
-    cy: "46",
-    r: "2.4",
-    style: {
-      fill: ok === false ? "#E5484D" : "#2FB36B"
-    }
-  }), React.createElement("circle", {
-    cx: "46",
-    cy: "46",
-    r: "2.4",
-    style: {
-      fill: dir === "imp" ? "#F5A524" : "var(--border-strong)"
-    }
-  }), React.createElement("circle", {
-    cx: "54",
-    cy: "46",
-    r: "2.4",
-    style: {
-      fill: dir === "exp" ? "var(--fs-sun)" : "var(--border-strong)"
-    }
-  }), React.createElement("rect", {
-    x: "31",
-    y: "56",
-    width: "38",
-    height: "24",
-    rx: "3",
-    style: {
-      fill: "var(--surface2)"
-    }
-  }), React.createElement("rect", {
-    x: "36",
-    y: "88",
-    width: "5",
-    height: "6",
-    rx: "1",
-    style: {
-      fill: "var(--text-3)"
-    }
-  }), React.createElement("rect", {
-    x: "47.5",
-    y: "88",
-    width: "5",
-    height: "6",
-    rx: "1",
-    style: {
-      fill: "var(--text-3)"
-    }
-  }), React.createElement("rect", {
-    x: "59",
-    y: "88",
-    width: "5",
-    height: "6",
-    rx: "1",
-    style: {
-      fill: "var(--text-3)"
     }
   })), React.createElement("div", {
     style: {

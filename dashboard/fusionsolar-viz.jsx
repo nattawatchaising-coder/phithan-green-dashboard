@@ -654,7 +654,7 @@ function FsLed({ color, children }) {
   );
 }
 
-/* มิเตอร์ — ภาพมิเตอร์วาดเอง (ไม่มีภาพสินค้า) · ทิศไฟตอนนี้ตัวใหญ่ + ลูกศร · ซื้อ/ขายสะสม · ค่าไฟฟ้าในหลุม */
+/* มิเตอร์ — ภาพสินค้า Huawei (assets/pkg-meter-huawei.jpg) · ทิศไฟตอนนี้ตัวใหญ่ + ลูกศร · ซื้อ/ขายสะสม · ค่าไฟฟ้าในหลุม */
 function FsMeterBody({ d, k, em, isMobile }) {
   const g = em && em.meter === d ? em.gridKw : null;
   /* มิเตอร์ 3 เฟส (grid meter 17) ไม่มี meter_u/meter_i ส่งรายเฟสแทน */
@@ -662,26 +662,24 @@ function FsMeterBody({ d, k, em, isMobile }) {
   const kw = g != null ? Math.abs(g) : fsKw(k.active_power, null, true);
   const dir = g == null ? "none" : g > 0.02 ? "exp" : g < -0.02 ? "imp" : "zero";
   const head = { exp: "กำลังขายเข้ากริด", imp: "กำลังซื้อจากกริด", zero: "ไม่ได้ซื้อ/ขายไฟ", none: "กำลังที่จุดมิเตอร์" }[dir];
-  const dirC = dir === "exp" ? "var(--fs-sun)" : dir === "imp" ? "var(--text-2)" : "var(--text-3)";
+  const dirC = dir === "exp" ? "var(--fs-sun)" : dir === "imp" ? "var(--text-1)" : "var(--text-3)";
   const st = k.meter_status != null ? k.meter_status : k.run_state;
   const ok = st == null ? null : +st === 1;
   const imp = em && em.importTotal != null ? fsEnergy(em.importTotal) : ["–", ""];
   const exp = em && em.exportTotal != null ? fsEnergy(em.exportTotal) : ["–", ""];
-  const size = isMobile ? 120 : 132;
+  const size = isMobile ? 120 : 140;
+  const dark = document.documentElement.getAttribute("data-theme") === "aurora";
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
       <div style={{ display: "flex", gap: isMobile ? 12 : 18, alignItems: "center", flexDirection: isMobile ? "column" : "row" }}>
-        <svg viewBox="0 0 100 100" width={size} height={size} style={{ flexShrink: 0 }} aria-hidden="true">
-          <ellipse cx="50" cy="92" rx="30" ry="4" style={{ fill: "var(--text-3)", opacity: 0.18 }} />
-          <rect x="24" y="8" width="52" height="80" rx="8" style={{ fill: "var(--surface)", stroke: "var(--border-strong)", strokeWidth: 1.5 }} />
-          <rect x="31" y="17" width="38" height="20" rx="3" style={{ fill: "#1E2A2E" }} />
-          <text x="50" y="31.5" textAnchor="middle" style={{ fill: "#9BE7B5", fontSize: 9.5, fontFamily: "var(--mono)", fontWeight: 700 }}>{kw == null ? "--" : fsFmt(kw, 1)}</text>
-          <circle cx="38" cy="46" r="2.4" style={{ fill: ok === false ? "#E5484D" : "#2FB36B" }} />
-          <circle cx="46" cy="46" r="2.4" style={{ fill: dir === "imp" ? "#F5A524" : "var(--border-strong)" }} />
-          <circle cx="54" cy="46" r="2.4" style={{ fill: dir === "exp" ? "var(--fs-sun)" : "var(--border-strong)" }} />
-          <rect x="31" y="56" width="38" height="24" rx="3" style={{ fill: "var(--surface2)" }} />
-          <rect x="36" y="88" width="5" height="6" rx="1" style={{ fill: "var(--text-3)" }} /><rect x="47.5" y="88" width="5" height="6" rx="1" style={{ fill: "var(--text-3)" }} /><rect x="59" y="88" width="5" height="6" rx="1" style={{ fill: "var(--text-3)" }} />
-        </svg>
+        {/* ภาพมิเตอร์ Huawei DDSU666-H/DTSU666-H จากคลังสินค้า (ผู้ใช้ชี้ 2026-10-28) — พื้นขาว multiply กลืนการ์ด · ธีมมืดแสดงตามจริงมุมโค้ง · Sungrow ใช้ภาพเดียวกันไม่ได้ → วาดกล่องเรียบ */}
+        {!d.isc_ps_key
+          ? <img src="dashboard/assets/pkg-meter-huawei.jpg" alt="" loading="lazy" style={{ width: size, height: size, objectFit: "contain", flexShrink: 0,
+              mixBlendMode: dark ? "normal" : "multiply", borderRadius: dark ? 12 : 0 }} />
+          : <svg viewBox="0 0 100 100" width={size} height={size} style={{ flexShrink: 0 }} aria-hidden="true">
+              <rect x="24" y="8" width="52" height="80" rx="8" style={{ fill: "var(--surface)", stroke: "var(--border-strong)", strokeWidth: 1.5 }} />
+              <rect x="31" y="17" width="38" height="20" rx="3" style={{ fill: "#1E2A2E" }} />
+            </svg>}
         <div style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column", gap: 12, width: isMobile ? "100%" : "auto" }}>
           <div>
             <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
