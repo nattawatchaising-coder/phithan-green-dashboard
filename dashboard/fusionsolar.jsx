@@ -592,7 +592,11 @@ function FsSyncAlert({ fail, lastAt, vendor }) {
 function FsSitesView({ jobs, role, currentUser, onOpenJob, onOpenOm }) {
   const isMobile = window.matchMedia("(max-width: 860px)").matches;
   const isMid = window.matchMedia("(max-width: 1100px)").matches;
-  const { sites, all, loading } = useFsSites();
+  const { sites: allSites, all, loading } = useFsSites();
+  /* ไซต์ที่แอดมินหยุดซิงก์ (sync_off) — ไม่นับในยอดรวม/อันดับ/เรื่องที่ควรดู · ดูได้จากชิป "หยุดซิงก์" */
+  const sites = React.useMemo(() => allSites.filter((s) => !s.sync_off), [allSites]);
+  const paused = React.useMemo(() => allSites.filter((s) => s.sync_off), [allSites]);
+  const isAdmin = window.hasRole ? window.hasRole(role, "admin") : false;
   const [q, setQ] = React.useState("");
   const [health, setHealth] = React.useState("all");
   const [src, setSrc] = React.useState("all");
@@ -648,15 +652,15 @@ function FsSitesView({ jobs, role, currentUser, onOpenJob, onOpenOm }) {
     return r;
   }, [sites]);
   const hCount = React.useMemo(() => {
-    const c = { all: sites.length };
+    const c = { all: sites.length, paused: paused.length };
     sites.forEach((s) => { const k = fsHealthKey(s); c[k] = (c[k] || 0) + 1; });
     return c;
-  }, [sites]);
+  }, [sites, paused]);
 
   const rows = React.useMemo(() => {
     const kw = q.trim().toLowerCase();
-    const out = sites.filter((s) => {
-      if (health !== "all" && fsHealthKey(s) !== health) return false;
+    const out = (health === "paused" ? paused : sites).filter((s) => {
+      if (health !== "all" && health !== "paused" && fsHealthKey(s) !== health) return false;
       if (src !== "all" && fsVendor(s) !== src) return false;
       if (!kw) return true;
       return [s.name, fsCodeOf(s), s.address, s.note].concat(Object.keys(s.jobIds || {}))
@@ -667,7 +671,7 @@ function FsSitesView({ jobs, role, currentUser, onOpenJob, onOpenOm }) {
       return (x < y ? -1 : x > y ? 1 : 0) * sort.dir || String(a.name).localeCompare(String(b.name), "th");
     });
     return out;
-  }, [sites, q, health, src, sort, live]);
+  }, [sites, paused, q, health, src, sort, live]);
 
   const pickSort = (k) => setSort((s) => (s.k === k ? { k, dir: -s.dir } : { k, dir: FS_COLS.find((c) => c.key === k).num ? -1 : 1 }));
   const cur = all.find((s) => s.id === open) || null;
@@ -704,7 +708,7 @@ function FsSitesView({ jobs, role, currentUser, onOpenJob, onOpenOm }) {
         </div>
         <FsChips value={health} onChange={setHealth} options={[["all", "ทุกสถานะ", hCount.all], ["ok", "ปกติ", hCount.ok || 0],
           ["warn", "มีปัญหา", hCount.warn || 0], ["off", "ออฟไลน์", hCount.off || 0], ["lost", "ไม่พบในระบบต้นทาง", hCount.lost || 0],
-          ["none", "ไม่มีข้อมูล", hCount.none || 0]].filter((o) => o[0] === "all" || o[2] > 0 || o[0] === health)} />
+          ["none", "ไม่มีข้อมูล", hCount.none || 0], ["paused", "หยุดซิงก์", hCount.paused || 0]].filter((o) => o[0] === "all" || o[2] > 0 || o[0] === health)} />
         {/* กรองยี่ห้อ — แสดงเมื่อมีมากกว่าหนึ่งแหล่ง */}
         {Object.keys(vCount).length > 1 && <FsChips value={src} onChange={setSrc} options={[["all", "ทุกยี่ห้อ", sites.length], ["huawei", "Huawei", vCount.huawei || 0],
           ["sungrow", "Sungrow", vCount.sungrow || 0], ["manual", "เพิ่มเอง", vCount.manual || 0]].filter((o) => o[0] === "all" || o[2] > 0 || o[0] === src)} />}
@@ -743,7 +747,7 @@ function FsSitesView({ jobs, role, currentUser, onOpenJob, onOpenOm }) {
         <FsSitesTable rows={rows} live={live} issueMap={issueMap} maxYield={maxYield} medMonth={medMonth} sort={sort} onSort={pickSort} onOpen={setOpen} />
       )}
 
-      {cur && <FsSiteModal site={cur} sites={all} medMonth={medMonth} jobs={jobs} canWrite={canWrite} currentUser={currentUser}
+      {cur && <FsSiteModal site={cur} sites={all} medMonth={medMonth} jobs={jobs} canWrite={canWrite} isAdmin={isAdmin} currentUser={currentUser}
         onClose={() => setOpen(null)} onGo={(id) => setOpen(id)}
         onOpenJob={onOpenJob ? (id) => { setOpen(null); onOpenJob(id); } : null}
         onOpenOm={onOpenOm ? (id) => { setOpen(null); onOpenOm(id); } : null} />}
@@ -1157,7 +1161,7 @@ function FsDeviceCard({ d, em, isMobile }) {
   );
 }
 
-function FsSiteModal({ site, sites, medMonth, jobs, canWrite, currentUser, onClose, onGo, onOpenJob, onOpenOm }) {
+function FsSiteModal({ site, sites, medMonth, jobs, canWrite, isAdmin, currentUser, onClose, onGo, onOpenJob, onOpenOm }) {
   const isMobile = window.matchMedia("(max-width: 860px)").matches;
   const { val: devVal } = useFsNode("fsDevices");
   const { val: omVal } = useFsNode("omSites");
@@ -1231,6 +1235,15 @@ function FsSiteModal({ site, sites, medMonth, jobs, canWrite, currentUser, onClo
     const ok = await window.askConfirm({ title: "เลิกผูกงาน " + id + "?", body: "ใบงานไม่ถูกแก้ แค่ไม่แสดงในไซต์นี้", ok: "เลิกผูก" });
     if (ok) fsPatchSite(site.id, { ["jobIds/" + id]: null });
   };
+  /* หยุดซิงก์ / ซิงก์ต่อ (แอดมิน) — ไม่ลบไซต์ ประวัติอยู่ครบ · รอบซิงก์ข้ามอุปกรณ์/ค่าผลิต/ย้อนหลังของไซต์นี้ */
+  const toggleSync = async () => {
+    const off = !site.sync_off;
+    const ok = await window.askConfirm(off
+      ? { title: "หยุดซิงก์ไซต์นี้?", body: "ระบบจะไม่ดึงค่าผลิตและค่าอุปกรณ์ของ \"" + (site.name || site.id) + "\" อีก และซ่อนจากหน้าไซต์ทั้งหมด (ดูได้ที่ชิป \"หยุดซิงก์\") · ไม่ลบข้อมูล ประวัติเดิมอยู่ครบ กดซิงก์ต่อได้ทุกเมื่อ", ok: "หยุดซิงก์" }
+      : { title: "ซิงก์ไซต์นี้ต่อ?", body: "รอบซิงก์ถัดไป (ไม่เกิน 15 นาที) จะเริ่มดึงค่าผลิตและค่าอุปกรณ์อีกครั้ง · ช่วงที่หยุดไปจะไม่มีข้อมูลรายชั่วโมง", ok: "ซิงก์ต่อ", danger: false, icon: "power" });
+    if (!ok) return;
+    fsPatchSite(site.id, { sync_off: off ? { at: new Date().toISOString(), by: (currentUser || {}).name || null } : null });
+  };
   const [note, setNote] = React.useState(site.note || "");
   React.useEffect(() => { setNote(site.note || ""); }, [site.id, site.note]);
   const tot = fsEnergy(totK);
@@ -1252,7 +1265,15 @@ function FsSiteModal({ site, sites, medMonth, jobs, canWrite, currentUser, onClo
           <span style={{ fontSize: 12, color: "var(--text-3)" }}>ไซต์นี้ยังไม่ได้ผูก station code</span>
         </div>
       )}
-      <FsIssues list={issues} />
+      {site.sync_off && (
+        <div style={{ display: "flex", alignItems: "center", gap: 9, padding: "11px 13px", borderRadius: "var(--r-tile)", background: "var(--surface2)", flexWrap: "wrap" }}>
+          <Icon name="power" size={15} color="var(--text-3)" />
+          <span style={{ fontSize: 12.5, fontWeight: 700, color: "var(--text-2)" }}>หยุดซิงก์แล้ว</span>
+          <span style={{ fontSize: 12, color: "var(--text-3)" }}>{(site.sync_off.by ? "โดย " + site.sync_off.by + " · " : "") + fsAgo(site.sync_off.at) + " · ค่าด้านล่างเป็นค่าล่าสุดก่อนหยุด"}</span>
+          {isAdmin && <button type="button" className="btn btn-sm" onClick={toggleSync} style={{ marginLeft: "auto" }}>ซิงก์ต่อ</button>}
+        </div>
+      )}
+      <FsIssues list={site.sync_off ? [] : issues} />
       {site.fs_status === "not_found_in_fusionsolar" && (
         <div style={{ fontSize: 11.5, color: "var(--text-3)", marginTop: -6 }}>ข้อมูลเดิมยังอยู่ครบ (ไม่ลบ) · ค่าการผลิตด้านล่างเป็นค่าล่าสุดก่อนหาย</div>
       )}
@@ -1388,6 +1409,14 @@ function FsSiteModal({ site, sites, medMonth, jobs, canWrite, currentUser, onClo
         </FsCard>
       )}
 
+      {tab === "info" && isAdmin && code && !site.sync_off && (
+        <FsCard title="การซิงก์">
+          <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
+            <span style={{ flex: "1 1 240px", fontSize: 12.5, color: "var(--text-2)" }}>ไซต์ที่ไม่ได้ดูแลแล้ว หยุดซิงก์ได้ — ไม่ดึงข้อมูลอีก ซ่อนจากหน้าไซต์ทั้งหมด ไม่ลบประวัติ</span>
+            <button type="button" className="btn btn-sm" onClick={toggleSync}>หยุดซิงก์ไซต์นี้</button>
+          </div>
+        </FsCard>
+      )}
       {tab === "info" && (
         <FsCard title="หมายเหตุ">
           <textarea value={note} disabled={!canWrite} onChange={(e) => setNote(e.target.value)} rows={2}

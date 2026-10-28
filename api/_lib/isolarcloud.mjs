@@ -324,6 +324,7 @@ export async function runIscSync(opt) {
         [id + "/fs_status"]: "found", [id + "/last_synced_at"]: now, [id + "/lat"]: geoOk ? lat : null, [id + "/lng"]: geoOk ? lng : null });
       if (pl.install_date) patch[id + "/grid_date"] = String(pl.install_date).slice(0, 10);
       const day = iscUnit(pl.today_energy), total = iscUnit(pl.total_energy), hs = iscHealth(pl);
+      if (cur.sync_off) { log.updated++; return; }   // แอดมินหยุดซิงก์ — ไม่เขียนค่าผลิต (docs/fusionsolar.md)
       Object.assign(patch, { [id + "/day_kwh"]: day, [id + "/total_kwh"]: total, [id + "/health_state"]: hs, [id + "/kpi_updated_at"]: now,
         [id + "/isc_power_kw"]: iscUnit(pl.curr_power), [id + "/isc_alarm_count"]: num(pl.alarm_count), [id + "/isc_fault_count"]: num(pl.fault_count) });
       if (day != null) { dayP[id + "/" + k.day + "/kwh"] = day; if (snap) dayP[id + "/" + k.day + "/h/" + k.hh] = day; }
@@ -350,6 +351,7 @@ export async function runIscSync(opt) {
     for (const ps of Object.keys(seen)) {
       const sid = idx[ps];
       if (job !== "sites" && hasDev[sid]) continue;
+      if ((sites[sid] || {}).sync_off) continue;
       if (left() < 8000) { log.pending++; continue; }
       let list;
       try { list = await iscDevices(c, ps); } catch (e) { if (e.fatal) throw e; log.errors.push(errRec(e)); continue; }
@@ -378,7 +380,7 @@ export async function runIscSync(opt) {
     Object.keys(devices).forEach((id) => {
       const d = devices[id];
       if (!mine(id) || d.fs_status === "not_found_in_fusionsolar" || ![1, 7, 9].includes(d.isc_device_type)) return;
-      if ((sites[d.site_id] || {}).fs_status !== "found") return;
+      if ((sites[d.site_id] || {}).fs_status !== "found" || sites[d.site_id].sync_off) return;
       (byType[d.isc_device_type] = byType[d.isc_device_type] || []).push(id);
     });
     const PTS = { 1: INV_PTS, 7: MET_PTS, 9: LOG_PTS }, CONV = { 1: iscInvKpi, 7: iscMeterKpi, 9: iscLoggerKpi };

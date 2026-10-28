@@ -1610,10 +1610,13 @@ function FsSitesView({
   const isMobile = window.matchMedia("(max-width: 860px)").matches;
   const isMid = window.matchMedia("(max-width: 1100px)").matches;
   const {
-    sites,
+    sites: allSites,
     all,
     loading
   } = useFsSites();
+  const sites = React.useMemo(() => allSites.filter(s => !s.sync_off), [allSites]);
+  const paused = React.useMemo(() => allSites.filter(s => s.sync_off), [allSites]);
+  const isAdmin = window.hasRole ? window.hasRole(role, "admin") : false;
   const [q, setQ] = React.useState("");
   const [health, setHealth] = React.useState("all");
   const [src, setSrc] = React.useState("all");
@@ -1707,18 +1710,19 @@ function FsSitesView({
   }, [sites]);
   const hCount = React.useMemo(() => {
     const c = {
-      all: sites.length
+      all: sites.length,
+      paused: paused.length
     };
     sites.forEach(s => {
       const k = fsHealthKey(s);
       c[k] = (c[k] || 0) + 1;
     });
     return c;
-  }, [sites]);
+  }, [sites, paused]);
   const rows = React.useMemo(() => {
     const kw = q.trim().toLowerCase();
-    const out = sites.filter(s => {
-      if (health !== "all" && fsHealthKey(s) !== health) return false;
+    const out = (health === "paused" ? paused : sites).filter(s => {
+      if (health !== "all" && health !== "paused" && fsHealthKey(s) !== health) return false;
       if (src !== "all" && fsVendor(s) !== src) return false;
       if (!kw) return true;
       return [s.name, fsCodeOf(s), s.address, s.note].concat(Object.keys(s.jobIds || {})).some(v => String(v || "").toLowerCase().includes(kw));
@@ -1729,7 +1733,7 @@ function FsSitesView({
       return (x < y ? -1 : x > y ? 1 : 0) * sort.dir || String(a.name).localeCompare(String(b.name), "th");
     });
     return out;
-  }, [sites, q, health, src, sort, live]);
+  }, [sites, paused, q, health, src, sort, live]);
   const pickSort = k => setSort(s => s.k === k ? {
     k,
     dir: -s.dir
@@ -1843,7 +1847,7 @@ function FsSitesView({
   })), React.createElement(FsChips, {
     value: health,
     onChange: setHealth,
-    options: [["all", "ทุกสถานะ", hCount.all], ["ok", "ปกติ", hCount.ok || 0], ["warn", "มีปัญหา", hCount.warn || 0], ["off", "ออฟไลน์", hCount.off || 0], ["lost", "ไม่พบในระบบต้นทาง", hCount.lost || 0], ["none", "ไม่มีข้อมูล", hCount.none || 0]].filter(o => o[0] === "all" || o[2] > 0 || o[0] === health)
+    options: [["all", "ทุกสถานะ", hCount.all], ["ok", "ปกติ", hCount.ok || 0], ["warn", "มีปัญหา", hCount.warn || 0], ["off", "ออฟไลน์", hCount.off || 0], ["lost", "ไม่พบในระบบต้นทาง", hCount.lost || 0], ["none", "ไม่มีข้อมูล", hCount.none || 0], ["paused", "หยุดซิงก์", hCount.paused || 0]].filter(o => o[0] === "all" || o[2] > 0 || o[0] === health)
   }), Object.keys(vCount).length > 1 && React.createElement(FsChips, {
     value: src,
     onChange: setSrc,
@@ -1946,6 +1950,7 @@ function FsSitesView({
     medMonth: medMonth,
     jobs: jobs,
     canWrite: canWrite,
+    isAdmin: isAdmin,
     currentUser: currentUser,
     onClose: () => setOpen(null),
     onGo: id => setOpen(id),
@@ -2943,6 +2948,7 @@ function FsSiteModal({
   medMonth,
   jobs,
   canWrite,
+  isAdmin,
   currentUser,
   onClose,
   onGo,
@@ -3055,6 +3061,27 @@ function FsSiteModal({
       ["jobIds/" + id]: null
     });
   };
+  const toggleSync = async () => {
+    const off = !site.sync_off;
+    const ok = await window.askConfirm(off ? {
+      title: "หยุดซิงก์ไซต์นี้?",
+      body: "ระบบจะไม่ดึงค่าผลิตและค่าอุปกรณ์ของ \"" + (site.name || site.id) + "\" อีก และซ่อนจากหน้าไซต์ทั้งหมด (ดูได้ที่ชิป \"หยุดซิงก์\") · ไม่ลบข้อมูล ประวัติเดิมอยู่ครบ กดซิงก์ต่อได้ทุกเมื่อ",
+      ok: "หยุดซิงก์"
+    } : {
+      title: "ซิงก์ไซต์นี้ต่อ?",
+      body: "รอบซิงก์ถัดไป (ไม่เกิน 15 นาที) จะเริ่มดึงค่าผลิตและค่าอุปกรณ์อีกครั้ง · ช่วงที่หยุดไปจะไม่มีข้อมูลรายชั่วโมง",
+      ok: "ซิงก์ต่อ",
+      danger: false,
+      icon: "power"
+    });
+    if (!ok) return;
+    fsPatchSite(site.id, {
+      sync_off: off ? {
+        at: new Date().toISOString(),
+        by: (currentUser || {}).name || null
+      } : null
+    });
+  };
   const [note, setNote] = React.useState(site.note || "");
   React.useEffect(() => {
     setNote(site.note || "");
@@ -3117,8 +3144,40 @@ function FsSiteModal({
       fontSize: 12,
       color: "var(--text-3)"
     }
-  }, "\u0E44\u0E0B\u0E15\u0E4C\u0E19\u0E35\u0E49\u0E22\u0E31\u0E07\u0E44\u0E21\u0E48\u0E44\u0E14\u0E49\u0E1C\u0E39\u0E01 station code")), React.createElement(FsIssues, {
-    list: issues
+  }, "\u0E44\u0E0B\u0E15\u0E4C\u0E19\u0E35\u0E49\u0E22\u0E31\u0E07\u0E44\u0E21\u0E48\u0E44\u0E14\u0E49\u0E1C\u0E39\u0E01 station code")), site.sync_off && React.createElement("div", {
+    style: {
+      display: "flex",
+      alignItems: "center",
+      gap: 9,
+      padding: "11px 13px",
+      borderRadius: "var(--r-tile)",
+      background: "var(--surface2)",
+      flexWrap: "wrap"
+    }
+  }, React.createElement(Icon, {
+    name: "power",
+    size: 15,
+    color: "var(--text-3)"
+  }), React.createElement("span", {
+    style: {
+      fontSize: 12.5,
+      fontWeight: 700,
+      color: "var(--text-2)"
+    }
+  }, "\u0E2B\u0E22\u0E38\u0E14\u0E0B\u0E34\u0E07\u0E01\u0E4C\u0E41\u0E25\u0E49\u0E27"), React.createElement("span", {
+    style: {
+      fontSize: 12,
+      color: "var(--text-3)"
+    }
+  }, (site.sync_off.by ? "โดย " + site.sync_off.by + " · " : "") + fsAgo(site.sync_off.at) + " · ค่าด้านล่างเป็นค่าล่าสุดก่อนหยุด"), isAdmin && React.createElement("button", {
+    type: "button",
+    className: "btn btn-sm",
+    onClick: toggleSync,
+    style: {
+      marginLeft: "auto"
+    }
+  }, "\u0E0B\u0E34\u0E07\u0E01\u0E4C\u0E15\u0E48\u0E2D")), React.createElement(FsIssues, {
+    list: site.sync_off ? [] : issues
   }), site.fs_status === "not_found_in_fusionsolar" && React.createElement("div", {
     style: {
       fontSize: 11.5,
@@ -3437,7 +3496,26 @@ function FsSiteModal({
     options: jobOpts,
     placeholder: "+ \u0E1C\u0E39\u0E01\u0E07\u0E32\u0E19\u0E01\u0E31\u0E1A\u0E44\u0E0B\u0E15\u0E4C\u0E19\u0E35\u0E49",
     wrap: true
-  })))), tab === "info" && React.createElement(FsCard, {
+  })))), tab === "info" && isAdmin && code && !site.sync_off && React.createElement(FsCard, {
+    title: "\u0E01\u0E32\u0E23\u0E0B\u0E34\u0E07\u0E01\u0E4C"
+  }, React.createElement("div", {
+    style: {
+      display: "flex",
+      alignItems: "center",
+      gap: 10,
+      flexWrap: "wrap"
+    }
+  }, React.createElement("span", {
+    style: {
+      flex: "1 1 240px",
+      fontSize: 12.5,
+      color: "var(--text-2)"
+    }
+  }, "\u0E44\u0E0B\u0E15\u0E4C\u0E17\u0E35\u0E48\u0E44\u0E21\u0E48\u0E44\u0E14\u0E49\u0E14\u0E39\u0E41\u0E25\u0E41\u0E25\u0E49\u0E27 \u0E2B\u0E22\u0E38\u0E14\u0E0B\u0E34\u0E07\u0E01\u0E4C\u0E44\u0E14\u0E49 \u2014 \u0E44\u0E21\u0E48\u0E14\u0E36\u0E07\u0E02\u0E49\u0E2D\u0E21\u0E39\u0E25\u0E2D\u0E35\u0E01 \u0E0B\u0E48\u0E2D\u0E19\u0E08\u0E32\u0E01\u0E2B\u0E19\u0E49\u0E32\u0E44\u0E0B\u0E15\u0E4C\u0E17\u0E31\u0E49\u0E07\u0E2B\u0E21\u0E14 \u0E44\u0E21\u0E48\u0E25\u0E1A\u0E1B\u0E23\u0E30\u0E27\u0E31\u0E15\u0E34"), React.createElement("button", {
+    type: "button",
+    className: "btn btn-sm",
+    onClick: toggleSync
+  }, "\u0E2B\u0E22\u0E38\u0E14\u0E0B\u0E34\u0E07\u0E01\u0E4C\u0E44\u0E0B\u0E15\u0E4C\u0E19\u0E35\u0E49"))), tab === "info" && React.createElement(FsCard, {
     title: "\u0E2B\u0E21\u0E32\u0E22\u0E40\u0E2B\u0E15\u0E38"
   }, React.createElement("textarea", {
     value: note,

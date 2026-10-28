@@ -155,6 +155,9 @@ export function fsClient(opt) {
    ================================================================ */
 
 /* station code → siteId (ไม่นับไซต์ที่ถูกรวมเข้าไซต์อื่นแล้ว) */
+/* ไซต์ที่แอดมินกด "หยุดซิงก์" (fsSites/{id}/sync_off = { at, by }) — ไม่ดึงอุปกรณ์/ค่าผลิต/ย้อนหลัง · รายชื่อสถานียังอัปเดต (ไม่งั้นถูกสร้างใหม่)
+   ผู้ใช้ 2026-10-28: "ลบไซต์ที่ไม่ได้ดูแลแล้ว จะได้ไม่ต้องดึงข้อมูลทั้งหมด" — ไม่ลบจริง ประวัติเก่าอยู่ครบ กดซิงก์ต่อได้ */
+const syncOn = (s) => !!s && s.fs_status === "found" && !s.sync_off;
 export function siteIndex(sites) {
   const m = {};
   Object.keys(sites || {}).forEach((id) => {
@@ -368,7 +371,7 @@ export async function runSync(o) {
 
     /* รายชื่ออุปกรณ์ของสถานีที่ยังมีอยู่ ทีละ 100 — ไม่ทันเวลา = จำเคอร์เซอร์ไว้ทำต่อรอบหน้า */
     const idx = siteIndex(sites);
-    const codes = Object.keys(idx).filter((k) => sites[idx[k]].fs_status === "found").sort();
+    const codes = Object.keys(idx).filter((k) => syncOn(sites[idx[k]])).sort();
     const batches = chunk(codes, BATCH);
     let i = dry ? 0 : Math.min(Number(state.dev_cursor) || 0, batches.length);
     if (i >= batches.length) i = 0;
@@ -422,12 +425,12 @@ export async function runSync(o) {
 
   async function doKpi() {
     const idx = siteIndex(sites);
-    const codes = Object.keys(idx).filter((k) => sites[idx[k]].fs_status === "found").sort();
+    const codes = Object.keys(idx).filter((k) => syncOn(sites[idx[k]])).sort();
     const byType = {};
     Object.keys(devices).sort().forEach((id) => {
       const d = devices[id] || {};
       if (d.fs_status === "not_found_in_fusionsolar" || d.dev_type_id == null || !KPI_TYPES[d.dev_type_id]) return;
-      if (!idx[d.station_code] || sites[idx[d.station_code]].fs_status !== "found") return;
+      if (!idx[d.station_code] || !syncOn(sites[idx[d.station_code]])) return;
       (byType[d.dev_type_id] || (byType[d.dev_type_id] = [])).push(id);
     });
     const batches = chunk(codes, BATCH).map((b) => ({ kind: "st", ids: b }));
@@ -519,7 +522,7 @@ export async function runSync(o) {
      hoursOnly "today" = วันนี้อย่างเดียว (รอบ kpi ชั่วโมงละครั้ง) */
   async function doHist(hoursOnly) {
     const idx = siteIndex(sites);
-    const groups = chunk(Object.keys(idx).filter((k) => sites[idx[k]].fs_status === "found").sort(), BATCH);
+    const groups = chunk(Object.keys(idx).filter((k) => syncOn(sites[idx[k]])).sort(), BATCH);
     if (!groups.length) { log.note = "ยังไม่มีไซต์ให้ดึงข้อมูลย้อนหลัง"; return; }
     const now = Date.now(), k0 = bkk(now);
     const y = +k0.mon.slice(0, 4), m = +k0.mon.slice(5, 7);

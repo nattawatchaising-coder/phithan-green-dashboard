@@ -50,6 +50,10 @@
 - ไซต์ที่มีอยู่แล้ว ซิงก์อัปเดตแค่ name / capacity_kw / address / last_synced_at (+ fs_status) · ไม่พบใน FusionSolar = ตั้ง `not_found_in_fusionsolar` **ไม่ลบ** · กลับมาเจอ = `found`
 - ไซต์ `manual` ที่ผูกรหัสแล้ว ซิงก์รอบแรกเก็บค่าที่ผู้ใช้กรอกไว้ใน `manual_name` `manual_address` `manual_capacity_kw` (`manual_saved: true`) ก่อนเขียนทับ · `source` ยังเป็น `manual`
 
+**หยุดซิงก์ไซต์** (ผู้ใช้สั่ง 2026-10-28 "ไซต์ที่ไม่ได้ดูแลแล้ว ไม่ต้องดึงข้อมูล") — `fsSites/{id}/sync_off = { at, by }` แอดมินกดในหน้าไซต์ แท็บ "ข้อมูลและงาน" (askConfirm) · **ไม่ลบไซต์** (ลบแล้วรอบ sites สร้างใหม่ + ประวัติหาย)
+- เซิร์ฟเวอร์ (`syncOn` ใน fusionsolar.mjs · isolarcloud.mjs): ไม่ดึงรายชื่ออุปกรณ์/ค่าอุปกรณ์/ค่าผลิต/ย้อนหลัง · รายชื่อสถานียังอัปเดต (1 คำขอ ไม่งั้นไซต์ถูกสร้างซ้ำ) · Sungrow ไม่เขียน day_kwh/health ของไซต์นั้น
+- หน้าไซต์ทั้งหมด: ไม่นับในยอดรวม/อันดับ/เรื่องที่ควรดู · ชิป "หยุดซิงก์" ดูรายการ · หน้าไซต์มีแถบ "หยุดซิงก์แล้ว" + ปุ่มซิงก์ต่อ · Huawei ถามทีละ 100 ไซต์ จำนวนคำขอแทบไม่ลด ที่ลดคือข้อมูลที่เขียน/ส่งให้หน้าเว็บ
+
 **`fsDevices/{devId}`** — `fusionsolar_dev_id` (สตริง) `site_id` `station_code` `dev_name` `dev_type_id` `esn_code` `model` `software_version` `last_kpi_json` (JSON สตริงของ dataItemMap) `last_kpi_at` `fs_status`
 
 **`fsSyncLogs/L<เวลา>`** — `started_at` `finished_at` `job` `trigger` (cron/gh/manual/tool) `by` `ok` `skipped` · ไซต์ `created` `updated` `not_found` · อุปกรณ์ `dev_created` `dev_updated` `dev_not_found` · `stations` `kpi_sites` `kpi_devices` `hist_months` `hist_days` `hist_hours` `requests` `pending` `errors[]` `note` `ms`
