@@ -822,7 +822,7 @@ function FsEnergyBalance({
     }
   }), head(y2, "ไฟที่อาคารใช้", use, use * k), seg("s2", 0, xs, y2, "var(--fs-self)", pct(s, use), 240), seg("m", xs, use * k, y2, "var(--fs-imp)", pct(m, use), 360))));
 }
-function FsEnergyFlow({
+function FsEnergySankey({
   self,
   exp,
   imp,
@@ -1005,6 +1005,6 @@ function FsEnergyFlow({
 Object.assign(window, {
   FsTrendChart,
   FsEnergyBalance,
-  FsEnergyFlow,
+  FsEnergySankey,
   fsMonoPath
 });

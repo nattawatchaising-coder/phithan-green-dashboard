@@ -1077,7 +1077,7 @@ function FsHistoryCard({ site, isMobile, flip, em, only }) {
 
 /* ไฟที่ผลิตไปไหน · ไฟที่ใช้มาจากไหน — จากตัวเลขสะสมของมิเตอร์เทียบอินเวอร์เตอร์ (ภาพการไหลตอนนี้อยู่ใน FsHouseFlow)
    โทนส้มเดียวกับกราฟประวัติการผลิต (ภาพอ้างอิง Solis/Lumos/SolarSync): แถวตัวเลขหัวการ์ดแบบเดียวกับ "กำลังไฟวันนี้"
-   + แผนภาพสายไหล FsEnergyFlow (ผู้ใช้เลือกแบบ A จาก 3 แบบ) · สายโซลาร์ = ส้มเรืองแสง ขาย = ส้มอ่อน ซื้อจากกริด = เทา
+   + แผนภาพสายไหล FsEnergySankey (ผู้ใช้เลือกแบบ A จาก 3 แบบ) · สายโซลาร์ = ส้มเรืองแสง ขาย = ส้มอ่อน ซื้อจากกริด = เทา
    (ผู้ใช้ 2026-10-28: แบบหน้าปัด+แถบสเกลเดียวกัน "ดูงง" · แบบเขียว/ฟ้า/แดง "ไม่เข้ากับธีมส้ม") */
 function FsEnergyCard({ em, isMobile }) {
   if (em.selfTotal == null) return null;
@@ -1113,7 +1113,7 @@ function FsEnergyCard({ em, isMobile }) {
         ))}
       </div>
       <div style={{ background: "var(--surface2)", boxShadow: "var(--shadow-inset)", borderRadius: "var(--r-tile)", padding: isMobile ? "14px 12px" : "16px 18px" }}>
-        {window.FsEnergyFlow && <window.FsEnergyFlow self={em.selfTotal} exp={em.exportTotal} imp={em.importTotal} fmt={EP} />}
+        {window.FsEnergySankey && <window.FsEnergySankey self={em.selfTotal} exp={em.exportTotal} imp={em.importTotal} fmt={EP} />}
       </div>
       <div style={{ fontSize: 11, color: "var(--text-3)", marginTop: 12 }}>
         ถูกต้องเมื่อติดตั้งมิเตอร์พร้อมระบบ (ถ้าเพิ่มมิเตอร์ทีหลัง สัดส่วนใช้เองจะออกมาสูงกว่าจริง)
@@ -1128,7 +1128,7 @@ function FsDeviceCard({ d, em, isMobile }) {
   const st = inv ? fsInvState(fsN(k.inverter_state)) : null;
   let chip = null;
   if (d.fs_status === "not_found_in_fusionsolar") chip = <FsPill k="lost" />;
-  else if (st) chip = <FsChip tone={st[1]}>{st[0]}</FsChip>;
+  /* อินเวอร์เตอร์: สถานะอยู่บนภาพเครื่องแล้ว (FsInvStage) ไม่ซ้ำที่หัวการ์ด */
   else if (t === 39 && k.battery_status != null) chip = <FsChip tone={+k.battery_status === 3 ? "bad" : +k.battery_status === 2 ? "ok" : "idle"}>{fsKpiValue("battery_status", k.battery_status)}</FsChip>;
   else if (k.run_state != null) chip = <FsChip tone={+k.run_state === 1 ? "ok" : "bad"}>{fsKpiValue("run_state", k.run_state)}</FsChip>;
   return (

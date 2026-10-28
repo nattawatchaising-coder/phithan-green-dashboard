@@ -2796,7 +2796,7 @@ function FsEnergyCard({
       borderRadius: "var(--r-tile)",
       padding: isMobile ? "14px 12px" : "16px 18px"
     }
-  }, window.FsEnergyFlow && React.createElement(window.FsEnergyFlow, {
+  }, window.FsEnergySankey && React.createElement(window.FsEnergySankey, {
     self: em.selfTotal,
     exp: em.exportTotal,
     imp: em.importTotal,
@@ -2821,9 +2821,7 @@ function FsDeviceCard({
   let chip = null;
   if (d.fs_status === "not_found_in_fusionsolar") chip = React.createElement(FsPill, {
     k: "lost"
-  });else if (st) chip = React.createElement(FsChip, {
-    tone: st[1]
-  }, st[0]);else if (t === 39 && k.battery_status != null) chip = React.createElement(FsChip, {
+  });else if (t === 39 && k.battery_status != null) chip = React.createElement(FsChip, {
     tone: +k.battery_status === 3 ? "bad" : +k.battery_status === 2 ? "ok" : "idle"
   }, fsKpiValue("battery_status", k.battery_status));else if (k.run_state != null) chip = React.createElement(FsChip, {
     tone: +k.run_state === 1 ? "ok" : "bad"

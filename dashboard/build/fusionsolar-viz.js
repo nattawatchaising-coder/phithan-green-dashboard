@@ -955,6 +955,120 @@ function FsChip({
     }
   }, children);
 }
+function FsInvStage({
+  d,
+  k,
+  size
+}) {
+  const st = fsInvState(fsN(k.inverter_state));
+  const led = !st ? "var(--text-3)" : st[1] === "ok" ? "#2FB36B" : st[1] === "bad" ? "#E5484D" : "#F5A524";
+  const huawei = /^SUN[25]000/i.test(d.model || "");
+  return React.createElement("div", {
+    style: {
+      position: "relative",
+      width: size,
+      height: size,
+      flexShrink: 0,
+      borderRadius: 18,
+      overflow: "hidden",
+      background: "radial-gradient(circle at 50% 42%, color-mix(in srgb, var(--fs-sun) 22%, #fff) 0%, color-mix(in srgb, var(--fs-sun) 7%, #fff) 62%, #F6F4EF 100%)",
+      boxShadow: "inset 0 0 0 1px rgba(0,0,0,.03)"
+    }
+  }, huawei ? React.createElement("img", {
+    src: "dashboard/assets/pkg-inv-huawei.jpg",
+    alt: "",
+    loading: "lazy",
+    style: {
+      position: "absolute",
+      inset: "6%",
+      width: "88%",
+      height: "88%",
+      objectFit: "contain",
+      mixBlendMode: "multiply"
+    }
+  }) : React.createElement("svg", {
+    viewBox: "0 0 100 100",
+    style: {
+      position: "absolute",
+      inset: "14%",
+      width: "72%",
+      height: "72%"
+    },
+    "aria-hidden": "true"
+  }, React.createElement("rect", {
+    x: "18",
+    y: "10",
+    width: "64",
+    height: "78",
+    rx: "9",
+    fill: "#fff",
+    stroke: "#D8D5CC",
+    strokeWidth: "1.5"
+  }), React.createElement("rect", {
+    x: "80",
+    y: "20",
+    width: "6",
+    height: "58",
+    rx: "2",
+    fill: "#C9C6BD"
+  }), React.createElement("rect", {
+    x: "36",
+    y: "38",
+    width: "28",
+    height: "15",
+    rx: "5",
+    fill: "#1E2326"
+  }), React.createElement("circle", {
+    cx: "50",
+    cy: "45.5",
+    r: "2.2",
+    fill: led
+  }), React.createElement("rect", {
+    x: "30",
+    y: "88",
+    width: "5",
+    height: "6",
+    rx: "1",
+    fill: "#55595C"
+  }), React.createElement("rect", {
+    x: "40",
+    y: "88",
+    width: "5",
+    height: "6",
+    rx: "1",
+    fill: "#55595C"
+  }), React.createElement("rect", {
+    x: "58",
+    y: "88",
+    width: "5",
+    height: "6",
+    rx: "1",
+    fill: "#55595C"
+  })), React.createElement("span", {
+    style: {
+      position: "absolute",
+      top: 10,
+      left: 10,
+      display: "flex",
+      alignItems: "center",
+      gap: 5,
+      padding: "3px 8px 3px 6px",
+      borderRadius: 999,
+      background: "rgba(255,255,255,.85)",
+      fontSize: 10.5,
+      fontWeight: 700,
+      color: "#2B3336"
+    }
+  }, React.createElement("span", {
+    style: {
+      width: 7,
+      height: 7,
+      borderRadius: 4,
+      background: led,
+      boxShadow: "0 0 0 3px color-mix(in srgb, " + led + " 22%, transparent)"
+    }
+  }), st ? st[0] : "ไม่ทราบสถานะ"));
+}
 function FsInverterBody({
   d,
   k,
@@ -962,160 +1076,216 @@ function FsInverterBody({
 }) {
   const rated = fsRatedKw(d.model);
   const p = fsN(k.active_power);
+  const pct = rated && p != null ? Math.max(0, Math.min(100, p / rated * 100)) : null;
   const strs = fsStrings(k);
-  const maxKw = Math.max.apply(null, strs.map(s => s.kw || 0).concat([0.001]));
   const grid = k.ab_u != null ? [fsFmt(k.ab_u, 0), fsFmt(k.bc_u, 0), fsFmt(k.ca_u, 0)].join(" / ") : fsFmt(k.a_u, 1);
   const cur = k.b_i != null ? [fsFmt(k.a_i, 1), fsFmt(k.b_i, 1), fsFmt(k.c_i, 1)].join(" / ") : fsFmt(k.a_i, 1);
+  const hot = fsN(k.temperature) >= 75;
+  const tot = fsEnergy(k.total_cap);
+  const big = [{
+    icon: "sun",
+    l: "ผลิตวันนี้",
+    v: fsFmt(k.day_cap, 1),
+    u: "kWh"
+  }, {
+    icon: "trend",
+    l: "ผลิตสะสม",
+    v: tot[0],
+    u: tot[1]
+  }, {
+    icon: "bolt",
+    l: "ประสิทธิภาพ",
+    v: fsFmt(k.efficiency, 1),
+    u: "%"
+  }];
+  const small = [[k.ab_u != null ? "แรงดันกริด AB/BC/CA" : "แรงดันกริด", grid, "V"], [k.b_i != null ? "กระแส A/B/C" : "กระแสกริด", cur, "A"], ["ความถี่ · PF", +k.elec_freq > 0 ? fsFmt(k.elec_freq, 2) + " Hz · " + fsFmt(k.power_factor, 3) : "–", ""], ["อุณหภูมิภายใน", fsFmt(k.temperature, 1), "°C", hot], ["เริ่มทำงานวันนี้", fsKpiValue("open_time", k.open_time), ""]];
   return React.createElement("div", {
     style: {
       display: "flex",
       flexDirection: "column",
-      gap: 10
+      gap: 12
+    }
+  }, React.createElement("div", {
+    style: {
+      display: "flex",
+      gap: isMobile ? 12 : 18,
+      alignItems: "stretch",
+      flexDirection: isMobile ? "column" : "row"
+    }
+  }, React.createElement("div", {
+    style: {
+      display: "flex",
+      justifyContent: "center"
+    }
+  }, React.createElement(FsInvStage, {
+    d: d,
+    k: k,
+    size: isMobile ? 150 : 168
+  })), React.createElement("div", {
+    style: {
+      flex: 1,
+      minWidth: 0,
+      display: "flex",
+      flexDirection: "column",
+      justifyContent: "center",
+      gap: 12
     }
   }, React.createElement("div", null, React.createElement("div", {
+    style: {
+      fontSize: 11.5,
+      fontWeight: 600,
+      color: "var(--text-3)"
+    }
+  }, "\u0E01\u0E33\u0E25\u0E31\u0E07\u0E1C\u0E25\u0E34\u0E15\u0E15\u0E2D\u0E19\u0E19\u0E35\u0E49"), React.createElement("div", {
     style: {
       display: "flex",
       alignItems: "baseline",
       gap: 8,
-      marginBottom: 5
+      flexWrap: "wrap"
     }
   }, React.createElement("span", {
     style: {
       fontFamily: "var(--display)",
-      fontSize: 22,
+      fontSize: 32,
       fontWeight: 700,
+      lineHeight: 1.1,
+      color: "var(--text-1)",
       fontVariantNumeric: "tabular-nums"
     }
   }, fsFmt(p, 2)), React.createElement("span", {
     style: {
-      fontSize: 12,
-      color: "var(--text-3)",
-      fontWeight: 600
+      fontSize: 13,
+      fontWeight: 600,
+      color: "var(--text-3)"
     }
-  }, "kW", rated ? " จากพิกัด " + rated + " kW (" + Math.round((p || 0) / rated * 100) + "%)" : "")), rated && React.createElement(FsMeter, {
-    value: p,
-    max: rated
-  })), React.createElement("div", {
+  }, "kW"), rated && React.createElement("span", {
+    style: {
+      marginLeft: "auto",
+      fontSize: 12,
+      color: "var(--text-2)"
+    }
+  }, React.createElement("b", {
+    style: {
+      color: "var(--fs-sun)",
+      fontSize: 13
+    }
+  }, pct == null ? "–" : Math.round(pct) + "%"), " \u0E02\u0E2D\u0E07\u0E1E\u0E34\u0E01\u0E31\u0E14 ", rated, " kW")), rated && React.createElement("div", {
+    style: {
+      height: 14,
+      padding: 3,
+      marginTop: 7,
+      borderRadius: 999,
+      background: "color-mix(in srgb, var(--fs-sun) 9%, var(--surface2))",
+      boxShadow: "var(--shadow-inset)"
+    }
+  }, React.createElement("div", {
+    className: "fs-wide",
+    style: {
+      width: Math.max(pct || 0, pct ? 3 : 0) + "%",
+      height: "100%",
+      borderRadius: 999,
+      background: "linear-gradient(90deg, var(--fs-sun), color-mix(in srgb, var(--fs-sun) 72%, #FFD27A))",
+      boxShadow: "0 3px 10px color-mix(in srgb, var(--fs-sun) 45%, transparent)"
+    }
+  }))), React.createElement("div", {
     className: "kpi-grid",
     style: {
       display: "grid",
-      gridTemplateColumns: isMobile ? "1fr 1fr" : "repeat(4, 1fr)",
-      gap: 8
+      gridTemplateColumns: isMobile ? "1fr 1fr" : "repeat(3, minmax(0, 1fr))",
+      gap: isMobile ? 10 : 0
     }
-  }, React.createElement(FsTile, {
-    label: "\u0E1C\u0E25\u0E34\u0E15\u0E27\u0E31\u0E19\u0E19\u0E35\u0E49",
-    value: fsFmt(k.day_cap, 1),
-    unit: "kWh"
-  }), React.createElement(FsTile, {
-    label: "\u0E1C\u0E25\u0E34\u0E15\u0E2A\u0E30\u0E2A\u0E21",
-    value: fsEnergy(k.total_cap)[0],
-    unit: fsEnergy(k.total_cap)[1]
-  }), React.createElement(FsTile, {
-    label: "\u0E1B\u0E23\u0E30\u0E2A\u0E34\u0E17\u0E18\u0E34\u0E20\u0E32\u0E1E",
-    value: fsFmt(k.efficiency, 1),
-    unit: "%"
-  }), React.createElement(FsTile, {
-    label: "\u0E2D\u0E38\u0E13\u0E2B\u0E20\u0E39\u0E21\u0E34\u0E20\u0E32\u0E22\u0E43\u0E19",
-    value: fsFmt(k.temperature, 1),
-    unit: "\xB0C",
-    tone: fsN(k.temperature) >= 75 ? "var(--tint-amber-tx)" : null
-  }), React.createElement(FsTile, {
-    label: k.ab_u != null ? "แรงดันกริด AB/BC/CA" : "แรงดันกริด",
-    value: grid,
-    unit: "V"
-  }), React.createElement(FsTile, {
-    label: k.b_i != null ? "กระแส A/B/C" : "กระแสกริด",
-    value: cur,
-    unit: "A"
-  }), React.createElement(FsTile, {
-    label: "\u0E04\u0E27\u0E32\u0E21\u0E16\u0E35\u0E48 \xB7 PF",
-    value: +k.elec_freq > 0 ? fsFmt(k.elec_freq, 2) + " Hz · " + fsFmt(k.power_factor, 3) : "–"
-  }), React.createElement(FsTile, {
-    label: "\u0E40\u0E23\u0E34\u0E48\u0E21\u0E17\u0E33\u0E07\u0E32\u0E19\u0E27\u0E31\u0E19\u0E19\u0E35\u0E49",
-    value: fsKpiValue("open_time", k.open_time)
-  })), strs.length > 0 && window.FsStringGrid && React.createElement(window.FsStringGrid, {
-    strs: strs
-  }), strs.length > 0 && !window.FsStringGrid && React.createElement("div", null, React.createElement("div", {
-    style: {
-      fontSize: 11,
-      fontWeight: 700,
-      color: "var(--text-3)",
-      marginBottom: 6
-    }
-  }, "\u0E2A\u0E15\u0E23\u0E34\u0E07 PV (", strs.length, ") \u2014 \u0E40\u0E17\u0E35\u0E22\u0E1A\u0E01\u0E23\u0E30\u0E41\u0E2A\u0E01\u0E31\u0E19\u0E40\u0E1E\u0E37\u0E48\u0E2D\u0E2B\u0E32\u0E2A\u0E15\u0E23\u0E34\u0E07\u0E17\u0E35\u0E48\u0E1C\u0E34\u0E14\u0E1B\u0E01\u0E15\u0E34"), React.createElement("div", {
-    style: {
-      borderRadius: "var(--r-tile)",
-      background: "var(--surface2)",
-      overflow: "hidden"
-    }
-  }, strs.map((s, i) => React.createElement("div", {
-    key: s.n,
+  }, big.map((x, i) => React.createElement("div", {
+    key: x.l,
     style: {
       display: "flex",
-      gap: 8,
+      gap: 9,
       alignItems: "center",
-      padding: "6px 11px",
-      fontSize: 12,
-      borderTop: i ? "1px solid var(--divider)" : "none",
-      fontVariantNumeric: "tabular-nums"
+      minWidth: 0,
+      padding: isMobile || !i ? 0 : "0 0 0 14px",
+      boxShadow: !isMobile && i ? "inset 1px 0 0 var(--divider)" : "none"
     }
   }, React.createElement("span", {
     style: {
-      fontWeight: 700,
-      color: "var(--text-1)",
-      width: isMobile ? 40 : 52,
-      flexShrink: 0
+      width: 30,
+      height: 30,
+      borderRadius: 999,
+      display: "grid",
+      placeItems: "center",
+      flexShrink: 0,
+      background: "color-mix(in srgb, var(--fs-sun) 15%, var(--surface))"
     }
-  }, "PV", s.n), !isMobile && React.createElement("span", {
+  }, React.createElement(Icon, {
+    name: x.icon,
+    size: 15,
+    color: "var(--fs-sun)"
+  })), React.createElement("div", {
     style: {
-      fontFamily: "var(--mono)",
-      color: "var(--text-2)",
-      width: 62,
-      flexShrink: 0
+      minWidth: 0
     }
-  }, fsFmt(s.u, 0), " V"), !isMobile && React.createElement("span", {
+  }, React.createElement("div", {
     style: {
-      fontFamily: "var(--mono)",
-      color: "var(--text-2)",
-      width: 62,
-      flexShrink: 0
-    }
-  }, fsFmt(s.i, 2), " A"), !isMobile && React.createElement("span", {
-    style: {
-      fontFamily: "var(--mono)",
-      color: "var(--text-1)",
-      fontWeight: 700,
-      width: 70,
-      flexShrink: 0
-    }
-  }, fsFmt(s.kw, 2), " kW"), React.createElement("div", {
-    style: {
-      flex: 1,
-      minWidth: 40
-    }
-  }, React.createElement(FsMeter, {
-    value: s.kw,
-    max: maxKw,
-    tone: s.weak ? "var(--tint-amber-tx)" : "var(--primary)"
-  })), React.createElement("span", {
-    style: {
-      textAlign: "right",
-      width: 72,
-      flexShrink: 0
-    }
-  }, s.weak ? React.createElement(FsChip, {
-    tone: "info"
-  }, "\u0E15\u0E48\u0E33 ", Math.round(s.ratio * 100), "%") : isMobile ? React.createElement("span", {
-    style: {
-      fontFamily: "var(--mono)",
-      fontSize: 11
-    }
-  }, fsFmt(s.kw, 2), " kW") : React.createElement("span", {
-    style: {
+      fontSize: 11.5,
+      fontWeight: 600,
       color: "var(--text-3)",
-      fontSize: 11
+      whiteSpace: "nowrap"
     }
-  }, "\u0E1B\u0E01\u0E15\u0E34")))))), React.createElement(FsRawToggle, {
+  }, x.l), React.createElement("div", {
+    style: {
+      fontFamily: "var(--display)",
+      fontSize: 18,
+      fontWeight: 700,
+      color: "var(--text-1)",
+      whiteSpace: "nowrap",
+      fontVariantNumeric: "tabular-nums"
+    }
+  }, x.v, x.v !== "–" && React.createElement("span", {
+    style: {
+      fontSize: 11.5,
+      fontWeight: 600,
+      color: "var(--text-3)",
+      marginLeft: 3
+    }
+  }, x.u)))))))), React.createElement("div", {
+    style: {
+      display: "grid",
+      gridTemplateColumns: isMobile ? "1fr 1fr" : "repeat(5, minmax(0, 1fr))",
+      gap: 8,
+      background: "var(--surface2)",
+      boxShadow: "var(--shadow-inset)",
+      borderRadius: "var(--r-tile)",
+      padding: "10px 12px"
+    }
+  }, small.map(x => React.createElement("div", {
+    key: x[0],
+    style: {
+      minWidth: 0
+    }
+  }, React.createElement("div", {
+    style: {
+      fontSize: 11,
+      color: "var(--text-3)",
+      whiteSpace: "nowrap",
+      overflow: "hidden",
+      textOverflow: "ellipsis"
+    }
+  }, x[0]), React.createElement("div", {
+    style: {
+      fontSize: 13.5,
+      fontWeight: 700,
+      color: x[3] ? "var(--tint-amber-tx)" : "var(--text-1)",
+      whiteSpace: "nowrap",
+      fontVariantNumeric: "tabular-nums"
+    }
+  }, x[1], x[2] && x[1] !== "–" && React.createElement("span", {
+    style: {
+      fontSize: 11,
+      fontWeight: 600,
+      color: "var(--text-3)",
+      marginLeft: 3
+    }
+  }, x[2]))))), strs.length > 0 && window.FsStringGrid && React.createElement(window.FsStringGrid, {
+    strs: strs
+  }), React.createElement(FsRawToggle, {
     k: k
   }));
 }

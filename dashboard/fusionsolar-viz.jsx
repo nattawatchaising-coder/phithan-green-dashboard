@@ -481,52 +481,105 @@ function FsChip({ tone, children }) {
   return <span style={{ fontSize: 10.5, fontWeight: 700, padding: "3px 9px", borderRadius: "var(--r-pill)", color: t[0], background: t[1], whiteSpace: "nowrap" }}>{children}</span>;
 }
 
+/* ภาพอุปกรณ์บนเวทีส้มอ่อน — Huawei (รุ่น SUN2000/SUN5000) ใช้ภาพสินค้าจริง assets/pkg-inv-huawei.jpg (พื้นขาว → multiply ให้กลืนเวที)
+   ยี่ห้ออื่นวาดกล่องอินเวอร์เตอร์เรียบ ๆ · ไฟสถานะมุมเวทีตามสถานะเครื่อง */
+function FsInvStage({ d, k, size }) {
+  const st = fsInvState(fsN(k.inverter_state));
+  const led = !st ? "var(--text-3)" : st[1] === "ok" ? "#2FB36B" : st[1] === "bad" ? "#E5484D" : "#F5A524";
+  const huawei = /^SUN[25]000/i.test(d.model || "");
+  return (
+    <div style={{ position: "relative", width: size, height: size, flexShrink: 0, borderRadius: 18, overflow: "hidden",
+      background: "radial-gradient(circle at 50% 42%, color-mix(in srgb, var(--fs-sun) 22%, #fff) 0%, color-mix(in srgb, var(--fs-sun) 7%, #fff) 62%, #F6F4EF 100%)",
+      boxShadow: "inset 0 0 0 1px rgba(0,0,0,.03)" }}>
+      {huawei
+        ? <img src="dashboard/assets/pkg-inv-huawei.jpg" alt="" loading="lazy" style={{ position: "absolute", inset: "6%", width: "88%", height: "88%", objectFit: "contain", mixBlendMode: "multiply" }} />
+        : <svg viewBox="0 0 100 100" style={{ position: "absolute", inset: "14%", width: "72%", height: "72%" }} aria-hidden="true">
+            <rect x="18" y="10" width="64" height="78" rx="9" fill="#fff" stroke="#D8D5CC" strokeWidth="1.5" />
+            <rect x="80" y="20" width="6" height="58" rx="2" fill="#C9C6BD" />
+            <rect x="36" y="38" width="28" height="15" rx="5" fill="#1E2326" />
+            <circle cx="50" cy="45.5" r="2.2" fill={led} />
+            <rect x="30" y="88" width="5" height="6" rx="1" fill="#55595C" /><rect x="40" y="88" width="5" height="6" rx="1" fill="#55595C" /><rect x="58" y="88" width="5" height="6" rx="1" fill="#55595C" />
+          </svg>}
+      <span style={{ position: "absolute", top: 10, left: 10, display: "flex", alignItems: "center", gap: 5, padding: "3px 8px 3px 6px", borderRadius: 999,
+        background: "rgba(255,255,255,.85)", fontSize: 10.5, fontWeight: 700, color: "#2B3336" }}>
+        <span style={{ width: 7, height: 7, borderRadius: 4, background: led, boxShadow: "0 0 0 3px color-mix(in srgb, " + led + " 22%, transparent)" }} />
+        {st ? st[0] : "ไม่ทราบสถานะ"}
+      </span>
+    </div>
+  );
+}
+
 function FsInverterBody({ d, k, isMobile }) {
   const rated = fsRatedKw(d.model);
   const p = fsN(k.active_power);
+  const pct = rated && p != null ? Math.max(0, Math.min(100, (p / rated) * 100)) : null;
   const strs = fsStrings(k);
-  const maxKw = Math.max.apply(null, strs.map((s) => s.kw || 0).concat([0.001]));
   const grid = k.ab_u != null ? [fsFmt(k.ab_u, 0), fsFmt(k.bc_u, 0), fsFmt(k.ca_u, 0)].join(" / ") : fsFmt(k.a_u, 1);
   const cur = k.b_i != null ? [fsFmt(k.a_i, 1), fsFmt(k.b_i, 1), fsFmt(k.c_i, 1)].join(" / ") : fsFmt(k.a_i, 1);
+  const hot = fsN(k.temperature) >= 75;
+  const tot = fsEnergy(k.total_cap);
+  const big = [
+    { icon: "sun", l: "ผลิตวันนี้", v: fsFmt(k.day_cap, 1), u: "kWh" },
+    { icon: "trend", l: "ผลิตสะสม", v: tot[0], u: tot[1] },
+    { icon: "bolt", l: "ประสิทธิภาพ", v: fsFmt(k.efficiency, 1), u: "%" },
+  ];
+  const small = [
+    [k.ab_u != null ? "แรงดันกริด AB/BC/CA" : "แรงดันกริด", grid, "V"],
+    [k.b_i != null ? "กระแส A/B/C" : "กระแสกริด", cur, "A"],
+    ["ความถี่ · PF", +k.elec_freq > 0 ? fsFmt(k.elec_freq, 2) + " Hz · " + fsFmt(k.power_factor, 3) : "–", ""],
+    ["อุณหภูมิภายใน", fsFmt(k.temperature, 1), "°C", hot],
+    ["เริ่มทำงานวันนี้", fsKpiValue("open_time", k.open_time), ""],
+  ];
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-      <div>
-        <div style={{ display: "flex", alignItems: "baseline", gap: 8, marginBottom: 5 }}>
-          <span style={{ fontFamily: "var(--display)", fontSize: 22, fontWeight: 700, fontVariantNumeric: "tabular-nums" }}>{fsFmt(p, 2)}</span>
-          <span style={{ fontSize: 12, color: "var(--text-3)", fontWeight: 600 }}>kW{rated ? " จากพิกัด " + rated + " kW (" + Math.round(((p || 0) / rated) * 100) + "%)" : ""}</span>
-        </div>
-        {rated && <FsMeter value={p} max={rated} />}
-      </div>
-      <div className="kpi-grid" style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr 1fr" : "repeat(4, 1fr)", gap: 8 }}>
-        <FsTile label="ผลิตวันนี้" value={fsFmt(k.day_cap, 1)} unit="kWh" />
-        <FsTile label="ผลิตสะสม" value={fsEnergy(k.total_cap)[0]} unit={fsEnergy(k.total_cap)[1]} />
-        <FsTile label="ประสิทธิภาพ" value={fsFmt(k.efficiency, 1)} unit="%" />
-        <FsTile label="อุณหภูมิภายใน" value={fsFmt(k.temperature, 1)} unit="°C" tone={fsN(k.temperature) >= 75 ? "var(--tint-amber-tx)" : null} />
-        <FsTile label={k.ab_u != null ? "แรงดันกริด AB/BC/CA" : "แรงดันกริด"} value={grid} unit="V" />
-        <FsTile label={k.b_i != null ? "กระแส A/B/C" : "กระแสกริด"} value={cur} unit="A" />
-        <FsTile label="ความถี่ · PF" value={+k.elec_freq > 0 ? fsFmt(k.elec_freq, 2) + " Hz · " + fsFmt(k.power_factor, 3) : "–"} />
-        <FsTile label="เริ่มทำงานวันนี้" value={fsKpiValue("open_time", k.open_time)} />
-      </div>
-      {strs.length > 0 && window.FsStringGrid && <window.FsStringGrid strs={strs} />}
-      {strs.length > 0 && !window.FsStringGrid && (
-        <div>
-          <div style={{ fontSize: 11, fontWeight: 700, color: "var(--text-3)", marginBottom: 6 }}>สตริง PV ({strs.length}) — เทียบกระแสกันเพื่อหาสตริงที่ผิดปกติ</div>
-          <div style={{ borderRadius: "var(--r-tile)", background: "var(--surface2)", overflow: "hidden" }}>
-            {strs.map((s, i) => (
-              <div key={s.n} style={{ display: "flex", gap: 8, alignItems: "center",
-                padding: "6px 11px", fontSize: 12, borderTop: i ? "1px solid var(--divider)" : "none", fontVariantNumeric: "tabular-nums" }}>
-                <span style={{ fontWeight: 700, color: "var(--text-1)", width: isMobile ? 40 : 52, flexShrink: 0 }}>PV{s.n}</span>
-                {!isMobile && <span style={{ fontFamily: "var(--mono)", color: "var(--text-2)", width: 62, flexShrink: 0 }}>{fsFmt(s.u, 0)} V</span>}
-                {!isMobile && <span style={{ fontFamily: "var(--mono)", color: "var(--text-2)", width: 62, flexShrink: 0 }}>{fsFmt(s.i, 2)} A</span>}
-                {!isMobile && <span style={{ fontFamily: "var(--mono)", color: "var(--text-1)", fontWeight: 700, width: 70, flexShrink: 0 }}>{fsFmt(s.kw, 2)} kW</span>}
-                <div style={{ flex: 1, minWidth: 40 }}><FsMeter value={s.kw} max={maxKw} tone={s.weak ? "var(--tint-amber-tx)" : "var(--primary)"} /></div>
-                <span style={{ textAlign: "right", width: 72, flexShrink: 0 }}>{s.weak ? <FsChip tone="info">ต่ำ {Math.round(s.ratio * 100)}%</FsChip>
-                  : isMobile ? <span style={{ fontFamily: "var(--mono)", fontSize: 11 }}>{fsFmt(s.kw, 2)} kW</span> : <span style={{ color: "var(--text-3)", fontSize: 11 }}>ปกติ</span>}</span>
+    <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+      <div style={{ display: "flex", gap: isMobile ? 12 : 18, alignItems: "stretch", flexDirection: isMobile ? "column" : "row" }}>
+        <div style={{ display: "flex", justifyContent: "center" }}><FsInvStage d={d} k={k} size={isMobile ? 150 : 168} /></div>
+        <div style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column", justifyContent: "center", gap: 12 }}>
+          <div>
+            <div style={{ fontSize: 11.5, fontWeight: 600, color: "var(--text-3)" }}>กำลังผลิตตอนนี้</div>
+            <div style={{ display: "flex", alignItems: "baseline", gap: 8, flexWrap: "wrap" }}>
+              <span style={{ fontFamily: "var(--display)", fontSize: 32, fontWeight: 700, lineHeight: 1.1, color: "var(--text-1)", fontVariantNumeric: "tabular-nums" }}>{fsFmt(p, 2)}</span>
+              <span style={{ fontSize: 13, fontWeight: 600, color: "var(--text-3)" }}>kW</span>
+              {rated && <span style={{ marginLeft: "auto", fontSize: 12, color: "var(--text-2)" }}>
+                <b style={{ color: "var(--fs-sun)", fontSize: 13 }}>{pct == null ? "–" : Math.round(pct) + "%"}</b> ของพิกัด {rated} kW</span>}
+            </div>
+            {rated && (
+              <div style={{ height: 14, padding: 3, marginTop: 7, borderRadius: 999, background: "color-mix(in srgb, var(--fs-sun) 9%, var(--surface2))", boxShadow: "var(--shadow-inset)" }}>
+                <div className="fs-wide" style={{ width: Math.max(pct || 0, pct ? 3 : 0) + "%", height: "100%", borderRadius: 999,
+                  background: "linear-gradient(90deg, var(--fs-sun), color-mix(in srgb, var(--fs-sun) 72%, #FFD27A))",
+                  boxShadow: "0 3px 10px color-mix(in srgb, var(--fs-sun) 45%, transparent)" }} />
+              </div>
+            )}
+          </div>
+          <div className="kpi-grid" style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr 1fr" : "repeat(3, minmax(0, 1fr))", gap: isMobile ? 10 : 0 }}>
+            {big.map((x, i) => (
+              <div key={x.l} style={{ display: "flex", gap: 9, alignItems: "center", minWidth: 0,
+                padding: isMobile || !i ? 0 : "0 0 0 14px", boxShadow: !isMobile && i ? "inset 1px 0 0 var(--divider)" : "none" }}>
+                <span style={{ width: 30, height: 30, borderRadius: 999, display: "grid", placeItems: "center", flexShrink: 0,
+                  background: "color-mix(in srgb, var(--fs-sun) 15%, var(--surface))" }}><Icon name={x.icon} size={15} color="var(--fs-sun)" /></span>
+                <div style={{ minWidth: 0 }}>
+                  <div style={{ fontSize: 11.5, fontWeight: 600, color: "var(--text-3)", whiteSpace: "nowrap" }}>{x.l}</div>
+                  <div style={{ fontFamily: "var(--display)", fontSize: 18, fontWeight: 700, color: "var(--text-1)", whiteSpace: "nowrap", fontVariantNumeric: "tabular-nums" }}>
+                    {x.v}{x.v !== "–" && <span style={{ fontSize: 11.5, fontWeight: 600, color: "var(--text-3)", marginLeft: 3 }}>{x.u}</span>}
+                  </div>
+                </div>
               </div>
             ))}
           </div>
         </div>
-      )}
+      </div>
+      <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr 1fr" : "repeat(5, minmax(0, 1fr))", gap: 8,
+        background: "var(--surface2)", boxShadow: "var(--shadow-inset)", borderRadius: "var(--r-tile)", padding: "10px 12px" }}>
+        {small.map((x) => (
+          <div key={x[0]} style={{ minWidth: 0 }}>
+            <div style={{ fontSize: 11, color: "var(--text-3)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{x[0]}</div>
+            <div style={{ fontSize: 13.5, fontWeight: 700, color: x[3] ? "var(--tint-amber-tx)" : "var(--text-1)", whiteSpace: "nowrap", fontVariantNumeric: "tabular-nums" }}>
+              {x[1]}{x[2] && x[1] !== "–" && <span style={{ fontSize: 11, fontWeight: 600, color: "var(--text-3)", marginLeft: 3 }}>{x[2]}</span>}
+            </div>
+          </div>
+        ))}
+      </div>
+      {strs.length > 0 && window.FsStringGrid && <window.FsStringGrid strs={strs} />}
       <FsRawToggle k={k} />
     </div>
   );

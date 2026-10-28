@@ -222,8 +222,8 @@ function FsStringGrid({ strs }) {
         <span style={{ fontSize: 11.5, fontWeight: 700, color: "var(--text-2)" }}>สตริง PV {strs.length} ชุด</span>
         <span style={{ fontSize: 11, color: "var(--text-3)" }}>รวม {fsFmt(tot, 2)} kW{weak ? " · กระแสต่ำ " + weak + " ชุด" : ""}</span>
         <span style={{ marginLeft: "auto", display: "flex", alignItems: "center", gap: 6, fontSize: 10.5, color: "var(--text-3)" }}>
-          น้อย<span style={{ width: 52, height: 7, borderRadius: 4, background: "linear-gradient(90deg, color-mix(in srgb, var(--primary) 14%, var(--surface2)), var(--primary))" }} />มาก
-          <span style={{ width: 9, height: 9, borderRadius: 3, background: "var(--tint-amber-bg)", boxShadow: "inset 0 0 0 1.5px var(--tint-amber-tx)", marginLeft: 6 }} />ต่ำผิดปกติ
+          น้อย<span style={{ width: 52, height: 7, borderRadius: 4, background: "linear-gradient(90deg, color-mix(in srgb, var(--fs-sun) 14%, var(--surface2)), var(--fs-sun))" }} />มาก
+          <span style={{ width: 9, height: 9, borderRadius: 3, background: "var(--tint-red-bg)", boxShadow: "inset 0 0 0 1.5px var(--tint-red-tx)", marginLeft: 6 }} />ต่ำผิดปกติ
         </span>
       </div>
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(112px, 1fr))", gap: 6 }}>
@@ -232,9 +232,9 @@ function FsStringGrid({ strs }) {
           return (
             <div key={s.n} className="fs-in" title={"PV" + s.n + " · " + fsFmt(s.u, 0) + " V · " + fsFmt(s.i, 2) + " A · " + fsFmt(s.kw, 2) + " kW"}
               style={{ animationDelay: Math.min(i * 0.025, 0.6) + "s", borderRadius: "var(--r-tile)", padding: "7px 8px", minWidth: 0,
-                background: s.weak ? "var(--tint-amber-bg)" : "color-mix(in srgb, var(--primary) " + Math.round(14 + f * 86) + "%, var(--surface2))",
-                boxShadow: s.weak ? "inset 0 0 0 1.5px var(--tint-amber-tx)" : "none",
-                color: s.weak ? "var(--tint-amber-tx)" : "var(--text-1)" }}>{/* ตัวหนังสือสีเดียวทุกช่อง (ผู้ใช้ทักว่าดำ/ขาวสลับกัน) — ดำบนเขียวเข้มสุดยังต่างสี 4.2 ดีกว่าขาว 3.5 */}
+                background: s.weak ? "var(--tint-red-bg)" : "color-mix(in srgb, var(--fs-sun) " + Math.round(12 + f * 78) + "%, var(--surface2))",
+                boxShadow: s.weak ? "inset 0 0 0 1.5px var(--tint-red-tx)" : "none",
+                color: s.weak ? "var(--tint-red-tx)" : "var(--text-1)" }}>{/* ตัวหนังสือสีเดียวทุกช่อง (ผู้ใช้ทักว่าดำ/ขาวสลับกัน) — ดำบนเขียวเข้มสุดยังต่างสี 4.2 ดีกว่าขาว 3.5 · ส้มตามธีมหน้าไซต์ (ผู้ใช้ 2026-10-28) สตริงต่ำจึงเป็นแดง ไม่ใช่เหลือง */}
               <div style={{ fontSize: 11.5, fontWeight: 700, opacity: 0.9 }}>PV{s.n}</div>
               <div style={{ fontFamily: "var(--display)", fontSize: 15, fontWeight: 700, lineHeight: 1.2, fontVariantNumeric: "tabular-nums" }}>{fsFmt(s.kw, 2)}<span style={{ fontSize: 10, fontWeight: 600, marginLeft: 2 }}>kW</span></div>
               <div style={{ fontSize: 11.5, fontWeight: 600, opacity: 0.92, fontFamily: "var(--mono)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{fsFmt(s.i, 1)}A · {s.u != null ? Math.round(s.u) : "–"}V</div>

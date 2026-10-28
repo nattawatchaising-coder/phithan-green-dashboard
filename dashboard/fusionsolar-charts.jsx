@@ -3,7 +3,7 @@
    ตามแบบอ้างอิงที่ผู้ใช้ส่งมา (Solis / Lumos / SolarSync / Sunsolar) · โหลดหลัง fusionsolar-scene.jsx ก่อน fusionsolar.jsx
    - FsTrendChart     ประวัติการผลิต · "area" = เส้นโค้งส้มเรืองแสงไล่สีลงพื้น + จุด "ตอนนี้" (รายชั่วโมงวันนี้)
                       "bars" = แท่งในราง แท่งที่ยังไม่จบเป็นลายเฉียง (รายวัน/รายเดือน) · ชี้ = กล่องค่า · มีมุมมองตาราง
-   - FsEnergyFlow  แผนภาพสายไหล โซลาร์/กริด → อาคาร/ขาย (การ์ดพลังงานไปไหนใช้ตัวนี้)
+   - FsEnergySankey  แผนภาพสายไหล โซลาร์/กริด → อาคาร/ขาย (การ์ดพลังงานไปไหนใช้ตัวนี้)
    - FsEnergyBalance  แถบ "ไฟที่ผลิต" กับ "ไฟที่อาคารใช้" ชิดซ้ายสเกลเดียวกัน ส่วน "ใช้เอง" อยู่หน้าสุดทั้งคู่
    ไม่มีการเขียนฐานข้อมูลในไฟล์นี้ · ลดการเคลื่อนไหว = ไม่มีอนิเมชัน
    ============================================================ */
@@ -351,7 +351,7 @@ function FsEnergyBalance({ self, exp, imp, compact }) {
 
 /* แผนภาพสายไหล (ผู้ใช้เลือกแบบ A 2026-10-28) — ซ้าย: โซลาร์ผลิต / ซื้อจากกริด · ขวา: อาคารใช้ / ขายเข้ากริด
    ความหนาสายตามปริมาณจริง (สายบางสุด 3px ให้ยังมองเห็น) · fmt(v) → [ตัวเลข, หน่วย] จากการ์ด (หน่วยเดียวกันทั้งการ์ด) */
-function FsEnergyFlow({ self, exp, imp, fmt }) {
+function FsEnergySankey({ self, exp, imp, fmt }) {
   const [ref, w] = useFsWidth(640);
   const small = w < 520;
   const H = small ? 196 : 224, padY = 8, gap = 16, nw = 10;
@@ -412,4 +412,4 @@ function FsEnergyFlow({ self, exp, imp, fmt }) {
   );
 }
 
-Object.assign(window, { FsTrendChart, FsEnergyBalance, FsEnergyFlow, fsMonoPath });
+Object.assign(window, { FsTrendChart, FsEnergyBalance, FsEnergySankey, fsMonoPath });
