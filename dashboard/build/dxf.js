@@ -2985,7 +2985,23 @@ function pgSldPro(doc, sheet, M) {
     const yE = Math.max(yE0, Math.min(blkLow - 4, acBot - 5, mdBot - 14));
     pen.line(PE, mpx, mdBot + 1.2, mpx, yE);
     pen.line(PE, sx, spY - 2.4, sx, barY + 0.45);
-    pen.line(PE, sx + 2, barY - 0.45, sx + 2, yE);
+    {
+      const gx = sx + 2,
+        hr = 1.0,
+        gy = yE - 4.5;
+      pen.line(PE, gx, barY - 0.45, gx, yE + hr);
+      pen.arc(PE, gx, yE, hr, -90, 90);
+      pen.line(PE, gx, yE - hr, gx, gy);
+      pgSym.ground(pen, gx, gy);
+      pen.text(T, gx - 1.5, yE + 3.4, TS.tag, "CONNECT TO GROUND BAR", {
+        align: 2,
+        valign: 2
+      });
+      pen.text(T, gx - 1.5, yE + 1.9, TS.tag, "OF EXISTING MDB", {
+        align: 2,
+        valign: 2
+      });
+    }
     pen.line(PE, sx - 4, barY - 0.45, sx - 4, acBot);
     pen.text(T, sx - 4.8, acBot + 1.2, TS.tag, "ENCLOSURE GND", {
       align: 2,
@@ -3044,7 +3060,7 @@ function pgSldPro(doc, sheet, M) {
       valign: 2
     });
     const metX = X.md1 - 10;
-    pen.line(PE, Math.min(sx, mpx), yE, metX, yE);
+    pen.line(PE, Math.min(sx, mpx) - 1, yE, metX, yE);
     [Math.max(sx, mpx)].forEach(x => peDot(x, yE));
     pen.rect(PE, metX, yE - 2.2, 10, 4.4);
     pen.text(T, metX + 5, yE, TS.spec, "MET", {

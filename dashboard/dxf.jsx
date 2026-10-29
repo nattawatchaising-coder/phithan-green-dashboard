@@ -2074,7 +2074,14 @@ function pgSldPro(doc, sheet, M) {
     pen.line(PE, mpx, mdBot + 1.2, mpx, yE);
     /* สายดิน SPD จบที่รูบาร์ G · สายไป MET ออกจากอีกรูด้านล่าง ไม่ลากทะลุบาร์ (ผู้ใช้ชี้ 2026-10-29) */
     pen.line(PE, sx, spY - 2.4, sx, barY + 0.45);
-    pen.line(PE, sx + 2, barY - 0.45, sx + 2, yE);
+    /* บาร์ G ไม่ต่อเข้าสายดินหลัก — ลงกระโดดข้ามสาย (ครึ่งวงกลม) ไปต่อบาร์ดินตู้ MDB เดิม (ผู้ใช้ชี้ 2026-10-29) */
+    { const gx = sx + 2, hr = 1.0, gy = yE - 4.5;
+      pen.line(PE, gx, barY - 0.45, gx, yE + hr);
+      pen.arc(PE, gx, yE, hr, -90, 90);
+      pen.line(PE, gx, yE - hr, gx, gy);
+      pgSym.ground(pen, gx, gy);
+      pen.text(T, gx - 1.5, yE + 3.4, TS.tag, "CONNECT TO GROUND BAR", { align: 2, valign: 2 });
+      pen.text(T, gx - 1.5, yE + 1.9, TS.tag, "OF EXISTING MDB", { align: 2, valign: 2 }); }
     /* กราวด์ตัวตู้ (ผู้ใช้ชี้ 2026-10-29) — จากรูที่ 1 ของบาร์ G ลงไปต่อกรอบตู้ (เส้นประก้นตู้) */
     pen.line(PE, sx - 4, barY - 0.45, sx - 4, acBot);
     pen.text(T, sx - 4.8, acBot + 1.2, TS.tag, "ENCLOSURE GND", { align: 2, valign: 2 });
@@ -2113,7 +2120,7 @@ function pgSldPro(doc, sheet, M) {
     pen.text(T, X.pe0 + 3.2, yE - 3.4, TS.spec, "PV EARTH ROD (SEPARATE)  5/8\" x 2.4m  R <= 5 OHM", { valign: 2 });
     /* ── บัสดินหลัก (MET) + หลักดินระบบ — ฝั่ง AC เท่านั้น ── */
     const metX = X.md1 - 10;
-    pen.line(PE, Math.min(sx, mpx), yE, metX, yE);
+    pen.line(PE, Math.min(sx, mpx) - 1, yE, metX, yE);   // ยื่นซ้ายเลยจุดกระโดดข้ามของสายบาร์ G
     [Math.max(sx, mpx)].forEach((x) => peDot(x, yE));
     pen.rect(PE, metX, yE - 2.2, 10, 4.4);
     pen.text(T, metX + 5, yE, TS.spec, "MET", { align: 1, valign: 2 });
