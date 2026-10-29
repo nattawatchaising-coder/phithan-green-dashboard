@@ -2724,7 +2724,7 @@ function pgSldPro(doc, sheet, M) {
     const oneInv = taps.length === 1 && !taps[0].b.typical;
     const tGap = taps.length > 1 ? Math.min.apply(null, taps.slice(1).map((t, i) => Math.abs(taps[i].y - t.y))) : 20;
     const brkLabel = (bl, cnt, x, y) => {
-      const m = /^(\S+)\s+(\d+P)\s+(\d+AF)\s+(\d+AT)(?:\s+(\S+))?$/.exec(bl);
+      const m = /^(\S+)\s+(\d+P)\s+(\d+AF)\s+(\d+AT)(?:\s+(.+))?$/.exec(bl);
       if (!m) {
         const s = bl + cnt;
         pen.text(T, x, y + 5.0, fitH(s, TS.spec, 2 * (x - X.ac0) - 1), s, {
@@ -2781,10 +2781,7 @@ function pgSldPro(doc, sheet, M) {
     pen.line(R, X.acBus, yMain, mx - g - 0.75, yMain);
     hBrk(mx, yMain, isCb(P.mainTxt));
     const mainL = P.mainTxt + (P.lsig ? " LSIG" : "");
-    pen.text(T, mx, yMain + 5.0, fitH(mainL, TS.spec, 2 * (mx - X.ac0) - 2), mainL, {
-      align: 1,
-      valign: 1
-    });
+    brkLabel(mainL, "", mx, yMain);
     let wx = mx + g + 0.75;
     if (hasGf) {
       const zx = mx + 6.5,
@@ -2853,7 +2850,11 @@ function pgSldPro(doc, sheet, M) {
         align: 2,
         valign: 2
       });
-      pen.text(T, cx, yMain + 2 * CT_R + 0.8, TS.spec, "CT " + P.pmCt, {
+      pen.text(T, cx, yMain + 2 * CT_R + 2.9, TS.spec, "CT " + P.pmCt, {
+        align: 1,
+        valign: 1
+      });
+      pen.text(T, cx, yMain + 2 * CT_R + 0.8, TS.spec, "CL.0.5, 5VA", {
         align: 1,
         valign: 1
       });
@@ -2930,16 +2931,17 @@ function pgSldPro(doc, sheet, M) {
     bar(PE, sx - 1, "G", true);
     pen.rect(BX, X.ac0, acBot, X.ac1 - X.ac0, acTop - acBot);
     if (isMain) zoneHdr(Math.min(hy, acTop + 2.5));
-    pen.text(T, X.ac1 + 3.0, yMain - 3, TS.spec, M.mainCable[0], {
-      rot: 90,
-      align: 2
-    });
-    pen.text(T, X.ac1 + 5.8, yMain - 3, TS.spec, "THW(G) " + P.earthCu + " Sq.mm. (PE)", {
-      rot: 90,
-      align: 2
-    });
     const mdBot = yMain - 24;
-    const ax = X.mdB + g + 3.5;
+    const cl = [String(M.mainCable[0] || "").replace(/\s*\(SOLAR-CELL\)/, "").replace(/\s+/g, " ") + " 0.6/1kV", "G-" + P.earthCu + " Sq.mm. IEC01(THW)"];
+    const ctx = X.ac1 + 4;
+    pen.line(T, ctx, yMain + 2.6, ctx, yMain - 2.6);
+    pen.text(T, ctx + 1, yMain + 0.8, TS.spec, cl[0], {
+      valign: 1
+    });
+    pen.text(T, ctx + 1, yMain - 0.8, TS.spec, cl[1], {
+      valign: 3
+    });
+    const ax = Math.max(X.mdB + g + 3.5, ctx + 1 + Math.max.apply(null, cl.map(t => pgTextW(t, TS.spec))) * 1.2 + 3);
     pen.line(R, X.mdB - g - 0.75, yMain, ax, yMain);
     pen.solid(R, [ax, yMain + 1.1], [ax + 2.6, yMain], [ax, yMain - 1.1]);
     pen.text(LB, ax + 4, yMain + 0.9, TS.head, "TO MDB", {

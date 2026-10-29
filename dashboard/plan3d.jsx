@@ -2664,7 +2664,7 @@ function p3SldModel(st, job, design) {
       : { k: "fuse", tag: "DC FUSE gPV " + fuseA + "A " + dcV + "VDC (+/-)" };
     /* งานบ้าน = MCB (กระแสเกิน) + RCCB (ไฟรั่ว · ขนาดแรกที่ ≥ MCB จากกฎ rccb2P/rccb4P) — ไม่ใช้ RCBO แล้ว */
     const rccbA = (((R && (nPh === 3 ? R.rccb4P : R.rccb2P)) || [25, 40, 63]).find((x) => x >= mainA)) || 63;
-    const mainTxt = !gf ? "MCB " + (nPh === 3 ? "3P " : "2P ") + mainA + "A + RCCB " + P2 + rccbA + "A " + ((R && R.rcboMa) || 100) + "mA" : (lsig && mainA > 1250 ? "ACB 3P " + mainA + "AT" : BQ.mccbName0 ? BQ.mccbName0(mainA, "main") : "MCCB 3P " + mainA + "AT");
+    const mainTxt = !gf ? "MCB " + (nPh === 3 ? "3P " : "2P ") + mainA + "A + RCCB " + P2 + rccbA + "A " + ((R && R.rcboMa) || 100) + "mA" : (lsig && mainA > 1250 ? (BQ.acbName0 ? BQ.acbName0(mainA) : "ACB 3P " + mainA + "AT") : BQ.mccbName0 ? BQ.mccbName0(mainA, "main") : "MCCB 3P " + mainA + "AT");
     M.pro = {
       home, small, maxVdc, tMin, isc, wp, vocAt, vocMax, auth: auth || "MEA/PEA",
       lps, dcDev, dcSpdTag: "SPD " + (lps ? "T1+T2 " : "T2 ") + ucpv + "VDC", dcSpdFull: "DC SPD " + (lps ? "T1+T2" : "T2") + " Ucpv " + ucpv + "VDC " + dcSpdKa,

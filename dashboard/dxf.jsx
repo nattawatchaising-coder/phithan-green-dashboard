@@ -1919,7 +1919,7 @@ function pgSldPro(doc, sheet, M) {
        ความสูงตัวอักษรย่อตามระยะห่างแถว ไม่ให้ชนแถวบน · รูปแบบอื่น (MCB 2P 32A) เขียนบรรทัดเดียวเหมือนเดิม */
     const tGap = taps.length > 1 ? Math.min.apply(null, taps.slice(1).map((t, i) => Math.abs(taps[i].y - t.y))) : 20;
     const brkLabel = (bl, cnt, x, y) => {
-      const m = /^(\S+)\s+(\d+P)\s+(\d+AF)\s+(\d+AT)(?:\s+(\S+))?$/.exec(bl);
+      const m = /^(\S+)\s+(\d+P)\s+(\d+AF)\s+(\d+AT)(?:\s+(.+))?$/.exec(bl);   // ท้ายได้หลายคำ เช่น "65kA LSIG"
       if (!m) { const s = bl + cnt; pen.text(T, x, y + 5.0, fitH(s, TS.spec, 2 * (x - X.ac0) - 1), s, { align: 1, valign: 1 }); return; }
       const h = Math.max(0.9, Math.min(1.5, (tGap - 4.6) / 3.6)), hs = h * 0.8;
       const y1 = y + g * 1.26 + 0.9, yBar = y1 + h + 0.45, y2 = yBar + 0.5, y3 = y2 + h + 0.55;
@@ -1956,7 +1956,7 @@ function pgSldPro(doc, sheet, M) {
     pen.line(R, X.acBus, yMain, mx - g - 0.75, yMain);
     hBrk(mx, yMain, isCb(P.mainTxt));
     const mainL = P.mainTxt + (P.lsig ? " LSIG" : "");
-    pen.text(T, mx, yMain + 5.0, fitH(mainL, TS.spec, 2 * (mx - X.ac0) - 2), mainL, { align: 1, valign: 1 });
+    brkLabel(mainL, "", mx, yMain);   // เมนแบบเศษส่วนเหมือนเบรกเกอร์อินเวอร์เตอร์ (ผู้ใช้: ACB ไม่มี AF/IC)
     let wx = mx + g + 0.75;
     if (hasGf) {
       /* Ground fault: ZCT คล้องสายเมน → รีเลย์ GFR → สั่ง Shunt trip ของ MCCB */
@@ -1998,7 +1998,8 @@ function pgSldPro(doc, sheet, M) {
         pen.text(T, x, ly + lr + 0.8, TS.tag, ph[ph.length - 1 - i], { align: 1, valign: 1 });   // ซ้าย→ขวา R S T
       });
       pen.text(T, lxs[lxs.length - 1] - lr - 1, ly, TS.tag, "PILOT LAMP", { align: 2, valign: 2 });
-      pen.text(T, cx, yMain + 2 * CT_R + 0.8, TS.spec, "CT " + P.pmCt, { align: 1, valign: 1 });   // เหนือยอดขด ไม่ทับ (ผู้ใช้ชี้)
+      pen.text(T, cx, yMain + 2 * CT_R + 2.9, TS.spec, "CT " + P.pmCt, { align: 1, valign: 1 });   // เหนือยอดขด ไม่ทับ (ผู้ใช้ชี้)
+      pen.text(T, cx, yMain + 2 * CT_R + 0.8, TS.spec, "CL.0.5, 5VA", { align: 1, valign: 1 });   // class CT วัดพลังงาน (ผู้ใช้ 2026-10-29)
       /* กล่อง PM2230 ใต้ CT — สาย CT ลงตรงเข้าด้านบน (ผู้ใช้วาดชี้ 2026-10-29) */
       const pmx = cx + 3, pmy = (pb + pt) / 2;   // กล่องเยื้องขวา ไม่ทับบัส AC (ผู้ใช้ชี้) · สาย CT ยังลงตรงเข้าด้านบนกล่อง
       pen.line(CM, cx, yMain, cx, pt);
@@ -2048,14 +2049,18 @@ function pgSldPro(doc, sheet, M) {
     bar(PE, sx - 1, "G", true);   // รูที่ 3 ตรงสาย SPD · รูที่ 4 (sx + 2) ออกไป MET
     pen.rect(BX, X.ac0, acBot, X.ac1 - X.ac0, acTop - acBot);
     if (isMain) zoneHdr(Math.min(hy, acTop + 2.5));
-    pen.text(T, X.ac1 + 3.0, yMain - 3, TS.spec, M.mainCable[0], { rot: 90, align: 2 });
-    pen.text(T, X.ac1 + 5.8, yMain - 3, TS.spec, "THW(G) " + P.earthCu + " Sq.mm. (PE)", { rot: 90, align: 2 });
 
     /* ── ปลายสายเมน: เบรกเกอร์โซลาร์ในตู้ MDB เดิม → ลูกศร TO MDB (EXISTING) ──
        ผู้ใช้ขีดฆ่ากรอบ MDB · มิเตอร์ · สายกริด · MET · หลักดินระบบ (2026-10-29) — ของเดิมไม่วาด ชี้ไปเฉย ๆ */
     const mdBot = yMain - 24;
     /* ไม่วาด MCCB ในตู้ MDB (ผู้ใช้ 2026-10-29) — สายเมนวิ่งตรงถึงลูกศร */
-    const ax = X.mdB + g + 3.5;
+    /* ป้ายสายเมนแบบขีดตัดสาย: สายกำลังเหนือเส้น · สายดินใต้เส้น (ผู้ใช้ส่งตัวอย่าง 2026-10-29) */
+    const cl = [String(M.mainCable[0] || "").replace(/\s*\(SOLAR-CELL\)/, "").replace(/\s+/g, " ") + " 0.6/1kV", "G-" + P.earthCu + " Sq.mm. IEC01(THW)"];
+    const ctx = X.ac1 + 4;
+    pen.line(T, ctx, yMain + 2.6, ctx, yMain - 2.6);
+    pen.text(T, ctx + 1, yMain + 0.8, TS.spec, cl[0], { valign: 1 });
+    pen.text(T, ctx + 1, yMain - 0.8, TS.spec, cl[1], { valign: 3 });
+    const ax = Math.max(X.mdB + g + 3.5, ctx + 1 + Math.max.apply(null, cl.map((t) => pgTextW(t, TS.spec))) * 1.2 + 3);
     pen.line(R, X.mdB - g - 0.75, yMain, ax, yMain);
     pen.solid(R, [ax, yMain + 1.1], [ax + 2.6, yMain], [ax, yMain - 1.1]);
     pen.text(LB, ax + 4, yMain + 0.9, TS.head, "TO MDB", { valign: 1 });

@@ -70,6 +70,7 @@
       def: [{ v: 100, h: "25", a: [16, 20, 25, 32, 40, 50, 63, 80, 100] }, { v: 250, h: "36", a: [100, 125, 150, 160, 175, 200, 225, 250] },
         { v: 400, h: "50", a: [250, 300, 320, 350, 400] }, { v: 630, h: "50", a: [400, 500, 630] }, { v: 800, h: "50", a: [700, 800] }, { v: 1250, h: "50", a: [1000, 1250] }] },
     { sec: "acBoard", g: "งานโครงการ", key: "acbAt", th: "ขนาด ACB 3P (ใช้เมื่อเกิน MCCB ตัวใหญ่สุด)", unit: "AT", type: "nums", def: [1600, 2000, 2500, 3200, 4000] },
+    { sec: "acBoard", g: "งานโครงการ", key: "acbKa", th: "ค่าตัดกระแสลัดวงจร ACB (Icu) ที่เขียนในแบบ SLD", unit: "kA", def: 65, min: 1 },
     { sec: "acBoard", g: "งานโครงการ", key: "gfLsigAt", th: "เมนตั้งแต่กี่ AT ใช้ trip unit LSIG แทน GFR + ZCT + Shunt trip", unit: "AT", def: 1000, min: 1 },
     { sec: "acBoard", g: "ทุกงาน", key: "acSpd2", th: "AC SPD Type II ที่มีขาย", unit: "V Uc", unitA: "kA Imax", type: "pairs", poles: ["2P", "1P+N", "3P", "3P+N", "4P"], poleDef: "2P",
       def: [{ v: 275, p: "2P", a: [40] }, { v: 385, p: "4P", a: [40] }] },   // SUNTREE SUP1H-40 (ต.ค. 2026)
@@ -302,6 +303,8 @@
      เมน: ต่อท้าย " TM-D" (ปรับตั้งได้ · ชื่อไม่ชนกับรุ่นอินเวอร์เตอร์ที่ AF/AT/kA เท่ากัน) · lsig = trip unit LSIG แทน */
   function mccbFrame(at, w) { const r = (RULES[w === "main" ? "mccbMain" : "mccbInv"] || []).find((p) => p.a.indexOf(+at) >= 0); return r ? { af: r.v, ka: r.h || "" } : null; }
   function mccbName(at, w, lsig) { return mccbName0(at, w) + (w === "main" ? (lsig ? " LSIG" : " TM-D") : ""); }
+  /* ป้าย ACB ในแบบ (ไม่ใช่ชื่อในคลัง — BOQ ยังใช้ "ACB 3P xAT") · เฟรม AF = AT · IC จาก RULES.acbKa (ผู้ใช้ 2026-10-29: ไม่มี AF/IC) */
+  function acbName0(at) { return "ACB 3P " + at + "AF " + at + "AT " + (+RULES.acbKa || 65) + "kA"; }
   function mccbName0(at, w) { const f = mccbFrame(at, w); return "MCCB 3P " + (f ? f.af + "AF " : "") + at + "AT" + (f && f.ka ? " " + String(f.ka).replace(/\s*kA$/i, "") + "kA" : ""); }
   /* ชื่อ SPD ตามที่เลือกได้ (ต้องตรงกับชื่อในคลัง) · Type II In = Imax/2 */
   function spdName(kind, s) {
@@ -3020,7 +3023,7 @@
   window.BOQ = { PANELS, MICRO, INVERTERS, OPTIMIZERS, setOptimizers, findOptimizer, ROOF_HOOKS, ROOF_OPTIONS, CABLE_TYPES, CABLE_GROUPS, cableCategory, MATERIAL_SUBGROUPS, materialSubGroup, CABLE_POINTS, DEFAULT_CABLES, STRING_CABLE_POINTS, MICRO_CABLE_NAMES, DEFAULT_STRING_CABLES, IMC_SIZES, UPVC_SIZES, PULLBOX_SIZES, CABLE_OD, HDPE_TABLE, IMC_CONDUIT, WIRE_SIZES, WIRE_METHODS, INS_CLASSES, AMP_GROUPS, AMP_NCOND, AMP_CORES, ampColKey, DEFAULT_AMPACITY, AMPACITY, setAmpacity, WIRE_METHOD_BASE, ampTableFor, cableInsClass, cableCoreType, cableSizeNum, ampacityOf, pickWireSize, PV_WIRE_SIZES, PV_WIRE_AMP, PV_WIRE_MIN, pickPvWireSize, calcVdrop, VD_LIMIT, findPanel, findInverter, stringConfig, stringPlan, INV_SLOTS, invExtras, invExtraCap, wireArea, calcWireWay, calcConduitSize, blankBOQ, mergeBOQ, setConduitDefaults, conduitDefaults, CONDUIT_SPARE_FIXED, IMC_RULE, IMC_RULE_DEF, imcRule, calcBOQ, calcStructures, matKey, qtyKey, catalog, isPvDcCable, PV_DC_COLORS, PV_DC_SPARE, pvDcLength, applyPrices, setPanels, setInverters,
     WAY_SIZES, TRAY_SIZES, PERF_SIZES, WWU_SIZES, syncTraySizes, traySizesVer, TRAY_KINDS, TRAY_KIND_KEYS, trayKindOf, trayNorm, trayAlias, hdgName,
     optimizerQty, optimizerFits, DCAC_LIMIT, WAY_PIPE_LEN, TRAY_PIPE_LEN, trayLenTxt, railLenCm, railPerTon, railName, SUPPORT_KINDS, LABOR_PRESET, PERMIT_PRESET, permitPresetFor, permitGridFee, gridAuthOf, PERMIT_ENG_TIERS, PERMIT_GRID_FEE, PERMIT_GRID_NAME,
-    COND_FIT_KINDS, WAY_FIT_KINDS, condFittings, trayFittings, PPR_SIZES, PPR_FIT_KINDS, pipeFittings, pipeFromPlan, trayFromPlan, walkFromPlan, walkLens, walkLenOf, walkName, railLens, mccbFrame, mccbName, mccbName0,
+    COND_FIT_KINDS, WAY_FIT_KINDS, condFittings, trayFittings, PPR_SIZES, PPR_FIT_KINDS, pipeFittings, pipeFromPlan, trayFromPlan, walkFromPlan, walkLens, walkLenOf, walkName, railLens, mccbFrame, mccbName, mccbName0, acbName0,
     STEEL_SPECS, steelName, steelBarLen, steelSel, steelOf,
     TRANSPORT_PRESET, MANAGE_PRESET, G_TRANSPORT, G_MANAGE, PROJECT_KITS, normProject, kitExtraKeys, ACC_ALLOW_PCT, ACC_ALLOW_PCT_HOME, accAllowDef, accAllowPct, VAT_RATE, PROFIT_PCT_DEF, priceBreakdown,
     TRAY_FILL_LIMIT, TRAY_DERATE, trayDerate, trayDim, trayCheck, cableCores,
