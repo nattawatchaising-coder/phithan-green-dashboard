@@ -2395,7 +2395,7 @@ function P3NumRange({ label, value, onChange, min, max, step, suffix, span }) {
    แล้วปัดขึ้นหาพิกัดมาตรฐานที่มีขายจริง — ไม่ใช่ตัวเลขตายตัวที่ก๊อปมาจากแบบเดิม */
 const P3_AT = [6, 10, 16, 20, 25, 32, 40, 50, 63, 80, 100, 125, 160, 200, 225, 250, 400];
 const P3_CT = [80, 100, 160, 250, 400];
-const P3_CU = [2.5, 4, 6, 10, 16, 25, 35, 50, 70, 95];
+const P3_CU = [2.5, 4, 6, 10, 16, 25, 35, 50, 70, 95, 120, 150, 185, 240, 300];   // ถึง 300 ตามตาราง วสท. ใน BOQ (เดิมหยุดที่ 95)
 const p3At = (i) => P3_AT.find((a) => a >= i) || P3_AT[P3_AT.length - 1];
 const p3Ct = (i) => P3_CT.find((a) => a >= i) || P3_CT[P3_CT.length - 1];
 /* ขนาดสายทองแดงหุ้ม XLPE เดินในท่อในอากาศ (คร่าว ๆ ตามพิกัดกระแสที่รับได้) */
@@ -2409,7 +2409,8 @@ const p3Cu = (i, cores) => {
       const a = amp("CV-FD " + nC + "C-" + sz + " Sq.mm.", { ncond: nC === 2 ? 2 : 3 });
       return a != null && a >= i;
     });
-    if (s) return s;
+    /* ไม่มีขนาดไหนรับไหว = ใช้ใหญ่สุด (เดิมตกไปสูตรประมาณ ได้ 35 mm² ทั้งที่ต้องการ > 95 — ผู้ใช้ 2026-10-29 เจอตอนยึด AT) */
+    return s || P3_CU[P3_CU.length - 1];
   }
   return P3_CU.find((s) => s * 6.2 + 12 >= i) || P3_CU[P3_CU.length - 1];
 };
@@ -2512,8 +2513,12 @@ function p3SldModel(st, job, design) {
 
   /* ── สายและเครื่องป้องกัน ── */
   const nCore = nPh === 3 ? 4 : 2;
-  const brCu = p3Cu(unitA * perBr * 1.25, nCore);
-  const mainCu = p3Cu(totA * 1.25, nCore);
+  /* สายต้องรับ ≥ ขนาด AT ของเบรกเกอร์ต้นทาง (เบรกเกอร์ในแบบ = p3At(กระแส × 1.25)) — ตรงกับ BOQ กฎ cabByAt (ผู้ใช้ 2026-10-29 "ยึด AT ทุกตัว")
+     เดิมสายคิดจากกระแส × 1.25 ตรง ๆ แต่ AT ปัดขึ้นเป็นขนาดมาตรฐาน สายจึงรับได้น้อยกว่าเบรกเกอร์ได้ · กฎ = 0 → แบบเดิม */
+  const cabAt = !(window.BOQ && window.BOQ.RULES && +window.BOQ.RULES.cabByAt === 0);
+  const cabNeed = (i) => (cabAt ? p3At(i * 1.25) : i * 1.25);
+  const brCu = p3Cu(cabNeed(unitA * perBr), nCore);
+  const mainCu = p3Cu(cabNeed(totA), nCore);
   const P = nPh === 3 ? "4P," : "2P,";
   const M = {
     strs: !micro && design && design.strings && design.strings.length ? design.strings : null,

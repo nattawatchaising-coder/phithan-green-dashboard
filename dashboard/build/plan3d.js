@@ -3972,7 +3972,7 @@ function P3NumRange({
 }
 const P3_AT = [6, 10, 16, 20, 25, 32, 40, 50, 63, 80, 100, 125, 160, 200, 225, 250, 400];
 const P3_CT = [80, 100, 160, 250, 400];
-const P3_CU = [2.5, 4, 6, 10, 16, 25, 35, 50, 70, 95];
+const P3_CU = [2.5, 4, 6, 10, 16, 25, 35, 50, 70, 95, 120, 150, 185, 240, 300];
 const p3At = i => P3_AT.find(a => a >= i) || P3_AT[P3_AT.length - 1];
 const p3Ct = i => P3_CT.find(a => a >= i) || P3_CT[P3_CT.length - 1];
 const p3Cu = (i, cores) => {
@@ -3985,7 +3985,7 @@ const p3Cu = (i, cores) => {
       });
       return a != null && a >= i;
     });
-    if (s) return s;
+    return s || P3_CU[P3_CU.length - 1];
   }
   return P3_CU.find(s => s * 6.2 + 12 >= i) || P3_CU[P3_CU.length - 1];
 };
@@ -4107,8 +4107,10 @@ function p3SldModel(st, job, design) {
   const acKw = Math.round(units.length * unitW / 10) / 100;
   const dcKw = Math.round(nPanel * wp / 10) / 100;
   const nCore = nPh === 3 ? 4 : 2;
-  const brCu = p3Cu(unitA * perBr * 1.25, nCore);
-  const mainCu = p3Cu(totA * 1.25, nCore);
+  const cabAt = !(window.BOQ && window.BOQ.RULES && +window.BOQ.RULES.cabByAt === 0);
+  const cabNeed = i => cabAt ? p3At(i * 1.25) : i * 1.25;
+  const brCu = p3Cu(cabNeed(unitA * perBr), nCore);
+  const mainCu = p3Cu(cabNeed(totA), nCore);
   const P = nPh === 3 ? "4P," : "2P,";
   const M = {
     strs: !micro && design && design.strings && design.strings.length ? design.strings : null,
