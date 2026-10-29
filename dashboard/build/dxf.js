@@ -2373,7 +2373,7 @@ function pgSldPro(doc, sheet, M) {
   if (isMain) {
     X.iv0 -= 40;
     X.iv1 -= 40;
-    X.ac0 -= 26;
+    X.ac0 -= 21;
     X.acB -= 18;
     X.acBus -= 12;
     X.ac1 += 5;
@@ -2776,22 +2776,16 @@ function pgSldPro(doc, sheet, M) {
       }
       pen.line(R, X.iv1 + 0.6, t.y, X.acB - g - 0.75, t.y);
       if (isMain) {
-        const lc = withKv(M.acCableOf && M.acCableOf[t.b.no] || invCab),
+        const lc = String(M.acCableOf && M.acCableOf[t.b.no] || invCab).replace(/\s*(0\.6\/1kV|450\/750V)\s*$/, ""),
           gl = M.acGndOf && M.acGndOf[t.b.no] || invG(t.b.brk);
-        const cw = X.acB - g - X.iv1 - 4,
-          ch = Math.min(TS.spec * 1.15, Math.max(0.9, (tGap - 2.4) / 4.2));
-        const wrap = str => str.split(" ").reduce((a, wd) => {
-          const cand = a.length ? a[a.length - 1] + " " + wd : wd;
-          if (a.length && pgTextW(cand, ch) * 1.2 <= cw) a[a.length - 1] = cand;else a.push(wd);
-          return a;
-        }, []);
-        const up = wrap(lc),
+        const tx = X.iv1 + 1.4,
+          cw = X.ac0 - tx - 1.2,
           dn = [gl].concat(M.acRoute ? [M.acRoute] : []);
-        const fh = l => fitH(l, ch, cw);
-        up.forEach((l, k) => pen.text(T, X.iv1 + 2, t.y + 0.7 + (up.length - 1 - k) * (ch + 0.6), fh(l), l, {
+        const ch = Math.max(0.9, Math.min.apply(null, [TS.spec * 1.3, (tGap - 2.4) / 3.4].concat([lc].concat(dn).map(l => cw / (pgTextW(l, 1) * 1.12)))));
+        pen.text(T, tx, t.y + 0.7, ch, lc, {
           valign: 1
-        }));
-        dn.forEach((l, k) => pen.text(T, X.iv1 + 2, t.y - 0.7 - k * (ch + 0.6), fh(l), l, {
+        });
+        dn.forEach((l, k) => pen.text(T, tx, t.y - 0.7 - k * (ch + 0.6), ch, l, {
           valign: 3
         }));
       }

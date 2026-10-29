@@ -1665,7 +1665,7 @@ function pgSldPro(doc, sheet, M) {
      + แผ่นย่อยละกลุ่ม (M.part detail: เครื่องที่รุ่นและสตริงเหมือนกันวาดรวมแผ่นเดียว วาดเครื่องแรกเป็นตัวแทน) */
   const PT = M.part || null, isMain = !!(PT && PT.kind === "main"), isDet = !!(PT && PT.kind === "detail");
   /* แผ่นภาพรวมไม่มีสตริง/ตู้ DC ซ้ายมือว่าง — ขยับอินเวอร์เตอร์ไปซ้าย ขยายตู้ AC ให้เบรกเกอร์ไม่ชิดอินเวอร์เตอร์และบัส (ผู้ใช้ 2026-10-29) */
-  if (isMain) { X.iv0 -= 40; X.iv1 -= 40; X.ac0 -= 26; X.acB -= 18; X.acBus -= 12; X.ac1 += 5; }   // ขอบขวาตู้ขยายตามชุด CT/ACB ที่ขยับไปขวา   // ผู้ใช้: ขยับน้อยไป — บัสไปซ้ายด้วย ให้ช่วง CT/ACB เมนกว้างขึ้น
+  if (isMain) { X.iv0 -= 40; X.iv1 -= 40; X.ac0 -= 21; X.acB -= 18; X.acBus -= 12; X.ac1 += 5; }   // ขอบขวาตู้ขยายตามชุด CT/ACB ที่ขยับไปขวา   // ผู้ใช้: ขยับน้อยไป — บัสไปซ้ายด้วย ให้ช่วง CT/ACB เมนกว้างขึ้น
   const modelOf = (no) => (M.units && M.units[no - 1] && M.units[no - 1].model) || M.inv.model;
   const mkBlock = (no, detail) => {
     const groups = byInv[no].map((r) => ({ mppt: r.mppt, rows: detail ? rowsOf(r) : [grpRow(r)] }));
@@ -1950,18 +1950,14 @@ function pgSldPro(doc, sheet, M) {
       if (isMain) {
         /* ตัวหนังสือขนาดเท่าบรรทัดสรุป PV ข้างอินเวอร์เตอร์ (ผู้ใช้ชี้ 2026-10-29) — แยก 3 บรรทัดไม่ให้ต้องย่อ:
            เหนือเส้น = สายกำลัง · ใต้เส้น = สายดิน แล้ววิธีเดินสาย */
-        const lc = withKv((M.acCableOf && M.acCableOf[t.b.no]) || invCab), gl = (M.acGndOf && M.acGndOf[t.b.no]) || invG(t.b.brk);
-        /* ผู้ใช้: ขยายอีก — สายกำลังยาวเกินความกว้าง ตัดขึ้นบรรทัดใหม่ตามคำ (บรรทัดบนซ้อนขึ้นไปเหนือเส้น) แทนการย่อ */
-        const cw = X.acB - g - X.iv1 - 4, ch = Math.min(TS.spec * 1.15, Math.max(0.9, (tGap - 2.4) / 4.2));
-        const wrap = (str) => str.split(" ").reduce((a, wd) => {
-          const cand = a.length ? a[a.length - 1] + " " + wd : wd;
-          if (a.length && pgTextW(cand, ch) * 1.2 <= cw) a[a.length - 1] = cand; else a.push(wd);
-          return a;
-        }, []);
-        const up = wrap(lc), dn = [gl].concat(M.acRoute ? [M.acRoute] : []);
-        const fh = (l) => fitH(l, ch, cw);
-        up.forEach((l, k) => pen.text(T, X.iv1 + 2, t.y + 0.7 + (up.length - 1 - k) * (ch + 0.6), fh(l), l, { valign: 1 }));
-        dn.forEach((l, k) => pen.text(T, X.iv1 + 2, t.y - 0.7 - k * (ch + 0.6), fh(l), l, { valign: 3 }));   // สายดิน + วิธีเดินใต้เส้น
+        /* ไม่บอกพิกัดแรงดันสาย 450/750V · 0.6/1kV (ผู้ใช้ขีดฆ่า 2026-10-29) */
+        const lc = String((M.acCableOf && M.acCableOf[t.b.no]) || invCab).replace(/\s*(0\.6\/1kV|450\/750V)\s*$/, ""), gl = (M.acGndOf && M.acGndOf[t.b.no]) || invG(t.b.brk);
+        /* ทุกบรรทัดขนาดเดียวกัน บรรทัดเดียวไม่ตัดคำ · ไม่เลยเส้นประขอบตู้ AC (ขอบตู้ขยับขวาให้ที่ 2026-10-29) */
+        const tx = X.iv1 + 1.4, cw = X.ac0 - tx - 1.2, dn = [gl].concat(M.acRoute ? [M.acRoute] : []);
+        /* วัดจากความกว้างตัวอักษรจริง (pgTextW) — fitH นับทุกตัวเท่ากันเลยย่อเกินจนเหลือครึ่งช่อง */
+        const ch = Math.max(0.9, Math.min.apply(null, [TS.spec * 1.3, (tGap - 2.4) / 3.4].concat([lc].concat(dn).map((l) => cw / (pgTextW(l, 1) * 1.12)))));
+        pen.text(T, tx, t.y + 0.7, ch, lc, { valign: 1 });
+        dn.forEach((l, k) => pen.text(T, tx, t.y - 0.7 - k * (ch + 0.6), ch, l, { valign: 3 }));   // สายดิน + วิธีเดินใต้เส้น
       }
       hBrk(X.acB, t.y, isCb(t.b.brk));
       brkLabel(String(t.b.brk || ""), t.b.typical ? " x" + t.b.cnt : "", X.acB, t.y);
