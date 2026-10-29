@@ -1951,10 +1951,17 @@ function pgSldPro(doc, sheet, M) {
         /* ตัวหนังสือขนาดเท่าบรรทัดสรุป PV ข้างอินเวอร์เตอร์ (ผู้ใช้ชี้ 2026-10-29) — แยก 3 บรรทัดไม่ให้ต้องย่อ:
            เหนือเส้น = สายกำลัง · ใต้เส้น = สายดิน แล้ววิธีเดินสาย */
         const lc = withKv((M.acCableOf && M.acCableOf[t.b.no]) || invCab), gl = (M.acGndOf && M.acGndOf[t.b.no]) || invG(t.b.brk);
-        const ls = [lc, gl].concat(M.acRoute ? [M.acRoute] : []);
-        const cw = X.acB - g - X.iv1 - 4, ch = Math.min(Math.min.apply(null, ls.map((l) => fitH(l, TS.spec, cw))), Math.max(0.9, (tGap - 2.4) / 4.2));
-        pen.text(T, X.iv1 + 2, t.y + 0.7, ch, lc, { valign: 1 });
-        ls.slice(1).forEach((l, k) => pen.text(T, X.iv1 + 2, t.y - 0.7 - k * (ch + 0.6), ch, l, { valign: 3 }));   // สายดิน + วิธีเดินใต้เส้น
+        /* ผู้ใช้: ขยายอีก — สายกำลังยาวเกินความกว้าง ตัดขึ้นบรรทัดใหม่ตามคำ (บรรทัดบนซ้อนขึ้นไปเหนือเส้น) แทนการย่อ */
+        const cw = X.acB - g - X.iv1 - 4, ch = Math.min(TS.spec * 1.15, Math.max(0.9, (tGap - 2.4) / 4.2));
+        const wrap = (str) => str.split(" ").reduce((a, wd) => {
+          const cand = a.length ? a[a.length - 1] + " " + wd : wd;
+          if (a.length && pgTextW(cand, ch) * 1.2 <= cw) a[a.length - 1] = cand; else a.push(wd);
+          return a;
+        }, []);
+        const up = wrap(lc), dn = [gl].concat(M.acRoute ? [M.acRoute] : []);
+        const fh = (l) => fitH(l, ch, cw);
+        up.forEach((l, k) => pen.text(T, X.iv1 + 2, t.y + 0.7 + (up.length - 1 - k) * (ch + 0.6), fh(l), l, { valign: 1 }));
+        dn.forEach((l, k) => pen.text(T, X.iv1 + 2, t.y - 0.7 - k * (ch + 0.6), fh(l), l, { valign: 3 }));   // สายดิน + วิธีเดินใต้เส้น
       }
       hBrk(X.acB, t.y, isCb(t.b.brk));
       brkLabel(String(t.b.brk || ""), t.b.typical ? " x" + t.b.cnt : "", X.acB, t.y);
