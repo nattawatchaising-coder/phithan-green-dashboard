@@ -5907,6 +5907,34 @@ function p3sKindPreview(k) {
   return _p3sPrevP[key];
 }
 const _p3sCoverP = new WeakMap();
+function p3sKeepShot(jobId, ver, png, user) {
+  if (!jobId || !window.FBDB) return Promise.reject(new Error("ไม่มีฐานข้อมูล"));
+  return new Promise((res, rej) => {
+    const im = new Image();
+    im.onload = () => res(im);
+    im.onerror = () => rej(new Error("แปลงภาพไม่สำเร็จ"));
+    im.src = png;
+  }).then(im => {
+    const out = (w, q) => {
+      const h = Math.round(w * im.height / im.width),
+        c = document.createElement("canvas");
+      c.width = w;
+      c.height = h;
+      c.getContext("2d").drawImage(im, 0, 0, w, h);
+      return c.toDataURL("image/jpeg", q);
+    };
+    const id = "s" + Date.now().toString(36),
+      db = window.FBDB;
+    const meta = {
+      v: String(ver || "1"),
+      at: Date.now(),
+      by: user && (user.id || user.uid) || "",
+      byName: user && (user.name || user.displayName) || "",
+      t: out(384, 0.72)
+    };
+    return db.ref("plan3dShotData/" + jobId + "/" + id).set(out(1920, 0.85)).then(() => db.ref("plan3dShots/" + jobId + "/" + id).set(meta)).then(() => id);
+  });
+}
 function p3sCoverShot(st) {
   if (!st || !Array.isArray(st.roofs) || !st.roofs.length) return Promise.resolve(null);
   if (_p3sCoverP.has(st)) return _p3sCoverP.get(st);
@@ -6199,6 +6227,7 @@ function Plan3DStudio({
   const vidRef = React.useRef(null);
   const [vidOn, setVidOn] = React.useState(false);
   const [mediaMsg, setMediaMsg] = React.useState(null);
+  const [keepBusy, setKeepBusy] = React.useState(false);
   const [shotInfo, setShotInfo] = React.useState(() => {
     try {
       return localStorage.getItem("p3s_shotInfo") !== "0";
@@ -13040,7 +13069,14 @@ function Plan3DStudio({
       k: "cam"
     }), React.createElement("span", {
       className: "ct"
-    }, React.createElement("b", null, "\u0E16\u0E48\u0E32\u0E22\u0E20\u0E32\u0E1E 4K"), React.createElement("small", null, "3840\xD72160 (16:9) \xB7 \u0E0B\u0E48\u0E2D\u0E19\u0E40\u0E2A\u0E49\u0E19\u0E0A\u0E48\u0E27\u0E22\u0E27\u0E32\u0E14\u0E41\u0E25\u0E30\u0E14\u0E27\u0E07\u0E2D\u0E32\u0E17\u0E34\u0E15\u0E22\u0E4C\u0E08\u0E33\u0E25\u0E2D\u0E07"))), React.createElement("label", {
+    }, React.createElement("b", null, "\u0E16\u0E48\u0E32\u0E22\u0E20\u0E32\u0E1E 4K"), React.createElement("small", null, "3840\xD72160 (16:9) \xB7 \u0E0B\u0E48\u0E2D\u0E19\u0E40\u0E2A\u0E49\u0E19\u0E0A\u0E48\u0E27\u0E22\u0E27\u0E32\u0E14\u0E41\u0E25\u0E30\u0E14\u0E27\u0E07\u0E2D\u0E32\u0E17\u0E34\u0E15\u0E22\u0E4C\u0E08\u0E33\u0E25\u0E2D\u0E07"))), job && React.createElement("button", {
+      type: "button",
+      className: "p3s-btn wide",
+      disabled: vidOn || keepBusy,
+      onClick: keepGo
+    }, React.createElement(P3SCamGlyph, {
+      k: "cam"
+    }), keepBusy ? "กำลังเก็บรูป…" : "ถ่ายเก็บไว้ใช้หน้าปกใบเสนอราคา"), React.createElement("label", {
       className: "p3s-row",
       style: {
         fontSize: 12.5,
@@ -13472,6 +13508,31 @@ function Plan3DStudio({
     } catch (e) {
       return null;
     }
+  }
+  function keepGo() {
+    if (!job || keepBusy) return;
+    with3D((A, fresh) => {
+      setTimeout(keepShot, fresh ? 700 : 0);
+      return true;
+    });
+  }
+  function keepShot() {
+    const A = v3api.current;
+    if (!A) {
+      setMediaMsg("เปิดมุมมอง 3D ก่อน");
+      return;
+    }
+    setMediaMsg(null);
+    setKeepBusy(true);
+    let png;
+    try {
+      png = A.shot(null);
+    } catch (e) {
+      setKeepBusy(false);
+      setMediaMsg("ถ่ายภาพไม่ได้: " + e.message);
+      return;
+    }
+    p3sKeepShot(job.id, ver, png, currentUser).then(() => setMediaMsg("เก็บรูปแล้ว — ไปเลือกใช้ที่รูปหน้าปกในหน้าทำใบเสนอราคา")).catch(e => setMediaMsg("เก็บรูปไม่สำเร็จ: " + (e && e.message || e))).then(() => setKeepBusy(false));
   }
   function shotGo() {
     with3D((A, fresh) => {
@@ -14216,7 +14277,15 @@ function Plan3DStudio({
     onClick: shotGo
   }, React.createElement(P3SCamGlyph, {
     k: "cam"
-  }), React.createElement("span", null, "\u0E16\u0E48\u0E32\u0E22\u0E20\u0E32\u0E1E 4K")), React.createElement("button", {
+  }), React.createElement("span", null, "\u0E16\u0E48\u0E32\u0E22\u0E20\u0E32\u0E1E 4K")), job && React.createElement("button", {
+    type: "button",
+    className: "cam",
+    disabled: keepBusy,
+    onClick: keepGo,
+    title: "\u0E40\u0E01\u0E47\u0E1A\u0E21\u0E38\u0E21\u0E19\u0E35\u0E49\u0E44\u0E27\u0E49\u0E43\u0E0A\u0E49\u0E2B\u0E19\u0E49\u0E32\u0E1B\u0E01\u0E43\u0E1A\u0E40\u0E2A\u0E19\u0E2D\u0E23\u0E32\u0E04\u0E32"
+  }, React.createElement(P3SCamGlyph, {
+    k: "cam"
+  }), React.createElement("span", null, keepBusy ? "กำลังเก็บ…" : "เก็บรูปหน้าปก")), React.createElement("button", {
     type: "button",
     className: "vid",
     onClick: takeVideo,

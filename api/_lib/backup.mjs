@@ -19,7 +19,7 @@ import crypto from "node:crypto";
    ย้ายกลุ่มเข้า/ออกรายการได้ — รอบถัดไปไฟล์ฝั่งเดิมถูกลบ ฝั่งใหม่ถูกเติมเอง */
 export const FILES1 = ["stockDoc", "stockImg", "quotePicData"];                 // <กลุ่ม>/<ชิ้น>
 export const FILES2 = ["jobFiles", "roofPhotos", "inspectionPhotos", "permitPhotos", "permitDocs",
-  "omTicketPhotos", "surveyPhotos", "jobPhotos", "billPhotos", "dailyPhotos"];  // <กลุ่ม>/<งาน>/<ชิ้น>
+  "omTicketPhotos", "surveyPhotos", "jobPhotos", "billPhotos", "dailyPhotos", "plan3dShotData"];  // <กลุ่ม>/<งาน>/<ชิ้น>
 
 /* encodeURIComponent + อักษรที่ Windows/URL ไม่ชอบ — ไฟล์ต้อง clone ลง Windows ได้ */
 export const enc = (k) => encodeURIComponent(String(k))

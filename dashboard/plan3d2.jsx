@@ -2627,6 +2627,24 @@ function p3sKindPreview(k) {
    มุมเดียวกับปุ่มมุมกล้อง "มุมเอียง" · แดดสาย ~10 โมงจากตะวันออกเฉียงใต้ · แสง/โทนเดียวกับจอ 3D
    รอภาพพื้น/ลายวัสดุโหลดก่อนเรนเดอร์ (ไม่เกิน 6 วิ) · จำผลตามก้อนแบบ (แก้แบบ = ก้อนใหม่ = เรนเดอร์ใหม่) */
 const _p3sCoverP = new WeakMap();
+/* รูปที่ผู้ใช้ถ่ายเก็บไว้ใช้หน้าปกใบเสนอราคา (ผู้ใช้ขอ "ให้เลือก แล้วเข้าไปถ่ายเอง" 2026-10-29)
+   plan3dShots/{งาน}/{id} = { v เวอร์ชันแบบ, at, by, byName, t รูปย่อ } — รายการเบา โหลดมาโชว์ให้เลือกได้ทันที
+   plan3dShotData/{งาน}/{id} = รูปเต็ม JPEG 1920×1080 — โหลดเฉพาะตอนกดดูใบ (ใน backup อยู่กลุ่มไฟล์ FILES2)
+   ถ่ายจากกล้องจอ 3D ตอนนั้น (มุม/แสงที่ผู้ใช้ตั้งเอง) ไม่ใส่กรอบข้อมูล เพราะหน้าปกมีชื่อ/ขนาดระบบอยู่แล้ว */
+function p3sKeepShot(jobId, ver, png, user) {
+  if (!jobId || !window.FBDB) return Promise.reject(new Error("ไม่มีฐานข้อมูล"));
+  return new Promise((res, rej) => {
+    const im = new Image();
+    im.onload = () => res(im); im.onerror = () => rej(new Error("แปลงภาพไม่สำเร็จ"));
+    im.src = png;
+  }).then((im) => {
+    const out = (w, q) => { const h = Math.round(w * im.height / im.width), c = document.createElement("canvas"); c.width = w; c.height = h; c.getContext("2d").drawImage(im, 0, 0, w, h); return c.toDataURL("image/jpeg", q); };
+    const id = "s" + Date.now().toString(36), db = window.FBDB;
+    const meta = { v: String(ver || "1"), at: Date.now(), by: (user && (user.id || user.uid)) || "", byName: (user && (user.name || user.displayName)) || "", t: out(384, 0.72) };
+    return db.ref("plan3dShotData/" + jobId + "/" + id).set(out(1920, 0.85))
+      .then(() => db.ref("plan3dShots/" + jobId + "/" + id).set(meta)).then(() => id);
+  });
+}
 function p3sCoverShot(st) {
   if (!st || !Array.isArray(st.roofs) || !st.roofs.length) return Promise.resolve(null);
   if (_p3sCoverP.has(st)) return _p3sCoverP.get(st);
@@ -2785,6 +2803,7 @@ function Plan3DStudio({ job, ver, onClose, currentUser }) {
   const vidRef = React.useRef(null);                        // กำลังอัดวิดีโอเงา (ตัวหยุดอัด)
   const [vidOn, setVidOn] = React.useState(false);
   const [mediaMsg, setMediaMsg] = React.useState(null);
+  const [keepBusy, setKeepBusy] = React.useState(false);   // กำลังเก็บรูปหน้าปก (keepShot)
   const [shotInfo, setShotInfo] = React.useState(() => { try { return localStorage.getItem("p3s_shotInfo") !== "0"; } catch (e) { return true; } });
   const [camK, setCamK] = React.useState(null);
   const [wide3d, setWide3d] = React.useState(false);       // ซ่อนแผงขวา จอ 3D เต็มความกว้าง
@@ -5355,6 +5374,9 @@ function Plan3DStudio({ job, ver, onClose, currentUser }) {
           <div className="p3s-sec"><span className="lb">บันทึกภาพ</span>
             <button type="button" className="p3s-btn pri p3s-cta" disabled={vidOn} onClick={shotGo}>
               <P3SCamGlyph k="cam" /><span className="ct"><b>ถ่ายภาพ 4K</b><small>3840×2160 (16:9) · ซ่อนเส้นช่วยวาดและดวงอาทิตย์จำลอง</small></span></button>
+            {job && (
+              <button type="button" className="p3s-btn wide" disabled={vidOn || keepBusy} onClick={keepGo}>
+                <P3SCamGlyph k="cam" />{keepBusy ? "กำลังเก็บรูป…" : "ถ่ายเก็บไว้ใช้หน้าปกใบเสนอราคา"}</button>)}
             <label className="p3s-row" style={{ fontSize: 12.5, fontWeight: 700, cursor: "pointer" }}>
               <input type="checkbox" checked={shotInfo} onChange={(e) => { const v = e.target.checked; setShotInfo(v); try { localStorage.setItem("p3s_shotInfo", v ? "1" : "0"); } catch (er) {} }} />
               ใส่โลโก้ · ชื่องาน · ขนาดระบบ บนภาพ
@@ -5522,6 +5544,17 @@ function Plan3DStudio({ job, ver, onClose, currentUser }) {
   function sysSnap() {
     const A = v3api.current; if (!A || !A.gl) return null;
     try { A.gl.render(A.scene, A.cam); return A.gl.domElement.toDataURL("image/jpeg", 0.86); } catch (e) { return null; }
+  }
+  /* ถ่ายเก็บไว้ใช้หน้าปกใบเสนอราคา — มุมกล้องตอนนี้ · เลือกรูปได้ในหน้าทำใบ (หัวข้อแผ่นที่จะออก → รูปหน้าปก) */
+  function keepGo() { if (!job || keepBusy) return; with3D((A, fresh) => { setTimeout(keepShot, fresh ? 700 : 0); return true; }); }
+  function keepShot() {
+    const A = v3api.current; if (!A) { setMediaMsg("เปิดมุมมอง 3D ก่อน"); return; }
+    setMediaMsg(null); setKeepBusy(true);
+    let png; try { png = A.shot(null); } catch (e) { setKeepBusy(false); setMediaMsg("ถ่ายภาพไม่ได้: " + e.message); return; }
+    p3sKeepShot(job.id, ver, png, currentUser)
+      .then(() => setMediaMsg("เก็บรูปแล้ว — ไปเลือกใช้ที่รูปหน้าปกในหน้าทำใบเสนอราคา"))
+      .catch((e) => setMediaMsg("เก็บรูปไม่สำเร็จ: " + ((e && e.message) || e)))
+      .then(() => setKeepBusy(false));
   }
   function shotGo() { with3D((A, fresh) => { if (fresh) setTimeout(takeShot, 700); else takeShot(); return true; }); }
   function takeShot() {
@@ -5793,6 +5826,7 @@ function Plan3DStudio({ job, ver, onClose, currentUser }) {
                     <button key={k} type="button" className="cam" data-on={camK === k ? "1" : "0"} disabled={k === "close" && !total} title={lb} onClick={() => camGo(k)}><P3SCamGlyph k={k} /><span>{lb}</span></button>))}
                   <i className="sep" />
                   <button type="button" className="shot" onClick={shotGo}><P3SCamGlyph k="cam" /><span>ถ่ายภาพ 4K</span></button>
+                  {job && <button type="button" className="cam" disabled={keepBusy} onClick={keepGo} title="เก็บมุมนี้ไว้ใช้หน้าปกใบเสนอราคา"><P3SCamGlyph k="cam" /><span>{keepBusy ? "กำลังเก็บ…" : "เก็บรูปหน้าปก"}</span></button>}
                   <button type="button" className="vid" onClick={takeVideo} title="อัดวิดีโอเงาทั้งวัน"><P3Icon name="play" /><span>อัดวิดีโอ</span></button>
                 </React.Fragment>)}
             </div>)}

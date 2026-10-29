@@ -336,6 +336,8 @@ function movePlan3d(fromId, toId) {
     }).catch(() => null),
     mv("boqVers/" + fromId, "boqVers/" + toId),
     mv("eroom/" + fromId, "eroom/" + toId),   // ห้องอุปกรณ์ 3D (eroom.jsx) ตั้งค่าต่อเวอร์ชันแบบ
+    mv("plan3dShots/" + fromId, "plan3dShots/" + toId),       // รูปที่ถ่ายเก็บไว้ใช้หน้าปกใบเสนอราคา (p3sKeepShot)
+    mv("plan3dShotData/" + fromId, "plan3dShotData/" + toId),
   ]);
 }
 

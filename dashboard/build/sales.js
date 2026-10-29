@@ -3,6 +3,9 @@ const useQuotePlan3d = window.usePlan3d || (() => ({
   loading: false,
   save: () => {}
 }));
+const useQuoteP3Vers = window.useP3Vers || (() => ({
+  list: []
+}));
 const SALES_STAGES = [{
   key: "new",
   th: "ลูกค้าใหม่",
@@ -1133,6 +1136,162 @@ function quoteHTML(q, lang, sheets, pics, cover3d) {
   const fontStack = window.pgFontStack ? window.pgFontStack(L) : "'IBM Plex Sans Thai',sans-serif";
   const doc = '<!doctype html><html lang="' + L + '"><head><meta charset="utf-8">' + "<title>ใบเสนอราคา " + sEsc(q.no) + "</title>" + '<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@400;500;600;700&display=swap" rel="stylesheet">' + (window.pgFontLink ? window.pgFontLink(L) : "") + "<style>" + "@page{size:A4;margin:14mm}" + "*{box-sizing:border-box}" + "body{font-family:" + fontStack + ";color:#111827;font-size:12px;margin:0;line-height:1.55;" + "-webkit-print-color-adjust:exact;print-color-adjust:exact}" + ".hd{display:flex;justify-content:space-between;align-items:flex-start;border-bottom:3px solid #1B9B75;padding-bottom:12px;margin-bottom:16px}" + ".bd{font-size:20px;font-weight:700;color:#0A4D68;letter-spacing:.02em}" + ".bid{display:flex;align-items:center;gap:14px}.bidt{min-width:0}.bidt .bl{margin-top:0}" + ".bs{font-size:11px;color:#6b7280;margin-top:2px}" + ".bl{color:#374151;font-weight:600;margin-top:5px}" + ".ti{text-align:right}.ti h1{font-size:19px;margin:0;color:#111827}" + ".ti .no{font-size:12px;color:#374151;margin-top:3px}" + ".two{display:flex;gap:14px;margin-bottom:14px}" + ".two>div{flex:1;border:1px solid #d1d5db;border-radius:8px;padding:10px 12px}" + ".two h3,.blk h3{font-size:11px;margin:0 0 6px;color:#0A4D68;letter-spacing:.04em}" + ".kv{display:flex;gap:6px;font-size:11.5px}.kv b{min-width:58px;color:#6b7280;font-weight:500}" + "table{width:100%;border-collapse:collapse;font-size:11.5px}" + "th{background:#0A4D68;color:#fff;padding:7px 8px;text-align:left;font-weight:600;font-size:11px}" + "td{padding:7px 8px;border-bottom:1px solid #e5e7eb;vertical-align:top}" + ".c{text-align:center}.r{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}" + ".dt{color:#6b7280;font-size:10.5px;margin-top:2px;line-height:1.45}" + ".shpg{page-break-before:always;break-before:page;padding-top:6mm}" + ".shpg h3{font-size:12px;color:#0A4D68;margin:0 0 8px}" + ".shpg .shsub{font-size:11px;color:#6b7280;margin:-4px 0 10px}" + ".shls{margin:0;padding-left:18px}.shls li{margin-bottom:4px}" + ".shls .pdf{color:#6b7280;font-size:10.5px}" + ".blk .pdf{color:#6b7280;font-size:10.5px}" + ".shimg{width:100%;height:auto;max-height:248mm;object-fit:contain;border:1px solid #e5e7eb;border-radius:6px}" + ".sum{margin-top:12px;margin-left:auto;width:290px}" + ".sum td{border:0;padding:4px 8px}.sum .big td{border-top:2px solid #0A4D68;font-weight:700;font-size:14px;color:#0A4D68;padding-top:8px}" + ".blk{margin-top:14px;border:1px solid #d1d5db;border-radius:8px;padding:10px 12px;break-inside:avoid}" + ".blk ul{margin:0;padding-left:18px}.blk li{margin-bottom:3px}" + ".note{margin-top:12px;font-size:11px;color:#374151;white-space:pre-wrap}" + ".vbx{margin-top:14px;border:1px solid #d1d5db;border-radius:8px;padding:10px 12px;break-inside:avoid}" + ".vbx h3{font-size:11px;margin:0 0 6px;color:#0A4D68;letter-spacing:.04em}" + ".vbx .vl{font-size:11.5px;color:#374151;white-space:pre-wrap}" + ".pg1{display:flex;flex-direction:column;min-height:269mm}" + ".pgft{margin-top:auto}" + ".tmpg{page-break-before:always;break-before:page;display:flex;flex-direction:column;min-height:269mm}" + ".tmpg .ft{margin-top:auto}" + ".tmpg h2{font-size:13px;color:#0A4D68;margin:0 0 2px}" + ".tmpg .sub{font-size:11px;color:#6b7280;margin-bottom:10px}" + ".sig{display:flex;gap:40px;margin-top:34px;break-inside:avoid}" + ".sig>div{flex:1;text-align:center}.sig .ln{border-top:1px solid #9ca3af;margin:34px 10px 6px}" + ".sig .rl{font-size:11px;color:#6b7280}" + ".ft{margin-top:16px;padding-top:8px;border-top:1px solid #e5e7eb;font-size:10px;color:#9ca3af;text-align:center}" + ".dpg{page-break-before:always;break-before:page;display:flex;flex-direction:column;min-height:269mm}" + ".dpg h2{font-size:13px;color:#0A4D68;margin:0 0 2px}" + ".dpg .sub{font-size:11px;color:#6b7280;margin-bottom:10px}" + ".brk{page-break-before:always;break-before:page}" + ".cv{display:flex;flex-direction:column;min-height:269mm}" + ".cvh{border-bottom:3px solid #1B9B75;padding-bottom:12px}" + ".cvhero{flex:1;margin:14mm 0;display:flex;flex-direction:column;justify-content:center}" + ".cvk{font-size:11.5px;font-weight:700;letter-spacing:.24em;color:#1B9B75;text-transform:uppercase}" + ".cvt{font-size:34px;line-height:1.24;margin:10px 0 0;color:#0A4D68;font-weight:700;max-width:135mm}" + ".cvline{width:76px;height:4px;border-radius:2px;margin:20px 0 26px;" + "background:linear-gradient(90deg,#0A4D68 0%,#1B9B75 100%)}" + ".cvto{font-size:10.5px;letter-spacing:.18em;color:#9ca3af;text-transform:uppercase}" + ".cvcu{font-size:23px;font-weight:700;color:#111827;margin-top:5px}" + ".cvad{font-size:12px;color:#6b7280;margin-top:4px;max-width:120mm}" + ".cvrow{display:flex;align-items:flex-end;justify-content:space-between;gap:14px;margin-top:30px}" + ".cvcap{display:inline-flex;align-items:baseline;gap:9px;padding-left:13px;border-left:3px solid #1B9B75}" + ".cvcap .cl{font-size:11px;color:#6b7280}" + ".cvcap .cn{font-size:32px;font-weight:700;color:#0A4D68;font-variant-numeric:tabular-nums;line-height:1}" + ".cvcap .cu{font-size:13px;font-weight:600;color:#1B9B75}" + ".cvtag{font-size:11px;color:#1B9B75;font-weight:600;padding-bottom:4px}" + ".cvimg{display:block;width:100%;height:104mm;object-fit:cover;border-radius:10px;margin-top:8mm}" + ".cv3d .cvhero{margin:9mm 0 8mm;justify-content:flex-start}.cv3d .cvt{font-size:28px}" + ".cv3d .cvline{margin:14px 0 18px}.cv3d .cvrow{margin-top:20px}" + ".wl{line-height:1.45}.wl+.wl{margin-top:2px}" + ".pc{padding:3px 4px}.pc img{width:66px;height:42px;object-fit:contain;display:block;margin:0 auto}" + ".fit{min-height:0}" + ".cvf{display:flex;flex-wrap:wrap;gap:8px 26px;border-top:1px solid #e5e7eb;padding-top:10px}" + ".cvf div{font-size:11.5px;color:#374151}.cvf span{color:#9ca3af;margin-right:6px}" + ".prmw{display:flex;gap:14px;margin-bottom:8px}.prmw>table{flex:1}" + ".prm{font-size:11px}.prm td{padding:2.8px 9px;border-bottom:1px solid #e5e7eb;color:#374151}" + ".prm tr:nth-child(odd) td{background:#f9fafb}" + ".rt{font-size:9px}.rt th{padding:3px 6px;font-size:8.8px}.rt td{padding:1px 6px;line-height:1.3}" + ".rt .hit td{background:#ECFDF5;font-weight:700;color:#065F46}" + ".rt .tt td{background:#0A4D68;color:#fff;font-weight:700;border:0}" + ".kpi{display:flex;gap:10px;margin-bottom:14px}" + ".kpi>div{flex:1;border:1px solid #d1d5db;border-radius:9px;padding:11px 12px}" + ".kpi .k1{border-color:#1B9B75;background:#F0FDF9}" + ".kpi .kl{display:block;font-size:10px;color:#6b7280}" + ".kpi .kv{display:block;font-size:19px;font-weight:700;color:#0A4D68;margin-top:3px;" + "font-variant-numeric:tabular-nums;line-height:1.2}" + ".kpi .ks{display:block;font-size:9.5px;color:#9ca3af}" + ".nt{font-size:9.2px;color:#6b7280;line-height:1.45;margin-top:7px}" + "@media screen{html{background:#E6ECEA}body{padding:24px 0 40px;zoom:var(--z,1)}" + "body>div[class]{width:210mm;min-height:297mm;margin:0 auto 22px;padding:14mm;background:#fff;border-radius:3px;" + "box-shadow:0 1px 2px rgba(15,43,51,.08),0 10px 30px rgba(15,43,51,.14)}}" + "</style></head><body>" + (quotePageOn(q, "cover") ? coverHTML() : "") + '<div class="pg1' + (quotePageOn(q, "cover") ? " brk" : "") + '">' + headHTML("ใบเสนอราคา") + '<div class="two"><div><h3>ลูกค้า</h3>' + '<div class="kv"><b>ชื่อ</b><span>' + sEsc(c.name || "—") + "</span></div>" + '<div class="kv"><b>โทร</b><span>' + sEsc(c.phone || "—") + "</span></div>" + '<div class="kv"><b>ที่อยู่</b><span>' + sEsc((c.address || "") + (c.province ? " " + c.province : "") || "—") + "</span></div></div>" + "<div><h3>รายละเอียดข้อเสนอ</h3>" + '<div class="kv"><b>ขนาด</b><span>' + (q.kwp ? sEsc(q.kwp) + " kWp" : "—") + "</span></div>" + '<div class="kv"><b>อ้างอิง</b><span>' + sEsc(q.refCode || "—") + "</span></div>" + '<div class="kv"><b>ผู้เสนอ</b><span>' + sEsc(q.ownerName || q.byName || "—") + "</span></div></div></div>" + "<table><thead><tr><th class=\"c\" style=\"width:26px\">#</th><th>รายการ</th>" + "<th class=\"c\" style=\"width:46px\">จำนวน</th><th class=\"c\" style=\"width:52px\">หน่วย</th>" + "<th class=\"r\" style=\"width:88px\">ราคา/หน่วย</th><th class=\"r\" style=\"width:96px\">จำนวนเงิน</th></tr></thead>" + "<tbody>" + (rows || '<tr><td colspan="6" class="c">— ยังไม่มีรายการ —</td></tr>') + "</tbody></table>" + '<div class="pgft">' + '<table class="sum">' + money("รวมเป็นเงิน", T.sub) + (T.disc > 0 ? money(T.discMode === "pct" ? "หักส่วนลด " + T.discPct + "%" : "หักส่วนลด", T.disc) + money("ราคาหลังหักส่วนลด", T.afterDisc) : "") + money("ภาษีมูลค่าเพิ่ม " + T.vatRate + "%", T.vat) + money("ราคารวมทั้งสิ้น", T.grand, true) + "</table>" + '<div class="vbx"><h3>การยืนราคา</h3>' + '<div class="vl">' + (valid ? sEsc(valid) : "ยืนราคาตามที่ตกลงกัน") + "</div>" + (q.note ? '<div class="vl" style="margin-top:6px">หมายเหตุ: ' + sEsc(q.note) + "</div>" : "") + "</div>" + '<div class="sig"><div><div class="ln"></div><div class="rl">ผู้เสนอราคา · ' + sEsc(q.ownerName || q.byName || "") + '</div></div><div><div class="ln"></div><div class="rl">ผู้อนุมัติ / ลูกค้า</div>' + '<div class="rl">วันที่ ______ / ______ / ______</div></div></div>' + footHTML + "</div></div>" + (quotePageOn(q, "terms") && (termList(q.terms, T.grand) || list(q.warranties, "การรับประกันและบริการ") || shList) ? '<div class="tmpg">' + headHTML("เอกสารแนบ") + "<h2>เงื่อนไขการชำระเงินและการรับประกัน</h2>" + '<div class="sub">แนบท้ายใบเสนอราคาเลขที่ ' + sEsc(q.no) + " · " + sEsc(c.name || "") + "</div>" + termList(q.terms, T.grand) + list(q.warranties, "การรับประกันและบริการ") + shList + footHTML + "</div>" : "") + (quotePageOn(q, "boq") ? boqHTML() : "") + (quotePageOn(q, "wty") ? wtyHTML() : "") + (quotePageOn(q, "cash") ? cashHTML() : "") + (quotePageOn(q, "payback") ? paybackHTML() : "") + shPages + "<script>(function(){var d=document.documentElement;function f(){" + "d.style.setProperty('--z',Math.min(1,(d.clientWidth-16)/810).toFixed(3))}f();addEventListener('resize',f)})()</script>" + "</body></html>";
   return window.pgDocHTML ? window.pgDocHTML(doc, L, QUOTE_I18N) : doc;
+}
+function QuoteCoverPick({
+  shots,
+  vers,
+  value,
+  hasPlan,
+  locked,
+  onPick,
+  onDel
+}) {
+  const cur = value || "auto";
+  const list = Object.keys(shots || {}).map(id => Object.assign({
+    id: id
+  }, shots[id])).filter(x => x.t).sort((a, b) => (b.at || 0) - (a.at || 0));
+  const vName = v => window.dvP3Name ? window.dvP3Name(vers, v) : v && v !== "1" ? "เวอร์ชัน " + v : "ต้นแบบ";
+  const tile = (key, on, body, foot, extra) => React.createElement("button", {
+    key: key,
+    type: "button",
+    onClick: () => onPick(key),
+    style: {
+      position: "relative",
+      width: 150,
+      flexShrink: 0,
+      padding: 0,
+      border: "none",
+      borderRadius: "var(--r-tile)",
+      overflow: "hidden",
+      background: "var(--surface)",
+      boxShadow: on ? "inset 0 0 0 2px var(--primary), var(--shadow-sm)" : "var(--shadow-sm)",
+      cursor: "pointer",
+      fontFamily: "inherit",
+      textAlign: "left"
+    }
+  }, React.createElement("span", {
+    style: {
+      display: "grid",
+      placeItems: "center",
+      height: 84,
+      background: "var(--surface2)",
+      boxShadow: "var(--shadow-inset)"
+    }
+  }, body), React.createElement("span", {
+    style: {
+      display: "block",
+      padding: "6px 9px",
+      fontSize: 11,
+      fontWeight: 700,
+      color: on ? "var(--primary-dark)" : "var(--text-2)",
+      lineHeight: 1.35
+    }
+  }, foot), on && React.createElement("span", {
+    style: {
+      position: "absolute",
+      top: 6,
+      left: 6,
+      width: 20,
+      height: 20,
+      borderRadius: 99,
+      background: "var(--primary)",
+      display: "grid",
+      placeItems: "center"
+    }
+  }, React.createElement(Icon, {
+    name: "check",
+    size: 12,
+    color: "#fff",
+    sw: 3
+  })), extra);
+  return React.createElement("div", {
+    style: {
+      display: "flex",
+      flexDirection: "column",
+      gap: 8
+    }
+  }, React.createElement("div", {
+    style: {
+      display: "flex",
+      alignItems: "baseline",
+      gap: 9,
+      flexWrap: "wrap"
+    }
+  }, React.createElement("label", {
+    style: {
+      fontSize: 11.5,
+      fontWeight: 700,
+      color: "var(--text-2)"
+    }
+  }, "\u0E23\u0E39\u0E1B\u0E2B\u0E19\u0E49\u0E32\u0E1B\u0E01"), React.createElement("span", {
+    style: {
+      fontSize: 11,
+      color: "var(--text-3)"
+    }
+  }, "\u0E16\u0E48\u0E32\u0E22\u0E40\u0E1E\u0E34\u0E48\u0E21\u0E44\u0E14\u0E49\u0E43\u0E19\u0E41\u0E1A\u0E1A 3D \u0E02\u0E31\u0E49\u0E19\u0E2A\u0E38\u0E14\u0E17\u0E49\u0E32\u0E22 \u2192 \"\u0E16\u0E48\u0E32\u0E22\u0E40\u0E01\u0E47\u0E1A\u0E44\u0E27\u0E49\u0E43\u0E0A\u0E49\u0E2B\u0E19\u0E49\u0E32\u0E1B\u0E01\u0E43\u0E1A\u0E40\u0E2A\u0E19\u0E2D\u0E23\u0E32\u0E04\u0E32\"")), React.createElement("div", {
+    style: {
+      display: "flex",
+      gap: 8,
+      overflowX: "auto",
+      padding: "2px 2px 6px"
+    }
+  }, hasPlan && tile("auto", cur === "auto", React.createElement(Icon, {
+    name: "box",
+    size: 22,
+    color: "var(--text-3)"
+  }), "อัตโนมัติ · มุมเอียง"), tile("none", cur === "none", React.createElement(Icon, {
+    name: "x",
+    size: 20,
+    color: "var(--text-3)"
+  }), "ไม่ใส่รูป"), list.map(x => tile(x.id, cur === x.id, React.createElement("img", {
+    src: x.t,
+    alt: "",
+    style: {
+      width: "100%",
+      height: "100%",
+      objectFit: "cover",
+      display: "block"
+    }
+  }), React.createElement(React.Fragment, null, vName(x.v), React.createElement("span", {
+    style: {
+      display: "block",
+      fontWeight: 500,
+      color: "var(--text-3)"
+    }
+  }, x.at ? thDate(new Date(x.at).toISOString().slice(0, 10), true) : "", x.byName ? " · " + x.byName : "")), !locked && React.createElement("span", {
+    role: "button",
+    title: "\u0E25\u0E1A\u0E23\u0E39\u0E1B\u0E19\u0E35\u0E49",
+    onClick: e => {
+      e.stopPropagation();
+      window.askConfirm({
+        title: "ลบรูปหน้าปกนี้?",
+        body: "ใบเสนอราคาอื่นที่เลือกรูปนี้ไว้จะกลับไปใช้ภาพอัตโนมัติ",
+        ok: "ลบเลย"
+      }).then(ok => {
+        if (ok) onDel(x.id);
+      });
+    },
+    style: {
+      position: "absolute",
+      top: 6,
+      right: 6,
+      width: 22,
+      height: 22,
+      borderRadius: "var(--r-chip)",
+      background: "rgba(8,20,14,.45)",
+      display: "grid",
+      placeItems: "center"
+    }
+  }, React.createElement(Icon, {
+    name: "trash",
+    size: 12,
+    color: "#fff"
+  }))))), !list.length && React.createElement("div", {
+    style: {
+      fontSize: 11.5,
+      color: "var(--text-3)"
+    }
+  }, hasPlan ? "ยังไม่มีรูปที่ถ่ายเก็บไว้ — ตอนนี้ใช้ภาพอัตโนมัติจากแบบ 3D" : "งานนี้ยังไม่มีแบบ 3D ที่วางแผง"));
 }
 function QuotePagePick({
   q,
@@ -2266,7 +2425,9 @@ function QuoteEditor({
     })).catch(() => Object.assign({}, sd, {
       pages: []
     })))).catch(() => sheetDocs);
-    const cvP = quotePageOn(q, "cover") && planSum && window.p3sCoverShot ? window.p3sCoverShot(plan3d.saved).catch(() => null) : Promise.resolve(null);
+    const cp = q.coverPic || "auto";
+    const autoP = () => planSum && window.p3sCoverShot ? window.p3sCoverShot(plan3d.saved).catch(() => null) : null;
+    const cvP = !quotePageOn(q, "cover") || cp === "none" ? Promise.resolve(null) : cp !== "auto" && planId && window.FBDB ? window.FBDB.ref("plan3dShotData/" + planId + "/" + cp).once("value").then(x => x.val() || autoP()).catch(autoP) : Promise.resolve(autoP());
     Promise.all([shP, loadPics(), cvP]).then(r => {
       setRep(quoteHTML(q, qLang, r[0], r[1], r[2]));
     }).then(() => setRepBusy(false), () => setRepBusy(false));
@@ -2351,6 +2512,23 @@ function QuoteEditor({
   const planBoq = job && job.boq || specSrc && specSrc.boq || {};
   const plan3d = useQuotePlan3d(planId && window.dvP3Key ? window.dvP3Key(planId, planBoq.plan3d) : planId);
   const planSum = window.p3PlanSummary ? window.p3PlanSummary(plan3d.saved) : null;
+  const [coverShots, setCoverShots] = React.useState(null);
+  React.useEffect(() => {
+    if (!planId || !window.FBDB) {
+      setCoverShots(null);
+      return;
+    }
+    const ref = window.FBDB.ref("plan3dShots/" + planId);
+    const h = ref.on("value", x => setCoverShots(x.val() || null), () => setCoverShots(null));
+    return () => ref.off("value", h);
+  }, [planId]);
+  const p3VerList = useQuoteP3Vers(planId).list;
+  const delCoverShot = id => {
+    if (!planId || !window.FBDB) return;
+    window.FBDB.ref("plan3dShots/" + planId + "/" + id).remove();
+    window.FBDB.ref("plan3dShotData/" + planId + "/" + id).remove();
+    if (q.coverPic === id) set("coverPic", "auto");
+  };
   const pullPlan = () => {
     if (!planSum) return;
     const src = Object.assign({}, specSrc || {}, {
@@ -3154,6 +3332,14 @@ function QuoteEditor({
     onToggle: togglePage,
     onAll: setAllPages,
     warn: pageWarn
+  }), pageOn("cover") && React.createElement(QuoteCoverPick, {
+    shots: coverShots,
+    vers: p3VerList,
+    value: q.coverPic,
+    hasPlan: !!planSum,
+    locked: locked,
+    onPick: v => set("coverPic", v),
+    onDel: delCoverShot
   }), pageOn("boq") && React.createElement(QuoteRowsEdit, {
     title: "\u0E23\u0E32\u0E22\u0E01\u0E32\u0E23\u0E43\u0E19\u0E41\u0E1C\u0E48\u0E19 BOQ",
     hint: "\u0E02\u0E2D\u0E1A\u0E40\u0E02\u0E15\u0E07\u0E32\u0E19\u0E17\u0E35\u0E48\u0E25\u0E39\u0E01\u0E04\u0E49\u0E32\u0E08\u0E30\u0E44\u0E14\u0E49 \xB7 \u0E44\u0E21\u0E48\u0E21\u0E35\u0E23\u0E32\u0E04\u0E32\u0E17\u0E35\u0E25\u0E30\u0E1A\u0E23\u0E23\u0E17\u0E31\u0E14",

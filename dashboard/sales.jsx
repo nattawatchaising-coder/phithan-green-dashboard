@@ -8,6 +8,7 @@
 /* อ่านแบบ 3D ที่บันทึกไว้ — plan3d.js โหลดก่อนไฟล์นี้เสมอ (ดูลำดับ script ใน index.html)
    ผูกตอนโหลดไฟล์ ไม่เช็คตอนเรนเดอร์ เพราะ hook ต้องถูกเรียกทุกครั้งเท่ากัน */
 const useQuotePlan3d = window.usePlan3d || (() => ({ saved: null, loading: false, save: () => {} }));
+const useQuoteP3Vers = window.useP3Vers || (() => ({ list: [] }));   // versions.js โหลดก่อนไฟล์นี้ — ชื่อเวอร์ชันแบบใต้รูปหน้าปก
 
 /* ── ขั้นการขาย ──
    เดิมลูกค้าสำรวจมีแค่ 3 สถานะ (open/won/lost) ซึ่งบอกได้แค่ "จบแล้วหรือยัง"
@@ -1132,6 +1133,50 @@ function quoteHTML(q, lang, sheets, pics, cover3d) {
 /* ── ติ๊กว่าจะออกแผ่นไหน ──
    เรียงตามลำดับที่จะออกจริง คนกดจะได้เห็นหน้าตาเล่มในหัวตรงกับที่พรินต์ออกมา
    แผ่นใบเสนอราคาปิดไม่ได้ — ปิดแล้วเอกสารที่เหลือไม่มีราคาให้อ้างอิง */
+/* ── รูปหน้าปก (ผู้ใช้ขอ 2026-10-29: "ให้เลือก แล้วเข้าไปถ่ายเอง") ──
+   q.coverPic: ไม่มี/"auto" = เรนเดอร์มุมเอียงจากแบบที่ BOQ ผูก (p3sCoverShot) · "none" = ไม่ใส่รูป · อื่น = id รูปที่ถ่ายเก็บใน plan3dShots
+   รูปถ่ายเก็บจากหน้าแบบ 3D (ปุ่ม "ถ่ายเก็บไว้ใช้หน้าปกใบเสนอราคา") ของทุกเวอร์ชันแบบ มาให้เลือกรวมกันที่นี่ */
+function QuoteCoverPick({ shots, vers, value, hasPlan, locked, onPick, onDel }) {
+  const cur = value || "auto";
+  const list = Object.keys(shots || {}).map((id) => Object.assign({ id: id }, shots[id])).filter((x) => x.t)
+    .sort((a, b) => (b.at || 0) - (a.at || 0));
+  const vName = (v) => (window.dvP3Name ? window.dvP3Name(vers, v) : v && v !== "1" ? "เวอร์ชัน " + v : "ต้นแบบ");
+  const tile = (key, on, body, foot, extra) => (
+    <button key={key} type="button" onClick={() => onPick(key)}
+      style={{ position: "relative", width: 150, flexShrink: 0, padding: 0, border: "none", borderRadius: "var(--r-tile)", overflow: "hidden",
+        background: "var(--surface)", boxShadow: on ? "inset 0 0 0 2px var(--primary), var(--shadow-sm)" : "var(--shadow-sm)",
+        cursor: "pointer", fontFamily: "inherit", textAlign: "left" }}>
+      <span style={{ display: "grid", placeItems: "center", height: 84, background: "var(--surface2)", boxShadow: "var(--shadow-inset)" }}>{body}</span>
+      <span style={{ display: "block", padding: "6px 9px", fontSize: 11, fontWeight: 700, color: on ? "var(--primary-dark)" : "var(--text-2)", lineHeight: 1.35 }}>{foot}</span>
+      {on && <span style={{ position: "absolute", top: 6, left: 6, width: 20, height: 20, borderRadius: 99, background: "var(--primary)", display: "grid", placeItems: "center" }}>
+        <Icon name="check" size={12} color="#fff" sw={3} /></span>}
+      {extra}
+    </button>
+  );
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+      <div style={{ display: "flex", alignItems: "baseline", gap: 9, flexWrap: "wrap" }}>
+        <label style={{ fontSize: 11.5, fontWeight: 700, color: "var(--text-2)" }}>รูปหน้าปก</label>
+        <span style={{ fontSize: 11, color: "var(--text-3)" }}>ถ่ายเพิ่มได้ในแบบ 3D ขั้นสุดท้าย → "ถ่ายเก็บไว้ใช้หน้าปกใบเสนอราคา"</span>
+      </div>
+      <div style={{ display: "flex", gap: 8, overflowX: "auto", padding: "2px 2px 6px" }}>
+        {hasPlan && tile("auto", cur === "auto", <Icon name="box" size={22} color="var(--text-3)" />, "อัตโนมัติ · มุมเอียง")}
+        {tile("none", cur === "none", <Icon name="x" size={20} color="var(--text-3)" />, "ไม่ใส่รูป")}
+        {list.map((x) => tile(x.id, cur === x.id,
+          <img src={x.t} alt="" style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} />,
+          <React.Fragment>{vName(x.v)}<span style={{ display: "block", fontWeight: 500, color: "var(--text-3)" }}>{x.at ? thDate(new Date(x.at).toISOString().slice(0, 10), true) : ""}{x.byName ? " · " + x.byName : ""}</span></React.Fragment>,
+          !locked && (
+            <span role="button" title="ลบรูปนี้"
+              onClick={(e) => { e.stopPropagation(); window.askConfirm({ title: "ลบรูปหน้าปกนี้?", body: "ใบเสนอราคาอื่นที่เลือกรูปนี้ไว้จะกลับไปใช้ภาพอัตโนมัติ", ok: "ลบเลย" })
+                .then((ok) => { if (ok) onDel(x.id); }); }}
+              style={{ position: "absolute", top: 6, right: 6, width: 22, height: 22, borderRadius: "var(--r-chip)",
+                background: "rgba(8,20,14,.45)", display: "grid", placeItems: "center" }}>
+              <Icon name="trash" size={12} color="#fff" /></span>)))}
+      </div>
+      {!list.length && <div style={{ fontSize: 11.5, color: "var(--text-3)" }}>{hasPlan ? "ยังไม่มีรูปที่ถ่ายเก็บไว้ — ตอนนี้ใช้ภาพอัตโนมัติจากแบบ 3D" : "งานนี้ยังไม่มีแบบ 3D ที่วางแผง"}</div>}
+    </div>
+  );
+}
 function QuotePagePick({ q, locked, onToggle, onAll, warn }) {
   const n = QUOTE_PAGES.filter((p) => quotePageOn(q, p.key)).length;
   return (
@@ -1669,9 +1714,14 @@ function QuoteEditor({ quote, job, target, stock, onClose, onSave, onDelete, cur
       : quotePdfPages(sd.dataUrl)
           .then((r) => Object.assign({}, sd, { pages: r.pages, total: r.total }))
           .catch(() => Object.assign({}, sd, { pages: [] }))))).catch(() => sheetDocs);
-    /* หน้าปกมีภาพ 3D ถ้าแบบวางแผงแล้ว — เรนเดอร์ไม่ได้ (ไม่มีเน็ตโหลดตัว 3D) = หน้าปกแบบเดิม ไม่ให้ใบเปิดไม่ขึ้น */
-    const cvP = quotePageOn(q, "cover") && planSum && window.p3sCoverShot
-      ? window.p3sCoverShot(plan3d.saved).catch(() => null) : Promise.resolve(null);
+    /* หน้าปกมีภาพ 3D ถ้าแบบวางแผงแล้ว — เรนเดอร์ไม่ได้ (ไม่มีเน็ตโหลดตัว 3D) = หน้าปกแบบเดิม ไม่ให้ใบเปิดไม่ขึ้น
+       เลือกรูปที่ถ่ายเก็บไว้ (coverPic) = โหลดรูปเต็มรูปนั้น · รูปถูกลบไปแล้ว = กลับไปใช้ภาพอัตโนมัติ */
+    const cp = q.coverPic || "auto";
+    const autoP = () => (planSum && window.p3sCoverShot ? window.p3sCoverShot(plan3d.saved).catch(() => null) : null);
+    const cvP = !quotePageOn(q, "cover") || cp === "none" ? Promise.resolve(null)
+      : cp !== "auto" && planId && window.FBDB
+        ? window.FBDB.ref("plan3dShotData/" + planId + "/" + cp).once("value").then((x) => x.val() || autoP()).catch(autoP)
+        : Promise.resolve(autoP());
     Promise.all([shP, loadPics(), cvP])
       .then((r) => { setRep(quoteHTML(q, qLang, r[0], r[1], r[2])); })
       .then(() => setRepBusy(false), () => setRepBusy(false));
@@ -1719,6 +1769,21 @@ function QuoteEditor({ quote, job, target, stock, onClose, onSave, onDelete, cur
   const planBoq = ((job && job.boq) || (specSrc && specSrc.boq) || {});
   const plan3d = useQuotePlan3d(planId && window.dvP3Key ? window.dvP3Key(planId, planBoq.plan3d) : planId);
   const planSum = window.p3PlanSummary ? window.p3PlanSummary(plan3d.saved) : null;
+  /* รูปหน้าปกที่ถ่ายเก็บไว้จากหน้าแบบ 3D (ทุกเวอร์ชัน) — ดู QuoteCoverPick */
+  const [coverShots, setCoverShots] = React.useState(null);
+  React.useEffect(() => {
+    if (!planId || !window.FBDB) { setCoverShots(null); return; }
+    const ref = window.FBDB.ref("plan3dShots/" + planId);
+    const h = ref.on("value", (x) => setCoverShots(x.val() || null), () => setCoverShots(null));
+    return () => ref.off("value", h);
+  }, [planId]);
+  const p3VerList = useQuoteP3Vers(planId).list;
+  const delCoverShot = (id) => {
+    if (!planId || !window.FBDB) return;
+    window.FBDB.ref("plan3dShots/" + planId + "/" + id).remove();
+    window.FBDB.ref("plan3dShotData/" + planId + "/" + id).remove();
+    if (q.coverPic === id) set("coverPic", "auto");
+  };
   const pullPlan = () => {
     if (!planSum) return;
     const src = Object.assign({}, specSrc || {}, { kwp: planSum.kwp, panels: planSum.panels });
@@ -2030,6 +2095,10 @@ function QuoteEditor({ quote, job, target, stock, onClose, onSave, onDelete, cur
 
             {show("pages") && (<React.Fragment>
             <QuotePagePick q={q} locked={locked} onToggle={togglePage} onAll={setAllPages} warn={pageWarn} />
+            {pageOn("cover") && (
+              <QuoteCoverPick shots={coverShots} vers={p3VerList} value={q.coverPic} hasPlan={!!planSum} locked={locked}
+                onPick={(v) => set("coverPic", v)} onDel={delCoverShot} />
+            )}
             {pageOn("boq") && (
               <QuoteRowsEdit title="รายการในแผ่น BOQ" hint="ขอบเขตงานที่ลูกค้าจะได้ · ไม่มีราคาทีละบรรทัด"
                 cols={[{ key: "name", w: "1fr", ph: "ชื่อรายการ" }, { key: "qty", w: "72px", num: true }, { key: "unit", w: "78px", ph: "หน่วย" }]}
