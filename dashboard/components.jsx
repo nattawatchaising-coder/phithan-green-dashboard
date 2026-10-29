@@ -253,8 +253,9 @@ function Segmented({ options, value, onChange, flat }) {
             style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: isMobile ? "5px 10px" : "6px 12px", borderRadius: flat ? 9 : 8, border: "none",
               cursor: "pointer", fontFamily: "inherit", fontSize: isMobile ? 11.5 : 12.5, fontWeight: active ? 700 : 600, whiteSpace: "nowrap",
               background: active ? (flat ? "var(--surface3)" : "var(--surface)") : "transparent",
-              color: active ? "var(--text-1)" : (flat ? "var(--text-3)" : "var(--text-2)"),
-              boxShadow: active && !flat ? "0 1px 3px rgba(0,0,0,.08)" : "none", transition: "all .15s" }}>
+              /* ตัวที่เลือก = ตัวหนังสือสีหลัก + เงาแผ่น (ผู้ใช้ 29 ต.ค. 2026: "มีแค่ตัวหนังสือเข้มกับอ่อน" แยกไม่ออก) — ตรงกับ LeadSpecPhase ในใบลูกค้า */
+              color: active ? "var(--primary-dark)" : "var(--text-3)",
+              boxShadow: active && !flat ? "var(--shadow-sm)" : "none", transition: "all .15s" }}>
             {o.icon && <Icon name={o.icon} size={15} />}{o.label}
           </button>
         );

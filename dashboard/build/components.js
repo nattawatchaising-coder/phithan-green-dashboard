@@ -345,8 +345,8 @@ function Segmented({
         fontWeight: active ? 700 : 600,
         whiteSpace: "nowrap",
         background: active ? flat ? "var(--surface3)" : "var(--surface)" : "transparent",
-        color: active ? "var(--text-1)" : flat ? "var(--text-3)" : "var(--text-2)",
-        boxShadow: active && !flat ? "0 1px 3px rgba(0,0,0,.08)" : "none",
+        color: active ? "var(--primary-dark)" : "var(--text-3)",
+        boxShadow: active && !flat ? "var(--shadow-sm)" : "none",
         transition: "all .15s"
       }
     }, o.icon && React.createElement(Icon, {
