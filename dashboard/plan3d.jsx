@@ -2546,8 +2546,8 @@ function p3SldModel(st, job, design) {
     rccb: totA * 1.25 > 63 ? "MCCB 3P," + p3At(totA * 1.25) + "AT" : "RCCB " + Vll + "V " + P + "63AT",
     rccbType: totA * 1.25 > 63 ? "c/w GFR + ZCT + SHUNT TRIP" : "Type A 100mA",
     gateway: true,
-    mainCable: ["CV-FD  " + (nPh === 3 ? "4Cx" : "2Cx") + mainCu + " sq.mm. (SOLAR-CELL)",
-      "IEC01 THW(G)  " + Math.max(6, p3Cu(totA * 0.5, 2)) + " sq.mm. (GROUND)"],
+    mainCable: ["CV-FD  " + (nPh === 3 ? "4Cx" : "2Cx") + mainCu + " Sq.mm. (SOLAR-CELL)",
+      "IEC01 THW(G)  " + Math.max(6, p3Cu(totA * 0.5, 2)) + " Sq.mm. (GROUND)"],
     mccbNew: true,
     mccb: ["MCCB 3P," + p3At(totA * 1.25) + "AT", "NEW"],
     rcbo: ["RCBO", P + p3At(totA * 1.25) + "AT"],
@@ -2668,7 +2668,7 @@ function p3SldModel(st, job, design) {
     M.pro = {
       home, small, maxVdc, tMin, isc, wp, vocAt, vocMax, auth: auth || "MEA/PEA",
       lps, dcDev, dcSpdTag: "SPD " + (lps ? "T1+T2 " : "T2 ") + ucpv + "VDC", dcSpdFull: "DC SPD " + (lps ? "T1+T2" : "T2") + " Ucpv " + ucpv + "VDC " + dcSpdKa,
-      dcCable: "PV1-F (H1Z2Z2-K) 1x" + (isc * 1.56 > 40 ? 6 : 4) + " mm2 1.5kV DC",
+      dcCable: "PV1-F (H1Z2Z2-K) 1x" + (isc * 1.56 > 40 ? 6 : 4) + " Sq.mm. 1.5kV DC",
       acSpd,
       spdBk, ivBrk, mainA, mainTxt, gf, lsig, pm, pmCt: p3Ct(mainA) + "/5A",
       ivKw: units.map((u) => Math.round((+u.w || unitW) / 100) / 10),
@@ -2718,7 +2718,7 @@ function p3SldModel(st, job, design) {
     S.push(["MDB SOLAR BREAKER", M.mccb[0], 1]);
     S.push(["DC CABLE", M.pro.dcCable, "-"]);
     S.push(["AC CABLE", M.acCable.replace(/\s+/g, " "), "-"]);
-    S.push(["EARTH CABLE", "IEC01 THW(G) " + earthCu + " mm2 (GREEN/YELLOW)", "-"]);
+    S.push(["EARTH CABLE", "IEC01 THW(G) " + earthCu + " Sq.mm. (GREEN/YELLOW)", "-"]);
     S.push(["PV EARTH ROD", "COPPER BONDED 5/8\" x 2.4 m  R <= 5 OHM (SEPARATE)", 1]);
     S.push(["EARTH ROD (SYSTEM)", "COPPER BONDED 5/8\" x 2.4 m  R <= 5 OHM", 1]);
     M.sched = S;
@@ -3050,7 +3050,7 @@ function p3DcSheet(st, job, media) {
     Object.keys(g).sort((a, b) => a - b).slice(0, 14).forEach((k) => {
       const a = g[k], ids = a.map((s) => s.id).sort((x, y) => x - y);
       dcRows.push(["S" + ids[0] + (ids.length > 1 ? "–" + ids[ids.length - 1] : "") + " (" + a.length + ")",
-        "INV " + (+k + 1) + " · " + a.reduce((t, s) => t + s.n, 0) + " แผง", P ? P.dcCable.replace(/ \(H1Z2Z2-K\)/, "").replace(/ mm2 .*$/, "") : "PV1-F 1x4"]);
+        "INV " + (+k + 1) + " · " + a.reduce((t, s) => t + s.n, 0) + " แผง", P ? P.dcCable.replace(/ \(H1Z2Z2-K\)/, "").replace(/ (?:mm2|Sq.mm.) .*$/, "") : "PV1-F 1x4"]);
     });
   } else kinds.forEach((g, i) => dcRows.push([
     (M.mode === "micro" ? "MICRO " : "INV ") + (i + 1) + (g.n > 1 ? " x" + g.n : ""),
@@ -3068,7 +3068,7 @@ function p3DcSheet(st, job, media) {
     spec.push(["ป้องกันกระแสเกิน", P.dcDev.tag]);
     spec.push(["DC SPD", P.dcSpdFull.replace(/^DC SPD /, "")]);
     spec.push(["สาย DC", P.dcCable.replace(/ \(H1Z2Z2-K\)/, "")]);
-    spec.push(["สายดินโครงแผง", "THW(G) " + Math.max(6, Math.min(16, P.earthCu)) + " mm2 เขียว/เหลือง"]);
+    spec.push(["สายดินโครงแผง", "THW(G) " + Math.max(6, Math.min(16, P.earthCu)) + " Sq.mm. เขียว/เหลือง"]);
   } else spec.push(["สาย DC", "PV1-F 1x4 Sq.mm. DC1500V"]);
   spec.push(["หัวต่อ", "MC4 1500VDC IP68"]);
   /* ตาราง DC STRING + DC SPECIFICATION ชิดล่างขวา (ผู้ใช้ย้ายลง — เดิมชิดบน ล่างว่าง) */

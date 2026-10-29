@@ -664,7 +664,7 @@ function dsStrDetSheet(st, job, media) {
   const lx = A.x0 + 4, sx = A.x0 + 104, lw = 110, bandTop = A.y0 + 92;
   const pairs = [["PV MODULE", M ? M.panel.model + " " + M.panel.wp + " Wp" : "-"],
     ["STRING", typeof p3StrSum === "function" ? p3StrSum(SS) : SS.length + " STRING"],
-    ["DC CABLE", (M && M.pro && M.pro.dcCable) || "PV1-F 1x4 mm2 1.5kV DC"]];
+    ["DC CABLE", (M && M.pro && M.pro.dcCable) || "PV1-F 1x4 Sq.mm. 1.5kV DC"]];
   if (M && M.pro && M.pro.vocMax) pairs.push(["Voc @" + M.pro.tMin + "%%dC", M.pro.vocMax + " V (MAX " + M.pro.maxVdc + " V)"]);
   /* ข้อมูลสตริง + LEGEND ลงล่าง ชิดระดับฐานรูปแผงซ้าย (ผู้ใช้ย้ายลง) */
   const specTop = A.y0 + 22 + (pairs.length + 1) * 4.6;
@@ -752,7 +752,7 @@ function dsGroundSheet(st, job, media) {
   try { M = p3SldModel(st, job, media.design); } catch (e) { M = null; }
   const nInv = M ? M.units.length : 1;
   const eCu = (M && M.pro && M.pro.earthCu) || +(/(\d+)\s*sq/i.exec((M && M.mainCable && M.mainCable[1]) || "") || [])[1] || 10;
-  const bond = "THW(G) 1x6 sq.mm.", main = "THW(G) 1x" + eCu + " sq.mm.";
+  const bond = "THW(G) 1x6 Sq.mm.", main = "THW(G) 1x" + eCu + " Sq.mm.";
   const head = (x, y, s) => { pen.text(T, x, y, PG_TS.body, s, { align: 1, valign: 1 }); };
   const lug = (x, y) => pen.dot(E, x, y, 0.7);
   const busY = A.y0 + 112;
@@ -884,7 +884,7 @@ function dsGroundNotes(eCu) {
     "RAIL ทุกแถวต่อประสานด้วย EARTHING CLIP / GROUNDING LUG แล้วรวมลงบัสดิน PV",
     "ตัวอินเวอร์เตอร์ · PE BAR ตู้ DC (DC SPD) · รางไฟ · บันได · ราวกันตก ลงหลักดิน PV ที่ปักแยกจากระบบไฟฟ้าอาคาร",
     "PE ตู้ AC (AC SPD) และ N-PE ของ MDB ต่อเข้า MET → หลักดินระบบ",
-    "สายต่อประสานอุปกรณ์ไม่ต่ำกว่า 6 sq.mm. · สายลงหลักดิน THW(G) " + eCu + " sq.mm.",
+    "สายต่อประสานอุปกรณ์ไม่ต่ำกว่า 6 Sq.mm. · สายลงหลักดิน THW(G) " + eCu + " Sq.mm.",
     "ความต้านทานหลักดินแต่ละชุดไม่เกิน 5 โอห์ม — วัดและบันทึกผลก่อนจ่ายไฟ",
   ];
 }

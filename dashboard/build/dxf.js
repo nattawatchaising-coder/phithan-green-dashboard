@@ -2692,7 +2692,7 @@ function pgSldPro(doc, sheet, M) {
     cur = G.bottom - 2;
   });
   const blkLow = cur;
-  pen.text(T, X.pe0 + 1.2, cur - 0.5, TS.spec, "PV FRAME & RAIL BONDING  THW(G) " + Math.max(6, Math.min(16, P.earthCu)) + " mm2", {
+  pen.text(T, X.pe0 + 1.2, cur - 0.5, TS.spec, "PV FRAME & RAIL BONDING  THW(G) " + Math.max(6, Math.min(16, P.earthCu)) + " Sq.mm.", {
     valign: 3
   });
   if (isDet) {
@@ -2935,7 +2935,7 @@ function pgSldPro(doc, sheet, M) {
       rot: 90,
       align: 2
     });
-    pen.text(T, X.ac1 + 5.8, yMain - 3, TS.spec, "THW(G) " + P.earthCu + " mm2 (PE)", {
+    pen.text(T, X.ac1 + 5.8, yMain - 3, TS.spec, "THW(G) " + P.earthCu + " Sq.mm. (PE)", {
       rot: 90,
       align: 2
     });

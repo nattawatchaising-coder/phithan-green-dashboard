@@ -1890,7 +1890,7 @@ function pgSldPro(doc, sheet, M) {
     cur = G.bottom - 2;
   });
   const blkLow = cur;
-  pen.text(T, X.pe0 + 1.2, cur - 0.5, TS.spec, "PV FRAME & RAIL BONDING  THW(G) " + Math.max(6, Math.min(16, P.earthCu)) + " mm2", { valign: 3 });
+  pen.text(T, X.pe0 + 1.2, cur - 0.5, TS.spec, "PV FRAME & RAIL BONDING  THW(G) " + Math.max(6, Math.min(16, P.earthCu)) + " Sq.mm.", { valign: 3 });
 
   if (isDet) {
     /* แผ่นย่อย: ขั้ว AC ของทุกเครื่องในกลุ่มไปตู้ AC รวมในแผ่นภาพรวม */
@@ -2045,7 +2045,7 @@ function pgSldPro(doc, sheet, M) {
     bar(PE, sx - 1, "G", true);   // รูที่ 3 ตรงสาย SPD · รูที่ 4 (sx + 2) ออกไป MET
     pen.rect(BX, X.ac0, acBot, X.ac1 - X.ac0, acTop - acBot);
     pen.text(T, X.ac1 + 3.0, yMain - 3, TS.spec, M.mainCable[0], { rot: 90, align: 2 });
-    pen.text(T, X.ac1 + 5.8, yMain - 3, TS.spec, "THW(G) " + P.earthCu + " mm2 (PE)", { rot: 90, align: 2 });
+    pen.text(T, X.ac1 + 5.8, yMain - 3, TS.spec, "THW(G) " + P.earthCu + " Sq.mm. (PE)", { rot: 90, align: 2 });
 
     /* ── ปลายสายเมน: เบรกเกอร์โซลาร์ในตู้ MDB เดิม → ลูกศร TO MDB (EXISTING) ──
        ผู้ใช้ขีดฆ่ากรอบ MDB · มิเตอร์ · สายกริด · MET · หลักดินระบบ (2026-10-29) — ของเดิมไม่วาด ชี้ไปเฉย ๆ */
