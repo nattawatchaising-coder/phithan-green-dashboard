@@ -2624,8 +2624,8 @@ function pgSldPro(doc, sheet, M) {
   const busHi = Math.max(tMax, yMain),
     busLo = Math.min(tMin, yMain);
   pen.line(R, X.acBus, busHi, X.acBus, busLo);
-  const cx = X.acBus + 4.5,
-    mx = X.acBus + (P.pm ? 11 : 8);
+  const cx = X.acBus + (oneInv ? -3.5 : 4.5),
+    mx = P.pm ? cx + 7.5 : X.acBus + 8;
   const hasGf = P.gf && !P.lsig;
   const acTop0 = busHi + 9,
     acTop = acTop0 + (P.pm ? 15 : 0);
@@ -2709,30 +2709,25 @@ function pgSldPro(doc, sheet, M) {
       align: 1,
       valign: 1
     });
-    const pmx = mx,
-      pmy = (pb + pt) / 2,
-      cr = 1.5;
-    pen.line(CM, cx, yMain, cx, pmy + cr);
-    pen.arc(CM, cx + cr, pmy + cr, cr, 180, 270);
-    pen.line(CM, cx + cr, pmy, pmx - 4.5, pmy);
+    const pmx = cx,
+      pmy = (pb + pt) / 2;
+    pen.line(CM, cx, yMain, cx, pt);
     pen.rect(S, pmx - 4.5, pb, 9, pt - pb);
     pen.text(T, pmx, pmy, TS.spec, "PM2230", {
       align: 1,
       valign: 2
     });
-    const yb = yMain - 24,
-      hx = mx + 6;
+    const hx = mx + 4;
     pen.dot(R, px, yMain, 0.5);
-    pen.line(R, px, yMain, px, yb);
-    pen.line(R, px, yb, hx + g + 0.75, yb);
-    hBrk(hx, yb);
-    pen.line(R, hx - g - 0.75, yb, pmx, yb);
-    pen.line(R, pmx, yb, pmx, pb);
-    pen.text(T, hx, yb - 1.4, TS.tag, "MCB 2P 6A", {
+    pen.line(R, px, yMain, px, pmy);
+    pen.line(R, px, pmy, hx + g + 0.75, pmy);
+    hBrk(hx, pmy);
+    pen.line(R, hx - g - 0.75, pmy, pmx + 4.5, pmy);
+    pen.text(T, hx, pmy - 1.4, TS.tag, "MCB 2P 6A", {
       align: 1,
       valign: 3
     });
-    pmLow = yb - 3;
+    pmLow = pb - 1;
   }
   pen.dot(R, sx, yMain, 0.5);
   const sw = sx - 3.6 - X.ac0 - 1;

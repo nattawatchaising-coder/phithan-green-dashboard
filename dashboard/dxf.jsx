@@ -1847,7 +1847,8 @@ function pgSldPro(doc, sheet, M) {
   /* ตู้ AC เรียงตามสายเมน (ผู้ใช้ 2026-10-29: ชุดกันเสิร์จย้ายไปฝั่งกริด):
      บัส → CT ของ PM (cx) → MCCB เมน (mx) → ZCT → จุดแยกไฟเลี้ยง PM (px) → จุดแยกไฟแสดงเฟส (lx) → จุดแยก ฟิวส์+SPD (sx) → ออกตู้
      (ผู้ใช้ 2026-10-29: CT อยู่ฝั่งอินเวอร์เตอร์ก่อน MCCB · ไฟเลี้ยง PM แยกหลัง MCCB) */
-  const cx = X.acBus + 4.5, mx = X.acBus + (P.pm ? 11 : 8);
+  /* อินเวอร์เตอร์เครื่องเดียว = บัสเป็นแค่จุดต่อ → CT ขยับซ้ายเลยบัสได้ (ผู้ใช้วาดชี้ 2026-10-29) */
+  const cx = X.acBus + (oneInv ? -3.5 : 4.5), mx = P.pm ? cx + 7.5 : X.acBus + 8;
   const hasGf = P.gf && !P.lsig;
   /* มี power meter = มีไฟแสดงเฟสเหนือสายเมน → ขยายขอบบนตู้ให้หลอดอยู่ในตู้ (ผู้ใช้ตีกรอบชี้ 2026-10-29) */
   const acTop0 = busHi + 9, acTop = acTop0 + (P.pm ? 15 : 0);
@@ -1898,23 +1899,20 @@ function pgSldPro(doc, sheet, M) {
     });
     pen.text(T, lxs[lxs.length - 1] - lr - 1, ly, TS.tag, "PILOT LAMP", { align: 2, valign: 2 });
     pen.text(T, cx, yMain + CT_R + 0.9, TS.spec, "CT " + P.pmCt, { align: 1, valign: 1 });
-    /* กล่อง PM2230 ใต้ MCCB — สาย CT ลงแล้วเลี้ยวโค้งเข้าข้างซ้ายกล่อง */
-    const pmx = mx, pmy = (pb + pt) / 2, cr = 1.5;
-    pen.line(CM, cx, yMain, cx, pmy + cr);
-    pen.arc(CM, cx + cr, pmy + cr, cr, 180, 270);
-    pen.line(CM, cx + cr, pmy, pmx - 4.5, pmy);
+    /* กล่อง PM2230 ใต้ CT — สาย CT ลงตรงเข้าด้านบน (ผู้ใช้วาดชี้ 2026-10-29) */
+    const pmx = cx, pmy = (pb + pt) / 2;
+    pen.line(CM, cx, yMain, cx, pt);
     pen.rect(S, pmx - 4.5, pb, 9, pt - pb);
     pen.text(T, pmx, pmy, TS.spec, "PM2230", { align: 1, valign: 2 });
-    /* ไฟเลี้ยง PM2230: แยกจากสายเมนหลัง MCCB/ZCT → ลง → MCB 2P 6A แนวนอนใต้กล่อง → เข้าด้านล่าง */
-    const yb = yMain - 24, hx = mx + 6;
+    /* ไฟเลี้ยง PM2230: แยกจากสายเมนหลัง MCCB/ZCT → ลง → MCB 2P 6A แนวนอน → เข้าข้างขวากล่อง */
+    const hx = mx + 4;
     pen.dot(R, px, yMain, 0.5);
-    pen.line(R, px, yMain, px, yb);
-    pen.line(R, px, yb, hx + g + 0.75, yb);
-    hBrk(hx, yb);
-    pen.line(R, hx - g - 0.75, yb, pmx, yb);
-    pen.line(R, pmx, yb, pmx, pb);
-    pen.text(T, hx, yb - 1.4, TS.tag, "MCB 2P 6A", { align: 1, valign: 3 });
-    pmLow = yb - 3;
+    pen.line(R, px, yMain, px, pmy);
+    pen.line(R, px, pmy, hx + g + 0.75, pmy);
+    hBrk(hx, pmy);
+    pen.line(R, hx - g - 0.75, pmy, pmx + 4.5, pmy);
+    pen.text(T, hx, pmy - 1.4, TS.tag, "MCB 2P 6A", { align: 1, valign: 3 });
+    pmLow = pb - 1;
   }
   /* กันเสิร์จฝั่ง AC อยู่ฝั่งกริด (หลัง MCCB เมน): สายเมน → อุปกรณ์ป้องกันสำรอง (ถ้ามี) → SPD → บัสดิน
      ป้ายอยู่ซ้ายแกน · เริ่มต่ำกว่า GFR / สายไฟเลี้ยง PM ไม่ให้ทับกัน */
