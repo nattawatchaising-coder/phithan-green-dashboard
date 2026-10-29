@@ -24,11 +24,13 @@
      คีย์เฟรมถี่ ๆ คำนวณเอง (easing linear) — p=0 กรอบเท่าการ์ด · p=1 ใบเต็มที่เดิม
      กรอบเท่าการ์ด: ย่อทั้งใบ (scale เท่ากันสองแกน กว้างเท่าการ์ด — ผู้ใช้: "ย่อขนาดหน้าต่างตามด้วยไม่ได้หรอ")
      มุมซ้ายบนของตัวใบ (ใต้แถบแท็บ .ld-tabs) ทับมุมการ์ด ตัดส่วนที่ยาวเกินการ์ดด้วย clip (พิกัดก่อนย่อ จึงหารด้วย k)
-     เดินเส้นตรง เริ่มจางเบลอ แล้วคมชัดขึ้นระหว่างขยาย */
+     เดินเส้นตรง เริ่มจาง แล้วชัดขึ้นระหว่างขยาย (เดิมเบลอด้วย — ตัดออกเพราะกระตุก ดู OPEN_DUR) */
   /* SH = clip ขยายเลยขอบใบออกไปทีละนิดจนพ้นเงา — clip-path ตัดเงาใบทิ้ง ถ้าค้างกรอบพอดีใบ จบท่าแล้วเงาโผล่พรวด
      (ผู้ใช้: "ขอบเงากระดาษนี้แหละ ที่ทำให้รู้สึกอยู่ ๆ ก็มีขึ้นมา") */
   var SH = 90;
-  var BLUR = 10, OPEN_DUR = 560, CLOSE_DUR = 500;
+  /* ไม่เบลอระหว่างบินแล้ว (ผู้ใช้: "รู้สึกกระตุกเวลากดเปิด" 29 ต.ค. 2026) — filter: blur บนใบเต็มขนาดต้องวาดใหม่ทุกเฟรม
+     วัดจริงจอ 120Hz: เบลอ 10px เฟรมละ ~16 ms (~60fps กระตุก) · ไม่เบลอ ~8.6 ms ลื่นเต็มจอ · ลดเหลือ 4px ก็ยังช้าเท่าเดิม จึงตัดทิ้งทั้งหมด เหลือจางขึ้นแทน */
+  var OPEN_DUR = 560, CLOSE_DUR = 500;
   function flight(el, r, c, pOf, n) {
     var tabs = el.querySelector(".ld-tabs"), th = tabs ? tabs.offsetHeight : 0;
     var k = c.width / r.width, B0 = Math.max(0, r.height - th - c.height / k);
@@ -39,7 +41,7 @@
       fr.push({ offset: i / n, transformOrigin: "0 0",
         transform: "translate(" + (x0 * q).toFixed(1) + "px," + (y0 * q).toFixed(1) + "px) scale(" + (k + (1 - k) * p).toFixed(4) + ")",
         clipPath: "inset(" + (th * q - SH * p).toFixed(1) + "px " + (-SH * p).toFixed(1) + "px " + (B0 * q - SH * p).toFixed(1) + "px " + (-SH * p).toFixed(1) + "px round " + (15 / k * q + SH * p).toFixed(1) + "px)",
-        filter: "blur(" + (BLUR * q).toFixed(1) + "px)", opacity: Math.min(1, .15 + p * 1.4).toFixed(2) });
+        opacity: Math.min(1, .15 + p * 1.4).toFixed(2) });
     }
     return fr;
   }
