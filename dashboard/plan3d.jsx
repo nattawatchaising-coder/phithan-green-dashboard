@@ -2541,6 +2541,9 @@ function p3SldModel(st, job, design) {
     panel, inv, units,
     acCable: "CV-FD " + (nPh === 3 ? "4C-" : "2C-") + brCu + " Sq.mm. " + (nPh === 3 ? "L1,L2,L3,N" : "L,N"),
     branches,
+    /* วิธีเดินสายที่เขียนต่อท้ายป้ายสายใน SLD — ขนาดสายคิดแบบเดินในท่อในอากาศ จึงตั้งต้น IN CONDUIT · แก้ได้ในหน้าแก้ข้อความ SLD (ผู้ใช้ 2026-10-29) */
+    acRoute: "IN CONDUIT",
+    mainRoute: "IN CONDUIT",
     combinerModel: "",
     ctBranch: "CTx1 " + p3Ct(totA * 1.5) + "A/40mA",
     rccb: totA * 1.25 > 63 ? "MCCB 3P," + p3At(totA * 1.25) + "AT" : "RCCB " + Vll + "V " + P + "63AT",
@@ -2775,11 +2778,13 @@ function p3SldFields(M) {
   g.push(br);
   g.push({ title: "เมนตู้รวมโซลาร์", items: [
     { path: "acCable", label: "สาย AC จากอินเวอร์เตอร์", auto: M.acCable },
+    { path: "acRoute", label: "วิธีเดินสาย AC อินเวอร์เตอร์", auto: M.acRoute, hint: "เช่น IN CONDUIT · ON CABLE TRAY" },
     { path: "ctBranch", label: "CT ในตู้รวม", auto: M.ctBranch },
     { path: "rccb", label: "เมนตู้ AC (RCCB / MCCB)", auto: M.rccb },
     { path: "rccbType", label: "เมนตู้ AC บรรทัดที่ 2", auto: M.rccbType },
     { path: "mainCable~0", label: "สายเมนขึ้นตู้ MCCB", auto: M.mainCable[0] },
     { path: "mainCable~1", label: "สายกราวด์", auto: M.mainCable[1] },
+    { path: "mainRoute", label: "วิธีเดินสายเมน", auto: M.mainRoute, hint: "เช่น IN CONDUIT · ON CABLE TRAY" },
   ] });
   g.push({ title: "ตู้ MCCB และมิเตอร์", items: [
     { path: "mccb~0", label: "MCCB", auto: M.mccb[0] },

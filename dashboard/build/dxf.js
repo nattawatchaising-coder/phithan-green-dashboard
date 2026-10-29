@@ -2758,12 +2758,29 @@ function pgSldPro(doc, sheet, M) {
         valign: 1
       });
     };
+    const invCab = String(M.acCable || "").replace(/\s+(L1,L2,L3,N|L,N)\s*$/, "").replace(/(\dC)-/, "$1x").replace(/\s+/g, " ") + " 0.6/1kV" + (M.acRoute ? " " + M.acRoute : "");
+    const invG = brk => {
+      const at = +(/(\d+)AT/.exec(String(brk || "")) || /(\d+)A\b/.exec(String(brk || "")) || [])[1] || 0;
+      const cu = at <= 100 ? 10 : at <= 200 ? 16 : at <= 400 ? 25 : at <= 500 ? 35 : at <= 800 ? 50 : at <= 1000 ? 70 : 95;
+      return "G-" + cu + " Sq.mm. IEC01(THW)";
+    };
     taps.forEach((t, i) => {
       if (oneInv) {
         pen.line(R, X.iv1 + 0.6, t.y, X.acBus, t.y);
         return;
       }
       pen.line(R, X.iv1 + 0.6, t.y, X.acB - g - 0.75, t.y);
+      if (isMain) {
+        const cw = X.ac0 - X.iv1 - 3,
+          gl = invG(t.b.brk),
+          ch = Math.min(fitH(invCab, TS.spec, cw), Math.max(0.9, (tGap - 1.6) / 2.2));
+        pen.text(T, X.iv1 + 2, t.y + 0.7, ch, invCab, {
+          valign: 1
+        });
+        pen.text(T, X.iv1 + 2, t.y - 0.7, ch, gl, {
+          valign: 3
+        });
+      }
       hBrk(X.acB, t.y, isCb(t.b.brk));
       brkLabel(String(t.b.brk || ""), t.b.typical ? " x" + t.b.cnt : "", X.acB, t.y);
       pen.line(R, X.acB + g + 0.75, t.y, X.acBus, t.y);
@@ -2858,25 +2875,33 @@ function pgSldPro(doc, sheet, M) {
         align: 1,
         valign: 1
       });
-      const pmx = cx + 3,
-        pmy = (pb + pt) / 2;
-      pen.line(CM, cx, yMain, cx, pt);
-      pen.rect(S, pmx - 4.5, pb, 9, pt - pb);
-      pen.text(T, pmx, pmy, TS.spec, "PM2230", {
+      const pw = 6.4,
+        pbB = pt - 6,
+        pmx = cx + 3,
+        pmy = (pbB + pt) / 2;
+      pen.line(CM, cx - 2 * CT_R, yMain - 1.6, cx - 2 * CT_R, pmy);
+      pen.line(CM, cx - 2 * CT_R, pmy, pmx - pw / 2, pmy);
+      pen.rect(S, pmx - pw / 2, pbB, pw, pt - pbB);
+      pen.line(S, pmx - pw / 2, pt - 1.3, pmx + pw / 2, pt - 1.3);
+      pen.text(T, pmx, (pbB + pt - 1.3) / 2, TS.head, "DM", {
         align: 1,
         valign: 2
+      });
+      pen.text(T, pmx, pbB - 0.8, TS.spec, "PM2230", {
+        align: 1,
+        valign: 3
       });
       const hx = mx + 5;
       pen.dot(R, px, yMain, 0.5);
       pen.line(R, px, yMain, px, pmy);
       pen.line(R, px, pmy, hx + g + 0.75, pmy);
       hBrk(hx, pmy);
-      pen.line(R, hx - g - 0.75, pmy, pmx + 4.5, pmy);
+      pen.line(R, hx - g - 0.75, pmy, pmx + pw / 2, pmy);
       pen.text(T, hx, pmy - 1.4, TS.tag, "MCB 2P 6A", {
         align: 1,
         valign: 3
       });
-      pmLow = pb - 1;
+      pmLow = pbB - 3.6;
     }
     pen.dot(R, sx, yMain, 0.5);
     const sw = sx - 3.6 - X.ac0 - 1;
@@ -2932,9 +2957,8 @@ function pgSldPro(doc, sheet, M) {
     pen.rect(BX, X.ac0, acBot, X.ac1 - X.ac0, acTop - acBot);
     if (isMain) zoneHdr(Math.min(hy, acTop + 2.5));
     const mdBot = yMain - 24;
-    const cl = [String(M.mainCable[0] || "").replace(/\s*\(SOLAR-CELL\)/, "").replace(/\s+/g, " ") + " 0.6/1kV", "G-" + P.earthCu + " Sq.mm. IEC01(THW)"];
+    const cl = [String(M.mainCable[0] || "").replace(/\s*\(SOLAR-CELL\)/, "").replace(/\s+/g, " ") + " 0.6/1kV" + (M.mainRoute ? " " + M.mainRoute : ""), "G-" + P.earthCu + " Sq.mm. IEC01(THW)"];
     const ctx = X.ac1 + 4;
-    pen.line(T, ctx, yMain + 2.6, ctx, yMain - 2.6);
     pen.text(T, ctx + 1, yMain + 0.8, TS.spec, cl[0], {
       valign: 1
     });
