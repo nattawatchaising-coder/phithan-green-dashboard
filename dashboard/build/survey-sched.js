@@ -120,7 +120,7 @@ function blankLead(leads) {
     province: "",
     map: "",
     type: "home",
-    phase: "1",
+    phase: "",
     roof: "",
     note: "",
     status: "open",

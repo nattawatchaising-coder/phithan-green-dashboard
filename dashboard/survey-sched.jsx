@@ -69,7 +69,7 @@ function blankLead(leads) {
     // id ไม่ซ้ำกับใครตลอดกาล (code เป็นเลขที่ให้คนอ่าน) — รูปสำรวจผูกกับ id ถ้าใช้เลขวนซ้ำรูปเก่าจะโผล่ผิดราย
     id: "LD-" + Date.now().toString(36) + Math.random().toString(36).slice(2, 5),
     code: "LD-" + String(max + 1).padStart(3, "0"),
-    name: "", phone: "", address: "", province: "", map: "", type: "home", phase: "1", roof: "",
+    name: "", phone: "", address: "", province: "", map: "", type: "home", phase: "", roof: "",   // phase ว่าง = ยังไม่ทราบ (ฟอร์มเลือก 1 / 3 / ไม่ทราบ · ที่อื่นคิดเป็น 1 เฟสเหมือนเดิม)
     note: "", status: "open", jobId: "", survey: null,
     /* ── ช่องของฝ่ายขาย ──
        sstage = ขั้นการขาย (ดู SALES_STAGES) แยกจาก status เดิมซึ่งบอกแค่จบแล้วหรือยัง

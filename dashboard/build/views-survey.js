@@ -1229,6 +1229,12 @@ function LeadModal({
   })), React.createElement("div", {
     style: {
       display: "flex",
+      gap: 11,
+      flexWrap: "wrap"
+    }
+  }, React.createElement("div", {
+    style: {
+      display: "flex",
       flexDirection: "column",
       gap: 5
     }
@@ -1245,6 +1251,36 @@ function LeadModal({
       label: "โรงงาน / ธุรกิจ"
     }]
   })), React.createElement("div", {
+    style: {
+      display: "flex",
+      flexDirection: "column",
+      gap: 5
+    }
+  }, React.createElement("label", {
+    style: lbl
+  }, "\u0E23\u0E30\u0E1A\u0E1A\u0E44\u0E1F\u0E1F\u0E49\u0E32"), React.createElement(Segmented, {
+    value: String(f.phase || f.survey && f.survey.phase || "") === "3" ? "3" : f.phase || f.survey && f.survey.phase ? "1" : "u",
+    onChange: v => setF(p => {
+      const ph = v === "u" ? "" : v;
+      const o = {
+        phase: ph
+      };
+      if (p.survey && p.survey.phase && String(p.survey.phase) !== ph) o.survey = Object.assign({}, p.survey, {
+        phase: ph
+      });
+      return Object.assign({}, p, o);
+    }),
+    options: [{
+      value: "1",
+      label: "1 เฟส"
+    }, {
+      value: "3",
+      label: "3 เฟส"
+    }, {
+      value: "u",
+      label: "ไม่ทราบ"
+    }]
+  }))), React.createElement("div", {
     style: {
       borderTop: "1px solid var(--divider)",
       paddingTop: 14,

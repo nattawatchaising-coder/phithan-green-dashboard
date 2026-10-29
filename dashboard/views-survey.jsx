@@ -485,8 +485,22 @@ function LeadModal({ initial, isNew, users, onClose, onSave }) {
           {/* ลิงก์แผนที่ — ที่อยู่ที่พิมพ์มาพาไปไม่ถูกบ้านบ่อย คนที่ไปหน้างานใช้ลิงก์นี้นำทางแทน
               ช่องเดียวกับ "ลิงก์ Google Maps" ของใบงาน พอแปลงเป็นงานแล้วค่าตามไปเอง */}
           <div style={{ display: "flex", flexDirection: "column", gap: 5 }}><label style={lbl}>ลิงก์ Google Maps</label><input value={f.map || ""} onChange={(e) => set("map", e.target.value)} placeholder="https://maps.app.goo.gl/..." style={inputStyle} /></div>
-          <div style={{ display: "flex", flexDirection: "column", gap: 5 }}><label style={lbl}>ประเภท</label>
-            <Segmented value={f.type || "home"} onChange={(v) => set("type", v)} options={[{ value: "home", label: "บ้าน" }, { value: "biz", label: "โรงงาน / ธุรกิจ" }]} /></div>
+          {/* ประเภท + ระบบไฟฟ้า แถวเดียวกัน (ผู้ใช้ 2026-10-29: เลือกเฟสตั้งแต่เปิดลูกค้า · 1 / 3 / ไม่ทราบ)
+              ช่องเดียวกับ "ระบบไฟฟ้า" ในใบลูกค้า (LeadSpecPhase) — แบบสำรวจมีเฟสอยู่แล้วต้องแก้ตามด้วย ไม่งั้นค่าในแบบสำรวจทับ (ดู SF.phaseOf)
+              ไม่ทราบ = phase ว่าง · ที่อื่นยังคิดเป็น 1 เฟสเหมือนเดิม (phaseOf) แต่ใบลูกค้าไม่เลือกปุ่มไหนไว้ */}
+          <div style={{ display: "flex", gap: 11, flexWrap: "wrap" }}>
+            <div style={{ display: "flex", flexDirection: "column", gap: 5 }}><label style={lbl}>ประเภท</label>
+              <Segmented value={f.type || "home"} onChange={(v) => set("type", v)} options={[{ value: "home", label: "บ้าน" }, { value: "biz", label: "โรงงาน / ธุรกิจ" }]} /></div>
+            <div style={{ display: "flex", flexDirection: "column", gap: 5 }}><label style={lbl}>ระบบไฟฟ้า</label>
+              <Segmented value={String(f.phase || (f.survey && f.survey.phase) || "") === "3" ? "3" : (f.phase || (f.survey && f.survey.phase)) ? "1" : "u"}
+                onChange={(v) => setF((p) => {
+                  const ph = v === "u" ? "" : v;
+                  const o = { phase: ph };
+                  if (p.survey && p.survey.phase && String(p.survey.phase) !== ph) o.survey = Object.assign({}, p.survey, { phase: ph });
+                  return Object.assign({}, p, o);
+                })}
+                options={[{ value: "1", label: "1 เฟส" }, { value: "3", label: "3 เฟส" }, { value: "u", label: "ไม่ทราบ" }]} /></div>
+          </div>
           {/* ── ข้อมูลของฝ่ายขาย ── */}
           <div style={{ borderTop: "1px solid var(--divider)", paddingTop: 14, display: "flex", flexDirection: "column", gap: 12 }}>
             <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: ".05em", color: "var(--primary-dark)" }}>ข้อมูลฝ่ายขาย</div>
