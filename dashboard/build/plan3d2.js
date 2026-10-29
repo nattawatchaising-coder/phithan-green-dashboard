@@ -13173,7 +13173,6 @@ function Plan3DStudio({
       setToolRaw("select");
       setDraw(null);
       setTrace(null);
-      if (total) openSys();
     }
   }];
   let reach = 0;
@@ -13187,6 +13186,7 @@ function Plan3DStudio({
   }
   const wi = wizStep != null ? Math.min(wizStep, reach) : reach,
     W0 = WIZ[wi];
+  if (W0.k === "fin" && !wizSeen.fin && total > 0 && !dirty) markSeen("fin");
   const canNext = W0.done || W0.opt;
   const clearPick = () => {
     setSel(null);

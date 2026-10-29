@@ -5410,13 +5410,17 @@ function Plan3DStudio({ job, ver, onClose, currentUser }) {
           {!total && <span className="p3s-badge warn">ยังไม่มีแผง — กลับไปขั้นวางแผงก่อน</span>}
           {mediaMsg && <span className="p3s-badge warn">{mediaMsg}</span>}
         </React.Fragment>),
-      go: () => { setToolRaw("select"); setDraw(null); setTrace(null); if (total) openSys(); } },
+      /* ไม่เปิดหน้าออกแบบระบบให้เอง — ให้ผู้ใช้กดปุ่ม "เปิดหน้าออกแบบระบบ" ในการ์ดนี้ (ผู้ใช้ 29 ต.ค. 2026: "กดไป 8 ก็ทะลุไปหน้าออกแบบเลย ยังไม่ได้กดยืนยันอะไร") */
+      go: () => { setToolRaw("select"); setDraw(null); setTrace(null); } },
   ];
   /* ไปได้ไกลสุดถึงขั้นแรกที่ยังไม่เสร็จ (ขั้นก่อนหน้าต้องเสร็จครบ) — ย้อนกลับได้เสมอ ข้ามไปข้างหน้าไม่ได้ */
   let reach = 0; while (reach < WIZ.length - 1 && WIZ[reach].done) reach++;
   // เปิดมาครั้งแรกเริ่มที่ขั้นที่ค้าง แล้วอยู่ขั้นเดิมจนผู้ใช้กดถัดไปเอง (ทำเสร็จแล้วไม่เด้งไปขั้นถัดไป)
   if (wizStep == null) { setWizStep(reach); if (reach === 3) { setToolRaw("roof"); if (!roofs.length) setKindPick(true); } }
   const wi = wizStep != null ? Math.min(wizStep, reach) : reach, W0 = WIZ[wi];
+  /* อยู่ขั้น 7 แล้วบันทึกครบ (ไม่มีของค้าง) = ถือว่าเห็นแล้ว — เดิมต้องเข้าขั้นนี้ผ่านปุ่มถัดไป/จุดขั้น (go) หรือกดบันทึกเท่านั้น
+     เปิดแบบที่บันทึกไว้แล้วเครื่องใหม่/เวอร์ชันใหม่ ปุ่มบันทึกเป็น "บันทึกแล้ว" กดไม่ได้ ถัดไปก็กดไม่ได้ ต้องย้อนไปขั้น 6 แล้วกลับมา (ผู้ใช้ 29 ต.ค. 2026) */
+  if (W0.k === "fin" && !wizSeen.fin && total > 0 && !dirty) markSeen("fin");
   const canNext = W0.done || W0.opt;
   const clearPick = () => { setSel(null); setMulti([]); setSelVert(null); setSelBlk(null); setSelWalk(null); };
   const goStep = (i) => { if (i < 0 || i >= WIZ.length) return; if (i !== wi) clearPick(); setWizStep(i); WIZ[i].go(); };
