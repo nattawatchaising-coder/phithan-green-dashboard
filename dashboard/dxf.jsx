@@ -1980,7 +1980,8 @@ function pgSldPro(doc, sheet, M) {
       const pb = yMain - 19, pt = yMain - 14;
       ctH(cx, yMain);
       /* ไฟแสดงเฟส (pilot lamp) แยกจากสายเมนหลัง CT → ฟิวส์ → ขึ้นเหนือตู้ → หลอด R S T (ผู้ใช้วาดชี้ 2026-10-29) */
-      const fy = acTop0 + 4, ly = acTop0 + 9, lr = 1.3;
+      /* แผ่นภาพรวมตู้สูงทั้งแผ่น — หลอดไฟแสดงเฟสลงมาอยู่เหนือสายเมน ไม่ลอยไปขอบบนตู้ (ผู้ใช้ชี้ 2026-10-29) */
+      const fy = isMain ? Math.min(acTop0 + 4, yMain + 12) : acTop0 + 4, ly = fy + 5, lr = 1.3;
       const ph = M.phase === 3 ? ["R", "S", "T"] : ["L"];
       pen.dot(R, lx, yMain, 0.5);
       pen.line(R, lx, yMain, lx, fy - 2.4); vFuse(lx, fy); pen.line(R, lx, fy + 2.4, lx, ly);
@@ -2018,9 +2019,11 @@ function pgSldPro(doc, sheet, M) {
     let sy = yMain;
     const top0 = Math.min(P.pm ? pmLow : yMain, hasGf ? yMain - 12.6 : yMain - 3);
     if (P.spdBk) {
-      const by = top0 - 2.4;
+      /* ฟิวส์อยู่ชิดสายเมน (ผู้ใช้ชี้ 2026-10-29: ฟิวส์ลอยต่ำ ป้ายไม่ตรงตัว) — ป้ายข้างฟิวส์อยู่สูงกว่ากล่อง PM/MCB 2P จึงไม่ชน
+         SPD ยังอยู่ต่ำกว่าแถว PM เหมือนเดิม (ป้าย SPD ยาว ชน MCB 2P ถ้ายกขึ้น) */
+      const fuse = /FUSE/.test(P.spdBk), by = (fuse ? (hasGf ? yMain - 12.6 : yMain - 3) : top0) - 2.4;
       pen.line(R, sx, sy, sx, by + 2.4);
-      if (/FUSE/.test(P.spdBk)) { vFuse(sx, by); sy = by - 2.4; }
+      if (fuse) { vFuse(sx, by); sy = Math.min(by - 2.4, top0 - 4.8); pen.line(R, sx, by - 2.4, sx, sy); }
       else { pen.line(R, sx, by + 2.4, sx, by + g + 0.75); pgSym.breaker(pen, sx, by, "", "", g); sy = by - g - 0.75; }
       pen.text(T, sx - 2.6, by, fitH(P.spdBk, TS.spec, sw), P.spdBk, { align: 2, valign: 2 });
     } else sy = top0 + 2;
