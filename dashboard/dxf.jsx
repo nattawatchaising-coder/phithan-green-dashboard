@@ -2075,12 +2075,9 @@ function pgSldPro(doc, sheet, M) {
     /* สายดิน SPD จบที่รูบาร์ G · สายไป MET ออกจากอีกรูด้านล่าง ไม่ลากทะลุบาร์ (ผู้ใช้ชี้ 2026-10-29) */
     pen.line(PE, sx, spY - 2.4, sx, barY + 0.45);
     pen.line(PE, sx + 2, barY - 0.45, sx + 2, yE);
-    /* กราวด์ตัวตู้ (ผู้ใช้บอก 2026-10-29) — จากรูที่ 1 ขึ้นไปสัญลักษณ์กราวด์โครง (เส้นนอน + ขีดเฉียง 3 ขีด) */
-    { const ex = sx - 4, ey = barY + 3.2;
-      pen.line(PE, ex, barY + 0.45, ex, ey);
-      pen.line(PE, ex - 1.6, ey, ex + 1.6, ey);
-      for (let k = -1; k <= 1; k++) pen.line(PE, ex + k * 1.4, ey, ex + k * 1.4 - 0.7, ey + 0.9);
-      pen.text(T, ex - 2.4, ey, TS.tag, "ENCLOSURE GND", { align: 2, valign: 2 }); }
+    /* กราวด์ตัวตู้ (ผู้ใช้ชี้ 2026-10-29) — จากรูที่ 1 ของบาร์ G ลงไปต่อกรอบตู้ (เส้นประก้นตู้) */
+    pen.line(PE, sx - 4, barY - 0.45, sx - 4, acBot);
+    pen.text(T, sx - 4.8, acBot + 1.2, TS.tag, "ENCLOSURE GND", { align: 2, valign: 2 });
     /* PE trunk ซ้าย: โครงแผงทุกแถว + บล็อกทุกเครื่อง → บัสดินหลัก */
     pen.line(PE, X.pe0, peTop, X.pe0, yE);
     const ctY = mdTop + 6, mY = mdTop + 15, uY = mdTop + 27;

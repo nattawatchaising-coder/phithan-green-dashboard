@@ -2986,17 +2986,11 @@ function pgSldPro(doc, sheet, M) {
     pen.line(PE, mpx, mdBot + 1.2, mpx, yE);
     pen.line(PE, sx, spY - 2.4, sx, barY + 0.45);
     pen.line(PE, sx + 2, barY - 0.45, sx + 2, yE);
-    {
-      const ex = sx - 4,
-        ey = barY + 3.2;
-      pen.line(PE, ex, barY + 0.45, ex, ey);
-      pen.line(PE, ex - 1.6, ey, ex + 1.6, ey);
-      for (let k = -1; k <= 1; k++) pen.line(PE, ex + k * 1.4, ey, ex + k * 1.4 - 0.7, ey + 0.9);
-      pen.text(T, ex - 2.4, ey, TS.tag, "ENCLOSURE GND", {
-        align: 2,
-        valign: 2
-      });
-    }
+    pen.line(PE, sx - 4, barY - 0.45, sx - 4, acBot);
+    pen.text(T, sx - 4.8, acBot + 1.2, TS.tag, "ENCLOSURE GND", {
+      align: 2,
+      valign: 2
+    });
     pen.line(PE, X.pe0, peTop, X.pe0, yE);
     const ctY = mdTop + 6,
       mY = mdTop + 15,
