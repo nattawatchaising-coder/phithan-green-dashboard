@@ -2043,7 +2043,7 @@ function pgSldPro(doc, sheet, M) {
       pen.text(T, right ? cx + barW / 2 + 1.0 : cx - barW / 2 - 1.0, barY, TS.spec, lab, { align: right ? 0 : 2, valign: 2 });
     };
     bar(S, sx - 16, "N", false);
-    bar(PE, sx, "G", true);
+    bar(PE, sx - 1, "G", true);   // รูที่ 3 ตรงสาย SPD · รูที่ 4 (sx + 2) ออกไป MET
     pen.rect(BX, X.ac0, acBot, X.ac1 - X.ac0, acTop - acBot);
     pen.text(T, X.ac1 + 3.0, yMain - 3, TS.spec, M.mainCable[0], { rot: 90, align: 2 });
     pen.text(T, X.ac1 + 5.8, yMain - 3, TS.spec, "THW(G) " + P.earthCu + " mm2 (PE)", { rot: 90, align: 2 });
@@ -2072,7 +2072,15 @@ function pgSldPro(doc, sheet, M) {
     pen.text(T, mpx + 2.6, mdBot + 1.7, TS.tag, "PE / N-PE LINK", { valign: 2 });
     const yE = Math.max(yE0, Math.min(blkLow - 4, acBot - 5, mdBot - 14));
     pen.line(PE, mpx, mdBot + 1.2, mpx, yE);
-    pen.line(PE, sx, spY - 2.4, sx, yE);
+    /* สายดิน SPD จบที่รูบาร์ G · สายไป MET ออกจากอีกรูด้านล่าง ไม่ลากทะลุบาร์ (ผู้ใช้ชี้ 2026-10-29) */
+    pen.line(PE, sx, spY - 2.4, sx, barY + 0.45);
+    pen.line(PE, sx + 2, barY - 0.45, sx + 2, yE);
+    /* กราวด์ตัวตู้ (ผู้ใช้บอก 2026-10-29) — จากรูที่ 1 ขึ้นไปสัญลักษณ์กราวด์โครง (เส้นนอน + ขีดเฉียง 3 ขีด) */
+    { const ex = sx - 4, ey = barY + 3.2;
+      pen.line(PE, ex, barY + 0.45, ex, ey);
+      pen.line(PE, ex - 1.6, ey, ex + 1.6, ey);
+      for (let k = -1; k <= 1; k++) pen.line(PE, ex + k * 1.4, ey, ex + k * 1.4 - 0.7, ey + 0.9);
+      pen.text(T, ex - 2.4, ey, TS.tag, "ENCLOSURE GND", { align: 2, valign: 2 }); }
     /* PE trunk ซ้าย: โครงแผงทุกแถว + บล็อกทุกเครื่อง → บัสดินหลัก */
     pen.line(PE, X.pe0, peTop, X.pe0, yE);
     const ctY = mdTop + 6, mY = mdTop + 15, uY = mdTop + 27;

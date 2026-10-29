@@ -2933,7 +2933,7 @@ function pgSldPro(doc, sheet, M) {
       });
     };
     bar(S, sx - 16, "N", false);
-    bar(PE, sx, "G", true);
+    bar(PE, sx - 1, "G", true);
     pen.rect(BX, X.ac0, acBot, X.ac1 - X.ac0, acTop - acBot);
     pen.text(T, X.ac1 + 3.0, yMain - 3, TS.spec, M.mainCable[0], {
       rot: 90,
@@ -2984,7 +2984,19 @@ function pgSldPro(doc, sheet, M) {
     });
     const yE = Math.max(yE0, Math.min(blkLow - 4, acBot - 5, mdBot - 14));
     pen.line(PE, mpx, mdBot + 1.2, mpx, yE);
-    pen.line(PE, sx, spY - 2.4, sx, yE);
+    pen.line(PE, sx, spY - 2.4, sx, barY + 0.45);
+    pen.line(PE, sx + 2, barY - 0.45, sx + 2, yE);
+    {
+      const ex = sx - 4,
+        ey = barY + 3.2;
+      pen.line(PE, ex, barY + 0.45, ex, ey);
+      pen.line(PE, ex - 1.6, ey, ex + 1.6, ey);
+      for (let k = -1; k <= 1; k++) pen.line(PE, ex + k * 1.4, ey, ex + k * 1.4 - 0.7, ey + 0.9);
+      pen.text(T, ex - 2.4, ey, TS.tag, "ENCLOSURE GND", {
+        align: 2,
+        valign: 2
+      });
+    }
     pen.line(PE, X.pe0, peTop, X.pe0, yE);
     const ctY = mdTop + 6,
       mY = mdTop + 15,
