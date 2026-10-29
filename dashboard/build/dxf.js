@@ -2838,7 +2838,8 @@ function pgSldPro(doc, sheet, M) {
     if (P.pm) {
       const pb = yMain - 19,
         pt = yMain - 14;
-      ctH(cx, yMain);
+      [-2 * CT_R, 0, 2 * CT_R].forEach(dx => pen.arc(S, cx + dx, yMain, CT_R, 0, 180));
+      [3 * CT_R, -3 * CT_R].forEach(dx => pen.line(S, cx + dx, yMain - 1.6, cx + dx, yMain));
       const fy = isMain ? Math.min(acTop0 + 4, yMain + 12) : acTop0 + 4,
         ly = fy + 5,
         lr = 1.3;
@@ -2880,8 +2881,8 @@ function pgSldPro(doc, sheet, M) {
         pbB = pt - 6,
         pmx = cx + 3,
         pmy = (pbB + pt) / 2;
-      pen.line(S, cx - 2 * CT_R, yMain - 1.6, cx - 2 * CT_R, pmy);
-      pen.line(S, cx - 2 * CT_R, pmy, pmx - pw / 2, pmy);
+      pen.line(S, cx - 3 * CT_R, yMain - 1.6, cx - 3 * CT_R, pmy);
+      pen.line(S, cx - 3 * CT_R, pmy, pmx - pw / 2, pmy);
       pen.rect(S, pmx - pw / 2, pbB, pw, pt - pbB);
       pen.line(S, pmx - pw / 2, pt - 1.3, pmx + pw / 2, pt - 1.3);
       pen.text(T, pmx, (pbB + pt - 1.3) / 2, TS.head, "DM", {
