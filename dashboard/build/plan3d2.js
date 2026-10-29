@@ -14150,6 +14150,7 @@ function Plan3DStudio({
     }
   }, React.createElement("style", null, P3_CSS + P3S_CSS), sysOpen && typeof SolarWorkspace === "function" && React.createElement(SolarWorkspace, {
     job: job,
+    ver: ver || "1",
     st: st,
     sys: st.sys || suBlankSys(),
     snap: sysSnap,

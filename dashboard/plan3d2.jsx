@@ -5779,7 +5779,7 @@ function Plan3DStudio({ job, ver, onClose, currentUser }) {
     <div className="p3s" style={{ position: "fixed", inset: 0, zIndex: 120, background: "var(--bg)", display: "flex", flexDirection: "column" }}>
       <style>{P3_CSS + P3S_CSS}</style>
       {sysOpen && typeof SolarWorkspace === "function" && (
-        <SolarWorkspace job={job} st={st} sys={st.sys || suBlankSys()} snap={sysSnap} onChange={sysChange}
+        <SolarWorkspace job={job} ver={ver || "1"} st={st} sys={st.sys || suBlankSys()} snap={sysSnap} onChange={sysChange}
           onClose={() => { sysFlush(); setSysOpen(false); }} />
       )}
       {mapOpen && <P3MapPicker initial={st.baseMap ? { lat: st.baseMap.lat, lng: st.baseMap.lng } : jobLatLng} initialQuery={jobAddr} onPick={onPickMap} onClose={() => setMapOpen(false)} />}

@@ -585,7 +585,7 @@ function movePlan3d(fromId, toId) {
     const idx = s.val();
     if (!idx) return null;
     return Promise.all(Object.keys(idx).filter(k => k !== "1").map(k => mv("plan3d/" + fromId + "~" + k, "plan3d/" + toId + "~" + k))).then(() => mv("plan3dVers/" + fromId, "plan3dVers/" + toId));
-  }).catch(() => null), mv("boqVers/" + fromId, "boqVers/" + toId), mv("eroom/" + fromId, "eroom/" + toId), mv("plan3dShots/" + fromId, "plan3dShots/" + toId), mv("plan3dShotData/" + fromId, "plan3dShotData/" + toId)]);
+  }).catch(() => null), mv("boqVers/" + fromId, "boqVers/" + toId), mv("eroom/" + fromId, "eroom/" + toId), mv("plan3dShots/" + fromId, "plan3dShots/" + toId), mv("plan3dShotData/" + fromId, "plan3dShotData/" + toId), mv("plan3dSldDesign/" + fromId, "plan3dSldDesign/" + toId)]);
 }
 let _p3Seq = 0;
 const p3Id = p => (p || "x") + Date.now().toString(36) + _p3Seq++;

@@ -77,7 +77,8 @@ function dvP3Create(jobId, fromVer, list, user, name) {
 const dvP3Rename = (jobId, ver, name) => window.FBDB.ref("plan3dVers/" + jobId + "/" + ver + "/name").set((name || "").trim() || null);
 /* ลบได้เฉพาะเวอร์ชันที่ไม่ใช่ต้นแบบ — ผู้เรียกกันไว้แล้วว่าไม่มี BOQ ผูกอยู่ */
 const dvP3Delete = (jobId, ver) => (String(ver) === "1" ? Promise.resolve() :
-  Promise.all([window.FBDB.ref("plan3d/" + dvP3Key(jobId, ver)).remove(), window.FBDB.ref("plan3dVers/" + jobId + "/" + ver).remove()]));
+  Promise.all([window.FBDB.ref("plan3d/" + dvP3Key(jobId, ver)).remove(), window.FBDB.ref("plan3dVers/" + jobId + "/" + ver).remove(),
+    window.FBDB.ref("plan3dSldDesign/" + jobId + "/" + ver).remove()]));
 
 /* รายการเวอร์ชัน BOQ — ยังไม่เคยสร้างเวอร์ชันที่สอง = มีแค่ใบใน job.boq เป็นเวอร์ชัน "1" (ยังไม่ได้เขียน boqVers) */
 function useBoqVers(jobId, activeBoq) {
@@ -424,7 +425,7 @@ function useDesignVersions({ job, activeBoq, currentUser, patchActive, BoqEditor
     else setEd({ ver: "new", boq: seed, vers, quick: true, quickNew: true });
   };
   return { boqSub, p3Sub, openBoq, openP3, ui, nBoq: vers.list.length, nP3: p3.list.length,
-    jobId, p3List: p3.list, boqVers: vers, boqLinks, openP3Ver, openBoqVer, newP3, newBoq, quickBoq, removeBoq,
+    jobId, job, p3List: p3.list, boqVers: vers, boqLinks, openP3Ver, openBoqVer, newP3, newBoq, quickBoq, removeBoq,
     manageP3: () => setPick("p3"), manageBoq: () => setPick("boq") };
 }
 
@@ -477,8 +478,51 @@ const DVC_CSS = `
 .dvc-empty{font-size:12.5px;color:var(--text-3);margin-top:8px}
 @media (max-width:560px){.dvc-pill{display:none}}
 `;
+/* ── ดู SLD ของแบบ 3D เวอร์ชันหนึ่ง (ผู้ใช้ 2026-10-29: "ถ้ามีแบบ SLD ให้แสดงตรงจุดนี้ กดแล้วแสดงให้ดูเลย") ──
+   วาดสดจากแบบ 3D ล่าสุด (plan3d) + การจัดสตริงที่หน้าออกแบบระบบเก็บไว้ (plan3dSldDesign · SolarWorkspace)
+   โค้ดวาดชุดเดียวกับไฟล์ DXF/PDF (p3Sld → SVG) — ดูอย่างเดียว ดาวน์โหลดชุดแบบยังทำที่หน้าออกแบบระบบ */
+function DvSldModal({ job, jobId, ver, verName, design, onClose }) {
+  const [svg, setSvg] = React.useState(null);
+  const [err, setErr] = React.useState("");
+  const bdClose = window.useBackdropClose ? window.useBackdropClose(onClose) : { onClick: onClose };
+  React.useEffect(() => {
+    let live = true;
+    window.FBDB.ref("plan3d/" + dvP3Key(jobId, ver)).once("value").then((s) => {
+      const st = s.val();
+      if (!st) throw new Error("ไม่พบแบบ 3D");
+      const out = window.p3Sld(st, job, { svg: true, sheetNo: "1/1", design: Object.assign({ paths: [] }, design) });
+      if (live) setSvg(out);
+    }).catch((e) => { if (live) setErr((e && e.message) || "วาด SLD ไม่สำเร็จ"); });
+    return () => { live = false; };
+  }, [jobId, ver]);
+  React.useEffect(() => {
+    const k = (e) => { if (e.key === "Escape") onClose(); };
+    window.addEventListener("keydown", k);
+    return () => window.removeEventListener("keydown", k);
+  }, []);
+  return ReactDOM.createPortal(
+    <div {...bdClose} data-layer="sld" style={{ position: "fixed", inset: 0, zIndex: 230, background: "rgba(8,20,14,.55)", display: "flex", padding: 14 }}>
+      <div onClick={(e) => e.stopPropagation()} style={{ flex: 1, minHeight: 0, background: "var(--surface)", borderRadius: 16, overflow: "hidden", display: "flex", flexDirection: "column", boxShadow: "var(--shadow-modal)" }}>
+        <div style={{ padding: "11px 14px", display: "flex", gap: 10, alignItems: "center", boxShadow: "var(--shadow-sm)", position: "relative", zIndex: 1 }}>
+          <span style={{ flex: 1, minWidth: 0 }}>
+            <span style={{ display: "block", fontWeight: 800, fontSize: 14, color: "var(--text-1)" }}>แผนภาพไฟฟ้า (SLD)</span>
+            <span style={{ display: "block", fontSize: 11.5, color: "var(--text-3)" }}>แบบ 3D V{ver} · {verName}{design && design.at ? " · จัดสตริงล่าสุด " + dvWhen(design.at) : ""}</span>
+          </span>
+          <button className="x-close" onClick={onClose} style={{ width: 32, height: 32, borderRadius: "var(--r-chip)", background: "var(--surface2)", boxShadow: "var(--shadow-sm)", cursor: "pointer", display: "grid", placeItems: "center", color: "var(--text-2)" }}><Icon name="x" size={16} /></button>
+        </div>
+        <div style={{ flex: 1, minHeight: 0, overflow: "auto", background: "#4a4a4a", padding: 14, display: "flex", justifyContent: "center", alignItems: "flex-start" }}>
+          {err ? <div style={{ color: "#fff", fontSize: 13, padding: 20 }}>{err}</div>
+            : svg ? <div style={{ width: "100%", maxWidth: 1500, background: "#fff", boxShadow: "var(--shadow-pop)" }} dangerouslySetInnerHTML={{ __html: svg }} />
+            : <div style={{ color: "#fff", fontSize: 13, padding: 20 }}>กำลังวาด SLD…</div>}
+        </div>
+      </div>
+    </div>, document.body);
+}
 function DvVerCard({ kind, dvs, title, sub, icon, color, canNew }) {
   const isP3 = kind === "p3";
+  /* การจัดสตริงที่เก็บไว้ต่อเวอร์ชันแบบ — มี = แถวนั้นขึ้นปุ่ม SLD */
+  const sldNode = dvUseNode(isP3 && dvs.jobId ? "plan3dSldDesign/" + dvs.jobId : null) || {};
+  const [sldVer, setSldVer] = React.useState(null);
   const p3List = dvs.p3List || [];
   const vers = dvs.boqVers || { list: [] };
   const list = isP3 ? p3List : vers.list;
@@ -550,6 +594,11 @@ function DvVerCard({ kind, dvs, title, sub, icon, color, canNew }) {
                 {r.meta && <span className="dvc-mt">{r.meta}</span>}
               </span>
               {r.val && <span className="dvc-v">{r.val}</span>}
+              {isP3 && sldNode[r.id] && typeof window.p3Sld === "function" && (
+                <button className="dvc-btn" title="ดูแผนภาพไฟฟ้า (SLD) ของแบบนี้" onClick={(e) => { e.stopPropagation(); setSldVer(r.id); }}>
+                  <Icon name="bolt" size={13} color="var(--primary-dark)" /> SLD
+                </button>
+              )}
               {many && r.pill && <span className="dvc-pill" style={{ color: r.pill.c, background: "color-mix(in srgb," + r.pill.c + " 11%,transparent)" }}>{r.pill.th}</span>}
               {canNew && r.del && (
                 <button className="dvc-del" disabled={!!r.del.off} title={r.del.off || "ลบเวอร์ชันนี้"}
@@ -559,6 +608,9 @@ function DvVerCard({ kind, dvs, title, sub, icon, color, canNew }) {
             </div>
           ))}
         </div>
+      )}
+      {sldVer && sldNode[sldVer] && (
+        <DvSldModal job={dvs.job} jobId={dvs.jobId} ver={sldVer} verName={dvP3Name(p3List, sldVer)} design={sldNode[sldVer]} onClose={() => setSldVer(null)} />
       )}
     </div>
   );

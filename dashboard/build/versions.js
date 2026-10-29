@@ -90,7 +90,7 @@ function dvP3Create(jobId, fromVer, list, user, name) {
   }).then(() => id);
 }
 const dvP3Rename = (jobId, ver, name) => window.FBDB.ref("plan3dVers/" + jobId + "/" + ver + "/name").set((name || "").trim() || null);
-const dvP3Delete = (jobId, ver) => String(ver) === "1" ? Promise.resolve() : Promise.all([window.FBDB.ref("plan3d/" + dvP3Key(jobId, ver)).remove(), window.FBDB.ref("plan3dVers/" + jobId + "/" + ver).remove()]);
+const dvP3Delete = (jobId, ver) => String(ver) === "1" ? Promise.resolve() : Promise.all([window.FBDB.ref("plan3d/" + dvP3Key(jobId, ver)).remove(), window.FBDB.ref("plan3dVers/" + jobId + "/" + ver).remove(), window.FBDB.ref("plan3dSldDesign/" + jobId + "/" + ver).remove()]);
 function useBoqVers(jobId, activeBoq) {
   const node = dvUseNode(jobId ? "boqVers/" + jobId : null);
   return React.useMemo(() => {
@@ -749,6 +749,7 @@ function useDesignVersions({
     nBoq: vers.list.length,
     nP3: p3.list.length,
     jobId,
+    job,
     p3List: p3.list,
     boqVers: vers,
     boqLinks,
@@ -835,6 +836,148 @@ const DVC_CSS = `
 .dvc-empty{font-size:12.5px;color:var(--text-3);margin-top:8px}
 @media (max-width:560px){.dvc-pill{display:none}}
 `;
+function DvSldModal({
+  job,
+  jobId,
+  ver,
+  verName,
+  design,
+  onClose
+}) {
+  const [svg, setSvg] = React.useState(null);
+  const [err, setErr] = React.useState("");
+  const bdClose = window.useBackdropClose ? window.useBackdropClose(onClose) : {
+    onClick: onClose
+  };
+  React.useEffect(() => {
+    let live = true;
+    window.FBDB.ref("plan3d/" + dvP3Key(jobId, ver)).once("value").then(s => {
+      const st = s.val();
+      if (!st) throw new Error("ไม่พบแบบ 3D");
+      const out = window.p3Sld(st, job, {
+        svg: true,
+        sheetNo: "1/1",
+        design: Object.assign({
+          paths: []
+        }, design)
+      });
+      if (live) setSvg(out);
+    }).catch(e => {
+      if (live) setErr(e && e.message || "วาด SLD ไม่สำเร็จ");
+    });
+    return () => {
+      live = false;
+    };
+  }, [jobId, ver]);
+  React.useEffect(() => {
+    const k = e => {
+      if (e.key === "Escape") onClose();
+    };
+    window.addEventListener("keydown", k);
+    return () => window.removeEventListener("keydown", k);
+  }, []);
+  return ReactDOM.createPortal(React.createElement("div", _extends({}, bdClose, {
+    "data-layer": "sld",
+    style: {
+      position: "fixed",
+      inset: 0,
+      zIndex: 230,
+      background: "rgba(8,20,14,.55)",
+      display: "flex",
+      padding: 14
+    }
+  }), React.createElement("div", {
+    onClick: e => e.stopPropagation(),
+    style: {
+      flex: 1,
+      minHeight: 0,
+      background: "var(--surface)",
+      borderRadius: 16,
+      overflow: "hidden",
+      display: "flex",
+      flexDirection: "column",
+      boxShadow: "var(--shadow-modal)"
+    }
+  }, React.createElement("div", {
+    style: {
+      padding: "11px 14px",
+      display: "flex",
+      gap: 10,
+      alignItems: "center",
+      boxShadow: "var(--shadow-sm)",
+      position: "relative",
+      zIndex: 1
+    }
+  }, React.createElement("span", {
+    style: {
+      flex: 1,
+      minWidth: 0
+    }
+  }, React.createElement("span", {
+    style: {
+      display: "block",
+      fontWeight: 800,
+      fontSize: 14,
+      color: "var(--text-1)"
+    }
+  }, "\u0E41\u0E1C\u0E19\u0E20\u0E32\u0E1E\u0E44\u0E1F\u0E1F\u0E49\u0E32 (SLD)"), React.createElement("span", {
+    style: {
+      display: "block",
+      fontSize: 11.5,
+      color: "var(--text-3)"
+    }
+  }, "\u0E41\u0E1A\u0E1A 3D V", ver, " \xB7 ", verName, design && design.at ? " · จัดสตริงล่าสุด " + dvWhen(design.at) : "")), React.createElement("button", {
+    className: "x-close",
+    onClick: onClose,
+    style: {
+      width: 32,
+      height: 32,
+      borderRadius: "var(--r-chip)",
+      background: "var(--surface2)",
+      boxShadow: "var(--shadow-sm)",
+      cursor: "pointer",
+      display: "grid",
+      placeItems: "center",
+      color: "var(--text-2)"
+    }
+  }, React.createElement(Icon, {
+    name: "x",
+    size: 16
+  }))), React.createElement("div", {
+    style: {
+      flex: 1,
+      minHeight: 0,
+      overflow: "auto",
+      background: "#4a4a4a",
+      padding: 14,
+      display: "flex",
+      justifyContent: "center",
+      alignItems: "flex-start"
+    }
+  }, err ? React.createElement("div", {
+    style: {
+      color: "#fff",
+      fontSize: 13,
+      padding: 20
+    }
+  }, err) : svg ? React.createElement("div", {
+    style: {
+      width: "100%",
+      maxWidth: 1500,
+      background: "#fff",
+      boxShadow: "var(--shadow-pop)"
+    },
+    dangerouslySetInnerHTML: {
+      __html: svg
+    }
+  }) : React.createElement("div", {
+    style: {
+      color: "#fff",
+      fontSize: 13,
+      padding: 20
+    }
+  }, "\u0E01\u0E33\u0E25\u0E31\u0E07\u0E27\u0E32\u0E14 SLD\u2026")))), document.body);
+}
 function DvVerCard({
   kind,
   dvs,
@@ -845,6 +988,8 @@ function DvVerCard({
   canNew
 }) {
   const isP3 = kind === "p3";
+  const sldNode = dvUseNode(isP3 && dvs.jobId ? "plan3dSldDesign/" + dvs.jobId : null) || {};
+  const [sldVer, setSldVer] = React.useState(null);
   const p3List = dvs.p3List || [];
   const vers = dvs.boqVers || {
     list: []
@@ -977,7 +1122,18 @@ function DvVerCard({
     className: "dvc-mt"
   }, r.meta)), r.val && React.createElement("span", {
     className: "dvc-v"
-  }, r.val), many && r.pill && React.createElement("span", {
+  }, r.val), isP3 && sldNode[r.id] && typeof window.p3Sld === "function" && React.createElement("button", {
+    className: "dvc-btn",
+    title: "\u0E14\u0E39\u0E41\u0E1C\u0E19\u0E20\u0E32\u0E1E\u0E44\u0E1F\u0E1F\u0E49\u0E32 (SLD) \u0E02\u0E2D\u0E07\u0E41\u0E1A\u0E1A\u0E19\u0E35\u0E49",
+    onClick: e => {
+      e.stopPropagation();
+      setSldVer(r.id);
+    }
+  }, React.createElement(Icon, {
+    name: "bolt",
+    size: 13,
+    color: "var(--primary-dark)"
+  }), " SLD"), many && r.pill && React.createElement("span", {
     className: "dvc-pill",
     style: {
       color: r.pill.c,
@@ -998,7 +1154,14 @@ function DvVerCard({
     name: "arrowRight",
     size: 15,
     color: "var(--text-3)"
-  })))));
+  })))), sldVer && sldNode[sldVer] && React.createElement(DvSldModal, {
+    job: dvs.job,
+    jobId: dvs.jobId,
+    ver: sldVer,
+    verName: dvP3Name(p3List, sldVer),
+    design: sldNode[sldVer],
+    onClose: () => setSldVer(null)
+  }));
 }
 Object.assign(window, {
   DvVerCard

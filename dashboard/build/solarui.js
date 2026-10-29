@@ -3844,7 +3844,8 @@ function SolarWorkspace({
   sys,
   onChange,
   onClose,
-  snap
+  snap,
+  ver
 }) {
   const [step, setStep] = React.useState(0);
   const [snapImg, setSnapImg] = React.useState(null);
@@ -4188,6 +4189,33 @@ function SolarWorkspace({
   const dxfSt = () => Object.assign({}, st, {
     sys: S
   });
+  const sldLast = React.useRef(null);
+  React.useEffect(() => {
+    if (!job || !job.id || !window.FBDB || isMicro || !plan || !plan.strings.length) return;
+    const d = dxfDesign();
+    const v = JSON.parse(JSON.stringify({
+      strings: d.strings,
+      lay: d.lay || null
+    }));
+    const canon = x => Array.isArray(x) ? "[" + x.map(canon).join(",") + "]" : x && typeof x === "object" ? "{" + Object.keys(x).sort().filter(k => x[k] != null).map(k => k + ":" + canon(x[k])).join(",") + "}" : JSON.stringify(x);
+    const js = canon(v);
+    if (js === sldLast.current) return;
+    const t = setTimeout(() => {
+      const ref = window.FBDB.ref("plan3dSldDesign/" + job.id + "/" + String(ver || "1"));
+      ref.once("value").then(s => {
+        const o = s.val();
+        sldLast.current = js;
+        if (o && canon({
+          strings: o.strings,
+          lay: o.lay || null
+        }) === js) return null;
+        return ref.set(Object.assign({
+          at: Date.now()
+        }, v));
+      }).catch(() => {});
+    }, 1500);
+    return () => clearTimeout(t);
+  }, [job && job.id, ver, isMicro, plan, pinLay, inv2]);
   async function openDxf() {
     if (typeof p3PrepSet !== "function") return;
     setDxfBusy("กำลังเตรียมชุดแบบ");
@@ -9541,6 +9569,7 @@ function SolarDesignHost({
   }
   return React.createElement(React.Fragment, null, React.createElement("style", null, typeof P3_CSS === "string" ? P3_CSS : ""), React.createElement(SolarWorkspace, {
     job: job,
+    ver: "1",
     st: st,
     sys: sysLocal || st.sys || suBlankSys(),
     onClose: () => {
