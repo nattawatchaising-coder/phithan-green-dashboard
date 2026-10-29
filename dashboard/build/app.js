@@ -23,6 +23,15 @@ const NAV = [{
   tab: "ตาราง"
 }, {
   sect: "work",
+  key: "sites",
+  th: "Monitoring",
+  en: "Monitoring",
+  icon: "sun",
+  perm: "om",
+  group: "board",
+  tab: "Monitoring"
+}, {
+  sect: "work",
   key: "calendar",
   th: "ตารางงาน",
   en: "Schedule",
@@ -83,13 +92,6 @@ const NAV = [{
   th: "งานบริการหลังการขาย",
   en: "O&M",
   icon: "wrench",
-  perm: "om"
-}, {
-  sect: "work",
-  key: "sites",
-  th: "Monitoring",
-  en: "Monitoring",
-  icon: "sun",
   perm: "om"
 }, {
   sect: "yard",
