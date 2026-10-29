@@ -2238,14 +2238,15 @@ function SolarWorkspace({ job, st, sys, onChange, onClose, snap, ver }) {
     lay: !isMicro && plan ? { mpptPerInv: pinLay.mpptPerInv, phys: pinLay.phys, nInv: pinLay.nInv, mixed: !!inv2 } : null,
   });
   const dxfSt = () => Object.assign({}, st, { sys: S });
-  /* เก็บการจัดสตริง (ส่วน design ที่ SLD ใช้) ไว้ที่ plan3dSldDesign/{งาน}/{เวอร์ชันแบบ} — ใบลูกค้า/ใบงานกดดู SLD ได้โดยไม่ต้องเปิดหน้านี้
+  /* เก็บการจัดสตริง + แนวเดินสาย (design ที่ชุดแบบใช้) ไว้ที่ plan3dSldDesign/{งาน}/{เวอร์ชันแบบ} — ใบลูกค้า/ใบงานกดดู SLD ได้โดยไม่ต้องเปิดหน้านี้
      (ผู้ใช้ 2026-10-29: "ถ้ามีแบบ SLD ให้แสดงตรงจุดนี้ กดแล้วแสดงให้ดูเลย") · สตริงคิดสดในหน้านี้ ไม่ได้อยู่ใน sys จึงต้องเก็บแยก
      เขียนเมื่อเปลี่ยนจริงเท่านั้น (เทียบกับของในฐานแบบเรียงคีย์ — Firebase เรียงคีย์ใหม่) หน่วง 1.5 วิ ระหว่างลากจัดสตริงจะได้ไม่ยิงถี่ */
   const sldLast = React.useRef(null);
   React.useEffect(() => {
     if (!job || !job.id || !window.FBDB || isMicro || !plan || !plan.strings.length) return;
     const d = dxfDesign();
-    const v = JSON.parse(JSON.stringify({ strings: d.strings, lay: d.lay || null }));
+    /* paths = แนวเดินสายสตริง (แผ่นผังสตริง · รูปการเดินสาย · ตารางพื้นที่) — ผู้ใช้ขอดูทั้งชุดแบบ ไม่ใช่แค่ SLD */
+    const v = JSON.parse(JSON.stringify({ strings: d.strings, lay: d.lay || null, paths: d.paths || [] }));
     const canon = (x) => (Array.isArray(x) ? "[" + x.map(canon).join(",") + "]" : x && typeof x === "object" ? "{" + Object.keys(x).sort().filter((k) => x[k] != null).map((k) => k + ":" + canon(x[k])).join(",") + "}" : JSON.stringify(x));
     const js = canon(v);
     if (js === sldLast.current) return;
@@ -2254,7 +2255,7 @@ function SolarWorkspace({ job, st, sys, onChange, onClose, snap, ver }) {
       ref.once("value").then((s) => {
         const o = s.val();
         sldLast.current = js;
-        if (o && canon({ strings: o.strings, lay: o.lay || null }) === js) return null;
+        if (o && canon({ strings: o.strings, lay: o.lay || null, paths: o.paths || [] }) === js) return null;
         return ref.set(Object.assign({ at: Date.now() }, v));
       }).catch(() => {});
     }, 1500);

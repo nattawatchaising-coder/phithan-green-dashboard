@@ -478,42 +478,122 @@ const DVC_CSS = `
 .dvc-empty{font-size:12.5px;color:var(--text-3);margin-top:8px}
 @media (max-width:560px){.dvc-pill{display:none}}
 `;
-/* ── ดู SLD ของแบบ 3D เวอร์ชันหนึ่ง (ผู้ใช้ 2026-10-29: "ถ้ามีแบบ SLD ให้แสดงตรงจุดนี้ กดแล้วแสดงให้ดูเลย") ──
-   วาดสดจากแบบ 3D ล่าสุด (plan3d) + การจัดสตริงที่หน้าออกแบบระบบเก็บไว้ (plan3dSldDesign · SolarWorkspace)
-   โค้ดวาดชุดเดียวกับไฟล์ DXF/PDF (p3Sld → SVG) — ดูอย่างเดียว ดาวน์โหลดชุดแบบยังทำที่หน้าออกแบบระบบ */
-function DvSldModal({ job, jobId, ver, verName, design, onClose }) {
-  const [svg, setSvg] = React.useState(null);
+/* ── ดูชุดแบบของแบบ 3D เวอร์ชันหนึ่ง ทุกแผ่น ซูมได้ (ผู้ใช้ 2026-10-29: "ถ้ามีแบบ SLD ให้แสดงตรงจุดนี้" → "แบบทั้งหมดเลยทุกหน้าซูมได้ด้วยสิ") ──
+   ชุดเดียวกับปุ่มชุดแบบ DXF ในหน้าออกแบบระบบ: p3PrepSet(แบบ 3D ล่าสุด, งาน, null, design ที่ SolarWorkspace เก็บไว้ใน plan3dSldDesign)
+   แต่ละแผ่นวาดเป็น SVG ตอนเปิดดู (make(true)) · ดูอย่างเดียว ดาวน์โหลด DXF/PDF ยังทำที่หน้าออกแบบระบบ
+   ซูม: ปุ่ม −/+ · Ctrl+ล้อ/บีบทัชแพด (ซูมตรงจุดเมาส์) · ดับเบิลคลิก · ลากเมาส์เลื่อนภาพ · ←/→ เปลี่ยนแผ่น */
+const DV_Z = [1, 1.5, 2, 3, 4, 6];
+function DvDwgModal({ job, jobId, ver, verName, design, onClose }) {
+  const [prep, setPrep] = React.useState(null);
   const [err, setErr] = React.useState("");
+  const [i, setI] = React.useState(0);
+  const [z, setZ] = React.useState(1);
+  const boxRef = React.useRef(null), anchor = React.useRef(null), drag = React.useRef(null);
   const bdClose = window.useBackdropClose ? window.useBackdropClose(onClose) : { onClick: onClose };
   React.useEffect(() => {
     let live = true;
     window.FBDB.ref("plan3d/" + dvP3Key(jobId, ver)).once("value").then((s) => {
       const st = s.val();
       if (!st) throw new Error("ไม่พบแบบ 3D");
-      const out = window.p3Sld(st, job, { svg: true, sheetNo: "1/1", design: Object.assign({ paths: [] }, design) });
-      if (live) setSvg(out);
-    }).catch((e) => { if (live) setErr((e && e.message) || "วาด SLD ไม่สำเร็จ"); });
+      return window.p3PrepSet(st, job, null, Object.assign({ paths: [] }, design));
+    }).then((p) => {
+      if (!live) return;
+      setPrep(p);
+      const k = (p.sheets || []).findIndex((x) => x.key === "SLD");   // เปิดมาที่ SLD ก่อน (ปุ่มเดิมพาไป SLD)
+      setI(k >= 0 ? k : 0);
+    }).catch((e) => { if (live) setErr((e && e.message) || "เตรียมชุดแบบไม่สำเร็จ"); });
     return () => { live = false; };
   }, [jobId, ver]);
+  const sheets = (prep && prep.sheets) || [];
+  const cur = sheets[i];
+  const svg = React.useMemo(() => {
+    if (!cur) return "";
+    try { return cur.make(true); } catch (e) { return '<p style="padding:16px">วาดแผ่นนี้ไม่สำเร็จ: ' + e.message + "</p>"; }
+  }, [cur]);
+  /* ซูมรอบจุด (cx, cy ในกรอบเลื่อน) — จำสัดส่วนจุดนั้นบนแผ่นไว้ แล้วเลื่อนกลับมาให้อยู่ใต้เมาส์หลังขยาย */
+  const zoomTo = (nz, cx, cy) => {
+    const el = boxRef.current; nz = Math.max(1, Math.min(6, nz));
+    if (!el || nz === z) return;
+    const r = el.getBoundingClientRect();
+    const px = cx == null ? r.width / 2 : cx, py = cy == null ? r.height / 2 : cy;
+    anchor.current = { fx: (el.scrollLeft + px) / el.scrollWidth, fy: (el.scrollTop + py) / el.scrollHeight, px, py };
+    setZ(nz);
+  };
+  React.useLayoutEffect(() => {
+    const el = boxRef.current, A = anchor.current; anchor.current = null;
+    if (!el || !A) return;
+    el.scrollLeft = A.fx * el.scrollWidth - A.px; el.scrollTop = A.fy * el.scrollHeight - A.py;
+  }, [z]);
+  React.useEffect(() => { setZ(1); if (boxRef.current) boxRef.current.scrollTo(0, 0); }, [i]);
   React.useEffect(() => {
-    const k = (e) => { if (e.key === "Escape") onClose(); };
+    const el = boxRef.current; if (!el) return;
+    const w = (e) => {   // Ctrl+ล้อ / บีบทัชแพด = ซูม · ล้อเฉย ๆ = เลื่อนตามปกติ
+      if (!e.ctrlKey && !e.metaKey) return;
+      e.preventDefault();
+      const r = el.getBoundingClientRect();
+      zoomTo(z * (e.deltaY < 0 ? 1.25 : 0.8), e.clientX - r.left, e.clientY - r.top);
+    };
+    el.addEventListener("wheel", w, { passive: false });
+    return () => el.removeEventListener("wheel", w);
+  });
+  React.useEffect(() => {
+    const k = (e) => {
+      if (e.key === "Escape") onClose();
+      else if (e.key === "ArrowRight") setI((x) => Math.min(sheets.length - 1, x + 1));
+      else if (e.key === "ArrowLeft") setI((x) => Math.max(0, x - 1));
+    };
     window.addEventListener("keydown", k);
     return () => window.removeEventListener("keydown", k);
-  }, []);
+  }, [sheets.length]);
+  const onDown = (e) => {
+    if (e.pointerType !== "mouse" || e.button !== 0 || z === 1) return;
+    const el = boxRef.current;
+    drag.current = { x: e.clientX, y: e.clientY, sl: el.scrollLeft, st: el.scrollTop };
+    e.currentTarget.setPointerCapture(e.pointerId);
+  };
+  const onMove = (e) => {
+    const d = drag.current; if (!d) return;
+    const el = boxRef.current;
+    el.scrollLeft = d.sl - (e.clientX - d.x); el.scrollTop = d.st - (e.clientY - d.y);
+  };
+  const onUp = () => { drag.current = null; };
+  const onDbl = (e) => {
+    const r = boxRef.current.getBoundingClientRect();
+    zoomTo(z >= 2.5 ? 1 : 2.5, e.clientX - r.left, e.clientY - r.top);
+  };
+  const zBtn = { width: 30, height: 30, borderRadius: "var(--r-chip)", border: "none", background: "var(--surface2)", boxShadow: "var(--shadow-sm)", cursor: "pointer", display: "grid", placeItems: "center", fontFamily: "inherit", fontSize: 16, fontWeight: 800, color: "var(--text-2)" };
+  const zNext = (dir) => { const L = DV_Z; const k = dir > 0 ? L.find((x) => x > z + 0.01) : L.slice().reverse().find((x) => x < z - 0.01); zoomTo(k || z); };
   return ReactDOM.createPortal(
-    <div {...bdClose} data-layer="sld" style={{ position: "fixed", inset: 0, zIndex: 230, background: "rgba(8,20,14,.55)", display: "flex", padding: 14 }}>
-      <div onClick={(e) => e.stopPropagation()} style={{ flex: 1, minHeight: 0, background: "var(--surface)", borderRadius: 16, overflow: "hidden", display: "flex", flexDirection: "column", boxShadow: "var(--shadow-modal)" }}>
-        <div style={{ padding: "11px 14px", display: "flex", gap: 10, alignItems: "center", boxShadow: "var(--shadow-sm)", position: "relative", zIndex: 1 }}>
-          <span style={{ flex: 1, minWidth: 0 }}>
-            <span style={{ display: "block", fontWeight: 800, fontSize: 14, color: "var(--text-1)" }}>แผนภาพไฟฟ้า (SLD)</span>
-            <span style={{ display: "block", fontSize: 11.5, color: "var(--text-3)" }}>แบบ 3D V{ver} · {verName}{design && design.at ? " · จัดสตริงล่าสุด " + dvWhen(design.at) : ""}</span>
+    <div {...bdClose} data-layer="dwg" style={{ position: "fixed", inset: 0, zIndex: 230, background: "rgba(8,20,14,.55)", display: "flex", padding: 14 }}>
+      <div onClick={(e) => e.stopPropagation()} style={{ flex: 1, minWidth: 0, minHeight: 0, background: "var(--surface)", borderRadius: 16, overflow: "hidden", display: "flex", flexDirection: "column", boxShadow: "var(--shadow-modal)" }}>
+        <div style={{ padding: "10px 14px", display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap", boxShadow: "var(--shadow-sm)", position: "relative", zIndex: 1 }}>
+          <span style={{ flex: 1, minWidth: 160 }}>
+            <span style={{ display: "block", fontWeight: 800, fontSize: 14, color: "var(--text-1)" }}>ชุดแบบ{cur ? " · " + cur.label : ""}</span>
+            <span style={{ display: "block", fontSize: 11.5, color: "var(--text-3)" }}>แบบ 3D V{ver} · {verName}{sheets.length ? " · แผ่น " + (i + 1) + "/" + sheets.length : ""}{design && design.at ? " · จัดสตริงล่าสุด " + dvWhen(design.at) : ""}</span>
+          </span>
+          <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
+            <button type="button" style={zBtn} title="ย่อ" disabled={z <= 1} onClick={() => zNext(-1)}>−</button>
+            <button type="button" onClick={() => zoomTo(1)} title="พอดีจอ" style={Object.assign({}, zBtn, { width: "auto", padding: "0 10px", fontSize: 12, fontVariantNumeric: "tabular-nums" })}>{Math.round(z * 100)}%</button>
+            <button type="button" style={zBtn} title="ขยาย" disabled={z >= 6} onClick={() => zNext(1)}>+</button>
           </span>
           <button className="x-close" onClick={onClose} style={{ width: 32, height: 32, borderRadius: "var(--r-chip)", background: "var(--surface2)", boxShadow: "var(--shadow-sm)", cursor: "pointer", display: "grid", placeItems: "center", color: "var(--text-2)" }}><Icon name="x" size={16} /></button>
         </div>
-        <div style={{ flex: 1, minHeight: 0, overflow: "auto", background: "#4a4a4a", padding: 14, display: "flex", justifyContent: "center", alignItems: "flex-start" }}>
+        {sheets.length > 1 && (
+          <div style={{ display: "flex", gap: 6, overflowX: "auto", padding: "8px 14px", background: "var(--bg)" }}>
+            {sheets.map((s, k) => (
+              <button key={k} type="button" onClick={() => setI(k)}
+                style={{ flexShrink: 0, border: "none", borderRadius: "var(--r-chip)", padding: "6px 11px", cursor: "pointer", fontFamily: "inherit", fontSize: 12, fontWeight: 700, whiteSpace: "nowrap",
+                  background: k === i ? "var(--surface)" : "transparent", color: k === i ? "var(--primary-dark)" : "var(--text-3)", boxShadow: k === i ? "var(--shadow-sm)" : "none" }}>
+                <span style={{ fontFamily: "var(--mono)", marginRight: 5, opacity: .7 }}>{k + 1}</span>{s.label}
+              </button>
+            ))}
+          </div>
+        )}
+        <div ref={boxRef} onPointerDown={onDown} onPointerMove={onMove} onPointerUp={onUp} onPointerCancel={onUp} onDoubleClick={onDbl}
+          style={{ flex: 1, minHeight: 0, overflow: "auto", background: "#4a4a4a", padding: 14, cursor: z > 1 ? (drag.current ? "grabbing" : "grab") : "zoom-in", touchAction: "pan-x pan-y" }}>
           {err ? <div style={{ color: "#fff", fontSize: 13, padding: 20 }}>{err}</div>
-            : svg ? <div style={{ width: "100%", maxWidth: 1500, background: "#fff", boxShadow: "var(--shadow-pop)" }} dangerouslySetInnerHTML={{ __html: svg }} />
-            : <div style={{ color: "#fff", fontSize: 13, padding: 20 }}>กำลังวาด SLD…</div>}
+            : svg ? <div style={{ width: z === 1 ? "100%" : (z * 100) + "%", maxWidth: z === 1 ? 1500 : "none", margin: z === 1 ? "0 auto" : 0, background: "#fff", boxShadow: "var(--shadow-pop)" }} dangerouslySetInnerHTML={{ __html: svg }} />
+            : <div style={{ color: "#fff", fontSize: 13, padding: 20 }}>กำลังเตรียมชุดแบบ…</div>}
         </div>
       </div>
     </div>, document.body);
@@ -594,9 +674,9 @@ function DvVerCard({ kind, dvs, title, sub, icon, color, canNew }) {
                 {r.meta && <span className="dvc-mt">{r.meta}</span>}
               </span>
               {r.val && <span className="dvc-v">{r.val}</span>}
-              {isP3 && sldNode[r.id] && typeof window.p3Sld === "function" && (
-                <button className="dvc-btn" title="ดูแผนภาพไฟฟ้า (SLD) ของแบบนี้" onClick={(e) => { e.stopPropagation(); setSldVer(r.id); }}>
-                  <Icon name="bolt" size={13} color="var(--primary-dark)" /> SLD
+              {isP3 && sldNode[r.id] && typeof window.p3PrepSet === "function" && (
+                <button className="dvc-btn" title="ดูชุดแบบทุกแผ่นของแบบนี้ (SLD · ผังสตริง · ฯลฯ) ซูมได้" onClick={(e) => { e.stopPropagation(); setSldVer(r.id); }}>
+                  <Icon name="file" size={13} color="var(--primary-dark)" /> ชุดแบบ
                 </button>
               )}
               {many && r.pill && <span className="dvc-pill" style={{ color: r.pill.c, background: "color-mix(in srgb," + r.pill.c + " 11%,transparent)" }}>{r.pill.th}</span>}
@@ -610,7 +690,7 @@ function DvVerCard({ kind, dvs, title, sub, icon, color, canNew }) {
         </div>
       )}
       {sldVer && sldNode[sldVer] && (
-        <DvSldModal job={dvs.job} jobId={dvs.jobId} ver={sldVer} verName={dvP3Name(p3List, sldVer)} design={sldNode[sldVer]} onClose={() => setSldVer(null)} />
+        <DvDwgModal job={dvs.job} jobId={dvs.jobId} ver={sldVer} verName={dvP3Name(p3List, sldVer)} design={sldNode[sldVer]} onClose={() => setSldVer(null)} />
       )}
     </div>
   );

@@ -4195,7 +4195,8 @@ function SolarWorkspace({
     const d = dxfDesign();
     const v = JSON.parse(JSON.stringify({
       strings: d.strings,
-      lay: d.lay || null
+      lay: d.lay || null,
+      paths: d.paths || []
     }));
     const canon = x => Array.isArray(x) ? "[" + x.map(canon).join(",") + "]" : x && typeof x === "object" ? "{" + Object.keys(x).sort().filter(k => x[k] != null).map(k => k + ":" + canon(x[k])).join(",") + "}" : JSON.stringify(x);
     const js = canon(v);
@@ -4207,7 +4208,8 @@ function SolarWorkspace({
         sldLast.current = js;
         if (o && canon({
           strings: o.strings,
-          lay: o.lay || null
+          lay: o.lay || null,
+          paths: o.paths || []
         }) === js) return null;
         return ref.set(Object.assign({
           at: Date.now()
