@@ -2865,8 +2865,8 @@ function pgSldPro(doc, sheet, M) {
     valign: 2
   });
   const metX = X.md1 - 10;
-  pen.line(PE, Math.min(X.acBus, mpx), yE, metX, yE);
-  [Math.max(X.acBus, mpx)].forEach(x => peDot(x, yE));
+  pen.line(PE, Math.min(sx, mpx), yE, metX, yE);
+  [Math.max(sx, mpx)].forEach(x => peDot(x, yE));
   pen.rect(PE, metX, yE - 2.2, 10, 4.4);
   pen.text(T, metX + 5, yE, TS.spec, "MET", {
     align: 1,
@@ -2879,8 +2879,9 @@ function pgSldPro(doc, sheet, M) {
     align: 2,
     valign: 2
   });
-  pen.text(LB, Math.min(X.acBus, mpx) + 1.5, yE + 1.0, TS.spec, "MAIN EARTH (PE) : THW(G) " + P.earthCu + " mm2", {
-    valign: 1
+  pen.text(LB, Math.min(sx, mpx) - 1.5, yE, TS.spec, "MAIN EARTH (PE) : THW(G) " + P.earthCu + " mm2", {
+    align: 2,
+    valign: 2
   });
   const L = PG_SLD.tab;
   const grid = (rows, head, cw, rh, th) => {

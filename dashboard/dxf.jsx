@@ -1997,15 +1997,16 @@ function pgSldPro(doc, sheet, M) {
   pen.text(T, X.pe0 + 3.2, yE - 3.4, TS.spec, "PV EARTH ROD (SEPARATE)  5/8\" x 2.4m  R <= 5 OHM", { valign: 2 });
   /* ── บัสดินหลัก (MET) + หลักดินระบบ — ฝั่ง AC เท่านั้น ── */
   const metX = X.md1 - 10;
-  pen.line(PE, Math.min(X.acBus, mpx), yE, metX, yE);
-  [Math.max(X.acBus, mpx)].forEach((x) => peDot(x, yE));
+  pen.line(PE, Math.min(sx, mpx), yE, metX, yE);
+  [Math.max(sx, mpx)].forEach((x) => peDot(x, yE));
   pen.rect(PE, metX, yE - 2.2, 10, 4.4);
   pen.text(T, metX + 5, yE, TS.spec, "MET", { align: 1, valign: 2 });
   const rx = metX + 5;
   pen.line(PE, rx, yE - 2.2, rx, yE - 4.5);
   pgSym.ground(pen, rx, yE - 4.5);
   pen.text(T, rx - 4, yE - 5.6, TS.spec, "EARTH ROD 5/8\" x 2.4m  R <= 5 OHM", { align: 2, valign: 2 });
-  pen.text(LB, Math.min(X.acBus, mpx) + 1.5, yE + 1.0, TS.spec, "MAIN EARTH (PE) : THW(G) " + P.earthCu + " mm2", { valign: 1 });
+  /* ป้ายอยู่ซ้ายปลายบัสดิน — สายดิน SPD ย้ายไปฝั่งกริด (sx) ลงมาชนบัสตรงกลางป้ายเดิม (ผู้ใช้ชี้ 2026-10-29) */
+  pen.text(LB, Math.min(sx, mpx) - 1.5, yE, TS.spec, "MAIN EARTH (PE) : THW(G) " + P.earthCu + " mm2", { align: 2, valign: 2 });
 
   /* ── คอลัมน์ขวา: ข้อมูลระบบ · ตารางอุปกรณ์ · หมายเหตุ · สัญลักษณ์ ── */
   const L = PG_SLD.tab;
