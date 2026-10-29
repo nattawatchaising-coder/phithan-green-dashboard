@@ -1894,12 +1894,28 @@ function pgSldPro(doc, sheet, M) {
     let yMain = Math.min((tMax + tMin) / 2, A.y1 - 66);
     yMain = Math.max(yMain, yE0 + 44);
     const oneInv = taps.length === 1 && !taps[0].b.typical;
+    /* ป้ายเบรกเกอร์อินเวอร์เตอร์แบบเศษส่วน (ผู้ใช้ 2026-10-29 วาดให้ดู): MCCB 3P 36kA / 400AF ── 400AT
+       ความสูงตัวอักษรย่อตามระยะห่างแถว ไม่ให้ชนแถวบน · รูปแบบอื่น (MCB 2P 32A) เขียนบรรทัดเดียวเหมือนเดิม */
+    const tGap = taps.length > 1 ? Math.min.apply(null, taps.slice(1).map((t, i) => Math.abs(taps[i].y - t.y))) : 20;
+    const brkLabel = (bl, cnt, x, y) => {
+      const m = /^(\S+)\s+(\d+P)\s+(\d+AF)\s+(\d+AT)(?:\s+(\S+))?$/.exec(bl);
+      if (!m) { const s = bl + cnt; pen.text(T, x, y + 5.0, fitH(s, TS.spec, 2 * (x - X.ac0) - 1), s, { align: 1, valign: 1 }); return; }
+      const h = Math.max(0.9, Math.min(1.5, (tGap - 4.6) / 3.6)), hs = h * 0.8;
+      const y1 = y + g * 1.26 + 0.9, yBar = y1 + h + 0.45, y2 = yBar + 0.5, y3 = y2 + h + 0.55;
+      const sub = " " + m[2] + (m[5] ? " " + m[5] : "") + cnt;
+      const w1 = pgTextW(m[1], h * 1.12) * 1.2 + 0.3, w2 = pgTextW(sub, hs) * 1.2, x0 = x - (w1 + w2) / 2;   // ฟอนต์บนแบบกว้างกว่าค่าประมาณ — เผื่อไม่ให้ชิดกัน
+      pen.text(T, x0, y3, h * 1.12, m[1], { valign: 1 });
+      pen.text(T, x0 + w1, y3, hs, sub.trim(), { valign: 1 });
+      pen.text(T, x, y2, h, m[3], { align: 1, valign: 1 });
+      const wb = Math.max(pgTextW(m[3], h), pgTextW(m[4], h)) / 2 + 0.4;
+      pen.line(S, x - wb, yBar, x + wb, yBar);
+      pen.text(T, x, y1, h, m[4], { align: 1, valign: 1 });
+    };
     taps.forEach((t, i) => {
       if (oneInv) { pen.line(R, X.iv1 + 0.6, t.y, X.acBus, t.y); return; }
       pen.line(R, X.iv1 + 0.6, t.y, X.acB - g - 0.75, t.y);
       hBrk(X.acB, t.y);
-      const bl = t.b.brk + (t.b.typical ? " x" + t.b.cnt : "");
-      pen.text(T, X.acB, t.y + 5.0, fitH(bl, TS.spec, 2 * (X.acB - X.ac0) - 1), bl, { align: 1, valign: 1 });
+      brkLabel(String(t.b.brk || ""), t.b.typical ? " x" + t.b.cnt : "", X.acB, t.y);
       pen.line(R, X.acB + g + 0.75, t.y, X.acBus, t.y);
       if (t.y !== tMax || yMain > tMax) pen.dot(R, X.acBus, t.y, 0.5);
     });
