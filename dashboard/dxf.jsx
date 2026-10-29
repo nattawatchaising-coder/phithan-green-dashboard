@@ -1898,7 +1898,7 @@ function pgSldPro(doc, sheet, M) {
       pen.text(T, x, ly + lr + 0.8, TS.tag, ph[ph.length - 1 - i], { align: 1, valign: 1 });   // ซ้าย→ขวา R S T
     });
     pen.text(T, lxs[lxs.length - 1] - lr - 1, ly, TS.tag, "PILOT LAMP", { align: 2, valign: 2 });
-    pen.text(T, cx, yMain + CT_R + 0.9, TS.spec, "CT " + P.pmCt, { align: 1, valign: 1 });
+    pen.text(T, cx, yMain + 2 * CT_R + 0.8, TS.spec, "CT " + P.pmCt, { align: 1, valign: 1 });   // เหนือยอดขด ไม่ทับ (ผู้ใช้ชี้)
     /* กล่อง PM2230 ใต้ CT — สาย CT ลงตรงเข้าด้านบน (ผู้ใช้วาดชี้ 2026-10-29) */
     const pmx = cx, pmy = (pb + pt) / 2;
     pen.line(CM, cx, yMain, cx, pt);

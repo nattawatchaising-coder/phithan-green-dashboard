@@ -2705,7 +2705,7 @@ function pgSldPro(doc, sheet, M) {
       align: 2,
       valign: 2
     });
-    pen.text(T, cx, yMain + CT_R + 0.9, TS.spec, "CT " + P.pmCt, {
+    pen.text(T, cx, yMain + 2 * CT_R + 0.8, TS.spec, "CT " + P.pmCt, {
       align: 1,
       valign: 1
     });
