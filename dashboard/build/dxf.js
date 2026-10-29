@@ -2964,7 +2964,7 @@ function pgSldPro(doc, sheet, M) {
         align: 2,
         valign: 2
       });
-      pen.text(LB, gx - 1.5, yE - 0.1, TS.spec, "THW(G) " + P.earthCu + " mm2", {
+      pen.text(LB, gx - 1.5, yE - 0.1, TS.spec, "THW(G) " + P.earthCu + " Sq.mm.", {
         align: 2,
         valign: 2
       });

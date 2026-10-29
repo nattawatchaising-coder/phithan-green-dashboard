@@ -2065,7 +2065,7 @@ function pgSldPro(doc, sheet, M) {
       pgSym.ground(pen, gx, gy);
       pen.text(T, gx - 1.5, yE + 3.4, TS.tag, "CONNECT TO GROUND BAR", { align: 2, valign: 2 });
       pen.text(T, gx - 1.5, yE + 1.9, TS.tag, "OF EXISTING MDB", { align: 2, valign: 2 });
-      pen.text(LB, gx - 1.5, yE - 0.1, TS.spec, "THW(G) " + P.earthCu + " mm2", { align: 2, valign: 2 }); }   // ขนาดสาย (ผู้ใช้ 2026-10-29)
+      pen.text(LB, gx - 1.5, yE - 0.1, TS.spec, "THW(G) " + P.earthCu + " Sq.mm.", { align: 2, valign: 2 }); }   // ขนาดสาย หน่วย Sq.mm. (ผู้ใช้ 2026-10-29)
     /* กราวด์ตัวตู้ (ผู้ใช้ชี้ 2026-10-29) — จากรูที่ 1 ของบาร์ G ลงไปต่อกรอบตู้ (เส้นประก้นตู้) */
     pen.line(PE, sx - 4, barY - 0.45, sx - 4, acBot + 1.0);   // หยุดที่ขอบบนวงจุดยึด ไม่ลากทะลุวง (ผู้ใช้ 2026-10-29)
     pen.circle(PE, sx - 4, acBot + 0.5, 0.5);   // จุดยึดโครงตู้ ไม่ต้องเขียนป้าย (ผู้ใช้ 2026-10-29)
