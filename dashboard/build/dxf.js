@@ -2572,18 +2572,11 @@ function pgSldPro(doc, sheet, M) {
     const nm = b.typical ? "INV" + b.no + "-INV" + b.to + " (x" + b.cnt + ")" : "INV" + b.no;
     const ix = X.iv0 + 4,
       iw = X.ac0 - 1 - ix;
-    pen.text(LB, ix, G.boxBot - 1.2, fitH(nm + "  " + b.kw + "kW " + P.phTxt, TS.head, iw), nm + "  " + b.kw + "kW " + P.phTxt, {
+    const ivL = [[LB, nm + "  " + b.kw + "kW " + P.phTxt], [T, M.inv.model], [T, "DC SWITCH : BUILT-IN"], [T, "AC : " + M.acCable]];
+    const ivH = Math.min.apply(null, ivL.map(l => fitH(l[1], TS.spec, iw)));
+    ivL.forEach((l, k) => pen.text(l[0], ix, G.boxBot - 1.2 - k * 2.4, ivH, l[1], {
       valign: 3
-    });
-    pen.text(T, ix, G.boxBot - 4.3, fitH(M.inv.model, TS.spec, iw), M.inv.model, {
-      valign: 3
-    });
-    pen.text(T, ix, G.boxBot - 6.6, TS.spec, "DC SWITCH : BUILT-IN", {
-      valign: 3
-    });
-    pen.text(T, ix, G.boxBot - 8.7, fitH("AC : " + M.acCable, TS.spec, iw), "AC : " + M.acCable, {
-      valign: 3
-    });
+    }));
     const peX = X.iv0 + 2;
     pen.line(PE, X.dcPE, barB, X.dcPE, G.yG);
     pen.line(PE, peX, G.boxBot, peX, G.yG);
