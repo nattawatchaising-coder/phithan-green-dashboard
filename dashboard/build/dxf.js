@@ -2306,6 +2306,7 @@ function pgSldPro(doc, sheet, M) {
   const CT_R = 1.4;
   const ctV = (x, y) => {
     [CT_R, -CT_R].forEach(dy => pen.arc(S, x, y + dy, CT_R, -90, 90));
+    [2 * CT_R, -2 * CT_R].forEach(dy => pen.line(S, x - 1.6, y + dy, x, y + dy));
   };
   const peDot = (x, y) => pen.dot(PE, x, y, 0.5);
   const byInv = {};

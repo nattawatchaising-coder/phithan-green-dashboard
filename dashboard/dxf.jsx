@@ -1611,7 +1611,11 @@ function pgSldPro(doc, sheet, M) {
   const ctH = (x, y) => { pen.circle(S, x - 0.9, y, 1.5); pen.circle(S, x + 0.9, y, 1.5); };
   /* CT บนสายแนวตั้ง: ขดสองโค้งนูนออกขวาเกาะสาย (สายวิ่งผ่านตรง) — ผู้ใช้วาดแบบ ∩∩ ให้ 2026-10-29 */
   const CT_R = 1.4;
-  const ctV = (x, y) => { [CT_R, -CT_R].forEach((dy) => pen.arc(S, x, y + dy, CT_R, -90, 90)); };
+  /* ขาขดบน/ล่างยื่นซ้ายสั้น ๆ (ผู้ใช้ขีดชี้) */
+  const ctV = (x, y) => {
+    [CT_R, -CT_R].forEach((dy) => pen.arc(S, x, y + dy, CT_R, -90, 90));
+    [2 * CT_R, -2 * CT_R].forEach((dy) => pen.line(S, x - 1.6, y + dy, x, y + dy));
+  };
   const peDot = (x, y) => pen.dot(PE, x, y, 0.5);
 
   /* ── แตกข้อมูล MPPT เป็นบล็อกอินเวอร์เตอร์ ── */
