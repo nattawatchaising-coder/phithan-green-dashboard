@@ -1674,7 +1674,8 @@ function pgSldPro(doc, sheet, M) {
   };
   const blockH = (b) => b.typical ? 0 : 1000 - geo(b, 1000).bottom;
 
-  const yTop = A.y1 - 16, yE0 = A.y0 + 10;
+  /* แผ่นภาพรวมบล็อกกระจายเต็มแผ่น — เว้นล่างเพิ่มให้หลักดิน/MET ไม่ทับชื่อแผ่นบรรทัดใหญ่ (ผู้ใช้ชี้) */
+  const yTop = A.y1 - 16, yE0 = A.y0 + (isMain ? 26 : 10);
   const avail = yTop - (yE0 + 6);
   const sumH = (bs) => bs.reduce((t, b) => t + (1000 - geo(b, 1000).bottom) + 2, 0);
   const strOf = (no) => byInv[no].reduce((t, r) => t + r.ins.length, 0), pvOf = (no) => byInv[no].reduce((t, r) => t + r.ins.reduce((u, x) => u + x.n, 0), 0);
@@ -1735,25 +1736,22 @@ function pgSldPro(doc, sheet, M) {
   blocks.forEach((b) => {
     const top = cur, G = geo(b, top);
     if (b.mini) {
-      /* บล็อกย่อ: กล่องอินเวอร์เตอร์ + สรุป PV ทางซ้าย + ชี้ไปแผ่นย่อย · สาย DC เส้นเดียวแทนทุกสตริง */
-      const bt = top - 1, tapY = (bt + G.boxBot) / 2, sh = Math.min(8.5, bt - G.boxBot - 1);
-      pen.rect(S, X.iv0, G.boxBot, X.iv1 - X.iv0, bt - G.boxBot);
-      pgSym.inverter(pen, X.iv1 - 8, tapY, sh * 1.3, sh);
-      pen.line(R, X.iv1 - 8 + sh * 0.65, tapY, X.iv1 - 0.6, tapY);
+      /* บล็อกย่อ (ผู้ใช้ 2026-10-29: เครื่องเยอะไม่เอากรอบ ไม่เอาสาย DC สีแดงทางซ้าย)
+         สัญลักษณ์อินเวอร์เตอร์ + ป้าย INVn เหนือสัญลักษณ์ · สรุป PV ชิดขวาติดสัญลักษณ์ · ชี้ไปแผ่นย่อย */
+      const bt = top - 1, sh = Math.min(8.5, (bt - G.boxBot) * 0.62), tapY = G.boxBot + sh / 2 + 0.6;
+      const sx = X.iv1 - 8, sl = sx - sh * 0.65;
+      pgSym.inverter(pen, sx, tapY, sh * 1.3, sh);
+      pen.line(R, sx + sh * 0.65, tapY, X.iv1 - 0.6, tapY);
       pen.circle(S, X.iv1, tapY, 0.6);
-      pen.text(LB, X.iv0 + 1.5, bt - 0.8, Math.min(TS.head, (bt - tapY) - 1.2), "INV" + b.no, { valign: 3 });
-      pen.line(R, X.dc0, tapY, X.iv0 - 0.6, tapY);
-      pen.circle(S, X.iv0, tapY, 0.6);
-      pen.line(R, X.iv0 + 0.6, tapY, X.iv1 - 8 - sh * 0.65, tapY);
-      pen.line(R, X.dc0 + 3, tapY - 1.0, X.dc0 + 4, tapY + 1.0); pen.line(R, X.dc0 + 4.2, tapY - 1.0, X.dc0 + 5.2, tapY + 1.0);
-      const tw = X.dc0 - 2 - X.m1;
+      pen.text(LB, sx, tapY + sh / 2 + 0.7, Math.min(TS.head, bt - (tapY + sh / 2) - 0.9), "INV" + b.no, { align: 1, valign: 1 });
+      const tx = sl - 2.5, tw = tx - X.m1;
       const ls = [[LB, "INV" + b.no + "  " + b.kw + "kW " + P.phTxt + "  " + b.model],
         [T, b.nMp + " MPPT / " + b.nStr + " STRINGS / " + b.nPv + " x " + wp + "Wp = " + Math.round(b.nPv * wp / 10) / 100 + " kWp"],
         [T, b.ref]].filter((l, k) => l[1] && (k < 2 || MH >= 11));
       const lp = Math.min(2.6, (bt - G.boxBot) / ls.length), lh = Math.min.apply(null, ls.map((l) => fitH(l[1], TS.spec, tw)));
-      ls.forEach((l, k) => pen.text(l[0], X.m1 - 3, tapY + (ls.length - 1) * lp / 2 - k * lp, Math.min(lh, lp * 0.8), l[1], { valign: 2 }));
-      const peX = X.iv0 + 2;
-      pen.line(PE, peX, G.boxBot, peX, G.yG);
+      ls.forEach((l, k) => pen.text(l[0], tx, tapY + (ls.length - 1) * lp / 2 - k * lp, Math.min(lh, lp * 0.8), l[1], { align: 2, valign: 2 }));
+      const peX = sx;
+      pen.line(PE, peX, tapY - sh / 2, peX, G.yG);
       pen.line(PE, X.pe0, G.yG, peX, G.yG);
       if (peTop == null) peTop = G.yG; else peDot(X.pe0, G.yG);
       taps.push({ y: tapY, b });
