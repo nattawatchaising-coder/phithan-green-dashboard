@@ -2574,6 +2574,8 @@ function pgSldPro(doc, sheet, M) {
       tHi = Math.max(tapY, Math.max.apply(null, mids));
     if (tHi > tLo) pen.line(R, trunkX, tLo, trunkX, tHi);
     pen.line(R, trunkX, tapY, X.iv1 - 13.5, tapY);
+    pen.line(R, X.iv1 - 2.5, tapY, X.iv1 - 0.6, tapY);
+    pen.circle(S, X.iv1, tapY, 0.6);
     const nm = b.typical ? "INV" + b.no + "-INV" + b.to + " (x" + b.cnt + ")" : "INV" + b.no;
     const ix = X.iv0 + 4,
       iw = X.ac0 - 1 - ix;
@@ -2606,10 +2608,10 @@ function pgSldPro(doc, sheet, M) {
   const oneInv = taps.length === 1 && !taps[0].b.typical;
   taps.forEach((t, i) => {
     if (oneInv) {
-      pen.line(R, X.iv1, t.y, X.acBus, t.y);
+      pen.line(R, X.iv1 + 0.6, t.y, X.acBus, t.y);
       return;
     }
-    pen.line(R, X.iv1, t.y, X.acB - g - 0.75, t.y);
+    pen.line(R, X.iv1 + 0.6, t.y, X.acB - g - 0.75, t.y);
     hBrk(X.acB, t.y);
     const bl = t.b.brk + (t.b.typical ? " x" + t.b.cnt : "");
     pen.text(T, X.acB, t.y + 5.0, fitH(bl, TS.spec, 2 * (X.acB - X.ac0) - 1), bl, {
@@ -2695,13 +2697,47 @@ function pgSldPro(doc, sheet, M) {
       pt = yMain - 14;
     pen.line(R, wx, yMain, X.mdB - g - 0.75, yMain);
     ctH(px, yMain);
-    pen.text(T, px, yMain + CT_R + 0.9, TS.spec, "CT " + P.pmCt, {
-      align: 1,
+    const lx = px + 3.6,
+      fy = acTop + 4,
+      ly = acTop + 9,
+      lr = 1.3;
+    const ph = M.phase === 3 ? ["R", "S", "T"] : ["L"];
+    pen.dot(R, lx, yMain, 0.5);
+    pen.line(R, lx, yMain, lx, fy - 2.4);
+    vFuse(lx, fy);
+    pen.line(R, lx, fy + 2.4, lx, ly);
+    pen.text(T, lx + 1.6, fy, TS.tag, "FUSE 2A", {
+      valign: 2
+    });
+    const lxs = ph.map((_, i) => lx - 5 - i * 5);
+    pen.line(R, lx, ly, lxs[0] + lr, ly);
+    lxs.forEach((x, i) => {
+      pen.circle(S, x, ly, lr);
+      const d = lr * 0.707;
+      pen.line(S, x - d, ly - d, x + d, ly + d);
+      pen.line(S, x - d, ly + d, x + d, ly - d);
+      if (i) pen.line(R, x + lr, ly, lxs[i - 1] - lr, ly);
+      pen.text(T, x, ly + lr + 0.8, TS.tag, ph[ph.length - 1 - i], {
+        align: 1,
+        valign: 1
+      });
+    });
+    pen.text(T, lxs[lxs.length - 1] - lr - 1, ly, TS.tag, "PILOT LAMP", {
+      align: 2,
+      valign: 2
+    });
+    pen.text(T, lx - 0.8, yMain + CT_R + 0.9, TS.spec, "CT " + P.pmCt, {
+      align: 2,
       valign: 1
     });
-    pen.line(CM, px, yMain, px, pt);
-    pen.rect(S, px - 4.5, pb, 9, pt - pb);
-    pen.text(T, px, (pb + pt) / 2, TS.spec, "PM2230", {
+    const pmx = X.acM + 4,
+      pmy = (pb + pt) / 2,
+      cr = 1.5;
+    pen.line(CM, px, yMain, px, pmy + cr);
+    pen.arc(CM, px - cr, pmy + cr, cr, 270, 360);
+    pen.line(CM, px - cr, pmy, pmx + 4.5, pmy);
+    pen.rect(S, pmx - 4.5, pb, 9, pt - pb);
+    pen.text(T, pmx, pmy, TS.spec, "PM2230", {
       align: 1,
       valign: 2
     });
@@ -2787,8 +2823,10 @@ function pgSldPro(doc, sheet, M) {
       valign: 2
     });
     const cx = X.mdBus - 7;
-    pen.line(CM, X.mdBus, ctY, cx, ctY);
-    pen.line(CM, cx, ctY, cx, gy);
+    const cr = 1.5;
+    pen.line(CM, X.mdBus, ctY, cx + cr, ctY);
+    pen.arc(CM, cx + cr, ctY + cr, cr, 180, 270);
+    pen.line(CM, cx, ctY + cr, cx, gy);
     pen.line(CM, gx + gw, gy, cx, gy);
     pen.text(T, gx + gw + 1, gy + 0.6, TS.tag, "CT SIGNAL", {
       valign: 1
