@@ -2240,7 +2240,7 @@ function pgSldPro(doc, sheet, M) {
     mdBus: DX0 + 214,
     md1: DX0 + 226
   };
-  const g = 3.4;
+  const g = 2.4;
   const fuseDev = P.dcDev.k === "fuse";
   const TS = {
     zone: 2.5,
