@@ -1932,7 +1932,10 @@ function pgSldPro(doc, sheet, M) {
       pen.text(T, x, y1, h, m[4], { align: 1, valign: 1 });
       pen.text(T, x + wb + 1.6, y2 + 0.15, hs, sub.trim(), { valign: 1 });   // ระดับเดียวกับ AF (ผู้ใช้วาดให้ดู)
     };
-    const invCab = String(M.acCable || "").replace(/\s+(L1,L2,L3,N|L,N)\s*$/, "").replace(/(\dC)-/, "$1x").replace(/\s+/g, " ") + " 0.6/1kV" + (M.acRoute ? " " + M.acRoute : "");   // บอกวิธีเดินสายต่อท้าย (ผู้ใช้ 2026-10-29)
+    const invCab = String(M.acCable || "").replace(/\s+(L1,L2,L3,N|L,N)\s*$/, "").replace(/(\dC)-/, "$1x").replace(/\s+/g, " ");
+    /* ขนาด/จำนวนเส้น/วิธีเดินสายจาก BOQ ต่อเครื่อง (M.acCableOf · p3SldFromBoq) — ไม่มีแถวใน BOQ ใช้สาย AC ที่คำนวณเอง · kV ต่อท้ายเมื่อชื่อยังไม่บอก */
+    const withKv = (s) => /kV|\/750V/.test(s) ? s : s + " 0.6/1kV";
+    const invCabOf = (no) => withKv((M.acCableOf && M.acCableOf[no]) || invCab) + (M.acRoute ? " " + M.acRoute : "");   // บอกวิธีเดินสายต่อท้าย (ผู้ใช้ 2026-10-29)
     /* สายดินต่อเครื่อง: ขนาดตาม AT ของเบรกเกอร์เครื่องนั้น — ตารางเดียวกับสายดินเมน (p3SldModel earthCu) */
     const invG = (brk) => {
       const at = +((/(\d+)AT/.exec(String(brk || "")) || /(\d+)A\b/.exec(String(brk || "")) || [])[1]) || 0;
@@ -1944,8 +1947,9 @@ function pgSldPro(doc, sheet, M) {
       pen.line(R, X.iv1 + 0.6, t.y, X.acB - g - 0.75, t.y);
       /* แผ่นภาพรวม: ป้ายสาย AC อินเวอร์เตอร์เหนือเส้นทุกเส้น + จำนวนเส้นรวม (ผู้ใช้ 2026-10-29) */
       if (isMain) {
-        const cw = X.ac0 - X.iv1 - 3, gl = invG(t.b.brk), ch = Math.min(fitH(invCab, TS.spec, cw), Math.max(0.9, (tGap - 1.6) / 2.2));
-        pen.text(T, X.iv1 + 2, t.y + 0.7, ch, invCab, { valign: 1 });
+        const lc = invCabOf(t.b.no), gl = (M.acGndOf && M.acGndOf[t.b.no]) || invG(t.b.brk);
+        const cw = X.acB - g - X.iv1 - 4, ch = Math.min(fitH(lc, TS.spec, cw), Math.max(0.9, (tGap - 1.6) / 2.2));
+        pen.text(T, X.iv1 + 2, t.y + 0.7, ch, lc, { valign: 1 });
         pen.text(T, X.iv1 + 2, t.y - 0.7, ch, gl, { valign: 3 });   // สายดินใต้เส้น (ผู้ใช้ 2026-10-29)
       }
       hBrk(X.acB, t.y, isCb(t.b.brk));
@@ -1993,9 +1997,7 @@ function pgSldPro(doc, sheet, M) {
     if (P.pm) {
       /* Power meter: CT บนสายเมน → PM2230 */
       const pb = yMain - 19, pt = yMain - 14;
-      /* CT วัดพลังงาน 3 ขด (ผู้ใช้วาดชี้ 2026-10-29) — CT อื่นยังเป็น 2 ขด (ctH) */
-      [-2 * CT_R, 0, 2 * CT_R].forEach((dx) => pen.arc(S, cx + dx, yMain, CT_R, 0, 180));
-      [3 * CT_R, -3 * CT_R].forEach((dx) => pen.line(S, cx + dx, yMain - 1.6, cx + dx, yMain));
+      ctH(cx, yMain);   // แบบเดียวกับสัญลักษณ์ CT ใน LEGEND (ผู้ใช้ชี้ 2026-10-29)
       /* ไฟแสดงเฟส (pilot lamp) แยกจากสายเมนหลัง CT → ฟิวส์ → ขึ้นเหนือตู้ → หลอด R S T (ผู้ใช้วาดชี้ 2026-10-29) */
       /* แผ่นภาพรวมตู้สูงทั้งแผ่น — หลอดไฟแสดงเฟสลงมาอยู่เหนือสายเมน ไม่ลอยไปขอบบนตู้ (ผู้ใช้ชี้ 2026-10-29) */
       const fy = isMain ? Math.min(acTop0 + 4, yMain + 12) : acTop0 + 4, ly = fy + 5, lr = 1.3;
@@ -2019,8 +2021,8 @@ function pgSldPro(doc, sheet, M) {
       /* สัญลักษณ์มิเตอร์ดิจิทัล (ผู้ใช้ส่งรูป 2026-10-29): กล่องมีแถบบน · "DM" ข้างใน · ชื่อรุ่นใต้กล่อง */
       const pw = 6.4, pbB = pt - 6, pmx = cx + 3, pmy = (pbB + pt) / 2;   // กล่องเยื้องขวา ไม่ทับบัส AC (ผู้ใช้ชี้) · สาย CT ยังลงตรงเข้าด้านบนกล่อง
       /* สาย CT: จากขาซ้ายของ CT ลง แล้วเลี้ยวเข้าข้างซ้ายกล่อง DM (ผู้ใช้วาดชี้ 2026-10-29) — เดิมลงตรงเข้าด้านบน */
-      pen.line(S, cx - 3 * CT_R, yMain - 1.6, cx - 3 * CT_R, pmy);   // เส้นทึบตรงยาว ไม่เป็นเส้นประ (ผู้ใช้: เอาให้ตรง)
-      pen.line(S, cx - 3 * CT_R, pmy, pmx - pw / 2, pmy);
+      pen.line(S, cx - 2 * CT_R, yMain - 1.6, cx - 2 * CT_R, pmy);   // เส้นทึบตรงยาว ไม่เป็นเส้นประ (ผู้ใช้: เอาให้ตรง)
+      pen.line(S, cx - 2 * CT_R, pmy, pmx - pw / 2, pmy);
       pen.rect(S, pmx - pw / 2, pbB, pw, pt - pbB);
       pen.line(S, pmx - pw / 2, pt - 1.3, pmx + pw / 2, pt - 1.3);
       pen.text(T, pmx, (pbB + pt - 1.3) / 2, TS.head, "DM", { align: 1, valign: 2 });
@@ -2075,7 +2077,8 @@ function pgSldPro(doc, sheet, M) {
     const mdBot = yMain - 24;
     /* ไม่วาด MCCB ในตู้ MDB (ผู้ใช้ 2026-10-29) — สายเมนวิ่งตรงถึงลูกศร */
     /* ป้ายสายเมน (ไม่มีขีดตัดสาย — ผู้ใช้ 2026-10-29): สายกำลังเหนือเส้น · สายดินใต้เส้น (ผู้ใช้ส่งตัวอย่าง 2026-10-29) */
-    const cl = [String(M.mainCable[0] || "").replace(/\s*\(SOLAR-CELL\)/, "").replace(/\s+/g, " ") + " 0.6/1kV" + (M.mainRoute ? " " + M.mainRoute : ""), "G-" + P.earthCu + " Sq.mm. IEC01(THW)"];
+    const cl = [String(M.mainCable[0] || "").replace(/\s*\(SOLAR-CELL\)/, "").replace(/\s+/g, " "), M.mainGnd || "G-" + P.earthCu + " Sq.mm. IEC01(THW)"];
+    cl[0] = (/kV|\/750V/.test(cl[0]) ? cl[0] : cl[0] + " 0.6/1kV") + (M.mainRoute ? " " + M.mainRoute : "");   // ขนาด/วิธีเดินจาก BOQ เมื่อมี (p3SldFromBoq)
     const ctx = X.ac1 + 4;
     pen.text(T, ctx + 1, yMain + 0.8, TS.spec, cl[0], { valign: 1 });
     pen.text(T, ctx + 1, yMain - 0.8, TS.spec, cl[1], { valign: 3 });

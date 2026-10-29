@@ -4337,7 +4337,58 @@ function p3SldModel(st, job, design) {
     desc: "BATTERY " + M.batt.kwh + " kWh.",
     no: 1
   });
+  p3SldFromBoq(M, job && job.boq || null, nPh);
   return p3SldApply(M, st.sldEdit);
+}
+const P3_ROUTE_EN = {
+  conduitAir: "IN CONDUIT",
+  surface: "ON SURFACE",
+  insulator: "ON INSULATOR",
+  buried: "DIRECT BURIED",
+  traySolid: "ON CABLE TRAY",
+  trayPerf: "ON PERFORATED CABLE TRAY",
+  ladder: "ON CABLE LADDER",
+  trayCover: "IN COVERED CABLE TRAY",
+  wireway: "IN COVERED CABLE TRAY"
+};
+function p3CabLabel(c, nPh) {
+  const t = String(c && c.type || "").replace(/\s+/g, " ").trim();
+  const m = /^(.*?)\s*(\d+)\s*C\s*[x×-]\s*(\d+(?:\.\d+)?)\s*(?:SQ\.?\s*MM\.?|mm2|Sq\.mm\.)?\s*(.*)$/i.exec(t);
+  if (!m) return t ? t : "";
+  const core = +m[2],
+    sets = Math.max(1, Math.round(+c.sets || 1));
+  const wires = Math.max(1, Math.round(+c.wires || (core >= 2 ? 1 : nPh === 3 ? 4 : 2)));
+  const one = (core === 1 && wires > 1 ? wires + "x" : "") + core + "Cx" + m[3];
+  const qty = sets > 1 ? sets + "x(" + one + ")" : one;
+  const pre = m[1].trim(),
+    kv = /CV|XLPE|NYY|N2XY/i.test(pre) ? " 0.6/1kV" : /THW|IEC ?01/i.test(pre) ? " 450/750V" : "";
+  return (pre ? pre + " " : "") + qty + " Sq.mm." + kv;
+}
+function p3GndLabel(g) {
+  const n = /(\d+(?:\.\d+)?)\s*(?:SQ|mm|Sq)/i.exec(String(g || ""));
+  return n ? "G-" + n[1] + " Sq.mm. IEC01(THW)" : "";
+}
+function p3SldFromBoq(M, b, nPh) {
+  if (!b || !Array.isArray(b.cables)) return;
+  const def = b.wireCalc && b.wireCalc.method || "conduitAir";
+  const route = c => P3_ROUTE_EN[c && c.method || def] || "";
+  const invRows = b.cables.filter(c => c && /INVERTER-MCB_SOLAR/i.test(c.name || ""));
+  const mainRow = b.cables.find(c => c && /MCB_SOLAR-MDB/i.test(c.name || "") && c.type);
+  M.acRoute = route(invRows[0]);
+  M.mainRoute = route(mainRow || invRows[0]);
+  M.acCableOf = {};
+  M.acGndOf = {};
+  invRows.forEach((c, i) => {
+    const no = +c.inv || i + 1,
+      l = p3CabLabel(c, nPh);
+    if (l) M.acCableOf[no] = l;
+    if (c.gnd) M.acGndOf[no] = p3GndLabel(c.gnd);
+  });
+  if (invRows[0] && invRows[0].type) M.acCable = p3CabLabel(invRows[0], nPh);
+  if (mainRow) {
+    M.mainCable = [p3CabLabel(mainRow, nPh), M.mainCable[1]];
+    if (mainRow.gnd) M.mainGnd = p3GndLabel(mainRow.gnd);
+  }
 }
 function p3SldApply(M, edit) {
   if (!edit) return M;

@@ -2542,7 +2542,7 @@ function p3SldModel(st, job, design) {
     acCable: "CV-FD " + (nPh === 3 ? "4C-" : "2C-") + brCu + " Sq.mm. " + (nPh === 3 ? "L1,L2,L3,N" : "L,N"),
     branches,
     /* วิธีเดินสายที่เขียนต่อท้ายป้ายสายใน SLD — ขนาดสายคิดแบบเดินในท่อในอากาศ จึงตั้งต้น IN CONDUIT · แก้ได้ในหน้าแก้ข้อความ SLD (ผู้ใช้ 2026-10-29) */
-    acRoute: "IN CONDUIT",
+    acRoute: "IN CONDUIT",    // มีแถวสายใน BOQ = ดึงวิธีเดินสายจาก BOQ แทน (p3SldFromBoq)
     mainRoute: "IN CONDUIT",
     combinerModel: "",
     ctBranch: "CTx1 " + p3Ct(totA * 1.5) + "A/40mA",
@@ -2739,6 +2739,7 @@ function p3SldModel(st, job, design) {
     { brand: panel.brand, model: panel.model, desc: "PV MODULE " + wp + " Wp.", no: nPanel },
   ];
   if (M.batt) M.equip.push({ brand: M.batt.brand, model: M.batt.model, desc: "BATTERY " + M.batt.kwh + " kWh.", no: 1 });
+  p3SldFromBoq(M, (job && job.boq) || null, nPh);
   return p3SldApply(M, st.sldEdit);
 }
 
@@ -2747,6 +2748,47 @@ function p3SldModel(st, job, design) {
    จึงเก็บเฉพาะ "ค่าที่ถูกแก้" เป็น map path→ค่า ไว้ที่ st.sldEdit
    ช่องไหนไม่ได้แก้ก็ยังคิดให้อัตโนมัติเหมือนเดิม ลบค่าที่แก้ทิ้งเมื่อไรก็กลับไปใช้ค่าอัตโนมัติทันที
    คั่นชั้นด้วย ~ ไม่ใช่จุด เพราะคีย์ของ Firebase ห้ามมีจุด */
+/* ขนาดสาย · จำนวนเส้น · สายดิน · วิธีเดินสาย ดึงจากแถวสายใน BOQ ของงาน (ผู้ใช้ 2026-10-29 "ดึงมาจาก BOQ เลย")
+   INVERTER-MCB_SOLAR แถวละเครื่อง (c.inv) · MCB_SOLAR-MDB = สายเมน · แถวไม่มี type = ใช้ค่าที่คำนวณเองเหมือนเดิม
+   ค่าที่ได้เป็นค่า auto — ผู้ใช้แก้ทับในหน้าแก้ข้อความ SLD ได้ (p3SldApply ทำหลังนี้) */
+const P3_ROUTE_EN = { conduitAir: "IN CONDUIT", surface: "ON SURFACE", insulator: "ON INSULATOR", buried: "DIRECT BURIED",
+  traySolid: "ON CABLE TRAY", trayPerf: "ON PERFORATED CABLE TRAY", ladder: "ON CABLE LADDER", trayCover: "IN COVERED CABLE TRAY", wireway: "IN COVERED CABLE TRAY" };
+function p3CabLabel(c, nPh) {
+  const t = String((c && c.type) || "").replace(/\s+/g, " ").trim();
+  const m = /^(.*?)\s*(\d+)\s*C\s*[x×-]\s*(\d+(?:\.\d+)?)\s*(?:SQ\.?\s*MM\.?|mm2|Sq\.mm\.)?\s*(.*)$/i.exec(t);
+  if (!m) return t ? t : "";
+  const core = +m[2], sets = Math.max(1, Math.round(+c.sets || 1));
+  const wires = Math.max(1, Math.round(+c.wires || (core >= 2 ? 1 : (nPh === 3 ? 4 : 2))));
+  const one = (core === 1 && wires > 1 ? wires + "x" : "") + core + "Cx" + m[3];
+  const qty = sets > 1 ? sets + "x(" + one + ")" : one;
+  const pre = m[1].trim(), kv = /CV|XLPE|NYY|N2XY/i.test(pre) ? " 0.6/1kV" : /THW|IEC ?01/i.test(pre) ? " 450/750V" : "";
+  return (pre ? pre + " " : "") + qty + " Sq.mm." + kv;
+}
+function p3GndLabel(g) {
+  const n = /(\d+(?:\.\d+)?)\s*(?:SQ|mm|Sq)/i.exec(String(g || ""));
+  return n ? "G-" + n[1] + " Sq.mm. IEC01(THW)" : "";
+}
+function p3SldFromBoq(M, b, nPh) {
+  if (!b || !Array.isArray(b.cables)) return;
+  const def = (b.wireCalc && b.wireCalc.method) || "conduitAir";
+  const route = (c) => P3_ROUTE_EN[(c && c.method) || def] || "";
+  const invRows = b.cables.filter((c) => c && /INVERTER-MCB_SOLAR/i.test(c.name || ""));
+  const mainRow = b.cables.find((c) => c && /MCB_SOLAR-MDB/i.test(c.name || "") && c.type);
+  M.acRoute = route(invRows[0]);
+  M.mainRoute = route(mainRow || invRows[0]);
+  M.acCableOf = {}; M.acGndOf = {};
+  invRows.forEach((c, i) => {
+    const no = +c.inv || i + 1, l = p3CabLabel(c, nPh);
+    if (l) M.acCableOf[no] = l;
+    if (c.gnd) M.acGndOf[no] = p3GndLabel(c.gnd);
+  });
+  if (invRows[0] && invRows[0].type) M.acCable = p3CabLabel(invRows[0], nPh);
+  if (mainRow) {
+    M.mainCable = [p3CabLabel(mainRow, nPh), M.mainCable[1]];
+    if (mainRow.gnd) M.mainGnd = p3GndLabel(mainRow.gnd);
+  }
+}
+
 function p3SldApply(M, edit) {
   if (!edit) return M;
   Object.keys(edit).forEach((path) => {
