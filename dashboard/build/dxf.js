@@ -2920,7 +2920,8 @@ function pgSldPro(doc, sheet, M) {
       align: 2,
       valign: 2
     }));
-    const barY = spY - 7.5,
+    const acBot = Math.min(spY - 10, pmLow - 2, busLo - 4);
+    const barY = acBot + 3,
       barW = 9,
       barH = 1.6;
     const bar = (L, cx, lab, right) => {
@@ -2933,7 +2934,6 @@ function pgSldPro(doc, sheet, M) {
     };
     bar(S, sx - 16, "N", false);
     bar(PE, sx, "G", true);
-    const acBot = Math.min(barY - 3.5, pmLow - 2, busLo - 4);
     pen.rect(BX, X.ac0, acBot, X.ac1 - X.ac0, acTop - acBot);
     pen.text(T, X.ac1 + 3.0, yMain - 3, TS.spec, M.mainCable[0], {
       rot: 90,

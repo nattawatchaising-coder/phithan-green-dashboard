@@ -2035,7 +2035,8 @@ function pgSldPro(doc, sheet, M) {
     const spH = Math.min.apply(null, P.acSpd.map((t) => fitH(t, TS.spec, sw)));
     P.acSpd.forEach((t, i) => pen.text(T, sx - 3.6, spY + 2.4 - i * 2.2, spH, t, { align: 2, valign: 2 }));
     /* บาร์ N และบาร์ G ที่ก้นตู้ AC (ผู้ใช้วาดชี้ 2026-10-29) — สายดิน SPD ลงผ่านบาร์ G แล้วไปบัสดินหลัก (MET) */
-    const barY = spY - 7.5, barW = 9, barH = 1.6;
+    const acBot = Math.min(spY - 10, pmLow - 2, busLo - 4);
+    const barY = acBot + 3, barW = 9, barH = 1.6;   // บาร์อยู่ก้นตู้ (ผู้ใช้ชี้ให้ลงล่างสุด)
     const bar = (L, cx, lab, right) => {
       pen.rect(L, cx - barW / 2, barY - barH / 2, barW, barH);
       for (let k = 0; k < 4; k++) pen.circle(L, cx - barW / 2 + 1.5 + k * 2, barY, 0.45);
@@ -2043,7 +2044,6 @@ function pgSldPro(doc, sheet, M) {
     };
     bar(S, sx - 16, "N", false);
     bar(PE, sx, "G", true);
-    const acBot = Math.min(barY - 3.5, pmLow - 2, busLo - 4);
     pen.rect(BX, X.ac0, acBot, X.ac1 - X.ac0, acTop - acBot);
     pen.text(T, X.ac1 + 3.0, yMain - 3, TS.spec, M.mainCable[0], { rot: 90, align: 2 });
     pen.text(T, X.ac1 + 5.8, yMain - 3, TS.spec, "THW(G) " + P.earthCu + " mm2 (PE)", { rot: 90, align: 2 });
