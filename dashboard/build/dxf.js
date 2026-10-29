@@ -2514,10 +2514,6 @@ function pgSldPro(doc, sheet, M) {
       align: 1,
       valign: 1
     });
-    pen.text(LB, (X.md0 + X.md1) / 2, hy, TS.zone, "MDB / GRID", {
-      align: 1,
-      valign: 1
-    });
   }
   let cur = yB0;
   const miniLines = b => [[LB, "INV" + b.no + "  " + b.kw + "kW " + P.phTxt + "  " + b.model], [T, b.nMp + " MPPT / " + b.nStr + " STRINGS / " + b.nPv + " x " + wp + "Wp = " + Math.round(b.nPv * wp / 10) / 100 + " kWp"], [T, b.ref]].filter((l, k) => l[1] && (k < 2 || MH >= 11));
@@ -2943,12 +2939,7 @@ function pgSldPro(doc, sheet, M) {
       rot: 90,
       align: 2
     });
-    const mdTop = yMain + 22,
-      mdBot = yMain - 24;
-    pen.rect(BX, X.md0, mdBot, X.md1 - X.md0, mdTop - mdBot);
-    pen.text(LB, X.md0 + 1, mdTop + 1, TS.head, "MDB (EXISTING)", {
-      valign: 1
-    });
+    const mdBot = yMain - 24;
     hBrk(X.mdB, yMain, isCb(M.mccb[0]));
     pen.text(T, X.md0 + 1, yMain + 5.0, fitH(M.mccb[0], TS.spec, X.mdBus - X.md0 - 3), M.mccb[0], {
       valign: 1
@@ -2956,42 +2947,21 @@ function pgSldPro(doc, sheet, M) {
     pen.text(T, X.md0 + 1, yMain - 2.2, TS.spec, "SOLAR (" + (M.mccbNew ? "NEW" : "EXIST") + ")", {
       valign: 3
     });
-    pen.line(W, X.mdB + g + 0.75, yMain, X.mdBus, yMain);
-    pen.dot(W, X.mdBus, yMain, 0.5);
-    pen.line(W, X.mdBus, yMain - 8, X.mdBus, yMain + 8);
-    pgWireY(pen, W, X.mdBus, yMain + 8, mdTop, [{
-      y: yMain + 15,
-      half: g + 0.75
-    }]);
-    pgSym.breaker(pen, X.mdBus, yMain + 15, "", "", g);
-    pen.text(T, X.mdBus + 3, yMain + 15.8, TS.spec, "MAIN CB", {
+    const ax = X.mdB + g + 3.5;
+    pen.line(W, X.mdB + g + 0.75, yMain, ax, yMain);
+    pen.solid(W, [ax, yMain + 1.1], [ax + 2.6, yMain], [ax, yMain - 1.1]);
+    pen.text(LB, ax + 4, yMain + 0.9, TS.head, "TO MDB", {
       valign: 1
     });
-    pen.text(T, X.mdBus + 3, yMain + 14.2, TS.spec, P.exMain || "(EXISTING)", {
+    pen.text(T, ax + 4, yMain - 1.0, TS.spec, "(EXISTING)", {
       valign: 3
     });
-    pgWireY(pen, W, X.mdBus, yMain - 8, mdBot, [{
-      y: yMain - 15,
-      half: g + 0.75
-    }]);
-    pgSym.breaker(pen, X.mdBus, yMain - 15, "", "", g);
-    pen.line(W, X.mdBus, mdBot, X.mdBus, mdBot - 3.5);
-    pgSym.home(pen, X.mdBus, mdBot - 6.5, 3.4, TS.head);
-    const mpx = X.md0 + 3;
-    pen.rect(PE, mpx - 2, mdBot + 1.2, 4, 1.0);
-    pen.text(T, mpx + 2.6, mdBot + 1.7, TS.tag, "PE / N-PE LINK", {
-      valign: 2
-    });
     const yE = Math.max(yE0, Math.min(blkLow - 4, acBot - 5, mdBot - 14));
-    pen.line(PE, mpx, mdBot + 1.2, mpx, yE);
     pen.line(PE, sx, spY - 2.4, sx, barY + 0.45);
     {
       const gx = sx + 2,
-        hr = 1.0,
         gy = yE - 4.5;
-      pen.line(PE, gx, barY - 0.45, gx, yE + hr);
-      pen.arc(PE, gx, yE, hr, -90, 90);
-      pen.line(PE, gx, yE - hr, gx, gy);
+      pen.line(PE, gx, barY - 0.45, gx, gy);
       pgSym.ground(pen, gx, gy);
       pen.text(T, gx - 1.5, yE + 3.4, TS.tag, "CONNECT TO GROUND BAR", {
         align: 2,
@@ -3003,31 +2973,8 @@ function pgSldPro(doc, sheet, M) {
       });
     }
     pen.line(PE, sx - 4, barY - 0.45, sx - 4, acBot);
-    pen.text(T, sx - 4.8, acBot + 1.2, TS.tag, "ENCLOSURE GND", {
-      align: 2,
-      valign: 2
-    });
+    pen.circle(PE, sx - 4, acBot + 0.5, 0.5);
     pen.line(PE, X.pe0, peTop, X.pe0, yE);
-    const ctY = mdTop + 6,
-      mY = mdTop + 15,
-      uY = mdTop + 27;
-    pen.line(W, X.mdBus, mdTop, X.mdBus, mY - 3.4);
-    ctV(X.mdBus, ctY);
-    pen.text(T, X.mdBus + CT_R + 1.8, ctY, fitH(M.ctMain, TS.spec, X.md1 + 10 - X.mdBus - CT_R - 1.8), M.ctMain, {
-      valign: 2
-    });
-    meter(X.mdBus, mY, 3.4);
-    pen.text(T, X.mdBus + 4.4, mY + 0.8, TS.spec, "BI-DIR. kWh", {
-      valign: 1
-    });
-    pen.text(T, X.mdBus + 4.4, mY - 0.8, TS.spec, "METER (" + P.auth + ")", {
-      valign: 3
-    });
-    pen.line(W, X.mdBus, mY + 3.4, X.mdBus, uY - 1.9);
-    pgSym.utility(pen, X.mdBus, uY, 3.2, "");
-    pen.text(LB, X.mdBus + 3.6, uY, TS.head, "TO " + P.auth + " GRID", {
-      valign: 2
-    });
     if (M.gateway) {
       const gy = A.y1 - 12,
         gx = (X.ac0 + X.ac1) / 2,
@@ -3037,14 +2984,13 @@ function pgSldPro(doc, sheet, M) {
         align: 1,
         valign: 2
       });
-      const cx = X.mdBus - 7;
       const cr = 1.5;
-      pen.line(CM, X.mdBus, ctY, cx + cr, ctY);
-      pen.arc(CM, cx + cr, ctY + cr, cr, 180, 270);
-      pen.line(CM, cx, ctY + cr, cx, gy);
-      pen.line(CM, gx + gw, gy, cx, gy);
+      pen.line(CM, gx + gw, gy, X.mdB, gy);
       pen.text(T, gx + gw + 1, gy + 0.6, TS.tag, "CT SIGNAL", {
         valign: 1
+      });
+      pen.text(T, X.mdB + 1, gy, TS.tag, "TO GRID CT AT MDB", {
+        valign: 2
       });
       const ix = X.iv1 - 5;
       pen.line(CM, gx - gw, gy, ix, gy);
@@ -3057,25 +3003,6 @@ function pgSldPro(doc, sheet, M) {
     pen.line(PE, X.pe0, yE, X.pe0, yE - 2.3);
     pgSym.ground(pen, X.pe0, yE - 2.3);
     pen.text(T, X.pe0 + 3.2, yE - 3.4, TS.spec, "PV EARTH ROD (SEPARATE)  5/8\" x 2.4m  R <= 5 OHM", {
-      valign: 2
-    });
-    const metX = X.md1 - 10;
-    pen.line(PE, Math.min(sx, mpx) - 1, yE, metX, yE);
-    [Math.max(sx, mpx)].forEach(x => peDot(x, yE));
-    pen.rect(PE, metX, yE - 2.2, 10, 4.4);
-    pen.text(T, metX + 5, yE, TS.spec, "MET", {
-      align: 1,
-      valign: 2
-    });
-    const rx = metX + 5;
-    pen.line(PE, rx, yE - 2.2, rx, yE - 4.5);
-    pgSym.ground(pen, rx, yE - 4.5);
-    pen.text(T, rx - 4, yE - 5.6, TS.spec, "EARTH ROD 5/8\" x 2.4m  R <= 5 OHM", {
-      align: 2,
-      valign: 2
-    });
-    pen.text(LB, Math.min(sx, mpx) - 1.5, yE, TS.spec, "MAIN EARTH (PE) : THW(G) " + P.earthCu + " mm2", {
-      align: 2,
       valign: 2
     });
   }

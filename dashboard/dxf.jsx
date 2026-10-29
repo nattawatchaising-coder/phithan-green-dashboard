@@ -1735,7 +1735,6 @@ function pgSldPro(doc, sheet, M) {
   pen.text(LB, (X.iv0 + X.iv1) / 2, hy, TS.zone, "INVERTER", { align: 1, valign: 1 });
   if (!isDet) {
     pen.text(LB, (X.ac0 + X.ac1) / 2, hy, TS.zone, "AC COMBINER BOX", { align: 1, valign: 1 });
-    pen.text(LB, (X.md0 + X.md1) / 2, hy, TS.zone, "MDB / GRID", { align: 1, valign: 1 });
   }
 
   /* ── วาดบล็อกอินเวอร์เตอร์ทีละเครื่อง ──
@@ -2048,67 +2047,43 @@ function pgSldPro(doc, sheet, M) {
     pen.text(T, X.ac1 + 3.0, yMain - 3, TS.spec, M.mainCable[0], { rot: 90, align: 2 });
     pen.text(T, X.ac1 + 5.8, yMain - 3, TS.spec, "THW(G) " + P.earthCu + " mm2 (PE)", { rot: 90, align: 2 });
 
-    /* ── MDB + มิเตอร์การไฟฟ้า ── */
-    const mdTop = yMain + 22, mdBot = yMain - 24;
-    pen.rect(BX, X.md0, mdBot, X.md1 - X.md0, mdTop - mdBot);
-    pen.text(LB, X.md0 + 1, mdTop + 1, TS.head, "MDB (EXISTING)", { valign: 1 });
+    /* ── ปลายสายเมน: เบรกเกอร์โซลาร์ในตู้ MDB เดิม → ลูกศร TO MDB (EXISTING) ──
+       ผู้ใช้ขีดฆ่ากรอบ MDB · มิเตอร์ · สายกริด · MET · หลักดินระบบ (2026-10-29) — ของเดิมไม่วาด ชี้ไปเฉย ๆ */
+    const mdBot = yMain - 24;
     hBrk(X.mdB, yMain, isCb(M.mccb[0]));
     pen.text(T, X.md0 + 1, yMain + 5.0, fitH(M.mccb[0], TS.spec, X.mdBus - X.md0 - 3), M.mccb[0], { valign: 1 });
     pen.text(T, X.md0 + 1, yMain - 2.2, TS.spec, "SOLAR (" + (M.mccbNew ? "NEW" : "EXIST") + ")", { valign: 3 });
-    pen.line(W, X.mdB + g + 0.75, yMain, X.mdBus, yMain);
-    pen.dot(W, X.mdBus, yMain, 0.5);
-    pen.line(W, X.mdBus, yMain - 8, X.mdBus, yMain + 8);
-    pgWireY(pen, W, X.mdBus, yMain + 8, mdTop, [{ y: yMain + 15, half: g + 0.75 }]);
-    pgSym.breaker(pen, X.mdBus, yMain + 15, "", "", g);
-    pen.text(T, X.mdBus + 3, yMain + 15.8, TS.spec, "MAIN CB", { valign: 1 });
-    pen.text(T, X.mdBus + 3, yMain + 14.2, TS.spec, P.exMain || "(EXISTING)", { valign: 3 });
-    pgWireY(pen, W, X.mdBus, yMain - 8, mdBot, [{ y: yMain - 15, half: g + 0.75 }]);
-    pgSym.breaker(pen, X.mdBus, yMain - 15, "", "", g);
-    pen.line(W, X.mdBus, mdBot, X.mdBus, mdBot - 3.5);
-    pgSym.home(pen, X.mdBus, mdBot - 6.5, 3.4, TS.head);
-    /* PE bar ของ MDB → บัสดินหลัก */
-    const mpx = X.md0 + 3;
-    pen.rect(PE, mpx - 2, mdBot + 1.2, 4, 1.0);
-    pen.text(T, mpx + 2.6, mdBot + 1.7, TS.tag, "PE / N-PE LINK", { valign: 2 });
+    const ax = X.mdB + g + 3.5;
+    pen.line(W, X.mdB + g + 0.75, yMain, ax, yMain);
+    pen.solid(W, [ax, yMain + 1.1], [ax + 2.6, yMain], [ax, yMain - 1.1]);
+    pen.text(LB, ax + 4, yMain + 0.9, TS.head, "TO MDB", { valign: 1 });
+    pen.text(T, ax + 4, yMain - 1.0, TS.spec, "(EXISTING)", { valign: 3 });
     const yE = Math.max(yE0, Math.min(blkLow - 4, acBot - 5, mdBot - 14));
-    pen.line(PE, mpx, mdBot + 1.2, mpx, yE);
     /* สายดิน SPD จบที่รูบาร์ G · สายไป MET ออกจากอีกรูด้านล่าง ไม่ลากทะลุบาร์ (ผู้ใช้ชี้ 2026-10-29) */
     pen.line(PE, sx, spY - 2.4, sx, barY + 0.45);
     /* บาร์ G ไม่ต่อเข้าสายดินหลัก — ลงกระโดดข้ามสาย (ครึ่งวงกลม) ไปต่อบาร์ดินตู้ MDB เดิม (ผู้ใช้ชี้ 2026-10-29) */
-    { const gx = sx + 2, hr = 1.0, gy = yE - 4.5;
-      pen.line(PE, gx, barY - 0.45, gx, yE + hr);
-      pen.arc(PE, gx, yE, hr, -90, 90);
-      pen.line(PE, gx, yE - hr, gx, gy);
+    { const gx = sx + 2, gy = yE - 4.5;
+      pen.line(PE, gx, barY - 0.45, gx, gy);
       pgSym.ground(pen, gx, gy);
       pen.text(T, gx - 1.5, yE + 3.4, TS.tag, "CONNECT TO GROUND BAR", { align: 2, valign: 2 });
       pen.text(T, gx - 1.5, yE + 1.9, TS.tag, "OF EXISTING MDB", { align: 2, valign: 2 }); }
     /* กราวด์ตัวตู้ (ผู้ใช้ชี้ 2026-10-29) — จากรูที่ 1 ของบาร์ G ลงไปต่อกรอบตู้ (เส้นประก้นตู้) */
     pen.line(PE, sx - 4, barY - 0.45, sx - 4, acBot);
-    pen.text(T, sx - 4.8, acBot + 1.2, TS.tag, "ENCLOSURE GND", { align: 2, valign: 2 });
+    pen.circle(PE, sx - 4, acBot + 0.5, 0.5);   // จุดยึดโครงตู้ ไม่ต้องเขียนป้าย (ผู้ใช้ 2026-10-29)
     /* PE trunk ซ้าย: โครงแผงทุกแถว + บล็อกทุกเครื่อง → บัสดินหลัก */
     pen.line(PE, X.pe0, peTop, X.pe0, yE);
-    const ctY = mdTop + 6, mY = mdTop + 15, uY = mdTop + 27;
-    /* CT กริด: ขดสองโค้งเกาะสายเมน (ผู้ใช้วาด ∩∩ ให้ 2026-10-29) · สายสัญญาณเข้าจากซ้ายชนสายที่กึ่งกลางขด */
-    pen.line(W, X.mdBus, mdTop, X.mdBus, mY - 3.4);
-    ctV(X.mdBus, ctY);
-    pen.text(T, X.mdBus + CT_R + 1.8, ctY, fitH(M.ctMain, TS.spec, X.md1 + 10 - X.mdBus - CT_R - 1.8), M.ctMain, { valign: 2 });
-    meter(X.mdBus, mY, 3.4);
-    pen.text(T, X.mdBus + 4.4, mY + 0.8, TS.spec, "BI-DIR. kWh", { valign: 1 });
-    pen.text(T, X.mdBus + 4.4, mY - 0.8, TS.spec, "METER (" + P.auth + ")", { valign: 3 });
-    pen.line(W, X.mdBus, mY + 3.4, X.mdBus, uY - 1.9);
-    pgSym.utility(pen, X.mdBus, uY, 3.2, "");
-    pen.text(LB, X.mdBus + 3.6, uY, TS.head, "TO " + P.auth + " GRID", { valign: 2 });
 
     /* ── สายสื่อสาร: CT กริด → Smart meter/Logger → อินเวอร์เตอร์ (จำกัดไฟย้อน/มอนิเตอร์) ── */
     if (M.gateway) {
       const gy = A.y1 - 12, gx = (X.ac0 + X.ac1) / 2, gw = 15;
       pen.rect(S, gx - gw, gy - 3, gw * 2, 6);
       pen.text(T, gx, gy, TS.spec, "SMART METER / DATA LOGGER", { align: 1, valign: 2 });
-      const cx = X.mdBus - 7;
+      /* CT กริดอยู่ในตู้ MDB เดิม (ไม่วาด) — สายสัญญาณชี้ไปหา */
       /* วาดจากฝั่ง CT ออกไป — เส้นประเริ่มด้วยขีดเสมอ มุมเลี้ยวกับปลายที่ชน CT จึงไม่ตกช่องว่างจนดูขาด (ผู้ใช้วาดชี้ 2026-10-29) */
       const cr = 1.5;   // มุมเลี้ยวโค้ง (ผู้ใช้ขอ 2026-10-29)
-      pen.line(CM, X.mdBus, ctY, cx + cr, ctY); pen.arc(CM, cx + cr, ctY + cr, cr, 180, 270); pen.line(CM, cx, ctY + cr, cx, gy); pen.line(CM, gx + gw, gy, cx, gy);
+      pen.line(CM, gx + gw, gy, X.mdB, gy);
       pen.text(T, gx + gw + 1, gy + 0.6, TS.tag, "CT SIGNAL", { valign: 1 });
+      pen.text(T, X.mdB + 1, gy, TS.tag, "TO GRID CT AT MDB", { valign: 2 });
       const ix = X.iv1 - 5;
       pen.line(CM, gx - gw, gy, ix, gy); pen.line(CM, ix, gy, ix, yTop - 1);
       pen.text(T, gx - gw - 1, gy + 0.6, TS.tag, "RS485", { align: 2, valign: 1 });
@@ -2118,18 +2093,6 @@ function pgSldPro(doc, sheet, M) {
     pen.line(PE, X.pe0, yE, X.pe0, yE - 2.3);
     pgSym.ground(pen, X.pe0, yE - 2.3);
     pen.text(T, X.pe0 + 3.2, yE - 3.4, TS.spec, "PV EARTH ROD (SEPARATE)  5/8\" x 2.4m  R <= 5 OHM", { valign: 2 });
-    /* ── บัสดินหลัก (MET) + หลักดินระบบ — ฝั่ง AC เท่านั้น ── */
-    const metX = X.md1 - 10;
-    pen.line(PE, Math.min(sx, mpx) - 1, yE, metX, yE);   // ยื่นซ้ายเลยจุดกระโดดข้ามของสายบาร์ G
-    [Math.max(sx, mpx)].forEach((x) => peDot(x, yE));
-    pen.rect(PE, metX, yE - 2.2, 10, 4.4);
-    pen.text(T, metX + 5, yE, TS.spec, "MET", { align: 1, valign: 2 });
-    const rx = metX + 5;
-    pen.line(PE, rx, yE - 2.2, rx, yE - 4.5);
-    pgSym.ground(pen, rx, yE - 4.5);
-    pen.text(T, rx - 4, yE - 5.6, TS.spec, "EARTH ROD 5/8\" x 2.4m  R <= 5 OHM", { align: 2, valign: 2 });
-    /* ป้ายอยู่ซ้ายปลายบัสดิน — สายดิน SPD ย้ายไปฝั่งกริด (sx) ลงมาชนบัสตรงกลางป้ายเดิม (ผู้ใช้ชี้ 2026-10-29) */
-    pen.text(LB, Math.min(sx, mpx) - 1.5, yE, TS.spec, "MAIN EARTH (PE) : THW(G) " + P.earthCu + " mm2", { align: 2, valign: 2 });
 
   }
 
