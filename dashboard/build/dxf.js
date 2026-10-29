@@ -2636,7 +2636,10 @@ function pgSldPro(doc, sheet, M) {
       pgSym.breaker(pen, X.acBus, by, "", "", g);
       sy = by - g - 0.75;
     }
-    pen.text(T, X.acBus + 2.6, by, fitH(P.spdBk, TS.spec, 20), P.spdBk, {
+    if (P.pm) pen.text(T, X.acBus - 2.6, by, fitH(P.spdBk, TS.spec, X.acBus - 3.6 - X.ac0), P.spdBk, {
+      align: 2,
+      valign: 2
+    });else pen.text(T, X.acBus + 2.6, by, fitH(P.spdBk, TS.spec, 20), P.spdBk, {
       valign: 2
     });
   }
@@ -2650,8 +2653,9 @@ function pgSldPro(doc, sheet, M) {
     align: 2,
     valign: 2
   }));
-  const acBot = spY - 7;
-  const acTop = busHi + 9;
+  const acBot = Math.min(spY - 7, P.pm ? yMain - 29 : Infinity);
+  const acTop0 = busHi + 9,
+    acTop = acTop0 + (P.pm ? 15 : 0);
   pen.rect(BX, X.ac0, acBot, X.ac1 - X.ac0, acTop - acBot);
   pen.dot(R, X.acBus, yMain, 0.5);
   pen.line(R, X.acBus, yMain, X.acM - g - 0.75, yMain);
@@ -2698,15 +2702,16 @@ function pgSldPro(doc, sheet, M) {
     pen.line(R, wx, yMain, X.mdB - g - 0.75, yMain);
     ctH(px, yMain);
     const lx = px + 3.6,
-      fy = acTop + 4,
-      ly = acTop + 9,
+      fy = acTop0 + 4,
+      ly = acTop0 + 9,
       lr = 1.3;
     const ph = M.phase === 3 ? ["R", "S", "T"] : ["L"];
     pen.dot(R, lx, yMain, 0.5);
     pen.line(R, lx, yMain, lx, fy - 2.4);
     vFuse(lx, fy);
     pen.line(R, lx, fy + 2.4, lx, ly);
-    pen.text(T, lx + 1.6, fy, TS.tag, "FUSE 2A", {
+    pen.text(T, lx - 1.6, fy, TS.tag, "FUSE 2A", {
+      align: 2,
       valign: 2
     });
     const lxs = ph.map((_, i) => lx - 5 - i * 5);
@@ -2737,6 +2742,19 @@ function pgSldPro(doc, sheet, M) {
     pen.arc(CM, px - cr, pmy + cr, cr, 270, 360);
     pen.line(CM, px - cr, pmy, pmx + 4.5, pmy);
     pen.rect(S, pmx - 4.5, pb, 9, pt - pb);
+    const tx = X.acM - 8,
+      yb = yMain - 24,
+      hx = X.acM - 2;
+    pen.dot(R, tx, yMain, 0.5);
+    pen.line(R, tx, yMain, tx, yb);
+    pen.line(R, tx, yb, hx - g - 0.75, yb);
+    hBrk(hx, yb);
+    pen.line(R, hx + g + 0.75, yb, pmx + 2, yb);
+    pen.line(R, pmx + 2, yb, pmx + 2, pb);
+    pen.text(T, hx, yb - 1.4, TS.tag, "MCB 2P 6A", {
+      align: 1,
+      valign: 3
+    });
     pen.text(T, pmx, pmy, TS.spec, "PM2230", {
       align: 1,
       valign: 2

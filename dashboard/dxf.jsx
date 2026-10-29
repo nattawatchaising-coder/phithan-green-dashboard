@@ -1853,14 +1853,17 @@ function pgSldPro(doc, sheet, M) {
     } else {
       pen.line(R, X.acBus, sy, X.acBus, by + g + 0.75); pgSym.breaker(pen, X.acBus, by, "", "", g); sy = by - g - 0.75;
     }
-    pen.text(T, X.acBus + 2.6, by, fitH(P.spdBk, TS.spec, 20), P.spdBk, { valign: 2 });
+    /* มี PM = สายไฟเลี้ยง PM ลงผ่านขวาฟิวส์ → ย้ายป้ายไปซ้าย */
+    if (P.pm) pen.text(T, X.acBus - 2.6, by, fitH(P.spdBk, TS.spec, X.acBus - 3.6 - X.ac0), P.spdBk, { align: 2, valign: 2 });
+    else pen.text(T, X.acBus + 2.6, by, fitH(P.spdBk, TS.spec, 20), P.spdBk, { valign: 2 });
   }
   const spY = sy - 7;
   pen.line(R, X.acBus, sy, X.acBus, spY + 2.4);
   pgSym.spd(pen, X.acBus, spY, null, { w: 1.7, h: 4.8 });   // ขนาดเท่าฟิวส์ (ผู้ใช้ 2026-10-29)
   P.acSpd.forEach((s, i) => pen.text(T, X.acBus - 3.6, spY + 2.4 - i * 2.2, TS.spec, s, { align: 2, valign: 2 }));
-  const acBot = spY - 7;
-  const acTop = busHi + 9;
+  const acBot = Math.min(spY - 7, P.pm ? yMain - 29 : Infinity);   // มี PM = เผื่อสายไฟเลี้ยง PM ใต้กล่อง
+  /* มี power meter = มีไฟแสดงเฟสเหนือสายเมน → ขยายขอบบนตู้ให้หลอดอยู่ในตู้ (ผู้ใช้ตีกรอบชี้ 2026-10-29) */
+  const acTop0 = busHi + 9, acTop = acTop0 + (P.pm ? 15 : 0);
   pen.rect(BX, X.ac0, acBot, X.ac1 - X.ac0, acTop - acBot);
   /* เมนของตู้ */
   pen.dot(R, X.acBus, yMain, 0.5);
@@ -1891,11 +1894,11 @@ function pgSldPro(doc, sheet, M) {
     pen.line(R, wx, yMain, X.mdB - g - 0.75, yMain);
     ctH(px, yMain);
     /* ไฟแสดงเฟส (pilot lamp) แยกจากสายเมนหลัง CT → ฟิวส์ → ขึ้นเหนือตู้ → หลอด R S T (ผู้ใช้วาดชี้ 2026-10-29) */
-    const lx = px + 3.6, fy = acTop + 4, ly = acTop + 9, lr = 1.3;
+    const lx = px + 3.6, fy = acTop0 + 4, ly = acTop0 + 9, lr = 1.3;
     const ph = M.phase === 3 ? ["R", "S", "T"] : ["L"];
     pen.dot(R, lx, yMain, 0.5);
     pen.line(R, lx, yMain, lx, fy - 2.4); vFuse(lx, fy); pen.line(R, lx, fy + 2.4, lx, ly);
-    pen.text(T, lx + 1.6, fy, TS.tag, "FUSE 2A", { valign: 2 });
+    pen.text(T, lx - 1.6, fy, TS.tag, "FUSE 2A", { align: 2, valign: 2 });   // ซ้ายฟิวส์ — ขวาชนขอบตู้
     const lxs = ph.map((_, i) => lx - 5 - i * 5);
     pen.line(R, lx, ly, lxs[0] + lr, ly);
     lxs.forEach((x, i) => {
@@ -1913,6 +1916,15 @@ function pgSldPro(doc, sheet, M) {
     pen.arc(CM, px - cr, pmy + cr, cr, 270, 360);
     pen.line(CM, px - cr, pmy, pmx + 4.5, pmy);
     pen.rect(S, pmx - 4.5, pb, 9, pt - pb);
+    /* ไฟเลี้ยง PM2230: แยกจากสายเมนก่อนเข้า MCCB เมน (ฝั่งอินเวอร์เตอร์ — ผู้ใช้ชี้ 2026-10-29) → ลง → MCB 2P 6A แนวนอนใต้กล่อง → เข้าด้านล่าง */
+    const tx = X.acM - 8, yb = yMain - 24, hx = X.acM - 2;
+    pen.dot(R, tx, yMain, 0.5);
+    pen.line(R, tx, yMain, tx, yb);
+    pen.line(R, tx, yb, hx - g - 0.75, yb);
+    hBrk(hx, yb);
+    pen.line(R, hx + g + 0.75, yb, pmx + 2, yb);
+    pen.line(R, pmx + 2, yb, pmx + 2, pb);
+    pen.text(T, hx, yb - 1.4, TS.tag, "MCB 2P 6A", { align: 1, valign: 3 });
     pen.text(T, pmx, pmy, TS.spec, "PM2230", { align: 1, valign: 2 });
   } else pen.line(R, wx, yMain, X.mdB - g - 0.75, yMain);
   pen.text(T, X.ac1 + 3.0, yMain - 3, TS.spec, M.mainCable[0], { rot: 90, align: 2 });
