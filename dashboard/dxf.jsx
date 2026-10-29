@@ -1727,8 +1727,8 @@ function pgSldPro(doc, sheet, M) {
 
   /* ── หัวคอลัมน์ ── */
   const hy = A.y1 - 7;
-  if (isMain) pen.text(LB, (X.m1 + X.dc1) / 2, hy, TS.zone, "PV ARRAY + DC BOX (DETAIL SHEETS)", { align: 1, valign: 1 });
-  else {
+  /* แผ่นภาพรวมไม่มีหัว PV ARRAY + DC BOX — ทับหัว INVERTER (ผู้ใช้ขีดฆ่า 2026-10-29) */
+  if (!isMain) {
     pen.text(LB, (X.m1 + X.sl) / 2, hy, TS.zone, "PV ARRAY", { align: 1, valign: 1 });
     pen.text(LB, (X.dc0 + X.dc1) / 2, hy, TS.zone, fuseDev ? "DC COMBINER BOX" : "DC BOX", { align: 1, valign: 1 });
   }
@@ -2077,15 +2077,7 @@ function pgSldPro(doc, sheet, M) {
       const gy = A.y1 - 12, gx = (X.ac0 + X.ac1) / 2, gw = 15;
       pen.rect(S, gx - gw, gy - 3, gw * 2, 6);
       pen.text(T, gx, gy, TS.spec, "SMART METER / DATA LOGGER", { align: 1, valign: 2 });
-      /* CT กริดอยู่ในตู้ MDB เดิม (ไม่วาด) — สายสัญญาณชี้ไปหา */
-      /* วาดจากฝั่ง CT ออกไป — เส้นประเริ่มด้วยขีดเสมอ มุมเลี้ยวกับปลายที่ชน CT จึงไม่ตกช่องว่างจนดูขาด (ผู้ใช้วาดชี้ 2026-10-29) */
-      const cr = 1.5;   // มุมเลี้ยวโค้ง (ผู้ใช้ขอ 2026-10-29)
-      pen.line(CM, gx + gw, gy, X.mdB, gy);
-      pen.text(T, gx + gw + 1, gy + 0.6, TS.tag, "CT SIGNAL", { valign: 1 });
-      pen.text(T, X.mdB + 1, gy, TS.tag, "TO GRID CT AT MDB", { valign: 2 });
-      const ix = X.iv1 - 5;
-      pen.line(CM, gx - gw, gy, ix, gy); pen.line(CM, ix, gy, ix, yTop - 1);
-      pen.text(T, gx - gw - 1, gy + 0.6, TS.tag, "RS485", { align: 2, valign: 1 });
+      /* ไม่วาดสาย CT SIGNAL / RS485 (ผู้ใช้ขีดฆ่า 2026-10-29) — เหลือกล่องอย่างเดียว */
     }
 
     /* ── หลักดินฝั่ง PV (ปักแยกจากระบบ) ปลาย PE trunk ซ้าย ── */

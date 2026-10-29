@@ -2492,10 +2492,7 @@ function pgSldPro(doc, sheet, M) {
     if (nR > 0 && spare > 0) RH = Math.min(15, RH + spare / nR);
   }
   const hy = A.y1 - 7;
-  if (isMain) pen.text(LB, (X.m1 + X.dc1) / 2, hy, TS.zone, "PV ARRAY + DC BOX (DETAIL SHEETS)", {
-    align: 1,
-    valign: 1
-  });else {
+  if (!isMain) {
     pen.text(LB, (X.m1 + X.sl) / 2, hy, TS.zone, "PV ARRAY", {
       align: 1,
       valign: 1
@@ -2980,21 +2977,6 @@ function pgSldPro(doc, sheet, M) {
       pen.text(T, gx, gy, TS.spec, "SMART METER / DATA LOGGER", {
         align: 1,
         valign: 2
-      });
-      const cr = 1.5;
-      pen.line(CM, gx + gw, gy, X.mdB, gy);
-      pen.text(T, gx + gw + 1, gy + 0.6, TS.tag, "CT SIGNAL", {
-        valign: 1
-      });
-      pen.text(T, X.mdB + 1, gy, TS.tag, "TO GRID CT AT MDB", {
-        valign: 2
-      });
-      const ix = X.iv1 - 5;
-      pen.line(CM, gx - gw, gy, ix, gy);
-      pen.line(CM, ix, gy, ix, yTop - 1);
-      pen.text(T, gx - gw - 1, gy + 0.6, TS.tag, "RS485", {
-        align: 2,
-        valign: 1
       });
     }
     pen.line(PE, X.pe0, yE, X.pe0, yE - 2.3);
