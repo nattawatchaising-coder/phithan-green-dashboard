@@ -2883,8 +2883,8 @@ function pgSldPro(doc, sheet, M) {
         pbB = pt - 6,
         pmx = cx + pw / 2 + 3,
         pmy = (pbB + pt) / 2;
-      pen.line(S, cx, yMain, cx, pmy);
-      pen.line(S, cx, pmy, pmx - pw / 2, pmy);
+      pen.line(CM, cx, yMain, cx, pmy);
+      pen.line(CM, cx, pmy, pmx - pw / 2, pmy);
       pen.rect(S, pmx - pw / 2, pbB, pw, pt - pbB);
       pen.line(S, pmx - pw / 2, pt - 1.3, pmx + pw / 2, pt - 1.3);
       pen.text(T, pmx, (pbB + pt - 1.3) / 2, TS.head, "DM", {

@@ -2022,8 +2022,8 @@ function pgSldPro(doc, sheet, M) {
       const pw = 6.4, pbB = pt - 6, pmx = cx + pw / 2 + 3, pmy = (pbB + pt) / 2;   // กล่องเยื้องขวา ไม่ทับบัส AC (ผู้ใช้ชี้) · สาย CT ยังลงตรงเข้าด้านบนกล่อง
       /* สาย CT: จากขาซ้ายของ CT ลง แล้วเลี้ยวเข้าข้างซ้ายกล่อง DM (ผู้ใช้วาดชี้ 2026-10-29) — เดิมลงตรงเข้าด้านบน */
       /* สาย CT ออกจากกึ่งกลางระหว่างสองขด ลงตรง แล้วเลี้ยวเข้าข้างซ้ายกล่อง DM (ผู้ใช้วาดชี้ 2026-10-29) */
-      pen.line(S, cx, yMain, cx, pmy);
-      pen.line(S, cx, pmy, pmx - pw / 2, pmy);
+      pen.line(CM, cx, yMain, cx, pmy);   // สายสัญญาณ = เส้นประ (ผู้ใช้ขอ)
+      pen.line(CM, cx, pmy, pmx - pw / 2, pmy);
       pen.rect(S, pmx - pw / 2, pbB, pw, pt - pbB);
       pen.line(S, pmx - pw / 2, pt - 1.3, pmx + pw / 2, pt - 1.3);
       pen.text(T, pmx, (pbB + pt - 1.3) / 2, TS.head, "DM", { align: 1, valign: 2 });
