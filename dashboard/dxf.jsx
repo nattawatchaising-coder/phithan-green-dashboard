@@ -1396,8 +1396,9 @@ const pgSym = {
   /* เบรกเกอร์ (MCB/MCCB/RCCB) — ขั้วบน-ล่างเป็นวงกลมเปิดคาอยู่บนเส้นสาย
      คั่นด้วยส่วนโค้งโป่งไปทางซ้าย (ไม่ใช่เส้นเฉียง — เส้นเฉียงคือสวิตช์ใบมีด คนละตัวกัน)
      ระยะ g ต้องคงที่ เพราะผู้เรียกลากสายมาจบที่ y±g พอดี */
-  breaker(pen, x, y, label, sub) {
-    const L = PG_SLD.sym, r = 0.75, g = 3.4;
+  /* g = ระยะขั้วจากกลาง (ค่าเดิม 3.4) — SLD มาตรฐานส่ง 2.4 ให้เท่าเบรกเกอร์แนวนอน (ผู้ใช้ 2026-10-29: เบรกเกอร์ใน MDB ใหญ่ไป) */
+  breaker(pen, x, y, label, sub, gap) {
+    const L = PG_SLD.sym, r = 0.75, g = gap || 3.4;
     pen.circle(L, x, y - g, r); pen.circle(L, x, y + g, r);
     pen.arc(L, x, y, g * 1.26, 118, 242);
     if (label) pen.text(PG_SLD.txt, x + 3.0, y + 1.2, 2.1, label, { valign: 2 });
@@ -1836,7 +1837,7 @@ function pgSldPro(doc, sheet, M) {
     if (/FUSE/.test(P.spdBk)) {
       pen.line(R, X.acBus, sy, X.acBus, by + 2.4); vFuse(X.acBus, by); sy = by - 2.4;
     } else {
-      pen.line(R, X.acBus, sy, X.acBus, by + g + 0.75); pgSym.breaker(pen, X.acBus, by, "", ""); sy = by - g - 0.75;
+      pen.line(R, X.acBus, sy, X.acBus, by + g + 0.75); pgSym.breaker(pen, X.acBus, by, "", "", g); sy = by - g - 0.75;
     }
     pen.text(T, X.acBus + 2.6, by, fitH(P.spdBk, TS.spec, 20), P.spdBk, { valign: 2 });
   }
@@ -1894,12 +1895,12 @@ function pgSldPro(doc, sheet, M) {
   pen.line(W, X.mdB + g + 0.75, yMain, X.mdBus, yMain);
   pen.dot(W, X.mdBus, yMain, 0.5);
   pen.line(W, X.mdBus, yMain - 8, X.mdBus, yMain + 8);
-  pgWireY(pen, W, X.mdBus, yMain + 8, mdTop, [{ y: yMain + 15 }]);
-  pgSym.breaker(pen, X.mdBus, yMain + 15, "", "");
+  pgWireY(pen, W, X.mdBus, yMain + 8, mdTop, [{ y: yMain + 15, half: g + 0.75 }]);
+  pgSym.breaker(pen, X.mdBus, yMain + 15, "", "", g);
   pen.text(T, X.mdBus + 3, yMain + 15.8, TS.spec, "MAIN CB", { valign: 1 });
   pen.text(T, X.mdBus + 3, yMain + 14.2, TS.spec, P.exMain || "(EXISTING)", { valign: 3 });
-  pgWireY(pen, W, X.mdBus, yMain - 8, mdBot, [{ y: yMain - 15 }]);
-  pgSym.breaker(pen, X.mdBus, yMain - 15, "", "");
+  pgWireY(pen, W, X.mdBus, yMain - 8, mdBot, [{ y: yMain - 15, half: g + 0.75 }]);
+  pgSym.breaker(pen, X.mdBus, yMain - 15, "", "", g);
   pen.line(W, X.mdBus, mdBot, X.mdBus, mdBot - 3.5);
   pgSym.home(pen, X.mdBus, mdBot - 6.5, 3.4, TS.head);
   /* PE bar ของ MDB → บัสดินหลัก */

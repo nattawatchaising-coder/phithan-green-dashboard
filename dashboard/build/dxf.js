@@ -2033,10 +2033,10 @@ function pgWireY(pen, layer, x, yA, yB, brk) {
   if (cur < y1) pen.line(layer, x, cur, x, y1);
 }
 const pgSym = {
-  breaker(pen, x, y, label, sub) {
+  breaker(pen, x, y, label, sub, gap) {
     const L = PG_SLD.sym,
       r = 0.75,
-      g = 3.4;
+      g = gap || 3.4;
     pen.circle(L, x, y - g, r);
     pen.circle(L, x, y + g, r);
     pen.arc(L, x, y, g * 1.26, 118, 242);
@@ -2626,7 +2626,7 @@ function pgSldPro(doc, sheet, M) {
       sy = by - 2.4;
     } else {
       pen.line(R, X.acBus, sy, X.acBus, by + g + 0.75);
-      pgSym.breaker(pen, X.acBus, by, "", "");
+      pgSym.breaker(pen, X.acBus, by, "", "", g);
       sy = by - g - 0.75;
     }
     pen.text(T, X.acBus + 2.6, by, fitH(P.spdBk, TS.spec, 20), P.spdBk, {
@@ -2727,9 +2727,10 @@ function pgSldPro(doc, sheet, M) {
   pen.dot(W, X.mdBus, yMain, 0.5);
   pen.line(W, X.mdBus, yMain - 8, X.mdBus, yMain + 8);
   pgWireY(pen, W, X.mdBus, yMain + 8, mdTop, [{
-    y: yMain + 15
+    y: yMain + 15,
+    half: g + 0.75
   }]);
-  pgSym.breaker(pen, X.mdBus, yMain + 15, "", "");
+  pgSym.breaker(pen, X.mdBus, yMain + 15, "", "", g);
   pen.text(T, X.mdBus + 3, yMain + 15.8, TS.spec, "MAIN CB", {
     valign: 1
   });
@@ -2737,9 +2738,10 @@ function pgSldPro(doc, sheet, M) {
     valign: 3
   });
   pgWireY(pen, W, X.mdBus, yMain - 8, mdBot, [{
-    y: yMain - 15
+    y: yMain - 15,
+    half: g + 0.75
   }]);
-  pgSym.breaker(pen, X.mdBus, yMain - 15, "", "");
+  pgSym.breaker(pen, X.mdBus, yMain - 15, "", "", g);
   pen.line(W, X.mdBus, mdBot, X.mdBus, mdBot - 3.5);
   pgSym.home(pen, X.mdBus, mdBot - 6.5, 3.4, TS.head);
   const mpx = X.md0 + 3;
