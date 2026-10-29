@@ -2502,16 +2502,17 @@ function pgSldPro(doc, sheet, M) {
       valign: 1
     });
   }
-  pen.text(LB, (X.iv0 + X.iv1) / 2, hy, TS.zone, "INVERTER", {
-    align: 1,
-    valign: 1
-  });
-  if (!isDet) {
-    pen.text(LB, (X.ac0 + X.ac1) / 2, hy, TS.zone, "AC COMBINER BOX", {
+  const zoneHdr = y => {
+    pen.text(LB, (X.iv0 + X.iv1) / 2, y, TS.zone, "INVERTER", {
       align: 1,
       valign: 1
     });
-  }
+    if (!isDet) pen.text(LB, (X.ac0 + X.ac1) / 2, y, TS.zone, "AC COMBINER BOX", {
+      align: 1,
+      valign: 1
+    });
+  };
+  if (!isMain) zoneHdr(hy);
   let cur = yB0;
   const miniLines = b => [[LB, "INV" + b.no + "  " + b.kw + "kW " + P.phTxt + "  " + b.model], [T, b.nMp + " MPPT / " + b.nStr + " STRINGS / " + b.nPv + " x " + wp + "Wp = " + Math.round(b.nPv * wp / 10) / 100 + " kWp"], [T, b.ref]].filter((l, k) => l[1] && (k < 2 || MH >= 11));
   if (isMain) {
@@ -2774,8 +2775,8 @@ function pgSldPro(doc, sheet, M) {
     const cx = X.acBus + (oneInv ? -12.5 : isMain ? 8 : 4.5),
       mx = P.pm ? oneInv ? X.acBus + 4 : cx + (isMain ? 13 : 7.5) : X.acBus + (isMain ? 14 : 8);
     const hasGf = P.gf && !P.lsig;
-    const acTop0 = busHi + 9,
-      acTop = acTop0 + (P.pm ? 15 : 0);
+    const acTop0 = busHi + 12,
+      acTop = acTop0 + (P.pm && !(isMain && yMain + 20 < acTop0) ? 15 : 0);
     if (!oneInv) pen.dot(R, X.acBus, yMain, 0.5);
     pen.line(R, X.acBus, yMain, mx - g - 0.75, yMain);
     hBrk(mx, yMain, isCb(P.mainTxt));
@@ -2928,6 +2929,7 @@ function pgSldPro(doc, sheet, M) {
     bar(S, sx - 16, "N", false);
     bar(PE, sx - 1, "G", true);
     pen.rect(BX, X.ac0, acBot, X.ac1 - X.ac0, acTop - acBot);
+    if (isMain) zoneHdr(Math.min(hy, acTop + 2.5));
     pen.text(T, X.ac1 + 3.0, yMain - 3, TS.spec, M.mainCable[0], {
       rot: 90,
       align: 2
@@ -2969,16 +2971,6 @@ function pgSldPro(doc, sheet, M) {
     pen.line(PE, sx - 4, barY - 0.45, sx - 4, acBot + 1.0);
     pen.circle(PE, sx - 4, acBot + 0.5, 0.5);
     pen.line(PE, X.pe0, peTop, X.pe0, yE);
-    if (M.gateway) {
-      const gy = A.y1 - 12,
-        gx = (X.ac0 + X.ac1) / 2,
-        gw = 15;
-      pen.rect(S, gx - gw, gy - 3, gw * 2, 6);
-      pen.text(T, gx, gy, TS.spec, "SMART METER / DATA LOGGER", {
-        align: 1,
-        valign: 2
-      });
-    }
     pen.line(PE, X.pe0, yE, X.pe0, yE - 2.3);
     pgSym.ground(pen, X.pe0, yE - 2.3);
     pen.text(T, X.pe0 + 3.2, yE - 3.4, TS.spec, "PV EARTH ROD (SEPARATE)  5/8\" x 2.4m  R <= 5 OHM", {

@@ -1732,10 +1732,12 @@ function pgSldPro(doc, sheet, M) {
     pen.text(LB, (X.m1 + X.sl) / 2, hy, TS.zone, "PV ARRAY", { align: 1, valign: 1 });
     pen.text(LB, (X.dc0 + X.dc1) / 2, hy, TS.zone, fuseDev ? "DC COMBINER BOX" : "DC BOX", { align: 1, valign: 1 });
   }
-  pen.text(LB, (X.iv0 + X.iv1) / 2, hy, TS.zone, "INVERTER", { align: 1, valign: 1 });
-  if (!isDet) {
-    pen.text(LB, (X.ac0 + X.ac1) / 2, hy, TS.zone, "AC COMBINER BOX", { align: 1, valign: 1 });
-  }
+  /* แผ่นภาพรวม: หัว INVERTER / AC COMBINER BOX ลงมาชิดขอบบนตู้ AC (ผู้ใช้ชี้ 2026-10-29) — วาดหลังรู้ acTop */
+  const zoneHdr = (y) => {
+    pen.text(LB, (X.iv0 + X.iv1) / 2, y, TS.zone, "INVERTER", { align: 1, valign: 1 });
+    if (!isDet) pen.text(LB, (X.ac0 + X.ac1) / 2, y, TS.zone, "AC COMBINER BOX", { align: 1, valign: 1 });
+  };
+  if (!isMain) zoneHdr(hy);
 
   /* ── วาดบล็อกอินเวอร์เตอร์ทีละเครื่อง ──
      ทุกสตริง: แผงแรก ─ ─ แผงสุดท้าย → ป้องกันกระแสเกิน (DC MCB / ฟิวส์ gPV ทั้งสองขั้ว) → DC SPD → ขั้วอินเวอร์เตอร์
@@ -1947,7 +1949,8 @@ function pgSldPro(doc, sheet, M) {
     const cx = X.acBus + (oneInv ? -12.5 : isMain ? 8 : 4.5), mx = P.pm ? (oneInv ? X.acBus + 4 : cx + (isMain ? 13 : 7.5)) : X.acBus + (isMain ? 14 : 8);   // เครื่องเดียว: CT ห่าง MCCB ออกมา (ผู้ใช้ขอ)
     const hasGf = P.gf && !P.lsig;
     /* มี power meter = มีไฟแสดงเฟสเหนือสายเมน → ขยายขอบบนตู้ให้หลอดอยู่ในตู้ (ผู้ใช้ตีกรอบชี้ 2026-10-29) */
-    const acTop0 = busHi + 9, acTop = acTop0 + (P.pm ? 15 : 0);
+    /* แผ่นภาพรวม: หลอดไฟอยู่ต่ำชิดสายเมน ไม่ต้องเผื่อขอบบนตู้ 15 หน่วยให้แถว PM (ผู้ใช้ชี้ 2026-10-29 ขอบบนลอยสูงเกิน) · +12 พ้นป้าย MCCB เศษส่วนของเครื่องบนสุด */
+    const acTop0 = busHi + 12, acTop = acTop0 + (P.pm && !(isMain && yMain + 20 < acTop0) ? 15 : 0);
     /* เมนของตู้ */
     if (!oneInv) pen.dot(R, X.acBus, yMain, 0.5);   // เครื่องเดียว = สายเส้นเดียวไม่มีจุดแยก ไม่ต้องมีจุด (ผู้ใช้ชี้จุดค้าง)
     pen.line(R, X.acBus, yMain, mx - g - 0.75, yMain);
@@ -2044,6 +2047,7 @@ function pgSldPro(doc, sheet, M) {
     bar(S, sx - 16, "N", false);
     bar(PE, sx - 1, "G", true);   // รูที่ 3 ตรงสาย SPD · รูที่ 4 (sx + 2) ออกไป MET
     pen.rect(BX, X.ac0, acBot, X.ac1 - X.ac0, acTop - acBot);
+    if (isMain) zoneHdr(Math.min(hy, acTop + 2.5));
     pen.text(T, X.ac1 + 3.0, yMain - 3, TS.spec, M.mainCable[0], { rot: 90, align: 2 });
     pen.text(T, X.ac1 + 5.8, yMain - 3, TS.spec, "THW(G) " + P.earthCu + " Sq.mm. (PE)", { rot: 90, align: 2 });
 
@@ -2073,12 +2077,7 @@ function pgSldPro(doc, sheet, M) {
     pen.line(PE, X.pe0, peTop, X.pe0, yE);
 
     /* ── สายสื่อสาร: CT กริด → Smart meter/Logger → อินเวอร์เตอร์ (จำกัดไฟย้อน/มอนิเตอร์) ── */
-    if (M.gateway) {
-      const gy = A.y1 - 12, gx = (X.ac0 + X.ac1) / 2, gw = 15;
-      pen.rect(S, gx - gw, gy - 3, gw * 2, 6);
-      pen.text(T, gx, gy, TS.spec, "SMART METER / DATA LOGGER", { align: 1, valign: 2 });
-      /* ไม่วาดสาย CT SIGNAL / RS485 (ผู้ใช้ขีดฆ่า 2026-10-29) — เหลือกล่องอย่างเดียว */
-    }
+    /* ไม่วาดกล่อง Smart meter / Data logger และสายสื่อสาร (ผู้ใช้ขีดฆ่า 2026-10-29) */
 
     /* ── หลักดินฝั่ง PV (ปักแยกจากระบบ) ปลาย PE trunk ซ้าย ── */
     pen.line(PE, X.pe0, yE, X.pe0, yE - 2.3);
