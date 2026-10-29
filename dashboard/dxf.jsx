@@ -1853,7 +1853,7 @@ function pgSldPro(doc, sheet, M) {
   /* มี power meter = มีไฟแสดงเฟสเหนือสายเมน → ขยายขอบบนตู้ให้หลอดอยู่ในตู้ (ผู้ใช้ตีกรอบชี้ 2026-10-29) */
   const acTop0 = busHi + 9, acTop = acTop0 + (P.pm ? 15 : 0);
   /* เมนของตู้ */
-  pen.dot(R, X.acBus, yMain, 0.5);
+  if (!oneInv) pen.dot(R, X.acBus, yMain, 0.5);   // เครื่องเดียว = สายเส้นเดียวไม่มีจุดแยก ไม่ต้องมีจุด (ผู้ใช้ชี้จุดค้าง)
   pen.line(R, X.acBus, yMain, mx - g - 0.75, yMain);
   hBrk(mx, yMain);
   const mainL = P.mainTxt + (P.lsig ? " LSIG" : "");

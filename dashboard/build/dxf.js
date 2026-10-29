@@ -2629,7 +2629,7 @@ function pgSldPro(doc, sheet, M) {
   const hasGf = P.gf && !P.lsig;
   const acTop0 = busHi + 9,
     acTop = acTop0 + (P.pm ? 15 : 0);
-  pen.dot(R, X.acBus, yMain, 0.5);
+  if (!oneInv) pen.dot(R, X.acBus, yMain, 0.5);
   pen.line(R, X.acBus, yMain, mx - g - 0.75, yMain);
   hBrk(mx, yMain);
   const mainL = P.mainTxt + (P.lsig ? " LSIG" : "");
