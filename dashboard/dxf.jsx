@@ -1590,7 +1590,18 @@ function pgSldPro(doc, sheet, M) {
   };
 
   /* ── สัญลักษณ์แนวนอน ── */
-  const hBrk = (x, y) => {
+  /* cb = MCCB / ACB (ผู้ใช้ 2026-10-29 วาดให้ดู): สาย ─X  ใบมีดเอียงขึ้นซ้าย ─ สาย · MCB / DC ยังเป็นวงกลมสองขั้ว + โค้ง
+     ช่วงกว้างเท่ากัน (x ± (g + 0.75)) สายที่ต่อเข้าออกจึงไม่ต้องแก้ */
+  const isCb = (s) => /^(MCCB|ACB)/i.test(String(s || "").trim());
+  const hBrk = (x, y, cb) => {
+    if (cb) {
+      const xl = x - g - 0.75, xr = x + g + 0.75, c = 0.8;
+      pen.line(S, xl, y, x - g, y);
+      pen.line(S, x - g - c, y - c, x - g + c, y + c); pen.line(S, x - g - c, y + c, x - g + c, y - c);
+      pen.line(S, x + g, y, x - g + 1.0, y + 2.6);
+      pen.line(S, x + g, y, xr, y);
+      return;
+    }
     pen.circle(S, x - g, y, 0.75); pen.circle(S, x + g, y, 0.75);
     pen.arc(S, x, y, g * 1.26, 28, 152);
   };
@@ -1651,6 +1662,8 @@ function pgSldPro(doc, sheet, M) {
   /* แยกหลายแผ่น (ผู้ใช้ 2026-10-29): แผ่นเดียววาดไม่พอเมื่อไร → แผ่นภาพรวม (M.part main: อินเวอร์เตอร์ย่อเหลือกล่อง + ตู้ AC + MDB)
      + แผ่นย่อยละกลุ่ม (M.part detail: เครื่องที่รุ่นและสตริงเหมือนกันวาดรวมแผ่นเดียว วาดเครื่องแรกเป็นตัวแทน) */
   const PT = M.part || null, isMain = !!(PT && PT.kind === "main"), isDet = !!(PT && PT.kind === "detail");
+  /* แผ่นภาพรวมไม่มีสตริง/ตู้ DC ซ้ายมือว่าง — ขยับอินเวอร์เตอร์ไปซ้าย ขยายตู้ AC ให้เบรกเกอร์ไม่ชิดอินเวอร์เตอร์และบัส (ผู้ใช้ 2026-10-29) */
+  if (isMain) { X.iv0 -= 40; X.iv1 -= 40; X.ac0 -= 26; X.acB -= 18; X.acBus -= 12; }   // ผู้ใช้: ขยับน้อยไป — บัสไปซ้ายด้วย ให้ช่วง CT/ACB เมนกว้างขึ้น
   const modelOf = (no) => (M.units && M.units[no - 1] && M.units[no - 1].model) || M.inv.model;
   const mkBlock = (no, detail) => {
     const groups = byInv[no].map((r) => ({ mppt: r.mppt, rows: detail ? rowsOf(r) : [grpRow(r)] }));
@@ -1731,6 +1744,15 @@ function pgSldPro(doc, sheet, M) {
      ทั้งหมดรวมที่เส้น PE ใต้บล็อก → PE trunk → หลักดินฝั่ง PV ที่ปักแยกจากระบบ (ไม่ต่อเข้า MET)
      ฝั่ง AC (SPD AC · PE/N-PE ของ MDB) → บัสดินหลัก (MET) → หลักดินระบบ */
   let cur = yB0;
+  const miniLines = (b) => [[LB, "INV" + b.no + "  " + b.kw + "kW " + P.phTxt + "  " + b.model],
+    [T, b.nMp + " MPPT / " + b.nStr + " STRINGS / " + b.nPv + " x " + wp + "Wp = " + Math.round(b.nPv * wp / 10) / 100 + " kWp"],
+    [T, b.ref]].filter((l, k) => l[1] && (k < 2 || MH >= 11));
+  /* แผ่นภาพรวม: เส้นดินรวม (PE trunk) ขยับเข้ามาชิดข้อความสรุปที่ยาวสุด ไม่ลากยาวจากขอบแผ่น (ผู้ใช้ 2026-10-29) */
+  if (isMain) {
+    const hT = Math.min(TS.spec, 2.6 * 0.8);
+    const wMax = Math.max.apply(null, blocks.map((b) => Math.max.apply(null, miniLines(b).map((l) => pgTextW(l[1], hT))))) * 1.2;
+    X.pe0 = Math.max(X.pe0, X.iv1 - 8 - 5.6 - 2.5 - wMax - 5);
+  }
   const taps = [];
   let peTop = null;
   blocks.forEach((b) => {
@@ -1745,9 +1767,7 @@ function pgSldPro(doc, sheet, M) {
       pen.circle(S, X.iv1, tapY, 0.6);
       pen.text(LB, sx, tapY + sh / 2 + 0.7, Math.min(TS.head, bt - (tapY + sh / 2) - 0.9), "INV" + b.no, { align: 1, valign: 1 });
       const tx = sl - 2.5, tw = tx - X.m1;
-      const ls = [[LB, "INV" + b.no + "  " + b.kw + "kW " + P.phTxt + "  " + b.model],
-        [T, b.nMp + " MPPT / " + b.nStr + " STRINGS / " + b.nPv + " x " + wp + "Wp = " + Math.round(b.nPv * wp / 10) / 100 + " kWp"],
-        [T, b.ref]].filter((l, k) => l[1] && (k < 2 || MH >= 11));
+      const ls = miniLines(b);
       const lp = Math.min(2.6, (bt - G.boxBot) / ls.length), lh = Math.min.apply(null, ls.map((l) => fitH(l[1], TS.spec, tw)));
       ls.forEach((l, k) => pen.text(l[0], tx, tapY + (ls.length - 1) * lp / 2 - k * lp, Math.min(lh, lp * 0.8), l[1], { align: 2, valign: 2 }));
       const peX = sx;
@@ -1903,18 +1923,18 @@ function pgSldPro(doc, sheet, M) {
       const h = Math.max(0.9, Math.min(1.5, (tGap - 4.6) / 3.6)), hs = h * 0.8;
       const y1 = y + g * 1.26 + 0.9, yBar = y1 + h + 0.45, y2 = yBar + 0.5, y3 = y2 + h + 0.55;
       const sub = " " + m[2] + (m[5] ? " " + m[5] : "") + cnt;
-      const w1 = pgTextW(m[1], h * 1.12) * 1.2 + 0.3, w2 = pgTextW(sub, hs) * 1.2, x0 = x - (w1 + w2) / 2;   // ฟอนต์บนแบบกว้างกว่าค่าประมาณ — เผื่อไม่ให้ชิดกัน
-      pen.text(T, x0, y3, h * 1.12, m[1], { valign: 1 });
-      pen.text(T, x0 + w1, y3, hs, sub.trim(), { valign: 1 });
+      /* ผู้ใช้ชี้: MCCB อยู่บนเศษส่วน · "3P 36kA" ย้ายไปขวาของเศษส่วน */
+      pen.text(T, x, y3, h * 1.12, m[1], { align: 1, valign: 1 });
       pen.text(T, x, y2, h, m[3], { align: 1, valign: 1 });
-      const wb = Math.max(pgTextW(m[3], h), pgTextW(m[4], h)) / 2 + 0.4;
+      const wb = Math.max(pgTextW(m[3], h), pgTextW(m[4], h)) * 0.98 / 2 + 0.15;   // เส้นยาวเท่าตัวอักษร (ผู้ใช้: เส้นใต้ยาวไป)
       pen.line(S, x - wb, yBar, x + wb, yBar);
       pen.text(T, x, y1, h, m[4], { align: 1, valign: 1 });
+      pen.text(T, x + wb + 1.6, y2 + 0.15, hs, sub.trim(), { valign: 1 });   // ระดับเดียวกับ AF (ผู้ใช้วาดให้ดู)
     };
     taps.forEach((t, i) => {
       if (oneInv) { pen.line(R, X.iv1 + 0.6, t.y, X.acBus, t.y); return; }
       pen.line(R, X.iv1 + 0.6, t.y, X.acB - g - 0.75, t.y);
-      hBrk(X.acB, t.y);
+      hBrk(X.acB, t.y, isCb(t.b.brk));
       brkLabel(String(t.b.brk || ""), t.b.typical ? " x" + t.b.cnt : "", X.acB, t.y);
       pen.line(R, X.acB + g + 0.75, t.y, X.acBus, t.y);
       if (t.y !== tMax || yMain > tMax) pen.dot(R, X.acBus, t.y, 0.5);
@@ -1925,14 +1945,14 @@ function pgSldPro(doc, sheet, M) {
        บัส → CT ของ PM (cx) → MCCB เมน (mx) → ZCT → จุดแยกไฟเลี้ยง PM (px) → จุดแยกไฟแสดงเฟส (lx) → จุดแยก ฟิวส์+SPD (sx) → ออกตู้
        (ผู้ใช้ 2026-10-29: CT อยู่ฝั่งอินเวอร์เตอร์ก่อน MCCB · ไฟเลี้ยง PM แยกหลัง MCCB) */
     /* อินเวอร์เตอร์เครื่องเดียว = บัสเป็นแค่จุดต่อ → CT ขยับซ้ายเลยบัสได้ (ผู้ใช้วาดชี้ 2026-10-29) */
-    const cx = X.acBus + (oneInv ? -12.5 : 4.5), mx = P.pm ? (oneInv ? X.acBus + 4 : cx + 7.5) : X.acBus + 8;   // เครื่องเดียว: CT ห่าง MCCB ออกมา (ผู้ใช้ขอ)
+    const cx = X.acBus + (oneInv ? -12.5 : isMain ? 8 : 4.5), mx = P.pm ? (oneInv ? X.acBus + 4 : cx + (isMain ? 13 : 7.5)) : X.acBus + (isMain ? 14 : 8);   // เครื่องเดียว: CT ห่าง MCCB ออกมา (ผู้ใช้ขอ)
     const hasGf = P.gf && !P.lsig;
     /* มี power meter = มีไฟแสดงเฟสเหนือสายเมน → ขยายขอบบนตู้ให้หลอดอยู่ในตู้ (ผู้ใช้ตีกรอบชี้ 2026-10-29) */
     const acTop0 = busHi + 9, acTop = acTop0 + (P.pm ? 15 : 0);
     /* เมนของตู้ */
     if (!oneInv) pen.dot(R, X.acBus, yMain, 0.5);   // เครื่องเดียว = สายเส้นเดียวไม่มีจุดแยก ไม่ต้องมีจุด (ผู้ใช้ชี้จุดค้าง)
     pen.line(R, X.acBus, yMain, mx - g - 0.75, yMain);
-    hBrk(mx, yMain);
+    hBrk(mx, yMain, isCb(P.mainTxt));
     const mainL = P.mainTxt + (P.lsig ? " LSIG" : "");
     pen.text(T, mx, yMain + 5.0, fitH(mainL, TS.spec, 2 * (mx - X.ac0) - 2), mainL, { align: 1, valign: 1 });
     let wx = mx + g + 0.75;
@@ -1977,12 +1997,12 @@ function pgSldPro(doc, sheet, M) {
       pen.text(T, lxs[lxs.length - 1] - lr - 1, ly, TS.tag, "PILOT LAMP", { align: 2, valign: 2 });
       pen.text(T, cx, yMain + 2 * CT_R + 0.8, TS.spec, "CT " + P.pmCt, { align: 1, valign: 1 });   // เหนือยอดขด ไม่ทับ (ผู้ใช้ชี้)
       /* กล่อง PM2230 ใต้ CT — สาย CT ลงตรงเข้าด้านบน (ผู้ใช้วาดชี้ 2026-10-29) */
-      const pmx = cx, pmy = (pb + pt) / 2;
+      const pmx = cx + 3, pmy = (pb + pt) / 2;   // กล่องเยื้องขวา ไม่ทับบัส AC (ผู้ใช้ชี้) · สาย CT ยังลงตรงเข้าด้านบนกล่อง
       pen.line(CM, cx, yMain, cx, pt);
       pen.rect(S, pmx - 4.5, pb, 9, pt - pb);
       pen.text(T, pmx, pmy, TS.spec, "PM2230", { align: 1, valign: 2 });
       /* ไฟเลี้ยง PM2230: แยกจากสายเมนหลัง MCCB/ZCT → ลง → MCB 2P 6A แนวนอน → เข้าข้างขวากล่อง */
-      const hx = mx + 4;
+      const hx = mx + 5;
       pen.dot(R, px, yMain, 0.5);
       pen.line(R, px, yMain, px, pmy);
       pen.line(R, px, pmy, hx + g + 0.75, pmy);
@@ -2018,7 +2038,7 @@ function pgSldPro(doc, sheet, M) {
     const mdTop = yMain + 22, mdBot = yMain - 24;
     pen.rect(BX, X.md0, mdBot, X.md1 - X.md0, mdTop - mdBot);
     pen.text(LB, X.md0 + 1, mdTop + 1, TS.head, "MDB (EXISTING)", { valign: 1 });
-    hBrk(X.mdB, yMain);
+    hBrk(X.mdB, yMain, isCb(M.mccb[0]));
     pen.text(T, X.md0 + 1, yMain + 5.0, fitH(M.mccb[0], TS.spec, X.mdBus - X.md0 - 3), M.mccb[0], { valign: 1 });
     pen.text(T, X.md0 + 1, yMain - 2.2, TS.spec, "SOLAR (" + (M.mccbNew ? "NEW" : "EXIST") + ")", { valign: 3 });
     pen.line(W, X.mdB + g + 0.75, yMain, X.mdBus, yMain);
