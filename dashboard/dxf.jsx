@@ -1608,13 +1608,17 @@ function pgSldPro(doc, sheet, M) {
     pen.line(S, x - r * 0.45, y - r * 0.45, x - r * 0.25, y - r * 0.33);
     pen.line(S, x + r * 0.45, y - r * 0.45, x + r * 0.25, y - r * 0.33);
   };
-  const ctH = (x, y) => { pen.circle(S, x - 0.9, y, 1.5); pen.circle(S, x + 0.9, y, 1.5); };
   /* CT บนสายแนวตั้ง: ขดสองโค้งนูนออกขวาเกาะสาย (สายวิ่งผ่านตรง) — ผู้ใช้วาดแบบ ∩∩ ให้ 2026-10-29 */
   const CT_R = 1.4;
   /* ขาขดบน/ล่างยื่นซ้ายสั้น ๆ (ผู้ใช้ขีดชี้) */
   const ctV = (x, y) => {
     [CT_R, -CT_R].forEach((dy) => pen.arc(S, x, y + dy, CT_R, -90, 90));
     [2 * CT_R, -2 * CT_R].forEach((dy) => pen.line(S, x - 1.6, y + dy, x, y + dy));
+  };
+  /* CT บนสายแนวนอน แบบเดียวกับ ctV หมุน: ขดนูนขึ้น ขาซ้าย/ขวาลงสั้น ๆ (ผู้ใช้ "ขอแบบเดียวกัน" 2026-10-29) */
+  const ctH = (x, y) => {
+    [CT_R, -CT_R].forEach((dx) => pen.arc(S, x + dx, y, CT_R, 0, 180));
+    [2 * CT_R, -2 * CT_R].forEach((dx) => pen.line(S, x + dx, y - 1.6, x + dx, y));
   };
   const peDot = (x, y) => pen.dot(PE, x, y, 0.5);
 
@@ -1881,11 +1885,10 @@ function pgSldPro(doc, sheet, M) {
   if (P.pm) {
     /* Power meter: CT บนสายเมน → PM2230 (ไฟเลี้ยงผ่าน MCB 6A) */
     const px = X.acM + 13.5, pb = yMain - 19, pt = yMain - 14;
-    pen.line(R, wx, yMain, px - 2.4, yMain);
+    pen.line(R, wx, yMain, X.mdB - g - 0.75, yMain);
     ctH(px, yMain);
-    pen.line(R, px + 2.4, yMain, X.mdB - g - 0.75, yMain);
-    pen.text(T, px, yMain + 2.3, TS.spec, "CT " + P.pmCt, { align: 1, valign: 1 });
-    pen.line(CM, px, yMain - 1.5, px, pt);
+    pen.text(T, px, yMain + CT_R + 0.9, TS.spec, "CT " + P.pmCt, { align: 1, valign: 1 });
+    pen.line(CM, px, yMain, px, pt);
     pen.rect(S, px - 4.5, pb, 9, pt - pb);
     pen.text(T, px, (pb + pt) / 2, TS.spec, "PM2230", { align: 1, valign: 2 });
   } else pen.line(R, wx, yMain, X.mdB - g - 0.75, yMain);
