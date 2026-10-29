@@ -808,9 +808,8 @@ function quoteHTML(q, lang, sheets, pics, cover3d) {
   const coverHTML = () =>
     '<div class="cv' + (cover3d ? " cv3d" : "") + '">' +
     '<div class="cvh">' + bidHTML(80) + "</div>" +
-    /* มีแบบ 3D = ภาพระบบบนหลังคาจริงของลูกค้าเหนือชื่อโครงการ (ผู้ใช้ขอ 2026-10-29) — เห็นของที่จะได้ก่อนอ่านตัวเลข
+    /* มีแบบ 3D = ภาพระบบบนหลังคาจริงของลูกค้าใต้ชื่อลูกค้า เหนือขนาดติดตั้ง (ผู้ใช้ขอ 2026-10-29) — เห็นของที่จะได้ก่อนอ่านตัวเลข
        ภาพเรนเดอร์ตอนกดดูใบ (p3sCoverShot ใน plan3d2.jsx) ไม่ได้เก็บลงฐานข้อมูล · ไม่มีแบบ = หน้าปกแบบเดิม */
-    (cover3d ? '<img class="cvimg" src="' + cover3d + '" alt="" />' : "") +
     /* แผ่นสีเต็มผืนกลางหน้า — ชื่อโครงการกับขนาดระบบต้องเด่นที่สุดในกอง
        ตัวหนังสือขาวบนพื้นไล่สีแบรนด์ อ่านออกทั้งบนจอและบนกระดาษ */
     '<div class="cvhero">' +
@@ -820,6 +819,7 @@ function quoteHTML(q, lang, sheets, pics, cover3d) {
     '<div class="cvto">เสนอต่อ</div>' +
     '<div class="cvcu">' + sEsc(c.name || "—") + "</div>" +
     ((c.address || c.province) ? '<div class="cvad">' + sEsc((c.address || "") + (c.province ? " " + c.province : "")) + "</div>" : "") +
+    (cover3d ? '<img class="cvimg" src="' + cover3d + '" alt="" />' : "") +
     '<div class="cvrow">' +
     '<div class="cvcap"><span class="cl">ขนาดติดตั้ง</span>' +
     '<span class="cn">' + (q.kwp ? sEsc(q.kwp) : "—") + '</span><span class="cu">kWp</span></div>' +
@@ -1035,8 +1035,8 @@ function quoteHTML(q, lang, sheets, pics, cover3d) {
     ".cvcap .cn{font-size:32px;font-weight:700;color:#0A4D68;font-variant-numeric:tabular-nums;line-height:1}" +
     ".cvcap .cu{font-size:13px;font-weight:600;color:#1B9B75}" +
     ".cvtag{font-size:11px;color:#1B9B75;font-weight:600;padding-bottom:4px}" +
-    /* หน้าปกที่มีภาพ 3D — ภาพเต็มกว้างใต้หัวจดหมาย ข้อความเลื่อนขึ้นชิดภาพ ตัวเล็กลงนิดให้จบหน้าเดียว */
-    ".cvimg{display:block;width:100%;height:112mm;object-fit:cover;border-radius:10px;margin-top:9mm}" +
+    /* หน้าปกที่มีภาพ 3D — ชื่อโครงการ/ลูกค้าก่อน (ผู้ใช้สั่ง) แล้วภาพเต็มกว้าง แล้วขนาดติดตั้ง ตัวเล็กลงนิดให้จบหน้าเดียว */
+    ".cvimg{display:block;width:100%;height:104mm;object-fit:cover;border-radius:10px;margin-top:8mm}" +
     ".cv3d .cvhero{margin:9mm 0 8mm;justify-content:flex-start}.cv3d .cvt{font-size:28px}" +
     ".cv3d .cvline{margin:14px 0 18px}.cv3d .cvrow{margin-top:20px}" +
     /* แผ่นรูปอุปกรณ์ — 2 คอลัมน์ 2 แถว รูปสัดส่วนเดิมไม่ยืด */
