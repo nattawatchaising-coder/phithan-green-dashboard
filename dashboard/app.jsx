@@ -1217,6 +1217,14 @@ function Sidebar({ view, onNav, role, techId, jobs, stock, t, badges, open, onCl
   const isMobile = window.matchMedia("(max-width: 860px)").matches;
   // โหมดไอคอน = ผู้ใช้ย่อแถบเอง (เฉพาะเดสก์ท็อป — มือถือใช้ drawer เต็มเสมอ)
   const icons = !isMobile && collapsed;
+  /* พับ/กางเมนูย่อยเอง (ผู้ใช้ขอปุ่มลูกศรที่แถวที่มีหัวข้อย่อยมากกว่า 1 — 2026-10-29) · ไม่ได้กดเอง = กางเฉพาะแถวที่เปิดอยู่เหมือนเดิม
+     จำไว้ในเครื่อง (localStorage) — เป็นความสะดวกของแต่ละคน ไม่ใช่ข้อมูลร่วม */
+  const [subOpen, setSubOpen] = React.useState(() => { try { return JSON.parse(localStorage.getItem("sf_nav_sub") || "{}") || {}; } catch (e) { return {}; } });
+  const toggleSub = (key, now) => setSubOpen((o) => {
+    const nx = Object.assign({}, o, { [key]: !now });
+    try { localStorage.setItem("sf_nav_sub", JSON.stringify(nx)); } catch (e) {}
+    return nx;
+  });
   /* รูปโปรไฟล์ของคนที่ล็อกอินอยู่ — โหลดเฉพาะของตัวเอง ไม่ลากรูปของทุกคนมาด้วย */
   const myAvatar = window.useUserAvatar((currentUser || {}).id).avatar;
   const delayed = jobs.filter((j) => j.delayed).length;
@@ -1292,7 +1300,10 @@ function Sidebar({ view, onNav, role, techId, jobs, stock, t, badges, open, onCl
           /* เมนูย่อยกางเฉพาะแถวที่เปิดอยู่ — ไม่ใช่หีบเพลงที่ต้องกดพับ/กางเอง
              เมนูอื่นจึงไม่ยาวขึ้นเลย และหน้าที่ยุบไปก็ยังกดถึงได้ในคลิกเดียวจากตรงนี้
              navTabsOf ใส่ตัวแม่ไว้เป็นรายการแรกเสมอ ไม่งั้นเข้ามุมตารางแล้วกลับบอร์ดไม่ได้ */
-          const subs = active ? navTabsOf(all, n.key) : [];
+          const allSubs = navTabsOf(all, n.key);
+          const hasSubs = allSubs.length > 1 && !icons;
+          const shown = hasSubs ? (subOpen[n.key] != null ? subOpen[n.key] : active) : active;
+          const subs = shown ? allSubs : [];
           return (
             <React.Fragment key={n.key}>
             {newSect && (
@@ -1314,6 +1325,13 @@ function Sidebar({ view, onNav, role, techId, jobs, stock, t, badges, open, onCl
                   ? <span className={"nav-dot" + tone} title={tip + " " + cnt} />
                   : <span className={"nav-badge" + tone} title={tip}>{cnt}</span>;
               })()}
+              {hasSubs && (
+                <span role="button" aria-label={shown ? "พับเมนูย่อย" : "กางเมนูย่อย"} aria-expanded={shown}
+                  onClick={(e) => { e.stopPropagation(); toggleSub(n.key, shown); }}
+                  style={{ marginLeft: badgeOf(n.key) ? 4 : "auto", width: 24, height: 24, borderRadius: 8, display: "grid", placeItems: "center", flexShrink: 0, cursor: "pointer" }}>
+                  <Icon name="chevronDown" size={15} color={active ? "var(--primary-dark)" : "var(--text-3)"} style={{ transform: shown ? "rotate(180deg)" : "none", transition: "transform .18s" }} />
+                </span>
+              )}
             </button>
             {subs.length > 1 && (
               <div className="nav-subs">

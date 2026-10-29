@@ -1742,6 +1742,22 @@ function Sidebar({
 }) {
   const isMobile = window.matchMedia("(max-width: 860px)").matches;
   const icons = !isMobile && collapsed;
+  const [subOpen, setSubOpen] = React.useState(() => {
+    try {
+      return JSON.parse(localStorage.getItem("sf_nav_sub") || "{}") || {};
+    } catch (e) {
+      return {};
+    }
+  });
+  const toggleSub = (key, now) => setSubOpen(o => {
+    const nx = Object.assign({}, o, {
+      [key]: !now
+    });
+    try {
+      localStorage.setItem("sf_nav_sub", JSON.stringify(nx));
+    } catch (e) {}
+    return nx;
+  });
   const myAvatar = window.useUserAvatar((currentUser || {}).id).avatar;
   const delayed = jobs.filter(j => j.delayed).length;
   const lowStock = stock.items.filter(it => it.qty <= it.min).length;
@@ -1846,7 +1862,10 @@ function Sidebar({
       const newSect = !!n.sect && (i === 0 || items[i - 1].sect !== n.sect);
       const footHere = i === first;
       const active = navTop(view) === n.key;
-      const subs = active ? navTabsOf(all, n.key) : [];
+      const allSubs = navTabsOf(all, n.key);
+      const hasSubs = allSubs.length > 1 && !icons;
+      const shown = hasSubs ? subOpen[n.key] != null ? subOpen[n.key] : active : active;
+      const subs = shown ? allSubs : [];
       return React.createElement(React.Fragment, {
         key: n.key
       }, newSect && React.createElement("div", {
@@ -1873,7 +1892,33 @@ function Sidebar({
           className: "nav-badge" + tone,
           title: tip
         }, cnt);
-      })()), subs.length > 1 && React.createElement("div", {
+      })(), hasSubs && React.createElement("span", {
+        role: "button",
+        "aria-label": shown ? "พับเมนูย่อย" : "กางเมนูย่อย",
+        "aria-expanded": shown,
+        onClick: e => {
+          e.stopPropagation();
+          toggleSub(n.key, shown);
+        },
+        style: {
+          marginLeft: badgeOf(n.key) ? 4 : "auto",
+          width: 24,
+          height: 24,
+          borderRadius: 8,
+          display: "grid",
+          placeItems: "center",
+          flexShrink: 0,
+          cursor: "pointer"
+        }
+      }, React.createElement(Icon, {
+        name: "chevronDown",
+        size: 15,
+        color: active ? "var(--primary-dark)" : "var(--text-3)",
+        style: {
+          transform: shown ? "rotate(180deg)" : "none",
+          transition: "transform .18s"
+        }
+      }))), subs.length > 1 && React.createElement("div", {
         className: "nav-subs"
       }, subs.map(s => React.createElement("button", {
         key: s.key,
