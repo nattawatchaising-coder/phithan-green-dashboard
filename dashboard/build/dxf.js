@@ -2373,6 +2373,7 @@ function pgSldPro(doc, sheet, M) {
     X.ac0 -= 26;
     X.acB -= 18;
     X.acBus -= 12;
+    X.ac1 += 5;
   }
   const modelOf = no => M.units && M.units[no - 1] && M.units[no - 1].model || M.inv.model;
   const mkBlock = (no, detail) => {
@@ -2789,7 +2790,7 @@ function pgSldPro(doc, sheet, M) {
     const busHi = Math.max(tMax, yMain),
       busLo = Math.min(tMin, yMain);
     pen.line(R, X.acBus, busHi, X.acBus, busLo);
-    const cx = X.acBus + (oneInv ? -12.5 : isMain ? 8 : 4.5),
+    const cx = X.acBus + (oneInv ? -12.5 : isMain ? 13 : 4.5),
       mx = P.pm ? oneInv ? X.acBus + 4 : cx + (isMain ? 13 : 7.5) : X.acBus + (isMain ? 14 : 8);
     const hasGf = P.gf && !P.lsig;
     const acTop0 = busHi + 12,
@@ -2879,8 +2880,8 @@ function pgSldPro(doc, sheet, M) {
         pbB = pt - 6,
         pmx = cx + 3,
         pmy = (pbB + pt) / 2;
-      pen.line(CM, cx - 2 * CT_R, yMain - 1.6, cx - 2 * CT_R, pmy);
-      pen.line(CM, cx - 2 * CT_R, pmy, pmx - pw / 2, pmy);
+      pen.line(S, cx - 2 * CT_R, yMain - 1.6, cx - 2 * CT_R, pmy);
+      pen.line(S, cx - 2 * CT_R, pmy, pmx - pw / 2, pmy);
       pen.rect(S, pmx - pw / 2, pbB, pw, pt - pbB);
       pen.line(S, pmx - pw / 2, pt - 1.3, pmx + pw / 2, pt - 1.3);
       pen.text(T, pmx, (pbB + pt - 1.3) / 2, TS.head, "DM", {

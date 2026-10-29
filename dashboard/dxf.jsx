@@ -1663,7 +1663,7 @@ function pgSldPro(doc, sheet, M) {
      + แผ่นย่อยละกลุ่ม (M.part detail: เครื่องที่รุ่นและสตริงเหมือนกันวาดรวมแผ่นเดียว วาดเครื่องแรกเป็นตัวแทน) */
   const PT = M.part || null, isMain = !!(PT && PT.kind === "main"), isDet = !!(PT && PT.kind === "detail");
   /* แผ่นภาพรวมไม่มีสตริง/ตู้ DC ซ้ายมือว่าง — ขยับอินเวอร์เตอร์ไปซ้าย ขยายตู้ AC ให้เบรกเกอร์ไม่ชิดอินเวอร์เตอร์และบัส (ผู้ใช้ 2026-10-29) */
-  if (isMain) { X.iv0 -= 40; X.iv1 -= 40; X.ac0 -= 26; X.acB -= 18; X.acBus -= 12; }   // ผู้ใช้: ขยับน้อยไป — บัสไปซ้ายด้วย ให้ช่วง CT/ACB เมนกว้างขึ้น
+  if (isMain) { X.iv0 -= 40; X.iv1 -= 40; X.ac0 -= 26; X.acB -= 18; X.acBus -= 12; X.ac1 += 5; }   // ขอบขวาตู้ขยายตามชุด CT/ACB ที่ขยับไปขวา   // ผู้ใช้: ขยับน้อยไป — บัสไปซ้ายด้วย ให้ช่วง CT/ACB เมนกว้างขึ้น
   const modelOf = (no) => (M.units && M.units[no - 1] && M.units[no - 1].model) || M.inv.model;
   const mkBlock = (no, detail) => {
     const groups = byInv[no].map((r) => ({ mppt: r.mppt, rows: detail ? rowsOf(r) : [grpRow(r)] }));
@@ -1959,7 +1959,7 @@ function pgSldPro(doc, sheet, M) {
        บัส → CT ของ PM (cx) → MCCB เมน (mx) → ZCT → จุดแยกไฟเลี้ยง PM (px) → จุดแยกไฟแสดงเฟส (lx) → จุดแยก ฟิวส์+SPD (sx) → ออกตู้
        (ผู้ใช้ 2026-10-29: CT อยู่ฝั่งอินเวอร์เตอร์ก่อน MCCB · ไฟเลี้ยง PM แยกหลัง MCCB) */
     /* อินเวอร์เตอร์เครื่องเดียว = บัสเป็นแค่จุดต่อ → CT ขยับซ้ายเลยบัสได้ (ผู้ใช้วาดชี้ 2026-10-29) */
-    const cx = X.acBus + (oneInv ? -12.5 : isMain ? 8 : 4.5), mx = P.pm ? (oneInv ? X.acBus + 4 : cx + (isMain ? 13 : 7.5)) : X.acBus + (isMain ? 14 : 8);   // เครื่องเดียว: CT ห่าง MCCB ออกมา (ผู้ใช้ขอ)
+    const cx = X.acBus + (oneInv ? -12.5 : isMain ? 13 : 4.5), mx = P.pm ? (oneInv ? X.acBus + 4 : cx + (isMain ? 13 : 7.5)) : X.acBus + (isMain ? 14 : 8);   // เครื่องเดียว: CT ห่าง MCCB ออกมา (ผู้ใช้ขอ)
     const hasGf = P.gf && !P.lsig;
     /* มี power meter = มีไฟแสดงเฟสเหนือสายเมน → ขยายขอบบนตู้ให้หลอดอยู่ในตู้ (ผู้ใช้ตีกรอบชี้ 2026-10-29) */
     /* แผ่นภาพรวม: หลอดไฟอยู่ต่ำชิดสายเมน ไม่ต้องเผื่อขอบบนตู้ 15 หน่วยให้แถว PM (ผู้ใช้ชี้ 2026-10-29 ขอบบนลอยสูงเกิน) · +12 พ้นป้าย MCCB เศษส่วนของเครื่องบนสุด */
@@ -2017,8 +2017,8 @@ function pgSldPro(doc, sheet, M) {
       /* สัญลักษณ์มิเตอร์ดิจิทัล (ผู้ใช้ส่งรูป 2026-10-29): กล่องมีแถบบน · "DM" ข้างใน · ชื่อรุ่นใต้กล่อง */
       const pw = 6.4, pbB = pt - 6, pmx = cx + 3, pmy = (pbB + pt) / 2;   // กล่องเยื้องขวา ไม่ทับบัส AC (ผู้ใช้ชี้) · สาย CT ยังลงตรงเข้าด้านบนกล่อง
       /* สาย CT: จากขาซ้ายของ CT ลง แล้วเลี้ยวเข้าข้างซ้ายกล่อง DM (ผู้ใช้วาดชี้ 2026-10-29) — เดิมลงตรงเข้าด้านบน */
-      pen.line(CM, cx - 2 * CT_R, yMain - 1.6, cx - 2 * CT_R, pmy);
-      pen.line(CM, cx - 2 * CT_R, pmy, pmx - pw / 2, pmy);
+      pen.line(S, cx - 2 * CT_R, yMain - 1.6, cx - 2 * CT_R, pmy);   // เส้นทึบตรงยาว ไม่เป็นเส้นประ (ผู้ใช้: เอาให้ตรง)
+      pen.line(S, cx - 2 * CT_R, pmy, pmx - pw / 2, pmy);
       pen.rect(S, pmx - pw / 2, pbB, pw, pt - pbB);
       pen.line(S, pmx - pw / 2, pt - 1.3, pmx + pw / 2, pt - 1.3);
       pen.text(T, pmx, (pbB + pt - 1.3) / 2, TS.head, "DM", { align: 1, valign: 2 });
