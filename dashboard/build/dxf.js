@@ -2624,8 +2624,8 @@ function pgSldPro(doc, sheet, M) {
   const busHi = Math.max(tMax, yMain),
     busLo = Math.min(tMin, yMain);
   pen.line(R, X.acBus, busHi, X.acBus, busLo);
-  const cx = X.acBus + (oneInv ? -3.5 : 4.5),
-    mx = P.pm ? cx + 7.5 : X.acBus + 8;
+  const cx = X.acBus + (oneInv ? -12.5 : 4.5),
+    mx = P.pm ? oneInv ? X.acBus + 4 : cx + 7.5 : X.acBus + 8;
   const hasGf = P.gf && !P.lsig;
   const acTop0 = busHi + 9,
     acTop = acTop0 + (P.pm ? 15 : 0);

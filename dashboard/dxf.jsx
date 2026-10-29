@@ -1848,7 +1848,7 @@ function pgSldPro(doc, sheet, M) {
      บัส → CT ของ PM (cx) → MCCB เมน (mx) → ZCT → จุดแยกไฟเลี้ยง PM (px) → จุดแยกไฟแสดงเฟส (lx) → จุดแยก ฟิวส์+SPD (sx) → ออกตู้
      (ผู้ใช้ 2026-10-29: CT อยู่ฝั่งอินเวอร์เตอร์ก่อน MCCB · ไฟเลี้ยง PM แยกหลัง MCCB) */
   /* อินเวอร์เตอร์เครื่องเดียว = บัสเป็นแค่จุดต่อ → CT ขยับซ้ายเลยบัสได้ (ผู้ใช้วาดชี้ 2026-10-29) */
-  const cx = X.acBus + (oneInv ? -3.5 : 4.5), mx = P.pm ? cx + 7.5 : X.acBus + 8;
+  const cx = X.acBus + (oneInv ? -12.5 : 4.5), mx = P.pm ? (oneInv ? X.acBus + 4 : cx + 7.5) : X.acBus + 8;   // เครื่องเดียว: CT ห่าง MCCB ออกมา (ผู้ใช้ขอ)
   const hasGf = P.gf && !P.lsig;
   /* มี power meter = มีไฟแสดงเฟสเหนือสายเมน → ขยายขอบบนตู้ให้หลอดอยู่ในตู้ (ผู้ใช้ตีกรอบชี้ 2026-10-29) */
   const acTop0 = busHi + 9, acTop = acTop0 + (P.pm ? 15 : 0);
