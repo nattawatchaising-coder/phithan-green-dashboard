@@ -1609,7 +1609,9 @@ function pgSldPro(doc, sheet, M) {
     pen.line(S, x + r * 0.45, y - r * 0.45, x + r * 0.25, y - r * 0.33);
   };
   const ctH = (x, y) => { pen.circle(S, x - 0.9, y, 1.5); pen.circle(S, x + 0.9, y, 1.5); };
-  const ctV = (x, y) => { pen.circle(S, x, y - 0.9, 1.5); pen.circle(S, x, y + 0.9, 1.5); };   // CT บนสายแนวตั้ง แบบเดียวกับ ctH
+  /* CT บนสายแนวตั้ง: ขดสองโค้งนูนออกขวาเกาะสาย (สายวิ่งผ่านตรง) — ผู้ใช้วาดแบบ ∩∩ ให้ 2026-10-29 */
+  const CT_R = 1.4;
+  const ctV = (x, y) => { [CT_R, -CT_R].forEach((dy) => pen.arc(S, x, y + dy, CT_R, -90, 90)); };
   const peDot = (x, y) => pen.dot(PE, x, y, 0.5);
 
   /* ── แตกข้อมูล MPPT เป็นบล็อกอินเวอร์เตอร์ ── */
@@ -1914,11 +1916,10 @@ function pgSldPro(doc, sheet, M) {
   /* PE trunk ซ้าย: โครงแผงทุกแถว + บล็อกทุกเครื่อง → บัสดินหลัก */
   pen.line(PE, X.pe0, peTop, X.pe0, yE);
   const ctY = mdTop + 6, mY = mdTop + 15, uY = mdTop + 27;
-  /* CT กริด: วงกลมซ้อนสองวงแบบเดียวกับ CT ของ power meter (ผู้ใช้วาดชี้ 2026-10-29) · สายสัญญาณเข้าจากซ้ายชนขอบวง */
-  pen.line(W, X.mdBus, mdTop, X.mdBus, ctY - 2.4);
+  /* CT กริด: ขดสองโค้งเกาะสายเมน (ผู้ใช้วาด ∩∩ ให้ 2026-10-29) · สายสัญญาณเข้าจากซ้ายชนสายที่กึ่งกลางขด */
+  pen.line(W, X.mdBus, mdTop, X.mdBus, mY - 3.4);
   ctV(X.mdBus, ctY);
-  pen.line(W, X.mdBus, ctY + 2.4, X.mdBus, mY - 3.4);
-  pen.text(T, X.mdBus + 3.2, ctY, fitH(M.ctMain, TS.spec, X.md1 + 10 - X.mdBus - 3.2), M.ctMain, { valign: 2 });
+  pen.text(T, X.mdBus + CT_R + 1.8, ctY, fitH(M.ctMain, TS.spec, X.md1 + 10 - X.mdBus - CT_R - 1.8), M.ctMain, { valign: 2 });
   meter(X.mdBus, mY, 3.4);
   pen.text(T, X.mdBus + 4.4, mY + 0.8, TS.spec, "BI-DIR. kWh", { valign: 1 });
   pen.text(T, X.mdBus + 4.4, mY - 0.8, TS.spec, "METER (" + P.auth + ")", { valign: 3 });
@@ -1933,7 +1934,7 @@ function pgSldPro(doc, sheet, M) {
     pen.text(T, gx, gy, TS.spec, "SMART METER / DATA LOGGER", { align: 1, valign: 2 });
     const cx = X.mdBus - 7;
     /* วาดจากฝั่ง CT ออกไป — เส้นประเริ่มด้วยขีดเสมอ มุมเลี้ยวกับปลายที่ชน CT จึงไม่ตกช่องว่างจนดูขาด (ผู้ใช้วาดชี้ 2026-10-29) */
-    pen.line(CM, X.mdBus - 1.5, ctY, cx, ctY); pen.line(CM, cx, ctY, cx, gy); pen.line(CM, gx + gw, gy, cx, gy);
+    pen.line(CM, X.mdBus, ctY, cx, ctY); pen.line(CM, cx, ctY, cx, gy); pen.line(CM, gx + gw, gy, cx, gy);
     pen.text(T, gx + gw + 1, gy + 0.6, TS.tag, "CT SIGNAL", { valign: 1 });
     const ix = X.iv1 - 5;
     pen.line(CM, gx - gw, gy, ix, gy); pen.line(CM, ix, gy, ix, yTop - 1);
