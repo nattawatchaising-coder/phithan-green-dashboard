@@ -1609,6 +1609,7 @@ function pgSldPro(doc, sheet, M) {
     pen.line(S, x + r * 0.45, y - r * 0.45, x + r * 0.25, y - r * 0.33);
   };
   const ctH = (x, y) => { pen.circle(S, x - 0.9, y, 1.5); pen.circle(S, x + 0.9, y, 1.5); };
+  const ctV = (x, y) => { pen.circle(S, x, y - 0.9, 1.5); pen.circle(S, x, y + 0.9, 1.5); };   // CT บนสายแนวตั้ง แบบเดียวกับ ctH
   const peDot = (x, y) => pen.dot(PE, x, y, 0.5);
 
   /* ── แตกข้อมูล MPPT เป็นบล็อกอินเวอร์เตอร์ ── */
@@ -1913,9 +1914,11 @@ function pgSldPro(doc, sheet, M) {
   /* PE trunk ซ้าย: โครงแผงทุกแถว + บล็อกทุกเครื่อง → บัสดินหลัก */
   pen.line(PE, X.pe0, peTop, X.pe0, yE);
   const ctY = mdTop + 6, mY = mdTop + 15, uY = mdTop + 27;
-  pen.line(W, X.mdBus, mdTop, X.mdBus, mY - 3.4);
-  pgSym.ct(pen, X.mdBus, ctY, "", "");
-  pen.text(T, X.mdBus + 5.2, ctY, fitH(M.ctMain, TS.spec, X.md1 + 10 - X.mdBus - 5.2), M.ctMain, { valign: 2 });
+  /* CT กริด: วงกลมซ้อนสองวงแบบเดียวกับ CT ของ power meter (ผู้ใช้วาดชี้ 2026-10-29) · สายสัญญาณเข้าจากซ้ายชนขอบวง */
+  pen.line(W, X.mdBus, mdTop, X.mdBus, ctY - 2.4);
+  ctV(X.mdBus, ctY);
+  pen.line(W, X.mdBus, ctY + 2.4, X.mdBus, mY - 3.4);
+  pen.text(T, X.mdBus + 3.2, ctY, fitH(M.ctMain, TS.spec, X.md1 + 10 - X.mdBus - 3.2), M.ctMain, { valign: 2 });
   meter(X.mdBus, mY, 3.4);
   pen.text(T, X.mdBus + 4.4, mY + 0.8, TS.spec, "BI-DIR. kWh", { valign: 1 });
   pen.text(T, X.mdBus + 4.4, mY - 0.8, TS.spec, "METER (" + P.auth + ")", { valign: 3 });
@@ -1929,7 +1932,8 @@ function pgSldPro(doc, sheet, M) {
     pen.rect(S, gx - gw, gy - 3, gw * 2, 6);
     pen.text(T, gx, gy, TS.spec, "SMART METER / DATA LOGGER", { align: 1, valign: 2 });
     const cx = X.mdBus - 7;
-    pen.line(CM, gx + gw, gy, cx, gy); pen.line(CM, cx, gy, cx, ctY); pen.line(CM, cx, ctY, X.mdBus - 2.9, ctY);
+    /* วาดจากฝั่ง CT ออกไป — เส้นประเริ่มด้วยขีดเสมอ มุมเลี้ยวกับปลายที่ชน CT จึงไม่ตกช่องว่างจนดูขาด (ผู้ใช้วาดชี้ 2026-10-29) */
+    pen.line(CM, X.mdBus - 1.5, ctY, cx, ctY); pen.line(CM, cx, ctY, cx, gy); pen.line(CM, gx + gw, gy, cx, gy);
     pen.text(T, gx + gw + 1, gy + 0.6, TS.tag, "CT SIGNAL", { valign: 1 });
     const ix = X.iv1 - 5;
     pen.line(CM, gx - gw, gy, ix, gy); pen.line(CM, ix, gy, ix, yTop - 1);

@@ -2303,6 +2303,10 @@ function pgSldPro(doc, sheet, M) {
     pen.circle(S, x - 0.9, y, 1.5);
     pen.circle(S, x + 0.9, y, 1.5);
   };
+  const ctV = (x, y) => {
+    pen.circle(S, x, y - 0.9, 1.5);
+    pen.circle(S, x, y + 0.9, 1.5);
+  };
   const peDot = (x, y) => pen.dot(PE, x, y, 0.5);
   const byInv = {};
   M.mppt.rows.forEach(r => {
@@ -2756,9 +2760,10 @@ function pgSldPro(doc, sheet, M) {
   const ctY = mdTop + 6,
     mY = mdTop + 15,
     uY = mdTop + 27;
-  pen.line(W, X.mdBus, mdTop, X.mdBus, mY - 3.4);
-  pgSym.ct(pen, X.mdBus, ctY, "", "");
-  pen.text(T, X.mdBus + 5.2, ctY, fitH(M.ctMain, TS.spec, X.md1 + 10 - X.mdBus - 5.2), M.ctMain, {
+  pen.line(W, X.mdBus, mdTop, X.mdBus, ctY - 2.4);
+  ctV(X.mdBus, ctY);
+  pen.line(W, X.mdBus, ctY + 2.4, X.mdBus, mY - 3.4);
+  pen.text(T, X.mdBus + 3.2, ctY, fitH(M.ctMain, TS.spec, X.md1 + 10 - X.mdBus - 3.2), M.ctMain, {
     valign: 2
   });
   meter(X.mdBus, mY, 3.4);
@@ -2783,9 +2788,9 @@ function pgSldPro(doc, sheet, M) {
       valign: 2
     });
     const cx = X.mdBus - 7;
+    pen.line(CM, X.mdBus - 1.5, ctY, cx, ctY);
+    pen.line(CM, cx, ctY, cx, gy);
     pen.line(CM, gx + gw, gy, cx, gy);
-    pen.line(CM, cx, gy, cx, ctY);
-    pen.line(CM, cx, ctY, X.mdBus - 2.9, ctY);
     pen.text(T, gx + gw + 1, gy + 0.6, TS.tag, "CT SIGNAL", {
       valign: 1
     });
