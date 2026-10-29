@@ -2900,7 +2900,11 @@ function pgSldPro(doc, sheet, M) {
         pgSym.breaker(pen, sx, by, "", "", g);
         sy = by - g - 0.75;
       }
-      pen.text(T, sx - 2.6, by, fitH(P.spdBk, TS.spec, sw), P.spdBk, {
+      if (fuse) pen.text(T, sx + 2.4, by + 2.4, TS.spec, P.spdBk, {
+        rot: 90,
+        align: 2,
+        valign: 2
+      });else pen.text(T, sx - 2.6, by, fitH(P.spdBk, TS.spec, sw), P.spdBk, {
         align: 2,
         valign: 2
       });
@@ -2916,7 +2920,20 @@ function pgSldPro(doc, sheet, M) {
       align: 2,
       valign: 2
     }));
-    const acBot = Math.min(spY - 5.5, pmLow - 2, busLo - 4);
+    const barY = spY - 7.5,
+      barW = 9,
+      barH = 1.6;
+    const bar = (L, cx, lab, right) => {
+      pen.rect(L, cx - barW / 2, barY - barH / 2, barW, barH);
+      for (let k = 0; k < 4; k++) pen.circle(L, cx - barW / 2 + 1.5 + k * 2, barY, 0.45);
+      pen.text(T, right ? cx + barW / 2 + 1.0 : cx - barW / 2 - 1.0, barY, TS.spec, lab, {
+        align: right ? 0 : 2,
+        valign: 2
+      });
+    };
+    bar(S, sx - 16, "N", false);
+    bar(PE, sx, "G", true);
+    const acBot = Math.min(barY - 3.5, pmLow - 2, busLo - 4);
     pen.rect(BX, X.ac0, acBot, X.ac1 - X.ac0, acTop - acBot);
     pen.text(T, X.ac1 + 3.0, yMain - 3, TS.spec, M.mainCable[0], {
       rot: 90,

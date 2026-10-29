@@ -2025,14 +2025,25 @@ function pgSldPro(doc, sheet, M) {
       pen.line(R, sx, sy, sx, by + 2.4);
       if (fuse) { vFuse(sx, by); sy = Math.min(by - 2.4, top0 - 4.8); pen.line(R, sx, by - 2.4, sx, sy); }
       else { pen.line(R, sx, by + 2.4, sx, by + g + 0.75); pgSym.breaker(pen, sx, by, "", "", g); sy = by - g - 0.75; }
-      pen.text(T, sx - 2.6, by, fitH(P.spdBk, TS.spec, sw), P.spdBk, { align: 2, valign: 2 });
+      /* ป้ายฟิวส์เขียนตั้งขวาตัวฟิวส์ ปลายอยู่ระดับหัวฟิวส์ (ผู้ใช้ชี้ 2026-10-29) — เบรกเกอร์ยังเขียนนอนทางซ้าย */
+      if (fuse) pen.text(T, sx + 2.4, by + 2.4, TS.spec, P.spdBk, { rot: 90, align: 2, valign: 2 });
+      else pen.text(T, sx - 2.6, by, fitH(P.spdBk, TS.spec, sw), P.spdBk, { align: 2, valign: 2 });
     } else sy = top0 + 2;
     const spY = sy - 5.5;
     pen.line(R, sx, sy, sx, spY + 2.4);
     pgSym.spd(pen, sx, spY, null, { w: 1.7, h: 4.8 });   // ขนาดเท่าฟิวส์ (ผู้ใช้ 2026-10-29)
     const spH = Math.min.apply(null, P.acSpd.map((t) => fitH(t, TS.spec, sw)));
     P.acSpd.forEach((t, i) => pen.text(T, sx - 3.6, spY + 2.4 - i * 2.2, spH, t, { align: 2, valign: 2 }));
-    const acBot = Math.min(spY - 5.5, pmLow - 2, busLo - 4);
+    /* บาร์ N และบาร์ G ที่ก้นตู้ AC (ผู้ใช้วาดชี้ 2026-10-29) — สายดิน SPD ลงผ่านบาร์ G แล้วไปบัสดินหลัก (MET) */
+    const barY = spY - 7.5, barW = 9, barH = 1.6;
+    const bar = (L, cx, lab, right) => {
+      pen.rect(L, cx - barW / 2, barY - barH / 2, barW, barH);
+      for (let k = 0; k < 4; k++) pen.circle(L, cx - barW / 2 + 1.5 + k * 2, barY, 0.45);
+      pen.text(T, right ? cx + barW / 2 + 1.0 : cx - barW / 2 - 1.0, barY, TS.spec, lab, { align: right ? 0 : 2, valign: 2 });
+    };
+    bar(S, sx - 16, "N", false);
+    bar(PE, sx, "G", true);
+    const acBot = Math.min(barY - 3.5, pmLow - 2, busLo - 4);
     pen.rect(BX, X.ac0, acBot, X.ac1 - X.ac0, acTop - acBot);
     pen.text(T, X.ac1 + 3.0, yMain - 3, TS.spec, M.mainCable[0], { rot: 90, align: 2 });
     pen.text(T, X.ac1 + 5.8, yMain - 3, TS.spec, "THW(G) " + P.earthCu + " mm2 (PE)", { rot: 90, align: 2 });
