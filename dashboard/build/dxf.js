@@ -2622,52 +2622,23 @@ function pgSldPro(doc, sheet, M) {
     if (t.y !== tMax || yMain > tMax) pen.dot(R, X.acBus, t.y, 0.5);
   });
   const busHi = Math.max(tMax, yMain),
-    busLo = Math.min(tMin, yMain) - 3;
+    busLo = Math.min(tMin, yMain);
   pen.line(R, X.acBus, busHi, X.acBus, busLo);
-  let sy = busLo;
-  if (P.spdBk) {
-    const by = sy - 6.5;
-    if (/FUSE/.test(P.spdBk)) {
-      pen.line(R, X.acBus, sy, X.acBus, by + 2.4);
-      vFuse(X.acBus, by);
-      sy = by - 2.4;
-    } else {
-      pen.line(R, X.acBus, sy, X.acBus, by + g + 0.75);
-      pgSym.breaker(pen, X.acBus, by, "", "", g);
-      sy = by - g - 0.75;
-    }
-    if (P.pm) pen.text(T, X.acBus - 2.6, by, fitH(P.spdBk, TS.spec, X.acBus - 3.6 - X.ac0), P.spdBk, {
-      align: 2,
-      valign: 2
-    });else pen.text(T, X.acBus + 2.6, by, fitH(P.spdBk, TS.spec, 20), P.spdBk, {
-      valign: 2
-    });
-  }
-  const spY = sy - 7;
-  pen.line(R, X.acBus, sy, X.acBus, spY + 2.4);
-  pgSym.spd(pen, X.acBus, spY, null, {
-    w: 1.7,
-    h: 4.8
-  });
-  P.acSpd.forEach((s, i) => pen.text(T, X.acBus - 3.6, spY + 2.4 - i * 2.2, TS.spec, s, {
-    align: 2,
-    valign: 2
-  }));
-  const acBot = Math.min(spY - 7, P.pm ? yMain - 29 : Infinity);
+  const mx = X.acBus + 8;
+  const hasGf = P.gf && !P.lsig;
   const acTop0 = busHi + 9,
     acTop = acTop0 + (P.pm ? 15 : 0);
-  pen.rect(BX, X.ac0, acBot, X.ac1 - X.ac0, acTop - acBot);
   pen.dot(R, X.acBus, yMain, 0.5);
-  pen.line(R, X.acBus, yMain, X.acM - g - 0.75, yMain);
-  hBrk(X.acM, yMain);
+  pen.line(R, X.acBus, yMain, mx - g - 0.75, yMain);
+  hBrk(mx, yMain);
   const mainL = P.mainTxt + (P.lsig ? " LSIG" : "");
-  pen.text(T, X.acM, yMain + 5.0, fitH(mainL, TS.spec, 2 * (X.ac1 - X.acM) - 2), mainL, {
+  pen.text(T, mx, yMain + 5.0, fitH(mainL, TS.spec, 2 * (mx - X.ac0) - 2), mainL, {
     align: 1,
     valign: 1
   });
-  let wx = X.acM + g + 0.75;
-  if (P.gf && !P.lsig) {
-    const zx = X.acM + 6.5,
+  let wx = mx + g + 0.75;
+  if (hasGf) {
+    const zx = mx + 6.5,
       gy0 = yMain - 10.6,
       gy1 = yMain - 7;
     pen.line(R, wx, yMain, zx - 1.7, yMain);
@@ -2684,25 +2655,27 @@ function pgSldPro(doc, sheet, M) {
       valign: 2
     });
     pen.line(CM, zx, yMain - 1.7, zx, gy1);
-    pen.line(CM, zx - 3.4, (gy0 + gy1) / 2, X.acM, (gy0 + gy1) / 2);
-    pen.line(CM, X.acM, (gy0 + gy1) / 2, X.acM, yMain - 2.2);
-    pen.text(T, X.acM - 0.8, yMain - 4.4, TS.tag, "SHUNT", {
+    pen.line(CM, zx - 3.4, (gy0 + gy1) / 2, mx, (gy0 + gy1) / 2);
+    pen.line(CM, mx, (gy0 + gy1) / 2, mx, yMain - 2.2);
+    pen.text(T, mx - 0.8, yMain - 4.4, TS.tag, "SHUNT", {
       align: 2,
       valign: 2
     });
-    pen.text(T, X.acM - 0.8, yMain - 6.1, TS.tag, "TRIP", {
+    pen.text(T, mx - 0.8, yMain - 6.1, TS.tag, "TRIP", {
       align: 2,
       valign: 2
     });
   }
+  pen.line(R, wx, yMain, X.mdB - g - 0.75, yMain);
+  const px = mx + 13.5,
+    lx = px + 3.6,
+    sx = lx + 4.5;
+  let pmLow = yMain;
   if (P.pm) {
-    const px = X.acM + 13.5,
-      pb = yMain - 19,
+    const pb = yMain - 19,
       pt = yMain - 14;
-    pen.line(R, wx, yMain, X.mdB - g - 0.75, yMain);
     ctH(px, yMain);
-    const lx = px + 3.6,
-      fy = acTop0 + 4,
+    const fy = acTop0 + 4,
       ly = acTop0 + 9,
       lr = 1.3;
     const ph = M.phase === 3 ? ["R", "S", "T"] : ["L"];
@@ -2735,19 +2708,21 @@ function pgSldPro(doc, sheet, M) {
       align: 2,
       valign: 1
     });
-    const pmx = X.acM + 4,
+    const pmx = mx + 4,
       pmy = (pb + pt) / 2,
       cr = 1.5;
     pen.line(CM, px, yMain, px, pmy + cr);
     pen.arc(CM, px - cr, pmy + cr, cr, 270, 360);
     pen.line(CM, px - cr, pmy, pmx + 4.5, pmy);
     pen.rect(S, pmx - 4.5, pb, 9, pt - pb);
-    const tx = X.acM - 8,
-      yb = yMain - 24,
-      hx = X.acM - 2;
-    pen.dot(R, tx, yMain, 0.5);
-    pen.line(R, tx, yMain, tx, yb);
-    pen.line(R, tx, yb, hx - g - 0.75, yb);
+    pen.text(T, pmx, pmy, TS.spec, "PM2230", {
+      align: 1,
+      valign: 2
+    });
+    const yb = yMain - 24,
+      hx = mx - 2;
+    pen.line(R, X.acBus, busLo, X.acBus, yb);
+    pen.line(R, X.acBus, yb, hx - g - 0.75, yb);
     hBrk(hx, yb);
     pen.line(R, hx + g + 0.75, yb, pmx + 2, yb);
     pen.line(R, pmx + 2, yb, pmx + 2, pb);
@@ -2755,11 +2730,41 @@ function pgSldPro(doc, sheet, M) {
       align: 1,
       valign: 3
     });
-    pen.text(T, pmx, pmy, TS.spec, "PM2230", {
-      align: 1,
+    pmLow = yb - 3;
+  }
+  pen.dot(R, sx, yMain, 0.5);
+  const sw = sx - 3.6 - X.ac0 - 1;
+  let sy = yMain;
+  const top0 = Math.min(P.pm ? pmLow : yMain, hasGf ? yMain - 12.6 : yMain - 3);
+  if (P.spdBk) {
+    const by = top0 - 2.4;
+    pen.line(R, sx, sy, sx, by + 2.4);
+    if (/FUSE/.test(P.spdBk)) {
+      vFuse(sx, by);
+      sy = by - 2.4;
+    } else {
+      pen.line(R, sx, by + 2.4, sx, by + g + 0.75);
+      pgSym.breaker(pen, sx, by, "", "", g);
+      sy = by - g - 0.75;
+    }
+    pen.text(T, sx - 2.6, by, fitH(P.spdBk, TS.spec, sw), P.spdBk, {
+      align: 2,
       valign: 2
     });
-  } else pen.line(R, wx, yMain, X.mdB - g - 0.75, yMain);
+  } else sy = top0 + 2;
+  const spY = sy - 5.5;
+  pen.line(R, sx, sy, sx, spY + 2.4);
+  pgSym.spd(pen, sx, spY, null, {
+    w: 1.7,
+    h: 4.8
+  });
+  const spH = Math.min.apply(null, P.acSpd.map(t => fitH(t, TS.spec, sw)));
+  P.acSpd.forEach((t, i) => pen.text(T, sx - 3.6, spY + 2.4 - i * 2.2, spH, t, {
+    align: 2,
+    valign: 2
+  }));
+  const acBot = Math.min(spY - 5.5, pmLow - 2, busLo - 4);
+  pen.rect(BX, X.ac0, acBot, X.ac1 - X.ac0, acTop - acBot);
   pen.text(T, X.ac1 + 3.0, yMain - 3, TS.spec, M.mainCable[0], {
     rot: 90,
     align: 2
@@ -2809,7 +2814,7 @@ function pgSldPro(doc, sheet, M) {
   });
   const yE = Math.max(yE0, Math.min(blkLow - 4, acBot - 5, mdBot - 14));
   pen.line(PE, mpx, mdBot + 1.2, mpx, yE);
-  pen.line(PE, X.acBus, spY - 2.4, X.acBus, yE);
+  pen.line(PE, sx, spY - 2.4, sx, yE);
   pen.line(PE, X.pe0, peTop, X.pe0, yE);
   const ctY = mdTop + 6,
     mY = mdTop + 15,

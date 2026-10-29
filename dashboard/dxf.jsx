@@ -1842,39 +1842,24 @@ function pgSldPro(doc, sheet, M) {
     pen.line(R, X.acB + g + 0.75, t.y, X.acBus, t.y);
     if (t.y !== tMax || yMain > tMax) pen.dot(R, X.acBus, t.y, 0.5);
   });
-  const busHi = Math.max(tMax, yMain), busLo = Math.min(tMin, yMain) - 3;
+  const busHi = Math.max(tMax, yMain), busLo = Math.min(tMin, yMain);
   pen.line(R, X.acBus, busHi, X.acBus, busLo);
-  /* กันเสิร์จฝั่ง AC: บัส → อุปกรณ์ป้องกันสำรอง (ถ้ามี) → SPD → บัสดิน */
-  let sy = busLo;
-  if (P.spdBk) {
-    const by = sy - 6.5;
-    if (/FUSE/.test(P.spdBk)) {
-      pen.line(R, X.acBus, sy, X.acBus, by + 2.4); vFuse(X.acBus, by); sy = by - 2.4;
-    } else {
-      pen.line(R, X.acBus, sy, X.acBus, by + g + 0.75); pgSym.breaker(pen, X.acBus, by, "", "", g); sy = by - g - 0.75;
-    }
-    /* มี PM = สายไฟเลี้ยง PM ลงผ่านขวาฟิวส์ → ย้ายป้ายไปซ้าย */
-    if (P.pm) pen.text(T, X.acBus - 2.6, by, fitH(P.spdBk, TS.spec, X.acBus - 3.6 - X.ac0), P.spdBk, { align: 2, valign: 2 });
-    else pen.text(T, X.acBus + 2.6, by, fitH(P.spdBk, TS.spec, 20), P.spdBk, { valign: 2 });
-  }
-  const spY = sy - 7;
-  pen.line(R, X.acBus, sy, X.acBus, spY + 2.4);
-  pgSym.spd(pen, X.acBus, spY, null, { w: 1.7, h: 4.8 });   // ขนาดเท่าฟิวส์ (ผู้ใช้ 2026-10-29)
-  P.acSpd.forEach((s, i) => pen.text(T, X.acBus - 3.6, spY + 2.4 - i * 2.2, TS.spec, s, { align: 2, valign: 2 }));
-  const acBot = Math.min(spY - 7, P.pm ? yMain - 29 : Infinity);   // มี PM = เผื่อสายไฟเลี้ยง PM ใต้กล่อง
+  /* ตู้ AC เรียงตามสายเมน (ผู้ใช้ 2026-10-29: ชุดกันเสิร์จย้ายไปฝั่งกริด):
+     บัส → MCCB เมน (mx) → ZCT → CT ของ PM → จุดแยกไฟแสดงเฟส (lx) → จุดแยก ฟิวส์+SPD (sx) → ออกตู้ */
+  const mx = X.acBus + 8;
+  const hasGf = P.gf && !P.lsig;
   /* มี power meter = มีไฟแสดงเฟสเหนือสายเมน → ขยายขอบบนตู้ให้หลอดอยู่ในตู้ (ผู้ใช้ตีกรอบชี้ 2026-10-29) */
   const acTop0 = busHi + 9, acTop = acTop0 + (P.pm ? 15 : 0);
-  pen.rect(BX, X.ac0, acBot, X.ac1 - X.ac0, acTop - acBot);
   /* เมนของตู้ */
   pen.dot(R, X.acBus, yMain, 0.5);
-  pen.line(R, X.acBus, yMain, X.acM - g - 0.75, yMain);
-  hBrk(X.acM, yMain);
+  pen.line(R, X.acBus, yMain, mx - g - 0.75, yMain);
+  hBrk(mx, yMain);
   const mainL = P.mainTxt + (P.lsig ? " LSIG" : "");
-  pen.text(T, X.acM, yMain + 5.0, fitH(mainL, TS.spec, 2 * (X.ac1 - X.acM) - 2), mainL, { align: 1, valign: 1 });
-  let wx = X.acM + g + 0.75;
-  if (P.gf && !P.lsig) {
+  pen.text(T, mx, yMain + 5.0, fitH(mainL, TS.spec, 2 * (mx - X.ac0) - 2), mainL, { align: 1, valign: 1 });
+  let wx = mx + g + 0.75;
+  if (hasGf) {
     /* Ground fault: ZCT คล้องสายเมน → รีเลย์ GFR → สั่ง Shunt trip ของ MCCB */
-    const zx = X.acM + 6.5, gy0 = yMain - 10.6, gy1 = yMain - 7;
+    const zx = mx + 6.5, gy0 = yMain - 10.6, gy1 = yMain - 7;
     pen.line(R, wx, yMain, zx - 1.7, yMain);
     pen.circle(S, zx, yMain, 1.7);
     pen.line(R, zx - 1.7, yMain, zx + 1.7, yMain);
@@ -1883,22 +1868,24 @@ function pgSldPro(doc, sheet, M) {
     pen.rect(S, zx - 3.4, gy0, 6.8, gy1 - gy0);
     pen.text(T, zx, (gy0 + gy1) / 2, TS.spec, "GFR", { align: 1, valign: 2 });
     pen.line(CM, zx, yMain - 1.7, zx, gy1);
-    pen.line(CM, zx - 3.4, (gy0 + gy1) / 2, X.acM, (gy0 + gy1) / 2);
-    pen.line(CM, X.acM, (gy0 + gy1) / 2, X.acM, yMain - 2.2);
-    pen.text(T, X.acM - 0.8, yMain - 4.4, TS.tag, "SHUNT", { align: 2, valign: 2 });
-    pen.text(T, X.acM - 0.8, yMain - 6.1, TS.tag, "TRIP", { align: 2, valign: 2 });
+    pen.line(CM, zx - 3.4, (gy0 + gy1) / 2, mx, (gy0 + gy1) / 2);
+    pen.line(CM, mx, (gy0 + gy1) / 2, mx, yMain - 2.2);
+    pen.text(T, mx - 0.8, yMain - 4.4, TS.tag, "SHUNT", { align: 2, valign: 2 });
+    pen.text(T, mx - 0.8, yMain - 6.1, TS.tag, "TRIP", { align: 2, valign: 2 });
   }
+  pen.line(R, wx, yMain, X.mdB - g - 0.75, yMain);
+  const px = mx + 13.5, lx = px + 3.6, sx = lx + 4.5;
+  let pmLow = yMain;
   if (P.pm) {
-    /* Power meter: CT บนสายเมน → PM2230 (ไฟเลี้ยงผ่าน MCB 6A) */
-    const px = X.acM + 13.5, pb = yMain - 19, pt = yMain - 14;
-    pen.line(R, wx, yMain, X.mdB - g - 0.75, yMain);
+    /* Power meter: CT บนสายเมน → PM2230 */
+    const pb = yMain - 19, pt = yMain - 14;
     ctH(px, yMain);
     /* ไฟแสดงเฟส (pilot lamp) แยกจากสายเมนหลัง CT → ฟิวส์ → ขึ้นเหนือตู้ → หลอด R S T (ผู้ใช้วาดชี้ 2026-10-29) */
-    const lx = px + 3.6, fy = acTop0 + 4, ly = acTop0 + 9, lr = 1.3;
+    const fy = acTop0 + 4, ly = acTop0 + 9, lr = 1.3;
     const ph = M.phase === 3 ? ["R", "S", "T"] : ["L"];
     pen.dot(R, lx, yMain, 0.5);
     pen.line(R, lx, yMain, lx, fy - 2.4); vFuse(lx, fy); pen.line(R, lx, fy + 2.4, lx, ly);
-    pen.text(T, lx - 1.6, fy, TS.tag, "FUSE 2A", { align: 2, valign: 2 });   // ซ้ายฟิวส์ — ขวาชนขอบตู้
+    pen.text(T, lx - 1.6, fy, TS.tag, "FUSE 2A", { align: 2, valign: 2 });
     const lxs = ph.map((_, i) => lx - 5 - i * 5);
     pen.line(R, lx, ly, lxs[0] + lr, ly);
     lxs.forEach((x, i) => {
@@ -1910,23 +1897,43 @@ function pgSldPro(doc, sheet, M) {
     });
     pen.text(T, lxs[lxs.length - 1] - lr - 1, ly, TS.tag, "PILOT LAMP", { align: 2, valign: 2 });
     pen.text(T, lx - 0.8, yMain + CT_R + 0.9, TS.spec, "CT " + P.pmCt, { align: 2, valign: 1 });
-    /* กล่อง PM2230 อยู่ซ้ายใต้ GFR — สาย CT ลงแล้วเลี้ยวโค้งเข้าข้างกล่อง (ผู้ใช้ชี้ 2026-10-29) */
-    const pmx = X.acM + 4, pmy = (pb + pt) / 2, cr = 1.5;
+    /* กล่อง PM2230 ใต้ GFR — สาย CT ลงแล้วเลี้ยวโค้งเข้าข้างกล่อง (ผู้ใช้ชี้ 2026-10-29) */
+    const pmx = mx + 4, pmy = (pb + pt) / 2, cr = 1.5;
     pen.line(CM, px, yMain, px, pmy + cr);
     pen.arc(CM, px - cr, pmy + cr, cr, 270, 360);
     pen.line(CM, px - cr, pmy, pmx + 4.5, pmy);
     pen.rect(S, pmx - 4.5, pb, 9, pt - pb);
-    /* ไฟเลี้ยง PM2230: แยกจากสายเมนก่อนเข้า MCCB เมน (ฝั่งอินเวอร์เตอร์ — ผู้ใช้ชี้ 2026-10-29) → ลง → MCB 2P 6A แนวนอนใต้กล่อง → เข้าด้านล่าง */
-    const tx = X.acM - 8, yb = yMain - 24, hx = X.acM - 2;
-    pen.dot(R, tx, yMain, 0.5);
-    pen.line(R, tx, yMain, tx, yb);
-    pen.line(R, tx, yb, hx - g - 0.75, yb);
+    pen.text(T, pmx, pmy, TS.spec, "PM2230", { align: 1, valign: 2 });
+    /* ไฟเลี้ยง PM2230: จากบัสก่อน MCCB เมน (ฝั่งอินเวอร์เตอร์ — ผู้ใช้ 2026-10-29 "เชื่อไฟที่เดิม") → ลง → MCB 2P 6A แนวนอนใต้กล่อง → เข้าด้านล่าง */
+    const yb = yMain - 24, hx = mx - 2;
+    pen.line(R, X.acBus, busLo, X.acBus, yb);
+    pen.line(R, X.acBus, yb, hx - g - 0.75, yb);
     hBrk(hx, yb);
     pen.line(R, hx + g + 0.75, yb, pmx + 2, yb);
     pen.line(R, pmx + 2, yb, pmx + 2, pb);
     pen.text(T, hx, yb - 1.4, TS.tag, "MCB 2P 6A", { align: 1, valign: 3 });
-    pen.text(T, pmx, pmy, TS.spec, "PM2230", { align: 1, valign: 2 });
-  } else pen.line(R, wx, yMain, X.mdB - g - 0.75, yMain);
+    pmLow = yb - 3;
+  }
+  /* กันเสิร์จฝั่ง AC อยู่ฝั่งกริด (หลัง MCCB เมน): สายเมน → อุปกรณ์ป้องกันสำรอง (ถ้ามี) → SPD → บัสดิน
+     ป้ายอยู่ซ้ายแกน · เริ่มต่ำกว่า GFR / สายไฟเลี้ยง PM ไม่ให้ทับกัน */
+  pen.dot(R, sx, yMain, 0.5);
+  const sw = sx - 3.6 - X.ac0 - 1;   // ป้ายอยู่ต่ำกว่า PM/MCB แล้ว ใช้ความกว้างตู้ได้เต็ม
+  let sy = yMain;
+  const top0 = Math.min(P.pm ? pmLow : yMain, hasGf ? yMain - 12.6 : yMain - 3);
+  if (P.spdBk) {
+    const by = top0 - 2.4;
+    pen.line(R, sx, sy, sx, by + 2.4);
+    if (/FUSE/.test(P.spdBk)) { vFuse(sx, by); sy = by - 2.4; }
+    else { pen.line(R, sx, by + 2.4, sx, by + g + 0.75); pgSym.breaker(pen, sx, by, "", "", g); sy = by - g - 0.75; }
+    pen.text(T, sx - 2.6, by, fitH(P.spdBk, TS.spec, sw), P.spdBk, { align: 2, valign: 2 });
+  } else sy = top0 + 2;
+  const spY = sy - 5.5;
+  pen.line(R, sx, sy, sx, spY + 2.4);
+  pgSym.spd(pen, sx, spY, null, { w: 1.7, h: 4.8 });   // ขนาดเท่าฟิวส์ (ผู้ใช้ 2026-10-29)
+  const spH = Math.min.apply(null, P.acSpd.map((t) => fitH(t, TS.spec, sw)));
+  P.acSpd.forEach((t, i) => pen.text(T, sx - 3.6, spY + 2.4 - i * 2.2, spH, t, { align: 2, valign: 2 }));
+  const acBot = Math.min(spY - 5.5, pmLow - 2, busLo - 4);
+  pen.rect(BX, X.ac0, acBot, X.ac1 - X.ac0, acTop - acBot);
   pen.text(T, X.ac1 + 3.0, yMain - 3, TS.spec, M.mainCable[0], { rot: 90, align: 2 });
   pen.text(T, X.ac1 + 5.8, yMain - 3, TS.spec, "THW(G) " + P.earthCu + " mm2 (PE)", { rot: 90, align: 2 });
 
@@ -1954,7 +1961,7 @@ function pgSldPro(doc, sheet, M) {
   pen.text(T, mpx + 2.6, mdBot + 1.7, TS.tag, "PE / N-PE LINK", { valign: 2 });
   const yE = Math.max(yE0, Math.min(blkLow - 4, acBot - 5, mdBot - 14));
   pen.line(PE, mpx, mdBot + 1.2, mpx, yE);
-  pen.line(PE, X.acBus, spY - 2.4, X.acBus, yE);
+  pen.line(PE, sx, spY - 2.4, sx, yE);
   /* PE trunk ซ้าย: โครงแผงทุกแถว + บล็อกทุกเครื่อง → บัสดินหลัก */
   pen.line(PE, X.pe0, peTop, X.pe0, yE);
   const ctY = mdTop + 6, mY = mdTop + 15, uY = mdTop + 27;
