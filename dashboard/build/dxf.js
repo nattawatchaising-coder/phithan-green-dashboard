@@ -2068,12 +2068,13 @@ const pgSym = {
     pen.line(L, x - 1.9, y - 1.3, x + 1.9, y - 1.3);
     pen.line(L, x - 0.8, y - 2.6, x + 0.8, y - 2.6);
   },
-  spd(pen, x, y, lines) {
+  spd(pen, x, y, lines, sz) {
     const L = PG_SLD.sym,
-      w = 3.8,
-      h = 8,
-      ov = 1.5,
-      t = 1.4;
+      w = sz && sz.w || 3.8,
+      h = sz && sz.h || 8,
+      k = h / 8,
+      ov = 1.5 * k,
+      t = 1.4 * k;
     pen.rect(L, x - w / 2, y - h / 2, w, h);
     const x0 = x - w / 2 - ov,
       y0 = y - h / 2 + t;
@@ -2283,9 +2284,10 @@ function pgSldPro(doc, sheet, M) {
     pen.rect(S, x - 0.85, y - 2.4, 1.7, 4.8);
     pen.line(S, x, y - 2.4, x, y + 2.4);
   };
+  const SPD_H = 4.8;
   const spdS = (x, y0) => {
-    pen.rect(S, x - 1.2, y0 - 4, 2.4, 4);
-    pen.line(S, x - 1.9, y0 - 3.3, x + 1.9, y0 - 0.7);
+    pen.rect(S, x - 0.85, y0 - SPD_H, 1.7, SPD_H);
+    pen.line(S, x - 1.5, y0 - SPD_H + 0.9, x + 1.5, y0 - 0.9);
   };
   const meter = (x, y, r) => {
     pen.circle(S, x, y, r);
@@ -2330,10 +2332,25 @@ function pgSldPro(doc, sheet, M) {
   };
   let RH = 10;
   const GAP = 2;
+  const phys = +M.mppt.phys || 0;
+  const rowsOf = r => {
+    if (!phys) return r.ins.map(x => strRow(x));
+    const n = Math.max(phys, Math.max.apply(null, r.ins.map(x => x.inNo)));
+    const out = [];
+    for (let k = 1; k <= n; k++) {
+      const x = r.ins.find(q => q.inNo === k);
+      out.push(x ? strRow(x) : {
+        empty: true,
+        tag: "IN" + k,
+        k: 0
+      });
+    }
+    return out;
+  };
   const mkBlock = (no, detail) => {
     const groups = byInv[no].map(r => ({
       mppt: r.mppt,
-      rows: detail ? r.ins.map(x => strRow(x)) : [grpRow(r)]
+      rows: detail ? rowsOf(r) : [grpRow(r)]
     }));
     return {
       no,
@@ -2342,10 +2359,13 @@ function pgSldPro(doc, sheet, M) {
       brk: P.ivBrk[no - 1]
     };
   };
+  const EH = 4.5;
+  const rowH = row => row && row.empty ? EH : RH;
   const geo = (b, top) => {
-    const nR = b.groups.reduce((t, gq) => t + gq.rows.length, 0);
+    const all = b.groups.reduce((t, gq) => t.concat(gq.rows), []);
     const firstY = top - 10.5;
-    const lastY = firstY - (nR - 1) * RH - (b.groups.length - 1) * GAP;
+    const span = all.slice(0, -1).reduce((t, row) => t + rowH(row), 0);
+    const lastY = firstY - span - (b.groups.length - 1) * GAP;
     const dBot = lastY - 16;
     const boxBot = Math.min(lastY - 5, top - 27);
     const yG = Math.min(dBot, boxBot - 10.8) - 3;
@@ -2409,7 +2429,7 @@ function pgSldPro(doc, sheet, M) {
     blocks = keep;
   }
   if (!blocks.some(b => b.typical)) {
-    const nR = blocks.reduce((t, b) => t + b.groups.reduce((u, gq) => u + gq.rows.length, 0) - 1, 0);
+    const nR = blocks.reduce((t, b) => t + b.groups.reduce((u, gq) => u + gq.rows.filter(r => !r.empty).length, 0) - 1, 0);
     const spare = avail - sumH(blocks) - 30;
     if (nR > 0 && spare > 0) RH = Math.min(15, RH + spare / nR);
   }
@@ -2441,7 +2461,9 @@ function pgSldPro(doc, sheet, M) {
     const top = cur,
       G = geo(b, top);
     let y = G.firstY;
-    const rowsY = [];
+    const rowsY = [],
+      mids = [];
+    const trunkX = X.iv1 - 16.5;
     let nStrB = 0,
       first = true;
     b.groups.forEach((gq, gi) => {
@@ -2450,6 +2472,14 @@ function pgSldPro(doc, sheet, M) {
       gq.rows.forEach(row => {
         ys.push(y);
         nStrB += row.k;
+        if (row.empty) {
+          pen.circle(S, X.iv0, y, 0.6);
+          pen.text(T, X.iv0 + 1.2, y + 0.4, TS.tag, row.tag, {
+            valign: 1
+          });
+          y -= EH;
+          return;
+        }
         pgSym.pv(pen, X.m1, y, 6.4, 3.6, null, true);
         pgSym.pv(pen, X.mn, y, 6.4, 3.6, null, true);
         pen.text(T, X.m1, y + 2.5, TS.tag, "1", {
@@ -2487,9 +2517,9 @@ function pgSldPro(doc, sheet, M) {
         pen.dot(R, X.dcS, y, 0.5);
         pen.line(R, X.dcS, y, X.dcS, y - 2.2);
         spdS(X.dcS, y - 2.2);
-        pen.line(PE, X.dcS, y - 6.2, X.dcS, y - 7.2);
+        pen.line(PE, X.dcS, y - 2.2 - SPD_H, X.dcS, y - 7.2);
         pen.line(PE, X.dcS, y - 7.2, X.dcPE, y - 7.2);
-        if (first) pen.text(T, X.dcS + 2.5, y - 4.2, TS.tag, "SPD", {
+        if (first) pen.text(T, X.dcS + 1.8, y - 4.6, TS.tag, "SPD", {
           valign: 2
         });
         pen.circle(S, X.iv0, y, 0.6);
@@ -2499,14 +2529,17 @@ function pgSldPro(doc, sheet, M) {
         first = false;
         y -= RH;
       });
-      const bx = X.iv0 + 7.5,
+      const bx = X.iv0 + 5.5,
         y0 = ys[0],
-        y1 = ys[ys.length - 1];
-      ys.forEach(yy => pen.line(S, X.iv0 + 0.6, yy, bx, yy));
-      if (ys.length > 1) pen.line(S, bx, y0, bx, y1);
-      pen.text(T, bx + 1.0, (y0 + y1) / 2, TS.spec, b.typical ? "MPPT" : "MPPT" + gq.mppt, {
-        valign: 2
+        y1 = ys[ys.length - 1],
+        ym = (y0 + y1) / 2;
+      ys.forEach(yy => pen.line(R, X.iv0 + 0.6, yy, bx, yy));
+      if (ys.length > 1) pen.line(R, bx, y0, bx, y1);
+      pen.line(R, bx, ym, trunkX, ym);
+      pen.text(T, bx + 1.0, ym + 0.5, TS.spec, b.typical ? "MPPT" : "MPPT" + gq.mppt, {
+        valign: 1
       });
+      mids.push(ym);
       rowsY.push.apply(rowsY, ys);
     });
     const lastY = rowsY[rowsY.length - 1];
@@ -2523,13 +2556,18 @@ function pgSldPro(doc, sheet, M) {
     const nS = b.typical ? Math.round(nStrB / b.cnt) : nStrB;
     const ft = [(fuseDev ? P.dcDev.tag + " x" + nS * 2 : P.dcDev.tag + " x" + nS) + per, "DC SPD " + P.dcSpdTag.replace(/^SPD /, "") + " x" + nS + per];
     const fw = X.dcPE - 2.5 - (X.dc0 + 1);
-    ft.forEach((s, i) => pen.text(T, X.dc0 + 1, G.dBot + 1.0 + (ft.length - 1 - i) * 2.1, fitH(s, TS.spec, fw), s, {
+    const fth = Math.min.apply(null, ft.map(s => fitH(s, TS.spec, fw)));
+    ft.forEach((s, i) => pen.text(T, X.dc0 + 1, G.dBot + 1.0 + (ft.length - 1 - i) * 2.1, fth, s, {
       valign: 1
     }));
     const boxTop = top - 1;
     pen.rect(S, X.iv0, G.boxBot, X.iv1 - X.iv0, boxTop - G.boxBot);
     const tapY = (boxTop + G.boxBot) / 2;
     pgSym.inverter(pen, X.iv1 - 8, tapY, 11, 8.5);
+    const tLo = Math.min(tapY, Math.min.apply(null, mids)),
+      tHi = Math.max(tapY, Math.max.apply(null, mids));
+    if (tHi > tLo) pen.line(R, trunkX, tLo, trunkX, tHi);
+    pen.line(R, trunkX, tapY, X.iv1 - 13.5, tapY);
     const nm = b.typical ? "INV" + b.no + "-INV" + b.to + " (x" + b.cnt + ")" : "INV" + b.no;
     const ix = X.iv0 + 4,
       iw = X.ac0 - 1 - ix;
@@ -2602,8 +2640,11 @@ function pgSldPro(doc, sheet, M) {
     });
   }
   const spY = sy - 7;
-  pen.line(R, X.acBus, sy, X.acBus, spY + 4);
-  pgSym.spd(pen, X.acBus, spY, null);
+  pen.line(R, X.acBus, sy, X.acBus, spY + 2.4);
+  pgSym.spd(pen, X.acBus, spY, null, {
+    w: 1.7,
+    h: 4.8
+  });
   P.acSpd.forEach((s, i) => pen.text(T, X.acBus - 3.6, spY + 2.4 - i * 2.2, TS.spec, s, {
     align: 2,
     valign: 2
@@ -2714,7 +2755,7 @@ function pgSldPro(doc, sheet, M) {
   });
   const yE = Math.max(yE0, Math.min(blkLow - 4, acBot - 5, mdBot - 14));
   pen.line(PE, mpx, mdBot + 1.2, mpx, yE);
-  pen.line(PE, X.acBus, spY - 4, X.acBus, yE);
+  pen.line(PE, X.acBus, spY - 2.4, X.acBus, yE);
   pen.line(PE, X.pe0, peTop, X.pe0, yE);
   const ctY = mdTop + 6,
     mY = mdTop + 15,
