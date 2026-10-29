@@ -2050,12 +2050,10 @@ function pgSldPro(doc, sheet, M) {
     /* ── ปลายสายเมน: เบรกเกอร์โซลาร์ในตู้ MDB เดิม → ลูกศร TO MDB (EXISTING) ──
        ผู้ใช้ขีดฆ่ากรอบ MDB · มิเตอร์ · สายกริด · MET · หลักดินระบบ (2026-10-29) — ของเดิมไม่วาด ชี้ไปเฉย ๆ */
     const mdBot = yMain - 24;
-    hBrk(X.mdB, yMain, isCb(M.mccb[0]));
-    pen.text(T, X.md0 + 1, yMain + 5.0, fitH(M.mccb[0], TS.spec, X.mdBus - X.md0 - 3), M.mccb[0], { valign: 1 });
-    pen.text(T, X.md0 + 1, yMain - 2.2, TS.spec, "SOLAR (" + (M.mccbNew ? "NEW" : "EXIST") + ")", { valign: 3 });
+    /* ไม่วาด MCCB ในตู้ MDB (ผู้ใช้ 2026-10-29) — สายเมนวิ่งตรงถึงลูกศร */
     const ax = X.mdB + g + 3.5;
-    pen.line(W, X.mdB + g + 0.75, yMain, ax, yMain);
-    pen.solid(W, [ax, yMain + 1.1], [ax + 2.6, yMain], [ax, yMain - 1.1]);
+    pen.line(R, X.mdB - g - 0.75, yMain, ax, yMain);
+    pen.solid(R, [ax, yMain + 1.1], [ax + 2.6, yMain], [ax, yMain - 1.1]);
     pen.text(LB, ax + 4, yMain + 0.9, TS.head, "TO MDB", { valign: 1 });
     pen.text(T, ax + 4, yMain - 1.0, TS.spec, "(EXISTING)", { valign: 3 });
     const yE = Math.max(yE0, Math.min(blkLow - 4, acBot - 5, mdBot - 14));
@@ -2066,9 +2064,10 @@ function pgSldPro(doc, sheet, M) {
       pen.line(PE, gx, barY - 0.45, gx, gy);
       pgSym.ground(pen, gx, gy);
       pen.text(T, gx - 1.5, yE + 3.4, TS.tag, "CONNECT TO GROUND BAR", { align: 2, valign: 2 });
-      pen.text(T, gx - 1.5, yE + 1.9, TS.tag, "OF EXISTING MDB", { align: 2, valign: 2 }); }
+      pen.text(T, gx - 1.5, yE + 1.9, TS.tag, "OF EXISTING MDB", { align: 2, valign: 2 });
+      pen.text(LB, gx - 1.5, yE - 0.1, TS.spec, "THW(G) " + P.earthCu + " mm2", { align: 2, valign: 2 }); }   // ขนาดสาย (ผู้ใช้ 2026-10-29)
     /* กราวด์ตัวตู้ (ผู้ใช้ชี้ 2026-10-29) — จากรูที่ 1 ของบาร์ G ลงไปต่อกรอบตู้ (เส้นประก้นตู้) */
-    pen.line(PE, sx - 4, barY - 0.45, sx - 4, acBot);
+    pen.line(PE, sx - 4, barY - 0.45, sx - 4, acBot + 1.0);   // หยุดที่ขอบบนวงจุดยึด ไม่ลากทะลุวง (ผู้ใช้ 2026-10-29)
     pen.circle(PE, sx - 4, acBot + 0.5, 0.5);   // จุดยึดโครงตู้ ไม่ต้องเขียนป้าย (ผู้ใช้ 2026-10-29)
     /* PE trunk ซ้าย: โครงแผงทุกแถว + บล็อกทุกเครื่อง → บัสดินหลัก */
     pen.line(PE, X.pe0, peTop, X.pe0, yE);

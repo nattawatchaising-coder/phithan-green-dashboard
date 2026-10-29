@@ -2940,16 +2940,9 @@ function pgSldPro(doc, sheet, M) {
       align: 2
     });
     const mdBot = yMain - 24;
-    hBrk(X.mdB, yMain, isCb(M.mccb[0]));
-    pen.text(T, X.md0 + 1, yMain + 5.0, fitH(M.mccb[0], TS.spec, X.mdBus - X.md0 - 3), M.mccb[0], {
-      valign: 1
-    });
-    pen.text(T, X.md0 + 1, yMain - 2.2, TS.spec, "SOLAR (" + (M.mccbNew ? "NEW" : "EXIST") + ")", {
-      valign: 3
-    });
     const ax = X.mdB + g + 3.5;
-    pen.line(W, X.mdB + g + 0.75, yMain, ax, yMain);
-    pen.solid(W, [ax, yMain + 1.1], [ax + 2.6, yMain], [ax, yMain - 1.1]);
+    pen.line(R, X.mdB - g - 0.75, yMain, ax, yMain);
+    pen.solid(R, [ax, yMain + 1.1], [ax + 2.6, yMain], [ax, yMain - 1.1]);
     pen.text(LB, ax + 4, yMain + 0.9, TS.head, "TO MDB", {
       valign: 1
     });
@@ -2971,8 +2964,12 @@ function pgSldPro(doc, sheet, M) {
         align: 2,
         valign: 2
       });
+      pen.text(LB, gx - 1.5, yE - 0.1, TS.spec, "THW(G) " + P.earthCu + " mm2", {
+        align: 2,
+        valign: 2
+      });
     }
-    pen.line(PE, sx - 4, barY - 0.45, sx - 4, acBot);
+    pen.line(PE, sx - 4, barY - 0.45, sx - 4, acBot + 1.0);
     pen.circle(PE, sx - 4, acBot + 0.5, 0.5);
     pen.line(PE, X.pe0, peTop, X.pe0, yE);
     if (M.gateway) {
