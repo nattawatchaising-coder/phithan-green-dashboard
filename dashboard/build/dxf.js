@@ -2003,11 +2003,13 @@ const PG_SLD = {
   lbl: "SLD-LABEL",
   comm: "SLD-COMM",
   tab: "SLD-TABLE",
-  pe: "SLD-EARTH"
+  pe: "SLD-EARTH",
+  ctsig: "SLD-CT-SIGNAL"
 };
 function pgSldLayers(doc) {
   doc.ltype("PG-DASH", "Dashed __ __ __", [6, -3]);
   doc.ltype("PG-DOT", "Dotted . . . .", [0.4, -2.4]);
+  doc.ltype("PG-DASHF", "Dashed fine _ _ _ _", [1.5, -0.9]);
   doc.layer(PG_SLD.wire, PG_ACI.white, "CONTINUOUS", 35);
   doc.layer(PG_SLD.sol, PG_ACI.red, "CONTINUOUS", 35);
   doc.layer(PG_SLD.sym, PG_ACI.white, "CONTINUOUS", 25);
@@ -2015,6 +2017,7 @@ function pgSldLayers(doc) {
   doc.layer(PG_SLD.txt, PG_ACI.white, "CONTINUOUS", 18);
   doc.layer(PG_SLD.lbl, PG_ACI.cyan, "CONTINUOUS", 25);
   doc.layer(PG_SLD.comm, PG_ACI.white, "PG-DASH", 15);
+  doc.layer(PG_SLD.ctsig, PG_ACI.white, "PG-DASHF", 15);
   doc.layer(PG_SLD.tab, PG_ACI.white, "CONTINUOUS", 20);
   doc.layer(PG_SLD.pe, PG_ACI.green, "CONTINUOUS", 25);
 }
@@ -2761,7 +2764,6 @@ function pgSldPro(doc, sheet, M) {
     };
     const invCab = String(M.acCable || "").replace(/\s+(L1,L2,L3,N|L,N)\s*$/, "").replace(/(\dC)-/, "$1x").replace(/\s+/g, " ");
     const withKv = s => /kV|\/750V/.test(s) ? s : s + " 0.6/1kV";
-    const invCabOf = no => withKv(M.acCableOf && M.acCableOf[no] || invCab) + (M.acRoute ? " " + M.acRoute : "");
     const invG = brk => {
       const at = +(/(\d+)AT/.exec(String(brk || "")) || /(\d+)A\b/.exec(String(brk || "")) || [])[1] || 0;
       const cu = at <= 100 ? 10 : at <= 200 ? 16 : at <= 400 ? 25 : at <= 500 ? 35 : at <= 800 ? 50 : at <= 1000 ? 70 : 95;
@@ -2774,16 +2776,17 @@ function pgSldPro(doc, sheet, M) {
       }
       pen.line(R, X.iv1 + 0.6, t.y, X.acB - g - 0.75, t.y);
       if (isMain) {
-        const lc = invCabOf(t.b.no),
+        const lc = withKv(M.acCableOf && M.acCableOf[t.b.no] || invCab),
           gl = M.acGndOf && M.acGndOf[t.b.no] || invG(t.b.brk);
+        const ls = [lc, gl].concat(M.acRoute ? [M.acRoute] : []);
         const cw = X.acB - g - X.iv1 - 4,
-          ch = Math.min(fitH(lc, TS.spec, cw), Math.max(0.9, (tGap - 1.6) / 2.2));
+          ch = Math.min(Math.min.apply(null, ls.map(l => fitH(l, TS.spec, cw))), Math.max(0.9, (tGap - 2.4) / 4.2));
         pen.text(T, X.iv1 + 2, t.y + 0.7, ch, lc, {
           valign: 1
         });
-        pen.text(T, X.iv1 + 2, t.y - 0.7, ch, gl, {
+        ls.slice(1).forEach((l, k) => pen.text(T, X.iv1 + 2, t.y - 0.7 - k * (ch + 0.6), ch, l, {
           valign: 3
-        });
+        }));
       }
       hBrk(X.acB, t.y, isCb(t.b.brk));
       brkLabel(String(t.b.brk || ""), t.b.typical ? " x" + t.b.cnt : "", X.acB, t.y);
@@ -2883,8 +2886,11 @@ function pgSldPro(doc, sheet, M) {
         pbB = pt - 6,
         pmx = cx + pw / 2 + 3,
         pmy = (pbB + pt) / 2;
-      pen.line(CM, cx, yMain, cx, pmy);
-      pen.line(CM, cx, pmy, pmx - pw / 2, pmy);
+      const CS = PG_SLD.ctsig,
+        cr2 = 1.6;
+      pen.line(CS, cx, yMain, cx, pmy + cr2);
+      pen.arc(CS, cx + cr2, pmy + cr2, cr2, 180, 270);
+      pen.line(CS, cx + cr2, pmy, pmx - pw / 2, pmy);
       pen.rect(S, pmx - pw / 2, pbB, pw, pt - pbB);
       pen.line(S, pmx - pw / 2, pt - 1.3, pmx + pw / 2, pt - 1.3);
       pen.text(T, pmx, (pbB + pt - 1.3) / 2, TS.head, "DM", {
