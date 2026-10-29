@@ -255,6 +255,10 @@ function p3PlanSummary(saved) {
     /* งานสองขนาด — ผู้เรียกที่สนใจแค่รุ่นหลักก็อ่าน invModel เหมือนเดิมได้ ของเดิมไม่กระทบ */
     inv2Model: String(sys.inv2Model || "").trim(),
     inv2Count: Math.max(0, Math.round(+sys.inv2Count || 0)),
+    inv3Model: String(sys.inv3Model || "").trim(),
+    inv3Count: Math.max(0, Math.round(+sys.inv3Count || 0)),
+    inv4Model: String(sys.inv4Model || "").trim(),
+    inv4Count: Math.max(0, Math.round(+sys.inv4Count || 0)),
   };
 }
 
@@ -785,7 +789,7 @@ function p3PlanSpec(st, job, M, SS) {
     ["PROJECT", "SOLAR ROOFTOP " + kwp.toFixed(2) + " kWp."],
     ["LOCATION", I.location],
     /* แถวละคู่เดียวเต็มความกว้าง — ชื่อรุ่นยาว (LONGi Hi-MO X10 ...) วางสองคู่ต่อแถวแล้วทับกัน */
-    ["INVERTER", M.inv.model + "   " + M.units.length + " Ea."],
+    ["INVERTER", M.inv.models && M.inv.models.length > 1 ? M.inv.models.map((x) => x.model + " x" + x.count).join(" + ") : M.inv.model + "   " + M.units.length + " Ea."],
     ["PV MODULE", M.panel.model + "   " + M.panel.count + " Ea."],
     ["PV MODULE / INVERTER", perInv + " MODULE"],
     ["STRING", p3StrSum(SS)],
@@ -2394,8 +2398,9 @@ function P3NumRange({ label, value, onChange, min, max, step, suffix, span }) {
    สร้างจากสเปคที่ออกแบบไว้ในโหมด 3D + ข้อมูลงาน แล้วให้ dxf.jsx เป็นคนวาด
    พิกัดเบรกเกอร์คิดจากกระแสใช้งานจริง × 1.25 ตามที่มาตรฐานการติดตั้งกำหนด
    แล้วปัดขึ้นหาพิกัดมาตรฐานที่มีขายจริง — ไม่ใช่ตัวเลขตายตัวที่ก๊อปมาจากแบบเดิม */
-const P3_AT = [6, 10, 16, 20, 25, 32, 40, 50, 63, 80, 100, 125, 160, 200, 225, 250, 400];
-const P3_CT = [80, 100, 160, 250, 400];
+/* ถึง 4000 AT (ผู้ใช้ 2026-10-29: 10 อินเวอร์เตอร์ 1 MW เมนต้องเป็น ACB 1600 AT — ตารางเดิมหยุด 400 เมนออกมา 400 AT ผิด) */
+const P3_AT = [6, 10, 16, 20, 25, 32, 40, 50, 63, 80, 100, 125, 160, 200, 225, 250, 400, 500, 630, 800, 1000, 1250, 1600, 2000, 2500, 3200, 4000];
+const P3_CT = [80, 100, 160, 250, 400, 600, 800, 1000, 1200, 1600, 2000, 2500, 3200, 4000];
 const P3_CU = [2.5, 4, 6, 10, 16, 25, 35, 50, 70, 95, 120, 150, 185, 240, 300];   // ถึง 300 ตามตาราง วสท. ใน BOQ (เดิมหยุดที่ 95)
 const p3At = (i) => P3_AT.find((a) => a >= i) || P3_AT[P3_AT.length - 1];
 const p3Ct = (i) => P3_CT.find((a) => a >= i) || P3_CT[P3_CT.length - 1];
@@ -2455,25 +2460,32 @@ function p3SldModel(st, job, design) {
     const iv = (B.INVERTERS || []).find((x) => x.model === sys.invModel) || {};
     const kw = +iv.kw || 5;
     const n = Math.max(1, +sys.invCount || Math.ceil(nPanel * wp / 1000 / kw));
-    /* รุ่นที่สองของงานเดียวกัน — ว่าง = รุ่นเดียวทั้งงาน (ท่าเดียวกับ BOQ กับหน้าวางแผง)
-       ต้องรู้จักที่นี่ด้วย ไม่งั้นแผนภาพไฟฟ้าจะวาดตัวที่สองหายไปทั้งที่ของจริงมี */
-    const iv2 = sys.inv2Model && sys.inv2Model !== sys.invModel
-      ? (B.INVERTERS || []).find((x) => x.model === sys.inv2Model) : null;
-    const n2 = iv2 ? Math.max(0, Math.round(+sys.inv2Count || 0)) : 0;
-    const kw2 = iv2 ? (+iv2.kw || kw) : 0;
+    /* รุ่นที่ 2–4 ของงานเดียวกัน (inv2Model..inv4Model) — ว่าง = รุ่นเดียวทั้งงาน (ท่าเดียวกับหน้าออกแบบระบบ scInvExtras)
+       ต้องรู้จักที่นี่ด้วย ไม่งั้นแผนภาพไฟฟ้าจะวาดตัวอื่นหายไปทั้งที่ของจริงมี · ข้ามรุ่นซ้ำ/จำนวน 0 ตามลำดับช่อง */
+    const seen = [sys.invModel], xs = [];
+    [2, 3, 4].forEach((k) => {
+      const m = sys["inv" + k + "Model"], c = Math.max(0, Math.round(+sys["inv" + k + "Count"] || 0));
+      const ivk = m && seen.indexOf(m) < 0 && c > 0 ? (B.INVERTERS || []).find((x) => x.model === m) : null;
+      if (!ivk) return;
+      seen.push(m);
+      xs.push({ k, model: ivk.model, count: c, w: (+ivk.kw || kw) * 1000, spec: ivk });
+    });
     unitW = kw * 1000;
-    inv = { model: iv.model || "INVERTER", count: n + n2, w: unitW, v: Vll, spec: iv,
-      model2: iv2 ? iv2.model : "", count2: n2, w2: kw2 * 1000, spec2: iv2 || null };
+    const x2 = xs[0];
+    inv = { model: iv.model || "INVERTER", count: n + xs.reduce((t, x) => t + x.count, 0), w: unitW, v: Vll, spec: iv,
+      model2: x2 ? x2.model : "", count2: x2 ? x2.count : 0, w2: x2 ? x2.w : 0, spec2: x2 ? x2.spec : null, extras: xs };
+    /* รุ่นของงานเรียงตาม from (1 = รุ่นหลัก · 2.. = ตามลำดับ extras) — ตรงกับ from ของเอนจินจัดสตริง */
+    inv.models = [{ from: 1, model: inv.model, count: n, w: unitW, spec: iv }]
+      .concat(xs.map((x, i) => ({ from: i + 2, model: x.model, count: x.count, w: x.w, spec: x.spec })));
     /* กระจายแผงตามกำลังของแต่ละตัว ไม่ใช่หารเท่ากัน — ตัวใหญ่ต้องรับแผงมากกว่าตัวเล็ก */
-    const kwEach = [];
-    for (let i = 0; i < n; i++) kwEach.push(kw);
-    for (let i = 0; i < n2; i++) kwEach.push(kw2);
-    const kwSum = kwEach.reduce((a, b) => a + b, 0) || 1;
+    const each = [];
+    inv.models.forEach((md) => { for (let i = 0; i < md.count; i++) each.push(md); });
+    const kwSum = each.reduce((a, md) => a + md.w, 0) || 1;
     let leftP = nPanel;
-    kwEach.forEach((k, i) => {
-      const share = i === kwEach.length - 1 ? leftP : Math.round(nPanel * k / kwSum);
+    each.forEach((md, i) => {
+      const share = i === each.length - 1 ? leftP : Math.round(nPanel * md.w / kwSum);
       leftP -= share;
-      units.push({ panels: Math.max(0, share), phase: 1, w: k * 1000, from: i < n ? 1 : 2 });
+      units.push({ panels: Math.max(0, share), phase: 1, w: md.w, from: md.from, model: md.model, spec: md.spec });
     });
     const DS = (design && design.strings) || [];
     if (DS.length) {
@@ -2508,8 +2520,9 @@ function p3SldModel(st, job, design) {
   const battKwh = (sys.batt && +sys.batt.kwh) || parseFloat(String((job && job.batSize) || "").replace(/[^0-9.]/g, "")) || 0;
   if (battOn) branches.push({ name: "BAT.", mcb: "MCB " + (nPh === 3 ? "4P," : "2P,") + p3At(unitA * 2.5) + "AT", solar: false });
 
-  const totA = units.length * unitA;
-  const acKw = Math.round(units.length * unitW / 10) / 100;
+  /* หลายรุ่น: กระแส/กำลังรวมทีละตัว (เดิมคูณรุ่นแรกทั้งระบบ ตัวเล็กตัวใหญ่ปนกันได้ค่าผิด) */
+  const totA = micro ? units.length * unitA : units.reduce((a, u) => a + aOfUnit(u), 0);
+  const acKw = Math.round((micro ? units.length * unitW : units.reduce((a, u) => a + (+u.w || unitW), 0)) / 10) / 100;
   const dcKw = Math.round(nPanel * wp / 10) / 100;
 
   /* ── สายและเครื่องป้องกัน ── */
@@ -2541,7 +2554,8 @@ function p3SldModel(st, job, design) {
     ctMain: "CTx2 " + p3Ct(Math.max(250, totA * 3)) + "A/40mA",
     batt: battOn && battKwh ? { brand: p3Brand((sys.batt && sys.batt.model) || (job && job.brand), "ATMOCE"), model: (sys.batt && sys.batt.model) || (battKwh ? battKwh + " kWh" : "-"), kwh: battKwh } : null,
     summary: [
-      (micro ? "MICRO INVERTER " : "INVERTER ") + units.length + " EA. x " + Math.round(unitW) + " W. = " + acKw.toFixed(2) + " kWp.",
+      (micro ? "MICRO INVERTER " : "INVERTER ") + (micro || !inv.models || inv.models.length < 2 ? units.length + " EA. x " + Math.round(unitW) + " W."
+        : inv.models.map((md) => md.count + " EA. x " + Math.round(md.w) + " W.").join(" + ")) + " = " + acKw.toFixed(2) + " kWp.",
       "PV MODULE " + nPanel + " PANEL. x " + wp + " Wp. = " + dcKw.toFixed(2) + " kWp.",
     ],
   };
@@ -2671,8 +2685,8 @@ function p3SldModel(st, job, design) {
       r("Pmax / Voc / Isc", sp([wp + "W", PS.voc + "V", PS.isc + "A"].filter((x) => !/undefined|^0[VA]$/.test(x)))),
       r("Vmp / Imp", PS.vmp && PS.imp ? PS.vmp + "V / " + PS.imp + "A" : ""),
       ["#", "INVERTER"],
-      r("MODEL", inv.model + (inv.model2 ? " + " + inv.model2 : "")),
-      r("AC OUTPUT x QTY", unitKw + " kW " + (nPh === 3 ? "3PH" : "1PH") + " x " + units.length),
+      r("MODEL", (inv.models || [inv]).map((md) => md.model).join(" + ")),
+      r("AC OUTPUT x QTY", (inv.models || [{ w: unitKw * 1000, count: units.length }]).map((md) => Math.round(md.w / 100) / 10 + " kW x " + md.count).join(" + ") + " " + (nPh === 3 ? "3PH" : "1PH")),
       r("MAX Vdc / MPPT RANGE", ivSp.mpptVmin && ivSp.mpptVmax ? maxVdc + " / " + ivSp.mpptVmin + "-" + ivSp.mpptVmax + " V" : maxVdc + " V"),
       r("MPPT / INPUT", mpIn),
       ["#", "PV ARRAY"],
@@ -2686,13 +2700,15 @@ function p3SldModel(st, job, design) {
     const nInv = units.length;
     const S = [];
     S.push(["PV MODULE", panel.model + " " + wp + "Wp", nPanel]);
-    S.push(["INVERTER", inv.model + " " + unitKw + "kW " + (nPh === 3 ? "3PH" : "1PH"), nInv]);
+    (inv.models || [{ model: inv.model, w: unitKw * 1000, count: nInv }]).forEach((md) =>
+      S.push(["INVERTER", md.model + " " + Math.round(md.w / 100) / 10 + "kW " + (nPh === 3 ? "3PH" : "1PH"), md.count]));
     S.push(["DC BOX", "IP65 ENCLOSURE c/w PE BAR", nInv]);
     S.push(dcDev.k === "fuse" ? ["DC STRING FUSE", "gPV (IEC 60269-6) " + fuseA + "A " + dcV + "VDC " + (dcV > 1000 ? "10x85" : "10x38") + " + DC FUSE HOLDER" + (fz && fz.h ? " " + fz.h : ""), nStr * 2]
       : ["DC MCB", dcDev.tag.replace(/^DC MCB /, ""), nStr]);
     S.push(["DC SPD", (lps ? "TYPE I+II" : "TYPE II") + " Ucpv " + ucpv + "VDC " + dcSpdKa, nStr]);
     S.push(["MC4 CONNECTOR", "1500VDC IP68 (PAIR)", nStr * 2]);
-    if (nInv > 1) S.push(["AC BREAKER (INV.)", ivBrk[0], nInv]);
+    /* เบรกเกอร์ต่อเครื่อง แยกแถวตามขนาด (หลายรุ่นได้คนละขนาด) */
+    if (nInv > 1) { const bc = {}; ivBrk.forEach((b) => { bc[b] = (bc[b] || 0) + 1; }); Object.keys(bc).forEach((b) => S.push(["AC BREAKER (INV.)", b, bc[b]])); }
     S.push(["AC SPD", M.pro.acSpd.join(" ").replace(/^AC SPD /, ""), 1]);
     if (spdBk) S.push(["SPD BACK-UP", spdBk + (/FUSE/.test(spdBk) ? " + FUSE BASE" : ""), 1]);
     S.push(["MAIN BREAKER", mainTxt + (lsig ? " LSIG" : gf ? " c/w SHUNT TRIP" : ""), 1]);
@@ -2779,11 +2795,29 @@ function p3SldFields(M) {
   return g;
 }
 
+/* media.part = { kind: "main" } แผ่นภาพรวม · { kind: "detail", gi } แผ่นย่อยของกลุ่มที่ gi (ดู p3SldSplit) */
 function p3Sld(st, job, media) {
-  const doc = pgDoc({ units: "mm", ltscale: 1 }, media && media.svg);
-  const sheet = pgSheet(doc, { k: 1, ox: 0, oy: 0, info: p3SheetInfo(st, job, { sheet: "SLD", scale: "AS SHOW", sheetNo: (media && media.sheetNo) || "1/1" }) });
-  pgSldDraw(doc, sheet, p3SldModel(st, job, media && media.design));
+  media = media || {};
+  const M = p3SldModel(st, job, media.design), pt = media.part;
+  const key = pt && pt.kind === "detail" ? "SLD" + (pt.gi + 1) : "SLD";
+  if (pt && typeof pgSldGroups === "function") {
+    const gs = pgSldGroups(M), ix = media.index || [];
+    const dwg = (k) => { const r = ix.find((q) => q.key === k); return r ? "SEE DWG. " + r.dwg + " (" + r.no + "/" + ix.length + ")" : ""; };
+    if (pt.kind === "main") { const ref = {}; gs.forEach((g, i) => g.nos.forEach((no) => { ref[no] = dwg("SLD" + (i + 1)); })); M.part = { kind: "main", ref }; }
+    else if (gs[pt.gi]) M.part = { kind: "detail", nos: gs[pt.gi].nos, ref: dwg("SLD") };
+  }
+  const doc = pgDoc({ units: "mm", ltscale: 1 }, media.svg);
+  const sheet = pgSheet(doc, { k: 1, ox: 0, oy: 0, info: p3SheetInfo(st, job, { sheet: key, scale: "AS SHOW", sheetNo: media.sheetNo || "1/1" }) });
+  pgSldDraw(doc, sheet, M);
   return doc.build();
+}
+/* แผ่นเดียววาดครบไหม — ลองวาดจริงหนึ่งรอบ (ไม่เก็บผล) ถ้าต้องย่อเป็น TYPICAL = แยกแผ่น คืนกลุ่มเครื่องที่สตริงเหมือนกัน · พอดี = null */
+function p3SldSplit(st, job, design) {
+  if (typeof pgSldGroups !== "function") return null;
+  const M = p3SldModel(st, job, design);
+  const doc = pgDoc({ units: "mm", ltscale: 1 }, true);
+  pgSldDraw(doc, pgSheet(doc, { k: 1, ox: 0, oy: 0, info: p3SheetInfo(st, job, { sheet: "SLD", scale: "AS SHOW", sheetNo: "1/1" }) }), M);
+  return M.needSplit ? pgSldGroups(M) : null;
 }
 
 /* ── แผ่นรูปถ่ายจุดติดตั้ง (INSTALLATION POINT) ──
@@ -2865,7 +2899,10 @@ function p3EquipRows(st, job, M) {
     return rows;
   }
   add("PV MODULE", M.panel.model + "   " + M.panel.wp + " Wp.", M.panel.brand, M.panel.count + " Ea.");
-  add(M.mode === "micro" ? "MICRO INVERTER" : "INVERTER", M.inv.model, M.inv.brand, M.units.length + " Ea.");
+  /* งานปนหลายรุ่น (สูงสุด 4) = แถวละรุ่น พร้อมจำนวนของรุ่นนั้น */
+  if (M.mode !== "micro" && M.inv.models && M.inv.models.length > 1)
+    M.inv.models.forEach((x) => add("INVERTER", x.model, M.inv.brand, x.count + " Ea."));
+  else add(M.mode === "micro" ? "MICRO INVERTER" : "INVERTER", M.inv.model, M.inv.brand, M.units.length + " Ea.");
   if (M.batt) add("BATTERY", M.batt.model + "   " + M.batt.kwh + " kWh.", M.batt.brand, "1 Ea.");
   add("MOUNTING", "RAIL ALUMINIUM + L-FOOT + END / MID CLAMP", "-", "1 SET");
   add("PV CABLE", "PV1-F 1x4 Sq.mm.  DC1500V (RED / BLACK)", "-", mOf("cable"));
@@ -3156,7 +3193,14 @@ async function p3PrepSet(st, job, photos, design) {
     if ((design.paths || []).some((q) => q.uids && q.uids.length))
       list.push({ key: "STRING", label: "ผังสตริงหน้างาน", fn: (o) => p3StrLayout(st, job, o) });
     add("STRDET");
-    list.push({ key: "SLD", label: "แผนภาพไฟฟ้า (SLD)", fn: (o) => p3Sld(st, job, o) });
+    /* SLD แผ่นเดียวพอ = แผ่นเดียว · ไม่พอ = ภาพรวม + แผ่นย่อยละกลุ่มเครื่องที่สตริงเหมือนกัน (ผู้ใช้ 2026-10-29) */
+    const sg = p3SldSplit(st, job, design);
+    if (!sg) list.push({ key: "SLD", label: "แผนภาพไฟฟ้า (SLD)", fn: (o) => p3Sld(st, job, o) });
+    else {
+      list.push({ key: "SLD", label: "แผนภาพไฟฟ้า (SLD) ภาพรวม", en: "SINGLE LINE DIAGRAM (OVERALL)", fn: (o) => p3Sld(st, job, Object.assign({ part: { kind: "main" } }, o)) });
+      sg.forEach((g, i) => list.push({ key: "SLD" + (i + 1), gk: "SLD", label: "SLD " + pgInvNames(g.nos), en: "SINGLE LINE DIAGRAM (" + pgInvNames(g.nos) + ")",
+        fn: (o) => p3Sld(st, job, Object.assign({ part: { kind: "detail", gi: i } }, o)) }));
+    }
     list.push({ key: "DC", label: "ต่อสาย DC", fn: (o) => p3DcSheet(st, job, o) });
     add("GROUND"); add("TRAY"); add("WALK"); add("SAFETY"); add("WATER");
     if (ph.length) list.push({ key: "PHOTO", label: "รูปถ่ายจุดติดตั้ง", fn: (o) => p3PhotoSheet(st, job, Object.assign({ photos: ph }, o)) });
@@ -3165,19 +3209,19 @@ async function p3PrepSet(st, job, photos, design) {
   const SET_EN = Object.assign({ PLAN: "OVERALL LAYOUT", STRING: "STRING LAYOUT", SLD: "SINGLE LINE DIAGRAM", PHOTO: "SITE PHOTO", DC: "DC WIRING", MAT: "MATERIAL LIST" },
     typeof DS_SET_EN !== "undefined" ? DS_SET_EN : {});
   /* สารบัญแบบ (แผ่นรายการประกอบแบบ) — เลขแบบตรงกับช่อง DRAWING NUMBER ของแต่ละแผ่น (p3SheetInfo) */
-  const index = list.map((L, i) => ({ no: i + 1, key: L.key, th: L.label, en: SET_EN[L.key] || L.key,
+  const index = list.map((L, i) => ({ no: i + 1, key: L.key, th: L.label, en: L.en || SET_EN[L.key] || L.key,
     dwg: "PG-" + ((job && job.code) || "0000") + "-" + L.key }));
   const sheets = list.map((L, i) => {
     const no = (i + 1) + "/" + list.length;
-    return { key: L.key, label: L.label, no, file: base + "-" + (i + 1) + "-" + L.key + ".dxf",
+    return { key: L.key, gk: L.gk, en: L.en, label: L.label, no, file: base + "-" + (i + 1) + "-" + L.key + ".dxf",
       make: (svg) => L.fn({ sheetNo: no, svg: !!svg, design, index }) };
   });
   if (!design) sheets[0].file = base + "-PLAN.dxf";
   /* ทั้งชุดในไฟล์เดียว (pgCombine) — ดาวน์โหลดเป็นค่าตั้งต้น · ยังแยกไฟล์ละแผ่นได้ */
   /* ไฟล์รวม: แถวละหมวด (ปก · ผัง · ไฟฟ้า · งานติดตั้ง · ระบบน้ำ · หน้างาน) กรอบแดงแยกหมวด แบบที่ผู้ใช้จัดใน CAD */
   const GRP = typeof DS_SET_GROUP !== "undefined" ? DS_SET_GROUP : null;
-  const setOpt = { title: "SOLAR · " + base, labels: sheets.map((s) => s.no + "  " + (SET_EN[s.key] || s.key)),
-    groups: GRP ? sheets.map((s) => GRP[s.key] || "OTHER") : null };
+  const setOpt = { title: "SOLAR · " + base, labels: sheets.map((s) => s.no + "  " + (s.en || SET_EN[s.key] || s.key)),
+    groups: GRP ? sheets.map((s) => GRP[s.gk || s.key] || "OTHER") : null };
   const all = sheets.length > 1 ? { file: base + "-SET.dxf", make: (svg) => pgCombine(sheets.map((s) => () => s.make(svg)), svg, setOpt) } : null;
   return { base, sheets, all, files, st, job };
 }
@@ -3247,5 +3291,5 @@ async function p3ExportSet(st, job, photos, prep, separate) {
 
 Object.assign(window, { p3MpptRows, p3MpptTable, p3StrLayout });
 Object.assign(window, { usePlan3d, movePlan3d, p3PlanSummary, p3RailRows, P3_MEAS_KINDS, p3MeasKind, p3MeasLen,
-  p3Dxf, p3Sld, p3PhotoSheet, p3EquipSheet, p3DcSheet, p3SldModel, p3SldFields, p3SldApply, p3SheetInfo,
+  p3Dxf, p3Sld, p3SldSplit, p3PhotoSheet, p3EquipSheet, p3DcSheet, p3SldModel, p3SldFields, p3SldApply, p3SheetInfo,
   p3ExportPlan, p3PrepSet, p3ExportSet, p3SaveBlob });

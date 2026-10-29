@@ -2208,10 +2208,18 @@ function BOQEditor({
   const remaining = result.meta.panelCount - result.meta.rowsSum;
   const selInv = (window.BOQ.INVERTERS || []).find(x => x.model === b.inverterModel);
   const isHuawei = !!(selInv && selInv.inputs > 0);
-  const selInv2 = selInv && b.inv2Model && b.inv2Model !== b.inverterModel ? (window.BOQ.INVERTERS || []).find(x => x.model === b.inv2Model) : null;
+  const invXs = selInv && window.BOQ.invExtras ? window.BOQ.invExtras(b) : [];
+  const selInv2 = invXs.length ? invXs[0].spec : null;
+  const invXKey = invXs.map(x => x.spec.model + "×" + x.n).join("|");
   const inv2Count = result.meta.inv2Count || 0;
   const invTotal = result.meta.invTotal || result.meta.invCount;
-  const inv2PhaseBad = !!(selInv2 && selInv2.phase && selInv2.phase !== window.SF.phaseOf(job));
+  const xPhaseBad = x => !!(x.spec.phase && x.spec.phase !== window.SF.phaseOf(job));
+  const inv2PhaseBad = invXs.some(xPhaseBad);
+  const KTH = {
+    2: "ที่สอง",
+    3: "ที่สาม",
+    4: "ที่สี่"
+  };
   const jobBrand = job && job.brand || "";
   const jobPhaseNum = window.SF.phaseOf(job);
   const brandInvs = (window.BOQ.INVERTERS || []).filter(x => (!jobBrand || x.model.toLowerCase().indexOf(jobBrand.toLowerCase()) >= 0) && (!x.phase || x.phase === jobPhaseNum));
@@ -2227,20 +2235,31 @@ function BOQEditor({
     const inList = brandInvs.some(x => x.model === b.inverterModel);
     if (!showMicro && !inList && brandInvs.length) set("inverterModel", brandInvs[0].model);else if (showMicro && b.inverterModel && !inList) set("inverterModel", "");
   }, [jobBrand, jobPhaseNum]);
-  const inv2Options = [{
-    value: "",
-    label: "ไม่ใช้ (รุ่นเดียวทั้งงาน)"
-  }].concat(brandInvs.filter(x => x.model !== b.inverterModel).map(x => ({
-    value: x.model,
-    label: x.model + (x.kw ? " · " + x.kw + "kW" : "")
-  })));
-  if (b.inv2Model && !inv2Options.some(x => x.value === b.inv2Model)) inv2Options.push({
-    value: b.inv2Model,
-    group: "ไม่ตรงแบรนด์/เฟสของงาน",
-    label: b.inv2Model
-  });
+  const INV_SLOTS = window.BOQ.INV_SLOTS || [2];
+  const invXOptions = k => {
+    const taken = [b.inverterModel].concat(INV_SLOTS.filter(j => j !== k).map(j => b["inv" + j + "Model"]));
+    const cur = b["inv" + k + "Model"];
+    const o = [{
+      value: "",
+      label: "— เลือกอินเวอร์เตอร์ —"
+    }].concat(brandInvs.filter(x => taken.indexOf(x.model) < 0).map(x => ({
+      value: x.model,
+      label: x.model + (x.kw ? " · " + x.kw + "kW" : "")
+    })));
+    if (cur && !o.some(x => x.value === cur)) o.push({
+      value: cur,
+      group: "ไม่ตรงแบรนด์/เฟสของงาน",
+      label: cur
+    });
+    return o;
+  };
+  const [invXAdd, setInvXAdd] = React.useState(0);
+  const invXShown = INV_SLOTS.filter(k => b["inv" + k + "Model"] || k === invXAdd);
+  const invXNext = invXAdd ? 0 : INV_SLOTS.find(k => !b["inv" + k + "Model"]) || 0;
   React.useEffect(() => {
-    if (b.inv2Model && b.inv2Model === b.inverterModel) set("inv2Model", "");
+    INV_SLOTS.forEach(k => {
+      if (b["inv" + k + "Model"] && b["inv" + k + "Model"] === b.inverterModel) set("inv" + k + "Model", "");
+    });
   }, [b.inverterModel]);
   const OPTS = window.BOQ.OPTIMIZERS || [];
   const optModel = String(b.optimizerModel || "").trim() || (b.hwOptimizer ? "Smart PV Optimizer SUN2000-600W-P" : "");
@@ -2270,14 +2289,15 @@ function BOQEditor({
     group: "ใช้กับอินเวอร์เตอร์รุ่นนี้ไม่ได้",
     label: optModel
   });
-  const maxPvTotal = selInv ? (selInv.maxPv || 0) * result.meta.invCount + (selInv2 ? (selInv2.maxPv || 0) * inv2Count : 0) : 0;
-  const acKwKnown = !!(selInv && +selInv.maxAcKw) && (!selInv2 || !!+selInv2.maxAcKw);
-  const acMaxTotal = acKwKnown ? +selInv.maxAcKw * result.meta.invCount + (selInv2 ? +selInv2.maxAcKw * inv2Count : 0) : 0;
+  const maxPvTotal = selInv ? (selInv.maxPv || 0) * result.meta.invCount + invXs.reduce((t, x) => t + (x.spec.maxPv || 0) * x.n, 0) : 0;
+  const acKwKnown = !!(selInv && +selInv.maxAcKw) && invXs.every(x => !!+x.spec.maxAcKw);
+  const acMaxTotal = acKwKnown ? +selInv.maxAcKw * result.meta.invCount + invXs.reduce((t, x) => t + +x.spec.maxAcKw * x.n, 0) : 0;
   const dcAcCap = acMaxTotal > 0 ? acMaxTotal * window.BOQ.DCAC_LIMIT : maxPvTotal;
   const dcAcRatio = acMaxTotal > 0 && result.meta.kw > 0 ? result.meta.kw / acMaxTotal : 0;
   const pvOver = isHuawei && dcAcCap > 0 && result.meta.kw > dcAcCap;
-  const acBreak = !selInv ? "" : selInv2 ? result.meta.invCount + "×" + selInv.maxAcKw + " + " + inv2Count + "×" + selInv2.maxAcKw + " kW" : result.meta.invCount + " ตัว × " + selInv.maxAcKw + " kW";
-  const pvBreak = !selInv ? "" : selInv2 ? result.meta.invCount + "×" + selInv.maxPv + " + " + inv2Count + "×" + selInv2.maxPv + " kWp" : result.meta.invCount + " ตัว × " + selInv.maxPv + " kWp";
+  const brkOf = (key, u) => [result.meta.invCount + "×" + selInv[key]].concat(invXs.map(x => x.n + "×" + x.spec[key])).join(" + ") + " " + u;
+  const acBreak = !selInv ? "" : selInv2 ? brkOf("maxAcKw", "kW") : result.meta.invCount + " ตัว × " + selInv.maxAcKw + " kW";
+  const pvBreak = !selInv ? "" : selInv2 ? brkOf("maxPv", "kWp") : result.meta.invCount + " ตัว × " + selInv.maxPv + " kWp";
   const perMppt = Math.max(1, Math.round(+(selInv && selInv.strPerMppt) || 1));
   const capPerInv = selInv ? Math.max(1, (+selInv.inputs || 1) * perMppt) : 1;
   const selPanel = window.BOQ.findPanel ? window.BOQ.findPanel(b.panelModel) : null;
@@ -2293,15 +2313,17 @@ function BOQEditor({
       outA: +selInv.outA || 0,
       kw: +selInv.maxAcKw || 0
     });
-    if (selInv2) for (let k = 0; k < Math.round(inv2Count); k++) u.push({
-      model: selInv2.model,
-      outA: +selInv2.outA || 0,
-      kw: +selInv2.maxAcKw || 0
+    invXs.forEach(x => {
+      for (let k = 0; k < x.n; k++) u.push({
+        model: x.spec.model,
+        outA: +x.spec.outA || 0,
+        kw: +x.spec.maxAcKw || 0
+      });
     });
     return u.map((x, k) => Object.assign(x, {
       no: k + 1
     }));
-  }, [isStringInv, selInv, selInv2, result.meta.invCount, inv2Count]);
+  }, [isStringInv, selInv, invXKey, result.meta.invCount]);
   const mcbInvsOf = c => {
     const all = invUnits.map(u => u.no);
     return c && Array.isArray(c.invs) ? c.invs.filter(no => all.indexOf(no) >= 0) : all;
@@ -2401,9 +2423,9 @@ function BOQEditor({
     series: b.dcSeries != null && b.dcSeries !== "" ? b.dcSeries : undefined,
     strPerInv: +b.strings > 0 ? b.strings : 0,
     panels: result.meta.panelCount,
-    invCount: (result.meta.invCount || 1) + (selInv2 ? inv2Count : 0)
+    invCount: (result.meta.invCount || 1) + inv2Count
   }) : null;
-  const inv2Cap = selInv2 ? inv2Count * Math.max(1, (+selInv2.inputs || 1) * Math.max(1, Math.round(+selInv2.strPerMppt || 1))) : 0;
+  const inv2Cap = window.BOQ.invExtraCap ? window.BOQ.invExtraCap(invXs) : 0;
   const plan = scfg && scfg.ready && window.BOQ.stringPlan ? window.BOQ.stringPlan(result.meta.panelCount, scfg.series, selInv, result.meta.invCount, inv2Cap) : null;
   const vdropFor = c => {
     if (!window.BOQ.calcVdrop || !c) return null;
@@ -2492,7 +2514,6 @@ function BOQEditor({
     const invCount = result && result.meta && result.meta.invCount || 1;
     const outA = selInv ? +selInv.outA || 0 : 0;
     const inv2N = result && result.meta && result.meta.inv2Count || 0;
-    const outA2 = selInv2 ? +selInv2.outA || 0 : 0;
     const phN = wcPhase === 3 ? "3 เฟส" : "1 เฟส";
     const rows = [];
     if (scfg && scfg.ready) {
@@ -2530,20 +2551,21 @@ function BOQEditor({
       splittable: false,
       note: outA ? "กระแสออกอินเวอร์เตอร์/ตัว · " + phN + " · " + outA + " A" : "⚠ กรอกกระแสออก (A) ของอินเวอร์เตอร์ในคลัง"
     });
-    if (selInv2) {
+    invXs.forEach(x => {
+      const oa = +x.spec.outA || 0;
       rows.push({
-        kind: "invmcb2",
-        label: "INVERTER ตัวที่สอง → MCB_SOLAR",
-        w: outA2 ? Math.round(outA2 * wcVolt) : null,
-        ampTotal: outA2,
-        ampString: outA2,
-        wire: outA2 ? pickWire(outA2) : "—",
-        needInput: !outA2,
+        kind: "invmcb" + x.k,
+        label: "INVERTER รุ่น" + KTH[x.k] + " → MCB_SOLAR",
+        w: oa ? Math.round(oa * wcVolt) : null,
+        ampTotal: oa,
+        ampString: oa,
+        wire: oa ? pickWire(oa) : "—",
+        needInput: !oa,
         splittable: false,
-        note: outA2 ? selInv2.model + " · กระแสออก/ตัว · " + outA2 + " A" : "⚠ กรอกกระแสออก (A) ของ " + selInv2.model + " ในคลัง"
+        note: oa ? x.spec.model + " · กระแสออก/ตัว · " + oa + " A" : "⚠ กรอกกระแสออก (A) ของ " + x.spec.model + " ในคลัง"
       });
-    }
-    const totalA = outA * invCount + outA2 * inv2N;
+    });
+    const totalA = outA * invCount + invXs.reduce((t, x) => t + (+x.spec.outA || 0) * x.n, 0);
     rows.push({
       kind: "mcbmdb",
       label: "MCB_SOLAR → MDB (ตู้เมน)",
@@ -2553,10 +2575,10 @@ function BOQEditor({
       wire: totalA ? pickWire(totalA) : "—",
       needInput: !totalA,
       splittable: false,
-      note: totalA ? "รวม " + (inv2N > 0 ? invCount + "+" + inv2N : invCount) + " ตัว · " + phN + " · " + (Math.round(totalA * 10) / 10).toFixed(1) + " A" : "⚠ กรอกกระแสออก (A) ของอินเวอร์เตอร์ในคลัง"
+      note: totalA ? "รวม " + (inv2N > 0 ? [invCount].concat(invXs.map(x => x.n)).join("+") : invCount) + " ตัว · " + phN + " · " + (Math.round(totalA * 10) / 10).toFixed(1) + " A" : "⚠ กรอกกระแสออก (A) ของอินเวอร์เตอร์ในคลัง"
     });
     return rows;
-  }, [isStringInv, selInv, selInv2, scfg, result, wcVolt, wcPhase, calcIns, calcMethod, calcGroup, calcNCond]);
+  }, [isStringInv, selInv, invXKey, scfg, result, wcVolt, wcPhase, calcIns, calcMethod, calcGroup, calcNCond]);
   const calcRows = isStringInv ? stringCalcRows : wireCalcRows;
   const guardRun = fn => {
     if (remaining === 0) {
@@ -6003,8 +6025,8 @@ function BOQEditor({
   }, isHuawei ? {
     key: "hybrid",
     icon: "bolt",
-    title: "ระบบ " + (selInv.type === "hybrid" ? "Hybrid" : "On-grid") + (selInv2 ? " (2 ตัว)" : ""),
-    meta: selInv2 ? selInv.model + " · " + result.meta.invCount + " ตัว + " + selInv2.model + " · " + inv2Count + " ตัว" : selInv.model,
+    title: "ระบบ " + (selInv.type === "hybrid" ? "Hybrid" : "On-grid") + (selInv2 ? " (" + (invXs.length + 1) + " รุ่น)" : ""),
+    meta: selInv2 ? [selInv.model + " · " + result.meta.invCount + " ตัว"].concat(invXs.map(x => x.spec.model + " · " + x.n + " ตัว")).join(" + ") : selInv.model,
     tone: inv2PhaseBad ? "warn" : "",
     done: true
   } : null, isStringInv && scfg ? {
@@ -6605,32 +6627,97 @@ function BOQEditor({
     auto: result.meta.invAuto,
     onChange: v => set("invCount", v),
     style: numStyle
-  }))), !!b.inverterModel && React.createElement("div", {
+  }))), !!b.inverterModel && invXShown.map((k, i) => {
+    const mk = "inv" + k + "Model",
+      x = invXs.find(q => q.k === k);
+    return React.createElement("div", {
+      key: k,
+      style: {
+        gridColumn: "1 / -1",
+        display: "grid",
+        gridTemplateColumns: isMobile ? "minmax(0,1fr) 40px" : "minmax(0,2fr) minmax(0,1fr) 40px",
+        gap: 12,
+        alignItems: "end"
+      }
+    }, React.createElement(Field, {
+      label: "อินเวอร์เตอร์ตัวที่ " + (i + 2)
+    }, React.createElement(Dropdown, {
+      value: b[mk] || "",
+      onChange: v => {
+        set(mk, v);
+        if (v && k === invXAdd) setInvXAdd(0);
+      },
+      options: invXOptions(k)
+    })), isMobile ? null : !x ? React.createElement("div", null) : React.createElement(Field, {
+      label: "\u0E08\u0E33\u0E19\u0E27\u0E19 (\u0E01\u0E23\u0E2D\u0E01\u0E40\u0E2D\u0E07)"
+    }, React.createElement("div", {
+      className: "bq-fld"
+    }, React.createElement("input", {
+      type: "number",
+      min: 1,
+      step: 1,
+      value: x.n || "",
+      onChange: e => set("inv" + k + "Count", Math.max(1, parseInt(e.target.value) || 1))
+    }), React.createElement("span", {
+      className: "u"
+    }, "\u0E15\u0E31\u0E27"))), React.createElement("button", {
+      onClick: () => {
+        if (b[mk]) set(mk, "");
+        if (k === invXAdd) setInvXAdd(0);
+      },
+      title: "\u0E40\u0E2D\u0E32\u0E23\u0E38\u0E48\u0E19\u0E19\u0E35\u0E49\u0E2D\u0E2D\u0E01",
+      style: {
+        height: 40,
+        background: "var(--tint-red-bg)",
+        border: "none",
+        color: "var(--tint-red-tx2)",
+        borderRadius: 9,
+        cursor: "pointer",
+        display: "grid",
+        placeItems: "center"
+      }
+    }, React.createElement(Icon, {
+      name: "x",
+      size: 14
+    })), isMobile && !!x && React.createElement(Field, {
+      label: "\u0E08\u0E33\u0E19\u0E27\u0E19 (\u0E01\u0E23\u0E2D\u0E01\u0E40\u0E2D\u0E07)"
+    }, React.createElement("div", {
+      className: "bq-fld"
+    }, React.createElement("input", {
+      type: "number",
+      min: 1,
+      step: 1,
+      value: x.n || "",
+      onChange: e => set("inv" + k + "Count", Math.max(1, parseInt(e.target.value) || 1))
+    }), React.createElement("span", {
+      className: "u"
+    }, "\u0E15\u0E31\u0E27"))));
+  }), !!b.inverterModel && !!invXNext && React.createElement("div", {
     style: {
-      gridColumn: "1 / -1",
-      display: "grid",
-      gridTemplateColumns: isMobile ? "minmax(0,1fr)" : "minmax(0,2fr) minmax(0,1fr)",
-      gap: 12
+      gridColumn: "1 / -1"
     }
-  }, React.createElement(Field, {
-    label: "\u0E2D\u0E34\u0E19\u0E40\u0E27\u0E2D\u0E23\u0E4C\u0E40\u0E15\u0E2D\u0E23\u0E4C\u0E15\u0E31\u0E27\u0E17\u0E35\u0E48 2 (\u0E44\u0E21\u0E48\u0E1A\u0E31\u0E07\u0E04\u0E31\u0E1A)"
-  }, React.createElement(Dropdown, {
-    value: b.inv2Model || "",
-    onChange: v => set("inv2Model", v),
-    options: inv2Options
-  })), !!selInv2 && React.createElement(Field, {
-    label: "\u0E08\u0E33\u0E19\u0E27\u0E19 (\u0E01\u0E23\u0E2D\u0E01\u0E40\u0E2D\u0E07)"
-  }, React.createElement("div", {
-    className: "bq-fld"
-  }, React.createElement("input", {
-    type: "number",
-    min: 1,
-    step: 1,
-    value: inv2Count || "",
-    onChange: e => set("inv2Count", Math.max(1, parseInt(e.target.value) || 1))
-  }), React.createElement("span", {
-    className: "u"
-  }, "\u0E15\u0E31\u0E27")))), !!selInv2 && React.createElement("div", {
+  }, React.createElement("button", {
+    onClick: () => setInvXAdd(invXNext),
+    style: {
+      display: "inline-flex",
+      alignItems: "center",
+      gap: 5,
+      background: "var(--surface3)",
+      color: "var(--text-2)",
+      border: "none",
+      boxShadow: "var(--shadow-sm)",
+      borderRadius: 9,
+      padding: "7px 11px",
+      fontWeight: 700,
+      fontSize: 12,
+      cursor: "pointer",
+      fontFamily: "inherit"
+    }
+  }, React.createElement(Icon, {
+    name: "plus",
+    size: 13,
+    color: "var(--text-2)"
+  }), " \u0E40\u0E1E\u0E34\u0E48\u0E21\u0E2D\u0E34\u0E19\u0E40\u0E27\u0E2D\u0E23\u0E4C\u0E40\u0E15\u0E2D\u0E23\u0E4C\u0E2D\u0E35\u0E01\u0E23\u0E38\u0E48\u0E19")), !!selInv2 && React.createElement("div", {
     style: {
       gridColumn: "1 / -1"
     }
@@ -6643,11 +6730,12 @@ function BOQEditor({
     name: inv2PhaseBad ? "alert" : "bolt",
     size: 15,
     color: inv2PhaseBad ? "#F59E0B" : "#0D9488"
-  }), React.createElement("span", null, React.createElement("b", null, "\u0E2A\u0E2D\u0E07\u0E02\u0E19\u0E32\u0E14\u0E43\u0E19\u0E07\u0E32\u0E19\u0E40\u0E14\u0E35\u0E22\u0E27"), " \u2014 ", selInv.model, " ", result.meta.invCount, " \u0E15\u0E31\u0E27 + ", selInv2.model, " ", inv2Count, " \u0E15\u0E31\u0E27", " ", "(\u0E23\u0E27\u0E21 ", invTotal, " \u0E15\u0E31\u0E27)", maxPvTotal > 0 ? " · MAX PV รวม " + maxPvTotal + " kWp" : "", acMaxTotal > 0 ? " · กำลังออก AC รวม " + Math.round(acMaxTotal) + " kW" : "", React.createElement("br", null), "\u0E08\u0E33\u0E19\u0E27\u0E19\u0E15\u0E31\u0E27\u0E17\u0E35\u0E48\u0E2A\u0E2D\u0E07\u0E01\u0E23\u0E2D\u0E01\u0E40\u0E2D\u0E07 \xB7 \u0E23\u0E38\u0E48\u0E19\u0E41\u0E23\u0E01\u0E04\u0E34\u0E14\u0E01\u0E33\u0E25\u0E31\u0E07\u0E17\u0E35\u0E48\u0E40\u0E2B\u0E25\u0E37\u0E2D\u0E43\u0E2B\u0E49 (", result.meta.invAuto, " \u0E15\u0E31\u0E27) \xB7 \u0E40\u0E1A\u0E23\u0E01\u0E40\u0E01\u0E2D\u0E23\u0E4C\u0E01\u0E31\u0E1A\u0E2A\u0E32\u0E22 AC \u0E41\u0E22\u0E01\u0E02\u0E19\u0E32\u0E14\u0E15\u0E32\u0E21\u0E01\u0E23\u0E30\u0E41\u0E2A\u0E2D\u0E2D\u0E01\u0E02\u0E2D\u0E07\u0E41\u0E15\u0E48\u0E25\u0E30\u0E23\u0E38\u0E48\u0E19\u0E41\u0E25\u0E49\u0E27", inv2PhaseBad && React.createElement("span", {
+  }), React.createElement("span", null, React.createElement("b", null, invXs.length + 1, " \u0E02\u0E19\u0E32\u0E14\u0E43\u0E19\u0E07\u0E32\u0E19\u0E40\u0E14\u0E35\u0E22\u0E27"), " \u2014 ", [selInv.model + " " + result.meta.invCount + " ตัว"].concat(invXs.map(x => x.spec.model + " " + x.n + " ตัว")).join(" + "), " ", "(\u0E23\u0E27\u0E21 ", invTotal, " \u0E15\u0E31\u0E27)", maxPvTotal > 0 ? " · MAX PV รวม " + maxPvTotal + " kWp" : "", acMaxTotal > 0 ? " · กำลังออก AC รวม " + Math.round(acMaxTotal) + " kW" : "", React.createElement("br", null), "\u0E08\u0E33\u0E19\u0E27\u0E19\u0E15\u0E31\u0E27\u0E02\u0E2D\u0E07\u0E23\u0E38\u0E48\u0E19\u0E40\u0E2A\u0E23\u0E34\u0E21\u0E01\u0E23\u0E2D\u0E01\u0E40\u0E2D\u0E07 \xB7 \u0E23\u0E38\u0E48\u0E19\u0E41\u0E23\u0E01\u0E04\u0E34\u0E14\u0E01\u0E33\u0E25\u0E31\u0E07\u0E17\u0E35\u0E48\u0E40\u0E2B\u0E25\u0E37\u0E2D\u0E43\u0E2B\u0E49 (", result.meta.invAuto, " \u0E15\u0E31\u0E27) \xB7 \u0E40\u0E1A\u0E23\u0E01\u0E40\u0E01\u0E2D\u0E23\u0E4C\u0E01\u0E31\u0E1A\u0E2A\u0E32\u0E22 AC \u0E41\u0E22\u0E01\u0E02\u0E19\u0E32\u0E14\u0E15\u0E32\u0E21\u0E01\u0E23\u0E30\u0E41\u0E2A\u0E2D\u0E2D\u0E01\u0E02\u0E2D\u0E07\u0E41\u0E15\u0E48\u0E25\u0E30\u0E23\u0E38\u0E48\u0E19\u0E41\u0E25\u0E49\u0E27", invXs.filter(xPhaseBad).map(x => React.createElement("span", {
+    key: x.k,
     style: {
       fontWeight: 700
     }
-  }, React.createElement("br", null), "\u0E23\u0E38\u0E48\u0E19\u0E17\u0E35\u0E48\u0E2A\u0E2D\u0E07\u0E40\u0E1B\u0E47\u0E19 ", selInv2.phase, " \u0E40\u0E1F\u0E2A \u0E41\u0E15\u0E48\u0E07\u0E32\u0E19\u0E19\u0E35\u0E49\u0E40\u0E1B\u0E47\u0E19 ", jobPhaseNum, " \u0E40\u0E1F\u0E2A \u2014 \u0E40\u0E1B\u0E25\u0E35\u0E48\u0E22\u0E19\u0E23\u0E38\u0E48\u0E19 \u0E2B\u0E23\u0E37\u0E2D\u0E41\u0E01\u0E49\u0E40\u0E1F\u0E2A\u0E43\u0E19\u0E04\u0E25\u0E31\u0E07")))), React.createElement("div", {
+  }, React.createElement("br", null), "\u0E23\u0E38\u0E48\u0E19", KTH[x.k], " (", x.spec.model, ") \u0E40\u0E1B\u0E47\u0E19 ", x.spec.phase, " \u0E40\u0E1F\u0E2A \u0E41\u0E15\u0E48\u0E07\u0E32\u0E19\u0E19\u0E35\u0E49\u0E40\u0E1B\u0E47\u0E19 ", jobPhaseNum, " \u0E40\u0E1F\u0E2A \u2014 \u0E40\u0E1B\u0E25\u0E35\u0E48\u0E22\u0E19\u0E23\u0E38\u0E48\u0E19 \u0E2B\u0E23\u0E37\u0E2D\u0E41\u0E01\u0E49\u0E40\u0E1F\u0E2A\u0E43\u0E19\u0E04\u0E25\u0E31\u0E07"))))), React.createElement("div", {
     style: {
       gridColumn: isMobile ? "1 / -1" : "auto"
     }
@@ -6950,123 +7038,129 @@ function BOQEditor({
       color: "var(--text-3)",
       lineHeight: 1.5
     }
-  }, "* \u0E43\u0E2A\u0E48\u0E41\u0E1C\u0E07\u0E40\u0E01\u0E34\u0E19\u0E01\u0E33\u0E25\u0E31\u0E07 AC \u0E44\u0E14\u0E49\u0E16\u0E36\u0E07 DC/AC ", window.BOQ.DCAC_LIMIT, " \u0E40\u0E17\u0E48\u0E32 \u2014 \u0E2D\u0E34\u0E19\u0E40\u0E27\u0E2D\u0E23\u0E4C\u0E40\u0E15\u0E2D\u0E23\u0E4C\u0E15\u0E31\u0E14\u0E01\u0E33\u0E25\u0E31\u0E07\u0E2D\u0E2D\u0E01\u0E44\u0E27\u0E49\u0E17\u0E35\u0E48 Max AC Active Power \u0E2D\u0E22\u0E39\u0E48\u0E41\u0E25\u0E49\u0E27 \u0E2A\u0E48\u0E27\u0E19\u0E17\u0E35\u0E48\u0E40\u0E01\u0E34\u0E19\u0E0A\u0E48\u0E27\u0E22\u0E40\u0E01\u0E47\u0E1A\u0E01\u0E33\u0E25\u0E31\u0E07\u0E15\u0E2D\u0E19\u0E41\u0E14\u0E14\u0E2D\u0E48\u0E2D\u0E19", React.createElement("br", null), "* \u0E08\u0E33\u0E19\u0E27\u0E19\u0E15\u0E31\u0E27 = \u0E1B\u0E31\u0E14\u0E02\u0E36\u0E49\u0E19(\u0E01\u0E33\u0E25\u0E31\u0E07\u0E41\u0E1C\u0E07\u0E23\u0E27\u0E21 \xF7 MAX PV \u0E15\u0E48\u0E2D\u0E15\u0E31\u0E27) \u0E1E\u0E34\u0E21\u0E1E\u0E4C\u0E17\u0E31\u0E1A\u0E44\u0E14\u0E49 \xB7 Combiner Box + DC (Fuse/Holder/MCB/MC4) \u0E04\u0E34\u0E14\u0E15\u0E32\u0E21\u0E08\u0E33\u0E19\u0E27\u0E19 String \xB7 MCB+RCCB/SPD/Smart Meter/Backup \u0E40\u0E25\u0E37\u0E2D\u0E01\u0E15\u0E32\u0E21\u0E40\u0E1F\u0E2A (", selInv.phase === 3 ? "3" : "1", " \u0E40\u0E1F\u0E2A) \xB7 MCB \u0E02\u0E19\u0E32\u0E14\u0E08\u0E32\u0E01\u0E01\u0E23\u0E30\u0E41\u0E2A\u0E2D\u0E2D\u0E01 \xD7 1.25")), isHuawei && !!selInv2 && React.createElement(BoqSection, _extends({
-    title: "ระบบ " + (selInv.type === "hybrid" ? "Hybrid" : "On-grid") + " · ตัวที่ 2 (" + selInv2.model + ")",
-    icon: "bolt"
-  }, secProps("hybrid")), React.createElement("div", {
-    style: {
-      display: "grid",
-      gridTemplateColumns: isMobile ? "minmax(0,1fr)" : "minmax(0,2fr) minmax(0,1fr)",
-      gap: 12
-    }
-  }, React.createElement(Field, {
-    label: "\u0E23\u0E38\u0E48\u0E19 \xB7 \u0E40\u0E25\u0E37\u0E2D\u0E01\u0E17\u0E35\u0E48\u0E2B\u0E31\u0E27\u0E02\u0E49\u0E2D \u201C\u0E02\u0E49\u0E2D\u0E21\u0E39\u0E25\u0E23\u0E30\u0E1A\u0E1A\u201D"
-  }, React.createElement(BoqLocked, {
-    value: selInv2.model
-  })), React.createElement(Field, {
-    label: "\u0E08\u0E33\u0E19\u0E27\u0E19 (\u0E01\u0E23\u0E2D\u0E01\u0E40\u0E2D\u0E07)"
-  }, React.createElement("div", {
-    style: {
-      display: "flex",
-      alignItems: "center",
-      gap: 7
-    }
-  }, React.createElement("input", {
-    type: "number",
-    min: 1,
-    step: 1,
-    style: Object.assign({}, numStyle, {
-      flex: 1,
-      minWidth: 0
-    }),
-    value: inv2Count || "",
-    onChange: e => set("inv2Count", Math.max(1, parseInt(e.target.value) || 1))
-  }), React.createElement("span", {
-    style: {
-      fontSize: 11.5,
-      color: "var(--text-3)",
-      flexShrink: 0
-    }
-  }, "\u0E15\u0E31\u0E27")))), inv2PhaseBad && React.createElement("div", {
-    className: "bq-note warn"
-  }, React.createElement(Icon, {
-    name: "alert",
-    size: 15,
-    color: "#F59E0B"
-  }), React.createElement("span", null, "\u0E23\u0E38\u0E48\u0E19\u0E19\u0E35\u0E49\u0E40\u0E1B\u0E47\u0E19 ", selInv2.phase, " \u0E40\u0E1F\u0E2A \u0E41\u0E15\u0E48\u0E07\u0E32\u0E19\u0E19\u0E35\u0E49\u0E40\u0E1B\u0E47\u0E19 ", jobPhaseNum, " \u0E40\u0E1F\u0E2A \u2014 \u0E40\u0E1B\u0E25\u0E35\u0E48\u0E22\u0E19\u0E23\u0E38\u0E48\u0E19\u0E17\u0E35\u0E48\u0E2B\u0E31\u0E27\u0E02\u0E49\u0E2D \u201C\u0E02\u0E49\u0E2D\u0E21\u0E39\u0E25\u0E23\u0E30\u0E1A\u0E1A\u201D \u0E2B\u0E23\u0E37\u0E2D\u0E41\u0E01\u0E49\u0E40\u0E1F\u0E2A\u0E43\u0E19\u0E04\u0E25\u0E31\u0E07")), React.createElement(React.Fragment, null, React.createElement("div", {
-    style: {
-      marginTop: 16,
-      marginBottom: 8,
-      fontSize: 10.5,
-      fontWeight: 800,
-      color: "var(--text-3)"
-    }
-  }, "\u0E2A\u0E40\u0E1B\u0E04\u0E08\u0E32\u0E01\u0E04\u0E25\u0E31\u0E07\u0E2A\u0E34\u0E19\u0E04\u0E49\u0E32 \xB7 ", selInv2.model, " \xB7 ", inv2Count, " \u0E15\u0E31\u0E27"), React.createElement("div", {
-    className: "bq-spec"
-  }, [{
-    k: "กำลังต่อตัว",
-    v: selInv2.kw ? selInv2.kw + " kW" : "—",
-    miss: !selInv2.kw
-  }, {
-    k: "Max AC Active Power (cosφ=1)",
-    v: selInv2.maxAcKw ? selInv2.maxAcKw + " kW" : "ยังไม่กรอกในคลัง",
-    miss: !selInv2.maxAcKw
-  }, {
-    k: "MAX PV ต่อตัว",
-    v: selInv2.maxPv ? selInv2.maxPv + " kWp" : "ไม่ระบุ (ใช้ kW แทน)",
-    miss: !selInv2.maxPv
-  }, {
-    k: "เฟส",
-    v: selInv2.phase ? selInv2.phase + " เฟส" : "—",
-    miss: !selInv2.phase,
-    bad: inv2PhaseBad
-  }, {
-    k: "กระแสออก (AC)",
-    v: selInv2.outA ? selInv2.outA + " A" : "—",
-    miss: !selInv2.outA
-  }, {
-    k: "จำนวน MPPT",
-    v: selInv2.inputs ? selInv2.inputs + " ช่อง" : "—",
-    miss: !selInv2.inputs
-  }, {
-    k: "สตริงต่อ MPPT",
-    v: selInv2.strPerMppt ? selInv2.strPerMppt : "ไม่ระบุ (คิด 1)",
-    miss: !selInv2.strPerMppt
-  }, {
-    k: "รับสตริงได้/ตัว",
-    v: Math.max(1, (+selInv2.inputs || 1) * Math.max(1, Math.round(+selInv2.strPerMppt || 1))) + " สตริง",
-    hi: true
-  }, {
-    k: "ช่วง MPPT",
-    v: selInv2.mpptVmin && selInv2.mpptVmax ? selInv2.mpptVmin + "–" + selInv2.mpptVmax + " V" : "—",
-    miss: !(selInv2.mpptVmin && selInv2.mpptVmax)
-  }, {
-    k: "Vdc สูงสุด",
-    v: selInv2.maxVdc ? selInv2.maxVdc + " V" : "—",
-    miss: !selInv2.maxVdc
-  }, {
-    k: "MAX PV รุ่นนี้รวม",
-    v: selInv2.maxPv ? Math.round(selInv2.maxPv * inv2Count * 10) / 10 + " kWp" : "—"
-  }, {
-    k: "กระแสออกรุ่นนี้รวม",
-    v: selInv2.outA ? Math.round(selInv2.outA * inv2Count * 10) / 10 + " A" : "—"
-  }].map((c, i) => React.createElement("div", {
-    key: i,
-    "data-miss": c.miss ? "1" : "0",
-    "data-bad": c.bad ? "1" : "0"
-  }, React.createElement("span", {
-    className: "k"
-  }, c.k), React.createElement("span", {
-    className: "v " + (c.hi && !c.bad ? "hi" : "")
-  }, c.v))))), React.createElement("div", {
-    className: "bq-hint",
-    style: {
-      marginTop: 10,
-      fontSize: 11,
-      color: "var(--text-3)",
-      lineHeight: 1.5
-    }
-  }, "* \u0E08\u0E33\u0E19\u0E27\u0E19\u0E15\u0E31\u0E27\u0E02\u0E2D\u0E07\u0E23\u0E38\u0E48\u0E19\u0E19\u0E35\u0E49\u0E01\u0E23\u0E2D\u0E01\u0E40\u0E2D\u0E07\u0E40\u0E2A\u0E21\u0E2D \u2014 \u0E15\u0E31\u0E27\u0E17\u0E35\u0E48 1 \u0E08\u0E30\u0E04\u0E34\u0E14\u0E01\u0E33\u0E25\u0E31\u0E07\u0E17\u0E35\u0E48\u0E40\u0E2B\u0E25\u0E37\u0E2D\u0E43\u0E2B\u0E49\u0E2D\u0E31\u0E15\u0E42\u0E19\u0E21\u0E31\u0E15\u0E34 (", result.meta.invAuto, " \u0E15\u0E31\u0E27) \xB7 \u0E23\u0E27\u0E21\u0E17\u0E31\u0E49\u0E07\u0E07\u0E32\u0E19 ", invTotal, " \u0E15\u0E31\u0E27", React.createElement("br", null), "* \u0E40\u0E1A\u0E23\u0E01\u0E40\u0E01\u0E2D\u0E23\u0E4C\u0E01\u0E31\u0E1A\u0E2A\u0E32\u0E22 AC \u0E02\u0E2D\u0E07\u0E23\u0E38\u0E48\u0E19\u0E19\u0E35\u0E49\u0E41\u0E22\u0E01\u0E02\u0E19\u0E32\u0E14\u0E15\u0E32\u0E21\u0E01\u0E23\u0E30\u0E41\u0E2A\u0E2D\u0E2D\u0E01\u0E02\u0E2D\u0E07\u0E15\u0E31\u0E27\u0E21\u0E31\u0E19\u0E40\u0E2D\u0E07 (", selInv2.outA || "—", " A) \u0E44\u0E21\u0E48\u0E44\u0E14\u0E49\u0E43\u0E0A\u0E49\u0E02\u0E19\u0E32\u0E14\u0E40\u0E14\u0E35\u0E22\u0E27\u0E01\u0E31\u0E1A\u0E15\u0E31\u0E27\u0E17\u0E35\u0E48 1 \xB7 AC SPD \u0E04\u0E34\u0E14\u0E15\u0E32\u0E21\u0E08\u0E33\u0E19\u0E27\u0E19\u0E15\u0E31\u0E27\u0E23\u0E27\u0E21", React.createElement("br", null), "* \u0E15\u0E31\u0E27\u0E2D\u0E2D\u0E01\u0E41\u0E1A\u0E1A\u0E2A\u0E15\u0E23\u0E34\u0E07 3D \u0E41\u0E25\u0E30\u0E2A\u0E21\u0E38\u0E14\u0E2A\u0E48\u0E07\u0E21\u0E2D\u0E1A\u0E22\u0E31\u0E07\u0E43\u0E0A\u0E49\u0E2D\u0E34\u0E19\u0E40\u0E27\u0E2D\u0E23\u0E4C\u0E40\u0E15\u0E2D\u0E23\u0E4C\u0E15\u0E31\u0E27\u0E17\u0E35\u0E48 1 \u0E2D\u0E22\u0E48\u0E32\u0E07\u0E40\u0E14\u0E35\u0E22\u0E27")), isStringInv && scfg && React.createElement(BoqSection, _extends({
+  }, "* \u0E43\u0E2A\u0E48\u0E41\u0E1C\u0E07\u0E40\u0E01\u0E34\u0E19\u0E01\u0E33\u0E25\u0E31\u0E07 AC \u0E44\u0E14\u0E49\u0E16\u0E36\u0E07 DC/AC ", window.BOQ.DCAC_LIMIT, " \u0E40\u0E17\u0E48\u0E32 \u2014 \u0E2D\u0E34\u0E19\u0E40\u0E27\u0E2D\u0E23\u0E4C\u0E40\u0E15\u0E2D\u0E23\u0E4C\u0E15\u0E31\u0E14\u0E01\u0E33\u0E25\u0E31\u0E07\u0E2D\u0E2D\u0E01\u0E44\u0E27\u0E49\u0E17\u0E35\u0E48 Max AC Active Power \u0E2D\u0E22\u0E39\u0E48\u0E41\u0E25\u0E49\u0E27 \u0E2A\u0E48\u0E27\u0E19\u0E17\u0E35\u0E48\u0E40\u0E01\u0E34\u0E19\u0E0A\u0E48\u0E27\u0E22\u0E40\u0E01\u0E47\u0E1A\u0E01\u0E33\u0E25\u0E31\u0E07\u0E15\u0E2D\u0E19\u0E41\u0E14\u0E14\u0E2D\u0E48\u0E2D\u0E19", React.createElement("br", null), "* \u0E08\u0E33\u0E19\u0E27\u0E19\u0E15\u0E31\u0E27 = \u0E1B\u0E31\u0E14\u0E02\u0E36\u0E49\u0E19(\u0E01\u0E33\u0E25\u0E31\u0E07\u0E41\u0E1C\u0E07\u0E23\u0E27\u0E21 \xF7 MAX PV \u0E15\u0E48\u0E2D\u0E15\u0E31\u0E27) \u0E1E\u0E34\u0E21\u0E1E\u0E4C\u0E17\u0E31\u0E1A\u0E44\u0E14\u0E49 \xB7 Combiner Box + DC (Fuse/Holder/MCB/MC4) \u0E04\u0E34\u0E14\u0E15\u0E32\u0E21\u0E08\u0E33\u0E19\u0E27\u0E19 String \xB7 MCB+RCCB/SPD/Smart Meter/Backup \u0E40\u0E25\u0E37\u0E2D\u0E01\u0E15\u0E32\u0E21\u0E40\u0E1F\u0E2A (", selInv.phase === 3 ? "3" : "1", " \u0E40\u0E1F\u0E2A) \xB7 MCB \u0E02\u0E19\u0E32\u0E14\u0E08\u0E32\u0E01\u0E01\u0E23\u0E30\u0E41\u0E2A\u0E2D\u0E2D\u0E01 \xD7 1.25")), isHuawei && invXs.map(x => {
+    const sp = x.spec,
+      n = x.n,
+      phBad = xPhaseBad(x);
+    return React.createElement(BoqSection, _extends({
+      key: x.k,
+      title: "ระบบ " + (selInv.type === "hybrid" ? "Hybrid" : "On-grid") + " · ตัวที่ " + x.k + " (" + sp.model + ")",
+      icon: "bolt"
+    }, secProps("hybrid")), React.createElement("div", {
+      style: {
+        display: "grid",
+        gridTemplateColumns: isMobile ? "minmax(0,1fr)" : "minmax(0,2fr) minmax(0,1fr)",
+        gap: 12
+      }
+    }, React.createElement(Field, {
+      label: "\u0E23\u0E38\u0E48\u0E19 \xB7 \u0E40\u0E25\u0E37\u0E2D\u0E01\u0E17\u0E35\u0E48\u0E2B\u0E31\u0E27\u0E02\u0E49\u0E2D \u201C\u0E02\u0E49\u0E2D\u0E21\u0E39\u0E25\u0E23\u0E30\u0E1A\u0E1A\u201D"
+    }, React.createElement(BoqLocked, {
+      value: sp.model
+    })), React.createElement(Field, {
+      label: "\u0E08\u0E33\u0E19\u0E27\u0E19 (\u0E01\u0E23\u0E2D\u0E01\u0E40\u0E2D\u0E07)"
+    }, React.createElement("div", {
+      style: {
+        display: "flex",
+        alignItems: "center",
+        gap: 7
+      }
+    }, React.createElement("input", {
+      type: "number",
+      min: 1,
+      step: 1,
+      style: Object.assign({}, numStyle, {
+        flex: 1,
+        minWidth: 0
+      }),
+      value: n || "",
+      onChange: e => set("inv" + x.k + "Count", Math.max(1, parseInt(e.target.value) || 1))
+    }), React.createElement("span", {
+      style: {
+        fontSize: 11.5,
+        color: "var(--text-3)",
+        flexShrink: 0
+      }
+    }, "\u0E15\u0E31\u0E27")))), phBad && React.createElement("div", {
+      className: "bq-note warn"
+    }, React.createElement(Icon, {
+      name: "alert",
+      size: 15,
+      color: "#F59E0B"
+    }), React.createElement("span", null, "\u0E23\u0E38\u0E48\u0E19\u0E19\u0E35\u0E49\u0E40\u0E1B\u0E47\u0E19 ", sp.phase, " \u0E40\u0E1F\u0E2A \u0E41\u0E15\u0E48\u0E07\u0E32\u0E19\u0E19\u0E35\u0E49\u0E40\u0E1B\u0E47\u0E19 ", jobPhaseNum, " \u0E40\u0E1F\u0E2A \u2014 \u0E40\u0E1B\u0E25\u0E35\u0E48\u0E22\u0E19\u0E23\u0E38\u0E48\u0E19\u0E17\u0E35\u0E48\u0E2B\u0E31\u0E27\u0E02\u0E49\u0E2D \u201C\u0E02\u0E49\u0E2D\u0E21\u0E39\u0E25\u0E23\u0E30\u0E1A\u0E1A\u201D \u0E2B\u0E23\u0E37\u0E2D\u0E41\u0E01\u0E49\u0E40\u0E1F\u0E2A\u0E43\u0E19\u0E04\u0E25\u0E31\u0E07")), React.createElement("div", {
+      style: {
+        marginTop: 16,
+        marginBottom: 8,
+        fontSize: 10.5,
+        fontWeight: 800,
+        color: "var(--text-3)"
+      }
+    }, "\u0E2A\u0E40\u0E1B\u0E04\u0E08\u0E32\u0E01\u0E04\u0E25\u0E31\u0E07\u0E2A\u0E34\u0E19\u0E04\u0E49\u0E32 \xB7 ", sp.model, " \xB7 ", n, " \u0E15\u0E31\u0E27"), React.createElement("div", {
+      className: "bq-spec"
+    }, [{
+      k: "กำลังต่อตัว",
+      v: sp.kw ? sp.kw + " kW" : "—",
+      miss: !sp.kw
+    }, {
+      k: "Max AC Active Power (cosφ=1)",
+      v: sp.maxAcKw ? sp.maxAcKw + " kW" : "ยังไม่กรอกในคลัง",
+      miss: !sp.maxAcKw
+    }, {
+      k: "MAX PV ต่อตัว",
+      v: sp.maxPv ? sp.maxPv + " kWp" : "ไม่ระบุ (ใช้ kW แทน)",
+      miss: !sp.maxPv
+    }, {
+      k: "เฟส",
+      v: sp.phase ? sp.phase + " เฟส" : "—",
+      miss: !sp.phase,
+      bad: phBad
+    }, {
+      k: "กระแสออก (AC)",
+      v: sp.outA ? sp.outA + " A" : "—",
+      miss: !sp.outA
+    }, {
+      k: "จำนวน MPPT",
+      v: sp.inputs ? sp.inputs + " ช่อง" : "—",
+      miss: !sp.inputs
+    }, {
+      k: "สตริงต่อ MPPT",
+      v: sp.strPerMppt ? sp.strPerMppt : "ไม่ระบุ (คิด 1)",
+      miss: !sp.strPerMppt
+    }, {
+      k: "รับสตริงได้/ตัว",
+      v: Math.max(1, (+sp.inputs || 1) * Math.max(1, Math.round(+sp.strPerMppt || 1))) + " สตริง",
+      hi: true
+    }, {
+      k: "ช่วง MPPT",
+      v: sp.mpptVmin && sp.mpptVmax ? sp.mpptVmin + "–" + sp.mpptVmax + " V" : "—",
+      miss: !(sp.mpptVmin && sp.mpptVmax)
+    }, {
+      k: "Vdc สูงสุด",
+      v: sp.maxVdc ? sp.maxVdc + " V" : "—",
+      miss: !sp.maxVdc
+    }, {
+      k: "MAX PV รุ่นนี้รวม",
+      v: sp.maxPv ? Math.round(sp.maxPv * n * 10) / 10 + " kWp" : "—"
+    }, {
+      k: "กระแสออกรุ่นนี้รวม",
+      v: sp.outA ? Math.round(sp.outA * n * 10) / 10 + " A" : "—"
+    }].map((c, i) => React.createElement("div", {
+      key: i,
+      "data-miss": c.miss ? "1" : "0",
+      "data-bad": c.bad ? "1" : "0"
+    }, React.createElement("span", {
+      className: "k"
+    }, c.k), React.createElement("span", {
+      className: "v " + (c.hi && !c.bad ? "hi" : "")
+    }, c.v)))), React.createElement("div", {
+      className: "bq-hint",
+      style: {
+        marginTop: 10,
+        fontSize: 11,
+        color: "var(--text-3)",
+        lineHeight: 1.5
+      }
+    }, "* \u0E08\u0E33\u0E19\u0E27\u0E19\u0E15\u0E31\u0E27\u0E02\u0E2D\u0E07\u0E23\u0E38\u0E48\u0E19\u0E19\u0E35\u0E49\u0E01\u0E23\u0E2D\u0E01\u0E40\u0E2D\u0E07\u0E40\u0E2A\u0E21\u0E2D \u2014 \u0E15\u0E31\u0E27\u0E17\u0E35\u0E48 1 \u0E08\u0E30\u0E04\u0E34\u0E14\u0E01\u0E33\u0E25\u0E31\u0E07\u0E17\u0E35\u0E48\u0E40\u0E2B\u0E25\u0E37\u0E2D\u0E43\u0E2B\u0E49\u0E2D\u0E31\u0E15\u0E42\u0E19\u0E21\u0E31\u0E15\u0E34 (", result.meta.invAuto, " \u0E15\u0E31\u0E27) \xB7 \u0E23\u0E27\u0E21\u0E17\u0E31\u0E49\u0E07\u0E07\u0E32\u0E19 ", invTotal, " \u0E15\u0E31\u0E27", React.createElement("br", null), "* \u0E40\u0E1A\u0E23\u0E01\u0E40\u0E01\u0E2D\u0E23\u0E4C\u0E01\u0E31\u0E1A\u0E2A\u0E32\u0E22 AC \u0E02\u0E2D\u0E07\u0E23\u0E38\u0E48\u0E19\u0E19\u0E35\u0E49\u0E41\u0E22\u0E01\u0E02\u0E19\u0E32\u0E14\u0E15\u0E32\u0E21\u0E01\u0E23\u0E30\u0E41\u0E2A\u0E2D\u0E2D\u0E01\u0E02\u0E2D\u0E07\u0E15\u0E31\u0E27\u0E21\u0E31\u0E19\u0E40\u0E2D\u0E07 (", sp.outA || "—", " A) \u0E44\u0E21\u0E48\u0E44\u0E14\u0E49\u0E43\u0E0A\u0E49\u0E02\u0E19\u0E32\u0E14\u0E40\u0E14\u0E35\u0E22\u0E27\u0E01\u0E31\u0E1A\u0E15\u0E31\u0E27\u0E17\u0E35\u0E48 1 \xB7 AC SPD \u0E04\u0E34\u0E14\u0E15\u0E32\u0E21\u0E08\u0E33\u0E19\u0E27\u0E19\u0E15\u0E31\u0E27\u0E23\u0E27\u0E21"));
+  }), isStringInv && scfg && React.createElement(BoqSection, _extends({
     title: "\u0E2A\u0E32\u0E22 DC / \u0E01\u0E32\u0E23\u0E15\u0E48\u0E2D\u0E2D\u0E19\u0E38\u0E01\u0E23\u0E21 String (PV1-F)",
     icon: "bolt"
   }, secProps("dc")), !scfg.ready ? React.createElement("div", {

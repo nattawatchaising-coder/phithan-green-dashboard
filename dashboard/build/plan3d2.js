@@ -13139,7 +13139,7 @@ function Plan3DStudio({
     d: React.createElement("span", null, "\u0E40\u0E25\u0E37\u0E2D\u0E01\u0E2D\u0E34\u0E19\u0E40\u0E27\u0E2D\u0E23\u0E4C\u0E40\u0E15\u0E2D\u0E23\u0E4C \u0E08\u0E31\u0E14\u0E2A\u0E15\u0E23\u0E34\u0E07 \u0E14\u0E39\u0E1C\u0E25\u0E1C\u0E25\u0E34\u0E15\u0E17\u0E31\u0E49\u0E07\u0E1B\u0E35\u0E41\u0E25\u0E30\u0E40\u0E07\u0E32\u0E1A\u0E31\u0E07\u0E41\u0E1C\u0E07 \u0E41\u0E25\u0E49\u0E27\u0E2D\u0E2D\u0E01\u0E23\u0E32\u0E22\u0E07\u0E32\u0E19 \u2014 \u0E1A\u0E31\u0E19\u0E17\u0E36\u0E01\u0E43\u0E2B\u0E49\u0E40\u0E2D\u0E07\u0E17\u0E38\u0E01\u0E04\u0E23\u0E31\u0E49\u0E07\u0E17\u0E35\u0E48\u0E41\u0E01\u0E49"),
     act: React.createElement(React.Fragment, null, (() => {
       const S = st.sys || {},
-        inv = S.mode === "micro" ? "ไมโครอินเวอร์เตอร์" : S.invModel ? S.invModel + " × " + (S.invCount || 1) + (S.inv2Model && S.inv2Count ? " + " + S.inv2Model + " × " + S.inv2Count : "") : "ยังไม่ได้เลือก";
+        inv = S.mode === "micro" ? "ไมโครอินเวอร์เตอร์" : S.invModel ? S.invModel + " × " + (S.invCount || 1) + [2, 3, 4].map(k => S["inv" + k + "Model"] && S["inv" + k + "Count"] ? " + " + S["inv" + k + "Model"] + " × " + S["inv" + k + "Count"] : "").join("") : "ยังไม่ได้เลือก";
       return React.createElement("div", {
         className: "p3s-stat"
       }, React.createElement("div", null, React.createElement("div", {

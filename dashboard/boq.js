@@ -1028,6 +1028,24 @@
      สตริงที่แผงไม่เต็มแรงดันจะต่ำกว่าเพื่อน — เตือนไว้เพราะกำลังจะหายไปบางส่วน */
   /* extraCap = ช่องรับสตริงของอินเวอร์เตอร์รุ่นอื่นในงานเดียวกัน (งานสองขนาด)
      จำนวนสตริงขึ้นกับแผงกับแผงต่ออนุกรมเท่านั้น ไม่ขึ้นกับรุ่น — ที่ต่างคือช่องที่รับได้ */
+  /* อินเวอร์เตอร์รุ่นที่ 2–4 ของใบ BOQ — [{ k, spec, n }] ตามลำดับช่อง
+     ข้ามช่องว่าง · รุ่นซ้ำกับรุ่นแรกหรือช่องก่อนหน้า (จะกลายเป็นรุ่นเดียวหลายบรรทัดที่รวมกันไม่ได้ในใบเสนอราคา) · รุ่นที่ไม่มีในคลัง
+     ไม่มีรุ่นแรก (ไมโคร) = ไม่มีรุ่นเสริม */
+  const INV_SLOTS = [2, 3, 4];
+  function invExtras(b) {
+    const out = [];
+    if (!b || !b.inverterModel) return out;
+    INV_SLOTS.forEach((k) => {
+      const m = b["inv" + k + "Model"];
+      if (!m || m === b.inverterModel || out.some((x) => x.spec.model === m)) return;
+      const spec = INVERTERS.find((x) => x.model === m);
+      if (spec) out.push({ k, spec, n: Math.max(1, Math.round(+b["inv" + k + "Count"] || 1)) });
+    });
+    return out;
+  }
+  /* ช่องรับสตริงรวมของรุ่นเสริม — จำนวน MPPT × สตริงต่อ MPPT × จำนวนตัว */
+  const invExtraCap = (xs) => xs.reduce((t, x) => t + x.n * Math.max(1, (+x.spec.inputs || 1) * Math.max(1, Math.round(+x.spec.strPerMppt || 1))), 0);
+
   function stringPlan(panelCount, series, inv, invCount, extraCap) {
     inv = inv || {};
     const n = Math.max(0, Math.round(+panelCount || 0));
@@ -1971,6 +1989,11 @@
          ว่าง = ใช้รุ่นเดียวทั้งงาน · inv2Count กรอกเองเสมอ ไม่มีค่าอัตโนมัติ */
       inv2Model: "",
       inv2Count: 1,
+      /* รุ่นที่ 3–4 (ผู้ใช้ 2026-10-29: งานใหญ่ปนได้ถึง 4 รุ่น) — ท่าเดียวกับรุ่นที่สอง ช่องถัดไปขึ้นเมื่อช่องก่อนหน้าเลือกแล้ว */
+      inv3Model: "",
+      inv3Count: 1,
+      inv4Model: "",
+      inv4Count: 1,
       strings: 0,     // 0 = คิดให้อัตโนมัติจากแผนสตริง (แผงทั้งงาน ÷ แผงต่ออนุกรม)
       hwBackup: "none",
       /* งานที่ระบุว่ามีตัวคุมแผงมาจากใบสำรวจ — ยังไม่รู้ว่ารุ่นไหน ให้ไปเลือกเองในหน้า BOQ */
@@ -2182,10 +2205,11 @@
     /* ── อินเวอร์เตอร์ขนาดที่สอง ──
        จำนวนตัวกรอกเองเสมอ สิ่งที่ระบบคิดให้คือกำลังที่เหลือให้รุ่นแรกรับ (invAuto ด้านล่าง)
        เลือกรุ่นซ้ำกับตัวแรกไม่ได้ — จะกลายเป็นรุ่นเดียวสองบรรทัดที่รวมกันไม่ได้ในใบเสนอราคา */
-    const selInv2 = selInv && b.inv2Model && b.inv2Model !== b.inverterModel
-      ? INVERTERS.find((x) => x.model === b.inv2Model) : null;
-    const inv2Count = selInv2 ? Math.max(1, Math.round(+b.inv2Count || 1)) : 0;
-    const inv2PvKw = selInv2 ? (selInv2.maxPv > 0 ? selInv2.maxPv : selInv2.kw) * inv2Count : 0;
+    /* รุ่นที่ 2–4 รวมกัน — inv2Count = จำนวนตัวของรุ่นเสริมทุกรุ่นรวม (ชื่อเดิมคงไว้ให้หน้าอื่นที่อ่าน meta.inv2Count) */
+    const selXs = selInv ? invExtras(b) : [];
+    const inv2Count = selXs.reduce((t, x) => t + x.n, 0);
+    const inv2PvKw = selXs.reduce((t, x) => t + (x.spec.maxPv > 0 ? x.spec.maxPv : x.spec.kw) * x.n, 0);
+    const pushXs = (items) => selXs.forEach((x) => items.push({ name: x.spec.model, qty: x.n, unit: "ตัว" }));
 
     let invCount, invItems, combItems = null;
     let invAuto = 0, plan = null;
@@ -2206,9 +2230,7 @@
            ระบุเองได้ที่ b.strings (สตริงต่อตัว · 0 = อัตโนมัติ) */
         const scIn = stringConfig(panel, selInv, { series: (b.dcSeries != null && b.dcSeries !== "") ? b.dcSeries : undefined,
           strPerInv: +b.strings > 0 ? b.strings : 0, panels: panelCount, invCount: invCount + inv2Count });
-        const cap2 = selInv2
-          ? inv2Count * Math.max(1, (+selInv2.inputs || 1) * Math.max(1, Math.round(+selInv2.strPerMppt || 1)))
-          : 0;
+        const cap2 = invExtraCap(selXs);
         if (scIn.ready) plan = stringPlan(panelCount, scIn.series, selInv, invCount, cap2);
         const capPerInv = Math.max(1, (+selInv.inputs || 1) * Math.max(1, Math.round(+selInv.strPerMppt || 1)));
         const strPer = +b.strings > 0
@@ -2219,7 +2241,7 @@
         // กลุ่ม INVERTER
         invItems = [];
         invItems.push({ name: selInv.model, qty: invCount, unit: "ตัว" });
-        if (selInv2) invItems.push({ name: selInv2.model, qty: inv2Count, unit: "ตัว" });
+        pushXs(invItems);
         /* ── อุปกรณ์มอนิเตอร์ระดับระบบ: 1 ชุด/งาน ──
            งานโครงการใช้ SmartLogger รวมศูนย์ตัวเดียว (อ่านหลายอินเวอร์เตอร์ผ่าน RS485) ไม่ใช้ Smart Meter + Dongle
            งานบ้านใช้ Smart Meter วัดที่จุดต่อกริด + Dongle 1 ตัว */
@@ -2265,7 +2287,7 @@
       } else {
         // String / Hybrid ทั่วไป: จำนวนตัว = ปัดขึ้น(kW รวม ÷ kW ต่อตัว) + แบต
         invItems = [{ name: selInv.model, qty: invCount, unit: "ตัว" }];
-        if (selInv2) invItems.push({ name: selInv2.model, qty: inv2Count, unit: "ตัว" });
+        pushXs(invItems);
         if (isGwInv(selInv.model) && !isProject) {   // Growatt ที่คลังยังไม่มีสเปค MPPT ก็ยังได้มิเตอร์ + WiFi
           invItems.push({ name: selInv.phase === 3 ? GW.meter3 : GW.meter1, qty: 1, unit: "ชุด" });
           invItems.push({ name: GW.wifi, qty: 1, unit: "ตัว" });
@@ -2995,7 +3017,7 @@
     return Math.ceil(n / per);
   }
 
-  window.BOQ = { PANELS, MICRO, INVERTERS, OPTIMIZERS, setOptimizers, findOptimizer, ROOF_HOOKS, ROOF_OPTIONS, CABLE_TYPES, CABLE_GROUPS, cableCategory, MATERIAL_SUBGROUPS, materialSubGroup, CABLE_POINTS, DEFAULT_CABLES, STRING_CABLE_POINTS, MICRO_CABLE_NAMES, DEFAULT_STRING_CABLES, IMC_SIZES, UPVC_SIZES, PULLBOX_SIZES, CABLE_OD, HDPE_TABLE, IMC_CONDUIT, WIRE_SIZES, WIRE_METHODS, INS_CLASSES, AMP_GROUPS, AMP_NCOND, AMP_CORES, ampColKey, DEFAULT_AMPACITY, AMPACITY, setAmpacity, WIRE_METHOD_BASE, ampTableFor, cableInsClass, cableCoreType, cableSizeNum, ampacityOf, pickWireSize, PV_WIRE_SIZES, PV_WIRE_AMP, PV_WIRE_MIN, pickPvWireSize, calcVdrop, VD_LIMIT, findPanel, findInverter, stringConfig, stringPlan, wireArea, calcWireWay, calcConduitSize, blankBOQ, mergeBOQ, setConduitDefaults, conduitDefaults, CONDUIT_SPARE_FIXED, IMC_RULE, IMC_RULE_DEF, imcRule, calcBOQ, calcStructures, matKey, qtyKey, catalog, isPvDcCable, PV_DC_COLORS, PV_DC_SPARE, pvDcLength, applyPrices, setPanels, setInverters,
+  window.BOQ = { PANELS, MICRO, INVERTERS, OPTIMIZERS, setOptimizers, findOptimizer, ROOF_HOOKS, ROOF_OPTIONS, CABLE_TYPES, CABLE_GROUPS, cableCategory, MATERIAL_SUBGROUPS, materialSubGroup, CABLE_POINTS, DEFAULT_CABLES, STRING_CABLE_POINTS, MICRO_CABLE_NAMES, DEFAULT_STRING_CABLES, IMC_SIZES, UPVC_SIZES, PULLBOX_SIZES, CABLE_OD, HDPE_TABLE, IMC_CONDUIT, WIRE_SIZES, WIRE_METHODS, INS_CLASSES, AMP_GROUPS, AMP_NCOND, AMP_CORES, ampColKey, DEFAULT_AMPACITY, AMPACITY, setAmpacity, WIRE_METHOD_BASE, ampTableFor, cableInsClass, cableCoreType, cableSizeNum, ampacityOf, pickWireSize, PV_WIRE_SIZES, PV_WIRE_AMP, PV_WIRE_MIN, pickPvWireSize, calcVdrop, VD_LIMIT, findPanel, findInverter, stringConfig, stringPlan, INV_SLOTS, invExtras, invExtraCap, wireArea, calcWireWay, calcConduitSize, blankBOQ, mergeBOQ, setConduitDefaults, conduitDefaults, CONDUIT_SPARE_FIXED, IMC_RULE, IMC_RULE_DEF, imcRule, calcBOQ, calcStructures, matKey, qtyKey, catalog, isPvDcCable, PV_DC_COLORS, PV_DC_SPARE, pvDcLength, applyPrices, setPanels, setInverters,
     WAY_SIZES, TRAY_SIZES, PERF_SIZES, WWU_SIZES, syncTraySizes, traySizesVer, TRAY_KINDS, TRAY_KIND_KEYS, trayKindOf, trayNorm, trayAlias, hdgName,
     optimizerQty, optimizerFits, DCAC_LIMIT, WAY_PIPE_LEN, TRAY_PIPE_LEN, trayLenTxt, railLenCm, railPerTon, railName, SUPPORT_KINDS, LABOR_PRESET, PERMIT_PRESET, permitPresetFor, permitGridFee, gridAuthOf, PERMIT_ENG_TIERS, PERMIT_GRID_FEE, PERMIT_GRID_NAME,
     COND_FIT_KINDS, WAY_FIT_KINDS, condFittings, trayFittings, PPR_SIZES, PPR_FIT_KINDS, pipeFittings, pipeFromPlan, trayFromPlan, walkFromPlan, walkLens, walkLenOf, walkName, railLens, mccbFrame, mccbName, mccbName0,

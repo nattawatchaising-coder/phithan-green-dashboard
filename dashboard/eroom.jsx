@@ -38,7 +38,7 @@ function erModel(st, job, cfg) {
   const units = M && M.units ? M.units : [];
   const inv = (M && M.inv) || {};
   let kws = micro ? [] : units.map((u) => (+u.w || +inv.w || 5000) / 1000);
-  let froms = micro ? [] : units.map((u) => u.from === 2 ? 2 : 1);
+  let froms = micro ? [] : units.map((u) => Math.max(1, Math.min(4, +u.from || 1)));   // 1 = รุ่นหลัก · 2–4 = รุ่นเสริม (ปนได้ถึง 4 รุ่น)
   if (!M) { const kw = +(job && job.kw) || 10; kws = [Math.max(3, Math.round(kw))]; froms = [1]; }
   const nWant = Math.round(+(cfg && cfg.inv) || 0);
   if (!micro && nWant > 0 && kws.length !== nWant) {
@@ -57,11 +57,13 @@ function erModel(st, job, cfg) {
     M, micro, home, nPh, mainA, acKw,
     brand: inv.brand || (job && job.brand) || "", model: inv.model || "",
     model2: inv.model2 || "",
+    /* ชื่อรุ่นตาม from — ช่องขนาดในห้องแยกต่อรุ่น (cfg.dims.inv · inv2 · inv3 · inv4) */
+    models: (inv.models || []).reduce((o, x) => Object.assign(o, { [x.from]: x.model }), { 1: inv.model || "" }),
     invs: kws.map((kw, i) => {
-      const f2 = froms[i] === 2, spc = (f2 ? inv.spec2 : inv.spec) || {}, sp = erInvSpec(spc, kw, DM[f2 ? "inv2" : "inv"]);
+      const fr = froms[i], u = units[i], spc = (fr > 1 ? (u && u.spec) || inv.spec2 : inv.spec) || {}, sp = erInvSpec(spc, kw, DM[fr > 1 ? "inv" + fr : "inv"]);
       const real = M && Array.isArray(M.strs) ? M.strs.filter((x) => x && x.inv === i).length : 0;
       const nStr = Math.max(1, Math.min(12, real || (+spc.inputs || (kw <= 4 ? 1 : 2)) * (+spc.strPerMppt || (kw <= 20 ? 1 : 2))));
-      return { i, kw, nStr, from: f2 ? 2 : 1, model: (f2 ? inv.model2 : inv.model) || "", dim: sp.dim, src: sp.src, floor: sp.floor };
+      return { i, kw, nStr, from: fr, model: (fr > 1 ? (u && u.model) || inv.model2 : inv.model) || "", dim: sp.dim, src: sp.src, floor: sp.floor };
     }),
     nMicro: micro ? units.length : 0,
     batt: M && M.batt ? M.batt : null,
@@ -1113,8 +1115,12 @@ function ErRoomStudio({ job, ver: ver0, canEdit, onClose }) {
               <div className="er-dim er-dimh"><span /><i>กว้าง</i><i>สูง</i><i>ลึก</i></div>
               {invOf(1) && dimRow("inv", "อินเวอร์เตอร์" + (md.model2 ? " · " + (md.model || "รุ่น 1") : ""), invOf(1).dim)}
               {invOf(1) && mountSel("inv", invOf(1))}
-              {invOf(2) && dimRow("inv2", "อินเวอร์เตอร์ · " + md.model2, invOf(2).dim)}
-              {invOf(2) && mountSel("inv2", invOf(2))}
+              {[2, 3, 4].filter((k) => invOf(k)).map((k) => (
+                <React.Fragment key={k}>
+                  {dimRow("inv" + k, "อินเวอร์เตอร์ · " + (md.models[k] || "รุ่น " + k), invOf(k).dim)}
+                  {mountSel("inv" + k, invOf(k))}
+                </React.Fragment>
+              ))}
               {L.rack && dimRow("dc", "ตู้ DC", L.def.dc)}
               {dimRow("ac", "ตู้ AC", L.def.ac)}
               {dimRow("mdb", md.home ? "ตู้เมน" : "ตู้ MDB", L.def.mdb)}

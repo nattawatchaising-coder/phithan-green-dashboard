@@ -63,7 +63,7 @@ function pkSpec(lead, items) {
   const n = +b.panels || 0;
   const mW = /(\d{3})\s*w/i.exec(b.panelModel || "");
   const wp = (pItem && +pItem.wp) || (mW ? +mW[1] : 0);
-  const invs = [[b.inverterModel, +b.invCount || 1], [b.inv2Model, +b.inv2Count || 0]]
+  const invs = [[b.inverterModel, +b.invCount || 1], [b.inv2Model, +b.inv2Count || 0], [b.inv3Model, +b.inv3Count || 0], [b.inv4Model, +b.inv4Count || 0]]
     .filter((x) => x[0] && x[1] > 0)
     .map((x) => {
       const it = pkFind(items, x[0]);

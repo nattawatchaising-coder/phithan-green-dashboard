@@ -911,8 +911,8 @@ function pmPrefill(job, user) {
     if (p) { put("pv1Brand", p.group); put("pv1Wp", p.wp); }
   }
 
-  /* อินเวอร์เตอร์ — BOQ รองรับสองขนาดในงานเดียว (boq.inv2Model / boq.inv2Count)
-     ชุดที่สองลงคีย์ inv2* ซึ่งตรงกับชุดที่สองของกลุ่มที่กดเพิ่มชุดได้ในแผ่น Summary พอดี
+  /* อินเวอร์เตอร์ — BOQ รองรับถึงสี่ขนาดในงานเดียว (boq.inv2Model..inv4Model / inv2Count..inv4Count)
+     ชุดที่ 2–4 ลงคีย์ inv2* inv3* inv4* ซึ่งตรงกับชุดถัดไปของกลุ่มที่กดเพิ่มชุดได้ในแผ่น Summary พอดี
      ไม่ต้องตั้ง invSets เอง — pmSetCount ขยายจำนวนชุดให้เมื่อเห็นว่าชุดที่สองมีข้อมูล
      AC รวมต้องบวกทั้งสองรุ่น ไม่ใช่ kW ของรุ่นแรกคูณจำนวนตัวทั้งหมด */
   const invModel = boq.inverterModel || (j.survey || {}).invModel
@@ -928,7 +928,13 @@ function pmPrefill(job, user) {
     if (iv && q) acSum += iv.kw * q;
   };
   putInv("inv", invModel, boq.invCount);
-  if (boq.inv2Model && boq.inv2Model !== invModel) putInv("inv2", boq.inv2Model, boq.inv2Count);
+  const seen = [invModel];
+  [2, 3, 4].forEach((k) => {
+    const m = boq["inv" + k + "Model"];
+    if (!m || seen.indexOf(m) >= 0) return;
+    seen.push(m);
+    putInv("inv" + (seen.length), m, boq["inv" + k + "Count"] || 1);   // เรียงชุดต่อกัน ไม่เว้นชุดเมื่อช่องกลางว่าง
+  });
   if (acSum) put("acKw", Math.round(acSum * 100) / 100);
 
   return out;
@@ -983,7 +989,7 @@ function pmPanelSpec(job, sum) {
 /* ── ชุดอินเวอร์เตอร์ทั้งหมดของงานนี้ ──
    กลุ่ม inv ในแผ่น Summary กดเพิ่มชุดได้ ชุดแรกคีย์เปล่า ชุดถัดไปเป็น inv2* inv3* …
    คืนรายการชุดพร้อมจำนวนตัวและ kW ต่อตัว · เล่มที่ยังไม่กรอกถอยไปอ่านจาก BOQ
-   BOQ เก็บรุ่นที่สองได้หนึ่งรุ่น มากกว่านั้นต้องกรอกในสมุดเอง
+   BOQ เก็บรุ่นเสริมได้สามรุ่น (inv2–inv4) มากกว่านั้นต้องกรอกในสมุดเอง
    ⚠ อย่ารวมเป็นตัวเลขเดียวตั้งแต่ต้นทาง — ทะเบียนเครื่องกับตารางทดสอบต้องรู้ว่าตัวไหนรุ่นไหน */
 function pmInvSets(job, sum) {
   const s = sum || {}, b = (job || {}).boq || {};
@@ -1008,9 +1014,11 @@ function pmInvSets(job, sum) {
     out.push(mk(model, qty, s[id + "Kw"]));
   }
   if (!out.length && (b.inverterModel || b.invCount)) out.push(mk(b.inverterModel, b.invCount));
-  /* BOQ มีรุ่นที่สองแต่สมุดยังไม่มีชุดที่สอง — เล่มที่เปิดไว้ก่อนออกแบบ BOQ เสร็จ */
-  if (out.length === 1 && b.inv2Model && b.inv2Model !== out[0].model && +b.inv2Count > 0)
-    out.push(mk(b.inv2Model, b.inv2Count));
+  /* BOQ มีรุ่นเสริมแต่สมุดยังไม่มีชุดที่สอง — เล่มที่เปิดไว้ก่อนออกแบบ BOQ เสร็จ */
+  if (out.length === 1) [2, 3, 4].forEach((k) => {
+    const m = b["inv" + k + "Model"];
+    if (m && !out.some((o) => o.model === m) && +b["inv" + k + "Count"] > 0) out.push(mk(m, b["inv" + k + "Count"]));
+  });
   return out.length ? out : [mk("", 1)];
 }
 

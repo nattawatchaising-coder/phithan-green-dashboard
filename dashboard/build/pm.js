@@ -2082,7 +2082,13 @@ function pmPrefill(job, user) {
     if (iv && q) acSum += iv.kw * q;
   };
   putInv("inv", invModel, boq.invCount);
-  if (boq.inv2Model && boq.inv2Model !== invModel) putInv("inv2", boq.inv2Model, boq.inv2Count);
+  const seen = [invModel];
+  [2, 3, 4].forEach(k => {
+    const m = boq["inv" + k + "Model"];
+    if (!m || seen.indexOf(m) >= 0) return;
+    seen.push(m);
+    putInv("inv" + seen.length, m, boq["inv" + k + "Count"] || 1);
+  });
   if (acSum) put("acKw", Math.round(acSum * 100) / 100);
   return out;
 }
@@ -2148,7 +2154,10 @@ function pmInvSets(job, sum) {
     out.push(mk(model, qty, s[id + "Kw"]));
   }
   if (!out.length && (b.inverterModel || b.invCount)) out.push(mk(b.inverterModel, b.invCount));
-  if (out.length === 1 && b.inv2Model && b.inv2Model !== out[0].model && +b.inv2Count > 0) out.push(mk(b.inv2Model, b.inv2Count));
+  if (out.length === 1) [2, 3, 4].forEach(k => {
+    const m = b["inv" + k + "Model"];
+    if (m && !out.some(o => o.model === m) && +b["inv" + k + "Count"] > 0) out.push(mk(m, b["inv" + k + "Count"]));
+  });
   return out.length ? out : [mk("", 1)];
 }
 function pmInvCount(job, sum) {

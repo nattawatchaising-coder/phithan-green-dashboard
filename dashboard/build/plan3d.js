@@ -498,7 +498,11 @@ function p3PlanSummary(saved) {
     panelModel: String(sys.panelModel || "").trim(),
     invModel: String(sys.invModel || "").trim(),
     inv2Model: String(sys.inv2Model || "").trim(),
-    inv2Count: Math.max(0, Math.round(+sys.inv2Count || 0))
+    inv2Count: Math.max(0, Math.round(+sys.inv2Count || 0)),
+    inv3Model: String(sys.inv3Model || "").trim(),
+    inv3Count: Math.max(0, Math.round(+sys.inv3Count || 0)),
+    inv4Model: String(sys.inv4Model || "").trim(),
+    inv4Count: Math.max(0, Math.round(+sys.inv4Count || 0))
   };
 }
 function p3RailRows(saved) {
@@ -1352,7 +1356,7 @@ function p3PlanSpec(st, job, M, SS) {
   const kwp = Math.round(p3CountAll(st) * (+st.wp || 650) / 10) / 100;
   const I = p3SheetInfo(st, job, {});
   const perInv = Math.round(M.panel.count / Math.max(1, M.units.length) * 10) / 10;
-  return [["PROJECT", "SOLAR ROOFTOP " + kwp.toFixed(2) + " kWp."], ["LOCATION", I.location], ["INVERTER", M.inv.model + "   " + M.units.length + " Ea."], ["PV MODULE", M.panel.model + "   " + M.panel.count + " Ea."], ["PV MODULE / INVERTER", perInv + " MODULE"], ["STRING", p3StrSum(SS)], ["BATTERY", M.batt ? M.batt.kwh + " kWh." : "-"], ["COMBINER", "COMBINER BOX   1 Ea.   (" + M.panel.count + " MODULE)"]];
+  return [["PROJECT", "SOLAR ROOFTOP " + kwp.toFixed(2) + " kWp."], ["LOCATION", I.location], ["INVERTER", M.inv.models && M.inv.models.length > 1 ? M.inv.models.map(x => x.model + " x" + x.count).join(" + ") : M.inv.model + "   " + M.units.length + " Ea."], ["PV MODULE", M.panel.model + "   " + M.panel.count + " Ea."], ["PV MODULE / INVERTER", perInv + " MODULE"], ["STRING", p3StrSum(SS)], ["BATTERY", M.batt ? M.batt.kwh + " kWh." : "-"], ["COMBINER", "COMBINER BOX   1 Ea.   (" + M.panel.count + " MODULE)"]];
 }
 function p3AreaRows(st, M, nStr, paths) {
   const wp = +st.wp || 650;
@@ -3970,8 +3974,8 @@ function P3NumRange({
     className: "p3-sfx"
   }, suffix)));
 }
-const P3_AT = [6, 10, 16, 20, 25, 32, 40, 50, 63, 80, 100, 125, 160, 200, 225, 250, 400];
-const P3_CT = [80, 100, 160, 250, 400];
+const P3_AT = [6, 10, 16, 20, 25, 32, 40, 50, 63, 80, 100, 125, 160, 200, 225, 250, 400, 500, 630, 800, 1000, 1250, 1600, 2000, 2500, 3200, 4000];
+const P3_CT = [80, 100, 160, 250, 400, 600, 800, 1000, 1200, 1600, 2000, 2500, 3200, 4000];
 const P3_CU = [2.5, 4, 6, 10, 16, 25, 35, 50, 70, 95, 120, 150, 185, 240, 300];
 const p3At = i => P3_AT.find(a => a >= i) || P3_AT[P3_AT.length - 1];
 const p3Ct = i => P3_CT.find(a => a >= i) || P3_CT[P3_CT.length - 1];
@@ -4034,34 +4038,65 @@ function p3SldModel(st, job, design) {
     const iv = (B.INVERTERS || []).find(x => x.model === sys.invModel) || {};
     const kw = +iv.kw || 5;
     const n = Math.max(1, +sys.invCount || Math.ceil(nPanel * wp / 1000 / kw));
-    const iv2 = sys.inv2Model && sys.inv2Model !== sys.invModel ? (B.INVERTERS || []).find(x => x.model === sys.inv2Model) : null;
-    const n2 = iv2 ? Math.max(0, Math.round(+sys.inv2Count || 0)) : 0;
-    const kw2 = iv2 ? +iv2.kw || kw : 0;
+    const seen = [sys.invModel],
+      xs = [];
+    [2, 3, 4].forEach(k => {
+      const m = sys["inv" + k + "Model"],
+        c = Math.max(0, Math.round(+sys["inv" + k + "Count"] || 0));
+      const ivk = m && seen.indexOf(m) < 0 && c > 0 ? (B.INVERTERS || []).find(x => x.model === m) : null;
+      if (!ivk) return;
+      seen.push(m);
+      xs.push({
+        k,
+        model: ivk.model,
+        count: c,
+        w: (+ivk.kw || kw) * 1000,
+        spec: ivk
+      });
+    });
     unitW = kw * 1000;
+    const x2 = xs[0];
     inv = {
       model: iv.model || "INVERTER",
-      count: n + n2,
+      count: n + xs.reduce((t, x) => t + x.count, 0),
       w: unitW,
       v: Vll,
       spec: iv,
-      model2: iv2 ? iv2.model : "",
-      count2: n2,
-      w2: kw2 * 1000,
-      spec2: iv2 || null
+      model2: x2 ? x2.model : "",
+      count2: x2 ? x2.count : 0,
+      w2: x2 ? x2.w : 0,
+      spec2: x2 ? x2.spec : null,
+      extras: xs
     };
-    const kwEach = [];
-    for (let i = 0; i < n; i++) kwEach.push(kw);
-    for (let i = 0; i < n2; i++) kwEach.push(kw2);
-    const kwSum = kwEach.reduce((a, b) => a + b, 0) || 1;
+    inv.models = [{
+      from: 1,
+      model: inv.model,
+      count: n,
+      w: unitW,
+      spec: iv
+    }].concat(xs.map((x, i) => ({
+      from: i + 2,
+      model: x.model,
+      count: x.count,
+      w: x.w,
+      spec: x.spec
+    })));
+    const each = [];
+    inv.models.forEach(md => {
+      for (let i = 0; i < md.count; i++) each.push(md);
+    });
+    const kwSum = each.reduce((a, md) => a + md.w, 0) || 1;
     let leftP = nPanel;
-    kwEach.forEach((k, i) => {
-      const share = i === kwEach.length - 1 ? leftP : Math.round(nPanel * k / kwSum);
+    each.forEach((md, i) => {
+      const share = i === each.length - 1 ? leftP : Math.round(nPanel * md.w / kwSum);
       leftP -= share;
       units.push({
         panels: Math.max(0, share),
         phase: 1,
-        w: k * 1000,
-        from: i < n ? 1 : 2
+        w: md.w,
+        from: md.from,
+        model: md.model,
+        spec: md.spec
       });
     });
     const DS = design && design.strings || [];
@@ -4103,8 +4138,8 @@ function p3SldModel(st, job, design) {
     mcb: "MCB " + (nPh === 3 ? "4P," : "2P,") + p3At(unitA * 2.5) + "AT",
     solar: false
   });
-  const totA = units.length * unitA;
-  const acKw = Math.round(units.length * unitW / 10) / 100;
+  const totA = micro ? units.length * unitA : units.reduce((a, u) => a + aOfUnit(u), 0);
+  const acKw = Math.round((micro ? units.length * unitW : units.reduce((a, u) => a + (+u.w || unitW), 0)) / 10) / 100;
   const dcKw = Math.round(nPanel * wp / 10) / 100;
   const nCore = nPh === 3 ? 4 : 2;
   const cabAt = !(window.BOQ && window.BOQ.RULES && +window.BOQ.RULES.cabByAt === 0);
@@ -4136,7 +4171,7 @@ function p3SldModel(st, job, design) {
       model: sys.batt && sys.batt.model || (battKwh ? battKwh + " kWh" : "-"),
       kwh: battKwh
     } : null,
-    summary: [(micro ? "MICRO INVERTER " : "INVERTER ") + units.length + " EA. x " + Math.round(unitW) + " W. = " + acKw.toFixed(2) + " kWp.", "PV MODULE " + nPanel + " PANEL. x " + wp + " Wp. = " + dcKw.toFixed(2) + " kWp."]
+    summary: [(micro ? "MICRO INVERTER " : "INVERTER ") + (micro || !inv.models || inv.models.length < 2 ? units.length + " EA. x " + Math.round(unitW) + " W." : inv.models.map(md => md.count + " EA. x " + Math.round(md.w) + " W.").join(" + ")) + " = " + acKw.toFixed(2) + " kWp.", "PV MODULE " + nPanel + " PANEL. x " + wp + " Wp. = " + dcKw.toFixed(2) + " kWp."]
   };
   const sp = inv.spec || {};
   const row = (k, v, u) => v === 0 || v == null || v === "" ? null : [k, v, u];
@@ -4245,16 +4280,29 @@ function p3SldModel(st, job, design) {
     const r = (k, v) => v === "" || v == null ? null : [k, v];
     const ratio = acKw ? (dcKw / acKw).toFixed(2) : "-";
     const mpIn = M.mppt.per ? M.mppt.per + " MPPT x " + (M.mppt.phys || 1) + " IN" : "";
-    M.pvData = [["#", "PV MODULE"], r("MODEL", panel.model), r("Pmax / Voc / Isc", sp([wp + "W", PS.voc + "V", PS.isc + "A"].filter(x => !/undefined|^0[VA]$/.test(x)))), r("Vmp / Imp", PS.vmp && PS.imp ? PS.vmp + "V / " + PS.imp + "A" : ""), ["#", "INVERTER"], r("MODEL", inv.model + (inv.model2 ? " + " + inv.model2 : "")), r("AC OUTPUT x QTY", unitKw + " kW " + (nPh === 3 ? "3PH" : "1PH") + " x " + units.length), r("MAX Vdc / MPPT RANGE", ivSp.mpptVmin && ivSp.mpptVmax ? maxVdc + " / " + ivSp.mpptVmin + "-" + ivSp.mpptVmax + " V" : maxVdc + " V"), r("MPPT / INPUT", mpIn), ["#", "PV ARRAY"], ["MODULES / STRINGS", nPanel + " PCS / " + nStr + " STR"], ["MODULES PER STRING", nTxt], r("STRING Voc @" + tMin + "%%dC", vocMax ? vocMax + " V  (MAX " + maxVdc + " V)" : ""), ["DC / AC", dcKw.toFixed(2) + " kWp / " + acKw.toFixed(2) + " kW (" + ratio + ")"]].filter(Boolean);
+    M.pvData = [["#", "PV MODULE"], r("MODEL", panel.model), r("Pmax / Voc / Isc", sp([wp + "W", PS.voc + "V", PS.isc + "A"].filter(x => !/undefined|^0[VA]$/.test(x)))), r("Vmp / Imp", PS.vmp && PS.imp ? PS.vmp + "V / " + PS.imp + "A" : ""), ["#", "INVERTER"], r("MODEL", (inv.models || [inv]).map(md => md.model).join(" + ")), r("AC OUTPUT x QTY", (inv.models || [{
+      w: unitKw * 1000,
+      count: units.length
+    }]).map(md => Math.round(md.w / 100) / 10 + " kW x " + md.count).join(" + ") + " " + (nPh === 3 ? "3PH" : "1PH")), r("MAX Vdc / MPPT RANGE", ivSp.mpptVmin && ivSp.mpptVmax ? maxVdc + " / " + ivSp.mpptVmin + "-" + ivSp.mpptVmax + " V" : maxVdc + " V"), r("MPPT / INPUT", mpIn), ["#", "PV ARRAY"], ["MODULES / STRINGS", nPanel + " PCS / " + nStr + " STR"], ["MODULES PER STRING", nTxt], r("STRING Voc @" + tMin + "%%dC", vocMax ? vocMax + " V  (MAX " + maxVdc + " V)" : ""), ["DC / AC", dcKw.toFixed(2) + " kWp / " + acKw.toFixed(2) + " kW (" + ratio + ")"]].filter(Boolean);
     const nInv = units.length;
     const S = [];
     S.push(["PV MODULE", panel.model + " " + wp + "Wp", nPanel]);
-    S.push(["INVERTER", inv.model + " " + unitKw + "kW " + (nPh === 3 ? "3PH" : "1PH"), nInv]);
+    (inv.models || [{
+      model: inv.model,
+      w: unitKw * 1000,
+      count: nInv
+    }]).forEach(md => S.push(["INVERTER", md.model + " " + Math.round(md.w / 100) / 10 + "kW " + (nPh === 3 ? "3PH" : "1PH"), md.count]));
     S.push(["DC BOX", "IP65 ENCLOSURE c/w PE BAR", nInv]);
     S.push(dcDev.k === "fuse" ? ["DC STRING FUSE", "gPV (IEC 60269-6) " + fuseA + "A " + dcV + "VDC " + (dcV > 1000 ? "10x85" : "10x38") + " + DC FUSE HOLDER" + (fz && fz.h ? " " + fz.h : ""), nStr * 2] : ["DC MCB", dcDev.tag.replace(/^DC MCB /, ""), nStr]);
     S.push(["DC SPD", (lps ? "TYPE I+II" : "TYPE II") + " Ucpv " + ucpv + "VDC " + dcSpdKa, nStr]);
     S.push(["MC4 CONNECTOR", "1500VDC IP68 (PAIR)", nStr * 2]);
-    if (nInv > 1) S.push(["AC BREAKER (INV.)", ivBrk[0], nInv]);
+    if (nInv > 1) {
+      const bc = {};
+      ivBrk.forEach(b => {
+        bc[b] = (bc[b] || 0) + 1;
+      });
+      Object.keys(bc).forEach(b => S.push(["AC BREAKER (INV.)", b, bc[b]]));
+    }
     S.push(["AC SPD", M.pro.acSpd.join(" ").replace(/^AC SPD /, ""), 1]);
     if (spdBk) S.push(["SPD BACK-UP", spdBk + (/FUSE/.test(spdBk) ? " + FUSE BASE" : ""), 1]);
     S.push(["MAIN BREAKER", mainTxt + (lsig ? " LSIG" : gf ? " c/w SHUNT TRIP" : ""), 1]);
@@ -4415,22 +4463,67 @@ function p3SldFields(M) {
   return g;
 }
 function p3Sld(st, job, media) {
+  media = media || {};
+  const M = p3SldModel(st, job, media.design),
+    pt = media.part;
+  const key = pt && pt.kind === "detail" ? "SLD" + (pt.gi + 1) : "SLD";
+  if (pt && typeof pgSldGroups === "function") {
+    const gs = pgSldGroups(M),
+      ix = media.index || [];
+    const dwg = k => {
+      const r = ix.find(q => q.key === k);
+      return r ? "SEE DWG. " + r.dwg + " (" + r.no + "/" + ix.length + ")" : "";
+    };
+    if (pt.kind === "main") {
+      const ref = {};
+      gs.forEach((g, i) => g.nos.forEach(no => {
+        ref[no] = dwg("SLD" + (i + 1));
+      }));
+      M.part = {
+        kind: "main",
+        ref
+      };
+    } else if (gs[pt.gi]) M.part = {
+      kind: "detail",
+      nos: gs[pt.gi].nos,
+      ref: dwg("SLD")
+    };
+  }
   const doc = pgDoc({
     units: "mm",
     ltscale: 1
-  }, media && media.svg);
+  }, media.svg);
   const sheet = pgSheet(doc, {
+    k: 1,
+    ox: 0,
+    oy: 0,
+    info: p3SheetInfo(st, job, {
+      sheet: key,
+      scale: "AS SHOW",
+      sheetNo: media.sheetNo || "1/1"
+    })
+  });
+  pgSldDraw(doc, sheet, M);
+  return doc.build();
+}
+function p3SldSplit(st, job, design) {
+  if (typeof pgSldGroups !== "function") return null;
+  const M = p3SldModel(st, job, design);
+  const doc = pgDoc({
+    units: "mm",
+    ltscale: 1
+  }, true);
+  pgSldDraw(doc, pgSheet(doc, {
     k: 1,
     ox: 0,
     oy: 0,
     info: p3SheetInfo(st, job, {
       sheet: "SLD",
       scale: "AS SHOW",
-      sheetNo: media && media.sheetNo || "1/1"
+      sheetNo: "1/1"
     })
-  });
-  pgSldDraw(doc, sheet, p3SldModel(st, job, media && media.design));
-  return doc.build();
+  }), M);
+  return M.needSplit ? pgSldGroups(M) : null;
 }
 const P3_PHOTO_MAX = 12;
 function p3PhotoSheet(st, job, media) {
@@ -4530,7 +4623,7 @@ function p3EquipRows(st, job, M) {
     return rows;
   }
   add("PV MODULE", M.panel.model + "   " + M.panel.wp + " Wp.", M.panel.brand, M.panel.count + " Ea.");
-  add(M.mode === "micro" ? "MICRO INVERTER" : "INVERTER", M.inv.model, M.inv.brand, M.units.length + " Ea.");
+  if (M.mode !== "micro" && M.inv.models && M.inv.models.length > 1) M.inv.models.forEach(x => add("INVERTER", x.model, M.inv.brand, x.count + " Ea."));else add(M.mode === "micro" ? "MICRO INVERTER" : "INVERTER", M.inv.model, M.inv.brand, M.units.length + " Ea.");
   if (M.batt) add("BATTERY", M.batt.model + "   " + M.batt.kwh + " kWh.", M.batt.brand, "1 Ea.");
   add("MOUNTING", "RAIL ALUMINIUM + L-FOOT + END / MID CLAMP", "-", "1 SET");
   add("PV CABLE", "PV1-F 1x4 Sq.mm.  DC1500V (RED / BLACK)", "-", mOf("cable"));
@@ -4938,11 +5031,35 @@ async function p3PrepSet(st, job, photos, design) {
       fn: o => p3StrLayout(st, job, o)
     });
     add("STRDET");
-    list.push({
+    const sg = p3SldSplit(st, job, design);
+    if (!sg) list.push({
       key: "SLD",
       label: "แผนภาพไฟฟ้า (SLD)",
       fn: o => p3Sld(st, job, o)
-    });
+    });else {
+      list.push({
+        key: "SLD",
+        label: "แผนภาพไฟฟ้า (SLD) ภาพรวม",
+        en: "SINGLE LINE DIAGRAM (OVERALL)",
+        fn: o => p3Sld(st, job, Object.assign({
+          part: {
+            kind: "main"
+          }
+        }, o))
+      });
+      sg.forEach((g, i) => list.push({
+        key: "SLD" + (i + 1),
+        gk: "SLD",
+        label: "SLD " + pgInvNames(g.nos),
+        en: "SINGLE LINE DIAGRAM (" + pgInvNames(g.nos) + ")",
+        fn: o => p3Sld(st, job, Object.assign({
+          part: {
+            kind: "detail",
+            gi: i
+          }
+        }, o))
+      }));
+    }
     list.push({
       key: "DC",
       label: "ต่อสาย DC",
@@ -4978,13 +5095,15 @@ async function p3PrepSet(st, job, photos, design) {
     no: i + 1,
     key: L.key,
     th: L.label,
-    en: SET_EN[L.key] || L.key,
+    en: L.en || SET_EN[L.key] || L.key,
     dwg: "PG-" + (job && job.code || "0000") + "-" + L.key
   }));
   const sheets = list.map((L, i) => {
     const no = i + 1 + "/" + list.length;
     return {
       key: L.key,
+      gk: L.gk,
+      en: L.en,
       label: L.label,
       no,
       file: base + "-" + (i + 1) + "-" + L.key + ".dxf",
@@ -5000,8 +5119,8 @@ async function p3PrepSet(st, job, photos, design) {
   const GRP = typeof DS_SET_GROUP !== "undefined" ? DS_SET_GROUP : null;
   const setOpt = {
     title: "SOLAR · " + base,
-    labels: sheets.map(s => s.no + "  " + (SET_EN[s.key] || s.key)),
-    groups: GRP ? sheets.map(s => GRP[s.key] || "OTHER") : null
+    labels: sheets.map(s => s.no + "  " + (s.en || SET_EN[s.key] || s.key)),
+    groups: GRP ? sheets.map(s => GRP[s.gk || s.key] || "OTHER") : null
   };
   const all = sheets.length > 1 ? {
     file: base + "-SET.dxf",
@@ -5137,6 +5256,7 @@ Object.assign(window, {
   p3MeasLen,
   p3Dxf,
   p3Sld,
+  p3SldSplit,
   p3PhotoSheet,
   p3EquipSheet,
   p3DcSheet,

@@ -364,7 +364,15 @@ function scStringFuse(panel, nPar, nStrings) {
    ตัวอย่างรุ่นที่มี 1 MPPT แต่เสียบได้ 2 ช่อง → pin 0 = INV1/MPPT1/ช่อง1 · pin 1 = INV1/MPPT1/ช่อง2 */
 /* งานหนึ่งใช้อินเวอร์เตอร์สองขนาดได้ — ตัวที่ 1..nInv เป็นรุ่นแรก ถัดไปเป็นรุ่นที่สอง
    แต่ละรุ่นมีจำนวนช่อง MPPT กับขั้วต่อช่องไม่เท่ากันได้ จึงคูณเอาไม่ได้อีกต่อไป
-   ต้องไล่เก็บ offset สะสมทีละตัว */
+   ต้องไล่เก็บ offset สะสมทีละตัว
+   งานหนึ่งมีได้ถึง 4 รุ่น (ผู้ใช้ 2026-10-29): inv2 เป็นอาร์เรย์ [{ spec, n }] ของรุ่นที่ 2..4 ได้ (from = 2..4)
+   ส่งแบบเดิม (สเปคเดียว + จำนวน) ก็ยังได้ */
+function scInvList(inv2, nInv2) {
+  if (Array.isArray(inv2)) return inv2.filter((e) => e && e.spec && Math.round(scNum(e.n, 0)) > 0)
+    .map((e) => ({ spec: e.spec, n: Math.round(scNum(e.n, 0)) }));
+  const n2 = Math.max(0, Math.round(scNum(nInv2, 0)));
+  return inv2 && n2 > 0 ? [{ spec: inv2, n: n2 }] : [];
+}
 function scInvUnits(inv, nInv, inv2, nInv2) {
   const mk = (spec, n, from, out) => {
     const mpptPerInv = Math.max(1, Math.round(scNum(spec.inputs, 2)));
@@ -373,8 +381,7 @@ function scInvUnits(inv, nInv, inv2, nInv2) {
     return out;
   };
   const units = mk(inv || {}, Math.max(1, Math.round(scNum(nInv, 1))), 1, []);
-  const n2 = Math.max(0, Math.round(scNum(nInv2, 0)));
-  if (inv2 && n2 > 0) mk(inv2, n2, 2, units);
+  scInvList(inv2, nInv2).forEach((e, i) => mk(e.spec, e.n, i + 2, units));
   let mo = 0, po = 0;
   units.forEach((u, i) => { u.no = i; u.mpptFrom = mo; u.pinFrom = po; mo += u.mppt; po += u.pins; });
   return units;
@@ -393,8 +400,11 @@ function scPinLayout(inv, nInv, inv2, nInv2) {
     mppt: last.mpptFrom + last.mppt, pins: last.pinFrom + last.pins,
     /* สองตัวนี้เก็บไว้ให้โค้ดเก่าที่คิดว่าทุกตัวเหมือนกันยังอ่านได้ — งานสองรุ่นอย่าใช้ ให้ถามรายตัวแทน */
     mpptPerInv: units[0].mpptPerInv, phys: units[0].phys,
-    mixed: units.some((u) => u.from === 2),
+    mixed: units.some((u) => u.from > 1),
+    /* รุ่นของงาน เรียงตาม from (1..4) — ใช้คิดช่วงสตริง/กระแสรายรุ่น */
+    specs: units.reduce((a, u) => (a.some((x) => x.from === u.from) ? a : a.concat([{ from: u.from, spec: u.spec }])), []),
   };
+  L.acKw = units.reduce((t, u) => t + scNum(u.spec.kw), 0);
   L.unitOfMppt = (m) => { for (let i = units.length - 1; i >= 0; i--) if (m >= units[i].mpptFrom) return units[i]; return units[0]; };
   L.unitOfPin = (pin) => { for (let i = units.length - 1; i >= 0; i--) if (pin >= units[i].pinFrom) return units[i]; return units[0]; };
   L.physOf = (m) => L.unitOfMppt(m).phys;
@@ -485,24 +495,24 @@ function scMpptName(pin, inv, nInv, inv2, nInv2) {
 function scAutoStrings(groups, panel, inv, env, opt) {
   opt = opt || {};
   const nInv = Math.max(1, Math.round(scNum(opt.invCount, 1)));
-  const inv2 = opt.inv2 || null;
-  const nInv2 = inv2 ? Math.max(0, Math.round(scNum(opt.inv2Count, 0))) : 0;
-  const LAY = scPinLayout(inv, nInv, inv2, nInv2);
+  const LAY = scPinLayout(inv, nInv, opt.inv2 || null, opt.inv2Count);
   /* ตัวคุมแผงเปลี่ยนชุดขนาดสตริงที่ยอมรับได้ทั้งหมด (ต้องเป็นจำนวนเท่าของแผงต่อตัวคุม) */
   const R0 = scSeriesRange(panel, inv, env, opt.optimizer);
-  /* งานสองรุ่น: สตริงหนึ่งเส้นอาจไปจบที่รุ่นไหนก็ได้ จึงเอาเฉพาะจำนวนแผงที่ “ทั้งสองรุ่นรับได้”
+  /* งานหลายรุ่น: สตริงหนึ่งเส้นอาจไปจบที่รุ่นไหนก็ได้ จึงเอาเฉพาะจำนวนแผงที่ “ทุกรุ่นรับได้”
      ถ้าไม่มีจำนวนไหนซ้อนกันเลย ถอยไปใช้ช่วงของรุ่นแรกไว้ก่อน แล้วให้ตัวตรวจรายสตริงชี้ตัวที่ไม่ผ่านให้เอง */
   let R = R0, rangeWarn = "";
-  if (inv2 && nInv2 > 0) {
-    const R2 = scSeriesRange(panel, inv2, env, opt.optimizer);
-    const both = R0.ok.filter((r) => R2.ok.some((x) => x.n === r.n));
-    if (both.length) R = Object.assign({}, R0, { ok: both });
-    else rangeWarn = "ไม่มีจำนวนแผงต่อสตริงที่อินเวอร์เตอร์ทั้งสองรุ่นรับได้ร่วมกัน — จัดตามรุ่นแรกไว้ก่อน ดูคำเตือนรายสตริง";
+  if (LAY.mixed) {
+    const all = LAY.specs.slice(1).reduce((ok, x) => {
+      const Rx = scSeriesRange(panel, x.spec, env, opt.optimizer);
+      return ok.filter((r) => Rx.ok.some((q) => q.n === r.n));
+    }, R0.ok);
+    if (all.length) R = Object.assign({}, R0, { ok: all });
+    else rangeWarn = "ไม่มีจำนวนแผงต่อสตริงที่อินเวอร์เตอร์ทุกรุ่นรับได้ร่วมกัน — จัดตามรุ่นแรกไว้ก่อน ดูคำเตือนรายสตริง";
   }
   const mpptPerInv = LAY.mpptPerInv;
   const perMppt = scStringsPerMppt(panel, inv);
-  const perMppt2 = inv2 && nInv2 > 0 ? scStringsPerMppt(panel, inv2) : perMppt;
-  const perMpptOf = (m) => (LAY.unitOfMppt(m).from === 2 ? perMppt2 : perMppt);
+  const perF = {}; LAY.specs.forEach((x) => { perF[x.from] = x.from === 1 ? perMppt : scStringsPerMppt(panel, x.spec); });
+  const perMpptOf = (m) => perF[LAY.unitOfMppt(m).from];
   const out = { strings: [], leftovers: [], warns: [], range: R, perMppt, mppt: LAY.mppt, lay: LAY };
   if (rangeWarn) out.warns.push(rangeWarn);
   if (!R.ok.length) {
@@ -580,12 +590,12 @@ function scAutoStrings(groups, panel, inv, env, opt) {
     s.addr = scMpptName(s.pin, LAY);
     used[mi] = (used[mi] || 0) + 1;
   });
-  /* สตริงที่ไปลงรุ่นที่สอง ต้องตรวจแรงดันกับช่วง MPPT ของรุ่นนั้น — สองรุ่นช่วงทำงานไม่เท่ากัน
-     ถ้าตรวจด้วยรุ่นแรกรุ่นเดียว สตริงที่ไปอยู่รุ่นที่สองจะผ่านทั้งที่แรงดันหลุดช่วง */
+  /* สตริงที่ไปลงรุ่นอื่น ต้องตรวจแรงดันกับช่วง MPPT ของรุ่นนั้น — แต่ละรุ่นช่วงทำงานไม่เท่ากัน
+     ถ้าตรวจด้วยรุ่นแรกรุ่นเดียว สตริงที่ไปอยู่รุ่นอื่นจะผ่านทั้งที่แรงดันหลุดช่วง */
   if (LAY.mixed) out.strings.forEach((s) => {
     if (s.mppt == null) return;
     const u = LAY.unitOfMppt(s.mppt);
-    if (u.from === 2) s.chk = scStringCheck(panel, u.spec, s.n, env);
+    if (u.from > 1) s.chk = scStringCheck(panel, u.spec, s.n, env);
   });
   /* กระแสเข้าช่อง MPPT — คิดจากจำนวนสตริงที่ขนานเข้าช่องเดียวกันจริง */
   const parMax = Math.max(1, Math.max.apply(null, [1].concat(Object.keys(used).map((k) => used[k]))));
@@ -593,13 +603,13 @@ function scAutoStrings(groups, panel, inv, env, opt) {
   out.fuse = scStringFuse(panel, parMax, out.strings.length);
   /* เพดานกระแสก็คนละรุ่น — เอาตัวที่ไม่ผ่านขึ้นมารายงาน ไม่งั้นใช้ของรุ่นแรก */
   out.current = scCurrent(panel, inv, parMax);
-  if (LAY.mixed) {
+  LAY.specs.slice(1).forEach((x) => {
     const par2 = Math.max(1, Math.max.apply(null, [1].concat(
-      Object.keys(used).filter((k) => LAY.unitOfMppt(+k).from === 2).map((k) => used[k]))));
-    const c2 = scCurrent(panel, inv2, par2);
+      Object.keys(used).filter((k) => LAY.unitOfMppt(+k).from === x.from).map((k) => used[k]))));
+    const c2 = scCurrent(panel, x.spec, par2);
     if (!c2.ok && out.current.ok) out.current = c2;
     else c2.warns.forEach((w) => { if (out.current.warns.indexOf(w) < 0) out.current.warns.push(w); });
-  }
+  });
   out.current.warns.forEach((w) => out.warns.push(w));
   out.notes = out.current.notes.slice();
   out.overCurrent = !out.current.ok;
@@ -608,7 +618,7 @@ function scAutoStrings(groups, panel, inv, env, opt) {
   out.leftovers.forEach((l) => out.warns.push(l.group.label + " เหลือ " + l.left + " แผงที่ต่อเป็นสตริงไม่ลงตัว (ย้ายไปผืนอื่น หรือใช้ออปติไมเซอร์)"));
   out.panels = out.strings.reduce((a, s) => a + s.n, 0);
   out.dcKw = scR(out.panels * scNum(panel.wp) / 1000, 2);
-  out.acKw = scR(nInv * scNum(inv.kw) + (inv2 && nInv2 > 0 ? nInv2 * scNum(inv2.kw) : 0), 2);
+  out.acKw = scR(LAY.acKw, 2);
   out.dcAc = out.acKw ? scR(out.dcKw / out.acKw, 2) : 0;
   if (out.dcAc > 1.4) out.warns.push("DC/AC = " + out.dcAc + " สูงไป อินเวอร์เตอร์จะตัดยอด (clipping) ช่วงเที่ยง — เพิ่มขนาด/จำนวนอินเวอร์เตอร์");
   else if (out.dcAc && out.dcAc < 0.85) out.warns.push("DC/AC = " + out.dcAc + " ต่ำไป อินเวอร์เตอร์ใหญ่เกินแผง — ลดขนาดลงได้");
@@ -630,13 +640,11 @@ function scStringsFromAssign(assign, byPanel, groups, panel, inv, env, opt) {
     if (gk) bag[sid].gset[gk] = (bag[sid].gset[gk] || 0) + 1;
   });
   const nInv0 = Math.max(1, Math.round(scNum(opt.invCount, 1)));
-  const inv2 = opt.inv2 || null;
-  const nInv2 = inv2 ? Math.max(0, Math.round(scNum(opt.inv2Count, 0))) : 0;
-  const LAY = scPinLayout(inv, nInv0, inv2, nInv2);
+  const LAY = scPinLayout(inv, nInv0, opt.inv2 || null, opt.inv2Count);
   const mpptPerInv = LAY.mpptPerInv, slots0 = LAY.mppt, perMppt0 = scStringsPerMppt(panel, inv);
-  /* เพดาน "กี่สตริงขนานเข้า 1 MPPT" คิดจากกระแสของแผงเทียบพิกัดของอินเวอร์เตอร์ จึงคนละค่ากันสองรุ่น */
-  const perMppt2 = inv2 && nInv2 > 0 ? scStringsPerMppt(panel, inv2) : perMppt0;
-  const perMpptOf = (m) => (LAY.unitOfMppt(m).from === 2 ? perMppt2 : perMppt0);
+  /* เพดาน "กี่สตริงขนานเข้า 1 MPPT" คิดจากกระแสของแผงเทียบพิกัดของอินเวอร์เตอร์ จึงคนละค่ากันแต่ละรุ่น */
+  const perF = {}; LAY.specs.forEach((x) => { perF[x.from] = x.from === 1 ? perMppt0 : scStringsPerMppt(panel, x.spec); });
+  const perMpptOf = (m) => perF[LAY.unitOfMppt(m).from];
   const strings = Object.keys(bag).sort((a, b) => a - b).map((sid) => {
     const b = bag[sid];
     const gks = Object.keys(b.gset);
@@ -658,7 +666,7 @@ function scStringsFromAssign(assign, byPanel, groups, panel, inv, env, opt) {
     const a = scPinAddr(pin, LAY);
     s.pin = pin; s.mppt = a.mppt; s.inv = a.inv; s.from = a.from; s.addr = scMpptName(pin, LAY);
     /* ลงขั้วแล้วถึงรู้ว่าไปอยู่รุ่นไหน ค่อยตรวจแรงดันใหม่กับช่วง MPPT ของรุ่นนั้น */
-    if (a.from === 2) s.chk = scStringCheck(panel, LAY.unitOfPin(pin).spec, s.n, env, opt.optimizer);
+    if (a.from > 1) s.chk = scStringCheck(panel, LAY.unitOfPin(pin).spec, s.n, env, opt.optimizer);
     load[a.mppt] = (load[a.mppt] || 0) + 1;
     (owner[pin] = owner[pin] || []).push(s.id);
   };
@@ -699,22 +707,22 @@ function scStringsFromAssign(assign, byPanel, groups, panel, inv, env, opt) {
   const total = (opt.totalPanels || 0);
   const assigned = strings.reduce((a, s) => a + s.n, 0);
   if (total && assigned < total) warns.push("ยังมีแผงที่ไม่ได้อยู่สตริงไหนเลย " + (total - assigned) + " แผง");
-  const nInv = LAY.nInv, slots = slots0, perMppt = perMppt0;   // nInv = ตัวจริงทั้งระบบ รวมรุ่นที่สองแล้ว
+  const nInv = LAY.nInv, slots = slots0, perMppt = perMppt0;   // nInv = ตัวจริงทั้งระบบ รวมทุกรุ่นแล้ว
   /* กระแสเข้าช่อง MPPT — นับสตริงที่ลงช่องเดียวกันว่าขนานกันกี่เส้น */
   const parMax = Math.max(1, Math.max.apply(null, [1].concat(Object.keys(load).map((k) => load[k]))));
   const current = scCurrent(panel, inv, parMax, opt.optimizer);
   current.warns.forEach((w) => warns.push(w));
-  /* พิกัดกระแสของรุ่นที่สองคนละค่า ตรวจแยกแล้วเอาคำเตือนมารวม (ไม่ทับผลของรุ่นแรก) */
-  if (LAY.mixed) {
+  /* พิกัดกระแสของรุ่นอื่นคนละค่า ตรวจแยกแล้วเอาคำเตือนมารวม (ไม่ทับผลของรุ่นแรก) */
+  LAY.specs.slice(1).forEach((x) => {
     const par2 = Math.max(1, Math.max.apply(null, [1].concat(
-      Object.keys(load).filter((k) => LAY.unitOfMppt(+k).from === 2).map((k) => load[k]))));
-    scCurrent(panel, inv2, par2, opt.optimizer).warns.forEach((w) => { if (warns.indexOf(w) < 0) warns.push(w); });
-  }
+      Object.keys(load).filter((k) => LAY.unitOfMppt(+k).from === x.from).map((k) => load[k]))));
+    scCurrent(panel, x.spec, par2, opt.optimizer).warns.forEach((w) => { if (warns.indexOf(w) < 0) warns.push(w); });
+  });
   const fuse = scStringFuse(panel, parMax, strings.length);
   if (fuse.need) warns.push("ต้องมีฟิวส์สตริง " + fuse.count + " ตัว" + (fuse.amp ? " (" + fuse.amp + " A)" : "") + " — " + fuse.why);
   fuse.warns.forEach((w) => warns.push(w));
   const dcKw = scR(assigned * scNum(panel.wp) / 1000, 2);
-  const acKw = scR(nInv0 * scNum(inv.kw) + (LAY.mixed ? nInv2 * scNum(inv2.kw) : 0), 2);
+  const acKw = scR(LAY.acKw, 2);
   if (acKw && dcKw / acKw > 1.4) warns.push("DC/AC = " + scR(dcKw / acKw, 2) + " สูงไป อินเวอร์เตอร์จะตัดยอด (clipping) ช่วงเที่ยง — เพิ่มขนาด/จำนวนอินเวอร์เตอร์");
   return { strings, warns, notes: current.notes, current, panels: assigned, dcKw, acKw, dcAc: acKw ? scR(dcKw / acKw, 2) : 0,
     range: scSeriesRange(panel, inv, env, opt.optimizer), perMppt, mppt: slots, mpptPerInv, pins: LAY.pins, phys: LAY.phys,
@@ -1535,6 +1543,9 @@ function scBlankSys() {
     /* อินเวอร์เตอร์ขนาดที่สองของงานเดียวกัน — ว่าง = ใช้รุ่นเดียวทั้งงาน (ท่าเดียวกับ BOQ)
        จำนวนตัวกรอกเองเสมอ ไม่มีค่าอัตโนมัติ เพราะคนออกแบบเป็นคนตัดสินว่าจะแบ่งหลังคาอย่างไร */
     inv2Model: "", inv2: {}, inv2Count: 0,
+    /* รุ่นที่ 3 และ 4 (ผู้ใช้ 2026-10-29: งานใหญ่ใช้ 4 ขนาดปนกัน) — ท่าเดียวกับรุ่นที่สอง */
+    inv3Model: "", inv3: {}, inv3Count: 0,
+    inv4Model: "", inv4: {}, inv4Count: 0,
     microRatio: "",
     series: 0,                 // 0 = ให้ระบบเลือกให้
     assign: {}, manual: false, // { "<roofId>|<panelKey>": หมายเลขสตริง } · manual=false = ใช้ที่ระบบจัดให้
@@ -1654,6 +1665,21 @@ function scInvSpec(sys) {
 
 /* สเปคของรุ่นที่สอง — คืน null เมื่อไม่ได้ใช้ เพื่อให้ฝั่งเรียกเช็คด้วย if เดียวจบ
    รุ่นเดียวกับตัวแรกถือว่าไม่ได้ใช้ ไม่งั้นจะกลายเป็นรุ่นเดียวกันสองบรรทัดที่รวมกันไม่ได้ */
+/* รุ่นที่ 2..4 ของงาน → [{ k, model, spec, n }] เรียงตามช่อง · ข้ามช่องว่าง/จำนวน 0/รุ่นซ้ำกับช่องก่อนหน้า
+   ส่งเข้าเอนจินแทน inv2 ได้ตรง ๆ (scInvList รับอาร์เรย์) */
+const SC_INV_SLOTS = [2, 3, 4];
+function scInvExtras(sys) {
+  const B = window.BOQ || {}, seen = [sys && sys.invModel], out = [];
+  SC_INV_SLOTS.forEach((k) => {
+    const m = sys && sys["inv" + k + "Model"];
+    const n = Math.round(scNum(sys && sys["inv" + k + "Count"], 0));
+    if (!m || seen.indexOf(m) >= 0 || !(n > 0)) return;
+    seen.push(m);
+    const stock = (B.INVERTERS || []).find((p) => p.model === m) || {};
+    out.push({ k, model: m, n, spec: Object.assign({}, SC_INV_EXTRA, stock, (sys && sys["inv" + k]) || {}) });
+  });
+  return out;
+}
 function scInvSpec2(sys) {
   const m = sys && sys.inv2Model;
   if (!m || m === (sys && sys.invModel)) return null;
@@ -1669,7 +1695,7 @@ Object.assign(window, {
   scSunPos, scNormalToTiltAz, scPanelNormal, scGroupsFromPlan, scPanelIndex, scStringsFromAssign, scAutoAssign, scLayoutOrder, scFillFrom,
   scVocAt, scVmpAt, scStringCheck, scSeriesRange, scCurrent, scStringsPerMppt, scMpptName, scPinLayout, scPinAddr, scInvUnits, scMpptOrder, scPinOrder, scSpreadMppt, scAutoStrings,
   scMicroPlan, scMicroSpec, scMicroPerMppt, scMicroAssign, scMicroPhases, scPhaseBalance, SC_MICRO_EXTRA,
-  scYearOneGroup, scDcAt, scEnergy, scLife, scBlankSys, scPanelSpec, scInvSpec, scInvSpec2, scOptSpec, scOptPlan, scHalfCut, scR, scNum, scClamp,
+  scYearOneGroup, scDcAt, scEnergy, scLife, scBlankSys, scPanelSpec, scInvSpec, scInvSpec2, scInvExtras, SC_INV_SLOTS, scInvList, scOptSpec, scOptPlan, scHalfCut, scR, scNum, scClamp,
   scEnviron, SC_ENVF,
   SC_LOADS, SC_LOAD, SC_MONSCALE_AC, scLoadProfile,
   SC_BATT, SC_CHEM, scBattSpec, scDispatch,

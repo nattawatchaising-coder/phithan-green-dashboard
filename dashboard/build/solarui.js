@@ -3866,15 +3866,19 @@ function SolarWorkspace({
   const stockPanel = stockPanels.find(p => p.model === S.panelModel) || {};
   const stockInvRow = stockInv.find(p => p.model === S.invModel) || {};
   const [invBrandPick, setInvBrandPick] = React.useState("");
-  const inv2 = React.useMemo(() => scInvSpec2(S), [S.inv2Model, S.inv2, S.inv2Count, S.invModel, stockInv]);
-  const inv2Count = inv2 ? Math.max(1, Math.round(scNum(S.inv2Count, 0))) : 0;
-  const stockInv2Row = stockInv.find(p => p.model === S.inv2Model) || {};
+  const invX = React.useMemo(() => scInvExtras(S), [S.invModel, stockInv, S.inv2Model, S.inv2, S.inv2Count, S.inv3Model, S.inv3, S.inv3Count, S.inv4Model, S.inv4, S.inv4Count]);
+  const inv2 = invX.length ? invX : null;
+  const inv2Count = invX.reduce((t, e) => t + e.n, 0);
   const pinLay = React.useMemo(() => scPinLayout(inv, S.invCount, inv2, inv2Count), [inv, S.invCount, inv2, inv2Count]);
   React.useEffect(() => {
-    if (S.inv2Model && S.inv2Model === S.invModel) set({
-      inv2Model: "",
-      inv2Count: 0
+    const p = {};
+    SC_INV_SLOTS.forEach(k => {
+      if (S["inv" + k + "Model"] && S["inv" + k + "Model"] === S.invModel) {
+        p["inv" + k + "Model"] = "";
+        p["inv" + k + "Count"] = 0;
+      }
     });
+    if (Object.keys(p).length) set(p);
   }, [S.invModel]);
   const srcOf = (ov, stock, key) => ov && ov[key] != null ? "edit" : stock[key] != null && stock[key] !== 0 ? "stock" : "def";
   const setP = (k, v) => {
@@ -3889,13 +3893,6 @@ function SolarWorkspace({
     if (v == null) delete o[k];else o[k] = v;
     set({
       inv: o
-    });
-  };
-  const setI2 = (k, v) => {
-    const o = Object.assign({}, S.inv2);
-    if (v == null) delete o[k];else o[k] = v;
-    set({
-      inv2: o
     });
   };
   const idx = React.useMemo(() => scPanelIndex(st), [st]);
@@ -4403,10 +4400,10 @@ function SolarWorkspace({
       microManual: true
     });
   };
-  const acKw = isMicro ? microSel ? microSel.acKw : 0 : scR(scNum(inv.kw) * Math.max(1, scNum(S.invCount, 1)) + (inv2 ? scNum(inv2.kw) * inv2Count : 0), 2);
+  const acKw = isMicro ? microSel ? microSel.acKw : 0 : scR(scNum(inv.kw) * Math.max(1, scNum(S.invCount, 1)) + invX.reduce((t, e) => t + scNum(e.spec.kw) * e.n, 0), 2);
   const dcKwAll = totalPanels * scNum(panel.wp) / 1000;
   const invPvCap = iv => Math.max(0.1, scNum(iv.maxPv) || scNum(iv.kw) * 1.3);
-  const inv2PvKw = inv2 ? invPvCap(inv2) * inv2Count : 0;
+  const inv2PvKw = invX.reduce((t, e) => t + invPvCap(e.spec) * e.n, 0);
   const invSuggest = Math.max(1, Math.ceil(Math.max(0, dcKwAll - inv2PvKw) / invPvCap(inv)));
   const use3d = !(S.shadeOff === true);
   const hc = scHalfCut(panel);
@@ -4876,7 +4873,7 @@ function SolarWorkspace({
       sys: S,
       panel,
       inv,
-      inv2,
+      invX,
       groups,
       plan,
       microSel,
@@ -5380,13 +5377,13 @@ function SolarWorkspace({
       fontWeight: 700,
       color: "var(--acd)"
     }
-  }, "\xA0\xB7 \u0E2A\u0E2D\u0E07\u0E02\u0E19\u0E32\u0E14") : null, React.createElement("span", {
+  }, "\xA0\xB7 ", ["สอง", "สาม", "สี่"][invX.length - 1], "\u0E02\u0E19\u0E32\u0E14") : null, React.createElement("span", {
     className: "ln"
   }), inv2 ? React.createElement("span", {
     style: {
       fontWeight: 600
     }
-  }, S.invCount + " + " + inv2Count + " = " + pinLay.nInv + " ตัว") : null), React.createElement("div", {
+  }, [S.invCount].concat(invX.map(e => e.n)).join(" + ") + " = " + pinLay.nInv + " ตัว") : null), React.createElement("div", {
     style: {
       display: "flex",
       gap: 9,
@@ -5609,129 +5606,100 @@ function SolarWorkspace({
     src: srcOf(S.inv, stockInvRow, inv.effEuro ? "effEuro" : "eff"),
     onChange: v => setI(inv.effEuro ? "effEuro" : "eff", v),
     onReset: () => setI(inv.effEuro ? "effEuro" : "eff", null)
-  })), React.createElement("div", {
-    style: {
-      borderTop: "1px dashed var(--ln)",
-      paddingTop: 9
-    }
-  }, React.createElement("div", {
-    style: {
-      display: "flex",
-      gap: 9
-    }
-  }, React.createElement("label", {
-    className: "p3-f",
-    style: {
-      flex: 1,
-      minWidth: 0
-    }
-  }, React.createElement("span", {
-    className: "lb"
-  }, "\u0E2D\u0E34\u0E19\u0E40\u0E27\u0E2D\u0E23\u0E4C\u0E40\u0E15\u0E2D\u0E23\u0E4C\u0E15\u0E31\u0E27\u0E17\u0E35\u0E48\u0E2A\u0E2D\u0E07 (\u0E44\u0E21\u0E48\u0E1A\u0E31\u0E07\u0E04\u0E31\u0E1A)"), React.createElement(Dropdown, {
-    value: S.inv2Model || "",
-    style: invDdStyle,
-    options: [{
-      value: "",
-      label: "— ไม่ใช้ (รุ่นเดียวทั้งงาน) —"
-    }].concat(stockInv.filter(p => p.model !== S.invModel).slice().sort((a, b) => invBrandOf(a).localeCompare(invBrandOf(b)) || invByKw(a, b)).map(p => ({
-      value: p.model,
-      label: invNameOf(p, invBrandOf(p)),
-      sub: invBrandOf(p) + " · " + invSpecOf(p),
-      group: invBrandOf(p)
-    }))),
-    onChange: v => set({
-      inv2Model: v,
-      inv2Count: v ? Math.max(1, Math.round(scNum(S.inv2Count, 0))) : 0
-    })
-  })), React.createElement("label", {
-    className: "p3-f",
-    style: {
-      width: 108,
-      flex: "0 0 auto"
-    }
-  }, React.createElement("span", {
-    className: "lb"
-  }, "\u0E08\u0E33\u0E19\u0E27\u0E19 (\u0E01\u0E23\u0E2D\u0E01\u0E40\u0E2D\u0E07)"), React.createElement("input", {
-    className: "p3-inp",
-    type: "number",
-    min: "1",
-    step: "1",
-    disabled: !S.inv2Model,
-    value: S.inv2Model ? S.inv2Count || "" : "",
-    onChange: e => set({
-      inv2Count: Math.max(0, parseInt(e.target.value, 10) || 0)
-    })
-  }))), inv2 && React.createElement(React.Fragment, null, React.createElement("div", {
-    style: {
-      display: "grid",
-      gridTemplateColumns: "1fr 1fr 1fr",
-      gap: 9,
-      marginTop: 9
-    }
-  }, React.createElement(SuSpec, {
-    label: "\u0E01\u0E33\u0E25\u0E31\u0E07 AC",
-    value: inv2.kw,
-    step: 0.1,
-    suffix: "kW",
-    src: srcOf(S.inv2, stockInv2Row, "kw"),
-    onChange: v => setI2("kw", v),
-    onReset: () => setI2("kw", null)
-  }), React.createElement(SuSpec, {
-    label: "MPPT \u0E15\u0E48\u0E33\u0E2A\u0E38\u0E14",
-    value: inv2.mpptVmin,
-    step: 5,
-    suffix: "V",
-    src: srcOf(S.inv2, stockInv2Row, "mpptVmin"),
-    onChange: v => setI2("mpptVmin", v),
-    onReset: () => setI2("mpptVmin", null)
-  }), React.createElement(SuSpec, {
-    label: "MPPT \u0E2A\u0E39\u0E07\u0E2A\u0E38\u0E14",
-    value: inv2.mpptVmax,
-    step: 5,
-    suffix: "V",
-    src: srcOf(S.inv2, stockInv2Row, "mpptVmax"),
-    onChange: v => setI2("mpptVmax", v),
-    onReset: () => setI2("mpptVmax", null)
-  }), React.createElement(SuSpec, {
-    label: "\u0E41\u0E23\u0E07\u0E14\u0E31\u0E19 DC \u0E2A\u0E39\u0E07\u0E2A\u0E38\u0E14",
-    value: inv2.maxVdc,
-    step: 10,
-    suffix: "V",
-    src: srcOf(S.inv2, stockInv2Row, "maxVdc"),
-    onChange: v => setI2("maxVdc", v),
-    onReset: () => setI2("maxVdc", null)
-  }), React.createElement(SuSpec, {
-    label: "\u0E01\u0E23\u0E30\u0E41\u0E2A\u0E2A\u0E39\u0E07\u0E2A\u0E38\u0E14/MPPT",
-    value: inv2.maxMpptA,
-    step: 0.5,
-    suffix: "A",
-    src: srcOf(S.inv2, stockInv2Row, "maxMpptA"),
-    onChange: v => setI2("maxMpptA", v),
-    onReset: () => setI2("maxMpptA", null)
-  }), React.createElement(SuSpec, {
-    label: "\u0E08\u0E33\u0E19\u0E27\u0E19 MPPT",
-    value: inv2.inputs,
-    step: 1,
-    suffix: "\u0E0A\u0E48\u0E2D\u0E07",
-    src: srcOf(S.inv2, stockInv2Row, "inputs"),
-    onChange: v => setI2("inputs", v),
-    onReset: () => setI2("inputs", null)
-  }), React.createElement(SuSpec, {
-    label: "\u0E2D\u0E34\u0E19\u0E1E\u0E38\u0E15\u0E15\u0E48\u0E2D 1 MPPT",
-    value: inv2.strPerMppt,
-    step: 1,
-    suffix: "\u0E02\u0E31\u0E49\u0E27",
-    src: srcOf(S.inv2, stockInv2Row, "strPerMppt"),
-    onChange: v => setI2("strPerMppt", v),
-    onReset: () => setI2("strPerMppt", null)
-  })), React.createElement("span", {
-    className: "p3-note"
-  }, "\u0E02\u0E31\u0E49\u0E27\u0E02\u0E2D\u0E07\u0E23\u0E38\u0E48\u0E19\u0E19\u0E35\u0E49\u0E40\u0E1B\u0E47\u0E19 ", React.createElement("b", null, "INV", S.invCount + 1, "\u2013INV", pinLay.nInv), " \u0E43\u0E19\u0E0A\u0E48\u0E2D\u0E07\u0E40\u0E25\u0E37\u0E2D\u0E01\u0E02\u0E31\u0E49\u0E27 \xB7 AC \u0E23\u0E27\u0E21\u0E17\u0E31\u0E49\u0E07\u0E07\u0E32\u0E19 ", React.createElement("b", null, acKw, " kW"), " (", S.invCount, "\xD7", scNum(inv.kw), " + ", inv2Count, "\xD7", scNum(inv2.kw), " kW)"), (!inv2.mpptVmin || !inv2.maxVdc) && React.createElement("div", {
-    className: "su-alert warn"
-  }, React.createElement(P3Icon, {
-    name: "height",
-    size: 14
-  }), "\u0E23\u0E38\u0E48\u0E19\u0E17\u0E35\u0E48\u0E2A\u0E2D\u0E07\u0E22\u0E31\u0E07\u0E44\u0E21\u0E48\u0E44\u0E14\u0E49\u0E01\u0E23\u0E2D\u0E01\u0E0A\u0E48\u0E27\u0E07 MPPT / \u0E41\u0E23\u0E07\u0E14\u0E31\u0E19\u0E2A\u0E39\u0E07\u0E2A\u0E38\u0E14\u0E43\u0E19\u0E04\u0E25\u0E31\u0E07 \u2014 \u0E01\u0E23\u0E2D\u0E01\u0E15\u0E23\u0E07\u0E19\u0E35\u0E49\u0E01\u0E48\u0E2D\u0E19\u0E44\u0E14\u0E49"))), panel.imp && (() => {
+  })), SC_INV_SLOTS.filter(k => k === 2 || S["inv" + (k - 1) + "Model"]).map(k => {
+    const mk = "inv" + k + "Model",
+      ck = "inv" + k + "Count";
+    const x = invX.find(e => e.k === k),
+      xs = x && x.spec,
+      ov = S["inv" + k];
+    const row = stockInv.find(p => p.model === S[mk]) || {};
+    const taken = [S.invModel].concat(SC_INV_SLOTS.filter(j => j !== k).map(j => S["inv" + j + "Model"]));
+    const setX = (key, v) => {
+      const o = Object.assign({}, ov);
+      if (v == null) delete o[key];else o[key] = v;
+      set({
+        ["inv" + k]: o
+      });
+    };
+    const from = S.invCount + invX.filter(e => e.k < k).reduce((t, e) => t + e.n, 0) + 1;
+    const spec = (lb, key, step, suf) => React.createElement(SuSpec, {
+      label: lb,
+      value: xs[key],
+      step: step,
+      suffix: suf,
+      src: srcOf(ov, row, key),
+      onChange: v => setX(key, v),
+      onReset: () => setX(key, null)
+    });
+    return React.createElement("div", {
+      key: k,
+      style: {
+        borderTop: "1px dashed var(--ln)",
+        paddingTop: 9
+      }
+    }, React.createElement("div", {
+      style: {
+        display: "flex",
+        gap: 9
+      }
+    }, React.createElement("label", {
+      className: "p3-f",
+      style: {
+        flex: 1,
+        minWidth: 0
+      }
+    }, React.createElement("span", {
+      className: "lb"
+    }, "\u0E2D\u0E34\u0E19\u0E40\u0E27\u0E2D\u0E23\u0E4C\u0E40\u0E15\u0E2D\u0E23\u0E4C\u0E23\u0E38\u0E48\u0E19\u0E17\u0E35\u0E48 ", k, " (\u0E44\u0E21\u0E48\u0E1A\u0E31\u0E07\u0E04\u0E31\u0E1A)"), React.createElement(Dropdown, {
+      value: S[mk] || "",
+      style: invDdStyle,
+      options: [{
+        value: "",
+        label: k === 2 ? "— ไม่ใช้ (รุ่นเดียวทั้งงาน) —" : "— ไม่ใช้ —"
+      }].concat(stockInv.filter(p => taken.indexOf(p.model) < 0).slice().sort((a, b) => invBrandOf(a).localeCompare(invBrandOf(b)) || invByKw(a, b)).map(p => ({
+        value: p.model,
+        label: invNameOf(p, invBrandOf(p)),
+        sub: invBrandOf(p) + " · " + invSpecOf(p),
+        group: invBrandOf(p)
+      }))),
+      onChange: v => set({
+        [mk]: v,
+        [ck]: v ? Math.max(1, Math.round(scNum(S[ck], 0))) : 0
+      })
+    })), React.createElement("label", {
+      className: "p3-f",
+      style: {
+        width: 108,
+        flex: "0 0 auto"
+      }
+    }, React.createElement("span", {
+      className: "lb"
+    }, "\u0E08\u0E33\u0E19\u0E27\u0E19 (\u0E01\u0E23\u0E2D\u0E01\u0E40\u0E2D\u0E07)"), React.createElement("input", {
+      className: "p3-inp",
+      type: "number",
+      min: "1",
+      step: "1",
+      disabled: !S[mk],
+      value: S[mk] ? S[ck] || "" : "",
+      onChange: e => set({
+        [ck]: Math.max(0, parseInt(e.target.value, 10) || 0)
+      })
+    }))), xs && React.createElement(React.Fragment, null, React.createElement("div", {
+      style: {
+        display: "grid",
+        gridTemplateColumns: "1fr 1fr 1fr",
+        gap: 9,
+        marginTop: 9
+      }
+    }, spec("กำลัง AC", "kw", 0.1, "kW"), spec("MPPT ต่ำสุด", "mpptVmin", 5, "V"), spec("MPPT สูงสุด", "mpptVmax", 5, "V"), spec("แรงดัน DC สูงสุด", "maxVdc", 10, "V"), spec("กระแสสูงสุด/MPPT", "maxMpptA", 0.5, "A"), spec("จำนวน MPPT", "inputs", 1, "ช่อง"), spec("อินพุตต่อ 1 MPPT", "strPerMppt", 1, "ขั้ว")), React.createElement("span", {
+      className: "p3-note"
+    }, "\u0E02\u0E31\u0E49\u0E27\u0E02\u0E2D\u0E07\u0E23\u0E38\u0E48\u0E19\u0E19\u0E35\u0E49\u0E40\u0E1B\u0E47\u0E19 ", React.createElement("b", null, "INV", from, x.n > 1 ? "–INV" + (from + x.n - 1) : ""), " \u0E43\u0E19\u0E0A\u0E48\u0E2D\u0E07\u0E40\u0E25\u0E37\u0E2D\u0E01\u0E02\u0E31\u0E49\u0E27 \xB7 AC \u0E23\u0E27\u0E21\u0E17\u0E31\u0E49\u0E07\u0E07\u0E32\u0E19 ", React.createElement("b", null, acKw, " kW"), " (", [S.invCount + "×" + scNum(inv.kw)].concat(invX.map(e => e.n + "×" + scNum(e.spec.kw))).join(" + "), " kW)"), (!xs.mpptVmin || !xs.maxVdc) && React.createElement("div", {
+      className: "su-alert warn"
+    }, React.createElement(P3Icon, {
+      name: "height",
+      size: 14
+    }), "\u0E23\u0E38\u0E48\u0E19\u0E17\u0E35\u0E48 ", k, " \u0E22\u0E31\u0E07\u0E44\u0E21\u0E48\u0E44\u0E14\u0E49\u0E01\u0E23\u0E2D\u0E01\u0E0A\u0E48\u0E27\u0E07 MPPT / \u0E41\u0E23\u0E07\u0E14\u0E31\u0E19\u0E2A\u0E39\u0E07\u0E2A\u0E38\u0E14\u0E43\u0E19\u0E04\u0E25\u0E31\u0E07 \u2014 \u0E01\u0E23\u0E2D\u0E01\u0E15\u0E23\u0E07\u0E19\u0E35\u0E49\u0E01\u0E48\u0E2D\u0E19\u0E44\u0E14\u0E49")));
+  }), panel.imp && (() => {
     const per = scStringsPerMppt(panel, inv);
     const cur = scCurrent(panel, inv, per);
     const lay = scPinLayout(inv, S.invCount, inv2, inv2Count);

@@ -5397,7 +5397,7 @@ function Plan3DStudio({ job, ver, onClose, currentUser }) {
       act: (
         <React.Fragment>
           {(() => {
-            const S = st.sys || {}, inv = S.mode === "micro" ? "ไมโครอินเวอร์เตอร์" : S.invModel ? S.invModel + " × " + (S.invCount || 1) + (S.inv2Model && S.inv2Count ? " + " + S.inv2Model + " × " + S.inv2Count : "") : "ยังไม่ได้เลือก";
+            const S = st.sys || {}, inv = S.mode === "micro" ? "ไมโครอินเวอร์เตอร์" : S.invModel ? S.invModel + " × " + (S.invCount || 1) + [2, 3, 4].map((k) => (S["inv" + k + "Model"] && S["inv" + k + "Count"] ? " + " + S["inv" + k + "Model"] + " × " + S["inv" + k + "Count"] : "")).join("") : "ยังไม่ได้เลือก";
             return (
               <div className="p3s-stat">
                 <div><div className="l">แผง</div><div className="v">{total} แผง · {p3sR(total * (+st.wp || 650) / 1000, 100)} kWp</div></div>

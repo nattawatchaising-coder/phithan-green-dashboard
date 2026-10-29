@@ -1208,14 +1208,17 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock, ver, verName, p3Vers
   // อินเวอร์เตอร์ String/Hybrid ที่เลือก (Huawei = มี combiner box)
   const selInv = (window.BOQ.INVERTERS || []).find((x) => x.model === b.inverterModel);
   const isHuawei = !!(selInv && selInv.inputs > 0);
-  /* ── อินเวอร์เตอร์ขนาดที่สอง ── เอนจินคิดจำนวนกับราคาให้แล้ว (boq.js) ที่นี่คือส่วน UI
-     ว่าง = ใช้รุ่นเดียวทั้งงาน · จำนวนตัวกรอกเองเสมอ ไม่มีค่าอัตโนมัติ */
-  const selInv2 = selInv && b.inv2Model && b.inv2Model !== b.inverterModel
-    ? (window.BOQ.INVERTERS || []).find((x) => x.model === b.inv2Model) : null;
-  const inv2Count = result.meta.inv2Count || 0;
+  /* ── อินเวอร์เตอร์รุ่นที่ 2–4 ── เอนจินคิดจำนวนกับราคาให้แล้ว (boq.js invExtras) ที่นี่คือส่วน UI
+     ว่าง = ใช้รุ่นเดียวทั้งงาน · จำนวนตัวกรอกเองเสมอ ไม่มีค่าอัตโนมัติ (ผู้ใช้ 2026-10-29: ปนได้ถึง 4 รุ่น) */
+  const invXs = selInv && window.BOQ.invExtras ? window.BOQ.invExtras(b) : [];
+  const selInv2 = invXs.length ? invXs[0].spec : null;   // มีรุ่นเสริมไหม (รุ่นแรกของรุ่นเสริม)
+  const invXKey = invXs.map((x) => x.spec.model + "×" + x.n).join("|");
+  const inv2Count = result.meta.inv2Count || 0;   // จำนวนตัวของรุ่นเสริมทุกรุ่นรวม
   const invTotal = result.meta.invTotal || result.meta.invCount;
   /* ดรอปดาวน์กรองเฟสให้แล้ว แต่ใบเก่าที่บันทึกรุ่นไว้ตอนงานยังเป็นอีกเฟส จะค้างอยู่ในข้อมูล — ต้องเตือน ไม่ใช่ล้างให้เงียบ ๆ */
-  const inv2PhaseBad = !!(selInv2 && selInv2.phase && selInv2.phase !== window.SF.phaseOf(job));
+  const xPhaseBad = (x) => !!(x.spec.phase && x.spec.phase !== window.SF.phaseOf(job));
+  const inv2PhaseBad = invXs.some(xPhaseBad);
+  const KTH = { 2: "ที่สอง", 3: "ที่สาม", 4: "ที่สี่" };
   // ── กรองรุ่นอินเวอร์เตอร์ตามแบรนด์ + เฟส ของงาน ──
   const jobBrand = (job && job.brand) || "";
   const jobPhaseNum = window.SF.phaseOf(job);
@@ -1232,16 +1235,26 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock, ver, verName, p3Vers
     if (!showMicro && !inList && brandInvs.length) set("inverterModel", brandInvs[0].model);
     else if (showMicro && b.inverterModel && !inList) set("inverterModel", "");
   }, [jobBrand, jobPhaseNum]); // eslint-disable-line
-  /* ตัวที่สอง — รุ่นเดียวกับตัวแรกเลือกไม่ได้ จะกลายเป็นสองบรรทัดของรุ่นเดียวกัน ที่รวมกันไม่ได้ในใบเสนอราคา */
-  const inv2Options = [{ value: "", label: "ไม่ใช้ (รุ่นเดียวทั้งงาน)" }]
-    .concat(brandInvs.filter((x) => x.model !== b.inverterModel)
-      .map((x) => ({ value: x.model, label: x.model + (x.kw ? " · " + x.kw + "kW" : "") })));
-  /* รุ่นที่เคยเลือกไว้แต่ตอนนี้ไม่ผ่านตัวกรอง (เปลี่ยนเฟส หรือแบรนด์งาน) ยังต้องเห็นในดรอปดาวน์ ไม่งั้นของที่อยู่ในใบถอดจะหายไปเงียบ ๆ */
-  if (b.inv2Model && !inv2Options.some((x) => x.value === b.inv2Model))
-    inv2Options.push({ value: b.inv2Model, group: "ไม่ตรงแบรนด์/เฟสของงาน", label: b.inv2Model });
-  // เปลี่ยนรุ่นแรกไปชนกับรุ่นที่สอง → ล้างรุ่นที่สอง ไม่เก็บรุ่นเดียวไว้สองบรรทัด
+  /* รุ่นเสริม — รุ่นเดียวกับรุ่นแรกหรือช่องอื่นเลือกไม่ได้ จะกลายเป็นหลายบรรทัดของรุ่นเดียวกัน ที่รวมกันไม่ได้ในใบเสนอราคา */
+  const INV_SLOTS = window.BOQ.INV_SLOTS || [2];
+  const invXOptions = (k) => {
+    const taken = [b.inverterModel].concat(INV_SLOTS.filter((j) => j !== k).map((j) => b["inv" + j + "Model"]));
+    const cur = b["inv" + k + "Model"];
+    const o = [{ value: "", label: "— เลือกอินเวอร์เตอร์ —" }]
+      .concat(brandInvs.filter((x) => taken.indexOf(x.model) < 0)
+        .map((x) => ({ value: x.model, label: x.model + (x.kw ? " · " + x.kw + "kW" : "") })));
+    /* รุ่นที่เคยเลือกไว้แต่ตอนนี้ไม่ผ่านตัวกรอง (เปลี่ยนเฟส หรือแบรนด์งาน) ยังต้องเห็นในดรอปดาวน์ ไม่งั้นของที่อยู่ในใบถอดจะหายไปเงียบ ๆ */
+    if (cur && !o.some((x) => x.value === cur)) o.push({ value: cur, group: "ไม่ตรงแบรนด์/เฟสของงาน", label: cur });
+    return o;
+  };
+  /* ผู้ใช้ 2026-10-29: รุ่นเสริมไม่โชว์ช่องรอ — กดปุ่ม "เพิ่มอินเวอร์เตอร์อีกรุ่น" ทีละช่อง (ช่องว่างที่เพิ่งเปิดจำไว้ใน invXAdd)
+     ช่องที่มีรุ่นอยู่ขึ้นเสมอ (ไม่งั้นของในใบถอดมองไม่เห็น) · ปุ่ม × ล้างรุ่นของช่องนั้น */
+  const [invXAdd, setInvXAdd] = React.useState(0);
+  const invXShown = INV_SLOTS.filter((k) => b["inv" + k + "Model"] || k === invXAdd);
+  const invXNext = invXAdd ? 0 : (INV_SLOTS.find((k) => !b["inv" + k + "Model"]) || 0);
+  // เปลี่ยนรุ่นแรกไปชนกับรุ่นเสริม → ล้างช่องนั้น ไม่เก็บรุ่นเดียวไว้สองบรรทัด
   React.useEffect(() => {
-    if (b.inv2Model && b.inv2Model === b.inverterModel) set("inv2Model", "");
+    INV_SLOTS.forEach((k) => { if (b["inv" + k + "Model"] && b["inv" + k + "Model"] === b.inverterModel) set("inv" + k + "Model", ""); });
   }, [b.inverterModel]); // eslint-disable-line
   /* ── ตัวคุมแผง (Optimizer) ──
      รุ่นมาจากคลังสินค้า พร้อมอัตราส่วนของรุ่นนั้น (perPanel = กี่แผงต่อตัวคุม 1 ตัว)
@@ -1273,23 +1286,20 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock, ver, verName, p3Vers
   if (optModel && !optOptions.some((x) => x.value === optModel))
     optOptions.push({ value: optModel, group: "ใช้กับอินเวอร์เตอร์รุ่นนี้ไม่ได้", label: optModel });
 
-  const maxPvTotal = selInv ? (selInv.maxPv || 0) * result.meta.invCount + (selInv2 ? (selInv2.maxPv || 0) * inv2Count : 0) : 0;
+  const maxPvTotal = selInv ? (selInv.maxPv || 0) * result.meta.invCount + invXs.reduce((t, x) => t + (x.spec.maxPv || 0) * x.n, 0) : 0;
   /* กำลังออก AC สูงสุดทั้งงาน — ตัวนี้คือเพดานจริงที่อินเวอร์เตอร์ปล่อยออกได้ (cosφ=1)
      คลังยังไม่กรอก Max AC ให้รุ่นไหน ก็ถอยไปใช้เกณฑ์เดิม (MAX PV) ของรุ่นนั้น */
   /* งานสองขนาด: รวมได้เมื่อคลังกรอก Max AC ไว้ครบทั้งสองรุ่น
      ขาดรุ่นใดรุ่นหนึ่ง ยอดรวมจะต่ำกว่าจริง แล้วเตือน DC/AC เกินทั้งที่ไม่เกิน — ถอยไปใช้เกดิห MAX PV ดีกว่า */
-  const acKwKnown = !!(selInv && +selInv.maxAcKw) && (!selInv2 || !!+selInv2.maxAcKw);
-  const acMaxTotal = acKwKnown ? (+selInv.maxAcKw) * result.meta.invCount + (selInv2 ? (+selInv2.maxAcKw) * inv2Count : 0) : 0;
+  const acKwKnown = !!(selInv && +selInv.maxAcKw) && invXs.every((x) => !!+x.spec.maxAcKw);
+  const acMaxTotal = acKwKnown ? (+selInv.maxAcKw) * result.meta.invCount + invXs.reduce((t, x) => t + (+x.spec.maxAcKw) * x.n, 0) : 0;
   const dcAcCap = acMaxTotal > 0 ? acMaxTotal * window.BOQ.DCAC_LIMIT : maxPvTotal;
   const dcAcRatio = acMaxTotal > 0 && result.meta.kw > 0 ? result.meta.kw / acMaxTotal : 0;
   const pvOver = isHuawei && dcAcCap > 0 && result.meta.kw > dcAcCap;
   // ที่มาของเพดานในข้อความเตือน — งานสองขนาดต้องเห็นว่าตัวไหนกี่ตัว ไม่ใช่เลขรวมก้อนเดียว
-  const acBreak = !selInv ? "" : selInv2
-    ? result.meta.invCount + "×" + selInv.maxAcKw + " + " + inv2Count + "×" + selInv2.maxAcKw + " kW"
-    : result.meta.invCount + " ตัว × " + selInv.maxAcKw + " kW";
-  const pvBreak = !selInv ? "" : selInv2
-    ? result.meta.invCount + "×" + selInv.maxPv + " + " + inv2Count + "×" + selInv2.maxPv + " kWp"
-    : result.meta.invCount + " ตัว × " + selInv.maxPv + " kWp";
+  const brkOf = (key, u) => [result.meta.invCount + "×" + selInv[key]].concat(invXs.map((x) => x.n + "×" + x.spec[key])).join(" + ") + " " + u;
+  const acBreak = !selInv ? "" : selInv2 ? brkOf("maxAcKw", "kW") : result.meta.invCount + " ตัว × " + selInv.maxAcKw + " kW";
+  const pvBreak = !selInv ? "" : selInv2 ? brkOf("maxPv", "kWp") : result.meta.invCount + " ตัว × " + selInv.maxPv + " kWp";
   // ช่องรับสตริงต่อตัว = จำนวน MPPT × สตริงต่อ MPPT (แผนสตริงคิดหลังรู้ scfg ด้านล่าง)
   const perMppt = Math.max(1, Math.round(+(selInv && selInv.strPerMppt) || 1));
   const capPerInv = selInv ? Math.max(1, (+selInv.inputs || 1) * perMppt) : 1;
@@ -1307,9 +1317,9 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock, ver, verName, p3Vers
     if (!isStringInv || !selInv) return u;
     const n1 = Math.max(1, Math.round(result.meta.invCount || 1));
     for (let k = 0; k < n1; k++) u.push({ model: selInv.model, outA: +selInv.outA || 0, kw: +selInv.maxAcKw || 0 });
-    if (selInv2) for (let k = 0; k < Math.round(inv2Count); k++) u.push({ model: selInv2.model, outA: +selInv2.outA || 0, kw: +selInv2.maxAcKw || 0 });
+    invXs.forEach((x) => { for (let k = 0; k < x.n; k++) u.push({ model: x.spec.model, outA: +x.spec.outA || 0, kw: +x.spec.maxAcKw || 0 }); });
     return u.map((x, k) => Object.assign(x, { no: k + 1 }));
-  }, [isStringInv, selInv, selInv2, result.meta.invCount, inv2Count]);
+  }, [isStringInv, selInv, invXKey, result.meta.invCount]); // eslint-disable-line
   // ตู้นี้รับอินเวอร์เตอร์ตัวไหน — ไม่ได้เลือกไว้ = ทุกตัว
   const mcbInvsOf = (c) => {
     const all = invUnits.map((u) => u.no);
@@ -1363,14 +1373,12 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock, ver, verName, p3Vers
   });
   const scfg = isStringInv && window.BOQ.stringConfig
     ? window.BOQ.stringConfig(selPanel, selInv, { series: (b.dcSeries != null && b.dcSeries !== "") ? b.dcSeries : undefined,
-      strPerInv: +b.strings > 0 ? b.strings : 0, panels: result.meta.panelCount, invCount: (result.meta.invCount || 1) + (selInv2 ? inv2Count : 0) })
+      strPerInv: +b.strings > 0 ? b.strings : 0, panels: result.meta.panelCount, invCount: (result.meta.invCount || 1) + inv2Count })
     : null;
   /* แผนสตริง — "ลงสตริงละ N แผง แล้วได้กี่สตริง" · ต้องรู้ Voc/ช่วง MPPT ก่อน (scfg.ready) */
   /* ช่องรับสตริงของรุ่นที่สอง — จำนวนสตริงไม่เปลี่ยน แต่ช่องที่รับได้มากขึ้น
      ไม่บวกเข้าไป คำเตือน "สตริงมากกว่าช่องรับ" จะขึ้นทั้งที่ยังมีช่องว่างอยู่ */
-  const inv2Cap = selInv2
-    ? inv2Count * Math.max(1, (+selInv2.inputs || 1) * Math.max(1, Math.round(+selInv2.strPerMppt || 1)))
-    : 0;
+  const inv2Cap = window.BOQ.invExtraCap ? window.BOQ.invExtraCap(invXs) : 0;
   const plan = scfg && scfg.ready && window.BOQ.stringPlan
     ? window.BOQ.stringPlan(result.meta.panelCount, scfg.series, selInv, result.meta.invCount, inv2Cap)
     : null;
@@ -1443,7 +1451,6 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock, ver, verName, p3Vers
     /* รุ่นที่สอง — กระแสออกคนละขนาด สายเส้นออกจากเครื่องจึงคิดแยกกัน
        ส่วนสายจาก MCB_SOLAR เข้าตู้เมนคิดที่กระแสรวมของทั้งสองรุ่น */
     const inv2N = (result && result.meta && result.meta.inv2Count) || 0;
-    const outA2 = selInv2 ? (+selInv2.outA || 0) : 0;
     const phN = wcPhase === 3 ? "3 เฟส" : "1 เฟส";
     const rows = [];
     // 1) PV-INVERTER (DC) — Isc × 1.25 → สาย PV1-F
@@ -1460,18 +1467,19 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock, ver, verName, p3Vers
       ampTotal: outA, ampString: outA, wire: outA ? pickWire(outA) : "—", needInput: !outA, splittable: false,
       note: outA ? "กระแสออกอินเวอร์เตอร์/ตัว · " + phN + " · " + outA + " A" : "⚠ กรอกกระแสออก (A) ของอินเวอร์เตอร์ในคลัง" });
     // 3) MCB_SOLAR → MDB (AC รวมทุกตัว → ตู้เมน)
-    if (selInv2) {
-      rows.push({ kind: "invmcb2", label: "INVERTER ตัวที่สอง → MCB_SOLAR", w: outA2 ? Math.round(outA2 * wcVolt) : null,
-        ampTotal: outA2, ampString: outA2, wire: outA2 ? pickWire(outA2) : "—", needInput: !outA2, splittable: false,
-        note: outA2 ? selInv2.model + " · กระแสออก/ตัว · " + outA2 + " A"
-          : "⚠ กรอกกระแสออก (A) ของ " + selInv2.model + " ในคลัง" });
-    }
-    const totalA = outA * invCount + outA2 * inv2N;
+    invXs.forEach((x) => {
+      const oa = +x.spec.outA || 0;
+      rows.push({ kind: "invmcb" + x.k, label: "INVERTER รุ่น" + KTH[x.k] + " → MCB_SOLAR", w: oa ? Math.round(oa * wcVolt) : null,
+        ampTotal: oa, ampString: oa, wire: oa ? pickWire(oa) : "—", needInput: !oa, splittable: false,
+        note: oa ? x.spec.model + " · กระแสออก/ตัว · " + oa + " A"
+          : "⚠ กรอกกระแสออก (A) ของ " + x.spec.model + " ในคลัง" });
+    });
+    const totalA = outA * invCount + invXs.reduce((t, x) => t + (+x.spec.outA || 0) * x.n, 0);
     rows.push({ kind: "mcbmdb", label: "MCB_SOLAR → MDB (ตู้เมน)", w: totalA ? Math.round(totalA * wcVolt) : null,
       ampTotal: totalA, ampString: totalA, wire: totalA ? pickWire(totalA) : "—", needInput: !totalA, splittable: false,
-      note: totalA ? "รวม " + (inv2N > 0 ? invCount + "+" + inv2N : invCount) + " ตัว · " + phN + " · " + (Math.round(totalA * 10) / 10).toFixed(1) + " A" : "⚠ กรอกกระแสออก (A) ของอินเวอร์เตอร์ในคลัง" });
+      note: totalA ? "รวม " + (inv2N > 0 ? [invCount].concat(invXs.map((x) => x.n)).join("+") : invCount) + " ตัว · " + phN + " · " + (Math.round(totalA * 10) / 10).toFixed(1) + " A" : "⚠ กรอกกระแสออก (A) ของอินเวอร์เตอร์ในคลัง" });
     return rows;
-  }, [isStringInv, selInv, selInv2, scfg, result, wcVolt, wcPhase, calcIns, calcMethod, calcGroup, calcNCond]);
+  }, [isStringInv, selInv, invXKey, scfg, result, wcVolt, wcPhase, calcIns, calcMethod, calcGroup, calcNCond]); // eslint-disable-line
 
   const calcRows = isStringInv ? stringCalcRows : wireCalcRows;
 
@@ -3020,9 +3028,9 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock, ver, verName, p3Vers
     { key: "info", icon: "sun", title: "ข้อมูลระบบ", done: b.panels > 0,
       meta: b.panels + " แผง · " + result.meta.kw + " kW · " + (String(b.phase) === "3" ? "3 เฟส" : "1 เฟส") },
     /* หัวข้อเดียว แต่ข้างในแยกเป็นกรอบของแต่ละตัว — สองตัวต้องเทียบกันในหน้าเดียว ไม่ใช่สลับหัวข้อไปมา */
-    isHuawei ? { key: "hybrid", icon: "bolt", title: "ระบบ " + (selInv.type === "hybrid" ? "Hybrid" : "On-grid") + (selInv2 ? " (2 ตัว)" : ""),
+    isHuawei ? { key: "hybrid", icon: "bolt", title: "ระบบ " + (selInv.type === "hybrid" ? "Hybrid" : "On-grid") + (selInv2 ? " (" + (invXs.length + 1) + " รุ่น)" : ""),
       meta: selInv2
-        ? selInv.model + " · " + result.meta.invCount + " ตัว + " + selInv2.model + " · " + inv2Count + " ตัว"
+        ? [selInv.model + " · " + result.meta.invCount + " ตัว"].concat(invXs.map((x) => x.spec.model + " · " + x.n + " ตัว")).join(" + ")
         : selInv.model, tone: inv2PhaseBad ? "warn" : "", done: true } : null,
     isStringInv && scfg ? { key: "dc", icon: "bolt", title: "สาย DC / การต่ออนุกรม",
       meta: scfg.ready ? scfg.series + " แผงอนุกรม" + (plan ? " · " + plan.strings + " สตริง" : "") + " · " + scfg.dcWire : "ยังกรอกสเปคไม่ครบ",
@@ -3328,20 +3336,39 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock, ver, verName, p3Vers
                   ? <Field label="อัตราไมโคร"><Dropdown value={b.microRatio} onChange={(v) => set("microRatio", v)} options={[{ value: "1:1", label: "1:1 (1 แผง/ตัว)" }, { value: "2:1", label: "2:1 (2 แผง/ตัว)" }]} /></Field>
                   : <Field label="จำนวน (แก้ไขได้)"><BoqInvCount value={b.invCount} auto={result.meta.invAuto} onChange={(v) => set("invCount", v)} style={numStyle} /></Field>}
               </div>
-              {!!b.inverterModel && (
-                <div style={{ gridColumn: "1 / -1", display: "grid", gridTemplateColumns: isMobile ? "minmax(0,1fr)" : "minmax(0,2fr) minmax(0,1fr)", gap: 12 }}>
-                  <Field label="อินเวอร์เตอร์ตัวที่ 2 (ไม่บังคับ)">
-                    <Dropdown value={b.inv2Model || ""} onChange={(v) => set("inv2Model", v)} options={inv2Options} />
-                  </Field>
-                  {!!selInv2 && (
-                    <Field label="จำนวน (กรอกเอง)">
-                      <div className="bq-fld">
-                        <input type="number" min={1} step={1}
-                          value={inv2Count || ""} onChange={(e) => set("inv2Count", Math.max(1, parseInt(e.target.value) || 1))} />
-                        <span className="u">ตัว</span>
-                      </div>
+              {!!b.inverterModel && invXShown.map((k, i) => {
+                const mk = "inv" + k + "Model", x = invXs.find((q) => q.k === k);
+                return (
+                  <div key={k} style={{ gridColumn: "1 / -1", display: "grid", gridTemplateColumns: isMobile ? "minmax(0,1fr) 40px" : "minmax(0,2fr) minmax(0,1fr) 40px", gap: 12, alignItems: "end" }}>
+                    <Field label={"อินเวอร์เตอร์ตัวที่ " + (i + 2)}>
+                      <Dropdown value={b[mk] || ""} onChange={(v) => { set(mk, v); if (v && k === invXAdd) setInvXAdd(0); }} options={invXOptions(k)} />
                     </Field>
-                  )}
+                    {isMobile ? null : !x ? <div /> : (
+                      <Field label="จำนวน (กรอกเอง)">
+                        <div className="bq-fld">
+                          <input type="number" min={1} step={1}
+                            value={x.n || ""} onChange={(e) => set("inv" + k + "Count", Math.max(1, parseInt(e.target.value) || 1))} />
+                          <span className="u">ตัว</span>
+                        </div>
+                      </Field>
+                    )}
+                    <button onClick={() => { if (b[mk]) set(mk, ""); if (k === invXAdd) setInvXAdd(0); }} title="เอารุ่นนี้ออก" style={{ height: 40, background: "var(--tint-red-bg)", border: "none", color: "var(--tint-red-tx2)", borderRadius: 9, cursor: "pointer", display: "grid", placeItems: "center" }}><Icon name="x" size={14} /></button>
+                    {isMobile && !!x && (
+                      <Field label="จำนวน (กรอกเอง)">
+                        <div className="bq-fld">
+                          <input type="number" min={1} step={1}
+                            value={x.n || ""} onChange={(e) => set("inv" + k + "Count", Math.max(1, parseInt(e.target.value) || 1))} />
+                          <span className="u">ตัว</span>
+                        </div>
+                      </Field>
+                    )}
+                  </div>
+                );
+              })}
+              {!!b.inverterModel && !!invXNext && (
+                <div style={{ gridColumn: "1 / -1" }}>
+                  <button onClick={() => setInvXAdd(invXNext)}
+                    style={{ display: "inline-flex", alignItems: "center", gap: 5, background: "var(--surface3)", color: "var(--text-2)", border: "none", boxShadow: "var(--shadow-sm)", borderRadius: 9, padding: "7px 11px", fontWeight: 700, fontSize: 12, cursor: "pointer", fontFamily: "inherit" }}><Icon name="plus" size={13} color="var(--text-2)" /> เพิ่มอินเวอร์เตอร์อีกรุ่น</button>
                 </div>
               )}
               {!!selInv2 && (
@@ -3349,11 +3376,11 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock, ver, verName, p3Vers
                   <div className={"bq-note " + (inv2PhaseBad ? "warn" : "ok")} style={{ marginTop: 0 }}>
                     <Icon name={inv2PhaseBad ? "alert" : "bolt"} size={15} color={inv2PhaseBad ? "#F59E0B" : "#0D9488"} />
                     <span>
-                      <b>สองขนาดในงานเดียว</b> — {selInv.model} {result.meta.invCount} ตัว + {selInv2.model} {inv2Count} ตัว
+                      <b>{invXs.length + 1} ขนาดในงานเดียว</b> — {[selInv.model + " " + result.meta.invCount + " ตัว"].concat(invXs.map((x) => x.spec.model + " " + x.n + " ตัว")).join(" + ")}
                       {" "}(รวม {invTotal} ตัว){maxPvTotal > 0 ? " · MAX PV รวม " + maxPvTotal + " kWp" : ""}
                       {acMaxTotal > 0 ? " · กำลังออก AC รวม " + Math.round(acMaxTotal) + " kW" : ""}
-                      <br />จำนวนตัวที่สองกรอกเอง · รุ่นแรกคิดกำลังที่เหลือให้ ({result.meta.invAuto} ตัว) · เบรกเกอร์กับสาย AC แยกขนาดตามกระแสออกของแต่ละรุ่นแล้ว
-                      {inv2PhaseBad && <span style={{ fontWeight: 700 }}><br />รุ่นที่สองเป็น {selInv2.phase} เฟส แต่งานนี้เป็น {jobPhaseNum} เฟส — เปลี่ยนรุ่น หรือแก้เฟสในคลัง</span>}
+                      <br />จำนวนตัวของรุ่นเสริมกรอกเอง · รุ่นแรกคิดกำลังที่เหลือให้ ({result.meta.invAuto} ตัว) · เบรกเกอร์กับสาย AC แยกขนาดตามกระแสออกของแต่ละรุ่นแล้ว
+                      {invXs.filter(xPhaseBad).map((x) => <span key={x.k} style={{ fontWeight: 700 }}><br />รุ่น{KTH[x.k]} ({x.spec.model}) เป็น {x.spec.phase} เฟส แต่งานนี้เป็น {jobPhaseNum} เฟส — เปลี่ยนรุ่น หรือแก้เฟสในคลัง</span>)}
                     </span>
                   </div>
                 </div>
@@ -3507,62 +3534,60 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock, ver, verName, p3Vers
 
           {/* ── กรอบของอินเวอร์เตอร์ตัวที่ 2 ── แยกกรอบใหญ่คนละใบกับตัวที่ 1 จะได้ไม่ต้องไล่อ่านว่าเลขไหนของตัวไหน
               รุ่นกับจำนวนเลือกที่หัวข้อ "ข้อมูลระบบ" ที่เดียว กรอบนี้ดึงค่าจากตรงนั้นมาแสดง */}
-          {isHuawei && !!selInv2 && (
-            <BoqSection title={"ระบบ " + (selInv.type === "hybrid" ? "Hybrid" : "On-grid") + " · ตัวที่ 2 (" + selInv2.model + ")"} icon="bolt" {...secProps("hybrid")}>
+          {isHuawei && invXs.map((x) => {
+            const sp = x.spec, n = x.n, phBad = xPhaseBad(x);
+            return (
+            <BoqSection key={x.k} title={"ระบบ " + (selInv.type === "hybrid" ? "Hybrid" : "On-grid") + " · ตัวที่ " + x.k + " (" + sp.model + ")"} icon="bolt" {...secProps("hybrid")}>
               <div style={{ display: "grid", gridTemplateColumns: isMobile ? "minmax(0,1fr)" : "minmax(0,2fr) minmax(0,1fr)", gap: 12 }}>
                 <Field label="รุ่น · เลือกที่หัวข้อ “ข้อมูลระบบ”">
-                  <BoqLocked value={selInv2.model} />
+                  <BoqLocked value={sp.model} />
                 </Field>
                 <Field label="จำนวน (กรอกเอง)">
                   <div style={{ display: "flex", alignItems: "center", gap: 7 }}>
                     <input type="number" min={1} step={1} style={Object.assign({}, numStyle, { flex: 1, minWidth: 0 })}
-                      value={inv2Count || ""} onChange={(e) => set("inv2Count", Math.max(1, parseInt(e.target.value) || 1))} />
+                      value={n || ""} onChange={(e) => set("inv" + x.k + "Count", Math.max(1, parseInt(e.target.value) || 1))} />
                     <span style={{ fontSize: 11.5, color: "var(--text-3)", flexShrink: 0 }}>ตัว</span>
                   </div>
                 </Field>
               </div>
-              {inv2PhaseBad && (
+              {phBad && (
                 <div className="bq-note warn">
                   <Icon name="alert" size={15} color="#F59E0B" />
-                  <span>รุ่นนี้เป็น {selInv2.phase} เฟส แต่งานนี้เป็น {jobPhaseNum} เฟส — เปลี่ยนรุ่นที่หัวข้อ “ข้อมูลระบบ” หรือแก้เฟสในคลัง</span>
+                  <span>รุ่นนี้เป็น {sp.phase} เฟส แต่งานนี้เป็น {jobPhaseNum} เฟส — เปลี่ยนรุ่นที่หัวข้อ “ข้อมูลระบบ” หรือแก้เฟสในคลัง</span>
                 </div>
               )}
-              {/* สเปครุ่นที่สอง — เฉพาะค่าต่อตัวกับยอดรวมของรุ่นนี้ ส่วนยอดทั้งงาน (MAX PV รวม · AC รวม · DC/AC) อยู่ในกรอบตัวที่ 1 */}
-              {(
-                <React.Fragment>
-                  <div style={{ marginTop: 16, marginBottom: 8, fontSize: 10.5, fontWeight: 800, color: "var(--text-3)" }}>
-                    สเปคจากคลังสินค้า · {selInv2.model} · {inv2Count} ตัว
+              {/* สเปครุ่นนี้ — เฉพาะค่าต่อตัวกับยอดรวมของรุ่นนี้ ส่วนยอดทั้งงาน (MAX PV รวม · AC รวม · DC/AC) อยู่ในกรอบตัวที่ 1 */}
+              <div style={{ marginTop: 16, marginBottom: 8, fontSize: 10.5, fontWeight: 800, color: "var(--text-3)" }}>
+                สเปคจากคลังสินค้า · {sp.model} · {n} ตัว
+              </div>
+              <div className="bq-spec">
+                {[
+                  { k: "กำลังต่อตัว", v: sp.kw ? sp.kw + " kW" : "—", miss: !sp.kw },
+                  { k: "Max AC Active Power (cosφ=1)", v: sp.maxAcKw ? sp.maxAcKw + " kW" : "ยังไม่กรอกในคลัง", miss: !sp.maxAcKw },
+                  { k: "MAX PV ต่อตัว", v: sp.maxPv ? sp.maxPv + " kWp" : "ไม่ระบุ (ใช้ kW แทน)", miss: !sp.maxPv },
+                  { k: "เฟส", v: sp.phase ? sp.phase + " เฟส" : "—", miss: !sp.phase, bad: phBad },
+                  { k: "กระแสออก (AC)", v: sp.outA ? sp.outA + " A" : "—", miss: !sp.outA },
+                  { k: "จำนวน MPPT", v: sp.inputs ? sp.inputs + " ช่อง" : "—", miss: !sp.inputs },
+                  { k: "สตริงต่อ MPPT", v: sp.strPerMppt ? sp.strPerMppt : "ไม่ระบุ (คิด 1)", miss: !sp.strPerMppt },
+                  { k: "รับสตริงได้/ตัว", v: Math.max(1, (+sp.inputs || 1) * Math.max(1, Math.round(+sp.strPerMppt || 1))) + " สตริง", hi: true },
+                  { k: "ช่วง MPPT", v: sp.mpptVmin && sp.mpptVmax ? sp.mpptVmin + "–" + sp.mpptVmax + " V" : "—", miss: !(sp.mpptVmin && sp.mpptVmax) },
+                  { k: "Vdc สูงสุด", v: sp.maxVdc ? sp.maxVdc + " V" : "—", miss: !sp.maxVdc },
+                  { k: "MAX PV รุ่นนี้รวม", v: sp.maxPv ? Math.round(sp.maxPv * n * 10) / 10 + " kWp" : "—" },
+                  { k: "กระแสออกรุ่นนี้รวม", v: sp.outA ? Math.round(sp.outA * n * 10) / 10 + " A" : "—" },
+                ].map((c, i) => (
+                  <div key={i} data-miss={c.miss ? "1" : "0"} data-bad={c.bad ? "1" : "0"}>
+                    <span className="k">{c.k}</span><span className={"v " + (c.hi && !c.bad ? "hi" : "")}>{c.v}</span>
                   </div>
-                  <div className="bq-spec">
-                    {[
-                      { k: "กำลังต่อตัว", v: selInv2.kw ? selInv2.kw + " kW" : "—", miss: !selInv2.kw },
-                      { k: "Max AC Active Power (cosφ=1)", v: selInv2.maxAcKw ? selInv2.maxAcKw + " kW" : "ยังไม่กรอกในคลัง", miss: !selInv2.maxAcKw },
-                      { k: "MAX PV ต่อตัว", v: selInv2.maxPv ? selInv2.maxPv + " kWp" : "ไม่ระบุ (ใช้ kW แทน)", miss: !selInv2.maxPv },
-                      { k: "เฟส", v: selInv2.phase ? selInv2.phase + " เฟส" : "—", miss: !selInv2.phase, bad: inv2PhaseBad },
-                      { k: "กระแสออก (AC)", v: selInv2.outA ? selInv2.outA + " A" : "—", miss: !selInv2.outA },
-                      { k: "จำนวน MPPT", v: selInv2.inputs ? selInv2.inputs + " ช่อง" : "—", miss: !selInv2.inputs },
-                      { k: "สตริงต่อ MPPT", v: selInv2.strPerMppt ? selInv2.strPerMppt : "ไม่ระบุ (คิด 1)", miss: !selInv2.strPerMppt },
-                      { k: "รับสตริงได้/ตัว", v: Math.max(1, (+selInv2.inputs || 1) * Math.max(1, Math.round(+selInv2.strPerMppt || 1))) + " สตริง", hi: true },
-                      { k: "ช่วง MPPT", v: selInv2.mpptVmin && selInv2.mpptVmax ? selInv2.mpptVmin + "–" + selInv2.mpptVmax + " V" : "—", miss: !(selInv2.mpptVmin && selInv2.mpptVmax) },
-                      { k: "Vdc สูงสุด", v: selInv2.maxVdc ? selInv2.maxVdc + " V" : "—", miss: !selInv2.maxVdc },
-                      { k: "MAX PV รุ่นนี้รวม", v: selInv2.maxPv ? Math.round(selInv2.maxPv * inv2Count * 10) / 10 + " kWp" : "—" },
-                      { k: "กระแสออกรุ่นนี้รวม", v: selInv2.outA ? Math.round(selInv2.outA * inv2Count * 10) / 10 + " A" : "—" },
-                    ].map((c, i) => (
-                      <div key={i} data-miss={c.miss ? "1" : "0"} data-bad={c.bad ? "1" : "0"}>
-                        <span className="k">{c.k}</span><span className={"v " + (c.hi && !c.bad ? "hi" : "")}>{c.v}</span>
-                      </div>
-                    ))}
-                  </div>
-                </React.Fragment>
-              )}
+                ))}
+              </div>
 
               <div className="bq-hint" style={{ marginTop: 10, fontSize: 11, color: "var(--text-3)", lineHeight: 1.5 }}>
                 * จำนวนตัวของรุ่นนี้กรอกเองเสมอ — ตัวที่ 1 จะคิดกำลังที่เหลือให้อัตโนมัติ ({result.meta.invAuto} ตัว) · รวมทั้งงาน {invTotal} ตัว
-                <br />* เบรกเกอร์กับสาย AC ของรุ่นนี้แยกขนาดตามกระแสออกของตัวมันเอง ({selInv2.outA || "—"} A) ไม่ได้ใช้ขนาดเดียวกับตัวที่ 1 · AC SPD คิดตามจำนวนตัวรวม
-                <br />* ตัวออกแบบสตริง 3D และสมุดส่งมอบยังใช้อินเวอร์เตอร์ตัวที่ 1 อย่างเดียว
+                <br />* เบรกเกอร์กับสาย AC ของรุ่นนี้แยกขนาดตามกระแสออกของตัวมันเอง ({sp.outA || "—"} A) ไม่ได้ใช้ขนาดเดียวกับตัวที่ 1 · AC SPD คิดตามจำนวนตัวรวม
               </div>
             </BoqSection>
-          )}
+            );
+          })}
 
           {/* ── สาย DC / การต่ออนุกรม String (PV1-F) — เฉพาะอินเวอร์เตอร์ String/Hybrid ── */}
           {isStringInv && scfg && (

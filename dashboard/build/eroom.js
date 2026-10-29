@@ -61,7 +61,7 @@ function erModel(st, job, cfg) {
   const units = M && M.units ? M.units : [];
   const inv = M && M.inv || {};
   let kws = micro ? [] : units.map(u => (+u.w || +inv.w || 5000) / 1000);
-  let froms = micro ? [] : units.map(u => u.from === 2 ? 2 : 1);
+  let froms = micro ? [] : units.map(u => Math.max(1, Math.min(4, +u.from || 1)));
   if (!M) {
     const kw = +(job && job.kw) || 10;
     kws = [Math.max(3, Math.round(kw))];
@@ -92,18 +92,24 @@ function erModel(st, job, cfg) {
     brand: inv.brand || job && job.brand || "",
     model: inv.model || "",
     model2: inv.model2 || "",
+    models: (inv.models || []).reduce((o, x) => Object.assign(o, {
+      [x.from]: x.model
+    }), {
+      1: inv.model || ""
+    }),
     invs: kws.map((kw, i) => {
-      const f2 = froms[i] === 2,
-        spc = (f2 ? inv.spec2 : inv.spec) || {},
-        sp = erInvSpec(spc, kw, DM[f2 ? "inv2" : "inv"]);
+      const fr = froms[i],
+        u = units[i],
+        spc = (fr > 1 ? u && u.spec || inv.spec2 : inv.spec) || {},
+        sp = erInvSpec(spc, kw, DM[fr > 1 ? "inv" + fr : "inv"]);
       const real = M && Array.isArray(M.strs) ? M.strs.filter(x => x && x.inv === i).length : 0;
       const nStr = Math.max(1, Math.min(12, real || (+spc.inputs || (kw <= 4 ? 1 : 2)) * (+spc.strPerMppt || (kw <= 20 ? 1 : 2))));
       return {
         i,
         kw,
         nStr,
-        from: f2 ? 2 : 1,
-        model: (f2 ? inv.model2 : inv.model) || "",
+        from: fr,
+        model: (fr > 1 ? u && u.model || inv.model2 : inv.model) || "",
         dim: sp.dim,
         src: sp.src,
         floor: sp.floor
@@ -2274,7 +2280,9 @@ function ErRoomStudio({
     color: "#4F46E5"
   }), " \u0E02\u0E19\u0E32\u0E14\u0E2D\u0E38\u0E1B\u0E01\u0E23\u0E13\u0E4C (\u0E0B\u0E21.)"), React.createElement("div", {
     className: "er-dim er-dimh"
-  }, React.createElement("span", null), React.createElement("i", null, "\u0E01\u0E27\u0E49\u0E32\u0E07"), React.createElement("i", null, "\u0E2A\u0E39\u0E07"), React.createElement("i", null, "\u0E25\u0E36\u0E01")), invOf(1) && dimRow("inv", "อินเวอร์เตอร์" + (md.model2 ? " · " + (md.model || "รุ่น 1") : ""), invOf(1).dim), invOf(1) && mountSel("inv", invOf(1)), invOf(2) && dimRow("inv2", "อินเวอร์เตอร์ · " + md.model2, invOf(2).dim), invOf(2) && mountSel("inv2", invOf(2)), L.rack && dimRow("dc", "ตู้ DC", L.def.dc), dimRow("ac", "ตู้ AC", L.def.ac), dimRow("mdb", md.home ? "ตู้เมน" : "ตู้ MDB", L.def.mdb), invOf(1) && React.createElement("div", {
+  }, React.createElement("span", null), React.createElement("i", null, "\u0E01\u0E27\u0E49\u0E32\u0E07"), React.createElement("i", null, "\u0E2A\u0E39\u0E07"), React.createElement("i", null, "\u0E25\u0E36\u0E01")), invOf(1) && dimRow("inv", "อินเวอร์เตอร์" + (md.model2 ? " · " + (md.model || "รุ่น 1") : ""), invOf(1).dim), invOf(1) && mountSel("inv", invOf(1)), [2, 3, 4].filter(k => invOf(k)).map(k => React.createElement(React.Fragment, {
+    key: k
+  }, dimRow("inv" + k, "อินเวอร์เตอร์ · " + (md.models[k] || "รุ่น " + k), invOf(k).dim), mountSel("inv" + k, invOf(k)))), L.rack && dimRow("dc", "ตู้ DC", L.def.dc), dimRow("ac", "ตู้ AC", L.def.ac), dimRow("mdb", md.home ? "ตู้เมน" : "ตู้ MDB", L.def.mdb), invOf(1) && React.createElement("div", {
     className: "er-note"
   }, "\u0E02\u0E19\u0E32\u0E14\u0E2D\u0E34\u0E19\u0E40\u0E27\u0E2D\u0E23\u0E4C\u0E40\u0E15\u0E2D\u0E23\u0E4C: ", invOf(1).src === "คลัง" ? "จากคลัง (รุ่น " + (md.model || "-") + ")" : invOf(1).src === "ห้อง" ? "ตั้งเองในห้องนี้" : "ประมาณจาก kW — กรอกขนาดตัวเครื่องในคลังสินค้าเพื่อให้ตรงทุกงาน"), React.createElement("div", {
     className: "er-note"
