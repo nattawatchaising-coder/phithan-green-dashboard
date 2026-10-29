@@ -792,6 +792,14 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock, ver, verName, p3Vers
     ir = Math.min(at, Math.max(ir, Math.ceil(at * (acb ? 0.4 : 0.8))));   // อยู่ในช่วงปรับของเฟรม (ACB ปรับได้กว้าง 0.4–1.0)
     return { ir, at, kind: acb ? "ACB" : "MCCB" };
   };
+  /* กระแสที่สายต้องรับจากเบรกเกอร์ต้นทาง — กฎ cabByAt (ค่าเริ่ม 1): ≥ ขนาด AT · 0 = ≥ กระแสตั้ง Ir แบบเดิม · ACB ใช้ Ir เสมอ */
+  const brkNeed = (k) => (+RU.cabByAt && k.kind !== "ACB" ? k.at : k.ir);
+  /* งานบ้าน: MCB ขนาดแรกที่ ≥ fixK × กระแส (ตรงกับ brkPickHome) · ไม่มีขนาดพอ = MCCB แบบงานโครงการ */
+  const homeNeed = (ib, w) => {
+    const L = (wcPhase === 3 ? RU.mcbHome3P : RU.mcbHome2P) || [];
+    const a = L.find((x) => x >= ib * RU.fixK);
+    return +RU.cabByAt ? (a || brkNeed(brkSet(ib, w))) : ib * WK;
+  };
   const reqAmpFor = (cab) => {
     const r = reqAmpBase(cab);
     const m = cab && typeof cab === "object" ? +cab.minA || 0 : 0;   // ใช้สายตามเบรกเกอร์ในตู้ AC (กดเลือกเอง)
@@ -816,11 +824,11 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock, ver, verName, p3Vers
     if (invUnits.length) {
       if (/MCB_SOLAR-MDB/.test(n)) {                                         // รวมเฉพาะตัวที่อยู่ตู้นี้ → ตู้เมน
         const a = mcbInvsOf(row).reduce((s, no) => s + ((invUnits[no - 1] || {}).outA || 0), 0);
-        return a ? (homeJob ? a * WK : brkSet(a, "main").ir) : null;                                      // ตามกระแสตั้งของ MCCB เมน
+        return a ? (homeJob ? homeNeed(a, "main") : brkNeed(brkSet(a, "main"))) : null;                    // ตามเบรกเกอร์เมน (AT หรือกระแสตั้ง ตามกฎ cabByAt)
       }
       if (/INVERTER-MCB_SOLAR/.test(n)) {                                    // อินเวอร์เตอร์ตัวของแถวนี้
         const u = invUnits[((row && +row.inv) || 1) - 1] || invUnits[0];
-        return u.outA ? (homeJob ? u.outA * WK : brkSet(u.outA, "inv").ir) : null;                           // ตามกระแสตั้งของ MCCB อินเวอร์เตอร์
+        return u.outA ? (homeJob ? homeNeed(u.outA, "inv") : brkNeed(brkSet(u.outA, "inv"))) : null;         // ตามเบรกเกอร์อินเวอร์เตอร์
       }
     }
     const invAcPer = selInv ? (+selInv.outA || 0) : 0;                       // กระแสออก AC ต่ออินเวอร์เตอร์ 1 ตัว
@@ -1949,11 +1957,12 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock, ver, verName, p3Vers
     const { ir, at: a, kind } = brkSet(ib, w);
     const fr = kind === "MCCB" ? window.BOQ.mccbFrame(a, w) : null;
     const base = r1(ib) + " A → " + (fr ? fr.af + " AF " : "") + a + " AT " + (fr && fr.ka ? fr.ka + " kA " : "") + (ir < a ? "ปรับตั้ง " + ir + " A (" + r1(ir / a) + " × In)" : "ไม่ต้องปรับ");
-    if (!iz) return { at: a, ir, kind, ok: true, txt: base + " · ยังไม่ได้เลือกสาย ตรวจพิกัดสายไม่ได้" };
-    if (ir <= iz) return { at: a, ir, kind, ok: true, txt: base + " ≤ สายรับ " + iz + " A ✓" };
-    // สายรับน้อยกว่ากระแสตั้ง — หาขนาดเล็กสุดในชนิดเดิม จำนวนชุดเดิม ที่รับได้ ≥ Ir (แนะนำ ไม่เปลี่ยนให้)
-    const rec = cabFit(c, famOfCab(c), Math.max(1, Math.round(+c.sets || 1)), ir);
-    return { at: a, ir, kind, ok: false, iz, rec, txt: base + " แต่สายรับได้ " + iz + " A"
+    const need = brkNeed({ at: a, ir, kind }), nTxt = need === a && need !== ir ? " · สายต้องรับ ≥ " + a + " AT" : "";
+    if (!iz) return { at: a, ir, need, kind, ok: true, txt: base + nTxt + " · ยังไม่ได้เลือกสาย ตรวจพิกัดสายไม่ได้" };
+    if (need <= iz) return { at: a, ir, need, kind, ok: true, txt: base + nTxt + " ≤ สายรับ " + iz + " A ✓" };
+    // สายรับน้อยกว่าที่ต้องรับ (AT หรือกระแสตั้ง) — หาขนาดเล็กสุดในชนิดเดิม จำนวนชุดเดิม ที่รับได้ (แนะนำ ไม่เปลี่ยนให้)
+    const rec = cabFit(c, famOfCab(c), Math.max(1, Math.round(+c.sets || 1)), need);
+    return { at: a, ir, need, kind, ok: false, iz, rec, txt: base + nTxt + " แต่สายรับได้ " + iz + " A"
       + (rec ? " — แนะนำ " + rec.name.trim() + (rec.sets > 1 ? " × " + rec.sets + " ชุด" : "") + " (รับ " + rec.amp * rec.sets + " A)" : " — ขยายสาย/เพิ่มชุด") };
   };
   /* งานบ้าน: MCB (กระแสเกิน · ปรับตั้งไม่ได้ เลือกขนาดแรกที่ ≥ fixK × กระแส) + RCCB (ไฟรั่ว rcboMa · ขนาดแรกที่ ≥ MCB)
@@ -1967,10 +1976,10 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock, ver, verName, p3Vers
     const iz = cabIz(c), nm = "MCB " + pole + " " + a + "A";
     const nm2 = rccb ? "RCCB " + ra + "A " + (pole === "3P" ? "4P" : "2P") + " " + RU.rcboMa + "mA" : "";
     const base = r1(ib) + " A × " + RU.fixK + " = " + r1(need) + " A → MCB " + a + " A" + (rccb ? " + RCCB " + ra + " A " + RU.rcboMa + "mA (MCB กันกระแสเกิน · RCCB กันไฟรั่ว)" : "");
-    if (!iz) return { at: a, ir: a, kind: "MCB", nm, nm2, ok: true, txt: base + " · ยังไม่ได้เลือกสาย ตรวจพิกัดสายไม่ได้" };
-    if (a <= iz) return { at: a, ir: a, kind: "MCB", nm, nm2, ok: true, txt: base + " ≤ สายรับ " + iz + " A ✓" };
+    if (!iz) return { at: a, ir: a, need: a, kind: "MCB", nm, nm2, ok: true, txt: base + " · ยังไม่ได้เลือกสาย ตรวจพิกัดสายไม่ได้" };
+    if (a <= iz) return { at: a, ir: a, need: a, kind: "MCB", nm, nm2, ok: true, txt: base + " ≤ สายรับ " + iz + " A ✓" };
     const rec = cabFit(c, famOfCab(c), Math.max(1, Math.round(+c.sets || 1)), a);
-    return { at: a, ir: a, kind: "MCB", nm, nm2, ok: false, iz, rec, txt: base + " แต่สายรับได้ " + iz + " A"
+    return { at: a, ir: a, need: a, kind: "MCB", nm, nm2, ok: false, iz, rec, txt: base + " แต่สายรับได้ " + iz + " A"
       + (rec ? " — แนะนำ " + rec.name.trim() + (rec.sets > 1 ? " × " + rec.sets + " ชุด" : "") + " (รับ " + rec.amp * rec.sets + " A)" : " — ขยายสาย/เพิ่มชุด") };
   };
   // เบรกเกอร์ของสายแต่ละเส้น (index แถวสาย → ผลเลือก) — หัวข้อสายไฟเอาไปโชว์คำแนะนำ
@@ -4151,16 +4160,16 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock, ver, verName, p3Vers
                           const k = brkOfCab[i];
                           if (c.minA) return (
                             <div className="bq-cabx-step" style={{ fontSize: 11.5, color: "var(--tint-green-tx)", fontWeight: 700 }}>
-                              ใช้สายตามกระแสตั้งเบรกเกอร์ {c.minA} A แล้ว (สายต้องรับ ≥ {c.minA} A)
+                              ใช้สายตามเบรกเกอร์ {c.minA} A แล้ว (สายต้องรับ ≥ {c.minA} A)
                               <button type="button" className="bq-cabx-link" onClick={() => setCab(i, "minA", null)}>กลับไปคิดตามปกติ</button>
                             </div>
                           );
                           if (!k || k.ok) return null;
                           return (
                             <div className="bq-cabx-step" style={{ fontSize: 11.5, color: "var(--tint-amber-tx, #B45309)", fontWeight: 700, flexWrap: "wrap" }}>
-                              ⚠ เบรกเกอร์{k.who} {k.at} AT ตั้ง {k.ir} A แต่สายนี้รับได้ {k.iz} A — ถ้ากระแสเกินสาย สายจะร้อนก่อนเบรกเกอร์ตัด
+                              ⚠ เบรกเกอร์{k.who} {k.at} AT{k.ir < k.at ? " ตั้ง " + k.ir + " A" : ""} แต่สายนี้รับได้ {k.iz} A (ต้องรับ ≥ {k.need || k.ir} A) — ถ้ากระแสเกินสาย สายจะร้อนก่อนเบรกเกอร์ตัด
                               {k.rec && <span style={{ fontWeight: 600, color: "var(--text-2)" }}>แนะนำ {k.rec.name.trim()}{k.rec.sets > 1 ? " × " + k.rec.sets + " ชุด" : ""} (รับ {k.rec.amp * k.rec.sets} A)</span>}
-                              <button type="button" className="bq-cabx-link" onClick={() => setB((p) => { const cs = p.cables.slice(); cs[i] = Object.assign({}, cs[i], { minA: k.ir }, k.rec ? { fam: k.rec.fam } : {}); return Object.assign({}, p, { cables: cs }); })}>ใช้สายตามเบรกเกอร์</button>
+                              <button type="button" className="bq-cabx-link" onClick={() => setB((p) => { const cs = p.cables.slice(); cs[i] = Object.assign({}, cs[i], { minA: k.need || k.ir }, k.rec ? { fam: k.rec.fam } : {}); return Object.assign({}, p, { cables: cs }); })}>ใช้สายตามเบรกเกอร์</button>
                             </div>
                           );
                         })()}

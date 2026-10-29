@@ -1406,6 +1406,12 @@ function BOQEditor({
       kind: acb ? "ACB" : "MCCB"
     };
   };
+  const brkNeed = k => +RU.cabByAt && k.kind !== "ACB" ? k.at : k.ir;
+  const homeNeed = (ib, w) => {
+    const L = (wcPhase === 3 ? RU.mcbHome3P : RU.mcbHome2P) || [];
+    const a = L.find(x => x >= ib * RU.fixK);
+    return +RU.cabByAt ? a || brkNeed(brkSet(ib, w)) : ib * WK;
+  };
   const reqAmpFor = cab => {
     const r = reqAmpBase(cab);
     const m = cab && typeof cab === "object" ? +cab.minA || 0 : 0;
@@ -1431,11 +1437,11 @@ function BOQEditor({
     if (invUnits.length) {
       if (/MCB_SOLAR-MDB/.test(n)) {
         const a = mcbInvsOf(row).reduce((s, no) => s + ((invUnits[no - 1] || {}).outA || 0), 0);
-        return a ? homeJob ? a * WK : brkSet(a, "main").ir : null;
+        return a ? homeJob ? homeNeed(a, "main") : brkNeed(brkSet(a, "main")) : null;
       }
       if (/INVERTER-MCB_SOLAR/.test(n)) {
         const u = invUnits[(row && +row.inv || 1) - 1] || invUnits[0];
-        return u.outA ? homeJob ? u.outA * WK : brkSet(u.outA, "inv").ir : null;
+        return u.outA ? homeJob ? homeNeed(u.outA, "inv") : brkNeed(brkSet(u.outA, "inv")) : null;
       }
     }
     const invAcPer = selInv ? +selInv.outA || 0 : 0;
@@ -3295,29 +3301,38 @@ function BOQEditor({
     } = brkSet(ib, w);
     const fr = kind === "MCCB" ? window.BOQ.mccbFrame(a, w) : null;
     const base = r1(ib) + " A → " + (fr ? fr.af + " AF " : "") + a + " AT " + (fr && fr.ka ? fr.ka + " kA " : "") + (ir < a ? "ปรับตั้ง " + ir + " A (" + r1(ir / a) + " × In)" : "ไม่ต้องปรับ");
+    const need = brkNeed({
+        at: a,
+        ir,
+        kind
+      }),
+      nTxt = need === a && need !== ir ? " · สายต้องรับ ≥ " + a + " AT" : "";
     if (!iz) return {
       at: a,
       ir,
+      need,
       kind,
       ok: true,
-      txt: base + " · ยังไม่ได้เลือกสาย ตรวจพิกัดสายไม่ได้"
+      txt: base + nTxt + " · ยังไม่ได้เลือกสาย ตรวจพิกัดสายไม่ได้"
     };
-    if (ir <= iz) return {
+    if (need <= iz) return {
       at: a,
       ir,
+      need,
       kind,
       ok: true,
-      txt: base + " ≤ สายรับ " + iz + " A ✓"
+      txt: base + nTxt + " ≤ สายรับ " + iz + " A ✓"
     };
-    const rec = cabFit(c, famOfCab(c), Math.max(1, Math.round(+c.sets || 1)), ir);
+    const rec = cabFit(c, famOfCab(c), Math.max(1, Math.round(+c.sets || 1)), need);
     return {
       at: a,
       ir,
+      need,
       kind,
       ok: false,
       iz,
       rec,
-      txt: base + " แต่สายรับได้ " + iz + " A" + (rec ? " — แนะนำ " + rec.name.trim() + (rec.sets > 1 ? " × " + rec.sets + " ชุด" : "") + " (รับ " + rec.amp * rec.sets + " A)" : " — ขยายสาย/เพิ่มชุด")
+      txt: base + nTxt + " แต่สายรับได้ " + iz + " A" + (rec ? " — แนะนำ " + rec.name.trim() + (rec.sets > 1 ? " × " + rec.sets + " ชุด" : "") + " (รับ " + rec.amp * rec.sets + " A)" : " — ขยายสาย/เพิ่มชุด")
     };
   };
   const MCBH_AT = {
@@ -3345,6 +3360,7 @@ function BOQEditor({
     if (!iz) return {
       at: a,
       ir: a,
+      need: a,
       kind: "MCB",
       nm,
       nm2,
@@ -3354,6 +3370,7 @@ function BOQEditor({
     if (a <= iz) return {
       at: a,
       ir: a,
+      need: a,
       kind: "MCB",
       nm,
       nm2,
@@ -3364,6 +3381,7 @@ function BOQEditor({
     return {
       at: a,
       ir: a,
+      need: a,
       kind: "MCB",
       nm,
       nm2,
@@ -8324,7 +8342,7 @@ function BOQEditor({
             color: "var(--tint-green-tx)",
             fontWeight: 700
           }
-        }, "\u0E43\u0E0A\u0E49\u0E2A\u0E32\u0E22\u0E15\u0E32\u0E21\u0E01\u0E23\u0E30\u0E41\u0E2A\u0E15\u0E31\u0E49\u0E07\u0E40\u0E1A\u0E23\u0E01\u0E40\u0E01\u0E2D\u0E23\u0E4C ", c.minA, " A \u0E41\u0E25\u0E49\u0E27 (\u0E2A\u0E32\u0E22\u0E15\u0E49\u0E2D\u0E07\u0E23\u0E31\u0E1A \u2265 ", c.minA, " A)", React.createElement("button", {
+        }, "\u0E43\u0E0A\u0E49\u0E2A\u0E32\u0E22\u0E15\u0E32\u0E21\u0E40\u0E1A\u0E23\u0E01\u0E40\u0E01\u0E2D\u0E23\u0E4C ", c.minA, " A \u0E41\u0E25\u0E49\u0E27 (\u0E2A\u0E32\u0E22\u0E15\u0E49\u0E2D\u0E07\u0E23\u0E31\u0E1A \u2265 ", c.minA, " A)", React.createElement("button", {
           type: "button",
           className: "bq-cabx-link",
           onClick: () => setCab(i, "minA", null)
@@ -8338,7 +8356,7 @@ function BOQEditor({
             fontWeight: 700,
             flexWrap: "wrap"
           }
-        }, "\u26A0 \u0E40\u0E1A\u0E23\u0E01\u0E40\u0E01\u0E2D\u0E23\u0E4C", k.who, " ", k.at, " AT \u0E15\u0E31\u0E49\u0E07 ", k.ir, " A \u0E41\u0E15\u0E48\u0E2A\u0E32\u0E22\u0E19\u0E35\u0E49\u0E23\u0E31\u0E1A\u0E44\u0E14\u0E49 ", k.iz, " A \u2014 \u0E16\u0E49\u0E32\u0E01\u0E23\u0E30\u0E41\u0E2A\u0E40\u0E01\u0E34\u0E19\u0E2A\u0E32\u0E22 \u0E2A\u0E32\u0E22\u0E08\u0E30\u0E23\u0E49\u0E2D\u0E19\u0E01\u0E48\u0E2D\u0E19\u0E40\u0E1A\u0E23\u0E01\u0E40\u0E01\u0E2D\u0E23\u0E4C\u0E15\u0E31\u0E14", k.rec && React.createElement("span", {
+        }, "\u26A0 \u0E40\u0E1A\u0E23\u0E01\u0E40\u0E01\u0E2D\u0E23\u0E4C", k.who, " ", k.at, " AT", k.ir < k.at ? " ตั้ง " + k.ir + " A" : "", " \u0E41\u0E15\u0E48\u0E2A\u0E32\u0E22\u0E19\u0E35\u0E49\u0E23\u0E31\u0E1A\u0E44\u0E14\u0E49 ", k.iz, " A (\u0E15\u0E49\u0E2D\u0E07\u0E23\u0E31\u0E1A \u2265 ", k.need || k.ir, " A) \u2014 \u0E16\u0E49\u0E32\u0E01\u0E23\u0E30\u0E41\u0E2A\u0E40\u0E01\u0E34\u0E19\u0E2A\u0E32\u0E22 \u0E2A\u0E32\u0E22\u0E08\u0E30\u0E23\u0E49\u0E2D\u0E19\u0E01\u0E48\u0E2D\u0E19\u0E40\u0E1A\u0E23\u0E01\u0E40\u0E01\u0E2D\u0E23\u0E4C\u0E15\u0E31\u0E14", k.rec && React.createElement("span", {
           style: {
             fontWeight: 600,
             color: "var(--text-2)"
@@ -8349,7 +8367,7 @@ function BOQEditor({
           onClick: () => setB(p => {
             const cs = p.cables.slice();
             cs[i] = Object.assign({}, cs[i], {
-              minA: k.ir
+              minA: k.need || k.ir
             }, k.rec ? {
               fam: k.rec.fam
             } : {});
