@@ -5906,6 +5906,138 @@ function p3sKindPreview(k) {
   });
   return _p3sPrevP[key];
 }
+const _p3sCoverP = new WeakMap();
+function p3sCoverShot(st) {
+  if (!st || !Array.isArray(st.roofs) || !st.roofs.length) return Promise.resolve(null);
+  if (_p3sCoverP.has(st)) return _p3sCoverP.get(st);
+  const pr = p3LoadThree().then(THREE => new Promise((res, rej) => {
+    const W = 1800,
+      H = 920;
+    const renderer = new THREE.WebGLRenderer({
+      antialias: true,
+      preserveDrawingBuffer: true,
+      logarithmicDepthBuffer: true
+    });
+    renderer.setPixelRatio(1);
+    renderer.setSize(W, H, false);
+    renderer.shadowMap.enabled = true;
+    renderer.shadowMap.type = THREE.PCFShadowMap;
+    renderer.toneMapping = THREE.ACESFilmicToneMapping;
+    renderer.toneMappingExposure = 1.0;
+    const scene = new THREE.Scene();
+    scene.background = new THREE.Color(0xd6e6f3);
+    const pm = new THREE.PMREMGenerator(renderer);
+    try {
+      const es = new THREE.Scene(),
+        g = new THREE.SphereGeometry(50, 32, 16),
+        col = [],
+        pos = g.attributes.position;
+      for (let i = 0; i < pos.count; i++) {
+        const y = pos.getY(i) / 50,
+          c = y > 0 ? new THREE.Color(0xeaf3fb).lerp(new THREE.Color(0x5d93cf), Math.pow(y, 0.6)) : new THREE.Color(0x8a8172).lerp(new THREE.Color(0x4a443c), Math.min(1, -y * 2));
+        col.push(c.r, c.g, c.b);
+      }
+      g.setAttribute("color", new THREE.Float32BufferAttribute(col, 3));
+      es.add(new THREE.Mesh(g, new THREE.MeshBasicMaterial({
+        vertexColors: true,
+        side: THREE.BackSide
+      })));
+      scene.environment = pm.fromScene(es, 0.02).texture;
+      g.dispose();
+    } catch (e) {}
+    scene.add(new THREE.HemisphereLight(0xcfe4ff, 0x8a795d, 0.46));
+    const sunL = new THREE.DirectionalLight(0xffffff, 2.1);
+    sunL.castShadow = true;
+    sunL.shadow.bias = -0.0004;
+    const glMax = renderer.capabilities.maxTextureSize || 4096;
+    sunL.shadow.mapSize.set(Math.min(4096, glMax), Math.min(4096, glMax));
+    scene.add(sunL);
+    scene.add(sunL.target);
+    const grp = new THREE.Group();
+    scene.add(grp);
+    let pend = 0,
+      fired = false;
+    const kick = () => {
+      if (--pend <= 0) setTimeout(go, 60);
+    };
+    const tex = (url, onReady) => {
+      pend++;
+      const tx = new THREE.TextureLoader().load(url, () => {
+        try {
+          if (onReady) onReady(tx);
+        } catch (e) {}
+        kick();
+      }, undefined, kick);
+      tx.anisotropy = 4;
+      return tx;
+    };
+    let b;
+    try {
+      b = p3sBuild3D(THREE, grp, st, tex);
+    } catch (e) {
+      renderer.dispose();
+      rej(e);
+      return;
+    }
+    function go() {
+      if (fired) return;
+      fired = true;
+      try {
+        const R = Math.max(4, b.R || 10),
+          Hm = Math.max(3, b.maxY || 3),
+          D = R * 3,
+          P = Math.PI / 180;
+        grp.traverse(o => {
+          if (o.userData && o.userData.tint && o.material) o.material.color.setScalar(o.userData.tint);
+        });
+        const sa = 52 * P,
+          sz = 128 * P;
+        sunL.position.set(b.cx + Math.sin(sz) * Math.cos(sa) * D, Math.sin(sa) * D, b.cz - Math.cos(sz) * Math.cos(sa) * D);
+        sunL.target.position.set(b.cx, 0, b.cz);
+        const sc = sunL.shadow.camera;
+        sc.left = -R * 1.25;
+        sc.right = R * 1.25;
+        sc.top = R * 1.25;
+        sc.bottom = -R * 1.25;
+        sc.near = 0.5;
+        sc.far = D * 2.5;
+        sc.updateProjectionMatrix();
+        const cam = new THREE.PerspectiveCamera(34, W / H, 0.1, 8000);
+        const tg = new THREE.Vector3(b.cx, Hm * 0.35, b.cz),
+          a = 155 * P,
+          e = 34 * P,
+          dist = R * 2.9;
+        cam.position.set(tg.x + Math.sin(a) * Math.cos(e) * dist, tg.y + Math.sin(e) * dist, tg.z - Math.cos(a) * Math.cos(e) * dist);
+        cam.lookAt(tg);
+        renderer.render(scene, cam);
+        res(renderer.domElement.toDataURL("image/jpeg", 0.86));
+      } catch (e) {
+        rej(e);
+      } finally {
+        grp.traverse(x => {
+          if (x.geometry) x.geometry.dispose();
+          if (x.material) (Array.isArray(x.material) ? x.material : [x.material]).forEach(m => {
+            if (m.map) m.map.dispose();
+            m.dispose();
+          });
+        });
+        if (scene.environment) scene.environment.dispose();
+        pm.dispose();
+        renderer.dispose();
+        try {
+          renderer.forceContextLoss();
+        } catch (e) {}
+      }
+    }
+    if (!pend) setTimeout(go, 0);
+    setTimeout(go, 6000);
+  }));
+  pr.catch(() => {
+    _p3sCoverP.delete(st);
+  });
+  _p3sCoverP.set(st, pr);
+  return pr;
+}
 function P3SKindPic({
   k
 }) {
