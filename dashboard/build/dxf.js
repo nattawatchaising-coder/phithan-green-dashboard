@@ -2285,10 +2285,10 @@ function pgSldPro(doc, sheet, M) {
     pen.line(S, x, y - 2.4, x, y + 2.4);
   };
   const SPD_H = 4.8;
-  const spdS = (x, y0) => {
-    pen.rect(S, x - 0.85, y0 - SPD_H, 1.7, SPD_H);
-    pen.line(S, x - 1.5, y0 - SPD_H + 0.9, x + 1.5, y0 - 0.9);
-  };
+  const spdS = (x, y0) => pgSym.spd(pen, x, y0 - SPD_H / 2, null, {
+    w: 1.7,
+    h: SPD_H
+  });
   const meter = (x, y, r) => {
     pen.circle(S, x, y, r);
     pen.text(T, x, y + r * 0.12, r * 0.5, "kWh", {
@@ -2517,8 +2517,9 @@ function pgSldPro(doc, sheet, M) {
         pen.dot(R, X.dcS, y, 0.5);
         pen.line(R, X.dcS, y, X.dcS, y - 2.2);
         spdS(X.dcS, y - 2.2);
-        pen.line(PE, X.dcS, y - 2.2 - SPD_H, X.dcS, y - 7.2);
-        pen.line(PE, X.dcS, y - 7.2, X.dcPE, y - 7.2);
+        const peY = y - 2.2 - SPD_H - Math.max(0.6, Math.min(2.5, RH - 2.2 - SPD_H - 1.5));
+        pen.line(PE, X.dcS, y - 2.2 - SPD_H, X.dcS, peY);
+        pen.line(PE, X.dcS, peY, X.dcPE, peY);
         if (first) pen.text(T, X.dcS + 1.8, y - 4.6, TS.tag, "SPD", {
           valign: 2
         });
@@ -2546,7 +2547,7 @@ function pgSldPro(doc, sheet, M) {
     const dTop = top - 1.5;
     pen.rect(BX, X.dc0, G.dBot, X.dc1 - X.dc0, dTop - G.dBot);
     const barT = rowsY[0] - 5.6,
-      barB = lastY - 8.8;
+      barB = lastY - 10;
     pen.solid(PE, [X.dcPE - 0.5, barB], [X.dcPE + 0.5, barB], [X.dcPE + 0.5, barT], [X.dcPE - 0.5, barT]);
     pen.text(T, X.dcPE - 1.2, barB - 0.4, TS.tag, "PE", {
       align: 2,

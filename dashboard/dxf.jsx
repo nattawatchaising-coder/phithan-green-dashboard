@@ -1598,10 +1598,8 @@ function pgSldPro(doc, sheet, M) {
   /* SPD เล็ก (วาริสเตอร์) แขวนใต้สาย — ขั้วบน y0 ขั้วล่าง y0 - 4 */
   /* กล่องขนาดเท่าฟิวส์แนวตั้ง (vFuse 1.7 × 4.8) — ผู้ใช้ 2026-10-29: "ขนาดสี่เหลี่ยมเท่าฟิวส์ มันโตไป" */
   const SPD_H = 4.8;
-  const spdS = (x, y0) => {
-    pen.rect(S, x - 0.85, y0 - SPD_H, 1.7, SPD_H);
-    pen.line(S, x - 1.5, y0 - SPD_H + 0.9, x + 1.5, y0 - 0.9);
-  };
+  /* หน้าตาเดียวกับ SPD ฝั่ง AC (ขีดทแยงหักปลาย ล่างซ้ายหักลง · บนขวาหักขึ้น) — ผู้ใช้วาดชี้ 2026-10-29 */
+  const spdS = (x, y0) => pgSym.spd(pen, x, y0 - SPD_H / 2, null, { w: 1.7, h: SPD_H });
   const meter = (x, y, r) => {
     pen.circle(S, x, y, r);
     pen.text(T, x, y + r * 0.12, r * 0.5, "kWh", { align: 1, valign: 2 });
@@ -1750,8 +1748,10 @@ function pgSldPro(doc, sheet, M) {
         pen.dot(R, X.dcS, y, 0.5);
         pen.line(R, X.dcS, y, X.dcS, y - 2.2);
         spdS(X.dcS, y - 2.2);
-        pen.line(PE, X.dcS, y - 2.2 - SPD_H, X.dcS, y - 7.2);
-        pen.line(PE, X.dcS, y - 7.2, X.dcPE, y - 7.2);
+        /* สายดิน SPD: ลงต่อจากใต้กล่องก่อนแล้วค่อยเลี้ยวเข้า PE bar (ผู้ใช้วาดชี้) — ไม่ชิดชายกล่อง · เว้นห่างแถวถัดไปอย่างน้อย 1.5 มม. */
+        const peY = y - 2.2 - SPD_H - Math.max(0.6, Math.min(2.5, RH - 2.2 - SPD_H - 1.5));
+        pen.line(PE, X.dcS, y - 2.2 - SPD_H, X.dcS, peY);
+        pen.line(PE, X.dcS, peY, X.dcPE, peY);
         if (first) pen.text(T, X.dcS + 1.8, y - 4.6, TS.tag, "SPD", { valign: 2 });
         pen.circle(S, X.iv0, y, 0.6);
         if (row.tag) pen.text(T, X.iv0 + 1.2, y + 0.4, TS.tag, row.tag, { valign: 1 });
@@ -1772,7 +1772,7 @@ function pgSldPro(doc, sheet, M) {
     /* ตู้ DC + PE bar */
     const dTop = top - 1.5;
     pen.rect(BX, X.dc0, G.dBot, X.dc1 - X.dc0, dTop - G.dBot);
-    const barT = rowsY[0] - 5.6, barB = lastY - 8.8;
+    const barT = rowsY[0] - 5.6, barB = lastY - 10;   // ต่ำกว่าสายดิน SPD แถวสุดท้าย (ลงใต้กล่องก่อนเลี้ยว)
     pen.solid(PE, [X.dcPE - 0.5, barB], [X.dcPE + 0.5, barB], [X.dcPE + 0.5, barT], [X.dcPE - 0.5, barT]);
     pen.text(T, X.dcPE - 1.2, barB - 0.4, TS.tag, "PE", { align: 2, valign: 3 });
     const per = b.typical ? " /INV" : "";
