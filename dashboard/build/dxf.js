@@ -2470,6 +2470,7 @@ function pgSldPro(doc, sheet, M) {
     X.dc1 = DX0 + 72;
     X.dcPE = X.dc1;
     X.iv0 = DX0 + 78;
+    X.dcB = (X.dc0 + X.dc1) / 2;
   }
   const modelOf = no => M.units && M.units[no - 1] && M.units[no - 1].model || M.inv.model;
   const mkBlock = (no, detail) => {

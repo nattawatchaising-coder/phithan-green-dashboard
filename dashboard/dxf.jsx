@@ -1717,7 +1717,7 @@ function pgSldPro(doc, sheet, M) {
   /* งานโครงการ (ฟิวส์ gPV): DC SWITCH + DC SPD อยู่ในตัวอินเวอร์เตอร์ทุกเครื่อง ตู้ DC เหลือแค่ฟิวส์ (ผู้ใช้ 2026-10-30)
      ตู้ DC ไม่มี SPD/PE bar → แคบลง ที่ว่างยกให้กล่องอินเวอร์เตอร์ขยายซ้าย วาง DC SWITCH/SPD ระหว่างแกนรวม MPPT กับสัญลักษณ์ (ผู้ใช้ 2026-10-30) */
   const ivSpd = fuseDev && !isMain;
-  if (ivSpd) { X.dc1 = DX0 + 72; X.dcPE = X.dc1; X.iv0 = DX0 + 78; }
+  if (ivSpd) { X.dc1 = DX0 + 72; X.dcPE = X.dc1; X.iv0 = DX0 + 78; X.dcB = (X.dc0 + X.dc1) / 2; }   // ฟิวส์กลางกรอบตู้ (ผู้ใช้ 2026-10-30)
   const modelOf = (no) => (M.units && M.units[no - 1] && M.units[no - 1].model) || M.inv.model;
   const mkBlock = (no, detail) => {
     const groups = byInv[no].map((r) => ({ mppt: r.mppt, rows: detail ? rowsOf(r) : [grpRow(r)] }));
