@@ -1944,7 +1944,7 @@ function pgSldPro(doc, sheet, M) {
           const px = sxOf(i);
           pgSym.pv(pen, px, y, 6.4, 3.6, null, true);
           pen.text(T, px - 1.5, y, TS.tag, String(no), { align: 1, valign: 2 });
-          if (i) pen.line(CM, sxOf(i) + 3.2, y, i === 3 && nP > 4 ? sxOf(2) - 3.2 - 6.4 : sxOf(i - 1) - 3.2, y);
+          if (i && !(i === 3 && nP > 4)) pen.line(CM, sxOf(i) + 3.2, y, sxOf(i - 1) - 3.2, y);   // แผง n กับ • • • ไม่มีเส้นต่อ (ผู้ใช้ขีดฆ่า)
         });
         if (nP > 4) [0, 1, 2].forEach((k) => pen.dot(CM, sxOf(2) - 3.2 - 1.6 - k * 1.6, y, 0.3));   // • • •
         const mLeft = sxOf(slots.length - 1) - 3.2;

@@ -2796,7 +2796,7 @@ function pgSldPro(doc, sheet, M) {
             align: 1,
             valign: 2
           });
-          if (i) pen.line(CM, sxOf(i) + 3.2, y, i === 3 && nP > 4 ? sxOf(2) - 3.2 - 6.4 : sxOf(i - 1) - 3.2, y);
+          if (i && !(i === 3 && nP > 4)) pen.line(CM, sxOf(i) + 3.2, y, sxOf(i - 1) - 3.2, y);
         });
         if (nP > 4) [0, 1, 2].forEach(k => pen.dot(CM, sxOf(2) - 3.2 - 1.6 - k * 1.6, y, 0.3));
         const mLeft = sxOf(slots.length - 1) - 3.2;
