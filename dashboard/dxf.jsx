@@ -1603,7 +1603,8 @@ function pgSldPro(doc, sheet, M) {
   const RX0 = A.x1 - 78, RX1 = A.x1 - 3, RW = RX1 - RX0;
   const DX0 = A.x0 + 4;
   /* แผงในสตริงเรียงจากฝั่งสาย [1] [2] [3] • • • [n] (ผู้ใช้วาดชี้ 2026-10-30) — m1 = ช่องซ้ายสุด (แผง n) · mn = แผง 1 ติดสาย */
-  const X = { pe0: DX0 - 24, m1: DX0 - 14, mn: DX0 + 18, tx: DX0 + 22, sl: DX0 + 51,
+  const X = { pe0: DX0 - 21, m1: DX0 - 10.8, mn: DX0 + 18,   // แผง n ห่างจุด • • • เท่าฝั่งแผง 3 (ผู้ใช้: ขยับให้พอดี)
+    tx: DX0 + 22, sl: DX0 + 51,
     dc0: DX0 + 54, dcB: DX0 + 61, dcS: DX0 + 76, dcPE: DX0 + 85, dc1: DX0 + 88,
     iv0: DX0 + 94, iv1: DX0 + 126, ac0: DX0 + 133, acB: DX0 + 142, acBus: DX0 + 153, acM: DX0 + 170, ac1: DX0 + 188,
     md0: DX0 + 196, mdB: DX0 + 204, mdBus: DX0 + 214, md1: DX0 + 226 };
@@ -2034,7 +2035,7 @@ function pgSldPro(doc, sheet, M) {
       const cw = [0, 1, 2].map((i) => Math.max.apply(null, rows.map((r) => pgTextW(r[i], th))) + 2 * pd);
       const tw = cw[0] + eq + cw[1] + eq + cw[2];
       /* ตารางอยู่ใต้สตริงสุดท้ายของเครื่อง ชิดเส้นดินโครงแผง (ผู้ใช้วาดชี้ 2026-10-30) */
-      const nR = rows.length + 1, x0 = X.pe0 + 4, yTop = lastY - 4.5;
+      const nR = rows.length + 1, x0 = X.dc0 - 2.5 - tw, yTop = lastY - 4.5;   // ชิดขวาก่อนตู้ DC (ผู้ใช้ย้าย)
       const head = (b.names || "INV" + b.no).replace(/INV(\d)/g, "INVERTER $1") + (b.names ? "  (PER SET)" : "");   // เขียนเต็ม (ผู้ใช้ 2026-10-30)
       pen.rect(L, x0, yTop - nR * rh, tw, nR * rh);
       pen.text(LB, x0 + pd, yTop - rh / 2, th, head, { valign: 2 });

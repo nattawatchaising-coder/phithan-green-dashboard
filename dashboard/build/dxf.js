@@ -2308,8 +2308,8 @@ function pgSldPro(doc, sheet, M) {
     RW = RX1 - RX0;
   const DX0 = A.x0 + 4;
   const X = {
-    pe0: DX0 - 24,
-    m1: DX0 - 14,
+    pe0: DX0 - 21,
+    m1: DX0 - 10.8,
     mn: DX0 + 18,
     tx: DX0 + 22,
     sl: DX0 + 51,
@@ -2903,7 +2903,7 @@ function pgSldPro(doc, sheet, M) {
       const cw = [0, 1, 2].map(i => Math.max.apply(null, rows.map(r => pgTextW(r[i], th))) + 2 * pd);
       const tw = cw[0] + eq + cw[1] + eq + cw[2];
       const nR = rows.length + 1,
-        x0 = X.pe0 + 4,
+        x0 = X.dc0 - 2.5 - tw,
         yTop = lastY - 4.5;
       const head = (b.names || "INV" + b.no).replace(/INV(\d)/g, "INVERTER $1") + (b.names ? "  (PER SET)" : "");
       pen.rect(L, x0, yTop - nR * rh, tw, nR * rh);
