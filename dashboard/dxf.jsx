@@ -2079,7 +2079,10 @@ function pgSldPro(doc, sheet, M) {
       (fuseDev ? (ivSpd ? P.dcDev.tag.replace(/ gPV \d+A/, "") : P.dcDev.tag) + " x" + nS * 2 : P.dcDev.tag + " x" + nS) + per,
       "DC SPD " + P.dcSpdTag.replace(/^SPD /, "") + " x" + nS + per,
     ].slice(0, ivSpd ? 1 : 2);
-    const fw = X.dcPE - 2.5 - (X.dc0 + 1);
+    /* งานโครงการ: แตกเป็นสองบรรทัด "DC FUSE 1500VDC" / "(+/-) x20" ตัวหนังสือจะได้ไม่ต้องย่อ (ผู้ใช้ขอใหญ่ขึ้น 2026-10-30) */
+    if (ivSpd) { const k = ft[0].indexOf(" (+/-)"); if (k > 0) ft.splice(0, 1, ft[0].slice(0, k), ft[0].slice(k + 1)); }
+    /* งานโครงการไม่มี PE bar — ใช้กว้างเต็มตู้ ตัวหนังสือไม่ต้องย่อ (ผู้ใช้ขอใหญ่ขึ้น 2026-10-30) */
+    const fw = (ivSpd ? X.dc1 - 1 : X.dcPE - 2.5) - (X.dc0 + 1);
     const fth = Math.min.apply(null, ft.map((s) => fitH(s, TS.spec, fw)));   // ทุกบรรทัดขนาดเท่ากัน (ผู้ใช้ 2026-10-29) ไม่ใช่ย่อเฉพาะบรรทัดที่ยาว
     ft.forEach((s, i) => pen.text(T, X.dc0 + 1, G.dBot + 1.0 + (ft.length - 1 - i) * 2.1, fth, s, { valign: 1 }));
     /* อินเวอร์เตอร์ */
@@ -2243,8 +2246,9 @@ function pgSldPro(doc, sheet, M) {
       pen.rect(S, zx - 3.4, gy0, 6.8, gy1 - gy0);
       pen.text(T, zx, (gy0 + gy1) / 2, TS.spec, "GFR", { align: 1, valign: 2 });
       pen.line(CM, zx, yMain - 1.7, zx, gy1);
-      pen.line(CM, zx - 3.4, (gy0 + gy1) / 2, mx, (gy0 + gy1) / 2);
-      pen.line(CM, mx, (gy0 + gy1) / 2, mx, yMain - 2.2);
+      /* สาย shunt trip GFR → MCCB เป็นเส้นประถี่แบบสายสัญญาณ (ผู้ใช้วาดชี้ 2026-10-30) */
+      pen.line(PG_SLD.ctsig, zx - 3.4, (gy0 + gy1) / 2, mx, (gy0 + gy1) / 2);
+      pen.line(PG_SLD.ctsig, mx, (gy0 + gy1) / 2, mx, yMain + 2.6 * g / (2 * g - 1));   // ขึ้นไปแตะใบมีด MCCB (ผู้ใช้ชี้)
       pen.text(T, mx - 0.8, yMain - 4.4, TS.tag, "SHUNT", { align: 2, valign: 2 });
       pen.text(T, mx - 0.8, yMain - 6.1, TS.tag, "TRIP", { align: 2, valign: 2 });
     }

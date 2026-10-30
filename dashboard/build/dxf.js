@@ -2959,7 +2959,11 @@ function pgSldPro(doc, sheet, M) {
     const per = b.typical ? " /INV" : "";
     const nS = b.typical ? Math.round(nStrB / b.cnt) : nStrB;
     const ft = [(fuseDev ? (ivSpd ? P.dcDev.tag.replace(/ gPV \d+A/, "") : P.dcDev.tag) + " x" + nS * 2 : P.dcDev.tag + " x" + nS) + per, "DC SPD " + P.dcSpdTag.replace(/^SPD /, "") + " x" + nS + per].slice(0, ivSpd ? 1 : 2);
-    const fw = X.dcPE - 2.5 - (X.dc0 + 1);
+    if (ivSpd) {
+      const k = ft[0].indexOf(" (+/-)");
+      if (k > 0) ft.splice(0, 1, ft[0].slice(0, k), ft[0].slice(k + 1));
+    }
+    const fw = (ivSpd ? X.dc1 - 1 : X.dcPE - 2.5) - (X.dc0 + 1);
     const fth = Math.min.apply(null, ft.map(s => fitH(s, TS.spec, fw)));
     ft.forEach((s, i) => pen.text(T, X.dc0 + 1, G.dBot + 1.0 + (ft.length - 1 - i) * 2.1, fth, s, {
       valign: 1
@@ -3161,8 +3165,8 @@ function pgSldPro(doc, sheet, M) {
         valign: 2
       });
       pen.line(CM, zx, yMain - 1.7, zx, gy1);
-      pen.line(CM, zx - 3.4, (gy0 + gy1) / 2, mx, (gy0 + gy1) / 2);
-      pen.line(CM, mx, (gy0 + gy1) / 2, mx, yMain - 2.2);
+      pen.line(PG_SLD.ctsig, zx - 3.4, (gy0 + gy1) / 2, mx, (gy0 + gy1) / 2);
+      pen.line(PG_SLD.ctsig, mx, (gy0 + gy1) / 2, mx, yMain + 2.6 * g / (2 * g - 1));
       pen.text(T, mx - 0.8, yMain - 4.4, TS.tag, "SHUNT", {
         align: 2,
         valign: 2
