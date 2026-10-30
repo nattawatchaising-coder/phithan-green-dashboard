@@ -2518,6 +2518,17 @@ function pgSldPro(doc, sheet, M) {
   };
   if (!isMain) zoneHdr(hy);
   let cur = yB0;
+  if (!isMain && !isDet && blocks.length === 1 && !blocks[0].typical) {
+    for (let k = 0; k < 40; k++) {
+      const G0 = geo(blocks[0], yTop),
+        tap0 = (yTop - 1 + G0.boxBot) / 2;
+      const need = tap0 - Math.max(Math.min(tap0, A.y1 - 34), yE0 + 44),
+        room = G0.bottom - (yE0 + 20);
+      cur = yTop - Math.max(0, Math.min(need, room));
+      if (need <= room || RH <= 10) break;
+      RH = Math.max(10, RH - 0.5);
+    }
+  }
   const miniLines = b => [[LB, "INV" + b.no + "  " + b.kw + "kW " + P.phTxt + "  " + b.model], [T, b.nMp + " MPPT / " + b.nStr + " STRINGS / " + b.nPv + " x " + wp + "Wp = " + Math.round(b.nPv * wp / 10) / 100 + " kWp"], [T, b.ref]].filter((l, k) => l[1] && (k < 2 || MH >= 11));
   if (isMain) {
     const hT = Math.min(TS.spec, 2.6 * 0.8);
@@ -2723,7 +2734,7 @@ function pgSldPro(doc, sheet, M) {
     const tY = taps.map(t => t.y);
     const tMax = Math.max.apply(null, tY),
       tMin = Math.min.apply(null, tY);
-    let yMain = Math.min((tMax + tMin) / 2, A.y1 - 66);
+    let yMain = Math.min((tMax + tMin) / 2, A.y1 - (taps.length === 1 && !taps[0].b.typical ? 34 : 66));
     yMain = Math.max(yMain, yE0 + 44);
     const oneInv = taps.length === 1 && !taps[0].b.typical;
     const tGap = taps.length > 1 ? Math.min.apply(null, taps.slice(1).map((t, i) => Math.abs(taps[i].y - t.y))) : 20;
@@ -2796,14 +2807,17 @@ function pgSldPro(doc, sheet, M) {
       pen.line(R, X.acB + g + 0.75, t.y, X.acBus, t.y);
       if (t.y !== tMax || yMain > tMax) pen.dot(R, X.acBus, t.y, 0.5);
     });
-    const busHi = Math.max(tMax, yMain),
+    const busHi = oneInv ? yMain : Math.max(tMax, yMain),
       busLo = Math.min(tMin, yMain);
     if (!oneInv) pen.line(R, X.acBus, busHi, X.acBus, busLo);
+    const mainL0 = P.mainTxt + (P.lsig ? " LSIG" : "");
+    const ctGap = Math.max(10, (pgTextW("CT " + P.pmCt, TS.spec) + (/AF/.test(mainL0) ? pgTextW("MCCB", TS.spec * 1.12) : pgTextW(mainL0, TS.spec))) / 2 + 1.5);
     const cx = X.acBus + (oneInv ? -12.5 : isMain ? 13 : 4.5),
-      mx = P.pm ? oneInv ? X.acBus + 4 : cx + (isMain ? 13 : 7.5) : X.acBus + (isMain ? 14 : 8);
+      mx = P.pm ? oneInv ? X.acBus + 4 : cx + (isMain ? 13 : ctGap) : X.acBus + (isMain ? 14 : 8);
+    if (P.pm && !oneInv && !isMain) X.ac1 += ctGap - 7;
     const hasGf = P.gf && !P.lsig;
     const acTop0 = busHi + 12,
-      acTop = acTop0 + (P.pm && !(isMain && yMain + 20 < acTop0) ? 15 : 0);
+      acTop = P.pm ? Math.max(acTop0, yMain + 21) : acTop0;
     if (!oneInv) pen.dot(R, X.acBus, yMain, 0.5);
     pen.line(R, oneInv ? oneX : X.acBus, yMain, mx - g - 0.75, yMain);
     hBrk(mx, yMain, isCb(P.mainTxt));
@@ -2848,7 +2862,7 @@ function pgSldPro(doc, sheet, M) {
       const pb = yMain - 19,
         pt = yMain - 14;
       ctH(cx, yMain);
-      const fy = isMain ? Math.min(acTop0 + 4, yMain + 12) : acTop0 + 4,
+      const fy = yMain + 12,
         ly = fy + 5,
         lr = 1.3;
       const ph = M.phase === 3 ? ["R", "S", "T"] : ["L"];
