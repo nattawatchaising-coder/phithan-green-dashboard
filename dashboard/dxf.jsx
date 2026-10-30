@@ -2064,17 +2064,14 @@ function pgSldPro(doc, sheet, M) {
     const tLo = Math.min(tapY, Math.min.apply(null, mids)), tHi = Math.max(tapY, Math.max.apply(null, mids));
     if (tHi > tLo) pen.line(R, trunkX, tLo, trunkX, tHi);
     if (ivSpd) {
-      /* DC SPD (Type II) ต่อที่แกนรวม MPPT (บัส DC) ปลายล่าง → ลงดินตัวเครื่อง (ผู้ใช้ชี้ 2026-10-30) · DC SWITCH อยู่ที่ขั้ว IN */
-      let yS = Math.min.apply(null, mids);
-      if (yS >= tapY - 0.1) { pen.line(R, trunkX, tapY, trunkX, tapY - 2.5); yS = tapY - 2.5; }   // MPPT เดียว: ต่อแกนลงอีกนิดไม่ให้ทับสายเข้าสัญลักษณ์
-      const spX = trunkX + 4, spT = yS - 2.5, yb = G.boxBot + 1.5;
+      /* DC SPD (Type II) ต่อตรงใต้แกนรวม MPPT (บัส DC) → สัญลักษณ์ดิน (ผู้ใช้วาดชี้ 2026-10-30) · DC SWITCH อยู่ที่ขั้ว IN */
+      const yS = Math.min(tapY, Math.min.apply(null, mids)), spT = yS - 2;
       pen.line(R, trunkX, tapY, X.iv1 - 13.5, tapY);
-      pen.line(R, trunkX, yS, spX, yS);
-      pen.line(R, spX, yS, spX, spT);
-      spdS(spX, spT);
-      pen.text(T, spX + 1.6, spT - SPD_H / 2, TS.tag, "DC SPD", { valign: 2 });
-      pen.line(PE, spX, spT - SPD_H, spX, yb);
-      pen.line(PE, spX, yb, X.iv0 + 2, yb);
+      pen.line(R, trunkX, yS, trunkX, spT);
+      spdS(trunkX, spT);
+      pen.text(T, trunkX + 1.6, spT - SPD_H / 2, TS.tag, "DC SPD", { valign: 2 });
+      pen.line(PE, trunkX, spT - SPD_H, trunkX, spT - SPD_H - 1.2);
+      pgSym.ground(pen, trunkX, spT - SPD_H - 1.2);
     } else pen.line(R, trunkX, tapY, X.iv1 - 13.5, tapY);
     /* ขั้ว AC ออกที่ขอบกล่อง — วงกลมแบบเดียวกับขั้ว IN ฝั่งซ้าย (ผู้ใช้วงชี้ 2026-10-29) */
     pen.line(R, X.iv1 - 2.5, tapY, X.iv1 - 0.6, tapY);
@@ -2092,7 +2089,7 @@ function pgSldPro(doc, sheet, M) {
     /* สายดินของบล็อก: PE bar ตู้ DC + ตัวเครื่องอินเวอร์เตอร์ → PE trunk */
     const peX = X.iv0 + 2;
     if (!ivSpd) pen.line(PE, X.dcPE, barB, X.dcPE, G.yG);
-    pen.line(PE, peX, ivSpd ? G.boxBot + 1.5 : G.boxBot, peX, G.yG);
+    pen.line(PE, peX, G.boxBot, peX, G.yG);
     pen.line(PE, X.pe0, G.yG, peX, G.yG);
     if (!ivSpd) peDot(X.dcPE, G.yG);
     peDot(X.pe0, G.yG);
