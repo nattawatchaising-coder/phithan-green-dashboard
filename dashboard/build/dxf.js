@@ -2792,6 +2792,18 @@ function pgSldPro(doc, sheet, M) {
         pen.text(T, X.tx, y + 0.9, fitH(row.lab, TS.head, lw), row.lab, {
           valign: 1
         });
+        {
+          const dc = P.dcCable.replace(/ \(H1Z2Z2-K\)/, "").replace(/ 1\.5kV DC$/, "");
+          const xl = X.tx + pgTextW(row.lab, fitH(row.lab, TS.head, lw)) * 1.05 + 1.5,
+            xr = X.sl - 1.6;
+          const dh = Math.min(TS.spec, (xr - xl) / Math.max(0.1, pgTextW(dc, 1)));
+          if (dh >= 0.8) pen.text(T, xr, y + 0.5, dh, dc, {
+            align: 2,
+            valign: 1
+          });else pen.text(T, X.sl + 2.2, y - 1.0, TS.tag, dc, {
+            valign: 3
+          });
+        }
         pen.text(T, X.tx, y - 1.0, fitH(row.sub, TS.spec, lw), row.sub, {
           valign: 3
         });

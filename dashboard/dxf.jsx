@@ -1939,6 +1939,14 @@ function pgSldPro(doc, sheet, M) {
         pen.line(CM, X.m1 + 3.2, y, X.mn - 3.2, y);
         const lw = X.sl - X.tx - 1.5;
         pen.text(T, X.tx, y + 0.9, fitH(row.lab, TS.head, lw), row.lab, { valign: 1 });
+        /* ขนาดสาย DC บนเส้นสตริง ช่องว่างระหว่างป้ายสตริงกับขีดคู่ (ผู้ใช้ 2026-10-30: ขาดการบอกขนาดสาย DC) — สเปคเต็มอยู่ในตาราง/แผ่นต่อสาย DC */
+        {
+          const dc = P.dcCable.replace(/ \(H1Z2Z2-K\)/, "").replace(/ 1\.5kV DC$/, "");
+          const xl = X.tx + pgTextW(row.lab, fitH(row.lab, TS.head, lw)) * 1.05 + 1.5, xr = X.sl - 1.6;
+          const dh = Math.min(TS.spec, (xr - xl) / Math.max(0.1, pgTextW(dc, 1)));
+          if (dh >= 0.8) pen.text(T, xr, y + 0.5, dh, dc, { align: 2, valign: 1 });
+          else pen.text(T, X.sl + 2.2, y - 1.0, TS.tag, dc, { valign: 3 });   // ไม่พอที่ = ใต้เส้นหลังขีดคู่
+        }
         pen.text(T, X.tx, y - 1.0, fitH(row.sub, TS.spec, lw), row.sub, { valign: 3 });
         /* ต่อฝากโครงแผงเข้า PE trunk */
         pen.line(PE, X.pe0, y - 1.2, X.m1 - 3.2, y - 1.2);
