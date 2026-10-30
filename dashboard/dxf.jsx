@@ -1714,6 +1714,10 @@ function pgSldPro(doc, sheet, M) {
   const PT = M.part || null, isMain = !!(PT && PT.kind === "main"), isDet = !!(PT && PT.kind === "detail");
   /* แผ่นภาพรวมไม่มีสตริง/ตู้ DC ซ้ายมือว่าง — ขยับอินเวอร์เตอร์ไปซ้าย ขยายตู้ AC ให้เบรกเกอร์ไม่ชิดอินเวอร์เตอร์และบัส (ผู้ใช้ 2026-10-29) */
   if (isMain) { X.iv0 -= 40; X.iv1 -= 40; X.ac0 -= 21; X.acB -= 18; X.acBus -= 12; X.ac1 += 5; }   // ขอบขวาตู้ขยายตามชุด CT/ACB ที่ขยับไปขวา   // ผู้ใช้: ขยับน้อยไป — บัสไปซ้ายด้วย ให้ช่วง CT/ACB เมนกว้างขึ้น
+  /* งานโครงการ (ฟิวส์ gPV): DC SWITCH + DC SPD อยู่ในตัวอินเวอร์เตอร์ทุกเครื่อง ตู้ DC เหลือแค่ฟิวส์ (ผู้ใช้ 2026-10-30)
+     ตู้ DC ไม่มี SPD/PE bar → แคบลง ที่ว่างยกให้กล่องอินเวอร์เตอร์ขยายซ้าย วาง DC SWITCH/SPD ระหว่างแกนรวม MPPT กับสัญลักษณ์ (ผู้ใช้ 2026-10-30) */
+  const ivSpd = fuseDev && !isMain;
+  if (ivSpd) { X.dc1 = DX0 + 72; X.dcPE = X.dc1; X.iv0 = DX0 + 78; }
   const modelOf = (no) => (M.units && M.units[no - 1] && M.units[no - 1].model) || M.inv.model;
   const mkBlock = (no, detail) => {
     const groups = byInv[no].map((r) => ({ mppt: r.mppt, rows: detail ? rowsOf(r) : [grpRow(r)] }));
@@ -1731,7 +1735,7 @@ function pgSldPro(doc, sheet, M) {
     const span = all.slice(0, -1).reduce((t, row) => t + rowH(row), 0);
     const lastY = firstY - span - (b.groups.length - 1) * GAP;
     const dBot = lastY - 16;
-    const boxBot = Math.min(lastY - 5, top - 27);
+    const boxBot = Math.min(lastY - (ivSpd ? 11 : 5), top - 27);   // งานโครงการเผื่อที่ DC SPD ใต้แกนรวม MPPT
     const yG = Math.min(dBot, boxBot - 10.8) - 3;
     return { firstY, lastY, dBot, boxBot, yG, bottom: yG - 1.5 };
   };
@@ -1917,7 +1921,7 @@ function pgSldPro(doc, sheet, M) {
     }
     let y = G.firstY;
     const rowsY = [], mids = [];
-    const trunkX = X.iv1 - 16.5;   // แกนรวม MPPT → สัญลักษณ์อินเวอร์เตอร์ (ขอบซ้ายสัญลักษณ์ = iv1 − 13.5)
+    const trunkX = X.iv1 - (ivSpd ? 22 : 16.5);   // แกนรวม MPPT → สัญลักษณ์อินเวอร์เตอร์ (ขอบซ้ายสัญลักษณ์ = iv1 − 13.5)
     let nStrB = 0, first = true;
     b.groups.forEach((gq, gi) => {
       if (gi) y -= GAP;
@@ -1961,11 +1965,12 @@ function pgSldPro(doc, sheet, M) {
           const tw = X.dc1 - X.dc0 - 2;
           /* ตัดบรรทัดตามความหมาย: ชนิด+แรงดัน | กระแส */
           const brk = (t, re) => t.split(re).filter(Boolean).reduce((o, p) => o.concat(wrapT(p.trim(), TS.spec, tw)), []);
-          const lines = brk(P.dcSpdFull, / (?=In |Iimp )/).concat(brk(P.dcDev.tag, / (?=[0-9]+VDC)/));
+          const lines = (ivSpd ? [] : brk(P.dcSpdFull, / (?=In |Iimp )/)).concat(brk(P.dcDev.tag, / (?=[0-9]+VDC)/));
           const pitch = Math.min(1.7, 6.2 / Math.max(1, lines.length));
           lines.slice().reverse().forEach((t, i) => pen.text(T, X.dc0 + 1, y + 2.4 + i * pitch, TS.spec, t, { valign: 1 }));
         }
-        /* DC SPD ต่อทุกสตริง: L+/L− ลง SPD → PE bar */
+        /* DC SPD ต่อทุกสตริง: L+/L− ลง SPD → PE bar (งานโครงการ SPD อยู่ในอินเวอร์เตอร์ ไม่มีในตู้ DC) */
+        if (!ivSpd) {
         pen.dot(R, X.dcS, y, 0.5);
         pen.line(R, X.dcS, y, X.dcS, y - 2.2);
         spdS(X.dcS, y - 2.2);
@@ -1974,6 +1979,7 @@ function pgSldPro(doc, sheet, M) {
         pen.line(PE, X.dcS, y - 2.2 - SPD_H, X.dcS, peY);
         pen.line(PE, X.dcS, peY, X.dcPE, peY);
         if (first) pen.text(T, X.dcS + 1.8, y - 4.6, TS.tag, "SPD", { valign: 2 });
+        }
         pen.circle(S, X.iv0, y, 0.6);
         if (row.tag) pen.text(T, X.iv0 + 1.2, y + 0.4, TS.tag, row.tag, { valign: 1 });
         first = false;
@@ -1981,8 +1987,19 @@ function pgSldPro(doc, sheet, M) {
       });
       /* ช่อง MPPT ในตัวเครื่อง (ผู้ใช้วาดแบบมาให้ 2026-10-29): ทุกขั้ว IN ของ MPPT เดียวกันรวมเป็นวงเล็บ
          → เส้นออกกลางวงเล็บ (ป้าย MPPTn บนเส้น) → แกนตั้งเส้นเดียว ลงไปเข้าสัญลักษณ์อินเวอร์เตอร์ (DC/AC) — วาดเป็นสาย DC สีแดง */
-      const bx = X.iv0 + 5.5, y0 = ys[0], y1 = ys[ys.length - 1], ym = (y0 + y1) / 2;
-      ys.forEach((yy) => pen.line(R, X.iv0 + 0.6, yy, bx, yy));
+      const bx = X.iv0 + (ivSpd ? 16 : 5.5), y0 = ys[0], y1 = ys[ys.length - 1], ym = (y0 + y1) / 2;
+      if (ivSpd) {
+        /* DC SWITCH ในตัวเครื่องที่ขั้ว IN ของแต่ละ MPPT (ผู้ใช้ชี้ 2026-10-30) — ทุกขั้วของ MPPT เดียวกันตัดพร้อมกัน (เส้นประเชื่อมใบมีด) */
+        const sw = X.iv0 + 8.5;   // มีสายนำจากขั้ว IN ป้าย IN ไม่ชนขาสวิตช์ (ผู้ใช้ 2026-10-30: เพิ่มความยาวเส้นให้พอดี)
+        ys.forEach((yy) => {
+          pen.line(R, X.iv0 + 0.6, yy, sw - g - 0.45, yy);
+          pen.circle(S, sw - g, yy, 0.45); pen.circle(S, sw + g, yy, 0.45);
+          pen.line(S, sw - g + 0.4, yy + 0.2, sw + g - 0.2, yy + 2.0);
+          pen.line(R, sw + g + 0.45, yy, bx, yy);
+        });
+        if (ys.length > 1) pen.line(CM, sw, y0 + 1.1, sw, y1 + 1.1);
+        if (gi === 0) pen.text(T, sw, y0 + 2.8, TS.tag, "DC SWITCH", { align: 1, valign: 1 });
+      } else ys.forEach((yy) => pen.line(R, X.iv0 + 0.6, yy, bx, yy));
       if (ys.length > 1) pen.line(R, bx, y0, bx, y1);
       pen.line(R, bx, ym, trunkX, ym);
       pen.text(T, bx + 1.0, ym + 0.5, TS.spec, b.typical ? "MPPT" : "MPPT" + gq.mppt, { valign: 1 });
@@ -2006,7 +2023,7 @@ function pgSldPro(doc, sheet, M) {
       const tw = cw[0] + eq + cw[1] + eq + cw[2];
       const x1 = X.pe0 - 2.5, x0 = x1 - tw, nR = rows.length + 1;
       const yTop = (rowsY[0] + lastY) / 2 + nR * rh / 2;
-      const head = (b.names || "INV" + b.no) + (b.names ? "  (PER SET)" : "");
+      const head = (b.names || "INV" + b.no).replace(/INV(\d)/g, "INVERTER $1") + (b.names ? "  (PER SET)" : "");   // เขียนเต็ม (ผู้ใช้ 2026-10-30)
       pen.rect(L, x0, yTop - nR * rh, tw, nR * rh);
       pen.text(LB, x0 + pd, yTop - rh / 2, th, head, { valign: 2 });
       rows.forEach((r, k) => {
@@ -2026,14 +2043,16 @@ function pgSldPro(doc, sheet, M) {
     const dTop = top - 1.5;
     pen.rect(BX, X.dc0, G.dBot, X.dc1 - X.dc0, dTop - G.dBot);
     const barT = rowsY[0] - 5.6, barB = lastY - 10;   // ต่ำกว่าสายดิน SPD แถวสุดท้าย (ลงใต้กล่องก่อนเลี้ยว)
-    pen.solid(PE, [X.dcPE - 0.5, barB], [X.dcPE + 0.5, barB], [X.dcPE + 0.5, barT], [X.dcPE - 0.5, barT]);
-    pen.text(T, X.dcPE - 1.2, barB - 0.4, TS.tag, "PE", { align: 2, valign: 3 });
+    if (!ivSpd) {   // งานโครงการไม่มี SPD ในตู้ DC = ไม่มี PE bar (ผู้ใช้ขีดฆ่า 2026-10-30)
+      pen.solid(PE, [X.dcPE - 0.5, barB], [X.dcPE + 0.5, barB], [X.dcPE + 0.5, barT], [X.dcPE - 0.5, barT]);
+      pen.text(T, X.dcPE - 1.2, barB - 0.4, TS.tag, "PE", { align: 2, valign: 3 });
+    }
     const per = b.typical ? " /INV" : "";
     const nS = b.typical ? Math.round(nStrB / b.cnt) : nStrB;
     const ft = [
       (fuseDev ? P.dcDev.tag + " x" + nS * 2 : P.dcDev.tag + " x" + nS) + per,
       "DC SPD " + P.dcSpdTag.replace(/^SPD /, "") + " x" + nS + per,
-    ];
+    ].slice(0, ivSpd ? 1 : 2);
     const fw = X.dcPE - 2.5 - (X.dc0 + 1);
     const fth = Math.min.apply(null, ft.map((s) => fitH(s, TS.spec, fw)));   // ทุกบรรทัดขนาดเท่ากัน (ผู้ใช้ 2026-10-29) ไม่ใช่ย่อเฉพาะบรรทัดที่ยาว
     ft.forEach((s, i) => pen.text(T, X.dc0 + 1, G.dBot + 1.0 + (ft.length - 1 - i) * 2.1, fth, s, { valign: 1 }));
@@ -2044,7 +2063,19 @@ function pgSldPro(doc, sheet, M) {
     pgSym.inverter(pen, X.iv1 - 8, tapY, 11, 8.5);
     const tLo = Math.min(tapY, Math.min.apply(null, mids)), tHi = Math.max(tapY, Math.max.apply(null, mids));
     if (tHi > tLo) pen.line(R, trunkX, tLo, trunkX, tHi);
-    pen.line(R, trunkX, tapY, X.iv1 - 13.5, tapY);
+    if (ivSpd) {
+      /* DC SPD (Type II) ต่อที่แกนรวม MPPT (บัส DC) ปลายล่าง → ลงดินตัวเครื่อง (ผู้ใช้ชี้ 2026-10-30) · DC SWITCH อยู่ที่ขั้ว IN */
+      let yS = Math.min.apply(null, mids);
+      if (yS >= tapY - 0.1) { pen.line(R, trunkX, tapY, trunkX, tapY - 2.5); yS = tapY - 2.5; }   // MPPT เดียว: ต่อแกนลงอีกนิดไม่ให้ทับสายเข้าสัญลักษณ์
+      const spX = trunkX + 4, spT = yS - 2.5, yb = G.boxBot + 1.5;
+      pen.line(R, trunkX, tapY, X.iv1 - 13.5, tapY);
+      pen.line(R, trunkX, yS, spX, yS);
+      pen.line(R, spX, yS, spX, spT);
+      spdS(spX, spT);
+      pen.text(T, spX + 1.6, spT - SPD_H / 2, TS.tag, "DC SPD", { valign: 2 });
+      pen.line(PE, spX, spT - SPD_H, spX, yb);
+      pen.line(PE, spX, yb, X.iv0 + 2, yb);
+    } else pen.line(R, trunkX, tapY, X.iv1 - 13.5, tapY);
     /* ขั้ว AC ออกที่ขอบกล่อง — วงกลมแบบเดียวกับขั้ว IN ฝั่งซ้าย (ผู้ใช้วงชี้ 2026-10-29) */
     pen.line(R, X.iv1 - 2.5, tapY, X.iv1 - 0.6, tapY);
     pen.circle(S, X.iv1, tapY, 0.6);
@@ -2055,14 +2086,15 @@ function pgSldPro(doc, sheet, M) {
     /* รุ่นของเครื่องนั้นเอง (งานปนหลายรุ่น · ผู้ใช้ 2026-10-29: สูงสุด 4 รุ่น) · กลุ่มหลายเครื่อง = ชื่อกลุ่มบรรทัดเดียว กำลังไปอยู่บรรทัดรุ่น */
     const ivL = b.names ? [[LB, nm], [T, b.kw + "kW " + P.phTxt + "  " + b.model], [T, "DC SWITCH : BUILT-IN"], [T, "AC : " + M.acCable]]
       : [[LB, nm + "  " + b.kw + "kW " + P.phTxt], [T, b.model || M.inv.model], [T, "DC SWITCH : BUILT-IN"], [T, "AC : " + M.acCable]];
+    if (ivSpd) ivL.forEach((l) => { if (l[1] === "DC SWITCH : BUILT-IN") l[1] = "DC SWITCH + DC SPD TYPE II : BUILT-IN"; });
     const ivH = Math.min.apply(null, ivL.map((l) => fitH(l[1], TS.spec, iw)));
     ivL.forEach((l, k) => pen.text(l[0], ix, G.boxBot - 1.2 - k * 2.4, ivH, l[1], { valign: 3 }));
     /* สายดินของบล็อก: PE bar ตู้ DC + ตัวเครื่องอินเวอร์เตอร์ → PE trunk */
     const peX = X.iv0 + 2;
-    pen.line(PE, X.dcPE, barB, X.dcPE, G.yG);
-    pen.line(PE, peX, G.boxBot, peX, G.yG);
+    if (!ivSpd) pen.line(PE, X.dcPE, barB, X.dcPE, G.yG);
+    pen.line(PE, peX, ivSpd ? G.boxBot + 1.5 : G.boxBot, peX, G.yG);
     pen.line(PE, X.pe0, G.yG, peX, G.yG);
-    peDot(X.dcPE, G.yG);
+    if (!ivSpd) peDot(X.dcPE, G.yG);
     peDot(X.pe0, G.yG);
     taps.push({ y: tapY, b });
     cur = G.bottom - 2;

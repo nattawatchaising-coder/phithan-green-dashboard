@@ -2713,7 +2713,8 @@ function p3SldModel(st, job, design) {
     S.push(["DC BOX", "IP65 ENCLOSURE c/w PE BAR", nInv]);
     S.push(dcDev.k === "fuse" ? ["DC STRING FUSE", "gPV (IEC 60269-6) " + fuseA + "A " + dcV + "VDC " + (dcV > 1000 ? "10x85" : "10x38") + " + DC FUSE HOLDER" + (fz && fz.h ? " " + fz.h : ""), nStr * 2]
       : ["DC MCB", dcDev.tag.replace(/^DC MCB /, ""), nStr]);
-    S.push(["DC SPD", (lps ? "TYPE I+II" : "TYPE II") + " Ucpv " + ucpv + "VDC " + dcSpdKa, nStr]);
+    /* งานโครงการ: DC SPD + DC SWITCH ในตัวอินเวอร์เตอร์ ไม่ต้องจัดซื้อแยก (ผู้ใช้ 2026-10-30) */
+    if (dcDev.k !== "fuse") S.push(["DC SPD", (lps ? "TYPE I+II" : "TYPE II") + " Ucpv " + ucpv + "VDC " + dcSpdKa, nStr]);
     S.push(["MC4 CONNECTOR", "1500VDC IP68 (PAIR)", nStr * 2]);
     /* เบรกเกอร์ต่อเครื่อง แยกแถวตามขนาด (หลายรุ่นได้คนละขนาด) */
     if (nInv > 1) { const bc = {}; ivBrk.forEach((b) => { bc[b] = (bc[b] || 0) + 1; }); Object.keys(bc).forEach((b) => S.push(["AC BREAKER (INV.)", b, bc[b]])); }
@@ -3066,14 +3067,16 @@ function p3DcSheet(st, job, media) {
         pen.line(L, px, yF - 2.0, px + 2.2, yF + 2.2);
       }
       pen.line(D, px, yF - 3.2, px, iy + ih);
-      pen.dot(D, px, yS, 0.7);
-      pen.line(D, px, yS, px < mx ? mx - 2 : mx + 2, yS);
+      if (!fuse) { pen.dot(D, px, yS, 0.7); pen.line(D, px, yS, px < mx ? mx - 2 : mx + 2, yS); }
     });
     if (!fuse) pen.line("PG-NORTH", s.lx + 1.1, yF, s.rx + 1.1, yF);    // ก้านโยกร่วม 2 ขั้ว
     /* DC SPD กลางระหว่างขั้ว → PE bar → หลักดิน PV (ปักแยกจากระบบ) */
-    pen.rect(L, mx - 2, yS - 3, 4, 6);
-    pen.line(L, mx - 1.4, yS - 2.2, mx + 1.4, yS + 2.2);
-    pen.line(E, mx, yS - 3, mx, yPE);
+    /* งานโครงการ (ฟิวส์ gPV): DC SPD + DC SWITCH อยู่ในอินเวอร์เตอร์ ตู้ DC มีแค่ฟิวส์ + PE bar ตัวตู้ (ผู้ใช้ 2026-10-30) */
+    if (!fuse) {
+      pen.rect(L, mx - 2, yS - 3, 4, 6);
+      pen.line(L, mx - 1.4, yS - 2.2, mx + 1.4, yS + 2.2);
+      pen.line(E, mx, yS - 3, mx, yPE);
+    }
     pen.solid(E, [mx - 9, yPE - 0.5], [mx + 9, yPE - 0.5], [mx + 9, yPE + 0.5], [mx - 9, yPE + 0.5]);
     pen.text(T, mx - 9.6, yPE, PG_TS.cell, "PE BAR", { align: 2, valign: 2 });
     pen.line(E, mx + 9, yPE, mx + 14, yPE); pen.line(E, mx + 14, yPE, mx + 14, yPE - 4);
@@ -3082,9 +3085,11 @@ function p3DcSheet(st, job, media) {
     /* ป้ายสเปค — ชื่ออุปกรณ์ body · สเปค cell */
     pen.text(T, mx, yF + 0.9, PG_TS.body, fuse ? "DC FUSE gPV (+/-)" : P.dcDev.tag.split(" ").slice(0, 3).join(" "), { align: 1, valign: 1 });
     pen.text(T, mx, yF - 0.9, PG_TS.cell, P.dcDev.tag.replace(/^DC (FUSE gPV|MCB \S+) /, "").replace(/ \(\+\/-\)$/, ""), { align: 1, valign: 3 });
-    pen.text(T, mx + 3, yS - 1.0, PG_TS.body, "DC SPD", { valign: 3 });
-    pen.text(T, mx + 3, yS - 4.0, PG_TS.cell, P.dcSpdFull.replace(/^DC SPD /, "").replace(/ (In|Iimp) .*/, ""), { valign: 3 });
-    pen.text(T, mx + 3, yS - 6.6, PG_TS.cell, (P.dcSpdFull.match(/(In|Iimp) .*/) || [""])[0], { valign: 3 });
+    if (!fuse) {
+      pen.text(T, mx + 3, yS - 1.0, PG_TS.body, "DC SPD", { valign: 3 });
+      pen.text(T, mx + 3, yS - 4.0, PG_TS.cell, P.dcSpdFull.replace(/^DC SPD /, "").replace(/ (In|Iimp) .*/, ""), { valign: 3 });
+      pen.text(T, mx + 3, yS - 6.6, PG_TS.cell, (P.dcSpdFull.match(/(In|Iimp) .*/) || [""])[0], { valign: 3 });
+    }
     pen.text(T, s.lx + 2, bB + 1.6, PG_TS.cell, "DC CABLE : " + P.dcCable.replace(/ \(H1Z2Z2-K\)/, ""), { valign: 1 });
   });
   if (kinds.length > show.length) {
@@ -3118,7 +3123,7 @@ function p3DcSheet(st, job, media) {
   if (P) {
     spec.push(["Voc สตริง @" + P.tMin + "%%dC", P.vocMax + " Vdc"]);
     spec.push(["ป้องกันกระแสเกิน", P.dcDev.tag]);
-    spec.push(["DC SPD", P.dcSpdFull.replace(/^DC SPD /, "")]);
+    spec.push(["DC SPD", P.dcDev.k === "fuse" ? "TYPE II + DC SWITCH ในตัวอินเวอร์เตอร์ (BUILT-IN)" : P.dcSpdFull.replace(/^DC SPD /, "")]);
     spec.push(["สาย DC", P.dcCable.replace(/ \(H1Z2Z2-K\)/, "")]);
     spec.push(["สายดินโครงแผง", "THW(G) " + Math.max(6, Math.min(16, P.earthCu)) + " Sq.mm. เขียว/เหลือง"]);
   } else spec.push(["สาย DC", "PV1-F 1x4 Sq.mm. DC1500V"]);
@@ -3133,7 +3138,8 @@ function p3DcSheet(st, job, media) {
     "2. ปลายสตริงเข้าหัว MC4 ยี่ห้อ/รุ่นเดียวกันทั้งคู่ ก่อนต่อเข้าตู้ DC ห้ามต่อสลับขั้ว",
     "3. วัดแรงดัน Voc และขั้วของทุกสตริงก่อนใส่ฟิวส์/สับเบรกเกอร์",
     "4. สาย DC " + (P ? P.dcCable.replace(/ \(H1Z2Z2-K\)/, "") : "PV1-F 1x4 Sq.mm.") + " เดินในท่อ/รางที่กันแดดได้",
-    P ? "5. DC SPD ทุกสตริงลง PE bar ตู้ DC แล้วเดินสายดินลงหลักดิน PV ที่ปักแยกจากระบบ · โครงแผง/ราง bonding ทุกแถว"
+    P ? (P.dcDev.k === "fuse" ? "5. DC SPD/DC SWITCH อยู่ในอินเวอร์เตอร์ · PE bar ตู้ DC + ตัวอินเวอร์เตอร์ลงหลักดิน PV ที่ปักแยกจากระบบ · โครงแผง/ราง bonding ทุกแถว"
+      : "5. DC SPD ทุกสตริงลง PE bar ตู้ DC แล้วเดินสายดินลงหลักดิน PV ที่ปักแยกจากระบบ · โครงแผง/ราง bonding ทุกแถว")
       : "5. ยึดสายกับรางด้วยเคเบิลไทกันยูวี ห้ามให้สายห้อยสัมผัสหลังคา",
   ];
   pen.text(PG_TBL.txt, A.x0 + 6, A.y0 + 6 + note.length * 5, PG_TS.head, "NOTE");
