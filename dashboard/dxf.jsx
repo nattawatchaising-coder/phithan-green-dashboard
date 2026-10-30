@@ -1958,9 +1958,14 @@ function pgSldPro(doc, sheet, M) {
         /* สายสตริง → อุปกรณ์ป้องกัน → ขั้วอินเวอร์เตอร์ (ขีดสองขีด = วงจร DC +/−) */
         pen.line(R, X.mn + 3.2, y, fuseDev ? X.dcB - 2.4 : X.dcB - g - 0.75, y);
         if (fuseDev) hFuse(X.dcB, y); else hBrk(X.dcB, y);
+        /* ป้ายเหนือฟิวส์ทุกตัว (ผู้ใช้ 2026-10-30): DC FUSE 20A 1500VDC — แทนสเปคหัวตู้ */
+        if (ivSpd) {
+          const ft0 = P.dcDev.tag.replace(/ gPV/, "").replace(/\s*\(\+\/-\)\s*$/, "");
+          pen.text(T, X.dcB, y + 1.4, Math.min(TS.spec, fitH(ft0, TS.spec, X.dc1 - X.dc0 - 1.5)), ft0, { align: 1, valign: 1 });
+        }
         pen.line(R, fuseDev ? X.dcB + 2.4 : X.dcB + g + 0.75, y, X.iv0, y);
         pen.line(R, X.sl - 0.7, y - 1.0, X.sl + 0.3, y + 1.0); pen.line(R, X.sl + 0.5, y - 1.0, X.sl + 1.5, y + 1.0);
-        if (first) {
+        if (first && !ivSpd) {
           /* สเปคฟิวส์/MCB + DC SPD ขนาดตัวหนังสือเท่าสเปคอื่น (TS.spec) — ยาวเกินช่องตัดขึ้นบรรทัดใหม่ ไม่ย่อตัว */
           const tw = X.dc1 - X.dc0 - 2;
           /* ตัดบรรทัดตามความหมาย: ชนิด+แรงดัน | กระแส */

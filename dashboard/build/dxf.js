@@ -2817,10 +2817,17 @@ function pgSldPro(doc, sheet, M) {
         if (peTop == null) peTop = y - 1.2;else peDot(X.pe0, y - 1.2);
         pen.line(R, X.mn + 3.2, y, fuseDev ? X.dcB - 2.4 : X.dcB - g - 0.75, y);
         if (fuseDev) hFuse(X.dcB, y);else hBrk(X.dcB, y);
+        if (ivSpd) {
+          const ft0 = P.dcDev.tag.replace(/ gPV/, "").replace(/\s*\(\+\/-\)\s*$/, "");
+          pen.text(T, X.dcB, y + 1.4, Math.min(TS.spec, fitH(ft0, TS.spec, X.dc1 - X.dc0 - 1.5)), ft0, {
+            align: 1,
+            valign: 1
+          });
+        }
         pen.line(R, fuseDev ? X.dcB + 2.4 : X.dcB + g + 0.75, y, X.iv0, y);
         pen.line(R, X.sl - 0.7, y - 1.0, X.sl + 0.3, y + 1.0);
         pen.line(R, X.sl + 0.5, y - 1.0, X.sl + 1.5, y + 1.0);
-        if (first) {
+        if (first && !ivSpd) {
           const tw = X.dc1 - X.dc0 - 2;
           const brk = (t, re) => t.split(re).filter(Boolean).reduce((o, p) => o.concat(wrapT(p.trim(), TS.spec, tw)), []);
           const lines = (ivSpd ? [] : brk(P.dcSpdFull, / (?=In |Iimp )/)).concat(brk(P.dcDev.tag, / (?=[0-9]+VDC)/));
