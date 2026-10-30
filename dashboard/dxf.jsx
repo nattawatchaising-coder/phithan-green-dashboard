@@ -1926,7 +1926,7 @@ function pgSldPro(doc, sheet, M) {
       pen.line(PE, peX, tapY - sh / 2, peX, G.yG);
       pen.line(PE, X.pe0, G.yG, peX, G.yG);
       if (peTop == null) peTop = G.yG; else peDot(X.pe0, G.yG);
-      taps.push({ y: tapY, b });
+      taps.push({ y: tapY, b, bot: tapY - sh / 2, vx: sx });
       cur = G.bottom - 2;
       return;
     }
@@ -2134,7 +2134,7 @@ function pgSldPro(doc, sheet, M) {
     pen.line(PE, X.pe0, G.yG, peX, G.yG);
     if (!ivSpd) peDot(X.dcPE, G.yG);
     peDot(X.pe0, G.yG);
-    taps.push({ y: tapY, b });
+    taps.push({ y: tapY, b, bot: G.boxBot, vx: X.iv1 - 5 });
     cur = G.bottom - 2;
   });
   const blkLow = cur;
@@ -2374,34 +2374,57 @@ function pgSldPro(doc, sheet, M) {
     /* กลับมาวาดตาม BOQ (ผู้ใช้ 2026-10-30): SmartLogger / Dongle WiFi (M.mon จาก p3SldMon) อ่านค่า CT ที่คล้องเมน MDB เดิม
        ใต้ลูกศร TO MDB: CT บนสายเมน MDB → (Smart Meter) → Logger/Dongle → RS485 ไปอินเวอร์เตอร์ · ออกอินเทอร์เน็ต */
     if (M.mon) {
-      const mon = M.mon, cxM = Math.max(ctx + 14, ax - 4), yM = yMain - 13;
+      /* ผู้ใช้วาดชี้ 2026-10-30: กลุ่มนี้อยู่ใต้ขวาอินเวอร์เตอร์เครื่องล่างสุด (ที่ว่างเหนือตาราง SYSTEM DATA)
+         [Smart Meter] ← CT MAIN (คล้องเมน MDB เดิม) · กล่อง Logger/Dongle อยู่ใต้ ลูกศรขึ้นไปมิเตอร์
+         ซ้าย: RS485 เลี้ยวขึ้นเข้าก้นอินเวอร์เตอร์ · ขวา: INTERNET */
+      const mon = M.mon, ib = taps[taps.length - 1].bot, vx = taps[taps.length - 1].vx, COM = PG_SLD.comm;
+      const arrow = (x, y, dx, dy) => pen.solid(S, [x - dy * 0.7, y + dx * 0.7], [x + dx * 1.6, y + dy * 1.6], [x + dy * 0.7, y - dx * 0.7]);
       const ctSpec = (String(mon.meter).match(/CT\s*[\d/]+\s*m?A(\/[\d.]+m?A)?/i) || [""])[0];
-      /* สายเมนของ MDB เดิม (สั้น ๆ) + CT คล้อง */
-      pen.line(R, cxM - 7, yM, cxM + 7, yM);
-      ctH(cxM, yM);
-      pen.text(T, cxM, yM + 2.2, TS.spec, "MAIN MDB (EXISTING)", { align: 1, valign: 1 });
-      pen.text(T, cxM + 8, yM, TS.tag, ctSpec || "CT", { valign: 2 });
-      /* กล่องอุปกรณ์เรียงลงล่าง: Smart Meter (ถ้ามี) → Logger/Dongle */
-      const boxes = (mon.meter ? [mon.meter.replace(/\s*\+\s*CT.*$/i, "")] : []).concat([mon.dev]);
-      let yTopB = yM - 1.6 - 5, yPrev = yM - 1.6, xPrev = cxM + 2 * CT_R, sig = PG_SLD.ctsig;
-      boxes.forEach((nm, i) => {
-        const bw = Math.max(18, pgTextW(nm, TS.spec) + 3), bh = 5, yb = yTopB - bh;
-        pen.line(sig, xPrev, yPrev, xPrev, yTopB);
-        if (i) pen.text(T, xPrev + 0.8, (yPrev + yTopB) / 2, TS.tag, "RS485", { valign: 2 });
-        pen.rect(S, cxM - bw / 2, yb, bw, bh);
-        pen.text(T, cxM, yb + bh / 2, TS.spec, nm, { align: 1, valign: 2 });
-        yPrev = yb; xPrev = cxM; yTopB = yb - 5; sig = PG_SLD.comm;
-      });
-      /* RS485 ไปอินเวอร์เตอร์ (ซ้าย) · อินเทอร์เน็ต (ขวา) จากกล่องสุดท้าย */
-      const yb = yPrev + 2.5, bw = Math.max(18, pgTextW(mon.dev, TS.spec) + 3);
-      const xl = cxM - bw / 2, xr = cxM + bw / 2;
-      pen.line(PG_SLD.comm, xl, yb, xl - 16, yb);
-      pen.solid(S, [xl - 16, yb + 0.7], [xl - 17.6, yb], [xl - 16, yb - 0.7]);
-      pen.text(T, xl - 8.5, yb + 0.6, TS.tag, mon.logger ? "RS485 TO INVERTER" : "TO INVERTER", { align: 1, valign: 1 });
-      pen.line(PG_SLD.comm, xr, yb, xr + 6, yb);
-      pen.solid(S, [xr + 6, yb + 0.7], [xr + 7.6, yb], [xr + 6, yb - 0.7]);
-      pen.text(T, xr + 8.4, yb + 0.6, TS.tag, "INTERNET", { valign: 1 });
-      pen.text(T, xr + 8.4, yb - 0.6, TS.tag, mon.logger ? "(LAN / 4G)" : "(WiFi)", { valign: 3 });
+      const meterNm = mon.meter ? mon.meter.replace(/\s*\+\s*CT.*$/i, "") : "";
+      const dw = Math.max(30, pgTextW(mon.dev, TS.spec) + 4), dh = 6;
+      const dx0 = X.iv1 + 8, dTop = Math.min(ib - 2, acBot - 17), dBot = dTop - dh;
+      pen.rect(S, dx0, dBot, dw, dh);
+      pen.text(T, dx0 + dw / 2, dBot + dh / 2, TS.spec, mon.dev, { align: 1, valign: 2 });
+      /* เป้าของสาย CT = มิเตอร์ (ถ้ามี) ไม่งั้นกล่อง logger/dongle เอง */
+      let tx = dx0 + dw, ty = dBot + dh / 2;
+      if (meterNm) {
+        const mw = pgTextW(meterNm, TS.spec) + 4, mh = 5, mx0 = dx0 + 3, mBot = dTop + 5;
+        pen.rect(S, mx0, mBot, mw, mh);
+        pen.text(T, mx0 + mw / 2, mBot + mh / 2, TS.spec, meterNm, { align: 1, valign: 2 });
+        const ax0 = mx0 + mw / 2;
+        pen.line(COM, ax0, dTop, ax0, mBot - 1.6);
+        arrow(ax0, mBot - 1.6, 0, 1);
+        pen.text(T, ax0 + 0.8, (dTop + mBot) / 2, TS.tag, "RS485", { valign: 2 });
+        tx = mx0 + mw; ty = mBot + mh / 2;
+      }
+      /* CT MAIN: สายเมน MDB เดิมสั้น ๆ + CT · สายสัญญาณประถี่เข้าหาเป้า (ลูกศรชี้เข้า) */
+      /* ไม่มีมิเตอร์: CT อยู่เหนือกล่อง ลงเข้าด้านบน (ขวากล่องเป็นสาย INTERNET) */
+      const cxC = meterNm ? tx + 16 : dx0 + dw * 0.7 + 2 * CT_R, yC = meterNm ? ty + 3.2 : dTop + 6;
+      pen.line(R, cxC - 6, yC, cxC + 6, yC);
+      ctH(cxC, yC);
+      pen.text(T, cxC, yC + 1.8, TS.tag, "MAIN MDB (EXISTING)", { align: 1, valign: 1 });
+      pen.text(LB, cxC + 7, yC, TS.spec, "CT MAIN" + (ctSpec ? " " + ctSpec.replace(/^CT\s*/i, "") : ""), { valign: 2 });
+      const lx = cxC - 2 * CT_R;
+      if (meterNm) {
+        pen.line(PG_SLD.ctsig, lx, yC - 1.6, lx, ty);
+        pen.line(PG_SLD.ctsig, lx, ty, tx + 1.6, ty);
+        arrow(tx + 1.6, ty, -1, 0);
+      } else {
+        pen.line(PG_SLD.ctsig, lx, yC - 1.6, lx, dTop + 1.6);
+        arrow(lx, dTop + 1.6, 0, -1);
+      }
+      /* RS485 → อินเวอร์เตอร์: ออกซ้ายกล่อง แล้วเลี้ยวขึ้นเข้าก้นกล่องอินเวอร์เตอร์ */
+      const yc = dBot + dh / 2;
+      pen.line(COM, dx0, yc, vx, yc);
+      pen.line(COM, vx, yc, vx, ib - 1.6);
+      arrow(vx, ib - 1.6, 0, 1);
+      pen.text(T, (dx0 + vx) / 2, yc + 0.6, TS.tag, "RS485", { align: 1, valign: 1 });
+      /* INTERNET ทางขวา */
+      const xr = dx0 + dw;
+      pen.line(COM, xr, yc, xr + 8, yc);
+      arrow(xr + 8, yc, 1, 0);
+      pen.text(LB, xr + 10.4, yc + 0.4, TS.spec, "INTERNET", { valign: 1 });
+      pen.text(T, xr + 10.4, yc - 0.6, TS.tag, mon.logger ? "(LAN / 4G)" : "(WiFi)", { valign: 3 });
     }
 
     /* ── หลักดินฝั่ง PV (ปักแยกจากระบบ) ปลาย PE trunk ซ้าย ── */
