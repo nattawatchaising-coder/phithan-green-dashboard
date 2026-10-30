@@ -4344,7 +4344,28 @@ function p3SldModel(st, job, design) {
     no: 1
   });
   p3SldFromBoq(M, job && job.boq || null, nPh);
+  p3SldMon(M, job);
   return p3SldApply(M, st.sldEdit);
+}
+function p3SldMon(M, job) {
+  M.mon = null;
+  if (!job || !job.boq || !window.BOQ || !BOQ.calcBOQ) return;
+  const names = [];
+  try {
+    BOQ.calcBOQ(BOQ.mergeBOQ(job)).groups.forEach(g => (g.items || []).forEach(it => {
+      if (it && +it.qty > 0 && it.name) names.push(String(it.name));
+    }));
+  } catch (e) {
+    return;
+  }
+  const find = re => names.find(n => re.test(n)) || "";
+  const dev = find(/logger/i) || find(/dongle|wifi/i);
+  if (!dev) return;
+  M.mon = {
+    dev,
+    logger: /logger/i.test(dev),
+    meter: find(/smart meter|DTSU|DDSU|SPM-CT|TPM-CT|janitza/i)
+  };
 }
 const P3_ROUTE_EN = {
   conduitAir: "IN CONDUIT",

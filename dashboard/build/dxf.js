@@ -3349,6 +3349,62 @@ function pgSldPro(doc, sheet, M) {
     pen.line(PE, sx - 4, barY - 0.45, sx - 4, acBot + 1.0);
     pen.circle(PE, sx - 4, acBot + 0.5, 0.5);
     pen.line(PE, X.pe0, peTop, X.pe0, yE);
+    if (M.mon) {
+      const mon = M.mon,
+        cxM = Math.max(ctx + 14, ax - 4),
+        yM = yMain - 13;
+      const ctSpec = (String(mon.meter).match(/CT\s*[\d/]+\s*m?A(\/[\d.]+m?A)?/i) || [""])[0];
+      pen.line(R, cxM - 7, yM, cxM + 7, yM);
+      ctH(cxM, yM);
+      pen.text(T, cxM, yM + 2.2, TS.spec, "MAIN MDB (EXISTING)", {
+        align: 1,
+        valign: 1
+      });
+      pen.text(T, cxM + 8, yM, TS.tag, ctSpec || "CT", {
+        valign: 2
+      });
+      const boxes = (mon.meter ? [mon.meter.replace(/\s*\+\s*CT.*$/i, "")] : []).concat([mon.dev]);
+      let yTopB = yM - 1.6 - 5,
+        yPrev = yM - 1.6,
+        xPrev = cxM + 2 * CT_R,
+        sig = PG_SLD.ctsig;
+      boxes.forEach((nm, i) => {
+        const bw = Math.max(18, pgTextW(nm, TS.spec) + 3),
+          bh = 5,
+          yb = yTopB - bh;
+        pen.line(sig, xPrev, yPrev, xPrev, yTopB);
+        if (i) pen.text(T, xPrev + 0.8, (yPrev + yTopB) / 2, TS.tag, "RS485", {
+          valign: 2
+        });
+        pen.rect(S, cxM - bw / 2, yb, bw, bh);
+        pen.text(T, cxM, yb + bh / 2, TS.spec, nm, {
+          align: 1,
+          valign: 2
+        });
+        yPrev = yb;
+        xPrev = cxM;
+        yTopB = yb - 5;
+        sig = PG_SLD.comm;
+      });
+      const yb = yPrev + 2.5,
+        bw = Math.max(18, pgTextW(mon.dev, TS.spec) + 3);
+      const xl = cxM - bw / 2,
+        xr = cxM + bw / 2;
+      pen.line(PG_SLD.comm, xl, yb, xl - 16, yb);
+      pen.solid(S, [xl - 16, yb + 0.7], [xl - 17.6, yb], [xl - 16, yb - 0.7]);
+      pen.text(T, xl - 8.5, yb + 0.6, TS.tag, mon.logger ? "RS485 TO INVERTER" : "TO INVERTER", {
+        align: 1,
+        valign: 1
+      });
+      pen.line(PG_SLD.comm, xr, yb, xr + 6, yb);
+      pen.solid(S, [xr + 6, yb + 0.7], [xr + 7.6, yb], [xr + 6, yb - 0.7]);
+      pen.text(T, xr + 8.4, yb + 0.6, TS.tag, "INTERNET", {
+        valign: 1
+      });
+      pen.text(T, xr + 8.4, yb - 0.6, TS.tag, mon.logger ? "(LAN / 4G)" : "(WiFi)", {
+        valign: 3
+      });
+    }
     pen.line(PE, X.pe0, yE, X.pe0, yE - 2.3);
     pgSym.ground(pen, X.pe0, yE - 2.3);
     pen.text(T, X.pe0 + 3.2, yE - 3.4, TS.spec, "PV EARTH ROD (SEPARATE)  5/8\" x 2.4m  R <= 5 OHM", {

@@ -2746,7 +2746,23 @@ function p3SldModel(st, job, design) {
   ];
   if (M.batt) M.equip.push({ brand: M.batt.brand, model: M.batt.model, desc: "BATTERY " + M.batt.kwh + " kWh.", no: 1 });
   p3SldFromBoq(M, (job && job.boq) || null, nPh);
+  p3SldMon(M, job);
   return p3SldApply(M, st.sldEdit);
+}
+
+/* อุปกรณ์มอนิเตอร์ตาม BOQ (ผู้ใช้ 2026-10-30): SmartLogger / Smart Dongle / ShineWiFi + Smart Meter ที่จำนวน > 0
+   → SLD วาดกล่องอุปกรณ์ต่อ CT ที่คล้องเมน MDB เดิม + สาย RS485 ไปอินเวอร์เตอร์ + ออกอินเทอร์เน็ต · ไม่มีใน BOQ = ไม่วาด */
+function p3SldMon(M, job) {
+  M.mon = null;
+  if (!job || !job.boq || !window.BOQ || !BOQ.calcBOQ) return;
+  const names = [];
+  try {
+    BOQ.calcBOQ(BOQ.mergeBOQ(job)).groups.forEach((g) => (g.items || []).forEach((it) => { if (it && +it.qty > 0 && it.name) names.push(String(it.name)); }));
+  } catch (e) { return; }
+  const find = (re) => names.find((n) => re.test(n)) || "";
+  const dev = find(/logger/i) || find(/dongle|wifi/i);
+  if (!dev) return;
+  M.mon = { dev, logger: /logger/i.test(dev), meter: find(/smart meter|DTSU|DDSU|SPM-CT|TPM-CT|janitza/i) };
 }
 
 /* ══ แก้ค่าบนแบบเอง ══
