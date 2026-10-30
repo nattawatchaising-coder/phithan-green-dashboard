@@ -1982,15 +1982,37 @@ function pgSldPro(doc, sheet, M) {
       rowsY.push.apply(rowsY, ys);
     });
     const lastY = rowsY[rowsY.length - 1];
-    /* สรุปแผงของเครื่องนี้หน้าแผง (ผู้ใช้ 2026-10-30 แทนแถว PV ARRAY ในตาราง): แผงกี่ W × กี่แผง/สตริง × กี่สตริง → รวมสตริง/แผง → kWp */
+    /* สรุปแผงของเครื่องนี้หน้าแผงเป็นตาราง (ผู้ใช้ 2026-10-30 ส่งตัวอย่าง): หัว = ชื่อเครื่อง ·
+       PER STRING = 18 PV X 670 = 12,060 W · TOTAL POWER = 12,060 W X 10 STRING = 120,600 W · TOTAL PV = 18 PV X 10 STRING = 180 PV
+       สตริงหลายขนาด = PER STRING แถวละขนาด แล้วรวมด้วย + · คอลัมน์ "=" ตรงกันทุกแถว */
     if (!b.typical) {
       const ns = [];
       byInv[b.no].forEach((r) => r.ins.forEach((x) => ns.push(x.n)));
       const nU = ns.filter((n, i) => ns.indexOf(n) === i).sort((p, q) => q - p), nPv = ns.reduce((t, n) => t + n, 0);
-      const sl = [[LB, b.names || "INV" + b.no]].concat(nU.map((n) => [T, wp + "Wp x " + n + " PCS x " + ns.filter((q) => q === n).length + " STR"]),
-        [[T, "TOTAL " + ns.length + " STR / " + nPv + " PCS"], [LB, "= " + (Math.round(nPv * wp / 10) / 100).toFixed(2) + " kWp" + (b.names ? " /SET" : "")]]);
-      const sx = X.pe0 - 2.5, sy = (rowsY[0] + lastY) / 2 + (sl.length - 1) * 1.3;
-      sl.forEach((l, k) => pen.text(l[0], sx, sy - k * 2.6, TS.spec, l[1], { align: 2, valign: 2 }));
+      const cnt = (n) => ns.filter((q) => q === n).length, fmt = (v) => Math.round(v).toLocaleString("en-US");
+      const rows = nU.map((n) => ["PER STRING", n + " PV X " + wp, fmt(n * wp) + " W"]).concat([
+        ["TOTAL POWER", nU.map((n) => fmt(n * wp) + " W X " + cnt(n) + " STRING").join(" + "), fmt(nPv * wp) + " W"],
+        ["TOTAL PV", nU.map((n) => n + " PV X " + cnt(n) + " STRING").join(" + "), nPv + " PV"]]);
+      const th = TS.spec, rh = th + 1.6, pd = 1.0, eq = pgTextW("=", th) + 2 * pd;
+      const cw = [0, 1, 2].map((i) => Math.max.apply(null, rows.map((r) => pgTextW(r[i], th))) + 2 * pd);
+      const tw = cw[0] + eq + cw[1] + eq + cw[2];
+      const x1 = X.pe0 - 2.5, x0 = x1 - tw, nR = rows.length + 1;
+      const yTop = (rowsY[0] + lastY) / 2 + nR * rh / 2;
+      const head = (b.names || "INV" + b.no) + (b.names ? "  (PER SET)" : "");
+      pen.rect(L, x0, yTop - nR * rh, tw, nR * rh);
+      pen.text(LB, x0 + pd, yTop - rh / 2, th, head, { valign: 2 });
+      rows.forEach((r, k) => {
+        const y = yTop - (k + 1) * rh;
+        pen.line(L, x0, y, x0 + tw, y);
+        const xs = [x0, x0 + cw[0], x0 + cw[0] + eq, x0 + cw[0] + eq + cw[1], x0 + cw[0] + 2 * eq + cw[1]];
+        pen.line(L, xs[1], y, xs[1], y - rh);
+        const cy = y - rh / 2;
+        pen.text(T, xs[0] + pd, cy, th, r[0], { valign: 2 });
+        pen.text(T, xs[1] + eq / 2, cy, th, "=", { align: 1, valign: 2 });
+        pen.text(T, xs[2] + pd, cy, th, r[1], { valign: 2 });
+        pen.text(T, xs[3] + eq / 2, cy, th, "=", { align: 1, valign: 2 });
+        pen.text(k === rows.length - 1 || k === rows.length - 2 ? LB : T, x0 + tw - pd, cy, th, r[2], { align: 2, valign: 2 });
+      });
     }
     /* ตู้ DC + PE bar */
     const dTop = top - 1.5;
