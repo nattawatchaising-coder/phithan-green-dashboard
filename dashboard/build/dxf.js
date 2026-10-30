@@ -2004,7 +2004,8 @@ const PG_SLD = {
   comm: "SLD-COMM",
   tab: "SLD-TABLE",
   pe: "SLD-EARTH",
-  ctsig: "SLD-CT-SIGNAL"
+  ctsig: "SLD-CT-SIGNAL",
+  swlink: "SLD-DCSW-LINK"
 };
 function pgSldLayers(doc) {
   doc.ltype("PG-DASH", "Dashed __ __ __", [6, -3]);
@@ -2013,11 +2014,13 @@ function pgSldLayers(doc) {
   doc.layer(PG_SLD.wire, PG_ACI.white, "CONTINUOUS", 35);
   doc.layer(PG_SLD.sol, PG_ACI.red, "CONTINUOUS", 35);
   doc.layer(PG_SLD.sym, PG_ACI.white, "CONTINUOUS", 25);
-  doc.layer(PG_SLD.box, PG_ACI.red, "PG-DASH", 20);
+  doc.ltype("PG-DASHB", "Dashed box _ _ _", [3, -1.5]);
+  doc.layer(PG_SLD.box, PG_ACI.red, "PG-DASHB", 20);
   doc.layer(PG_SLD.txt, PG_ACI.white, "CONTINUOUS", 18);
   doc.layer(PG_SLD.lbl, PG_ACI.cyan, "CONTINUOUS", 25);
   doc.layer(PG_SLD.comm, PG_ACI.white, "PG-DASH", 15);
   doc.layer(PG_SLD.ctsig, PG_ACI.white, "PG-DASHF", 15);
+  doc.layer(PG_SLD.swlink, PG_ACI.grey, "PG-DASHF", 13);
   doc.layer(PG_SLD.tab, PG_ACI.white, "CONTINUOUS", 20);
   doc.layer(PG_SLD.pe, PG_ACI.green, "CONTINUOUS", 25);
 }
@@ -2878,7 +2881,6 @@ function pgSldPro(doc, sheet, M) {
           pen.line(S, sw - g + 0.4, yy + 0.2, sw + g - 0.2, yy + 2.0);
           pen.line(R, sw + g + 0.45, yy, bx, yy);
         });
-        if (ys.length > 1) pen.line(CM, sw, y0 + 1.1, sw, y1 + 1.1);
         if (gi === 0) pen.text(T, sw, y0 + 2.8, TS.tag, "DC SWITCH", {
           align: 1,
           valign: 1
@@ -2893,6 +2895,7 @@ function pgSldPro(doc, sheet, M) {
       rowsY.push.apply(rowsY, ys);
     });
     const lastY = rowsY[rowsY.length - 1];
+    if (ivIn && rowsY.length > 1) pen.line(PG_SLD.swlink, X.iv0 + 8.5, rowsY[0] + 1.1, X.iv0 + 8.5, lastY + 1.1);
     if (!b.typical) {
       const ns = [];
       byInv[b.no].forEach(r => r.ins.forEach(x => ns.push(x.n)));
@@ -3321,18 +3324,19 @@ function pgSldPro(doc, sheet, M) {
     pen.line(PE, sx, spY - 2.4, sx, barY + 0.45);
     {
       const gx = sx + 2,
-        gy = yE - 4.5;
+        yA = acBot - 7,
+        gy = yA - 4.5;
       pen.line(PE, gx, barY - 0.45, gx, gy);
       pgSym.ground(pen, gx, gy);
-      pen.text(T, gx - 1.5, yE + 3.4, TS.tag, "CONNECT TO GROUND BAR", {
+      pen.text(T, gx - 1.5, yA + 3.4, TS.tag, "CONNECT TO GROUND BAR", {
         align: 2,
         valign: 2
       });
-      pen.text(T, gx - 1.5, yE + 1.9, TS.tag, "OF EXISTING MDB", {
+      pen.text(T, gx - 1.5, yA + 1.9, TS.tag, "OF EXISTING MDB", {
         align: 2,
         valign: 2
       });
-      pen.text(LB, gx - 1.5, yE - 0.1, TS.spec, "THW(G) " + P.earthCu + " Sq.mm.", {
+      pen.text(LB, gx - 1.5, yA - 0.1, TS.spec, "THW(G) " + P.earthCu + " Sq.mm.", {
         align: 2,
         valign: 2
       });

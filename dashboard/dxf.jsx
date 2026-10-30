@@ -1362,6 +1362,7 @@ function pgDcString(pen, x, y, w, o) {
 const PG_SLD = {
   wire: "SLD-WIRE", sol: "SLD-SOLAR", sym: "SLD-SYMBOL", box: "SLD-ENCLOSURE",
   txt: "SLD-TEXT", lbl: "SLD-LABEL", comm: "SLD-COMM", tab: "SLD-TABLE", pe: "SLD-EARTH", ctsig: "SLD-CT-SIGNAL",
+  swlink: "SLD-DCSW-LINK",   // เส้นประเชื่อมใบมีด DC SWITCH สีเทา ประถี่ (ผู้ใช้ 2026-10-30)
 };
 function pgSldLayers(doc) {
   doc.ltype("PG-DASH", "Dashed __ __ __", [6, -3]);
@@ -1370,11 +1371,13 @@ function pgSldLayers(doc) {
   doc.layer(PG_SLD.wire, PG_ACI.white, "CONTINUOUS", 35);
   doc.layer(PG_SLD.sol, PG_ACI.red, "CONTINUOUS", 35);
   doc.layer(PG_SLD.sym, PG_ACI.white, "CONTINUOUS", 25);
-  doc.layer(PG_SLD.box, PG_ACI.red, "PG-DASH", 20);
+  doc.ltype("PG-DASHB", "Dashed box _ _ _", [3, -1.5]);   // กรอบตู้ประถี่ขึ้น สีเดิม (ผู้ใช้ 2026-10-30)
+  doc.layer(PG_SLD.box, PG_ACI.red, "PG-DASHB", 20);
   doc.layer(PG_SLD.txt, PG_ACI.white, "CONTINUOUS", 18);
   doc.layer(PG_SLD.lbl, PG_ACI.cyan, "CONTINUOUS", 25);
   doc.layer(PG_SLD.comm, PG_ACI.white, "PG-DASH", 15);
   doc.layer(PG_SLD.ctsig, PG_ACI.white, "PG-DASHF", 15);
+  doc.layer(PG_SLD.swlink, PG_ACI.grey, "PG-DASHF", 13);
   doc.layer(PG_SLD.tab, PG_ACI.white, "CONTINUOUS", 20);
   doc.layer(PG_SLD.pe, PG_ACI.green, "CONTINUOUS", 25);
 }
@@ -2016,7 +2019,6 @@ function pgSldPro(doc, sheet, M) {
           pen.line(S, sw - g + 0.4, yy + 0.2, sw + g - 0.2, yy + 2.0);
           pen.line(R, sw + g + 0.45, yy, bx, yy);
         });
-        if (ys.length > 1) pen.line(CM, sw, y0 + 1.1, sw, y1 + 1.1);
         if (gi === 0) pen.text(T, sw, y0 + 2.8, TS.tag, "DC SWITCH", { align: 1, valign: 1 });
       } else ys.forEach((yy) => pen.line(R, X.iv0 + 0.6, yy, bx, yy));
       if (ys.length > 1) pen.line(R, bx, y0, bx, y1);
@@ -2026,6 +2028,8 @@ function pgSldPro(doc, sheet, M) {
       rowsY.push.apply(rowsY, ys);
     });
     const lastY = rowsY[rowsY.length - 1];
+    /* ใบมีด DC SWITCH ทุกขั้วของเครื่องเชื่อมเส้นประเทาเส้นเดียวตลอด (ผู้ใช้วาดชี้ 2026-10-30) */
+    if (ivIn && rowsY.length > 1) pen.line(PG_SLD.swlink, X.iv0 + 8.5, rowsY[0] + 1.1, X.iv0 + 8.5, lastY + 1.1);
     /* สรุปแผงของเครื่องนี้หน้าแผงเป็นตาราง (ผู้ใช้ 2026-10-30 ส่งตัวอย่าง): หัว = ชื่อเครื่อง ·
        PER STRING = 18 PV X 670 = 12,060 W · TOTAL POWER = 12,060 W X 10 STRING = 120,600 W · TOTAL PV = 18 PV X 10 STRING = 180 PV
        สตริงหลายขนาด = PER STRING แถวละขนาด แล้วรวมด้วย + · คอลัมน์ "=" ตรงกันทุกแถว */
@@ -2346,12 +2350,13 @@ function pgSldPro(doc, sheet, M) {
     /* สายดิน SPD จบที่รูบาร์ G · สายไป MET ออกจากอีกรูด้านล่าง ไม่ลากทะลุบาร์ (ผู้ใช้ชี้ 2026-10-29) */
     pen.line(PE, sx, spY - 2.4, sx, barY + 0.45);
     /* บาร์ G ไม่ต่อเข้าสายดินหลัก — ลงกระโดดข้ามสาย (ครึ่งวงกลม) ไปต่อบาร์ดินตู้ MDB เดิม (ผู้ใช้ชี้ 2026-10-29) */
-    { const gx = sx + 2, gy = yE - 4.5;
+    /* ดินฝั่ง AC อยู่ใต้ตู้ AC ใกล้ ๆ ไม่ลงไปถึงระดับหลักดิน PV ล่างสุด (ผู้ใช้ชี้ 2026-10-30: กราวด์ไกลไป) */
+    { const gx = sx + 2, yA = acBot - 7, gy = yA - 4.5;
       pen.line(PE, gx, barY - 0.45, gx, gy);
       pgSym.ground(pen, gx, gy);
-      pen.text(T, gx - 1.5, yE + 3.4, TS.tag, "CONNECT TO GROUND BAR", { align: 2, valign: 2 });
-      pen.text(T, gx - 1.5, yE + 1.9, TS.tag, "OF EXISTING MDB", { align: 2, valign: 2 });
-      pen.text(LB, gx - 1.5, yE - 0.1, TS.spec, "THW(G) " + P.earthCu + " Sq.mm.", { align: 2, valign: 2 }); }   // ขนาดสาย หน่วย Sq.mm. (ผู้ใช้ 2026-10-29)
+      pen.text(T, gx - 1.5, yA + 3.4, TS.tag, "CONNECT TO GROUND BAR", { align: 2, valign: 2 });
+      pen.text(T, gx - 1.5, yA + 1.9, TS.tag, "OF EXISTING MDB", { align: 2, valign: 2 });
+      pen.text(LB, gx - 1.5, yA - 0.1, TS.spec, "THW(G) " + P.earthCu + " Sq.mm.", { align: 2, valign: 2 }); }   // ขนาดสาย หน่วย Sq.mm. (ผู้ใช้ 2026-10-29)
     /* กราวด์ตัวตู้ (ผู้ใช้ชี้ 2026-10-29) — จากรูที่ 1 ของบาร์ G ลงไปต่อกรอบตู้ (เส้นประก้นตู้) */
     pen.line(PE, sx - 4, barY - 0.45, sx - 4, acBot + 1.0);   // หยุดที่ขอบบนวงจุดยึด ไม่ลากทะลุวง (ผู้ใช้ 2026-10-29)
     pen.circle(PE, sx - 4, acBot + 0.5, 0.5);   // จุดยึดโครงตู้ ไม่ต้องเขียนป้าย (ผู้ใช้ 2026-10-29)
