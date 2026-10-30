@@ -2308,8 +2308,8 @@ function pgSldPro(doc, sheet, M) {
     RW = RX1 - RX0;
   const DX0 = A.x0 + 4;
   const X = {
-    pe0: DX0 + 1.5,
-    m1: DX0 + 7,
+    pe0: DX0 - 24,
+    m1: DX0 - 14,
     mn: DX0 + 18,
     tx: DX0 + 22,
     sl: DX0 + 51,
@@ -2784,17 +2784,22 @@ function pgSldPro(doc, sheet, M) {
           y -= EH;
           return;
         }
-        pgSym.pv(pen, X.m1, y, 6.4, 3.6, null, true);
-        pgSym.pv(pen, X.mn, y, 6.4, 3.6, null, true);
-        pen.text(T, X.m1, y + 2.5, TS.tag, "1", {
-          align: 1,
-          valign: 1
+        const nP = row.last || 1,
+          slots = nP <= 4 ? Array.from({
+            length: nP
+          }, (_, i) => i + 1) : [1, 2, 3, nP];
+        const sxOf = i => i < 3 ? X.mn - i * 8 : X.m1;
+        slots.forEach((no, i) => {
+          const px = sxOf(i);
+          pgSym.pv(pen, px, y, 6.4, 3.6, null, true);
+          pen.text(T, px - 1.5, y, TS.tag, String(no), {
+            align: 1,
+            valign: 2
+          });
+          if (i) pen.line(CM, sxOf(i) + 3.2, y, i === 3 && nP > 4 ? sxOf(2) - 3.2 - 6.4 : sxOf(i - 1) - 3.2, y);
         });
-        pen.text(T, X.mn, y + 2.5, TS.tag, String(row.last), {
-          align: 1,
-          valign: 1
-        });
-        pen.line(CM, X.m1 + 3.2, y, X.mn - 3.2, y);
+        if (nP > 4) [0, 1, 2].forEach(k => pen.dot(CM, sxOf(2) - 3.2 - 1.6 - k * 1.6, y, 0.3));
+        const mLeft = sxOf(slots.length - 1) - 3.2;
         const lw = X.sl - X.tx - 1.5;
         pen.text(T, X.tx, y + 0.9, fitH(row.lab, TS.head, lw), row.lab, {
           valign: 1
@@ -2814,7 +2819,7 @@ function pgSldPro(doc, sheet, M) {
         pen.text(T, X.tx, y - 1.0, fitH(row.sub, TS.spec, lw), row.sub, {
           valign: 3
         });
-        pen.line(PE, X.pe0, y - 1.2, X.m1 - 3.2, y - 1.2);
+        pen.line(PE, X.pe0, y - 1.2, mLeft, y - 1.2);
         if (peTop == null) peTop = y - 1.2;else peDot(X.pe0, y - 1.2);
         pen.line(R, X.mn + 3.2, y, fuseDev ? X.dcB - 2.4 : X.dcB - g - 0.75, y);
         if (fuseDev) hFuse(X.dcB, y);else hBrk(X.dcB, y);
@@ -2897,10 +2902,9 @@ function pgSldPro(doc, sheet, M) {
         eq = pgTextW("=", th) + 2 * pd;
       const cw = [0, 1, 2].map(i => Math.max.apply(null, rows.map(r => pgTextW(r[i], th))) + 2 * pd);
       const tw = cw[0] + eq + cw[1] + eq + cw[2];
-      const x1 = X.pe0 - 2.5,
-        x0 = x1 - tw,
-        nR = rows.length + 1;
-      const yTop = (rowsY[0] + lastY) / 2 + nR * rh / 2;
+      const nR = rows.length + 1,
+        x0 = X.pe0 + 4,
+        yTop = lastY - 4.5;
       const head = (b.names || "INV" + b.no).replace(/INV(\d)/g, "INVERTER $1") + (b.names ? "  (PER SET)" : "");
       pen.rect(L, x0, yTop - nR * rh, tw, nR * rh);
       pen.text(LB, x0 + pd, yTop - rh / 2, th, head, {

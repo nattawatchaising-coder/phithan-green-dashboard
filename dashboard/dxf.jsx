@@ -1602,7 +1602,8 @@ function pgSldPro(doc, sheet, M) {
   const W = PG_SLD.wire, R = PG_SLD.sol, S = PG_SLD.sym, BX = PG_SLD.box, T = PG_SLD.txt, LB = PG_SLD.lbl, CM = PG_SLD.comm, PE = PG_SLD.pe;
   const RX0 = A.x1 - 78, RX1 = A.x1 - 3, RW = RX1 - RX0;
   const DX0 = A.x0 + 4;
-  const X = { pe0: DX0 + 1.5, m1: DX0 + 7, mn: DX0 + 18, tx: DX0 + 22, sl: DX0 + 51,
+  /* แผงในสตริงเรียงจากฝั่งสาย [1] [2] [3] • • • [n] (ผู้ใช้วาดชี้ 2026-10-30) — m1 = ช่องซ้ายสุด (แผง n) · mn = แผง 1 ติดสาย */
+  const X = { pe0: DX0 - 24, m1: DX0 - 14, mn: DX0 + 18, tx: DX0 + 22, sl: DX0 + 51,
     dc0: DX0 + 54, dcB: DX0 + 61, dcS: DX0 + 76, dcPE: DX0 + 85, dc1: DX0 + 88,
     iv0: DX0 + 94, iv1: DX0 + 126, ac0: DX0 + 133, acB: DX0 + 142, acBus: DX0 + 153, acM: DX0 + 170, ac1: DX0 + 188,
     md0: DX0 + 196, mdB: DX0 + 204, mdBus: DX0 + 214, md1: DX0 + 226 };
@@ -1936,11 +1937,17 @@ function pgSldPro(doc, sheet, M) {
           return;
         }
         /* สตริง: แผงแรก ─ ─ แผงสุดท้าย */
-        pgSym.pv(pen, X.m1, y, 6.4, 3.6, null, true);
-        pgSym.pv(pen, X.mn, y, 6.4, 3.6, null, true);
-        pen.text(T, X.m1, y + 2.5, TS.tag, "1", { align: 1, valign: 1 });
-        pen.text(T, X.mn, y + 2.5, TS.tag, String(row.last), { align: 1, valign: 1 });
-        pen.line(CM, X.m1 + 3.2, y, X.mn - 3.2, y);
+        /* ช่องแผงจากขวา: 1 · 2 · 3 · (• • •) · n — เลขอยู่ในตัวแผงฝั่งซ้ายของสามเหลี่ยม */
+        const nP = row.last || 1, slots = nP <= 4 ? Array.from({ length: nP }, (_, i) => i + 1) : [1, 2, 3, nP];
+        const sxOf = (i) => (i < 3 ? X.mn - i * 8 : X.m1);
+        slots.forEach((no, i) => {
+          const px = sxOf(i);
+          pgSym.pv(pen, px, y, 6.4, 3.6, null, true);
+          pen.text(T, px - 1.5, y, TS.tag, String(no), { align: 1, valign: 2 });
+          if (i) pen.line(CM, sxOf(i) + 3.2, y, i === 3 && nP > 4 ? sxOf(2) - 3.2 - 6.4 : sxOf(i - 1) - 3.2, y);
+        });
+        if (nP > 4) [0, 1, 2].forEach((k) => pen.dot(CM, sxOf(2) - 3.2 - 1.6 - k * 1.6, y, 0.3));   // • • •
+        const mLeft = sxOf(slots.length - 1) - 3.2;
         const lw = X.sl - X.tx - 1.5;
         pen.text(T, X.tx, y + 0.9, fitH(row.lab, TS.head, lw), row.lab, { valign: 1 });
         /* ขนาดสาย DC บนเส้นสตริง ช่องว่างระหว่างป้ายสตริงกับขีดคู่ (ผู้ใช้ 2026-10-30: ขาดการบอกขนาดสาย DC) — สเปคเต็มอยู่ในตาราง/แผ่นต่อสาย DC */
@@ -1953,7 +1960,7 @@ function pgSldPro(doc, sheet, M) {
         }
         pen.text(T, X.tx, y - 1.0, fitH(row.sub, TS.spec, lw), row.sub, { valign: 3 });
         /* ต่อฝากโครงแผงเข้า PE trunk */
-        pen.line(PE, X.pe0, y - 1.2, X.m1 - 3.2, y - 1.2);
+        pen.line(PE, X.pe0, y - 1.2, mLeft, y - 1.2);
         if (peTop == null) peTop = y - 1.2; else peDot(X.pe0, y - 1.2);
         /* สายสตริง → อุปกรณ์ป้องกัน → ขั้วอินเวอร์เตอร์ (ขีดสองขีด = วงจร DC +/−) */
         pen.line(R, X.mn + 3.2, y, fuseDev ? X.dcB - 2.4 : X.dcB - g - 0.75, y);
@@ -2026,8 +2033,8 @@ function pgSldPro(doc, sheet, M) {
       const th = TS.spec, rh = th + 1.6, pd = 1.0, eq = pgTextW("=", th) + 2 * pd;
       const cw = [0, 1, 2].map((i) => Math.max.apply(null, rows.map((r) => pgTextW(r[i], th))) + 2 * pd);
       const tw = cw[0] + eq + cw[1] + eq + cw[2];
-      const x1 = X.pe0 - 2.5, x0 = x1 - tw, nR = rows.length + 1;
-      const yTop = (rowsY[0] + lastY) / 2 + nR * rh / 2;
+      /* ตารางอยู่ใต้สตริงสุดท้ายของเครื่อง ชิดเส้นดินโครงแผง (ผู้ใช้วาดชี้ 2026-10-30) */
+      const nR = rows.length + 1, x0 = X.pe0 + 4, yTop = lastY - 4.5;
       const head = (b.names || "INV" + b.no).replace(/INV(\d)/g, "INVERTER $1") + (b.names ? "  (PER SET)" : "");   // เขียนเต็ม (ผู้ใช้ 2026-10-30)
       pen.rect(L, x0, yTop - nR * rh, tw, nR * rh);
       pen.text(LB, x0 + pd, yTop - rh / 2, th, head, { valign: 2 });
