@@ -2944,7 +2944,7 @@ function pgSldPro(doc, sheet, M) {
     }
     const per = b.typical ? " /INV" : "";
     const nS = b.typical ? Math.round(nStrB / b.cnt) : nStrB;
-    const ft = [(fuseDev ? P.dcDev.tag + " x" + nS * 2 : P.dcDev.tag + " x" + nS) + per, "DC SPD " + P.dcSpdTag.replace(/^SPD /, "") + " x" + nS + per].slice(0, ivSpd ? 1 : 2);
+    const ft = [(fuseDev ? (ivSpd ? P.dcDev.tag.replace(/ gPV \d+A/, "") : P.dcDev.tag) + " x" + nS * 2 : P.dcDev.tag + " x" + nS) + per, "DC SPD " + P.dcSpdTag.replace(/^SPD /, "") + " x" + nS + per].slice(0, ivSpd ? 1 : 2);
     const fw = X.dcPE - 2.5 - (X.dc0 + 1);
     const fth = Math.min.apply(null, ft.map(s => fitH(s, TS.spec, fw)));
     ft.forEach((s, i) => pen.text(T, X.dc0 + 1, G.dBot + 1.0 + (ft.length - 1 - i) * 2.1, fth, s, {

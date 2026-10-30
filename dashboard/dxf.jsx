@@ -2055,7 +2055,8 @@ function pgSldPro(doc, sheet, M) {
     const per = b.typical ? " /INV" : "";
     const nS = b.typical ? Math.round(nStrB / b.cnt) : nStrB;
     const ft = [
-      (fuseDev ? P.dcDev.tag + " x" + nS * 2 : P.dcDev.tag + " x" + nS) + per,
+      /* งานโครงการท้ายตู้ไม่เขียน gPV/พิกัดกระแส — มีเหนือฟิวส์ทุกตัวแล้ว (ผู้ใช้ขีดฆ่า 2026-10-30) */
+      (fuseDev ? (ivSpd ? P.dcDev.tag.replace(/ gPV \d+A/, "") : P.dcDev.tag) + " x" + nS * 2 : P.dcDev.tag + " x" + nS) + per,
       "DC SPD " + P.dcSpdTag.replace(/^SPD /, "") + " x" + nS + per,
     ].slice(0, ivSpd ? 1 : 2);
     const fw = X.dcPE - 2.5 - (X.dc0 + 1);
