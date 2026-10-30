@@ -1943,8 +1943,11 @@ function pgSldPro(doc, sheet, M) {
       const cu = at <= 100 ? 10 : at <= 200 ? 16 : at <= 400 ? 25 : at <= 500 ? 35 : at <= 800 ? 50 : at <= 1000 ? 70 : 95;
       return "G-" + cu + " Sq.mm. IEC01(THW)";
     };
+    /* เครื่องเดียว: สายเมนอยู่ต่ำกว่าขั้วอินเวอร์เตอร์ได้ (ตู้ต้องเหลือที่ไฟแสดงเฟสด้านบน) → สายลงที่ oneX ก่อน CT
+       เดิมลงที่บัสซึ่งอยู่ขวาของ CT ทำให้ CT ลอยไม่คล้องสาย (ผู้ใช้ชี้ 2026-10-30) */
+    const oneX = X.ac0 - 3;   // ลงนอกตู้ ไม่ทับเส้นประขอบตู้ แล้วเข้าตู้แนวนอน
     taps.forEach((t, i) => {
-      if (oneInv) { pen.line(R, X.iv1 + 0.6, t.y, X.acBus, t.y); return; }
+      if (oneInv) { pen.line(R, X.iv1 + 0.6, t.y, oneX, t.y); pen.line(R, oneX, t.y, oneX, yMain); return; }
       pen.line(R, X.iv1 + 0.6, t.y, X.acB - g - 0.75, t.y);
       /* แผ่นภาพรวม: ป้ายสาย AC อินเวอร์เตอร์เหนือเส้นทุกเส้น + จำนวนเส้นรวม (ผู้ใช้ 2026-10-29) */
       if (isMain) {
@@ -1965,7 +1968,7 @@ function pgSldPro(doc, sheet, M) {
       if (t.y !== tMax || yMain > tMax) pen.dot(R, X.acBus, t.y, 0.5);
     });
     const busHi = Math.max(tMax, yMain), busLo = Math.min(tMin, yMain);
-    pen.line(R, X.acBus, busHi, X.acBus, busLo);
+    if (!oneInv) pen.line(R, X.acBus, busHi, X.acBus, busLo);
     /* ตู้ AC เรียงตามสายเมน (ผู้ใช้ 2026-10-29: ชุดกันเสิร์จย้ายไปฝั่งกริด):
        บัส → CT ของ PM (cx) → MCCB เมน (mx) → ZCT → จุดแยกไฟเลี้ยง PM (px) → จุดแยกไฟแสดงเฟส (lx) → จุดแยก ฟิวส์+SPD (sx) → ออกตู้
        (ผู้ใช้ 2026-10-29: CT อยู่ฝั่งอินเวอร์เตอร์ก่อน MCCB · ไฟเลี้ยง PM แยกหลัง MCCB) */
@@ -1977,7 +1980,7 @@ function pgSldPro(doc, sheet, M) {
     const acTop0 = busHi + 12, acTop = acTop0 + (P.pm && !(isMain && yMain + 20 < acTop0) ? 15 : 0);
     /* เมนของตู้ */
     if (!oneInv) pen.dot(R, X.acBus, yMain, 0.5);   // เครื่องเดียว = สายเส้นเดียวไม่มีจุดแยก ไม่ต้องมีจุด (ผู้ใช้ชี้จุดค้าง)
-    pen.line(R, X.acBus, yMain, mx - g - 0.75, yMain);
+    pen.line(R, oneInv ? oneX : X.acBus, yMain, mx - g - 0.75, yMain);
     hBrk(mx, yMain, isCb(P.mainTxt));
     const mainL = P.mainTxt + (P.lsig ? " LSIG" : "");
     brkLabel(mainL, "", mx, yMain);   // เมนแบบเศษส่วนเหมือนเบรกเกอร์อินเวอร์เตอร์ (ผู้ใช้: ACB ไม่มี AF/IC)

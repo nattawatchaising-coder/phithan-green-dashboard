@@ -2769,9 +2769,11 @@ function pgSldPro(doc, sheet, M) {
       const cu = at <= 100 ? 10 : at <= 200 ? 16 : at <= 400 ? 25 : at <= 500 ? 35 : at <= 800 ? 50 : at <= 1000 ? 70 : 95;
       return "G-" + cu + " Sq.mm. IEC01(THW)";
     };
+    const oneX = X.ac0 - 3;
     taps.forEach((t, i) => {
       if (oneInv) {
-        pen.line(R, X.iv1 + 0.6, t.y, X.acBus, t.y);
+        pen.line(R, X.iv1 + 0.6, t.y, oneX, t.y);
+        pen.line(R, oneX, t.y, oneX, yMain);
         return;
       }
       pen.line(R, X.iv1 + 0.6, t.y, X.acB - g - 0.75, t.y);
@@ -2796,14 +2798,14 @@ function pgSldPro(doc, sheet, M) {
     });
     const busHi = Math.max(tMax, yMain),
       busLo = Math.min(tMin, yMain);
-    pen.line(R, X.acBus, busHi, X.acBus, busLo);
+    if (!oneInv) pen.line(R, X.acBus, busHi, X.acBus, busLo);
     const cx = X.acBus + (oneInv ? -12.5 : isMain ? 13 : 4.5),
       mx = P.pm ? oneInv ? X.acBus + 4 : cx + (isMain ? 13 : 7.5) : X.acBus + (isMain ? 14 : 8);
     const hasGf = P.gf && !P.lsig;
     const acTop0 = busHi + 12,
       acTop = acTop0 + (P.pm && !(isMain && yMain + 20 < acTop0) ? 15 : 0);
     if (!oneInv) pen.dot(R, X.acBus, yMain, 0.5);
-    pen.line(R, X.acBus, yMain, mx - g - 0.75, yMain);
+    pen.line(R, oneInv ? oneX : X.acBus, yMain, mx - g - 0.75, yMain);
     hBrk(mx, yMain, isCb(P.mainTxt));
     const mainL = P.mainTxt + (P.lsig ? " LSIG" : "");
     brkLabel(mainL, "", mx, yMain);
