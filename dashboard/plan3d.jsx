@@ -2690,6 +2690,11 @@ function p3SldModel(st, job, design) {
       ["#", "INVERTER"],
       r("MODEL", (inv.models || [inv]).map((md) => md.model).join(" + ")),
       r("AC OUTPUT x QTY", (inv.models || [{ w: unitKw * 1000, count: units.length }]).map((md) => Math.round(md.w / 100) / 10 + " kW x " + md.count).join(" + ") + " " + (nPh === 3 ? "3PH" : "1PH")),
+      /* แรงดัน/กระแสขาออก AC ต่อเครื่อง (ผู้ใช้ 2026-10-30) — กระแสจากคลัง (outA) ไม่มีคิดจาก kW */
+      r("AC OUTPUT V / I", Vll + "V " + (nPh === 3 ? "3PH" : "1PH") + " / " + (inv.models || [{ w: unitKw * 1000, spec: ivSp }]).map((md) => {
+        const a = +((md.spec || {}).outA) || Math.round(md.w / (Vll * kPh) * 10) / 10;
+        return a + " A";
+      }).join(" + ") + " (MAX)"),
       r("MAX Vdc / MPPT RANGE", ivSp.mpptVmin && ivSp.mpptVmax ? maxVdc + " / " + ivSp.mpptVmin + "-" + ivSp.mpptVmax + " V" : maxVdc + " V"),
       r("MPPT / INPUT", mpIn),
       ["#", "PV ARRAY"],

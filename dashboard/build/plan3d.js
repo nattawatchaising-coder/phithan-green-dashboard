@@ -4285,7 +4285,13 @@ function p3SldModel(st, job, design) {
     M.pvData = [["#", "PV MODULE"], r("MODEL", panel.model), r("Pmax / Voc / Isc", sp([wp + "W", PS.voc + "V", PS.isc + "A"].filter(x => !/undefined|^0[VA]$/.test(x)))), r("Vmp / Imp", PS.vmp && PS.imp ? PS.vmp + "V / " + PS.imp + "A" : ""), ["#", "INVERTER"], r("MODEL", (inv.models || [inv]).map(md => md.model).join(" + ")), r("AC OUTPUT x QTY", (inv.models || [{
       w: unitKw * 1000,
       count: units.length
-    }]).map(md => Math.round(md.w / 100) / 10 + " kW x " + md.count).join(" + ") + " " + (nPh === 3 ? "3PH" : "1PH")), r("MAX Vdc / MPPT RANGE", ivSp.mpptVmin && ivSp.mpptVmax ? maxVdc + " / " + ivSp.mpptVmin + "-" + ivSp.mpptVmax + " V" : maxVdc + " V"), r("MPPT / INPUT", mpIn), ["#", "PV ARRAY"], ["MODULES / STRINGS", nPanel + " PCS / " + nStr + " STR"], ["MODULES PER STRING", nTxt], r("STRING Voc @" + tMin + "%%dC", vocMax ? vocMax + " V  (MAX " + maxVdc + " V)" : ""), ["DC / AC", dcKw.toFixed(2) + " kWp / " + acKw.toFixed(2) + " kW (" + ratio + ")"]].filter(Boolean);
+    }]).map(md => Math.round(md.w / 100) / 10 + " kW x " + md.count).join(" + ") + " " + (nPh === 3 ? "3PH" : "1PH")), r("AC OUTPUT V / I", Vll + "V " + (nPh === 3 ? "3PH" : "1PH") + " / " + (inv.models || [{
+      w: unitKw * 1000,
+      spec: ivSp
+    }]).map(md => {
+      const a = +(md.spec || {}).outA || Math.round(md.w / (Vll * kPh) * 10) / 10;
+      return a + " A";
+    }).join(" + ") + " (MAX)"), r("MAX Vdc / MPPT RANGE", ivSp.mpptVmin && ivSp.mpptVmax ? maxVdc + " / " + ivSp.mpptVmin + "-" + ivSp.mpptVmax + " V" : maxVdc + " V"), r("MPPT / INPUT", mpIn), ["#", "PV ARRAY"], ["MODULES / STRINGS", nPanel + " PCS / " + nStr + " STR"], ["MODULES PER STRING", nTxt], r("STRING Voc @" + tMin + "%%dC", vocMax ? vocMax + " V  (MAX " + maxVdc + " V)" : ""), ["DC / AC", dcKw.toFixed(2) + " kWp / " + acKw.toFixed(2) + " kW (" + ratio + ")"]].filter(Boolean);
     const nInv = units.length;
     const S = [];
     S.push(["PV MODULE", panel.model + " " + wp + "Wp", nPanel]);
