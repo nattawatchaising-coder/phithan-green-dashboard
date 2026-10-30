@@ -2203,11 +2203,98 @@ function pgSldEquip(pen, x, y, w, list) {
   list.forEach((r, i) => row([i + 1, r.brand, r.model, r.desc, r.no], rh, false));
   return y - cy;
 }
+function pgScalePen(pen, s, ox, oy) {
+  const X = v => ox + v * s,
+    Y = v => oy + v * s,
+    P = p => [X(p[0]), Y(p[1])];
+  return {
+    line: (l, x1, y1, x2, y2) => pen.line(l, X(x1), Y(y1), X(x2), Y(y2)),
+    rect: (l, x, y, w, h) => pen.rect(l, X(x), Y(y), w * s, h * s),
+    pline: (l, pts, c) => pen.pline(l, pts.map(P), c),
+    circle: (l, x, y, r) => pen.circle(l, X(x), Y(y), r * s),
+    arc: (l, x, y, r, a1, a2) => pen.arc(l, X(x), Y(y), r * s, a1, a2),
+    solid: (l, a, b, c, d) => pen.solid(l, P(a), P(b), P(c), d && P(d)),
+    text: (l, x, y, h, t, o) => pen.text(l, X(x), Y(y), h * s, t, o),
+    dot: (l, x, y, r) => pen.dot(l, X(x), Y(y), r * s)
+  };
+}
+function pgBBoxPen() {
+  const b = {
+      x0: Infinity,
+      y0: Infinity,
+      x1: -Infinity,
+      y1: -Infinity
+    },
+    items = [];
+  let it = null;
+  const add = (x, y) => {
+    if (x < b.x0) b.x0 = x;
+    if (x > b.x1) b.x1 = x;
+    if (y < b.y0) b.y0 = y;
+    if (y > b.y1) b.y1 = y;
+    if (it) {
+      if (x < it[0]) it[0] = x;
+      if (y < it[1]) it[1] = y;
+      if (x > it[2]) it[2] = x;
+      if (y > it[3]) it[3] = y;
+    }
+  };
+  const rec = fn => (...a) => {
+    it = [Infinity, Infinity, -Infinity, -Infinity];
+    fn(...a);
+    items.push(it);
+    it = null;
+  };
+  const pen = {
+    box: b,
+    items,
+    line: (l, x1, y1, x2, y2) => {
+      add(x1, y1);
+      add(x2, y2);
+    },
+    rect: (l, x, y, w, h) => {
+      add(x, y);
+      add(x + w, y + h);
+    },
+    pline: (l, pts) => pts.forEach(p => add(p[0], p[1])),
+    circle: (l, x, y, r) => {
+      add(x - r, y - r);
+      add(x + r, y + r);
+    },
+    arc: (l, x, y, r) => {
+      add(x - r, y - r);
+      add(x + r, y + r);
+    },
+    solid: (l, a, b2, c, d) => [a, b2, c, d].forEach(p => p && add(p[0], p[1])),
+    dot: (l, x, y, r) => {
+      add(x - r, y - r);
+      add(x + r, y + r);
+    },
+    text: (l, x, y, h, t, o) => {
+      o = o || {};
+      const w = pgTextW(String(t), h);
+      if (o.rot) {
+        add(x - h, y - w);
+        add(x + h, y + w);
+        return;
+      }
+      const xa = o.align === 1 ? x - w / 2 : o.align === 2 ? x - w : x;
+      const ya = o.valign === 3 ? y : o.valign === 2 ? y - h / 2 : o.valign === 1 ? y - h : y;
+      add(xa, ya);
+      add(xa + w, ya + h);
+    }
+  };
+  ["line", "rect", "pline", "circle", "arc", "solid", "dot", "text"].forEach(k => {
+    pen[k] = rec(pen[k]);
+  });
+  return pen;
+}
 function pgSldPro(doc, sheet, M) {
-  pgSldLayers(doc);
-  const pen = sheet.pen,
+  if (!sheet.measure) pgSldLayers(doc);
+  const pen0 = sheet.pen,
     A = sheet.area,
     P = M.pro;
+  let pen = sheet.measure || pen0;
   const W = PG_SLD.wire,
     R = PG_SLD.sol,
     S = PG_SLD.sym,
@@ -2495,6 +2582,103 @@ function pgSldPro(doc, sheet, M) {
     const spare = avail - sumH(blocks) - 30;
     if (nR > 0 && spare > 0) RH = Math.min(15, RH + spare / nR);
   }
+  const L = PG_SLD.tab;
+  const grid = (rows, head, cw, rh, th, dry) => {
+    let cy = ty;
+    const rect = (x, y, w, h) => {
+      if (!dry) pen.rect(L, x, y, w, h);
+    };
+    const txt = (l, x, y, h, t, o) => {
+      if (!dry) pen.text(l, x, y, h, t, o);
+    };
+    rect(RX0, cy - rh - 0.6, RW, rh + 0.6);
+    txt(LB, RX0 + 1.2, cy - (rh + 0.6) / 2, TS.head, head, {
+      valign: 2
+    });
+    cy -= rh + 0.6;
+    const lp = th + 0.7;
+    rows.forEach(r => {
+      if (r[0] === "#") {
+        rect(RX0, cy - rh, RW, rh);
+        txt(LB, RX0 + 1.2, cy - rh / 2, TS.sub, r[1], {
+          valign: 2
+        });
+        cy -= rh;
+        return;
+      }
+      const cells = cw.map((w, i) => wrapT(String(r[i] == null ? "" : r[i]), th, w - 2));
+      const nL = Math.max.apply(null, cells.map(c => c.length));
+      const h = rh + (nL - 1) * lp;
+      rect(RX0, cy - h, RW, h);
+      let cx = RX0;
+      cw.forEach((w, i) => {
+        if (i && !dry) pen.line(L, cx, cy, cx, cy - h);
+        const c = i === cw.length - 1 && cw.length > 2;
+        const ls = cells[i],
+          y0 = cy - h / 2 + (ls.length - 1) * lp / 2;
+        ls.forEach((t, j) => txt(T, c ? cx + w / 2 : cx + 1, y0 - j * lp, th, t, {
+          align: c ? 1 : 0,
+          valign: 2
+        }));
+        cx += w;
+      });
+      cy -= h;
+    });
+    return ty - cy;
+  };
+  let ty = 0;
+  const tabRows = () => {
+    if (isDet) {
+      const no = PT.nos[0],
+        b = blocks[0],
+        nPv = pvOf(no),
+        ns = [];
+      byInv[no].forEach(r => r.ins.forEach(x => ns.push(x.n)));
+      const nU = ns.filter((n, i) => ns.indexOf(n) === i).sort((p, q) => q - p);
+      return [[[["INVERTER", pgInvNames(PT.nos)], ["QUANTITY", PT.nos.length + " SET"], ["MODEL", b.model], ["AC OUTPUT", b.kw + " kW " + P.phTxt + " / SET"], ["MPPT / STRING", byInv[no].length + " MPPT / " + ns.length + " STRINGS / SET"], ["STRING SIZE", nU.map(n => n + " PV x " + ns.filter(q => q === n).length).join(" , ")], ["PV / SET", nPv + " x " + wp + "Wp = " + Math.round(nPv * wp / 10) / 100 + " kWp"], ["PV (GROUP)", nPv * PT.nos.length + " PCS = " + Math.round(nPv * PT.nos.length * wp / 10) / 100 + " kWp"], ["AC BREAKER", b.brk + " x" + PT.nos.length]], "INVERTER GROUP DATA"]];
+    }
+    if (!M.pvData) return [];
+    let skip = false;
+    return [[M.pvData.filter(r => {
+      if (r[0] === "#") skip = r[1] === "PV ARRAY";
+      return !skip;
+    }), "SYSTEM DATA"]];
+  };
+  const sldTabH = () => {
+    ty = 0;
+    return tabRows().reduce((t, q) => t + grid(q[0], q[1], [RW * 0.4, RW * 0.6], 3.1, TS.cell, true) + 3, 0);
+  };
+  let tabTop = A.y0 + 4;
+  if (!sheet.measure) {
+    const bb = pgBBoxPen();
+    pgSldPro(doc, {
+      area: A,
+      measure: bb
+    }, M);
+    const d = bb.box,
+      bw = d.x1 - d.x0,
+      bh = d.y1 - d.y0;
+    tabTop = A.y0 + 4 + sldTabH();
+    const yT = A.y0 + 22,
+      cand = [[A.x0 + 3, Math.max(yT, tabTop + 4), A.x1 - 3, A.y1 - 3], [A.x0 + 3, yT, RX0 - 4, A.y1 - 3]].map(c => ({
+        c,
+        s: Math.min((c[2] - c[0]) / bw, (c[3] - c[1]) / bh)
+      })).sort((p, q) => q.s - p.s);
+    const at = (c, sc, top) => [(c[0] + c[2]) / 2 - (d.x0 + bw / 2) * sc, top ? c[3] - d.y1 * sc : (c[1] + c[3]) / 2 - (d.y0 + bh / 2) * sc];
+    let sc = Math.min(1.8, cand[0].s),
+      o = at(cand[0].c, sc);
+    const full = [A.x0 + 3, yT, A.x1 - 3, A.y1 - 3];
+    const hit = (s2, q) => bb.items.some(r => q[0] + r[2] * s2 > RX0 - 2 && q[1] + r[1] * s2 < tabTop + 2);
+    for (let s2 = Math.min(1.8, (full[2] - full[0]) / bw, (full[3] - full[1]) / bh); s2 > sc + 0.01; s2 -= 0.02) {
+      const q = [at(full, s2), at(full, s2, true)].find(p => !hit(s2, p));
+      if (q) {
+        sc = s2;
+        o = q;
+        break;
+      }
+    }
+    if (bw > 0 && bh > 0 && isFinite(sc)) pen = pgScalePen(pen0, sc, o[0], o[1]);
+  }
   const hy = A.y1 - 7;
   if (!isMain) {
     pen.text(LB, (X.m1 + X.sl) / 2, hy, TS.zone, "PV ARRAY", {
@@ -2657,6 +2841,19 @@ function pgSldPro(doc, sheet, M) {
       rowsY.push.apply(rowsY, ys);
     });
     const lastY = rowsY[rowsY.length - 1];
+    if (!b.typical) {
+      const ns = [];
+      byInv[b.no].forEach(r => r.ins.forEach(x => ns.push(x.n)));
+      const nU = ns.filter((n, i) => ns.indexOf(n) === i).sort((p, q) => q - p),
+        nPv = ns.reduce((t, n) => t + n, 0);
+      const sl = [[LB, b.names || "INV" + b.no]].concat(nU.map(n => [T, wp + "Wp x " + n + " PCS x " + ns.filter(q => q === n).length + " STR"]), [[T, "TOTAL " + ns.length + " STR / " + nPv + " PCS"], [LB, "= " + (Math.round(nPv * wp / 10) / 100).toFixed(2) + " kWp" + (b.names ? " /SET" : "")]]);
+      const sx = X.pe0 - 2.5,
+        sy = (rowsY[0] + lastY) / 2 + (sl.length - 1) * 1.3;
+      sl.forEach((l, k) => pen.text(l[0], sx, sy - k * 2.6, TS.spec, l[1], {
+        align: 2,
+        valign: 2
+      }));
+    }
     const dTop = top - 1.5;
     pen.rect(BX, X.dc0, G.dBot, X.dc1 - X.dc0, dTop - G.dBot);
     const barT = rowsY[0] - 5.6,
@@ -3031,108 +3228,13 @@ function pgSldPro(doc, sheet, M) {
       valign: 2
     });
   }
-  const L = PG_SLD.tab;
-  const grid = (rows, head, cw, rh, th) => {
-    let cy = ty;
-    pen.rect(L, RX0, cy - rh - 0.6, RW, rh + 0.6);
-    pen.text(LB, RX0 + 1.2, cy - (rh + 0.6) / 2, TS.head, head, {
-      valign: 2
-    });
-    cy -= rh + 0.6;
-    const lp = th + 0.7;
-    rows.forEach(r => {
-      if (r[0] === "#") {
-        pen.rect(L, RX0, cy - rh, RW, rh);
-        pen.text(LB, RX0 + 1.2, cy - rh / 2, TS.sub, r[1], {
-          valign: 2
-        });
-        cy -= rh;
-        return;
-      }
-      const cells = cw.map((w, i) => wrapT(String(r[i] == null ? "" : r[i]), th, w - 2));
-      const nL = Math.max.apply(null, cells.map(c => c.length));
-      const h = rh + (nL - 1) * lp;
-      pen.rect(L, RX0, cy - h, RW, h);
-      let cx = RX0;
-      cw.forEach((w, i) => {
-        if (i) pen.line(L, cx, cy, cx, cy - h);
-        const c = i === cw.length - 1 && cw.length > 2;
-        const ls = cells[i],
-          y0 = cy - h / 2 + (ls.length - 1) * lp / 2;
-        ls.forEach((t, j) => pen.text(T, c ? cx + w / 2 : cx + 1, y0 - j * lp, th, t, {
-          align: c ? 1 : 0,
-          valign: 2
-        }));
-        cx += w;
-      });
-      cy -= h;
-    });
-    return ty - cy;
-  };
-  let ty = A.y1 - 4;
-  if (isDet) {
-    const no = PT.nos[0],
-      b = blocks[0],
-      nPv = pvOf(no),
-      ns = [];
-    byInv[no].forEach(r => r.ins.forEach(x => ns.push(x.n)));
-    const nU = ns.filter((n, i) => ns.indexOf(n) === i).sort((p, q) => q - p);
-    const rows = [["INVERTER", pgInvNames(PT.nos)], ["QUANTITY", PT.nos.length + " SET"], ["MODEL", b.model], ["AC OUTPUT", b.kw + " kW " + P.phTxt + " / SET"], ["MPPT / STRING", byInv[no].length + " MPPT / " + ns.length + " STRINGS / SET"], ["STRING SIZE", nU.map(n => n + " PV x " + ns.filter(q => q === n).length).join(" , ")], ["PV / SET", nPv + " x " + wp + "Wp = " + Math.round(nPv * wp / 10) / 100 + " kWp"], ["PV (GROUP)", nPv * PT.nos.length + " PCS = " + Math.round(nPv * PT.nos.length * wp / 10) / 100 + " kWp"], ["AC BREAKER", b.brk + " x" + PT.nos.length]];
-    ty -= grid(rows, "INVERTER GROUP DATA", [RW * 0.4, RW * 0.6], 3.1, TS.cell) + 3;
-  }
-  if (M.pvData && !isDet) ty -= grid(M.pvData, "SYSTEM DATA", [RW * 0.4, RW * 0.6], 3.1, TS.cell) + 3;
-  if (M.sched && !isDet) {
-    const rows = M.sched.map((r, i) => [i + 1, r[0], r[1], r[2]]);
-    ty -= grid([["NO", "ITEM", "SPECIFICATION", "QTY"]].concat(rows), "EQUIPMENT SCHEDULE", [5, 21, RW - 34, 8], 3.1, TS.cell) + 3;
-  }
-  const notes = ["1. ติดตั้งตาม วสท. 022001 · IEC 62548 · IEC 60364-7-712", "2. สาย DC " + P.dcCable.replace(/ (H1Z2Z2-K)/, "") + " · MC4 ยี่ห้อ/รุ่นเดียวกันทั้งคู่", "3. Voc สตริงที่ " + P.tMin + "%%dC = " + P.vocMax + "V ต้องไม่เกิน " + P.maxVdc + "VDC", fuseDev ? "4. ฟิวส์ DC ชนิด gPV (IEC 60269-6) ทั้งขั้ว +/− ทุกสตริง >= 1.5 x Isc · ห้ามใช้ฟิวส์ AC" : "4. DC MCB 2 ขั้วทุกสตริง พิกัด >= 1.25 x Isc", "5. DC SPD Type II ทุกสตริง สายลง PE bar สั้นที่สุด (< 0.5 m)", "6. โครงแผง ราง ตู้ DC อินเวอร์เตอร์ → หลักดิน PV ที่ปักแยกจากระบบ · ฝั่ง AC → MET → หลักดินระบบ", "7. Anti-islanding ตามข้อกำหนด " + P.auth + " · ป้ายเตือน DC ที่ตู้/MDB"];
-  const titleY = A.y0 + 7;
-  const nLines = [];
-  notes.forEach(s => {
-    const m = s.match(/^([0-9]+\.\s*)/),
-      ind = m ? m[1].length * 0.82 * TS.note : 0;
-    wrapT(s, TS.note, RW - ind).forEach((t, i) => nLines.push({
-      t,
-      x: i ? RX0 + ind : RX0
-    }));
+  if (sheet.measure) return;
+  pen = pen0;
+  ty = tabTop;
+  tabRows().forEach(t => {
+    ty -= grid(t[0], t[1], [RW * 0.4, RW * 0.6], 3.1, TS.cell) + 3;
   });
-  const noteH = 4.5 + nLines.length * 2.2;
-  if (ty - (A.y0 + 4) > noteH) {
-    pen.text(LB, RX0, ty - 1, TS.head, "NOTES", {
-      valign: 3
-    });
-    nLines.forEach((l, i) => pen.text(T, l.x, ty - 4.6 - i * 2.2, TS.note, l.t, {
-      valign: 3
-    }));
-    ty -= noteH + 2;
-  }
-  const legs = [[(x, y) => pgSym.pv(pen, x + 5, y, 6.4, 3.6, null, true), "PV MODULE"], [(x, y) => {
-    pen.line(R, x, y, x + 5 - g - 0.75, y);
-    hBrk(x + 5, y);
-    pen.line(R, x + 5 + g + 0.75, y, x + 10, y);
-  }, "CIRCUIT BREAKER"], [(x, y) => {
-    pen.line(R, x, y, x + 2.6, y);
-    hFuse(x + 5, y);
-    pen.line(R, x + 7.4, y, x + 10, y);
-  }, "FUSE (DC gPV / AC gG)"], [(x, y) => spdS(x + 5, y + 2), "SPD"], [(x, y) => {
-    pen.line(W, x, y, x + 10, y);
-    ctH(x + 5, y);
-  }, "CT"], [(x, y) => meter(x + 5, y, 1.8), "kWh METER"], [(x, y) => pen.line(PE, x, y, x + 10, y), "EARTH (PE)"], [(x, y) => pen.line(CM, x, y, x + 10, y), "COMM. / BOX"]];
-  const legH = 4.5 + Math.ceil(legs.length / 2) * 4.6;
-  if (ty - (A.y0 + 4) > legH) {
-    pen.text(LB, RX0, ty - 1, TS.head, "LEGEND", {
-      valign: 3
-    });
-    legs.forEach((l, i) => {
-      const lx = RX0 + 1 + i % 2 * (RW / 2),
-        ly = ty - 7.2 - Math.floor(i / 2) * 4.6;
-      l[0](lx, ly);
-      pen.text(T, lx + 12, ly, TS.legend, l[1], {
-        valign: 2
-      });
-    });
-  }
-  pgSheetTitle(pen, A.x0 + 4, titleY + 4, "SINGLE LINE DIAGRAM SOLAR PV SYSTEM" + (isMain ? " (OVERALL)" : isDet ? " (" + pgInvNames(PT.nos) + ")" : ""), PG_TS.title, RX0 - A.x0 - 10, 0, null);
+  pgSheetTitle(pen, A.x0 + 4, A.y0 + 11, "SINGLE LINE DIAGRAM SOLAR PV SYSTEM" + (isMain ? " (OVERALL)" : isDet ? " (" + pgInvNames(PT.nos) + ")" : ""), PG_TS.title, RX0 - A.x0 - 10, 0, null);
 }
 function pgInvNames(nos) {
   const out = [];
