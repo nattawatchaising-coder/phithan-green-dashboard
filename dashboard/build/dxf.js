@@ -2959,7 +2959,7 @@ function pgSldPro(doc, sheet, M) {
       pen.text(T, trunkX + 1.6, spT - SPD_H / 2, TS.tag, "DC SPD", {
         valign: 2
       });
-      pen.line(PE, trunkX, spT - SPD_H, trunkX, spT - SPD_H - 1.2);
+      pen.line(S, trunkX, spT - SPD_H, trunkX, spT - SPD_H - 1.2);
       pgSym.ground(pen, trunkX, spT - SPD_H - 1.2);
     } else pen.line(R, trunkX, tapY, X.iv1 - 13.5, tapY);
     pen.line(R, X.iv1 - 2.5, tapY, X.iv1 - 0.6, tapY);
