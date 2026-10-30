@@ -1944,7 +1944,9 @@ function pgSldPro(doc, sheet, M) {
         slots.forEach((no, i) => {
           const px = sxOf(i);
           pgSym.pv(pen, px, y, 6.4, 3.6, null, true);
-          pen.text(T, px - 1.5, y, TS.tag, String(no), { align: 1, valign: 2 });
+          /* เลขแผงในวงกลม ตัวใหญ่ขึ้น (ผู้ใช้ 2026-10-30) — เลขหลายหลักย่อให้พอดีวง */
+          pen.circle(S, px - 1.5, y, 1.3);
+          pen.text(T, px - 1.5, y, Math.min(1.6, 2.1 / Math.max(0.1, pgTextW(String(no), 1))), String(no), { align: 1, valign: 2 });
           if (i && !(i === 3 && nP > 4)) pen.line(CM, sxOf(i) + 3.2, y, sxOf(i - 1) - 3.2, y);   // แผง n กับ • • • ไม่มีเส้นต่อ (ผู้ใช้ขีดฆ่า)
         });
         if (nP > 4) [0, 1, 2].forEach((k) => pen.dot(CM, sxOf(2) - 3.2 - 1.6 - k * 1.6, y, 0.3));   // • • •

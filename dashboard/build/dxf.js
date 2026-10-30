@@ -2792,7 +2792,8 @@ function pgSldPro(doc, sheet, M) {
         slots.forEach((no, i) => {
           const px = sxOf(i);
           pgSym.pv(pen, px, y, 6.4, 3.6, null, true);
-          pen.text(T, px - 1.5, y, TS.tag, String(no), {
+          pen.circle(S, px - 1.5, y, 1.3);
+          pen.text(T, px - 1.5, y, Math.min(1.6, 2.1 / Math.max(0.1, pgTextW(String(no), 1))), String(no), {
             align: 1,
             valign: 2
           });
