@@ -2472,6 +2472,10 @@ function pgSldPro(doc, sheet, M) {
     X.iv0 = DX0 + 78;
     X.dcB = (X.dc0 + X.dc1) / 2;
   }
+  const ivIn = !isMain;
+  if (ivIn && !ivSpd) ["iv1", "ac0", "acB", "acBus", "acM", "ac1", "md0", "mdB", "mdBus", "md1"].forEach(k => {
+    X[k] += 16;
+  });
   const modelOf = no => M.units && M.units[no - 1] && M.units[no - 1].model || M.inv.model;
   const mkBlock = (no, detail) => {
     const groups = byInv[no].map(r => ({
@@ -2507,7 +2511,7 @@ function pgSldPro(doc, sheet, M) {
     const span = all.slice(0, -1).reduce((t, row) => t + rowH(row), 0);
     const lastY = firstY - span - (b.groups.length - 1) * GAP;
     const dBot = lastY - 16;
-    const boxBot = Math.min(lastY - (ivSpd ? 11 : 5), top - 27);
+    const boxBot = Math.min(lastY - (ivIn ? 11 : 5), top - 27);
     const yG = Math.min(dBot, boxBot - 10.8) - 3;
     return {
       firstY,
@@ -2767,7 +2771,7 @@ function pgSldPro(doc, sheet, M) {
     let y = G.firstY;
     const rowsY = [],
       mids = [];
-    const trunkX = X.iv1 - (ivSpd ? 22 : 16.5);
+    const trunkX = X.iv1 - (ivIn ? 22 : 16.5);
     let nStrB = 0,
       first = true;
     b.groups.forEach((gq, gi) => {
@@ -2861,11 +2865,11 @@ function pgSldPro(doc, sheet, M) {
         first = false;
         y -= RH;
       });
-      const bx = X.iv0 + (ivSpd ? 16 : 5.5),
+      const bx = X.iv0 + (ivIn ? 16 : 5.5),
         y0 = ys[0],
         y1 = ys[ys.length - 1],
         ym = (y0 + y1) / 2;
-      if (ivSpd) {
+      if (ivIn) {
         const sw = X.iv0 + 8.5;
         ys.forEach(yy => {
           pen.line(R, X.iv0 + 0.6, yy, sw - g - 0.45, yy);
@@ -2959,25 +2963,26 @@ function pgSldPro(doc, sheet, M) {
     const boxTop = top - 1;
     pen.rect(S, X.iv0, G.boxBot, X.iv1 - X.iv0, boxTop - G.boxBot);
     const tapY = (boxTop + G.boxBot) / 2;
-    const ivSh = ivSpd ? 6 : 0;
+    const ivSh = ivIn ? 6 : 0;
     pgSym.inverter(pen, X.iv1 - 8 - ivSh, tapY, 11, 8.5);
     const tLo = Math.min(tapY, Math.min.apply(null, mids)),
       tHi = Math.max(tapY, Math.max.apply(null, mids));
     if (tHi > tLo) pen.line(R, trunkX, tLo, trunkX, tHi);
-    if (ivSpd) {
+    if (ivIn) {
       const yS = Math.min(tapY, Math.min.apply(null, mids)),
         spT = yS - 2;
       pen.line(R, trunkX, tapY, X.iv1 - 13.5 - ivSh, tapY);
       pen.line(R, trunkX, yS, trunkX, spT);
       spdS(trunkX, spT);
-      pen.text(T, trunkX + 1.6, spT - SPD_H / 2, TS.tag, "DC SPD", {
+      pen.text(T, trunkX - 1.6, spT - SPD_H / 2, TS.tag, "DC SPD", {
+        align: 2,
         valign: 2
       });
       pen.line(S, trunkX, spT - SPD_H, trunkX, spT - SPD_H - 1.2);
       pgSym.ground(pen, trunkX, spT - SPD_H - 1.2);
     } else pen.line(R, trunkX, tapY, X.iv1 - 13.5, tapY);
     pen.line(R, X.iv1 - 2.5 - ivSh, tapY, X.iv1 - 0.6, tapY);
-    if (ivSpd) {
+    if (ivIn) {
       const ax = X.iv1 - 4,
         aT = tapY - 5;
       pen.dot(R, ax, tapY, 0.5);
@@ -2995,7 +3000,7 @@ function pgSldPro(doc, sheet, M) {
     const ix = X.iv0 + 4,
       iw = X.ac0 - 1 - ix;
     const ivL = b.names ? [[LB, nm], [T, b.kw + "kW " + P.phTxt + "  " + b.model], [T, "DC SWITCH : BUILT-IN"], [T, "AC : " + M.acCable]] : [[LB, nm + "  " + b.kw + "kW " + P.phTxt], [T, b.model || M.inv.model], [T, "DC SWITCH : BUILT-IN"], [T, "AC : " + M.acCable]];
-    if (ivSpd) ivL.forEach(l => {
+    if (ivIn) ivL.forEach(l => {
       if (l[1] === "DC SWITCH : BUILT-IN") l[1] = "DC SWITCH + DC/AC SPD TYPE II : BUILT-IN";
     });
     const ivH = Math.min.apply(null, ivL.map(l => fitH(l[1], TS.spec, iw)));
