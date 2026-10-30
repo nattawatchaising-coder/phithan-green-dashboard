@@ -2673,15 +2673,16 @@ function pgSldPro(doc, sheet, M) {
       bw = d.x1 - d.x0,
       bh = d.y1 - d.y0;
     tabTop = A.y0 + 4 + sldTabH();
+    const yTp = A.y1 - 9;
     const yT = A.y0 + 22,
-      cand = [[A.x0 + 3, Math.max(yT, tabTop + 4), A.x1 - 3, A.y1 - 3], [A.x0 + 3, yT, RX0 - 4, A.y1 - 3]].map(c => ({
+      cand = [[A.x0 + 3, Math.max(yT, tabTop + 4), A.x1 - 3, yTp], [A.x0 + 3, yT, RX0 - 4, yTp]].map(c => ({
         c,
         s: Math.min((c[2] - c[0]) / bw, (c[3] - c[1]) / bh)
       })).sort((p, q) => q.s - p.s);
     const at = (c, sc, top) => [(c[0] + c[2]) / 2 - (d.x0 + bw / 2) * sc, top ? c[3] - d.y1 * sc : (c[1] + c[3]) / 2 - (d.y0 + bh / 2) * sc];
     let sc = Math.min(1.8, cand[0].s),
       o = at(cand[0].c, sc);
-    const full = [A.x0 + 3, yT, A.x1 - 3, A.y1 - 3];
+    const full = [A.x0 + 3, yT, A.x1 - 3, yTp];
     const hit = (s2, q) => bb.items.some(r => q[0] + r[2] * s2 > RX0 - 2 && q[1] + r[1] * s2 < tabTop + 2);
     for (let s2 = Math.min(1.8, (full[2] - full[0]) / bw, (full[3] - full[1]) / bh); s2 > sc + 0.01; s2 -= 0.02) {
       const q = [at(full, s2), at(full, s2, true)].find(p => !hit(s2, p));

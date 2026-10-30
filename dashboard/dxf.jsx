@@ -1848,13 +1848,15 @@ function pgSldPro(doc, sheet, M) {
     pgSldPro(doc, { area: A, measure: bb }, M);
     const d = bb.box, bw = d.x1 - d.x0, bh = d.y1 - d.y0;
     tabTop = A.y0 + 4 + sldTabH();
-    const yT = A.y0 + 22, cand = [[A.x0 + 3, Math.max(yT, tabTop + 4), A.x1 - 3, A.y1 - 3], [A.x0 + 3, yT, RX0 - 4, A.y1 - 3]]
+    /* ขอบบน yTp เว้นจากกรอบแผ่น 9 — หัวโซน PV ARRAY / INVERTER ไม่ชิดขอบบน (ผู้ใช้ชี้ 2026-10-30) */
+    const yTp = A.y1 - 9;
+    const yT = A.y0 + 22, cand = [[A.x0 + 3, Math.max(yT, tabTop + 4), A.x1 - 3, yTp], [A.x0 + 3, yT, RX0 - 4, yTp]]
       .map((c) => ({ c, s: Math.min((c[2] - c[0]) / bw, (c[3] - c[1]) / bh) })).sort((p, q) => q.s - p.s);
     /* ตำแหน่ง: กลางกรอบ · ox/oy ของปากกาขยาย */
     const at = (c, sc, top) => [(c[0] + c[2]) / 2 - (d.x0 + bw / 2) * sc, top ? c[3] - d.y1 * sc : (c[1] + c[3]) / 2 - (d.y0 + bh / 2) * sc];
     let sc = Math.min(1.8, cand[0].s), o = at(cand[0].c, sc);
     /* ลองใช้ทั้งแผ่น (กลางแผ่น/ชิดบน) ถ้าของในไดอะแกรมไม่ทับตารางมุมขวาล่าง — มุมนั้นของไดอะแกรมมักว่าง จะได้ขยายได้มากกว่า */
-    const full = [A.x0 + 3, yT, A.x1 - 3, A.y1 - 3];
+    const full = [A.x0 + 3, yT, A.x1 - 3, yTp];
     const hit = (s2, q) => bb.items.some((r) => q[0] + r[2] * s2 > RX0 - 2 && q[1] + r[1] * s2 < tabTop + 2);
     for (let s2 = Math.min(1.8, (full[2] - full[0]) / bw, (full[3] - full[1]) / bh); s2 > sc + 0.01; s2 -= 0.02) {
       const q = [at(full, s2), at(full, s2, true)].find((p) => !hit(s2, p));   // กลางแผ่นก่อน ไม่ได้ค่อยชิดบน
