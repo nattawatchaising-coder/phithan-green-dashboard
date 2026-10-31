@@ -1374,7 +1374,7 @@ function pgSldLayers(doc) {
   doc.layer(PG_SLD.box, PG_ACI.red, "PG-DASHB", 20);
   doc.layer(PG_SLD.txt, PG_ACI.white, "CONTINUOUS", 18);
   doc.layer(PG_SLD.lbl, PG_ACI.cyan, "CONTINUOUS", 25);
-  doc.layer(PG_SLD.comm, PG_ACI.white, "CONTINUOUS", 15);   // สายสื่อสารเส้นเต็ม — เส้นสั้น (RS485/INTERNET) ประยาวแล้วดูเหมือนสายขาด (ผู้ใช้ชี้ 2026-10-31) · สัญญาณ CT ยังประ
+  doc.layer(PG_SLD.comm, PG_ACI.white, "PG-DASHF", 15);   // สายสื่อสารประถี่แบบสาย CT (ผู้ใช้ 2026-10-31: เส้นปะ) — เดิมประยาว 6/3 เส้นสั้นดูเหมือนสายขาด
   doc.layer(PG_SLD.ctsig, PG_ACI.white, "PG-DASHF", 15);
   doc.layer(PG_SLD.swlink, PG_ACI.grey, "PG-DASHF", 13);
   doc.layer(PG_SLD.tab, PG_ACI.white, "CONTINUOUS", 20);
@@ -2463,11 +2463,11 @@ function pgSldPro(doc, sheet, M) {
       };
       if (meterNm) {
         /* มิเตอร์ชิดขอบบนซ้ายในตู้ เหนือป้ายเบรกเกอร์ (ผู้ใช้วาดชี้ 2026-10-31: อยู่ด้านบนดีกว่า) */
-        const mw = pgTextW(meterNm, TS.spec) + 4, mh = 6, mx0 = acMtrX != null ? Math.max(X.ac0 + 4, acMtrX - mw + 3) : X.ac0 + 4, mBot = acTop - 3 - mh, myc = mBot + mh / 2, xm0 = mx0 + mw / 2;
+        const mw = pgTextW(meterNm, TS.spec) + 4, mh = 6, mx0 = acMtrX != null ? Math.max(X.ac0 + 4, acMtrX - mw / 2) : X.ac0 + 4, mBot = acTop - 3 - mh, myc = mBot + mh / 2, xm0 = mx0 + mw / 2;
         pen.rect(S, mx0, mBot, mw, mh);
         pen.text(T, xm0, myc, TS.spec, meterNm, { align: 1, valign: 2 });
         /* ไฟเลี้ยงจากบัสเมนในตู้ ขึ้นเข้าก้นมิเตอร์ */
-        const xS = mx0 + mw - 3;
+        const xS = acMtrX != null && mx0 === acMtrX - mw / 2 ? acMtrX : mx0 + mw - 3;   // กล่องมิเตอร์อยู่กลางเส้นไฟเลี้ยง (ผู้ใช้วาดชี้ 2026-10-31)
         pen.dot(S, xS, yMain, 0.4);
         pen.line(W, xS, yMain, xS, mBot);
         pen.text(T, xS + 0.8, (yMain + mBot) / 2, TS.tag, "L, N", { valign: 2 });
@@ -2476,7 +2476,7 @@ function pgSldPro(doc, sheet, M) {
         if (yr < it - 1) {
           pen.line(COM, mx0, yr, X.iv1 + 1.6, yr);
           arrow(X.iv1 + 1.6, yr, -1, 0);
-          pen.text(T, X.iv1 + 2, yr + 0.6, TS.tag, "RS485", { valign: 1 });
+          pen.text(T, (X.iv1 + 1.6 + mx0) / 2, yr + 0.6, TS.tag, "RS485", { align: 1, valign: 1 });   // กลางเส้น (ผู้ใช้วาดชี้ 2026-10-31)
         } else {
           const xv = X.iv1 - 4;
           pen.line(COM, mx0, myc, xv, myc);

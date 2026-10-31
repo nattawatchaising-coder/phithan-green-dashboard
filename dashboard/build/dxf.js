@@ -2018,7 +2018,7 @@ function pgSldLayers(doc) {
   doc.layer(PG_SLD.box, PG_ACI.red, "PG-DASHB", 20);
   doc.layer(PG_SLD.txt, PG_ACI.white, "CONTINUOUS", 18);
   doc.layer(PG_SLD.lbl, PG_ACI.cyan, "CONTINUOUS", 25);
-  doc.layer(PG_SLD.comm, PG_ACI.white, "CONTINUOUS", 15);
+  doc.layer(PG_SLD.comm, PG_ACI.white, "PG-DASHF", 15);
   doc.layer(PG_SLD.ctsig, PG_ACI.white, "PG-DASHF", 15);
   doc.layer(PG_SLD.swlink, PG_ACI.grey, "PG-DASHF", 13);
   doc.layer(PG_SLD.tab, PG_ACI.white, "CONTINUOUS", 20);
@@ -3485,7 +3485,7 @@ function pgSldPro(doc, sheet, M) {
       if (meterNm) {
         const mw = pgTextW(meterNm, TS.spec) + 4,
           mh = 6,
-          mx0 = acMtrX != null ? Math.max(X.ac0 + 4, acMtrX - mw + 3) : X.ac0 + 4,
+          mx0 = acMtrX != null ? Math.max(X.ac0 + 4, acMtrX - mw / 2) : X.ac0 + 4,
           mBot = acTop - 3 - mh,
           myc = mBot + mh / 2,
           xm0 = mx0 + mw / 2;
@@ -3494,7 +3494,7 @@ function pgSldPro(doc, sheet, M) {
           align: 1,
           valign: 2
         });
-        const xS = mx0 + mw - 3;
+        const xS = acMtrX != null && mx0 === acMtrX - mw / 2 ? acMtrX : mx0 + mw - 3;
         pen.dot(S, xS, yMain, 0.4);
         pen.line(W, xS, yMain, xS, mBot);
         pen.text(T, xS + 0.8, (yMain + mBot) / 2, TS.tag, "L, N", {
@@ -3504,7 +3504,8 @@ function pgSldPro(doc, sheet, M) {
         if (yr < it - 1) {
           pen.line(COM, mx0, yr, X.iv1 + 1.6, yr);
           arrow(X.iv1 + 1.6, yr, -1, 0);
-          pen.text(T, X.iv1 + 2, yr + 0.6, TS.tag, "RS485", {
+          pen.text(T, (X.iv1 + 1.6 + mx0) / 2, yr + 0.6, TS.tag, "RS485", {
+            align: 1,
             valign: 1
           });
         } else {
