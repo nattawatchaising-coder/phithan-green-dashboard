@@ -2384,11 +2384,49 @@ function pgSldPro(doc, sheet, M) {
     const ctx = X.ac1 + 4;
     pen.text(T, ctx + 1, yMain + 0.8, TS.spec, cl[0], { valign: 1 });
     pen.text(T, ctx + 1, yMain - 0.8, TS.spec, cl[1], { valign: 3 });
-    const ax = Math.max(X.mdB + g + 3.5, ctx + 1 + Math.max.apply(null, cl.map((t) => pgTextW(t, TS.spec))) * 1.2 + 3);
+    const clW = Math.max.apply(null, cl.map((t) => pgTextW(t, TS.spec))) * 1.2;
+    if (P.home) {
+      /* งานบ้าน: วาดตู้ไฟบ้านลูกค้า (ผู้ใช้ 2026-10-31: ต้องมี SLD ที่ไปต่อตู้ไฟบ้านลูกค้า)
+         สายเมน → เบรกเกอร์โซลาร์ในตู้บ้าน → บัส → เมนเดิมของบ้าน → มิเตอร์ kWh → การไฟฟ้า · บัส → วงจรโหลดเดิมของบ้าน
+         ฝั่งการไฟฟ้า/โหลดบ้านเป็นสายปกติ (สีขาว) ฝั่งโซลาร์สีแดง */
+      const c0 = Math.max(X.md0, ctx + 1 + clW + 2), cB = c0 + 8, cBus = c0 + 17, cM = cBus + 9, c1 = cM + 7;
+      const yL = yMain - 10, cTop = yMain + 9, cBot = yL - 6;
+      pen.line(R, X.mdB - g - 0.75, yMain, cB - g - 0.75, yMain);
+      pen.rect(BX, c0, cBot, c1 - c0, cTop - cBot);
+      pen.text(LB, c0 + 1, cTop + 1.2, TS.head, "CONSUMER UNIT (EXISTING)", { valign: 1 });
+      const sBrk = String(P.mainTxt || "").split(" + ")[0].trim();   // เบรกเกอร์โซลาร์ในตู้บ้าน = ขนาดเดียวกับเมนตู้ AC (M.mccb เป็น MCCB 3P ของแบบเก่า)
+      hBrk(cB, yMain, isCb(sBrk));
+      if (sBrk) brkLabel(sBrk, "", cB, yMain);
+      pen.text(T, cB, yMain - 2.0, TS.tag, "SOLAR", { align: 1, valign: 3 });
+      pen.line(R, cB + g + 0.75, yMain, cBus, yMain);
+      pen.line(W, cBus, yMain + 3, cBus, yL - 3);   // บัสในตู้บ้าน
+      pen.dot(W, cBus, yMain, 0.5); pen.dot(W, cBus, yL, 0.5);
+      /* เมนเดิมของบ้าน → มิเตอร์ → การไฟฟ้า */
+      pen.line(W, cBus, yMain, cM - g - 0.75, yMain);
+      hBrk(cM, yMain, isCb(P.exMain));
+      pen.text(T, cM, yMain + g * 1.26 + 0.6, TS.spec, "MAIN" + (P.exMain ? " " + P.exMain : ""), { align: 1, valign: 1 });
+      const xm = c1 + 6, mr = 2.4, xa = xm + mr + 5;
+      pen.line(W, cM + g + 0.75, yMain, xm - mr, yMain);
+      meter(xm, yMain, mr);
+      pen.text(T, xm, yMain + mr + 1.4, TS.tag, "kWh METER", { align: 1, valign: 1 });
+      pen.line(W, xm + mr, yMain, xa, yMain);
+      pen.solid(W, [xa, yMain + 1.1], [xa + 2.6, yMain], [xa, yMain - 1.1]);
+      pen.text(LB, xa + 4, yMain + 0.9, TS.head, "TO " + (P.auth || "GRID"), { valign: 1 });
+      pen.text(T, xa + 4, yMain - 1.0, TS.spec, "(GRID)", { valign: 3 });
+      /* โหลดเดิมของบ้าน */
+      pen.line(W, cBus, yL, cM - g - 0.75, yL);
+      hBrk(cM, yL);
+      pen.line(W, cM + g + 0.75, yL, c1 + 4, yL);
+      pen.solid(W, [c1 + 4, yL + 1.1], [c1 + 6.6, yL], [c1 + 4, yL - 1.1]);
+      pen.text(LB, c1 + 8, yL + 0.9, TS.head, "HOUSE LOAD", { valign: 1 });
+      pen.text(T, c1 + 8, yL - 1.0, TS.spec, "(EXISTING)", { valign: 3 });
+    } else {
+    const ax = Math.max(X.mdB + g + 3.5, ctx + 1 + clW + 3);
     pen.line(R, X.mdB - g - 0.75, yMain, ax, yMain);
     pen.solid(R, [ax, yMain + 1.1], [ax + 2.6, yMain], [ax, yMain - 1.1]);
     pen.text(LB, ax + 4, yMain + 0.9, TS.head, "TO MDB", { valign: 1 });
     pen.text(T, ax + 4, yMain - 1.0, TS.spec, "(EXISTING)", { valign: 3 });
+    }
     const yE = Math.max(yE0, Math.min(blkLow - 4, acBot - 5, mdBot - 14));
     /* สายดิน SPD จบที่รูบาร์ G · สายไป MET ออกจากอีกรูด้านล่าง ไม่ลากทะลุบาร์ (ผู้ใช้ชี้ 2026-10-29) */
     pen.line(PE, sx, spY - 2.4, sx, barY + 0.45);
