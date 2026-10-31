@@ -2127,7 +2127,7 @@ function pgSldPro(doc, sheet, M) {
     }
     pen.circle(S, X.iv1, tapY, 0.6);
     const nm = b.names || (b.typical ? "INV" + b.no + "-INV" + b.to + " (x" + b.cnt + ")" : "INV" + b.no);
-    const ix = X.iv0 + 4, iw = (b.bat ? X.iv1 - 10.5 : X.ac0 - 1) - ix;   // มีแบต: ป้ายจบก่อนสาย BAT ที่ลงจากขอบล่าง
+    const ix = X.iv0 + 4, iw = (b.bat ? X.iv1 - 15.5 : X.ac0 - 1) - ix;   // มีแบต: ป้ายจบก่อนสาย BAT ที่ลงตรงจากใต้สัญลักษณ์
     /* ใต้กล่องอินเวอร์เตอร์: ทุกบรรทัดขนาดเท่ากัน ระยะบรรทัดเท่ากัน (ผู้ใช้ 2026-10-29) — เดิมหัวใหญ่กว่า แต่ละบรรทัดย่อเองคนละขนาด ช่องห่างไม่เท่า
        ขนาด = เล็กสุดที่ทุกบรรทัดพอดีความกว้าง · ชื่อเครื่องยังเป็นสีป้าย (LB) */
     /* รุ่นของเครื่องนั้นเอง (งานปนหลายรุ่น · ผู้ใช้ 2026-10-29: สูงสุด 4 รุ่น) · กลุ่มหลายเครื่อง = ชื่อกลุ่มบรรทัดเดียว กำลังไปอยู่บรรทัดรุ่น */
@@ -2141,17 +2141,15 @@ function pgSldPro(doc, sheet, M) {
     /* แบตเตอรี่ของไฮบริด (ผู้ใช้ 2026-10-31 วาดชี้): ขั้ว BAT ที่ขอบล่างกล่องอินเวอร์เตอร์ (ในกล่องต่อจากสัญลักษณ์)
        → สาย DC ลงตรงเข้าด้านบนกล่องแบตใต้ป้ายอินเวอร์เตอร์ · ป้ายรุ่นใต้กล่อง */
     if (b.bat) {
-      const tx = X.iv1 - 9, bw = 20, bh = 6, bTop = G.boxBot - 1.2 - ivL.length * 2.4 - 1.6, bMid = bTop - bh / 2, bx0 = tx - bw / 2;
-      const sx = X.iv1 - 8 - ivSh, sb = tapY - 8.5 / 2, yI = G.boxBot + 1.2;
-      pen.line(R, sx, sb, sx, yI); pen.line(R, sx, yI, tx, yI); pen.line(R, tx, yI, tx, G.boxBot + 0.6);   // ในกล่อง: สัญลักษณ์ → ขั้ว BAT
+      const tx = X.iv1 - 8 - ivSh, bw = 20, bh = 6, bTop = G.boxBot - 1.2 - ivL.length * 2.4 - 1.6, bMid = bTop - bh / 2, bx0 = tx - bw / 2;
+      const sb = tapY - 8.5 / 2;   // ขั้ว BAT ตรงใต้สัญลักษณ์ สายลงเส้นเดียว (ผู้ใช้วาดชี้ 2026-10-31)
+      pen.line(R, tx, sb, tx, G.boxBot + 0.6);   // ในกล่อง: สัญลักษณ์ → ขั้ว BAT
       pen.circle(S, tx, G.boxBot, 0.6);
       pen.text(T, tx + 1.0, G.boxBot - 0.9, TS.tag, "BAT", { valign: 3 });
       pen.line(R, tx, G.boxBot - 0.6, tx, bTop);
       pen.rect(S, bx0, bTop - bh, bw, bh);
-      /* สัญลักษณ์แบต: แผ่นยาว/สั้นสลับ ซ้ายในกล่อง */
-      [0, 1.4].forEach((d) => { pen.line(S, bx0 + 2 + d, bMid - 1.8, bx0 + 2 + d, bMid + 1.8); pen.line(S, bx0 + 2.7 + d, bMid - 1.0, bx0 + 2.7 + d, bMid + 1.0); });
       const bt = "BATTERY " + M.batt.kwh + " kWh";
-      pen.text(LB, bx0 + 5.6, bMid, fitH(bt, TS.spec, bw - 6.4), bt, { valign: 2 });
+      pen.text(LB, tx, bMid, fitH(bt, TS.spec, bw - 2), bt, { align: 1, valign: 2 });   // ไม่มีแผ่นแบตในกล่อง (ผู้ใช้ขีดฆ่า 2026-10-31)
       const bm = ((M.batt.brand && M.batt.model.indexOf(M.batt.brand) < 0 ? M.batt.brand + " " : "") + M.batt.model).trim();
       pen.text(T, tx, bTop - bh - 0.8, fitH(bm, TS.spec, bw + 8), bm, { align: 1, valign: 3 });
     }

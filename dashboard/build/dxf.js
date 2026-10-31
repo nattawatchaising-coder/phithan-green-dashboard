@@ -3021,7 +3021,7 @@ function pgSldPro(doc, sheet, M) {
     pen.circle(S, X.iv1, tapY, 0.6);
     const nm = b.names || (b.typical ? "INV" + b.no + "-INV" + b.to + " (x" + b.cnt + ")" : "INV" + b.no);
     const ix = X.iv0 + 4,
-      iw = (b.bat ? X.iv1 - 10.5 : X.ac0 - 1) - ix;
+      iw = (b.bat ? X.iv1 - 15.5 : X.ac0 - 1) - ix;
     const ivL = b.names ? [[LB, nm], [T, b.kw + "kW " + P.phTxt + "  " + b.model], [T, "DC SWITCH : BUILT-IN"], [T, "AC : " + M.acCable]] : [[LB, nm + "  " + b.kw + "kW " + P.phTxt], [T, b.model || M.inv.model], [T, "DC SWITCH : BUILT-IN"], [T, "AC : " + M.acCable]];
     if (ivIn) ivL.forEach(l => {
       if (l[1] === "DC SWITCH : BUILT-IN") l[1] = "DC SWITCH + DC/AC SPD TYPE II : BUILT-IN";
@@ -3035,30 +3035,23 @@ function pgSldPro(doc, sheet, M) {
       valign: 3
     }));
     if (b.bat) {
-      const tx = X.iv1 - 9,
+      const tx = X.iv1 - 8 - ivSh,
         bw = 20,
         bh = 6,
         bTop = G.boxBot - 1.2 - ivL.length * 2.4 - 1.6,
         bMid = bTop - bh / 2,
         bx0 = tx - bw / 2;
-      const sx = X.iv1 - 8 - ivSh,
-        sb = tapY - 8.5 / 2,
-        yI = G.boxBot + 1.2;
-      pen.line(R, sx, sb, sx, yI);
-      pen.line(R, sx, yI, tx, yI);
-      pen.line(R, tx, yI, tx, G.boxBot + 0.6);
+      const sb = tapY - 8.5 / 2;
+      pen.line(R, tx, sb, tx, G.boxBot + 0.6);
       pen.circle(S, tx, G.boxBot, 0.6);
       pen.text(T, tx + 1.0, G.boxBot - 0.9, TS.tag, "BAT", {
         valign: 3
       });
       pen.line(R, tx, G.boxBot - 0.6, tx, bTop);
       pen.rect(S, bx0, bTop - bh, bw, bh);
-      [0, 1.4].forEach(d => {
-        pen.line(S, bx0 + 2 + d, bMid - 1.8, bx0 + 2 + d, bMid + 1.8);
-        pen.line(S, bx0 + 2.7 + d, bMid - 1.0, bx0 + 2.7 + d, bMid + 1.0);
-      });
       const bt = "BATTERY " + M.batt.kwh + " kWh";
-      pen.text(LB, bx0 + 5.6, bMid, fitH(bt, TS.spec, bw - 6.4), bt, {
+      pen.text(LB, tx, bMid, fitH(bt, TS.spec, bw - 2), bt, {
+        align: 1,
         valign: 2
       });
       const bm = ((M.batt.brand && M.batt.model.indexOf(M.batt.brand) < 0 ? M.batt.brand + " " : "") + M.batt.model).trim();
