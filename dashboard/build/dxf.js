@@ -2972,8 +2972,10 @@ function pgSldPro(doc, sheet, M) {
         });
       });
     }
-    const dTop = top - 1.5;
-    pen.rect(BX, X.dc0, G.dBot, X.dc1 - X.dc0, dTop - G.dBot);
+    const dDy = oneRow ? Math.max(0, Math.min(G.firstY - rowsY[0], G.dBot - G.boxBot)) : 0,
+      dBot = G.dBot - dDy;
+    const dTop = top - 1.5 - dDy;
+    pen.rect(BX, X.dc0, dBot, X.dc1 - X.dc0, dTop - dBot);
     const barT = rowsY[0] - 5.6,
       barB = lastY - 10;
     if (!ivSpd) {
@@ -2992,7 +2994,7 @@ function pgSldPro(doc, sheet, M) {
     }
     const fw = (ivSpd ? X.dc1 - 1 : X.dcPE - 2.5) - (X.dc0 + 1);
     const fth = Math.min.apply(null, ft.map(s => fitH(s, TS.spec, fw)));
-    ft.forEach((s, i) => pen.text(T, X.dc0 + 1, G.dBot + 1.0 + (ft.length - 1 - i) * 2.1, fth, s, {
+    ft.forEach((s, i) => pen.text(T, X.dc0 + 1, dBot + 1.0 + (ft.length - 1 - i) * 2.1, fth, s, {
       valign: 1
     }));
     const boxTop = top - 1;
