@@ -3491,14 +3491,29 @@ function pgSldPro(doc, sheet, M) {
       pen.text(T, xd + 0.8, (dBot + it) / 2, TS.tag, mon.logger ? "RS485" : "PLUG-IN COM PORT", {
         valign: 2
       });
-      pen.line(COM, xr, yc, xr + 7, yc);
-      arrow(xr + 7, yc, 1, 0);
-      pen.text(LB, xr + 9.4, yc + 0.4, TS.spec, "INTERNET", {
-        valign: 1
-      });
-      pen.text(T, xr + 9.4, yc - 0.6, TS.tag, mon.logger ? "(LAN / 4G)" : /commmod|4g/i.test(mon.dev) ? "(4G)" : "(WiFi / LAN)", {
-        valign: 3
-      });
+      const lgM = mon.logger && !!mon.meter,
+        inT = mon.logger ? "(LAN / 4G)" : /commmod|4g/i.test(mon.dev) ? "(4G)" : "(WiFi / LAN)";
+      if (lgM) {
+        pen.line(COM, dx0, yc, dx0 - 7, yc);
+        arrow(dx0 - 7, yc, -1, 0);
+        pen.text(LB, dx0 - 9.4, yc + 0.4, TS.spec, "INTERNET", {
+          align: 2,
+          valign: 1
+        });
+        pen.text(T, dx0 - 9.4, yc - 0.6, TS.tag, inT, {
+          align: 2,
+          valign: 3
+        });
+      } else {
+        pen.line(COM, xr, yc, xr + 7, yc);
+        arrow(xr + 7, yc, 1, 0);
+        pen.text(LB, xr + 9.4, yc + 0.4, TS.spec, "INTERNET", {
+          valign: 1
+        });
+        pen.text(T, xr + 9.4, yc - 0.6, TS.tag, inT, {
+          valign: 3
+        });
+      }
       const ctTxt = ["CT SIGNAL FROM CT MAIN" + (ctSpec ? " (" + ctSpec.replace(/^CT\s*/i, "") + ")" : ""), "AT " + (P.home ? "MAIN CONSUMER UNIT (EXISTING)" : "MAIN MDB (EXISTING)")];
       const sig = (x, yTo, yFrom, dir) => {
         pen.line(PG_SLD.ctsig, x, yFrom, x, yTo - dir * 1.6);
@@ -3532,7 +3547,22 @@ function pgSldPro(doc, sheet, M) {
           valign: 2
         });
         const yr = Math.max(mBot + 1, Math.min(myc, it - 2));
-        if (yr < it - 1) {
+        if (lgM) {
+          const xv = X.iv1 + 3;
+          pen.line(COM, mx0, yr, xv, yr);
+          pen.text(T, (xv + mx0) / 2, yr + 0.6, TS.tag, "RS485", {
+            align: 1,
+            valign: 1
+          });
+          if (xr + 1.6 < xv) {
+            pen.line(COM, xv, yr, xv, yc);
+            pen.line(COM, xv, yc, xr + 1.6, yc);
+            arrow(xr + 1.6, yc, -1, 0);
+          } else {
+            pen.line(COM, xv, yr, xv, dBot - 1.6);
+            arrow(xv, dBot - 1.6, 0, 1);
+          }
+        } else if (yr < it - 1) {
           pen.line(COM, mx0, yr, X.iv1 + 1.6, yr);
           arrow(X.iv1 + 1.6, yr, -1, 0);
           pen.text(T, (X.iv1 + 1.6 + mx0) / 2, yr + 0.6, TS.tag, "RS485", {

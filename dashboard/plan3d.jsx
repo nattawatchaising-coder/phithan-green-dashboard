@@ -2813,16 +2813,19 @@ function p3SldMon(M, job, invModel) {
     try {
       BOQ.calcBOQ(BOQ.mergeBOQ(job)).groups.forEach((g) => (g.items || []).forEach((it) => { if (it && +it.qty > 0 && it.name) names.push(String(it.name)); }));
     } catch (e) { return; }
-  } else if (M.pro && M.pro.home && BOQ.accMonItems && BOQ.findInverter) {
-    /* ยังไม่มี BOQ: งานบ้านใช้มิเตอร์ + ตัวสื่อสารที่ผูกกับรุ่นอินเวอร์เตอร์ในคลัง (ชุดเดียวกับที่ BOQ จะถอด · ผู้ใช้ 2026-10-31) */
-    BOQ.accMonItems(BOQ.findInverter(invModel)).forEach((it) => names.push(it.name));
+  } else if (M.pro && BOQ.monDefaults && BOQ.findInverter) {
+    /* ยังไม่มี BOQ: ใช้ชุดที่ BOQ จะถอดให้ตามรุ่นอินเวอร์เตอร์ — Huawei โครงการ = SmartLogger · บ้าน = Smart Meter + Dongle (ผู้ใช้ 2026-11-01: ตัวส่งข้อมูล Huawei ไม่มีเลย)
+       ยี่ห้ออื่นงานบ้านใช้มิเตอร์ + ตัวสื่อสารที่ผูกกับรุ่นในคลัง (ผู้ใช้ 2026-10-31) */
+    BOQ.monDefaults(BOQ.findInverter(invModel), !M.pro.home, (M.units || []).length).forEach((it) => names.push(it.name));
   }
   /* มิเตอร์/ตัวสื่อสารที่ผูกกับรุ่นอินเวอร์เตอร์ในคลัง — รู้จักทุกยี่ห้อ (GoodWe GMK · Eastron SDM · Sigen Sensor · CommMod …) ไม่ต้องพึ่งชื่อ */
   const ivR = BOQ.findInverter ? BOQ.findInverter(invModel) : null;
   const accM = (ivR && ivR.meters || []).map((m) => m.name), accC = (ivR && ivR.comms) || [];
   const find = (re, acc) => names.find((n) => re.test(n) || (acc || []).indexOf(n) !== -1) || "";
   M.monMeter = find(/smart meter|DTSU|DDSU|SPM-CT|TPM-CT|janitza|\bGMK?\d{3}\b|SDM\d|sigen sensor/i, accM);   // รุ่นมิเตอร์ที่ CT ต่อเข้า — แผ่นตู้บ้านใช้แม้ไม่มี logger/dongle
-  const dev = find(/logger/i) || find(/dongle|wifi|ezlink|commmod/i, accC);
+  let dev = find(/logger/i) || find(/dongle|wifi|ezlink|commmod/i, accC);
+  /* Huawei รุ่นที่มีดองเกิลในตัว (BOQ ไม่ถอด Dongle) — ยังวาดตัวส่งข้อมูลให้เห็น (ผู้ใช้ 2026-11-01) */
+  if (!dev && /SUN2000-10K-LC0|SUN2000-5K-LB0/i.test(invModel || "") && (M.units || []).length <= ((BOQ.RULES && BOQ.RULES.hwDongleMax) || 3)) dev = "Smart Dongle (BUILT-IN)";
   if (!dev) return;
   M.mon = { dev, logger: /logger/i.test(dev), meter: find(/smart meter|DTSU|DDSU|SPM-CT|TPM-CT|janitza|\bGMK?\d{3}\b|SDM\d|sigen sensor/i, accM) };
 }

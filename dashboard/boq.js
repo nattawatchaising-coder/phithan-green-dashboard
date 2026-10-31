@@ -46,6 +46,7 @@
     { sec: "dcBoard", g: "งานบ้าน", key: "dcMcb", th: "DC MCB ที่มีขาย", unit: "VDC", unitA: "A", type: "pairs", poles: ["1P", "2P", "3P", "4P"], poleDef: "2P", legacy: ["dcMcbA", "dcMcbV"],
       def: [{ v: 550, p: "2P", a: [16, 20, 25, 32, 63] }, { v: 800, p: "2P", a: [16, 20, 25, 32, 63] }, { v: 1000, p: "4P", a: [16, 20, 25, 32, 63] }] },   // SUNTREE SL7N-63 (ต.ค. 2026)
     { sec: "dcBoard", g: "อินเวอร์เตอร์", key: "battS1Kwh", th: "แบต Huawei LUNA2000-S1 · ความจุต่อก้อน", unit: "kWh", def: 7, min: 1 },
+    { sec: "dcBoard", g: "อินเวอร์เตอร์", key: "hwDongleMax", th: "Huawei · ใช้ Smart Dongle ได้ไม่เกิน (เกินนี้ใช้ SmartLogger · มิเตอร์ RS485 เข้า Logger)", unit: "เครื่อง", def: 3, min: 1 },   // ผู้ใช้ 2026-11-01
     { sec: "dcBoard", g: "อินเวอร์เตอร์", key: "battS1Per", th: "แบต LUNA2000-S1 · ก้อนสูงสุดต่อ Power Module 1 ตัว", unit: "ก้อน", def: 3, min: 1 },
     { sec: "dcBoard", g: "อินเวอร์เตอร์", key: "dcacMax", th: "เพดานอัตรา DC/AC (กำลังแผง ÷ กำลัง AC อินเวอร์เตอร์)", unit: "เท่า", def: 1.2, min: 0.5, max: 3 },
     /* ── สาย DC ── */
@@ -966,7 +967,21 @@
     if (c) out.push({ name: c, qty: 1, unit: "ตัว" });
     return out;
   }
-  function findInverter(model) { return INVERTERS.find((x) => x.model === model) || null; }
+  /* อุปกรณ์มอนิเตอร์ที่ BOQ จะถอดให้ตามรุ่นอินเวอร์เตอร์ (ชุดเดียวกับ calcBOQ) — SLD ใช้ตอนงานยังไม่มี BOQ (ผู้ใช้ 2026-11-01: ตัวส่งข้อมูล Huawei ไม่มีเลย)
+     Huawei: โครงการ = SmartLogger · บ้าน = Smart Meter ตามเฟส + Smart Dongle (รุ่นที่มีดองเกิลในตัวไม่ถอด) · Growatt บ้าน = มิเตอร์ + ShineWiFi · อื่น ๆ บ้าน = ที่ผูกในคลัง */
+  function monDefaults(inv, isProject, nInv) {
+    if (!inv) return [];
+    const ph = +inv.phase || 1;
+    if (isHwInv(inv.model)) {
+      const out = isProject ? [] : [{ name: ph === 3 ? HW.meter3 : HW.meter1, qty: 1, unit: "ชุด" }];
+      if ((+nInv || 1) > RULES.hwDongleMax) out.push({ name: HW.logger, qty: 1, unit: "ตัว" });
+      else if (!/SUN2000-10K-LC0|SUN2000-5K-LB0/i.test(inv.model)) out.push({ name: HW.dongle, qty: 1, unit: "ชุด" });
+      return out;
+    }
+    if (isProject) return [];
+    if (isGwInv(inv.model)) return [{ name: ph === 3 ? GW.meter3 : GW.meter1, qty: 1, unit: "ชุด" }, { name: GW.wifi, qty: 1, unit: "ตัว" }];
+    return accMonItems(inv);
+  }  function findInverter(model) { return INVERTERS.find((x) => x.model === model) || null; }
   // ── คำนวณการต่ออนุกรมแผง (String) + สาย DC ──
   // panel = { voc, isc, vmp, imp } · inv = { mpptVmin, mpptVmax, maxVdc, maxInA }
   // คืนช่วงจำนวนแผง/สตริงที่ "แรงดัน" อยู่ในช่วงทำงาน MPPT (Vmin–Vmax) และ Voc รวมไม่เกินแรงดันระบบสูงสุด + ขนาดสาย DC
@@ -2275,12 +2290,13 @@
           // ยี่ห้ออื่น: มิเตอร์ + ตัวสื่อสารตามที่ผูกกับรุ่นในคลัง (ไม่ได้ผูก = ให้เพิ่มเองในใบ) · แบตใช้รุ่นกลางเดิม
           else if (!isProject) accMonItems(selInv).forEach((x) => invItems.push(x));
           pushBatt(invItems);
-        } else if (isProject) {
-          invItems.push({ name: HW.logger, qty: 1, unit: "ตัว" });
         } else {
-          invItems.push({ name: ph === 3 ? HW.meter3 : HW.meter1, qty: 1, unit: "ชุด" });
+          /* Huawei ตัวส่งข้อมูลตามจำนวนเครื่อง (ผู้ใช้ 2026-11-01): ไม่เกิน hwDongleMax เครื่อง = Smart Dongle · เกิน = SmartLogger (มิเตอร์ RS485 เข้า Logger)
+             งานบ้านมี Smart Meter ตามเฟส · งานโครงการไม่ถอดมิเตอร์ Huawei (ใช้ power meter ในตู้ AC) */
+          if (!isProject) invItems.push({ name: ph === 3 ? HW.meter3 : HW.meter1, qty: 1, unit: "ชุด" });
+          if (invTotal > RULES.hwDongleMax) invItems.push({ name: HW.logger, qty: 1, unit: "ตัว" });
           // 2 รุ่นนี้มี dongle ในตัว (SUN2000-10K-LC0, SUN2000-5K-LB0) — ไม่ต้องถอด Smart Dongle เพิ่ม
-          if (!/SUN2000-10K-LC0|SUN2000-5K-LB0/i.test(selInv.model)) invItems.push({ name: HW.dongle, qty: 1, unit: "ชุด" });
+          else if (!/SUN2000-10K-LC0|SUN2000-5K-LB0/i.test(selInv.model)) invItems.push({ name: HW.dongle, qty: 1, unit: "ชุด" });
         }
         /* โมดูล LUNA S1 (ในคลังชื่อ LUNA2000-7-E1) ต้องมี Power Module C1 — เลือกรุ่นนี้จากออกแบบระบบก็ยังถอด C1 ให้ */
         const lunaPick = battPick && (battPick === HW.lunaS1 || /LUNA2000-(S1|7-E1)/i.test(battPick));
@@ -3051,7 +3067,7 @@
     UPVC_CONDUIT, conduitFillLimit, conduitDim, conduitCheck,
     AMP_CORE_LABEL, ampGroupMeta, ampCoresFor, ampCoreKey, WIRE_METHOD_LEGACY, normWireMethod,
     G_TRAY, G_SUPPORT, G_LABOR, G_PERMIT, G_OM, OM_DEF, OM_CLEAN_TIERS, OM_SVC_TIERS, OM_CLEAN_DEF, OM_SVC_DEF, omTierNorm, setOmTiers, omTierPrice, omDefaults, omCalc, SERVICE_GROUPS, mergeItems,
-    RULE_SECS, RULE_DEFS, RULES, RULES_T, setRules, ruleVal, ruleTxt, ruleOnly, ruleFlat, ruleRaw, pairPick, spdName, isHwInv, isGwInv, accMonItems };
+    RULE_SECS, RULE_DEFS, RULES, RULES_T, setRules, ruleVal, ruleTxt, ruleOnly, ruleFlat, ruleRaw, pairPick, spdName, isHwInv, isGwInv, accMonItems, monDefaults };
   /* ห่อฟังก์ชันที่ส่งออก: เจออาร์กิวเมนต์ที่เป็นใบ BOQ (jobType) หรืองาน (type) = สลับ RULES เป็นชุดของประเภทนั้นก่อนคิด
      ฟังก์ชันข้างในเรียกกันตรง ๆ (ไม่ผ่านตัวห่อ) จึงใช้ชุดเดียวกันตลอดการคิดหนึ่งครั้ง */
   const typeHint = (a) => {

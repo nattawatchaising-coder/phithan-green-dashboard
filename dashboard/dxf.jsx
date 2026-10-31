@@ -2466,11 +2466,19 @@ function pgSldPro(doc, sheet, M) {
       pen.line(COM, xd, dBot, xd, it + 1.6);
       arrow(xd, it + 1.6, 0, -1);
       pen.text(T, xd + 0.8, (dBot + it) / 2, TS.tag, mon.logger ? "RS485" : "PLUG-IN COM PORT", { valign: 2 });
-      /* INTERNET ทางขวา (ผู้ใช้ 2026-10-31) */
-      pen.line(COM, xr, yc, xr + 7, yc);
-      arrow(xr + 7, yc, 1, 0);
-      pen.text(LB, xr + 9.4, yc + 0.4, TS.spec, "INTERNET", { valign: 1 });
-      pen.text(T, xr + 9.4, yc - 0.6, TS.tag, mon.logger ? "(LAN / 4G)" : /commmod|4g/i.test(mon.dev) ? "(4G)" : "(WiFi / LAN)", { valign: 3 });
+      /* INTERNET ทางขวา (ผู้ใช้ 2026-10-31) · SmartLogger + มิเตอร์: ขวาเป็นสาย RS485 จากมิเตอร์ → INTERNET ย้ายไปซ้าย */
+      const lgM = mon.logger && !!mon.meter, inT = mon.logger ? "(LAN / 4G)" : /commmod|4g/i.test(mon.dev) ? "(4G)" : "(WiFi / LAN)";
+      if (lgM) {
+        pen.line(COM, dx0, yc, dx0 - 7, yc);
+        arrow(dx0 - 7, yc, -1, 0);
+        pen.text(LB, dx0 - 9.4, yc + 0.4, TS.spec, "INTERNET", { align: 2, valign: 1 });
+        pen.text(T, dx0 - 9.4, yc - 0.6, TS.tag, inT, { align: 2, valign: 3 });
+      } else {
+        pen.line(COM, xr, yc, xr + 7, yc);
+        arrow(xr + 7, yc, 1, 0);
+        pen.text(LB, xr + 9.4, yc + 0.4, TS.spec, "INTERNET", { valign: 1 });
+        pen.text(T, xr + 9.4, yc - 0.6, TS.tag, inT, { valign: 3 });
+      }
       /* Smart Meter อยู่ในตู้ AC COMBINER BOX ซ้ายล่าง (ผู้ใช้ 2026-10-31) · ไฟเลี้ยง L,N จากบัสในตู้
          ส่งข้อมูล RS485 เข้า COM port ก้นอินเวอร์เตอร์ · CT ไม่วาดรูป เขียนบอกว่าสัญญาณมาจากไหน */
       const ctTxt = ["CT SIGNAL FROM CT MAIN" + (ctSpec ? " (" + ctSpec.replace(/^CT\s*/i, "") + ")" : ""),
@@ -2496,7 +2504,14 @@ function pgSldPro(doc, sheet, M) {
         pen.text(T, xS + 0.8, (yMain + mBot) / 2, TS.tag, "L, N", { valign: 2 });
         /* RS485 ออกซ้ายมิเตอร์ → เข้าข้างขวาอินเวอร์เตอร์ (สูงกว่าหลังคา = เลี้ยวลงเข้าหลังคา) */
         const yr = Math.max(mBot + 1, Math.min(myc, it - 2));   // ใต้หลังคา (ผู้ใช้วาดชี้: เลี้ยวลงสั้น ๆ ทับป้ายไม่สวย)
-        if (yr < it - 1) {
+        if (lgM) {
+          /* SmartLogger: มิเตอร์ส่ง RS485 เข้า Logger ไม่เข้าอินเวอร์เตอร์ (ผู้ใช้ 2026-11-01) — ออกซ้ายมิเตอร์ → ขึ้นช่องระหว่างอินเวอร์เตอร์กับตู้ AC → เข้าข้างขวา Logger */
+          const xv = X.iv1 + 3;
+          pen.line(COM, mx0, yr, xv, yr);
+          pen.text(T, (xv + mx0) / 2, yr + 0.6, TS.tag, "RS485", { align: 1, valign: 1 });
+          if (xr + 1.6 < xv) { pen.line(COM, xv, yr, xv, yc); pen.line(COM, xv, yc, xr + 1.6, yc); arrow(xr + 1.6, yc, -1, 0); }
+          else { pen.line(COM, xv, yr, xv, dBot - 1.6); arrow(xv, dBot - 1.6, 0, 1); }
+        } else if (yr < it - 1) {
           pen.line(COM, mx0, yr, X.iv1 + 1.6, yr);
           arrow(X.iv1 + 1.6, yr, -1, 0);
           pen.text(T, (X.iv1 + 1.6 + mx0) / 2, yr + 0.6, TS.tag, "RS485", { align: 1, valign: 1 });   // กลางเส้น (ผู้ใช้วาดชี้ 2026-10-31)

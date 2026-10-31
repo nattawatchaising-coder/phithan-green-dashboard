@@ -4382,15 +4382,16 @@ function p3SldMon(M, job, invModel) {
     } catch (e) {
       return;
     }
-  } else if (M.pro && M.pro.home && BOQ.accMonItems && BOQ.findInverter) {
-    BOQ.accMonItems(BOQ.findInverter(invModel)).forEach(it => names.push(it.name));
+  } else if (M.pro && BOQ.monDefaults && BOQ.findInverter) {
+    BOQ.monDefaults(BOQ.findInverter(invModel), !M.pro.home, (M.units || []).length).forEach(it => names.push(it.name));
   }
   const ivR = BOQ.findInverter ? BOQ.findInverter(invModel) : null;
   const accM = (ivR && ivR.meters || []).map(m => m.name),
     accC = ivR && ivR.comms || [];
   const find = (re, acc) => names.find(n => re.test(n) || (acc || []).indexOf(n) !== -1) || "";
   M.monMeter = find(/smart meter|DTSU|DDSU|SPM-CT|TPM-CT|janitza|\bGMK?\d{3}\b|SDM\d|sigen sensor/i, accM);
-  const dev = find(/logger/i) || find(/dongle|wifi|ezlink|commmod/i, accC);
+  let dev = find(/logger/i) || find(/dongle|wifi|ezlink|commmod/i, accC);
+  if (!dev && /SUN2000-10K-LC0|SUN2000-5K-LB0/i.test(invModel || "") && (M.units || []).length <= (BOQ.RULES && BOQ.RULES.hwDongleMax || 3)) dev = "Smart Dongle (BUILT-IN)";
   if (!dev) return;
   M.mon = {
     dev,
