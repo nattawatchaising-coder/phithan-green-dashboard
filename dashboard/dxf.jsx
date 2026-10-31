@@ -805,11 +805,10 @@ function pgPen(doc, k, ox, oy) {
     solid: (l, a, b, c, d) => doc.solid(l, P(a), P(b), P(c), d && P(d)),
     text: (l, x, y, h, s, o) => doc.text(l, X(x), Y(y), S(h), s, o),
     /* จุดต่อสายแบบทึบ — DXF ไม่มี "วงกลมทึบ" ตรง ๆ และ HATCH ยุ่งเกินจำเป็น
-       จึงประกอบจากสี่เหลี่ยมทึบสองรูปไขว้กัน พิมพ์ออกมาแล้วกลมพอ */
+       จึงประกอบจากสามเหลี่ยมทึบ 16 ชิ้นรอบจุดกลาง (ผู้ใช้ 2026-10-31: แบบสี่เหลี่ยมไขว้ออกมาเหลี่ยม อยากได้จุดกลม) */
     dot: (l, x, y, r) => {
-      const q = r * 0.72;
-      doc.solid(l, P([x - r, y]), P([x, y - q]), P([x + r, y]), P([x, y + q]));
-      doc.solid(l, P([x - q, y - q]), P([x + q, y - q]), P([x + q, y + q]), P([x - q, y + q]));
+      const N = 16, p = (k) => P([x + r * Math.cos(2 * Math.PI * k / N), y + r * Math.sin(2 * Math.PI * k / N)]);
+      for (let k = 0; k < N; k++) doc.solid(l, P([x, y]), p(k), p(k + 1));
     },
   };
 }
@@ -1728,7 +1727,8 @@ function pgSldPro(doc, sheet, M) {
   const ivIn = !isMain;
   if (ivIn && !ivSpd) ["iv1", "ac0", "acB", "acBus", "acM", "ac1", "md0", "mdB", "mdBus", "md1"].forEach((k) => { X[k] += 16; });
   /* เมนงานบ้าน "MCB … + RCCB …" วาดแยกสองตัว (ผู้ใช้ 2026-10-31) — ขอบขวาตู้ AC + MDB เลื่อนขวาตั้งแต่ต้น หัวโซนจะได้อยู่กลางตู้ */
-  const mSplit = isDet ? null : /^(.+?) \+ (RCCB .+)$/.exec(P.mainTxt), RD = 14, MSPL = RD + 4;
+  const mSplit = isDet ? null : /^(.+?) \+ (RCCB .+)$/.exec(P.mainTxt), RD = 24, MSPL = RD + 4;   // RCCB ห่างจาก MCB ให้มิเตอร์ดึงไฟเลี้ยงตรงกลาง (ผู้ใช้วาดชี้ 2026-10-31)
+  let acMtrX = null;   // จุดดึงไฟเลี้ยงมิเตอร์บนสายเมนในตู้ (ระหว่าง MCB กับ RCCB)
   if (mSplit) ["ac1", "md0", "mdB", "mdBus", "md1"].forEach((k) => { X[k] += MSPL; });
   const modelOf = (no) => (M.units && M.units[no - 1] && M.units[no - 1].model) || M.inv.model;
   const mkBlock = (no, detail) => {
@@ -2272,6 +2272,7 @@ function pgSldPro(doc, sheet, M) {
     let wx = mx + g + 0.75, mx2 = mx;
     if (mSplit) {
       const rx = mx + RD;
+      acMtrX = (mx + rx) / 2;
       pen.line(R, wx, yMain, rx - g - 0.75, yMain);
       hBrk(rx, yMain);
       const rl = /^(.*?A) (\d+mA)$/.exec(mSplit[2]);
@@ -2454,7 +2455,7 @@ function pgSldPro(doc, sheet, M) {
       };
       if (meterNm) {
         /* มิเตอร์ชิดขอบบนซ้ายในตู้ เหนือป้ายเบรกเกอร์ (ผู้ใช้วาดชี้ 2026-10-31: อยู่ด้านบนดีกว่า) */
-        const mw = pgTextW(meterNm, TS.spec) + 4, mh = 6, mx0 = X.ac0 + 4, mBot = acTop - 3 - mh, myc = mBot + mh / 2, xm0 = mx0 + mw / 2;
+        const mw = pgTextW(meterNm, TS.spec) + 4, mh = 6, mx0 = acMtrX != null ? Math.max(X.ac0 + 4, acMtrX - mw + 3) : X.ac0 + 4, mBot = acTop - 3 - mh, myc = mBot + mh / 2, xm0 = mx0 + mw / 2;
         pen.rect(S, mx0, mBot, mw, mh);
         pen.text(T, xm0, myc, TS.spec, meterNm, { align: 1, valign: 2 });
         /* ไฟเลี้ยงจากบัสเมนในตู้ ขึ้นเข้าก้นมิเตอร์ */

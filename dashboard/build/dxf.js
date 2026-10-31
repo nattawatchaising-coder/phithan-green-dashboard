@@ -1292,9 +1292,9 @@ function pgPen(doc, k, ox, oy) {
     solid: (l, a, b, c, d) => doc.solid(l, P(a), P(b), P(c), d && P(d)),
     text: (l, x, y, h, s, o) => doc.text(l, X(x), Y(y), S(h), s, o),
     dot: (l, x, y, r) => {
-      const q = r * 0.72;
-      doc.solid(l, P([x - r, y]), P([x, y - q]), P([x + r, y]), P([x, y + q]));
-      doc.solid(l, P([x - q, y - q]), P([x + q, y - q]), P([x + q, y + q]), P([x - q, y + q]));
+      const N = 16,
+        p = k => P([x + r * Math.cos(2 * Math.PI * k / N), y + r * Math.sin(2 * Math.PI * k / N)]);
+      for (let k = 0; k < N; k++) doc.solid(l, P([x, y]), p(k), p(k + 1));
     }
   };
 }
@@ -2480,8 +2480,9 @@ function pgSldPro(doc, sheet, M) {
     X[k] += 16;
   });
   const mSplit = isDet ? null : /^(.+?) \+ (RCCB .+)$/.exec(P.mainTxt),
-    RD = 14,
+    RD = 24,
     MSPL = RD + 4;
+  let acMtrX = null;
   if (mSplit) ["ac1", "md0", "mdB", "mdBus", "md1"].forEach(k => {
     X[k] += MSPL;
   });
@@ -3208,6 +3209,7 @@ function pgSldPro(doc, sheet, M) {
       mx2 = mx;
     if (mSplit) {
       const rx = mx + RD;
+      acMtrX = (mx + rx) / 2;
       pen.line(R, wx, yMain, rx - g - 0.75, yMain);
       hBrk(rx, yMain);
       const rl = /^(.*?A) (\d+mA)$/.exec(mSplit[2]);
@@ -3477,7 +3479,7 @@ function pgSldPro(doc, sheet, M) {
       if (meterNm) {
         const mw = pgTextW(meterNm, TS.spec) + 4,
           mh = 6,
-          mx0 = X.ac0 + 4,
+          mx0 = acMtrX != null ? Math.max(X.ac0 + 4, acMtrX - mw + 3) : X.ac0 + 4,
           mBot = acTop - 3 - mh,
           myc = mBot + mh / 2,
           xm0 = mx0 + mw / 2;
