@@ -2963,7 +2963,7 @@ function p3Sld(st, job, media) {
 function p3DwgRef(ix, k) {
   ix = ix || [];
   const r = ix.find((q) => q.key === k);
-  return r ? "SEE DWG. " + r.dwg + " (" + r.no + "/" + ix.length + ")" : "";
+  return r ? "SEE DWG. " + String(r.dwg).replace(/^PG-/, "") + " (" + r.no + "/" + ix.length + ")" : "";   // ไม่ต้องมี PG- นำหน้า (ผู้ใช้ขีดฆ่า 2026-10-31)
 }
 /* ── แผ่นต่อเข้าตู้ไฟบ้านลูกค้า (งานบ้าน · ผู้ใช้ 2026-10-31 แยกจาก SLD) — วาดใน dxf.jsx pgCuSheet ── */
 function p3CuSheet(st, job, media) {

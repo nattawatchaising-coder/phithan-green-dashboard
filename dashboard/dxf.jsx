@@ -2141,6 +2141,7 @@ function pgSldPro(doc, sheet, M) {
     /* รุ่นของเครื่องนั้นเอง (งานปนหลายรุ่น · ผู้ใช้ 2026-10-29: สูงสุด 4 รุ่น) · กลุ่มหลายเครื่อง = ชื่อกลุ่มบรรทัดเดียว กำลังไปอยู่บรรทัดรุ่น */
     const ivL = b.names ? [[LB, nm], [T, b.kw + "kW " + P.phTxt + "  " + b.model], [T, "DC SWITCH : BUILT-IN"], [T, "AC : " + M.acCable]]
       : [[LB, nm + "  " + b.kw + "kW " + P.phTxt], [T, b.model || M.inv.model], [T, "DC SWITCH : BUILT-IN"], [T, "AC : " + M.acCable]];
+    ivL[0][1] = ivL[0][1].replace(/\bINV(\d)/g, "INVERTER $1");   // ป้ายใต้กล่องเขียนเต็ม (ผู้ใช้ 2026-10-31)
     if (ivIn) ivL.forEach((l) => { if (l[1] === "DC SWITCH : BUILT-IN") l[1] = "DC SWITCH + DC/AC SPD TYPE II : BUILT-IN"; });
     /* มีแบต: สาย BAT ลงจากขอบล่างกล่อง — บรรทัดยาวตัดเป็นสองบรรทัดให้ป้ายจบก่อนถึงสาย ไม่ต้องย่อตัว */
     if (b.bat) { const k = ivL.findIndex((l) => /^DC SWITCH \+ /.test(l[1])); if (k >= 0) ivL.splice(k, 1, [T, "DC SWITCH + DC/AC SPD"], [T, "TYPE II : BUILT-IN"]); }
@@ -2225,7 +2226,16 @@ function pgSldPro(doc, sheet, M) {
        เดิมลงที่บัสซึ่งอยู่ขวาของ CT ทำให้ CT ลอยไม่คล้องสาย (ผู้ใช้ชี้ 2026-10-30) */
     const oneX = X.ac0 - 3;   // ลงนอกตู้ ไม่ทับเส้นประขอบตู้ แล้วเข้าตู้แนวนอน
     taps.forEach((t, i) => {
-      if (oneInv) { pen.line(R, X.iv1 + 0.6, t.y, oneX, t.y); pen.line(R, oneX, t.y, oneX, yMain); return; }
+      if (oneInv) {
+        pen.line(R, X.iv1 + 0.6, t.y, oneX, t.y); pen.line(R, oneX, t.y, oneX, yMain);
+        /* ป้ายสาย AC อินเวอร์เตอร์ → ตู้ AC บนช่วงสายนี้ (ผู้ใช้วาดชี้ 2026-10-31): เหนือเส้น = สายกำลัง · ใต้เส้น = สายดิน + วิธีเดิน */
+        const lc = withKv(String((M.acCableOf && M.acCableOf[t.b.no]) || invCab)), gl = (M.acGndOf && M.acGndOf[t.b.no]) || invG(t.b.brk);
+        const dn = [gl].concat(M.acRoute ? [M.acRoute] : []), tx = X.iv1 + 2.2, cw = X.ac0 - tx - 1.2;
+        const ch = Math.min.apply(null, [TS.spec].concat([lc].concat(dn).map((l) => cw / (pgTextW(l, 1) * 1.05))));
+        pen.text(T, tx, t.y + 0.7, ch, lc, { valign: 1 });
+        dn.forEach((l, k) => pen.text(T, tx, t.y - 0.7 - k * (ch + 0.6), ch, l, { valign: 3 }));
+        return;
+      }
       pen.line(R, X.iv1 + 0.6, t.y, X.acB - g - 0.75, t.y);
       /* แผ่นภาพรวม: ป้ายสาย AC อินเวอร์เตอร์เหนือเส้นทุกเส้น + จำนวนเส้นรวม (ผู้ใช้ 2026-10-29) */
       if (isMain) {

@@ -4658,7 +4658,7 @@ function p3Sld(st, job, media) {
 function p3DwgRef(ix, k) {
   ix = ix || [];
   const r = ix.find(q => q.key === k);
-  return r ? "SEE DWG. " + r.dwg + " (" + r.no + "/" + ix.length + ")" : "";
+  return r ? "SEE DWG. " + String(r.dwg).replace(/^PG-/, "") + " (" + r.no + "/" + ix.length + ")" : "";
 }
 function p3CuSheet(st, job, media) {
   media = media || {};

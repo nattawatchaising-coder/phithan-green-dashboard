@@ -3035,6 +3035,7 @@ function pgSldPro(doc, sheet, M) {
     const ix = X.iv0 + 4,
       iw = (b.bat ? X.iv1 - 15.5 : X.ac0 - 1) - ix;
     const ivL = b.names ? [[LB, nm], [T, b.kw + "kW " + P.phTxt + "  " + b.model], [T, "DC SWITCH : BUILT-IN"], [T, "AC : " + M.acCable]] : [[LB, nm + "  " + b.kw + "kW " + P.phTxt], [T, b.model || M.inv.model], [T, "DC SWITCH : BUILT-IN"], [T, "AC : " + M.acCable]];
+    ivL[0][1] = ivL[0][1].replace(/\bINV(\d)/g, "INVERTER $1");
     if (ivIn) ivL.forEach(l => {
       if (l[1] === "DC SWITCH : BUILT-IN") l[1] = "DC SWITCH + DC/AC SPD TYPE II : BUILT-IN";
     });
@@ -3168,6 +3169,18 @@ function pgSldPro(doc, sheet, M) {
       if (oneInv) {
         pen.line(R, X.iv1 + 0.6, t.y, oneX, t.y);
         pen.line(R, oneX, t.y, oneX, yMain);
+        const lc = withKv(String(M.acCableOf && M.acCableOf[t.b.no] || invCab)),
+          gl = M.acGndOf && M.acGndOf[t.b.no] || invG(t.b.brk);
+        const dn = [gl].concat(M.acRoute ? [M.acRoute] : []),
+          tx = X.iv1 + 2.2,
+          cw = X.ac0 - tx - 1.2;
+        const ch = Math.min.apply(null, [TS.spec].concat([lc].concat(dn).map(l => cw / (pgTextW(l, 1) * 1.05))));
+        pen.text(T, tx, t.y + 0.7, ch, lc, {
+          valign: 1
+        });
+        dn.forEach((l, k) => pen.text(T, tx, t.y - 0.7 - k * (ch + 0.6), ch, l, {
+          valign: 3
+        }));
         return;
       }
       pen.line(R, X.iv1 + 0.6, t.y, X.acB - g - 0.75, t.y);
