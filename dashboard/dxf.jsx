@@ -1885,11 +1885,11 @@ function pgSldPro(doc, sheet, M) {
     pen.text(LB, (X.dc0 + X.dc1) / 2, hy, TS.zone, fuseDev ? "DC COMBINER BOX" : "DC BOX", { align: 1, valign: 1 });
   }
   /* แผ่นภาพรวม: หัว INVERTER / AC COMBINER BOX ลงมาชิดขอบบนตู้ AC (ผู้ใช้ชี้ 2026-10-29) — วาดหลังรู้ acTop */
-  const zoneHdr = (y, acR = X.ac1) => {   // acR = ขอบขวาตู้ AC จริง (ตู้หดได้ ป้ายอยู่กลางตู้)
-    pen.text(LB, (X.iv0 + X.iv1) / 2, y, TS.zone, "INVERTER", { align: 1, valign: 1 });
-    if (!isDet) pen.text(LB, (X.ac0 + acR) / 2, y, TS.zone, "AC COMBINER BOX", { align: 1, valign: 1 });
+  const zoneHdr = (y, acR = X.ac1, yAc = y) => {   // acR = ขอบขวาตู้ AC จริง (ตู้หดได้ ป้ายอยู่กลางตู้)
+    if (y != null) pen.text(LB, (X.iv0 + X.iv1) / 2, y, TS.zone, "INVERTER", { align: 1, valign: 1 });
+    if (!isDet && yAc != null) pen.text(LB, (X.ac0 + acR) / 2, yAc, TS.zone, "AC COMBINER BOX", { align: 1, valign: 1 });
   };
-  if (!isMain) zoneHdr(hy);
+  if (!isMain) zoneHdr(hy, X.ac1, null);   // หัว AC COMBINER BOX วาดทีหลังเมื่อรู้ขอบบนตู้
 
   /* ── วาดบล็อกอินเวอร์เตอร์ทีละเครื่อง ──
      ทุกสตริง: แผงแรก ─ ─ แผงสุดท้าย → ป้องกันกระแสเกิน (DC MCB / ฟิวส์ gPV ทั้งสองขั้ว) → DC SPD → ขั้วอินเวอร์เตอร์
@@ -2415,6 +2415,8 @@ function pgSldPro(doc, sheet, M) {
     const acR = Math.min(X.ac1, xN + 9);   // ขอบขวาตู้ AC หดมาพ้นป้ายบาร์ G (ผู้ใช้วาดกรอบชี้ 2026-10-31)
     pen.rect(BX, X.ac0, acBot, acR - X.ac0, acTop - acBot);
     if (isMain) zoneHdr(Math.min(hy, acTop + 2.5), acR);
+    /* แผ่นเครื่องเดียว: หัว AC COMBINER BOX ลงมาเหนือขอบบนตู้ (ผู้ใช้วาดชี้ 2026-11-01) · แบบมิเตอร์ในตู้ (monUp) มีข้อความสัญญาณ CT เหนือตู้ = คงที่เดิม */
+    else zoneHdr(null, acR, monUp ? hy : Math.min(hy, acTop + 2.5));
 
     /* ── ปลายสายเมน: เบรกเกอร์โซลาร์ในตู้ MDB เดิม → ลูกศร TO MDB (EXISTING) ──
        ผู้ใช้ขีดฆ่ากรอบ MDB · มิเตอร์ · สายกริด · MET · หลักดินระบบ (2026-10-29) — ของเดิมไม่วาด ชี้ไปเฉย ๆ */

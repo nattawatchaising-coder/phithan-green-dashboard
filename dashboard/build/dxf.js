@@ -2725,17 +2725,17 @@ function pgSldPro(doc, sheet, M) {
       valign: 1
     });
   }
-  const zoneHdr = (y, acR = X.ac1) => {
-    pen.text(LB, (X.iv0 + X.iv1) / 2, y, TS.zone, "INVERTER", {
+  const zoneHdr = (y, acR = X.ac1, yAc = y) => {
+    if (y != null) pen.text(LB, (X.iv0 + X.iv1) / 2, y, TS.zone, "INVERTER", {
       align: 1,
       valign: 1
     });
-    if (!isDet) pen.text(LB, (X.ac0 + acR) / 2, y, TS.zone, "AC COMBINER BOX", {
+    if (!isDet && yAc != null) pen.text(LB, (X.ac0 + acR) / 2, yAc, TS.zone, "AC COMBINER BOX", {
       align: 1,
       valign: 1
     });
   };
-  if (!isMain) zoneHdr(hy);
+  if (!isMain) zoneHdr(hy, X.ac1, null);
   let cur = yB0;
   let monUp = !!M.mon && !isMain && !isDet && blocks.length === 1 && !blocks[0].typical;
   const MON_H = monUp ? 16 : 0;
@@ -3426,7 +3426,7 @@ function pgSldPro(doc, sheet, M) {
     bar(PE, xN - 1, "G", true);
     const acR = Math.min(X.ac1, xN + 9);
     pen.rect(BX, X.ac0, acBot, acR - X.ac0, acTop - acBot);
-    if (isMain) zoneHdr(Math.min(hy, acTop + 2.5), acR);
+    if (isMain) zoneHdr(Math.min(hy, acTop + 2.5), acR);else zoneHdr(null, acR, monUp ? hy : Math.min(hy, acTop + 2.5));
     const mdBot = yMain - 24;
     const cl = [String(M.mainCable[0] || "").replace(/\s*\(SOLAR-CELL\)/, "").replace(/\s+/g, " "), M.mainGnd || "G-" + P.earthCu + " Sq.mm. IEC01(THW)"];
     cl[0] = (/kV|\/750V/.test(cl[0]) ? cl[0] : cl[0] + " 0.6/1kV") + (M.mainRoute ? " " + M.mainRoute : "");
