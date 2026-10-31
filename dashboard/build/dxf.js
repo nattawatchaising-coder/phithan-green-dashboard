@@ -2736,11 +2736,13 @@ function pgSldPro(doc, sheet, M) {
   };
   if (!isMain) zoneHdr(hy);
   let cur = yB0;
+  const monUp = !!M.mon && !isMain && !isDet && blocks.length === 1 && !blocks[0].typical,
+    MON_H = monUp ? 16 : 0;
   if (!isMain && !isDet && blocks.length === 1 && !blocks[0].typical) {
     for (let k = 0; k < 40; k++) {
       const G0 = geo(blocks[0], yTop),
         tap0 = (yTop - 1 + G0.boxBot) / 2;
-      const need = tap0 - Math.max(Math.min(tap0, A.y1 - 34), yE0 + 44),
+      const need = tap0 - Math.max(Math.min(tap0, A.y1 - 34 - MON_H), yE0 + 44),
         room = G0.bottom - (yE0 + 20);
       cur = yTop - Math.max(0, Math.min(need, room));
       if (need <= room || RH <= 10) break;
@@ -3078,6 +3080,7 @@ function pgSldPro(doc, sheet, M) {
       y: tapY,
       b,
       bot: G.boxBot,
+      top: boxTop,
       vx: X.iv1 - 5
     });
     cur = G.bottom - 2;
@@ -3112,7 +3115,7 @@ function pgSldPro(doc, sheet, M) {
     const tY = taps.map(t => t.y);
     const tMax = Math.max.apply(null, tY),
       tMin = Math.min.apply(null, tY);
-    let yMain = Math.min((tMax + tMin) / 2, A.y1 - (taps.length === 1 && !taps[0].b.typical ? 34 : 66));
+    let yMain = Math.min((tMax + tMin) / 2, A.y1 - (taps.length === 1 && !taps[0].b.typical ? 34 + MON_H : 66));
     yMain = Math.max(yMain, yE0 + 44);
     const oneInv = taps.length === 1 && !taps[0].b.typical;
     const tGap = taps.length > 1 ? Math.min.apply(null, taps.slice(1).map((t, i) => Math.abs(taps[i].y - t.y))) : 20;
@@ -3194,7 +3197,7 @@ function pgSldPro(doc, sheet, M) {
       mx = P.pm ? oneInv ? X.acBus + 4 : cx + (isMain ? 13 : ctGap) : X.acBus + (isMain ? 14 : 8);
     if (P.pm && !oneInv && !isMain) X.ac1 += ctGap - 7;
     const hasGf = P.gf && !P.lsig;
-    const acTop0 = busHi + 12,
+    const acTop0 = busHi + 12 + (monUp && M.mon.meter ? 9 : 0),
       acTop = P.pm ? Math.max(acTop0, yMain + 21) : acTop0;
     if (!oneInv) pen.dot(R, X.acBus, yMain, 0.5);
     pen.line(R, oneInv ? oneX : X.acBus, yMain, mx - g - 0.75, yMain);
@@ -3424,7 +3427,92 @@ function pgSldPro(doc, sheet, M) {
     pen.line(PE, sx - 4, barY - 0.45, sx - 4, acBot + 0.5);
     pen.circle(PE, sx - 4, acBot, 0.5);
     pen.line(PE, X.pe0, peTop, X.pe0, yE);
-    if (M.mon) {
+    if (M.mon && monUp) {
+      const mon = M.mon,
+        tp = taps[0],
+        it = tp.top,
+        COM = PG_SLD.comm;
+      const arrow = (x, y, dx, dy) => pen.solid(S, [x - dy * 0.7, y + dx * 0.7], [x + dx * 1.6, y + dy * 1.6], [x + dy * 0.7, y - dx * 0.7]);
+      const ctSpec = (String(mon.meter).match(/CT\s*[\d/]+\s*m?A(\/[\d.]+m?A)?/i) || [""])[0];
+      const meterNm = mon.meter ? mon.meter.replace(/\s*\+\s*CT.*$/i, "") : "";
+      const dw = Math.max(22, pgTextW(mon.dev, TS.spec) + 4),
+        dh = 6;
+      const dBot = it + 8,
+        yc = dBot + dh / 2,
+        xd = (X.iv0 + X.iv1) / 2,
+        dx0 = xd - dw / 2,
+        xr = dx0 + dw;
+      pen.rect(S, dx0, dBot, dw, dh);
+      pen.text(T, xd, yc, TS.spec, mon.dev, {
+        align: 1,
+        valign: 2
+      });
+      pen.line(COM, xd, dBot, xd, it + 1.6);
+      arrow(xd, it + 1.6, 0, -1);
+      pen.text(T, xd + 0.8, (dBot + it) / 2, TS.tag, mon.logger ? "RS485" : "PLUG-IN COM PORT", {
+        valign: 2
+      });
+      pen.line(COM, xr, yc, xr + 7, yc);
+      arrow(xr + 7, yc, 1, 0);
+      pen.text(LB, xr + 9.4, yc + 0.4, TS.spec, "INTERNET", {
+        valign: 1
+      });
+      pen.text(T, xr + 9.4, yc - 0.6, TS.tag, mon.logger ? "(LAN / 4G)" : /commmod|4g/i.test(mon.dev) ? "(4G)" : "(WiFi / LAN)", {
+        valign: 3
+      });
+      const ctTxt = ["CT SIGNAL FROM CT MAIN" + (ctSpec ? " (" + ctSpec.replace(/^CT\s*/i, "") + ")" : ""), "AT " + (P.home ? "MAIN CONSUMER UNIT (EXISTING)" : "MAIN MDB (EXISTING)")];
+      const sig = (x, yTo, yFrom, dir) => {
+        pen.line(PG_SLD.ctsig, x, yFrom, x, yTo - dir * 1.6);
+        arrow(x, yTo - dir * 1.6, 0, dir);
+        const y0 = dir > 0 ? yFrom - 0.8 : yFrom + 0.8 + TS.tag * 1.5;
+        pen.text(T, x, y0, TS.tag, ctTxt[0], {
+          align: 1,
+          valign: dir > 0 ? 3 : 1
+        });
+        pen.text(T, x, y0 - TS.tag * 1.5, TS.tag, ctTxt[1], {
+          align: 1,
+          valign: dir > 0 ? 3 : 1
+        });
+      };
+      if (meterNm) {
+        const mw = pgTextW(meterNm, TS.spec) + 4,
+          mh = 6,
+          mx0 = X.ac0 + 4,
+          mBot = acTop - 3 - mh,
+          myc = mBot + mh / 2,
+          xm0 = mx0 + mw / 2;
+        pen.rect(S, mx0, mBot, mw, mh);
+        pen.text(T, xm0, myc, TS.spec, meterNm, {
+          align: 1,
+          valign: 2
+        });
+        const xS = mx0 + mw - 3;
+        pen.dot(S, xS, yMain, 0.4);
+        pen.line(W, xS, yMain, xS, mBot);
+        pen.text(T, xS + 0.8, (yMain + mBot) / 2, TS.tag, "L, N", {
+          valign: 2
+        });
+        const yr = Math.max(mBot + 1, Math.min(myc, it - 2));
+        if (yr < it - 1) {
+          pen.line(COM, mx0, yr, X.iv1 + 1.6, yr);
+          arrow(X.iv1 + 1.6, yr, -1, 0);
+          pen.text(T, X.iv1 + 2, yr + 0.6, TS.tag, "RS485", {
+            valign: 1
+          });
+        } else {
+          const xv = X.iv1 - 4;
+          pen.line(COM, mx0, myc, xv, myc);
+          pen.line(COM, xv, myc, xv, it + 1.6);
+          arrow(xv, it + 1.6, 0, -1);
+          pen.text(T, X.iv1 + 2, myc + 0.6, TS.tag, "RS485", {
+            valign: 1
+          });
+        }
+        sig(xm0 - 3, mBot + mh, acTop + 6, -1);
+      } else {
+        sig(xd + dw / 2 + 6, dBot + dh, dBot + dh + 8, -1);
+      }
+    } else if (M.mon) {
       const mon = M.mon,
         ib = taps[taps.length - 1].bot,
         vx = taps[taps.length - 1].vx,
