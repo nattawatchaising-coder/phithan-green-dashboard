@@ -2631,7 +2631,7 @@ function pgCuDraw(pen, M) {
   const xBe = cu === "far" ? c1 + 8 : xFx;
   /* ตู้บ้าน: บัส + โหลดเดิม */
   pen.rect(BX, c0, cuB, c1 - c0, cuT - cuB);
-  pen.text(LB, cu === "slot" ? xT + 1.5 : c0 + 1, cuB - 1.0, TS.head, "CONSUMER UNIT (EXISTING)", { valign: 3 });
+  pen.text(LB, c0 + 1, cuB - 1.0, TS.head, "CONSUMER UNIT (EXISTING)", { valign: 3 });
   pen.line(W, cu === "slot" ? xT : xL[0], yB, xBe, yB);
   xL.concat([xFx]).forEach((x) => {
     pen.dot(S, x, yB, 0.4);
