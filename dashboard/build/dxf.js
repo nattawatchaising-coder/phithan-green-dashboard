@@ -3710,24 +3710,25 @@ function pgCuDraw(pen, M) {
   const mdbXh = -3 - (g + 0.75),
     mdbXs = mdbXh - (g + 0.75) - 1.5;
   const mdbB0 = Math.min(mdbXs - 2, mdbXh - pgTextW("SOLAR CELL", TS.tag) * 1.2 / 2 - 2);
-  const c0 = (P.cu || "slot") === "rccb" ? ctx + 1 + clW + 2 + 3 - mdbB0 : ctx + 12,
+  const solW = Math.max(tW(sBrk, TS.tag), tW("TIE IN POSITION", TS.tag), tW("SOLAR CELL", TS.tag));
+  const slotW = cu === "slot" ? 1.2 + solW + 4 : 0;
+  const c0 = (P.cu || "slot") === "rccb" ? ctx + 1 + clW + 2 + 3 - mdbB0 : cu === "slot" ? Math.max(ctx + 12, ctx + 1 + clW + 2 - 5) : ctx + 12,
     bp = 10;
-  const xL = [0, 1, 2].map(k => c0 + 5 + k * bp),
+  const xL = [0, 1, 2].map(k => c0 + 5 + slotW + k * bp),
     xMn = xL[2];
   const yB = yMain + 34,
     yBr = yB - 5.5,
     cuB = yB - 23,
     cuT = cu === "rccb" ? yB + 23.5 : yB + 11;
-  const solW = Math.max(tW(sBrk, TS.tag), tW("TIE IN POSITION", TS.tag), tW("SOLAR CELL", TS.tag));
   const xFx = xL[2] + bp * 2;
-  const xT = cu === "slot" ? xFx + bp : 0;
-  const c1 = cu === "slot" ? xT + 1.2 + solW + 2 : xFx + 6;
-  const xBe = cu === "slot" ? xT : cu === "far" ? c1 + 8 : xFx;
+  const xT = cu === "slot" ? c0 + 5 : 0;
+  const c1 = xFx + 6;
+  const xBe = cu === "far" ? c1 + 8 : xFx;
   pen.rect(BX, c0, cuB, c1 - c0, cuT - cuB);
-  pen.text(LB, c0 + 1, cuB - 1.0, TS.head, "CONSUMER UNIT (EXISTING)", {
+  pen.text(LB, cu === "slot" ? xT + 1.5 : c0 + 1, cuB - 1.0, TS.head, "CONSUMER UNIT (EXISTING)", {
     valign: 3
   });
-  pen.line(W, xL[0], yB, xBe, yB);
+  pen.line(W, cu === "slot" ? xT : xL[0], yB, xBe, yB);
   xL.concat([xFx]).forEach(x => {
     pen.dot(S, x, yB, 0.4);
     pen.line(W, x, yB, x, yBr + BS);

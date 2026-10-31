@@ -2618,19 +2618,21 @@ function pgCuDraw(pen, M) {
      ตู้บ้านเลื่อนขวาเผื่อป้ายสาย + กว้างตู้ MDB SOLAR · เรขาคณิตตู้ (เทียบขอบขวา b1): xh = b1 - 3 - BS · xs = xh - BS - 1.5 */
   const mdbXh = -3 - (g + 0.75), mdbXs = mdbXh - (g + 0.75) - 1.5;
   const mdbB0 = Math.min(mdbXs - 2, mdbXh - pgTextW("SOLAR CELL", TS.tag) * 1.2 / 2 - 2);
-  const c0 = (P.cu || "slot") === "rccb" ? ctx + 1 + clW + 2 + 3 - mdbB0 : ctx + 12, bp = 10;   // ระยะวงจรห่างขึ้น (ผู้ใช้ 2026-10-31: ชิดกันไป)
-  const xL = [0, 1, 2].map((k) => c0 + 5 + k * bp), xMn = xL[2];   // เมนลงกลางบัส F1 F2 | F3 | • • • Fx (ผู้ใช้ 2026-10-31)
-  const yB = yMain + 34, yBr = yB - 5.5, cuB = yB - 23, cuT = cu === "rccb" ? yB + 23.5 : yB + 11;   // rccb: เมนใหม่อยู่ในตู้บ้าน ตู้สูงขึ้น
   const solW = Math.max(tW(sBrk, TS.tag), tW("TIE IN POSITION", TS.tag), tW("SOLAR CELL", TS.tag));
+  /* slot: MCB โซลาร์ช่องแรกซ้ายสุดของบัส (ผู้ใช้วาดชี้ 2026-10-31: มาอยู่ฝั่งซ้าย) สายจากตู้ AC ขึ้นตรงพ้นป้ายสาย · วงจรเดิมเลื่อนขวา */
+  const slotW = cu === "slot" ? 1.2 + solW + 4 : 0;
+  const c0 = (P.cu || "slot") === "rccb" ? ctx + 1 + clW + 2 + 3 - mdbB0 : cu === "slot" ? Math.max(ctx + 12, ctx + 1 + clW + 2 - 5) : ctx + 12, bp = 10;   // ระยะวงจรห่างขึ้น (ผู้ใช้ 2026-10-31: ชิดกันไป)
+  const xL = [0, 1, 2].map((k) => c0 + 5 + slotW + k * bp), xMn = xL[2];   // เมนลงกลางบัส F1 F2 | F3 | • • • Fx (ผู้ใช้ 2026-10-31)
+  const yB = yMain + 34, yBr = yB - 5.5, cuB = yB - 23, cuT = cu === "rccb" ? yB + 23.5 : yB + 11;   // rccb: เมนใหม่อยู่ในตู้บ้าน ตู้สูงขึ้น
   /* วงจรเดิม F1 F2 F3 • • • Fx (ผู้ใช้วาดชี้ 2026-10-31: มีวงจรสุดท้ายต่อจากจุด) */
   const xFx = xL[2] + bp * 2;
-  const xT = cu === "slot" ? xFx + bp : 0;
-  const c1 = cu === "slot" ? xT + 1.2 + solW + 2 : xFx + 6;
-  const xBe = cu === "slot" ? xT : cu === "far" ? c1 + 8 : xFx;
+  const xT = cu === "slot" ? c0 + 5 : 0;
+  const c1 = xFx + 6;
+  const xBe = cu === "far" ? c1 + 8 : xFx;
   /* ตู้บ้าน: บัส + โหลดเดิม */
   pen.rect(BX, c0, cuB, c1 - c0, cuT - cuB);
-  pen.text(LB, c0 + 1, cuB - 1.0, TS.head, "CONSUMER UNIT (EXISTING)", { valign: 3 });
-  pen.line(W, xL[0], yB, xBe, yB);
+  pen.text(LB, cu === "slot" ? xT + 1.5 : c0 + 1, cuB - 1.0, TS.head, "CONSUMER UNIT (EXISTING)", { valign: 3 });
+  pen.line(W, cu === "slot" ? xT : xL[0], yB, xBe, yB);
   xL.concat([xFx]).forEach((x) => {
     pen.dot(S, x, yB, 0.4);
     pen.line(W, x, yB, x, yBr + BS); vBrk(x, yBr); pen.line(W, x, yBr - BS, x, yB - 10.5);
