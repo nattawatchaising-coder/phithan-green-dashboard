@@ -3181,10 +3181,17 @@ function pgSldPro(doc, sheet, M) {
         const bw = Math.max.apply(null, cL.map(l => pgTextW(l, cH))) + 2 * pad,
           bh = cL.length * lh + pad;
         const bx0 = Math.max(xMin, Math.min(xC - bw / 2, xMax - bw)),
-          bT = t.bot - 9;
-        pen.dot(T, xC, t.y, 0.45);
-        pen.line(T, xC, t.y, xC, bT);
-        pen.rect(T, bx0, bT - bh, bw, bh);
+          bT = t.bot - 3;
+        const eRx = 0.7,
+          eRy = 2.0,
+          eP = k => [xC + eRx * Math.cos(Math.PI * k / 12), t.y + eRy * Math.sin(Math.PI * k / 12)];
+        for (let k = 0; k < 24; k++) {
+          const p = eP(k),
+            q = eP(k + 1);
+          pen.line(T, p[0], p[1], q[0], q[1]);
+        }
+        pen.line(T, xC, t.y - eRy, xC, bT);
+        pen.line(T, bx0, bT, bx0 + bw, bT);
         cL.forEach((l, k) => pen.text(T, bx0 + pad, bT - pad / 2 - lh / 2 - k * lh, cH, l, {
           valign: 2
         }));

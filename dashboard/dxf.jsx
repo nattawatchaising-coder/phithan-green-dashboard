@@ -2236,10 +2236,12 @@ function pgSldPro(doc, sheet, M) {
         const xMin = t.b.bat ? X.iv1 - 2 : X.iv1 - 20, xMax = X.ac0 - 1.5;
         const cH = Math.min(TS.spec, (xMax - xMin - 2 * pad) / Math.max.apply(null, cL.map((l) => pgTextW(l, 1))));
         const bw = Math.max.apply(null, cL.map((l) => pgTextW(l, cH))) + 2 * pad, bh = cL.length * lh + pad;
-        const bx0 = Math.max(xMin, Math.min(xC - bw / 2, xMax - bw)), bT = t.bot - 9;
-        pen.dot(T, xC, t.y, 0.45);
-        pen.line(T, xC, t.y, xC, bT);
-        pen.rect(T, bx0, bT - bh, bw, bh);
+        const bx0 = Math.max(xMin, Math.min(xC - bw / 2, xMax - bw)), bT = t.bot - 3;   // เส้นนอนใต้ขอบล่างกล่องอินเวอร์เตอร์นิดเดียว (ผู้ใช้วาดชี้ 2026-10-31)
+        /* วงรีตั้งคล้องสาย = จุดที่บอกขนาดสาย (ผู้ใช้วาดชี้ 2026-10-31) · เส้นโยงออกจากก้นวงรี */
+        const eRx = 0.7, eRy = 2.0, eP = (k) => [xC + eRx * Math.cos(Math.PI * k / 12), t.y + eRy * Math.sin(Math.PI * k / 12)];
+        for (let k = 0; k < 24; k++) { const p = eP(k), q = eP(k + 1); pen.line(T, p[0], p[1], q[0], q[1]); }
+        pen.line(T, xC, t.y - eRy, xC, bT);
+        pen.line(T, bx0, bT, bx0 + bw, bT);   // เส้นโยงจบที่เส้นนอนเหนือข้อความ ไม่มีกรอบ (ผู้ใช้วาดชี้ 2026-10-31)
         cL.forEach((l, k) => pen.text(T, bx0 + pad, bT - pad / 2 - lh / 2 - k * lh, cH, l, { valign: 2 }));        return;
       }
       pen.line(R, X.iv1 + 0.6, t.y, X.acB - g - 0.75, t.y);
