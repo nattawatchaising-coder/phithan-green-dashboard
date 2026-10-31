@@ -954,6 +954,18 @@
   /* อินเวอร์เตอร์ Huawei (SUN2000 / LUNA) — อุปกรณ์เสริมในชุด HW ใช้ได้เฉพาะยี่ห้อนี้ */
   function isHwInv(model) { return /huawei|sun2000|luna2000/i.test(String(model || "")); }
   function isGwInv(model) { return /growatt/i.test(String(model || "")); }
+  /* งานบ้านยี่ห้ออื่น (ไม่ใช่ Huawei/Growatt): มิเตอร์ + ตัวสื่อสาร จากอุปกรณ์เสริมที่ผูกกับรุ่นอินเวอร์เตอร์ในคลัง
+     มิเตอร์เลือกตามเฟสของอินเวอร์เตอร์ (มิเตอร์ที่กรอกเฟสไว้ต้องตรง) · ตัวสื่อสารเอาตัวแรกที่ไม่ใช่ Logger/ตัวคุมโครงการ (ผู้ใช้ 2026-10-31) */
+  function accMonItems(inv) {
+    const out = [];
+    if (!inv) return out;
+    const ph = +inv.phase || 0;
+    const m = (inv.meters || []).find((x) => !x.phase || !ph || x.phase === ph);
+    if (m) out.push({ name: m.name, qty: 1, unit: "ชุด" });
+    const c = (inv.comms || []).find((n) => !/logger|SEC\d|smartlogger/i.test(n));
+    if (c) out.push({ name: c, qty: 1, unit: "ตัว" });
+    return out;
+  }
   function findInverter(model) { return INVERTERS.find((x) => x.model === model) || null; }
   // ── คำนวณการต่ออนุกรมแผง (String) + สาย DC ──
   // panel = { voc, isc, vmp, imp } · inv = { mpptVmin, mpptVmax, maxVdc, maxInA }
@@ -2260,7 +2272,8 @@
             invItems.push({ name: ph === 3 ? GW.meter3 : GW.meter1, qty: 1, unit: "ชุด" });
             invItems.push({ name: GW.wifi, qty: 1, unit: "ตัว" });
           }
-          // ยี่ห้ออื่น: ยังไม่มีชุดมอนิเตอร์/มิเตอร์ของยี่ห้อนั้นในระบบ — ให้เพิ่มเองในใบ · แบตใช้รุ่นกลางเดิม
+          // ยี่ห้ออื่น: มิเตอร์ + ตัวสื่อสารตามที่ผูกกับรุ่นในคลัง (ไม่ได้ผูก = ให้เพิ่มเองในใบ) · แบตใช้รุ่นกลางเดิม
+          else if (!isProject) accMonItems(selInv).forEach((x) => invItems.push(x));
           pushBatt(invItems);
         } else if (isProject) {
           invItems.push({ name: HW.logger, qty: 1, unit: "ตัว" });
@@ -2300,7 +2313,7 @@
         if (isGwInv(selInv.model) && !isProject) {   // Growatt ที่คลังยังไม่มีสเปค MPPT ก็ยังได้มิเตอร์ + WiFi
           invItems.push({ name: selInv.phase === 3 ? GW.meter3 : GW.meter1, qty: 1, unit: "ชุด" });
           invItems.push({ name: GW.wifi, qty: 1, unit: "ตัว" });
-        }
+        } else if (!isProject && !isHwInv(selInv.model)) accMonItems(selInv).forEach((x) => invItems.push(x));
         pushBatt(invItems);
       }
     } else {
@@ -2969,6 +2982,8 @@
       if (+p.dimW > 0 && +p.dimH > 0) row.dim = { w: +p.dimW, h: +p.dimH, d: +p.dimD || 250 };
       if (p.mount === "floor") row.mount = "floor";
       if (p.batV === "lv" || p.batV === "hv") row.batV = p.batV;   // แรงดันแบตที่ไฮบริดรับได้ — หน้าออกแบบระบบคัดแบต
+      row.meters = Array.isArray(p.meters) ? p.meters : [];   // มิเตอร์ที่ผูกกับรุ่นนี้ในคลัง (accIds)
+      row.comms = Array.isArray(p.comms) ? p.comms : [];     // ตัวสื่อสาร/มอนิเตอร์ที่ผูกกับรุ่นนี้
     });
     INVERTERS.length = 0;
     out.forEach((x) => INVERTERS.push(x));
@@ -3036,7 +3051,7 @@
     UPVC_CONDUIT, conduitFillLimit, conduitDim, conduitCheck,
     AMP_CORE_LABEL, ampGroupMeta, ampCoresFor, ampCoreKey, WIRE_METHOD_LEGACY, normWireMethod,
     G_TRAY, G_SUPPORT, G_LABOR, G_PERMIT, G_OM, OM_DEF, OM_CLEAN_TIERS, OM_SVC_TIERS, OM_CLEAN_DEF, OM_SVC_DEF, omTierNorm, setOmTiers, omTierPrice, omDefaults, omCalc, SERVICE_GROUPS, mergeItems,
-    RULE_SECS, RULE_DEFS, RULES, RULES_T, setRules, ruleVal, ruleTxt, ruleOnly, ruleFlat, ruleRaw, pairPick, spdName, isHwInv, isGwInv };
+    RULE_SECS, RULE_DEFS, RULES, RULES_T, setRules, ruleVal, ruleTxt, ruleOnly, ruleFlat, ruleRaw, pairPick, spdName, isHwInv, isGwInv, accMonItems };
   /* ห่อฟังก์ชันที่ส่งออก: เจออาร์กิวเมนต์ที่เป็นใบ BOQ (jobType) หรืองาน (type) = สลับ RULES เป็นชุดของประเภทนั้นก่อนคิด
      ฟังก์ชันข้างในเรียกกันตรง ๆ (ไม่ผ่านตัวห่อ) จึงใช้ชุดเดียวกันตลอดการคิดหนึ่งครั้ง */
   const typeHint = (a) => {

@@ -4367,28 +4367,35 @@ function p3SldModel(st, job, design) {
     no: 1
   });
   p3SldFromBoq(M, job && job.boq || null, nPh);
-  p3SldMon(M, job);
+  p3SldMon(M, job, inv.model);
   return p3SldApply(M, st.sldEdit);
 }
-function p3SldMon(M, job) {
+function p3SldMon(M, job, invModel) {
   M.mon = null;
-  if (!job || !job.boq || !window.BOQ || !BOQ.calcBOQ) return;
+  if (!window.BOQ || !BOQ.calcBOQ) return;
   const names = [];
-  try {
-    BOQ.calcBOQ(BOQ.mergeBOQ(job)).groups.forEach(g => (g.items || []).forEach(it => {
-      if (it && +it.qty > 0 && it.name) names.push(String(it.name));
-    }));
-  } catch (e) {
-    return;
+  if (job && job.boq) {
+    try {
+      BOQ.calcBOQ(BOQ.mergeBOQ(job)).groups.forEach(g => (g.items || []).forEach(it => {
+        if (it && +it.qty > 0 && it.name) names.push(String(it.name));
+      }));
+    } catch (e) {
+      return;
+    }
+  } else if (M.pro && M.pro.home && BOQ.accMonItems && BOQ.findInverter) {
+    BOQ.accMonItems(BOQ.findInverter(invModel)).forEach(it => names.push(it.name));
   }
-  const find = re => names.find(n => re.test(n)) || "";
-  M.monMeter = find(/smart meter|DTSU|DDSU|SPM-CT|TPM-CT|janitza/i);
-  const dev = find(/logger/i) || find(/dongle|wifi/i);
+  const ivR = BOQ.findInverter ? BOQ.findInverter(invModel) : null;
+  const accM = (ivR && ivR.meters || []).map(m => m.name),
+    accC = ivR && ivR.comms || [];
+  const find = (re, acc) => names.find(n => re.test(n) || (acc || []).indexOf(n) !== -1) || "";
+  M.monMeter = find(/smart meter|DTSU|DDSU|SPM-CT|TPM-CT|janitza|\bGMK?\d{3}\b|SDM\d|sigen sensor/i, accM);
+  const dev = find(/logger/i) || find(/dongle|wifi|ezlink|commmod/i, accC);
   if (!dev) return;
   M.mon = {
     dev,
     logger: /logger/i.test(dev),
-    meter: find(/smart meter|DTSU|DDSU|SPM-CT|TPM-CT|janitza/i)
+    meter: find(/smart meter|DTSU|DDSU|SPM-CT|TPM-CT|janitza|\bGMK?\d{3}\b|SDM\d|sigen sensor/i, accM)
   };
 }
 const P3_ROUTE_EN = {

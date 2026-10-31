@@ -2462,13 +2462,13 @@ function pgSldPro(doc, sheet, M) {
       pen.line(COM, dx0, yc, vx, yc);
       pen.line(COM, vx, yc, vx, ib - 1.6);
       arrow(vx, ib - 1.6, 0, 1);
-      pen.text(T, (dx0 + vx) / 2, yc + 0.6, TS.tag, "RS485", { align: 1, valign: 1 });
+      pen.text(T, (dx0 + vx) / 2, yc + 0.6, TS.tag, mon.logger ? "RS485" : "PLUG-IN COM PORT", { align: 1, valign: 1 });   // ดองเกิล (Ezlink/Smart Dongle/ShineWiFi) เสียบพอร์ตอินเวอร์เตอร์ตรง (ผู้ใช้ 2026-10-31)
       /* INTERNET ทางขวา */
       const xr = dx0 + dw;
       pen.line(COM, xr, yc, xr + 8, yc);
       arrow(xr + 8, yc, 1, 0);
       pen.text(LB, xr + 10.4, yc + 0.4, TS.spec, "INTERNET", { valign: 1 });
-      pen.text(T, xr + 10.4, yc - 0.6, TS.tag, mon.logger ? "(LAN / 4G)" : "(WiFi)", { valign: 3 });
+      pen.text(T, xr + 10.4, yc - 0.6, TS.tag, mon.logger ? "(LAN / 4G)" : /commmod|4g/i.test(mon.dev) ? "(4G)" : "(WiFi / LAN)", { valign: 3 });
     }
 
     /* ── หลักดินฝั่ง PV (ปักแยกจากระบบ) ปลาย PE trunk ซ้าย ── */

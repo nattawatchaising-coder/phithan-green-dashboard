@@ -2799,24 +2799,32 @@ function p3SldModel(st, job, design) {
   ];
   if (M.batt) M.equip.push({ brand: M.batt.brand, model: M.batt.model, desc: "BATTERY " + M.batt.kwh + " kWh.", no: 1 });
   p3SldFromBoq(M, (job && job.boq) || null, nPh);
-  p3SldMon(M, job);
+  p3SldMon(M, job, inv.model);
   return p3SldApply(M, st.sldEdit);
 }
 
 /* อุปกรณ์มอนิเตอร์ตาม BOQ (ผู้ใช้ 2026-10-30): SmartLogger / Smart Dongle / ShineWiFi + Smart Meter ที่จำนวน > 0
    → SLD วาดกล่องอุปกรณ์ต่อ CT ที่คล้องเมน MDB เดิม + สาย RS485 ไปอินเวอร์เตอร์ + ออกอินเทอร์เน็ต · ไม่มีใน BOQ = ไม่วาด */
-function p3SldMon(M, job) {
+function p3SldMon(M, job, invModel) {
   M.mon = null;
-  if (!job || !job.boq || !window.BOQ || !BOQ.calcBOQ) return;
+  if (!window.BOQ || !BOQ.calcBOQ) return;
   const names = [];
-  try {
-    BOQ.calcBOQ(BOQ.mergeBOQ(job)).groups.forEach((g) => (g.items || []).forEach((it) => { if (it && +it.qty > 0 && it.name) names.push(String(it.name)); }));
-  } catch (e) { return; }
-  const find = (re) => names.find((n) => re.test(n)) || "";
-  M.monMeter = find(/smart meter|DTSU|DDSU|SPM-CT|TPM-CT|janitza/i);   // รุ่นมิเตอร์ที่ CT ต่อเข้า — แผ่นตู้บ้านใช้แม้ไม่มี logger/dongle
-  const dev = find(/logger/i) || find(/dongle|wifi/i);
+  if (job && job.boq) {
+    try {
+      BOQ.calcBOQ(BOQ.mergeBOQ(job)).groups.forEach((g) => (g.items || []).forEach((it) => { if (it && +it.qty > 0 && it.name) names.push(String(it.name)); }));
+    } catch (e) { return; }
+  } else if (M.pro && M.pro.home && BOQ.accMonItems && BOQ.findInverter) {
+    /* ยังไม่มี BOQ: งานบ้านใช้มิเตอร์ + ตัวสื่อสารที่ผูกกับรุ่นอินเวอร์เตอร์ในคลัง (ชุดเดียวกับที่ BOQ จะถอด · ผู้ใช้ 2026-10-31) */
+    BOQ.accMonItems(BOQ.findInverter(invModel)).forEach((it) => names.push(it.name));
+  }
+  /* มิเตอร์/ตัวสื่อสารที่ผูกกับรุ่นอินเวอร์เตอร์ในคลัง — รู้จักทุกยี่ห้อ (GoodWe GMK · Eastron SDM · Sigen Sensor · CommMod …) ไม่ต้องพึ่งชื่อ */
+  const ivR = BOQ.findInverter ? BOQ.findInverter(invModel) : null;
+  const accM = (ivR && ivR.meters || []).map((m) => m.name), accC = (ivR && ivR.comms) || [];
+  const find = (re, acc) => names.find((n) => re.test(n) || (acc || []).indexOf(n) !== -1) || "";
+  M.monMeter = find(/smart meter|DTSU|DDSU|SPM-CT|TPM-CT|janitza|\bGMK?\d{3}\b|SDM\d|sigen sensor/i, accM);   // รุ่นมิเตอร์ที่ CT ต่อเข้า — แผ่นตู้บ้านใช้แม้ไม่มี logger/dongle
+  const dev = find(/logger/i) || find(/dongle|wifi|ezlink|commmod/i, accC);
   if (!dev) return;
-  M.mon = { dev, logger: /logger/i.test(dev), meter: find(/smart meter|DTSU|DDSU|SPM-CT|TPM-CT|janitza/i) };
+  M.mon = { dev, logger: /logger/i.test(dev), meter: find(/smart meter|DTSU|DDSU|SPM-CT|TPM-CT|janitza|\bGMK?\d{3}\b|SDM\d|sigen sensor/i, accM) };
 }
 
 /* ══ แก้ค่าบนแบบเอง ══

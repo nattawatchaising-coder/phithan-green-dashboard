@@ -654,7 +654,21 @@ function App() {
       dimH: s.invDimH,
       dimD: s.invDimD,
       mount: s.invMount,
-      batV: s.invBatV
+      batV: s.invBatV,
+      ...(() => {
+        const acc = (s.accIds || []).map(id => (stock.items || []).find(x => x && x.id === id)).filter(x => x && x.name);
+        const sub = re => x => {
+          const c = window.SF.STOCK_CAT_BY[x.cat];
+          return !!c && re.test(c.th || "");
+        };
+        return {
+          meters: acc.filter(sub(/smart meter/i)).map(x => ({
+            name: x.name,
+            phase: +x.invPhase || 0
+          })),
+          comms: acc.filter(sub(/สื่อสาร/)).map(x => x.name)
+        };
+      })()
     })));
     window.BOQ.BATTERIES = (stock.items || []).filter(s => inCat(s, "battery") && s.name && +s.kwh > 0).map(s => ({
       name: s.name,

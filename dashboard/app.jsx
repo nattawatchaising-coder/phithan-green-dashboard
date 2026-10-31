@@ -542,7 +542,13 @@ function App() {
       .map((s) => ({ model: s.name, group: (s.brand || "").trim() || subTh(s), type: s.invType, kw: s.invKw, phase: s.invPhase, inputs: s.invInputs, maxPv: s.invMaxPv, outA: s.invOutA, mpptVmin: s.mpptVmin, mpptVmax: s.mpptVmax, maxVdc: s.maxVdc, maxInA: s.maxInA, maxIscA: s.maxIscA, maxMpptA: s.maxMpptA,
         strPerMppt: s.invStrPerMppt, eff: s.invEff, effEuro: s.invEffEuro,
         vStart: s.vStart, vRated: s.vRated, maxAcKw: s.invMaxAcKw,
-        dimW: s.invDimW, dimH: s.invDimH, dimD: s.invDimD, mount: s.invMount, batV: s.invBatV })));
+        dimW: s.invDimW, dimH: s.invDimH, dimD: s.invDimD, mount: s.invMount, batV: s.invBatV,
+        /* อุปกรณ์เสริมที่ผูกไว้กับรุ่นนี้ในคลัง (accIds) — มิเตอร์ (หมวด CT · Smart Meter) / ตัวสื่อสาร (หมวดสื่อสาร · มอนิเตอร์)
+           BOQ งานบ้านเลือกมิเตอร์ตามรุ่นอินเวอร์เตอร์ (ผู้ใช้ 2026-10-31: GoodWe 1 เฟส GMK110 · 3 เฟส GMK330) */
+        ...(() => { const acc = (s.accIds || []).map((id) => (stock.items || []).find((x) => x && x.id === id)).filter((x) => x && x.name);
+          const sub = (re) => (x) => { const c = window.SF.STOCK_CAT_BY[x.cat]; return !!c && re.test(c.th || ""); };
+          return { meters: acc.filter(sub(/smart meter/i)).map((x) => ({ name: x.name, phase: +x.invPhase || 0 })),
+            comms: acc.filter(sub(/สื่อสาร/)).map((x) => x.name) }; })() })));
     /* แบตเตอรี่จากคลัง → ช่อง "รุ่นแบตจากคลัง" ในหน้าออกแบบระบบ (solarui) · เฉพาะของที่มี kWh (ฐาน/สาย/ตัวคุมไม่ใช่ก้อนแบต) */
     window.BOQ.BATTERIES = (stock.items || []).filter((s) => inCat(s, "battery") && s.name && +s.kwh > 0)
       .map((s) => ({ name: s.name, model: s.model || s.name, brand: (s.brand || "").trim() || subTh(s), kwh: +s.kwh, price: +s.price || 0, warY: +s.warY || 0,
