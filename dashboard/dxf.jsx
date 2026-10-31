@@ -2714,19 +2714,15 @@ function pgCuDraw(pen, M) {
   const ctSpec = (String(mtr).match(/CT\s*[\d/]+\s*m?A(\/[\d.]+m?A)?/i) || [""])[0];
   const mtrNm = mtr.replace(/\s*\+\s*CT.*$/i, "").trim();
   pen.text(LB, xMn + 3.2, yC + 1.4, TS.tag, "CT MAIN GRID" + (ctSpec ? " (" + ctSpec + ")" : ""), { valign: 1 });
-  pen.text(T, xMn + 3.2, yC - 0.2, TS.tag, "FOR SOLAR METER : " + (mtrNm || "SMART METER (SEE SLD)"), { valign: 1 });
   pen.line(W, xMn - 1.3, yA, xMn + 1.3, yA); pen.line(W, xMn - 1.3, yA, xMn, yA + 2.6); pen.line(W, xMn + 1.3, yA, xMn, yA + 2.6);
   pen.text(LB, xMn, yA + 3.4, TS.head, "TO " + (P.auth || "GRID"), { align: 1, valign: 1 });
-  /* สายสัญญาณ CT ออกซ้ายไปเข้ามิเตอร์โซลาร์ (ผู้ใช้ 2026-10-31: ต้องมีอุปกรณ์หรือบอกว่าไปไหน) → RS485 ไปอินเวอร์เตอร์ */
+  /* สายสัญญาณ CT ออกซ้าย → เขียนบอกว่าไปมิเตอร์โซลาร์ในตู้ AC COMBINER BOX (ผู้ใช้ 2026-10-31: มิเตอร์อยู่ในตู้ AC ไม่ต้องวาดรูป) */
   {
-    const CS = PG_SLD.ctsig, mw = 13, mh = 6, mx1 = xMn - CT_R - 8, mx0 = mx1 - mw;
-    pen.line(CS, xMn - CT_R - 0.2, yC, mx1, yC);
-    pen.rect(S, mx0, yC - mh / 2, mw, mh);
-    pen.text(LB, mx0 + mw / 2, yC + 0.9, TS.tag, "SOLAR METER", { align: 1, valign: 2 });
-    pen.text(T, mx0 + mw / 2, yC - 1.1, TS.tag * 0.85, mtrNm || "SMART METER", { align: 1, valign: 2 });
-    pen.line(CS, mx0, yC, mx0 - 5, yC);
-    pen.solid(S, [mx0 - 5, yC + 0.7], [mx0 - 6.6, yC], [mx0 - 5, yC - 0.7]);
-    pen.text(T, mx0 - 7.4, yC, TS.tag, "RS485 TO INVERTER", { align: 2, valign: 2 });
+    const CS = PG_SLD.ctsig, xE = xMn - CT_R - 8;
+    pen.line(CS, xMn - CT_R - 0.2, yC, xE + 1.6, yC);
+    pen.solid(S, [xE + 1.6, yC + 0.7], [xE, yC], [xE + 1.6, yC - 0.7]);
+    pen.text(T, xE - 0.8, yC + 0.4, TS.tag, "CT SIGNAL TO SOLAR METER" + (mtrNm ? " (" + mtrNm + ")" : ""), { align: 2, valign: 1 });
+    pen.text(T, xE - 0.8, yC - 0.4, TS.tag, "IN AC COMBINER BOX", { align: 2, valign: 3 });
   }
   pen.line(R, ctx + 1.4, yMain, xSol, yMain);
 }

@@ -4429,7 +4429,34 @@ function p3GndLabel(g) {
 function p3SldFromBoq(M, b, nPh) {
   if (!b || !Array.isArray(b.cables)) return;
   const def = b.wireCalc && b.wireCalc.method || "conduitAir";
-  const route = c => P3_ROUTE_EN[c && c.method || def] || "";
+  const raceOf = c => {
+    const k = c && c.race;
+    if (!k) return "";
+    const own = b.cables.indexOf(c),
+      host = c.raceWith != null && c.raceWith !== "" ? +c.raceWith : own;
+    const pick = rows => (rows || []).find(x => x && x.auto && (x.from === host || x.from === own));
+    const tray = (b.tray || {})[k],
+      cond = (b.conduit || {})[k];
+    const row = pick(k === "imc" || k === "upvc" ? cond : tray);
+    const sz = String(row && row.size || c.raceSize || "");
+    const dim = (sz.match(/(\d+)\s*[xX×]\s*(\d+)/) || []).slice(1, 3).join("x");
+    if (k === "imc") {
+      const m = sz.match(/IMC\s*([\d\-\/]+")/i);
+      return "IN IMC CONDUIT" + (m ? " " + m[1] : "");
+    }
+    if (k === "upvc") {
+      const m = sz.match(/(\d+)\s*mm/i);
+      return "IN uPVC CONDUIT" + (m ? " " + m[1] + " mm." : "");
+    }
+    const nm = {
+      way: "IN WIREWAY",
+      tray: "ON CABLE LADDER",
+      perf: "ON PERFORATED CABLE TRAY",
+      wwu: "IN uPVC WIREWAY"
+    }[k];
+    return nm ? nm + (dim ? " " + dim + " mm." : "") : "";
+  };
+  const route = c => raceOf(c) || P3_ROUTE_EN[c && c.method || def] || "";
   const invRows = b.cables.filter(c => c && /INVERTER-MCB_SOLAR/i.test(c.name || ""));
   const mainRow = b.cables.find(c => c && /MCB_SOLAR-MDB/i.test(c.name || "") && c.type);
   M.acRoute = route(invRows[0]);
