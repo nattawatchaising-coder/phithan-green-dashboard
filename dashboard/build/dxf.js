@@ -3819,7 +3819,8 @@ function pgCuDraw(pen, M) {
       b0 = b1 + mdbB0;
     pen.line(W, xMn, yMB + BS, xMn, yN);
     pen.dot(S, xMn, yN, 0.4);
-    pen.text(LB, xMn + 1.2, yN + 0.6, TS.tag, "TIE IN POSITION", {
+    pen.text(LB, xMn - 1.2, yN + 0.6, TS.tag, "TIE IN POSITION", {
+      align: 2,
       valign: 1
     });
     pen.line(R, xMn, yN, xh + BS, yN);
@@ -3878,7 +3879,7 @@ function pgCuDraw(pen, M) {
   });
   {
     const CS = PG_SLD.ctsig,
-      xE = xMn - CT_R - 8;
+      xE = Math.min(xMn - CT_R - 8, ctx + 1 + clW + 3);
     pen.line(CS, xMn, yC, xE + 1.6, yC);
     pen.solid(S, [xE + 1.6, yC + 0.7], [xE, yC], [xE + 1.6, yC - 0.7]);
     pen.text(T, xE - 0.8, yC + 0.4, TS.tag, "CT SIGNAL TO SOLAR METER" + (mtrNm ? " (" + mtrNm + ")" : ""), {

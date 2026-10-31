@@ -2693,7 +2693,7 @@ function pgCuDraw(pen, M) {
     const b1 = c0 - 3, xh = b1 + mdbXh, xs = b1 + mdbXs, b0 = b1 + mdbB0;   // ซ้ายตู้บ้าน (ดู mdbXh)
     pen.line(W, xMn, yMB + BS, xMn, yN);
     pen.dot(S, xMn, yN, 0.4);
-    pen.text(LB, xMn + 1.2, yN + 0.6, TS.tag, "TIE IN POSITION", { valign: 1 });
+    pen.text(LB, xMn - 1.2, yN + 0.6, TS.tag, "TIE IN POSITION", { align: 2, valign: 1 });   // ซ้ายจุดต่อ เหนือสายโซลาร์ (ผู้ใช้วาดชี้ 2026-10-31)
     pen.line(R, xMn, yN, xh + BS, yN); hBrk(xh, yN); pen.line(R, xh - BS, yN, xs, yN);
     pen.text(T, xh, yN - 1.2, TS.tag, sBrk, { align: 1, valign: 3 });
     pen.text(T, xh, yN - 2.8, TS.tag, "SOLAR CELL", { align: 1, valign: 3 });
@@ -2724,7 +2724,7 @@ function pgCuDraw(pen, M) {
   pen.text(LB, xMn, yA + 3.4, TS.head, "TO " + (P.auth || "GRID"), { align: 1, valign: 1 });
   /* สายสัญญาณ CT ออกซ้าย → เขียนบอกว่าไปมิเตอร์โซลาร์ในตู้ AC COMBINER BOX (ผู้ใช้ 2026-10-31: มิเตอร์อยู่ในตู้ AC ไม่ต้องวาดรูป) */
   {
-    const CS = PG_SLD.ctsig, xE = xMn - CT_R - 8;
+    const CS = PG_SLD.ctsig, xE = Math.min(xMn - CT_R - 8, ctx + 1 + clW + 3);   // เส้นประยาวมาซ้าย ข้อความอยู่ปลายสาย ตรงแนวป้ายสายเข้า (ผู้ใช้วาดชี้ 2026-10-31)
     pen.line(CS, xMn, yC, xE + 1.6, yC);   // เส้นประเริ่มจากสายเมนกลาง CT (ผู้ใช้วาดชี้ 2026-10-31)
     pen.solid(S, [xE + 1.6, yC + 0.7], [xE, yC], [xE + 1.6, yC - 0.7]);
     pen.text(T, xE - 0.8, yC + 0.4, TS.tag, "CT SIGNAL TO SOLAR METER" + (mtrNm ? " (" + mtrNm + ")" : ""), { align: 2, valign: 1 });
