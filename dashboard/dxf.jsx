@@ -1374,7 +1374,7 @@ function pgSldLayers(doc) {
   doc.layer(PG_SLD.box, PG_ACI.red, "PG-DASHB", 20);
   doc.layer(PG_SLD.txt, PG_ACI.white, "CONTINUOUS", 18);
   doc.layer(PG_SLD.lbl, PG_ACI.cyan, "CONTINUOUS", 25);
-  doc.layer(PG_SLD.comm, PG_ACI.white, "PG-DASH", 15);
+  doc.layer(PG_SLD.comm, PG_ACI.white, "CONTINUOUS", 15);   // สายสื่อสารเส้นเต็ม — เส้นสั้น (RS485/INTERNET) ประยาวแล้วดูเหมือนสายขาด (ผู้ใช้ชี้ 2026-10-31) · สัญญาณ CT ยังประ
   doc.layer(PG_SLD.ctsig, PG_ACI.white, "PG-DASHF", 15);
   doc.layer(PG_SLD.swlink, PG_ACI.grey, "PG-DASHF", 13);
   doc.layer(PG_SLD.tab, PG_ACI.white, "CONTINUOUS", 20);
@@ -2349,26 +2349,31 @@ function pgSldPro(doc, sheet, M) {
     }
     /* กันเสิร์จฝั่ง AC อยู่ฝั่งกริด (หลัง MCCB เมน): สายเมน → อุปกรณ์ป้องกันสำรอง (ถ้ามี) → SPD → บัสดิน
        ป้ายอยู่ซ้ายแกน · เริ่มต่ำกว่า GFR / สายไฟเลี้ยง PM ไม่ให้ทับกัน */
-    pen.dot(R, sx, yMain, 0.5);
-    const sw = sx - 3.6 - X.ac0 - 1;   // ป้ายอยู่ต่ำกว่า PM/MCB แล้ว ใช้ความกว้างตู้ได้เต็ม
+    /* SPD ย้ายมาเหนือบาร์ N (ผู้ใช้วาดชี้ 2026-10-31: "ให้ย้าย SPD ตัวนี้") — ลงรูขวาสุดของบาร์ N · ป้ายอยู่ซ้ายตัว SPD */
+    const xN = sx - 13;
+    const sw = xN - 3.6 - X.ac0 - 1;   // ป้ายอยู่ต่ำกว่า PM/MCB แล้ว ใช้ความกว้างตู้ได้เต็ม
     let sy = yMain;
     const top0 = Math.min(P.pm ? pmLow : yMain, hasGf ? yMain - 12.6 : yMain - 3);
-    if (P.spdBk) {
-      /* ฟิวส์อยู่ชิดสายเมน (ผู้ใช้ชี้ 2026-10-29: ฟิวส์ลอยต่ำ ป้ายไม่ตรงตัว) — ป้ายข้างฟิวส์อยู่สูงกว่ากล่อง PM/MCB 2P จึงไม่ชน
-         SPD ยังอยู่ต่ำกว่าแถว PM เหมือนเดิม (ป้าย SPD ยาว ชน MCB 2P ถ้ายกขึ้น) */
-      const fuse = /FUSE/.test(P.spdBk), by = (fuse ? (hasGf ? yMain - 12.6 : yMain - 3) : top0) - 2.4;
-      pen.line(R, sx, sy, sx, by + 2.4);
-      if (fuse) { vFuse(sx, by); sy = Math.min(by - 2.4, top0 - 4.8); pen.line(R, sx, by - 2.4, sx, sy); }
-      else { pen.line(R, sx, by + 2.4, sx, by + g + 0.75); pgSym.breaker(pen, sx, by, "", "", g); sy = by - g - 0.75; }
-      /* ป้ายฟิวส์เขียนตั้งขวาตัวฟิวส์ ปลายอยู่ระดับหัวฟิวส์ (ผู้ใช้ชี้ 2026-10-29) — เบรกเกอร์ยังเขียนนอนทางซ้าย */
-      if (fuse) pen.text(T, sx + 2.4, by + 2.4, TS.spec, P.spdBk, { rot: 90, align: 2, valign: 2 });
-      else pen.text(T, sx - g * 1.26 - 1.0, by, fitH(P.spdBk, TS.spec, sw), P.spdBk, { align: 2, valign: 2 });   // พ้นโค้งเบรกเกอร์ที่โป่งซ้าย (ผู้ใช้ 2026-10-31: โดนทับ)
-    } else sy = top0 + 2;
+    [xN].forEach((x) => {
+      pen.dot(R, x, yMain, 0.5);
+      sy = yMain;
+      if (P.spdBk) {
+        /* ฟิวส์อยู่ชิดสายเมน (ผู้ใช้ชี้ 2026-10-29: ฟิวส์ลอยต่ำ ป้ายไม่ตรงตัว) — ป้ายข้างฟิวส์อยู่สูงกว่ากล่อง PM/MCB 2P จึงไม่ชน
+           SPD ยังอยู่ต่ำกว่าแถว PM เหมือนเดิม (ป้าย SPD ยาว ชน MCB 2P ถ้ายกขึ้น) */
+        const fuse = /FUSE/.test(P.spdBk), by = (fuse ? (hasGf ? yMain - 12.6 : yMain - 3) : top0) - 2.4;
+        pen.line(R, x, sy, x, by + 2.4);
+        if (fuse) { vFuse(x, by); sy = Math.min(by - 2.4, top0 - 4.8); pen.line(R, x, by - 2.4, x, sy); }
+        else { pen.line(R, x, by + 2.4, x, by + g + 0.75); pgSym.breaker(pen, x, by, "", "", g); sy = by - g - 0.75; }
+        /* ป้ายฟิวส์เขียนตั้งขวาตัวฟิวส์ ปลายอยู่ระดับหัวฟิวส์ (ผู้ใช้ชี้ 2026-10-29) — เบรกเกอร์ยังเขียนนอนทางซ้าย */
+        if (fuse) pen.text(T, x + 2.4, by + 2.4, TS.spec, P.spdBk, { rot: 90, align: 2, valign: 2 });
+        else pen.text(T, x - g * 1.26 - 1.0, by, fitH(P.spdBk, TS.spec, sw), P.spdBk, { align: 2, valign: 2 });   // พ้นโค้งเบรกเกอร์ที่โป่งซ้าย (ผู้ใช้ 2026-10-31: โดนทับ)
+      } else sy = top0 + 2;
+      pen.line(R, x, sy, x, sy - 5.5 + 2.4);
+      pgSym.spd(pen, x, sy - 5.5, null, { w: 1.7, h: 4.8 });   // ขนาดเท่าฟิวส์ (ผู้ใช้ 2026-10-29)
+    });
     const spY = sy - 5.5;
-    pen.line(R, sx, sy, sx, spY + 2.4);
-    pgSym.spd(pen, sx, spY, null, { w: 1.7, h: 4.8 });   // ขนาดเท่าฟิวส์ (ผู้ใช้ 2026-10-29)
     const spH = Math.min.apply(null, P.acSpd.map((t) => fitH(t, TS.spec, sw)));
-    P.acSpd.forEach((t, i) => pen.text(T, sx - 3.6, spY + 2.4 - i * 2.2, spH, t, { align: 2, valign: 2 }));
+    P.acSpd.forEach((t, i) => pen.text(T, xN - 3.6, spY + 2.4 - i * 2.2, spH, t, { align: 2, valign: 2 }));
     /* บาร์ N และบาร์ G ที่ก้นตู้ AC (ผู้ใช้วาดชี้ 2026-10-29) — สายดิน SPD ลงผ่านบาร์ G แล้วไปบัสดินหลัก (MET) */
     const acBot = Math.min(spY - 10, pmLow - 2, busLo - 4);
     const barY = acBot + 3, barW = 9, barH = 1.6;   // บาร์อยู่ก้นตู้ (ผู้ใช้ชี้ให้ลงล่างสุด)
@@ -2401,7 +2406,7 @@ function pgSldPro(doc, sheet, M) {
     pen.text(T, ax + 4, yMain - 1.0, TS.spec, P.home && M.cuRef ? M.cuRef : "(EXISTING)", { valign: 3 });
     const yE = Math.max(yE0, Math.min(blkLow - 4, acBot - 5, mdBot - 14));
     /* สายดิน SPD จบที่รูบาร์ G · สายไป MET ออกจากอีกรูด้านล่าง ไม่ลากทะลุบาร์ (ผู้ใช้ชี้ 2026-10-29) */
-    pen.line(PE, sx, spY - 2.4, sx, barY + 0.45);
+    pen.line(S, xN, spY - 2.4, xN, barY + 0.45);   // SPD ลงรูขวาสุดบาร์ N (ผู้ใช้วาดชี้ 2026-10-31)
     /* บาร์ G ไม่ต่อเข้าสายดินหลัก — ลงกระโดดข้ามสาย (ครึ่งวงกลม) ไปต่อบาร์ดินตู้ MDB เดิม (ผู้ใช้ชี้ 2026-10-29) */
     /* ดินฝั่ง AC อยู่ใต้ตู้ AC ใกล้ ๆ ไม่ลงไปถึงระดับหลักดิน PV ล่างสุด (ผู้ใช้ชี้ 2026-10-30: กราวด์ไกลไป) */
     { const gx = sx + 2, yA = acBot - 7, gy = yA - 4.5;

@@ -2018,7 +2018,7 @@ function pgSldLayers(doc) {
   doc.layer(PG_SLD.box, PG_ACI.red, "PG-DASHB", 20);
   doc.layer(PG_SLD.txt, PG_ACI.white, "CONTINUOUS", 18);
   doc.layer(PG_SLD.lbl, PG_ACI.cyan, "CONTINUOUS", 25);
-  doc.layer(PG_SLD.comm, PG_ACI.white, "PG-DASH", 15);
+  doc.layer(PG_SLD.comm, PG_ACI.white, "CONTINUOUS", 15);
   doc.layer(PG_SLD.ctsig, PG_ACI.white, "PG-DASHF", 15);
   doc.layer(PG_SLD.swlink, PG_ACI.grey, "PG-DASHF", 13);
   doc.layer(PG_SLD.tab, PG_ACI.white, "CONTINUOUS", 20);
@@ -3332,40 +3332,44 @@ function pgSldPro(doc, sheet, M) {
       });
       pmLow = pbB - 3.6;
     }
-    pen.dot(R, sx, yMain, 0.5);
-    const sw = sx - 3.6 - X.ac0 - 1;
+    const xN = sx - 13;
+    const sw = xN - 3.6 - X.ac0 - 1;
     let sy = yMain;
     const top0 = Math.min(P.pm ? pmLow : yMain, hasGf ? yMain - 12.6 : yMain - 3);
-    if (P.spdBk) {
-      const fuse = /FUSE/.test(P.spdBk),
-        by = (fuse ? hasGf ? yMain - 12.6 : yMain - 3 : top0) - 2.4;
-      pen.line(R, sx, sy, sx, by + 2.4);
-      if (fuse) {
-        vFuse(sx, by);
-        sy = Math.min(by - 2.4, top0 - 4.8);
-        pen.line(R, sx, by - 2.4, sx, sy);
-      } else {
-        pen.line(R, sx, by + 2.4, sx, by + g + 0.75);
-        pgSym.breaker(pen, sx, by, "", "", g);
-        sy = by - g - 0.75;
-      }
-      if (fuse) pen.text(T, sx + 2.4, by + 2.4, TS.spec, P.spdBk, {
-        rot: 90,
-        align: 2,
-        valign: 2
-      });else pen.text(T, sx - g * 1.26 - 1.0, by, fitH(P.spdBk, TS.spec, sw), P.spdBk, {
-        align: 2,
-        valign: 2
+    [xN].forEach(x => {
+      pen.dot(R, x, yMain, 0.5);
+      sy = yMain;
+      if (P.spdBk) {
+        const fuse = /FUSE/.test(P.spdBk),
+          by = (fuse ? hasGf ? yMain - 12.6 : yMain - 3 : top0) - 2.4;
+        pen.line(R, x, sy, x, by + 2.4);
+        if (fuse) {
+          vFuse(x, by);
+          sy = Math.min(by - 2.4, top0 - 4.8);
+          pen.line(R, x, by - 2.4, x, sy);
+        } else {
+          pen.line(R, x, by + 2.4, x, by + g + 0.75);
+          pgSym.breaker(pen, x, by, "", "", g);
+          sy = by - g - 0.75;
+        }
+        if (fuse) pen.text(T, x + 2.4, by + 2.4, TS.spec, P.spdBk, {
+          rot: 90,
+          align: 2,
+          valign: 2
+        });else pen.text(T, x - g * 1.26 - 1.0, by, fitH(P.spdBk, TS.spec, sw), P.spdBk, {
+          align: 2,
+          valign: 2
+        });
+      } else sy = top0 + 2;
+      pen.line(R, x, sy, x, sy - 5.5 + 2.4);
+      pgSym.spd(pen, x, sy - 5.5, null, {
+        w: 1.7,
+        h: 4.8
       });
-    } else sy = top0 + 2;
-    const spY = sy - 5.5;
-    pen.line(R, sx, sy, sx, spY + 2.4);
-    pgSym.spd(pen, sx, spY, null, {
-      w: 1.7,
-      h: 4.8
     });
+    const spY = sy - 5.5;
     const spH = Math.min.apply(null, P.acSpd.map(t => fitH(t, TS.spec, sw)));
-    P.acSpd.forEach((t, i) => pen.text(T, sx - 3.6, spY + 2.4 - i * 2.2, spH, t, {
+    P.acSpd.forEach((t, i) => pen.text(T, xN - 3.6, spY + 2.4 - i * 2.2, spH, t, {
       align: 2,
       valign: 2
     }));
@@ -3406,7 +3410,7 @@ function pgSldPro(doc, sheet, M) {
       valign: 3
     });
     const yE = Math.max(yE0, Math.min(blkLow - 4, acBot - 5, mdBot - 14));
-    pen.line(PE, sx, spY - 2.4, sx, barY + 0.45);
+    pen.line(S, xN, spY - 2.4, xN, barY + 0.45);
     {
       const gx = sx + 2,
         yA = acBot - 7,
