@@ -2500,7 +2500,7 @@ function pgSldPro(doc, sheet, M) {
       bat: !!M.batt && no === invNos[0]
     };
   };
-  const BAT_H = 12;
+  const BAT_H = 14.5;
   const EH = 4.5;
   const rowH = row => row && row.empty ? EH : RH;
   let MH = 13;
@@ -2702,6 +2702,9 @@ function pgSldPro(doc, sheet, M) {
     }
     if (bw > 0 && bh > 0 && isFinite(sc)) pen = pgScalePen(pen0, sc, o[0], o[1]);
   }
+  if (!isMain && !isDet && !P.pm && blocks.length === 1 && !blocks[0].typical) ["acB", "acBus", "acM", "ac1", "md0", "mdB", "mdBus", "md1"].forEach(k => {
+    X[k] -= 17;
+  });
   const hy = A.y1 - 7;
   if (!isMain) {
     pen.text(LB, (X.m1 + X.sl) / 2, hy, TS.zone, "PV ARRAY", {
@@ -3018,30 +3021,37 @@ function pgSldPro(doc, sheet, M) {
     pen.circle(S, X.iv1, tapY, 0.6);
     const nm = b.names || (b.typical ? "INV" + b.no + "-INV" + b.to + " (x" + b.cnt + ")" : "INV" + b.no);
     const ix = X.iv0 + 4,
-      iw = (b.bat ? X.iv1 + 1.5 : X.ac0 - 1) - ix;
+      iw = (b.bat ? X.iv1 - 10.5 : X.ac0 - 1) - ix;
     const ivL = b.names ? [[LB, nm], [T, b.kw + "kW " + P.phTxt + "  " + b.model], [T, "DC SWITCH : BUILT-IN"], [T, "AC : " + M.acCable]] : [[LB, nm + "  " + b.kw + "kW " + P.phTxt], [T, b.model || M.inv.model], [T, "DC SWITCH : BUILT-IN"], [T, "AC : " + M.acCable]];
     if (ivIn) ivL.forEach(l => {
       if (l[1] === "DC SWITCH : BUILT-IN") l[1] = "DC SWITCH + DC/AC SPD TYPE II : BUILT-IN";
     });
+    if (b.bat) {
+      const k = ivL.findIndex(l => /^DC SWITCH \+ /.test(l[1]));
+      if (k >= 0) ivL.splice(k, 1, [T, "DC SWITCH + DC/AC SPD"], [T, "TYPE II : BUILT-IN"]);
+    }
     const ivH = Math.min.apply(null, ivL.map(l => fitH(l[1], TS.spec, iw)));
     ivL.forEach((l, k) => pen.text(l[0], ix, G.boxBot - 1.2 - k * 2.4, ivH, l[1], {
       valign: 3
     }));
     if (b.bat) {
-      const yT = G.boxBot + 1.2,
-        lx = X.iv1 + 3,
+      const tx = X.iv1 - 9,
         bw = 20,
         bh = 6,
-        bTop = G.boxBot - 11.6,
+        bTop = G.boxBot - 1.2 - ivL.length * 2.4 - 1.6,
         bMid = bTop - bh / 2,
-        bx0 = X.iv1 - bw;
-      pen.circle(S, X.iv1, yT, 0.6);
-      pen.text(T, X.iv1 + 0.9, yT + 0.5, TS.tag, "BAT", {
-        valign: 1
+        bx0 = tx - bw / 2;
+      const sx = X.iv1 - 8 - ivSh,
+        sb = tapY - 8.5 / 2,
+        yI = G.boxBot + 1.2;
+      pen.line(R, sx, sb, sx, yI);
+      pen.line(R, sx, yI, tx, yI);
+      pen.line(R, tx, yI, tx, G.boxBot + 0.6);
+      pen.circle(S, tx, G.boxBot, 0.6);
+      pen.text(T, tx + 1.0, G.boxBot - 0.9, TS.tag, "BAT", {
+        valign: 3
       });
-      pen.line(R, X.iv1 + 0.6, yT, lx, yT);
-      pen.line(R, lx, yT, lx, bMid);
-      pen.line(R, lx, bMid, X.iv1, bMid);
+      pen.line(R, tx, G.boxBot - 0.6, tx, bTop);
       pen.rect(S, bx0, bTop - bh, bw, bh);
       [0, 1.4].forEach(d => {
         pen.line(S, bx0 + 2 + d, bMid - 1.8, bx0 + 2 + d, bMid + 1.8);
@@ -3052,8 +3062,8 @@ function pgSldPro(doc, sheet, M) {
         valign: 2
       });
       const bm = ((M.batt.brand && M.batt.model.indexOf(M.batt.brand) < 0 ? M.batt.brand + " " : "") + M.batt.model).trim();
-      pen.text(T, X.iv1, bTop - bh - 0.8, fitH(bm, TS.spec, X.iv1 + 1.5 - ix), bm, {
-        align: 2,
+      pen.text(T, tx, bTop - bh - 0.8, fitH(bm, TS.spec, bw + 8), bm, {
+        align: 1,
         valign: 3
       });
     }
@@ -3193,9 +3203,7 @@ function pgSldPro(doc, sheet, M) {
     let wx = mx + g + 0.75,
       mx2 = mx;
     if (mSplit) {
-      const rx = mx + RD,
-        tx = rx + g + 0.75 + 2.2,
-        tr = 1.1;
+      const rx = mx + RD;
       pen.line(R, wx, yMain, rx - g - 0.75, yMain);
       hBrk(rx, yMain);
       const rl = /^(.*?A) (\d+mA)$/.exec(mSplit[2]);
@@ -3209,10 +3217,7 @@ function pgSldPro(doc, sheet, M) {
           valign: 1
         });
       } else brkLabel(mSplit[2], "", rx, yMain);
-      pen.line(R, rx + g + 0.75, yMain, tx - tr, yMain);
-      pen.circle(S, tx, yMain, tr);
-      pen.line(R, tx - tr, yMain, tx + tr, yMain);
-      wx = tx + tr;
+      wx = rx + g + 0.75;
       mx2 = mx + MSPL;
     }
     if (hasGf) {

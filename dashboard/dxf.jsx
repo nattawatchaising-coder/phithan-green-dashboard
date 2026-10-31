@@ -1736,7 +1736,7 @@ function pgSldPro(doc, sheet, M) {
     return { no, groups, kw: P.ivKw[no - 1], brk: P.ivBrk[no - 1], model: modelOf(no), bat: !!M.batt && no === invNos[0] };   // ไฮบริด: แบตห้อยใต้เครื่องแรก
   };
   /* เรขาคณิตของบล็อก — คิดก่อนวาด ใช้ทั้งตอนเลือกโหมดย่อและตอนวาดจริง */
-  const BAT_H = 12;   // ที่ใต้ป้ายอินเวอร์เตอร์สำหรับกล่องแบต + ป้ายรุ่น
+  const BAT_H = 14.5;   // ที่ใต้ป้ายอินเวอร์เตอร์สำหรับกล่องแบต + ป้ายรุ่น
   const EH = 4.5;   // ระยะแถวของช่อง IN ที่ไม่ได้ต่อ (ขั้วเปล่า ไม่มีสตริง) — เตี้ยกว่าแถวสตริง
   const rowH = (row) => (row && row.empty ? EH : RH);
   let MH = 13;   // ความสูงบล็อกย่อในแผ่นภาพรวม (กล่องอินเวอร์เตอร์ + ป้าย PV)
@@ -1871,6 +1871,8 @@ function pgSldPro(doc, sheet, M) {
   }
 
   /* ── หัวคอลัมน์ ── */
+  /* งานบ้านเครื่องเดียวไม่มีเบรกเกอร์ต่อเครื่อง — ซีกซ้ายตู้ AC ว่าง: ของในตู้/ขอบขวา/MDB เลื่อนซ้าย ตู้หดชิด MCB เมน (ผู้ใช้ 2026-10-31: กรอบยาวไป) */
+  if (!isMain && !isDet && !P.pm && blocks.length === 1 && !blocks[0].typical) ["acB", "acBus", "acM", "ac1", "md0", "mdB", "mdBus", "md1"].forEach((k) => { X[k] -= 17; });
   const hy = A.y1 - 7;
   /* แผ่นภาพรวมไม่มีหัว PV ARRAY + DC BOX — ทับหัว INVERTER (ผู้ใช้ขีดฆ่า 2026-10-29) */
   if (!isMain) {
@@ -2125,31 +2127,33 @@ function pgSldPro(doc, sheet, M) {
     }
     pen.circle(S, X.iv1, tapY, 0.6);
     const nm = b.names || (b.typical ? "INV" + b.no + "-INV" + b.to + " (x" + b.cnt + ")" : "INV" + b.no);
-    const ix = X.iv0 + 4, iw = (b.bat ? X.iv1 + 1.5 : X.ac0 - 1) - ix;   // มีแบต: เว้นทางสาย BAT ขวากล่อง
+    const ix = X.iv0 + 4, iw = (b.bat ? X.iv1 - 10.5 : X.ac0 - 1) - ix;   // มีแบต: ป้ายจบก่อนสาย BAT ที่ลงจากขอบล่าง
     /* ใต้กล่องอินเวอร์เตอร์: ทุกบรรทัดขนาดเท่ากัน ระยะบรรทัดเท่ากัน (ผู้ใช้ 2026-10-29) — เดิมหัวใหญ่กว่า แต่ละบรรทัดย่อเองคนละขนาด ช่องห่างไม่เท่า
        ขนาด = เล็กสุดที่ทุกบรรทัดพอดีความกว้าง · ชื่อเครื่องยังเป็นสีป้าย (LB) */
     /* รุ่นของเครื่องนั้นเอง (งานปนหลายรุ่น · ผู้ใช้ 2026-10-29: สูงสุด 4 รุ่น) · กลุ่มหลายเครื่อง = ชื่อกลุ่มบรรทัดเดียว กำลังไปอยู่บรรทัดรุ่น */
     const ivL = b.names ? [[LB, nm], [T, b.kw + "kW " + P.phTxt + "  " + b.model], [T, "DC SWITCH : BUILT-IN"], [T, "AC : " + M.acCable]]
       : [[LB, nm + "  " + b.kw + "kW " + P.phTxt], [T, b.model || M.inv.model], [T, "DC SWITCH : BUILT-IN"], [T, "AC : " + M.acCable]];
     if (ivIn) ivL.forEach((l) => { if (l[1] === "DC SWITCH : BUILT-IN") l[1] = "DC SWITCH + DC/AC SPD TYPE II : BUILT-IN"; });
+    /* มีแบต: สาย BAT ลงจากขอบล่างกล่อง — บรรทัดยาวตัดเป็นสองบรรทัดให้ป้ายจบก่อนถึงสาย ไม่ต้องย่อตัว */
+    if (b.bat) { const k = ivL.findIndex((l) => /^DC SWITCH \+ /.test(l[1])); if (k >= 0) ivL.splice(k, 1, [T, "DC SWITCH + DC/AC SPD"], [T, "TYPE II : BUILT-IN"]); }
     const ivH = Math.min.apply(null, ivL.map((l) => fitH(l[1], TS.spec, iw)));
     ivL.forEach((l, k) => pen.text(l[0], ix, G.boxBot - 1.2 - k * 2.4, ivH, l[1], { valign: 3 }));
-    /* แบตเตอรี่ของไฮบริด (ผู้ใช้ 2026-10-31: แบบมีแบตยังเป็นแบบเก่า) — ขั้ว BAT ที่ขอบขวาล่างกล่อง → สาย DC ลงขวากล่อง
-       → เลี้ยวเข้าข้างกล่องแบตใต้ป้ายอินเวอร์เตอร์ · ป้ายรุ่นใต้กล่อง */
+    /* แบตเตอรี่ของไฮบริด (ผู้ใช้ 2026-10-31 วาดชี้): ขั้ว BAT ที่ขอบล่างกล่องอินเวอร์เตอร์ (ในกล่องต่อจากสัญลักษณ์)
+       → สาย DC ลงตรงเข้าด้านบนกล่องแบตใต้ป้ายอินเวอร์เตอร์ · ป้ายรุ่นใต้กล่อง */
     if (b.bat) {
-      const yT = G.boxBot + 1.2, lx = X.iv1 + 3, bw = 20, bh = 6, bTop = G.boxBot - 11.6, bMid = bTop - bh / 2, bx0 = X.iv1 - bw;
-      pen.circle(S, X.iv1, yT, 0.6);
-      pen.text(T, X.iv1 + 0.9, yT + 0.5, TS.tag, "BAT", { valign: 1 });
-      pen.line(R, X.iv1 + 0.6, yT, lx, yT);
-      pen.line(R, lx, yT, lx, bMid);
-      pen.line(R, lx, bMid, X.iv1, bMid);
+      const tx = X.iv1 - 9, bw = 20, bh = 6, bTop = G.boxBot - 1.2 - ivL.length * 2.4 - 1.6, bMid = bTop - bh / 2, bx0 = tx - bw / 2;
+      const sx = X.iv1 - 8 - ivSh, sb = tapY - 8.5 / 2, yI = G.boxBot + 1.2;
+      pen.line(R, sx, sb, sx, yI); pen.line(R, sx, yI, tx, yI); pen.line(R, tx, yI, tx, G.boxBot + 0.6);   // ในกล่อง: สัญลักษณ์ → ขั้ว BAT
+      pen.circle(S, tx, G.boxBot, 0.6);
+      pen.text(T, tx + 1.0, G.boxBot - 0.9, TS.tag, "BAT", { valign: 3 });
+      pen.line(R, tx, G.boxBot - 0.6, tx, bTop);
       pen.rect(S, bx0, bTop - bh, bw, bh);
       /* สัญลักษณ์แบต: แผ่นยาว/สั้นสลับ ซ้ายในกล่อง */
       [0, 1.4].forEach((d) => { pen.line(S, bx0 + 2 + d, bMid - 1.8, bx0 + 2 + d, bMid + 1.8); pen.line(S, bx0 + 2.7 + d, bMid - 1.0, bx0 + 2.7 + d, bMid + 1.0); });
       const bt = "BATTERY " + M.batt.kwh + " kWh";
       pen.text(LB, bx0 + 5.6, bMid, fitH(bt, TS.spec, bw - 6.4), bt, { valign: 2 });
       const bm = ((M.batt.brand && M.batt.model.indexOf(M.batt.brand) < 0 ? M.batt.brand + " " : "") + M.batt.model).trim();
-      pen.text(T, X.iv1, bTop - bh - 0.8, fitH(bm, TS.spec, X.iv1 + 1.5 - ix), bm, { align: 2, valign: 3 });
+      pen.text(T, tx, bTop - bh - 0.8, fitH(bm, TS.spec, bw + 8), bm, { align: 1, valign: 3 });
     }
     /* สายดินของบล็อก: PE bar ตู้ DC + ตัวเครื่องอินเวอร์เตอร์ → PE trunk */
     const peX = X.iv0 + 2;
@@ -2256,22 +2260,19 @@ function pgSldPro(doc, sheet, M) {
     if (!oneInv) pen.dot(R, X.acBus, yMain, 0.5);   // เครื่องเดียว = สายเส้นเดียวไม่มีจุดแยก ไม่ต้องมีจุด (ผู้ใช้ชี้จุดค้าง)
     pen.line(R, oneInv ? oneX : X.acBus, yMain, mx - g - 0.75, yMain);
     hBrk(mx, yMain, isCb(P.mainTxt));
-    /* งานบ้าน "MCB … + RCCB …" วาดแยกสองตัว (ผู้ใช้ 2026-10-31: ต้องแยกเป็นสองอัน) — MCB แล้วตามด้วย RCCB (เบรกเกอร์ + วงทอรอยด์บนสาย)
+    /* งานบ้าน "MCB … + RCCB …" วาดแยกสองตัว (ผู้ใช้ 2026-10-31: ต้องแยกเป็นสองอัน) — MCB แล้วตามด้วย RCCB
        ของทางขวา (ไฟเลี้ยง PM · SPD · ขอบตู้ · MDB) เลื่อนตามระยะที่เพิ่ม */
     const mainL = mSplit ? mSplit[1] : P.mainTxt + (P.lsig ? " LSIG" : "");
     brkLabel(mainL, "", mx, yMain);   // เมนแบบเศษส่วนเหมือนเบรกเกอร์อินเวอร์เตอร์ (ผู้ใช้: ACB ไม่มี AF/IC)
     let wx = mx + g + 0.75, mx2 = mx;
     if (mSplit) {
-      const rx = mx + RD, tx = rx + g + 0.75 + 2.2, tr = 1.1;
+      const rx = mx + RD;
       pen.line(R, wx, yMain, rx - g - 0.75, yMain);
       hBrk(rx, yMain);
       const rl = /^(.*?A) (\d+mA)$/.exec(mSplit[2]);
       if (rl) { pen.text(T, rx, yMain + g * 1.26 + 2.6, TS.spec, rl[1], { align: 1, valign: 1 }); pen.text(T, rx, yMain + g * 1.26 + 0.6, TS.spec, rl[2], { align: 1, valign: 1 }); }
       else brkLabel(mSplit[2], "", rx, yMain);
-      pen.line(R, rx + g + 0.75, yMain, tx - tr, yMain);
-      pen.circle(S, tx, yMain, tr);
-      pen.line(R, tx - tr, yMain, tx + tr, yMain);
-      wx = tx + tr; mx2 = mx + MSPL;
+      wx = rx + g + 0.75; mx2 = mx + MSPL;   // ไม่มีวงทอรอยด์ (ผู้ใช้ขีดฆ่า 2026-10-31)
     }
     if (hasGf) {
       /* Ground fault: ZCT คล้องสายเมน → รีเลย์ GFR → สั่ง Shunt trip ของ MCCB */
