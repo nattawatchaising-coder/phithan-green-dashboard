@@ -1810,14 +1810,17 @@ function pgSldPro(doc, sheet, M) {
         txt(LB, RX0 + 1.2, cy - rh / 2, TS.sub, r[1], { valign: 2 });
         cy -= rh; return;
       }
-      const cells = cw.map((w, i) => wrapT(String(r[i] == null ? "" : r[i]), th, w - 2));
+      /* DATA SHEET: แถวไม่มีหน่วย (BRAND/MODEL) รวมช่องค่ากับช่องหน่วย ไม่มีเส้นคั่น — พิมพ์ยาวได้ (ผู้ใช้ 2026-10-31) */
+      const nC = cw.length, mg = cw.noLine && nC > 2 && (r[nC - 1] == null || r[nC - 1] === "");
+      const rw = mg ? cw.slice(0, nC - 2).concat([cw[nC - 2] + cw[nC - 1]]) : cw;
+      const cells = rw.map((w, i) => wrapT(String(r[i] == null ? "" : r[i]), th, w - 2));
       const nL = Math.max.apply(null, cells.map((c) => c.length));
       const h = rh + (nL - 1) * lp;
       rect(RX0, cy - h, RW, h);
       let cx = RX0;
-      cw.forEach((w, i) => {
+      rw.forEach((w, i) => {
         if (i && !dry && (cw.noLine || []).indexOf(i) < 0) pen.line(L, cx, cy, cx, cy - h);   // ตาราง DATA SHEET: หัวข้อกับสัญลักษณ์อยู่ช่องเดียวกัน ไม่มีเส้นคั่น
-        const c = i === cw.length - 1 && cw.length > 2;
+        const c = !mg && i === cw.length - 1 && cw.length > 2;
         const ls = cells[i], y0 = cy - h / 2 + (ls.length - 1) * lp / 2;
         ls.forEach((t, j) => txt(T, c ? cx + w / 2 : cx + 1, y0 - j * lp, th, t, { align: c ? 1 : 0, valign: 2 }));
         cx += w;
@@ -2405,8 +2408,8 @@ function pgSldPro(doc, sheet, M) {
       pen.text(T, gx - 1.5, yA + 1.9, TS.tag, "OF EXISTING MDB", { align: 2, valign: 2 });
       pen.text(LB, gx - 1.5, yA - 0.1, TS.spec, "THW(G) " + P.earthCu + " Sq.mm.", { align: 2, valign: 2 }); }   // ขนาดสาย หน่วย Sq.mm. (ผู้ใช้ 2026-10-29)
     /* กราวด์ตัวตู้ (ผู้ใช้ชี้ 2026-10-29) — จากรูที่ 1 ของบาร์ G ลงไปต่อกรอบตู้ (เส้นประก้นตู้) */
-    pen.line(PE, sx - 4, barY - 0.45, sx - 4, acBot + 1.0);   // หยุดที่ขอบบนวงจุดยึด ไม่ลากทะลุวง (ผู้ใช้ 2026-10-29)
-    pen.circle(PE, sx - 4, acBot + 0.5, 0.5);   // จุดยึดโครงตู้ ไม่ต้องเขียนป้าย (ผู้ใช้ 2026-10-29)
+    pen.line(PE, sx - 4, barY - 0.45, sx - 4, acBot + 0.5);   // หยุดที่ขอบบนวงจุดยึด ไม่ลากทะลุวง (ผู้ใช้ 2026-10-29)
+    pen.circle(PE, sx - 4, acBot, 0.5);   // จุดยึดโครงตู้ทับกลางเส้นขอบตู้ (ผู้ใช้ 2026-10-31) ไม่ต้องเขียนป้าย
     /* PE trunk ซ้าย: โครงแผงทุกแถว + บล็อกทุกเครื่อง → บัสดินหลัก */
     pen.line(PE, X.pe0, peTop, X.pe0, yE);
 
@@ -2527,7 +2530,7 @@ function pgCuDraw(pen, M) {
   const ctx = 0, clW = Math.max.apply(null, cl.map((t) => pgTextW(t, TS.spec))) * 1.2;
   pen.text(T, ctx + 1, yMain + 0.8, TS.spec, cl[0], { valign: 1 });
   pen.text(T, ctx + 1, yMain - 0.8, TS.spec, cl[1], { valign: 3 });
-  pen.text(LB, ctx - 1.5, yMain + 0.9, TS.head, "FROM AC COMBINER BOX", { align: 2, valign: 1 });
+  pen.text(LB, ctx - 1.5, yMain, TS.head, "FROM AC COMBINER BOX", { align: 2, valign: 2 });   // กึ่งกลางเส้นสาย (ผู้ใช้ 2026-10-31)
   pen.solid(R, [ctx - 1.2, yMain + 1.1], [ctx + 1.4, yMain], [ctx - 1.2, yMain - 1.1]);
   const cu = P.cu || "slot";
   const sBrk = String(P.mainTxt || "").split(" + ")[0].trim();   // MCB โซลาร์ในตู้บ้าน = ขนาดเดียวกับเมนตู้ AC
@@ -2579,11 +2582,14 @@ function pgCuDraw(pen, M) {
     pen.line(PE, x, y0, x, y1); pgSym.ground(pen, x, y1);
     if (lab) pen.text(T, x + 3.6, y1 - 1.3, TS.tag, lab, { valign: 2 });
   };
-  const xN = c0 + 8.5, xG = c0 + 22;
+  const xG = c1 - 10, xN = xG - 12;   // บาร์ N/G ชิดขอบขวาตู้ (ผู้ใช้ 2026-10-31) สายดินลงพ้นชื่อตู้ใต้กรอบ
   bar(S, xN, "N", false);
   bar(PE, xG, "G", true);
-  pen.line(PE, xG - 2.5, barY - 0.45, xG - 2.5, cuB + 1.0); pen.circle(PE, xG - 2.5, cuB + 0.5, 0.5);   // จุดยึดโครงตู้
-  gnd(xG + 1.5, barY - 0.45, yMain + 4.5, "GROUND (EXISTING)");
+  /* สายบอนด์ N-G: รูท้ายบาร์ N → รูที่ 1 บาร์ G · รูที่ 2 → จุดยึดโครงตู้ทับเส้นขอบ (ผู้ใช้ 2026-10-31) */
+  const yNG = barY + 2.4;
+  pen.line(S, xN + 3, barY + 0.45, xN + 3, yNG); pen.line(S, xN + 3, yNG, xG - 3, yNG); pen.line(S, xG - 3, yNG, xG - 3, barY + 0.45);
+  pen.line(PE, xG - 1, barY - 0.45, xG - 1, cuB + 0.5); pen.circle(PE, xG - 1, cuB, 0.5);
+  gnd(xG + 3, barY - 0.45, yMain + 4.5, "GROUND (EXISTING)");   // รูที่ 4 → หลักดิน
   /* เมนเดิมของตู้บ้าน (แบบ rccb = RCCB เดิม) */
   const yMB = yB + 6;
   pen.dot(S, xMn, yB, 0.4);
@@ -2608,8 +2614,7 @@ function pgCuDraw(pen, M) {
     pen.line(R, xs, yB, xs, yS + BS); vBrk(xs, yS);
     lab2(xs, yS, sBrk, "SOLAR CELL");
     pen.rect(BX, b0, yS - 5.5, b1 - b0, 10);
-    pen.text(LB, b0 + 0.5, yS - 6.5, TS.spec, "MDB SOLAR (NEW)", { valign: 3 });
-    gnd(b1 - 2, yS - 5.5, yS - 9.5);   // กราวด์ตู้ MDB SOLAR
+    pen.text(LB, b0 + 0.5, yS + 5.6, TS.spec, "MDB SOLAR (NEW)", { valign: 3 });
     pen.line(R, xs, yS - BS, xs, yMain);
     xSol = xs; xR = b1;
   } else {
@@ -2624,8 +2629,8 @@ function pgCuDraw(pen, M) {
     pen.text(T, xh, yN - 1.2, TS.tag, sBrk, { align: 1, valign: 3 });
     pen.text(T, xh, yN - 2.8, TS.tag, "SOLAR CELL", { align: 1, valign: 3 });
     pen.rect(BX, b0, yN - 6, b1 - b0, 10);
-    pen.text(LB, b0, yN + 5.4, TS.spec, "MDB SOLAR (NEW)", { valign: 3 });
-    gnd(b1 - 2, yN - 6, yN - 10);   // กราวด์ตู้ MDB SOLAR
+    pen.text(LB, b0, yN + 6.2, TS.spec, "MDB SOLAR (NEW)", { valign: 3 });   // เว้นจากกรอบ (ผู้ใช้ 2026-10-31: ชิดขอบตู้ไป)
+    /* ไม่วาดกราวด์ตู้ MDB SOLAR (ผู้ใช้ขีดฆ่า 2026-10-31) */
     pen.line(W, xMn, yN, xMn, yMN - BS); vBrk(xMn, yMN);
     lab2(xMn, yMN, "MAIN", P.exMain || "");   // ไม่เขียน (NEW)/(EXISTING) ที่เบรกเกอร์ (ผู้ใช้ขีดฆ่า 2026-10-31)
     pen.line(R, xs, yN, xs, yMain);
@@ -2650,13 +2655,16 @@ function pgCuDraw(pen, M) {
   pen.text(T, xMn + 3.2, yC - 0.2, TS.tag, "FOR SOLAR METER : " + (mtrNm || "SMART METER (SEE SLD)"), { valign: 1 });
   pen.line(W, xMn - 1.3, yA, xMn + 1.3, yA); pen.line(W, xMn - 1.3, yA, xMn, yA + 2.6); pen.line(W, xMn + 1.3, yA, xMn, yA + 2.6);
   pen.text(LB, xMn, yA + 3.4, TS.head, "TO " + (P.auth || "GRID"), { align: 1, valign: 1 });
-  if (M.mon) {
-    /* สายสัญญาณ CT ออกขวา ลงไปหาเครื่องวัด/ตัวเก็บข้อมูล (ใน SLD) */
-    const CS = PG_SLD.ctsig, xr = xR + 5, yD = yMain - 8, mon = M.mon;
-    const dst = mon.meter ? mon.meter.replace(/\s*\+\s*CT.*$/i, "") : mon.dev;
-    pen.line(CS, xMn + CT_R + 0.2, yC, xr, yC); pen.line(CS, xr, yC, xr, yD + 1.6);
-    pen.solid(S, [xr - 0.7, yD + 1.6], [xr, yD], [xr + 0.7, yD + 1.6]);
-    pen.text(T, xr, yD - 0.8, TS.tag, "CT SIGNAL TO " + dst, { align: 1, valign: 3 });
+  /* สายสัญญาณ CT ออกซ้ายไปเข้ามิเตอร์โซลาร์ (ผู้ใช้ 2026-10-31: ต้องมีอุปกรณ์หรือบอกว่าไปไหน) → RS485 ไปอินเวอร์เตอร์ */
+  {
+    const CS = PG_SLD.ctsig, mw = 13, mh = 6, mx1 = xMn - CT_R - 8, mx0 = mx1 - mw;
+    pen.line(CS, xMn - CT_R - 0.2, yC, mx1, yC);
+    pen.rect(S, mx0, yC - mh / 2, mw, mh);
+    pen.text(LB, mx0 + mw / 2, yC + 0.9, TS.tag, "SOLAR METER", { align: 1, valign: 2 });
+    pen.text(T, mx0 + mw / 2, yC - 1.1, TS.tag * 0.85, mtrNm || "SMART METER", { align: 1, valign: 2 });
+    pen.line(CS, mx0, yC, mx0 - 5, yC);
+    pen.solid(S, [mx0 - 5, yC + 0.7], [mx0 - 6.6, yC], [mx0 - 5, yC - 0.7]);
+    pen.text(T, mx0 - 7.4, yC, TS.tag, "RS485 TO INVERTER", { align: 2, valign: 2 });
   }
   pen.line(R, ctx + 1.4, yMain, xSol, yMain);
 }

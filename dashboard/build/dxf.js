@@ -2628,14 +2628,17 @@ function pgSldPro(doc, sheet, M) {
         cy -= rh;
         return;
       }
-      const cells = cw.map((w, i) => wrapT(String(r[i] == null ? "" : r[i]), th, w - 2));
+      const nC = cw.length,
+        mg = cw.noLine && nC > 2 && (r[nC - 1] == null || r[nC - 1] === "");
+      const rw = mg ? cw.slice(0, nC - 2).concat([cw[nC - 2] + cw[nC - 1]]) : cw;
+      const cells = rw.map((w, i) => wrapT(String(r[i] == null ? "" : r[i]), th, w - 2));
       const nL = Math.max.apply(null, cells.map(c => c.length));
       const h = rh + (nL - 1) * lp;
       rect(RX0, cy - h, RW, h);
       let cx = RX0;
-      cw.forEach((w, i) => {
+      rw.forEach((w, i) => {
         if (i && !dry && (cw.noLine || []).indexOf(i) < 0) pen.line(L, cx, cy, cx, cy - h);
-        const c = i === cw.length - 1 && cw.length > 2;
+        const c = !mg && i === cw.length - 1 && cw.length > 2;
         const ls = cells[i],
           y0 = cy - h / 2 + (ls.length - 1) * lp / 2;
         ls.forEach((t, j) => txt(T, c ? cx + w / 2 : cx + 1, y0 - j * lp, th, t, {
@@ -3418,8 +3421,8 @@ function pgSldPro(doc, sheet, M) {
         valign: 2
       });
     }
-    pen.line(PE, sx - 4, barY - 0.45, sx - 4, acBot + 1.0);
-    pen.circle(PE, sx - 4, acBot + 0.5, 0.5);
+    pen.line(PE, sx - 4, barY - 0.45, sx - 4, acBot + 0.5);
+    pen.circle(PE, sx - 4, acBot, 0.5);
     pen.line(PE, X.pe0, peTop, X.pe0, yE);
     if (M.mon) {
       const mon = M.mon,
@@ -3580,9 +3583,9 @@ function pgCuDraw(pen, M) {
   pen.text(T, ctx + 1, yMain - 0.8, TS.spec, cl[1], {
     valign: 3
   });
-  pen.text(LB, ctx - 1.5, yMain + 0.9, TS.head, "FROM AC COMBINER BOX", {
+  pen.text(LB, ctx - 1.5, yMain, TS.head, "FROM AC COMBINER BOX", {
     align: 2,
-    valign: 1
+    valign: 2
   });
   pen.solid(R, [ctx - 1.2, yMain + 1.1], [ctx + 1.4, yMain], [ctx - 1.2, yMain - 1.1]);
   const cu = P.cu || "slot";
@@ -3659,13 +3662,17 @@ function pgCuDraw(pen, M) {
       valign: 2
     });
   };
-  const xN = c0 + 8.5,
-    xG = c0 + 22;
+  const xG = c1 - 10,
+    xN = xG - 12;
   bar(S, xN, "N", false);
   bar(PE, xG, "G", true);
-  pen.line(PE, xG - 2.5, barY - 0.45, xG - 2.5, cuB + 1.0);
-  pen.circle(PE, xG - 2.5, cuB + 0.5, 0.5);
-  gnd(xG + 1.5, barY - 0.45, yMain + 4.5, "GROUND (EXISTING)");
+  const yNG = barY + 2.4;
+  pen.line(S, xN + 3, barY + 0.45, xN + 3, yNG);
+  pen.line(S, xN + 3, yNG, xG - 3, yNG);
+  pen.line(S, xG - 3, yNG, xG - 3, barY + 0.45);
+  pen.line(PE, xG - 1, barY - 0.45, xG - 1, cuB + 0.5);
+  pen.circle(PE, xG - 1, cuB, 0.5);
+  gnd(xG + 3, barY - 0.45, yMain + 4.5, "GROUND (EXISTING)");
   const yMB = yB + 6;
   pen.dot(S, xMn, yB, 0.4);
   pen.line(W, xMn, yB, xMn, yMB - BS);
@@ -3703,10 +3710,9 @@ function pgCuDraw(pen, M) {
     vBrk(xs, yS);
     lab2(xs, yS, sBrk, "SOLAR CELL");
     pen.rect(BX, b0, yS - 5.5, b1 - b0, 10);
-    pen.text(LB, b0 + 0.5, yS - 6.5, TS.spec, "MDB SOLAR (NEW)", {
+    pen.text(LB, b0 + 0.5, yS + 5.6, TS.spec, "MDB SOLAR (NEW)", {
       valign: 3
     });
-    gnd(b1 - 2, yS - 5.5, yS - 9.5);
     pen.line(R, xs, yS - BS, xs, yMain);
     xSol = xs;
     xR = b1;
@@ -3734,10 +3740,9 @@ function pgCuDraw(pen, M) {
       valign: 3
     });
     pen.rect(BX, b0, yN - 6, b1 - b0, 10);
-    pen.text(LB, b0, yN + 5.4, TS.spec, "MDB SOLAR (NEW)", {
+    pen.text(LB, b0, yN + 6.2, TS.spec, "MDB SOLAR (NEW)", {
       valign: 3
     });
-    gnd(b1 - 2, yN - 6, yN - 10);
     pen.line(W, xMn, yN, xMn, yMN - BS);
     vBrk(xMn, yMN);
     lab2(xMn, yMN, "MAIN", P.exMain || "");
@@ -3781,18 +3786,27 @@ function pgCuDraw(pen, M) {
     align: 1,
     valign: 1
   });
-  if (M.mon) {
+  {
     const CS = PG_SLD.ctsig,
-      xr = xR + 5,
-      yD = yMain - 8,
-      mon = M.mon;
-    const dst = mon.meter ? mon.meter.replace(/\s*\+\s*CT.*$/i, "") : mon.dev;
-    pen.line(CS, xMn + CT_R + 0.2, yC, xr, yC);
-    pen.line(CS, xr, yC, xr, yD + 1.6);
-    pen.solid(S, [xr - 0.7, yD + 1.6], [xr, yD], [xr + 0.7, yD + 1.6]);
-    pen.text(T, xr, yD - 0.8, TS.tag, "CT SIGNAL TO " + dst, {
+      mw = 13,
+      mh = 6,
+      mx1 = xMn - CT_R - 8,
+      mx0 = mx1 - mw;
+    pen.line(CS, xMn - CT_R - 0.2, yC, mx1, yC);
+    pen.rect(S, mx0, yC - mh / 2, mw, mh);
+    pen.text(LB, mx0 + mw / 2, yC + 0.9, TS.tag, "SOLAR METER", {
       align: 1,
-      valign: 3
+      valign: 2
+    });
+    pen.text(T, mx0 + mw / 2, yC - 1.1, TS.tag * 0.85, mtrNm || "SMART METER", {
+      align: 1,
+      valign: 2
+    });
+    pen.line(CS, mx0, yC, mx0 - 5, yC);
+    pen.solid(S, [mx0 - 5, yC + 0.7], [mx0 - 6.6, yC], [mx0 - 5, yC - 0.7]);
+    pen.text(T, mx0 - 7.4, yC, TS.tag, "RS485 TO INVERTER", {
+      align: 2,
+      valign: 2
     });
   }
   pen.line(R, ctx + 1.4, yMain, xSol, yMain);
