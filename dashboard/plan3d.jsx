@@ -2697,6 +2697,8 @@ function p3SldModel(st, job, design) {
       }).join(" + ") + " (MAX)"),
       r("MAX Vdc / MPPT RANGE", ivSp.mpptVmin && ivSp.mpptVmax ? maxVdc + " / " + ivSp.mpptVmin + "-" + ivSp.mpptVmax + " V" : maxVdc + " V"),
       r("MPPT / INPUT", mpIn),
+      /* ไฮบริด + แบต (ผู้ใช้ 2026-10-31: แบบมีแบตยังเป็นแบบเก่า) — อยู่ก่อนหมวด PV ARRAY ที่ SLD ตัดทิ้ง */
+      ...(M.batt ? [["#", "BATTERY"], r("MODEL", (M.batt.brand && M.batt.model.indexOf(M.batt.brand) < 0 ? M.batt.brand + " " : "") + M.batt.model), ["ENERGY", M.batt.kwh + " kWh"]] : []),
       ["#", "PV ARRAY"],
       ["MODULES / STRINGS", nPanel + " PCS / " + nStr + " STR"],
       ["MODULES PER STRING", nTxt],
@@ -2710,6 +2712,7 @@ function p3SldModel(st, job, design) {
     S.push(["PV MODULE", panel.model + " " + wp + "Wp", nPanel]);
     (inv.models || [{ model: inv.model, w: unitKw * 1000, count: nInv }]).forEach((md) =>
       S.push(["INVERTER", md.model + " " + Math.round(md.w / 100) / 10 + "kW " + (nPh === 3 ? "3PH" : "1PH"), md.count]));
+    if (M.batt) S.push(["BATTERY", (M.batt.brand && M.batt.model.indexOf(M.batt.brand) < 0 ? M.batt.brand + " " : "") + M.batt.model + " " + M.batt.kwh + " kWh", 1]);
     S.push(["DC BOX", "IP65 ENCLOSURE c/w PE BAR", nInv]);
     S.push(dcDev.k === "fuse" ? ["DC STRING FUSE", "gPV (IEC 60269-6) " + fuseA + "A " + dcV + "VDC " + (dcV > 1000 ? "10x85" : "10x38") + " + DC FUSE HOLDER" + (fz && fz.h ? " " + fz.h : ""), nStr * 2]
       : ["DC MCB", dcDev.tag.replace(/^DC MCB /, ""), nStr]);

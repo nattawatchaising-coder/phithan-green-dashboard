@@ -4291,7 +4291,7 @@ function p3SldModel(st, job, design) {
     }]).map(md => {
       const a = +(md.spec || {}).outA || Math.round(md.w / (Vll * kPh) * 10) / 10;
       return a + " A";
-    }).join(" + ") + " (MAX)"), r("MAX Vdc / MPPT RANGE", ivSp.mpptVmin && ivSp.mpptVmax ? maxVdc + " / " + ivSp.mpptVmin + "-" + ivSp.mpptVmax + " V" : maxVdc + " V"), r("MPPT / INPUT", mpIn), ["#", "PV ARRAY"], ["MODULES / STRINGS", nPanel + " PCS / " + nStr + " STR"], ["MODULES PER STRING", nTxt], r("STRING Voc @" + tMin + "%%dC", vocMax ? vocMax + " V  (MAX " + maxVdc + " V)" : ""), ["DC / AC", dcKw.toFixed(2) + " kWp / " + acKw.toFixed(2) + " kW (" + ratio + ")"]].filter(Boolean);
+    }).join(" + ") + " (MAX)"), r("MAX Vdc / MPPT RANGE", ivSp.mpptVmin && ivSp.mpptVmax ? maxVdc + " / " + ivSp.mpptVmin + "-" + ivSp.mpptVmax + " V" : maxVdc + " V"), r("MPPT / INPUT", mpIn), ...(M.batt ? [["#", "BATTERY"], r("MODEL", (M.batt.brand && M.batt.model.indexOf(M.batt.brand) < 0 ? M.batt.brand + " " : "") + M.batt.model), ["ENERGY", M.batt.kwh + " kWh"]] : []), ["#", "PV ARRAY"], ["MODULES / STRINGS", nPanel + " PCS / " + nStr + " STR"], ["MODULES PER STRING", nTxt], r("STRING Voc @" + tMin + "%%dC", vocMax ? vocMax + " V  (MAX " + maxVdc + " V)" : ""), ["DC / AC", dcKw.toFixed(2) + " kWp / " + acKw.toFixed(2) + " kW (" + ratio + ")"]].filter(Boolean);
     const nInv = units.length;
     const S = [];
     S.push(["PV MODULE", panel.model + " " + wp + "Wp", nPanel]);
@@ -4300,6 +4300,7 @@ function p3SldModel(st, job, design) {
       w: unitKw * 1000,
       count: nInv
     }]).forEach(md => S.push(["INVERTER", md.model + " " + Math.round(md.w / 100) / 10 + "kW " + (nPh === 3 ? "3PH" : "1PH"), md.count]));
+    if (M.batt) S.push(["BATTERY", (M.batt.brand && M.batt.model.indexOf(M.batt.brand) < 0 ? M.batt.brand + " " : "") + M.batt.model + " " + M.batt.kwh + " kWh", 1]);
     S.push(["DC BOX", "IP65 ENCLOSURE c/w PE BAR", nInv]);
     S.push(dcDev.k === "fuse" ? ["DC STRING FUSE", "gPV (IEC 60269-6) " + fuseA + "A " + dcV + "VDC " + (dcV > 1000 ? "10x85" : "10x38") + " + DC FUSE HOLDER" + (fz && fz.h ? " " + fz.h : ""), nStr * 2] : ["DC MCB", dcDev.tag.replace(/^DC MCB /, ""), nStr]);
     if (dcDev.k !== "fuse") S.push(["DC SPD", (lps ? "TYPE I+II" : "TYPE II") + " Ucpv " + ucpv + "VDC " + dcSpdKa, nStr]);

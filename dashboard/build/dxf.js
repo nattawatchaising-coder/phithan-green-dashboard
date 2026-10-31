@@ -2490,9 +2490,11 @@ function pgSldPro(doc, sheet, M) {
       groups,
       kw: P.ivKw[no - 1],
       brk: P.ivBrk[no - 1],
-      model: modelOf(no)
+      model: modelOf(no),
+      bat: !!M.batt && no === invNos[0]
     };
   };
+  const BAT_H = 12;
   const EH = 4.5;
   const rowH = row => row && row.empty ? EH : RH;
   let MH = 13;
@@ -2515,7 +2517,7 @@ function pgSldPro(doc, sheet, M) {
     const lastY = firstY - span - (b.groups.length - 1) * GAP;
     const dBot = lastY - 16;
     const boxBot = Math.min(lastY - (ivIn ? 11 : 5), top - 27);
-    const yG = Math.min(dBot, boxBot - 10.8) - 3;
+    const yG = Math.min(dBot, boxBot - 10.8 - (b.bat ? BAT_H : 0)) - 3;
     return {
       firstY,
       lastY,
@@ -3008,7 +3010,7 @@ function pgSldPro(doc, sheet, M) {
     pen.circle(S, X.iv1, tapY, 0.6);
     const nm = b.names || (b.typical ? "INV" + b.no + "-INV" + b.to + " (x" + b.cnt + ")" : "INV" + b.no);
     const ix = X.iv0 + 4,
-      iw = X.ac0 - 1 - ix;
+      iw = (b.bat ? X.iv1 + 1.5 : X.ac0 - 1) - ix;
     const ivL = b.names ? [[LB, nm], [T, b.kw + "kW " + P.phTxt + "  " + b.model], [T, "DC SWITCH : BUILT-IN"], [T, "AC : " + M.acCable]] : [[LB, nm + "  " + b.kw + "kW " + P.phTxt], [T, b.model || M.inv.model], [T, "DC SWITCH : BUILT-IN"], [T, "AC : " + M.acCable]];
     if (ivIn) ivL.forEach(l => {
       if (l[1] === "DC SWITCH : BUILT-IN") l[1] = "DC SWITCH + DC/AC SPD TYPE II : BUILT-IN";
@@ -3017,6 +3019,36 @@ function pgSldPro(doc, sheet, M) {
     ivL.forEach((l, k) => pen.text(l[0], ix, G.boxBot - 1.2 - k * 2.4, ivH, l[1], {
       valign: 3
     }));
+    if (b.bat) {
+      const yT = G.boxBot + 1.2,
+        lx = X.iv1 + 3,
+        bw = 20,
+        bh = 6,
+        bTop = G.boxBot - 11.6,
+        bMid = bTop - bh / 2,
+        bx0 = X.iv1 - bw;
+      pen.circle(S, X.iv1, yT, 0.6);
+      pen.text(T, X.iv1 + 0.9, yT + 0.5, TS.tag, "BAT", {
+        valign: 1
+      });
+      pen.line(R, X.iv1 + 0.6, yT, lx, yT);
+      pen.line(R, lx, yT, lx, bMid);
+      pen.line(R, lx, bMid, X.iv1, bMid);
+      pen.rect(S, bx0, bTop - bh, bw, bh);
+      [0, 1.4].forEach(d => {
+        pen.line(S, bx0 + 2 + d, bMid - 1.8, bx0 + 2 + d, bMid + 1.8);
+        pen.line(S, bx0 + 2.7 + d, bMid - 1.0, bx0 + 2.7 + d, bMid + 1.0);
+      });
+      const bt = "BATTERY " + M.batt.kwh + " kWh";
+      pen.text(LB, bx0 + 5.6, bMid, fitH(bt, TS.spec, bw - 6.4), bt, {
+        valign: 2
+      });
+      const bm = ((M.batt.brand && M.batt.model.indexOf(M.batt.brand) < 0 ? M.batt.brand + " " : "") + M.batt.model).trim();
+      pen.text(T, X.iv1, bTop - bh - 0.8, fitH(bm, TS.spec, X.iv1 + 1.5 - ix), bm, {
+        align: 2,
+        valign: 3
+      });
+    }
     const peX = X.iv0 + 2;
     if (!ivSpd) pen.line(PE, X.dcPE, barB, X.dcPE, G.yG);
     pen.line(PE, peX, G.boxBot, peX, G.yG);
@@ -3477,7 +3509,7 @@ function pgSldGroups(M) {
   return out;
 }
 function pgSldDraw(doc, sheet, M) {
-  if (M.pro && M.mppt && M.mppt.rows.some(r => r.ins.length) && M.mode === "string" && !M.batt) return pgSldPro(doc, sheet, M);
+  if (M.pro && M.mppt && M.mppt.rows.some(r => r.ins.length) && M.mode === "string") return pgSldPro(doc, sheet, M);
   pgSldLayers(doc);
   const pen = sheet.pen,
     A = sheet.area;

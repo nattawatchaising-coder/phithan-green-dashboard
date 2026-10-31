@@ -1730,9 +1730,10 @@ function pgSldPro(doc, sheet, M) {
   const modelOf = (no) => (M.units && M.units[no - 1] && M.units[no - 1].model) || M.inv.model;
   const mkBlock = (no, detail) => {
     const groups = byInv[no].map((r) => ({ mppt: r.mppt, rows: detail ? rowsOf(r) : [grpRow(r)] }));
-    return { no, groups, kw: P.ivKw[no - 1], brk: P.ivBrk[no - 1], model: modelOf(no) };
+    return { no, groups, kw: P.ivKw[no - 1], brk: P.ivBrk[no - 1], model: modelOf(no), bat: !!M.batt && no === invNos[0] };   // ไฮบริด: แบตห้อยใต้เครื่องแรก
   };
   /* เรขาคณิตของบล็อก — คิดก่อนวาด ใช้ทั้งตอนเลือกโหมดย่อและตอนวาดจริง */
+  const BAT_H = 12;   // ที่ใต้ป้ายอินเวอร์เตอร์สำหรับกล่องแบต + ป้ายรุ่น
   const EH = 4.5;   // ระยะแถวของช่อง IN ที่ไม่ได้ต่อ (ขั้วเปล่า ไม่มีสตริง) — เตี้ยกว่าแถวสตริง
   const rowH = (row) => (row && row.empty ? EH : RH);
   let MH = 13;   // ความสูงบล็อกย่อในแผ่นภาพรวม (กล่องอินเวอร์เตอร์ + ป้าย PV)
@@ -1745,7 +1746,7 @@ function pgSldPro(doc, sheet, M) {
     const lastY = firstY - span - (b.groups.length - 1) * GAP;
     const dBot = lastY - 16;
     const boxBot = Math.min(lastY - (ivIn ? 11 : 5), top - 27);   // งานโครงการเผื่อที่ DC SPD ใต้แกนรวม MPPT
-    const yG = Math.min(dBot, boxBot - 10.8) - 3;
+    const yG = Math.min(dBot, boxBot - 10.8 - (b.bat ? BAT_H : 0)) - 3;
     return { firstY, lastY, dBot, boxBot, yG, bottom: yG - 1.5 };
   };
   const blockH = (b) => b.typical ? 0 : 1000 - geo(b, 1000).bottom;
@@ -2118,7 +2119,7 @@ function pgSldPro(doc, sheet, M) {
     }
     pen.circle(S, X.iv1, tapY, 0.6);
     const nm = b.names || (b.typical ? "INV" + b.no + "-INV" + b.to + " (x" + b.cnt + ")" : "INV" + b.no);
-    const ix = X.iv0 + 4, iw = X.ac0 - 1 - ix;
+    const ix = X.iv0 + 4, iw = (b.bat ? X.iv1 + 1.5 : X.ac0 - 1) - ix;   // มีแบต: เว้นทางสาย BAT ขวากล่อง
     /* ใต้กล่องอินเวอร์เตอร์: ทุกบรรทัดขนาดเท่ากัน ระยะบรรทัดเท่ากัน (ผู้ใช้ 2026-10-29) — เดิมหัวใหญ่กว่า แต่ละบรรทัดย่อเองคนละขนาด ช่องห่างไม่เท่า
        ขนาด = เล็กสุดที่ทุกบรรทัดพอดีความกว้าง · ชื่อเครื่องยังเป็นสีป้าย (LB) */
     /* รุ่นของเครื่องนั้นเอง (งานปนหลายรุ่น · ผู้ใช้ 2026-10-29: สูงสุด 4 รุ่น) · กลุ่มหลายเครื่อง = ชื่อกลุ่มบรรทัดเดียว กำลังไปอยู่บรรทัดรุ่น */
@@ -2127,6 +2128,23 @@ function pgSldPro(doc, sheet, M) {
     if (ivIn) ivL.forEach((l) => { if (l[1] === "DC SWITCH : BUILT-IN") l[1] = "DC SWITCH + DC/AC SPD TYPE II : BUILT-IN"; });
     const ivH = Math.min.apply(null, ivL.map((l) => fitH(l[1], TS.spec, iw)));
     ivL.forEach((l, k) => pen.text(l[0], ix, G.boxBot - 1.2 - k * 2.4, ivH, l[1], { valign: 3 }));
+    /* แบตเตอรี่ของไฮบริด (ผู้ใช้ 2026-10-31: แบบมีแบตยังเป็นแบบเก่า) — ขั้ว BAT ที่ขอบขวาล่างกล่อง → สาย DC ลงขวากล่อง
+       → เลี้ยวเข้าข้างกล่องแบตใต้ป้ายอินเวอร์เตอร์ · ป้ายรุ่นใต้กล่อง */
+    if (b.bat) {
+      const yT = G.boxBot + 1.2, lx = X.iv1 + 3, bw = 20, bh = 6, bTop = G.boxBot - 11.6, bMid = bTop - bh / 2, bx0 = X.iv1 - bw;
+      pen.circle(S, X.iv1, yT, 0.6);
+      pen.text(T, X.iv1 + 0.9, yT + 0.5, TS.tag, "BAT", { valign: 1 });
+      pen.line(R, X.iv1 + 0.6, yT, lx, yT);
+      pen.line(R, lx, yT, lx, bMid);
+      pen.line(R, lx, bMid, X.iv1, bMid);
+      pen.rect(S, bx0, bTop - bh, bw, bh);
+      /* สัญลักษณ์แบต: แผ่นยาว/สั้นสลับ ซ้ายในกล่อง */
+      [0, 1.4].forEach((d) => { pen.line(S, bx0 + 2 + d, bMid - 1.8, bx0 + 2 + d, bMid + 1.8); pen.line(S, bx0 + 2.7 + d, bMid - 1.0, bx0 + 2.7 + d, bMid + 1.0); });
+      const bt = "BATTERY " + M.batt.kwh + " kWh";
+      pen.text(LB, bx0 + 5.6, bMid, fitH(bt, TS.spec, bw - 6.4), bt, { valign: 2 });
+      const bm = ((M.batt.brand && M.batt.model.indexOf(M.batt.brand) < 0 ? M.batt.brand + " " : "") + M.batt.model).trim();
+      pen.text(T, X.iv1, bTop - bh - 0.8, fitH(bm, TS.spec, X.iv1 + 1.5 - ix), bm, { align: 2, valign: 3 });
+    }
     /* สายดินของบล็อก: PE bar ตู้ DC + ตัวเครื่องอินเวอร์เตอร์ → PE trunk */
     const peX = X.iv0 + 2;
     if (!ivSpd) pen.line(PE, X.dcPE, barB, X.dcPE, G.yG);
@@ -2466,7 +2484,7 @@ function pgSldGroups(M) {
   return out;
 }
 function pgSldDraw(doc, sheet, M) {
-  if (M.pro && M.mppt && M.mppt.rows.some((r) => r.ins.length) && M.mode === "string" && !M.batt) return pgSldPro(doc, sheet, M);
+  if (M.pro && M.mppt && M.mppt.rows.some((r) => r.ins.length) && M.mode === "string") return pgSldPro(doc, sheet, M);
   pgSldLayers(doc);
   const pen = sheet.pen, A = sheet.area;
   const W = PG_SLD.wire, R = PG_SLD.sol, S = PG_SLD.sym, BX = PG_SLD.box, T = PG_SLD.txt, LB = PG_SLD.lbl;
