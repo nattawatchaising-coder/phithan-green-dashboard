@@ -2748,7 +2748,7 @@ function pgCuDraw(pen, M) {
   pen.text(LB, xMn + 3.2, yC + 1.4, TS.tag, "CT MAIN GRID", { valign: 1 });
   /* ขนาด CT + Class จากข้อมูลมิเตอร์ (pgMeterCt) */
   const ctLine = [ctSpec, mtrCls ? "CLASS " + mtrCls : ""].filter(Boolean).join(", ");
-  if (ctLine) pen.text(T, xMn + 3.2, yC - 0.2, TS.tag, ctLine, { valign: 3 });
+  if (ctLine) pen.text(T, xMn - 2.4, yC - 0.8, TS.tag, ctLine, { align: 2, valign: 3 });   // ซ้ายใต้เส้นสัญญาณ CT ใต้ "CT x1" (ผู้ใช้วาดชี้)
   pen.line(W, xMn - 1.3, yA, xMn + 1.3, yA); pen.line(W, xMn - 1.3, yA, xMn, yA + 2.6); pen.line(W, xMn + 1.3, yA, xMn, yA + 2.6);
   pen.text(LB, xMn, yA + 3.4, TS.head, "TO " + (P.auth || "GRID"), { align: 1, valign: 1 });
   /* สายสัญญาณ CT ออกซ้าย → เขียนบอกว่าไปมิเตอร์โซลาร์ในตู้ AC COMBINER BOX (ผู้ใช้ 2026-10-31: มิเตอร์อยู่ในตู้ AC ไม่ต้องวาดรูป) */

@@ -3916,7 +3916,8 @@ function pgCuDraw(pen, M) {
     valign: 1
   });
   const ctLine = [ctSpec, mtrCls ? "CLASS " + mtrCls : ""].filter(Boolean).join(", ");
-  if (ctLine) pen.text(T, xMn + 3.2, yC - 0.2, TS.tag, ctLine, {
+  if (ctLine) pen.text(T, xMn - 2.4, yC - 0.8, TS.tag, ctLine, {
+    align: 2,
     valign: 3
   });
   pen.line(W, xMn - 1.3, yA, xMn + 1.3, yA);
