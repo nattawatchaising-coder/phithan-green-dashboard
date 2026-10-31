@@ -2479,6 +2479,12 @@ function pgSldPro(doc, sheet, M) {
   if (ivIn && !ivSpd) ["iv1", "ac0", "acB", "acBus", "acM", "ac1", "md0", "mdB", "mdBus", "md1"].forEach(k => {
     X[k] += 16;
   });
+  const mSplit = isDet ? null : /^(.+?) \+ (RCCB .+)$/.exec(P.mainTxt),
+    RD = 14,
+    MSPL = RD + 4;
+  if (mSplit) ["ac1", "md0", "mdB", "mdBus", "md1"].forEach(k => {
+    X[k] += MSPL;
+  });
   const modelOf = no => M.units && M.units[no - 1] && M.units[no - 1].model || M.inv.model;
   const mkBlock = (no, detail) => {
     const groups = byInv[no].map(r => ({
@@ -2516,7 +2522,7 @@ function pgSldPro(doc, sheet, M) {
     const span = all.slice(0, -1).reduce((t, row) => t + rowH(row), 0);
     const lastY = firstY - span - (b.groups.length - 1) * GAP;
     const dBot = lastY - 16;
-    const boxBot = Math.min(lastY - (ivIn ? 11 : 5), top - 27);
+    const boxBot = Math.min(lastY - (ivIn ? 11 : 5), top - (ivIn ? 31 : 27));
     const yG = Math.min(dBot, boxBot - 10.8 - (b.bat ? BAT_H : 0)) - 3;
     return {
       firstY,
@@ -2849,9 +2855,11 @@ function pgSldPro(doc, sheet, M) {
         if (first && !ivSpd) {
           const tw = X.dc1 - X.dc0 - 2;
           const brk = (t, re) => t.split(re).filter(Boolean).reduce((o, p) => o.concat(wrapT(p.trim(), TS.spec, tw)), []);
-          const lines = (ivSpd ? [] : brk(P.dcSpdFull, / (?=In |Iimp )/)).concat(brk(P.dcDev.tag, / (?=[0-9]+VDC)/));
-          const pitch = Math.min(1.7, 6.2 / Math.max(1, lines.length));
-          lines.slice().reverse().forEach((t, i) => pen.text(T, X.dc0 + 1, y + 2.4 + i * pitch, TS.spec, t, {
+          const devL = pgTextW(P.dcDev.tag, TS.spec) <= tw ? [P.dcDev.tag] : brk(P.dcDev.tag, / (?=[0-9]+VDC)/);
+          const lines = (ivSpd ? [] : brk(P.dcSpdFull, / (?=In |Iimp )/)).concat(devL);
+          const yT0 = y + g * 1.26 + 0.5,
+            pitch = Math.min(1.7, Math.max(TS.spec + 0.2, (y + 8.4 - TS.spec - yT0) / Math.max(1, lines.length - 1)));
+          lines.slice().reverse().forEach((t, i) => pen.text(T, X.dc0 + 1, yT0 + i * pitch, TS.spec, t, {
             valign: 1
           }));
         }
@@ -3180,9 +3188,33 @@ function pgSldPro(doc, sheet, M) {
     if (!oneInv) pen.dot(R, X.acBus, yMain, 0.5);
     pen.line(R, oneInv ? oneX : X.acBus, yMain, mx - g - 0.75, yMain);
     hBrk(mx, yMain, isCb(P.mainTxt));
-    const mainL = P.mainTxt + (P.lsig ? " LSIG" : "");
+    const mainL = mSplit ? mSplit[1] : P.mainTxt + (P.lsig ? " LSIG" : "");
     brkLabel(mainL, "", mx, yMain);
-    let wx = mx + g + 0.75;
+    let wx = mx + g + 0.75,
+      mx2 = mx;
+    if (mSplit) {
+      const rx = mx + RD,
+        tx = rx + g + 0.75 + 2.2,
+        tr = 1.1;
+      pen.line(R, wx, yMain, rx - g - 0.75, yMain);
+      hBrk(rx, yMain);
+      const rl = /^(.*?A) (\d+mA)$/.exec(mSplit[2]);
+      if (rl) {
+        pen.text(T, rx, yMain + g * 1.26 + 2.6, TS.spec, rl[1], {
+          align: 1,
+          valign: 1
+        });
+        pen.text(T, rx, yMain + g * 1.26 + 0.6, TS.spec, rl[2], {
+          align: 1,
+          valign: 1
+        });
+      } else brkLabel(mSplit[2], "", rx, yMain);
+      pen.line(R, rx + g + 0.75, yMain, tx - tr, yMain);
+      pen.circle(S, tx, yMain, tr);
+      pen.line(R, tx - tr, yMain, tx + tr, yMain);
+      wx = tx + tr;
+      mx2 = mx + MSPL;
+    }
     if (hasGf) {
       const zx = mx + 6.5,
         gy0 = yMain - 10.6,
@@ -3213,7 +3245,7 @@ function pgSldPro(doc, sheet, M) {
       });
     }
     pen.line(R, wx, yMain, X.mdB - g - 0.75, yMain);
-    const px = mx + 11,
+    const px = mx2 + 11,
       lx = px + 3.6,
       sx = lx + 4.5;
     let pmLow = yMain;
@@ -3310,7 +3342,7 @@ function pgSldPro(doc, sheet, M) {
         rot: 90,
         align: 2,
         valign: 2
-      });else pen.text(T, sx - 2.6, by, fitH(P.spdBk, TS.spec, sw), P.spdBk, {
+      });else pen.text(T, sx - g * 1.26 - 1.0, by, fitH(P.spdBk, TS.spec, sw), P.spdBk, {
         align: 2,
         valign: 2
       });

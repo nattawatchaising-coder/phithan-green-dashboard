@@ -1727,6 +1727,9 @@ function pgSldPro(doc, sheet, M) {
      งานบ้านตู้ DC ยังมี DC MCB + SPD ทุกสตริง (ผู้ใช้เลือก) → กล่องอินเวอร์เตอร์ขยายขวา 16 ทุกอย่างทางขวาเลื่อนตาม */
   const ivIn = !isMain;
   if (ivIn && !ivSpd) ["iv1", "ac0", "acB", "acBus", "acM", "ac1", "md0", "mdB", "mdBus", "md1"].forEach((k) => { X[k] += 16; });
+  /* เมนงานบ้าน "MCB … + RCCB …" วาดแยกสองตัว (ผู้ใช้ 2026-10-31) — ขอบขวาตู้ AC + MDB เลื่อนขวาตั้งแต่ต้น หัวโซนจะได้อยู่กลางตู้ */
+  const mSplit = isDet ? null : /^(.+?) \+ (RCCB .+)$/.exec(P.mainTxt), RD = 14, MSPL = RD + 4;
+  if (mSplit) ["ac1", "md0", "mdB", "mdBus", "md1"].forEach((k) => { X[k] += MSPL; });
   const modelOf = (no) => (M.units && M.units[no - 1] && M.units[no - 1].model) || M.inv.model;
   const mkBlock = (no, detail) => {
     const groups = byInv[no].map((r) => ({ mppt: r.mppt, rows: detail ? rowsOf(r) : [grpRow(r)] }));
@@ -1745,7 +1748,8 @@ function pgSldPro(doc, sheet, M) {
     const span = all.slice(0, -1).reduce((t, row) => t + rowH(row), 0);
     const lastY = firstY - span - (b.groups.length - 1) * GAP;
     const dBot = lastY - 16;
-    const boxBot = Math.min(lastY - (ivIn ? 11 : 5), top - 27);   // งานโครงการเผื่อที่ DC SPD ใต้แกนรวม MPPT
+    /* มี AC SPD ในเครื่อง (ivIn): สัญลักษณ์ดินลึก 13.6 ใต้ขั้ว AC — กล่องสูงอย่างน้อย 30 ไม่ให้ดินทับขอบล่าง (ผู้ใช้ 2026-10-31: โดนทับ) */
+    const boxBot = Math.min(lastY - (ivIn ? 11 : 5), top - (ivIn ? 31 : 27));   // งานโครงการเผื่อที่ DC SPD ใต้แกนรวม MPPT
     const yG = Math.min(dBot, boxBot - 10.8 - (b.bat ? BAT_H : 0)) - 3;
     return { firstY, lastY, dBot, boxBot, yG, bottom: yG - 1.5 };
   };
@@ -1990,9 +1994,11 @@ function pgSldPro(doc, sheet, M) {
           const tw = X.dc1 - X.dc0 - 2;
           /* ตัดบรรทัดตามความหมาย: ชนิด+แรงดัน | กระแส */
           const brk = (t, re) => t.split(re).filter(Boolean).reduce((o, p) => o.concat(wrapT(p.trim(), TS.spec, tw)), []);
-          const lines = (ivSpd ? [] : brk(P.dcSpdFull, / (?=In |Iimp )/)).concat(brk(P.dcDev.tag, / (?=[0-9]+VDC)/));
-          const pitch = Math.min(1.7, 6.2 / Math.max(1, lines.length));
-          lines.slice().reverse().forEach((t, i) => pen.text(T, X.dc0 + 1, y + 2.4 + i * pitch, TS.spec, t, { valign: 1 }));
+          /* สเปค MCB/ฟิวส์พอดีบรรทัดเดียว = ไม่ตัด (เหลือ 3 บรรทัด) · เริ่มเหนือโค้งเบรกเกอร์ (g × 1.26 ≈ 3.0) — ผู้ใช้ 2026-10-31: ตัวหนังสือโดนทับ */
+          const devL = pgTextW(P.dcDev.tag, TS.spec) <= tw ? [P.dcDev.tag] : brk(P.dcDev.tag, / (?=[0-9]+VDC)/);
+          const lines = (ivSpd ? [] : brk(P.dcSpdFull, / (?=In |Iimp )/)).concat(devL);
+          const yT0 = y + g * 1.26 + 0.5, pitch = Math.min(1.7, Math.max(TS.spec + 0.2, (y + 8.4 - TS.spec - yT0) / Math.max(1, lines.length - 1)));
+          lines.slice().reverse().forEach((t, i) => pen.text(T, X.dc0 + 1, yT0 + i * pitch, TS.spec, t, { valign: 1 }));
         }
         /* DC SPD ต่อทุกสตริง: L+/L− ลง SPD → PE bar (งานโครงการ SPD อยู่ในอินเวอร์เตอร์ ไม่มีในตู้ DC) */
         if (!ivSpd) {
@@ -2250,9 +2256,23 @@ function pgSldPro(doc, sheet, M) {
     if (!oneInv) pen.dot(R, X.acBus, yMain, 0.5);   // เครื่องเดียว = สายเส้นเดียวไม่มีจุดแยก ไม่ต้องมีจุด (ผู้ใช้ชี้จุดค้าง)
     pen.line(R, oneInv ? oneX : X.acBus, yMain, mx - g - 0.75, yMain);
     hBrk(mx, yMain, isCb(P.mainTxt));
-    const mainL = P.mainTxt + (P.lsig ? " LSIG" : "");
+    /* งานบ้าน "MCB … + RCCB …" วาดแยกสองตัว (ผู้ใช้ 2026-10-31: ต้องแยกเป็นสองอัน) — MCB แล้วตามด้วย RCCB (เบรกเกอร์ + วงทอรอยด์บนสาย)
+       ของทางขวา (ไฟเลี้ยง PM · SPD · ขอบตู้ · MDB) เลื่อนตามระยะที่เพิ่ม */
+    const mainL = mSplit ? mSplit[1] : P.mainTxt + (P.lsig ? " LSIG" : "");
     brkLabel(mainL, "", mx, yMain);   // เมนแบบเศษส่วนเหมือนเบรกเกอร์อินเวอร์เตอร์ (ผู้ใช้: ACB ไม่มี AF/IC)
-    let wx = mx + g + 0.75;
+    let wx = mx + g + 0.75, mx2 = mx;
+    if (mSplit) {
+      const rx = mx + RD, tx = rx + g + 0.75 + 2.2, tr = 1.1;
+      pen.line(R, wx, yMain, rx - g - 0.75, yMain);
+      hBrk(rx, yMain);
+      const rl = /^(.*?A) (\d+mA)$/.exec(mSplit[2]);
+      if (rl) { pen.text(T, rx, yMain + g * 1.26 + 2.6, TS.spec, rl[1], { align: 1, valign: 1 }); pen.text(T, rx, yMain + g * 1.26 + 0.6, TS.spec, rl[2], { align: 1, valign: 1 }); }
+      else brkLabel(mSplit[2], "", rx, yMain);
+      pen.line(R, rx + g + 0.75, yMain, tx - tr, yMain);
+      pen.circle(S, tx, yMain, tr);
+      pen.line(R, tx - tr, yMain, tx + tr, yMain);
+      wx = tx + tr; mx2 = mx + MSPL;
+    }
     if (hasGf) {
       /* Ground fault: ZCT คล้องสายเมน → รีเลย์ GFR → สั่ง Shunt trip ของ MCCB */
       const zx = mx + 6.5, gy0 = yMain - 10.6, gy1 = yMain - 7;
@@ -2271,7 +2291,7 @@ function pgSldPro(doc, sheet, M) {
       pen.text(T, mx - 0.8, yMain - 6.1, TS.tag, "TRIP", { align: 2, valign: 2 });
     }
     pen.line(R, wx, yMain, X.mdB - g - 0.75, yMain);
-    const px = mx + 11, lx = px + 3.6, sx = lx + 4.5;
+    const px = mx2 + 11, lx = px + 3.6, sx = lx + 4.5;
     let pmLow = yMain;
     if (P.pm) {
       /* Power meter: CT บนสายเมน → PM2230 */
@@ -2335,7 +2355,7 @@ function pgSldPro(doc, sheet, M) {
       else { pen.line(R, sx, by + 2.4, sx, by + g + 0.75); pgSym.breaker(pen, sx, by, "", "", g); sy = by - g - 0.75; }
       /* ป้ายฟิวส์เขียนตั้งขวาตัวฟิวส์ ปลายอยู่ระดับหัวฟิวส์ (ผู้ใช้ชี้ 2026-10-29) — เบรกเกอร์ยังเขียนนอนทางซ้าย */
       if (fuse) pen.text(T, sx + 2.4, by + 2.4, TS.spec, P.spdBk, { rot: 90, align: 2, valign: 2 });
-      else pen.text(T, sx - 2.6, by, fitH(P.spdBk, TS.spec, sw), P.spdBk, { align: 2, valign: 2 });
+      else pen.text(T, sx - g * 1.26 - 1.0, by, fitH(P.spdBk, TS.spec, sw), P.spdBk, { align: 2, valign: 2 });   // พ้นโค้งเบรกเกอร์ที่โป่งซ้าย (ผู้ใช้ 2026-10-31: โดนทับ)
     } else sy = top0 + 2;
     const spY = sy - 5.5;
     pen.line(R, sx, sy, sx, spY + 2.4);
