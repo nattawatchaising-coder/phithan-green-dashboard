@@ -2612,7 +2612,11 @@ function pgCuDraw(pen, M) {
     pen.text(T, x, yT - h - 0.8, TS.tag, "LOAD", { align: 1, valign: 3 });
   };
   /* ตู้บ้านชิดซ้าย (ผู้ใช้ 2026-10-31: ขยับซ้าย) — ยกตู้สูงพ้นแถวป้ายสาย ไม่ต้องหลบไปขวาของป้าย */
-  const c0 = ctx + 12, bp = 10;   // ระยะวงจรห่างขึ้น (ผู้ใช้ 2026-10-31: ชิดกันไป)
+  /* rccb: ตู้ MDB SOLAR อยู่ซ้ายตู้บ้าน (ผู้ใช้วาดชี้ 2026-10-31: ย้ายมาฝั่งนี้สวยกว่า) — สายจากตู้ AC ขึ้นเข้าตู้ MDB SOLAR พ้นป้ายสาย
+     ตู้บ้านเลื่อนขวาเผื่อป้ายสาย + กว้างตู้ MDB SOLAR · เรขาคณิตตู้ (เทียบขอบขวา b1): xh = b1 - 3 - BS · xs = xh - BS - 1.5 */
+  const mdbXh = -3 - (g + 0.75), mdbXs = mdbXh - (g + 0.75) - 1.5;
+  const mdbB0 = Math.min(mdbXs - 2, mdbXh - pgTextW("SOLAR CELL", TS.tag) * 1.2 / 2 - 2);
+  const c0 = (P.cu || "slot") === "rccb" ? ctx + 1 + clW + 2 + 3 - mdbXs : ctx + 12, bp = 10;   // ระยะวงจรห่างขึ้น (ผู้ใช้ 2026-10-31: ชิดกันไป)
   const xL = [0, 1, 2].map((k) => c0 + 5 + k * bp), xMn = xL[2];   // เมนลงกลางบัส F1 F2 | F3 | • • • Fx (ผู้ใช้ 2026-10-31)
   const yB = yMain + 34, yBr = yB - 5.5, cuB = yB - 23, cuT = cu === "rccb" ? yB + 23.5 : yB + 11;   // rccb: เมนใหม่อยู่ในตู้บ้าน ตู้สูงขึ้น
   const solW = Math.max(tW(sBrk, TS.tag), tW("TIE IN POSITION", TS.tag), tW("SOLAR CELL", TS.tag));
@@ -2684,11 +2688,11 @@ function pgCuDraw(pen, M) {
     /* เมนตู้บ้านเป็น RCCB (ผู้ใช้ 2026-10-31): เมนใหม่ใส่ในตู้บ้านเหนือ RCCB เดิม — เมนใหม่ → จุดต่อโซลาร์ → RCCB
        MCB โซลาร์ตัวเดียวอยู่ตู้ MDB SOLAR ใหม่ข้างตู้บ้าน ต่อเข้าจุดต่อ */
     const yN = yMB + 6.5, yMN = yN + 6;
-    const b0 = c1 + 3, xh = b0 + 3 + BS, xs = xh + BS + 1.5, b1 = Math.max(xs + 2, xh + tW("SOLAR CELL", TS.tag) / 2 + 2);
+    const b1 = c0 - 3, xh = b1 + mdbXh, xs = b1 + mdbXs, b0 = b1 + mdbB0;   // ซ้ายตู้บ้าน (ดู mdbXh)
     pen.line(W, xMn, yMB + BS, xMn, yN);
     pen.dot(S, xMn, yN, 0.4);
     pen.text(LB, xMn + 1.2, yN + 0.6, TS.tag, "TIE IN POSITION", { valign: 1 });
-    pen.line(R, xMn, yN, xh - BS, yN); hBrk(xh, yN); pen.line(R, xh + BS, yN, xs, yN);
+    pen.line(R, xMn, yN, xh + BS, yN); hBrk(xh, yN); pen.line(R, xh - BS, yN, xs, yN);
     pen.text(T, xh, yN - 1.2, TS.tag, sBrk, { align: 1, valign: 3 });
     pen.text(T, xh, yN - 2.8, TS.tag, "SOLAR CELL", { align: 1, valign: 3 });
     pen.rect(BX, b0, yN - 6, b1 - b0, 10);
