@@ -2170,7 +2170,7 @@ function BOQEditor({
     });
   });
   const kitShown = isHome ? kitSections.filter(sc => sc.sec === "board" || sc.sec === "water" && pipe3dRaw).map(sc => Object.assign({}, sc, {
-    hint: "ตู้ไฟของงานบ้าน — คิดแบบงานโครงการ: เบรกเกอร์ตามกระแสอินเวอร์เตอร์ (MCB ขนาดแรกที่ ≥ " + RU.fixK + " × กระแส + RCCB " + RU.rcboMa + "mA ขนาดแรกที่ ≥ MCB ที่เมน — RCCB ใหญ่สุด " + RU.rccb2P[RU.rccb2P.length - 1] + " A เกินนั้นใช้ MCCB · อินเวอร์เตอร์ตัวเดียวไม่มีเมนแยก) · SPD Type 2 กันหลังด้วย MCB " + RU.homeSpdMcb + "A · ฟิวส์ DC ตาม Isc/Voc ของสตริง · ราคาดึงจากคลังเหมือนวัสดุอื่น"
+    hint: "ตู้ไฟของงานบ้าน — คิดแบบงานโครงการ: เบรกเกอร์ตามกระแสอินเวอร์เตอร์ (MCB ขนาดแรกที่ ≥ " + RU.fixK + " × กระแส + RCCB " + RU.rcboMa + "mA ขนาดแรกที่ ≥ MCB ที่เมน — RCCB ใหญ่สุด " + RU.rccb2P[RU.rccb2P.length - 1] + " A เกินนั้นใช้ MCCB · อินเวอร์เตอร์ตัวเดียวไม่มีเมนแยก) · SPD Type 2 ต่อร่วมเบรกเกอร์ตู้ ไม่มี MCB กันหลังแยก · ฟิวส์ DC ตาม Isc/Voc ของสตริง · ราคาดึงจากคลังเหมือนวัสดุอื่น"
   })) : kitSections;
   const PRICE_DEF = {
     discount: 0,
@@ -3520,15 +3520,7 @@ function BOQEditor({
         ok: S.okV && S.okA && S.okP,
         why: tag + (lps ? "กันฟ้าผ่าฝั่ง AC" : "กันฟ้าผ่า/แรงดันกระชากฝั่ง AC") + " ตู้ละ 1 ตัว (" + lpsTxt + ") · " + (ph === 3 ? "3 เฟส" : "1 เฟส") + " " + S.p + " · Uc ≥ " + ucNeed + " V → " + S.v + " V · " + (lps ? "Iimp" : "Imax") + " ≥ " + kaNeed + " kA → " + S.a + " kA" + (!S.okP ? " · ไม่มีรุ่นขั้ว" + (ph === 3 ? " 3P+N/4P" : " 2P/1P+N") + " ในรายการที่มีขาย" : "") + (!S.okV ? " · Uc ที่มีขายไม่ถึง" : "") + (!S.okA ? " · kA ที่มีขายไม่ถึง" : "")
       });
-      if (noFuse) out.ac[out.ac.length - 1].why += " · เบรกเกอร์" + (homeOne ? "" : "เมน") + " " + mainAt + " A ≤ " + RU.nhT12 + " A ใช้กันหลัง SPD ได้ ไม่ต้องมีฟิวส์";else if (isHome && !lps && mainAt > 0 && mainAt <= RU.homeSpdMcb) out.ac[out.ac.length - 1].why += " · ต่อร่วมเบรกเกอร์" + (homeOne ? "" : "เมน") + " " + mainAt + " A ≤ " + RU.homeSpdMcb + " A กันหลัง SPD ได้เอง ไม่ต้องมี MCB แยก";else if (isHome && !lps) {
-        out.ac.push({
-          name: "MCB " + pole + " " + RU.homeSpdMcb + "A",
-          qty: 1,
-          unit: "ตัว",
-          auto: 1,
-          why: tag + "กันหลัง SPD (ตัด SPD ออกได้เมื่อเสีย ไม่กระทบระบบ) — งานบ้านใช้ MCB แทนฟิวส์ · ไม่เกิน max backup ในสเปค SPD"
-        });
-      } else {
+      if (noFuse) out.ac[out.ac.length - 1].why += " · เบรกเกอร์" + (homeOne ? "" : "เมน") + " " + mainAt + " A ≤ " + RU.nhT12 + " A ใช้กันหลัง SPD ได้ ไม่ต้องมีฟิวส์";else if (isHome && !lps) out.ac[out.ac.length - 1].why += " · งานบ้านต่อร่วมเบรกเกอร์" + (homeOne ? "" : "เมน") + "ตู้ ไม่มี MCB กันหลัง SPD แยก";else {
         out.ac.push({
           name: "AC FUSE gG " + fA + "A NH00",
           qty: ph,

@@ -92,7 +92,6 @@
     { sec: "acBoard", g: "งานบ้าน", key: "mcbHome3P", th: "MCB 3P (3 เฟส) ที่มีขาย — เกินตัวใหญ่สุดใช้ MCCB", unit: "A", type: "nums", def: [16, 20, 25, 32, 40, 50, 63] },
     { sec: "acBoard", g: "งานบ้าน", key: "rccb2P", th: "RCCB 2P (1 เฟส) ที่มีขาย — ขนาดแรกที่ ≥ MCB", unit: "A", type: "nums", def: [25, 40, 63] },
     { sec: "acBoard", g: "งานบ้าน", key: "rccb4P", th: "RCCB 4P (3 เฟส) ที่มีขาย — ขนาดแรกที่ ≥ MCB", unit: "A", type: "nums", def: [25, 40, 63] },
-    { sec: "acBoard", g: "งานบ้าน", key: "homeSpdMcb", th: "MCB กันหลัง AC SPD", unit: "A", def: 32, min: 1 },
     { sec: "acBoard", g: "งานบ้าน", key: "homeCuFarM", th: "SLD: ระยะอินเวอร์เตอร์ → ตู้ไฟบ้าน (สำรวจ) เกินนี้ = ติดตู้ MDB SOLAR เพิ่มข้างตู้บ้าน", unit: "m", def: 10, min: 0 },
     /* ── สาย AC ── */
     { sec: "acWire", key: "wireK", th: "สาย AC เลือกขนาดจากกระแส × (โหลดต่อเนื่อง)", unit: "เท่า", def: 1.25, min: 1 },
