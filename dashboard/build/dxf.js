@@ -3667,7 +3667,7 @@ function pgCuDraw(pen, M) {
   cl[0] = (/kV|\/750V/.test(cl[0]) ? cl[0] : cl[0] + " 0.6/1kV") + (M.mainRoute ? " " + M.mainRoute : "");
   const ctx = 0,
     clW = Math.max.apply(null, cl.map(t => pgTextW(t, TS.spec))) * 1.2;
-  const yF = (P.cu || "slot") === "rccb" ? yMain + 34 + 12.5 : yMain;
+  const yF = (P.cu || "slot") === "rccb" ? yMain + 34 + 12.5 : (P.cu || "slot") === "slot" ? yMain + 34 - 5.5 - (g + 0.75) - 5 : yMain;
   pen.text(T, ctx + 1, yF + 0.8, TS.spec, cl[0], {
     valign: 1
   });
@@ -3712,7 +3712,7 @@ function pgCuDraw(pen, M) {
   const mdbB0 = Math.min(mdbXs - 2, mdbXh - pgTextW("SOLAR CELL", TS.tag) * 1.2 / 2 - 2);
   const solW = Math.max(tW(sBrk, TS.tag), tW("TIE IN POSITION", TS.tag), tW("SOLAR CELL", TS.tag));
   const slotW = cu === "slot" ? 1.2 + solW + 4 : 0;
-  const c0 = (P.cu || "slot") === "rccb" ? ctx + 1 + clW + 2 + 3 - mdbB0 : cu === "slot" ? Math.max(ctx + 12, ctx + 1 + clW + 2 - 5) : ctx + 12,
+  const c0 = (P.cu || "slot") === "rccb" ? ctx + 1 + clW + 2 + 3 - mdbB0 : cu === "slot" ? Math.max(ctx + 12, ctx + 1 + clW + 3) : ctx + 12,
     bp = 10;
   const xL = [0, 1, 2].map(k => c0 + 5 + slotW + k * bp),
     xMn = xL[2];
@@ -3789,7 +3789,7 @@ function pgCuDraw(pen, M) {
     pen.text(T, xT + 1.2, yBr - 1.6, TS.tag, "SOLAR CELL", {
       valign: 2
     });
-    pen.line(R, xT, yBr - BS, xT, yMain);
+    pen.line(R, xT, yBr - BS, xT, yF);
     xSol = xT;
     xR = c1;
   } else if (cu === "far") {

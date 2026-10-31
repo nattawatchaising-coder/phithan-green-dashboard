@@ -2592,7 +2592,7 @@ function pgCuDraw(pen, M) {
   cl[0] = (/kV|\/750V/.test(cl[0]) ? cl[0] : cl[0] + " 0.6/1kV") + (M.mainRoute ? " " + M.mainRoute : "");
   const ctx = 0, clW = Math.max.apply(null, cl.map((t) => pgTextW(t, TS.spec))) * 1.2;
   /* rccb: สายจากตู้ AC เข้าตู้ MDB SOLAR ทางซ้ายตรง ๆ ที่ระดับจุด TIE IN (yN = yB + 12.5) (ผู้ใช้วาดชี้ 2026-10-31) */
-  const yF = (P.cu || "slot") === "rccb" ? yMain + 34 + 12.5 : yMain;
+  const yF = (P.cu || "slot") === "rccb" ? yMain + 34 + 12.5 : (P.cu || "slot") === "slot" ? yMain + 34 - 5.5 - (g + 0.75) - 5 : yMain;   // slot: เข้าระดับใต้ MCB โซลาร์ (ผู้ใช้วาดชี้)
   pen.text(T, ctx + 1, yF + 0.8, TS.spec, cl[0], { valign: 1 });
   pen.text(T, ctx + 1, yF - 0.8, TS.spec, cl[1], { valign: 3 });
   pen.text(LB, ctx - 1.5, yF, TS.head, "FROM AC COMBINER BOX", { align: 2, valign: 2 });   // กึ่งกลางเส้นสาย (ผู้ใช้ 2026-10-31)
@@ -2621,7 +2621,7 @@ function pgCuDraw(pen, M) {
   const solW = Math.max(tW(sBrk, TS.tag), tW("TIE IN POSITION", TS.tag), tW("SOLAR CELL", TS.tag));
   /* slot: MCB โซลาร์ช่องแรกซ้ายสุดของบัส (ผู้ใช้วาดชี้ 2026-10-31: มาอยู่ฝั่งซ้าย) สายจากตู้ AC ขึ้นตรงพ้นป้ายสาย · วงจรเดิมเลื่อนขวา */
   const slotW = cu === "slot" ? 1.2 + solW + 4 : 0;
-  const c0 = (P.cu || "slot") === "rccb" ? ctx + 1 + clW + 2 + 3 - mdbB0 : cu === "slot" ? Math.max(ctx + 12, ctx + 1 + clW + 2 - 5) : ctx + 12, bp = 10;   // ระยะวงจรห่างขึ้น (ผู้ใช้ 2026-10-31: ชิดกันไป)
+  const c0 = (P.cu || "slot") === "rccb" ? ctx + 1 + clW + 2 + 3 - mdbB0 : cu === "slot" ? Math.max(ctx + 12, ctx + 1 + clW + 3) : ctx + 12, bp = 10;   // ระยะวงจรห่างขึ้น (ผู้ใช้ 2026-10-31: ชิดกันไป)
   const xL = [0, 1, 2].map((k) => c0 + 5 + slotW + k * bp), xMn = xL[2];   // เมนลงกลางบัส F1 F2 | F3 | • • • Fx (ผู้ใช้ 2026-10-31)
   const yB = yMain + 34, yBr = yB - 5.5, cuB = yB - 23, cuT = cu === "rccb" ? yB + 23.5 : yB + 11;   // rccb: เมนใหม่อยู่ในตู้บ้าน ตู้สูงขึ้น
   /* วงจรเดิม F1 F2 F3 • • • Fx (ผู้ใช้วาดชี้ 2026-10-31: มีวงจรสุดท้ายต่อจากจุด) */
@@ -2675,7 +2675,7 @@ function pgCuDraw(pen, M) {
     pen.text(LB, xT + 1.2, yBr + 2.0, TS.tag, "TIE IN POSITION", { valign: 2 });
     pen.text(T, xT + 1.2, yBr + 0.2, TS.tag, sBrk, { valign: 2 });
     pen.text(T, xT + 1.2, yBr - 1.6, TS.tag, "SOLAR CELL", { valign: 2 });
-    pen.line(R, xT, yBr - BS, xT, yMain);
+    pen.line(R, xT, yBr - BS, xT, yF);
     xSol = xT; xR = c1;
   } else if (cu === "far") {
     /* ตู้ MDB SOLAR ใหม่ข้างตู้บ้าน: ต่อเข้าปลายบัส (TIE IN POSITION) ลง MCB โซลาร์ */
