@@ -4276,7 +4276,7 @@ function p3SldModel(st, job, design) {
       earthCu,
       exMain,
       phTxt: nPh === 3 ? "3PH 400V" : "1PH 230V",
-      cu: !home ? "" : sv.mdbRccb === "yes" ? "rccb" : sv.mdbSpace === "full" || +sv.cableAc > (R && R.homeCuFarM != null ? R.homeCuFarM : 10) ? "far" : "slot"
+      cu: !home ? "" : BQ.homeCuOf ? BQ.homeCuOf(job) : "slot"
     };
     const nTxt = nMin === nMax ? String(nMax) : nMin + "-" + nMax;
     const sp = (a, u) => a.every(v => v !== "" && v != null && v !== 0) ? a.join(" / ") + (u || "") : "";

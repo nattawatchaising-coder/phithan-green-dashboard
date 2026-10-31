@@ -3436,6 +3436,7 @@ function BOQEditor({
       auto: 1,
       why: "1 ตู้ต่อสายเมน MCB SOLAR → MDB 1 เส้น"
     });
+    let solAt = 0;
     boards.forEach((m, bi) => {
       const tag = boards.length > 1 ? "ตู้ " + (bi + 1) + " · " : "";
       let mainAt = 0;
@@ -3498,6 +3499,7 @@ function BOQEditor({
           why: tag + "กันไฟรั่วคู่กับ " + k.nm + " (RCCB ไม่ตัดกระแสเกิน · ขนาดต้อง ≥ MCB)"
         });
       });
+      if (bi === 0) solAt = mainAt;
       const fA = lps ? RU.nhT12 : RU.nhT2;
       const noFuse = lps && mainAt > 0 && mainAt <= RU.nhT12;
       const ucNeed = ph === 3 ? RU.acUc3 : RU.acUc1,
@@ -3588,6 +3590,36 @@ function BOQEditor({
         why: tag + "กันสายวัดแรงดัน" + (pmOn ? " PM2230" : "") + (gfSep ? (pmOn ? " และ" : "") + "ไฟเลี้ยง GFR / Shunt trip" : "")
       });
     });
+    if (isHome && solAt > 0) {
+      const cu = window.BOQ.homeCuOf ? window.BOQ.homeCuOf(job) : "slot",
+        sv = job && job.survey || {};
+      const cuTxt = cu === "rccb" ? "เมนตู้บ้านเป็น RCCB (ใบสำรวจ) → ตู้ MDB BOX ใหม่เหนือ RCCB เดิม โซลาร์ต้องเข้าก่อน RCCB" : cu === "far" ? (sv.mdbSpace === "full" ? "ตู้บ้านเต็ม (ใบสำรวจ)" : "ตู้ AC โซลาร์ห่างตู้บ้าน " + sv.cableAc + " ม. > " + RU.homeCuFarM + " ม.") + " → ตู้ MDB SOLAR ใหม่ข้างตู้บ้าน ต่อเข้าบัส" : "ตู้บ้านมีช่องว่าง → ใส่ MCB โซลาร์ในตู้บ้าน (TIE IN POSITION)";
+      if (cu !== "slot") out.ac.push({
+        name: "ตู้ไฟ AC",
+        qty: 1,
+        unit: "ตู้",
+        auto: 1,
+        why: (cu === "rccb" ? "ตู้ MDB BOX · " : "ตู้ MDB SOLAR · ") + cuTxt
+      });
+      out.ac.push({
+        name: "MCB " + pole + " " + solAt + "A",
+        qty: 1,
+        unit: "ตัว",
+        auto: 1,
+        why: "MCB โซลาร์ในตู้" + (cu === "slot" ? "บ้าน" : cu === "far" ? " MDB SOLAR" : " MDB BOX") + " ขนาดเท่าเบรกเกอร์ตู้ AC " + solAt + " A · " + cuTxt
+      });
+      if (cu === "rccb") {
+        const ex = +(String((job && job.permit || {}).mainAT || sv.mainBreaker || "").match(/\d+/) || [0])[0];
+        const at = ex ? (MCBH_AT[pole] || MCBH_AT["2P"]).find(x => x >= ex) : 0;
+        if (ex) out.ac.push({
+          name: at ? "MCB " + pole + " " + at + "A" : window.BOQ.mccbName(ex, "main"),
+          qty: 1,
+          unit: "ตัว",
+          auto: 1,
+          why: "เมนใหม่ในตู้ MDB BOX ขนาดเท่าเมนเดิมของบ้าน " + ex + " A (ใบสำรวจ/ขออนุญาต)"
+        });else out.ac[out.ac.length - 1].why += " · ยังไม่ได้ใส่เมนใหม่ของตู้ MDB BOX — ใบสำรวจยังไม่กรอกขนาดเมนเดิม";
+      }
+    }
     const nStr = plan ? plan.strings : invUnits.length * Math.max(1, +selInv.inputs || 1);
     if (!(+projBoard.dc > 0)) out.dc.push({
       name: "ตู้ไฟ DC",

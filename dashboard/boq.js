@@ -1479,6 +1479,12 @@
   const PERMIT_GRID_NAME = "ค่าเชื่อมต่อระบบขนานไฟฟ้า";
   const PERMIT_GRID_FEE = { MEA: 2140, PEA: 3745 };
   const MEA_PROVINCES = ["กรุงเทพ", "กทม", "bangkok", "นนทบุรี", "nonthaburi", "สมุทรปราการ", "samut prakan"];
+  /* งานบ้าน: วิธีต่อเข้าตู้ไฟบ้านลูกค้า จากใบสำรวจ — SLD (plan3d) กับ BOQ ใช้ตัวเดียวกัน (ผู้ใช้ 2026-10-31)
+     rccb = เมนตู้บ้านเป็น RCCB → ตู้ MDB BOX ใหม่ (เมนใหม่ + MCB โซลาร์) เหนือ RCCB · far = ตู้เต็ม/ตู้ AC ห่างเกิน homeCuFarM → ตู้ MDB SOLAR ใหม่ + MCB โซลาร์ · slot = MCB โซลาร์ใส่ช่องว่างตู้บ้าน */
+  function homeCuOf(job) {
+    const sv = (job && job.survey) || {}, far = RULES_T.home.homeCuFarM != null ? RULES_T.home.homeCuFarM : 10;
+    return sv.mdbRccb === "yes" ? "rccb" : (sv.mdbSpace === "full" || +sv.cableAc > far) ? "far" : "slot";
+  }
   function gridAuthOf(job) {
     const pv = String((job && job.province) || "").trim().toLowerCase();
     if (pv) return RULES.meaProv.some((x) => pv.indexOf(x) >= 0) ? "MEA" : "PEA";
@@ -3023,7 +3029,7 @@
 
   window.BOQ = { PANELS, MICRO, INVERTERS, OPTIMIZERS, setOptimizers, findOptimizer, ROOF_HOOKS, ROOF_OPTIONS, CABLE_TYPES, CABLE_GROUPS, cableCategory, MATERIAL_SUBGROUPS, materialSubGroup, CABLE_POINTS, DEFAULT_CABLES, STRING_CABLE_POINTS, MICRO_CABLE_NAMES, DEFAULT_STRING_CABLES, IMC_SIZES, UPVC_SIZES, PULLBOX_SIZES, CABLE_OD, HDPE_TABLE, IMC_CONDUIT, WIRE_SIZES, WIRE_METHODS, INS_CLASSES, AMP_GROUPS, AMP_NCOND, AMP_CORES, ampColKey, DEFAULT_AMPACITY, AMPACITY, setAmpacity, WIRE_METHOD_BASE, ampTableFor, cableInsClass, cableCoreType, cableSizeNum, ampacityOf, pickWireSize, PV_WIRE_SIZES, PV_WIRE_AMP, PV_WIRE_MIN, pickPvWireSize, calcVdrop, VD_LIMIT, findPanel, findInverter, stringConfig, stringPlan, INV_SLOTS, invExtras, invExtraCap, wireArea, calcWireWay, calcConduitSize, blankBOQ, mergeBOQ, setConduitDefaults, conduitDefaults, CONDUIT_SPARE_FIXED, IMC_RULE, IMC_RULE_DEF, imcRule, calcBOQ, calcStructures, matKey, qtyKey, catalog, isPvDcCable, PV_DC_COLORS, PV_DC_SPARE, pvDcLength, applyPrices, setPanels, setInverters,
     WAY_SIZES, TRAY_SIZES, PERF_SIZES, WWU_SIZES, syncTraySizes, traySizesVer, TRAY_KINDS, TRAY_KIND_KEYS, trayKindOf, trayNorm, trayAlias, hdgName,
-    optimizerQty, optimizerFits, DCAC_LIMIT, WAY_PIPE_LEN, TRAY_PIPE_LEN, trayLenTxt, railLenCm, railPerTon, railName, SUPPORT_KINDS, LABOR_PRESET, PERMIT_PRESET, permitPresetFor, permitGridFee, gridAuthOf, PERMIT_ENG_TIERS, PERMIT_GRID_FEE, PERMIT_GRID_NAME,
+    optimizerQty, optimizerFits, DCAC_LIMIT, WAY_PIPE_LEN, TRAY_PIPE_LEN, trayLenTxt, railLenCm, railPerTon, railName, SUPPORT_KINDS, LABOR_PRESET, PERMIT_PRESET, permitPresetFor, permitGridFee, gridAuthOf, homeCuOf, PERMIT_ENG_TIERS, PERMIT_GRID_FEE, PERMIT_GRID_NAME,
     COND_FIT_KINDS, WAY_FIT_KINDS, condFittings, trayFittings, PPR_SIZES, PPR_FIT_KINDS, pipeFittings, pipeFromPlan, trayFromPlan, walkFromPlan, walkLens, walkLenOf, walkName, railLens, mccbFrame, mccbName, mccbName0, acbName0,
     STEEL_SPECS, steelName, steelBarLen, steelSel, steelOf,
     TRANSPORT_PRESET, MANAGE_PRESET, G_TRANSPORT, G_MANAGE, PROJECT_KITS, normProject, kitExtraKeys, ACC_ALLOW_PCT, ACC_ALLOW_PCT_HOME, accAllowDef, accAllowPct, VAT_RATE, PROFIT_PCT_DEF, priceBreakdown,
