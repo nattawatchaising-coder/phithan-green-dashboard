@@ -2719,7 +2719,7 @@ function pgCuDraw(pen, M) {
   /* สายสัญญาณ CT ออกซ้าย → เขียนบอกว่าไปมิเตอร์โซลาร์ในตู้ AC COMBINER BOX (ผู้ใช้ 2026-10-31: มิเตอร์อยู่ในตู้ AC ไม่ต้องวาดรูป) */
   {
     const CS = PG_SLD.ctsig, xE = xMn - CT_R - 8;
-    pen.line(CS, xMn - CT_R - 0.2, yC, xE + 1.6, yC);
+    pen.line(CS, xMn, yC, xE + 1.6, yC);   // เส้นประเริ่มจากสายเมนกลาง CT (ผู้ใช้วาดชี้ 2026-10-31)
     pen.solid(S, [xE + 1.6, yC + 0.7], [xE, yC], [xE + 1.6, yC - 0.7]);
     pen.text(T, xE - 0.8, yC + 0.4, TS.tag, "CT SIGNAL TO SOLAR METER" + (mtrNm ? " (" + mtrNm + ")" : ""), { align: 2, valign: 1 });
     pen.text(T, xE - 0.8, yC - 0.4, TS.tag, "IN AC COMBINER BOX", { align: 2, valign: 3 });

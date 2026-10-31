@@ -3874,7 +3874,7 @@ function pgCuDraw(pen, M) {
   {
     const CS = PG_SLD.ctsig,
       xE = xMn - CT_R - 8;
-    pen.line(CS, xMn - CT_R - 0.2, yC, xE + 1.6, yC);
+    pen.line(CS, xMn, yC, xE + 1.6, yC);
     pen.solid(S, [xE + 1.6, yC + 0.7], [xE, yC], [xE + 1.6, yC - 0.7]);
     pen.text(T, xE - 0.8, yC + 0.4, TS.tag, "CT SIGNAL TO SOLAR METER" + (mtrNm ? " (" + mtrNm + ")" : ""), {
       align: 2,
