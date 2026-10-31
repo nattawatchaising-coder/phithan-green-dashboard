@@ -3364,7 +3364,7 @@ function pgSldPro(doc, sheet, M) {
       });
       pmLow = pbB - 3.6;
     }
-    const xN = sx - 13;
+    const xN = P.pm || hasGf ? sx : sx - 13;
     const sw = xN - 3.6 - X.ac0 - 1;
     let sy = yMain;
     const top0 = Math.min(P.pm ? pmLow : yMain, hasGf ? yMain - 12.6 : yMain - 3);
