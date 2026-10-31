@@ -1885,9 +1885,9 @@ function pgSldPro(doc, sheet, M) {
     pen.text(LB, (X.dc0 + X.dc1) / 2, hy, TS.zone, fuseDev ? "DC COMBINER BOX" : "DC BOX", { align: 1, valign: 1 });
   }
   /* แผ่นภาพรวม: หัว INVERTER / AC COMBINER BOX ลงมาชิดขอบบนตู้ AC (ผู้ใช้ชี้ 2026-10-29) — วาดหลังรู้ acTop */
-  const zoneHdr = (y) => {
+  const zoneHdr = (y, acR = X.ac1) => {   // acR = ขอบขวาตู้ AC จริง (ตู้หดได้ ป้ายอยู่กลางตู้)
     pen.text(LB, (X.iv0 + X.iv1) / 2, y, TS.zone, "INVERTER", { align: 1, valign: 1 });
-    if (!isDet) pen.text(LB, (X.ac0 + X.ac1) / 2, y, TS.zone, "AC COMBINER BOX", { align: 1, valign: 1 });
+    if (!isDet) pen.text(LB, (X.ac0 + acR) / 2, y, TS.zone, "AC COMBINER BOX", { align: 1, valign: 1 });
   };
   if (!isMain) zoneHdr(hy);
 
@@ -2384,8 +2384,9 @@ function pgSldPro(doc, sheet, M) {
     };
     bar(S, xN - 16, "N", false);
     bar(PE, xN - 1, "G", true);   // รูที่ 3 ตรงสาย SPD · รูที่ 4 (xN + 2) ออกไป MET · ทั้งชุดขยับซ้ายตาม SPD (ผู้ใช้ 2026-10-31: ขยับให้สั้นลง)
-    pen.rect(BX, X.ac0, acBot, X.ac1 - X.ac0, acTop - acBot);
-    if (isMain) zoneHdr(Math.min(hy, acTop + 2.5));
+    const acR = Math.min(X.ac1, xN + 9);   // ขอบขวาตู้ AC หดมาพ้นป้ายบาร์ G (ผู้ใช้วาดกรอบชี้ 2026-10-31)
+    pen.rect(BX, X.ac0, acBot, acR - X.ac0, acTop - acBot);
+    if (isMain) zoneHdr(Math.min(hy, acTop + 2.5), acR);
 
     /* ── ปลายสายเมน: เบรกเกอร์โซลาร์ในตู้ MDB เดิม → ลูกศร TO MDB (EXISTING) ──
        ผู้ใช้ขีดฆ่ากรอบ MDB · มิเตอร์ · สายกริด · MET · หลักดินระบบ (2026-10-29) — ของเดิมไม่วาด ชี้ไปเฉย ๆ */

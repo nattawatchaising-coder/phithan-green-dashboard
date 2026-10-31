@@ -2725,12 +2725,12 @@ function pgSldPro(doc, sheet, M) {
       valign: 1
     });
   }
-  const zoneHdr = y => {
+  const zoneHdr = (y, acR = X.ac1) => {
     pen.text(LB, (X.iv0 + X.iv1) / 2, y, TS.zone, "INVERTER", {
       align: 1,
       valign: 1
     });
-    if (!isDet) pen.text(LB, (X.ac0 + X.ac1) / 2, y, TS.zone, "AC COMBINER BOX", {
+    if (!isDet) pen.text(LB, (X.ac0 + acR) / 2, y, TS.zone, "AC COMBINER BOX", {
       align: 1,
       valign: 1
     });
@@ -3387,8 +3387,9 @@ function pgSldPro(doc, sheet, M) {
     };
     bar(S, xN - 16, "N", false);
     bar(PE, xN - 1, "G", true);
-    pen.rect(BX, X.ac0, acBot, X.ac1 - X.ac0, acTop - acBot);
-    if (isMain) zoneHdr(Math.min(hy, acTop + 2.5));
+    const acR = Math.min(X.ac1, xN + 9);
+    pen.rect(BX, X.ac0, acBot, acR - X.ac0, acTop - acBot);
+    if (isMain) zoneHdr(Math.min(hy, acTop + 2.5), acR);
     const mdBot = yMain - 24;
     const cl = [String(M.mainCable[0] || "").replace(/\s*\(SOLAR-CELL\)/, "").replace(/\s+/g, " "), M.mainGnd || "G-" + P.earthCu + " Sq.mm. IEC01(THW)"];
     cl[0] = (/kV|\/750V/.test(cl[0]) ? cl[0] : cl[0] + " 0.6/1kV") + (M.mainRoute ? " " + M.mainRoute : "");
