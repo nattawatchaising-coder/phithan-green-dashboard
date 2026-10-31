@@ -3667,17 +3667,18 @@ function pgCuDraw(pen, M) {
   cl[0] = (/kV|\/750V/.test(cl[0]) ? cl[0] : cl[0] + " 0.6/1kV") + (M.mainRoute ? " " + M.mainRoute : "");
   const ctx = 0,
     clW = Math.max.apply(null, cl.map(t => pgTextW(t, TS.spec))) * 1.2;
-  pen.text(T, ctx + 1, yMain + 0.8, TS.spec, cl[0], {
+  const yF = (P.cu || "slot") === "rccb" ? yMain + 34 + 12.5 : yMain;
+  pen.text(T, ctx + 1, yF + 0.8, TS.spec, cl[0], {
     valign: 1
   });
-  pen.text(T, ctx + 1, yMain - 0.8, TS.spec, cl[1], {
+  pen.text(T, ctx + 1, yF - 0.8, TS.spec, cl[1], {
     valign: 3
   });
-  pen.text(LB, ctx - 1.5, yMain, TS.head, "FROM AC COMBINER BOX", {
+  pen.text(LB, ctx - 1.5, yF, TS.head, "FROM AC COMBINER BOX", {
     align: 2,
     valign: 2
   });
-  pen.solid(R, [ctx - 1.2, yMain + 1.1], [ctx + 1.4, yMain], [ctx - 1.2, yMain - 1.1]);
+  pen.solid(R, [ctx - 1.2, yF + 1.1], [ctx + 1.4, yF], [ctx - 1.2, yF - 1.1]);
   const cu = P.cu || "slot";
   const sBrk = String(P.mainTxt || "").split(" + ")[0].trim();
   const BS = g + 0.75;
@@ -3709,7 +3710,7 @@ function pgCuDraw(pen, M) {
   const mdbXh = -3 - (g + 0.75),
     mdbXs = mdbXh - (g + 0.75) - 1.5;
   const mdbB0 = Math.min(mdbXs - 2, mdbXh - pgTextW("SOLAR CELL", TS.tag) * 1.2 / 2 - 2);
-  const c0 = (P.cu || "slot") === "rccb" ? ctx + 1 + clW + 2 + 3 - mdbXs : ctx + 12,
+  const c0 = (P.cu || "slot") === "rccb" ? ctx + 1 + clW + 2 + 3 - mdbB0 : ctx + 12,
     bp = 10;
   const xL = [0, 1, 2].map(k => c0 + 5 + k * bp),
     xMn = xL[2];
@@ -3839,7 +3840,6 @@ function pgCuDraw(pen, M) {
     pen.line(W, xMn, yN, xMn, yMN - BS);
     vBrk(xMn, yMN);
     lab2(xMn, yMN, "MAIN", P.exMain || "");
-    pen.line(R, xs, yN, xs, yMain);
     pen.line(W, xMn, yMN + BS, xMn, yTop);
     xSol = xs;
     xR = b1;
@@ -3890,7 +3890,7 @@ function pgCuDraw(pen, M) {
       valign: 3
     });
   }
-  pen.line(R, ctx + 1.4, yMain, xSol, yMain);
+  pen.line(R, ctx + 1.4, yF, xSol, yF);
 }
 function pgCuSheet(doc, sheet, M) {
   pgSldLayers(doc);

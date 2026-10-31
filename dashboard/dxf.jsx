@@ -2591,10 +2591,12 @@ function pgCuDraw(pen, M) {
   const cl = [String(M.mainCable[0] || "").replace(/\s*\(SOLAR-CELL\)/, "").replace(/\s+/g, " "), M.mainGnd || "G-" + P.earthCu + " Sq.mm. IEC01(THW)"];
   cl[0] = (/kV|\/750V/.test(cl[0]) ? cl[0] : cl[0] + " 0.6/1kV") + (M.mainRoute ? " " + M.mainRoute : "");
   const ctx = 0, clW = Math.max.apply(null, cl.map((t) => pgTextW(t, TS.spec))) * 1.2;
-  pen.text(T, ctx + 1, yMain + 0.8, TS.spec, cl[0], { valign: 1 });
-  pen.text(T, ctx + 1, yMain - 0.8, TS.spec, cl[1], { valign: 3 });
-  pen.text(LB, ctx - 1.5, yMain, TS.head, "FROM AC COMBINER BOX", { align: 2, valign: 2 });   // กึ่งกลางเส้นสาย (ผู้ใช้ 2026-10-31)
-  pen.solid(R, [ctx - 1.2, yMain + 1.1], [ctx + 1.4, yMain], [ctx - 1.2, yMain - 1.1]);
+  /* rccb: สายจากตู้ AC เข้าตู้ MDB SOLAR ทางซ้ายตรง ๆ ที่ระดับจุด TIE IN (yN = yB + 12.5) (ผู้ใช้วาดชี้ 2026-10-31) */
+  const yF = (P.cu || "slot") === "rccb" ? yMain + 34 + 12.5 : yMain;
+  pen.text(T, ctx + 1, yF + 0.8, TS.spec, cl[0], { valign: 1 });
+  pen.text(T, ctx + 1, yF - 0.8, TS.spec, cl[1], { valign: 3 });
+  pen.text(LB, ctx - 1.5, yF, TS.head, "FROM AC COMBINER BOX", { align: 2, valign: 2 });   // กึ่งกลางเส้นสาย (ผู้ใช้ 2026-10-31)
+  pen.solid(R, [ctx - 1.2, yF + 1.1], [ctx + 1.4, yF], [ctx - 1.2, yF - 1.1]);
   const cu = P.cu || "slot";
   const sBrk = String(P.mainTxt || "").split(" + ")[0].trim();   // MCB โซลาร์ในตู้บ้าน = ขนาดเดียวกับเมนตู้ AC
   const BS = g + 0.75;
@@ -2616,7 +2618,7 @@ function pgCuDraw(pen, M) {
      ตู้บ้านเลื่อนขวาเผื่อป้ายสาย + กว้างตู้ MDB SOLAR · เรขาคณิตตู้ (เทียบขอบขวา b1): xh = b1 - 3 - BS · xs = xh - BS - 1.5 */
   const mdbXh = -3 - (g + 0.75), mdbXs = mdbXh - (g + 0.75) - 1.5;
   const mdbB0 = Math.min(mdbXs - 2, mdbXh - pgTextW("SOLAR CELL", TS.tag) * 1.2 / 2 - 2);
-  const c0 = (P.cu || "slot") === "rccb" ? ctx + 1 + clW + 2 + 3 - mdbXs : ctx + 12, bp = 10;   // ระยะวงจรห่างขึ้น (ผู้ใช้ 2026-10-31: ชิดกันไป)
+  const c0 = (P.cu || "slot") === "rccb" ? ctx + 1 + clW + 2 + 3 - mdbB0 : ctx + 12, bp = 10;   // ระยะวงจรห่างขึ้น (ผู้ใช้ 2026-10-31: ชิดกันไป)
   const xL = [0, 1, 2].map((k) => c0 + 5 + k * bp), xMn = xL[2];   // เมนลงกลางบัส F1 F2 | F3 | • • • Fx (ผู้ใช้ 2026-10-31)
   const yB = yMain + 34, yBr = yB - 5.5, cuB = yB - 23, cuT = cu === "rccb" ? yB + 23.5 : yB + 11;   // rccb: เมนใหม่อยู่ในตู้บ้าน ตู้สูงขึ้น
   const solW = Math.max(tW(sBrk, TS.tag), tW("TIE IN POSITION", TS.tag), tW("SOLAR CELL", TS.tag));
@@ -2700,7 +2702,6 @@ function pgCuDraw(pen, M) {
     /* ไม่วาดกราวด์ตู้ MDB SOLAR (ผู้ใช้ขีดฆ่า 2026-10-31) */
     pen.line(W, xMn, yN, xMn, yMN - BS); vBrk(xMn, yMN);
     lab2(xMn, yMN, "MAIN", P.exMain || "");   // ไม่เขียน (NEW)/(EXISTING) ที่เบรกเกอร์ (ผู้ใช้ขีดฆ่า 2026-10-31)
-    pen.line(R, xs, yN, xs, yMain);
     pen.line(W, xMn, yMN + BS, xMn, yTop);
     xSol = xs; xR = b1;
   }
@@ -2729,7 +2730,7 @@ function pgCuDraw(pen, M) {
     pen.text(T, xE - 0.8, yC + 0.4, TS.tag, "CT SIGNAL TO SOLAR METER" + (mtrNm ? " (" + mtrNm + ")" : ""), { align: 2, valign: 1 });
     pen.text(T, xE - 0.8, yC - 0.4, TS.tag, "IN AC COMBINER BOX", { align: 2, valign: 3 });
   }
-  pen.line(R, ctx + 1.4, yMain, xSol, yMain);
+  pen.line(R, ctx + 1.4, yF, xSol, yF);
 }
 function pgCuSheet(doc, sheet, M) {
   pgSldLayers(doc);
