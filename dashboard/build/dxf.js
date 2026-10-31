@@ -3623,7 +3623,7 @@ function pgCuDraw(pen, M) {
   const yB = yMain + 21,
     yBr = yB - 5.5,
     cuB = yB - 17,
-    cuT = yB + 11;
+    cuT = cu === "rccb" ? yB + 23.5 : yB + 11;
   const solW = Math.max(tW(sBrk, TS.tag), tW("TIE IN POSITION", TS.tag), tW("SOLAR CELL", TS.tag));
   const xT = cu === "slot" ? xL[2] + bp * 2 : 0;
   const c1 = cu === "slot" ? xT + 1.2 + solW + 2 : xL[2] + bp * 1.3 + 3;
@@ -3686,17 +3686,20 @@ function pgCuDraw(pen, M) {
     xSol = xs;
     xR = b1;
   } else {
-    const mdB = cuT + 4.5,
-      yN = mdB + 5,
-      yMN = yN + 6,
-      mdT = yMN + 4.5;
-    const xS = Math.max(xMn + 9 + BS + 3, c1 + 5),
-      xh = xS - BS - 2.5;
+    const yN = yMB + 6.5,
+      yMN = yN + 6;
+    const b0 = c1 + 3,
+      xh = b0 + 3 + BS,
+      xs = xh + BS + 1.5,
+      b1 = Math.max(xs + 2, xh + tW("SOLAR CELL", TS.tag) / 2 + 2);
     pen.line(W, xMn, yMB + BS, xMn, yN);
     pen.dot(S, xMn, yN, 0.4);
+    pen.text(LB, xMn + 1.2, yN + 0.6, TS.tag, "TIE IN POSITION", {
+      valign: 1
+    });
     pen.line(R, xMn, yN, xh - BS, yN);
     hBrk(xh, yN);
-    pen.line(R, xh + BS, yN, xS, yN);
+    pen.line(R, xh + BS, yN, xs, yN);
     pen.text(T, xh, yN - 1.2, TS.tag, sBrk, {
       align: 1,
       valign: 3
@@ -3705,24 +3708,16 @@ function pgCuDraw(pen, M) {
       align: 1,
       valign: 3
     });
+    pen.rect(BX, b0, yN - 6, b1 - b0, 10);
+    pen.text(LB, b0, yN + 4.8, TS.spec, "MDB SOLAR (NEW)", {
+      valign: 3
+    });
     pen.line(W, xMn, yN, xMn, yMN - BS);
     vBrk(xMn, yMN);
     lab2(xMn, yMN, "MAIN (NEW)", P.exMain || "");
-    const b0 = xMn - 5,
-      b1 = xS + 2;
-    pen.rect(BX, b0, mdB, b1 - b0, mdT - mdB);
-    pen.text(LB, b0 - 1.0, (mdB + mdT) / 2 + 0.9, TS.spec, "MDB BOX", {
-      align: 2,
-      valign: 2
-    });
-    pen.text(T, b0 - 1.0, (mdB + mdT) / 2 - 0.9, TS.tag, "(NEW)", {
-      align: 2,
-      valign: 2
-    });
-    pen.line(R, xS, yN, xS, yMain);
-    yTop = mdT;
-    pen.line(W, xMn, yMN + BS, xMn, mdT);
-    xSol = xS;
+    pen.line(R, xs, yN, xs, yMain);
+    pen.line(W, xMn, yMN + BS, xMn, yTop);
+    xSol = xs;
     xR = b1;
   }
   if (cu !== "rccb") pen.line(W, xMn, yMB + BS, xMn, yTop);
@@ -3780,7 +3775,7 @@ function pgCuSheet(doc, sheet, M) {
     A = sheet.area,
     cu = M.pro.cu || "slot";
   pgSheetTitle(pen, A.x0 + 6, A.y1 - 10, "CONSUMER UNIT CONNECTION DIAGRAM", PG_TS.title, 220, 0, null);
-  const notes = [cu === "rccb" ? "EXISTING MAIN BREAKER IS RCCB : INSTALL NEW MDB BOX (NEW MAIN + SOLAR MCB) UPSTREAM OF EXISTING RCCB." : cu === "far" ? "AC COMBINER BOX FAR FROM / NO SPARE WAY IN CONSUMER UNIT : INSTALL NEW MDB SOLAR BESIDE CONSUMER UNIT, TIE IN AT END OF BUSBAR." : "CONSUMER UNIT HAS SPARE WAY : INSTALL SOLAR MCB IN EXISTING CONSUMER UNIT (TIE IN POSITION).", "CT MAIN GRID CLAMPS INCOMING LINE FROM " + (M.pro.auth || "GRID") + ", UPSTREAM OF SOLAR TIE IN POINT (NET IMPORT / EXPORT).", "VERIFY EXISTING CONSUMER UNIT ON SITE BEFORE INSTALLATION."];
+  const notes = [cu === "rccb" ? "EXISTING MAIN BREAKER IS RCCB : INSTALL NEW MAIN IN CONSUMER UNIT UPSTREAM OF EXISTING RCCB, SOLAR MCB IN NEW MDB SOLAR TIE IN BETWEEN NEW MAIN AND RCCB." : cu === "far" ? "AC COMBINER BOX FAR FROM / NO SPARE WAY IN CONSUMER UNIT : INSTALL NEW MDB SOLAR BESIDE CONSUMER UNIT, TIE IN AT END OF BUSBAR." : "CONSUMER UNIT HAS SPARE WAY : INSTALL SOLAR MCB IN EXISTING CONSUMER UNIT (TIE IN POSITION).", "CT MAIN GRID CLAMPS INCOMING LINE FROM " + (M.pro.auth || "GRID") + ", UPSTREAM OF SOLAR TIE IN POINT (NET IMPORT / EXPORT).", "VERIFY EXISTING CONSUMER UNIT ON SITE BEFORE INSTALLATION."];
   const th = PG_TS.cell,
     nh = th * 1.8,
     ny0 = A.y0 + 6;

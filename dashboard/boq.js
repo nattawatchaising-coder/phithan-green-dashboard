@@ -1480,7 +1480,7 @@
   const PERMIT_GRID_FEE = { MEA: 2140, PEA: 3745 };
   const MEA_PROVINCES = ["กรุงเทพ", "กทม", "bangkok", "นนทบุรี", "nonthaburi", "สมุทรปราการ", "samut prakan"];
   /* งานบ้าน: วิธีต่อเข้าตู้ไฟบ้านลูกค้า จากใบสำรวจ — SLD (plan3d) กับ BOQ ใช้ตัวเดียวกัน (ผู้ใช้ 2026-10-31)
-     rccb = เมนตู้บ้านเป็น RCCB → ตู้ MDB BOX ใหม่ (เมนใหม่ + MCB โซลาร์) เหนือ RCCB · far = ตู้เต็ม/ตู้ AC ห่างเกิน homeCuFarM → ตู้ MDB SOLAR ใหม่ + MCB โซลาร์ · slot = MCB โซลาร์ใส่ช่องว่างตู้บ้าน */
+     rccb = เมนตู้บ้านเป็น RCCB → เมนใหม่ในตู้บ้านเหนือ RCCB + ตู้ MDB SOLAR ใหม่ (MCB โซลาร์ตัวเดียว) · far = ตู้เต็ม/ตู้ AC ห่างเกิน homeCuFarM → ตู้ MDB SOLAR ใหม่ + MCB โซลาร์ · slot = MCB โซลาร์ใส่ช่องว่างตู้บ้าน */
   function homeCuOf(job) {
     const sv = (job && job.survey) || {}, far = RULES_T.home.homeCuFarM != null ? RULES_T.home.homeCuFarM : 10;
     return sv.mdbRccb === "yes" ? "rccb" : (sv.mdbSpace === "full" || +sv.cableAc > far) ? "far" : "slot";
