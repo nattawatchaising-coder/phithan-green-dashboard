@@ -670,6 +670,14 @@ function App() {
         };
       })()
     })));
+    window.BOQ.METERS = (stock.items || []).filter(s => s && s.name && (() => {
+      const c = window.SF.STOCK_CAT_BY[s.cat];
+      return !!c && /smart meter/i.test(c.th || "");
+    })()).map(s => ({
+      name: s.name,
+      model: s.model || "",
+      desc: s.desc || ""
+    }));
     window.BOQ.BATTERIES = (stock.items || []).filter(s => inCat(s, "battery") && s.name && +s.kwh > 0).map(s => ({
       name: s.name,
       model: s.model || s.name,

@@ -3435,7 +3435,7 @@ function pgSldPro(doc, sheet, M) {
         it = tp.top,
         COM = PG_SLD.comm;
       const arrow = (x, y, dx, dy) => pen.solid(S, [x - dy * 0.7, y + dx * 0.7], [x + dx * 1.6, y + dy * 1.6], [x + dy * 0.7, y - dx * 0.7]);
-      const ctSpec = (String(mon.meter).match(/CT\s*[\d/]+\s*m?A(\/[\d.]+m?A)?/i) || [""])[0];
+      const ctSpec = pgMeterCt(mon.meter).ct ? "CT " + pgMeterCt(mon.meter).ct : "";
       const meterNm = mon.meter ? mon.meter.replace(/\s*\+\s*CT.*$/i, "") : "";
       const dw = Math.max(22, pgTextW(mon.dev, TS.spec) + 4),
         dh = 6;
@@ -3520,7 +3520,7 @@ function pgSldPro(doc, sheet, M) {
         vx = taps[taps.length - 1].vx,
         COM = PG_SLD.comm;
       const arrow = (x, y, dx, dy) => pen.solid(S, [x - dy * 0.7, y + dx * 0.7], [x + dx * 1.6, y + dy * 1.6], [x + dy * 0.7, y - dx * 0.7]);
-      const ctSpec = (String(mon.meter).match(/CT\s*[\d/]+\s*m?A(\/[\d.]+m?A)?/i) || [""])[0];
+      const ctSpec = pgMeterCt(mon.meter).ct ? "CT " + pgMeterCt(mon.meter).ct : "";
       const meterNm = mon.meter ? mon.meter.replace(/\s*\+\s*CT.*$/i, "") : "";
       const dw = Math.max(30, pgTextW(mon.dev, TS.spec) + 4),
         dh = 6;
@@ -3636,6 +3636,45 @@ function pgSldGroups(M) {
     out[idx[key]].nos.push(no);
   });
   return out;
+}
+const PG_METER_DS = {
+  GMK110: {
+    ct: "120A/40mA",
+    cls: "1"
+  },
+  GMK330: {
+    ct: "120A/40mA",
+    cls: "0.5"
+  },
+  "DDSU666-H": {
+    ct: "100A/40mA",
+    cls: "1"
+  },
+  "DTSU666-H": {
+    cls: "1"
+  },
+  "SPM-CT-E": {
+    cls: "1"
+  },
+  "TPM-CT-E": {
+    cls: "1"
+  },
+  "SDM120CT": {
+    cls: "1"
+  }
+};
+function pgMeterCt(name) {
+  const nm = String(name || "");
+  const it = (window.BOQ && window.BOQ.METERS || []).find(x => x.name === nm) || null;
+  const txt = /ไม่รวม\s*CT|NO\s*CT/i.test(nm) ? nm : nm + " · " + (it ? it.desc : "");
+  const m = /CT\s*(\d+)\s*A?\s*[\/:]\s*([\d.]+)\s*(m?A)/i.exec(txt),
+    m1 = /CT\s*(\d+)\s*A\b/i.exec(txt);
+  const c = /class\s*([\d.]+)/i.exec(txt);
+  const ds = PG_METER_DS[Object.keys(PG_METER_DS).find(k => new RegExp("(^|[^A-Z0-9])" + k + "($|[^A-Z0-9])", "i").test(nm + " " + (it ? it.model : ""))) || ""] || {};
+  return {
+    ct: m ? m[1] + "A/" + m[2] + m[3] : ds.ct || (m1 ? m1[1] + "A" : ""),
+    cls: c ? c[1] : ds.cls || ""
+  };
 }
 function pgCuDraw(pen, M) {
   const P = M.pro,
@@ -3866,10 +3905,19 @@ function pgCuDraw(pen, M) {
     valign: 3
   });
   const mtr = M.mon && M.mon.meter || M.monMeter || "";
-  const ctSpec = (String(mtr).match(/CT\s*[\d/]+\s*m?A(\/[\d.]+m?A)?/i) || [""])[0];
+  const ctSpec = pgMeterCt(mtr).ct ? "CT " + pgMeterCt(mtr).ct : "",
+    mtrCls = pgMeterCt(mtr).cls;
   const mtrNm = mtr.replace(/\s*\+\s*CT.*$/i, "").trim();
-  pen.text(LB, xMn + 3.2, yC + 1.4, TS.tag, "CT MAIN GRID" + (ctSpec ? " (" + ctSpec + ")" : ""), {
+  pen.text(T, xMn - 2.4, yC + 0.8, TS.tag, "CT x" + (M.phase === 3 ? 3 : 1), {
+    align: 2,
     valign: 1
+  });
+  pen.text(LB, xMn + 3.2, yC + 1.4, TS.tag, "CT MAIN GRID", {
+    valign: 1
+  });
+  const ctLine = [ctSpec, mtrCls ? "CLASS " + mtrCls : ""].filter(Boolean).join(", ");
+  if (ctLine) pen.text(T, xMn + 3.2, yC - 0.2, TS.tag, ctLine, {
+    valign: 3
   });
   pen.line(W, xMn - 1.3, yA, xMn + 1.3, yA);
   pen.line(W, xMn - 1.3, yA, xMn, yA + 2.6);

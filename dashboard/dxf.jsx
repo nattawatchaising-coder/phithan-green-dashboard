@@ -2426,7 +2426,7 @@ function pgSldPro(doc, sheet, M) {
          [Smart Meter] ◄┄ CT MAIN · มิเตอร์ต่อ COM port อินเวอร์เตอร์ด้วยสาย RS485 ตรง ไม่ผ่านดองเกิล */
       const mon = M.mon, tp = taps[0], it = tp.top, COM = PG_SLD.comm;
       const arrow = (x, y, dx, dy) => pen.solid(S, [x - dy * 0.7, y + dx * 0.7], [x + dx * 1.6, y + dy * 1.6], [x + dy * 0.7, y - dx * 0.7]);
-      const ctSpec = (String(mon.meter).match(/CT\s*[\d/]+\s*m?A(\/[\d.]+m?A)?/i) || [""])[0];
+      const ctSpec = (pgMeterCt(mon.meter).ct ? "CT " + pgMeterCt(mon.meter).ct : "");
       const meterNm = mon.meter ? mon.meter.replace(/\s*\+\s*CT.*$/i, "") : "";
       const dw = Math.max(22, pgTextW(mon.dev, TS.spec) + 4), dh = 6;
       const dBot = it + 8, yc = dBot + dh / 2, xd = (X.iv0 + X.iv1) / 2, dx0 = xd - dw / 2, xr = dx0 + dw;   // กลางอินเวอร์เตอร์ (ผู้ใช้ 2026-10-31);
@@ -2486,7 +2486,7 @@ function pgSldPro(doc, sheet, M) {
          ซ้าย: RS485 เลี้ยวขึ้นเข้าก้นอินเวอร์เตอร์ · ขวา: INTERNET */
       const mon = M.mon, ib = taps[taps.length - 1].bot, vx = taps[taps.length - 1].vx, COM = PG_SLD.comm;
       const arrow = (x, y, dx, dy) => pen.solid(S, [x - dy * 0.7, y + dx * 0.7], [x + dx * 1.6, y + dy * 1.6], [x + dy * 0.7, y - dx * 0.7]);
-      const ctSpec = (String(mon.meter).match(/CT\s*[\d/]+\s*m?A(\/[\d.]+m?A)?/i) || [""])[0];
+      const ctSpec = (pgMeterCt(mon.meter).ct ? "CT " + pgMeterCt(mon.meter).ct : "");
       const meterNm = mon.meter ? mon.meter.replace(/\s*\+\s*CT.*$/i, "") : "";
       const dw = Math.max(30, pgTextW(mon.dev, TS.spec) + 4), dh = 6;
       const dx0 = X.iv1 + 8, dTop = Math.min(ib - 2, acBot - 17), dBot = dTop - dh;
@@ -2579,6 +2579,29 @@ function pgSldGroups(M) {
    rccb = เมนตู้บ้านเป็น RCCB → เมนใหม่ในตู้บ้านเหนือ RCCB เดิม · MCB โซลาร์ตัวเดียวในตู้ MDB SOLAR ใหม่ข้างตู้ ต่อระหว่างเมนใหม่กับ RCCB
    CT MAIN GRID คล้องสายเข้าจากการไฟฟ้า เหนือจุดที่โซลาร์ต่อเข้าเสมอ (วัดไฟซื้อ/ขายสุทธิ) · ฝั่งโซลาร์สีแดง ฝั่งบ้าน/กริดสีขาว
    pgCuDraw วาดที่ขนาดตัวหนังสือเท่า SLD แล้ว pgCuSheet ขยายให้เต็มแผ่น */
+/* ขนาด CT + Class ความแม่นยำของมิเตอร์โซลาร์ (ผู้ใช้ 2026-10-31: บอกขนาด CT กับ Class ดูจากข้อมูลมิเตอร์)
+   อ่านจากชื่อ + คำอธิบายในคลัง (BOQ.METERS) เช่น "CT 100A/40mA" · "Class 1" — ไม่มีในคลังใช้ค่าจากดาต้าชีตด้านล่าง
+   ct = "120A/40mA" (หรือ "120A" ถ้าไม่รู้เอาต์พุต) · cls = "1" / "0.5" · ไม่รู้ = "" */
+const PG_METER_DS = {   // ดาต้าชีตผู้ผลิต (GoodWe single page 2025-12 / 2026-02): CT unified 120A:40mA
+  GMK110: { ct: "120A/40mA", cls: "1" },
+  GMK330: { ct: "120A/40mA", cls: "0.5" },
+  "DDSU666-H": { ct: "100A/40mA", cls: "1" },   // Huawei Smart Power Sensor 06.2025: Class 1 · CT 100A/40mA x1
+  "DTSU666-H": { cls: "1" },                    // CT ตามชุด (100A/40mA หรือ 250A/50mA x3 — อ่านจากชื่อในคลัง)
+  "SPM-CT-E": { cls: "1" },                     // Growatt SPM/TPM-CT-E datasheet: Class 1
+  "TPM-CT-E": { cls: "1" },
+  "SDM120CT": { cls: "1" },                     // Eastron SDM120CT-M(40mA) ที่ Deye ใช้: Class 1 (active)
+};   // ยังไม่มีข้อมูลยืนยัน: SDM630MCT · Sigen Sensor (บอกแค่ ±1%) · Hoymiles DDSU/DTSU — ใส่ "Class x" ในคำอธิบายคลังได้
+function pgMeterCt(name) {
+  const nm = String(name || "");
+  const it = ((window.BOQ && window.BOQ.METERS) || []).find((x) => x.name === nm) || null;
+  // มิเตอร์ไม่รวม CT (สั่ง CT แยก) — คำอธิบายพูดถึง CT หลายขนาด ไม่เอามาเดา
+  const txt = /ไม่รวม\s*CT|NO\s*CT/i.test(nm) ? nm : nm + " · " + (it ? it.desc : "");
+  const m = /CT\s*(\d+)\s*A?\s*[\/:]\s*([\d.]+)\s*(m?A)/i.exec(txt), m1 = /CT\s*(\d+)\s*A\b/i.exec(txt);
+  const c = /class\s*([\d.]+)/i.exec(txt);
+  const ds = PG_METER_DS[Object.keys(PG_METER_DS).find((k) => new RegExp("(^|[^A-Z0-9])" + k + "($|[^A-Z0-9])", "i").test(nm + " " + (it ? it.model : ""))) || ""] || {};
+  return { ct: m ? m[1] + "A/" + m[2] + m[3] : ds.ct || (m1 ? m1[1] + "A" : ""), cls: c ? c[1] : ds.cls || "" };
+}
+
 function pgCuDraw(pen, M) {
   const P = M.pro, W = PG_SLD.wire, R = PG_SLD.sol, S = PG_SLD.sym, BX = PG_SLD.box, T = PG_SLD.txt, LB = PG_SLD.lbl, PE = PG_SLD.pe;
   const TS = { head: 1.8, spec: 1.4, tag: 1.2 }, g = 2.4, CT_R = 1.4, yMain = 0;
@@ -2719,9 +2742,13 @@ function pgCuDraw(pen, M) {
   pen.text(T, xMn + rK + 1.2, yK - 0.6, TS.tag, "(EXISTING)", { valign: 3 });
   /* ป้าย CT บอกว่าเป็น CT ของมิเตอร์โซลาร์รุ่นไหน (ผู้ใช้ 2026-10-31) — รุ่นจาก BOQ ของงาน */
   const mtr = (M.mon && M.mon.meter) || M.monMeter || "";
-  const ctSpec = (String(mtr).match(/CT\s*[\d/]+\s*m?A(\/[\d.]+m?A)?/i) || [""])[0];
+  const ctSpec = (pgMeterCt(mtr).ct ? "CT " + pgMeterCt(mtr).ct : ""), mtrCls = pgMeterCt(mtr).cls;
   const mtrNm = mtr.replace(/\s*\+\s*CT.*$/i, "").trim();
-  pen.text(LB, xMn + 3.2, yC + 1.4, TS.tag, "CT MAIN GRID" + (ctSpec ? " (" + ctSpec + ")" : ""), { valign: 1 });
+  pen.text(T, xMn - 2.4, yC + 0.8, TS.tag, "CT x" + (M.phase === 3 ? 3 : 1), { align: 2, valign: 1 });   // จำนวน CT ตามเฟส (ผู้ใช้ 2026-10-31: 1 เฟส CTx1 · 3 เฟส CTx3)
+  pen.text(LB, xMn + 3.2, yC + 1.4, TS.tag, "CT MAIN GRID", { valign: 1 });
+  /* ขนาด CT + Class จากข้อมูลมิเตอร์ (pgMeterCt) */
+  const ctLine = [ctSpec, mtrCls ? "CLASS " + mtrCls : ""].filter(Boolean).join(", ");
+  if (ctLine) pen.text(T, xMn + 3.2, yC - 0.2, TS.tag, ctLine, { valign: 3 });
   pen.line(W, xMn - 1.3, yA, xMn + 1.3, yA); pen.line(W, xMn - 1.3, yA, xMn, yA + 2.6); pen.line(W, xMn + 1.3, yA, xMn, yA + 2.6);
   pen.text(LB, xMn, yA + 3.4, TS.head, "TO " + (P.auth || "GRID"), { align: 1, valign: 1 });
   /* สายสัญญาณ CT ออกซ้าย → เขียนบอกว่าไปมิเตอร์โซลาร์ในตู้ AC COMBINER BOX (ผู้ใช้ 2026-10-31: มิเตอร์อยู่ในตู้ AC ไม่ต้องวาดรูป) */

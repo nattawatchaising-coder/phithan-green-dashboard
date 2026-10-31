@@ -549,6 +549,9 @@ function App() {
           const sub = (re) => (x) => { const c = window.SF.STOCK_CAT_BY[x.cat]; return !!c && re.test(c.th || ""); };
           return { meters: acc.filter(sub(/smart meter/i)).map((x) => ({ name: x.name, phase: +x.invPhase || 0 })),
             comms: acc.filter(sub(/สื่อสาร/)).map((x) => x.name) }; })() })));
+    /* มิเตอร์ในคลัง (หมวด CT · Smart Meter) — แบบแผ่นตู้บ้าน/SLD อ่านขนาด CT + Class จากชื่อ/คำอธิบาย (pgMeterCt ใน dxf.jsx) */
+    window.BOQ.METERS = (stock.items || []).filter((s) => s && s.name && (() => { const c = window.SF.STOCK_CAT_BY[s.cat]; return !!c && /smart meter/i.test(c.th || ""); })())
+      .map((s) => ({ name: s.name, model: s.model || "", desc: s.desc || "" }));
     /* แบตเตอรี่จากคลัง → ช่อง "รุ่นแบตจากคลัง" ในหน้าออกแบบระบบ (solarui) · เฉพาะของที่มี kWh (ฐาน/สาย/ตัวคุมไม่ใช่ก้อนแบต) */
     window.BOQ.BATTERIES = (stock.items || []).filter((s) => inCat(s, "battery") && s.name && +s.kwh > 0)
       .map((s) => ({ name: s.name, model: s.model || s.name, brand: (s.brand || "").trim() || subTh(s), kwh: +s.kwh, price: +s.price || 0, warY: +s.warY || 0,
