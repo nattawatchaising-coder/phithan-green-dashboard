@@ -4275,7 +4275,8 @@ function p3SldModel(st, job, design) {
       ivKw: units.map(u => Math.round((+u.w || unitW) / 100) / 10),
       earthCu,
       exMain,
-      phTxt: nPh === 3 ? "3PH 400V" : "1PH 230V"
+      phTxt: nPh === 3 ? "3PH 400V" : "1PH 230V",
+      cu: !home ? "" : sv.mdbRccb === "yes" ? "rccb" : sv.mdbSpace === "full" || +sv.cableAc > (R && R.homeCuFarM != null ? R.homeCuFarM : 10) ? "far" : "slot"
     };
     const nTxt = nMin === nMax ? String(nMax) : nMin + "-" + nMax;
     const sp = (a, u) => a.every(v => v !== "" && v != null && v !== 0) ? a.join(" / ") + (u || "") : "";
@@ -4292,6 +4293,27 @@ function p3SldModel(st, job, design) {
       const a = +(md.spec || {}).outA || Math.round(md.w / (Vll * kPh) * 10) / 10;
       return a + " A";
     }).join(" + ") + " (MAX)"), r("MAX Vdc / MPPT RANGE", ivSp.mpptVmin && ivSp.mpptVmax ? maxVdc + " / " + ivSp.mpptVmin + "-" + ivSp.mpptVmax + " V" : maxVdc + " V"), r("MPPT / INPUT", mpIn), ...(M.batt ? [["#", "BATTERY"], r("MODEL", (M.batt.brand && M.batt.model.indexOf(M.batt.brand) < 0 ? M.batt.brand + " " : "") + M.batt.model), ["ENERGY", M.batt.kwh + " kWh"]] : []), ["#", "PV ARRAY"], ["MODULES / STRINGS", nPanel + " PCS / " + nStr + " STR"], ["MODULES PER STRING", nTxt], r("STRING Voc @" + tMin + "%%dC", vocMax ? vocMax + " V  (MAX " + maxVdc + " V)" : ""), ["DC / AC", dcKw.toFixed(2) + " kWp / " + acKw.toFixed(2) + " kW (" + ratio + ")"]].filter(Boolean);
+    const dv = (v, d) => v === "" || v == null || v === 0 || typeof v === "number" && !isFinite(v) ? "-" : d != null ? (Math.round(v * Math.pow(10, d)) / Math.pow(10, d)).toFixed(d) : String(v);
+    const toMm = v => v > 0 && v < 10 ? Math.round(v * 1000) : v;
+    const pL = toMm(+PS.length || +pStock.length || 0),
+      pW = toMm(+PS.width || +pStock.width || 0),
+      pF = +PS.frame || +pStock.frame || 0;
+    const pEff = pL && pW ? wp / (pL * pW / 1e6 * 1000) * 100 : 0;
+    const pvDs = [["BRAND", "", (pStock.group || panel.brand || "-").toUpperCase(), ""], ["MODEL", "", panel.model, ""], ["MAX. RATING POWER", "(Pmpp)", dv(wp), "[W]"], ["VOLTAGE @MAX POWER", "(Vmpp)", dv(+PS.vmp, 2), "[VDC]"], ["CURRENT @MAX POWER", "(Impp)", dv(+PS.imp, 2), "[A]"], ["OPEN CIR. VOLTAGE", "(Voc)", dv(+PS.voc, 2), "[VDC]"], ["SHORT CIR. CURRENT", "(Isc)", dv(+PS.isc, 2), "[A]"], ["MODULE EFFICIENCY", "(Eff.)", dv(pEff, 1), "[%]"], ["DIMENSION", "", pL && pW ? pL + "x" + pW + (pF ? "x" + pF : "") : "-", "[mm]"]];
+    const ivDs = (inv.models || [{
+      model: inv.model,
+      w: unitKw * 1000,
+      spec: ivSp
+    }]).map(md => {
+      const sp = md.spec || {},
+        wN = +md.w || unitKw * 1000;
+      const nomA = wN / (Vll * kPh);
+      const nIn = +sp.inputs || (M.mppt.per && M.mppt.phys ? M.mppt.per * M.mppt.phys : 0);
+      const nMp = M.mppt.per || +sp.mppt || 0;
+      return [[["BRAND", "", (sp.group || p3Brand(md.model, "") || "-").toUpperCase(), ""], ["MODEL", "", md.model, ""], ["#", "INPUT PARAMETERS"], ["MAX. POWER OF COMPATIBLE PV", "", dv(+sp.maxPv ? Math.round(+sp.maxPv * 1000) : 0), "[W]"], ["MAX. INPUT VOLTAGE", "", dv(+sp.maxVdc), "[VDC]"], ["MPPT VOLTAGE RANGE", "", sp.mpptVmin && sp.mpptVmax ? sp.mpptVmin + " TO " + sp.mpptVmax : "-", "[VDC]"], ["NOMINAL INPUT VOLTAGE", "", dv(+sp.vRated), "[VDC]"], ["START-UP INPUT VOLTAGE", "", dv(+sp.vStart), "[VDC]"], ["NUMBER OF INPUT", "", dv(nIn), ""], ["NUMBER OF MPPT", "", dv(nMp), ""], ["MAX. INPUT CURRENT", "", dv(+sp.maxInA), "[A]"], ["MAX. INPUT Isc", "", dv(+sp.maxIscA), "[A]"], ["#", "OUTPUT PARAMETERS"], ["NOMINAL VOLTAGE", "", String(Vll), "[VAC]"], ["NOMINAL OUTPUT POWER", "", dv(Math.round(wN)), "[W]"], ["NOMINAL OUTPUT CURRENT", "", dv(nomA, 2), "[A]"], ["MAX. OUTPUT CURRENT", "", dv(+sp.outA), "[A]"], ["MAX EFFICIENCY", "", dv(+sp.eff), "[%]"]], "INVERTER DATA" + ((inv.models || []).length > 1 ? " : " + md.model : "")];
+    });
+    M.dataSheet = [[pvDs, "PV MODULE DATA @ STC"]].concat(ivDs);
+    if (M.batt) M.dataSheet.push([[["BRAND", "", String(M.batt.brand || "-").toUpperCase(), ""], ["MODEL", "", M.batt.model, ""], ["USABLE ENERGY", "", dv(+M.batt.kwh), "[kWh]"]], "BATTERY DATA"]);
     const nInv = units.length;
     const S = [];
     S.push(["PV MODULE", panel.model + " " + wp + "Wp", nPanel]);

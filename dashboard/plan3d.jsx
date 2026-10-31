@@ -2677,6 +2677,9 @@ function p3SldModel(st, job, design) {
       spdBk, ivBrk, mainA, mainTxt, gf, lsig, pm, pmCt: p3Ct(mainA) + "/5A",
       ivKw: units.map((u) => Math.round((+u.w || unitW) / 100) / 10),
       earthCu, exMain, phTxt: nPh === 3 ? "3PH 400V" : "1PH 230V",
+      /* งานบ้าน: วิธีต่อเข้าตู้ไฟบ้านลูกค้า จากใบสำรวจ (ผู้ใช้ 2026-10-31 ส่งแบบ 3 แบบ)
+         rccb = เมนตู้บ้านเป็น RCCB → ติดตู้ MDB BOX ใหม่เหนือ RCCB (โซลาร์ต้องเข้าก่อน RCCB) · far = ตู้ AC โซลาร์ห่างเกิน homeCuFarM หรือตู้เต็ม → ติดตู้ MDB SOLAR ข้างตู้บ้าน ต่อเข้าบัส · slot = ใส่ MCB โซลาร์ในช่องว่างของตู้บ้าน */
+      cu: !home ? "" : sv.mdbRccb === "yes" ? "rccb" : (sv.mdbSpace === "full" || +sv.cableAc > ((R && R.homeCuFarM != null) ? R.homeCuFarM : 10)) ? "far" : "slot",
     };
     const nTxt = nMin === nMax ? String(nMax) : nMin + "-" + nMax;
     const sp = (a, u) => a.every((v) => v !== "" && v != null && v !== 0) ? a.join(" / ") + (u || "") : "";
@@ -2706,6 +2709,52 @@ function p3SldModel(st, job, design) {
       r("STRING Voc @" + tMin + "%%dC", vocMax ? vocMax + " V  (MAX " + maxVdc + " V)" : ""),
       ["DC / AC", dcKw.toFixed(2) + " kWp / " + acKw.toFixed(2) + " kW (" + ratio + ")"],
     ].filter(Boolean);
+
+    /* ตาราง DATA SHEET บนแบบ (ผู้ใช้ส่งแนวทาง 2026-10-31): 4 ช่อง [หัวข้อ, สัญลักษณ์, ค่า, หน่วย] · "#" = หัวหมวด
+       PV MODULE DATA @ STC + INVERTER DATA (INPUT / OUTPUT PARAMETERS) ต่อรุ่น · ค่าไม่มีในคลัง = "-" */
+    const dv = (v, d) => (v === "" || v == null || v === 0 || (typeof v === "number" && !isFinite(v)) ? "-" : (d != null ? (Math.round(v * Math.pow(10, d)) / Math.pow(10, d)).toFixed(d) : String(v)));
+    const toMm = (v) => (v > 0 && v < 10 ? Math.round(v * 1000) : v);   // คลังเก็บขนาดแผงเป็นเมตร (2.382) — ตารางใช้ มม.
+    const pL = toMm(+PS.length || +pStock.length || 0), pW = toMm(+PS.width || +pStock.width || 0), pF = +PS.frame || +pStock.frame || 0;
+    const pEff = pL && pW ? wp / (pL * pW / 1e6 * 1000) * 100 : 0;
+    const pvDs = [
+      ["BRAND", "", (pStock.group || panel.brand || "-").toUpperCase(), ""],
+      ["MODEL", "", panel.model, ""],
+      ["MAX. RATING POWER", "(Pmpp)", dv(wp), "[W]"],
+      ["VOLTAGE @MAX POWER", "(Vmpp)", dv(+PS.vmp, 2), "[VDC]"],
+      ["CURRENT @MAX POWER", "(Impp)", dv(+PS.imp, 2), "[A]"],
+      ["OPEN CIR. VOLTAGE", "(Voc)", dv(+PS.voc, 2), "[VDC]"],
+      ["SHORT CIR. CURRENT", "(Isc)", dv(+PS.isc, 2), "[A]"],
+      ["MODULE EFFICIENCY", "(Eff.)", dv(pEff, 1), "[%]"],
+      ["DIMENSION", "", pL && pW ? pL + "x" + pW + (pF ? "x" + pF : "") : "-", "[mm]"],
+    ];
+    const ivDs = (inv.models || [{ model: inv.model, w: unitKw * 1000, spec: ivSp }]).map((md) => {
+      const sp = md.spec || {}, wN = +md.w || unitKw * 1000;
+      const nomA = wN / (Vll * kPh);
+      const nIn = +sp.inputs || (M.mppt.per && M.mppt.phys ? M.mppt.per * M.mppt.phys : 0);
+      const nMp = M.mppt.per || +sp.mppt || 0;
+      return [[
+        ["BRAND", "", (sp.group || p3Brand(md.model, "") || "-").toUpperCase(), ""],
+        ["MODEL", "", md.model, ""],
+        ["#", "INPUT PARAMETERS"],
+        ["MAX. POWER OF COMPATIBLE PV", "", dv(+sp.maxPv ? Math.round(+sp.maxPv * 1000) : 0), "[W]"],
+        ["MAX. INPUT VOLTAGE", "", dv(+sp.maxVdc), "[VDC]"],
+        ["MPPT VOLTAGE RANGE", "", sp.mpptVmin && sp.mpptVmax ? sp.mpptVmin + " TO " + sp.mpptVmax : "-", "[VDC]"],
+        ["NOMINAL INPUT VOLTAGE", "", dv(+sp.vRated), "[VDC]"],
+        ["START-UP INPUT VOLTAGE", "", dv(+sp.vStart), "[VDC]"],
+        ["NUMBER OF INPUT", "", dv(nIn), ""],
+        ["NUMBER OF MPPT", "", dv(nMp), ""],
+        ["MAX. INPUT CURRENT", "", dv(+sp.maxInA), "[A]"],
+        ["MAX. INPUT Isc", "", dv(+sp.maxIscA), "[A]"],
+        ["#", "OUTPUT PARAMETERS"],
+        ["NOMINAL VOLTAGE", "", String(Vll), "[VAC]"],
+        ["NOMINAL OUTPUT POWER", "", dv(Math.round(wN)), "[W]"],
+        ["NOMINAL OUTPUT CURRENT", "", dv(nomA, 2), "[A]"],
+        ["MAX. OUTPUT CURRENT", "", dv(+sp.outA), "[A]"],
+        ["MAX EFFICIENCY", "", dv(+sp.eff), "[%]"],
+      ], "INVERTER DATA" + ((inv.models || []).length > 1 ? " : " + md.model : "")];
+    });
+    M.dataSheet = [[pvDs, "PV MODULE DATA @ STC"]].concat(ivDs);
+    if (M.batt) M.dataSheet.push([[["BRAND", "", String(M.batt.brand || "-").toUpperCase(), ""], ["MODEL", "", M.batt.model, ""], ["USABLE ENERGY", "", dv(+M.batt.kwh), "[kWh]"]], "BATTERY DATA"]);
 
     /* ตารางอุปกรณ์ — ทุกชิ้นที่วาดบนแบบต้องอยู่ที่นี่พร้อมสเปค */
     const nInv = units.length;

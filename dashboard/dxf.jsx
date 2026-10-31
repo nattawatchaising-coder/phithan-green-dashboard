@@ -1816,7 +1816,7 @@ function pgSldPro(doc, sheet, M) {
       rect(RX0, cy - h, RW, h);
       let cx = RX0;
       cw.forEach((w, i) => {
-        if (i && !dry) pen.line(L, cx, cy, cx, cy - h);
+        if (i && !dry && (cw.noLine || []).indexOf(i) < 0) pen.line(L, cx, cy, cx, cy - h);   // ตาราง DATA SHEET: หัวข้อกับสัญลักษณ์อยู่ช่องเดียวกัน ไม่มีเส้นคั่น
         const c = i === cw.length - 1 && cw.length > 2;
         const ls = cells[i], y0 = cy - h / 2 + (ls.length - 1) * lp / 2;
         ls.forEach((t, j) => txt(T, c ? cx + w / 2 : cx + 1, y0 - j * lp, th, t, { align: c ? 1 : 0, valign: 2 }));
@@ -1839,11 +1839,13 @@ function pgSldPro(doc, sheet, M) {
         ["PV (GROUP)", nPv * PT.nos.length + " PCS = " + Math.round(nPv * PT.nos.length * wp / 10) / 100 + " kWp"],
         ["AC BREAKER", b.brk + " x" + PT.nos.length]], "INVERTER GROUP DATA"]];
     }
+    /* ตาราง DATA SHEET 4 ช่อง (ผู้ใช้ส่งแนวทาง 2026-10-31) แทน SYSTEM DATA */
+    if (M.dataSheet) { const cw = [RW * 0.43, RW * 0.11, RW * 0.33, RW * 0.13]; cw.noLine = [1]; return M.dataSheet.map((q) => [q[0], q[1], cw]); }
     if (!M.pvData) return [];
     let skip = false;
     return [[M.pvData.filter((r) => { if (r[0] === "#") skip = r[1] === "PV ARRAY"; return !skip; }), "SYSTEM DATA"]];
   };
-  const sldTabH = () => { ty = 0; return tabRows().reduce((t, q) => t + grid(q[0], q[1], [RW * 0.4, RW * 0.6], 3.1, TS.cell, true) + 3, 0); };
+  const sldTabH = () => { ty = 0; return tabRows().reduce((t, q) => t + grid(q[0], q[1], q[2] || [RW * 0.4, RW * 0.6], 3.1, TS.cell, true) + 3, 0); };
 
   /* ── ขยายไดอะแกรมให้พอดีกระดาษ (ผู้ใช้ 2026-10-30: ไดอะแกรมกองครึ่งบน ที่ว่างเหลือเยอะ) ──
      คอลัมน์ขวาเหลือแค่ตาราง SYSTEM DATA ที่มุมขวาล่าง · ลองสองกรอบ: เต็มกว้างเหนือตาราง / ซ้ายของตารางเต็มสูง เอาที่ขยายได้มากกว่า */
@@ -2385,41 +2387,105 @@ function pgSldPro(doc, sheet, M) {
     pen.text(T, ctx + 1, yMain + 0.8, TS.spec, cl[0], { valign: 1 });
     pen.text(T, ctx + 1, yMain - 0.8, TS.spec, cl[1], { valign: 3 });
     const clW = Math.max.apply(null, cl.map((t) => pgTextW(t, TS.spec))) * 1.2;
+    let ctPt = null;   // ตำแหน่ง CT MAIN GRID บนสายเข้าตู้บ้าน (งานบ้าน) — กลุ่มมอนิเตอร์ลากสายสัญญาณมาหา
     if (P.home) {
-      /* งานบ้าน: วาดตู้ไฟบ้านลูกค้า (ผู้ใช้ 2026-10-31: ต้องมี SLD ที่ไปต่อตู้ไฟบ้านลูกค้า)
-         สายเมน → เบรกเกอร์โซลาร์ในตู้บ้าน → บัส → เมนเดิมของบ้าน → มิเตอร์ kWh → การไฟฟ้า · บัส → วงจรโหลดเดิมของบ้าน
-         ฝั่งการไฟฟ้า/โหลดบ้านเป็นสายปกติ (สีขาว) ฝั่งโซลาร์สีแดง */
-      const c0 = Math.max(X.md0, ctx + 1 + clW + 2), cB = c0 + 8, cBus = c0 + 17, cM = cBus + 9, c1 = cM + 7;
-      const yL = yMain - 10, cTop = yMain + 9, cBot = yL - 6;
-      pen.line(R, X.mdB - g - 0.75, yMain, cB - g - 0.75, yMain);
-      pen.rect(BX, c0, cBot, c1 - c0, cTop - cBot);
-      pen.text(LB, c0 + 1, cTop + 1.2, TS.head, "CONSUMER UNIT (EXISTING)", { valign: 1 });
-      const sBrk = String(P.mainTxt || "").split(" + ")[0].trim();   // เบรกเกอร์โซลาร์ในตู้บ้าน = ขนาดเดียวกับเมนตู้ AC (M.mccb เป็น MCCB 3P ของแบบเก่า)
-      hBrk(cB, yMain, isCb(sBrk));
-      if (sBrk) brkLabel(sBrk, "", cB, yMain);
-      pen.text(T, cB, yMain - 2.0, TS.tag, "SOLAR", { align: 1, valign: 3 });
-      pen.line(R, cB + g + 0.75, yMain, cBus, yMain);
-      pen.line(W, cBus, yMain + 3, cBus, yL - 3);   // บัสในตู้บ้าน
-      pen.dot(W, cBus, yMain, 0.5); pen.dot(W, cBus, yL, 0.5);
-      /* เมนเดิมของบ้าน → มิเตอร์ → การไฟฟ้า */
-      pen.line(W, cBus, yMain, cM - g - 0.75, yMain);
-      hBrk(cM, yMain, isCb(P.exMain));
-      pen.text(T, cM, yMain + g * 1.26 + 0.6, TS.spec, "MAIN" + (P.exMain ? " " + P.exMain : ""), { align: 1, valign: 1 });
-      const xm = c1 + 6, mr = 2.4, xa = xm + mr + 5;
-      pen.line(W, cM + g + 0.75, yMain, xm - mr, yMain);
-      meter(xm, yMain, mr);
-      pen.text(T, xm, yMain + mr + 1.4, TS.tag, "kWh METER", { align: 1, valign: 1 });
-      pen.line(W, xm + mr, yMain, xa, yMain);
-      pen.solid(W, [xa, yMain + 1.1], [xa + 2.6, yMain], [xa, yMain - 1.1]);
-      pen.text(LB, xa + 4, yMain + 0.9, TS.head, "TO " + (P.auth || "GRID"), { valign: 1 });
-      pen.text(T, xa + 4, yMain - 1.0, TS.spec, "(GRID)", { valign: 3 });
-      /* โหลดเดิมของบ้าน */
-      pen.line(W, cBus, yL, cM - g - 0.75, yL);
-      hBrk(cM, yL);
-      pen.line(W, cM + g + 0.75, yL, c1 + 4, yL);
-      pen.solid(W, [c1 + 4, yL + 1.1], [c1 + 6.6, yL], [c1 + 4, yL - 1.1]);
-      pen.text(LB, c1 + 8, yL + 0.9, TS.head, "HOUSE LOAD", { valign: 1 });
-      pen.text(T, c1 + 8, yL - 1.0, TS.spec, "(EXISTING)", { valign: 3 });
+      /* งานบ้าน: วาดตู้ไฟบ้านลูกค้า 3 แบบตาม P.cu (ผู้ใช้ส่งแบบ 2026-10-31)
+         slot = MCB โซลาร์ใส่ช่องว่างในตู้บ้าน (TIE IN POSITION ขวาสุดของบัส)
+         far  = ตู้ AC โซลาร์อยู่ไกล/ตู้บ้านเต็ม → ตู้ MDB SOLAR ใหม่ข้างตู้บ้าน ต่อเข้าปลายบัส
+         rccb = เมนตู้บ้านเป็น RCCB → ตู้ MDB BOX ใหม่เหนือตู้บ้าน: เมนใหม่ + MCB โซลาร์ แล้วค่อยลง RCCB เดิม
+         CT MAIN GRID คล้องสายเข้าจากการไฟฟ้า เหนือจุดที่โซลาร์ต่อเข้าเสมอ (วัดไฟซื้อ/ขายสุทธิ) · ฝั่งโซลาร์สีแดง ฝั่งบ้าน/กริดสีขาว */
+      const cu = P.cu || "slot";
+      const sBrk = String(P.mainTxt || "").split(" + ")[0].trim();   // MCB โซลาร์ในตู้บ้าน = ขนาดเดียวกับเมนตู้ AC
+      const BS = g + 0.75;
+      const vBrk = (x, y) => { pen.circle(S, x, y - g, 0.75); pen.circle(S, x, y + g, 0.75); pen.arc(S, x, y, g * 1.26, 118, 242); };
+      const tW = (t, h) => pgTextW(t, h) * 1.2;
+      const lab2 = (x, y, a, b, L1) => {   // ป้ายสองบรรทัดขวาเบรกเกอร์แนวตั้ง
+        pen.text(L1 || T, x + 1.2, y + 0.3, TS.tag, a, { valign: 1 });
+        if (b) pen.text(T, x + 1.2, y - 0.3, TS.tag, b, { valign: 3 });
+      };
+      const load = (x, yT) => {
+        const w = 4.4, h = 2.6;
+        pen.rect(S, x - w / 2, yT - h, w, h);
+        pen.line(S, x - w / 2, yT - h, x + w / 2, yT);
+        pen.solid(R, [x - w / 2, yT - h], [x + w / 2, yT - h], [x + w / 2, yT]);
+        pen.text(T, x, yT - h - 0.8, TS.tag, "LOAD", { align: 1, valign: 3 });
+      };
+      const c0 = Math.max(X.md0, ctx + 1 + clW + 2), bp = 7.5;
+      const xL = [0, 1, 2].map((k) => c0 + 5 + k * bp), xMn = xL[1];
+      const yB = yMain + 21, yBr = yB - 5.5, cuB = yB - 17, cuT = yB + 11;
+      const solW = Math.max(tW(sBrk, TS.tag), tW("TIE IN POSITION", TS.tag), tW("SOLAR CELL", TS.tag));
+      const xT = cu === "slot" ? xL[2] + bp * 2 : 0;
+      const c1 = cu === "slot" ? xT + 1.2 + solW + 2 : xL[2] + bp * 1.3 + 3;
+      const xBe = cu === "slot" ? xT : cu === "far" ? c1 + 8 : xL[2] + bp * 1.3;
+      /* ตู้บ้าน: บัส + โหลดเดิม */
+      pen.rect(BX, c0, cuB, c1 - c0, cuT - cuB);
+      pen.text(LB, c0 + 1, cuB - 1.0, TS.head, "CONSUMER UNIT (EXISTING)", { valign: 3 });
+      pen.line(W, xL[0], yB, xBe, yB);
+      xL.forEach((x) => {
+        pen.dot(S, x, yB, 0.4);
+        pen.line(W, x, yB, x, yBr + BS); vBrk(x, yBr); pen.line(W, x, yBr - BS, x, yB - 10.5);
+        load(x, yB - 10.5);
+      });
+      xL.forEach((x, i) => lab2(x, yBr, "CB", "F" + (i + 1)));
+      [0, 1, 2].forEach((k) => pen.dot(S, xL[2] + bp * 0.8 + k * 1.2, yB - 11.8, 0.3));   // • • • (วงจรเดิมที่เหลือ)
+      /* เมนเดิมของตู้บ้าน (แบบ rccb = RCCB เดิม) */
+      const yMB = yB + 6;
+      pen.dot(S, xMn, yB, 0.4);
+      pen.line(W, xMn, yB, xMn, yMB - BS); vBrk(xMn, yMB);
+      if (cu === "rccb") lab2(xMn, yMB, "RCCB", "(EXISTING)");
+      else lab2(xMn, yMB, "MAIN", P.exMain ? P.exMain + " (EXISTING)" : "(EXISTING)");
+      let yTop = cuT, xSol, xR;
+      if (cu === "slot") {
+        /* ช่องว่างในตู้บ้าน: MCB โซลาร์ขวาสุดของบัส สายโซลาร์ขึ้นจากใต้ตู้ */
+        pen.dot(S, xT, yB, 0.4);
+        pen.line(W, xT, yB, xT, yBr + BS); vBrk(xT, yBr);
+        pen.text(LB, xT + 1.2, yBr + 2.0, TS.tag, "TIE IN POSITION", { valign: 2 });
+        pen.text(T, xT + 1.2, yBr + 0.2, TS.tag, sBrk, { valign: 2 });
+        pen.text(T, xT + 1.2, yBr - 1.6, TS.tag, "SOLAR CELL", { valign: 2 });
+        pen.line(R, xT, yBr - BS, xT, yMain);
+        xSol = xT; xR = c1;
+      } else if (cu === "far") {
+        /* ตู้ MDB SOLAR ใหม่ข้างตู้บ้าน: ต่อเข้าปลายบัส (TIE IN POSITION) ลง MCB โซลาร์ */
+        const xs = xBe, yS = yB - 8, b0 = xs - 4.5, b1 = xs + 1.2 + solW + 2;
+        pen.dot(S, xs, yB, 0.4);
+        pen.text(LB, c1 + 0.5, yB + 0.6, TS.tag, "TIE IN POSITION", { valign: 1 });
+        pen.line(R, xs, yB, xs, yS + BS); vBrk(xs, yS);
+        lab2(xs, yS, sBrk, "SOLAR CELL");
+        pen.rect(BX, b0, yS - 5.5, b1 - b0, 10);
+        pen.text(LB, b0 + 0.5, yS - 6.5, TS.spec, "MDB SOLAR (NEW)", { valign: 3 });
+        pen.line(R, xs, yS - BS, xs, yMain);
+        xSol = xs; xR = b1;
+      } else {
+        /* เมนตู้บ้านเป็น RCCB: ตู้ MDB BOX ใหม่เหนือตู้บ้าน — เมนใหม่ → จุดต่อ → (RCCB เดิม) · MCB โซลาร์แยกขวาจากจุดต่อ */
+        const mdB = cuT + 4.5, yN = mdB + 5, yMN = yN + 6, mdT = yMN + 4.5;
+        const xS = Math.max(xMn + 9 + BS + 3, c1 + 5), xh = xS - BS - 2.5;
+        pen.line(W, xMn, yMB + BS, xMn, yN);
+        pen.dot(S, xMn, yN, 0.4);
+        pen.line(R, xMn, yN, xh - BS, yN); hBrk(xh, yN); pen.line(R, xh + BS, yN, xS, yN);
+        pen.text(T, xh, yN - 1.2, TS.tag, sBrk, { align: 1, valign: 3 });
+        pen.text(T, xh, yN - 2.8, TS.tag, "SOLAR CELL", { align: 1, valign: 3 });
+        pen.line(W, xMn, yN, xMn, yMN - BS); vBrk(xMn, yMN);
+        lab2(xMn, yMN, "MAIN (NEW)", P.exMain || "");
+        const b0 = xMn - 5, b1 = xS + 2;
+        pen.rect(BX, b0, mdB, b1 - b0, mdT - mdB);
+        pen.text(LB, b0 - 1.0, (mdB + mdT) / 2 + 0.9, TS.spec, "MDB BOX", { align: 2, valign: 2 });
+        pen.text(T, b0 - 1.0, (mdB + mdT) / 2 - 0.9, TS.tag, "(NEW)", { align: 2, valign: 2 });
+        pen.line(R, xS, yN, xS, yMain);
+        yTop = mdT; pen.line(W, xMn, yMN + BS, xMn, mdT);
+        xSol = xS; xR = b1;
+      }
+      if (cu !== "rccb") pen.line(W, xMn, yMB + BS, xMn, yTop);
+      /* CT MAIN GRID บนสายเข้าจากการไฟฟ้า (เหนือจุดต่อโซลาร์) → TO การไฟฟ้า */
+      const yC = yTop + 3.5, yA = yC + 4;
+      pen.line(W, xMn, yTop, xMn, yA);
+      ctV(xMn, yC);
+      const ctSpec = M.mon ? (String(M.mon.meter).match(/CT\s*[\d/]+\s*m?A(\/[\d.]+m?A)?/i) || [""])[0] : "";
+      pen.text(LB, xMn + 3.2, yC + 0.6, TS.tag, "CT MAIN GRID", { valign: 1 });
+      if (ctSpec) pen.text(T, xMn + 3.2, yC - 0.6, TS.tag, ctSpec, { valign: 3 });
+      pen.line(W, xMn - 1.3, yA, xMn + 1.3, yA); pen.line(W, xMn - 1.3, yA, xMn, yA + 2.6); pen.line(W, xMn + 1.3, yA, xMn, yA + 2.6);
+      pen.text(LB, xMn, yA + 3.4, TS.head, "TO " + (P.auth || "GRID"), { align: 1, valign: 1 });
+      ctPt = { x: xMn + CT_R + 0.2, y: yC, xR: xR + 5 };
+      pen.line(R, X.mdB - g - 0.75, yMain, xSol, yMain);
     } else {
     const ax = Math.max(X.mdB + g + 3.5, ctx + 1 + clW + 3);
     pen.line(R, X.mdB - g - 0.75, yMain, ax, yMain);
@@ -2474,6 +2540,24 @@ function pgSldPro(doc, sheet, M) {
       }
       /* CT MAIN: สายเมน MDB เดิมสั้น ๆ + CT · สายสัญญาณประถี่เข้าหาเป้า (ลูกศรชี้เข้า) */
       /* ไม่มีมิเตอร์: CT อยู่เหนือกล่อง ลงเข้าด้านบน (ขวากล่องเป็นสาย INTERNET) */
+      if (ctPt) {
+        /* งานบ้าน: CT อยู่บนสายเข้าตู้บ้านแล้ว — สายสัญญาณออกขวา ลงข้างตู้ แล้ววิ่งใต้ดินตู้ AC เข้าหาเป้า */
+        const CS = PG_SLD.ctsig, lx0 = dx0 + dw * 0.7;
+        let yR = Math.min(acBot - 16, meterNm ? ty : dTop + 4);
+        if (!meterNm && yR < dTop + 2.5) yR = dTop + 2.5;
+        pen.line(CS, ctPt.x, ctPt.y, ctPt.xR, ctPt.y);
+        pen.line(CS, ctPt.xR, ctPt.y, ctPt.xR, yR);
+        if (meterNm) {
+          pen.line(CS, ctPt.xR, yR, tx + 4, yR);
+          if (Math.abs(yR - ty) > 0.01) pen.line(CS, tx + 4, yR, tx + 4, ty);
+          pen.line(CS, tx + 4, ty, tx + 1.6, ty);
+          arrow(tx + 1.6, ty, -1, 0);
+        } else {
+          pen.line(CS, ctPt.xR, yR, lx0, yR);
+          pen.line(CS, lx0, yR, lx0, dTop + 1.6);
+          arrow(lx0, dTop + 1.6, 0, -1);
+        }
+      } else {
       const cxC = meterNm ? tx + 16 : dx0 + dw * 0.7 + 2 * CT_R, yC = meterNm ? ty + 3.2 : dTop + 6;
       pen.line(R, cxC - 6, yC, cxC + 6, yC);
       ctH(cxC, yC);
@@ -2487,6 +2571,7 @@ function pgSldPro(doc, sheet, M) {
       } else {
         pen.line(PG_SLD.ctsig, lx, yC - 1.6, lx, dTop + 1.6);
         arrow(lx, dTop + 1.6, 0, -1);
+      }
       }
       /* RS485 → อินเวอร์เตอร์: ออกซ้ายกล่อง แล้วเลี้ยวขึ้นเข้าก้นกล่องอินเวอร์เตอร์ */
       const yc = dBot + dh / 2;
@@ -2513,7 +2598,7 @@ function pgSldPro(doc, sheet, M) {
   pen = pen0;
   /* ── ตาราง SYSTEM DATA มุมขวาล่าง (ผู้ใช้ 2026-10-30: เอา EQUIPMENT SCHEDULE · NOTES · LEGEND ออก · สรุปแผงไปอยู่หน้าแผงแต่ละเครื่อง) ── */
   ty = tabTop;
-  tabRows().forEach((t) => { ty -= grid(t[0], t[1], [RW * 0.4, RW * 0.6], 3.1, TS.cell) + 3; });
+  tabRows().forEach((t) => { ty -= grid(t[0], t[1], t[2] || [RW * 0.4, RW * 0.6], 3.1, TS.cell) + 3; });
   /* ชื่อแผ่นขนาดเดียวกับแผ่นอื่น · มุมซ้ายล่าง บรรทัดเดียวยาว (ผู้ใช้ย้าย) */
   pgSheetTitle(pen, A.x0 + 4, A.y0 + 11, "SINGLE LINE DIAGRAM SOLAR PV SYSTEM" + (isMain ? " (OVERALL)" : isDet ? " (" + pgInvNames(PT.nos) + ")" : ""), PG_TS.title, RX0 - A.x0 - 10, 0, null);
 }
