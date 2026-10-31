@@ -2051,6 +2051,8 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock, ver, verName, p3Vers
           + " · Uc ≥ " + ucNeed + " V → " + S.v + " V · " + (lps ? "Iimp" : "Imax") + " ≥ " + kaNeed + " kA → " + S.a + " kA"
           + (!S.okP ? " · ไม่มีรุ่นขั้ว" + (ph === 3 ? " 3P+N/4P" : " 2P/1P+N") + " ในรายการที่มีขาย" : "") + (!S.okV ? " · Uc ที่มีขายไม่ถึง" : "") + (!S.okA ? " · kA ที่มีขายไม่ถึง" : "") });
       if (noFuse) out.ac[out.ac.length - 1].why += " · เบรกเกอร์" + (homeOne ? "" : "เมน") + " " + mainAt + " A ≤ " + RU.nhT12 + " A ใช้กันหลัง SPD ได้ ไม่ต้องมีฟิวส์";
+      /* งานบ้าน: เบรกเกอร์เมนตู้ ≤ MCB กันหลัง SPD = ใช้เมนกัน SPD ร่วมได้ ไม่ต้องมี MCB แยก (ผู้ใช้ 2026-10-31) */
+      else if (isHome && !lps && mainAt > 0 && mainAt <= RU.homeSpdMcb) out.ac[out.ac.length - 1].why += " · ต่อร่วมเบรกเกอร์" + (homeOne ? "" : "เมน") + " " + mainAt + " A ≤ " + RU.homeSpdMcb + " A กันหลัง SPD ได้เอง ไม่ต้องมี MCB แยก";
       else if (isHome && !lps) {
         out.ac.push({ name: "MCB " + pole + " " + RU.homeSpdMcb + "A", qty: 1, unit: "ตัว", auto: 1, why: tag + "กันหลัง SPD (ตัด SPD ออกได้เมื่อเสีย ไม่กระทบระบบ) — งานบ้านใช้ MCB แทนฟิวส์ · ไม่เกิน max backup ในสเปค SPD" });
       } else {

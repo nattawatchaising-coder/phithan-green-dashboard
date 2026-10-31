@@ -3518,7 +3518,7 @@ function BOQEditor({
         ok: S.okV && S.okA && S.okP,
         why: tag + (lps ? "กันฟ้าผ่าฝั่ง AC" : "กันฟ้าผ่า/แรงดันกระชากฝั่ง AC") + " ตู้ละ 1 ตัว (" + lpsTxt + ") · " + (ph === 3 ? "3 เฟส" : "1 เฟส") + " " + S.p + " · Uc ≥ " + ucNeed + " V → " + S.v + " V · " + (lps ? "Iimp" : "Imax") + " ≥ " + kaNeed + " kA → " + S.a + " kA" + (!S.okP ? " · ไม่มีรุ่นขั้ว" + (ph === 3 ? " 3P+N/4P" : " 2P/1P+N") + " ในรายการที่มีขาย" : "") + (!S.okV ? " · Uc ที่มีขายไม่ถึง" : "") + (!S.okA ? " · kA ที่มีขายไม่ถึง" : "")
       });
-      if (noFuse) out.ac[out.ac.length - 1].why += " · เบรกเกอร์" + (homeOne ? "" : "เมน") + " " + mainAt + " A ≤ " + RU.nhT12 + " A ใช้กันหลัง SPD ได้ ไม่ต้องมีฟิวส์";else if (isHome && !lps) {
+      if (noFuse) out.ac[out.ac.length - 1].why += " · เบรกเกอร์" + (homeOne ? "" : "เมน") + " " + mainAt + " A ≤ " + RU.nhT12 + " A ใช้กันหลัง SPD ได้ ไม่ต้องมีฟิวส์";else if (isHome && !lps && mainAt > 0 && mainAt <= RU.homeSpdMcb) out.ac[out.ac.length - 1].why += " · ต่อร่วมเบรกเกอร์" + (homeOne ? "" : "เมน") + " " + mainAt + " A ≤ " + RU.homeSpdMcb + " A กันหลัง SPD ได้เอง ไม่ต้องมี MCB แยก";else if (isHome && !lps) {
         out.ac.push({
           name: "MCB " + pole + " " + RU.homeSpdMcb + "A",
           qty: 1,
