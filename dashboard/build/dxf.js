@@ -3169,17 +3169,24 @@ function pgSldPro(doc, sheet, M) {
       if (oneInv) {
         pen.line(R, X.iv1 + 0.6, t.y, oneX, t.y);
         pen.line(R, oneX, t.y, oneX, yMain);
-        const lc = withKv(String(M.acCableOf && M.acCableOf[t.b.no] || invCab)),
+        const lc = String(M.acCableOf && M.acCableOf[t.b.no] || invCab).replace(/\s*(0\.6\/1kV|450\/750V)\s*$/, ""),
           gl = M.acGndOf && M.acGndOf[t.b.no] || invG(t.b.brk);
-        const dn = [gl].concat(M.acRoute ? [M.acRoute] : []),
-          tx = X.iv1 + 2.2,
-          cw = X.ac0 - tx - 1.2;
-        const ch = Math.min.apply(null, [TS.spec].concat([lc].concat(dn).map(l => cw / (pgTextW(l, 1) * 1.05))));
-        pen.text(T, tx, t.y + 0.7, ch, lc, {
-          valign: 1
-        });
-        dn.forEach((l, k) => pen.text(T, tx, t.y - 0.7 - k * (ch + 0.6), ch, l, {
-          valign: 3
+        const cL = [lc, gl].concat(M.acRoute ? [M.acRoute] : []);
+        const xC = (X.iv1 + oneX) / 2,
+          lh = TS.spec * 1.7,
+          pad = 1.2;
+        const xMin = t.b.bat ? X.iv1 - 2 : X.iv1 - 20,
+          xMax = X.ac0 - 1.5;
+        const cH = Math.min(TS.spec, (xMax - xMin - 2 * pad) / Math.max.apply(null, cL.map(l => pgTextW(l, 1))));
+        const bw = Math.max.apply(null, cL.map(l => pgTextW(l, cH))) + 2 * pad,
+          bh = cL.length * lh + pad;
+        const bx0 = Math.max(xMin, Math.min(xC - bw / 2, xMax - bw)),
+          bT = t.bot - 9;
+        pen.dot(T, xC, t.y, 0.45);
+        pen.line(T, xC, t.y, xC, bT);
+        pen.rect(T, bx0, bT - bh, bw, bh);
+        cL.forEach((l, k) => pen.text(T, bx0 + pad, bT - pad / 2 - lh / 2 - k * lh, cH, l, {
+          valign: 2
         }));
         return;
       }

@@ -1608,7 +1608,7 @@ function pgSldPro(doc, sheet, M) {
   const X = { pe0: DX0 - 21, m1: DX0 - 10.8, mn: DX0 + 18,   // แผง n ห่างจุด • • • เท่าฝั่งแผง 3 (ผู้ใช้: ขยับให้พอดี)
     tx: DX0 + 22, sl: DX0 + 51,
     dc0: DX0 + 54, dcB: DX0 + 61, dcS: DX0 + 76, dcPE: DX0 + 85, dc1: DX0 + 88,
-    iv0: DX0 + 94, iv1: DX0 + 126, ac0: DX0 + 143, acB: DX0 + 152, acBus: DX0 + 163, acM: DX0 + 180, ac1: DX0 + 194,   // ชุดตู้ AC ขยับขวา 10 มม. ห่างอินเวอร์เตอร์ (ผู้ใช้วาดกรอบชี้ 2026-10-31)
+    iv0: DX0 + 94, iv1: DX0 + 126, ac0: DX0 + 143, acB: DX0 + 152, acBus: DX0 + 163, acM: DX0 + 180, ac1: DX0 + 194,   // ชุดตู้ AC ขยับขวา 10 มม. ห่างอินเวอร์เตอร์ (ผู้ใช้วาดกรอบชี้ 2026-10-31) (ผู้ใช้วาดกรอบชี้ 2026-10-31)
     md0: DX0 + 196, mdB: DX0 + 204, mdBus: DX0 + 214, md1: DX0 + 226 };
   const g = 2.4;   // ครึ่งระยะขั้วเบรกเกอร์แนวนอน (เดิม 3.4 — ผู้ใช้ 2026-10-29: สัญลักษณ์เบรกเกอร์ดูใหญ่ไป · ขั้วห่าง 4.8 = ยาวเท่าฟิวส์)
   const fuseDev = P.dcDev.k === "fuse";
@@ -2228,13 +2228,19 @@ function pgSldPro(doc, sheet, M) {
     taps.forEach((t, i) => {
       if (oneInv) {
         pen.line(R, X.iv1 + 0.6, t.y, oneX, t.y); pen.line(R, oneX, t.y, oneX, yMain);
-        /* ป้ายสาย AC อินเวอร์เตอร์ → ตู้ AC บนช่วงสายนี้ (ผู้ใช้วาดชี้ 2026-10-31): เหนือเส้น = สายกำลัง · ใต้เส้น = สายดิน + วิธีเดิน */
-        const lc = withKv(String((M.acCableOf && M.acCableOf[t.b.no]) || invCab)), gl = (M.acGndOf && M.acGndOf[t.b.no]) || invG(t.b.brk);
-        const dn = [gl].concat(M.acRoute ? [M.acRoute] : []), tx = X.iv1 + 2.2, cw = X.ac0 - tx - 1.2;
-        const ch = Math.min.apply(null, [TS.spec].concat([lc].concat(dn).map((l) => cw / (pgTextW(l, 1) * 1.05))));
-        pen.text(T, tx, t.y + 0.7, ch, lc, { valign: 1 });
-        dn.forEach((l, k) => pen.text(T, tx, t.y - 0.7 - k * (ch + 0.6), ch, l, { valign: 3 }));
-        return;
+        /* ป้ายสาย AC อินเวอร์เตอร์ → ตู้ AC (ผู้ใช้วาดชี้ 2026-10-31): จุดบนสาย → เส้นโยงลง → กรอบข้อความตัวเต็มขนาดเท่าป้ายสายเมน
+           ช่วงสายสั้น เขียนบนเส้นแล้วต้องย่อจนอ่านไม่ออก · ไม่บอกพิกัดแรงดัน */
+        const lc = String((M.acCableOf && M.acCableOf[t.b.no]) || invCab).replace(/\s*(0\.6\/1kV|450\/750V)\s*$/, ""), gl = (M.acGndOf && M.acGndOf[t.b.no]) || invG(t.b.brk);
+        const cL = [lc, gl].concat(M.acRoute ? [M.acRoute] : []);
+        const xC = (X.iv1 + oneX) / 2, lh = TS.spec * 1.7, pad = 1.2;
+        const xMin = t.b.bat ? X.iv1 - 2 : X.iv1 - 20, xMax = X.ac0 - 1.5;
+        const cH = Math.min(TS.spec, (xMax - xMin - 2 * pad) / Math.max.apply(null, cL.map((l) => pgTextW(l, 1))));
+        const bw = Math.max.apply(null, cL.map((l) => pgTextW(l, cH))) + 2 * pad, bh = cL.length * lh + pad;
+        const bx0 = Math.max(xMin, Math.min(xC - bw / 2, xMax - bw)), bT = t.bot - 9;
+        pen.dot(T, xC, t.y, 0.45);
+        pen.line(T, xC, t.y, xC, bT);
+        pen.rect(T, bx0, bT - bh, bw, bh);
+        cL.forEach((l, k) => pen.text(T, bx0 + pad, bT - pad / 2 - lh / 2 - k * lh, cH, l, { valign: 2 }));        return;
       }
       pen.line(R, X.iv1 + 0.6, t.y, X.acB - g - 0.75, t.y);
       /* แผ่นภาพรวม: ป้ายสาย AC อินเวอร์เตอร์เหนือเส้นทุกเส้น + จำนวนเส้นรวม (ผู้ใช้ 2026-10-29) */
