@@ -2928,9 +2928,26 @@ function p3Sld(st, job, media) {
     if (pt.kind === "main") { const ref = {}; gs.forEach((g, i) => g.nos.forEach((no) => { ref[no] = dwg("SLD" + (i + 1)); })); M.part = { kind: "main", ref }; }
     else if (gs[pt.gi]) M.part = { kind: "detail", nos: gs[pt.gi].nos, ref: dwg("SLD") };
   }
+  if (!pt || pt.kind === "main") M.cuRef = p3DwgRef(media.index, "CU");
   const doc = pgDoc({ units: "mm", ltscale: 1 }, media.svg);
   const sheet = pgSheet(doc, { k: 1, ox: 0, oy: 0, info: p3SheetInfo(st, job, { sheet: key, scale: "AS SHOW", sheetNo: media.sheetNo || "1/1" }) });
   pgSldDraw(doc, sheet, M);
+  return doc.build();
+}
+/* "SEE DWG. PG-xxx-KEY (n/N)" ของแผ่นในสารบัญชุดแบบ · ไม่มีแผ่นนั้น = "" */
+function p3DwgRef(ix, k) {
+  ix = ix || [];
+  const r = ix.find((q) => q.key === k);
+  return r ? "SEE DWG. " + r.dwg + " (" + r.no + "/" + ix.length + ")" : "";
+}
+/* ── แผ่นต่อเข้าตู้ไฟบ้านลูกค้า (งานบ้าน · ผู้ใช้ 2026-10-31 แยกจาก SLD) — วาดใน dxf.jsx pgCuSheet ── */
+function p3CuSheet(st, job, media) {
+  media = media || {};
+  const M = p3SldModel(st, job, media.design);
+  M.sldRef = p3DwgRef(media.index, "SLD");
+  const doc = pgDoc({ units: "mm", ltscale: 1 }, media.svg);
+  const sheet = pgSheet(doc, { k: 1, ox: 0, oy: 0, info: p3SheetInfo(st, job, { sheet: "CU", scale: "AS SHOW", sheetNo: media.sheetNo || "1/1" }) });
+  pgCuSheet(doc, sheet, M);
   return doc.build();
 }
 /* แผ่นเดียววาดครบไหม — ลองวาดจริงหนึ่งรอบ (ไม่เก็บผล) ถ้าต้องย่อเป็น TYPICAL = แยกแผ่น คืนกลุ่มเครื่องที่สตริงเหมือนกัน · พอดี = null */
@@ -3328,6 +3345,10 @@ async function p3PrepSet(st, job, photos, design) {
       sg.forEach((g, i) => list.push({ key: "SLD" + (i + 1), gk: "SLD", label: "SLD " + pgInvNames(g.nos), en: "SINGLE LINE DIAGRAM (" + pgInvNames(g.nos) + ")",
         fn: (o) => p3Sld(st, job, Object.assign({ part: { kind: "detail", gi: i } }, o)) }));
     }
+    /* งานบ้านที่ SLD แบบมาตรฐาน: ตู้ไฟบ้านลูกค้าแผ่นแยกต่อจาก SLD (ผู้ใช้ 2026-10-31) */
+    const MS = p3SldModel(st, job, design);
+    if (MS.pro && MS.pro.home && MS.mppt && MS.mode === "string" && MS.mppt.rows.some((r) => r.ins.length) && typeof pgCuSheet === "function")
+      list.push({ key: "CU", gk: "SLD", label: "ต่อเข้าตู้ไฟบ้าน", en: "CONSUMER UNIT CONNECTION", fn: (o) => p3CuSheet(st, job, o) });
     list.push({ key: "DC", label: "ต่อสาย DC", fn: (o) => p3DcSheet(st, job, o) });
     add("GROUND"); add("TRAY"); add("WALK"); add("SAFETY"); add("WATER");
     if (ph.length) list.push({ key: "PHOTO", label: "รูปถ่ายจุดติดตั้ง", fn: (o) => p3PhotoSheet(st, job, Object.assign({ photos: ph }, o)) });

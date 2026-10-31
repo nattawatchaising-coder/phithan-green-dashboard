@@ -4602,6 +4602,7 @@ function p3Sld(st, job, media) {
       ref: dwg("SLD")
     };
   }
+  if (!pt || pt.kind === "main") M.cuRef = p3DwgRef(media.index, "CU");
   const doc = pgDoc({
     units: "mm",
     ltscale: 1
@@ -4617,6 +4618,32 @@ function p3Sld(st, job, media) {
     })
   });
   pgSldDraw(doc, sheet, M);
+  return doc.build();
+}
+function p3DwgRef(ix, k) {
+  ix = ix || [];
+  const r = ix.find(q => q.key === k);
+  return r ? "SEE DWG. " + r.dwg + " (" + r.no + "/" + ix.length + ")" : "";
+}
+function p3CuSheet(st, job, media) {
+  media = media || {};
+  const M = p3SldModel(st, job, media.design);
+  M.sldRef = p3DwgRef(media.index, "SLD");
+  const doc = pgDoc({
+    units: "mm",
+    ltscale: 1
+  }, media.svg);
+  const sheet = pgSheet(doc, {
+    k: 1,
+    ox: 0,
+    oy: 0,
+    info: p3SheetInfo(st, job, {
+      sheet: "CU",
+      scale: "AS SHOW",
+      sheetNo: media.sheetNo || "1/1"
+    })
+  });
+  pgCuSheet(doc, sheet, M);
   return doc.build();
 }
 function p3SldSplit(st, job, design) {
@@ -5179,6 +5206,14 @@ async function p3PrepSet(st, job, photos, design) {
         }, o))
       }));
     }
+    const MS = p3SldModel(st, job, design);
+    if (MS.pro && MS.pro.home && MS.mppt && MS.mode === "string" && MS.mppt.rows.some(r => r.ins.length) && typeof pgCuSheet === "function") list.push({
+      key: "CU",
+      gk: "SLD",
+      label: "ต่อเข้าตู้ไฟบ้าน",
+      en: "CONSUMER UNIT CONNECTION",
+      fn: o => p3CuSheet(st, job, o)
+    });
     list.push({
       key: "DC",
       label: "ต่อสาย DC",

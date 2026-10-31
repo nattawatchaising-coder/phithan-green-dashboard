@@ -3388,181 +3388,15 @@ function pgSldPro(doc, sheet, M) {
       valign: 3
     });
     const clW = Math.max.apply(null, cl.map(t => pgTextW(t, TS.spec))) * 1.2;
-    let ctPt = null;
-    if (P.home) {
-      const cu = P.cu || "slot";
-      const sBrk = String(P.mainTxt || "").split(" + ")[0].trim();
-      const BS = g + 0.75;
-      const vBrk = (x, y) => {
-        pen.circle(S, x, y - g, 0.75);
-        pen.circle(S, x, y + g, 0.75);
-        pen.arc(S, x, y, g * 1.26, 118, 242);
-      };
-      const tW = (t, h) => pgTextW(t, h) * 1.2;
-      const lab2 = (x, y, a, b, L1) => {
-        pen.text(L1 || T, x + 1.2, y + 0.3, TS.tag, a, {
-          valign: 1
-        });
-        if (b) pen.text(T, x + 1.2, y - 0.3, TS.tag, b, {
-          valign: 3
-        });
-      };
-      const load = (x, yT) => {
-        const w = 4.4,
-          h = 2.6;
-        pen.rect(S, x - w / 2, yT - h, w, h);
-        pen.line(S, x - w / 2, yT - h, x + w / 2, yT);
-        pen.solid(R, [x - w / 2, yT - h], [x + w / 2, yT - h], [x + w / 2, yT]);
-        pen.text(T, x, yT - h - 0.8, TS.tag, "LOAD", {
-          align: 1,
-          valign: 3
-        });
-      };
-      const c0 = Math.max(X.md0, ctx + 1 + clW + 2),
-        bp = 7.5;
-      const xL = [0, 1, 2].map(k => c0 + 5 + k * bp),
-        xMn = xL[1];
-      const yB = yMain + 21,
-        yBr = yB - 5.5,
-        cuB = yB - 17,
-        cuT = yB + 11;
-      const solW = Math.max(tW(sBrk, TS.tag), tW("TIE IN POSITION", TS.tag), tW("SOLAR CELL", TS.tag));
-      const xT = cu === "slot" ? xL[2] + bp * 2 : 0;
-      const c1 = cu === "slot" ? xT + 1.2 + solW + 2 : xL[2] + bp * 1.3 + 3;
-      const xBe = cu === "slot" ? xT : cu === "far" ? c1 + 8 : xL[2] + bp * 1.3;
-      pen.rect(BX, c0, cuB, c1 - c0, cuT - cuB);
-      pen.text(LB, c0 + 1, cuB - 1.0, TS.head, "CONSUMER UNIT (EXISTING)", {
-        valign: 3
-      });
-      pen.line(W, xL[0], yB, xBe, yB);
-      xL.forEach(x => {
-        pen.dot(S, x, yB, 0.4);
-        pen.line(W, x, yB, x, yBr + BS);
-        vBrk(x, yBr);
-        pen.line(W, x, yBr - BS, x, yB - 10.5);
-        load(x, yB - 10.5);
-      });
-      xL.forEach((x, i) => lab2(x, yBr, "CB", "F" + (i + 1)));
-      [0, 1, 2].forEach(k => pen.dot(S, xL[2] + bp * 0.8 + k * 1.2, yB - 11.8, 0.3));
-      const yMB = yB + 6;
-      pen.dot(S, xMn, yB, 0.4);
-      pen.line(W, xMn, yB, xMn, yMB - BS);
-      vBrk(xMn, yMB);
-      if (cu === "rccb") lab2(xMn, yMB, "RCCB", "(EXISTING)");else lab2(xMn, yMB, "MAIN", P.exMain ? P.exMain + " (EXISTING)" : "(EXISTING)");
-      let yTop = cuT,
-        xSol,
-        xR;
-      if (cu === "slot") {
-        pen.dot(S, xT, yB, 0.4);
-        pen.line(W, xT, yB, xT, yBr + BS);
-        vBrk(xT, yBr);
-        pen.text(LB, xT + 1.2, yBr + 2.0, TS.tag, "TIE IN POSITION", {
-          valign: 2
-        });
-        pen.text(T, xT + 1.2, yBr + 0.2, TS.tag, sBrk, {
-          valign: 2
-        });
-        pen.text(T, xT + 1.2, yBr - 1.6, TS.tag, "SOLAR CELL", {
-          valign: 2
-        });
-        pen.line(R, xT, yBr - BS, xT, yMain);
-        xSol = xT;
-        xR = c1;
-      } else if (cu === "far") {
-        const xs = xBe,
-          yS = yB - 8,
-          b0 = xs - 4.5,
-          b1 = xs + 1.2 + solW + 2;
-        pen.dot(S, xs, yB, 0.4);
-        pen.text(LB, c1 + 0.5, yB + 0.6, TS.tag, "TIE IN POSITION", {
-          valign: 1
-        });
-        pen.line(R, xs, yB, xs, yS + BS);
-        vBrk(xs, yS);
-        lab2(xs, yS, sBrk, "SOLAR CELL");
-        pen.rect(BX, b0, yS - 5.5, b1 - b0, 10);
-        pen.text(LB, b0 + 0.5, yS - 6.5, TS.spec, "MDB SOLAR (NEW)", {
-          valign: 3
-        });
-        pen.line(R, xs, yS - BS, xs, yMain);
-        xSol = xs;
-        xR = b1;
-      } else {
-        const mdB = cuT + 4.5,
-          yN = mdB + 5,
-          yMN = yN + 6,
-          mdT = yMN + 4.5;
-        const xS = Math.max(xMn + 9 + BS + 3, c1 + 5),
-          xh = xS - BS - 2.5;
-        pen.line(W, xMn, yMB + BS, xMn, yN);
-        pen.dot(S, xMn, yN, 0.4);
-        pen.line(R, xMn, yN, xh - BS, yN);
-        hBrk(xh, yN);
-        pen.line(R, xh + BS, yN, xS, yN);
-        pen.text(T, xh, yN - 1.2, TS.tag, sBrk, {
-          align: 1,
-          valign: 3
-        });
-        pen.text(T, xh, yN - 2.8, TS.tag, "SOLAR CELL", {
-          align: 1,
-          valign: 3
-        });
-        pen.line(W, xMn, yN, xMn, yMN - BS);
-        vBrk(xMn, yMN);
-        lab2(xMn, yMN, "MAIN (NEW)", P.exMain || "");
-        const b0 = xMn - 5,
-          b1 = xS + 2;
-        pen.rect(BX, b0, mdB, b1 - b0, mdT - mdB);
-        pen.text(LB, b0 - 1.0, (mdB + mdT) / 2 + 0.9, TS.spec, "MDB BOX", {
-          align: 2,
-          valign: 2
-        });
-        pen.text(T, b0 - 1.0, (mdB + mdT) / 2 - 0.9, TS.tag, "(NEW)", {
-          align: 2,
-          valign: 2
-        });
-        pen.line(R, xS, yN, xS, yMain);
-        yTop = mdT;
-        pen.line(W, xMn, yMN + BS, xMn, mdT);
-        xSol = xS;
-        xR = b1;
-      }
-      if (cu !== "rccb") pen.line(W, xMn, yMB + BS, xMn, yTop);
-      const yC = yTop + 3.5,
-        yA = yC + 4;
-      pen.line(W, xMn, yTop, xMn, yA);
-      ctV(xMn, yC);
-      const ctSpec = M.mon ? (String(M.mon.meter).match(/CT\s*[\d/]+\s*m?A(\/[\d.]+m?A)?/i) || [""])[0] : "";
-      pen.text(LB, xMn + 3.2, yC + 0.6, TS.tag, "CT MAIN GRID", {
-        valign: 1
-      });
-      if (ctSpec) pen.text(T, xMn + 3.2, yC - 0.6, TS.tag, ctSpec, {
-        valign: 3
-      });
-      pen.line(W, xMn - 1.3, yA, xMn + 1.3, yA);
-      pen.line(W, xMn - 1.3, yA, xMn, yA + 2.6);
-      pen.line(W, xMn + 1.3, yA, xMn, yA + 2.6);
-      pen.text(LB, xMn, yA + 3.4, TS.head, "TO " + (P.auth || "GRID"), {
-        align: 1,
-        valign: 1
-      });
-      ctPt = {
-        x: xMn + CT_R + 0.2,
-        y: yC,
-        xR: xR + 5
-      };
-      pen.line(R, X.mdB - g - 0.75, yMain, xSol, yMain);
-    } else {
-      const ax = Math.max(X.mdB + g + 3.5, ctx + 1 + clW + 3);
-      pen.line(R, X.mdB - g - 0.75, yMain, ax, yMain);
-      pen.solid(R, [ax, yMain + 1.1], [ax + 2.6, yMain], [ax, yMain - 1.1]);
-      pen.text(LB, ax + 4, yMain + 0.9, TS.head, "TO MDB", {
-        valign: 1
-      });
-      pen.text(T, ax + 4, yMain - 1.0, TS.spec, "(EXISTING)", {
-        valign: 3
-      });
-    }
+    const ax = Math.max(X.mdB + g + 3.5, ctx + 1 + clW + 3);
+    pen.line(R, X.mdB - g - 0.75, yMain, ax, yMain);
+    pen.solid(R, [ax, yMain + 1.1], [ax + 2.6, yMain], [ax, yMain - 1.1]);
+    pen.text(LB, ax + 4, yMain + 0.9, TS.head, P.home ? "TO CONSUMER UNIT" : "TO MDB", {
+      valign: 1
+    });
+    pen.text(T, ax + 4, yMain - 1.0, TS.spec, P.home && M.cuRef ? M.cuRef : "(EXISTING)", {
+      valign: 3
+    });
     const yE = Math.max(yE0, Math.min(blkLow - 4, acBot - 5, mdBot - 14));
     pen.line(PE, sx, spY - 2.4, sx, barY + 0.45);
     {
@@ -3626,44 +3460,25 @@ function pgSldPro(doc, sheet, M) {
         tx = mx0 + mw;
         ty = mBot + mh / 2;
       }
-      if (ctPt) {
-        const CS = PG_SLD.ctsig,
-          lx0 = dx0 + dw * 0.7;
-        let yR = Math.min(acBot - 16, meterNm ? ty : dTop + 4);
-        if (!meterNm && yR < dTop + 2.5) yR = dTop + 2.5;
-        pen.line(CS, ctPt.x, ctPt.y, ctPt.xR, ctPt.y);
-        pen.line(CS, ctPt.xR, ctPt.y, ctPt.xR, yR);
-        if (meterNm) {
-          pen.line(CS, ctPt.xR, yR, tx + 4, yR);
-          if (Math.abs(yR - ty) > 0.01) pen.line(CS, tx + 4, yR, tx + 4, ty);
-          pen.line(CS, tx + 4, ty, tx + 1.6, ty);
-          arrow(tx + 1.6, ty, -1, 0);
-        } else {
-          pen.line(CS, ctPt.xR, yR, lx0, yR);
-          pen.line(CS, lx0, yR, lx0, dTop + 1.6);
-          arrow(lx0, dTop + 1.6, 0, -1);
-        }
+      const cxC = meterNm ? tx + 16 : dx0 + dw * 0.7 + 2 * CT_R,
+        yC = meterNm ? ty + 3.2 : dTop + 6;
+      pen.line(R, cxC - 6, yC, cxC + 6, yC);
+      ctH(cxC, yC);
+      pen.text(T, cxC, yC + 1.8, TS.tag, P.home ? "MAIN CONSUMER UNIT (EXISTING)" : "MAIN MDB (EXISTING)", {
+        align: 1,
+        valign: 1
+      });
+      pen.text(LB, cxC + 7, yC, TS.spec, "CT MAIN" + (ctSpec ? " " + ctSpec.replace(/^CT\s*/i, "") : ""), {
+        valign: 2
+      });
+      const lx = cxC - 2 * CT_R;
+      if (meterNm) {
+        pen.line(PG_SLD.ctsig, lx, yC - 1.6, lx, ty);
+        pen.line(PG_SLD.ctsig, lx, ty, tx + 1.6, ty);
+        arrow(tx + 1.6, ty, -1, 0);
       } else {
-        const cxC = meterNm ? tx + 16 : dx0 + dw * 0.7 + 2 * CT_R,
-          yC = meterNm ? ty + 3.2 : dTop + 6;
-        pen.line(R, cxC - 6, yC, cxC + 6, yC);
-        ctH(cxC, yC);
-        pen.text(T, cxC, yC + 1.8, TS.tag, "MAIN MDB (EXISTING)", {
-          align: 1,
-          valign: 1
-        });
-        pen.text(LB, cxC + 7, yC, TS.spec, "CT MAIN" + (ctSpec ? " " + ctSpec.replace(/^CT\s*/i, "") : ""), {
-          valign: 2
-        });
-        const lx = cxC - 2 * CT_R;
-        if (meterNm) {
-          pen.line(PG_SLD.ctsig, lx, yC - 1.6, lx, ty);
-          pen.line(PG_SLD.ctsig, lx, ty, tx + 1.6, ty);
-          arrow(tx + 1.6, ty, -1, 0);
-        } else {
-          pen.line(PG_SLD.ctsig, lx, yC - 1.6, lx, dTop + 1.6);
-          arrow(lx, dTop + 1.6, 0, -1);
-        }
+        pen.line(PG_SLD.ctsig, lx, yC - 1.6, lx, dTop + 1.6);
+        arrow(lx, dTop + 1.6, 0, -1);
       }
       const yc = dBot + dh / 2;
       pen.line(COM, dx0, yc, vx, yc);
@@ -3728,6 +3543,257 @@ function pgSldGroups(M) {
     out[idx[key]].nos.push(no);
   });
   return out;
+}
+function pgCuDraw(pen, M) {
+  const P = M.pro,
+    W = PG_SLD.wire,
+    R = PG_SLD.sol,
+    S = PG_SLD.sym,
+    BX = PG_SLD.box,
+    T = PG_SLD.txt,
+    LB = PG_SLD.lbl;
+  const TS = {
+      head: 1.8,
+      spec: 1.4,
+      tag: 1.2
+    },
+    g = 2.4,
+    CT_R = 1.4,
+    yMain = 0;
+  const hBrk = (x, y) => {
+    pen.circle(S, x - g, y, 0.75);
+    pen.circle(S, x + g, y, 0.75);
+    pen.arc(S, x, y, g * 1.26, 28, 152);
+  };
+  const ctV = (x, y) => {
+    [CT_R, -CT_R].forEach(dy => pen.arc(S, x, y + dy, CT_R, -90, 90));
+    [2 * CT_R, -2 * CT_R].forEach(dy => pen.line(S, x - 1.6, y + dy, x, y + dy));
+  };
+  const cl = [String(M.mainCable[0] || "").replace(/\s*\(SOLAR-CELL\)/, "").replace(/\s+/g, " "), M.mainGnd || "G-" + P.earthCu + " Sq.mm. IEC01(THW)"];
+  cl[0] = (/kV|\/750V/.test(cl[0]) ? cl[0] : cl[0] + " 0.6/1kV") + (M.mainRoute ? " " + M.mainRoute : "");
+  const ctx = 0,
+    clW = Math.max.apply(null, cl.map(t => pgTextW(t, TS.spec))) * 1.2;
+  pen.text(T, ctx + 1, yMain + 0.8, TS.spec, cl[0], {
+    valign: 1
+  });
+  pen.text(T, ctx + 1, yMain - 0.8, TS.spec, cl[1], {
+    valign: 3
+  });
+  pen.text(LB, ctx - 1.5, yMain + 0.9, TS.head, "FROM AC COMBINER BOX", {
+    align: 2,
+    valign: 1
+  });
+  pen.text(T, ctx - 1.5, yMain - 1.0, TS.spec, M.sldRef || "(SOLAR CELL)", {
+    align: 2,
+    valign: 3
+  });
+  pen.solid(R, [ctx - 1.2, yMain + 1.1], [ctx + 1.4, yMain], [ctx - 1.2, yMain - 1.1]);
+  const cu = P.cu || "slot";
+  const sBrk = String(P.mainTxt || "").split(" + ")[0].trim();
+  const BS = g + 0.75;
+  const vBrk = (x, y) => {
+    pen.circle(S, x, y - g, 0.75);
+    pen.circle(S, x, y + g, 0.75);
+    pen.arc(S, x, y, g * 1.26, 118, 242);
+  };
+  const tW = (t, h) => pgTextW(t, h) * 1.2;
+  const lab2 = (x, y, a, b, L1) => {
+    pen.text(L1 || T, x + 1.2, y + 0.3, TS.tag, a, {
+      valign: 1
+    });
+    if (b) pen.text(T, x + 1.2, y - 0.3, TS.tag, b, {
+      valign: 3
+    });
+  };
+  const load = (x, yT) => {
+    const w = 4.4,
+      h = 2.6;
+    pen.rect(S, x - w / 2, yT - h, w, h);
+    pen.line(S, x - w / 2, yT - h, x + w / 2, yT);
+    pen.solid(R, [x - w / 2, yT - h], [x + w / 2, yT - h], [x + w / 2, yT]);
+    pen.text(T, x, yT - h - 0.8, TS.tag, "LOAD", {
+      align: 1,
+      valign: 3
+    });
+  };
+  const c0 = ctx + 1 + clW + 2,
+    bp = 7.5;
+  const xL = [0, 1, 2].map(k => c0 + 5 + k * bp),
+    xMn = xL[1];
+  const yB = yMain + 21,
+    yBr = yB - 5.5,
+    cuB = yB - 17,
+    cuT = yB + 11;
+  const solW = Math.max(tW(sBrk, TS.tag), tW("TIE IN POSITION", TS.tag), tW("SOLAR CELL", TS.tag));
+  const xT = cu === "slot" ? xL[2] + bp * 2 : 0;
+  const c1 = cu === "slot" ? xT + 1.2 + solW + 2 : xL[2] + bp * 1.3 + 3;
+  const xBe = cu === "slot" ? xT : cu === "far" ? c1 + 8 : xL[2] + bp * 1.3;
+  pen.rect(BX, c0, cuB, c1 - c0, cuT - cuB);
+  pen.text(LB, c0 + 1, cuB - 1.0, TS.head, "CONSUMER UNIT (EXISTING)", {
+    valign: 3
+  });
+  pen.line(W, xL[0], yB, xBe, yB);
+  xL.forEach(x => {
+    pen.dot(S, x, yB, 0.4);
+    pen.line(W, x, yB, x, yBr + BS);
+    vBrk(x, yBr);
+    pen.line(W, x, yBr - BS, x, yB - 10.5);
+    load(x, yB - 10.5);
+  });
+  xL.forEach((x, i) => lab2(x, yBr, "CB", "F" + (i + 1)));
+  [0, 1, 2].forEach(k => pen.dot(S, xL[2] + bp * 0.8 + k * 1.2, yB - 11.8, 0.3));
+  const yMB = yB + 6;
+  pen.dot(S, xMn, yB, 0.4);
+  pen.line(W, xMn, yB, xMn, yMB - BS);
+  vBrk(xMn, yMB);
+  if (cu === "rccb") lab2(xMn, yMB, "RCCB", "(EXISTING)");else lab2(xMn, yMB, "MAIN", P.exMain ? P.exMain + " (EXISTING)" : "(EXISTING)");
+  let yTop = cuT,
+    xSol,
+    xR;
+  if (cu === "slot") {
+    pen.dot(S, xT, yB, 0.4);
+    pen.line(W, xT, yB, xT, yBr + BS);
+    vBrk(xT, yBr);
+    pen.text(LB, xT + 1.2, yBr + 2.0, TS.tag, "TIE IN POSITION", {
+      valign: 2
+    });
+    pen.text(T, xT + 1.2, yBr + 0.2, TS.tag, sBrk, {
+      valign: 2
+    });
+    pen.text(T, xT + 1.2, yBr - 1.6, TS.tag, "SOLAR CELL", {
+      valign: 2
+    });
+    pen.line(R, xT, yBr - BS, xT, yMain);
+    xSol = xT;
+    xR = c1;
+  } else if (cu === "far") {
+    const xs = xBe,
+      yS = yB - 8,
+      b0 = xs - 4.5,
+      b1 = xs + 1.2 + solW + 2;
+    pen.dot(S, xs, yB, 0.4);
+    pen.text(LB, c1 + 0.5, yB + 0.6, TS.tag, "TIE IN POSITION", {
+      valign: 1
+    });
+    pen.line(R, xs, yB, xs, yS + BS);
+    vBrk(xs, yS);
+    lab2(xs, yS, sBrk, "SOLAR CELL");
+    pen.rect(BX, b0, yS - 5.5, b1 - b0, 10);
+    pen.text(LB, b0 + 0.5, yS - 6.5, TS.spec, "MDB SOLAR (NEW)", {
+      valign: 3
+    });
+    pen.line(R, xs, yS - BS, xs, yMain);
+    xSol = xs;
+    xR = b1;
+  } else {
+    const mdB = cuT + 4.5,
+      yN = mdB + 5,
+      yMN = yN + 6,
+      mdT = yMN + 4.5;
+    const xS = Math.max(xMn + 9 + BS + 3, c1 + 5),
+      xh = xS - BS - 2.5;
+    pen.line(W, xMn, yMB + BS, xMn, yN);
+    pen.dot(S, xMn, yN, 0.4);
+    pen.line(R, xMn, yN, xh - BS, yN);
+    hBrk(xh, yN);
+    pen.line(R, xh + BS, yN, xS, yN);
+    pen.text(T, xh, yN - 1.2, TS.tag, sBrk, {
+      align: 1,
+      valign: 3
+    });
+    pen.text(T, xh, yN - 2.8, TS.tag, "SOLAR CELL", {
+      align: 1,
+      valign: 3
+    });
+    pen.line(W, xMn, yN, xMn, yMN - BS);
+    vBrk(xMn, yMN);
+    lab2(xMn, yMN, "MAIN (NEW)", P.exMain || "");
+    const b0 = xMn - 5,
+      b1 = xS + 2;
+    pen.rect(BX, b0, mdB, b1 - b0, mdT - mdB);
+    pen.text(LB, b0 - 1.0, (mdB + mdT) / 2 + 0.9, TS.spec, "MDB BOX", {
+      align: 2,
+      valign: 2
+    });
+    pen.text(T, b0 - 1.0, (mdB + mdT) / 2 - 0.9, TS.tag, "(NEW)", {
+      align: 2,
+      valign: 2
+    });
+    pen.line(R, xS, yN, xS, yMain);
+    yTop = mdT;
+    pen.line(W, xMn, yMN + BS, xMn, mdT);
+    xSol = xS;
+    xR = b1;
+  }
+  if (cu !== "rccb") pen.line(W, xMn, yMB + BS, xMn, yTop);
+  const yC = yTop + 3.5,
+    rK = 2.6,
+    yK = yC + 5 + rK,
+    yA = yK + rK + 3;
+  pen.line(W, xMn, yTop, xMn, yK - rK);
+  pen.line(W, xMn, yK + rK, xMn, yA);
+  ctV(xMn, yC);
+  pen.circle(S, xMn, yK, rK);
+  pen.text(T, xMn, yK, rK * 0.5, "kWh", {
+    align: 1,
+    valign: 2
+  });
+  pen.text(LB, xMn + rK + 1.2, yK + 0.6, TS.tag, "kWh METER", {
+    valign: 1
+  });
+  pen.text(T, xMn + rK + 1.2, yK - 0.6, TS.tag, "(EXISTING)", {
+    valign: 3
+  });
+  const ctSpec = M.mon ? (String(M.mon.meter).match(/CT\s*[\d/]+\s*m?A(\/[\d.]+m?A)?/i) || [""])[0] : "";
+  pen.text(LB, xMn + 3.2, yC + 0.6, TS.tag, "CT MAIN GRID", {
+    valign: 1
+  });
+  if (ctSpec) pen.text(T, xMn + 3.2, yC - 0.6, TS.tag, ctSpec, {
+    valign: 3
+  });
+  pen.line(W, xMn - 1.3, yA, xMn + 1.3, yA);
+  pen.line(W, xMn - 1.3, yA, xMn, yA + 2.6);
+  pen.line(W, xMn + 1.3, yA, xMn, yA + 2.6);
+  pen.text(LB, xMn, yA + 3.4, TS.head, "TO " + (P.auth || "GRID"), {
+    align: 1,
+    valign: 1
+  });
+  if (M.mon) {
+    const CS = PG_SLD.ctsig,
+      xr = xR + 5,
+      yD = yMain - 8,
+      mon = M.mon;
+    const dst = mon.meter ? mon.meter.replace(/\s*\+\s*CT.*$/i, "") : mon.dev;
+    pen.line(CS, xMn + CT_R + 0.2, yC, xr, yC);
+    pen.line(CS, xr, yC, xr, yD + 1.6);
+    pen.solid(S, [xr - 0.7, yD + 1.6], [xr, yD], [xr + 0.7, yD + 1.6]);
+    pen.text(T, xr, yD - 0.8, TS.tag, "CT SIGNAL TO " + dst, {
+      align: 1,
+      valign: 3
+    });
+  }
+  pen.line(R, ctx + 1.4, yMain, xSol, yMain);
+}
+function pgCuSheet(doc, sheet, M) {
+  pgSldLayers(doc);
+  const pen = sheet.pen,
+    A = sheet.area,
+    cu = M.pro.cu || "slot";
+  pgSheetTitle(pen, A.x0 + 6, A.y1 - 10, "CONSUMER UNIT CONNECTION DIAGRAM", PG_TS.title, 220, 0, null);
+  const notes = [cu === "rccb" ? "EXISTING MAIN BREAKER IS RCCB : INSTALL NEW MDB BOX (NEW MAIN + SOLAR MCB) UPSTREAM OF EXISTING RCCB." : cu === "far" ? "AC COMBINER BOX FAR FROM / NO SPARE WAY IN CONSUMER UNIT : INSTALL NEW MDB SOLAR BESIDE CONSUMER UNIT, TIE IN AT END OF BUSBAR." : "CONSUMER UNIT HAS SPARE WAY : INSTALL SOLAR MCB IN EXISTING CONSUMER UNIT (TIE IN POSITION).", "CT MAIN GRID CLAMPS INCOMING LINE FROM " + (M.pro.auth || "GRID") + ", UPSTREAM OF SOLAR TIE IN POINT (NET IMPORT / EXPORT).", "VERIFY EXISTING CONSUMER UNIT ON SITE BEFORE INSTALLATION."];
+  const th = PG_TS.cell,
+    nh = th * 1.8,
+    ny0 = A.y0 + 6;
+  notes.forEach((t, i) => pen.text(PG_SLD.txt, A.x0 + 8, ny0 + (notes.length - 1 - i) * nh, th, i + 1 + ". " + t, {}));
+  pen.text(PG_SLD.lbl, A.x0 + 6, ny0 + notes.length * nh + 0.6, PG_TS.head, "NOTE", {});
+  const bb = pgBBoxPen();
+  pgCuDraw(bb, M);
+  const d = bb.box,
+    bw = d.x1 - d.x0,
+    bh = d.y1 - d.y0,
+    c = [A.x0 + 10, ny0 + notes.length * nh + 12, A.x1 - 10, A.y1 - 22];
+  const sc = Math.min(3.2, (c[2] - c[0]) / bw, (c[3] - c[1]) / bh);
+  pgCuDraw(pgScalePen(pen, sc, (c[0] + c[2]) / 2 - (d.x0 + bw / 2) * sc, (c[1] + c[3]) / 2 - (d.y0 + bh / 2) * sc), M);
 }
 function pgSldDraw(doc, sheet, M) {
   if (M.pro && M.mppt && M.mppt.rows.some(r => r.ins.length) && M.mode === "string") return pgSldPro(doc, sheet, M);
@@ -4007,6 +4073,7 @@ Object.assign(window, {
   pgSldLayers,
   pgSldDraw,
   pgSldPro,
+  pgCuSheet,
   pgSldGroups,
   pgInvNames,
   pgSldTable,
