@@ -1900,7 +1900,8 @@ function pgSldPro(doc, sheet, M) {
      สายเมนสูงได้ถึง A.y1 − 34 (เหลือที่หลอดไฟแสดงเฟส + ขอบบนตู้ใต้หัวคอลัมน์) · เลื่อนไม่เกินที่ว่างใต้บล็อก */
   let cur = yB0;
   /* อุปกรณ์มอนิเตอร์อยู่เหนืออินเวอร์เตอร์ (ใต้หัวคอลัมน์) — เครื่องเดียวเลื่อนทั้งแบบลงเว้นที่ MON_H (ผู้ใช้วาดชี้ 2026-10-31) */
-  const monUp = !!M.mon && !isMain && !isDet && blocks.length === 1 && !blocks[0].typical, MON_H = monUp ? 16 : 0;
+  let monUp = !!M.mon && !isMain && !isDet && blocks.length === 1 && !blocks[0].typical;
+  const MON_H = monUp ? 16 : 0;
   if (!isMain && !isDet && blocks.length === 1 && !blocks[0].typical) {
     for (let k = 0; k < 40; k++) {
       const G0 = geo(blocks[0], yTop), tap0 = (yTop - 1 + G0.boxBot) / 2;
@@ -1909,7 +1910,10 @@ function pgSldPro(doc, sheet, M) {
       if (need <= room || RH <= 10) break;
       RH = Math.max(10, RH - 0.5);   // แถวที่ขยายเต็มแผ่นไว้ หดลงจนเลื่อนบล็อกได้ (สตริงน้อยแต่บล็อกสูง)
     }
-  }
+  }  /* บล็อกสูง (สตริงเยอะ) เลื่อนลงไม่พอให้ที่เหนืออินเวอร์เตอร์ = กล่องมอนิเตอร์ทับหัวคอลัมน์ → ใช้แบบวางใต้ขวาอินเวอร์เตอร์แทน (ผู้ใช้ชี้ 2026-11-01: โดนทับ) */
+  let monSide = false;   // แบบนั้นวางกล่องมอนิเตอร์ข้างขวาบนอินเวอร์เตอร์ ที่ว่างใต้หัว AC COMBINER BOX (ผู้ใช้วาดกรอบชี้ 2026-11-01)
+  if (monUp && yTop - cur < MON_H) { monUp = false; monSide = true; }
+
   const miniLines = (b) => [[LB, "INV" + b.no + "  " + b.kw + "kW " + P.phTxt + "  " + b.model],
     [T, b.nMp + " MPPT / " + b.nStr + " STRINGS / " + b.nPv + " x " + wp + "Wp = " + Math.round(b.nPv * wp / 10) / 100 + " kWp"],
     [T, b.ref]].filter((l, k) => l[1] && (k < 2 || MH >= 11));
@@ -2526,7 +2530,48 @@ function pgSldPro(doc, sheet, M) {
       } else {
         sig(xd + dw / 2 + 6, dBot + dh, dBot + dh + 8, -1);
       }
-    } else if (M.mon) {
+    } else if (M.mon && monSide) {
+      /* บล็อกสูงเครื่องเดียว: Dongle/Logger ข้างขวาบนอินเวอร์เตอร์ (ผู้ใช้วาดกรอบชี้ 2026-11-01)
+         ซ้าย → ข้างขวาอินเวอร์เตอร์ (PLUG-IN COM PORT / RS485) · ขวา INTERNET · สัญญาณ CT เข้าจากด้านล่าง */
+      const mon = M.mon, it = taps[0].top, COM = PG_SLD.comm;
+      const arrow = (x, y, dx, dy) => pen.solid(S, [x - dy * 0.7, y + dx * 0.7], [x + dx * 1.6, y + dy * 1.6], [x + dy * 0.7, y - dx * 0.7]);
+      const ctSpec = (pgMeterCt(mon.meter).ct ? "CT " + pgMeterCt(mon.meter).ct : "");
+      const meterNm = mon.meter ? mon.meter.replace(/\s*\+\s*CT.*$/i, "") : "";
+      const lbl = mon.logger ? "RS485" : "PLUG-IN COM PORT";
+      const dw = Math.max(26, pgTextW(mon.dev, TS.spec) + 4), dh = 6;
+      const dx0 = X.iv1 + Math.max(8, pgTextW(lbl, TS.tag) + 4), dTop = it - 4, dBot = dTop - dh, yc = dBot + dh / 2, xr = dx0 + dw;
+      pen.rect(S, dx0, dBot, dw, dh);
+      pen.text(T, dx0 + dw / 2, yc, TS.spec, mon.dev, { align: 1, valign: 2 });
+      pen.line(COM, dx0, yc, X.iv1 + 1.6, yc);
+      arrow(X.iv1 + 1.6, yc, -1, 0);
+      pen.text(T, (X.iv1 + dx0) / 2, yc + 0.6, TS.tag, lbl, { align: 1, valign: 1 });
+      pen.line(COM, xr, yc, xr + 7, yc);
+      arrow(xr + 7, yc, 1, 0);
+      pen.text(LB, xr + 9.4, yc + 0.4, TS.spec, "INTERNET", { valign: 1 });
+      pen.text(T, xr + 9.4, yc - 0.6, TS.tag, mon.logger ? "(LAN / 4G)" : /commmod|4g/i.test(mon.dev) ? "(4G)" : "(WiFi / LAN)", { valign: 3 });
+      const ctTxt = ["CT SIGNAL FROM CT MAIN" + (ctSpec ? " (" + ctSpec.replace(/^CT\s*/i, "") + ")" : ""),
+        "AT " + (P.home ? "MAIN CONSUMER UNIT (EXISTING)" : "MAIN MDB (EXISTING)")];
+      const sig = (x, yTo, yFrom) => {
+        pen.line(PG_SLD.ctsig, x, yFrom, x, yTo - 1.6);
+        arrow(x, yTo - 1.6, 0, 1);
+        pen.text(T, x, yFrom - 0.8, TS.tag, ctTxt[0], { align: 1, valign: 3 });
+        pen.text(T, x, yFrom - 0.8 - TS.tag * 1.5, TS.tag, ctTxt[1], { align: 1, valign: 3 });
+      };
+      if (meterNm) {
+        /* มิเตอร์ใต้กล่อง: Logger = RS485 ขึ้นเข้า Logger · Dongle = RS485 เข้าข้างขวาอินเวอร์เตอร์ */
+        const mw = pgTextW(meterNm, TS.spec) + 4, mh = 6, mx0 = dx0, mTop = dBot - 6, mBot = mTop - mh, myc = mBot + mh / 2;
+        pen.rect(S, mx0, mBot, mw, mh);
+        pen.text(T, mx0 + mw / 2, myc, TS.spec, meterNm, { align: 1, valign: 2 });
+        if (mon.logger) {
+          const ax = mx0 + mw / 2;
+          pen.line(COM, ax, mTop, ax, dBot - 1.6); arrow(ax, dBot - 1.6, 0, 1);
+          pen.text(T, ax + 0.8, (mTop + dBot) / 2, TS.tag, "RS485", { valign: 2 });
+        } else {
+          pen.line(COM, mx0, myc, X.iv1 + 1.6, myc); arrow(X.iv1 + 1.6, myc, -1, 0);
+          pen.text(T, (X.iv1 + mx0) / 2, myc + 0.6, TS.tag, "RS485", { align: 1, valign: 1 });
+        }
+        sig(mx0 + mw / 2, mBot, mBot - 8);
+      } else sig(dx0 + dw / 2, dBot, dBot - 8);    } else if (M.mon) {
       /* ผู้ใช้วาดชี้ 2026-10-30: กลุ่มนี้อยู่ใต้ขวาอินเวอร์เตอร์เครื่องล่างสุด (ที่ว่างเหนือตาราง SYSTEM DATA)
          [Smart Meter] ← CT MAIN (คล้องเมน MDB เดิม) · กล่อง Logger/Dongle อยู่ใต้ ลูกศรขึ้นไปมิเตอร์
          ซ้าย: RS485 เลี้ยวขึ้นเข้าก้นอินเวอร์เตอร์ · ขวา: INTERNET */
