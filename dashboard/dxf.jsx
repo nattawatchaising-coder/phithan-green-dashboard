@@ -2382,8 +2382,8 @@ function pgSldPro(doc, sheet, M) {
       for (let k = 0; k < 4; k++) pen.circle(L, cx - barW / 2 + 1.5 + k * 2, barY, 0.45);
       pen.text(T, right ? cx + barW / 2 + 1.0 : cx - barW / 2 - 1.0, barY, TS.spec, lab, { align: right ? 0 : 2, valign: 2 });
     };
-    bar(S, sx - 16, "N", false);
-    bar(PE, sx - 1, "G", true);   // รูที่ 3 ตรงสาย SPD · รูที่ 4 (sx + 2) ออกไป MET
+    bar(S, xN - 16, "N", false);
+    bar(PE, xN - 1, "G", true);   // รูที่ 3 ตรงสาย SPD · รูที่ 4 (xN + 2) ออกไป MET · ทั้งชุดขยับซ้ายตาม SPD (ผู้ใช้ 2026-10-31: ขยับให้สั้นลง)
     pen.rect(BX, X.ac0, acBot, X.ac1 - X.ac0, acTop - acBot);
     if (isMain) zoneHdr(Math.min(hy, acTop + 2.5));
 
@@ -2406,18 +2406,19 @@ function pgSldPro(doc, sheet, M) {
     pen.text(T, ax + 4, yMain - 1.0, TS.spec, P.home && M.cuRef ? M.cuRef : "(EXISTING)", { valign: 3 });
     const yE = Math.max(yE0, Math.min(blkLow - 4, acBot - 5, mdBot - 14));
     /* สายดิน SPD จบที่รูบาร์ G · สายไป MET ออกจากอีกรูด้านล่าง ไม่ลากทะลุบาร์ (ผู้ใช้ชี้ 2026-10-29) */
-    pen.line(S, xN, spY - 2.4, xN, barY + 0.45);   // SPD ลงรูขวาสุดบาร์ N (ผู้ใช้วาดชี้ 2026-10-31)
+    /* สายดิน SPD ยังจบที่รูบาร์ G เหมือนเดิม (ผู้ใช้ 2026-10-31) — บาร์ G ขยับมาใต้ SPD สายลงตรงสั้น */
+    pen.line(PE, xN, spY - 2.4, xN, barY + 0.45);
     /* บาร์ G ไม่ต่อเข้าสายดินหลัก — ลงกระโดดข้ามสาย (ครึ่งวงกลม) ไปต่อบาร์ดินตู้ MDB เดิม (ผู้ใช้ชี้ 2026-10-29) */
     /* ดินฝั่ง AC อยู่ใต้ตู้ AC ใกล้ ๆ ไม่ลงไปถึงระดับหลักดิน PV ล่างสุด (ผู้ใช้ชี้ 2026-10-30: กราวด์ไกลไป) */
-    { const gx = sx + 2, yA = acBot - 7, gy = yA - 4.5;
+    { const gx = xN + 2, yA = acBot - 7, gy = yA - 4.5;
       pen.line(PE, gx, barY - 0.45, gx, gy);
       pgSym.ground(pen, gx, gy);
       pen.text(T, gx - 1.5, yA + 3.4, TS.tag, "CONNECT TO GROUND BAR", { align: 2, valign: 2 });
       pen.text(T, gx - 1.5, yA + 1.9, TS.tag, "OF EXISTING MDB", { align: 2, valign: 2 });
       pen.text(LB, gx - 1.5, yA - 0.1, TS.spec, "THW(G) " + P.earthCu + " Sq.mm.", { align: 2, valign: 2 }); }   // ขนาดสาย หน่วย Sq.mm. (ผู้ใช้ 2026-10-29)
     /* กราวด์ตัวตู้ (ผู้ใช้ชี้ 2026-10-29) — จากรูที่ 1 ของบาร์ G ลงไปต่อกรอบตู้ (เส้นประก้นตู้) */
-    pen.line(PE, sx - 4, barY - 0.45, sx - 4, acBot + 0.5);   // หยุดที่ขอบบนวงจุดยึด ไม่ลากทะลุวง (ผู้ใช้ 2026-10-29)
-    pen.circle(PE, sx - 4, acBot, 0.5);   // จุดยึดโครงตู้ทับกลางเส้นขอบตู้ (ผู้ใช้ 2026-10-31) ไม่ต้องเขียนป้าย
+    pen.line(PE, xN - 4, barY - 0.45, xN - 4, acBot + 0.5);   // หยุดที่ขอบบนวงจุดยึด ไม่ลากทะลุวง (ผู้ใช้ 2026-10-29)
+    pen.circle(PE, xN - 4, acBot, 0.5);   // จุดยึดโครงตู้ทับกลางเส้นขอบตู้ (ผู้ใช้ 2026-10-31) ไม่ต้องเขียนป้าย
     /* PE trunk ซ้าย: โครงแผงทุกแถว + บล็อกทุกเครื่อง → บัสดินหลัก */
     pen.line(PE, X.pe0, peTop, X.pe0, yE);
 

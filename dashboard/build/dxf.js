@@ -3385,8 +3385,8 @@ function pgSldPro(doc, sheet, M) {
         valign: 2
       });
     };
-    bar(S, sx - 16, "N", false);
-    bar(PE, sx - 1, "G", true);
+    bar(S, xN - 16, "N", false);
+    bar(PE, xN - 1, "G", true);
     pen.rect(BX, X.ac0, acBot, X.ac1 - X.ac0, acTop - acBot);
     if (isMain) zoneHdr(Math.min(hy, acTop + 2.5));
     const mdBot = yMain - 24;
@@ -3410,9 +3410,9 @@ function pgSldPro(doc, sheet, M) {
       valign: 3
     });
     const yE = Math.max(yE0, Math.min(blkLow - 4, acBot - 5, mdBot - 14));
-    pen.line(S, xN, spY - 2.4, xN, barY + 0.45);
+    pen.line(PE, xN, spY - 2.4, xN, barY + 0.45);
     {
-      const gx = sx + 2,
+      const gx = xN + 2,
         yA = acBot - 7,
         gy = yA - 4.5;
       pen.line(PE, gx, barY - 0.45, gx, gy);
@@ -3430,8 +3430,8 @@ function pgSldPro(doc, sheet, M) {
         valign: 2
       });
     }
-    pen.line(PE, sx - 4, barY - 0.45, sx - 4, acBot + 0.5);
-    pen.circle(PE, sx - 4, acBot, 0.5);
+    pen.line(PE, xN - 4, barY - 0.45, xN - 4, acBot + 0.5);
+    pen.circle(PE, xN - 4, acBot, 0.5);
     pen.line(PE, X.pe0, peTop, X.pe0, yE);
     if (M.mon && monUp) {
       const mon = M.mon,
