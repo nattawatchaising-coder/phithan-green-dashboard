@@ -1944,7 +1944,9 @@ function pgSldPro(doc, sheet, M) {
       cur = G.bottom - 2;
       return;
     }
-    let y = G.firstY;
+    /* MPPT เดียว สตริงเดียว: เส้น DC ตรงระดับกลางสัญลักษณ์อินเวอร์เตอร์ ไม่หักลงแกนรวม (ผู้ใช้วาดชี้ 2026-10-31) */
+    const oneRow = b.groups.length === 1 && b.groups[0].rows.length === 1;
+    let y = oneRow ? (top - 1 + G.boxBot) / 2 : G.firstY;
     const rowsY = [], mids = [];
     const trunkX = X.iv1 - (ivIn ? 22 : 16.5);   // แกนรวม MPPT → สัญลักษณ์อินเวอร์เตอร์ (ขอบซ้ายสัญลักษณ์ = iv1 − 13.5)
     let nStrB = 0, first = true;
@@ -2142,6 +2144,7 @@ function pgSldPro(doc, sheet, M) {
     const ivL = b.names ? [[LB, nm], [T, b.kw + "kW " + P.phTxt + "  " + b.model], [T, "DC SWITCH : BUILT-IN"], [T, "AC : " + M.acCable]]
       : [[LB, nm + "  " + b.kw + "kW " + P.phTxt], [T, b.model || M.inv.model], [T, "DC SWITCH : BUILT-IN"], [T, "AC : " + M.acCable]];
     ivL[0][1] = ivL[0][1].replace(/\bINV(\d)/g, "INVERTER $1");   // ป้ายใต้กล่องเขียนเต็ม (ผู้ใช้ 2026-10-31)
+    if (blocks.length === 1 && !b.typical) ivL.pop();   // เครื่องเดียวมีป้ายขนาดสาย AC บนเส้นแล้ว ไม่ซ้ำใต้กล่อง (ผู้ใช้ขีดฆ่า 2026-10-31)
     if (ivIn) ivL.forEach((l) => { if (l[1] === "DC SWITCH : BUILT-IN") l[1] = "DC SWITCH + DC/AC SPD TYPE II : BUILT-IN"; });
     /* มีแบต: สาย BAT ลงจากขอบล่างกล่อง — บรรทัดยาวตัดเป็นสองบรรทัดให้ป้ายจบก่อนถึงสาย ไม่ต้องย่อตัว */
     if (b.bat) { const k = ivL.findIndex((l) => /^DC SWITCH \+ /.test(l[1])); if (k >= 0) ivL.splice(k, 1, [T, "DC SWITCH + DC/AC SPD"], [T, "TYPE II : BUILT-IN"]); }
