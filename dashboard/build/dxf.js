@@ -3616,24 +3616,25 @@ function pgCuDraw(pen, M) {
       valign: 3
     });
   };
-  const c0 = ctx + 1 + clW + 2,
+  const c0 = ctx + 12,
     bp = 7.5;
   const xL = [0, 1, 2].map(k => c0 + 5 + k * bp),
     xMn = xL[1];
-  const yB = yMain + 21,
+  const yB = yMain + 27,
     yBr = yB - 5.5,
     cuB = yB - 17,
     cuT = cu === "rccb" ? yB + 23.5 : yB + 11;
   const solW = Math.max(tW(sBrk, TS.tag), tW("TIE IN POSITION", TS.tag), tW("SOLAR CELL", TS.tag));
-  const xT = cu === "slot" ? xL[2] + bp * 2 : 0;
-  const c1 = cu === "slot" ? xT + 1.2 + solW + 2 : xL[2] + bp * 1.3 + 3;
-  const xBe = cu === "slot" ? xT : cu === "far" ? c1 + 8 : xL[2] + bp * 1.3;
+  const xFx = xL[2] + bp * 2.2;
+  const xT = cu === "slot" ? xFx + bp : 0;
+  const c1 = cu === "slot" ? xT + 1.2 + solW + 2 : xFx + 6;
+  const xBe = cu === "slot" ? xT : cu === "far" ? c1 + 8 : xFx;
   pen.rect(BX, c0, cuB, c1 - c0, cuT - cuB);
   pen.text(LB, c0 + 1, cuB - 1.0, TS.head, "CONSUMER UNIT (EXISTING)", {
     valign: 3
   });
   pen.line(W, xL[0], yB, xBe, yB);
-  xL.forEach(x => {
+  xL.concat([xFx]).forEach(x => {
     pen.dot(S, x, yB, 0.4);
     pen.line(W, x, yB, x, yBr + BS);
     vBrk(x, yBr);
@@ -3641,7 +3642,8 @@ function pgCuDraw(pen, M) {
     load(x, yB - 10.5);
   });
   xL.forEach((x, i) => lab2(x, yBr, "CB", "F" + (i + 1)));
-  [0, 1, 2].forEach(k => pen.dot(S, xL[2] + bp * 0.8 + k * 1.2, yB - 11.8, 0.3));
+  lab2(xFx, yBr, "CB", "Fx");
+  [-1, 0, 1].forEach(k => pen.dot(S, (xL[2] + xFx) / 2 + 1 + k * 1.2, yB - 11.8, 0.3));
   const yMB = yB + 6;
   pen.dot(S, xMn, yB, 0.4);
   pen.line(W, xMn, yB, xMn, yMB - BS);
@@ -3709,7 +3711,7 @@ function pgCuDraw(pen, M) {
       valign: 3
     });
     pen.rect(BX, b0, yN - 6, b1 - b0, 10);
-    pen.text(LB, b0, yN + 4.8, TS.spec, "MDB SOLAR (NEW)", {
+    pen.text(LB, b0, yN + 5.4, TS.spec, "MDB SOLAR (NEW)", {
       valign: 3
     });
     pen.line(W, xMn, yN, xMn, yMN - BS);
