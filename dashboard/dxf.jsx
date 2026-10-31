@@ -1930,7 +1930,7 @@ function pgSldPro(doc, sheet, M) {
       const sx = X.iv1 - 8, sl = sx - sh * 0.65;
       pgSym.inverter(pen, sx, tapY, sh * 1.3, sh);
       pen.line(R, sx + sh * 0.65, tapY, X.iv1 - 0.6, tapY);
-      pen.circle(S, X.iv1, tapY, 0.6);
+      pgTerm(pen, S, X.iv1, tapY);
       pen.text(LB, sx, tapY + sh / 2 + 0.7, Math.min(TS.head, bt - (tapY + sh / 2) - 0.9), "INV" + b.no, { align: 1, valign: 1 });
       const tx = sl - 2.5, tw = tx - X.m1;
       const ls = miniLines(b);
@@ -1955,7 +1955,7 @@ function pgSldPro(doc, sheet, M) {
         ys.push(y);
         nStrB += row.k;
         if (row.empty) {   // ช่องว่างของ MPPT: ขั้วเปล่า + ป้าย ไม่มีสตริง/ฟิวส์/SPD
-          pen.circle(S, X.iv0, y, 0.6);
+          pgTerm(pen, S, X.iv0, y);
           pen.text(T, X.iv0 + 1.2, y + 0.4, TS.tag, row.tag, { valign: 1 });
           y -= EH;
           return;
@@ -2020,7 +2020,7 @@ function pgSldPro(doc, sheet, M) {
         pen.line(PE, X.dcS, peY, X.dcPE, peY);
         if (first) pen.text(T, X.dcS + 1.8, y - 4.6, TS.tag, "SPD", { valign: 2 });
         }
-        pen.circle(S, X.iv0, y, 0.6);
+        pgTerm(pen, S, X.iv0, y);
         if (row.tag) pen.text(T, X.iv0 + 1.2, y + 0.4, TS.tag, row.tag, { valign: 1 });
         first = false;
         y -= RH;
@@ -2115,6 +2115,7 @@ function pgSldPro(doc, sheet, M) {
       const yS = Math.min(tapY, Math.min.apply(null, mids)), spT = yS - 2;
       pen.line(R, trunkX, tapY, X.iv1 - 13.5 - ivSh, tapY);
       pen.line(R, trunkX, yS, trunkX, spT);
+      pen.dot(R, trunkX, tapY, 0.5);   // จุดต่อสามทาง MPPT → อินเวอร์เตอร์ / DC SPD (ผู้ใช้ 2026-10-31: ควรมีจุดแดง)
       spdS(trunkX, spT);
       pen.text(T, trunkX - 1.6, spT - SPD_H / 2, TS.tag, "DC SPD", { align: 2, valign: 2 });   // ป้ายซ้าย ไม่ชนสัญลักษณ์ (MPPT เดียว)
       pen.line(S, trunkX, spT - SPD_H, trunkX, spT - SPD_H - 1.2);   // เส้นดำเหมือนสัญลักษณ์ (ผู้ใช้ 2026-10-30)
@@ -2132,7 +2133,7 @@ function pgSldPro(doc, sheet, M) {
       pen.line(S, ax, aT - SPD_H, ax, aT - SPD_H - 1.2);
       pgSym.ground(pen, ax, aT - SPD_H - 1.2);
     }
-    pen.circle(S, X.iv1, tapY, 0.6);
+    pgTerm(pen, S, X.iv1, tapY);
     const nm = b.names || (b.typical ? "INV" + b.no + "-INV" + b.to + " (x" + b.cnt + ")" : "INV" + b.no);
     const ix = X.iv0 + 4, iw = (b.bat ? X.iv1 - 15.5 : X.ac0 - 1) - ix;   // มีแบต: ป้ายจบก่อนสาย BAT ที่ลงตรงจากใต้สัญลักษณ์
     /* ใต้กล่องอินเวอร์เตอร์: ทุกบรรทัดขนาดเท่ากัน ระยะบรรทัดเท่ากัน (ผู้ใช้ 2026-10-29) — เดิมหัวใหญ่กว่า แต่ละบรรทัดย่อเองคนละขนาด ช่องห่างไม่เท่า
@@ -2151,7 +2152,7 @@ function pgSldPro(doc, sheet, M) {
       const tx = X.iv1 - 8 - ivSh, bw = 20, bh = 6, bTop = G.boxBot - 1.2 - ivL.length * 2.4 - 1.6, bMid = bTop - bh / 2, bx0 = tx - bw / 2;
       const sb = tapY - 8.5 / 2;   // ขั้ว BAT ตรงใต้สัญลักษณ์ สายลงเส้นเดียว (ผู้ใช้วาดชี้ 2026-10-31)
       pen.line(R, tx, sb, tx, G.boxBot + 0.6);   // ในกล่อง: สัญลักษณ์ → ขั้ว BAT
-      pen.circle(S, tx, G.boxBot, 0.6);
+      pgTerm(pen, S, tx, G.boxBot);
       pen.text(T, tx + 1.0, G.boxBot - 0.9, TS.tag, "BAT", { valign: 3 });
       pen.line(R, tx, G.boxBot - 0.6, tx, bTop);
       pen.rect(S, bx0, bTop - bh, bw, bh);
@@ -2483,7 +2484,7 @@ function pgSldPro(doc, sheet, M) {
           arrow(xv, it + 1.6, 0, -1);
           pen.text(T, X.iv1 + 2, myc + 0.6, TS.tag, "RS485", { valign: 1 });
         }
-        sig(xm0 - 3, mBot + mh, acTop + 6, -1);
+        sig(xm0, mBot + mh, acTop + 6, -1);   // สัญญาณ CT + ข้อความอยู่กลางกล่องมิเตอร์ (ผู้ใช้วาดชี้ 2026-10-31)
       } else {
         sig(xd + dw / 2 + 6, dBot + dh, dBot + dh + 8, -1);
       }
@@ -2589,6 +2590,9 @@ function pgSldGroups(M) {
 /* ขนาด CT + Class ความแม่นยำของมิเตอร์โซลาร์ (ผู้ใช้ 2026-10-31: บอกขนาด CT กับ Class ดูจากข้อมูลมิเตอร์)
    อ่านจากชื่อ + คำอธิบายในคลัง (BOQ.METERS) เช่น "CT 100A/40mA" · "Class 1" — ไม่มีในคลังใช้ค่าจากดาต้าชีตด้านล่าง
    ct = "120A/40mA" (หรือ "120A" ถ้าไม่รู้เอาต์พุต) · cls = "1" / "0.5" · ไม่รู้ = "" */
+/* ขั้วต่ออินเวอร์เตอร์ = วงกลวงมีขีดเฉียง (ผู้ใช้วาดตัวอย่าง 2026-10-31) */
+function pgTerm(pen, L, x, y, r = 0.6) { pen.circle(L, x, y, r); pen.line(L, x - r * 1.7, y - r * 1.7, x + r * 1.7, y + r * 1.7); }
+
 const PG_METER_DS = {   // ดาต้าชีตผู้ผลิต (GoodWe single page 2025-12 / 2026-02): CT unified 120A:40mA
   GMK110: { ct: "120A/40mA", cls: "1" },
   GMK330: { ct: "120A/40mA", cls: "0.5" },

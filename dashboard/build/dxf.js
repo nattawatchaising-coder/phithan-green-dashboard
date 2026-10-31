@@ -2769,7 +2769,7 @@ function pgSldPro(doc, sheet, M) {
         sl = sx - sh * 0.65;
       pgSym.inverter(pen, sx, tapY, sh * 1.3, sh);
       pen.line(R, sx + sh * 0.65, tapY, X.iv1 - 0.6, tapY);
-      pen.circle(S, X.iv1, tapY, 0.6);
+      pgTerm(pen, S, X.iv1, tapY);
       pen.text(LB, sx, tapY + sh / 2 + 0.7, Math.min(TS.head, bt - (tapY + sh / 2) - 0.9), "INV" + b.no, {
         align: 1,
         valign: 1
@@ -2809,7 +2809,7 @@ function pgSldPro(doc, sheet, M) {
         ys.push(y);
         nStrB += row.k;
         if (row.empty) {
-          pen.circle(S, X.iv0, y, 0.6);
+          pgTerm(pen, S, X.iv0, y);
           pen.text(T, X.iv0 + 1.2, y + 0.4, TS.tag, row.tag, {
             valign: 1
           });
@@ -2888,7 +2888,7 @@ function pgSldPro(doc, sheet, M) {
             valign: 2
           });
         }
-        pen.circle(S, X.iv0, y, 0.6);
+        pgTerm(pen, S, X.iv0, y);
         if (row.tag) pen.text(T, X.iv0 + 1.2, y + 0.4, TS.tag, row.tag, {
           valign: 1
         });
@@ -3007,6 +3007,7 @@ function pgSldPro(doc, sheet, M) {
         spT = yS - 2;
       pen.line(R, trunkX, tapY, X.iv1 - 13.5 - ivSh, tapY);
       pen.line(R, trunkX, yS, trunkX, spT);
+      pen.dot(R, trunkX, tapY, 0.5);
       spdS(trunkX, spT);
       pen.text(T, trunkX - 1.6, spT - SPD_H / 2, TS.tag, "DC SPD", {
         align: 2,
@@ -3029,7 +3030,7 @@ function pgSldPro(doc, sheet, M) {
       pen.line(S, ax, aT - SPD_H, ax, aT - SPD_H - 1.2);
       pgSym.ground(pen, ax, aT - SPD_H - 1.2);
     }
-    pen.circle(S, X.iv1, tapY, 0.6);
+    pgTerm(pen, S, X.iv1, tapY);
     const nm = b.names || (b.typical ? "INV" + b.no + "-INV" + b.to + " (x" + b.cnt + ")" : "INV" + b.no);
     const ix = X.iv0 + 4,
       iw = (b.bat ? X.iv1 - 15.5 : X.ac0 - 1) - ix;
@@ -3054,7 +3055,7 @@ function pgSldPro(doc, sheet, M) {
         bx0 = tx - bw / 2;
       const sb = tapY - 8.5 / 2;
       pen.line(R, tx, sb, tx, G.boxBot + 0.6);
-      pen.circle(S, tx, G.boxBot, 0.6);
+      pgTerm(pen, S, tx, G.boxBot);
       pen.text(T, tx + 1.0, G.boxBot - 0.9, TS.tag, "BAT", {
         valign: 3
       });
@@ -3515,7 +3516,7 @@ function pgSldPro(doc, sheet, M) {
             valign: 1
           });
         }
-        sig(xm0 - 3, mBot + mh, acTop + 6, -1);
+        sig(xm0, mBot + mh, acTop + 6, -1);
       } else {
         sig(xd + dw / 2 + 6, dBot + dh, dBot + dh + 8, -1);
       }
@@ -3641,6 +3642,10 @@ function pgSldGroups(M) {
     out[idx[key]].nos.push(no);
   });
   return out;
+}
+function pgTerm(pen, L, x, y, r = 0.6) {
+  pen.circle(L, x, y, r);
+  pen.line(L, x - r * 1.7, y - r * 1.7, x + r * 1.7, y + r * 1.7);
 }
 const PG_METER_DS = {
   GMK110: {
