@@ -4382,6 +4382,7 @@ function p3SldMon(M, job) {
     return;
   }
   const find = re => names.find(n => re.test(n)) || "";
+  M.monMeter = find(/smart meter|DTSU|DDSU|SPM-CT|TPM-CT|janitza/i);
   const dev = find(/logger/i) || find(/dongle|wifi/i);
   if (!dev) return;
   M.mon = {
@@ -4628,7 +4629,6 @@ function p3DwgRef(ix, k) {
 function p3CuSheet(st, job, media) {
   media = media || {};
   const M = p3SldModel(st, job, media.design);
-  M.sldRef = p3DwgRef(media.index, "SLD");
   const doc = pgDoc({
     units: "mm",
     ltscale: 1

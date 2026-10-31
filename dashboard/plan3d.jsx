@@ -2813,6 +2813,7 @@ function p3SldMon(M, job) {
     BOQ.calcBOQ(BOQ.mergeBOQ(job)).groups.forEach((g) => (g.items || []).forEach((it) => { if (it && +it.qty > 0 && it.name) names.push(String(it.name)); }));
   } catch (e) { return; }
   const find = (re) => names.find((n) => re.test(n)) || "";
+  M.monMeter = find(/smart meter|DTSU|DDSU|SPM-CT|TPM-CT|janitza/i);   // รุ่นมิเตอร์ที่ CT ต่อเข้า — แผ่นตู้บ้านใช้แม้ไม่มี logger/dongle
   const dev = find(/logger/i) || find(/dongle|wifi/i);
   if (!dev) return;
   M.mon = { dev, logger: /logger/i.test(dev), meter: find(/smart meter|DTSU|DDSU|SPM-CT|TPM-CT|janitza/i) };
@@ -2944,7 +2945,6 @@ function p3DwgRef(ix, k) {
 function p3CuSheet(st, job, media) {
   media = media || {};
   const M = p3SldModel(st, job, media.design);
-  M.sldRef = p3DwgRef(media.index, "SLD");
   const doc = pgDoc({ units: "mm", ltscale: 1 }, media.svg);
   const sheet = pgSheet(doc, { k: 1, ox: 0, oy: 0, info: p3SheetInfo(st, job, { sheet: "CU", scale: "AS SHOW", sheetNo: media.sheetNo || "1/1" }) });
   pgCuSheet(doc, sheet, M);

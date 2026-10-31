@@ -2514,7 +2514,7 @@ function pgSldGroups(M) {
    CT MAIN GRID คล้องสายเข้าจากการไฟฟ้า เหนือจุดที่โซลาร์ต่อเข้าเสมอ (วัดไฟซื้อ/ขายสุทธิ) · ฝั่งโซลาร์สีแดง ฝั่งบ้าน/กริดสีขาว
    pgCuDraw วาดที่ขนาดตัวหนังสือเท่า SLD แล้ว pgCuSheet ขยายให้เต็มแผ่น */
 function pgCuDraw(pen, M) {
-  const P = M.pro, W = PG_SLD.wire, R = PG_SLD.sol, S = PG_SLD.sym, BX = PG_SLD.box, T = PG_SLD.txt, LB = PG_SLD.lbl;
+  const P = M.pro, W = PG_SLD.wire, R = PG_SLD.sol, S = PG_SLD.sym, BX = PG_SLD.box, T = PG_SLD.txt, LB = PG_SLD.lbl, PE = PG_SLD.pe;
   const TS = { head: 1.8, spec: 1.4, tag: 1.2 }, g = 2.4, CT_R = 1.4, yMain = 0;
   const hBrk = (x, y) => { pen.circle(S, x - g, y, 0.75); pen.circle(S, x + g, y, 0.75); pen.arc(S, x, y, g * 1.26, 28, 152); };
   const ctV = (x, y) => {
@@ -2528,7 +2528,6 @@ function pgCuDraw(pen, M) {
   pen.text(T, ctx + 1, yMain + 0.8, TS.spec, cl[0], { valign: 1 });
   pen.text(T, ctx + 1, yMain - 0.8, TS.spec, cl[1], { valign: 3 });
   pen.text(LB, ctx - 1.5, yMain + 0.9, TS.head, "FROM AC COMBINER BOX", { align: 2, valign: 1 });
-  pen.text(T, ctx - 1.5, yMain - 1.0, TS.spec, M.sldRef || "(SOLAR CELL)", { align: 2, valign: 3 });
   pen.solid(R, [ctx - 1.2, yMain + 1.1], [ctx + 1.4, yMain], [ctx - 1.2, yMain - 1.1]);
   const cu = P.cu || "slot";
   const sBrk = String(P.mainTxt || "").split(" + ")[0].trim();   // MCB โซลาร์ในตู้บ้าน = ขนาดเดียวกับเมนตู้ AC
@@ -2547,12 +2546,12 @@ function pgCuDraw(pen, M) {
     pen.text(T, x, yT - h - 0.8, TS.tag, "LOAD", { align: 1, valign: 3 });
   };
   /* ตู้บ้านชิดซ้าย (ผู้ใช้ 2026-10-31: ขยับซ้าย) — ยกตู้สูงพ้นแถวป้ายสาย ไม่ต้องหลบไปขวาของป้าย */
-  const c0 = ctx + 12, bp = 7.5;
-  const xL = [0, 1, 2].map((k) => c0 + 5 + k * bp), xMn = xL[1];
-  const yB = yMain + 27, yBr = yB - 5.5, cuB = yB - 17, cuT = cu === "rccb" ? yB + 23.5 : yB + 11;   // rccb: เมนใหม่อยู่ในตู้บ้าน ตู้สูงขึ้น
+  const c0 = ctx + 12, bp = 10;   // ระยะวงจรห่างขึ้น (ผู้ใช้ 2026-10-31: ชิดกันไป)
+  const xL = [0, 1, 2].map((k) => c0 + 5 + k * bp), xMn = xL[2];   // เมนลงกลางบัส F1 F2 | F3 | • • • Fx (ผู้ใช้ 2026-10-31)
+  const yB = yMain + 34, yBr = yB - 5.5, cuB = yB - 23, cuT = cu === "rccb" ? yB + 23.5 : yB + 11;   // rccb: เมนใหม่อยู่ในตู้บ้าน ตู้สูงขึ้น
   const solW = Math.max(tW(sBrk, TS.tag), tW("TIE IN POSITION", TS.tag), tW("SOLAR CELL", TS.tag));
   /* วงจรเดิม F1 F2 F3 • • • Fx (ผู้ใช้วาดชี้ 2026-10-31: มีวงจรสุดท้ายต่อจากจุด) */
-  const xFx = xL[2] + bp * 2.2;
+  const xFx = xL[2] + bp * 2;
   const xT = cu === "slot" ? xFx + bp : 0;
   const c1 = cu === "slot" ? xT + 1.2 + solW + 2 : xFx + 6;
   const xBe = cu === "slot" ? xT : cu === "far" ? c1 + 8 : xFx;
@@ -2567,12 +2566,29 @@ function pgCuDraw(pen, M) {
   });
   xL.forEach((x, i) => lab2(x, yBr, "CB", "F" + (i + 1)));
   lab2(xFx, yBr, "CB", "Fx");
-  [-1, 0, 1].forEach((k) => pen.dot(S, (xL[2] + xFx) / 2 + 1 + k * 1.2, yB - 11.8, 0.3));   // • • • (วงจรเดิมที่เหลือ)
+  [-1, 0, 1].forEach((k) => pen.dot(S, xL[2] + bp + k * 1.2, yB - 11.8, 0.3));   // • • • (วงจรเดิมที่เหลือ)
+  /* บาร์ N / บาร์ G ก้นตู้บ้าน + กราวด์ตู้ (ผู้ใช้ 2026-10-31: อย่าลืมกราวด์ตู้กับบาร์ N) — แบบเดียวกับตู้ AC ใน SLD */
+  const barY = cuB + 3, barW = 9, barH = 1.6;
+  const bar = (L, cx, lab, right) => {
+    pen.rect(L, cx - barW / 2, barY - barH / 2, barW, barH);
+    for (let k = 0; k < 4; k++) pen.circle(L, cx - barW / 2 + 1.5 + k * 2, barY, 0.45);
+    pen.text(T, right ? cx + barW / 2 + 1.0 : cx - barW / 2 - 1.0, barY, TS.spec, lab, { align: right ? 0 : 2, valign: 2 });
+  };
+  /* สายดินลงหลักดิน: ขีดลงแล้วสัญลักษณ์ดิน */
+  const gnd = (x, y0, y1, lab) => {
+    pen.line(PE, x, y0, x, y1); pgSym.ground(pen, x, y1);
+    if (lab) pen.text(T, x + 3.6, y1 - 1.3, TS.tag, lab, { valign: 2 });
+  };
+  const xN = c0 + 8.5, xG = c0 + 22;
+  bar(S, xN, "N", false);
+  bar(PE, xG, "G", true);
+  pen.line(PE, xG - 2.5, barY - 0.45, xG - 2.5, cuB + 1.0); pen.circle(PE, xG - 2.5, cuB + 0.5, 0.5);   // จุดยึดโครงตู้
+  gnd(xG + 1.5, barY - 0.45, yMain + 4.5, "GROUND (EXISTING)");
   /* เมนเดิมของตู้บ้าน (แบบ rccb = RCCB เดิม) */
   const yMB = yB + 6;
   pen.dot(S, xMn, yB, 0.4);
   pen.line(W, xMn, yB, xMn, yMB - BS); vBrk(xMn, yMB);
-  if (cu === "rccb") lab2(xMn, yMB, "RCCB", "(EXISTING)");
+  if (cu === "rccb") lab2(xMn, yMB, "RCCB", P.exMain || "")   // ขนาด RCCB เดิม = เมนเดิมจากใบสำรวจ (ผู้ใช้ 2026-10-31);
   else lab2(xMn, yMB, "MAIN", P.exMain ? P.exMain + " (EXISTING)" : "(EXISTING)");
   let yTop = cuT, xSol, xR;
   if (cu === "slot") {
@@ -2593,6 +2609,7 @@ function pgCuDraw(pen, M) {
     lab2(xs, yS, sBrk, "SOLAR CELL");
     pen.rect(BX, b0, yS - 5.5, b1 - b0, 10);
     pen.text(LB, b0 + 0.5, yS - 6.5, TS.spec, "MDB SOLAR (NEW)", { valign: 3 });
+    gnd(b1 - 2, yS - 5.5, yS - 9.5);   // กราวด์ตู้ MDB SOLAR
     pen.line(R, xs, yS - BS, xs, yMain);
     xSol = xs; xR = b1;
   } else {
@@ -2608,8 +2625,9 @@ function pgCuDraw(pen, M) {
     pen.text(T, xh, yN - 2.8, TS.tag, "SOLAR CELL", { align: 1, valign: 3 });
     pen.rect(BX, b0, yN - 6, b1 - b0, 10);
     pen.text(LB, b0, yN + 5.4, TS.spec, "MDB SOLAR (NEW)", { valign: 3 });
+    gnd(b1 - 2, yN - 6, yN - 10);   // กราวด์ตู้ MDB SOLAR
     pen.line(W, xMn, yN, xMn, yMN - BS); vBrk(xMn, yMN);
-    lab2(xMn, yMN, "MAIN (NEW)", P.exMain || "");
+    lab2(xMn, yMN, "MAIN", P.exMain || "");   // ไม่เขียน (NEW)/(EXISTING) ที่เบรกเกอร์ (ผู้ใช้ขีดฆ่า 2026-10-31)
     pen.line(R, xs, yN, xs, yMain);
     pen.line(W, xMn, yMN + BS, xMn, yTop);
     xSol = xs; xR = b1;
@@ -2624,9 +2642,12 @@ function pgCuDraw(pen, M) {
   pen.text(T, xMn, yK, rK * 0.5, "kWh", { align: 1, valign: 2 });
   pen.text(LB, xMn + rK + 1.2, yK + 0.6, TS.tag, "kWh METER", { valign: 1 });
   pen.text(T, xMn + rK + 1.2, yK - 0.6, TS.tag, "(EXISTING)", { valign: 3 });
-  const ctSpec = M.mon ? (String(M.mon.meter).match(/CT\s*[\d/]+\s*m?A(\/[\d.]+m?A)?/i) || [""])[0] : "";
-  pen.text(LB, xMn + 3.2, yC + 0.6, TS.tag, "CT MAIN GRID", { valign: 1 });
-  if (ctSpec) pen.text(T, xMn + 3.2, yC - 0.6, TS.tag, ctSpec, { valign: 3 });
+  /* ป้าย CT บอกว่าเป็น CT ของมิเตอร์โซลาร์รุ่นไหน (ผู้ใช้ 2026-10-31) — รุ่นจาก BOQ ของงาน */
+  const mtr = (M.mon && M.mon.meter) || M.monMeter || "";
+  const ctSpec = (String(mtr).match(/CT\s*[\d/]+\s*m?A(\/[\d.]+m?A)?/i) || [""])[0];
+  const mtrNm = mtr.replace(/\s*\+\s*CT.*$/i, "").trim();
+  pen.text(LB, xMn + 3.2, yC + 1.4, TS.tag, "CT MAIN GRID" + (ctSpec ? " (" + ctSpec + ")" : ""), { valign: 1 });
+  pen.text(T, xMn + 3.2, yC - 0.2, TS.tag, "FOR SOLAR METER : " + (mtrNm || "SMART METER (SEE SLD)"), { valign: 1 });
   pen.line(W, xMn - 1.3, yA, xMn + 1.3, yA); pen.line(W, xMn - 1.3, yA, xMn, yA + 2.6); pen.line(W, xMn + 1.3, yA, xMn, yA + 2.6);
   pen.text(LB, xMn, yA + 3.4, TS.head, "TO " + (P.auth || "GRID"), { align: 1, valign: 1 });
   if (M.mon) {
@@ -2641,20 +2662,11 @@ function pgCuDraw(pen, M) {
 }
 function pgCuSheet(doc, sheet, M) {
   pgSldLayers(doc);
-  const pen = sheet.pen, A = sheet.area, cu = M.pro.cu || "slot";
+  const pen = sheet.pen, A = sheet.area;
   pgSheetTitle(pen, A.x0 + 6, A.y1 - 10, "CONSUMER UNIT CONNECTION DIAGRAM", PG_TS.title, 220, 0, null);
-  const notes = [
-    cu === "rccb" ? "EXISTING MAIN BREAKER IS RCCB : INSTALL NEW MAIN IN CONSUMER UNIT UPSTREAM OF EXISTING RCCB, SOLAR MCB IN NEW MDB SOLAR TIE IN BETWEEN NEW MAIN AND RCCB."
-      : cu === "far" ? "AC COMBINER BOX FAR FROM / NO SPARE WAY IN CONSUMER UNIT : INSTALL NEW MDB SOLAR BESIDE CONSUMER UNIT, TIE IN AT END OF BUSBAR."
-      : "CONSUMER UNIT HAS SPARE WAY : INSTALL SOLAR MCB IN EXISTING CONSUMER UNIT (TIE IN POSITION).",
-    "CT MAIN GRID CLAMPS INCOMING LINE FROM " + (M.pro.auth || "GRID") + ", UPSTREAM OF SOLAR TIE IN POINT (NET IMPORT / EXPORT).",
-    "VERIFY EXISTING CONSUMER UNIT ON SITE BEFORE INSTALLATION.",
-  ];
-  const th = PG_TS.cell, nh = th * 1.8, ny0 = A.y0 + 6;
-  notes.forEach((t, i) => pen.text(PG_SLD.txt, A.x0 + 8, ny0 + (notes.length - 1 - i) * nh, th, (i + 1) + ". " + t, {}));
-  pen.text(PG_SLD.lbl, A.x0 + 6, ny0 + notes.length * nh + 0.6, PG_TS.head, "NOTE", {});
+  /* ไม่มีหมายเหตุ / เลขแผ่นอ้างอิง (ผู้ใช้ขีดฆ่า 2026-10-31) */
   const bb = pgBBoxPen(); pgCuDraw(bb, M);
-  const d = bb.box, bw = d.x1 - d.x0, bh = d.y1 - d.y0, c = [A.x0 + 10, ny0 + notes.length * nh + 12, A.x1 - 10, A.y1 - 22];
+  const d = bb.box, bw = d.x1 - d.x0, bh = d.y1 - d.y0, c = [A.x0 + 10, A.y0 + 10, A.x1 - 10, A.y1 - 22];
   const sc = Math.min(3.2, (c[2] - c[0]) / bw, (c[3] - c[1]) / bh);
   pgCuDraw(pgScalePen(pen, sc, (c[0] + c[2]) / 2 - (d.x0 + bw / 2) * sc, (c[1] + c[3]) / 2 - (d.y0 + bh / 2) * sc), M);
 }
