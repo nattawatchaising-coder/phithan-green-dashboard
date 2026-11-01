@@ -2525,7 +2525,7 @@ function pgSldPro(doc, sheet, M) {
     const lastY = firstY - span - (b.groups.length - 1) * GAP;
     const dBot = lastY - 16;
     const boxBot = Math.min(lastY - (ivIn ? 11 : 5), top - (ivIn ? 31 : 27));
-    const yG = Math.min(dBot - (M.opt && M.opt.rsd ? 18 : 0), boxBot - 10.8 - (b.bat ? BAT_H : 0)) - 3;
+    const yG = Math.min(dBot - (M.opt && M.opt.rsd ? 26 : 0), boxBot - 10.8 - (b.bat ? BAT_H : 0)) - 3;
     return {
       firstY,
       lastY,
@@ -3021,14 +3021,14 @@ function pgSldPro(doc, sheet, M) {
           pen.line(S, p[0], p[1], q[0], q[1]);
         }
       });
-      const sg = !M.opt.rss && /\bSR\d+D\b/i.test(M.opt.model),
-        txN = n => sg ? "SUNGO SD-" + n : M.opt.rss || M.opt.model;
+      const sg = /\bSR\d+D\b/i.test(M.opt.model),
+        txN = n => (sg ? "SUNGO SD-" : "SD-") + n;
       const nxt = invNos[invNos.indexOf(b.no) + 1];
-      const base = dBot - 18,
+      const base = dBot - 26,
         bx0 = X.dc0,
         bx1 = X.dc1,
         W = bx1 - bx0;
-      const tB = base + 9,
+      const tB = base + 17,
         tD = tB + 2.6,
         tT = tD + 4.4,
         bm = (tD + tT) / 2;
@@ -3056,29 +3056,50 @@ function pgSldPro(doc, sheet, M) {
         valign: 2
       });
       const CS = PG_SLD.ctsig;
-      pen.line(CS, xC, strY[0] - eRy, xC, tB - 1.0);
-      pen.line(CS, xC, tB - 1.0, c1, tB - 1.0);
-      pen.line(CS, c1, tB - 1.0, c1, tB);
+      pen.line(CS, xC, strY[0] - eRy, xC, tB - 2.4);
+      pen.line(CS, xC, tB - 2.4, c1, tB - 2.4);
+      pen.line(CS, c1, tB - 2.4, c1, tB);
       if (nxt != null) {
-        pen.line(CS, c2, tB, c2, tB - 3.2);
-        pen.solid(S, [c2 - 0.5, tB - 2.8], [c2, tB - 3.8], [c2 + 0.5, tB - 2.8]);
+        pen.line(CS, c2, tB, c2, tB - 4.8);
+        pen.solid(S, [c2 - 0.5, tB - 4.4], [c2, tB - 5.4], [c2 + 0.5, tB - 4.4]);
         const tt = "TO " + txN(nxt);
-        pen.text(T, c2 + 0.8, tB - 3.4, fitH(tt, TS.tag, bx1 - c2 - 0.8), tt, {
+        pen.text(T, c2 + 0.8, tB - 5.0, fitH(tt, TS.tag, bx1 - c2 - 0.8), tt, {
           valign: 2
         });
       }
-      const ex = bx0 + W * 0.15,
-        eT = base + 5,
-        eB = base + 2.4,
-        ew = Math.min(5, W * 0.26);
-      pen.line(S, ex, tB, ex, eT);
-      pen.rect(S, ex - ew / 2, eB, ew, eT - eB);
-      const em = (eT + eB) / 2;
-      pen.line(S, ex - ew * 0.3, em - 0.4, ex + ew * 0.3, em - 0.4);
-      pen.line(S, ex, em - 0.4, ex, em + 0.7);
-      pen.line(S, ex - ew * 0.22, em + 0.7, ex + ew * 0.22, em + 0.7);
+      const ex = bx0 + W * 0.1,
+        yBt = base + 3.6,
+        bw = Math.min(8, W * 0.5),
+        bh = 4,
+        bL = ex + 2;
+      const oth = invNos.filter(k => k !== b.no).slice(0, 2);
+      pen.line(S, ex, tB, ex, yBt);
+      pen.line(S, ex, yBt, bL, yBt);
+      oth.forEach((k, i) => {
+        const yy = yBt + bh / 2 + 1.5 + 2.6 * (oth.length - 1 - i),
+          tt = "TO " + txN(k);
+        pen.line(S, ex, yy, ex + 3.2, yy);
+        pen.solid(S, [ex + 3.2, yy + 0.5], [ex + 4.2, yy], [ex + 3.2, yy - 0.5]);
+        pen.text(T, ex + 4.6, yy, fitH(tt, TS.tag, bx1 + 8 - ex - 4.6), tt, {
+          valign: 2
+        });
+      });
+      pen.rect(S, bL, yBt - bh / 2, bw, bh);
+      const yc = yBt - 0.7,
+        p1 = bL + bw * 0.38,
+        p2 = bL + bw * 0.64;
+      pen.line(S, bL + 0.8, yc, p1, yc);
+      pen.line(S, p1, yc, p2 - 0.2, yc + 1.0);
+      pen.line(S, p2, yc, bL + bw - 0.8, yc);
+      const sx = (p1 + p2) / 2 - 0.1,
+        hy = yc + 1.9,
+        hr = 0.75;
+      pen.line(S, sx, yc + 0.5, sx, hy);
+      pen.line(S, sx - hr, hy, sx + hr, hy);
+      for (let k = 0; k < 8; k++) pen.line(S, sx + hr * Math.cos(Math.PI * k / 8), hy + hr * Math.sin(Math.PI * k / 8), sx + hr * Math.cos(Math.PI * (k + 1) / 8), hy + hr * Math.sin(Math.PI * (k + 1) / 8));
       const el = "EMERGENCY BUTTON";
-      pen.text(T, bx0, base + 1.4, fitH(el, TS.tag, W), el, {
+      pen.text(T, bL + bw / 2, yBt - bh / 2 - 1.2, fitH(el, TS.tag, W), el, {
+        align: 1,
         valign: 2
       });
     }

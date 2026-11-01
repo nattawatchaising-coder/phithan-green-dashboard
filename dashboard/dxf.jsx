@@ -1752,7 +1752,7 @@ function pgSldPro(doc, sheet, M) {
     /* มี AC SPD ในเครื่อง (ivIn): สัญลักษณ์ดินลึก 13.6 ใต้ขั้ว AC — กล่องสูงอย่างน้อย 30 ไม่ให้ดินทับขอบล่าง (ผู้ใช้ 2026-10-31: โดนทับ) */
     const boxBot = Math.min(lastY - (ivIn ? 11 : 5), top - (ivIn ? 31 : 27));   // งานโครงการเผื่อที่ DC SPD ใต้แกนรวม MPPT
     /* RSD: กล่อง TRANSMITTER + ปุ่มฉุกเฉินอยู่นอกตู้ DC ใต้ตู้ (ผู้ใช้ 2026-11-01) สายดินลงต่ำให้ที่ */
-    const yG = Math.min(dBot - (M.opt && M.opt.rsd ? 18 : 0), boxBot - 10.8 - (b.bat ? BAT_H : 0)) - 3;
+    const yG = Math.min(dBot - (M.opt && M.opt.rsd ? 26 : 0), boxBot - 10.8 - (b.bat ? BAT_H : 0)) - 3;
     return { firstY, lastY, dBot, boxBot, yG, bottom: yG - 1.5 };
   };
   const blockH = (b) => b.typical ? 0 : 1000 - geo(b, 1000).bottom;
@@ -2130,10 +2130,11 @@ function pgSldPro(doc, sheet, M) {
       strY.forEach((yy) => { for (let k = 0; k < 24; k++) { const p = eP(yy, k), q = eP(yy, k + 1); pen.line(S, p[0], p[1], q[0], q[1]); } });
       /* กล่องตามแบบงานจริงที่ผู้ใช้ส่ง (2026-11-01): TRANSMITTER / SUNGO SD-n (เลขตามเครื่อง) · แถวขั้ว C1 C2
          C1 → แกนคล้องสาย · C2 → ตัวส่งของเครื่องถัดไป (TO SUNGO SD-k) · ปุ่ม EMERGENCY BUTTON ต่อจากตัวส่ง */
-      const sg = !M.opt.rss && /\bSR\d+D\b/i.test(M.opt.model), txN = (n) => (sg ? "SUNGO SD-" + n : M.opt.rss || M.opt.model);
+      /* ตัวส่งมีเลขตามเครื่องเสมอ SD-1 SD-2 … ป้าย TO บอกชัดว่าไปตัวไหน (ผู้ใช้สั่ง 2026-11-01) — Sungrow ใช้ SUNGO SD-n ตามแบบงานจริง */
+      const sg = /\bSR\d+D\b/i.test(M.opt.model), txN = (n) => (sg ? "SUNGO SD-" : "SD-") + n;
       const nxt = invNos[invNos.indexOf(b.no) + 1];
-      const base = dBot - 18, bx0 = X.dc0, bx1 = X.dc1, W = bx1 - bx0;   // นอกตู้ DC ใต้ขอบล่าง (ผู้ใช้ 2026-11-01)
-      const tB = base + 9, tD = tB + 2.6, tT = tD + 4.4, bm = (tD + tT) / 2;
+      const base = dBot - 26, bx0 = X.dc0, bx1 = X.dc1, W = bx1 - bx0;   // นอกตู้ DC ใต้ขอบล่าง (ผู้ใช้ 2026-11-01)
+      const tB = base + 17, tD = tB + 2.6, tT = tD + 4.4, bm = (tD + tT) / 2;
       pen.rect(S, bx0, tB, W, tT - tB);
       pen.line(S, bx0, tD, bx1, tD);
       const t1 = "TRANSMITTER", t2 = txN(b.no);
@@ -2143,25 +2144,38 @@ function pgSldPro(doc, sheet, M) {
       pen.text(T, c1, tB + 1.3, ch, "C1", { align: 1, valign: 2 });
       pen.text(T, c2, tB + 1.3, ch, "C2", { align: 1, valign: 2 });
       const CS = PG_SLD.ctsig;
-      pen.line(CS, xC, strY[0] - eRy, xC, tB - 1.0);   // แกน → C1
-      pen.line(CS, xC, tB - 1.0, c1, tB - 1.0);
-      pen.line(CS, c1, tB - 1.0, c1, tB);
+      pen.line(CS, xC, strY[0] - eRy, xC, tB - 2.4);   // แกน → C1 · ห่างขอบกล่องพอ ไม่ชิด (ผู้ใช้ 2026-11-01)
+      pen.line(CS, xC, tB - 2.4, c1, tB - 2.4);
+      pen.line(CS, c1, tB - 2.4, c1, tB);
       if (nxt != null) {   // C2 → ตัวส่งเครื่องถัดไป
-        pen.line(CS, c2, tB, c2, tB - 3.2);
-        pen.solid(S, [c2 - 0.5, tB - 2.8], [c2, tB - 3.8], [c2 + 0.5, tB - 2.8]);
+        pen.line(CS, c2, tB, c2, tB - 4.8);
+        pen.solid(S, [c2 - 0.5, tB - 4.4], [c2, tB - 5.4], [c2 + 0.5, tB - 4.4]);
         const tt = "TO " + txN(nxt);
-        pen.text(T, c2 + 0.8, tB - 3.4, fitH(tt, TS.tag, bx1 - c2 - 0.8), tt, { valign: 2 });
+        pen.text(T, c2 + 0.8, tB - 5.0, fitH(tt, TS.tag, bx1 - c2 - 0.8), tt, { valign: 2 });
       }
-      /* ปุ่มฉุกเฉิน: สายจากขอบซ้ายล่างตัวส่งลงหาปุ่ม (กล่อง + สัญลักษณ์กดปุ่ม) ป้ายใต้ปุ่ม */
-      const ex = bx0 + W * 0.15, eT = base + 5, eB = base + 2.4, ew = Math.min(5, W * 0.26);
-      pen.line(S, ex, tB, ex, eT);
-      pen.rect(S, ex - ew / 2, eB, ew, eT - eB);
-      const em = (eT + eB) / 2;
-      pen.line(S, ex - ew * 0.3, em - 0.4, ex + ew * 0.3, em - 0.4);   // หน้าสัมผัส
-      pen.line(S, ex, em - 0.4, ex, em + 0.7);
-      pen.line(S, ex - ew * 0.22, em + 0.7, ex + ew * 0.22, em + 0.7);   // หัวปุ่ม
+      /* ปุ่มฉุกเฉินตามแบบงานจริง (ผู้ใช้ส่งรูป 2026-11-01): สายจากตัวส่งลงแล้วเลี้ยวเข้าข้างซ้ายกล่องปุ่ม
+         ในกล่อง = สัญลักษณ์ปุ่มกด (ขาซ้าย · หน้าสัมผัสเอียง · ขาขวา · ก้านขึ้นหัวเห็ด) · สายเดียวกันแตกกิ่งลูกศร TO ตัวส่งเครื่องอื่น */
+      const ex = bx0 + W * 0.1, yBt = base + 3.6, bw = Math.min(8, W * 0.5), bh = 4, bL = ex + 2;
+      const oth = invNos.filter((k) => k !== b.no).slice(0, 2);
+      pen.line(S, ex, tB, ex, yBt);
+      pen.line(S, ex, yBt, bL, yBt);
+      oth.forEach((k, i) => {
+        const yy = yBt + bh / 2 + 1.5 + 2.6 * (oth.length - 1 - i), tt = "TO " + txN(k);
+        pen.line(S, ex, yy, ex + 3.2, yy);
+        pen.solid(S, [ex + 3.2, yy + 0.5], [ex + 4.2, yy], [ex + 3.2, yy - 0.5]);
+        pen.text(T, ex + 4.6, yy, fitH(tt, TS.tag, bx1 + 8 - ex - 4.6), tt, { valign: 2 });
+      });
+      pen.rect(S, bL, yBt - bh / 2, bw, bh);
+      const yc = yBt - 0.7, p1 = bL + bw * 0.38, p2 = bL + bw * 0.64;
+      pen.line(S, bL + 0.8, yc, p1, yc);                 // ขาซ้าย
+      pen.line(S, p1, yc, p2 - 0.2, yc + 1.0);           // หน้าสัมผัสเอียง (ปกติเปิด)
+      pen.line(S, p2, yc, bL + bw - 0.8, yc);            // ขาขวา
+      const sx = (p1 + p2) / 2 - 0.1, hy = yc + 1.9, hr = 0.75;
+      pen.line(S, sx, yc + 0.5, sx, hy);                 // ก้าน
+      pen.line(S, sx - hr, hy, sx + hr, hy);
+      for (let k = 0; k < 8; k++) pen.line(S, sx + hr * Math.cos(Math.PI * k / 8), hy + hr * Math.sin(Math.PI * k / 8), sx + hr * Math.cos(Math.PI * (k + 1) / 8), hy + hr * Math.sin(Math.PI * (k + 1) / 8));   // หัวเห็ด
       const el = "EMERGENCY BUTTON";
-      pen.text(T, bx0, base + 1.4, fitH(el, TS.tag, W), el, { valign: 2 });
+      pen.text(T, bL + bw / 2, yBt - bh / 2 - 1.2, fitH(el, TS.tag, W), el, { align: 1, valign: 2 });
     }
     const barT = rowsY[0] - 5.6, barB = lastY - 10;   // ต่ำกว่าสายดิน SPD แถวสุดท้าย (ลงใต้กล่องก่อนเลี้ยว)
     if (!ivSpd) {   // งานโครงการไม่มี SPD ในตู้ DC = ไม่มี PE bar (ผู้ใช้ขีดฆ่า 2026-10-30)
