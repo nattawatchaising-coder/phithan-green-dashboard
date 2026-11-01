@@ -115,7 +115,7 @@ function blankSurvey(job) {
     /* ระบบไฟเข้า lv/mv — MV = ลูกค้ารับไฟแรงกลางมีหม้อแปลงเอง (มักหลายลูก หลายตู้ MDB · ผู้ใช้ 2026-11-01)
        trafos = หม้อแปลงลูกละแถว { kva, mdb ชื่อตู้ MDB ที่ลูกนี้จ่าย, mainAT เมนของตู้นั้น } — BOQ ใช้เลือกว่าตู้ AC ต่อเข้า MDB ไหน · SLD วาดแผ่น OVERALL */
     supply: "", mvKv: "", trafos: [],
-    lvTrKva: "",                                // แรงต่ำ: ขนาดหม้อแปลงการไฟฟ้าที่จ่ายลูกค้า (kVA) — เขียนบนแผ่น MDB CONNECTION (ผู้ใช้ 2026-11-01)
+    lvTrKva: "",                                // แรงต่ำ: ขนาดหม้อแปลงของลูกค้า/โรงงาน (kVA) — เขียนบนแผ่น MDB CONNECTION (ผู้ใช้ 2026-11-01)
     buildingType: "",                           // พื้นที่ที่จะวางแผง (บ้านเดี่ยว ฯลฯ)
     roofType: (job && job.roof) || "",
     roofCondition: "",
@@ -1225,10 +1225,10 @@ function SurveyWizard({ job, onClose, onSave, onReport, currentUser, stock }) {
                     </button>
                   </React.Fragment>
                 ) : (
-                  /* เมนเบรกเกอร์อยู่ในตู้นี้ ย้ายมาจากขั้นมิเตอร์ จะได้กรอกตอนเปิดฝาตู้รอบเดียว · แรงต่ำก็ระบุขนาดหม้อแปลงการไฟฟ้า (ผู้ใช้ 2026-11-01) */
+                  /* เมนเบรกเกอร์อยู่ในตู้นี้ ย้ายมาจากขั้นมิเตอร์ จะได้กรอกตอนเปิดฝาตู้รอบเดียว · แรงต่ำก็ระบุขนาดหม้อแปลงของโรงงาน (ผู้ใช้ 2026-11-01) */
                   <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, alignItems: "end" }}>
                     {fld("ขนาดเมนเบรกเกอร์", <input value={f.mainBreaker} onChange={(e) => set("mainBreaker", e.target.value)} placeholder="เช่น 100A, 3P" style={inputStyle} />, true)}
-                    {fld("หม้อแปลงการไฟฟ้า (kVA)", <input inputMode="numeric" value={f.lvTrKva || ""} onChange={(e) => set("lvTrKva", e.target.value)} placeholder="เช่น 250" style={inputStyle} />)}
+                    {fld("ขนาดหม้อแปลง (kVA)", <input inputMode="numeric" value={f.lvTrKva || ""} onChange={(e) => set("lvTrKva", e.target.value)} placeholder="เช่น 250" style={inputStyle} />)}
                   </div>
                 )}
                 <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>

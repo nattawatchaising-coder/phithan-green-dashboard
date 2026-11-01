@@ -3126,9 +3126,15 @@ function pgMdbDraw(pen, M) {
   const yCT = yB + 6, yAcb = yB + 16.5;
   pen.dot(S, xMn, yB, 0.4);
   pen.line(W, xMn, yB, xMn, yAcb - 5); sw(xMn, yAcb, 5); pen.line(W, xMn, yAcb, xMn, cuT);
-  [CT_R, -CT_R].forEach((dy) => pen.arc(S, xMn, yCT + dy, CT_R, -90, 90));
-  pen.text(T, xMn - 1.2, yCT + 0.4, TS.tag, "CT " + np + "x" + (exCt || "xxx") + "/5A.", { align: 2, valign: 1 });
-  pen.text(T, xMn - 1.2, yCT - 0.4, TS.tag, "CL.0.5", { align: 2, valign: 3 });
+  /* CT แบบเดียวกับของเรา (CT MAIN GRID · ctV) — ผู้ใช้ 2026-11-01 "CT กลับด้าน เอาแบบของเรามาใส่"
+     ขดหันออกจากฝั่งสายสัญญาณ ขาขีดอยู่ฝั่งสัญญาณ: sg = +1 สัญญาณไปขวา (SA ในตู้) · -1 ไปซ้าย (มิเตอร์การไฟฟ้า) */
+  const ctS = (x, y, sg) => {
+    [CT_R, -CT_R].forEach((dy) => sg > 0 ? pen.arc(S, x, y + dy, CT_R, 90, 270) : pen.arc(S, x, y + dy, CT_R, -90, 90));
+    [2 * CT_R, -2 * CT_R].forEach((dy) => pen.line(S, x, y + dy, x + sg * 1.6, y + dy));
+  };
+  ctS(xMn, yCT, 1);
+  pen.text(T, xMn - CT_R - 1.2, yCT + 0.4, TS.tag, "CT " + np + "x" + (exCt || "xxx") + "/5A.", { align: 2, valign: 1 });
+  pen.text(T, xMn - CT_R - 1.2, yCT - 0.4, TS.tag, "CL.0.5", { align: 2, valign: 3 });
   lab2(xMn + 0.3, yAcb - 1.2, (mA >= 630 ? "ACB " : "MCCB ") + (ph3 ? "3P" : "2P"), mA ? mA + "AT (EXISTING)" : "(EXISTING)");
   /* ไฟแสดงเฟส + โวลต์มิเตอร์ + แอมมิเตอร์ */
   const yTap = cuT - 3, xFu = xMn + 8, xJ = xMn + 16, lr = 0.9;
@@ -3151,7 +3157,7 @@ function pgMdbDraw(pen, M) {
   pen.line(W, xJ, yTap, xJ, yCT);
   mbox(yV, "SV", "V", ph3 ? "0-500V." : "0-300V.");
   mbox(yCT, "SA", "A", "0-" + (exCt || "XXX") + "A.");
-  pen.line(W, xMn + CT_R, yCT, xJ, yCT);
+  pen.line(W, xMn, yCT, xJ, yCT);
   /* ตู้ + บาร์ N G + ดิน */
   const xN = xF[2] + 10, xG = xN + 11, c1 = Math.max(xG + 8, xJ + 12 + pgTextW("0-0000A.", TS.tag) * 1.2 + 2);
   pen.rect(S, c0, cuB, c1 - c0, cuT - cuB);   // กรอบเส้นเต็มแบบตัวอย่าง
@@ -3201,14 +3207,34 @@ function pgMdbDraw(pen, M) {
     if (nT > 1) { pen.line(R, xc, yLo, xc, yB); pen.dot(R, xc, yB, 0.5); }
     pen.text(LB, xF[0] + 1, yB + 2.4, TS.tag, "TIE IN POSITION", { valign: 1 });
   }
-  if (V) {
-    /* ── เชื่อมแรงกลาง: หม้อแปลง → DROPFUSE + L/A → มิเตอร์การไฟฟ้า → DROPFUSE + L/A เดิม → เขตการไฟฟ้า → สายแรงกลางเข้า ── */
-    const x = xMn, rT = 2.6, kv = String(V.kv || "22").replace(/\s*kV$/i, "");
-    const yT1 = cuT + 6 + rT, yT2 = yT1 + rT * 1.35;
-    pen.line(W, x, cuT, x, yT1 - rT);
+  /* CT MAIN GRID ของมิเตอร์โซลาร์ ระหว่างหม้อแปลงกับตู้ MDB ทั้งแรงต่ำ/แรงกลาง (ผู้ใช้ 2026-11-01 "CT ของเราอยู่ตรงนี้") สัญญาณไปตู้ AC */
+  const yC = cuT + 5.5;
+  {
+    pen.line(W, xMn, cuT, xMn, yC + 2 * CT_R + 1.5);
+    [CT_R, -CT_R].forEach((dy) => pen.arc(NS, xMn, yC + dy, CT_R, -90, 90));
+    [2 * CT_R, -2 * CT_R].forEach((dy) => pen.line(NS, xMn - 1.6, yC + dy, xMn, yC + dy));
+    const mtr = (M.mon && M.mon.meter) || M.monMeter || "";
+    const mCt = (M.mon && M.mon.ct ? M.mon.ct.replace(/\s*x\d+$/, "") : "") || pgMeterCt(mtr).ct, mtrCls = pgMeterCt(mtr).cls;
+    const mtrNm = mtr.replace(/\s*(\+\s*CT|NO\s*CT|ไม่รวม\s*CT).*$/i, "").trim();
+    pen.text(LB, xMn + 3.2, yC + 1.4, TS.tag, "CT MAIN GRID", { valign: 1 });
+    const ctLine = ["CT " + (mCt ? mCt + " " : "") + "x" + np, mtrCls ? "CLASS " + mtrCls : ""].filter(Boolean).join(", ");
+    pen.text(T, xMn + 3.2, yC - 0.2, TS.tag, ctLine, { valign: 3 });
+    const CS = PG_SLD.ctsig, xE = msX0 - 6;
+    pen.line(CS, xMn, yC, xE + 1.6, yC);
+    pen.solid(NS, [xE + 1.6, yC + 0.7], [xE, yC], [xE + 1.6, yC - 0.7]);
+    pen.text(T, xE - 0.8, yC + 0.4, TS.tag, "CT SIGNAL TO SOLAR METER" + (mtrNm ? " (" + mtrNm + ")" : ""), { align: 2, valign: 1 });
+    pen.text(T, xE - 0.8, yC - 0.4, TS.tag, "IN AC COMBINER BOX", { align: 2, valign: 3 });
+  }
+  {
+    /* ── หม้อแปลงของโรงงาน → DROPFUSE + L/A → มิเตอร์การไฟฟ้า → DROPFUSE + L/A เดิม → เขตการไฟฟ้า → สายแรงกลางเข้า ──
+       ทั้งเชื่อมแรงกลางและแรงต่ำ (ผู้ใช้ 2026-11-01 "หม้อแปลงเป็นของโรงงาน") · แรงต่ำ: ขนาดจากใบสำรวจ lvTrKva · แรงดัน mvKv */
+    const V0 = V || { kv: P.mvKv || "22", auth: P.auth, kva: P.lvTrKva, no: 1 };
+    const x = xMn, rT = 2.6, kv = String(V0.kv || "22").replace(/\s*kV$/i, ""), yS = yC + 2 * CT_R + 1.5;
+    const yT1 = yS + 4.5 + rT, yT2 = yT1 + rT * 1.35;
+    pen.line(W, x, yS, x, yT1 - rT);
     pen.circle(S, x, yT1, rT); pen.circle(S, x, yT2, rT);
-    pen.text(T, x + rT + 2, yT2 + 0.6, TS.spec, "TRANSFORMER " + (V.no || 1), { valign: 1 });
-    if (V.kva) pen.text(T, x + rT + 2, yT2 - 0.6, TS.spec, V.kva + " kVA", { valign: 3 });
+    pen.text(T, x + rT + 2, yT2 + 0.6, TS.spec, "TRANSFORMER " + (V0.no || 1), { valign: 1 });
+    pen.text(T, x + rT + 2, yT2 - 0.6, TS.spec, (V0.kva || "...") + " kVA", { valign: 3 });
     /* ดรอปเอาท์ฟิวส์: ตัวฟิวส์เฉียงพาดช่องว่างบนสาย */
     const dFuse = (yb, lab) => {
       const yt = yb + 3.6, ax = -2.6, ay = yt + 0.6 - yb, n = Math.hypot(ax, ay), px = -ay / n * 0.55, py = ax / n * 0.55;
@@ -3234,8 +3260,8 @@ function pgMdbDraw(pen, M) {
     const yD2t = dFuse(yD2, "DROPFUSE");
     /* มิเตอร์การไฟฟ้า: CT บนสาย (ล่าง) + VT แยกจากสาย (บน) → กล่อง kWh ซ้าย */
     const yC2 = yD2t + 5, yVt = yC2 + 7, xb1 = x - 9, xb0 = xb1 - 4.4;
-    pen.line(W, x, yD2t, x, yC2 - 1.1); pen.arc(S, x, yC2, 1.1, 90, 270); pen.line(W, x, yC2 + 1.1, x, yVt);
-    pen.line(W, x - 1.1, yC2, xb1 - 2.2, yC2); pen.line(W, xb1 - 2.2, yC2, xb1 - 2.2, yC2 + 1.4);
+    pen.line(W, x, yD2t, x, yVt); ctS(x, yC2, -1);
+    pen.line(W, x, yC2, xb1 - 2.2, yC2); pen.line(W, xb1 - 2.2, yC2, xb1 - 2.2, yC2 + 1.4);   // สัญญาณออกฝั่งขาขีด แบบ CT MAIN GRID
     pen.dot(S, x, yVt, 0.4); pen.line(W, x, yVt, x - 1.6, yVt);
     pen.circle(S, x - 2.5, yVt, 0.9); pen.circle(S, x - 3.9, yVt, 0.9); pen.line(W, x - 4.8, yVt, xb1 - 2.2, yVt); pen.line(W, xb1 - 2.2, yVt, xb1 - 2.2, yVt - 1.4);
     pen.rect(S, xb0, yC2 + 1.4, xb1 - xb0, yVt - yC2 - 2.8);
@@ -3247,7 +3273,7 @@ function pgMdbDraw(pen, M) {
     pen.line(W, x, yVt, x, yD1); la(yLa1, "EXISTING", "L/A");
     const yD1t = dFuse(yD1, "EXISTING DROPFUSE");
     /* เส้นแบ่งเขตการไฟฟ้า / ลูกค้า + สายแรงกลางเข้า */
-    const yBd = yD1t + 4.5, bw = 34, auth = V.auth || "PEA";
+    const yBd = yD1t + 4.5, bw = 34, auth = V0.auth || "PEA";
     pen.line(W, x, yD1t, x, yBd);
     pen.line(PG_SLD.bnd, x - bw, yBd, x + bw, yBd);
     pen.text(T, x - bw + 1, yBd + 1.0, TS.spec, auth, { valign: 1 });
@@ -3257,34 +3283,7 @@ function pgMdbDraw(pen, M) {
     pen.line(S, x - 1.3, yTop, x + 1.3, yTop); pen.line(S, x - 1.3, yTop, x, yTop + 2.6); pen.line(S, x + 1.3, yTop, x, yTop + 2.6);
     pen.text(T, x + 3, yBd + 6, TS.spec, auth + "  " + kv + "kV INCOMING LINE", { valign: 1 });
     pen.line(S, x + 3, yBd + 5.6, x + 3 + tW(auth + "  " + kv + "kV INCOMING LINE", TS.spec), yBd + 5.6);
-    return;
   }
-  /* เหนือตู้ (เชื่อมแรงต่ำ): CT MAIN GRID ของมิเตอร์โซลาร์ → kWh METER → TO การไฟฟ้า */
-  /* หม้อแปลงการไฟฟ้าที่จ่ายตู้นี้ — เชื่อมแรงต่ำก็ต้องระบุขนาดหม้อแปลง (ผู้ใช้ 2026-11-01) · ใบสำรวจ lvTrKva */
-  const yC = cuT + 5.5, rK = 2.6, yK = yC + 5 + rK, rT = 2.6, yT1 = yK + rK + 3 + rT, yT2 = yT1 + rT * 1.35, yA = yT2 + rT + 3;
-  pen.line(W, xMn, cuT, xMn, yK - rK); pen.line(W, xMn, yK + rK, xMn, yT1 - rT); pen.line(W, xMn, yT2 + rT, xMn, yA);
-  pen.circle(S, xMn, yT1, rT); pen.circle(S, xMn, yT2, rT);
-  pen.text(LB, xMn + rT + 1.2, yT2 + 0.6, TS.tag, "TRANSFORMER " + (P.lvTrKva ? P.lvTrKva + " kVA" : "... kVA"), { valign: 1 });
-  pen.text(T, xMn + rT + 1.2, yT2 - 0.6, TS.tag, "(" + (P.auth || "GRID") + " EXISTING)", { valign: 3 });
-  [CT_R, -CT_R].forEach((dy) => pen.arc(NS, xMn, yC + dy, CT_R, -90, 90));
-  [2 * CT_R, -2 * CT_R].forEach((dy) => pen.line(NS, xMn - 1.6, yC + dy, xMn, yC + dy));
-  pen.circle(S, xMn, yK, rK);
-  pen.text(T, xMn, yK, rK * 0.5, "kWh", { align: 1, valign: 2 });
-  pen.text(LB, xMn + rK + 1.2, yK + 0.6, TS.tag, "kWh METER", { valign: 1 });
-  pen.text(T, xMn + rK + 1.2, yK - 0.6, TS.tag, "(EXISTING)", { valign: 3 });
-  const mtr = (M.mon && M.mon.meter) || M.monMeter || "";
-  const mCt = (M.mon && M.mon.ct ? M.mon.ct.replace(/\s*x\d+$/, "") : "") || pgMeterCt(mtr).ct, mtrCls = pgMeterCt(mtr).cls;
-  const mtrNm = mtr.replace(/\s*(\+\s*CT|NO\s*CT|ไม่รวม\s*CT).*$/i, "").trim();
-  pen.text(LB, xMn + 3.2, yC + 1.4, TS.tag, "CT MAIN GRID", { valign: 1 });
-  const ctLine = ["CT " + (mCt ? mCt + " " : "") + "x" + np, mtrCls ? "CLASS " + mtrCls : ""].filter(Boolean).join(", ");
-  pen.text(T, xMn + 3.2, yC - 0.2, TS.tag, ctLine, { valign: 3 });
-  pen.line(W, xMn - 1.3, yA, xMn + 1.3, yA); pen.line(W, xMn - 1.3, yA, xMn, yA + 2.6); pen.line(W, xMn + 1.3, yA, xMn, yA + 2.6);
-  pen.text(LB, xMn, yA + 3.4, TS.head, "TO " + (P.auth || "GRID"), { align: 1, valign: 1 });
-  const CS = PG_SLD.ctsig, xE = msX0 - 6;
-  pen.line(CS, xMn, yC, xE + 1.6, yC);
-  pen.solid(NS, [xE + 1.6, yC + 0.7], [xE, yC], [xE + 1.6, yC - 0.7]);
-  pen.text(T, xE - 0.8, yC + 0.4, TS.tag, "CT SIGNAL TO SOLAR METER" + (mtrNm ? " (" + mtrNm + ")" : ""), { align: 2, valign: 1 });
-  pen.text(T, xE - 0.8, yC - 0.4, TS.tag, "IN AC COMBINER BOX", { align: 2, valign: 3 });
 }
 function pgCuSheet(doc, sheet, M) {
   pgSldLayers(doc);

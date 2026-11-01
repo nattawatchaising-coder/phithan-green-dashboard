@@ -2775,7 +2775,7 @@ function SurveyWizard({
     onChange: e => set("mainBreaker", e.target.value),
     placeholder: "\u0E40\u0E0A\u0E48\u0E19 100A, 3P",
     style: inputStyle
-  }), true), fld("หม้อแปลงการไฟฟ้า (kVA)", React.createElement("input", {
+  }), true), fld("ขนาดหม้อแปลง (kVA)", React.createElement("input", {
     inputMode: "numeric",
     value: f.lvTrKva || "",
     onChange: e => set("lvTrKva", e.target.value),
