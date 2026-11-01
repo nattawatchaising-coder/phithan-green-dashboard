@@ -2088,29 +2088,31 @@ function pgSldPro(doc, sheet, M) {
       const ns = [];
       byInv[b.no].forEach((r) => r.ins.forEach((x) => ns.push(x.n)));
       const nU = ns.filter((n, i) => ns.indexOf(n) === i).sort((p, q) => q - p), nPv = ns.reduce((t, n) => t + n, 0);
-      const cnt = (n) => ns.filter((q) => q === n).length, fmt = (v) => Math.round(v).toLocaleString("en-US");
-      const rows = nU.map((n) => ["PER STRING", n + " PV X " + wp, fmt(n * wp) + " W"]).concat([
-        ["TOTAL POWER", nU.map((n) => fmt(n * wp) + " W X " + cnt(n) + " STRING").join(" + "), fmt(nPv * wp) + " W"],
-        ["TOTAL PV", nU.map((n) => n + " PV X " + cnt(n) + " STRING").join(" + "), nPv + " PV"]]);
+      const cnt = (n) => ns.filter((q) => q === n).length;
+      /* ตารางสรุปต่อเครื่องแบบของเรา (หัว INVERTER 01 · ชื่อ | = | ค่า) เนื้อหาตามตัวอย่างผู้ใช้ 2026-11-01:
+         MODULES/INVERTER · n MODULES / STRING (ทีละขนาด) · RAPID SHUTDOWN/OPTIMIZER (รุ่น) · INSTALL CAPACITY wpXn · DC/AC RATIO (กำลัง AC ของเครื่องนี้) */
+      const OP = M.opt, dcKw = nPv * wp / 1000, acKw = +b.kw || 0;
+      const rows = [["MODULES / INVERTER", nPv + " PV"]]
+        .concat(nU.map((n) => [n + " MODULES / STRING", cnt(n) + " STRING"]))
+        .concat(OP ? [[(OP.rsd ? "RAPID SHUTDOWN" : "OPTIMIZER") + " (" + OP.model + ")", ns.reduce((t, n) => t + Math.ceil(n / OP.per), 0) + " EA."]] : [])   // บอกรุ่น (ผู้ใช้ 2026-11-01)
+        .concat([["INSTALL CAPACITY", wp + " X " + nPv + " = " + dcKw.toFixed(2) + " kWp"]])
+        .concat(acKw > 0 ? [["DC/AC RATIO", (dcKw / acKw).toFixed(3)]] : []);
       const th = TS.spec, rh = th + 1.6, pd = 1.0, eq = pgTextW("=", th) + 2 * pd;
-      const cw = [0, 1, 2].map((i) => Math.max.apply(null, rows.map((r) => pgTextW(r[i], th))) + 2 * pd);
-      const tw = cw[0] + eq + cw[1] + eq + cw[2];
-      /* ตารางอยู่ใต้สตริงสุดท้ายของเครื่อง ชิดเส้นดินโครงแผง (ผู้ใช้วาดชี้ 2026-10-30) */
-      const nR = rows.length + 1, x0 = X.dc0 - 2.5 - tw, yTop = lastY - 4.5;   // ชิดขวาก่อนตู้ DC (ผู้ใช้ย้าย)
-      const head = (b.names || "INV" + b.no).replace(/INV(\d)/g, "INVERTER $1") + (b.names ? "  (PER SET)" : "");   // เขียนเต็ม (ผู้ใช้ 2026-10-30)
+      const head = (b.names || "INV" + b.no).replace(/INV(\d+)/g, (m, d) => "INVERTER " + d.padStart(2, "0")) + (b.names ? "  (PER SET)" : "");
+      const cw = [0, 1].map((i) => Math.max.apply(null, rows.map((r) => pgTextW(r[i], th))) + 2 * pd);
+      const tw = Math.max(cw[0] + eq + cw[1], pgTextW(head, th) + 2 * pd);
+      cw[1] = tw - cw[0] - eq;
+      /* ตารางอยู่ใต้สตริงสุดท้ายของเครื่อง ชิดขวาก่อนตู้ DC (ผู้ใช้วาดชี้ 2026-10-30) */
+      const nR = rows.length + 1, x0 = X.dc0 - 2.5 - tw, yTop = lastY - 4.5;
       pen.rect(L, x0, yTop - nR * rh, tw, nR * rh);
       pen.text(LB, x0 + pd, yTop - rh / 2, th, head, { valign: 2 });
       rows.forEach((r, k) => {
-        const y = yTop - (k + 1) * rh;
+        const y = yTop - (k + 1) * rh, cy = y - rh / 2, x1 = x0 + cw[0];
         pen.line(L, x0, y, x0 + tw, y);
-        const xs = [x0, x0 + cw[0], x0 + cw[0] + eq, x0 + cw[0] + eq + cw[1], x0 + cw[0] + 2 * eq + cw[1]];
-        pen.line(L, xs[1], y, xs[1], y - rh);
-        const cy = y - rh / 2;
-        pen.text(T, xs[0] + pd, cy, th, r[0], { valign: 2 });
-        pen.text(T, xs[1] + eq / 2, cy, th, "=", { align: 1, valign: 2 });
-        pen.text(T, xs[2] + pd, cy, th, r[1], { valign: 2 });
-        pen.text(T, xs[3] + eq / 2, cy, th, "=", { align: 1, valign: 2 });
-        pen.text(k === rows.length - 1 || k === rows.length - 2 ? LB : T, x0 + tw - pd, cy, th, r[2], { align: 2, valign: 2 });
+        pen.line(L, x1, y, x1, y - rh);
+        pen.text(T, x0 + pd, cy, th, r[0], { valign: 2 });
+        pen.text(T, x1 + eq / 2, cy, th, "=", { align: 1, valign: 2 });
+        pen.text(k >= rows.length - 2 ? LB : T, x0 + tw - pd, cy, th, r[1], { align: 2, valign: 2 });
       });
     }
     /* ตู้ DC + PE bar */
