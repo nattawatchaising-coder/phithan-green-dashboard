@@ -2760,7 +2760,7 @@ function pgSldPro(doc, sheet, M) {
   }
   const dongleTop = !!M.mon && !M.mon.logger && !!M.mon.meter && isMain && blocks.length > 1 && blocks.every(b => b.mini);
   if (dongleTop) cur = yB0 - 18;
-  const miniLines = b => [[LB, "INV" + b.no + "  " + b.kw + "kW " + P.phTxt + "  " + b.model], [T, b.nMp + " MPPT / " + b.nStr + " STRINGS / " + b.nPv + " x " + wp + "Wp = " + Math.round(b.nPv * wp / 10) / 100 + " kWp"], [T, b.ref]].filter((l, k) => l[1] && (k < 2 || MH >= 11));
+  const miniLines = b => [[LB, "INVERTER " + String(b.no).padStart(2, "0") + "  " + b.kw + "kW " + P.phTxt + "  " + b.model], [T, b.nMp + " MPPT / " + b.nStr + " STRINGS / " + b.nPv + " x " + wp + "Wp = " + Math.round(b.nPv * wp / 10) / 100 + " kWp"], [T, b.ref]].filter((l, k) => l[1] && (k < 2 || MH >= 11));
   if (isMain) {
     const hT = Math.min(TS.spec, 2.6 * 0.8);
     const wMax = Math.max.apply(null, blocks.map(b => Math.max.apply(null, miniLines(b).map(l => pgTextW(l[1], hT))))) * 1.2;
@@ -2781,7 +2781,9 @@ function pgSldPro(doc, sheet, M) {
       pen.line(R, sx + sh * 0.65, tapY, X.iv1 - 0.6, tapY);
       pgTerm(pen, S, X.iv1, tapY);
       const lh0 = Math.min(TS.head, bt - (tapY + sh / 2) - 0.9);
-      pen.text(LB, sx - (dongleTop && b === blocks[0] ? 1.4 : 0), tapY + sh / 2 + 0.7, lh0, "INV" + b.no, {
+      if (dongleTop) pen.text(LB, sl, tapY + sh / 2 + 0.7, lh0, "INV" + b.no, {
+        valign: 1
+      });else pen.text(LB, sx, tapY + sh / 2 + 0.7, lh0, "INV" + b.no, {
         align: 1,
         valign: 1
       });

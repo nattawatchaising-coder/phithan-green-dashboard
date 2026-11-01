@@ -4635,7 +4635,7 @@ function p3Sld(st, job, media) {
       ix = media.index || [];
     const dwg = k => {
       const r = ix.find(q => q.key === k);
-      return r ? "SEE DWG. " + r.dwg + " (" + r.no + "/" + ix.length + ")" : "";
+      return r ? "SEE DWG. " + r.key + " (" + r.no + "/" + ix.length + ")" : "";
     };
     if (pt.kind === "main") {
       const ref = {};

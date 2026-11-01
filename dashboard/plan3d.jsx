@@ -2963,7 +2963,7 @@ function p3Sld(st, job, media) {
   const key = pt && pt.kind === "detail" ? "SLD" + (pt.gi + 1) : "SLD";
   if (pt && typeof pgSldGroups === "function") {
     const gs = pgSldGroups(M), ix = media.index || [];
-    const dwg = (k) => { const r = ix.find((q) => q.key === k); return r ? "SEE DWG. " + r.dwg + " (" + r.no + "/" + ix.length + ")" : ""; };
+    const dwg = (k) => { const r = ix.find((q) => q.key === k); return r ? "SEE DWG. " + r.key + " (" + r.no + "/" + ix.length + ")" : ""; };   // ไม่ต้องมี PG-รหัสงาน- นำหน้า (ผู้ใช้ขีดฆ่า 2026-11-01)
     if (pt.kind === "main") { const ref = {}; gs.forEach((g, i) => g.nos.forEach((no) => { ref[no] = dwg("SLD" + (i + 1)); })); M.part = { kind: "main", ref }; }
     else if (gs[pt.gi]) M.part = { kind: "detail", nos: gs[pt.gi].nos, ref: dwg("SLD") };
   }
