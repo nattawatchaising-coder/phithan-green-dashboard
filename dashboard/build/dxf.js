@@ -2902,6 +2902,13 @@ function pgSldPro(doc, sheet, M) {
         });
         pen.line(PE, X.pe0, y - peDy, mLeft, y - peDy);
         if (peTop == null) peTop = y - peDy;else peDot(X.pe0, y - peDy);
+        if (first) {
+          const tt = "THW(G) 6 Sq.mm.";
+          pen.text(T, (X.pe0 + mLeft) / 2, y - peDy + 0.3, Math.min(TS.tag, fitH(tt, TS.tag, mLeft - X.pe0 - 0.8)), tt, {
+            align: 1,
+            valign: 1
+          });
+        }
         pen.line(R, X.mn + hw, y, fuseDev ? X.dcB - 2.4 : X.dcB - g - 0.75, y);
         if (fuseDev) hFuse(X.dcB, y);else hBrk(X.dcB, y);
         if (ivSpd) {
@@ -2947,8 +2954,8 @@ function pgSldPro(doc, sheet, M) {
       });
       const bx = X.iv0 + (ivIn ? 16 : 5.5),
         y0 = ys[0],
-        y1 = ys[ys.length - 1],
-        ym = (y0 + y1) / 2;
+        y1 = ys[ys.length - 1];
+      const ym = ys.length % 2 ? ys[(ys.length - 1) / 2] : (y0 + y1) / 2;
       if (ivIn) {
         const sw = X.iv0 + 8.5;
         ys.forEach(yy => {

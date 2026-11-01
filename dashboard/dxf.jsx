@@ -2028,6 +2028,8 @@ function pgSldPro(doc, sheet, M) {
         /* ต่อฝากโครงแผงเข้า PE trunk */
         pen.line(PE, X.pe0, y - peDy, mLeft, y - peDy);
         if (peTop == null) peTop = y - peDy; else peDot(X.pe0, y - peDy);
+        /* สายฝากโครงแผงแต่ละแถว = THW(G) 6 Sq.mm. · เส้นรวม (trunk) ใช้ขนาดตามป้ายท้าย (ผู้ใช้ชี้ 2026-11-01) — ป้ายแถวแรกแถวเดียว */
+        if (first) { const tt = "THW(G) 6 Sq.mm."; pen.text(T, (X.pe0 + mLeft) / 2, y - peDy + 0.3, Math.min(TS.tag, fitH(tt, TS.tag, mLeft - X.pe0 - 0.8)), tt, { align: 1, valign: 1 }); }
         /* สายสตริง → อุปกรณ์ป้องกัน → ขั้วอินเวอร์เตอร์ (ขีดสองขีด = วงจร DC +/−) */
         pen.line(R, X.mn + hw, y, fuseDev ? X.dcB - 2.4 : X.dcB - g - 0.75, y);
         if (fuseDev) hFuse(X.dcB, y); else hBrk(X.dcB, y);
@@ -2068,7 +2070,8 @@ function pgSldPro(doc, sheet, M) {
       });
       /* ช่อง MPPT ในตัวเครื่อง (ผู้ใช้วาดแบบมาให้ 2026-10-29): ทุกขั้ว IN ของ MPPT เดียวกันรวมเป็นวงเล็บ
          → เส้นออกกลางวงเล็บ (ป้าย MPPTn บนเส้น) → แกนตั้งเส้นเดียว ลงไปเข้าสัญลักษณ์อินเวอร์เตอร์ (DC/AC) — วาดเป็นสาย DC สีแดง */
-      const bx = X.iv0 + (ivIn ? 16 : 5.5), y0 = ys[0], y1 = ys[ys.length - 1], ym = (y0 + y1) / 2;
+      const bx = X.iv0 + (ivIn ? 16 : 5.5), y0 = ys[0], y1 = ys[ys.length - 1];
+      const ym = ys.length % 2 ? ys[(ys.length - 1) / 2] : (y0 + y1) / 2;   // จำนวนขั้วคี่: เส้นออก MPPT ตรงขั้วกลาง (IN2) ไม่ลอยระหว่างขั้ว (ผู้ใช้ชี้ 2026-11-01)
       if (ivIn) {
         /* DC SWITCH ในตัวเครื่องที่ขั้ว IN ของแต่ละ MPPT (ผู้ใช้ชี้ 2026-10-30) — ทุกขั้วของ MPPT เดียวกันตัดพร้อมกัน (เส้นประเชื่อมใบมีด) */
         const sw = X.iv0 + 8.5;   // มีสายนำจากขั้ว IN ป้าย IN ไม่ชนขาสวิตช์ (ผู้ใช้ 2026-10-30: เพิ่มความยาวเส้นให้พอดี)
