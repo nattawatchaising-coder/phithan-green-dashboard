@@ -987,10 +987,15 @@
   }
   /* ยี่ห้ออื่นที่ไม่ใช่ Huawei: ชุดมิเตอร์/ตัวสื่อสารที่ถอดตามยี่ห้อ (list = [มิเตอร์?, ตัวสื่อสาร?]) แล้วทับด้วยตัวเลือกตอนถอด BOQ
      monMeter umg96rm/umg511 = แทนมิเตอร์ด้วย Janitza · none = ไม่เอามิเตอร์ · monComm none = ไม่เอาตัวสื่อสาร (dongle/logger เป็นของ Huawei ใช้ auto) */
+  /* ระบบมิเตอร์ที่ใช้จริง — auto + ใบสำรวจบอกรับไฟแรงกลาง (b.mvSupply) = UMG511 (ผู้ใช้ 2026-11-01: ใบสำรวจเป็นตัวตั้ง BOQ เปลี่ยนทับได้) */
+  function meterOf(b) {
+    const m = (b && b.monMeter) || "auto";
+    return m === "auto" && b && b.mvSupply ? "umg511" : m;
+  }
   function monPick(list, b, inv) {
     const mtrNames = [GW.meter1, GW.meter3].concat(((inv && inv.meters) || []).map((m) => m.name));
     const isM = (x) => mtrNames.indexOf(x.name) !== -1;
-    const mtr = (b && b.monMeter) || "auto", comm = (b && b.monComm) || "auto";
+    const mtr = meterOf(b), comm = (b && b.monComm) || "auto";
     let out = list.filter((x) => isM(x) ? (mtr === "auto" || mtr === "smart") : comm !== "none");
     if (JZ[mtr]) out = [{ name: JZ[mtr], qty: 1, unit: "ตัว" }].concat(out);
     if (mtr === "umg511") out = [Object.assign({}, MV_ROW)].concat(out);
@@ -2037,6 +2042,7 @@
     /* การไฟฟ้า / ประเภทการขออนุญาต อ่านจากข้อมูลลูกค้าทุกครั้งที่เปิด ไม่ใช้ค่าที่ติดมากับใบ — แก้จังหวัดแล้วใบตามทันที */
     out.gridAuth = gridAuthOf(job);   // base ถูก Object.assign ทับด้วย saved แล้ว ต้องอ่านจากงานตรง ๆ
     out.permitType = blankBOQ(job).permitType;
+    out.mvSupply = blankBOQ(job).mvSupply;   // ระบบไฟเข้าอ่านจากใบสำรวจทุกครั้ง (ไม่ใช่ค่าที่ติดมากับใบ)
     return out;
   }
 
@@ -2063,6 +2069,7 @@
       strings: 0,     // 0 = คิดให้อัตโนมัติจากแผนสตริง (แผงทั้งงาน ÷ แผงต่ออนุกรม)
       hwBackup: "none",
       monComm: "auto",    // ระบบสื่อสาร: auto | dongle | logger | none (ผู้ใช้ 2026-11-01)
+      mvSupply: !!(job.survey && job.survey.supply === "mv"),   // ใบสำรวจ: ลูกค้ารับไฟแรงกลาง → มิเตอร์ auto = UMG511
       monMeter: "auto",   // ระบบมิเตอร์: auto | smart | umg96rm | umg511 | none
       /* งานที่ระบุว่ามีตัวคุมแผงมาจากใบสำรวจ — ยังไม่รู้ว่ารุ่นไหน ให้ไปเลือกเองในหน้า BOQ */
       optimizerModel: "",
@@ -2326,8 +2333,9 @@
              งานบ้านมี Smart Meter ตามเฟส · งานโครงการที่ใช้ SmartLogger ไม่ถอดมิเตอร์ Huawei (ใช้ power meter ในตู้ AC) */
           /* ใช้ Smart Dongle (ไม่เกิน hwDongleMax เครื่อง) ต้องมีมิเตอร์ในตู้ AC ส่ง RS485 เข้า INV1 — งานโครงการก็ถอด (ผู้ใช้ 2026-11-01) */
           /* ตอนถอด BOQ เลือกระบบสื่อสาร/มิเตอร์ทับได้ (ผู้ใช้ 2026-11-01) — auto = ตามจำนวนเครื่องแบบเดิม */
-          const comm = b.monComm || "auto", mtr = b.monMeter || "auto";
-          const useLogger = comm === "logger" || (comm === "auto" && invTotal > RULES.hwDongleMax);
+          const comm = b.monComm || "auto", mtr = meterOf(b);
+          // งานแรงกลางหลายตู้ MDB ข้อมูลรวมที่ SmartLogger (แบบตัวอย่างผู้ใช้: COMMUNICATION PANEL SmartLogger 3000A)
+          const useLogger = comm === "logger" || (comm === "auto" && (invTotal > RULES.hwDongleMax || mtr === "umg511"));
           if (mtr === "smart" || (mtr === "auto" && (!isProject || !useLogger))) invItems.push({ name: ph === 3 ? HW.meter3 : HW.meter1, qty: 1, unit: "ชุด" });
           else if (JZ[mtr]) invItems.push({ name: JZ[mtr], qty: 1, unit: "ตัว" });
           if (mtr === "umg511") invItems.push(Object.assign({}, MV_ROW));
@@ -3111,7 +3119,7 @@
     UPVC_CONDUIT, conduitFillLimit, conduitDim, conduitCheck,
     AMP_CORE_LABEL, ampGroupMeta, ampCoresFor, ampCoreKey, WIRE_METHOD_LEGACY, normWireMethod,
     G_TRAY, G_SUPPORT, G_LABOR, G_PERMIT, G_OM, OM_DEF, OM_CLEAN_TIERS, OM_SVC_TIERS, OM_CLEAN_DEF, OM_SVC_DEF, omTierNorm, setOmTiers, omTierPrice, omDefaults, omCalc, SERVICE_GROUPS, mergeItems,
-    RULE_SECS, RULE_DEFS, RULES, RULES_T, setRules, ruleVal, ruleTxt, ruleOnly, ruleFlat, ruleRaw, pairPick, spdName, isHwInv, isGwInv, accMonItems, monDefaults, MON_COMM_OPTIONS, MON_METER_OPTIONS };
+    RULE_SECS, RULE_DEFS, RULES, RULES_T, setRules, ruleVal, ruleTxt, ruleOnly, ruleFlat, ruleRaw, pairPick, spdName, isHwInv, isGwInv, accMonItems, monDefaults, MON_COMM_OPTIONS, MON_METER_OPTIONS, meterOf };
   /* ห่อฟังก์ชันที่ส่งออก: เจออาร์กิวเมนต์ที่เป็นใบ BOQ (jobType) หรืองาน (type) = สลับ RULES เป็นชุดของประเภทนั้นก่อนคิด
      ฟังก์ชันข้างในเรียกกันตรง ๆ (ไม่ผ่านตัวห่อ) จึงใช้ชุดเดียวกันตลอดการคิดหนึ่งครั้ง */
   const typeHint = (a) => {

@@ -1320,6 +1320,9 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock, ver, verName, p3Vers
     invXs.forEach((x) => { for (let k = 0; k < x.n; k++) u.push({ model: x.spec.model, outA: +x.spec.outA || 0, kw: +x.spec.maxAcKw || 0 }); });
     return u.map((x, k) => Object.assign(x, { no: k + 1 }));
   }, [isStringInv, selInv, invXKey, result.meta.invCount]); // eslint-disable-line
+  /* งานแรงกลาง (ใบสำรวจ supply = mv): ตู้ MDB ของลูกค้าตามหม้อแปลงแต่ละลูก — ตู้ AC แต่ละตู้เลือกว่าต่อเข้าตู้ไหน */
+  const mdbList = ((job && job.survey && job.survey.supply === "mv" && job.survey.trafos) || []).map((t, k) => (t && t.mdb) || "MDB-" + (k + 1));
+  const mdbOfCab = (c, k) => (c && mdbList.indexOf(c.mdb) >= 0 ? c.mdb : mdbList[Math.min(k, mdbList.length - 1)]);
   // ตู้นี้รับอินเวอร์เตอร์ตัวไหน — ไม่ได้เลือกไว้ = ทุกตัว
   const mcbInvsOf = (c) => {
     const all = invUnits.map((u) => u.no);
@@ -3502,7 +3505,9 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock, ver, verName, p3Vers
                   <Dropdown value={b.monComm === "none" ? "none" : "auto"} onChange={(v) => set("monComm", v)} options={window.BOQ.MON_COMM_OPTIONS.filter((o) => o.value === "auto" || o.value === "none").map((o) => o.value === "auto" ? { value: "auto", label: "อัตโนมัติ (ตามคลัง)" } : o)} />
                 </Field>}
                 <Field label="ระบบมิเตอร์">
-                  <Dropdown value={b.monMeter || "auto"} onChange={(v) => set("monMeter", v)} options={window.BOQ.MON_METER_OPTIONS} />
+                  {/* ใบสำรวจบอกรับไฟแรงกลาง → อัตโนมัติ = UMG511 (meterOf ใน boq.js) */}
+                  <Dropdown value={b.monMeter || "auto"} onChange={(v) => set("monMeter", v)}
+                    options={window.BOQ.MON_METER_OPTIONS.map((o) => o.value === "auto" && b.mvSupply ? { value: "auto", label: "อัตโนมัติ · ใบสำรวจแรงกลาง → UMG511" } : o)} />
                 </Field>
                 <Field label="Optimizer / ตัวคุมแผง">
                   <Dropdown value={optModel} placeholder="ไม่ใช้" options={optOptions}
@@ -3915,6 +3920,11 @@ function BOQEditor({ job, onClose, onSave, priceMap, stock, ver, verName, p3Vers
                             title={u.model + (u.outA ? " · " + u.outA + " A" : "")} onClick={() => toggleMcbInv(i, u.no)}>
                             ตัวที่ {u.no}{u.kw ? " · " + u.kw + " kW" : ""}
                           </button>
+                        ))}
+                        {/* งานแรงกลาง: ตู้นี้ต่อเข้า MDB ไหน (รายชื่อจากหม้อแปลงในใบสำรวจ) — ไม่ได้เลือก = MDB ลำดับเดียวกับตู้ · SLD แผ่น OVERALL ใช้ */}
+                        {mdbList.length >= 1 && <span>→ ต่อเข้า</span>}
+                        {mdbList.map((m) => (
+                          <button key={"m" + m} type="button" className={"bq-cab-chip" + (mdbOfCab(c, cabNo - 1) === m ? " on" : "")} onClick={() => setCab(i, "mdb", m)}>{m}</button>
                         ))}
                         {last && invUnits.length >= 2 && <button type="button" className="bq-cabx-link" onClick={() => addMcbCab(i)}>+ แยกอีกตู้</button>}
                         {last && (miss.length > 0 || dup.length > 0) && (

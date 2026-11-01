@@ -141,7 +141,7 @@ function surveyStatus(job) {
     label: "ยังไม่สำรวจ",
     color: "#94A3B8"
   };
-  const fields = [!!(s.gps && s.gps.lat), !!s.meterSize, !!s.phase, !!s.roofType, !!s.mdbBrand, !!s.mainBreaker, !!s.inverterLoc];
+  const fields = [!!(s.gps && s.gps.lat), !!s.meterSize, !!s.phase, !!s.roofType, !!s.mdbBrand, !!(s.mainBreaker || s.supply === "mv" && (s.trafos || []).some(t => t && t.mainAT)), !!s.inverterLoc];
   const photos = s.photos || {};
   const checks = fields.concat(SURVEY_PHOTO_SLOTS.map(p => !!photos[p.key]));
   const done = checks.filter(Boolean).length;
@@ -176,6 +176,9 @@ function blankSurvey(job) {
     phase: String(job && job.phase || "1") === "3" ? "3" : "1",
     mainBreaker: "",
     mainCable: "",
+    supply: "",
+    mvKv: "",
+    trafos: [],
     buildingType: "",
     roofType: job && job.roof || "",
     roofCondition: "",
@@ -2656,12 +2659,115 @@ function SurveyWizard({
     onChange: e => set("mdbBrand", e.target.value),
     placeholder: "\u0E40\u0E0A\u0E48\u0E19 Schneider, ABB, Haco",
     style: inputStyle
-  }), true), fld("ขนาดเมนเบรกเกอร์", React.createElement("input", {
+  }), true), React.createElement(SurveyToggle, {
+    label: "\u0E23\u0E30\u0E1A\u0E1A\u0E44\u0E1F\u0E40\u0E02\u0E49\u0E32",
+    hint: "\u0E41\u0E23\u0E07\u0E01\u0E25\u0E32\u0E07 = \u0E25\u0E39\u0E01\u0E04\u0E49\u0E32\u0E21\u0E35\u0E2B\u0E21\u0E49\u0E2D\u0E41\u0E1B\u0E25\u0E07\u0E40\u0E2D\u0E07",
+    value: f.supply || "lv",
+    onChange: v => setF(p => Object.assign({}, p, {
+      supply: v
+    }, v === "mv" && !(p.trafos || []).length ? {
+      mvKv: p.mvKv || "22",
+      trafos: [{
+        kva: "",
+        mdb: "MDB-1",
+        mainAT: String(p.mainBreaker || "").replace(/[^\d]/g, "")
+      }]
+    } : {})),
+    options: [{
+      value: "lv",
+      label: "แรงต่ำ (LV)"
+    }, {
+      value: "mv",
+      label: "แรงกลาง (MV)"
+    }]
+  }), f.supply === "mv" ? React.createElement(React.Fragment, null, React.createElement(SurveyToggle, {
+    label: "\u0E41\u0E23\u0E07\u0E14\u0E31\u0E19\u0E1D\u0E31\u0E48\u0E07\u0E41\u0E23\u0E07\u0E01\u0E25\u0E32\u0E07",
+    value: f.mvKv || "22",
+    onChange: v => set("mvKv", v),
+    options: [{
+      value: "22",
+      label: "22 kV"
+    }, {
+      value: "33",
+      label: "33 kV"
+    }]
+  }), (f.trafos || []).map((t, i) => {
+    const setT = (k, v) => set("trafos", (f.trafos || []).map((x, j) => j === i ? Object.assign({}, x, {
+      [k]: v
+    }) : x));
+    return React.createElement("div", {
+      key: i,
+      style: {
+        display: "grid",
+        gridTemplateColumns: "1fr 1fr 1fr 42px",
+        gap: 8,
+        alignItems: "end"
+      }
+    }, fld("หม้อแปลง " + (i + 1) + " (kVA)", React.createElement("input", {
+      inputMode: "numeric",
+      value: t.kva || "",
+      onChange: e => setT("kva", e.target.value),
+      placeholder: "\u0E40\u0E0A\u0E48\u0E19 1000",
+      style: inputStyle
+    })), fld("จ่ายตู้", React.createElement("input", {
+      value: t.mdb || "",
+      onChange: e => setT("mdb", e.target.value),
+      placeholder: "MDB-1",
+      style: inputStyle
+    })), fld("เมน (AT)", React.createElement("input", {
+      inputMode: "numeric",
+      value: t.mainAT || "",
+      onChange: e => setT("mainAT", e.target.value),
+      placeholder: "\u0E40\u0E0A\u0E48\u0E19 1600",
+      style: inputStyle
+    })), React.createElement("button", {
+      type: "button",
+      onClick: () => set("trafos", (f.trafos || []).filter((x, j) => j !== i)),
+      title: "\u0E25\u0E1A\u0E2B\u0E21\u0E49\u0E2D\u0E41\u0E1B\u0E25\u0E07\u0E25\u0E39\u0E01\u0E19\u0E35\u0E49",
+      style: {
+        height: 42,
+        borderRadius: "var(--r-chip)",
+        border: "none",
+        background: "var(--tint-red-bg)",
+        color: "var(--tint-red-tx2)",
+        cursor: "pointer"
+      }
+    }, React.createElement(Icon, {
+      name: "x",
+      size: 14
+    })));
+  }), React.createElement("button", {
+    type: "button",
+    onClick: () => set("trafos", (f.trafos || []).concat([{
+      kva: "",
+      mdb: "MDB-" + ((f.trafos || []).length + 1),
+      mainAT: ""
+    }])),
+    style: {
+      alignSelf: "flex-start",
+      display: "inline-flex",
+      alignItems: "center",
+      gap: 6,
+      padding: "8px 13px",
+      borderRadius: "var(--r-chip)",
+      border: "1px dashed var(--border-strong)",
+      background: "var(--surface)",
+      color: "var(--text-2)",
+      fontFamily: "inherit",
+      fontSize: 12.5,
+      fontWeight: 700,
+      cursor: "pointer"
+    }
+  }, React.createElement(Icon, {
+    name: "plus",
+    size: 14,
+    color: "var(--text-2)"
+  }), " \u0E40\u0E1E\u0E34\u0E48\u0E21\u0E2B\u0E21\u0E49\u0E2D\u0E41\u0E1B\u0E25\u0E07")) : (fld("ขนาดเมนเบรกเกอร์", React.createElement("input", {
     value: f.mainBreaker,
     onChange: e => set("mainBreaker", e.target.value),
     placeholder: "\u0E40\u0E0A\u0E48\u0E19 100A, 3P",
     style: inputStyle
-  }), true), React.createElement("div", {
+  }), true)), React.createElement("div", {
     style: {
       display: "flex",
       flexDirection: "column",

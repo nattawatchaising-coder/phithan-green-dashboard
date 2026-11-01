@@ -89,7 +89,7 @@ function surveyStatus(job) {
   const fields = [
     !!(s.gps && s.gps.lat), !!s.meterSize, !!s.phase,                      // ขั้น 1
     !!s.roofType,                                                          // ขั้น 2
-    !!s.mdbBrand, !!s.mainBreaker, !!s.inverterLoc,                        // ขั้น 3
+    !!s.mdbBrand, !!(s.mainBreaker || (s.supply === "mv" && (s.trafos || []).some((t) => t && t.mainAT))), !!s.inverterLoc,   // ขั้น 3
   ];
   const photos = s.photos || {};
   const checks = fields.concat(SURVEY_PHOTO_SLOTS.map((p) => !!photos[p.key]));
@@ -112,6 +112,9 @@ function blankSurvey(job) {
     permitType: "", branch: "",                 // แบบที่จะยื่น (self/public/biz) / การไฟฟ้าสาขาที่สังกัด
     phase: String((job && job.phase) || "1") === "3" ? "3" : "1",
     mainBreaker: "", mainCable: "",             // เมนเบรกเกอร์เดิม / สายเมนเดิม
+    /* ระบบไฟเข้า lv/mv — MV = ลูกค้ารับไฟแรงกลางมีหม้อแปลงเอง (มักหลายลูก หลายตู้ MDB · ผู้ใช้ 2026-11-01)
+       trafos = หม้อแปลงลูกละแถว { kva, mdb ชื่อตู้ MDB ที่ลูกนี้จ่าย, mainAT เมนของตู้นั้น } — BOQ ใช้เลือกว่าตู้ AC ต่อเข้า MDB ไหน · SLD วาดแผ่น OVERALL */
+    supply: "", mvKv: "", trafos: [],
     buildingType: "",                           // พื้นที่ที่จะวางแผง (บ้านเดี่ยว ฯลฯ)
     roofType: (job && job.roof) || "",
     roofCondition: "",
@@ -1196,8 +1199,34 @@ function SurveyWizard({ job, onClose, onSave, onReport, currentUser, stock }) {
             <React.Fragment>
               <SurveyBlock icon="power" title="ตู้เมนไฟฟ้า (MDB)" sub="เปิดฝาตู้แล้วดูของข้างในไปพร้อมกันทีเดียว">
                 {fld("ยี่ห้อ / รุ่นตู้ MDB", <input value={f.mdbBrand} onChange={(e) => set("mdbBrand", e.target.value)} placeholder="เช่น Schneider, ABB, Haco" style={inputStyle} />, true)}
-                {/* เมนเบรกเกอร์อยู่ในตู้นี้ ย้ายมาจากขั้นมิเตอร์ จะได้กรอกตอนเปิดฝาตู้รอบเดียว */}
-                {fld("ขนาดเมนเบรกเกอร์", <input value={f.mainBreaker} onChange={(e) => set("mainBreaker", e.target.value)} placeholder="เช่น 100A, 3P" style={inputStyle} />, true)}
+                <SurveyToggle label="ระบบไฟเข้า" hint="แรงกลาง = ลูกค้ามีหม้อแปลงเอง" value={f.supply || "lv"}
+                  onChange={(v) => setF((p) => Object.assign({}, p, { supply: v }, v === "mv" && !(p.trafos || []).length ? { mvKv: p.mvKv || "22", trafos: [{ kva: "", mdb: "MDB-1", mainAT: String(p.mainBreaker || "").replace(/[^\d]/g, "") }] } : {}))}
+                  options={[{ value: "lv", label: "แรงต่ำ (LV)" }, { value: "mv", label: "แรงกลาง (MV)" }]} />
+                {f.supply === "mv" ? (
+                  <React.Fragment>
+                    <SurveyToggle label="แรงดันฝั่งแรงกลาง" value={f.mvKv || "22"} onChange={(v) => set("mvKv", v)} options={[{ value: "22", label: "22 kV" }, { value: "33", label: "33 kV" }]} />
+                    {/* หม้อแปลงลูกละแถว — ลูกละ 1 ตู้ MDB (แบบตัวอย่างผู้ใช้: TR1 1,000 kVA → MDB-1 · TR2 800 kVA → MDB-2) */}
+                    {(f.trafos || []).map((t, i) => {
+                      const setT = (k, v) => set("trafos", (f.trafos || []).map((x, j) => j === i ? Object.assign({}, x, { [k]: v }) : x));
+                      return (
+                        <div key={i} style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr 42px", gap: 8, alignItems: "end" }}>
+                          {fld("หม้อแปลง " + (i + 1) + " (kVA)", <input inputMode="numeric" value={t.kva || ""} onChange={(e) => setT("kva", e.target.value)} placeholder="เช่น 1000" style={inputStyle} />)}
+                          {fld("จ่ายตู้", <input value={t.mdb || ""} onChange={(e) => setT("mdb", e.target.value)} placeholder="MDB-1" style={inputStyle} />)}
+                          {fld("เมน (AT)", <input inputMode="numeric" value={t.mainAT || ""} onChange={(e) => setT("mainAT", e.target.value)} placeholder="เช่น 1600" style={inputStyle} />)}
+                          <button type="button" onClick={() => set("trafos", (f.trafos || []).filter((x, j) => j !== i))} title="ลบหม้อแปลงลูกนี้"
+                            style={{ height: 42, borderRadius: "var(--r-chip)", border: "none", background: "var(--tint-red-bg)", color: "var(--tint-red-tx2)", cursor: "pointer" }}><Icon name="x" size={14} /></button>
+                        </div>
+                      );
+                    })}
+                    <button type="button" onClick={() => set("trafos", (f.trafos || []).concat([{ kva: "", mdb: "MDB-" + ((f.trafos || []).length + 1), mainAT: "" }]))}
+                      style={{ alignSelf: "flex-start", display: "inline-flex", alignItems: "center", gap: 6, padding: "8px 13px", borderRadius: "var(--r-chip)", border: "1px dashed var(--border-strong)", background: "var(--surface)", color: "var(--text-2)", fontFamily: "inherit", fontSize: 12.5, fontWeight: 700, cursor: "pointer" }}>
+                      <Icon name="plus" size={14} color="var(--text-2)" /> เพิ่มหม้อแปลง
+                    </button>
+                  </React.Fragment>
+                ) : (
+                  /* เมนเบรกเกอร์อยู่ในตู้นี้ ย้ายมาจากขั้นมิเตอร์ จะได้กรอกตอนเปิดฝาตู้รอบเดียว */
+                  fld("ขนาดเมนเบรกเกอร์", <input value={f.mainBreaker} onChange={(e) => set("mainBreaker", e.target.value)} placeholder="เช่น 100A, 3P" style={inputStyle} />, true)
+                )}
                 <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
                   <SurveyToggle label="มีเซฟตี้คัต" value={f.mdbSafety} onChange={(v) => set("mdbSafety", v)} options={SURVEY_YESNO} />
                   <SurveyToggle label="เมนเป็นชนิดกันดูด" hint="RCD / RCCB" value={f.mdbRccb} onChange={(v) => set("mdbRccb", v)} options={SURVEY_YESNO} />

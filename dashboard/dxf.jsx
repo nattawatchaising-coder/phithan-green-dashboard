@@ -3047,6 +3047,105 @@ function pgCuSheet(doc, sheet, M) {
   pgCuDraw(pgScalePen(pen, sc, (c[0] + c[2]) / 2 - (d.x0 + bw / 2) * sc, (c[1] + c[3]) / 2 - (d.y0 + bh / 2) * sc), M);
 }
 
+/* ── SLD ภาพรวมงานแรงกลาง (OVERALL · ผู้ใช้ส่งแบบตัวอย่าง 2026-11-01) ──
+   การไฟฟ้าแรงกลาง → ชุดวัดแรงกลาง PQM (กรอบประ · จ้างทีมภายนอก) → บัสแรงกลาง → หม้อแปลงลูกละ MDB เดิม
+   → เบรกเกอร์ TIE-IN ใน MDB → ตู้ SMDB-0n ของโซลาร์ → อินเวอร์เตอร์ · RS485 รวมที่ SmartLogger (COMMUNICATION PANEL)
+   ของเดิมลูกค้าเส้นขาว · ของโซลาร์ใหม่เส้นแดง · D จาก p3MvModel (plan3d.jsx) */
+function pgMvDraw(pen, D) {
+  const W = PG_SLD.wire, R = PG_SLD.sol, S = PG_SLD.sym, BX = PG_SLD.box, T = PG_SLD.txt, LB = PG_SLD.lbl, CM = PG_SLD.comm;
+  const th = 2.2, IS = 12, CAB = (c) => Math.max(34, c.invs.length * IS + 10);
+  /* ความกว้างคอลัมน์หม้อแปลงแต่ละลูก = รวมความกว้างตู้ SMDB ที่ต่ออยู่ + ที่วางโหลดเดิม */
+  const cols = D.tr.map((t) => Math.max(46, t.cabs.reduce((s, c) => s + CAB(c), 0) + 22));
+  let x = 0;
+  const tx = cols.map((w) => { const c = x + w / 2; x += w + 8; return c; });
+  const x1 = x - 8, yU = 128, yBus = 84, yTr = 72, yAcb = 56, yMdb = 46, yTie = 37, ySm1 = 28, ySm0 = 14, yInv = 2, yRs = -10;
+  /* การไฟฟ้า + ของเดิมที่เสาไฟ */
+  const xr = tx[0];
+  pgSym.utility(pen, xr, yU, 3.4, D.auth + " " + D.kv + " kV");
+  pen.line(W, xr, yU - 2, xr, yBus);
+  pen.text(T, xr + 3, yU - 7, th, "EXISTING DROPOUT FUSE & LIGHTNING ARRESTER", { valign: 2 });
+  pen.text(T, xr + 3, yU - 10.4, th, "EXISTING " + D.auth + " kWh METER (MV)", { valign: 2 });
+  /* ชุดวัดแรงกลาง — ทีมภายนอก (BOQ แถว "ระบบแรงสูง (MV)") */
+  pgSym.ct(pen, xr, 100, "3xCT + VT MV", "(BY SUBCONTRACTOR)");
+  const pq0 = xr + 22, pq1 = pq0 + 48;
+  pen.rect(S, pq0, 95, pq1 - pq0, 10);
+  pen.text(T, (pq0 + pq1) / 2, 101.6, th, "PQM PANEL", { align: 1, valign: 2 });
+  pen.text(T, (pq0 + pq1) / 2, 98.2, th * 0.9, D.pqm, { align: 1, valign: 2 });
+  pen.line(PG_SLD.ctsig, xr + 5.2, 100, pq0, 100);
+  pen.rect(BX, xr - 6, 92, pq1 + 3 - (xr - 6), 18);
+  pen.text(LB, xr - 6, 111.4, th, "MV METERING SCOPE — BY SUBCONTRACTOR", { valign: 1 });
+  /* บัสแรงกลาง */
+  pen.line(W, Math.min(xr, tx[0]) - 4, yBus, tx[tx.length - 1] + 4, yBus);
+  pen.dot(W, xr, yBus, 0.7);
+  let rsX0 = Infinity;   // ต้นบัส RS485 = เครื่องแรกซ้ายสุด
+  D.tr.forEach((t, i) => {
+    const cx = tx[i], w = cols[i], c0 = cx - w / 2, c1 = cx + w / 2;
+    pen.dot(W, cx, yBus, 0.7);
+    pen.line(W, cx, yBus, cx, yTr + 4.5 + 3.2);
+    /* หม้อแปลง = วงกลมสองวงซ้อน */
+    pen.circle(S, cx, yTr + 3.2, 4.5); pen.circle(S, cx, yTr - 3.2, 4.5);
+    pen.text(T, cx + 6.5, yTr + 2, th + 0.3, "TR-" + t.no + (t.kva ? "  " + t.kva.toLocaleString("en-US") + " kVA" : ""), { valign: 2 });
+    pen.text(T, cx + 6.5, yTr - 1.8, th, D.kv + " kV / 416-240 V", { valign: 2 });
+    pen.text(T, cx + 6.5, yTr - 5.2, th, "(EXISTING)", { valign: 2 });
+    pen.line(W, cx, yTr - 7.7, cx, yAcb + 3.4);
+    pgSym.breaker(pen, cx, yAcb, t.mainAT ? "ACB " + t.mainAT + "AT" : "MAIN BREAKER", "(EXISTING)");
+    pen.line(W, cx, yAcb - 3.4, cx, yMdb);
+    /* บัส MDB เดิม + กรอบตู้ */
+    pen.line(W, c0 + 4, yMdb, c1 - 4, yMdb);
+    pen.rect(BX, c0 + 1, yTie - 6.5, w - 2, yAcb + 6 - (yTie - 6.5));
+    pen.text(LB, c0 + 1, yAcb + 7, th + 0.4, t.mdb + " (EXISTING)", { valign: 1 });
+    /* โหลดเดิม — ขวาสุดของบัส */
+    const xl = c1 - 9;
+    pen.line(W, xl, yMdb, xl, yTie + 3.4); pgSym.breaker(pen, xl, yTie, null, null, 2.4);
+    pen.line(W, xl, yTie - 2.4, xl, ySm1 - 4); pgSym.home(pen, xl, ySm1 - 7, 3, 1.8);
+    /* ตู้ SMDB ของโซลาร์ */
+    let cx0 = c0 + 4;
+    t.cabs.forEach((c) => {
+      const cw = CAB(c), sx = cx0 + cw / 2; cx0 += cw;
+      pen.dot(W, sx, yMdb, 0.7);
+      pen.line(R, sx, yMdb, sx, yTie + 2.4);
+      pgSym.breaker(pen, sx, yTie, c.at ? "MCCB 3P," + c.at + "AT" : "MCCB", "(NEW · TIE-IN)", 2.4);
+      pen.line(R, sx, yTie - 2.4, sx, ySm1);
+      const b0 = sx - cw / 2 + 2, b1 = sx + cw / 2 - 2;
+      pen.rect(R, b0, ySm0, b1 - b0, ySm1 - ySm0);
+      pen.text(T, sx, ySm1 - 3.4, th + 0.4, c.name, { align: 1, valign: 2 });
+      pen.text(T, sx, ySm1 - 7.2, th * 0.9, (c.at ? "MCCB " + c.at + "AT · " : "") + "SPD · CT · METER", { align: 1, valign: 2 });
+      pen.text(T, sx, ySm1 - 10.6, th * 0.9, c.kw ? c.kw + " kW" : "", { align: 1, valign: 2 });
+      const n = c.invs.length, ix0 = sx - (n - 1) * IS / 2;
+      c.invs.forEach((no, k) => {
+        const ix = ix0 + k * IS;
+        pen.line(R, ix, ySm0, ix, yInv + 4);
+        pgSym.inverter(pen, ix, yInv, 8, 8);
+        pen.text(T, ix, yInv - 5.4, th, "INV-" + no, { align: 1, valign: 1 });
+        pen.line(CM, ix + 3, yInv - 4, ix + 3, yRs); rsX0 = Math.min(rsX0, ix + 3);   // สาย RS485 ออกมุมล่างขวา ไม่ทับป้าย INV
+      });
+      pen.text(T, sx, yRs - 1.6, th * 0.85, c.model, { align: 1, valign: 1 });
+    });
+  });
+  /* COMMUNICATION PANEL — SmartLogger รวม RS485 ทุกตู้ + มิเตอร์ PQM · ออก ROUTER/INTERNET */
+  const lx0 = x1 + 6, lx1 = lx0 + 40, ly0 = 40, ly1 = 58;
+  pen.rect(S, lx0, ly0, lx1 - lx0, ly1 - ly0);
+  pen.text(LB, lx0, ly1 + 1.4, th + 0.2, "COMMUNICATION PANEL (NEW)", { valign: 1 });
+  pen.text(T, (lx0 + lx1) / 2, 52, th + 0.2, D.logger || "DATA LOGGER", { align: 1, valign: 2 });
+  pen.text(T, (lx0 + lx1) / 2, 47.4, th * 0.9, "ROUTER · INTERNET", { align: 1, valign: 2 });
+  pen.line(CM, rsX0, yRs, lx0 + 8, yRs); pen.line(CM, lx0 + 8, yRs, lx0 + 8, ly0);
+  pen.text(T, lx0 + 9.4, yRs + 1.2, th * 0.9, "RS485", { valign: 1 });
+  pen.line(CM, pq1, 100, lx0 + 28, 100); pen.line(CM, lx0 + 28, 100, lx0 + 28, ly1);
+  pen.text(T, lx0 + 29.4, 80, th * 0.9, "RS485 (PQM)", { valign: 2 });
+}
+function pgMvSheet(doc, sheet, D) {
+  pgSldLayers(doc);
+  const pen = sheet.pen, A = sheet.area;
+  pgSheetTitle(pen, A.x0 + 6, A.y1 - 10, "OVERALL SINGLE LINE DIAGRAM", PG_TS.title, 220, 0, null);
+  const notes = ["NOTE :", "1. MV METERING (CT/VT · PQM PANEL) BY SUBCONTRACTOR.", "2. WHITE = EXISTING · RED = NEW SOLAR PV SYSTEM.",
+    "3. EACH SMDB DETAIL SEE SINGLE LINE DIAGRAM SHEETS."];
+  notes.forEach((s, i) => pen.text(PG_SLD.txt, A.x0 + 6, A.y0 + 16 - i * 3.6, 2.3, s, { valign: 2 }));
+  const bb = pgBBoxPen(); pgMvDraw(bb, D);
+  const d = bb.box, bw = d.x1 - d.x0, bh = d.y1 - d.y0, c = [A.x0 + 8, A.y0 + 22, A.x1 - 8, A.y1 - 20];
+  const sc = Math.min(2.4, (c[2] - c[0]) / bw, (c[3] - c[1]) / bh);
+  pgMvDraw(pgScalePen(pen, sc, (c[0] + c[2]) / 2 - (d.x0 + bw / 2) * sc, (c[1] + c[3]) / 2 - (d.y0 + bh / 2) * sc), D);
+}
+
 function pgSldDraw(doc, sheet, M) {
   if (M.pro && M.mppt && M.mppt.rows.some((r) => r.ins.length) && M.mode === "string") return pgSldPro(doc, sheet, M);
   pgSldLayers(doc);
@@ -3270,7 +3369,7 @@ function pgSldDraw(doc, sheet, M) {
 
 Object.assign(window, {
   PG_FONTS, pgFont, pgSetFont, pgDxf, pgSvg, pgDoc, pgCombine, pgPen, pgSheet, pgSheetTitle, pgScaleTxt, PG_SPAN, pgSheetLayers, pgLogoMark, pgWrap,
-  pgSldLayers, pgSldDraw, pgSldPro, pgCuSheet, pgSldGroups, pgInvNames, pgSldTable, pgSldEquip, pgSym,
+  pgSldLayers, pgSldDraw, pgSldPro, pgCuSheet, pgMvSheet, pgSldGroups, pgInvNames, pgSldTable, pgSldEquip, pgSym,
   pgTableLayers, pgGrid, pgSpecBlock, pgCompass, pgModuleDetail, pgModFace, pgTextW, pgPhotoFrame, pgDcString, pgDcSize,
   PG_SHEET, PG_LAY, PG_ACI, PG_SLD, PG_TBL,
 });

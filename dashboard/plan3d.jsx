@@ -2988,6 +2988,38 @@ function p3CuSheet(st, job, media) {
   pgCuSheet(doc, sheet, M);
   return doc.build();
 }
+/* ── งานแรงกลาง: SLD ภาพรวม (OVERALL) — ใบสำรวจ supply = mv + มีหม้อแปลง (ผู้ใช้ 2026-11-01) วาดใน dxf.jsx pgMvSheet ──
+   หม้อแปลง/MDB/เมน จากใบสำรวจ (trafos) · ตู้ SMDB-0n = แถว MCB_SOLAR-MDB ใน BOQ (invs = เครื่องที่รับ · mdb = ต่อเข้าตู้ไหน ไม่เลือก = ลำดับเดียวกัน) */
+function p3MvModel(st, job, design) {
+  const sv = (job && job.survey) || {};
+  if (sv.supply !== "mv" || !(sv.trafos || []).length) return null;
+  const M = p3SldModel(st, job, design), units = M.units || [], all = units.map((u, i) => i + 1);
+  const num = (v) => +String(v || "").replace(/[^\d.]/g, "") || 0;
+  const tr = sv.trafos.map((t, k) => ({ no: k + 1, kva: num(t && t.kva), mdb: (t && t.mdb) || "MDB-" + (k + 1), mainAT: num(t && t.mainAT), cabs: [] }));
+  const rows = ((job.boq && job.boq.cables) || []).filter((c) => c && /MCB_SOLAR-MDB/i.test(c.name || ""));
+  (rows.length ? rows : [{}]).forEach((c, k) => {
+    const invs = Array.isArray(c.invs) ? c.invs.filter((n) => all.indexOf(n) >= 0) : all;
+    if (!invs.length) return;
+    const t = tr.find((x) => x.mdb === c.mdb) || tr[Math.min(k, tr.length - 1)];
+    const w = invs.reduce((s, n) => s + (+(units[n - 1] || {}).w || +M.inv.w || 0), 0);
+    const md = []; invs.forEach((n) => { const m = (units[n - 1] || {}).model || M.inv.model; if (md.indexOf(m) < 0) md.push(m); });
+    t.cabs.push({ name: "SMDB-" + String(t.cabs.length + tr.slice(0, t.no - 1).reduce((s, x) => s + x.cabs.length, 0) + 1).padStart(2, "0"), invs,
+      kw: Math.round(w / 100) / 10, at: w ? p3At(w / (400 * Math.sqrt(3)) * 1.25) : 0, model: md.join(" / ") });
+  });
+  /* ชื่อ SMDB เรียงตามลำดับที่วาด (หม้อแปลง 1 ก่อน) */
+  let k = 0; tr.forEach((t) => t.cabs.forEach((c) => { c.name = "SMDB-" + String(++k).padStart(2, "0"); }));
+  const lg = M.mon && M.mon.logger ? M.mon.dev : "";
+  return { kv: sv.mvKv || "22", auth: String((job.permit && job.permit.auth) || sv.meterAuth || "PEA").toUpperCase(), tr,
+    pqm: "JANITZA UMG511", logger: lg ? String(lg).replace(/^huawei\s*/i, "").toUpperCase() : "" };
+}
+function p3MvSheet(st, job, media) {
+  media = media || {};
+  const D = p3MvModel(st, job, media.design);
+  const doc = pgDoc({ units: "mm", ltscale: 1 }, media.svg);
+  const sheet = pgSheet(doc, { k: 1, ox: 0, oy: 0, info: p3SheetInfo(st, job, { sheet: "MV", scale: "AS SHOW", sheetNo: media.sheetNo || "1/1" }) });
+  if (D) pgMvSheet(doc, sheet, D);
+  return doc.build();
+}
 /* แผ่นเดียววาดครบไหม — ลองวาดจริงหนึ่งรอบ (ไม่เก็บผล) ถ้าต้องย่อเป็น TYPICAL = แยกแผ่น คืนกลุ่มเครื่องที่สตริงเหมือนกัน · พอดี = null */
 function p3SldSplit(st, job, design) {
   if (typeof pgSldGroups !== "function") return null;
@@ -3376,6 +3408,9 @@ async function p3PrepSet(st, job, photos, design) {
       list.push({ key: "STRING", label: "ผังสตริงหน้างาน", fn: (o) => p3StrLayout(st, job, o) });
     add("STRDET");
     /* SLD แผ่นเดียวพอ = แผ่นเดียว · ไม่พอ = ภาพรวม + แผ่นย่อยละกลุ่มเครื่องที่สตริงเหมือนกัน (ผู้ใช้ 2026-10-29) */
+    /* งานแรงกลาง: แผ่นภาพรวมหม้อแปลง/MDB/SMDB ขึ้นก่อน SLD (ผู้ใช้ 2026-11-01) */
+    if (typeof pgMvSheet === "function" && p3MvModel(st, job, design))
+      list.push({ key: "MV", gk: "SLD", label: "SLD ภาพรวมแรงกลาง", en: "OVERALL SINGLE LINE DIAGRAM", fn: (o) => p3MvSheet(st, job, o) });
     const sg = p3SldSplit(st, job, design);
     if (!sg) list.push({ key: "SLD", label: "แผนภาพไฟฟ้า (SLD)", fn: (o) => p3Sld(st, job, o) });
     else {

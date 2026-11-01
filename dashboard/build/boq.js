@@ -2324,6 +2324,8 @@ function BOQEditor({
       no: k + 1
     }));
   }, [isStringInv, selInv, invXKey, result.meta.invCount]);
+  const mdbList = (job && job.survey && job.survey.supply === "mv" && job.survey.trafos || []).map((t, k) => t && t.mdb || "MDB-" + (k + 1));
+  const mdbOfCab = (c, k) => c && mdbList.indexOf(c.mdb) >= 0 ? c.mdb : mdbList[Math.min(k, mdbList.length - 1)];
   const mcbInvsOf = c => {
     const all = invUnits.map(u => u.no);
     return c && Array.isArray(c.invs) ? c.invs.filter(no => all.indexOf(no) >= 0) : all;
@@ -6963,7 +6965,10 @@ function BOQEditor({
   }, React.createElement(Dropdown, {
     value: b.monMeter || "auto",
     onChange: v => set("monMeter", v),
-    options: window.BOQ.MON_METER_OPTIONS
+    options: window.BOQ.MON_METER_OPTIONS.map(o => o.value === "auto" && b.mvSupply ? {
+      value: "auto",
+      label: "อัตโนมัติ · ใบสำรวจแรงกลาง → UMG511"
+    } : o)
   })), React.createElement(Field, {
     label: "Optimizer / \u0E15\u0E31\u0E27\u0E04\u0E38\u0E21\u0E41\u0E1C\u0E07"
   }, React.createElement(Dropdown, {
@@ -7863,7 +7868,12 @@ function BOQEditor({
         className: "bq-cab-chip" + (mine.indexOf(u.no) >= 0 ? " on" : ""),
         title: u.model + (u.outA ? " · " + u.outA + " A" : ""),
         onClick: () => toggleMcbInv(i, u.no)
-      }, "\u0E15\u0E31\u0E27\u0E17\u0E35\u0E48 ", u.no, u.kw ? " · " + u.kw + " kW" : "")), last && invUnits.length >= 2 && React.createElement("button", {
+      }, "\u0E15\u0E31\u0E27\u0E17\u0E35\u0E48 ", u.no, u.kw ? " · " + u.kw + " kW" : "")), mdbList.length >= 1 && React.createElement("span", null, "\u2192 \u0E15\u0E48\u0E2D\u0E40\u0E02\u0E49\u0E32"), mdbList.map(m => React.createElement("button", {
+        key: "m" + m,
+        type: "button",
+        className: "bq-cab-chip" + (mdbOfCab(c, cabNo - 1) === m ? " on" : ""),
+        onClick: () => setCab(i, "mdb", m)
+      }, m)), last && invUnits.length >= 2 && React.createElement("button", {
         type: "button",
         className: "bq-cabx-link",
         onClick: () => addMcbCab(i)
