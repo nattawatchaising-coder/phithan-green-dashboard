@@ -3222,9 +3222,12 @@ function pgMdbDraw(pen, M) {
       pen.dot(S, x, y, 0.4); pen.line(W, x, y, x + 2, y);
       pen.rect(S, x + 2, y - 0.6, 4, 1.2);
       pen.solid(S, [x + 2.3, y + 0.45], [x + 3.9, y], [x + 2.3, y - 0.45]); pen.solid(S, [x + 5.7, y + 0.45], [x + 4.1, y], [x + 5.7, y - 0.45]);
-      pen.line(W, x + 6, y, x + 8.5, y); pen.line(W, x + 8.5, y, x + 8.5, y - 0.6); pgSym.ground(pen, x + 8.5, y - 0.6);
-      pen.text(T, x + 12.5, y + (lab2 ? 0.6 : 0), TS.spec, lab, { valign: lab2 ? 1 : 2 });
-      if (lab2) pen.text(T, x + 12.5, y - 0.6, TS.spec, lab2, { valign: 3 });
+      /* ดินเล็กสีเทาแบบของเดิม ห้อยลงพ้นเส้น (ผู้ใช้ 2026-11-01 "กราวด์ไม่สวย") */
+      const gx = x + 7.5, gy = y - 2.2;
+      pen.line(W, x + 6, y, gx, y); pen.line(W, gx, y, gx, gy);
+      [[1.3, 0], [0.85, 0.6], [0.4, 1.2]].forEach(([w, d]) => pen.line(S, gx - w, gy - d, gx + w, gy - d));
+      pen.text(T, x + 10, y + (lab2 ? 0.6 : 0), TS.spec, lab, { valign: lab2 ? 1 : 2 });
+      if (lab2) pen.text(T, x + 10, y - 0.6, TS.spec, lab2, { valign: 3 });
     };
     const yLa2 = yT2 + rT + 3.5, yD2 = yLa2 + 1.6;
     pen.line(W, x, yT2 + rT, x, yD2); la(yLa2, "L/A " + kv + "kV,10kA");
