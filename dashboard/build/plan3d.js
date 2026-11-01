@@ -5366,11 +5366,11 @@ async function p3PrepSet(st, job, photos, design) {
       }));
     }
     const MS = p3SldModel(st, job, design);
-    if (MS.pro && MS.pro.home && MS.mppt && MS.mode === "string" && MS.mppt.rows.some(r => r.ins.length) && typeof pgCuSheet === "function") list.push({
+    if (MS.pro && (MS.pro.home || !MV) && MS.mppt && MS.mode === "string" && MS.mppt.rows.some(r => r.ins.length) && typeof pgCuSheet === "function") list.push({
       key: "CU",
       gk: "SLD",
-      label: "ต่อเข้าตู้ไฟบ้าน",
-      en: "CONSUMER UNIT CONNECTION",
+      label: MS.pro.home ? "ต่อเข้าตู้ไฟบ้าน" : "ต่อเข้าตู้ MDB ลูกค้า",
+      en: MS.pro.home ? "CONSUMER UNIT CONNECTION" : "MDB CONNECTION",
       fn: o => p3CuSheet(st, job, o)
     });
     list.push({

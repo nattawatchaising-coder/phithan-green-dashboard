@@ -2500,14 +2500,14 @@ function pgSldPro(doc, sheet, M) {
       pen.arc(CS, cx + cr2, pmy + cr2, cr2, 180, 270);
       pen.line(CS, cx + cr2, pmy, pmx - pw / 2, pmy);
       pen.rect(S, pmx - pw / 2, pbB, pw, pt - pbB);
-      pen.line(S, pmx - pw / 2, pt - 1.3, pmx + pw / 2, pt - 1.3);
-      pen.text(T, pmx, (pbB + pt - 1.3) / 2, Math.min(TS.head, fitH("DPM", TS.head, pw - 1)), "DPM", { align: 1, valign: 2 });   // Digital Power Meter (ผู้ใช้ 2026-11-01: DM → DPM)
-      pen.text(T, pmx, pt + 0.8, TS.spec, "PM2230", { align: 1, valign: 1 });   // ชื่อรุ่นเหนือกล่อง (ผู้ใช้วาดชี้ 2026-11-01)
-      /* ไฟเลี้ยง PM2230: แยกจากสายเมนหลัง MCCB/ZCT → ลง → MCB 2P 6A แนวนอน → เข้าข้างขวากล่อง */
+      const hb = 2.2;   // แถบบนสูงพอใส่ชื่อรุ่น
+      pen.line(S, pmx - pw / 2, pt - hb, pmx + pw / 2, pt - hb);
+      pen.text(T, pmx, (pbB + pt - hb) / 2, Math.min(TS.head, fitH("DPM", TS.head, pw - 1)), "DPM", { align: 1, valign: 2 });   // Digital Power Meter (ผู้ใช้ 2026-11-01: DM → DPM)
+      pen.text(T, pmx, pt - hb / 2, Math.min(TS.tag, hb * 0.6, fitH("PM2230", TS.tag, pw - 0.8)), "PM2230", { align: 1, valign: 2 });   // ชื่อรุ่นในแถบบนกล่อง (ผู้ใช้ 2026-11-01 "เอามาไว้ช่องบนหัว")
+      /* ไฟเลี้ยง PM2230: แยกจากจุดเดียวกับฟิวส์ pilot lamp (lx · ผู้ใช้ 2026-11-01 "ย้ายเส้นมาเชื่อมจุดเดียวกัน") → ลง → MCB 2P 6A แนวนอน → เข้าข้างขวากล่อง */
       const hx = mx + 5;
-      pen.dot(R, px, yMain, 0.5);
-      pen.line(R, px, yMain, px, pmy);
-      pen.line(R, px, pmy, hx + g + 0.75, pmy);
+      pen.line(R, lx, yMain, lx, pmy);
+      pen.line(R, lx, pmy, hx + g + 0.75, pmy);
       hBrk(hx, pmy);
       pen.line(R, hx - g - 0.75, pmy, pmx + pw / 2, pmy);
       pen.text(T, hx, pmy - 1.4, TS.tag, "MCB 2P 6A", { align: 1, valign: 3 });
@@ -2572,7 +2572,7 @@ function pgSldPro(doc, sheet, M) {
     pen.line(R, X.mdB - g - 0.75, yMain, ax, yMain);
     pen.solid(R, [ax, yMain + 1.1], [ax + 2.6, yMain], [ax, yMain - 1.1]);
     pen.text(LB, ax + 4, yMain + 0.9, TS.head, P.home ? "TO CONSUMER UNIT" : "TO " + ((M.smdb && M.smdb.mdb) || "MDB"), { valign: 1 });
-    pen.text(T, ax + 4, yMain - 1.0, TS.spec, P.home && M.cuRef ? M.cuRef : "(EXISTING)", { valign: 3 });
+    pen.text(T, ax + 4, yMain - 1.0, TS.spec, M.cuRef ? M.cuRef : "(EXISTING)", { valign: 3 });   // งานโครงการก็มีแผ่นตู้ MDB ลูกค้า (ผู้ใช้ 2026-11-01 "วาดกลับมา")
     const yE = Math.max(yE0, Math.min(blkLow - 4, acBot - 5, mdBot - 14));
     /* สายดิน SPD จบที่รูบาร์ G · สายไป MET ออกจากอีกรูด้านล่าง ไม่ลากทะลุบาร์ (ผู้ใช้ชี้ 2026-10-29) */
     /* สายดิน SPD ยังจบที่รูบาร์ G เหมือนเดิม (ผู้ใช้ 2026-10-31) — บาร์ G ขยับมาใต้ SPD สายลงตรงสั้น */
@@ -2944,7 +2944,7 @@ function pgCuDraw(pen, M) {
   const xBe = cu === "far" ? c1 + 8 : xFx;
   /* ตู้บ้าน: บัส + โหลดเดิม */
   pen.rect(BX, c0, cuB, c1 - c0, cuT - cuB);
-  pen.text(LB, c0 + 1, cuB - 1.0, TS.head, "CONSUMER UNIT (EXISTING)", { valign: 3 });
+  pen.text(LB, c0 + 1, cuB - 1.0, TS.head, P.home ? "CONSUMER UNIT (EXISTING)" : "MDB (EXISTING)", { valign: 3 });   // งานโครงการ = ตู้ MDB ลูกค้า (ผู้ใช้ 2026-11-01)
   pen.line(W, cu === "slot" ? xT : xL[0], yB, xBe, yB);
   xL.concat([xFx]).forEach((x) => {
     pen.dot(S, x, yB, 0.4);
@@ -3032,7 +3032,8 @@ function pgCuDraw(pen, M) {
   pen.text(T, xMn + rK + 1.2, yK - 0.6, TS.tag, "(EXISTING)", { valign: 3 });
   /* ป้าย CT บอกว่าเป็น CT ของมิเตอร์โซลาร์รุ่นไหน (ผู้ใช้ 2026-10-31) — รุ่นจาก BOQ ของงาน */
   const mtr = (M.mon && M.mon.meter) || M.monMeter || "";
-  const ctSpec = (pgMeterCt(mtr).ct ? "CT " + pgMeterCt(mtr).ct : ""), mtrCls = pgMeterCt(mtr).cls;
+  const mCt = (M.mon && M.mon.ct ? M.mon.ct.replace(/\s*x\d+$/, "") : "") || pgMeterCt(mtr).ct;   // DTSU666-HW: CT x/5A ตามเมนลูกค้า
+  const ctSpec = mCt ? "CT " + mCt : "", mtrCls = pgMeterCt(mtr).cls;
   const mtrNm = mtr.replace(/\s*(\+\s*CT|NO\s*CT|ไม่รวม\s*CT).*$/i, "").trim();
   pen.text(T, xMn - 2.4, yC + 0.8, TS.tag, "CT x" + (M.phase === 3 ? 3 : 1), { align: 2, valign: 1 });   // จำนวน CT ตามเฟส (ผู้ใช้ 2026-10-31: 1 เฟส CTx1 · 3 เฟส CTx3)
   pen.text(LB, xMn + 3.2, yC + 1.4, TS.tag, "CT MAIN GRID", { valign: 1 });
@@ -3054,7 +3055,7 @@ function pgCuDraw(pen, M) {
 function pgCuSheet(doc, sheet, M) {
   pgSldLayers(doc);
   const pen = sheet.pen, A = sheet.area;
-  pgSheetTitle(pen, A.x0 + 6, A.y1 - 10, "CONSUMER UNIT CONNECTION DIAGRAM", PG_TS.title, 220, 0, null);
+  pgSheetTitle(pen, A.x0 + 6, A.y1 - 10, M.pro && !M.pro.home ? "MDB CONNECTION DIAGRAM" : "CONSUMER UNIT CONNECTION DIAGRAM", PG_TS.title, 220, 0, null);
   /* ไม่มีหมายเหตุ / เลขแผ่นอ้างอิง (ผู้ใช้ขีดฆ่า 2026-10-31) */
   const bb = pgBBoxPen(); pgCuDraw(bb, M);
   const d = bb.box, bw = d.x1 - d.x0, bh = d.y1 - d.y0, c = [A.x0 + 10, A.y0 + 10, A.x1 - 10, A.y1 - 22];

@@ -3549,19 +3549,19 @@ function pgSldPro(doc, sheet, M) {
       pen.arc(CS, cx + cr2, pmy + cr2, cr2, 180, 270);
       pen.line(CS, cx + cr2, pmy, pmx - pw / 2, pmy);
       pen.rect(S, pmx - pw / 2, pbB, pw, pt - pbB);
-      pen.line(S, pmx - pw / 2, pt - 1.3, pmx + pw / 2, pt - 1.3);
-      pen.text(T, pmx, (pbB + pt - 1.3) / 2, Math.min(TS.head, fitH("DPM", TS.head, pw - 1)), "DPM", {
+      const hb = 2.2;
+      pen.line(S, pmx - pw / 2, pt - hb, pmx + pw / 2, pt - hb);
+      pen.text(T, pmx, (pbB + pt - hb) / 2, Math.min(TS.head, fitH("DPM", TS.head, pw - 1)), "DPM", {
         align: 1,
         valign: 2
       });
-      pen.text(T, pmx, pt + 0.8, TS.spec, "PM2230", {
+      pen.text(T, pmx, pt - hb / 2, Math.min(TS.tag, hb * 0.6, fitH("PM2230", TS.tag, pw - 0.8)), "PM2230", {
         align: 1,
-        valign: 1
+        valign: 2
       });
       const hx = mx + 5;
-      pen.dot(R, px, yMain, 0.5);
-      pen.line(R, px, yMain, px, pmy);
-      pen.line(R, px, pmy, hx + g + 0.75, pmy);
+      pen.line(R, lx, yMain, lx, pmy);
+      pen.line(R, lx, pmy, hx + g + 0.75, pmy);
       hBrk(hx, pmy);
       pen.line(R, hx - g - 0.75, pmy, pmx + pw / 2, pmy);
       pen.text(T, hx, pmy - 1.4, TS.tag, "MCB 2P 6A", {
@@ -3645,7 +3645,7 @@ function pgSldPro(doc, sheet, M) {
     pen.text(LB, ax + 4, yMain + 0.9, TS.head, P.home ? "TO CONSUMER UNIT" : "TO " + (M.smdb && M.smdb.mdb || "MDB"), {
       valign: 1
     });
-    pen.text(T, ax + 4, yMain - 1.0, TS.spec, P.home && M.cuRef ? M.cuRef : "(EXISTING)", {
+    pen.text(T, ax + 4, yMain - 1.0, TS.spec, M.cuRef ? M.cuRef : "(EXISTING)", {
       valign: 3
     });
     const yE = Math.max(yE0, Math.min(blkLow - 4, acBot - 5, mdBot - 14));
@@ -4212,7 +4212,7 @@ function pgCuDraw(pen, M) {
   const c1 = xFx + 6;
   const xBe = cu === "far" ? c1 + 8 : xFx;
   pen.rect(BX, c0, cuB, c1 - c0, cuT - cuB);
-  pen.text(LB, c0 + 1, cuB - 1.0, TS.head, "CONSUMER UNIT (EXISTING)", {
+  pen.text(LB, c0 + 1, cuB - 1.0, TS.head, P.home ? "CONSUMER UNIT (EXISTING)" : "MDB (EXISTING)", {
     valign: 3
   });
   pen.line(W, cu === "slot" ? xT : xL[0], yB, xBe, yB);
@@ -4353,7 +4353,8 @@ function pgCuDraw(pen, M) {
     valign: 3
   });
   const mtr = M.mon && M.mon.meter || M.monMeter || "";
-  const ctSpec = pgMeterCt(mtr).ct ? "CT " + pgMeterCt(mtr).ct : "",
+  const mCt = (M.mon && M.mon.ct ? M.mon.ct.replace(/\s*x\d+$/, "") : "") || pgMeterCt(mtr).ct;
+  const ctSpec = mCt ? "CT " + mCt : "",
     mtrCls = pgMeterCt(mtr).cls;
   const mtrNm = mtr.replace(/\s*(\+\s*CT|NO\s*CT|ไม่รวม\s*CT).*$/i, "").trim();
   pen.text(T, xMn - 2.4, yC + 0.8, TS.tag, "CT x" + (M.phase === 3 ? 3 : 1), {
@@ -4395,7 +4396,7 @@ function pgCuSheet(doc, sheet, M) {
   pgSldLayers(doc);
   const pen = sheet.pen,
     A = sheet.area;
-  pgSheetTitle(pen, A.x0 + 6, A.y1 - 10, "CONSUMER UNIT CONNECTION DIAGRAM", PG_TS.title, 220, 0, null);
+  pgSheetTitle(pen, A.x0 + 6, A.y1 - 10, M.pro && !M.pro.home ? "MDB CONNECTION DIAGRAM" : "CONSUMER UNIT CONNECTION DIAGRAM", PG_TS.title, 220, 0, null);
   const bb = pgBBoxPen();
   pgCuDraw(bb, M);
   const d = bb.box,
